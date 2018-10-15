@@ -1,0 +1,45 @@
+### Haskell ###
+dist
+dist-*
+cabal-dev
+*.o
+*.hi
+.cabal-sandbox/
+cabal.sandbox.config
+*.prof
+*.aux
+*.hp
+.stack-work/
+cabal.project.local
+
+### Curry ###
+Curry_Main_Goal.curry
+.curry
+
+### LaTeX ###
+
+## Core latex/pdflatex auxiliary files:
+*.log
+*.out
+*.toc
+*.fmt
+*.pdf
+*.aux
+*.soc
+
+## Bibliography auxiliary files (bibtex/biblatex/biber):
+*.bbl
+*.bcf
+*.blg
+*-blx.aux
+*-blx.bib
+*.run.xml
+
+## Auxiliary and intermediate files from other packages:
+
+# minted
+_minted*
+*.pyg
+
+# MacOS
+.DS_Store

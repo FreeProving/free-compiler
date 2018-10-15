@@ -1,0 +1,173 @@
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{localTheorem}
+\RequirePackage{kvoptions}
+\DeclareStringOption[english]{language}
+\DeclareBoolOption[true]{numbersfirst}
+\DeclareBoolOption[true]{dottednumbers}
+\DeclareBoolOption[false]{likeequations}
+\DeclareBoolOption[false]{simpleequations}
+\DeclareStringOption[]{plainfont}
+\DeclareStringOption[]{remarkfont}
+\@ifclassloaded{book}
+  {\DeclareStringOption[chapter]{within}}
+  {\DeclareStringOption[section]{within}}
+\@ifclassloaded{book}
+  {\DeclareStringOption[chapter]{exerciseswithin}}
+  {\DeclareStringOption[section]{exerciseswithin}}
+\ProcessKeyvalOptions*
+
+\RequirePackage{etoolbox}
+\RequirePackage{xifthen}
+\RequirePackage{expl3}
+
+\@ifclassloaded{beamer}{}{\let\openbox\@undefined}
+
+\newcommand*{\mainthmcounter}{proposition}
+\newcommand*{\@newtheorem}[2]{%
+    \newaliascnt{#1}{\mainthmcounter}
+    \newtheorem{#1}[#1]{#2}
+    \aliascntresetthe{#1}
+    \expandafter\providecommand\expandafter*\expandafter{\csname #1autorefname\endcsname}{#2}
+    \expandafter\newtheorem\expandafter*\expandafter{#1*}{#2}}
+
+\RequirePackage{aliascnt}
+\RequirePackage{amsthm}
+\RequirePackage{amsmath}
+\RequirePackage{expl3}
+
+\iflocalTheorem@numbersfirst
+  \swapnumbers
+\fi
+
+\iflocalTheorem@dottednumbers
+  % cf. texlive/2011/texmf-dist/tex/latex/amscls/amsthm.sty
+  \renewcommand\swappedhead[3]{%
+  \thmnumber{#2}\@ifnotempty{#1}{.}{}%
+    \thmname{\@ifnotempty{#2}{~}#1}%
+    \thmnote{ {\the\thm@notefont(#3)}}}
+\fi
+
+\newcommand*{\my@numberwithin}[2]{\ifthenelse{\equal{#2}{document}}{}{\numberwithin{#1}{#2}}}
+
+\theoremstyle{plain}
+\iflocalTheorem@likeequations
+  \my@numberwithin{equation}{\localTheorem@within}
+  \renewcommand*{\mainthmcounter}{equation}
+  \@newtheorem{proposition}{Proposition}
+\else
+  \newtheorem{proposition}{Proposition}
+  \providecommand*{\propositionautorefname}{Proposition}
+  \newtheorem*{proposition*}{Proposition}
+  \my@numberwithin{proposition}{\localTheorem@within}
+  \iflocalTheorem@simpleequations
+  \else
+    \my@numberwithin{equation}{\localTheorem@within}
+  \fi
+\fi
+
+\ifthenelse{\lengthtest{\parskip > 0pt}}{%
+\def\thm@space@setup{\thm@preskip=\parskip} %%% FIXME looks like an effective approach, perhaps now we can remove some gefrickel below?
+\newtheoremstyle{para}%
+{}%
+{0pt}%
+{}%
+{}%
+%{\itshape}%
+{\bfseries}%
+{.}%
+{ }%
+{}
+\newtheoremstyle{plain}%
+{}%
+{0pt}%
+{\csname\localTheorem@plainfont\endcsname}%
+{}%
+{\bfseries}%
+{.}%
+{ }%
+{}
+\newtheoremstyle{remark}%
+{}%
+{0pt}%
+{\csname\localTheorem@remarkfont\endcsname}%
+{}%
+{\bfseries}% FIXME this is tailored for "para style"
+{.}%
+{ }%
+{}
+\renewenvironment{proof}[1][\proofname]{\par
+  \pushQED{\qed}%
+  \normalfont \topsep-3\p@\@plus6\p@\relax  % FIXME why do we need -3?
+  \trivlist
+  \item[\hskip\labelsep
+        \itshape
+    #1\@addpunct{.}]\ignorespaces
+}{%
+  \popQED\endtrivlist\vspace{2pt}\@endpefalse % FIXME the 2pt are also gefrickelt
+}
+}{ %%% parskip=0 %%%
+\newtheoremstyle{para}%
+{}%
+{}%
+{}%
+{}%
+%{\itshape}%
+{\bfseries}%
+{.}%
+{ }%
+{}
+} %%% end parskip-sensitive stuff %%%
+
+\ExplSyntaxOn
+\str_case:onF{\localTheorem@language}{
+{english} {
+  \@newtheorem{lemma}{Lemma}
+  \@newtheorem{theorem}{Theorem}
+  \@newtheorem{conjecture}{Conjecture}
+  \@newtheorem{corollary}{Corollary}
+  \theoremstyle{definition}
+  \@newtheorem{definition}{Definition}
+  \@newtheorem{open}{Open~Problem}
+  \@newtheorem{convention}{Convention}
+  \@newtheorem{algo}{Algorithm}
+  \theoremstyle{para}
+  \@newtheorem{para}{}
+  \renewcommand*{\paraautorefname}{Paragraph}
+  \theoremstyle{remark}
+  \@newtheorem{observation}{Observation}
+  \@newtheorem{remark}{Remark}
+  \@newtheorem{hint}{Hint}
+  \@newtheorem{claim}{Claim}
+  \@newtheorem{problem}{Problem}
+  \@newtheorem{example}{Example}
+  \theoremstyle{definition}
+  \newtheorem{exercise}{}[\localTheorem@exerciseswithin]
+  \providecommand*{\exerciseautorefname}{Exercise}
+}
+{german} {
+  \@newtheorem{lemma}{Lemma}
+  \@newtheorem{theorem}{Theorem}
+  \@newtheorem{satz}{Satz}
+  \@newtheorem{conjecture}{Vermutung}
+  \@newtheorem{corollary}{Korollar}
+  \theoremstyle{definition}
+  \@newtheorem{definition}{Definition}
+  \@newtheorem{open}{Offenes Problem}
+  \@newtheorem{convention}{Konvention}
+  \@newtheorem{algo}{Algorithmus}
+  \theoremstyle{para}
+  \@newtheorem{para}{}
+  \renewcommand*{\paraautorefname}{Paragraf}
+  \theoremstyle{remark}
+  \@newtheorem{observation}{Beobachtung}
+  \@newtheorem{remark}{Bemerkung}
+  \@newtheorem{hint}{Hilfestellung}
+  \@newtheorem{claim}{Behauptung}
+  \@newtheorem{problem}{Problem}
+  \@newtheorem{example}{Beispiel}
+  \theoremstyle{definition}
+  \newtheorem{exercise}{}[\localTheorem@exerciseswithin]
+  \providecommand*{\exerciseautorefname}{Übung}
+}
+}{\PackageError{localTheorem}{Unknown~language:~\localTheorem@language}\@ehc}
+\ExplSyntaxOff
