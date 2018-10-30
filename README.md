@@ -8,6 +8,7 @@ Starter repository for theses.
 
 [How to use git(Lab)](https://docs.gitlab.com/ee/gitlab-basics/)  
 [How to write a git commit message](https://chris.beams.io/posts/git-commit/)  
+How to read research papers ([#1](How to Read a Paper), [#2](https://pages.cpsc.ucalgary.ca/~pwlfong/Pub/inroads2009.pdf))  
 
 ## Haskell-related
 
