@@ -9,4 +9,4 @@ main = do
     s     <- readFile f
     parseAndPrint s
 
-parseAndPrint f = writeFile "output/test.txt" (show (fromParseResult (parseModuleWithComments defaultParseMode f)))
+parseAndPrint f = writeFile "test.txt" (show (fromParseResult (parseModuleWithComments defaultParseMode f)))
