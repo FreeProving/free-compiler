@@ -10,3 +10,7 @@ main = do
     parseAndPrint s
 
 parseAndPrint f = writeFile "test.txt" (show (fromParseResult (parseModuleWithComments defaultParseMode f)))
+
+parseFile f = do
+            s <- readFile f
+            putStrLn (show (fromParseResult (parseModule s)))
