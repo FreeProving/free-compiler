@@ -15,18 +15,10 @@ build-type:          Simple
 extra-source-files:  ChangeLog.md
 cabal-version:       >=1.10
 
-library
-  exposed-modules:     Main
-  -- other-modules:
-  -- other-extensions:
-  build-depends:       haskell-src-exts, base >=4.11 && <4.12
-  -- hs-source-dirs:
-  default-language:    Haskell2010
-
 executable haskellToCoqCompiler
   main-is:             Main.hs
   -- other-modules:
   -- other-extensions:
-  build-depends:       haskell-src-exts, base >=4.11 && <4.12
+  build-depends:       haskell-src-exts >=1.20.3 && <1.20.4 , base >=4.11 && <4.12
   -- hs-source-dirs:
   default-language:    Haskell2010
