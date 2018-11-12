@@ -2,6 +2,7 @@ module Main where
 
 import System.Environment
 import Language.Haskell.Exts.Parser
+import Language.Haskell.Exts.Extension
 
 main :: IO ()
 main = do
@@ -13,4 +14,6 @@ parseAndPrint f = writeFile "test.txt" (show (fromParseResult (parseModuleWithCo
 
 parseFile f = do
             s <- readFile f
-            putStrLn (show (fromParseResult (parseModule s)))
+            putStrLn (show (fromParseResult (parseModuleWithMode (myParseMode f) s)))
+
+myParseMode s = ParseMode s Haskell98 [] True True Nothing True
