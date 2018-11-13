@@ -1,6 +1,5 @@
 module Test where
 
-value :: Int
-value = 5
+plus a b = a + b
 
-add a b = a + b
+minus c d = c - d
