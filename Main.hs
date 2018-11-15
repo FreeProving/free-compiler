@@ -1,25 +1,28 @@
 module Main where
 
+
 import System.Environment
 import Language.Haskell.Exts.Parser
 import Language.Haskell.Exts.Extension
-import Src.CoqConverter
+import Coq.Converter
 
 
 main :: IO ()
 main = do
     [f] <- getArgs
     s     <- readFile f
-    parseAndPrint s
+    parseAndPrintFile s
 
-parseAndPrint f = writeFile "test.txt" (show (fromParseResult (parseModuleWithComments defaultParseMode f)))
 
+parseFile :: String -> IO ()
 parseFile f = do
             s <- readFile f
-            putStrLn (convertToCoq (fromParseResult (parseModuleWithMode (myParseMode f) s)))
+            putStrLn (convertToCoq (fromParseResult (parseModuleWithMode (customParseMode f) s)))
 
+parseAndPrintFile :: String -> IO ()
 parseAndPrintFile f = do
             s <- readFile f
-            putStrLn (show (fromParseResult (parseModuleWithMode (myParseMode f) s)))
+            putStrLn (show (fromParseResult (parseModuleWithMode (customParseMode f) s)))
 
-myParseMode s = ParseMode s Haskell98 [] True True Nothing True
+customParseMode :: String -> ParseMode
+customParseMode s = ParseMode s Haskell98 [] True True Nothing True
