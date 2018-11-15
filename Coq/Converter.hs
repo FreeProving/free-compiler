@@ -1,6 +1,7 @@
-module Src.CoqConverter where
+module Coq.Converter where
 
 import Language.Haskell.Exts.Syntax
+--import Coq.Gallina
 
 convertToCoq :: Module l -> String
 convertToCoq m =
