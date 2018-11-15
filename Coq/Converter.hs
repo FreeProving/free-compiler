@@ -1,7 +1,7 @@
 module Coq.Converter where
 
 import Language.Haskell.Exts.Syntax
---import Coq.Gallina
+import Coq.Gallina
 
 convertToCoq :: Module l -> String
 convertToCoq m =
@@ -26,7 +26,7 @@ convertFunctionBinding (x:xs) = convertFunctionClause x ++ convertFunctionBindin
 
 convertFunctionClause x =
   case x of
-    Match _ name pat rhs _ -> convertName name ++ convertPatterns pat ++ convertRhs rhs
+    Language.Haskell.Exts.Syntax.Match _ name pat rhs _ -> convertName name ++ convertPatterns pat ++ convertRhs rhs
 
 convertPatterns [] = ""
 convertPatterns (x:xs) = convertPattern x ++ convertPatterns xs
@@ -43,7 +43,7 @@ convertRhs rhs =
 
 convertName n =
   case n of
-    Ident _ n -> n ++ " "
+    Language.Haskell.Exts.Syntax.Ident _ n -> n ++ " "
     Symbol _ n -> n ++ " "
 
 convertExpression x =
