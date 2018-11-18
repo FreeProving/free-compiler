@@ -2,6 +2,7 @@ module Coq.Converter where
 
 import Language.Haskell.Exts.Syntax
 import Coq.Gallina
+import Coq.Pretty 
 
 convertToCoq :: Module l -> String
 convertToCoq m =
