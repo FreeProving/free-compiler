@@ -359,6 +359,7 @@ data ImportExport = Import                                                      
 data ModuleSentence = ModuleImport ImportExport (NonEmpty ModuleIdent)                         -- ^@/import_export/ /qualid/ … /qualid/ .@
                     | Require (Maybe ModuleIdent) (Maybe ImportExport) (NonEmpty ModuleIdent)  -- ^@[From /qualid/] Require [/import_export/] /qualid/ … /qualid/ .@
                     | ModuleAssignment ModuleIdent ModuleIdent                                 -- ^@Module /qualid/ := /qualid/ .@
+                    | ModuleAssignmentSingle ModuleIdent                                       -- ^@Module /qualid/ .@
                     deriving (Eq, Ord, Show, Read, Typeable, Data)
 
 -- |@/class_definition/ ::=@ /(extra)/

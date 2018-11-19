@@ -2,16 +2,24 @@ module Coq.Converter where
 
 import Language.Haskell.Exts.Syntax
 import Coq.Gallina
-import Coq.Pretty 
+import Coq.Pretty
+import Text.PrettyPrint.Leijen.Text
 
-convertToCoq :: Module l -> String
-convertToCoq m =
-  case m of
-    Module _ (Just modHead) _ _ decls -> convertModuleHead modHead ++ convertDeclarations decls
-    Module _ Nothing _ _ decls -> convertDeclarations decls
+import qualified Data.Text as T
+
+convertModule :: Module l -> ModuleSentence
+convertModule (Module _ (Just modHead) _ _ decls) = convertModuleHead modHead
+convertModule (Module _ Nothing _ _ decls)        = error "Not implemented"
+
+convertModuleHead :: ModuleHead l -> ModuleSentence
+convertModuleHead (ModuleHead _ (ModuleName _ modName) _ _) = ModuleAssignmentSingle (T.pack modName)
 
 
-convertModuleHead mh =
+printCoqAST :: Gallina a => a -> IO ()
+printCoqAST x = putDoc (renderGallina x)
+
+
+{-convertModuleHead mh =
   case mh of
     ModuleHead _ (ModuleName _ name) _ _ -> "module " ++ name ++ ". \n \r"
 
@@ -63,4 +71,4 @@ convertQOperator qOp =
     QVarOp _ qName -> convertQName qName
     QConOp _ qName -> convertQName qName
 
-notI = "Not implemented "
+notI = "Not implemented "-}

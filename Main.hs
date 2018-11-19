@@ -17,7 +17,7 @@ main = do
 parseFile :: String -> IO ()
 parseFile f = do
             s <- readFile f
-            putStrLn (convertToCoq (fromParseResult (parseModuleWithMode (customParseMode f) s)))
+            printCoqAST (convertModule (fromParseResult (parseModuleWithMode (customParseMode f) s)))
 
 parseAndPrintFile :: String -> IO ()
 parseAndPrintFile f = do
