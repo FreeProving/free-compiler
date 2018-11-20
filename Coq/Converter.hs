@@ -76,7 +76,7 @@ qOpToGOp :: QOp l -> G.Op
 qOpToGOp (QVarOp _ qName) = qNameToOp qName
 
 qOpToQId :: QOp l -> G.Qualid
-qOpToQId (QVarOp _ qName) = qNameToQId qName
+qOpToQId (QVarOp _ (UnQual _ (Symbol _ name))) = G.Bare (T.pack ("op_"++ name ++"__"))
 
 printCoqAST :: G.LocalModule -> IO ()
 printCoqAST x = putDoc (renderGallina x)

@@ -29,12 +29,18 @@ import Data.List.NonEmpty (NonEmpty(), (<|), nonEmpty)
 
 import Data.Typeable
 import Data.Data (Data(..))
+import Data.String
 
 import Coq.Gallina
 import Coq.Util
 import PrettyPrint
 
-
+instance IsString Term where
+    fromString x = Qualid (unsafeIdentToQualid (T.pack x))
+instance IsString Qualid where
+    fromString x = unsafeIdentToQualid (T.pack x)
+instance IsString Binder where
+    fromString x = Inferred Explicit (Ident (unsafeIdentToQualid (T.pack x)))
 -- https://coq.inria.fr/refman/Reference-Manual005.html#init-notations
 -- todo: make PP monadic and update this table with new declarations?
 -- The table is given in Coq levels, but stored in levels for our use
@@ -57,7 +63,7 @@ precTable =
     , mkPrecEntry "/"   40      LeftAssociativity
     , mkPrecEntry "^"   30      RightAssociativity
     ]
-   where mkPrecEntry sym level assoc = ((read sym), (fromCoqLevel level, assoc))
+   where mkPrecEntry sym level assoc = (sym , (fromCoqLevel level, assoc))
 
 -- precedence for various other expression forms
 arrowPrec :: Int
