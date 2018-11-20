@@ -646,8 +646,6 @@ instance Gallina ModuleSentence where
           infix 9 ??
   renderGallina' _ (ModuleAssignment modNew modOld) =
     "Module" <+> renderModuleIdent modNew <+> nest 2 (":=" </> renderModuleIdent modOld <> ".")
-  renderGallina' _ (ModuleAssignmentSingle modNew) =
-    "Module" <+> renderModuleIdent modNew <+> nest 2 (".")
 
 
 instance Gallina ClassDefinition where

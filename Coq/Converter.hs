@@ -7,15 +7,49 @@ import Text.PrettyPrint.Leijen.Text
 
 import qualified Data.Text as T
 
-convertModule :: Module l -> ModuleSentence
-convertModule (Module _ (Just modHead) _ _ decls) = convertModuleHead modHead
-convertModule (Module _ Nothing _ _ decls)        = error "Not implemented"
 
-convertModuleHead :: ModuleHead l -> ModuleSentence
-convertModuleHead (ModuleHead _ (ModuleName _ modName) _ _) = ModuleAssignmentSingle (T.pack modName)
+convertModule :: Module l -> LocalModule
+convertModule (Module _ (Just modHead) _ _ decls) = LocalModule (convertModuleHead modHead) (convertModuleDecls decls)
+convertModule (Module _ Nothing _ _ decls)        = LocalModule T.empty (convertModuleDecls decls)
 
+convertModuleHead :: ModuleHead l -> Ident
+convertModuleHead (ModuleHead _ (ModuleName _ modName) _ _) = T.pack modName
 
-printCoqAST :: Gallina a => a -> IO ()
+convertModuleDecls :: [Decl l] -> [Sentence]
+convertModuleDecls decls = [convertModuleDecl s | s <- decls]
+
+convertModuleDecl :: Decl l -> Sentence
+convertModuleDecl (FunBind _ (x : xs)) = DefinitionSentence (convertMatchDef x)
+convertModuleDecl _ = error "not Inmplemented"
+
+convertMatchDef :: Match l -> Definition
+convertMatchDef (Match _ (Ident _ name) pattern rhs _ = DefinitionDef Local (Bare (T.pack name)) (convertPatToBinders pattern) Nothing (convertRhsToTerm rhs)
+
+convertPatsToBinders :: [Pat l] -> [Binder]
+convertPatsToBinders pats = [convertPatToBinder s | s <- pats]
+
+convertPatToBinder :: Pat l -> Binder
+convertPatToBinder (Pvar _ (Ident _ name)) = Inferred Explicit (Ident (Bare (T.pack name))
+convertPatToBinder _ = error "not implemented"
+
+convertRhsToTerm :: Rhs l -> Term
+convertRhsToTerm (UnGuardedRhs _ (expr)) = convertExprToTerm expr
+convertRhsToTerm _ = error "not implemented"
+
+convertExprToTerm :: Exp l -> Term
+convertExprToTerm (InfixApp _ (Var _ qNameL) (op) (Var _ qNameR)) = Match (MatchItem (Qualid (qNameToQId qNameL)) Nothing Nothing) Nothing (convertInfixEquation qNameL op qNameR)
+
+convertInfixEquation :: QName l -> Qop l -> QName l -> [Equation]
+convertInfixEquation (qNameL (QVarOp _ qOpName) qNameR) = [Equation (MultPattern (InfixPat (QualidPat (qNameToQId qNameL)) (qNameToText qOpName) (QualidPat (qNameToQId qNameR)))) --TODO]
+
+qNameToText :: QName l -> Text
+qNameToText (Unqual _ (Ident _ name)) = T.pack name
+
+qNameToQId :: QName l -> Qualid
+qNameToQId qName = Bare (qNameToText qName)
+qNameToQId _ = error "not implemented"
+
+printCoqAST :: LocalModule -> IO ()
 printCoqAST x = putDoc (renderGallina x)
 
 

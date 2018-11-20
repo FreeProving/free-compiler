@@ -107,7 +107,6 @@ type Op          = Text
 
 -- $Terms
 -- <https://coq.inria.fr/distrib/current/refman/Reference-Manual003.html#term §1.2, \"Terms\", in the Coq reference manual.>
-
 -- |NB: There is a bug in the Coq manual as regards the definition
 -- of destructuring pattern-@let@, i.e. with @let ' /pattern/ …@.  The
 -- definition is given as
@@ -359,7 +358,6 @@ data ImportExport = Import                                                      
 data ModuleSentence = ModuleImport ImportExport (NonEmpty ModuleIdent)                         -- ^@/import_export/ /qualid/ … /qualid/ .@
                     | Require (Maybe ModuleIdent) (Maybe ImportExport) (NonEmpty ModuleIdent)  -- ^@[From /qualid/] Require [/import_export/] /qualid/ … /qualid/ .@
                     | ModuleAssignment ModuleIdent ModuleIdent                                 -- ^@Module /qualid/ := /qualid/ .@
-                    | ModuleAssignmentSingle ModuleIdent                                       -- ^@Module /qualid/ .@
                     deriving (Eq, Ord, Show, Read, Typeable, Data)
 
 -- |@/class_definition/ ::=@ /(extra)/
