@@ -316,7 +316,7 @@ instance Gallina Term where
 
   -- Special notation for somehting that looks like an operator an
   -- is applied to two arguments
-  {-renderGallina' p (App2 (Qualid op) l r) | qualidIsOp op =
+  renderGallina' p (App2 (Qualid op) l r) | qualidIsOp op =
     case lookup op precTable of
       Just (n, LeftAssociativity)  ->
         maybeParen (n < p) $ group $
@@ -329,7 +329,7 @@ instance Gallina Term where
            renderGallina' (n + 1) l </> renderQOp op <!> renderGallina' (n + 1) r
       Nothing                      ->
         maybeParen (p > defaultOpPrec) $ group $
-           renderGallina' (defaultOpPrec + 1) l </> renderQOp op <!> renderGallina' (defaultOpPrec + 1) r-}
+           renderGallina' (defaultOpPrec + 1) l </> renderQOp op <!> renderGallina' (defaultOpPrec + 1) r
 
   renderGallina' p (App f args) =  maybeParen (p > appPrec) $
     let -- If we're providing a named argument, it turns out we can't use a

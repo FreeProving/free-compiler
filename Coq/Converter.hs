@@ -5,6 +5,8 @@ import qualified Coq.Gallina as G
 import Coq.Pretty
 import Text.PrettyPrint.Leijen.Text
 
+import qualified GHC.Base as B
+
 import qualified Data.Text as T
 
 
@@ -24,29 +26,57 @@ convertModuleDecl (FunBind _ (x : xs)) = G.DefinitionSentence (convertMatchDef x
 convertModuleDecl _ = error "not Inmplemented"
 
 convertMatchDef :: Match l -> G.Definition
-convertMatchDef (Match _ (Ident _ name) pattern rhs _) = G.DefinitionDef G.Local (G.Bare (T.pack name)) (convertPatsToBinders pattern) Nothing (convertRhsToTerm rhs)
+convertMatchDef (Match _ name pattern rhs _) = G.DefinitionDef G.Local (nameToQId name) (convertPatsToBinders pattern) Nothing (convertRhsToTerm rhs)
 
 convertPatsToBinders :: [Pat l] -> [G.Binder]
 convertPatsToBinders pats = [convertPatToBinder s | s <- pats]
 
 convertPatToBinder :: Pat l -> G.Binder
-convertPatToBinder (PVar _ (Ident _ name)) = G.Inferred G.Explicit (G.Ident (G.Bare (T.pack name)))
+convertPatToBinder (PVar _ name) = G.Inferred G.Explicit (nameToGName name)
 convertPatToBinder _ = error "not implemented"
 
 convertRhsToTerm :: Rhs l -> G.Term
-convertRhsToTerm (UnGuardedRhs _ (expr)) = convertExprToTerm expr
+convertRhsToTerm (UnGuardedRhs _ expr) = convertExprToTerm expr
 convertRhsToTerm _ = error "not implemented"
 
 convertExprToTerm :: Exp l -> G.Term
-convertExprToTerm (InfixApp _ (Var _ qNameL) (op) (Var _ qNameR)) = error "not implemented"
+convertExprToTerm (InfixApp _ (Var _ qNameL) (op) (Var _ qNameR)) = G.Fun ((convertQNameToBinder qNameL) B.:| (convertQNameToBinder qNameR) : []) (G.App (G.Qualid (qOpToQId op)) ((G.PosArg (G.Qualid (qNameToQId qNameL))) B.:| (G.PosArg (G.Qualid (qNameToQId qNameR))) : []))
+  --G.Match ((G.MatchItem (G.Qualid (qNameToQId qNameL))  Nothing Nothing) B.:| [] ) (Just (G.ReturnType (G.Qualid (qNameToQId qNameL)))) (infixAppToEquation qNameL op qNameR)
+
+infixAppToEquation :: QName l -> QOp l -> QName l -> [G.Equation]
+infixAppToEquation qNameL qOp qNameR = [G.Equation ((G.MultPattern ((G.UnderscorePat) B.:| [])) B.:| []) (G.App (G.Qualid (qOpToQId qOp)) ((G.PosArg (G.Qualid (qNameToQId qNameL))) B.:| (G.PosArg (G.Qualid (qNameToQId qNameR))) : []))]
+
+convertQNameToBinder :: QName l -> G.Binder
+convertQNameToBinder qName = G.Inferred G.Explicit (qNameToGName qName)
+
+nameToText :: Name l -> T.Text
+nameToText (Ident _ str) = T.pack str
+nameToText (Symbol _ str) = T.pack str
 
 qNameToText :: QName l -> T.Text
-qNameToText (UnQual _ (Ident _ name)) = T.pack name
+qNameToText (UnQual _ name) = nameToText name
 qNameToText _ = error "not implemented"
 
 qNameToQId :: QName l -> G.Qualid
 qNameToQId qName = G.Bare (qNameToText qName)
 
+nameToQId :: Name l -> G.Qualid
+nameToQId name = G.Bare (nameToText name)
+
+qNameToGName :: QName l -> G.Name
+qNameToGName (UnQual _ name) = (nameToGName name)
+
+nameToGName :: Name l -> G.Name
+nameToGName name = G.Ident (nameToQId name)
+
+qNameToOp :: QName l -> G.Op
+qNameToOp qName = qNameToText qName
+
+qOpToGOp :: QOp l -> G.Op
+qOpToGOp (QVarOp _ qName) = qNameToOp qName
+
+qOpToQId :: QOp l -> G.Qualid
+qOpToQId (QVarOp _ qName) = qNameToQId qName
 
 printCoqAST :: G.LocalModule -> IO ()
 printCoqAST x = putDoc (renderGallina x)
