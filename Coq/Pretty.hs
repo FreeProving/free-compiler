@@ -352,10 +352,10 @@ instance Gallina Term where
     renderGallina' scopePrec tm <> "%" <> renderIdent scope
 
   -- Special case the [let 'pat := scrut in body] syntax
-  renderGallina' p (Match [scrut] Nothing [Equation [pat] body])
+  {-renderGallina' p (Match [scrut] Nothing [Equation [pat] body])
     = maybeParen (p > matchPrec) $
          "let" <+> nest 2 ("'" <> renderGallina pat <+> ":=" </> renderGallina scrut <+> "in")
-          <!>  align (renderGallina body)
+          <!>  align (renderGallina body)-}
 
   renderGallina' p (Match discriminees orty eqns) = maybeParen (p > matchPrec) $
        "match" <+> align (  commaList (renderGallina <$> discriminees)
