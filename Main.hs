@@ -24,5 +24,8 @@ parseAndPrintFile f = do
             s <- readFile f
             putStrLn (show (fromParseResult (parseModuleWithMode (customParseMode f) s)))
 
+test :: IO ()
+test = parseFile "Test.hs"
+
 customParseMode :: String -> ParseMode
 customParseMode s = ParseMode s Haskell98 [] True True Nothing True

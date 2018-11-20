@@ -1,4 +1,6 @@
 module Test where
+{-
+Testfälle für bisherige Funktion des Compilers
+-}
 
-
-plus a b = a + b
+add a b = a + b
