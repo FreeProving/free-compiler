@@ -26,7 +26,7 @@ convertModuleDecl (FunBind _ (x : xs)) = G.DefinitionSentence (convertMatchDef x
 convertModuleDecl _ = error "not Inmplemented"
 
 convertMatchDef :: Match l -> G.Definition
-convertMatchDef (Match _ name pattern rhs _) = G.DefinitionDef G.Local (nameToQId name) (convertPatsToBinders pattern) Nothing (convertMatchRhsToTerm rhs)
+convertMatchDef (Match _ name pattern rhs _) = G.DefinitionDef G.Global (nameToQId name) (convertPatsToBinders pattern) Nothing (convertMatchRhsToTerm rhs)
 
 convertPatsToBinders :: [Pat l] -> [G.Binder]
 convertPatsToBinders pats = [convertPatToBinder s | s <- pats]
@@ -36,12 +36,12 @@ convertPatToBinder (PVar _ name) = G.Inferred G.Explicit (nameToGName name)
 convertPatToBinder _ = error "not implemented"
 
 convertMatchRhsToTerm :: Rhs l -> G.Term
-convertMatchRhsToTerm (UnGuardedRhs _ expr) = convertMatchExprToTerm expr
-convertMatchRhsToTerm _ = error "not implemented"
+convertMatchRhsToTerm (UnGuardedRhs _ expr) = convertUnguardedExprToTerm expr
+convertMatchRhsToTerm (GuardedRhss _ _ ) = error "not implemented"
 
-convertMatchExprToTerm :: Exp l -> G.Term
-convertMatchExprToTerm (InfixApp _ (Var _ qNameL) (qOp) (Var _ qNameR)) = G.Match ((G.MatchItem (G.Qualid (qNameToQId qNameL))  Nothing Nothing) B.:| [] ) Nothing (convertMatchInfixAppToEquation qNameL qOp qNameR)
-convertMatchExprToTerm _ = error "not implemented"
+convertUnguardedExprToTerm :: Exp l -> G.Term
+convertUnguardedExprToTerm (InfixApp _ (Var _ qNameL) (qOp) (Var _ qNameR)) = (G.App (G.Qualid (qOpToQId qOp)) ((G.PosArg (G.Qualid (qNameToQId qNameL))) B.:| (G.PosArg (G.Qualid (qNameToQId qNameR))) : []))
+convertUnguardedExprToTerm _ = error "not implemented"
 -- G.Fun ((convertQNameToBinder qNameL) B.:| (convertQNameToBinder qNameR) : []) (G.App (G.Qualid (qOpToQId op)) ((G.PosArg (G.Qualid (qNameToQId qNameL))) B.:| (G.PosArg (G.Qualid (qNameToQId qNameR))) : []))
 
 convertMatchInfixAppToEquation :: QName l -> QOp l -> QName l -> [G.Equation]
@@ -50,6 +50,7 @@ convertMatchInfixAppToEquation qNameL qOp qNameR = [G.Equation ((G.MultPattern (
 convertQNameToBinder :: QName l -> G.Binder
 convertQNameToBinder qName = G.Inferred G.Explicit (qNameToGName qName)
 
+--helper functions
 nameToText :: Name l -> T.Text
 nameToText (Ident _ str) = T.pack str
 nameToText (Symbol _ str) = T.pack str
@@ -74,7 +75,7 @@ nameToGName name = G.Ident (nameToQId name)
 qNameToOp :: QName l -> G.Op
 qNameToOp qName = qNameToText qName
 
-
+--Convert qualifiedOperator from Haskell to Qualid with Operator signature
 qOpToQId :: QOp l -> G.Qualid
 qOpToQId (QVarOp _ (UnQual _ (Symbol _ name))) = G.Bare (T.pack ("op_"++ name ++"__"))
 qOpToQId _ = error "not implemented"
