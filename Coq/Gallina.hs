@@ -47,6 +47,7 @@ module Coq.Gallina (
 
   -- * Signatures
   Signature(..),
+  TypeSignature(..),
 
   -- * The vernacular
   -- $Vernacular
@@ -413,6 +414,9 @@ data ArgumentExplicitness = ArgExplicit                                         
 data LocalModule = LocalModule Ident [Sentence]
                       deriving (Eq, Ord, Show, Read, Typeable, Data)
 
+
+data TypeSignature = TypeSignature Name [Term]
+                      deriving (Eq, Ord, Show, Read, Typeable, Data)
 -- A Coq signature
 -- TODO: Move this?
 data Signature = Signature { sigType   :: Term

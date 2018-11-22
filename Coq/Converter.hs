@@ -9,31 +9,64 @@ import qualified GHC.Base as B
 
 import qualified Data.Text as T
 
-
-
 convertModule :: Module l -> G.LocalModule
-convertModule (Module _ (Just modHead) _ _ decls) = G.LocalModule (convertModuleHead modHead) (convertModuleDecls decls)
-convertModule (Module _ Nothing _ _ decls)        = G.LocalModule T.empty (convertModuleDecls decls)
+convertModule (Module _ (Just modHead) _ _ decls) = G.LocalModule (convertModuleHead modHead) (convertModuleDecls (filter isNoTypeSignature decls) (map filterForTypeSignatures (filter isTypeSignature decls)))
+convertModule (Module _ Nothing _ _ decls)        = error "not implemented"
 
 convertModuleHead :: ModuleHead l -> G.Ident
 convertModuleHead (ModuleHead _ (ModuleName _ modName) _ _) = T.pack modName
 
-convertModuleDecls :: [Decl l] -> [G.Sentence]
-convertModuleDecls decls = [convertModuleDecl s | s <- decls]
+convertModuleDecls :: [Decl l] -> [G.TypeSignature]-> [G.Sentence]
+convertModuleDecls decls typeSigs = [convertModuleDecl s typeSigs | s <- decls]
 
-convertModuleDecl :: Decl l -> G.Sentence
-convertModuleDecl (FunBind _ (x : xs)) = G.DefinitionSentence (convertMatchDef x)
-convertModuleDecl _ = error "not Inmplemented"
+isNoTypeSignature :: Decl l -> Bool
+isNoTypeSignature (TypeSig _ _ _) = False
+isNoTypeSignature _ = True
+--Todo find better solution
+isTypeSignature :: Decl l -> Bool
+isTypeSignature (TypeSig _ _ _) = True
+isTypeSignature _ = False
 
-convertMatchDef :: Match l -> G.Definition
-convertMatchDef (Match _ name pattern rhs _) = G.DefinitionDef G.Global (nameToQId name) (convertPatsToBinders pattern) Nothing (convertRhsToTerm rhs)
+filterForTypeSignatures :: Decl l -> G.TypeSignature
+filterForTypeSignatures (TypeSig _ (name : rest) types) = G.TypeSignature (nameToGName name) (convertTypes types)
 
-convertPatsToBinders :: [Pat l] -> [G.Binder]
-convertPatsToBinders pats = [convertPatToBinder s | s <- pats]
+convertTypes :: Type l -> [G.Term]
+convertTypes (TyFun _ type1 type2) = mappend (convertTypes type1) (convertTypes type2)
+convertTypes (TyCon _ qName) = [qNameToTypeTerm qName]
+
+convertModuleDecl :: Decl l -> [G.TypeSignature] -> G.Sentence
+convertModuleDecl (FunBind _ (x : xs)) typeSigs = G.DefinitionSentence (convertMatchDef x typeSigs)
+convertModuleDecl _ _ = error "not Inmplemented"
+
+convertMatchDef :: Match l -> [G.TypeSignature] -> G.Definition
+convertMatchDef (Match _ name pattern rhs _) typeSigs =
+  let
+    typeSig :: Maybe G.TypeSignature
+    typeSig = (getTypeSignatureByName typeSigs name)
+  in
+    G.DefinitionDef G.Global (nameToQId name) (convertPatsToBinders pattern typeSig) (convertReturnType typeSig) (convertRhsToTerm rhs)
+
+convertReturnType :: Maybe G.TypeSignature -> Maybe G.Term
+convertReturnType Nothing = Nothing
+convertReturnType (Just (G.TypeSignature _ types)) = Just (last types)
+
+convertPatsToBinders :: [Pat l] -> Maybe G.TypeSignature-> [G.Binder]
+convertPatsToBinders patList Nothing = [convertPatToBinder p | p <- patList]
+convertPatsToBinders patList (Just (G.TypeSignature _ typeList)) = convertPatsAndTypeSigsToBinders patList (init typeList)
 
 convertPatToBinder :: Pat l -> G.Binder
 convertPatToBinder (PVar _ name) = G.Inferred G.Explicit (nameToGName name)
 convertPatToBinder _ = error "not implemented"
+
+convertPatsAndTypeSigsToBinders :: [Pat l] -> [G.Term] -> [G.Binder]
+convertPatsAndTypeSigsToBinders [] [] = []
+--convertPatsAndTypeSigsToBinders p [] = []
+--convertPatsAndTypeSigsToBinders [] t = []
+convertPatsAndTypeSigsToBinders (p : ps) (t : ts) = (convertPatAndTypeSigToBinder p t) : convertPatsAndTypeSigsToBinders ps ts
+
+convertPatAndTypeSigToBinder :: Pat l -> G.Term -> G.Binder
+convertPatAndTypeSigToBinder (PVar _ name) term = G.Typed G.Ungeneralizable G.Explicit (toNonemptyList (nameToGName name)) term
+convertPatAndTypeSigToBinder _ _ = error "not implemented"
 
 convertRhsToTerm :: Rhs l -> G.Term
 convertRhsToTerm (UnGuardedRhs _ expr) = convertExprToTerm expr
@@ -43,9 +76,8 @@ convertExprToTerm :: Exp l -> G.Term
 convertExprToTerm (Var _ qName) = qNameToTerm qName
 convertExprToTerm (Con _ qName) = qNameToTerm qName
 convertExprToTerm (InfixApp _ (Var _ qNameL) (qOp) (Var _ qNameR)) = (G.App (G.Qualid (qOpToQId qOp)) ((G.PosArg (G.Qualid (qNameToQId qNameL))) B.:| (G.PosArg (G.Qualid (qNameToQId qNameR))) : []))
-convertExprToTerm (Case _ expr altList) = G.Match ((G.MatchItem (convertExprToTerm expr)  Nothing Nothing) B.:| [] ) Nothing (convertAltListToEquationList altList)
+convertExprToTerm (Case _ expr altList) = G.Match (toNonemptyList (G.MatchItem (convertExprToTerm expr)  Nothing Nothing)) Nothing (convertAltListToEquationList altList)
 convertExprToTerm _ = error "not implemented"
--- G.Fun ((convertQNameToBinder qNameL) B.:| (convertQNameToBinder qNameR) : []) (G.App (G.Qualid (qOpToQId op)) ((G.PosArg (G.Qualid (qNameToQId qNameL))) B.:| (G.PosArg (G.Qualid (qNameToQId qNameR))) : []))
 
 convertAltListToEquationList :: [Alt l] -> [G.Equation]
 convertAltListToEquationList altList = [convertAltToEquation s | s <- altList]
@@ -64,9 +96,21 @@ convertHPatToGPat _ = error "not implemented"
 convertQNameToBinder :: QName l -> G.Binder
 convertQNameToBinder qName = G.Inferred G.Explicit (qNameToGName qName)
 
+--manual covnversion of common Haskell types to coq equivalent
+getType :: String -> G.Term
+getType ("Int") = stringToTerm "nat"
+getType ("Bool") = stringToTerm "bool"
+
 --helper functions
 toNonemptyList :: a -> B.NonEmpty a
 toNonemptyList a = a B.:| []
+
+getQString :: QName l -> String
+getQString (UnQual _ name) = getString name
+
+getString  :: Name l -> String
+getString (Ident _ str) = str
+getString (Symbol _ str) = str
 
 nameToText :: Name l -> T.Text
 nameToText (Ident _ str) = T.pack str
@@ -94,6 +138,27 @@ qNameToOp qName = qNameToText qName
 
 qNameToTerm :: QName l -> G.Term
 qNameToTerm qName = G.Qualid (qNameToQId qName)
+
+getTypeSignatureByName :: [G.TypeSignature] -> Name l -> Maybe G.TypeSignature
+getTypeSignatureByName [] name = Nothing
+getTypeSignatureByName (x : xs) name = if (nameEqualsTypeName x name)
+                                      then Just x
+                                      else getTypeSignatureByName xs name
+
+nameEqualsTypeName :: G.TypeSignature -> Name l -> Bool
+nameEqualsTypeName (G.TypeSignature sigName _) name = gNameEqName sigName name
+
+gNameEqName :: G.Name -> Name l -> Bool
+gNameEqName (G.Ident (G.Bare gName)) (Ident _ name) = (T.unpack gName) == name
+
+qNameToTypeTerm :: QName l -> G.Term
+qNameToTypeTerm qName = getType (getQString qName)
+
+stringToTerm :: String -> G.Term
+stringToTerm str = G.Qualid (stringToQId str)
+
+stringToQId :: String -> G.Qualid
+stringToQId str = G.Bare (T.pack str)
 
 --Convert qualifiedOperator from Haskell to Qualid with Operator signature
 qOpToQId :: QOp l -> G.Qualid
