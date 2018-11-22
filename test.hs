@@ -5,7 +5,6 @@ Testfälle für bisherige Funktion des Compilers
 
 plus a b = a + b
 
-minus a b = a - b
 
 --not :: Bool -> Bool
 not b = case b of
