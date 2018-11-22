@@ -3,10 +3,11 @@ module Test where
 Testfälle für bisherige Funktion des Compilers
 -}
 
+plus :: Int -> Int -> Int -- TyFun (Int) (TyFun (Int) (Int))
 plus a b = a + b
 
 
---not :: Bool -> Bool
+not :: Bool -> Bool
 not b = case b of
   False -> True
   True -> False
