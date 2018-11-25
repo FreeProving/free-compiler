@@ -3,7 +3,7 @@ module Test where
 Testfälle für bisherige Funktion des Compilers
 -}
 
-plus :: Int -> Int -> Int -- TyFun (Int) (TyFun (Int) (Int))
+plus :: Int -> Int -> Int
 plus a b = a + b
 
 
@@ -16,11 +16,11 @@ not b = case b of
 {-append :: [a] -> [a] -> [a]
 append xs ys = case xs of
   [] -> ys
-  z:zs -> z : append zs ys
+  z:zs -> z : append zs ys-}
 
 data Bool = True
           | False
-
+{-
 data Maybe a = Nothing
               | Just a
 
