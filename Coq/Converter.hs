@@ -19,6 +19,20 @@ convertModuleHead (ModuleHead _ (ModuleName _ modName) _ _) = T.pack modName
 convertModuleDecls :: [Decl l] -> [G.TypeSignature]-> [G.Sentence]
 convertModuleDecls decls typeSigs = [convertModuleDecl s typeSigs | s <- decls]
 
+convertModuleDecl :: Decl l -> [G.TypeSignature] -> G.Sentence
+convertModuleDecl (FunBind _ (x : xs)) typeSigs = G.DefinitionSentence (convertMatchDef x typeSigs)
+convertModuleDecl (DataDecl _ (DataType _ ) Nothing declHead qualConDecl _ ) _ = G.InductiveSentence (convertDataTypeDecl declHead qualConDecl)
+convertModuleDecl _ _ = error "not Inmplemented"
+
+convertDataTypeDecl :: DeclHead l -> [QualConDecl l] -> G.Inductive
+convertDataTypeDecl (DHead _ name) qConDecl = G.Inductive (toNonemptyList(G.IndBody (nameToQId name) [] (strToTerm "Type") (qConDeclsToGConDecls qConDecl))) []
+
+qConDeclsToGConDecls :: [QualConDecl l] -> [(G.Qualid, [G.Binder], Maybe G.Term)]
+qConDeclsToGConDecls qConDecl = [qConDeclToGConDecl c | c <- qConDecl]
+
+qConDeclToGConDecl :: QualConDecl l -> (G.Qualid, [G.Binder], Maybe G.Term)
+qConDeclToGConDecl (QualConDecl _ Nothing Nothing (ConDecl _ name _)) = ((nameToQId name), [], Nothing)
+
 isTypeSignature :: Decl l -> Bool
 isTypeSignature (TypeSig _ _ _) = True
 isTypeSignature _ = False
@@ -32,10 +46,6 @@ filterForTypeSignatures (TypeSig _ (name : rest) types) = G.TypeSignature (nameT
 convertTypes :: Type l -> [G.Term]
 convertTypes (TyFun _ type1 type2) = mappend (convertTypes type1) (convertTypes type2)
 convertTypes (TyCon _ qName) = [qNameToTypeTerm qName]
-
-convertModuleDecl :: Decl l -> [G.TypeSignature] -> G.Sentence
-convertModuleDecl (FunBind _ (x : xs)) typeSigs = G.DefinitionSentence (convertMatchDef x typeSigs)
-convertModuleDecl _ _ = error "not Inmplemented"
 
 convertMatchDef :: Match l -> [G.TypeSignature] -> G.Definition
 convertMatchDef (Match _ name pattern rhs _) typeSigs =
