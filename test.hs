@@ -29,5 +29,9 @@ data Either a b =
   Left a
   | Right b
 
-{-data List a = Nil
-            | Cons a (List a)-}
+data List a = Nil
+            | Cons a (List a)
+
+data Tree a =
+  Leaf
+  | Branch a (Tree a) (Tree a)
