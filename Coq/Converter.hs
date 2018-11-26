@@ -24,62 +24,10 @@ convertModuleDecl (FunBind _ (x : xs)) typeSigs = G.DefinitionSentence (convertM
 convertModuleDecl (DataDecl _ (DataType _ ) Nothing declHead qConDecl _ ) _ = G.InductiveSentence (convertDataTypeDecl declHead qConDecl)
 convertModuleDecl _ _ = error "not Inmplemented"
 
+
+
 convertDataTypeDecl :: DeclHead l -> [QualConDecl l] -> G.Inductive
-convertDataTypeDecl dHead qConDecl = G.Inductive (toNonemptyList(G.IndBody (applyToDeclHead dHead nameToQId) (applyToDeclHeadTyVarBinds dHead convertTyVarBindToBinder) (strToTerm "Type") (qConDeclsToGConDecls qConDecl (getReturnTypeFromDeclHead (applyToDeclHeadTyVarBinds dHead convertTyVarBindToArg) dHead)))) []
-
-applyToDeclHead :: DeclHead l -> (Name l -> a) -> a
-applyToDeclHead (DHead _ name) f = f name
-applyToDeclHead (DHApp _ declHead _ ) f = applyToDeclHead declHead f
-
-applyToDeclHeadTyVarBinds :: DeclHead l -> (TyVarBind l -> a ) -> [a]
-applyToDeclHeadTyVarBinds (DHead _ _) f = []
-applyToDeclHeadTyVarBinds (DHApp _ declHead tyVarBind) f = reverse (f tyVarBind : applyToDeclHeadTyVarBinds declHead f)
-
-getReturnTypeFromDeclHead :: [G.Arg] -> DeclHead l -> G.Term
-getReturnTypeFromDeclHead [] dHead = applyToDeclHead dHead nameToTerm
-getReturnTypeFromDeclHead (x : xs) dHead = G.App (applyToDeclHead dHead nameToTerm) (x B.:| xs)
-
-convertTyVarBindToBinder :: TyVarBind l -> G.Binder
-convertTyVarBindToBinder (KindedVar _ name kind) = error "not implemented"
-convertTyVarBindToBinder (UnkindedVar _ name) = G.Typed G.Ungeneralizable G.Explicit (toNonemptyList (nameToGName name)) (strToTerm "Type")
-
-convertTyVarBindToArg :: TyVarBind l -> G.Arg
-convertTyVarBindToArg (KindedVar _ name kind) = error "not implemented"
-convertTyVarBindToArg (UnkindedVar _ name) = G.PosArg (nameToTerm name)
-
-qConDeclsToGConDecls :: [QualConDecl l] -> G.Term -> [(G.Qualid, [G.Binder], Maybe G.Term)]
-qConDeclsToGConDecls qConDecl term = [qConDeclToGConDecl c term | c <- qConDecl]
-
-qConDeclToGConDecl :: QualConDecl l -> G.Term -> (G.Qualid, [G.Binder], Maybe G.Term)
-qConDeclToGConDecl (QualConDecl _ Nothing Nothing (ConDecl _ name types)) term = ((nameToQId name), [] , (Just (convertToArrowTerm types term)))
-
-convertToArrowTerm :: [Type l] -> G.Term -> G.Term
-convertToArrowTerm [] returnType = returnType
-convertToArrowTerm (x : xs) returnType = G.Arrow (convertTypeToTerm x) (convertToArrowTerm xs returnType)
-
-isTypeSignature :: Decl l -> Bool
-isTypeSignature (TypeSig _ _ _) = True
-isTypeSignature _ = False
-
-isNoTypeSignature :: Decl l -> Bool
-isNoTypeSignature decl = not (isTypeSignature decl)
-
-filterForTypeSignatures :: Decl l -> G.TypeSignature
-filterForTypeSignatures (TypeSig _ (name : rest) types) = G.TypeSignature (nameToGName name) (convertTypeToTerms types)
-
-convertTypeToTerm :: Type l -> G.Term
-convertTypeToTerm (TyVar _ name) = nameToTerm name
-convertTypeToTerm (TyCon _ qName) = qNameToTerm qName
-convertTypeToTerm (TyParen _ ty) = G.Parens (convertTypeToTerm ty)
-convertTypeToTerm (TyApp _ type1 type2) = G.App (convertTypeToTerm type1) (toNonemptyList (convertToArgs type2))
-convertTypeToTerm _ = error "not implemented"
-
-convertToArgs :: Type l -> G.Arg
-convertToArgs ty = G.PosArg (convertTypeToTerm ty)
-
-convertTypeToTerms :: Type l -> [G.Term]
-convertTypeToTerms (TyFun _ type1 type2) = mappend (convertTypeToTerms type1) (convertTypeToTerms type2)
-convertTypeToTerms t = [convertTypeToTerm t]
+convertDataTypeDecl dHead qConDecl = G.Inductive (toNonemptyList(G.IndBody (applyToDeclHead dHead nameToQId) (applyToDeclHeadTyVarBinds dHead convertTyVarBindToBinder) typeTerm (convertQConDeclsToGConDecls qConDecl (getReturnTypeFromDeclHead (applyToDeclHeadTyVarBinds dHead convertTyVarBindToArg) dHead)))) []
 
 convertMatchDef :: Match l -> [G.TypeSignature] -> G.Definition
 convertMatchDef (Match _ name pattern rhs _) typeSigs =
@@ -88,6 +36,46 @@ convertMatchDef (Match _ name pattern rhs _) typeSigs =
     typeSig = (getTypeSignatureByName typeSigs name)
   in
     G.DefinitionDef G.Global (nameToQId name) (convertPatsToBinders pattern typeSig) (convertReturnType typeSig) (convertRhsToTerm rhs)
+
+
+getReturnTypeFromDeclHead :: [G.Arg] -> DeclHead l -> G.Term
+getReturnTypeFromDeclHead [] dHead = applyToDeclHead dHead nameToTerm
+getReturnTypeFromDeclHead (x : xs) dHead = G.App (applyToDeclHead dHead nameToTerm) (x B.:| xs)
+
+convertTyVarBindToBinder :: TyVarBind l -> G.Binder
+convertTyVarBindToBinder (KindedVar _ name kind) = error "not implemented"
+convertTyVarBindToBinder (UnkindedVar _ name) = G.Typed G.Ungeneralizable G.Explicit (toNonemptyList (nameToGName name)) typeTerm
+
+convertTyVarBindToArg :: TyVarBind l -> G.Arg
+convertTyVarBindToArg (KindedVar _ name kind) = error "not implemented"
+convertTyVarBindToArg (UnkindedVar _ name) = G.PosArg (nameToTerm name)
+
+convertQConDeclsToGConDecls :: [QualConDecl l] -> G.Term -> [(G.Qualid, [G.Binder], Maybe G.Term)]
+convertQConDeclsToGConDecls qConDecl term = [convertQConDeclToGConDecl c term | c <- qConDecl]
+
+convertQConDeclToGConDecl :: QualConDecl l -> G.Term -> (G.Qualid, [G.Binder], Maybe G.Term)
+convertQConDeclToGConDecl (QualConDecl _ Nothing Nothing (ConDecl _ name types)) term = ((nameToQId name), [] , (Just (convertToArrowTerm types term)))
+
+convertToArrowTerm :: [Type l] -> G.Term -> G.Term
+convertToArrowTerm [] returnType = returnType
+convertToArrowTerm (x : xs) returnType = G.Arrow (convertTypeToTerm x) (convertToArrowTerm xs returnType)
+
+filterForTypeSignatures :: Decl l -> G.TypeSignature
+filterForTypeSignatures (TypeSig _ (name : rest) types) = G.TypeSignature (nameToGName name) (convertTypeToTerms types)
+
+convertTypeToTerm :: Type l -> G.Term
+convertTypeToTerm (TyVar _ name) = nameToTerm name
+convertTypeToTerm (TyCon _ qName) = qNameToTerm qName
+convertTypeToTerm (TyParen _ ty) = G.Parens (convertTypeToTerm ty)
+convertTypeToTerm (TyApp _ type1 type2) = G.App (convertTypeToTerm type1) (toNonemptyList (convertTypeToArg type2))
+convertTypeToTerm _ = error "not implemented"
+
+convertTypeToArg :: Type l -> G.Arg
+convertTypeToArg ty = G.PosArg (convertTypeToTerm ty)
+
+convertTypeToTerms :: Type l -> [G.Term]
+convertTypeToTerms (TyFun _ type1 type2) = mappend (convertTypeToTerms type1) (convertTypeToTerms type2)
+convertTypeToTerms t = [convertTypeToTerm t]
 
 convertReturnType :: Maybe G.TypeSignature -> Maybe G.Term
 convertReturnType Nothing = Nothing
@@ -139,10 +127,30 @@ convertHPatToGPat _ = error "not implemented"
 convertQNameToBinder :: QName l -> G.Binder
 convertQNameToBinder qName = G.Inferred G.Explicit (qNameToGName qName)
 
+isTypeSignature :: Decl l -> Bool
+isTypeSignature (TypeSig _ _ _) = True
+isTypeSignature _ = False
+
+isNoTypeSignature :: Decl l -> Bool
+isNoTypeSignature decl = not (isTypeSignature decl)
+
+typeTerm :: G.Term
+typeTerm = strToTerm "Type"
+
 --manual covnversion of common Haskell types to coq equivalent
 getType :: String -> G.Term
 getType ("Int") = strToTerm "nat"
 getType ("Bool") = strToTerm "bool"
+
+--apply a function only to the actual head of a DeclHead
+applyToDeclHead :: DeclHead l -> (Name l -> a) -> a
+applyToDeclHead (DHead _ name) f = f name
+applyToDeclHead (DHApp _ declHead _ ) f = applyToDeclHead declHead f
+
+--apply a function to every tyVarBind of a DeclHead and reverse it (to get arguments in right order)
+applyToDeclHeadTyVarBinds :: DeclHead l -> (TyVarBind l -> a ) -> [a]
+applyToDeclHeadTyVarBinds (DHead _ _) f = []
+applyToDeclHeadTyVarBinds (DHApp _ declHead tyVarBind) f = reverse (f tyVarBind : applyToDeclHeadTyVarBinds declHead f)
 
 --helper functions
 --convert single element to nonempty list
