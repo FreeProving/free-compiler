@@ -25,7 +25,7 @@ convertModuleDecl (DataDecl _ (DataType _ ) Nothing declHead qConDecl _ ) _ = G.
 convertModuleDecl _ _ = error "not Inmplemented"
 
 convertDataTypeDecl :: DeclHead l -> [QualConDecl l] -> G.Inductive
-convertDataTypeDecl dHead qConDecl = G.Inductive (toNonemptyList(G.IndBody (applyToDeclHead dHead nameToQId) (applyToDeclHeadTyVarBinds dHead convertTyVarBindToBinder) (strToTerm "Type") (qConDeclsToGConDecls qConDecl (getReturnTypeFromDeclHead dHead)))) []
+convertDataTypeDecl dHead qConDecl = G.Inductive (toNonemptyList(G.IndBody (applyToDeclHead dHead nameToQId) (applyToDeclHeadTyVarBinds dHead convertTyVarBindToBinder) (strToTerm "Type") (qConDeclsToGConDecls qConDecl (getReturnTypeFromDeclHead (applyToDeclHeadTyVarBinds dHead convertTyVarBindToArg) dHead)))) []
 
 applyToDeclHead :: DeclHead l -> (Name l -> a) -> a
 applyToDeclHead (DHead _ name) f = f name
@@ -35,12 +35,17 @@ applyToDeclHeadTyVarBinds :: DeclHead l -> (TyVarBind l -> a ) -> [a]
 applyToDeclHeadTyVarBinds (DHead _ _) f = []
 applyToDeclHeadTyVarBinds (DHApp _ declHead tyVarBind) f = reverse (f tyVarBind : applyToDeclHeadTyVarBinds declHead f)
 
-getReturnTypeFromDeclHead :: DeclHead l -> G.Term
-getReturnTypeFromDeclHead dHead = G.Qualid (strToQId ((applyToDeclHead dHead nameToStr) ++ " " ++ (concat (applyToDeclHeadTyVarBinds dHead tyVarBindToString))))
+getReturnTypeFromDeclHead :: [G.Arg] -> DeclHead l -> G.Term
+getReturnTypeFromDeclHead [] dHead = applyToDeclHead dHead nameToTerm
+getReturnTypeFromDeclHead (x : xs) dHead = G.App (applyToDeclHead dHead nameToTerm) (x B.:| xs)
 
 convertTyVarBindToBinder :: TyVarBind l -> G.Binder
 convertTyVarBindToBinder (KindedVar _ name kind) = error "not implemented"
 convertTyVarBindToBinder (UnkindedVar _ name) = G.Typed G.Ungeneralizable G.Explicit (toNonemptyList (nameToGName name)) (strToTerm "Type")
+
+convertTyVarBindToArg :: TyVarBind l -> G.Arg
+convertTyVarBindToArg (KindedVar _ name kind) = error "not implemented"
+convertTyVarBindToArg (UnkindedVar _ name) = G.PosArg (nameToTerm name)
 
 qConDeclsToGConDecls :: [QualConDecl l] -> G.Term -> [(G.Qualid, [G.Binder], Maybe G.Term)]
 qConDeclsToGConDecls qConDecl term = [qConDeclToGConDecl c term | c <- qConDecl]
@@ -65,7 +70,12 @@ filterForTypeSignatures (TypeSig _ (name : rest) types) = G.TypeSignature (nameT
 convertTypeToTerm :: Type l -> G.Term
 convertTypeToTerm (TyVar _ name) = nameToTerm name
 convertTypeToTerm (TyCon _ qName) = qNameToTerm qName
+convertTypeToTerm (TyParen _ ty) = G.Parens (convertTypeToTerm ty)
+convertTypeToTerm (TyApp _ type1 type2) = G.App (convertTypeToTerm type1) (toNonemptyList (convertToArgs type2))
 convertTypeToTerm _ = error "not implemented"
+
+convertToArgs :: Type l -> G.Arg
+convertToArgs ty = G.PosArg (convertTypeToTerm ty)
 
 convertTypeToTerms :: Type l -> [G.Term]
 convertTypeToTerms (TyFun _ type1 type2) = mappend (convertTypeToTerms type1) (convertTypeToTerms type2)
@@ -139,6 +149,9 @@ getType ("Bool") = strToTerm "bool"
 toNonemptyList :: a -> B.NonEmpty a
 toNonemptyList a = a B.:| []
 
+listToNonemptyList :: [a] -> B.NonEmpty a
+listToNonemptyList (x:xs) = x B.:| xs
+
 getQString :: QName l -> String
 getQString (UnQual _ name) = getString name
 
@@ -207,10 +220,6 @@ qNameToTerm qName = G.Qualid (qNameToQId qName)
 
 qNameToTypeTerm :: QName l -> G.Term
 qNameToTypeTerm qName = getType (getQString qName)
-
-tyVarBindToString :: TyVarBind l -> String
-tyVarBindToString (KindedVar _ name _) = nameToStr name ++ " "
-tyVarBindToString (UnkindedVar _ name) = nameToStr name ++ " "
 
 --Convert qualifiedOperator from Haskell to Qualid with Operator signature
 qOpToQId :: QOp l -> G.Qualid
