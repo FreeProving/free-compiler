@@ -21,17 +21,36 @@ convertModuleDecls decls typeSigs = [convertModuleDecl s typeSigs | s <- decls]
 
 convertModuleDecl :: Decl l -> [G.TypeSignature] -> G.Sentence
 convertModuleDecl (FunBind _ (x : xs)) typeSigs = G.DefinitionSentence (convertMatchDef x typeSigs)
-convertModuleDecl (DataDecl _ (DataType _ ) Nothing declHead qualConDecl _ ) _ = G.InductiveSentence (convertDataTypeDecl declHead qualConDecl)
+convertModuleDecl (DataDecl _ (DataType _ ) Nothing declHead qConDecl _ ) _ = G.InductiveSentence (convertDataTypeDecl declHead qConDecl)
 convertModuleDecl _ _ = error "not Inmplemented"
 
 convertDataTypeDecl :: DeclHead l -> [QualConDecl l] -> G.Inductive
-convertDataTypeDecl (DHead _ name) qConDecl = G.Inductive (toNonemptyList(G.IndBody (nameToQId name) [] (strToTerm "Type") (qConDeclsToGConDecls qConDecl))) []
+convertDataTypeDecl dHead qConDecl = G.Inductive (toNonemptyList(G.IndBody (applyToDeclHead dHead nameToQId) (applyToDeclHeadTyVarBinds dHead convertTyVarBindToBinder) (strToTerm "Type") (qConDeclsToGConDecls qConDecl (getReturnTypeFromDeclHead dHead)))) []
 
-qConDeclsToGConDecls :: [QualConDecl l] -> [(G.Qualid, [G.Binder], Maybe G.Term)]
-qConDeclsToGConDecls qConDecl = [qConDeclToGConDecl c | c <- qConDecl]
+applyToDeclHead :: DeclHead l -> (Name l -> a) -> a
+applyToDeclHead (DHead _ name) f = f name
+applyToDeclHead (DHApp _ declHead _ ) f = applyToDeclHead declHead f
 
-qConDeclToGConDecl :: QualConDecl l -> (G.Qualid, [G.Binder], Maybe G.Term)
-qConDeclToGConDecl (QualConDecl _ Nothing Nothing (ConDecl _ name _)) = ((nameToQId name), [], Nothing)
+applyToDeclHeadTyVarBinds :: DeclHead l -> (TyVarBind l -> a ) -> [a]
+applyToDeclHeadTyVarBinds (DHead _ _) f = []
+applyToDeclHeadTyVarBinds (DHApp _ declHead tyVarBind) f = reverse (f tyVarBind : applyToDeclHeadTyVarBinds declHead f)
+
+getReturnTypeFromDeclHead :: DeclHead l -> G.Term
+getReturnTypeFromDeclHead dHead = G.Qualid (strToQId ((applyToDeclHead dHead nameToStr) ++ " " ++ (concat (applyToDeclHeadTyVarBinds dHead tyVarBindToString))))
+
+convertTyVarBindToBinder :: TyVarBind l -> G.Binder
+convertTyVarBindToBinder (KindedVar _ name kind) = error "not implemented"
+convertTyVarBindToBinder (UnkindedVar _ name) = G.Typed G.Ungeneralizable G.Explicit (toNonemptyList (nameToGName name)) (strToTerm "Type")
+
+qConDeclsToGConDecls :: [QualConDecl l] -> G.Term -> [(G.Qualid, [G.Binder], Maybe G.Term)]
+qConDeclsToGConDecls qConDecl term = [qConDeclToGConDecl c term | c <- qConDecl]
+
+qConDeclToGConDecl :: QualConDecl l -> G.Term -> (G.Qualid, [G.Binder], Maybe G.Term)
+qConDeclToGConDecl (QualConDecl _ Nothing Nothing (ConDecl _ name types)) term = ((nameToQId name), [] , (Just (convertToArrowTerm types term)))
+
+convertToArrowTerm :: [Type l] -> G.Term -> G.Term
+convertToArrowTerm [] returnType = returnType
+convertToArrowTerm (x : xs) returnType = G.Arrow (convertTypeToTerm x) (convertToArrowTerm xs returnType)
 
 isTypeSignature :: Decl l -> Bool
 isTypeSignature (TypeSig _ _ _) = True
@@ -41,11 +60,16 @@ isNoTypeSignature :: Decl l -> Bool
 isNoTypeSignature decl = not (isTypeSignature decl)
 
 filterForTypeSignatures :: Decl l -> G.TypeSignature
-filterForTypeSignatures (TypeSig _ (name : rest) types) = G.TypeSignature (nameToGName name) (convertTypes types)
+filterForTypeSignatures (TypeSig _ (name : rest) types) = G.TypeSignature (nameToGName name) (convertTypeToTerms types)
 
-convertTypes :: Type l -> [G.Term]
-convertTypes (TyFun _ type1 type2) = mappend (convertTypes type1) (convertTypes type2)
-convertTypes (TyCon _ qName) = [qNameToTypeTerm qName]
+convertTypeToTerm :: Type l -> G.Term
+convertTypeToTerm (TyVar _ name) = nameToTerm name
+convertTypeToTerm (TyCon _ qName) = qNameToTerm qName
+convertTypeToTerm _ = error "not implemented"
+
+convertTypeToTerms :: Type l -> [G.Term]
+convertTypeToTerms (TyFun _ type1 type2) = mappend (convertTypeToTerms type1) (convertTypeToTerms type2)
+convertTypeToTerms t = [convertTypeToTerm t]
 
 convertMatchDef :: Match l -> [G.TypeSignature] -> G.Definition
 convertMatchDef (Match _ name pattern rhs _) typeSigs =
@@ -150,9 +174,12 @@ strToTerm :: String -> G.Term
 strToTerm str = G.Qualid (strToQId str)
 
 -- Name conversions (haskell ast)
+nameToStr :: Name l -> String
+nameToStr (Ident _ str) = str
+nameToStr (Symbol _ str) = str
+
 nameToText :: Name l -> T.Text
-nameToText (Ident _ str) = strToText str
-nameToText (Symbol _ str) = strToText str
+nameToText name = strToText (nameToStr name)
 
 nameToQId :: Name l -> G.Qualid
 nameToQId name = G.Bare (nameToText name)
@@ -180,6 +207,10 @@ qNameToTerm qName = G.Qualid (qNameToQId qName)
 
 qNameToTypeTerm :: QName l -> G.Term
 qNameToTypeTerm qName = getType (getQString qName)
+
+tyVarBindToString :: TyVarBind l -> String
+tyVarBindToString (KindedVar _ name _) = nameToStr name ++ " "
+tyVarBindToString (UnkindedVar _ name) = nameToStr name ++ " "
 
 --Convert qualifiedOperator from Haskell to Qualid with Operator signature
 qOpToQId :: QOp l -> G.Qualid
