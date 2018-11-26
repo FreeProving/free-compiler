@@ -3,6 +3,7 @@ module Test where
 Testfälle für bisherige Funktion des Compilers
 -}
 
+
 plus :: Int -> Int -> Int
 plus a b = a + b
 
@@ -19,12 +20,14 @@ append xs ys = case xs of
   z:zs -> z : append zs ys-}
 
 data Bool = True
-          | False
-{-
+        | False
+
 data Maybe a = Nothing
               | Just a
 
-data List a = Nil
-            | Cons a (List a)
+data Either a b =
+  Left a
+  | Right b
 
--}
+{-data List a = Nil
+            | Cons a (List a)-}
