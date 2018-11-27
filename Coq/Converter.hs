@@ -72,8 +72,8 @@ filterForTypeSignatures :: Decl l -> G.TypeSignature
 filterForTypeSignatures (TypeSig _ (name : rest) types) = G.TypeSignature (nameToGName name) (convertTypeToTerms types)
 
 convertTypeToTerm :: Type l -> G.Term
-convertTypeToTerm (TyVar _ name) = nameToTerm name
-convertTypeToTerm (TyCon _ qName) = qNameToTerm qName
+convertTypeToTerm (TyVar _ name) = nameToTypeTerm name
+convertTypeToTerm (TyCon _ qName) = qNameToTypeTerm qName
 convertTypeToTerm (TyParen _ ty) = G.Parens (convertTypeToTerm ty)
 convertTypeToTerm (TyApp _ type1 type2) = G.App (convertTypeToTerm type1) (toNonemptyList (convertTypeToArg type2))
 convertTypeToTerm _ = error "not implemented"
@@ -151,6 +151,7 @@ typeTerm = strToTerm "Type"
 getType :: String -> G.Term
 getType ("Int") = strToTerm "nat"
 getType ("Bool") = strToTerm "bool"
+getType str = strToTerm str
 
 --apply a function only to the actual head of a DeclHead
 applyToDeclHead :: DeclHead l -> (Name l -> a) -> a
@@ -260,6 +261,9 @@ nameToGName name = G.Ident (nameToQId name)
 
 nameToTerm :: Name l -> G.Term
 nameToTerm name = G.Qualid (nameToQId name)
+
+nameToTypeTerm :: Name l -> G.Term
+nameToTypeTerm name = getType (getString name)
 
 --QName conversion (Haskell ast)
 qNameToStr :: QName l -> String
