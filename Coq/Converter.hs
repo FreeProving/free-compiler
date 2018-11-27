@@ -20,7 +20,7 @@ convertModuleDecls :: [Decl l] -> [G.TypeSignature]-> [G.Sentence]
 convertModuleDecls decls typeSigs = [convertModuleDecl s typeSigs | s <- decls]
 
 convertModuleDecl :: Decl l -> [G.TypeSignature] -> G.Sentence
-convertModuleDecl (FunBind _ (x : xs)) typeSigs = G.DefinitionSentence (convertMatchDef x typeSigs)
+convertModuleDecl (FunBind _ (x : xs)) typeSigs = convertMatchDef x typeSigs
 convertModuleDecl (DataDecl _ (DataType _ ) Nothing declHead qConDecl _ ) _ = G.InductiveSentence (convertDataTypeDecl declHead qConDecl)
 convertModuleDecl _ _ = error "not Inmplemented"
 
@@ -29,14 +29,22 @@ convertModuleDecl _ _ = error "not Inmplemented"
 convertDataTypeDecl :: DeclHead l -> [QualConDecl l] -> G.Inductive
 convertDataTypeDecl dHead qConDecl = G.Inductive (toNonemptyList(G.IndBody (applyToDeclHead dHead nameToQId) (applyToDeclHeadTyVarBinds dHead convertTyVarBindToBinder) typeTerm (convertQConDeclsToGConDecls qConDecl (getReturnTypeFromDeclHead (applyToDeclHeadTyVarBinds dHead convertTyVarBindToArg) dHead)))) []
 
-convertMatchDef :: Match l -> [G.TypeSignature] -> G.Definition
+convertMatchDef :: Match l -> [G.TypeSignature] -> G.Sentence
 convertMatchDef (Match _ name pattern rhs _) typeSigs =
-  let
-    typeSig :: Maybe G.TypeSignature
-    typeSig = (getTypeSignatureByName typeSigs name)
-  in
-    G.DefinitionDef G.Global (nameToQId name) (convertPatsToBinders pattern typeSig) (convertReturnType typeSig) (convertRhsToTerm rhs)
+      let
+        typeSig = (getTypeSignatureByName typeSigs name)
+      in
+        if(isRecursive name rhs)
+          then
+            G.FixpointSentence (convertMatchToFixpoint name pattern rhs typeSig)
+          else
+            G.DefinitionSentence (convertMatchToDefinition name pattern rhs typeSig)
 
+convertMatchToDefinition :: Name l -> [Pat l] -> Rhs l -> Maybe G.TypeSignature -> G.Definition
+convertMatchToDefinition name pattern rhs typeSig  = G.DefinitionDef G.Global (nameToQId name) (convertPatsToBinders pattern typeSig) (convertReturnType typeSig) (convertRhsToTerm rhs)
+
+convertMatchToFixpoint :: Name l -> [Pat l] -> Rhs l -> Maybe G.TypeSignature -> G.Fixpoint
+convertMatchToFixpoint name pattern rhs  typeSig = G.Fixpoint (toNonemptyList (G.FixBody (nameToQId name) (listToNonemptyList (convertPatsToBinders pattern typeSig)) Nothing Nothing (convertRhsToTerm  rhs))) []
 
 getReturnTypeFromDeclHead :: [G.Arg] -> DeclHead l -> G.Term
 getReturnTypeFromDeclHead [] dHead = applyToDeclHead dHead nameToTerm
@@ -106,6 +114,8 @@ convertRhsToTerm (GuardedRhss _ _ ) = error "not implemented"
 convertExprToTerm :: Exp l -> G.Term
 convertExprToTerm (Var _ qName) = qNameToTerm qName
 convertExprToTerm (Con _ qName) = qNameToTerm qName
+convertExprToTerm (Paren _ expr) = G.Parens (convertExprToTerm expr)
+convertExprToTerm (App _ expr1 expr2) = G.App (convertExprToTerm expr1) (toNonemptyList (G.PosArg (convertExprToTerm expr2)))
 convertExprToTerm (InfixApp _ (Var _ qNameL) (qOp) (Var _ qNameR)) = (G.App (G.Qualid (qOpToQId qOp)) ((G.PosArg (G.Qualid (qNameToQId qNameL))) B.:| (G.PosArg (G.Qualid (qNameToQId qNameR))) : []))
 convertExprToTerm (Case _ expr altList) = G.Match (toNonemptyList (G.MatchItem (convertExprToTerm expr)  Nothing Nothing)) Nothing (convertAltListToEquationList altList)
 convertExprToTerm _ = error "not implemented"
@@ -160,6 +170,9 @@ toNonemptyList a = a B.:| []
 listToNonemptyList :: [a] -> B.NonEmpty a
 listToNonemptyList (x:xs) = x B.:| xs
 
+nonEmptyListToList :: B.NonEmpty a -> [a]
+nonEmptyListToList (x B.:| xs) = x : xs
+
 getQString :: QName l -> String
 getQString (UnQual _ name) = getString name
 
@@ -173,13 +186,50 @@ getTypeSignatureByName (x : xs) name = if (nameEqTypeName x name)
                                       then Just x
                                       else getTypeSignatureByName xs name
 
--- name comparrison functions
+-- name comparison functions
 nameEqTypeName :: G.TypeSignature -> Name l -> Bool
 nameEqTypeName (G.TypeSignature sigName _) name = gNameEqName sigName name
 
 gNameEqName :: G.Name -> Name l -> Bool
 gNameEqName (G.Ident (G.Bare gName)) (Ident _ name) = (T.unpack gName) == name
 
+--check if function is recursive
+isRecursive :: Name l -> Rhs l -> Bool
+isRecursive name rhs = length (filter (== (getString name)) (termToStrings (convertRhsToTerm rhs))) > 0
+
+termToStrings :: G.Term -> [String]
+termToStrings (G.Qualid qId) = [qIdToStr qId]
+termToStrings (G.Parens term) = termToStrings term
+termToStrings (G.App term args) = mappend (termToStrings term) (listToStrings (nonEmptyListToList args) argToStrings)
+termToStrings (G.Match mItem _ equations) = mappend (listToStrings (nonEmptyListToList mItem) mItemToStrings) (listToStrings equations equationToStrings)
+termToStrings _ = error "not implemented"
+
+listToStrings :: [a] -> (a -> [String]) -> [String]
+listToStrings [] f = []
+listToStrings (x : xs) f = mappend (f x) (listToStrings xs f)
+
+argToStrings :: G.Arg -> [String]
+argToStrings (G.PosArg term) = termToStrings term
+
+mItemToStrings :: G.MatchItem -> [String]
+mItemToStrings (G.MatchItem term _ _) = termToStrings term
+
+equationToStrings :: G.Equation -> [String]
+equationToStrings (G.Equation multPattern term) = mappend (listToStrings (nonEmptyListToList multPattern) multPatToStrings) (termToStrings term)
+
+multPatToStrings :: G.MultPattern -> [String]
+multPatToStrings (G.MultPattern pattern) = listToStrings (nonEmptyListToList pattern) patToStrings
+
+patToStrings :: G.Pattern -> [String]
+patToStrings (G.QualidPat qId) = [qIdToStr qId]
+patToStrings (G.ArgsPat qId pats) = qIdToStr qId : patsToStrings pats
+
+patsToStrings :: [G.Pattern] -> [String]
+patsToStrings [] = []
+patsToStrings (p : ps) = mappend (patToStrings p) (patsToStrings ps)
+
+textToStr :: T.Text -> String
+textToStr text = T.unpack text
 
 --string conversions
 strToText :: String -> T.Text
@@ -212,6 +262,9 @@ nameToTerm :: Name l -> G.Term
 nameToTerm name = G.Qualid (nameToQId name)
 
 --QName conversion (Haskell ast)
+qNameToStr :: QName l -> String
+qNameToStr qName = T.unpack (qNameToText qName)
+
 qNameToText :: QName l -> T.Text
 qNameToText (UnQual _ name) = nameToText name
 qNameToText _ = error "not implemented"
@@ -229,10 +282,15 @@ qNameToTerm qName = G.Qualid (qNameToQId qName)
 qNameToTypeTerm :: QName l -> G.Term
 qNameToTypeTerm qName = getType (getQString qName)
 
+-- Qualid conversion functions
+qIdToStr :: G.Qualid -> String
+qIdToStr (G.Bare ident) = textToStr ident
+
+
 --Convert qualifiedOperator from Haskell to Qualid with Operator signature
 qOpToQId :: QOp l -> G.Qualid
-qOpToQId (QVarOp _ (UnQual _ (Symbol _ name))) = G.Bare (T.pack ("op_"++ name ++"__"))
-qOpToQId _ = error "not implemented"
+qOpToQId (QVarOp _ qName) = G.Bare (T.pack ("op_"++ (qNameToStr qName) ++"__"))
+qOpToQId (QConOp _ qName) = error "not implemented"
 
 --print the converted module
 printCoqAST :: G.LocalModule -> IO ()
