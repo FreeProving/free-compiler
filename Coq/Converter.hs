@@ -8,10 +8,18 @@ import Text.PrettyPrint.Leijen.Text
 import qualified GHC.Base as B
 
 import qualified Data.Text as T
+import Data.List (partition)
+
 
 convertModule :: Module l -> G.LocalModule
-convertModule (Module _ (Just modHead) _ _ decls) = G.LocalModule (convertModuleHead modHead) (convertModuleDecls (filter isNoTypeSignature decls) (map filterForTypeSignatures (filter isTypeSignature decls)))
-convertModule (Module _ Nothing _ _ decls)        = error "not implemented"
+convertModule (Module _ (Just modHead) _ _ decls) = G.LocalModule (convertModuleHead modHead)
+                                                      (convertModuleDecls otherDecls $ map filterForTypeSignatures typeSigs)
+                                                    where
+                                                      (typeSigs, otherDecls) = partition isTypeSig decls
+convertModule (Module _ Nothing _ _ decls)        = G.LocalModule (T.pack "unnamed")
+                                                      (convertModuleDecls otherDecls $ map filterForTypeSignatures typeSigs)
+                                                    where
+                                                      (typeSigs, otherDecls) = partition isTypeSig decls
 
 convertModuleHead :: ModuleHead l -> G.Ident
 convertModuleHead (ModuleHead _ (ModuleName _ modName) _ _) = T.pack modName
@@ -31,14 +39,11 @@ convertDataTypeDecl dHead qConDecl = G.Inductive (toNonemptyList(G.IndBody (appl
 
 convertMatchDef :: Match l -> [G.TypeSignature] -> G.Sentence
 convertMatchDef (Match _ name pattern rhs _) typeSigs =
-      let
-        typeSig = (getTypeSignatureByName typeSigs name)
-      in
-        if(isRecursive name rhs)
-          then
-            G.FixpointSentence (convertMatchToFixpoint name pattern rhs typeSig)
-          else
-            G.DefinitionSentence (convertMatchToDefinition name pattern rhs typeSig)
+    if isRecursive name rhs
+      then G.FixpointSentence (convertMatchToFixpoint name pattern rhs typeSig)
+      else G.DefinitionSentence (convertMatchToDefinition name pattern rhs typeSig)
+    where
+      typeSig = getTypeSignatureByName typeSigs name
 
 convertMatchToDefinition :: Name l -> [Pat l] -> Rhs l -> Maybe G.TypeSignature -> G.Definition
 convertMatchToDefinition name pattern rhs typeSig  = G.DefinitionDef G.Global (nameToQId name) (convertPatsToBinders pattern typeSig) (convertReturnType typeSig) (convertRhsToTerm rhs)
@@ -137,12 +142,9 @@ convertHPatToGPat _ = error "not implemented"
 convertQNameToBinder :: QName l -> G.Binder
 convertQNameToBinder qName = G.Inferred G.Explicit (qNameToGName qName)
 
-isTypeSignature :: Decl l -> Bool
-isTypeSignature (TypeSig _ _ _) = True
-isTypeSignature _ = False
-
-isNoTypeSignature :: Decl l -> Bool
-isNoTypeSignature decl = not (isTypeSignature decl)
+isTypeSig :: Decl l -> Bool
+isTypeSig (TypeSig _ _ _) = True
+isTypeSig _ = False
 
 typeTerm :: G.Term
 typeTerm = strToTerm "Type"
