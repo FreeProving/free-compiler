@@ -13,11 +13,17 @@ not b = case b of
   False -> True
   True -> False
 
+--null :: List a -> Bool
+--null list = case list of
+  --Nil -> True
+  --Cons _ _ -> False
 
-{-append :: [a] -> [a] -> [a]
+--type Queue a = List a
+
+append :: List a -> List a -> List a
 append xs ys = case xs of
-  [] -> ys
-  z:zs -> z : append zs ys-}
+  Nil -> ys
+  Cons z zs -> Cons z (append zs ys)
 
 data Bool = True
         | False
