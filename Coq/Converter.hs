@@ -31,7 +31,7 @@ convertModuleDecls decls typeSigs = [convertModuleDecl s typeSigs | s <- decls]
 convertModuleDecl :: Decl l -> [G.TypeSignature] -> G.Sentence
 convertModuleDecl (FunBind _ (x : xs)) typeSigs = convertMatchDef x typeSigs
 convertModuleDecl (DataDecl _ (DataType _ ) Nothing declHead qConDecl _ ) _ = G.InductiveSentence (convertDataTypeDecl declHead qConDecl)
-convertModuleDecl _ _ = error "not Inmplemented"
+convertModuleDecl _ _ = error "Top-level declaration not implemented"
 
 
 
@@ -70,11 +70,11 @@ getReturnTypeFromDeclHead [] dHead = applyToDeclHead dHead nameToTerm
 getReturnTypeFromDeclHead (x : xs) dHead = G.App (applyToDeclHead dHead nameToTerm) (x B.:| xs)
 
 convertTyVarBindToBinder :: TyVarBind l -> G.Binder
-convertTyVarBindToBinder (KindedVar _ name kind) = error "not implemented"
+convertTyVarBindToBinder (KindedVar _ name kind) = error "Kind-annotation not implemented"
 convertTyVarBindToBinder (UnkindedVar _ name) = G.Typed G.Ungeneralizable G.Explicit (singleton (nameToGName name)) typeTerm
 
 convertTyVarBindToArg :: TyVarBind l -> G.Arg
-convertTyVarBindToArg (KindedVar _ name kind) = error "not implemented"
+convertTyVarBindToArg (KindedVar _ name kind) = error "Kind-annotation not implemented"
 convertTyVarBindToArg (UnkindedVar _ name) = G.PosArg (nameToTerm name)
 
 convertQConDecls :: [QualConDecl l] -> G.Term -> [(G.Qualid, [G.Binder], Maybe G.Term)]
@@ -93,15 +93,15 @@ filterForTypeSignatures :: Decl l -> G.TypeSignature
 filterForTypeSignatures (TypeSig _ (name : rest) types) = G.TypeSignature (nameToGName name)
                                                                             (convertTypeToTerms types)
 
+convertTypeToArg :: Type l -> G.Arg
+convertTypeToArg ty = G.PosArg (convertTypeToTerm ty)
+
 convertTypeToTerm :: Type l -> G.Term
 convertTypeToTerm (TyVar _ name) = nameToTypeTerm name
 convertTypeToTerm (TyCon _ qName) = qNameToTypeTerm qName
 convertTypeToTerm (TyParen _ ty) = G.Parens (convertTypeToTerm ty)
 convertTypeToTerm (TyApp _ type1 type2) = G.App (convertTypeToTerm type1) (singleton (convertTypeToArg type2))
-convertTypeToTerm _ = error "not implemented"
-
-convertTypeToArg :: Type l -> G.Arg
-convertTypeToArg ty = G.PosArg (convertTypeToTerm ty)
+convertTypeToTerm _ = error "Haskell-type not implemented"
 
 convertTypeToTerms :: Type l -> [G.Term]
 convertTypeToTerms (TyFun _ type1 type2) = convertTypeToTerms type1 ++ convertTypeToTerms type2
@@ -117,18 +117,18 @@ convertPatsToBinders patList (Just (G.TypeSignature _ typeList)) = convertPatsAn
 
 convertPatToBinder :: Pat l -> G.Binder
 convertPatToBinder (PVar _ name) = G.Inferred G.Explicit (nameToGName name)
-convertPatToBinder _ = error "not implemented"
+convertPatToBinder _ = error "Pattern not implemented"
 
 convertPatsAndTypeSigsToBinders :: [Pat l] -> [G.Term] -> [G.Binder]
 convertPatsAndTypeSigsToBinders pats typeSigs = zipWith convertPatAndTypeSigToBinder pats typeSigs
 
 convertPatAndTypeSigToBinder :: Pat l -> G.Term -> G.Binder
 convertPatAndTypeSigToBinder (PVar _ name) term = G.Typed G.Ungeneralizable G.Explicit (singleton (nameToGName name)) term
-convertPatAndTypeSigToBinder _ _ = error "not implemented"
+convertPatAndTypeSigToBinder _ _ = error "Haskell pattern not implemented"
 
 convertRhsToTerm :: Rhs l -> G.Term
 convertRhsToTerm (UnGuardedRhs _ expr) = convertExprToTerm expr
-convertRhsToTerm (GuardedRhss _ _ ) = error "not implemented"
+convertRhsToTerm (GuardedRhss _ _ ) = error "Guards not implemented"
 
 convertExprToTerm :: Exp l -> G.Term
 convertExprToTerm (Var _ qName) = qNameToTerm qName
@@ -140,7 +140,7 @@ convertExprToTerm (InfixApp _ (Var _ qNameL) (qOp) (Var _ qNameR)) = (G.App (G.Q
 convertExprToTerm (Case _ expr altList) = G.Match (singleton (G.MatchItem (convertExprToTerm expr)  Nothing Nothing))
                                                     Nothing
                                                       (convertAltListToEquationList altList)
-convertExprToTerm _ = error "not implemented"
+convertExprToTerm _ = error "Haskell expression not implemented"
 
 convertAltListToEquationList :: [Alt l] -> [G.Equation]
 convertAltListToEquationList altList = [convertAltToEquation s | s <- altList]
@@ -154,7 +154,7 @@ convertHPatListToGPatList patList = [convertHPatToGPat s | s <- patList]
 convertHPatToGPat :: Pat l -> G.Pattern
 convertHPatToGPat (PVar _ name) = G.QualidPat (nameToQId name)
 convertHPatToGPat (PApp _ qName pList) = G.ArgsPat (qNameToQId qName) (convertHPatListToGPatList pList)
-convertHPatToGPat _ = error "not implemented"
+convertHPatToGPat _ = error "Haskell pattern not implemented"
 
 convertQNameToBinder :: QName l -> G.Binder
 convertQNameToBinder qName = G.Inferred G.Explicit (qNameToGName qName)
@@ -188,7 +188,6 @@ termToStrings (G.Parens term) = termToStrings term
 termToStrings (G.App term args) = termToStrings term ++ listToStrings (nonEmptyListToList args) argToStrings
 termToStrings (G.Match mItem _ equations) = listToStrings (nonEmptyListToList mItem) mItemToStrings ++
                                               listToStrings equations equationToStrings
-termToStrings _ = error "not implemented"
 
 listToStrings :: [a] -> (a -> [String]) -> [String]
 listToStrings [] f = []
