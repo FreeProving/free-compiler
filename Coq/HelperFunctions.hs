@@ -100,6 +100,9 @@ qNameToTypeTerm qName = getType (getQString qName)
 qIdToStr :: G.Qualid -> String
 qIdToStr (G.Bare ident) = T.unpack ident
 
+getNameFromQualConDecl :: QualConDecl l -> G.Qualid
+getNameFromQualConDecl (QualConDecl _ _ _ (ConDecl _ name _)) = nameToQId name
+
 
 --Convert qualifiedOperator from Haskell to Qualid with Operator signature
 qOpToQId :: QOp l -> G.Qualid

@@ -26,14 +26,38 @@ convertModuleHead :: ModuleHead l -> G.Ident
 convertModuleHead (ModuleHead _ (ModuleName _ modName) _ _) = T.pack modName
 
 convertModuleDecls :: [Decl l] -> [G.TypeSignature]-> [G.Sentence]
-convertModuleDecls decls typeSigs = [convertModuleDecl s typeSigs | s <- decls]
+convertModuleDecls ((FunBind _ (x : xs)) : ds) typeSigs = convertMatchDef x typeSigs : convertModuleDecls ds typeSigs
+convertModuleDecls ((DataDecl _ (DataType _ ) Nothing declHead qConDecl _ ) : ds) typeSigs =
+    if needsArgumentsSentence declHead qConDecl
+      then G.InductiveSentence  (convertDataTypeDecl declHead qConDecl) :
+           G.ArgumentsSentence  (convertArgumentsDecl declHead qConDecl) :
+                                convertModuleDecls ds typeSigs
+      else G.InductiveSentence  (convertDataTypeDecl declHead qConDecl) :
+                                convertModuleDecls ds typeSigs
+convertModuleDecls [] _ = []
+convertModuleDecls _ _ = error "Top-level declaration not implemented"
 
-convertModuleDecl :: Decl l -> [G.TypeSignature] -> G.Sentence
-convertModuleDecl (FunBind _ (x : xs)) typeSigs = convertMatchDef x typeSigs
-convertModuleDecl (DataDecl _ (DataType _ ) Nothing declHead qConDecl _ ) _ = G.InductiveSentence (convertDataTypeDecl declHead qConDecl)
-convertModuleDecl _ _ = error "Top-level declaration not implemented"
 
+needsArgumentsSentence :: DeclHead l -> [QualConDecl l] -> Bool
+needsArgumentsSentence declHead qConDecls = length binders > 0 && hasNonInferrableConstr qConDecls
+                                          where
+                                            binders = applyToDeclHeadTyVarBinds declHead convertTyVarBindToBinder
 
+hasNonInferrableConstr :: [QualConDecl l] -> Bool
+hasNonInferrableConstr qConDecls = length (filter isNonInferrableConstr qConDecls) > 0
+
+isNonInferrableConstr :: QualConDecl l -> Bool
+isNonInferrableConstr (QualConDecl _ _ _ (ConDecl _ _ [])) = True
+isNonInferrableConstr (QualConDecl _ _ _ (ConDecl _ _ ty)) = False
+
+convertArgumentsDecl :: DeclHead l -> [QualConDecl l] -> G.Arguments
+convertArgumentsDecl declHead qConDecls = G.Arguments Nothing (getNonInferrableConstrName qConDecls) [convertArgumentSpec declHead]
+
+getNonInferrableConstrName :: [QualConDecl l] -> G.Qualid
+getNonInferrableConstrName qConDecls = getNameFromQualConDecl (head (filter isNonInferrableConstr qConDecls))
+
+convertArgumentSpec :: DeclHead l -> G.ArgumentSpec
+convertArgumentSpec declHead = G.ArgumentSpec G.ArgImplicit (head (applyToDeclHeadTyVarBinds declHead convertTyVarBindToName)) Nothing
 
 convertDataTypeDecl :: DeclHead l -> [QualConDecl l] -> G.Inductive
 convertDataTypeDecl dHead qConDecl = G.Inductive (singleton $ G.IndBody typeName binders typeTerm constrDecls) []
@@ -68,6 +92,10 @@ convertMatchToFixpoint name pattern rhs  typeSig = G.Fixpoint (singleton (G.FixB
 getReturnTypeFromDeclHead :: [G.Arg] -> DeclHead l -> G.Term
 getReturnTypeFromDeclHead [] dHead = applyToDeclHead dHead nameToTerm
 getReturnTypeFromDeclHead (x : xs) dHead = G.App (applyToDeclHead dHead nameToTerm) (x B.:| xs)
+
+convertTyVarBindToName :: TyVarBind l -> G.Name
+convertTyVarBindToName (KindedVar _ name _) = nameToGName name
+convertTyVarBindToName (UnkindedVar _ name) = nameToGName name
 
 convertTyVarBindToBinder :: TyVarBind l -> G.Binder
 convertTyVarBindToBinder (KindedVar _ name kind) = error "Kind-annotation not implemented"
@@ -164,7 +192,7 @@ isTypeSig (TypeSig _ _ _) = True
 isTypeSig _ = False
 
 typeTerm :: G.Term
-typeTerm = strToTerm "Type"
+typeTerm = G.Sort G.Type
 
 --apply a function only to the actual head of a DeclHead
 applyToDeclHead :: DeclHead l -> (Name l -> a) -> a

@@ -719,6 +719,7 @@ instance Gallina ArgumentSpec where
 instance Gallina LocalModule where
   renderGallina' _ (LocalModule name sentences) = vcat $
     [ "Module" <+> text name <> "." ] ++
+    [ "Set Implicit Arguments."] ++ 
     [ renderGallina s | s <- sentences ] ++
     [ "End" <+> text name <> "." ]
 
