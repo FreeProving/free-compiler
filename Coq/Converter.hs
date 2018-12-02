@@ -29,8 +29,8 @@ convertModuleDecls :: [Decl l] -> [G.TypeSignature]-> [G.Sentence]
 convertModuleDecls ((FunBind _ (x : xs)) : ds) typeSigs = convertMatchDef x typeSigs : convertModuleDecls ds typeSigs
 convertModuleDecls ((DataDecl _ (DataType _ ) Nothing declHead qConDecl _ ) : ds) typeSigs =
     if needsArgumentsSentence declHead qConDecl
-      then G.InductiveSentence  (convertDataTypeDecl declHead qConDecl) :
-           G.ArgumentsSentence  (convertArgumentsDecl declHead qConDecl) :
+      then [G.InductiveSentence  (convertDataTypeDecl declHead qConDecl)] ++
+                                convertArgumentSentences declHead qConDecl ++
                                 convertModuleDecls ds typeSigs
       else G.InductiveSentence  (convertDataTypeDecl declHead qConDecl) :
                                 convertModuleDecls ds typeSigs
@@ -50,15 +50,19 @@ isNonInferrableConstr :: QualConDecl l -> Bool
 isNonInferrableConstr (QualConDecl _ _ _ (ConDecl _ _ [])) = True
 isNonInferrableConstr (QualConDecl _ _ _ (ConDecl _ _ ty)) = False
 
-convertArgumentsDecl :: DeclHead l -> [QualConDecl l] -> G.Arguments
-convertArgumentsDecl declHead qConDecls = G.Arguments Nothing (getNonInferrableConstrName qConDecls) [convertArgumentSpec declHead]
+convertArgumentSentences :: DeclHead l -> [QualConDecl l] -> [G.Sentence]
+convertArgumentSentences declHead qConDecls = [G.ArgumentsSentence (G.Arguments Nothing con (convertArgumentSpec declHead)) | con <- constrToDefine]
+                                              where
+                                                constrToDefine = getNonInferrableConstrNames qConDecls
 
-getNonInferrableConstrName :: [QualConDecl l] -> G.Qualid
-getNonInferrableConstrName qConDecls = getNameFromQualConDecl (head (filter isNonInferrableConstr qConDecls))
-
-convertArgumentSpec :: DeclHead l -> G.ArgumentSpec
-convertArgumentSpec declHead = G.ArgumentSpec G.ArgImplicit (head (applyToDeclHeadTyVarBinds declHead convertTyVarBindToName)) Nothing
-
+getNonInferrableConstrNames :: [QualConDecl l] -> [G.Qualid]
+getNonInferrableConstrNames qConDecls = [ getNameFromQualConDecl d | d <- nonInferrableQConDecls]
+                                        where
+                                          nonInferrableQConDecls = filter isNonInferrableConstr qConDecls
+convertArgumentSpec :: DeclHead l -> [G.ArgumentSpec]
+convertArgumentSpec declHead = [G.ArgumentSpec G.ArgImplicit varName Nothing | varName <- varNames]
+                               where
+                                 varNames = applyToDeclHeadTyVarBinds declHead convertTyVarBindToName
 convertDataTypeDecl :: DeclHead l -> [QualConDecl l] -> G.Inductive
 convertDataTypeDecl dHead qConDecl = G.Inductive (singleton $ G.IndBody typeName binders typeTerm constrDecls) []
                                     where
