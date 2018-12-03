@@ -161,19 +161,25 @@ convertPatAndTypeSigToBinder (PVar _ name) term = G.Typed G.Ungeneralizable G.Ex
 convertPatAndTypeSigToBinder _ _ = error "Haskell pattern not implemented"
 
 addInferredTypesToSignature :: [G.Binder] -> [G.Binder]
-addInferredTypesToSignature binders = (G.Typed G.Ungeneralizable G.Explicit (toNonemptyList (typeNames)) typeTerm) : binders
+addInferredTypesToSignature binders = if null typeNames
+                                        then binders
+                                        else (G.Typed G.Ungeneralizable G.Explicit (toNonemptyList (typeNames)) typeTerm) : binders
                                       where
-                                        typeNames =  filter (/= (strToGName "List")) (unique (concat (map getTypeNamesFromBinder bindersWithoutConstr)))
-                                        bindersWithoutConstr = map toBindersWithoutConstr binders
-toBindersWithoutConstr :: G.Binder -> G.Binder
-toBindersWithoutConstr (G.Typed c d e (G.App term (a B.:| as))) = case as of
-                                                                [] ->  (G.Typed c d e (G.App (argToTerm a) (a B.:| [])))
-                                                                (x :xs) -> (G.Typed c d e (G.App (argToTerm a) (toNonemptyList as)))
+                                        typeNames = filterEachElement consNames (/=) (unique (concat (map getTypeNamesFromTerm typeTerms)))
+                                        typeTerms = map getTypeFromBinder binders
+                                        consNames = unique (map getConstrNameFromType typeTerms)
 
-getTypeNamesFromBinder :: G.Binder -> [G.Name]
-getTypeNamesFromBinder (G.Typed _ _ _ (G.App term args)) = map strToGName (termToStrings term) ++
-                                                            map strToGName (concat (map termToStrings (map argToTerm (nonEmptyListToList args))))
+getConstrNameFromType :: G.Term -> G.Name
+getConstrNameFromType (G.App term _) = head (map strToGName (termToStrings term))
+getConstrNameFromType _ = strToGName ""
 
+getTypeFromBinder :: G.Binder -> G.Term
+getTypeFromBinder (G.Typed _ _ _ term) = term
+
+getTypeNamesFromTerm :: G.Term -> [G.Name]
+getTypeNamesFromTerm (G.App term args) = map strToGName (termToStrings term) ++
+                                          map strToGName (concat (map termToStrings (map argToTerm (nonEmptyListToList args))))
+getTypeNamesFromTerm _ = []
 
 convertRhsToTerm :: Rhs l -> G.Term
 convertRhsToTerm (UnGuardedRhs _ expr) = convertExprToTerm expr

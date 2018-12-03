@@ -42,6 +42,12 @@ getTypeSignatureByName (x : xs) name = if (nameEqTypeName x name)
                                       then Just x
                                       else getTypeSignatureByName xs name
 
+
+
+filterEachElement :: [a] -> (a -> a -> Bool) -> [a] -> [a]
+filterEachElement [] f _ = []
+filterEachElement (x : xs) f list = filter (f x) list ++ filterEachElement xs f list
+
 -- name comparison functions
 nameEqTypeName :: G.TypeSignature -> Name l -> Bool
 nameEqTypeName (G.TypeSignature sigName _) name = gNameEqName sigName name
