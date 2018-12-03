@@ -9,6 +9,10 @@ import qualified GHC.Base as B
 
 
 --helper functions
+unique :: Eq a => [a] -> [a]
+unique []       = []
+unique (x : xs) = x : unique (filter (x /=) xs)
+
 --convert single element to nonempty list
 singleton :: a -> B.NonEmpty a
 singleton a = a B.:| []
@@ -95,6 +99,10 @@ qNameToTerm qName = G.Qualid (qNameToQId qName)
 
 qNameToTypeTerm :: QName l -> G.Term
 qNameToTypeTerm qName = getType (getQString qName)
+
+argToTerm :: G.Arg -> G.Term
+argToTerm (G.PosArg term) = term
+
 
 -- Qualid conversion functions
 qIdToStr :: G.Qualid -> String

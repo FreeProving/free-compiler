@@ -12,6 +12,7 @@ import qualified Data.Text as T
 import Data.List (partition)
 
 
+
 convertModule :: Module l -> G.LocalModule
 convertModule (Module _ (Just modHead) _ _ decls) = G.LocalModule (convertModuleHead modHead)
                                                       (convertModuleDecls otherDecls $ map filterForTypeSignatures typeSigs)
@@ -128,6 +129,7 @@ filterForTypeSignatures (TypeSig _ (name : rest) types) = G.TypeSignature (nameT
 convertTypeToArg :: Type l -> G.Arg
 convertTypeToArg ty = G.PosArg (convertTypeToTerm ty)
 
+
 convertTypeToTerm :: Type l -> G.Term
 convertTypeToTerm (TyVar _ name) = nameToTypeTerm name
 convertTypeToTerm (TyCon _ qName) = qNameToTypeTerm qName
@@ -143,7 +145,7 @@ convertReturnType :: Maybe G.TypeSignature -> Maybe G.Term
 convertReturnType Nothing = Nothing
 convertReturnType (Just (G.TypeSignature _ types)) = Just (last types)
 
-convertPatsToBinders :: [Pat l] -> Maybe G.TypeSignature-> [G.Binder]
+convertPatsToBinders :: [Pat l] -> Maybe G.TypeSignature -> [G.Binder]
 convertPatsToBinders patList Nothing = [convertPatToBinder p | p <- patList]
 convertPatsToBinders patList (Just (G.TypeSignature _ typeList)) = convertPatsAndTypeSigsToBinders patList (init typeList)
 
@@ -152,11 +154,26 @@ convertPatToBinder (PVar _ name) = G.Inferred G.Explicit (nameToGName name)
 convertPatToBinder _ = error "Pattern not implemented"
 
 convertPatsAndTypeSigsToBinders :: [Pat l] -> [G.Term] -> [G.Binder]
-convertPatsAndTypeSigsToBinders pats typeSigs = zipWith convertPatAndTypeSigToBinder pats typeSigs
+convertPatsAndTypeSigsToBinders pats typeSigs = addInferredTypesToSignature (zipWith convertPatAndTypeSigToBinder pats typeSigs)
 
 convertPatAndTypeSigToBinder :: Pat l -> G.Term -> G.Binder
 convertPatAndTypeSigToBinder (PVar _ name) term = G.Typed G.Ungeneralizable G.Explicit (singleton (nameToGName name)) term
 convertPatAndTypeSigToBinder _ _ = error "Haskell pattern not implemented"
+
+addInferredTypesToSignature :: [G.Binder] -> [G.Binder]
+addInferredTypesToSignature binders = (G.Typed G.Ungeneralizable G.Explicit (toNonemptyList (typeNames)) typeTerm) : binders
+                                      where
+                                        typeNames =  filter (/= (strToGName "List")) (unique (concat (map getTypeNamesFromBinder bindersWithoutConstr)))
+                                        bindersWithoutConstr = map toBindersWithoutConstr binders
+toBindersWithoutConstr :: G.Binder -> G.Binder
+toBindersWithoutConstr (G.Typed c d e (G.App term (a B.:| as))) = case as of
+                                                                [] ->  (G.Typed c d e (G.App (argToTerm a) (a B.:| [])))
+                                                                (x :xs) -> (G.Typed c d e (G.App (argToTerm a) (toNonemptyList as)))
+
+getTypeNamesFromBinder :: G.Binder -> [G.Name]
+getTypeNamesFromBinder (G.Typed _ _ _ (G.App term args)) = map strToGName (termToStrings term) ++
+                                                            map strToGName (concat (map termToStrings (map argToTerm (nonEmptyListToList args))))
+
 
 convertRhsToTerm :: Rhs l -> G.Term
 convertRhsToTerm (UnGuardedRhs _ expr) = convertExprToTerm expr
@@ -206,7 +223,7 @@ applyToDeclHead (DHApp _ declHead _ ) f = applyToDeclHead declHead f
 --apply a function to every tyVarBind of a DeclHead and reverse it (to get arguments in right order)
 applyToDeclHeadTyVarBinds :: DeclHead l -> (TyVarBind l -> a ) -> [a]
 applyToDeclHeadTyVarBinds (DHead _ _) f = []
-applyToDeclHeadTyVarBinds (DHApp _ declHead tyVarBind) f = reverse (f tyVarBind : applyToDeclHeadTyVarBinds declHead f)
+applyToDeclHeadTyVarBinds (DHApp _ declHead tyVarBind) f = reverse (f tyVarBind : reverse (applyToDeclHeadTyVarBinds declHead f))
 
 
 
