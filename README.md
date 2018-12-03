@@ -6,6 +6,7 @@ Starter repository for theses.
 
 ## Must read
 
+[Git interactive introduction](https://learngitbranching.js.org)  
 [How to use git(Lab)](https://docs.gitlab.com/ee/gitlab-basics/)  
 [How to write a git commit message](https://chris.beams.io/posts/git-commit/)  
 How to read research papers ([#1](https://web.stanford.edu/class/ee384m/Handouts/HowtoReadPaper.pdf), [#2](https://pages.cpsc.ucalgary.ca/~pwlfong/Pub/inroads2009.pdf))  
