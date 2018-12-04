@@ -30,6 +30,14 @@ getString  :: Name l -> String
 getString (Ident _ str) = str
 getString (Symbol _ str) = str
 
+toGallinaSyntax :: String -> String
+toGallinaSyntax ("False") = "false"
+toGallinaSyntax ("True") = "true"
+toGallinaSyntax ("Maybe") = "option"
+toGallinaSyntax ("Nothing") = "None"
+toGallinaSyntax ("Just") = "Some"
+toGallinaSyntax s = s
+
 --manual covnversion of common Haskell types to coq equivalent
 getType :: String -> G.Term
 getType ("Int") = strToTerm "nat"
@@ -71,7 +79,7 @@ nameToStr (Ident _ str) = str
 nameToStr (Symbol _ str) = str
 
 nameToText :: Name l -> T.Text
-nameToText name = T.pack (nameToStr name)
+nameToText name = T.pack (toGallinaSyntax (nameToStr name))
 
 nameToQId :: Name l -> G.Qualid
 nameToQId name = G.Bare (nameToText name)
