@@ -61,7 +61,7 @@ getNonInferrableConstrNames qConDecls = [ getNameFromQualConDecl d | d <- nonInf
                                         where
                                           nonInferrableQConDecls = filter isNonInferrableConstr qConDecls
 convertArgumentSpec :: DeclHead l -> [G.ArgumentSpec]
-convertArgumentSpec declHead = [G.ArgumentSpec G.ArgImplicit varName Nothing | varName <- varNames]
+convertArgumentSpec declHead = [G.ArgumentSpec G.ArgMaximal varName Nothing | varName <- varNames]
                                where
                                  varNames = applyToDeclHeadTyVarBinds declHead convertTyVarBindToName
 convertDataTypeDecl :: DeclHead l -> [QualConDecl l] -> G.Inductive
