@@ -4,6 +4,7 @@ import Language.Haskell.Exts.Syntax
 import qualified Coq.Gallina as G
 import Coq.HelperFunctions
 import Coq.Pretty
+import Coq.Monad
 import Text.PrettyPrint.Leijen.Text
 
 import qualified GHC.Base as B
@@ -16,7 +17,8 @@ import Data.List (partition)
 convertModule :: Module l -> G.LocalModule
 convertModule (Module _ (Just modHead) _ _ decls) =
   G.LocalModule (convertModuleHead modHead)
-    (convertModuleDecls otherDecls $ map filterForTypeSignatures typeSigs)
+    (monadDefinitions ++
+      (convertModuleDecls otherDecls $ map filterForTypeSignatures typeSigs))
   where
     (typeSigs, otherDecls) = partition isTypeSig decls
 convertModule (Module _ Nothing _ _ decls) =

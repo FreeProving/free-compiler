@@ -694,9 +694,12 @@ instance Gallina Notation where
     "Reserved" <+> "Notation" <+> dquotes (squotes $ renderIdent x) <> "."
   renderGallina' _ (NotationBinding nb) =
     "Notation" <+> renderGallina nb <> "."
-  renderGallina' _ (InfixDefinition op def oassoc level) =
-    "Infix" <+> dquotes (renderOp op) <+> ":="
-      </> nest 2 (parensN (renderGallina def) </> parensN (assoc <> renderGallina level) <> ".")
+  renderGallina' _ (InfixDefinition op def oassoc level trueInfix) =
+    if trueInfix
+      then "Infix" <+> dquotes (renderOp op) <+> ":="
+              </> nest 2 (parensN (renderGallina def) </> parensN (assoc <> renderGallina level) <> ".")
+      else "Notation" <+> dquotes (renderOp op) <+> ":="
+              </> nest 2 (parensN (renderGallina def) </> parensN (assoc <> renderGallina level) <> ".")
     where assoc = maybe mempty (\assoc -> renderGallina assoc <+> "associativity," <> softline) oassoc
 
 instance Gallina NotationBinding where
@@ -720,7 +723,7 @@ instance Gallina LocalModule where
   renderGallina' _ (LocalModule name sentences) = vcat $
     [ "Module" <+> text name <> "." ] ++
     [ "Set Implicit Arguments."] ++
-    [ "Set Maximal Implicit Insertion."] ++ 
+    [ "Set Maximal Implicit Insertion."] ++
     [ renderGallina s | s <- sentences ] ++
     [ "End" <+> text name <> "." ]
 

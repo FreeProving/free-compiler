@@ -389,7 +389,7 @@ newtype Level = Level Num                                                       
 -- |@/notation/ ::=@ /(extra)/
 data Notation = ReservedNotationIdent Ident                                                    -- ^@Reserved Notation "'/ident/'" .@
               | NotationBinding NotationBinding                                                -- ^@Notation /notation_binding/ .@
-              | InfixDefinition Op Term (Maybe Associativity) Level                            -- ^@Infix "/op/" := ( /term/ ) ( [/associativity/ associativity ,] /level/ ) .@
+              | InfixDefinition Op Term (Maybe Associativity) Level Bool                            -- ^@Infix "/op/" := ( /term/ ) ( [/associativity/ associativity ,] /level/ ) .@
               deriving (Eq, Ord, Show, Read, Typeable, Data)
 
 -- |@/notation_binding/ ::=@ /(extra)/
