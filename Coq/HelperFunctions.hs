@@ -73,6 +73,10 @@ strToGName str = G.Ident (strToQId str)
 strToTerm :: String -> G.Term
 strToTerm str = G.Qualid (strToQId str)
 
+strToBinder :: String -> G.Binder
+strToBinder s =
+  G.Inferred G.Explicit (strToGName s)
+
 -- Name conversions (haskell ast)
 nameToStr :: Name l -> String
 nameToStr (Ident _ str) = str

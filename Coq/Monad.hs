@@ -7,7 +7,7 @@ import qualified Data.Text as T
 
 monadDefinitions :: [G.Sentence]
 monadDefinitions =
-  monadTypeClass : bindNotationSentence : []
+  monadTypeClass : bindNotationSentence : optionMonadImplementationSentance : []
 
 monadTypeClass :: G.Sentence
 monadTypeClass =
@@ -16,6 +16,24 @@ monadTypeClass =
 bindNotationSentence :: G.Sentence
 bindNotationSentence =
   G.NotationSentence bindNotation
+
+optionMonadImplementationSentance :: G.Sentence
+optionMonadImplementationSentance =
+  G.InstanceSentence optionMonadImplementation
+
+optionMonadImplementation :: G.InstanceDefinition
+optionMonadImplementation =
+  G.InstanceDefinition maybeQId [] ty funs Nothing
+  where
+    ty = G.App (G.Qualid maybeQId) (singleton (G.PosArg (G.Qualid (strToQId "option"))))
+    maybeQId = strToQId "Maybe"
+    funs = (strToQId "return_", G.Qualid (strToQId "Some")) : (strToQId "bind", lambda) : []
+    lambda = G.Fun (toNonemptyList binders) (G.Match (singleton (G.MatchItem (G.Qualid (strToQId "m")) Nothing Nothing)) Nothing equations)
+    binders = strToBinder "a" : strToBinder "m" : strToBinder "b" : strToBinder "f" : []
+    equations =
+      G.Equation (singleton (G.MultPattern (singleton (G.ArgsPat (strToQId "None") [])))) (G.Qualid (strToQId "None")) :
+      G.Equation (singleton (G.MultPattern (singleton (G.ArgsPat (strToQId "Some") [G.QualidPat (strToQId "a")]))))
+        (G.App (G.Qualid (strToQId "f")) (singleton (G.PosArg (G.Qualid (strToQId "a"))))) : []
 
 bindNotation :: G.Notation
 bindNotation =
@@ -31,14 +49,14 @@ monadClassDefinition =
   where
     name = strToQId "Monad"
     binder = [G.Typed G.Ungeneralizable G.Explicit (singleton (strToGName "m")) ty]
-    ty = G.Arrow (G.Sort G.Type) (G.Sort G.Type)
+    ty = G.Arrow typeSort typeSort
     funs = returnSig : bindSig : []
 
 returnSig :: (G.Qualid, G.Term)
 returnSig =
   (strToQId "return_" , G.Forall binders decl)
   where
-    binders = singleton (G.Inferred G.Explicit (strToGName "a"))
+    binders = singleton (strToBinder "a")
     decl = G.Arrow aTerm app
     app = G.App  mTerm (singleton (G.PosArg aTerm))
     aTerm = G.Qualid (strToQId "a")
@@ -48,8 +66,8 @@ bindSig :: (G.Qualid, G.Term)
 bindSig =
   (strToQId "bind", G.Forall aBinders firstDecl)
   where
-    aBinders = singleton (G.Inferred G.Explicit (strToGName "a"))
-    bBinders = singleton (G.Inferred G.Explicit (strToGName "b"))
+    aBinders = singleton (strToBinder "a")
+    bBinders = singleton (strToBinder "b")
     firstDecl = G.Arrow (G.App mTerm (singleton (G.PosArg aTerm))) (G.Forall bBinders secondDecl)
     secondDecl = G.Arrow funSig monadicB
     funSig = G.Parens (G.Arrow aTerm monadicB)
@@ -57,3 +75,9 @@ bindSig =
     aTerm = G.Qualid (strToQId "a")
     bTerm = G.Qualid (strToQId "b")
     mTerm = G.Qualid (strToQId "m")
+
+
+
+typeSort :: G.Term
+typeSort =
+  G.Sort G.Type
