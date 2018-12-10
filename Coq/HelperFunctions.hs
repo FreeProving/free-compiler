@@ -50,7 +50,9 @@ getTypeSignatureByName (x : xs) name = if (nameEqTypeName x name)
                                       then Just x
                                       else getTypeSignatureByName xs name
 
-
+isCoqType :: G.Name -> Bool
+isCoqType name =
+   null (filter (/= name) coqTypes)
 
 filterEachElement :: [a] -> (a -> a -> Bool) -> [a] -> [a]
 filterEachElement [] f _ = []
@@ -76,6 +78,17 @@ strToTerm str = G.Qualid (strToQId str)
 strToBinder :: String -> G.Binder
 strToBinder s =
   G.Inferred G.Explicit (strToGName s)
+
+termToOptionTerm :: G.Term -> G.Term
+termToOptionTerm term =
+  G.App optionTerm (singleton (G.PosArg term))
+
+optionTerm :: G.Term
+optionTerm =
+  G.Qualid (strToQId "option")
+
+coqTypes :: [G.Name]
+coqTypes = strToGName "nat" : strToGName "bool" : strToGName "option" : []
 
 -- Name conversions (haskell ast)
 nameToStr :: Name l -> String

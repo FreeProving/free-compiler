@@ -35,8 +35,9 @@ not b = case b of
   --Cons _ _ -> False
 
 --type Queue a = List a
-
+{-}
 append :: List a-> List a -> List a
 append xs ys = case xs of
   Nil -> ys
   Cons z zs -> Cons z (append zs ys)
+-}

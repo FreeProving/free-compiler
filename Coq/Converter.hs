@@ -187,7 +187,7 @@ convertReturnType :: Maybe G.TypeSignature -> Maybe G.Term
 convertReturnType Nothing =
   Nothing
 convertReturnType (Just (G.TypeSignature _ types)) =
-  Just (last types)
+  Just (termToOptionTerm (last types))
 
 convertPatsToBinders :: [Pat l] -> Maybe G.TypeSignature -> [G.Binder]
 convertPatsToBinders patList Nothing =
@@ -207,13 +207,13 @@ convertPatsAndTypeSigsToBinders pats typeSigs =
 
 convertPatAndTypeSigToBinder :: Pat l -> G.Term -> G.Binder
 convertPatAndTypeSigToBinder (PVar _ name) term =
-  G.Typed G.Ungeneralizable G.Explicit (singleton (nameToGName name)) term
+  G.Typed G.Ungeneralizable G.Explicit (singleton (nameToGName name)) (termToOptionTerm term)
 convertPatAndTypeSigToBinder _ _ =
   error "Haskell pattern not implemented"
 
 addInferredTypesToSignature :: [G.Binder] -> [G.Binder]
 addInferredTypesToSignature binders =
-  if null typeNames
+  if null (filter isCoqType typeNames)
     then binders
     else (G.Typed G.Ungeneralizable G.Explicit (toNonemptyList (typeNames)) typeTerm) : binders
   where
