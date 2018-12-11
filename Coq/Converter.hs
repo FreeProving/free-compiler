@@ -102,7 +102,7 @@ convertMatchDef (Match _ name pattern rhs _) typeSigs =
 convertMatchToDefinition :: Name l -> [Pat l] -> Rhs l -> Maybe G.TypeSignature -> G.Definition
 convertMatchToDefinition name pattern rhs typeSig  =
   G.DefinitionDef G.Global (nameToQId name)
-    binders
+    (map (addMonadicPrefixToBinder addOptionPrefix) binders)
       (convertReturnType typeSig)
         rhsTerm
   where
@@ -190,7 +190,7 @@ convertReturnType :: Maybe G.TypeSignature -> Maybe G.Term
 convertReturnType Nothing =
   Nothing
 convertReturnType (Just (G.TypeSignature _ types)) =
-  Just (termToOptionTerm (last types))
+  Just (toOptionTerm (last types))
 
 convertPatsToBinders :: [Pat l] -> Maybe G.TypeSignature -> [G.Binder]
 convertPatsToBinders patList Nothing =
@@ -210,7 +210,7 @@ convertPatsAndTypeSigsToBinders pats typeSigs =
 
 convertPatAndTypeSigToBinder :: Pat l -> G.Term -> G.Binder
 convertPatAndTypeSigToBinder (PVar _ name) term =
-  G.Typed G.Ungeneralizable G.Explicit (singleton (nameToGName name)) (termToOptionTerm term)
+  G.Typed G.Ungeneralizable G.Explicit (singleton (nameToGName name)) (toOptionTerm term)
 convertPatAndTypeSigToBinder _ _ =
   error "Haskell pattern not implemented"
 
@@ -223,23 +223,6 @@ addInferredTypesToSignature binders =
     typeNames = filterEachElement consNames (/=) (unique (concat (map getTypeNamesFromTerm typeTerms)))
     typeTerms = map getTypeFromBinder binders
     consNames = unique (map getConstrNameFromType typeTerms)
-
-getConstrNameFromType :: G.Term -> G.Name
-getConstrNameFromType (G.App term _) =
-  head (map strToGName (termToStrings term))
-getConstrNameFromType _ =
-  strToGName ""
-
-getTypeFromBinder :: G.Binder -> G.Term
-getTypeFromBinder (G.Typed _ _ _ term) =
-  term
-
-getTypeNamesFromTerm :: G.Term -> [G.Name]
-getTypeNamesFromTerm (G.App term args) =
-  map strToGName (termToStrings term) ++
-    map strToGName (concat (map termToStrings (map argToTerm (nonEmptyListToList args))))
-getTypeNamesFromTerm _ =
-  []
 
 convertRhsToTerm :: Rhs l -> G.Term
 convertRhsToTerm (UnGuardedRhs _ expr) =
@@ -259,7 +242,7 @@ addBindOperators (x : xs) term =
   G.App bindOperator
     (toNonemptyList (G.PosArg argumentName : G.PosArg lambdaFun : []))
   where
-    argumentName = getBinderName x
+    argumentName = getBinderName (addMonadicPrefixToBinder addOptionPrefix x) 
     lambdaFun = G.Fun (singleton (untypeBinder x)) (addBindOperators xs term)
 
 convertExprToTerm :: Exp l -> G.Term
@@ -354,11 +337,24 @@ termToStrings (G.App term args) =
     listToStrings argToStrings (nonEmptyListToList args)
 termToStrings (G.Match mItem _ equations) =
   listToStrings mItemToStrings (nonEmptyListToList mItem)  ++
-    listToStrings equationToStrings equations 
+    listToStrings equationToStrings equations
 
 listToStrings :: (a -> [String]) -> [a] -> [String]
 listToStrings f list = concatMap f list
 
+
+getTypeNamesFromTerm :: G.Term -> [G.Name]
+getTypeNamesFromTerm (G.App term args) =
+  map strToGName (termToStrings term) ++
+    map strToGName (concat (map termToStrings (map argToTerm (nonEmptyListToList args))))
+getTypeNamesFromTerm _ =
+  []
+
+getConstrNameFromType :: G.Term -> G.Name
+getConstrNameFromType (G.App term _) =
+  head (map strToGName (termToStrings term))
+getConstrNameFromType _ =
+  strToGName ""
 
 argToStrings :: G.Arg -> [String]
 argToStrings (G.PosArg term) =

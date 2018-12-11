@@ -30,6 +30,8 @@ getString  :: Name l -> String
 getString (Ident _ str) = str
 getString (Symbol _ str) = str
 
+
+
 toGallinaSyntax :: String -> String
 toGallinaSyntax ("False") = "false"
 toGallinaSyntax ("True") = "true"
@@ -79,6 +81,7 @@ strToBinder :: String -> G.Binder
 strToBinder s =
   G.Inferred G.Explicit (strToGName s)
 
+-----
 getBinderName :: G.Binder -> G.Term
 getBinderName (G.Inferred _ name) =
   gNameToTerm name
@@ -89,10 +92,26 @@ untypeBinder :: G.Binder -> G.Binder
 untypeBinder (G.Typed _ _ (name B.:| xs) _) =
   G.Inferred G.Explicit name
 untypeBinder binder =
-  binder 
+  binder
+---
+addMonadicPrefix :: String -> G.Name -> G.Name
+addMonadicPrefix str (G.Ident (G.Bare ident)) =
+  G.Ident (strToQId (str ++ name))
+  where
+    name = T.unpack ident
 
-termToOptionTerm :: G.Term -> G.Term
-termToOptionTerm term =
+addOptionPrefix :: G.Name -> G.Name
+addOptionPrefix = addMonadicPrefix "o"
+
+addMonadicPrefixToBinder :: (G.Name -> G.Name) -> G.Binder -> G.Binder
+addMonadicPrefixToBinder f (G.Inferred expl name) =
+  G.Inferred expl (f name)
+addMonadicPrefixToBinder f (G.Typed gen expl (name B.:| xs) ty) =
+  G.Typed gen expl (singleton (f name)) ty
+
+
+toOptionTerm :: G.Term -> G.Term
+toOptionTerm term =
   G.App optionTerm (singleton (G.PosArg term))
 
 optionTerm :: G.Term
@@ -134,7 +153,7 @@ nameToTypeTerm :: Name l -> G.Term
 nameToTypeTerm name = getType (getString name)
 
 gNameToTerm :: G.Name -> G.Term
-gNameToTerm (G.Ident qId) =
+gNameToTerm (G.Ident (qId)) =
   G.Qualid qId
 
 --QName conversion (Haskell ast)
@@ -161,6 +180,9 @@ qNameToTypeTerm qName = getType (getQString qName)
 argToTerm :: G.Arg -> G.Term
 argToTerm (G.PosArg term) = term
 
+getTypeFromBinder :: G.Binder -> G.Term
+getTypeFromBinder (G.Typed _ _ _ term) =
+  term
 
 -- Qualid conversion functions
 qIdToStr :: G.Qualid -> String
