@@ -25,7 +25,7 @@ optionMonadImplementation :: G.InstanceDefinition
 optionMonadImplementation =
   G.InstanceDefinition maybeQId [] ty funs Nothing
   where
-    ty = G.App (G.Qualid maybeQId) (singleton (G.PosArg (G.Qualid (strToQId "option"))))
+    ty = G.App (G.Qualid (strToQId "Monad")) (singleton (G.PosArg (G.Qualid (strToQId "option"))))
     maybeQId = strToQId "Maybe"
     funs = (strToQId "return_", G.Qualid (strToQId "Some")) : (strToQId "bind", lambda) : []
     lambda = G.Fun (toNonemptyList binders) (G.Match (singleton (G.MatchItem (G.Qualid (strToQId "m")) Nothing Nothing)) Nothing equations)

@@ -111,11 +111,11 @@ convertMatchToDefinition name pattern rhs typeSig  =
 
 convertMatchToFixpoint :: Name l -> [Pat l] -> Rhs l -> Maybe G.TypeSignature -> G.Fixpoint
 convertMatchToFixpoint name pattern rhs  typeSig =
-  G.Fixpoint (singleton (G.FixBody (nameToQId name)
+  G.Fixpoint (singleton $ G.FixBody (nameToQId name)
     (toNonemptyList (convertPatsToBinders pattern typeSig))
       Nothing
         Nothing
-          (convertRhsToTerm  rhs))) []
+          (convertRhsToTerm  rhs)) []
 
 getReturnTypeFromDeclHead :: [G.Arg] -> DeclHead l -> G.Term
 getReturnTypeFromDeclHead [] dHead =
@@ -133,7 +133,7 @@ convertTyVarBindToBinder :: TyVarBind l -> G.Binder
 convertTyVarBindToBinder (KindedVar _ name kind) =
   error "Kind-annotation not implemented"
 convertTyVarBindToBinder (UnkindedVar _ name) =
-  G.Typed G.Ungeneralizable G.Explicit (singleton (nameToGName name)) typeTerm
+  G.Typed G.Ungeneralizable G.Explicit (singleton $ nameToGName name) typeTerm
 
 convertTyVarBindToArg :: TyVarBind l -> G.Arg
 convertTyVarBindToArg (KindedVar _ name kind) =
@@ -151,7 +151,7 @@ convertQConDecl (QualConDecl _ Nothing Nothing (ConDecl _ name types)) term =
 
 convertToArrowTerm :: [Type l] -> G.Term -> G.Term
 convertToArrowTerm types returnType =
-  buildArrowTerm (map convertTypeToTerm types) returnType
+  buildArrowTerm (map convertTypeToMonadicTerm types) returnType
 
 buildArrowTerm :: [G.Term] -> G.Term -> G.Term
 buildArrowTerm terms returnType =
@@ -166,6 +166,11 @@ convertTypeToArg :: Type l -> G.Arg
 convertTypeToArg ty =
   G.PosArg (convertTypeToTerm ty)
 
+convertTypeToMonadicTerm :: Type l -> G.Term
+convertTypeToMonadicTerm (TyVar _ name) =
+  toOptionTerm $ nameToTypeTerm name
+convertTypeToMonadicTerm ty =
+  convertTypeToTerm ty 
 
 convertTypeToTerm :: Type l -> G.Term
 convertTypeToTerm (TyVar _ name) =
@@ -175,7 +180,7 @@ convertTypeToTerm (TyCon _ qName) =
 convertTypeToTerm (TyParen _ ty) =
   G.Parens (convertTypeToTerm ty)
 convertTypeToTerm (TyApp _ type1 type2) =
-  G.App (convertTypeToTerm type1) (singleton (convertTypeToArg type2))
+  G.App (convertTypeToTerm type1) (singleton $ convertTypeToArg type2)
 convertTypeToTerm _ =
   error "Haskell-type not implemented"
 
@@ -210,7 +215,7 @@ convertPatsAndTypeSigsToBinders pats typeSigs =
 
 convertPatAndTypeSigToBinder :: Pat l -> G.Term -> G.Binder
 convertPatAndTypeSigToBinder (PVar _ name) term =
-  G.Typed G.Ungeneralizable G.Explicit (singleton (nameToGName name)) (toOptionTerm term)
+  G.Typed G.Ungeneralizable G.Explicit (singleton $ nameToGName name) (toOptionTerm term)
 convertPatAndTypeSigToBinder _ _ =
   error "Haskell pattern not implemented"
 
@@ -242,8 +247,8 @@ addBindOperators (x : xs) term =
   G.App bindOperator
     (toNonemptyList (G.PosArg argumentName : G.PosArg lambdaFun : []))
   where
-    argumentName = getBinderName (addMonadicPrefixToBinder addOptionPrefix x) 
-    lambdaFun = G.Fun (singleton (untypeBinder x)) (addBindOperators xs term)
+    argumentName = getBinderName (addMonadicPrefixToBinder addOptionPrefix x)
+    lambdaFun = G.Fun (singleton $ untypeBinder x) (addBindOperators xs term)
 
 convertExprToTerm :: Exp l -> G.Term
 convertExprToTerm (Var _ qName) =
@@ -253,12 +258,12 @@ convertExprToTerm (Con _ qName) =
 convertExprToTerm (Paren _ expr) =
   G.Parens (convertExprToTerm expr)
 convertExprToTerm (App _ expr1 expr2) =
-  G.App (convertExprToTerm expr1) (singleton (G.PosArg (convertExprToTerm expr2)))
+  G.App (convertExprToTerm expr1) (singleton $ G.PosArg (convertExprToTerm expr2))
 convertExprToTerm (InfixApp _ exprL (qOp) exprR) =
   toReturnTerm ((G.App (G.Qualid (qOpToQId qOp))
     ((G.PosArg (convertExprToTerm exprL)) B.:| (G.PosArg (convertExprToTerm exprR)) : [])))
 convertExprToTerm (Case _ expr altList) =
-  G.Match (singleton (G.MatchItem (convertExprToTerm expr)  Nothing Nothing))
+  G.Match (singleton $ G.MatchItem (convertExprToTerm expr)  Nothing Nothing)
     Nothing
       (convertAltListToEquationList altList)
 convertExprToTerm _ =
@@ -278,7 +283,7 @@ convertAltListToEquationList altList =
 
 convertAltToEquation :: Alt l -> G.Equation
 convertAltToEquation (Alt _ pat rhs _) =
-  G.Equation (singleton (G.MultPattern (singleton(convertHPatToGPat pat)))) (convertRhsToMonadicTerm rhs)
+  G.Equation (singleton $ G.MultPattern (singleton $ convertHPatToGPat pat)) (convertRhsToMonadicTerm rhs)
 
 convertHPatListToGPatList :: [Pat l] -> [G.Pattern]
 convertHPatListToGPatList patList =
