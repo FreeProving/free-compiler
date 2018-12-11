@@ -102,9 +102,12 @@ convertMatchDef (Match _ name pattern rhs _) typeSigs =
 convertMatchToDefinition :: Name l -> [Pat l] -> Rhs l -> Maybe G.TypeSignature -> G.Definition
 convertMatchToDefinition name pattern rhs typeSig  =
   G.DefinitionDef G.Global (nameToQId name)
-    (convertPatsToBinders pattern typeSig)
+    binders
       (convertReturnType typeSig)
-        (convertRhsToTerm rhs)
+        rhsTerm
+  where
+    binders = convertPatsToBinders pattern typeSig
+    rhsTerm = addBindOperators binders (convertRhsToTerm rhs)
 
 convertMatchToFixpoint :: Name l -> [Pat l] -> Rhs l -> Maybe G.TypeSignature -> G.Fixpoint
 convertMatchToFixpoint name pattern rhs  typeSig =
@@ -244,6 +247,21 @@ convertRhsToTerm (UnGuardedRhs _ expr) =
 convertRhsToTerm (GuardedRhss _ _ ) =
   error "Guards not implemented"
 
+convertRhsToMonadicTerm :: Rhs l -> G.Term
+convertRhsToMonadicTerm (UnGuardedRhs _ expr) =
+  convertExprToMonadicTerm expr
+convertRhsToMonadicTerm (GuardedRhss _ _ ) =
+    error "Guards not implemented"
+
+addBindOperators :: [G.Binder] -> G.Term -> G.Term
+addBindOperators [] term = term
+addBindOperators (x : xs) term =
+  G.App bindOperator
+    (toNonemptyList (G.PosArg argumentName : G.PosArg lambdaFun : []))
+  where
+    argumentName = getBinderName x
+    lambdaFun = G.Fun (singleton (untypeBinder x)) (addBindOperators xs term)
+
 convertExprToTerm :: Exp l -> G.Term
 convertExprToTerm (Var _ qName) =
   qNameToTerm qName
@@ -253,9 +271,9 @@ convertExprToTerm (Paren _ expr) =
   G.Parens (convertExprToTerm expr)
 convertExprToTerm (App _ expr1 expr2) =
   G.App (convertExprToTerm expr1) (singleton (G.PosArg (convertExprToTerm expr2)))
-convertExprToTerm (InfixApp _ (Var _ qNameL) (qOp) (Var _ qNameR)) =
-  (G.App (G.Qualid (qOpToQId qOp))
-    ((G.PosArg (G.Qualid (qNameToQId qNameL))) B.:| (G.PosArg (G.Qualid (qNameToQId qNameR))) : []))
+convertExprToTerm (InfixApp _ exprL (qOp) exprR) =
+  toReturnTerm ((G.App (G.Qualid (qOpToQId qOp))
+    ((G.PosArg (convertExprToTerm exprL)) B.:| (G.PosArg (convertExprToTerm exprR)) : [])))
 convertExprToTerm (Case _ expr altList) =
   G.Match (singleton (G.MatchItem (convertExprToTerm expr)  Nothing Nothing))
     Nothing
@@ -263,13 +281,21 @@ convertExprToTerm (Case _ expr altList) =
 convertExprToTerm _ =
   error "Haskell expression not implemented"
 
+convertExprToMonadicTerm :: Exp l -> G.Term
+convertExprToMonadicTerm (Var _ qName) =
+  toReturnTerm (qNameToTerm qName)
+convertExprToMonadicTerm (Con _ qName) =
+  toReturnTerm (qNameToTerm qName)
+convertExprToMonadicTerm expr =
+  convertExprToTerm expr
+
 convertAltListToEquationList :: [Alt l] -> [G.Equation]
 convertAltListToEquationList altList =
   [convertAltToEquation s | s <- altList]
 
 convertAltToEquation :: Alt l -> G.Equation
 convertAltToEquation (Alt _ pat rhs _) =
-  G.Equation (singleton (G.MultPattern (singleton(convertHPatToGPat pat)))) (convertRhsToTerm rhs)
+  G.Equation (singleton (G.MultPattern (singleton(convertHPatToGPat pat)))) (convertRhsToMonadicTerm rhs)
 
 convertHPatListToGPatList :: [Pat l] -> [G.Pattern]
 convertHPatListToGPatList patList =

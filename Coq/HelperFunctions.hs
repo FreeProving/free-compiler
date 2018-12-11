@@ -79,6 +79,18 @@ strToBinder :: String -> G.Binder
 strToBinder s =
   G.Inferred G.Explicit (strToGName s)
 
+getBinderName :: G.Binder -> G.Term
+getBinderName (G.Inferred _ name) =
+  gNameToTerm name
+getBinderName (G.Typed _ _ (name B.:| xs) _) =
+  gNameToTerm name
+
+untypeBinder :: G.Binder -> G.Binder
+untypeBinder (G.Typed _ _ (name B.:| xs) _) =
+  G.Inferred G.Explicit name
+untypeBinder binder =
+  binder 
+
 termToOptionTerm :: G.Term -> G.Term
 termToOptionTerm term =
   G.App optionTerm (singleton (G.PosArg term))
@@ -86,6 +98,17 @@ termToOptionTerm term =
 optionTerm :: G.Term
 optionTerm =
   G.Qualid (strToQId "option")
+
+returnTerm :: G.Term
+returnTerm =
+  G.Qualid (strToQId "return_")
+
+bindOperator :: G.Term
+bindOperator =
+  G.Qualid (strToQId "op_>>=__")
+
+toReturnTerm :: G.Term -> G.Term
+toReturnTerm term = G.App returnTerm (singleton (G.PosArg (G.Parens term)))
 
 coqTypes :: [G.Name]
 coqTypes = strToGName "nat" : strToGName "bool" : strToGName "option" : []
@@ -109,6 +132,10 @@ nameToTerm name = G.Qualid (nameToQId name)
 
 nameToTypeTerm :: Name l -> G.Term
 nameToTypeTerm name = getType (getString name)
+
+gNameToTerm :: G.Name -> G.Term
+gNameToTerm (G.Ident qId) =
+  G.Qualid qId
 
 --QName conversion (Haskell ast)
 qNameToStr :: QName l -> String
