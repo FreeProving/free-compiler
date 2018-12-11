@@ -28,14 +28,14 @@ not :: Bool -> Bool
 not b = case b of
   False -> True
   True -> False
-
---null :: List a -> Bool
---null list = case list of
-  --Nil -> True
-  --Cons _ _ -> False
+{-}
+null :: List a -> Bool
+null list = case list of
+  Nil -> True
+  Cons _ _ -> False
 
 --type Queue a = List a
-{-}
+
 append :: List a-> List a -> List a
 append xs ys = case xs of
   Nil -> ys

@@ -170,7 +170,7 @@ convertTypeToMonadicTerm :: Type l -> G.Term
 convertTypeToMonadicTerm (TyVar _ name) =
   toOptionTerm $ nameToTypeTerm name
 convertTypeToMonadicTerm ty =
-  convertTypeToTerm ty 
+  convertTypeToTerm ty
 
 convertTypeToTerm :: Type l -> G.Term
 convertTypeToTerm (TyVar _ name) =
@@ -294,6 +294,8 @@ convertHPatToGPat (PVar _ name) =
   G.QualidPat (nameToQId name)
 convertHPatToGPat (PApp _ qName pList) =
   G.ArgsPat (qNameToQId qName) (convertHPatListToGPatList pList)
+convertHPatToGPat (PWildCard _) =
+  G.UnderscorePat
 convertHPatToGPat _ =
   error "Haskell pattern not implemented"
 
@@ -383,6 +385,8 @@ patToStrings (G.QualidPat qId) =
   [qIdToStr qId]
 patToStrings (G.ArgsPat qId pats) =
   qIdToStr qId : patsToStrings pats
+patToStrings (G.UnderscorePat) =
+  ["_"]
 
 patsToStrings :: [G.Pattern] -> [String]
 patsToStrings [] =
