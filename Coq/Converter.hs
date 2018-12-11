@@ -351,16 +351,14 @@ termToStrings (G.Parens term) =
   termToStrings term
 termToStrings (G.App term args) =
   termToStrings term ++
-    listToStrings (nonEmptyListToList args) argToStrings
+    listToStrings argToStrings (nonEmptyListToList args)
 termToStrings (G.Match mItem _ equations) =
-  listToStrings (nonEmptyListToList mItem) mItemToStrings ++
-    listToStrings equations equationToStrings
+  listToStrings mItemToStrings (nonEmptyListToList mItem)  ++
+    listToStrings equationToStrings equations 
 
-listToStrings :: [a] -> (a -> [String]) -> [String]
-listToStrings [] f = []
-listToStrings (x : xs) f =
-  f x ++
-    listToStrings xs f
+listToStrings :: (a -> [String]) -> [a] -> [String]
+listToStrings f list = concatMap f list
+
 
 argToStrings :: G.Arg -> [String]
 argToStrings (G.PosArg term) =
@@ -372,12 +370,12 @@ mItemToStrings (G.MatchItem term _ _) =
 
 equationToStrings :: G.Equation -> [String]
 equationToStrings (G.Equation multPattern term) =
-  listToStrings (nonEmptyListToList multPattern) multPatToStrings ++
+  listToStrings multPatToStrings (nonEmptyListToList multPattern)  ++
     termToStrings term
 
 multPatToStrings :: G.MultPattern -> [String]
 multPatToStrings (G.MultPattern pattern) =
-  listToStrings (nonEmptyListToList pattern) patToStrings
+  listToStrings patToStrings (nonEmptyListToList pattern)
 
 patToStrings :: G.Pattern -> [String]
 patToStrings (G.QualidPat qId) =
