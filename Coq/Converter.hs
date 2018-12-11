@@ -169,6 +169,10 @@ convertTypeToArg ty =
 convertTypeToMonadicTerm :: Type l -> G.Term
 convertTypeToMonadicTerm (TyVar _ name) =
   toOptionTerm $ nameToTypeTerm name
+convertTypeToMonadicTerm (TyCon _ qName) =
+  toOptionTerm $ qNameToTypeTerm qName
+convertTypeToMonadicTerm (TyParen _ ty) =
+  toOptionTerm $ G.Parens $ convertTypeToTerm ty
 convertTypeToMonadicTerm ty =
   convertTypeToTerm ty
 
@@ -387,4 +391,4 @@ patsToStrings (p : ps) =
 --print the converted module
 printCoqAST :: G.LocalModule -> IO ()
 printCoqAST x =
-  putDoc (renderGallina x)
+  putDoc $ renderGallina x
