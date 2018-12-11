@@ -235,14 +235,9 @@ convertRhsToTerm (UnGuardedRhs _ expr) =
 convertRhsToTerm (GuardedRhss _ _ ) =
   error "Guards not implemented"
 
-convertRhsToMonadicTerm :: Rhs l -> G.Term
-convertRhsToMonadicTerm (UnGuardedRhs _ expr) =
-  convertExprToMonadicTerm expr
-convertRhsToMonadicTerm (GuardedRhss _ _ ) =
-    error "Guards not implemented"
 
 addBindOperators :: [G.Binder] -> G.Term -> G.Term
-addBindOperators [] term = term
+addBindOperators [] term = toReturnTerm term
 addBindOperators (x : xs) term =
   G.App bindOperator
     (toNonemptyList (G.PosArg argumentName : G.PosArg lambdaFun : []))
@@ -260,8 +255,8 @@ convertExprToTerm (Paren _ expr) =
 convertExprToTerm (App _ expr1 expr2) =
   G.App (convertExprToTerm expr1) (singleton $ G.PosArg (convertExprToTerm expr2))
 convertExprToTerm (InfixApp _ exprL (qOp) exprR) =
-  toReturnTerm ((G.App (G.Qualid (qOpToQId qOp))
-    ((G.PosArg (convertExprToTerm exprL)) B.:| (G.PosArg (convertExprToTerm exprR)) : [])))
+  (G.App (G.Qualid (qOpToQId qOp))
+    ((G.PosArg (convertExprToTerm exprL)) B.:| (G.PosArg (convertExprToTerm exprR)) : []))
 convertExprToTerm (Case _ expr altList) =
   G.Match (singleton $ G.MatchItem (convertExprToTerm expr)  Nothing Nothing)
     Nothing
@@ -269,13 +264,6 @@ convertExprToTerm (Case _ expr altList) =
 convertExprToTerm _ =
   error "Haskell expression not implemented"
 
-convertExprToMonadicTerm :: Exp l -> G.Term
-convertExprToMonadicTerm (Var _ qName) =
-  toReturnTerm (qNameToTerm qName)
-convertExprToMonadicTerm (Con _ qName) =
-  toReturnTerm (qNameToTerm qName)
-convertExprToMonadicTerm expr =
-  convertExprToTerm expr
 
 convertAltListToEquationList :: [Alt l] -> [G.Equation]
 convertAltListToEquationList altList =
@@ -283,7 +271,7 @@ convertAltListToEquationList altList =
 
 convertAltToEquation :: Alt l -> G.Equation
 convertAltToEquation (Alt _ pat rhs _) =
-  G.Equation (singleton $ G.MultPattern (singleton $ convertHPatToGPat pat)) (convertRhsToMonadicTerm rhs)
+  G.Equation (singleton $ G.MultPattern (singleton $ convertHPatToGPat pat)) (convertRhsToTerm rhs)
 
 convertHPatListToGPatList :: [Pat l] -> [G.Pattern]
 convertHPatListToGPatList patList =
