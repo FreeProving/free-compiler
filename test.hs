@@ -3,18 +3,25 @@ module Test where
 Testfälle für bisherige Funktion des Compilers
 -}
 
-data Bool = True
-        | False
+data Bool =
+  True
+  | False
 
-data Maybe a = Nothing
-              | Just a
+data Maybe a =
+  Nothing
+  | Just a
+
+data Test =
+  T1 Int
+  | T2 String
 
 data Either a b =
   Left a
   | Right b
 
-data List a = Nil
-            | Cons a (List a)
+data List a =
+  Nil
+  | Cons a (List a)
 
 data Tree a =
   Leaf
