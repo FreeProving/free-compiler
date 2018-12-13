@@ -47,33 +47,11 @@ convertModuleDecls _ _ =
    error "Top-level declaration not implemented"
 
 
-needsArgumentsSentence :: DeclHead l -> [QualConDecl l] -> Bool
-needsArgumentsSentence declHead qConDecls =
-  length binders > 0 && hasNonInferrableConstr qConDecls
-  where
-    binders = applyToDeclHeadTyVarBinds declHead convertTyVarBindToBinder
-
-hasNonInferrableConstr :: [QualConDecl l] -> Bool
-hasNonInferrableConstr qConDecls =
-  length (filter isNonInferrableConstr qConDecls) > 0
-
-isNonInferrableConstr :: QualConDecl l -> Bool
-isNonInferrableConstr (QualConDecl _ _ _ (ConDecl _ _ [])) =
-  True
-isNonInferrableConstr (QualConDecl _ _ _ (ConDecl _ _ ty)) =
-  False
-
 convertArgumentSentences :: DeclHead l -> [QualConDecl l] -> [G.Sentence]
 convertArgumentSentences declHead qConDecls =
   [G.ArgumentsSentence (G.Arguments Nothing con (convertArgumentSpec declHead)) | con <- constrToDefine]
   where
     constrToDefine = getNonInferrableConstrNames qConDecls
-
-getNonInferrableConstrNames :: [QualConDecl l] -> [G.Qualid]
-getNonInferrableConstrNames qConDecls =
-  [ getNameFromQualConDecl d | d <- nonInferrableQConDecls]
-  where
-    nonInferrableQConDecls = filter isNonInferrableConstr qConDecls
 
 convertArgumentSpec :: DeclHead l -> [G.ArgumentSpec]
 convertArgumentSpec declHead =
@@ -241,7 +219,8 @@ convertRhsToTerm (GuardedRhss _ _ ) =
 
 
 addBindOperators :: [G.Binder] -> G.Term -> G.Term
-addBindOperators [] term = toReturnTerm term
+addBindOperators [] term =
+  toReturnTerm term
 addBindOperators (x : xs) term =
   G.App bindOperator
     (toNonemptyList (G.PosArg argumentName : G.PosArg lambdaFun : []))
@@ -295,98 +274,16 @@ convertQNameToBinder :: QName l -> G.Binder
 convertQNameToBinder qName =
   G.Inferred G.Explicit (qNameToGName qName)
 
-isTypeSig :: Decl l -> Bool
-isTypeSig (TypeSig _ _ _) =
-  True
-isTypeSig _ =
-  False
-
-typeTerm :: G.Term
-typeTerm =
-  G.Sort G.Type
-
---apply a function only to the actual head of a DeclHead
-applyToDeclHead :: DeclHead l -> (Name l -> a) -> a
-applyToDeclHead (DHead _ name) f =
-  f name
-applyToDeclHead (DHApp _ declHead _ ) f =
-  applyToDeclHead declHead f
-
---apply a function to every tyVarBind of a DeclHead and reverse it (to get arguments in right order)
-applyToDeclHeadTyVarBinds :: DeclHead l -> (TyVarBind l -> a ) -> [a]
-applyToDeclHeadTyVarBinds (DHead _ _) f =
-  []
-applyToDeclHeadTyVarBinds (DHApp _ declHead tyVarBind) f =
-  reverse (f tyVarBind : reverse (applyToDeclHeadTyVarBinds declHead f))
-
-
+needsArgumentsSentence :: DeclHead l -> [QualConDecl l] -> Bool
+needsArgumentsSentence declHead qConDecls =
+  length binders > 0 && hasNonInferrableConstr qConDecls
+  where
+    binders = applyToDeclHeadTyVarBinds declHead convertTyVarBindToBinder
 
 --check if function is recursive
 isRecursive :: Name l -> Rhs l -> Bool
 isRecursive name rhs =
   length (filter (== (getString name)) (termToStrings (convertRhsToTerm rhs))) > 0
-
-termToStrings :: G.Term -> [String]
-termToStrings (G.Qualid qId) =
-  [qIdToStr qId]
-termToStrings (G.Parens term) =
-  termToStrings term
-termToStrings (G.App term args) =
-  termToStrings term ++
-    listToStrings argToStrings (nonEmptyListToList args)
-termToStrings (G.Match mItem _ equations) =
-  listToStrings mItemToStrings (nonEmptyListToList mItem)  ++
-    listToStrings equationToStrings equations
-
-listToStrings :: (a -> [String]) -> [a] -> [String]
-listToStrings f list = concatMap f list
-
-
-getTypeNamesFromTerm :: G.Term -> [G.Name]
-getTypeNamesFromTerm (G.App term args) =
-  map strToGName (termToStrings term) ++
-    map strToGName (concat (map termToStrings (map argToTerm (nonEmptyListToList args))))
-getTypeNamesFromTerm _ =
-  []
-
-getConstrNameFromType :: G.Term -> G.Name
-getConstrNameFromType (G.App term _) =
-  head (map strToGName (termToStrings term))
-getConstrNameFromType _ =
-  strToGName ""
-
-argToStrings :: G.Arg -> [String]
-argToStrings (G.PosArg term) =
-  termToStrings term
-
-mItemToStrings :: G.MatchItem -> [String]
-mItemToStrings (G.MatchItem term _ _) =
-  termToStrings term
-
-equationToStrings :: G.Equation -> [String]
-equationToStrings (G.Equation multPattern term) =
-  listToStrings multPatToStrings (nonEmptyListToList multPattern)  ++
-    termToStrings term
-
-multPatToStrings :: G.MultPattern -> [String]
-multPatToStrings (G.MultPattern pattern) =
-  listToStrings patToStrings (nonEmptyListToList pattern)
-
-patToStrings :: G.Pattern -> [String]
-patToStrings (G.QualidPat qId) =
-  [qIdToStr qId]
-patToStrings (G.ArgsPat qId pats) =
-  qIdToStr qId : patsToStrings pats
-patToStrings (G.UnderscorePat) =
-  ["_"]
-
-patsToStrings :: [G.Pattern] -> [String]
-patsToStrings [] =
-  []
-patsToStrings (p : ps) =
-  patToStrings p ++
-    patsToStrings ps
-
 
 --print the converted module
 printCoqAST :: G.LocalModule -> IO ()
