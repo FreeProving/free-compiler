@@ -137,6 +137,8 @@ addMonadicPrefixToBinder f (G.Inferred expl name) =
 addMonadicPrefixToBinder f (G.Typed gen expl (name B.:| xs) ty) =
   G.Typed gen expl (singleton (f name)) ty
 
+addFuelBinder :: [G.Binder] -> [G.Binder]
+addFuelBinder binders = fuelBinder : binders
 
 toOptionTerm :: G.Term -> G.Term
 toOptionTerm term =
@@ -154,6 +156,13 @@ returnTerm =
 bindOperator :: G.Term
 bindOperator =
   G.Qualid (strToQId "op_>>=__")
+
+fuelBinder :: G.Binder
+fuelBinder =
+  G.Typed G.Ungeneralizable G.Explicit fuelName natTerm
+  where
+    natTerm = G.Qualid (strToQId "nat")
+    fuelName = singleton (strToGName "fuel")
 
 typeTerm :: G.Term
 typeTerm =

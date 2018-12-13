@@ -90,10 +90,14 @@ convertMatchToDefinition name pattern rhs typeSig  =
 convertMatchToFixpoint :: Name l -> [Pat l] -> Rhs l -> Maybe G.TypeSignature -> G.Fixpoint
 convertMatchToFixpoint name pattern rhs  typeSig =
   G.Fixpoint (singleton $ G.FixBody (nameToQId name)
-    (toNonemptyList (convertPatsToBinders pattern typeSig))
+    (toNonemptyList (bindersWithFuel))
       Nothing
         Nothing
-          (convertRhsToTerm  rhs)) []
+          rhsTerm) []
+  where
+    binders = convertPatsToBinders pattern typeSig
+    bindersWithFuel = addFuelBinder (map (addMonadicPrefixToBinder addOptionPrefix) binders)
+    rhsTerm = addBindOperators binders (convertRhsToTerm rhs)
 
 getReturnTypeFromDeclHead :: [G.Arg] -> DeclHead l -> G.Term
 getReturnTypeFromDeclHead [] dHead =
