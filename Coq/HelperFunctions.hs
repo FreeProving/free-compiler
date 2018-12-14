@@ -38,6 +38,14 @@ getString (Ident _ str) =
 getString (Symbol _ str) =
   str
 
+getStringFromGName :: G.Name -> String
+getStringFromGName (G.Ident qId) =
+  getStringFromQId qId
+getStringFromGName (G.UnderscoreName) =
+  "_"
+
+getStringFromQId :: G.Qualid -> String
+getStringFromQId (G.Bare text) = T.unpack text
 
 
 toGallinaSyntax :: String -> String
@@ -67,7 +75,7 @@ getTypeSignatureByName (x : xs) name =
 
 isCoqType :: G.Name -> Bool
 isCoqType name =
-   null (filter (/= name) coqTypes)
+   null (filter (eqGName name) coqTypes)
 
 isTypeSig :: Decl l -> Bool
 isTypeSig (TypeSig _ _ _) =
@@ -75,12 +83,35 @@ isTypeSig (TypeSig _ _ _) =
 isTypeSig _ =
  False
 
+isDataDecl :: Decl l -> Bool
+isDataDecl (DataDecl _ _ _ _ _ _) =
+  True
+isDataDecl _ =
+  False
+
+getNamesFromDataDecls :: [Decl l] -> [G.Name]
+getNamesFromDataDecls sentences =
+  [getNameFromDataDecl s | s <- sentences]
+
+getNameFromDataDecl :: Decl l -> G.Name
+getNameFromDataDecl (DataDecl _ _ _ declHead _ _ ) =
+  getNameFromDeclHead declHead
+
+getNameFromDeclHead :: DeclHead l -> G.Name
+getNameFromDeclHead (DHead _ name) =
+  nameToGName name
+getNameFromDeclHead (DHParen _ declHead) =
+  getNameFromDeclHead declHead
+getNameFromDeclHead (DHApp _ declHead _) =
+  getNameFromDeclHead declHead
+
 filterEachElement :: [a] -> (a -> a -> Bool) -> [a] -> [a]
-filterEachElement [] f _ =
-  []
+filterEachElement [] f list =
+  list
 filterEachElement (x : xs) f list =
-  filter (f x) list ++
-  filterEachElement xs f list
+    filterEachElement xs f filteredList
+  where
+    filteredList  = filter (f x) list
 
 -- name comparison functions
 nameEqTypeName :: G.TypeSignature -> Name l -> Bool
@@ -90,6 +121,31 @@ nameEqTypeName (G.TypeSignature sigName _) name =
 gNameEqName :: G.Name -> Name l -> Bool
 gNameEqName (G.Ident (G.Bare gName)) (Ident _ name) =
   (T.unpack gName) == name
+
+eqGName :: G.Name -> G.Name -> Bool
+eqGName gNameL gNameR =
+  getStringFromGName gNameL == getStringFromGName gNameR
+
+dataTypeUneqGName :: G.Name -> G.Name -> Bool
+dataTypeUneqGName dataType gName =
+  nameString /= dataString
+  where
+    dataString = getStringFromGName dataType
+    nameString = getStringFromGName gName
+
+transformBindersMonadic :: [G.Binder] -> (G.Term -> G.Term ) -> [G.Binder]
+transformBindersMonadic binders m =
+  [transformBinderMonadic b m | b <- binders]
+
+transformBinderMonadic :: G.Binder -> (G.Term -> G.Term) -> G.Binder
+transformBinderMonadic (G.Typed gen expl name term) m =
+  G.Typed gen expl name (transformTermMonadic term m)
+
+transformTermMonadic :: G.Term -> (G.Term -> G.Term) -> G.Term
+transformTermMonadic (G.Sort G.Type) m =
+  typeTerm
+transformTermMonadic term m =
+  m term 
 
 --string conversions
 strToQId :: String -> G.Qualid

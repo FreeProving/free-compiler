@@ -18,12 +18,16 @@ convertModule :: Module l -> G.LocalModule
 convertModule (Module _ (Just modHead) _ _ decls) =
   G.LocalModule (convertModuleHead modHead)
     (monadDefinitions ++
-      (convertModuleDecls otherDecls $ map filterForTypeSignatures typeSigs))
+      dataSentences ++
+        (convertModuleDecls rDecls (map filterForTypeSignatures typeSigs) dataNames))
   where
     (typeSigs, otherDecls) = partition isTypeSig decls
+    (dataDecls, rDecls) = partition isDataDecl otherDecls
+    dataSentences = convertModuleDecls dataDecls (map filterForTypeSignatures typeSigs) []
+    dataNames = getNamesFromDataDecls dataDecls
 convertModule (Module _ Nothing _ _ decls) =
   G.LocalModule (T.pack "unnamed")
-    (convertModuleDecls otherDecls $ map filterForTypeSignatures typeSigs)
+    (convertModuleDecls otherDecls  (map filterForTypeSignatures typeSigs) [])
   where
     (typeSigs, otherDecls) = partition isTypeSig decls
 
@@ -31,19 +35,20 @@ convertModuleHead :: ModuleHead l -> G.Ident
 convertModuleHead (ModuleHead _ (ModuleName _ modName) _ _) =
   T.pack modName
 
-convertModuleDecls :: [Decl l] -> [G.TypeSignature]-> [G.Sentence]
-convertModuleDecls ((FunBind _ (x : xs)) : ds) typeSigs =
-  convertMatchDef x typeSigs : convertModuleDecls ds typeSigs
-convertModuleDecls ((DataDecl _ (DataType _ ) Nothing declHead qConDecl _ ) : ds) typeSigs =
+--
+convertModuleDecls :: [Decl l] -> [G.TypeSignature] -> [G.Name] -> [G.Sentence]
+convertModuleDecls ((FunBind _ (x : xs)) : ds) typeSigs dataNames =
+  convertMatchDef x typeSigs dataNames : convertModuleDecls ds typeSigs dataNames
+convertModuleDecls ((DataDecl _ (DataType _ ) Nothing declHead qConDecl _ ) : ds) typeSigs dataNames =
     if needsArgumentsSentence declHead qConDecl
       then [G.InductiveSentence  (convertDataTypeDecl declHead qConDecl)] ++
                                 convertArgumentSentences declHead qConDecl ++
-                                convertModuleDecls ds typeSigs
+                                convertModuleDecls ds typeSigs dataNames
       else G.InductiveSentence  (convertDataTypeDecl declHead qConDecl) :
-                                convertModuleDecls ds typeSigs
-convertModuleDecls [] _ =
+                                convertModuleDecls ds typeSigs dataNames
+convertModuleDecls [] _ _ =
   []
-convertModuleDecls _ _ =
+convertModuleDecls _ _ _ =
    error "Top-level declaration not implemented"
 
 
@@ -69,10 +74,10 @@ convertDataTypeDecl dHead qConDecl =
                       qConDecl
                         (getReturnTypeFromDeclHead (applyToDeclHeadTyVarBinds dHead convertTyVarBindToArg) dHead)
 
-convertMatchDef :: Match l -> [G.TypeSignature] -> G.Sentence
-convertMatchDef (Match _ name pattern rhs _) typeSigs =
+convertMatchDef :: Match l -> [G.TypeSignature] -> [G.Name] -> G.Sentence
+convertMatchDef (Match _ name pattern rhs _) typeSigs dataNames =
     if isRecursive name rhs
-      then G.FixpointSentence (convertMatchToFixpoint name pattern rhs typeSig)
+      then G.FixpointSentence (convertMatchToFixpoint name pattern rhs typeSig dataNames)
       else G.DefinitionSentence (convertMatchToDefinition name pattern rhs typeSig)
     where
       typeSig = getTypeSignatureByName typeSigs name
@@ -80,23 +85,25 @@ convertMatchDef (Match _ name pattern rhs _) typeSigs =
 convertMatchToDefinition :: Name l -> [Pat l] -> Rhs l -> Maybe G.TypeSignature -> G.Definition
 convertMatchToDefinition name pattern rhs typeSig  =
   G.DefinitionDef G.Global (nameToQId name)
-    (map (addMonadicPrefixToBinder addOptionPrefix) binders)
+    monadicBinders
       (convertReturnType typeSig)
         rhsTerm
   where
+    monadicBinders = transformBindersMonadic (map (addMonadicPrefixToBinder addOptionPrefix) binders) toOptionTerm
     binders = convertPatsToBinders pattern typeSig
     rhsTerm = addBindOperators binders (convertRhsToTerm rhs)
 
-convertMatchToFixpoint :: Name l -> [Pat l] -> Rhs l -> Maybe G.TypeSignature -> G.Fixpoint
-convertMatchToFixpoint name pattern rhs  typeSig =
+convertMatchToFixpoint :: Name l -> [Pat l] -> Rhs l -> Maybe G.TypeSignature -> [G.Name] -> G.Fixpoint
+convertMatchToFixpoint name pattern rhs typeSig dataNames =
   G.Fixpoint (singleton $ G.FixBody (nameToQId name)
-    (toNonemptyList (bindersWithFuel))
+    (toNonemptyList (bindersWithInferredTypes))
       Nothing
         Nothing
           rhsTerm) []
   where
     binders = convertPatsToBinders pattern typeSig
-    bindersWithFuel = addFuelBinder (map (addMonadicPrefixToBinder addOptionPrefix) binders)
+    bindersWithFuel = addFuelBinder (transformBindersMonadic (map (addMonadicPrefixToBinder addOptionPrefix) binders) toOptionTerm)
+    bindersWithInferredTypes = addInferredTypesToSignature bindersWithFuel dataNames
     rhsTerm = addBindOperators binders (convertRhsToTerm rhs)
 
 getReturnTypeFromDeclHead :: [G.Arg] -> DeclHead l -> G.Term
@@ -197,21 +204,22 @@ convertPatToBinder _ =
 
 convertPatsAndTypeSigsToBinders :: [Pat l] -> [G.Term] -> [G.Binder]
 convertPatsAndTypeSigsToBinders pats typeSigs =
-  addInferredTypesToSignature (zipWith convertPatAndTypeSigToBinder pats typeSigs)
+  zipWith convertPatAndTypeSigToBinder pats typeSigs
 
 convertPatAndTypeSigToBinder :: Pat l -> G.Term -> G.Binder
 convertPatAndTypeSigToBinder (PVar _ name) term =
-  G.Typed G.Ungeneralizable G.Explicit (singleton $ nameToGName name) (toOptionTerm term)
+  G.Typed G.Ungeneralizable G.Explicit (singleton $ nameToGName name) term
 convertPatAndTypeSigToBinder _ _ =
   error "Haskell pattern not implemented"
 
-addInferredTypesToSignature :: [G.Binder] -> [G.Binder]
-addInferredTypesToSignature binders =
-  if null (filter isCoqType typeNames)
+addInferredTypesToSignature :: [G.Binder] -> [G.Name] -> [G.Binder]
+addInferredTypesToSignature binders dataNames =
+  if null filteredTypeNames
     then binders
-    else (G.Typed G.Ungeneralizable G.Explicit (toNonemptyList (typeNames)) typeTerm) : binders
+    else (G.Typed G.Ungeneralizable G.Explicit (toNonemptyList (filteredTypeNames)) typeTerm) : binders
   where
-    typeNames = filterEachElement consNames (/=) (unique (concat (map getTypeNamesFromTerm typeTerms)))
+    filteredTypeNames = unique $ filterEachElement dataNames dataTypeUneqGName (filter isCoqType typeNames)
+    typeNames = concat (map getTypeNamesFromTerm typeTerms)
     typeTerms = map getTypeFromBinder binders
     consNames = unique (map getConstrNameFromType typeTerms)
 
@@ -269,6 +277,8 @@ convertHPatToGPat (PVar _ name) =
   G.QualidPat (nameToQId name)
 convertHPatToGPat (PApp _ qName pList) =
   G.ArgsPat (qNameToQId qName) (convertHPatListToGPatList pList)
+convertHPatToGPat (PParen _ pat) =
+  convertHPatToGPat pat
 convertHPatToGPat (PWildCard _) =
   G.UnderscorePat
 convertHPatToGPat _ =

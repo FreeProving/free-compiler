@@ -11,17 +11,9 @@ data Maybe a =
   Nothing
   | Just a
 
-data Test =
-  T1 Int
-  | T2 String
-
 data Either a b =
   Left a
   | Right b
-
-data List a =
-  Nil
-  | Cons a (List a)
 
 data Tree a =
   Leaf
@@ -42,9 +34,18 @@ null list = case list of
   Cons _ _ -> False
 
 --type Queue a = List a
+-}
+data Test =
+  T1 Int
+  | T2 String
 
-append :: List a-> List a -> List a
+{-}
+append ::List a -> List a -> List a
 append xs ys = case xs of
   Nil -> ys
   Cons z zs -> Cons z (append zs ys)
 -}
+
+data List a =
+  Nil
+  | Cons a (List a)
