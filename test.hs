@@ -39,12 +39,12 @@ data Test =
   T1 Int
   | T2 String
 
-{-}
+
 append ::List a -> List a -> List a
 append xs ys = case xs of
   Nil -> ys
   Cons z zs -> Cons z (append zs ys)
--}
+
 
 data List a =
   Nil

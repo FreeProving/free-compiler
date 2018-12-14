@@ -126,12 +126,27 @@ eqGName :: G.Name -> G.Name -> Bool
 eqGName gNameL gNameR =
   getStringFromGName gNameL == getStringFromGName gNameR
 
+eqQId :: G.Qualid -> G.Qualid -> Bool
+eqQId qIdL qIdR =
+   getStringFromQId qIdL == getStringFromQId qIdR
+
 dataTypeUneqGName :: G.Name -> G.Name -> Bool
 dataTypeUneqGName dataType gName =
   nameString /= dataString
   where
     dataString = getStringFromGName dataType
     nameString = getStringFromGName gName
+
+containsRecursiveCall :: G.Term -> G.Qualid -> Bool
+containsRecursiveCall (G.App term args) funName =
+  containsRecursiveCall term funName || or [containsRecursiveCall t funName | t <- argTerms]
+  where
+    argTerms = convertArgumentsToTerms (nonEmptyListToList args)
+containsRecursiveCall (G.Parens term) funName =
+  containsRecursiveCall term funName
+containsRecursiveCall (G.Qualid qId) funName =
+  eqQId qId funName
+containsRecursiveCall _ _ = False
 
 transformBindersMonadic :: [G.Binder] -> (G.Term -> G.Term ) -> [G.Binder]
 transformBindersMonadic binders m =
@@ -145,7 +160,44 @@ transformTermMonadic :: G.Term -> (G.Term -> G.Term) -> G.Term
 transformTermMonadic (G.Sort G.Type) m =
   typeTerm
 transformTermMonadic term m =
-  m term 
+  m term
+
+fuelPattern :: G.Term -> G.Term -> G.Qualid -> G.Term
+fuelPattern errorTerm recursiveCall funName =
+  G.Match (singleton (G.MatchItem name Nothing Nothing)) Nothing equations
+  where
+    name = strToTerm "fuel"
+    equations = zeroCase : nonZeroCase : []
+    zeroCase = G.Equation (singleton (G.MultPattern (singleton (G.QualidPat (strToQId "O"))))) errorTerm
+    nonZeroCase = G.Equation (singleton (G.MultPattern (singleton (G.ArgsPat (strToQId "S") [G.QualidPat decrFuel])))) recursiveCallWithFuel
+    decrFuel = strToQId "rFuel"
+    recursiveCallWithFuel = addFuelArgumentToRecursiveCall recursiveCall funName
+
+addFuelArgumentToRecursiveCall :: G.Term -> G.Qualid -> G.Term
+addFuelArgumentToRecursiveCall (G.App term args) funName =
+  if containsRecursiveCall term funName
+    then G.App term (addDecrFuelArgument args)
+    else G.App term (toNonemptyList checkedArgList)
+  where
+    termList = convertArgumentsToTerms (nonEmptyListToList args)
+    checkedArgList = convertTermsToArguments [addFuelArgumentToRecursiveCall t funName | t <- termList]
+addFuelArgumentToRecursiveCall (G.Parens term) funName =
+  G.Parens (addFuelArgumentToRecursiveCall term funName)
+addFuelArgumentToRecursiveCall term _ =
+  term
+
+addDecrFuelArgument :: B.NonEmpty G.Arg -> B.NonEmpty G.Arg
+addDecrFuelArgument list =
+  toNonemptyList ((nonEmptyListToList list) ++ G.PosArg decrFuelTerm : [])
+
+convertArgumentsToTerms :: [G.Arg] -> [G.Term]
+convertArgumentsToTerms args =
+  [(\(G.PosArg x) -> x) a |a <- args ]
+
+convertTermsToArguments :: [G.Term] -> [G.Arg]
+convertTermsToArguments terms =
+  [(\x -> G.PosArg x) t | t <- terms]
+
 
 --string conversions
 strToQId :: String -> G.Qualid
@@ -194,7 +246,7 @@ addMonadicPrefixToBinder f (G.Typed gen expl (name B.:| xs) ty) =
   G.Typed gen expl (singleton (f name)) ty
 
 addFuelBinder :: [G.Binder] -> [G.Binder]
-addFuelBinder binders = fuelBinder : binders
+addFuelBinder binders = binders ++ [fuelBinder]
 
 toOptionTerm :: G.Term -> G.Term
 toOptionTerm term =
@@ -212,6 +264,10 @@ returnTerm =
 bindOperator :: G.Term
 bindOperator =
   G.Qualid (strToQId "op_>>=__")
+
+decrFuelTerm :: G.Term
+decrFuelTerm =
+  G.Qualid (strToQId "rFuel")
 
 fuelBinder :: G.Binder
 fuelBinder =

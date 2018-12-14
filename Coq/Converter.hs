@@ -91,20 +91,21 @@ convertMatchToDefinition name pattern rhs typeSig  =
   where
     monadicBinders = transformBindersMonadic (map (addMonadicPrefixToBinder addOptionPrefix) binders) toOptionTerm
     binders = convertPatsToBinders pattern typeSig
-    rhsTerm = addBindOperators binders (convertRhsToTerm rhs)
+    rhsTerm = addBindOperators binders (convertRhsToTerm rhs) Nothing
 
 convertMatchToFixpoint :: Name l -> [Pat l] -> Rhs l -> Maybe G.TypeSignature -> [G.Name] -> G.Fixpoint
 convertMatchToFixpoint name pattern rhs typeSig dataNames =
-  G.Fixpoint (singleton $ G.FixBody (nameToQId name)
+  G.Fixpoint (singleton $ G.FixBody funName
     (toNonemptyList (bindersWithInferredTypes))
       Nothing
         Nothing
           rhsTerm) []
   where
+    funName = nameToQId name
     binders = convertPatsToBinders pattern typeSig
     bindersWithFuel = addFuelBinder (transformBindersMonadic (map (addMonadicPrefixToBinder addOptionPrefix) binders) toOptionTerm)
     bindersWithInferredTypes = addInferredTypesToSignature bindersWithFuel dataNames
-    rhsTerm = addBindOperators binders (convertRhsToTerm rhs)
+    rhsTerm = addBindOperators binders (convertRhsToTerm rhs) (Just funName)
 
 getReturnTypeFromDeclHead :: [G.Arg] -> DeclHead l -> G.Term
 getReturnTypeFromDeclHead [] dHead =
@@ -230,15 +231,32 @@ convertRhsToTerm (GuardedRhss _ _ ) =
   error "Guards not implemented"
 
 
-addBindOperators :: [G.Binder] -> G.Term -> G.Term
-addBindOperators [] term =
+addBindOperators :: [G.Binder] -> G.Term -> Maybe G.Qualid -> G.Term
+addBindOperators [] term (Just funName) =
+  toReturnTerm (addFuelMatchingToRhs term funName)
+addBindOperators [] term Nothing =
   toReturnTerm term
-addBindOperators (x : xs) term =
+addBindOperators (x : xs) term funName =
   G.App bindOperator
     (toNonemptyList (G.PosArg argumentName : G.PosArg lambdaFun : []))
   where
     argumentName = getBinderName (addMonadicPrefixToBinder addOptionPrefix x)
-    lambdaFun = G.Fun (singleton $ untypeBinder x) (addBindOperators xs term)
+    lambdaFun = G.Fun (singleton $ untypeBinder x) (addBindOperators xs term funName)
+
+addFuelMatchingToRhs :: G.Term -> G.Qualid -> G.Term
+addFuelMatchingToRhs (G.Match item retType equations) funName =
+  G.Match item retType [addFuelMatchingToEquation e funName | e <- equations]
+addFuelMatchingToRhs term funName =
+  if containsRecursiveCall term funName --define function
+    then fuelPattern errorTerm term funName
+    else term
+  where
+    errorTerm = G.Qualid (strToQId "ys") -- placeHolder!works only for append Change to return term in errorcase
+
+addFuelMatchingToEquation :: G.Equation -> G.Qualid -> G.Equation
+addFuelMatchingToEquation (G.Equation multPattern rhs) funName =
+  G.Equation multPattern (addFuelMatchingToRhs rhs funName)
+
 
 convertExprToTerm :: Exp l -> G.Term
 convertExprToTerm (Var _ qName) =
