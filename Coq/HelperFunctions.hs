@@ -555,4 +555,4 @@ qOpToQId :: QOp l -> G.Qualid
 qOpToQId (QVarOp _ qName) =
   G.Bare (T.pack ("op_"++ (qNameToStr qName) ++"__"))
 qOpToQId (QConOp _ qName) =
-  error "not implemented"
+  error "qualified Constr Operators not implemented"
