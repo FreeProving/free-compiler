@@ -50,7 +50,7 @@ getString (Symbol _ str) =
 getStringFromGName :: G.Name -> String
 getStringFromGName (G.Ident qId) =
   getStringFromQId qId
-getStringFromGName (G.UnderscoreName) =
+getStringFromGName G.UnderscoreName =
   "_"
 
 getStringFromQId :: G.Qualid -> String
@@ -58,18 +58,18 @@ getStringFromQId (G.Bare text) = T.unpack text
 
 
 toGallinaSyntax :: String -> String
-toGallinaSyntax ("False") =
+toGallinaSyntax "False" =
   "false"
-toGallinaSyntax ("True") =
+toGallinaSyntax "True" =
   "true"
 toGallinaSyntax s =
   s
 
 --manual covnversion of common Haskell types to coq equivalent
 getType :: String -> G.Term
-getType ("Int") =
+getType "Int" =
   strToTerm "nat"
-getType ("Bool") =
+getType "Bool" =
   strToTerm "bool"
 getType str =
   strToTerm str
@@ -78,22 +78,22 @@ getTypeSignatureByName :: [G.TypeSignature] -> Name l -> Maybe G.TypeSignature
 getTypeSignatureByName [] name =
   Nothing
 getTypeSignatureByName (x : xs) name =
-   if (nameEqTypeName x name)
+   if nameEqTypeName x name
     then Just x
     else getTypeSignatureByName xs name
 
 isCoqType :: G.Name -> Bool
 isCoqType name =
-   null (filter (eqGName name) coqTypes)
+   not (any (eqGName name) coqTypes)
 
 isTypeSig :: Decl l -> Bool
-isTypeSig (TypeSig _ _ _) =
+isTypeSig TypeSig {} =
  True
 isTypeSig _ =
  False
 
 isDataDecl :: Decl l -> Bool
-isDataDecl (DataDecl _ _ _ _ _ _) =
+isDataDecl DataDecl {} =
   True
 isDataDecl _ =
   False
@@ -127,12 +127,12 @@ filterEachElement (x : xs) f list =
 
 -- name comparison functions
 nameEqTypeName :: G.TypeSignature -> Name l -> Bool
-nameEqTypeName (G.TypeSignature sigName _) name =
-  gNameEqName sigName name
+nameEqTypeName (G.TypeSignature sigName _ ) =
+  gNameEqName sigName
 
 gNameEqName :: G.Name -> Name l -> Bool
 gNameEqName (G.Ident (G.Bare gName)) (Ident _ name) =
-  (T.unpack gName) == name
+  T.unpack gName == name
 
 eqGName :: G.Name -> G.Name -> Bool
 eqGName gNameL gNameR =
@@ -194,7 +194,7 @@ fuelPattern errorTerm recursiveCall funName =
   G.Match (singleton (G.MatchItem name Nothing Nothing)) Nothing equations
   where
     name = strToTerm "fuel"
-    equations = zeroCase : nonZeroCase : []
+    equations = [zeroCase, nonZeroCase]
     zeroCase = G.Equation (singleton (G.MultPattern (singleton (G.QualidPat (strToQId "O"))))) errorTerm
     nonZeroCase = G.Equation (singleton (G.MultPattern (singleton (G.ArgsPat (strToQId "S") [G.QualidPat decrFuel])))) recursiveCallWithFuel
     decrFuel = strToQId "rFuel"
@@ -220,7 +220,7 @@ findFittingBinder binders ty =
 
 addDecrFuelArgument :: B.NonEmpty G.Arg -> B.NonEmpty G.Arg
 addDecrFuelArgument list =
-  toNonemptyList ((nonEmptyListToList list) ++ G.PosArg decrFuelTerm : [])
+  toNonemptyList (nonEmptyListToList list ++ [G.PosArg decrFuelTerm] )
 
 convertArgumentsToTerms :: [G.Arg] -> [G.Term]
 convertArgumentsToTerms args =
@@ -228,7 +228,7 @@ convertArgumentsToTerms args =
 
 convertTermsToArguments :: [G.Term] -> [G.Arg]
 convertTermsToArguments terms =
-  [(\x -> G.PosArg x) t | t <- terms]
+  [G.PosArg t | t <- terms]
 
 binderToArg :: G.Binder -> G.Arg
 binderToArg (G.Typed _ _ (n B.:| _) _ ) =
@@ -257,7 +257,7 @@ combineArgs :: [G.Arg] -> G.Term -> [G.Arg]
 combineArgs args (G.App term args' ) =
   combineArgs combArgs term
   where
-    combArgs = (nonEmptyListToList args') ++ args
+    combArgs = nonEmptyListToList args' ++ args
 combineArgs args _ =
   convertTermsToArguments (map collapseApp (convertArgumentsToTerms args))
 
@@ -312,13 +312,13 @@ addIdentityPrefix =
 
 addMonadicPrefixToBinder ::  ConversionMonad -> G.Binder -> G.Binder
 addMonadicPrefixToBinder m (G.Inferred expl name) =
-  G.Inferred expl ((getPrefixFromMonad m) name)
+  G.Inferred expl (getPrefixFromMonad m name)
 addMonadicPrefixToBinder m (G.Typed gen expl (name B.:| xs) ty) =
-  G.Typed gen expl (singleton ((getPrefixFromMonad m) name)) ty
+  G.Typed gen expl (singleton (getPrefixFromMonad m name)) ty
 
 getPrefixFromMonad :: ConversionMonad -> (G.Name -> G.Name)
-getPrefixFromMonad (Option) = addOptionPrefix
-getPrefixFromMonad (Identity) = addIdentityPrefix
+getPrefixFromMonad Option = addOptionPrefix
+getPrefixFromMonad Identity = addIdentityPrefix
 
 addFuelBinder :: [G.Binder] -> [G.Binder]
 addFuelBinder binders = binders ++ [fuelBinder]
@@ -332,7 +332,7 @@ toIdentityTerm term =
   G.App identityTerm (singleton (G.PosArg term))
 
 fromMonadicTerm :: G.Term -> G.Term
-fromMonadicTerm (G.App _ ((G.PosArg term) B.:| xs)) =
+fromMonadicTerm (G.App _ (G.PosArg term B.:| xs)) =
   term
 fromMonadicTerm term =
   term
@@ -374,10 +374,10 @@ toReturnTerm term =
 
 coqTypes :: [G.Name]
 coqTypes =
-  strToGName "nat" :
-  strToGName "bool" :
-  strToGName "option" :
-  []
+  [strToGName "nat",
+  strToGName "bool",
+  strToGName "option"]
+
 
 -- Name conversions (haskell ast)
 nameToStr :: Name l -> String
@@ -407,7 +407,7 @@ nameToTypeTerm name =
   getType (getString name)
 
 gNameToTerm :: G.Name -> G.Term
-gNameToTerm (G.Ident (qId)) =
+gNameToTerm (G.Ident qId) =
   G.Qualid qId
 
 gNameToQId :: G.Name -> G.Qualid
@@ -430,7 +430,7 @@ qNameToQId qName =
 
 qNameToGName :: QName l -> G.Name
 qNameToGName (UnQual _ name) =
-  (nameToGName name)
+  nameToGName name
 qNameToGName _ =
   error "qualified names not implemented"
 
@@ -470,8 +470,8 @@ applyToDeclHeadTyVarBinds (DHApp _ declHead tyVarBind) f =
   reverse (f tyVarBind : reverse (applyToDeclHeadTyVarBinds declHead f))
 
 hasNonInferrableConstr :: [QualConDecl l] -> Bool
-hasNonInferrableConstr qConDecls =
-  length (filter isNonInferrableConstr qConDecls) > 0
+hasNonInferrableConstr =
+  any isNonInferrableConstr
 
 isNonInferrableConstr :: QualConDecl l -> Bool
 isNonInferrableConstr (QualConDecl _ _ _ (ConDecl _ _ [])) =
@@ -501,13 +501,13 @@ termToStrings (G.Match mItem _ equations) =
     listToStrings equationToStrings equations
 
 listToStrings :: (a -> [String]) -> [a] -> [String]
-listToStrings f list = concatMap f list
+listToStrings  = concatMap
 
 
 getTypeNamesFromTerm :: G.Term -> [G.Name]
 getTypeNamesFromTerm (G.App term args) =
   map strToGName (termToStrings term) ++
-    map strToGName (concat (map termToStrings (map argToTerm (nonEmptyListToList args))))
+    map strToGName (concatMap (termToStrings . argToTerm) (nonEmptyListToList args))
 getTypeNamesFromTerm _ =
   []
 
@@ -531,28 +531,26 @@ equationToStrings (G.Equation multPattern term) =
     termToStrings term
 
 multPatToStrings :: G.MultPattern -> [String]
-multPatToStrings (G.MultPattern pattern) =
-  listToStrings patToStrings (nonEmptyListToList pattern)
+multPatToStrings (G.MultPattern (pat B.:| pats)) =
+  listToStrings patToStrings patList
+  where
+    patList = pat : pats
 
 patToStrings :: G.Pattern -> [String]
 patToStrings (G.QualidPat qId) =
   [qIdToStr qId]
 patToStrings (G.ArgsPat qId pats) =
   qIdToStr qId : patsToStrings pats
-patToStrings (G.UnderscorePat) =
+patToStrings G.UnderscorePat =
   ["_"]
 
 patsToStrings :: [G.Pattern] -> [String]
-patsToStrings [] =
-  []
-patsToStrings (p : ps) =
-  patToStrings p ++
-    patsToStrings ps
+patsToStrings = concatMap patToStrings 
 
 
 --Convert qualifiedOperator from Haskell to Qualid with Operator signature
 qOpToQId :: QOp l -> G.Qualid
 qOpToQId (QVarOp _ qName) =
-  G.Bare (T.pack ("op_"++ (qNameToStr qName) ++"__"))
+  G.Bare (T.pack ("op_"++ qNameToStr qName ++"__"))
 qOpToQId (QConOp _ qName) =
   error "qualified Constr Operators not implemented"
