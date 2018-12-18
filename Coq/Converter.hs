@@ -13,21 +13,20 @@ import qualified Data.Text as T
 import Data.List (partition)
 
 
-
-convertModule :: Module l -> G.LocalModule
-convertModule (Module _ (Just modHead) _ _ decls) =
+convertModule :: Module l -> ConversionMonad -> ConversionMode -> G.LocalModule
+convertModule (Module _ (Just modHead) _ _ decls) cMonad cMode =
   G.LocalModule (convertModuleHead modHead)
     (monadDefinitions ++
       dataSentences ++
-        (convertModuleDecls rDecls (map filterForTypeSignatures typeSigs) dataNames))
+        (convertModuleDecls rDecls (map filterForTypeSignatures typeSigs) dataNames cMonad cMode))
   where
     (typeSigs, otherDecls) = partition isTypeSig decls
     (dataDecls, rDecls) = partition isDataDecl otherDecls
-    dataSentences = convertModuleDecls dataDecls (map filterForTypeSignatures typeSigs) []
+    dataSentences = convertModuleDecls dataDecls (map filterForTypeSignatures typeSigs) [] cMonad cMode
     dataNames = getNamesFromDataDecls dataDecls
-convertModule (Module _ Nothing _ _ decls) =
+convertModule (Module _ Nothing _ _ decls) cMonad cMode =
   G.LocalModule (T.pack "unnamed")
-    (convertModuleDecls otherDecls  (map filterForTypeSignatures typeSigs) [])
+    (convertModuleDecls otherDecls  (map filterForTypeSignatures typeSigs) [] cMonad cMode)
   where
     (typeSigs, otherDecls) = partition isTypeSig decls
 
@@ -36,19 +35,19 @@ convertModuleHead (ModuleHead _ (ModuleName _ modName) _ _) =
   T.pack modName
 
 --
-convertModuleDecls :: [Decl l] -> [G.TypeSignature] -> [G.Name] -> [G.Sentence]
-convertModuleDecls ((FunBind _ (x : xs)) : ds) typeSigs dataNames =
-  convertMatchDef x typeSigs dataNames : convertModuleDecls ds typeSigs dataNames
-convertModuleDecls ((DataDecl _ (DataType _ ) Nothing declHead qConDecl _ ) : ds) typeSigs dataNames =
+convertModuleDecls :: [Decl l] -> [G.TypeSignature] -> [G.Name] -> ConversionMonad -> ConversionMode -> [G.Sentence]
+convertModuleDecls ((FunBind _ (x : xs)) : ds) typeSigs dataNames cMonad cMode =
+  convertMatchDef x typeSigs dataNames cMonad cMode : convertModuleDecls ds typeSigs dataNames cMonad cMode
+convertModuleDecls ((DataDecl _ (DataType _ ) Nothing declHead qConDecl _ ) : ds) typeSigs dataNames cMonad cMode =
     if needsArgumentsSentence declHead qConDecl
-      then [G.InductiveSentence  (convertDataTypeDecl declHead qConDecl)] ++
+      then [G.InductiveSentence  (convertDataTypeDecl declHead qConDecl cMonad)] ++
                                 convertArgumentSentences declHead qConDecl ++
-                                convertModuleDecls ds typeSigs dataNames
-      else G.InductiveSentence  (convertDataTypeDecl declHead qConDecl) :
-                                convertModuleDecls ds typeSigs dataNames
-convertModuleDecls [] _ _ =
+                                convertModuleDecls ds typeSigs dataNames cMonad cMode
+      else G.InductiveSentence  (convertDataTypeDecl declHead qConDecl cMonad) :
+                                convertModuleDecls ds typeSigs dataNames cMonad cMode
+convertModuleDecls [] _ _ _ _=
   []
-convertModuleDecls _ _ _ =
+convertModuleDecls _ _ _ _ _=
    error "Top-level declaration not implemented"
 
 
@@ -64,8 +63,8 @@ convertArgumentSpec declHead =
   where
    varNames = applyToDeclHeadTyVarBinds declHead convertTyVarBindToName
 
-convertDataTypeDecl :: DeclHead l -> [QualConDecl l] -> G.Inductive
-convertDataTypeDecl dHead qConDecl =
+convertDataTypeDecl :: DeclHead l -> [QualConDecl l] -> ConversionMonad -> G.Inductive
+convertDataTypeDecl dHead qConDecl cMonad =
   G.Inductive (singleton $ G.IndBody typeName binders typeTerm constrDecls) []
     where
       typeName = applyToDeclHead dHead nameToQId
@@ -73,28 +72,29 @@ convertDataTypeDecl dHead qConDecl =
       constrDecls = convertQConDecls
                       qConDecl
                         (getReturnTypeFromDeclHead (applyToDeclHeadTyVarBinds dHead convertTyVarBindToArg) dHead)
+                          cMonad
 
-convertMatchDef :: Match l -> [G.TypeSignature] -> [G.Name] -> G.Sentence
-convertMatchDef (Match _ name pattern rhs _) typeSigs dataNames =
+convertMatchDef :: Match l -> [G.TypeSignature] -> [G.Name] -> ConversionMonad -> ConversionMode -> G.Sentence
+convertMatchDef (Match _ name pattern rhs _) typeSigs dataNames cMonad cMode =
     if isRecursive name rhs
-      then G.FixpointSentence (convertMatchToFixpoint name pattern rhs typeSig dataNames)
-      else G.DefinitionSentence (convertMatchToDefinition name pattern rhs typeSig)
+      then G.FixpointSentence (convertMatchToFixpoint name pattern rhs typeSig dataNames cMonad cMode)
+      else G.DefinitionSentence (convertMatchToDefinition name pattern rhs typeSig cMonad cMode)
     where
       typeSig = getTypeSignatureByName typeSigs name
 
-convertMatchToDefinition :: Name l -> [Pat l] -> Rhs l -> Maybe G.TypeSignature -> G.Definition
-convertMatchToDefinition name pattern rhs typeSig  =
+convertMatchToDefinition :: Name l -> [Pat l] -> Rhs l -> Maybe G.TypeSignature -> ConversionMonad -> ConversionMode -> G.Definition
+convertMatchToDefinition name pattern rhs typeSig cMonad cMode =
   G.DefinitionDef G.Global (nameToQId name)
     monadicBinders
-      (convertReturnType typeSig)
+      (convertReturnType typeSig cMonad)
         rhsTerm
   where
-    monadicBinders = transformBindersMonadic (map (addMonadicPrefixToBinder addOptionPrefix) binders) toOptionTerm
+    monadicBinders = transformBindersMonadic (map (addMonadicPrefixToBinder cMonad) binders) cMonad
     binders = convertPatsToBinders pattern typeSig
-    rhsTerm = addBindOperators binders (convertRhsToTerm rhs) Nothing
+    rhsTerm = addBindOperators binders (convertRhsToTerm rhs) Nothing cMonad cMode
 
-convertMatchToFixpoint :: Name l -> [Pat l] -> Rhs l -> Maybe G.TypeSignature -> [G.Name] -> G.Fixpoint
-convertMatchToFixpoint name pattern rhs typeSig dataNames =
+convertMatchToFixpoint :: Name l -> [Pat l] -> Rhs l -> Maybe G.TypeSignature -> [G.Name] -> ConversionMonad -> ConversionMode -> G.Fixpoint
+convertMatchToFixpoint name pattern rhs typeSig dataNames cMonad cMode =
   G.Fixpoint (singleton $ G.FixBody funName
     (toNonemptyList (bindersWithInferredTypes))
       Nothing
@@ -103,9 +103,9 @@ convertMatchToFixpoint name pattern rhs typeSig dataNames =
   where
     funName = nameToQId name
     binders = convertPatsToBinders pattern typeSig
-    bindersWithFuel = addFuelBinder (transformBindersMonadic (map (addMonadicPrefixToBinder addOptionPrefix) binders) toOptionTerm)
+    bindersWithFuel = addFuelBinder (transformBindersMonadic (map (addMonadicPrefixToBinder cMonad) binders) cMonad)
     bindersWithInferredTypes = addInferredTypesToSignature bindersWithFuel dataNames
-    rhsTerm = addBindOperators binders (convertRhsToTerm rhs) (Just funName)
+    rhsTerm = addBindOperators binders (convertRhsToTerm rhs) (Just funName) cMonad cMode
 
 getReturnTypeFromDeclHead :: [G.Arg] -> DeclHead l -> G.Term
 getReturnTypeFromDeclHead [] dHead =
@@ -131,17 +131,17 @@ convertTyVarBindToArg (KindedVar _ name kind) =
 convertTyVarBindToArg (UnkindedVar _ name) =
   G.PosArg (nameToTerm name)
 
-convertQConDecls :: [QualConDecl l] -> G.Term -> [(G.Qualid, [G.Binder], Maybe G.Term)]
-convertQConDecls qConDecl term =
-  [convertQConDecl c term | c <- qConDecl]
+convertQConDecls :: [QualConDecl l] -> G.Term -> ConversionMonad -> [(G.Qualid, [G.Binder], Maybe G.Term)]
+convertQConDecls qConDecl term cMonad =
+  [convertQConDecl c term cMonad | c <- qConDecl]
 
-convertQConDecl :: QualConDecl l -> G.Term -> (G.Qualid, [G.Binder], Maybe G.Term)
-convertQConDecl (QualConDecl _ Nothing Nothing (ConDecl _ name types)) term =
-  ((nameToQId name), [] , (Just (convertToArrowTerm types term)))
+convertQConDecl :: QualConDecl l -> G.Term -> ConversionMonad -> (G.Qualid, [G.Binder], Maybe G.Term)
+convertQConDecl (QualConDecl _ Nothing Nothing (ConDecl _ name types)) term cMonad =
+  ((nameToQId name), [] , (Just (convertToArrowTerm types term cMonad)))
 
-convertToArrowTerm :: [Type l] -> G.Term -> G.Term
-convertToArrowTerm types returnType =
-  buildArrowTerm (map convertTypeToMonadicTerm types) returnType
+convertToArrowTerm :: [Type l] -> G.Term -> ConversionMonad -> G.Term
+convertToArrowTerm types returnType cMonad =
+  buildArrowTerm (map (convertTypeToMonadicTerm cMonad) types ) returnType
 
 buildArrowTerm :: [G.Term] -> G.Term -> G.Term
 buildArrowTerm terms returnType =
@@ -156,14 +156,14 @@ convertTypeToArg :: Type l -> G.Arg
 convertTypeToArg ty =
   G.PosArg (convertTypeToTerm ty)
 
-convertTypeToMonadicTerm :: Type l -> G.Term
-convertTypeToMonadicTerm (TyVar _ name) =
-  toOptionTerm $ nameToTypeTerm name
-convertTypeToMonadicTerm (TyCon _ qName) =
-  toOptionTerm $ qNameToTypeTerm qName
-convertTypeToMonadicTerm (TyParen _ ty) =
-  toOptionTerm $ G.Parens $ convertTypeToTerm ty
-convertTypeToMonadicTerm ty =
+convertTypeToMonadicTerm :: ConversionMonad -> Type l -> G.Term
+convertTypeToMonadicTerm cMonad (TyVar _ name)  =
+  transformTermMonadic (nameToTypeTerm name) cMonad
+convertTypeToMonadicTerm cMonad (TyCon _ qName)  =
+  transformTermMonadic (qNameToTypeTerm qName) cMonad
+convertTypeToMonadicTerm cMonad (TyParen _ ty)  =
+  transformTermMonadic (G.Parens $ convertTypeToTerm ty) cMonad
+convertTypeToMonadicTerm _ ty =
   convertTypeToTerm ty
 
 convertTypeToTerm :: Type l -> G.Term
@@ -185,11 +185,11 @@ convertTypeToTerms (TyFun _ type1 type2) =
 convertTypeToTerms t =
   [convertTypeToTerm t]
 
-convertReturnType :: Maybe G.TypeSignature -> Maybe G.Term
-convertReturnType Nothing =
+convertReturnType :: Maybe G.TypeSignature -> ConversionMonad -> Maybe G.Term
+convertReturnType Nothing  _ =
   Nothing
-convertReturnType (Just (G.TypeSignature _ types)) =
-  Just (toOptionTerm (last types))
+convertReturnType (Just (G.TypeSignature _ types)) cMonad =
+  Just (transformTermMonadic (last types) cMonad )
 
 convertPatsToBinders :: [Pat l] -> Maybe G.TypeSignature -> [G.Binder]
 convertPatsToBinders patList Nothing =
@@ -231,23 +231,23 @@ convertRhsToTerm (GuardedRhss _ _ ) =
   error "Guards not implemented"
 
 
-addBindOperators :: [G.Binder] -> G.Term -> Maybe G.Qualid -> G.Term
-addBindOperators [] term (Just funName) =
+addBindOperators :: [G.Binder] -> G.Term -> Maybe G.Qualid -> ConversionMonad ->  ConversionMode -> G.Term
+addBindOperators [] term (Just funName) cMonad cMode =
   toReturnTerm (addFuelMatchingToRhs term funName)
-addBindOperators [] term Nothing =
+addBindOperators [] term Nothing cMonad cMode =
   toReturnTerm term
-addBindOperators (x : xs) term funName =
+addBindOperators (x : xs) term funName cMonad cMode=
   G.App bindOperator
     (toNonemptyList (G.PosArg argumentName : G.PosArg lambdaFun : []))
   where
-    argumentName = getBinderName (addMonadicPrefixToBinder addOptionPrefix x)
-    lambdaFun = G.Fun (singleton $ untypeBinder x) (addBindOperators xs term funName)
+    argumentName = getBinderName (addMonadicPrefixToBinder cMonad x)
+    lambdaFun = G.Fun (singleton $ untypeBinder x) (addBindOperators xs term funName cMonad cMode )
 
 addFuelMatchingToRhs :: G.Term -> G.Qualid -> G.Term
 addFuelMatchingToRhs (G.Match item retType equations) funName =
   G.Match item retType [addFuelMatchingToEquation e funName | e <- equations]
 addFuelMatchingToRhs term funName =
-  if containsRecursiveCall term funName --define function
+  if containsRecursiveCall term funName
     then fuelPattern errorTerm term funName
     else term
   where

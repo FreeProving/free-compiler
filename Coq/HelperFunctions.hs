@@ -7,6 +7,14 @@ import qualified Data.Text as T
 
 import qualified GHC.Base as B
 
+data ConversionMode =
+  HelperFunction
+  | FueledFunction
+
+data ConversionMonad =
+  Option
+  | Identity
+
 
 --helper functions
 unique :: Eq a => [a] -> [a]
@@ -148,19 +156,23 @@ containsRecursiveCall (G.Qualid qId) funName =
   eqQId qId funName
 containsRecursiveCall _ _ = False
 
-transformBindersMonadic :: [G.Binder] -> (G.Term -> G.Term ) -> [G.Binder]
+transformBindersMonadic :: [G.Binder] -> ConversionMonad -> [G.Binder]
 transformBindersMonadic binders m =
   [transformBinderMonadic b m | b <- binders]
 
-transformBinderMonadic :: G.Binder -> (G.Term -> G.Term) -> G.Binder
+transformBinderMonadic :: G.Binder -> ConversionMonad -> G.Binder
 transformBinderMonadic (G.Typed gen expl name term) m =
   G.Typed gen expl name (transformTermMonadic term m)
 
-transformTermMonadic :: G.Term -> (G.Term -> G.Term) -> G.Term
+transformTermMonadic :: G.Term -> ConversionMonad -> G.Term
 transformTermMonadic (G.Sort G.Type) m =
   typeTerm
 transformTermMonadic term m =
-  m term
+  monad term
+  where
+    monad = case m of
+          Option -> toOptionTerm
+          Identity -> toIdentityTerm
 
 fuelPattern :: G.Term -> G.Term -> G.Qualid -> G.Term
 fuelPattern errorTerm recursiveCall funName =
@@ -239,11 +251,19 @@ addOptionPrefix :: G.Name -> G.Name
 addOptionPrefix =
   addMonadicPrefix "o"
 
-addMonadicPrefixToBinder :: (G.Name -> G.Name) -> G.Binder -> G.Binder
-addMonadicPrefixToBinder f (G.Inferred expl name) =
-  G.Inferred expl (f name)
-addMonadicPrefixToBinder f (G.Typed gen expl (name B.:| xs) ty) =
-  G.Typed gen expl (singleton (f name)) ty
+addIdentityPrefix :: G.Name -> G.Name
+addIdentityPrefix =
+  addMonadicPrefix "i"
+
+addMonadicPrefixToBinder ::  ConversionMonad -> G.Binder -> G.Binder
+addMonadicPrefixToBinder m (G.Inferred expl name) =
+  G.Inferred expl ((getPrefixFromMonad m) name)
+addMonadicPrefixToBinder m (G.Typed gen expl (name B.:| xs) ty) =
+  G.Typed gen expl (singleton ((getPrefixFromMonad m) name)) ty
+
+getPrefixFromMonad :: ConversionMonad -> (G.Name -> G.Name)
+getPrefixFromMonad (Option) = addOptionPrefix
+getPrefixFromMonad (Identity) = addIdentityPrefix
 
 addFuelBinder :: [G.Binder] -> [G.Binder]
 addFuelBinder binders = binders ++ [fuelBinder]
@@ -252,7 +272,15 @@ toOptionTerm :: G.Term -> G.Term
 toOptionTerm term =
   G.App optionTerm (singleton (G.PosArg term))
 
+toIdentityTerm :: G.Term -> G.Term
+toIdentityTerm term =
+  G.App identityTerm (singleton (G.PosArg term))
+
 -- Predefined Terms
+identityTerm :: G.Term
+identityTerm =
+  G.Qualid (strToQId "identity")
+
 optionTerm :: G.Term
 optionTerm =
   G.Qualid (strToQId "option")
