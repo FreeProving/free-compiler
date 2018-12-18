@@ -77,35 +77,39 @@ convertDataTypeDecl dHead qConDecl cMonad =
 convertMatchDef :: Match l -> [G.TypeSignature] -> [G.Name] -> ConversionMonad -> ConversionMode -> G.Sentence
 convertMatchDef (Match _ name pattern rhs _) typeSigs dataNames cMonad cMode =
     if isRecursive name rhs
-      then G.FixpointSentence (convertMatchToFixpoint name pattern rhs typeSig dataNames cMonad cMode)
-      else G.DefinitionSentence (convertMatchToDefinition name pattern rhs typeSig cMonad cMode)
+      then if cMode == FueledFunction
+            then G.FixpointSentence (convertMatchToFueledFixpoint name pattern rhs typeSig dataNames cMonad)
+            else error "HelperFunction Conversion not implemented"
+      else G.DefinitionSentence (convertMatchToDefinition name pattern rhs typeSig cMonad)
     where
       typeSig = getTypeSignatureByName typeSigs name
 
-convertMatchToDefinition :: Name l -> [Pat l] -> Rhs l -> Maybe G.TypeSignature -> ConversionMonad -> ConversionMode -> G.Definition
-convertMatchToDefinition name pattern rhs typeSig cMonad cMode =
+convertMatchToDefinition :: Name l -> [Pat l] -> Rhs l -> Maybe G.TypeSignature -> ConversionMonad -> G.Definition
+convertMatchToDefinition name pattern rhs typeSig cMonad =
   G.DefinitionDef G.Global (nameToQId name)
     monadicBinders
       (convertReturnType typeSig cMonad)
         rhsTerm
   where
-    monadicBinders = transformBindersMonadic (map (addMonadicPrefixToBinder cMonad) binders) cMonad
     binders = convertPatsToBinders pattern typeSig
-    rhsTerm = addBindOperators binders (convertRhsToTerm rhs) Nothing cMonad cMode
+    monadicBinders = transformBindersMonadic (map (addMonadicPrefixToBinder cMonad) binders) cMonad
+    rhsTerm = addBindOperators monadicBinders (convertRhsToTerm rhs)
 
-convertMatchToFixpoint :: Name l -> [Pat l] -> Rhs l -> Maybe G.TypeSignature -> [G.Name] -> ConversionMonad -> ConversionMode -> G.Fixpoint
-convertMatchToFixpoint name pattern rhs typeSig dataNames cMonad cMode =
-  G.Fixpoint (singleton $ G.FixBody funName
+convertMatchToFueledFixpoint :: Name l -> [Pat l] -> Rhs l -> Maybe G.TypeSignature -> [G.Name] -> ConversionMonad -> G.Fixpoint
+convertMatchToFueledFixpoint name pattern rhs (Just typeSig) dataNames cMonad =
+ G.Fixpoint (singleton $ G.FixBody funName
     (toNonemptyList (bindersWithInferredTypes))
       Nothing
         Nothing
-          rhsTerm) []
+          fueledRhs) []
   where
     funName = nameToQId name
-    binders = convertPatsToBinders pattern typeSig
-    bindersWithFuel = addFuelBinder (transformBindersMonadic (map (addMonadicPrefixToBinder cMonad) binders) cMonad)
+    binders = convertPatsToBinders pattern (Just typeSig)
+    monadicBinders = transformBindersMonadic (map (addMonadicPrefixToBinder cMonad) binders) cMonad
+    bindersWithFuel = addFuelBinder monadicBinders
     bindersWithInferredTypes = addInferredTypesToSignature bindersWithFuel dataNames
-    rhsTerm = addBindOperators binders (convertRhsToTerm rhs) (Just funName) cMonad cMode
+    rhsTerm = addBindOperators monadicBinders (convertRhsToTerm rhs)
+    fueledRhs = addFuelMatchingToRhs rhsTerm monadicBinders [] funName (getReturnType typeSig)
 
 getReturnTypeFromDeclHead :: [G.Arg] -> DeclHead l -> G.Term
 getReturnTypeFromDeclHead [] dHead =
@@ -221,42 +225,99 @@ addInferredTypesToSignature binders dataNames =
   where
     filteredTypeNames = unique $ filterEachElement dataNames dataTypeUneqGName (filter isCoqType typeNames)
     typeNames = concat (map getTypeNamesFromTerm typeTerms)
-    typeTerms = map getTypeFromBinder binders
+    typeTerms = map getBinderType binders
     consNames = unique (map getConstrNameFromType typeTerms)
 
 convertRhsToTerm :: Rhs l -> G.Term
 convertRhsToTerm (UnGuardedRhs _ expr) =
-  convertExprToTerm expr
+  collapseApp (convertExprToTerm expr)
 convertRhsToTerm (GuardedRhss _ _ ) =
   error "Guards not implemented"
 
 
-addBindOperators :: [G.Binder] -> G.Term -> Maybe G.Qualid -> ConversionMonad ->  ConversionMode -> G.Term
-addBindOperators [] term (Just funName) cMonad cMode =
-  toReturnTerm (addFuelMatchingToRhs term funName)
-addBindOperators [] term Nothing cMonad cMode =
+addBindOperators :: [G.Binder] -> G.Term -> G.Term
+addBindOperators [] term =
   toReturnTerm term
-addBindOperators (x : xs) term funName cMonad cMode=
+addBindOperators (x : xs) term =
   G.App bindOperator
     (toNonemptyList (G.PosArg argumentName : G.PosArg lambdaFun : []))
   where
-    argumentName = getBinderName (addMonadicPrefixToBinder cMonad x)
-    lambdaFun = G.Fun (singleton $ untypeBinder x) (addBindOperators xs term funName cMonad cMode )
+    argumentName = getBinderName x
+    lambdaFun = G.Fun (singleton $ removeMonadFromBinder x) (addBindOperators xs term )
 
-addFuelMatchingToRhs :: G.Term -> G.Qualid -> G.Term
-addFuelMatchingToRhs (G.Match item retType equations) funName =
-  G.Match item retType [addFuelMatchingToEquation e funName | e <- equations]
-addFuelMatchingToRhs term funName =
+addFuelMatchingToRhs :: G.Term -> [G.Binder] -> [G.Binder] -> G.Qualid -> G.Term -> G.Term
+addFuelMatchingToRhs (G.Match item rType equations) funBinders lambdaBinders funName retType =
+  G.Match item rType [addFuelMatchingToEquation e funBinders lambdaBinders funName retType | e <- equations]
+addFuelMatchingToRhs term funBinders lambdaBinders funName retType =
   if containsRecursiveCall term funName
-    then fuelPattern errorTerm term funName
-    else term
+    then fuelPattern errorTerm recursiveCall funName
+    else case term of
+      G.App returnOp (b B.:| []) -> G.App returnOp (singleton $ G.PosArg (addFuelMatchingToRhs
+                                                                  ((\(G.PosArg x) -> x ) (b))
+                                                                    funBinders
+                                                                      lambdaBinders
+                                                                        funName
+                                                                          retType))
+      G.App bindOp (b B.:| bs) -> G.App bindOp (toNonemptyList (b :
+                                        G.PosArg (addFuelMatchingToRhs
+                                          ((\(G.PosArg x) -> x ) (head bs))
+                                            funBinders
+                                              lambdaBinders
+                                                funName
+                                                  retType) : []))
+      G.Fun lBinders rhs -> G.Fun lBinders (addFuelMatchingToRhs
+                                            rhs
+                                              funBinders
+                                                (lambdaBinders ++ [head (nonEmptyListToList lBinders)])
+                                                  funName
+                                                    retType)
+      G.Parens term -> G.Parens $ addFuelMatchingToRhs
+                                    term
+                                      funBinders
+                                        lambdaBinders
+                                          funName
+                                            retType
+      term -> term
   where
-    errorTerm = G.Qualid (strToQId "ys") -- placeHolder!works only for append Change to return term in errorcase
+    errorTerm = getBinderName $ findFittingBinder lambdaBinders retType 
+    recursiveCall = fixRecursiveCallArguments term funBinders lambdaBinders funName
 
-addFuelMatchingToEquation :: G.Equation -> G.Qualid -> G.Equation
-addFuelMatchingToEquation (G.Equation multPattern rhs) funName =
-  G.Equation multPattern (addFuelMatchingToRhs rhs funName)
+addFuelMatchingToEquation :: G.Equation -> [G.Binder] -> [G.Binder] -> G.Qualid -> G.Term -> G.Equation
+addFuelMatchingToEquation (G.Equation multPattern rhs) funBinders lambdaBinders funName retType =
+  G.Equation multPattern (addFuelMatchingToRhs rhs funBinders lambdaBinders funName retType)
 
+
+fixRecursiveCallArguments :: G.Term -> [G.Binder] -> [G.Binder] -> G.Qualid -> G.Term
+fixRecursiveCallArguments (G.App term args) funBinders lambdaBinders funName =
+  if containsRecursiveCall term funName
+    then G.App term (toNonemptyList matchingArgs)
+    else G.App term (toNonemptyList (convertTermsToArguments [fixRecursiveCallArguments t funBinders lambdaBinders funName | t <- terms]))
+    where
+      terms = convertArgumentsToTerms (nonEmptyListToList args)
+      matchingArgs = compAndChangeArguments (nonEmptyListToList args) funBinders lambdaBinders
+fixRecursiveCallArguments (G.Parens term) funBinders lambdaBinders funName =
+  G.Parens (fixRecursiveCallArguments term funBinders lambdaBinders funName)
+fixRecursiveCallArguments term _ _ _ = term
+
+compAndChangeArguments :: [G.Arg] -> [G.Binder] -> [G.Binder] -> [G.Arg]
+compAndChangeArguments [] _ _ = []
+compAndChangeArguments (x : xs) funBinders lambdaBinders =
+  if containsWrongArgument x lambdaBinders
+    then rightArg : compAndChangeArguments xs funBinders lambdaBinders
+    else x : compAndChangeArguments xs funBinders lambdaBinders
+    where
+      rightArg = switchArgument (length xs) funBinders
+
+
+containsWrongArgument :: G.Arg -> [G.Binder] -> Bool
+containsWrongArgument (G.PosArg (G.Qualid qId)) lambdaBinders =
+  not (null (filter (qIdEqBinder qId) lambdaBinders))
+
+switchArgument :: Int -> [G.Binder] -> G.Arg
+switchArgument n funBinders =
+  binderToArg bind
+  where
+    bind = funBinders !! (((length funBinders) - n) - 1)
 
 convertExprToTerm :: Exp l -> G.Term
 convertExprToTerm (Var _ qName) =
@@ -266,7 +327,7 @@ convertExprToTerm (Con _ qName) =
 convertExprToTerm (Paren _ expr) =
   G.Parens (convertExprToTerm expr)
 convertExprToTerm (App _ expr1 expr2) =
-  G.App (convertExprToTerm expr1) (singleton $ G.PosArg (convertExprToTerm expr2))
+  G.App (convertExprToTerm expr1) (singleton $ G.PosArg $ convertExprToTerm expr2)
 convertExprToTerm (InfixApp _ exprL (qOp) exprR) =
   (G.App (G.Qualid (qOpToQId qOp))
     ((G.PosArg (convertExprToTerm exprL)) B.:| (G.PosArg (convertExprToTerm exprR)) : []))

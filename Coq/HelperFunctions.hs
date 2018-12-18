@@ -10,11 +10,12 @@ import qualified GHC.Base as B
 data ConversionMode =
   HelperFunction
   | FueledFunction
+  deriving(Eq, Show, Read)
 
 data ConversionMonad =
   Option
   | Identity
-
+  deriving(Eq, Show, Read)
 
 --helper functions
 unique :: Eq a => [a] -> [a]
@@ -113,6 +114,9 @@ getNameFromDeclHead (DHParen _ declHead) =
 getNameFromDeclHead (DHApp _ declHead _) =
   getNameFromDeclHead declHead
 
+getReturnType :: G.TypeSignature -> G.Term
+getReturnType (G.TypeSignature _ terms) = last terms
+
 filterEachElement :: [a] -> (a -> a -> Bool) -> [a] -> [a]
 filterEachElement [] f list =
   list
@@ -138,6 +142,12 @@ eqQId :: G.Qualid -> G.Qualid -> Bool
 eqQId qIdL qIdR =
    getStringFromQId qIdL == getStringFromQId qIdR
 
+qIdEqBinder :: G.Qualid -> G.Binder -> Bool
+qIdEqBinder qId (G.Typed _ _ (n B.:| _ ) _ ) =
+  eqQId qId (gNameToQId n)
+qIdEqBinder qId (G.Inferred _ n) =
+  eqQId qId (gNameToQId n)
+
 dataTypeUneqGName :: G.Name -> G.Name -> Bool
 dataTypeUneqGName dataType gName =
   nameString /= dataString
@@ -156,6 +166,10 @@ containsRecursiveCall (G.Qualid qId) funName =
   eqQId qId funName
 containsRecursiveCall _ _ = False
 
+removeMonadFromBinder :: G.Binder -> G.Binder
+removeMonadFromBinder (G.Typed gen expl (n B.:| xs) term) =
+  G.Typed gen expl (singleton (removeMonadicPrefix n)) (fromMonadicTerm term)
+
 transformBindersMonadic :: [G.Binder] -> ConversionMonad -> [G.Binder]
 transformBindersMonadic binders m =
   [transformBinderMonadic b m | b <- binders]
@@ -173,6 +187,7 @@ transformTermMonadic term m =
     monad = case m of
           Option -> toOptionTerm
           Identity -> toIdentityTerm
+
 
 fuelPattern :: G.Term -> G.Term -> G.Qualid -> G.Term
 fuelPattern errorTerm recursiveCall funName =
@@ -198,6 +213,11 @@ addFuelArgumentToRecursiveCall (G.Parens term) funName =
 addFuelArgumentToRecursiveCall term _ =
   term
 
+--return Binder that fits a certain Type Signature
+findFittingBinder :: [G.Binder] -> G.Term -> G.Binder
+findFittingBinder binders ty =
+  head (filter (\x -> ty == getBinderType x) binders)
+
 addDecrFuelArgument :: B.NonEmpty G.Arg -> B.NonEmpty G.Arg
 addDecrFuelArgument list =
   toNonemptyList ((nonEmptyListToList list) ++ G.PosArg decrFuelTerm : [])
@@ -210,8 +230,41 @@ convertTermsToArguments :: [G.Term] -> [G.Arg]
 convertTermsToArguments terms =
   [(\x -> G.PosArg x) t | t <- terms]
 
+binderToArg :: G.Binder -> G.Arg
+binderToArg (G.Typed _ _ (n B.:| _) _ ) =
+  G.PosArg (gNameToTerm n)
+binderToArg (G.Inferred _ n) =
+  G.PosArg (gNameToTerm n)
 
---string conversions
+collapseApp :: G.Term -> G.Term
+collapseApp (G.App term args) =
+  if isAppTerm term
+    then G.App funName (toNonemptyList combinedArgs)
+    else G.App term args
+    where
+      funName = returnAppName term
+      combinedArgs = combineArgs (nonEmptyListToList args) term
+collapseApp (G.Parens term) =
+  G.Parens (collapseApp term)
+collapseApp term = term
+
+returnAppName :: G.Term -> G.Term
+returnAppName (G.App term _) =
+  returnAppName term
+returnAppName term = term
+
+combineArgs :: [G.Arg] -> G.Term -> [G.Arg]
+combineArgs args (G.App term args' ) =
+  combineArgs combArgs term
+  where
+    combArgs = (nonEmptyListToList args') ++ args
+combineArgs args _ =
+  convertTermsToArguments (map collapseApp (convertArgumentsToTerms args))
+
+isAppTerm :: G.Term -> Bool
+isAppTerm (G.App _ _ ) = True
+isAppTerm _ = False
+  --string conversions
 strToQId :: String -> G.Qualid
 strToQId str =
   G.Bare (T.pack str)
@@ -235,17 +288,19 @@ getBinderName (G.Inferred _ name) =
 getBinderName (G.Typed _ _ (name B.:| xs) _) =
   gNameToTerm name
 
-untypeBinder :: G.Binder -> G.Binder
-untypeBinder (G.Typed _ _ (name B.:| xs) _) =
-  G.Inferred G.Explicit name
-untypeBinder binder =
-  binder
+getBinderType :: G.Binder -> G.Term
+getBinderType (G.Typed _ _ _ term) =
+  term
 ---
 addMonadicPrefix :: String -> G.Name -> G.Name
 addMonadicPrefix str (G.Ident (G.Bare ident)) =
   G.Ident (strToQId (str ++ name))
   where
     name = T.unpack ident
+
+removeMonadicPrefix :: G.Name -> G.Name
+removeMonadicPrefix name =
+  strToGName (tail (getStringFromGName name))
 
 addOptionPrefix :: G.Name -> G.Name
 addOptionPrefix =
@@ -276,6 +331,11 @@ toIdentityTerm :: G.Term -> G.Term
 toIdentityTerm term =
   G.App identityTerm (singleton (G.PosArg term))
 
+fromMonadicTerm :: G.Term -> G.Term
+fromMonadicTerm (G.App _ ((G.PosArg term) B.:| xs)) =
+  term
+fromMonadicTerm term =
+  term
 -- Predefined Terms
 identityTerm :: G.Term
 identityTerm =
@@ -350,6 +410,9 @@ gNameToTerm :: G.Name -> G.Term
 gNameToTerm (G.Ident (qId)) =
   G.Qualid qId
 
+gNameToQId :: G.Name -> G.Qualid
+gNameToQId (G.Ident qId) = qId
+
 --QName conversion (Haskell ast)
 qNameToStr :: QName l -> String
 qNameToStr qName =
@@ -381,10 +444,6 @@ qNameToTypeTerm qName =
 
 argToTerm :: G.Arg -> G.Term
 argToTerm (G.PosArg term) =
-  term
-
-getTypeFromBinder :: G.Binder -> G.Term
-getTypeFromBinder (G.Typed _ _ _ term) =
   term
 
 -- Qualid conversion functions
