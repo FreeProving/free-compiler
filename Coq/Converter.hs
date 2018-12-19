@@ -319,7 +319,7 @@ switchArgument :: Int -> [G.Binder] -> G.Arg
 switchArgument n funBinders =
   binderToArg bind
   where
-    bind = funBinders !! (((length funBinders) - n) - 1)
+    bind = funBinders !! (length funBinders - n - 1)
 
 convertExprToTerm :: Show l => Exp l -> G.Term
 convertExprToTerm (Var _ qName) =
