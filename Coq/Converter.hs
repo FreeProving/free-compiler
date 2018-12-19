@@ -18,7 +18,7 @@ convertModule (Module _ (Just modHead) _ _ decls) cMonad cMode =
   G.LocalModule (convertModuleHead modHead)
     (monadDefinitions ++
       dataSentences ++
-        (convertModuleDecls rDecls (map filterForTypeSignatures typeSigs) dataNames cMonad cMode))
+        convertModuleDecls rDecls (map filterForTypeSignatures typeSigs) dataNames cMonad cMode)
   where
     (typeSigs, otherDecls) = partition isTypeSig decls
     (dataDecls, rDecls) = partition isDataDecl otherDecls
@@ -38,7 +38,7 @@ convertModuleHead (ModuleHead _ (ModuleName _ modName) _ _) =
 convertModuleDecls :: Show l => [Decl l] -> [G.TypeSignature] -> [G.Name] -> ConversionMonad -> ConversionMode -> [G.Sentence]
 convertModuleDecls ((FunBind _ (x : xs)) : ds) typeSigs dataNames cMonad cMode =
   convertMatchDef x typeSigs dataNames cMonad cMode : convertModuleDecls ds typeSigs dataNames cMonad cMode
-convertModuleDecls ((DataDecl _ (DataType _ ) Nothing declHead qConDecl _ ) : ds) typeSigs dataNames cMonad cMode =
+convertModuleDecls (DataDecl _ (DataType _ ) Nothing declHead qConDecl _  : ds) typeSigs dataNames cMonad cMode =
     if needsArgumentsSentence declHead qConDecl
       then [G.InductiveSentence  (convertDataTypeDecl declHead qConDecl cMonad)] ++
                                 convertArgumentSentences declHead qConDecl ++
@@ -75,7 +75,7 @@ convertDataTypeDecl dHead qConDecl cMonad =
                           cMonad
 
 convertMatchDef :: Show l => Match l -> [G.TypeSignature] -> [G.Name] -> ConversionMonad -> ConversionMode -> G.Sentence
-convertMatchDef (Match _ name pattern rhs _) typeSigs dataNames cMonad cMode =
+convertMatchDef (Match _ name (p : ps) rhs _) typeSigs dataNames cMonad cMode =
     if isRecursive name rhs
       then if cMode == FueledFunction
             then G.FixpointSentence (convertMatchToFueledFixpoint name pattern rhs typeSig dataNames cMonad)
@@ -83,6 +83,7 @@ convertMatchDef (Match _ name pattern rhs _) typeSigs dataNames cMonad cMode =
       else G.DefinitionSentence (convertMatchToDefinition name pattern rhs typeSig cMonad)
     where
       typeSig = getTypeSignatureByName typeSigs name
+      pattern = p : ps
 
 convertMatchToDefinition :: Show l => Name l -> [Pat l] -> Rhs l -> Maybe G.TypeSignature -> ConversionMonad -> G.Definition
 convertMatchToDefinition name pattern rhs typeSig cMonad =
@@ -91,6 +92,7 @@ convertMatchToDefinition name pattern rhs typeSig cMonad =
       (convertReturnType typeSig cMonad)
         rhsTerm
   where
+
     binders = convertPatsToBinders pattern typeSig
     monadicBinders = transformBindersMonadic (map (addMonadicPrefixToBinder cMonad) binders) cMonad
     rhsTerm = addBindOperators monadicBinders (convertRhsToTerm rhs)
@@ -141,7 +143,7 @@ convertQConDecls qConDecl term cMonad =
 
 convertQConDecl :: Show l => QualConDecl l -> G.Term -> ConversionMonad -> (G.Qualid, [G.Binder], Maybe G.Term)
 convertQConDecl (QualConDecl _ Nothing Nothing (ConDecl _ name types)) term cMonad =
-  ((nameToQId name), [] , (Just (convertToArrowTerm types term cMonad)))
+  (nameToQId name, [] , Just (convertToArrowTerm types term cMonad))
 
 convertToArrowTerm :: Show l => [Type l] -> G.Term -> ConversionMonad -> G.Term
 convertToArrowTerm types returnType cMonad =
@@ -208,8 +210,8 @@ convertPatToBinder pat =
   error ("Pattern not implemented: " ++ show pat)
 
 convertPatsAndTypeSigsToBinders :: Show l => [Pat l] -> [G.Term] -> [G.Binder]
-convertPatsAndTypeSigsToBinders pats typeSigs =
-  zipWith convertPatAndTypeSigToBinder pats typeSigs
+convertPatsAndTypeSigsToBinders =
+  zipWith convertPatAndTypeSigToBinder
 
 convertPatAndTypeSigToBinder :: Show l => Pat l -> G.Term -> G.Binder
 convertPatAndTypeSigToBinder (PVar _ name) term =
@@ -221,10 +223,10 @@ addInferredTypesToSignature :: [G.Binder] -> [G.Name] -> [G.Binder]
 addInferredTypesToSignature binders dataNames =
   if null filteredTypeNames
     then binders
-    else (G.Typed G.Ungeneralizable G.Explicit (toNonemptyList (filteredTypeNames)) typeTerm) : binders
+    else G.Typed G.Ungeneralizable G.Explicit (toNonemptyList filteredTypeNames) typeTerm : binders
   where
     filteredTypeNames = unique $ filterEachElement dataNames dataTypeUneqGName (filter isCoqType typeNames)
-    typeNames = concat (map getTypeNamesFromTerm typeTerms)
+    typeNames = concatMap getTypeNamesFromTerm typeTerms
     typeTerms = map getBinderType binders
     consNames = unique (map getConstrNameFromType typeTerms)
 
@@ -240,7 +242,7 @@ addBindOperators [] term =
   toReturnTerm term
 addBindOperators (x : xs) term =
   G.App bindOperator
-    (toNonemptyList (G.PosArg argumentName : G.PosArg lambdaFun : []))
+    (toNonemptyList [G.PosArg argumentName, G.PosArg lambdaFun])
   where
     argumentName = getBinderName x
     lambdaFun = G.Fun (singleton $ removeMonadFromBinder x) (addBindOperators xs term )
@@ -253,18 +255,18 @@ addFuelMatchingToRhs term funBinders lambdaBinders funName retType =
     then fuelPattern errorTerm recursiveCall funName
     else case term of
       G.App returnOp (b B.:| []) -> G.App returnOp (singleton $ G.PosArg (addFuelMatchingToRhs
-                                                                  ((\(G.PosArg x) -> x ) (b))
+                                                                  ((\(G.PosArg x) -> x ) b)
                                                                     funBinders
                                                                       lambdaBinders
                                                                         funName
                                                                           retType))
-      G.App bindOp (b B.:| bs) -> G.App bindOp (toNonemptyList (b :
+      G.App bindOp (b B.:| bs) -> G.App bindOp (toNonemptyList [b,
                                         G.PosArg (addFuelMatchingToRhs
                                           ((\(G.PosArg x) -> x ) (head bs))
                                             funBinders
                                               lambdaBinders
                                                 funName
-                                                  retType) : []))
+                                                  retType)])
       G.Fun lBinders rhs -> G.Fun lBinders (addFuelMatchingToRhs
                                             rhs
                                               funBinders
@@ -310,8 +312,8 @@ compAndChangeArguments (x : xs) funBinders lambdaBinders =
 
 
 containsWrongArgument :: G.Arg -> [G.Binder] -> Bool
-containsWrongArgument (G.PosArg (G.Qualid qId)) lambdaBinders =
-  not (null (filter (qIdEqBinder qId) lambdaBinders))
+containsWrongArgument (G.PosArg (G.Qualid qId)) =
+  any (qIdEqBinder qId)
 
 switchArgument :: Int -> [G.Binder] -> G.Arg
 switchArgument n funBinders =
@@ -328,9 +330,9 @@ convertExprToTerm (Paren _ expr) =
   G.Parens (convertExprToTerm expr)
 convertExprToTerm (App _ expr1 expr2) =
   G.App (convertExprToTerm expr1) (singleton $ G.PosArg $ convertExprToTerm expr2)
-convertExprToTerm (InfixApp _ exprL (qOp) exprR) =
-  (G.App (G.Qualid (qOpToQId qOp))
-    ((G.PosArg (convertExprToTerm exprL)) B.:| (G.PosArg (convertExprToTerm exprR)) : []))
+convertExprToTerm (InfixApp _ exprL qOp exprR) =
+  G.App (G.Qualid (qOpToQId qOp))
+    (toNonemptyList [G.PosArg (convertExprToTerm exprL), G.PosArg (convertExprToTerm exprR)])
 convertExprToTerm (Case _ expr altList) =
   G.Match (singleton $ G.MatchItem (convertExprToTerm expr)  Nothing Nothing)
     Nothing
@@ -369,14 +371,14 @@ convertQNameToBinder qName =
 
 needsArgumentsSentence :: Show l => DeclHead l -> [QualConDecl l] -> Bool
 needsArgumentsSentence declHead qConDecls =
-  length binders > 0 && hasNonInferrableConstr qConDecls
+  not (null binders) && hasNonInferrableConstr qConDecls
   where
     binders = applyToDeclHeadTyVarBinds declHead convertTyVarBindToBinder
 
 --check if function is recursive
 isRecursive :: Show l => Name l -> Rhs l -> Bool
 isRecursive name rhs =
-  length (filter (== (getString name)) (termToStrings (convertRhsToTerm rhs))) > 0
+  any (== getString name) (termToStrings (convertRhsToTerm rhs))
 
 --print the converted module
 printCoqAST :: G.LocalModule -> IO ()
