@@ -73,7 +73,7 @@ pattern BName  x          = Ident (Bare x)
 
 -- Legacy combinator, to migrate away from the Infix constructor
 mkInfix :: Term -> Qualid -> Term -> Term
-mkInfix l op r = App2 (Qualid op) l r
+mkInfix l op = App2 (Qualid op) l
 
 maybeForall :: Foldable f => f Binder -> Term -> Term
 maybeForall = maybe id Forall . nonEmpty . toList
@@ -230,7 +230,7 @@ collectArgs (Qualid qid) = return (qid, [])
 collectArgs (App t args) = do
     (f, args1) <- collectArgs t
     args2 <- mapM fromArg (NE.toList args)
-    return $ (f, args1 ++ args2)
+    return (f, args1 ++ args2)
   where
     fromArg (PosArg t) = return t
     fromArg _          = fail "non-positional argument"

@@ -7,7 +7,7 @@ import qualified Data.Text as T
 
 monadDefinitions :: [G.Sentence]
 monadDefinitions =
-  monadTypeClass : bindNotationSentence : optionMonadImplementationSentance : []
+  [monadTypeClass, bindNotationSentence, optionMonadImplementationSentance]
 
 monadTypeClass :: G.Sentence
 monadTypeClass =
@@ -27,13 +27,13 @@ optionMonadImplementation =
   where
     ty = G.App (G.Qualid (strToQId "Monad")) (singleton (G.PosArg (G.Qualid (strToQId "option"))))
     maybeQId = strToQId "Maybe"
-    funs = (strToQId "return_", G.Qualid (strToQId "Some")) : (strToQId "bind", lambda) : []
+    funs = [(strToQId "return_", G.Qualid (strToQId "Some")),  (strToQId "bind", lambda)]
     lambda = G.Fun (toNonemptyList binders) (G.Match (singleton (G.MatchItem (G.Qualid (strToQId "m")) Nothing Nothing)) Nothing equations)
-    binders = strToBinder "a" : strToBinder "m" : strToBinder "b" : strToBinder "f" : []
+    binders = [strToBinder "a", strToBinder "m", strToBinder "b", strToBinder "f"]
     equations =
-      G.Equation (singleton (G.MultPattern (singleton (G.ArgsPat (strToQId "None") [])))) (G.Qualid (strToQId "None")) :
+      [G.Equation (singleton (G.MultPattern (singleton (G.ArgsPat (strToQId "None") [])))) (G.Qualid (strToQId "None")),
       G.Equation (singleton (G.MultPattern (singleton (G.ArgsPat (strToQId "Some") [G.QualidPat (strToQId "a")]))))
-        (G.App (G.Qualid (strToQId "f")) (singleton (G.PosArg (G.Qualid (strToQId "a"))))) : []
+        (G.App (G.Qualid (strToQId "f")) (singleton (G.PosArg (G.Qualid (strToQId "a"))))) ]
 
 bindNotation :: G.Notation
 bindNotation =
@@ -41,7 +41,7 @@ bindNotation =
     where
       operator = T.pack "m >>= f"
       binding = G.App (G.Qualid (strToQId "bind")) (toNonemptyList params)
-      params = G.PosArg (G.Qualid (strToQId "m")) : G.PosArg G.Underscore : G.PosArg (G.Qualid (strToQId "f")) : []
+      params = [G.PosArg (G.Qualid (strToQId "m")), G.PosArg G.Underscore, G.PosArg (G.Qualid (strToQId "f"))]
 
 monadClassDefinition :: G.ClassDefinition
 monadClassDefinition =
@@ -50,7 +50,7 @@ monadClassDefinition =
     name = strToQId "Monad"
     binder = [G.Typed G.Ungeneralizable G.Explicit (singleton (strToGName "m")) ty]
     ty = G.Arrow typeSort typeSort
-    funs = returnSig : bindSig : []
+    funs = [returnSig, bindSig]
 
 returnSig :: (G.Qualid, G.Term)
 returnSig =
