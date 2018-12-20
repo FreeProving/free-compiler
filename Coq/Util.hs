@@ -54,8 +54,8 @@ appList      :: Term -> [Arg]                -> Term
 
 pattern Var  x          = Qualid (Bare x)
 pattern App1 f x        = App f (PosArg x :| [])
-pattern App2 f x1 x2    = App f (PosArg x1 :| PosArg x2 : [])
-pattern App3 f x1 x2 x3 = App f (PosArg x1 :| PosArg x2 : PosArg x3 : [])
+pattern App2 f x1 x2    = App f (PosArg x1 :| [PosArg x2] )
+pattern App3 f x1 x2 x3 = App f (PosArg x1 :| [PosArg x2, PosArg x3] )
 appList      f          = maybe f (App f) . nonEmpty
 
 pattern VarPat  :: Ident                                   -> Pattern
