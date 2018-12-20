@@ -102,7 +102,7 @@ convertMatchToFueledFixpoint name pattern rhs (Just typeSig) dataNames cMonad =
  G.Fixpoint (singleton $ G.FixBody funName
     (toNonemptyList (bindersWithInferredTypes))
       Nothing
-        Nothing
+        (Just $ transformTermMonadic (getReturnType typeSig) cMonad)
           fueledRhs) []
   where
     funName = nameToQId name
