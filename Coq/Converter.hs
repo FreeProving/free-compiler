@@ -36,7 +36,7 @@ convertModuleHead (ModuleHead _ (ModuleName _ modName) _ _) =
 
 --
 convertModuleDecls :: Show l => [Decl l] -> [G.TypeSignature] -> [G.Name] -> ConversionMonad -> ConversionMode -> [G.Sentence]
-convertModuleDecls ((FunBind _ (x : xs)) : ds) typeSigs dataNames cMonad cMode =
+convertModuleDecls (FunBind _ (x : xs) : ds) typeSigs dataNames cMonad cMode =
   convertMatchDef x typeSigs dataNames cMonad cMode : convertModuleDecls ds typeSigs dataNames cMonad cMode
 convertModuleDecls (DataDecl _ (DataType _ ) Nothing declHead qConDecl _  : ds) typeSigs dataNames cMonad cMode =
     if needsArgumentsSentence declHead qConDecl
@@ -78,35 +78,33 @@ convertMatchDef :: Show l => Match l -> [G.TypeSignature] -> [G.Name] -> Convers
 convertMatchDef (Match _ name (p : ps) rhs _) typeSigs dataNames cMonad cMode =
     if isRecursive name rhs
       then if cMode == FueledFunction
-            then G.FixpointSentence (convertMatchToFueledFixpoint name pattern rhs typeSig dataNames cMonad)
+            then G.FixpointSentence (convertMatchToFueledFixpoint name (p : ps) rhs typeSig dataNames cMonad)
             else error "HelperFunction Conversion not implemented"
-      else G.DefinitionSentence (convertMatchToDefinition name pattern rhs typeSig cMonad)
+      else G.DefinitionSentence (convertMatchToDefinition name (p : ps) rhs typeSig cMonad)
     where
       typeSig = getTypeSignatureByName typeSigs name
-      pattern = p : ps
 
 convertMatchToDefinition :: Show l => Name l -> [Pat l] -> Rhs l -> Maybe G.TypeSignature -> ConversionMonad -> G.Definition
-convertMatchToDefinition name pattern rhs typeSig cMonad =
+convertMatchToDefinition name (p : ps) rhs typeSig cMonad =
   G.DefinitionDef G.Global (nameToQId name)
     monadicBinders
       (convertReturnType typeSig cMonad)
         rhsTerm
   where
-
-    binders = convertPatsToBinders pattern typeSig
+    binders = convertPatsToBinders (p : ps) typeSig
     monadicBinders = transformBindersMonadic (map (addMonadicPrefixToBinder cMonad) binders) cMonad
     rhsTerm = addBindOperators monadicBinders (convertRhsToTerm rhs)
 
 convertMatchToFueledFixpoint :: Show l => Name l -> [Pat l] -> Rhs l -> Maybe G.TypeSignature -> [G.Name] -> ConversionMonad -> G.Fixpoint
-convertMatchToFueledFixpoint name pattern rhs (Just typeSig) dataNames cMonad =
+convertMatchToFueledFixpoint name (p : ps) rhs (Just typeSig) dataNames cMonad =
  G.Fixpoint (singleton $ G.FixBody funName
-    (toNonemptyList (bindersWithInferredTypes))
+    (toNonemptyList bindersWithInferredTypes)
       Nothing
         (Just $ transformTermMonadic (getReturnType typeSig) cMonad)
           fueledRhs) []
   where
     funName = nameToQId name
-    binders = convertPatsToBinders pattern (Just typeSig)
+    binders = convertPatsToBinders (p : ps) (Just typeSig)
     monadicBinders = transformBindersMonadic (map (addMonadicPrefixToBinder cMonad) binders) cMonad
     bindersWithFuel = addFuelBinder monadicBinders
     bindersWithInferredTypes = addInferredTypesToSignature bindersWithFuel dataNames
@@ -378,7 +376,7 @@ needsArgumentsSentence declHead qConDecls =
 --check if function is recursive
 isRecursive :: Show l => Name l -> Rhs l -> Bool
 isRecursive name rhs =
-  any (== getString name) (termToStrings (convertRhsToTerm rhs))
+  elem (getString name) (termToStrings (convertRhsToTerm rhs))
 
 --print the converted module
 printCoqAST :: G.LocalModule -> IO ()

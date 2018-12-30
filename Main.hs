@@ -26,7 +26,7 @@ parseFile f = do
 parseAndPrintFile :: String -> IO ()
 parseAndPrintFile f = do
             s <- readFile f
-            putStrLn (show (fromParseResult (parseModuleWithMode (customParseMode f) s)))
+            print (fromParseResult (parseModuleWithMode (customParseMode f) s))
 
 testAst :: IO ()
 testAst = parseAndPrintFile "Test.hs"
@@ -42,8 +42,8 @@ customParseMode s = ParseMode s Haskell98 [] True True Nothing True
 
 getMonadFromArgs :: [String] -> ConversionMonad
 getMonadFromArgs [] = Option
-getMonadFromArgs (("-o") : _ ) = Option
-getMonadFromArgs (("-i") : _ ) = Identity
+getMonadFromArgs ("-o" : _ ) = Option
+getMonadFromArgs ("-i" : _ ) = Identity
 getMonadFromArgs ( _ : xs) = getMonadFromArgs xs
 
 getModeFromArgs :: [String] -> ConversionMode
