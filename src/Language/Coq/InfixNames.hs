@@ -1,6 +1,6 @@
 {-# LANGUAGE LambdaCase, OverloadedStrings #-}
 
-module Coq.InfixNames (
+module Language.Coq.InfixNames (
   identIsVariable,
   infixToPrefix, toPrefix, toLocalPrefix,
   prefixOpToInfix,

@@ -11,7 +11,7 @@ Stability   : experimental
 
 {-# LANGUAGE DeriveDataTypeable, OverloadedStrings, OverloadedLists, LambdaCase, TemplateHaskell #-}
 
-module Coq.Gallina (
+module Language.Coq.Gallina (
   -- * Lexical structure
   -- $Lexical
   Ident,

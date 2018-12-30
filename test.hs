@@ -27,12 +27,13 @@ not :: Bool -> Bool
 not b = case b of
   False -> True
   True -> False
-{-}
+
+
 null :: List a -> Bool
 null list = case list of
   Nil -> True
   Cons _ _ -> False
-
+{-}
 --type Queue a = List a
 -}
 data Test =

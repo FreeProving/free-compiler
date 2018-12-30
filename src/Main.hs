@@ -6,8 +6,8 @@ import Language.Haskell.Exts.Parser
 import Language.Haskell.Exts.Extension
 import Language.Haskell.Exts.Syntax
 import Language.Haskell.Exts.SrcLoc
-import Coq.Converter
-import Coq.HelperFunctions
+import Compiler.Converter
+import Compiler.HelperFunctions
 
 main :: IO ()
 main = do

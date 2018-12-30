@@ -1,7 +1,7 @@
-module Coq.Monad where
+module Language.Haskell.Monad where
 
-import Coq.HelperFunctions
-import Coq.Gallina as G
+import Compiler.HelperFunctions
+import Language.Coq.Gallina as G
 import qualified Data.Text as T
 
 

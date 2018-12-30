@@ -10,7 +10,7 @@ Stability   : experimental
 
 {-# LANGUAGE DeriveDataTypeable, OverloadedStrings, OverloadedLists, LambdaCase, TemplateHaskell #-}
 
-module Coq.Pretty (
+module Language.Coq.Pretty (
   renderGallina,
   showP, textP,
   Gallina(..),
@@ -19,7 +19,7 @@ module Coq.Pretty (
 import Prelude hiding (Num)
 
 import Data.Foldable
-import Util.Function
+import Language.Coq.Util.Function
 
 import Data.Text (Text)
 import qualified Data.Text as T
@@ -31,9 +31,9 @@ import Data.Typeable
 import Data.Data (Data(..))
 import Data.String
 
-import Coq.Gallina
-import Coq.Util
-import PrettyPrint
+import Language.Coq.Gallina
+import Language.Coq.Util
+import Language.Coq.PrettyPrint
 
 instance IsString Term where
     fromString x = Qualid (unsafeIdentToQualid (T.pack x))

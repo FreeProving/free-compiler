@@ -1,7 +1,7 @@
-module Coq.HelperFunctions where
+module Compiler.HelperFunctions where
 
 import Language.Haskell.Exts.Syntax
-import qualified Coq.Gallina as G
+import qualified Language.Coq.Gallina as G
 
 import qualified Data.Text as T
 
@@ -114,6 +114,12 @@ getNameFromDeclHead (DHParen _ declHead) =
 getNameFromDeclHead (DHApp _ declHead _) =
   getNameFromDeclHead declHead
 
+getReturnTypeFromDeclHead :: [G.Arg] -> DeclHead l -> G.Term
+getReturnTypeFromDeclHead [] dHead =
+  applyToDeclHead dHead nameToTerm
+getReturnTypeFromDeclHead (x : xs) dHead =
+  G.App (applyToDeclHead dHead nameToTerm) (x B.:| xs)
+
 getReturnType :: G.TypeSignature -> G.Term
 getReturnType (G.TypeSignature _ terms) = last terms
 
@@ -188,6 +194,79 @@ transformTermMonadic term m =
           Option -> toOptionTerm
           Identity -> toIdentityTerm
 
+addFuelMatchingToRhs :: G.Term -> [G.Binder] -> [G.Binder] -> G.Qualid -> G.Term -> G.Term
+addFuelMatchingToRhs (G.Match item rType equations) funBinders lambdaBinders funName retType =
+  G.Match item rType [addFuelMatchingToEquation e funBinders lambdaBinders funName retType | e <- equations]
+addFuelMatchingToRhs term funBinders lambdaBinders funName retType =
+  if containsRecursiveCall term funName
+    then fuelPattern errorTerm recursiveCall funName
+    else case term of
+      G.App returnOp (b B.:| []) -> G.App returnOp (singleton $ G.PosArg (addFuelMatchingToRhs
+                                                                  ((\(G.PosArg x) -> x ) b)
+                                                                    funBinders
+                                                                      lambdaBinders
+                                                                        funName
+                                                                          retType))
+      G.App bindOp (b B.:| bs) -> G.App bindOp (toNonemptyList [b,
+                                        G.PosArg (addFuelMatchingToRhs
+                                          ((\(G.PosArg x) -> x ) (head bs))
+                                            funBinders
+                                              lambdaBinders
+                                                funName
+                                                  retType)])
+      G.Fun lBinders rhs -> G.Fun lBinders (addFuelMatchingToRhs
+                                            rhs
+                                              funBinders
+                                                (lambdaBinders ++ [head (nonEmptyListToList lBinders)])
+                                                  funName
+                                                    retType)
+      G.Parens term -> G.Parens $ addFuelMatchingToRhs
+                                    term
+                                      funBinders
+                                        lambdaBinders
+                                          funName
+                                            retType
+      term -> term
+  where
+    errorTerm = getBinderName $ findFittingBinder lambdaBinders retType
+    recursiveCall = fixRecursiveCallArguments term funBinders lambdaBinders funName
+
+addFuelMatchingToEquation :: G.Equation -> [G.Binder] -> [G.Binder] -> G.Qualid -> G.Term -> G.Equation
+addFuelMatchingToEquation (G.Equation multPattern rhs) funBinders lambdaBinders funName retType =
+  G.Equation multPattern (addFuelMatchingToRhs rhs funBinders lambdaBinders funName retType)
+
+
+fixRecursiveCallArguments :: G.Term -> [G.Binder] -> [G.Binder] -> G.Qualid -> G.Term
+fixRecursiveCallArguments (G.App term args) funBinders lambdaBinders funName =
+  if containsRecursiveCall term funName
+    then G.App term (toNonemptyList matchingArgs)
+    else G.App term (toNonemptyList (convertTermsToArguments [fixRecursiveCallArguments t funBinders lambdaBinders funName | t <- terms]))
+    where
+      terms = convertArgumentsToTerms (nonEmptyListToList args)
+      matchingArgs = compAndChangeArguments (nonEmptyListToList args) funBinders lambdaBinders
+fixRecursiveCallArguments (G.Parens term) funBinders lambdaBinders funName =
+  G.Parens (fixRecursiveCallArguments term funBinders lambdaBinders funName)
+fixRecursiveCallArguments term _ _ _ = term
+
+compAndChangeArguments :: [G.Arg] -> [G.Binder] -> [G.Binder] -> [G.Arg]
+compAndChangeArguments [] _ _ = []
+compAndChangeArguments (x : xs) funBinders lambdaBinders =
+  if containsWrongArgument x lambdaBinders
+    then rightArg : compAndChangeArguments xs funBinders lambdaBinders
+    else x : compAndChangeArguments xs funBinders lambdaBinders
+    where
+      rightArg = switchArgument (length xs) funBinders
+
+
+containsWrongArgument :: G.Arg -> [G.Binder] -> Bool
+containsWrongArgument (G.PosArg (G.Qualid qId)) =
+  any (qIdEqBinder qId)
+
+switchArgument :: Int -> [G.Binder] -> G.Arg
+switchArgument n funBinders =
+  binderToArg bind
+  where
+    bind = funBinders !! (length funBinders - n - 1)
 
 fuelPattern :: G.Term -> G.Term -> G.Qualid -> G.Term
 fuelPattern errorTerm recursiveCall funName =
@@ -545,7 +624,7 @@ patToStrings G.UnderscorePat =
   ["_"]
 
 patsToStrings :: [G.Pattern] -> [String]
-patsToStrings = concatMap patToStrings 
+patsToStrings = concatMap patToStrings
 
 
 --Convert qualifiedOperator from Haskell to Qualid with Operator signature

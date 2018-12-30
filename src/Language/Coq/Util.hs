@@ -1,6 +1,6 @@
 {-# LANGUAGE PatternSynonyms, OverloadedStrings, LambdaCase, TemplateHaskell, ViewPatterns #-}
 
-module Coq.Util (
+module Language.Coq.Util (
   -- * Common AST patterns
   pattern Var,    pattern App1,    pattern App2,    pattern App3,    appList,
   pattern VarPat, pattern App1Pat, pattern App2Pat, pattern App3Pat,
@@ -43,8 +43,8 @@ import qualified Data.List.NonEmpty as NE (toList)
 import qualified Data.Text as T
 
 
-import Coq.Gallina
-import Coq.InfixNames
+import Language.Coq.Gallina
+import Language.Coq.InfixNames
 
 pattern Var  :: Ident                        -> Term
 pattern App1 :: Term -> Term                 -> Term
