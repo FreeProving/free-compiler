@@ -3,27 +3,13 @@ module Compiler.HelperFunctions where
 import Language.Haskell.Exts.Syntax
 import qualified Language.Coq.Gallina as G
 
+
 import qualified Data.Text as T
 
 import qualified GHC.Base as B
 
-data ConversionMode =
-  HelperFunction
-  | FueledFunction
-  deriving(Eq, Show, Read)
 
-data ConversionMonad =
-  Option
-  | Identity
-  deriving(Eq, Show, Read)
-
---helper functions
-unique :: Eq a => [a] -> [a]
-unique []       =
-  []
-unique (x : xs) =
-  x : unique (filter (x /=) xs)
-
+---------------------- NonemptyList Conversions
 --convert single element to nonempty list
 singleton :: a -> B.NonEmpty a
 singleton a =
@@ -37,6 +23,8 @@ nonEmptyListToList :: B.NonEmpty a -> [a]
 nonEmptyListToList (x B.:| xs) =
   x : xs
 
+---------------------- Getter Functions
+--Get Strings From Data Structures
 getQString :: QName l -> String
 getQString (UnQual _ name) =
   getString name
@@ -56,15 +44,6 @@ getStringFromGName G.UnderscoreName =
 getStringFromQId :: G.Qualid -> String
 getStringFromQId (G.Bare text) = T.unpack text
 
-
-toGallinaSyntax :: String -> String
-toGallinaSyntax "False" =
-  "false"
-toGallinaSyntax "True" =
-  "true"
-toGallinaSyntax s =
-  s
-
 --manual covnversion of common Haskell types to coq equivalent
 getType :: String -> G.Term
 getType "Int" =
@@ -81,22 +60,6 @@ getTypeSignatureByName (x : xs) name =
    if nameEqTypeName x name
     then Just x
     else getTypeSignatureByName xs name
-
-isCoqType :: G.Name -> Bool
-isCoqType name =
-   not (any (eqGName name) coqTypes)
-
-isTypeSig :: Decl l -> Bool
-isTypeSig TypeSig {} =
- True
-isTypeSig _ =
- False
-
-isDataDecl :: Decl l -> Bool
-isDataDecl DataDecl {} =
-  True
-isDataDecl _ =
-  False
 
 getNamesFromDataDecls :: [Decl l] -> [G.Name]
 getNamesFromDataDecls sentences =
@@ -120,16 +83,83 @@ getReturnTypeFromDeclHead [] dHead =
 getReturnTypeFromDeclHead (x : xs) dHead =
   G.App (applyToDeclHead dHead nameToTerm) (x B.:| xs)
 
+getNonInferrableConstrNames :: [QualConDecl l] -> [G.Qualid]
+getNonInferrableConstrNames qConDecls =
+  [ getNameFromQualConDecl d | d <- nonInferrableQConDecls]
+  where
+    nonInferrableQConDecls = filter isNonInferrableConstr qConDecls
+
+getNameFromQualConDecl :: QualConDecl l -> G.Qualid
+getNameFromQualConDecl (QualConDecl _ _ _ (ConDecl _ name _)) =
+  nameToQId name
+
+getTypeNamesFromTerm :: G.Term -> [G.Name]
+getTypeNamesFromTerm (G.App term args) =
+  map strToGName (termToStrings term) ++
+    map strToGName (concatMap (termToStrings . argToTerm) (nonEmptyListToList args))
+getTypeNamesFromTerm _ =
+  []
+
+getConstrNameFromType :: G.Term -> G.Name
+getConstrNameFromType (G.App term _) =
+  head (map strToGName (termToStrings term))
+getConstrNameFromType _ =
+  strToGName ""
+
 getReturnType :: G.TypeSignature -> G.Term
 getReturnType (G.TypeSignature _ terms) = last terms
 
-filterEachElement :: [a] -> (a -> a -> Bool) -> [a] -> [a]
-filterEachElement [] f list =
-  list
-filterEachElement (x : xs) f list =
-    filterEachElement xs f filteredList
+getBinderName :: G.Binder -> G.Term
+getBinderName (G.Inferred _ name) =
+  gNameToTerm name
+getBinderName (G.Typed _ _ (name B.:| xs) _) =
+  gNameToTerm name
+
+getBinderType :: G.Binder -> G.Term
+getBinderType (G.Typed _ _ _ term) =
+  term
+
+---------------------- Bool Functions
+isCoqType :: G.Name -> Bool
+isCoqType name =
+   not (any (eqGName name) coqTypes)
+
+isTypeSig :: Decl l -> Bool
+isTypeSig TypeSig {} =
+ True
+isTypeSig _ =
+ False
+
+isDataDecl :: Decl l -> Bool
+isDataDecl DataDecl {} =
+  True
+isDataDecl _ =
+  False
+
+hasNonInferrableConstr :: [QualConDecl l] -> Bool
+hasNonInferrableConstr =
+  any isNonInferrableConstr
+
+isNonInferrableConstr :: QualConDecl l -> Bool
+isNonInferrableConstr (QualConDecl _ _ _ (ConDecl _ _ [])) =
+  True
+isNonInferrableConstr (QualConDecl _ _ _ (ConDecl _ _ ty)) =
+  False
+
+containsRecursiveCall :: G.Term -> G.Qualid -> Bool
+containsRecursiveCall (G.App term args) funName =
+  containsRecursiveCall term funName || or [containsRecursiveCall t funName | t <- argTerms]
   where
-    filteredList  = filter (f x) list
+    argTerms = convertArgumentsToTerms (nonEmptyListToList args)
+containsRecursiveCall (G.Parens term) funName =
+  containsRecursiveCall term funName
+containsRecursiveCall (G.Qualid qId) funName =
+  eqQId qId funName
+containsRecursiveCall _ _ = False
+
+isAppTerm :: G.Term -> Bool
+isAppTerm (G.App _ _ ) = True
+isAppTerm _ = False
 
 -- name comparison functions
 nameEqTypeName :: G.TypeSignature -> Name l -> Bool
@@ -161,145 +191,26 @@ dataTypeUneqGName dataType gName =
     dataString = getStringFromGName dataType
     nameString = getStringFromGName gName
 
-containsRecursiveCall :: G.Term -> G.Qualid -> Bool
-containsRecursiveCall (G.App term args) funName =
-  containsRecursiveCall term funName || or [containsRecursiveCall t funName | t <- argTerms]
+---------------------- various helper functions
+
+unique :: Eq a => [a] -> [a]
+unique []       =
+  []
+unique (x : xs) =
+  x : unique (filter (x /=) xs)
+
+filterEachElement :: [a] -> (a -> a -> Bool) -> [a] -> [a]
+filterEachElement [] f list =
+  list
+filterEachElement (x : xs) f list =
+    filterEachElement xs f filteredList
   where
-    argTerms = convertArgumentsToTerms (nonEmptyListToList args)
-containsRecursiveCall (G.Parens term) funName =
-  containsRecursiveCall term funName
-containsRecursiveCall (G.Qualid qId) funName =
-  eqQId qId funName
-containsRecursiveCall _ _ = False
-
-removeMonadFromBinder :: G.Binder -> G.Binder
-removeMonadFromBinder (G.Typed gen expl (n B.:| xs) term) =
-  G.Typed gen expl (singleton (removeMonadicPrefix n)) (fromMonadicTerm term)
-
-transformBindersMonadic :: [G.Binder] -> ConversionMonad -> [G.Binder]
-transformBindersMonadic binders m =
-  [transformBinderMonadic b m | b <- binders]
-
-transformBinderMonadic :: G.Binder -> ConversionMonad -> G.Binder
-transformBinderMonadic (G.Typed gen expl name term) m =
-  G.Typed gen expl name (transformTermMonadic term m)
-
-transformTermMonadic :: G.Term -> ConversionMonad -> G.Term
-transformTermMonadic (G.Sort G.Type) m =
-  typeTerm
-transformTermMonadic term m =
-  monad term
-  where
-    monad = case m of
-          Option -> toOptionTerm
-          Identity -> toIdentityTerm
-
-addFuelMatchingToRhs :: G.Term -> [G.Binder] -> [G.Binder] -> G.Qualid -> G.Term -> G.Term
-addFuelMatchingToRhs (G.Match item rType equations) funBinders lambdaBinders funName retType =
-  G.Match item rType [addFuelMatchingToEquation e funBinders lambdaBinders funName retType | e <- equations]
-addFuelMatchingToRhs term funBinders lambdaBinders funName retType =
-  if containsRecursiveCall term funName
-    then fuelPattern errorTerm recursiveCall funName
-    else case term of
-      G.App returnOp (b B.:| []) -> G.App returnOp (singleton $ G.PosArg (addFuelMatchingToRhs
-                                                                  ((\(G.PosArg x) -> x ) b)
-                                                                    funBinders
-                                                                      lambdaBinders
-                                                                        funName
-                                                                          retType))
-      G.App bindOp (b B.:| bs) -> G.App bindOp (toNonemptyList [b,
-                                        G.PosArg (addFuelMatchingToRhs
-                                          ((\(G.PosArg x) -> x ) (head bs))
-                                            funBinders
-                                              lambdaBinders
-                                                funName
-                                                  retType)])
-      G.Fun lBinders rhs -> G.Fun lBinders (addFuelMatchingToRhs
-                                            rhs
-                                              funBinders
-                                                (lambdaBinders ++ [head (nonEmptyListToList lBinders)])
-                                                  funName
-                                                    retType)
-      G.Parens term -> G.Parens $ addFuelMatchingToRhs
-                                    term
-                                      funBinders
-                                        lambdaBinders
-                                          funName
-                                            retType
-      term -> term
-  where
-    errorTerm = getBinderName $ findFittingBinder lambdaBinders retType
-    recursiveCall = fixRecursiveCallArguments term funBinders lambdaBinders funName
-
-addFuelMatchingToEquation :: G.Equation -> [G.Binder] -> [G.Binder] -> G.Qualid -> G.Term -> G.Equation
-addFuelMatchingToEquation (G.Equation multPattern rhs) funBinders lambdaBinders funName retType =
-  G.Equation multPattern (addFuelMatchingToRhs rhs funBinders lambdaBinders funName retType)
-
-
-fixRecursiveCallArguments :: G.Term -> [G.Binder] -> [G.Binder] -> G.Qualid -> G.Term
-fixRecursiveCallArguments (G.App term args) funBinders lambdaBinders funName =
-  if containsRecursiveCall term funName
-    then G.App term (toNonemptyList matchingArgs)
-    else G.App term (toNonemptyList (convertTermsToArguments [fixRecursiveCallArguments t funBinders lambdaBinders funName | t <- terms]))
-    where
-      terms = convertArgumentsToTerms (nonEmptyListToList args)
-      matchingArgs = compAndChangeArguments (nonEmptyListToList args) funBinders lambdaBinders
-fixRecursiveCallArguments (G.Parens term) funBinders lambdaBinders funName =
-  G.Parens (fixRecursiveCallArguments term funBinders lambdaBinders funName)
-fixRecursiveCallArguments term _ _ _ = term
-
-compAndChangeArguments :: [G.Arg] -> [G.Binder] -> [G.Binder] -> [G.Arg]
-compAndChangeArguments [] _ _ = []
-compAndChangeArguments (x : xs) funBinders lambdaBinders =
-  if containsWrongArgument x lambdaBinders
-    then rightArg : compAndChangeArguments xs funBinders lambdaBinders
-    else x : compAndChangeArguments xs funBinders lambdaBinders
-    where
-      rightArg = switchArgument (length xs) funBinders
-
-
-containsWrongArgument :: G.Arg -> [G.Binder] -> Bool
-containsWrongArgument (G.PosArg (G.Qualid qId)) =
-  any (qIdEqBinder qId)
-
-switchArgument :: Int -> [G.Binder] -> G.Arg
-switchArgument n funBinders =
-  binderToArg bind
-  where
-    bind = funBinders !! (length funBinders - n - 1)
-
-fuelPattern :: G.Term -> G.Term -> G.Qualid -> G.Term
-fuelPattern errorTerm recursiveCall funName =
-  G.Match (singleton (G.MatchItem name Nothing Nothing)) Nothing equations
-  where
-    name = strToTerm "fuel"
-    equations = [zeroCase, nonZeroCase]
-    zeroCase = G.Equation (singleton (G.MultPattern (singleton (G.QualidPat (strToQId "O"))))) errorTerm
-    nonZeroCase = G.Equation (singleton (G.MultPattern (singleton (G.ArgsPat (strToQId "S") [G.QualidPat decrFuel])))) recursiveCallWithFuel
-    decrFuel = strToQId "rFuel"
-    recursiveCallWithFuel = addFuelArgumentToRecursiveCall recursiveCall funName
-
-addFuelArgumentToRecursiveCall :: G.Term -> G.Qualid -> G.Term
-addFuelArgumentToRecursiveCall (G.App term args) funName =
-  if containsRecursiveCall term funName
-    then G.App term (addDecrFuelArgument args)
-    else G.App term (toNonemptyList checkedArgList)
-  where
-    termList = convertArgumentsToTerms (nonEmptyListToList args)
-    checkedArgList = convertTermsToArguments [addFuelArgumentToRecursiveCall t funName | t <- termList]
-addFuelArgumentToRecursiveCall (G.Parens term) funName =
-  G.Parens (addFuelArgumentToRecursiveCall term funName)
-addFuelArgumentToRecursiveCall term _ =
-  term
+    filteredList  = filter (f x) list
 
 --return Binder that fits a certain Type Signature
 findFittingBinder :: [G.Binder] -> G.Term -> G.Binder
 findFittingBinder binders ty =
   head (filter (\x -> ty == getBinderType x) binders)
-
-addDecrFuelArgument :: B.NonEmpty G.Arg -> B.NonEmpty G.Arg
-addDecrFuelArgument list =
-  toNonemptyList (nonEmptyListToList list ++ [G.PosArg decrFuelTerm] )
 
 convertArgumentsToTerms :: [G.Arg] -> [G.Term]
 convertArgumentsToTerms args =
@@ -308,12 +219,6 @@ convertArgumentsToTerms args =
 convertTermsToArguments :: [G.Term] -> [G.Arg]
 convertTermsToArguments terms =
   [G.PosArg t | t <- terms]
-
-binderToArg :: G.Binder -> G.Arg
-binderToArg (G.Typed _ _ (n B.:| _) _ ) =
-  G.PosArg (gNameToTerm n)
-binderToArg (G.Inferred _ n) =
-  G.PosArg (gNameToTerm n)
 
 collapseApp :: G.Term -> G.Term
 collapseApp (G.App term args) =
@@ -340,10 +245,30 @@ combineArgs args (G.App term args' ) =
 combineArgs args _ =
   convertTermsToArguments (map collapseApp (convertArgumentsToTerms args))
 
-isAppTerm :: G.Term -> Bool
-isAppTerm (G.App _ _ ) = True
-isAppTerm _ = False
-  --string conversions
+--apply a function only to the actual head of a DeclHead
+applyToDeclHead :: DeclHead l -> (Name l -> a) -> a
+applyToDeclHead (DHead _ name) f =
+  f name
+applyToDeclHead (DHApp _ declHead _ ) f =
+  applyToDeclHead declHead f
+
+--apply a function to every tyVarBind of a DeclHead and reverse it (to get arguments in right order)
+applyToDeclHeadTyVarBinds :: DeclHead l -> (TyVarBind l -> a ) -> [a]
+applyToDeclHeadTyVarBinds (DHead _ _) f =
+  []
+applyToDeclHeadTyVarBinds (DHApp _ declHead tyVarBind) f =
+  reverse (f tyVarBind : reverse (applyToDeclHeadTyVarBinds declHead f))
+
+
+toGallinaSyntax :: String -> String
+toGallinaSyntax "False" =
+  "false"
+toGallinaSyntax "True" =
+  "true"
+toGallinaSyntax s =
+  s
+
+---------------------- string conversions
 strToQId :: String -> G.Qualid
 strToQId str =
   G.Bare (T.pack str)
@@ -360,105 +285,7 @@ strToBinder :: String -> G.Binder
 strToBinder s =
   G.Inferred G.Explicit (strToGName s)
 
------
-getBinderName :: G.Binder -> G.Term
-getBinderName (G.Inferred _ name) =
-  gNameToTerm name
-getBinderName (G.Typed _ _ (name B.:| xs) _) =
-  gNameToTerm name
-
-getBinderType :: G.Binder -> G.Term
-getBinderType (G.Typed _ _ _ term) =
-  term
----
-addMonadicPrefix :: String -> G.Name -> G.Name
-addMonadicPrefix str (G.Ident (G.Bare ident)) =
-  G.Ident (strToQId (str ++ name))
-  where
-    name = T.unpack ident
-
-removeMonadicPrefix :: G.Name -> G.Name
-removeMonadicPrefix name =
-  strToGName (tail (getStringFromGName name))
-
-addOptionPrefix :: G.Name -> G.Name
-addOptionPrefix =
-  addMonadicPrefix "o"
-
-addIdentityPrefix :: G.Name -> G.Name
-addIdentityPrefix =
-  addMonadicPrefix "i"
-
-addMonadicPrefixToBinder ::  ConversionMonad -> G.Binder -> G.Binder
-addMonadicPrefixToBinder m (G.Inferred expl name) =
-  G.Inferred expl (getPrefixFromMonad m name)
-addMonadicPrefixToBinder m (G.Typed gen expl (name B.:| xs) ty) =
-  G.Typed gen expl (singleton (getPrefixFromMonad m name)) ty
-
-getPrefixFromMonad :: ConversionMonad -> (G.Name -> G.Name)
-getPrefixFromMonad Option = addOptionPrefix
-getPrefixFromMonad Identity = addIdentityPrefix
-
-addFuelBinder :: [G.Binder] -> [G.Binder]
-addFuelBinder binders = binders ++ [fuelBinder]
-
-toOptionTerm :: G.Term -> G.Term
-toOptionTerm term =
-  G.App optionTerm (singleton (G.PosArg term))
-
-toIdentityTerm :: G.Term -> G.Term
-toIdentityTerm term =
-  G.App identityTerm (singleton (G.PosArg term))
-
-fromMonadicTerm :: G.Term -> G.Term
-fromMonadicTerm (G.App _ (G.PosArg term B.:| xs)) =
-  term
-fromMonadicTerm term =
-  term
--- Predefined Terms
-identityTerm :: G.Term
-identityTerm =
-  G.Qualid (strToQId "identity")
-
-optionTerm :: G.Term
-optionTerm =
-  G.Qualid (strToQId "option")
-
-returnTerm :: G.Term
-returnTerm =
-  G.Qualid (strToQId "return_")
-
-bindOperator :: G.Term
-bindOperator =
-  G.Qualid (strToQId "op_>>=__")
-
-decrFuelTerm :: G.Term
-decrFuelTerm =
-  G.Qualid (strToQId "rFuel")
-
-fuelBinder :: G.Binder
-fuelBinder =
-  G.Typed G.Ungeneralizable G.Explicit fuelName natTerm
-  where
-    natTerm = G.Qualid (strToQId "nat")
-    fuelName = singleton (strToGName "fuel")
-
-typeTerm :: G.Term
-typeTerm =
-  G.Sort G.Type
-
-toReturnTerm :: G.Term -> G.Term
-toReturnTerm term =
-  G.App returnTerm (singleton (G.PosArg (G.Parens term)))
-
-coqTypes :: [G.Name]
-coqTypes =
-  [strToGName "nat",
-  strToGName "bool",
-  strToGName "option"]
-
-
--- Name conversions (haskell ast)
+---------------------- Name conversions (haskell AST)
 nameToStr :: Name l -> String
 nameToStr (Ident _ str) =
   str
@@ -485,14 +312,7 @@ nameToTypeTerm :: Name l -> G.Term
 nameToTypeTerm name =
   getType (getString name)
 
-gNameToTerm :: G.Name -> G.Term
-gNameToTerm (G.Ident qId) =
-  G.Qualid qId
-
-gNameToQId :: G.Name -> G.Qualid
-gNameToQId (G.Ident qId) = qId
-
---QName conversion (Haskell ast)
+---------------------- QName conversion functions (Haskell AST)
 qNameToStr :: QName l -> String
 qNameToStr qName =
   T.unpack (qNameToText qName)
@@ -521,51 +341,36 @@ qNameToTypeTerm :: QName l -> G.Term
 qNameToTypeTerm qName =
   getType (getQString qName)
 
+qNameToBinder :: Show l => QName l -> G.Binder
+qNameToBinder qName =
+  G.Inferred G.Explicit (qNameToGName qName)
+
+---------------------- gName conversion functions (Coq AST)
+gNameToTerm :: G.Name -> G.Term
+gNameToTerm (G.Ident qId) =
+  G.Qualid qId
+
+gNameToQId :: G.Name -> G.Qualid
+gNameToQId (G.Ident qId) = qId
+
+---------------------- argument conversion functions (Coq AST)
 argToTerm :: G.Arg -> G.Term
 argToTerm (G.PosArg term) =
   term
 
--- Qualid conversion functions
+---------------------- binder conversion functions (Coq AST)
+binderToArg :: G.Binder -> G.Arg
+binderToArg (G.Typed _ _ (n B.:| _) _ ) =
+  G.PosArg (gNameToTerm n)
+binderToArg (G.Inferred _ n) =
+  G.PosArg (gNameToTerm n)
+
+---------------------- Qualid conversion functions (Coq AST)
 qIdToStr :: G.Qualid -> String
 qIdToStr (G.Bare ident) =
   T.unpack ident
 
-getNameFromQualConDecl :: QualConDecl l -> G.Qualid
-getNameFromQualConDecl (QualConDecl _ _ _ (ConDecl _ name _)) =
-  nameToQId name
-
---apply a function only to the actual head of a DeclHead
-applyToDeclHead :: DeclHead l -> (Name l -> a) -> a
-applyToDeclHead (DHead _ name) f =
-  f name
-applyToDeclHead (DHApp _ declHead _ ) f =
-  applyToDeclHead declHead f
-
---apply a function to every tyVarBind of a DeclHead and reverse it (to get arguments in right order)
-applyToDeclHeadTyVarBinds :: DeclHead l -> (TyVarBind l -> a ) -> [a]
-applyToDeclHeadTyVarBinds (DHead _ _) f =
-  []
-applyToDeclHeadTyVarBinds (DHApp _ declHead tyVarBind) f =
-  reverse (f tyVarBind : reverse (applyToDeclHeadTyVarBinds declHead f))
-
-hasNonInferrableConstr :: [QualConDecl l] -> Bool
-hasNonInferrableConstr =
-  any isNonInferrableConstr
-
-isNonInferrableConstr :: QualConDecl l -> Bool
-isNonInferrableConstr (QualConDecl _ _ _ (ConDecl _ _ [])) =
-  True
-isNonInferrableConstr (QualConDecl _ _ _ (ConDecl _ _ ty)) =
-  False
-
-getNonInferrableConstrNames :: [QualConDecl l] -> [G.Qualid]
-getNonInferrableConstrNames qConDecls =
-  [ getNameFromQualConDecl d | d <- nonInferrableQConDecls]
-  where
-    nonInferrableQConDecls = filter isNonInferrableConstr qConDecls
-
--- Conversion of terms to strings
-----------------------------------
+---------------------- Conversion of Coq AST to strings
 
 termToStrings :: G.Term -> [String]
 termToStrings (G.Qualid qId) =
@@ -581,20 +386,6 @@ termToStrings (G.Match mItem _ equations) =
 
 listToStrings :: (a -> [String]) -> [a] -> [String]
 listToStrings  = concatMap
-
-
-getTypeNamesFromTerm :: G.Term -> [G.Name]
-getTypeNamesFromTerm (G.App term args) =
-  map strToGName (termToStrings term) ++
-    map strToGName (concatMap (termToStrings . argToTerm) (nonEmptyListToList args))
-getTypeNamesFromTerm _ =
-  []
-
-getConstrNameFromType :: G.Term -> G.Name
-getConstrNameFromType (G.App term _) =
-  head (map strToGName (termToStrings term))
-getConstrNameFromType _ =
-  strToGName ""
 
 argToStrings :: G.Arg -> [String]
 argToStrings (G.PosArg term) =
@@ -626,6 +417,18 @@ patToStrings G.UnderscorePat =
 patsToStrings :: [G.Pattern] -> [String]
 patsToStrings = concatMap patToStrings
 
+
+---------------------- Predefined Term
+typeTerm :: G.Term
+typeTerm =
+  G.Sort G.Type
+
+---------------------- Predefined Coq Types
+coqTypes :: [G.Name]
+coqTypes =
+  [strToGName "nat",
+  strToGName "bool",
+  strToGName "option"]
 
 --Convert qualifiedOperator from Haskell to Qualid with Operator signature
 qOpToQId :: QOp l -> G.Qualid

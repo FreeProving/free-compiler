@@ -2,10 +2,14 @@ module Compiler.Converter where
 
 import Language.Haskell.Exts.Syntax
 import qualified Language.Coq.Gallina as G
-import Compiler.HelperFunctions
 import Language.Coq.Pretty
 import Language.Haskell.Monad
 import Text.PrettyPrint.Leijen.Text
+
+import Compiler.HelperFunctions
+import Compiler.FueledFunctions
+import Compiler.MonadicConverter
+import Compiler.Types
 
 import qualified GHC.Base as B
 
@@ -228,17 +232,6 @@ convertRhsToTerm (UnGuardedRhs _ expr) =
 convertRhsToTerm (GuardedRhss _ _ ) =
   error "Guards not implemented"
 
-
-addBindOperators :: [G.Binder] -> G.Term -> G.Term
-addBindOperators [] term =
-  toReturnTerm term
-addBindOperators (x : xs) term =
-  G.App bindOperator
-    (toNonemptyList [G.PosArg argumentName, G.PosArg lambdaFun])
-  where
-    argumentName = getBinderName x
-    lambdaFun = G.Fun (singleton $ removeMonadFromBinder x) (addBindOperators xs term )
-
 convertExprToTerm :: Show l => Exp l -> G.Term
 convertExprToTerm (Var _ qName) =
   qNameToTerm qName
@@ -282,10 +275,6 @@ convertHPatToGPat (PWildCard _) =
   G.UnderscorePat
 convertHPatToGPat pat =
   error ("Haskell pattern not implemented: " ++ show pat)
-
-convertQNameToBinder :: Show l => QName l -> G.Binder
-convertQNameToBinder qName =
-  G.Inferred G.Explicit (qNameToGName qName)
 
 needsArgumentsSentence :: Show l => DeclHead l -> [QualConDecl l] -> Bool
 needsArgumentsSentence declHead qConDecls =

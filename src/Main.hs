@@ -6,8 +6,10 @@ import Language.Haskell.Exts.Parser
 import Language.Haskell.Exts.Extension
 import Language.Haskell.Exts.Syntax
 import Language.Haskell.Exts.SrcLoc
+
 import Compiler.Converter
 import Compiler.HelperFunctions
+import Compiler.Types
 
 main :: IO ()
 main = do
