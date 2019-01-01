@@ -2,25 +2,20 @@ Module Monad.
 Set Implicit Arguments.
 Set Maximal Implicit Insertion.
 
-Class Monad (m : Type -> Type) := {
-  return_ : forall a, a -> m a;
-  bind : forall a , m a -> (forall b, (a -> m b) -> m b)
-}.
 
 
+Definition return_ :=
+ Some.
 
-Notation "m >>= f" := (bind m _ f ) (left associativity, at level 50).
+Definition bind (a b : Type) (m : option a) (f : a -> option b) := 
+  match m with 
+  | Some a => f a
+  | None => None 
+  end.
 
+Notation "m >>= f" := (bind m f) (left associativity, at level 50).
 
-Instance Maybe : Monad option :={
-    return_ := fun x => Some;
-    bind := fun a m b f =>
-              match m with
-              |Some a => f a
-              |None  => None
-              end
-}.
-
+Check return_.
 Definition plus (a b : option nat) : option nat :=
  a >>= fun x =>
    b >>= fun y => return_ (x + y).
@@ -51,6 +46,11 @@ Inductive List (a : Type) :Type :=
 
 Arguments Nil {a}.
 
+Definition singleton (a : Type) (x : option a)  : option (List a) := 
+    return_ (Cons x (return_ Nil)).
+
+ 
+
 Definition null (a : Type) (olist : option (List a)) : option bool :=
      olist >>= fun list =>
                         match list with
@@ -58,27 +58,45 @@ Definition null (a : Type) (olist : option (List a)) : option bool :=
                         | Cons _ _ => return_ false
                         end.
 
-Check bind.
 
-
-Fixpoint append' (a : Type) (xs : List a) (oys : option (List a)) : option (List a) :=
+Fixpoint append'' (a : Type) (xs : List a) (oys : option (List a)) : option (List a) :=
   match xs with
   | Nil => oys
-  | Cons z ozs => return_ (Cons z (bind ozs _ (fun zs => append' zs oys)))
+  | Cons z ozs => return_ (Cons z (ozs >>= (fun zs => append'' zs oys)))
   end.
 
-Fixpoint append (a : Type) (oxs oys : option (List a)) : option (List a) :=
-  oxs >>= fun xs => append' xs oys.
+Fixpoint append' (a : Type) (oxs oys : option (List a)) : option (List a) :=
+  oxs >>= fun xs => append'' xs oys.
 
 
 
-Fixpoint append'' (a : Type) (fuel : nat) (oxs oys : option (List a)) : option (List a):=
+
+(* Händisch transformierte Funktionen (mit fuel Argument) *)
+Fixpoint append (a : Type) (fuel : nat) (oxs oys : option (List a)) : option (List a):=
     oxs >>= fun xs =>
-      oys >>= fun ys => return_ match xs with
-                     |Nil => ys
-                     |Cons z zs => match fuel with
-                                   | O => ys
-                                   | S (rFuel) => Cons z (append' rFuel zs oys)
+      oys >>= fun ys => match fuel with
+                        |O => None
+                        |S (rFuel) => match xs with
+                                      | Nil => return_ ys
+                                      | Cons z zs => return_ (Cons z (append rFuel zs oys))
                                    end
                      end.
+
+Fixpoint reverse (a : Type) (fuel : nat) (oxs : option (List a)) : (option (List a)) :=
+  oxs >>= fun xs => match fuel with
+                    | O => None 
+                    | S (rFuel) => match xs with
+                                           | Nil => return_ Nil 
+                                           | Cons y ys => append rFuel (reverse rFuel ys) (singleton y) 
+                                           end
+                    end.
+
+Fixpoint concat (a : Type) (fuel : nat) ( oxs : option (List (List a))) : option (List a) := 
+    oxs >>= fun xs => match fuel with
+                      | O => None 
+                      | S (rFuel) => match xs with 
+                                     | Nil => return_ Nil 
+                                     | Cons z zs => append rFuel z (concat rFuel zs)
+                                     end
+                      end.
 End Monad.
