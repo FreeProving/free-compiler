@@ -7,60 +7,54 @@ import qualified Data.Text as T
 
 monadDefinitions :: [G.Sentence]
 monadDefinitions =
-  [monadTypeClass, bindNotationSentence, optionMonadImplementationSentance]
+  [ optionReturnSentence, optionBindSentence, bindNotationSentence ]
 
-monadTypeClass :: G.Sentence
-monadTypeClass =
-  G.ClassSentence monadClassDefinition
+optionReturnSentence :: G.Sentence
+optionReturnSentence =
+  G.DefinitionSentence optionReturnDefinition
+
+optionBindSentence :: G.Sentence
+optionBindSentence =
+  G.DefinitionSentence optionBindDefinition
 
 bindNotationSentence :: G.Sentence
 bindNotationSentence =
   G.NotationSentence bindNotation
 
-optionMonadImplementationSentance :: G.Sentence
-optionMonadImplementationSentance =
-  G.InstanceSentence optionMonadImplementation
-
-optionMonadImplementation :: G.InstanceDefinition
-optionMonadImplementation =
-  G.InstanceDefinition maybeQId [] ty funs Nothing
+optionReturnDefinition :: G.Definition
+optionReturnDefinition = G.DefinitionDef G.Global (strToQId "return_o") [] (Just retTerm) rhs
   where
-    ty = G.App (G.Qualid (strToQId "Monad")) (singleton (G.PosArg (G.Qualid (strToQId "option"))))
-    maybeQId = strToQId "Maybe"
-    funs = [(strToQId "return_", G.Qualid (strToQId "Some")),  (strToQId "bind", lambda)]
-    lambda = G.Fun (toNonemptyList binders) (G.Match (singleton (G.MatchItem (G.Qualid (strToQId "m")) Nothing Nothing)) Nothing equations)
-    binders = [strToBinder "a", strToBinder "m", strToBinder "b", strToBinder "f"]
-    equations =
-      [G.Equation (singleton (G.MultPattern (singleton (G.ArgsPat (strToQId "None") [])))) (G.Qualid (strToQId "None")),
-      G.Equation (singleton (G.MultPattern (singleton (G.ArgsPat (strToQId "Some") [G.QualidPat (strToQId "a")]))))
-        (G.App (G.Qualid (strToQId "f")) (singleton (G.PosArg (G.Qualid (strToQId "a"))))) ]
+    retTerm = G.Forall binders (G.Arrow aTerm (G.App (G.Qualid $ strToQId "option") (singleton $ G.PosArg aTerm)))
+    binders = singleton $ G.Typed G.Ungeneralizable G.Explicit (singleton $ strToGName "A") typeTerm
+    aTerm = G.Qualid (strToQId "A")
+    rhs = G.Qualid (strToQId "Some")
+
+optionBindDefinition :: G.Definition
+optionBindDefinition = G.DefinitionDef G.Global (strToQId "bind_o") binders (Just retTerm) rhs
+  where
+    binders = [G.Typed G.Ungeneralizable G.Explicit (toNonemptyList [strToGName "A", strToGName "B"] ) typeTerm,
+               G.Typed G.Ungeneralizable G.Explicit (singleton (strToGName "m")) optionATerm,
+               G.Typed G.Ungeneralizable G.Explicit (singleton (strToGName "f")) (G.Arrow aTerm retTerm)]
+    retTerm = G.App (G.Qualid $ strToQId "option") (singleton $ G.PosArg bTerm)
+    rhs = G.Match (singleton $ G.MatchItem mTerm Nothing Nothing) Nothing equations
+    equations = [G.Equation (singleton (G.MultPattern (singleton (G.QualidPat (strToQId "None"))))) (G.Qualid $ strToQId "None"),
+                 G.Equation (singleton (G.MultPattern (singleton (G.ArgsPat (strToQId "Some") [G.QualidPat $ strToQId "A"])))) (G.App fTerm (singleton $ G.PosArg aTerm))]
+    aTerm = G.Qualid $ strToQId "A"
+    bTerm = G.Qualid $ strToQId "B"
+    mTerm = G.Qualid $ strToQId "m"
+    fTerm = G.Qualid $ strToQId "f"
+    optionATerm = G.App (G.Qualid $ strToQId "option") (singleton $ G.PosArg aTerm)
+
 
 bindNotation :: G.Notation
 bindNotation =
     G.InfixDefinition operator binding (Just G.LeftAssociativity) (G.Level 50) False
     where
       operator = T.pack "m >>= f"
-      binding = G.App (G.Qualid (strToQId "bind")) (toNonemptyList params)
-      params = [G.PosArg (G.Qualid (strToQId "m")), G.PosArg G.Underscore, G.PosArg (G.Qualid (strToQId "f"))]
+      binding = G.App (G.Qualid (strToQId "bind_o")) (toNonemptyList params)
+      params = [G.PosArg (G.Qualid (strToQId "m")), G.PosArg (G.Qualid (strToQId "f"))]
 
-monadClassDefinition :: G.ClassDefinition
-monadClassDefinition =
-  G.ClassDefinition name binder Nothing funs
-  where
-    name = strToQId "Monad"
-    binder = [G.Typed G.Ungeneralizable G.Explicit (singleton (strToGName "m")) ty]
-    ty = G.Arrow typeSort typeSort
-    funs = [returnSig, bindSig]
 
-returnSig :: (G.Qualid, G.Term)
-returnSig =
-  (strToQId "return_" , G.Forall binders decl)
-  where
-    binders = singleton (strToBinder "a")
-    decl = G.Arrow aTerm app
-    app = G.App  mTerm (singleton (G.PosArg aTerm))
-    aTerm = G.Qualid (strToQId "a")
-    mTerm = G.Qualid (strToQId "m")
 
 bindSig :: (G.Qualid, G.Term)
 bindSig =
@@ -75,9 +69,3 @@ bindSig =
     aTerm = G.Qualid (strToQId "a")
     bTerm = G.Qualid (strToQId "b")
     mTerm = G.Qualid (strToQId "m")
-
-
-
-typeSort :: G.Term
-typeSort =
-  G.Sort G.Type
