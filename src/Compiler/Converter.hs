@@ -91,19 +91,20 @@ convertMatchDef (Match _ name (p : ps) rhs _) typeSigs dataNames cMonad cMode =
       then if cMode == FueledFunction
             then G.FixpointSentence (convertMatchToFueledFixpoint name (p : ps) rhs typeSig dataNames cMonad)
             else error "HelperFunction Conversion not implemented"
-      else G.DefinitionSentence (convertMatchToDefinition name (p : ps) rhs typeSig cMonad)
+      else G.DefinitionSentence (convertMatchToDefinition name (p : ps) rhs typeSig dataNames cMonad)
     where
       typeSig = getTypeSignatureByName typeSigs name
 
-convertMatchToDefinition :: Show l => Name l -> [Pat l] -> Rhs l -> Maybe G.TypeSignature -> ConversionMonad -> G.Definition
-convertMatchToDefinition name (p : ps) rhs typeSig cMonad =
+convertMatchToDefinition :: Show l => Name l -> [Pat l] -> Rhs l -> Maybe G.TypeSignature -> [G.Name] -> ConversionMonad -> G.Definition
+convertMatchToDefinition name (p : ps) rhs typeSig dataNames cMonad =
   G.DefinitionDef G.Global (nameToQId name)
-    monadicBinders
+    bindersWithInferredTypes
       (convertReturnType typeSig cMonad)
         rhsTerm
   where
     binders = convertPatsToBinders (p : ps) typeSig
     monadicBinders = transformBindersMonadic (map (addMonadicPrefixToBinder cMonad) binders) cMonad
+    bindersWithInferredTypes = addInferredTypesToSignature monadicBinders dataNames
     rhsTerm = addBindOperators monadicBinders (convertRhsToTerm rhs)
 
 convertMatchToFueledFixpoint :: Show l => Name l -> [Pat l] -> Rhs l -> Maybe G.TypeSignature -> [G.Name] -> ConversionMonad -> G.Fixpoint
