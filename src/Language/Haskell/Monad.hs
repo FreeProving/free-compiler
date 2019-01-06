@@ -22,15 +22,15 @@ bindNotationSentence =
   G.NotationSentence bindNotation
 
 optionReturnDefinition :: G.Definition
-optionReturnDefinition = G.DefinitionDef G.Global (strToQId "return_o") [] (Just retTerm) rhs
+optionReturnDefinition = G.DefinitionDef G.Global (strToQId "return_") binders (Just retTerm) rhs
   where
-    retTerm = G.Forall binders (G.Arrow aTerm (G.App (G.Qualid $ strToQId "option") (singleton $ G.PosArg aTerm)))
-    binders = singleton $ G.Typed G.Ungeneralizable G.Explicit (singleton $ strToGName "A") typeTerm
+    retTerm = G.Arrow aTerm (G.App (G.Qualid $ strToQId "option") (singleton $ G.PosArg aTerm))
+    binders = [G.Typed G.Ungeneralizable G.Explicit (singleton $ strToGName "A") typeTerm]
     aTerm = G.Qualid (strToQId "A")
     rhs = G.Qualid (strToQId "Some")
 
 optionBindDefinition :: G.Definition
-optionBindDefinition = G.DefinitionDef G.Global (strToQId "bind_o") binders (Just retTerm) rhs
+optionBindDefinition = G.DefinitionDef G.Global (strToQId "bind_") binders (Just retTerm) rhs
   where
     binders = [G.Typed G.Ungeneralizable G.Explicit (toNonemptyList [strToGName "A", strToGName "B"] ) typeTerm,
                G.Typed G.Ungeneralizable G.Explicit (singleton (strToGName "m")) optionATerm,
@@ -51,7 +51,7 @@ bindNotation =
     G.InfixDefinition operator binding (Just G.LeftAssociativity) (G.Level 50) False
     where
       operator = T.pack "m >>= f"
-      binding = G.App (G.Qualid (strToQId "bind_o")) (toNonemptyList params)
+      binding = G.App (G.Qualid (strToQId "bind_")) (toNonemptyList params)
       params = [G.PosArg (G.Qualid (strToQId "m")), G.PosArg (G.Qualid (strToQId "f"))]
 
 

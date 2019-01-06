@@ -49,7 +49,7 @@ Arguments Nil {a}.
 Definition singleton (a : Type) (x : option a)  : option (List a) := 
     return_ (Cons x (return_ Nil)).
 
- 
+
 
 Definition null (a : Type) (olist : option (List a)) : option bool :=
      olist >>= fun list =>

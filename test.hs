@@ -2,10 +2,9 @@ module Test where
 {-
 Testfälle für bisherige Funktion des Compilers
 -}
-
-data Bool =
-  True
-  | False
+data Boolean =
+  B_True
+  |B_False
 
 data Maybe a =
   Nothing

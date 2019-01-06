@@ -20,9 +20,10 @@ import Data.List (partition)
 convertModule :: Show l => Module l -> ConversionMonad -> ConversionMode -> G.LocalModule
 convertModule (Module _ (Just modHead) _ _ decls) cMonad cMode =
   G.LocalModule (convertModuleHead modHead)
-    (monadDefinitions ++
-      dataSentences ++
-        convertModuleDecls rDecls (map filterForTypeSignatures typeSigs) dataNames cMonad cMode)
+    (importDefinitions ++
+      monadDefinitions ++
+        dataSentences ++
+          convertModuleDecls rDecls (map filterForTypeSignatures typeSigs) dataNames cMonad cMode)
   where
     (typeSigs, otherDecls) = partition isTypeSig decls
     (dataDecls, rDecls) = partition isDataDecl otherDecls
@@ -39,6 +40,12 @@ convertModule (Module _ Nothing _ _ decls) cMonad cMode =
 convertModuleHead :: Show l => ModuleHead l -> G.Ident
 convertModuleHead (ModuleHead _ (ModuleName _ modName) _ _) =
   T.pack modName
+
+importDefinitions :: [G.Sentence]
+importDefinitions =
+  [stringImport]
+  where
+    stringImport = G.ModuleSentence $ G.Require Nothing (Just G.Import) (singleton $ T.pack "String")
 
 convertModuleDecls :: Show l => [Decl l] -> [G.TypeSignature] -> [G.Name] -> ConversionMonad -> ConversionMode -> [G.Sentence]
 convertModuleDecls (FunBind _ (x : xs) : ds) typeSigs dataNames cMonad cMode =

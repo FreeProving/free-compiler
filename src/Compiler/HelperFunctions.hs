@@ -50,6 +50,8 @@ getType "Int" =
   strToTerm "nat"
 getType "Bool" =
   strToTerm "bool"
+getType "String" =
+  strToTerm "string"
 getType str =
   strToTerm str
 
