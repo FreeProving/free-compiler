@@ -4,18 +4,18 @@ Set Maximal Implicit Insertion.
 
 
 
-Definition return_ :=
+Definition return_ (A : Type) : A -> option A :=
  Some.
 
-Definition bind (a b : Type) (m : option a) (f : a -> option b) := 
+Definition bind (A B : Type) (m : option A) (f : A -> option B) : option B := 
   match m with 
-  | Some a => f a
+  | Some A => f A
   | None => None 
   end.
 
 Notation "m >>= f" := (bind m f) (left associativity, at level 50).
 
-Check return_.
+Check bind.
 Definition plus (a b : option nat) : option nat :=
  a >>= fun x =>
    b >>= fun y => return_ (x + y).
