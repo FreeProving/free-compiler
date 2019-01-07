@@ -159,6 +159,7 @@ containsRecursiveCall (G.Qualid qId) funName =
   eqQId qId funName
 containsRecursiveCall _ _ = False
 
+
 isAppTerm :: G.Term -> Bool
 isAppTerm (G.App _ _ ) = True
 isAppTerm _ = False
@@ -213,6 +214,17 @@ filterEachElement (x : xs) f list =
 findFittingBinder :: [G.Binder] -> G.Term -> G.Binder
 findFittingBinder binders ty =
   head (filter (\x -> ty == getBinderType x) binders)
+
+addInferredTypesToSignature :: [G.Binder] -> [G.Name] -> [G.Binder]
+addInferredTypesToSignature binders dataNames =
+  if null filteredTypeNames
+    then binders
+    else G.Typed G.Ungeneralizable G.Explicit (toNonemptyList filteredTypeNames) typeTerm : binders
+  where
+    filteredTypeNames = unique $ filterEachElement dataNames dataTypeUneqGName (filter isCoqType typeNames)
+    typeNames = concatMap getTypeNamesFromTerm typeTerms
+    typeTerms = map getBinderType binders
+    consNames = unique (map getConstrNameFromType typeTerms)
 
 convertArgumentsToTerms :: [G.Arg] -> [G.Term]
 convertArgumentsToTerms args =
@@ -371,6 +383,12 @@ binderToArg (G.Inferred _ n) =
 qIdToStr :: G.Qualid -> String
 qIdToStr (G.Bare ident) =
   T.unpack ident
+
+qIdToGName :: G.Qualid -> G.Name
+qIdToGName qId = G.Ident qId
+
+termToQId :: G.Term -> G.Qualid
+termToQId (G.Qualid qId) = qId
 
 ---------------------- Conversion of Coq AST to strings
 

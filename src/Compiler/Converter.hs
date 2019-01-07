@@ -8,6 +8,7 @@ import Text.PrettyPrint.Leijen.Text
 
 import Compiler.HelperFunctions
 import Compiler.FueledFunctions
+import Compiler.HelperFunctionConverter
 import Compiler.MonadicConverter
 import Compiler.Types
 
@@ -49,7 +50,7 @@ importDefinitions =
 
 convertModuleDecls :: Show l => [Decl l] -> [G.TypeSignature] -> [G.Name] -> ConversionMonad -> ConversionMode -> [G.Sentence]
 convertModuleDecls (FunBind _ (x : xs) : ds) typeSigs dataNames cMonad cMode =
-  convertMatchDef x typeSigs dataNames cMonad cMode : convertModuleDecls ds typeSigs dataNames cMonad cMode
+  convertMatchDef x typeSigs dataNames cMonad cMode ++ convertModuleDecls ds typeSigs dataNames cMonad cMode
 convertModuleDecls (DataDecl _ (DataType _ ) Nothing declHead qConDecl _  : ds) typeSigs dataNames cMonad cMode =
     if needsArgumentsSentence declHead qConDecl
       then [G.InductiveSentence  (convertDataTypeDecl declHead qConDecl cMonad)] ++
@@ -85,13 +86,13 @@ convertDataTypeDecl dHead qConDecl cMonad =
                         (getReturnTypeFromDeclHead (applyToDeclHeadTyVarBinds dHead convertTyVarBindToArg) dHead)
                           cMonad
 
-convertMatchDef :: Show l => Match l -> [G.TypeSignature] -> [G.Name] -> ConversionMonad -> ConversionMode -> G.Sentence
+convertMatchDef :: Show l => Match l -> [G.TypeSignature] -> [G.Name] -> ConversionMonad -> ConversionMode -> [G.Sentence]
 convertMatchDef (Match _ name (p : ps) rhs _) typeSigs dataNames cMonad cMode =
     if isRecursive name rhs
       then if cMode == FueledFunction
-            then G.FixpointSentence (convertMatchToFueledFixpoint name (p : ps) rhs typeSig dataNames cMonad)
-            else error "HelperFunction Conversion not implemented"
-      else G.DefinitionSentence (convertMatchToDefinition name (p : ps) rhs typeSig dataNames cMonad)
+            then [G.FixpointSentence (convertMatchToFueledFixpoint name (p : ps) rhs typeSig dataNames cMonad)]
+            else convertMatchWithHelperFunction name (p :ps) rhs typeSig dataNames cMonad
+      else [G.DefinitionSentence (convertMatchToDefinition name (p : ps) rhs typeSig dataNames cMonad)]
     where
       typeSig = getTypeSignatureByName typeSigs name
 
@@ -103,7 +104,7 @@ convertMatchToDefinition name (p : ps) rhs typeSig dataNames cMonad =
         rhsTerm
   where
     binders = convertPatsToBinders (p : ps) typeSig
-    monadicBinders = transformBindersMonadic (map (addMonadicPrefixToBinder cMonad) binders) cMonad
+    monadicBinders = transformBindersMonadic binders cMonad
     bindersWithInferredTypes = addInferredTypesToSignature monadicBinders dataNames
     rhsTerm = addBindOperators monadicBinders (convertRhsToTerm rhs)
 
@@ -117,11 +118,20 @@ convertMatchToFueledFixpoint name (p : ps) rhs (Just typeSig) dataNames cMonad =
   where
     funName = nameToQId name
     binders = convertPatsToBinders (p : ps) (Just typeSig)
-    monadicBinders = transformBindersMonadic (map (addMonadicPrefixToBinder cMonad) binders) cMonad
+    monadicBinders = transformBindersMonadic binders cMonad
     bindersWithFuel = addFuelBinder monadicBinders
     bindersWithInferredTypes = addInferredTypesToSignature bindersWithFuel dataNames
     rhsTerm = addBindOperators monadicBinders (convertRhsToTerm rhs)
     fueledRhs = addFuelMatchingToRhs rhsTerm monadicBinders [] funName (getReturnType typeSig)
+
+convertMatchWithHelperFunction :: Show l => Name l -> [Pat l] -> Rhs l -> Maybe G.TypeSignature -> [G.Name] -> ConversionMonad -> [G.Sentence]
+convertMatchWithHelperFunction name (p : ps) rhs (Just typeSig) dataNames cMonad =
+  [G.FixpointSentence $ convertMatchToMainFunction name binders rhsTerm typeSig dataNames cMonad,
+    G.FixpointSentence $ convertMatchToHelperFunction name binders rhsTerm typeSig dataNames cMonad]
+  where
+    rhsTerm = convertRhsToTerm rhs
+    binders = convertPatsToBinders (p : ps) (Just typeSig)
+
 
 convertTyVarBindToName :: Show l => TyVarBind l -> G.Name
 convertTyVarBindToName (KindedVar _ name _) =
@@ -222,17 +232,6 @@ convertPatAndTypeSigToBinder (PVar _ name) term =
   G.Typed G.Ungeneralizable G.Explicit (singleton $ nameToGName name) term
 convertPatAndTypeSigToBinder pat _ =
   error ("Haskell pattern not implemented: " ++ show pat)
-
-addInferredTypesToSignature :: [G.Binder] -> [G.Name] -> [G.Binder]
-addInferredTypesToSignature binders dataNames =
-  if null filteredTypeNames
-    then binders
-    else G.Typed G.Ungeneralizable G.Explicit (toNonemptyList filteredTypeNames) typeTerm : binders
-  where
-    filteredTypeNames = unique $ filterEachElement dataNames dataTypeUneqGName (filter isCoqType typeNames)
-    typeNames = concatMap getTypeNamesFromTerm typeTerms
-    typeTerms = map getBinderType binders
-    consNames = unique (map getConstrNameFromType typeTerms)
 
 convertRhsToTerm :: Show l => Rhs l -> G.Term
 convertRhsToTerm (UnGuardedRhs _ expr) =

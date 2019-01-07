@@ -22,7 +22,7 @@ addBindOperators (x : xs) term =
 ---------------------- transform Data Structures Monadic
 transformBindersMonadic :: [G.Binder] -> ConversionMonad -> [G.Binder]
 transformBindersMonadic binders m =
-  [transformBinderMonadic b m | b <- binders]
+  [transformBinderMonadic (addMonadicPrefixToBinder m b) m | b <- binders]
 
 transformBinderMonadic :: G.Binder -> ConversionMonad -> G.Binder
 transformBinderMonadic (G.Typed gen expl name term) m =
@@ -64,6 +64,11 @@ addMonadicPrefixToBinder m (G.Inferred expl name) =
   G.Inferred expl (getPrefixFromMonad m name)
 addMonadicPrefixToBinder m (G.Typed gen expl (name B.:| xs) ty) =
   G.Typed gen expl (singleton (getPrefixFromMonad m name)) ty
+
+addMonadicPrefixToQId ::  ConversionMonad -> G.Qualid -> G.Qualid
+addMonadicPrefixToQId m qId =
+  gNameToQId (getPrefixFromMonad m (G.Ident qId))
+
 
 getPrefixFromMonad :: ConversionMonad -> (G.Name -> G.Name)
 getPrefixFromMonad Option = addOptionPrefix
