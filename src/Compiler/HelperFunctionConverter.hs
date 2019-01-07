@@ -10,14 +10,15 @@ import Language.Haskell.Exts.Syntax
 import qualified GHC.Base as B
 import Data.Maybe
 
-convertMatchToMainFunction :: Show l => Name l -> [G.Binder] -> G.Term -> G.TypeSignature -> [G.Name] -> ConversionMonad -> G.Fixpoint
-convertMatchToMainFunction name binders rhs typeSig dataNames cMonad =
+convertMatchToMainFunction :: Show l => Name l -> [G.Binder] -> G.Term -> [G.TypeSignature] -> [G.Name] -> ConversionMonad -> G.Fixpoint
+convertMatchToMainFunction name binders rhs typeSigs dataNames cMonad =
   G.Fixpoint (singleton $ G.FixBody funName
     (toNonemptyList bindersWithInferredTypes)
       Nothing
         (Just $ transformTermMonadic (getReturnType typeSig) cMonad)
           monadicRhs) []
   where
+    typeSig = fromJust $ getTypeSignatureByName typeSigs name
     funName = addSuffixToName name
     monadicBinders = transformBindersMonadic binders cMonad
     bindersWithInferredTypes = makeMatchedArgNonMonadic (addInferredTypesToSignature monadicBinders dataNames) (binderPos + 1)
@@ -28,14 +29,15 @@ convertMatchToMainFunction name binders rhs typeSig dataNames cMonad =
     monadicRhs = addBindOperatorToEquationInMatch monadicArgRhs (nameToQId name) binderPos cMonad
 
 
-convertMatchToHelperFunction :: Show l => Name l -> [G.Binder] -> G.Term -> G.TypeSignature -> [G.Name] -> ConversionMonad -> G.Fixpoint
-convertMatchToHelperFunction name binders rhs typeSig dataNames cMonad =
+convertMatchToHelperFunction :: Show l => Name l -> [G.Binder] -> G.Term -> [G.TypeSignature] -> [G.Name] -> ConversionMonad -> G.Fixpoint
+convertMatchToHelperFunction name binders rhs typeSigs dataNames cMonad =
   G.Fixpoint (singleton $ G.FixBody funName
     (toNonemptyList bindersWithInferredTypes)
       Nothing
       (Just $ transformTermMonadic (getReturnType typeSig) cMonad)
         rhsWithBind) []
   where
+    typeSig = fromJust $ getTypeSignatureByName typeSigs name
     funName = nameToQId name
     monadicBinders = transformBindersMonadic binders cMonad
     bindersWithInferredTypes = addInferredTypesToSignature monadicBinders dataNames
@@ -44,7 +46,15 @@ convertMatchToHelperFunction name binders rhs typeSig dataNames cMonad =
     binderPos = getMatchedBinderPosition binders matchItem
     appliedMainFunction = G.App (G.Qualid (addSuffixToName name)) (toNonemptyList mainFunArgs)
     mainFunArgs = buildArgsForMainFun monadicBinders binderPos
-    rhsWithBind = addBindOperators [addMonadicPrefixToBinder cMonad matchedBinder] appliedMainFunction
+    rhsWithBind = addBindToMainFunction (addMonadicPrefixToBinder cMonad matchedBinder) appliedMainFunction
+
+addBindToMainFunction :: G.Binder -> G.Term -> G.Term
+addBindToMainFunction binder rhs =
+  G.App bindOperator
+    (toNonemptyList [argumentName, lambdaFun])
+  where
+    argumentName = G.PosArg $ getBinderName binder
+    lambdaFun = G.PosArg $ G.Fun (singleton $ removeMonadFromBinder binder) rhs
 
 addBindOperatorToEquationInMatch :: G.Term -> G.Qualid -> Int -> ConversionMonad -> G.Term
 addBindOperatorToEquationInMatch (G.Match mItem retType equations) funName pos m =

@@ -91,10 +91,11 @@ convertMatchDef (Match _ name (p : ps) rhs _) typeSigs dataNames cMonad cMode =
     if isRecursive name rhs
       then if cMode == FueledFunction
             then [G.FixpointSentence (convertMatchToFueledFixpoint name (p : ps) rhs typeSig dataNames cMonad)]
-            else convertMatchWithHelperFunction name (p :ps) rhs typeSig dataNames cMonad
+            else convertMatchWithHelperFunction name (p :ps) rhs typeSigs dataNames cMonad
       else [G.DefinitionSentence (convertMatchToDefinition name (p : ps) rhs typeSig dataNames cMonad)]
     where
       typeSig = getTypeSignatureByName typeSigs name
+
 
 convertMatchToDefinition :: Show l => Name l -> [Pat l] -> Rhs l -> Maybe G.TypeSignature -> [G.Name] -> ConversionMonad -> G.Definition
 convertMatchToDefinition name (p : ps) rhs typeSig dataNames cMonad =
@@ -106,7 +107,7 @@ convertMatchToDefinition name (p : ps) rhs typeSig dataNames cMonad =
     binders = convertPatsToBinders (p : ps) typeSig
     monadicBinders = transformBindersMonadic binders cMonad
     bindersWithInferredTypes = addInferredTypesToSignature monadicBinders dataNames
-    rhsTerm = addBindOperators monadicBinders (convertRhsToTerm rhs)
+    rhsTerm = addBindOperatorsToDefinition monadicBinders (convertRhsToTerm rhs)
 
 convertMatchToFueledFixpoint :: Show l => Name l -> [Pat l] -> Rhs l -> Maybe G.TypeSignature -> [G.Name] -> ConversionMonad -> G.Fixpoint
 convertMatchToFueledFixpoint name (p : ps) rhs (Just typeSig) dataNames cMonad =
@@ -121,16 +122,17 @@ convertMatchToFueledFixpoint name (p : ps) rhs (Just typeSig) dataNames cMonad =
     monadicBinders = transformBindersMonadic binders cMonad
     bindersWithFuel = addFuelBinder monadicBinders
     bindersWithInferredTypes = addInferredTypesToSignature bindersWithFuel dataNames
-    rhsTerm = addBindOperators monadicBinders (convertRhsToTerm rhs)
+    rhsTerm = addBindOperatorsToDefinition monadicBinders (convertRhsToTerm rhs)
     fueledRhs = addFuelMatchingToRhs rhsTerm monadicBinders [] funName (getReturnType typeSig)
 
-convertMatchWithHelperFunction :: Show l => Name l -> [Pat l] -> Rhs l -> Maybe G.TypeSignature -> [G.Name] -> ConversionMonad -> [G.Sentence]
-convertMatchWithHelperFunction name (p : ps) rhs (Just typeSig) dataNames cMonad =
-  [G.FixpointSentence $ convertMatchToMainFunction name binders rhsTerm typeSig dataNames cMonad,
-    G.FixpointSentence $ convertMatchToHelperFunction name binders rhsTerm typeSig dataNames cMonad]
+convertMatchWithHelperFunction :: Show l => Name l -> [Pat l] -> Rhs l -> [G.TypeSignature] -> [G.Name] -> ConversionMonad -> [G.Sentence]
+convertMatchWithHelperFunction name (p : ps) rhs typeSigs dataNames cMonad =
+  [G.FixpointSentence $ convertMatchToMainFunction name binders rhsTerm typeSigs dataNames cMonad,
+    G.FixpointSentence $ convertMatchToHelperFunction name binders rhsTerm typeSigs dataNames cMonad]
   where
     rhsTerm = convertRhsToTerm rhs
-    binders = convertPatsToBinders (p : ps) (Just typeSig)
+    binders = convertPatsToBinders (p : ps) typeSig
+    typeSig = getTypeSignatureByName typeSigs name
 
 
 convertTyVarBindToName :: Show l => TyVarBind l -> G.Name

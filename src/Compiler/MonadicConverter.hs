@@ -8,16 +8,18 @@ import Compiler.HelperFunctions
 import qualified Data.Text as T
 import qualified GHC.Base as B
 
----------------------- Add Bind Operator
-addBindOperators :: [G.Binder] -> G.Term -> G.Term
-addBindOperators [] term =
-  toReturnTerm term
-addBindOperators (x : xs) term =
+---------------------- Add Bind Operator to Definition
+addBindOperatorsToDefinition :: [G.Binder] -> G.Term -> G.Term
+addBindOperatorsToDefinition [] term =
+  if isMonadicTerm term
+    then term
+    else toReturnTerm term
+addBindOperatorsToDefinition (x : xs) term =
   G.App bindOperator
     (toNonemptyList [G.PosArg argumentName, G.PosArg lambdaFun])
   where
     argumentName = getBinderName x
-    lambdaFun = G.Fun (singleton $ removeMonadFromBinder x) (addBindOperators xs term )
+    lambdaFun = G.Fun (singleton $ removeMonadFromBinder x) (addBindOperatorsToDefinition xs term )
 
 ---------------------- transform Data Structures Monadic
 transformBindersMonadic :: [G.Binder] -> ConversionMonad -> [G.Binder]
@@ -98,7 +100,16 @@ fromMonadicTerm (G.App _ (G.PosArg term B.:| xs)) =
   term
 fromMonadicTerm term =
   term
+---------------------- Bool Functions
+isMonadicTerm :: G.Term -> Bool
+isMonadicTerm (G.App term _ ) =
+  isMonad term
+isMonadicTerm term =
+  False
 
+isMonad :: G.Term -> Bool
+isMonad (G.Qualid qId) =
+  any (eqQId qId) $ map strToQId ["option", "identity", "return_"]
 ---------------------- Predefined Terms
 identityTerm :: G.Term
 identityTerm =
