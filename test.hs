@@ -39,11 +39,22 @@ data Test =
   T1 Int
   | T2 String
 
+--singleton = Cons a Nil
 
-append ::List a -> List a -> List a
+append :: List a -> List a -> List a
 append xs ys  = case xs of
   Nil -> ys
   Cons z zs -> Cons z (append zs ys )
+
+--reverse_ :: List a -> List a
+--reverse_ xs = case xs of
+--  Nil -> Nil
+--  Cons y ys -> append (reverse_ ys) (singleton y)
+
+concat_ :: List (List a) -> List a
+concat_ xs = case xs of
+  Nil -> Nil
+  Cons y ys -> append y (concat_ ys)
 
 
 data List a =

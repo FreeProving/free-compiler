@@ -59,9 +59,17 @@ getTypeSignatureByName :: [G.TypeSignature] -> Name l -> Maybe G.TypeSignature
 getTypeSignatureByName [] name =
   Nothing
 getTypeSignatureByName (x : xs) name =
-   if nameEqTypeName x name
+   if typeNameEqName x name
     then Just x
     else getTypeSignatureByName xs name
+
+getTypeSignatureByQId :: [G.TypeSignature] -> G.Qualid -> Maybe G.TypeSignature
+getTypeSignatureByQId [] _ =
+  Nothing
+getTypeSignatureByQId (x : xs) qId =
+  if typeNameEqQId x qId
+    then Just x
+    else getTypeSignatureByQId xs qId
 
 getNamesFromDataDecls :: [Decl l] -> [G.Name]
 getNamesFromDataDecls sentences =
@@ -121,6 +129,14 @@ getBinderType :: G.Binder -> G.Term
 getBinderType (G.Typed _ _ _ term) =
   term
 
+getBinderByQId :: [G.Binder] -> G.Qualid -> Maybe G.Binder
+getBinderByQId [] _ =
+  Nothing
+getBinderByQId (x : xs) qId =
+  if eqQId qId (termToQId $ getBinderName x)
+    then Just x
+    else getBinderByQId xs qId
+
 ---------------------- Bool Functions
 isCoqType :: G.Name -> Bool
 isCoqType name =
@@ -165,10 +181,6 @@ isAppTerm (G.App _ _ ) = True
 isAppTerm _ = False
 
 -- name comparison functions
-nameEqTypeName :: G.TypeSignature -> Name l -> Bool
-nameEqTypeName (G.TypeSignature sigName _ ) =
-  gNameEqName sigName
-
 gNameEqName :: G.Name -> Name l -> Bool
 gNameEqName (G.Ident (G.Bare gName)) (Ident _ name) =
   T.unpack gName == name
@@ -193,6 +205,14 @@ dataTypeUneqGName dataType gName =
   where
     dataString = getStringFromGName dataType
     nameString = getStringFromGName gName
+
+typeNameEqName :: G.TypeSignature -> Name l -> Bool
+typeNameEqName (G.TypeSignature sigName _ ) =
+  gNameEqName sigName
+
+typeNameEqQId :: G.TypeSignature -> G.Qualid -> Bool
+typeNameEqQId (G.TypeSignature sigName _ ) =
+  eqQId $ gNameToQId sigName
 
 ---------------------- various helper functions
 

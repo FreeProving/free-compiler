@@ -7,6 +7,7 @@ import Compiler.HelperFunctions
 
 import qualified Data.Text as T
 import qualified GHC.Base as B
+import Data.Maybe
 
 ---------------------- Add Bind Operator to Definition
 addBindOperatorsToDefinition :: [G.Binder] -> G.Term -> G.Term
@@ -20,6 +21,27 @@ addBindOperatorsToDefinition (x : xs) term =
   where
     argumentName = getBinderName x
     lambdaFun = G.Fun (singleton $ removeMonadFromBinder x) (addBindOperatorsToDefinition xs term )
+
+---------------------- Add Return Operator if rhs isn't already monadic
+addReturnToMatch :: G.Term -> [G.TypeSignature] -> [G.Binder] -> G.Term
+addReturnToMatch (G.Match mItem retType equations) typeSigs binders =
+  G.Match mItem retType [addReturnToEquation e typeSigs binders | e <- equations]
+
+addReturnToEquation :: G.Equation -> [G.TypeSignature] -> [G.Binder] -> G.Equation
+addReturnToEquation (G.Equation multPats rhs) typeSigs binders =
+  G.Equation multPats (addReturnToRhs rhs typeSigs binders)
+
+addReturnToRhs :: G.Term -> [G.TypeSignature] -> [G.Binder] -> G.Term
+addReturnToRhs (G.App constr args) typeSigs binders =
+  if isMonadicTerm constr || isMonadicFunctionCall constr typeSigs || isMonadicBinder constr binders
+    then G.App constr args
+    else toReturnTerm $ G.App constr args
+addReturnToRhs (G.Parens term) typeSigs binders =
+  G.Parens $ addReturnToRhs term typeSigs binders
+addReturnToRhs term typeSigs binders =
+  if isMonadicTerm term || isMonadicFunctionCall term typeSigs || isMonadicBinder term binders
+    then term
+    else toReturnTerm term
 
 ---------------------- transform Data Structures Monadic
 transformBindersMonadic :: [G.Binder] -> ConversionMonad -> [G.Binder]
@@ -110,6 +132,20 @@ isMonadicTerm term =
 isMonad :: G.Term -> Bool
 isMonad (G.Qualid qId) =
   any (eqQId qId) $ map strToQId ["option", "identity", "return_"]
+
+isMonadicFunctionCall :: G.Term -> [G.TypeSignature] -> Bool
+isMonadicFunctionCall (G.Qualid qId) typeSigs =
+  if (not . isNothing) maybeTypeSig
+    then True
+    else False
+  where maybeTypeSig = getTypeSignatureByQId typeSigs qId
+
+isMonadicBinder :: G.Term -> [G.Binder] -> Bool
+isMonadicBinder (G.Qualid qId) binders =
+  if (not . isNothing) maybeBinder && isMonadicTerm (getBinderType (fromJust maybeBinder))
+    then True
+    else False
+  where maybeBinder = getBinderByQId binders qId
 ---------------------- Predefined Terms
 identityTerm :: G.Term
 identityTerm =

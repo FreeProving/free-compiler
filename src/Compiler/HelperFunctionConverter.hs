@@ -26,7 +26,7 @@ convertMatchToMainFunction name binders rhs typeSigs dataNames cMonad =
     matchedBinder = termToQId $ getBinderName $ getMatchedBinder binders matchItem
     binderPos = getMatchedBinderPosition binders matchItem
     monadicArgRhs = switchNonMonadicArgumentsFromTerm rhs (filter (not . (eqQId matchedBinder)) (map termToQId (map getBinderName binders))) cMonad
-    monadicRhs = addBindOperatorToEquationInMatch monadicArgRhs (nameToQId name) binderPos cMonad
+    monadicRhs = addReturnToMatch (addBindOperatorToEquationInMatch monadicArgRhs (nameToQId name) binderPos cMonad) typeSigs bindersWithInferredTypes
 
 
 convertMatchToHelperFunction :: Show l => Name l -> [G.Binder] -> G.Term -> [G.TypeSignature] -> [G.Name] -> ConversionMonad -> G.Fixpoint
@@ -46,10 +46,10 @@ convertMatchToHelperFunction name binders rhs typeSigs dataNames cMonad =
     binderPos = getMatchedBinderPosition binders matchItem
     appliedMainFunction = G.App (G.Qualid (addSuffixToName name)) (toNonemptyList mainFunArgs)
     mainFunArgs = buildArgsForMainFun monadicBinders binderPos
-    rhsWithBind = addBindToMainFunction (addMonadicPrefixToBinder cMonad matchedBinder) appliedMainFunction
+    rhsWithBind = addBindOperatorToMainFunction (addMonadicPrefixToBinder cMonad matchedBinder) appliedMainFunction
 
-addBindToMainFunction :: G.Binder -> G.Term -> G.Term
-addBindToMainFunction binder rhs =
+addBindOperatorToMainFunction :: G.Binder -> G.Term -> G.Term
+addBindOperatorToMainFunction binder rhs =
   G.App bindOperator
     (toNonemptyList [argumentName, lambdaFun])
   where

@@ -65,26 +65,26 @@ Fixpoint append'' (a : Type) (xs : List a) (oys : option (List a)) : option (Lis
   | Cons z ozs => return_ (Cons z (ozs >>= (fun zs => append'' zs oys)))
   end.
 
-Fixpoint append' (a : Type) (oxs oys : option (List a)) : option (List a) :=
+Definition append' (a : Type) (oxs oys : option (List a)) : option (List a) :=
   oxs >>= fun xs => append'' xs oys.
 
 
 Fixpoint reverse'' (a : Type) (xs : List a) : option (List a) :=
   match xs with
   | Nil => return_ Nil
-  | Cons y ys => append' (ys >>= reverse'') (singleton y)
+  | Cons y oys => append' (oys >>= fun ys => reverse'' ys ) (singleton y)
   end.
 
-Fixpoint reverse' (a:Type) (oxs : option (List a)) : option (List a) :=
+Definition reverse' (a:Type) (oxs : option (List a)) : option (List a) :=
   oxs >>= fun xs => reverse'' xs.
 
 Fixpoint concat'' (a:Type) (xs : List (List a)) : option (List a) :=
   match xs with
   | Nil => return_ Nil
-  | Cons y ys => append' y ( ys >>= concat'') 
+  | Cons y oys => append' y ( oys >>= fun ys => concat'' ys) 
   end. 
 
-Fixpoint concat' (a : Type) (oxs : option (List (List a))) : option (List a) :=
+Definition concat' (a : Type) (oxs : option (List (List a))) : option (List a) :=
   oxs >>= fun xs => concat'' xs.
 
 

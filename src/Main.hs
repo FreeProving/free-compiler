@@ -49,7 +49,7 @@ getMonadFromArgs ("-i" : _ ) = Identity
 getMonadFromArgs ( _ : xs) = getMonadFromArgs xs
 
 getModeFromArgs :: [String] -> ConversionMode
-getModeFromArgs [] = FueledFunction
+getModeFromArgs [] = HelperFunction
 getModeFromArgs ("-f" : _ ) = FueledFunction
 getModeFromArgs ("-h" : _ ) = HelperFunction
 getModeFromArgs ( _ : xs ) = getModeFromArgs xs
