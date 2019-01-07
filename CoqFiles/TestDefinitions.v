@@ -58,7 +58,7 @@ Definition null (a : Type) (olist : option (List a)) : option bool :=
                         | Cons _ _ => return_ false
                         end.
 
-
+(* Händisch transformierte Funktionen (mit Hilfsfunktion) *)
 Fixpoint append'' (a : Type) (xs : List a) (oys : option (List a)) : option (List a) :=
   match xs with
   | Nil => oys
@@ -69,34 +69,53 @@ Fixpoint append' (a : Type) (oxs oys : option (List a)) : option (List a) :=
   oxs >>= fun xs => append'' xs oys.
 
 
+Fixpoint reverse'' (a : Type) (xs : List a) : option (List a) :=
+  match xs with
+  | Nil => return_ Nil
+  | Cons y ys => append' (ys >>= reverse'') (singleton y)
+  end.
+
+Fixpoint reverse' (a:Type) (oxs : option (List a)) : option (List a) :=
+  oxs >>= fun xs => reverse'' xs.
+
+Fixpoint concat'' (a:Type) (xs : List (List a)) : option (List a) :=
+  match xs with
+  | Nil => return_ Nil
+  | Cons y ys => append' y ( ys >>= concat'') 
+  end. 
+
+Fixpoint concat' (a : Type) (oxs : option (List (List a))) : option (List a) :=
+  oxs >>= fun xs => concat'' xs.
+
+
 
 
 (* Händisch transformierte Funktionen (mit fuel Argument) *)
 Fixpoint append (a : Type) (fuel : nat) (oxs oys : option (List a)) : option (List a):=
-    oxs >>= fun xs =>
-      oys >>= fun ys => match fuel with
-                        |O => None
-                        |S (rFuel) => match xs with
-                                      | Nil => return_ ys
-                                      | Cons z zs => return_ (Cons z (append rFuel zs oys))
-                                   end
-                     end.
+    match fuel with
+    |O => None
+    |S (rFuel) => oxs >>= fun xs =>
+                    oys >>= fun ys =>  match xs with
+                                       | Nil => return_ ys
+                                       | Cons z zs => return_ (Cons z (append rFuel zs oys))
+                                       end
+    end.
 
 Fixpoint reverse (a : Type) (fuel : nat) (oxs : option (List a)) : (option (List a)) :=
-  oxs >>= fun xs => match fuel with
-                    | O => None 
-                    | S (rFuel) => match xs with
-                                           | Nil => return_ Nil 
-                                           | Cons y ys => append rFuel (reverse rFuel ys) (singleton y) 
-                                           end
-                    end.
+    match fuel with
+    | O => None 
+    | S (rFuel) => oxs >>= fun xs => match xs with
+                                     | Nil => return_ Nil 
+                                     | Cons y ys => append rFuel (reverse rFuel ys) (singleton y) 
+                                     end
+    end.
 
 Fixpoint concat (a : Type) (fuel : nat) ( oxs : option (List (List a))) : option (List a) := 
-    oxs >>= fun xs => match fuel with
-                      | O => None 
-                      | S (rFuel) => match xs with 
+    match fuel with
+    | O => None 
+    | S (rFuel) => oxs >>= fun xs => match xs with 
                                      | Nil => return_ Nil 
                                      | Cons z zs => append rFuel z (concat rFuel zs)
                                      end
-                      end.
+    end.
 End Monad.
