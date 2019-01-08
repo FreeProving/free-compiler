@@ -405,7 +405,7 @@ qIdToStr (G.Bare ident) =
   T.unpack ident
 
 qIdToGName :: G.Qualid -> G.Name
-qIdToGName qId = G.Ident qId
+qIdToGName = G.Ident 
 
 termToQId :: G.Term -> G.Qualid
 termToQId (G.Qualid qId) = qId

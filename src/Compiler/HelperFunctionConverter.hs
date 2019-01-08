@@ -25,7 +25,7 @@ convertMatchToMainFunction name binders rhs typeSigs dataNames cMonad =
     matchItem = getMatchedArgumentFromRhs rhs
     matchedBinder = termToQId $ getBinderName $ getMatchedBinder binders matchItem
     binderPos = getMatchedBinderPosition binders matchItem
-    monadicArgRhs = switchNonMonadicArgumentsFromTerm rhs (filter (not . (eqQId matchedBinder)) (map termToQId (map getBinderName binders))) cMonad
+    monadicArgRhs = switchNonMonadicArgumentsFromTerm rhs (filter (not . eqQId matchedBinder) (map (termToQId . getBinderName) binders)) cMonad
     monadicRhs = addReturnToMatch (addBindOperatorToEquationInMatch monadicArgRhs (nameToQId name) binderPos cMonad) typeSigs bindersWithInferredTypes
 
 
@@ -91,7 +91,7 @@ getDecrArgumentFromRecursiveCall :: G.Term -> G.Qualid -> Int -> Maybe G.Qualid
 getDecrArgumentFromRecursiveCall (G.App constr args) funName pos =
   if containsRecursiveCall constr funName
     then Just decrArgument
-    else head (filter (not . isNothing) [getDecrArgumentFromRecursiveCall t funName pos | t <- termList])
+    else head (filter isJust [getDecrArgumentFromRecursiveCall t funName pos | t <- termList])
   where
     termList = convertArgumentsToTerms (nonEmptyListToList args)
     decrArgument = termToQId $ argToTerm $ nonEmptyListToList args !! pos
@@ -100,20 +100,20 @@ getDecrArgumentFromRecursiveCall (G.Parens term) funName pos =
 getDecrArgumentFromRecursiveCall _ _ _ = Nothing
 
 makeDecrArgumentMonadicInMultPats :: [G.MultPattern] -> Maybe G.Qualid -> ConversionMonad -> [G.MultPattern]
-makeDecrArgumentMonadicInMultPats [(G.MultPattern nEPats)] (Just decrArgument) m =
+makeDecrArgumentMonadicInMultPats [G.MultPattern nEPats] (Just decrArgument) m =
   [G.MultPattern $ toNonemptyList $ makeDecrArgumentMonadicInPats pats decrArgument m]
   where
     pats = nonEmptyListToList nEPats
 
 makeDecrArgumentMonadicInPats :: [G.Pattern] -> G.Qualid -> ConversionMonad -> [G.Pattern]
-makeDecrArgumentMonadicInPats [(G.ArgsPat qId pats)] decrArgument m =
+makeDecrArgumentMonadicInPats [G.ArgsPat qId pats] decrArgument m =
   if eqQId qId decrArgument
     then [G.ArgsPat (addMonadicPrefixToQId m qId) pats]
     else [G.ArgsPat qId (makeDecrArgumentMonadicInPats pats decrArgument m)]
-makeDecrArgumentMonadicInPats ((G.QualidPat qId) : ps) decrArgument m =
+makeDecrArgumentMonadicInPats (G.QualidPat qId : ps) decrArgument m =
   if eqQId qId decrArgument
     then [G.QualidPat (addMonadicPrefixToQId m qId)]
-    else [G.QualidPat qId] ++ makeDecrArgumentMonadicInPats ps decrArgument m
+    else G.QualidPat qId : makeDecrArgumentMonadicInPats ps decrArgument m
 makeDecrArgumentMonadicInPats pats _ _ =
   pats
 
@@ -124,9 +124,9 @@ buildArgsForMainFun binders pos =
 buildArgsForMainFun' :: [G.Binder] -> Int -> Int -> [G.Arg]
 buildArgsForMainFun' (b : bs) pos currentPos =
   if pos == currentPos
-    then [G.PosArg (getBinderName (removeMonadFromBinder b))] ++
+    then G.PosArg (getBinderName (removeMonadFromBinder b)) :
           buildArgsForMainFun' bs pos (currentPos + 1)
-    else [G.PosArg (getBinderName b)] ++
+    else G.PosArg (getBinderName b) :
           buildArgsForMainFun' bs pos (currentPos + 1)
 buildArgsForMainFun' [] _ _ = []
 
@@ -143,7 +143,7 @@ makeMatchedArgNonMonadic' [] _ _ = []
 
 addSuffixToName :: Show l => Name l -> G.Qualid
 addSuffixToName name =
-  strToQId $ (nameToStr name) ++ "'"
+  strToQId $ nameToStr name ++ "'"
 
 addSuffixToTerm :: G.Term -> G.Term
 addSuffixToTerm (G.Qualid qId) =
@@ -166,7 +166,7 @@ switchNonMonadicArgumentsFromTerm (G.Match mItem retType equations) binders m =
   G.Match mItem retType [switchNonMonadicArgumentsFromEquation e binders m | e <- equations]
 switchNonMonadicArgumentsFromTerm (G.App constr args) binders m =
   G.App (switchNonMonadicArgumentsFromTerm constr binders m)
-    (toNonemptyList [(\(G.PosArg term) -> G.PosArg (switchNonMonadicArgumentsFromTerm term binders m)) a | a <- (nonEmptyListToList args)])
+    (toNonemptyList [(\(G.PosArg term) -> G.PosArg (switchNonMonadicArgumentsFromTerm term binders m)) a | a <- nonEmptyListToList args])
 switchNonMonadicArgumentsFromTerm (G.Parens term) binders m =
   G.Parens $ switchNonMonadicArgumentsFromTerm term binders m
 switchNonMonadicArgumentsFromTerm (G.Qualid qId) binders m =
@@ -188,7 +188,7 @@ getMatchedBinderPosition' [] _ _ =
   error "matchItem doesn't match any binder"
 
 getMatchedArgumentFromRhs :: G.Term -> G.Term
-getMatchedArgumentFromRhs (G.Match ((G.MatchItem term _ _) B.:| ms) _ _ ) =
+getMatchedArgumentFromRhs (G.Match (G.MatchItem term _ _ B.:| ms) _ _ ) =
   term
 getMatchedArgumentFromRhs _ = error "recursive functions only work woth pattern-matching"
 

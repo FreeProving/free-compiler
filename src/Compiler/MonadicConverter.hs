@@ -135,16 +135,12 @@ isMonad (G.Qualid qId) =
 
 isMonadicFunctionCall :: G.Term -> [G.TypeSignature] -> Bool
 isMonadicFunctionCall (G.Qualid qId) typeSigs =
-  if (not . isNothing) maybeTypeSig
-    then True
-    else False
+  isJust maybeTypeSig
   where maybeTypeSig = getTypeSignatureByQId typeSigs qId
 
 isMonadicBinder :: G.Term -> [G.Binder] -> Bool
 isMonadicBinder (G.Qualid qId) binders =
-  if (not . isNothing) maybeBinder && isMonadicTerm (getBinderType (fromJust maybeBinder))
-    then True
-    else False
+  isJust maybeBinder && isMonadicTerm (getBinderType (fromJust maybeBinder))
   where maybeBinder = getBinderByQId binders qId
 ---------------------- Predefined Terms
 identityTerm :: G.Term
