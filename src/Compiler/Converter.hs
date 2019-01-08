@@ -23,13 +23,14 @@ convertModule (Module _ (Just modHead) _ _ decls) cMonad cMode =
   G.LocalModule (convertModuleHead modHead)
     (importDefinitions ++
       monadDefinitions ++
-        dataSentences ++
+        withoutList ++
           convertModuleDecls rDecls (map filterForTypeSignatures typeSigs) dataNames cMonad cMode)
   where
     (typeSigs, otherDecls) = partition isTypeSig decls
     (dataDecls, rDecls) = partition isDataDecl otherDecls
     dataSentences = convertModuleDecls dataDecls (map filterForTypeSignatures typeSigs) [] cMonad cMode
     dataNames = getNamesFromDataDecls dataDecls
+    withoutList = filter isNotList dataSentences
 convertModule (Module _ Nothing _ _ decls) cMonad cMode =
   G.LocalModule (T.pack "unnamed")
     (convertModuleDecls otherDecls  (map filterForTypeSignatures typeSigs) [] cMonad cMode)
@@ -37,6 +38,10 @@ convertModule (Module _ Nothing _ _ decls) cMonad cMode =
     (typeSigs, otherDecls) = partition isTypeSig decls
 
 ----------------------------------------------------------------------------------------------------------------------
+isNotList :: G.Sentence -> Bool
+isNotList (G.InductiveSentence (G.Inductive (G.IndBody qId _ _ _ B.:| _) _ )) =
+  (not . eqQId (strToQId "List")) qId
+isNotList _ = True
 
 convertModuleHead :: Show l => ModuleHead l -> G.Ident
 convertModuleHead (ModuleHead _ (ModuleName _ modName) _ _) =

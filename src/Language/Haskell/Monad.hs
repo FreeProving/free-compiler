@@ -1,13 +1,14 @@
 module Language.Haskell.Monad where
 
 import Compiler.HelperFunctions
+import Compiler.MonadicConverter
 import Language.Coq.Gallina as G
 import qualified Data.Text as T
 
 
 monadDefinitions :: [G.Sentence]
 monadDefinitions =
-  [ optionReturnSentence, optionBindSentence, bindNotationSentence ]
+  [ optionReturnSentence, optionBindSentence, bindNotationSentence, listSentence, argSentence, singletonSentence ]
 
 optionReturnSentence :: G.Sentence
 optionReturnSentence =
@@ -20,6 +21,18 @@ optionBindSentence =
 bindNotationSentence :: G.Sentence
 bindNotationSentence =
   G.NotationSentence bindNotation
+
+singletonSentence :: G.Sentence
+singletonSentence =
+  G.DefinitionSentence singletonDefinition
+
+listSentence :: G.Sentence
+listSentence =
+  G.InductiveSentence listType
+
+argSentence :: G.Sentence
+argSentence =
+  G.ArgumentsSentence arguments
 
 optionReturnDefinition :: G.Definition
 optionReturnDefinition = G.DefinitionDef G.Global (strToQId "return_") binders (Just retTerm) rhs
@@ -54,7 +67,36 @@ bindNotation =
       binding = G.App (G.Qualid (strToQId "bind_")) (toNonemptyList params)
       params = [G.PosArg (G.Qualid (strToQId "m")), G.PosArg (G.Qualid (strToQId "f"))]
 
+singletonDefinition :: G.Definition
+singletonDefinition =
+  G.DefinitionDef G.Global
+    (strToQId "singleton")
+      [G.Typed G.Ungeneralizable G.Explicit (singleton (strToGName "a")) typeTerm ,
+      G.Typed G.Ungeneralizable G.Explicit (singleton (strToGName "ox")) (toOptionTerm aTerm)]
+        Nothing
+          (toReturnTerm rhs)
+  where
+    rhs = G.App (G.Qualid (strToQId "Cons")) (toNonemptyList [G.PosArg $ G.Qualid $ strToQId "ox",
+            G.PosArg $ toReturnTerm $ G.Qualid $ strToQId "Nil"])
+    aTerm = G.Qualid $ strToQId "a"
 
+listType :: G.Inductive
+listType =
+  G.Inductive (singleton $ G.IndBody (strToQId "List")
+    [G.Typed G.Ungeneralizable G.Explicit (singleton (strToGName "a")) typeTerm ]
+      typeTerm
+        [(strToQId "Nil", [], Just listTerm),
+        (strToQId "Cons", [], Just arrowTerm)]) []
+  where
+    listTerm = G.App (G.Qualid $ strToQId "List") (singleton $ G.PosArg $ G.Qualid $ strToQId "a")
+    arrowTerm = G.Arrow aTerm (G.Arrow (toOptionTerm listTerm) listTerm)
+    aTerm = toOptionTerm $ G.Qualid $ strToQId "a"
+
+arguments :: G.Arguments
+arguments =
+  G.Arguments Nothing
+    (strToQId "Nil")
+      [G.ArgumentSpec G.ArgMaximal (strToGName "a") Nothing]
 
 bindSig :: (G.Qualid, G.Term)
 bindSig =
