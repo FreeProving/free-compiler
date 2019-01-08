@@ -21,6 +21,21 @@ addFuelArgumentToRecursiveCall (G.Parens term) funName =
 addFuelArgumentToRecursiveCall term _ =
   term
 
+addFuelMatching :: G.Term -> G.Qualid -> G.Term
+addFuelMatching  =
+  fuelPattern (G.Qualid (strToQId "None"))
+
+convertFueledFunBody :: G.Term -> [G.Binder] -> G.Qualid -> [G.TypeSignature] -> G.Term
+convertFueledFunBody (G.Match item rType equations) funBinders funName typeSigs =
+  G.Match item rType [convertFueledEquation e funBinders funName typeSigs | e <- equations]
+
+convertFueledEquation ::  G.Equation -> [G.Binder] -> G.Qualid -> [G.TypeSignature] -> G.Equation
+convertFueledEquation (G.Equation multPats rhs) funBinders funName typeSigs =
+  G.Equation multPats (convertFueledRhs rhs funBinders funName typeSigs)
+
+convertFueledRhs :: G.Term -> [G.Binder] -> G.Qualid -> [G.TypeSignature] -> G.Term
+convertFueledRhs term funBinders funName typeSigs =
+  term -- placeholder
 
 addFuelMatchingToRhs :: G.Term -> [G.Binder] -> [G.Binder] -> G.Qualid -> G.Term -> G.Term
 addFuelMatchingToRhs (G.Match item rType equations) funBinders lambdaBinders funName retType =
@@ -68,7 +83,7 @@ addDecrFuelArgument list =
   toNonemptyList (nonEmptyListToList list ++ [G.PosArg decrFuelTerm] )
 
 addFuelBinder :: [G.Binder] -> [G.Binder]
-addFuelBinder binders = binders ++ [fuelBinder]
+addFuelBinder binders = fuelBinder : binders
 
 fixRecursiveCallArguments :: G.Term -> [G.Binder] -> [G.Binder] -> G.Qualid -> G.Term
 fixRecursiveCallArguments (G.App term args) funBinders lambdaBinders funName =

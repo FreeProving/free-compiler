@@ -91,7 +91,7 @@ Definition concat' (a : Type) (oxs : option (List (List a))) : option (List a) :
 
 
 (* Händisch transformierte Funktionen (mit fuel Argument) *)
-Fixpoint append (a : Type) (fuel : nat) (oxs oys : option (List a)) : option (List a):=
+Fixpoint append (fuel : nat) (a : Type) (oxs oys : option (List a)) : option (List a):=
     match fuel with
     |O => None
     |S (rFuel) => oxs >>= fun xs =>
@@ -101,7 +101,7 @@ Fixpoint append (a : Type) (fuel : nat) (oxs oys : option (List a)) : option (Li
                                        end
     end.
 
-Fixpoint reverse (a : Type) (fuel : nat) (oxs : option (List a)) : (option (List a)) :=
+Fixpoint reverse (fuel : nat) (a : Type) (oxs : option (List a)) : (option (List a)) :=
     match fuel with
     | O => None 
     | S (rFuel) => oxs >>= fun xs => match xs with
@@ -110,7 +110,7 @@ Fixpoint reverse (a : Type) (fuel : nat) (oxs : option (List a)) : (option (List
                                      end
     end.
 
-Fixpoint concat (a : Type) (fuel : nat) ( oxs : option (List (List a))) : option (List a) := 
+Fixpoint concat (fuel : nat) (a : Type) ( oxs : option (List (List a))) : option (List a) := 
     match fuel with
     | O => None 
     | S (rFuel) => oxs >>= fun xs => match xs with 

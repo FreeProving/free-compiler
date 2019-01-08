@@ -16,6 +16,7 @@ import qualified GHC.Base as B
 
 import qualified Data.Text as T
 import Data.List (partition)
+import Data.Maybe (fromJust )
 
 
 convertModule :: Show l => Module l -> ConversionMonad -> ConversionMode -> G.LocalModule
@@ -95,7 +96,7 @@ convertMatchDef :: Show l => Match l -> [G.TypeSignature] -> [G.Name] -> Convers
 convertMatchDef (Match _ name (p : ps) rhs _) typeSigs dataNames cMonad cMode =
     if isRecursive name rhs
       then if cMode == FueledFunction
-            then [G.FixpointSentence (convertMatchToFueledFixpoint name (p : ps) rhs typeSig dataNames cMonad)]
+            then [G.FixpointSentence (convertMatchToFueledFixpoint name (p : ps) rhs typeSigs dataNames cMonad)]
             else convertMatchWithHelperFunction name (p :ps) rhs typeSigs dataNames cMonad
       else [G.DefinitionSentence (convertMatchToDefinition name (p : ps) rhs typeSig dataNames cMonad)]
     where
@@ -114,21 +115,26 @@ convertMatchToDefinition name (p : ps) rhs typeSig dataNames cMonad =
     bindersWithInferredTypes = addInferredTypesToSignature monadicBinders dataNames
     rhsTerm = addBindOperatorsToDefinition monadicBinders (convertRhsToTerm rhs)
 
-convertMatchToFueledFixpoint :: Show l => Name l -> [Pat l] -> Rhs l -> Maybe G.TypeSignature -> [G.Name] -> ConversionMonad -> G.Fixpoint
-convertMatchToFueledFixpoint name (p : ps) rhs (Just typeSig) dataNames cMonad =
+convertMatchToFueledFixpoint :: Show l => Name l -> [Pat l] -> Rhs l -> [G.TypeSignature] -> [G.Name] -> ConversionMonad -> G.Fixpoint
+convertMatchToFueledFixpoint name (p : ps) rhs typeSigs dataNames cMonad =
  G.Fixpoint (singleton $ G.FixBody funName
-    (toNonemptyList bindersWithInferredTypes)
+    (toNonemptyList bindersWithFuel)
       Nothing
         (Just $ transformTermMonadic (getReturnType typeSig) cMonad)
           fueledRhs) []
   where
+    typeSig = fromJust $ getTypeSignatureByName typeSigs name
     funName = nameToQId name
     binders = convertPatsToBinders (p : ps) (Just typeSig)
     monadicBinders = transformBindersMonadic binders cMonad
-    bindersWithFuel = addFuelBinder monadicBinders
-    bindersWithInferredTypes = addInferredTypesToSignature bindersWithFuel dataNames
+    bindersWithFuel = addFuelBinder bindersWithInferredTypes
+    bindersWithInferredTypes = addInferredTypesToSignature monadicBinders dataNames
     rhsTerm = addBindOperatorsToDefinition monadicBinders (convertRhsToTerm rhs)
     fueledRhs = addFuelMatchingToRhs rhsTerm monadicBinders [] funName (getReturnType typeSig)
+    --convertedFunBody = convertFueledFunBody rhs monadicBinders [] funName typeSigs
+    --fueledRhs = addFuelMatching convertedFunBody funName
+
+
 
 convertMatchWithHelperFunction :: Show l => Name l -> [Pat l] -> Rhs l -> [G.TypeSignature] -> [G.Name] -> ConversionMonad -> [G.Sentence]
 convertMatchWithHelperFunction name (p : ps) rhs typeSigs dataNames cMonad =
