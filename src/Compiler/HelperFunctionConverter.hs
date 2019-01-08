@@ -29,13 +29,13 @@ convertMatchToMainFunction name binders rhs typeSigs dataNames cMonad =
     monadicRhs = addReturnToMatch (addBindOperatorToEquationInMatch monadicArgRhs (nameToQId name) binderPos cMonad) typeSigs bindersWithInferredTypes
 
 
-convertMatchToHelperFunction :: Show l => Name l -> [G.Binder] -> G.Term -> [G.TypeSignature] -> [G.Name] -> ConversionMonad -> G.Fixpoint
+convertMatchToHelperFunction :: Show l => Name l -> [G.Binder] -> G.Term -> [G.TypeSignature] -> [G.Name] -> ConversionMonad -> G.Definition
 convertMatchToHelperFunction name binders rhs typeSigs dataNames cMonad =
-  G.Fixpoint (singleton $ G.FixBody funName
-    (toNonemptyList bindersWithInferredTypes)
-      Nothing
-      (Just $ transformTermMonadic (getReturnType typeSig) cMonad)
-        rhsWithBind) []
+  G.DefinitionDef G.Global
+    funName
+      bindersWithInferredTypes
+        (Just $ transformTermMonadic (getReturnType typeSig) cMonad)
+          rhsWithBind
   where
     typeSig = fromJust $ getTypeSignatureByName typeSigs name
     funName = nameToQId name

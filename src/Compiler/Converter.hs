@@ -128,7 +128,7 @@ convertMatchToFueledFixpoint name (p : ps) rhs (Just typeSig) dataNames cMonad =
 convertMatchWithHelperFunction :: Show l => Name l -> [Pat l] -> Rhs l -> [G.TypeSignature] -> [G.Name] -> ConversionMonad -> [G.Sentence]
 convertMatchWithHelperFunction name (p : ps) rhs typeSigs dataNames cMonad =
   [G.FixpointSentence $ convertMatchToMainFunction name binders rhsTerm typeSigs dataNames cMonad,
-    G.FixpointSentence $ convertMatchToHelperFunction name binders rhsTerm typeSigs dataNames cMonad]
+    G.DefinitionSentence $ convertMatchToHelperFunction name binders rhsTerm typeSigs dataNames cMonad]
   where
     rhsTerm = convertRhsToTerm rhs
     binders = convertPatsToBinders (p : ps) typeSig
