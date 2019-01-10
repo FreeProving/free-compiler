@@ -7,6 +7,7 @@ import qualified Language.Coq.Gallina as G
 import qualified Data.Text as T
 
 import qualified GHC.Base as B
+import Data.Maybe (isJust)
 
 
 ---------------------- NonemptyList Conversions
@@ -175,10 +176,18 @@ containsRecursiveCall (G.Qualid qId) funName =
   eqQId qId funName
 containsRecursiveCall _ _ = False
 
+isRecursiveFunction :: G.Term -> [G.TypeSignature] -> Bool
+isRecursiveFunction (G.Qualid qId) typeSigs =
+  isJust (getTypeSignatureByQId typeSigs qId)
+
 
 isAppTerm :: G.Term -> Bool
 isAppTerm (G.App _ _ ) = True
 isAppTerm _ = False
+
+isQualidTerm :: G.Term -> Bool
+isQualidTerm (G.Qualid _ ) = True
+isQualidTerm _ = False
 
 -- name comparison functions
 gNameEqName :: G.Name -> Name l -> Bool
@@ -405,7 +414,7 @@ qIdToStr (G.Bare ident) =
   T.unpack ident
 
 qIdToGName :: G.Qualid -> G.Name
-qIdToGName = G.Ident 
+qIdToGName = G.Ident
 
 termToQId :: G.Term -> G.Qualid
 termToQId (G.Qualid qId) = qId

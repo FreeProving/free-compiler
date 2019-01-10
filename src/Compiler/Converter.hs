@@ -129,10 +129,10 @@ convertMatchToFueledFixpoint name (p : ps) rhs typeSigs dataNames cMonad =
     monadicBinders = transformBindersMonadic binders cMonad
     bindersWithFuel = addFuelBinder bindersWithInferredTypes
     bindersWithInferredTypes = addInferredTypesToSignature monadicBinders dataNames
-    rhsTerm = addBindOperatorsToDefinition monadicBinders (convertRhsToTerm rhs)
-    fueledRhs = addFuelMatchingToRhs rhsTerm monadicBinders [] funName (getReturnType typeSig)
-    --convertedFunBody = convertFueledFunBody rhs monadicBinders [] funName typeSigs
-    --fueledRhs = addFuelMatching convertedFunBody funName
+    rhsTerm = convertRhsToTerm rhs
+    convertedFunBody = convertFueledFunBody rhsTerm monadicBinders funName typeSigs
+    fueledRhs = addFuelMatching monadicRhs funName
+    monadicRhs = addBindOperatorsToDefinition monadicBinders convertedFunBody
 
 
 

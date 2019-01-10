@@ -43,6 +43,16 @@ addReturnToRhs term typeSigs binders =
     then term
     else toReturnTerm term
 
+addReturnToArgs :: [G.Arg] -> [G.TypeSignature] -> [G.Binder] -> [G.Arg]
+addReturnToArgs (x : xs) typeSigs binders =
+  addReturnToArg x typeSigs binders : addReturnToArgs xs typeSigs binders
+addReturnToArgs [] _ _ =
+  []
+
+addReturnToArg :: G.Arg -> [G.TypeSignature] -> [G.Binder] -> G.Arg
+addReturnToArg (G.PosArg term) typeSigs binders =
+  G.PosArg (addReturnToRhs term typeSigs binders)
+
 ---------------------- transform Data Structures Monadic
 transformBindersMonadic :: [G.Binder] -> ConversionMonad -> [G.Binder]
 transformBindersMonadic binders m =

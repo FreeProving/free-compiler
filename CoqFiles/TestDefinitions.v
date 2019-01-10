@@ -97,7 +97,7 @@ Fixpoint append (fuel : nat) (a : Type) (oxs oys : option (List a)) : option (Li
     |S (rFuel) => oxs >>= fun xs =>
                     oys >>= fun ys =>  match xs with
                                        | Nil => return_ ys
-                                       | Cons z zs => return_ (Cons z (append rFuel zs oys))
+                                       | Cons z zs => return_ (Cons z (append rFuel zs (return_ ys)))
                                        end
     end.
 
