@@ -1,7 +1,7 @@
 module Compiler.FueledFunctions where
 
 import Compiler.HelperFunctions
-import Compiler.MonadicConverter (addReturnToMatch,
+import Compiler.MonadicConverter (addReturnToRhs,
                                   addReturnToArgs)
 
 import Language.Coq.Gallina as G
@@ -29,7 +29,7 @@ addFuelMatching  =
 
 convertFueledFunBody :: G.Term -> [G.Binder] -> G.Qualid -> [G.TypeSignature] -> G.Term
 convertFueledFunBody (G.Match item rType equations) funBinders funName typeSigs =
-  addReturnToMatch (G.Match item rType [convertFueledEquation e funBinders funName typeSigs | e <- equations]) typeSigs funBinders
+  G.Match item rType [convertFueledEquation e funBinders funName typeSigs | e <- equations]
 
 convertFueledEquation ::  G.Equation -> [G.Binder] -> G.Qualid -> [G.TypeSignature] -> G.Equation
 convertFueledEquation (G.Equation multPats rhs) funBinders funName typeSigs =
@@ -50,8 +50,7 @@ convertFueledTerm (G.App constr args) funBinders funName typeSigs =
     else G.App (convertFueledTerm constr funBinders funName typeSigs) (toNonemptyList convertedArgs)
   where convertedArgs = convertTermsToArguments [convertFueledTerm t funBinders funName typeSigs |
                           t <- convertArgumentsToTerms (nonEmptyListToList args)]
-        fixedArguments = addReturnToArgs convertedArgs typeSigs funBinders
-        convertedFueledArgs = addDecrFuelArgument (toNonemptyList fixedArguments)
+        convertedFueledArgs = addDecrFuelArgument (toNonemptyList convertedArgs)
 
 
 addDecrFuelArgument :: B.NonEmpty G.Arg -> B.NonEmpty G.Arg

@@ -9,7 +9,7 @@ import Language.Haskell.Exts.SrcLoc
 
 import Compiler.Converter
 import Compiler.HelperFunctions
-import Compiler.Types
+import Compiler.Types 
 
 main :: IO ()
 main = do
@@ -49,7 +49,7 @@ getMonadFromArgs ("-i" : _ ) = Identity
 getMonadFromArgs ( _ : xs) = getMonadFromArgs xs
 
 getModeFromArgs :: [String] -> ConversionMode
-getModeFromArgs [] = HelperFunction
+getModeFromArgs [] = FueledFunction
 getModeFromArgs ("-f" : _ ) = FueledFunction
 getModeFromArgs ("-h" : _ ) = HelperFunction
 getModeFromArgs ( _ : xs ) = getModeFromArgs xs

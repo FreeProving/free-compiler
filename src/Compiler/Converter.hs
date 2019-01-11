@@ -98,22 +98,22 @@ convertMatchDef (Match _ name (p : ps) rhs _) typeSigs dataNames cMonad cMode =
       then if cMode == FueledFunction
             then [G.FixpointSentence (convertMatchToFueledFixpoint name (p : ps) rhs typeSigs dataNames cMonad)]
             else convertMatchWithHelperFunction name (p :ps) rhs typeSigs dataNames cMonad
-      else [G.DefinitionSentence (convertMatchToDefinition name (p : ps) rhs typeSig dataNames cMonad)]
-    where
-      typeSig = getTypeSignatureByName typeSigs name
+      else [G.DefinitionSentence (convertMatchToDefinition name (p : ps) rhs typeSigs dataNames cMonad)]
 
 
-convertMatchToDefinition :: Show l => Name l -> [Pat l] -> Rhs l -> Maybe G.TypeSignature -> [G.Name] -> ConversionMonad -> G.Definition
-convertMatchToDefinition name (p : ps) rhs typeSig dataNames cMonad =
+convertMatchToDefinition :: Show l => Name l -> [Pat l] -> Rhs l -> [G.TypeSignature] -> [G.Name] -> ConversionMonad -> G.Definition
+convertMatchToDefinition name (p : ps) rhs typeSigs dataNames cMonad =
   G.DefinitionDef G.Global (nameToQId name)
     bindersWithInferredTypes
       (convertReturnType typeSig cMonad)
-        rhsTerm
+        monadicTerm
   where
+    typeSig = getTypeSignatureByName typeSigs name
     binders = convertPatsToBinders (p : ps) typeSig
     monadicBinders = transformBindersMonadic binders cMonad
     bindersWithInferredTypes = addInferredTypesToSignature monadicBinders dataNames
-    rhsTerm = addBindOperatorsToDefinition monadicBinders (convertRhsToTerm rhs)
+    rhsTerm = convertRhsToTerm rhs
+    monadicTerm = addBindOperatorsToDefinition monadicBinders (addReturnToRhs rhsTerm typeSigs monadicBinders)
 
 convertMatchToFueledFixpoint :: Show l => Name l -> [Pat l] -> Rhs l -> [G.TypeSignature] -> [G.Name] -> ConversionMonad -> G.Fixpoint
 convertMatchToFueledFixpoint name (p : ps) rhs typeSigs dataNames cMonad =
@@ -130,7 +130,7 @@ convertMatchToFueledFixpoint name (p : ps) rhs typeSigs dataNames cMonad =
     bindersWithFuel = addFuelBinder bindersWithInferredTypes
     bindersWithInferredTypes = addInferredTypesToSignature monadicBinders dataNames
     rhsTerm = convertRhsToTerm rhs
-    convertedFunBody = convertFueledFunBody rhsTerm monadicBinders funName typeSigs
+    convertedFunBody = convertFueledFunBody (addReturnToRhs rhsTerm typeSigs monadicBinders) monadicBinders funName typeSigs
     fueledRhs = addFuelMatching monadicRhs funName
     monadicRhs = addBindOperatorsToDefinition monadicBinders convertedFunBody
 

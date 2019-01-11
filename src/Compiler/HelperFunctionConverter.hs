@@ -26,7 +26,7 @@ convertMatchToMainFunction name binders rhs typeSigs dataNames cMonad =
     matchedBinder = termToQId $ getBinderName $ getMatchedBinder binders matchItem
     binderPos = getMatchedBinderPosition binders matchItem
     monadicArgRhs = switchNonMonadicArgumentsFromTerm rhs (filter (not . eqQId matchedBinder) (map (termToQId . getBinderName) binders)) cMonad
-    monadicRhs = addReturnToMatch (addBindOperatorToEquationInMatch monadicArgRhs (nameToQId name) binderPos cMonad) typeSigs bindersWithInferredTypes
+    monadicRhs = addReturnToRhs (addBindOperatorToEquationInMatch monadicArgRhs (nameToQId name) binderPos cMonad) typeSigs bindersWithInferredTypes
 
 
 convertMatchToHelperFunction :: Show l => Name l -> [G.Binder] -> G.Term -> [G.TypeSignature] -> [G.Name] -> ConversionMonad -> G.Definition

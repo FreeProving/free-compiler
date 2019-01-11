@@ -138,6 +138,18 @@ getBinderByQId (x : xs) qId =
     then Just x
     else getBinderByQId xs qId
 
+getPatternFromMultPattern :: G.MultPattern -> [G.Pattern]
+getPatternFromMultPattern (G.MultPattern pattern) =
+  nonEmptyListToList pattern
+
+getQIdsFromPattern :: G.Pattern -> [G.Qualid]
+getQIdsFromPattern (G.ArgsPat _ pats) =
+  concatMap getQIdsFromPattern pats
+getQIdsFromPattern (G.QualidPat qId) =
+  [qId]
+getQIdsFromPattern pat =
+  []
+
 ---------------------- Bool Functions
 isCoqType :: G.Name -> Bool
 isCoqType name =
@@ -387,6 +399,8 @@ qNameToTypeTerm qName =
 qNameToBinder :: Show l => QName l -> G.Binder
 qNameToBinder qName =
   G.Inferred G.Explicit (qNameToGName qName)
+
+
 
 ---------------------- gName conversion functions (Coq AST)
 gNameToTerm :: G.Name -> G.Term
