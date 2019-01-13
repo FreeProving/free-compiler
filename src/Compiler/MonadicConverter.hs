@@ -19,7 +19,7 @@ addBindOperatorsToDefinition (x : xs) term =
     (toNonemptyList [G.PosArg argumentName, G.PosArg lambdaFun])
   where
     argumentName = getBinderName x
-    lambdaFun = G.Fun (singleton $ removeMonadFromBinder x) (addBindOperatorsToDefinition xs term )
+    lambdaFun = G.Fun (singleton (removeMonadFromBinder x)) (addBindOperatorsToDefinition xs term )
 
 ---------------------- Add Return Operator if rhs isn't already monadic
 addReturnToRhs :: G.Term -> [G.TypeSignature] -> [G.Binder] -> G.Term
@@ -36,20 +36,21 @@ addReturnToEquation :: G.Equation -> [G.TypeSignature] -> [G.Binder] -> [G.Quali
 addReturnToEquation (G.Equation multPats rhs) typeSigs binders prevPatNames =
   G.Equation multPats (addReturnToTerm rhs typeSigs binders patNames)
   where
-    pattern = concatMap getPatternFromMultPattern (nonEmptyListToList multPats)
-    patNames = prevPatNames ++ concatMap getQIdsFromPattern pattern
+    pats = concatMap getPatternFromMultPattern (nonEmptyListToList multPats)
+    patNames = prevPatNames ++ concatMap getQIdsFromPattern pats
 
 addReturnToTerm :: G.Term -> [G.TypeSignature] -> [G.Binder] -> [G.Qualid] -> G.Term
-addReturnToTerm (G.App constr args) typeSigs binders patNames =
-  if isMonadicTerm constr || isMonadicFunctionCall constr typeSigs || isMonadicBinder constr binders
-    then G.App constr fixedArgs
-    else if qualidIsOp (termToQId constr)
-      then toReturnTerm $ G.App constr args
-      else toReturnTerm $ G.App constr fixedArgs
+addReturnToTerm (G.App constr args) typeSigs binders patNames
+  | isMonadicTerm constr || isMonadicFunctionCall constr typeSigs || isMonadicBinder constr binders =
+      G.App constr fixedArgs
+  | qualidIsOp (termToQId constr) =
+      toReturnTerm (G.App constr args)
+  | otherwise =
+      toReturnTerm (G.App constr fixedArgs)
   where
     fixedArgs = toNonemptyList (addReturnToArgs (nonEmptyListToList args) typeSigs binders patNames)
 addReturnToTerm (G.Parens term) typeSigs binders patNames =
-  G.Parens $ addReturnToTerm term typeSigs binders patNames
+  G.Parens (addReturnToTerm term typeSigs binders patNames)
 addReturnToTerm term typeSigs binders patNames =
   if isMonadicTerm term || isMonadicFunctionCall term typeSigs
       || isMonadicBinder term binders || isPatName term patNames
@@ -147,8 +148,8 @@ fromMonadicTerm term =
   term
 ---------------------- Bool Functions
 isPatName :: G.Term -> [G.Qualid] -> Bool
-isPatName (G.Qualid qId) patNames =
-  any (eqQId qId) patNames
+isPatName (G.Qualid qId) =
+  any (eqQId qId)
 
 isMonadicTerm :: G.Term -> Bool
 isMonadicTerm (G.App term _ ) =
@@ -158,7 +159,7 @@ isMonadicTerm term =
 
 isMonad :: G.Term -> Bool
 isMonad (G.Qualid qId) =
-  any (eqQId qId) $ map strToQId ["option", "identity", "return_"]
+  any (eqQId qId) (map strToQId ["option", "identity", "return_"])
 
 predefinedMonadicFunctions :: [G.Qualid]
 predefinedMonadicFunctions =

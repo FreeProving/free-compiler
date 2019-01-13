@@ -19,6 +19,19 @@ cabal-version:       >=1.10
 
 executable haskellToCoqCompiler
   main-is:            Main.hs
+  other-modules:      Compiler.Converter
+                      , Compiler.FueledFunctions
+                      , Compiler.HelperFunctionConverter
+                      , Compiler.HelperFunctions
+                      , Compiler.MonadicConverter
+                      , Compiler.Types
+                      , Language.Coq.Gallina
+                      , Language.Coq.Pretty
+                      , Language.Coq.PrettyPrint
+                      , Language.Coq.InfixNames
+                      , Language.Coq.Util
+                      , Language.Coq.Util.Function
+                      , Language.Haskell.Monad
   build-depends:      text ==1.2.*
                       , haskell-src-exts ==1.20.*
                       , base >=4.11 && <4.12

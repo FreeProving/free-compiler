@@ -12,18 +12,18 @@ import Data.Maybe
 
 convertMatchToMainFunction :: Show l => Name l -> [G.Binder] -> G.Term -> [G.TypeSignature] -> [G.Name] -> ConversionMonad -> G.Fixpoint
 convertMatchToMainFunction name binders rhs typeSigs dataNames cMonad =
-  G.Fixpoint (singleton $ G.FixBody funName
+  G.Fixpoint (singleton (G.FixBody funName
     (toNonemptyList bindersWithInferredTypes)
       Nothing
-        (Just $ transformTermMonadic (getReturnType typeSig) cMonad)
-          monadicRhs) []
+        (Just (transformTermMonadic (getReturnType typeSig) cMonad))
+          monadicRhs)) []
   where
-    typeSig = fromJust $ getTypeSignatureByName typeSigs name
+    typeSig = fromJust (getTypeSignatureByName typeSigs name)
     funName = addSuffixToName name
     monadicBinders = transformBindersMonadic binders cMonad
     bindersWithInferredTypes = makeMatchedArgNonMonadic (addInferredTypesToSignature monadicBinders dataNames) (binderPos + 1)
     matchItem = getMatchedArgumentFromRhs rhs
-    matchedBinder = termToQId $ getBinderName $ getMatchedBinder binders matchItem
+    matchedBinder = termToQId (getBinderName (getMatchedBinder binders matchItem))
     binderPos = getMatchedBinderPosition binders matchItem
     monadicArgRhs = switchNonMonadicArgumentsFromTerm rhs (filter (not . eqQId matchedBinder) (map (termToQId . getBinderName) binders)) cMonad
     monadicRhs = addReturnToRhs (addBindOperatorToEquationInMatch monadicArgRhs (nameToQId name) binderPos cMonad) typeSigs bindersWithInferredTypes
@@ -34,10 +34,10 @@ convertMatchToHelperFunction name binders rhs typeSigs dataNames cMonad =
   G.DefinitionDef G.Global
     funName
       bindersWithInferredTypes
-        (Just $ transformTermMonadic (getReturnType typeSig) cMonad)
+        (Just (transformTermMonadic (getReturnType typeSig) cMonad))
           rhsWithBind
   where
-    typeSig = fromJust $ getTypeSignatureByName typeSigs name
+    typeSig = fromJust (getTypeSignatureByName typeSigs name)
     funName = nameToQId name
     monadicBinders = transformBindersMonadic binders cMonad
     bindersWithInferredTypes = addInferredTypesToSignature monadicBinders dataNames
@@ -53,8 +53,8 @@ addBindOperatorToMainFunction binder rhs =
   G.App bindOperator
     (toNonemptyList [argumentName, lambdaFun])
   where
-    argumentName = G.PosArg $ getBinderName binder
-    lambdaFun = G.PosArg $ G.Fun (singleton $ removeMonadFromBinder binder) rhs
+    argumentName = G.PosArg (getBinderName binder)
+    lambdaFun = G.PosArg (G.Fun (singleton (removeMonadFromBinder binder)) rhs)
 
 addBindOperatorToEquationInMatch :: G.Term -> G.Qualid -> Int -> ConversionMonad -> G.Term
 addBindOperatorToEquationInMatch (G.Match mItem retType equations) funName pos m =
@@ -64,7 +64,7 @@ addBindOperatorToEquationInMatch (G.Match mItem retType equations) funName pos m
 addBindOperatorToEquation :: G.Equation -> G.Qualid -> Int -> ConversionMonad -> G.Equation
 addBindOperatorToEquation (G.Equation multPats rhs) funName pos m =
   if containsRecursiveCall rhs funName
-    then G.Equation (toNonemptyList $ makeDecrArgumentMonadicInMultPats (nonEmptyListToList multPats) decrArgument m)
+    then G.Equation (toNonemptyList (makeDecrArgumentMonadicInMultPats (nonEmptyListToList multPats) decrArgument m))
           (addBindOperatorToRecursiveCall rhs funName pos m)
     else G.Equation multPats rhs
   where
@@ -76,14 +76,14 @@ addBindOperatorToRecursiveCall (G.App constr args) funName pos m =
     then G.App bindOperator (toNonemptyList [ monadicArgument, lambdaFun])
     else G.App constr (toNonemptyList checkedArgs)
   where
-    monadicArgument = G.PosArg $ G.Qualid (addMonadicPrefixToQId m decrArgument)
-    lambdaFun = G.PosArg $ G.Fun (singleton $ G.Inferred G.Explicit (qIdToGName decrArgument)) recCall
+    monadicArgument = G.PosArg (G.Qualid (addMonadicPrefixToQId m decrArgument))
+    lambdaFun = G.PosArg (G.Fun (singleton (G.Inferred G.Explicit (qIdToGName decrArgument))) recCall)
     recCall = G.App (addSuffixToTerm constr) args
-    decrArgument = termToQId $ argToTerm $ nonEmptyListToList args !! pos
-    termList = convertArgumentsToTerms $ nonEmptyListToList args
+    decrArgument = termToQId (argToTerm (nonEmptyListToList args !! pos))
+    termList = convertArgumentsToTerms (nonEmptyListToList args)
     checkedArgs = convertTermsToArguments [addBindOperatorToRecursiveCall t funName pos m| t <- termList]
 addBindOperatorToRecursiveCall (G.Parens term) funName pos m =
-  G.Parens $ addBindOperatorToRecursiveCall term funName pos m
+  G.Parens (addBindOperatorToRecursiveCall term funName pos m)
 addBindOperatorToRecursiveCall term _ _ _ =
   term
 
@@ -94,14 +94,14 @@ getDecrArgumentFromRecursiveCall (G.App constr args) funName pos =
     else head (filter isJust [getDecrArgumentFromRecursiveCall t funName pos | t <- termList])
   where
     termList = convertArgumentsToTerms (nonEmptyListToList args)
-    decrArgument = termToQId $ argToTerm $ nonEmptyListToList args !! pos
+    decrArgument = termToQId (argToTerm (nonEmptyListToList args !! pos))
 getDecrArgumentFromRecursiveCall (G.Parens term) funName pos =
   getDecrArgumentFromRecursiveCall term funName pos
 getDecrArgumentFromRecursiveCall _ _ _ = Nothing
 
 makeDecrArgumentMonadicInMultPats :: [G.MultPattern] -> Maybe G.Qualid -> ConversionMonad -> [G.MultPattern]
 makeDecrArgumentMonadicInMultPats [G.MultPattern nEPats] (Just decrArgument) m =
-  [G.MultPattern $ toNonemptyList $ makeDecrArgumentMonadicInPats pats decrArgument m]
+  [G.MultPattern (toNonemptyList (makeDecrArgumentMonadicInPats pats decrArgument m))]
   where
     pats = nonEmptyListToList nEPats
 
@@ -143,11 +143,11 @@ makeMatchedArgNonMonadic' [] _ _ = []
 
 addSuffixToName :: Show l => Name l -> G.Qualid
 addSuffixToName name =
-  strToQId $ nameToStr name ++ "'"
+  strToQId (nameToStr name ++ "'")
 
 addSuffixToTerm :: G.Term -> G.Term
 addSuffixToTerm (G.Qualid qId) =
-  G.Qualid $ strToQId (qIdToStr qId ++ "'")
+  G.Qualid (strToQId (qIdToStr qId ++ "'"))
 
 getMatchedBinder :: [G.Binder] -> G.Term -> G.Binder
 getMatchedBinder (b : bs) matchItem =
@@ -168,7 +168,7 @@ switchNonMonadicArgumentsFromTerm (G.App constr args) binders m =
   G.App (switchNonMonadicArgumentsFromTerm constr binders m)
     (toNonemptyList [(\(G.PosArg term) -> G.PosArg (switchNonMonadicArgumentsFromTerm term binders m)) a | a <- nonEmptyListToList args])
 switchNonMonadicArgumentsFromTerm (G.Parens term) binders m =
-  G.Parens $ switchNonMonadicArgumentsFromTerm term binders m
+  G.Parens (switchNonMonadicArgumentsFromTerm term binders m)
 switchNonMonadicArgumentsFromTerm (G.Qualid qId) binders m =
   if any (eqQId qId) binders
     then G.Qualid (addMonadicPrefixToQId m qId)

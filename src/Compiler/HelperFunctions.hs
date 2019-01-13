@@ -8,6 +8,7 @@ import qualified Data.Text as T
 
 import qualified GHC.Base as B
 import Data.Maybe (isJust)
+import Data.List (nub)
 
 
 ---------------------- NonemptyList Conversions
@@ -134,13 +135,13 @@ getBinderByQId :: [G.Binder] -> G.Qualid -> Maybe G.Binder
 getBinderByQId [] _ =
   Nothing
 getBinderByQId (x : xs) qId =
-  if eqQId qId (termToQId $ getBinderName x)
+  if eqQId qId (termToQId (getBinderName x))
     then Just x
     else getBinderByQId xs qId
 
 getPatternFromMultPattern :: G.MultPattern -> [G.Pattern]
-getPatternFromMultPattern (G.MultPattern pattern) =
-  nonEmptyListToList pattern
+getPatternFromMultPattern (G.MultPattern pats) =
+  nonEmptyListToList pats
 
 getQIdsFromPattern :: G.Pattern -> [G.Qualid]
 getQIdsFromPattern (G.ArgsPat _ pats) =
@@ -233,15 +234,9 @@ typeNameEqName (G.TypeSignature sigName _ ) =
 
 typeNameEqQId :: G.TypeSignature -> G.Qualid -> Bool
 typeNameEqQId (G.TypeSignature sigName _ ) =
-  eqQId $ gNameToQId sigName
+  eqQId (gNameToQId sigName)
 
 ---------------------- various helper functions
-
-unique :: Eq a => [a] -> [a]
-unique []       =
-  []
-unique (x : xs) =
-  x : unique (filter (x /=) xs)
 
 filterEachElement :: [a] -> (a -> a -> Bool) -> [a] -> [a]
 filterEachElement [] f list =
@@ -262,18 +257,18 @@ addInferredTypesToSignature binders dataNames =
     then binders
     else G.Typed G.Ungeneralizable G.Explicit (toNonemptyList filteredTypeNames) typeTerm : binders
   where
-    filteredTypeNames = unique $ filterEachElement dataNames dataTypeUneqGName (filter isCoqType typeNames)
+    filteredTypeNames = nub (filterEachElement dataNames dataTypeUneqGName (filter isCoqType typeNames))
     typeNames = concatMap getTypeNamesFromTerm typeTerms
     typeTerms = map getBinderType binders
-    consNames = unique (map getConstrNameFromType typeTerms)
+    consNames = nub (map getConstrNameFromType typeTerms)
 
 convertArgumentsToTerms :: [G.Arg] -> [G.Term]
 convertArgumentsToTerms args =
-  [(\(G.PosArg x) -> x) a |a <- args ]
+  map argToTerm args
 
 convertTermsToArguments :: [G.Term] -> [G.Arg]
 convertTermsToArguments terms =
-  [G.PosArg t | t <- terms]
+  map G.PosArg terms
 
 collapseApp :: G.Term -> G.Term
 collapseApp (G.App term args) =

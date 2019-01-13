@@ -39,7 +39,7 @@ convertFueledTerm :: G.Term -> [G.Binder] -> G.Qualid -> [G.TypeSignature] -> G.
 convertFueledTerm (G.Match item rType equations) funBinders funName typeSigs =
   convertFueledFunBody (G.Match item rType equations) funBinders funName typeSigs
 convertFueledTerm (G.Parens term) funBinders funName typeSigs =
-  G.Parens $ convertFueledTerm term funBinders funName typeSigs
+  G.Parens (convertFueledTerm term funBinders funName typeSigs)
 convertFueledTerm (G.Qualid qId) funBinders funName typeSigs =
   G.Qualid qId
 convertFueledTerm (G.App constr args) funBinders funName typeSigs =

@@ -37,8 +37,8 @@ argSentence =
 optionReturnDefinition :: G.Definition
 optionReturnDefinition = G.DefinitionDef G.Global (strToQId "return_") binders (Just retTerm) rhs
   where
-    retTerm = G.Arrow aTerm (G.App (G.Qualid $ strToQId "option") (singleton $ G.PosArg aTerm))
-    binders = [G.Typed G.Ungeneralizable G.Explicit (singleton $ strToGName "A") typeTerm]
+    retTerm = G.Arrow aTerm (G.App (G.Qualid (strToQId "option")) (singleton (G.PosArg aTerm)))
+    binders = [G.Typed G.Ungeneralizable G.Explicit (singleton (strToGName "A")) typeTerm]
     aTerm = G.Qualid (strToQId "A")
     rhs = G.Qualid (strToQId "Some")
 
@@ -48,15 +48,15 @@ optionBindDefinition = G.DefinitionDef G.Global (strToQId "bind_") binders (Just
     binders = [G.Typed G.Ungeneralizable G.Explicit (toNonemptyList [strToGName "A", strToGName "B"] ) typeTerm,
                G.Typed G.Ungeneralizable G.Explicit (singleton (strToGName "m")) optionATerm,
                G.Typed G.Ungeneralizable G.Explicit (singleton (strToGName "f")) (G.Arrow aTerm retTerm)]
-    retTerm = G.App (G.Qualid $ strToQId "option") (singleton $ G.PosArg bTerm)
-    rhs = G.Match (singleton $ G.MatchItem mTerm Nothing Nothing) Nothing equations
-    equations = [G.Equation (singleton (G.MultPattern (singleton (G.QualidPat (strToQId "None"))))) (G.Qualid $ strToQId "None"),
-                 G.Equation (singleton (G.MultPattern (singleton (G.ArgsPat (strToQId "Some") [G.QualidPat $ strToQId "A"])))) (G.App fTerm (singleton $ G.PosArg aTerm))]
-    aTerm = G.Qualid $ strToQId "A"
-    bTerm = G.Qualid $ strToQId "B"
-    mTerm = G.Qualid $ strToQId "m"
-    fTerm = G.Qualid $ strToQId "f"
-    optionATerm = G.App (G.Qualid $ strToQId "option") (singleton $ G.PosArg aTerm)
+    retTerm = G.App (G.Qualid (strToQId "option")) (singleton (G.PosArg bTerm))
+    rhs = G.Match (singleton (G.MatchItem mTerm Nothing Nothing)) Nothing equations
+    equations = [G.Equation (singleton (G.MultPattern (singleton (G.QualidPat (strToQId "None"))))) (G.Qualid (strToQId "None")),
+                 G.Equation (singleton (G.MultPattern (singleton (G.ArgsPat (strToQId "Some") [G.QualidPat (strToQId "A")])))) (G.App fTerm (singleton (G.PosArg aTerm)))]
+    aTerm = G.Qualid (strToQId "A")
+    bTerm = G.Qualid (strToQId "B")
+    mTerm = G.Qualid (strToQId "m")
+    fTerm = G.Qualid (strToQId "f")
+    optionATerm = G.App (G.Qualid (strToQId "option")) (singleton (G.PosArg aTerm))
 
 
 bindNotation :: G.Notation
@@ -76,21 +76,21 @@ singletonDefinition =
         Nothing
           (toReturnTerm rhs)
   where
-    rhs = G.App (G.Qualid (strToQId "Cons")) (toNonemptyList [G.PosArg $ G.Qualid $ strToQId "ox",
-            G.PosArg $ toReturnTerm $ G.Qualid $ strToQId "Nil"])
-    aTerm = G.Qualid $ strToQId "a"
+    rhs = G.App (G.Qualid (strToQId "Cons")) (toNonemptyList [G.PosArg (G.Qualid (strToQId "ox")),
+            G.PosArg ((toReturnTerm (G.Qualid (strToQId "Nil"))))])
+    aTerm = G.Qualid (strToQId "a")
 
 listType :: G.Inductive
 listType =
-  G.Inductive (singleton $ G.IndBody (strToQId "List")
+  G.Inductive (singleton (G.IndBody (strToQId "List")
     [G.Typed G.Ungeneralizable G.Explicit (singleton (strToGName "a")) typeTerm ]
       typeTerm
         [(strToQId "Nil", [], Just listTerm),
-        (strToQId "Cons", [], Just arrowTerm)]) []
+        (strToQId "Cons", [], Just arrowTerm)])) []
   where
-    listTerm = G.App (G.Qualid $ strToQId "List") (singleton $ G.PosArg $ G.Qualid $ strToQId "a")
+    listTerm = G.App (G.Qualid (strToQId "List")) (singleton (G.PosArg (G.Qualid (strToQId "a"))))
     arrowTerm = G.Arrow aTerm (G.Arrow (toOptionTerm listTerm) listTerm)
-    aTerm = toOptionTerm $ G.Qualid $ strToQId "a"
+    aTerm = toOptionTerm (G.Qualid (strToQId "a"))
 
 arguments :: G.Arguments
 arguments =

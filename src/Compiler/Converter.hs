@@ -52,7 +52,7 @@ importDefinitions :: [G.Sentence]
 importDefinitions =
   [stringImport]
   where
-    stringImport = G.ModuleSentence $ G.Require Nothing (Just G.Import) (singleton $ T.pack "String")
+    stringImport = G.ModuleSentence (G.Require Nothing (Just G.Import) (singleton ( T.pack "String")))
 
 convertModuleDecls :: Show l => [Decl l] -> [G.TypeSignature] -> [G.Name] -> ConversionMonad -> ConversionMode -> [G.Sentence]
 convertModuleDecls (FunBind _ (x : xs) : ds) typeSigs dataNames cMonad cMode =
@@ -83,7 +83,7 @@ convertArgumentSpec declHead =
 
 convertDataTypeDecl :: Show l => DeclHead l -> [QualConDecl l] -> ConversionMonad -> G.Inductive
 convertDataTypeDecl dHead qConDecl cMonad =
-  G.Inductive (singleton $ G.IndBody typeName binders typeTerm constrDecls) []
+  G.Inductive (singleton (G.IndBody typeName binders typeTerm constrDecls)) []
     where
       typeName = applyToDeclHead dHead nameToQId
       binders = applyToDeclHeadTyVarBinds dHead convertTyVarBindToBinder
@@ -93,39 +93,39 @@ convertDataTypeDecl dHead qConDecl cMonad =
                           cMonad
 
 convertMatchDef :: Show l => Match l -> [G.TypeSignature] -> [G.Name] -> ConversionMonad -> ConversionMode -> [G.Sentence]
-convertMatchDef (Match _ name (p : ps) rhs _) typeSigs dataNames cMonad cMode =
+convertMatchDef (Match _ name mPats rhs _) typeSigs dataNames cMonad cMode =
     if isRecursive name rhs
       then if cMode == FueledFunction
-            then [G.FixpointSentence (convertMatchToFueledFixpoint name (p : ps) rhs typeSigs dataNames cMonad)]
-            else convertMatchWithHelperFunction name (p :ps) rhs typeSigs dataNames cMonad
-      else [G.DefinitionSentence (convertMatchToDefinition name (p : ps) rhs typeSigs dataNames cMonad)]
+            then [G.FixpointSentence (convertMatchToFueledFixpoint name mPats rhs typeSigs dataNames cMonad)]
+            else convertMatchWithHelperFunction name mPats rhs typeSigs dataNames cMonad
+      else [G.DefinitionSentence (convertMatchToDefinition name mPats rhs typeSigs dataNames cMonad)]
 
 
 convertMatchToDefinition :: Show l => Name l -> [Pat l] -> Rhs l -> [G.TypeSignature] -> [G.Name] -> ConversionMonad -> G.Definition
-convertMatchToDefinition name (p : ps) rhs typeSigs dataNames cMonad =
+convertMatchToDefinition name pats rhs typeSigs dataNames cMonad =
   G.DefinitionDef G.Global (nameToQId name)
     bindersWithInferredTypes
       (convertReturnType typeSig cMonad)
         monadicTerm
   where
     typeSig = getTypeSignatureByName typeSigs name
-    binders = convertPatsToBinders (p : ps) typeSig
+    binders = convertPatsToBinders pats typeSig
     monadicBinders = transformBindersMonadic binders cMonad
     bindersWithInferredTypes = addInferredTypesToSignature monadicBinders dataNames
     rhsTerm = convertRhsToTerm rhs
     monadicTerm = addBindOperatorsToDefinition monadicBinders (addReturnToRhs rhsTerm typeSigs monadicBinders)
 
 convertMatchToFueledFixpoint :: Show l => Name l -> [Pat l] -> Rhs l -> [G.TypeSignature] -> [G.Name] -> ConversionMonad -> G.Fixpoint
-convertMatchToFueledFixpoint name (p : ps) rhs typeSigs dataNames cMonad =
- G.Fixpoint (singleton $ G.FixBody funName
+convertMatchToFueledFixpoint name pats rhs typeSigs dataNames cMonad =
+ G.Fixpoint (singleton (G.FixBody funName
     (toNonemptyList bindersWithFuel)
       Nothing
-        (Just $ transformTermMonadic (getReturnType typeSig) cMonad)
-          fueledRhs) []
+        (Just (transformTermMonadic (getReturnType typeSig) cMonad))
+          fueledRhs)) []
   where
-    typeSig = fromJust $ getTypeSignatureByName typeSigs name
+    typeSig = fromJust (getTypeSignatureByName typeSigs name)
     funName = nameToQId name
-    binders = convertPatsToBinders (p : ps) (Just typeSig)
+    binders = convertPatsToBinders pats (Just typeSig)
     monadicBinders = transformBindersMonadic binders cMonad
     bindersWithFuel = addFuelBinder bindersWithInferredTypes
     bindersWithInferredTypes = addInferredTypesToSignature monadicBinders dataNames
@@ -137,12 +137,12 @@ convertMatchToFueledFixpoint name (p : ps) rhs typeSigs dataNames cMonad =
 
 
 convertMatchWithHelperFunction :: Show l => Name l -> [Pat l] -> Rhs l -> [G.TypeSignature] -> [G.Name] -> ConversionMonad -> [G.Sentence]
-convertMatchWithHelperFunction name (p : ps) rhs typeSigs dataNames cMonad =
-  [G.FixpointSentence $ convertMatchToMainFunction name binders rhsTerm typeSigs dataNames cMonad,
-    G.DefinitionSentence $ convertMatchToHelperFunction name binders rhsTerm typeSigs dataNames cMonad]
+convertMatchWithHelperFunction name pats rhs typeSigs dataNames cMonad =
+  [G.FixpointSentence (convertMatchToMainFunction name binders rhsTerm typeSigs dataNames cMonad),
+    G.DefinitionSentence (convertMatchToHelperFunction name binders rhsTerm typeSigs dataNames cMonad)]
   where
     rhsTerm = convertRhsToTerm rhs
-    binders = convertPatsToBinders (p : ps) typeSig
+    binders = convertPatsToBinders pats typeSig
     typeSig = getTypeSignatureByName typeSigs name
 
 
@@ -156,7 +156,7 @@ convertTyVarBindToBinder :: Show l => TyVarBind l -> G.Binder
 convertTyVarBindToBinder (KindedVar _ name kind) =
   error "Kind-annotation not implemented"
 convertTyVarBindToBinder (UnkindedVar _ name) =
-  G.Typed G.Ungeneralizable G.Explicit (singleton $ nameToGName name) typeTerm
+  G.Typed G.Ungeneralizable G.Explicit (singleton (nameToGName name)) typeTerm
 
 convertTyVarBindToArg :: Show l => TyVarBind l -> G.Arg
 convertTyVarBindToArg (KindedVar _ name kind) =
@@ -195,7 +195,7 @@ convertTypeToMonadicTerm cMonad (TyVar _ name)  =
 convertTypeToMonadicTerm cMonad (TyCon _ qName)  =
   transformTermMonadic (qNameToTypeTerm qName) cMonad
 convertTypeToMonadicTerm cMonad (TyParen _ ty)  =
-  transformTermMonadic (G.Parens $ convertTypeToTerm ty) cMonad
+  transformTermMonadic (G.Parens (convertTypeToTerm ty)) cMonad
 convertTypeToMonadicTerm _ ty =
   convertTypeToTerm ty
 
@@ -207,7 +207,7 @@ convertTypeToTerm (TyCon _ qName) =
 convertTypeToTerm (TyParen _ ty) =
   G.Parens (convertTypeToTerm ty)
 convertTypeToTerm (TyApp _ type1 type2) =
-  G.App (convertTypeToTerm type1) (singleton $ convertTypeToArg type2)
+  G.App (convertTypeToTerm type1) (singleton (convertTypeToArg type2))
 convertTypeToTerm ty =
   error ("Haskell-type not implemented: " ++ show ty )
 
@@ -242,7 +242,7 @@ convertPatsAndTypeSigsToBinders =
 
 convertPatAndTypeSigToBinder :: Show l => Pat l -> G.Term -> G.Binder
 convertPatAndTypeSigToBinder (PVar _ name) term =
-  G.Typed G.Ungeneralizable G.Explicit (singleton $ nameToGName name) term
+  G.Typed G.Ungeneralizable G.Explicit (singleton (nameToGName name)) term
 convertPatAndTypeSigToBinder pat _ =
   error ("Haskell pattern not implemented: " ++ show pat)
 
@@ -260,12 +260,12 @@ convertExprToTerm (Con _ qName) =
 convertExprToTerm (Paren _ expr) =
   G.Parens (convertExprToTerm expr)
 convertExprToTerm (App _ expr1 expr2) =
-  G.App (convertExprToTerm expr1) (singleton $ G.PosArg $ convertExprToTerm expr2)
+  G.App (convertExprToTerm expr1) (singleton (G.PosArg (convertExprToTerm expr2)))
 convertExprToTerm (InfixApp _ exprL qOp exprR) =
   G.App (G.Qualid (qOpToQId qOp))
     (toNonemptyList [G.PosArg (convertExprToTerm exprL), G.PosArg (convertExprToTerm exprR)])
 convertExprToTerm (Case _ expr altList) =
-  G.Match (singleton $ G.MatchItem (convertExprToTerm expr)  Nothing Nothing)
+  G.Match (singleton ( G.MatchItem (convertExprToTerm expr)  Nothing Nothing))
     Nothing
       (convertAltListToEquationList altList)
 convertExprToTerm expr =
@@ -278,7 +278,7 @@ convertAltListToEquationList altList =
 
 convertAltToEquation :: Show l => Alt l -> G.Equation
 convertAltToEquation (Alt _ pat rhs _) =
-  G.Equation (singleton $ G.MultPattern (singleton $ convertHPatToGPat pat)) (convertRhsToTerm rhs)
+  G.Equation (singleton (G.MultPattern (singleton ( convertHPatToGPat pat)))) (convertRhsToTerm rhs)
 
 convertHPatListToGPatList :: Show l => [Pat l] -> [G.Pattern]
 convertHPatListToGPatList patList =
@@ -310,4 +310,4 @@ isRecursive name rhs =
 --print the converted module
 printCoqAST :: G.LocalModule -> IO ()
 printCoqAST x =
-  putDoc $ renderGallina x
+  putDoc (renderGallina x)
