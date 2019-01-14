@@ -28,28 +28,29 @@ addFuelMatching :: G.Term -> G.Qualid -> G.Term
 addFuelMatching  =
   fuelPattern (G.Qualid (strToQId "None"))
 
-convertFueledFunBody :: G.Term -> [G.Binder] -> G.Qualid -> [G.TypeSignature] -> G.Term
-convertFueledFunBody (G.Match item rType equations) funBinders funName typeSigs =
-  G.Match item rType [convertFueledEquation e funBinders funName typeSigs | e <- equations]
+convertFueledFunBody :: G.Term -> [G.Binder] -> G.Qualid -> [G.TypeSignature] -> [G.Qualid] -> G.Term
+convertFueledFunBody (G.Match item rType equations) funBinders funName typeSigs recursiveFuns =
+  G.Match item rType [convertFueledEquation e funBinders funName typeSigs recursiveFuns | e <- equations]
 
-convertFueledEquation ::  G.Equation -> [G.Binder] -> G.Qualid -> [G.TypeSignature] -> G.Equation
-convertFueledEquation (G.Equation multPats rhs) funBinders funName typeSigs =
-  G.Equation multPats (convertFueledTerm rhs funBinders funName typeSigs)
+convertFueledEquation ::  G.Equation -> [G.Binder] -> G.Qualid -> [G.TypeSignature] -> [G.Qualid] -> G.Equation
+convertFueledEquation (G.Equation multPats rhs) funBinders funName typeSigs recursiveFuns =
+  G.Equation multPats (convertFueledTerm rhs funBinders funName typeSigs recursiveFuns)
 
-convertFueledTerm :: G.Term -> [G.Binder] -> G.Qualid -> [G.TypeSignature] -> G.Term
-convertFueledTerm (G.Match item rType equations) funBinders funName typeSigs =
-  convertFueledFunBody (G.Match item rType equations) funBinders funName typeSigs
-convertFueledTerm (G.Parens term) funBinders funName typeSigs =
-  G.Parens (convertFueledTerm term funBinders funName typeSigs)
-convertFueledTerm (G.Qualid qId) funBinders funName typeSigs =
+convertFueledTerm :: G.Term -> [G.Binder] -> G.Qualid -> [G.TypeSignature] -> [G.Qualid] -> G.Term
+convertFueledTerm (G.Match item rType equations) funBinders funName typeSigs recursiveFuns =
+  convertFueledFunBody (G.Match item rType equations) funBinders funName typeSigs recursiveFuns
+convertFueledTerm (G.Parens term) funBinders funName typeSigs recursiveFuns =
+  G.Parens (convertFueledTerm term funBinders funName typeSigs recursiveFuns)
+convertFueledTerm (G.Qualid qId) funBinders funName typeSigs recursiveFuns =
   G.Qualid qId
-convertFueledTerm (G.App constr args) funBinders funName typeSigs =
+convertFueledTerm (G.App constr args) funBinders funName typeSigs recursiveFuns =
   if isQualidTerm constr
-    then if containsRecursiveCall constr funName || isRecursiveFunction constr typeSigs
+    then if containsRecursiveCall constr funName || isFunctionCall constr typeSigs
+              && any (eqQId (termToQId constr)) recursiveFuns
             then G.App constr convertedFueledArgs
             else G.App constr (toNonemptyList convertedArgs)
-    else G.App (convertFueledTerm constr funBinders funName typeSigs) (toNonemptyList convertedArgs)
-  where convertedArgs = convertTermsToArguments [convertFueledTerm t funBinders funName typeSigs |
+    else G.App (convertFueledTerm constr funBinders funName typeSigs recursiveFuns) (toNonemptyList convertedArgs)
+  where convertedArgs = convertTermsToArguments [convertFueledTerm t funBinders funName typeSigs recursiveFuns |
                           t <- convertArgumentsToTerms (fromNonEmptyList args)]
         convertedFueledArgs = addDecrFuelArgument (toNonemptyList convertedArgs)
 

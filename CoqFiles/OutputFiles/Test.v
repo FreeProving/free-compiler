@@ -88,5 +88,17 @@ Fixpoint concat_ (fuel : nat) (a : Type) (oxs : option (List (List a))) : option
                      end)
               end. 
  
+Fixpoint length' (fuel : nat) (a : Type) (oxs : option (List a)) : option nat
+           := match fuel with
+              | O => None
+              | S rFuel =>
+                  oxs >>=
+                  (fun (xs : List a) =>
+                     match xs with
+                     | Nil => return_ (0)
+                     | Cons y ys => plus (return_ (1)) (length' rFuel ys)
+                     end)
+              end. 
+ 
 End Test.
  

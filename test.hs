@@ -55,3 +55,8 @@ concat_ :: List (List a) -> List a
 concat_ xs = case xs of
   Nil -> Nil
   Cons y ys -> append y (concat_ ys)
+
+length' :: List a -> Int
+length' xs = case xs of
+      Nil -> 0
+      Cons y ys -> plus 1 (length' ys)

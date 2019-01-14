@@ -181,8 +181,8 @@ containsRecursiveCall (G.Qualid qId) funName =
   eqQId qId funName
 containsRecursiveCall _ _ = False
 
-isRecursiveFunction :: G.Term -> [G.TypeSignature] -> Bool
-isRecursiveFunction (G.Qualid qId) typeSigs =
+isFunctionCall :: G.Term -> [G.TypeSignature] -> Bool
+isFunctionCall (G.Qualid qId) typeSigs =
   isJust (getTypeSignatureByQId typeSigs qId)
 
 
