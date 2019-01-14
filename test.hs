@@ -55,7 +55,3 @@ concat_ :: List (List a) -> List a
 concat_ xs = case xs of
   Nil -> Nil
   Cons y ys -> append y (concat_ ys)
-
-data List a =
-  Nil
-  | Cons a (List a)

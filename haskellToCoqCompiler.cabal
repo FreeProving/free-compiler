@@ -31,7 +31,6 @@ executable haskellToCoqCompiler
                       , Language.Coq.InfixNames
                       , Language.Coq.Util
                       , Language.Coq.Util.Function
-                      , Language.Haskell.Monad
   build-depends:      text ==1.2.*
                       , haskell-src-exts ==1.20.*
                       , base >=4.11 && <4.12

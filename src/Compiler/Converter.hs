@@ -3,7 +3,6 @@ module Compiler.Converter where
 import Language.Haskell.Exts.Syntax
 import qualified Language.Coq.Gallina as G
 import Language.Coq.Pretty
-import Language.Haskell.Monad
 import Text.PrettyPrint.Leijen.Text
 
 import Compiler.HelperFunctions
@@ -15,34 +14,29 @@ import Compiler.Types
 import qualified GHC.Base as B
 
 import qualified Data.Text as T
+import qualified Data.Text.Lazy as TL
+import qualified Text.PrettyPrint.Leijen.Text (displayT, renderPretty)
 import Data.List (partition)
 import Data.Maybe (fromJust )
 
 
-convertModule :: Show l => Module l -> ConversionMonad -> ConversionMode -> G.LocalModule
+convertModule :: Show l => Module l -> ConversionMonad -> ConversionMode -> G.Sentence
 convertModule (Module _ (Just modHead) _ _ decls) cMonad cMode =
-  G.LocalModule (convertModuleHead modHead)
-    (importDefinitions ++
-      monadDefinitions ++
-        withoutList ++
-          convertModuleDecls rDecls (map filterForTypeSignatures typeSigs) dataNames cMonad cMode)
+  G.LocalModuleSentence (G.LocalModule (convertModuleHead modHead)
+    (dataSentences ++
+      convertModuleDecls rDecls (map filterForTypeSignatures typeSigs) dataNames cMonad cMode))
   where
     (typeSigs, otherDecls) = partition isTypeSig decls
     (dataDecls, rDecls) = partition isDataDecl otherDecls
     dataSentences = convertModuleDecls dataDecls (map filterForTypeSignatures typeSigs) [] cMonad cMode
-    dataNames = getNamesFromDataDecls dataDecls
-    withoutList = filter isNotList dataSentences
+    dataNames = strToGName "List" : getNamesFromDataDecls dataDecls
 convertModule (Module _ Nothing _ _ decls) cMonad cMode =
-  G.LocalModule (T.pack "unnamed")
-    (convertModuleDecls otherDecls  (map filterForTypeSignatures typeSigs) [] cMonad cMode)
+  G.LocalModuleSentence (G.LocalModule (T.pack "unnamed")
+    (convertModuleDecls otherDecls  (map filterForTypeSignatures typeSigs) [] cMonad cMode))
   where
     (typeSigs, otherDecls) = partition isTypeSig decls
 
 ----------------------------------------------------------------------------------------------------------------------
-isNotList :: G.Sentence -> Bool
-isNotList (G.InductiveSentence (G.Inductive (G.IndBody qId _ _ _ B.:| _) _ )) =
-  (not . eqQId (strToQId "List")) qId
-isNotList _ = True
 
 convertModuleHead :: Show l => ModuleHead l -> G.Ident
 convertModuleHead (ModuleHead _ (ModuleName _ modName) _ _) =
@@ -50,9 +44,11 @@ convertModuleHead (ModuleHead _ (ModuleName _ modName) _ _) =
 
 importDefinitions :: [G.Sentence]
 importDefinitions =
-  [stringImport]
+  [stringImport, libraryImport, monadImport]
   where
     stringImport = G.ModuleSentence (G.Require Nothing (Just G.Import) (singleton ( T.pack "String")))
+    libraryImport = G.ModuleSentence (G.Require Nothing (Just G.Import) (singleton (T.pack "ImportModules")))
+    monadImport =  G.ModuleSentence (G.ModuleImport G.Import (singleton (T.pack "Monad")))
 
 convertModuleDecls :: Show l => [Decl l] -> [G.TypeSignature] -> [G.Name] -> ConversionMonad -> ConversionMode -> [G.Sentence]
 convertModuleDecls (FunBind _ (x : xs) : ds) typeSigs dataNames cMonad cMode =
@@ -307,7 +303,20 @@ isRecursive :: Show l => Name l -> Rhs l -> Bool
 isRecursive name rhs =
   elem (getString name) (termToStrings (convertRhsToTerm rhs))
 
+importPath :: String
+importPath =
+  "Add LoadPath \"../ImportedFiles\". \n \r"
+
 --print the converted module
-printCoqAST :: G.LocalModule -> IO ()
+printCoqAST :: G.Sentence -> IO ()
 printCoqAST x =
-  putDoc (renderGallina x)
+  putStrLn (renderCoqAst (importDefinitions ++ [x]))
+
+writeCoqFile :: String -> G.Sentence -> IO ()
+writeCoqFile path x =
+  writeFile path (renderCoqAst (importDefinitions ++ [x]))
+
+renderCoqAst :: [G.Sentence] -> String
+renderCoqAst sentences =
+  importPath ++
+    concat [(TL.unpack . displayT . renderPretty 0.67 120 . renderGallina) s  ++ "\n \r" | s <- sentences]

@@ -723,8 +723,8 @@ instance Gallina LocalModule where
   renderGallina' _ (LocalModule name sentences) = vcat $
     [ "Module" <+> text name <> "." ] ++
     [ "Set Implicit Arguments."] ++
-    [ "Set Maximal Implicit Insertion."] ++
-    [ renderGallina s | s <- sentences ] ++
+    [ "Set Maximal Implicit Insertion. \n \r"] ++
+    [ (renderGallina s <+> text "\n \r") | s <- sentences ] ++
     [ "End" <+> text name <> "." ]
 
 
