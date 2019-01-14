@@ -10,6 +10,7 @@ import Compiler.FueledFunctions
 import Compiler.HelperFunctionConverter
 import Compiler.MonadicConverter
 import Compiler.Types
+import Compiler.NonEmptyList (singleton, toNonemptyList)
 
 import qualified GHC.Base as B
 
@@ -90,11 +91,14 @@ convertDataTypeDecl dHead qConDecl cMonad =
 
 convertMatchDef :: Show l => Match l -> [G.TypeSignature] -> [G.Name] -> ConversionMonad -> ConversionMode -> [G.Sentence]
 convertMatchDef (Match _ name mPats rhs _) typeSigs dataNames cMonad cMode =
-    if isRecursive name rhs
+    if containsRecursiveCall rhsTerm funName
       then if cMode == FueledFunction
             then [G.FixpointSentence (convertMatchToFueledFixpoint name mPats rhs typeSigs dataNames cMonad)]
             else convertMatchWithHelperFunction name mPats rhs typeSigs dataNames cMonad
       else [G.DefinitionSentence (convertMatchToDefinition name mPats rhs typeSigs dataNames cMonad)]
+  where
+    rhsTerm = convertRhsToTerm rhs
+    funName = nameToQId name
 
 
 convertMatchToDefinition :: Show l => Name l -> [Pat l] -> Rhs l -> [G.TypeSignature] -> [G.Name] -> ConversionMonad -> G.Definition

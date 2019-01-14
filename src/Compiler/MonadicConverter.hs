@@ -5,6 +5,7 @@ import Language.Coq.Util (qualidIsOp)
 
 import Compiler.Types
 import Compiler.HelperFunctions
+import Compiler.NonEmptyList (singleton, fromNonEmptyList, toNonemptyList)
 
 import qualified Data.Text as T
 import qualified GHC.Base as B
@@ -36,7 +37,7 @@ addReturnToEquation :: G.Equation -> [G.TypeSignature] -> [G.Binder] -> [G.Quali
 addReturnToEquation (G.Equation multPats rhs) typeSigs binders prevPatNames =
   G.Equation multPats (addReturnToTerm rhs typeSigs binders patNames)
   where
-    pats = concatMap getPatternFromMultPattern (nonEmptyListToList multPats)
+    pats = concatMap getPatternFromMultPattern (fromNonEmptyList multPats)
     patNames = prevPatNames ++ concatMap getQIdsFromPattern pats
 
 addReturnToTerm :: G.Term -> [G.TypeSignature] -> [G.Binder] -> [G.Qualid] -> G.Term
@@ -48,7 +49,7 @@ addReturnToTerm (G.App constr args) typeSigs binders patNames
   | otherwise =
       toReturnTerm (G.App constr fixedArgs)
   where
-    fixedArgs = toNonemptyList (addReturnToArgs (nonEmptyListToList args) typeSigs binders patNames)
+    fixedArgs = toNonemptyList (addReturnToArgs (fromNonEmptyList args) typeSigs binders patNames)
 addReturnToTerm (G.Parens term) typeSigs binders patNames =
   G.Parens (addReturnToTerm term typeSigs binders patNames)
 addReturnToTerm term typeSigs binders patNames =

@@ -10,20 +10,7 @@ import qualified GHC.Base as B
 import Data.Maybe (isJust)
 import Data.List (nub)
 
-
----------------------- NonemptyList Conversions
---convert single element to nonempty list
-singleton :: a -> B.NonEmpty a
-singleton a =
-  a B.:| []
-
-toNonemptyList :: [a] -> B.NonEmpty a
-toNonemptyList (x:xs) =
-  x B.:| xs
-
-nonEmptyListToList :: B.NonEmpty a -> [a]
-nonEmptyListToList (x B.:| xs) =
-  x : xs
+import Compiler.NonEmptyList (fromNonEmptyList, toNonemptyList)
 
 ---------------------- Getter Functions
 --Get Strings From Data Structures
@@ -108,7 +95,7 @@ getNameFromQualConDecl (QualConDecl _ _ _ (ConDecl _ name _)) =
 getTypeNamesFromTerm :: G.Term -> [G.Name]
 getTypeNamesFromTerm (G.App term args) =
   map strToGName (termToStrings term) ++
-    map strToGName (concatMap (termToStrings . argToTerm) (nonEmptyListToList args))
+    map strToGName (concatMap (termToStrings . argToTerm) (fromNonEmptyList args))
 getTypeNamesFromTerm _ =
   []
 
@@ -141,7 +128,7 @@ getBinderByQId (x : xs) qId =
 
 getPatternFromMultPattern :: G.MultPattern -> [G.Pattern]
 getPatternFromMultPattern (G.MultPattern pats) =
-  nonEmptyListToList pats
+  fromNonEmptyList pats
 
 getQIdsFromPattern :: G.Pattern -> [G.Qualid]
 getQIdsFromPattern (G.ArgsPat _ pats) =
@@ -151,6 +138,9 @@ getQIdsFromPattern (G.QualidPat qId) =
 getQIdsFromPattern pat =
   []
 
+getRhsFromEquation :: G.Equation -> G.Term
+getRhsFromEquation (G.Equation _ term) =
+  term
 ---------------------- Bool Functions
 isCoqType :: G.Name -> Bool
 isCoqType name =
@@ -179,10 +169,12 @@ isNonInferrableConstr (QualConDecl _ _ _ (ConDecl _ _ ty)) =
   False
 
 containsRecursiveCall :: G.Term -> G.Qualid -> Bool
+containsRecursiveCall (G.Match _ _ equations) funName =
+  or [containsRecursiveCall t funName | t <- map getRhsFromEquation equations]
 containsRecursiveCall (G.App term args) funName =
   containsRecursiveCall term funName || or [containsRecursiveCall t funName | t <- argTerms]
   where
-    argTerms = convertArgumentsToTerms (nonEmptyListToList args)
+    argTerms = convertArgumentsToTerms (fromNonEmptyList args)
 containsRecursiveCall (G.Parens term) funName =
   containsRecursiveCall term funName
 containsRecursiveCall (G.Qualid qId) funName =
@@ -277,7 +269,7 @@ collapseApp (G.App term args) =
     else G.App term args
     where
       funName = returnAppName term
-      combinedArgs = combineArgs (nonEmptyListToList args) term
+      combinedArgs = combineArgs (fromNonEmptyList args) term
 collapseApp (G.Parens term) =
   G.Parens (collapseApp term)
 collapseApp term = term
@@ -291,7 +283,7 @@ combineArgs :: [G.Arg] -> G.Term -> [G.Arg]
 combineArgs args (G.App term args' ) =
   combineArgs combArgs term
   where
-    combArgs = nonEmptyListToList args' ++ args
+    combArgs = fromNonEmptyList args' ++ args
 combineArgs args _ =
   convertTermsToArguments (map collapseApp (convertArgumentsToTerms args))
 
@@ -425,9 +417,9 @@ qIdToStr (G.Bare ident) =
 qIdToGName :: G.Qualid -> G.Name
 qIdToGName = G.Ident
 
+
 termToQId :: G.Term -> G.Qualid
 termToQId (G.Qualid qId) = qId
-
 ---------------------- Conversion of Coq AST to strings
 
 termToStrings :: G.Term -> [String]
@@ -437,9 +429,9 @@ termToStrings (G.Parens term) =
   termToStrings term
 termToStrings (G.App term args) =
   termToStrings term ++
-    listToStrings argToStrings (nonEmptyListToList args)
+    listToStrings argToStrings (fromNonEmptyList args)
 termToStrings (G.Match mItem _ equations) =
-  listToStrings mItemToStrings (nonEmptyListToList mItem)  ++
+  listToStrings mItemToStrings (fromNonEmptyList mItem)  ++
     listToStrings equationToStrings equations
 
 listToStrings :: (a -> [String]) -> [a] -> [String]
@@ -455,7 +447,7 @@ mItemToStrings (G.MatchItem term _ _) =
 
 equationToStrings :: G.Equation -> [String]
 equationToStrings (G.Equation multPattern term) =
-  listToStrings multPatToStrings (nonEmptyListToList multPattern)  ++
+  listToStrings multPatToStrings (fromNonEmptyList multPattern)  ++
     termToStrings term
 
 multPatToStrings :: G.MultPattern -> [String]

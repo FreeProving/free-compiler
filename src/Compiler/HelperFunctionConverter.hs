@@ -3,6 +3,7 @@ module Compiler.HelperFunctionConverter where
 import Compiler.HelperFunctions
 import Compiler.Types
 import Compiler.MonadicConverter
+import Compiler.NonEmptyList (singleton, fromNonEmptyList, toNonemptyList) 
 
 import qualified Language.Coq.Gallina as G
 import Language.Haskell.Exts.Syntax
@@ -64,7 +65,7 @@ addBindOperatorToEquationInMatch (G.Match mItem retType equations) funName pos m
 addBindOperatorToEquation :: G.Equation -> G.Qualid -> Int -> ConversionMonad -> G.Equation
 addBindOperatorToEquation (G.Equation multPats rhs) funName pos m =
   if containsRecursiveCall rhs funName
-    then G.Equation (toNonemptyList (makeDecrArgumentMonadicInMultPats (nonEmptyListToList multPats) decrArgument m))
+    then G.Equation (toNonemptyList (makeDecrArgumentMonadicInMultPats (fromNonEmptyList multPats) decrArgument m))
           (addBindOperatorToRecursiveCall rhs funName pos m)
     else G.Equation multPats rhs
   where
@@ -79,8 +80,8 @@ addBindOperatorToRecursiveCall (G.App constr args) funName pos m =
     monadicArgument = G.PosArg (G.Qualid (addMonadicPrefixToQId m decrArgument))
     lambdaFun = G.PosArg (G.Fun (singleton (G.Inferred G.Explicit (qIdToGName decrArgument))) recCall)
     recCall = G.App (addSuffixToTerm constr) args
-    decrArgument = termToQId (argToTerm (nonEmptyListToList args !! pos))
-    termList = convertArgumentsToTerms (nonEmptyListToList args)
+    decrArgument = termToQId (argToTerm (fromNonEmptyList args !! pos))
+    termList = convertArgumentsToTerms (fromNonEmptyList args)
     checkedArgs = convertTermsToArguments [addBindOperatorToRecursiveCall t funName pos m| t <- termList]
 addBindOperatorToRecursiveCall (G.Parens term) funName pos m =
   G.Parens (addBindOperatorToRecursiveCall term funName pos m)
@@ -93,8 +94,8 @@ getDecrArgumentFromRecursiveCall (G.App constr args) funName pos =
     then Just decrArgument
     else head (filter isJust [getDecrArgumentFromRecursiveCall t funName pos | t <- termList])
   where
-    termList = convertArgumentsToTerms (nonEmptyListToList args)
-    decrArgument = termToQId (argToTerm (nonEmptyListToList args !! pos))
+    termList = convertArgumentsToTerms (fromNonEmptyList args)
+    decrArgument = termToQId (argToTerm (fromNonEmptyList args !! pos))
 getDecrArgumentFromRecursiveCall (G.Parens term) funName pos =
   getDecrArgumentFromRecursiveCall term funName pos
 getDecrArgumentFromRecursiveCall _ _ _ = Nothing
@@ -103,7 +104,7 @@ makeDecrArgumentMonadicInMultPats :: [G.MultPattern] -> Maybe G.Qualid -> Conver
 makeDecrArgumentMonadicInMultPats [G.MultPattern nEPats] (Just decrArgument) m =
   [G.MultPattern (toNonemptyList (makeDecrArgumentMonadicInPats pats decrArgument m))]
   where
-    pats = nonEmptyListToList nEPats
+    pats = fromNonEmptyList nEPats
 
 makeDecrArgumentMonadicInPats :: [G.Pattern] -> G.Qualid -> ConversionMonad -> [G.Pattern]
 makeDecrArgumentMonadicInPats [G.ArgsPat qId pats] decrArgument m =
@@ -166,7 +167,7 @@ switchNonMonadicArgumentsFromTerm (G.Match mItem retType equations) binders m =
   G.Match mItem retType [switchNonMonadicArgumentsFromEquation e binders m | e <- equations]
 switchNonMonadicArgumentsFromTerm (G.App constr args) binders m =
   G.App (switchNonMonadicArgumentsFromTerm constr binders m)
-    (toNonemptyList [(\(G.PosArg term) -> G.PosArg (switchNonMonadicArgumentsFromTerm term binders m)) a | a <- nonEmptyListToList args])
+    (toNonemptyList [(\(G.PosArg term) -> G.PosArg (switchNonMonadicArgumentsFromTerm term binders m)) a | a <- fromNonEmptyList args])
 switchNonMonadicArgumentsFromTerm (G.Parens term) binders m =
   G.Parens (switchNonMonadicArgumentsFromTerm term binders m)
 switchNonMonadicArgumentsFromTerm (G.Qualid qId) binders m =

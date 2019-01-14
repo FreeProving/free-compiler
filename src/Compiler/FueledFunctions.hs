@@ -3,6 +3,7 @@ module Compiler.FueledFunctions where
 import Compiler.HelperFunctions
 import Compiler.MonadicConverter (addReturnToRhs,
                                   addReturnToArgs)
+import Compiler.NonEmptyList (singleton, fromNonEmptyList, toNonemptyList)
 
 import Language.Coq.Gallina as G
 import Language.Haskell.Exts.Syntax
@@ -16,7 +17,7 @@ addFuelArgumentToRecursiveCall (G.App term args) funName =
     then G.App term (addDecrFuelArgument args)
     else G.App term (toNonemptyList checkedArgList)
   where
-    termList = convertArgumentsToTerms (nonEmptyListToList args)
+    termList = convertArgumentsToTerms (fromNonEmptyList args)
     checkedArgList = convertTermsToArguments [addFuelArgumentToRecursiveCall t funName | t <- termList]
 addFuelArgumentToRecursiveCall (G.Parens term) funName =
   G.Parens (addFuelArgumentToRecursiveCall term funName)
@@ -49,13 +50,13 @@ convertFueledTerm (G.App constr args) funBinders funName typeSigs =
             else G.App constr (toNonemptyList convertedArgs)
     else G.App (convertFueledTerm constr funBinders funName typeSigs) (toNonemptyList convertedArgs)
   where convertedArgs = convertTermsToArguments [convertFueledTerm t funBinders funName typeSigs |
-                          t <- convertArgumentsToTerms (nonEmptyListToList args)]
+                          t <- convertArgumentsToTerms (fromNonEmptyList args)]
         convertedFueledArgs = addDecrFuelArgument (toNonemptyList convertedArgs)
 
 
 addDecrFuelArgument :: B.NonEmpty G.Arg -> B.NonEmpty G.Arg
 addDecrFuelArgument list =
-  toNonemptyList (G.PosArg decrFuelTerm : nonEmptyListToList list)
+  toNonemptyList (G.PosArg decrFuelTerm : fromNonEmptyList list)
 
 addFuelBinder :: [G.Binder] -> [G.Binder]
 addFuelBinder binders = fuelBinder : binders
