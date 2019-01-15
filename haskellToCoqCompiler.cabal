@@ -25,6 +25,7 @@ executable haskellToCoqCompiler
                       , Compiler.HelperFunctions
                       , Compiler.MonadicConverter
                       , Compiler.Types
+                      , Compiler.NonEmptyList
                       , Language.Coq.Gallina
                       , Language.Coq.Pretty
                       , Language.Coq.PrettyPrint
