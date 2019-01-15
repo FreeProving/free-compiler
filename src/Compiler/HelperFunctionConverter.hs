@@ -1,15 +1,19 @@
 module Compiler.HelperFunctionConverter where
 
-import Compiler.HelperFunctions
-import Compiler.Types
-import Compiler.MonadicConverter
-import Compiler.NonEmptyList (singleton, fromNonEmptyList, toNonemptyList) 
+import Compiler.Types (ConversionMonad (..))
+import Compiler.MonadicConverter (transformTermMonadic ,transformBindersMonadic
+  ,transformBinderMonadic ,addMonadicPrefixToBinder ,addMonadicPrefixToQId ,addReturnToRhs
+  ,removeMonadFromBinder ,bindOperator)
+import Compiler.NonEmptyList (singleton, fromNonEmptyList, toNonemptyList)
+import Compiler.HelperFunctions (getReturnType ,getTypeSignatureByName ,getBinderName
+  ,convertArgumentsToTerms ,convertTermsToArguments ,containsRecursiveCall ,addInferredTypesToSignature
+  ,termToQId ,nameToQId ,nameToStr ,gNameToQId ,argToTerm ,strToQId ,qIdToGName ,qIdToStr ,eqQId)
 
 import qualified Language.Coq.Gallina as G
-import Language.Haskell.Exts.Syntax
+import Language.Haskell.Exts.Syntax (Name (..))
 
 import qualified GHC.Base as B
-import Data.Maybe
+import Data.Maybe (isJust ,fromJust)
 
 convertMatchToMainFunction :: Show l => Name l -> [G.Binder] -> G.Term -> [G.TypeSignature] -> [G.Name] -> ConversionMonad -> G.Fixpoint
 convertMatchToMainFunction name binders rhs typeSigs dataNames cMonad =

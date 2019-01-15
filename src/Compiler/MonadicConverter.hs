@@ -3,14 +3,15 @@ module Compiler.MonadicConverter where
 import Language.Coq.Gallina as G
 import Language.Coq.Util (qualidIsOp)
 
-import Compiler.Types
-import Compiler.HelperFunctions
+import Compiler.Types (ConversionMonad(..) )
 import Compiler.NonEmptyList (singleton, fromNonEmptyList, toNonemptyList)
-
+import Compiler.HelperFunctions (getQIdsFromPattern, getBinderName, getBinderType, getBinderByQId
+      ,getPatternFromMultPattern ,gNameToQId, termToQId ,strToQId, strToGName, typeTerm, eqQId
+      ,getTypeSignatureByQId, getStringFromGName)
 
 import qualified Data.Text as T
 import qualified GHC.Base as B
-import Data.Maybe
+import Data.Maybe (isJust, fromJust)
 
 ---------------------- Add Bind Operator to Definition
 addBindOperatorsToDefinition :: [G.Binder] -> G.Term -> G.Term

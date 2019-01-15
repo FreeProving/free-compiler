@@ -1,15 +1,12 @@
 module Main where
 
 
-import System.Environment
-import Language.Haskell.Exts.Parser
-import Language.Haskell.Exts.Extension
-import Language.Haskell.Exts.Syntax
-import Language.Haskell.Exts.SrcLoc
+import System.Environment (getArgs)
+import Language.Haskell.Exts.Parser (ParseMode (..) ,parseModuleWithMode ,fromParseResult)
+import Language.Haskell.Exts.Extension (Language (..))
 
-import Compiler.Converter
-import Compiler.HelperFunctions
-import Compiler.Types
+import Compiler.Converter (convertModule ,printCoqAST ,writeCoqFile)
+import Compiler.Types (ConversionMode (..), ConversionMonad (..))
 
 import Data.List (elemIndex)
 import Data.Maybe (isJust, fromJust)

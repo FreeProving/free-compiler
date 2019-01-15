@@ -1,11 +1,11 @@
 module Compiler.FueledFunctions where
 
-import Compiler.HelperFunctions
 import Compiler.MonadicConverter (addReturnToRhs, addReturnToArgs)
 import Compiler.NonEmptyList (singleton, fromNonEmptyList, toNonemptyList)
+import Compiler.HelperFunctions (convertArgumentsToTerms ,convertTermsToArguments ,containsRecursiveCall
+  ,isQualidTerm ,isFunctionCall ,termToQId ,strToQId ,strToTerm ,strToGName ,eqQId)
 
 import Language.Coq.Gallina as G
-import Language.Haskell.Exts.Syntax
 
 import qualified GHC.Base as B
 

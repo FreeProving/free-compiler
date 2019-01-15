@@ -2,15 +2,19 @@ module Compiler.Converter where
 
 import Language.Haskell.Exts.Syntax
 import qualified Language.Coq.Gallina as G
-import Language.Coq.Pretty
-import Text.PrettyPrint.Leijen.Text
+import Language.Coq.Pretty (renderGallina)
+import Text.PrettyPrint.Leijen.Text (renderPretty ,displayT)
 
-import Compiler.HelperFunctions
-import Compiler.FueledFunctions
-import Compiler.HelperFunctionConverter
-import Compiler.MonadicConverter
-import Compiler.Types
+import Compiler.Types (ConversionMode (..) ,ConversionMonad (..))
+import Compiler.FueledFunctions (convertFueledFunBody ,addFuelMatching ,addFuelBinder
+  ,addFuelArgToRecursiveCalls ,fuelTerm)
+import Compiler.HelperFunctionConverter (convertMatchToMainFunction ,convertMatchToHelperFunction)
+import Compiler.MonadicConverter (transformTermMonadic ,transformBindersMonadic ,addReturnToRhs ,addBindOperatorsToDefinition)
 import Compiler.NonEmptyList (singleton, toNonemptyList)
+import Compiler.HelperFunctions (getTypeSignatureByName ,getReturnType ,getString ,getReturnTypeFromDeclHead
+  ,getNonInferrableConstrNames ,getNamesFromDataDecls ,containsRecursiveCall ,applyToDeclHead ,applyToDeclHeadTyVarBinds
+  ,isDataDecl ,isTypeSig ,hasNonInferrableConstr ,addInferredTypesToSignature ,qNameToTypeTerm ,qNameToTerm ,qNameToQId
+  ,nameToQId ,nameToTerm ,nameToGName ,nameToTypeTerm ,strToQId ,strToGName ,qOpToQId ,termToStrings ,typeTerm ,collapseApp)
 
 import qualified GHC.Base as B
 
