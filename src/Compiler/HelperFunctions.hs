@@ -257,12 +257,12 @@ addInferredTypesToSignature binders dataNames =
     consNames = nub (map getConstrNameFromType typeTerms)
 
 convertArgumentsToTerms :: [G.Arg] -> [G.Term]
-convertArgumentsToTerms args =
-  map argToTerm args
+convertArgumentsToTerms =
+  map argToTerm
 
 convertTermsToArguments :: [G.Term] -> [G.Arg]
-convertTermsToArguments terms =
-  map G.PosArg terms
+convertTermsToArguments =
+  map G.PosArg
 
 collapseApp :: G.Term -> G.Term
 collapseApp (G.App term args) =

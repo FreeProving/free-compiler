@@ -11,10 +11,8 @@ import qualified GHC.Base as B
 
 ---------------------- Transform to fueled function
 addFuelArgToRecursiveCalls :: G.Term -> G.Term -> [G.Qualid] -> G.Term
-addFuelArgToRecursiveCalls term fTerm [] =
-  term
-addFuelArgToRecursiveCalls term fTerm (x : xs) =
-  addFuelArgToRecursiveCalls (addFuelArgToRecursiveCall term fTerm x) fTerm xs
+addFuelArgToRecursiveCalls term fTerm xs =
+  foldl (\ term x -> addFuelArgToRecursiveCall term fTerm x) term xs
 
 addFuelArgToRecursiveCall :: G.Term -> G.Term -> G.Qualid -> G.Term
 addFuelArgToRecursiveCall (G.App term args) fTerm funName  =
