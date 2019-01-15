@@ -110,25 +110,36 @@ convertMatchDef (Match _ name mPats rhs _) typeSigs dataNames recursiveFuns cMon
       then if cMode == FueledFunction
             then [G.FixpointSentence (convertMatchToFueledFixpoint name mPats rhs typeSigs dataNames recursiveFuns cMonad)]
             else convertMatchWithHelperFunction name mPats rhs typeSigs dataNames cMonad
-      else [G.DefinitionSentence (convertMatchToDefinition name mPats rhs typeSigs dataNames cMonad)]
+      else [G.DefinitionSentence (convertMatchToDefinition name mPats rhs typeSigs dataNames recursiveFuns cMonad cMode)]
   where
     rhsTerm = convertRhsToTerm rhs
     funName = nameToQId name
 
 
-convertMatchToDefinition :: Show l => Name l -> [Pat l] -> Rhs l -> [G.TypeSignature] -> [G.Name] -> ConversionMonad -> G.Definition
-convertMatchToDefinition name pats rhs typeSigs dataNames cMonad =
-  G.DefinitionDef G.Global (nameToQId name)
-    bindersWithInferredTypes
-      (convertReturnType typeSig cMonad)
-        monadicTerm
+convertMatchToDefinition :: Show l => Name l -> [Pat l] -> Rhs l -> [G.TypeSignature] -> [G.Name] -> [G.Qualid] -> ConversionMonad -> ConversionMode -> G.Definition
+convertMatchToDefinition name pats rhs typeSigs dataNames recursiveFuns cMonad cMode =
+  if cMode == FueledFunction && (not . null) recCalls
+    then G.DefinitionDef G.Global funName
+            bindersWithFuel
+              returnType
+                fueledMonadicTerm
+    else G.DefinitionDef G.Global funName
+            bindersWithInferredTypes
+              returnType
+                monadicTerm
   where
+    returnType = convertReturnType typeSig cMonad
+    funName = nameToQId name
+    recCalls = filter (containsRecursiveCall rhsTerm) recursiveFuns
     typeSig = getTypeSignatureByName typeSigs name
     binders = convertPatsToBinders pats typeSig
     monadicBinders = transformBindersMonadic binders cMonad
     bindersWithInferredTypes = addInferredTypesToSignature monadicBinders dataNames
+    bindersWithFuel = addFuelBinder bindersWithInferredTypes
     rhsTerm = convertRhsToTerm rhs
     monadicTerm = addBindOperatorsToDefinition monadicBinders (addReturnToRhs rhsTerm typeSigs monadicBinders)
+    fueledTerm = addFuelArgToRecursiveCalls rhsTerm fuelTerm recCalls
+    fueledMonadicTerm = addBindOperatorsToDefinition monadicBinders (addReturnToRhs fueledTerm typeSigs monadicBinders)
 
 convertMatchToFueledFixpoint :: Show l => Name l -> [Pat l] -> Rhs l -> [G.TypeSignature] -> [G.Name] -> [G.Qualid] -> ConversionMonad -> G.Fixpoint
 convertMatchToFueledFixpoint name pats rhs typeSigs dataNames recursiveFuns cMonad =
@@ -295,7 +306,7 @@ convertLiteralToTerm (String _ str _ ) =
   G.String (T.pack str)
 convertLiteralToTerm (Int _ _ int) =
   G.Qualid (strToQId int)
-convertLiteralToTerm literal = error ("Haskell Literal not implemented: " ++ show literal)  
+convertLiteralToTerm literal = error ("Haskell Literal not implemented: " ++ show literal)
 
 
 convertAltListToEquationList :: Show l => [Alt l] -> [G.Equation]

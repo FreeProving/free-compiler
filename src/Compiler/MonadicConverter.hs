@@ -7,6 +7,7 @@ import Compiler.Types
 import Compiler.HelperFunctions
 import Compiler.NonEmptyList (singleton, fromNonEmptyList, toNonemptyList)
 
+
 import qualified Data.Text as T
 import qualified GHC.Base as B
 import Data.Maybe
@@ -52,9 +53,12 @@ addReturnToTerm (G.App constr args) typeSigs binders patNames
     fixedArgs = toNonemptyList (addReturnToArgs (fromNonEmptyList args) typeSigs binders patNames)
 addReturnToTerm (G.Parens term) typeSigs binders patNames =
   G.Parens (addReturnToTerm term typeSigs binders patNames)
+addReturnToTerm (G.Fun fBinders term) _ _ _ =
+  G.Fun fBinders term
 addReturnToTerm term typeSigs binders patNames =
   if isMonadicTerm term || isMonadicFunctionCall term typeSigs
       || isMonadicBinder term binders || isPatName term patNames
+      || isFuelArg term
     then term
     else toReturnTerm term
 
@@ -148,6 +152,10 @@ fromMonadicTerm (G.App _ (G.PosArg term B.:| xs)) =
 fromMonadicTerm term =
   term
 ---------------------- Bool Functions
+isFuelArg :: G.Term -> Bool
+isFuelArg (G.Qualid qId) =
+  any (eqQId qId) (map strToQId ["rFuel", "fuel"])
+
 isPatName :: G.Term -> [G.Qualid] -> Bool
 isPatName (G.Qualid qId) =
   any (eqQId qId)
@@ -168,8 +176,10 @@ predefinedMonadicFunctions =
 
 isMonadicFunctionCall :: G.Term -> [G.TypeSignature] -> Bool
 isMonadicFunctionCall (G.Qualid qId) typeSigs =
-  isJust maybeTypeSig || any (eqQId qId) predefinedMonadicFunctions
+  isJust maybeTypeSig || any (eqQId qId) predefinedMonadicFunctions || eqQId qId (termToQId bindOperator)
   where maybeTypeSig = getTypeSignatureByQId typeSigs qId
+isMonadicFunctionCall term _ =
+  False
 
 isMonadicBinder :: G.Term -> [G.Binder] -> Bool
 isMonadicBinder (G.Qualid qId) binders =

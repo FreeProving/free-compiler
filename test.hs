@@ -18,9 +18,13 @@ data Tree a =
   Leaf
   | Branch a (Tree a) (Tree a)
 
+
+
 plus :: Int -> Int -> Int
 plus a b = a + b
 
+minus :: Int -> Int -> Int
+minus a b = a - b
 
 not :: Bool -> Bool
 not b = case b of
@@ -38,7 +42,6 @@ null list = case list of
 data Test =
   T1 Int
   | T2 String
-
 
 
 append :: List a -> List a -> List a
@@ -60,3 +63,6 @@ length' :: List a -> Int
 length' xs = case xs of
       Nil -> 0
       Cons y ys -> plus 1 (length' ys)
+
+indexLength :: List a -> Int
+indexLength xs = minus (length' xs) 1

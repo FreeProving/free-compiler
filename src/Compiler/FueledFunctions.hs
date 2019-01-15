@@ -1,8 +1,7 @@
 module Compiler.FueledFunctions where
 
 import Compiler.HelperFunctions
-import Compiler.MonadicConverter (addReturnToRhs,
-                                  addReturnToArgs)
+import Compiler.MonadicConverter (addReturnToRhs, addReturnToArgs)
 import Compiler.NonEmptyList (singleton, fromNonEmptyList, toNonemptyList)
 
 import Language.Coq.Gallina as G
@@ -11,18 +10,25 @@ import Language.Haskell.Exts.Syntax
 import qualified GHC.Base as B
 
 ---------------------- Transform to fueled function
-addFuelArgumentToRecursiveCall :: G.Term -> G.Qualid -> G.Term
-addFuelArgumentToRecursiveCall (G.App term args) funName =
+addFuelArgToRecursiveCalls :: G.Term -> G.Term -> [G.Qualid] -> G.Term
+addFuelArgToRecursiveCalls term fTerm [] =
+  term
+addFuelArgToRecursiveCalls term fTerm (x : xs) =
+  addFuelArgToRecursiveCalls (addFuelArgToRecursiveCall term fTerm x) fTerm xs
+
+addFuelArgToRecursiveCall :: G.Term -> G.Term -> G.Qualid -> G.Term
+addFuelArgToRecursiveCall (G.App term args) fTerm funName  =
   if containsRecursiveCall term funName
-    then G.App term (addDecrFuelArgument args)
+    then G.App term (addFuelArgument args fTerm)
     else G.App term (toNonemptyList checkedArgList)
   where
     termList = convertArgumentsToTerms (fromNonEmptyList args)
-    checkedArgList = convertTermsToArguments [addFuelArgumentToRecursiveCall t funName | t <- termList]
-addFuelArgumentToRecursiveCall (G.Parens term) funName =
-  G.Parens (addFuelArgumentToRecursiveCall term funName)
-addFuelArgumentToRecursiveCall term _ =
+    checkedArgList = convertTermsToArguments [addFuelArgToRecursiveCall t fTerm funName | t <- termList]
+addFuelArgToRecursiveCall (G.Parens term) fTerm funName =
+  G.Parens (addFuelArgToRecursiveCall term fTerm funName)
+addFuelArgToRecursiveCall term _ _ =
   term
+
 
 addFuelMatching :: G.Term -> G.Qualid -> G.Term
 addFuelMatching  =
@@ -52,12 +58,12 @@ convertFueledTerm (G.App constr args) funBinders funName typeSigs recursiveFuns 
     else G.App (convertFueledTerm constr funBinders funName typeSigs recursiveFuns) (toNonemptyList convertedArgs)
   where convertedArgs = convertTermsToArguments [convertFueledTerm t funBinders funName typeSigs recursiveFuns |
                           t <- convertArgumentsToTerms (fromNonEmptyList args)]
-        convertedFueledArgs = addDecrFuelArgument (toNonemptyList convertedArgs)
+        convertedFueledArgs = addFuelArgument (toNonemptyList convertedArgs) decrFuelTerm
 
 
-addDecrFuelArgument :: B.NonEmpty G.Arg -> B.NonEmpty G.Arg
-addDecrFuelArgument list =
-  toNonemptyList (G.PosArg decrFuelTerm : fromNonEmptyList list)
+addFuelArgument :: B.NonEmpty G.Arg -> G.Term -> B.NonEmpty G.Arg
+addFuelArgument list fTerm =
+  toNonemptyList (G.PosArg fTerm : fromNonEmptyList list)
 
 addFuelBinder :: [G.Binder] -> [G.Binder]
 addFuelBinder binders = fuelBinder : binders
@@ -73,12 +79,16 @@ fuelPattern errorTerm recursiveCall funName =
     zeroCase = G.Equation (singleton (G.MultPattern (singleton (G.QualidPat (strToQId "O"))))) errorTerm
     nonZeroCase = G.Equation (singleton (G.MultPattern (singleton (G.ArgsPat (strToQId "S") [G.QualidPat decrFuel])))) recursiveCallWithFuel
     decrFuel = strToQId "rFuel"
-    recursiveCallWithFuel = addFuelArgumentToRecursiveCall recursiveCall funName
+    recursiveCallWithFuel = addFuelArgToRecursiveCall recursiveCall decrFuelTerm funName
 
 ---------------------- Predefined Terms
 decrFuelTerm :: G.Term
 decrFuelTerm =
   G.Qualid (strToQId "rFuel")
+
+fuelTerm :: G.Term
+fuelTerm =
+  G.Qualid (strToQId "fuel")
 
 fuelBinder :: G.Binder
 fuelBinder =

@@ -117,6 +117,8 @@ getBinderName (G.Typed _ _ (name B.:| xs) _) =
 getBinderType :: G.Binder -> G.Term
 getBinderType (G.Typed _ _ _ term) =
   term
+getBinderType (G.Inferred _ _ ) =
+  typeTerm
 
 getBinderByQId :: [G.Binder] -> G.Qualid -> Maybe G.Binder
 getBinderByQId [] _ =
