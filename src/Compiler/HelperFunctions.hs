@@ -1,6 +1,6 @@
 module Compiler.HelperFunctions where
 
-import Language.Haskell.Exts.Syntax
+import qualified Language.Haskell.Exts.Syntax as H
 import qualified Language.Coq.Gallina as G
 
 
@@ -14,14 +14,14 @@ import Compiler.NonEmptyList (fromNonEmptyList, toNonemptyList)
 
 ---------------------- Getter Functions
 --Get Strings From Data Structures
-getQString :: QName l -> String
-getQString (UnQual _ name) =
+getQString :: H.QName l -> String
+getQString (H.UnQual _ name) =
   getString name
 
-getString  :: Name l -> String
-getString (Ident _ str) =
+getString  :: H.Name l -> String
+getString (H.Ident _ str) =
   str
-getString (Symbol _ str) =
+getString (H.Symbol _ str) =
   str
 
 getStringFromGName :: G.Name -> String
@@ -44,7 +44,7 @@ getType "String" =
 getType str =
   strToTerm str
 
-getTypeSignatureByName :: [G.TypeSignature] -> Name l -> Maybe G.TypeSignature
+getTypeSignatureByName :: [G.TypeSignature] -> H.Name l -> Maybe G.TypeSignature
 getTypeSignatureByName [] name =
   Nothing
 getTypeSignatureByName (x : xs) name =
@@ -60,36 +60,36 @@ getTypeSignatureByQId (x : xs) qId =
     then Just x
     else getTypeSignatureByQId xs qId
 
-getNamesFromDataDecls :: [Decl l] -> [G.Name]
+getNamesFromDataDecls :: [H.Decl l] -> [G.Name]
 getNamesFromDataDecls sentences =
   [getNameFromDataDecl s | s <- sentences]
 
-getNameFromDataDecl :: Decl l -> G.Name
-getNameFromDataDecl (DataDecl _ _ _ declHead _ _ ) =
+getNameFromDataDecl :: H.Decl l -> G.Name
+getNameFromDataDecl (H.DataDecl _ _ _ declHead _ _ ) =
   getNameFromDeclHead declHead
 
-getNameFromDeclHead :: DeclHead l -> G.Name
-getNameFromDeclHead (DHead _ name) =
+getNameFromDeclHead :: H.DeclHead l -> G.Name
+getNameFromDeclHead (H.DHead _ name) =
   nameToGName name
-getNameFromDeclHead (DHParen _ declHead) =
+getNameFromDeclHead (H.DHParen _ declHead) =
   getNameFromDeclHead declHead
-getNameFromDeclHead (DHApp _ declHead _) =
+getNameFromDeclHead (H.DHApp _ declHead _) =
   getNameFromDeclHead declHead
 
-getReturnTypeFromDeclHead :: [G.Arg] -> DeclHead l -> G.Term
+getReturnTypeFromDeclHead :: [G.Arg] -> H.DeclHead l -> G.Term
 getReturnTypeFromDeclHead [] dHead =
   applyToDeclHead dHead nameToTerm
 getReturnTypeFromDeclHead (x : xs) dHead =
   G.App (applyToDeclHead dHead nameToTerm) (x B.:| xs)
 
-getNonInferrableConstrNames :: [QualConDecl l] -> [G.Qualid]
+getNonInferrableConstrNames :: [H.QualConDecl l] -> [G.Qualid]
 getNonInferrableConstrNames qConDecls =
   [ getNameFromQualConDecl d | d <- nonInferrableQConDecls]
   where
     nonInferrableQConDecls = filter isNonInferrableConstr qConDecls
 
-getNameFromQualConDecl :: QualConDecl l -> G.Qualid
-getNameFromQualConDecl (QualConDecl _ _ _ (ConDecl _ name _)) =
+getNameFromQualConDecl :: H.QualConDecl l -> G.Qualid
+getNameFromQualConDecl (H.QualConDecl _ _ _ (H.ConDecl _ name _)) =
   nameToQId name
 
 getTypeNamesFromTerm :: G.Term -> [G.Name]
@@ -148,26 +148,26 @@ isCoqType :: G.Name -> Bool
 isCoqType name =
    not (any (eqGName name) coqTypes)
 
-isTypeSig :: Decl l -> Bool
-isTypeSig TypeSig {} =
+isTypeSig :: H.Decl l -> Bool
+isTypeSig H.TypeSig {} =
  True
 isTypeSig _ =
  False
 
-isDataDecl :: Decl l -> Bool
-isDataDecl DataDecl {} =
+isDataDecl :: H.Decl l -> Bool
+isDataDecl H.DataDecl {} =
   True
 isDataDecl _ =
   False
 
-hasNonInferrableConstr :: [QualConDecl l] -> Bool
+hasNonInferrableConstr :: [H.QualConDecl l] -> Bool
 hasNonInferrableConstr =
   any isNonInferrableConstr
 
-isNonInferrableConstr :: QualConDecl l -> Bool
-isNonInferrableConstr (QualConDecl _ _ _ (ConDecl _ _ [])) =
+isNonInferrableConstr :: H.QualConDecl l -> Bool
+isNonInferrableConstr (H.QualConDecl _ _ _ (H.ConDecl _ _ [])) =
   True
-isNonInferrableConstr (QualConDecl _ _ _ (ConDecl _ _ ty)) =
+isNonInferrableConstr (H.QualConDecl _ _ _ (H.ConDecl _ _ ty)) =
   False
 
 containsRecursiveCall :: G.Term -> G.Qualid -> Bool
@@ -197,8 +197,8 @@ isQualidTerm (G.Qualid _ ) = True
 isQualidTerm _ = False
 
 -- name comparison functions
-gNameEqName :: G.Name -> Name l -> Bool
-gNameEqName (G.Ident (G.Bare gName)) (Ident _ name) =
+gNameEqName :: G.Name -> H.Name l -> Bool
+gNameEqName (G.Ident (G.Bare gName)) (H.Ident _ name) =
   T.unpack gName == name
 
 eqGName :: G.Name -> G.Name -> Bool
@@ -222,7 +222,7 @@ dataTypeUneqGName dataType gName =
     dataString = getStringFromGName dataType
     nameString = getStringFromGName gName
 
-typeNameEqName :: G.TypeSignature -> Name l -> Bool
+typeNameEqName :: G.TypeSignature -> H.Name l -> Bool
 typeNameEqName (G.TypeSignature sigName _ ) =
   gNameEqName sigName
 
@@ -290,17 +290,17 @@ combineArgs args _ =
   convertTermsToArguments (map collapseApp (convertArgumentsToTerms args))
 
 --apply a function only to the actual head of a DeclHead
-applyToDeclHead :: DeclHead l -> (Name l -> a) -> a
-applyToDeclHead (DHead _ name) f =
+applyToDeclHead :: H.DeclHead l -> (H.Name l -> a) -> a
+applyToDeclHead (H.DHead _ name) f =
   f name
-applyToDeclHead (DHApp _ declHead _ ) f =
+applyToDeclHead (H.DHApp _ declHead _ ) f =
   applyToDeclHead declHead f
 
 --apply a function to every tyVarBind of a DeclHead and reverse it (to get arguments in right order)
-applyToDeclHeadTyVarBinds :: DeclHead l -> (TyVarBind l -> a ) -> [a]
-applyToDeclHeadTyVarBinds (DHead _ _) f =
+applyToDeclHeadTyVarBinds :: H.DeclHead l -> (H.TyVarBind l -> a ) -> [a]
+applyToDeclHeadTyVarBinds (H.DHead _ _) f =
   []
-applyToDeclHeadTyVarBinds (DHApp _ declHead tyVarBind) f =
+applyToDeclHeadTyVarBinds (H.DHApp _ declHead tyVarBind) f =
   reverse (f tyVarBind : reverse (applyToDeclHeadTyVarBinds declHead f))
 
 
@@ -330,62 +330,62 @@ strToBinder s =
   G.Inferred G.Explicit (strToGName s)
 
 ---------------------- Name conversions (haskell AST)
-nameToStr :: Name l -> String
-nameToStr (Ident _ str) =
+nameToStr :: H.Name l -> String
+nameToStr (H.Ident _ str) =
   str
-nameToStr (Symbol _ str) =
+nameToStr (H.Symbol _ str) =
   str
 
-nameToText :: Name l -> T.Text
+nameToText :: H.Name l -> T.Text
 nameToText name =
   T.pack (toGallinaSyntax (nameToStr name))
 
-nameToQId :: Name l -> G.Qualid
+nameToQId :: H.Name l -> G.Qualid
 nameToQId name =
   G.Bare (nameToText name)
 
-nameToGName :: Name l -> G.Name
+nameToGName :: H.Name l -> G.Name
 nameToGName name =
   G.Ident (nameToQId name)
 
-nameToTerm :: Name l -> G.Term
+nameToTerm :: H.Name l -> G.Term
 nameToTerm name =
   G.Qualid (nameToQId name)
 
-nameToTypeTerm :: Name l -> G.Term
+nameToTypeTerm :: H.Name l -> G.Term
 nameToTypeTerm name =
   getType (getString name)
 
 ---------------------- QName conversion functions (Haskell AST)
-qNameToStr :: QName l -> String
+qNameToStr :: H.QName l -> String
 qNameToStr qName =
   T.unpack (qNameToText qName)
 
-qNameToText :: QName l -> T.Text
-qNameToText (UnQual _ name) =
+qNameToText :: H.QName l -> T.Text
+qNameToText (H.UnQual _ name) =
   nameToText name
 qNameToText _ =
   error "qualified names not implemented"
 
-qNameToQId :: QName l -> G.Qualid
+qNameToQId :: H.QName l -> G.Qualid
 qNameToQId qName =
   G.Bare (qNameToText qName)
 
-qNameToGName :: QName l -> G.Name
-qNameToGName (UnQual _ name) =
+qNameToGName :: H.QName l -> G.Name
+qNameToGName (H.UnQual _ name) =
   nameToGName name
 qNameToGName _ =
   error "qualified names not implemented"
 
-qNameToTerm :: QName l -> G.Term
+qNameToTerm :: H.QName l -> G.Term
 qNameToTerm qName =
   G.Qualid (qNameToQId qName)
 
-qNameToTypeTerm :: QName l -> G.Term
+qNameToTypeTerm :: H.QName l -> G.Term
 qNameToTypeTerm qName =
   getType (getQString qName)
 
-qNameToBinder :: Show l => QName l -> G.Binder
+qNameToBinder :: Show l => H.QName l -> G.Binder
 qNameToBinder qName =
   G.Inferred G.Explicit (qNameToGName qName)
 
@@ -483,8 +483,8 @@ coqTypes =
   strToGName "option"]
 
 --Convert qualifiedOperator from Haskell to Qualid with Operator signature
-qOpToQId :: QOp l -> G.Qualid
-qOpToQId (QVarOp _ qName) =
+qOpToQId :: H.QOp l -> G.Qualid
+qOpToQId (H.QVarOp _ qName) =
   G.Bare (T.pack ("op_"++ qNameToStr qName ++"__"))
-qOpToQId (QConOp _ qName) =
+qOpToQId (H.QConOp _ qName) =
   error "qualified Constr Operators not implemented"

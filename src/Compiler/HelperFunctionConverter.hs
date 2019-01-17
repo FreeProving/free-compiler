@@ -10,12 +10,12 @@ import Compiler.HelperFunctions (getReturnType ,getTypeSignatureByName ,getBinde
   ,termToQId ,nameToQId ,nameToStr ,gNameToQId ,argToTerm ,strToQId ,qIdToGName ,qIdToStr ,eqQId)
 
 import qualified Language.Coq.Gallina as G
-import Language.Haskell.Exts.Syntax (Name (..))
+import qualified Language.Haskell.Exts.Syntax as H
 
 import qualified GHC.Base as B
 import Data.Maybe (isJust ,fromJust)
 
-convertMatchToMainFunction :: Show l => Name l -> [G.Binder] -> G.Term -> [G.TypeSignature] -> [G.Name] -> ConversionMonad -> G.Fixpoint
+convertMatchToMainFunction :: Show l => H.Name l -> [G.Binder] -> G.Term -> [G.TypeSignature] -> [G.Name] -> ConversionMonad -> G.Fixpoint
 convertMatchToMainFunction name binders rhs typeSigs dataNames cMonad =
   G.Fixpoint (singleton (G.FixBody funName
     (toNonemptyList bindersWithInferredTypes)
@@ -34,7 +34,7 @@ convertMatchToMainFunction name binders rhs typeSigs dataNames cMonad =
     monadicRhs = addReturnToRhs (addBindOperatorToEquationInMatch monadicArgRhs (nameToQId name) binderPos cMonad) typeSigs bindersWithInferredTypes
 
 
-convertMatchToHelperFunction :: Show l => Name l -> [G.Binder] -> G.Term -> [G.TypeSignature] -> [G.Name] -> ConversionMonad -> G.Definition
+convertMatchToHelperFunction :: Show l => H.Name l -> [G.Binder] -> G.Term -> [G.TypeSignature] -> [G.Name] -> ConversionMonad -> G.Definition
 convertMatchToHelperFunction name binders rhs typeSigs dataNames cMonad =
   G.DefinitionDef G.Global
     funName
@@ -146,7 +146,7 @@ makeMatchedArgNonMonadic' (b : bs) pos currentPos =
     else b : makeMatchedArgNonMonadic' bs pos (currentPos + 1)
 makeMatchedArgNonMonadic' [] _ _ = []
 
-addSuffixToName :: Show l => Name l -> G.Qualid
+addSuffixToName :: Show l => H.Name l -> G.Qualid
 addSuffixToName name =
   strToQId (nameToStr name ++ "'")
 
