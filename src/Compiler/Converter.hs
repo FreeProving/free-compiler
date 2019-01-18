@@ -12,7 +12,8 @@ import Compiler.HelperFunctionConverter (convertMatchToMainFunction ,convertMatc
 import Compiler.MonadicConverter (transformTermMonadic ,transformBindersMonadic ,addReturnToRhs ,addBindOperatorsToDefinition)
 import Compiler.NonEmptyList (singleton, toNonemptyList)
 import Compiler.HelperFunctions (getTypeSignatureByName ,getReturnType ,getString ,getReturnTypeFromDeclHead
-  ,getNonInferrableConstrNames ,getNamesFromDataDecls ,containsRecursiveCall ,applyToDeclHead ,applyToDeclHeadTyVarBinds
+  ,getNonInferrableConstrNames ,getNamesFromDataDecls ,getNameFromDeclHead ,containsRecursiveCall ,applyToDeclHead
+  ,applyToDeclHeadTyVarBinds ,gNameToQId
   ,isDataDecl ,isTypeSig ,hasNonInferrableConstr ,addInferredTypesToSignature ,qNameToTypeTerm ,qNameToTerm ,qNameToQId
   ,nameToQId ,nameToTerm ,nameToGName ,nameToTypeTerm ,strToQId ,strToGName ,qOpToQId ,termToStrings ,typeTerm ,collapseApp)
 
@@ -80,10 +81,21 @@ convertModuleDecls (H.DataDecl _ (H.DataType _ ) Nothing declHead qConDecl _  : 
                                 convertModuleDecls ds typeSigs dataNames recursiveFuns cMonad cMode
       else G.InductiveSentence  (convertDataTypeDecl declHead qConDecl cMonad) :
                                 convertModuleDecls ds typeSigs dataNames recursiveFuns cMonad cMode
+convertModuleDecls ((H.TypeDecl _ declHead ty) : ds) typeSigs dataNames recursiveFuns cMonad cMode =
+  G.DefinitionSentence (convertTypeDeclToDefinition declHead ty) :
+    convertModuleDecls ds typeSigs dataNames recursiveFuns cMonad cMode
 convertModuleDecls [] _ _ _ _ _ =
   []
 convertModuleDecls (d : ds) _ _ _ _ _ =
    error ("Top-level declaration not implemented: " ++ show d)
+
+convertTypeDeclToDefinition :: Show l => H.DeclHead l -> H.Type l -> G.Definition
+convertTypeDeclToDefinition dHead ty =
+  G.DefinitionDef G.Global name binders Nothing rhs
+  where
+    name = (gNameToQId . getNameFromDeclHead) dHead
+    binders = applyToDeclHeadTyVarBinds dHead convertTyVarBindToBinder
+    rhs = convertTypeToTerm ty
 
 convertArgumentSentences :: Show l => H.DeclHead l -> [H.QualConDecl l] -> [G.Sentence]
 convertArgumentSentences declHead qConDecls =

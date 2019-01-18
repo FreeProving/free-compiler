@@ -41,16 +41,16 @@ parseAndPrintFile f = do
             print (fromParseResult (parseModuleWithMode (customParseMode f) s))
 
 testAst :: IO ()
-testAst = parseAndPrintFile "Test.hs"
+testAst = parseAndPrintFile "TestModules/Test.hs"
 
 
 test :: IO ()
 test =
-    parseFile "Test.hs"
+    parseFile "TestModules/Test.hs"
 
 saveTest :: IO ()
 saveTest =
-  parseAndSaveFile "Test.hs"
+  parseAndSaveFile "TestModules/Test.hs"
 
 addSavePath :: String -> String
 addSavePath fileName =
