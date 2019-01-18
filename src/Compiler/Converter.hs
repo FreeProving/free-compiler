@@ -13,7 +13,7 @@ import Compiler.MonadicConverter (transformTermMonadic ,transformBindersMonadic 
 import Compiler.NonEmptyList (singleton, toNonemptyList)
 import Compiler.HelperFunctions (getTypeSignatureByName ,getReturnType ,getString ,getReturnTypeFromDeclHead
   ,getNonInferrableConstrNames ,getNamesFromDataDecls ,getNameFromDeclHead ,containsRecursiveCall ,applyToDeclHead
-  ,applyToDeclHeadTyVarBinds ,gNameToQId
+  ,applyToDeclHeadTyVarBinds ,gNameToQId ,patToQID
   ,isDataDecl ,isTypeSig ,hasNonInferrableConstr ,addInferredTypesToSignature ,qNameToTypeTerm ,qNameToTerm ,qNameToQId
   ,nameToQId ,nameToTerm ,nameToGName ,nameToTypeTerm ,strToQId ,strToGName ,qOpToQId ,termToStrings ,typeTerm ,collapseApp)
 
@@ -84,6 +84,9 @@ convertModuleDecls (H.DataDecl _ (H.DataType _ ) Nothing declHead qConDecl _  : 
 convertModuleDecls ((H.TypeDecl _ declHead ty) : ds) typeSigs dataNames recursiveFuns cMonad cMode =
   G.DefinitionSentence (convertTypeDeclToDefinition declHead ty) :
     convertModuleDecls ds typeSigs dataNames recursiveFuns cMonad cMode
+convertModuleDecls ((H.PatBind _ pat rhs _) : ds) typeSigs dataNames recursiveFuns cMonad cMode =
+  G.DefinitionSentence (convertPatBindToDefinition pat rhs) :
+    convertModuleDecls ds typeSigs dataNames recursiveFuns cMonad cMode
 convertModuleDecls [] _ _ _ _ _ =
   []
 convertModuleDecls (d : ds) _ _ _ _ _ =
@@ -96,6 +99,13 @@ convertTypeDeclToDefinition dHead ty =
     name = (gNameToQId . getNameFromDeclHead) dHead
     binders = applyToDeclHeadTyVarBinds dHead convertTyVarBindToBinder
     rhs = convertTypeToTerm ty
+
+convertPatBindToDefinition :: Show l => H.Pat l -> H.Rhs l -> G.Definition
+convertPatBindToDefinition pat rhs =
+  G.DefinitionDef G.Global name [] Nothing rhsTerm
+  where
+    name = patToQID pat
+    rhsTerm = convertRhsToTerm rhs
 
 convertArgumentSentences :: Show l => H.DeclHead l -> [H.QualConDecl l] -> [G.Sentence]
 convertArgumentSentences declHead qConDecls =

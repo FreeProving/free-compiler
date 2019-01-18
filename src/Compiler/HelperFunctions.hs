@@ -67,6 +67,8 @@ getNamesFromDataDecls sentences =
 getNameFromDataDecl :: H.Decl l -> G.Name
 getNameFromDataDecl (H.DataDecl _ _ _ declHead _ _ ) =
   getNameFromDeclHead declHead
+getNameFromDataDecl (H.TypeDecl _ declHead _ ) =
+  getNameFromDeclHead declHead
 
 getNameFromDeclHead :: H.DeclHead l -> G.Name
 getNameFromDeclHead (H.DHead _ name) =
@@ -156,6 +158,8 @@ isTypeSig _ =
 
 isDataDecl :: H.Decl l -> Bool
 isDataDecl H.DataDecl {} =
+  True
+isDataDecl H.TypeDecl {} =
   True
 isDataDecl _ =
   False
@@ -355,6 +359,10 @@ nameToTerm name =
 nameToTypeTerm :: H.Name l -> G.Term
 nameToTypeTerm name =
   getType (getString name)
+
+patToQID :: H.Pat l -> G.Qualid
+patToQID (H.PVar _ name) =
+  nameToQId name
 
 ---------------------- QName conversion functions (Haskell AST)
 qNameToStr :: H.QName l -> String
