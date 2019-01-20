@@ -15,8 +15,8 @@ import qualified Language.Haskell.Exts.Syntax as H
 import qualified GHC.Base as B
 import Data.Maybe (isJust ,fromJust)
 
-convertMatchToMainFunction :: Show l => H.Name l -> [G.Binder] -> G.Term -> [G.TypeSignature] -> [G.Name] -> ConversionMonad -> G.Fixpoint
-convertMatchToMainFunction name binders rhs typeSigs dataNames cMonad =
+convertMatchToMainFunction :: Show l => H.Name l -> [G.Binder] -> G.Term -> [G.TypeSignature] -> [(G.Name, Int)] -> ConversionMonad -> G.Fixpoint
+convertMatchToMainFunction name binders rhs typeSigs dataTypes cMonad =
   G.Fixpoint (singleton (G.FixBody funName
     (toNonemptyList bindersWithInferredTypes)
       Nothing
@@ -26,16 +26,16 @@ convertMatchToMainFunction name binders rhs typeSigs dataNames cMonad =
     typeSig = fromJust (getTypeSignatureByName typeSigs name)
     funName = addSuffixToName name
     monadicBinders = transformBindersMonadic binders cMonad
-    bindersWithInferredTypes = makeMatchedArgNonMonadic (addInferredTypesToSignature monadicBinders dataNames) (binderPos + 1)
+    bindersWithInferredTypes = makeMatchedArgNonMonadic (addInferredTypesToSignature monadicBinders (map fst dataTypes)) (binderPos + 1)
     matchItem = getMatchedArgumentFromRhs rhs
     matchedBinder = termToQId (getBinderName (getMatchedBinder binders matchItem))
     binderPos = getMatchedBinderPosition binders matchItem
     monadicArgRhs = switchNonMonadicArgumentsFromTerm rhs (filter (not . eqQId matchedBinder) (map (termToQId . getBinderName) binders)) cMonad
-    monadicRhs = addReturnToRhs (addBindOperatorToEquationInMatch monadicArgRhs (nameToQId name) binderPos cMonad) typeSigs bindersWithInferredTypes
+    monadicRhs = addReturnToRhs (addBindOperatorToEquationInMatch monadicArgRhs (nameToQId name) binderPos cMonad) typeSigs bindersWithInferredTypes dataTypes
 
 
-convertMatchToHelperFunction :: Show l => H.Name l -> [G.Binder] -> G.Term -> [G.TypeSignature] -> [G.Name] -> ConversionMonad -> G.Definition
-convertMatchToHelperFunction name binders rhs typeSigs dataNames cMonad =
+convertMatchToHelperFunction :: Show l => H.Name l -> [G.Binder] -> G.Term -> [G.TypeSignature] -> [(G.Name, Int)] -> ConversionMonad -> G.Definition
+convertMatchToHelperFunction name binders rhs typeSigs dataTypes cMonad =
   G.DefinitionDef G.Global
     funName
       bindersWithInferredTypes
@@ -45,7 +45,7 @@ convertMatchToHelperFunction name binders rhs typeSigs dataNames cMonad =
     typeSig = fromJust (getTypeSignatureByName typeSigs name)
     funName = nameToQId name
     monadicBinders = transformBindersMonadic binders cMonad
-    bindersWithInferredTypes = addInferredTypesToSignature monadicBinders dataNames
+    bindersWithInferredTypes = addInferredTypesToSignature monadicBinders (map fst dataTypes)
     matchItem = getMatchedArgumentFromRhs rhs
     matchedBinder = transformBinderMonadic (getMatchedBinder binders matchItem) cMonad
     binderPos = getMatchedBinderPosition binders matchItem

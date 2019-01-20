@@ -13,7 +13,7 @@ import Compiler.MonadicConverter (transformTermMonadic ,transformBindersMonadic 
 import Compiler.NonEmptyList (singleton, toNonemptyList)
 import Compiler.HelperFunctions (getTypeSignatureByName ,getReturnType ,getString ,getReturnTypeFromDeclHead
   ,getNonInferrableConstrNames ,getNamesFromDataDecls ,getNameFromDeclHead ,containsRecursiveCall ,applyToDeclHead
-  ,applyToDeclHeadTyVarBinds ,gNameToQId ,patToQID
+  ,applyToDeclHeadTyVarBinds ,gNameToQId ,patToQID, getConstrCountFromDataDecls
   ,isDataDecl ,isTypeSig ,hasNonInferrableConstr ,addInferredTypesToSignature ,qNameToTypeTerm ,qNameToTerm ,qNameToQId
   ,nameToQId ,nameToTerm ,nameToGName ,nameToTypeTerm ,strToQId ,strToGName ,qOpToQId ,termToStrings ,typeTerm ,collapseApp)
 
@@ -30,12 +30,13 @@ convertModule :: Show l => H.Module l -> ConversionMonad -> ConversionMode -> G.
 convertModule (H.Module _ (Just modHead) _ _ decls) cMonad cMode =
   G.LocalModuleSentence (G.LocalModule (convertModuleHead modHead)
     (dataSentences ++
-      convertModuleDecls rDecls (map filterForTypeSignatures typeSigs) dataNames recursiveFuns cMonad cMode))
+      convertModuleDecls rDecls (map filterForTypeSignatures typeSigs) dataTypes recursiveFuns cMonad cMode))
   where
     (typeSigs, otherDecls) = partition isTypeSig decls
     (dataDecls, rDecls) = partition isDataDecl otherDecls
     dataSentences = convertModuleDecls dataDecls (map filterForTypeSignatures typeSigs) [] recursiveFuns cMonad cMode
-    dataNames = strToGName "List" : getNamesFromDataDecls dataDecls
+    dataTypes = (strToGName "List", 2) :
+                zip (getNamesFromDataDecls dataDecls) (getConstrCountFromDataDecls dataDecls)
     recursiveFuns = getRecursiveFunNames rDecls
 convertModule (H.Module _ Nothing _ _ decls) cMonad cMode =
   G.LocalModuleSentence (G.LocalModule (T.pack "unnamed")
@@ -71,22 +72,22 @@ importDefinitions =
     libraryImport = G.ModuleSentence (G.Require Nothing (Just G.Import) (singleton (T.pack "ImportModules")))
     monadImport =  G.ModuleSentence (G.ModuleImport G.Import (singleton (T.pack "Monad")))
 
-convertModuleDecls :: Show l => [H.Decl l] -> [G.TypeSignature] -> [G.Name] -> [G.Qualid] -> ConversionMonad -> ConversionMode -> [G.Sentence]
-convertModuleDecls (H.FunBind _ (x : xs) : ds) typeSigs dataNames recursiveFuns cMonad cMode =
-  convertMatchDef x typeSigs dataNames recursiveFuns cMonad cMode ++ convertModuleDecls ds typeSigs dataNames recursiveFuns cMonad cMode
-convertModuleDecls (H.DataDecl _ (H.DataType _ ) Nothing declHead qConDecl _  : ds) typeSigs dataNames recursiveFuns cMonad cMode =
+convertModuleDecls :: Show l => [H.Decl l] -> [G.TypeSignature] -> [(G.Name, Int)] -> [G.Qualid] -> ConversionMonad -> ConversionMode -> [G.Sentence]
+convertModuleDecls (H.FunBind _ (x : xs) : ds) typeSigs dataTypes recursiveFuns cMonad cMode =
+  convertMatchDef x typeSigs dataTypes recursiveFuns cMonad cMode ++ convertModuleDecls ds typeSigs dataTypes recursiveFuns cMonad cMode
+convertModuleDecls (H.DataDecl _ (H.DataType _ ) Nothing declHead qConDecl _  : ds) typeSigs dataTypes recursiveFuns cMonad cMode =
     if needsArgumentsSentence declHead qConDecl
       then [G.InductiveSentence  (convertDataTypeDecl declHead qConDecl cMonad)] ++
                                 convertArgumentSentences declHead qConDecl ++
-                                convertModuleDecls ds typeSigs dataNames recursiveFuns cMonad cMode
+                                convertModuleDecls ds typeSigs dataTypes recursiveFuns cMonad cMode
       else G.InductiveSentence  (convertDataTypeDecl declHead qConDecl cMonad) :
-                                convertModuleDecls ds typeSigs dataNames recursiveFuns cMonad cMode
-convertModuleDecls ((H.TypeDecl _ declHead ty) : ds) typeSigs dataNames recursiveFuns cMonad cMode =
+                                convertModuleDecls ds typeSigs dataTypes recursiveFuns cMonad cMode
+convertModuleDecls ((H.TypeDecl _ declHead ty) : ds) typeSigs dataTypes recursiveFuns cMonad cMode =
   G.DefinitionSentence (convertTypeDeclToDefinition declHead ty) :
-    convertModuleDecls ds typeSigs dataNames recursiveFuns cMonad cMode
-convertModuleDecls ((H.PatBind _ pat rhs _) : ds) typeSigs dataNames recursiveFuns cMonad cMode =
+    convertModuleDecls ds typeSigs dataTypes recursiveFuns cMonad cMode
+convertModuleDecls ((H.PatBind _ pat rhs _) : ds) typeSigs dataTypes recursiveFuns cMonad cMode =
   G.DefinitionSentence (convertPatBindToDefinition pat rhs) :
-    convertModuleDecls ds typeSigs dataNames recursiveFuns cMonad cMode
+    convertModuleDecls ds typeSigs dataTypes recursiveFuns cMonad cMode
 convertModuleDecls [] _ _ _ _ _ =
   []
 convertModuleDecls (d : ds) _ _ _ _ _ =
@@ -130,20 +131,20 @@ convertDataTypeDecl dHead qConDecl cMonad =
                         (getReturnTypeFromDeclHead (applyToDeclHeadTyVarBinds dHead convertTyVarBindToArg) dHead)
                           cMonad
 
-convertMatchDef :: Show l => H.Match l -> [G.TypeSignature] -> [G.Name] -> [G.Qualid] -> ConversionMonad -> ConversionMode -> [G.Sentence]
-convertMatchDef (H.Match _ name mPats rhs _) typeSigs dataNames recursiveFuns cMonad cMode =
+convertMatchDef :: Show l => H.Match l -> [G.TypeSignature] -> [(G.Name, Int)] -> [G.Qualid] -> ConversionMonad -> ConversionMode -> [G.Sentence]
+convertMatchDef (H.Match _ name mPats rhs _) typeSigs dataTypes recursiveFuns cMonad cMode =
     if containsRecursiveCall rhsTerm funName
       then if cMode == FueledFunction
-            then [G.FixpointSentence (convertMatchToFueledFixpoint name mPats rhs typeSigs dataNames recursiveFuns cMonad)]
-            else convertMatchWithHelperFunction name mPats rhs typeSigs dataNames cMonad
-      else [G.DefinitionSentence (convertMatchToDefinition name mPats rhs typeSigs dataNames recursiveFuns cMonad cMode)]
+            then [G.FixpointSentence (convertMatchToFueledFixpoint name mPats rhs typeSigs dataTypes recursiveFuns cMonad)]
+            else convertMatchWithHelperFunction name mPats rhs typeSigs dataTypes cMonad
+      else [G.DefinitionSentence (convertMatchToDefinition name mPats rhs typeSigs dataTypes recursiveFuns cMonad cMode)]
   where
     rhsTerm = convertRhsToTerm rhs
     funName = nameToQId name
 
 
-convertMatchToDefinition :: Show l => H.Name l -> [H.Pat l] -> H.Rhs l -> [G.TypeSignature] -> [G.Name] -> [G.Qualid] -> ConversionMonad -> ConversionMode -> G.Definition
-convertMatchToDefinition name pats rhs typeSigs dataNames recursiveFuns cMonad cMode =
+convertMatchToDefinition :: Show l => H.Name l -> [H.Pat l] -> H.Rhs l -> [G.TypeSignature] -> [(G.Name, Int)] -> [G.Qualid] -> ConversionMonad -> ConversionMode -> G.Definition
+convertMatchToDefinition name pats rhs typeSigs dataTypes recursiveFuns cMonad cMode =
   if cMode == FueledFunction && (not . null) recCalls
     then G.DefinitionDef G.Global funName
             bindersWithFuel
@@ -160,15 +161,15 @@ convertMatchToDefinition name pats rhs typeSigs dataNames recursiveFuns cMonad c
     typeSig = getTypeSignatureByName typeSigs name
     binders = convertPatsToBinders pats typeSig
     monadicBinders = transformBindersMonadic binders cMonad
-    bindersWithInferredTypes = addInferredTypesToSignature monadicBinders dataNames
+    bindersWithInferredTypes = addInferredTypesToSignature monadicBinders (map fst dataTypes)
     bindersWithFuel = addFuelBinder bindersWithInferredTypes
     rhsTerm = convertRhsToTerm rhs
-    monadicTerm = addBindOperatorsToDefinition monadicBinders (addReturnToRhs rhsTerm typeSigs monadicBinders)
+    monadicTerm = addBindOperatorsToDefinition monadicBinders (addReturnToRhs rhsTerm typeSigs monadicBinders dataTypes)
     fueledTerm = addFuelArgToRecursiveCalls rhsTerm fuelTerm recCalls
-    fueledMonadicTerm = addBindOperatorsToDefinition monadicBinders (addReturnToRhs fueledTerm typeSigs monadicBinders)
+    fueledMonadicTerm = addBindOperatorsToDefinition monadicBinders (addReturnToRhs fueledTerm typeSigs monadicBinders dataTypes)
 
-convertMatchToFueledFixpoint :: Show l => H.Name l -> [H.Pat l] -> H.Rhs l -> [G.TypeSignature] -> [G.Name] -> [G.Qualid] -> ConversionMonad -> G.Fixpoint
-convertMatchToFueledFixpoint name pats rhs typeSigs dataNames recursiveFuns cMonad =
+convertMatchToFueledFixpoint :: Show l => H.Name l -> [H.Pat l] -> H.Rhs l -> [G.TypeSignature] -> [(G.Name, Int)] -> [G.Qualid] -> ConversionMonad -> G.Fixpoint
+convertMatchToFueledFixpoint name pats rhs typeSigs dataTypes recursiveFuns cMonad =
  G.Fixpoint (singleton (G.FixBody funName
     (toNonemptyList bindersWithFuel)
       Nothing
@@ -180,18 +181,18 @@ convertMatchToFueledFixpoint name pats rhs typeSigs dataNames recursiveFuns cMon
     binders = convertPatsToBinders pats (Just typeSig)
     monadicBinders = transformBindersMonadic binders cMonad
     bindersWithFuel = addFuelBinder bindersWithInferredTypes
-    bindersWithInferredTypes = addInferredTypesToSignature monadicBinders dataNames
+    bindersWithInferredTypes = addInferredTypesToSignature monadicBinders (map fst dataTypes)
     rhsTerm = convertRhsToTerm rhs
-    convertedFunBody = convertFueledFunBody (addReturnToRhs rhsTerm typeSigs monadicBinders) monadicBinders funName typeSigs recursiveFuns
+    convertedFunBody = convertFueledFunBody (addReturnToRhs rhsTerm typeSigs monadicBinders dataTypes) monadicBinders funName typeSigs recursiveFuns
     fueledRhs = addFuelMatching monadicRhs funName
     monadicRhs = addBindOperatorsToDefinition monadicBinders convertedFunBody
 
 
 
-convertMatchWithHelperFunction :: Show l => H.Name l -> [H.Pat l] -> H.Rhs l -> [G.TypeSignature] -> [G.Name] -> ConversionMonad -> [G.Sentence]
-convertMatchWithHelperFunction name pats rhs typeSigs dataNames cMonad =
-  [G.FixpointSentence (convertMatchToMainFunction name binders rhsTerm typeSigs dataNames cMonad),
-    G.DefinitionSentence (convertMatchToHelperFunction name binders rhsTerm typeSigs dataNames cMonad)]
+convertMatchWithHelperFunction :: Show l => H.Name l -> [H.Pat l] -> H.Rhs l -> [G.TypeSignature] -> [(G.Name, Int)] -> ConversionMonad -> [G.Sentence]
+convertMatchWithHelperFunction name pats rhs typeSigs dataTypes cMonad =
+  [G.FixpointSentence (convertMatchToMainFunction name binders rhsTerm typeSigs dataTypes cMonad),
+    G.DefinitionSentence (convertMatchToHelperFunction name binders rhsTerm typeSigs dataTypes cMonad)]
   where
     rhsTerm = convertRhsToTerm rhs
     binders = convertPatsToBinders pats typeSig

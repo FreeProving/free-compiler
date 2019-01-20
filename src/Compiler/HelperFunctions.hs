@@ -60,9 +60,32 @@ getTypeSignatureByQId (x : xs) qId =
     then Just x
     else getTypeSignatureByQId xs qId
 
+getTermFromMatchItem :: G.MatchItem -> G.Term
+getTermFromMatchItem (G.MatchItem term _ _) =
+  term
+
+getConstrCountFromDataDecls :: [H.Decl l] -> [Int]
+getConstrCountFromDataDecls sentences =
+  [getConstrCountFromDataDecl s sentences | s <- sentences ]
+
 getNamesFromDataDecls :: [H.Decl l] -> [G.Name]
 getNamesFromDataDecls sentences =
   [getNameFromDataDecl s | s <- sentences]
+
+getConstrCountFromDataDecl :: H.Decl l -> [H.Decl l] -> Int
+getConstrCountFromDataDecl (H.DataDecl _ _ _ _ cons _ ) _ =
+  length cons
+getConstrCountFromDataDecl (H.TypeDecl _ _ ty ) sentences =
+  getConstrCountByName (typeToGName ty) sentences
+
+getConstrCountByName :: G.Name -> [H.Decl l] -> Int
+getConstrCountByName name ((H.DataDecl _ _ _ declHead cons _) : xs) =
+  if eqGName name (getNameFromDeclHead declHead)
+    then length cons
+    else getConstrCountByName name xs
+getConstrCountByName name (_ : xs) =
+  getConstrCountByName name xs
+getConstrCountByName name [] = error (show name)
 
 getNameFromDataDecl :: H.Decl l -> G.Name
 getNameFromDataDecl (H.DataDecl _ _ _ declHead _ _ ) =
@@ -234,6 +257,13 @@ typeNameEqQId :: G.TypeSignature -> G.Qualid -> Bool
 typeNameEqQId (G.TypeSignature sigName _ ) =
   eqQId (gNameToQId sigName)
 
+typeToGName :: H.Type l -> G.Name
+typeToGName (H.TyCon _ name) =
+  qNameToGName name
+typeToGName (H.TyApp _ constr _) =
+  typeToGName constr
+typeToGName ty =
+  error "type not implemented"
 ---------------------- various helper functions
 
 filterEachElement :: [a] -> (a -> a -> Bool) -> [a] -> [a]
@@ -425,11 +455,15 @@ qIdToStr (G.Bare ident) =
   T.unpack ident
 
 qIdToGName :: G.Qualid -> G.Name
-qIdToGName = G.Ident
+qIdToGName =
+  G.Ident
 
 
 termToQId :: G.Term -> G.Qualid
-termToQId (G.Qualid qId) = qId
+termToQId (G.Qualid qId) =
+  qId
+termToQId (G.App constr _) =
+  termToQId constr 
 ---------------------- Conversion of Coq AST to strings
 
 termToStrings :: G.Term -> [String]
