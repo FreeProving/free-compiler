@@ -34,7 +34,9 @@ addReturnToRhs rhs typeSigs binders _ =
 
 addReturnToMatch :: G.Term -> [G.TypeSignature] -> [G.Binder] -> [(G.Name, Int)] -> [G.Qualid] -> G.Term
 addReturnToMatch (G.Match mItem retType equations) typeSigs binders dataTypes patNames =
-  if length monadicEquations /= constrNumber
+  if (not . null) matchedBinder &&
+        isJust (elemIndex dataName dataNames) &&
+          length monadicEquations /= constrNumber
   then G.Match mItem retType (monadicEquations ++ errorEquation)
   else G.Match mItem retType monadicEquations
   where
