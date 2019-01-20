@@ -13,7 +13,7 @@ import Compiler.MonadicConverter (transformTermMonadic ,transformBindersMonadic 
 import Compiler.NonEmptyList (singleton, toNonemptyList)
 import Compiler.HelperFunctions (getTypeSignatureByName ,getReturnType ,getString ,getReturnTypeFromDeclHead
   ,getNonInferrableConstrNames ,getNamesFromDataDecls ,getNameFromDeclHead ,containsRecursiveCall ,applyToDeclHead
-  ,applyToDeclHeadTyVarBinds ,gNameToQId ,patToQID, getConstrCountFromDataDecls
+  ,applyToDeclHeadTyVarBinds ,gNameToQId ,patToQID, getConstrCountFromDataDecls ,getTypeSignatureByQId ,getInferredBindersFromRetType
   ,isDataDecl ,isTypeSig ,hasNonInferrableConstr ,addInferredTypesToSignature ,qNameToTypeTerm ,qNameToTerm ,qNameToQId
   ,nameToQId ,nameToTerm ,nameToGName ,nameToTypeTerm ,strToQId ,strToGName ,qOpToQId ,termToStrings ,typeTerm ,collapseApp)
 
@@ -86,7 +86,7 @@ convertModuleDecls ((H.TypeDecl _ declHead ty) : ds) typeSigs dataTypes recursiv
   G.DefinitionSentence (convertTypeDeclToDefinition declHead ty) :
     convertModuleDecls ds typeSigs dataTypes recursiveFuns cMonad cMode
 convertModuleDecls ((H.PatBind _ pat rhs _) : ds) typeSigs dataTypes recursiveFuns cMonad cMode =
-  G.DefinitionSentence (convertPatBindToDefinition pat rhs) :
+  G.DefinitionSentence (convertPatBindToDefinition pat rhs typeSigs dataTypes cMonad) :
     convertModuleDecls ds typeSigs dataTypes recursiveFuns cMonad cMode
 convertModuleDecls [] _ _ _ _ _ =
   []
@@ -101,12 +101,16 @@ convertTypeDeclToDefinition dHead ty =
     binders = applyToDeclHeadTyVarBinds dHead convertTyVarBindToBinder
     rhs = convertTypeToTerm ty
 
-convertPatBindToDefinition :: Show l => H.Pat l -> H.Rhs l -> G.Definition
-convertPatBindToDefinition pat rhs =
-  G.DefinitionDef G.Global name [] Nothing rhsTerm
+convertPatBindToDefinition :: Show l => H.Pat l -> H.Rhs l -> [G.TypeSignature] ->[(G.Name, Int)] -> ConversionMonad -> G.Definition
+convertPatBindToDefinition pat rhs typeSigs dataTypes cMonad =
+  G.DefinitionDef G.Global name binders returnType rhsTerm
   where
+    dataNames = map fst dataTypes
+    binders = getInferredBindersFromRetType (fromJust returnType)
     name = patToQID pat
-    rhsTerm = convertRhsToTerm rhs
+    typeSig = getTypeSignatureByQId typeSigs name
+    returnType = convertReturnType typeSig cMonad
+    rhsTerm = addReturnToRhs( convertRhsToTerm rhs) [] [] []
 
 convertArgumentSentences :: Show l => H.DeclHead l -> [H.QualConDecl l] -> [G.Sentence]
 convertArgumentSentences declHead qConDecls =

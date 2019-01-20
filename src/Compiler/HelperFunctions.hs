@@ -10,7 +10,7 @@ import qualified GHC.Base as B
 import Data.Maybe (isJust)
 import Data.List (nub)
 
-import Compiler.NonEmptyList (fromNonEmptyList, toNonemptyList)
+import Compiler.NonEmptyList (fromNonEmptyList, toNonemptyList, singleton)
 
 ---------------------- Getter Functions
 --Get Strings From Data Structures
@@ -290,6 +290,12 @@ addInferredTypesToSignature binders dataNames =
     typeTerms = map getBinderType binders
     consNames = nub (map getConstrNameFromType typeTerms)
 
+getInferredBindersFromRetType :: G.Term -> [G.Binder]
+getInferredBindersFromRetType (G.App constr args) =
+  concatMap getInferredBindersFromRetType (convertArgumentsToTerms (fromNonEmptyList args))
+getInferredBindersFromRetType (G.Qualid qId) =
+  [G.Typed G.Ungeneralizable G.Explicit (singleton (qIdToGName qId)) typeTerm]
+
 convertArgumentsToTerms :: [G.Arg] -> [G.Term]
 convertArgumentsToTerms =
   map argToTerm
@@ -463,7 +469,7 @@ termToQId :: G.Term -> G.Qualid
 termToQId (G.Qualid qId) =
   qId
 termToQId (G.App constr _) =
-  termToQId constr 
+  termToQId constr
 ---------------------- Conversion of Coq AST to strings
 
 termToStrings :: G.Term -> [String]
