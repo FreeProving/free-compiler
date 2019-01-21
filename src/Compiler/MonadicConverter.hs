@@ -117,7 +117,7 @@ toIdentityTerm term =
 
 toReturnTerm :: G.Term -> G.Term
 toReturnTerm term =
-  G.App returnTerm (singleton (G.PosArg (G.Parens term)))
+  G.App returnTerm (singleton (G.PosArg term))
 
 ---------------------- Add Monadic Prefixes
 
