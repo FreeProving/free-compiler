@@ -528,7 +528,8 @@ coqTypes :: [G.Name]
 coqTypes =
   [strToGName "nat",
   strToGName "bool",
-  strToGName "option"]
+  strToGName "option",
+  strToGName "identity"]
 
 --Convert qualifiedOperator from Haskell to Qualid with Operator signature
 qOpToQId :: H.QOp l -> G.Qualid
