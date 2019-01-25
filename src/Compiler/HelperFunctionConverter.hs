@@ -153,6 +153,8 @@ addSuffixToName name =
 addSuffixToTerm :: G.Term -> G.Term
 addSuffixToTerm (G.Qualid qId) =
   G.Qualid (strToQId (qIdToStr qId ++ "'"))
+addSuffixToTerm term =
+  term
 
 getMatchedBinder :: [G.Binder] -> G.Term -> G.Binder
 getMatchedBinder (b : bs) matchItem =

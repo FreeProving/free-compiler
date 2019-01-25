@@ -47,66 +47,50 @@ Definition null (a : Type) (olist : option (List a)) : option bool :=
   (fun (list : List a) =>
      match list with
      | Nil => return_ true
-     | Cons _ _ => return_ false
+     | _ => return_ false
      end). 
  
-Fixpoint append (fuel : nat) (a : Type) (oxs : option (List a)) (oys
-                  : option (List a)) : option (List a)
-           := match fuel with
-              | O => None
-              | S rFuel =>
-                  oxs >>=
-                  (fun (xs : List a) =>
-                     oys >>=
-                     (fun (ys : List a) =>
-                        match xs with
-                        | Nil => return_ ys
-                        | Cons z zs => return_ (Cons z (append rFuel zs (return_ ys)))
-                        end))
-              end. 
- 
-Fixpoint reverse_ (fuel : nat) (a : Type) (oxs : option (List a)) : option (List
+Fixpoint append' (a : Type) (xs : List a) (oys : option (List a)) : option (List
                                                                             a)
-           := match fuel with
-              | O => None
-              | S rFuel =>
-                  oxs >>=
-                  (fun (xs : List a) =>
-                     match xs with
-                     | Nil => return_ Nil
-                     | Cons y ys => append rFuel (reverse_ rFuel ys) (singleton y)
-                     end)
+           := match xs with
+              | Nil => oys
+              | Cons z ozs => return_ (Cons z (ozs >>= (fun zs => append' zs oys)))
               end. 
  
-Fixpoint concat_ (fuel : nat) (a : Type) (oxs : option (List (List a))) : option
-                                                                          (List a)
-           := match fuel with
-              | O => None
-              | S rFuel =>
-                  oxs >>=
-                  (fun (xs : List (List a)) =>
-                     match xs with
-                     | Nil => return_ Nil
-                     | Cons y ys => append rFuel y (concat_ rFuel ys)
-                     end)
+Definition append (a : Type) (oxs : option (List a)) (oys : option (List a))
+   : option (List a) :=
+  oxs >>= (fun (xs : List a) => append' xs oys). 
+ 
+Fixpoint reverse_' (a : Type) (xs : List a) : option (List a)
+           := match xs with
+              | Nil => return_ Nil
+              | Cons y oys => append (oys >>= (fun ys => reverse_' ys)) (singleton y)
               end. 
  
-Fixpoint length' (fuel : nat) (a : Type) (oxs : option (List a)) : option nat
-           := match fuel with
-              | O => None
-              | S rFuel =>
-                  oxs >>=
-                  (fun (xs : List a) =>
-                     match xs with
-                     | Nil => return_ 0
-                     | Cons y ys => plus (return_ 1) (length' rFuel ys)
-                     end)
+Definition reverse_ (a : Type) (oxs : option (List a)) : option (List a) :=
+  oxs >>= (fun (xs : List a) => reverse_' xs). 
+ 
+Fixpoint concat_' (a : Type) (xs : List (List a)) : option (List a)
+           := match xs with
+              | Nil => return_ Nil
+              | Cons y oys => append y (oys >>= (fun ys => concat_' ys))
               end. 
  
-Definition indexLength (fuel : nat) (a : Type) (oxs : option (List a))
-   : option nat :=
-  oxs >>=
-  (fun (xs : List a) => minus (length' fuel (return_ xs)) (return_ 1)). 
+Definition concat_ (a : Type) (oxs : option (List (List a)))
+   : option (List a) :=
+  oxs >>= (fun (xs : List (List a)) => concat_' xs). 
+ 
+Fixpoint length'' (a : Type) (xs : List a) : option nat
+           := match xs with
+              | Nil => return_ 0
+              | Cons y oys => plus (return_ 1) (oys >>= (fun ys => length'' ys))
+              end. 
+ 
+Definition length' (a : Type) (oxs : option (List a)) : option nat :=
+  oxs >>= (fun (xs : List a) => length'' xs). 
+ 
+Definition indexLength (a : Type) (oxs : option (List a)) : option nat :=
+  oxs >>= (fun (xs : List a) => minus (length' (return_ xs)) (return_ 1)). 
  
 End Test.
  

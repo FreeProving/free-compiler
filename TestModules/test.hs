@@ -32,10 +32,10 @@ not b = case b of
   True -> False
 
 
-null :: List a -> Bool
+null :: [a] -> Bool
 null list = case list of
-  Nil -> True
-  Cons _ _ -> False
+  [] -> True
+  _ -> False
 {-}
 --type Queue a = List a
 -}
@@ -44,25 +44,25 @@ data Test =
   | T2 String
 
 
-append :: List a -> List a -> List a
+append :: [a] -> [a] -> [a]
 append xs ys  = case xs of
-  Nil -> ys
-  Cons z zs -> Cons z (append zs ys )
+  [] -> ys
+  (z : zs) -> z : append zs ys
 
-reverse_ :: List a -> List a
+reverse_ :: [a] -> [a]
 reverse_ xs = case xs of
-  Nil -> Nil
-  Cons y ys -> append (reverse_ ys) (singleton y)
+  [] -> []
+  (y : ys) -> append (reverse_ ys) (singleton y)
 
-concat_ :: List (List a) -> List a
+concat_ :: [[a]] -> [a]
 concat_ xs = case xs of
-  Nil -> Nil
-  Cons y ys -> append y (concat_ ys)
+  [] -> []
+  (y : ys) -> append y (concat_ ys)
 
-length' :: List a -> Int
+length' :: [a] -> Int
 length' xs = case xs of
-      Nil -> 0
-      Cons y ys -> plus 1 (length' ys)
+      [] -> 0
+      (y : ys) -> plus 1 (length' ys)
 
-indexLength :: List a -> Int
+indexLength :: [a] -> Int
 indexLength xs = minus (length' xs) 1

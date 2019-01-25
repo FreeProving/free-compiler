@@ -15,7 +15,8 @@ import Compiler.HelperFunctions (getTypeSignatureByName ,getReturnType ,getStrin
   ,getNonInferrableConstrNames ,getNamesFromDataDecls ,getNameFromDeclHead ,containsRecursiveCall ,applyToDeclHead
   ,applyToDeclHeadTyVarBinds ,gNameToQId ,patToQID, getConstrCountFromDataDecls ,getTypeSignatureByQId ,getInferredBindersFromRetType
   ,isDataDecl ,isTypeSig ,hasNonInferrableConstr ,addInferredTypesToSignature ,qNameToTypeTerm ,qNameToTerm ,qNameToQId
-  ,nameToQId ,nameToTerm ,nameToGName ,nameToTypeTerm ,strToQId ,strToGName ,qOpToQId ,termToStrings ,typeTerm ,collapseApp)
+  ,nameToQId ,nameToTerm ,nameToGName ,nameToTypeTerm ,strToQId ,strToGName ,qOpToQId ,qOpToQOpId ,termToStrings ,typeTerm ,collapseApp, listTerm
+  ,isSpecialConstr ,isSpecialOperator ,qNameToText ,pairTerm )
 
 import qualified GHC.Base as B
 
@@ -35,7 +36,7 @@ convertModule (H.Module _ (Just modHead) _ _ decls) cMonad cMode =
     (typeSigs, otherDecls) = partition isTypeSig decls
     (dataDecls, rDecls) = partition isDataDecl otherDecls
     dataSentences = convertModuleDecls dataDecls (map filterForTypeSignatures typeSigs) [] recursiveFuns cMonad cMode
-    dataTypes = (strToGName "List", 2) :
+    dataTypes = (strToGName "List", 2) : (strToGName "Pair", 1) :
                 zip (getNamesFromDataDecls dataDecls) (getConstrCountFromDataDecls dataDecls)
     recursiveFuns = getRecursiveFunNames rDecls
 convertModule (H.Module _ Nothing _ _ decls) cMonad cMode =
@@ -265,6 +266,10 @@ convertTypeToTerm (H.TyParen _ ty) =
   G.Parens (convertTypeToTerm ty)
 convertTypeToTerm (H.TyApp _ type1 type2) =
   G.App (convertTypeToTerm type1) (singleton (convertTypeToArg type2))
+convertTypeToTerm (H.TyList _ ty) =
+  G.App listTerm (singleton (G.PosArg (convertTypeToTerm ty)))
+convertTypeToTerm (H.TyTuple _ _ tys) =
+  G.App pairTerm (toNonemptyList [convertTypeToArg t | t <- tys])
 convertTypeToTerm ty =
   error ("Haskell-type not implemented: " ++ show ty )
 
@@ -317,16 +322,23 @@ convertExprToTerm (H.Con _ qName) =
 convertExprToTerm (H.Paren _ expr) =
   G.Parens (convertExprToTerm expr)
 convertExprToTerm (H.App _ expr1 expr2) =
-  G.App (convertExprToTerm expr1) (singleton (G.PosArg (convertExprToTerm expr2)))
+  G.App ((collapseApp . convertExprToTerm) expr1) (singleton (G.PosArg ((collapseApp . convertExprToTerm) expr2)))
 convertExprToTerm (H.InfixApp _ exprL qOp exprR) =
-  G.App (G.Qualid (qOpToQId qOp))
-    (toNonemptyList [G.PosArg (convertExprToTerm exprL), G.PosArg (convertExprToTerm exprR)])
+  if isSpecialOperator qOp
+  then G.App (G.Qualid (qOpToQId qOp))
+    (toNonemptyList [G.PosArg ((collapseApp . convertExprToTerm) exprL), G.PosArg ((collapseApp . convertExprToTerm) exprR)])
+  else G.App (G.Qualid (qOpToQOpId qOp))
+    (toNonemptyList [G.PosArg ((collapseApp . convertExprToTerm) exprL), G.PosArg ((collapseApp . convertExprToTerm) exprR)])
 convertExprToTerm (H.Case _ expr altList) =
   G.Match (singleton ( G.MatchItem (convertExprToTerm expr)  Nothing Nothing))
     Nothing
       (convertAltListToEquationList altList)
 convertExprToTerm (H.Lit _ literal) =
   convertLiteralToTerm literal
+convertExprToTerm (H.Tuple _ _ exprs) =
+  G.App (G.Qualid (strToQId "P")) (toNonemptyList [(G.PosArg . convertExprToTerm) e | e <- exprs])
+convertExprToTerm (H.List _ []) =
+  G.Qualid (strToQId "Nil")
 convertExprToTerm expr =
   error ("Haskell expression not implemented: " ++ show expr)
 
@@ -361,6 +373,14 @@ convertHPatToGPat (H.PParen _ pat) =
   convertHPatToGPat pat
 convertHPatToGPat (H.PWildCard _) =
   G.UnderscorePat
+convertHPatToGPat (H.PInfixApp _ patL op patR) =
+  if isSpecialConstr op
+    then G.ArgsPat (qNameToQId op) [convertHPatToGPat patL , convertHPatToGPat patR]
+    else G.InfixPat (convertHPatToGPat patL) (qNameToText op) (convertHPatToGPat patR)
+convertHPatToGPat (H.PTuple _ _ pats) =
+  G.ArgsPat (strToQId "P") (convertHPatListToGPatList pats)
+convertHPatToGPat (H.PList _ []) =
+  G.ArgsPat (strToQId "Nil") []
 convertHPatToGPat pat =
   error ("Haskell pattern not implemented: " ++ show pat)
 

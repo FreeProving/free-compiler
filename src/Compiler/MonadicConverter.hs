@@ -193,13 +193,17 @@ isMonadicFunctionCall :: G.Term -> [G.TypeSignature] -> Bool
 isMonadicFunctionCall (G.Qualid qId) typeSigs =
   isJust maybeTypeSig || any (eqQId qId) predefinedMonadicFunctions || eqQId qId (termToQId bindOperator)
   where maybeTypeSig = getTypeSignatureByQId typeSigs qId
-isMonadicFunctionCall term _ =
+isMonadicFunctionCall (G.App term args) typeSig =
+  isMonadicFunctionCall term typeSig
+isMonadicFunctionCall _ _ =
   False
 
 isMonadicBinder :: G.Term -> [G.Binder] -> Bool
 isMonadicBinder (G.Qualid qId) binders =
   isJust maybeBinder && isMonadicTerm (getBinderType (fromJust maybeBinder))
   where maybeBinder = getBinderByQId binders qId
+isMonadicBinder _ _ =
+  False
 
 errorEquation :: [G.Equation]
 errorEquation =

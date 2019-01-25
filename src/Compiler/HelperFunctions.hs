@@ -169,6 +169,18 @@ getRhsFromEquation :: G.Equation -> G.Term
 getRhsFromEquation (G.Equation _ term) =
   term
 ---------------------- Bool Functions
+isSpecialConstr :: H.QName l -> Bool
+isSpecialConstr (H.Special _ _ ) =
+  True
+isSpecialConstr _ =
+  False
+
+isSpecialOperator :: H.QOp l -> Bool
+isSpecialOperator (H.QVarOp _ qName) =
+  isSpecialConstr qName
+isSpecialOperator (H.QConOp _ qName) =
+  isSpecialConstr qName
+
 isCoqType :: G.Name -> Bool
 isCoqType name =
    not (any (eqGName name) coqTypes)
@@ -262,6 +274,8 @@ typeToGName (H.TyCon _ name) =
   qNameToGName name
 typeToGName (H.TyApp _ constr _) =
   typeToGName constr
+typeToGName (H.TyList _ ty) =
+  strToGName "List"
 typeToGName ty =
   error "type not implemented"
 ---------------------- various helper functions
@@ -401,17 +415,19 @@ patToQID (H.PVar _ name) =
   nameToQId name
 
 ---------------------- QName conversion functions (Haskell AST)
-qNameToStr :: H.QName l -> String
+qNameToStr :: Show l => H.QName l -> String
 qNameToStr qName =
   T.unpack (qNameToText qName)
 
-qNameToText :: H.QName l -> T.Text
+qNameToText :: Show l => H.QName l -> T.Text
 qNameToText (H.UnQual _ name) =
   nameToText name
+qNameToText (H.Special _ specCon) =
+  specConToText specCon
 qNameToText _ =
   error "qualified names not implemented"
 
-qNameToQId :: H.QName l -> G.Qualid
+qNameToQId :: Show l => H.QName l -> G.Qualid
 qNameToQId qName =
   G.Bare (qNameToText qName)
 
@@ -421,7 +437,7 @@ qNameToGName (H.UnQual _ name) =
 qNameToGName _ =
   error "qualified names not implemented"
 
-qNameToTerm :: H.QName l -> G.Term
+qNameToTerm :: Show l => H.QName l -> G.Term
 qNameToTerm qName =
   G.Qualid (qNameToQId qName)
 
@@ -434,7 +450,11 @@ qNameToBinder qName =
   G.Inferred G.Explicit (qNameToGName qName)
 
 
-
+specConToText :: Show l => H.SpecialCon l -> T.Text
+specConToText (H.Cons _) =
+  T.pack "Cons"
+specConToText con =
+  error ("specialConstructor not implemented: " ++ show con)
 ---------------------- gName conversion functions (Coq AST)
 gNameToTerm :: G.Name -> G.Term
 gNameToTerm (G.Ident qId) =
@@ -523,6 +543,14 @@ typeTerm :: G.Term
 typeTerm =
   G.Sort G.Type
 
+listTerm :: G.Term
+listTerm =
+  G.Qualid (strToQId "List")
+
+pairTerm :: G.Term
+pairTerm =
+  G.Qualid (strToQId "Pair")
+
 ---------------------- Predefined Coq Types
 coqTypes :: [G.Name]
 coqTypes =
@@ -532,8 +560,14 @@ coqTypes =
   strToGName "identity"]
 
 --Convert qualifiedOperator from Haskell to Qualid with Operator signature
-qOpToQId :: H.QOp l -> G.Qualid
-qOpToQId (H.QVarOp _ qName) =
+qOpToQOpId :: Show l => H.QOp l -> G.Qualid
+qOpToQOpId (H.QVarOp _ qName) =
   G.Bare (T.pack ("op_"++ qNameToStr qName ++"__"))
+qOpToQOpId (H.QConOp _ qName) =
+  G.Bare (T.pack ("op_" ++ qNameToStr qName ++ "__"))
+
+qOpToQId :: Show l => H.QOp l -> G.Qualid
+qOpToQId (H.QVarOp _ qName) =
+  qNameToQId qName
 qOpToQId (H.QConOp _ qName) =
-  error "qualified Constr Operators not implemented"
+  qNameToQId qName

@@ -25,5 +25,7 @@ Arguments Nil {A}.
 Definition singleton (A : Type) (ox : option A) :=
   return_ (Cons ox (return_ Nil)).
 
+Inductive Pair (A B :Type) : Type := 
+  | P : option A -> option B -> Pair A B.
 
 End Monad.
