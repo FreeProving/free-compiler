@@ -30,35 +30,35 @@ Definition null' (a : Type) (olist : option (List a)) : option bool :=
      end). 
  
 Fixpoint append (fuel : nat) (a : Type) (oxs : option (List a)) (oys
-                  : option (List a)) : option (List a)
-           := match fuel with
-              | O => None
-              | S rFuel =>
-                  oxs >>=
-                  (fun (xs : List a) =>
-                     oys >>=
-                     (fun (ys : List a) =>
-                        match xs with
-                        | Nil => return_ ys
-                        | Cons z zs => (return_ (Cons z (append rFuel zs (return_ ys))))
-                        end))
-              end. 
+                  : option (List a)) : option (List a) :=
+           match fuel with
+           | O => None
+           | S rFuel =>
+               oxs >>=
+               (fun (xs : List a) =>
+                  oys >>=
+                  (fun (ys : List a) =>
+                     match xs with
+                     | Nil => return_ ys
+                     | Cons z zs => (return_ (Cons z (append rFuel zs (return_ ys))))
+                     end))
+           end. 
  
 Definition singleton (a : Type) (ox : option a) : option (List a) :=
   ox >>= (fun (x : a) => return_ (Cons (return_ x) (return_ Nil))). 
  
 Fixpoint reverse' (fuel : nat) (a : Type) (oxs : option (List a)) : option (List
-                                                                            a)
-           := match fuel with
-              | O => None
-              | S rFuel =>
-                  oxs >>=
-                  (fun (xs : List a) =>
-                     match xs with
-                     | Nil => return_ Nil
-                     | Cons y ys => append rFuel (reverse' rFuel ys) (singleton y)
-                     end)
-              end. 
+                                                                            a) :=
+           match fuel with
+           | O => None
+           | S rFuel =>
+               oxs >>=
+               (fun (xs : List a) =>
+                  match xs with
+                  | Nil => return_ Nil
+                  | Cons y ys => append rFuel (reverse' rFuel ys) (singleton y)
+                  end)
+           end. 
  
 Definition empty (a : Type) : option (Queue a) :=
   return_ Nil. 
@@ -100,7 +100,6 @@ Definition flipQ (fuel : nat) (a : Type) (oq : option (Queuel a))
             match f' with
             | Nil => return_ (P (reverse' fuel b) (return_ Nil))
             | _ => return_ q
-            | _ => None
             end)
      end). 
  

@@ -64,28 +64,54 @@ getTermFromMatchItem :: G.MatchItem -> G.Term
 getTermFromMatchItem (G.MatchItem term _ _) =
   term
 
-getConstrCountFromDataDecls :: [H.Decl l] -> [Int]
-getConstrCountFromDataDecls sentences =
-  [getConstrCountFromDataDecl s sentences | s <- sentences ]
+getConstrNamesFromDataDecls :: [H.Decl l] -> [[G.Qualid]]
+getConstrNamesFromDataDecls sentences =
+  [getConstrNamesFromDataDecl s sentences | s <- sentences ]
 
 getNamesFromDataDecls :: [H.Decl l] -> [G.Name]
 getNamesFromDataDecls sentences =
   [getNameFromDataDecl s | s <- sentences]
 
-getConstrCountFromDataDecl :: H.Decl l -> [H.Decl l] -> Int
-getConstrCountFromDataDecl (H.DataDecl _ _ _ _ cons _ ) _ =
-  length cons
-getConstrCountFromDataDecl (H.TypeDecl _ _ ty ) sentences =
-  getConstrCountByName (typeToGName ty) sentences
+getConstrNamesFromDataDecl :: H.Decl l -> [H.Decl l] -> [G.Qualid]
+getConstrNamesFromDataDecl (H.DataDecl _ _ _ _ cons _ ) _ =
+  [getConstrNameFromQConDecl c | c <- cons]
+getConstrNamesFromDataDecl (H.TypeDecl _ _ ty ) sentences =
+  getConstrsByName (typeToGName ty) sentences
 
-getConstrCountByName :: G.Name -> [H.Decl l] -> Int
-getConstrCountByName name ((H.DataDecl _ _ _ declHead cons _) : xs) =
+getConstrsByName :: G.Name -> [H.Decl l] -> [G.Qualid]
+getConstrsByName name ((H.DataDecl _ _ _ declHead cons _) : xs) =
   if eqGName name (getNameFromDeclHead declHead)
-    then length cons
-    else getConstrCountByName name xs
-getConstrCountByName name (_ : xs) =
-  getConstrCountByName name xs
-getConstrCountByName name [] = error (show name)
+    then [getConstrNameFromQConDecl c | c <- cons]
+    else getConstrsByName name xs
+getConstrsByName name (_ : xs) =
+  getConstrsByName name xs
+getConstrsByName name [] = error (show name)
+
+getConstrsByPattern :: G.Pattern -> [[G.Qualid]] -> Maybe [G.Qualid]
+getConstrsByPattern (G.UnderscorePat) _ =
+  Nothing
+getConstrsByPattern (G.QualidPat qId) dataTypeConstrs =
+  if (not . null) filteredConstrs
+    then Just (head filteredConstrs)
+    else Nothing
+  where
+    filteredConstrs = filter (not . null) (map (getConstrSet qId) dataTypeConstrs)
+getConstrsByPattern (G.ArgsPat qId _ ) dataTypeConstrs =
+  if (not . null) filteredConstrs
+    then Just (head filteredConstrs)
+    else Nothing
+  where
+    filteredConstrs = filter (not . null) (map (getConstrSet qId) dataTypeConstrs)
+
+getConstrSet :: G.Qualid -> [G.Qualid] -> [G.Qualid]
+getConstrSet qId constrs =
+  if any (eqQId qId) constrs
+    then constrs
+    else []
+
+getConstrNameFromQConDecl :: H.QualConDecl l -> G.Qualid
+getConstrNameFromQConDecl (H.QualConDecl _ _ _ (H.ConDecl _ name _)) =
+  nameToQId name
 
 getNameFromDataDecl :: H.Decl l -> G.Name
 getNameFromDataDecl (H.DataDecl _ _ _ declHead _ _ ) =
@@ -165,9 +191,23 @@ getQIdsFromPattern (G.QualidPat qId) =
 getQIdsFromPattern pat =
   []
 
+getQIdFromPattern :: G.Pattern -> G.Qualid
+getQIdFromPattern (G.ArgsPat qId _) =
+  qId
+getQIdFromPattern (G.QualidPat qId) =
+  qId
+getQIdFromPattern (G.InfixPat _ op _ ) =
+  G.Bare op
+getQIdFromPattern (G.UnderscorePat) =
+  strToQId "_"
+
 getRhsFromEquation :: G.Equation -> G.Term
 getRhsFromEquation (G.Equation _ term) =
   term
+
+getPatternFromEquation :: G.Equation -> [G.Pattern]
+getPatternFromEquation (G.Equation multPats _) =
+  (getPatternFromMultPattern . head . fromNonEmptyList) multPats
 ---------------------- Bool Functions
 isSpecialConstr :: H.QName l -> Bool
 isSpecialConstr (H.Special _ _ ) =
@@ -208,6 +248,20 @@ isNonInferrableConstr (H.QualConDecl _ _ _ (H.ConDecl _ _ [])) =
   True
 isNonInferrableConstr (H.QualConDecl _ _ _ (H.ConDecl _ _ ty)) =
   False
+
+isUnderscorePat :: G.Pattern -> Bool
+isUnderscorePat (G.UnderscorePat) =
+  True
+isUnderscorePat _ =
+  False
+
+containsAllConstrs :: [G.Pattern] -> [G.Qualid] -> Bool
+containsAllConstrs [] constrs =
+  null constrs
+containsAllConstrs (p : ps) constrs =
+  containsAllConstrs ps (filter (not . eqQId constrQId) constrs)
+  where
+    constrQId = getQIdFromPattern p
 
 containsRecursiveCall :: G.Term -> G.Qualid -> Bool
 containsRecursiveCall (G.Match _ _ equations) funName =

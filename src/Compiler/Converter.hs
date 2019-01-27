@@ -13,7 +13,7 @@ import Compiler.MonadicConverter (transformTermMonadic ,transformBindersMonadic 
 import Compiler.NonEmptyList (singleton, toNonemptyList)
 import Compiler.HelperFunctions (getTypeSignatureByName ,getReturnType ,getString ,getReturnTypeFromDeclHead
   ,getNonInferrableConstrNames ,getNamesFromDataDecls ,getNameFromDeclHead ,containsRecursiveCall ,applyToDeclHead
-  ,applyToDeclHeadTyVarBinds ,gNameToQId ,patToQID, getConstrCountFromDataDecls ,getTypeSignatureByQId ,getInferredBindersFromRetType
+  ,applyToDeclHeadTyVarBinds ,gNameToQId ,patToQID, getConstrNamesFromDataDecls ,getTypeSignatureByQId ,getInferredBindersFromRetType
   ,isDataDecl ,isTypeSig ,hasNonInferrableConstr ,addInferredTypesToSignature ,qNameToTypeTerm ,qNameToTerm ,qNameToQId
   ,nameToQId ,nameToTerm ,nameToGName ,nameToTypeTerm ,strToQId ,strToGName ,qOpToQId ,qOpToQOpId ,termToStrings ,typeTerm ,collapseApp, listTerm
   ,isSpecialConstr ,isSpecialOperator ,qNameToText ,pairTerm )
@@ -36,8 +36,8 @@ convertModule (H.Module _ (Just modHead) _ _ decls) cMonad cMode =
     (typeSigs, otherDecls) = partition isTypeSig decls
     (dataDecls, rDecls) = partition isDataDecl otherDecls
     dataSentences = convertModuleDecls dataDecls (map filterForTypeSignatures typeSigs) [] recursiveFuns cMonad cMode
-    dataTypes = (strToGName "List", 2) : (strToGName "Pair", 1) :
-                zip (getNamesFromDataDecls dataDecls) (getConstrCountFromDataDecls dataDecls)
+    dataTypes = predefinedDataTypes ++
+                zip (getNamesFromDataDecls dataDecls) (getConstrNamesFromDataDecls dataDecls)
     recursiveFuns = getRecursiveFunNames rDecls
 convertModule (H.Module _ Nothing _ _ decls) cMonad cMode =
   G.LocalModuleSentence (G.LocalModule (T.pack "unnamed")
@@ -73,7 +73,7 @@ importDefinitions =
     libraryImport = G.ModuleSentence (G.Require Nothing (Just G.Import) (singleton (T.pack "ImportModules")))
     monadImport =  G.ModuleSentence (G.ModuleImport G.Import (singleton (T.pack "Monad")))
 
-convertModuleDecls :: Show l => [H.Decl l] -> [G.TypeSignature] -> [(G.Name, Int)] -> [G.Qualid] -> ConversionMonad -> ConversionMode -> [G.Sentence]
+convertModuleDecls :: Show l => [H.Decl l] -> [G.TypeSignature] -> [(G.Name, [G.Qualid])] -> [G.Qualid] -> ConversionMonad -> ConversionMode -> [G.Sentence]
 convertModuleDecls (H.FunBind _ (x : xs) : ds) typeSigs dataTypes recursiveFuns cMonad cMode =
   convertMatchDef x typeSigs dataTypes recursiveFuns cMonad cMode ++ convertModuleDecls ds typeSigs dataTypes recursiveFuns cMonad cMode
 convertModuleDecls (H.DataDecl _ (H.DataType _ ) Nothing declHead qConDecl _  : ds) typeSigs dataTypes recursiveFuns cMonad cMode =
@@ -102,7 +102,7 @@ convertTypeDeclToDefinition dHead ty =
     binders = applyToDeclHeadTyVarBinds dHead convertTyVarBindToBinder
     rhs = convertTypeToTerm ty
 
-convertPatBindToDefinition :: Show l => H.Pat l -> H.Rhs l -> [G.TypeSignature] ->[(G.Name, Int)] -> ConversionMonad -> G.Definition
+convertPatBindToDefinition :: Show l => H.Pat l -> H.Rhs l -> [G.TypeSignature] ->[(G.Name, [G.Qualid])] -> ConversionMonad -> G.Definition
 convertPatBindToDefinition pat rhs typeSigs dataTypes cMonad =
   G.DefinitionDef G.Global name binders returnType rhsTerm
   where
@@ -136,7 +136,7 @@ convertDataTypeDecl dHead qConDecl cMonad =
                         (getReturnTypeFromDeclHead (applyToDeclHeadTyVarBinds dHead convertTyVarBindToArg) dHead)
                           cMonad
 
-convertMatchDef :: Show l => H.Match l -> [G.TypeSignature] -> [(G.Name, Int)] -> [G.Qualid] -> ConversionMonad -> ConversionMode -> [G.Sentence]
+convertMatchDef :: Show l => H.Match l -> [G.TypeSignature] -> [(G.Name, [G.Qualid])] -> [G.Qualid] -> ConversionMonad -> ConversionMode -> [G.Sentence]
 convertMatchDef (H.Match _ name mPats rhs _) typeSigs dataTypes recursiveFuns cMonad cMode =
     if containsRecursiveCall rhsTerm funName
       then if cMode == FueledFunction
@@ -148,7 +148,7 @@ convertMatchDef (H.Match _ name mPats rhs _) typeSigs dataTypes recursiveFuns cM
     funName = nameToQId name
 
 
-convertMatchToDefinition :: Show l => H.Name l -> [H.Pat l] -> H.Rhs l -> [G.TypeSignature] -> [(G.Name, Int)] -> [G.Qualid] -> ConversionMonad -> ConversionMode -> G.Definition
+convertMatchToDefinition :: Show l => H.Name l -> [H.Pat l] -> H.Rhs l -> [G.TypeSignature] -> [(G.Name, [G.Qualid])] -> [G.Qualid] -> ConversionMonad -> ConversionMode -> G.Definition
 convertMatchToDefinition name pats rhs typeSigs dataTypes recursiveFuns cMonad cMode =
   if cMode == FueledFunction && (not . null) recCalls
     then G.DefinitionDef G.Global funName
@@ -173,7 +173,7 @@ convertMatchToDefinition name pats rhs typeSigs dataTypes recursiveFuns cMonad c
     fueledTerm = addFuelArgToRecursiveCalls rhsTerm fuelTerm recCalls
     fueledMonadicTerm = addBindOperatorsToDefinition monadicBinders (addReturnToRhs fueledTerm typeSigs monadicBinders dataTypes)
 
-convertMatchToFueledFixpoint :: Show l => H.Name l -> [H.Pat l] -> H.Rhs l -> [G.TypeSignature] -> [(G.Name, Int)] -> [G.Qualid] -> ConversionMonad -> G.Fixpoint
+convertMatchToFueledFixpoint :: Show l => H.Name l -> [H.Pat l] -> H.Rhs l -> [G.TypeSignature] -> [(G.Name, [G.Qualid])] -> [G.Qualid] -> ConversionMonad -> G.Fixpoint
 convertMatchToFueledFixpoint name pats rhs typeSigs dataTypes recursiveFuns cMonad =
  G.Fixpoint (singleton (G.FixBody funName
     (toNonemptyList bindersWithFuel)
@@ -194,7 +194,7 @@ convertMatchToFueledFixpoint name pats rhs typeSigs dataTypes recursiveFuns cMon
 
 
 
-convertMatchWithHelperFunction :: Show l => H.Name l -> [H.Pat l] -> H.Rhs l -> [G.TypeSignature] -> [(G.Name, Int)] -> ConversionMonad -> [G.Sentence]
+convertMatchWithHelperFunction :: Show l => H.Name l -> [H.Pat l] -> H.Rhs l -> [G.TypeSignature] -> [(G.Name, [G.Qualid])] -> ConversionMonad -> [G.Sentence]
 convertMatchWithHelperFunction name pats rhs typeSigs dataTypes cMonad =
   [G.FixpointSentence (convertMatchToMainFunction name binders rhsTerm typeSigs dataTypes cMonad),
     G.DefinitionSentence (convertMatchToHelperFunction name binders rhsTerm typeSigs dataTypes cMonad)]
@@ -398,6 +398,12 @@ isRecursive name rhs =
 importPath :: String
 importPath =
   "Add LoadPath \"../ImportedFiles\". \n \r"
+
+predefinedDataTypes :: [(G.Name , [G.Qualid])]
+predefinedDataTypes =
+  [(strToGName "bool", [strToQId "true", strToQId "false"])
+  ,(strToGName "List", [strToQId "Cons" , strToQId "Nil"])
+  ,(strToGName "Pair", [strToQId "P"])] 
 
 --print the converted module
 printCoqAST :: G.Sentence -> IO ()

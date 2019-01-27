@@ -15,7 +15,7 @@ import qualified Language.Haskell.Exts.Syntax as H
 import qualified GHC.Base as B
 import Data.Maybe (isJust ,fromJust)
 
-convertMatchToMainFunction :: Show l => H.Name l -> [G.Binder] -> G.Term -> [G.TypeSignature] -> [(G.Name, Int)] -> ConversionMonad -> G.Fixpoint
+convertMatchToMainFunction :: Show l => H.Name l -> [G.Binder] -> G.Term -> [G.TypeSignature] -> [(G.Name, [G.Qualid])] -> ConversionMonad -> G.Fixpoint
 convertMatchToMainFunction name binders rhs typeSigs dataTypes cMonad =
   G.Fixpoint (singleton (G.FixBody funName
     (toNonemptyList bindersWithInferredTypes)
@@ -34,7 +34,7 @@ convertMatchToMainFunction name binders rhs typeSigs dataTypes cMonad =
     monadicRhs = addReturnToRhs (addBindOperatorToEquationInMatch monadicArgRhs (nameToQId name) binderPos cMonad) typeSigs bindersWithInferredTypes dataTypes
 
 
-convertMatchToHelperFunction :: Show l => H.Name l -> [G.Binder] -> G.Term -> [G.TypeSignature] -> [(G.Name, Int)] -> ConversionMonad -> G.Definition
+convertMatchToHelperFunction :: Show l => H.Name l -> [G.Binder] -> G.Term -> [G.TypeSignature] -> [(G.Name, [G.Qualid])] -> ConversionMonad -> G.Definition
 convertMatchToHelperFunction name binders rhs typeSigs dataTypes cMonad =
   G.DefinitionDef G.Global
     funName
