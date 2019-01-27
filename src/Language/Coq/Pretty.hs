@@ -456,7 +456,7 @@ instance Gallina FixBody where
     hang 2 $
       renderGallina f </> align (    fillSep (renderGallina <$> args)
                                 </?> (renderGallina <$> oannot))
-                      <>  render_opt_type oty <!> ":=" <+> align (renderGallina def)
+                      <>  render_opt_type oty <+> ":=" <!> align (renderGallina def)
 
 instance Gallina MatchItem where
   renderGallina' _ (MatchItem scrutinee oas oin) =
