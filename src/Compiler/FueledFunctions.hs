@@ -24,9 +24,14 @@ addFuelArgToRecursiveCall (G.App term args) fTerm funName  =
     checkedArgList = convertTermsToArguments [addFuelArgToRecursiveCall t fTerm funName | t <- termList]
 addFuelArgToRecursiveCall (G.Parens term) fTerm funName =
   G.Parens (addFuelArgToRecursiveCall term fTerm funName)
+addFuelArgToRecursiveCall (G.Match mItem retType equations) fTerm funName =
+  G.Match mItem retType [addFuelArgToEquation e fTerm funName | e <- equations]
 addFuelArgToRecursiveCall term _ _ =
   term
 
+addFuelArgToEquation :: G.Equation -> G.Term -> G.Qualid -> G.Equation
+addFuelArgToEquation (G.Equation mPats rhs) fTerm funName =
+  G.Equation mPats (addFuelArgToRecursiveCall rhs fTerm funName)
 
 addFuelMatching :: G.Term -> G.Qualid -> G.Term
 addFuelMatching  =

@@ -269,16 +269,20 @@ typeNameEqQId :: G.TypeSignature -> G.Qualid -> Bool
 typeNameEqQId (G.TypeSignature sigName _ ) =
   eqQId (gNameToQId sigName)
 
+
+---------------------- various helper functions
 typeToGName :: H.Type l -> G.Name
 typeToGName (H.TyCon _ name) =
   qNameToGName name
 typeToGName (H.TyApp _ constr _) =
   typeToGName constr
-typeToGName (H.TyList _ ty) =
+typeToGName (H.TyList _ _) =
   strToGName "List"
+typeToGName (H.TyTuple _ _ _ ) =
+  strToGName "Pair"
 typeToGName ty =
   error "type not implemented"
----------------------- various helper functions
+
 
 filterEachElement :: [a] -> (a -> a -> Bool) -> [a] -> [a]
 filterEachElement [] f list =
@@ -483,6 +487,10 @@ qIdToStr (G.Bare ident) =
 qIdToGName :: G.Qualid -> G.Name
 qIdToGName =
   G.Ident
+
+addSuffixToQId :: G.Qualid -> G.Qualid
+addSuffixToQId (G.Bare ident) =
+  G.Bare (T.pack (T.unpack ident ++ "'"))
 
 
 termToQId :: G.Term -> G.Qualid
