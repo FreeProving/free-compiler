@@ -18,7 +18,7 @@ import Data.Maybe (isJust ,fromJust)
 convertMatchToMainFunction :: Show l => H.Name l -> [G.Binder] -> G.Term -> [G.TypeSignature] -> [(G.Name, [G.Qualid])] -> ConversionMonad -> G.Fixpoint
 convertMatchToMainFunction name binders rhs typeSigs dataTypes cMonad =
   G.Fixpoint (singleton (G.FixBody funName
-    (toNonemptyList bindersWithInferredTypes)
+    (toNonemptyList bindersWithFixedArguments)
       Nothing
         (Just (transformTermMonadic (getReturnType typeSig) cMonad))
           monadicRhs)) []
@@ -26,7 +26,10 @@ convertMatchToMainFunction name binders rhs typeSigs dataTypes cMonad =
     typeSig = fromJust (getTypeSignatureByName typeSigs name)
     funName = addSuffixToName name
     monadicBinders = transformBindersMonadic binders cMonad
-    bindersWithInferredTypes = makeMatchedArgNonMonadic (addInferredTypesToSignature monadicBinders (map fst dataTypes)) (binderPos + 1)
+    bindersWithInferredTypes = addInferredTypesToSignature monadicBinders (map fst dataTypes)
+    bindersWithFixedArguments = if length binders == length bindersWithInferredTypes
+      then makeMatchedArgNonMonadic bindersWithInferredTypes binderPos
+      else makeMatchedArgNonMonadic bindersWithInferredTypes (binderPos + 1)
     matchItem = getMatchedArgumentFromRhs rhs
     matchedBinder = termToQId (getBinderName (getMatchedBinder binders matchItem))
     binderPos = getMatchedBinderPosition binders matchItem
