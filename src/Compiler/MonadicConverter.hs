@@ -71,7 +71,7 @@ addReturnToMatch (G.Match mItem retType equations) typeSigs binders dataTypes pa
   where
     monadicEquations = [addReturnToEquation e typeSigs binders patNames | e <- equations]
     constrNames = map snd dataTypes
-    equationPats = map head (map getPatternFromEquation equations)
+    equationPats = map (head . getPatternFromEquation) equations
     constructors = getConstrsByPattern (head equationPats) constrNames
 
 

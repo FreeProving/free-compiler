@@ -83,10 +83,10 @@ convertModuleDecls (H.DataDecl _ (H.DataType _ ) Nothing declHead qConDecl _  : 
                                 convertModuleDecls ds typeSigs dataTypes funs cMonad cMode
       else G.InductiveSentence  (convertDataTypeDecl declHead qConDecl cMonad) :
                                 convertModuleDecls ds typeSigs dataTypes funs cMonad cMode
-convertModuleDecls ((H.TypeDecl _ declHead ty) : ds) typeSigs dataTypes funs cMonad cMode =
+convertModuleDecls (H.TypeDecl _ declHead ty : ds) typeSigs dataTypes funs cMonad cMode =
   G.DefinitionSentence (convertTypeDeclToDefinition declHead ty) :
     convertModuleDecls ds typeSigs dataTypes funs cMonad cMode
-convertModuleDecls ((H.PatBind _ pat rhs _) : ds) typeSigs dataTypes funs cMonad cMode =
+convertModuleDecls (H.PatBind _ pat rhs _ : ds) typeSigs dataTypes funs cMonad cMode =
   G.DefinitionSentence (convertPatBindToDefinition pat rhs typeSigs dataTypes cMonad) :
     convertModuleDecls ds typeSigs dataTypes funs cMonad cMode
 convertModuleDecls [] _ _ _ _ _ =

@@ -79,7 +79,7 @@ getConstrNamesFromDataDecl (H.TypeDecl _ _ ty ) sentences =
   getConstrsByName (typeToGName ty) sentences
 
 getConstrsByName :: G.Name -> [H.Decl l] -> [G.Qualid]
-getConstrsByName name ((H.DataDecl _ _ _ declHead cons _) : xs) =
+getConstrsByName name (H.DataDecl _ _ _ declHead cons _ : xs) =
   if eqGName name (getNameFromDeclHead declHead)
     then [getConstrNameFromQConDecl c | c <- cons]
     else getConstrsByName name xs
@@ -88,7 +88,7 @@ getConstrsByName name (_ : xs) =
 getConstrsByName name [] = error (show name)
 
 getConstrsByPattern :: G.Pattern -> [[G.Qualid]] -> Maybe [G.Qualid]
-getConstrsByPattern (G.UnderscorePat) _ =
+getConstrsByPattern G.UnderscorePat _ =
   Nothing
 getConstrsByPattern (G.QualidPat qId) dataTypeConstrs =
   if (not . null) filteredConstrs
@@ -198,7 +198,7 @@ getQIdFromPattern (G.QualidPat qId) =
   qId
 getQIdFromPattern (G.InfixPat _ op _ ) =
   G.Bare op
-getQIdFromPattern (G.UnderscorePat) =
+getQIdFromPattern G.UnderscorePat =
   strToQId "_"
 
 getRhsFromEquation :: G.Equation -> G.Term
@@ -250,7 +250,7 @@ isNonInferrableConstr (H.QualConDecl _ _ _ (H.ConDecl _ _ ty)) =
   False
 
 isUnderscorePat :: G.Pattern -> Bool
-isUnderscorePat (G.UnderscorePat) =
+isUnderscorePat G.UnderscorePat =
   True
 isUnderscorePat _ =
   False
@@ -332,7 +332,7 @@ typeToGName (H.TyApp _ constr _) =
   typeToGName constr
 typeToGName (H.TyList _ _) =
   strToGName "List"
-typeToGName (H.TyTuple _ _ _ ) =
+typeToGName H.TyTuple {} =
   strToGName "Pair"
 typeToGName ty =
   error "type not implemented"
