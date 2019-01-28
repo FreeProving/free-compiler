@@ -21,7 +21,8 @@ Definition Queue (a : Type) :=
 Definition Queuel (a : Type) :=
   Pair (List a) (List a). 
  
-Definition null' (a : Type) (olist : option (List a)) : option bool :=
+Definition null' (fuel : nat) (a : Type) (olist : option (List a))
+   : option bool :=
   olist >>=
   (fun (list : List a) =>
      match list with
@@ -44,7 +45,8 @@ Fixpoint append (fuel : nat) (a : Type) (oxs : option (List a)) (oys
                      end))
            end. 
  
-Definition singleton (a : Type) (ox : option a) : option (List a) :=
+Definition singleton (fuel : nat) (a : Type) (ox : option a)
+   : option (List a) :=
   ox >>= (fun (x : a) => return_ (Cons (return_ x) (return_ Nil))). 
  
 Fixpoint reverse' (fuel : nat) (a : Type) (oxs : option (List a)) : option (List
@@ -56,17 +58,18 @@ Fixpoint reverse' (fuel : nat) (a : Type) (oxs : option (List a)) : option (List
                (fun (xs : List a) =>
                   match xs with
                   | Nil => return_ Nil
-                  | Cons y ys => append rFuel (reverse' rFuel ys) (singleton y)
+                  | Cons y ys => append rFuel (reverse' rFuel ys) (singleton rFuel y)
                   end)
            end. 
  
 Definition empty (a : Type) : option (Queue a) :=
   return_ Nil. 
  
-Definition isEmpty (a : Type) (oq : option (Queue a)) : option bool :=
-  oq >>= (fun (q : Queue a) => null' (return_ q)). 
+Definition isEmpty (fuel : nat) (a : Type) (oq : option (Queue a))
+   : option bool :=
+  oq >>= (fun (q : Queue a) => null' fuel (return_ q)). 
  
-Definition front (a : Type) (oq : option (Queue a)) : option a :=
+Definition front (fuel : nat) (a : Type) (oq : option (Queue a)) : option a :=
   oq >>= (fun (q : Queue a) => match q with | Cons x _ => x | _ => None end). 
  
 Definition add (fuel : nat) (a : Type) (ox : option a) (oq : option (Queue a))
@@ -74,15 +77,17 @@ Definition add (fuel : nat) (a : Type) (ox : option a) (oq : option (Queue a))
   ox >>=
   (fun (x : a) =>
      oq >>=
-     (fun (q : Queue a) => append fuel (return_ q) (singleton (return_ x)))). 
+     (fun (q : Queue a) =>
+        append fuel (return_ q) (singleton fuel (return_ x)))). 
  
 Definition emptyl (a : Type) : option (Queuel a) :=
   return_ (P (return_ Nil) (return_ Nil)). 
  
-Definition isEmptyl (a : Type) (ox : option (Queuel a)) : option bool :=
-  ox >>= (fun (x : Queuel a) => match x with | P f b => null' f end). 
+Definition isEmptyl (fuel : nat) (a : Type) (ox : option (Queuel a))
+   : option bool :=
+  ox >>= (fun (x : Queuel a) => match x with | P f b => null' fuel f end). 
  
-Definition frontl (a : Type) (oq : option (Queuel a)) : option a :=
+Definition frontl (fuel : nat) (a : Type) (oq : option (Queuel a)) : option a :=
   oq >>=
   (fun (q : Queuel a) =>
      match q with
@@ -103,14 +108,14 @@ Definition flipQ (fuel : nat) (a : Type) (oq : option (Queuel a))
             end)
      end). 
  
-Definition addl (a : Type) (ox : option a) (oq : option (Queuel a))
+Definition addl (fuel : nat) (a : Type) (ox : option a) (oq : option (Queuel a))
    : option (Queuel a) :=
   ox >>=
   (fun (x : a) =>
      oq >>=
      (fun (q : Queuel a) =>
         match q with
-        | P f b => flipQ (return_ (P f (return_ (Cons (return_ x) b))))
+        | P f b => flipQ fuel (return_ (P f (return_ (Cons (return_ x) b))))
         end)). 
  
 End Queue.

@@ -28,13 +28,14 @@ Inductive Test : Type
   := T1 : option nat -> Test
   |  T2 : option string -> Test. 
  
-Definition plus (oa : option nat) (ob : option nat) : option nat :=
+Definition plus (fuel : nat) (oa : option nat) (ob : option nat) : option nat :=
   oa >>= (fun (a : nat) => ob >>= (fun (b : nat) => return_ (a + b))). 
  
-Definition minus (oa : option nat) (ob : option nat) : option nat :=
+Definition minus (fuel : nat) (oa : option nat) (ob : option nat)
+   : option nat :=
   oa >>= (fun (a : nat) => ob >>= (fun (b : nat) => return_ (a - b))). 
  
-Definition not (ob : option bool) : option bool :=
+Definition not (fuel : nat) (ob : option bool) : option bool :=
   ob >>=
   (fun (b : bool) =>
      match b with
@@ -42,7 +43,8 @@ Definition not (ob : option bool) : option bool :=
      | true => return_ false
      end). 
  
-Definition null (a : Type) (olist : option (List a)) : option bool :=
+Definition null (fuel : nat) (a : Type) (olist : option (List a))
+   : option bool :=
   olist >>=
   (fun (list : List a) =>
      match list with
@@ -50,47 +52,63 @@ Definition null (a : Type) (olist : option (List a)) : option bool :=
      | _ => return_ false
      end). 
  
-Fixpoint append' (a : Type) (xs : List a) (oys : option (List a)) : option (List
-                                                                            a)
-           := match xs with
-              | Nil => oys
-              | Cons z ozs => return_ (Cons z (ozs >>= (fun zs => append' zs oys)))
-              end. 
+Fixpoint append (fuel : nat) (a : Type) (oxs : option (List a)) (oys
+                  : option (List a)) : option (List a) :=
+           match fuel with
+           | O => None
+           | S rFuel =>
+               oxs >>=
+               (fun (xs : List a) =>
+                  oys >>=
+                  (fun (ys : List a) =>
+                     match xs with
+                     | Nil => return_ ys
+                     | Cons z zs => return_ (Cons z (append rFuel zs (return_ ys)))
+                     end))
+           end. 
  
-Definition append (a : Type) (oxs : option (List a)) (oys : option (List a))
-   : option (List a) :=
-  oxs >>= (fun (xs : List a) => append' xs oys). 
+Fixpoint reverse_ (fuel : nat) (a : Type) (oxs : option (List a)) : option (List
+                                                                            a) :=
+           match fuel with
+           | O => None
+           | S rFuel =>
+               oxs >>=
+               (fun (xs : List a) =>
+                  match xs with
+                  | Nil => return_ Nil
+                  | Cons y ys => append rFuel (reverse_ rFuel ys) (singleton y)
+                  end)
+           end. 
  
-Fixpoint reverse_' (a : Type) (xs : List a) : option (List a)
-           := match xs with
-              | Nil => return_ Nil
-              | Cons y oys => append (oys >>= (fun ys => reverse_' ys)) (singleton y)
-              end. 
+Fixpoint concat_ (fuel : nat) (a : Type) (oxs : option (List (List a))) : option
+                                                                          (List a) :=
+           match fuel with
+           | O => None
+           | S rFuel =>
+               oxs >>=
+               (fun (xs : List (List a)) =>
+                  match xs with
+                  | Nil => return_ Nil
+                  | Cons y ys => append rFuel y (concat_ rFuel ys)
+                  end)
+           end. 
  
-Definition reverse_ (a : Type) (oxs : option (List a)) : option (List a) :=
-  oxs >>= (fun (xs : List a) => reverse_' xs). 
+Fixpoint length' (fuel : nat) (a : Type) (oxs : option (List a)) : option nat :=
+           match fuel with
+           | O => None
+           | S rFuel =>
+               oxs >>=
+               (fun (xs : List a) =>
+                  match xs with
+                  | Nil => return_ 0
+                  | Cons y ys => plus rFuel (return_ 1) (length' rFuel ys)
+                  end)
+           end. 
  
-Fixpoint concat_' (a : Type) (xs : List (List a)) : option (List a)
-           := match xs with
-              | Nil => return_ Nil
-              | Cons y oys => append y (oys >>= (fun ys => concat_' ys))
-              end. 
- 
-Definition concat_ (a : Type) (oxs : option (List (List a)))
-   : option (List a) :=
-  oxs >>= (fun (xs : List (List a)) => concat_' xs). 
- 
-Fixpoint length'' (a : Type) (xs : List a) : option nat
-           := match xs with
-              | Nil => return_ 0
-              | Cons y oys => plus (return_ 1) (oys >>= (fun ys => length'' ys))
-              end. 
- 
-Definition length' (a : Type) (oxs : option (List a)) : option nat :=
-  oxs >>= (fun (xs : List a) => length'' xs). 
- 
-Definition indexLength (a : Type) (oxs : option (List a)) : option nat :=
-  oxs >>= (fun (xs : List a) => minus (length' (return_ xs)) (return_ 1)). 
+Definition indexLength (fuel : nat) (a : Type) (oxs : option (List a))
+   : option nat :=
+  oxs >>=
+  (fun (xs : List a) => minus fuel (length' fuel (return_ xs)) (return_ 1)). 
  
 End Test.
  

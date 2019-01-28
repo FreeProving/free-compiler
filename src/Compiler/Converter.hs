@@ -31,30 +31,30 @@ convertModule :: Show l => H.Module l -> ConversionMonad -> ConversionMode -> G.
 convertModule (H.Module _ (Just modHead) _ _ decls) cMonad cMode =
   G.LocalModuleSentence (G.LocalModule (convertModuleHead modHead)
     (dataSentences ++
-      convertModuleDecls rDecls (map filterForTypeSignatures typeSigs) dataTypes recursiveFuns cMonad cMode))
+      convertModuleDecls rDecls (map filterForTypeSignatures typeSigs) dataTypes funs cMonad cMode))
   where
     (typeSigs, otherDecls) = partition isTypeSig decls
     (dataDecls, rDecls) = partition isDataDecl otherDecls
-    dataSentences = convertModuleDecls dataDecls (map filterForTypeSignatures typeSigs) [] recursiveFuns cMonad cMode
+    dataSentences = convertModuleDecls dataDecls (map filterForTypeSignatures typeSigs) [] funs cMonad cMode
     dataTypes = predefinedDataTypes ++
                 zip (getNamesFromDataDecls dataDecls) (getConstrNamesFromDataDecls dataDecls)
-    recursiveFuns = getRecursiveFunNames rDecls
+    funs = getFunNames rDecls
 convertModule (H.Module _ Nothing _ _ decls) cMonad cMode =
   G.LocalModuleSentence (G.LocalModule (T.pack "unnamed")
-    (convertModuleDecls otherDecls  (map filterForTypeSignatures typeSigs) [] recursiveFuns cMonad cMode))
+    (convertModuleDecls otherDecls  (map filterForTypeSignatures typeSigs) [] funs cMonad cMode))
   where
     (typeSigs, otherDecls) = partition isTypeSig decls
-    recursiveFuns = getRecursiveFunNames otherDecls
+    funs = getFunNames otherDecls
 
 ----------------------------------------------------------------------------------------------------------------------
-getRecursiveFunNames :: Show l => [H.Decl l] -> [G.Qualid]
-getRecursiveFunNames decls =
-  map getQIdFromFunDecl (filter isRecursiveFunction decls)
+getFunNames :: Show l => [H.Decl l] -> [G.Qualid]
+getFunNames decls =
+  map getQIdFromFunDecl (filter isFunction decls)
 
-isRecursiveFunction :: Show l => H.Decl l -> Bool
-isRecursiveFunction (H.FunBind _ (H.Match _ name _ rhs _ : xs)) =
-  containsRecursiveCall (convertRhsToTerm rhs) (nameToQId name)
-isRecursiveFunction _ =
+isFunction :: Show l => H.Decl l -> Bool
+isFunction (H.FunBind _ _) =
+  True
+isFunction _ =
   False
 
 getQIdFromFunDecl :: Show l => H.Decl l -> G.Qualid
@@ -74,21 +74,21 @@ importDefinitions =
     monadImport =  G.ModuleSentence (G.ModuleImport G.Import (singleton (T.pack "Monad")))
 
 convertModuleDecls :: Show l => [H.Decl l] -> [G.TypeSignature] -> [(G.Name, [G.Qualid])] -> [G.Qualid] -> ConversionMonad -> ConversionMode -> [G.Sentence]
-convertModuleDecls (H.FunBind _ (x : xs) : ds) typeSigs dataTypes recursiveFuns cMonad cMode =
-  convertMatchDef x typeSigs dataTypes recursiveFuns cMonad cMode ++ convertModuleDecls ds typeSigs dataTypes recursiveFuns cMonad cMode
-convertModuleDecls (H.DataDecl _ (H.DataType _ ) Nothing declHead qConDecl _  : ds) typeSigs dataTypes recursiveFuns cMonad cMode =
+convertModuleDecls (H.FunBind _ (x : xs) : ds) typeSigs dataTypes funs cMonad cMode =
+  convertMatchDef x typeSigs dataTypes funs cMonad cMode ++ convertModuleDecls ds typeSigs dataTypes funs cMonad cMode
+convertModuleDecls (H.DataDecl _ (H.DataType _ ) Nothing declHead qConDecl _  : ds) typeSigs dataTypes funs cMonad cMode =
     if needsArgumentsSentence declHead qConDecl
       then [G.InductiveSentence  (convertDataTypeDecl declHead qConDecl cMonad)] ++
                                 convertArgumentSentences declHead qConDecl ++
-                                convertModuleDecls ds typeSigs dataTypes recursiveFuns cMonad cMode
+                                convertModuleDecls ds typeSigs dataTypes funs cMonad cMode
       else G.InductiveSentence  (convertDataTypeDecl declHead qConDecl cMonad) :
-                                convertModuleDecls ds typeSigs dataTypes recursiveFuns cMonad cMode
-convertModuleDecls ((H.TypeDecl _ declHead ty) : ds) typeSigs dataTypes recursiveFuns cMonad cMode =
+                                convertModuleDecls ds typeSigs dataTypes funs cMonad cMode
+convertModuleDecls ((H.TypeDecl _ declHead ty) : ds) typeSigs dataTypes funs cMonad cMode =
   G.DefinitionSentence (convertTypeDeclToDefinition declHead ty) :
-    convertModuleDecls ds typeSigs dataTypes recursiveFuns cMonad cMode
-convertModuleDecls ((H.PatBind _ pat rhs _) : ds) typeSigs dataTypes recursiveFuns cMonad cMode =
+    convertModuleDecls ds typeSigs dataTypes funs cMonad cMode
+convertModuleDecls ((H.PatBind _ pat rhs _) : ds) typeSigs dataTypes funs cMonad cMode =
   G.DefinitionSentence (convertPatBindToDefinition pat rhs typeSigs dataTypes cMonad) :
-    convertModuleDecls ds typeSigs dataTypes recursiveFuns cMonad cMode
+    convertModuleDecls ds typeSigs dataTypes funs cMonad cMode
 convertModuleDecls [] _ _ _ _ _ =
   []
 convertModuleDecls (d : ds) _ _ _ _ _ =
@@ -137,24 +137,29 @@ convertDataTypeDecl dHead qConDecl cMonad =
                           cMonad
 
 convertMatchDef :: Show l => H.Match l -> [G.TypeSignature] -> [(G.Name, [G.Qualid])] -> [G.Qualid] -> ConversionMonad -> ConversionMode -> [G.Sentence]
-convertMatchDef (H.Match _ name mPats rhs _) typeSigs dataTypes recursiveFuns cMonad cMode =
+convertMatchDef (H.Match _ name mPats rhs _) typeSigs dataTypes funs  cMonad cMode =
     if containsRecursiveCall rhsTerm funName
       then if cMode == FueledFunction
-            then [G.FixpointSentence (convertMatchToFueledFixpoint name mPats rhs typeSigs dataTypes recursiveFuns cMonad)]
+            then [G.FixpointSentence (convertMatchToFueledFixpoint name mPats rhs typeSigs dataTypes funs cMonad)]
             else convertMatchWithHelperFunction name mPats rhs typeSigs dataTypes cMonad
-      else [G.DefinitionSentence (convertMatchToDefinition name mPats rhs typeSigs dataTypes recursiveFuns cMonad cMode)]
+      else [G.DefinitionSentence (convertMatchToDefinition name mPats rhs typeSigs dataTypes funs cMonad cMode)]
   where
     rhsTerm = convertRhsToTerm rhs
     funName = nameToQId name
 
 
 convertMatchToDefinition :: Show l => H.Name l -> [H.Pat l] -> H.Rhs l -> [G.TypeSignature] -> [(G.Name, [G.Qualid])] -> [G.Qualid] -> ConversionMonad -> ConversionMode -> G.Definition
-convertMatchToDefinition name pats rhs typeSigs dataTypes recursiveFuns cMonad cMode =
-  if cMode == FueledFunction && (not . null) recCalls
-    then G.DefinitionDef G.Global funName
+convertMatchToDefinition name pats rhs typeSigs dataTypes funs cMonad cMode =
+  if cMode == FueledFunction
+    then if (not . null) funCalls
+      then G.DefinitionDef G.Global funName
             bindersWithFuel
               returnType
                 fueledMonadicTerm
+      else G.DefinitionDef G.Global funName
+            bindersWithFuel
+              returnType
+                monadicTerm
     else G.DefinitionDef G.Global funName
             bindersWithInferredTypes
               returnType
@@ -162,7 +167,7 @@ convertMatchToDefinition name pats rhs typeSigs dataTypes recursiveFuns cMonad c
   where
     returnType = convertReturnType typeSig cMonad
     funName = nameToQId name
-    recCalls = filter (containsRecursiveCall rhsTerm) recursiveFuns
+    funCalls = filter (containsRecursiveCall rhsTerm) funs
     typeSig = getTypeSignatureByName typeSigs name
     binders = convertPatsToBinders pats typeSig
     monadicBinders = transformBindersMonadic binders cMonad
@@ -170,11 +175,11 @@ convertMatchToDefinition name pats rhs typeSigs dataTypes recursiveFuns cMonad c
     bindersWithFuel = addFuelBinder bindersWithInferredTypes
     rhsTerm = convertRhsToTerm rhs
     monadicTerm = addBindOperatorsToDefinition monadicBinders (addReturnToRhs rhsTerm typeSigs monadicBinders dataTypes)
-    fueledTerm = addFuelArgToRecursiveCalls rhsTerm fuelTerm recCalls
+    fueledTerm = addFuelArgToRecursiveCalls rhsTerm fuelTerm funCalls
     fueledMonadicTerm = addBindOperatorsToDefinition monadicBinders (addReturnToRhs fueledTerm typeSigs monadicBinders dataTypes)
 
 convertMatchToFueledFixpoint :: Show l => H.Name l -> [H.Pat l] -> H.Rhs l -> [G.TypeSignature] -> [(G.Name, [G.Qualid])] -> [G.Qualid] -> ConversionMonad -> G.Fixpoint
-convertMatchToFueledFixpoint name pats rhs typeSigs dataTypes recursiveFuns cMonad =
+convertMatchToFueledFixpoint name pats rhs typeSigs dataTypes funs cMonad =
  G.Fixpoint (singleton (G.FixBody funName
     (toNonemptyList bindersWithFuel)
       Nothing
@@ -188,7 +193,7 @@ convertMatchToFueledFixpoint name pats rhs typeSigs dataTypes recursiveFuns cMon
     bindersWithFuel = addFuelBinder bindersWithInferredTypes
     bindersWithInferredTypes = addInferredTypesToSignature monadicBinders (map fst dataTypes)
     rhsTerm = convertRhsToTerm rhs
-    convertedFunBody = convertFueledFunBody (addReturnToRhs rhsTerm typeSigs monadicBinders dataTypes) monadicBinders funName typeSigs recursiveFuns
+    convertedFunBody = convertFueledFunBody (addReturnToRhs rhsTerm typeSigs monadicBinders dataTypes) monadicBinders funName typeSigs funs
     fueledRhs = addFuelMatching monadicRhs funName
     monadicRhs = addBindOperatorsToDefinition monadicBinders convertedFunBody
 
@@ -403,7 +408,7 @@ predefinedDataTypes :: [(G.Name , [G.Qualid])]
 predefinedDataTypes =
   [(strToGName "bool", [strToQId "true", strToQId "false"])
   ,(strToGName "List", [strToQId "Cons" , strToQId "Nil"])
-  ,(strToGName "Pair", [strToQId "P"])] 
+  ,(strToGName "Pair", [strToQId "P"])]
 
 --print the converted module
 printCoqAST :: G.Sentence -> IO ()
