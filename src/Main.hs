@@ -13,11 +13,11 @@ import Data.Maybe (isJust, fromJust)
 
 main :: IO ()
 main = do
-    args <- getArgs
-    putStrLn $ head args
+  args <- getArgs
+  putStrLn (show (head args))
 
-parseFile :: String -> IO ()
-parseFile f = do
+compileAndPrintFile :: String -> IO ()
+compileAndPrintFile f = do
             args <- getArgs
             s <- readFile f
             printCoqAST (convertModule
@@ -25,8 +25,8 @@ parseFile f = do
                             (getMonadFromArgs args)
                               (getModeFromArgs args))
 
-parseAndSaveFile :: String -> IO ()
-parseAndSaveFile f = do
+compileAndSaveFile :: String -> IO ()
+compileAndSaveFile f = do
                   args <- getArgs
                   s <- readFile f
                   writeCoqFile (addSavePath fileName) (convertModule (fromParseResult (parseModuleWithMode (customParseMode fileName) s))
@@ -46,11 +46,11 @@ testAst = parseAndPrintFile "TestModules/Test.hs"
 
 test :: IO ()
 test =
-    parseFile "TestModules/Test.hs"
+    compileAndPrintFile "TestModules/Test.hs"
 
 saveTest :: IO ()
 saveTest =
-  parseAndSaveFile "TestModules/Test.hs"
+  compileAndSaveFile "TestModules/Test.hs"
 
 addSavePath :: String -> String
 addSavePath fileName =
