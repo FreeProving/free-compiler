@@ -1,49 +1,101 @@
 module Compiler.HelperFunctionConverter where
 
-import Compiler.Types (ConversionMonad (..))
-import Compiler.MonadicConverter (transformTermMonadic ,transformBindersMonadic
-  ,transformBinderMonadic ,addMonadicPrefixToBinder ,addMonadicPrefixToQId ,addReturnToRhs
-  ,removeMonadFromBinder ,bindOperator)
-import Compiler.NonEmptyList (singleton, fromNonEmptyList, toNonemptyList)
-import Compiler.HelperFunctions (getReturnType ,getTypeSignatureByName ,getBinderName
-  ,convertArgumentsToTerms ,convertTermsToArguments ,containsRecursiveCall ,addInferredTypesToSignature
-  ,termToQId ,nameToQId ,nameToStr ,gNameToQId ,argToTerm ,strToQId ,qIdToGName ,qIdToStr ,eqQId)
+import Compiler.HelperFunctions
+  ( addInferredTypesToSignature
+  , argToTerm
+  , containsRecursiveCall
+  , convertArgumentsToTerms
+  , convertTermsToArguments
+  , eqQId
+  , gNameToQId
+  , getBinderName
+  , getReturnType
+  , getTypeSignatureByName
+  , nameToQId
+  , nameToStr
+  , qIdToGName
+  , qIdToStr
+  , strToQId
+  , termToQId
+  )
+import Compiler.MonadicConverter
+  ( addMonadicPrefixToBinder
+  , addMonadicPrefixToQId
+  , addReturnToRhs
+  , bindOperator
+  , removeMonadFromBinder
+  , transformBinderMonadic
+  , transformBindersMonadic
+  , transformTermMonadic
+  )
+import Compiler.NonEmptyList (fromNonEmptyList, singleton, toNonemptyList)
+import Compiler.Types (ConversionMonad(..))
 
 import qualified Language.Coq.Gallina as G
 import qualified Language.Haskell.Exts.Syntax as H
 
+import Data.Maybe (fromJust, isJust)
 import qualified GHC.Base as B
-import Data.Maybe (isJust ,fromJust)
 
-convertMatchToMainFunction :: Show l => H.Name l -> [G.Binder] -> G.Term -> [G.TypeSignature] -> [(G.Name, [G.Qualid])] -> ConversionMonad -> G.Fixpoint
+convertMatchToMainFunction ::
+     Show l
+  => H.Name l
+  -> [G.Binder]
+  -> G.Term
+  -> [G.TypeSignature]
+  -> [(G.Name, [G.Qualid])]
+  -> ConversionMonad
+  -> G.Fixpoint
 convertMatchToMainFunction name binders rhs typeSigs dataTypes cMonad =
-  G.Fixpoint (singleton (G.FixBody funName
-    (toNonemptyList bindersWithFixedArguments)
-      Nothing
-        (Just (transformTermMonadic (getReturnType typeSig) cMonad))
-          monadicRhs)) []
+  G.Fixpoint
+    (singleton
+       (G.FixBody
+          funName
+          (toNonemptyList bindersWithFixedArguments)
+          Nothing
+          (Just (transformTermMonadic (getReturnType typeSig) cMonad))
+          monadicRhs))
+    []
   where
     typeSig = fromJust (getTypeSignatureByName typeSigs name)
     funName = addSuffixToName name
     monadicBinders = transformBindersMonadic binders cMonad
     bindersWithInferredTypes = addInferredTypesToSignature monadicBinders (map fst dataTypes)
-    bindersWithFixedArguments = if length binders == length bindersWithInferredTypes
-      then makeMatchedArgNonMonadic bindersWithInferredTypes binderPos
-      else makeMatchedArgNonMonadic bindersWithInferredTypes (binderPos + 1)
+    bindersWithFixedArguments =
+      if length binders == length bindersWithInferredTypes
+        then makeMatchedArgNonMonadic bindersWithInferredTypes binderPos
+        else makeMatchedArgNonMonadic bindersWithInferredTypes (binderPos + 1)
     matchItem = getMatchedArgumentFromRhs rhs
     matchedBinder = termToQId (getBinderName (getMatchedBinder binders matchItem))
     binderPos = getMatchedBinderPosition binders matchItem
-    monadicArgRhs = switchNonMonadicArgumentsFromTerm rhs (filter (not . eqQId matchedBinder) (map (termToQId . getBinderName) binders)) cMonad
-    monadicRhs = addReturnToRhs (addBindOperatorToEquationInMatch monadicArgRhs (nameToQId name) binderPos cMonad) typeSigs bindersWithInferredTypes dataTypes
+    monadicArgRhs =
+      switchNonMonadicArgumentsFromTerm
+        rhs
+        (filter (not . eqQId matchedBinder) (map (termToQId . getBinderName) binders))
+        cMonad
+    monadicRhs =
+      addReturnToRhs
+        (addBindOperatorToEquationInMatch monadicArgRhs (nameToQId name) binderPos cMonad)
+        typeSigs
+        bindersWithInferredTypes
+        dataTypes
 
-
-convertMatchToHelperFunction :: Show l => H.Name l -> [G.Binder] -> G.Term -> [G.TypeSignature] -> [(G.Name, [G.Qualid])] -> ConversionMonad -> G.Definition
+convertMatchToHelperFunction ::
+     Show l
+  => H.Name l
+  -> [G.Binder]
+  -> G.Term
+  -> [G.TypeSignature]
+  -> [(G.Name, [G.Qualid])]
+  -> ConversionMonad
+  -> G.Definition
 convertMatchToHelperFunction name binders rhs typeSigs dataTypes cMonad =
-  G.DefinitionDef G.Global
+  G.DefinitionDef
+    G.Global
     funName
-      bindersWithInferredTypes
-        (Just (transformTermMonadic (getReturnType typeSig) cMonad))
-          rhsWithBind
+    bindersWithInferredTypes
+    (Just (transformTermMonadic (getReturnType typeSig) cMonad))
+    rhsWithBind
   where
     typeSig = fromJust (getTypeSignatureByName typeSigs name)
     funName = nameToQId name
@@ -57,9 +109,7 @@ convertMatchToHelperFunction name binders rhs typeSigs dataTypes cMonad =
     rhsWithBind = addBindOperatorToMainFunction (addMonadicPrefixToBinder cMonad matchedBinder) appliedMainFunction
 
 addBindOperatorToMainFunction :: G.Binder -> G.Term -> G.Term
-addBindOperatorToMainFunction binder rhs =
-  G.App bindOperator
-    (toNonemptyList [argumentName, lambdaFun])
+addBindOperatorToMainFunction binder rhs = G.App bindOperator (toNonemptyList [argumentName, lambdaFun])
   where
     argumentName = G.PosArg (getBinderName binder)
     lambdaFun = G.PosArg (G.Fun (singleton (removeMonadFromBinder binder)) rhs)
@@ -68,12 +118,12 @@ addBindOperatorToEquationInMatch :: G.Term -> G.Qualid -> Int -> ConversionMonad
 addBindOperatorToEquationInMatch (G.Match mItem retType equations) funName pos m =
   G.Match mItem retType [addBindOperatorToEquation e funName pos m | e <- equations]
 
-
 addBindOperatorToEquation :: G.Equation -> G.Qualid -> Int -> ConversionMonad -> G.Equation
 addBindOperatorToEquation (G.Equation multPats rhs) funName pos m =
   if containsRecursiveCall rhs funName
-    then G.Equation (toNonemptyList (makeDecrArgumentMonadicInMultPats (fromNonEmptyList multPats) decrArgument m))
-          (addBindOperatorToRecursiveCall rhs funName pos m)
+    then G.Equation
+           (toNonemptyList (makeDecrArgumentMonadicInMultPats (fromNonEmptyList multPats) decrArgument m))
+           (addBindOperatorToRecursiveCall rhs funName pos m)
     else G.Equation multPats rhs
   where
     decrArgument = getDecrArgumentFromRecursiveCall rhs funName pos
@@ -81,7 +131,7 @@ addBindOperatorToEquation (G.Equation multPats rhs) funName pos m =
 addBindOperatorToRecursiveCall :: G.Term -> G.Qualid -> Int -> ConversionMonad -> G.Term
 addBindOperatorToRecursiveCall (G.App constr args) funName pos m =
   if containsRecursiveCall constr funName
-    then G.App bindOperator (toNonemptyList [ monadicArgument, lambdaFun])
+    then G.App bindOperator (toNonemptyList [monadicArgument, lambdaFun])
     else G.App constr (toNonemptyList checkedArgs)
   where
     monadicArgument = G.PosArg (G.Qualid (addMonadicPrefixToQId m decrArgument))
@@ -89,11 +139,10 @@ addBindOperatorToRecursiveCall (G.App constr args) funName pos m =
     recCall = G.App (addSuffixToTerm constr) args
     decrArgument = termToQId (argToTerm (fromNonEmptyList args !! pos))
     termList = convertArgumentsToTerms (fromNonEmptyList args)
-    checkedArgs = convertTermsToArguments [addBindOperatorToRecursiveCall t funName pos m| t <- termList]
+    checkedArgs = convertTermsToArguments [addBindOperatorToRecursiveCall t funName pos m | t <- termList]
 addBindOperatorToRecursiveCall (G.Parens term) funName pos m =
   G.Parens (addBindOperatorToRecursiveCall term funName pos m)
-addBindOperatorToRecursiveCall term _ _ _ =
-  term
+addBindOperatorToRecursiveCall term _ _ _ = term
 
 getDecrArgumentFromRecursiveCall :: G.Term -> G.Qualid -> Int -> Maybe G.Qualid
 getDecrArgumentFromRecursiveCall (G.App constr args) funName pos =
@@ -103,8 +152,7 @@ getDecrArgumentFromRecursiveCall (G.App constr args) funName pos =
   where
     termList = convertArgumentsToTerms (fromNonEmptyList args)
     decrArgument = termToQId (argToTerm (fromNonEmptyList args !! pos))
-getDecrArgumentFromRecursiveCall (G.Parens term) funName pos =
-  getDecrArgumentFromRecursiveCall term funName pos
+getDecrArgumentFromRecursiveCall (G.Parens term) funName pos = getDecrArgumentFromRecursiveCall term funName pos
 getDecrArgumentFromRecursiveCall _ _ _ = Nothing
 
 makeDecrArgumentMonadicInMultPats :: [G.MultPattern] -> Maybe G.Qualid -> ConversionMonad -> [G.MultPattern]
@@ -118,65 +166,59 @@ makeDecrArgumentMonadicInPats [G.ArgsPat qId pats] decrArgument m =
   if eqQId qId decrArgument
     then [G.ArgsPat (addMonadicPrefixToQId m qId) pats]
     else [G.ArgsPat qId (makeDecrArgumentMonadicInPats pats decrArgument m)]
-makeDecrArgumentMonadicInPats (G.QualidPat qId : ps) decrArgument m =
+makeDecrArgumentMonadicInPats (G.QualidPat qId:ps) decrArgument m =
   if eqQId qId decrArgument
     then [G.QualidPat (addMonadicPrefixToQId m qId)]
     else G.QualidPat qId : makeDecrArgumentMonadicInPats ps decrArgument m
-makeDecrArgumentMonadicInPats pats _ _ =
-  pats
+makeDecrArgumentMonadicInPats pats _ _ = pats
 
 buildArgsForMainFun :: [G.Binder] -> Int -> [G.Arg]
-buildArgsForMainFun binders pos =
-  buildArgsForMainFun' binders pos 0
+buildArgsForMainFun binders pos = buildArgsForMainFun' binders pos 0
 
 buildArgsForMainFun' :: [G.Binder] -> Int -> Int -> [G.Arg]
-buildArgsForMainFun' (b : bs) pos currentPos =
+buildArgsForMainFun' (b:bs) pos currentPos =
   if pos == currentPos
-    then G.PosArg (getBinderName (removeMonadFromBinder b)) :
-          buildArgsForMainFun' bs pos (currentPos + 1)
-    else G.PosArg (getBinderName b) :
-          buildArgsForMainFun' bs pos (currentPos + 1)
+    then G.PosArg (getBinderName (removeMonadFromBinder b)) : buildArgsForMainFun' bs pos (currentPos + 1)
+    else G.PosArg (getBinderName b) : buildArgsForMainFun' bs pos (currentPos + 1)
 buildArgsForMainFun' [] _ _ = []
 
 makeMatchedArgNonMonadic :: [G.Binder] -> Int -> [G.Binder]
-makeMatchedArgNonMonadic binders pos =
-  makeMatchedArgNonMonadic' binders pos 0
+makeMatchedArgNonMonadic binders pos = makeMatchedArgNonMonadic' binders pos 0
 
 makeMatchedArgNonMonadic' :: [G.Binder] -> Int -> Int -> [G.Binder]
-makeMatchedArgNonMonadic' (b : bs) pos currentPos =
+makeMatchedArgNonMonadic' (b:bs) pos currentPos =
   if pos == currentPos
     then removeMonadFromBinder b : makeMatchedArgNonMonadic' bs pos (currentPos + 1)
     else b : makeMatchedArgNonMonadic' bs pos (currentPos + 1)
 makeMatchedArgNonMonadic' [] _ _ = []
 
 addSuffixToName :: Show l => H.Name l -> G.Qualid
-addSuffixToName name =
-  strToQId (nameToStr name ++ "'")
+addSuffixToName name = strToQId (nameToStr name ++ "'")
 
 addSuffixToTerm :: G.Term -> G.Term
-addSuffixToTerm (G.Qualid qId) =
-  G.Qualid (strToQId (qIdToStr qId ++ "'"))
-addSuffixToTerm term =
-  term
+addSuffixToTerm (G.Qualid qId) = G.Qualid (strToQId (qIdToStr qId ++ "'"))
+addSuffixToTerm term = term
 
 getMatchedBinder :: [G.Binder] -> G.Term -> G.Binder
-getMatchedBinder (b : bs) matchItem =
+getMatchedBinder (b:bs) matchItem =
   if isMatchedBinder b matchItem
     then b
     else getMatchedBinder bs matchItem
-getMatchedBinder [] _ =
-  error "matchItem doesn't match any binder"
+getMatchedBinder [] _ = error "matchItem doesn't match any binder"
 
 getMatchedBinderPosition :: [G.Binder] -> G.Term -> Int
-getMatchedBinderPosition binders matchItem =
-  getMatchedBinderPosition' binders matchItem 0
+getMatchedBinderPosition binders matchItem = getMatchedBinderPosition' binders matchItem 0
 
 switchNonMonadicArgumentsFromTerm :: G.Term -> [G.Qualid] -> ConversionMonad -> G.Term
 switchNonMonadicArgumentsFromTerm (G.Match mItem retType equations) binders m =
   G.Match mItem retType [switchNonMonadicArgumentsFromEquation e binders m | e <- equations]
 switchNonMonadicArgumentsFromTerm (G.App constr args) binders m =
-  G.App (switchNonMonadicArgumentsFromTerm constr binders m)
-    (toNonemptyList [(\(G.PosArg term) -> G.PosArg (switchNonMonadicArgumentsFromTerm term binders m)) a | a <- fromNonEmptyList args])
+  G.App
+    (switchNonMonadicArgumentsFromTerm constr binders m)
+    (toNonemptyList
+       [ (\(G.PosArg term) -> G.PosArg (switchNonMonadicArgumentsFromTerm term binders m)) a
+       | a <- fromNonEmptyList args
+       ])
 switchNonMonadicArgumentsFromTerm (G.Parens term) binders m =
   G.Parens (switchNonMonadicArgumentsFromTerm term binders m)
 switchNonMonadicArgumentsFromTerm (G.Qualid qId) binders m =
@@ -188,20 +230,16 @@ switchNonMonadicArgumentsFromEquation :: G.Equation -> [G.Qualid] -> ConversionM
 switchNonMonadicArgumentsFromEquation (G.Equation pat rhs) binders m =
   G.Equation pat (switchNonMonadicArgumentsFromTerm rhs binders m)
 
-
 getMatchedBinderPosition' :: [G.Binder] -> G.Term -> Int -> Int
-getMatchedBinderPosition' (b : bs) matchItem pos =
+getMatchedBinderPosition' (b:bs) matchItem pos =
   if isMatchedBinder b matchItem
     then pos
     else getMatchedBinderPosition' bs matchItem (pos + 1)
-getMatchedBinderPosition' [] _ _ =
-  error "matchItem doesn't match any binder"
+getMatchedBinderPosition' [] _ _ = error "matchItem doesn't match any binder"
 
 getMatchedArgumentFromRhs :: G.Term -> G.Term
-getMatchedArgumentFromRhs (G.Match (G.MatchItem term _ _ B.:| ms) _ _ ) =
-  term
+getMatchedArgumentFromRhs (G.Match (G.MatchItem term _ _ B.:| ms) _ _) = term
 getMatchedArgumentFromRhs _ = error "recursive functions only work woth pattern-matching"
 
 isMatchedBinder :: G.Binder -> G.Term -> Bool
-isMatchedBinder (G.Typed _ _ (name B.:| _) _ ) (G.Qualid qId) =
-  eqQId (gNameToQId name) qId
+isMatchedBinder (G.Typed _ _ (name B.:| _) _) (G.Qualid qId) = eqQId (gNameToQId name) qId
