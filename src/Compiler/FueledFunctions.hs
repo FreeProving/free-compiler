@@ -41,7 +41,7 @@ addFuelArgToEquation (G.Equation mPats rhs) fTerm funName =
   G.Equation mPats (addFuelArgToRecursiveCall rhs fTerm funName)
 
 addFuelMatching :: G.Term -> G.Qualid -> G.Term
-addFuelMatching = fuelPattern (G.Qualid (strToQId "None"))
+addFuelMatching = fuelPattern (G.Qualid (strToQId "error"))
 
 convertFueledFunBody :: G.Term -> [G.Binder] -> G.Qualid -> [G.TypeSignature] -> [G.Qualid] -> G.Term
 convertFueledFunBody (G.Match item rType equations) funBinders funName typeSigs recursiveFuns =

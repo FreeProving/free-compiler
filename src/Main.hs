@@ -24,6 +24,7 @@ compileAndPrintFile f = do
        (fromParseResult (parseModuleWithMode (customParseMode f) s))
        (getMonadFromArgs args)
        (getModeFromArgs args))
+    (getMonadFromArgs args)
 
 compileAndSaveFile :: String -> IO ()
 compileAndSaveFile f = do
@@ -35,6 +36,7 @@ compileAndSaveFile f = do
        (fromParseResult (parseModuleWithMode (customParseMode fileName) s))
        (getMonadFromArgs args)
        (getModeFromArgs args))
+    (getMonadFromArgs args)
   where
     fileName = getFileNameFromPath f
 

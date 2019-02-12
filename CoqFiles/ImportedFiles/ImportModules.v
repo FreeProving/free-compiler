@@ -1,8 +1,11 @@
+Require Import String.
+
 Module Monad.
 
 Set Implicit Arguments.
 Set Maximal Implicit Insertion.
 
+Parameter error : forall{a},a.
 
 Definition o_return (A : Type) : A -> option A :=
   Some.
@@ -29,6 +32,15 @@ Definition i_bind (A B : Type) ( m : identity A) (f : A -> identity B) : identit
 
 Notation "m >>=' f" := (i_bind m f) (left associativity, at level 50).
 
+Notation "a || b" := (or a b) (left associativity, at level 50).
+
+End Monad.
+
+Module OptionDataTypes. 
+Set Implicit Arguments.
+Set Maximal Implicit Insertion.
+Import Monad.
+
 Inductive List (A : Type) : Type := 
   | Nil : List A
   | Cons : option A -> option (List A) -> List A.
@@ -41,7 +53,23 @@ Definition singleton (A : Type) (ox : option A) :=
 Inductive Pair (A B :Type) : Type := 
   | P : option A -> option B -> Pair A B.
 
+End OptionDataTypes.
 
-Notation "a || b" := (or a b) (left associativity, at level 50).
+Module IdentityDataTypes. 
+Set Implicit Arguments.
+Set Maximal Implicit Insertion.
+Import Monad.
 
-End Monad.
+Inductive List (A : Type) : Type := 
+  | Nil : List A
+  | Cons : identity A -> identity (List A) -> List A.
+
+Arguments Nil {A}.
+
+Definition singleton (A : Type) (ix : identity A) := 
+  i_return (Cons ix (i_return Nil)).
+
+Inductive Pair (A B : Type) : Type := 
+  | P : identity A -> identity B -> Pair A B.
+
+End IdentityDataTypes.

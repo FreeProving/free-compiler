@@ -7,6 +7,11 @@ data List a =
 data Pair a b =
   P a b
 
+not' :: Bool -> Bool
+not' b = case b of
+  True -> False
+  False -> True
+
 null' :: [a] -> Bool
 null' list = case list of
   [] -> True
@@ -24,6 +29,7 @@ reverse' :: [a] -> [a]
 reverse' xs = case xs of
   [] -> []
   (y : ys) -> append (reverse' ys) (singleton y)
+
 
 
 
@@ -67,3 +73,8 @@ flipQ q = case q of
 addl :: a -> Queuel a -> Queuel a
 addl x q = case q of
   (f , b) -> flipQ (f, x : b)
+
+
+toQueue :: Queuel a -> Queue a
+toQueue q = case q of
+  (f, b) -> append f (reverse' b)

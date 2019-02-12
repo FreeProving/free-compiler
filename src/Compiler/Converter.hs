@@ -105,12 +105,17 @@ getQIdFromFunDecl (H.FunBind _ (H.Match _ name _ _ _:_)) = nameToQId name
 convertModuleHead :: Show l => H.ModuleHead l -> G.Ident
 convertModuleHead (H.ModuleHead _ (H.ModuleName _ modName) _ _) = T.pack modName
 
-importDefinitions :: [G.Sentence]
-importDefinitions = [stringImport, libraryImport, monadImport]
+importDefinitions :: ConversionMonad -> [G.Sentence]
+importDefinitions cMonad =
+  if cMonad == Option
+    then [stringImport, libraryImport, monadImport, optionImport]
+    else [stringImport, libraryImport, monadImport, identityImport]
   where
     stringImport = G.ModuleSentence (G.Require Nothing (Just G.Import) (singleton (T.pack "String")))
     libraryImport = G.ModuleSentence (G.Require Nothing (Just G.Import) (singleton (T.pack "ImportModules")))
     monadImport = G.ModuleSentence (G.ModuleImport G.Import (singleton (T.pack "Monad")))
+    optionImport = G.ModuleSentence (G.ModuleImport G.Import (singleton (T.pack "OptionDataTypes")))
+    identityImport = G.ModuleSentence (G.ModuleImport G.Import (singleton (T.pack "IdentityDataTypes")))
 
 convertModuleDecls ::
      Show l
@@ -224,10 +229,17 @@ convertMatchToDefinition name pats rhs typeSigs dataTypes funs cMonad cMode =
     bindersWithInferredTypes = addInferredTypesToSignature monadicBinders (map fst dataTypes)
     bindersWithFuel = addFuelBinder bindersWithInferredTypes
     rhsTerm = convertRhsToTerm rhs
-    monadicTerm = addBindOperatorsToDefinition monadicBinders (addReturnToRhs rhsTerm typeSigs monadicBinders dataTypes cMonad) cMonad
+    monadicTerm =
+      addBindOperatorsToDefinition
+        monadicBinders
+        (addReturnToRhs rhsTerm typeSigs monadicBinders dataTypes cMonad)
+        cMonad
     fueledTerm = addFuelArgToRecursiveCalls rhsTerm fuelTerm funCalls
     fueledMonadicTerm =
-      addBindOperatorsToDefinition monadicBinders (addReturnToRhs fueledTerm typeSigs monadicBinders dataTypes cMonad) cMonad
+      addBindOperatorsToDefinition
+        monadicBinders
+        (addReturnToRhs fueledTerm typeSigs monadicBinders dataTypes cMonad)
+        cMonad
 
 convertMatchToFueledFixpoint ::
      Show l
@@ -437,11 +449,11 @@ predefinedDataTypes =
   ]
 
 --print the converted module
-printCoqAST :: G.Sentence -> IO ()
-printCoqAST x = putStrLn (renderCoqAst (importDefinitions ++ [x]))
+printCoqAST :: G.Sentence -> ConversionMonad -> IO ()
+printCoqAST x cMonad = putStrLn (renderCoqAst ((importDefinitions cMonad) ++ [x]))
 
-writeCoqFile :: String -> G.Sentence -> IO ()
-writeCoqFile path x = writeFile path (renderCoqAst (importDefinitions ++ [x]))
+writeCoqFile :: String -> G.Sentence -> ConversionMonad -> IO ()
+writeCoqFile path x cMonad = writeFile path (renderCoqAst ((importDefinitions cMonad) ++ [x]))
 
 renderCoqAst :: [G.Sentence] -> String
 renderCoqAst sentences =

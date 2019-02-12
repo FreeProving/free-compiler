@@ -107,10 +107,12 @@ convertMatchToHelperFunction name binders rhs typeSigs dataTypes cMonad =
     binderPos = getMatchedBinderPosition binders matchItem
     appliedMainFunction = G.App (G.Qualid (addSuffixToName name)) (toNonemptyList mainFunArgs)
     mainFunArgs = buildArgsForMainFun monadicBinders binderPos
-    rhsWithBind = addBindOperatorToMainFunction (addMonadicPrefixToBinder cMonad matchedBinder) appliedMainFunction cMonad
+    rhsWithBind =
+      addBindOperatorToMainFunction (addMonadicPrefixToBinder cMonad matchedBinder) appliedMainFunction cMonad
 
 addBindOperatorToMainFunction :: G.Binder -> G.Term -> ConversionMonad -> G.Term
-addBindOperatorToMainFunction binder rhs cMonad = G.App (getBindOperator cMonad) (toNonemptyList [argumentName, lambdaFun])
+addBindOperatorToMainFunction binder rhs cMonad =
+  G.App (getBindOperator cMonad) (toNonemptyList [argumentName, lambdaFun])
   where
     argumentName = G.PosArg (getBinderName binder)
     lambdaFun = G.PosArg (G.Fun (singleton (removeMonadFromBinder binder)) rhs)

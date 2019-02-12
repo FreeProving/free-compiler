@@ -47,18 +47,19 @@ addBindOperatorsToDefinition (x:xs) term cMonad =
 
 addBindOperatorsInRhs :: G.Term -> ConversionMonad -> G.Term
 addBindOperatorsInRhs (G.Match mItem retType equations) cMonad =
-  G.Match mItem retType [addBindOperatorsInEquation e cMonad| e <- equations]
+  G.Match mItem retType [addBindOperatorsInEquation e cMonad | e <- equations]
 addBindOperatorsInRhs term _ = term
 
 addBindOperatorsInEquation :: G.Equation -> ConversionMonad -> G.Equation
 addBindOperatorsInEquation (G.Equation multPats rhs) cMonad =
-  G.Equation multPats (addBindOpperatorsInMatchRhs ((head . fromNonEmptyList) multPats) cMonad rhs )
+  G.Equation multPats (addBindOpperatorsInMatchRhs ((head . fromNonEmptyList) multPats) cMonad rhs)
 
-addBindOpperatorsInMatchRhs :: G.MultPattern -> ConversionMonad -> G.Term  -> G.Term
-addBindOpperatorsInMatchRhs multPats cMonad (G.App constr args)  = G.App constr (toNonemptyList boundArgs)
+addBindOpperatorsInMatchRhs :: G.MultPattern -> ConversionMonad -> G.Term -> G.Term
+addBindOpperatorsInMatchRhs multPats cMonad (G.App constr args) = G.App constr (toNonemptyList boundArgs)
   where
-    boundArgs = map (G.PosArg . addBindOpperatorsInMatchRhs multPats cMonad ) (convertArgumentsToTerms (fromNonEmptyList args))
-addBindOpperatorsInMatchRhs multPats cMonad (G.Match mItem retType equations)  =
+    boundArgs =
+      map (G.PosArg . addBindOpperatorsInMatchRhs multPats cMonad) (convertArgumentsToTerms (fromNonEmptyList args))
+addBindOpperatorsInMatchRhs multPats cMonad (G.Match mItem retType equations) =
   G.App
     (getBindOperator cMonad)
     (toNonemptyList [G.PosArg argumentName, G.PosArg (G.Fun (singleton lambdaBinder) lambdaTerm)])
@@ -68,7 +69,7 @@ addBindOpperatorsInMatchRhs multPats cMonad (G.Match mItem retType equations)  =
     boundMatchItem = G.MatchItem (G.Qualid lambdaArgumentQId) Nothing Nothing
     lambdaBinder = G.Inferred G.Explicit (qIdToGName lambdaArgumentQId)
     lambdaTerm = G.Match (singleton boundMatchItem) retType equations
-addBindOpperatorsInMatchRhs multPats _ term  = term
+addBindOpperatorsInMatchRhs multPats _ term = term
 
 ---------------------- Add Return Operator if rhs isn't already monadic
 addReturnToRhs :: G.Term -> [G.TypeSignature] -> [G.Binder] -> [(G.Name, [G.Qualid])] -> ConversionMonad -> G.Term
@@ -81,7 +82,7 @@ addReturnToMatch ::
 addReturnToMatch (G.Match mItem retType equations) typeSigs binders dataTypes patNames cMonad =
   if any isUnderscorePat equationPats || isJust constructors && containsAllConstrs equationPats (fromJust constructors)
     then G.Match mItem retType monadicEquations
-    else G.Match mItem retType (monadicEquations ++ errorEquation)
+    else G.Match mItem retType (monadicEquations ++ errorEquation cMonad)
   where
     monadicEquations = [addReturnToEquation e typeSigs binders patNames cMonad | e <- equations]
     constrNames = map snd dataTypes
@@ -230,8 +231,11 @@ isMonadicBinder (G.Qualid qId) binders = isJust maybeBinder && isMonadicTerm (ge
     maybeBinder = getBinderByQId binders qId
 isMonadicBinder _ _ = False
 
-errorEquation :: [G.Equation]
-errorEquation = [G.Equation (singleton (G.MultPattern (singleton G.UnderscorePat))) (G.Qualid (strToQId "None"))]
+errorEquation :: ConversionMonad -> [G.Equation]
+errorEquation (Option) =
+  [G.Equation (singleton (G.MultPattern (singleton G.UnderscorePat))) (G.Qualid (strToQId "None"))]
+errorEquation (Identity) =
+  [G.Equation (singleton (G.MultPattern (singleton G.UnderscorePat))) (G.Qualid (strToQId "error"))]
 
 ---------------------- Predefined Terms
 identityTerm :: G.Term

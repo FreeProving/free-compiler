@@ -18,8 +18,6 @@ data Tree a =
   Leaf
   | Branch a (Tree a) (Tree a)
 
-
-
 plus :: Int -> Int -> Int
 plus a b = a + b
 
