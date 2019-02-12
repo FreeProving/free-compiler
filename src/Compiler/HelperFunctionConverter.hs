@@ -22,7 +22,7 @@ import Compiler.MonadicConverter
   ( addMonadicPrefixToBinder
   , addMonadicPrefixToQId
   , addReturnToRhs
-  , bindOperator
+  , getBindOperator
   , removeMonadFromBinder
   , transformBinderMonadic
   , transformBindersMonadic
@@ -79,6 +79,7 @@ convertMatchToMainFunction name binders rhs typeSigs dataTypes cMonad =
         typeSigs
         bindersWithInferredTypes
         dataTypes
+        cMonad
 
 convertMatchToHelperFunction ::
      Show l
@@ -106,10 +107,10 @@ convertMatchToHelperFunction name binders rhs typeSigs dataTypes cMonad =
     binderPos = getMatchedBinderPosition binders matchItem
     appliedMainFunction = G.App (G.Qualid (addSuffixToName name)) (toNonemptyList mainFunArgs)
     mainFunArgs = buildArgsForMainFun monadicBinders binderPos
-    rhsWithBind = addBindOperatorToMainFunction (addMonadicPrefixToBinder cMonad matchedBinder) appliedMainFunction
+    rhsWithBind = addBindOperatorToMainFunction (addMonadicPrefixToBinder cMonad matchedBinder) appliedMainFunction cMonad
 
-addBindOperatorToMainFunction :: G.Binder -> G.Term -> G.Term
-addBindOperatorToMainFunction binder rhs = G.App bindOperator (toNonemptyList [argumentName, lambdaFun])
+addBindOperatorToMainFunction :: G.Binder -> G.Term -> ConversionMonad -> G.Term
+addBindOperatorToMainFunction binder rhs cMonad = G.App (getBindOperator cMonad) (toNonemptyList [argumentName, lambdaFun])
   where
     argumentName = G.PosArg (getBinderName binder)
     lambdaFun = G.PosArg (G.Fun (singleton (removeMonadFromBinder binder)) rhs)
@@ -131,7 +132,7 @@ addBindOperatorToEquation (G.Equation multPats rhs) funName pos m =
 addBindOperatorToRecursiveCall :: G.Term -> G.Qualid -> Int -> ConversionMonad -> G.Term
 addBindOperatorToRecursiveCall (G.App constr args) funName pos m =
   if containsRecursiveCall constr funName
-    then G.App bindOperator (toNonemptyList [monadicArgument, lambdaFun])
+    then G.App (getBindOperator m) (toNonemptyList [monadicArgument, lambdaFun])
     else G.App constr (toNonemptyList checkedArgs)
   where
     monadicArgument = G.PosArg (G.Qualid (addMonadicPrefixToQId m decrArgument))

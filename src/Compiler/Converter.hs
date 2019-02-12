@@ -154,7 +154,7 @@ convertPatBindToDefinition pat rhs typeSigs dataTypes cMonad = G.DefinitionDef G
     name = patToQID pat
     typeSig = getTypeSignatureByQId typeSigs name
     returnType = convertReturnType typeSig cMonad
-    rhsTerm = addReturnToRhs (convertRhsToTerm rhs) [] [] []
+    rhsTerm = addReturnToRhs (convertRhsToTerm rhs) [] [] [] cMonad
 
 convertArgumentSentences :: Show l => H.DeclHead l -> [H.QualConDecl l] -> [G.Sentence]
 convertArgumentSentences declHead qConDecls =
@@ -224,10 +224,10 @@ convertMatchToDefinition name pats rhs typeSigs dataTypes funs cMonad cMode =
     bindersWithInferredTypes = addInferredTypesToSignature monadicBinders (map fst dataTypes)
     bindersWithFuel = addFuelBinder bindersWithInferredTypes
     rhsTerm = convertRhsToTerm rhs
-    monadicTerm = addBindOperatorsToDefinition monadicBinders (addReturnToRhs rhsTerm typeSigs monadicBinders dataTypes)
+    monadicTerm = addBindOperatorsToDefinition monadicBinders (addReturnToRhs rhsTerm typeSigs monadicBinders dataTypes cMonad) cMonad
     fueledTerm = addFuelArgToRecursiveCalls rhsTerm fuelTerm funCalls
     fueledMonadicTerm =
-      addBindOperatorsToDefinition monadicBinders (addReturnToRhs fueledTerm typeSigs monadicBinders dataTypes)
+      addBindOperatorsToDefinition monadicBinders (addReturnToRhs fueledTerm typeSigs monadicBinders dataTypes cMonad) cMonad
 
 convertMatchToFueledFixpoint ::
      Show l
@@ -259,13 +259,13 @@ convertMatchToFueledFixpoint name pats rhs typeSigs dataTypes funs cMonad =
     rhsTerm = convertRhsToTerm rhs
     convertedFunBody =
       convertFueledFunBody
-        (addReturnToRhs rhsTerm typeSigs monadicBinders dataTypes)
+        (addReturnToRhs rhsTerm typeSigs monadicBinders dataTypes cMonad)
         monadicBinders
         funName
         typeSigs
         funs
     fueledRhs = addFuelMatching monadicRhs funName
-    monadicRhs = addBindOperatorsToDefinition monadicBinders convertedFunBody
+    monadicRhs = addBindOperatorsToDefinition monadicBinders convertedFunBody cMonad
 
 convertMatchWithHelperFunction ::
      Show l
