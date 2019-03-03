@@ -394,6 +394,13 @@ convertExprToTerm (H.Case _ expr altList) =
     (singleton (G.MatchItem (convertExprToTerm expr) Nothing Nothing))
     Nothing
     (convertAltListToEquationList altList)
+convertExprToTerm (H.If _ cond thenExpr elseExpr) =
+  G.If
+    G.SymmetricIf
+    (convertExprToTerm cond)
+    Nothing
+    ((collapseApp . convertExprToTerm) thenExpr)
+    ((collapseApp . convertExprToTerm) elseExpr)
 convertExprToTerm (H.Lit _ literal) = convertLiteralToTerm literal
 convertExprToTerm (H.Tuple _ _ exprs) =
   G.App (G.Qualid (strToQId "P")) (toNonemptyList [(G.PosArg . convertExprToTerm) e | e <- exprs])

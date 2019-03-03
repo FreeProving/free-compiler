@@ -1,4 +1,5 @@
 Require Import String.
+Require Import Coq.Bool.Bool.
 
 Module Monad.
 
@@ -18,6 +19,7 @@ Definition o_bind (A B : Type) (m : option A) (f : A -> option B) : option B :=
 
 
 Notation "m >>= f" := (o_bind m f) (left associativity, at level 50).
+Notation "m == f" := (eqb m f) (left associativity, at level 50).
 
 Inductive identity (A : Type) : Type :=
   | Ident : A -> identity A.

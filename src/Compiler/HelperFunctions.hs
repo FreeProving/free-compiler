@@ -208,6 +208,8 @@ containsRecursiveCall (G.App term args) funName =
     argTerms = convertArgumentsToTerms (fromNonEmptyList args)
 containsRecursiveCall (G.Parens term) funName = containsRecursiveCall term funName
 containsRecursiveCall (G.Qualid qId) funName = eqQId qId funName
+containsRecursiveCall (G.If _ cond _ thenTerm elseTerm) funName =
+  containsRecursiveCall cond funName || containsRecursiveCall thenTerm funName || containsRecursiveCall elseTerm funName
 containsRecursiveCall _ _ = False
 
 isFunctionCall :: G.Term -> [G.TypeSignature] -> Bool

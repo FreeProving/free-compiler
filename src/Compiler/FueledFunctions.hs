@@ -34,6 +34,8 @@ addFuelArgToRecursiveCall (G.App term args) fTerm funName =
 addFuelArgToRecursiveCall (G.Parens term) fTerm funName = G.Parens (addFuelArgToRecursiveCall term fTerm funName)
 addFuelArgToRecursiveCall (G.Match mItem retType equations) fTerm funName =
   G.Match mItem retType [addFuelArgToEquation e fTerm funName | e <- equations]
+addFuelArgToRecursiveCall (G.If style cond depRet thenTerm elseTerm) fTerm funName =
+  G.If style cond depRet (addFuelArgToRecursiveCall thenTerm fTerm funName) (addFuelArgToRecursiveCall elseTerm fTerm funName)
 addFuelArgToRecursiveCall term _ _ = term
 
 addFuelArgToEquation :: G.Equation -> G.Term -> G.Qualid -> G.Equation
@@ -71,6 +73,8 @@ convertFueledTerm (G.App constr args) funBinders funName typeSigs recursiveFuns 
         | t <- convertArgumentsToTerms (fromNonEmptyList args)
         ]
     convertedFueledArgs = addFuelArgument (toNonemptyList convertedArgs) decrFuelTerm
+convertFueledTerm (G.If style cond depRet thenTerm elseTerm) funBinders funName typeSigs recursiveFuns =
+  G.If style cond depRet (convertFueledTerm thenTerm funBinders funName typeSigs recursiveFuns) (convertFueledTerm elseTerm funBinders funName typeSigs recursiveFuns) 
 
 addFuelArgument :: B.NonEmpty G.Arg -> G.Term -> B.NonEmpty G.Arg
 addFuelArgument list fTerm = toNonemptyList (G.PosArg fTerm : fromNonEmptyList list)

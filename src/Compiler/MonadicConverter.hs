@@ -75,7 +75,7 @@ addBindOpperatorsInMatchRhs multPats _ term = term
 addReturnToRhs :: G.Term -> [G.TypeSignature] -> [G.Binder] -> [(G.Name, [G.Qualid])] -> ConversionMonad -> G.Term
 addReturnToRhs (G.Match mItem retType equations) typeSigs binders dataTypes cMonad =
   addReturnToMatch (G.Match mItem retType equations) typeSigs binders dataTypes [] cMonad
-addReturnToRhs rhs typeSigs binders _ cMonad = addReturnToTerm rhs typeSigs binders [] [] cMonad
+addReturnToRhs rhs typeSigs binders dataTypes cMonad = addReturnToTerm rhs typeSigs binders dataTypes [] cMonad
 
 addReturnToMatch ::
      G.Term -> [G.TypeSignature] -> [G.Binder] -> [(G.Name, [G.Qualid])] -> [G.Qualid] -> ConversionMonad -> G.Term
@@ -105,6 +105,8 @@ addReturnToTerm (G.App constr args) typeSigs binders _ patNames cMonad
   | otherwise = toReturnTerm (G.App constr fixedArgs) cMonad
   where
     fixedArgs = toNonemptyList (addReturnToArgs (fromNonEmptyList args) typeSigs binders patNames cMonad)
+addReturnToTerm (G.If style cond depRet thenTerm elseTerm) typeSigs binders dataNames patNames cMonad =
+  G.If style cond depRet (addReturnToTerm thenTerm typeSigs binders dataNames patNames cMonad) (addReturnToTerm elseTerm typeSigs binders dataNames patNames cMonad)
 addReturnToTerm (G.Parens term) typeSigs binders dataNames patNames cMonad =
   G.Parens (addReturnToTerm term typeSigs binders dataNames patNames cMonad)
 addReturnToTerm (G.Fun fBinders term) _ _ _ _ _ = G.Fun fBinders term
@@ -211,6 +213,7 @@ isMonad (G.Qualid qId) =
   any
     (eqQId qId)
     (map strToQId ["option", "identity", "o_return", "i_return", "op_>>=__", "op_>>='__", "o_bind", "i_bind"])
+isMonad _ = False
 
 predefinedMonadicFunctions :: [G.Qualid]
 predefinedMonadicFunctions = map strToQId ["singleton"]

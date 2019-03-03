@@ -10,9 +10,15 @@ data Maybe a =
   Nothing
   | Just a
 
+
 data Either a b =
   Left a
   | Right b
+
+
+data List' a =
+  Nil'
+  | Cons' a (List' a)
 
 data Tree a =
   Leaf
@@ -29,6 +35,13 @@ not b = case b of
   False -> True
   True -> False
 
+head :: [a] -> a
+head list = case list of
+     (x : xs) -> x
+
+sillyFun1 :: [a] -> [a]
+sillyFun1 list = case list of
+    (x : xs) -> singleton x
 
 null :: [a] -> Bool
 null list = case list of
@@ -64,3 +77,18 @@ length' xs = case xs of
 
 indexLength :: [a] -> Int
 indexLength xs = minus (length' xs) 1
+
+ifTest :: Bool -> Int
+ifTest b =
+  if b == True
+    then 1
+    else 2
+
+doAppend :: [a] -> [a] -> [a]
+doAppend xs ys = append xs ys
+
+ifTest2 :: Bool -> [a] -> [a]
+ifTest2 b xs =
+  if b == True
+    then append xs []
+    else []
