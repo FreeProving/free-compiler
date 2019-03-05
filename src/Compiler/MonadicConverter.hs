@@ -98,13 +98,13 @@ addReturnToEquation (G.Equation multPats rhs) typeSigs binders prevPatNames cMon
 
 addReturnToTerm ::
      G.Term -> [G.TypeSignature] -> [G.Binder] -> [(G.Name, [G.Qualid])] -> [G.Qualid] -> ConversionMonad -> G.Term
-addReturnToTerm (G.App constr args) typeSigs binders _ patNames cMonad
+addReturnToTerm (G.App constr args) typeSigs binders dataTypes patNames cMonad
   | isMonadicTerm constr || isMonadicFunctionCall constr typeSigs || isMonadicBinder constr binders =
     G.App constr fixedArgs
   | qualidIsOp (termToQId constr) = toReturnTerm (G.App constr args) cMonad
   | otherwise = toReturnTerm (G.App constr fixedArgs) cMonad
   where
-    fixedArgs = toNonemptyList (addReturnToArgs (fromNonEmptyList args) typeSigs binders patNames cMonad)
+    fixedArgs = toNonemptyList (addReturnToArgs (fromNonEmptyList args) typeSigs binders dataTypes patNames cMonad)
 addReturnToTerm (G.If style cond depRet thenTerm elseTerm) typeSigs binders dataNames patNames cMonad =
   G.If style cond depRet (addReturnToTerm thenTerm typeSigs binders dataNames patNames cMonad) (addReturnToTerm elseTerm typeSigs binders dataNames patNames cMonad)
 addReturnToTerm (G.Parens term) typeSigs binders dataNames patNames cMonad =
@@ -118,14 +118,14 @@ addReturnToTerm term typeSigs binders _ patNames cMonad =
     then term
     else toReturnTerm term cMonad
 
-addReturnToArgs :: [G.Arg] -> [G.TypeSignature] -> [G.Binder] -> [G.Qualid] -> ConversionMonad -> [G.Arg]
-addReturnToArgs (x:xs) typeSigs binders patNames cMonad =
-  addReturnToArg x typeSigs binders patNames cMonad : addReturnToArgs xs typeSigs binders patNames cMonad
-addReturnToArgs [] _ _ _ _ = []
+addReturnToArgs :: [G.Arg] -> [G.TypeSignature] -> [G.Binder] -> [(G.Name, [G.Qualid])] -> [G.Qualid] -> ConversionMonad -> [G.Arg]
+addReturnToArgs (x:xs) typeSigs binders dataTypes patNames cMonad =
+  addReturnToArg x typeSigs binders dataTypes patNames cMonad : addReturnToArgs xs typeSigs binders dataTypes patNames cMonad
+addReturnToArgs [] _ _ _ _ _ = []
 
-addReturnToArg :: G.Arg -> [G.TypeSignature] -> [G.Binder] -> [G.Qualid] -> ConversionMonad -> G.Arg
-addReturnToArg (G.PosArg term) typeSigs binders patNames cMonad =
-  G.PosArg (addReturnToTerm term typeSigs binders [] patNames cMonad)
+addReturnToArg :: G.Arg -> [G.TypeSignature] -> [G.Binder] -> [(G.Name, [G.Qualid])] -> [G.Qualid] -> ConversionMonad -> G.Arg
+addReturnToArg (G.PosArg term) typeSigs binders dataTypes patNames cMonad =
+  G.PosArg (addReturnToTerm term typeSigs binders dataTypes patNames cMonad)
 
 ---------------------- transform Data Structures Monadic
 transformBindersMonadic :: [G.Binder] -> ConversionMonad -> [G.Binder]

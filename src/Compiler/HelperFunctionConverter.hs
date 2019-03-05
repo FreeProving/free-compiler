@@ -75,7 +75,7 @@ convertMatchToMainFunction name binders rhs typeSigs dataTypes cMonad =
         cMonad
     monadicRhs =
       addReturnToRhs
-        (addBindOperatorToEquationInMatch monadicArgRhs (nameToQId name) binderPos cMonad)
+        (addBindOperatorToRhsTerm (nameToQId name) binderPos cMonad monadicArgRhs)
         typeSigs
         bindersWithInferredTypes
         dataTypes
@@ -117,9 +117,14 @@ addBindOperatorToMainFunction binder rhs cMonad =
     argumentName = G.PosArg (getBinderName binder)
     lambdaFun = G.PosArg (G.Fun (singleton (removeMonadFromBinder binder)) rhs)
 
-addBindOperatorToEquationInMatch :: G.Term -> G.Qualid -> Int -> ConversionMonad -> G.Term
-addBindOperatorToEquationInMatch (G.Match mItem retType equations) funName pos m =
+addBindOperatorToRhsTerm ::  G.Qualid -> Int -> ConversionMonad -> G.Term -> G.Term
+addBindOperatorToRhsTerm funName pos m (G.Match mItem retType equations) =
   G.Match mItem retType [addBindOperatorToEquation e funName pos m | e <- equations]
+addBindOperatorToRhsTerm funName pos m (G.App constr args) = G.App boundConstr (toNonemptyList boundArgs)
+  where
+    boundConstr = addBindOperatorToRhsTerm funName pos m constr
+    boundArgs = map G.PosArg (map (addBindOperatorToRhsTerm funName pos m) (map argToTerm (fromNonEmptyList args)))
+addBindOperatorToRhsTerm _ _ _ term = term
 
 addBindOperatorToEquation :: G.Equation -> G.Qualid -> Int -> ConversionMonad -> G.Equation
 addBindOperatorToEquation (G.Equation multPats rhs) funName pos m =
@@ -242,7 +247,8 @@ getMatchedBinderPosition' [] _ _ = error "matchItem doesn't match any binder"
 
 getMatchedArgumentFromRhs :: G.Term -> G.Term
 getMatchedArgumentFromRhs (G.Match (G.MatchItem term _ _ B.:| ms) _ _) = term
-getMatchedArgumentFromRhs _ = error "recursive functions only work woth pattern-matching"
+getMatchedArgumentFromRhs (G.App constr (x B.:| y : xx)) = getMatchedArgumentFromRhs (argToTerm y)
+getMatchedArgumentFromRhs term = error ("recursive functions only work with pattern-matching" ++ show term)
 
 isMatchedBinder :: G.Binder -> G.Term -> Bool
 isMatchedBinder (G.Typed _ _ (name B.:| _) _) (G.Qualid qId) = eqQId (gNameToQId name) qId

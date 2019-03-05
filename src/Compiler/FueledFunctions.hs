@@ -48,6 +48,8 @@ addFuelMatching = fuelPattern (G.Qualid (strToQId "error"))
 convertFueledFunBody :: G.Term -> [G.Binder] -> G.Qualid -> [G.TypeSignature] -> [G.Qualid] -> G.Term
 convertFueledFunBody (G.Match item rType equations) funBinders funName typeSigs recursiveFuns =
   G.Match item rType [convertFueledEquation e funBinders funName typeSigs recursiveFuns | e <- equations]
+convertFueledFunBody term funBinders funName typeSigs recursiveFuns =
+  convertFueledTerm term funBinders funName typeSigs recursiveFuns
 
 convertFueledEquation :: G.Equation -> [G.Binder] -> G.Qualid -> [G.TypeSignature] -> [G.Qualid] -> G.Equation
 convertFueledEquation (G.Equation multPats rhs) funBinders funName typeSigs recursiveFuns =
@@ -74,7 +76,7 @@ convertFueledTerm (G.App constr args) funBinders funName typeSigs recursiveFuns 
         ]
     convertedFueledArgs = addFuelArgument (toNonemptyList convertedArgs) decrFuelTerm
 convertFueledTerm (G.If style cond depRet thenTerm elseTerm) funBinders funName typeSigs recursiveFuns =
-  G.If style cond depRet (convertFueledTerm thenTerm funBinders funName typeSigs recursiveFuns) (convertFueledTerm elseTerm funBinders funName typeSigs recursiveFuns) 
+  G.If style cond depRet (convertFueledTerm thenTerm funBinders funName typeSigs recursiveFuns) (convertFueledTerm elseTerm funBinders funName typeSigs recursiveFuns)
 
 addFuelArgument :: B.NonEmpty G.Arg -> G.Term -> B.NonEmpty G.Arg
 addFuelArgument list fTerm = toNonemptyList (G.PosArg fTerm : fromNonEmptyList list)

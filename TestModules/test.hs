@@ -92,3 +92,17 @@ ifTest2 b xs =
   if b == True
     then append xs []
     else []
+
+intersperseOne :: [Int] -> [Int]
+intersperseOne xs =
+  1 : case xs of
+           [] -> []
+           (y : ys)  -> y : intersperseOne ys
+{-}
+intersperse :: a -> [a] -> [a]
+intersperse sep xs = case xs of
+    [] -> []
+    (y : ys) ->  y : case ys of
+               [] -> []
+               _  -> sep : intersperse sep ys
+-}
