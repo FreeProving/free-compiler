@@ -20,6 +20,7 @@ import Compiler.HelperFunctions
   , getStringFromGName
   , getTermFromMatchItem
   , getTypeSignatureByQId
+  , isArrowTerm
   , isUnderscorePat
   , qIdEqBinder
   , qIdToGName
@@ -40,7 +41,9 @@ import qualified GHC.Base as B
 addBindOperatorsToDefinition :: [G.Binder] -> G.Term -> ConversionMonad -> G.Term
 addBindOperatorsToDefinition [] term cMonad = addBindOperatorsInRhs term cMonad
 addBindOperatorsToDefinition (x:xs) term cMonad =
-  G.App (getBindOperator cMonad) (toNonemptyList [G.PosArg argumentName, G.PosArg lambdaFun])
+  if isArrowTerm (getBinderType x)
+    then addBindOperatorsToDefinition xs term cMonad
+    else G.App (getBindOperator cMonad) (toNonemptyList [G.PosArg argumentName, G.PosArg lambdaFun])
   where
     argumentName = getBinderName x
     lambdaFun = G.Fun (singleton (removeMonadFromBinder x)) (addBindOperatorsToDefinition xs term cMonad)
@@ -99,14 +102,20 @@ addReturnToEquation (G.Equation multPats rhs) typeSigs binders prevPatNames cMon
 addReturnToTerm ::
      G.Term -> [G.TypeSignature] -> [G.Binder] -> [(G.Name, [G.Qualid])] -> [G.Qualid] -> ConversionMonad -> G.Term
 addReturnToTerm (G.App constr args) typeSigs binders dataTypes patNames cMonad
-  | isMonadicTerm constr || isMonadicFunctionCall constr typeSigs || isMonadicBinder constr binders =
+  | isMonadicTerm constr ||
+      isMonadicFunctionCall constr typeSigs || isMonadicBinder constr binders || isMonadicArrowTerm constr binders =
     G.App constr fixedArgs
   | qualidIsOp (termToQId constr) = toReturnTerm (G.App constr args) cMonad
   | otherwise = toReturnTerm (G.App constr fixedArgs) cMonad
   where
     fixedArgs = toNonemptyList (addReturnToArgs (fromNonEmptyList args) typeSigs binders dataTypes patNames cMonad)
 addReturnToTerm (G.If style cond depRet thenTerm elseTerm) typeSigs binders dataNames patNames cMonad =
-  G.If style cond depRet (addReturnToTerm thenTerm typeSigs binders dataNames patNames cMonad) (addReturnToTerm elseTerm typeSigs binders dataNames patNames cMonad)
+  G.If
+    style
+    cond
+    depRet
+    (addReturnToTerm thenTerm typeSigs binders dataNames patNames cMonad)
+    (addReturnToTerm elseTerm typeSigs binders dataNames patNames cMonad)
 addReturnToTerm (G.Parens term) typeSigs binders dataNames patNames cMonad =
   G.Parens (addReturnToTerm term typeSigs binders dataNames patNames cMonad)
 addReturnToTerm (G.Fun fBinders term) _ _ _ _ _ = G.Fun fBinders term
@@ -114,16 +123,20 @@ addReturnToTerm (G.Match mItem retType equations) typeSigs binders dataNames pat
   addReturnToMatch (G.Match mItem retType equations) typeSigs binders dataNames patNames cMonad
 addReturnToTerm term typeSigs binders _ patNames cMonad =
   if isMonadicTerm term ||
-     isMonadicFunctionCall term typeSigs || isMonadicBinder term binders || isPatName term patNames || isFuelArg term
+     isMonadicFunctionCall term typeSigs ||
+     isMonadicBinder term binders || isPatName term patNames || isFuelArg term || isMonadicArrowTerm term binders
     then term
     else toReturnTerm term cMonad
 
-addReturnToArgs :: [G.Arg] -> [G.TypeSignature] -> [G.Binder] -> [(G.Name, [G.Qualid])] -> [G.Qualid] -> ConversionMonad -> [G.Arg]
+addReturnToArgs ::
+     [G.Arg] -> [G.TypeSignature] -> [G.Binder] -> [(G.Name, [G.Qualid])] -> [G.Qualid] -> ConversionMonad -> [G.Arg]
 addReturnToArgs (x:xs) typeSigs binders dataTypes patNames cMonad =
-  addReturnToArg x typeSigs binders dataTypes patNames cMonad : addReturnToArgs xs typeSigs binders dataTypes patNames cMonad
+  addReturnToArg x typeSigs binders dataTypes patNames cMonad :
+  addReturnToArgs xs typeSigs binders dataTypes patNames cMonad
 addReturnToArgs [] _ _ _ _ _ = []
 
-addReturnToArg :: G.Arg -> [G.TypeSignature] -> [G.Binder] -> [(G.Name, [G.Qualid])] -> [G.Qualid] -> ConversionMonad -> G.Arg
+addReturnToArg ::
+     G.Arg -> [G.TypeSignature] -> [G.Binder] -> [(G.Name, [G.Qualid])] -> [G.Qualid] -> ConversionMonad -> G.Arg
 addReturnToArg (G.PosArg term) typeSigs binders dataTypes patNames cMonad =
   G.PosArg (addReturnToTerm term typeSigs binders dataTypes patNames cMonad)
 
@@ -136,12 +149,17 @@ transformBinderMonadic (G.Typed gen expl name term) m = G.Typed gen expl name (t
 
 transformTermMonadic :: G.Term -> ConversionMonad -> G.Term
 transformTermMonadic (G.Sort G.Type) m = typeTerm
+transformTermMonadic (G.Parens term) m = G.Parens (transformTermMonadic term m)
+transformTermMonadic (G.Arrow term1 term2) m = G.Arrow (transformTermMonadic term1 m) (transformTermMonadic term2 m)
 transformTermMonadic term m = monad term
   where
-    monad =
-      case m of
-        Option -> toOptionTerm
-        Identity -> toIdentityTerm
+    monad = getMonadFun m
+
+getMonadFun :: ConversionMonad -> (G.Term -> G.Term)
+getMonadFun m =
+  case m of
+    Option -> toOptionTerm
+    Identity -> toIdentityTerm
 
 getBindOperator :: ConversionMonad -> G.Term
 getBindOperator (Option) = optionBindOperator
@@ -167,7 +185,9 @@ addMonadicPrefix str (G.Ident (G.Bare ident)) = G.Ident (strToQId (str ++ name))
 addMonadicPrefixToBinder :: ConversionMonad -> G.Binder -> G.Binder
 addMonadicPrefixToBinder m (G.Inferred expl name) = G.Inferred expl (getPrefixFromMonad m name)
 addMonadicPrefixToBinder m (G.Typed gen expl (name B.:| xs) ty) =
-  G.Typed gen expl (singleton (getPrefixFromMonad m name)) ty
+  if isArrowTerm ty
+    then G.Typed gen expl (name B.:| xs) ty
+    else G.Typed gen expl (singleton (getPrefixFromMonad m name)) ty
 
 addMonadicPrefixToQId :: ConversionMonad -> G.Qualid -> G.Qualid
 addMonadicPrefixToQId m qId = gNameToQId (getPrefixFromMonad m (G.Ident qId))
@@ -234,6 +254,12 @@ isMonadicBinder (G.Qualid qId) binders = isJust maybeBinder && isMonadicTerm (ge
     maybeBinder = getBinderByQId binders qId
 isMonadicBinder _ _ = False
 
+isMonadicArrowTerm :: G.Term -> [G.Binder] -> Bool
+isMonadicArrowTerm (G.Qualid qId) binders = isJust maybeBinder && isArrowTerm (getBinderType (fromJust maybeBinder))
+  where
+    maybeBinder = getBinderByQId binders qId
+isMonadicArrowTerm _ _ = False
+
 errorEquation :: ConversionMonad -> [G.Equation]
 errorEquation (Option) =
   [G.Equation (singleton (G.MultPattern (singleton G.UnderscorePat))) (G.Qualid (strToQId "None"))]
@@ -246,6 +272,9 @@ identityTerm = G.Qualid (strToQId "identity")
 
 optionTerm :: G.Term
 optionTerm = G.Qualid (strToQId "option")
+
+singletonTerm :: G.Term
+singletonTerm = G.Qualid (strToQId "singleton")
 
 optionReturnTerm :: G.Term
 optionReturnTerm = G.Qualid (strToQId "o_return")

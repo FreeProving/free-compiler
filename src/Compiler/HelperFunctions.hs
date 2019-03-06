@@ -117,6 +117,9 @@ getNameFromQualConDecl (H.QualConDecl _ _ _ (H.ConDecl _ name _)) = nameToQId na
 getTypeNamesFromTerm :: G.Term -> [G.Name]
 getTypeNamesFromTerm (G.App term args) =
   map strToGName (termToStrings term) ++ map strToGName (concatMap (termToStrings . argToTerm) (fromNonEmptyList args))
+getTypeNamesFromTerm (G.Parens term) = getTypeNamesFromTerm term
+getTypeNamesFromTerm (G.Arrow lTerm rTerm) =
+  map strToGName (termToStrings lTerm) ++ map strToGName (termToStrings rTerm)
 getTypeNamesFromTerm _ = []
 
 getConstrNameFromType :: G.Term -> G.Name
@@ -219,6 +222,11 @@ isAppTerm :: G.Term -> Bool
 isAppTerm (G.App _ _) = True
 isAppTerm _ = False
 
+isArrowTerm :: G.Term -> Bool
+isArrowTerm (G.Parens term) = isArrowTerm term
+isArrowTerm (G.Arrow _ _) = True
+isArrowTerm _ = False
+
 isQualidTerm :: G.Term -> Bool
 isQualidTerm (G.Qualid _) = True
 isQualidTerm _ = False
@@ -232,6 +240,9 @@ eqGName gNameL gNameR = getStringFromGName gNameL == getStringFromGName gNameR
 
 eqQId :: G.Qualid -> G.Qualid -> Bool
 eqQId qIdL qIdR = getStringFromQId qIdL == getStringFromQId qIdR
+
+eqBinder :: G.Binder -> G.Binder -> Bool
+eqBinder lBinder rBinder = eqQId ((termToQId . getBinderName) lBinder) ((termToQId . getBinderName) rBinder)
 
 qIdEqBinder :: G.Qualid -> G.Binder -> Bool
 qIdEqBinder qId (G.Typed _ _ (n B.:| _) _) = eqQId qId (gNameToQId n)
@@ -421,6 +432,7 @@ addSuffixToQId (G.Bare ident) = G.Bare (T.pack (T.unpack ident ++ "'"))
 termToQId :: G.Term -> G.Qualid
 termToQId (G.Qualid qId) = qId
 termToQId (G.App constr _) = termToQId constr
+termToQId term = error (show term)
 
 ---------------------- Conversion of Coq AST to strings
 termToStrings :: G.Term -> [String]
@@ -429,6 +441,7 @@ termToStrings (G.Parens term) = termToStrings term
 termToStrings (G.App term args) = termToStrings term ++ listToStrings argToStrings (fromNonEmptyList args)
 termToStrings (G.Match mItem _ equations) =
   listToStrings mItemToStrings (fromNonEmptyList mItem) ++ listToStrings equationToStrings equations
+termToStrings (G.Arrow term1 term2) = termToStrings term1 ++ termToStrings term2
 
 listToStrings :: (a -> [String]) -> [a] -> [String]
 listToStrings = concatMap

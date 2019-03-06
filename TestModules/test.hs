@@ -2,6 +2,7 @@ module Test where
 {-
 Testfälle für bisherige Funktion des Compilers
 -}
+
 data Boolean =
   B_True
   |B_False
@@ -41,7 +42,7 @@ head list = case list of
 
 sillyFun1 :: [a] -> [a]
 sillyFun1 list = case list of
-    (x : xs) -> singleton x
+    (x : xs) -> [x]
 
 null :: [a] -> Bool
 null list = case list of
@@ -63,7 +64,7 @@ append xs ys  = case xs of
 reverse_ :: [a] -> [a]
 reverse_ xs = case xs of
   [] -> []
-  (y : ys) -> append (reverse_ ys) (singleton y)
+  (y : ys) -> append (reverse_ ys) [y]
 
 concat_ :: [[a]] -> [a]
 concat_ xs = case xs of
@@ -98,11 +99,40 @@ intersperseOne xs =
   1 : case xs of
            [] -> []
            (y : ys)  -> y : intersperseOne ys
-{-}
+
+-- Does not currently work with helper-function transformation
 intersperse :: a -> [a] -> [a]
 intersperse sep xs = case xs of
     [] -> []
     (y : ys) ->  y : case ys of
                [] -> []
                _  -> sep : intersperse sep ys
--}
+
+
+map' :: (a -> b) -> [a] -> [b]
+map' f xs = case xs of
+  [] -> []
+  (y : ys) -> f y : map' f ys
+
+-- Does not currently work with helper-function transformation
+filter' :: (a -> Bool) -> [a] -> [a]
+filter' p xs = case xs of
+    [] -> []
+    (y : ys) -> if p y
+                  then y : filter' p ys
+                  else filter' p ys
+
+foldr' :: (a -> b -> b) -> b -> [a] -> b
+foldr' f e xs = case xs of
+  [] -> e
+  (y : ys) -> f y (foldr' f e ys)
+
+foldl' :: (b -> a -> b) -> b -> [a] -> b
+foldl' f e xs = case xs of
+  [] -> e
+  (y : ys) -> foldl' f (f e y) ys
+
+scanl' :: (b -> a -> b) -> b -> [a] -> [b]
+scanl' f e xs = case xs of
+  [] -> [e]
+  (y : ys) -> e : scanl' f (f e y) ys

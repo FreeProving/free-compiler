@@ -56,6 +56,7 @@ import Compiler.HelperFunctions
 import Compiler.MonadicConverter
   ( addBindOperatorsToDefinition
   , addReturnToRhs
+  , singletonTerm
   , transformBindersMonadic
   , transformTermMonadic
   )
@@ -342,6 +343,7 @@ convertTypeToTerm (H.TyParen _ ty) = G.Parens (convertTypeToTerm ty)
 convertTypeToTerm (H.TyApp _ type1 type2) = G.App (convertTypeToTerm type1) (singleton (convertTypeToArg type2))
 convertTypeToTerm (H.TyList _ ty) = G.App listTerm (singleton (G.PosArg (convertTypeToTerm ty)))
 convertTypeToTerm (H.TyTuple _ _ tys) = G.App pairTerm (toNonemptyList [convertTypeToArg t | t <- tys])
+convertTypeToTerm (H.TyFun _ t1 t2) = G.Arrow (convertTypeToTerm t1) (convertTypeToTerm t2)
 convertTypeToTerm ty = error ("Haskell-type not implemented: " ++ show ty)
 
 convertTypeToTerms :: Show l => H.Type l -> [G.Term]
@@ -376,6 +378,7 @@ convertRhsToTerm (H.GuardedRhss _ _) = error "Guards not implemented"
 convertExprToTerm :: Show l => H.Exp l -> G.Term
 convertExprToTerm (H.Var _ qName) = qNameToTerm qName
 convertExprToTerm (H.Con _ qName) = qNameToTerm qName
+convertExprToTerm (H.List _ (x:[])) = G.App singletonTerm (singleton ((G.PosArg . convertExprToTerm) x))
 convertExprToTerm (H.Paren _ expr) = G.Parens (convertExprToTerm expr)
 convertExprToTerm (H.App _ expr1 expr2) =
   G.App ((collapseApp . convertExprToTerm) expr1) (singleton (G.PosArg ((collapseApp . convertExprToTerm) expr2)))
