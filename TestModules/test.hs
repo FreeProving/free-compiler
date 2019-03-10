@@ -16,6 +16,8 @@ data Either a b =
   Left a
   | Right b
 
+newtype Fd = Fd1 Int
+
 
 data List' a =
   Nil'
@@ -43,6 +45,11 @@ head list = case list of
 sillyFun1 :: [a] -> [a]
 sillyFun1 list = case list of
     (x : xs) -> [x]
+
+sillyFun2 :: Bool -> [a] -> [a]
+sillyFun2 b xs = case b of
+    True -> xs
+    False -> sillyFun1 xs
 
 null :: [a] -> Bool
 null list = case list of

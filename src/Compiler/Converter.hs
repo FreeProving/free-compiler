@@ -129,7 +129,7 @@ convertModuleDecls ::
   -> [G.Sentence]
 convertModuleDecls (H.FunBind _ (x:xs):ds) typeSigs dataTypes funs cMonad cMode =
   convertMatchDef x typeSigs dataTypes funs cMonad cMode ++ convertModuleDecls ds typeSigs dataTypes funs cMonad cMode
-convertModuleDecls (H.DataDecl _ (H.DataType _) Nothing declHead qConDecl _:ds) typeSigs dataTypes funs cMonad cMode =
+convertModuleDecls (H.DataDecl _ _ Nothing declHead qConDecl _:ds) typeSigs dataTypes funs cMonad cMode =
   if needsArgumentsSentence declHead qConDecl
     then [G.InductiveSentence (convertDataTypeDecl declHead qConDecl cMonad)] ++
          convertArgumentSentences declHead qConDecl ++ convertModuleDecls ds typeSigs dataTypes funs cMonad cMode
