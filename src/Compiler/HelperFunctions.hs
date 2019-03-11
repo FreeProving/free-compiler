@@ -102,9 +102,9 @@ getNameFromDeclHead (H.DHead _ name) = nameToGName name
 getNameFromDeclHead (H.DHParen _ declHead) = getNameFromDeclHead declHead
 getNameFromDeclHead (H.DHApp _ declHead _) = getNameFromDeclHead declHead
 
-getReturnTypeFromDeclHead :: [G.Arg] -> H.DeclHead l -> G.Term
-getReturnTypeFromDeclHead [] dHead = applyToDeclHead dHead nameToTerm
-getReturnTypeFromDeclHead (x:xs) dHead = G.App (applyToDeclHead dHead nameToTerm) (x B.:| xs)
+getReturnTypeFromDeclHead :: [G.Arg] -> G.Qualid -> G.Term
+getReturnTypeFromDeclHead [] qId = G.Qualid qId
+getReturnTypeFromDeclHead (x:xs) qId = G.App (G.Qualid qId) (x B.:| xs)
 
 getNonInferrableConstrNames :: [H.QualConDecl l] -> [G.Qualid]
 getNonInferrableConstrNames qConDecls = [getNameFromQualConDecl d | d <- nonInferrableQConDecls]
@@ -261,6 +261,13 @@ typeNameEqQId :: G.TypeSignature -> G.Qualid -> Bool
 typeNameEqQId (G.TypeSignature sigName _) = eqQId (gNameToQId sigName)
 
 ---------------------- various helper functions
+changeSimilarType :: G.Qualid -> G.Qualid
+changeSimilarType qId =
+  if any (eqQId qId) haskellTypes
+    then strToQId (qIdToStr qId ++ "_")
+    else qId
+
+
 typeToGName :: H.Type l -> G.Name
 typeToGName (H.TyCon _ name) = qNameToGName name
 typeToGName (H.TyApp _ constr _) = typeToGName constr
@@ -482,6 +489,9 @@ pairTerm = G.Qualid (strToQId "Pair")
 ---------------------- Predefined Coq Types
 coqTypes :: [G.Name]
 coqTypes = [strToGName "nat", strToGName "bool", strToGName "option", strToGName "identity"]
+
+haskellTypes :: [G.Qualid]
+haskellTypes = [strToQId "Bool", strToQId "Option", strToQId "Identity", strToQId "Nat"]
 
 --Convert qualifiedOperator from Haskell to Qualid with Operator signature
 qOpToQOpId :: Show l => H.QOp l -> G.Qualid

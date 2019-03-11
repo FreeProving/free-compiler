@@ -3,7 +3,7 @@ module Test where
 Testfälle für bisherige Funktion des Compilers
 -}
 
-data Boolean =
+data Bool =
   B_True
   |B_False
 
@@ -11,6 +11,7 @@ data Maybe a =
   Nothing
   | Just a
 
+data Identity a = Identity a
 
 data Either a b =
   Left a

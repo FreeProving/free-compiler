@@ -52,6 +52,10 @@ import Compiler.HelperFunctions
   , strToQId
   , termToStrings
   , typeTerm
+  , eqQId
+  , termToQId
+  , qIdToStr
+  , changeSimilarType
   )
 import Compiler.MonadicConverter
   ( addBindOperatorsToDefinition
@@ -176,12 +180,12 @@ convertArgumentSpec declHead = [G.ArgumentSpec G.ArgMaximal varName Nothing | va
 convertDataTypeDecl :: Show l => H.DeclHead l -> [H.QualConDecl l] -> ConversionMonad -> G.Inductive
 convertDataTypeDecl dHead qConDecl cMonad = G.Inductive (singleton (G.IndBody typeName binders typeTerm constrDecls)) []
   where
-    typeName = applyToDeclHead dHead nameToQId
+    typeName = changeSimilarType (applyToDeclHead dHead nameToQId)
     binders = applyToDeclHeadTyVarBinds dHead convertTyVarBindToBinder
     constrDecls =
       convertQConDecls
         qConDecl
-        (getReturnTypeFromDeclHead (applyToDeclHeadTyVarBinds dHead convertTyVarBindToArg) dHead)
+        (getReturnTypeFromDeclHead (applyToDeclHeadTyVarBinds dHead convertTyVarBindToArg) typeName)
         cMonad
 
 convertMatchDef ::
@@ -316,7 +320,14 @@ convertQConDecls qConDecl term cMonad = [convertQConDecl c term cMonad | c <- qC
 
 convertQConDecl :: Show l => H.QualConDecl l -> G.Term -> ConversionMonad -> (G.Qualid, [G.Binder], Maybe G.Term)
 convertQConDecl (H.QualConDecl _ Nothing Nothing (H.ConDecl _ name types)) term cMonad =
-  (nameToQId name, [], Just (convertToArrowTerm types term cMonad))
+  if eqQId constrName (termToQId term)
+  then
+    (suffixName, [], Just (convertToArrowTerm types term cMonad))
+  else
+    (constrName, [], Just (convertToArrowTerm types term cMonad))
+  where
+    constrName = nameToQId name
+    suffixName = strToQId ((qIdToStr constrName) ++ "_")
 
 convertToArrowTerm :: Show l => [H.Type l] -> G.Term -> ConversionMonad -> G.Term
 convertToArrowTerm types returnType cMonad = buildArrowTerm (map (convertTypeToMonadicTerm cMonad) types) returnType
