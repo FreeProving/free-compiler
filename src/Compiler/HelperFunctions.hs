@@ -48,6 +48,22 @@ getTypeSignatureByQId (x:xs) qId =
     then Just x
     else getTypeSignatureByQId xs qId
 
+getMatchFromTerm :: G.Term -> G.Term
+getMatchFromTerm (G.Match mItem retType equations) = G.Match mItem retType equations
+getMatchFromTerm (G.App cons args) =
+  if containsMatchTerm cons
+    then getMatchFromTerm cons
+    else getMatchFromTerm (head (filter containsMatchTerm (map argToTerm (fromNonEmptyList args))))
+getMatchFromTerm (G.If _ cond _ tTerm eTerm) =
+  if containsMatchTerm cond
+    then getMatchFromTerm cond
+    else if containsMatchTerm tTerm
+           then getMatchFromTerm tTerm
+           else getMatchFromTerm eTerm
+
+getMatchItem :: G.Term -> G.MatchItem
+getMatchItem (G.Match mItem _ _) = (head . fromNonEmptyList) mItem
+
 getTermFromMatchItem :: G.MatchItem -> G.Term
 getTermFromMatchItem (G.MatchItem term _ _) = term
 
@@ -223,6 +239,16 @@ containsRecursiveCall _ _ = False
 
 isFunctionCall :: G.Term -> [G.TypeSignature] -> Bool
 isFunctionCall (G.Qualid qId) typeSigs = isJust (getTypeSignatureByQId typeSigs qId)
+
+containsMatchTerm :: G.Term -> Bool
+containsMatchTerm (G.Parens term) = containsMatchTerm term
+containsMatchTerm (G.App term args) =
+  containsMatchTerm term || any containsMatchTerm (map argToTerm (fromNonEmptyList args))
+containsMatchTerm (G.If _ term _ tTerm eTerm) =
+  containsMatchTerm term || containsMatchTerm tTerm || containsMatchTerm eTerm
+containsMatchTerm (G.Fun _ term) = containsMatchTerm term
+containsMatchTerm (G.Match _ _ _) = True
+containsMatchTerm _ = False
 
 isAppTerm :: G.Term -> Bool
 isAppTerm (G.App _ _) = True

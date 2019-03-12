@@ -3,6 +3,7 @@ module Compiler.HelperFunctionConverter where
 import Compiler.HelperFunctions
   ( addInferredTypesToSignature
   , argToTerm
+  , containsMatchTerm
   , containsRecursiveCall
   , convertArgumentsToTerms
   , convertTermsToArguments
@@ -10,7 +11,10 @@ import Compiler.HelperFunctions
   , eqQId
   , gNameToQId
   , getBinderName
+  , getMatchFromTerm
+  , getMatchItem
   , getReturnType
+  , getTermFromMatchItem
   , getTypeSignatureByName
   , nameToQId
   , nameToStr
@@ -116,6 +120,13 @@ addBindOperatorToMainFunction binder rhs cMonad =
     lambdaFun = G.PosArg (G.Fun (singleton (removeMonadFromBinder binder)) rhs)
 
 addBindOperatorToRhsTerm :: G.Qualid -> Int -> ConversionMonad -> G.Term -> G.Term
+addBindOperatorToRhsTerm funName pos m (G.If style cond depRet tTerm eTerm) =
+  G.If
+    style
+    (addBindOperatorToRhsTerm funName pos m cond)
+    depRet
+    (addBindOperatorToRhsTerm funName pos m tTerm)
+    (addBindOperatorToRhsTerm funName pos m eTerm)
 addBindOperatorToRhsTerm funName pos m (G.Match mItem retType equations) =
   G.Match mItem retType [addBindOperatorToEquation e funName pos m | e <- equations]
 addBindOperatorToRhsTerm funName pos m (G.App constr args) = G.App boundConstr (toNonemptyList boundArgs)
@@ -127,12 +138,43 @@ addBindOperatorToRhsTerm _ _ _ term = term
 addBindOperatorToEquation :: G.Equation -> G.Qualid -> Int -> ConversionMonad -> G.Equation
 addBindOperatorToEquation (G.Equation multPats rhs) funName pos m =
   if containsRecursiveCall rhs funName
-    then G.Equation
-           (toNonemptyList (makeDecrArgumentMonadicInMultPats (fromNonEmptyList multPats) decrArgument m))
-           (addBindOperatorToRecursiveCall rhs funName pos m)
+    then if containsMatchTerm rhs
+           then G.Equation
+                  (toNonemptyList (makeDecrArgumentMonadicInMultPats (fromNonEmptyList multPats) matchedItem m))
+                  boundMatchedRhs
+           else G.Equation
+                  (toNonemptyList (makeDecrArgumentMonadicInMultPats (fromNonEmptyList multPats) decrArgument m))
+                  (addBindOperatorToRecursiveCall rhs funName pos m)
     else G.Equation multPats rhs
   where
     decrArgument = getDecrArgumentFromRecursiveCall rhs funName pos
+    matchedItem = (Just . termToQId . getTermFromMatchItem . getMatchItem . getMatchFromTerm) rhs
+    boundMatchedRhs = addBindOperatorToMatchItem m boundRecCallRhs
+    boundRecCallRhs = addBindOperatorToRhsTerm funName pos m rhs
+
+addBindOperatorToMatchItem :: ConversionMonad -> G.Term -> G.Term
+addBindOperatorToMatchItem m (G.Parens term) = G.Parens (addBindOperatorToMatchItem m term)
+addBindOperatorToMatchItem m (G.App cons args) = G.App (addBindOperatorToMatchItem m cons) (toNonemptyList checkedArgs)
+  where
+    checkedArgs = map (G.PosArg . addBindOperatorToMatchItem m . argToTerm) (fromNonEmptyList args)
+addBindOperatorToMatchItem m (G.If style cond depRet tTerm eTerm) =
+  G.If
+    style
+    (addBindOperatorToMatchItem m cond)
+    depRet
+    (addBindOperatorToMatchItem m tTerm)
+    (addBindOperatorToMatchItem m eTerm)
+addBindOperatorToMatchItem m (G.Match mItem retType equations) =
+  G.App (getBindOperator m) (toNonemptyList [monadicArgument, lambdaFun])
+  where
+    mItemTerm = (getTermFromMatchItem . head . fromNonEmptyList) mItem
+    monadicArgument = (G.PosArg . G.Qualid . addMonadicPrefixToQId m . termToQId) mItemTerm
+    lambdaFun =
+      G.PosArg
+        (G.Fun
+           (singleton (G.Inferred G.Explicit ((qIdToGName . termToQId) mItemTerm)))
+           (G.Match mItem retType equations))
+addBindOperatorToMatchItem _ term = term
 
 addBindOperatorToRecursiveCall :: G.Term -> G.Qualid -> Int -> ConversionMonad -> G.Term
 addBindOperatorToRecursiveCall (G.App constr args) funName pos m =
@@ -148,6 +190,13 @@ addBindOperatorToRecursiveCall (G.App constr args) funName pos m =
     checkedArgs = convertTermsToArguments [addBindOperatorToRecursiveCall t funName pos m | t <- termList]
 addBindOperatorToRecursiveCall (G.Parens term) funName pos m =
   G.Parens (addBindOperatorToRecursiveCall term funName pos m)
+addBindOperatorToRecursiveCall (G.If style cond depRet tTerm eTerm) funName pos m =
+  G.If
+    style
+    (addBindOperatorToRecursiveCall cond funName pos m)
+    depRet
+    (addBindOperatorToRecursiveCall tTerm funName pos m)
+    (addBindOperatorToRecursiveCall eTerm funName pos m)
 addBindOperatorToRecursiveCall term funName pos m = addBindOperatorToRhsTerm funName pos m term
 
 getDecrArgumentFromRecursiveCall :: G.Term -> G.Qualid -> Int -> Maybe G.Qualid
@@ -161,6 +210,12 @@ getDecrArgumentFromRecursiveCall (G.App constr args) funName pos =
     termList = convertArgumentsToTerms (fromNonEmptyList args)
     decrArgument = termToQId (argToTerm (fromNonEmptyList args !! pos))
 getDecrArgumentFromRecursiveCall (G.Parens term) funName pos = getDecrArgumentFromRecursiveCall term funName pos
+getDecrArgumentFromRecursiveCall (G.If _ cond _ tTerm eTerm) funName pos =
+  if containsRecursiveCall cond funName
+    then getDecrArgumentFromRecursiveCall cond funName pos
+    else if containsRecursiveCall tTerm funName
+           then getDecrArgumentFromRecursiveCall tTerm funName pos
+           else getDecrArgumentFromRecursiveCall eTerm funName pos
 getDecrArgumentFromRecursiveCall _ _ _ = Nothing
 
 makeDecrArgumentMonadicInMultPats :: [G.MultPattern] -> Maybe G.Qualid -> ConversionMonad -> [G.MultPattern]

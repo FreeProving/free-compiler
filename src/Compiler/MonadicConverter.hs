@@ -6,6 +6,7 @@ import Language.Coq.Util (qualidIsOp)
 import Compiler.HelperFunctions
   ( addSuffixToQId
   , containsAllConstrs
+  , containsMatchTerm
   , convertArgumentsToTerms
   , eqGName
   , eqQId
@@ -24,6 +25,7 @@ import Compiler.HelperFunctions
   , isUnderscorePat
   , qIdEqBinder
   , qIdToGName
+  , qIdToStr
   , strToGName
   , strToQId
   , termToQId
@@ -131,7 +133,10 @@ addReturnToTerm (G.If style cond depRet thenTerm elseTerm) typeSigs binders data
     (addReturnToTerm elseTerm typeSigs binders dataNames patNames cMonad)
 addReturnToTerm (G.Parens term) typeSigs binders dataNames patNames cMonad =
   G.Parens (addReturnToTerm term typeSigs binders dataNames patNames cMonad)
-addReturnToTerm (G.Fun fBinders term) _ _ _ _ _ = G.Fun fBinders term
+addReturnToTerm (G.Fun fBinders term) typeSigs binders dataNames patNames cMonad =
+  if containsMatchTerm term
+    then G.Fun fBinders (addReturnToTerm term typeSigs binders dataNames patNames cMonad)
+    else G.Fun fBinders term
 addReturnToTerm (G.Match mItem retType equations) typeSigs binders dataNames patNames cMonad =
   addReturnToMatch (G.Match mItem retType equations) typeSigs binders dataNames patNames cMonad
 addReturnToTerm term typeSigs binders _ patNames cMonad =
@@ -266,10 +271,12 @@ predefinedMonadicFunctions = map strToQId ["singleton"]
 isMonadicFunctionCall :: G.Term -> [G.TypeSignature] -> Bool
 isMonadicFunctionCall (G.Qualid qId) typeSigs =
   isJust maybeTypeSig ||
+  isJust maybeHelperFun ||
   any (eqQId qId) predefinedMonadicFunctions ||
   eqQId qId (termToQId optionBindOperator) || eqQId qId (termToQId identityBindOperator)
   where
     maybeTypeSig = getTypeSignatureByQId typeSigs qId
+    maybeHelperFun = getTypeSignatureByQId typeSigs (strToQId (qIdToStr qId ++ "'"))
 isMonadicFunctionCall (G.App term args) typeSig = isMonadicFunctionCall term typeSig
 isMonadicFunctionCall _ _ = False
 
