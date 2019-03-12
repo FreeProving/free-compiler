@@ -17,8 +17,10 @@ import Compiler.HelperFunctions
   ( addInferredTypesToSignature
   , applyToDeclHead
   , applyToDeclHeadTyVarBinds
+  , changeSimilarType
   , collapseApp
   , containsRecursiveCall
+  , eqQId
   , gNameToQId
   , getConstrNamesFromDataDecls
   , getInferredBindersFromRetType
@@ -42,7 +44,9 @@ import Compiler.HelperFunctions
   , nameToTypeTerm
   , pairTerm
   , patToQID
+  , qIdToStr
   , qNameToQId
+  , qNameToStr
   , qNameToTerm
   , qNameToText
   , qNameToTypeTerm
@@ -50,12 +54,10 @@ import Compiler.HelperFunctions
   , qOpToQOpId
   , strToGName
   , strToQId
+  , strToTerm
+  , termToQId
   , termToStrings
   , typeTerm
-  , eqQId
-  , termToQId
-  , qIdToStr
-  , changeSimilarType
   )
 import Compiler.MonadicConverter
   ( addBindOperatorsToDefinition
@@ -70,7 +72,7 @@ import Compiler.Types (ConversionMode(..), ConversionMonad(..))
 import qualified GHC.Base as B
 
 import Data.List (partition)
-import Data.Maybe (fromJust)
+import Data.Maybe (fromJust, isJust)
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
 import qualified Text.PrettyPrint.Leijen.Text (displayT, renderPretty)
@@ -126,7 +128,7 @@ convertModuleDecls ::
      Show l
   => [H.Decl l]
   -> [G.TypeSignature]
-  -> [(G.Name, [G.Qualid])]
+  -> [(G.Name, [(G.Qualid, Maybe G.Qualid)])]
   -> [G.Qualid]
   -> ConversionMonad
   -> ConversionMode
@@ -156,7 +158,13 @@ convertTypeDeclToDefinition dHead ty = G.DefinitionDef G.Global name binders Not
     rhs = convertTypeToTerm ty
 
 convertPatBindToDefinition ::
-     Show l => H.Pat l -> H.Rhs l -> [G.TypeSignature] -> [(G.Name, [G.Qualid])] -> ConversionMonad -> G.Definition
+     Show l
+  => H.Pat l
+  -> H.Rhs l
+  -> [G.TypeSignature]
+  -> [(G.Name, [(G.Qualid, Maybe G.Qualid)])]
+  -> ConversionMonad
+  -> G.Definition
 convertPatBindToDefinition pat rhs typeSigs dataTypes cMonad = G.DefinitionDef G.Global name binders returnType rhsTerm
   where
     dataNames = map fst dataTypes
@@ -164,7 +172,7 @@ convertPatBindToDefinition pat rhs typeSigs dataTypes cMonad = G.DefinitionDef G
     name = patToQID pat
     typeSig = getTypeSignatureByQId typeSigs name
     returnType = convertReturnType typeSig cMonad
-    rhsTerm = addReturnToRhs (convertRhsToTerm rhs) [] [] [] cMonad
+    rhsTerm = addReturnToRhs (convertRhsToTerm rhs (map snd (concatMap snd dataTypes))) [] [] [] cMonad
 
 convertArgumentSentences :: Show l => H.DeclHead l -> [H.QualConDecl l] -> [G.Sentence]
 convertArgumentSentences declHead qConDecls =
@@ -192,7 +200,7 @@ convertMatchDef ::
      Show l
   => H.Match l
   -> [G.TypeSignature]
-  -> [(G.Name, [G.Qualid])]
+  -> [(G.Name, [(G.Qualid, Maybe G.Qualid)])]
   -> [G.Qualid]
   -> ConversionMonad
   -> ConversionMode
@@ -204,7 +212,7 @@ convertMatchDef (H.Match _ name mPats rhs _) typeSigs dataTypes funs cMonad cMod
            else convertMatchWithHelperFunction name mPats rhs typeSigs dataTypes cMonad
     else [G.DefinitionSentence (convertMatchToDefinition name mPats rhs typeSigs dataTypes funs cMonad cMode)]
   where
-    rhsTerm = convertRhsToTerm rhs
+    rhsTerm = convertRhsToTerm rhs (map snd (concatMap snd dataTypes))
     funName = nameToQId name
 
 convertMatchToDefinition ::
@@ -213,7 +221,7 @@ convertMatchToDefinition ::
   -> [H.Pat l]
   -> H.Rhs l
   -> [G.TypeSignature]
-  -> [(G.Name, [G.Qualid])]
+  -> [(G.Name, [(G.Qualid, Maybe G.Qualid)])]
   -> [G.Qualid]
   -> ConversionMonad
   -> ConversionMode
@@ -233,7 +241,7 @@ convertMatchToDefinition name pats rhs typeSigs dataTypes funs cMonad cMode =
     monadicBinders = transformBindersMonadic binders cMonad
     bindersWithInferredTypes = addInferredTypesToSignature monadicBinders (map fst dataTypes)
     bindersWithFuel = addFuelBinder bindersWithInferredTypes
-    rhsTerm = convertRhsToTerm rhs
+    rhsTerm = convertRhsToTerm rhs (map snd (concatMap snd dataTypes))
     monadicTerm =
       addBindOperatorsToDefinition
         monadicBinders
@@ -252,7 +260,7 @@ convertMatchToFueledFixpoint ::
   -> [H.Pat l]
   -> H.Rhs l
   -> [G.TypeSignature]
-  -> [(G.Name, [G.Qualid])]
+  -> [(G.Name, [(G.Qualid, Maybe G.Qualid)])]
   -> [G.Qualid]
   -> ConversionMonad
   -> G.Fixpoint
@@ -273,7 +281,7 @@ convertMatchToFueledFixpoint name pats rhs typeSigs dataTypes funs cMonad =
     monadicBinders = transformBindersMonadic binders cMonad
     bindersWithFuel = addFuelBinder bindersWithInferredTypes
     bindersWithInferredTypes = addInferredTypesToSignature monadicBinders (map fst dataTypes)
-    rhsTerm = convertRhsToTerm rhs
+    rhsTerm = convertRhsToTerm rhs (map snd (concatMap snd dataTypes))
     convertedFunBody =
       convertFueledFunBody
         (addReturnToRhs rhsTerm typeSigs monadicBinders dataTypes cMonad)
@@ -290,7 +298,7 @@ convertMatchWithHelperFunction ::
   -> [H.Pat l]
   -> H.Rhs l
   -> [G.TypeSignature]
-  -> [(G.Name, [G.Qualid])]
+  -> [(G.Name, [(G.Qualid, Maybe G.Qualid)])]
   -> ConversionMonad
   -> [G.Sentence]
 convertMatchWithHelperFunction name pats rhs typeSigs dataTypes cMonad =
@@ -298,7 +306,7 @@ convertMatchWithHelperFunction name pats rhs typeSigs dataTypes cMonad =
   , G.DefinitionSentence (convertMatchToHelperFunction name binders rhsTerm typeSigs dataTypes cMonad)
   ]
   where
-    rhsTerm = convertRhsToTerm rhs
+    rhsTerm = convertRhsToTerm rhs (map snd (concatMap snd dataTypes))
     binders = convertPatsToBinders pats typeSig
     typeSig = getTypeSignatureByName typeSigs name
 
@@ -321,10 +329,8 @@ convertQConDecls qConDecl term cMonad = [convertQConDecl c term cMonad | c <- qC
 convertQConDecl :: Show l => H.QualConDecl l -> G.Term -> ConversionMonad -> (G.Qualid, [G.Binder], Maybe G.Term)
 convertQConDecl (H.QualConDecl _ Nothing Nothing (H.ConDecl _ name types)) term cMonad =
   if eqQId constrName (termToQId term)
-  then
-    (suffixName, [], Just (convertToArrowTerm types term cMonad))
-  else
-    (constrName, [], Just (convertToArrowTerm types term cMonad))
+    then (suffixName, [], Just (convertToArrowTerm types term cMonad))
+    else (constrName, [], Just (convertToArrowTerm types term cMonad))
   where
     constrName = nameToQId name
     suffixName = strToQId ((qIdToStr constrName) ++ "_")
@@ -382,44 +388,55 @@ convertPatAndTypeSigToBinder (H.PVar _ name) term =
   G.Typed G.Ungeneralizable G.Explicit (singleton (nameToGName name)) term
 convertPatAndTypeSigToBinder pat _ = error ("Haskell pattern not implemented: " ++ show pat)
 
-convertRhsToTerm :: Show l => H.Rhs l -> G.Term
-convertRhsToTerm (H.UnGuardedRhs _ expr) = collapseApp (convertExprToTerm expr)
-convertRhsToTerm (H.GuardedRhss _ _) = error "Guards not implemented"
+convertRhsToTerm :: Show l => H.Rhs l -> [Maybe G.Qualid] -> G.Term
+convertRhsToTerm (H.UnGuardedRhs _ expr) constrs = collapseApp (convertExprToTerm constrs expr)
+convertRhsToTerm (H.GuardedRhss _ _) _ = error "Guards not implemented"
 
-convertExprToTerm :: Show l => H.Exp l -> G.Term
-convertExprToTerm (H.Var _ qName) = qNameToTerm qName
-convertExprToTerm (H.Con _ qName) = qNameToTerm qName
-convertExprToTerm (H.List _ (x:[])) = G.App singletonTerm (singleton ((G.PosArg . convertExprToTerm) x))
-convertExprToTerm (H.Paren _ expr) = G.Parens (convertExprToTerm expr)
-convertExprToTerm (H.App _ expr1 expr2) =
-  G.App ((collapseApp . convertExprToTerm) expr1) (singleton (G.PosArg ((collapseApp . convertExprToTerm) expr2)))
-convertExprToTerm (H.InfixApp _ exprL qOp exprR) =
+convertExprToTerm :: Show l => [Maybe G.Qualid] -> H.Exp l -> G.Term
+convertExprToTerm _ (H.Var _ qName) = qNameToTerm qName
+convertExprToTerm constrs (H.Con _ qName) =
+  if any (== conStr) (map (qIdToStr . fromJust) (filter isJust constrs))
+    then strToTerm (conStr ++ "_")
+    else qNameToTerm qName
+  where
+    conStr = qNameToStr qName
+convertExprToTerm constrs (H.List _ (x:[])) = G.App singletonTerm (singleton ((G.PosArg . convertExprToTerm constrs) x))
+convertExprToTerm constrs (H.Paren _ expr) = G.Parens (convertExprToTerm constrs expr)
+convertExprToTerm constrs (H.App _ expr1 expr2) =
+  G.App
+    ((collapseApp . convertExprToTerm constrs) expr1)
+    (singleton (G.PosArg ((collapseApp . convertExprToTerm constrs) expr2)))
+convertExprToTerm constrs (H.InfixApp _ exprL qOp exprR) =
   if isSpecialOperator qOp
     then G.App
            (G.Qualid (qOpToQId qOp))
            (toNonemptyList
-              [G.PosArg ((collapseApp . convertExprToTerm) exprL), G.PosArg ((collapseApp . convertExprToTerm) exprR)])
+              [ G.PosArg ((collapseApp . convertExprToTerm constrs) exprL)
+              , G.PosArg ((collapseApp . convertExprToTerm constrs) exprR)
+              ])
     else G.App
            (G.Qualid (qOpToQOpId qOp))
            (toNonemptyList
-              [G.PosArg ((collapseApp . convertExprToTerm) exprL), G.PosArg ((collapseApp . convertExprToTerm) exprR)])
-convertExprToTerm (H.Case _ expr altList) =
+              [ G.PosArg ((collapseApp . convertExprToTerm constrs) exprL)
+              , G.PosArg ((collapseApp . convertExprToTerm constrs) exprR)
+              ])
+convertExprToTerm constrs (H.Case _ expr altList) =
   G.Match
-    (singleton (G.MatchItem (convertExprToTerm expr) Nothing Nothing))
+    (singleton (G.MatchItem (convertExprToTerm constrs expr) Nothing Nothing))
     Nothing
-    (convertAltListToEquationList altList)
-convertExprToTerm (H.If _ cond thenExpr elseExpr) =
+    (convertAltListToEquationList altList constrs)
+convertExprToTerm constrs (H.If _ cond thenExpr elseExpr) =
   G.If
     G.SymmetricIf
-    (convertExprToTerm cond)
+    (convertExprToTerm constrs cond)
     Nothing
-    ((collapseApp . convertExprToTerm) thenExpr)
-    ((collapseApp . convertExprToTerm) elseExpr)
-convertExprToTerm (H.Lit _ literal) = convertLiteralToTerm literal
-convertExprToTerm (H.Tuple _ _ exprs) =
-  G.App (G.Qualid (strToQId "P")) (toNonemptyList [(G.PosArg . convertExprToTerm) e | e <- exprs])
-convertExprToTerm (H.List _ []) = G.Qualid (strToQId "Nil")
-convertExprToTerm expr = error ("Haskell expression not implemented: " ++ show expr)
+    ((collapseApp . convertExprToTerm constrs) thenExpr)
+    ((collapseApp . convertExprToTerm constrs) elseExpr)
+convertExprToTerm _ (H.Lit _ literal) = convertLiteralToTerm literal
+convertExprToTerm constrs (H.Tuple _ _ exprs) =
+  G.App (G.Qualid (strToQId "P")) (toNonemptyList [(G.PosArg . convertExprToTerm constrs) e | e <- exprs])
+convertExprToTerm _ (H.List _ []) = G.Qualid (strToQId "Nil")
+convertExprToTerm _ expr = error ("Haskell expression not implemented: " ++ show expr)
 
 convertLiteralToTerm :: Show l => H.Literal l -> G.Term
 convertLiteralToTerm (H.Char _ char _) = G.HsChar char
@@ -427,28 +444,39 @@ convertLiteralToTerm (H.String _ str _) = G.String (T.pack str)
 convertLiteralToTerm (H.Int _ _ int) = G.Qualid (strToQId int)
 convertLiteralToTerm literal = error ("Haskell Literal not implemented: " ++ show literal)
 
-convertAltListToEquationList :: Show l => [H.Alt l] -> [G.Equation]
-convertAltListToEquationList altList = [convertAltToEquation s | s <- altList]
+convertAltListToEquationList :: Show l => [H.Alt l] -> [Maybe G.Qualid] -> [G.Equation]
+convertAltListToEquationList altList constrs = [convertAltToEquation s constrs | s <- altList]
 
-convertAltToEquation :: Show l => H.Alt l -> G.Equation
-convertAltToEquation (H.Alt _ pat rhs _) =
-  G.Equation (singleton (G.MultPattern (singleton (convertHPatToGPat pat)))) (convertRhsToTerm rhs)
+convertAltToEquation :: Show l => H.Alt l -> [Maybe G.Qualid] -> G.Equation
+convertAltToEquation (H.Alt _ pat rhs _) constrs =
+  G.Equation (singleton (G.MultPattern (singleton (convertHPatToGPat pat constrs)))) (convertRhsToTerm rhs constrs)
 
-convertHPatListToGPatList :: Show l => [H.Pat l] -> [G.Pattern]
-convertHPatListToGPatList patList = [convertHPatToGPat s | s <- patList]
+convertHPatListToGPatList :: Show l => [H.Pat l] -> [Maybe G.Qualid] -> [G.Pattern]
+convertHPatListToGPatList patList constrs = [convertHPatToGPat s constrs | s <- patList]
 
-convertHPatToGPat :: Show l => H.Pat l -> G.Pattern
-convertHPatToGPat (H.PVar _ name) = G.QualidPat (nameToQId name)
-convertHPatToGPat (H.PApp _ qName pList) = G.ArgsPat (qNameToQId qName) (convertHPatListToGPatList pList)
-convertHPatToGPat (H.PParen _ pat) = convertHPatToGPat pat
-convertHPatToGPat (H.PWildCard _) = G.UnderscorePat
-convertHPatToGPat (H.PInfixApp _ patL op patR) =
+convertHPatToGPat :: Show l => H.Pat l -> [Maybe G.Qualid] -> G.Pattern
+convertHPatToGPat (H.PVar _ name) constrs =
+  if any (== varQid) (map fromJust (filter isJust constrs))
+    then G.QualidPat (strToQId ((qIdToStr varQid) ++ "_"))
+    else G.QualidPat varQid
+  where
+    varQid = nameToQId name
+convertHPatToGPat (H.PApp _ qName pList) constrs =
+  if any (== conQid) (map fromJust (filter isJust constrs))
+    then G.ArgsPat conQid' (convertHPatListToGPatList pList constrs)
+    else G.ArgsPat conQid (convertHPatListToGPatList pList constrs)
+  where
+    conQid = qNameToQId qName
+    conQid' = strToQId (qNameToStr qName ++ "_")
+convertHPatToGPat (H.PParen _ pat) constrs = convertHPatToGPat pat constrs
+convertHPatToGPat (H.PWildCard _) _ = G.UnderscorePat
+convertHPatToGPat (H.PInfixApp _ patL op patR) constrs =
   if isSpecialConstr op
-    then G.ArgsPat (qNameToQId op) [convertHPatToGPat patL, convertHPatToGPat patR]
-    else G.InfixPat (convertHPatToGPat patL) (qNameToText op) (convertHPatToGPat patR)
-convertHPatToGPat (H.PTuple _ _ pats) = G.ArgsPat (strToQId "P") (convertHPatListToGPatList pats)
-convertHPatToGPat (H.PList _ []) = G.ArgsPat (strToQId "Nil") []
-convertHPatToGPat pat = error ("Haskell pattern not implemented: " ++ show pat)
+    then G.ArgsPat (qNameToQId op) [convertHPatToGPat patL constrs, convertHPatToGPat patR constrs]
+    else G.InfixPat (convertHPatToGPat patL constrs) (qNameToText op) (convertHPatToGPat patR constrs)
+convertHPatToGPat (H.PTuple _ _ pats) constrs = G.ArgsPat (strToQId "P") (convertHPatListToGPatList pats constrs)
+convertHPatToGPat (H.PList _ []) _ = G.ArgsPat (strToQId "Nil") []
+convertHPatToGPat pat _ = error ("Haskell pattern not implemented: " ++ show pat)
 
 needsArgumentsSentence :: Show l => H.DeclHead l -> [H.QualConDecl l] -> Bool
 needsArgumentsSentence declHead qConDecls = not (null binders) && hasNonInferrableConstr qConDecls
@@ -457,16 +485,16 @@ needsArgumentsSentence declHead qConDecls = not (null binders) && hasNonInferrab
 
 --check if function is recursive
 isRecursive :: Show l => H.Name l -> H.Rhs l -> Bool
-isRecursive name rhs = elem (getString name) (termToStrings (convertRhsToTerm rhs))
+isRecursive name rhs = elem (getString name) (termToStrings (convertRhsToTerm rhs []))
 
 importPath :: String
 importPath = "Add LoadPath \"../ImportedFiles\". \n \r"
 
-predefinedDataTypes :: [(G.Name, [G.Qualid])]
+predefinedDataTypes :: [(G.Name, [(G.Qualid, Maybe G.Qualid)])]
 predefinedDataTypes =
-  [ (strToGName "bool", [strToQId "true", strToQId "false"])
-  , (strToGName "List", [strToQId "Cons", strToQId "Nil"])
-  , (strToGName "Pair", [strToQId "P"])
+  [ (strToGName "bool", [(strToQId "true", Nothing), (strToQId "false", Nothing)])
+  , (strToGName "List", [(strToQId "Cons", Nothing), (strToQId "Nil", Nothing)])
+  , (strToGName "Pair", [(strToQId "P", Nothing)])
   ]
 
 --print the converted module

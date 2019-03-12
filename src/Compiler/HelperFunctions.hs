@@ -51,20 +51,21 @@ getTypeSignatureByQId (x:xs) qId =
 getTermFromMatchItem :: G.MatchItem -> G.Term
 getTermFromMatchItem (G.MatchItem term _ _) = term
 
-getConstrNamesFromDataDecls :: [H.Decl l] -> [[G.Qualid]]
+getConstrNamesFromDataDecls :: [H.Decl l] -> [[(G.Qualid, Maybe G.Qualid)]]
 getConstrNamesFromDataDecls sentences = [getConstrNamesFromDataDecl s sentences | s <- sentences]
 
 getNamesFromDataDecls :: [H.Decl l] -> [G.Name]
 getNamesFromDataDecls sentences = [getNameFromDataDecl s | s <- sentences]
 
-getConstrNamesFromDataDecl :: H.Decl l -> [H.Decl l] -> [G.Qualid]
-getConstrNamesFromDataDecl (H.DataDecl _ _ _ _ cons _) _ = [getConstrNameFromQConDecl c | c <- cons]
+getConstrNamesFromDataDecl :: H.Decl l -> [H.Decl l] -> [(G.Qualid, Maybe G.Qualid)]
+getConstrNamesFromDataDecl (H.DataDecl _ _ _ declHead cons _) _ =
+  [getConstrNameFromQConDecl c (getNameFromDeclHead declHead) | c <- cons]
 getConstrNamesFromDataDecl (H.TypeDecl _ _ ty) sentences = getConstrsByName (typeToGName ty) sentences
 
-getConstrsByName :: G.Name -> [H.Decl l] -> [G.Qualid]
+getConstrsByName :: G.Name -> [H.Decl l] -> [(G.Qualid, Maybe G.Qualid)]
 getConstrsByName name (H.DataDecl _ _ _ declHead cons _:xs) =
   if eqGName name (getNameFromDeclHead declHead)
-    then [getConstrNameFromQConDecl c | c <- cons]
+    then [getConstrNameFromQConDecl c (getNameFromDeclHead declHead) | c <- cons]
     else getConstrsByName name xs
 getConstrsByName name (_:xs) = getConstrsByName name xs
 getConstrsByName name [] = error (show name)
@@ -90,8 +91,13 @@ getConstrSet qId constrs =
     then constrs
     else []
 
-getConstrNameFromQConDecl :: H.QualConDecl l -> G.Qualid
-getConstrNameFromQConDecl (H.QualConDecl _ _ _ (H.ConDecl _ name _)) = nameToQId name
+getConstrNameFromQConDecl :: H.QualConDecl l -> G.Name -> (G.Qualid, Maybe G.Qualid)
+getConstrNameFromQConDecl (H.QualConDecl _ _ _ (H.ConDecl _ conName _)) funName =
+  if gNameToStr funName == conStr
+    then (strToQId (conStr ++ "_"), Just (strToQId conStr))
+    else (strToQId conStr, Nothing)
+  where
+    conStr = nameToStr conName
 
 getNameFromDataDecl :: H.Decl l -> G.Name
 getNameFromDataDecl (H.DataDecl _ _ _ declHead _ _) = getNameFromDeclHead declHead
@@ -267,7 +273,6 @@ changeSimilarType qId =
     then strToQId (qIdToStr qId ++ "_")
     else qId
 
-
 typeToGName :: H.Type l -> G.Name
 typeToGName (H.TyCon _ name) = qNameToGName name
 typeToGName (H.TyApp _ constr _) = typeToGName constr
@@ -411,6 +416,9 @@ specConToText (H.Cons _) = T.pack "Cons"
 specConToText con = error ("specialConstructor not implemented: " ++ show con)
 
 ---------------------- gName conversion functions (Coq AST)
+gNameToStr :: G.Name -> String
+gNameToStr (G.Ident qId) = qIdToStr qId
+
 gNameToTerm :: G.Name -> G.Term
 gNameToTerm (G.Ident qId) = G.Qualid qId
 

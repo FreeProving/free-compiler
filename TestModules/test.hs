@@ -11,13 +11,13 @@ data Maybe a =
   Nothing
   | Just a
 
-data Identity a = Identity a
+data TestId a = TestId a
 
 data Either a b =
   Left a
   | Right b
 
-newtype Fd = Fd1 Int
+newtype Fd = Fd Int
 
 
 data List' a =
@@ -27,6 +27,13 @@ data List' a =
 data Tree a =
   Leaf
   | Branch a (Tree a) (Tree a)
+
+testIdTransform :: a -> TestId a
+testIdTransform x = TestId x
+
+testIdMatch :: TestId a -> a
+testIdMatch i = case i of
+  TestId x -> x  
 
 plus :: Int -> Int -> Int
 plus a b = a + b

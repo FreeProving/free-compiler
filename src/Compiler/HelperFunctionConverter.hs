@@ -45,7 +45,7 @@ convertMatchToMainFunction ::
   -> [G.Binder]
   -> G.Term
   -> [G.TypeSignature]
-  -> [(G.Name, [G.Qualid])]
+  -> [(G.Name, [(G.Qualid, Maybe G.Qualid)])]
   -> ConversionMonad
   -> G.Fixpoint
 convertMatchToMainFunction name binders rhs typeSigs dataTypes cMonad =
@@ -85,7 +85,7 @@ convertMatchToHelperFunction ::
   -> [G.Binder]
   -> G.Term
   -> [G.TypeSignature]
-  -> [(G.Name, [G.Qualid])]
+  -> [(G.Name, [(G.Qualid, Maybe G.Qualid)])]
   -> ConversionMonad
   -> G.Definition
 convertMatchToHelperFunction name binders rhs typeSigs dataTypes cMonad =
@@ -148,7 +148,7 @@ addBindOperatorToRecursiveCall (G.App constr args) funName pos m =
     checkedArgs = convertTermsToArguments [addBindOperatorToRecursiveCall t funName pos m | t <- termList]
 addBindOperatorToRecursiveCall (G.Parens term) funName pos m =
   G.Parens (addBindOperatorToRecursiveCall term funName pos m)
-addBindOperatorToRecursiveCall term _ _ _ = term
+addBindOperatorToRecursiveCall term funName pos m = addBindOperatorToRhsTerm funName pos m term
 
 getDecrArgumentFromRecursiveCall :: G.Term -> G.Qualid -> Int -> Maybe G.Qualid
 getDecrArgumentFromRecursiveCall (G.App constr args) funName pos =
