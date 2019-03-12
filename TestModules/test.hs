@@ -33,7 +33,7 @@ testIdTransform x = TestId x
 
 testIdMatch :: TestId a -> a
 testIdMatch i = case i of
-  TestId x -> x  
+  TestId x -> x
 
 plus :: Int -> Int -> Int
 plus a b = a + b
@@ -115,7 +115,7 @@ intersperseOne xs =
            [] -> []
            (y : ys)  -> y : intersperseOne ys
 
--- Does not currently work with helper-function transformation
+
 intersperse :: a -> [a] -> [a]
 intersperse sep xs = case xs of
     [] -> []
@@ -129,7 +129,7 @@ map' f xs = case xs of
   [] -> []
   (y : ys) -> f y : map' f ys
 
--- Does not currently work with helper-function transformation
+
 filter' :: (a -> Bool) -> [a] -> [a]
 filter' p xs = case xs of
     [] -> []
