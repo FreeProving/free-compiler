@@ -66,7 +66,7 @@ convertMatchToMainFunction name binders rhs typeSigs dataTypes cMonad =
     typeSig = fromJust (getTypeSignatureByName typeSigs name)
     funName = addSuffixToName name
     monadicBinders = transformBindersMonadic binders cMonad
-    bindersWithInferredTypes = addInferredTypesToSignature monadicBinders (map fst dataTypes)
+    bindersWithInferredTypes = addInferredTypesToSignature monadicBinders (map fst dataTypes) (getReturnType typeSig)
     bindersWithFixedArguments =
       if length binders == length bindersWithInferredTypes
         then makeMatchedArgNonMonadic bindersWithInferredTypes binderPos
@@ -103,7 +103,7 @@ convertMatchToHelperFunction name binders rhs typeSigs dataTypes cMonad =
     typeSig = fromJust (getTypeSignatureByName typeSigs name)
     funName = nameToQId name
     monadicBinders = transformBindersMonadic binders cMonad
-    bindersWithInferredTypes = addInferredTypesToSignature monadicBinders (map fst dataTypes)
+    bindersWithInferredTypes = addInferredTypesToSignature monadicBinders (map fst dataTypes) (getReturnType typeSig)
     matchItem = getMatchedArgumentFromRhs rhs
     matchedBinder = transformBinderMonadic (getMatchedBinder binders matchItem) cMonad
     binderPos = getMatchedBinderPosition binders matchItem

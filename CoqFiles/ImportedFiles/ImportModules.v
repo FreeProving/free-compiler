@@ -36,6 +36,9 @@ Notation "m >>=' f" := (i_bind m f) (left associativity, at level 50).
 
 Notation "a || b" := (or a b) (left associativity, at level 50).
 
+Inductive unit : Set := 
+ tt : unit.
+
 End Monad.
 
 Module OptionDataTypes. 
@@ -51,7 +54,7 @@ Arguments Nil {A}.
 
 Definition singleton (A : Type) (ox : option A) :=
   o_return (Cons ox (o_return Nil)).
-
+ 
 Inductive Pair (A B :Type) : Type := 
   | P : option A -> option B -> Pair A B.
 

@@ -22,6 +22,7 @@ import Compiler.HelperFunctions
   , containsRecursiveCall
   , eqQId
   , gNameToQId
+  , getBinderName
   , getConstrNamesFromDataDecls
   , getInferredBindersFromRetType
   , getNameFromDeclHead
@@ -62,7 +63,9 @@ import Compiler.HelperFunctions
 import Compiler.MonadicConverter
   ( addBindOperatorsToDefinition
   , addReturnToRhs
+  , getBindOperator
   , singletonTerm
+  , toReturnTerm
   , transformBindersMonadic
   , transformTermMonadic
   )
@@ -172,7 +175,7 @@ convertPatBindToDefinition pat rhs typeSigs dataTypes cMonad = G.DefinitionDef G
     name = patToQID pat
     typeSig = getTypeSignatureByQId typeSigs name
     returnType = convertReturnType typeSig cMonad
-    rhsTerm = addReturnToRhs (convertRhsToTerm rhs (map snd (concatMap snd dataTypes))) [] [] [] cMonad
+    rhsTerm = addReturnToRhs (convertRhsToTerm rhs (map snd (concatMap snd dataTypes)) cMonad) [] [] [] cMonad
 
 convertArgumentSentences :: Show l => H.DeclHead l -> [H.QualConDecl l] -> [G.Sentence]
 convertArgumentSentences declHead qConDecls =
@@ -212,7 +215,7 @@ convertMatchDef (H.Match _ name mPats rhs _) typeSigs dataTypes funs cMonad cMod
            else convertMatchWithHelperFunction name mPats rhs typeSigs dataTypes cMonad
     else [G.DefinitionSentence (convertMatchToDefinition name mPats rhs typeSigs dataTypes funs cMonad cMode)]
   where
-    rhsTerm = convertRhsToTerm rhs (map snd (concatMap snd dataTypes))
+    rhsTerm = convertRhsToTerm rhs (map snd (concatMap snd dataTypes)) cMonad
     funName = nameToQId name
 
 convertMatchToDefinition ::
@@ -239,9 +242,10 @@ convertMatchToDefinition name pats rhs typeSigs dataTypes funs cMonad cMode =
     typeSig = getTypeSignatureByName typeSigs name
     binders = convertPatsToBinders pats typeSig
     monadicBinders = transformBindersMonadic binders cMonad
-    bindersWithInferredTypes = addInferredTypesToSignature monadicBinders (map fst dataTypes)
+    bindersWithInferredTypes =
+      addInferredTypesToSignature monadicBinders (map fst dataTypes) (getReturnType (fromJust typeSig))
     bindersWithFuel = addFuelBinder bindersWithInferredTypes
-    rhsTerm = convertRhsToTerm rhs (map snd (concatMap snd dataTypes))
+    rhsTerm = convertRhsToTerm rhs (map snd (concatMap snd dataTypes)) cMonad
     monadicTerm =
       addBindOperatorsToDefinition
         monadicBinders
@@ -280,8 +284,8 @@ convertMatchToFueledFixpoint name pats rhs typeSigs dataTypes funs cMonad =
     binders = convertPatsToBinders pats (Just typeSig)
     monadicBinders = transformBindersMonadic binders cMonad
     bindersWithFuel = addFuelBinder bindersWithInferredTypes
-    bindersWithInferredTypes = addInferredTypesToSignature monadicBinders (map fst dataTypes)
-    rhsTerm = convertRhsToTerm rhs (map snd (concatMap snd dataTypes))
+    bindersWithInferredTypes = addInferredTypesToSignature monadicBinders (map fst dataTypes) (getReturnType typeSig)
+    rhsTerm = convertRhsToTerm rhs (map snd (concatMap snd dataTypes)) cMonad
     convertedFunBody =
       convertFueledFunBody
         (addReturnToRhs rhsTerm typeSigs monadicBinders dataTypes cMonad)
@@ -306,7 +310,7 @@ convertMatchWithHelperFunction name pats rhs typeSigs dataTypes cMonad =
   , G.DefinitionSentence (convertMatchToHelperFunction name binders rhsTerm typeSigs dataTypes cMonad)
   ]
   where
-    rhsTerm = convertRhsToTerm rhs (map snd (concatMap snd dataTypes))
+    rhsTerm = convertRhsToTerm rhs (map snd (concatMap snd dataTypes)) cMonad
     binders = convertPatsToBinders pats typeSig
     typeSig = getTypeSignatureByName typeSigs name
 
@@ -334,6 +338,22 @@ convertQConDecl (H.QualConDecl _ Nothing Nothing (H.ConDecl _ name types)) term 
   where
     constrName = nameToQId name
     suffixName = strToQId ((qIdToStr constrName) ++ "_")
+convertQConDecl (H.QualConDecl _ _ _ (H.RecDecl _ name fieldDecls)) term cMonad =
+  if eqQId constrName (termToQId term)
+    then (suffixName, [], Just (G.Record (convertFieldDeclsToRecList fieldDecls cMonad)))
+    else (constrName, [], Just (G.Record (convertFieldDeclsToRecList fieldDecls cMonad)))
+  where
+    constrName = nameToQId name
+    suffixName = strToQId ((qIdToStr constrName) ++ "_")
+
+convertFieldDeclsToRecList :: Show l => [H.FieldDecl l] -> ConversionMonad -> [(G.Qualid, G.Term)]
+convertFieldDeclsToRecList fDecls m = [convertFieldDeclToRec f m | f <- fDecls]
+
+convertFieldDeclToRec :: Show l => H.FieldDecl l -> ConversionMonad -> (G.Qualid, G.Term)
+convertFieldDeclToRec (H.FieldDecl _ name ty) m = (fieldName, fieldType)
+  where
+    fieldName = nameToQId (head name)
+    fieldType = convertTypeToMonadicTerm m ty
 
 convertToArrowTerm :: Show l => [H.Type l] -> G.Term -> ConversionMonad -> G.Term
 convertToArrowTerm types returnType cMonad = buildArrowTerm (map (convertTypeToMonadicTerm cMonad) types) returnType
@@ -388,55 +408,69 @@ convertPatAndTypeSigToBinder (H.PVar _ name) term =
   G.Typed G.Ungeneralizable G.Explicit (singleton (nameToGName name)) term
 convertPatAndTypeSigToBinder pat _ = error ("Haskell pattern not implemented: " ++ show pat)
 
-convertRhsToTerm :: Show l => H.Rhs l -> [Maybe G.Qualid] -> G.Term
-convertRhsToTerm (H.UnGuardedRhs _ expr) constrs = collapseApp (convertExprToTerm constrs expr)
-convertRhsToTerm (H.GuardedRhss _ _) _ = error "Guards not implemented"
+convertRhsToTerm :: Show l => H.Rhs l -> [Maybe G.Qualid] -> ConversionMonad -> G.Term
+convertRhsToTerm (H.UnGuardedRhs _ expr) constrs m = collapseApp (convertExprToTerm constrs m expr)
+convertRhsToTerm (H.GuardedRhss _ _) _ _ = error "Guards not implemented"
 
-convertExprToTerm :: Show l => [Maybe G.Qualid] -> H.Exp l -> G.Term
-convertExprToTerm _ (H.Var _ qName) = qNameToTerm qName
-convertExprToTerm constrs (H.Con _ qName) =
+convertExprToTerm :: Show l => [Maybe G.Qualid] -> ConversionMonad -> H.Exp l -> G.Term
+convertExprToTerm _ _ (H.Var _ qName) = qNameToTerm qName
+convertExprToTerm constrs _ (H.Con _ qName) =
   if any (== conStr) (map (qIdToStr . fromJust) (filter isJust constrs))
     then strToTerm (conStr ++ "_")
     else qNameToTerm qName
   where
     conStr = qNameToStr qName
-convertExprToTerm constrs (H.List _ (x:[])) = G.App singletonTerm (singleton ((G.PosArg . convertExprToTerm constrs) x))
-convertExprToTerm constrs (H.Paren _ expr) = G.Parens (convertExprToTerm constrs expr)
-convertExprToTerm constrs (H.App _ expr1 expr2) =
+convertExprToTerm constrs m (H.List _ (x:[])) =
+  G.App singletonTerm (singleton ((G.PosArg . convertExprToTerm constrs m) x))
+convertExprToTerm constrs m (H.Paren _ expr) = G.Parens (convertExprToTerm constrs m expr)
+convertExprToTerm constrs m (H.App _ expr1 expr2) =
   G.App
-    ((collapseApp . convertExprToTerm constrs) expr1)
-    (singleton (G.PosArg ((collapseApp . convertExprToTerm constrs) expr2)))
-convertExprToTerm constrs (H.InfixApp _ exprL qOp exprR) =
+    ((collapseApp . convertExprToTerm constrs m) expr1)
+    (singleton (G.PosArg ((collapseApp . convertExprToTerm constrs m) expr2)))
+convertExprToTerm constrs m (H.InfixApp _ exprL qOp exprR) =
   if isSpecialOperator qOp
     then G.App
            (G.Qualid (qOpToQId qOp))
            (toNonemptyList
-              [ G.PosArg ((collapseApp . convertExprToTerm constrs) exprL)
-              , G.PosArg ((collapseApp . convertExprToTerm constrs) exprR)
+              [ G.PosArg ((collapseApp . convertExprToTerm constrs m) exprL)
+              , G.PosArg ((collapseApp . convertExprToTerm constrs m) exprR)
               ])
     else G.App
            (G.Qualid (qOpToQOpId qOp))
            (toNonemptyList
-              [ G.PosArg ((collapseApp . convertExprToTerm constrs) exprL)
-              , G.PosArg ((collapseApp . convertExprToTerm constrs) exprR)
+              [ G.PosArg ((collapseApp . convertExprToTerm constrs m) exprL)
+              , G.PosArg ((collapseApp . convertExprToTerm constrs m) exprR)
               ])
-convertExprToTerm constrs (H.Case _ expr altList) =
+convertExprToTerm constrs m (H.Case _ expr altList) =
   G.Match
-    (singleton (G.MatchItem (convertExprToTerm constrs expr) Nothing Nothing))
+    (singleton (G.MatchItem (convertExprToTerm constrs m expr) Nothing Nothing))
     Nothing
-    (convertAltListToEquationList altList constrs)
-convertExprToTerm constrs (H.If _ cond thenExpr elseExpr) =
+    (convertAltListToEquationList altList constrs m)
+convertExprToTerm constrs m (H.If _ cond thenExpr elseExpr) =
   G.If
     G.SymmetricIf
-    (convertExprToTerm constrs cond)
+    (convertExprToTerm constrs m cond)
     Nothing
-    ((collapseApp . convertExprToTerm constrs) thenExpr)
-    ((collapseApp . convertExprToTerm constrs) elseExpr)
-convertExprToTerm _ (H.Lit _ literal) = convertLiteralToTerm literal
-convertExprToTerm constrs (H.Tuple _ _ exprs) =
-  G.App (G.Qualid (strToQId "P")) (toNonemptyList [(G.PosArg . convertExprToTerm constrs) e | e <- exprs])
-convertExprToTerm _ (H.List _ []) = G.Qualid (strToQId "Nil")
-convertExprToTerm _ expr = error ("Haskell expression not implemented: " ++ show expr)
+    ((collapseApp . convertExprToTerm constrs m) thenExpr)
+    ((collapseApp . convertExprToTerm constrs m) elseExpr)
+convertExprToTerm constrs m (H.Lambda _ pats expr) =
+  G.Fun
+    (toNonemptyList binders)
+    (G.App
+       (getBindOperator m)
+       (toNonemptyList
+          [ G.PosArg (getBinderName (head binders))
+          , G.PosArg (G.Fun (toNonemptyList suffixBinders) (toReturnTerm rhs m))
+          ]))
+  where
+    rhs = convertExprToTerm constrs m expr
+    binders = convertPatsToBinders pats Nothing
+    suffixBinders = map ((G.Inferred G.Explicit) . strToGName . (++ "'") . qIdToStr . termToQId . getBinderName) binders
+convertExprToTerm _ _ (H.Lit _ literal) = convertLiteralToTerm literal
+convertExprToTerm constrs m (H.Tuple _ _ exprs) =
+  G.App (G.Qualid (strToQId "P")) (toNonemptyList [(G.PosArg . convertExprToTerm constrs m) e | e <- exprs])
+convertExprToTerm _ _ (H.List _ []) = G.Qualid (strToQId "Nil")
+convertExprToTerm _ _ expr = error ("Haskell expression not implemented: " ++ show expr)
 
 convertLiteralToTerm :: Show l => H.Literal l -> G.Term
 convertLiteralToTerm (H.Char _ char _) = G.HsChar char
@@ -444,12 +478,12 @@ convertLiteralToTerm (H.String _ str _) = G.String (T.pack str)
 convertLiteralToTerm (H.Int _ _ int) = G.Qualid (strToQId int)
 convertLiteralToTerm literal = error ("Haskell Literal not implemented: " ++ show literal)
 
-convertAltListToEquationList :: Show l => [H.Alt l] -> [Maybe G.Qualid] -> [G.Equation]
-convertAltListToEquationList altList constrs = [convertAltToEquation s constrs | s <- altList]
+convertAltListToEquationList :: Show l => [H.Alt l] -> [Maybe G.Qualid] -> ConversionMonad -> [G.Equation]
+convertAltListToEquationList altList constrs m = [convertAltToEquation s constrs m | s <- altList]
 
-convertAltToEquation :: Show l => H.Alt l -> [Maybe G.Qualid] -> G.Equation
-convertAltToEquation (H.Alt _ pat rhs _) constrs =
-  G.Equation (singleton (G.MultPattern (singleton (convertHPatToGPat pat constrs)))) (convertRhsToTerm rhs constrs)
+convertAltToEquation :: Show l => H.Alt l -> [Maybe G.Qualid] -> ConversionMonad -> G.Equation
+convertAltToEquation (H.Alt _ pat rhs _) constrs m =
+  G.Equation (singleton (G.MultPattern (singleton (convertHPatToGPat pat constrs)))) (convertRhsToTerm rhs constrs m)
 
 convertHPatListToGPatList :: Show l => [H.Pat l] -> [Maybe G.Qualid] -> [G.Pattern]
 convertHPatListToGPatList patList constrs = [convertHPatToGPat s constrs | s <- patList]
@@ -484,9 +518,6 @@ needsArgumentsSentence declHead qConDecls = not (null binders) && hasNonInferrab
     binders = applyToDeclHeadTyVarBinds declHead convertTyVarBindToBinder
 
 --check if function is recursive
-isRecursive :: Show l => H.Name l -> H.Rhs l -> Bool
-isRecursive name rhs = elem (getString name) (termToStrings (convertRhsToTerm rhs []))
-
 importPath :: String
 importPath = "Add LoadPath \"../ImportedFiles\". \n \r"
 
@@ -495,6 +526,7 @@ predefinedDataTypes =
   [ (strToGName "bool", [(strToQId "true", Nothing), (strToQId "false", Nothing)])
   , (strToGName "List", [(strToQId "Cons", Nothing), (strToQId "Nil", Nothing)])
   , (strToGName "Pair", [(strToQId "P", Nothing)])
+  , (strToGName "unit", [(strToQId "tt", Nothing)])
   ]
 
 --print the converted module
