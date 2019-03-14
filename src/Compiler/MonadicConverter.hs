@@ -65,15 +65,18 @@ addBindOpperatorsInMatchRhs multPats cMonad (G.App constr args) = G.App constr (
     boundArgs =
       map (G.PosArg . addBindOpperatorsInMatchRhs multPats cMonad) (convertArgumentsToTerms (fromNonEmptyList args))
 addBindOpperatorsInMatchRhs multPats cMonad (G.Match mItem retType equations) =
-  G.App
-    (getBindOperator cMonad)
-    (toNonemptyList [G.PosArg argumentName, G.PosArg (G.Fun (singleton lambdaBinder) lambdaTerm)])
+  if any (eqQId (termToQId argumentName)) (concatMap getQIdsFromPattern (getPatternFromMultPattern (multPats)))
+    then G.App
+           (getBindOperator cMonad)
+           (toNonemptyList [G.PosArg argumentName, G.PosArg (G.Fun (singleton lambdaBinder) lambdaTerm)])
+    else G.Match mItem retType boundEquations
   where
     argumentName = (getTermFromMatchItem . head . fromNonEmptyList) mItem
     lambdaArgumentQId = (addSuffixToQId . termToQId) argumentName
     boundMatchItem = G.MatchItem (G.Qualid lambdaArgumentQId) Nothing Nothing
     lambdaBinder = G.Inferred G.Explicit (qIdToGName lambdaArgumentQId)
-    lambdaTerm = G.Match (singleton boundMatchItem) retType equations
+    lambdaTerm = G.Match (singleton boundMatchItem) retType boundEquations
+    boundEquations = [addBindOperatorsInEquation e cMonad | e <- equations]
 addBindOpperatorsInMatchRhs multPats _ term = term
 
 ---------------------- Add Return Operator if rhs isn't already monadic
@@ -96,14 +99,21 @@ addReturnToMatch (G.Match mItem retType equations) typeSigs binders dataTypes pa
     then G.Match mItem retType monadicEquations
     else G.Match mItem retType (monadicEquations ++ errorEquation cMonad)
   where
-    monadicEquations = [addReturnToEquation e typeSigs binders patNames cMonad | e <- equations]
+    monadicEquations = [addReturnToEquation e typeSigs binders dataTypes patNames cMonad | e <- equations]
     constrNames = (map ((map fst) . snd) dataTypes)
     equationPats = map (head . getPatternFromEquation) equations
     constructors = getConstrsByPattern (head equationPats) constrNames
 
-addReturnToEquation :: G.Equation -> [G.TypeSignature] -> [G.Binder] -> [G.Qualid] -> ConversionMonad -> G.Equation
-addReturnToEquation (G.Equation multPats rhs) typeSigs binders prevPatNames cMonad =
-  G.Equation multPats (addReturnToTerm rhs typeSigs binders [] patNames cMonad)
+addReturnToEquation ::
+     G.Equation
+  -> [G.TypeSignature]
+  -> [G.Binder]
+  -> [(G.Name, [(G.Qualid, Maybe G.Qualid)])]
+  -> [G.Qualid]
+  -> ConversionMonad
+  -> G.Equation
+addReturnToEquation (G.Equation multPats rhs) typeSigs binders dataTypes prevPatNames cMonad =
+  G.Equation multPats (addReturnToTerm rhs typeSigs binders dataTypes patNames cMonad)
   where
     pats = concatMap getPatternFromMultPattern (fromNonEmptyList multPats)
     patNames = prevPatNames ++ concatMap getQIdsFromPattern pats

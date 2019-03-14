@@ -171,7 +171,7 @@ convertPatBindToDefinition ::
 convertPatBindToDefinition pat rhs typeSigs dataTypes cMonad = G.DefinitionDef G.Global name binders returnType rhsTerm
   where
     dataNames = map fst dataTypes
-    binders = getInferredBindersFromRetType (fromJust returnType)
+    binders = addInferredTypesToSignature [] (map fst dataTypes) (fromJust returnType)
     name = patToQID pat
     typeSig = getTypeSignatureByQId typeSigs name
     returnType = convertReturnType typeSig cMonad
