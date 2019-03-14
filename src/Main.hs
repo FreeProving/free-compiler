@@ -54,6 +54,9 @@ test = compileAndPrintFile "TestModules/Test.hs"
 saveTest :: IO ()
 saveTest = compileAndSaveFile "TestModules/Test.hs"
 
+savePrelude :: IO ()
+savePrelude = compileAndSaveFile "TestModules/Prelude.hs"
+
 addSavePath :: String -> String
 addSavePath fileName = "CoqFiles/OutputFiles/" ++ fileName ++ ".v"
 
@@ -75,7 +78,7 @@ getMonadFromArgs ("-i":_) = Identity
 getMonadFromArgs (_:xs) = getMonadFromArgs xs
 
 getModeFromArgs :: [String] -> ConversionMode
-getModeFromArgs [] = FueledFunction
+getModeFromArgs [] = HelperFunction
 getModeFromArgs ("-f":_) = FueledFunction
 getModeFromArgs ("-h":_) = HelperFunction
 getModeFromArgs (_:xs) = getModeFromArgs xs
