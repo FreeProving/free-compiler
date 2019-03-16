@@ -9,7 +9,7 @@ Starter repository for theses.
 [Git interactive introduction](https://learngitbranching.js.org)  
 [How to use git(Lab)](https://docs.gitlab.com/ee/gitlab-basics/)  
 [How to write a git commit message](https://chris.beams.io/posts/git-commit/)  
-How to read research papers ([#1](https://web.stanford.edu/class/ee384m/Handouts/HowtoReadPaper.pdf), [#2](http://www2.cs.uregina.ca/~pwlfong/CS499/reading-paper.pdf) [#3](http://people.cs.pitt.edu/~litman/courses/cs2710/papers/howtoreadacspaper.pdf))  
+How to read research papers ([#1](https://web.stanford.edu/class/ee384m/Handouts/HowtoReadPaper.pdf), [#2](http://www2.cs.uregina.ca/~pwlfong/CS499/reading-paper.pdf), [#3](http://people.cs.pitt.edu/~litman/courses/cs2710/papers/howtoreadacspaper.pdf))  
 
 ## Haskell-related
 
