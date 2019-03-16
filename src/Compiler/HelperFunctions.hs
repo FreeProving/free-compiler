@@ -135,10 +135,8 @@ getReturnTypeFromDeclHead :: [G.Arg] -> G.Qualid -> G.Term
 getReturnTypeFromDeclHead [] qId = G.Qualid qId
 getReturnTypeFromDeclHead (x:xs) qId = G.App (G.Qualid qId) (x B.:| xs)
 
-getNonInferrableConstrNames :: Show l => [H.QualConDecl l] -> [G.Qualid]
-getNonInferrableConstrNames qConDecls = [getNameFromQualConDecl d | d <- nonInferrableQConDecls]
-  where
-    nonInferrableQConDecls = filter isNonInferrableConstr qConDecls
+getConstrNames :: Show l => [H.QualConDecl l] -> [G.Qualid]
+getConstrNames qConDecls = [getNameFromQualConDecl d | d <- qConDecls]
 
 getNameFromQualConDecl :: Show l => H.QualConDecl l -> G.Qualid
 getNameFromQualConDecl (H.QualConDecl _ _ _ (H.ConDecl _ name _)) = nameToQId name
@@ -215,7 +213,7 @@ isDataDecl H.TypeDecl {} = True
 isDataDecl _ = False
 
 hasNonInferrableConstr :: Show l => [H.QualConDecl l] -> Bool
-hasNonInferrableConstr = any isNonInferrableConstr
+hasNonInferrableConstr constrs = any isNonInferrableConstr constrs || length constrs > 1
 
 isNonInferrableConstr :: Show l => H.QualConDecl l -> Bool
 isNonInferrableConstr (H.QualConDecl _ _ _ (H.ConDecl _ _ [])) = True

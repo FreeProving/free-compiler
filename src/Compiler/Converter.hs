@@ -23,11 +23,11 @@ import Compiler.HelperFunctions
   , eqQId
   , gNameToQId
   , getBinderName
+  , getConstrNames
   , getConstrNamesFromDataDecls
   , getInferredBindersFromRetType
   , getNameFromDeclHead
   , getNamesFromDataDecls
-  , getNonInferrableConstrNames
   , getReturnType
   , getReturnTypeFromDeclHead
   , getString
@@ -181,7 +181,7 @@ convertArgumentSentences :: Show l => H.DeclHead l -> [H.QualConDecl l] -> [G.Se
 convertArgumentSentences declHead qConDecls =
   [G.ArgumentsSentence (G.Arguments Nothing con (convertArgumentSpec declHead)) | con <- constrToDefine]
   where
-    constrToDefine = getNonInferrableConstrNames qConDecls
+    constrToDefine = getConstrNames qConDecls
 
 convertArgumentSpec :: Show l => H.DeclHead l -> [G.ArgumentSpec]
 convertArgumentSpec declHead = [G.ArgumentSpec G.ArgMaximal varName Nothing | varName <- varNames]

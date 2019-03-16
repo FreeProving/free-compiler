@@ -23,3 +23,34 @@ not b = case b of
 
 otherwise :: Bool
 otherwise = True
+
+
+data Maybe a = Just a | Nothing
+
+maybe :: b -> (a -> b) -> Maybe a -> b
+maybe x f mx = case mx of
+  Nothing -> x
+  Just y -> f y
+
+data Either a b = Left a | Right b
+-- Constructors 'Left' and 'Right' expect 2 Arguments in coq
+either :: (a -> c) -> (b -> c) -> Either a b -> c
+either af bf ex = case ex of
+  Left a -> af a
+  Right b -> bf b
+
+data Ordering = LT | EQ | GT
+
+fst :: (a, b) -> a
+fst x = case x of
+  (a, b) -> a
+
+snd :: (a, b) -> b
+snd x = case x of
+  (a, b) -> b
+
+curry :: ((a, b) -> c) -> a -> b -> c
+curry f a b = f (a , b)
+
+uncurry :: (a -> b -> c) -> (a, b) -> c
+uncurry f p = f (fst p) (snd p)
