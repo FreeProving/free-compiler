@@ -137,7 +137,7 @@ addReturnToTerm (G.App constr args) typeSigs binders dataTypes patNames cMonad
 addReturnToTerm (G.If style cond depRet thenTerm elseTerm) typeSigs binders dataNames patNames cMonad =
   G.If
     style
-    cond
+    (addReturnToTerm cond typeSigs binders dataNames patNames cMonad)
     depRet
     (addReturnToTerm thenTerm typeSigs binders dataNames patNames cMonad)
     (addReturnToTerm elseTerm typeSigs binders dataNames patNames cMonad)

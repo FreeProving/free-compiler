@@ -54,3 +54,21 @@ curry f a b = f (a , b)
 
 uncurry :: (a -> b -> c) -> (a, b) -> c
 uncurry f p = f (fst p) (snd p)
+
+id :: a -> a
+id x = x
+
+const :: a -> b -> a
+const x y = x
+
+flip :: ( a -> b -> c) -> b -> a -> c
+flip f x y = f y x
+
+comp :: (b -> c) -> (a -> b) -> a -> c
+comp f g x = f (g x)
+
+
+until :: ( a -> Bool) -> (a -> a) -> a -> a
+until p f x = if p x
+  then x
+  else until p f (f x)
