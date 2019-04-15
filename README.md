@@ -2,6 +2,10 @@
 
 Starter repository for theses.
 
+# Important Rules
+
+* Reference an issue number for each commit (s.th. like "fix typo" is a counterexample, but such commits shouldn't be the majority)
+
 # Reading list
 
 ## Must read
