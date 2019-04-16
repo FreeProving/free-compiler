@@ -5,6 +5,7 @@ Starter repository for theses.
 # Important Rules
 
 * Reference an issue number for each commit (s.th. like "fix typo" is a counterexample, but such commits shouldn't be the majority)
+* use code-formatter or apply style guide rules manually
 
 # Reading list
 
@@ -17,6 +18,13 @@ How to read research papers ([#1](https://web.stanford.edu/class/ee384m/Handouts
 
 ## Haskell-related
 
+### Code Formating
+
+[stylish-haskell](https://github.com/jaspervdj/stylish-haskell)  
+[brittany](https://github.com/lspitzner/brittany)  
+[hindent](https://github.com/chrisdone/hindent)  
+
+Or:
 [Haskell Style Guide](https://github.com/tibbe/haskell-style-guide/blob/master/haskell-style.md)  
 
 ## Coq-related
