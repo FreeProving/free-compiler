@@ -265,7 +265,7 @@ wobei $e_1 :: Bool$ und $e_2, e_3 :: \tau$ Ausdrücke sind.
 
 - Es werden kein Guards unterstützt.
 
-- Es müssen alle Kostruktoren aufgeführt werden.
+- Es müssen alle Konstruktoren aufgeführt werden.
   Die rechte Seite von `->` muss bei nicht implementierten Fällen ein
   Fehlerterm sein.
 
@@ -306,7 +306,7 @@ wobei $x_1, \ldots, x_n$ Variablenpattern sind und $e$ ein Ausdruck ist.
 
 ## Literale
 
-- **Ganzzahlen** können in dezimaler, hexadezimaler und oktaler schreibweise
+- **Ganzzahlen** können in dezimaler, hexadezimaler und oktaler Schreibweise
   angegeben werden:
 
     ```haskell
@@ -350,7 +350,7 @@ Es werden ausschließlich nullelementige Tuple und Paare unterstützt.
 - `()`{.haskell}
 - `([$e_1$], [$e_2$])`{.haskell}, wobei $e_1$ und $e_2$ Ausdrücke sind
 
-Es bestünde die möglichkeit weitere Tupelgrößen zu unterstützen, dann müssten
+Es bestünde die Möglichkeit weitere Tupelgrößen zu unterstützen, dann müssten
 aber entsprechende Datentypdeklarationen dynamisch erzeugt werden. Alternativ
 könnten weitere Tupeltypen statisch vordefiniert werden. Der GHC unterstützt
 Tuple mit bis zu $62$ Elementen.
@@ -415,7 +415,7 @@ eingeführt werden.
 
 ## Typkonstruktoranwendungen
 
-Aufgrund der Einschränkung für die Sorten von Typvariablen gibt es grundätzlich
+Aufgrund der Einschränkung für die Sorten von Typvariablen gibt es grundsätzlich
 keine Möglichkeit Typkonstruktoren mithilfe von Datentypdeklarationen zu
 erzeugen, deren Argumente selber Typkonstruktoren sind. Es gibt also keine
 *higher-order type operators*, bzw. alle $n$-stelligen Typkonstruktoren $\tau$
