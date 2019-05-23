@@ -289,7 +289,7 @@ Die Fehlerterme von nicht abgedeckten Fällen haben die Form:
 - `undefined`{.haskell} oder
 - `error "<error message>"`{.haskell}
 
-Bei Varianten dürfen auch an anderen Stellen im Programm verwendet werden.
+Beide Varianten dürfen auch an anderen Stellen im Programm verwendet werden.
 
 ## Lambda Abstraktionen
 
