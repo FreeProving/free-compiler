@@ -233,7 +233,7 @@ wobei $e_1 :: \tau -> \tau'$ und $e_2 :: \tau$ Ausdrücke sind.
 Es werden Infixoperationen für vordefinierte Operatoren unterstützt.
 
 - **Arithmetische Operationen**:
-  `+`{.haskell}, `-`{.haskell}, `*`{.haskell}, `/`{.haskell}
+  `+`{.haskell}, `-`{.haskell}, `*`{.haskell}, `^`{.haskell}
 - **Bool'sche Operationen**:
   `&&`{.haskell}, `||`{.haskell}
 - **Vergleich auf `Int`{.haskell}**:
@@ -333,6 +333,7 @@ wobei $x_1, \ldots, x_n$ Variablenpattern sind und $e$ ein Ausdruck ist.
     0xA2
     0o755
     ```
+
 - Zum Erzeugen von **Boolsche Werten**  können wie üblich die Konstruktoren
   `True`{.haskell} und `False`{.haskell} verwendet werden.
 
