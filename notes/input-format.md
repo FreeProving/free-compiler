@@ -15,6 +15,8 @@ pandoc-minted:
 ---
 
 \newcommand{\type}{ * }
+\newcommand{\Int}{\texttt{Int}}
+\newcommand{\Bool}{\texttt{Bool}}
 
 \newpage
 # Einleitung
@@ -224,7 +226,9 @@ Eine Funktionsanwendung hat die Form:
 
 wobei $e_1 :: \tau -> \tau'$ und $e_2 :: \tau$ Ausdrücke sind.
 
-## Infixoperationen
+## Operatoren
+
+### Infixoperatoren
 
 Es werden Infixoperationen für vordefinierte Operatoren unterstützt.
 
@@ -256,6 +260,12 @@ $f :: \tau_1 \to \tau_2 \to \tau$ als Infix geschrieben werden:
 
 wobei $e_1 :: \tau_1$ sowie $e_2 :: \tau_2$ Ausdrücke sind.
 
+### Prefixoperatoren
+
+In Haskell ist das unäre Minus der einzige Präfixoperator.
+
+- `-[$e$]`{.haskell} wobei $e :: \Int$ ein Ausdruck.
+
 ## Bedingungen
 
 Ein Bedingter Ausdruck hat die Form:
@@ -264,7 +274,7 @@ Ein Bedingter Ausdruck hat die Form:
 if [$e_1$] then [$e_2$] else [$e_3$]
 ```
 
-wobei $e_1 :: Bool$ und $e_2, e_3 :: \tau$ Ausdrücke sind.
+wobei $e_1 :: \Bool$ und $e_2, e_3 :: \tau$ Ausdrücke sind.
 
 ## Fallunterscheidung
 
