@@ -226,18 +226,7 @@ wobei $e_1 :: \tau -> \tau'$ und $e_2 :: \tau$ Ausdrücke sind.
 
 ## Infixoperationen
 
-Es werden Infixoperationen für vordefinierte Operatoren unterstützt. wie z.B. , `&&`{.haskell} und `||`{.haskell}
-sowie ggf. weitere übliche Operatoren wie z.B. `++`{.haskell} unterstützt.
-
-- `[$e_1$] [$\circ$] [$e_2$]`{.haskell}
-- `([$\circ$] [$e_2$])`{.haskell}
-- `([$e_1$] [$\circ$])`{.haskell}
-- `([$\circ$]) [$e_1$] [$e_2$]`{.haskell}
-
-wobei $(\circ) :: \tau_1 \to \tau_2 \to \tau$ eine vordefinierte Infixoperation
-ist und $e_1 :: \tau_1$ sowie $e_2 :: \tau_2$ Ausdrücke sind.
-
-Zu den unterstützten Operatoren zählen:
+Es werden Infixoperationen für vordefinierte Operatoren unterstützt.
 
 - **Arithmetische Operationen**:
   `+`{.haskell}, `-`{.haskell}, `*`{.haskell}, `/`{.haskell}
@@ -247,6 +236,25 @@ Zu den unterstützten Operatoren zählen:
   `<=`{.haskell}, `<`{.haskell},
   `==`{.haskell}, `/=`{.haskell},
   `>=`{.haskell}, `>`{.haskell}
+
+Die folgende Schreibweisen sind erlaubt:
+
+- `[$e_1$] [$\circ$] [$e_2$]`{.haskell}
+- `([$\circ$] [$e_2$])`{.haskell}
+- `([$e_1$] [$\circ$])`{.haskell}
+- `([$\circ$]) [$e_1$] [$e_2$]`{.haskell}
+
+wobei $(\circ) :: \tau_1 \to \tau_2 \to \tau$ eine vordefinierte Infixoperation
+ist und $e_1 :: \tau_1$ sowie $e_2 :: \tau_2$ Ausdrücke sind.
+
+Desweiteren kann jede in Haskell definierte Funktion
+$f :: \tau_1 \to \tau_2 \to \tau$ als Infix geschrieben werden:
+
+- ``[$e_1$] `[$f$]` [$e_2$]``{.haskell}
+- ``(`[$f$]` [$e_2$])``{.haskell}
+- ``([$e_1$] `[$f$]`)``{.haskell}
+
+wobei $e_1 :: \tau_1$ sowie $e_2 :: \tau_2$ Ausdrücke sind.
 
 ## Bedingungen
 
