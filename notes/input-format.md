@@ -367,7 +367,8 @@ unterstützt.
 Es werden ausschließlich nullelementige Tuple und Paare unterstützt.
 
 - `()`{.haskell}
-- `([$e_1$], [$e_2$])`{.haskell}, wobei $e_1$ und $e_2$ Ausdrücke sind
+- `([$e_1$], [$e_2$])`{.haskell}, wobei $e_1$ und $e_2$ Ausdrücke sind.  
+  Für den Paarkonstruktor ist auch die Schreibweise `(,)`{.haskell} erlaubt.
 
 Es bestünde die Möglichkeit weitere Tupelgrößen zu unterstützen, dann müssten
 aber entsprechende Datentypdeklarationen dynamisch erzeugt werden. Alternativ
