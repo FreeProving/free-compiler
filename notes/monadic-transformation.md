@@ -688,7 +688,8 @@ wobei $x_1, \ldots x_n$ Variablenpattern sind und $e$ ein Ausdruck ist.
 - In Coq sind die Zahlenliterale standardmäßig vom Typ `nat`{.coq}, da wir aber
   Zahlen immer mit dem Typ `Z`{.coq} darstellen wollen, wird das Suffix
   `%Z`{.coq} angehängt. Coq unterstützt außerdem nur die Angabe von Zahlen in
-  der Basis $10$.
+  der Basis $10$. Die Zahlen müssen schließlich noch in die Monade gehoben
+  werden.
 
     ```haskell
     0
@@ -698,16 +699,17 @@ wobei $x_1, \ldots x_n$ Variablenpattern sind und $e$ ein Ausdruck ist.
     ```
 
     ```coq
-    0%Z
-    42%Z
-    162%Z
-    493%Z
+    m_return 0%Z
+    m_return 42%Z
+    m_return 162%Z
+    m_return 493%Z
     ```
 
-- Boolsche Werte müssen bei der Übersetzung nur umbenannt werden:
+- Boolsche Werte müssen bei der Übersetzung nur umbenannt und in die Monade
+  gehoben werden:
 
-    + $\lift{\True} = \true$
-    + $\lift{\False} = \false$
+    + $\lift{\True} = \mreturn \true$
+    + $\lift{\False} = \mreturn \false$
 
 ### Listen
 
