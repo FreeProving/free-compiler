@@ -751,7 +751,7 @@ um Code innerhalb von Beweisen lesbarer zu machen. Alternativ kann auch das
 `m_return` "versteck" werden:
 
 ```coq
-Notation "[]" := m_return Nil.
+Notation "[]" := (m_return Nil).
 Notation "[ x0 ; .. ; xn ]" :=
   (m_return (Cons x0 .. (m_return (Cons xn (m_return Nil))) ..)).
 ```
