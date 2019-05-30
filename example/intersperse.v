@@ -27,7 +27,8 @@ Arguments Cons {a}.
 Module IntersperseOneOldApproach.
 
 (*
-  Translation of `intersperseOne` with current approach by splitting and inlining
+  Translation of `intersperseOne` with current approach by splitting and
+  inlining
 
   ```haskell
   intersperseOneMatch :: [Int] -> [Int]
@@ -38,7 +39,7 @@ Module IntersperseOneOldApproach.
 
   intersperseOne :: [Int] -> [Int]
   intersperseOne xs =
-    1 : intersperseOne ys
+    1 : intersperseOneMatch xs
   ```
 *)
 
