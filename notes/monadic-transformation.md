@@ -18,7 +18,6 @@ pandoc-minted:
 
 \newcommand{\lift}[1]{{#1}^{\dagger}}
 \newcommand{\liftT}[1]{{#1}^{ * }}
-\newcommand{\liftRec}[2]{{#2}^{\dagger_{#1}}}
 \newcommand{\m}[1]{m\,{#1}}
 \newcommand{\mreturn}[1]{\texttt{m\_return}\,{#1}}
 
@@ -286,63 +285,75 @@ werden.
 
 ### Rekursive Funktionen
 
-Die Definition einer rekursiven Funktion wird mit einer Hilfsfunktion
-übersetzt, in der sich das Argument, welches strukturell abgebaut wird nicht in
-einem monadischem Kontext befindet.
+Die Definition einer rekursiven Funktion wird mithilfe von Hilfsfunktionen
+übersetzt, in denen sich das Argument, welches strukturell abgebaut wird nicht
+in einem monadischem Kontext befindet.
+
+Betrachte eine $n$-stellige Funktion $f$, die auf ihrem $i$-tem Argument
+rekursiv definiert ist:
 
 ```haskell
 [$f$] :: [$\tau_1$] -> [$\ldots$] -> [$\tau_n$] -> [$\tau$]
-[$f$] [$x_1$] [$\ldots$] [$x_n$] =
-  case [$x_i$] of
-    [$alt_1$]
-    [$\vdots$]
-    [$alt_n$]
+[$f$] [$x_1$] [$\ldots$] [$x_n$] = [$e$]
 ```
 
-```coq
-Fixpoint [$f'$] {[$\alpha_1$] [$\ldots$] [$\alpha_m$] : Type} ([$x_1$] : [$\lift{\tau_1}$]) [$\ldots$] ([$x_{i-1}$] : [$\lift{\tau_{i-1}}$]) ([$x_i$] : [$\liftT{\tau_i}$]) ([$x_{i+1}$] : [$\lift{\tau_{i+1}}$]) [$\ldots$] ([$x_n$] : [$\lift{\tau_n}$]) : [$\lift{\tau}$] :=
-  match [$x_i$] with
-  | [$\liftRec{f}{alt_1}$]
-  | [$\vdots$]
-  | [$\liftRec{f}{alt_n}$]
-  end.
+wobei $\tau_1, \ldots, \tau_n$ sowie $\tau$ Typen und $x_1, \ldots, x_n$
+Variablenpattern sind und $e$ ein Ausdruck ist.
 
-Definition [$f$] {[$\alpha_1$] [$\ldots$] [$\alpha_m$] : Type} ([$x_1$] : [$\lift{\tau_1}$]) [$\ldots$] ([$x_n$] : [$\lift{\tau_n}$]) : [$\lift{\tau}$] :=
-  [$x_i$] >>= fun([$x_i'$] : [$\liftT{\tau_i}$]) =>
-    [$f'$] [$x_1$] [$\ldots$] [$x_{i - 1}$] [$x_i'$] [$x_{i + 1}$] [$\ldots$] [$x_n$].
-```
-
-wobei $\tau_1, \ldots, \tau_n$ sowie $\tau$ Typen, $\alpha_1, \ldots, \alpha_m$
-die darin enthaltenden Typvariablen und $x_1, \ldots, x_n$ Variablenpattern
-sind, $e$ ein Ausdruck ist und $i \in \{\, 1, \ldots, n \,\}$ ist.
-
-Innerhalb von $f'$ muss eine modifizierte Übersetzung $\liftRec{f}{alt_j}$
-stattfinden. Davon sind die rekursiven Aufrufe von $f$ sowie die Verwendung
-von $x_i$ betroffen.
-
-Rekursive Aufrufe von $f$ müssen auf $f'$ umgeleitet werden. Dazu muss das
-$i$-te Argument aus der Monade entnommen werden. Das Entnehmen ist dabei nur
-erlaubt, da wir wissen, dass der äußerste Ausdruck in $f'$ eine
-Fallunterscheidung auf dem $i$-ten Argument durchführt.
+Für den $j$-ten `case`{.haskell}-Ausdruck in $e$ der Form
 
 ```haskell
-[$f$] [$e_1$] [$\ldots$] [$e_{i-1}$] [$e_i$] [$e_{i+1}$] [$\ldots$] [$e_n$]
+case [$x_i$] of
+  [$\vdots$]
 ```
+
+erzeugen wir eine Hilfsfunktion der Form
 
 ```coq
-[$\liftRec{f}{e_i}$] >>= fun([$x_{e_i}$] : [$\liftT{\tau_i}$]) =>
-  [$f'$] [$\liftRec{f}{e_1}$] [$\ldots$] [$\liftRec{f}{e_{i-1}}$] [$x_{e_i}$] [$\liftRec{f}{e_{i+1}}$] [$\ldots$] [$\liftRec{f}{e_n}$]
+Fixpoint [$f^{(j)}$] {[$\alpha_1$] [$\ldots$] [$\alpha_m$] : Type} ([$x_1$] : [$\lift{\tau_1}$]) [$\ldots$] ([$x_{i-1}$] : [$\lift{\tau_{i-1}}$])
+  ([$x_i$] : [$\liftT{\tau_i}$]) ([$x_{i+1}$] : [$\lift{\tau_{i+1}}$]) [$\ldots$] ([$x_n$] : [$\lift{\tau_n}$]) : [$\lift{\tau}$] :=
+  match [$x_i$] with
+  | [$\vdots$]
+  end.
 ```
 
-wobei $x_{e_i}$ eine frische Variable ist.
+wobei $\alpha_1, \ldots, \alpha_m$ die in der Funktionssignatur von $f$
+enthaltenden Typvariablen sind.
 
-Da innerhalb von $f$ die Variable $x_i$ nun nicht mehr einen monadischen Wert
-bezeichnet, muss bei der Verwendung von $x_i$ die Monade wieder hinzugefügt
-werden:
+Innerhalb der Hilfsfunktion wird eine modifizierte Übersetzung durchgeführt:
 
-$$
-  \liftRec{f}{x_i} = \mreturn{x_i}
-$$
+- Es ist zu beachten, dass $x_i$ innerhalb der Hilfsfunktion sich nicht in der
+  Monade befindet:
+
+  $$
+    \lift{x_i} = \mreturn{x_i}
+  $$
+
+- Alle rekursiven Aufrufe innerhalb der Hilfsfunktionen werden ersetzt, indem
+  die Definition der Hauptfunktion (siehe unten) eingesetzt wird (*inlining*).
+  Daher sind alle Hilfsfunktionen gegenseitig rekursiv und müssen in einem
+  einzigen `Fixpoint [$\ldots$] with [$\ldots$]` Sentence zusammengefasst
+  werden.
+
+Bei der Übersetzung der Hauptfunktion
+
+```coq
+Definition [$f$] {[$\alpha_1$] [$\ldots$] [$\alpha_m$] : Type} ([$x_1$] : [$\lift{\tau_1}$]) [$\ldots$] ([$x_n$] : [$\lift{\tau_n}$]) : [$\lift{\tau}$] := [$\lift{e}$]
+```
+
+wird der $j$-te `case`{.haskell}-Ausdruck der Form
+
+```haskell
+case [$x_i$] of
+  [$\vdots$]
+```
+
+durch einen Aufruf der entsprechenden Hilfsfunktion ersetzt:
+
+```coq
+[$x_i$] >>= fun([$x_i'$] : [$\liftT{\tau_i}$]) =>
+  [$f$] [$x_1$] [$\ldots$] [$x_{i-1}$] [$x_i'$] [$x_{i+1}$] [$\ldots$] [$x_n$]
+```
 
 ## Übersetzung von gegenseitig rekursiven Deklarationen
 

@@ -199,19 +199,107 @@ wobei $\tau$ ein beliebiger Typ ist.
 - Funktionen dürfen rekursiv definiert werden.
 - Es wird angestrebt, dass Funktionen auch gegenseitig rekursiv definiert
   werden können.
-- Wenn eine Funktion rekursiv definiert ist, dann muss sie eines ihrer
-  Argumente strukturell mithilfe eines `case`{.haskell}-Ausdrucks abbauen.
 
-Wir gehen davon aus, dass die Fallunterscheidung "ganz außen" durchgeführt
-wird, d.h. eine $n$-stellige rekursive Funktion $f$ hat die Form:
+Wenn eine Funktion rekursiv definiert ist, dann muss sie eines ihrer
+Argumente strukturell mithilfe eines `case`{.haskell}-Ausdrucks abbauen.
+D.h. für jede rekursive $n$-stellige Funktiondeklaration
 
 ```haskell
-[$f$] [$x_1$] [$\ldots$] [$x_n$] =
-  case [$x_i$] of
-    [$\vdots$]
+[$f$] [$x_1$] [$\ldots$] [$x_n$] = [$e$]
 ```
 
-wobei $i \in \{\, 1, \ldots, n \,\}$.
+existiert ein $i \in \{\, 1, \ldots, n \,\}$, sodass alle rekursiven Aufrufe
+von $f$ in $e$ ein Teilterm eines `case`{.haskell}-Ausdruck der Form
+
+```haskell
+case [$x_i$] of
+  [$\vdots$]
+```
+
+sind. Es muss sich dabei nicht für alle rekursiven Aufrufe um denselben
+`case`{.haskell}-Ausdruck handeln und es dürfen auch weitere
+Fallunterscheidungen durchgeführt werden.
+
+Das beim rekursiven Aufruf übergebene Argument muss desweiteren eine Variable
+sein, die nach folgender Definition strukturell kleiner ist als $x_i$:
+
+- Eine Variable $x$ ist strukturell kleiner als eine Variable $y_i$, wenn
+  ein `case`{.haskell}-Ausdruck der Form
+
+  ```haskell
+  case [$x$] of
+    [$\vdots$]
+    [$C$] [$y_1$] [$\ldots$] [$y_p$]
+    [$\vdots$]
+  ```
+
+  existiert, wobei $C$ ein $p$-stelliger Konstruktor und $i \le n$ ist.
+
+- Wenn eine Variable $y_1$ strukturell kleiner ist als eine Variable $y_2$
+  und $y_2$ strukturell kleiner als eine Variable $y_3$, dann ist auch $y_1$
+  strukturell kleiner als $y_3$.
+
+#### Beispiele
+
+Die folgenden rekursiv definierten Funktionen sind beispielsweise erlaubt:
+
+```{.haskell escapeinside="||"}
+-- Recursion requires a case expression.
+reverse :: [a] -> [a]
+reverse xs = case xs of
+  []      -> []
+  x : xs' -> reverse xs' ++ [x]
+
+-- The case expression does not have to be the outermost expression.
+tails :: [a] -> [[a]]
+tails xs = xs : case xs of
+  []      -> []
+  x : xs' -> tails xs'
+
+-- There may be unrelated case expressions (`zip` is decreasing on `xs`, but
+-- pattern matching on `ys` is still allowed).
+zip :: [a] -> [b] -> [(a, b)]
+zip xs ys = case xs of
+  []      -> []
+  x : xs' -> case ys of
+    []      -> []
+    y : ys' -> (x, y) : zip xs' ys'
+
+-- Case analysis in unrelated case expressions may be performed on arbitrary
+-- expressions (here `unzip ps'`) but the case expression for the decreasing
+-- argument (here `ps`) must be performed on a variable (`f ps` would not
+-- be allowed).
+unzip :: [(a, b)] -> ([a], [b])
+unzip ps = case ps of
+  []      -> ([], [])
+  p : ps' -> case p of
+    (x, y) -> case unzip ps' of
+      (xs, ys) -> (x : xs, y : ys)
+
+-- The following function removes every other element from a list.
+-- Since `zs` is structurally smaller than `ys` and `ys` is structurally
+-- smaller than `xs` the function is decreasing on `xs`. Without the
+-- transitivity rule described above this function would not be allowed.
+drop' :: [a] -> [a]
+drop' xs = case xs of
+  []   -> []
+  y:ys -> y : case ys of
+    []   -> []
+    z:zs -> drop' zs
+```
+
+Aber die folgenden Funktionen können nicht übersetzt werden:
+
+```haskell
+-- `repeat` does not structurally decrease it's argument at all.
+repeat :: a -> [a]
+repeat x = x : repeat x
+
+-- The factorial function does decrease on it's argument but does not use
+-- a case expression and `n - 1` ist not a variable.
+fac :: Int -> Int
+fac n = if n == 0 then 1 else n * fac (n - 1)
+```
 
 \newpage
 # Ausdrücke
