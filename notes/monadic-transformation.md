@@ -352,7 +352,7 @@ durch einen Aufruf der entsprechenden Hilfsfunktion ersetzt:
 
 ```coq
 [$x_i$] >>= fun([$x_i'$] : [$\liftT{\tau_i}$]) =>
-  [$f$] [$x_1$] [$\ldots$] [$x_{i-1}$] [$x_i'$] [$x_{i+1}$] [$\ldots$] [$x_n$]
+  [$f^{(j)}$] [$x_1$] [$\ldots$] [$x_{i-1}$] [$x_i'$] [$x_{i+1}$] [$\ldots$] [$x_n$]
 ```
 
 ## Übersetzung von gegenseitig rekursiven Deklarationen
