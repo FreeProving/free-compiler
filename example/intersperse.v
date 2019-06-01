@@ -43,7 +43,7 @@ Module IntersperseOneOldApproach.
   ```
 *)
 
-Fixpoint intersperseOneMatch' (xs : List Int) : option (List Int) :=
+Fixpoint intersperseOneMatch' (xs : List Int) : m (List Int) :=
   match xs with
   | Nil       => m_return Nil
   | Cons y ys =>
@@ -54,11 +54,11 @@ Fixpoint intersperseOneMatch' (xs : List Int) : option (List Int) :=
     ))
   end.
 
-Definition intersperseOneMatch (xs : option (List Int)) : option (List Int) :=
+Definition intersperseOneMatch (xs : m (List Int)) : m (List Int) :=
   xs >>= fun(xs' : List Int) =>
     intersperseOneMatch' xs'.
 
-Definition intersperseOne (xs : option (List Int)) : option (List Int) :=
+Definition intersperseOne (xs : m (List Int)) : m (List Int) :=
   m_return (Cons (m_return 1%Z) (intersperseOneMatch xs)).
 
 End IntersperseOneOldApproach.
@@ -77,7 +77,7 @@ Module IntersperseOneNewApproach.
   ```
 *)
 
-Fixpoint intersperseOne' (xs : List Int) : option (List Int) :=
+Fixpoint intersperseOne' (xs : List Int) : m (List Int) :=
   match xs with
   | Nil       => m_return Nil
   | Cons y ys =>
@@ -88,7 +88,7 @@ Fixpoint intersperseOne' (xs : List Int) : option (List Int) :=
     ))
   end.
 
-Definition intersperseOne (xs : option (List Int)) : option (List Int) :=
+Definition intersperseOne (xs : m (List Int)) : m (List Int) :=
   m_return (Cons (m_return 1%Z) (xs >>= fun(xs' : List Int) => intersperseOne' xs')).
 
 End IntersperseOneNewApproach.
