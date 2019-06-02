@@ -577,7 +577,7 @@ der `Partial`{.coq} Instanz $P_F$ benötigen.
 > inferien, falls bereits eine `Container`{.coq} Instanz definiert wurde.
 > Ein Vorteil des bisherigen Ansatzes ist, dass in indirekt partiell
 > definierten sichtbar ist, aufgrund der VErwendung welcher Funktion sie nicht
-> total ist. 
+> total ist.
 
 #### Totale Funktionen
 
@@ -876,7 +876,7 @@ wobei $e :: \tau$ sowie $e_1, \ldots, e_m :: \tau'$ Ausdrücke,
 $C_1, \ldots, C_m$ die Konstruktoren von $\tau$ sind und $x$ eine frische
 Variable ist.
 
-### Fehlerterme
+#### Fehlerterme
 
 Die `Partial`{.coq} Typklasse ermöglicht es die Fehlerterme sehr einfach zu
 übersetzen:

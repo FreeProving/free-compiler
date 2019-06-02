@@ -388,7 +388,7 @@ case [$e$] of
 wobei $e :: \tau$ sowie $e_1, \ldots, e_m :: \tau'$ Ausdrücke und
 $C_1, \ldots, C_m$ die Konstruktoren von $\tau$ sind.
 
-### Fehlerterme
+#### Fehlerterme
 
 Die Fehlerterme von nicht abgedeckten Fällen haben die Form:
 

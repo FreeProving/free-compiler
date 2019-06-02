@@ -678,7 +678,7 @@ wobei $e :: \tau$ sowie $e_1, \ldots, e_m :: \tau'$ Ausdrücke,
 $C_1, \ldots, C_m$ die Konstruktoren von $\tau$ sind und $x$ eine frische
 Variable ist.
 
-### Fehlerterme
+#### Fehlerterme
 
 Die Übersetzung der Fehlerterme hängt von der konfigurierten Monade ab.
 
