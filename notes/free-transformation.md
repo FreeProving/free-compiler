@@ -1,25 +1,25 @@
 ---
 title: |
-  Übersetzung von Haskell nach Coq
-  Monadische Transformation
+  Übersetzung von Haskell nach Coq \protect\
+  Verwendung der Free Monade
 author: Justin Andresen
 lang: de-DE
 pandoc-minted:
   default-attributes:
     escapeinside: "\\\\[\\\\]"
     mathescape: "true"
-    tabsize: "2"
-    breaklines: "true"
   default-block-attributes:
     numbersep: "5pt"
     frame: "lines"
     framesep: "2mm"
+    tabsize: "2"
+    breaklines: "true"
 ---
 
 \newcommand{\lift}[1]{{#1}^{\dagger}}
 \newcommand{\liftT}[1]{{#1}^{ * }}
-\newcommand{\m}[1]{m\,{#1}}
-\newcommand{\mreturn}[1]{\texttt{m\_return}\,{#1}}
+\newcommand{\free}[1]{\texttt{Free}\;C_F\;{#1}}
+\newcommand{\pure}[1]{\texttt{pure}\;{#1}}
 
 \newcommand{\type}{ * }
 \newcommand{\Int}{\texttt{Int}}
@@ -31,22 +31,29 @@ pandoc-minted:
 \newcommand{\false}{\texttt{false}}
 \newcommand{\List}{\texttt{List}}
 \newcommand{\Pair}{\texttt{Pair}}
+\newcommand{\undefined}{\texttt{undefined}}
+\newcommand{\error}[1]{\texttt{error #1}}
 
 \newpage
 # Eineitung
 
 In diesem Dokument wird beschrieben, wie die Haskellmodule, -ausdrücke und
--typen nach Coq übersetzt werden können und wie dabei Monaden eingesetzt
-werden müssen, sodass die Semantik des Haskellprogramms (insbesondere in Bezug
-auf partielle Funktionen und Lazy Auswertung) beibehalten wird. Dabei wird
-davon ausgegangen, dass der Haskellcode wie in `notes/input-format.md`
+-typen nach Coq übersetzt werden können und wie dabei die Free Monade
+eingesetzt werden kann, sodass die Semantik des Haskellprogramms (insbesondere
+in Bezug auf partielle Funktionen und Lazy Auswertung) beibehalten wird. Dabei
+wird davon ausgegangen, dass der Haskellcode wie in `notes/input-format.md`
 beschrieben aufgebaut ist.
 
-In diesem Dokument wird noch nicht konkret auf die *Free* Monade eingegangen.
-Hier bezeichne $m$ eine beliebige (konfigurierte) Monade mit den
-Operationen `>>=`{.coq} und `m_return`{.coq}.
-Das Prefix `m_`{.coq} wird benötigt, da da es sich bei `return`{.coq} um ein
-Schlüsselwort in Coq handelt.
+Dieses Dokument basiert auf der monadischen Transformation, wie sie in
+`notes/monadic-transformation.md` beschrieben worden ist. In diesem Dokument
+wird nun jedoch konkret auf die Verwendung der *Free* Monade eingegangen.
+Wir gehen hier davon aus, dass Datentypen und Operationen, wie sie in
+[One Monad to Prove Them All][Dylus2019] vorgestellt worden sind, bereits
+vordefiniert sind. Insbesondere werden die `Free`{.coq} Monade, die
+`Container`{.coq} Typklasse, die Funktoren `Zero` und `One` sowie deren
+`Container` Instanzen `C__Zero` bzw. `C__One` benötigt. Auf der *Free* Monade
+seien die Operationen `>>=`{.coq} und `pure`{.coq} (statt `m_return`{.coq})
+vordefiniert.
 
 Die hier skizzierten Übersetzungsregeln sowie die dabei verwendete Notation
 orientiert sich an der von [Abel et al.][Abel2005] vorgestellten Übersetzung
@@ -80,11 +87,19 @@ Ein Typ $\tau :: \type$ wird übersetzt, indem er in den monadischen Kontext
 gehoben wird.
 
 $$
-  \lift{\tau} = \m{\liftT{\tau}}
+  \lift{\tau} = \free{\liftT{\tau}}
 $$
 
+wobei $C_F$ die `Container`{.coq} Instanz des im jeweiligen Kontext[^context]
+betrachteten Funktors $F$ bezeichne.
+
+[^context]: $C_F$ und $F$ werden als Argumente an Funktions-, Typsynonym- und
+            Datentypdeklarationen übergeben.
+
 Darüber hinaus muss rekursiv (mithilfe von $\liftT{\tau}$) der Argument- und
-Rückgabetyp von jedem in $\tau$ enthaltenen Funtionstypen übersetzt werden.
+Rückgabetyp von jedem in $\tau$ enthaltenen Funtionstypen übersetzt werden
+sowie die `Container`{.coq} Instanz $C_F$ an genutzte Datentypen weitergereicht
+werden.
 
 - Für alle Typen $\tau_1, \tau_2 :: \type$:
 
@@ -92,21 +107,28 @@ Rückgabetyp von jedem in $\tau$ enthaltenen Funtionstypen übersetzt werden.
       \liftT{(\tau_1 \to \tau_2)} = \lift{\tau_1} \to \lift{\tau_2}
     $$
 
+- Für alle Datentypen $D$ und Typsynonymen $S$:
+
+    $$
+      \begin{aligned}
+        \liftT{D}    &= D\;C_F      \\
+        \liftT{S}    &= S\;C_F      \\
+      \end{aligned}
+    $$
+
 Ansonsten bleibt der Typausdruck unverändert:
 
-- Für alle Typvariablen $\alpha$, Datentypen $D$ und Typsynonymen $S$:
+- Für alle Typvariablen $\alpha$:
 
-    \begin{align*}
-      \liftT{\alpha} &= \alpha \\
-      \liftT{D}    &= D      \\
-      \liftT{S}    &= S      \\
-    \end{align*}
+    $$
+      \liftT{\alpha} = \alpha
+    $$
 
 - Für alle Typkonstruktoren $\tau_1 :: \type \to \kappa$ und Typen
   $\tau_2 :: \type$:
 
     $$
-      \liftT{(\tau_1\,\tau_2)} = \liftT{\tau_1} \, \liftT{\tau_2}
+      \liftT{(\tau_1\;\tau_2)} = \liftT{\tau_1} \; \liftT{\tau_2}
     $$
 
 ## Vordefinierte Datentypen
@@ -138,14 +160,18 @@ standardmäßig importierten Modul geeignet vordefiniert werden müssen.
 
 - $\liftT{\Bool} = \bool$
 
-  Der Typ `bool`{.coq} ist in Coq vordefiniert und hat die Konstruktoren
-  `true`{.coq} und `false`{.coq}. Um die auf `bool`{.coq} definierten
-  Funktionen und bereits existierenden Beweise beizubehalten, verwenden
-  wir diesen Datentyp bei der Übersetzung.
+    Der Typ `bool`{.coq} ist in Coq vordefiniert und hat die Konstruktoren
+    `true`{.coq} und `false`{.coq}. Um die auf `bool`{.coq} definierten
+    Funktionen und bereits existierenden Beweise beizubehalten, verwenden
+    wir diesen Datentyp bei der Übersetzung.
 
 ### Listen
 
-$\liftT{[\tau]} = \List\,\liftT{\tau}$, wobei $\tau :: \type$
+$$
+  \liftT{[\tau]} = \List\;C_F\;\liftT{\tau}
+$$
+
+wobei $\tau :: \type$
 
 Dabei sollte der Typ `List`{.coq} genau so definiert werden, wie der
 Compiler die folgende Datentypdeklaration übersetzen würde:
@@ -157,11 +183,13 @@ data List a = Nil | Cons a (List a)
 Hier gehen wir von folgender Übersetzung aus:
 
 ```coq
-Inductive List (a : Type) :=
-  | Nil : List a
-  | Cons : [$m$] a -> [$m$] (List a) -> List a.
-Arguments Nil {a}.
-Arguments Cons {a}.
+Inductive List {[$F$] : Type-> Type} ([$C_F$] : Container [$F$])
+  (a : Type) :=
+  | Nil  : List [$C_F$] a
+  | Cons : Free [$C_F$] a -> Free [$C_F$] (List [$C_F$] a) -> List [$C_F$] a.
+
+Arguments Nil  {[$F$]} {[$C_F$]} {a}.
+Arguments Cons {[$F$]} {[$C_F$]} {a}.
 ```
 
 ### Tupel
@@ -171,7 +199,7 @@ Arguments Cons {a}.
     Der Typ `unit`{.coq} ist in Coq vordefiniert und hat nur den Konstruktor
     `tt`{.coq}.
 
-- $\liftT{(\tau_1, \tau_2)} = \Pair\,\liftT{\tau_1}\,\liftT{\tau_2}$,
+- $\liftT{(\tau_1, \tau_2)} = \Pair\;C_F\;\liftT{\tau_1}\;\liftT{\tau_2}$,
   wobei $\tau_1, \tau_2 :: \type$ Typen sind.
 
     Dabei sollte der Typ `Pair`{.coq} genau so definiert werden, wie der
@@ -184,9 +212,10 @@ Arguments Cons {a}.
     Hier gehen wir von folgender Übersetzung aus:
 
     ```coq
-    Inductive Pair (a b : Type) :=
-      | Pair_ : [$m$] a -> [$m$] b -> Pair a b.
-    Arguments Pair_ {a} {b}.
+    Inductive Pair {[$F$] : Type -> Type} ([$C_F$] : Container [$F$])
+      (a b : Type) :=
+      | Pair_ : Free [$C_F$] a -> Free [$C_F$] b -> Pair [$C_F$] a b.
+    Arguments Pair_ {[$F$]} {[$C_F$]} {a} {b}.
     ```
 
 \newpage
@@ -202,11 +231,12 @@ data [$D$] [$\alpha_1$] [$\ldots$] [$\alpha_m$] =
 ```
 
 ```coq
-Inductive [$D$] ([$\alpha_1$] [$\ldots$] [$\alpha_m$] : Type) : Type :=
-  | [$C_1$] : [$\lift{\tau_{1,1}}$] -> [$\ldots$] -> [$\lift{\tau_{1,p_1}}$] -> [$D$] [$\alpha_1$] [$\ldots$] [$\alpha_m$]
-  | [$C_2$] : [$\lift{\tau_{2,1}}$] -> [$\ldots$] -> [$\lift{\tau_{2,p_2}}$] -> [$D$] [$\alpha_1$] [$\ldots$] [$\alpha_m$]
+Inductive [$D$] {[$F$] : Type -> Type} ([$C_F$] : Container [$F$])
+  ([$\alpha_1$] [$\ldots$] [$\alpha_m$] : Type) : Type :=
+  | [$C_1$] : [$\lift{\tau_{1,1}}$] -> [$\ldots$] -> [$\lift{\tau_{1,p_1}}$] -> [$D$] [$C_F$] [$\alpha_1$] [$\ldots$] [$\alpha_m$]
+  | [$C_2$] : [$\lift{\tau_{2,1}}$] -> [$\ldots$] -> [$\lift{\tau_{2,p_2}}$] -> [$D$] [$C_F$] [$\alpha_1$] [$\ldots$] [$\alpha_m$]
   | [$\ldots$]
-  | [$C_n$] : [$\lift{\tau_{n,1}}$] -> [$\ldots$] -> [$\lift{\tau_{n,p_n}}$] -> [$D$] [$\alpha_1$] [$\ldots$] [$\alpha_m$].
+  | [$C_n$] : [$\lift{\tau_{n,1}}$] -> [$\ldots$] -> [$\lift{\tau_{n,p_n}}$] -> [$D$] [$C_F$] [$\alpha_1$] [$\ldots$] [$\alpha_m$].
 ```
 
 wobei $\alpha_1, \ldots, \alpha_n$ Typvariablen, $C_1, \ldots, C_m$
@@ -214,12 +244,13 @@ die Konstruktoren von $D$, und $\tau_{i,1}, \ldots \tau_{i,p_i}$ für alle
 $i \in \{\, 1, \ldots, m \,\}$ Typen sind.
 
 Zusätzlich wird für jeden Konstruktor spezifiziert, dass die Typparameter
-optional sind.
+optional sind. Die `Container`{.coq} Instanz übergeben wir jedoch immer
+explizit.
 
 ```coq
-Arguments [$C_1$] {[$\alpha_1$]} [$\ldots$] {[$\alpha_m$]}.
+Arguments [$C_1$] {[$F$]} {[$C_F$]} {[$\alpha_1$]} [$\ldots$] {[$\alpha_m$]}.
 [$\vdots$]
-Arguments [$C_n$] {[$\alpha_1$]} [$\ldots$] {[$\alpha_m$]}.
+Arguments [$C_n$] {[$F$]} {[$C_F$]} {[$\alpha_1$]} [$\ldots$] {[$\alpha_m$]}.
 ```
 
 \newpage
@@ -230,7 +261,9 @@ type [$S$] [$\alpha_1$] [$\ldots$] [$\alpha_m$] = [$\tau$]
 ```
 
 ```coq
-Definition [$S$] ([$\alpha_1$] [$\ldots$] [$\alpha_m$] : Type) := [$\liftT{\tau}$].
+Definition [$S$]
+  {[$F$] : Type -> Type} ([$C_F$] : Container [$F$])
+  ([$\alpha_1$] [$\ldots$] [$\alpha_m$] : Type) := [$\liftT{\tau}$].
 ```
 
 wobei $\alpha_1, \ldots, \alpha_n$ Typvariablen sind und $\tau$ ein Typ oder
@@ -239,16 +272,27 @@ Typkonstruktor ist.
 Wir übersetzen hier $\tau$ als $\liftT{\tau}$ und nicht als
 $\lift{\tau}$, da es egal sein soll, ob zuerst übersetzt und dann das Typsynonym
 expandiert wird oder an­ders­he­r­um.
-Übersetzt man zunächst $S$ zu $\lift{S} = \m{\liftT{S}} = \m{S}$ und expandiert
-dann $S$ zu $\liftT{\tau}$, erhält man $\m{\liftT{\tau}}$. Andersherum würde
+Übersetzt man zunächst $S$ zu $\lift{S} = \free{\liftT{S}} = \free{S}$ und expandiert
+dann $S$ zu $\liftT{\tau}$, erhält man $\free{\liftT{\tau}}$. Andersherum würde
 man zunächst $S$ zu $\tau$ expandieren und dann zu
-$\lift{\tau} = \m{\liftT{\tau}}$ übersetzten. Würde man in der
-Tysynonymdeklaration hingegen $\tau$ zu $\lift{\tau} = \m{\liftT{\tau}}$
+$\lift{\tau} = \free{\liftT{\tau}}$ übersetzten. Würde man in der
+Tysynonymdeklaration hingegen $\tau$ zu $\lift{\tau} = \free{\liftT{\tau}}$
 übersetzen, so erhilte man beim Expandieren von $S$ im Coq Code
-$\m{(\m{\liftT{\tau}})}$.
+$\free{(\free{\liftT{\tau}})}$.
 
 \newpage
 ## Übersetzung von Funktionsdeklaration
+
+Wir müssen Funktionen die total und partiell definiert sind separat betrachten,
+da totale Funktionen mit beliebigen Monaden instanziert werden können, aber
+partielle Funktionen nicht mit der `Identity`{.coq} Monade. Insbesondere
+benötigen partielle Funktionen weitere Informationen darüber, wie mit
+Fehlertermen (`undefined`{.haskell} und `error "..."`{.haskell}) umgegangen
+werden soll.
+
+Wir betrachten zunächst totale Funktionsdeklarationen und unterscheiden
+weiter, ob die Funktion rekursiv definiert ist oder nicht.
+
 ### Nicht-rekursive Funktionen
 
 ```haskell
@@ -257,7 +301,9 @@ $\m{(\m{\liftT{\tau}})}$.
 ```
 
 ```coq
-Definition [$f$] {[$\alpha_1$] [$\ldots$] [$\alpha_m$] : Type} ([$x_1$] : [$\lift{\tau_1}$]) [$\ldots$] ([$x_n$] : [$\lift{\tau_n}$]) : [$\lift{\tau}$]
+Definition [$f$]
+  {[$F$] : Type -> Type} ([$C_F$] : Container [$F$])
+  {[$\alpha_1$] [$\ldots$] [$\alpha_m$] : Type} ([$x_1$] : [$\lift{\tau_1}$]) [$\ldots$] ([$x_n$] : [$\lift{\tau_n}$]) : [$\lift{\tau}$]
   := [$\lift{e}$].
 ```
 
@@ -270,7 +316,7 @@ Optimierung. Ohne die Optimierung wäre der Typ von $f$ nach der Übersetzung:
 
 $$
   \lift{(\tau_1 \to \ldots \to \tau_n \to \tau)}
-  = \m{(\lift{\tau_1} \to \m{(\ldots \to \m{(\lift{\tau_n} \to \tau)})} \ldots)}
+  = \free{(\lift{\tau_1} \to \free{(\ldots \to \free{(\lift{\tau_n} \to \tau)})} \ldots)}
 $$
 
 mit der Optimierung entfallen die monadischen Zwischenergebnisse:
@@ -297,9 +343,6 @@ rekursiv definiert ist:
 [$f$] [$x_1$] [$\ldots$] [$x_n$] = [$e$]
 ```
 
-wobei $\tau_1, \ldots, \tau_n$ sowie $\tau$ Typen und $x_1, \ldots, x_n$
-Variablenpattern sind und $e$ ein Ausdruck ist.
-
 Für den $j$-ten `case`{.haskell}-Ausdruck in $e$ der Form
 
 ```haskell
@@ -310,7 +353,9 @@ case [$x_i$] of
 erzeugen wir eine Hilfsfunktion der Form
 
 ```coq
-Fixpoint [$f^{(j)}$] {[$\alpha_1$] [$\ldots$] [$\alpha_m$] : Type} ([$x_1$] : [$\lift{\tau_1}$]) [$\ldots$] ([$x_{i-1}$] : [$\lift{\tau_{i-1}}$])
+Fixpoint [$f^{(j)}$]
+  {[$F$] : Type -> Type} ([$C_F$] : Container [$F$])
+  {[$\alpha_1$] [$\ldots$] [$\alpha_m$] : Type} ([$x_1$] : [$\lift{\tau_1}$]) [$\ldots$] ([$x_{i-1}$] : [$\lift{\tau_{i-1}}$])
   ([$x_i$] : [$\liftT{\tau_i}$]) ([$x_{i+1}$] : [$\lift{\tau_{i+1}}$]) [$\ldots$] ([$x_n$] : [$\lift{\tau_n}$]) : [$\lift{\tau}$] :=
   match [$x_i$] with
   | [$\vdots$]
@@ -326,7 +371,7 @@ Innerhalb der Hilfsfunktion wird eine modifizierte Übersetzung durchgeführt:
   Monade befindet:
 
   $$
-    \lift{x_i} = \mreturn{x_i}
+    \lift{x_i} = \pure{x_i}
   $$
 
 - Alle rekursiven Aufrufe innerhalb der Hilfsfunktionen werden ersetzt, indem
@@ -338,7 +383,9 @@ Innerhalb der Hilfsfunktion wird eine modifizierte Übersetzung durchgeführt:
 Bei der Übersetzung der Hauptfunktion
 
 ```coq
-Definition [$f$] {[$\alpha_1$] [$\ldots$] [$\alpha_m$] : Type} ([$x_1$] : [$\lift{\tau_1}$]) [$\ldots$] ([$x_n$] : [$\lift{\tau_n}$]) : [$\lift{\tau}$] := [$\lift{e}$]
+Definition [$f$]
+  {[$F$] : Type -> Type} ([$C_F$] : Container [$F$])
+  {[$\alpha_1$] [$\ldots$] [$\alpha_m$] : Type} ([$x_1$] : [$\lift{\tau_1}$]) [$\ldots$] ([$x_n$] : [$\lift{\tau_n}$]) : [$\lift{\tau}$] := [$\lift{e}$]
 ```
 
 wird der $j$-te `case`{.haskell}-Ausdruck der Form
@@ -352,8 +399,108 @@ durch einen Aufruf der entsprechenden Hilfsfunktion ersetzt:
 
 ```coq
 [$x_i$] >>= fun([$x_i'$] : [$\liftT{\tau_i}$]) =>
-  [$f^{(j)}$] [$x_1$] [$\ldots$] [$x_{i-1}$] [$x_i'$] [$x_{i+1}$] [$\ldots$] [$x_n$]
+  [$f^{(j)}$] [$C_F$] [$x_1$] [$\ldots$] [$x_{i-1}$] [$x_i'$] [$x_{i+1}$] [$\ldots$] [$x_n$]
 ```
+
+## Übersetzung von partiellen Funktionen
+
+Wir bezeichnen die Definition einer Funktion $f$ als partiell, wenn in $e$
+ein Fehlerterm vorkommt oder eine partielle Funktion verwendet wird. Beide
+der folgenden Funktionen sind also partiell definiert:
+
+```haskell
+-- Contains an error term.
+head :: [a] -> a
+head xs = case xs of
+  []      -> undefined
+  x : xs' -> x
+
+-- Uses a partial function.
+last :: [a] -> a
+last xs = head (reverse xs)
+```
+
+Es ist hingegen unproblematisch, wenn eine als Argument übergebene Funktion
+aufgerufen wird, obwohl diese auch partiell definiert sein könnte.
+Folgende Funktion ist also nicht partiell sondern total definiert:
+
+```haskell
+map :: (a -> b) -> [a] -> [b]
+map f xs = case xs of
+  []    -> []
+  x:xs' -> f x : map f xs'
+  --       ^ Allowed even though `f` might be defined partially.
+```
+
+Bei der Übersetzung von partiellen Funktionen weitere Informationen darüber,
+wie mit den Fehlertermen `undefined`{.haskell} und `error "..."`{.haskell}
+umgegangen werden soll. Dazu definieren wir in Coq eine Typklasse die für einen
+Funktor $F$ neben der `Container`{.coq} Instanz $C_F$ auch Operationen
+bereitstellt, mit denen die Fehlerterme übersetzt werden können.
+
+```coq
+Require Import Coq.Strings.String.
+
+Class Partial ([$F$] : Type -> Type) :=
+  {
+    [$C_F$] : Container [$F$];
+    undefined : forall {A : Type}, Free [$C_F$] A;
+    error : forall {A : Type}, string -> Free [$C_F$] A
+  }.
+```
+
+Instanzen dieser Typklasse bezeichnen wir im folgenden mit $P_F$.
+Für den Funktor `One`{.coq} sähe eine mögliche Instanz wie folgt aus:
+
+```coq
+Instance [$P_{One}$] : Partial One :=
+  {
+    [$C_F$] := [$C_{One}$];
+    undefined := fun {A : Type} => Nothing;
+    error     := fun {A : Type} (msg : string) => Nothing
+  }.
+```
+
+Nun muss in der Übersetzung von $f$ nur die Typklasse ausgewechselt werden.
+Die Vorkommen von $C_F$ werden von Coq automatisch inferiert.
+
+```coq
+Definition [$f$]
+  {[$F$] : Type -> Type} ([$P_F$] : Partial [$F$])
+  {[$\alpha_1$] [$\ldots$] [$\alpha_m$] : Type} ([$x_1$] : [$\lift{\tau_1}$]) [$\ldots$] ([$x_n$] : [$\lift{\tau_n}$]) : [$\lift{\tau}$]
+  := [$\lift{e}$].
+```
+
+Analog ist bei der Übersetzung von rekursiv definierten Funktionen und deren
+Hilfsfunktionen vorzugehen.
+
+Beim Aufruf partieller Funktionen innerhalb von $f$ muss darauf geachtet werden,
+dass $P_F$ statt $C_F$ übergeben wird (siehe dazu den Abschnitt über
+Funktionsanwendungen). Betrachte beispielsweise den Aufruf:
+
+```haskell
+map head xss
+```
+
+Dieser wird zunächst per $\eta$-Konversion wie folgt umgewandelt:
+
+```haskell
+map (\xs -> head xs) xss
+```
+
+Da `head`{.haskell} partiell definiert ist, muss nach der Übersetzung $P_F$
+übergeben werden, aber `map`{.haskell} nur $C_F$, da es sich um eine total
+definierte Funktion handelt.
+
+```coq
+map [$C_F$] (pure (fun(xs) => head [$P_F$] xs)) xss
+```
+
+Dieses Beispiel verdeutlicht auch, warum `map`{.haskell} tatsächlich als total
+behandelt werden darf: alle Zusatzinformationen, die `head`{.coq} benötigt
+wurden bereits vor dem Aufruf von `map`{.coq} übergeben. Also muss `map`{.coq}
+selber nicht über diese Informationen Verfügen, um die Funktion aufrufen zu
+können.
 
 ## Übersetzung von gegenseitig rekursiven Deklarationen
 
@@ -400,7 +547,7 @@ mithilfe einer Lambda-Abstraktion hinzugefügt.
 muss genau so übersetzt werden, wie
 
 ```haskell
-\[$x_{i+1}$] $\ldots$ [$x_n$] -> [$f$] [$e_1$] [$\ldots$] [$e_i$] [$x_{i+1}$] $\ldots$ [$x_n$]
+\[$x_{i+1}$] [$\ldots$] [$x_n$] -> [$f$] [$e_1$] [$\ldots$] [$e_i$] [$x_{i+1}$] [$\ldots$] [$x_n$]
 ```
 
 wobei $x_{i+1}, \ldots, x_n$ frische Variablen sind.
@@ -413,14 +560,43 @@ Funktionsanwendung vollständig ist.
 Bei einer vollständigen Anwendung einer definierten Funktion
 `[$f$] :: [$\tau_1$] -> [$\ldots$] -> [$\tau_n$] -> [$\tau$]`{.haskell}
 auf Ausdrücke $e_1 :: \tau_1$, $\ldots$, $e_n :: \tau_n$
-müssen nur die Argumente rekursiv übersetzt werden:
+müssen nur die Argumente rekursiv übersetzt werden und die `Container`{.coq}
+Instanz propagiert werden.
+
+Dazu unterscheiden wir, ob es sich um eine partiell oder total definierte
+Funktion handelt. Totalen Funktionen wird nur die `Container`{.coq} Instanz
+$C_F$ übergeben, wohingegen partielle Funktionen die Zusatzinformationen aus
+der `Partial`{.coq} Instanz $P_F$ benötigen.
+
+> Meine bisherigen Tests suggerieren, dass es auch möglich wäre in der
+> Funktionsdeklaration $C_F$ bzw. $P_F$ als implizit zu kennzeichnen.
+> Dann müsste man bei den Funktionsaufrufen keine solche Unterscheidung mehr
+> machen und der generierte Code wäre lesbarer. Die Frage ist jedoch, ob Coq in
+> jedem Fall in der Lage ist diese Parameter zu inferien. Coq ist
+> beispielsweise nicht in der Lage $C_F$ in einem Typausdruck korrekt zu
+> inferien, falls bereits eine `Container`{.coq} Instanz definiert wurde.
+> Ein Vorteil des bisherigen Ansatzes ist, dass in indirekt partiell
+> definierten sichtbar ist, aufgrund der VErwendung welcher Funktion sie nicht
+> total ist. 
+
+#### Totale Funktionen
 
 ```haskell
 [$f$] [$e_1$] [$\ldots$] [$e_n$]
 ```
 
 ```coq
-[$f$] [$\lift{e_1}$] [$\ldots$] [$\lift{e_n}$]
+[$f$] [$C_F$] [$\lift{e_1}$] [$\ldots$] [$\lift{e_n}$]
+```
+
+#### Partielle Funktionen
+
+```haskell
+[$f$] [$e_1$] [$\ldots$] [$e_n$]
+```
+
+```coq
+[$f$] [$P_F$] [$\lift{e_1}$] [$\ldots$] [$\lift{e_n}$]
 ```
 
 ### Anwendung von Konstruktoren
@@ -432,21 +608,36 @@ in Coq den Typ `[$\lift{\tau_1}$] -> [$\ldots$] -> [$\lift{\tau_n}$] -> [$D$] [$
 Das Ergebnis der Konstruktoranwendung befindet sich also nicht in einem
 monadischen Kontext. Daher kann die oben stehende Übersetzungsregel für
 definierte Funktionen nicht verwendet werden, sondern es muss ein weiteres
-`m_return`{.coq} eingefügt werden.
+`pure`{.coq} eingefügt werden.
 
 ```haskell
 [$C$] [$e_1$] [$\ldots$] [$e_n$]
 ```
 
 ```coq
-m_return ([$C$] [$\lift{e_1}$] [$\ldots$] [$\lift{e_n}$])
+pure ([$C$] [$\lift{e_1}$] [$\ldots$] [$\lift{e_n}$])
 ```
 
 Dies gilt auch bei nullstelligen Konstruktoren:
 
 ```coq
-m_return [$C$]
+pure [$C$]
 ```
+
+Da wir für jeden Konstruktor $C$ festgelegt haben, dass Typargumente sowie
+der Funktor und die `Container`{.coq} Instanz implizit sind
+
+```coq
+Arguments [$C$] {[$F$]} {[$C_F$]} {[$\alpha_1$]} [$\ldots$] {[$\alpha_m$]}
+```
+
+muss oben in beiden Fällen [$C_F$] nicht übergeben werden.
+
+> Auch hier stellt sich die Frage, ob Coq in jedem Fall in der Lage ist $C_F$
+> zu inferien. Im Gegensatz zu Funktionsanwendungen wurde sich hier vorest
+> dagegen entschieden $C_F$ explizit zu übergeben, da ansonsten im Pattern
+> Matching dieses zusätzliche Argument behandelt werden müsste (mit einem
+> zusätzlichen `_`{.coq} Pattern).
 
 ### Anwendung vordefinierter Funktionen
 
@@ -456,10 +647,11 @@ Gegenstücke dieser Operationen in Coq kann man nicht direkt auf die monadischen
 Werte anwenden:
 
 ```coq
-Fail Compute None + None.
+Fail Compute (pure 42) + (pure 1337).
 (*
   ==> The command has indeed failed with message:
-  The term "None" has type "option ?A" while it is expected to have type "nat".
+  The term "pure 42" has type "Free ?C__F nat"
+  while it is expected to have type "nat".
 *)
 ```
 
@@ -479,7 +671,7 @@ $\lift{f} :: \liftT{\tau_1} \to \ldots \to \liftT{\tau_n} \to \liftT{\tau}$
 ```coq
 [$\lift{e_1}$] >>= fun([$x_1$] : [$\liftT{\tau_1}$]) => ( [$\ldots$] (
   [$\lift{e_n}$] >>= fun([$x_n$] : [$\liftT{\tau_n}$]) =>
-    m_return ([$\lift{f}$] [$x_1$] [$\ldots$] [$x_n$])
+    pure ([$\lift{f}$] [$x_1$] [$\ldots$] [$x_n$])
 ) [$\ldots$] )
 ```
 
@@ -494,10 +686,12 @@ Für `(+)`{.haskell} könnte man in Coq beispielsweise folgende Funktion
 in Coq auf `nat` definieren:
 
 ```coq
-Definition plus (n1 : [$m$] nat) (n2 : [$m$] nat) : [$m$] nat :=
+Definition plus
+  {[$F$] : Type -> Type} ([$C_F$] : Container[$F$])
+  (n1 : Free [$C_F$] nat) (n2 : Free [$C_F$] nat) : Free [$C_F$] nat :=
   n1 >>= fun(n1' : nat) =>
     n2 >>= fun(n2' : nat) =>
-      m_return (n1' + n2').
+      pure (n1' + n2').
 ```
 
 `plus`{.coq} kann genauso verwendet werden, wie jede in Haskell definierte
@@ -510,10 +704,12 @@ werden. Es muss dazu nicht die Übersetzung von Funktionsanwendungen angepasst
 werden sondern lediglich die vordefinierte Funktion `plus`{.coq}:
 
 ```coq
-Definition plus (z1 : [$m$] Z) (z2 : [$m$] Z) : [$m$] Z :=
+Definition plus
+  {[$F$] : Type -> Type} ([$C_F$] : Container[$F$])
+  (z1 : Free [$C_F$] Z) (z2 : Free [$C_F$] Z) : Free [$C_F$] Z :=
   z1 >>= fun(z1' : Z) =>
     z2 >>= fun(z2' : Z) =>
-      m_return (Z.add z1' z2').
+      pure (Z.add z1' z2').
 ```
 
 ### Sonstige Funktionsanwendungen
@@ -533,7 +729,7 @@ Durch die Übersetzung wird dieser in einen monadischen Kontext gehoben:
 
 $$
   \begin{aligned}
-    \lift{e_1} &:: \m{(\lift{\tau} \to \lift{\tau'})} \\
+    \lift{e_1} &:: \free{(\lift{\tau} \to \lift{\tau'})} \\
     \lift{e_2} &:: \lift{\tau}
   \end{aligned}
 $$
@@ -631,8 +827,10 @@ wobei $e_1 :: \Int$ ein Ausdruck ist.
 Diese wird in Coq wie folgt vordefiniert:
 
 ```coq
-Definition negate (n : [$m$] Int) : [$m$] Int :=
-  n >>= fun(n' : Int) => m_return (Z.opp n').
+Definition negate
+  {[$F$] : Type -> Type} ([$C_F$] : Container [$F$])
+  (n : Free [$C_F$] Int) : Free [$C_F$] Int :=
+  n >>= fun(n' : Int) => pure (Z.opp n').
 ```
 
 ## Bedingungen
@@ -680,7 +878,11 @@ Variable ist.
 
 ### Fehlerterme
 
-Die Übersetzung der Fehlerterme hängt von der konfigurierten Monade ab.
+Die `Partial`{.coq} Typklasse ermöglicht es die Fehlerterme sehr einfach zu
+übersetzen:
+
+- $\lift{\undefined} = \undefined$
+- $\lift{(\error{"<error message>")}} = \error{"<error message>"}$
 
 ## Lambda Abstraktionen
 
@@ -689,7 +891,7 @@ Die Übersetzung der Fehlerterme hängt von der konfigurierten Monade ab.
 ```
 
 ```coq
-m_return (fun([$x_1$] [$\ldots$] [$x_n$]) => [$\lift{e}$])
+pure (fun([$x_1$] [$\ldots$] [$x_n$]) => [$\lift{e}$])
 ```
 
 wobei $x_1, \ldots x_n$ Variablenpattern sind und $e$ ein Ausdruck ist.
@@ -710,17 +912,17 @@ wobei $x_1, \ldots x_n$ Variablenpattern sind und $e$ ein Ausdruck ist.
     ```
 
     ```coq
-    m_return 0%Z
-    m_return 42%Z
-    m_return 162%Z
-    m_return 493%Z
+    pure 0%Z
+    pure 42%Z
+    pure 162%Z
+    pure 493%Z
     ```
 
 - Boolsche Werte müssen bei der Übersetzung nur umbenannt und in die Monade
   gehoben werden:
 
-    + $\lift{\True} = \mreturn \true$
-    + $\lift{\False} = \mreturn \false$
+    + $\lift{\True} = \pure{\true}$
+    + $\lift{\False} = \pure{\false}$
 
 ### Listen
 
@@ -729,9 +931,9 @@ werden in die vordefinierten Konstruktoren `Nil`{.coq} bzw. `Cons`{.coq}
 übersetzt. Für die Anwendung dieser Konstruktoren gelten dann die oben
 stehenden Übersetzungsregeln. D.h.
 
-- `[]`{.haskell escapeinside="||"} wird mit `m_return Nil`{.coq} und
+- `[]`{.haskell escapeinside="||"} wird mit `pure Nil`{.coq} und
 - `[$e_1$] : [$e_2$]`{.haskell}, wobei $e_1 :: \tau$ und $e_2 :: [\tau]$
-  Ausdrücke sind, wird mit `m_return (Cons [$\lift{e_1}$] [$\lift{e_2}$])`
+  Ausdrücke sind, wird mit `pure (Cons [$\lift{e_1}$] [$\lift{e_2}$])`
 
 übersetzt.
 
@@ -752,19 +954,19 @@ generieren, der eigene Notationen wie
 
 ```coq
 Notation "[]" := Nil.
-Notation "[ x0 ]" := (Cons x0 (m_return Nil)).
+Notation "[ x0 ]" := (Cons x0 (pure Nil)).
 Notation "[ x0 ; x1 ; .. ; xn ]" :=
-  (Cons x0 (m_return (Cons x1 .. (m_return (Cons xn (m_return Nil))) ..))).
+  (Cons x0 (pure (Cons x1 .. (pure (Cons xn (pure Nil))) ..))).
 ```
 
 verwenden. Dennoch könnten die oben stehende Notationen dazu genutzt werden,
-um Code innerhalb von Beweisen lesbarer zu machen. Alternativ kann auch das
-`m_return` "versteck" werden:
+um Code innerhalb von Beweisen lesbarer zu machen. Alternativ kann auch der
+`pure` Konstruktor "versteck" werden:
 
 ```coq
-Notation "[]" := (m_return Nil).
+Notation "[]" := (pure Nil).
 Notation "[ x0 ; .. ; xn ]" :=
-  (m_return (Cons x0 .. (m_return (Cons xn (m_return Nil))) ..)).
+  (pure (Cons x0 .. (pure (Cons xn (pure Nil))) ..)).
 ```
 
 ### Tuple
@@ -774,9 +976,9 @@ Die Konstruktoren für nullelementige Tupel `()`{.haskell} und Paare
 bzw. `Pair_`{.coq} übersetzt. Für die Anwendung dieser Konstruktoren gelten
 dann die oben stehenden Übersetzungsregeln.D.h.
 
-- `()`{.haskell} wird mit `m_return tt`{.coq} und
+- `()`{.haskell} wird mit `pure tt`{.coq} und
 - `([$e_1$], [$e_2$])`{.haskell}, wobei $e_1$ und $e_2$ Ausdrücke sind,
-  wird mit `m_return (Pair_ [$\lift{e_1}$] [$\lift{e_2}$])`{.coq}
+  wird mit `pure (Pair_ [$\lift{e_1}$] [$\lift{e_2}$])`{.coq}
 
 übersetzt.
 
@@ -784,10 +986,11 @@ Auch in diesem Fall wäre es möglich über eigene Notationen die Lesbarkeit
 zu verbessern:
 
 ```coq
-Notation "()" := (m_return tt).
-Notation "( x , y )" := (m_return (Pair_ x y)).
+Notation "()" := (pure tt).
+Notation "( x , y )" := (pure (Pair_ x y)).
 ```
 
 [Abel2005]: http://www2.tcs.ifi.lmu.de/~abel/haskell05.pdf
+[Dylus2019]: https://arxiv.org/pdf/1805.08059.pdf
 [Jessen2019]: https://github.com/beje8442/haskellToCoqCompiler
 [language-coq]: https://github.com/just95/language-coq
