@@ -390,7 +390,7 @@ alle erwarteten Argumente angegeben worden sind.
 
 Wenn $f$ ein $n$-steliges Funktions- oder Konstruktorsymbol ist, welches auf
 $i < n$ Ausdrücke $e_1, \ldots, e_i$ angewendet wird, muss eine $\eta$-
-Transformation durchgeführt werden, d.h. die fehlenden Argumente werden
+Konversion durchgeführt werden, d.h. die fehlenden Argumente werden
 mithilfe einer Lambda-Abstraktion hinzugefügt.
 
 ```haskell
@@ -486,7 +486,7 @@ $\lift{f} :: \liftT{\tau_1} \to \ldots \to \liftT{\tau_n} \to \liftT{\tau}$
 wobei $x_1, \ldots, x_n$ frische Variablen sind.
 
 Dadurch wird der entstehende Code unleserlich. Im Fall von partiellen
-Anwendungen wird der Effekt aufgrund der $\eta$-Transformationen noch
+Anwendungen wird der Effekt aufgrund der $\eta$-Konversionen noch
 verstärkt. Das Problem lässt sich umgehen, indem in Coq nicht die eingebauten
 Operationen verwendet werden, sondern eigene *wrapper* Funktionen vordefiniert
 werden, deren Interface dem einer regulär übersetzten Funktion entspricht.
