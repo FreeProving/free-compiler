@@ -1,26 +1,5 @@
-(******************************************************************************
- * Predefined functions and datatypes                                         *
- *****************************************************************************)
-
-Require Import ZArith.
-Definition Int : Type := Z.
-
-Definition m : Type -> Type := option.
-Definition m_return {a : Type} (x : a) : m a := Some x.
-Definition m_bind {a b : Type} (mx : m a) (f : a -> m b) : m b :=
-  match mx with
-  | None   => None
-  | Some x => f x
-  end.
-
-Notation "mx >>= f" := (m_bind mx f) (left associativity, at level 50).
-
-Inductive List (a : Type) : Type :=
-  | Nil  : List a
-  | Cons : m a -> m (List a) -> List a.
-
-Arguments Nil {a}.
-Arguments Cons {a}.
+From Base Require Import Prelude.
+From Base Require Import Free.
 
 (*****************************************************************************)
 
@@ -43,23 +22,29 @@ Module IntersperseOneOldApproach.
   ```
 *)
 
-Fixpoint intersperseOneMatch' (xs : List Int) : m (List Int) :=
+Fixpoint intersperseOneMatch'
+  {F : Type -> Type} (C__F : Container F)
+  (xs : List C__F Int) : Free C__F (List C__F Int) :=
   match xs with
-  | Nil       => m_return Nil
+  | Nil       => pure Nil
   | Cons y ys =>
-    m_return (Cons y (
-      m_return (Cons (m_return 1%Z) (
-        ys >>= fun(ys' : List Int) => intersperseOneMatch' ys'
+    pure (Cons y (
+      pure (Cons (pure 1%Z) (
+        ys >>= fun(ys' : List C__F Int) => intersperseOneMatch' C__F ys'
       ))
     ))
   end.
 
-Definition intersperseOneMatch (xs : m (List Int)) : m (List Int) :=
-  xs >>= fun(xs' : List Int) =>
-    intersperseOneMatch' xs'.
+Definition intersperseOneMatch
+  {F : Type -> Type} (C__F : Container F)
+  (xs : Free C__F (List C__F Int)) : Free C__F (List C__F Int) :=
+  xs >>= fun(xs' : List C__F Int) =>
+    intersperseOneMatch' C__F xs'.
 
-Definition intersperseOne (xs : m (List Int)) : m (List Int) :=
-  m_return (Cons (m_return 1%Z) (intersperseOneMatch xs)).
+Definition intersperseOne
+  {F : Type -> Type} (C__F : Container F)
+  (xs : Free C__F (List C__F Int)) : Free C__F (List C__F Int) :=
+  pure (Cons (pure 1%Z) (intersperseOneMatch C__F xs)).
 
 End IntersperseOneOldApproach.
 
@@ -77,19 +62,25 @@ Module IntersperseOneNewApproach.
   ```
 *)
 
-Fixpoint intersperseOne' (xs : List Int) : m (List Int) :=
+Fixpoint intersperseOne'
+  {F : Type -> Type} (C__F : Container F)
+  (xs : List C__F Int) : Free C__F (List C__F Int) :=
   match xs with
-  | Nil       => m_return Nil
+  | Nil       => pure Nil
   | Cons y ys =>
-    m_return (Cons y (
-      m_return (Cons (m_return 1%Z) (
-        ys >>= fun(ys' : List Int) => intersperseOne' ys'
+    pure (Cons y (
+      pure (Cons (pure 1%Z) (
+        ys >>= fun(ys' : List C__F Int) => intersperseOne' C__F ys'
       ))
     ))
   end.
 
-Definition intersperseOne (xs : m (List Int)) : m (List Int) :=
-  m_return (Cons (m_return 1%Z) (xs >>= fun(xs' : List Int) => intersperseOne' xs')).
+Definition intersperseOne
+  {F : Type -> Type} (C__F : Container F)
+  (xs : Free C__F (List C__F Int)) : Free C__F (List C__F Int) :=
+  pure (Cons (pure 1%Z) (
+    xs >>= fun(xs' : List C__F Int) => intersperseOne' C__F xs')
+  ).
 
 End IntersperseOneNewApproach.
 
@@ -110,23 +101,28 @@ Module InterspersePrime.
   ```
 *)
 
-Fixpoint intersperse'' {a : Type} (sep : m a) (xs : List a) : m (List a) :=
+Fixpoint intersperse''
+  {F : Type -> Type} (C__F : Container F)
+  {a : Type} (sep : Free C__F a) (xs : List C__F a) : Free C__F (List C__F a) :=
   match xs with
-  | Nil       => m_return Nil
+  | Nil       => pure Nil
   | Cons y ys =>
-      m_return (Cons y (
-        ys >>= fun(ys0 : List a) =>
+      pure (Cons y (
+        ys >>= fun(ys0 : List C__F a) =>
           match ys0 with
-          | Nil       => m_return Nil
+          | Nil       => pure Nil
           | Cons z zs =>
-              m_return (Cons sep (
-                ys >>= fun(ys1 : List a) => intersperse'' sep ys1
+              pure (Cons sep (
+                ys >>= fun(ys1 : List C__F a) => intersperse'' C__F sep ys1
               ))
           end
       ))
   end.
 
-Definition intersperse' {a : Type} (sep : m a) (xs : m (List a)) : m (List a) :=
-  xs >>= fun(xs' : List a) => intersperse'' sep xs'.
+Definition intersperse'
+  {F : Type -> Type} (C__F : Container F)
+  {a : Type} (sep : Free C__F a) (xs : Free C__F (List C__F a)) 
+  : Free C__F (List C__F a) :=
+  xs >>= fun(xs' : List C__F a) => intersperse'' C__F sep xs'.
 
 End InterspersePrime.
