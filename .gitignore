@@ -16,6 +16,13 @@ cabal.project.local
 Curry_Main_Goal.curry
 .curry
 
+### Coq ###
+Makefile
+*.glob
+*.vo
+*.aux
+*.d
+
 ### LaTeX ###
 
 ## Core latex/pdflatex auxiliary files:
