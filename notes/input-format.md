@@ -1,6 +1,6 @@
 ---
 title: |
-  Übersetzung von Haskell nach Coq
+  Übersetzung von Haskell nach Coq \protect\
   Eingabeformat
 author: Justin Andresen
 lang: de-DE
