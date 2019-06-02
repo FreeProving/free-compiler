@@ -400,7 +400,7 @@ mithilfe einer Lambda-Abstraktion hinzugefügt.
 muss genau so übersetzt werden, wie
 
 ```haskell
-\[$x_{i+1}$] $\ldots$ [$x_n$] -> [$f$] [$e_1$] [$\ldots$] [$e_i$] [$x_{i+1}$] $\ldots$ [$x_n$]
+\[$x_{i+1}$] [$\ldots$] [$x_n$] -> [$f$] [$e_1$] [$\ldots$] [$e_i$] [$x_{i+1}$] [$\ldots$] [$x_n$]
 ```
 
 wobei $x_{i+1}, \ldots, x_n$ frische Variablen sind.
