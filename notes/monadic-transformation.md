@@ -8,12 +8,12 @@ pandoc-minted:
   default-attributes:
     escapeinside: "\\\\[\\\\]"
     mathescape: "true"
-    tabsize: "2"
-    breaklines: "true"
   default-block-attributes:
     numbersep: "5pt"
     frame: "lines"
     framesep: "2mm"
+    tabsize: "2"
+    breaklines: "true"
 ---
 
 \newcommand{\lift}[1]{{#1}^{\dagger}}
