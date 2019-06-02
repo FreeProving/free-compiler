@@ -18,8 +18,8 @@ pandoc-minted:
 
 \newcommand{\lift}[1]{{#1}^{\dagger}}
 \newcommand{\liftT}[1]{{#1}^{ * }}
-\newcommand{\free}[1]{\texttt{Free}\;C_F\;{#1}}
-\newcommand{\pure}[1]{\texttt{pure}\;{#1}}
+\newcommand{\free}[1]{\texttt{Free}\,C_F\,{#1}}
+\newcommand{\pure}[1]{\texttt{pure}\,{#1}}
 
 \newcommand{\type}{ * }
 \newcommand{\Int}{\texttt{Int}}
@@ -41,11 +41,11 @@ In diesem Dokument wird beschrieben, wie die Haskellmodule, -ausdrücke und
 -typen nach Coq übersetzt werden können und wie dabei die Free Monade
 eingesetzt werden kann, sodass die Semantik des Haskellprogramms (insbesondere
 in Bezug auf partielle Funktionen und Lazy Auswertung) beibehalten wird. Dabei
-wird davon ausgegangen, dass der Haskellcode wie in `notes/input-format.md`
+wird davon ausgegangen, dass der Haskellcode wie in `input-format.md`
 beschrieben aufgebaut ist.
 
 Dieses Dokument basiert auf der monadischen Transformation, wie sie in
-`notes/monadic-transformation.md` beschrieben worden ist. In diesem Dokument
+`monadic-transformation.md` beschrieben worden ist. In diesem Dokument
 wird nun jedoch konkret auf die Verwendung der *Free* Monade eingegangen.
 Wir gehen hier davon aus, dass Datentypen und Operationen, wie sie in
 [One Monad to Prove Them All][Dylus2019] vorgestellt worden sind, bereits
@@ -111,8 +111,8 @@ werden.
 
     $$
       \begin{aligned}
-        \liftT{D}    &= D\;C_F      \\
-        \liftT{S}    &= S\;C_F      \\
+        \liftT{D}    &= D\,C_F      \\
+        \liftT{S}    &= S\,C_F      \\
       \end{aligned}
     $$
 
@@ -128,7 +128,7 @@ Ansonsten bleibt der Typausdruck unverändert:
   $\tau_2 :: \type$:
 
     $$
-      \liftT{(\tau_1\;\tau_2)} = \liftT{\tau_1} \; \liftT{\tau_2}
+      \liftT{(\tau_1\,\tau_2)} = \liftT{\tau_1} \, \liftT{\tau_2}
     $$
 
 ## Vordefinierte Datentypen
@@ -168,7 +168,7 @@ standardmäßig importierten Modul geeignet vordefiniert werden müssen.
 ### Listen
 
 $$
-  \liftT{[\tau]} = \List\;C_F\;\liftT{\tau}
+  \liftT{[\tau]} = \List\,C_F\,\liftT{\tau}
 $$
 
 wobei $\tau :: \type$
@@ -199,7 +199,7 @@ Arguments Cons {[$F$]} {[$C_F$]} {a}.
     Der Typ `unit`{.coq} ist in Coq vordefiniert und hat nur den Konstruktor
     `tt`{.coq}.
 
-- $\liftT{(\tau_1, \tau_2)} = \Pair\;C_F\;\liftT{\tau_1}\;\liftT{\tau_2}$,
+- $\liftT{(\tau_1, \tau_2)} = \Pair\,C_F\,\liftT{\tau_1}\,\liftT{\tau_2}$,
   wobei $\tau_1, \tau_2 :: \type$ Typen sind.
 
     Dabei sollte der Typ `Pair`{.coq} genau so definiert werden, wie der
