@@ -462,11 +462,12 @@ map f xs = case xs of
   --       ^ Allowed even though `f` might be defined partially.
 ```
 
-Bei der Übersetzung von partiellen Funktionen weitere Informationen darüber,
-wie mit den Fehlertermen `undefined`{.haskell} und `error "..."`{.haskell}
-umgegangen werden soll. Dazu definieren wir in Coq eine Typklasse die für einen
-Funktor $F$ neben der `Container`{.coq} Instanz $C_F$ auch Operationen
-bereitstellt, mit denen die Fehlerterme übersetzt werden können.
+Bei der Übersetzung von partiellen Funktionen werden weitere Informationen
+darüber, wie mit den Fehlertermen `undefined`{.haskell} und
+`error "..."`{.haskell} umgegangen werden soll, benötigt. Dazu definieren wir
+in Coq eine Typklasse die für einen Funktor $F$ neben der `Container`{.coq}
+Instanz $C_F$ auch Operationen bereitstellt, mit denen die Fehlerterme
+übersetzt werden können.
 
 ```coq
 Require Import Coq.Strings.String.
