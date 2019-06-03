@@ -233,25 +233,55 @@ data [$D$] [$\alpha_1$] [$\ldots$] [$\alpha_m$] =
 ```coq
 Inductive [$D$] {[$F$] : Type -> Type} ([$C_F$] : Container [$F$])
   ([$\alpha_1$] [$\ldots$] [$\alpha_m$] : Type) : Type :=
-  | [$C_1$] : [$\lift{\tau_{1,1}}$] -> [$\ldots$] -> [$\lift{\tau_{1,p_1}}$] -> [$D$] [$C_F$] [$\alpha_1$] [$\ldots$] [$\alpha_m$]
-  | [$C_2$] : [$\lift{\tau_{2,1}}$] -> [$\ldots$] -> [$\lift{\tau_{2,p_2}}$] -> [$D$] [$C_F$] [$\alpha_1$] [$\ldots$] [$\alpha_m$]
+  | [$c_1$] : [$\lift{\tau_{1,1}}$] -> [$\ldots$] -> [$\lift{\tau_{1,p_1}}$] -> [$D$] [$C_F$] [$\alpha_1$] [$\ldots$] [$\alpha_m$]
+  | [$c_2$] : [$\lift{\tau_{2,1}}$] -> [$\ldots$] -> [$\lift{\tau_{2,p_2}}$] -> [$D$] [$C_F$] [$\alpha_1$] [$\ldots$] [$\alpha_m$]
   | [$\ldots$]
-  | [$C_n$] : [$\lift{\tau_{n,1}}$] -> [$\ldots$] -> [$\lift{\tau_{n,p_n}}$] -> [$D$] [$C_F$] [$\alpha_1$] [$\ldots$] [$\alpha_m$].
+  | [$c_n$] : [$\lift{\tau_{n,1}}$] -> [$\ldots$] -> [$\lift{\tau_{n,p_n}}$] -> [$D$] [$C_F$] [$\alpha_1$] [$\ldots$] [$\alpha_m$].
 ```
 
 wobei $\alpha_1, \ldots, \alpha_n$ Typvariablen, $C_1, \ldots, C_m$
 die Konstruktoren von $D$, und $\tau_{i,1}, \ldots \tau_{i,p_i}$ für alle
 $i \in \{\, 1, \ldots, m \,\}$ Typen sind.
 
+In Coq übernehmen wir die Schreibweise des Datentyps, aber schreiben die
+Konstruktoren mit einem kleinen Anfangsbuchstaben, um sie von den Smart
+Konstruktoren (siehe unten) abzugrenzen.
+
+$$
+  \lift{C_i} = c_i \quad\text{für alle } i \in \{\, 1, \ldots, n \,\}
+$$
+
 Zusätzlich wird für jeden Konstruktor spezifiziert, dass die Typparameter
-optional sind. Die `Container`{.coq} Instanz übergeben wir jedoch immer
-explizit.
+optional sind. Die `Container`{.coq} Instanz lassen wir ebenfalls von Coq
+inferieren.
 
 ```coq
-Arguments [$C_1$] {[$F$]} {[$C_F$]} {[$\alpha_1$]} [$\ldots$] {[$\alpha_m$]}.
+Arguments [$c_1$] {[$F$]} {[$C_F$]} {[$\alpha_1$]} [$\ldots$] {[$\alpha_m$]}.
 [$\vdots$]
-Arguments [$C_n$] {[$F$]} {[$C_F$]} {[$\alpha_1$]} [$\ldots$] {[$\alpha_m$]}.
+Arguments [$c_n$] {[$F$]} {[$C_F$]} {[$\alpha_1$]} [$\ldots$] {[$\alpha_m$]}.
 ```
+
+Jeder der Konstruktoren hat in Coq den Rückgabetyp
+`[$D$] [$C_F$] [$\alpha_1$] [$\ldots$] [$\alpha_m$]`{.coq}. D.h. die vom
+Konstruktor erzeugten Werte befinden sich nicht in der Monade, sodass es
+notwending ist jede Konstruktoranwendung mit einer Anwendung von `pure`{.coq}
+zu *wrappen*. Um den generierten Code lesbarer zu machen führen wir daher für
+jeden Konstruktor `[$c_i$]`{.coq} einen *Smart Konstruktor* `[$C_i$]`{.coq}
+in der Haskell typischen Notation (großer Anfangsbuchstabe) ein, welcher die
+Anwendung von `pure`{.coq} übernimmt.
+
+```coq
+Definition [$C_i$]
+  {[$F$] : Type -> Type} {[$C_F$] : Container [$F$]}
+  {[\alpha_1] [$\ldots$] [\alpha_m] : Type}
+  ([$x_1$] : \lift{\tau_{i,1}}) [$\ldots$] ([$x_{p_i}$] : \lift{\tau_{i,p_i}})
+  : Free [$C_F$] :=
+  pure ([$c_i$] [$x_1$] [$\ldots$] [$x_{p_i}$])
+```
+
+wobei $x_1, \ldots, x_{p_i}$ frische Variablen sind.
+Auch vom Smart Konstruktor lassen wir die Typparameter und die
+`Container`{.coq} Instanz inferieren.
 
 \newpage
 ## Übersetzung von Typsynoymdeklarationen
@@ -603,41 +633,26 @@ der `Partial`{.coq} Instanz $P_F$ benötigen.
 
 Falls `[$C$] [$\tau_1$] [$\ldots$] [$\tau_n$]`{.haskell} ein Konstruktor des
 Datentyps `[$D$] [$\tau_{\alpha_1}$] [$\ldots$] [$\tau_{\alpha_m}$]`{.haskell}
-ist und $e_1 :: \tau_1$, $\ldots$, $e_n :: \tau_n$ Ausdrücke sind, dann hat $C$
-in Coq den Typ `[$\lift{\tau_1}$] -> [$\ldots$] -> [$\lift{\tau_n}$] -> [$D$] [$\tau_{\alpha_1}$] [$\ldots$] [$\tau_{\alpha_m}$]`{.coq}.
+ist und $e_1 :: \tau_1$, $\ldots$, $e_n :: \tau_n$ Ausdrücke sind, dann hat
+der tatsächliche Konstruktor `[$c$]`{.haskell} in Coq den Typ
+`[$\lift{\tau_1}$] -> [$\ldots$] -> [$\lift{\tau_n}$] -> [$D$] [$\tau_{\alpha_1}$] [$\ldots$] [$\tau_{\alpha_m}$]`{.coq}.
 Das Ergebnis der Konstruktoranwendung befindet sich also nicht in einem
-monadischen Kontext. Daher kann die oben stehende Übersetzungsregel für
-definierte Funktionen nicht verwendet werden, sondern es muss ein weiteres
-`pure`{.coq} eingefügt werden.
+monadischen Kontext. Daher haben wir für jeden solchen Konstruktor einen Smart
+Konstruktor `[$C$]`{.coq} eingeführt, der zusätzlich `pure`{.coq} auf das
+Ergebnis des Konstruktors anwendet.
+
+Im Gegensatz zu Funktionsanwendungen übergeben wir bei Konstruktoren dabei
+nicht die `Container`{.coq} Instanz. Diese werden von Coq genau so wie die
+Typparameter inferiert. Ansonsten können Konstruktoranwendungen mithilfe
+der Smart Konstruktoren analog übersezt werden.
 
 ```haskell
 [$C$] [$e_1$] [$\ldots$] [$e_n$]
 ```
 
 ```coq
-pure ([$C$] [$\lift{e_1}$] [$\ldots$] [$\lift{e_n}$])
+[$C$] [$\lift{e_1}$] [$\ldots$] [$\lift{e_n}$]
 ```
-
-Dies gilt auch bei nullstelligen Konstruktoren:
-
-```coq
-pure [$C$]
-```
-
-Da wir für jeden Konstruktor $C$ festgelegt haben, dass Typargumente sowie
-der Funktor und die `Container`{.coq} Instanz implizit sind
-
-```coq
-Arguments [$C$] {[$F$]} {[$C_F$]} {[$\alpha_1$]} [$\ldots$] {[$\alpha_m$]}
-```
-
-muss oben in beiden Fällen [$C_F$] nicht übergeben werden.
-
-> Auch hier stellt sich die Frage, ob Coq in jedem Fall in der Lage ist $C_F$
-> zu inferien. Im Gegensatz zu Funktionsanwendungen wurde sich hier vorest
-> dagegen entschieden $C_F$ explizit zu übergeben, da ansonsten im Pattern
-> Matching dieses zusätzliche Argument behandelt werden müsste (mit einem
-> zusätzlichen `_`{.coq} Pattern).
 
 ### Anwendung vordefinierter Funktionen
 
@@ -865,16 +880,20 @@ case [$e$] of
 ```coq
 [$\lift{e}$] >>= fun(x : [$\liftT{\tau}$]) =>
   match [$x$] with
-  | [$C_1$] [$x_{1,1}$] [$\ldots$] [$x_{1,p_1}$] => [$\lift{e_1}$]
-  | [$C_2$] [$x_{2,1}$] [$\ldots$] [$x_{2,p_2}$] => [$\lift{e_2}$]
+  | [$c_1$] [$x_{1,1}$] [$\ldots$] [$x_{1,p_1}$] => [$\lift{e_1}$]
+  | [$c_2$] [$x_{2,1}$] [$\ldots$] [$x_{2,p_2}$] => [$\lift{e_2}$]
   | [$\ldots$]
-  | [$C_m$] [$x_{m,1}$] [$\ldots$] [$x_{m,p_m}$] => [$\lift{e_m}$]
+  | [$c_m$] [$x_{m,1}$] [$\ldots$] [$x_{m,p_m}$] => [$\lift{e_m}$]
   end
 ```
 
 wobei $e :: \tau$ sowie $e_1, \ldots, e_m :: \tau'$ Ausdrücke,
 $C_1, \ldots, C_m$ die Konstruktoren von $\tau$ sind und $x$ eine frische
 Variable ist.
+
+Hierbei ist zu beachten, dass innerhalb der Pattern in Coq ein Kleinbuchstabe
+für die Konstruktoren verwendet wird, da es sich bei der Version mit
+Großbuchstabe um den Smart Konstruktor handelt.
 
 #### Fehlerterme
 
