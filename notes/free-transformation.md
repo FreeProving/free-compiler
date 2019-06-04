@@ -320,7 +320,7 @@ Anwendung von `pure`{.coq} übernimmt.
 ```coq
 Definition [$C_i$]
   {[$F$] : Type -> Type} {[$C_F$] : Container [$F$]}
-  {[\alpha_1] [$\ldots$] [\alpha_m] : Type}
+  {[$\alpha_1$] [$\ldots$] [$\alpha_m$] : Type}
   ([$x_1$] : \lift{\tau_{i,1}}) [$\ldots$] ([$x_{p_i}$] : \lift{\tau_{i,p_i}})
   : Free [$C_F$] :=
   pure ([$c_i$] [$x_1$] [$\ldots$] [$x_{p_i}$])
