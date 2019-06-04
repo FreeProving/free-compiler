@@ -1034,7 +1034,7 @@ verwenden.
 Die Konstruktoren für nullelementige Tupel `()`{.haskell} und Paare
 `(,)`{.haskell} werden in die zuvor definierten Smart Konstruktoren `Tt`{.coq}
 bzw. `Pair_`{.coq} übersetzt. Für die Anwendung dieser Konstruktoren gelten
-dann die oben stehenden Übersetzungsregeln.D.h.
+dann die oben stehenden Übersetzungsregeln. D.h.
 
 - `()`{.haskell} wird mit `Tt`{.coq} und
 - `([$e_1$], [$e_2$])`{.haskell}, wobei $e_1$ und $e_2$ Ausdrücke sind,
