@@ -16,7 +16,7 @@ fi
 if ! [ -f "_CoqProject" ]; then
   echo "This script must be executed from the 'example' directory, i.e."
   echo
-  echo "    $> ./Base/tool/compile.sh"
+  echo "    \$> ./Base/tool/compile.sh"
   echo
   echo "Type '$0 --help' for more information."
   exit 1
