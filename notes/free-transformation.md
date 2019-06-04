@@ -181,7 +181,7 @@ standardmäßig importierten Modul geeignet vordefiniert werden müssen.
       pure false.
     ```
 
-    Das Suffix `_` wird dabei benötigt, um einen Namenskonflikt it den
+    Das Suffix `_` wird dabei benötigt, um einen Namenskonflikt mit den
     in Coq vordefinierten Aussagen `True` und `False` zu vermeiden.
 
 ### Listen
@@ -321,7 +321,7 @@ Anwendung von `pure`{.coq} übernimmt.
 Definition [$C_i$]
   {[$F$] : Type -> Type} {[$C_F$] : Container [$F$]}
   {[$\alpha_1$] [$\ldots$] [$\alpha_m$] : Type}
-  ([$x_1$] : \lift{\tau_{i,1}}) [$\ldots$] ([$x_{p_i}$] : \lift{\tau_{i,p_i}})
+  ([$x_1$] : [$\lift{\tau_{i,1}}$]) [$\ldots$] ([$x_{p_i}$] : [$\lift{\tau_{i,p_i}}$])
   : Free [$C_F$] :=
   pure ([$c_i$] [$x_1$] [$\ldots$] [$x_{p_i}$])
 ```
@@ -485,7 +485,7 @@ Wir bezeichnen die Definition einer Funktion $f$ als partiell, wenn in $e$
 ein Fehlerterm vorkommt oder eine partielle Funktion verwendet wird. Beide
 der folgenden Funktionen sind also partiell definiert:
 
-```haskell
+```{.haskell escapeinside="||"}
 -- Contains an error term.
 head :: [a] -> a
 head xs = case xs of
@@ -501,7 +501,7 @@ Es ist hingegen unproblematisch, wenn eine als Argument übergebene Funktion
 aufgerufen wird, obwohl diese auch partiell definiert sein könnte.
 Folgende Funktion ist also nicht partiell sondern total definiert:
 
-```haskell
+```{.haskell escapeinside=||}
 map :: (a -> b) -> [a] -> [b]
 map f xs = case xs of
   []    -> []
@@ -1022,7 +1022,7 @@ muss genauso übersetzt werden wie
 da das [language-coq][] Packet es momentan noch nicht erlaubt Code zu
 generieren, der eigene Notationen wie
 
-```coq
+```{.coq escapeinside=||}
 Notation "[]" := Nil.
 Notation "[ x0 ; .. ; xn ]" := (Cons x0 .. (Cons xn Nil) ..).
 ```
