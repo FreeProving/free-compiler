@@ -13,6 +13,6 @@ Definition head
     {a : Type} (xs : Free C__F (List C__F a)) : Free C__F a :=
   xs >>= fun(xs0 : List C__F a) =>
     match xs0 with
-    | Nil       => undefined
-    | Cons x xs => x
+    | nil       => undefined
+    | cons x xs => x
     end.

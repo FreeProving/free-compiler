@@ -17,15 +17,15 @@ Fixpoint zip'
   {a b : Type} (xs : List C__F a) (ys : Free C__F (List C__F b))
   : Free C__F (List C__F (Pair C__F a b)) :=
   match xs with
-  | Nil        => pure Nil
-  | Cons x xs' =>
+  | nil        => Nil
+  | cons x xs' =>
       ys >>= fun(ys0 : List C__F b) =>
         match ys0 with
-        | Nil        => pure Nil
-        | Cons y ys' => 
-            pure (Cons (pure (Pair_ x y)) (
+        | nil        => Nil
+        | cons y ys' =>
+            Cons (Pair_ x y) (
               xs' >>= fun(xs'0 : List C__F a) => zip' C__F xs'0 ys'
-            ))
+            )
         end
   end.
 
