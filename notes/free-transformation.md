@@ -26,9 +26,7 @@ pandoc-minted:
 \newcommand{\Bool}{\texttt{Bool}}
 \newcommand{\bool}{\texttt{bool}}
 \newcommand{\True}{\texttt{True}}
-\newcommand{\true}{\texttt{true}}
 \newcommand{\False}{\texttt{False}}
-\newcommand{\false}{\texttt{false}}
 \newcommand{\List}{\texttt{List}}
 \newcommand{\Pair}{\texttt{Pair}}
 \newcommand{\undefined}{\texttt{undefined}}
@@ -158,12 +156,33 @@ standardmäßig importierten Modul geeignet vordefiniert werden müssen.
 
     [hs-to-coq-int]: https://github.com/antalsz/hs-to-coq/blob/master/examples/base-src/manual/GHC/Num.v#L6
 
+    Im Gegensatz zu den anderen eingebauten Datentypen können wir für
+    `Int`{.coq} keine Smart Konstruktoren angeben. Daher muss auf alle
+    Zahlenliterale explizit `pure`{.coq} angewendet werden.
+
 - $\liftT{\Bool} = \bool$
 
     Der Typ `bool`{.coq} ist in Coq vordefiniert und hat die Konstruktoren
     `true`{.coq} und `false`{.coq}. Um die auf `bool`{.coq} definierten
     Funktionen und bereits existierenden Beweise beizubehalten, verwenden
     wir diesen Datentyp bei der Übersetzung.
+
+    Zusätzlich führen wir die folgenden Smart Konstruktoren ein:
+
+    ```coq
+    Definition True_
+      {[$F$] : Type -> Type} {[$C_F$] : Container [$F$]}
+      : Free [$C_F$] bool =
+      pure true.
+
+    Definition False_
+      {[$F$] : Type -> Type} {[$C_F$] : Container [$F$]}
+      : Free [$C_F$] bool =
+      pure false.
+    ```
+
+    Das Suffix `_` wird dabei benötigt, um einen Namenskonflikt it den
+    in Coq vordefinierten Aussagen `True` und `False` zu vermeiden.
 
 ### Listen
 
@@ -185,11 +204,23 @@ Hier gehen wir von folgender Übersetzung aus:
 ```coq
 Inductive List {[$F$] : Type-> Type} ([$C_F$] : Container [$F$])
   (a : Type) :=
-  | Nil  : List [$C_F$] a
-  | Cons : Free [$C_F$] a -> Free [$C_F$] (List [$C_F$] a) -> List [$C_F$] a.
+  | nil  : List [$C_F$] a
+  | cons : Free [$C_F$] a -> Free [$C_F$] (List [$C_F$] a) -> List [$C_F$] a.
 
-Arguments Nil  {[$F$]} {[$C_F$]} {a}.
-Arguments Cons {[$F$]} {[$C_F$]} {a}.
+Arguments nil  {[$F$]} {[$C_F$]} {a}.
+Arguments cons {[$F$]} {[$C_F$]} {a}.
+
+Definition Nil
+  {[$F$] : Type-> Type} {[$C_F$] : Container [$F$]}
+  {a : Type}
+  : Free [$C_F$] (List [$C_F$] a) :=
+  pure nil.
+
+Definition Cons
+  {[$F$] : Type -> Type} {[$C_F$] : Container [$F$]}
+  {a : Type} (x : Free [$C_F$] a) (xs : Free [$C_F$] (List [$C_F$] a))
+  : Free [$C_F$] (List [$C_F$] a) :=
+  pure (cons x xs)
 ```
 
 ### Tupel
@@ -198,6 +229,15 @@ Arguments Cons {[$F$]} {[$C_F$]} {a}.
 
     Der Typ `unit`{.coq} ist in Coq vordefiniert und hat nur den Konstruktor
     `tt`{.coq}.
+
+    Zusätzlich führen wir den folgenden Smart Konstruktor ein:
+
+    ```coq
+    Definition Tt
+      {[$F$] : Type -> Type} {[$C_F$] : Container [$F$]}
+      : Free [$C_F$] unit =
+      pure tt.
+    ```
 
 - $\liftT{(\tau_1, \tau_2)} = \Pair\,C_F\,\liftT{\tau_1}\,\liftT{\tau_2}$,
   wobei $\tau_1, \tau_2 :: \type$ Typen sind.
@@ -214,8 +254,15 @@ Arguments Cons {[$F$]} {[$C_F$]} {a}.
     ```coq
     Inductive Pair {[$F$] : Type -> Type} ([$C_F$] : Container [$F$])
       (a b : Type) :=
-      | Pair_ : Free [$C_F$] a -> Free [$C_F$] b -> Pair [$C_F$] a b.
-    Arguments Pair_ {[$F$]} {[$C_F$]} {a} {b}.
+      | pair_ : Free [$C_F$] a -> Free [$C_F$] b -> Pair [$C_F$] a b.
+
+    Arguments pair_ {[$F$]} {[$C_F$]} {a} {b}.
+
+    Definition Pair_
+      {[$F$] : Type -> Type} {[$C_F$] : Container [$F$]}
+      {a b : Type} (x : Free [$C_F$] a) (y : Free [$C_F$] b)
+      : Free [$C_F$] (Pair [$C_F$] a b) :=
+      pure (pair_ x y).
     ```
 
 \newpage
@@ -645,7 +692,7 @@ Ergebnis des Konstruktors anwendet.
 Im Gegensatz zu Funktionsanwendungen übergeben wir bei Konstruktoren dabei
 nicht die `Container`{.coq} Instanz. Diese werden von Coq genau so wie die
 Typparameter inferiert. Ansonsten können Konstruktoranwendungen mithilfe
-der Smart Konstruktoren analog übersezt werden.
+der Smart Konstruktoren analog übersetzt werden.
 
 ```haskell
 [$C$] [$e_1$] [$\ldots$] [$e_n$]
@@ -938,22 +985,25 @@ wobei $x_1, \ldots x_n$ Variablenpattern sind und $e$ ein Ausdruck ist.
     pure 493%Z
     ```
 
-- Boolsche Werte müssen bei der Übersetzung nur umbenannt und in die Monade
-  gehoben werden:
+    Da für `Int`{.coq} keine Smart Konstruktoren existieren, kann auf
+    `pure`{.coq} nicht verzichtet werden.
 
-    + $\lift{\True} = \pure{\true}$
-    + $\lift{\False} = \pure{\false}$
+- Für die Übersetzung der boolschen Werte verwenden wir die zuvor definierten
+  Smart Konstruktoren.
+
+    + $\lift{\True} = \True$
+    + $\lift{\False} = \False$
 
 ### Listen
 
 Die Listenkonstruktoren `[]`{.haskell escapeinside="||"} und `(:)`{.haskell}
-werden in die vordefinierten Konstruktoren `Nil`{.coq} bzw. `Cons`{.coq}
+werden in die vordefinierten Smart Konstruktoren `Nil`{.coq} bzw. `Cons`{.coq}
 übersetzt. Für die Anwendung dieser Konstruktoren gelten dann die oben
 stehenden Übersetzungsregeln. D.h.
 
-- `[]`{.haskell escapeinside="||"} wird mit `pure Nil`{.coq} und
+- `[]`{.haskell escapeinside="||"} wird mit `Nil`{.coq} und
 - `[$e_1$] : [$e_2$]`{.haskell}, wobei $e_1 :: \tau$ und $e_2 :: [\tau]$
-  Ausdrücke sind, wird mit `pure (Cons [$\lift{e_1}$] [$\lift{e_2}$])`
+  Ausdrücke sind, wird mit `Cons [$\lift{e_1}$] [$\lift{e_2}$]`
 
 übersetzt.
 
@@ -974,41 +1024,23 @@ generieren, der eigene Notationen wie
 
 ```coq
 Notation "[]" := Nil.
-Notation "[ x0 ]" := (Cons x0 (pure Nil)).
-Notation "[ x0 ; x1 ; .. ; xn ]" :=
-  (Cons x0 (pure (Cons x1 .. (pure (Cons xn (pure Nil))) ..))).
+Notation "[ x0 ; .. ; xn ]" := (Cons x0 .. (Cons xn Nil) ..).
 ```
 
-verwenden. Dennoch könnten die oben stehende Notationen dazu genutzt werden,
-um Code innerhalb von Beweisen lesbarer zu machen. Alternativ kann auch der
-`pure` Konstruktor "versteck" werden:
-
-```coq
-Notation "[]" := (pure Nil).
-Notation "[ x0 ; .. ; xn ]" :=
-  (pure (Cons x0 .. (pure (Cons xn (pure Nil))) ..)).
-```
+verwenden.
 
 ### Tuple
 
 Die Konstruktoren für nullelementige Tupel `()`{.haskell} und Paare
-`(,)`{.haskell} werden in die vordefinierten Konstruktoren `tt`{.coq}
+`(,)`{.haskell} werden in die zuvor definierten Smart Konstruktoren `Tt`{.coq}
 bzw. `Pair_`{.coq} übersetzt. Für die Anwendung dieser Konstruktoren gelten
 dann die oben stehenden Übersetzungsregeln.D.h.
 
-- `()`{.haskell} wird mit `pure tt`{.coq} und
+- `()`{.haskell} wird mit `Tt`{.coq} und
 - `([$e_1$], [$e_2$])`{.haskell}, wobei $e_1$ und $e_2$ Ausdrücke sind,
-  wird mit `pure (Pair_ [$\lift{e_1}$] [$\lift{e_2}$])`{.coq}
+  wird mit `Pair_ [$\lift{e_1}$] [$\lift{e_2}$]`{.coq}
 
 übersetzt.
-
-Auch in diesem Fall wäre es möglich über eigene Notationen die Lesbarkeit
-zu verbessern:
-
-```coq
-Notation "()" := (pure tt).
-Notation "( x , y )" := (pure (Pair_ x y)).
-```
 
 [Abel2005]: http://www2.tcs.ifi.lmu.de/~abel/haskell05.pdf
 [Dylus2019]: https://arxiv.org/pdf/1805.08059.pdf
