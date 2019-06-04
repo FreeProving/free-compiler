@@ -1,8 +1,14 @@
 From Base Require Import Free.
 
 (* smart constructors *)
-Definition True_ {F : Type -> Type} {C__F : Container F} := pure true.
-Definition False_ {F : Type -> Type} {C__F : Container F} := pure false.
+Definition True_
+  {F : Type -> Type} {C__F : Container F}
+  : Free C__F bool :=
+  pure true.
+Definition False_
+  {F : Type -> Type} {C__F : Container F}
+  : Free C__F bool :=
+  pure false.
 
 (* conjunction *)
 Definition andBool
