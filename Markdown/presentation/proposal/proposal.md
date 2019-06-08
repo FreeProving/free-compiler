@@ -36,7 +36,7 @@ pandoc-minted:
 
     ```haskell
     case xs of
-      []     -> undefined
+      []      -> undefined
       x : xs' -> x
     ```
 
