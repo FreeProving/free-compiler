@@ -1,2 +1,5 @@
 ### Repository with custom pandoc scripts and filters ###
 pandoc-scripts
+
+### Beamer theme with CAU logo and colors ###
+cau_beamertheme
