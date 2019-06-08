@@ -19,7 +19,7 @@ theme: serif
 history: true
 ---
 
-# Annahmen {.fragile}
+# Annahmen
 
 <!--
   - Welche Haskell Features sollen unterstützt werden?
@@ -57,3 +57,65 @@ history: true
 - Keine Typklassen
 
 - Keine `import`{.haskell}s
+
+# Übersetzung
+
+## Beispiel {.fragile}
+
+```haskell
+head :: [a] -> a
+head x:_ = x
+```
+
+<div class="fragment">
+```haskell
+head :: [a] -> a
+head xs = case xs of
+  []   -> undefined
+  x:xs -> x
+```
+</div>
+
+## Beispiel {.fragile}
+
+```haskell
+head :: [a] -> a
+head xs = case xs of
+  []   -> undefined
+  x:xs -> x
+```
+
+<div class="fragment">
+```coq
+Definition head {a : Type} (xs : List a) : a :=
+  match xs with
+  | nil       => (* ??? *)
+  | cons x xs => x
+  end.
+```
+</div>
+
+<div class="fragment">
+```coq
+Definition head {a : Type} (xs : List a) : option a :=
+  match xs with
+  | nil       => None
+  | cons x xs => Some x
+  end.
+```
+</div>
+
+## Beispiel {.fragile}
+
+```coq
+Inductive List (a : Type) : Type :=
+  | nil  : List a
+  | cons : option a -> option (List a) -> List a.
+
+Definition head {a : Type} (xs : option (List a)) : option a :=
+  xs >>= fun(xs' : List a) =>
+    match xs' with
+    | nil       => None
+    | cons x xs => x
+    end.
+```
