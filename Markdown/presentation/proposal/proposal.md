@@ -71,8 +71,8 @@ head x:_ = x
 ```haskell
 head :: [a] -> a
 head xs = case xs of
-  []   -> undefined
-  x:xs -> x
+  []    -> undefined
+  x:xs' -> x
 ```
 </div>
 
@@ -81,16 +81,16 @@ head xs = case xs of
 ```haskell
 head :: [a] -> a
 head xs = case xs of
-  []   -> undefined
-  x:xs -> x
+  []    -> undefined
+  x:xs' -> x
 ```
 
 <div class="fragment">
 ```coq
 Definition head {a : Type} (xs : List a) : a :=
   match xs with
-  | nil       => (* ??? *)
-  | cons x xs => x
+  | nil        => (* ??? *)
+  | cons x xs' => x
   end.
 ```
 </div>
@@ -99,23 +99,27 @@ Definition head {a : Type} (xs : List a) : a :=
 ```coq
 Definition head {a : Type} (xs : List a) : option a :=
   match xs with
-  | nil       => None
-  | cons x xs => Some x
+  | nil        => None
+  | cons x xs' => Some x
   end.
 ```
 </div>
 
 ## Beispiel {.fragile}
 
+<div class="fragment">
 ```coq
 Inductive List (a : Type) : Type :=
   | nil  : List a
   | cons : option a -> option (List a) -> List a.
+```
+</div>
 
-Definition head {a : Type} (xs : option (List a)) : option a :=
-  xs >>= fun(xs' : List a) =>
-    match xs' with
-    | nil       => None
-    | cons x xs => x
+```coq
+Definition head {a : Type} (oxs : option (List a)) : option a :=
+  oxs >>= fun(xs : List a) =>
+    match xs with
+    | nil          => None
+    | cons ox oxs' => ox
     end.
 ```
