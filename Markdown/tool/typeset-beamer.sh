@@ -11,7 +11,6 @@ fi
 
 # Make theme visible to LaTeX.
 export TEXINPUTS="$theme_dir:$TEXINPUTS"
-echo "$TEXINPUTS"
 
 # Forward all arguments and add beamer arguments.
 "$script_dir"/typeset.sh "$@" --to beamer --incremental
