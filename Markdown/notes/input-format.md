@@ -6,7 +6,7 @@ author: Justin Andresen
 lang: de-DE
 pandoc-minted:
   default-attributes:
-    escapeinside: "\\\\[\\\\]"
+    escapeinside: "@@"
     mathescape: "true"
   default-block-attributes:
     numbersep: "5pt"
@@ -45,7 +45,7 @@ verschärft werden.
 
 ```haskell
 -- Optional module header with optional export list.
-module [$M$] ([$\ldots$]) where
+module @$M$@ (@$\ldots$@) where
 
 -- No imports.
 
@@ -68,11 +68,11 @@ module [$M$] ([$\ldots$]) where
 Die Deklaration eines Datentyps $D$ hat die folgende Form:
 
 ```haskell
-data [$D$] [$\alpha_1$] [$\ldots$] [$\alpha_n$] =
-    [$C_1$] [$\tau_{1,1}$] [$\ldots$] [$\tau_{1,p_1}$]
-  | [$C_2$] [$\tau_{2,1}$] [$\ldots$] [$\tau_{2,p_2}$]
-  | [$\ldots$]
-  | [$C_m$] [$\tau_{m,1}$] [$\ldots$] [$\tau_{m,p_m}$]
+data @$D$@ @$\alpha_1$@ @$\ldots$@ @$\alpha_n$@ =
+    @$C_1$@ @$\tau_{1,1}$@ @$\ldots$@ @$\tau_{1,p_1}$@
+  | @$C_2$@ @$\tau_{2,1}$@ @$\ldots$@ @$\tau_{2,p_2}$@
+  | @$\ldots$@
+  | @$C_m$@ @$\tau_{m,1}$@ @$\ldots$@ @$\tau_{m,p_m}$@
 ```
 
 wobei $\alpha_1, \ldots, \alpha_n$ Typvariablen, $C_1, \ldots, C_m$
@@ -89,7 +89,7 @@ $i \in \{\, 1, \ldots, m \,\}$ Typen sind.
   angegebenen Einschränkungen zu beachten.
 
 - Da Typklassen nicht unterstützt werden, gibt es keinen Typklassenkontext
-  wie z.B. `Eq a => [$\ldots$]`{.haskell} und es kann nicht mit
+  wie z.B. `Eq a => @$\ldots$@`{.haskell} und es kann nicht mit
   `deriving`{.haskell} gerarbeitet werden.
 
 ## Typsynonymdeklarationen
@@ -97,7 +97,7 @@ $i \in \{\, 1, \ldots, m \,\}$ Typen sind.
 Die Deklaration eines Typsynonyms $S$ hat die folgende Form:
 
 ```haskell
-type [$S$] [$\alpha_1$] [$\ldots$] [$\alpha_n$] = [$\tau$]
+type @$S$@ @$\alpha_1$@ @$\ldots$@ @$\alpha_n$@ = @$\tau$@
 ```
 
 wobei $\alpha_1, \ldots, \alpha_n$ Typvariablen sind und $\tau$ ein Typ oder
@@ -111,8 +111,8 @@ angegebenen Einschränkungen zu beachten.
 Eine Funktionsdeklaration für eine $n$-stellige Funktion $f$ hat folgende Form:
 
 ```haskell
-[$f$] :: [$\tau_1$] -> [$\ldots$] -> [$\tau_n$] -> [$\tau$]
-[$f$] [$x_1$] [$\ldots$] [$x_n$] = [$e$]
+@$f$@ :: @$\tau_1$@ -> @$\ldots$@ -> @$\tau_n$@ -> @$\tau$@
+@$f$@ @$x_1$@ @$\ldots$@ @$x_n$@ = @$e$@
 ```
 
 wobei $\tau_1, \ldots, \tau_n$ sowie $\tau$ Typen und $x_1, \ldots, x_n$
@@ -125,8 +125,8 @@ Funktionen ($n = 0$, in `haskell-src-ext` *Pattern Bindings* genannt).
 Diese haben die Form
 
 ```haskell
-[$f$] :: [$\tau$]
-[$f$] = e
+@$f$@ :: @$\tau$@
+@$f$@ = e
 ```
 
 wobei $\tau$ ein Typ ist und $e$ ein Ausdruck vom Typ $\tau$ ist.
@@ -144,7 +144,7 @@ wobei $\tau$ ein Typ ist und $e$ ein Ausdruck vom Typ $\tau$ ist.
 - Es existieren keine Typsignaturen, für die keine Funktion deklariert ist.
 
 - Da keine Typklassen unterstützt werden, enthält die Typsignatur keinen
-  Typklassenkontext wie z.B. `Eq a => [$\ldots$]`{.haskell}.
+  Typklassenkontext wie z.B. `Eq a => @$\ldots$@`{.haskell}.
 
 - Polymorphe Funktionen werden unterstützt, d.h. die Typsignatur kann
   Typvariablen enthalten. Es sind jedoch die im Abschnitt über Typausdrücke
@@ -153,7 +153,7 @@ wobei $\tau$ ein Typ ist und $e$ ein Ausdruck vom Typ $\tau$ ist.
 Mit der oben festgelegten Form für Typsignaturen
 
 ```haskell
-[$f$] :: [$\tau_1$] -> [$\ldots$] -> [$\tau_n$] -> [$\tau$]
+@$f$@ :: @$\tau_1$@ -> @$\ldots$@ -> @$\tau_n$@ -> @$\tau$@
 ```
 
 ist im folgenden Codebeispiel die Typsignatur von der Funktion
@@ -161,7 +161,7 @@ ist im folgenden Codebeispiel die Typsignatur von der Funktion
 werden kann:
 
 ```haskell
-data Term = Var String | [$\ldots$]
+data Term = Var String | @$\ldots$@
 type Subst = String -> Term
 
 idSubst :: Subst
@@ -173,7 +173,7 @@ Typsignaturen bedarfsgesteuert zu expandieren. Falls dieser Ansatz umgesetzt
 wird, hätte eine Typsignatur im Allgemeinen die Form:
 
 ```haskell
-[$f$] :: [$\tau$]
+@$f$@ :: @$\tau$@
 ```
 
 wobei $\tau$ ein beliebiger Typ ist.
@@ -205,15 +205,15 @@ Argumente strukturell mithilfe eines `case`{.haskell}-Ausdrucks abbauen.
 D.h. für jede rekursive $n$-stellige Funktiondeklaration
 
 ```haskell
-[$f$] [$x_1$] [$\ldots$] [$x_n$] = [$e$]
+@$f$@ @$x_1$@ @$\ldots$@ @$x_n$@ = @$e$@
 ```
 
 existiert ein $i \in \{\, 1, \ldots, n \,\}$, sodass alle rekursiven Aufrufe
 von $f$ in $e$ ein Teilterm eines `case`{.haskell}-Ausdruck der Form
 
 ```haskell
-case [$x_i$] of
-  [$\vdots$]
+case @$x_i$@ of
+  @$\vdots$@
 ```
 
 sind. Es muss sich dabei nicht für alle rekursiven Aufrufe um denselben
@@ -227,10 +227,10 @@ sein, die nach folgender Definition strukturell kleiner ist als $x_i$:
   ein `case`{.haskell}-Ausdruck der Form
 
   ```haskell
-  case [$x$] of
-    [$\vdots$]
-    [$C$] [$y_1$] [$\ldots$] [$y_p$]
-    [$\vdots$]
+  case @$x$@ of
+    @$\vdots$@
+    @$C$@ @$y_1$@ @$\ldots$@ @$y_p$@
+    @$\vdots$@
   ```
 
   existiert, wobei $C$ ein $p$-stelliger Konstruktor und $i \le n$ ist.
@@ -243,7 +243,7 @@ sein, die nach folgender Definition strukturell kleiner ist als $x_i$:
 
 Die folgenden rekursiv definierten Funktionen sind beispielsweise erlaubt:
 
-```{.haskell escapeinside="||"}
+```haskell
 -- Recursion requires a case expression.
 reverse :: [a] -> [a]
 reverse xs = case xs of
@@ -309,7 +309,7 @@ fac n = if n == 0 then 1 else n * fac (n - 1)
 Eine Funktionsanwendung hat die Form:
 
 ```haskell
-[$e_1$] [$e_2$]
+@$e_1$@ @$e_2$@
 ```
 
 wobei $e_1 :: \tau -> \tau'$ und $e_2 :: \tau$ Ausdrücke sind.
@@ -331,10 +331,10 @@ Es werden Infixoperationen für vordefinierte Operatoren unterstützt.
 
 Die folgende Schreibweisen sind erlaubt:
 
-- `[$e_1$] [$\circ$] [$e_2$]`{.haskell}
-- `([$\circ$] [$e_2$])`{.haskell}
-- `([$e_1$] [$\circ$])`{.haskell}
-- `([$\circ$]) [$e_1$] [$e_2$]`{.haskell}
+- `@$e_1$@ @$\circ$@ @$e_2$@`{.haskell}
+- `(@$\circ$@ @$e_2$@)`{.haskell}
+- `(@$e_1$@ @$\circ$@)`{.haskell}
+- `(@$\circ$@) @$e_1$@ @$e_2$@`{.haskell}
 
 wobei $(\circ) :: \tau_1 \to \tau_2 \to \tau$ eine vordefinierte Infixoperation
 ist und $e_1 :: \tau_1$ sowie $e_2 :: \tau_2$ Ausdrücke sind.
@@ -342,9 +342,9 @@ ist und $e_1 :: \tau_1$ sowie $e_2 :: \tau_2$ Ausdrücke sind.
 Desweiteren kann jede in Haskell definierte Funktion
 $f :: \tau_1 \to \tau_2 \to \tau$ als Infix geschrieben werden:
 
-- ``[$e_1$] `[$f$]` [$e_2$]``{.haskell}
-- ``(`[$f$]` [$e_2$])``{.haskell}
-- ``([$e_1$] `[$f$]`)``{.haskell}
+- ``@$e_1$@ `@$f$@` @$e_2$@``{.haskell}
+- ``(`@$f$@` @$e_2$@)``{.haskell}
+- ``(@$e_1$@ `@$f$@`)``{.haskell}
 
 wobei $e_1 :: \tau_1$ sowie $e_2 :: \tau_2$ Ausdrücke sind.
 
@@ -352,14 +352,14 @@ wobei $e_1 :: \tau_1$ sowie $e_2 :: \tau_2$ Ausdrücke sind.
 
 In Haskell ist das unäre Minus der einzige Präfixoperator.
 
-- `-[$e$]`{.haskell} wobei $e :: \Int$ ein Ausdruck.
+- `-@$e$@`{.haskell} wobei $e :: \Int$ ein Ausdruck.
 
 ## Bedingungen
 
 Ein Bedingter Ausdruck hat die Form:
 
 ```haskell
-if [$e_1$] then [$e_2$] else [$e_3$]
+if @$e_1$@ then @$e_2$@ else @$e_3$@
 ```
 
 wobei $e_1 :: \Bool$ und $e_2, e_3 :: \tau$ Ausdrücke sind.
@@ -378,11 +378,11 @@ wobei $e_1 :: \Bool$ und $e_2, e_3 :: \tau$ Ausdrücke sind.
 Ein erlaubter `case`-Ausdruck hat also folgende Form:
 
 ```haskell
-case [$e$] of
-  [$C_1$] [$x_{1,1}$] [$\ldots$] [$x_{1,p_1}$] -> [$e_1$]
-  [$C_2$] [$x_{2,1}$] [$\ldots$] [$x_{2,p_2}$] -> [$e_2$]
-  [$\ldots$]
-  [$C_m$] [$x_{m,1}$] [$\ldots$] [$x_{m,p_m}$] -> [$e_m$]
+case @$e$@ of
+  @$C_1$@ @$x_{1,1}$@ @$\ldots$@ @$x_{1,p_1}$@ -> @$e_1$@
+  @$C_2$@ @$x_{2,1}$@ @$\ldots$@ @$x_{2,p_2}$@ -> @$e_2$@
+  @$\ldots$@
+  @$C_m$@ @$x_{m,1}$@ @$\ldots$@ @$x_{m,p_m}$@ -> @$e_m$@
 ```
 
 wobei $e :: \tau$ sowie $e_1, \ldots, e_m :: \tau'$ Ausdrücke und
@@ -405,7 +405,7 @@ Beide Varianten dürfen auch an anderen Stellen im Programm verwendet werden.
 Eine erlaubte Lambda Abstraktion hat also die folgende Form:
 
 ```haskell
-\[$x_1$] [$\ldots$] [$x_n$] -> [$e$]
+\@$x_1$@ @$\ldots$@ @$x_n$@ -> @$e$@
 ```
 
 wobei $x_1, \ldots, x_n$ Variablenpattern sind und $e$ ein Ausdruck ist.
@@ -429,21 +429,21 @@ wobei $x_1, \ldots, x_n$ Variablenpattern sind und $e$ ein Ausdruck ist.
 
 Listen können mit den Listenkonstruktoren
 
-- `[]`{.haskell escapeinside=""} und
-- `[$e_1$] : [$e_2$]`{.haskell} wobei $e_1 :: \tau$ und $e_2 :: [\tau]$
+- `[]`{.haskell} und
+- `@$e_1$@ : @$e_2$@`{.haskell} wobei $e_1 :: \tau$ und $e_2 :: [\tau]$
   Ausdrücke sind
 
 sowie mit der Kurzschreibweise
 
-- `[|$e_1$|, |$\ldots$|, |$e_n$|]`{.haskell escapeinside="||"}
+- `[@$e_1$@, @$\ldots$@, @$e_n$@]`{.haskell}
   wobei $e_1, \ldots e_n$ Ausdrücke sind
 
 erzeugt werden. Für den Listenkonstruktor `(:)`{.haskell} sind auch die
 Schreibweisen
 
-- `(:) [$e_1$] [$e_2$]`{.haskell},
-- `([$e_1$] :)`{.haskell} sowie
-- `(: [$e_2$])`{.haskell}
+- `(:) @$e_1$@ @$e_2$@`{.haskell},
+- `(@$e_1$@ :)`{.haskell} sowie
+- `(: @$e_2$@)`{.haskell}
 
 erlaubt.
 
@@ -455,7 +455,7 @@ unterstützt.
 Es werden ausschließlich nullelementige Tuple und Paare unterstützt.
 
 - `()`{.haskell}
-- `([$e_1$], [$e_2$])`{.haskell}, wobei $e_1$ und $e_2$ Ausdrücke sind.  
+- `(@$e_1$@, @$e_2$@)`{.haskell}, wobei $e_1$ und $e_2$ Ausdrücke sind.  
   Für den Paarkonstruktor ist auch die Schreibweise `(,)`{.haskell} erlaubt.
 
 Es bestünde die Möglichkeit weitere Tupelgrößen zu unterstützen, dann müssten
@@ -466,10 +466,10 @@ Tuple mit bis zu $62$ Elementen.
 ```haskell
 GHCi> :t (,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,)
 
-[\text{<interactive>:1:1: error:}]
-[\text{    A 63-tuple is too large for GHC}]
-[\text{      (max size is 62)}]
-[\text{      Workaround: use nested tuples or define a data type}]
+@\text{<interactive>:1:1: error:}@
+@\text{    A 63-tuple is too large for GHC}@
+@\text{      (max size is 62)}@
+@\text{      Workaround: use nested tuples or define a data type}@
 ```
 
 \newpage
@@ -481,12 +481,12 @@ Die folgenden Datentypen sind vordefiniert:
 
 - `Int`{.haskell}
 - `Bool`{.haskell}
-- `[|$\tau$|]`{.haskell escapeinside="||"}
+- `[@$\tau$@]`{.haskell}
   wobei $\tau :: \type$ ein Typ ist.
 - `()`{.haskell} (*Unit*) und
-- `([$\tau_1$], [$\tau_2$])`{.haskell}
+- `(@$\tau_1$@, @$\tau_2$@)`{.haskell}
   wobei $\tau_1, \tau_2 :: \type$ Typen sind.
-- `[$\tau_1$] -> [$\tau_2$]`{.haskell}
+- `@$\tau_1$@ -> @$\tau_2$@`{.haskell}
   wobei $\tau_1, \tau_2 :: \type$ Typen sind.
 
 
@@ -494,7 +494,7 @@ Die folgenden Datentypen sind vordefiniert:
 
 - Für alle **Datentypdeklaration** mit dem Bezeichner $D$ und $n$ Typparametern
   ```haskell
-  data [$D$] [$\alpha_1$] [$\ldots$] [$\alpha_n$] = [$\ldots$]
+  data @$D$@ @$\alpha_1$@ @$\ldots$@ @$\alpha_n$@ = @$\ldots$@
   ```
   darf $D$ als $n$-stelliger Typkonstruktor verwendet werden.
 
@@ -502,7 +502,7 @@ Die folgenden Datentypen sind vordefiniert:
   Typparametern, auf dessen rechten Seite ein $m$-stelliger Typkonstruktor
   $\tau$ steht
   ```haskell
-  type [$S$] [$\alpha_1$] [$\ldots$] [$\alpha_n$] = [$\tau$]
+  type @$S$@ @$\alpha_1$@ @$\ldots$@ @$\alpha_n$@ = @$\tau$@
   ```
   darf $S$ als $(n+m)$-stelliger Typkonstruktor verwendet werden.
 
@@ -510,15 +510,15 @@ Die folgenden Datentypen sind vordefiniert:
 
 Wenn $\alpha$ eine Typvariable ist, dann gehen wir davon aus, dass $\alpha$
 einen Typ bezeichnet und keinen Typkonstruktor, d.h. $\alpha :: \type$.
-In dem Typausdruck `m [$\tau$]`{.haskell} ist die Verwendung von `m` als
+In dem Typausdruck `m @$\tau$@`{.haskell} ist die Verwendung von `m` als
 Typkonstruktor also nicht erlaubt.
 
 Für diese Einschränkung wurde sich entschieden, da wir sonst zu jeder
 Typvariable die Sorte bestimmen müssten (*kind inference*), da in Coq die Sorte
 explizit angegeben wird, in Haskell diese Information jedoch nicht vorliegt.
 Wenn $\alpha$ z.B. die Sorte $\type$ hat, dann muss sie in Coq als
-`[$\alpha$] : Type`{.coq} eingeführt werden, aber wenn $\alpha$ die Sorte
-$\type \to \type$ hat, dann muss sie als mit `[$\alpha$] : Type -> Type`{.coq}
+`@$\alpha$@ : Type`{.coq} eingeführt werden, aber wenn $\alpha$ die Sorte
+$\type \to \type$ hat, dann muss sie als mit `@$\alpha$@ : Type -> Type`{.coq}
 eingeführt werden.
 
 ## Typkonstruktoranwendungen
@@ -536,7 +536,7 @@ $$
 Entsprechend hat die Anwendung eines Typkonstruktors immer die Form:
 
 ```haskell
-[$\tau_1$] [$\tau_2$]
+@$\tau_1$@ @$\tau_2$@
 ```
 
 wobei $\tau_1 :: \type \to \kappa$ ein Typkonstruktor ist und $\tau_2 :: \type$

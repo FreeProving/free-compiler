@@ -6,7 +6,7 @@ author: Justin Andresen
 lang: de-DE
 pandoc-minted:
   default-attributes:
-    escapeinside: "\\\\[\\\\]"
+    escapeinside: "@@"
     mathescape: "true"
     tabsize: "2"
     breaklines: "true"
@@ -58,11 +58,11 @@ Eine solche Gleichung wird in diesem Dokument stattdessen häufig durch zwei
 aufeinander folgende Code Blöcke dargestellt:
 
 ```haskell
-[$H$]
+@$H$@
 ```
 
 ```coq
-[$G$]
+@$G$@
 ```
 
 Ziel dieses Dokuments ist es nicht eine vollständig formale Beschreibung der
@@ -159,7 +159,7 @@ Hier gehen wir von folgender Übersetzung aus:
 ```coq
 Inductive List (a : Type) :=
   | Nil : List a
-  | Cons : [$m$] a -> [$m$] (List a) -> List a.
+  | Cons : @$m$@ a -> @$m$@ (List a) -> List a.
 Arguments Nil {a}.
 Arguments Cons {a}.
 ```
@@ -185,7 +185,7 @@ Arguments Cons {a}.
 
     ```coq
     Inductive Pair (a b : Type) :=
-      | Pair_ : [$m$] a -> [$m$] b -> Pair a b.
+      | Pair_ : @$m$@ a -> @$m$@ b -> Pair a b.
     Arguments Pair_ {a} {b}.
     ```
 
@@ -194,19 +194,19 @@ Arguments Cons {a}.
 ## Übersetzung von Datentypdeklarationen
 
 ```haskell
-data [$D$] [$\alpha_1$] [$\ldots$] [$\alpha_m$] =
-    [$C_1$] [$\tau_{1,1}$] [$\ldots$]  [$\tau_{1,p_1}$]
-  | [$C_2$] [$\tau_{2,1}$] [$\ldots$]  [$\tau_{2,p_2}$]
-  | [$\ldots$]
-  | [$C_n$] [$\tau_{n,1}$] [$\ldots$]  [$\tau_{n,p_n}$]
+data @$D$@ @$\alpha_1$@ @$\ldots$@ @$\alpha_m$@ =
+    @$C_1$@ @$\tau_{1,1}$@ @$\ldots$@  @$\tau_{1,p_1}$@
+  | @$C_2$@ @$\tau_{2,1}$@ @$\ldots$@  @$\tau_{2,p_2}$@
+  | @$\ldots$@
+  | @$C_n$@ @$\tau_{n,1}$@ @$\ldots$@  @$\tau_{n,p_n}$@
 ```
 
 ```coq
-Inductive [$D$] ([$\alpha_1$] [$\ldots$] [$\alpha_m$] : Type) : Type :=
-  | [$C_1$] : [$\lift{\tau_{1,1}}$] -> [$\ldots$] -> [$\lift{\tau_{1,p_1}}$] -> [$D$] [$\alpha_1$] [$\ldots$] [$\alpha_m$]
-  | [$C_2$] : [$\lift{\tau_{2,1}}$] -> [$\ldots$] -> [$\lift{\tau_{2,p_2}}$] -> [$D$] [$\alpha_1$] [$\ldots$] [$\alpha_m$]
-  | [$\ldots$]
-  | [$C_n$] : [$\lift{\tau_{n,1}}$] -> [$\ldots$] -> [$\lift{\tau_{n,p_n}}$] -> [$D$] [$\alpha_1$] [$\ldots$] [$\alpha_m$].
+Inductive @$D$@ (@$\alpha_1$@ @$\ldots$@ @$\alpha_m$@ : Type) : Type :=
+  | @$C_1$@ : @$\lift{\tau_{1,1}}$@ -> @$\ldots$@ -> @$\lift{\tau_{1,p_1}}$@ -> @$D$@ @$\alpha_1$@ @$\ldots$@ @$\alpha_m$@
+  | @$C_2$@ : @$\lift{\tau_{2,1}}$@ -> @$\ldots$@ -> @$\lift{\tau_{2,p_2}}$@ -> @$D$@ @$\alpha_1$@ @$\ldots$@ @$\alpha_m$@
+  | @$\ldots$@
+  | @$C_n$@ : @$\lift{\tau_{n,1}}$@ -> @$\ldots$@ -> @$\lift{\tau_{n,p_n}}$@ -> @$D$@ @$\alpha_1$@ @$\ldots$@ @$\alpha_m$@.
 ```
 
 wobei $\alpha_1, \ldots, \alpha_n$ Typvariablen, $C_1, \ldots, C_m$
@@ -217,20 +217,20 @@ Zusätzlich wird für jeden Konstruktor spezifiziert, dass die Typparameter
 optional sind.
 
 ```coq
-Arguments [$C_1$] {[$\alpha_1$]} [$\ldots$] {[$\alpha_m$]}.
-[$\vdots$]
-Arguments [$C_n$] {[$\alpha_1$]} [$\ldots$] {[$\alpha_m$]}.
+Arguments @$C_1$@ {@$\alpha_1$@} @$\ldots$@ {@$\alpha_m$@}.
+@$\vdots$@
+Arguments @$C_n$@ {@$\alpha_1$@} @$\ldots$@ {@$\alpha_m$@}.
 ```
 
 \newpage
 ## Übersetzung von Typsynoymdeklarationen
 
 ```haskell
-type [$S$] [$\alpha_1$] [$\ldots$] [$\alpha_m$] = [$\tau$]
+type @$S$@ @$\alpha_1$@ @$\ldots$@ @$\alpha_m$@ = @$\tau$@
 ```
 
 ```coq
-Definition [$S$] ([$\alpha_1$] [$\ldots$] [$\alpha_m$] : Type) := [$\liftT{\tau}$].
+Definition @$S$@ (@$\alpha_1$@ @$\ldots$@ @$\alpha_m$@ : Type) := @$\liftT{\tau}$@.
 ```
 
 wobei $\alpha_1, \ldots, \alpha_n$ Typvariablen sind und $\tau$ ein Typ oder
@@ -252,13 +252,13 @@ $\m{(\m{\liftT{\tau}})}$.
 ### Nicht-rekursive Funktionen
 
 ```haskell
-[$f$] :: [$\tau_1$] -> [$\ldots$] -> [$\tau_n$] -> [$\tau$]
-[$f$] [$x_1$] [$\ldots$] [$x_n$] = [$e$]
+@$f$@ :: @$\tau_1$@ -> @$\ldots$@ -> @$\tau_n$@ -> @$\tau$@
+@$f$@ @$x_1$@ @$\ldots$@ @$x_n$@ = @$e$@
 ```
 
 ```coq
-Definition [$f$] {[$\alpha_1$] [$\ldots$] [$\alpha_m$] : Type} ([$x_1$] : [$\lift{\tau_1}$]) [$\ldots$] ([$x_n$] : [$\lift{\tau_n}$]) : [$\lift{\tau}$]
-  := [$\lift{e}$].
+Definition @$f$@ {@$\alpha_1$@ @$\ldots$@ @$\alpha_m$@ : Type} (@$x_1$@ : @$\lift{\tau_1}$@) @$\ldots$@ (@$x_n$@ : @$\lift{\tau_n}$@) : @$\lift{\tau}$@
+  := @$\lift{e}$@.
 ```
 
 wobei $\tau_1, \ldots, \tau_n$ sowie $\tau$ Typen und $x_1, \ldots, x_n$
@@ -293,8 +293,8 @@ Betrachte eine $n$-stellige Funktion $f$, die auf ihrem $i$-tem Argument
 rekursiv definiert ist:
 
 ```haskell
-[$f$] :: [$\tau_1$] -> [$\ldots$] -> [$\tau_n$] -> [$\tau$]
-[$f$] [$x_1$] [$\ldots$] [$x_n$] = [$e$]
+@$f$@ :: @$\tau_1$@ -> @$\ldots$@ -> @$\tau_n$@ -> @$\tau$@
+@$f$@ @$x_1$@ @$\ldots$@ @$x_n$@ = @$e$@
 ```
 
 wobei $\tau_1, \ldots, \tau_n$ sowie $\tau$ Typen und $x_1, \ldots, x_n$
@@ -303,17 +303,17 @@ Variablenpattern sind und $e$ ein Ausdruck ist.
 Für den $j$-ten `case`{.haskell}-Ausdruck in $e$ der Form
 
 ```haskell
-case [$x_i$] of
-  [$\vdots$]
+case @$x_i$@ of
+  @$\vdots$@
 ```
 
 erzeugen wir eine Hilfsfunktion der Form
 
 ```coq
-Fixpoint [$f^{(j)}$] {[$\alpha_1$] [$\ldots$] [$\alpha_m$] : Type} ([$x_1$] : [$\lift{\tau_1}$]) [$\ldots$] ([$x_{i-1}$] : [$\lift{\tau_{i-1}}$])
-  ([$x_i$] : [$\liftT{\tau_i}$]) ([$x_{i+1}$] : [$\lift{\tau_{i+1}}$]) [$\ldots$] ([$x_n$] : [$\lift{\tau_n}$]) : [$\lift{\tau}$] :=
-  match [$x_i$] with
-  | [$\vdots$]
+Fixpoint @$f^{(j)}$@ {@$\alpha_1$@ @$\ldots$@ @$\alpha_m$@ : Type} (@$x_1$@ : @$\lift{\tau_1}$@) @$\ldots$@ (@$x_{i-1}$@ : @$\lift{\tau_{i-1}}$@)
+  (@$x_i$@ : @$\liftT{\tau_i}$@) (@$x_{i+1}$@ : @$\lift{\tau_{i+1}}$@) @$\ldots$@ (@$x_n$@ : @$\lift{\tau_n}$@) : @$\lift{\tau}$@ :=
+  match @$x_i$@ with
+  | @$\vdots$@
   end.
 ```
 
@@ -332,27 +332,27 @@ Innerhalb der Hilfsfunktion wird eine modifizierte Übersetzung durchgeführt:
 - Alle rekursiven Aufrufe innerhalb der Hilfsfunktionen werden ersetzt, indem
   die Definition der Hauptfunktion (siehe unten) eingesetzt wird (*inlining*).
   Daher sind alle Hilfsfunktionen gegenseitig rekursiv und müssen in einem
-  einzigen `Fixpoint [$\ldots$] with [$\ldots$]` Sentence zusammengefasst
+  einzigen `Fixpoint @$\ldots$@ with @$\ldots$@` Sentence zusammengefasst
   werden.
 
 Bei der Übersetzung der Hauptfunktion
 
 ```coq
-Definition [$f$] {[$\alpha_1$] [$\ldots$] [$\alpha_m$] : Type} ([$x_1$] : [$\lift{\tau_1}$]) [$\ldots$] ([$x_n$] : [$\lift{\tau_n}$]) : [$\lift{\tau}$] := [$\lift{e}$]
+Definition @$f$@ {@$\alpha_1$@ @$\ldots$@ @$\alpha_m$@ : Type} (@$x_1$@ : @$\lift{\tau_1}$@) @$\ldots$@ (@$x_n$@ : @$\lift{\tau_n}$@) : @$\lift{\tau}$@ := @$\lift{e}$@
 ```
 
 wird der $j$-te `case`{.haskell}-Ausdruck der Form
 
 ```haskell
-case [$x_i$] of
-  [$\vdots$]
+case @$x_i$@ of
+  @$\vdots$@
 ```
 
 durch einen Aufruf der entsprechenden Hilfsfunktion ersetzt:
 
 ```coq
-[$x_i$] >>= fun([$x_i'$] : [$\liftT{\tau_i}$]) =>
-  [$f^{(j)}$] [$x_1$] [$\ldots$] [$x_{i-1}$] [$x_i'$] [$x_{i+1}$] [$\ldots$] [$x_n$]
+@$x_i$@ >>= fun(@$x_i'$@ : @$\liftT{\tau_i}$@) =>
+  @$f^{(j)}$@ @$x_1$@ @$\ldots$@ @$x_{i-1}$@ @$x_i'$@ @$x_{i+1}$@ @$\ldots$@ @$x_n$@
 ```
 
 ## Übersetzung von gegenseitig rekursiven Deklarationen
@@ -394,13 +394,13 @@ Konversion durchgeführt werden, d.h. die fehlenden Argumente werden
 mithilfe einer Lambda-Abstraktion hinzugefügt.
 
 ```haskell
-[$f$] [$e_1$] [$\ldots$] [$e_i$]
+@$f$@ @$e_1$@ @$\ldots$@ @$e_i$@
 ```
 
 muss genau so übersetzt werden, wie
 
 ```haskell
-\[$x_{i+1}$] [$\ldots$] [$x_n$] -> [$f$] [$e_1$] [$\ldots$] [$e_i$] [$x_{i+1}$] [$\ldots$] [$x_n$]
+\@$x_{i+1}$@ @$\ldots$@ @$x_n$@ -> @$f$@ @$e_1$@ @$\ldots$@ @$e_i$@ @$x_{i+1}$@ @$\ldots$@ @$x_n$@
 ```
 
 wobei $x_{i+1}, \ldots, x_n$ frische Variablen sind.
@@ -411,41 +411,41 @@ Funktionsanwendung vollständig ist.
 ### Anwendung definierter Funktionen
 
 Bei einer vollständigen Anwendung einer definierten Funktion
-`[$f$] :: [$\tau_1$] -> [$\ldots$] -> [$\tau_n$] -> [$\tau$]`{.haskell}
+`@$f$@ :: @$\tau_1$@ -> @$\ldots$@ -> @$\tau_n$@ -> @$\tau$@`{.haskell}
 auf Ausdrücke $e_1 :: \tau_1$, $\ldots$, $e_n :: \tau_n$
 müssen nur die Argumente rekursiv übersetzt werden:
 
 ```haskell
-[$f$] [$e_1$] [$\ldots$] [$e_n$]
+@$f$@ @$e_1$@ @$\ldots$@ @$e_n$@
 ```
 
 ```coq
-[$f$] [$\lift{e_1}$] [$\ldots$] [$\lift{e_n}$]
+@$f$@ @$\lift{e_1}$@ @$\ldots$@ @$\lift{e_n}$@
 ```
 
 ### Anwendung von Konstruktoren
 
-Falls `[$C$] [$\tau_1$] [$\ldots$] [$\tau_n$]`{.haskell} ein Konstruktor des
-Datentyps `[$D$] [$\tau_{\alpha_1}$] [$\ldots$] [$\tau_{\alpha_m}$]`{.haskell}
+Falls `@$C$@ @$\tau_1$@ @$\ldots$@ @$\tau_n$@`{.haskell} ein Konstruktor des
+Datentyps `@$D$@ @$\tau_{\alpha_1}$@ @$\ldots$@ @$\tau_{\alpha_m}$@`{.haskell}
 ist und $e_1 :: \tau_1$, $\ldots$, $e_n :: \tau_n$ Ausdrücke sind, dann hat $C$
-in Coq den Typ `[$\lift{\tau_1}$] -> [$\ldots$] -> [$\lift{\tau_n}$] -> [$D$] [$\tau_{\alpha_1}$] [$\ldots$] [$\tau_{\alpha_m}$]`{.coq}.
+in Coq den Typ `@$\lift{\tau_1}$@ -> @$\ldots$@ -> @$\lift{\tau_n}$@ -> @$D$@ @$\tau_{\alpha_1}$@ @$\ldots$@ @$\tau_{\alpha_m}$@`{.coq}.
 Das Ergebnis der Konstruktoranwendung befindet sich also nicht in einem
 monadischen Kontext. Daher kann die oben stehende Übersetzungsregel für
 definierte Funktionen nicht verwendet werden, sondern es muss ein weiteres
 `m_return`{.coq} eingefügt werden.
 
 ```haskell
-[$C$] [$e_1$] [$\ldots$] [$e_n$]
+@$C$@ @$e_1$@ @$\ldots$@ @$e_n$@
 ```
 
 ```coq
-m_return ([$C$] [$\lift{e_1}$] [$\ldots$] [$\lift{e_n}$])
+m_return (@$C$@ @$\lift{e_1}$@ @$\ldots$@ @$\lift{e_n}$@)
 ```
 
 Dies gilt auch bei nullstelligen Konstruktoren:
 
 ```coq
-m_return [$C$]
+m_return @$C$@
 ```
 
 ### Anwendung vordefinierter Funktionen
@@ -473,14 +473,14 @@ $\lift{f} :: \liftT{\tau_1} \to \ldots \to \liftT{\tau_n} \to \liftT{\tau}$
 übersetzen:
 
 ```haskell
-  [$f$] [$e_1$] [$\ldots$] [$e_n$]
+  @$f$@ @$e_1$@ @$\ldots$@ @$e_n$@
 ```
 
 ```coq
-[$\lift{e_1}$] >>= fun([$x_1$] : [$\liftT{\tau_1}$]) => ( [$\ldots$] (
-  [$\lift{e_n}$] >>= fun([$x_n$] : [$\liftT{\tau_n}$]) =>
-    m_return ([$\lift{f}$] [$x_1$] [$\ldots$] [$x_n$])
-) [$\ldots$] )
+@$\lift{e_1}$@ >>= fun(@$x_1$@ : @$\liftT{\tau_1}$@) => ( @$\ldots$@ (
+  @$\lift{e_n}$@ >>= fun(@$x_n$@ : @$\liftT{\tau_n}$@) =>
+    m_return (@$\lift{f}$@ @$x_1$@ @$\ldots$@ @$x_n$@)
+) @$\ldots$@ )
 ```
 
 wobei $x_1, \ldots, x_n$ frische Variablen sind.
@@ -494,7 +494,7 @@ Für `(+)`{.haskell} könnte man in Coq beispielsweise folgende Funktion
 in Coq auf `nat` definieren:
 
 ```coq
-Definition plus (n1 : [$m$] nat) (n2 : [$m$] nat) : [$m$] nat :=
+Definition plus (n1 : @$m$@ nat) (n2 : @$m$@ nat) : @$m$@ nat :=
   n1 >>= fun(n1' : nat) =>
     n2 >>= fun(n2' : nat) =>
       m_return (n1' + n2').
@@ -510,7 +510,7 @@ werden. Es muss dazu nicht die Übersetzung von Funktionsanwendungen angepasst
 werden sondern lediglich die vordefinierte Funktion `plus`{.coq}:
 
 ```coq
-Definition plus (z1 : [$m$] Z) (z2 : [$m$] Z) : [$m$] Z :=
+Definition plus (z1 : @$m$@ Z) (z2 : @$m$@ Z) : @$m$@ Z :=
   z1 >>= fun(z1' : Z) =>
     z2 >>= fun(z2' : Z) =>
       m_return (Z.add z1' z2').
@@ -542,11 +542,11 @@ D.h. die Funktion die angewendet werden soll muss zuvor aus der Monade
 herausgeholt werden.
 
 ```haskell
-[$e_1$] [$e_2$]
+@$e_1$@ @$e_2$@
 ```
 
 ```coq
-[$\lift{e_1}$] >>= fun([$f$] : [$\liftT{\tau}$] -> [$\lift{\tau'}$]) => [$f$] [$e_2$]
+@$\lift{e_1}$@ >>= fun(@$f$@ : @$\liftT{\tau}$@ -> @$\lift{\tau'}$@) => @$f$@ @$e_2$@
 ```
 
 wobei $f$ eine frische Variable ist.
@@ -561,35 +561,35 @@ Anwendung von Funktionen übersetzt.
 Für definierte Funktionen $f :: \tau_1 \to \tau_2 \to \tau$  und
 Ausrücke $e_1 :: \tau_1$ sowie $e_2 :: \tau_2$:
 
-- ``[$e_1$] `[$f$]` [$e_2$]``{.haskell} wird genauso wie
-  `[$f$] [${e_1}$] [$e_2$]`{.haskell} übersetzt
-- ``([$e_1$] `[$f$]`)``{.haskell} wird genauso wie
-  `[$f$] [${e_1}$]`{.haskell} übersetzt
-- ``(`[$f$]` [$e_2$])``{.haskell} wird genauso wie
-  `\[$x$] -> ([$f$]) [$x$] [$e_2$]`{.haskell} übersetzt wobei $x$ eine
+- ``@$e_1$@ `@$f$@` @$e_2$@``{.haskell} wird genauso wie
+  `@$f$@ @${e_1}$@ @$e_2$@`{.haskell} übersetzt
+- ``(@$e_1$@ `@$f$@`)``{.haskell} wird genauso wie
+  `@$f$@ @${e_1}$@`{.haskell} übersetzt
+- ``(`@$f$@` @$e_2$@)``{.haskell} wird genauso wie
+  `\@$x$@ -> (@$f$@) @$x$@ @$e_2$@`{.haskell} übersetzt wobei $x$ eine
   frische Variable ist.
 
 Für vordefinierte Infixoperationen $(\circ) :: \tau_1 \to \tau_2 \to \tau$ und
 Ausrücke $e_1 :: \tau_1$ sowie $e_2 :: \tau_2$:
 
-- `[$e_1$] [$\circ$] [$e_2$]`{.haskell} wird genauso wie
-  `([$\circ$]) [${e_1}$] [$e_2$]`{.haskell} übersetzt
-- `([$e_1$] [$\circ$])`{.haskell} wird genauso wie
-  `([$\circ$]) [${e_1}$]`{.haskell} übersetzt
-- `([$\circ$] [$e_2$])`{.haskell} wird genauso wie
-  `\[$x$] -> ([$\circ$]) [$x$] [$e_2$]`{.haskell} übersetzt wobei $x$ eine
+- `@$e_1$@ @$\circ$@ @$e_2$@`{.haskell} wird genauso wie
+  `(@$\circ$@) @${e_1}$@ @$e_2$@`{.haskell} übersetzt
+- `(@$e_1$@ @$\circ$@)`{.haskell} wird genauso wie
+  `(@$\circ$@) @${e_1}$@`{.haskell} übersetzt
+- `(@$\circ$@ @$e_2$@)`{.haskell} wird genauso wie
+  `\@$x$@ -> (@$\circ$@) @$x$@ @$e_2$@`{.haskell} übersetzt wobei $x$ eine
   frische Variable ist
 
 Desweiteren wird
 
 ```haskell
-([$\circ$]) [$e_1$] [$e_2$]
+(@$\circ$@) @$e_1$@ @$e_2$@
 ```
 
 mit
 
 ```haskell
-[$f_{\circ}$] [$\lift{e_1}$] [$\lift{e_2}$]
+@$f_{\circ}$@ @$\lift{e_1}$@ @$\lift{e_2}$@
 ```
 
 übersetzt, wobei $f_{\circ}$ der Bezeichner der vordefinierten Funktion für
@@ -619,11 +619,11 @@ erinnert.
 Das unäre Minus ist *syntaktischer Zucker* für die `negate`{.haskell} Funktion.
 
 ```haskell
--[$e_1$]
+-@$e_1$@
 ```
 
 ```coq
-negate [$\lift{e_1}$]
+negate @$\lift{e_1}$@
 ```
 
 wobei $e_1 :: \Int$ ein Ausdruck ist.
@@ -631,7 +631,7 @@ wobei $e_1 :: \Int$ ein Ausdruck ist.
 Diese wird in Coq wie folgt vordefiniert:
 
 ```coq
-Definition negate (n : [$m$] Int) : [$m$] Int :=
+Definition negate (n : @$m$@ Int) : @$m$@ Int :=
   n >>= fun(n' : Int) => m_return (Z.opp n').
 ```
 
@@ -641,11 +641,11 @@ In einem `if`{.coq}-Ausdruck muss aus der Monade der boolsche Wert von der
 Bedingung herausgeholt werden.
 
 ```haskell
-if [$e_1$] then [$e_2$] else [$e_3$]
+if @$e_1$@ then @$e_2$@ else @$e_3$@
 ```
 
 ```coq
-[$\lift{e_1}$] >>= fun([$x_1$] : bool) => if [$x_1$] then [$\lift{e_2}$] else [$\lift{e_3}$]
+@$\lift{e_1}$@ >>= fun(@$x_1$@ : bool) => if @$x_1$@ then @$\lift{e_2}$@ else @$\lift{e_3}$@
 ```
 
 wobei $e_1 :: \Bool$, $e_2, e_3 :: \tau$ Ausdrücke sind und $x_1$ eine
@@ -657,20 +657,20 @@ Bevor eine Fallunterscheidung auf einem Wert durchgeführt werden kann muss
 dieser ebenfalls aus der Monade herausgeholt werden:
 
 ```haskell
-case [$e$] of
-  [$C_1$] [$x_{1,1}$] [$\ldots$] [$x_{1,p_1}$] -> [$e_1$]
-  [$C_2$] [$x_{2,1}$] [$\ldots$] [$x_{2,p_2}$] -> [$e_2$]
-  [$\ldots$]
-  [$C_m$] [$x_{m,1}$] [$\ldots$] [$x_{m,p_m}$] -> [$e_m$]
+case @$e$@ of
+  @$C_1$@ @$x_{1,1}$@ @$\ldots$@ @$x_{1,p_1}$@ -> @$e_1$@
+  @$C_2$@ @$x_{2,1}$@ @$\ldots$@ @$x_{2,p_2}$@ -> @$e_2$@
+  @$\ldots$@
+  @$C_m$@ @$x_{m,1}$@ @$\ldots$@ @$x_{m,p_m}$@ -> @$e_m$@
 ```
 
 ```coq
-[$\lift{e}$] >>= fun(x : [$\liftT{\tau}$]) =>
-  match [$x$] with
-  | [$C_1$] [$x_{1,1}$] [$\ldots$] [$x_{1,p_1}$] => [$\lift{e_1}$]
-  | [$C_2$] [$x_{2,1}$] [$\ldots$] [$x_{2,p_2}$] => [$\lift{e_2}$]
-  | [$\ldots$]
-  | [$C_m$] [$x_{m,1}$] [$\ldots$] [$x_{m,p_m}$] => [$\lift{e_m}$]
+@$\lift{e}$@ >>= fun(x : @$\liftT{\tau}$@) =>
+  match @$x$@ with
+  | @$C_1$@ @$x_{1,1}$@ @$\ldots$@ @$x_{1,p_1}$@ => @$\lift{e_1}$@
+  | @$C_2$@ @$x_{2,1}$@ @$\ldots$@ @$x_{2,p_2}$@ => @$\lift{e_2}$@
+  | @$\ldots$@
+  | @$C_m$@ @$x_{m,1}$@ @$\ldots$@ @$x_{m,p_m}$@ => @$\lift{e_m}$@
   end
 ```
 
@@ -685,11 +685,11 @@ Die Übersetzung der Fehlerterme hängt von der konfigurierten Monade ab.
 ## Lambda Abstraktionen
 
 ```haskell
-\[$x_1$] [$\ldots$] [$x_n$] -> [$e$]
+\@$x_1$@ @$\ldots$@ @$x_n$@ -> @$e$@
 ```
 
 ```coq
-m_return (fun([$x_1$] [$\ldots$] [$x_n$]) => [$\lift{e}$])
+m_return (fun(@$x_1$@ @$\ldots$@ @$x_n$@) => @$\lift{e}$@)
 ```
 
 wobei $x_1, \ldots x_n$ Variablenpattern sind und $e$ ein Ausdruck ist.
@@ -724,27 +724,27 @@ wobei $x_1, \ldots x_n$ Variablenpattern sind und $e$ ein Ausdruck ist.
 
 ### Listen
 
-Die Listenkonstruktoren `[]`{.haskell escapeinside="||"} und `(:)`{.haskell}
+Die Listenkonstruktoren `[]`{.haskell} und `(:)`{.haskell}
 werden in die vordefinierten Konstruktoren `Nil`{.coq} bzw. `Cons`{.coq}
 übersetzt. Für die Anwendung dieser Konstruktoren gelten dann die oben
 stehenden Übersetzungsregeln. D.h.
 
-- `[]`{.haskell escapeinside="||"} wird mit `m_return Nil`{.coq} und
-- `[$e_1$] : [$e_2$]`{.haskell}, wobei $e_1 :: \tau$ und $e_2 :: [\tau]$
-  Ausdrücke sind, wird mit `m_return (Cons [$\lift{e_1}$] [$\lift{e_2}$])`
+- `[]`{.haskell} wird mit `m_return Nil`{.coq} und
+- `@$e_1$@ : @$e_2$@`{.haskell}, wobei $e_1 :: \tau$ und $e_2 :: [\tau]$
+  Ausdrücke sind, wird mit `m_return (Cons @$\lift{e_1}$@ @$\lift{e_2}$@)`
 
 übersetzt.
 
 Die Kurzschreibweise für eine Liste mit den Elementen $e_1, \ldots, e_n$
 
-```{.haskell escapeinside="||"}
-[|$e_1$|, |$\ldots$|, |$e_n$|]
+```haskell
+[@$e_1$@, @$\ldots$@, @$e_n$@]
 ```
 
 muss genauso übersetzt werden wie
 
-```{.haskell escapeinside="||"}
-|$e_1$| : (|$\ldots$| : (|$e_n$| : []))
+```haskell
+@$e_1$@ : (@$\ldots$@ : (@$e_n$@ : []))
 ```
 
 da das [language-coq][] Packet es momentan noch nicht erlaubt Code zu
@@ -775,8 +775,8 @@ bzw. `Pair_`{.coq} übersetzt. Für die Anwendung dieser Konstruktoren gelten
 dann die oben stehenden Übersetzungsregeln.D.h.
 
 - `()`{.haskell} wird mit `m_return tt`{.coq} und
-- `([$e_1$], [$e_2$])`{.haskell}, wobei $e_1$ und $e_2$ Ausdrücke sind,
-  wird mit `m_return (Pair_ [$\lift{e_1}$] [$\lift{e_2}$])`{.coq}
+- `(@$e_1$@, @$e_2$@)`{.haskell}, wobei $e_1$ und $e_2$ Ausdrücke sind,
+  wird mit `m_return (Pair_ @$\lift{e_1}$@ @$\lift{e_2}$@)`{.coq}
 
 übersetzt.
 
