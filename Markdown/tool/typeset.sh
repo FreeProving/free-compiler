@@ -10,5 +10,12 @@ if ! [ -d "$pandoc_scripts_dir" ]; then
   git clone git@bitbucket.org:just95/pandoc-scripts.git "$pandoc_scripts_dir"
 fi
 
+# Optionally typeset the file whenever it is changed.
+typeset_mode="typeset"
+if [ "$1" == "--watch" ]; then
+  shift
+  typeset_mode="watch"
+fi
+
 # Forward all arguments.
-"$pandoc_scripts_dir"/typeset.sh "$@"
+"$pandoc_scripts_dir"/$typeset_mode.sh "$@"
