@@ -8,12 +8,12 @@ pandoc-minted:
   default-attributes:
     escapeinside: "\\\\[\\\\]"
     mathescape: "true"
+    tabsize: "2"
+    breaklines: "true"
   default-block-attributes:
     numbersep: "5pt"
     frame: "lines"
     framesep: "2mm"
-    tabsize: "2"
-    breaklines: "true"
 ---
 
 \newcommand{\lift}[1]{{#1}^{\dagger}}
@@ -678,7 +678,7 @@ wobei $e :: \tau$ sowie $e_1, \ldots, e_m :: \tau'$ Ausdrücke,
 $C_1, \ldots, C_m$ die Konstruktoren von $\tau$ sind und $x$ eine frische
 Variable ist.
 
-### Fehlerterme
+#### Fehlerterme
 
 Die Übersetzung der Fehlerterme hängt von der konfigurierten Monade ab.
 

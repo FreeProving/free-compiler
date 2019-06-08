@@ -26,13 +26,13 @@ Fixpoint intersperseOneMatch'
   {F : Type -> Type} (C__F : Container F)
   (xs : List C__F Int) : Free C__F (List C__F Int) :=
   match xs with
-  | Nil       => pure Nil
-  | Cons y ys =>
-    pure (Cons y (
-      pure (Cons (pure 1%Z) (
+  | nil       => Nil
+  | cons y ys =>
+    Cons y (
+      Cons (pure 1%Z) (
         ys >>= fun(ys' : List C__F Int) => intersperseOneMatch' C__F ys'
-      ))
-    ))
+      )
+    )
   end.
 
 Definition intersperseOneMatch
@@ -44,7 +44,7 @@ Definition intersperseOneMatch
 Definition intersperseOne
   {F : Type -> Type} (C__F : Container F)
   (xs : Free C__F (List C__F Int)) : Free C__F (List C__F Int) :=
-  pure (Cons (pure 1%Z) (intersperseOneMatch C__F xs)).
+  Cons (pure 1%Z) (intersperseOneMatch C__F xs).
 
 End IntersperseOneOldApproach.
 
@@ -66,20 +66,20 @@ Fixpoint intersperseOne'
   {F : Type -> Type} (C__F : Container F)
   (xs : List C__F Int) : Free C__F (List C__F Int) :=
   match xs with
-  | Nil       => pure Nil
-  | Cons y ys =>
-    pure (Cons y (
-      pure (Cons (pure 1%Z) (
+  | nil       => Nil
+  | cons y ys =>
+    Cons y (
+      Cons (pure 1%Z) (
         ys >>= fun(ys' : List C__F Int) => intersperseOne' C__F ys'
-      ))
-    ))
+      )
+    )
   end.
 
 Definition intersperseOne
   {F : Type -> Type} (C__F : Container F)
   (xs : Free C__F (List C__F Int)) : Free C__F (List C__F Int) :=
-  pure (Cons (pure 1%Z) (
-    xs >>= fun(xs' : List C__F Int) => intersperseOne' C__F xs')
+  Cons (pure 1%Z) (
+    xs >>= fun(xs' : List C__F Int) => intersperseOne' C__F xs'
   ).
 
 End IntersperseOneNewApproach.
@@ -105,23 +105,23 @@ Fixpoint intersperse''
   {F : Type -> Type} (C__F : Container F)
   {a : Type} (sep : Free C__F a) (xs : List C__F a) : Free C__F (List C__F a) :=
   match xs with
-  | Nil       => pure Nil
-  | Cons y ys =>
-      pure (Cons y (
+  | nil       => Nil
+  | cons y ys =>
+      Cons y (
         ys >>= fun(ys0 : List C__F a) =>
           match ys0 with
-          | Nil       => pure Nil
-          | Cons z zs =>
-              pure (Cons sep (
+          | nil       => Nil
+          | cons z zs =>
+              Cons sep (
                 ys >>= fun(ys1 : List C__F a) => intersperse'' C__F sep ys1
-              ))
+              )
           end
-      ))
+      )
   end.
 
 Definition intersperse'
   {F : Type -> Type} (C__F : Container F)
-  {a : Type} (sep : Free C__F a) (xs : Free C__F (List C__F a)) 
+  {a : Type} (sep : Free C__F a) (xs : Free C__F (List C__F a))
   : Free C__F (List C__F a) :=
   xs >>= fun(xs' : List C__F a) => intersperse'' C__F sep xs'.
 
