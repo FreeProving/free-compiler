@@ -25,10 +25,16 @@ history: true
   - Welche Haskell Features sollen unterstützt werden?
 -->
 
+## Annahmen {.fragile}
+
 - Zu jeder Funktion wird die **Typsignatur** explizit angegeben.
 
-- Vordefinierte Typen: `Int`{.haskell}, `Bool`{.haskell}, `[a]`{.haskell},
-  `()`{.haskell} und `(a, b)`{.haskell}
+> - Vordefinierte Typen: `Int`{.haskell}, `Bool`{.haskell}, `[a]`{.haskell},
+>   `()`{.haskell} und `(a, b)`{.haskell}
+> - Benutzerdefinierte Typen mit `data`{.haskell} und `type`{.haskell},
+>   aber nicht `newtype`{.haskell}
+
+## Annahmen {.fragile}
 
 - Jede Funktion wird durch **genau eine Regel** definiert.
 
@@ -43,6 +49,8 @@ history: true
       []      -> undefined
       x : xs' -> x
     ```
+
+## Annahmen {.fragile}
 
 - Keine `let`{.haskell} oder `do`{.haskell} Ausdrücke
 
