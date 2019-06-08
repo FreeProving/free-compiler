@@ -1,0 +1,5 @@
+### Dependencies installed via bower ###
+bower_components
+
+### Generated files ###
+proposal.html

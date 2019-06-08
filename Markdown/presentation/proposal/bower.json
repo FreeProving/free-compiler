@@ -1,0 +1,21 @@
+{
+  "name": "proposal-presentation",
+  "authors": [
+    "Justin Andresen <jan.dresen.95@gmail.com>"
+  ],
+  "description": "Reveal.js project for my bachlor theseis proposal presentation.",
+  "main": "proposal.html",
+  "license": "MIT",
+  "homepage": "",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "reveal.js": "^3.8.0"
+  }
+}

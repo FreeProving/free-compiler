@@ -1,9 +1,10 @@
 ---
 title: |
-  Übersetzung von Haskell nach Coq
+  <small>Übersetzung von Haskell nach Coq</small>
 author: Justin Andresen
 date: 13.06.2019
 lang: de-DE
+# Beamer options:
 # theme: CAU2013
 # themeoptions: tf
 pandoc-minted:
@@ -13,6 +14,9 @@ pandoc-minted:
   default-block-attributes:
     tabsize: "2"
     breaklines: "true"
+# Reveal.js options:
+theme: serif
+history: true
 ---
 
 # Annahmen {.fragile}
