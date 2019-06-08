@@ -1,6 +1,7 @@
 ---
 title: |
-  <small>Übersetzung von Haskell nach Coq</small>
+  Übersetzung
+  <small>von Haskell nach Coq</small>
 author: Justin Andresen
 date: 13.06.2019
 lang: de-DE
