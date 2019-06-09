@@ -22,12 +22,32 @@ history: true
 
 ## Gliederung
 
-<!-- TODO -->
+1. Motivation
+2. Existierende Ansätze
+3. Mein Ansatz
+4. Ausblick
 
 <!-- Force pandoc to include MathJax. -->
 <div style="display: none">
 $x$
 </div>
+
+# Motivation
+
+<!--
+  - Was ist Coq?
+  - Warum Haskell zu Coq übersetzen?
+  - Welche Hauptprobleme sind dabei zu lösen?
+-->
+
+# Existierende Ansätze
+
+<!--
+  - Welche Implementierungen existieren bereits?
+  - Was sind die Probleme dieser existierenden Implementierungen?
+  - Was soll meine Implementierung anders/besser machen?
+-->
+
 # Annahmen
 
 <!--
@@ -163,3 +183,9 @@ Inductive List {@$F$@ : Type -> Type} (@$C_F$@ : Container @$F$@)
   | cons : Free @$C_F$@ a -> Free @$C_F$@ (List @$C_F$@ a) -> List @$C_F$@ a.
 ```
 </div>
+
+# Ausblick
+
+<!--
+  - Aktueller Stand und was noch zu tun ist.
+-->
