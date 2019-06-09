@@ -20,6 +20,14 @@ theme: serif
 history: true
 ---
 
+## Gliederung
+
+<!-- TODO -->
+
+<!-- Force pandoc to include MathJax. -->
+<div style="display: none">
+$x$
+</div>
 # Annahmen
 
 <!--
