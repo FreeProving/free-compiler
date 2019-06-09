@@ -5,9 +5,6 @@ title: |
 author: Justin Andresen
 date: 13.06.2019
 lang: de-DE
-# Beamer options:
-# theme: CAU2013
-# themeoptions: tf
 pandoc-minted:
   default-attributes:
     escapeinside: "@@"
@@ -15,6 +12,11 @@ pandoc-minted:
   default-block-attributes:
     tabsize: "2"
     breaklines: "true"
+
+# Beamer options:
+# theme: CAU2013
+# themeoptions: tf
+
 # Reveal.js options:
 theme: serif
 history: true
