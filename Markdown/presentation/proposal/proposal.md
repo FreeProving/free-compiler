@@ -65,7 +65,7 @@ history: true
 
 ```haskell
 head :: [a] -> a
-head x:_ = x
+head (x:_) = x
 ```
 
 <div class="fragment">
