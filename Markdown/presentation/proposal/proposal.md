@@ -27,10 +27,7 @@ history: true
 3. Mein Ansatz
 4. Ausblick
 
-<!-- Force pandoc to include MathJax. -->
-<div style="display: none">
-$x$
-</div>
+$\phantom{\text{force pandoc to unclude MathJax}}$
 
 # Motivation
 
@@ -40,10 +37,12 @@ $x$
   - Welche Hauptprobleme sind dabei zu lösen?
 -->
 
-## Hauptherausforderungen
+## Hauptherausforderungen {.fragile}
 
 > - In Coq müssen alle Funktionen
+>
 >     + **total** sein und
+>
 >     + **terminieren**
 >
 >         <div class="fragment">
@@ -181,6 +180,8 @@ Inductive List (m : Type -> Type) (a : Type) : Type :=
 > Error: Non strictly positive occurrence of "List" in
 > "m a -> m (List m a) -> List m a".
 </div>
+
+## Beispiel {.fragile}
 
 <div class="fragment">
 ```dot
