@@ -40,6 +40,22 @@ $x$
   - Welche Hauptprobleme sind dabei zu lösen?
 -->
 
+## Hauptherausforderungen
+
+> - In Coq müssen alle Funktionen
+>     + **total** sein und
+>     + **terminieren**
+>
+>         <div class="fragment">
+>         ```haskell
+>         fac :: Int -> Int
+>         fac n = if n == 0 then 1
+>                           else fac (n - 1)
+>         ```
+>         </div>
+>
+> - Unterschiedliche Auswertungsstrategien
+
 # Existierende Ansätze
 
 <!--
