@@ -124,3 +124,34 @@ Definition head {a : Type} (oxs : option (List a)) : option a :=
     | cons ox oxs' => ox
     end.
 ```
+
+## Beispiel {.fragile}
+
+```coq
+Inductive List (m : Type -> Type) (a : Type) : Type :=
+  | nil  : List m a
+  | cons : m a -> m (List m a) -> List m a.
+```
+
+<div class="fragment" style="font: 60% monospace;">
+> Error: Non strictly positive occurrence of "List" in
+> "m a -> m (List m a) -> List m a".
+</div>
+
+<div class="fragment">
+```dot
+digraph {
+  rankdir="LR";
+  "Monade" -> "Funktor" -> "Container" -> "Free Monade";
+}
+```
+</div>
+
+<div class="fragment">
+```coq
+Inductive List {@$F$@ : Type -> Type} (@$C_F$@ : Container @$F$@)
+               (a : Type) :=
+  | nil  : List @$C_F$@ a
+  | cons : Free @$C_F$@ a -> Free @$C_F$@ (List @$C_F$@ a) -> List @$C_F$@ a.
+```
+</div>
