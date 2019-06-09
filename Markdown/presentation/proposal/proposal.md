@@ -39,11 +39,24 @@ $\phantom{\text{force pandoc to unclude MathJax}}$
   - Welche Hauptprobleme sind dabei zu lösen?
 -->
 
+## Was ist Coq?
+
+> - Beweisassistenzsystem
+> - Funktionalle Spezifikationssprache Gallina
+> - Extraktion der verifizierten Programme  
+    (z.B. Coq → Haskell)
+
+## Haskell → Coq
+
+> - Verifikation bestehender Programme
+> - Beweise aufwendiger als Testen
+> - Bequemlichkeit
+
 ## Hauptherausforderungen {.fragile}
 
 > - In Coq müssen alle Funktionen
 >
->     + **total** sein und
+>     + **total** sein <span class="fragment" data-autoslide="1">und</span>
 >
 >     + **terminieren**
 >
