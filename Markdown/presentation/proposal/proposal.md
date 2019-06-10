@@ -212,7 +212,11 @@ Inductive List (m : Type -> Type) (a : Type) : Type :=
 > "m a -> m (List m a) -> List m a".
 </div>
 
-## Beispiel {.fragile}
+## Free Monade {.fragile}
+
+```haskell
+data Free f a = Pure a | Impure (f (Free f a))
+```
 
 <div class="fragment">
 ```dot
