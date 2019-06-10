@@ -23,6 +23,7 @@ if ! [ -d "$input_dir/bower_components" ]; then
   if ! [ -f "bower.json" ]; then
     bower init
     bower install --save reveal.js
+    bower install --save MathJax
   else
     bower install
   fi
@@ -33,6 +34,7 @@ fi
 
 # Forward all arguments and add beamer arguments.
 export output_type="revealjs"
-"$script_dir"/typeset.sh "$@"                \
-  -V revealjs-url=bower_components/reveal.js \
+"$script_dir"/typeset.sh "$@"                          \
+  -V revealjs-url="bower_components/reveal.js"         \
+  -V mathjax-url="bower_components/MathJax/MathJax.js" \
   --slide-level=2

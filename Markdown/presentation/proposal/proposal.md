@@ -41,34 +41,46 @@ $\phantom{\text{force pandoc to unclude MathJax}}$
 
 ## Was ist Coq?
 
-> - Beweisassistenzsystem
-> - Funktionalle Spezifikationssprache Gallina
-> - Extraktion der verifizierten Programme  
-    (z.B. Coq → Haskell)
+::: incremental
+
+- Beweisassistenzsystem
+- Funktionalle Spezifikationssprache Gallina
+- Extraktion der verifizierten Programme  
+  (z.B. Coq → Haskell)
+
+:::
 
 ## Haskell → Coq
 
-> - Verifikation bestehender Programme
-> - Beweise aufwendiger als Testen
-> - Bequemlichkeit
+::: incremental
+
+- Verifikation bestehender Programme
+- Beweise aufwendiger als Testen
+- Bequemlichkeit
+
+:::
 
 ## Hauptherausforderungen {.fragile}
 
-> - In Coq müssen alle Funktionen
->
->     + **total** sein <span class="fragment" data-autoslide="1">und</span>
->
->     + **terminieren**
->
->         <div class="fragment">
->         ```haskell
->         fac :: Int -> Int
->         fac n = if n == 0 then 1
->                           else fac (n - 1)
->         ```
->         </div>
->
-> - Unterschiedliche Auswertungsstrategien
+::: incremental
+
+- In Coq müssen alle Funktionen
+
+    + **total** sein <span class="fragment" data-autoslide="1">und</span>
+
+    + **terminieren**
+
+        <div class="fragment">
+        ```haskell
+        fac :: Int -> Int
+        fac n = if n == 0 then 1
+                         else fac (n - 1)
+        ```
+        </div>
+
+- Unterschiedliche Auswertungsstrategien
+
+:::
 
 # Existierende Ansätze
 
@@ -78,21 +90,32 @@ $\phantom{\text{force pandoc to unclude MathJax}}$
   - Was soll meine Implementierung anders/besser machen?
 -->
 
-## [hs-to-coq](https://github.com/antalsz/hs-to-coq)
+## [hs-to-coq](https://github.com/antalsz/hs-to-coq) {.fragile}
 
-> - Entwickelt an der Universität von Pennsylvania
-> - Übersetzt **totale** Haskell Programme zu Coq
-> - Zusätzliche Axiome für partielle Funktionen
-      ```coq
-      Axiom patternFailure : forall {a}, a .
-      ```
+::: incremental
 
-## [haskellToCoqCompiler](https://github.com/beje8442/haskellToCoqCompiler)
+- Entwickelt an der Universität von Pennsylvania
 
-> - Bachlorarbeit aus Flensburg
-> - Monadische übersetzung nach [Abel et al.](http://www2.tcs.ifi.lmu.de/~abel/haskell05.pdf)
-> - `Maybe`{.haskell} oder `Identity`{.haskell} Monade
-> - Fehlerhafte Umsetzung
+- Übersetzt **totale** Haskell Programme zu Coq
+
+- Zusätzliche Axiome für partielle Funktionen
+
+    ```coq
+    Axiom patternFailure : forall {a}, a .
+    ```
+
+:::
+
+## [haskellToCoqCompiler](https://github.com/beje8442/haskellToCoqCompiler) {.fragile}
+
+::: incremental
+
+- Bachlorarbeit aus Flensburg
+- Monadische übersetzung nach [Abel et al.](http://www2.tcs.ifi.lmu.de/~abel/haskell05.pdf)
+- `Maybe`{.haskell} oder `Identity`{.haskell} Monade
+- Fehlerhafte Umsetzung
+
+:::
 
 # Annahmen
 
@@ -104,10 +127,14 @@ $\phantom{\text{force pandoc to unclude MathJax}}$
 
 - Zu jeder Funktion wird die **Typsignatur** explizit angegeben.
 
-> - Vordefinierte Typen: `Int`{.haskell}, `Bool`{.haskell}, `[a]`{.haskell},
->   `()`{.haskell} und `(a, b)`{.haskell}
-> - Benutzerdefinierte Typen mit `data`{.haskell} und `type`{.haskell},
->   aber nicht `newtype`{.haskell}
+::: incremental
+
+- Vordefinierte Typen: `Int`{.haskell}, `Bool`{.haskell}, `[a]`{.haskell},
+  `()`{.haskell} und `(a, b)`{.haskell}
+- Benutzerdefinierte Typen mit `data`{.haskell} und `type`{.haskell},
+  aber nicht `newtype`{.haskell}
+
+:::
 
 ## Annahmen {.fragile}
 

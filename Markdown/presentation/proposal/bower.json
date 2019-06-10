@@ -16,6 +16,7 @@
     "tests"
   ],
   "dependencies": {
-    "reveal.js": "^3.8.0"
+    "reveal.js": "^3.8.0",
+    "MathJax": "^2.7.5"
   }
 }
