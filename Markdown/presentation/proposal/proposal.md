@@ -78,6 +78,22 @@ $\phantom{\text{force pandoc to unclude MathJax}}$
   - Was soll meine Implementierung anders/besser machen?
 -->
 
+## [hs-to-coq](https://github.com/antalsz/hs-to-coq)
+
+> - Entwickelt an der Universität von Pennsylvania
+> - Übersetzt **totale** Haskell Programme zu Coq
+> - Zusätzliche Axiome für partielle Funktionen
+      ```coq
+      Axiom patternFailure : forall {a}, a .
+      ```
+
+## [haskellToCoqCompiler](https://github.com/beje8442/haskellToCoqCompiler)
+
+> - Bachlorarbeit aus Flensburg
+> - Monadische übersetzung nach [Abel et al.](http://www2.tcs.ifi.lmu.de/~abel/haskell05.pdf)
+> - `Maybe`{.haskell} oder `Identity`{.haskell} Monade
+> - Fehlerhafte Umsetzung
+
 # Annahmen
 
 <!--
