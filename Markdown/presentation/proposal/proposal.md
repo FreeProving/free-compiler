@@ -22,6 +22,11 @@ theme: serif
 history: true
 ---
 
+<style>
+* {
+  font-family: sans-serif !important;
+}
+</style>
 
 # Motivation
 
