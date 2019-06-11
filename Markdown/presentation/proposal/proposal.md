@@ -110,7 +110,7 @@ history: true
 - Bachlorarbeit aus Flensburg
 - Monadische übersetzung nach [Abel et al.](http://www2.tcs.ifi.lmu.de/~abel/haskell05.pdf)
 - `Maybe`{.haskell} oder `Identity`{.haskell} Monade
-- Fehlerhafte Umsetzung
+- Prototypische Umsetzung
 
 :::
 
