@@ -34,6 +34,9 @@ include-before: |
   .reveal .small-heading h1 {
     font-size: 2.11em !important;
   }
+  .reveal .small-heading h2 {
+    font-size: 1.55em !important;
+  }
   </style>
 ---
 
@@ -398,4 +401,26 @@ Fixpoint fac (n : nat) : nat :=
   | O    => 1
   | S n' => n * fac n'
   end.
+```
+
+# Beispiele für freie Monaden {.small-heading}
+
+## `Identity`{.haskell} $\approx$ `Free Zero`{.coq}  {.small-heading}
+
+```haskell
+data Free f a = Pure a | Impure (f (Free f a))
+
+data Zero a
+
+data Identity a = Identity a
+```
+
+## `Maybe`{.haskell} $\approx$ `Free One`{.coq} {.small-heading}
+
+```haskell
+data Free f a = Pure a | Impure (f (Free f a))
+
+type One a = ()
+
+data Maybe a = Just a | Nothing
 ```
