@@ -20,13 +20,13 @@ pandoc-minted:
 # Reveal.js options:
 theme: serif
 history: true
+include-before: |
+  <style>
+  .reveal, .reveal h1, .reveal h2 {
+    font-family: sans-serif !important;
+  }
+  </style>
 ---
-
-<style>
-.reveal, .reveal h1, .reveal h2 {
-  font-family: sans-serif !important;
-}
-</style>
 
 # Motivation
 
