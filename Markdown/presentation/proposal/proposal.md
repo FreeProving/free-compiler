@@ -76,13 +76,13 @@ include-before: |
 
     + **terminieren**
 
-        <div class="fragment">
-        ```haskell
-        fac :: Int -> Int
-        fac n = if n == 0 then 1
-                          else n * fac (n - 1)
-        ```
-        </div>
+      ::: fragment
+      ```haskell
+      fac :: Int -> Int
+      fac n = if n == 0 then 1
+                        else n * fac (n - 1)
+      ```
+      :::
 
 - Unterschiedliche Auswertungsstrategien
 
@@ -175,14 +175,14 @@ head :: [a] -> a
 head (x:_) = x
 ```
 
-<div class="fragment">
+::: fragment
 ```haskell
 head :: [a] -> a
 head xs = case xs of
   []    -> undefined
   x:xs' -> x
 ```
-</div>
+:::
 
 ## Beispiel {.fragile}
 
@@ -193,7 +193,7 @@ head xs = case xs of
   x:xs' -> x
 ```
 
-<div class="fragment">
+::: fragment
 ```coq
 Definition head {a : Type} (xs : List a) : a :=
   match xs with
@@ -201,9 +201,9 @@ Definition head {a : Type} (xs : List a) : a :=
   | cons x xs' => x
   end.
 ```
-</div>
+:::
 
-<div class="fragment">
+::: fragment
 ```coq
 Definition head {a : Type} (xs : List a) : option a :=
   match xs with
@@ -211,17 +211,17 @@ Definition head {a : Type} (xs : List a) : option a :=
   | cons x xs' => Some x
   end.
 ```
-</div>
+:::
 
 ## Beispiel {.fragile}
 
-<div class="fragment">
+::: fragment
 ```coq
 Inductive List (a : Type) : Type :=
   | nil  : List a
   | cons : option a -> option (List a) -> List a.
 ```
-</div>
+:::
 
 ```coq
 Definition head {a : Type} (oxs : option (List a)) : option a :=
@@ -240,10 +240,10 @@ Inductive List (m : Type -> Type) (a : Type) : Type :=
   | cons : m a -> m (List m a) -> List m a.
 ```
 
-<div class="fragment">
+::: fragment
 > Error: Non strictly positive occurrence of "List" in
 > "m a -> m (List m a) -> List m a".
-</div>
+:::
 
 ## Freie Monade {.fragile data-transition="slide-in fade-out"}
 
@@ -251,7 +251,7 @@ Inductive List (m : Type -> Type) (a : Type) : Type :=
 data Free f a = Pure a | Impure (f (Free f a))
 ```
 
-<div class="fragment">
+::: fragment
 ```dot
 graph {
   {
@@ -270,7 +270,7 @@ graph {
   "Freie Monade" -- "Monade"    [dir = "forward", arrowhead = "empty"];
 }
 ```
-</div>
+:::
 
 ## Freie Monade {.fragile data-transition="fade"}
 
@@ -348,7 +348,7 @@ fac :: Int -> Int
 fac n = if n == 0 then 1 else n * fac (n - 1)
 ```
 
-::: incremental
+::: fragment
 ```haskell
 fac (-1) @$\rightarrow$@ (-1) * fac (-2)
          @$\rightarrow$@ 2 * fac (-3)
@@ -383,7 +383,6 @@ Fixpoint fac (n : nat) : nat :=
   | S n' => n * fac n'
   end.
 ```
-
 
 ## `fac`{.haskell} mit `match`{.coq} {data-transition="fade-in slide-out"}
 
