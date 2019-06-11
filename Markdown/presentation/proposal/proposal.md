@@ -23,7 +23,7 @@ history: true
 ---
 
 <style>
-* {
+.reveal, .reveal h1, .reveal h2 {
   font-family: sans-serif !important;
 }
 </style>
