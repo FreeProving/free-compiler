@@ -236,7 +236,7 @@ Inductive List (m : Type -> Type) (a : Type) : Type :=
 > "m a -> m (List m a) -> List m a".
 </div>
 
-## Free Monade {.fragile}
+## Freie Monade {.fragile data-transition="slide-in fade-out"}
 
 ```haskell
 data Free f a = Pure a | Impure (f (Free f a))
@@ -244,21 +244,81 @@ data Free f a = Pure a | Impure (f (Free f a))
 
 <div class="fragment">
 ```dot
-digraph {
-  rankdir="LR";
-  "Monade" -> "Funktor" -> "Container" -> "Free Monade";
+graph {
+  {
+    rankdir="LR";
+    node [shape = "rectangle"];
+    rank = "same";
+    "Freie Monade"; "Monade"; "Funktor";
+    "Container" [style = "invis"];
+  }
+
+  edge [minlen = 3];
+
+  "Container" -- "Funktor"      [dir = "forward", arrowhead = "empty", style = "invis"];
+  "Funktor" -- "Freie Monade"   [label = "«use»", dir = "back", arrowtail = "open", style = "dashed"];
+  "Container" -- "Freie Monade" [xlabel = "«use»", dir = "back", arrowtail = "open", style = "dashed", style = "invis"];
+  "Freie Monade" -- "Monade"    [dir = "forward", arrowhead = "empty"];
 }
 ```
 </div>
 
-<div class="fragment">
+## Freie Monade {.fragile data-transition="fade"}
+
+```haskell
+data Free f a = Pure a | Impure (f (Free f a))
+```
+
+```dot
+graph {
+  {
+    rankdir="LR";
+    node [shape = "rectangle"];
+    rank = "same";
+    "Container"; "Funktor"; "Freie Monade"; "Monade"
+  }
+
+  edge [minlen = 3];
+
+  "Container" -- "Funktor"      [dir = "forward", arrowhead = "empty"];
+  "Funktor" -- "Freie Monade"   [label = "«use»", dir = "back", arrowtail = "open", style = "dashed"];
+  "Container" -- "Freie Monade" [xlabel = "«use»", dir = "back", arrowtail = "open", style = "dashed", style = "invis"];
+  "Freie Monade" -- "Monade"    [dir = "forward", arrowhead = "empty"];
+}
+```
+
+## Freie Monade {.fragile data-transition="fade-in slide-out"}
+
+```haskell
+data Free f a = Pure a | Impure (f (Free f a))
+```
+
+```dot
+graph {
+  {
+    rankdir="LR";
+    node [shape = "rectangle"];
+    rank = "same";
+    "Container"; "Funktor"; "Freie Monade"; "Monade"
+  }
+
+  edge [minlen = 3];
+
+  "Container" -- "Funktor"      [dir = "forward", arrowhead = "empty"];
+  "Funktor" -- "Freie Monade"   [label = "«use»", dir = "back", arrowtail = "open", style = "dashed", style = "invis"];
+  "Container" -- "Freie Monade" [xlabel = "«use»", dir = "back", arrowtail = "open", style = "dashed"];
+  "Freie Monade" -- "Monade"    [dir = "forward", arrowhead = "empty"];
+}
+```
+
+## Freie Monade {.fragile}
+
 ```coq
 Inductive List {@$F$@ : Type -> Type} (@$C_F$@ : Container @$F$@)
                (a : Type) :=
   | nil  : List @$C_F$@ a
   | cons : Free @$C_F$@ a -> Free @$C_F$@ (List @$C_F$@ a) -> List @$C_F$@ a.
 ```
-</div>
 
 # Ausblick
 
