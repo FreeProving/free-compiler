@@ -25,6 +25,15 @@ include-before: |
   .reveal, .reveal h1, .reveal h2 {
     font-family: sans-serif !important;
   }
+  .reveal pre code {
+    overflow: hidden;
+  }
+  .reveal blockquote {
+    font: 60% monospace;
+  }
+  .reveal .small-heading h1 {
+    font-size: 2.11em !important;
+  }
   </style>
 ---
 
@@ -71,7 +80,7 @@ include-before: |
         ```haskell
         fac :: Int -> Int
         fac n = if n == 0 then 1
-                         else fac (n - 1)
+                          else n * fac (n - 1)
         ```
         </div>
 
@@ -231,7 +240,7 @@ Inductive List (m : Type -> Type) (a : Type) : Type :=
   | cons : m a -> m (List m a) -> List m a.
 ```
 
-<div class="fragment" style="font: 60% monospace;">
+<div class="fragment">
 > Error: Non strictly positive occurrence of "List" in
 > "m a -> m (List m a) -> List m a".
 </div>
@@ -327,3 +336,67 @@ Inductive List {@$F$@ : Type -> Type} (@$C_F$@ : Container @$F$@)
 -->
 
 # Fragen?
+
+<!-- Backup slides: -->
+
+# Warum kann man `fac`{.haskell} nicht übersetzen? {.small-heading}
+
+## `fac`{.haskell} über `Int`{.haskell}
+
+```haskell
+fac :: Int -> Int
+fac n = if n == 0 then 1 else n * fac (n - 1)
+```
+
+::: incremental
+```haskell
+fac (-1) @$\rightarrow$@ (-1) * fac (-2)
+         @$\rightarrow$@ 2 * fac (-3)
+         @$\rightarrow$@ @$\ldots$@
+```
+:::
+
+## `fac`{.haskell} über `nat`{.coq}
+
+```haskell
+fac :: Int -> Int
+fac n = if n == 0 then 1 else n * fac (n - 1)
+```
+
+```coq
+(* Compiliert nicht, da n nicht strukturell abgebaut wird. *)
+Fixpoint fac (n : nat) : nat :=
+  if Nat.eqb n 0 then 1 else n * fac (n - 1).
+```
+
+## `fac`{.haskell} mit `match`{.coq} {data-transition="slide-in fade-out"}
+
+```haskell
+fac :: Int -> Int
+fac n = if n == 0 then 1 else n * fac (n - 1)
+```
+
+```coq
+Fixpoint fac (n : nat) : nat :=
+  match n with
+  | O    => 1
+  | S n' => n * fac n'
+  end.
+```
+
+
+## `fac`{.haskell} mit `match`{.coq} {data-transition="fade-in slide-out"}
+
+```haskell
+fac :: Int -> Int
+fac n = case n of 0          -> 1
+                  {- S n' -} -> n * fac {- n' -}
+```
+
+```coq
+Fixpoint fac (n : nat) : nat :=
+  match n with
+  | O    => 1
+  | S n' => n * fac n'
+  end.
+```
