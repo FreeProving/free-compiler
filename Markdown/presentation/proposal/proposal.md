@@ -22,14 +22,6 @@ theme: serif
 history: true
 ---
 
-## Gliederung
-
-1. Motivation
-2. Existierende Ansätze
-3. Mein Ansatz
-4. Ausblick
-
-$\phantom{\text{force pandoc to unclude MathJax}}$
 
 # Motivation
 
