@@ -344,7 +344,7 @@ Inductive List {@$F$@ : Type -> Type} (@$C_F$@ : Container @$F$@)
 
 # Warum kann man `fac`{.haskell} nicht übersetzen? {.small-heading}
 
-## `fac`{.haskell} über `Int`{.haskell}
+## `fac`{.haskell} über `Int`{.haskell} {.fragile}
 
 ```haskell
 fac :: Int -> Int
@@ -359,7 +359,7 @@ fac (-1) @$\rightarrow$@ (-1) * fac (-2)
 ```
 :::
 
-## `fac`{.haskell} über `nat`{.coq}
+## `fac`{.haskell} über `nat`{.coq} {.fragile}
 
 ```haskell
 fac :: Int -> Int
@@ -372,7 +372,7 @@ Fixpoint fac (n : nat) : nat :=
   if Nat.eqb n 0 then 1 else n * fac (n - 1).
 ```
 
-## `fac`{.haskell} mit `match`{.coq} {data-transition="slide-in fade-out"}
+## `fac`{.haskell} mit `match`{.coq} {.fragile data-transition="slide-in fade-out"}
 
 ```haskell
 fac :: Int -> Int
@@ -387,7 +387,7 @@ Fixpoint fac (n : nat) : nat :=
   end.
 ```
 
-## `fac`{.haskell} mit `match`{.coq} {data-transition="fade-in slide-out"}
+## `fac`{.haskell} mit `match`{.coq} {.fragile data-transition="fade-in slide-out"}
 
 ```haskell
 fac :: Int -> Int
@@ -405,7 +405,7 @@ Fixpoint fac (n : nat) : nat :=
 
 # Beispiele für freie Monaden {.small-heading}
 
-## `Identity`{.haskell} $\approx$ `Free Zero`{.coq}  {.small-heading}
+## `Identity`{.haskell} $\approx$ `Free Zero`{.coq}  {.small-heading .fragile}
 
 ```haskell
 data Free f a = Pure a | Impure (f (Free f a))
@@ -415,7 +415,7 @@ data Zero a
 data Identity a = Identity a
 ```
 
-## `Maybe`{.haskell} $\approx$ `Free One`{.coq} {.small-heading}
+## `Maybe`{.haskell} $\approx$ `Free One`{.coq} {.small-heading .fragile}
 
 ```haskell
 data Free f a = Pure a | Impure (f (Free f a))
