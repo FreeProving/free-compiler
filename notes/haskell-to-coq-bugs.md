@@ -4,6 +4,29 @@ author: Justin Andresen
 ---
 
 ## Fehler bei der Übersetzung
+### Deklarationen
+#### Reihenfolge
+
+Es werden zwar Datentypdeklarationen vor Funktionsdeklarationen übersetzt, aber
+innerhalb dieser beiden Klassen wird nicht bezüglich der Abhängigkeiten
+sortiert.
+
+```haskell
+foo :: Int -> Int
+foo x = bar x + 1
+
+bar :: Int -> Int
+bar x = 2 * x
+```
+
+```coq
+Definition foo (ox : option nat) : option nat :=
+  ox >>= (fun (x : nat) => o_return (bar x + 1)).
+
+Definition bar (ox : option nat) : option nat :=
+  ox >>= (fun (x : nat) => o_return (2 * x)).
+```
+
 ### Funktionen
 #### Funktionen als Rückgabewert
 
