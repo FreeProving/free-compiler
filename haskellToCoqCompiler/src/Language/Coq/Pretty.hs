@@ -720,6 +720,7 @@ instance Gallina ArgumentSpec where
     in wrap (renderGallina arg) <> maybe mempty (("%" <>) . renderIdent) oscope
 
 instance Gallina LocalModule where
+  -- FIXME use proper line endings.
   renderGallina' _ (LocalModule name sentences) = vcat $
     [ "Module" <+> text name <> "." ] ++
     [ "Set Implicit Arguments."] ++

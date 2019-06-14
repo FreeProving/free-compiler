@@ -10,10 +10,11 @@ import Compiler.Types (ConversionMode(..), ConversionMonad(..))
 import Data.List (elemIndex)
 import Data.Maybe (fromJust, isJust)
 
+-- TODO a proper command line interface would be handy.
 main :: IO ()
 main = do
   args <- getArgs
-  putStrLn (show (head args))
+  compileAndPrintFile (head args)
 
 compileAndPrintFile :: String -> IO ()
 compileAndPrintFile f = do

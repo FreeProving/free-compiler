@@ -92,6 +92,9 @@ convertModule (H.Module _ (Just modHead) _ _ decls) cMonad cMode =
     dataSentences = convertModuleDecls dataDecls (map filterForTypeSignatures typeSigs) [] funs cMonad cMode
     dataTypes = predefinedDataTypes ++ zip (getNamesFromDataDecls dataDecls) (getConstrNamesFromDataDecls dataDecls)
     funs = getFunNames rDecls
+-- FIXME This second equation for `convertModule` causes the odd behaviour
+-- when compiling a Haskell module without module head.
+-- This equation should be unified with the one above.
 convertModule (H.Module _ Nothing _ _ decls) cMonad cMode =
   G.LocalModuleSentence
     (G.LocalModule
@@ -175,6 +178,12 @@ convertPatBindToDefinition pat rhs typeSigs dataTypes cMonad = G.DefinitionDef G
     name = patToQID pat
     typeSig = getTypeSignatureByQId typeSigs name
     returnType = convertReturnType typeSig cMonad
+    -- FIXME This line is propably responsible for the inconsistent compilation
+    -- of functions and pattern bindings. The parameters `typeSigs`, `binders`
+    -- and `dataTypes` of `addReturnToRhs` need to be properly initialized
+    -- (see `convertMatchToDefinition`) instead of setting them to `[]`.
+    -- Ideally the translatioon of functions and pattern bindings share a
+    -- common code base.
     rhsTerm = addReturnToRhs (convertRhsToTerm rhs (map snd (concatMap snd dataTypes)) cMonad) [] [] [] cMonad
 
 convertArgumentSentences :: Show l => H.DeclHead l -> [H.QualConDecl l] -> [G.Sentence]
@@ -520,6 +529,7 @@ needsArgumentsSentence declHead qConDecls = not (null binders) && hasNonInferrab
 --check if function is recursive
 importPath :: String
 importPath = "Add LoadPath \"../ImportedFiles\". \n \r"
+-- FIXME use proper line endings                 ^^^^^
 
 predefinedDataTypes :: [(G.Name, [(G.Qualid, Maybe G.Qualid)])]
 predefinedDataTypes =
@@ -529,6 +539,7 @@ predefinedDataTypes =
   , (strToGName "unit", [(strToQId "tt", Nothing)])
   ]
 
+-- TODO pretty printing should be in it's own module
 --print the converted module
 printCoqAST :: G.Sentence -> ConversionMonad -> IO ()
 printCoqAST x cMonad = putStrLn (renderCoqAst ((importDefinitions cMonad) ++ [x]))
@@ -539,3 +550,4 @@ writeCoqFile path x cMonad = writeFile path (renderCoqAst ((importDefinitions cM
 renderCoqAst :: [G.Sentence] -> String
 renderCoqAst sentences =
   importPath ++ concat [(TL.unpack . displayT . renderPretty 0.67 120 . renderGallina) s ++ "\n \r" | s <- sentences]
+  -- FIXME use proper line endings                                                           ^^^^^
