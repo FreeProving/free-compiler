@@ -18,6 +18,7 @@ Curry_Main_Goal.curry
 
 ### Coq ###
 Makefile
+Makefile.conf
 *.glob
 *.vo
 *.aux
