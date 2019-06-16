@@ -526,7 +526,6 @@ needsArgumentsSentence declHead qConDecls = not (null binders) && hasNonInferrab
   where
     binders = applyToDeclHeadTyVarBinds declHead convertTyVarBindToBinder
 
---check if function is recursive
 importPath :: String
 importPath = "Add LoadPath \"../ImportedFiles\". \n \r"
 -- FIXME use proper line endings                 ^^^^^
