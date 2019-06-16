@@ -23,6 +23,8 @@ executable haskellToCoqCompiler
                       , Compiler.FueledFunctions
                       , Compiler.HelperFunctionConverter
                       , Compiler.HelperFunctions
+                      , Compiler.Language.Coq.Preamble
+                      , Compiler.Language.Coq.Pretty
                       , Compiler.Language.Haskell.Parser
                       , Compiler.MonadicConverter
                       , Compiler.Types

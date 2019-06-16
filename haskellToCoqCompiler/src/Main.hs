@@ -4,7 +4,8 @@ import Language.Haskell.Exts.Extension (Language(..))
 import Language.Haskell.Exts.Parser (ParseMode(..), fromParseResult, parseModuleWithMode)
 import System.Environment (getArgs)
 
-import Compiler.Converter (convertModule, printCoqAST, writeCoqFile)
+import Compiler.Converter (convertModule)
+import Compiler.Language.Coq.Pretty (printCoqAST, writeCoqFile)
 import Compiler.Language.Haskell.Parser (parseModuleFile)
 import Compiler.Types (ConversionMode(..), ConversionMonad(..))
 

@@ -3,7 +3,6 @@ module Compiler.Converter where
 import qualified Language.Coq.Gallina as G
 import Language.Coq.Pretty (renderGallina)
 import qualified Language.Haskell.Exts.Syntax as H
-import Text.PrettyPrint.Leijen.Text (displayT, renderPretty)
 
 import Compiler.FueledFunctions
   ( addFuelArgToRecursiveCalls
@@ -71,6 +70,7 @@ import Compiler.MonadicConverter
   )
 import Compiler.NonEmptyList (singleton, toNonemptyList)
 import Compiler.Types (ConversionMode(..), ConversionMonad(..))
+import Compiler.Language.Coq.Pretty (printCoqAST, writeCoqFile)
 
 import qualified GHC.Base as B
 
@@ -78,7 +78,6 @@ import Data.List (partition)
 import Data.Maybe (fromJust, isJust)
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
-import qualified Text.PrettyPrint.Leijen.Text (displayT, renderPretty)
 
 convertModule :: Show l => H.Module l -> ConversionMonad -> ConversionMode -> G.Sentence
 convertModule (H.Module _ (Just modHead) _ _ decls) cMonad cMode =
@@ -117,18 +116,6 @@ getQIdFromFunDecl (H.FunBind _ (H.Match _ name _ _ _:_)) = nameToQId name
 
 convertModuleHead :: Show l => H.ModuleHead l -> G.Ident
 convertModuleHead (H.ModuleHead _ (H.ModuleName _ modName) _ _) = T.pack modName
-
-importDefinitions :: ConversionMonad -> [G.Sentence]
-importDefinitions cMonad =
-  if cMonad == Option
-    then [stringImport, libraryImport, monadImport, optionImport]
-    else [stringImport, libraryImport, monadImport, identityImport]
-  where
-    stringImport = G.ModuleSentence (G.Require Nothing (Just G.Import) (singleton (T.pack "String")))
-    libraryImport = G.ModuleSentence (G.Require Nothing (Just G.Import) (singleton (T.pack "ImportModules")))
-    monadImport = G.ModuleSentence (G.ModuleImport G.Import (singleton (T.pack "Monad")))
-    optionImport = G.ModuleSentence (G.ModuleImport G.Import (singleton (T.pack "OptionDataTypes")))
-    identityImport = G.ModuleSentence (G.ModuleImport G.Import (singleton (T.pack "IdentityDataTypes")))
 
 convertModuleDecls ::
      Show l
@@ -526,10 +513,6 @@ needsArgumentsSentence declHead qConDecls = not (null binders) && hasNonInferrab
   where
     binders = applyToDeclHeadTyVarBinds declHead convertTyVarBindToBinder
 
-importPath :: String
-importPath = "Add LoadPath \"../ImportedFiles\". \n \r"
--- FIXME use proper line endings                 ^^^^^
-
 predefinedDataTypes :: [(G.Name, [(G.Qualid, Maybe G.Qualid)])]
 predefinedDataTypes =
   [ (strToGName "bool", [(strToQId "true", Nothing), (strToQId "false", Nothing)])
@@ -537,16 +520,3 @@ predefinedDataTypes =
   , (strToGName "Pair", [(strToQId "P", Nothing)])
   , (strToGName "unit", [(strToQId "tt", Nothing)])
   ]
-
--- TODO pretty printing should be in it's own module
---print the converted module
-printCoqAST :: G.Sentence -> ConversionMonad -> IO ()
-printCoqAST x cMonad = putStrLn (renderCoqAst ((importDefinitions cMonad) ++ [x]))
-
-writeCoqFile :: String -> G.Sentence -> ConversionMonad -> IO ()
-writeCoqFile path x cMonad = writeFile path (renderCoqAst ((importDefinitions cMonad) ++ [x]))
-
-renderCoqAst :: [G.Sentence] -> String
-renderCoqAst sentences =
-  importPath ++ concat [(TL.unpack . displayT . renderPretty 0.67 120 . renderGallina) s ++ "\n \r" | s <- sentences]
-  -- FIXME use proper line endings                                                           ^^^^^
