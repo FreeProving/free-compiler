@@ -5,6 +5,7 @@ import Language.Haskell.Exts.Parser (ParseMode(..), fromParseResult, parseModule
 import System.Environment (getArgs)
 
 import Compiler.Converter (convertModule, printCoqAST, writeCoqFile)
+import Compiler.Language.Haskell.Parser (parseModuleFile)
 import Compiler.Types (ConversionMode(..), ConversionMonad(..))
 
 import Data.List (elemIndex)
@@ -19,10 +20,10 @@ main = do
 compileAndPrintFile :: String -> IO ()
 compileAndPrintFile f = do
   args <- getArgs
-  s <- readFile f
+  ast <- parseModuleFile f
   printCoqAST
     (convertModule
-       (fromParseResult (parseModuleWithMode (customParseMode f) s))
+       ast
        (getMonadFromArgs args)
        (getModeFromArgs args))
     (getMonadFromArgs args)
@@ -30,11 +31,11 @@ compileAndPrintFile f = do
 compileAndSaveFile :: String -> IO ()
 compileAndSaveFile f = do
   args <- getArgs
-  s <- readFile f
+  ast <- parseModuleFile f
   writeCoqFile
     (addSavePath fileName)
     (convertModule
-       (fromParseResult (parseModuleWithMode (customParseMode fileName) s))
+       ast
        (getMonadFromArgs args)
        (getModeFromArgs args))
     (getMonadFromArgs args)
@@ -43,8 +44,8 @@ compileAndSaveFile f = do
 
 parseAndPrintFile :: String -> IO ()
 parseAndPrintFile f = do
-  s <- readFile f
-  print (fromParseResult (parseModuleWithMode (customParseMode f) s))
+  ast <- parseModuleFile f
+  print ast
 
 testAst :: IO ()
 testAst = parseAndPrintFile "TestModules/Test.hs"
@@ -68,9 +69,6 @@ getFileNameFromPath p =
     else take ((length p) - 3) p
   where
     maybeStrokeIndex = elemIndex '/' p
-
-customParseMode :: String -> ParseMode
-customParseMode s = ParseMode s Haskell98 [] True True Nothing True
 
 getMonadFromArgs :: [String] -> ConversionMonad
 getMonadFromArgs [] = Option
