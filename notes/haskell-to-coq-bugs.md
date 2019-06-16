@@ -3,6 +3,21 @@ title: HaskellToCoq - Fehler und Probleme
 author: Justin Andresen
 ---
 
+## Fehler beim Parsen
+### Präzedenz
+
+Es werden beim Parsen die Präzedenzen von Infixoperatoren nicht beachtet.
+
+```haskell
+foo :: Int
+foo = 1 * 2 + 2 * 3
+```
+
+```coq
+Definition foo : option nat :=
+  o_return ((1 * 2 + 3) * 4).
+```
+
 ## Fehler bei der Übersetzung
 ### Deklarationen
 #### Reihenfolge
