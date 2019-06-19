@@ -23,28 +23,32 @@ Module IntersperseOneOldApproach.
 *)
 
 Fixpoint intersperseOneMatch'
-  {F : Type -> Type} (C__F : Container F)
-  (xs : List C__F Int) : Free C__F (List C__F Int) :=
+  (Shape : Type) (Pos : Shape -> Type)
+  (xs : List Shape Pos Int) 
+  : Free Shape Pos (List Shape Pos Int) :=
   match xs with
   | nil       => Nil
   | cons y ys =>
     Cons y (
       Cons (pure 1%Z) (
-        ys >>= fun(ys' : List C__F Int) => intersperseOneMatch' C__F ys'
+        ys >>= fun(ys' : List Shape Pos Int) => 
+          intersperseOneMatch' Shape Pos ys'
       )
     )
   end.
 
 Definition intersperseOneMatch
-  {F : Type -> Type} (C__F : Container F)
-  (xs : Free C__F (List C__F Int)) : Free C__F (List C__F Int) :=
-  xs >>= fun(xs' : List C__F Int) =>
-    intersperseOneMatch' C__F xs'.
+  (Shape : Type) (Pos : Shape -> Type)
+  (xs : Free Shape Pos (List Shape Pos Int)) 
+  : Free Shape Pos (List Shape Pos Int) :=
+  xs >>= fun(xs' : List Shape Pos Int) =>
+    intersperseOneMatch' Shape Pos xs'.
 
 Definition intersperseOne
-  {F : Type -> Type} (C__F : Container F)
-  (xs : Free C__F (List C__F Int)) : Free C__F (List C__F Int) :=
-  Cons (pure 1%Z) (intersperseOneMatch C__F xs).
+  (Shape : Type) (Pos : Shape -> Type)
+  (xs : Free Shape Pos (List Shape Pos Int)) 
+  : Free Shape Pos (List Shape Pos Int) :=
+  Cons (pure 1%Z) (intersperseOneMatch Shape Pos xs).
 
 End IntersperseOneOldApproach.
 
@@ -63,23 +67,24 @@ Module IntersperseOneNewApproach.
 *)
 
 Fixpoint intersperseOne'
-  {F : Type -> Type} (C__F : Container F)
-  (xs : List C__F Int) : Free C__F (List C__F Int) :=
+  (Shape : Type) (Pos : Shape -> Type)
+  (xs : List Shape Pos Int) : Free Shape Pos (List Shape Pos Int) :=
   match xs with
   | nil       => Nil
   | cons y ys =>
     Cons y (
       Cons (pure 1%Z) (
-        ys >>= fun(ys' : List C__F Int) => intersperseOne' C__F ys'
+        ys >>= fun(ys' : List Shape Pos Int) => intersperseOne' Shape Pos ys'
       )
     )
   end.
 
 Definition intersperseOne
-  {F : Type -> Type} (C__F : Container F)
-  (xs : Free C__F (List C__F Int)) : Free C__F (List C__F Int) :=
+  (Shape : Type) (Pos : Shape -> Type)
+  (xs : Free Shape Pos (List Shape Pos Int)) 
+  : Free Shape Pos (List Shape Pos Int) :=
   Cons (pure 1%Z) (
-    xs >>= fun(xs' : List C__F Int) => intersperseOne' C__F xs'
+    xs >>= fun(xs' : List Shape Pos Int) => intersperseOne' Shape Pos xs'
   ).
 
 End IntersperseOneNewApproach.
@@ -102,27 +107,29 @@ Module InterspersePrime.
 *)
 
 Fixpoint intersperse''
-  {F : Type -> Type} (C__F : Container F)
-  {a : Type} (sep : Free C__F a) (xs : List C__F a) : Free C__F (List C__F a) :=
+  (Shape : Type) (Pos : Shape -> Type)
+  {a : Type} (sep : Free Shape Pos a) (xs : List Shape Pos a) 
+  : Free Shape Pos (List Shape Pos a) :=
   match xs with
   | nil       => Nil
   | cons y ys =>
       Cons y (
-        ys >>= fun(ys0 : List C__F a) =>
+        ys >>= fun(ys0 : List Shape Pos a) =>
           match ys0 with
           | nil       => Nil
           | cons z zs =>
               Cons sep (
-                ys >>= fun(ys1 : List C__F a) => intersperse'' C__F sep ys1
+                ys >>= fun(ys1 : List Shape Pos a) =>
+                  intersperse'' Shape Pos sep ys1
               )
           end
       )
   end.
 
 Definition intersperse'
-  {F : Type -> Type} (C__F : Container F)
-  {a : Type} (sep : Free C__F a) (xs : Free C__F (List C__F a))
-  : Free C__F (List C__F a) :=
-  xs >>= fun(xs' : List C__F a) => intersperse'' C__F sep xs'.
+  (Shape : Type) (Pos : Shape -> Type)
+  {a : Type} (sep : Free Shape Pos a) (xs : Free Shape Pos (List Shape Pos a))
+  : Free Shape Pos (List Shape Pos a) :=
+  xs >>= fun(xs' : List Shape Pos a) => intersperse'' Shape Pos sep xs'.
 
 End InterspersePrime.

@@ -13,25 +13,26 @@ From Base Require Import Free.
 *)
 
 Fixpoint zip'
-  {F : Type -> Type} (C__F : Container F)
-  {a b : Type} (xs : List C__F a) (ys : Free C__F (List C__F b))
-  : Free C__F (List C__F (Pair C__F a b)) :=
+  (Shape : Type) (Pos : Shape -> Type)
+  {a b : Type} (xs : List Shape Pos a) (ys : Free Shape Pos (List Shape Pos b))
+  : Free Shape Pos (List Shape Pos (Pair Shape Pos a b)) :=
   match xs with
   | nil        => Nil
   | cons x xs' =>
-      ys >>= fun(ys0 : List C__F b) =>
+      ys >>= fun(ys0 : List Shape Pos b) =>
         match ys0 with
         | nil        => Nil
         | cons y ys' =>
             Cons (Pair_ x y) (
-              xs' >>= fun(xs'0 : List C__F a) => zip' C__F xs'0 ys'
+              xs' >>= fun(xs'0 : List Shape Pos a) => zip' Shape Pos xs'0 ys'
             )
         end
   end.
 
 Definition zip
-  {F : Type -> Type} (C__F : Container F)
-  {a b : Type} (xs : Free C__F (List C__F a)) (ys : Free C__F (List C__F b))
-  : Free C__F (List C__F (Pair C__F a b)) :=
-  xs >>= fun(xs0 : List C__F a) =>
-    zip' C__F xs0 ys.
+  (Shape : Type) (Pos : Shape -> Type)
+  {a b : Type} (xs : Free Shape Pos (List Shape Pos a)) 
+  (ys : Free Shape Pos (List Shape Pos b)) 
+  : Free Shape Pos (List Shape Pos (Pair Shape Pos a b)) :=
+  xs >>= fun(xs0 : List Shape Pos a) =>
+    zip' Shape Pos xs0 ys.

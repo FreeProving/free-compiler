@@ -9,9 +9,9 @@ From Base Require Import Free.
 *)
 
 Definition head
-    {F : Type -> Type} {P__F : Partial F}
-    {a : Type} (xs : Free C__F (List C__F a)) : Free C__F a :=
-  xs >>= fun(xs0 : List C__F a) =>
+    (Shape : Type) (Pos : Shape -> Type) (P : Partial Shape Pos)
+    {a : Type} (xs : Free Shape Pos (List Shape Pos a)) : Free Shape Pos a :=
+  xs >>= fun(xs0 : List Shape Pos a) =>
     match xs0 with
     | nil       => undefined
     | cons x xs => x
