@@ -1,15 +1,22 @@
 From Base Require Import Free.
 
-Inductive Pair
-  {F : Type -> Type} (C__F : Container F)
-  (A B : Type) : Type :=
-  | pair_ : Free C__F A -> Free C__F B -> Pair C__F A B.
+Section SecPair.
+  Variable Shape : Type.
+  Variable Pos : Shape -> Type.
+  Notation "'Free''" := (Free Shape Pos).
 
-Arguments pair_ {F} {C__F} {A} {B}.
+  Inductive Pair (A B : Type) : Type :=
+    | pair_ : Free' A -> Free' B -> Pair A B.
 
-(* smart constructor *)
-Definition Pair_
-  {F : Type -> Type} {C__F : Container F}
-  {A B : Type} (x : Free C__F A) (y : Free C__F B)
-  : Free C__F (Pair C__F A B) :=
-  pure (pair_ x y).
+  Arguments pair_ {A} {B}.
+
+  (* smart constructor *)
+  Definition Pair_ {A B : Type} (x : Free' A) (y : Free' B)
+    : Free' (Pair A B) :=
+    pure (pair_ x y).
+
+End SecPair.
+
+(* The arguments of the constructor and smart constructor are implicit. *)
+Arguments pair_ {Shape} {Pos}.
+Arguments Pair_ {Shape} {Pos}.

@@ -1,7 +1,14 @@
 From Base Require Import Free.
 
-(* smart constructor *)
-Definition Tt
-  {F : Type -> Type} {C__F : Container F}
-  : Free C__F unit :=
-  pure tt.
+Section SecUnit.
+  Variable Shape : Type.
+  Variable Pos : Shape -> Type.
+  Notation "'Free''" := (Free Shape Pos).
+
+  (* smart constructor *)
+  Definition Tt : Free' unit := pure tt.
+
+End SecUnit.
+
+(* The arguments of the smart constructor are implicit. *)
+Arguments Tt {Shape} {Pos}.
