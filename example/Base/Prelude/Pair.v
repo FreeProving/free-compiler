@@ -18,5 +18,5 @@ Section SecPair.
 End SecPair.
 
 (* The arguments of the constructor and smart constructor are implicit. *)
-Arguments pair_ {Shape} {Pos}.
-Arguments Pair_ {Shape} {Pos}.
+Arguments pair_ {Shape} {Pos} {A} {B}.
+Arguments Pair_ {Shape} {Pos} {A} {B}.

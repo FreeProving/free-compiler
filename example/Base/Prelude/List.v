@@ -23,9 +23,9 @@ Section SecList.
 End SecList.
 
 (* The arguments of the constructors are implicit. *)
-Arguments nil  {Shape} {Pos}.
-Arguments cons {Shape} {Pos}.
+Arguments nil  {Shape} {Pos} {A}.
+Arguments cons {Shape} {Pos} {A}.
 
 (* The arguments of the smart constructors are implicit. *)
-Arguments Nil  {Shape} {Pos}.
-Arguments Cons {Shape} {Pos}.
+Arguments Nil  {Shape} {Pos} {A}.
+Arguments Cons {Shape} {Pos} {A}.
