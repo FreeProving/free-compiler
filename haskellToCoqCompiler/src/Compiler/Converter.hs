@@ -32,7 +32,6 @@ import Compiler.HelperFunctions
   , getString
   , getTypeSignatureByName
   , getTypeSignatureByQId
-  , hasNonInferrableConstr
   , isDataDecl
   , isSpecialConstr
   , isSpecialOperator
@@ -370,7 +369,7 @@ buildArrowTerm terms returnType = foldr G.Arrow returnType terms
 -------------------------------------------------------------------------------
 
 needsArgumentsSentence :: Show l => H.DeclHead l -> [H.QualConDecl l] -> Bool
-needsArgumentsSentence declHead qConDecls = not (null binders) && hasNonInferrableConstr qConDecls
+needsArgumentsSentence declHead qConDecls = not (null binders)
   where
     binders = applyToDeclHeadTyVarBinds declHead convertTyVarBindToBinder
 

@@ -212,13 +212,6 @@ isDataDecl H.DataDecl {} = True
 isDataDecl H.TypeDecl {} = True
 isDataDecl _ = False
 
-hasNonInferrableConstr :: Show l => [H.QualConDecl l] -> Bool
-hasNonInferrableConstr constrs = any isNonInferrableConstr constrs || length constrs > 1
-
-isNonInferrableConstr :: Show l => H.QualConDecl l -> Bool
-isNonInferrableConstr (H.QualConDecl _ _ _ (H.ConDecl _ _ [])) = True
-isNonInferrableConstr _ = False
-
 isUnderscorePat :: G.Pattern -> Bool
 isUnderscorePat G.UnderscorePat = True
 isUnderscorePat _ = False
