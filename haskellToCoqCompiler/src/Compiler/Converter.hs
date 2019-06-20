@@ -80,10 +80,10 @@ import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
 
 convertModule :: Show l => H.Module l -> ConversionMonad -> ConversionMode -> G.Sentence
-convertModule (H.Module _ (Just modHead) _ _ decls) cMonad cMode =
+convertModule (H.Module _ modHead _ _ decls) cMonad cMode =
   G.LocalModuleSentence
     (G.LocalModule
-       (convertModuleHead modHead)
+       (maybe (T.pack "unnamed") extractModuleName modHead)
        (dataSentences ++ convertModuleDecls rDecls (map filterForTypeSignatures typeSigs) dataTypes funs cMonad cMode))
   where
     (typeSigs, otherDecls) = partition isTypeSig decls
@@ -91,17 +91,9 @@ convertModule (H.Module _ (Just modHead) _ _ decls) cMonad cMode =
     dataSentences = convertModuleDecls dataDecls (map filterForTypeSignatures typeSigs) [] funs cMonad cMode
     dataTypes = predefinedDataTypes ++ zip (getNamesFromDataDecls dataDecls) (getConstrNamesFromDataDecls dataDecls)
     funs = getFunNames rDecls
--- FIXME This second equation for `convertModule` causes the odd behaviour
--- when compiling a Haskell module without module head.
--- This equation should be unified with the one above.
-convertModule (H.Module _ Nothing _ _ decls) cMonad cMode =
-  G.LocalModuleSentence
-    (G.LocalModule
-       (T.pack "unnamed")
-       (convertModuleDecls otherDecls (map filterForTypeSignatures typeSigs) [] funs cMonad cMode))
-  where
-    (typeSigs, otherDecls) = partition isTypeSig decls
-    funs = getFunNames otherDecls
+
+extractModuleName :: Show l => H.ModuleHead l -> G.Ident
+extractModuleName (H.ModuleHead _ (H.ModuleName _ modName) _ _) = T.pack modName
 
 ----------------------------------------------------------------------------------------------------------------------
 getFunNames :: Show l => [H.Decl l] -> [G.Qualid]
@@ -113,9 +105,6 @@ isFunction _ = False
 
 getQIdFromFunDecl :: Show l => H.Decl l -> G.Qualid
 getQIdFromFunDecl (H.FunBind _ (H.Match _ name _ _ _:_)) = nameToQId name
-
-convertModuleHead :: Show l => H.ModuleHead l -> G.Ident
-convertModuleHead (H.ModuleHead _ (H.ModuleName _ modName) _ _) = T.pack modName
 
 convertModuleDecls ::
      Show l
