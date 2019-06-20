@@ -29,6 +29,7 @@ getStringFromQId :: G.Qualid -> String
 getStringFromQId (G.Bare text) = T.unpack text
 
 --manual covnversion of common Haskell types to coq equivalent
+-- FIXME inconsistency with `Converter.predefinedDataTypes`
 getType :: String -> G.Term
 getType "Int" = strToTerm "nat"
 getType "Bool" = strToTerm "bool"
