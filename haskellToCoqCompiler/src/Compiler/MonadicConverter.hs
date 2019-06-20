@@ -152,7 +152,7 @@ addReturnToTerm (G.Match mItem retType equations) typeSigs binders dataNames pat
 addReturnToTerm term typeSigs binders _ patNames cMonad =
   if isMonadicTerm term ||
      isMonadicFunctionCall term typeSigs ||
-     isMonadicBinder term binders || isPatName term patNames || isFuelArg term || isMonadicArrowTerm term binders
+     isMonadicBinder term binders || isPatName term patNames || isMonadicArrowTerm term binders
     then term
     else toReturnTerm term cMonad
 
@@ -256,10 +256,6 @@ fromMonadicTerm (G.App _ (G.PosArg term B.:| xs)) = term
 fromMonadicTerm term = term
 
 ---------------------- Bool Functions
-isFuelArg :: G.Term -> Bool
-isFuelArg (G.Qualid qId) = any (eqQId qId) (map strToQId ["rFuel", "fuel"])
-isFuelArg _ = False
-
 isPatName :: G.Term -> [G.Qualid] -> Bool
 isPatName (G.Qualid qId) qIds = any (eqQId qId) qIds
 isPatName _ _ = False

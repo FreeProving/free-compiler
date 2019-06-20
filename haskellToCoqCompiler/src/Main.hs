@@ -7,7 +7,7 @@ import System.Environment (getArgs)
 import Compiler.Converter (convertModule)
 import Compiler.Language.Coq.Pretty (printCoqAST, writeCoqFile)
 import Compiler.Language.Haskell.Parser (parseModuleFile)
-import Compiler.Types (ConversionMode(..), ConversionMonad(..))
+import Compiler.Types (ConversionMonad(..))
 
 import Data.List (elemIndex)
 import Data.Maybe (fromJust, isJust)
@@ -25,8 +25,7 @@ compileAndPrintFile f = do
   printCoqAST
     (convertModule
        ast
-       (getMonadFromArgs args)
-       (getModeFromArgs args))
+       (getMonadFromArgs args))
     (getMonadFromArgs args)
 
 compileAndSaveFile :: String -> IO ()
@@ -37,8 +36,7 @@ compileAndSaveFile f = do
     (addSavePath fileName)
     (convertModule
        ast
-       (getMonadFromArgs args)
-       (getModeFromArgs args))
+       (getMonadFromArgs args))
     (getMonadFromArgs args)
   where
     fileName = getFileNameFromPath f
@@ -76,9 +74,3 @@ getMonadFromArgs [] = Option
 getMonadFromArgs ("-o":_) = Option
 getMonadFromArgs ("-i":_) = Identity
 getMonadFromArgs (_:xs) = getMonadFromArgs xs
-
-getModeFromArgs :: [String] -> ConversionMode
-getModeFromArgs [] = HelperFunction
-getModeFromArgs ("-f":_) = FueledFunction
-getModeFromArgs ("-h":_) = HelperFunction
-getModeFromArgs (_:xs) = getModeFromArgs xs

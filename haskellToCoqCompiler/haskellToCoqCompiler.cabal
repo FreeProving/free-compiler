@@ -20,7 +20,6 @@ cabal-version:       >=1.10
 executable haskellToCoqCompiler
   main-is:            Main.hs
   other-modules:      Compiler.Converter
-                      , Compiler.FueledFunctions
                       , Compiler.HelperFunctionConverter
                       , Compiler.HelperFunctions
                       , Compiler.Language.Coq.Preamble

@@ -4,13 +4,6 @@ import qualified Language.Coq.Gallina as G
 import Language.Coq.Pretty (renderGallina)
 import qualified Language.Haskell.Exts.Syntax as H
 
-import Compiler.FueledFunctions
-  ( addFuelArgToRecursiveCalls
-  , addFuelBinder
-  , addFuelMatching
-  , convertFueledFunBody
-  , fuelTerm
-  )
 import Compiler.HelperFunctionConverter (convertMatchToHelperFunction, convertMatchToMainFunction)
 import Compiler.HelperFunctions
   ( addInferredTypesToSignature
@@ -68,7 +61,7 @@ import Compiler.MonadicConverter
   , transformTermMonadic
   )
 import Compiler.NonEmptyList (singleton, toNonemptyList)
-import Compiler.Types (ConversionMode(..), ConversionMonad(..))
+import Compiler.Types (ConversionMonad(..))
 import Compiler.Language.Coq.Pretty (printCoqAST, writeCoqFile)
 
 import qualified GHC.Base as B
@@ -86,7 +79,6 @@ data Environment = Environment
   , dataTypes      :: [(G.Name, [(G.Qualid, Maybe G.Qualid)])]
   , functionNames  :: [G.Qualid]
   , conversionMonad :: ConversionMonad
-  , conversionMode  :: ConversionMode
   }
 
 -------------------------------------------------------------------------------
@@ -104,8 +96,8 @@ convertIdent = T.pack
 -- | Converts a Haskell module to a Gallina module sentence.
 --
 --   If no module header is present the generated module is called @"unnamed"@.
-convertModule :: Show l => H.Module l -> ConversionMonad -> ConversionMode -> G.Sentence
-convertModule (H.Module _ modHead _ _ decls) cMonad cMode =
+convertModule :: Show l => H.Module l -> ConversionMonad -> G.Sentence
+convertModule (H.Module _ modHead _ _ decls) cMonad =
   G.LocalModuleSentence (G.LocalModule modName (dataSentences ++ funSentences))
  where
     modName = convertIdent (maybe "unnamed" extractModuleName modHead)
@@ -120,7 +112,6 @@ convertModule (H.Module _ modHead _ _ decls) cMonad cMode =
       , dataTypes       = predefinedDataTypes ++ zip (getNamesFromDataDecls dataDecls) (getConstrNamesFromDataDecls dataDecls)
       , functionNames   = getFunNames funDecls
       , conversionMonad = cMonad
-      , conversionMode  = cMode
       }
 
 -- | Extracts the name of a Haskell module from its header.
@@ -189,9 +180,7 @@ convertDecl _ decl = error ("Top-level declaration not implemented: " ++ show de
 convertMatchDef :: Show l => Environment -> H.Match l -> [G.Sentence]
 convertMatchDef env (H.Match _ name mPats rhs _) =
   if containsRecursiveCall rhsTerm funName
-    then if conversionMode env == FueledFunction
-           then [G.FixpointSentence (convertMatchToFueledFixpoint name mPats rhs (typeSignatures env) (dataTypes env) (functionNames env) (conversionMonad env))]
-           else convertMatchWithHelperFunction env name mPats rhs
+    then convertMatchWithHelperFunction env name mPats rhs
     else [G.DefinitionSentence (convertMatchToDefinition env name mPats rhs)]
   where
     rhsTerm = convertRhsToTerm rhs (map snd (concatMap snd (dataTypes env))) (conversionMonad env)
@@ -206,11 +195,7 @@ convertMatchToDefinition ::
   -> H.Rhs l   -- ^ The right hand side of the Haskell function.
   -> G.Definition
 convertMatchToDefinition env name pats rhs =
-  if conversionMode env == FueledFunction
-    then if (not . null) funCalls
-           then G.DefinitionDef G.Global funName bindersWithFuel returnType fueledMonadicTerm
-           else G.DefinitionDef G.Global funName bindersWithFuel returnType monadicTerm
-    else G.DefinitionDef G.Global funName bindersWithInferredTypes returnType monadicTerm
+  G.DefinitionDef G.Global funName bindersWithInferredTypes returnType monadicTerm
   where
     returnType = convertReturnType typeSig (conversionMonad env)
     funName = nameToQId name
@@ -220,64 +205,12 @@ convertMatchToDefinition env name pats rhs =
     monadicBinders = transformBindersMonadic binders (conversionMonad env)
     bindersWithInferredTypes =
       addInferredTypesToSignature monadicBinders (map fst (dataTypes env)) (getReturnType (fromJust typeSig))
-    bindersWithFuel = addFuelBinder bindersWithInferredTypes
     rhsTerm = convertRhsToTerm rhs (map snd (concatMap snd (dataTypes env))) (conversionMonad env)
     monadicTerm =
       addBindOperatorsToDefinition
         monadicBinders
         (addReturnToRhs rhsTerm (typeSignatures env) monadicBinders (dataTypes env) (conversionMonad env))
         (conversionMonad env)
-    fueledTerm = addFuelArgToRecursiveCalls rhsTerm fuelTerm funCalls
-    fueledMonadicTerm =
-      addBindOperatorsToDefinition
-        monadicBinders
-        (addReturnToRhs fueledTerm (typeSignatures env) monadicBinders (dataTypes env) (conversionMonad env))
-        (conversionMonad env)
-
--- | Converts a recursive Haskell function declaration to Coq.
---
---   Applies the fuel argument method to make sure that the resulting Coq
---   function is decreasing on one of it's arguments.
---
---   TODO Because we do not plan to continue support for the fuel argument
---        method, this function can be removed.
-convertMatchToFueledFixpoint ::
-     Show l
-  => H.Name l
-  -> [H.Pat l]
-  -> H.Rhs l
-  -> [G.TypeSignature]
-  -> [(G.Name, [(G.Qualid, Maybe G.Qualid)])]
-  -> [G.Qualid]
-  -> ConversionMonad
-  -> G.Fixpoint
-convertMatchToFueledFixpoint name pats rhs typeSigs dataTypes funs cMonad =
-  G.Fixpoint
-    (singleton
-       (G.FixBody
-          funName
-          (toNonemptyList bindersWithFuel)
-          Nothing
-          (Just (transformTermMonadic (getReturnType typeSig) cMonad))
-          fueledRhs))
-    []
-  where
-    typeSig = fromJust (getTypeSignatureByName typeSigs name)
-    funName = nameToQId name
-    binders = convertPatsToBinders pats (Just typeSig)
-    monadicBinders = transformBindersMonadic binders cMonad
-    bindersWithFuel = addFuelBinder bindersWithInferredTypes
-    bindersWithInferredTypes = addInferredTypesToSignature monadicBinders (map fst dataTypes) (getReturnType typeSig)
-    rhsTerm = convertRhsToTerm rhs (map snd (concatMap snd dataTypes)) cMonad
-    convertedFunBody =
-      convertFueledFunBody
-        (addReturnToRhs rhsTerm typeSigs monadicBinders dataTypes cMonad)
-        monadicBinders
-        funName
-        typeSigs
-        funs
-    fueledRhs = addFuelMatching monadicRhs funName
-    monadicRhs = addBindOperatorsToDefinition monadicBinders convertedFunBody cMonad
 
 -- | Converts a recursive Haskell function declaration to Coq.
 --
