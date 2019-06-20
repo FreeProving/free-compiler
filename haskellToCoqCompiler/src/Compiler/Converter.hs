@@ -79,6 +79,17 @@ import Data.Maybe (fromJust, isJust)
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
 
+-- | The @Environment@ data type encapsulates the state of the compiler
+--   including the currently defined functions and types as well as the
+--   configured conversion options.
+data Environment = Environment
+  { typeSignatures :: [G.TypeSignature]
+  , dataTypes      :: [(G.Name, [(G.Qualid, Maybe G.Qualid)])]
+  , functionNames  :: [G.Qualid]
+  , conversionMonad :: ConversionMonad
+  , conversionMode  :: ConversionMode
+  }
+
 -- | Converts a Haskell module to a Gallina module sentence.
 convertModule :: Show l => H.Module l -> ConversionMonad -> ConversionMode -> G.Sentence
 convertModule (H.Module _ modHead _ _ decls) cMonad cMode =
@@ -89,11 +100,15 @@ convertModule (H.Module _ modHead _ _ decls) cMonad cMode =
     -- TODO Perform dependency analysis instead of just splitting data type
     -- and function declarations.
     (dataDecls, funDecls) = partition isDataDecl nonTypeSigs
-    coqTypeSigs = convertTypeSignatures typeSigs
-    dataSentences = convertDecls coqTypeSigs [] funs cMonad cMode dataDecls
-    funSentences = convertDecls coqTypeSigs dataTypes funs cMonad cMode funDecls
-    dataTypes = predefinedDataTypes ++ zip (getNamesFromDataDecls dataDecls) (getConstrNamesFromDataDecls dataDecls)
-    funs = getFunNames funDecls
+    dataSentences = convertDecls env dataDecls
+    funSentences = convertDecls env funDecls
+    env = Environment
+      { typeSignatures  = convertTypeSignatures typeSigs
+      , dataTypes       = predefinedDataTypes ++ zip (getNamesFromDataDecls dataDecls) (getConstrNamesFromDataDecls dataDecls)
+      , functionNames   = getFunNames funDecls
+      , conversionMonad = cMonad
+      , conversionMode  = cMode
+      }
 
 -- | Converts a Haskell identifier to an identifier for the Coq AST.
 convertIdent :: String -> G.Ident
@@ -131,39 +146,23 @@ isFunction _ = False
 getQIdFromFunDecl :: Show l => H.Decl l -> G.Qualid
 getQIdFromFunDecl (H.FunBind _ (H.Match _ name _ _ _:_)) = nameToQId name
 
-convertDecls ::
-     Show l
-  => [G.TypeSignature]
-  -> [(G.Name, [(G.Qualid, Maybe G.Qualid)])]
-  -> [G.Qualid]
-  -> ConversionMonad
-  -> ConversionMode
-  -> [H.Decl l]
-  -> [G.Sentence]
-convertDecls typeSigs dataTypes funs cMonad cMode =
-  concatMap (convertDecl typeSigs dataTypes funs cMonad cMode)
+convertDecls :: Show l => Environment -> [H.Decl l] -> [G.Sentence]
+convertDecls = concatMap . convertDecl
 
-convertDecl ::
-     Show l
-  => [G.TypeSignature]
-  -> [(G.Name, [(G.Qualid, Maybe G.Qualid)])]
-  -> [G.Qualid]
-  -> ConversionMonad
-  -> ConversionMode
-  -> H.Decl l
-  -> [G.Sentence]
-convertDecl typeSigs dataTypes funs cMonad cMode (H.FunBind _ (x:xs)) =
-  convertMatchDef x typeSigs dataTypes funs cMonad cMode
-convertDecl typeSigs dataTypes funs cMonad cMode (H.DataDecl _ _ Nothing declHead qConDecl _) =
-  G.InductiveSentence (convertDataTypeDecl declHead qConDecl cMonad) :
+convertDecl :: Show l => Environment -> H.Decl l -> [G.Sentence]
+-- TODO Fail if xs is not empty.
+convertDecl env (H.FunBind _ (x:xs)) =
+  convertMatchDef x (typeSignatures env) (dataTypes env) (functionNames env) (conversionMonad env) (conversionMode env)
+convertDecl env (H.DataDecl _ _ Nothing declHead qConDecl _) =
+  G.InductiveSentence (convertDataTypeDecl declHead qConDecl (conversionMonad env)) :
   if needsArgumentsSentence declHead qConDecl
     then convertArgumentSentences declHead qConDecl
     else []
-convertDecl typeSigs dataTypes funs cMonad cMode (H.TypeDecl _ declHead ty) =
+convertDecl env (H.TypeDecl _ declHead ty) =
   [G.DefinitionSentence (convertTypeDeclToDefinition declHead ty)]
-convertDecl typeSigs dataTypes funs cMonad cMode (H.PatBind _ pat rhs _) =
-  [G.DefinitionSentence (convertPatBindToDefinition pat rhs typeSigs dataTypes cMonad)]
-convertDecl _ _ _ _ _ decl = error ("Top-level declaration not implemented: " ++ show decl)
+convertDecl env (H.PatBind _ pat rhs _) =
+  [G.DefinitionSentence (convertPatBindToDefinition pat rhs (typeSignatures env) (dataTypes env) (conversionMonad env))]
+convertDecl _ decl = error ("Top-level declaration not implemented: " ++ show decl)
 
 convertTypeDeclToDefinition :: Show l => H.DeclHead l -> H.Type l -> G.Definition
 convertTypeDeclToDefinition dHead ty = G.DefinitionDef G.Global name binders Nothing rhs
