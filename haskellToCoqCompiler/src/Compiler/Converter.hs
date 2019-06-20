@@ -90,8 +90,8 @@ convertModule (H.Module _ modHead _ _ decls) cMonad cMode =
     -- and function declarations.
     (dataDecls, funDecls) = partition isDataDecl nonTypeSigs
     coqTypeSigs = convertTypeSignatures typeSigs
-    dataSentences = convertModuleDecls dataDecls coqTypeSigs [] funs cMonad cMode
-    funSentences = convertModuleDecls funDecls coqTypeSigs dataTypes funs cMonad cMode
+    dataSentences = convertDecls coqTypeSigs [] funs cMonad cMode dataDecls
+    funSentences = convertDecls coqTypeSigs dataTypes funs cMonad cMode funDecls
     dataTypes = predefinedDataTypes ++ zip (getNamesFromDataDecls dataDecls) (getConstrNamesFromDataDecls dataDecls)
     funs = getFunNames funDecls
 
@@ -131,31 +131,39 @@ isFunction _ = False
 getQIdFromFunDecl :: Show l => H.Decl l -> G.Qualid
 getQIdFromFunDecl (H.FunBind _ (H.Match _ name _ _ _:_)) = nameToQId name
 
-convertModuleDecls ::
+convertDecls ::
      Show l
-  => [H.Decl l]
-  -> [G.TypeSignature]
+  => [G.TypeSignature]
   -> [(G.Name, [(G.Qualid, Maybe G.Qualid)])]
   -> [G.Qualid]
   -> ConversionMonad
   -> ConversionMode
+  -> [H.Decl l]
   -> [G.Sentence]
-convertModuleDecls (H.FunBind _ (x:xs):ds) typeSigs dataTypes funs cMonad cMode =
-  convertMatchDef x typeSigs dataTypes funs cMonad cMode ++ convertModuleDecls ds typeSigs dataTypes funs cMonad cMode
-convertModuleDecls (H.DataDecl _ _ Nothing declHead qConDecl _:ds) typeSigs dataTypes funs cMonad cMode =
+convertDecls typeSigs dataTypes funs cMonad cMode =
+  concatMap (convertDecl typeSigs dataTypes funs cMonad cMode)
+
+convertDecl ::
+     Show l
+  => [G.TypeSignature]
+  -> [(G.Name, [(G.Qualid, Maybe G.Qualid)])]
+  -> [G.Qualid]
+  -> ConversionMonad
+  -> ConversionMode
+  -> H.Decl l
+  -> [G.Sentence]
+convertDecl typeSigs dataTypes funs cMonad cMode (H.FunBind _ (x:xs)) =
+  convertMatchDef x typeSigs dataTypes funs cMonad cMode
+convertDecl typeSigs dataTypes funs cMonad cMode (H.DataDecl _ _ Nothing declHead qConDecl _) =
+  G.InductiveSentence (convertDataTypeDecl declHead qConDecl cMonad) :
   if needsArgumentsSentence declHead qConDecl
-    then [G.InductiveSentence (convertDataTypeDecl declHead qConDecl cMonad)] ++
-         convertArgumentSentences declHead qConDecl ++ convertModuleDecls ds typeSigs dataTypes funs cMonad cMode
-    else G.InductiveSentence (convertDataTypeDecl declHead qConDecl cMonad) :
-         convertModuleDecls ds typeSigs dataTypes funs cMonad cMode
-convertModuleDecls (H.TypeDecl _ declHead ty:ds) typeSigs dataTypes funs cMonad cMode =
-  G.DefinitionSentence (convertTypeDeclToDefinition declHead ty) :
-  convertModuleDecls ds typeSigs dataTypes funs cMonad cMode
-convertModuleDecls (H.PatBind _ pat rhs _:ds) typeSigs dataTypes funs cMonad cMode =
-  G.DefinitionSentence (convertPatBindToDefinition pat rhs typeSigs dataTypes cMonad) :
-  convertModuleDecls ds typeSigs dataTypes funs cMonad cMode
-convertModuleDecls [] _ _ _ _ _ = []
-convertModuleDecls (d:ds) _ _ _ _ _ = error ("Top-level declaration not implemented: " ++ show d)
+    then convertArgumentSentences declHead qConDecl
+    else []
+convertDecl typeSigs dataTypes funs cMonad cMode (H.TypeDecl _ declHead ty) =
+  [G.DefinitionSentence (convertTypeDeclToDefinition declHead ty)]
+convertDecl typeSigs dataTypes funs cMonad cMode (H.PatBind _ pat rhs _) =
+  [G.DefinitionSentence (convertPatBindToDefinition pat rhs typeSigs dataTypes cMonad)]
+convertDecl _ _ _ _ _ decl = error ("Top-level declaration not implemented: " ++ show decl)
 
 convertTypeDeclToDefinition :: Show l => H.DeclHead l -> H.Type l -> G.Definition
 convertTypeDeclToDefinition dHead ty = G.DefinitionDef G.Global name binders Nothing rhs
