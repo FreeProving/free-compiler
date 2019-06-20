@@ -42,6 +42,37 @@ Definition bar (ox : option nat) : option nat :=
   ox >>= (fun (x : nat) => o_return (2 * x)).
 ```
 
+### Datentypen
+
+Es wird kein `Arguments`{.coq}-Sentence generiert, wenn ein polymorpher
+Datentyp genau einen Konstruktor hat und dieser Konstruktor Argumente hat.
+
+```haskell
+-- No argument sentence because `Foo1` has no type arguments.
+data Foo1 = Bar1 | Baz1
+
+-- Argument sentences because `Foo2` is polymorphic.
+data Foo2 a = Bar2 a | Baz2 a
+
+-- No argument sentence even though `Foo3` is polymorphic because `Foo3` has
+-- only one constructor and no constructor without arguments.
+data Foo3 a = Bar3 a
+```
+
+```coq
+Inductive Foo1 : Type := Bar1 : Foo1 |  Baz1 : Foo1.
+
+Inductive Foo2 (a : Type) : Type
+  := Bar2 : option a -> Foo2 a
+  |  Baz2 : option a -> Foo2 a.
+
+Arguments Bar2 {a}.
+
+Arguments Baz2 {a}.
+
+Inductive Foo3 (a : Type) : Type := Bar3 : option a -> Foo3 a.
+```
+
 ### Funktionen
 #### Funktionen als Rückgabewert
 
