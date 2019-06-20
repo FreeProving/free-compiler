@@ -79,11 +79,12 @@ import Data.Maybe (fromJust, isJust)
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
 
+-- | Converts a Haskell module to a Gallina module sentence.
 convertModule :: Show l => H.Module l -> ConversionMonad -> ConversionMode -> G.Sentence
 convertModule (H.Module _ modHead _ _ decls) cMonad cMode =
   G.LocalModuleSentence
     (G.LocalModule
-       (maybe (T.pack "unnamed") extractModuleName modHead)
+       (convertIdent $ maybe "unnamed" extractModuleName modHead)
        (dataSentences ++ convertModuleDecls rDecls (map filterForTypeSignatures typeSigs) dataTypes funs cMonad cMode))
   where
     (typeSigs, otherDecls) = partition isTypeSig decls
@@ -92,8 +93,13 @@ convertModule (H.Module _ modHead _ _ decls) cMonad cMode =
     dataTypes = predefinedDataTypes ++ zip (getNamesFromDataDecls dataDecls) (getConstrNamesFromDataDecls dataDecls)
     funs = getFunNames rDecls
 
-extractModuleName :: Show l => H.ModuleHead l -> G.Ident
-extractModuleName (H.ModuleHead _ (H.ModuleName _ modName) _ _) = T.pack modName
+-- | Converts a Haskell identifier to an identifier for the Coq AST.
+convertIdent :: String -> G.Ident
+convertIdent = T.pack
+
+-- | Extracts the name of a Haskell module from its header.
+extractModuleName :: Show l => H.ModuleHead l -> String
+extractModuleName (H.ModuleHead _ (H.ModuleName _ modName) _ _) = modName
 
 ----------------------------------------------------------------------------------------------------------------------
 getFunNames :: Show l => [H.Decl l] -> [G.Qualid]
