@@ -82,16 +82,18 @@ import qualified Data.Text.Lazy as TL
 -- | Converts a Haskell module to a Gallina module sentence.
 convertModule :: Show l => H.Module l -> ConversionMonad -> ConversionMode -> G.Sentence
 convertModule (H.Module _ modHead _ _ decls) cMonad cMode =
-  G.LocalModuleSentence
-    (G.LocalModule
-       (convertIdent $ maybe "unnamed" extractModuleName modHead)
-       (dataSentences ++ convertModuleDecls rDecls (map filterForTypeSignatures typeSigs) dataTypes funs cMonad cMode))
-  where
-    (typeSigs, otherDecls) = partition isTypeSig decls
-    (dataDecls, rDecls) = partition isDataDecl otherDecls
-    dataSentences = convertModuleDecls dataDecls (map filterForTypeSignatures typeSigs) [] funs cMonad cMode
+  G.LocalModuleSentence (G.LocalModule modName (dataSentences ++ funSentences))
+ where
+    modName = convertIdent (maybe "unnamed" extractModuleName modHead)
+    (typeSigs, nonTypeSigs) = partition isTypeSig decls
+    -- TODO Perform dependency analysis instead of just splitting data type
+    -- and function declarations.
+    (dataDecls, funDecls) = partition isDataDecl nonTypeSigs
+    coqTypeSigs = convertTypeSignatures typeSigs
+    dataSentences = convertModuleDecls dataDecls coqTypeSigs [] funs cMonad cMode
+    funSentences = convertModuleDecls funDecls coqTypeSigs dataTypes funs cMonad cMode
     dataTypes = predefinedDataTypes ++ zip (getNamesFromDataDecls dataDecls) (getConstrNamesFromDataDecls dataDecls)
-    funs = getFunNames rDecls
+    funs = getFunNames funDecls
 
 -- | Converts a Haskell identifier to an identifier for the Coq AST.
 convertIdent :: String -> G.Ident
@@ -100,6 +102,23 @@ convertIdent = T.pack
 -- | Extracts the name of a Haskell module from its header.
 extractModuleName :: Show l => H.ModuleHead l -> String
 extractModuleName (H.ModuleHead _ (H.ModuleName _ modName) _ _) = modName
+
+-- | Converts all given type signatures.
+convertTypeSignatures :: Show l => [H.Decl l] -> [G.TypeSignature]
+convertTypeSignatures = concatMap convertTypeSignature
+
+-- | Converts a Haskell type signature for one or more identifiers of the same
+--   type to a list of Gallina type signatures (one for each identifier).
+--
+--   TODO The type @G.TypeSignature@ is not part of the original Coq AST
+--        by @hs-to-coq@ and is going to be removed once we upgrade to
+--        @language-coq@.
+convertTypeSignature :: Show l => H.Decl l -> [G.TypeSignature]
+convertTypeSignature (H.TypeSig _ names types) =
+  map (\name -> G.TypeSignature (nameToGName name) types') names
+ where
+    types' :: [G.Term]
+    types' = convertTypeToTerms types
 
 ----------------------------------------------------------------------------------------------------------------------
 getFunNames :: Show l => [H.Decl l] -> [G.Qualid]
@@ -351,9 +370,6 @@ convertToArrowTerm types returnType cMonad = buildArrowTerm (map (convertTypeToM
 
 buildArrowTerm :: [G.Term] -> G.Term -> G.Term
 buildArrowTerm terms returnType = foldr G.Arrow returnType terms
-
-filterForTypeSignatures :: Show l => H.Decl l -> G.TypeSignature
-filterForTypeSignatures (H.TypeSig _ (name:rest) types) = G.TypeSignature (nameToGName name) (convertTypeToTerms types)
 
 convertTypeToArg :: Show l => H.Type l -> G.Arg
 convertTypeToArg ty = G.PosArg (convertTypeToTerm ty)
