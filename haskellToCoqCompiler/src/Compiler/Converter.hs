@@ -151,17 +151,16 @@ convertDecls = concatMap . convertDecl
 
 convertDecl :: Show l => Environment -> H.Decl l -> [G.Sentence]
 -- TODO Fail if xs is not empty.
-convertDecl env (H.FunBind _ (x:xs)) =
-  convertMatchDef x (typeSignatures env) (dataTypes env) (functionNames env) (conversionMonad env) (conversionMode env)
+convertDecl env (H.FunBind _ (x:xs)) = convertMatchDef env x
 convertDecl env (H.DataDecl _ _ Nothing declHead qConDecl _) =
-  G.InductiveSentence (convertDataTypeDecl declHead qConDecl (conversionMonad env)) :
+  G.InductiveSentence (convertDataTypeDecl env declHead qConDecl) :
   if needsArgumentsSentence declHead qConDecl
     then convertArgumentSentences declHead qConDecl
     else []
 convertDecl env (H.TypeDecl _ declHead ty) =
   [G.DefinitionSentence (convertTypeDeclToDefinition declHead ty)]
 convertDecl env (H.PatBind _ pat rhs _) =
-  [G.DefinitionSentence (convertPatBindToDefinition pat rhs (typeSignatures env) (dataTypes env) (conversionMonad env))]
+  [G.DefinitionSentence (convertPatBindToDefinition env pat rhs)]
 convertDecl _ decl = error ("Top-level declaration not implemented: " ++ show decl)
 
 convertTypeDeclToDefinition :: Show l => H.DeclHead l -> H.Type l -> G.Definition
@@ -173,26 +172,24 @@ convertTypeDeclToDefinition dHead ty = G.DefinitionDef G.Global name binders Not
 
 convertPatBindToDefinition ::
      Show l
-  => H.Pat l
+  => Environment
+  -> H.Pat l
   -> H.Rhs l
-  -> [G.TypeSignature]
-  -> [(G.Name, [(G.Qualid, Maybe G.Qualid)])]
-  -> ConversionMonad
   -> G.Definition
-convertPatBindToDefinition pat rhs typeSigs dataTypes cMonad = G.DefinitionDef G.Global name binders returnType rhsTerm
+convertPatBindToDefinition env pat rhs = G.DefinitionDef G.Global name binders returnType rhsTerm
   where
-    dataNames = map fst dataTypes
-    binders = addInferredTypesToSignature [] (map fst dataTypes) (fromJust returnType)
+    dataNames = map fst (dataTypes env)
+    binders = addInferredTypesToSignature [] (map fst (dataTypes env)) (fromJust returnType)
     name = patToQID pat
-    typeSig = getTypeSignatureByQId typeSigs name
-    returnType = convertReturnType typeSig cMonad
+    typeSig = getTypeSignatureByQId (typeSignatures env) name
+    returnType = convertReturnType typeSig (conversionMonad env)
     -- FIXME This line is propably responsible for the inconsistent compilation
     -- of functions and pattern bindings. The parameters `typeSigs`, `binders`
     -- and `dataTypes` of `addReturnToRhs` need to be properly initialized
     -- (see `convertMatchToDefinition`) instead of setting them to `[]`.
     -- Ideally the translatioon of functions and pattern bindings share a
     -- common code base.
-    rhsTerm = addReturnToRhs (convertRhsToTerm rhs (map snd (concatMap snd dataTypes)) cMonad) [] [] [] cMonad
+    rhsTerm = addReturnToRhs (convertRhsToTerm rhs (map snd (concatMap snd (dataTypes env))) (conversionMonad env)) [] [] [] (conversionMonad env)
 
 convertArgumentSentences :: Show l => H.DeclHead l -> [H.QualConDecl l] -> [G.Sentence]
 convertArgumentSentences declHead qConDecls =
@@ -205,8 +202,8 @@ convertArgumentSpec declHead = [G.ArgumentSpec G.ArgMaximal varName Nothing | va
   where
     varNames = applyToDeclHeadTyVarBinds declHead convertTyVarBindToName
 
-convertDataTypeDecl :: Show l => H.DeclHead l -> [H.QualConDecl l] -> ConversionMonad -> G.Inductive
-convertDataTypeDecl dHead qConDecl cMonad = G.Inductive (singleton (G.IndBody typeName binders typeTerm constrDecls)) []
+convertDataTypeDecl :: Show l => Environment -> H.DeclHead l -> [H.QualConDecl l] -> G.Inductive
+convertDataTypeDecl env dHead qConDecl = G.Inductive (singleton (G.IndBody typeName binders typeTerm constrDecls)) []
   where
     typeName = changeSimilarType (applyToDeclHead dHead nameToQId)
     binders = applyToDeclHeadTyVarBinds dHead convertTyVarBindToBinder
@@ -214,66 +211,54 @@ convertDataTypeDecl dHead qConDecl cMonad = G.Inductive (singleton (G.IndBody ty
       convertQConDecls
         qConDecl
         (getReturnTypeFromDeclHead (applyToDeclHeadTyVarBinds dHead convertTyVarBindToArg) typeName)
-        cMonad
+        (conversionMonad env)
 
-convertMatchDef ::
-     Show l
-  => H.Match l
-  -> [G.TypeSignature]
-  -> [(G.Name, [(G.Qualid, Maybe G.Qualid)])]
-  -> [G.Qualid]
-  -> ConversionMonad
-  -> ConversionMode
-  -> [G.Sentence]
-convertMatchDef (H.Match _ name mPats rhs _) typeSigs dataTypes funs cMonad cMode =
+convertMatchDef :: Show l => Environment -> H.Match l -> [G.Sentence]
+convertMatchDef env (H.Match _ name mPats rhs _) =
   if containsRecursiveCall rhsTerm funName
-    then if cMode == FueledFunction
-           then [G.FixpointSentence (convertMatchToFueledFixpoint name mPats rhs typeSigs dataTypes funs cMonad)]
-           else convertMatchWithHelperFunction name mPats rhs typeSigs dataTypes cMonad
-    else [G.DefinitionSentence (convertMatchToDefinition name mPats rhs typeSigs dataTypes funs cMonad cMode)]
+    then if conversionMode env == FueledFunction
+           then [G.FixpointSentence (convertMatchToFueledFixpoint name mPats rhs (typeSignatures env) (dataTypes env) (functionNames env) (conversionMonad env))]
+           else convertMatchWithHelperFunction env name mPats rhs
+    else [G.DefinitionSentence (convertMatchToDefinition env name mPats rhs)]
   where
-    rhsTerm = convertRhsToTerm rhs (map snd (concatMap snd dataTypes)) cMonad
+    rhsTerm = convertRhsToTerm rhs (map snd (concatMap snd (dataTypes env))) (conversionMonad env)
     funName = nameToQId name
 
 convertMatchToDefinition ::
      Show l
-  => H.Name l
+  => Environment
+  -> H.Name l
   -> [H.Pat l]
   -> H.Rhs l
-  -> [G.TypeSignature]
-  -> [(G.Name, [(G.Qualid, Maybe G.Qualid)])]
-  -> [G.Qualid]
-  -> ConversionMonad
-  -> ConversionMode
   -> G.Definition
-convertMatchToDefinition name pats rhs typeSigs dataTypes funs cMonad cMode =
-  if cMode == FueledFunction
+convertMatchToDefinition env name pats rhs =
+  if conversionMode env == FueledFunction
     then if (not . null) funCalls
            then G.DefinitionDef G.Global funName bindersWithFuel returnType fueledMonadicTerm
            else G.DefinitionDef G.Global funName bindersWithFuel returnType monadicTerm
     else G.DefinitionDef G.Global funName bindersWithInferredTypes returnType monadicTerm
   where
-    returnType = convertReturnType typeSig cMonad
+    returnType = convertReturnType typeSig (conversionMonad env)
     funName = nameToQId name
-    funCalls = filter (containsRecursiveCall rhsTerm) funs
-    typeSig = getTypeSignatureByName typeSigs name
+    funCalls = filter (containsRecursiveCall rhsTerm) (functionNames env)
+    typeSig = getTypeSignatureByName (typeSignatures env) name
     binders = convertPatsToBinders pats typeSig
-    monadicBinders = transformBindersMonadic binders cMonad
+    monadicBinders = transformBindersMonadic binders (conversionMonad env)
     bindersWithInferredTypes =
-      addInferredTypesToSignature monadicBinders (map fst dataTypes) (getReturnType (fromJust typeSig))
+      addInferredTypesToSignature monadicBinders (map fst (dataTypes env)) (getReturnType (fromJust typeSig))
     bindersWithFuel = addFuelBinder bindersWithInferredTypes
-    rhsTerm = convertRhsToTerm rhs (map snd (concatMap snd dataTypes)) cMonad
+    rhsTerm = convertRhsToTerm rhs (map snd (concatMap snd (dataTypes env))) (conversionMonad env)
     monadicTerm =
       addBindOperatorsToDefinition
         monadicBinders
-        (addReturnToRhs rhsTerm typeSigs monadicBinders dataTypes cMonad)
-        cMonad
+        (addReturnToRhs rhsTerm (typeSignatures env) monadicBinders (dataTypes env) (conversionMonad env))
+        (conversionMonad env)
     fueledTerm = addFuelArgToRecursiveCalls rhsTerm fuelTerm funCalls
     fueledMonadicTerm =
       addBindOperatorsToDefinition
         monadicBinders
-        (addReturnToRhs fueledTerm typeSigs monadicBinders dataTypes cMonad)
-        cMonad
+        (addReturnToRhs fueledTerm (typeSignatures env) monadicBinders (dataTypes env) (conversionMonad env))
+        (conversionMonad env)
 
 convertMatchToFueledFixpoint ::
      Show l
@@ -315,21 +300,19 @@ convertMatchToFueledFixpoint name pats rhs typeSigs dataTypes funs cMonad =
 
 convertMatchWithHelperFunction ::
      Show l
-  => H.Name l
+  => Environment
+  -> H.Name l
   -> [H.Pat l]
   -> H.Rhs l
-  -> [G.TypeSignature]
-  -> [(G.Name, [(G.Qualid, Maybe G.Qualid)])]
-  -> ConversionMonad
   -> [G.Sentence]
-convertMatchWithHelperFunction name pats rhs typeSigs dataTypes cMonad =
-  [ G.FixpointSentence (convertMatchToMainFunction name binders rhsTerm typeSigs dataTypes cMonad)
-  , G.DefinitionSentence (convertMatchToHelperFunction name binders rhsTerm typeSigs dataTypes cMonad)
+convertMatchWithHelperFunction env name pats rhs =
+  [ G.FixpointSentence (convertMatchToMainFunction name binders rhsTerm (typeSignatures env) (dataTypes env) (conversionMonad env))
+  , G.DefinitionSentence (convertMatchToHelperFunction name binders rhsTerm (typeSignatures env) (dataTypes env) (conversionMonad env))
   ]
   where
-    rhsTerm = convertRhsToTerm rhs (map snd (concatMap snd dataTypes)) cMonad
+    rhsTerm = convertRhsToTerm rhs (map snd (concatMap snd (dataTypes env))) (conversionMonad env)
     binders = convertPatsToBinders pats typeSig
-    typeSig = getTypeSignatureByName typeSigs name
+    typeSig = getTypeSignatureByName (typeSignatures env) name
 
 convertTyVarBindToName :: Show l => H.TyVarBind l -> G.Name
 convertTyVarBindToName (H.KindedVar _ name _) = nameToGName name
