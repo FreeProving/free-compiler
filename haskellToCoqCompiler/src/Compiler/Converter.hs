@@ -358,22 +358,6 @@ convertQConDecl (H.QualConDecl _ Nothing Nothing (H.ConDecl _ name types)) term 
   where
     constrName = nameToQId name
     suffixName = strToQId ((qIdToStr constrName) ++ "_")
-convertQConDecl (H.QualConDecl _ _ _ (H.RecDecl _ name fieldDecls)) term cMonad =
-  if eqQId constrName (termToQId term)
-    then (suffixName, [], Just (G.Record (convertFieldDeclsToRecList fieldDecls cMonad)))
-    else (constrName, [], Just (G.Record (convertFieldDeclsToRecList fieldDecls cMonad)))
-  where
-    constrName = nameToQId name
-    suffixName = strToQId ((qIdToStr constrName) ++ "_")
-
-convertFieldDeclsToRecList :: Show l => [H.FieldDecl l] -> ConversionMonad -> [(G.Qualid, G.Term)]
-convertFieldDeclsToRecList fDecls m = [convertFieldDeclToRec f m | f <- fDecls]
-
-convertFieldDeclToRec :: Show l => H.FieldDecl l -> ConversionMonad -> (G.Qualid, G.Term)
-convertFieldDeclToRec (H.FieldDecl _ name ty) m = (fieldName, fieldType)
-  where
-    fieldName = nameToQId (head name)
-    fieldType = convertTypeToMonadicTerm m ty
 
 convertToArrowTerm :: Show l => [H.Type l] -> G.Term -> ConversionMonad -> G.Term
 convertToArrowTerm types returnType cMonad = buildArrowTerm (map (convertTypeToMonadicTerm cMonad) types) returnType
