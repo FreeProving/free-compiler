@@ -4,7 +4,6 @@ module Compiler.Language.Haskell.Parser
   )
 where
 
-import           Control.Monad                  ( join )
 import           System.Exit                    ( exitFailure )
 
 import           Language.Haskell.Exts.Extension
@@ -12,10 +11,6 @@ import           Language.Haskell.Exts.Extension
 import           Language.Haskell.Exts.Parser   ( ParseMode(..)
                                                 , ParseResult(..)
                                                 , parseModuleWithMode
-                                                )
-import           Language.Haskell.Exts.SrcLoc   ( SrcLoc
-                                                , SrcSpanInfo
-                                                , mkSrcSpan
                                                 )
 import qualified Language.Haskell.Exts.Syntax  as H
 
@@ -43,7 +38,7 @@ parseMode filename = ParseMode
 parseModule
   :: String  -- ^ The name of the Haskell source file.
   -> String  -- ^ The Haskell source code.
-  -> Reporter MessageSrcSpan (H.Module MessageSrcSpan)
+  -> Reporter (H.Module MessageSrcSpan)
 parseModule filename contents =
   case parseModuleWithMode (parseMode filename) contents of
     ParseOk ast -> return (fmap toMessageSrcSpan ast)

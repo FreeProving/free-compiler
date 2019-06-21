@@ -22,10 +22,11 @@ module Compiler.Reporter
   , addMessages
   , foldReporter
   , isFatal
-  , mapLocation
   , messages
   , putMessage
   , putMessages
+  , hPutMessage
+  , hPutMessages
   , report
   , reportFatal
   )
@@ -49,25 +50,14 @@ import qualified Language.Haskell.Exts.SrcLoc  as H
 data Severity = Error | Warning | Info
 
 -- | A message reported by the compiler.
---
---   'l' is the type of the location annotation. The location annotation
---   carries information about the position in the source file of the code
---   that caused the message to be reported.
-data Message l = Message l Severity String
-
--- | Applies the given function on the location annotation of a message.
---
---   The main pupose of this function is to aid in pretty printing messages.
---   It is used by 'convertSrcSpans' to convert source spans of messages to a
---   pretty printable data type.
-mapLocation :: (l -> l') -> Message l -> Message l'
-mapLocation f (Message loc severity msg) = Message (f loc) severity msg
+data Message = Message MessageSrcSpan Severity String
 
 -------------------------------------------------------------------------------
 -- Source spans                                                              --
 -------------------------------------------------------------------------------
 
--- | The preferred data type to represet the location annotations of messages.
+-- | Describes the portion of the source code that caused a message to be
+--   reported.
 --
 --   In contrast to the source spans provided by the @haskell-src-exts@ package
 --   this source span provides access to the line of code that contains the
@@ -82,27 +72,27 @@ data MessageSrcSpan = MessageSrcSpan
   }
   deriving (Show)
 
--- | Type class for location annotatios that can be converted
+-- | Type class for @haskell-src-exts@ source spans that can be converted
 --   to 'MessageSrcSpan's for pretty printing of messages.
-class SrcSpanConverter l where
-  -- | Converts a location annotation to a 'MessageSrcSpan' by attaching
-  --   the corresponding line of source code.
+class SrcSpanConverter ss where
+  -- | Converts a @haskell-src-exts@ source span to a 'MessageSrcSpan' by
+  --   attaching the corresponding line of source code.
   convertSrcSpan ::
     [(String, [String])] -- ^ A map of file names to lines of source code.
-    -> l                 -- ^ The location annotation to convert.
+    -> ss                -- ^ The original source span to convert.
     -> MessageSrcSpan
 
 -- | Directly converts a 'H.SrcSpan' to a 'MessageSrcSpan' by looking up
 --   the corresponding line of code in the provided map.
 instance SrcSpanConverter H.SrcSpan where
-  convertSrcSpan codeByFilename loc = MessageSrcSpan
-    { filename    = H.srcSpanFilename loc
-    , startLine   = H.srcSpanStartLine loc
-    , startColumn = H.srcSpanStartColumn loc
-    , spanWidth   = snd (H.spanSize loc)
+  convertSrcSpan codeByFilename srcSpan = MessageSrcSpan
+    { filename    = H.srcSpanFilename srcSpan
+    , startLine   = H.srcSpanStartLine srcSpan
+    , startColumn = H.srcSpanStartColumn srcSpan
+    , spanWidth   = snd (H.spanSize srcSpan)
     , codeLine    =
-        lookup (H.srcSpanFilename loc) codeByFilename
-          >>= (nth (H.srcSpanStartLine loc - 1))
+        lookup (H.srcSpanFilename srcSpan) codeByFilename
+          >>= (nth (H.srcSpanStartLine srcSpan - 1))
     }
    where
     -- | Gets @n@-th element of a list or 'Nothing' if there is no such element.
@@ -134,18 +124,18 @@ instance SrcSpanConverter H.SrcLoc where
 --   The message lists are in reverse order, i.e. the last reported
 --   message comes first. In case of 'Fatal' that mesan that the head
 --   of the message list contains the reason for the failure.
-data Reporter l a =
-  Report [Message l] a
-  | Fatal [Message l]
+data Reporter a =
+  Report [Message] a
+  | Fatal [Message]
 
 -- | Functor instance for 'Reporter's to allow creation of the
 --   'Applicative' instance.
-instance Functor (Reporter l) where
+instance Functor Reporter where
   fmap = liftM
 
 -- | Applicative instance for 'Reporter's to allow creation of the
 --   'Monad' instance.
-instance Applicative (Reporter l) where
+instance Applicative Reporter where
   pure = return
   (<*>) = ap
 
@@ -157,7 +147,7 @@ instance Applicative (Reporter l) where
 --
 --   When a reporter encounters a fatal error, no subsequent reporters are
 --   executed.
-instance Monad (Reporter l) where
+instance Monad Reporter where
   return = Report []
   (>>=) (Report ms x) f = addMessages (f x) ms
   (>>=) (Fatal ms) _ = Fatal ms
@@ -169,16 +159,16 @@ instance Monad (Reporter l) where
 -- | Appends a list of messages to the messages reported by the given reporter.
 --
 --   The new messages are added to the back of the message list.
-addMessages :: Reporter l a -> [Message l] -> Reporter l a
+addMessages :: Reporter a -> [Message] -> Reporter a
 addMessages (Report ms x) ms' = Report (ms ++ ms') x
 addMessages (Fatal ms   ) ms' = Fatal (ms ++ ms')
 
 -- | Creates a successful reporter that reports the given message.
-report :: Message l -> Reporter l ()
+report :: Message -> Reporter ()
 report msg = Report [msg] ()
 
 -- | Creates a reporter that fails with the given message.
-reportFatal :: Message l -> Reporter l a
+reportFatal :: Message -> Reporter a
 reportFatal msg = Fatal [msg]
 
 -------------------------------------------------------------------------------
@@ -186,7 +176,7 @@ reportFatal msg = Fatal [msg]
 -------------------------------------------------------------------------------
 
 -- | Tests whether a fatal error was reported to the given reporter.
-isFatal :: Reporter l a -> Bool
+isFatal :: Reporter a -> Bool
 isFatal (Report _ _) = False
 isFatal (Fatal _   ) = True
 
@@ -196,7 +186,7 @@ isFatal (Fatal _   ) = True
 --   the stored list is the latest message) this function reverses the message
 --   list such taht it is in the right order again (i.e. the head of the
 --   returned list is the first message).
-messages :: Reporter l a -> [Message l]
+messages :: Reporter a -> [Message]
 messages (Report ms _) = reverse ms
 messages (Fatal ms   ) = reverse ms
 
@@ -204,7 +194,7 @@ messages (Fatal ms   ) = reverse ms
 --   returning the provided default value depending on whether a fatal
 --   error was reported or not.
 foldReporter
-  :: Reporter l a
+  :: Reporter a
   -> (a -> b)  -- ^ The function to apply if no fatal error was encountered.
   -> b         -- ^ The value to return if a fatal error was encountered.
   -> b
@@ -223,24 +213,24 @@ severityLabel Warning = "warning"
 severityLabel Info    = "info"
 
 -- | Prints all given messages to @stdout@.
-putMessages :: [Message MessageSrcSpan] -> IO ()
+putMessages :: [Message] -> IO ()
 putMessages = mapM_ putMessage
 
 -- | Prints all given messages to the a file handle.
-hPutMessages :: Handle -> [Message MessageSrcSpan] -> IO ()
+hPutMessages :: Handle -> [Message] -> IO ()
 hPutMessages h = mapM_ (hPutMessage h)
 
 -- | Prints the given message to @stdout@.
-putMessage :: Message MessageSrcSpan -> IO ()
+putMessage :: Message -> IO ()
 putMessage = hPutMessage stdout
 
 -- | Prints a message to the given file handle.
-hPutMessage :: Handle -> Message MessageSrcSpan -> IO ()
+hPutMessage :: Handle -> Message -> IO ()
 hPutMessage h = displayIO h . renderMessage
 
 -- | Pretty prints and renders the given message with a maximum line length
 --   of 80 characters.
-renderMessage :: Message MessageSrcSpan -> SimpleDoc
+renderMessage :: Message -> SimpleDoc
 renderMessage = renderPretty ribbonFrac maxLineWidth . prettyMessage
  where
   -- | The maximum line width that must no be exceeded by the message text.
@@ -255,18 +245,18 @@ renderMessage = renderPretty ribbonFrac maxLineWidth . prettyMessage
   ribbonFrac = 1.0
 
 -- | Pretty prints the given message.
-prettyMessage :: Message MessageSrcSpan -> Doc
-prettyMessage (Message loc severity msg) =
+prettyMessage :: Message -> Doc
+prettyMessage (Message srcSpan severity msg) =
   locDoc <+> severityDoc <$$> msgDoc <$$> codeDoc
  where
   -- | Document for the start of the source span with trailing colon.
   locDoc :: Doc
   locDoc =
-    text (TL.pack (filename loc))
+    text (TL.pack (filename srcSpan))
       <> colon
-      <> int (startLine loc)
+      <> int (startLine srcSpan)
       <> colon
-      <> int (startColumn loc)
+      <> int (startColumn srcSpan)
       <> colon
 
   -- | Document for the severity label with trailing colon.
@@ -288,7 +278,7 @@ prettyMessage (Message loc severity msg) =
   --   If the source span does not contain the line of code, this
   --   is the empty document.
   codeDoc :: Doc
-  codeDoc = case codeLine loc of
+  codeDoc = case codeLine srcSpan of
     Nothing -> empty
     (Just code) ->
       gutterDoc
@@ -300,12 +290,12 @@ prettyMessage (Message loc severity msg) =
 
   -- | Document for the line number including padding and the leading pipe.
   lineNumberDoc :: Doc
-  lineNumberDoc = space <> int (startLine loc) <> space <> pipe
+  lineNumberDoc = space <> int (startLine srcSpan) <> space <> pipe
 
   -- | The width of the column that contains the line number of the 'codeDoc'
   --   including the padding before and after the line number.
   gutterWidth :: Int
-  gutterWidth = length (show (startLine loc)) + 2
+  gutterWidth = length (show (startLine srcSpan)) + 2
 
   -- | Document with the same length as 'lineNumberDoc' but without the line
   --   number.
@@ -315,7 +305,7 @@ prettyMessage (Message loc severity msg) =
   -- | Document that contains 'caret' signs to highligh the source span.
   highlightDoc :: Doc
   highlightDoc =
-    indent (startColumn loc) (hcat (replicate (spanWidth loc) caret))
+    indent (startColumn srcSpan) (hcat (replicate (spanWidth srcSpan) caret))
 
   -- | Document that contains the pipe character @|@.
   pipe :: Doc
