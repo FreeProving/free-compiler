@@ -1,7 +1,6 @@
 module Compiler.Converter where
 
 import qualified Language.Coq.Gallina as G
-import Language.Coq.Pretty (renderGallina)
 import qualified Language.Haskell.Exts.Syntax as H
 
 import Compiler.HelperFunctionConverter (convertMatchToHelperFunction, convertMatchToMainFunction)
@@ -17,12 +16,10 @@ import Compiler.HelperFunctions
   , getBinderName
   , getConstrNames
   , getConstrNamesFromDataDecls
-  , getInferredBindersFromRetType
   , getNameFromDeclHead
   , getNamesFromDataDecls
   , getReturnType
   , getReturnTypeFromDeclHead
-  , getString
   , getTypeSignatureByName
   , getTypeSignatureByQId
   , isDataDecl
@@ -48,7 +45,6 @@ import Compiler.HelperFunctions
   , strToQId
   , strToTerm
   , termToQId
-  , termToStrings
   , typeTerm
   )
 import Compiler.MonadicConverter
@@ -62,14 +58,10 @@ import Compiler.MonadicConverter
   )
 import Compiler.NonEmptyList (singleton, toNonemptyList)
 import Compiler.Types (ConversionMonad(..))
-import Compiler.Language.Coq.Pretty (printCoqAST, writeCoqFile)
-
-import qualified GHC.Base as B
 
 import Data.List (partition)
 import Data.Maybe (fromJust, isJust)
 import qualified Data.Text as T
-import qualified Data.Text.Lazy as TL
 
 -- | The @Environment@ data type encapsulates the state of the compiler
 --   including the currently defined functions and types as well as the
@@ -158,14 +150,13 @@ convertDecls = concatMap . convertDecl
 --   Each kind of declaration is translate by a more concrete function
 --   defined below.
 convertDecl :: Show l => Environment -> H.Decl l -> [G.Sentence]
--- TODO Fail if xs is not empty.
-convertDecl env (H.FunBind _ (x:xs)) = convertMatchDef env x
+convertDecl env (H.FunBind _ [x]) = convertMatchDef env x
 convertDecl env (H.DataDecl _ _ Nothing declHead qConDecl _) =
   G.InductiveSentence (convertDataTypeDecl env declHead qConDecl) :
-  if needsArgumentsSentence declHead qConDecl
+  if needsArgumentsSentence declHead
     then convertArgumentSentences declHead qConDecl
     else []
-convertDecl env (H.TypeDecl _ declHead ty) =
+convertDecl _ (H.TypeDecl _ declHead ty) =
   [G.DefinitionSentence (convertTypeDeclToDefinition declHead ty)]
 convertDecl env (H.PatBind _ pat rhs _) =
   [G.DefinitionSentence (convertPatBindToDefinition env pat rhs)]
@@ -199,7 +190,6 @@ convertMatchToDefinition env name pats rhs =
   where
     returnType = convertReturnType typeSig (conversionMonad env)
     funName = nameToQId name
-    funCalls = filter (containsRecursiveCall rhsTerm) (functionNames env)
     typeSig = getTypeSignatureByName (typeSignatures env) name
     binders = convertPatsToBinders pats typeSig
     monadicBinders = transformBindersMonadic binders (conversionMonad env)
@@ -267,7 +257,6 @@ convertPatBindToDefinition ::
   -> G.Definition
 convertPatBindToDefinition env pat rhs = G.DefinitionDef G.Global name binders returnType rhsTerm
   where
-    dataNames = map fst (dataTypes env)
     binders = addInferredTypesToSignature [] (map fst (dataTypes env)) (fromJust returnType)
     name = patToQID pat
     typeSig = getTypeSignatureByQId (typeSignatures env) name
@@ -371,9 +360,8 @@ buildArrowTerm terms returnType = foldr G.Arrow returnType terms
 needsArgumentsSentence ::
   Show l
   => H.DeclHead l      -- ^ The head of the data type declaration.
-  -> [H.QualConDecl l] -- TODO remove me
   -> Bool
-needsArgumentsSentence declHead qConDecls = not (null binders)
+needsArgumentsSentence declHead = not (null binders)
   where
     -- TODO A function to get the `TyVarBinds` would be better suited.
     binders = applyToDeclHeadTyVarBinds declHead convertTyVarBindToBinder
@@ -411,14 +399,14 @@ convertTyVarBindToName (H.UnkindedVar _ name) = nameToGName name
 --   that can be used in Coq within the data type declaration to instantiate
 --   the data type that is declared.
 convertTyVarBindToArg :: Show l => H.TyVarBind l -> G.Arg
-convertTyVarBindToArg (H.KindedVar _ name kind) = error "Kind-annotation not implemented"
+convertTyVarBindToArg (H.KindedVar _ _ _) = error "Kind-annotation not implemented"
 convertTyVarBindToArg (H.UnkindedVar _ name) = G.PosArg (nameToTerm name)
 
 -- | Converts the binding of a Haskell type variable to a binder that can
 --   be used in Coq to declare an explicit type argument of an inductive
 --   data type.
 convertTyVarBindToBinder :: Show l => H.TyVarBind l -> G.Binder
-convertTyVarBindToBinder (H.KindedVar _ name kind) = error "Kind-annotation not implemented"
+convertTyVarBindToBinder (H.KindedVar _ _ _) = error "Kind-annotation not implemented"
 convertTyVarBindToBinder (H.UnkindedVar _ name) =
   G.Typed G.Ungeneralizable G.Explicit (singleton (nameToGName name)) typeTerm
 
