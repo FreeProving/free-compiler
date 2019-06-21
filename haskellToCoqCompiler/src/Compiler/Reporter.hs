@@ -29,6 +29,14 @@ where
 import           Control.Monad                  ( liftM
                                                 , ap
                                                 )
+import qualified Data.Text.Lazy                as TL
+import           Text.PrettyPrint.Leijen.Text
+import           System.IO
+
+import           Language.Haskell.Exts.SrcLoc   ( SrcSpan
+                                                , SrcInfo(..)
+                                                , spanSize
+                                                )
 
 -------------------------------------------------------------------------------
 -- Messages                                                                  --
@@ -48,11 +56,11 @@ data Message l = Message l Severity String
 --
 --   The main pupose of this function is to aid in pretty printing messages.
 --   The location annotation of the messages passed to 'printMessage' must
---   be strings, but messages are usually using a more specialized type.
---   Thus @mapLocation@ must be applied before printing messages to pretty
---   print location annotations.
+--   be a 'SrcSpan's from @haskell-src-ext@. Sometimes we have a location
+--   annotation of a different type. In such cases @mapLocation@ must be
+--   applied to convert the location annotation.
 mapLocation :: (l -> l') -> Message l -> Message l'
-mapLocation f (Message loc severity text) = Message (f loc) severity text
+mapLocation f (Message loc severity msg) = Message (f loc) severity msg
 
 -------------------------------------------------------------------------------
 -- Reporter monad                                                            --
@@ -156,12 +164,86 @@ severityLabel Info    = "info"
 -- | Prints the given message to @stdout@.
 --
 --   The location annotation of the message must be
-printMessage :: Message String -> IO ()
-printMessage (Message loc severity text) =
-  -- TODO Use ANSI escape sequences and pretty printer to format message.
-  -- TODO Can we print the corresponding code snipped similar to the GHC?
-  putStrLn (loc ++ ": " ++ severityLabel severity ++ ": " ++ text)
+printMessage :: Message SrcSpan -> IO ()
+printMessage (Message loc severity msg) = do
+  -- TODO Use ANSI escape sequences to format message.
+  -- TODO Can we avoid to read the input file again?
+  contents <- readFile (fileName loc)
+  let code = lines contents !! (startLine loc - 1)
+      doc  = locDoc <+> severityDoc <$$> msgDoc <$$> codeDoc code <> line
+  displayIO stdout (renderPretty ribbonFrac maxLineWidth doc)
+ where
+  -- | The maximum line width that must no be exceeded by the message text.
+  --
+  --   This is configured to be 80 characters, because on most platforms
+  --   terminals have a default width of 80 columns.
+  maxLineWidth :: Int
+  maxLineWidth = 80
+
+  -- | The whole line is allowed be occupied by non-indentation characters.
+  ribbonFrac :: Float
+  ribbonFrac = 1.0
+
+  -- | Document for the start of the source span with trailing colon.
+  locDoc :: Doc
+  locDoc =
+    text (TL.pack (fileName loc))
+      <> colon
+      <> int (startLine loc)
+      <> colon
+      <> int (startColumn loc)
+      <> colon
+
+  -- | Document for the severity label with trailing colon.
+  severityDoc :: Doc
+  severityDoc = text (TL.pack (severityLabel severity)) <> colon
+
+  -- | Document for the message text.
+  --
+  --   The message is indented by four spaces. The individual words of the
+  --   messages are concatenated with 'softline's, such that the text is
+  --   broken into multiple lines if it does not fit into a line of the
+  --   configured 'width'.
+  msgDoc :: Doc
+  msgDoc = indent 4 (foldr (</>) empty (map (text . TL.pack) (words msg)))
+
+  -- | Document that displays the given line of code, the line number and
+  --   highlights the source span using 'caret's.
+  codeDoc :: String -> Doc
+  codeDoc code =
+    gutterDoc
+      <$$> lineNumberDoc
+      <+>  text (TL.pack code)
+      <$$> gutterDoc
+      <>   highlightDoc
+
+  -- | Document for the line number including padding and the leading pipe.
+  lineNumberDoc :: Doc
+  lineNumberDoc = space <> int (startLine loc) <> space <> pipe
+
+  -- | The width of the column that contains the line number of the 'codeDoc'
+  --   including the padding before and after the line number.
+  gutterWidth :: Int
+  gutterWidth = length (show (startLine loc)) + 2
+
+  -- | Document with the same length as 'lineNumberDoc' but without the line
+  --   number.
+  gutterDoc :: Doc
+  gutterDoc = indent gutterWidth pipe
+
+  -- | Document that contains 'caret' signs to highligh the source span.
+  highlightDoc :: Doc
+  highlightDoc =
+    indent (startColumn loc) (hcat (replicate (snd (spanSize loc)) caret))
+
+  -- | Document that contains the pipe character @|@.
+  pipe :: Doc
+  pipe = text (TL.pack "|")
+
+  -- | Document that contains the caret character @^@.
+  caret :: Doc
+  caret = text (TL.pack "^")
 
 -- | Prints all given messages to @stdout@.
-printMessages :: [Message String] -> IO ()
+printMessages :: [Message SrcSpan] -> IO ()
 printMessages = mapM_ printMessage
