@@ -15,7 +15,7 @@
 
 module Compiler.Reporter
   ( Message(..)
-  , MessageSrcSpan
+  , SrcSpan
   , Reporter
   , Severity(..)
   , SrcSpanConverter(..)
@@ -50,7 +50,7 @@ import qualified Language.Haskell.Exts.SrcLoc  as H
 data Severity = Error | Warning | Info
 
 -- | A message reported by the compiler.
-data Message = Message MessageSrcSpan Severity String
+data Message = Message SrcSpan Severity String
 
 -------------------------------------------------------------------------------
 -- Source spans                                                              --
@@ -63,7 +63,7 @@ data Message = Message MessageSrcSpan Severity String
 --   this source span provides access to the line of code that contains the
 --   source span. This source span does not support source spans that span
 --   multiple lines.
-data MessageSrcSpan = MessageSrcSpan
+data SrcSpan = SrcSpan
   { filename    :: String
   , startLine   :: Int
   , startColumn :: Int
@@ -73,19 +73,19 @@ data MessageSrcSpan = MessageSrcSpan
   deriving (Show)
 
 -- | Type class for @haskell-src-exts@ source spans that can be converted
---   to 'MessageSrcSpan's for pretty printing of messages.
+--   to 'SrcSpan's for pretty printing of messages.
 class SrcSpanConverter ss where
-  -- | Converts a @haskell-src-exts@ source span to a 'MessageSrcSpan' by
+  -- | Converts a @haskell-src-exts@ source span to a 'SrcSpan' by
   --   attaching the corresponding line of source code.
   convertSrcSpan ::
     [(String, [String])] -- ^ A map of file names to lines of source code.
     -> ss                -- ^ The original source span to convert.
-    -> MessageSrcSpan
+    -> SrcSpan
 
--- | Directly converts a 'H.SrcSpan' to a 'MessageSrcSpan' by looking up
+-- | Directly converts a 'H.SrcSpan' to a 'SrcSpan' by looking up
 --   the corresponding line of code in the provided map.
 instance SrcSpanConverter H.SrcSpan where
-  convertSrcSpan codeByFilename srcSpan = MessageSrcSpan
+  convertSrcSpan codeByFilename srcSpan = SrcSpan
     { filename    = H.srcSpanFilename srcSpan
     , startLine   = H.srcSpanStartLine srcSpan
     , startColumn = H.srcSpanStartColumn srcSpan

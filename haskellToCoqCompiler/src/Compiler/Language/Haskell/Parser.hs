@@ -38,7 +38,7 @@ parseMode filename = ParseMode
 parseModule
   :: String  -- ^ The name of the Haskell source file.
   -> String  -- ^ The Haskell source code.
-  -> Reporter (H.Module MessageSrcSpan)
+  -> Reporter (H.Module SrcSpan)
 parseModule filename contents =
   case parseModuleWithMode (parseMode filename) contents of
     ParseOk ast -> return (fmap toMessageSrcSpan ast)
@@ -55,7 +55,7 @@ parseModule filename contents =
   --
   --   The 'codeByFilename' is needed because when pretty printing a message,
   --   an excerpt of the code that caused the message to be reported is shown.
-  toMessageSrcSpan :: SrcSpanConverter l => l -> MessageSrcSpan
+  toMessageSrcSpan :: SrcSpanConverter l => l -> SrcSpan
   toMessageSrcSpan = convertSrcSpan codeByFilename
 
 -- | Loads and parses a Haskell module from the file with the given name.
@@ -64,7 +64,7 @@ parseModule filename contents =
 --   TODO Don't exit but return the reporter to the caller.
 parseModuleFile
   :: String -- ^ The name of the Haskell source file.
-  -> IO (H.Module MessageSrcSpan)
+  -> IO (H.Module SrcSpan)
 parseModuleFile filename = do
   contents <- readFile filename
   let reporter = parseModule filename contents
