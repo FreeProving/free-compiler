@@ -13,8 +13,12 @@ import           Language.Haskell.Exts.Parser   ( ParseMode(..)
                                                 , parseModuleWithMode
                                                 )
 import           Language.Haskell.Exts.Pretty   ( prettyPrint )
-import           Language.Haskell.Exts.SrcLoc   ( SrcSpanInfo )
+import           Language.Haskell.Exts.SrcLoc   ( SrcLoc
+                                                , SrcSpanInfo
+                                                )
 import qualified Language.Haskell.Exts.Syntax  as H
+
+import           Compiler.Reporter
 
 -- | Custom parameters for parsing a Haskell source file with the given name.
 --
@@ -34,24 +38,25 @@ parseMode filename = ParseMode
 
 -- | Parses a Haskell module.
 --
---   The first parameter is the name of the source file and the second
---   parameter is the actual source code.
---
---   Exists the application if a syntax error is encountered.
-parseModule :: String -> String -> IO (H.Module SrcSpanInfo)
+--   Syntax errors cause a fatal error message to be reported.
+parseModule
+  :: String  -- ^ The name of the Haskell source file.
+  -> String  -- ^ The Haskell source code.
+  -> Reporter SrcLoc (H.Module SrcSpanInfo)
 parseModule filename contents =
   case parseModuleWithMode (parseMode filename) contents of
     ParseOk ast         -> return ast
-    ParseFailed loc msg -> do
-      -- TODO format error messages.
-      putStrLn $ "Syntax Error in " ++ (prettyPrint loc) ++ ": " ++ msg
-      -- TODO proper error handling that does not rely on IO
-      exitFailure
+    ParseFailed loc msg -> reportFatal $ Message loc Error msg
 
 -- | Loads and parses a Haskell module from the file with the given name.
 --
 --   Exists the application if a syntax error is encountered.
-parseModuleFile :: String -> IO (H.Module SrcSpanInfo)
+--   TODO Don't exit but return the reporter to the caller.
+parseModuleFile
+  :: String -- ^ The name of the Haskell source file.
+  -> IO (H.Module SrcSpanInfo)
 parseModuleFile filename = do
   contents <- readFile filename
-  parseModule filename contents
+  let reporter = parseModule filename contents
+  printMessages (map (mapLocation prettyPrint) $ messages reporter)
+  foldReporter reporter return exitFailure
