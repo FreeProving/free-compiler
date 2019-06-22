@@ -1,7 +1,5 @@
 module Main where
 
-import Language.Haskell.Exts.Extension (Language(..))
-import Language.Haskell.Exts.Parser (ParseMode(..), fromParseResult, parseModuleWithMode)
 import System.Environment (getArgs)
 
 import Compiler.Converter (convertModule)
