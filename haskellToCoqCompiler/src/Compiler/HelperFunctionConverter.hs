@@ -309,8 +309,8 @@ getMatchedBinderPosition' (b:bs) matchItem pos =
 getMatchedBinderPosition' [] _ _ = error "matchItem doesn't match any binder"
 
 getMatchedArgumentFromRhs :: G.Term -> G.Term
-getMatchedArgumentFromRhs (G.Match (G.MatchItem term _ _ B.:| ms) _ _) = term
-getMatchedArgumentFromRhs (G.App constr (x B.:| y:xx)) = getMatchedArgumentFromRhs (argToTerm y)
+getMatchedArgumentFromRhs (G.Match (G.MatchItem term _ _ B.:| _) _ _) = term
+getMatchedArgumentFromRhs (G.App _ (_ B.:| y:_)) = getMatchedArgumentFromRhs (argToTerm y)
 getMatchedArgumentFromRhs term = error ("recursive functions only work with pattern-matching" ++ show term)
 
 isMatchedBinder :: G.Binder -> G.Term -> Bool
