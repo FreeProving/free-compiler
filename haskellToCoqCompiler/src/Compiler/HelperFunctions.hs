@@ -43,7 +43,7 @@ getConstr "False" = strToTerm "false"
 getConstr str = strToTerm str
 
 getTypeSignatureByName :: Show l => [G.TypeSignature] -> H.Name l -> Maybe G.TypeSignature
-getTypeSignatureByName [] name = Nothing
+getTypeSignatureByName [] _ = Nothing
 getTypeSignatureByName (x:xs) name =
   if typeNameEqName x name
     then Just x
@@ -159,7 +159,7 @@ getReturnType (G.TypeSignature _ terms) = last terms
 
 getBinderName :: G.Binder -> G.Term
 getBinderName (G.Inferred _ name) = gNameToTerm name
-getBinderName (G.Typed _ _ (name B.:| xs) _) = gNameToTerm name
+getBinderName (G.Typed _ _ (name B.:| _) _) = gNameToTerm name
 
 getBinderType :: G.Binder -> G.Term
 getBinderType (G.Typed _ _ _ term) = term
@@ -178,7 +178,7 @@ getPatternFromMultPattern (G.MultPattern pats) = fromNonEmptyList pats
 getQIdsFromPattern :: G.Pattern -> [G.Qualid]
 getQIdsFromPattern (G.ArgsPat _ pats) = concatMap getQIdsFromPattern pats
 getQIdsFromPattern (G.QualidPat qId) = [qId]
-getQIdsFromPattern pat = []
+getQIdsFromPattern _ = []
 
 getQIdFromPattern :: G.Pattern -> G.Qualid
 getQIdFromPattern (G.ArgsPat qId _) = qId
@@ -303,10 +303,10 @@ typeToGName (H.TyCon _ name) = qNameToGName name
 typeToGName (H.TyApp _ constr _) = typeToGName constr
 typeToGName (H.TyList _ _) = strToGName "List"
 typeToGName H.TyTuple {} = strToGName "Pair"
-typeToGName ty = error "type not implemented"
+typeToGName _ = error "type not implemented"
 
 filterEachElement :: [a] -> (a -> a -> Bool) -> [a] -> [a]
-filterEachElement [] f list = list
+filterEachElement [] _ list = list
 filterEachElement (x:xs) f list = filterEachElement xs f filteredList
   where
     filteredList = filter (f x) list
@@ -324,10 +324,9 @@ addInferredTypesToSignature binders dataNames retType =
     filteredTypeNames = nub (filterEachElement dataNames dataTypeUneqGName (filter isCoqType typeNames))
     typeNames = concatMap getTypeNamesFromTerm typeTerms
     typeTerms = (retType : map getBinderType binders)
-    consNames = nub (map getConstrNameFromType typeTerms)
 
 getInferredBindersFromRetType :: G.Term -> [G.Binder]
-getInferredBindersFromRetType (G.App constr args) =
+getInferredBindersFromRetType (G.App _ args) =
   concatMap getInferredBindersFromRetType (convertArgumentsToTerms (fromNonEmptyList args))
 getInferredBindersFromRetType (G.Qualid qId) =
   [G.Typed G.Ungeneralizable G.Explicit (singleton (qIdToGName qId)) typeTerm]
@@ -366,7 +365,7 @@ applyToDeclHead (H.DHApp _ declHead _) f = applyToDeclHead declHead f
 
 --apply a function to every tyVarBind of a DeclHead and reverse it (to get arguments in right order)
 applyToDeclHeadTyVarBinds :: Show l => H.DeclHead l -> (H.TyVarBind l -> a) -> [a]
-applyToDeclHeadTyVarBinds (H.DHead _ _) f = []
+applyToDeclHeadTyVarBinds (H.DHead _ _) _ = []
 applyToDeclHeadTyVarBinds (H.DHApp _ declHead tyVarBind) f =
   reverse (f tyVarBind : reverse (applyToDeclHeadTyVarBinds declHead f))
 
