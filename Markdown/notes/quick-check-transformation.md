@@ -27,7 +27,7 @@ in Coq Eigenschaften über die übersetzten Programme zu beweisen. Während der
 Entwicklung des Haskell Programms sollten die Entwickler sich dabei bereits
 durch Tests davon überzeugt haben, dass diese Eigenschaften wahrscheinlich
 erfüllt sind. Nur wenn die Tests erfolgreich sind lohnt es sich mithilfe von
-Coq zu verifizieren, dass die Eigenschaft auch im allgemeinen gilt. In
+Coq zu verifizieren, dass die Eigenschaften auch im Allgemeinen gelten. In
 Haskell ist es üblich solche Eigenschaften mithilfe der QuickCheck
 Bibliothek auszudrücken. Es wäre daher erstrebenswert die bereits für die
 Tests verwendeten QuickCheck Eigenschaften mit nach Coq zu übersetzen.
