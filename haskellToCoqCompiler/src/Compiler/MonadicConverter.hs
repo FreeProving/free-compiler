@@ -8,7 +8,6 @@ import Compiler.HelperFunctions
   , containsAllConstrs
   , containsMatchTerm
   , convertArgumentsToTerms
-  , eqGName
   , eqQId
   , gNameToQId
   , getBinderByQId
@@ -23,7 +22,6 @@ import Compiler.HelperFunctions
   , getTypeSignatureByQId
   , isArrowTerm
   , isUnderscorePat
-  , qIdEqBinder
   , qIdToGName
   , qIdToStr
   , strToGName
@@ -34,7 +32,6 @@ import Compiler.HelperFunctions
 import Compiler.NonEmptyList (fromNonEmptyList, singleton, toNonemptyList)
 import Compiler.Types (ConversionMonad(..))
 
-import Data.List (elemIndex)
 import Data.Maybe (fromJust, isJust)
 import qualified Data.Text as T
 import qualified GHC.Base as B
@@ -77,7 +74,7 @@ addBindOpperatorsInMatchRhs multPats cMonad (G.Match mItem retType equations) =
     lambdaBinder = G.Inferred G.Explicit (qIdToGName lambdaArgumentQId)
     lambdaTerm = G.Match (singleton boundMatchItem) retType boundEquations
     boundEquations = [addBindOperatorsInEquation e cMonad | e <- equations]
-addBindOpperatorsInMatchRhs multPats _ term = term
+addBindOpperatorsInMatchRhs _ _ term = term
 
 ---------------------- Add Return Operator if rhs isn't already monadic
 addReturnToRhs ::
@@ -188,7 +185,7 @@ transformBinderMonadic :: G.Binder -> ConversionMonad -> G.Binder
 transformBinderMonadic (G.Typed gen expl name term) m = G.Typed gen expl name (transformTermMonadic term m)
 
 transformTermMonadic :: G.Term -> ConversionMonad -> G.Term
-transformTermMonadic (G.Sort G.Type) m = typeTerm
+transformTermMonadic (G.Sort G.Type) _ = typeTerm
 transformTermMonadic (G.Parens term) m = G.Parens (transformTermMonadic term m)
 transformTermMonadic (G.Arrow term1 term2) m = G.Arrow (transformTermMonadic term1 m) (transformTermMonadic term2 m)
 transformTermMonadic term m = monad term
@@ -245,14 +242,14 @@ addIdentityPrefix = addMonadicPrefix "i"
   ---------------------- Remove Monadic Elements
 
 removeMonadFromBinder :: G.Binder -> G.Binder
-removeMonadFromBinder (G.Typed gen expl (n B.:| xs) term) =
+removeMonadFromBinder (G.Typed gen expl (n B.:| _) term) =
   G.Typed gen expl (singleton (removeMonadicPrefix n)) (fromMonadicTerm term)
 
 removeMonadicPrefix :: G.Name -> G.Name
 removeMonadicPrefix name = strToGName (tail (getStringFromGName name))
 
 fromMonadicTerm :: G.Term -> G.Term
-fromMonadicTerm (G.App _ (G.PosArg term B.:| xs)) = term
+fromMonadicTerm (G.App _ (G.PosArg term B.:| _)) = term
 fromMonadicTerm term = term
 
 ---------------------- Bool Functions
@@ -262,7 +259,7 @@ isPatName _ _ = False
 
 isMonadicTerm :: G.Term -> Bool
 isMonadicTerm (G.App term _) = isMonad term
-isMonadicTerm term = False
+isMonadicTerm _ = False
 
 isMonad :: G.Term -> Bool
 isMonad (G.Qualid qId) =
@@ -283,7 +280,7 @@ isMonadicFunctionCall (G.Qualid qId) typeSigs =
   where
     maybeTypeSig = getTypeSignatureByQId typeSigs qId
     maybeHelperFun = getTypeSignatureByQId typeSigs (strToQId (qIdToStr qId ++ "'"))
-isMonadicFunctionCall (G.App term args) typeSig = isMonadicFunctionCall term typeSig
+isMonadicFunctionCall (G.App term _) typeSig = isMonadicFunctionCall term typeSig
 isMonadicFunctionCall _ _ = False
 
 isMonadicBinder :: G.Term -> [G.Binder] -> Bool
