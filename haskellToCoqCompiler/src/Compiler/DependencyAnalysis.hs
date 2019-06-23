@@ -1,3 +1,31 @@
+-- | This module contains functions to construct dependency graphs of
+--   Haskell modules. A dependency graph is a directed graph whose nodes
+--   are labelled with declarations. There is an edge from node @A@ to @B@
+--   if the declaration of @A@ depends on the declaration of @B@ (i.e. in Coq
+--   @B@ has to be defined before @A@ or both have to be declared in the same
+--   sentence). The dependency graph does only contain global, user defined
+--   declarations (i.e. there are no nodes for build in data types or
+--   operations and there are no nodes for local variables such as function
+--   parameters or variable patterns)
+--
+--   The dependency analysis is necessary because Coq does not allow functions
+--   and data types to be used before they have been declared and we need to
+--   identify (mutually) recursive functions.
+--
+--   We distinguish between the type and function dependency graph.
+--   This is because in Haskell function declarations and type declarations
+--   live in separate scopes and we want to avoid name conflicts.
+--   Because we assume all type declarations to preceed function declarations
+--   in the generated Coq code, this should not be a problem. For the same
+--   reason the function dependency graph does not include constructors.
+--
+--   The dependency analysis does not yet test whether there are undefined
+--   identifiers.
+--
+--   For debugging purposes dependency graphs can be converted to the DOT
+--   format such that they can be visualized using Graphviz
+--   (See <https://www.graphviz.org/>).
+
 module Compiler.DependencyAnalysis where
 
 import           Data.Graph
@@ -138,9 +166,12 @@ altDependencies (H.Alt _ pat (H.UnGuardedRhs _ expr) _) =
   withoutArgs [pat] $ exprDependencies expr
 
 -- | Gets the key for a function used in infix notation.
+--
+--   This does not include the keys for constructors because data type
+--   declarations are supposed to occur before function declarations.
 qOpDependencies :: H.QOp l -> [DGKey]
 qOpDependencies (H.QVarOp _ qName) = maybeToList (qNameToKey qName)
-qOpDependencies (H.QConOp _ _    ) = []  -- Ignore constructors, they are defined before all functions.
+qOpDependencies (H.QConOp _ _    ) = []
 
 -- | Removes the keys for variable patterns in the first list from the given
 --   list of keys.
@@ -202,18 +233,24 @@ prettyGraph (graph, getEntry, getVertex) =
     <+> braces (line <> indent 2 (vcat (nodeDocs ++ edgesDocs)) <> line)
     <>  line
  where
+  -- | A document for the DOT digraph keyword.
   digraph :: Doc
   digraph = text (TL.pack "digraph")
 
+  -- | A document for the DOT label attribute.
   label :: Doc
   label = text (TL.pack "label")
 
+  -- | A document for the DOT arrow symbol.
   arrow :: Doc
   arrow = text (TL.pack "->")
 
+  -- | Pretty printed DOT nodes for the dependency graph.
   nodeDocs :: [Doc]
   nodeDocs = map prettyNode (vertices graph)
 
+  -- | Pretty prints the given vertex as a DOT command. The key of the node
+  --   is used a the label.
   prettyNode :: Vertex -> Doc
   prettyNode v =
     let (_, key, _) = getEntry v
@@ -221,9 +258,13 @@ prettyGraph (graph, getEntry, getVertex) =
         <+> brackets (label <> equals <> dquotes (text (TL.pack key)))
         <>  semi
 
+  -- | Pretty printed DOT edges for the dependency graph.
   edgesDocs :: [Doc]
   edgesDocs = catMaybes (map prettyEdges (vertices graph))
 
+  -- | Pretty prints all outgoing edges of the given vertex as a single
+  --   DOT command. Returns `Nothing` if the vertex is not incident to
+  --   any edge.
   prettyEdges :: Vertex -> Maybe Doc
   prettyEdges v =
     let (_, _, neighbors) = getEntry v
