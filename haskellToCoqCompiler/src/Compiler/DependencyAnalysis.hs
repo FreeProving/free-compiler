@@ -26,7 +26,16 @@
 --   format such that they can be visualized using Graphviz
 --   (See <https://www.graphviz.org/>).
 
-module Compiler.DependencyAnalysis where
+module Compiler.DependencyAnalysis
+  ( DGKey
+  , DGNode
+  , DGEntry
+  , DependencyGraph
+  , typeDependencyGraph
+  , funcDependencyGraph
+  , prettyGraph
+  )
+where
 
 import           Data.Graph
 import           Data.Maybe                     ( catMaybes
