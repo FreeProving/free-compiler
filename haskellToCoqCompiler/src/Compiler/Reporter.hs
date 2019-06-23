@@ -98,7 +98,7 @@ instance SrcSpanConverter H.SrcSpan where
     { filename    = H.srcSpanFilename srcSpan
     , startLine   = H.srcSpanStartLine srcSpan
     , startColumn = H.srcSpanStartColumn srcSpan
-    , spanWidth   = snd (H.spanSize srcSpan)
+    , spanWidth   = max 1 (snd (H.spanSize srcSpan))
     , codeLine    =
         lookup (H.srcSpanFilename srcSpan) codeByFilename
           >>= (nth (H.srcSpanStartLine srcSpan - 1))
