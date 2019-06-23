@@ -36,6 +36,7 @@ import           Control.Monad                  ( liftM
                                                 , ap
                                                 , join
                                                 )
+import           Data.Maybe                     ( maybe )
 import qualified Data.Text.Lazy                as TL
 import           Text.PrettyPrint.Leijen.Text
 import           System.IO
@@ -50,7 +51,7 @@ import qualified Language.Haskell.Exts.SrcLoc  as H
 data Severity = Error | Warning | Info
 
 -- | A message reported by the compiler.
-data Message = Message SrcSpan Severity String
+data Message = Message (Maybe SrcSpan) Severity String
 
 -------------------------------------------------------------------------------
 -- Source spans                                                              --
@@ -246,18 +247,26 @@ renderMessage = renderPretty ribbonFrac maxLineWidth . prettyMessage
 
 -- | Pretty prints the given message.
 prettyMessage :: Message -> Doc
-prettyMessage (Message srcSpan severity msg) =
-  locDoc <+> severityDoc <$$> msgDoc <$$> codeDoc
+prettyMessage (Message maybeSrcSpan severity msg) =
+  maybeSrcSpanDoc <+> severityDoc <$$> msgDoc <> line <> maybeCodeDoc
  where
-  -- | Document for the start of the source span with trailing colon.
-  locDoc :: Doc
-  locDoc =
+   -- | Document for the start of the source span or a placeholder text
+   --   if there is no source span.
+  maybeSrcSpanDoc :: Doc
+  maybeSrcSpanDoc = maybe srcSpanPlaceholder srcSpanDoc maybeSrcSpan <> colon
+
+  -- | The placeholder text to display if there is no source span.
+  srcSpanPlaceholder :: Doc
+  srcSpanPlaceholder = text (TL.pack "<no location info>")
+
+  -- | Document for the start of the source span.
+  srcSpanDoc :: SrcSpan -> Doc
+  srcSpanDoc srcSpan =
     text (TL.pack (filename srcSpan))
       <> colon
       <> int (startLine srcSpan)
       <> colon
       <> int (startColumn srcSpan)
-      <> colon
 
   -- | Document for the severity label with trailing colon.
   severityDoc :: Doc
@@ -272,39 +281,40 @@ prettyMessage (Message srcSpan severity msg) =
   msgDoc :: Doc
   msgDoc = indent 4 (foldr (</>) empty (map (text . TL.pack) (words msg)))
 
+  -- | Document that shows the line of code that caused the message to be
+  --   reported if the message contains location information and the source
+  --   code.
+  maybeCodeDoc :: Doc
+  maybeCodeDoc = maybe empty (uncurry codeDoc) $ do
+    srcSpan <- maybeSrcSpan
+    code    <- codeLine srcSpan
+    return (srcSpan, code)
+
   -- | Document that displays the given line of code, the line number and
   --   highlights the source span using 'caret's.
-  --
-  --   If the source span does not contain the line of code, this
-  --   is the empty document.
-  codeDoc :: Doc
-  codeDoc = case codeLine srcSpan of
-    Nothing -> empty
-    (Just code) ->
-      gutterDoc
-        <$$> lineNumberDoc
-        <+>  text (TL.pack code)
-        <$$> gutterDoc
-        <>   highlightDoc
-        <>   line
+  codeDoc :: SrcSpan -> String -> Doc
+  codeDoc srcSpan code =
+    gutterDoc srcSpan
+      <$$> lineNumberDoc srcSpan
+      <+>  text (TL.pack code)
+      <$$> gutterDoc srcSpan
+      <>   highlightDoc srcSpan
+      <>   line
 
-  -- | Document for the line number including padding and the leading pipe.
-  lineNumberDoc :: Doc
-  lineNumberDoc = space <> int (startLine srcSpan) <> space <> pipe
-
-  -- | The width of the column that contains the line number of the 'codeDoc'
-  --   including the padding before and after the line number.
-  gutterWidth :: Int
-  gutterWidth = length (show (startLine srcSpan)) + 2
+  -- | Document for the line number including padding and the trailing pipe.
+  lineNumberDoc :: SrcSpan -> Doc
+  lineNumberDoc srcSpan = space <> int (startLine srcSpan) <> space <> pipe
 
   -- | Document with the same length as 'lineNumberDoc' but without the line
   --   number.
-  gutterDoc :: Doc
-  gutterDoc = indent gutterWidth pipe
+  gutterDoc :: SrcSpan -> Doc
+  gutterDoc srcSpan =
+    let gutterWidth = length (show (startLine srcSpan)) + 2
+    in  indent gutterWidth pipe
 
   -- | Document that contains 'caret' signs to highligh the source span.
-  highlightDoc :: Doc
-  highlightDoc =
+  highlightDoc :: SrcSpan -> Doc
+  highlightDoc srcSpan =
     indent (startColumn srcSpan) (hcat (replicate (spanWidth srcSpan) caret))
 
   -- | Document that contains the pipe character @|@.

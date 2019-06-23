@@ -43,7 +43,7 @@ parseModule filename contents =
   case parseModuleWithMode (parseMode filename) contents of
     ParseOk ast -> return (fmap toMessageSrcSpan ast)
     ParseFailed loc msg ->
-      reportFatal $ Message (toMessageSrcSpan loc) Error msg
+      reportFatal $ Message (Just (toMessageSrcSpan loc)) Error msg
  where
   -- | A map that maps the name of the Haskell source file to the lines of
   --   source code.
