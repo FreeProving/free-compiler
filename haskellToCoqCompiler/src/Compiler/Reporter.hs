@@ -29,6 +29,8 @@ module Compiler.Reporter
   , hPutMessages
   , report
   , reportFatal
+  , reportIOErrors
+  , reportIOError
   )
 where
 
@@ -39,7 +41,13 @@ import           Control.Monad                  ( liftM
 import           Data.Maybe                     ( maybe )
 import qualified Data.Text.Lazy                as TL
 import           Text.PrettyPrint.Leijen.Text
-import           System.IO
+import           System.IO                      ( Handle
+                                                , stdout
+                                                )
+import           System.IO.Error                ( catchIOError
+                                                , ioeGetErrorString
+                                                , ioeGetFileName
+                                                )
 
 import qualified Language.Haskell.Exts.SrcLoc  as H
 
@@ -171,6 +179,21 @@ report msg = Report [msg] ()
 -- | Creates a reporter that fails with the given message.
 reportFatal :: Message -> Reporter a
 reportFatal msg = Fatal [msg]
+
+-- | Creates an IO action for a reporter that reports all IO errors that
+--   that occur during the given IO action.
+--
+--   All IO errors are considered fatal and have no location information.
+reportIOErrors :: IO (Reporter a) -> IO (Reporter a)
+reportIOErrors action = catchIOError action (return . reportIOError)
+
+-- | Reports the given IO error as a fatal error with no location information.
+reportIOError :: IOError -> Reporter a
+reportIOError = reportFatal . Message Nothing Error . ioErrorMessageText
+ where
+  ioErrorMessageText :: IOError -> String
+  ioErrorMessageText err =
+    ioeGetErrorString err ++ maybe "" (": " ++) (ioeGetFileName err)
 
 -------------------------------------------------------------------------------
 -- Handling messages and reporter results                                    --

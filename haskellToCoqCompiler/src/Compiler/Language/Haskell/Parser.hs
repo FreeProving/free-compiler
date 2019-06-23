@@ -66,7 +66,8 @@ parseModuleFile
   :: String -- ^ The name of the Haskell source file.
   -> IO (H.Module SrcSpan)
 parseModuleFile filename = do
-  contents <- readFile filename
-  let reporter = parseModule filename contents
+  reporter <- reportIOErrors $ do
+    contents <- readFile filename
+    return (parseModule filename contents)
   putMessages (messages reporter)
   foldReporter reporter return exitFailure
