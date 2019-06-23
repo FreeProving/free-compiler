@@ -32,8 +32,7 @@ import           Data.Graph
 import           Data.Maybe                     ( catMaybes
                                                 , maybeToList
                                                 )
-import           Data.List                      ( nub
-                                                )
+import           Data.List                      ( nub )
 import qualified Data.Text.Lazy                as TL
 
 import qualified Language.Haskell.Exts.Syntax  as H
