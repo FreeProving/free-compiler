@@ -101,7 +101,7 @@ isFuncDecl _                   = False
 --   declaration or pattern binding.
 funcDeclEntries :: H.Decl l -> DGEntry l
 funcDeclEntries decl@(H.FunBind _ [H.Match _ name args (H.UnGuardedRhs _ expr) _])
-  = (decl, nameToKey name, nub $ withoutArgs args $ exprDependencies expr) -- TODO args are not dependencies
+  = (decl, nameToKey name, nub $ withoutArgs args $ exprDependencies expr)
 funcDeclEntries decl@(H.PatBind _ (H.PVar _ name) (H.UnGuardedRhs _ expr) _) =
   (decl, nameToKey name, nub $ exprDependencies expr)
 
@@ -134,7 +134,7 @@ exprDependencies (H.RightSection _ qOp expr) =
 -- | Gets the keys for the functions or pattern bindings used on the right hand
 --   side of the given case expression alternative.
 altDependencies :: H.Alt l -> [DGKey]
-altDependencies (H.Alt _ pat (H.UnGuardedRhs _ expr) _) = -- TODO variable patterns are not dependencies
+altDependencies (H.Alt _ pat (H.UnGuardedRhs _ expr) _) =
   withoutArgs [pat] $ exprDependencies expr
 
 -- | Gets the key for a function used in infix notation.
