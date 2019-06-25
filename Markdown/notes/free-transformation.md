@@ -18,7 +18,7 @@ pandoc-minted:
 
 \newcommand{\lift}[1]{{#1}^{\dagger}}
 \newcommand{\liftT}[1]{{#1}^{ * }}
-\newcommand{\free}[1]{\texttt{Free}\,C_F\,{#1}}
+\newcommand{\free}[1]{\texttt{Free}\,Shape\,Pos\,{#1}}
 \newcommand{\pure}[1]{\texttt{pure}\,{#1}}
 
 \newcommand{\type}{ * }
@@ -27,6 +27,8 @@ pandoc-minted:
 \newcommand{\bool}{\texttt{bool}}
 \newcommand{\True}{\texttt{True}}
 \newcommand{\False}{\texttt{False}}
+\newcommand{\TrueC}{\texttt{True\_}}
+\newcommand{\FalseC}{\texttt{False\_}}
 \newcommand{\List}{\texttt{List}}
 \newcommand{\Pair}{\texttt{Pair}}
 \newcommand{\undefined}{\texttt{undefined}}
@@ -45,13 +47,19 @@ beschrieben aufgebaut ist.
 Dieses Dokument basiert auf der monadischen Transformation, wie sie in
 `monadic-transformation.md` beschrieben worden ist. In diesem Dokument
 wird nun jedoch konkret auf die Verwendung der *Free* Monade eingegangen.
-Wir gehen hier davon aus, dass Datentypen und Operationen, wie sie in
-[One Monad to Prove Them All][Dylus2019] vorgestellt worden sind, bereits
-vordefiniert sind. Insbesondere werden die `Free`{.coq} Monade, die
-`Container`{.coq} Typklasse, die Funktoren `Zero` und `One` sowie deren
-`Container` Instanzen `C__Zero` bzw. `C__One` benötigt. Auf der *Free* Monade
-seien die Operationen `>>=`{.coq} und `pure`{.coq} (statt `m_return`{.coq})
-vordefiniert.
+Statt die in [One Monad to Prove Them All][Dylus2019] vorgestellten Definition
+direkt zu verwenden, inlinen wir die Definition von `Ext`{.coq} in `Free`{.coq}.
+
+```coq
+Inductive Free (Shape : Type) (Pos : Shape -> Type) (A : Type) : Type :=
+  | pure : A -> Free A
+  | impure : forall (s : Shape), (Pos s -> Free A) -> Free A.
+```
+
+Wir übergeben also Explizit die sonst in der `Container`{.coq} Instanz
+definierte `Shape`{.coq} und `Pos`{.coq}. Ansonsten übernehmen wir die
+Definition von `>>=`{.coq}. Statt `m_return`{.coq} schreiben wir ab sofort
+direkt `pure`{.coq}.
 
 Die hier skizzierten Übersetzungsregeln sowie die dabei verwendete Notation
 orientiert sich an der von [Abel et al.][Abel2005] vorgestellten Übersetzung
@@ -88,15 +96,13 @@ $$
   \lift{\tau} = \free{\liftT{\tau}}
 $$
 
-wobei $C_F$ die `Container`{.coq} Instanz des im jeweiligen Kontext[^context]
-betrachteten Funktors $F$ bezeichne.
-
-[^context]: $C_F$ und $F$ werden als Argumente an Funktions-, Typsynonym- und
-            Datentypdeklarationen übergeben.
+wobei es sich bei `@$Shape$@ : Type`{.coq} und `@$Pos$@ : Shape -> Type`{.coq}
+um Argumente handelt, die an die im jeweiligem Kontext betrachtete Deklataion
+übergeben worden sind.
 
 Darüber hinaus muss rekursiv (mithilfe von $\liftT{\tau}$) der Argument- und
 Rückgabetyp von jedem in $\tau$ enthaltenen Funtionstypen übersetzt werden
-sowie die `Container`{.coq} Instanz $C_F$ an genutzte Datentypen weitergereicht
+sowie die Parameter $Shape$ und $Pos$ an genutzte Datentypen weitergereicht
 werden.
 
 - Für alle Typen $\tau_1, \tau_2 :: \type$:
@@ -109,8 +115,8 @@ werden.
 
     $$
       \begin{aligned}
-        \liftT{D}    &= D\,C_F      \\
-        \liftT{S}    &= S\,C_F      \\
+        \liftT{D}    &= D\,Shape\,Pos      \\
+        \liftT{S}    &= S\,Shape\,Pos      \\
       \end{aligned}
     $$
 
@@ -171,13 +177,13 @@ standardmäßig importierten Modul geeignet vordefiniert werden müssen.
 
     ```coq
     Definition True_
-      {@$F$@ : Type -> Type} {@$C_F$@ : Container @$F$@}
-      : Free @$C_F$@ bool =
+      {@$Shape$@ : Type} {@$Pos$@ : @$Shape$@ -> Type}
+      : Free @$Shape$@ @$Pos$@ bool :=
       pure true.
 
     Definition False_
-      {@$F$@ : Type -> Type} {@$C_F$@ : Container @$F$@}
-      : Free @$C_F$@ bool =
+      {@$Shape$@ : Type} {@$Pos$@ : @$Shape$@ -> Type}
+      : Free @$Shape$@ @$Pos$@ bool :=
       pure false.
     ```
 
@@ -187,7 +193,7 @@ standardmäßig importierten Modul geeignet vordefiniert werden müssen.
 ### Listen
 
 $$
-  \liftT{[\tau]} = \List\,C_F\,\liftT{\tau}
+  \liftT{[\tau]} = \List\,Shape\,Pos\,\liftT{\tau}
 $$
 
 wobei $\tau :: \type$
@@ -202,24 +208,24 @@ data List a = Nil | Cons a (List a)
 Hier gehen wir von folgender Übersetzung aus:
 
 ```coq
-Inductive List {@$F$@ : Type-> Type} (@$C_F$@ : Container @$F$@)
+Inductive List (@$Shape$@ : Type) (@$Pos$@ : @$Shape$@ -> Type)
   (a : Type) :=
-  | nil  : List @$C_F$@ a
-  | cons : Free @$C_F$@ a -> Free @$C_F$@ (List @$C_F$@ a) -> List @$C_F$@ a.
+  | nil  : List @$Shape$@ @$Pos$@ a
+  | cons : Free @$Shape$@ @$Pos$@ a
+        -> Free @$Shape$@ @$Pos$@ (List @$Shape$@ @$Pos$@ a)
+        -> List @$Shape$@ @$Pos$@ a.
 
-Arguments nil  {@$F$@} {@$C_F$@} {a}.
-Arguments cons {@$F$@} {@$C_F$@} {a}.
+Arguments nil  {@$Shape$@} {@$Pos$@} {a}.
+Arguments cons {@$Shape$@} {@$Pos$@} {a}.
 
-Definition Nil
-  {@$F$@ : Type-> Type} {@$C_F$@ : Container @$F$@}
-  {a : Type}
-  : Free @$C_F$@ (List @$C_F$@ a) :=
+Definition Nil {@$Shape$@ : Type} {@$Pos$@ : @$Shape$@ -> Type} {a : Type}
+  : Free @$Shape$@ @$Pos$@ (List @$Shape$@ @$Pos$@ a) :=
   pure nil.
 
-Definition Cons
-  {@$F$@ : Type -> Type} {@$C_F$@ : Container @$F$@}
-  {a : Type} (x : Free @$C_F$@ a) (xs : Free @$C_F$@ (List @$C_F$@ a))
-  : Free @$C_F$@ (List @$C_F$@ a) :=
+Definition Cons {@$Shape$@ : Type} {@$Pos$@ : @$Shape$@ -> Type} {a : Type}
+  (x : Free @$Shape$@ @$Pos$@ a)
+  (xs : Free @$Shape$@ @$Pos$@ (List @$Shape$@ @$Pos$@ a))
+  : Free @$Shape$@ @$Pos$@ (List @$Shape$@ @$Pos$@ a) :=
   pure (cons x xs)
 ```
 
@@ -234,12 +240,12 @@ Definition Cons
 
     ```coq
     Definition Tt
-      {@$F$@ : Type -> Type} {@$C_F$@ : Container @$F$@}
-      : Free @$C_F$@ unit =
+      {@$Shape$@ : Type} {@$Pos$@ : @$Shape$@ -> Type}
+      : Free @$Shape$@ @$Pos$@ unit :=
       pure tt.
     ```
 
-- $\liftT{(\tau_1, \tau_2)} = \Pair\,C_F\,\liftT{\tau_1}\,\liftT{\tau_2}$,
+- $\liftT{(\tau_1, \tau_2)} = \Pair\,Shape\,Pos\,\liftT{\tau_1}\,\liftT{\tau_2}$,
   wobei $\tau_1, \tau_2 :: \type$ Typen sind.
 
     Dabei sollte der Typ `Pair`{.coq} genau so definiert werden, wie der
@@ -252,16 +258,16 @@ Definition Cons
     Hier gehen wir von folgender Übersetzung aus:
 
     ```coq
-    Inductive Pair {@$F$@ : Type -> Type} (@$C_F$@ : Container @$F$@)
+    Inductive Pair (@$Shape$@ : Type) (@$Pos$@ : @$Shape$@ -> Type)
       (a b : Type) :=
-      | pair_ : Free @$C_F$@ a -> Free @$C_F$@ b -> Pair @$C_F$@ a b.
+      | pair_ : Free @$Shape$@ @$Pos$@ a -> Free @$Shape$@ @$Pos$@ b -> Pair @$Shape$@ @$Pos$@ a b.
 
-    Arguments pair_ {@$F$@} {@$C_F$@} {a} {b}.
+    Arguments pair_ {@$Shape$@} {@$Pos$@} {a} {b}.
 
     Definition Pair_
-      {@$F$@ : Type -> Type} {@$C_F$@ : Container @$F$@}
-      {a b : Type} (x : Free @$C_F$@ a) (y : Free @$C_F$@ b)
-      : Free @$C_F$@ (Pair @$C_F$@ a b) :=
+      {@$Shape$@ : Type} {@$Pos$@ : @$Shape$@ -> Type}
+      {a b : Type} (x : Free @$Shape$@ @$Pos$@ a) (y : Free @$Shape$@ @$Pos$@ b)
+      : Free @$Shape$@ @$Pos$@ (Pair @$Shape$@ @$Pos$@ a b) :=
       pure (pair_ x y).
     ```
 
@@ -278,12 +284,12 @@ data @$D$@ @$\alpha_1$@ @$\ldots$@ @$\alpha_m$@ =
 ```
 
 ```coq
-Inductive @$D$@ {@$F$@ : Type -> Type} (@$C_F$@ : Container @$F$@)
+Inductive @$D$@ (@$Shape$@ : Type) (@$Pos$@ : @$Shape$@ -> Type)
   (@$\alpha_1$@ @$\ldots$@ @$\alpha_m$@ : Type) : Type :=
-  | @$c_1$@ : @$\lift{\tau_{1,1}}$@ -> @$\ldots$@ -> @$\lift{\tau_{1,p_1}}$@ -> @$D$@ @$C_F$@ @$\alpha_1$@ @$\ldots$@ @$\alpha_m$@
-  | @$c_2$@ : @$\lift{\tau_{2,1}}$@ -> @$\ldots$@ -> @$\lift{\tau_{2,p_2}}$@ -> @$D$@ @$C_F$@ @$\alpha_1$@ @$\ldots$@ @$\alpha_m$@
+  | @$c_1$@ : @$\lift{\tau_{1,1}}$@ -> @$\ldots$@ -> @$\lift{\tau_{1,p_1}}$@ -> @$D$@ @$Shape$@ @$Pos$@ @$\alpha_1$@ @$\ldots$@ @$\alpha_m$@
+  | @$c_2$@ : @$\lift{\tau_{2,1}}$@ -> @$\ldots$@ -> @$\lift{\tau_{2,p_2}}$@ -> @$D$@ @$Shape$@ @$Pos$@ @$\alpha_1$@ @$\ldots$@ @$\alpha_m$@
   | @$\ldots$@
-  | @$c_n$@ : @$\lift{\tau_{n,1}}$@ -> @$\ldots$@ -> @$\lift{\tau_{n,p_n}}$@ -> @$D$@ @$C_F$@ @$\alpha_1$@ @$\ldots$@ @$\alpha_m$@.
+  | @$c_n$@ : @$\lift{\tau_{n,1}}$@ -> @$\ldots$@ -> @$\lift{\tau_{n,p_n}}$@ -> @$D$@ @$Shape$@ @$Pos$@ @$\alpha_1$@ @$\ldots$@ @$\alpha_m$@.
 ```
 
 wobei $\alpha_1, \ldots, \alpha_n$ Typvariablen, $C_1, \ldots, C_m$
@@ -299,18 +305,18 @@ $$
 $$
 
 Zusätzlich wird für jeden Konstruktor spezifiziert, dass die Typparameter
-optional sind. Die `Container`{.coq} Instanz lassen wir ebenfalls von Coq
-inferieren.
+optional sind. Die ursprünglich aus der `Container`{.coq} Instanz stammenden
+Parameter $Shape$ und $Pos$ lassen wir ebenfalls von Coq inferieren.
 
 ```coq
-Arguments @$c_1$@ {@$F$@} {@$C_F$@} {@$\alpha_1$@} @$\ldots$@ {@$\alpha_m$@}.
+Arguments @$c_1$@ {@$Shape$@} {@$Pos$@} {@$\alpha_1$@} @$\ldots$@ {@$\alpha_m$@}.
 @$\vdots$@
-Arguments @$c_n$@ {@$F$@} {@$C_F$@} {@$\alpha_1$@} @$\ldots$@ {@$\alpha_m$@}.
+Arguments @$c_n$@ {@$Shape$@} {@$Pos$@} {@$\alpha_1$@} @$\ldots$@ {@$\alpha_m$@}.
 ```
 
 Jeder der Konstruktoren hat in Coq den Rückgabetyp
-`@$D$@ @$C_F$@ @$\alpha_1$@ @$\ldots$@ @$\alpha_m$@`{.coq}. D.h. die vom
-Konstruktor erzeugten Werte befinden sich nicht in der Monade, sodass es
+`@$D$@ @$Shape$@ @$Pos$@ @$\alpha_1$@ @$\ldots$@ @$\alpha_m$@`{.coq}. D.h. die
+vom Konstruktor erzeugten Werte befinden sich nicht in der Monade, sodass es
 notwending ist jede Konstruktoranwendung mit einer Anwendung von `pure`{.coq}
 zu *wrappen*. Um den generierten Code lesbarer zu machen führen wir daher für
 jeden Konstruktor `@$c_i$@`{.coq} einen *Smart Konstruktor* `@$C_i$@`{.coq}
@@ -319,16 +325,16 @@ Anwendung von `pure`{.coq} übernimmt.
 
 ```coq
 Definition @$C_i$@
-  {@$F$@ : Type -> Type} {@$C_F$@ : Container @$F$@}
+  {@$Shape$@ : Type} {@$Pos$@ : @$Shape$@ -> Type}
   {@$\alpha_1$@ @$\ldots$@ @$\alpha_m$@ : Type}
   (@$x_1$@ : @$\lift{\tau_{i,1}}$@) @$\ldots$@ (@$x_{p_i}$@ : @$\lift{\tau_{i,p_i}}$@)
-  : Free @$C_F$@ :=
+  : Free @$Shape$@ @$Pos$@ :=
   pure (@$c_i$@ @$x_1$@ @$\ldots$@ @$x_{p_i}$@)
 ```
 
 wobei $x_1, \ldots, x_{p_i}$ frische Variablen sind.
-Auch vom Smart Konstruktor lassen wir die Typparameter und die
-`Container`{.coq} Instanz inferieren.
+Auch vom Smart Konstruktor lassen wir die Typparameter sowie die Parameter
+$Shape$ und $Pos$ inferieren.
 
 \newpage
 ## Übersetzung von Typsynoymdeklarationen
@@ -339,7 +345,7 @@ type @$S$@ @$\alpha_1$@ @$\ldots$@ @$\alpha_m$@ = @$\tau$@
 
 ```coq
 Definition @$S$@
-  {@$F$@ : Type -> Type} (@$C_F$@ : Container @$F$@)
+  (@$Shape$@ : Type) (@$Pos$@ : @$Shape$@ -> Type)
   (@$\alpha_1$@ @$\ldots$@ @$\alpha_m$@ : Type) := @$\liftT{\tau}$@.
 ```
 
@@ -379,7 +385,7 @@ weiter, ob die Funktion rekursiv definiert ist oder nicht.
 
 ```coq
 Definition @$f$@
-  {@$F$@ : Type -> Type} (@$C_F$@ : Container @$F$@)
+  (@$Shape$@ : Type) (@$Pos$@ : @$Shape$@ -> Type)
   {@$\alpha_1$@ @$\ldots$@ @$\alpha_m$@ : Type} (@$x_1$@ : @$\lift{\tau_1}$@) @$\ldots$@ (@$x_n$@ : @$\lift{\tau_n}$@) : @$\lift{\tau}$@
   := @$\lift{e}$@.
 ```
@@ -431,7 +437,7 @@ erzeugen wir eine Hilfsfunktion der Form
 
 ```coq
 Fixpoint @$f^{(j)}$@
-  {@$F$@ : Type -> Type} (@$C_F$@ : Container @$F$@)
+  (@$Shape$@ : Type) (@$Pos$@ : @$Shape$@ -> Type)
   {@$\alpha_1$@ @$\ldots$@ @$\alpha_m$@ : Type} (@$x_1$@ : @$\lift{\tau_1}$@) @$\ldots$@ (@$x_{i-1}$@ : @$\lift{\tau_{i-1}}$@)
   (@$x_i$@ : @$\liftT{\tau_i}$@) (@$x_{i+1}$@ : @$\lift{\tau_{i+1}}$@) @$\ldots$@ (@$x_n$@ : @$\lift{\tau_n}$@) : @$\lift{\tau}$@ :=
   match @$x_i$@ with
@@ -461,7 +467,7 @@ Bei der Übersetzung der Hauptfunktion
 
 ```coq
 Definition @$f$@
-  {@$F$@ : Type -> Type} (@$C_F$@ : Container @$F$@)
+  (@$Shape$@ : Type) (@$Pos$@ : @$Shape$@ -> Type)
   {@$\alpha_1$@ @$\ldots$@ @$\alpha_m$@ : Type} (@$x_1$@ : @$\lift{\tau_1}$@) @$\ldots$@ (@$x_n$@ : @$\lift{\tau_n}$@) : @$\lift{\tau}$@ := @$\lift{e}$@
 ```
 
@@ -476,7 +482,7 @@ durch einen Aufruf der entsprechenden Hilfsfunktion ersetzt:
 
 ```coq
 @$x_i$@ >>= fun(@$x_i'$@ : @$\liftT{\tau_i}$@) =>
-  @$f^{(j)}$@ @$C_F$@ @$x_1$@ @$\ldots$@ @$x_{i-1}$@ @$x_i'$@ @$x_{i+1}$@ @$\ldots$@ @$x_n$@
+  @$f^{(j)}$@ @$Shape$@ @$Pos$@ @$x_1$@ @$\ldots$@ @$x_{i-1}$@ @$x_i'$@ @$x_{i+1}$@ @$\ldots$@ @$x_n$@
 ```
 
 ## Übersetzung von partiellen Funktionen
@@ -512,39 +518,37 @@ map f xs = case xs of
 Bei der Übersetzung von partiellen Funktionen werden weitere Informationen
 darüber, wie mit den Fehlertermen `undefined`{.haskell} und
 `error "..."`{.haskell} umgegangen werden soll, benötigt. Dazu definieren wir
-in Coq eine Typklasse die für einen Funktor $F$ neben der `Container`{.coq}
-Instanz $C_F$ auch Operationen bereitstellt, mit denen die Fehlerterme
-übersetzt werden können.
+in Coq eine Typklasse die für die ursprünglich aus der `Container`{.coq}
+Instanz stammenden Parameter $Shape$ und $Pos$ Operationen bereitstellt, mit
+denen die Fehlerterme übersetzt werden können.
 
 ```coq
 Require Import Coq.Strings.String.
 
-Class Partial (@$F$@ : Type -> Type) :=
+Class Partial (@$Shape$@ : Type) (@$Pos$@ : @$Shape$@ -> Type) :=
   {
-    @$C_F$@ : Container @$F$@;
-    undefined : forall {A : Type}, Free @$C_F$@ A;
-    error : forall {A : Type}, string -> Free @$C_F$@ A
+    undefined : forall {A : Type}, Free @$Shape$@ @$Pos$@ A;
+    error : forall {A : Type}, string -> Free @$Shape$@ @$Pos$@ A
   }.
 ```
 
-Instanzen dieser Typklasse bezeichnen wir im folgenden mit $P_F$.
+Instanzen dieser Typklasse bezeichnen wir im folgenden mit $P$.
 Für den Funktor `One`{.coq} sähe eine mögliche Instanz wie folgt aus:
 
 ```coq
-Instance @$P_{One}$@ : Partial One :=
+Instance @$P_{One}$@ : Partial @$Shape_{One}$@ @$Pos_{One}$@ :=
   {
-    @$C_F$@ := @$C_{One}$@;
     undefined := fun {A : Type} => Nothing;
     error     := fun {A : Type} (msg : string) => Nothing
   }.
 ```
 
-Nun muss in der Übersetzung von $f$ nur die Typklasse ausgewechselt werden.
-Die Vorkommen von $C_F$ werden von Coq automatisch inferiert.
+In der Übersetzung von $f$ muss die Instanz dieser Typklasse nun als
+zusätzlicher Parameter übergeben werden.
 
 ```coq
 Definition @$f$@
-  {@$F$@ : Type -> Type} (@$P_F$@ : Partial @$F$@)
+  (@$Shape$@ : Type) (@$Pos$@ : @$Shape$@ -> Type) (@$P$@ : Partial @$Shape$@ @$Pos$@)
   {@$\alpha_1$@ @$\ldots$@ @$\alpha_m$@ : Type} (@$x_1$@ : @$\lift{\tau_1}$@) @$\ldots$@ (@$x_n$@ : @$\lift{\tau_n}$@) : @$\lift{\tau}$@
   := @$\lift{e}$@.
 ```
@@ -553,7 +557,7 @@ Analog ist bei der Übersetzung von rekursiv definierten Funktionen und deren
 Hilfsfunktionen vorzugehen.
 
 Beim Aufruf partieller Funktionen innerhalb von $f$ muss darauf geachtet werden,
-dass $P_F$ statt $C_F$ übergeben wird (siehe dazu den Abschnitt über
+dass $P$ ebenfalls übergeben werden muss (siehe dazu den Abschnitt über
 Funktionsanwendungen). Betrachte beispielsweise den Aufruf:
 
 ```haskell
@@ -566,12 +570,12 @@ Dieser wird zunächst per $\eta$-Konversion wie folgt umgewandelt:
 map (\xs -> head xs) xss
 ```
 
-Da `head`{.haskell} partiell definiert ist, muss nach der Übersetzung $P_F$
-übergeben werden, aber `map`{.haskell} nur $C_F$, da es sich um eine total
-definierte Funktion handelt.
+Da `head`{.haskell} partiell definiert ist, muss nach der Übersetzung $P$
+übergeben werden, aber `map`{.haskell} nur $Shape$ und $Pos$, da es sich um
+eine total definierte Funktion handelt.
 
 ```coq
-map @$C_F$@ (pure (fun(xs) => head @$P_F$@ xs)) xss
+map @$Shape$@ @$Pos$@ (pure (fun(xs) => head @$Shape$@ @$Pos$@ @$P$@ xs)) xss
 ```
 
 Dieses Beispiel verdeutlicht auch, warum `map`{.haskell} tatsächlich als total
@@ -638,24 +642,14 @@ Funktionsanwendung vollständig ist.
 Bei einer vollständigen Anwendung einer definierten Funktion
 `@$f$@ :: @$\tau_1$@ -> @$\ldots$@ -> @$\tau_n$@ -> @$\tau$@`{.haskell}
 auf Ausdrücke $e_1 :: \tau_1$, $\ldots$, $e_n :: \tau_n$
-müssen nur die Argumente rekursiv übersetzt werden und die `Container`{.coq}
-Instanz propagiert werden.
+müssen nur die Argumente rekursiv übersetzt werden und die ursprünglich aus der
+`Container`{.coq} Instanz stammenden Parameter $Shape$ und $Pos$ propagiert
+werden.
 
 Dazu unterscheiden wir, ob es sich um eine partiell oder total definierte
-Funktion handelt. Totalen Funktionen wird nur die `Container`{.coq} Instanz
-$C_F$ übergeben, wohingegen partielle Funktionen die Zusatzinformationen aus
-der `Partial`{.coq} Instanz $P_F$ benötigen.
-
-> Meine bisherigen Tests suggerieren, dass es auch möglich wäre in der
-> Funktionsdeklaration $C_F$ bzw. $P_F$ als implizit zu kennzeichnen.
-> Dann müsste man bei den Funktionsaufrufen keine solche Unterscheidung mehr
-> machen und der generierte Code wäre lesbarer. Die Frage ist jedoch, ob Coq in
-> jedem Fall in der Lage ist diese Parameter zu inferien. Coq ist
-> beispielsweise nicht in der Lage $C_F$ in einem Typausdruck korrekt zu
-> inferien, falls bereits eine `Container`{.coq} Instanz definiert wurde.
-> Ein Vorteil des bisherigen Ansatzes ist, dass in indirekt partiell
-> definierten sichtbar ist, aufgrund der VErwendung welcher Funktion sie nicht
-> total ist.
+Funktion handelt. Totalen Funktionen werden nur die Parameter $Shape$ und
+$Pos$ übergeben, wohingegen partielle Funktionen die Zusatzinformationen aus
+der `Partial`{.coq} Instanz $P$ benötigen.
 
 #### Totale Funktionen
 
@@ -664,7 +658,7 @@ der `Partial`{.coq} Instanz $P_F$ benötigen.
 ```
 
 ```coq
-@$f$@ @$C_F$@ @$\lift{e_1}$@ @$\ldots$@ @$\lift{e_n}$@
+@$f$@ @$Shape$@ @$Pos$@ @$\lift{e_1}$@ @$\ldots$@ @$\lift{e_n}$@
 ```
 
 #### Partielle Funktionen
@@ -674,7 +668,7 @@ der `Partial`{.coq} Instanz $P_F$ benötigen.
 ```
 
 ```coq
-@$f$@ @$P_F$@ @$\lift{e_1}$@ @$\ldots$@ @$\lift{e_n}$@
+@$f$@ @$Shape$@ @$Pos$@ @$P$@ @$\lift{e_1}$@ @$\ldots$@ @$\lift{e_n}$@
 ```
 
 ### Anwendung von Konstruktoren
@@ -690,7 +684,7 @@ Konstruktor `@$C$@`{.coq} eingeführt, der zusätzlich `pure`{.coq} auf das
 Ergebnis des Konstruktors anwendet.
 
 Im Gegensatz zu Funktionsanwendungen übergeben wir bei Konstruktoren dabei
-nicht die `Container`{.coq} Instanz. Diese werden von Coq genau so wie die
+nicht die Parameter $Shape$ und $Pos$. Diese werden von Coq genau so wie die
 Typparameter inferiert. Ansonsten können Konstruktoranwendungen mithilfe
 der Smart Konstruktoren analog übersetzt werden.
 
@@ -750,8 +744,8 @@ in Coq auf `nat` definieren:
 
 ```coq
 Definition plus
-  {@$F$@ : Type -> Type} (@$C_F$@ : Container@$F$@)
-  (n1 : Free @$C_F$@ nat) (n2 : Free @$C_F$@ nat) : Free @$C_F$@ nat :=
+  (@$Shape$@ : Type) (@$Pos$@ : @$Shape$@ -> Type)
+  (n1 : Free @$Shape$@ @$Pos$@ nat) (n2 : Free @$Shape$@ @$Pos$@ nat) : Free @$Shape$@ @$Pos$@ nat :=
   n1 >>= fun(n1' : nat) =>
     n2 >>= fun(n2' : nat) =>
       pure (n1' + n2').
@@ -768,8 +762,8 @@ werden sondern lediglich die vordefinierte Funktion `plus`{.coq}:
 
 ```coq
 Definition plus
-  {@$F$@ : Type -> Type} (@$C_F$@ : Container@$F$@)
-  (z1 : Free @$C_F$@ Z) (z2 : Free @$C_F$@ Z) : Free @$C_F$@ Z :=
+  (@$Shape$@ : Type) (@$Pos$@ : @$Shape$@ -> Type)
+  (z1 : Free @$Shape$@ @$Pos$@ Z) (z2 : Free @$Shape$@ @$Pos$@ Z) : Free @$Shape$@ @$Pos$@ Z :=
   z1 >>= fun(z1' : Z) =>
     z2 >>= fun(z2' : Z) =>
       pure (Z.add z1' z2').
@@ -882,7 +876,7 @@ Das unäre Minus ist *syntaktischer Zucker* für die `negate`{.haskell} Funktion
 ```
 
 ```coq
-negate @$\lift{e_1}$@
+negate @$Shape$@ @$Pos$@ @$\lift{e_1}$@
 ```
 
 wobei $e_1 :: \Int$ ein Ausdruck ist.
@@ -891,8 +885,8 @@ Diese wird in Coq wie folgt vordefiniert:
 
 ```coq
 Definition negate
-  {@$F$@ : Type -> Type} (@$C_F$@ : Container @$F$@)
-  (n : Free @$C_F$@ Int) : Free @$C_F$@ Int :=
+  (@$Shape$@ : Type) (@$Pos$@ : @$Shape$@ -> Type)
+  (n : Free @$Shape$@ @$Pos$@ Int) : Free @$Shape$@ @$Pos$@ Int :=
   n >>= fun(n' : Int) => pure (Z.opp n').
 ```
 
@@ -991,8 +985,8 @@ wobei $x_1, \ldots x_n$ Variablenpattern sind und $e$ ein Ausdruck ist.
 - Für die Übersetzung der boolschen Werte verwenden wir die zuvor definierten
   Smart Konstruktoren.
 
-    + $\lift{\True} = \True$
-    + $\lift{\False} = \False$
+    + $\lift{\True} = \TrueC$
+    + $\lift{\False} = \FalseC$
 
 ### Listen
 
