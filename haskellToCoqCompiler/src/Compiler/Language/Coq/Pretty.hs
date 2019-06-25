@@ -6,8 +6,6 @@ where
 
 import           System.IO
 
-import qualified Data.Text                     as T
-import qualified Data.Text.Lazy                as TL
 import           Text.PrettyPrint.Leijen.Text   ( Doc
                                                 , SimpleDoc
                                                 , (<$$>)
