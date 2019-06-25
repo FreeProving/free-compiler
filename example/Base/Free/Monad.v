@@ -1,38 +1,36 @@
-From Base Require Import Free.Container.
-
-Inductive Free {F : Type -> Type} (C__F : Container F) (A : Type) : Type :=
-  | pure : A -> Free C__F A
-  | impure : Ext Shape Pos (Free C__F A) -> Free C__F A.
-
-Arguments pure {F} {C__F} {A}.
-Arguments impure {F} {C__F} {A}.
-
 Section SecFree.
+  Variable Shape : Type.
+  Variable Pos : Shape -> Type.
 
-  Variable F : Type -> Type.
-  Variable C__F : Container F.
+  Inductive Free (A : Type) : Type :=
+    | pure : A -> Free A
+    | impure : forall (s : Shape), (Pos s -> Free A) -> Free A.
+
+  Arguments pure {A}.
+  Arguments impure {A}.
 
   Section free_bind'.
-
     Variable A B : Type.
-    Variable f: A -> Free C__F B.
+    Variable f: A -> Free B.
 
-    Fixpoint free_bind' (mx: Free C__F A) : Free C__F B :=
+    Fixpoint free_bind' (mx: Free A) : Free B :=
       match mx with
       | pure x => f x
-      | impure e => impure (cmap free_bind' e)
+      | impure s pf => impure s (fun x => free_bind' (pf x))
       end.
 
   End free_bind'.
 
-  Definition free_bind {A B : Type} (mx: Free C__F A) (f: A -> Free C__F B)
-    : Free C__F B :=
+  Definition free_bind {A B : Type} (mx: Free A) (f: A -> Free B) : Free B :=
     free_bind' A B f mx.
-
-  (* TODO free return *)
 
 End SecFree.
 
-Arguments free_bind {F} {C__F} {A} {B}.
+(* The arguments of the constructors of the free monad are implicit. *)
+Arguments pure {Shape} {Pos} {A}.
+Arguments impure {Shape} {Pos} {A}.
 
+(* The arguments of the bind operation are implicit and we
+   introduce the infix notation for the bind operator. *)
+Arguments free_bind {Shape} {Pos} {A} {B}.
 Notation "mx >>= f" := (free_bind mx f) (left associativity, at level 50).

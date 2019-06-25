@@ -1,27 +1,28 @@
 From Base Require Import Free.
 
-(* smart constructors *)
-Definition True_
-  {F : Type -> Type} {C__F : Container F}
-  : Free C__F bool :=
-  pure true.
-Definition False_
-  {F : Type -> Type} {C__F : Container F}
-  : Free C__F bool :=
-  pure false.
+Section SecBool.
+  Variable Shape : Type.
+  Variable Pos : Shape -> Type.
+  Notation "'Free''" := (Free Shape Pos).
 
-(* conjunction *)
-Definition andBool
-  {F : Type -> Type} (C__F : Container F)
-  (b1 : Free C__F bool) (b2 : Free C__F bool) : Free C__F bool :=
-  b1 >>= fun(b1' : bool) =>
-    b2 >>= fun(b2' : bool) =>
-      pure (andb b1' b2').
+  (* smart constructors *)
+  Definition True_ : Free' bool := pure true.
+  Definition False_ : Free' bool := pure false.
 
-(* disjunction *)
-Definition orBool
-  {F : Type -> Type} (C__F : Container F)
-  (b1 : Free C__F bool) (b2 : Free C__F bool) : Free C__F bool :=
-  b1 >>= fun(b1' : bool) =>
-    b2 >>= fun(b2' : bool) =>
-      pure (orb b1' b2').
+  (* conjunction *)
+  Definition andBool (b1 : Free' bool) (b2 : Free' bool) : Free' bool :=
+    b1 >>= fun(b1' : bool) =>
+      b2 >>= fun(b2' : bool) =>
+        pure (andb b1' b2').
+
+  (* disjunction *)
+  Definition orBool (b1 : Free' bool) (b2 : Free' bool) : Free' bool :=
+    b1 >>= fun(b1' : bool) =>
+      b2 >>= fun(b2' : bool) =>
+        pure (orb b1' b2').
+
+End SecBool.
+
+(* The arguments of the smart constructors are implicit. *)
+Arguments True_  {Shape} {Pos}.
+Arguments False_ {Shape} {Pos}.

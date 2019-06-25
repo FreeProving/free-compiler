@@ -1,24 +1,31 @@
 From Base Require Import Free.
 
-Inductive List
-  {F : Type -> Type} (C__F : Container F)
-  (A : Type) : Type :=
-  | nil  : List C__F A
-  | cons : Free C__F A -> Free C__F (List C__F A) -> List C__F A.
+Section SecList.
+  Variable Shape : Type.
+  Variable Pos : Shape -> Type.
+  Notation "'Free''" := (Free Shape Pos).
 
-Arguments nil  {F} {C__F} {A}.
-Arguments cons {F} {C__F} {A}.
+  Inductive List (A : Type) : Type :=
+    | nil  : List A
+    | cons : Free' A -> Free' (List A) -> List A.
 
-(* smart constructors *)
+  Arguments nil  {A}.
+  Arguments cons {A}.
 
-Definition Nil
-  {F : Type -> Type} {C__F : Container F}
-  {A : Type}
-  : Free C__F (List C__F A) :=
-  pure (nil).
+  (* smart constructors *)
 
-Definition Cons
-  {F : Type -> Type} {C__F : Container F}
-  {A : Type} (x : Free C__F A) (xs : Free C__F (List C__F A))
-  : Free C__F (List C__F A) :=
-  pure (cons x xs).
+  Definition Nil {A : Type} : Free' (List A) := pure nil.
+
+  Definition Cons {A : Type} (x : Free' A) (xs : Free' (List A)) 
+    : Free' (List A) :=
+    pure (cons x xs).
+
+End SecList.
+
+(* The arguments of the constructors are implicit. *)
+Arguments nil  {Shape} {Pos} {A}.
+Arguments cons {Shape} {Pos} {A}.
+
+(* The arguments of the smart constructors are implicit. *)
+Arguments Nil  {Shape} {Pos} {A}.
+Arguments Cons {Shape} {Pos} {A}.
