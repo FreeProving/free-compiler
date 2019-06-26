@@ -23,10 +23,6 @@ module Compiler.Reporter
   , foldReporter
   , isFatal
   , messages
-  , putMessage
-  , putMessages
-  , hPutMessage
-  , hPutMessages
   , report
   , reportFatal
   , reportIOErrors
@@ -39,17 +35,15 @@ import           Control.Monad                  ( liftM
                                                 , join
                                                 )
 import           Data.Maybe                     ( maybe )
-import qualified Data.Text.Lazy                as TL
-import           Text.PrettyPrint.Leijen.Text
-import           System.IO                      ( Handle
-                                                , stdout
-                                                )
 import           System.IO.Error                ( catchIOError
                                                 , ioeGetErrorString
                                                 , ioeGetFileName
                                                 )
 
 import qualified Language.Haskell.Exts.SrcLoc  as H
+import           Text.PrettyPrint.Leijen.Text
+
+import           Compiler.Pretty
 
 -------------------------------------------------------------------------------
 -- Messages                                                                  --
@@ -73,11 +67,11 @@ data Message = Message (Maybe SrcSpan) Severity String
 --   source span. This source span does not support source spans that span
 --   multiple lines.
 data SrcSpan = SrcSpan
-  { filename    :: String
-  , startLine   :: Int
-  , startColumn :: Int
-  , spanWidth   :: Int
-  , codeLine    :: Maybe String
+  { srcSpanFilename    :: String
+  , srcSpanStartLine   :: Int
+  , srcSpanStartColumn :: Int
+  , srcSpanWidth       :: Int
+  , srcSpanCodeLine    :: Maybe String
   }
   deriving (Show)
 
@@ -95,11 +89,11 @@ class SrcSpanConverter ss where
 --   the corresponding line of code in the provided map.
 instance SrcSpanConverter H.SrcSpan where
   convertSrcSpan codeByFilename srcSpan = SrcSpan
-    { filename    = H.srcSpanFilename srcSpan
-    , startLine   = H.srcSpanStartLine srcSpan
-    , startColumn = H.srcSpanStartColumn srcSpan
-    , spanWidth   = max 1 (snd (H.spanSize srcSpan))
-    , codeLine    =
+    { srcSpanFilename    = H.srcSpanFilename srcSpan
+    , srcSpanStartLine   = H.srcSpanStartLine srcSpan
+    , srcSpanStartColumn = H.srcSpanStartColumn srcSpan
+    , srcSpanWidth       = max 1 (snd (H.spanSize srcSpan))
+    , srcSpanCodeLine    =
         lookup (H.srcSpanFilename srcSpan) codeByFilename
           >>= (nth (H.srcSpanStartLine srcSpan - 1))
     }
@@ -226,124 +220,87 @@ foldReporter (Report _ x) f _ = f x
 foldReporter (Fatal _   ) _ v = v
 
 -------------------------------------------------------------------------------
--- Printing messages                                                         --
+-- Pretty printing messages                                                  --
 -------------------------------------------------------------------------------
 
--- | Gets the label to print before the text of a message of the given
---   severity.
-severityLabel :: Severity -> String
-severityLabel Error   = "error"
-severityLabel Warning = "warning"
-severityLabel Info    = "info"
+-- | Pretty instance for message severity levels.
+instance Pretty Severity where
+  pretty Error   = prettyString "error"
+  pretty Warning = prettyString "warning"
+  pretty Info    = prettyString "info"
 
--- | Prints all given messages to @stdout@.
-putMessages :: [Message] -> IO ()
-putMessages = mapM_ putMessage
-
--- | Prints all given messages to the a file handle.
-hPutMessages :: Handle -> [Message] -> IO ()
-hPutMessages h = mapM_ (hPutMessage h)
-
--- | Prints the given message to @stdout@.
-putMessage :: Message -> IO ()
-putMessage = hPutMessage stdout
-
--- | Prints a message to the given file handle.
-hPutMessage :: Handle -> Message -> IO ()
-hPutMessage h = displayIO h . renderMessage
-
--- | Pretty prints and renders the given message with a maximum line length
---   of 80 characters.
-renderMessage :: Message -> SimpleDoc
-renderMessage = renderPretty ribbonFrac maxLineWidth . prettyMessage
- where
-  -- | The maximum line width that must no be exceeded by the message text.
-  --
-  --   This is configured to be 80 characters, because on most platforms
-  --   terminals have a default width of 80 columns.
-  maxLineWidth :: Int
-  maxLineWidth = 80
-
-  -- | The whole line is allowed be occupied by non-indentation characters.
-  ribbonFrac :: Float
-  ribbonFrac = 1.0
-
--- | Pretty prints the given message.
-prettyMessage :: Message -> Doc
-prettyMessage (Message maybeSrcSpan severity msg) =
-  maybeSrcSpanDoc <+> severityDoc <$$> msgDoc <> line <> maybeCodeDoc
- where
-   -- | Document for the start of the source span or a placeholder text
-   --   if there is no source span.
-  maybeSrcSpanDoc :: Doc
-  maybeSrcSpanDoc = maybe srcSpanPlaceholder srcSpanDoc maybeSrcSpan <> colon
-
-  -- | The placeholder text to display if there is no source span.
-  srcSpanPlaceholder :: Doc
-  srcSpanPlaceholder = text (TL.pack "<no location info>")
-
-  -- | Document for the start of the source span.
-  srcSpanDoc :: SrcSpan -> Doc
-  srcSpanDoc srcSpan =
-    text (TL.pack (filename srcSpan))
+-- | Pretty instance for a source span that displays the filename and the start
+--   position of the source span.
+instance Pretty SrcSpan where
+  pretty srcSpan =
+    prettyString (srcSpanFilename srcSpan)
       <> colon
-      <> int (startLine srcSpan)
+      <> int (srcSpanStartLine srcSpan)
       <> colon
-      <> int (startColumn srcSpan)
+      <> int (srcSpanStartColumn srcSpan)
 
-  -- | Document for the severity label with trailing colon.
-  severityDoc :: Doc
-  severityDoc = text (TL.pack (severityLabel severity)) <> colon
-
-  -- | Document for the message text.
-  --
-  --   The message is indented by four spaces. The individual words of the
-  --   messages are concatenated with 'softline's, such that the text is
-  --   broken into multiple lines if it does not fit into a line of the
-  --   configured 'width'.
-  msgDoc :: Doc
-  msgDoc = indent 4 (foldr (</>) empty (map (text . TL.pack) (words msg)))
-
-  -- | Document that shows the line of code that caused the message to be
-  --   reported if the message contains location information and the source
-  --   code.
-  maybeCodeDoc :: Doc
-  maybeCodeDoc = maybe empty (uncurry codeDoc) $ do
-    srcSpan <- maybeSrcSpan
-    code    <- codeLine srcSpan
-    return (srcSpan, code)
-
-  -- | Document that displays the given line of code, the line number and
-  --   highlights the source span using 'caret's.
-  codeDoc :: SrcSpan -> String -> Doc
-  codeDoc srcSpan code =
-    gutterDoc srcSpan
-      <$$> lineNumberDoc srcSpan
-      <+>  text (TL.pack code)
-      <$$> gutterDoc srcSpan
-      <>   highlightDoc srcSpan
+-- | Pretty instance for messages.
+--
+--   The format of the messages is based on the format used by GHC:
+--
+--   @
+--   <file>:<line>:<column>: <severity>:
+--       <message-contents>
+--          |
+--   <line> | <line of code ... culprit  ... >
+--          |                   ^^^^^^^
+--   @
+--
+--   If no location information is attached to the message, a place holder is
+--   text displayed instead of the filename, and start position and no
+--   code snippet will be shown.
+--
+--   Lists of messages are separated by a newline.
+instance Pretty Message where
+  pretty (Message maybeSrcSpan severity msg) =
+    (prettyMaybe "<no location info>" maybeSrcSpan <> colon)
+      <+>  (pretty severity <> colon)
+      <$$> (indent 4 $ prettyText msg)
       <>   line
+      <>   prettyCodeBlock maybeSrcSpan
+  prettyList = prettySeparated line
 
+-- | Creates a document that shows the line of code that caused a message to
+--   be reported.
+--
+--   If the message contains no location information or no source code the
+--   empty document is returned.
+prettyCodeBlock :: Maybe SrcSpan -> Doc
+prettyCodeBlock Nothing = empty
+prettyCodeBlock (Just SrcSpan { srcSpanCodeLine = Nothing }) = empty
+prettyCodeBlock (Just srcSpan@SrcSpan { srcSpanCodeLine = Just code }) =
+  gutterDoc
+    <$$> lineNumberDoc
+    <+>  prettyString code
+    <$$> gutterDoc
+    <>   highlightDoc
+    <>   line
+ where
   -- | Document for the line number including padding and the trailing pipe.
-  lineNumberDoc :: SrcSpan -> Doc
-  lineNumberDoc srcSpan = space <> int (startLine srcSpan) <> space <> pipe
+  lineNumberDoc :: Doc
+  lineNumberDoc = space <> int (srcSpanStartLine srcSpan) <> space <> pipe
 
   -- | Document with the same length as 'lineNumberDoc' but without the line
   --   number.
-  gutterDoc :: SrcSpan -> Doc
-  gutterDoc srcSpan =
-    let gutterWidth = length (show (startLine srcSpan)) + 2
+  gutterDoc :: Doc
+  gutterDoc =
+    let gutterWidth = length (show (srcSpanStartLine srcSpan)) + 2
     in  indent gutterWidth pipe
 
   -- | Document that contains 'caret' signs to highligh the source span.
-  highlightDoc :: SrcSpan -> Doc
-  highlightDoc srcSpan =
-    indent (startColumn srcSpan) (hcat (replicate (spanWidth srcSpan) caret))
+  highlightDoc :: Doc
+  highlightDoc = indent (srcSpanStartColumn srcSpan)
+                        (hcat (replicate (srcSpanWidth srcSpan) caret))
 
   -- | Document that contains the pipe character @|@.
   pipe :: Doc
-  pipe = text (TL.pack "|")
+  pipe = char '|'
 
   -- | Document that contains the caret character @^@.
   caret :: Doc
-  caret = text (TL.pack "^")
+  caret = char '^'

@@ -3,6 +3,7 @@ module Compiler.Converter where
 import qualified Language.Coq.Gallina          as G
 import qualified Language.Haskell.Exts.Syntax  as H
 
+import           Compiler.Language.Coq.Preamble ( importDefinitions )
 import           Compiler.HelperFunctionConverter
                                                 ( convertMatchToHelperFunction
                                                 , convertMatchToMainFunction
@@ -89,6 +90,13 @@ convertIdent = T.pack
 -------------------------------------------------------------------------------
 -- Modules                                                                   --
 -------------------------------------------------------------------------------
+
+-- | Converts a Haskell module to a Gallina module sentence and adds the
+--   import definitions required by the generated Coq code.
+convertModuleWithPreamble
+  :: Show l => H.Module l -> ConversionMonad -> [G.Sentence]
+convertModuleWithPreamble ast cMonad =
+  importDefinitions cMonad ++ [convertModule ast cMonad]
 
 -- | Converts a Haskell module to a Gallina module sentence.
 --

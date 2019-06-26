@@ -33,7 +33,6 @@ module Compiler.DependencyAnalysis
   , DependencyGraph
   , typeDependencyGraph
   , funcDependencyGraph
-  , prettyGraph
   )
 where
 
@@ -42,10 +41,12 @@ import           Data.Maybe                     ( catMaybes
                                                 , maybeToList
                                                 )
 import           Data.List                      ( nub )
-import qualified Data.Text.Lazy                as TL
 
 import qualified Language.Haskell.Exts.Syntax  as H
 import           Text.PrettyPrint.Leijen.Text
+
+import           Compiler.Pretty
+import           Compiler.Util.Data.Tuple
 
 -- | Every node of the dependency graph is uniquely identified by a key.
 --   We use the Haskell identifiers to identify the nodes.
@@ -69,7 +70,8 @@ type DGEntry l = (DGNode l, DGKey, [DGKey])
 --   In addition to the actual 'Graph' that stores the adjacency matrix
 --   of the internal identifiers, this tuple contains functions to convert
 --   between the internal and high level representation.
-type DependencyGraph l = (Graph, Vertex -> DGEntry l, DGKey -> Maybe Vertex)
+data DependencyGraph l =
+  DependencyGraph Graph (Vertex -> DGEntry l) (DGKey -> Maybe Vertex)
 
 -------------------------------------------------------------------------------
 -- Type dependencies                                                         --
@@ -78,7 +80,11 @@ type DependencyGraph l = (Graph, Vertex -> DGEntry l, DGKey -> Maybe Vertex)
 -- | Creates the dependency graph for a list of data type or type synonym
 --   declarations.
 typeDependencyGraph :: [H.Decl l] -> DependencyGraph l
-typeDependencyGraph = graphFromEdges . map typeDeclEntries . filter isTypeDecl
+typeDependencyGraph =
+  uncurry3 DependencyGraph
+    . graphFromEdges
+    . map typeDeclEntries
+    . filter isTypeDecl
 
 -- | Tests whether the given declaration is a data type or type synonym
 --   declaration.
@@ -124,7 +130,11 @@ typeDependencies (H.TyParen _ t    ) = typeDependencies t
 -- | Creates the dependency graph for a list of function declarations or
 --   pattern bindings.
 funcDependencyGraph :: [H.Decl l] -> DependencyGraph l
-funcDependencyGraph = graphFromEdges . map funcDeclEntries . filter isFuncDecl
+funcDependencyGraph =
+  uncurry3 DependencyGraph
+    . graphFromEdges
+    . map funcDeclEntries
+    . filter isFuncDecl
 
 -- | Tests whether the give declaration is a function declaration or pattern
 --   binding.
@@ -234,53 +244,53 @@ deleteAll xs ys = [ y | y <- ys, not (y `elem` xs) ]
 -- Pretty print dependency graph                                             --
 -------------------------------------------------------------------------------
 
--- | Pretty prints the dependency graph in DOT format.
-prettyGraph :: DependencyGraph l -> Doc
-prettyGraph (graph, getEntry, getVertex) =
-  digraph
-    <+> braces (line <> indent 2 (vcat (nodeDocs ++ edgesDocs)) <> line)
-    <>  line
- where
-  -- | A document for the DOT digraph keyword.
-  digraph :: Doc
-  digraph = text (TL.pack "digraph")
+-- | Pretty instance that converts a dependency graph to the DOT format.
+instance Pretty (DependencyGraph l) where
+  pretty (DependencyGraph graph getEntry getVertex) =
+    digraph
+      <+> braces (line <> indent 2 (vcat (nodeDocs ++ edgesDocs)) <> line)
+      <>  line
+    where
+     -- | A document for the DOT digraph keyword.
+     digraph :: Doc
+     digraph = prettyString "digraph"
 
-  -- | A document for the DOT label attribute.
-  label :: Doc
-  label = text (TL.pack "label")
+     -- | A document for the DOT label attribute.
+     label :: Doc
+     label = prettyString "label"
 
-  -- | A document for the DOT arrow symbol.
-  arrow :: Doc
-  arrow = text (TL.pack "->")
+     -- | A document for the DOT arrow symbol.
+     arrow :: Doc
+     arrow = prettyString "->"
 
-  -- | Pretty printed DOT nodes for the dependency graph.
-  nodeDocs :: [Doc]
-  nodeDocs = map prettyNode (vertices graph)
+     -- | Pretty printed DOT nodes for the dependency graph.
+     nodeDocs :: [Doc]
+     nodeDocs = map prettyNode (vertices graph)
 
-  -- | Pretty prints the given vertex as a DOT command. The key of the node
-  --   is used a the label.
-  prettyNode :: Vertex -> Doc
-  prettyNode v =
-    let (_, key, _) = getEntry v
-    in  int v
-        <+> brackets (label <> equals <> dquotes (text (TL.pack key)))
-        <>  semi
+     -- | Pretty prints the given vertex as a DOT command. The key of the node
+     --   is used a the label.
+     prettyNode :: Vertex -> Doc
+     prettyNode v =
+       let (_, key, _) = getEntry v
+       in  int v
+           <+> brackets (label <> equals <> dquotes (prettyString key))
+           <>  semi
 
-  -- | Pretty printed DOT edges for the dependency graph.
-  edgesDocs :: [Doc]
-  edgesDocs = catMaybes (map prettyEdges (vertices graph))
+     -- | Pretty printed DOT edges for the dependency graph.
+     edgesDocs :: [Doc]
+     edgesDocs = catMaybes (map prettyEdges (vertices graph))
 
-  -- | Pretty prints all outgoing edges of the given vertex as a single
-  --   DOT command. Returns `Nothing` if the vertex is not incident to
-  --   any edge.
-  prettyEdges :: Vertex -> Maybe Doc
-  prettyEdges v =
-    let (_, _, neighbors) = getEntry v
-    in  case catMaybes (map getVertex neighbors) of
-          [] -> Nothing
-          vs ->
-            Just
-              $   int v
-              <+> arrow
-              <+> braces (cat (punctuate comma (map int vs)))
-              <>  semi
+     -- | Pretty prints all outgoing edges of the given vertex as a single
+     --   DOT command. Returns `Nothing` if the vertex is not incident to
+     --   any edge.
+     prettyEdges :: Vertex -> Maybe Doc
+     prettyEdges v =
+       let (_, _, neighbors) = getEntry v
+       in  case catMaybes (map getVertex neighbors) of
+             [] -> Nothing
+             vs ->
+               Just
+                 $   int v
+                 <+> arrow
+                 <+> braces (cat (punctuate comma (map int vs)))
+                 <>  semi

@@ -7,14 +7,13 @@ import           System.Exit                    ( exitFailure )
 import           System.Console.GetOpt
 import           System.FilePath
 
-import           Compiler.Converter             ( convertModule )
-import           Compiler.Language.Coq.Pretty   ( printCoqAST
-                                                , writeCoqFile
-                                                )
+import           Compiler.Converter             ( convertModuleWithPreamble )
 import           Compiler.Language.Haskell.Parser
                                                 ( parseModuleFile )
 import qualified Compiler.Types
 
+import           Compiler.Language.Coq.Pretty   ( )
+import           Compiler.Pretty
 import           Compiler.Reporter
 
 -- | Data type that stores the command line options passed to the compiler.
@@ -130,7 +129,7 @@ main :: IO ()
 main = do
   args <- getArgs
   let optReporter = parseArgs args
-  putMessages (messages optReporter)
+  putPretty (messages optReporter)
   foldReporter optReporter run exitFailure
 
 -- | Handles the given command line options.
@@ -149,12 +148,12 @@ run opts
 processInputFile :: Options -> FilePath -> IO ()
 processInputFile opts inputFile = do
   haskellAst <- parseModuleFile inputFile
-  let coqAst = convertModule haskellAst (optConversionMonad opts)
+  let coqAst = convertModuleWithPreamble haskellAst (optConversionMonad opts)
   case (optOutputDir opts) of
-    Nothing -> printCoqAST coqAst (optConversionMonad opts)
+    Nothing -> putPretty coqAst
     Just outputDir ->
       let outputFileName = outputFileNameFor inputFile outputDir "v"
-      in  writeCoqFile outputFileName coqAst (optConversionMonad opts)
+      in  writePrettyFile outputFileName coqAst
 
 -- | Builds the file name of the output file for the given input file.
 outputFileNameFor

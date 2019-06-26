@@ -27,9 +27,11 @@ executable haskellToCoqCompiler
                       , Compiler.Language.Coq.Pretty
                       , Compiler.Language.Haskell.Parser
                       , Compiler.MonadicConverter
+                      , Compiler.NonEmptyList
+                      , Compiler.Pretty
                       , Compiler.Reporter
                       , Compiler.Types
-                      , Compiler.NonEmptyList
+                      , Compiler.Util.Data.Tuple
                       , Language.Coq.Gallina
                       , Language.Coq.Pretty
                       , Language.Coq.PrettyPrint

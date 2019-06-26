@@ -14,6 +14,7 @@ import           Language.Haskell.Exts.Parser   ( ParseMode(..)
                                                 )
 import qualified Language.Haskell.Exts.Syntax  as H
 
+import           Compiler.Pretty
 import           Compiler.Reporter
 
 -- | Custom parameters for parsing a Haskell source file with the given name.
@@ -69,5 +70,5 @@ parseModuleFile filename = do
   reporter <- reportIOErrors $ do
     contents <- readFile filename
     return (parseModule filename contents)
-  putMessages (messages reporter)
+  putPretty (messages reporter)
   foldReporter reporter return exitFailure
