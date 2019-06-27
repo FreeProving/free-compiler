@@ -78,7 +78,6 @@ import qualified Data.Text                     as T
 data Environment = Environment
   { typeSignatures :: [G.TypeSignature]
   , dataTypes      :: [(G.Name, [(G.Qualid, Maybe G.Qualid)])]
-  , functionNames  :: [G.Qualid]
   , conversionMonad :: ConversionMonad
   }
 
@@ -122,13 +121,12 @@ convertModule (H.Module _ modHead _ _ decls) cMonad = G.LocalModuleSentence
 
   -- TODO Build up environment during conversion.
   (typeSigs , nonTypeSigs) = partition isTypeSig decls
-  (dataDecls, funDecls   ) = partition isDataDecl nonTypeSigs
+  (dataDecls, _          ) = partition isDataDecl nonTypeSigs
   env                      = Environment
     { typeSignatures  = convertTypeSignatures typeSigs
     , dataTypes       = predefinedDataTypes ++ zip
       (getNamesFromDataDecls dataDecls)
       (getConstrNamesFromDataDecls dataDecls)
-    , functionNames   = getFunNames funDecls
     , conversionMonad = cMonad
     }
 
@@ -760,28 +758,6 @@ convertTypeToMonadicTerm _ ty = convertTypeToTerm ty
 -------------------------------------------------------------------------------
 -- Functions that don't belong here                                          --
 -------------------------------------------------------------------------------
-
--- | Gets the names of all function declarations in the given list.
-getFunNames
-  :: Show l
-  => [H.Decl l] -- ^ A list of arbitrary declarations.
-  -> [G.Qualid]
-getFunNames decls = map getQIdFromFunDecl (filter isFunction decls)
-
--- | Tests whether a declaration is a function declaration.
---
---   TODO why do we distinguish function declarations and pattern
---        bindings here?
-isFunction :: Show l => H.Decl l -> Bool
-isFunction (H.FunBind _ _) = True
-isFunction _               = False
-
--- | Gets the name of a function declataion.
-getQIdFromFunDecl
-  :: Show l
-  => H.Decl l -- ^ A function declaration.
-  -> G.Qualid
-getQIdFromFunDecl (H.FunBind _ (H.Match _ name _ _ _ : _)) = nameToQId name
 
 -- | Names of predefined data types and their constructors.
 --
