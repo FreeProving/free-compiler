@@ -1,7 +1,7 @@
 module Compiler.MonadicConverter where
 
 import           Language.Coq.Gallina          as G
-import           Language.Coq.Util              ( qualidIsOp )
+import           Language.Coq.Gallina.Util      ( qualidIsOp )
 
 import           Compiler.HelperFunctions       ( addSuffixToQId
                                                 , containsAllConstrs
@@ -28,6 +28,7 @@ import           Compiler.HelperFunctions       ( addSuffixToQId
                                                 , termToQId
                                                 , typeTerm
                                                 )
+import           Compiler.Language.Coq.TypeSignature
 import           Compiler.NonEmptyList          ( fromNonEmptyList
                                                 , singleton
                                                 , toNonemptyList
@@ -95,7 +96,7 @@ addBindOpperatorsInMatchRhs _ _ term = term
 ---------------------- Add Return Operator if rhs isn't already monadic
 addReturnToRhs
   :: G.Term
-  -> [G.TypeSignature]
+  -> [TypeSignature]
   -> [G.Binder]
   -> [(G.Name, [(G.Qualid, Maybe G.Qualid)])]
   -> ConversionMonad
@@ -112,7 +113,7 @@ addReturnToRhs rhs typeSigs binders dataTypes cMonad =
 
 addReturnToMatch
   :: G.Term
-  -> [G.TypeSignature]
+  -> [TypeSignature]
   -> [G.Binder]
   -> [(G.Name, [(G.Qualid, Maybe G.Qualid)])]
   -> [G.Qualid]
@@ -137,7 +138,7 @@ addReturnToMatch (G.Match mItem retType equations) typeSigs binders dataTypes pa
 
 addReturnToEquation
   :: G.Equation
-  -> [G.TypeSignature]
+  -> [TypeSignature]
   -> [G.Binder]
   -> [(G.Name, [(G.Qualid, Maybe G.Qualid)])]
   -> [G.Qualid]
@@ -153,7 +154,7 @@ addReturnToEquation (G.Equation multPats rhs) typeSigs binders dataTypes prevPat
 
 addReturnToTerm
   :: G.Term
-  -> [G.TypeSignature]
+  -> [TypeSignature]
   -> [G.Binder]
   -> [(G.Name, [(G.Qualid, Maybe G.Qualid)])]
   -> [G.Qualid]
@@ -210,7 +211,7 @@ addReturnToTerm term typeSigs binders _ patNames cMonad =
 
 addReturnToArgs
   :: [G.Arg]
-  -> [G.TypeSignature]
+  -> [TypeSignature]
   -> [G.Binder]
   -> [(G.Name, [(G.Qualid, Maybe G.Qualid)])]
   -> [G.Qualid]
@@ -223,7 +224,7 @@ addReturnToArgs [] _ _ _ _ _ = []
 
 addReturnToArg
   :: G.Arg
-  -> [G.TypeSignature]
+  -> [TypeSignature]
   -> [G.Binder]
   -> [(G.Name, [(G.Qualid, Maybe G.Qualid)])]
   -> [G.Qualid]
@@ -338,7 +339,7 @@ isMonad _ = False
 predefinedMonadicFunctions :: [G.Qualid]
 predefinedMonadicFunctions = map strToQId ["singleton"]
 
-isMonadicFunctionCall :: G.Term -> [G.TypeSignature] -> Bool
+isMonadicFunctionCall :: G.Term -> [TypeSignature] -> Bool
 isMonadicFunctionCall (G.Qualid qId) typeSigs =
   isJust maybeTypeSig
     || isJust maybeHelperFun

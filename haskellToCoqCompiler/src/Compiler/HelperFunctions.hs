@@ -9,6 +9,7 @@ import           Data.List                      ( nub )
 import           Data.Maybe                     ( isJust )
 import qualified GHC.Base                      as B
 
+import           Compiler.Language.Coq.TypeSignature
 import           Compiler.NonEmptyList          ( fromNonEmptyList
                                                 , singleton
                                                 , toNonemptyList
@@ -46,12 +47,12 @@ getConstr "False" = strToTerm "false"
 getConstr str     = strToTerm str
 
 getTypeSignatureByName
-  :: Show l => [G.TypeSignature] -> H.Name l -> Maybe G.TypeSignature
+  :: Show l => [TypeSignature] -> H.Name l -> Maybe TypeSignature
 getTypeSignatureByName [] _ = Nothing
 getTypeSignatureByName (x : xs) name =
   if typeNameEqName x name then Just x else getTypeSignatureByName xs name
 
-getTypeSignatureByQId :: [G.TypeSignature] -> G.Qualid -> Maybe G.TypeSignature
+getTypeSignatureByQId :: [TypeSignature] -> G.Qualid -> Maybe TypeSignature
 getTypeSignatureByQId [] _ = Nothing
 getTypeSignatureByQId (x : xs) qId =
   if typeNameEqQId x qId then Just x else getTypeSignatureByQId xs qId
@@ -160,8 +161,8 @@ getConstrNameFromType (G.App term _) =
   head (map strToGName (termToStrings term))
 getConstrNameFromType _ = strToGName ""
 
-getReturnType :: G.TypeSignature -> G.Term
-getReturnType (G.TypeSignature _ terms) = last terms
+getReturnType :: TypeSignature -> G.Term
+getReturnType (TypeSignature _ terms) = last terms
 
 getBinderName :: G.Binder -> G.Term
 getBinderName (G.Inferred _ name          ) = gNameToTerm name
@@ -246,7 +247,7 @@ containsRecursiveCall (G.If _ cond _ thenTerm elseTerm) funName =
     || containsRecursiveCall elseTerm funName
 containsRecursiveCall _ _ = False
 
-isFunctionCall :: G.Term -> [G.TypeSignature] -> Bool
+isFunctionCall :: G.Term -> [TypeSignature] -> Bool
 isFunctionCall (G.Qualid qId) typeSigs =
   isJust (getTypeSignatureByQId typeSigs qId)
 
@@ -297,11 +298,11 @@ dataTypeUneqGName dataType gName = nameString /= dataString
   dataString = getStringFromGName dataType
   nameString = getStringFromGName gName
 
-typeNameEqName :: Show l => G.TypeSignature -> H.Name l -> Bool
-typeNameEqName (G.TypeSignature sigName _) = gNameEqName sigName
+typeNameEqName :: Show l => TypeSignature -> H.Name l -> Bool
+typeNameEqName (TypeSignature sigName _) = gNameEqName sigName
 
-typeNameEqQId :: G.TypeSignature -> G.Qualid -> Bool
-typeNameEqQId (G.TypeSignature sigName _) = eqQId (gNameToQId sigName)
+typeNameEqQId :: TypeSignature -> G.Qualid -> Bool
+typeNameEqQId (TypeSignature sigName _) = eqQId (gNameToQId sigName)
 
 ---------------------- various helper functions
 changeSimilarType :: G.Qualid -> G.Qualid

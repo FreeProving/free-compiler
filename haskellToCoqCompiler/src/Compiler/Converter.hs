@@ -7,6 +7,7 @@ import           Compiler.DependencyAnalysis    ( DependencyComponent(..)
                                                 , groupDeclarations
                                                 )
 import           Compiler.Language.Coq.Preamble ( importDefinitions )
+import           Compiler.Language.Coq.TypeSignature
 import           Compiler.HelperFunctionConverter
                                                 ( convertMatchToHelperFunction
                                                 , convertMatchToMainFunction
@@ -76,7 +77,7 @@ import qualified Data.Text                     as T
 --   including the currently defined functions and types as well as the
 --   configured conversion options.
 data Environment = Environment
-  { typeSignatures :: [G.TypeSignature]
+  { typeSignatures :: [TypeSignature]
   , dataTypes      :: [(G.Name, [(G.Qualid, Maybe G.Qualid)])]
   , conversionMonad :: ConversionMonad
   }
@@ -139,18 +140,14 @@ extractModuleName (H.ModuleHead _ (H.ModuleName _ modName) _ _) = modName
 -------------------------------------------------------------------------------
 
 -- | Converts all given type signatures.
-convertTypeSignatures :: Show l => [H.Decl l] -> [G.TypeSignature]
+convertTypeSignatures :: Show l => [H.Decl l] -> [TypeSignature]
 convertTypeSignatures = concatMap convertTypeSignature
 
 -- | Converts a Haskell type signature for one or more identifiers of the same
 --   type to a list of Gallina type signatures (one for each identifier).
---
---   TODO The type @G.TypeSignature@ is not part of the original Coq AST
---        by @hs-to-coq@ and is going to be removed once we upgrade to
---        @language-coq@.
-convertTypeSignature :: Show l => H.Decl l -> [G.TypeSignature]
+convertTypeSignature :: Show l => H.Decl l -> [TypeSignature]
 convertTypeSignature (H.TypeSig _ names funType) = map
-  (\name -> G.TypeSignature (nameToGName name) types)
+  (\name -> TypeSignature (nameToGName name) types)
   names
  where
   types :: [G.Term]
@@ -282,10 +279,10 @@ convertMatchWithHelperFunction env name pats rhs =
 --
 --   TODO Because we require the type signatures to be provided for all
 --        defined functions, the first argument can never be @Nothing@.
-convertReturnType :: Maybe G.TypeSignature -> ConversionMonad -> Maybe G.Term
+convertReturnType :: Maybe TypeSignature -> ConversionMonad -> Maybe G.Term
 convertReturnType Nothing _ = Nothing
 -- FIXME In general (last types) is not the return type of the function.
-convertReturnType (Just (G.TypeSignature _ types)) cMonad =
+convertReturnType (Just (TypeSignature _ types)) cMonad =
   Just (transformTermMonadic (last types) cMonad)
 
 -- | Converts the right hand side of a Haskell function to Coq.
@@ -682,9 +679,9 @@ convertHPatToGPat pat _ =
 --  TODO Because we require the type signatures to be present for
 --       all defined functions, the second parameter cannot be @Nothing@.
 convertPatsToBinders
-  :: Show l => [H.Pat l] -> Maybe G.TypeSignature -> [G.Binder]
+  :: Show l => [H.Pat l] -> Maybe TypeSignature -> [G.Binder]
 convertPatsToBinders patList Nothing = [ convertPatToBinder p | p <- patList ]
-convertPatsToBinders patList (Just (G.TypeSignature _ typeList)) =
+convertPatsToBinders patList (Just (TypeSignature _ typeList)) =
   -- FIXME @init typeList@ is not necessarily the list of argument types.
   convertPatsAndTypeSigsToBinders patList (init typeList)
 

@@ -22,6 +22,7 @@ import           Compiler.HelperFunctions       ( addInferredTypesToSignature
                                                 , strToQId
                                                 , termToQId
                                                 )
+import           Compiler.Language.Coq.TypeSignature
 import           Compiler.MonadicConverter      ( addMonadicPrefixToBinder
                                                 , addMonadicPrefixToQId
                                                 , addReturnToRhs
@@ -51,7 +52,7 @@ convertMatchToMainFunction
   => H.Name l
   -> [G.Binder]
   -> G.Term
-  -> [G.TypeSignature]
+  -> [TypeSignature]
   -> [(G.Name, [(G.Qualid, Maybe G.Qualid)])]
   -> ConversionMonad
   -> G.Fixpoint
@@ -97,7 +98,7 @@ convertMatchToHelperFunction
   => H.Name l
   -> [G.Binder]
   -> G.Term
-  -> [G.TypeSignature]
+  -> [TypeSignature]
   -> [(G.Name, [(G.Qualid, Maybe G.Qualid)])]
   -> ConversionMonad
   -> G.Definition
