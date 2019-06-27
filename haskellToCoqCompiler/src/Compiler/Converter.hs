@@ -3,6 +3,9 @@ module Compiler.Converter where
 import qualified Language.Coq.Gallina          as G
 import qualified Language.Haskell.Exts.Syntax  as H
 
+import           Compiler.DependencyAnalysis    ( DependencyComponent(..)
+                                                , groupDeclarations
+                                                )
 import           Compiler.Language.Coq.Preamble ( importDefinitions )
 import           Compiler.HelperFunctionConverter
                                                 ( convertMatchToHelperFunction
@@ -103,15 +106,23 @@ convertModuleWithPreamble ast cMonad =
 --   If no module header is present the generated module is called @"unnamed"@.
 convertModule :: Show l => H.Module l -> ConversionMonad -> G.Sentence
 convertModule (H.Module _ modHead _ _ decls) cMonad = G.LocalModuleSentence
-  (G.LocalModule modName (dataSentences ++ funSentences))
+  (G.LocalModule modName sentences)
  where
-  modName = convertIdent (maybe "unnamed" extractModuleName modHead)
+  modName    = convertIdent (maybe "unnamed" extractModuleName modHead)
+
+  components = groupDeclarations decls
+  sentences  = concatMap convertComponent components
+
+  -- TODO Add support for mutual recursion.
+  -- TODO Actually use recursion information.
+  convertComponent (NonRecursive decl  ) = convertDecl env decl
+  convertComponent (Recursive    [decl]) = convertDecl env decl
+  convertComponent (Recursive _) =
+    error "mutually recursive declarations are not supported"
+
+  -- TODO Build up environment during conversion.
   (typeSigs , nonTypeSigs) = partition isTypeSig decls
-  -- TODO Perform dependency analysis instead of just splitting data type
-  -- and function declarations.
   (dataDecls, funDecls   ) = partition isDataDecl nonTypeSigs
-  dataSentences            = convertDecls env dataDecls
-  funSentences             = convertDecls env funDecls
   env                      = Environment
     { typeSignatures  = convertTypeSignatures typeSigs
     , dataTypes       = predefinedDataTypes ++ zip

@@ -27,10 +27,10 @@
 --   (See <https://www.graphviz.org/>).
 
 module Compiler.DependencyAnalysis
-  ( DGKey
-  , DGNode
-  , DGEntry
-  , DependencyGraph
+  ( DependencyGraph
+  , DependencyComponent(..)
+  , groupDependencies
+  , groupDeclarations
   , typeDependencyGraph
   , funcDependencyGraph
   )
@@ -74,11 +74,55 @@ data DependencyGraph l =
   DependencyGraph Graph (Vertex -> DGEntry l) (DGKey -> Maybe Vertex)
 
 -------------------------------------------------------------------------------
+-- Dependency analysis                                                       --
+-------------------------------------------------------------------------------
+
+-- | A strongly connected component of the dependency graph.
+--
+--   All declarations that mutually depend on each other are in the same
+--   strongly connected component.
+--
+--   The only difference to @'SCC' ('H.Decl' l)@ is that the constructors
+--   have been renamed to be more explainatory in the context of dependency
+--   analysis.
+data DependencyComponent l =
+  NonRecursive (H.Decl l) -- ^ A single non-recursive declaration.
+  | Recursive [H.Decl l]  -- ^ A list of mutually recursive declarations.
+
+-- | Converts a strongly connected component from @Data.Graph@ to a
+--   'DependencyComponent'.
+convertSCC :: SCC (H.Decl l) -> DependencyComponent l
+convertSCC (AcyclicSCC decl ) = NonRecursive decl
+convertSCC (CyclicSCC  decls) = Recursive decls
+
+-- | Computes the strongly connected components of the given dependency graph.
+--
+--   Each strongly connected component corresponds either to a set of mutually
+--   recursive declarations or a single non-recursive declaration.
+--
+--   The returned list of strongly connected components is in reverse
+--   topological order, i.e. a component @A@ precedes another component @B@ if
+--   @A@ contains any declaration that depends on a declartion in $B$.
+groupDependencies :: DependencyGraph l -> [DependencyComponent l]
+groupDependencies (DependencyGraph graph getEntry _) =
+  map convertSCC $ stronglyConnComp $ map getEntry $ vertices graph
+
+-- | Combines the construction of the dependency graphs for the given
+--   declarations (See 'typeDependencyGraph' and 'funcDependencyGraph') with
+--   the computaton of strongly connected components.
+groupDeclarations :: [H.Decl l] -> [DependencyComponent l]
+groupDeclarations decls = concatMap
+  groupDependencies
+  [typeDependencyGraph decls, funcDependencyGraph decls]
+
+-------------------------------------------------------------------------------
 -- Type dependencies                                                         --
 -------------------------------------------------------------------------------
 
 -- | Creates the dependency graph for a list of data type or type synonym
 --   declarations.
+--
+--   If the given list contains other kinds of declarations, they are ignored.
 typeDependencyGraph :: [H.Decl l] -> DependencyGraph l
 typeDependencyGraph =
   uncurry3 DependencyGraph
@@ -129,6 +173,8 @@ typeDependencies (H.TyParen _ t    ) = typeDependencies t
 
 -- | Creates the dependency graph for a list of function declarations or
 --   pattern bindings.
+--
+--   If the given list contains other kinds of declarations, they are ignored.
 funcDependencyGraph :: [H.Decl l] -> DependencyGraph l
 funcDependencyGraph =
   uncurry3 DependencyGraph
