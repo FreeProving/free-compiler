@@ -31,6 +31,7 @@ pandoc-minted:
 \newcommand{\FalseC}{\texttt{False\_}}
 \newcommand{\List}{\texttt{List}}
 \newcommand{\Pair}{\texttt{Pair}}
+\newcommand{\Unit}{\texttt{Unit}}
 \newcommand{\undefined}{\texttt{undefined}}
 \newcommand{\error}[1]{\texttt{error #1}}
 
@@ -140,7 +141,7 @@ Ansonsten bleibt der Typausdruck unverändert:
 Alle vordefinierten Datentypen werden auf Typen abgebildet, die in einem
 standardmäßig importierten Modul geeignet vordefiniert werden müssen.
 
-- $\liftT{\Int} = \Int$
+- $\liftT{\Int} = \Int\,Shape\,Pos$
 
     In Coq wird in der Regel `nat`{.coq} zur Darstellung von Zahlen verwendet,
     jedoch können mit `nat`{.coq} im Gegensatz zu `Int`{.haskell} aus Haskell
@@ -148,7 +149,7 @@ standardmäßig importierten Modul geeignet vordefiniert werden müssen.
     die Übersetzung nicht geeignet. In [hs-to-coq][hs-to-coq-int] wird
     `Int`{.coq} in Coq wie folgt definiert:
 
-    ```Coq
+    ```coq
     Require Export ZArith.
     Definition Int := Z.
     ```
@@ -162,11 +163,31 @@ standardmäßig importierten Modul geeignet vordefiniert werden müssen.
 
     [hs-to-coq-int]: https://github.com/antalsz/hs-to-coq/blob/master/examples/base-src/manual/GHC/Num.v#L6
 
+    Um die Übersetzung einfacher zu gestallten fügen wir zu der Definition
+    von `Int`{.coq} die Parameter $Shape$ und $Pos$ hinzu genau so wie wir
+    es bei benuterdefinierten Typen machen.
+
+    ```coq
+    Require Export ZArith
+    Definition Int (Shape : Type) (Pos : Shape -> Type)
+      : Type := Z.
+    ```
+
     Im Gegensatz zu den anderen eingebauten Datentypen können wir für
     `Int`{.coq} keine Smart Konstruktoren angeben. Daher muss auf alle
     Zahlenliterale explizit `pure`{.coq} angewendet werden.
 
-- $\liftT{\Bool} = \bool$
+- $\liftT{\Bool} = \Bool\,Shape\,Pos$
+
+    Genau so wie auch bei `Int`{.coq} führen wir auch für `Bool`{.haskell}
+    in Coq ein Synonym für einen vordefinierten Datentyp ein, dass zusätzlich
+    die Parameter $Shape$ und $Pos$ entgegen nimmt, um die Übersetzung
+    mit benutzerdefinierten Datentypen zu vereinheitlichen.
+
+    ```coq
+    Definition Bool (Shape : Type) (Pos : Shape -> Type)
+      : Type := bool.
+    ```
 
     Der Typ `bool`{.coq} ist in Coq vordefiniert und hat die Konstruktoren
     `true`{.coq} und `false`{.coq}. Um die auf `bool`{.coq} definierten
@@ -178,12 +199,12 @@ standardmäßig importierten Modul geeignet vordefiniert werden müssen.
     ```coq
     Definition True_
       {@$Shape$@ : Type} {@$Pos$@ : @$Shape$@ -> Type}
-      : Free @$Shape$@ @$Pos$@ bool :=
+      : Free @$Shape$@ @$Pos$@ (Bool @$Shape$@ @$Pos$@) :=
       pure true.
 
     Definition False_
       {@$Shape$@ : Type} {@$Pos$@ : @$Shape$@ -> Type}
-      : Free @$Shape$@ @$Pos$@ bool :=
+      : Free @$Shape$@ @$Pos$@ (Bool @$Shape$@ @$Pos$@) :=
       pure false.
     ```
 
@@ -231,7 +252,16 @@ Definition Cons {@$Shape$@ : Type} {@$Pos$@ : @$Shape$@ -> Type} {a : Type}
 
 ### Tupel
 
-- $\liftT{()} = unit$
+- $\liftT{()} = \Unit\,Shape\,Pos$
+
+    Analog zu `Int`{.coq} und `Bool`{.coq} führen wir auch für `Unit`{.coq}
+    ein Typsynonym ein, durch welches die Übersetzung vordefinierter und
+    benutzerdefinierter Datentypen vereinheitlicht werden kann.
+
+    ```coq
+    Definition Unit (Shape : Type) (Pos : Shape -> Type)
+      : Type := unit.
+    ```
 
     Der Typ `unit`{.coq} ist in Coq vordefiniert und hat nur den Konstruktor
     `tt`{.coq}.
@@ -241,7 +271,7 @@ Definition Cons {@$Shape$@ : Type} {@$Pos$@ : @$Shape$@ -> Type} {a : Type}
     ```coq
     Definition Tt
       {@$Shape$@ : Type} {@$Pos$@ : @$Shape$@ -> Type}
-      : Free @$Shape$@ @$Pos$@ unit :=
+      : Free @$Shape$@ @$Pos$@ (Unit @$Shape$@ @$Pos$@) :=
       pure tt.
     ```
 
@@ -886,8 +916,9 @@ Diese wird in Coq wie folgt vordefiniert:
 ```coq
 Definition negate
   (@$Shape$@ : Type) (@$Pos$@ : @$Shape$@ -> Type)
-  (n : Free @$Shape$@ @$Pos$@ Int) : Free @$Shape$@ @$Pos$@ Int :=
-  n >>= fun(n' : Int) => pure (Z.opp n').
+  (n : Free @$Shape$@ @$Pos$@ (Int @$Shape$@ @$Pos$@))
+  : Free @$Shape$@ @$Pos$@ (Int @$Shape$@ @$Pos$@) :=
+  n >>= fun(n' : Int @$Shape$@ @$Pos$@) => pure (Z.opp n').
 ```
 
 ## Bedingungen
@@ -900,7 +931,9 @@ if @$e_1$@ then @$e_2$@ else @$e_3$@
 ```
 
 ```coq
-@$\lift{e_1}$@ >>= fun(@$x_1$@ : bool) => if @$x_1$@ then @$\lift{e_2}$@ else @$\lift{e_3}$@
+@$\lift{e_1}$@ >>=
+  fun(@$x_1$@ : Bool @$Shape$@ @$Pos$@) =>
+    if @$x_1$@ then @$\lift{e_2}$@ else @$\lift{e_3}$@
 ```
 
 wobei $e_1 :: \Bool$, $e_2, e_3 :: \tau$ Ausdrücke sind und $x_1$ eine

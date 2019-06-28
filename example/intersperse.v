@@ -24,14 +24,14 @@ Module IntersperseOneOldApproach.
 
 Fixpoint intersperseOneMatch'
   (Shape : Type) (Pos : Shape -> Type)
-  (xs : List Shape Pos Int) 
-  : Free Shape Pos (List Shape Pos Int) :=
+  (xs : List Shape Pos (Int Shape Pos)) 
+  : Free Shape Pos (List Shape Pos (Int Shape Pos)) :=
   match xs with
   | nil       => Nil
   | cons y ys =>
     Cons y (
       Cons (pure 1%Z) (
-        ys >>= fun(ys' : List Shape Pos Int) => 
+        ys >>= fun(ys' : List Shape Pos (Int Shape Pos)) => 
           intersperseOneMatch' Shape Pos ys'
       )
     )
@@ -39,15 +39,15 @@ Fixpoint intersperseOneMatch'
 
 Definition intersperseOneMatch
   (Shape : Type) (Pos : Shape -> Type)
-  (xs : Free Shape Pos (List Shape Pos Int)) 
-  : Free Shape Pos (List Shape Pos Int) :=
-  xs >>= fun(xs' : List Shape Pos Int) =>
+  (xs : Free Shape Pos (List Shape Pos (Int Shape Pos))) 
+  : Free Shape Pos (List Shape Pos (Int Shape Pos)) :=
+  xs >>= fun(xs' : List Shape Pos (Int Shape Pos)) =>
     intersperseOneMatch' Shape Pos xs'.
 
 Definition intersperseOne
   (Shape : Type) (Pos : Shape -> Type)
-  (xs : Free Shape Pos (List Shape Pos Int)) 
-  : Free Shape Pos (List Shape Pos Int) :=
+  (xs : Free Shape Pos (List Shape Pos (Int Shape Pos))) 
+  : Free Shape Pos (List Shape Pos (Int Shape Pos)) :=
   Cons (pure 1%Z) (intersperseOneMatch Shape Pos xs).
 
 End IntersperseOneOldApproach.
@@ -68,23 +68,23 @@ Module IntersperseOneNewApproach.
 
 Fixpoint intersperseOne'
   (Shape : Type) (Pos : Shape -> Type)
-  (xs : List Shape Pos Int) : Free Shape Pos (List Shape Pos Int) :=
+  (xs : List Shape Pos (Int Shape Pos)) : Free Shape Pos (List Shape Pos (Int Shape Pos)) :=
   match xs with
   | nil       => Nil
   | cons y ys =>
     Cons y (
       Cons (pure 1%Z) (
-        ys >>= fun(ys' : List Shape Pos Int) => intersperseOne' Shape Pos ys'
+        ys >>= fun(ys' : List Shape Pos (Int Shape Pos)) => intersperseOne' Shape Pos ys'
       )
     )
   end.
 
 Definition intersperseOne
   (Shape : Type) (Pos : Shape -> Type)
-  (xs : Free Shape Pos (List Shape Pos Int)) 
-  : Free Shape Pos (List Shape Pos Int) :=
+  (xs : Free Shape Pos (List Shape Pos (Int Shape Pos))) 
+  : Free Shape Pos (List Shape Pos (Int Shape Pos)) :=
   Cons (pure 1%Z) (
-    xs >>= fun(xs' : List Shape Pos Int) => intersperseOne' Shape Pos xs'
+    xs >>= fun(xs' : List Shape Pos (Int Shape Pos)) => intersperseOne' Shape Pos xs'
   ).
 
 End IntersperseOneNewApproach.
