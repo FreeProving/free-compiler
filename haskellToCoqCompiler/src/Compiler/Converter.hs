@@ -63,7 +63,7 @@ import           Compiler.MonadicConverter      ( addBindOperatorsToDefinition
                                                 , transformTermMonadic
                                                 )
 import           Compiler.NonEmptyList          ( singleton
-                                                , toNonemptyList
+                                                , toNonEmptyList
                                                 )
 import           Compiler.Types                 ( ConversionMonad(..) )
 
@@ -524,14 +524,14 @@ convertExprToTerm constrs m (H.InfixApp _ exprL qOp exprR) =
   if isSpecialOperator qOp
     then G.App
       (G.Qualid (qOpToQId qOp))
-      (toNonemptyList
+      (toNonEmptyList
         [ G.PosArg ((collapseApp . convertExprToTerm constrs m) exprL)
         , G.PosArg ((collapseApp . convertExprToTerm constrs m) exprR)
         ]
       )
     else G.App
       (G.Qualid (qOpToQOpId qOp))
-      (toNonemptyList
+      (toNonEmptyList
         [ G.PosArg ((collapseApp . convertExprToTerm constrs m) exprL)
         , G.PosArg ((collapseApp . convertExprToTerm constrs m) exprR)
         ]
@@ -547,12 +547,12 @@ convertExprToTerm constrs m (H.If _ cond thenExpr elseExpr) = G.If
   ((collapseApp . convertExprToTerm constrs m) thenExpr)
   ((collapseApp . convertExprToTerm constrs m) elseExpr)
 convertExprToTerm constrs m (H.Lambda _ pats expr) = G.Fun
-  (toNonemptyList binders)
+  (toNonEmptyList binders)
   (G.App
     (getBindOperator m)
-    (toNonemptyList
+    (toNonEmptyList
       [ G.PosArg (getBinderName (head binders))
-      , G.PosArg (G.Fun (toNonemptyList suffixBinders) (toReturnTerm rhs m))
+      , G.PosArg (G.Fun (toNonEmptyList suffixBinders) (toReturnTerm rhs m))
       ]
     )
   )
@@ -571,7 +571,7 @@ convertExprToTerm constrs m (H.Lambda _ pats expr) = G.Fun
 convertExprToTerm _       _ (H.Lit _ literal  ) = convertLiteralToTerm literal
 convertExprToTerm constrs m (H.Tuple _ _ exprs) = G.App
   (G.Qualid (strToQId "P"))
-  (toNonemptyList [ (G.PosArg . convertExprToTerm constrs m) e | e <- exprs ])
+  (toNonEmptyList [ (G.PosArg . convertExprToTerm constrs m) e | e <- exprs ])
 convertExprToTerm _ _ (H.List _ []) = G.Qualid (strToQId "Nil")
 convertExprToTerm _ _ expr =
   error ("Haskell expression not implemented: " ++ show expr)
@@ -730,7 +730,7 @@ convertTypeToTerm (H.TyApp _ type1 type2) =
 convertTypeToTerm (H.TyList _ ty) =
   G.App listTerm (singleton (G.PosArg (convertTypeToTerm ty)))
 convertTypeToTerm (H.TyTuple _ _ tys) =
-  G.App pairTerm (toNonemptyList [ convertTypeToArg t | t <- tys ])
+  G.App pairTerm (toNonEmptyList [ convertTypeToArg t | t <- tys ])
 convertTypeToTerm (H.TyFun _ t1 t2) =
   G.Arrow (convertTypeToTerm t1) (convertTypeToTerm t2)
 convertTypeToTerm ty = error ("Haskell-type not implemented: " ++ show ty)

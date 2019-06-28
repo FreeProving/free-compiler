@@ -35,7 +35,7 @@ import           Compiler.MonadicConverter      ( addMonadicPrefixToBinder
                                                 )
 import           Compiler.NonEmptyList          ( fromNonEmptyList
                                                 , singleton
-                                                , toNonemptyList
+                                                , toNonEmptyList
                                                 )
 import           Compiler.Types                 ( ConversionMonad(..) )
 
@@ -60,7 +60,7 @@ convertMatchToMainFunction name binders rhs typeSigs dataTypes cMonad =
   G.Fixpoint
     (singleton
       (G.FixBody funName
-                 (toNonemptyList bindersWithFixedArguments)
+                 (toNonEmptyList bindersWithFixedArguments)
                  Nothing
                  (Just (transformTermMonadic (getReturnType typeSig) cMonad))
                  monadicRhs
@@ -121,7 +121,7 @@ convertMatchToHelperFunction name binders rhs typeSigs dataTypes cMonad =
     transformBinderMonadic (getMatchedBinder binders matchItem) cMonad
   binderPos = getMatchedBinderPosition binders matchItem
   appliedMainFunction =
-    G.App (G.Qualid (addSuffixToName name)) (toNonemptyList mainFunArgs)
+    G.App (G.Qualid (addSuffixToName name)) (toNonEmptyList mainFunArgs)
   mainFunArgs = buildArgsForMainFun monadicBinders binderPos
   rhsWithBind = addBindOperatorToMainFunction
     (addMonadicPrefixToBinder cMonad matchedBinder)
@@ -131,7 +131,7 @@ convertMatchToHelperFunction name binders rhs typeSigs dataTypes cMonad =
 addBindOperatorToMainFunction :: G.Binder -> G.Term -> ConversionMonad -> G.Term
 addBindOperatorToMainFunction binder rhs cMonad = G.App
   (getBindOperator cMonad)
-  (toNonemptyList [argumentName, lambdaFun])
+  (toNonEmptyList [argumentName, lambdaFun])
  where
   argumentName = G.PosArg (getBinderName binder)
   lambdaFun    = G.PosArg (G.Fun (singleton (removeMonadFromBinder binder)) rhs)
@@ -150,7 +150,7 @@ addBindOperatorToRhsTerm funName pos m (G.Match mItem retType equations) =
           [ addBindOperatorToEquation e funName pos m | e <- equations ]
 addBindOperatorToRhsTerm funName pos m (G.App constr args) = G.App
   boundConstr
-  (toNonemptyList boundArgs)
+  (toNonEmptyList boundArgs)
  where
   boundConstr = addBindOperatorToRhsTerm funName pos m constr
   boundArgs   = map
@@ -166,7 +166,7 @@ addBindOperatorToEquation (G.Equation multPats rhs) funName pos m =
   if containsRecursiveCall rhs funName
     then if containsMatchTerm rhs
       then G.Equation
-        (toNonemptyList
+        (toNonEmptyList
           (makeDecrArgumentMonadicInMultPats (fromNonEmptyList multPats)
                                              matchedItem
                                              m
@@ -174,7 +174,7 @@ addBindOperatorToEquation (G.Equation multPats rhs) funName pos m =
         )
         boundMatchedRhs
       else G.Equation
-        (toNonemptyList
+        (toNonEmptyList
           (makeDecrArgumentMonadicInMultPats (fromNonEmptyList multPats)
                                              decrArgument
                                              m
@@ -195,7 +195,7 @@ addBindOperatorToMatchItem m (G.Parens term) =
   G.Parens (addBindOperatorToMatchItem m term)
 addBindOperatorToMatchItem m (G.App cons args) = G.App
   (addBindOperatorToMatchItem m cons)
-  (toNonemptyList checkedArgs)
+  (toNonEmptyList checkedArgs)
  where
   checkedArgs = map (G.PosArg . addBindOperatorToMatchItem m . argToTerm)
                     (fromNonEmptyList args)
@@ -207,7 +207,7 @@ addBindOperatorToMatchItem m (G.If style cond depRet tTerm eTerm) = G.If
   (addBindOperatorToMatchItem m eTerm)
 addBindOperatorToMatchItem m (G.Match mItem retType equations) = G.App
   (getBindOperator m)
-  (toNonemptyList [monadicArgument, lambdaFun])
+  (toNonEmptyList [monadicArgument, lambdaFun])
  where
   mItemTerm = (getTermFromMatchItem . head . fromNonEmptyList) mItem
   monadicArgument =
@@ -223,8 +223,8 @@ addBindOperatorToRecursiveCall
   :: G.Term -> G.Qualid -> Int -> ConversionMonad -> G.Term
 addBindOperatorToRecursiveCall (G.App constr args) funName pos m =
   if containsRecursiveCall constr funName
-    then G.App (getBindOperator m) (toNonemptyList [monadicArgument, lambdaFun])
-    else G.App constr (toNonemptyList checkedArgs)
+    then G.App (getBindOperator m) (toNonEmptyList [monadicArgument, lambdaFun])
+    else G.App constr (toNonEmptyList checkedArgs)
  where
   monadicArgument = G.PosArg (G.Qualid (addMonadicPrefixToQId m decrArgument))
   lambdaFun       = G.PosArg
@@ -279,7 +279,7 @@ makeDecrArgumentMonadicInMultPats
   :: [G.MultPattern] -> Maybe G.Qualid -> ConversionMonad -> [G.MultPattern]
 makeDecrArgumentMonadicInMultPats [G.MultPattern nEPats] (Just decrArgument) m
   = [ G.MultPattern
-        (toNonemptyList (makeDecrArgumentMonadicInPats pats decrArgument m))
+        (toNonEmptyList (makeDecrArgumentMonadicInPats pats decrArgument m))
     ]
   where pats = fromNonEmptyList nEPats
 makeDecrArgumentMonadicInMultPats mPats _ _ = mPats
@@ -341,7 +341,7 @@ switchNonMonadicArgumentsFromTerm (G.Match mItem retType equations) binders m =
     [ switchNonMonadicArgumentsFromEquation e binders m | e <- equations ]
 switchNonMonadicArgumentsFromTerm (G.App constr args) binders m = G.App
   (switchNonMonadicArgumentsFromTerm constr binders m)
-  (toNonemptyList
+  (toNonEmptyList
     [ (\(G.PosArg term) ->
         G.PosArg (switchNonMonadicArgumentsFromTerm term binders m)
       )

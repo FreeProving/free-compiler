@@ -7,7 +7,7 @@ import qualified Data.Text                     as T
 
 import qualified Language.Coq.Gallina          as G
 
-import           Compiler.NonEmptyList          ( toNonemptyList )
+import           Compiler.NonEmptyList          ( toNonEmptyList )
 import           Compiler.Types                 ( ConversionMonad(..) )
 
 -- | Generates import sentences for the Coq libraries used by the
@@ -28,9 +28,9 @@ importDefinitions cMonad = if cMonad == Option
 -- | Creates a "Require Import" sentence.
 requireImport :: [G.ModuleIdent] -> G.Sentence
 requireImport idents =
-  G.ModuleSentence (G.Require Nothing (Just G.Import) (toNonemptyList idents))
+  G.ModuleSentence (G.Require Nothing (Just G.Import) (toNonEmptyList idents))
 
 -- | Creates a module "Import" sentence.
 moduleImport :: [G.ModuleIdent] -> G.Sentence
 moduleImport idents =
-  G.ModuleSentence (G.ModuleImport G.Import (toNonemptyList idents))
+  G.ModuleSentence (G.ModuleImport G.Import (toNonEmptyList idents))

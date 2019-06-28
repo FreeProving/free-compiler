@@ -7,8 +7,8 @@ import qualified GHC.Base as B
 singleton :: a -> B.NonEmpty a
 singleton a = a B.:| []
 
-toNonemptyList :: [a] -> B.NonEmpty a
-toNonemptyList (x:xs) = x B.:| xs
+toNonEmptyList :: [a] -> B.NonEmpty a
+toNonEmptyList (x:xs) = x B.:| xs
 
 fromNonEmptyList :: B.NonEmpty a -> [a]
 fromNonEmptyList (x B.:| xs) = x : xs

@@ -31,7 +31,7 @@ import           Compiler.HelperFunctions       ( addSuffixToQId
 import           Compiler.Language.Coq.TypeSignature
 import           Compiler.NonEmptyList          ( fromNonEmptyList
                                                 , singleton
-                                                , toNonemptyList
+                                                , toNonEmptyList
                                                 )
 import           Compiler.Types                 ( ConversionMonad(..) )
 
@@ -49,7 +49,7 @@ addBindOperatorsToDefinition (x : xs) term cMonad =
   if isArrowTerm (getBinderType x)
     then addBindOperatorsToDefinition xs term cMonad
     else G.App (getBindOperator cMonad)
-               (toNonemptyList [G.PosArg argumentName, G.PosArg lambdaFun])
+               (toNonEmptyList [G.PosArg argumentName, G.PosArg lambdaFun])
  where
   argumentName = getBinderName x
   lambdaFun    = G.Fun (singleton (removeMonadFromBinder x))
@@ -69,7 +69,7 @@ addBindOpperatorsInMatchRhs
   :: G.MultPattern -> ConversionMonad -> G.Term -> G.Term
 addBindOpperatorsInMatchRhs multPats cMonad (G.App constr args) = G.App
   constr
-  (toNonemptyList boundArgs)
+  (toNonEmptyList boundArgs)
  where
   boundArgs = map (G.PosArg . addBindOpperatorsInMatchRhs multPats cMonad)
                   (convertArgumentsToTerms (fromNonEmptyList args))
@@ -78,7 +78,7 @@ addBindOpperatorsInMatchRhs multPats cMonad (G.Match mItem retType equations) =
          (concatMap getQIdsFromPattern (getPatternFromMultPattern (multPats)))
     then G.App
       (getBindOperator cMonad)
-      (toNonemptyList
+      (toNonEmptyList
         [ G.PosArg argumentName
         , G.PosArg (G.Fun (singleton lambdaBinder) lambdaTerm)
         ]
@@ -171,7 +171,7 @@ addReturnToTerm (G.App constr args) typeSigs binders dataTypes patNames cMonad
   | otherwise
   = toReturnTerm (G.App constr fixedArgs) cMonad
  where
-  fixedArgs = toNonemptyList
+  fixedArgs = toNonEmptyList
     (addReturnToArgs (fromNonEmptyList args)
                      typeSigs
                      binders

@@ -12,7 +12,7 @@ import qualified GHC.Base                      as B
 import           Compiler.Language.Coq.TypeSignature
 import           Compiler.NonEmptyList          ( fromNonEmptyList
                                                 , singleton
-                                                , toNonemptyList
+                                                , toNonEmptyList
                                                 )
 
 ---------------------- Getter Functions
@@ -333,7 +333,7 @@ addInferredTypesToSignature binders dataNames retType =
     else
       G.Typed G.Ungeneralizable
               G.Explicit
-              (toNonemptyList filteredTypeNames)
+              (toNonEmptyList filteredTypeNames)
               typeTerm
         : binders
  where
@@ -361,7 +361,7 @@ convertTermsToArguments = map G.PosArg
 
 collapseApp :: G.Term -> G.Term
 collapseApp (G.App term args) = if isAppTerm term
-  then G.App funName (toNonemptyList combinedArgs)
+  then G.App funName (toNonEmptyList combinedArgs)
   else G.App term args
  where
   funName      = returnAppName term
