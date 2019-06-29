@@ -63,15 +63,15 @@ data Message = Message (Maybe SrcSpan) Severity String
 --   reported.
 --
 --   In contrast to the source spans provided by the @haskell-src-exts@ package
---   this source span provides access to the line of code that contains the
---   source span. This source span does not support source spans that span
---   multiple lines.
+--   this source span provides access to the lines of code that contain the
+--   source span.
 data SrcSpan = SrcSpan
   { srcSpanFilename    :: String
   , srcSpanStartLine   :: Int
   , srcSpanStartColumn :: Int
-  , srcSpanWidth       :: Int
-  , srcSpanCodeLine    :: Maybe String
+  , srcSpanEndLine     :: Int
+  , srcSpanEndColumn   :: Int
+  , srcSpanCodeLines   :: [String]
   }
   deriving (Show)
 
@@ -92,19 +92,14 @@ instance SrcSpanConverter H.SrcSpan where
     { srcSpanFilename    = H.srcSpanFilename srcSpan
     , srcSpanStartLine   = H.srcSpanStartLine srcSpan
     , srcSpanStartColumn = H.srcSpanStartColumn srcSpan
-    , srcSpanWidth       = max 1 (snd (H.spanSize srcSpan))
-    , srcSpanCodeLine    =
-        lookup (H.srcSpanFilename srcSpan) codeByFilename
-          >>= (nth (H.srcSpanStartLine srcSpan - 1))
+    , srcSpanEndLine     = H.srcSpanEndLine srcSpan
+    , srcSpanEndColumn   = H.srcSpanEndColumn srcSpan
+    , srcSpanCodeLines    =
+      take (H.srcSpanEndLine srcSpan - H.srcSpanStartLine srcSpan + 1)
+      $ drop (H.srcSpanStartLine srcSpan - 1)
+      $ maybe [] id
+      $ lookup (H.srcSpanFilename srcSpan) codeByFilename
     }
-   where
-    -- | Gets @n@-th element of a list or 'Nothing' if there is no such element.
-    --
-    -- TODO Create a module for utility functions like this?
-    nth :: Int -> [a] -> Maybe a
-    nth _ [] = Nothing
-    nth n (x : xs) | n <= 0    = Just x
-                   | otherwise = nth (n - 1) xs
 
 -- | Converts a 'H.SrcSpanInfo' by removing additional information and applying
 --   the conversion for 'H.SrcSpan's.
@@ -272,30 +267,51 @@ instance Pretty Message where
 --   empty document is returned.
 prettyCodeBlock :: Maybe SrcSpan -> Doc
 prettyCodeBlock Nothing = empty
-prettyCodeBlock (Just SrcSpan { srcSpanCodeLine = Nothing }) = empty
-prettyCodeBlock (Just srcSpan@SrcSpan { srcSpanCodeLine = Just code }) =
+prettyCodeBlock (Just SrcSpan { srcSpanCodeLines = [] }) = empty
+prettyCodeBlock (Just srcSpan@SrcSpan { srcSpanCodeLines = (code : _) }) =
   gutterDoc
-    <$$> lineNumberDoc
+    <$$> firstLineNumberDoc
     <+>  prettyString code
     <$$> gutterDoc
     <>   highlightDoc
+    <>   ellipsisDoc
     <>   line
  where
-  -- | Document for the line number including padding and the trailing pipe.
-  lineNumberDoc :: Doc
-  lineNumberDoc = space <> int (srcSpanStartLine srcSpan) <> space <> pipe
+  -- | Document for the first line number covered by the source span including
+  --   padding and a trailing pipe symbol.
+  firstLineNumberDoc :: Doc
+  firstLineNumberDoc = space <> int (srcSpanStartLine srcSpan) <> space <> pipe
 
-  -- | Document with the same length as 'lineNumberDoc' but without the line
-  --   number.
+  -- | Document with the same length as 'firstLineNumberDoc' but does
+  --   contain only spaces before the pipe character.
   gutterDoc :: Doc
   gutterDoc =
     let gutterWidth = length (show (srcSpanStartLine srcSpan)) + 2
     in  indent gutterWidth pipe
 
-  -- | Document that contains 'caret' signs to highligh the source span.
+  -- | Document that contains 'caret' signs to highligh the code in the
+  --   first line that is covered by the source span.
   highlightDoc :: Doc
   highlightDoc = indent (srcSpanStartColumn srcSpan)
-                        (hcat (replicate (srcSpanWidth srcSpan) caret))
+                        (hcat (replicate highlightWidth caret))
+
+  -- The number of characters in the the first line of the source span.
+  highlightWidth :: Int
+  highlightWidth
+    | isMultiLine
+    = length code - srcSpanStartColumn srcSpan + 1
+    | otherwise
+    = max 1 $ srcSpanEndColumn srcSpan - srcSpanStartColumn srcSpan
+
+  -- | Document added after the 'highlightDoc' if the source span coveres
+  --   more than one line.
+  ellipsisDoc :: Doc
+  ellipsisDoc | isMultiLine = prettyString "..."
+              | otherwise   = empty
+
+  -- | Whether the source span covers more than one line.
+  isMultiLine :: Bool
+  isMultiLine = srcSpanStartLine srcSpan /= srcSpanEndLine srcSpan
 
   -- | Document that contains the pipe character @|@.
   pipe :: Doc
