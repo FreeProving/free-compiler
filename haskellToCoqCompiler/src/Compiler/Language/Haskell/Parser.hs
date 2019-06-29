@@ -29,7 +29,9 @@ parseMode filename = ParseMode
   , ignoreLinePragmas     = True
     -- TODO because we support some infix operations from the prelude
     -- we should specify their fixities here.
-  , fixities              = Nothing
+    -- If this is set to @Nothing@, user defined fixities are ignored while
+    -- parsing.
+  , fixities              = Just []
   , ignoreFunctionArity   = True
   }
 
