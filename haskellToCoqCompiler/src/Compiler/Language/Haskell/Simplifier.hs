@@ -8,7 +8,13 @@
 --   In some places the simplifier also performs desugaring to reduce the
 --   number of constructors in the simple AST.
 
-module Compiler.Language.Haskell.Simplifier where
+module Compiler.Language.Haskell.Simplifier
+  ( simplifyModule
+  , simplifyDecl
+  , simplifyType
+  , simplifyExpr
+  )
+where
 
 import           Data.Maybe                     ( isJust
                                                 , fromJust
