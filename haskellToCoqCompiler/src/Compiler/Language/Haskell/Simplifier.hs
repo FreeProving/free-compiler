@@ -7,6 +7,9 @@
 --
 --   In some places the simplifier also performs desugaring to reduce the
 --   number of constructors in the simple AST.
+--
+--  TODO warn user if reserved names like `error` or `undefined` are used
+--       in declarations or as (type-) variable names.
 
 module Compiler.Language.Haskell.Simplifier
   ( simplifyModule
@@ -421,6 +424,14 @@ simplifyTypeConName name@(H.Special _ (H.Cons _)) = usageError
 
 -- | Simplifies an expression.
 simplifyExpr :: H.Exp SrcSpan -> Reporter HS.Expr
+
+-- Error terms are regular functions but need to be handled differently.
+simplifyExpr (H.Var _ (H.UnQual _ (H.Ident _ "undefined"))) =
+  return (HS.Undefined)
+simplifyExpr (H.App _ (H.Var _ (H.UnQual _ (H.Ident _ "error"))) arg) =
+  case arg of
+    (H.Lit _ (H.String _ msg _)) -> return (HS.ErrorExpr msg)
+    _ -> notSupported "Non-literal error messages" arg
 
 -- Parenthesis.
 simplifyExpr (H.Paren _ expr) = simplifyExpr expr
