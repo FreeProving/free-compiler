@@ -27,6 +27,7 @@ executable haskellToCoqCompiler
                       , Compiler.Language.Coq.Pretty
                       , Compiler.Language.Coq.TypeSignature
                       , Compiler.Language.Haskell.Parser
+                      , Compiler.Language.Haskell.SimpleAST
                       , Compiler.MonadicConverter
                       , Compiler.NonEmptyList
                       , Compiler.Pretty
