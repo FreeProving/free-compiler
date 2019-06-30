@@ -17,7 +17,8 @@
 --   live in separate scopes and we want to avoid name conflicts.
 --   Because we assume all type declarations to preceed function declarations
 --   in the generated Coq code, this should not be a problem. For the same
---   reason the function dependency graph does not include constructors.
+--   reason the function dependency graph does not include nodes for
+--   constructor (the keys of used constructors are still present).
 --
 --   The dependency analysis does not yet test whether there are undefined
 --   identifiers.
@@ -37,28 +38,29 @@ module Compiler.DependencyAnalysis
 where
 
 import           Data.Graph
-import           Data.Maybe                     ( catMaybes
-                                                , maybeToList
+import           Data.Maybe                     ( catMaybes )
+import           Data.List                      ( nub
+                                                , (\\)
                                                 )
-import           Data.List                      ( nub )
 
-import qualified Language.Haskell.Exts.Syntax  as H
 import           Text.PrettyPrint.Leijen.Text
 
+import qualified Compiler.Language.Haskell.SimpleAST
+                                               as HS
 import           Compiler.Pretty
 import           Compiler.Util.Data.Tuple
 
 -- | Every node of the dependency graph is uniquely identified by a key.
---   We use the Haskell identifiers to identify the nodes.
-type DGKey = String
+--   We use the Haskell identifiers and symbols to identify the nodes.
+type DGKey = HS.Name
 
 -- | The nodes of the dependency graph are Haskell declaraions.
-type DGNode l = H.Decl l
+type DGNode = HS.Decl
 
 -- | Every node (declaration) in a dependency graph is associated with a
 --   unique key (Haskell identifier) and a list of keys that identify the
 --   nodes this node depends on (adjacency list).
-type DGEntry l = (DGNode l, DGKey, [DGKey])
+type DGEntry = (DGNode, DGKey, [DGKey])
 
 -- | A dependency graph is a directed graph whose nodes are Haskell
 --   declarations (See 'DGNode'). There is an edge from node @A@ to
@@ -70,8 +72,8 @@ type DGEntry l = (DGNode l, DGKey, [DGKey])
 --   In addition to the actual 'Graph' that stores the adjacency matrix
 --   of the internal identifiers, this tuple contains functions to convert
 --   between the internal and high level representation.
-data DependencyGraph l =
-  DependencyGraph Graph (Vertex -> DGEntry l) (DGKey -> Maybe Vertex)
+data DependencyGraph =
+  DependencyGraph Graph (Vertex -> DGEntry) (DGKey -> Maybe Vertex)
 
 -------------------------------------------------------------------------------
 -- Dependency analysis                                                       --
@@ -82,16 +84,16 @@ data DependencyGraph l =
 --   All declarations that mutually depend on each other are in the same
 --   strongly connected component.
 --
---   The only difference to @'SCC' ('H.Decl' l)@ is that the constructors
+--   The only difference to @'SCC' 'HS.Decl'@ is that the constructors
 --   have been renamed to be more explainatory in the context of dependency
 --   analysis.
-data DependencyComponent l =
-  NonRecursive (H.Decl l) -- ^ A single non-recursive declaration.
-  | Recursive [H.Decl l]  -- ^ A list of mutually recursive declarations.
+data DependencyComponent =
+  NonRecursive (HS.Decl) -- ^ A single non-recursive declaration.
+  | Recursive [HS.Decl]  -- ^ A list of mutually recursive declarations.
 
 -- | Converts a strongly connected component from @Data.Graph@ to a
 --   'DependencyComponent'.
-convertSCC :: SCC (H.Decl l) -> DependencyComponent l
+convertSCC :: SCC HS.Decl -> DependencyComponent
 convertSCC (AcyclicSCC decl ) = NonRecursive decl
 convertSCC (CyclicSCC  decls) = Recursive decls
 
@@ -103,14 +105,14 @@ convertSCC (CyclicSCC  decls) = Recursive decls
 --   The returned list of strongly connected components is in reverse
 --   topological order, i.e. a component @A@ precedes another component @B@ if
 --   @A@ contains any declaration that depends on a declartion in $B$.
-groupDependencies :: DependencyGraph l -> [DependencyComponent l]
+groupDependencies :: DependencyGraph -> [DependencyComponent]
 groupDependencies (DependencyGraph graph getEntry _) =
   map convertSCC $ stronglyConnComp $ map getEntry $ vertices graph
 
 -- | Combines the construction of the dependency graphs for the given
 --   declarations (See 'typeDependencyGraph' and 'funcDependencyGraph') with
 --   the computaton of strongly connected components.
-groupDeclarations :: [H.Decl l] -> [DependencyComponent l]
+groupDeclarations :: [HS.Decl] -> [DependencyComponent]
 groupDeclarations decls = concatMap
   groupDependencies
   [typeDependencyGraph decls, funcDependencyGraph decls]
@@ -123,175 +125,105 @@ groupDeclarations decls = concatMap
 --   declarations.
 --
 --   If the given list contains other kinds of declarations, they are ignored.
-typeDependencyGraph :: [H.Decl l] -> DependencyGraph l
+typeDependencyGraph :: [HS.Decl] -> DependencyGraph
 typeDependencyGraph =
-  uncurry3 DependencyGraph
-    . graphFromEdges
-    . map typeDeclEntries
-    . filter isTypeDecl
-
--- | Tests whether the given declaration is a data type or type synonym
---   declaration.
-isTypeDecl :: H.Decl l -> Bool
-isTypeDecl (H.TypeDecl _ _ _      ) = True
-isTypeDecl (H.DataDecl _ _ _ _ _ _) = True
-isTypeDecl _                        = False
+  uncurry3 DependencyGraph . graphFromEdges . catMaybes . map typeDeclEntries
 
 -- | Creates an entry of the dependency graph for the given data type or type
 --   synonym declaration.
-typeDeclEntries :: H.Decl l -> DGEntry l
-typeDeclEntries decl@(H.TypeDecl _ declHead typeExpr) =
-  (decl, keyFromDeclHead declHead, nub $ typeDependencies typeExpr)
-typeDeclEntries decl@(H.DataDecl _ _ _ declHead cs _) =
-  (decl, keyFromDeclHead declHead, nub $ concatMap qualConDeclDependencies cs)
+--
+--   Returns @Nothing@ if the given declaration is not a data type or type
+--   synonym declaration.
+typeDeclEntries :: HS.Decl -> Maybe DGEntry
+typeDeclEntries decl@(HS.TypeDecl ident typeArgs typeExpr) =
+  Just (decl, HS.Ident ident, withoutArgs typeArgs $ typeDependencies typeExpr)
+typeDeclEntries decl@(HS.DataDecl ident typeArgs conDecls) = Just
+  ( decl
+  , HS.Ident ident
+  , withoutArgs typeArgs $ concatMap conDeclDependencies conDecls
+  )
+typeDeclEntries _ = Nothing
 
 -- | Gets the keys of the type constructors used by the fields of the given
 --   constructor.
-qualConDeclDependencies :: H.QualConDecl l -> [DGKey]
-qualConDeclDependencies (H.QualConDecl _ _ _ (H.ConDecl _ _ types)) =
-  concatMap typeDependencies types
-
--- | Gets the key for a type declaration from the head of the declaration.
-keyFromDeclHead :: H.DeclHead l -> DGKey
-keyFromDeclHead (H.DHead   _ name    ) = nameToKey name
-keyFromDeclHead (H.DHParen _ declHead) = keyFromDeclHead declHead
-keyFromDeclHead (H.DHApp _ declHead _) = keyFromDeclHead declHead
+conDeclDependencies :: HS.ConDecl -> [DGKey]
+conDeclDependencies (HS.ConDecl _ types) = concatMap typeDependencies types
 
 -- | Gets the keys for the type constructors used by the given type expression.
-typeDependencies :: H.Type l -> [DGKey]
-typeDependencies (H.TyFun _ t1 t2) = typeDependencies t1 ++ typeDependencies t2
-typeDependencies (H.TyTuple _ _  ts) = concatMap typeDependencies ts
-typeDependencies (H.TyList _ t     ) = typeDependencies t
-typeDependencies (H.TyApp _ t1 t2) = typeDependencies t1 ++ typeDependencies t2
-typeDependencies (H.TyVar   _ _    ) = []
-typeDependencies (H.TyCon   _ qName) = maybeToList (qNameToKey qName)
-typeDependencies (H.TyParen _ t    ) = typeDependencies t
+typeDependencies :: HS.Type -> [DGKey]
+typeDependencies (HS.TypeVar ident) = [HS.Ident ident]
+typeDependencies (HS.TypeCon name ) = [name]
+typeDependencies (HS.TypeApp t1 t2) =
+  typeDependencies t1 ++ typeDependencies t2
+typeDependencies (HS.TypeFunc t1 t2) =
+  typeDependencies t1 ++ typeDependencies t2
 
 -------------------------------------------------------------------------------
 -- Function dependencies                                                     --
 -------------------------------------------------------------------------------
 
--- | Creates the dependency graph for a list of function declarations or
---   pattern bindings.
+-- | Creates the dependency graph for a list of function declarations.
 --
 --   If the given list contains other kinds of declarations, they are ignored.
-funcDependencyGraph :: [H.Decl l] -> DependencyGraph l
+funcDependencyGraph :: [HS.Decl] -> DependencyGraph
 funcDependencyGraph =
-  uncurry3 DependencyGraph
-    . graphFromEdges
-    . map funcDeclEntries
-    . filter isFuncDecl
-
--- | Tests whether the give declaration is a function declaration or pattern
---   binding.
-isFuncDecl :: H.Decl l -> Bool
-isFuncDecl (H.FunBind _ _    ) = True
-isFuncDecl (H.PatBind _ _ _ _) = True
-isFuncDecl _                   = False
+  uncurry3 DependencyGraph . graphFromEdges . catMaybes . map funcDeclEntries
 
 -- | Creates an entry of the dependency graph for the given function
 --   declaration or pattern binding.
-funcDeclEntries :: H.Decl l -> DGEntry l
-funcDeclEntries decl@(H.FunBind _ [H.Match _ name args (H.UnGuardedRhs _ expr) _])
-  = (decl, nameToKey name, nub $ withoutArgs args $ exprDependencies expr)
-funcDeclEntries decl@(H.PatBind _ (H.PVar _ name) (H.UnGuardedRhs _ expr) _) =
-  (decl, nameToKey name, nub $ exprDependencies expr)
+funcDeclEntries :: HS.Decl -> Maybe DGEntry
+funcDeclEntries decl@(HS.FuncDecl ident args expr) =
+  Just (decl, HS.Ident ident, withoutArgs args $ exprDependencies expr)
+funcDeclEntries _ = Nothing
 
--- | Gets the keys for the functions or pattern bindings used by the
---   given expression.
+-- | Gets the keys for the functions used by the given expression.
 --
---   This does not include the keys for constructors or local variables
---   (i.e. arguments or patterns).
-exprDependencies :: H.Exp l -> [DGKey]
-exprDependencies (H.Var _ qName) = maybeToList (qNameToKey qName)
-exprDependencies (H.Con _ _    ) = []
-exprDependencies (H.Lit _ _    ) = []
-exprDependencies (H.InfixApp _ e1 qOp e2) =
-  qOpDependencies qOp ++ concatMap exprDependencies [e1, e2]
-exprDependencies (H.App _ e1 e2  ) = concatMap exprDependencies [e1, e2]
-exprDependencies (H.NegApp _ expr) = exprDependencies expr
-exprDependencies (H.Lambda _ args expr) =
-  withoutArgs args $ exprDependencies expr
-exprDependencies (H.If _ e1 e2 e3) = concatMap exprDependencies [e1, e2, e3]
-exprDependencies (H.Case _ expr alts) =
+--   This does not include the keys for local variables (i.e. arguments or
+--   patterns).
+exprDependencies :: HS.Expr -> [DGKey]
+exprDependencies (HS.Con name ) = [name]
+exprDependencies (HS.Var name ) = [name]
+exprDependencies (HS.App e1 e2) = concatMap exprDependencies [e1, e2]
+exprDependencies (HS.InfixApp e1 op e2) =
+  opDependencies op ++ concatMap exprDependencies [e1, e2]
+exprDependencies (HS.LeftSection e1 op) =
+  opDependencies op ++ exprDependencies e1
+exprDependencies (HS.RightSection op e2) =
+  opDependencies op ++ exprDependencies e2
+exprDependencies (HS.NegApp expr) = exprDependencies expr
+exprDependencies (HS.If e1 e2 e3) = concatMap exprDependencies [e1, e2, e3]
+exprDependencies (HS.Case expr alts) =
   exprDependencies expr ++ concatMap altDependencies alts
-exprDependencies (H.Tuple _ _ exprs) = concatMap exprDependencies exprs
-exprDependencies (H.List  _ exprs  ) = concatMap exprDependencies exprs
-exprDependencies (H.Paren _ expr   ) = exprDependencies expr
-exprDependencies (H.LeftSection _ expr qOp) =
-  qOpDependencies qOp ++ exprDependencies expr
-exprDependencies (H.RightSection _ qOp expr) =
-  qOpDependencies qOp ++ exprDependencies expr
+exprDependencies (HS.Undefined   ) = []
+exprDependencies (HS.ErrorExpr  _) = []
+exprDependencies (HS.IntLiteral _) = []
+exprDependencies (HS.Lambda args expr) =
+  withoutArgs args $ exprDependencies expr
 
--- | Gets the keys for the functions or pattern bindings used on the right hand
---   side of the given case expression alternative.
-altDependencies :: H.Alt l -> [DGKey]
-altDependencies (H.Alt _ pat (H.UnGuardedRhs _ expr) _) =
-  withoutArgs [pat] $ exprDependencies expr
+-- | Gets the keys for the functions and constructors used by the given case
+--   expression alternative.
+altDependencies :: HS.Alt -> [DGKey]
+altDependencies (HS.Alt conName args expr) =
+  conName : (withoutArgs args $ exprDependencies expr)
 
--- | Gets the key for a function used in infix notation.
---
---   This does not include the keys for constructors because data type
---   declarations are supposed to occur before function declarations.
-qOpDependencies :: H.QOp l -> [DGKey]
-qOpDependencies (H.QVarOp _ qName) = maybeToList (qNameToKey qName)
-qOpDependencies (H.QConOp _ _    ) = []
+-- | Gets the key for a function or constructor used in infix notation.
+opDependencies :: HS.Op -> [DGKey]
+opDependencies (HS.VarOp name) = [name]
+opDependencies (HS.ConOp name) = [name]
 
 -- | Removes the keys for variable patterns in the first list from the given
 --   list of keys.
 --
 --   This function is used to filter local variables in 'exprDependencies'.
-withoutArgs :: [H.Pat l] -> [DGKey] -> [DGKey]
-withoutArgs patterns keys = deleteAll (concatMap pVarKeys patterns) keys
-
--- | Gets the keys for all variable patterns in the given pattern.
-pVarKeys :: H.Pat l -> [DGKey]
-pVarKeys (H.PVar _ name        ) = [nameToKey name]
-pVarKeys (H.PInfixApp _ p1 _ p2) = concatMap pVarKeys [p1, p2]
-pVarKeys (H.PApp   _ _ ps      ) = concatMap pVarKeys ps
-pVarKeys (H.PTuple _ _ ps      ) = concatMap pVarKeys ps
-pVarKeys (H.PList  _ ps        ) = concatMap pVarKeys ps
-pVarKeys (H.PParen _ pat       ) = pVarKeys pat
-
--------------------------------------------------------------------------------
--- Convert Haskell names to keys                                             --
--------------------------------------------------------------------------------
-
--- | Converts a Haskell identifier or symbol to a key for a node in the
---   dependency graph. Returns 'Nothing' if the given name identifies
---   a special constructor (e.g. list or pair constructor).
---
---   Qualified identifiers are not supported at the moment.
-qNameToKey :: H.QName l -> Maybe DGKey
-qNameToKey (H.UnQual  _ name) = Just (nameToKey name)
-qNameToKey (H.Special _ _   ) = Nothing
-
--- | Converts a Haskell identifier or symbol to a key for a node in the
---   dependency graph.
-nameToKey :: H.Name l -> DGKey
-nameToKey (H.Ident  _ ident) = ident
-nameToKey (H.Symbol _ sym  ) = "(" ++ sym ++ ")"
-
--------------------------------------------------------------------------------
--- Utility functions                                                         --
--- TODO create module for utility functions                                  --
--------------------------------------------------------------------------------
-
--- | Removes all occurrences of all elements in the first list from the second
---   list.
-deleteAll
-  :: Eq a
-  => [a] -- The list of items to remove.
-  -> [a] -- The list to remove items from.
-  -> [a]
-deleteAll xs ys = [ y | y <- ys, not (y `elem` xs) ]
+withoutArgs :: [String] -> [DGKey] -> [DGKey]
+withoutArgs patterns keys = nub keys \\ map HS.Ident patterns
 
 -------------------------------------------------------------------------------
 -- Pretty print dependency graph                                             --
 -------------------------------------------------------------------------------
 
 -- | Pretty instance that converts a dependency graph to the DOT format.
-instance Pretty (DependencyGraph l) where
+instance Pretty DependencyGraph where
   pretty (DependencyGraph graph getEntry getVertex) =
     digraph
       <+> braces (line <> indent 2 (vcat (nodeDocs ++ edgesDocs)) <> line)
@@ -319,8 +251,13 @@ instance Pretty (DependencyGraph l) where
      prettyNode v =
        let (_, key, _) = getEntry v
        in  int v
-           <+> brackets (label <> equals <> dquotes (prettyString key))
+           <+> brackets (label <> equals <> dquotes (prettyKey key))
            <>  semi
+
+     -- | Pretty prints the key of a node.
+     prettyKey :: DGKey -> Doc
+     prettyKey (HS.Ident ident)   = prettyString ident
+     prettyKey (HS.Symbol symbol) = parens (prettyString symbol)
 
      -- | Pretty printed DOT edges for the dependency graph.
      edgesDocs :: [Doc]
