@@ -346,12 +346,12 @@ simplifyType (H.TyFun _ t1 t2) = do
 simplifyType (H.TyTuple _ H.Boxed [t1, t2]) = do
   t1' <- simplifyType t1
   t2' <- simplifyType t2
-  return (HS.typeApp HS.pairTypeName [t1', t2'])
+  return (HS.typeApp HS.pairTypeConName [t1', t2'])
 
 -- List type @['t']@.
 simplifyType (H.TyList _ t) = do
   t' <- simplifyType t
-  return (HS.typeApp HS.listTypeName [t'])
+  return (HS.typeApp HS.listTypeConName [t'])
 
 -- Type constructor application @'t1' 't2'@.
 simplifyType (H.TyApp _ t1 t2) = do
@@ -364,7 +364,7 @@ simplifyType (H.TyVar _ (H.Ident _ ident)) = return (HS.TypeVar ident)
 
 -- Type constructor @'ident'@.
 simplifyType (H.TyCon _ name             ) = do
-  name' <- simplifyTypeName name
+  name' <- simplifyTypeConName name
   return (HS.TypeCon name')
 
 -- Type wrapped in parentheses @('t')@.
@@ -390,28 +390,28 @@ simplifyType ty@(H.TyWildCard _ _) = notSupported "Type wildcards" ty
 simplifyType ty@(H.TyQuasiQuote _ _ _) = notSupported "Quasiquotation types" ty
 
 -- | Simplifies the name of a build-in or user defined type constructor.
-simplifyTypeName :: H.QName SrcSpan -> Reporter HS.TypeName
-simplifyTypeName (H.UnQual  _ (H.Ident _ ident)) = return (HS.Ident ident)
-simplifyTypeName (H.Special _ (H.UnitCon _    )) = return HS.unitTypeName
-simplifyTypeName (H.Special _ (H.ListCon _    )) = return HS.listTypeName
-simplifyTypeName name@(H.Special _ (H.TupleCon _ H.Boxed n))
-  | n == 2    = return HS.pairTypeName
+simplifyTypeConName :: H.QName SrcSpan -> Reporter HS.TypeConName
+simplifyTypeConName (H.UnQual  _ (H.Ident _ ident)) = return (HS.Ident ident)
+simplifyTypeConName (H.Special _ (H.UnitCon _    )) = return HS.unitTypeConName
+simplifyTypeConName (H.Special _ (H.ListCon _    )) = return HS.listTypeConName
+simplifyTypeConName name@(H.Special _ (H.TupleCon _ H.Boxed n))
+  | n == 2    = return HS.pairTypeConName
   | otherwise = notSupported "Tuples other than unit and pairs" name
 
 -- Not supported type constructor names.
-simplifyTypeName name@(H.UnQual _ (H.Symbol _ _)) =
+simplifyTypeConName name@(H.UnQual _ (H.Symbol _ _)) =
   notSupported "Type operators" name
-simplifyTypeName name@(H.Qual _ _ _) =
+simplifyTypeConName name@(H.Qual _ _ _) =
   notSupported "Qualified identifiers" name
-simplifyTypeName name@(H.Special _ (H.FunCon _)) =
+simplifyTypeConName name@(H.Special _ (H.FunCon _)) =
   notSupported "Function type constructors" name
-simplifyTypeName name@(H.Special _ (H.TupleCon _ H.Unboxed _)) =
+simplifyTypeConName name@(H.Special _ (H.TupleCon _ H.Unboxed _)) =
   notSupported "Unboxed tuples" name
-simplifyTypeName name@(H.Special _ (H.UnboxedSingleCon _)) =
+simplifyTypeConName name@(H.Special _ (H.UnboxedSingleCon _)) =
   notSupported "Unboxed tuples" name
-simplifyTypeName name@(H.Special _ (H.ExprHole _)) =
+simplifyTypeConName name@(H.Special _ (H.ExprHole _)) =
   notSupported "Expression holes" name
-simplifyTypeName name@(H.Special _ (H.Cons _)) = usageError
+simplifyTypeConName name@(H.Special _ (H.Cons _)) = usageError
   "The data constructor (:) cannot be used as a type constructor!"
   name
 

@@ -46,7 +46,7 @@ type VarName = Name
 type ConName = Name
 
 -- | The name of a type or type constructor, e.g. @Int@ or @[] a@
-type TypeName = Name
+type TypeConName = Name
 
 -- | A module declaration.
 --
@@ -118,7 +118,7 @@ data Assoc = AssocNone | AssocLeft | AssocRight
 --  special role of functions during the translation to Coq.
 data Type
   = TypeVar TypeVarIdent -- ^ A type variable.
-  | TypeCon TypeName     -- ^ A type constructor.
+  | TypeCon TypeConName  -- ^ A type constructor.
   | TypeApp Type Type    -- ^ A type constructor application.
   | TypeFunc Type Type   -- ^ A function type.
 
@@ -161,22 +161,22 @@ data Alt = Alt
 
 -- | Creates a type constructor application type.
 typeApp
-  :: TypeName -- ^ The name of the type constructor to apply.
-  -> [Type]   -- ^ The type arguments to pass to the type constructor.
+  :: TypeConName -- ^ The name of the type constructor to apply.
+  -> [Type]      -- ^ The type arguments to pass to the type constructor.
   -> Type
 typeApp = foldl TypeApp . TypeCon
 
 -- | The name of the unit type constructor.
-unitTypeName :: TypeName
-unitTypeName = Symbol "()"
+unitTypeConName :: TypeConName
+unitTypeConName = Symbol "()"
 
 -- | The name of the pair type constructor.
-pairTypeName :: TypeName
-pairTypeName = Symbol "(,)"
+pairTypeConName :: TypeConName
+pairTypeConName = Symbol "(,)"
 
 -- | The name of the list type constructor.
-listTypeName :: TypeName
-listTypeName = Symbol "[]"
+listTypeConName :: TypeConName
+listTypeConName = Symbol "[]"
 
 -- | Creates an expression for applying the function with the given name.
 varApp
