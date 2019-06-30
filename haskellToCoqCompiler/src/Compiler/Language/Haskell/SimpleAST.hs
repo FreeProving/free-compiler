@@ -33,6 +33,7 @@ type VarIdent = String
 data Name
   = Ident String  -- ^ An identifier, e.g. @Ident "f"@ for a function @f@.
   | Symbol String -- ^ A symbolic name, e.g. @Symbol "+"@ for @(+)@.
+  deriving (Eq, Ord, Show)
 
 -- | The name of a function, constructor or build-in operator used in infix
 --   notation, e.g. @x `f` y@ or @x : xs@, @n + m@.
@@ -54,6 +55,7 @@ type TypeConName = Name
 data Module = Module
   (Maybe ModuleIdent) -- ^ Optional name of the module.
   [Decl]              -- ^ The declarations.
+  deriving (Eq, Show)
 
 -- | A Haskell declaration.
 --
@@ -94,6 +96,7 @@ data Decl
     -- ^ A type signature of one or more function declarations.
   | FixitySig Assoc (Maybe Int) [Op]
     -- ^ A fixity signature of an infix declaration.
+  deriving (Eq, Show)
 
 -- | A constructor declaration.
 --
@@ -103,9 +106,11 @@ data Decl
 data ConDecl = ConDecl
   DeclIdent -- ^ The name of the constructor.
   [Type]    -- ^ The types of the constructor arguments.
+  deriving (Eq, Show)
 
 -- | The associativity of a infix declaration.
 data Assoc = AssocNone | AssocLeft | AssocRight
+  deriving (Eq, Show)
 
 -- | A Haskell type expression.
 --
@@ -121,6 +126,7 @@ data Type
   | TypeCon TypeConName  -- ^ A type constructor.
   | TypeApp Type Type    -- ^ A type constructor application.
   | TypeFunc Type Type   -- ^ A function type.
+  deriving (Eq, Show)
 
 -- | A Haskell expression.
 data Expr
@@ -142,12 +148,14 @@ data Expr
 
   | IntLiteral Integer     -- ^ An integer literal.
   | Lambda [VarIdent] Expr -- ^ A lambda abstraction.
+  deriving (Eq, Show)
 
 -- | The name of a function or constructor that is used in infix notation.
 --
 --   E.g. @'VarOp' ('Ident' "f")@ for @`f`@ or @'ConOp' ('Symbol' ":")@
 --   for @(:)@.
 data Op = VarOp OpName | ConOp OpName
+  deriving (Eq, Show)
 
 -- | One alternative of a case expression.
 --
@@ -158,6 +166,7 @@ data Alt = Alt
   ConName    -- ^ The name of the constructor matched by this alternative.
   [VarIdent] -- ^ Variable patterns for the arguments of the constructor.
   Expr       -- ^ The right hand side of this alternative.
+  deriving (Eq, Show)
 
 -- | Creates a type constructor application type.
 typeApp
