@@ -49,7 +49,7 @@ type TypeConName = Name
 -- | The name of a function, data type, type synonym or constructor defined
 --   by the user including location information.
 --
---   Because at the moment the user cannot declare symbols, the constructor
+--   Because the user cannot declare symbols at the moment, the constructor
 --   of this data type takes a 'String' and not a 'Name'.
 data DeclIdent = DeclIdent SrcSpan String
   deriving (Eq, Show)
