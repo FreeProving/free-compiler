@@ -427,7 +427,7 @@ simplifyExpr :: H.Exp SrcSpan -> Reporter HS.Expr
 
 -- Error terms are regular functions but need to be handled differently.
 simplifyExpr (H.Var _ (H.UnQual _ (H.Ident _ "undefined"))) =
-  return (HS.Undefined)
+  return HS.Undefined
 simplifyExpr (H.App _ (H.Var _ (H.UnQual _ (H.Ident _ "error"))) arg) =
   case arg of
     (H.Lit _ (H.String _ msg _)) -> return (HS.ErrorExpr msg)
@@ -672,6 +672,8 @@ simplifyConPat pat@(H.PTuple _ H.Boxed _) =
 -- The list notation pattern @[x1, ..., xn]@ is not supported because it is
 -- not a shallow pattern (i.e. cannot be represented as a pair of constructor
 -- name and variable patterns).
+-- But we allow the empty list pattern @[]@.
+simplifyConPat pat@(H.PList _ []) = return (HS.nilConName, [])
 simplifyConPat pat@(H.PList _ _ ) = notSupported "List notation patterns" pat
 
 -- Record constructors are not supported.
