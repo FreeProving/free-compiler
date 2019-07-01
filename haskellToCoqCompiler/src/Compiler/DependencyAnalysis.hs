@@ -39,9 +39,10 @@ where
 
 import           Data.Graph
 import           Data.Maybe                     ( catMaybes )
-import           Data.List                      ( nub
+import           Data.Set                       ( Set
                                                 , (\\)
                                                 )
+import qualified Data.Set                      as Set
 
 import           Text.PrettyPrint.Leijen.Text
 
@@ -135,28 +136,27 @@ typeDependencyGraph =
 --   Returns @Nothing@ if the given declaration is not a data type or type
 --   synonym declaration.
 typeDeclEntries :: HS.Decl -> Maybe DGEntry
-typeDeclEntries decl@(HS.TypeDecl ident typeArgs typeExpr) =
-  Just (decl, HS.Ident ident, withoutArgs typeArgs $ typeDependencies typeExpr)
+typeDeclEntries decl@(HS.TypeDecl ident typeArgs typeExpr) = Just
+  (decl, HS.Ident ident, Set.toList ds)
+  where ds = withoutArgs typeArgs (typeDependencies typeExpr)
 typeDeclEntries decl@(HS.DataDecl ident typeArgs conDecls) = Just
-  ( decl
-  , HS.Ident ident
-  , withoutArgs typeArgs $ concatMap conDeclDependencies conDecls
-  )
+  (decl, HS.Ident ident, Set.toList ds)
+  where ds = withoutArgs typeArgs (Set.unions (map conDeclDependencies conDecls))
 typeDeclEntries _ = Nothing
 
 -- | Gets the keys of the type constructors used by the fields of the given
 --   constructor.
-conDeclDependencies :: HS.ConDecl -> [DGKey]
-conDeclDependencies (HS.ConDecl _ types) = concatMap typeDependencies types
+conDeclDependencies :: HS.ConDecl -> Set DGKey
+conDeclDependencies (HS.ConDecl _ types) = Set.unions (map typeDependencies types)
 
 -- | Gets the keys for the type constructors used by the given type expression.
-typeDependencies :: HS.Type -> [DGKey]
-typeDependencies (HS.TypeVar ident) = [HS.Ident ident]
-typeDependencies (HS.TypeCon name ) = [name]
+typeDependencies :: HS.Type -> Set DGKey
+typeDependencies (HS.TypeVar ident) = Set.singleton (HS.Ident ident)
+typeDependencies (HS.TypeCon name ) = Set.singleton name
 typeDependencies (HS.TypeApp t1 t2) =
-  typeDependencies t1 ++ typeDependencies t2
+  typeDependencies t1 `Set.union` typeDependencies t2
 typeDependencies (HS.TypeFunc t1 t2) =
-  typeDependencies t1 ++ typeDependencies t2
+  typeDependencies t1 `Set.union` typeDependencies t2
 
 -------------------------------------------------------------------------------
 -- Function dependencies                                                     --
@@ -172,51 +172,50 @@ funcDependencyGraph =
 -- | Creates an entry of the dependency graph for the given function
 --   declaration or pattern binding.
 funcDeclEntries :: HS.Decl -> Maybe DGEntry
-funcDeclEntries decl@(HS.FuncDecl ident args expr) =
-  Just (decl, HS.Ident ident, withoutArgs args $ exprDependencies expr)
+funcDeclEntries decl@(HS.FuncDecl ident args expr) = Just
+  (decl, HS.Ident ident, Set.toList ds)
+  where ds = withoutArgs args (exprDependencies expr)
 funcDeclEntries _ = Nothing
 
 -- | Gets the keys for the functions used by the given expression.
 --
 --   This does not include the keys for local variables (i.e. arguments or
 --   patterns).
-exprDependencies :: HS.Expr -> [DGKey]
-exprDependencies (HS.Con name ) = [name]
-exprDependencies (HS.Var name ) = [name]
-exprDependencies (HS.App e1 e2) = concatMap exprDependencies [e1, e2]
+exprDependencies :: HS.Expr -> Set DGKey
+exprDependencies (HS.Con name) = Set.singleton name
+exprDependencies (HS.Var name) = Set.singleton name
+exprDependencies (HS.App e1 e2) =
+  exprDependencies e1 `Set.union` exprDependencies e2
 exprDependencies (HS.InfixApp e1 op e2) =
-  opDependencies op ++ concatMap exprDependencies [e1, e2]
+  Set.unions (opDependencies op : map exprDependencies [e1, e2])
 exprDependencies (HS.LeftSection e1 op) =
-  opDependencies op ++ exprDependencies e1
+  opDependencies op `Set.union` exprDependencies e1
 exprDependencies (HS.RightSection op e2) =
-  opDependencies op ++ exprDependencies e2
+  opDependencies op `Set.union` exprDependencies e2
 exprDependencies (HS.NegApp expr) = exprDependencies expr
-exprDependencies (HS.If e1 e2 e3) = concatMap exprDependencies [e1, e2, e3]
+exprDependencies (HS.If e1 e2 e3) =
+  Set.unions (map exprDependencies [e1, e2, e3])
 exprDependencies (HS.Case expr alts) =
-  exprDependencies expr ++ concatMap altDependencies alts
-exprDependencies (HS.Undefined   ) = []
-exprDependencies (HS.ErrorExpr  _) = []
-exprDependencies (HS.IntLiteral _) = []
+  Set.unions (exprDependencies expr : map altDependencies alts)
+exprDependencies (HS.Undefined   ) = Set.empty
+exprDependencies (HS.ErrorExpr  _) = Set.empty
+exprDependencies (HS.IntLiteral _) = Set.empty
 exprDependencies (HS.Lambda args expr) =
-  withoutArgs args $ exprDependencies expr
+  withoutArgs args (exprDependencies expr)
 
 -- | Gets the keys for the functions and constructors used by the given case
 --   expression alternative.
-altDependencies :: HS.Alt -> [DGKey]
+altDependencies :: HS.Alt -> Set DGKey
 altDependencies (HS.Alt conName args expr) =
-  conName : (withoutArgs args $ exprDependencies expr)
+  Set.insert conName (withoutArgs args (exprDependencies expr))
 
 -- | Gets the key for a function or constructor used in infix notation.
-opDependencies :: HS.Op -> [DGKey]
-opDependencies (HS.VarOp name) = [name]
-opDependencies (HS.ConOp name) = [name]
+opDependencies :: HS.Op -> Set DGKey
+opDependencies (HS.VarOp name) = Set.singleton name
+opDependencies (HS.ConOp name) = Set.singleton name
 
--- | Removes the keys for variable patterns in the first list from the given
---   list of keys.
---
---   This function is used to filter local variables in 'exprDependencies'.
-withoutArgs :: [String] -> [DGKey] -> [DGKey]
-withoutArgs patterns keys = nub keys \\ map HS.Ident patterns
+withoutArgs :: [String] -> Set DGKey -> Set DGKey
+withoutArgs args set = set \\ Set.fromList (map HS.Ident args)
 
 -------------------------------------------------------------------------------
 -- Pretty print dependency graph                                             --
