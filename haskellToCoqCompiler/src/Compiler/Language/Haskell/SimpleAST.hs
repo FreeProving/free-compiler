@@ -10,26 +10,23 @@
 --   directly.
 module Compiler.Language.Haskell.SimpleAST where
 
+import           Compiler.SrcSpan
+
+-------------------------------------------------------------------------------
+-- Identifiers                                                               --
+-------------------------------------------------------------------------------
+
 -- | The name of a module including the dots.
 type ModuleIdent = String
-
--- | The name of a function, data type, type synonym or constructor defined
---   by the user.
---
---   This type is used in the constructors of 'Decl' to indicate that
---   symbols cannot be used in declarations.
-type DeclIdent = String
 
 -- | The name of a type variable.
 type TypeVarIdent = String
 
--- | The name of a variable pattern.
---
---   This type is used for function arguments and the arguments of constructor
---   patterns in @case@ expressions.
-type VarIdent = String
-
 -- | An identifier or a symbolic name.
+--
+--   The constructors of this type do not contain source spans because
+--   'Name's are intended to be comparable. They are used as keys to
+--   identify nodes of the dependency graph for example.
 data Name
   = Ident String  -- ^ An identifier, e.g. @Ident "f"@ for a function @f@.
   | Symbol String -- ^ A symbolic name, e.g. @Symbol "+"@ for @(+)@.
@@ -49,13 +46,56 @@ type ConName = Name
 -- | The name of a type or type constructor, e.g. @Int@ or @[] a@
 type TypeConName = Name
 
+-- | The name of a function, data type, type synonym or constructor defined
+--   by the user including location information.
+--
+--   Because at the moment the user cannot declare symbols, the constructor
+--   of this data type takes a 'String' and not a 'Name'.
+data DeclIdent = DeclIdent SrcSpan String
+  deriving (Eq, Show)
+
+-- | The name of a type variable declaration in the head of a data type or
+--   type synonym declaration including location information.
+type TypeVarDecl = DeclIdent
+
+-- | A constructor pattern used in an alternative of a @case@ expression.
+--
+--   The only purpose of this data type is to add location information
+--   to a 'ConName'.
+data ConPat = ConPat SrcSpan ConName
+  deriving (Eq, Show)
+
+-- | A variable pattern used as an argument to a function, lambda abstraction
+--   or constructor pattern.
+--
+--   The only purpose of this data type is to add location information to
+--   the identifer for a variable.
+data VarPat = VarPat SrcSpan String
+  deriving (Eq, Show)
+
+-- | The name of a function or constructor that is used in infix notation.
+--
+--   E.g. @'VarOp' ('Ident' "f")@ for @`f`@ or @'ConOp' ('Symbol' ":")@
+--   for @(:)@.
+data Op = VarOp SrcSpan OpName | ConOp SrcSpan OpName
+  deriving (Eq, Show)
+
+-------------------------------------------------------------------------------
+-- Modules                                                                   --
+-------------------------------------------------------------------------------
+
 -- | A module declaration.
 --
 --   If the module has no module header, the module name is @'Nothing'@.
 data Module = Module
+  SrcSpan             -- ^ TODO
   (Maybe ModuleIdent) -- ^ Optional name of the module.
   [Decl]              -- ^ The declarations.
   deriving (Eq, Show)
+
+-------------------------------------------------------------------------------
+-- Declarations                                                              --
+-------------------------------------------------------------------------------
 
 -- | A Haskell declaration.
 --
@@ -86,15 +126,15 @@ data Module = Module
 --   and type synonym declarations must not be in infix notation. This is
 --   because the @TypeOperators@ language extension is not supported.
 data Decl
-  = DataDecl DeclIdent [TypeVarIdent] [ConDecl]
+  = DataDecl SrcSpan DeclIdent [TypeVarDecl] [ConDecl]
     -- ^ A data type declaration.
-  | TypeDecl DeclIdent [TypeVarIdent] Type
+  | TypeDecl SrcSpan DeclIdent [TypeVarDecl] Type
     -- ^ A type synonym declaration.
-  | FuncDecl DeclIdent [VarIdent] Expr
+  | FuncDecl SrcSpan DeclIdent [VarPat] Expr
     -- ^ A function declaration.
-  | TypeSig   [DeclIdent] Type
+  | TypeSig SrcSpan [DeclIdent] Type
     -- ^ A type signature of one or more function declarations.
-  | FixitySig Assoc (Maybe Int) [Op]
+  | FixitySig SrcSpan Assoc (Maybe Int) [Op]
     -- ^ A fixity signature of an infix declaration.
   deriving (Eq, Show)
 
@@ -104,6 +144,7 @@ data Decl
 --  allowed to be in infix notation, but the name of the constructor must
 --  not be a symbol.
 data ConDecl = ConDecl
+  SrcSpan   -- ^ TODO
   DeclIdent -- ^ The name of the constructor.
   [Type]    -- ^ The types of the constructor arguments.
   deriving (Eq, Show)
@@ -111,6 +152,10 @@ data ConDecl = ConDecl
 -- | The associativity of a infix declaration.
 data Assoc = AssocNone | AssocLeft | AssocRight
   deriving (Eq, Show)
+
+-------------------------------------------------------------------------------
+-- Type expressions                                                          --
+-------------------------------------------------------------------------------
 
 -- | A Haskell type expression.
 --
@@ -122,39 +167,36 @@ data Assoc = AssocNone | AssocLeft | AssocRight
 --  The syntax @(->) a b@ is not supported at the moment. This is due to the
 --  special role of functions during the translation to Coq.
 data Type
-  = TypeVar TypeVarIdent -- ^ A type variable.
-  | TypeCon TypeConName  -- ^ A type constructor.
-  | TypeApp Type Type    -- ^ A type constructor application.
-  | TypeFunc Type Type   -- ^ A function type.
+  = TypeVar SrcSpan TypeVarIdent -- ^ A type variable.
+  | TypeCon SrcSpan TypeConName  -- ^ A type constructor.
+  | TypeApp SrcSpan Type Type    -- ^ A type constructor application.
+  | TypeFunc SrcSpan Type Type   -- ^ A function type.
   deriving (Eq, Show)
+
+-------------------------------------------------------------------------------
+-- Expressions                                                               --
+-------------------------------------------------------------------------------
 
 -- | A Haskell expression.
 data Expr
-  = Con ConName            -- ^ A constructor.
-  | Var  VarName           -- ^ A function or local variable.
+  = Con SrcSpan ConName           -- ^ A constructor.
+  | Var SrcSpan VarName           -- ^ A function or local variable.
 
-  | App Expr Expr          -- ^ Function or constructor application.
+  | App SrcSpan Expr Expr         -- ^ Function or constructor application.
 
-  | InfixApp Expr Op Expr  -- ^ Infix application of a function or constructor.
-  | LeftSection Expr Op    -- ^ Partial infix application with left argument.
-  | RightSection Op Expr   -- ^ Partial infix application with right argument.
-  | NegApp Expr            -- ^ Application of the negation prefix operator.
+  | InfixApp SrcSpan Expr Op Expr -- ^ Infix application of a function or constructor.
+  | LeftSection SrcSpan Expr Op   -- ^ Partial infix application with left argument.
+  | RightSection SrcSpan Op Expr  -- ^ Partial infix application with right argument.
+  | NegApp SrcSpan Expr           -- ^ Application of the negation prefix operator.
 
-  | If Expr Expr Expr      -- ^ @if@ expression.
-  | Case Expr [Alt]        -- ^ @case@ expression.
+  | If SrcSpan Expr Expr Expr     -- ^ @if@ expression.
+  | Case SrcSpan Expr [Alt]       -- ^ @case@ expression.
 
-  | Undefined              -- ^ Error term @undefined@.
-  | ErrorExpr String       -- ^ Error term @error "<message>"@.
+  | Undefined SrcSpan             -- ^ Error term @undefined@.
+  | ErrorExpr SrcSpan String      -- ^ Error term @error "<message>"@.
 
-  | IntLiteral Integer     -- ^ An integer literal.
-  | Lambda [VarIdent] Expr -- ^ A lambda abstraction.
-  deriving (Eq, Show)
-
--- | The name of a function or constructor that is used in infix notation.
---
---   E.g. @'VarOp' ('Ident' "f")@ for @`f`@ or @'ConOp' ('Symbol' ":")@
---   for @(:)@.
-data Op = VarOp OpName | ConOp OpName
+  | IntLiteral SrcSpan Integer    -- ^ An integer literal.
+  | Lambda SrcSpan [VarPat] Expr  -- ^ A lambda abstraction.
   deriving (Eq, Show)
 
 -- | One alternative of a case expression.
@@ -163,17 +205,50 @@ data Op = VarOp OpName | ConOp OpName
 --   matched expression's data type. All arguments of the constructor pattern
 --   are variable patterns.
 data Alt = Alt
-  ConName    -- ^ The name of the constructor matched by this alternative.
-  [VarIdent] -- ^ Variable patterns for the arguments of the constructor.
-  Expr       -- ^ The right hand side of this alternative.
+  SrcSpan      -- ^ TODO
+  ConPat       -- ^ The name of the constructor matched by this alternative.
+  [VarPat]     -- ^ Variable patterns for the arguments of the constructor.
+  Expr         -- ^ The right hand side of this alternative.
   deriving (Eq, Show)
 
+-------------------------------------------------------------------------------
+-- Smart constructors                                                        --
+-------------------------------------------------------------------------------
+
 -- | Creates a type constructor application type.
+--
+--   The given source span is inserted into every generated constructor.
 typeApp
-  :: TypeConName -- ^ The name of the type constructor to apply.
+  :: SrcSpan     -- ^ TODO
+  -> TypeConName -- ^ The name of the type constructor to apply.
   -> [Type]      -- ^ The type arguments to pass to the type constructor.
   -> Type
-typeApp = foldl TypeApp . TypeCon
+typeApp srcSpan = foldl (TypeApp srcSpan) . TypeCon srcSpan
+
+
+-- | Creates an expression for applying the function with the given name.
+--
+--   The given source span is inserted into every generated constructor.
+varApp
+  :: SrcSpan     -- ^ TODO
+  -> VarName -- ^ The name of the function to apply.
+  -> [Expr]  -- ^ The arguments to pass to the function.
+  -> Expr
+varApp srcSpan = foldl (App srcSpan) . Var srcSpan
+
+-- | Creates a data constructor application expression.
+--
+--   The given source span is inserted into every generated constructor.
+conApp
+  :: SrcSpan -- ^ TODO
+  -> ConName -- ^ The name of the constructor to apply.
+  -> [Expr]  -- ^ The arguments to pass to the constructor.
+  -> Expr
+conApp srcSpan = foldl (App srcSpan) . Con srcSpan
+
+-------------------------------------------------------------------------------
+-- Names of predefined type constructors                                     --
+-------------------------------------------------------------------------------
 
 -- | The name of the unit type constructor.
 unitTypeConName :: TypeConName
@@ -187,19 +262,9 @@ pairTypeConName = Symbol "(,)"
 listTypeConName :: TypeConName
 listTypeConName = Symbol "[]"
 
--- | Creates an expression for applying the function with the given name.
-varApp
-  :: VarName -- ^ The name of the function to apply.
-  -> [Expr]  -- ^ The arguments to pass to the function.
-  -> Expr
-varApp = foldl App . Var
-
--- | Creates a data constructor application expression.
-conApp
-  :: ConName -- ^ The name of the constructor to apply.
-  -> [Expr]  -- ^ The arguments to pass to the constructor.
-  -> Expr
-conApp = foldl App . Con
+-------------------------------------------------------------------------------
+-- Names of predefined data constructors                                     --
+-------------------------------------------------------------------------------
 
 -- | Name of the unit data constructor.
 unitConName :: ConName
