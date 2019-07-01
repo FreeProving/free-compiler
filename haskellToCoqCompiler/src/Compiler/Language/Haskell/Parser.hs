@@ -16,6 +16,7 @@ import qualified Language.Haskell.Exts.Syntax  as H
 
 import           Compiler.Pretty
 import           Compiler.Reporter
+import           Compiler.SrcSpan
 
 -- | Custom parameters for parsing a Haskell source file with the given name.
 --

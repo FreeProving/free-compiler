@@ -15,11 +15,8 @@
 
 module Compiler.Reporter
   ( Message(..)
-  , SrcSpan
   , Reporter
   , Severity(..)
-  , SrcSpanConverter(..)
-  , addMessages
   , foldReporter
   , isFatal
   , messages
@@ -32,7 +29,6 @@ where
 
 import           Control.Monad                  ( liftM
                                                 , ap
-                                                , join
                                                 )
 import           Data.Maybe                     ( maybe )
 import           System.IO.Error                ( catchIOError
@@ -40,10 +36,10 @@ import           System.IO.Error                ( catchIOError
                                                 , ioeGetFileName
                                                 )
 
-import qualified Language.Haskell.Exts.SrcLoc  as H
 import           Text.PrettyPrint.Leijen.Text
 
 import           Compiler.Pretty
+import           Compiler.SrcSpan
 
 -------------------------------------------------------------------------------
 -- Messages                                                                  --
@@ -54,62 +50,6 @@ data Severity = Error | Warning | Info
 
 -- | A message reported by the compiler.
 data Message = Message (Maybe SrcSpan) Severity String
-
--------------------------------------------------------------------------------
--- Source spans                                                              --
--------------------------------------------------------------------------------
-
--- | Describes the portion of the source code that caused a message to be
---   reported.
---
---   In contrast to the source spans provided by the @haskell-src-exts@ package
---   this source span provides access to the lines of code that contain the
---   source span.
-data SrcSpan = SrcSpan
-  { srcSpanFilename    :: String
-  , srcSpanStartLine   :: Int
-  , srcSpanStartColumn :: Int
-  , srcSpanEndLine     :: Int
-  , srcSpanEndColumn   :: Int
-  , srcSpanCodeLines   :: [String]
-  }
-  deriving (Show)
-
--- | Type class for @haskell-src-exts@ source spans that can be converted
---   to 'SrcSpan's for pretty printing of messages.
-class SrcSpanConverter ss where
-  -- | Converts a @haskell-src-exts@ source span to a 'SrcSpan' by
-  --   attaching the corresponding line of source code.
-  convertSrcSpan ::
-    [(String, [String])] -- ^ A map of file names to lines of source code.
-    -> ss                -- ^ The original source span to convert.
-    -> SrcSpan
-
--- | Directly converts a 'H.SrcSpan' to a 'SrcSpan' by looking up
---   the corresponding line of code in the provided map.
-instance SrcSpanConverter H.SrcSpan where
-  convertSrcSpan codeByFilename srcSpan = SrcSpan
-    { srcSpanFilename    = H.srcSpanFilename srcSpan
-    , srcSpanStartLine   = H.srcSpanStartLine srcSpan
-    , srcSpanStartColumn = H.srcSpanStartColumn srcSpan
-    , srcSpanEndLine     = H.srcSpanEndLine srcSpan
-    , srcSpanEndColumn   = H.srcSpanEndColumn srcSpan
-    , srcSpanCodeLines    =
-      take (H.srcSpanEndLine srcSpan - H.srcSpanStartLine srcSpan + 1)
-      $ drop (H.srcSpanStartLine srcSpan - 1)
-      $ maybe [] id
-      $ lookup (H.srcSpanFilename srcSpan) codeByFilename
-    }
-
--- | Converts a 'H.SrcSpanInfo' by removing additional information and applying
---   the conversion for 'H.SrcSpan's.
-instance SrcSpanConverter H.SrcSpanInfo where
-  convertSrcSpan codeByFilename = convertSrcSpan codeByFilename . H.srcInfoSpan
-
--- | Converts a 'H.SrcLoc' by creating a zero width source span and applying
---   the conversion for 'H.SrcSpan's.
-instance SrcSpanConverter H.SrcLoc where
-  convertSrcSpan codeByFilename = convertSrcSpan codeByFilename . join H.mkSrcSpan
 
 -------------------------------------------------------------------------------
 -- Reporter monad                                                            --
@@ -224,16 +164,6 @@ instance Pretty Severity where
   pretty Warning = prettyString "warning"
   pretty Info    = prettyString "info"
 
--- | Pretty instance for a source span that displays the filename and the start
---   position of the source span.
-instance Pretty SrcSpan where
-  pretty srcSpan =
-    prettyString (srcSpanFilename srcSpan)
-      <> colon
-      <> int (srcSpanStartLine srcSpan)
-      <> colon
-      <> int (srcSpanStartColumn srcSpan)
-
 -- | Pretty instance for messages.
 --
 --   The format of the messages is based on the format used by GHC:
@@ -311,7 +241,7 @@ prettyCodeBlock (Just srcSpan@SrcSpan { srcSpanCodeLines = (code : _) }) =
 
   -- | Whether the source span covers more than one line.
   isMultiLine :: Bool
-  isMultiLine = srcSpanStartLine srcSpan /= srcSpanEndLine srcSpan
+  isMultiLine = spansMultipleLines srcSpan
 
   -- | Document that contains the pipe character @|@.
   pipe :: Doc

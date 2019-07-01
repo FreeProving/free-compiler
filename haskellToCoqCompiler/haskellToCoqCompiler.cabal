@@ -33,6 +33,7 @@ executable haskellToCoqCompiler
                       , Compiler.NonEmptyList
                       , Compiler.Pretty
                       , Compiler.Reporter
+                      , Compiler.SrcSpan
                       , Compiler.Types
                       , Compiler.Util.Data.Tuple
   build-depends:      text ==1.2.*
