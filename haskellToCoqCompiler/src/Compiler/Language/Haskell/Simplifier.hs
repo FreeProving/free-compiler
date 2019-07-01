@@ -29,6 +29,7 @@ import qualified Language.Haskell.Exts.Syntax  as H
 import           Compiler.Reporter
 import qualified Compiler.Language.Haskell.SimpleAST
                                                as HS
+import           Compiler.SrcSpan
 
 -- | Creates a reporter that fails with an error message stating that
 --   the given feature is not supported but required by the given Haskell
@@ -79,13 +80,13 @@ warnIf cond msg node =
 --
 --   Only regular (non XML) modules are supported.
 simplifyModule :: H.Module SrcSpan -> Reporter HS.Module
-simplifyModule (H.Module _ modHead pragmas imports decls)
+simplifyModule (H.Module srcSpan modHead pragmas imports decls)
   | not (null pragmas) = notSupported "Module pragmas" (head pragmas)
   | not (null imports) = notSupported "Module imports" (head imports)
   | otherwise = do
     modIdent <- mapM simplifyModuleHead modHead
     decls'   <- mapM simplifyDecl decls
-    return (HS.Module modIdent decls')
+    return (HS.Module srcSpan modIdent decls')
 simplifyModule modDecl = notSupported "XML modules" modDecl
 
 -- | Gets the module name from the module head.
@@ -109,16 +110,17 @@ simplifyModuleHead (H.ModuleHead _ (H.ModuleName _ modIdent) _ exports) = do
 simplifyDecl :: H.Decl SrcSpan -> Reporter HS.Decl
 
 -- Type synonym declarations.
-simplifyDecl (H.TypeDecl _ declHead typeExpr) = do
+simplifyDecl (H.TypeDecl srcSpan declHead typeExpr) = do
   (declIdent, typeVars) <- simplifyDeclHead declHead
   typeExpr'             <- simplifyType typeExpr
-  return (HS.TypeDecl declIdent typeVars typeExpr')
+  return (HS.TypeDecl srcSpan declIdent typeVars typeExpr')
 
 -- Data type declarations.
-simplifyDecl (H.DataDecl _ (H.DataType _) Nothing declHead conDecls []) = do
-  (declIdent, typeVars) <- simplifyDeclHead declHead
-  conDecls'             <- mapM simplifyConDecl conDecls
-  return (HS.DataDecl declIdent typeVars conDecls')
+simplifyDecl (H.DataDecl srcSpan (H.DataType _) Nothing declHead conDecls []) =
+  do
+    (declIdent, typeVars) <- simplifyDeclHead declHead
+    conDecls'             <- mapM simplifyConDecl conDecls
+    return (HS.DataDecl srcSpan declIdent typeVars conDecls')
 
 -- Not supported data declarations.
 simplifyDecl decl@(H.DataDecl _ (H.NewType _) _ _ _ _) =
@@ -136,11 +138,11 @@ simplifyDecl decl@(H.FunBind _ _) =
   notSupported "Function declarations with more than one rule" decl
 
 -- Pattern-bindings for 0-ary functions.
-simplifyDecl (H.PatBind _ (H.PVar _ declName) (H.UnGuardedRhs _ expr) Nothing)
+simplifyDecl (H.PatBind srcSpan (H.PVar _ declName) (H.UnGuardedRhs _ expr) Nothing)
   = do
     declIdent <- simplifyFuncDeclName declName
     expr'     <- simplifyExpr expr
-    return (HS.FuncDecl declIdent [] expr')
+    return (HS.FuncDecl srcSpan declIdent [] expr')
 
 -- The pattern-binding for a 0-ary function must not use guards are have a
 -- where block.
@@ -154,17 +156,17 @@ simplifyDecl decl@(H.PatBind _ _ _ _) =
   notSupported "Pattern-bindings other than 0-ary function declarations" decl
 
 -- Type signatures.
-simplifyDecl (H.TypeSig _ names typeExpr) = do
+simplifyDecl (H.TypeSig srcSpan names typeExpr) = do
   names'    <- mapM simplifyFuncDeclName names
   typeExpr' <- simplifyType typeExpr
-  return (HS.TypeSig names' typeExpr')
+  return (HS.TypeSig srcSpan names' typeExpr')
 
 -- The user is allowed to specify fixities of custom infix declarations
 -- and they are respected by the haskell-src-exts parser.
-simplifyDecl (H.InfixDecl _ assoc precedence ops) = do
+simplifyDecl (H.InfixDecl srcSpan assoc precedence ops) = do
   assoc' <- simplifyAssoc assoc
   ops'   <- mapM simplifyUnqualOp ops
-  return (HS.FixitySig assoc' precedence ops')
+  return (HS.FixitySig srcSpan assoc' precedence ops')
 
 -- All other declarations are not supported.
 simplifyDecl decl@(H.TypeFamDecl _ _ _ _) = notSupported "Type families" decl
@@ -214,10 +216,12 @@ simplifyAssoc (H.AssocRight _) = return HS.AssocRight
 
 -- | Simplifies an infix operator from a fixity declaration.
 simplifyUnqualOp :: H.Op SrcSpan -> Reporter HS.Op
-simplifyUnqualOp (H.VarOp _ name) =
-  simplifyFuncDeclName name >>= return . HS.VarOp . HS.Ident
-simplifyUnqualOp (H.ConOp _ name) =
-  simplifyConDeclName name >>= return . HS.ConOp . HS.Ident
+simplifyUnqualOp (H.VarOp srcSpan name) = do
+  HS.DeclIdent _ ident <- simplifyFuncDeclName name
+  return (HS.VarOp srcSpan (HS.Ident ident))
+simplifyUnqualOp (H.ConOp srcSpan name) = do
+  HS.DeclIdent _ ident <- simplifyConDeclName name
+  return (HS.ConOp srcSpan (HS.Ident ident))
 
 -------------------------------------------------------------------------------
 -- Data type and type synonym declarations                                   --
@@ -226,7 +230,7 @@ simplifyUnqualOp (H.ConOp _ name) =
 -- | Gets the name the data type or type synonym declaration as well as the
 --   type variables stored in the head of the declaration.
 simplifyDeclHead
-  :: H.DeclHead SrcSpan -> Reporter (HS.DeclIdent, [HS.TypeVarIdent])
+  :: H.DeclHead SrcSpan -> Reporter (HS.DeclIdent, [HS.TypeVarDecl])
 simplifyDeclHead (H.DHead _ declName) = do
   declIdent <- simplifyDeclName declName
   return (declIdent, [])
@@ -244,15 +248,16 @@ simplifyDeclHead declHead@(H.DHInfix _ _ _) =
 --   The name of the declaration must not be a symbol because type operators
 --   are not supported.
 simplifyDeclName :: H.Name SrcSpan -> Reporter HS.DeclIdent
-simplifyDeclName (    H.Ident  _ ident) = return ident
-simplifyDeclName sym@(H.Symbol _ _    ) = notSupported "Type operators" sym
+simplifyDeclName (H.Ident srcSpan ident) = return (HS.DeclIdent srcSpan ident)
+simplifyDeclName sym@(H.Symbol _ _) = notSupported "Type operators" sym
 
 -- | Gets the name of the type variable bound by the given binder.
 --
 --   The type variable must not be a symbol and the binder must not have
 --   an explicit kind annotation.
-simplifyTypeVarBind :: H.TyVarBind SrcSpan -> Reporter HS.TypeVarIdent
-simplifyTypeVarBind (H.UnkindedVar _ (H.Ident _ ident)) = return ident
+simplifyTypeVarBind :: H.TyVarBind SrcSpan -> Reporter HS.TypeVarDecl
+simplifyTypeVarBind (H.UnkindedVar srcSpan (H.Ident _ ident)) =
+  return (HS.DeclIdent srcSpan ident)
 simplifyTypeVarBind typeVarBind@(H.UnkindedVar _ (H.Symbol _ _)) =
   notSupported "Type operators" typeVarBind
 simplifyTypeVarBind typeVarBind@(H.KindedVar _ _ _) =
@@ -280,10 +285,10 @@ simplifyConDecl conDecl@(H.QualConDecl _ _ (Just _) _) =
 --   Record constructors and constructors whose name is a symbol (see
 --   'simplifyConDeclName') are not supported.
 simplifyConDecl' :: H.ConDecl SrcSpan -> Reporter HS.ConDecl
-simplifyConDecl' (H.ConDecl _ conName args) = do
+simplifyConDecl' (H.ConDecl srcSpan conName args) = do
   conIdent <- simplifyConDeclName conName
   args'    <- mapM simplifyType args
-  return (HS.ConDecl conIdent args')
+  return (HS.ConDecl srcSpan conIdent args')
 simplifyConDecl' (H.InfixConDecl pos t1 conName t2) =
   simplifyConDecl' (H.ConDecl pos conName [t1, t2])
 simplifyConDecl' conDecl@(H.RecDecl _ _ _) =
@@ -294,7 +299,8 @@ simplifyConDecl' conDecl@(H.RecDecl _ _ _) =
 --   The name of the declaration must not be a symbol because custom
 --   constructor operators are not supported.
 simplifyConDeclName :: H.Name SrcSpan -> Reporter HS.DeclIdent
-simplifyConDeclName (H.Ident _ ident) = return ident
+simplifyConDeclName (H.Ident srcSpan ident) =
+  return (HS.DeclIdent srcSpan ident)
 simplifyConDeclName sym@(H.Symbol _ _) =
   notSupported "Constructor operator declarations" sym
 
@@ -304,11 +310,12 @@ simplifyConDeclName sym@(H.Symbol _ _) =
 
 -- | Simplifies the single rule of a function declaration.
 simplifyFuncDecl :: H.Match SrcSpan -> Reporter HS.Decl
-simplifyFuncDecl (H.Match _ declName args (H.UnGuardedRhs _ expr) Nothing) = do
-  declIdent <- simplifyFuncDeclName declName
-  args'     <- mapM simplifyVarPat args
-  expr'     <- simplifyExpr expr
-  return (HS.FuncDecl declIdent args' expr')
+simplifyFuncDecl (H.Match srcSpan declName args (H.UnGuardedRhs _ expr) Nothing)
+  = do
+    declIdent <- simplifyFuncDeclName declName
+    args'     <- mapM simplifyVarPat args
+    expr'     <- simplifyExpr expr
+    return (HS.FuncDecl srcSpan declIdent args' expr')
 
 -- Function declarations with guards and where blocks are not supported.
 simplifyFuncDecl (H.Match _ _ _ rhss@(H.GuardedRhss _ _) _) =
@@ -328,7 +335,8 @@ simplifyFuncDecl (H.InfixMatch pos arg declName args rhs binds) =
 --   The name of the declaration must not be a symbol because custom operator
 --   declarations are not supported.
 simplifyFuncDeclName :: H.Name SrcSpan -> Reporter HS.DeclIdent
-simplifyFuncDeclName (H.Ident _ ident) = return ident
+simplifyFuncDeclName (H.Ident srcSpan ident) =
+  return (HS.DeclIdent srcSpan ident)
 simplifyFuncDeclName sym@(H.Symbol _ _) =
   notSupported "Operator declarations" sym
 
@@ -340,35 +348,36 @@ simplifyFuncDeclName sym@(H.Symbol _ _) =
 simplifyType :: H.Type SrcSpan -> Reporter HS.Type
 
 -- Function type @'t1' -> 't2'@.
-simplifyType (H.TyFun _ t1 t2) = do
+simplifyType (H.TyFun srcSpan t1 t2) = do
   t1' <- simplifyType t1
   t2' <- simplifyType t2
-  return (HS.TypeFunc t1' t2')
+  return (HS.TypeFunc srcSpan t1' t2')
 
 -- Pair type @('t1', 't2')@.
-simplifyType (H.TyTuple _ H.Boxed [t1, t2]) = do
+simplifyType (H.TyTuple srcSpan H.Boxed [t1, t2]) = do
   t1' <- simplifyType t1
   t2' <- simplifyType t2
-  return (HS.typeApp HS.pairTypeConName [t1', t2'])
+  return (HS.typeApp srcSpan HS.pairTypeConName [t1', t2'])
 
 -- List type @['t']@.
-simplifyType (H.TyList _ t) = do
+simplifyType (H.TyList srcSpan t) = do
   t' <- simplifyType t
-  return (HS.typeApp HS.listTypeConName [t'])
+  return (HS.typeApp srcSpan HS.listTypeConName [t'])
 
 -- Type constructor application @'t1' 't2'@.
-simplifyType (H.TyApp _ t1 t2) = do
+simplifyType (H.TyApp srcSpan t1 t2) = do
   t1' <- simplifyType t1
   t2' <- simplifyType t2
-  return (HS.TypeApp t1' t2')
+  return (HS.TypeApp srcSpan t1' t2')
 
 -- Type variable @'ident'@.
-simplifyType (H.TyVar _ (H.Ident _ ident)) = return (HS.TypeVar ident)
+simplifyType (H.TyVar srcSpan (H.Ident _ ident)) =
+  return (HS.TypeVar srcSpan ident)
 
 -- Type constructor @'ident'@.
-simplifyType (H.TyCon _ name             ) = do
+simplifyType (H.TyCon srcSpan name) = do
   name' <- simplifyTypeConName name
-  return (HS.TypeCon name')
+  return (HS.TypeCon srcSpan name')
 
 -- Type wrapped in parentheses @('t')@.
 simplifyType (H.TyParen _ t) = simplifyType t
@@ -426,88 +435,91 @@ simplifyTypeConName name@(H.Special _ (H.Cons _)) = usageError
 simplifyExpr :: H.Exp SrcSpan -> Reporter HS.Expr
 
 -- Error terms are regular functions but need to be handled differently.
-simplifyExpr (H.Var _ (H.UnQual _ (H.Ident _ "undefined"))) =
-  return HS.Undefined
-simplifyExpr (H.App _ (H.Var _ (H.UnQual _ (H.Ident _ "error"))) arg) =
+simplifyExpr (H.Var srcSpan (H.UnQual _ (H.Ident _ "undefined"))) =
+  return (HS.Undefined srcSpan)
+simplifyExpr (H.App srcSpan (H.Var _ (H.UnQual _ (H.Ident _ "error"))) arg) =
   case arg of
-    (H.Lit _ (H.String _ msg _)) -> return (HS.ErrorExpr msg)
+    (H.Lit _ (H.String _ msg _)) -> return (HS.ErrorExpr srcSpan msg)
     _ -> notSupported "Non-literal error messages" arg
 
 -- Parenthesis.
-simplifyExpr (H.Paren _ expr) = simplifyExpr expr
+simplifyExpr (H.Paren _       expr) = simplifyExpr expr
 
 -- Variables.
-simplifyExpr (H.Var   _ name) = do
+simplifyExpr (H.Var   srcSpan name) = do
   name' <- simplifyVarName name
-  return (HS.Var name')
+  return (HS.Var srcSpan name')
 
 -- Constructors.
-simplifyExpr (H.Con _ name) = do
+simplifyExpr (H.Con srcSpan name) = do
   name' <- simplifyConName name
-  return (HS.Con name')
+  return (HS.Con srcSpan name')
 
 -- Integer literals.
-simplifyExpr (H.Lit _ (H.Int _ value _) ) = return (HS.IntLiteral value)
+simplifyExpr (H.Lit srcSpan (H.Int _ value _)) =
+  return (HS.IntLiteral srcSpan value)
 
 -- Pairs.
-simplifyExpr (H.Tuple _ H.Boxed [e1, e2]) = do
+simplifyExpr (H.Tuple srcSpan H.Boxed [e1, e2]) = do
   e1' <- simplifyExpr e1
   e2' <- simplifyExpr e2
-  return (HS.conApp HS.pairConName [e1', e2'])
+  return (HS.conApp srcSpan HS.pairConName [e1', e2'])
 
--- Lists.
-simplifyExpr (H.List _ exprs) = do
-  let nil  = HS.Con HS.nilConName
-      cons = HS.Con HS.consConName
+-- List literals are converted to a chain of 'HS.consConName' applications
+-- with a trailing 'HS.nilConName'. All generated constructors refer to
+-- the same source span of the original list literal.
+simplifyExpr (H.List srcSpan exprs) = do
+  let nil  = HS.Con srcSpan HS.nilConName
+      cons = HS.Con srcSpan HS.consConName
   exprs' <- mapM simplifyExpr exprs
-  return (foldr (HS.App . HS.App cons) nil exprs')
+  return (foldr (HS.App srcSpan . HS.App srcSpan cons) nil exprs')
 
 -- Function applications.
-simplifyExpr (H.App _ e1 e2) = do
+simplifyExpr (H.App srcSpan e1 e2) = do
   e1' <- simplifyExpr e1
   e2' <- simplifyExpr e2
-  return (HS.App e1' e2')
+  return (HS.App srcSpan e1' e2')
 
 -- Infix operator, function or constructor applications.
-simplifyExpr (H.InfixApp _ e1 op e2) = do
+simplifyExpr (H.InfixApp srcSpan e1 op e2) = do
   e1' <- simplifyExpr e1
   op' <- simplifyOp op
   e2' <- simplifyExpr e2
-  return (HS.InfixApp e1' op' e2')
+  return (HS.InfixApp srcSpan e1' op' e2')
 
 -- Partial infix applications.
-simplifyExpr (H.LeftSection _ e1 op) = do
+simplifyExpr (H.LeftSection srcSpan e1 op) = do
   e1' <- simplifyExpr e1
   op' <- simplifyOp op
-  return (HS.LeftSection e1' op')
-simplifyExpr (H.RightSection _ op e2) = do
+  return (HS.LeftSection srcSpan e1' op')
+simplifyExpr (H.RightSection srcSpan op e2) = do
   op' <- simplifyOp op
   e2' <- simplifyExpr e2
-  return (HS.RightSection op' e2')
+  return (HS.RightSection srcSpan op' e2')
 
 -- Negation.
-simplifyExpr (H.NegApp _ e) = do
+simplifyExpr (H.NegApp srcSpan e) = do
   e' <- simplifyExpr e
-  return (HS.NegApp e')
+  return (HS.NegApp srcSpan e')
 
 -- Lambda abstractions.
-simplifyExpr (H.Lambda _ args expr) = do
+simplifyExpr (H.Lambda srcSpan args expr) = do
   args' <- mapM simplifyVarPat args
   expr' <- simplifyExpr expr
-  return (HS.Lambda args' expr')
+  return (HS.Lambda srcSpan args' expr')
 
 -- Conditional expressions.
-simplifyExpr (H.If _ e1 e2 e3) = do
+simplifyExpr (H.If srcSpan e1 e2 e3) = do
   e1' <- simplifyExpr e1
   e2' <- simplifyExpr e2
   e3' <- simplifyExpr e3
-  return (HS.If e1' e2' e3')
+  return (HS.If srcSpan e1' e2' e3')
 
 -- Case expressions.
-simplifyExpr (H.Case _ expr alts) = do
+simplifyExpr (H.Case srcSpan expr alts) = do
   expr' <- simplifyExpr expr
   alts' <- mapM simplifyAlt alts
-  return (HS.Case expr' alts')
+  return (HS.Case srcSpan expr' alts')
 
 -- Not supported expressions.
 simplifyExpr expr@(H.OverloadedLabel _ _) =
@@ -588,8 +600,10 @@ simplifyExpr expr@(H.Lit _ (H.PrimString _ _ _)) =
 
 -- | Simplifies an infix operator.
 simplifyOp :: H.QOp SrcSpan -> Reporter HS.Op
-simplifyOp (H.QVarOp _ name) = simplifyVarName name >>= return . HS.VarOp
-simplifyOp (H.QConOp _ name) = simplifyConName name >>= return . HS.ConOp
+simplifyOp (H.QVarOp srcSpan name) =
+  simplifyVarName name >>= return . HS.VarOp srcSpan
+simplifyOp (H.QConOp srcSpan name) =
+  simplifyConName name >>= return . HS.ConOp srcSpan
 
 -- | Gets the name of a variable, defined function or predefined function (e.g.
 --   @(+)@).
@@ -627,9 +641,10 @@ simplifyConName name@(H.Special _ (H.ExprHole _)) =
 --   or function declaration).
 --
 --  Parenthesis are ignored.
-simplifyVarPat :: H.Pat SrcSpan -> Reporter HS.VarIdent
-simplifyVarPat (H.PVar _ (H.Ident _ ident)) = return ident
-simplifyVarPat pat                          = expected "variable pattern" pat
+simplifyVarPat :: H.Pat SrcSpan -> Reporter HS.VarPat
+simplifyVarPat (H.PVar srcSpan (H.Ident _ ident)) =
+  return (HS.VarPat srcSpan ident)
+simplifyVarPat pat = expected "variable pattern" pat
 
 -- Simplifies a constructor pattern.
 --
@@ -640,7 +655,7 @@ simplifyVarPat pat                          = expected "variable pattern" pat
 -- @()@) or pair (i.e. @(x, y)@) constructor pattern, however the list pattern
 -- @[x1, ..., xn]@ is not allowed.
 --  Parentheses are ignored.
-simplifyConPat :: H.Pat SrcSpan -> Reporter (HS.ConName, [HS.VarIdent])
+simplifyConPat :: H.Pat SrcSpan -> Reporter (HS.ConPat, [HS.VarPat])
 
 -- Ignore parentheses.
 simplifyConPat (H.PParen _ pat    ) = simplifyConPat pat
@@ -649,20 +664,20 @@ simplifyConPat (H.PParen _ pat    ) = simplifyConPat pat
 simplifyConPat (H.PApp _ name args) = do
   name' <- simplifyConName name
   vars  <- mapM simplifyVarPat args
-  return (name', vars)
+  return (HS.ConPat (H.ann name) name', vars)
 
 -- Infix constructor pattern (e.g. @x : xs@).
 simplifyConPat (H.PInfixApp _ p1 name p2) = do
   v1    <- simplifyVarPat p1
   name' <- simplifyConName name
   v2    <- simplifyVarPat p2
-  return (name', [v1, v2])
+  return (HS.ConPat (H.ann name) name', [v1, v2])
 
 -- Pair constructor pattern.
-simplifyConPat (H.PTuple _ H.Boxed [p1, p2]) = do
+simplifyConPat (H.PTuple srcSpan H.Boxed [p1, p2]) = do
   v1 <- simplifyVarPat p1
   v2 <- simplifyVarPat p2
-  return (HS.pairConName, [v1, v2])
+  return (HS.ConPat srcSpan HS.pairConName, [v1, v2])
 
 -- Other tuple constructor patterns are not supported.
 simplifyConPat pat@(H.PTuple _ H.Unboxed _) = notSupported "Unboxed tuples" pat
@@ -673,7 +688,8 @@ simplifyConPat pat@(H.PTuple _ H.Boxed _) =
 -- not a shallow pattern (i.e. cannot be represented as a pair of constructor
 -- name and variable patterns).
 -- But we allow the empty list pattern @[]@.
-simplifyConPat pat@(H.PList _ []) = return (HS.nilConName, [])
+simplifyConPat (H.PList srcSpan []) =
+  return (HS.ConPat srcSpan HS.nilConName, [])
 simplifyConPat pat@(H.PList _ _ ) = notSupported "List notation patterns" pat
 
 -- Record constructors are not supported.
@@ -685,10 +701,10 @@ simplifyConPat pat                = expected "constructor pattern" pat
 
 -- | Simplifies an alternative of a case expression.
 simplifyAlt :: H.Alt SrcSpan -> Reporter HS.Alt
-simplifyAlt (H.Alt _ pat (H.UnGuardedRhs _ expr) Nothing) = do
+simplifyAlt (H.Alt srcSpan pat (H.UnGuardedRhs _ expr) Nothing) = do
   (con, vars) <- simplifyConPat pat
   expr'       <- simplifyExpr expr
-  return (HS.Alt con vars expr')
+  return (HS.Alt srcSpan con vars expr')
 simplifyAlt (H.Alt _ _ rhss@(H.GuardedRhss _ _) _) = notSupported "Guards" rhss
 simplifyAlt (H.Alt _ _ _ (Just binds)) =
   notSupported "Local declarations" binds
