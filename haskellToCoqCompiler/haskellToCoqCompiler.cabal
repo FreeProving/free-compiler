@@ -16,26 +16,26 @@ extra-source-files:  ChangeLog.md
 
 cabal-version:       >=1.10
 
-
-executable haskellToCoqCompiler
-  main-is:            Main.hs
-  other-modules:      Compiler.Converter
-                      , Compiler.DependencyAnalysis
-                      , Compiler.HelperFunctionConverter
-                      , Compiler.HelperFunctions
+library haskell-to-coq-internal
+  hs-source-dirs:     src/lib
+  exposed-modules:      Compiler.DependencyAnalysis
                       , Compiler.Language.Coq.Preamble
                       , Compiler.Language.Coq.Pretty
                       , Compiler.Language.Coq.TypeSignature
                       , Compiler.Language.Haskell.Parser
                       , Compiler.Language.Haskell.SimpleAST
                       , Compiler.Language.Haskell.Simplifier
-                      , Compiler.MonadicConverter
                       , Compiler.NonEmptyList
                       , Compiler.Pretty
                       , Compiler.Reporter
                       , Compiler.SrcSpan
                       , Compiler.Types
                       , Compiler.Util.Data.Tuple
+                      -- Currently unused modules whose compilation fails:
+                      --, Compiler.Converter
+                      --, Compiler.HelperFunctionConverter
+                      --, Compiler.HelperFunctions
+                      --, Compiler.MonadicConverter
   build-depends:      text ==1.2.*
                       , haskell-src-exts ==1.20.*
                       , base >=4.11 && <4.12
@@ -47,6 +47,23 @@ executable haskellToCoqCompiler
                       , mtl ==2.2.*
                       , transformers ==0.5.*
                       , language-coq
-  hs-source-dirs:     src
   default-language:   Haskell2010
-  ghc-options:        -Wall -fno-warn-incomplete-patterns
+  ghc-options:        -Wall
+
+executable haskell-to-coq-compiler
+  hs-source-dirs:     src/exe
+  main-is:            Main.hs
+  build-depends:      haskell-to-coq-internal, base
+  default-language:   Haskell2010
+  ghc-options:        -Wall
+
+test-suite unit-tests
+  type:               exitcode-stdio-1.0
+  hs-source-dirs:     src/test
+  main-is:            Spec.hs
+  other-modules:      Compiler.ReporterTests
+  build-depends:      base
+                    , hspec
+                    , haskell-to-coq-internal
+  default-language:   Haskell2010
+  ghc-options:        -Wall
