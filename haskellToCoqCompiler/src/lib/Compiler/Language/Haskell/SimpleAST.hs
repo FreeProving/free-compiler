@@ -88,7 +88,7 @@ data Op = VarOp SrcSpan OpName | ConOp SrcSpan OpName
 --
 --   If the module has no module header, the module name is @'Nothing'@.
 data Module = Module
-  SrcSpan             -- ^ TODO
+  SrcSpan             -- ^ A source span that spans the entire module.
   (Maybe ModuleIdent) -- ^ Optional name of the module.
   [Decl]              -- ^ The declarations.
   deriving (Eq, Show)
@@ -217,9 +217,10 @@ data Alt = Alt
 
 -- | Creates a type constructor application type.
 --
---   The given source span is inserted into every generated constructor.
+--   The given source span is inserted into the generated type constructor
+--   and every generated type constructor application.
 typeApp
-  :: SrcSpan     -- ^ TODO
+  :: SrcSpan     -- ^ The source span to insert into generated nodes.
   -> TypeConName -- ^ The name of the type constructor to apply.
   -> [Type]      -- ^ The type arguments to pass to the type constructor.
   -> Type
@@ -228,9 +229,10 @@ typeApp srcSpan = foldl (TypeApp srcSpan) . TypeCon srcSpan
 
 -- | Creates an expression for applying the function with the given name.
 --
---   The given source span is inserted into every generated constructor.
+--   The given source span is inserted into the generated function reference
+--   and every generated function application.
 varApp
-  :: SrcSpan     -- ^ TODO
+  :: SrcSpan -- ^ The source span to insert into generated nodes.
   -> VarName -- ^ The name of the function to apply.
   -> [Expr]  -- ^ The arguments to pass to the function.
   -> Expr
@@ -238,9 +240,10 @@ varApp srcSpan = foldl (App srcSpan) . Var srcSpan
 
 -- | Creates a data constructor application expression.
 --
---   The given source span is inserted into every generated constructor.
+--   The given source span is inserted into the generated constructor reference
+--   and every generated constructor application.
 conApp
-  :: SrcSpan -- ^ TODO
+  :: SrcSpan -- ^ The source span to insert into generated nodes.
   -> ConName -- ^ The name of the constructor to apply.
   -> [Expr]  -- ^ The arguments to pass to the constructor.
   -> Expr
