@@ -34,8 +34,6 @@ import           System.IO.Error                ( catchIOError
                                                 , ioeGetFileName
                                                 )
 
-import           Text.PrettyPrint.Leijen.Text
-
 import           Compiler.Pretty
 import           Compiler.SrcSpan
 

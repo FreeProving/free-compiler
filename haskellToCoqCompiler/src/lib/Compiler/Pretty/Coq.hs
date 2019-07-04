@@ -13,7 +13,6 @@
 --   with the compiler flag @-Wno-orphans@ for this module.
 module Compiler.Pretty.Coq where
 
-import           Text.PrettyPrint.Leijen.Text
 import           Language.Coq.Pretty            ( Gallina, renderGallina )
 
 import           Compiler.Pretty

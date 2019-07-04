@@ -20,7 +20,6 @@ where
 import           Control.Monad                  ( join )
 
 import qualified Language.Haskell.Exts.SrcLoc  as H
-import           Text.PrettyPrint.Leijen.Text
 
 import           Compiler.Pretty
 

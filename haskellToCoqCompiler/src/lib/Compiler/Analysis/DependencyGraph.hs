@@ -47,8 +47,6 @@ import           Data.Set                       ( Set
                                                 )
 import qualified Data.Set                      as Set
 
-import           Text.PrettyPrint.Leijen.Text
-
 import qualified Compiler.Language.Haskell.SimpleAST
                                                as HS
 import           Compiler.Pretty

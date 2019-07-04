@@ -2,7 +2,18 @@
 --
 --   We are using the 'Pretty' type class from the 'wl-pprint-text' package.
 
-module Compiler.Pretty where
+module Compiler.Pretty
+  ( module Text.PrettyPrint.Leijen.Text
+  , prettySeparated
+  , prettyMaybe
+  , prettyString
+  , prettyText
+  , renderPretty'
+  , putPretty
+  , hPutPretty
+  , writePrettyFile
+  )
+  where
 
 import           System.IO
 import           Data.List                      ( intersperse )
