@@ -19,6 +19,7 @@ cabal-version:       >=1.10
 library haskell-to-coq-internal
   hs-source-dirs:     src/lib
   exposed-modules:      Compiler.Analysis.DependencyAnalysis
+                      , Compiler.Analysis.DependencyGraph
                       , Compiler.Converter.Types
                       , Compiler.Language.Coq.Preamble
                       , Compiler.Language.Coq.TypeSignature
