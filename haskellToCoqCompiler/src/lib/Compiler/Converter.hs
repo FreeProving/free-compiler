@@ -3,16 +3,18 @@ module Compiler.Converter where
 import qualified Language.Coq.Gallina          as G
 import qualified Language.Haskell.Exts.Syntax  as H
 
-import           Compiler.DependencyAnalysis    ( DependencyComponent(..)
+import           Compiler.Analysis.DependencyAnalysis
+                                                ( DependencyComponent(..)
                                                 , groupDeclarations
                                                 )
 import           Compiler.Language.Coq.Preamble ( importDefinitions )
 import           Compiler.Language.Coq.TypeSignature
-import           Compiler.HelperFunctionConverter
+import           Compiler.Converter.HelperFunctionConverter
                                                 ( convertMatchToHelperFunction
                                                 , convertMatchToMainFunction
                                                 )
-import           Compiler.HelperFunctions       ( addInferredTypesToSignature
+import           Compiler.Converter.HelperFunctions
+                                                ( addInferredTypesToSignature
                                                 , applyToDeclHead
                                                 , applyToDeclHeadTyVarBinds
                                                 , changeSimilarType
@@ -54,7 +56,8 @@ import           Compiler.HelperFunctions       ( addInferredTypesToSignature
                                                 , termToQId
                                                 , typeTerm
                                                 )
-import           Compiler.MonadicConverter      ( addBindOperatorsToDefinition
+import           Compiler.Converter.MonadicConverter
+                                                ( addBindOperatorsToDefinition
                                                 , addReturnToRhs
                                                 , getBindOperator
                                                 , singletonTerm
@@ -62,10 +65,11 @@ import           Compiler.MonadicConverter      ( addBindOperatorsToDefinition
                                                 , transformBindersMonadic
                                                 , transformTermMonadic
                                                 )
-import           Compiler.NonEmptyList          ( singleton
+import           Compiler.Util.Data.ListNonEmpty
+                                                ( singleton
                                                 , toNonEmptyList
                                                 )
-import           Compiler.Types                 ( ConversionMonad(..) )
+import           Compiler.Converter.Types       ( ConversionMonad(..) )
 
 import           Data.List                      ( partition )
 import           Data.Maybe                     ( fromJust
@@ -678,8 +682,7 @@ convertHPatToGPat pat _ =
 --
 --  TODO Because we require the type signatures to be present for
 --       all defined functions, the second parameter cannot be @Nothing@.
-convertPatsToBinders
-  :: Show l => [H.Pat l] -> Maybe TypeSignature -> [G.Binder]
+convertPatsToBinders :: Show l => [H.Pat l] -> Maybe TypeSignature -> [G.Binder]
 convertPatsToBinders patList Nothing = [ convertPatToBinder p | p <- patList ]
 convertPatsToBinders patList (Just (TypeSignature _ typeList)) =
   -- FIXME @init typeList@ is not necessarily the list of argument types.

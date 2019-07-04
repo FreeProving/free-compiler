@@ -27,7 +27,7 @@
 --   format such that they can be visualized using Graphviz
 --   (See <https://www.graphviz.org/>).
 
-module Compiler.DependencyAnalysis
+module Compiler.Analysis.DependencyAnalysis
   ( DependencyGraph
   , DependencyComponent(..)
   , groupDependencies

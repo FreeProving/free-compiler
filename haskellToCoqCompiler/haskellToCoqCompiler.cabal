@@ -18,24 +18,24 @@ cabal-version:       >=1.10
 
 library haskell-to-coq-internal
   hs-source-dirs:     src/lib
-  exposed-modules:      Compiler.DependencyAnalysis
+  exposed-modules:      Compiler.Analysis.DependencyAnalysis
+                      , Compiler.Converter.Types
                       , Compiler.Language.Coq.Preamble
-                      , Compiler.Language.Coq.Pretty
                       , Compiler.Language.Coq.TypeSignature
                       , Compiler.Language.Haskell.Parser
                       , Compiler.Language.Haskell.SimpleAST
                       , Compiler.Language.Haskell.Simplifier
-                      , Compiler.NonEmptyList
                       , Compiler.Pretty
+                      , Compiler.Pretty.Coq
                       , Compiler.Reporter
                       , Compiler.SrcSpan
-                      , Compiler.Types
                       , Compiler.Util.Data.Tuple
+                      , Compiler.Util.Data.List.NonEmpty
                       -- Currently unused modules whose compilation fails:
                       --, Compiler.Converter
-                      --, Compiler.HelperFunctionConverter
-                      --, Compiler.HelperFunctions
-                      --, Compiler.MonadicConverter
+                      --, Compiler.Converter.HelperFunctionConverter
+                      --, Compiler.Converter.HelperFunctions
+                      --, Compiler.Converter.MonadicConverter
   build-depends:      text ==1.2.*
                       , haskell-src-exts ==1.20.*
                       , base >=4.11 && <4.12

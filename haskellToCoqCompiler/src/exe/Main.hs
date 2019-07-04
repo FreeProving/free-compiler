@@ -8,12 +8,12 @@ import           System.Console.GetOpt
 import           System.FilePath
 
 import           Compiler.Converter             ( convertModuleWithPreamble )
+import qualified Compiler.Converter.Types
 import           Compiler.Language.Haskell.Parser
                                                 ( parseModuleFile )
-import qualified Compiler.Types
 
-import           Compiler.Language.Coq.Pretty   ( )
 import           Compiler.Pretty
+import           Compiler.Pretty.Coq            ( )
 import           Compiler.Reporter
 
 -- | Data type that stores the command line options passed to the compiler.
@@ -31,7 +31,7 @@ data Options = Options
     optOutputDir :: Maybe FilePath,
 
     -- | The configured conversion monad.
-    optConversionMonad :: Compiler.Types.ConversionMonad
+    optConversionMonad :: Compiler.Converter.Types.ConversionMonad
   }
 
 -- | The default command line options.
@@ -43,7 +43,7 @@ defaultOptions = Options
   { optShowHelp        = False
   , optInputFiles      = []
   , optOutputDir       = Nothing
-  , optConversionMonad = Compiler.Types.Option
+  , optConversionMonad = Compiler.Converter.Types.Option
   }
 
 -- | Command line option descriptors from the @GetOpt@ library.
@@ -65,8 +65,10 @@ options
       ["monad"]
       (ReqArg
         (\m opts -> case m of
-          "option"   -> opts { optConversionMonad = Compiler.Types.Option }
-          "identity" -> opts { optConversionMonad = Compiler.Types.Identity }
+          "option" ->
+            opts { optConversionMonad = Compiler.Converter.Types.Option }
+          "identity" ->
+            opts { optConversionMonad = Compiler.Converter.Types.Identity }
         )
         "(option|identity)"
       )

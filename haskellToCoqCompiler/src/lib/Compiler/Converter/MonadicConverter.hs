@@ -1,9 +1,10 @@
-module Compiler.MonadicConverter where
+module Compiler.Converter.MonadicConverter where
 
 import           Language.Coq.Gallina          as G
 import           Language.Coq.Gallina.Util      ( qualidIsOp )
 
-import           Compiler.HelperFunctions       ( addSuffixToQId
+import           Compiler.Converter.HelperFunctions
+                                                ( addSuffixToQId
                                                 , containsAllConstrs
                                                 , containsMatchTerm
                                                 , convertArgumentsToTerms
@@ -29,11 +30,12 @@ import           Compiler.HelperFunctions       ( addSuffixToQId
                                                 , typeTerm
                                                 )
 import           Compiler.Language.Coq.TypeSignature
-import           Compiler.NonEmptyList          ( fromNonEmptyList
+import           Compiler.Util.Data.List.NonEmpty
+                                                ( fromNonEmptyList
                                                 , singleton
                                                 , toNonEmptyList
                                                 )
-import           Compiler.Types                 ( ConversionMonad(..) )
+import           Compiler.Converter.Types       ( ConversionMonad(..) )
 
 import           Data.Maybe                     ( fromJust
                                                 , isJust

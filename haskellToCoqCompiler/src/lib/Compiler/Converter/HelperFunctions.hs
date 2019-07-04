@@ -1,4 +1,4 @@
-module Compiler.HelperFunctions where
+module Compiler.Converter.HelperFunctions where
 
 import qualified Language.Coq.Gallina          as G
 import qualified Language.Haskell.Exts.Syntax  as H
@@ -10,7 +10,8 @@ import           Data.Maybe                     ( isJust )
 import qualified GHC.Base                      as B
 
 import           Compiler.Language.Coq.TypeSignature
-import           Compiler.NonEmptyList          ( fromNonEmptyList
+import           Compiler.Util.Data.List.NonEmpty
+                                                ( fromNonEmptyList
                                                 , singleton
                                                 , toNonEmptyList
                                                 )

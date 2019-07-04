@@ -7,8 +7,9 @@ import qualified Data.Text                     as T
 
 import qualified Language.Coq.Gallina          as G
 
-import           Compiler.NonEmptyList          ( toNonEmptyList )
-import           Compiler.Types                 ( ConversionMonad(..) )
+import           Compiler.Util.Data.List.NonEmpty
+                                                ( toNonEmptyList )
+import           Compiler.Converter.Types       ( ConversionMonad(..) )
 
 -- | Generates import sentences for the Coq libraries used by the
 --   generated code.

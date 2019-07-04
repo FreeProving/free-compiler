@@ -11,7 +11,7 @@
 --   Because the 'Pretty' and 'Gallina' type class are both declared in
 --   external modules, we have to disable orphan instance error messages
 --   with the compiler flag @-Wno-orphans@ for this module.
-module Compiler.Language.Coq.Pretty where
+module Compiler.Pretty.Coq where
 
 import           Text.PrettyPrint.Leijen.Text
 import           Language.Coq.Pretty            ( Gallina, renderGallina )

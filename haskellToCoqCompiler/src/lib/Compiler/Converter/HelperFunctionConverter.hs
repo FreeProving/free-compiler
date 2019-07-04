@@ -1,6 +1,7 @@
-module Compiler.HelperFunctionConverter where
+module Compiler.Converter.HelperFunctionConverter where
 
-import           Compiler.HelperFunctions       ( addInferredTypesToSignature
+import           Compiler.Converter.HelperFunctions
+                                                ( addInferredTypesToSignature
                                                 , argToTerm
                                                 , containsMatchTerm
                                                 , containsRecursiveCall
@@ -23,7 +24,8 @@ import           Compiler.HelperFunctions       ( addInferredTypesToSignature
                                                 , termToQId
                                                 )
 import           Compiler.Language.Coq.TypeSignature
-import           Compiler.MonadicConverter      ( addMonadicPrefixToBinder
+import           Compiler.Converter.MonadicConverter
+                                                ( addMonadicPrefixToBinder
                                                 , addMonadicPrefixToQId
                                                 , addReturnToRhs
                                                 , getBindOperator
@@ -33,11 +35,12 @@ import           Compiler.MonadicConverter      ( addMonadicPrefixToBinder
                                                 , transformBindersMonadic
                                                 , transformTermMonadic
                                                 )
-import           Compiler.NonEmptyList          ( fromNonEmptyList
+import           Compiler.Util.Data.List.NonEmpty
+                                                ( fromNonEmptyList
                                                 , singleton
                                                 , toNonEmptyList
                                                 )
-import           Compiler.Types                 ( ConversionMonad(..) )
+import           Compiler.Converter.Types       ( ConversionMonad(..) )
 
 import qualified Language.Coq.Gallina          as G
 import qualified Language.Haskell.Exts.Syntax  as H

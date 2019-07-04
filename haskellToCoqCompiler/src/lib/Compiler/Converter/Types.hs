@@ -1,4 +1,4 @@
-module Compiler.Types where
+module Compiler.Converter.Types where
 
 data ConversionMonad
   = Option
