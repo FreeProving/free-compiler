@@ -441,6 +441,8 @@ simplifyExpr (H.App srcSpan (H.Var _ (H.UnQual _ (H.Ident _ "error"))) arg) =
   case arg of
     (H.Lit _ (H.String _ msg _)) -> return (HS.ErrorExpr srcSpan msg)
     _ -> notSupported "Non-literal error messages" arg
+simplifyExpr expr@(H.Var _ (H.UnQual _ (H.Ident _ "error"))) =
+  usageError "The function 'error' must be applied immediately." expr
 
 -- Parenthesis.
 simplifyExpr (H.Paren _       expr) = simplifyExpr expr
