@@ -31,7 +31,7 @@ module Compiler.Analysis.DependencyGraph
   ( DGKey
   , DGNode
   , DGEntry
-  , DependencyGraph
+  , DependencyGraph(..)
   , errorKey
   , undefinedKey
   , entries

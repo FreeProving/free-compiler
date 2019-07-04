@@ -20,6 +20,7 @@ library haskell-to-coq-internal
   hs-source-dirs:     src/lib
   exposed-modules:      Compiler.Analysis.DependencyAnalysis
                       , Compiler.Analysis.DependencyGraph
+                      , Compiler.Analysis.PartialityAnalysis
                       , Compiler.Converter.Types
                       , Compiler.Language.Coq.Preamble
                       , Compiler.Language.Coq.TypeSignature
