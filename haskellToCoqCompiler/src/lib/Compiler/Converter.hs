@@ -107,12 +107,12 @@ convertModuleWithPreamble ast cMonad =
 
 -- | Converts a Haskell module to a Gallina module sentence.
 --
---   If no module header is present the generated module is called @"unnamed"@.
+--   If no module header is present the generated module is called @"Main"@.
 convertModule :: Show l => H.Module l -> ConversionMonad -> G.Sentence
 convertModule (H.Module _ modHead _ _ decls) cMonad = G.LocalModuleSentence
   (G.LocalModule modName sentences)
  where
-  modName    = convertIdent (maybe "unnamed" extractModuleName modHead)
+  modName    = convertIdent (maybe "Main" extractModuleName modHead)
 
   components = groupDeclarations decls
   sentences  = concatMap convertComponent components
