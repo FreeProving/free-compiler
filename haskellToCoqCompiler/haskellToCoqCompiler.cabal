@@ -21,8 +21,11 @@ library haskell-to-coq-internal
   exposed-modules:      Compiler.Analysis.DependencyAnalysis
                       , Compiler.Analysis.DependencyGraph
                       , Compiler.Analysis.PartialityAnalysis
+                      , Compiler.Converter.Renamer
                       , Compiler.Converter.State
                       , Compiler.Converter.Types
+                      , Compiler.Language.Coq.Base
+                      , Compiler.Language.Coq.Keywords
                       , Compiler.Language.Coq.Preamble
                       , Compiler.Language.Coq.TypeSignature
                       , Compiler.Language.Haskell.Parser
@@ -46,6 +49,7 @@ library haskell-to-coq-internal
                       , containers ==0.5.*
                       , lens ==4.16.*
                       , parsec ==3.1.*
+                      , regexpr ==0.5.*
                       , filepath ==1.4.*
                       , mtl ==2.2.*
                       , transformers ==0.5.*
@@ -64,9 +68,11 @@ test-suite unit-tests
   type:               exitcode-stdio-1.0
   hs-source-dirs:     src/test
   main-is:            Spec.hs
-  other-modules:      Compiler.ReporterTests
+  other-modules:      Compiler.Converter.RenamerTests
+                      Compiler.ReporterTests
   build-depends:      base
                     , hspec
+                    , QuickCheck
                     , haskell-to-coq-internal
   default-language:   Haskell2010
   ghc-options:        -Wall

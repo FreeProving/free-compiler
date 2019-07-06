@@ -24,12 +24,20 @@ import           Compiler.Reporter
 
 -- | Data type that encapsulates the state of the converter.
 data Environment = Environment
-  {}
+  { definedIdents :: [String]
+    -- ^ The Coq identifiers for types, (smart) consturctors, functions and
+    --   variables that were used for the translation already.
+  }
 
 -- | An environment that does not even contain any predefined types and
 --   functions.
 emptyEnvironment :: Environment
-emptyEnvironment = Environment {}
+emptyEnvironment = Environment {definedIdents = []}
+
+-- | Adds the given identifier to the list of defined Coq identifiers in the
+--   given environment.
+define :: String -> Environment -> Environment
+define ident env = env { definedIdents = ident : definedIdents env }
 
 -------------------------------------------------------------------------------
 -- State monad                                                               --
