@@ -21,6 +21,7 @@ library haskell-to-coq-internal
   exposed-modules:      Compiler.Analysis.DependencyAnalysis
                       , Compiler.Analysis.DependencyGraph
                       , Compiler.Analysis.PartialityAnalysis
+                      , Compiler.Converter.State
                       , Compiler.Converter.Types
                       , Compiler.Language.Coq.Preamble
                       , Compiler.Language.Coq.TypeSignature

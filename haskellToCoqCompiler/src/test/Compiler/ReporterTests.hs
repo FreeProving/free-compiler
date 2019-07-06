@@ -72,6 +72,7 @@ testMessages = describe "messages" $ do
 -- Tests for @foldReporter@                                                  --
 -------------------------------------------------------------------------------
 
+-- | Test group for 'foldReporter' tests.
 testFoldReporter :: Spec
 testFoldReporter = describe "testFoldReporter" $ do
   it "evaluates the first function if no fatal message was reported" $ do

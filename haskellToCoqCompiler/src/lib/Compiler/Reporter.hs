@@ -56,7 +56,7 @@ data Message = Message (Maybe SrcSpan) Severity String
 --   a fatal error.
 --
 --   This type behaves like @(Maybe a, w)@.
-type Reporter a = MaybeT (Writer [Message]) a
+type Reporter = MaybeT (Writer [Message])
 
 -------------------------------------------------------------------------------
 -- Reporting messages                                                        --
