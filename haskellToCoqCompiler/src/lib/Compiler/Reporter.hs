@@ -64,11 +64,11 @@ type Reporter = MaybeT (Writer [Message])
 
 -- | Creates a successful reporter that reports the given message.
 report :: Message -> Reporter ()
-report = MaybeT . fmap Just . tell . (: [])
+report = lift . tell . (: [])
 
 -- | Creates a reporter that fails with the given message.
 reportFatal :: Message -> Reporter a
-reportFatal = MaybeT . fmap (const Nothing) . tell . (: [])
+reportFatal = (>> mzero) . report
 
 -- | Creates an IO action for a reporter that reports all IO errors that
 --   that occur during the given IO action.
@@ -105,8 +105,7 @@ foldReporter
   -> (a -> b)  -- ^ The function to apply if no fatal error was encountered.
   -> b         -- ^ The value to return if a fatal error was encountered.
   -> b
-foldReporter reporter f v =
-  maybe v f (fst (runWriter (runMaybeT reporter)))
+foldReporter reporter f v = maybe v f (fst (runWriter (runMaybeT reporter)))
 
 -------------------------------------------------------------------------------
 -- Pretty printing messages                                                  --
