@@ -15,6 +15,7 @@ module Compiler.Converter.State
   , putEnv
   , modifyEnv
   , localEnv
+  , liftReporter
   )
 where
 
@@ -112,6 +113,11 @@ evalConverter = evalStateT
 --   returns the final environment.
 execConverter :: Converter a -> Environment -> Reporter Environment
 execConverter = execStateT
+
+-- | Promotes a reporter to a converter that produces the same result and
+--   ignores the environment.
+liftReporter :: Reporter a -> Converter a
+liftReporter = lift
 
 -- | Gets the current environment.
 getEnv :: Converter Environment

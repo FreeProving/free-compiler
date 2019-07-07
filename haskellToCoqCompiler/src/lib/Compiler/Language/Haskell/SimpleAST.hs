@@ -10,6 +10,7 @@
 --   directly.
 module Compiler.Language.Haskell.SimpleAST where
 
+import           Compiler.Pretty
 import           Compiler.SrcSpan
 
 -------------------------------------------------------------------------------
@@ -31,6 +32,12 @@ data Name
   = Ident String  -- ^ An identifier, e.g. @Ident "f"@ for a function @f@.
   | Symbol String -- ^ A symbolic name, e.g. @Symbol "+"@ for @(+)@.
   deriving (Eq, Ord, Show)
+
+-- | Haskell identifiers and symbols can be pretty printed because they are
+--   often used in error messages.
+instance Pretty Name where
+  pretty (Ident ident) = prettyString ident
+  pretty (Symbol symbol) = parens (prettyString symbol)
 
 -- | The name of a function, constructor or build-in operator used in infix
 --   notation, e.g. @x `f` y@ or @x : xs@, @n + m@.

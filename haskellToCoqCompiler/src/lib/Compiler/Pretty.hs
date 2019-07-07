@@ -12,6 +12,7 @@ module Compiler.Pretty
   , putPretty
   , hPutPretty
   , writePrettyFile
+  , showPretty
   )
   where
 
@@ -79,3 +80,11 @@ hPutPretty h = displayIO h . renderPretty'
 -- | Writes a pretty printable value to the file located at the given path.
 writePrettyFile :: Pretty a => FilePath -> a -> IO ()
 writePrettyFile filename = withFile filename WriteMode . flip hPutPretty
+
+-------------------------------------------------------------------------------
+-- Conversion                                                                --
+-------------------------------------------------------------------------------
+
+-- | Convers a pretty printable value to a string.
+showPretty :: Pretty a => a -> String
+showPretty = TL.unpack . displayT . renderPretty'
