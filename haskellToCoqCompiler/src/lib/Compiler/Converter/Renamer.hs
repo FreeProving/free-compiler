@@ -13,6 +13,8 @@ module Compiler.Converter.Renamer
   ( mustRenameIdent
   , renameIdent
   , renameIdent'
+  , renameAndDefineTypeCon
+  , renameAndDefineTypeVar
   )
 where
 
@@ -23,6 +25,8 @@ import           Compiler.Converter.State
 import           Compiler.Language.Coq.AST     as G
 import           Compiler.Language.Coq.Base    as CoqBase
 import           Compiler.Language.Coq.Keywords
+import           Compiler.Language.Haskell.SimpleAST
+                                               as HS
 
 -------------------------------------------------------------------------------
 -- Predicates                                                                --
@@ -85,3 +89,22 @@ renameIdent' env ident n
  where
   identN :: String
   identN = ident ++ (show n)
+
+-------------------------------------------------------------------------------
+-- Define and automatically rename identifiers                              --
+-------------------------------------------------------------------------------
+
+-- | Associates the identifier of a user defined Haskell type constructor with
+--   an automatically generated Coq identifier that does not cause any name
+--   conflict in the given environment.
+renameAndDefineTypeCon :: String -> Environment -> Environment
+renameAndDefineTypeCon ident env =
+  defineTypeCon (HS.Ident ident) (G.bare (renameIdent env ident)) env
+
+
+-- | Associates the identifier of a user defined Haskell type constructor or
+--   variable with an automatically generated Coq identifier that does not
+--   cause any name conflict in the given environment.
+renameAndDefineTypeVar :: String -> Environment -> Environment
+renameAndDefineTypeVar ident env =
+  defineTypeVar (HS.Ident ident) (G.bare (renameIdent env ident)) env
