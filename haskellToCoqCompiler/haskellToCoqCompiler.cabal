@@ -70,8 +70,10 @@ test-suite unit-tests
   type:               exitcode-stdio-1.0
   hs-source-dirs:     src/test
   main-is:            Spec.hs
-  other-modules:      Compiler.Converter.RenamerTests
-                      Compiler.ReporterTests
+  other-modules:      Compiler.ConverterTests
+                    , Compiler.Converter.RenamerTests
+                    , Compiler.ReporterTests
+                    , Compiler.Util.Test
   build-depends:      base
                     , hspec
                     , QuickCheck
