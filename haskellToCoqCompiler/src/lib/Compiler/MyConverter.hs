@@ -5,7 +5,6 @@
 
 module Compiler.MyConverter where
 
-import           Compiler.Util.Data.List.NonEmpty
 import           Compiler.Converter.State
 import qualified Compiler.Language.Coq.AST     as G
 import qualified Compiler.Language.Coq.Base    as CoqBase
