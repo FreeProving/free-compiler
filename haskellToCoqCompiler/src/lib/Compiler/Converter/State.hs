@@ -1,7 +1,11 @@
 module Compiler.Converter.State
-  ( Environment(..)
+  ( Environment
   , emptyEnvironment
-  , define
+  , definedIdents
+  , defineTypeCon
+  , lookupTypeCon
+  , defineTypeVar
+  , lookupTypeVar
   , Converter
   , runConverter
   , evalConverter
@@ -15,7 +19,12 @@ module Compiler.Converter.State
 where
 
 import           Control.Monad.State
+import           Data.Map.Strict                ( Map )
+import qualified Data.Map.Strict               as Map
 
+import           Compiler.Language.Coq.AST     as G
+import           Compiler.Language.Haskell.SimpleAST
+                                               as HS
 import           Compiler.Reporter
 
 -------------------------------------------------------------------------------
@@ -24,20 +33,56 @@ import           Compiler.Reporter
 
 -- | Data type that encapsulates the state of the converter.
 data Environment = Environment
-  { definedIdents :: [String]
-    -- ^ The Coq identifiers for types, (smart) consturctors, functions and
-    --   variables that were used for the translation already.
+  { definedTypeCons :: Map HS.Name G.Qualid
+    -- ^ Maps Haskell type constructor names to corresponding Coq identifiers.
+  , definedTypeVars :: Map HS.Name G.Qualid
+    -- ^ Maps Haskell type variable names to corresponding Coq identifiers.
+    -- TODO constructor, function and variable names.
   }
+  deriving Show
 
 -- | An environment that does not even contain any predefined types and
 --   functions.
 emptyEnvironment :: Environment
-emptyEnvironment = Environment {definedIdents = []}
+emptyEnvironment =
+  Environment {definedTypeCons = Map.empty, definedTypeVars = Map.empty}
 
--- | Adds the given identifier to the list of defined Coq identifiers in the
---   given environment.
-define :: String -> Environment -> Environment
-define ident env = env { definedIdents = ident : definedIdents env }
+-- | Gets a list of Coq identifiers for type constructors and variables,
+--   [TODO smart and data consturctors, functions and variables] that were
+--   used in the given environment already.
+definedIdents :: Environment -> [G.Qualid]
+definedIdents env =
+  Map.elems (definedTypeCons env) ++ Map.elems (definedTypeVars env)
+
+-- | Associates the name of a Haskell type constructor with the corresponding
+--   Coq identifier in the given environment.
+--
+--   If a type constructor with the same name exists, the entry is overwritten.
+defineTypeCon :: HS.Name -> G.Qualid -> Environment -> Environment
+defineTypeCon name ident env =
+  env { definedTypeCons = Map.insert name ident (definedTypeCons env) }
+
+-- | Looks up the Coq identifier for a Haskell type constructor with the given
+--   name in the provided environment.
+--
+--   Returns @Nothing@ if there is no such type constructor.
+lookupTypeCon :: HS.Name -> Environment -> Maybe G.Qualid
+lookupTypeCon name = Map.lookup name . definedTypeCons
+
+-- | Associates the name of a Haskell type variable with the corresponding Coq
+--   identifier in the given environment.
+--
+--   If a type variable with the same name exists, the entry is overwritten.
+defineTypeVar :: HS.Name -> G.Qualid -> Environment -> Environment
+defineTypeVar name ident env =
+  env { definedTypeVars = Map.insert name ident (definedTypeVars env) }
+
+-- | Looks up the Coq identifier for a Haskell type variable with the given
+--   name in the provided environment.
+--
+--   Returns @Nothing@ if there is no such type variable.
+lookupTypeVar :: HS.Name -> Environment -> Maybe G.Qualid
+lookupTypeVar name = Map.lookup name . definedTypeVars
 
 -------------------------------------------------------------------------------
 -- State monad                                                               --

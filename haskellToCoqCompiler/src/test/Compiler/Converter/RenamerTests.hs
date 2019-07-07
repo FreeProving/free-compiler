@@ -3,10 +3,15 @@ module Compiler.Converter.RenamerTests where
 import           Test.Hspec
 import           Test.QuickCheck
 
+import           Data.Maybe                     ( catMaybes )
+
 import           Compiler.Converter.Renamer
 import           Compiler.Converter.State
+import           Compiler.Language.Coq.AST     as G
 import           Compiler.Language.Coq.Keywords
 import           Compiler.Language.Coq.Base    as CoqBase
+import           Compiler.Language.Haskell.SimpleAST
+                                               as HS
 
 -- | Test group for all @Compiler.Converter.Renamer@ tests.
 testRenamer :: Spec
@@ -24,7 +29,7 @@ genIdent = do
   ident <- frequency
     [(6, genRegularIdent), (3, genKeyword), (1, genReservedIdent)]
   num <- choose (0, 42) :: Gen Int
-  oneof [return ident, return (ident ++ show num)]
+  oneof $ map return [ident, (ident ++ show num)]
 
 -- | Generator for arbitrary user defined identifiers.
 genRegularIdent :: Gen String
@@ -32,7 +37,8 @@ genRegularIdent = oneof $ map return ["x", "y", "z"]
 
 -- | Generator for arbitrary identifiers reserved by the Coq Base library.
 genReservedIdent :: Gen String
-genReservedIdent = oneof $ map return CoqBase.reservedIdents
+genReservedIdent =
+  oneof $ map return $ catMaybes $ map (G.unpackQualid) CoqBase.reservedIdents
 
 -- | Generator for arbitrary Coq keywords.
 genKeyword :: Gen String
@@ -51,7 +57,8 @@ testMustRenameIdent = describe "mustRenameIdent" $ do
     property $ forAll genReservedIdent $ mustRenameIdent emptyEnvironment
   it "defined identifiers must be renamed" $ do
     property $ forAll genIdent $ \ident ->
-      let env = define ident emptyEnvironment in mustRenameIdent env ident
+      let env = defineTypeVar (HS.Ident ident) (G.bare ident) emptyEnvironment
+      in  mustRenameIdent env ident
 
 -------------------------------------------------------------------------------
 -- Tests for @renameIdent@                                                   --
