@@ -1,6 +1,8 @@
 module Compiler.Language.Haskell.Parser
-  ( parseModule
+  ( parseHaskell
+  , parseModule
   , parseModuleFile
+  , parseType
   )
 where
 
@@ -9,9 +11,10 @@ import           System.Exit                    ( exitFailure )
 import           Language.Haskell.Exts.Extension
                                                 ( Language(..) )
 import           Language.Haskell.Exts.Parser   ( ParseMode(..)
+                                                , Parseable(..)
                                                 , ParseResult(..)
-                                                , parseModuleWithMode
                                                 )
+import           Language.Haskell.Exts.SrcLoc   ( SrcSpanInfo )
 import qualified Language.Haskell.Exts.Syntax  as H
 
 import           Compiler.Pretty
@@ -36,16 +39,15 @@ parseMode filename = ParseMode
   , ignoreFunctionArity   = True
   }
 
--- | Parses a Haskell module.
---
---   Syntax errors cause a fatal error message to be reported.
-parseModule
-  :: String  -- ^ The name of the Haskell source file.
-  -> String  -- ^ The Haskell source code.
-  -> Reporter (H.Module SrcSpan)
-parseModule filename contents =
-  case parseModuleWithMode (parseMode filename) contents of
-    ParseOk ast -> return (fmap toMessageSrcSpan ast)
+parseHaskell
+  :: (Functor ast, Parseable (ast SrcSpanInfo))
+  => String -- ^ The name of the Haskell source file.
+  -> String -- ^ The Haskell source code.
+  -> Reporter (ast SrcSpan)
+parseHaskell filename contents =
+  case parseWithMode (parseMode filename) contents of
+    ParseOk node ->
+      return (fmap (toMessageSrcSpan :: SrcSpanInfo -> SrcSpan) node)
     ParseFailed loc msg ->
       reportFatal $ Message (Just (toMessageSrcSpan loc)) Error msg
  where
@@ -62,6 +64,19 @@ parseModule filename contents =
   toMessageSrcSpan :: SrcSpanConverter l => l -> SrcSpan
   toMessageSrcSpan = convertSrcSpan codeByFilename
 
+-------------------------------------------------------------------------------
+-- Modules                                                                   --
+-------------------------------------------------------------------------------
+
+-- | Parses a Haskell module.
+--
+--   Syntax errors cause a fatal error message to be reported.
+parseModule
+  :: String  -- ^ The name of the Haskell source file.
+  -> String  -- ^ The Haskell source code.
+  -> Reporter (H.Module SrcSpan)
+parseModule = parseHaskell
+
 -- | Loads and parses a Haskell module from the file with the given name.
 --
 --   Exists the application if a syntax error is encountered.
@@ -75,3 +90,14 @@ parseModuleFile filename = do
     return (parseModule filename contents)
   putPretty (messages reporter)
   foldReporter reporter return exitFailure
+
+-------------------------------------------------------------------------------
+-- Types                                                                   --
+-------------------------------------------------------------------------------
+
+-- | Parses a Haskell type.
+parseType
+  :: String -- ^ The name of the Haskell source file.
+  -> String -- ^ The Haskell source code.
+  -> Reporter (H.Type SrcSpan)
+parseType = parseHaskell
