@@ -5,7 +5,10 @@
 
 module Compiler.MyConverter where
 
+import           Compiler.Analysis.DependencyAnalysis
+                                                ( DependencyComponent(..) )
 import           Compiler.Converter.State
+import           Compiler.Converter.Renamer
 import qualified Compiler.Language.Coq.AST     as G
 import qualified Compiler.Language.Coq.Base    as CoqBase
 import qualified Compiler.Language.Haskell.SimpleAST
@@ -13,12 +16,88 @@ import qualified Compiler.Language.Haskell.SimpleAST
 import           Compiler.Pretty
 import           Compiler.Reporter
 import           Compiler.SrcSpan
+import           Compiler.Util.Data.List.NonEmpty
 
 -- | Initially the environment contains the predefined functions, data types
 --   and their constructors from the Coq Base library that accompanies this
 --   compiler.
 defaultEnvironment :: Environment
 defaultEnvironment = CoqBase.predefine emptyEnvironment
+
+-------------------------------------------------------------------------------
+-- Data type declarations                                                    --
+-------------------------------------------------------------------------------
+
+-- | Converts a strongly connected component of the type dependency graph.
+convertTypeComponent :: DependencyComponent -> Converter [G.Sentence]
+convertTypeComponent (NonRecursive decl) =
+  -- TODO handle type declaration diffently.
+  convertDataDecls [decl]
+convertTypeComponent (Recursive decls) =
+  -- TODO filter type declarations, handle them separatly and expand
+  --      type synonyms from this component in data declarations.
+  convertDataDecls decls
+
+-- | Converts multiple (mutually recursive) Haskell data type declaration
+--   declarations.
+convertDataDecls :: [HS.Decl] -> Converter [G.Sentence]
+convertDataDecls dataDecls = do
+  indBodies <- mapM convertDataDecl dataDecls
+  return [G.InductiveSentence (G.Inductive (toNonEmptyList indBodies) [])]
+  -- TODO Arguments
+  -- TODO Smart Constructors
+
+convertDataDecl :: HS.Decl -> Converter G.IndBody
+convertDataDecl (HS.DataDecl srcSpan (HS.DeclIdent _ ident) typeVarDecls conDecls)
+  = do
+    -- TODO detect redefinition
+    ident'        <- renameAndDefineTypeCon ident
+    typeVarDecls' <- convertTypeVarDecls typeVarDecls
+    returnType    <- convertType $ HS.typeApp
+      srcSpan
+      (HS.Ident ident)
+      (map (HS.TypeVar srcSpan . fromDeclIdent) typeVarDecls)
+    conDecls' <- mapM (convertConDecl returnType) conDecls
+    return
+      (G.IndBody (G.bare ident')
+                 (genericArgDecls ++ typeVarDecls')
+                 G.sortType
+                 conDecls'
+      )
+
+-- | Converts the declarations of type variables in the head of a data type or
+--   type synonym declaration to a Coq binder for a set of explicit type
+--   arguments.
+--
+--   E.g. the declaration of the type variable @a@ in @data D a = ...@ is
+--   translated to the binder @(a : Type)@. If there are multiple type variable
+--   declarations as in @data D a b = ...@ they are grouped into a single
+--   binder @(a b : Type)@ because we assume all Haskell type variables to be
+--   of kind @*@.
+--
+--   In addition to the binders, the renamed Coq identifiers are returned.
+convertTypeVarDecls :: [HS.TypeVarDecl] -> Converter [G.Binder]
+convertTypeVarDecls typeVarDecls = do
+  -- TODO detect redefinition
+  let idents = map fromDeclIdent typeVarDecls
+  idents' <- mapM renameAndDefineTypeVar idents
+  return
+    [ G.Typed G.Ungeneralizable
+              G.Explicit
+              (toNonEmptyList (map (G.Ident . G.bare) idents'))
+              G.sortType
+    ]
+
+-- | Converts a Haskell data constructor declaration.
+convertConDecl
+  :: G.Term     -- ^ The Coq type produced by the constructor.
+  -> HS.ConDecl -- ^ The constructor to convert.
+  -> Converter (G.Qualid, [G.Binder], Maybe G.Term)
+convertConDecl returnType (HS.ConDecl _ (HS.DeclIdent _ ident) args) = do
+  -- TODO detect redefinition
+  ident' <- renameAndDefineCon ident
+  args'  <- mapM convertType args
+  return (G.bare ident', [], Just (args' `G.arrows` returnType))
 
 -------------------------------------------------------------------------------
 -- Type expressions                                                          --
@@ -62,6 +141,21 @@ convertType' (HS.TypeFunc _ t1 t2) = do
 -------------------------------------------------------------------------------
 -- Utility functions                                                         --
 -------------------------------------------------------------------------------
+
+-- | Extracts the actual identifier from an identifier in a declaration.
+fromDeclIdent :: HS.DeclIdent -> String
+fromDeclIdent (HS.DeclIdent _ ident) = ident
+
+-------------------------------------------------------------------------------
+-- Free monad arguments                                                      --
+-------------------------------------------------------------------------------
+
+-- | The declarations of type parameters for the
+genericArgDecls :: [G.Binder]
+genericArgDecls = map (uncurry genericArgDecl) CoqBase.freeArgs
+ where
+  genericArgDecl :: G.Qualid -> G.Term -> G.Binder
+  genericArgDecl = G.Typed G.Ungeneralizable G.Explicit . singleton . G.Ident
 
 -- | Smart constructor for the application of a Coq function or (type)
 --   constructor that requires the parameters for the @Free@ monad.

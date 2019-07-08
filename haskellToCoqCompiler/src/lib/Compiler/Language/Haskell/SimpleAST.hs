@@ -151,7 +151,7 @@ data Decl
 --  allowed to be in infix notation, but the name of the constructor must
 --  not be a symbol.
 data ConDecl = ConDecl
-  SrcSpan   -- ^ TODO
+  SrcSpan   -- ^ A source span that spans the entire constructor declaration.
   DeclIdent -- ^ The name of the constructor.
   [Type]    -- ^ The types of the constructor arguments.
   deriving (Eq, Show)
@@ -212,7 +212,7 @@ data Expr
 --   matched expression's data type. All arguments of the constructor pattern
 --   are variable patterns.
 data Alt = Alt
-  SrcSpan      -- ^ TODO
+  SrcSpan      -- ^ A source span that spans the entire alternative.
   ConPat       -- ^ The name of the constructor matched by this alternative.
   [VarPat]     -- ^ Variable patterns for the arguments of the constructor.
   Expr         -- ^ The right hand side of this alternative.
