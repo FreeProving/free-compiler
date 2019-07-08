@@ -6,8 +6,6 @@ module Compiler.Language.Haskell.Parser
   )
 where
 
-import           System.Exit                    ( exitFailure )
-
 import           Language.Haskell.Exts.Extension
                                                 ( Language(..) )
 import           Language.Haskell.Exts.Parser   ( ParseMode(..)
@@ -17,7 +15,6 @@ import           Language.Haskell.Exts.Parser   ( ParseMode(..)
 import           Language.Haskell.Exts.SrcLoc   ( SrcSpanInfo )
 import qualified Language.Haskell.Exts.Syntax  as H
 
-import           Compiler.Pretty
 import           Compiler.Reporter
 import           Compiler.SrcSpan
 
@@ -78,18 +75,12 @@ parseModule
 parseModule = parseHaskell
 
 -- | Loads and parses a Haskell module from the file with the given name.
---
---   Exists the application if a syntax error is encountered.
---   TODO Don't exit but return the reporter to the caller.
 parseModuleFile
   :: String -- ^ The name of the Haskell source file.
-  -> IO (H.Module SrcSpan)
-parseModuleFile filename = do
-  reporter <- reportIOErrors $ do
-    contents <- readFile filename
-    return (parseModule filename contents)
-  putPretty (messages reporter)
-  foldReporter reporter return exitFailure
+  -> IO (Reporter (H.Type SrcSpan)) -- TODO change back to @IO (Reporter (H.Module SrcSpan))@
+parseModuleFile filename = reportIOErrors $ do
+  contents <- readFile filename
+  return (parseType filename contents) -- TODO change back to parseModule
 
 -------------------------------------------------------------------------------
 -- Types                                                                   --

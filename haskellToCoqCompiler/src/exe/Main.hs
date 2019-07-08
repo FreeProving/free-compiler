@@ -7,14 +7,23 @@ import           System.Exit                    ( exitFailure )
 import           System.Console.GetOpt
 import           System.FilePath
 
-import           Compiler.Converter             ( convertModuleWithPreamble )
-import qualified Compiler.Converter.Types
+import           Compiler.MyConverter           ( defaultEnvironment
+                                                , convertType
+                                                )
+import           Compiler.Converter.State       ( evalConverter )
 import           Compiler.Language.Haskell.Parser
                                                 ( parseModuleFile )
 
-import           Compiler.Pretty
+import           Compiler.Language.Haskell.Simplifier
+import           Compiler.Pretty                ( putPretty
+                                                , writePrettyFile
+                                                )
 import           Compiler.Pretty.Coq            ( )
 import           Compiler.Reporter
+
+-------------------------------------------------------------------------------
+-- Command line option parser                                                --
+-------------------------------------------------------------------------------
 
 -- | Data type that stores the command line options passed to the compiler.
 data Options = Options
@@ -28,10 +37,7 @@ data Options = Options
 
     -- | The output directory or 'Nothing' if the output should be printed
     --   to @stdout@.
-    optOutputDir :: Maybe FilePath,
-
-    -- | The configured conversion monad.
-    optConversionMonad :: Compiler.Converter.Types.ConversionMonad
+    optOutputDir :: Maybe FilePath
   }
 
 -- | The default command line options.
@@ -39,12 +45,8 @@ data Options = Options
 --   By default the @option@ monad is selected and output will be printed to
 --   the console.
 defaultOptions :: Options
-defaultOptions = Options
-  { optShowHelp        = False
-  , optInputFiles      = []
-  , optOutputDir       = Nothing
-  , optConversionMonad = Compiler.Converter.Types.Option
-  }
+defaultOptions =
+  Options {optShowHelp = False, optInputFiles = [], optOutputDir = Nothing}
 
 -- | Command line option descriptors from the @GetOpt@ library.
 options :: [OptDescr (Options -> Options)]
@@ -60,39 +62,7 @@ options
       (  "Path to output directory.\n"
       ++ "Optional. Prints to the console by default."
       )
-    , Option
-      ['m']
-      ["monad"]
-      (ReqArg
-        (\m opts -> case m of
-          "option" ->
-            opts { optConversionMonad = Compiler.Converter.Types.Option }
-          "identity" ->
-            opts { optConversionMonad = Compiler.Converter.Types.Identity }
-        )
-        "(option|identity)"
-      )
-      "Conversion monad.\nDefaults to \"option\"."
     ]
-
--- | The header of the help message.
---
---   This text is added before the description of the command line arguments.
-usageHeader :: FilePath -> String
-usageHeader progName =
-  "Usage: "
-    ++ progName
-    ++ " [options...] <input-files...>\n\n"
-    ++ "Command line options:"
-
--- | Prints the help message for the compiler.
---
---   The help message is displayed when the user specifies the "--help" option
---   or there are no input files.
-putUsageInfo :: IO ()
-putUsageInfo = do
-  progName <- getProgName
-  putStrLn (usageInfo (usageHeader progName) options)
 
 -- | Parses the command line arguments.
 --
@@ -124,6 +94,33 @@ parseArgs args
   opts :: Options
   opts = foldr ($) defaultOptions optSetters
 
+-------------------------------------------------------------------------------
+-- Help message                                                              --
+-------------------------------------------------------------------------------
+
+-- | The header of the help message.
+--
+--   This text is added before the description of the command line arguments.
+usageHeader :: FilePath -> String
+usageHeader progName =
+  "Usage: "
+    ++ progName
+    ++ " [options...] <input-files...>\n\n"
+    ++ "Command line options:"
+
+-- | Prints the help message for the compiler.
+--
+--   The help message is displayed when the user specifies the "--help" option
+--   or there are no input files.
+putUsageInfo :: IO ()
+putUsageInfo = do
+  progName <- getProgName
+  putStrLn (usageInfo (usageHeader progName) options)
+
+-------------------------------------------------------------------------------
+-- Main                                                                      --
+-------------------------------------------------------------------------------
+
 -- | The main function of the compiler.
 --
 --   Parses the command line arguments and invokes 'run' if successful.
@@ -149,8 +146,18 @@ run opts
 --   AST is written to the console or output file.
 processInputFile :: Options -> FilePath -> IO ()
 processInputFile opts inputFile = do
-  haskellAst <- parseModuleFile inputFile
-  let coqAst = convertModuleWithPreamble haskellAst (optConversionMonad opts)
+  -- Load and convert module.
+  parserReporter <- parseModuleFile inputFile
+  let reporter = do
+        haskellAst  <- parserReporter
+        haskellAst' <- simplifyType haskellAst -- TODO change to simplifyModule
+        evalConverter (convertType haskellAst') defaultEnvironment -- TODO change to convertType
+
+  -- Print messages.
+  putPretty (messages reporter)
+  coqAst <- foldReporter reporter return exitFailure
+
+  -- Output.
   case (optOutputDir opts) of
     Nothing -> putPretty coqAst
     Just outputDir ->
@@ -170,28 +177,28 @@ outputFileNameFor inputFile outputDir extension =
 -- REPL shortcuts                                                            --
 -------------------------------------------------------------------------------
 
-compileAndPrintFile :: String -> IO ()
-compileAndPrintFile f = run defaultOptions { optInputFiles = [f] }
-
-compileAndSaveFile :: String -> IO ()
-compileAndSaveFile f = run defaultOptions
-  { optInputFiles = [f]
-  , optOutputDir  = Just "./CoqFiles/OutputFiles/"
-  }
-
-parseAndPrintFile :: String -> IO ()
-parseAndPrintFile f = do
-  ast <- parseModuleFile f
-  print ast
-
-testAst :: IO ()
-testAst = parseAndPrintFile "TestModules/Test.hs"
-
-test :: IO ()
-test = compileAndPrintFile "TestModules/Test.hs"
-
-saveTest :: IO ()
-saveTest = compileAndSaveFile "TestModules/Test.hs"
-
-savePrelude :: IO ()
-savePrelude = compileAndSaveFile "TestModules/Prelude.hs"
+-- compileAndPrintFile :: String -> IO ()
+-- compileAndPrintFile f = run defaultOptions { optInputFiles = [f] }
+--
+-- compileAndSaveFile :: String -> IO ()
+-- compileAndSaveFile f = run defaultOptions
+--   { optInputFiles = [f]
+--   , optOutputDir  = Just "./CoqFiles/OutputFiles/"
+--   }
+--
+-- parseAndPrintFile :: String -> IO ()
+-- parseAndPrintFile f = do
+--   ast <- parseModuleFile f
+--   print ast
+--
+-- testAst :: IO ()
+-- testAst = parseAndPrintFile "TestModules/Test.hs"
+--
+-- test :: IO ()
+-- test = compileAndPrintFile "TestModules/Test.hs"
+--
+-- saveTest :: IO ()
+-- saveTest = compileAndSaveFile "TestModules/Test.hs"
+--
+-- savePrelude :: IO ()
+-- savePrelude = compileAndSaveFile "TestModules/Prelude.hs"
