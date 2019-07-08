@@ -23,10 +23,10 @@ import           Text.RegexPR
 import           Data.Maybe                     ( catMaybes )
 
 import           Compiler.Converter.State
-import           Compiler.Language.Coq.AST     as G
-import           Compiler.Language.Coq.Base    as CoqBase
+import qualified Compiler.Language.Coq.AST     as G
+import qualified Compiler.Language.Coq.Base    as CoqBase
 import           Compiler.Language.Coq.Keywords
-import           Compiler.Language.Haskell.SimpleAST
+import qualified Compiler.Language.Haskell.SimpleAST
                                                as HS
 
 -------------------------------------------------------------------------------

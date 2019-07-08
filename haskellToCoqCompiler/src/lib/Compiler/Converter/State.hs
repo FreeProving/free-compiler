@@ -25,8 +25,8 @@ import           Control.Monad.State
 import           Data.Map.Strict                ( Map )
 import qualified Data.Map.Strict               as Map
 
-import           Compiler.Language.Coq.AST     as G
-import           Compiler.Language.Haskell.SimpleAST
+import qualified Compiler.Language.Coq.AST     as G
+import qualified Compiler.Language.Haskell.SimpleAST
                                                as HS
 import           Compiler.Reporter
 
@@ -42,9 +42,6 @@ data Environment = Environment
     -- ^ Maps Haskell type variable names to corresponding Coq identifiers.
   , definedCons :: Map HS.Name G.Qualid
     -- ^ Maps Haskell data constructor names to corresponding Coq identifiers.
-  , definedSmartCons :: Map HS.Name G.Qualid
-    -- ^ Maps Haskell data constructor names to corresponding smart constructor
-    --   Coq identifiers.
     -- TODO function and variable names.
   }
   deriving Show
@@ -52,8 +49,11 @@ data Environment = Environment
 -- | An environment that does not even contain any predefined types and
 --   functions.
 emptyEnvironment :: Environment
-emptyEnvironment =
-  Environment {definedTypeCons = Map.empty, definedTypeVars = Map.empty}
+emptyEnvironment = Environment
+  { definedTypeCons = Map.empty
+  , definedTypeVars = Map.empty
+  , definedCons     = Map.empty
+  }
 
 -- | Gets a list of Coq identifiers for type constructors and variables,
 --   [TODO smart and data consturctors, functions and variables] that were

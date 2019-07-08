@@ -29,6 +29,9 @@ defaultEnvironment = CoqBase.predefine emptyEnvironment
 -- Modules                                                                   --
 -------------------------------------------------------------------------------
 
+-- | Converts a Haskell module to a Gallina module sentence.
+--
+--   If no module header is present the generated module is called @"Main"@.
 -- TODO add preamble
 convertModule :: HS.Module -> Converter G.Sentence
 convertModule (HS.Module _ maybeIdent decls) = do
