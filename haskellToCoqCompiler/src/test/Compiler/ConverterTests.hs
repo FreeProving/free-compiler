@@ -3,7 +3,6 @@ module Compiler.ConverterTests where
 import           Test.Hspec
 
 import           Compiler.Converter.Renamer
-import           Compiler.Converter.State
 
 import           Compiler.Util.Test
 
@@ -20,7 +19,7 @@ testConverter = describe "Compiler.Converter" $ do
 testConvertType :: Spec
 testConvertType = describe "convertType" $ do
   it "translates 'a' correctly" $ fromConverter $ do
-    modifyEnv $ renameAndDefineTypeVar "a"
+    "a" <- renameAndDefineTypeVar "a"
     "a" `shouldTranslateTypeTo` "Free Shape Pos a"
 
   it "translates 'Bool' correctly" $ fromConverter $ do
@@ -33,17 +32,17 @@ testConvertType = describe "convertType" $ do
     "()" `shouldTranslateTypeTo` "Free Shape Pos (Unit Shape Pos)"
 
   it "translates '[a]' correctly" $ fromConverter $ do
-    modifyEnv $ renameAndDefineTypeVar "a"
+    "a" <- renameAndDefineTypeVar "a"
     "[a]" `shouldTranslateTypeTo` "Free Shape Pos (List Shape Pos a)"
 
   it "translates '(a, b)' correctly" $ fromConverter $ do
-    modifyEnv $ renameAndDefineTypeVar "a"
-    modifyEnv $ renameAndDefineTypeVar "b"
+    "a" <- renameAndDefineTypeVar "a"
+    "b" <- renameAndDefineTypeVar "b"
     "(a, b)" `shouldTranslateTypeTo` "Free Shape Pos (Pair Shape Pos a b)"
 
   it "translates 'a -> b' correctly" $ fromConverter $ do
-    modifyEnv $ renameAndDefineTypeVar "a"
-    modifyEnv $ renameAndDefineTypeVar "b"
+    "a" <- renameAndDefineTypeVar "a"
+    "b" <- renameAndDefineTypeVar "b"
     shouldTranslateTypeTo
       "a -> b"
       "Free Shape Pos (Free Shape Pos a -> Free Shape Pos b)"

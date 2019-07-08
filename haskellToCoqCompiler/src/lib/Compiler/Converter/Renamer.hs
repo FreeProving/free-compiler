@@ -96,15 +96,23 @@ renameIdent' env ident n
 
 -- | Associates the identifier of a user defined Haskell type constructor with
 --   an automatically generated Coq identifier that does not cause any name
---   conflict in the given environment.
-renameAndDefineTypeCon :: String -> Environment -> Environment
-renameAndDefineTypeCon ident env =
-  defineTypeCon (HS.Ident ident) (G.bare (renameIdent env ident)) env
+--   conflict in the current environment.
+--
+--   Returns the generated identifier.
+renameAndDefineTypeCon :: String -> Converter String
+renameAndDefineTypeCon ident = do
+  ident' <- inEnv $ flip renameIdent ident
+  modifyEnv $ defineTypeCon (HS.Ident ident) (G.bare ident')
+  return ident'
 
 
 -- | Associates the identifier of a user defined Haskell type constructor or
 --   variable with an automatically generated Coq identifier that does not
---   cause any name conflict in the given environment.
-renameAndDefineTypeVar :: String -> Environment -> Environment
-renameAndDefineTypeVar ident env =
-  defineTypeVar (HS.Ident ident) (G.bare (renameIdent env ident)) env
+--   cause any name conflict in the current environment.
+--
+--   Returns the generated identifier.
+renameAndDefineTypeVar :: String -> Converter String
+renameAndDefineTypeVar ident = do
+  ident' <- inEnv $ flip renameIdent ident
+  modifyEnv $ defineTypeVar (HS.Ident ident) (G.bare ident')
+  return ident'
