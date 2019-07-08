@@ -90,9 +90,8 @@ convertDataDecl (HS.DataDecl srcSpan (HS.DeclIdent _ ident) typeVarDecls conDecl
 --   declarations as in @data D a b = ...@ they are grouped into a single
 --   binder @(a b : Type)@ because we assume all Haskell type variables to be
 --   of kind @*@.
---
---   In addition to the binders, the renamed Coq identifiers are returned.
 convertTypeVarDecls :: [HS.TypeVarDecl] -> Converter [G.Binder]
+convertTypeVarDecls [] = return []
 convertTypeVarDecls typeVarDecls = do
   -- TODO detect redefinition
   let idents = map fromDeclIdent typeVarDecls
