@@ -8,7 +8,7 @@ import           System.Console.GetOpt
 import           System.FilePath
 
 import           Compiler.MyConverter           ( defaultEnvironment
-                                                , convertType
+                                                , convertModule
                                                 )
 import           Compiler.Converter.State       ( evalConverter )
 import           Compiler.Language.Haskell.Parser
@@ -16,6 +16,7 @@ import           Compiler.Language.Haskell.Parser
 
 import           Compiler.Language.Haskell.Simplifier
 import           Compiler.Pretty                ( putPretty
+                                                , putPrettyLn
                                                 , writePrettyFile
                                                 )
 import           Compiler.Pretty.Coq            ( )
@@ -150,8 +151,8 @@ processInputFile opts inputFile = do
   parserReporter <- parseModuleFile inputFile
   let reporter = do
         haskellAst  <- parserReporter
-        haskellAst' <- simplifyType haskellAst -- TODO change to simplifyModule
-        evalConverter (convertType haskellAst') defaultEnvironment -- TODO change to convertType
+        haskellAst' <- simplifyModule haskellAst
+        evalConverter (convertModule haskellAst') defaultEnvironment
 
   -- Print messages.
   putPretty (messages reporter)
@@ -159,7 +160,7 @@ processInputFile opts inputFile = do
 
   -- Output.
   case (optOutputDir opts) of
-    Nothing -> putPretty coqAst
+    Nothing -> putPrettyLn coqAst
     Just outputDir ->
       let outputFileName = outputFileNameFor inputFile outputDir "v"
       in  writePrettyFile outputFileName coqAst

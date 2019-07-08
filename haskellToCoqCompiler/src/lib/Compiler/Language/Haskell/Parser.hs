@@ -77,10 +77,10 @@ parseModule = parseHaskell
 -- | Loads and parses a Haskell module from the file with the given name.
 parseModuleFile
   :: String -- ^ The name of the Haskell source file.
-  -> IO (Reporter (H.Type SrcSpan)) -- TODO change back to @IO (Reporter (H.Module SrcSpan))@
+  -> IO (Reporter (H.Module SrcSpan))
 parseModuleFile filename = reportIOErrors $ do
   contents <- readFile filename
-  return (parseType filename contents) -- TODO change back to parseModule
+  return (parseModule filename contents)
 
 -------------------------------------------------------------------------------
 -- Types                                                                   --

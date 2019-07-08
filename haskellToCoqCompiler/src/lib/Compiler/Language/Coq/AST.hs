@@ -3,6 +3,7 @@
 
 module Compiler.Language.Coq.AST
   ( module Language.Coq.Gallina
+  , ident
   , bare
   , unpackQualid
   , app
@@ -21,9 +22,13 @@ import           Compiler.Util.Data.List.NonEmpty
 -- Identifiers                                                               --
 -------------------------------------------------------------------------------
 
+-- | Smart constructor for unqualified Coq identifiers.
+ident :: String -> G.Ident
+ident = T.pack
+
 -- | Smart constructor for Coq identifiers.
 bare :: String -> G.Qualid
-bare = G.Bare . T.pack
+bare = G.Bare . ident
 
 -- | Gets the identifier for the given unqualified Coq identifier. Returns
 --   @Nothing@ if the given identifier is qualified.

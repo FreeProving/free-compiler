@@ -5,8 +5,9 @@
 
 module Compiler.MyConverter where
 
+import           Data.Maybe                     ( maybe )
+
 import           Compiler.Analysis.DependencyAnalysis
-                                                ( DependencyComponent(..) )
 import           Compiler.Converter.State
 import           Compiler.Converter.Renamer
 import qualified Compiler.Language.Coq.AST     as G
@@ -23,6 +24,18 @@ import           Compiler.Util.Data.List.NonEmpty
 --   compiler.
 defaultEnvironment :: Environment
 defaultEnvironment = CoqBase.predefine emptyEnvironment
+
+-------------------------------------------------------------------------------
+-- Modules                                                                   --
+-------------------------------------------------------------------------------
+
+-- TODO add preamble
+convertModule :: HS.Module -> Converter G.Sentence
+convertModule (HS.Module _ maybeIdent decls) = do
+  let modName    = G.ident (maybe "Main" id maybeIdent)
+      components = groupDeclarations decls
+  sentences <- mapM convertTypeComponent components >>= return . concat
+  return (G.LocalModuleSentence (G.LocalModule modName sentences))
 
 -------------------------------------------------------------------------------
 -- Data type declarations                                                    --

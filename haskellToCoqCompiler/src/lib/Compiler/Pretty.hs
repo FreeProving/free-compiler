@@ -10,7 +10,9 @@ module Compiler.Pretty
   , prettyText
   , renderPretty'
   , putPretty
+  , putPrettyLn
   , hPutPretty
+  , hPutPrettyLn
   , writePrettyFile
   , showPretty
   )
@@ -51,6 +53,18 @@ prettyText :: String -> Doc
 prettyText = foldr (</>) empty . map prettyString . words
 
 -------------------------------------------------------------------------------
+-- Trailing lines                                                            --
+-------------------------------------------------------------------------------
+
+-- | A pretty printable value with a trailing newline.
+data Pretty a => TrailingLine a = TrailingLine a
+
+-- | Pretty prints the wrapped value of a 'TrailingLine' and adds the trailing
+--   newline to the resulting document.
+instance Pretty a => Pretty (TrailingLine a) where
+  pretty (TrailingLine x) = pretty x <> line
+
+-------------------------------------------------------------------------------
 -- Rendering                                                                 --
 -------------------------------------------------------------------------------
 
@@ -73,13 +87,23 @@ renderPretty' = renderPretty ribbonFrac maxLineWidth . pretty
 putPretty :: Pretty a => a -> IO ()
 putPretty = hPutPretty stdout
 
+-- | Prints a pretty printable value to 'stdout' with trailing newline.
+putPrettyLn :: Pretty a => a -> IO ()
+putPrettyLn = putPretty . TrailingLine
+
 -- | Prints a pretty printable value to the given file handle.
 hPutPretty :: Pretty a => Handle -> a -> IO ()
 hPutPretty h = displayIO h . renderPretty'
 
+-- | Prints a pretty printable value to the given file handle and adds a
+--   trailing newline.
+hPutPrettyLn :: Pretty a => Handle -> a -> IO ()
+hPutPrettyLn h = hPutPretty h . TrailingLine
+
 -- | Writes a pretty printable value to the file located at the given path.
+--   There is always a trailing newline at the end of the file.
 writePrettyFile :: Pretty a => FilePath -> a -> IO ()
-writePrettyFile filename = withFile filename WriteMode . flip hPutPretty
+writePrettyFile filename = withFile filename WriteMode . flip hPutPrettyLn
 
 -------------------------------------------------------------------------------
 -- Conversion                                                                --
