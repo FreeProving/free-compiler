@@ -15,6 +15,7 @@ module Compiler.Converter.Renamer
   , renameIdent'
   , renameAndDefineTypeCon
   , renameAndDefineTypeVar
+  , renameAndDefineCon
   )
 where
 
@@ -106,13 +107,25 @@ renameAndDefineTypeCon ident = do
   return ident'
 
 
--- | Associates the identifier of a user defined Haskell type constructor or
---   variable with an automatically generated Coq identifier that does not
---   cause any name conflict in the current environment.
+-- | Associates the identifier of a user defined Haskell type variable with an
+--   automatically generated Coq identifier that does not cause any name
+--   conflict in the current environment.
 --
 --   Returns the generated identifier.
 renameAndDefineTypeVar :: String -> Converter String
 renameAndDefineTypeVar ident = do
+  ident' <- inEnv $ flip renameIdent ident
+  modifyEnv $ defineTypeVar (HS.Ident ident) (G.bare ident')
+  return ident'
+
+-- | Associates the identifier of a user defined Haskell data constructor
+--   with an automatically generated Coq identifier that does not cause any
+--   name conflict in the current environment.
+--
+--   Returns the generated identifier.
+renameAndDefineCon :: String -> Converter String
+renameAndDefineCon ident = do
+  -- TODO Regular constructors should start with a lower case letter in Coq.
   ident' <- inEnv $ flip renameIdent ident
   modifyEnv $ defineTypeVar (HS.Ident ident) (G.bare ident')
   return ident'

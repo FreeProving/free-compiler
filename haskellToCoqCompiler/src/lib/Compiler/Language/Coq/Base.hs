@@ -53,8 +53,8 @@ predefine =
 --   its (smart) constructors and predefined operations.
 predefineBool :: Environment -> Environment
 predefineBool = defineTypeCon (HS.Ident "Bool") (bare "Bool")
-  -- TODO  . defineCon (HS.Ident "True")  (bare "true")  (bare "True_")
-  -- TODO  . defineCon (HS.Ident "False") (bare "false") (bare "False_")
+  . defineCon (HS.Ident "True")  (bare "true")  {- TODO (bare "True_") -}
+  . defineCon (HS.Ident "False") (bare "false") {- TODO (bare "False_") -}
   -- TODO  . defineFunc (HS.Symbol "&&") (bare "andBool")
   -- TODO  . defineFunc (HS.Symbol "||") (bare "orBool")
 
@@ -78,17 +78,17 @@ predefineInt = defineTypeCon (HS.Ident "Int") (bare "Int")
 --   its (smart) constructors.
 predefineList :: Environment -> Environment
 predefineList = defineTypeCon HS.listTypeConName (bare "List")
-  -- TODO  . defineCon HS.nilConName  (bare "nil")  (bare "Nil")
-  -- TODO  . defineCon HS.consConName (bare "cons") (bare "Cons")
+  . defineCon HS.nilConName  (bare "nil")  {- TODO (bare "Nil") -}
+  . defineCon HS.consConName (bare "cons") {- TODO (bare "Cons") -}
 
 -- | Populates the given environment with the predefined pair data type and
 --   its (smart) constructor.
 predefinePair :: Environment -> Environment
 predefinePair = defineTypeCon HS.pairTypeConName (bare "Pair")
-  -- TODO . defineCon HS.pairConName (bare "pair_") (bare "Pair_")
+  . defineCon HS.pairConName (bare "pair_") {- TODO (bare "Pair_") -}
 
 -- | Populate sthe given environment with the predefined unit data type and
 --   its (smart) constructor.
 predefineUnit :: Environment -> Environment
 predefineUnit = defineTypeCon HS.unitTypeConName (bare "Unit")
-  -- TODO . defineCon HS.unitConName (bare "tt") (bare "Tt")
+  . defineCon HS.unitConName (bare "tt") {- TODO (bare "Tt") -}

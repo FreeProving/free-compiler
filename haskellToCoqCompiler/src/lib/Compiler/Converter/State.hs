@@ -6,6 +6,8 @@ module Compiler.Converter.State
   , lookupTypeCon
   , defineTypeVar
   , lookupTypeVar
+  , defineCon
+  , lookupCon
   , Converter
   , runConverter
   , evalConverter
@@ -38,7 +40,12 @@ data Environment = Environment
     -- ^ Maps Haskell type constructor names to corresponding Coq identifiers.
   , definedTypeVars :: Map HS.Name G.Qualid
     -- ^ Maps Haskell type variable names to corresponding Coq identifiers.
-    -- TODO constructor, function and variable names.
+  , definedCons :: Map HS.Name G.Qualid
+    -- ^ Maps Haskell data constructor names to corresponding Coq identifiers.
+  , definedSmartCons :: Map HS.Name G.Qualid
+    -- ^ Maps Haskell data constructor names to corresponding smart constructor
+    --   Coq identifiers.
+    -- TODO function and variable names.
   }
   deriving Show
 
@@ -84,6 +91,27 @@ defineTypeVar name ident env =
 --   Returns @Nothing@ if there is no such type variable.
 lookupTypeVar :: HS.Name -> Environment -> Maybe G.Qualid
 lookupTypeVar name = Map.lookup name . definedTypeVars
+
+-- | Associates the name of a Haskell data constructor with the corresponding
+--   Coq identifiers for the constructor and smart constructor in the given
+--   environment.
+--
+--   If a constructor with the same name exists, the entry is overwritten.
+defineCon
+  :: HS.Name  -- ^ The Haskell name of the constructor.
+  -> G.Qualid -- ^ The Coq identifier for the data constructor.
+  -- TODO -> G.Qualid -- ^ The Coq identifier for the smart constructor.
+  -> Environment
+  -> Environment
+defineCon name ident env =
+  env { definedCons = Map.insert name ident (definedCons env) }
+
+-- | Looks up the Coq identifier for a Haskell data constructor with the given
+--   name in the provided environment.
+--
+--   Returns @Nothing@ if there is no such type variable.
+lookupCon :: HS.Name -> Environment -> Maybe G.Qualid
+lookupCon name = Map.lookup name . definedCons
 
 -------------------------------------------------------------------------------
 -- State monad                                                               --
