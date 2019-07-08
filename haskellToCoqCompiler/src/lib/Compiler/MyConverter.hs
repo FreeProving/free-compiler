@@ -58,6 +58,8 @@ convertTypeComponent (Recursive decls) =
 --   declarations.
 convertDataDecls :: [HS.Decl] -> Converter [G.Sentence]
 convertDataDecls dataDecls = do
+  -- TODO the types need to be defined and renamed here already, otherwise
+  --      they cannot be mutually recursive.
   indBodies <- mapM convertDataDecl dataDecls
   return [G.InductiveSentence (G.Inductive (toNonEmptyList indBodies) [])]
   -- TODO Arguments
