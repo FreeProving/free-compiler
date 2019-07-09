@@ -71,7 +71,7 @@ convertDataDecl (HS.DataDecl srcSpan (HS.DeclIdent _ ident) typeVarDecls conDecl
     -- TODO detect redefinition
     ident'        <- renameAndDefineTypeCon ident
     typeVarDecls' <- convertTypeVarDecls typeVarDecls
-    returnType    <- convertType $ HS.typeApp
+    returnType    <- convertType' $ HS.typeApp
       srcSpan
       (HS.Ident ident)
       (map (HS.TypeVar srcSpan . fromDeclIdent) typeVarDecls)
