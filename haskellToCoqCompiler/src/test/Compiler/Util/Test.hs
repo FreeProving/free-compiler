@@ -66,12 +66,18 @@ parseTestType :: String -> Converter HS.Type
 parseTestType input =
   liftReporter (parseType "<test-input>" input >>= simplifyType)
 
+-- | Parses and simplifies a Haskell declaration for testing purposes.
+parseTestDecl :: String -> Converter HS.Decl
+parseTestDecl input =
+  liftReporter (parseDecl "<test-input>" input >>= simplifyDecl)
+
 -------------------------------------------------------------------------------
 -- Conversion expectations                                                   --
 -------------------------------------------------------------------------------
 
--- | Translates the string representation of a Haskell type to Coq and expects
---   the result to be the given sting representation of a Coq type.
+-- | Translates the string representation of a Haskell type to Coq and sets the
+--   expectation that the result equals the given sting representation of a Coq
+--   type term.
 shouldTranslateTypeTo
   :: String -- ^ The input Haskell type.
   -> String -- ^ The expected output Coq type.
@@ -80,3 +86,11 @@ shouldTranslateTypeTo input expectedOutput = do
   hsType  <- parseTestType input
   coqType <- convertType hsType
   return ((showPretty coqType) `shouldBe` expectedOutput)
+
+-- | Translate sthe string representation of a Haskell declaration to Coq and
+--   sets the expectation that the result equals the given Gallina sentences.
+shouldTranslateDeclsTo :: String -> String -> Converter Expectation
+shouldTranslateDeclsTo input expectedOutput = do
+  hsDecl  <- parseTestDecl input
+  coqDecls <- convertDecls [hsDecl]
+  return ((showPretty coqDecls) `shouldBe` expectedOutput)

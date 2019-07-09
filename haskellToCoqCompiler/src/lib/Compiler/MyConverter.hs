@@ -35,10 +35,14 @@ defaultEnvironment = CoqBase.predefine emptyEnvironment
 -- TODO add preamble
 convertModule :: HS.Module -> Converter G.Sentence
 convertModule (HS.Module _ maybeIdent decls) = do
-  let modName    = G.ident (maybe "Main" id maybeIdent)
-      components = groupDeclarations decls
-  sentences <- mapM convertTypeComponent components >>= return . concat
-  return (G.LocalModuleSentence (G.LocalModule modName sentences))
+  let modName = G.ident (maybe "Main" id maybeIdent)
+  decls' <- convertDecls decls
+  return (G.LocalModuleSentence (G.LocalModule modName decls'))
+
+-- | Converts the declarations from a Haskell module to Coq.
+convertDecls :: [HS.Decl] -> Converter [G.Sentence]
+convertDecls decls = mapM convertTypeComponent components >>= return . concat
+  where components = groupDeclarations decls
 
 -------------------------------------------------------------------------------
 -- Data type declarations                                                    --
@@ -93,7 +97,7 @@ convertDataDecl (HS.DataDecl srcSpan (HS.DeclIdent _ ident) typeVarDecls conDecl
 --   binder @(a b : Type)@ because we assume all Haskell type variables to be
 --   of kind @*@.
 convertTypeVarDecls :: [HS.TypeVarDecl] -> Converter [G.Binder]
-convertTypeVarDecls [] = return []
+convertTypeVarDecls []           = return []
 convertTypeVarDecls typeVarDecls = do
   -- TODO detect redefinition
   let idents = map fromDeclIdent typeVarDecls

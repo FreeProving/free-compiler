@@ -2,6 +2,7 @@ module Compiler.Language.Haskell.Parser
   ( parseHaskell
   , parseModule
   , parseModuleFile
+  , parseDecl
   , parseType
   )
 where
@@ -81,6 +82,17 @@ parseModuleFile
 parseModuleFile filename = reportIOErrors $ do
   contents <- readFile filename
   return (parseModule filename contents)
+
+-------------------------------------------------------------------------------
+-- Declarations                                                              --
+-------------------------------------------------------------------------------
+
+-- | Parses a Haskell type.
+parseDecl
+  :: String -- ^ The name of the Haskell source file.
+  -> String -- ^ The Haskell source code.
+  -> Reporter (H.Decl SrcSpan)
+parseDecl = parseHaskell
 
 -------------------------------------------------------------------------------
 -- Types                                                                   --
