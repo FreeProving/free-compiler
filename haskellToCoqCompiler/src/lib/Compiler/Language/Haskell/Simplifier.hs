@@ -238,7 +238,7 @@ simplifyDeclHead (H.DHParen _ declHead          ) = simplifyDeclHead declHead
 simplifyDeclHead (H.DHApp _ declHead typeVarBind) = do
   (declIdent, typeVars) <- simplifyDeclHead declHead
   typeVar               <- simplifyTypeVarBind typeVarBind
-  return (declIdent, typeVar : typeVars)
+  return (declIdent, typeVars ++ [typeVar])
 simplifyDeclHead declHead@(H.DHInfix _ _ _) =
   notSupported "Type operators" declHead
 
