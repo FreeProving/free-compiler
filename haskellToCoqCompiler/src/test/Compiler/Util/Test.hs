@@ -35,7 +35,7 @@ shouldSucceed reporter = case runReporter reporter of
   (Nothing, ms) -> expectationFailure
     (  "The following "
     ++ show (length ms)
-    ++ " messages where reported:"
+    ++ " messages were reported:\n"
     ++ showPretty ms
     )
 
@@ -51,7 +51,7 @@ shouldReportFatal reporter = case runReporter reporter of
       ++ " messages, none of which is fatal."
       ++ "\n\nThe following value was produced:"
       ++ show x
-      ++ "\n\nThe following messages where reported:"
+      ++ "\n\nThe following messages were reported:"
       ++ showPretty ms
 
 -------------------------------------------------------------------------------
