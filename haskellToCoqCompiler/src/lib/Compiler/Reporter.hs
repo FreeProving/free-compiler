@@ -11,23 +11,30 @@
 --   error messages in a similar way to how the GHC prints error messages.
 
 module Compiler.Reporter
-  ( Message(..)
+  ( -- * Messages
+    Message(..)
   , Severity(..)
+    -- * Reporter monad
   , Reporter
   , runReporter
-  , report
-  , reportFatal
-  , reportTo
-  , reportToOrExit
-  , isFatal
-  , messages
+    -- * Reporter monad transformer
   , ReporterT
   , runReporterT
-  , reportT
-  , reportFatalT
-
+  , lift
+  , hoist
+    -- * Reporting messages
+  , report
+  , reportFatal
+    -- * Reporting IO errors
+  , ReporterIO
   , reportIOErrors
   , reportIOError
+    -- * Handling messages and reporter results
+  , isFatal
+  , messages
+    -- * Handling reportedmessages
+  , reportTo
+  , reportToOrExit
   )
 where
 
@@ -41,9 +48,7 @@ import           Data.Maybe                     ( isNothing
                                                 , maybe
                                                 )
 import           System.Exit                    ( exitFailure )
-import           System.IO                      ( Handle
-                                                , stderr
-                                                )
+import           System.IO                      ( Handle )
 import           System.IO.Error                ( catchIOError
                                                 , ioeGetErrorString
                                                 , ioeGetFileName
@@ -78,23 +83,15 @@ type UnwrappedReporter = MaybeT (Writer [Message])
 --   This type behaves like @(Maybe a, [Message])@.
 type Reporter = ReporterT Identity
 
+-- | Gets the underlying representation of the given reporter.
+unwrapReporter :: Reporter a -> UnwrappedReporter a
+unwrapReporter = runIdentity . unwrapReporterT
+
 -- | Runs the given reporter and returns the produced value as well as all
 --   reported messages. If a fatal message has been reported the produced
 --   value is @Nothing@.
 runReporter :: Reporter a -> (Maybe a, [Message])
 runReporter = runIdentity . runReporterT
-
--------------------------------------------------------------------------------
--- Reporting messages                                                        --
--------------------------------------------------------------------------------
-
--- | Creates a successful reporter that reports the given message.
-report :: Message -> Reporter ()
-report = reportT
-
--- | Creates a reporter that fails with the given message.
-reportFatal :: Message -> Reporter a
-reportFatal = reportFatalT
 
 -------------------------------------------------------------------------------
 -- Reporter monad transformer                                                --
@@ -125,7 +122,7 @@ instance Monad m => Applicative (ReporterT m) where
 --   'fail' is overwritten such that internal errors (e.g. pattern matching
 --   failures in @do@-blocks) are caught.
 instance Monad m => Monad (ReporterT m) where
-  fail = reportFatalT . Message Nothing Internal
+  fail = reportFatal . Message Nothing Internal
   return = ReporterT . return . return
   (>>=) rt f = ReporterT $ do
      (mx, ms) <- runReporterT rt
@@ -136,29 +133,44 @@ instance Monad m => Monad (ReporterT m) where
 instance MonadTrans ReporterT where
  lift mx = ReporterT (mx >>= return . return)
 
+-- | Lifts a reporter to any reporter transformer.
+hoist :: Monad m => Reporter a -> ReporterT m a
+hoist = ReporterT . return . unwrapReporter
+
 -------------------------------------------------------------------------------
--- Reporting messages to reporter monad transformers                         --
+-- Reporting messages                                                        --
 -------------------------------------------------------------------------------
 
 -- | Creates a successful reporter that reports the given message.
-reportT :: Monad m => Message -> ReporterT m ()
-reportT = ReporterT . return . lift . tell . (: [])
+report :: Monad m => Message -> ReporterT m ()
+report = ReporterT . return . lift . tell . (: [])
 
 -- | Creates a reporter that fails with the given message.
-reportFatalT :: Monad m => Message -> ReporterT m a
-reportFatalT =
-  ReporterT . (>>= return . (>> mzero)) . unwrapReporterT . reportT
+reportFatal :: Monad m => Message -> ReporterT m a
+reportFatal = ReporterT . return . (>> mzero) . lift . tell . (: [])
 
 -------------------------------------------------------------------------------
 -- Reporting IO errors                                                       --
 -------------------------------------------------------------------------------
 
+-- | A reporter with an IO action as its inner monad.
+type ReporterIO = ReporterT IO
+
+-- | IO actions can be embedded into reporters.
+instance MonadIO m => MonadIO (ReporterT m) where
+  liftIO action = ReporterT $ do
+     x <- liftIO action
+     return (return x)
+
 -- | Creates an IO action for a reporter that reports all IO errors that
 --   that occur during the given IO action.
 --
 --   All IO errors are considered fatal and have no location information.
-reportIOErrors :: IO (Reporter a) -> IO (Reporter a)
-reportIOErrors action = catchIOError action (return . reportIOError)
+reportIOErrors :: ReporterIO a -> ReporterIO a
+reportIOErrors =
+  ReporterT
+    . flip catchIOError (return . unwrapReporter . reportIOError)
+    . unwrapReporterT
 
 -- | Reports the given IO error as a fatal error with no location information.
 reportIOError :: IOError -> Reporter a
@@ -186,19 +198,19 @@ messages = snd . runReporter
 
 -- | Runs the given reporter and prints all reported messages to the
 --   provided file handle.
-reportTo :: Handle -> Reporter a -> IO (Maybe a)
+reportTo :: MonadIO m => Handle -> ReporterT m a -> m (Maybe a)
 reportTo h reporter = do
-  let (mx, messages) = runReporter reporter
-  hPutPretty h messages
+  (mx, messages) <- runReporterT reporter
+  liftIO $ hPutPretty h messages
   return mx
 
 -- | Runs the given reporter, prints all reported messages to @stderr@ and
 --   exits the application if a fatal message has been reported.
-reportToOrExit :: Handle -> Reporter a -> IO a
+reportToOrExit :: MonadIO m => Handle -> ReporterT m a -> m a
 reportToOrExit h reporter = do
   mx <- reportTo h reporter
   case mx of
-    Nothing -> exitFailure
+    Nothing -> liftIO exitFailure
     Just x  -> return x
 
 -------------------------------------------------------------------------------

@@ -46,7 +46,7 @@ parseHaskell filename contents =
   case parseWithMode (parseMode filename) contents of
     ParseOk node ->
       return (fmap (toMessageSrcSpan :: SrcSpanInfo -> SrcSpan) node)
-    ParseFailed loc msg ->
+    ParseFailed loc msg -> do
       reportFatal $ Message (Just (toMessageSrcSpan loc)) Error msg
  where
   -- | A map that maps the name of the Haskell source file to the lines of
@@ -78,10 +78,10 @@ parseModule = parseHaskell
 -- | Loads and parses a Haskell module from the file with the given name.
 parseModuleFile
   :: String -- ^ The name of the Haskell source file.
-  -> IO (Reporter (H.Module SrcSpan))
+  -> ReporterIO (H.Module SrcSpan)
 parseModuleFile filename = reportIOErrors $ do
-  contents <- readFile filename
-  return (parseModule filename contents)
+  contents <- lift $ readFile filename
+  hoist $ parseModule filename contents
 
 -------------------------------------------------------------------------------
 -- Declarations                                                              --

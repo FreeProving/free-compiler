@@ -1,10 +1,12 @@
 module Main where
 
+import           Control.Monad                  ( join )
 import           System.Environment             ( getArgs
                                                 , getProgName
                                                 )
 import           System.Exit                    ( exitFailure )
 import           System.Console.GetOpt
+import           System.IO                      ( stderr )
 import           System.FilePath
 
 import           Compiler.MyConverter           ( defaultEnvironment
@@ -125,41 +127,39 @@ putUsageInfo = do
 -- | The main function of the compiler.
 --
 --   Parses the command line arguments and invokes 'run' if successful.
+--   All reported messages are printed to @stderr@.
 main :: IO ()
-main = do
-  args <- getArgs
-  let optReporter = parseArgs args
-  putPretty (messages optReporter)
-  foldReporter optReporter run exitFailure
+main = reportToOrExit stderr $ do
+  args <- lift getArgs
+  opts <- hoist $ parseArgs args
+  run opts
 
 -- | Handles the given command line options.
-run :: Options -> IO ()
+--
+--   Prints the help message if the @--help@ option or no input file was
+--   specified. Otherwise all input files are processed (see
+--   'processInputFile'). If a fatal message is reported while processing
+--   any input file, the compiler will exit. All reported messages will be
+--   printed to @stderr@.
+run :: Options -> ReporterIO ()
 run opts
-  | optShowHelp opts = putUsageInfo
+  | optShowHelp opts = lift putUsageInfo
   | null (optInputFiles opts) = do
-    putStrLn "No input file.\n"
-    putUsageInfo
+    report $ Message Nothing Info "No input file."
+    lift putUsageInfo
   | otherwise = mapM_ (processInputFile opts) (optInputFiles opts)
 
 -- | Processes the given input file.
 --
 --   The Haskell module is loaded and converted to Coq. The resulting Coq
 --   AST is written to the console or output file.
-processInputFile :: Options -> FilePath -> IO ()
+processInputFile :: Options -> FilePath -> ReporterIO ()
 processInputFile opts inputFile = do
-  -- Load and convert module.
-  parserReporter <- parseModuleFile inputFile
-  let reporter = do
-        haskellAst  <- parserReporter
-        haskellAst' <- simplifyModule haskellAst
-        evalConverter (convertModule haskellAst') defaultEnvironment
+  haskellAst <- parseModuleFile inputFile
+  haskellAst' <- hoist $ simplifyModule haskellAst
+  coqAst <- hoist $ evalConverter (convertModule haskellAst') defaultEnvironment
 
-  -- Print messages.
-  putPretty (messages reporter)
-  coqAst <- foldReporter reporter return exitFailure
-
-  -- Output.
-  case (optOutputDir opts) of
+  lift $ case (optOutputDir opts) of
     Nothing -> putPrettyLn coqAst
     Just outputDir ->
       let outputFileName = outputFileNameFor inputFile outputDir "v"
