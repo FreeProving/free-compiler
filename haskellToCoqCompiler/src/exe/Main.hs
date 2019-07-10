@@ -1,10 +1,8 @@
 module Main where
 
-import           Control.Monad                  ( join )
 import           System.Environment             ( getArgs
                                                 , getProgName
                                                 )
-import           System.Exit                    ( exitFailure )
 import           System.Console.GetOpt
 import           System.IO                      ( stderr )
 import           System.FilePath
@@ -17,8 +15,7 @@ import           Compiler.Language.Haskell.Parser
                                                 ( parseModuleFile )
 
 import           Compiler.Language.Haskell.Simplifier
-import           Compiler.Pretty                ( putPretty
-                                                , putPrettyLn
+import           Compiler.Pretty                ( putPrettyLn
                                                 , writePrettyFile
                                                 )
 import           Compiler.Pretty.Coq            ( )
