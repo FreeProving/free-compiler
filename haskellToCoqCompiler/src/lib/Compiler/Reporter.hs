@@ -22,6 +22,7 @@ module Compiler.Reporter
   , runReporterT
   , lift
   , hoist
+  , unhoist
     -- * Reporting messages
   , report
   , reportFatal
@@ -136,6 +137,12 @@ instance MonadTrans ReporterT where
 -- | Lifts a reporter to any reporter transformer.
 hoist :: Monad m => Reporter a -> ReporterT m a
 hoist = ReporterT . return . unwrapReporter
+
+-- | Undoes 'hoist'.
+unhoist :: Monad m => ReporterT m a -> m (Reporter a)
+unhoist rt = do
+  u <- unwrapReporterT rt
+  return (ReporterT (Identity u))
 
 -------------------------------------------------------------------------------
 -- Reporting messages                                                        --

@@ -30,32 +30,29 @@ fromConverter = flip evalConverter defaultEnvironment
 --   reporter. If no fatal message is reported, the expectations set by the
 --   reporter are returned. Otherwise the reported messages are printed.
 shouldSucceed :: Reporter Expectation -> Expectation
-shouldSucceed reporter = foldReporter reporter id failure
- where
-  failure :: Expectation
-  failure = expectationFailure (showPretty (messages reporter))
+shouldSucceed reporter = case runReporter reporter of
+  (Just x , _ ) -> x
+  (Nothing, ms) -> expectationFailure
+    (  "The following "
+    ++ show (length ms)
+    ++ " messages where reported:"
+    ++ showPretty ms
+    )
 
 -- | Sets the expectation that a fatal messages is reported by the given
 --   reporter. Prints the produced value and reported messages otherwise.
 shouldReportFatal :: Show a => Reporter a -> Expectation
-shouldReportFatal reporter = foldReporter reporter
-                                          unexpectedSuccess
-                                          expectedFailure
- where
-  expectedFailure :: Expectation
-  expectedFailure = return ()
-
-  unexpectedSuccess :: Show a => a -> Expectation
-  unexpectedSuccess value =
+shouldReportFatal reporter = case runReporter reporter of
+  (Nothing, _) -> return ()
+  (Just x, ms) ->
     expectationFailure
       $  "Expected a fatal message to be reported. Got "
-      ++ show (length (messages reporter))
+      ++ show (length ms)
       ++ " messages, none of which is fatal."
       ++ "\n\nThe following value was produced:"
-      ++ show value
+      ++ show x
       ++ "\n\nThe following messages where reported:"
-      ++ show value
-      ++ showPretty (messages reporter)
+      ++ showPretty ms
 
 -------------------------------------------------------------------------------
 -- Parsing and simplification utility functions                              --

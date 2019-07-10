@@ -99,10 +99,10 @@ testMessages = describe "messages" $ do
 testReportIOErrors :: Spec
 testReportIOErrors = describe "reportIOErrors" $ do
   it "catches IO errors" $ do
-    reporter <- reportIOErrors (ioError (userError "catch me"))
+    reporter <- unhoist $ reportIOErrors (lift $ ioError (userError "catch me"))
     isFatal reporter `shouldBe` True
     length (messages reporter) `shouldBe` 1
   it "forwards reported messages" $ do
-    reporter <- reportIOErrors (return (report testMessage1))
+    reporter <- unhoist $ reportIOErrors (hoist (report testMessage1))
     isFatal reporter `shouldBe` False
     length (messages reporter) `shouldBe` 1
