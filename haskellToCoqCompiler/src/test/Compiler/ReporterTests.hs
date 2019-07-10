@@ -14,18 +14,38 @@ import           Compiler.Reporter
 -- | Test group for all @Compiler.Reporter@ tests.
 testReporter :: Spec
 testReporter = describe "Compiler.Reporter" $ do
+  testRunReporter
   testIsFatal
   testMessages
-  testFoldReporter
   testReportIOErrors
+
+-------------------------------------------------------------------------------
+-- Tests for @runReporter@                                                  --
+-------------------------------------------------------------------------------
+
+-- | Test group for 'runReporter' tests.
+testRunReporter :: Spec
+testRunReporter = describe "runReporter" $ do
+  it "returns 'Just' the produced value if no message was reported" $ do
+    runReporter (return testValue1) `shouldBe` (Just testValue1, [])
+  it "returns 'Just' the produced value if no fatal message was reported" $ do
+    runReporter (report testMessage1 >> return testValue1)
+      `shouldBe` (Just testValue1, [testMessage1])
+  it "returns 'Nothing' if a fatal message was reported" $ do
+    runReporter (reportFatal testMessage1)
+      `shouldBe` (Nothing :: Maybe (), [testMessage1])
 
 -------------------------------------------------------------------------------
 -- Test data                                                                 --
 -------------------------------------------------------------------------------
 
 -- | A message that is reported by some reporters for testing purposes.
-testMessage :: Message
-testMessage = Message Nothing Error "Keyboard not found\nPress F1 to Resume"
+testMessage1 :: Message
+testMessage1 = Message Nothing Error "Keyboard not found\nPress F1 to Resume"
+
+-- | A message that is reported by some reporters for testing purposes.
+testMessage2 :: Message
+testMessage2 = Message Nothing Error "Maximum call stack size exceeded!"
 
 -- | A value that is returned some reporters for testing purposes.
 testValue1 :: Int
@@ -45,11 +65,11 @@ testIsFatal = describe "isFatal" $ do
   it "is not fatal to return from a reporter" $ do
     isFatal (return testValue1) `shouldBe` False
   it "is not fatal to report a regular message" $ do
-    isFatal (report testMessage) `shouldBe` False
+    isFatal (report testMessage1) `shouldBe` False
   it "is fatal to report a fatal message" $ do
-    isFatal (reportFatal testMessage) `shouldBe` True
+    isFatal (reportFatal testMessage1) `shouldBe` True
   it "is fatal if a computation involves reporting a fatal message" $ do
-    isFatal (reportFatal testMessage >> return testValue1) `shouldBe` True
+    isFatal (reportFatal testMessage1 >> return testValue1) `shouldBe` True
 
 -------------------------------------------------------------------------------
 -- Tests for @messages@                                                      --
@@ -59,29 +79,17 @@ testIsFatal = describe "isFatal" $ do
 testMessages :: Spec
 testMessages = describe "messages" $ do
   it "collects all reported messages" $ do
-    let reporter = report testMessage >> report testMessage
+    let reporter = report testMessage1 >> report testMessage1
     length (messages reporter) `shouldBe` 2
   it "collects all messages reported before a fatal message" $ do
-    let reporter = report testMessage >> reportFatal testMessage
+    let reporter = report testMessage1 >> reportFatal testMessage1
     length (messages reporter) `shouldBe` 2
   it "collects no messages reported after a fatal messages" $ do
-    let reporter = reportFatal testMessage >> report testMessage
+    let reporter = reportFatal testMessage1 >> report testMessage1
     length (messages reporter) `shouldBe` 1
-
--------------------------------------------------------------------------------
--- Tests for @foldReporter@                                                  --
--------------------------------------------------------------------------------
-
--- | Test group for 'foldReporter' tests.
-testFoldReporter :: Spec
-testFoldReporter = describe "testFoldReporter" $ do
-  it "evaluates the first function if no fatal message was reported" $ do
-    let reporter = return testValue1
-    foldReporter reporter id testValue2 `shouldBe` testValue1
-  it "return the second value if a fatal message was reported" $ do
-    let reporter = reportFatal testMessage
-    foldReporter reporter id testValue2 `shouldBe` testValue2
-
+  it "collects no messages in the right order" $ do
+    let reporter = report testMessage1 >> report testMessage2
+    messages reporter `shouldBe` [testMessage1, testMessage2]
 
 -------------------------------------------------------------------------------
 -- Tests for @reportIOErrors@                                                --
@@ -95,6 +103,6 @@ testReportIOErrors = describe "reportIOErrors" $ do
     isFatal reporter `shouldBe` True
     length (messages reporter) `shouldBe` 1
   it "forwards reported messages" $ do
-    reporter <- reportIOErrors (return (report testMessage))
+    reporter <- reportIOErrors (return (report testMessage1))
     isFatal reporter `shouldBe` False
     length (messages reporter) `shouldBe` 1

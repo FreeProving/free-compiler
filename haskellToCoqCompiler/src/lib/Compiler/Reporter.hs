@@ -1,5 +1,3 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-
 -- | This module contains the definition of a monad that is used by the
 --   compiler to report error messages, warnings and hints to the user
 --   without throwing an exception or performing IO actions.
@@ -14,22 +12,37 @@
 
 module Compiler.Reporter
   ( Message(..)
-  , Reporter
   , Severity(..)
-  , foldReporter
-  , isFatal
-  , messages
+  , Reporter
+  , runReporter
   , report
   , reportFatal
+  , reportTo
+  , reportToOrExit
+  , isFatal
+  , messages
+  , ReporterT
+  , runReporterT
+  , reportT
+  , reportFatalT
+
   , reportIOErrors
   , reportIOError
   )
 where
 
+import           Control.Monad                  ( liftM
+                                                , ap
+                                                )
+import           Control.Monad.Identity
 import           Control.Monad.Trans.Maybe
 import           Control.Monad.Writer
 import           Data.Maybe                     ( isNothing
                                                 , maybe
+                                                )
+import           System.Exit                    ( exitFailure )
+import           System.IO                      ( Handle
+                                                , stderr
                                                 )
 import           System.IO.Error                ( catchIOError
                                                 , ioeGetErrorString
@@ -55,32 +68,21 @@ data Message = Message (Maybe SrcSpan) Severity String
 -- Reporter monad                                                            --
 -------------------------------------------------------------------------------
 
+-- | The underlying representation of a reporter.
+type UnwrappedReporter = MaybeT (Writer [Message])
+
 -- | A monad that collects the messages reported by the compiler and contains
 --   an optional value that is present only if the compiler did not encounter
 --   a fatal error.
 --
 --   This type behaves like @(Maybe a, [Message])@.
-newtype Reporter a = Reporter (UnwrappedReporter a)
-  deriving (Functor, Applicative)
+type Reporter = ReporterT Identity
 
--- | The only difference of 'Reporter' to 'UnwrappedReporter' is that we need
---   to overwrite 'fail' to catch internal errors (e.g. pattern matching
---   failures in @do@-blocks).
-instance Monad Reporter where
-  return = Reporter . return
-  (>>=) (Reporter mx) f = Reporter (mx >>= \x -> case f x of Reporter y -> y)
-  fail = reportFatal . Message Nothing Internal
-
--------------------------------------------------------------------------------
--- Reporting messages                                                        --
--------------------------------------------------------------------------------
-
--- | The underlying type of 'Reporter'.
-type UnwrappedReporter = MaybeT (Writer [Message])
-
--- | Extracts the internal representation of the given reporter.
-unwrapReporter :: Reporter a -> UnwrappedReporter a
-unwrapReporter (Reporter x) = x
+-- | Runs the given reporter and returns the produced value as well as all
+--   reported messages. If a fatal message has been reported the produced
+--   value is @Nothing@.
+runReporter :: Reporter a -> (Maybe a, [Message])
+runReporter = runIdentity . runReporterT
 
 -------------------------------------------------------------------------------
 -- Reporting messages                                                        --
@@ -88,11 +90,68 @@ unwrapReporter (Reporter x) = x
 
 -- | Creates a successful reporter that reports the given message.
 report :: Message -> Reporter ()
-report = Reporter . lift . tell . (: [])
+report = reportT
 
 -- | Creates a reporter that fails with the given message.
 reportFatal :: Message -> Reporter a
-reportFatal = Reporter . (>> mzero) . unwrapReporter . report
+reportFatal = reportFatalT
+
+-------------------------------------------------------------------------------
+-- Reporter monad transformer                                                --
+-------------------------------------------------------------------------------
+
+-- | A reporter monad parameterized by the inner monad @m@.
+newtype ReporterT m a = ReporterT { unwrapReporterT :: m (UnwrappedReporter a) }
+
+-- | Runs the given reporter and returns the produced value as well as all
+--   reported messages. If a fatal message has been reported the produced
+--   value is @Nothing@. The result is wrapped in the inner monad.
+runReporterT :: Monad m => ReporterT m a -> m (Maybe a, [Message])
+runReporterT rmx = unwrapReporterT rmx >>= (return . runWriter . runMaybeT)
+
+-- | The @Functor@ instance for 'ReporterT' is needed to define the @Monad@
+--   instance.
+instance Monad m => Functor (ReporterT m) where
+  fmap = liftM
+
+-- | The @Applicative@ instance for 'ReporterT' is needed to define the @Monad@
+--   instance.
+instance Monad m => Applicative (ReporterT m) where
+  pure = return
+  (<*>) = ap
+
+-- | The @Monad@ instance for @ReporterT@.
+--
+--   'fail' is overwritten such that internal errors (e.g. pattern matching
+--   failures in @do@-blocks) are caught.
+instance Monad m => Monad (ReporterT m) where
+  fail = reportFatalT . Message Nothing Internal
+  return = ReporterT . return . return
+  (>>=) rt f = ReporterT $ do
+     (mx, ms) <- runReporterT rt
+     (mx', ms') <- maybe (return (Nothing, [])) (runReporterT . f) mx
+     return (MaybeT (writer (mx', ms ++ ms')))
+
+-- | @MonadTrans@ instance for 'ReporterT'.
+instance MonadTrans ReporterT where
+ lift mx = ReporterT (mx >>= return . return)
+
+-------------------------------------------------------------------------------
+-- Reporting messages to reporter monad transformers                         --
+-------------------------------------------------------------------------------
+
+-- | Creates a successful reporter that reports the given message.
+reportT :: Monad m => Message -> ReporterT m ()
+reportT = ReporterT . return . lift . tell . (: [])
+
+-- | Creates a reporter that fails with the given message.
+reportFatalT :: Monad m => Message -> ReporterT m a
+reportFatalT =
+  ReporterT . (>>= return . (>> mzero)) . unwrapReporterT . reportT
+
+-------------------------------------------------------------------------------
+-- Reporting IO errors                                                       --
+-------------------------------------------------------------------------------
 
 -- | Creates an IO action for a reporter that reports all IO errors that
 --   that occur during the given IO action.
@@ -121,15 +180,26 @@ isFatal = isNothing . fst . runReporter
 messages :: Reporter a -> [Message]
 messages = snd . runReporter
 
--- | Handles the result of a reporter by invoking the given function or
---   returning the provided default value depending on whether a fatal
---   error was reported or not.
-foldReporter
-  :: Reporter a
-  -> (a -> b)  -- ^ The function to apply if no fatal error was encountered.
-  -> b         -- ^ The value to return if a fatal error was encountered.
-  -> b
-foldReporter reporter f v = maybe v f (fst (runWriter (runMaybeT reporter)))
+-------------------------------------------------------------------------------
+-- Handling reported messages                                                --
+-------------------------------------------------------------------------------
+
+-- | Runs the given reporter and prints all reported messages to the
+--   provided file handle.
+reportTo :: Handle -> Reporter a -> IO (Maybe a)
+reportTo h reporter = do
+  let (mx, messages) = runReporter reporter
+  hPutPretty h messages
+  return mx
+
+-- | Runs the given reporter, prints all reported messages to @stderr@ and
+--   exits the application if a fatal message has been reported.
+reportToOrExit :: Handle -> Reporter a -> IO a
+reportToOrExit h reporter = do
+  mx <- reportTo h reporter
+  case mx of
+    Nothing -> exitFailure
+    Just x  -> return x
 
 -------------------------------------------------------------------------------
 -- Pretty printing messages                                                  --
