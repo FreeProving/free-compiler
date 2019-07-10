@@ -132,7 +132,7 @@ instance Monad m => Monad (ReporterT m) where
 
 -- | @MonadTrans@ instance for 'ReporterT'.
 instance MonadTrans ReporterT where
- lift mx = ReporterT (mx >>= return . return)
+  lift mx = ReporterT (mx >>= return . return)
 
 -- | Lifts a reporter to any reporter transformer.
 hoist :: Monad m => Reporter a -> ReporterT m a

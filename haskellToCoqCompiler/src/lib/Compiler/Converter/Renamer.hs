@@ -127,5 +127,5 @@ renameAndDefineCon :: String -> Converter String
 renameAndDefineCon ident = do
   -- TODO Regular constructors should start with a lower case letter in Coq.
   ident' <- inEnv $ flip renameIdent ident
-  modifyEnv $ defineTypeVar (HS.Ident ident) (G.bare ident')
+  modifyEnv $ defineCon (HS.Ident ident) (G.bare ident')
   return ident'

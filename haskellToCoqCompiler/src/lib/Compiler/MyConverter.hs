@@ -60,20 +60,27 @@ convertTypeComponent (Recursive decls) =
 
 -- | Converts multiple (mutually recursive) Haskell data type declaration
 --   declarations.
+--
+--   Before the declarations are actually translated, their identifiers are
+--   inserted into the current environement. Otherwise the data types would
+--   not be able to depend on each other.
 convertDataDecls :: [HS.Decl] -> Converter [G.Sentence]
 convertDataDecls dataDecls = do
-  -- TODO the types need to be defined and renamed here already, otherwise
-  --      they cannot be mutually recursive.
+  mapM_ defineDataDecl dataDecls
   indBodies <- mapM convertDataDecl dataDecls
   return [G.InductiveSentence (G.Inductive (toNonEmptyList indBodies) [])]
   -- TODO Arguments
   -- TODO Smart Constructors
 
+-- | Converts a Haskell data type declaration to the body of a Coq @Inductive@
+--   sentence.
+--
+--   This function assumes, that the identifiers for the declared data type
+--   and it's constructors are defined already (see 'defineDataDecl').
 convertDataDecl :: HS.Decl -> Converter G.IndBody
 convertDataDecl (HS.DataDecl srcSpan (HS.DeclIdent _ ident) typeVarDecls conDecls)
   = do
-    -- TODO detect redefinition
-    ident'        <- renameAndDefineTypeCon ident
+    Just qualid   <- inEnv $ lookupTypeCon (HS.Ident ident)
     typeVarDecls' <- convertTypeVarDecls typeVarDecls
     returnType    <- convertType' $ HS.typeApp
       srcSpan
@@ -81,11 +88,7 @@ convertDataDecl (HS.DataDecl srcSpan (HS.DeclIdent _ ident) typeVarDecls conDecl
       (map (HS.TypeVar srcSpan . fromDeclIdent) typeVarDecls)
     conDecls' <- mapM (convertConDecl returnType) conDecls
     return
-      (G.IndBody (G.bare ident')
-                 (genericArgDecls ++ typeVarDecls')
-                 G.sortType
-                 conDecls'
-      )
+      (G.IndBody qualid (genericArgDecls ++ typeVarDecls') G.sortType conDecls')
 
 -- | Converts the declarations of type variables in the head of a data type or
 --   type synonym declaration to a Coq binder for a set of explicit type
@@ -110,15 +113,33 @@ convertTypeVarDecls typeVarDecls = do
     ]
 
 -- | Converts a Haskell data constructor declaration.
+--
+--   This function assumes, that the identifier for the constructor was defined
+--   already (see 'defineConDecl').
 convertConDecl
   :: G.Term     -- ^ The Coq type produced by the constructor.
   -> HS.ConDecl -- ^ The constructor to convert.
   -> Converter (G.Qualid, [G.Binder], Maybe G.Term)
 convertConDecl returnType (HS.ConDecl _ (HS.DeclIdent _ ident) args) = do
-  -- TODO detect redefinition
-  ident' <- renameAndDefineCon ident
-  args'  <- mapM convertType args
-  return (G.bare ident', [], Just (args' `G.arrows` returnType))
+  Just qualid <- inEnv $ lookupCon (HS.Ident ident)
+  args'       <- mapM convertType args
+  return (qualid, [], Just (args' `G.arrows` returnType))
+
+-- | Inserts the given data type declaration and its constructor declarations
+--   into the current environment.
+defineDataDecl :: HS.Decl -> Converter ()
+defineDataDecl (HS.DataDecl _ (HS.DeclIdent _ ident) _ conDecls) = do
+  -- TODO detect redefinition and inform when renamed
+  _ <- renameAndDefineTypeCon ident
+  mapM_ defineConDecl conDecls
+
+-- | Inserts the given data constructor declaration into the current
+--   environment.
+defineConDecl :: HS.ConDecl -> Converter ()
+defineConDecl (HS.ConDecl _ (HS.DeclIdent _ ident) _) = do
+  -- TODO detect redefinition and inform when renamed
+  _ <- renameAndDefineCon ident
+  return ()
 
 -------------------------------------------------------------------------------
 -- Type expressions                                                          --
