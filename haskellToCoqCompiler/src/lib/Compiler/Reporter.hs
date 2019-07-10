@@ -1,3 +1,5 @@
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+
 -- | This module contains the definition of a monad that is used by the
 --   compiler to report error messages, warnings and hints to the user
 --   without throwing an exception or performing IO actions.
@@ -42,10 +44,12 @@ import           Compiler.SrcSpan
 -------------------------------------------------------------------------------
 
 -- | The severity of a message reported by the compiler.
-data Severity = Error | Warning | Info
+data Severity = Internal | Error | Warning | Info
+  deriving (Eq, Show)
 
 -- | A message reported by the compiler.
 data Message = Message (Maybe SrcSpan) Severity String
+  deriving (Eq, Show)
 
 -------------------------------------------------------------------------------
 -- Reporter monad                                                            --
@@ -55,8 +59,28 @@ data Message = Message (Maybe SrcSpan) Severity String
 --   an optional value that is present only if the compiler did not encounter
 --   a fatal error.
 --
---   This type behaves like @(Maybe a, w)@.
-type Reporter = MaybeT (Writer [Message])
+--   This type behaves like @(Maybe a, [Message])@.
+newtype Reporter a = Reporter (UnwrappedReporter a)
+  deriving (Functor, Applicative)
+
+-- | The only difference of 'Reporter' to 'UnwrappedReporter' is that we need
+--   to overwrite 'fail' to catch internal errors (e.g. pattern matching
+--   failures in @do@-blocks).
+instance Monad Reporter where
+  return = Reporter . return
+  (>>=) (Reporter mx) f = Reporter (mx >>= \x -> case f x of Reporter y -> y)
+  fail = reportFatal . Message Nothing Internal
+
+-------------------------------------------------------------------------------
+-- Reporting messages                                                        --
+-------------------------------------------------------------------------------
+
+-- | The underlying type of 'Reporter'.
+type UnwrappedReporter = MaybeT (Writer [Message])
+
+-- | Extracts the internal representation of the given reporter.
+unwrapReporter :: Reporter a -> UnwrappedReporter a
+unwrapReporter (Reporter x) = x
 
 -------------------------------------------------------------------------------
 -- Reporting messages                                                        --
@@ -64,11 +88,11 @@ type Reporter = MaybeT (Writer [Message])
 
 -- | Creates a successful reporter that reports the given message.
 report :: Message -> Reporter ()
-report = lift . tell . (: [])
+report = Reporter . lift . tell . (: [])
 
 -- | Creates a reporter that fails with the given message.
 reportFatal :: Message -> Reporter a
-reportFatal = (>> mzero) . report
+reportFatal = Reporter . (>> mzero) . unwrapReporter . report
 
 -- | Creates an IO action for a reporter that reports all IO errors that
 --   that occur during the given IO action.
@@ -91,11 +115,11 @@ reportIOError = reportFatal . Message Nothing Error . ioErrorMessageText
 
 -- | Tests whether a fatal error was reported to the given reporter.
 isFatal :: Reporter a -> Bool
-isFatal = isNothing . fst . runWriter . runMaybeT
+isFatal = isNothing . fst . runReporter
 
 -- | Gets the messages reported to the given reporter.
 messages :: Reporter a -> [Message]
-messages = execWriter . runMaybeT
+messages = snd . runReporter
 
 -- | Handles the result of a reporter by invoking the given function or
 --   returning the provided default value depending on whether a fatal
@@ -113,6 +137,7 @@ foldReporter reporter f v = maybe v f (fst (runWriter (runMaybeT reporter)))
 
 -- | Pretty instance for message severity levels.
 instance Pretty Severity where
+  pretty Internal = prettyString "internal error"
   pretty Error   = prettyString "error"
   pretty Warning = prettyString "warning"
   pretty Info    = prettyString "info"
