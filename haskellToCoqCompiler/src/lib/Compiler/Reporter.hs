@@ -24,6 +24,7 @@ module Compiler.Reporter
   , hoist
   , unhoist
     -- * Reporting messages
+  , MonadReporter(..)
   , report
   , reportFatal
     -- * Reporting IO errors
@@ -148,13 +149,23 @@ unhoist rt = do
 -- Reporting messages                                                        --
 -------------------------------------------------------------------------------
 
+-- | Type class for all monads within which 'Messages' can be reported.
+class MonadReporter r where
+  -- | Promotes a reporter to @r@.
+  liftReporter :: Reporter a -> r a
+
+-- | Reporters can be trivially promoted to any reporter transformer.
+instance Monad m => MonadReporter (ReporterT m) where
+  liftReporter = hoist
+
 -- | Creates a successful reporter that reports the given message.
-report :: Monad m => Message -> ReporterT m ()
-report = ReporterT . return . lift . tell . (: [])
+report :: MonadReporter r => Message -> r ()
+report = liftReporter . ReporterT . Identity . lift . tell . (: [])
 
 -- | Creates a reporter that fails with the given message.
-reportFatal :: Monad m => Message -> ReporterT m a
-reportFatal = ReporterT . return . (>> mzero) . lift . tell . (: [])
+reportFatal :: MonadReporter r => Message -> r a
+reportFatal =
+  liftReporter . ReporterT . Identity . (>> mzero) . lift . tell . (: [])
 
 -------------------------------------------------------------------------------
 -- Reporting IO errors                                                       --

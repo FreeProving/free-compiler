@@ -212,7 +212,7 @@ genericApply func args = G.app (G.Qualid func) (genericArgs ++ args)
 -- | Reports a fatal error message when an unknown type constructor is
 --   encountered.
 unknownTypeConError :: SrcSpan -> HS.Name -> Converter a
-unknownTypeConError srcSpan name = liftReporter $ reportFatal $ Message
+unknownTypeConError srcSpan name = reportFatal $ Message
   (Just srcSpan)
   Error
   ("Unknown type constructor: " ++ showPretty name)
@@ -223,7 +223,5 @@ unknownTypeConError srcSpan name = liftReporter $ reportFatal $ Message
 --   This could happen if a type variable is used in a data constructor
 --   that was not declaraed in the data type declaration's head.
 unknownTypeVarError :: SrcSpan -> HS.TypeVarIdent -> Converter a
-unknownTypeVarError srcSpan ident = liftReporter $ reportFatal $ Message
-  (Just srcSpan)
-  Error
-  ("Unknown type variable: " ++ ident)
+unknownTypeVarError srcSpan ident = reportFatal
+  $ Message (Just srcSpan) Error ("Unknown type variable: " ++ ident)

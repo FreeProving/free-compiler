@@ -1,5 +1,8 @@
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+
 module Compiler.Converter.State
-  ( Environment
+  ( -- * Environment
+    Environment
   , emptyEnvironment
   , definedIdents
   , defineTypeCon
@@ -8,16 +11,17 @@ module Compiler.Converter.State
   , lookupTypeVar
   , defineCon
   , lookupCon
+    -- * State monad
   , Converter
   , runConverter
   , evalConverter
   , execConverter
+    -- * Modifying environments
   , getEnv
   , inEnv
   , putEnv
   , modifyEnv
   , localEnv
-  , liftReporter
   )
 where
 
@@ -125,27 +129,29 @@ lookupCon name = Map.lookup name . definedCons
 --
 --   Additionally the converter can report error messages and warnings to the
 --   user if there is a problem while converting.
-type Converter = StateT Environment Reporter
+newtype Converter a = Converter
+  { unwrapConverter :: StateT Environment Reporter a
+  }
+  deriving (Functor, Applicative, Monad, MonadState Environment)
 
 -- | Runs the converter with the given initial environment and
 --   returns the converter's result as well as the final environment.
 runConverter :: Converter a -> Environment -> Reporter (a, Environment)
-runConverter = runStateT
+runConverter = runStateT . unwrapConverter
 
 -- | Runs the converter with the given initial environment and
 --   returns the converter's result.
 evalConverter :: Converter a -> Environment -> Reporter a
-evalConverter = evalStateT
+evalConverter = evalStateT . unwrapConverter
 
 -- | Runs the converter with the given initial environment and
 --   returns the final environment.
 execConverter :: Converter a -> Environment -> Reporter Environment
-execConverter = execStateT
+execConverter = execStateT . unwrapConverter
 
--- | Promotes a reporter to a converter that produces the same result and
---   ignores the environment.
-liftReporter :: Reporter a -> Converter a
-liftReporter = lift
+-------------------------------------------------------------------------------
+-- Modifying environments                                                    --
+-------------------------------------------------------------------------------
 
 -- | Gets the current environment.
 getEnv :: Converter Environment
@@ -172,3 +178,16 @@ localEnv converter = do
   x   <- converter
   putEnv env
   return x
+
+-------------------------------------------------------------------------------
+-- Reporting in converter                                                    --
+-------------------------------------------------------------------------------
+
+-- | Promotes a reporter to a converter that produces the same result and
+--   ignores the environment.
+--
+--   This type class instance allows 'report' and 'reportFatal' to be used
+--   directly in @do@-blocks of the 'Converter' monad without explicitly
+--   lifting reporters.
+instance MonadReporter Converter where
+  liftReporter = Converter . lift
