@@ -27,10 +27,10 @@ testReporter = describe "Compiler.Reporter" $ do
 testRunReporter :: Spec
 testRunReporter = describe "runReporter" $ do
   it "returns 'Just' the produced value if no message was reported" $ do
-    runReporter (return testValue1) `shouldBe` (Just testValue1, [])
+    runReporter (return testValue) `shouldBe` (Just testValue, [])
   it "returns 'Just' the produced value if no fatal message was reported" $ do
-    runReporter (report testMessage1 >> return testValue1)
-      `shouldBe` (Just testValue1, [testMessage1])
+    runReporter (report testMessage1 >> return testValue)
+      `shouldBe` (Just testValue, [testMessage1])
   it "returns 'Nothing' if a fatal message was reported" $ do
     runReporter (reportFatal testMessage1)
       `shouldBe` (Nothing :: Maybe (), [testMessage1])
@@ -48,12 +48,8 @@ testMessage2 :: Message
 testMessage2 = Message Nothing Error "Maximum call stack size exceeded!"
 
 -- | A value that is returned some reporters for testing purposes.
-testValue1 :: Int
-testValue1 = 42
-
--- | An alternative value that is returned some reporters for testing purposes.
-testValue2 :: Int
-testValue2 = 1337
+testValue :: Int
+testValue = 42
 
 -------------------------------------------------------------------------------
 -- Tests for @isFatal@                                                       --
@@ -63,13 +59,13 @@ testValue2 = 1337
 testIsFatal :: Spec
 testIsFatal = describe "isFatal" $ do
   it "is not fatal to return from a reporter" $ do
-    isFatal (return testValue1) `shouldBe` False
+    isFatal (return testValue) `shouldBe` False
   it "is not fatal to report a regular message" $ do
     isFatal (report testMessage1) `shouldBe` False
   it "is fatal to report a fatal message" $ do
     isFatal (reportFatal testMessage1) `shouldBe` True
   it "is fatal if a computation involves reporting a fatal message" $ do
-    isFatal (reportFatal testMessage1 >> return testValue1) `shouldBe` True
+    isFatal (reportFatal testMessage1 >> return testValue) `shouldBe` True
 
 -------------------------------------------------------------------------------
 -- Tests for @messages@                                                      --
