@@ -1,5 +1,6 @@
 module Main where
 
+import           Control.Monad                  ( join )
 import           System.Environment             ( getArgs
                                                 , getProgName
                                                 )
@@ -126,7 +127,7 @@ putUsageInfo = do
 --   Parses the command line arguments and invokes 'run' if successful.
 --   All reported messages are printed to @stderr@.
 main :: IO ()
-main = reportToOrExit stderr $ do
+main = join $ reportToOrExit stderr $ do
   args <- lift getArgs
   opts <- hoist $ parseArgs args
   run opts
@@ -138,25 +139,27 @@ main = reportToOrExit stderr $ do
 --   'processInputFile'). If a fatal message is reported while processing
 --   any input file, the compiler will exit. All reported messages will be
 --   printed to @stderr@.
-run :: Options -> ReporterIO ()
+run :: Options -> ReporterIO (IO ())
 run opts
-  | optShowHelp opts = lift putUsageInfo
+  | optShowHelp opts = return putUsageInfo
   | null (optInputFiles opts) = do
     report $ Message Nothing Info "No input file."
-    lift putUsageInfo
-  | otherwise = mapM_ (processInputFile opts) (optInputFiles opts)
+    return putUsageInfo
+  | otherwise = do
+    actions <- mapM (processInputFile opts) (optInputFiles opts)
+    return (sequence_ actions)
 
 -- | Processes the given input file.
 --
 --   The Haskell module is loaded and converted to Coq. The resulting Coq
 --   AST is written to the console or output file.
-processInputFile :: Options -> FilePath -> ReporterIO ()
+processInputFile :: Options -> FilePath -> ReporterIO (IO ())
 processInputFile opts inputFile = do
   haskellAst <- parseModuleFile inputFile
   haskellAst' <- hoist $ simplifyModule haskellAst
   coqAst <- hoist $ evalConverter (convertModule haskellAst') defaultEnvironment
 
-  lift $ case (optOutputDir opts) of
+  return $ case (optOutputDir opts) of
     Nothing -> putPrettyLn coqAst
     Just outputDir ->
       let outputFileName = outputFileNameFor inputFile outputDir "v"

@@ -205,6 +205,16 @@ messages = snd . runReporter
 
 -- | Runs the given reporter and prints all reported messages to the
 --   provided file handle.
+--
+--   If the inner monad of the reporter is an IO action, the IO action will
+--   be executed before the messages are printed to the file handle.
+--   To run an IO action after the messages have been reported, the reporter
+--   needs to return the IO action (e.g. @Reporter (IO ())@ instead of
+--   @ReporterIO ()@). It is possible to combine both approaches (i.e. run an
+--   IO action before the messages are printed and another action afterwards)
+--   by using @ReporterIO (IO ())@. In the latter case this function returns
+--   a value of type @IO (IO ())@. Thus an additional @join@ is needed:
+--   @join (reportTo h reporter)@.
 reportTo :: MonadIO m => Handle -> ReporterT m a -> m (Maybe a)
 reportTo h reporter = do
   (mx, messages) <- runReporterT reporter
@@ -213,6 +223,8 @@ reportTo h reporter = do
 
 -- | Runs the given reporter, prints all reported messages to @stderr@ and
 --   exits the application if a fatal message has been reported.
+--
+--   See 'reportTo' for usage information.
 reportToOrExit :: MonadIO m => Handle -> ReporterT m a -> m a
 reportToOrExit h reporter = do
   mx <- reportTo h reporter
