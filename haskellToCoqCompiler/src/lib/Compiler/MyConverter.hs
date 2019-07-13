@@ -5,7 +5,9 @@
 
 module Compiler.MyConverter where
 
-import           Data.Maybe                     ( maybe )
+import           Data.Maybe                     ( maybe
+                                                , catMaybes
+                                                )
 
 import           Compiler.Analysis.DependencyAnalysis
 import           Compiler.Converter.State
@@ -17,6 +19,7 @@ import qualified Compiler.Language.Haskell.SimpleAST
 import           Compiler.Pretty
 import           Compiler.Reporter
 import           Compiler.SrcSpan
+import           Compiler.Util.Control.Monad
 import           Compiler.Util.Data.List.NonEmpty
 
 -- | Initially the environment contains the predefined functions, data types
@@ -41,7 +44,7 @@ convertModule (HS.Module _ maybeIdent decls) = do
 
 -- | Converts the declarations from a Haskell module to Coq.
 convertDecls :: [HS.Decl] -> Converter [G.Sentence]
-convertDecls decls = mapM convertTypeComponent components >>= return . concat
+convertDecls decls = concatMapM convertTypeComponent components
   where components = groupDeclarations decls
 
 -------------------------------------------------------------------------------
@@ -67,8 +70,12 @@ convertTypeComponent (Recursive decls) =
 convertDataDecls :: [HS.Decl] -> Converter [G.Sentence]
 convertDataDecls dataDecls = do
   mapM_ defineDataDecl dataDecls
-  indBodies <- mapM convertDataDecl dataDecls
-  return [G.InductiveSentence (G.Inductive (toNonEmptyList indBodies) [])]
+  indBodies         <- mapM convertDataDecl dataDecls
+  argumentsSentenes <- concatMapM generateArgumentsSentences dataDecls
+  return
+    ( G.InductiveSentence (G.Inductive (toNonEmptyList indBodies) [])
+    : argumentsSentenes
+    )
   -- TODO Arguments
   -- TODO Smart Constructors
 
@@ -112,6 +119,18 @@ convertTypeVarDecls typeVarDecls = do
               G.sortType
     ]
 
+-- | Inserts the given data type declaration and its constructor declarations
+--   into the current environment.
+defineDataDecl :: HS.Decl -> Converter ()
+defineDataDecl (HS.DataDecl _ (HS.DeclIdent _ ident) _ conDecls) = do
+  -- TODO detect redefinition and inform when renamed
+  _ <- renameAndDefineTypeCon ident
+  mapM_ defineConDecl conDecls
+
+-------------------------------------------------------------------------------
+-- Data constructor declarations                                             --
+-------------------------------------------------------------------------------
+
 -- | Converts a Haskell data constructor declaration.
 --
 --   This function assumes, that the identifier for the constructor was defined
@@ -125,14 +144,6 @@ convertConDecl returnType (HS.ConDecl _ (HS.DeclIdent _ ident) args) = do
   args'       <- mapM convertType args
   return (qualid, [], Just (args' `G.arrows` returnType))
 
--- | Inserts the given data type declaration and its constructor declarations
---   into the current environment.
-defineDataDecl :: HS.Decl -> Converter ()
-defineDataDecl (HS.DataDecl _ (HS.DeclIdent _ ident) _ conDecls) = do
-  -- TODO detect redefinition and inform when renamed
-  _ <- renameAndDefineTypeCon ident
-  mapM_ defineConDecl conDecls
-
 -- | Inserts the given data constructor declaration into the current
 --   environment.
 defineConDecl :: HS.ConDecl -> Converter ()
@@ -140,6 +151,35 @@ defineConDecl (HS.ConDecl _ (HS.DeclIdent _ ident) _) = do
   -- TODO detect redefinition and inform when renamed
   _ <- renameAndDefineCon ident
   return ()
+
+-------------------------------------------------------------------------------
+-- Arguments sentences                                                       --
+-------------------------------------------------------------------------------
+
+-- | Generates @G.ArgumentSpec@s that mark the generic arguments for the @Free@
+--   monad as well as the type variables in the given list as implicit.
+generateArgumentSpecs :: [HS.TypeVarDecl] -> Converter [G.ArgumentSpec]
+generateArgumentSpecs typeVarDecls = do
+  let typeVarIdents = map (HS.Ident . fromDeclIdent) typeVarDecls
+  typeVarQualids <- mapM (inEnv . lookupTypeVar) typeVarIdents
+  return
+    [ G.ArgumentSpec G.ArgMaximal (G.Ident typeVarQualid) Nothing
+    | typeVarQualid <- map fst CoqBase.freeArgs ++ catMaybes typeVarQualids
+    ]
+
+-- | Generates the @Arguments@ sentences for all constructors of a data type
+--   declaration.
+generateArgumentsSentences :: HS.Decl -> Converter [G.Sentence]
+generateArgumentsSentences (HS.DataDecl _ _ typeVarDecls conDecls) = do
+  argumentSpecs <- generateArgumentSpecs typeVarDecls
+  mapM (generateArgumentsSentence argumentSpecs) conDecls
+
+-- | Generates the @Arguments@ sentence for a constructor declaration.
+generateArgumentsSentence
+  :: [G.ArgumentSpec] -> HS.ConDecl -> Converter G.Sentence
+generateArgumentsSentence specs (HS.ConDecl _ (HS.DeclIdent _ ident) _) = do
+  Just qualid <- inEnv $ lookupCon (HS.Ident ident)
+  return (G.ArgumentsSentence (G.Arguments Nothing qualid specs))
 
 -------------------------------------------------------------------------------
 -- Type expressions                                                          --

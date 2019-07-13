@@ -37,6 +37,7 @@ library haskell-to-coq-internal
                       , Compiler.Pretty.Coq
                       , Compiler.Reporter
                       , Compiler.SrcSpan
+                      , Compiler.Util.Control.Monad
                       , Compiler.Util.Data.Tuple
                       , Compiler.Util.Data.List.NonEmpty
                       -- Currently unused modules whose compilation fails:

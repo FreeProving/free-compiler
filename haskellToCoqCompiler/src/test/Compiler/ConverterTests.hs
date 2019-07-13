@@ -27,8 +27,9 @@ testConvertDataDecls = describe "convertDataDecls" $ do
         shouldTranslateDeclsTo "data Foo = Bar | Baz"
           $  "Inductive Foo (Shape : Type) (Pos : Shape -> Type) : Type"
           ++ " := Bar : Foo Shape Pos"
-          ++ " |  Baz : Foo Shape Pos."
-          -- TODO argument sentences.
+          ++ " |  Baz : Foo Shape Pos. "
+          ++ "Arguments Bar {Shape} {Pos}. "
+          ++ "Arguments Baz {Shape} {Pos}."
           -- TODO smart constructors.
 
   it "translates polymorphic types correctly"
@@ -39,7 +40,9 @@ testConvertDataDecls = describe "convertDataDecls" $ do
           $  "Inductive Foo (Shape : Type) (Pos : Shape -> Type)"
           ++ " (a b : Type) : Type"
           ++ " := Bar : Free Shape Pos a -> Foo Shape Pos a b"
-          ++ " |  Baz : Free Shape Pos b -> Foo Shape Pos a b."
+          ++ " |  Baz : Free Shape Pos b -> Foo Shape Pos a b. "
+          ++ "Arguments Bar {Shape} {Pos} {a} {b}. "
+          ++ "Arguments Baz {Shape} {Pos} {a} {b}."
 
   it "renames constructors with same name as their data type"
     $ shouldSucceed
@@ -47,7 +50,8 @@ testConvertDataDecls = describe "convertDataDecls" $ do
     $ do
         shouldTranslateDeclsTo "data Foo = Foo"
           $  "Inductive Foo (Shape : Type) (Pos : Shape -> Type) : Type"
-          ++ " := Foo0 : Foo Shape Pos."
+          ++ " := Foo0 : Foo Shape Pos. "
+          ++ "Arguments Foo0 {Shape} {Pos}."
           -- TODO append underscore instead?
 
   -- TODO smart constructors
@@ -58,7 +62,8 @@ testConvertDataDecls = describe "convertDataDecls" $ do
         shouldTranslateDeclsTo "data Foo a = A a"
           $  "Inductive Foo (Shape : Type) (Pos : Shape -> Type)"
           ++ " (a : Type) : Type"
-          ++ " := A : Free Shape Pos a -> Foo Shape Pos a."
+          ++ " := A : Free Shape Pos a -> Foo Shape Pos a. "
+          ++ "Arguments A {Shape} {Pos} {a}."
 
 -------------------------------------------------------------------------------
 -- Types                                                                     --
