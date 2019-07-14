@@ -5,6 +5,7 @@
 
 module Compiler.MyConverter where
 
+import           Control.Monad                  ( mapAndUnzipM )
 import           Data.Maybe                     ( maybe
                                                 , catMaybes
                                                 )
@@ -67,35 +68,47 @@ convertTypeComponent (Recursive decls) =
 --   Before the declarations are actually translated, their identifiers are
 --   inserted into the current environement. Otherwise the data types would
 --   not be able to depend on each other.
+--
+--   After the @Inductive@ sentences for the data type declarations there
+--   is one argument sentence for each constructor declaration.
 convertDataDecls :: [HS.Decl] -> Converter [G.Sentence]
 convertDataDecls dataDecls = do
   mapM_ defineDataDecl dataDecls
-  indBodies         <- mapM convertDataDecl dataDecls
-  argumentsSentenes <- concatMapM generateArgumentsSentences dataDecls
+  (indBodies, extraSentences) <- mapAndUnzipM convertDataDecl dataDecls
   return
     ( G.InductiveSentence (G.Inductive (toNonEmptyList indBodies) [])
-    : argumentsSentenes
+    : concat extraSentences
     )
-  -- TODO Arguments
-  -- TODO Smart Constructors
+-- TODO Smart Constructors
 
 -- | Converts a Haskell data type declaration to the body of a Coq @Inductive@
---   sentence.
+--   sentence and the @Arguments@ sentences for it's constructors.
 --
 --   This function assumes, that the identifiers for the declared data type
 --   and it's constructors are defined already (see 'defineDataDecl').
-convertDataDecl :: HS.Decl -> Converter G.IndBody
+--   Type variables declared by the data type declaration are not visible
+--   outside this function (this is why the @Arguments@ sentences need to
+--   be generated here).
+convertDataDecl :: HS.Decl -> Converter (G.IndBody, [G.Sentence])
 convertDataDecl (HS.DataDecl srcSpan (HS.DeclIdent _ ident) typeVarDecls conDecls)
-  = do
+  = localEnv $ do
+    -- Inductive sentence:
     Just qualid   <- inEnv $ lookupTypeCon (HS.Ident ident)
     typeVarDecls' <- convertTypeVarDecls typeVarDecls
+    -- Constructor declarations:
     returnType    <- convertType' $ HS.typeApp
       srcSpan
       (HS.Ident ident)
       (map (HS.TypeVar srcSpan . fromDeclIdent) typeVarDecls)
-    conDecls' <- mapM (convertConDecl returnType) conDecls
+    conDecls'          <- mapM (convertConDecl returnType) conDecls
+    -- Arguments sentences:
+    argumentSpecs      <- generateArgumentSpecs typeVarDecls
+    argumentsSentences <- mapM (generateArgumentsSentence argumentSpecs)
+                               conDecls
     return
-      (G.IndBody qualid (genericArgDecls ++ typeVarDecls') G.sortType conDecls')
+      ( G.IndBody qualid (genericArgDecls ++ typeVarDecls') G.sortType conDecls'
+      , argumentsSentences
+      )
 
 -- | Converts the declarations of type variables in the head of a data type or
 --   type synonym declaration to a Coq binder for a set of explicit type
@@ -166,13 +179,6 @@ generateArgumentSpecs typeVarDecls = do
     [ G.ArgumentSpec G.ArgMaximal (G.Ident typeVarQualid) Nothing
     | typeVarQualid <- map fst CoqBase.freeArgs ++ catMaybes typeVarQualids
     ]
-
--- | Generates the @Arguments@ sentences for all constructors of a data type
---   declaration.
-generateArgumentsSentences :: HS.Decl -> Converter [G.Sentence]
-generateArgumentsSentences (HS.DataDecl _ _ typeVarDecls conDecls) = do
-  argumentSpecs <- generateArgumentSpecs typeVarDecls
-  mapM (generateArgumentsSentence argumentSpecs) conDecls
 
 -- | Generates the @Arguments@ sentence for a constructor declaration.
 generateArgumentsSentence
