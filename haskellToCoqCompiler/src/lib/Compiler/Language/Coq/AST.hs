@@ -3,6 +3,7 @@
 
 module Compiler.Language.Coq.AST
   ( module Language.Coq.Gallina
+  , comment
   , ident
   , bare
   , unpackQualid
@@ -17,6 +18,13 @@ import qualified Language.Coq.Gallina          as G
 import           Language.Coq.Gallina
 
 import           Compiler.Util.Data.List.NonEmpty
+
+-------------------------------------------------------------------------------
+-- Comments                                                                  --
+-------------------------------------------------------------------------------
+
+comment :: String -> G.Sentence
+comment = G.CommentSentence . G.Comment . T.pack
 
 -------------------------------------------------------------------------------
 -- Identifiers                                                               --

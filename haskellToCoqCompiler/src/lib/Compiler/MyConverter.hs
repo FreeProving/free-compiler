@@ -67,10 +67,14 @@ convertTypeComponent (Recursive decls) =
 --
 --   Before the declarations are actually translated, their identifiers are
 --   inserted into the current environement. Otherwise the data types would
---   not be able to depend on each other.
+--   not be able to depend on each other. The identifiers for the constructors
+--   are inserted into the current environmen as well. This makes the
+--   constructors more likely to keep their original name if there is a type
+--   variable with the same (lowercase) name.
 --
 --   After the @Inductive@ sentences for the data type declarations there
---   is one argument sentence for each constructor declaration.
+--   is one @Arguments@ sentence and one smart constructor declaration for
+--   each constructor declaration of the given data types.
 convertDataDecls :: [HS.Decl] -> Converter [G.Sentence]
 convertDataDecls dataDecls = do
   mapM_ defineDataDecl dataDecls
@@ -79,36 +83,123 @@ convertDataDecls dataDecls = do
     ( G.InductiveSentence (G.Inductive (toNonEmptyList indBodies) [])
     : concat extraSentences
     )
--- TODO Smart Constructors
 
 -- | Converts a Haskell data type declaration to the body of a Coq @Inductive@
---   sentence and the @Arguments@ sentences for it's constructors.
+--   sentence, the @Arguments@ sentences for it's constructors and the smart
+--   constructor declarations.
 --
 --   This function assumes, that the identifiers for the declared data type
---   and it's constructors are defined already (see 'defineDataDecl').
---   Type variables declared by the data type declaration are not visible
---   outside this function (this is why the @Arguments@ sentences need to
---   be generated here).
+--   and it's (smart) constructors are defined already (see 'defineDataDecl').
+--   Type variables declared by the data type or the smart constructors are
+--   not visible outside of this function.
 convertDataDecl :: HS.Decl -> Converter (G.IndBody, [G.Sentence])
 convertDataDecl (HS.DataDecl srcSpan (HS.DeclIdent _ ident) typeVarDecls conDecls)
-  = localEnv $ do
-    -- Inductive sentence:
-    Just qualid   <- inEnv $ lookupTypeCon (HS.Ident ident)
-    typeVarDecls' <- convertTypeVarDecls typeVarDecls
-    -- Constructor declarations:
-    returnType    <- convertType' $ HS.typeApp
-      srcSpan
-      (HS.Ident ident)
-      (map (HS.TypeVar srcSpan . fromDeclIdent) typeVarDecls)
-    conDecls'          <- mapM (convertConDecl returnType) conDecls
-    -- Arguments sentences:
-    argumentSpecs      <- generateArgumentSpecs typeVarDecls
-    argumentsSentences <- mapM (generateArgumentsSentence argumentSpecs)
-                               conDecls
+  = do
+    (body, argumentsSentences) <- generateBodyAndArguments
+    smartConDecls              <- mapM generateSmartConDecl conDecls
+    return
+      ( body
+      , G.comment ("Arguments sentences for " ++ ident)
+      :  argumentsSentences
+      ++ G.comment ("Smart constructors for " ++ ident)
+      :  smartConDecls
+      )
+ where
+  -- | The Haskell type produced by the constructors of the data type.
+  returnType :: HS.Type
+  returnType = HS.typeApp
+    srcSpan
+    (HS.Ident ident)
+    (map (HS.TypeVar srcSpan . fromDeclIdent) typeVarDecls)
+
+  -- | Generates the body of the @Inductive@ sentence and the @Arguments@
+  --   sentences for the constructors but not the smart the smart constructors
+  --   of the data type.
+  --
+  --   Type variables declared by the data type declaration are visible to the
+  --   constructor declarations and @Arguments@ sentences created by this
+  --   function, but not outside this function. This allows the smart
+  --   constructors to reuse the identifiers for their type arguments (see
+  --   'generateSmartConDecl').
+  generateBodyAndArguments :: Converter (G.IndBody, [G.Sentence])
+  generateBodyAndArguments = localEnv $ do
+    Just qualid        <- inEnv $ lookupTypeCon (HS.Ident ident)
+    typeVarDecls'      <- convertTypeVarDecls typeVarDecls
+    conDecls'          <- mapM convertConDecl conDecls
+    argumentsSentences <- mapM generateArgumentsSentence conDecls
     return
       ( G.IndBody qualid (genericArgDecls ++ typeVarDecls') G.sortType conDecls'
       , argumentsSentences
       )
+
+  -- | Converts a constructor of the data type.
+  convertConDecl :: HS.ConDecl -> Converter (G.Qualid, [G.Binder], Maybe G.Term)
+  convertConDecl (HS.ConDecl _ (HS.DeclIdent _ conIdent) args) = do
+    Just conQualid <- inEnv $ lookupCon (HS.Ident conIdent)
+    args'          <- mapM convertType args
+    returnType'    <- convertType' returnType
+    return (conQualid, [], Just (args' `G.arrows` returnType'))
+
+  -- | Generates the @Arguments@ sentence for the given constructor declaration.
+  generateArgumentsSentence :: HS.ConDecl -> Converter G.Sentence
+  generateArgumentsSentence (HS.ConDecl _ (HS.DeclIdent _ ident) _) = do
+    Just qualid <- inEnv $ lookupCon (HS.Ident ident)
+    let typeVarIdents = map (HS.Ident . fromDeclIdent) typeVarDecls
+    typeVarQualids <- mapM (inEnv . lookupTypeVar) typeVarIdents
+    return
+      (G.ArgumentsSentence
+        (G.Arguments
+          Nothing
+          qualid
+          [ G.ArgumentSpec G.ArgMaximal (G.Ident typeVarQualid) Nothing
+          | typeVarQualid <- map fst CoqBase.freeArgs
+            ++ catMaybes typeVarQualids
+          ]
+        )
+      )
+
+  -- | Generates the smart constructor declaration for the given constructor
+  --   declaration.
+  generateSmartConDecl :: HS.ConDecl -> Converter G.Sentence
+  generateSmartConDecl (HS.ConDecl _ (HS.DeclIdent _ conIdent) argTypes) =
+    localEnv $ do
+      Just qualid             <- inEnv $ lookupCon (HS.Ident conIdent)
+      Just smartQualid        <- inEnv $ lookupSmartCon (HS.Ident conIdent)
+      typeVarDecls'           <- convertTypeVarDecls typeVarDecls
+      (argIdents', argDecls') <- mapAndUnzipM convertAnonymousArg argTypes
+      returnType'             <- convertType returnType
+      return
+        (G.DefinitionSentence
+          (G.DefinitionDef
+            G.Global
+            smartQualid
+            (genericArgDecls ++ typeVarDecls' ++ argDecls')
+            (Just returnType')
+            (G.app (G.Qualid CoqBase.freePureCon)
+                   [genericApply qualid (map (G.Qualid . G.bare) argIdents')]
+            )
+          )
+        )
+
+-- | Inserts the given data type declaration and its constructor declarations
+--   into the current environment.
+defineDataDecl :: HS.Decl -> Converter ()
+defineDataDecl (HS.DataDecl _ (HS.DeclIdent _ ident) _ conDecls) = do
+  -- TODO detect redefinition and inform when renamed
+  _ <- renameAndDefineTypeCon ident
+  mapM_ defineConDecl conDecls
+
+-- | Inserts the given data constructor declaration and its smart constructor
+--   into the current environment.
+defineConDecl :: HS.ConDecl -> Converter ()
+defineConDecl (HS.ConDecl _ (HS.DeclIdent _ ident) _) = do
+  -- TODO detect redefinition and inform when renamed
+  _ <- renameAndDefineCon ident
+  return ()
+
+-------------------------------------------------------------------------------
+-- Type variable declarations                                                --
+-------------------------------------------------------------------------------
 
 -- | Converts the declarations of type variables in the head of a data type or
 --   type synonym declaration to a Coq binder for a set of explicit type
@@ -132,60 +223,38 @@ convertTypeVarDecls typeVarDecls = do
               G.sortType
     ]
 
--- | Inserts the given data type declaration and its constructor declarations
---   into the current environment.
-defineDataDecl :: HS.Decl -> Converter ()
-defineDataDecl (HS.DataDecl _ (HS.DeclIdent _ ident) _ conDecls) = do
-  -- TODO detect redefinition and inform when renamed
-  _ <- renameAndDefineTypeCon ident
-  mapM_ defineConDecl conDecls
-
 -------------------------------------------------------------------------------
--- Data constructor declarations                                             --
+-- Function argument declarations                                            --
 -------------------------------------------------------------------------------
 
--- | Converts a Haskell data constructor declaration.
---
---   This function assumes, that the identifier for the constructor was defined
---   already (see 'defineConDecl').
-convertConDecl
-  :: G.Term     -- ^ The Coq type produced by the constructor.
-  -> HS.ConDecl -- ^ The constructor to convert.
-  -> Converter (G.Qualid, [G.Binder], Maybe G.Term)
-convertConDecl returnType (HS.ConDecl _ (HS.DeclIdent _ ident) args) = do
-  Just qualid <- inEnv $ lookupCon (HS.Ident ident)
-  args'       <- mapM convertType args
-  return (qualid, [], Just (args' `G.arrows` returnType))
+-- | Converts the argument of a function (a variable pattern) to an explicit
+--   Coq binder.
+convertArg :: HS.VarPat -> HS.Type -> Converter G.Binder
+convertArg (HS.VarPat _ ident) argType = do
+  -- TODO detect redefinition.
+  ident' <- renameAndDefineVar ident
+  convertArg' ident' argType
 
--- | Inserts the given data constructor declaration into the current
---   environment.
-defineConDecl :: HS.ConDecl -> Converter ()
-defineConDecl (HS.ConDecl _ (HS.DeclIdent _ ident) _) = do
-  -- TODO detect redefinition and inform when renamed
-  _ <- renameAndDefineCon ident
-  return ()
-
--------------------------------------------------------------------------------
--- Arguments sentences                                                       --
--------------------------------------------------------------------------------
-
--- | Generates @G.ArgumentSpec@s that mark the generic arguments for the @Free@
---   monad as well as the type variables in the given list as implicit.
-generateArgumentSpecs :: [HS.TypeVarDecl] -> Converter [G.ArgumentSpec]
-generateArgumentSpecs typeVarDecls = do
-  let typeVarIdents = map (HS.Ident . fromDeclIdent) typeVarDecls
-  typeVarQualids <- mapM (inEnv . lookupTypeVar) typeVarIdents
+-- | Converts an argument (with the given Coq identifier) of a function to
+--   an explicit Coq binder.
+convertArg' :: String -> HS.Type -> Converter G.Binder
+convertArg' ident' argType = do
+  argType' <- convertType argType
   return
-    [ G.ArgumentSpec G.ArgMaximal (G.Ident typeVarQualid) Nothing
-    | typeVarQualid <- map fst CoqBase.freeArgs ++ catMaybes typeVarQualids
-    ]
+    (G.Typed G.Ungeneralizable
+             G.Explicit
+             (singleton (G.Ident (G.bare ident')))
+             argType'
+    )
 
--- | Generates the @Arguments@ sentence for a constructor declaration.
-generateArgumentsSentence
-  :: [G.ArgumentSpec] -> HS.ConDecl -> Converter G.Sentence
-generateArgumentsSentence specs (HS.ConDecl _ (HS.DeclIdent _ ident) _) = do
-  Just qualid <- inEnv $ lookupCon (HS.Ident ident)
-  return (G.ArgumentsSentence (G.Arguments Nothing qualid specs))
+-- | Converts the argument of an artifically generated function to an explicit
+--   Coq binder. A fresh Coq identifier is selected for the argument
+--   and returned together with the binder.
+convertAnonymousArg :: HS.Type -> Converter (String, G.Binder)
+convertAnonymousArg argType = do
+  ident' <- freshIdent
+  binder <- convertArg' ident' argType
+  return (ident', binder)
 
 -------------------------------------------------------------------------------
 -- Type expressions                                                          --
