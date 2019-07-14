@@ -58,7 +58,7 @@ testMustRenameIdent = describe "mustRenameIdent" $ do
   it "defined identifiers must be renamed" $ do
     property $ forAll genIdent $ \ident ->
       let env = defineTypeVar (HS.Ident ident) (G.bare ident) emptyEnvironment
-      in  mustRenameIdent env ident
+      in  mustRenameIdent ident env
 
 -------------------------------------------------------------------------------
 -- Tests for @renameIdent@                                                   --
@@ -69,9 +69,9 @@ testRenameIdent :: Spec
 testRenameIdent = describe "renameIdent" $ do
   it "generated identifiers don't need to be renamed" $ do
     property $ forAll genIdent $ \ident ->
-      let ident' = renameIdent emptyEnvironment ident
+      let ident' = renameIdent ident emptyEnvironment
       in  not (mustRenameIdent emptyEnvironment ident')
   it "generated identifiers are not renamed again" $ do
     property $ forAll genIdent $ \ident ->
-      let ident' = renameIdent emptyEnvironment ident
-      in  renameIdent emptyEnvironment ident' == ident'
+      let ident' = renameIdent ident emptyEnvironment
+      in  renameIdent ident' emptyEnvironment == ident'

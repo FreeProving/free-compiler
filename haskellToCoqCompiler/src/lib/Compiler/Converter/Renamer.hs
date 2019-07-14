@@ -13,9 +13,11 @@ module Compiler.Converter.Renamer
   ( mustRenameIdent
   , renameIdent
   , renameIdent'
+  , freshIdent
   , renameAndDefineTypeCon
   , renameAndDefineTypeVar
   , renameAndDefineCon
+  , renameAndDefineVar
   )
 where
 
@@ -60,8 +62,8 @@ isDefinedIdent = flip elem . catMaybes . map G.unpackQualid . definedIdents
 -- | Tests whether the given Coq identifier must be renamed because it would
 --   otherwise conflict with a keyword, reserved or user defined
 --   identifier.
-mustRenameIdent :: Environment -> String -> Bool
-mustRenameIdent env ident =
+mustRenameIdent :: String -> Environment -> Bool
+mustRenameIdent ident env =
   isCoqKeyword ident || isReservedIdent ident || isDefinedIdent env ident
 
 -------------------------------------------------------------------------------
@@ -75,25 +77,36 @@ mustRenameIdent env ident =
 --   is appended such that the resulting identifier does not cause a name
 --   conflict anymore. If the identifier already ends with a number, the
 --   enumeration will start from that number.
-renameIdent :: Environment -> String -> String
-renameIdent env ident
-  | mustRenameIdent env ident = case matchRegexPR "\\d+$" ident of
-    Just ((number, (prefix, _)), _) -> renameIdent' env prefix (read number)
-    Nothing                         -> renameIdent' env ident 0
+renameIdent :: String -> Environment -> String
+renameIdent ident env
+  | mustRenameIdent ident env = case matchRegexPR "\\d+$" ident of
+    Just ((number, (prefix, _)), _) -> renameIdent' prefix (read number) env
+    Nothing                         -> renameIdent' ident 0 env
   | otherwise = ident
 
 -- | Renames an identifier by appending a number. The number is increased
 --   until the resulting identifier is available.
-renameIdent' :: Environment -> String -> Int -> String
-renameIdent' env ident n
-  | mustRenameIdent env identN = renameIdent' env ident (n + 1)
+renameIdent' :: String -> Int -> Environment -> String
+renameIdent' ident n env
+  | mustRenameIdent identN env = renameIdent' ident (n + 1) env
   | otherwise                  = identN
  where
   identN :: String
   identN = ident ++ (show n)
 
 -------------------------------------------------------------------------------
--- Define and automatically rename identifiers                              --
+-- Generate fresh identifiers                                                --
+-------------------------------------------------------------------------------
+
+-- | Generates a fresh Coq identifier for the current environment.
+freshIdent :: Converter String
+freshIdent = do
+  ident' <- inEnv $ renameIdent' "_" 0
+  modifyEnv $ defineFreshIdent (G.bare ident')
+  return ident'
+
+-------------------------------------------------------------------------------
+-- Define and automatically rename identifiers                               --
 -------------------------------------------------------------------------------
 
 -- | Associates the identifier of a user defined Haskell type constructor with
@@ -103,10 +116,9 @@ renameIdent' env ident n
 --   Returns the generated identifier.
 renameAndDefineTypeCon :: String -> Converter String
 renameAndDefineTypeCon ident = do
-  ident' <- inEnv $ flip renameIdent ident
+  ident' <- inEnv $ renameIdent ident
   modifyEnv $ defineTypeCon (HS.Ident ident) (G.bare ident')
   return ident'
-
 
 -- | Associates the identifier of a user defined Haskell type variable with an
 --   automatically generated Coq identifier that does not cause any name
@@ -115,7 +127,7 @@ renameAndDefineTypeCon ident = do
 --   Returns the generated identifier.
 renameAndDefineTypeVar :: String -> Converter String
 renameAndDefineTypeVar ident = do
-  ident' <- inEnv $ flip renameIdent ident
+  ident' <- inEnv $ renameIdent ident
   modifyEnv $ defineTypeVar (HS.Ident ident) (G.bare ident')
   return ident'
 
@@ -131,7 +143,18 @@ renameAndDefineTypeVar ident = do
 --   smart constructor.
 renameAndDefineCon :: String -> Converter (String, String)
 renameAndDefineCon ident = do
-  ident'      <- inEnv $ flip renameIdent (uncapitalize ident)
-  smartIdent' <- inEnv $ flip renameIdent ident
+  ident'      <- inEnv $ renameIdent (uncapitalize ident)
+  smartIdent' <- inEnv $ renameIdent ident
   modifyEnv $ defineCon (HS.Ident ident) (G.bare ident') (G.bare smartIdent')
   return (ident', smartIdent')
+
+-- | Associates the identifier of a user defined Haskell function or variable
+--   with an automatically generated Coq identifier that does not cause any
+--   name conflict in the current environment.
+--
+--   Returns the generated identifier.
+renameAndDefineVar :: String -> Converter String
+renameAndDefineVar ident = do
+  ident' <- inEnv $ renameIdent ident
+  modifyEnv $ defineVar (HS.Ident ident) (G.bare ident')
+  return ident'

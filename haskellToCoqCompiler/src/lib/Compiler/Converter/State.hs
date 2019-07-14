@@ -5,6 +5,7 @@ module Compiler.Converter.State
     Environment
   , emptyEnvironment
   , definedIdents
+  , defineFreshIdent
   , defineTypeCon
   , lookupTypeCon
   , defineTypeVar
@@ -12,6 +13,8 @@ module Compiler.Converter.State
   , defineCon
   , lookupCon
   , lookupSmartCon
+  , defineVar
+  , lookupVar
     -- * State monad
   , Converter
   , runConverter
@@ -41,7 +44,9 @@ import           Compiler.Reporter
 
 -- | Data type that encapsulates the state of the converter.
 data Environment = Environment
-  { definedTypeCons :: Map HS.Name G.Qualid
+  { definedFreshIdents :: [G.Qualid]
+    -- ^ The fresh Coq identifiers that were used already.
+  , definedTypeCons :: Map HS.Name G.Qualid
     -- ^ Maps Haskell type constructor names to corresponding Coq identifiers.
   , definedTypeVars :: Map HS.Name G.Qualid
     -- ^ Maps Haskell type variable names to corresponding Coq identifiers.
@@ -51,6 +56,9 @@ data Environment = Environment
   , definedSmartCons :: Map HS.Name G.Qualid
   -- ^ Maps Haskell data constructor names to the Coq identifiers for the
   --   corresponding smart constructors.
+  , definedVars :: Map HS.Name G.Qualid
+    -- ^ Maps Haskell function and variable names to corresponding Coq
+    --   identifiers.
     -- TODO function and variable names.
   }
   deriving Show
@@ -59,10 +67,12 @@ data Environment = Environment
 --   functions.
 emptyEnvironment :: Environment
 emptyEnvironment = Environment
-  { definedTypeCons  = Map.empty
-  , definedTypeVars  = Map.empty
-  , definedCons      = Map.empty
-  , definedSmartCons = Map.empty
+  { definedFreshIdents = []
+  , definedTypeCons    = Map.empty
+  , definedTypeVars    = Map.empty
+  , definedCons        = Map.empty
+  , definedSmartCons   = Map.empty
+  , definedVars        = Map.empty
   }
 
 -- | Gets a list of Coq identifiers for type constructors and variables,
@@ -70,7 +80,16 @@ emptyEnvironment = Environment
 --   used in the given environment already.
 definedIdents :: Environment -> [G.Qualid]
 definedIdents env =
-  Map.elems (definedTypeCons env) ++ Map.elems (definedTypeVars env)
+  definedFreshIdents env
+    ++ Map.elems (definedTypeCons env)
+    ++ Map.elems (definedTypeVars env)
+    ++ Map.elems (definedCons env)
+    ++ Map.elems (definedSmartCons env)
+    ++ Map.elems (definedVars env)
+
+defineFreshIdent :: G.Qualid -> Environment -> Environment
+defineFreshIdent ident env =
+  env { definedFreshIdents = ident : definedFreshIdents env }
 
 -- | Associates the name of a Haskell type constructor with the corresponding
 --   Coq identifier in the given environment.
@@ -131,6 +150,22 @@ lookupCon name = Map.lookup name . definedCons
 --   Returns @Nothing@ if there is no such smart constructor.
 lookupSmartCon :: HS.Name -> Environment -> Maybe G.Qualid
 lookupSmartCon name = Map.lookup name . definedSmartCons
+
+-- | Associates the name of a Haskell function or variable with the
+--   corresponding Coq identifier in the given environment.
+--
+--   If a function or variable with the same name exists, the entry is
+--   overwritten.
+defineVar :: HS.Name -> G.Qualid -> Environment -> Environment
+defineVar name ident env =
+  env { definedVars = Map.insert name ident (definedVars env) }
+
+-- | Looks up the Coq identifier for a Haskell function or variable with the
+--   given name in the provided environment.
+--
+--   Returns @Nothing@ if there is no such function or variable.
+lookupVar :: HS.Name -> Environment -> Maybe G.Qualid
+lookupVar name = Map.lookup name . definedVars
 
 -------------------------------------------------------------------------------
 -- State monad                                                               --
