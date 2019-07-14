@@ -52,9 +52,10 @@ predefine =
 -- | Populates the given environment with the predefined @Bool@ data type,
 --   its (smart) constructors and predefined operations.
 predefineBool :: Environment -> Environment
-predefineBool = defineTypeCon (HS.Ident "Bool") (bare "Bool")
-  . defineCon (HS.Ident "True")  (bare "true")  {- TODO (bare "True_") -}
-  . defineCon (HS.Ident "False") (bare "false") {- TODO (bare "False_") -}
+predefineBool =
+  defineTypeCon (HS.Ident "Bool") (bare "Bool")
+    . defineCon (HS.Ident "True")  (bare "true")  (bare "True_")
+    . defineCon (HS.Ident "False") (bare "false") (bare "False_")
   -- TODO  . defineFunc (HS.Symbol "&&") (bare "andBool")
   -- TODO  . defineFunc (HS.Symbol "||") (bare "orBool")
 
@@ -77,18 +78,19 @@ predefineInt = defineTypeCon (HS.Ident "Int") (bare "Int")
 -- | Populates the given environment with the predefined list data type and
 --   its (smart) constructors.
 predefineList :: Environment -> Environment
-predefineList = defineTypeCon HS.listTypeConName (bare "List")
-  . defineCon HS.nilConName  (bare "nil")  {- TODO (bare "Nil") -}
-  . defineCon HS.consConName (bare "cons") {- TODO (bare "Cons") -}
+predefineList =
+  defineTypeCon HS.listTypeConName (bare "List")
+    . defineCon HS.nilConName  (bare "nil")  (bare "Nil")
+    . defineCon HS.consConName (bare "cons") (bare "Cons")
 
 -- | Populates the given environment with the predefined pair data type and
 --   its (smart) constructor.
 predefinePair :: Environment -> Environment
 predefinePair = defineTypeCon HS.pairTypeConName (bare "Pair")
-  . defineCon HS.pairConName (bare "pair_") {- TODO (bare "Pair_") -}
+  . defineCon HS.pairConName (bare "pair_") (bare "Pair_")
 
 -- | Populate sthe given environment with the predefined unit data type and
 --   its (smart) constructor.
 predefineUnit :: Environment -> Environment
 predefineUnit = defineTypeCon HS.unitTypeConName (bare "Unit")
-  . defineCon HS.unitConName (bare "tt") {- TODO (bare "Tt") -}
+  . defineCon HS.unitConName (bare "tt") (bare "Tt")

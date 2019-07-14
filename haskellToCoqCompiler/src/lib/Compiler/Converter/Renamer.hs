@@ -28,6 +28,7 @@ import qualified Compiler.Language.Coq.Base    as CoqBase
 import           Compiler.Language.Coq.Keywords
 import qualified Compiler.Language.Haskell.SimpleAST
                                                as HS
+import           Compiler.Util.Data.String
 
 -------------------------------------------------------------------------------
 -- Predicates                                                                --
@@ -122,10 +123,15 @@ renameAndDefineTypeVar ident = do
 --   with an automatically generated Coq identifier that does not cause any
 --   name conflict in the current environment.
 --
---   Returns the generated identifier.
-renameAndDefineCon :: String -> Converter String
+--   A name for the smart constructor is generated automatically as well.
+--   The regular constructor's identifier starts with a lower case letter.
+--
+--   Returns the generated identifiers. The first component is the identiier
+--   for the regular constructor and the second is the identifier for the
+--   smart constructor.
+renameAndDefineCon :: String -> Converter (String, String)
 renameAndDefineCon ident = do
-  -- TODO Regular constructors should start with a lower case letter in Coq.
-  ident' <- inEnv $ flip renameIdent ident
-  modifyEnv $ defineCon (HS.Ident ident) (G.bare ident')
-  return ident'
+  ident'      <- inEnv $ flip renameIdent (uncapitalize ident)
+  smartIdent' <- inEnv $ flip renameIdent ident
+  modifyEnv $ defineCon (HS.Ident ident) (G.bare ident') (G.bare smartIdent')
+  return (ident', smartIdent')

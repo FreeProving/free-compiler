@@ -40,6 +40,7 @@ library haskell-to-coq-internal
                       , Compiler.Util.Control.Monad
                       , Compiler.Util.Data.Tuple
                       , Compiler.Util.Data.List.NonEmpty
+                      , Compiler.Util.Data.String
                       -- Currently unused modules whose compilation fails:
                       --, Compiler.Converter
                       --, Compiler.Converter.HelperFunctionConverter

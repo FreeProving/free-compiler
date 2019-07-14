@@ -11,6 +11,7 @@ module Compiler.Converter.State
   , lookupTypeVar
   , defineCon
   , lookupCon
+  , lookupSmartCon
     -- * State monad
   , Converter
   , runConverter
@@ -45,7 +46,11 @@ data Environment = Environment
   , definedTypeVars :: Map HS.Name G.Qualid
     -- ^ Maps Haskell type variable names to corresponding Coq identifiers.
   , definedCons :: Map HS.Name G.Qualid
-    -- ^ Maps Haskell data constructor names to corresponding Coq identifiers.
+  -- ^ Maps Haskell data constructor names to the Coq identifiers for the
+  --   corresponding regular constructors.
+  , definedSmartCons :: Map HS.Name G.Qualid
+  -- ^ Maps Haskell data constructor names to the Coq identifiers for the
+  --   corresponding smart constructors.
     -- TODO function and variable names.
   }
   deriving Show
@@ -54,9 +59,10 @@ data Environment = Environment
 --   functions.
 emptyEnvironment :: Environment
 emptyEnvironment = Environment
-  { definedTypeCons = Map.empty
-  , definedTypeVars = Map.empty
-  , definedCons     = Map.empty
+  { definedTypeCons  = Map.empty
+  , definedTypeVars  = Map.empty
+  , definedCons      = Map.empty
+  , definedSmartCons = Map.empty
   }
 
 -- | Gets a list of Coq identifiers for type constructors and variables,
@@ -104,18 +110,27 @@ lookupTypeVar name = Map.lookup name . definedTypeVars
 defineCon
   :: HS.Name  -- ^ The Haskell name of the constructor.
   -> G.Qualid -- ^ The Coq identifier for the data constructor.
-  -- TODO -> G.Qualid -- ^ The Coq identifier for the smart constructor.
+  -> G.Qualid -- ^ The Coq identifier for the smart constructor.
   -> Environment
   -> Environment
-defineCon name ident env =
-  env { definedCons = Map.insert name ident (definedCons env) }
+defineCon name ident smartIdent env = env
+  { definedCons      = Map.insert name ident (definedCons env)
+  , definedSmartCons = Map.insert name smartIdent (definedSmartCons env)
+  }
 
--- | Looks up the Coq identifier for a Haskell data constructor with the given
---   name in the provided environment.
+-- | Looks up the Coq identifier for the regular constructor of the Haskell
+--   data constructor with the given name in the provided environment.
 --
---   Returns @Nothing@ if there is no such type variable.
+--   Returns @Nothing@ if there is no such data constructor.
 lookupCon :: HS.Name -> Environment -> Maybe G.Qualid
 lookupCon name = Map.lookup name . definedCons
+
+-- | Looks up the Coq identifier for the smart constructor of the Haskell
+--   data constructor with the given name in the provided environment.
+--
+--   Returns @Nothing@ if there is no such smart constructor.
+lookupSmartCon :: HS.Name -> Environment -> Maybe G.Qualid
+lookupSmartCon name = Map.lookup name . definedSmartCons
 
 -------------------------------------------------------------------------------
 -- State monad                                                               --
