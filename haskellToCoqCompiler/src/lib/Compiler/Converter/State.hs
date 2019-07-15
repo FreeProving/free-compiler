@@ -29,6 +29,7 @@ module Compiler.Converter.State
   )
 where
 
+import           Control.Monad.Fail
 import           Control.Monad.State
 import           Data.Map.Strict                ( Map )
 import qualified Data.Map.Strict               as Map
@@ -241,3 +242,8 @@ localEnv converter = do
 --   lifting reporters.
 instance MonadReporter Converter where
   liftReporter = Converter . lift
+
+-- | Internal errors (e.g. pattern matching failures in @do@-blocks) are
+--   cause fatal error messages to be reported.
+instance MonadFail Converter where
+  fail = reportFatal . Message Nothing Internal

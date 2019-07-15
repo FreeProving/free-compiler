@@ -184,7 +184,7 @@ simplifyDecl decl@(H.InstDecl  _ _ _ _  ) = notSupported "Type classes" decl
 simplifyDecl decl@(H.DerivDecl _ _ _ _  ) = notSupported "Type classes" decl
 simplifyDecl decl@(H.DefaultDecl _ _    ) = notSupported "Type classes" decl
 simplifyDecl decl@(H.SpliceDecl  _ _    ) = notSupported "Template Haskell" decl
-simplifyDecl decl@(H.PatSynSig _ _ _ _ _ _) =
+simplifyDecl decl@(H.PatSynSig _ _ _ _ _ _ _) =
   notSupported "Pattern synonyms" decl
 simplifyDecl decl@(H.PatSyn _ _ _ _) = notSupported "Pattern synonyms" decl
 simplifyDecl decl@(H.ForImp _ _ _ _ _ _) = notSupported "Foreign imports" decl
