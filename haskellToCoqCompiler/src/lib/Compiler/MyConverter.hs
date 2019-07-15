@@ -124,11 +124,14 @@ convertDataDecl (HS.DataDecl srcSpan (HS.DeclIdent _ ident) typeVarDecls conDecl
   generateBodyAndArguments :: Converter (G.IndBody, [G.Sentence])
   generateBodyAndArguments = localEnv $ do
     Just qualid        <- inEnv $ lookupTypeCon (HS.Ident ident)
-    typeVarDecls'      <- convertTypeVarDecls typeVarDecls
+    typeVarDecls'      <- convertTypeVarDecls G.Explicit typeVarDecls
     conDecls'          <- mapM convertConDecl conDecls
     argumentsSentences <- mapM generateArgumentsSentence conDecls
     return
-      ( G.IndBody qualid (genericArgDecls ++ typeVarDecls') G.sortType conDecls'
+      ( G.IndBody qualid
+                  (genericArgDecls G.Explicit ++ typeVarDecls')
+                  G.sortType
+                  conDecls'
       , argumentsSentences
       )
 
@@ -165,7 +168,7 @@ convertDataDecl (HS.DataDecl srcSpan (HS.DeclIdent _ ident) typeVarDecls conDecl
     localEnv $ do
       Just qualid             <- inEnv $ lookupCon (HS.Ident conIdent)
       Just smartQualid        <- inEnv $ lookupSmartCon (HS.Ident conIdent)
-      typeVarDecls'           <- convertTypeVarDecls typeVarDecls
+      typeVarDecls'           <- convertTypeVarDecls G.Implicit typeVarDecls
       (argIdents', argDecls') <- mapAndUnzipM convertAnonymousArg argTypes
       returnType'             <- convertType returnType
       return
@@ -173,10 +176,11 @@ convertDataDecl (HS.DataDecl srcSpan (HS.DeclIdent _ ident) typeVarDecls conDecl
           (G.DefinitionDef
             G.Global
             smartQualid
-            (genericArgDecls ++ typeVarDecls' ++ argDecls')
+            (genericArgDecls G.Implicit ++ typeVarDecls' ++ argDecls')
             (Just returnType')
-            (G.app (G.Qualid CoqBase.freePureCon)
-                   [genericApply qualid (map (G.Qualid . G.bare) argIdents')]
+            (G.app
+              (G.Qualid CoqBase.freePureCon)
+              [G.app (G.Qualid qualid) (map (G.Qualid . G.bare) argIdents')]
             )
           )
         )
@@ -202,26 +206,31 @@ defineConDecl (HS.ConDecl _ (HS.DeclIdent _ ident) _) = do
 -------------------------------------------------------------------------------
 
 -- | Converts the declarations of type variables in the head of a data type or
---   type synonym declaration to a Coq binder for a set of explicit type
---   arguments.
+--   type synonym declaration to a Coq binder for a set of explicit or implicit
+--   type arguments.
 --
 --   E.g. the declaration of the type variable @a@ in @data D a = ...@ is
 --   translated to the binder @(a : Type)@. If there are multiple type variable
 --   declarations as in @data D a b = ...@ they are grouped into a single
 --   binder @(a b : Type)@ because we assume all Haskell type variables to be
 --   of kind @*@.
-convertTypeVarDecls :: [HS.TypeVarDecl] -> Converter [G.Binder]
-convertTypeVarDecls []           = return []
-convertTypeVarDecls typeVarDecls = do
+--
+--   The first argument controlls whether the generated binders are explicit
+--   (e.g. @(a : Type)@) or implicit (e.g. @{a : Type}@).
+convertTypeVarDecls
+  :: G.Explicitness -> [HS.TypeVarDecl] -> Converter [G.Binder]
+convertTypeVarDecls explicitness typeVarDecls
+  | null typeVarDecls = return []
+  | otherwise = do
   -- TODO detect redefinition
-  let idents = map fromDeclIdent typeVarDecls
-  idents' <- mapM renameAndDefineTypeVar idents
-  return
-    [ G.Typed G.Ungeneralizable
-              G.Explicit
-              (toNonEmptyList (map (G.Ident . G.bare) idents'))
-              G.sortType
-    ]
+    let idents = map fromDeclIdent typeVarDecls
+    idents' <- mapM renameAndDefineTypeVar idents
+    return
+      [ G.Typed G.Ungeneralizable
+                explicitness
+                (toNonEmptyList (map (G.Ident . G.bare) idents'))
+                G.sortType
+      ]
 
 -------------------------------------------------------------------------------
 -- Function argument declarations                                            --
@@ -307,12 +316,15 @@ fromDeclIdent (HS.DeclIdent _ ident) = ident
 -- Free monad arguments                                                      --
 -------------------------------------------------------------------------------
 
--- | The declarations of type parameters for the
-genericArgDecls :: [G.Binder]
-genericArgDecls = map (uncurry genericArgDecl) CoqBase.freeArgs
+-- | The declarations of type parameters for the @Free@ monad.
+--
+--   The first argument controlls whether the generated binders are explicit
+--   (e.g. @(Shape : Type)@) or implicit (e.g. @{Shape : Type}@).
+genericArgDecls :: G.Explicitness -> [G.Binder]
+genericArgDecls explicitness = map (uncurry genericArgDecl) CoqBase.freeArgs
  where
   genericArgDecl :: G.Qualid -> G.Term -> G.Binder
-  genericArgDecl = G.Typed G.Ungeneralizable G.Explicit . singleton . G.Ident
+  genericArgDecl = G.Typed G.Ungeneralizable explicitness . singleton . G.Ident
 
 -- | Smart constructor for the application of a Coq function or (type)
 --   constructor that requires the parameters for the @Free@ monad.
