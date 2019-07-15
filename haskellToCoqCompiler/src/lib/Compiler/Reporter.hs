@@ -149,7 +149,7 @@ unhoist rt = do
 -- Reporting messages                                                        --
 -------------------------------------------------------------------------------
 
--- | Type class for all monads within which 'Messages' can be reported.
+-- | Type class for all monads within which 'Message's can be reported.
 class MonadReporter r where
   -- | Promotes a reporter to @r@.
   liftReporter :: Reporter a -> r a
@@ -228,8 +228,8 @@ messages = snd . runReporter
 --   @join (reportTo h reporter)@.
 reportTo :: MonadIO m => Handle -> ReporterT m a -> m (Maybe a)
 reportTo h reporter = do
-  (mx, messages) <- runReporterT reporter
-  liftIO $ hPutPretty h messages
+  (mx, ms) <- runReporterT reporter
+  liftIO $ hPutPretty h ms
   return mx
 
 -- | Runs the given reporter, prints all reported messages to @stderr@ and

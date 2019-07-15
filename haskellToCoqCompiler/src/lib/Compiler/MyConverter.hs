@@ -145,8 +145,8 @@ convertDataDecl (HS.DataDecl srcSpan (HS.DeclIdent _ ident) typeVarDecls conDecl
 
   -- | Generates the @Arguments@ sentence for the given constructor declaration.
   generateArgumentsSentence :: HS.ConDecl -> Converter G.Sentence
-  generateArgumentsSentence (HS.ConDecl _ (HS.DeclIdent _ ident) _) = do
-    Just qualid <- inEnv $ lookupCon (HS.Ident ident)
+  generateArgumentsSentence (HS.ConDecl _ (HS.DeclIdent _ conIdent) _) = do
+    Just qualid <- inEnv $ lookupCon (HS.Ident conIdent)
     let typeVarIdents = map (HS.Ident . fromDeclIdent) typeVarDecls
     typeVarQualids <- mapM (inEnv . lookupTypeVar) typeVarIdents
     return
