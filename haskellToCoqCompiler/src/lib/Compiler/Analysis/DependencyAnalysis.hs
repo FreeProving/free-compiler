@@ -47,6 +47,8 @@ convertSCC (CyclicSCC  decls) = Recursive decls
 --   The returned list of strongly connected components is in reverse
 --   topological order, i.e. a component @A@ precedes another component @B@ if
 --   @A@ contains any declaration that depends on a declartion in $B$.
+--   If two components do not depend on each other, they are in reverse
+--   alphabetical order.
 groupDependencies :: DependencyGraph -> [DependencyComponent]
 groupDependencies = map convertSCC . stronglyConnComp . entries
 
