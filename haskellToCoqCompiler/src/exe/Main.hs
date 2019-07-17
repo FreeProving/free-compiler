@@ -8,7 +8,7 @@ import           System.Console.GetOpt
 import           System.IO                      ( stderr )
 import           System.FilePath
 
-import           Compiler.MyConverter           ( defaultEnvironment
+import           Compiler.Converter             ( defaultEnvironment
                                                 , convertModule
                                                 )
 import           Compiler.Converter.State       ( evalConverter )

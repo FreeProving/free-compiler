@@ -1,9 +1,7 @@
 -- | This module contains the new implementation of the converter from
 --   Haskell to Coq using the @Free@ monad.
---
---   TODO rename to @Compiler.Converter@
 
-module Compiler.MyConverter where
+module Compiler.Converter where
 
 import           Control.Monad                  ( mapAndUnzipM )
 import           Data.Maybe                     ( maybe

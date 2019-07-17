@@ -4,7 +4,7 @@ module Compiler.Util.Test where
 
 import           Test.Hspec
 
-import           Compiler.MyConverter
+import           Compiler.Converter
 import           Compiler.Converter.State
 import           Compiler.Language.Haskell.Parser
 import           Compiler.Language.Haskell.SimpleAST

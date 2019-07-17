@@ -3,7 +3,7 @@ module Compiler.ConverterTests where
 import           Test.Hspec
 
 import           Compiler.Converter.Renamer
-import           Compiler.MyConverter
+import           Compiler.Converter
 
 import           Compiler.Util.Test
 
