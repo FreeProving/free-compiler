@@ -56,24 +56,25 @@ predefineBool =
   defineTypeCon (HS.Ident "Bool") (bare "Bool")
     . defineCon (HS.Ident "True")  (bare "true")  (bare "True_")
     . defineCon (HS.Ident "False") (bare "false") (bare "False_")
-  -- TODO  . defineFunc (HS.Symbol "&&") (bare "andBool")
-  -- TODO  . defineFunc (HS.Symbol "||") (bare "orBool")
+    . defineVar (HS.Symbol "&&") (bare "andBool")
+    . defineVar (HS.Symbol "||") (bare "orBool")
 
 -- | Populates the given environment with the predefined @Int@ data type and
 --   its operations.
 predefineInt :: Environment -> Environment
-predefineInt = defineTypeCon (HS.Ident "Int") (bare "Int")
-  -- TODO  . defineFunc (HS.Symbol "+")      (bare "addInt")
-  -- TODO  . defineFunc (HS.Symbol "-")      (bare "subInt")
-  -- TODO  . defineFunc (HS.Symbol "*")      (bare "mulInt")
-  -- TODO  . defineFunc (HS.Symbol "^")      (bare "powInt")
-  -- TODO  . defineFunc (HS.Symbol "<=")     (bare "leInt")
-  -- TODO  . defineFunc (HS.Symbol "<")      (bare "ltInt")
-  -- TODO  . defineFunc (HS.Symbol "==")     (bare "eqInt")
-  -- TODO  . defineFunc (HS.Symbol "/=")     (bare "neqInt")
-  -- TODO  . defineFunc (HS.Symbol ">=")     (bare "geInt")
-  -- TODO  . defineFunc (HS.Symbol ">")      (bare "gtInt")
-  -- TODO  . defineFunc (HS.Symbol "negate") (bare "negate")
+predefineInt =
+  defineTypeCon (HS.Ident "Int") (bare "Int")
+    . defineVar (HS.Symbol "+")      (bare "addInt")
+    . defineVar (HS.Symbol "-")      (bare "subInt")
+    . defineVar (HS.Symbol "*")      (bare "mulInt")
+    . defineVar (HS.Symbol "^")      (bare "powInt")
+    . defineVar (HS.Symbol "<=")     (bare "leInt")
+    . defineVar (HS.Symbol "<")      (bare "ltInt")
+    . defineVar (HS.Symbol "==")     (bare "eqInt")
+    . defineVar (HS.Symbol "/=")     (bare "neqInt")
+    . defineVar (HS.Symbol ">=")     (bare "geInt")
+    . defineVar (HS.Symbol ">")      (bare "gtInt")
+    . defineVar (HS.Symbol "negate") (bare "negate")
 
 -- | Populates the given environment with the predefined list data type and
 --   its (smart) constructors.
