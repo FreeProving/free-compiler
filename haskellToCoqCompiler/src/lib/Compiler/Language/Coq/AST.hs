@@ -56,7 +56,9 @@ unpackQualid (G.Qualified _ _) = Nothing
 app :: G.Term -> [G.Term] -> G.Term
 app (G.App func args) args' =
   G.App func (args <> toNonEmptyList (map G.PosArg args'))
-app func args = G.App func (toNonEmptyList (map G.PosArg args))
+app func args
+  | null args = func
+  | otherwise = G.App func (toNonEmptyList (map G.PosArg args))
 
 -- | Smart constructor for a Coq function type.
 arrows
