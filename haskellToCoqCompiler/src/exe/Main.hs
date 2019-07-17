@@ -9,7 +9,7 @@ import           System.IO                      ( stderr )
 import           System.FilePath
 
 import           Compiler.Converter             ( defaultEnvironment
-                                                , convertModule
+                                                , convertModuleWithPreamble
                                                 )
 import           Compiler.Converter.State       ( evalConverter )
 import           Compiler.Language.Haskell.Parser
@@ -155,9 +155,10 @@ run opts
 --   AST is written to the console or output file.
 processInputFile :: Options -> FilePath -> ReporterIO (IO ())
 processInputFile opts inputFile = do
-  haskellAst <- parseModuleFile inputFile
+  haskellAst  <- parseModuleFile inputFile
   haskellAst' <- hoist $ simplifyModule haskellAst
-  coqAst <- hoist $ evalConverter (convertModule haskellAst') defaultEnvironment
+  coqAst      <- hoist
+    $ evalConverter (convertModuleWithPreamble haskellAst') defaultEnvironment
 
   return $ case (optOutputDir opts) of
     Nothing -> putPrettyLn coqAst

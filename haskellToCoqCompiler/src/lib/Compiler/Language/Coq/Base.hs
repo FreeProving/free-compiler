@@ -9,6 +9,16 @@ import           Compiler.Language.Haskell.SimpleAST
                                                as HS
 
 -------------------------------------------------------------------------------
+-- Base library import                                                       --
+-------------------------------------------------------------------------------
+
+-- | Import sentence for the @Free@ and @Prelude@ modules from the Base
+--   Coq library.
+imports :: G.Sentence
+imports =
+  G.requireImportFrom (G.ident "Base") [G.ident "Free", G.ident "Prelude"]
+
+-------------------------------------------------------------------------------
 -- Free monad                                                                --
 -------------------------------------------------------------------------------
 

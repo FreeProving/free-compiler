@@ -21,13 +21,12 @@ library haskell-to-coq-internal
   exposed-modules:      Compiler.Analysis.DependencyAnalysis
                       , Compiler.Analysis.DependencyGraph
                       , Compiler.Analysis.PartialityAnalysis
-                      , Compiler.MyConverter
+                      , Compiler.Converter
                       , Compiler.Converter.Renamer
                       , Compiler.Converter.State
                       , Compiler.Language.Coq.AST
                       , Compiler.Language.Coq.Base
                       , Compiler.Language.Coq.Keywords
-                      , Compiler.Language.Coq.Preamble
                       , Compiler.Language.Haskell.Parser
                       , Compiler.Language.Haskell.SimpleAST
                       , Compiler.Language.Haskell.Simplifier

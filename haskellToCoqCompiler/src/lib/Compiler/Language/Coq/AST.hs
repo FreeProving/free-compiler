@@ -3,13 +3,19 @@
 
 module Compiler.Language.Coq.AST
   ( module Language.Coq.Gallina
+    -- * Comments
   , comment
+    -- * Identifiers
   , ident
   , bare
   , unpackQualid
+    -- * Functions
   , app
   , arrows
+    -- * Types
   , sortType
+    -- * Imports
+  , requireImportFrom
   )
 where
 
@@ -56,9 +62,8 @@ unpackQualid (G.Qualified _ _) = Nothing
 app :: G.Term -> [G.Term] -> G.Term
 app (G.App func args) args' =
   G.App func (args <> toNonEmptyList (map G.PosArg args'))
-app func args
-  | null args = func
-  | otherwise = G.App func (toNonEmptyList (map G.PosArg args))
+app func args | null args = func
+              | otherwise = G.App func (toNonEmptyList (map G.PosArg args))
 
 -- | Smart constructor for a Coq function type.
 arrows
@@ -74,3 +79,12 @@ arrows args returnType = foldr G.Arrow returnType args
 -- | The type of a type variable.
 sortType :: G.Term
 sortType = G.Sort G.Type
+
+-------------------------------------------------------------------------------
+-- Imports                                                                   --
+-------------------------------------------------------------------------------
+
+-- | Creates a "From ... Require Import ..." sentence.
+requireImportFrom :: G.ModuleIdent -> [G.ModuleIdent] -> G.Sentence
+requireImportFrom library modules = G.ModuleSentence
+  (G.Require (Just library) (Just G.Import) (toNonEmptyList modules))

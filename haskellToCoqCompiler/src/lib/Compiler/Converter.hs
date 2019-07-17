@@ -31,6 +31,13 @@ defaultEnvironment = CoqBase.predefine emptyEnvironment
 -- Modules                                                                   --
 -------------------------------------------------------------------------------
 
+-- | Converts a Haskell module to a Gallina module sentence and adds
+--   import sentences for the Coq Base library that accompanies the compiler.
+convertModuleWithPreamble :: HS.Module -> Converter [G.Sentence]
+convertModuleWithPreamble ast = do
+  coqAst <- convertModule ast
+  return [CoqBase.imports, coqAst]
+
 -- | Converts a Haskell module to a Gallina module sentence.
 --
 --   If no module header is present the generated module is called @"Main"@.
