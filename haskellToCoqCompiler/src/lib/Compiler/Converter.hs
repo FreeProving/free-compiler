@@ -180,7 +180,7 @@ convertDataDecl (HS.DataDecl srcSpan (HS.DeclIdent _ ident) typeVarDecls conDecl
           (G.DefinitionDef
             G.Global
             smartQualid
-            (genericArgDecls G.Implicit ++ typeVarDecls' ++ argDecls')
+            (genericArgDecls G.Explicit ++ typeVarDecls' ++ argDecls')
             (Just returnType')
             (G.app
               (G.Qualid CoqBase.freePureCon)
