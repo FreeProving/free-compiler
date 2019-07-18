@@ -7,6 +7,9 @@
 --   The computation can be interrupted without returning a result by reporting
 --   a fatal error message.
 --
+--   The 'ReporterT' monad transformer is used to implement 'ReporterIO' which
+--   simplifies combining IO actions with error reporting.
+--
 --   This module also provides functions for pretty printing the collected
 --   error messages in a similar way to how the GHC prints error messages.
 
