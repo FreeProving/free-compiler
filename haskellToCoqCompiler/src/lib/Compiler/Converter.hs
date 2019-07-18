@@ -4,6 +4,7 @@
 module Compiler.Converter where
 
 import           Control.Monad                  ( mapAndUnzipM )
+import           Control.Monad.Extra            ( concatMapM )
 import           Data.Maybe                     ( maybe
                                                 , catMaybes
                                                 )
@@ -18,7 +19,6 @@ import qualified Compiler.Language.Haskell.SimpleAST
 import           Compiler.Pretty
 import           Compiler.Reporter
 import           Compiler.SrcSpan
-import           Compiler.Util.Control.Monad
 import           Compiler.Util.Data.List.NonEmpty
 
 -- | Initially the environment contains the predefined functions, data types
