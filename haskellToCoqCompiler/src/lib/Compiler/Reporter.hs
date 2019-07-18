@@ -262,10 +262,10 @@ instance Pretty Severity where
 --   The format of the messages is based on the format used by GHC:
 --
 --   @
---   <file>:<line>:<column>: <severity>:
---       <message-contents>
+--   [file]:[line]:[column]: [severity]:
+--       [message-contents]
 --          |
---   <line> | <line of code ... culprit  ... >
+--   [line] | [line of code ... culprit  ... ]
 --          |                   ^^^^^^^
 --   @
 --
