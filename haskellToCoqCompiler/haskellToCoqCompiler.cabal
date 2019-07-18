@@ -34,7 +34,6 @@ library haskell-to-coq-internal
                       , Compiler.Pretty.Coq
                       , Compiler.Reporter
                       , Compiler.SrcSpan
-                      , Compiler.Util.Data.String
   build-depends:      base                ==4.12.*
                         -- Monad transformers:
                       , mtl               ==2.2.*
@@ -45,8 +44,9 @@ library haskell-to-coq-internal
                       , text              ==1.2.*
                       , wl-pprint-text    ==1.2.*
                         -- Utilities:
-                      , regexpr           ==0.5.*
+                      , casing
                       , extra             ==1.6.*
+                      , regexpr           ==0.5.*
                         -- ASTs:
                       , haskell-src-exts  ==1.21.*
                       , language-coq      ==0.0.*

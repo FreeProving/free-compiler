@@ -22,6 +22,7 @@ module Compiler.Converter.Renamer
 where
 
 import           Text.RegexPR
+import           Text.Casing
 import           Data.Maybe                     ( catMaybes )
 
 import           Compiler.Converter.State
@@ -30,7 +31,6 @@ import qualified Compiler.Language.Coq.Base    as CoqBase
 import           Compiler.Language.Coq.Keywords
 import qualified Compiler.Language.Haskell.SimpleAST
                                                as HS
-import           Compiler.Util.Data.String
 
 -------------------------------------------------------------------------------
 -- Predicates                                                                --
@@ -136,14 +136,15 @@ renameAndDefineTypeVar ident = do
 --   name conflict in the current environment.
 --
 --   A name for the smart constructor is generated automatically as well.
---   The regular constructor's identifier starts with a lower case letter.
+--   The regular constructor's identifier starts with a lower case letter
+--   (i.e. @camelCase@ instead of @PascalCase@).
 --
 --   Returns the generated identifiers. The first component is the identiier
 --   for the regular constructor and the second is the identifier for the
 --   smart constructor.
 renameAndDefineCon :: String -> Converter (String, String)
 renameAndDefineCon ident = do
-  ident'      <- inEnv $ renameIdent (uncapitalize ident)
+  ident'      <- inEnv $ renameIdent (toCamel (fromHumps ident))
   smartIdent' <- inEnv $ renameIdent ident
   modifyEnv $ defineCon (HS.Ident ident) (G.bare ident') (G.bare smartIdent')
   return (ident', smartIdent')
