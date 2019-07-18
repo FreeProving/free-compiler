@@ -52,9 +52,9 @@ genKeyword = oneof $ map return coqKeywords
 testMustRenameIdent :: Spec
 testMustRenameIdent = describe "mustRenameIdent" $ do
   it "keywords must be renamed" $ do
-    property $ forAll genKeyword $ mustRenameIdent emptyEnvironment
+    property $ forAll genKeyword $ flip mustRenameIdent emptyEnvironment
   it "reserved identifiers must be renamed" $ do
-    property $ forAll genReservedIdent $ mustRenameIdent emptyEnvironment
+    property $ forAll genReservedIdent $ flip mustRenameIdent emptyEnvironment
   it "defined identifiers must be renamed" $ do
     property $ forAll genIdent $ \ident ->
       let env = defineTypeVar (HS.Ident ident) (G.bare ident) emptyEnvironment
@@ -70,7 +70,7 @@ testRenameIdent = describe "renameIdent" $ do
   it "generated identifiers don't need to be renamed" $ do
     property $ forAll genIdent $ \ident ->
       let ident' = renameIdent ident emptyEnvironment
-      in  not (mustRenameIdent emptyEnvironment ident')
+      in  not (mustRenameIdent ident' emptyEnvironment)
   it "generated identifiers are not renamed again" $ do
     property $ forAll genIdent $ \ident ->
       let ident' = renameIdent ident emptyEnvironment
