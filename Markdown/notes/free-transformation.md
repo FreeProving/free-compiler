@@ -198,12 +198,12 @@ standardmäßig importierten Modul geeignet vordefiniert werden müssen.
 
     ```coq
     Definition True_
-      {@$Shape$@ : Type} {@$Pos$@ : @$Shape$@ -> Type}
+      (@$Shape$@ : Type) (@$Pos$@ : @$Shape$@ -> Type)
       : Free @$Shape$@ @$Pos$@ (Bool @$Shape$@ @$Pos$@) :=
       pure true.
 
     Definition False_
-      {@$Shape$@ : Type} {@$Pos$@ : @$Shape$@ -> Type}
+      (@$Shape$@ : Type) (@$Pos$@ : @$Shape$@ -> Type)
       : Free @$Shape$@ @$Pos$@ (Bool @$Shape$@ @$Pos$@) :=
       pure false.
     ```
@@ -239,11 +239,11 @@ Inductive List (@$Shape$@ : Type) (@$Pos$@ : @$Shape$@ -> Type)
 Arguments nil  {@$Shape$@} {@$Pos$@} {a}.
 Arguments cons {@$Shape$@} {@$Pos$@} {a}.
 
-Definition Nil {@$Shape$@ : Type} {@$Pos$@ : @$Shape$@ -> Type} {a : Type}
+Definition Nil (@$Shape$@ : Type) (@$Pos$@ : @$Shape$@ -> Type) {a : Type}
   : Free @$Shape$@ @$Pos$@ (List @$Shape$@ @$Pos$@ a) :=
   pure nil.
 
-Definition Cons {@$Shape$@ : Type} {@$Pos$@ : @$Shape$@ -> Type} {a : Type}
+Definition Cons (@$Shape$@ : Type) (@$Pos$@ : @$Shape$@ -> Type) {a : Type}
   (x : Free @$Shape$@ @$Pos$@ a)
   (xs : Free @$Shape$@ @$Pos$@ (List @$Shape$@ @$Pos$@ a))
   : Free @$Shape$@ @$Pos$@ (List @$Shape$@ @$Pos$@ a) :=
@@ -270,7 +270,7 @@ Definition Cons {@$Shape$@ : Type} {@$Pos$@ : @$Shape$@ -> Type} {a : Type}
 
     ```coq
     Definition Tt
-      {@$Shape$@ : Type} {@$Pos$@ : @$Shape$@ -> Type}
+      (@$Shape$@ : Type) (@$Pos$@ : @$Shape$@ -> Type)
       : Free @$Shape$@ @$Pos$@ (Unit @$Shape$@ @$Pos$@) :=
       pure tt.
     ```
@@ -295,7 +295,7 @@ Definition Cons {@$Shape$@ : Type} {@$Pos$@ : @$Shape$@ -> Type} {a : Type}
     Arguments pair_ {@$Shape$@} {@$Pos$@} {a} {b}.
 
     Definition Pair_
-      {@$Shape$@ : Type} {@$Pos$@ : @$Shape$@ -> Type}
+      (@$Shape$@ : Type) (@$Pos$@ : @$Shape$@ -> Type)
       {a b : Type} (x : Free @$Shape$@ @$Pos$@ a) (y : Free @$Shape$@ @$Pos$@ b)
       : Free @$Shape$@ @$Pos$@ (Pair @$Shape$@ @$Pos$@ a b) :=
       pure (pair_ x y).
@@ -336,7 +336,9 @@ $$
 
 Zusätzlich wird für jeden Konstruktor spezifiziert, dass die Typparameter
 optional sind. Die ursprünglich aus der `Container`{.coq} Instanz stammenden
-Parameter $Shape$ und $Pos$ lassen wir ebenfalls von Coq inferieren.
+Parameter $Shape$ und $Pos$ lassen wir ebenfalls von Coq inferieren, da diese
+bei der Übersetzung von `case`{.haskell} ausdrücken ebenfalls gematcht werden
+müssten.
 
 ```coq
 Arguments @$c_1$@ {@$Shape$@} {@$Pos$@} {@$\alpha_1$@} @$\ldots$@ {@$\alpha_m$@}.
@@ -355,7 +357,7 @@ Anwendung von `pure`{.coq} übernimmt.
 
 ```coq
 Definition @$C_i$@
-  {@$Shape$@ : Type} {@$Pos$@ : @$Shape$@ -> Type}
+  (@$Shape$@ : Type) (@$Pos$@ : @$Shape$@ -> Type)
   {@$\alpha_1$@ @$\ldots$@ @$\alpha_m$@ : Type}
   (@$x_1$@ : @$\lift{\tau_{i,1}}$@) @$\ldots$@ (@$x_{p_i}$@ : @$\lift{\tau_{i,p_i}}$@)
   : Free @$Shape$@ @$Pos$@ :=
@@ -363,8 +365,9 @@ Definition @$C_i$@
 ```
 
 wobei $x_1, \ldots, x_{p_i}$ frische Variablen sind.
-Auch vom Smart Konstruktor lassen wir die Typparameter sowie die Parameter
-$Shape$ und $Pos$ inferieren.
+Bei vom Smart Konstruktor lassen wir die Typparameter ebenfalls inferieren,
+aber übergeben $Shape$ und $Pos$ explizit, sodass die Anwendung von
+Konstruktoren und Funktionen einheitlich gestalltet werden kann.
 
 \newpage
 ## Übersetzung von Typsynoymdeklarationen
@@ -713,17 +716,15 @@ monadischen Kontext. Daher haben wir für jeden solchen Konstruktor einen Smart
 Konstruktor `@$C$@`{.coq} eingeführt, der zusätzlich `pure`{.coq} auf das
 Ergebnis des Konstruktors anwendet.
 
-Im Gegensatz zu Funktionsanwendungen übergeben wir bei Konstruktoren dabei
-nicht die Parameter $Shape$ und $Pos$. Diese werden von Coq genau so wie die
-Typparameter inferiert. Ansonsten können Konstruktoranwendungen mithilfe
-der Smart Konstruktoren analog übersetzt werden.
+Aufgrund dieser Smart Konstruktoren können wir nun Konstruktoranwendungen
+genauso übersetzen wie die Anwendung einer totalen Funktion.
 
 ```haskell
 @$C$@ @$e_1$@ @$\ldots$@ @$e_n$@
 ```
 
 ```coq
-@$C$@ @$\lift{e_1}$@ @$\ldots$@ @$\lift{e_n}$@
+@$C$@ @$Shape$@ @$Pos$@ @$\lift{e_1}$@ @$\ldots$@ @$\lift{e_n}$@
 ```
 
 ### Anwendung vordefinierter Funktionen
