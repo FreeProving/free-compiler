@@ -16,6 +16,3 @@ Section SecUnit.
   Definition Tt : Free' Unit' := pure tt.
 
 End SecUnit.
-
-(* The arguments of the smart constructor are implicit. *)
-Arguments Tt {Shape} {Pos}.

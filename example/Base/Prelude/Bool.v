@@ -29,7 +29,3 @@ Section SecBool.
         pure (orb b1' b2').
 
 End SecBool.
-
-(* The arguments of the smart constructors are implicit. *)
-Arguments True_  {Shape} {Pos}.
-Arguments False_ {Shape} {Pos}.

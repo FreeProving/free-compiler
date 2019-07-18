@@ -16,16 +16,8 @@ Section SecList.
 
   Definition Nil {A : Type} : Free' (List A) := pure nil.
 
-  Definition Cons {A : Type} (x : Free' A) (xs : Free' (List A)) 
+  Definition Cons {A : Type} (x : Free' A) (xs : Free' (List A))
     : Free' (List A) :=
     pure (cons x xs).
 
 End SecList.
-
-(* The arguments of the constructors are implicit. *)
-Arguments nil  {Shape} {Pos} {A}.
-Arguments cons {Shape} {Pos} {A}.
-
-(* The arguments of the smart constructors are implicit. *)
-Arguments Nil  {Shape} {Pos} {A}.
-Arguments Cons {Shape} {Pos} {A}.
