@@ -8,7 +8,7 @@ import           Control.Monad.Extra            ( concatMapM )
 import           Data.Maybe                     ( maybe
                                                 , catMaybes
                                                 )
-import           Data.List.NonEmpty            as NonEmpty
+import qualified Data.List.NonEmpty            as NonEmpty
 
 import           Compiler.Analysis.DependencyAnalysis
 import           Compiler.Converter.State
@@ -84,7 +84,7 @@ convertDataDecls dataDecls = do
   mapM_ defineDataDecl dataDecls
   (indBodies, extraSentences) <- mapAndUnzipM convertDataDecl dataDecls
   return
-    ( G.InductiveSentence (G.Inductive (NonEmpty.toList indBodies) [])
+    ( G.InductiveSentence (G.Inductive (NonEmpty.fromList indBodies) [])
     : concat extraSentences
     )
 
@@ -232,7 +232,7 @@ convertTypeVarDecls explicitness typeVarDecls
     return
       [ G.Typed G.Ungeneralizable
                 explicitness
-                (NonEmpty.toList (map (G.Ident . G.bare) idents'))
+                (NonEmpty.fromList (map (G.Ident . G.bare) idents'))
                 G.sortType
       ]
 

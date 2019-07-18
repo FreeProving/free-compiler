@@ -60,9 +60,9 @@ unpackQualid (G.Qualified _ _) = Nothing
 --   to that term. Otherwise a new application term is created.
 app :: G.Term -> [G.Term] -> G.Term
 app (G.App func args) args' =
-  G.App func (args <> NonEmpty.toList (map G.PosArg args'))
+  G.App func (args <> NonEmpty.fromList (map G.PosArg args'))
 app func args | null args = func
-              | otherwise = G.App func (NonEmpty.toList (map G.PosArg args))
+              | otherwise = G.App func (NonEmpty.fromList (map G.PosArg args))
 
 -- | Smart constructor for a Coq function type.
 arrows
@@ -86,4 +86,4 @@ sortType = G.Sort G.Type
 -- | Creates a "From ... Require Import ..." sentence.
 requireImportFrom :: G.ModuleIdent -> [G.ModuleIdent] -> G.Sentence
 requireImportFrom library modules = G.ModuleSentence
-  (G.Require (Just library) (Just G.Import) (NonEmpty.toList modules))
+  (G.Require (Just library) (Just G.Import) (NonEmpty.fromList modules))
