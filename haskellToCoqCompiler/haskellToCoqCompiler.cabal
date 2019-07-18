@@ -5,16 +5,25 @@ cabal-version:       3.0
 
 name:                haskellToCoqCompiler
 version:             0.1.0.0
--- synopsis:
--- description:
+synopsis:            A Haskell to Coq compiler.
+description:         This compiler converts Haskell modules to Coq. Partial
+                     Haskell functions are modelled in Coq by applying a
+                     monadic transformation. We use the free monad for this
+                     purpose such that proofs about the converted Coq code can
+                     be monad/effect generic.
+                     This package is based on an early
+                     <https://github.com/beje8442/haskellToCoqCompiler prototype>
+                     developed at Flensburg University of Applied Sciences by
+                     Benedikt Jessen.
 license:             BSD-3-Clause
 license-file:        LICENSE
-author:              beje3017
-maintainer:          benedikt-jessen@web.de
--- copyright:
--- category:
+author:              Justin Andresen
+maintainer:          jan.dresen.95@gmail.com
+copyright:           (c) 2018, Flensburg University of Applied Sciences
+                     (c) 2019, Kiel University
+category:            Language
 build-type:          Simple
-extra-source-files:  ChangeLog.md
+-- extra-source-files:  TODO Coq Base library
 
 library haskell-to-coq-internal
   hs-source-dirs:     src/lib
