@@ -25,45 +25,65 @@ testConvertDataDecls = describe "convertDataDecls" $ do
     $ fromConverter
     $ do
         shouldTranslateDeclsTo "data Foo = Bar | Baz"
-          $  "Inductive Foo (Shape : Type) (Pos : Shape -> Type) : Type"
-          ++ " := Bar : Foo Shape Pos"
-          ++ " |  Baz : Foo Shape Pos. "
-          ++ "Arguments Bar {Shape} {Pos}. "
-          ++ "Arguments Baz {Shape} {Pos}."
-          -- TODO smart constructors.
+          $  "Inductive Foo (Shape : Type) (Pos : Shape -> Type) : Type "
+          ++ " := bar : Foo Shape Pos "
+          ++ " |  baz : Foo Shape Pos. "
+          ++ "(* Arguments sentences for Foo *) "
+          ++ "Arguments bar {Shape} {Pos}. "
+          ++ "Arguments baz {Shape} {Pos}. "
+          ++ "(* Smart constructors for Foo *) "
+          ++ "Definition Bar (Shape : Type) (Pos : Shape -> Type) "
+          ++ " : Free Shape Pos (Foo Shape Pos) := pure bar. "
+          ++ "Definition Baz (Shape : Type) (Pos : Shape -> Type) "
+          ++ " : Free Shape Pos (Foo Shape Pos) := pure baz."
 
   it "translates polymorphic types correctly"
     $ shouldSucceed
     $ fromConverter
     $ do
         shouldTranslateDeclsTo "data Foo a b = Bar a | Baz b"
-          $  "Inductive Foo (Shape : Type) (Pos : Shape -> Type)"
-          ++ " (a b : Type) : Type"
-          ++ " := Bar : Free Shape Pos a -> Foo Shape Pos a b"
-          ++ " |  Baz : Free Shape Pos b -> Foo Shape Pos a b. "
-          ++ "Arguments Bar {Shape} {Pos} {a} {b}. "
-          ++ "Arguments Baz {Shape} {Pos} {a} {b}."
+          $  "Inductive Foo (Shape : Type) (Pos : Shape -> Type) "
+          ++ " (a b : Type) : Type "
+          ++ " := bar : Free Shape Pos a -> Foo Shape Pos a b "
+          ++ " |  baz : Free Shape Pos b -> Foo Shape Pos a b. "
+          ++ "(* Arguments sentences for Foo *) "
+          ++ "Arguments bar {Shape} {Pos} {a} {b}. "
+          ++ "Arguments baz {Shape} {Pos} {a} {b}. "
+          ++ "(* Smart constructors for Foo *) "
+          ++ "Definition Bar (Shape : Type) (Pos : Shape -> Type) "
+          ++ " {a b : Type} (_0 : Free Shape Pos a) "
+          ++ " : Free Shape Pos (Foo Shape Pos a b) := pure (bar _0). "
+          ++ "Definition Baz (Shape : Type) (Pos : Shape -> Type) "
+          ++ " {a b : Type} (_0 : Free Shape Pos b) "
+          ++ " : Free Shape Pos (Foo Shape Pos a b) := pure (baz _0)."
 
   it "renames constructors with same name as their data type"
     $ shouldSucceed
     $ fromConverter
     $ do
         shouldTranslateDeclsTo "data Foo = Foo"
-          $  "Inductive Foo (Shape : Type) (Pos : Shape -> Type) : Type"
-          ++ " := Foo0 : Foo Shape Pos. "
-          ++ "Arguments Foo0 {Shape} {Pos}."
-          -- TODO append underscore instead?
+          $  "Inductive Foo (Shape : Type) (Pos : Shape -> Type) : Type "
+          ++ " := foo : Foo Shape Pos. "
+          ++ "(* Arguments sentences for Foo *) "
+          ++ "Arguments foo {Shape} {Pos}. "
+          ++ "(* Smart constructors for Foo *) "
+          ++ "Definition Foo0 (Shape : Type) (Pos : Shape -> Type) "
+          ++ " : Free Shape Pos (Foo Shape Pos) := pure foo."
 
-  -- TODO smart constructors
   it "renames type variables with same name as constructors"
     $ shouldSucceed
     $ fromConverter
     $ do
         shouldTranslateDeclsTo "data Foo a = A a"
-          $  "Inductive Foo (Shape : Type) (Pos : Shape -> Type)"
-          ++ " (a : Type) : Type"
-          ++ " := A : Free Shape Pos a -> Foo Shape Pos a. "
-          ++ "Arguments A {Shape} {Pos} {a}."
+          $  "Inductive Foo (Shape : Type) (Pos : Shape -> Type) "
+          ++ " (a0 : Type) : Type "
+          ++ " := a : Free Shape Pos a0 -> Foo Shape Pos a0. "
+          ++ "(* Arguments sentences for Foo *) "
+          ++ "Arguments a {Shape} {Pos} {a0}. "
+          ++ "(* Smart constructors for Foo *) "
+          ++ "Definition A (Shape : Type) (Pos : Shape -> Type) "
+          ++ " {a0 : Type} (_0 : Free Shape Pos a0) "
+          ++ " : Free Shape Pos (Foo Shape Pos a0) := pure (a _0)."
 
 -------------------------------------------------------------------------------
 -- Types                                                                     --
