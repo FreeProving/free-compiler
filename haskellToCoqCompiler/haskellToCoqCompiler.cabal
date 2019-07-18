@@ -44,7 +44,7 @@ library haskell-to-coq-internal
                       , text              ==1.2.*
                       , wl-pprint-text    ==1.2.*
                         -- Utilities:
-                      , casing
+                      , casing            ==0.1.*
                       , extra             ==1.6.*
                       , regexpr           ==0.5.*
                         -- ASTs:
