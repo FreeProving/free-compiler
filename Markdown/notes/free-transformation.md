@@ -1019,8 +1019,8 @@ wobei $x_1, \ldots x_n$ Variablenpattern sind und $e$ ein Ausdruck ist.
 - Für die Übersetzung der boolschen Werte verwenden wir die zuvor definierten
   Smart Konstruktoren.
 
-    + $\lift{\True} = \TrueC$
-    + $\lift{\False} = \FalseC$
+    + $\lift{\True} = \TrueC\,Shape\,Pos$
+    + $\lift{\False} = \FalseC\,Shape\,Pos$
 
 ### Listen
 
@@ -1029,9 +1029,9 @@ werden in die vordefinierten Smart Konstruktoren `Nil`{.coq} bzw. `Cons`{.coq}
 übersetzt. Für die Anwendung dieser Konstruktoren gelten dann die oben
 stehenden Übersetzungsregeln. D.h.
 
-- `[]`{.haskell} wird mit `Nil`{.coq} und
+- `[]`{.haskell} wird mit `Nil @$Shape$@ @$Pos$@`{.coq} und
 - `@$e_1$@ : @$e_2$@`{.haskell}, wobei $e_1 :: \tau$ und $e_2 :: [\tau]$
-  Ausdrücke sind, wird mit `Cons @$\lift{e_1}$@ @$\lift{e_2}$@`
+  Ausdrücke sind, wird mit `Cons @$Shape$@ @$Pos$@ @$\lift{e_1}$@ @$\lift{e_2}$@`
 
 übersetzt.
 
@@ -1055,7 +1055,8 @@ Notation "[]" := Nil.
 Notation "[ x0 ; .. ; xn ]" := (Cons x0 .. (Cons xn Nil) ..).
 ```
 
-verwenden.
+verwenden. Auch die Typparameter $Shape$ und $Pos$ könnten die Definition
+solcher Notationen in Coq schwierig gestallten.
 
 ### Tuple
 
@@ -1064,9 +1065,10 @@ Die Konstruktoren für nullelementige Tupel `()`{.haskell} und Paare
 bzw. `Pair_`{.coq} übersetzt. Für die Anwendung dieser Konstruktoren gelten
 dann die oben stehenden Übersetzungsregeln. D.h.
 
-- `()`{.haskell} wird mit `Tt`{.coq} und
-- `(@$e_1$@, @$e_2$@)`{.haskell}, wobei $e_1$ und $e_2$ Ausdrücke sind,
-  wird mit `Pair_ @$\lift{e_1}$@ @$\lift{e_2}$@`{.coq}
+- `()`{.haskell} wird mit `Tt @$Shape$@ @$Pos$@`{.coq} und
+- `(@$e_1$@, @$e_2$@)`{.haskell} wird mit
+  `Pair_ @$Shape$@ @$Pos$@ @$\lift{e_1}$@ @$\lift{e_2}$@`{.coq},
+  wobei $e_1$ und $e_2$ Ausdrücke sind,
 
 übersetzt.
 
