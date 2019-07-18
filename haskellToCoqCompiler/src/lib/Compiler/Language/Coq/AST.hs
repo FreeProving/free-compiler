@@ -20,10 +20,9 @@ module Compiler.Language.Coq.AST
 where
 
 import qualified Data.Text                     as T
+import qualified Data.List.NonEmpty            as NonEmpty
 import qualified Language.Coq.Gallina          as G
 import           Language.Coq.Gallina
-
-import           Compiler.Util.Data.List.NonEmpty
 
 -------------------------------------------------------------------------------
 -- Comments                                                                  --
@@ -61,9 +60,9 @@ unpackQualid (G.Qualified _ _) = Nothing
 --   to that term. Otherwise a new application term is created.
 app :: G.Term -> [G.Term] -> G.Term
 app (G.App func args) args' =
-  G.App func (args <> toNonEmptyList (map G.PosArg args'))
+  G.App func (args <> NonEmpty.toList (map G.PosArg args'))
 app func args | null args = func
-              | otherwise = G.App func (toNonEmptyList (map G.PosArg args))
+              | otherwise = G.App func (NonEmpty.toList (map G.PosArg args))
 
 -- | Smart constructor for a Coq function type.
 arrows
@@ -87,4 +86,4 @@ sortType = G.Sort G.Type
 -- | Creates a "From ... Require Import ..." sentence.
 requireImportFrom :: G.ModuleIdent -> [G.ModuleIdent] -> G.Sentence
 requireImportFrom library modules = G.ModuleSentence
-  (G.Require (Just library) (Just G.Import) (toNonEmptyList modules))
+  (G.Require (Just library) (Just G.Import) (NonEmpty.toList modules))

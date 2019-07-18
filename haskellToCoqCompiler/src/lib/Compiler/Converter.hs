@@ -8,6 +8,7 @@ import           Control.Monad.Extra            ( concatMapM )
 import           Data.Maybe                     ( maybe
                                                 , catMaybes
                                                 )
+import           Data.List.NonEmpty            as NonEmpty
 
 import           Compiler.Analysis.DependencyAnalysis
 import           Compiler.Converter.State
@@ -19,7 +20,6 @@ import qualified Compiler.Language.Haskell.SimpleAST
 import           Compiler.Pretty
 import           Compiler.Reporter
 import           Compiler.SrcSpan
-import           Compiler.Util.Data.List.NonEmpty
 
 -- | Initially the environment contains the predefined functions, data types
 --   and their constructors from the Coq Base library that accompanies this
@@ -85,7 +85,7 @@ convertDataDecls dataDecls = do
   mapM_ defineDataDecl dataDecls
   (indBodies, extraSentences) <- mapAndUnzipM convertDataDecl dataDecls
   return
-    ( G.InductiveSentence (G.Inductive (toNonEmptyList indBodies) [])
+    ( G.InductiveSentence (G.Inductive (NonEmpty.toList indBodies) [])
     : concat extraSentences
     )
 
@@ -233,7 +233,7 @@ convertTypeVarDecls explicitness typeVarDecls
     return
       [ G.Typed G.Ungeneralizable
                 explicitness
-                (toNonEmptyList (map (G.Ident . G.bare) idents'))
+                (NonEmpty.toList (map (G.Ident . G.bare) idents'))
                 G.sortType
       ]
 
@@ -257,7 +257,7 @@ convertArg' ident' argType = do
   return
     (G.Typed G.Ungeneralizable
              G.Explicit
-             (singleton (G.Ident (G.bare ident')))
+             (return (G.Ident (G.bare ident')))
              argType'
     )
 
@@ -329,7 +329,7 @@ genericArgDecls :: G.Explicitness -> [G.Binder]
 genericArgDecls explicitness = map (uncurry genericArgDecl) CoqBase.freeArgs
  where
   genericArgDecl :: G.Qualid -> G.Term -> G.Binder
-  genericArgDecl = G.Typed G.Ungeneralizable explicitness . singleton . G.Ident
+  genericArgDecl = G.Typed G.Ungeneralizable explicitness . return . G.Ident
 
 -- | Smart constructor for the application of a Coq function or (type)
 --   constructor that requires the parameters for the @Free@ monad.

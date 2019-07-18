@@ -34,7 +34,6 @@ library haskell-to-coq-internal
                       , Compiler.Pretty.Coq
                       , Compiler.Reporter
                       , Compiler.SrcSpan
-                      , Compiler.Util.Data.List.NonEmpty
                       , Compiler.Util.Data.String
   build-depends:      base                ==4.12.*
                         -- Monad transformers:
