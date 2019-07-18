@@ -31,6 +31,10 @@ import qualified Compiler.Language.Haskell.SimpleAST
                                                as HS
 import           Compiler.SrcSpan
 
+-------------------------------------------------------------------------------
+-- Error reporting                                                           --
+-------------------------------------------------------------------------------
+
 -- | Creates a reporter that fails with an error message stating that
 --   the given feature is not supported but required by the given Haskell
 --   AST node.

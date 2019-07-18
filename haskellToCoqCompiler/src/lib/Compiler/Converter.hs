@@ -1,7 +1,21 @@
 -- | This module contains the new implementation of the converter from
 --   Haskell to Coq using the @Free@ monad.
 
-module Compiler.Converter where
+module Compiler.Converter
+  ( defaultEnvironment
+    -- * Modules
+  , convertModule
+  , convertModuleWithPreamble
+  , convertDecls
+    -- * Data type declarations
+  , convertTypeComponent
+  , convertDataDecls
+  , convertDataDecl
+    -- * Type expressions
+  , convertType
+  , convertType'
+  )
+where
 
 import           Control.Monad                  ( mapAndUnzipM )
 import           Control.Monad.Extra            ( concatMapM )
@@ -275,7 +289,10 @@ convertAnonymousArg argType = do
 
 -- | Converts a Haskell type to Coq, lifting it into the @Free@ monad.
 --
---   This is the implementation of the @†@ translation for types.
+--   [\(\tau^\dagger = Free\,Shape\,Pos\,\tau^*\)]
+--     A type \(\tau\) is converted by lifting it into the @Free@ monad and
+--     recursivly converting the argument and return types of functions
+--     using 'convertType''.
 convertType :: HS.Type -> Converter G.Term
 convertType t = do
   t' <- convertType' t
@@ -287,7 +304,21 @@ convertType t = do
 --   @Free@ moand. Only the argument and return types of contained function
 --   type constructors are lifted recursivly.
 --
---   This is the implementation of the @*@ translation for types.
+--   [\(\alpha^* = \alpha'\)]
+--     A type variable \(\alpha\) is translated by looking up the corresponding
+--     Coq identifier \(\alpha'\).
+--
+--   [\(T^* = T'\,Shape\,Pos\)]
+--     A type constructor \(T\) is translated by looking up the corresponding
+--     Coq identifier \(T'\) and adding the parameters \(Shape\) and \(Pos\).
+--
+--   [\((\tau_1\,\tau_2)^* = \tau_1^*\,\tau_2^*\)]
+--     Type constructor applications are translated recursively but
+--     remain unchanged otherwise.
+--
+--   [\((\tau_1 \rightarrow \tau_2)^* = \tau_1^\dagger \rightarrow \tau_2^\dagger\)]
+--     Type constructor applications are translated recursively but
+--     remain unchanged otherwise.
 convertType' :: HS.Type -> Converter G.Term
 convertType' (HS.TypeVar srcSpan ident) = do
   mQualid <- inEnv $ lookupTypeVar (HS.Ident ident)
