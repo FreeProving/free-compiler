@@ -35,7 +35,6 @@ library haskell-to-coq-internal
                       , Compiler.Reporter
                       , Compiler.SrcSpan
                       , Compiler.Util.Control.Monad
-                      , Compiler.Util.Data.Tuple
                       , Compiler.Util.Data.List.NonEmpty
                       , Compiler.Util.Data.String
   build-depends:      base                ==4.12.*
@@ -47,8 +46,9 @@ library haskell-to-coq-internal
                         -- Pretty printing:
                       , text              ==1.2.*
                       , wl-pprint-text    ==1.2.*
-                        -- Regular expressions:
+                        -- Utilities:
                       , regexpr           ==0.5.*
+                      , extra             ==1.6.*
                         -- ASTs:
                       , haskell-src-exts  ==1.21.*
                       , language-coq      ==0.0.*

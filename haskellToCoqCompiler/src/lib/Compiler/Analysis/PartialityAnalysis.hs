@@ -2,9 +2,9 @@ module Compiler.Analysis.PartialityAnalysis where
 
 import           Data.Graph
 import           Data.List                      ( nub )
+import           Data.Tuple.Extra
 
 import           Compiler.Analysis.DependencyGraph
-import           Compiler.Util.Data.Tuple
 
 -- | Identifies function declatations that are either partial because they
 --   contain error terms or depend on a function that are partial in turn.

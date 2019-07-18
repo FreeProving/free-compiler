@@ -46,11 +46,11 @@ import           Data.Set                       ( Set
                                                 , (\\)
                                                 )
 import qualified Data.Set                      as Set
+import           Data.Tuple.Extra
 
 import qualified Compiler.Language.Haskell.SimpleAST
                                                as HS
 import           Compiler.Pretty
-import           Compiler.Util.Data.Tuple
 
 -------------------------------------------------------------------------------
 -- Dependency graph                                                          --
