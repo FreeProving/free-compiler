@@ -57,7 +57,7 @@ prettyText = foldr (</>) empty . map prettyString . words
 -------------------------------------------------------------------------------
 
 -- | A pretty printable value with a trailing newline.
-data Pretty a => TrailingLine a = TrailingLine a
+data TrailingLine a = TrailingLine a
 
 -- | Pretty prints the wrapped value of a 'TrailingLine' and adds the trailing
 --   newline to the resulting document.
