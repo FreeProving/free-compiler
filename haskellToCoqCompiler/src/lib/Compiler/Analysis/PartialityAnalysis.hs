@@ -1,3 +1,6 @@
+-- | This module contains a function that uses the function dependency graph
+--   to identify partial function declarations.
+
 module Compiler.Analysis.PartialityAnalysis where
 
 import           Data.Graph

@@ -28,6 +28,7 @@ import           Language.Coq.Gallina
 -- Comments                                                                  --
 -------------------------------------------------------------------------------
 
+-- | Smart constructor for Coq comments.
 comment :: String -> G.Sentence
 comment = G.CommentSentence . G.Comment . T.pack
 

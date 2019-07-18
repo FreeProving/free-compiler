@@ -1,3 +1,6 @@
+-- | This module contains functions for parsing Haskell modules and other
+--   nodes of the Haskell AST.
+
 module Compiler.Language.Haskell.Parser
   ( parseHaskell
   , parseModule
@@ -37,6 +40,7 @@ parseMode filename = ParseMode
   , ignoreFunctionArity   = True
   }
 
+-- | Parses a node of the Haskell AST.
 parseHaskell
   :: (Functor ast, Parseable (ast SrcSpanInfo))
   => String -- ^ The name of the Haskell source file.

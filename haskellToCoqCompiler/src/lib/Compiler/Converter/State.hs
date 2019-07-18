@@ -1,5 +1,9 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
+-- | This module contains a data type that encapsulates the state of
+--   the converter and a state monad which allows the state to be passed
+--   implicitly throught the converter.
+
 module Compiler.Converter.State
   ( -- * Environment
     Environment
@@ -88,6 +92,7 @@ definedIdents env =
     ++ Map.elems (definedSmartCons env)
     ++ Map.elems (definedVars env)
 
+-- | Adds the given fresh Coq identifier to the given environment.
 defineFreshIdent :: G.Qualid -> Environment -> Environment
 defineFreshIdent ident env =
   env { definedFreshIdents = ident : definedFreshIdents env }

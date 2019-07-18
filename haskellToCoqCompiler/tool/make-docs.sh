@@ -7,4 +7,4 @@ root_dir=$(dirname "$script_dir")
 cd "$root_dir"
 
 # Run tests with cabal.
-cabal haddock
+cabal haddock --haddock-hyperlink-source

@@ -1,3 +1,6 @@
+-- | This module exports a list of keywords of the Gallina specification
+--   langauge.
+
 module Compiler.Language.Coq.Keywords where
 
 -- | Keywords of the Gallina specification language.
