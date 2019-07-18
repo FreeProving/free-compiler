@@ -34,7 +34,7 @@ module Compiler.Reporter
     -- * Handling messages and reporter results
   , isFatal
   , messages
-    -- * Handling reportedmessages
+    -- * Handling reported messages
   , reportTo
   , reportToOrExit
   )
