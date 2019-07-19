@@ -12,8 +12,13 @@ module Compiler.Language.Coq.AST
     -- * Functions
   , app
   , arrows
+  , fun
     -- * Types
   , sortType
+    -- * Expressions
+  , string
+  , equation
+  , match
     -- * Imports
   , requireImportFrom
   )
@@ -72,6 +77,16 @@ arrows
   -> G.Term
 arrows args returnType = foldr G.Arrow returnType args
 
+-- | Smart constructor for the construction of a Coq lambda expression with
+--   the given arguments and right hand side.
+--
+--   The types of the arguments are inferred by Coq.
+fun :: [String] -> G.Term -> G.Term
+fun args expr = G.Fun (NonEmpty.fromList binders) expr
+ where
+  binders :: [G.Binder]
+  binders = map (G.Inferred G.Explicit . G.Ident . bare) args
+
 -------------------------------------------------------------------------------
 -- Types                                                                     --
 -------------------------------------------------------------------------------
@@ -79,6 +94,25 @@ arrows args returnType = foldr G.Arrow returnType args
 -- | The type of a type variable.
 sortType :: G.Term
 sortType = G.Sort G.Type
+
+-------------------------------------------------------------------------------
+-- Expressions                                                                   --
+-------------------------------------------------------------------------------
+
+-- | Smart constructor for Coq string literals.
+string :: String -> G.Term
+string = G.String . T.pack
+
+-- | Smart constructor for Coq equations for @match@ expressions.
+equation :: G.Pattern -> G.Term -> G.Equation
+equation = G.Equation . return . G.MultPattern . return
+
+-- | Smart constructor for a Coq @match@ expression.
+match :: G.Term -> [G.Equation] -> G.Term
+match value eqns = G.Match (return item) Nothing eqns
+ where
+  item :: G.MatchItem
+  item = G.MatchItem value Nothing Nothing
 
 -------------------------------------------------------------------------------
 -- Imports                                                                   --

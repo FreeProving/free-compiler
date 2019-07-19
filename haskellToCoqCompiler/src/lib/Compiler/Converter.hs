@@ -14,6 +14,8 @@ module Compiler.Converter
     -- * Type expressions
   , convertType
   , convertType'
+   -- * Expressions
+  , convertExpr
   )
 where
 
@@ -187,8 +189,9 @@ convertDataDecl (HS.DataDecl srcSpan (HS.DeclIdent _ ident) typeVarDecls conDecl
     Just qualid             <- inEnv $ lookupIdent ConScope conIdent
     Just smartQualid        <- inEnv $ lookupIdent SmartConScope conIdent
     typeVarDecls'           <- convertTypeVarDecls G.Implicit typeVarDecls
-    (argIdents', argDecls') <- mapAndUnzipM convertAnonymousArg argTypes
-    returnType'             <- convertType returnType
+    (argIdents', argDecls') <- mapAndUnzipM convertAnonymousArg
+                                            (map Just argTypes)
+    returnType' <- convertType returnType
     return
       (G.DefinitionSentence
         (G.DefinitionDef
@@ -196,9 +199,8 @@ convertDataDecl (HS.DataDecl srcSpan (HS.DeclIdent _ ident) typeVarDecls conDecl
           smartQualid
           (genericArgDecls G.Explicit ++ typeVarDecls' ++ argDecls')
           (Just returnType')
-          (G.app
-            (G.Qualid CoqBase.freePureCon)
-            [G.app (G.Qualid qualid) (map (G.Qualid . G.bare) argIdents')]
+          (generatePure
+            (G.app (G.Qualid qualid) (map (G.Qualid . G.bare) argIdents'))
           )
         )
       )
@@ -259,16 +261,18 @@ convertTypeVarDecls explicitness typeVarDecls
 
 -- | Converts the argument of a function (a variable pattern) to an explicit
 --   Coq binder.
-convertArg :: HS.VarPat -> HS.Type -> Converter G.Binder
-convertArg (HS.VarPat _ ident) argType = do
+convertArg :: HS.VarPat -> Maybe HS.Type -> Converter G.Binder
+convertArg (HS.VarPat _ ident) mArgType = do
   -- TODO detect redefinition.
   ident' <- renameAndDefineVar ident
-  convertArg' ident' argType
+  convertArg' ident' mArgType
 
 -- | Converts an argument (with the given Coq identifier) of a function to
 --   an explicit Coq binder.
-convertArg' :: String -> HS.Type -> Converter G.Binder
-convertArg' ident' argType = do
+convertArg' :: String -> Maybe HS.Type -> Converter G.Binder
+convertArg' ident' Nothing =
+  return (G.Inferred G.Explicit (G.Ident (G.bare ident')))
+convertArg' ident' (Just argType) = do
   argType' <- convertType argType
   return
     (G.Typed G.Ungeneralizable
@@ -280,10 +284,10 @@ convertArg' ident' argType = do
 -- | Converts the argument of an artifically generated function to an explicit
 --   Coq binder. A fresh Coq identifier is selected for the argument
 --   and returned together with the binder.
-convertAnonymousArg :: HS.Type -> Converter (String, G.Binder)
-convertAnonymousArg argType = do
+convertAnonymousArg :: Maybe HS.Type -> Converter (String, G.Binder)
+convertAnonymousArg mArgType = do
   ident' <- freshIdent
-  binder <- convertArg' ident' argType
+  binder <- convertArg' ident' mArgType
   return (ident', binder)
 
 -------------------------------------------------------------------------------
@@ -343,6 +347,153 @@ convertType' (HS.TypeFunc _ t1 t2) = do
   return (G.Arrow t1' t2')
 
 -------------------------------------------------------------------------------
+-- Expressions                                                               --
+-------------------------------------------------------------------------------
+
+-- | Converts a Haskell expression to Coq.
+convertExpr :: HS.Expr -> Converter G.Term
+convertExpr = flip convertExpr' []
+ where
+  -- | Because the translation of constructor and function applications depends
+  --   not only on the name of the constructor or function but also on the passed
+  --   arguments (e.g. because eta-conversions must be performed) we cannot
+  --   translate applications directly but collect all arguments in a second
+  --   argument.
+  --
+  --   If a term which is obviously not a function (e.g. an integer literal) is
+  --   invoked or too many arguments are passed to a constructor, a fatal error
+  --   is reported.
+  convertExpr' :: HS.Expr -> [HS.Expr] -> Converter G.Term
+
+  -- Constructor applications.
+  convertExpr' (HS.Con srcSpan name) args = do
+    mQualid <- inEnv $ lookupIdent SmartConScope name
+    case mQualid of
+      Nothing     -> unknownConError srcSpan name
+      Just qualid -> do
+        Just arity <- inEnv $ lookupArity SmartConScope name
+        -- TODO report if there are too many arguments.
+        generateAppN (genericApply qualid []) arity args
+
+  -- Function and variable applications.
+  convertExpr' (HS.Var srcSpan name) args = do
+    mQualid <- inEnv $ lookupIdent VarScope name
+    case mQualid of
+      Nothing     -> unknownVarError srcSpan name
+      Just qualid -> do
+        -- Lookup arity of function. If there is no such entry, this is not
+        -- a function but a variable. Variables do not need the @Shape@ and
+        -- @Pos@ arguments.
+        mArity <- inEnv $ lookupArity VarScope name
+        case mArity of
+          Nothing -> generateApp (G.Qualid qualid) args
+          Just arity ->
+            -- TODO is the function partial? If so, pass @Partial@ instance.
+            generateAppN (genericApply qualid []) arity args
+
+  -- Do not convert applications directly but collect arguments.
+  convertExpr' (HS.App _ e1 e2) args = convertExpr' e1 (e2 : args)
+
+  -- Treat infix applications as syntactic suggar for regular applications.
+  convertExpr' (HS.InfixApp _ e1 op e2) args =
+    convertExpr' (opToExpr op) ([e1, e2] ++ args)
+  convertExpr' (HS.LeftSection _ e1 op) args =
+    convertExpr' (opToExpr op) (e1 : args)
+  convertExpr' (HS.RightSection srcSpan op e2) args = do
+    -- TODO `x1` must be a Haskell identifier, but it is a Coq identifier.
+    x1 <- freshIdent
+    let e1 = HS.Var srcSpan (HS.Ident x1)
+    convertExpr'
+      (HS.Lambda srcSpan [HS.VarPat srcSpan x1] (HS.InfixApp srcSpan e1 op e2))
+      args
+
+  -- Treat negation operator as syntaxtic suggar for application of `negate`.
+  convertExpr' (HS.NegApp _ expr) args
+    | not (null args) = -- TODO report not a function.
+                        undefined
+    | otherwise       = generateApp (G.Qualid CoqBase.negateOp) [expr]
+
+  -- @if@-expressions.
+  convertExpr' (HS.If _ e1 e2 e3) args = do
+    e1' <- convertExpr e1
+    e1' `generateBind` \cond -> do
+      e2' <- convertExpr e2
+      e3' <- convertExpr e3
+      generateApp (G.If G.SymmetricIf (G.Qualid cond) Nothing e2' e3') args
+
+  -- @case@-expressions.
+  convertExpr' (HS.Case _ expr alts) args = do
+    expr' <- convertExpr expr
+    expr' `generateBind` \value -> do
+      alts' <- mapM convertAlt alts
+      generateApp (G.match (G.Qualid value) alts') args
+
+  -- Error terms.
+  convertExpr' (HS.Undefined _) args =
+    generateApp (G.Qualid CoqBase.partialUndefined) args
+  convertExpr' (HS.ErrorExpr _ msg) args =
+    generateApp (G.app (G.Qualid CoqBase.partialError) [G.string msg]) args
+
+  -- Integer literals.
+  convertExpr' expr@(HS.IntLiteral srcSpan value) args
+    | not (null args) = -- TODO report not a function.
+                        undefined
+    | value >= 0 = return (G.InScope (G.Num (fromInteger value)) (G.ident "Z"))
+    | otherwise = convertExpr' (HS.NegApp srcSpan expr) args
+
+  -- Lambda abstractions.
+  convertExpr' (HS.Lambda _ params expr) args = localEnv $ do
+    params' <- mapM (flip convertArg Nothing) params
+    expr'   <- convertExpr expr
+    -- TODO there needs to be one lambda+pure for every argument!
+    generateApp (generatePure (G.Fun (NonEmpty.fromList params') expr')) args
+
+-- | Converts an infix operator to an expression.
+--
+--   This can be used to convert the operator @+@ in @e1 + e2@ to the
+--   expression @(+)@.
+opToExpr :: HS.Op -> HS.Expr
+opToExpr (HS.VarOp srcSpan opName) = HS.Var srcSpan opName
+opToExpr (HS.ConOp srcSpan opName) = HS.Con srcSpan opName
+
+convertAlt :: HS.Alt -> Converter G.Equation
+convertAlt (HS.Alt _ conPat varPats expr) = localEnv $ do
+  conPat' <- convertConPat conPat varPats
+  expr'   <- convertExpr expr
+  return (G.equation conPat' expr')
+
+convertConPat :: HS.ConPat -> [HS.VarPat] -> Converter G.Pattern
+convertConPat (HS.ConPat srcSpan ident) varPats = do
+  mQualid <- inEnv $ lookupIdent SmartConScope ident
+  case mQualid of
+    Nothing     -> unknownConError srcSpan ident
+    Just qualid -> do
+      varPats' <- mapM convertVarPat varPats
+      return (G.ArgsPat qualid varPats')
+
+convertVarPat :: HS.VarPat -> Converter G.Pattern
+convertVarPat (HS.VarPat _ ident) = do
+  -- TODO detect redefinition
+  ident' <- renameAndDefineVar ident
+  return (G.QualidPat (G.bare ident'))
+
+generateApp :: G.Term -> [HS.Expr] -> Converter G.Term
+generateApp term args = do
+  args' <- mapM convertExpr args
+  return (foldl G.app term (map (: []) args'))
+
+generateAppN :: G.Term -> Int -> [HS.Expr] -> Converter G.Term
+generateAppN term arity args
+  | length args > arity = do
+    term' <- generateAppN term arity (take arity args)
+    generateApp term' (drop arity args)
+  | length args < arity = do -- TODO eta conversion
+    undefined
+  | otherwise = do
+    args' <- mapM convertExpr args
+    return (G.app term args')
+
+-------------------------------------------------------------------------------
 -- Utility functions                                                         --
 -------------------------------------------------------------------------------
 
@@ -351,7 +502,7 @@ fromDeclIdent :: HS.DeclIdent -> String
 fromDeclIdent (HS.DeclIdent _ ident) = ident
 
 -------------------------------------------------------------------------------
--- Free monad arguments                                                      --
+-- Free monad                                                                --
 -------------------------------------------------------------------------------
 
 -- | The declarations of type parameters for the @Free@ monad.
@@ -369,6 +520,21 @@ genericArgDecls explicitness = map (uncurry genericArgDecl) CoqBase.freeArgs
 genericApply :: G.Qualid -> [G.Term] -> G.Term
 genericApply func args = G.app (G.Qualid func) (genericArgs ++ args)
   where genericArgs = map (G.Qualid . fst) CoqBase.freeArgs
+
+generatePure :: G.Term -> G.Term
+generatePure = G.app (G.Qualid CoqBase.freePureCon) . (: [])
+
+-- | Generates a Coq expressions that binds the given value to a fresh variable.
+--
+--   The generated fresh variable is passed to the given function. It is not
+--   visible outside of that function.
+--
+--   The type of the fresh variable is inferred by Coq.
+generateBind :: G.Term -> (G.Qualid -> Converter G.Term) -> Converter G.Term
+generateBind expr generateRHS = localEnv $ do
+  f   <- freshIdent
+  rhs <- generateRHS (G.bare f)
+  return (G.app (G.Qualid CoqBase.freeBind) [expr, G.fun [f] rhs])
 
 -------------------------------------------------------------------------------
 -- Error reporting                                                           --
@@ -390,3 +556,19 @@ unknownTypeConError srcSpan name = reportFatal $ Message
 unknownTypeVarError :: SrcSpan -> HS.TypeVarIdent -> Converter a
 unknownTypeVarError srcSpan ident = reportFatal
   $ Message (Just srcSpan) Error ("Unknown type variable: " ++ ident)
+
+-- | Reports a fatal error message when an unknown data constructor is
+--   envountered.
+unknownConError :: SrcSpan -> HS.Name -> Converter a
+unknownConError srcSpan name = reportFatal $ Message
+  (Just srcSpan)
+  Error
+  ("Unknown data constructor: " ++ showPretty name)
+
+-- | Reports a fatal error message when an unknown function or variable is
+--   envountered.
+unknownVarError :: SrcSpan -> HS.Name -> Converter a
+unknownVarError srcSpan name = reportFatal $ Message
+  (Just srcSpan)
+  Error
+  ("Unknown function or variable: " ++ showPretty name)

@@ -233,7 +233,6 @@ typeApp
   -> Type
 typeApp srcSpan = foldl (TypeApp srcSpan) . TypeCon srcSpan
 
-
 -- | Creates an expression for applying the function with the given name.
 --
 --   The given source span is inserted into the generated function reference
