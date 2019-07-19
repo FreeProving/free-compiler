@@ -57,15 +57,15 @@ isReservedIdent = flip elem CoqBase.reservedIdents . G.bare
 -- | Tests whether the given Coq identifier has been used in the current
 --   environment to define a type, constructor, function or variable
 --   already.
-isDefinedIdent :: Environment -> String -> Bool
-isDefinedIdent = flip elem . catMaybes . map G.unpackQualid . definedIdents
+isUsedIdent :: Environment -> String -> Bool
+isUsedIdent = flip elem . catMaybes . map G.unpackQualid . usedIdents
 
 -- | Tests whether the given Coq identifier must be renamed because it would
 --   otherwise conflict with a keyword, reserved or user defined
 --   identifier.
 mustRenameIdent :: String -> Environment -> Bool
 mustRenameIdent ident env =
-  isCoqKeyword ident || isReservedIdent ident || isDefinedIdent env ident
+  isCoqKeyword ident || isReservedIdent ident || isUsedIdent env ident
 
 -------------------------------------------------------------------------------
 -- Rename identifiers                                                        --

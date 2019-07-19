@@ -141,7 +141,7 @@ convertDataDecl (HS.DataDecl srcSpan (HS.DeclIdent _ ident) typeVarDecls conDecl
   --   'generateSmartConDecl').
   generateBodyAndArguments :: Converter (G.IndBody, [G.Sentence])
   generateBodyAndArguments = localEnv $ do
-    Just qualid        <- inEnv $ lookupTypeCon (HS.Ident ident)
+    Just qualid        <- inEnv $ lookupIdent TypeScope (HS.Ident ident)
     typeVarDecls'      <- convertTypeVarDecls G.Explicit typeVarDecls
     conDecls'          <- mapM convertConDecl conDecls
     argumentsSentences <- mapM generateArgumentsSentence conDecls
@@ -156,7 +156,7 @@ convertDataDecl (HS.DataDecl srcSpan (HS.DeclIdent _ ident) typeVarDecls conDecl
   -- | Converts a constructor of the data type.
   convertConDecl :: HS.ConDecl -> Converter (G.Qualid, [G.Binder], Maybe G.Term)
   convertConDecl (HS.ConDecl _ (HS.DeclIdent _ conIdent) args) = do
-    Just conQualid <- inEnv $ lookupCon (HS.Ident conIdent)
+    Just conQualid <- inEnv $ lookupIdent ConScope (HS.Ident conIdent)
     args'          <- mapM convertType args
     returnType'    <- convertType' returnType
     return (conQualid, [], Just (args' `G.arrows` returnType'))
@@ -164,9 +164,9 @@ convertDataDecl (HS.DataDecl srcSpan (HS.DeclIdent _ ident) typeVarDecls conDecl
   -- | Generates the @Arguments@ sentence for the given constructor declaration.
   generateArgumentsSentence :: HS.ConDecl -> Converter G.Sentence
   generateArgumentsSentence (HS.ConDecl _ (HS.DeclIdent _ conIdent) _) = do
-    Just qualid <- inEnv $ lookupCon (HS.Ident conIdent)
+    Just qualid <- inEnv $ lookupIdent ConScope (HS.Ident conIdent)
     let typeVarIdents = map (HS.Ident . fromDeclIdent) typeVarDecls
-    typeVarQualids <- mapM (inEnv . lookupTypeVar) typeVarIdents
+    typeVarQualids <- mapM (inEnv . lookupIdent TypeScope) typeVarIdents
     return
       (G.ArgumentsSentence
         (G.Arguments
@@ -182,26 +182,26 @@ convertDataDecl (HS.DataDecl srcSpan (HS.DeclIdent _ ident) typeVarDecls conDecl
   -- | Generates the smart constructor declaration for the given constructor
   --   declaration.
   generateSmartConDecl :: HS.ConDecl -> Converter G.Sentence
-  generateSmartConDecl (HS.ConDecl _ (HS.DeclIdent _ conIdent) argTypes) =
-    localEnv $ do
-      Just qualid             <- inEnv $ lookupCon (HS.Ident conIdent)
-      Just smartQualid        <- inEnv $ lookupSmartCon (HS.Ident conIdent)
-      typeVarDecls'           <- convertTypeVarDecls G.Implicit typeVarDecls
-      (argIdents', argDecls') <- mapAndUnzipM convertAnonymousArg argTypes
-      returnType'             <- convertType returnType
-      return
-        (G.DefinitionSentence
-          (G.DefinitionDef
-            G.Global
-            smartQualid
-            (genericArgDecls G.Explicit ++ typeVarDecls' ++ argDecls')
-            (Just returnType')
-            (G.app
-              (G.Qualid CoqBase.freePureCon)
-              [G.app (G.Qualid qualid) (map (G.Qualid . G.bare) argIdents')]
-            )
+  generateSmartConDecl (HS.ConDecl _ declIdent argTypes) = localEnv $ do
+    let conIdent = HS.Ident (fromDeclIdent declIdent)
+    Just qualid             <- inEnv $ lookupIdent ConScope conIdent
+    Just smartQualid        <- inEnv $ lookupIdent SmartConScope conIdent
+    typeVarDecls'           <- convertTypeVarDecls G.Implicit typeVarDecls
+    (argIdents', argDecls') <- mapAndUnzipM convertAnonymousArg argTypes
+    returnType'             <- convertType returnType
+    return
+      (G.DefinitionSentence
+        (G.DefinitionDef
+          G.Global
+          smartQualid
+          (genericArgDecls G.Explicit ++ typeVarDecls' ++ argDecls')
+          (Just returnType')
+          (G.app
+            (G.Qualid CoqBase.freePureCon)
+            [G.app (G.Qualid qualid) (map (G.Qualid . G.bare) argIdents')]
           )
         )
+      )
 
 -- | Inserts the given data type declaration and its constructor declarations
 --   into the current environment.
@@ -324,12 +324,12 @@ convertType t = do
 --     remain unchanged otherwise.
 convertType' :: HS.Type -> Converter G.Term
 convertType' (HS.TypeVar srcSpan ident) = do
-  mQualid <- inEnv $ lookupTypeVar (HS.Ident ident)
+  mQualid <- inEnv $ lookupIdent TypeScope (HS.Ident ident)
   case mQualid of
     Nothing     -> unknownTypeVarError srcSpan ident
     Just qualid -> return (G.Qualid qualid)
 convertType' (HS.TypeCon srcSpan name) = do
-  mQualid <- inEnv $ lookupTypeCon name
+  mQualid <- inEnv $ lookupIdent TypeScope name
   case mQualid of
     Nothing     -> unknownTypeConError srcSpan name
     Just qualid -> return (genericApply qualid [])

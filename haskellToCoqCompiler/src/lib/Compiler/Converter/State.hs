@@ -3,23 +3,29 @@
 -- | This module contains a data type that encapsulates the state of
 --   the converter and a state monad which allows the state to be passed
 --   implicitly throught the converter.
+--
+--   There are also utility functions to modify the state and retreive
+--   information stored in the state.
 
 module Compiler.Converter.State
   ( -- * Environment
     Environment
+  , Scope(..)
   , emptyEnvironment
-  , definedIdents
+  , usedIdents
+    -- * Inserting entries into the environment
   , defineFreshIdent
+  , defineIdent
+  , defineArity
+    -- * Looking up entries from the environment
+  , lookupIdent
+  , lookupArity
+    -- * Shortcuts for inserting entries into the environment
   , defineTypeCon
-  , lookupTypeCon
   , defineTypeVar
-  , lookupTypeVar
   , defineCon
-  , lookupCon
-  , lookupSmartCon
   , defineVar
   , defineFunc
-  , lookupVar
     -- * State monad
   , Converter
   , runConverter
@@ -48,32 +54,30 @@ import           Compiler.Reporter
 -- Environment                                                               --
 -------------------------------------------------------------------------------
 
+-- | In Haskell type and function names live in separate scopes. Therefore we
+--   need to qualify each name stored in the 'Environment' with the scope it
+--   is defined in. There is an additional scope for smart constructors such
+--   that multiple Coq identifiers can be associated with the same Haskell data
+--   constructor name.
+data Scope = TypeScope | ConScope | SmartConScope | VarScope
+  deriving (Eq, Ord, Show)
+
+-- | Type that is used by maps in the 'Environment' to qualify Haskell names
+--   with the scopes they are defined in.
+type ScopedName = (Scope, HS.Name)
+
 -- | Data type that encapsulates the state of the converter.
 data Environment = Environment
   { definedFreshIdents :: [G.Qualid]
     -- ^ The fresh Coq identifiers that were used already.
-  , definedTypeCons :: Map HS.Name G.Qualid
-    -- ^ Maps Haskell type constructor names to corresponding Coq identifiers.
-  , definedTypeVars :: Map HS.Name G.Qualid
-    -- ^ Maps Haskell type variable names to corresponding Coq identifiers.
-  , definedCons :: Map HS.Name G.Qualid
-  -- ^ Maps Haskell data constructor names to the Coq identifiers for the
-  --   corresponding regular constructors.
-  , definedSmartCons :: Map HS.Name G.Qualid
-  -- ^ Maps Haskell data constructor names to the Coq identifiers for the
-  --   corresponding smart constructors.
-  , definedVars :: Map HS.Name G.Qualid
-    -- ^ Maps Haskell function and variable names to corresponding Coq
-    --   identifiers.
-  , typeConArities :: Map HS.Name Int
-    -- ^ Maps Haskell type constructor names to the number of expected
-    --   arguments.
-  , conArities :: Map HS.Name Int
-    -- ^ Maps Haskell data constructor names to the number of expected
-    --   arguments.
-  , varArities :: Map HS.Name Int
-    -- ^ Maps Haskell function and variable names to the number of expected
-    --   arguments. The arity of variables should always be @0@.
+  , definedIdents :: Map ScopedName G.Qualid
+    -- ^ Maps Haskell names of defined functions, (type/smart) constructors and
+    --  (type) variables to corresponding Coq identifiers.
+  , definedArities       :: Map ScopedName Int
+    -- ^ Maps Haskell names to the number of (type) arguments expected by the
+    --   corresponding function or (type/smart) constructor. There should be
+    --   no entry for (type) variables. This allows one to use this map to
+    --   distinguish function and variable identifiers.
   }
   deriving Show
 
@@ -82,64 +86,85 @@ data Environment = Environment
 emptyEnvironment :: Environment
 emptyEnvironment = Environment
   { definedFreshIdents = []
-  , definedTypeCons    = Map.empty
-  , definedTypeVars    = Map.empty
-  , definedCons        = Map.empty
-  , definedSmartCons   = Map.empty
-  , definedVars        = Map.empty
-  , typeConArities     = Map.empty
-  , conArities         = Map.empty
-  , varArities         = Map.empty
+  , definedIdents      = Map.empty
+  , definedArities     = Map.empty
   }
 
--- | Gets a list of Coq identifiers for type constructors and variables,
---   smart and data consturctors, functions and variables that were
---   used in the given environment already.
-definedIdents :: Environment -> [G.Qualid]
-definedIdents env =
-  definedFreshIdents env
-    ++ Map.elems (definedTypeCons env)
-    ++ Map.elems (definedTypeVars env)
-    ++ Map.elems (definedCons env)
-    ++ Map.elems (definedSmartCons env)
-    ++ Map.elems (definedVars env)
+-- | Gets a list of Coq identifiers for functions, (type/smart) constructors,
+--   (type/fresh) variables that were used in the given environment already.
+usedIdents :: Environment -> [G.Qualid]
+usedIdents env = definedFreshIdents env ++ Map.elems (definedIdents env)
+
+-------------------------------------------------------------------------------
+-- Inserting entries into the environment                                    --
+-------------------------------------------------------------------------------
 
 -- | Adds the given fresh Coq identifier to the given environment.
 defineFreshIdent :: G.Qualid -> Environment -> Environment
 defineFreshIdent ident env =
   env { definedFreshIdents = ident : definedFreshIdents env }
 
+-- | Associates the name of a Haskell function, (type/smart) constructor or
+--   (type) variable with the given Coq identifier.
+--
+--   If there is an entry associated with the same name in the given scope
+--   already, the entry is overwritten.
+defineIdent :: Scope -> HS.Name -> G.Qualid -> Environment -> Environment
+defineIdent scope name ident env =
+  env { definedIdents = Map.insert (scope, name) ident (definedIdents env) }
+
+-- | Associates the name of a Haskell function or (type/smart) constructor
+--   with the number of expected (type) arguments.
+--
+--   If there is an entry associated with the same name in the given scope
+--   already, the entry is overwritten.
+defineArity :: Scope -> HS.Name -> Int -> Environment -> Environment
+defineArity scope name arity env =
+  env { definedArities = Map.insert (scope, name) arity (definedArities env) }
+
+-------------------------------------------------------------------------------
+-- Looking up entries from the environment                                   --
+-------------------------------------------------------------------------------
+
+-- | Looks up the Coq identifier for a Haskell function, (type/smart)
+--   constructor or (type) variable with the given name.
+--
+--   Returns @Nothing@ if there is no such function, (type/smart) constructor,
+--   constructor or (type) variable with the given name.
+lookupIdent :: Scope -> HS.Name -> Environment -> Maybe G.Qualid
+lookupIdent scope name = Map.lookup (scope, name) . definedIdents
+
+-- | Looks up the number of (type) arguments expected by the given Haskell
+--   function or (type/smart) constructor.
+--
+--   Returns @Nothing@ if there is no such function, (type/smart) constructor,
+--   constructor or (type) variable with the given name.
+lookupArity :: Scope -> HS.Name -> Environment -> Maybe Int
+lookupArity scope name = Map.lookup (scope, name) . definedArities
+
+-------------------------------------------------------------------------------
+-- Shortcuts for inserting entries into the environment                      --
+-------------------------------------------------------------------------------
+
 -- | Associates the name of a Haskell type constructor with the corresponding
 --   Coq identifier in the given environment.
 --
 --   If a type constructor with the same name exists, the entry is overwritten.
-defineTypeCon :: HS.Name -> Int -> G.Qualid -> Environment -> Environment
-defineTypeCon name arity ident env = env
-  { definedTypeCons = Map.insert name ident (definedTypeCons env)
-  , typeConArities  = Map.insert name arity (typeConArities env)
-  }
-
--- | Looks up the Coq identifier for a Haskell type constructor with the given
---   name in the provided environment.
---
---   Returns @Nothing@ if there is no such type constructor.
-lookupTypeCon :: HS.Name -> Environment -> Maybe G.Qualid
-lookupTypeCon name = Map.lookup name . definedTypeCons
+defineTypeCon
+  :: HS.Name  -- ^ The Haskell name of the type constructor.
+  -> Int      -- ^ The number of expected type arguments.
+  -> G.Qualid -- ^ The Coq identifier for the type constructor.
+  -> Environment
+  -> Environment
+defineTypeCon name arity ident =
+  defineIdent TypeScope name ident . defineArity TypeScope name arity
 
 -- | Associates the name of a Haskell type variable with the corresponding Coq
 --   identifier in the given environment.
 --
 --   If a type variable with the same name exists, the entry is overwritten.
 defineTypeVar :: HS.Name -> G.Qualid -> Environment -> Environment
-defineTypeVar name ident env =
-  env { definedTypeVars = Map.insert name ident (definedTypeVars env) }
-
--- | Looks up the Coq identifier for a Haskell type variable with the given
---   name in the provided environment.
---
---   Returns @Nothing@ if there is no such type variable.
-lookupTypeVar :: HS.Name -> Environment -> Maybe G.Qualid
-lookupTypeVar name = Map.lookup name . definedTypeVars
+defineTypeVar = defineIdent TypeScope
 
 -- | Associates the name of a Haskell data constructor with the corresponding
 --   Coq identifiers for the constructor and smart constructor in the given
@@ -153,51 +178,38 @@ defineCon
   -> G.Qualid -- ^ The Coq identifier for the smart constructor.
   -> Environment
   -> Environment
-defineCon name arity ident smartIdent env = env
-  { definedCons      = Map.insert name ident (definedCons env)
-  , definedSmartCons = Map.insert name smartIdent (definedSmartCons env)
-  , conArities       = Map.insert name arity (conArities env)
-  }
-
--- | Looks up the Coq identifier for the regular constructor of the Haskell
---   data constructor with the given name in the provided environment.
---
---   Returns @Nothing@ if there is no such data constructor.
-lookupCon :: HS.Name -> Environment -> Maybe G.Qualid
-lookupCon name = Map.lookup name . definedCons
-
--- | Looks up the Coq identifier for the smart constructor of the Haskell
---   data constructor with the given name in the provided environment.
---
---   Returns @Nothing@ if there is no such smart constructor.
-lookupSmartCon :: HS.Name -> Environment -> Maybe G.Qualid
-lookupSmartCon name = Map.lookup name . definedSmartCons
+defineCon name arity ident smartIdent =
+  defineIdent ConScope name ident
+  . defineIdent SmartConScope name smartIdent
+  . defineArity ConScope name arity
+  . defineArity SmartConScope name arity
 
 -- | Associates the name of a Haskell variable with the corresponding Coq
 --   identifier in the given environment.
 --
 --   If a function or variable with the same name exists, the entry is
 --   overwritten.
-defineVar :: HS.Name -> G.Qualid -> Environment -> Environment
-defineVar = flip defineFunc 0
+defineVar
+  :: HS.Name    -- ^ The Haskell name of the variable.
+  -> G.Qualid   -- ^ the Coq identifier for the variable.
+  -> Environment
+  -> Environment
+defineVar = defineIdent VarScope
 
 -- | Associates the name of a Haskell function with the corresponding Coq
 --   identifier in the given environment.
 --
 --   If a function or variable with the same name exists, the entry is
 --   overwritten.
-defineFunc :: HS.Name -> Int -> G.Qualid -> Environment -> Environment
-defineFunc name arity ident env = env
-  { definedVars = Map.insert name ident (definedVars env)
-  , varArities  = Map.insert name arity (varArities env)
-  }
-
--- | Looks up the Coq identifier for a Haskell function or variable with the
---   given name in the provided environment.
---
---   Returns @Nothing@ if there is no such function or variable.
-lookupVar :: HS.Name -> Environment -> Maybe G.Qualid
-lookupVar name = Map.lookup name . definedVars
+defineFunc
+  :: HS.Name  -- ^ The Haskell name of the function.
+  -> Int      -- ^ The number of expected arguments.
+  -> G.Qualid -- ^ The Coq identifier of the function.
+  -> Environment
+  -> Environment
+defineFunc name arity ident =
+  defineIdent VarScope name ident
+  . defineArity VarScope name arity
 
 -------------------------------------------------------------------------------
 -- State monad                                                               --
