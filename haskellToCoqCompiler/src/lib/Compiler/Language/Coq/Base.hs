@@ -4,8 +4,8 @@
 module Compiler.Language.Coq.Base where
 
 import           Compiler.Converter.State
-import           Compiler.Language.Coq.AST     as G
-import           Compiler.Language.Haskell.SimpleAST
+import qualified Compiler.Language.Coq.AST     as G
+import qualified Compiler.Language.Haskell.SimpleAST
                                                as HS
 
 -------------------------------------------------------------------------------
@@ -33,6 +33,12 @@ freePureCon = G.bare "pure"
 -- | The Coq identifier for the @impure@ constructor of the @Free@ monad.
 freeImpureCon :: G.Qualid
 freeImpureCon = G.bare "impure"
+
+-- | The Coq identifier for the @>>=@ operator of the @Free@ monad.
+--
+--   TODO does the pretty printer handle this right (e.g. w.r.t. precedence)?
+freeBind :: G.Qualid
+freeBind = G.bare "op_>>=__"
 
 -- | The names and types of the parameters that must be passed to the @Free@
 --   monad. These parameters are added automatically to every defined type and
@@ -63,45 +69,45 @@ predefine =
 --   its (smart) constructors and predefined operations.
 predefineBool :: Environment -> Environment
 predefineBool =
-  defineTypeCon (HS.Ident "Bool") (bare "Bool")
-    . defineCon (HS.Ident "True")  (bare "true")  (bare "True_")
-    . defineCon (HS.Ident "False") (bare "false") (bare "False_")
-    . defineVar (HS.Symbol "&&") (bare "andBool")
-    . defineVar (HS.Symbol "||") (bare "orBool")
+  defineTypeCon (HS.Ident "Bool") 0 (G.bare "Bool")
+    . defineCon (HS.Ident "True")  0 (G.bare "true")  (G.bare "True_")
+    . defineCon (HS.Ident "False") 0 (G.bare "false") (G.bare "False_")
+    . defineFunc (HS.Symbol "&&") 2 (G.bare "andBool")
+    . defineFunc (HS.Symbol "||") 2 (G.bare "orBool")
 
 -- | Populates the given environment with the predefined @Int@ data type and
 --   its operations.
 predefineInt :: Environment -> Environment
 predefineInt =
-  defineTypeCon (HS.Ident "Int") (bare "Int")
-    . defineVar (HS.Symbol "+")      (bare "addInt")
-    . defineVar (HS.Symbol "-")      (bare "subInt")
-    . defineVar (HS.Symbol "*")      (bare "mulInt")
-    . defineVar (HS.Symbol "^")      (bare "powInt")
-    . defineVar (HS.Symbol "<=")     (bare "leInt")
-    . defineVar (HS.Symbol "<")      (bare "ltInt")
-    . defineVar (HS.Symbol "==")     (bare "eqInt")
-    . defineVar (HS.Symbol "/=")     (bare "neqInt")
-    . defineVar (HS.Symbol ">=")     (bare "geInt")
-    . defineVar (HS.Symbol ">")      (bare "gtInt")
-    . defineVar (HS.Symbol "negate") (bare "negate")
+  defineTypeCon (HS.Ident "Int") 0 (G.bare "Int")
+    . defineFunc (HS.Symbol "+")      2 (G.bare "addInt")
+    . defineFunc (HS.Symbol "-")      2 (G.bare "subInt")
+    . defineFunc (HS.Symbol "*")      2 (G.bare "mulInt")
+    . defineFunc (HS.Symbol "^")      2 (G.bare "powInt")
+    . defineFunc (HS.Symbol "<=")     2 (G.bare "leInt")
+    . defineFunc (HS.Symbol "<")      2 (G.bare "ltInt")
+    . defineFunc (HS.Symbol "==")     2 (G.bare "eqInt")
+    . defineFunc (HS.Symbol "/=")     2 (G.bare "neqInt")
+    . defineFunc (HS.Symbol ">=")     2 (G.bare "geInt")
+    . defineFunc (HS.Symbol ">")      2 (G.bare "gtInt")
+    . defineFunc (HS.Symbol "negate") 1 (G.bare "negate")
 
 -- | Populates the given environment with the predefined list data type and
 --   its (smart) constructors.
 predefineList :: Environment -> Environment
 predefineList =
-  defineTypeCon HS.listTypeConName (bare "List")
-    . defineCon HS.nilConName  (bare "nil")  (bare "Nil")
-    . defineCon HS.consConName (bare "cons") (bare "Cons")
+  defineTypeCon HS.listTypeConName 1 (G.bare "List")
+    . defineCon HS.nilConName  0 (G.bare "nil")  (G.bare "Nil")
+    . defineCon HS.consConName 2 (G.bare "cons") (G.bare "Cons")
 
 -- | Populates the given environment with the predefined pair data type and
 --   its (smart) constructor.
 predefinePair :: Environment -> Environment
-predefinePair = defineTypeCon HS.pairTypeConName (bare "Pair")
-  . defineCon HS.pairConName (bare "pair_") (bare "Pair_")
+predefinePair = defineTypeCon HS.pairTypeConName 2 (G.bare "Pair")
+  . defineCon HS.pairConName 2 (G.bare "pair_") (G.bare "Pair_")
 
 -- | Populate sthe given environment with the predefined unit data type and
 --   its (smart) constructor.
 predefineUnit :: Environment -> Environment
-predefineUnit = defineTypeCon HS.unitTypeConName (bare "Unit")
-  . defineCon HS.unitConName (bare "tt") (bare "Tt")
+predefineUnit = defineTypeCon HS.unitTypeConName 0 (G.bare "Unit")
+  . defineCon HS.unitConName 0 (G.bare "tt") (G.bare "Tt")

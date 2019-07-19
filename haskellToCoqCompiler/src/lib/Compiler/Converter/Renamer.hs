@@ -18,6 +18,7 @@ module Compiler.Converter.Renamer
   , renameAndDefineTypeVar
   , renameAndDefineCon
   , renameAndDefineVar
+  , renameAndDefineFunc
   )
 where
 
@@ -114,10 +115,13 @@ freshIdent = do
 --   conflict in the current environment.
 --
 --   Returns the generated identifier.
-renameAndDefineTypeCon :: String -> Converter String
-renameAndDefineTypeCon ident = do
+renameAndDefineTypeCon
+  :: String -- ^ The name of the type constructor.
+  -> Int    -- ^ The number of expected type arguments.
+  -> Converter String
+renameAndDefineTypeCon ident arity = do
   ident' <- inEnv $ renameIdent ident
-  modifyEnv $ defineTypeCon (HS.Ident ident) (G.bare ident')
+  modifyEnv $ defineTypeCon (HS.Ident ident) arity (G.bare ident')
   return ident'
 
 -- | Associates the identifier of a user defined Haskell type variable with an
@@ -125,7 +129,9 @@ renameAndDefineTypeCon ident = do
 --   conflict in the current environment.
 --
 --   Returns the generated identifier.
-renameAndDefineTypeVar :: String -> Converter String
+renameAndDefineTypeVar
+  :: String -- ^ The name of the type variable.
+  -> Converter String
 renameAndDefineTypeVar ident = do
   ident' <- inEnv $ renameIdent ident
   modifyEnv $ defineTypeVar (HS.Ident ident) (G.bare ident')
@@ -142,20 +148,37 @@ renameAndDefineTypeVar ident = do
 --   Returns the generated identifiers. The first component is the identiier
 --   for the regular constructor and the second is the identifier for the
 --   smart constructor.
-renameAndDefineCon :: String -> Converter (String, String)
-renameAndDefineCon ident = do
+renameAndDefineCon
+  :: String -- ^ The name of the data construtcor.
+  -> Int    -- ^ The number of expected arguments.
+  -> Converter (String, String)
+renameAndDefineCon ident arity = do
   ident'      <- inEnv $ renameIdent (toCamel (fromHumps ident))
   smartIdent' <- inEnv $ renameIdent ident
-  modifyEnv $ defineCon (HS.Ident ident) (G.bare ident') (G.bare smartIdent')
+  modifyEnv
+    $ defineCon (HS.Ident ident) arity (G.bare ident') (G.bare smartIdent')
   return (ident', smartIdent')
 
--- | Associates the identifier of a user defined Haskell function or variable
---   with an automatically generated Coq identifier that does not cause any
---   name conflict in the current environment.
+-- | Associates the identifier of a user defined Haskell variable with an
+--   automatically generated Coq identifier that does not cause any name
+--   conflict in the current environment.
 --
 --   Returns the generated identifier.
-renameAndDefineVar :: String -> Converter String
-renameAndDefineVar ident = do
+renameAndDefineVar
+  :: String -- ^ The name of the variable.
+  -> Converter String
+renameAndDefineVar = flip renameAndDefineFunc 0
+
+-- | Associates the identifier of a user defined Haskell function with an
+--   automatically generated Coq identifier that does not cause any name
+--   conflict in the current environment.
+--
+--   Returns the generated identifier.
+renameAndDefineFunc
+  :: String -- ^ The name of the function.
+  -> Int    -- ^ The number of expected arguments.
+  -> Converter String
+renameAndDefineFunc ident arity = do
   ident' <- inEnv $ renameIdent ident
-  modifyEnv $ defineVar (HS.Ident ident) (G.bare ident')
+  modifyEnv $ defineFunc (HS.Ident ident) arity (G.bare ident')
   return ident'

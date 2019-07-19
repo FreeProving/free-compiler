@@ -115,7 +115,7 @@ testConvertType = describe "convertType" $ do
     "Int" `shouldTranslateTypeTo` "Free Shape Pos (Int Shape Pos)"
 
   it "translates custom types correctly" $ shouldSucceed $ fromConverter $ do
-    "Foo" <- renameAndDefineTypeCon "Foo"
+    "Foo" <- renameAndDefineTypeCon "Foo" 0
     "Foo" `shouldTranslateTypeTo` "Free Shape Pos (Foo Shape Pos)"
 
   it "translates '()' correctly" $ shouldSucceed $ fromConverter $ do

@@ -206,17 +206,20 @@ convertDataDecl (HS.DataDecl srcSpan (HS.DeclIdent _ ident) typeVarDecls conDecl
 -- | Inserts the given data type declaration and its constructor declarations
 --   into the current environment.
 defineDataDecl :: HS.Decl -> Converter ()
-defineDataDecl (HS.DataDecl _ (HS.DeclIdent _ ident) _ conDecls) = do
-  -- TODO detect redefinition and inform when renamed
-  _ <- renameAndDefineTypeCon ident
-  mapM_ defineConDecl conDecls
+defineDataDecl (HS.DataDecl _ (HS.DeclIdent _ ident) typeVarDecls conDecls) =
+  do
+    -- TODO detect redefinition and inform when renamed
+    let arity = length typeVarDecls
+    _ <- renameAndDefineTypeCon ident arity
+    mapM_ defineConDecl conDecls
 
 -- | Inserts the given data constructor declaration and its smart constructor
 --   into the current environment.
 defineConDecl :: HS.ConDecl -> Converter ()
-defineConDecl (HS.ConDecl _ (HS.DeclIdent _ ident) _) = do
+defineConDecl (HS.ConDecl _ (HS.DeclIdent _ ident) argTypes) = do
   -- TODO detect redefinition and inform when renamed
-  _ <- renameAndDefineCon ident
+  let arity = length argTypes
+  _ <- renameAndDefineCon ident arity
   return ()
 
 -------------------------------------------------------------------------------

@@ -18,6 +18,7 @@ module Compiler.Converter.State
   , lookupCon
   , lookupSmartCon
   , defineVar
+  , defineFunc
   , lookupVar
     -- * State monad
   , Converter
@@ -64,7 +65,15 @@ data Environment = Environment
   , definedVars :: Map HS.Name G.Qualid
     -- ^ Maps Haskell function and variable names to corresponding Coq
     --   identifiers.
-    -- TODO function and variable names.
+  , typeConArities :: Map HS.Name Int
+    -- ^ Maps Haskell type constructor names to the number of expected
+    --   arguments.
+  , conArities :: Map HS.Name Int
+    -- ^ Maps Haskell data constructor names to the number of expected
+    --   arguments.
+  , varArities :: Map HS.Name Int
+    -- ^ Maps Haskell function and variable names to the number of expected
+    --   arguments. The arity of variables should always be @0@.
   }
   deriving Show
 
@@ -78,10 +87,13 @@ emptyEnvironment = Environment
   , definedCons        = Map.empty
   , definedSmartCons   = Map.empty
   , definedVars        = Map.empty
+  , typeConArities     = Map.empty
+  , conArities         = Map.empty
+  , varArities         = Map.empty
   }
 
 -- | Gets a list of Coq identifiers for type constructors and variables,
---   [TODO smart and data consturctors, functions and variables] that were
+--   smart and data consturctors, functions and variables that were
 --   used in the given environment already.
 definedIdents :: Environment -> [G.Qualid]
 definedIdents env =
@@ -101,9 +113,11 @@ defineFreshIdent ident env =
 --   Coq identifier in the given environment.
 --
 --   If a type constructor with the same name exists, the entry is overwritten.
-defineTypeCon :: HS.Name -> G.Qualid -> Environment -> Environment
-defineTypeCon name ident env =
-  env { definedTypeCons = Map.insert name ident (definedTypeCons env) }
+defineTypeCon :: HS.Name -> Int -> G.Qualid -> Environment -> Environment
+defineTypeCon name arity ident env = env
+  { definedTypeCons = Map.insert name ident (definedTypeCons env)
+  , typeConArities  = Map.insert name arity (typeConArities env)
+  }
 
 -- | Looks up the Coq identifier for a Haskell type constructor with the given
 --   name in the provided environment.
@@ -134,13 +148,15 @@ lookupTypeVar name = Map.lookup name . definedTypeVars
 --   If a constructor with the same name exists, the entry is overwritten.
 defineCon
   :: HS.Name  -- ^ The Haskell name of the constructor.
+  -> Int      -- ^ The number of expected arguments.
   -> G.Qualid -- ^ The Coq identifier for the data constructor.
   -> G.Qualid -- ^ The Coq identifier for the smart constructor.
   -> Environment
   -> Environment
-defineCon name ident smartIdent env = env
+defineCon name arity ident smartIdent env = env
   { definedCons      = Map.insert name ident (definedCons env)
   , definedSmartCons = Map.insert name smartIdent (definedSmartCons env)
+  , conArities       = Map.insert name arity (conArities env)
   }
 
 -- | Looks up the Coq identifier for the regular constructor of the Haskell
@@ -157,14 +173,24 @@ lookupCon name = Map.lookup name . definedCons
 lookupSmartCon :: HS.Name -> Environment -> Maybe G.Qualid
 lookupSmartCon name = Map.lookup name . definedSmartCons
 
--- | Associates the name of a Haskell function or variable with the
---   corresponding Coq identifier in the given environment.
+-- | Associates the name of a Haskell variable with the corresponding Coq
+--   identifier in the given environment.
 --
 --   If a function or variable with the same name exists, the entry is
 --   overwritten.
 defineVar :: HS.Name -> G.Qualid -> Environment -> Environment
-defineVar name ident env =
-  env { definedVars = Map.insert name ident (definedVars env) }
+defineVar = flip defineFunc 0
+
+-- | Associates the name of a Haskell function with the corresponding Coq
+--   identifier in the given environment.
+--
+--   If a function or variable with the same name exists, the entry is
+--   overwritten.
+defineFunc :: HS.Name -> Int -> G.Qualid -> Environment -> Environment
+defineFunc name arity ident env = env
+  { definedVars = Map.insert name ident (definedVars env)
+  , varArities  = Map.insert name arity (varArities env)
+  }
 
 -- | Looks up the Coq identifier for a Haskell function or variable with the
 --   given name in the provided environment.
