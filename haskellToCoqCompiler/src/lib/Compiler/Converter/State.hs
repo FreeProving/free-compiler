@@ -109,15 +109,23 @@ defineFreshIdent ident env =
 --
 --   If there is an entry associated with the same name in the given scope
 --   already, the entry is overwritten.
+--
+--   All information that is already associated with the identifier is shadowed
+--   by this function (e.g. the arity has to be set after the identifier was
+--   inserted into the environment, see 'defineArity').
 defineIdent :: Scope -> HS.Name -> G.Qualid -> Environment -> Environment
-defineIdent scope name ident env =
-  env { definedIdents = Map.insert (scope, name) ident (definedIdents env) }
+defineIdent scope name ident env = env
+  { definedIdents  = Map.insert (scope, name) ident (definedIdents env)
+  , definedArities = Map.delete (scope, name) (definedArities env)
+  }
 
 -- | Associates the name of a Haskell function or (type/smart) constructor
 --   with the number of expected (type) arguments.
 --
 --   If there is an entry associated with the same name in the given scope
 --   already, the entry is overwritten.
+--
+--   Unlike 'defineIdent' this function does not shadow existing information.
 defineArity :: Scope -> HS.Name -> Int -> Environment -> Environment
 defineArity scope name arity env =
   env { definedArities = Map.insert (scope, name) arity (definedArities env) }
@@ -180,9 +188,9 @@ defineCon
   -> Environment
 defineCon name arity ident smartIdent =
   defineIdent ConScope name ident
-  . defineIdent SmartConScope name smartIdent
-  . defineArity ConScope name arity
-  . defineArity SmartConScope name arity
+    . defineIdent SmartConScope name smartIdent
+    . defineArity ConScope      name arity
+    . defineArity SmartConScope name arity
 
 -- | Associates the name of a Haskell variable with the corresponding Coq
 --   identifier in the given environment.
@@ -191,7 +199,7 @@ defineCon name arity ident smartIdent =
 --   overwritten.
 defineVar
   :: HS.Name    -- ^ The Haskell name of the variable.
-  -> G.Qualid   -- ^ the Coq identifier for the variable.
+  -> G.Qualid   -- ^ The Coq identifier for the variable.
   -> Environment
   -> Environment
 defineVar = defineIdent VarScope
@@ -208,8 +216,7 @@ defineFunc
   -> Environment
   -> Environment
 defineFunc name arity ident =
-  defineIdent VarScope name ident
-  . defineArity VarScope name arity
+  defineIdent VarScope name ident . defineArity VarScope name arity
 
 -------------------------------------------------------------------------------
 -- State monad                                                               --
