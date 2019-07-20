@@ -388,9 +388,9 @@ Typkonstruktor ist.
 Wir übersetzen hier $\tau$ als $\liftT{\tau}$ und nicht als
 $\lift{\tau}$, da es egal sein soll, ob zuerst übersetzt und dann das Typsynonym
 expandiert wird oder an­ders­he­r­um.
-Übersetzt man zunächst $S$ zu $\lift{S} = \free{\liftT{S}} = \free{S}$ und expandiert
-dann $S$ zu $\liftT{\tau}$, erhält man $\free{\liftT{\tau}}$. Andersherum würde
-man zunächst $S$ zu $\tau$ expandieren und dann zu
+Übersetzt man zunächst $S$ zu $\lift{S} = \free{\liftT{S}} = \free{S}$ und
+expandiert dann $S$ zu $\liftT{\tau}$, erhält man $\free{\liftT{\tau}}$.
+Andersherum würde man zunächst $S$ zu $\tau$ expandieren und dann zu
 $\lift{\tau} = \free{\liftT{\tau}}$ übersetzten. Würde man in der
 Tysynonymdeklaration hingegen $\tau$ zu $\lift{\tau} = \free{\liftT{\tau}}$
 übersetzen, so erhilte man beim Expandieren von $S$ im Coq Code
@@ -981,15 +981,78 @@ Die `Partial`{.coq} Typklasse ermöglicht es die Fehlerterme sehr einfach zu
 
 ## Lambda Abstraktionen
 
+Betrachte die folgende Lambda Abstraktion mit $n$ Parametern.
+
 ```haskell
 \@$x_1$@ @$\ldots$@ @$x_n$@ -> @$e$@
 ```
+
+wobei $x_1, \ldots x_n$ Variablenpattern sind und $e$ ein Ausdruck ist.
+
+Wenn die Parameter $x_1, \ldots, x_n$ die Typen $\tau_1, \ldots, \tau_n$ und
+der Ausdruck $e$ den Typ $\tau$ haben, so ist der Typ der oben stehenden Lambda
+Abstraktion insgesamt.
+
+$$
+  \tau_1
+    \rightarrow \ldots
+    \rightarrow \tau_n
+    \rightarrow \tau
+$$
+
+Durch die Anwendung der Übersetzungsregeln für Typen erhalten wir den folgenden
+Typen für die übersetzte Lambda Abstraktion:
+
+$$
+  \free (\lift{\tau_1}
+    \rightarrow \free (\ldots
+      \rightarrow \free (\lift{\tau_n}
+        \rightarrow \lift{\tau}
+      )
+    )
+  )
+$$
+
+Das heißt, dass durch die partielle Anwendung der Lambda Abstraktion nicht
+direkt neue Funktionen sondern monadische Terme entstehen, welche Funktionen
+enthalten. Insbesondere wäre daher folgende Übersetzung **nicht** korrekt:
 
 ```coq
 pure (fun(@$x_1$@ @$\ldots$@ @$x_n$@) => @$\lift{e}$@)
 ```
 
-wobei $x_1, \ldots x_n$ Variablenpattern sind und $e$ ein Ausdruck ist.
+Stattdessen muss für jeden Parameter eine eigene Lambda Abstraktion in Coq
+eingeführt werden.
+
+```coq
+pure (fun(@$x_1$@) => pure (@\ldots@ pure (fun(@$x_n$@) => @$\lift{e}$@)))
+```
+
+Formal definiren wir die Übersetzung einer Lambda Abstraktion mit genau einem
+Argument zunächst wie folgt
+
+```haskell
+\@$x$@ -> @$e$@
+```
+
+```coq
+pure (fun(@$x$@) -> @$\lift{e}$@)
+```
+
+und darauf aufbauend definieren wir, dass eine Lambda Abstraktion mit
+mindestens zwei Argumenten
+
+```haskell
+\@$x_1$@ @$x_2$@ @$\ldots$@ @$x_n$@ -> @$e$@
+```
+
+genau so übersetzt werden soll, wie eine Lambda Abstraktion mit einem
+Argument, welche eine Lambda Abstraktion mit einem Argument weniger zurück
+gibt:
+
+```haskell
+\@$x_1$@ -> \@$x_2$@ @$\ldots$@ @$x_n$@ -> @$e$@
+```
 
 ## Literale
 
