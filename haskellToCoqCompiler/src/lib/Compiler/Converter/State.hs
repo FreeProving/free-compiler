@@ -165,7 +165,7 @@ defineTypeCon
   -> Environment
   -> Environment
 defineTypeCon name arity ident =
-  defineIdent TypeScope name ident . defineArity TypeScope name arity
+  defineArity TypeScope name arity . defineIdent TypeScope name ident
 
 -- | Associates the name of a Haskell type variable with the corresponding Coq
 --   identifier in the given environment.
@@ -187,10 +187,10 @@ defineCon
   -> Environment
   -> Environment
 defineCon name arity ident smartIdent =
-  defineIdent ConScope name ident
-    . defineIdent SmartConScope name smartIdent
-    . defineArity ConScope      name arity
+  defineArity ConScope name arity
     . defineArity SmartConScope name arity
+    . defineIdent ConScope      name ident
+    . defineIdent SmartConScope name smartIdent
 
 -- | Associates the name of a Haskell variable with the corresponding Coq
 --   identifier in the given environment.
@@ -216,7 +216,7 @@ defineFunc
   -> Environment
   -> Environment
 defineFunc name arity ident =
-  defineIdent VarScope name ident . defineArity VarScope name arity
+  defineArity VarScope name arity . defineIdent VarScope name ident
 
 -------------------------------------------------------------------------------
 -- State monad                                                               --
