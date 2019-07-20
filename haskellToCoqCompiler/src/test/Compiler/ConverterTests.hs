@@ -145,17 +145,64 @@ testConvertType = describe "convertType" $ do
 -- | Test group for 'convertExpr' tests.
 testConvertExpr :: Spec
 testConvertExpr = describe "convertExpr" $ do
+  testConvertInt
+  testConvertBool
   testConvertLists
   testConvertTuples
 
+testConvertInt :: Spec
+testConvertInt = context "integer expressions" $ do
+  it "translates zero correctly"
+    $ shouldSucceed
+    $ fromConverter
+    $ shouldTranslateExprTo "0" "0%Z"
+
+  it "translates positive decimal integer literals correctly"
+    $ shouldSucceed
+    $ fromConverter
+    $ shouldTranslateExprTo "42" "42%Z"
+
+  it "translates hexadecimal integer literals correctly"
+    $ shouldSucceed
+    $ fromConverter
+    $ shouldTranslateExprTo "0xA2" "162%Z"
+
+  it "translates octal integer literals correctly"
+    $ shouldSucceed
+    $ fromConverter
+    $ shouldTranslateExprTo "0o755" "493%Z"
+
+  it "translates negative decimal integer literals correctly"
+    $ shouldSucceed
+    $ fromConverter
+    $ shouldTranslateExprTo "-42" "negate Shape Pos 42%Z"
+
+-- | Test group for translation of boolean expressions.
+testConvertBool :: Spec
+testConvertBool = context "boolean expressions" $ do
+  it "translates 'True' correctly" $ shouldSucceed $ fromConverter $ do
+    "True" `shouldTranslateExprTo` "True_ Shape Pos"
+
+  it "translates 'False' correctly" $ shouldSucceed $ fromConverter $ do
+    "False" `shouldTranslateExprTo` "False_ Shape Pos"
+
+  it "translates conjunction correctly" $ shouldSucceed $ fromConverter $ do
+    "x" <- renameAndDefineVar "x"
+    "y" <- renameAndDefineVar "y"
+    "x && y" `shouldTranslateExprTo` "andBool Shape Pos x y"
+
+  it "translates disjunction correctly" $ shouldSucceed $ fromConverter $ do
+    "x" <- renameAndDefineVar "x"
+    "y" <- renameAndDefineVar "y"
+    "x || y" `shouldTranslateExprTo` "orBool Shape Pos x y"
+
 -- | Test group for translation of list expressions.
 testConvertLists :: Spec
-testConvertLists = context "lists" $ do
+testConvertLists = context "list expressions" $ do
   it "translates empty list constructor correctly"
     $ shouldSucceed
     $ fromConverter
-    $ do
-        "[]" `shouldTranslateExprTo` "Nil Shape Pos"
+    $ shouldTranslateExprTo "[]" "Nil Shape Pos"
 
   it "translates non-empty list constructor correctly"
     $ shouldSucceed
@@ -177,7 +224,7 @@ testConvertLists = context "lists" $ do
 
 -- | Test group for translation of tuple expressions.
 testConvertTuples :: Spec
-testConvertTuples = context "tuples" $ do
+testConvertTuples = context "tuple expressions" $ do
   it "translates unit literals correctly" $ shouldSucceed $ fromConverter $ do
     "()" `shouldTranslateExprTo` "Tt Shape Pos"
 

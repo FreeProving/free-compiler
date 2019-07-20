@@ -411,7 +411,9 @@ convertExpr = flip convertExpr' []
   convertExpr' (HS.NegApp _ expr) args
     | not (null args) = -- TODO report not a function.
                         undefined
-    | otherwise       = generateApp (G.Qualid CoqBase.negateOp) [expr]
+    | otherwise = do
+      expr' <- convertExpr expr
+      return (genericApply CoqBase.negateOp [expr'])
 
   -- @if@-expressions.
   convertExpr' (HS.If _ e1 e2 e3) args = do
