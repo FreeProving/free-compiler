@@ -474,7 +474,7 @@ convertAlt (HS.Alt _ conPat varPats expr) = localEnv $ do
 --   arguments to a Coq pattern.
 convertConPat :: HS.ConPat -> [HS.VarPat] -> Converter G.Pattern
 convertConPat (HS.ConPat srcSpan ident) varPats = do
-  mQualid <- inEnv $ lookupIdent SmartConScope ident
+  mQualid <- inEnv $ lookupIdent ConScope ident
   case mQualid of
     Nothing     -> unknownConError srcSpan ident
     Just qualid -> do

@@ -145,12 +145,51 @@ testConvertType = describe "convertType" $ do
 -- | Test group for 'convertExpr' tests.
 testConvertExpr :: Spec
 testConvertExpr = describe "convertExpr" $ do
+  testConvertCase
   testConvertLambda
   testConvertInt
   testConvertBool
   testConvertLists
   testConvertTuples
 
+-- | Test group for translation of @case@-expressions.
+testConvertCase :: Spec
+testConvertCase = context "case expressions" $ do
+  it "simplifies matches with only one alternative (during pretty printing)"
+    $ shouldSucceed
+    $ fromConverter
+    $ do
+        "e"        <- renameAndDefineVar "e"
+        "e'"       <- renameAndDefineVar "e'"
+        ("c", "C") <- renameAndDefineCon "C" 0
+        "case e of { C -> e' }" `shouldTranslateExprTo` "e >>= (fun '(c) => e')"
+
+  it "uses data (not smart) constructors" $ shouldSucceed $ fromConverter $ do
+    "e"          <- renameAndDefineVar "e"
+    "e1"         <- renameAndDefineVar "e1"
+    "e2"         <- renameAndDefineVar "e2"
+    ("c1", "C1") <- renameAndDefineCon "C1" 0
+    ("c2", "C2") <- renameAndDefineCon "C2" 0
+    shouldTranslateExprTo "case e of { C1 -> e1;  C2 -> e2 }"
+      $  "e >>= (fun _0 =>"
+      ++ "  match _0 with"
+      ++ "  | c1 => e1"
+      ++ "  | c2 => e2"
+      ++ "  end)"
+
+  it "can canvert matches of list constructors"
+    $ shouldSucceed
+    $ fromConverter
+    $ do
+        "xs" <- renameAndDefineVar "xs"
+        shouldTranslateExprTo "case xs of { [] -> undefined; y : ys -> y }"
+          $  "xs >>= (fun _0 =>"
+          ++ "  match _0 with"
+          ++ "  | nil => undefined"
+          ++ "  | cons y ys => y"
+          ++ "  end)"
+
+-- | Test group for translation of lambda abstractions.
 testConvertLambda :: Spec
 testConvertLambda = context "lambda abstractions" $ do
   it "translates single argument lambda abstractions correctly"
@@ -165,9 +204,9 @@ testConvertLambda = context "lambda abstractions" $ do
     $ fromConverter
     $ do
         "e" <- renameAndDefineVar "e"
-        shouldTranslateExprTo "\\x y -> e"
-                              "pure (fun x => pure (fun y => e))"
+        shouldTranslateExprTo "\\x y -> e" "pure (fun x => pure (fun y => e))"
 
+-- | Test group for translation of integer expressions.
 testConvertInt :: Spec
 testConvertInt = context "integer expressions" $ do
   it "translates zero correctly"
