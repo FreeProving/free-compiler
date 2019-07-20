@@ -167,7 +167,10 @@ renameAndDefineCon ident arity = do
 renameAndDefineVar
   :: String -- ^ The name of the variable.
   -> Converter String
-renameAndDefineVar = flip renameAndDefineFunc 0
+renameAndDefineVar ident = do
+  ident' <- inEnv $ renameIdent ident
+  modifyEnv $ defineVar (HS.Ident ident) (G.bare ident')
+  return ident'
 
 -- | Associates the identifier of a user defined Haskell function with an
 --   automatically generated Coq identifier that does not cause any name
