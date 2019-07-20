@@ -145,10 +145,28 @@ testConvertType = describe "convertType" $ do
 -- | Test group for 'convertExpr' tests.
 testConvertExpr :: Spec
 testConvertExpr = describe "convertExpr" $ do
+  testConvertLambda
   testConvertInt
   testConvertBool
   testConvertLists
   testConvertTuples
+
+testConvertLambda :: Spec
+testConvertLambda = context "lambda abstractions" $ do
+  it "translates single argument lambda abstractions correctly"
+    $ shouldSucceed
+    $ fromConverter
+    $ do
+        "e" <- renameAndDefineVar "e"
+        "\\x -> e" `shouldTranslateExprTo` "pure (fun x => e)"
+
+  it "translates multi argument lambda abstractions correctly"
+    $ shouldSucceed
+    $ fromConverter
+    $ do
+        "e" <- renameAndDefineVar "e"
+        shouldTranslateExprTo "\\x y -> e"
+                              "pure (fun x => pure (fun y => e))"
 
 testConvertInt :: Spec
 testConvertInt = context "integer expressions" $ do
