@@ -12,6 +12,7 @@ testConverter :: Spec
 testConverter = describe "Compiler.Converter" $ do
   testConvertDataDecls
   testConvertType
+  testConvertExpr
 
 -------------------------------------------------------------------------------
 -- Data type declarations                                                    --
@@ -136,3 +137,59 @@ testConvertType = describe "convertType" $ do
     shouldTranslateTypeTo
       "a -> b"
       "Free Shape Pos (Free Shape Pos a -> Free Shape Pos b)"
+
+-------------------------------------------------------------------------------
+-- Expressions                                                               --
+-------------------------------------------------------------------------------
+
+-- | Test group for 'convertExpr' tests.
+testConvertExpr :: Spec
+testConvertExpr = describe "convertExpr" $ do
+  testConvertLists
+  testConvertTuples
+
+-- | Test group for translation of list expressions.
+testConvertLists :: Spec
+testConvertLists = context "lists" $ do
+  it "translates empty list constructor correctly"
+    $ shouldSucceed
+    $ fromConverter
+    $ do
+        "[]" `shouldTranslateExprTo` "Nil Shape Pos"
+
+  it "translates non-empty list constructor correctly"
+    $ shouldSucceed
+    $ fromConverter
+    $ do
+        "x"  <- renameAndDefineVar "x"
+        "xs" <- renameAndDefineVar "xs"
+        "x : xs" `shouldTranslateExprTo` "Cons Shape Pos x xs"
+
+  it "translates list literal correctly" $ shouldSucceed $ fromConverter $ do
+    "x1" <- renameAndDefineVar "x1"
+    "x2" <- renameAndDefineVar "x2"
+    "x3" <- renameAndDefineVar "x3"
+    shouldTranslateExprTo "[x1, x2, x3]"
+      $  "Cons Shape Pos x1 ("
+      ++ "Cons Shape Pos x2 ("
+      ++ "Cons Shape Pos x3 ("
+      ++ "Nil Shape Pos)))"
+
+-- | Test group for translation of tuple expressions.
+testConvertTuples :: Spec
+testConvertTuples = context "tuples" $ do
+  it "translates unit literals correctly" $ shouldSucceed $ fromConverter $ do
+    "()" `shouldTranslateExprTo` "Tt Shape Pos"
+
+  it "translates pair literals correctly" $ shouldSucceed $ fromConverter $ do
+    "x" <- renameAndDefineVar "x"
+    "y" <- renameAndDefineVar "y"
+    "(x, y)" `shouldTranslateExprTo` "Pair_ Shape Pos x y"
+
+  it "translates pair constructor correctly"
+    $ shouldSucceed
+    $ fromConverter
+    $ do
+        "x" <- renameAndDefineVar "x"
+        "y" <- renameAndDefineVar "y"
+        "(,) x y" `shouldTranslateExprTo` "Pair_ Shape Pos x y"

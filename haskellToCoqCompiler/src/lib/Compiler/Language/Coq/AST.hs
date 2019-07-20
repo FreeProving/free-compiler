@@ -65,10 +65,10 @@ unpackQualid (G.Qualified _ _) = Nothing
 --   If the first argument is an application term, the arguments are added
 --   to that term. Otherwise a new application term is created.
 app :: G.Term -> [G.Term] -> G.Term
+app func [] = func
 app (G.App func args) args' =
   G.App func (args <> NonEmpty.fromList (map G.PosArg args'))
-app func args | null args = func
-              | otherwise = G.App func (NonEmpty.fromList (map G.PosArg args))
+app func args = G.App func (NonEmpty.fromList (map G.PosArg args))
 
 -- | Smart constructor for a Coq function type.
 arrows

@@ -7,6 +7,7 @@ module Compiler.Language.Haskell.Parser
   , parseModuleFile
   , parseDecl
   , parseType
+  , parseExpr
   )
 where
 
@@ -108,3 +109,14 @@ parseType
   -> String -- ^ The Haskell source code.
   -> Reporter (H.Type SrcSpan)
 parseType = parseHaskell
+
+-------------------------------------------------------------------------------
+-- Expressions                                                               --
+-------------------------------------------------------------------------------
+
+-- | Parses a Haskell expression.
+parseExpr
+  :: String -- ^ The name of the Haskell source file.
+  -> String -- ^ The Haskell source code.
+  -> Reporter (H.Exp SrcSpan)
+parseExpr = parseHaskell
