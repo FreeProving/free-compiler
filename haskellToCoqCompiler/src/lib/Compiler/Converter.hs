@@ -21,6 +21,7 @@ where
 
 import           Control.Monad                  ( mapAndUnzipM )
 import           Control.Monad.Extra            ( concatMapM )
+import           Data.Composition
 import           Data.Maybe                     ( maybe
                                                 , catMaybes
                                                 )
@@ -260,6 +261,11 @@ convertTypeVarDecls explicitness typeVarDecls
 -------------------------------------------------------------------------------
 
 -- | Converts the argument of a function (a variable pattern) to an explicit
+--   Coq binder whose type is inferred by Coq.
+convertInferredArg :: HS.VarPat -> Converter G.Binder
+convertInferredArg = flip convertArg Nothing
+
+-- | Converts the argument of a function (a variable pattern) to an explicit
 --   Coq binder.
 convertArg :: HS.VarPat -> Maybe HS.Type -> Converter G.Binder
 convertArg (HS.VarPat _ ident) mArgType = do
@@ -445,10 +451,9 @@ convertExpr = flip convertExpr' []
 
   -- Lambda abstractions.
   convertExpr' (HS.Lambda _ params expr) args = localEnv $ do
-    params' <- mapM (flip convertArg Nothing) params
+    params' <- mapM convertInferredArg params
     expr'   <- convertExpr expr
-    -- TODO there needs to be one lambda+pure for every argument!
-    generateApp (generatePure (G.Fun (NonEmpty.fromList params') expr')) args
+    generateApp (foldr (generatePure .: G.Fun . return) expr' params') args
 
 -- | Converts an infix operator to an expression.
 --
@@ -458,12 +463,15 @@ opToExpr :: HS.Op -> HS.Expr
 opToExpr (HS.VarOp srcSpan opName) = HS.Var srcSpan opName
 opToExpr (HS.ConOp srcSpan opName) = HS.Con srcSpan opName
 
+-- | Converts an alternative of a Haskell @case@-expressions to Coq.
 convertAlt :: HS.Alt -> Converter G.Equation
 convertAlt (HS.Alt _ conPat varPats expr) = localEnv $ do
   conPat' <- convertConPat conPat varPats
   expr'   <- convertExpr expr
   return (G.equation conPat' expr')
 
+-- | Converts a Haskell constructor pattern with the given variable pattern
+--   arguments to a Coq pattern.
 convertConPat :: HS.ConPat -> [HS.VarPat] -> Converter G.Pattern
 convertConPat (HS.ConPat srcSpan ident) varPats = do
   mQualid <- inEnv $ lookupIdent SmartConScope ident
@@ -473,6 +481,7 @@ convertConPat (HS.ConPat srcSpan ident) varPats = do
       varPats' <- mapM convertVarPat varPats
       return (G.ArgsPat qualid varPats')
 
+-- | Converts a Haskell variable pattern to a Coq variable pattern.
 convertVarPat :: HS.VarPat -> Converter G.Pattern
 convertVarPat (HS.VarPat _ ident) = do
   -- TODO detect redefinition
