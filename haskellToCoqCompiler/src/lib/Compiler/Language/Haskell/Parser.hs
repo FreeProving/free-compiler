@@ -13,6 +13,11 @@ where
 
 import           Language.Haskell.Exts.Extension
                                                 ( Language(..) )
+import           Language.Haskell.Exts.Fixity   ( Fixity
+                                                , infix_
+                                                , infixr_
+                                                , infixl_
+                                                )
 import           Language.Haskell.Exts.Parser   ( ParseMode(..)
                                                 , Parseable(..)
                                                 , ParseResult(..)
@@ -33,13 +38,23 @@ parseMode filename = ParseMode
   , extensions            = []
   , ignoreLanguagePragmas = True
   , ignoreLinePragmas     = True
-    -- TODO because we support some infix operations from the prelude
-    -- we should specify their fixities here.
     -- If this is set to @Nothing@, user defined fixities are ignored while
     -- parsing.
-  , fixities              = Just []
+  , fixities              = Just predefinedFixities
   , ignoreFunctionArity   = True
   }
+
+-- | Fixities for all predefined operators and infix constructors.
+predefinedFixities :: [Fixity]
+predefinedFixities = concat
+  [ infixr_ 8 ["^"]
+  , infixl_ 7 ["*"]
+  , infixl_ 6 ["+", "-"]
+  , infixr_ 5 [":"]
+  , infix_ 4 ["==", "/=", "<", "<=", ">=", ">"]
+  , infixr_ 3 ["&&"]
+  , infixr_ 2 ["||"]
+  ]
 
 -- | Parses a node of the Haskell AST.
 parseHaskell

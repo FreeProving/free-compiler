@@ -177,6 +177,21 @@ testConvertInt = context "integer expressions" $ do
     $ fromConverter
     $ shouldTranslateExprTo "-42" "negate Shape Pos 42%Z"
 
+  it "translates arithmetic expressions correctly"
+    $ shouldSucceed
+    $ fromConverter
+    $ do
+        "a" <- renameAndDefineVar "a"
+        "b" <- renameAndDefineVar "b"
+        "c" <- renameAndDefineVar "c"
+        "x" <- renameAndDefineVar "x"
+        shouldTranslateExprTo "a * x^2 + b * x + c"
+          $  "addInt Shape Pos"
+          ++ "  (addInt Shape Pos"
+          ++ "    (mulInt Shape Pos a (powInt Shape Pos x 2%Z))"
+          ++ "    (mulInt Shape Pos b x))"
+          ++ "  c"
+
 -- | Test group for translation of boolean expressions.
 testConvertBool :: Spec
 testConvertBool = context "boolean expressions" $ do
