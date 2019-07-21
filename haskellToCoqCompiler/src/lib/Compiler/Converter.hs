@@ -335,15 +335,11 @@ convertType t = do
 --     remain unchanged otherwise.
 convertType' :: HS.Type -> Converter G.Term
 convertType' (HS.TypeVar srcSpan ident) = do
-  mQualid <- inEnv $ lookupIdent TypeScope (HS.Ident ident)
-  case mQualid of
-    Nothing     -> unknownTypeVarError srcSpan ident
-    Just qualid -> return (G.Qualid qualid)
+  qualid <- lookupIdentOrFail srcSpan TypeScope (HS.Ident ident)
+  return (G.Qualid qualid)
 convertType' (HS.TypeCon srcSpan name) = do
-  mQualid <- inEnv $ lookupIdent TypeScope name
-  case mQualid of
-    Nothing     -> unknownTypeConError srcSpan name
-    Just qualid -> return (genericApply qualid [])
+  qualid <- lookupIdentOrFail srcSpan TypeScope name
+  return (genericApply qualid [])
 convertType' (HS.TypeApp _ t1 t2) = do
   t1' <- convertType' t1
   t2' <- convertType' t2
@@ -390,28 +386,22 @@ convertExpr' :: HS.Expr -> Converter (G.Term, Int)
 
 -- Constructors.
 convertExpr' (HS.Con srcSpan name) = do
-  mQualid <- inEnv $ lookupIdent SmartConScope name
-  case mQualid of
-    Nothing     -> unknownConError srcSpan name
-    Just qualid -> do
-      Just arity <- inEnv $ lookupArity SmartConScope name
-      return (genericApply qualid [], arity)
+  qualid     <- lookupIdentOrFail srcSpan SmartConScope name
+  Just arity <- inEnv $ lookupArity SmartConScope name
+  return (genericApply qualid [], arity)
 
 -- Functions and variables.
 convertExpr' (HS.Var srcSpan name) = do
-  mQualid <- inEnv $ lookupIdent VarScope name
-  case mQualid of
-    Nothing     -> unknownVarError srcSpan name
-    Just qualid -> do
-      -- Lookup arity of function. If there is no such entry, this is not
-      -- a function but a variable. Variables do not need the @Shape@ and
-      -- @Pos@ arguments.
-      mArity <- inEnv $ lookupArity VarScope name
-      case mArity of
-        Nothing -> return (G.Qualid qualid, 0)
-        Just arity ->
-          -- TODO is the function partial? If so, pass @Partial@ instance.
-          return (genericApply qualid [], arity)
+  qualid <- lookupIdentOrFail srcSpan VarScope name
+  -- Lookup arity of function. If there is no such entry, this is not
+  -- a function but a variable. Variables do not need the @Shape@ and
+  -- @Pos@ arguments.
+  mArity <- inEnv $ lookupArity VarScope name
+  case mArity of
+    Nothing -> return (G.Qualid qualid, 0)
+    Just arity ->
+      -- TODO is the function partial? If so, pass @Partial@ instance.
+      return (genericApply qualid [], arity)
 
 -- If the callee is a partially applied function or constructor that still
 -- expects arguments, we can apply it directly. Otherwise it will be a monadic
@@ -490,12 +480,9 @@ convertAlt (HS.Alt _ conPat varPats expr) = localEnv $ do
 --   arguments to a Coq pattern.
 convertConPat :: HS.ConPat -> [HS.VarPat] -> Converter G.Pattern
 convertConPat (HS.ConPat srcSpan ident) varPats = do
-  mQualid <- inEnv $ lookupIdent ConScope ident
-  case mQualid of
-    Nothing     -> unknownConError srcSpan ident
-    Just qualid -> do
-      varPats' <- mapM convertVarPat varPats
-      return (G.ArgsPat qualid varPats')
+  qualid   <- lookupIdentOrFail srcSpan ConScope ident
+  varPats' <- mapM convertVarPat varPats
+  return (G.ArgsPat qualid varPats')
 
 -- | Converts a Haskell variable pattern to a Coq variable pattern.
 convertVarPat :: HS.VarPat -> Converter G.Pattern
@@ -570,35 +557,21 @@ generateBind' expr' argType' generateRHS = do
 -- Error reporting                                                           --
 -------------------------------------------------------------------------------
 
--- | Reports a fatal error message when an unknown type constructor is
---   encountered.
-unknownTypeConError :: SrcSpan -> HS.Name -> Converter a
-unknownTypeConError srcSpan name = reportFatal $ Message
-  (Just srcSpan)
-  Error
-  ("Unknown type constructor: " ++ showPretty name)
-
--- | Reports a fatal error message when an unknown type variable is
---   encountered.
+-- | Looks up the Coq identifier for a Haskell function, (type/smart)
+--   constructor or (type) variable with the given name or reports a fatal
+--   error message if the identifier has not been defined.
 --
---   This could happen if a type variable is used in a data constructor
---   that was not declaraed in the data type declaration's head.
-unknownTypeVarError :: SrcSpan -> HS.TypeVarIdent -> Converter a
-unknownTypeVarError srcSpan ident = reportFatal
-  $ Message (Just srcSpan) Error ("Unknown type variable: " ++ ident)
-
--- | Reports a fatal error message when an unknown data constructor is
---   envountered.
-unknownConError :: SrcSpan -> HS.Name -> Converter a
-unknownConError srcSpan name = reportFatal $ Message
-  (Just srcSpan)
-  Error
-  ("Unknown data constructor: " ++ showPretty name)
-
--- | Reports a fatal error message when an unknown function or variable is
---   envountered.
-unknownVarError :: SrcSpan -> HS.Name -> Converter a
-unknownVarError srcSpan name = reportFatal $ Message
-  (Just srcSpan)
-  Error
-  ("Unknown function or variable: " ++ showPretty name)
+--   If an error is reported, it points to the given source span.
+lookupIdentOrFail
+  :: SrcSpan -- ^ The source location where the identifier is requested.
+  -> Scope   -- ^ The scope to look the identifier up in.
+  -> HS.Name -- ^ The Haskell identifier to look up.
+  -> Converter G.Qualid
+lookupIdentOrFail srcSpan scope name = do
+  mQualid <- inEnv $ lookupIdent scope name
+  case mQualid of
+    Just qualid -> return qualid
+    Nothing ->
+      reportFatal
+        $ Message (Just srcSpan) Error
+        $ ("Unknown " ++ showPretty scope ++ ": " ++ showPretty name)

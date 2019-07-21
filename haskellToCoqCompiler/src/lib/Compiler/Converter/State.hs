@@ -48,6 +48,7 @@ import qualified Data.Map.Strict               as Map
 import qualified Compiler.Language.Coq.AST     as G
 import qualified Compiler.Language.Haskell.SimpleAST
                                                as HS
+import           Compiler.Pretty
 import           Compiler.Reporter
 
 -------------------------------------------------------------------------------
@@ -61,6 +62,15 @@ import           Compiler.Reporter
 --   constructor name.
 data Scope = TypeScope | ConScope | SmartConScope | VarScope
   deriving (Eq, Ord, Show)
+
+-- | Gets a description of the entries in the given scope.
+--
+--   This pretty instance is used to generate human readable error messages.
+instance Pretty Scope where
+  pretty TypeScope     = prettyString "type"
+  pretty ConScope      = prettyString "data constructor"
+  pretty SmartConScope = prettyString "data constructor"
+  pretty VarScope      = prettyString "function or variable"
 
 -- | Type that is used by maps in the 'Environment' to qualify Haskell names
 --   with the scopes they are defined in.
