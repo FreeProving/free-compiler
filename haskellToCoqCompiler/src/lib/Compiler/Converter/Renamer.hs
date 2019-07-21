@@ -97,8 +97,8 @@ sanitizeIdent :: String -> String
 sanitizeIdent (firstChar : subsequentChars) =
   sanitizeFirstChar firstChar : map sanitizeChar subsequentChars
  where
-   -- | Replaces the given character with an underscope if it is not allowed
-   --   to occur in the first place of a Coq identifier.
+  -- | Replaces the given character with an underscope if it is not allowed
+  --   to occur in the first place of a Coq identifier.
   sanitizeFirstChar :: Char -> Char
   sanitizeFirstChar c | isAllowedFirstChar c = c
                       | otherwise            = '_'

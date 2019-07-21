@@ -357,7 +357,7 @@ convertType' (HS.TypeFunc _ t1 t2) = do
 convertExpr :: HS.Expr -> Converter G.Term
 convertExpr expr = convertExpr' expr >>= uncurry etaConvert
  where
-    -- | Performs the given number of eta conversions of the given Coq term.
+  -- | Performs the given number of eta conversions of the given Coq term.
   etaConvert :: G.Term -> Int -> Converter G.Term
   etaConvert term 0     = return term
   etaConvert term arity = do
