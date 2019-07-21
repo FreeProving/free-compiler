@@ -28,6 +28,7 @@ import           Data.Maybe                     ( maybe
 import qualified Data.List.NonEmpty            as NonEmpty
 
 import           Compiler.Analysis.DependencyAnalysis
+import           Compiler.Converter.Fresh
 import           Compiler.Converter.State
 import           Compiler.Converter.Renamer
 import qualified Compiler.Language.Coq.AST     as G
@@ -292,7 +293,7 @@ convertArg' ident' (Just argType) = do
 --   and returned together with the binder.
 convertAnonymousArg :: Maybe HS.Type -> Converter (String, G.Binder)
 convertAnonymousArg mArgType = do
-  ident' <- freshIdent
+  ident' <- freshCoqIdent
   binder <- convertArg' ident' mArgType
   return (ident', binder)
 
@@ -364,7 +365,7 @@ convertExpr expr = convertExpr' expr >>= uncurry etaConvert
   etaConvert :: G.Term -> Int -> Converter G.Term
   etaConvert term 0     = return term
   etaConvert term arity = do
-    x     <- freshIdent
+    x     <- freshCoqIdent
     term' <- etaConvert (G.app term [G.Qualid (G.bare x)]) (arity - 1)
     return (generatePure (G.fun [x] [Nothing] term'))
 
@@ -428,8 +429,7 @@ convertExpr' (HS.InfixApp srcSpan e1 op e2) =
 convertExpr' (HS.LeftSection srcSpan e1 op) =
   convertExpr' (HS.app srcSpan (opToExpr op) [e1])
 convertExpr' (HS.RightSection srcSpan op e2) = do
-  -- TODO `x1` must be a Haskell identifier, but it is a Coq identifier.
-  x1 <- freshIdent
+  x1 <- freshHaskellIdent
   let e1 = HS.Var srcSpan (HS.Ident x1)
   convertExpr'
     (HS.Lambda srcSpan [HS.VarPat srcSpan x1] (HS.InfixApp srcSpan e1 op e2))
@@ -551,7 +551,7 @@ generateBind
                    --   function. The first argument is the fresh variable.
   -> Converter G.Term
 generateBind expr' argType' generateRHS = localEnv $ do
-  f   <- freshIdent
+  f   <- freshCoqIdent
   rhs <- generateRHS (G.bare f)
   return (G.app (G.Qualid CoqBase.freeBind) [expr', G.fun [f] [argType'] rhs])
 

@@ -12,8 +12,6 @@
 module Compiler.Converter.Renamer
   ( mustRenameIdent
   , renameIdent
-  , renameIdent'
-  , freshIdent
   , renameAndDefineTypeCon
   , renameAndDefineTypeVar
   , renameAndDefineCon
@@ -25,6 +23,7 @@ where
 import           Text.RegexPR
 import           Text.Casing
 import           Data.Maybe                     ( catMaybes )
+import           Data.Char
 
 import           Compiler.Converter.State
 import qualified Compiler.Language.Coq.AST     as G
@@ -67,9 +66,48 @@ mustRenameIdent :: String -> Environment -> Bool
 mustRenameIdent ident env =
   isCoqKeyword ident || isReservedIdent ident || isUsedIdent env ident
 
+-- | Tests whether the given character is allowed in a Coq identifier.
+--
+--   The Coq langauge specification also lists `unicode-id-part`s as allowed
+--   characters in identifiers and states that those include "non-exhaustively
+--   includes symbols for prime letters and subscripts". I have not yet been
+--   able to find a way to identify this category of unicode characters in
+--   Haskell.
+--
+--   See <https://coq.inria.fr/refman/language/gallina-specification-language.html#lexical-conventions>
+--   for more information.
+isAllowedChar :: Char -> Bool
+isAllowedChar c = isAllowedFirstChar c || c == '\''
+
+-- | Tests whether the given character is allowed in the first place if a Coq
+--   identifier.
+--
+--   See <https://coq.inria.fr/refman/language/gallina-specification-language.html#lexical-conventions>
+--   for more information.
+isAllowedFirstChar :: Char -> Bool
+isAllowedFirstChar c = isLetter c || isDigit c || c == '_'
+
 -------------------------------------------------------------------------------
 -- Rename identifiers                                                        --
 -------------------------------------------------------------------------------
+
+-- | Replaces characters that are not allowed in Coq identifiers by
+--   underscores.
+sanitizeIdent :: String -> String
+sanitizeIdent (firstChar : subsequentChars) =
+  sanitizeFirstChar firstChar : map sanitizeChar subsequentChars
+ where
+   -- | Replaces the given character with an underscope if it is not allowed
+   --   to occur in the first place of a Coq identifier.
+  sanitizeFirstChar :: Char -> Char
+  sanitizeFirstChar c | isAllowedFirstChar c = c
+                      | otherwise            = '_'
+
+  -- | Replaces the given character with an underscope if it is not allowed
+  --   to occur in a Coq identifier.
+  sanitizeChar :: Char -> Char
+  sanitizeChar c | isAllowedChar c = c
+                 | otherwise       = '_'
 
 -- | Renames a Haskell identifier such that it can be savely used in Coq.
 --
@@ -80,10 +118,13 @@ mustRenameIdent ident env =
 --   enumeration will start from that number.
 renameIdent :: String -> Environment -> String
 renameIdent ident env
-  | mustRenameIdent ident env = case matchRegexPR "\\d+$" ident of
+  | mustRenameIdent ident' env = case matchRegexPR "\\d+$" ident' of
     Just ((number, (prefix, _)), _) -> renameIdent' prefix (read number) env
-    Nothing                         -> renameIdent' ident 0 env
-  | otherwise = ident
+    Nothing                         -> renameIdent' ident' 0 env
+  | otherwise = ident'
+ where
+  ident' :: String
+  ident' = sanitizeIdent ident
 
 -- | Renames an identifier by appending a number. The number is increased
 --   until the resulting identifier is available.
@@ -94,17 +135,6 @@ renameIdent' ident n env
  where
   identN :: String
   identN = ident ++ (show n)
-
--------------------------------------------------------------------------------
--- Generate fresh identifiers                                                --
--------------------------------------------------------------------------------
-
--- | Generates a fresh Coq identifier for the current environment.
-freshIdent :: Converter String
-freshIdent = do
-  ident' <- inEnv $ renameIdent' "_" 0
-  modifyEnv $ defineFreshIdent (G.bare ident')
-  return ident'
 
 -------------------------------------------------------------------------------
 -- Define and automatically rename identifiers                               --

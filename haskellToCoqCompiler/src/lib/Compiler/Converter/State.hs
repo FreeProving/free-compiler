@@ -9,12 +9,11 @@
 
 module Compiler.Converter.State
   ( -- * Environment
-    Environment
+    Environment(..)
   , Scope(..)
   , emptyEnvironment
   , usedIdents
     -- * Inserting entries into the environment
-  , defineFreshIdent
   , defineIdent
   , defineArity
     -- * Looking up entries from the environment
@@ -36,6 +35,7 @@ module Compiler.Converter.State
   , inEnv
   , putEnv
   , modifyEnv
+  , modifyEnv'
   , localEnv
   )
 where
@@ -68,8 +68,8 @@ type ScopedName = (Scope, HS.Name)
 
 -- | Data type that encapsulates the state of the converter.
 data Environment = Environment
-  { definedFreshIdents :: [G.Qualid]
-    -- ^ The fresh Coq identifiers that were used already.
+  { freshIdentCount :: Int
+    -- ^ The number of fresh identifiers that were used in the environment.
   , definedIdents :: Map ScopedName G.Qualid
     -- ^ Maps Haskell names of defined functions, (type/smart) constructors and
     --  (type) variables to corresponding Coq identifiers.
@@ -85,24 +85,19 @@ data Environment = Environment
 --   functions.
 emptyEnvironment :: Environment
 emptyEnvironment = Environment
-  { definedFreshIdents = []
-  , definedIdents      = Map.empty
-  , definedArities     = Map.empty
+  { freshIdentCount = 0
+  , definedIdents   = Map.empty
+  , definedArities  = Map.empty
   }
 
 -- | Gets a list of Coq identifiers for functions, (type/smart) constructors,
 --   (type/fresh) variables that were used in the given environment already.
 usedIdents :: Environment -> [G.Qualid]
-usedIdents env = definedFreshIdents env ++ Map.elems (definedIdents env)
+usedIdents = Map.elems . definedIdents
 
 -------------------------------------------------------------------------------
 -- Inserting entries into the environment                                    --
 -------------------------------------------------------------------------------
-
--- | Adds the given fresh Coq identifier to the given environment.
-defineFreshIdent :: G.Qualid -> Environment -> Environment
-defineFreshIdent ident env =
-  env { definedFreshIdents = ident : definedFreshIdents env }
 
 -- | Associates the name of a Haskell function, (type/smart) constructor or
 --   (type) variable with the given Coq identifier.
@@ -270,6 +265,10 @@ putEnv = put
 -- | Applies the given function to the environment.
 modifyEnv :: (Environment -> Environment) -> Converter ()
 modifyEnv = modify
+
+-- | Gets a specific component of the current environment
+modifyEnv' :: (Environment -> (a, Environment)) -> Converter a
+modifyEnv' = state
 
 -- | Runs the given converter and returns its result but discards all
 --   modifications to the environment.
