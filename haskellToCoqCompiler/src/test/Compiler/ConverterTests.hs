@@ -145,6 +145,7 @@ testConvertType = describe "convertType" $ do
 -- | Test group for 'convertExpr' tests.
 testConvertExpr :: Spec
 testConvertExpr = describe "convertExpr" $ do
+  testConvertInfix
   testConvertIf
   testConvertCase
   testConvertLambda
@@ -152,6 +153,25 @@ testConvertExpr = describe "convertExpr" $ do
   testConvertBool
   testConvertLists
   testConvertTuples
+
+-- | Test group for translation of infix expressions.
+testConvertInfix :: Spec
+testConvertInfix = context "infix expressions" $ do
+  it "converts infix expressions correctly" $ shouldSucceed $ fromConverter $ do
+    "f"  <- renameAndDefineFunc "f" 2
+    "e1" <- renameAndDefineVar "e1"
+    "e2" <- renameAndDefineVar "e2"
+    "e1 `f` e2" `shouldTranslateExprTo` "f Shape Pos e1 e2"
+
+  it "converts left sections correctly" $ shouldSucceed $ fromConverter $ do
+    "f"  <- renameAndDefineFunc "f" 2
+    "e1" <- renameAndDefineVar "e1"
+    "(e1 `f`)" `shouldTranslateExprTo` "pure (fun _0 => f Shape Pos e1 _0)"
+
+  it "converts right sections correctly" $ shouldSucceed $ fromConverter $ do
+    "f"  <- renameAndDefineFunc "f" 2
+    "e2" <- renameAndDefineVar "e2"
+    "(`f` e2)" `shouldTranslateExprTo` "pure (fun _0 => f Shape Pos _0 e2)"
 
 -- | Test group for translation of @if@-expressions.
 testConvertIf :: Spec
