@@ -145,6 +145,7 @@ testConvertType = describe "convertType" $ do
 -- | Test group for 'convertExpr' tests.
 testConvertExpr :: Spec
 testConvertExpr = describe "convertExpr" $ do
+  testConvertApp
   testConvertInfix
   testConvertIf
   testConvertCase
@@ -153,6 +154,70 @@ testConvertExpr = describe "convertExpr" $ do
   testConvertBool
   testConvertLists
   testConvertTuples
+
+testConvertApp :: Spec
+testConvertApp = context "regular function applications" $ do
+  it "converts 0-ary function (pattern-binding) applications correctly"
+    $ shouldSucceed
+    $ fromConverter
+    $ do
+        "f" <- renameAndDefineFunc "f" 0
+        "f" `shouldTranslateExprTo` "f Shape Pos"
+
+  it "converts complete function applications correctly"
+    $ shouldSucceed
+    $ fromConverter
+    $ do
+        "f" <- renameAndDefineFunc "f" 3
+        "x" <- renameAndDefineVar "x"
+        "y" <- renameAndDefineVar "y"
+        "z" <- renameAndDefineVar "z"
+        "f x y z" `shouldTranslateExprTo` "f Shape Pos x y z"
+
+  it "converts partial function applications correctly"
+    $ shouldSucceed
+    $ fromConverter
+    $ do
+        "f" <- renameAndDefineFunc "f" 3
+        "x" <- renameAndDefineVar "x"
+        "y" <- renameAndDefineVar "y"
+        shouldTranslateExprTo "f x y" $ "pure (fun _0 => f Shape Pos x y _0)"
+
+  it "converts multiply partial function applications correctly"
+    $ shouldSucceed
+    $ fromConverter
+    $ do
+        "f" <- renameAndDefineFunc "f" 3
+        "x" <- renameAndDefineVar "x"
+        shouldTranslateExprTo "f x"
+          $ "pure (fun _0 => pure (fun _1 => f Shape Pos x _0 _1))"
+
+  it "converts unapplied function applications correctly"
+    $ shouldSucceed
+    $ fromConverter
+    $ do
+        "f" <- renameAndDefineFunc "f" 3
+        shouldTranslateExprTo "f"
+          $  "pure (fun _0 => pure (fun _1 => pure (fun _2 =>"
+          ++ "  f Shape Pos _0 _1 _2"
+          ++ ")))"
+
+  it "converts applications of function expressions correctly"
+    $ shouldSucceed
+    $ fromConverter
+    $ do
+        "e1" <- renameAndDefineVar "e1"
+        "e2" <- renameAndDefineVar "e2"
+        "e1 e2" `shouldTranslateExprTo` "e1 >>= (fun _0 => _0 e2)"
+
+  it "converts applications of functions that return functions correctly"
+    $ shouldSucceed
+    $ fromConverter
+    $ do
+        "f" <- renameAndDefineFunc "f" 1
+        "x" <- renameAndDefineVar "x"
+        "y" <- renameAndDefineVar "y"
+        "f x y" `shouldTranslateExprTo` "f Shape Pos x >>= (fun _0 => _0 y)"
 
 -- | Test group for translation of infix expressions.
 testConvertInfix :: Spec
@@ -183,6 +248,17 @@ testConvertIf = context "if expressions" $ do
     shouldTranslateExprTo "if e1 then e2 else e3"
       $ "e1 >>= (fun (_0 : Bool Shape Pos) => if _0 then e2 else e3)"
 
+  it "there is no name conflict with custom `Bool`"
+    $ shouldSucceed
+    $ fromConverter
+    $ do
+        "Bool0" <- renameAndDefineTypeCon "Bool" 0
+        "e1"    <- renameAndDefineVar "e1"
+        "e2"    <- renameAndDefineVar "e2"
+        "e3"    <- renameAndDefineVar "e3"
+        shouldTranslateExprTo "if e1 then e2 else e3"
+          $ "e1 >>= (fun (_0 : Bool Shape Pos) => if _0 then e2 else e3)"
+
 -- | Test group for translation of @case@-expressions.
 testConvertCase :: Spec
 testConvertCase = context "case expressions" $ do
@@ -208,7 +284,7 @@ testConvertCase = context "case expressions" $ do
       ++ "  | c2 => e2"
       ++ "  end)"
 
-  it "can canvert matches of list constructors"
+  it "can convert matches of list constructors"
     $ shouldSucceed
     $ fromConverter
     $ do
