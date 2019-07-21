@@ -96,14 +96,12 @@ testConvertType = describe "convertType" $ do
   it "fails to translate unknown type varaibles"
     $ shouldReportFatal
     $ fromConverter
-    $ do
-        parseTestType "a" >>= convertType
+    $ (parseTestType "a" >>= convertType)
 
   it "fails to translate unknown type constructor"
     $ shouldReportFatal
     $ fromConverter
-    $ do
-        parseTestType "NoSuchType" >>= convertType
+    $ (parseTestType "NoSuchType" >>= convertType)
 
   it "translates 'a' correctly" $ shouldSucceed $ fromConverter $ do
     "a" <- renameAndDefineTypeVar "a"
@@ -145,6 +143,7 @@ testConvertType = describe "convertType" $ do
 -- | Test group for 'convertExpr' tests.
 testConvertExpr :: Spec
 testConvertExpr = describe "convertExpr" $ do
+  testConvertUnknownIdents
   testConvertConApp
   testConvertFuncApp
   testConvertInfix
@@ -155,6 +154,19 @@ testConvertExpr = describe "convertExpr" $ do
   testConvertBool
   testConvertLists
   testConvertTuples
+
+-- | Test group for error reporting during conversion of expressions.
+testConvertUnknownIdents :: Spec
+testConvertUnknownIdents = context "unknown identifiers are reported" $ do
+  it "fails to translate unknown constructors"
+    $ shouldReportFatal
+    $ fromConverter
+    $ (parseTestExpr "C" >>= convertExpr)
+
+  it "fails to translate unknown variables or functions"
+    $ shouldReportFatal
+    $ fromConverter
+    $ (parseTestExpr "x" >>= convertExpr)
 
 -- | Test group for translation of constructor application expressions.
 testConvertConApp :: Spec
