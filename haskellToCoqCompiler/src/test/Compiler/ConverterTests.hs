@@ -145,7 +145,8 @@ testConvertType = describe "convertType" $ do
 -- | Test group for 'convertExpr' tests.
 testConvertExpr :: Spec
 testConvertExpr = describe "convertExpr" $ do
-  testConvertApp
+  testConvertConApp
+  testConvertFuncApp
   testConvertInfix
   testConvertIf
   testConvertCase
@@ -155,8 +156,65 @@ testConvertExpr = describe "convertExpr" $ do
   testConvertLists
   testConvertTuples
 
-testConvertApp :: Spec
-testConvertApp = context "regular function applications" $ do
+-- | Test group for translation of constructor application expressions.
+testConvertConApp :: Spec
+testConvertConApp = context "constructor applications" $ do
+  it "converts 0-ary constructor applications correctly"
+    $ shouldSucceed
+    $ fromConverter
+    $ do
+        ("c", "C") <- renameAndDefineCon "C" 0
+        "C" `shouldTranslateExprTo` "C Shape Pos"
+
+  it "converts complete constructor applications correctly"
+    $ shouldSucceed
+    $ fromConverter
+    $ do
+        ("c", "C") <- renameAndDefineCon "C" 3
+        "x"        <- renameAndDefineVar "x"
+        "y"        <- renameAndDefineVar "y"
+        "z"        <- renameAndDefineVar "z"
+        "C x y z" `shouldTranslateExprTo` "C Shape Pos x y z"
+
+  it "converts partial constructor applications correctly"
+    $ shouldSucceed
+    $ fromConverter
+    $ do
+        ("c", "C") <- renameAndDefineCon "C" 3
+        "x"        <- renameAndDefineVar "x"
+        "y"        <- renameAndDefineVar "y"
+        shouldTranslateExprTo "C x y" $ "pure (fun _0 => C Shape Pos x y _0)"
+
+  it "converts multiply partial constructor applications correctly"
+    $ shouldSucceed
+    $ fromConverter
+    $ do
+        ("c", "C") <- renameAndDefineCon "C" 3
+        "x"        <- renameAndDefineVar "x"
+        shouldTranslateExprTo "C x"
+          $ "pure (fun _0 => pure (fun _1 => C Shape Pos x _0 _1))"
+
+  it "converts unapplied constructors correctly"
+    $ shouldSucceed
+    $ fromConverter
+    $ do
+        ("c", "C") <- renameAndDefineCon "C" 3
+        shouldTranslateExprTo "C"
+          $  "pure (fun _0 => pure (fun _1 => pure (fun _2 =>"
+          ++ "  C Shape Pos _0 _1 _2"
+          ++ ")))"
+
+  it "converts infix constructor applications correctly"
+    $ shouldSucceed
+    $ fromConverter
+    $ do
+        "x"  <- renameAndDefineVar "x"
+        "xs" <- renameAndDefineVar "xs"
+        "x : xs" `shouldTranslateExprTo` "Cons Shape Pos x xs"
+
+-- | Test group for translation of function application expressions.
+testConvertFuncApp :: Spec
+testConvertFuncApp = context "function applications" $ do
   it "converts 0-ary function (pattern-binding) applications correctly"
     $ shouldSucceed
     $ fromConverter
@@ -192,7 +250,7 @@ testConvertApp = context "regular function applications" $ do
         shouldTranslateExprTo "f x"
           $ "pure (fun _0 => pure (fun _1 => f Shape Pos x _0 _1))"
 
-  it "converts unapplied function applications correctly"
+  it "converts unapplied functions correctly"
     $ shouldSucceed
     $ fromConverter
     $ do
@@ -212,7 +270,7 @@ testConvertApp = context "regular function applications" $ do
   --       "x" <- renameAndDefineVar "x"
   --       "f x" `shouldTranslateExprTo` "f Shape Pos P x"
 
-  it "converts applications of function expressions correctly"
+  it "converts applications of functions correctly"
     $ shouldSucceed
     $ fromConverter
     $ do
