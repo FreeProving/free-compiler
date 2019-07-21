@@ -29,7 +29,7 @@ build-unit-tests:
     - cabal new-build unit-tests
     - echo "Copy unit test executable to build directory..."
     - mkdir -p build/bin
-    - cp $(find . -name unit-tests -type f) ./build/bin/unit-tests
+    - cp $(find dist-newstyle -name unit-tests -type f) ./build/bin/unit-tests
   artifacts:
     paths:
       - ./haskellToCoqCompiler/build/bin/unit-tests
@@ -41,3 +41,17 @@ run-unit-tests:
     - echo "Running unit tests..."
     - cd haskellToCoqCompiler
     - ./build/bin/unit-tests
+
+# Build Haddock documentation.
+build-docs:
+  state: build
+  script:
+    - echo "Building Haddock documentation..."
+    - cd haskellToCoqCompiler
+    - cabal new-haddock --haddock-hyperlink-source
+    - echo "Copy documentation to build directory..."
+    - mkdir -p build/docs
+    - cp -r $(dirname $(find dist-newstyle -name "index.html")) ./build/docs
+  artifacts:
+    paths:
+      - ./haskellToCoqCompiler/build/docs
