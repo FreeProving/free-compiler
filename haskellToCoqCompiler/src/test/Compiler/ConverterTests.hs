@@ -202,6 +202,16 @@ testConvertApp = context "regular function applications" $ do
           ++ "  f Shape Pos _0 _1 _2"
           ++ ")))"
 
+  -- TODO uncomment
+  -- it "converts applications of partial functions correctly"
+  --   $ shouldSucceed
+  --   $ fromConverter
+  --   $ do
+  --       "f" <- renameAndDefineFunc "f" 1
+  --       -- TODO mark `f` as partial
+  --       "x" <- renameAndDefineVar "x"
+  --       "f x" `shouldTranslateExprTo` "f Shape Pos P x"
+
   it "converts applications of function expressions correctly"
     $ shouldSucceed
     $ fromConverter
