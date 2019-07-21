@@ -44,7 +44,7 @@ run-unit-tests:
 
 # Build Haddock documentation.
 build-docs:
-  state: build
+  stage: build
   script:
     - echo "Building Haddock documentation..."
     - cd haskellToCoqCompiler
