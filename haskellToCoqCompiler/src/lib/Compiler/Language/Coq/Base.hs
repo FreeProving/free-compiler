@@ -94,11 +94,21 @@ predefine =
 --   its (smart) constructors and predefined operations.
 predefineBool :: Environment -> Environment
 predefineBool =
-  defineTypeCon (HS.Ident "Bool") 0 (G.bare "Bool")
+  defineTypeCon (HS.Ident "Bool") 0 boolTypeCon
     . defineCon (HS.Ident "True")  0 (G.bare "true")  (G.bare "True_")
     . defineCon (HS.Ident "False") 0 (G.bare "false") (G.bare "False_")
     . defineFunc (HS.Symbol "&&") 2 (G.bare "andBool")
     . defineFunc (HS.Symbol "||") 2 (G.bare "orBool")
+
+-- | The Coq identifier for the predefined boolean type constructor.
+--
+--   'predefineBool' associates the Haskell identifier @Bool@ with this Coq
+--   identifier already, but we still need this identifier to refer to @negate@
+--   when translating the @if@-expressions. This is because we do not support
+--   qualified identifiers but the user may shadow @Bool@ with a custom data
+--   type.
+boolTypeCon :: G.Qualid
+boolTypeCon = G.bare "Bool"
 
 -- | Populates the given environment with the predefined @Int@ data type and
 --   its operations.

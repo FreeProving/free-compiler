@@ -13,6 +13,7 @@ module Compiler.Language.Coq.AST
   , app
   , arrows
   , fun
+  , inferredFun
     -- * Types
   , sortType
     -- * Expressions
@@ -80,12 +81,23 @@ arrows args returnType = foldr G.Arrow returnType args
 -- | Smart constructor for the construction of a Coq lambda expression with
 --   the given arguments and right hand side.
 --
---   The types of the arguments are inferred by Coq.
-fun :: [String] -> G.Term -> G.Term
-fun args expr = G.Fun (NonEmpty.fromList binders) expr
+--   The second argument contains the types of the arguments are inferred by Coq.
+fun :: [String] -> [Maybe G.Term] -> G.Term -> G.Term
+fun args argTypes expr = G.Fun (NonEmpty.fromList binders) expr
  where
+  argNames :: [G.Name]
+  argNames = map (G.Ident . bare) args
+
   binders :: [G.Binder]
-  binders = map (G.Inferred G.Explicit . G.Ident . bare) args
+  binders = zipWith makeBinder argTypes (argNames)
+
+  makeBinder :: Maybe G.Term -> G.Name -> G.Binder
+  makeBinder Nothing = G.Inferred G.Explicit
+  makeBinder (Just t) = flip (G.Typed G.Ungeneralizable G.Explicit) t . return
+
+-- | Like 'fun', but all argument types are inferred.
+inferredFun :: [String] -> G.Term -> G.Term
+inferredFun = flip fun (repeat Nothing)
 
 -------------------------------------------------------------------------------
 -- Types                                                                     --

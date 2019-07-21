@@ -424,7 +424,8 @@ convertExpr = flip convertExpr' []
   -- @if@-expressions.
   convertExpr' (HS.If _ e1 e2 e3) args = do
     e1' <- convertExpr e1
-    e1' `generateBind` \cond -> do
+    let bool' = genericApply CoqBase.boolTypeCon []
+    generateBind e1' (Just bool') $ \cond -> do
       e2' <- convertExpr e2
       e3' <- convertExpr e3
       generateApp (G.If G.SymmetricIf (G.Qualid cond) Nothing e2' e3') args
@@ -432,7 +433,7 @@ convertExpr = flip convertExpr' []
   -- @case@-expressions.
   convertExpr' (HS.Case _ expr alts) args = do
     expr' <- convertExpr expr
-    expr' `generateBind` \value -> do
+    generateBind expr' Nothing $ \value -> do
       alts' <- mapM convertAlt alts
       generateApp (G.match (G.Qualid value) alts') args
 
@@ -540,12 +541,20 @@ generatePure = G.app (G.Qualid CoqBase.freePureCon) . (: [])
 --   The generated fresh variable is passed to the given function. It is not
 --   visible outside of that function.
 --
---   The type of the fresh variable is inferred by Coq.
-generateBind :: G.Term -> (G.Qualid -> Converter G.Term) -> Converter G.Term
-generateBind expr generateRHS = localEnv $ do
+--   If the second argument is @Nothing@, the type of the fresh variable is
+--   inferred by Coq.
+generateBind
+  :: G.Term        -- ^ The left hand side of the bind operator.
+  -> Maybe G.Term  -- ^ The  Coq type of the value to bind or @Nothing@ if it
+                   --   should be inferred by Coq.
+  -> (G.Qualid -> Converter G.Term)
+                   -- ^ Converter for the right hand side of the generated
+                   --   function. The first argument is the fresh variable.
+  -> Converter G.Term
+generateBind expr' argType' generateRHS = localEnv $ do
   f   <- freshIdent
   rhs <- generateRHS (G.bare f)
-  return (G.app (G.Qualid CoqBase.freeBind) [expr, G.fun [f] rhs])
+  return (G.app (G.Qualid CoqBase.freeBind) [expr', G.fun [f] [argType'] rhs])
 
 -------------------------------------------------------------------------------
 -- Error reporting                                                           --

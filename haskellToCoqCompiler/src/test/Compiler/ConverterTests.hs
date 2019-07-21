@@ -145,12 +145,23 @@ testConvertType = describe "convertType" $ do
 -- | Test group for 'convertExpr' tests.
 testConvertExpr :: Spec
 testConvertExpr = describe "convertExpr" $ do
+  testConvertIf
   testConvertCase
   testConvertLambda
   testConvertInt
   testConvertBool
   testConvertLists
   testConvertTuples
+
+-- | Test group for translation of @if@-expressions.
+testConvertIf :: Spec
+testConvertIf = context "if expressions" $ do
+  it "converts if expressions correctly" $ shouldSucceed $ fromConverter $ do
+    "e1" <- renameAndDefineVar "e1"
+    "e2" <- renameAndDefineVar "e2"
+    "e3" <- renameAndDefineVar "e3"
+    shouldTranslateExprTo "if e1 then e2 else e3"
+      $ "e1 >>= (fun (_0 : Bool Shape Pos) => if _0 then e2 else e3)"
 
 -- | Test group for translation of @case@-expressions.
 testConvertCase :: Spec
