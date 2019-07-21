@@ -1,4 +1,7 @@
-# placc-thesis
+# Bachelor Thesis
+## Translation from Haskell to Coq
+
+[![pipeline status](https://git.informatik.uni-kiel.de/stu203400/bachelor-thesis/badges/haskell-to-coq-compiler/pipeline.svg)](https://git.informatik.uni-kiel.de/stu203400/bachelor-thesis/commits/haskell-to-coq-compiler)
 
 Starter repository for theses.
 
