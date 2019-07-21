@@ -233,6 +233,14 @@ typeApp
   -> Type
 typeApp srcSpan = foldl (TypeApp srcSpan) . TypeCon srcSpan
 
+-- | Creates an expression for applying the given expression to the provided
+--   arguments.
+--
+--   The given source span is inserted into the generated function application
+--   expressions.
+app :: SrcSpan -> Expr -> [Expr] -> Expr
+app = foldl . App
+
 -- | Creates an expression for applying the function with the given name.
 --
 --   The given source span is inserted into the generated function reference
@@ -242,7 +250,7 @@ varApp
   -> VarName -- ^ The name of the function to apply.
   -> [Expr]  -- ^ The arguments to pass to the function.
   -> Expr
-varApp srcSpan = foldl (App srcSpan) . Var srcSpan
+varApp srcSpan = app srcSpan . Var srcSpan
 
 -- | Creates a data constructor application expression.
 --
@@ -253,7 +261,7 @@ conApp
   -> ConName -- ^ The name of the constructor to apply.
   -> [Expr]  -- ^ The arguments to pass to the constructor.
   -> Expr
-conApp srcSpan = foldl (App srcSpan) . Con srcSpan
+conApp srcSpan = app srcSpan . Con srcSpan
 
 -------------------------------------------------------------------------------
 -- Names of predefined type constructors                                     --
