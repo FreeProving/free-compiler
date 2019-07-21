@@ -1,0 +1,43 @@
+stages:
+  - build
+  - test
+
+# Use Haskell Docker image.
+image: haskell:8.6.5
+
+# Don't recompile dependencies on subsequent runs.
+cache:
+  key: ${CI_COMMIT_REF_SLUG}
+  paths:
+    - ./haskellToCoqCompiler/dist-newstyle
+    - ./haskellToCoqCompiler/.cabal
+
+# Because we cannot cache files outside of the repository, we need to
+# move the cabal directory into our repository.
+before_script:
+  - mv ./haskellToCoqCompiler/.cabal /root/.cabal || true
+after_script:
+  - mv /root/.cabal ./haskellToCoqCompiler/.cabal
+
+# Compile unit tests.
+build-unit-tests:
+  stage: build
+  script:
+    - echo "Building unit tests..."
+    - cd haskellToCoqCompiler
+    - cabal new-update
+    - cabal new-build unit-tests
+    - echo "Copy unit test executable to build directory..."
+    - mkdir -p build/bin
+    - cp $(find . -name unit-tests -type f) ./build/bin/unit-tests
+  artifacts:
+    paths:
+      - ./haskellToCoqCompiler/build/bin/unit-tests
+
+# Run unit tests.
+run-unit-tests:
+  stage:  test
+  script:
+    - echo "Running unit tests..."
+    - cd haskellToCoqCompiler
+    - ./build/bin/unit-tests
