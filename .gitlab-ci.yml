@@ -56,13 +56,3 @@ build-docs:
   artifacts:
     paths:
       - ./haskellToCoqCompiler/build/docs
-
-# Deploy documentation to GitLab pages.
-pages:
-  stage: deploy
-  script:
-    - mkdir -p ./public/docs
-    - mv ./haskellToCoqCompiler/build/docs ./public/docs
-  artifacts:
-    paths:
-      - ./public
