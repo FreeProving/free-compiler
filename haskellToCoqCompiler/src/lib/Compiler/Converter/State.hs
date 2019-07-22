@@ -14,9 +14,11 @@ module Compiler.Converter.State
   , emptyEnvironment
   , usedIdents
     -- * Inserting entries into the environment
+  , defineTypeSig
   , defineIdent
   , defineArity
     -- * Looking up entries from the environment
+  , lookupTypeSig
   , lookupIdent
   , lookupArity
     -- * Shortcuts for inserting entries into the environment
@@ -80,6 +82,10 @@ type ScopedName = (Scope, HS.Name)
 data Environment = Environment
   { freshIdentCount :: Int
     -- ^ The number of fresh identifiers that were used in the environment.
+  , definedTypeSigs :: Map HS.Name HS.Type
+    -- ^ Maps Haskell function names to their annotated type. This map also
+    --   contains entries for functions that have not yet been defined and
+    --   functions that are shadowed by local vairables.
   , definedIdents :: Map ScopedName G.Qualid
     -- ^ Maps Haskell names of defined functions, (type/smart) constructors and
     --  (type) variables to corresponding Coq identifiers.
@@ -96,6 +102,7 @@ data Environment = Environment
 emptyEnvironment :: Environment
 emptyEnvironment = Environment
   { freshIdentCount = 0
+  , definedTypeSigs = Map.empty
   , definedIdents   = Map.empty
   , definedArities  = Map.empty
   }
@@ -109,6 +116,18 @@ usedIdents = Map.elems . definedIdents
 -- Inserting entries into the environment                                    --
 -------------------------------------------------------------------------------
 
+-- | Associates the name of a Haskell function with it's annoated type.
+--
+--   If there is an entry associated with the same name already, the entry
+--   is overwritten.
+--
+--   Type signatures are defined after all data type declarations have been
+--   defined but before any function declaration is converted. There are no
+--   entries for predefined functions.
+defineTypeSig :: HS.Name -> HS.Type -> Environment -> Environment
+defineTypeSig name typeExpr env =
+  env { definedTypeSigs = Map.insert name typeExpr (definedTypeSigs env) }
+
 -- | Associates the name of a Haskell function, (type/smart) constructor or
 --   (type) variable with the given Coq identifier.
 --
@@ -117,7 +136,8 @@ usedIdents = Map.elems . definedIdents
 --
 --   All information that is already associated with the identifier is shadowed
 --   by this function (e.g. the arity has to be set after the identifier was
---   inserted into the environment, see 'defineArity').
+--   inserted into the environment, see 'defineArity'). Note that type
+--   signatures (see 'defineTypeSig') are never shadowed.
 defineIdent :: Scope -> HS.Name -> G.Qualid -> Environment -> Environment
 defineIdent scope name ident env = env
   { definedIdents  = Map.insert (scope, name) ident (definedIdents env)
@@ -138,6 +158,11 @@ defineArity scope name arity env =
 -------------------------------------------------------------------------------
 -- Looking up entries from the environment                                   --
 -------------------------------------------------------------------------------
+
+-- | Looks up the annotated type of a user defined Haskell function with the
+--   given name.
+lookupTypeSig :: HS.Name -> Environment -> Maybe HS.Type
+lookupTypeSig name = Map.lookup name . definedTypeSigs
 
 -- | Looks up the Coq identifier for a Haskell function, (type/smart)
 --   constructor or (type) variable with the given name.
