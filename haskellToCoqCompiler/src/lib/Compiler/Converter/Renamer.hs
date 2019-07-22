@@ -94,6 +94,7 @@ isAllowedFirstChar c = isLetter c || isDigit c || c == '_'
 -- | Replaces characters that are not allowed in Coq identifiers by
 --   underscores.
 sanitizeIdent :: String -> String
+sanitizeIdent [] = "_"
 sanitizeIdent (firstChar : subsequentChars) =
   sanitizeFirstChar firstChar : map sanitizeChar subsequentChars
  where
