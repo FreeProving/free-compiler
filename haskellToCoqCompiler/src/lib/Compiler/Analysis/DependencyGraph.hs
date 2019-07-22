@@ -6,7 +6,7 @@
 --   sentence).
 
 --   The dependency graph does only contain global, user defined declarations
---   (i.e. there are no nodes for build in data types or operations and there
+--   (i.e. there are no nodes for build-in data types or operations and there
 --   are no nodes for local variables such as function parameters or variable
 --   patterns). However the entries of the dependency graph contain keys
 --   for predefined functions (but not local vaiables) and the special
@@ -42,12 +42,10 @@ where
 
 import           Data.Graph
 import           Data.Maybe                     ( catMaybes )
-import           Data.Set                       ( Set
-                                                , (\\)
-                                                )
 import qualified Data.Set                      as Set
 import           Data.Tuple.Extra
 
+import           Compiler.Analysis.DependencyExtraction
 import qualified Compiler.Language.Haskell.SimpleAST
                                                as HS
 import           Compiler.Pretty
@@ -123,40 +121,11 @@ typeDependencyGraph =
 --   Returns @Nothing@ if the given declaration is not a data type or type
 --   synonym declaration.
 typeDeclEntries :: HS.Decl -> Maybe DGEntry
-typeDeclEntries decl@(HS.TypeDecl _ (HS.DeclIdent _ ident) typeArgs typeExpr) =
-  Just (decl, HS.Ident ident, Set.toList ds)
- where
-  ds :: Set DGKey
-  ds = withoutTypeArgs typeArgs (typeDependencies typeExpr)
-typeDeclEntries decl@(HS.DataDecl _ (HS.DeclIdent _ ident) typeArgs conDecls) =
-  Just (decl, HS.Ident ident, Set.toList ds)
- where
-  ds :: Set DGKey
-  ds = withoutTypeArgs typeArgs (Set.unions (map conDeclDependencies conDecls))
+typeDeclEntries decl@(HS.TypeDecl _ (HS.DeclIdent _ ident) _ _) =
+  Just (decl, HS.Ident ident, Set.toList (typeDeclDependencies decl))
+typeDeclEntries decl@(HS.DataDecl _ (HS.DeclIdent _ ident) _ _) =
+  Just (decl, HS.Ident ident, Set.toList (typeDeclDependencies decl))
 typeDeclEntries _ = Nothing
-
--- | Gets the keys of the type constructors used by the fields of the given
---   constructor.
-conDeclDependencies :: HS.ConDecl -> Set DGKey
-conDeclDependencies (HS.ConDecl _ _ types) =
-  Set.unions (map typeDependencies types)
-
--- | Gets the keys for the type constructors used by the given type expression.
-typeDependencies :: HS.Type -> Set DGKey
-typeDependencies (HS.TypeVar _ ident) = Set.singleton (HS.Ident ident)
-typeDependencies (HS.TypeCon _ name ) = Set.singleton name
-typeDependencies (HS.TypeApp _ t1 t2) =
-  typeDependencies t1 `Set.union` typeDependencies t2
-typeDependencies (HS.TypeFunc _ t1 t2) =
-  typeDependencies t1 `Set.union` typeDependencies t2
-
--- | Removes the keys for the given type variable declarations from a set of
---   dependencies.
-withoutTypeArgs :: [HS.TypeVarDecl] -> Set DGKey -> Set DGKey
-withoutTypeArgs args set = set \\ Set.fromList (map varPatToName args)
- where
-  varPatToName :: HS.TypeVarDecl -> HS.Name
-  varPatToName (HS.DeclIdent _ ident) = HS.Ident ident
 
 -------------------------------------------------------------------------------
 -- Function dependencies                                                     --
@@ -172,59 +141,9 @@ funcDependencyGraph =
 -- | Creates an entry of the dependency graph for the given function
 --   declaration or pattern binding.
 funcDeclEntries :: HS.Decl -> Maybe DGEntry
-funcDeclEntries decl@(HS.FuncDecl _ (HS.DeclIdent _ ident) args expr) = Just
-  (decl, HS.Ident ident, Set.toList ds)
- where
-  ds :: Set DGKey
-  ds = withoutArgs args (exprDependencies expr)
+funcDeclEntries decl@(HS.FuncDecl _ (HS.DeclIdent _ ident) _ _) =
+  Just (decl, HS.Ident ident, Set.toList (funcDeclDependencies decl))
 funcDeclEntries _ = Nothing
-
--- | Gets the keys for the functions and constructors used by the given
---   expression.
---
---   This does not include the keys for local variables (i.e. arguments or
---   patterns). The keys of the special functions `undefined` and `error` are
---   included, because they are neccessary to identify partial functions.
-exprDependencies :: HS.Expr -> Set DGKey
-exprDependencies (HS.Con _ name) = Set.singleton name
-exprDependencies (HS.Var _ name) = Set.singleton name
-exprDependencies (HS.App _ e1 e2) =
-  exprDependencies e1 `Set.union` exprDependencies e2
-exprDependencies (HS.InfixApp _ e1 op e2) =
-  Set.unions (opDependencies op : map exprDependencies [e1, e2])
-exprDependencies (HS.LeftSection _ e1 op) =
-  opDependencies op `Set.union` exprDependencies e1
-exprDependencies (HS.RightSection _ op e2) =
-  opDependencies op `Set.union` exprDependencies e2
-exprDependencies (HS.NegApp _ expr) = exprDependencies expr
-exprDependencies (HS.If _ e1 e2 e3) =
-  Set.unions (map exprDependencies [e1, e2, e3])
-exprDependencies (HS.Case _ expr alts) =
-  Set.unions (exprDependencies expr : map altDependencies alts)
-exprDependencies (HS.Undefined _   ) = Set.singleton (HS.Ident "undefined")
-exprDependencies (HS.ErrorExpr  _ _) = Set.singleton (HS.Ident "error")
-exprDependencies (HS.IntLiteral _ _) = Set.empty
-exprDependencies (HS.Lambda _ args expr) =
-  withoutArgs args (exprDependencies expr)
-
--- | Gets the keys for the functions and constructors used by the given case
---   expression alternative.
-altDependencies :: HS.Alt -> Set DGKey
-altDependencies (HS.Alt _ (HS.ConPat _ conName) args expr) =
-  Set.insert conName (withoutArgs args (exprDependencies expr))
-
--- | Gets the key for a function or constructor used in infix notation.
-opDependencies :: HS.Op -> Set DGKey
-opDependencies (HS.VarOp _ name) = Set.singleton name
-opDependencies (HS.ConOp _ name) = Set.singleton name
-
--- | Removes the keys for the given variable patterns from a set of
---   dependencies.
-withoutArgs :: [HS.VarPat] -> Set DGKey -> Set DGKey
-withoutArgs args set = set \\ Set.fromList (map varPatToName args)
- where
-  varPatToName :: HS.VarPat -> HS.Name
-  varPatToName (HS.VarPat _ ident) = HS.Ident ident
 
 -------------------------------------------------------------------------------
 -- Pretty print dependency graph                                             --
