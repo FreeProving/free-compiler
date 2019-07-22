@@ -452,8 +452,9 @@ convertExpr' (HS.ErrorExpr _ msg) =
 
 -- Integer literals.
 convertExpr' expr@(HS.IntLiteral srcSpan value)
-  | value >= 0 = return (G.InScope (G.Num (fromInteger value)) (G.ident "Z"), 0)
-  | otherwise  = convertExpr' (HS.NegApp srcSpan expr)
+  | value < 0 = convertExpr' (HS.NegApp srcSpan expr)
+  | otherwise = return
+    (generatePure (G.InScope (G.Num (fromInteger value)) (G.ident "Z")), 0)
 
 -- Lambda abstractions.
 convertExpr' (HS.Lambda _ args expr) = localEnv $ do

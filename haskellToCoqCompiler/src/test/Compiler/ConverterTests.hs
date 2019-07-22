@@ -399,27 +399,27 @@ testConvertInt = context "integer expressions" $ do
   it "translates zero correctly"
     $ shouldSucceed
     $ fromConverter
-    $ shouldTranslateExprTo "0" "0%Z"
+    $ shouldTranslateExprTo "0" "pure 0%Z"
 
   it "translates positive decimal integer literals correctly"
     $ shouldSucceed
     $ fromConverter
-    $ shouldTranslateExprTo "42" "42%Z"
+    $ shouldTranslateExprTo "42" "pure 42%Z"
 
   it "translates hexadecimal integer literals correctly"
     $ shouldSucceed
     $ fromConverter
-    $ shouldTranslateExprTo "0xA2" "162%Z"
+    $ shouldTranslateExprTo "0xA2" "pure 162%Z"
 
   it "translates octal integer literals correctly"
     $ shouldSucceed
     $ fromConverter
-    $ shouldTranslateExprTo "0o755" "493%Z"
+    $ shouldTranslateExprTo "0o755" "pure 493%Z"
 
   it "translates negative decimal integer literals correctly"
     $ shouldSucceed
     $ fromConverter
-    $ shouldTranslateExprTo "-42" "negate Shape Pos 42%Z"
+    $ shouldTranslateExprTo "-42" "negate Shape Pos (pure 42%Z)"
 
   it "translates arithmetic expressions correctly"
     $ shouldSucceed
@@ -432,7 +432,7 @@ testConvertInt = context "integer expressions" $ do
         shouldTranslateExprTo "a * x^2 + b * x + c"
           $  "addInt Shape Pos"
           ++ "  (addInt Shape Pos"
-          ++ "    (mulInt Shape Pos a (powInt Shape Pos x 2%Z))"
+          ++ "    (mulInt Shape Pos a (powInt Shape Pos x (pure 2%Z)))"
           ++ "    (mulInt Shape Pos b x))"
           ++ "  c"
 
