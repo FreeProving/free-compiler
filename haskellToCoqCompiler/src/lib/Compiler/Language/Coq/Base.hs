@@ -53,6 +53,15 @@ freeArgs =
 -- Partiality                                                                --
 -------------------------------------------------------------------------------
 
+-- | The name and type of the @Partial@ instance that must be passed to
+--   partial functions.
+partialArg :: (G.Qualid, G.Term)
+partialArg =
+  ( G.bare "P"
+  , G.app (G.Qualid (G.bare "Partial"))
+          [G.Qualid (G.bare "Shape"), G.Qualid (G.bare "Pos")]
+  )
+
 -- | The identifier for the error term @undefined@.
 partialUndefined :: G.Qualid
 partialUndefined = G.bare "undefined"
@@ -78,7 +87,7 @@ reservedIdents =
     , partialUndefined
     , partialError
     ]
-    ++ map fst freeArgs
+    ++ map fst (partialArg : freeArgs)
 
 -------------------------------------------------------------------------------
 -- Predefined data types                                                     --

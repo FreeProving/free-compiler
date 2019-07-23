@@ -30,7 +30,9 @@ import           Data.Maybe                     ( maybe
 import qualified Data.List.NonEmpty            as NonEmpty
 
 import           Compiler.Analysis.DependencyAnalysis
+import           Compiler.Analysis.DependencyGraph
 import           Compiler.Analysis.DependencyExtraction
+import           Compiler.Analysis.PartialityAnalysis
 import           Compiler.Converter.Fresh
 import           Compiler.Converter.State
 import           Compiler.Converter.Renamer
@@ -71,13 +73,15 @@ convertModule (HS.Module _ maybeIdent decls) = do
 -- | Converts the declarations from a Haskell module to Coq.
 convertDecls :: [HS.Decl] -> Converter [G.Sentence]
 convertDecls decls = do
-  typeDecls' <- concatMapM convertTypeComponent typeComponents
-  mapM_ filterAndDefineTypeSig decls
-  funcDecls' <- concatMapM convertFuncComponent funcComponents
+  typeDecls' <- concatMapM convertTypeComponent (groupDependencies typeGraph)
+  mapM_ (modifyEnv . definePartial) (partialFunctions funcGraph)
+  mapM_ filterAndDefineTypeSig      decls
+  funcDecls' <- concatMapM convertFuncComponent (groupDependencies funcGraph)
   return (typeDecls' ++ funcDecls')
  where
-  typeComponents = groupTypeDecls decls
-  funcComponents = groupFuncDecls decls
+  typeGraph, funcGraph :: DependencyGraph
+  typeGraph = typeDependencyGraph decls
+  funcGraph = funcDependencyGraph decls
 
 -------------------------------------------------------------------------------
 -- Data type declarations                                                    --
@@ -283,12 +287,7 @@ generateTypeVarDecls' explicitness idents
   | otherwise = do
     -- TODO detect redefinition
     idents' <- mapM renameAndDefineTypeVar idents
-    return
-      [ G.Typed G.Ungeneralizable
-                explicitness
-                (NonEmpty.fromList (map (G.Ident . G.bare) idents'))
-                G.sortType
-      ]
+    return [G.typedBinder explicitness (map (G.bare) idents') G.sortType]
 
 -------------------------------------------------------------------------------
 -- Type signatures                                                           --
@@ -325,10 +324,10 @@ lookupTypeSigOrFail srcSpan ident = do
 --   A function with arity \(n\) has \(n\) argument types. TODO  Type synonyms
 --   are expanded if neccessary.
 splitFuncType :: HS.Type -> Int -> Converter ([HS.Type], HS.Type)
-splitFuncType funcType              0     = return ([], funcType)
-splitFuncType (HS.TypeFunc _ t1 t2) arity = do
+splitFuncType (HS.TypeFunc _ t1 t2) arity | arity > 0 = do
   (argTypes, returnType) <- splitFuncType t2 (arity - 1)
   return (t1 : argTypes, returnType)
+splitFuncType funcType _ = return ([], funcType)
 
 -------------------------------------------------------------------------------
 -- Function declarations                                                     --
@@ -349,21 +348,29 @@ convertFuncComponent (Recursive decls) =
 convertNonRecFuncDecl :: HS.Decl -> Converter [G.Sentence]
 convertNonRecFuncDecl (HS.FuncDecl _ (HS.DeclIdent srcSpan ident) args expr) =
   do
+    -- Define function.
     let arity = length args
-    ident' <- renameAndDefineFunc ident arity
+    ident'                 <- renameAndDefineFunc ident arity
+    -- Lookup type signature and partiality.
+    partial                <- inEnv $ isPartial (HS.Ident ident)
+    funcType               <- lookupTypeSigOrFail srcSpan (HS.Ident ident)
+    (argTypes, returnType) <- splitFuncType funcType arity
+    -- Convert function.
     localEnv $ do
-      funcType               <- lookupTypeSigOrFail srcSpan (HS.Ident ident)
-      (argTypes, returnType) <- splitFuncType funcType arity
       typeVarDecls' <- generateTypeVarDecls G.Implicit (typeVars funcType)
-      args'                  <- zipWithM convertTypedArg args argTypes
-      returnType'            <- convertType returnType
-      expr'                  <- convertExpr expr
+      args'         <- zipWithM convertTypedArg args argTypes
+      returnType'   <- convertType returnType
+      expr'         <- convertExpr expr
       return
         [ G.DefinitionSentence
             (G.DefinitionDef
               G.Global
               (G.bare ident')
-              (genericArgDecls G.Explicit ++ typeVarDecls' ++ args')
+              (  genericArgDecls G.Explicit
+              ++ [ partialArgDecl | partial ]
+              ++ typeVarDecls'
+              ++ args'
+              )
               (Just returnType')
               expr'
             )
@@ -398,12 +405,7 @@ convertArg' ident' Nothing =
   return (G.Inferred G.Explicit (G.Ident (G.bare ident')))
 convertArg' ident' (Just argType) = do
   argType' <- convertType argType
-  return
-    (G.Typed G.Ungeneralizable
-             G.Explicit
-             (return (G.Ident (G.bare ident')))
-             argType'
-    )
+  return (G.typedBinder' G.Explicit (G.bare ident') argType')
 
 -- | Converts the argument of an artifically generated function to an explicit
 --   Coq binder. A fresh Coq identifier is selected for the argument
@@ -626,10 +628,13 @@ fromDeclIdent (HS.DeclIdent _ ident) = ident
 --   The first argument controlls whether the generated binders are explicit
 --   (e.g. @(Shape : Type)@) or implicit (e.g. @{Shape : Type}@).
 genericArgDecls :: G.Explicitness -> [G.Binder]
-genericArgDecls explicitness = map (uncurry genericArgDecl) CoqBase.freeArgs
- where
-  genericArgDecl :: G.Qualid -> G.Term -> G.Binder
-  genericArgDecl = G.Typed G.Ungeneralizable explicitness . return . G.Ident
+genericArgDecls explicitness =
+  map (uncurry (G.typedBinder' explicitness)) CoqBase.freeArgs
+
+-- | An explicit binder for the @Partial@ instance that is passed to partial
+--   function declarations.
+partialArgDecl :: G.Binder
+partialArgDecl = uncurry (G.typedBinder' G.Explicit) CoqBase.partialArg
 
 -- | Smart constructor for the application of a Coq function or (type)
 --   constructor that requires the parameters for the @Free@ monad.

@@ -14,6 +14,9 @@ module Compiler.Language.Coq.AST
   , arrows
   , fun
   , inferredFun
+    -- * Binders
+  , typedBinder
+  , typedBinder'
     -- * Types
   , sortType
     -- * Expressions
@@ -92,12 +95,25 @@ fun args argTypes expr = G.Fun (NonEmpty.fromList binders) expr
   binders = zipWith makeBinder argTypes (argNames)
 
   makeBinder :: Maybe G.Term -> G.Name -> G.Binder
-  makeBinder Nothing = G.Inferred G.Explicit
+  makeBinder Nothing  = G.Inferred G.Explicit
   makeBinder (Just t) = flip (G.Typed G.Ungeneralizable G.Explicit) t . return
 
 -- | Like 'fun', but all argument types are inferred.
 inferredFun :: [String] -> G.Term -> G.Term
 inferredFun = flip fun (repeat Nothing)
+
+-------------------------------------------------------------------------------
+-- Binders                                                                   --
+-------------------------------------------------------------------------------
+
+-- | Smart constructor for an explicit or implicit typed Coq binder.
+typedBinder :: G.Explicitness -> [G.Qualid] -> G.Term -> G.Binder
+typedBinder explicitness =
+  G.Typed G.Ungeneralizable explicitness . NonEmpty.fromList . map G.Ident
+
+-- | Like 'typedBinder' but for a single identifier.
+typedBinder' :: G.Explicitness -> G.Qualid -> G.Term -> G.Binder
+typedBinder' = flip (flip typedBinder . (: []))
 
 -------------------------------------------------------------------------------
 -- Types                                                                     --

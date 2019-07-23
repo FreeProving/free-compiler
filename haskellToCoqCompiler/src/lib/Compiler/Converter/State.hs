@@ -9,15 +9,19 @@
 
 module Compiler.Converter.State
   ( -- * Environment
-    Environment(..)
+    Environment
   , Scope(..)
   , emptyEnvironment
   , usedIdents
+    -- * Freh identifiers
+  , freshIdentCount
     -- * Inserting entries into the environment
+  , definePartial
   , defineTypeSig
   , defineIdent
   , defineArity
     -- * Looking up entries from the environment
+  , isPartial
   , lookupTypeSig
   , lookupIdent
   , lookupArity
@@ -46,6 +50,8 @@ import           Control.Monad.Fail
 import           Control.Monad.State
 import           Data.Map.Strict                ( Map )
 import qualified Data.Map.Strict               as Map
+import           Data.Set                       ( Set )
+import qualified Data.Set                      as Set
 
 import qualified Compiler.Language.Coq.AST     as G
 import qualified Compiler.Language.Haskell.SimpleAST
@@ -82,6 +88,10 @@ type ScopedName = (Scope, HS.Name)
 data Environment = Environment
   { freshIdentCount :: Int
     -- ^ The number of fresh identifiers that were used in the environment.
+  , partialFunctions :: Set HS.Name
+    -- ^ The names of partial functions.This map also contains entries for
+    --   functions that have not yet been defined and functions that are
+    --   shadowed by local vairables.
   , definedTypeSigs :: Map HS.Name HS.Type
     -- ^ Maps Haskell function names to their annotated type. This map also
     --   contains entries for functions that have not yet been defined and
@@ -101,10 +111,11 @@ data Environment = Environment
 --   functions.
 emptyEnvironment :: Environment
 emptyEnvironment = Environment
-  { freshIdentCount = 0
-  , definedTypeSigs = Map.empty
-  , definedIdents   = Map.empty
-  , definedArities  = Map.empty
+  { freshIdentCount  = 0
+  , partialFunctions = Set.empty
+  , definedTypeSigs  = Map.empty
+  , definedIdents    = Map.empty
+  , definedArities   = Map.empty
   }
 
 -- | Gets a list of Coq identifiers for functions, (type/smart) constructors,
@@ -115,6 +126,11 @@ usedIdents = Map.elems . definedIdents
 -------------------------------------------------------------------------------
 -- Inserting entries into the environment                                    --
 -------------------------------------------------------------------------------
+
+-- | Inserts the given function name into the set of partial functions.
+definePartial :: HS.Name -> Environment -> Environment
+definePartial name env =
+  env { partialFunctions = Set.insert name (partialFunctions env) }
 
 -- | Associates the name of a Haskell function with it's annoated type.
 --
@@ -158,6 +174,12 @@ defineArity scope name arity env =
 -------------------------------------------------------------------------------
 -- Looking up entries from the environment                                   --
 -------------------------------------------------------------------------------
+
+-- | Tests whether the function with the given name is partial.
+--
+--   Returns @False@ if there is no such function.
+isPartial :: HS.Name -> Environment -> Bool
+isPartial name = Set.member name . partialFunctions
 
 -- | Looks up the annotated type of a user defined Haskell function with the
 --   given name.
