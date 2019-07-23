@@ -90,7 +90,30 @@ testConvertDataDecls = describe "convertDataDecls" $ do
           ++ " {a0 : Type} (_0 : Free Shape Pos a0) "
           ++ " : Free Shape Pos (Foo Shape Pos a0) := pure (a _0)."
 
-  -- TODO test translation of (mutually) recursive data types.
+  it "translates mutually recursive data types correctly"
+    $ shouldSucceed
+    $ fromConverter
+    $ do
+        shouldTranslateDeclsTo ["data Foo = Foo Bar", "data Bar = Bar Foo"]
+          $ "Inductive Bar (Shape : Type) (Pos : Shape -> Type) : Type"
+          ++ "  := bar : Free Shape Pos (Foo Shape Pos) -> Bar Shape Pos "
+          ++ "with Foo (Shape : Type) (Pos : Shape -> Type) : Type"
+          ++ "  := foo : Free Shape Pos (Bar Shape Pos) -> Foo Shape Pos. "
+          ++ "(* Arguments sentences for Bar *) "
+          ++ "Arguments bar {Shape} {Pos}. "
+          ++ "(* Smart constructors for Bar *) "
+          ++ "Definition Bar0 (Shape : Type) (Pos : Shape -> Type)"
+          ++ "  (_0 : Free Shape Pos (Foo Shape Pos))"
+          ++ "  : Free Shape Pos (Bar Shape Pos)"
+          ++ "  := pure (bar _0). "
+          ++ "(* Arguments sentences for Foo *) "
+          ++ "Arguments foo {Shape} {Pos}. "
+          ++ "(* Smart constructors for Foo *) "
+          ++ "Definition Foo0 (Shape : Type) (Pos : Shape -> Type)"
+          ++ "  (_0 : Free Shape Pos (Bar Shape Pos))"
+          ++ "  : Free Shape Pos (Foo Shape Pos)"
+          ++ "  := pure (foo _0)."
+
 
 -------------------------------------------------------------------------------
 -- Function declarations                                                     --
