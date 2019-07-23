@@ -78,7 +78,8 @@ test-suite unit-tests
   type:               exitcode-stdio-1.0
   hs-source-dirs:     src/test
   main-is:            Spec.hs
-  other-modules:      Compiler.ConverterTests
+  other-modules:      Compiler.Analysis.PartialityAnalysisTests
+                    , Compiler.ConverterTests
                     , Compiler.Converter.RenamerTests
                     , Compiler.ReporterTests
                     , Compiler.Util.Test
