@@ -2,8 +2,11 @@ module Compiler.ConverterTests where
 
 import           Test.Hspec
 
-import           Compiler.Converter.Renamer
 import           Compiler.Converter
+import           Compiler.Converter.Renamer
+import           Compiler.Converter.State
+import           Compiler.Language.Haskell.SimpleAST
+                                               as HS
 
 import           Compiler.Util.Test
 
@@ -128,9 +131,7 @@ testConvertNonRecFuncDecl = describe "convertNonRecursiveFunction" $ do
     $ fromConverter
     $ do
         shouldTranslateDeclsTo
-            [ "curry :: ((a, b) -> c) -> a -> b -> c"
-            , "curry f x y = f (x, y)"
-            ]
+            ["curry :: ((a, b) -> c) -> a -> b -> c", "curry f x y = f (x, y)"]
           $  "Definition curry (Shape : Type) (Pos : Shape -> Type)"
           ++ "  {a b c : Type}"
           ++ "  (f : Free Shape Pos (Free Shape Pos (Pair Shape Pos a b)"
@@ -344,15 +345,14 @@ testConvertFuncApp = context "function applications" $ do
           ++ "  f Shape Pos _0 _1 _2"
           ++ ")))"
 
-  -- TODO uncomment
-  -- it "converts applications of partial functions correctly"
-  --   $ shouldSucceed
-  --   $ fromConverter
-  --   $ do
-  --       "f" <- renameAndDefineFunc "f" 1
-  --       -- TODO mark `f` as partial
-  --       "x" <- renameAndDefineVar "x"
-  --       "f x" `shouldTranslateExprTo` "f Shape Pos P x"
+  it "converts applications of partial functions correctly"
+    $ shouldSucceed
+    $ fromConverter
+    $ do
+        "f" <- renameAndDefineFunc "f" 1
+        modifyEnv $ definePartial (HS.Ident "f")
+        "x" <- renameAndDefineVar "x"
+        "f x" `shouldTranslateExprTo` "f Shape Pos P x"
 
   it "converts applications of functions correctly"
     $ shouldSucceed

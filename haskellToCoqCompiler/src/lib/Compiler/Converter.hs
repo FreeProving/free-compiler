@@ -517,10 +517,13 @@ convertExpr' (HS.Var srcSpan name) = do
   -- @Pos@ arguments.
   mArity <- inEnv $ lookupArity VarScope name
   case mArity of
-    Nothing -> return (G.Qualid qualid, 0)
-    Just arity ->
-      -- TODO is the function partial? If so, pass @Partial@ instance.
-      return (genericApply qualid [], arity)
+    Nothing    -> return (G.Qualid qualid, 0)
+    Just arity -> do
+      partial <- inEnv $ isPartial name
+      return
+        ( genericApply qualid [ G.Qualid (fst CoqBase.partialArg) | partial ]
+        , arity
+        )
 
 -- If the callee is a partially applied function or constructor that still
 -- expects arguments, we can apply it directly. Otherwise it will be a monadic
