@@ -140,6 +140,24 @@ testConvertNonRecFuncDecl = describe "convertNonRecursiveFunction" $ do
           ++ "  : Free Shape Pos c"
           ++ "  := f >>= (fun _0 => _0 (Pair_ Shape Pos x y))."
 
+  it "translates partial functions correctly"
+    $ shouldSucceed
+    $ fromConverter
+    $ do
+        shouldTranslateDeclsTo
+            [ "head :: [a] -> a"
+            , "head xs = case xs of { [] -> undefined; x : xs' -> x }"
+            ]
+          $  "Definition head (Shape : Type) (Pos : Shape -> Type)"
+          ++ "  (P : Partial Shape Pos) {a : Type}"
+          ++ "  (xs : Free Shape Pos (List Shape Pos a))"
+          ++ "  : Free Shape Pos a"
+          ++ "  := xs >>= (fun _0 =>"
+          ++ "       match _0 with"
+          ++ "       | nil        => undefined"
+          ++ "       | cons x xs' => x"
+          ++ "       end)."
+
 -------------------------------------------------------------------------------
 -- Types                                                                     --
 -------------------------------------------------------------------------------
