@@ -96,7 +96,7 @@ testConvertDataDecls = describe "convertDataDecls" $ do
 -- | Test group for 'convertNonRecFuncDecl' tests.
 testConvertNonRecFuncDecl :: Spec
 testConvertNonRecFuncDecl = describe "convertNonRecursiveFunction" $ do
-  it "should translate 0-ary functions (pattern-bindings) correctly"
+  it "translates 0-ary functions (pattern-bindings) correctly"
     $ shouldSucceed
     $ fromConverter
     $ do
@@ -105,13 +105,40 @@ testConvertNonRecFuncDecl = describe "convertNonRecursiveFunction" $ do
           ++ "  : Free Shape Pos (Int Shape Pos)"
           ++ "  := pure 42%Z."
 
-  it "should translate polymorphic functions correctly"
+  it "translates polymorphic functions correctly"
     $ shouldSucceed
     $ fromConverter
     $ do
         shouldTranslateDeclsTo ["foo :: a -> a", "foo x = x"]
           $  "Definition foo (Shape : Type) (Pos : Shape -> Type) {a : Type}"
           ++ "  (x : Free Shape Pos a) : Free Shape Pos a := x."
+
+  it "translates functions with multiple arguments correctly"
+    $ shouldSucceed
+    $ fromConverter
+    $ do
+        shouldTranslateDeclsTo ["foo :: a -> b -> (a, b)", "foo x y = (x, y)"]
+          $  "Definition foo (Shape : Type) (Pos : Shape -> Type) {a b : Type}"
+          ++ "  (x : Free Shape Pos a) (y : Free Shape Pos b)"
+          ++ "  : Free Shape Pos (Pair Shape Pos a b)"
+          ++ "  := Pair_ Shape Pos x y."
+
+  it "translates higher order functions correctly"
+    $ shouldSucceed
+    $ fromConverter
+    $ do
+        shouldTranslateDeclsTo
+            [ "curry :: ((a, b) -> c) -> a -> b -> c"
+            , "curry f x y = f (x, y)"
+            ]
+          $  "Definition curry (Shape : Type) (Pos : Shape -> Type)"
+          ++ "  {a b c : Type}"
+          ++ "  (f : Free Shape Pos (Free Shape Pos (Pair Shape Pos a b)"
+          ++ "    -> Free Shape Pos c))"
+          ++ "  (x : Free Shape Pos a)"
+          ++ "  (y : Free Shape Pos b)"
+          ++ "  : Free Shape Pos c"
+          ++ "  := f >>= (fun _0 => _0 (Pair_ Shape Pos x y))."
 
 -------------------------------------------------------------------------------
 -- Types                                                                     --
