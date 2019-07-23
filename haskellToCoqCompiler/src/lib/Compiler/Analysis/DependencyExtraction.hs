@@ -57,6 +57,11 @@ unwrap :: DependencyName -> HS.Name
 unwrap (VarName name) = name
 unwrap (ConName name) = name
 
+-- | Gets a list of all 'HS.Names' wrapped by dependency names in the
+--   given set.
+unwrapSet :: Set DependencyName -> [HS.Name]
+unwrapSet = Set.toList . Set.map unwrap
+
 -- | Tests whether the given name is the name of a (type) variable dependency.
 isVarName :: DependencyName -> Bool
 isVarName (VarName _) = True
@@ -76,20 +81,20 @@ isConName (ConName _) = False
 --   the given type expression.
 --
 --   This also includes the names of predefied constructors.
-typeDependencies :: HS.Type -> Set HS.Name
-typeDependencies = Set.map unwrap . typeDependencies'
+typeDependencies :: HS.Type -> [HS.Name]
+typeDependencies = unwrapSet . typeDependencies'
 
 -- | Extracts the names of all type variables used in the given type
 --   expression.
-typeVars :: HS.Type -> Set HS.Name
-typeVars = Set.map unwrap . Set.filter isVarName . typeDependencies'
+typeVars :: HS.Type -> [HS.Name]
+typeVars = unwrapSet . Set.filter isVarName . typeDependencies'
 
 -- | Extracts the names of all type constructors used in the given type
 --   expression.
 --
 --   This also includes the names of predefined constructors.
-typeCons :: HS.Type -> Set HS.Name
-typeCons = Set.map unwrap . Set.filter isConName . typeDependencies'
+typeCons :: HS.Type -> [HS.Name]
+typeCons = unwrapSet . Set.filter isConName . typeDependencies'
 
 -- | Extracts the names of all type variables and type constructors used in
 --   the given type expression and remembers for every name whether it is
@@ -111,21 +116,21 @@ typeDependencies' (HS.TypeFunc _ t1 t2) =
 --
 --   This also includes the names of predefined functions, error terms like
 --   @undefined@ and @error@ as well as constructors.
-exprDependencies :: HS.Expr -> Set HS.Name
-exprDependencies = Set.map unwrap . exprDependencies'
+exprDependencies :: HS.Expr -> [HS.Name]
+exprDependencies = unwrapSet . exprDependencies'
 
 -- | Extracts the names of all variables used in the given expression.
 --
 --   This also includes the names of functions, predefined functions and the
 --   error terms @undefined@ and @error@.
-vars :: HS.Expr -> Set HS.Name
-vars = Set.map unwrap . Set.filter isVarName . exprDependencies'
+vars :: HS.Expr -> [HS.Name]
+vars = unwrapSet . Set.filter isVarName . exprDependencies'
 
 -- | Extracts the names of all constructors used in the given expression.
 --
 --   This also includes predefined constructors.
-cons :: HS.Expr -> Set HS.Name
-cons = Set.map unwrap . Set.filter isConName . exprDependencies'
+cons :: HS.Expr -> [HS.Name]
+cons = unwrapSet . Set.filter isConName . exprDependencies'
 
 -- | Extracts the names of all variables, functions and constructors used in
 --   the given expression and remembers for every name whether it is the name
@@ -173,8 +178,8 @@ opDependencies (HS.ConOp _ name) = conName name
 --   variables as well).
 --
 --   Returns an empty set if the given declaration is not a type declaration.
-typeDeclDependencies :: HS.Decl -> Set HS.Name
-typeDeclDependencies = Set.map unwrap . typeDeclDependencies'
+typeDeclDependencies :: HS.Decl -> [HS.Name]
+typeDeclDependencies = unwrapSet . typeDeclDependencies'
 
 -- | Extracts the dependencies of the given data type or type synonym
 --   declaration on type constructors (and undeclared type variables) and
@@ -212,8 +217,8 @@ withoutTypeArgs args set = set \\ Set.fromList (map varPatToName args)
 --
 --   Returns an empty set if the given declaration is not a function
 --   declaration.
-funcDeclDependencies :: HS.Decl -> Set HS.Name
-funcDeclDependencies = Set.map unwrap . funcDeclDependencies'
+funcDeclDependencies :: HS.Decl -> [HS.Name]
+funcDeclDependencies = unwrapSet . funcDeclDependencies'
 
 -- | Extracts the dependencies of the given function declaration on
 --   constructors and other functions and remembers for every name whether it

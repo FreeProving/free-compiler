@@ -11,7 +11,8 @@
 module Compiler.Analysis.DependencyAnalysis
   ( DependencyComponent(..)
   , groupDependencies
-  , groupDeclarations
+  , groupTypeDecls
+  , groupFuncDecls
   )
 where
 
@@ -53,9 +54,13 @@ groupDependencies :: DependencyGraph -> [DependencyComponent]
 groupDependencies = map convertSCC . stronglyConnComp . entries
 
 -- | Combines the construction of the dependency graphs for the given
---   declarations (See 'typeDependencyGraph' and 'funcDependencyGraph') with
---   the computaton of strongly connected components.
-groupDeclarations :: [HS.Decl] -> [DependencyComponent]
-groupDeclarations decls = concatMap
-  groupDependencies
-  [typeDependencyGraph decls, funcDependencyGraph decls]
+--   type declarations (See 'typeDependencyGraph') with the computaton of
+--   strongly connected components.
+groupTypeDecls :: [HS.Decl] -> [DependencyComponent]
+groupTypeDecls decls = groupDependencies (typeDependencyGraph decls)
+
+-- | Combines the construction of the dependency graphs for the given
+--   function declarations (See 'funcDependencyGraph') with the computaton
+--   of strongly connected components.
+groupFuncDecls :: [HS.Decl] -> [DependencyComponent]
+groupFuncDecls decls = groupDependencies (funcDependencyGraph decls)

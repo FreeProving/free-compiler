@@ -42,7 +42,6 @@ where
 
 import           Data.Graph
 import           Data.Maybe                     ( catMaybes )
-import qualified Data.Set                      as Set
 import           Data.Tuple.Extra
 
 import           Compiler.Analysis.DependencyExtraction
@@ -122,9 +121,9 @@ typeDependencyGraph =
 --   synonym declaration.
 typeDeclEntries :: HS.Decl -> Maybe DGEntry
 typeDeclEntries decl@(HS.TypeDecl _ (HS.DeclIdent _ ident) _ _) =
-  Just (decl, HS.Ident ident, Set.toList (typeDeclDependencies decl))
+  Just (decl, HS.Ident ident, typeDeclDependencies decl)
 typeDeclEntries decl@(HS.DataDecl _ (HS.DeclIdent _ ident) _ _) =
-  Just (decl, HS.Ident ident, Set.toList (typeDeclDependencies decl))
+  Just (decl, HS.Ident ident, typeDeclDependencies decl)
 typeDeclEntries _ = Nothing
 
 -------------------------------------------------------------------------------
@@ -142,7 +141,7 @@ funcDependencyGraph =
 --   declaration or pattern binding.
 funcDeclEntries :: HS.Decl -> Maybe DGEntry
 funcDeclEntries decl@(HS.FuncDecl _ (HS.DeclIdent _ ident) _ _) =
-  Just (decl, HS.Ident ident, Set.toList (funcDeclDependencies decl))
+  Just (decl, HS.Ident ident, funcDeclDependencies decl)
 funcDeclEntries _ = Nothing
 
 -------------------------------------------------------------------------------
