@@ -10,9 +10,10 @@ import           Compiler.Util.Test
 -- | Test group for all @Compiler.Converter@ tests.
 testConverter :: Spec
 testConverter = describe "Compiler.Converter" $ do
-  testConvertDataDecls
   testConvertType
+  testConvertDataDecls
   testConvertExpr
+  testConvertNonRecFuncDecl
 
 -------------------------------------------------------------------------------
 -- Data type declarations                                                    --
@@ -25,7 +26,7 @@ testConvertDataDecls = describe "convertDataDecls" $ do
     $ shouldSucceed
     $ fromConverter
     $ do
-        shouldTranslateDeclsTo "data Foo = Bar | Baz"
+        shouldTranslateDeclsTo ["data Foo = Bar | Baz"]
           $  "Inductive Foo (Shape : Type) (Pos : Shape -> Type) : Type "
           ++ " := bar : Foo Shape Pos "
           ++ " |  baz : Foo Shape Pos. "
@@ -42,7 +43,7 @@ testConvertDataDecls = describe "convertDataDecls" $ do
     $ shouldSucceed
     $ fromConverter
     $ do
-        shouldTranslateDeclsTo "data Foo a b = Bar a | Baz b"
+        shouldTranslateDeclsTo ["data Foo a b = Bar a | Baz b"]
           $  "Inductive Foo (Shape : Type) (Pos : Shape -> Type) "
           ++ " (a b : Type) : Type "
           ++ " := bar : Free Shape Pos a -> Foo Shape Pos a b "
@@ -62,7 +63,7 @@ testConvertDataDecls = describe "convertDataDecls" $ do
     $ shouldSucceed
     $ fromConverter
     $ do
-        shouldTranslateDeclsTo "data Foo = Foo"
+        shouldTranslateDeclsTo ["data Foo = Foo"]
           $  "Inductive Foo (Shape : Type) (Pos : Shape -> Type) : Type "
           ++ " := foo : Foo Shape Pos. "
           ++ "(* Arguments sentences for Foo *) "
@@ -75,7 +76,7 @@ testConvertDataDecls = describe "convertDataDecls" $ do
     $ shouldSucceed
     $ fromConverter
     $ do
-        shouldTranslateDeclsTo "data Foo a = A a"
+        shouldTranslateDeclsTo ["data Foo a = A a"]
           $  "Inductive Foo (Shape : Type) (Pos : Shape -> Type) "
           ++ " (a0 : Type) : Type "
           ++ " := a : Free Shape Pos a0 -> Foo Shape Pos a0. "
@@ -85,6 +86,32 @@ testConvertDataDecls = describe "convertDataDecls" $ do
           ++ "Definition A (Shape : Type) (Pos : Shape -> Type) "
           ++ " {a0 : Type} (_0 : Free Shape Pos a0) "
           ++ " : Free Shape Pos (Foo Shape Pos a0) := pure (a _0)."
+
+  -- TODO test translation of (mutually) recursive data types.
+
+-------------------------------------------------------------------------------
+-- Function declarations                                                     --
+-------------------------------------------------------------------------------
+
+-- | Test group for 'convertNonRecFuncDecl' tests.
+testConvertNonRecFuncDecl :: Spec
+testConvertNonRecFuncDecl = describe "convertNonRecursiveFunction" $ do
+  it "should translate 0-ary functions (pattern-bindings) correctly"
+    $ shouldSucceed
+    $ fromConverter
+    $ do
+        shouldTranslateDeclsTo ["foo :: Int", "foo = 42"]
+          $  "Definition foo (Shape : Type) (Pos : Shape -> Type)"
+          ++ "  : Free Shape Pos (Int Shape Pos)"
+          ++ "  := pure 42%Z."
+
+  it "should translate polymorphic functions correctly"
+    $ shouldSucceed
+    $ fromConverter
+    $ do
+        shouldTranslateDeclsTo ["foo :: a -> a", "foo x = x"]
+          $  "Definition foo (Shape : Type) (Pos : Shape -> Type) {a : Type}"
+          ++ "  (x : Free Shape Pos a) : Free Shape Pos a := x."
 
 -------------------------------------------------------------------------------
 -- Types                                                                     --

@@ -19,7 +19,9 @@ module Compiler.Converter
   )
 where
 
-import           Control.Monad                  ( mapAndUnzipM )
+import           Control.Monad                  ( mapAndUnzipM
+                                                , zipWithM
+                                                )
 import           Control.Monad.Extra            ( concatMapM )
 import           Data.Composition
 import           Data.Maybe                     ( maybe
@@ -28,6 +30,7 @@ import           Data.Maybe                     ( maybe
 import qualified Data.List.NonEmpty            as NonEmpty
 
 import           Compiler.Analysis.DependencyAnalysis
+import           Compiler.Analysis.DependencyExtraction
 import           Compiler.Converter.Fresh
 import           Compiler.Converter.State
 import           Compiler.Converter.Renamer
@@ -67,8 +70,14 @@ convertModule (HS.Module _ maybeIdent decls) = do
 
 -- | Converts the declarations from a Haskell module to Coq.
 convertDecls :: [HS.Decl] -> Converter [G.Sentence]
-convertDecls decls = concatMapM convertTypeComponent components
-  where components = groupDeclarations decls
+convertDecls decls = do
+  typeDecls' <- concatMapM convertTypeComponent typeComponents
+  mapM_ filterAndDefineTypeSig decls
+  funcDecls' <- concatMapM convertFuncComponent funcComponents
+  return (typeDecls' ++ funcDecls')
+ where
+  typeComponents = groupTypeDecls decls
+  funcComponents = groupFuncDecls decls
 
 -------------------------------------------------------------------------------
 -- Data type declarations                                                    --
@@ -195,7 +204,7 @@ convertDataDecl (HS.DataDecl srcSpan (HS.DeclIdent _ ident) typeVarDecls conDecl
                                             (map Just argTypes)
     returnType' <- convertType returnType
     return
-      (G.DefinitionSentence
+      (G.DefinitionSentence -- TODO smart constructor
         (G.DefinitionDef
           G.Global
           smartQualid
@@ -243,12 +252,36 @@ defineConDecl (HS.ConDecl _ (HS.DeclIdent _ ident) argTypes) = do
 --   The first argument controlls whether the generated binders are explicit
 --   (e.g. @(a : Type)@) or implicit (e.g. @{a : Type}@).
 convertTypeVarDecls
-  :: G.Explicitness -> [HS.TypeVarDecl] -> Converter [G.Binder]
-convertTypeVarDecls explicitness typeVarDecls
-  | null typeVarDecls = return []
+  :: G.Explicitness   -- ^ Whether to generate an explicit or implit binder.
+  -> [HS.TypeVarDecl] -- ^ The type variable declarations.
+  -> Converter [G.Binder]
+convertTypeVarDecls explicitness typeVarDecls =
+  generateTypeVarDecls' explicitness (map fromDeclIdent typeVarDecls)
+
+-- | Generates explicit or implicit Coq binders for the type variables with
+--   the given names that are either declared in the head of a data type or
+--   type synonym declaration or occur in the type signature of a function.
+--
+--   The first argument controlls whether the generated binders are explicit
+--   (e.g. @(a : Type)@) or implicit (e.g. @{a : Type}@).
+generateTypeVarDecls :: G.Explicitness -> [HS.Name] -> Converter [G.Binder]
+generateTypeVarDecls explicitness =
+  generateTypeVarDecls' explicitness . catMaybes . map identFromName
+ where
+  identFromName :: HS.Name -> Maybe HS.TypeVarIdent
+  identFromName (HS.Ident  ident) = Just ident
+  identFromName (HS.Symbol _    ) = Nothing
+
+-- | Like 'generateTypeVarDecls' but accepts the raw identifiers of the
+--   type variables.
+generateTypeVarDecls'
+  :: G.Explicitness    -- ^ Whether to generate an explicit or implit binder.
+  -> [HS.TypeVarIdent] -- ^ The names of the type variables to declare.
+  -> Converter [G.Binder]
+generateTypeVarDecls' explicitness idents
+  | null idents = return []
   | otherwise = do
-  -- TODO detect redefinition
-    let idents = map fromDeclIdent typeVarDecls
+    -- TODO detect redefinition
     idents' <- mapM renameAndDefineTypeVar idents
     return
       [ G.Typed G.Ungeneralizable
@@ -258,6 +291,85 @@ convertTypeVarDecls explicitness typeVarDecls
       ]
 
 -------------------------------------------------------------------------------
+-- Type signatures                                                           --
+-------------------------------------------------------------------------------
+
+-- | Inserts the given type signature into the current environment.
+--
+--   TODO error if there are multiple type signatures for the same function.
+--   TODO warn if there are unused type signatures.
+filterAndDefineTypeSig :: HS.Decl -> Converter ()
+filterAndDefineTypeSig (HS.TypeSig srcSpan idents typeExpr) = do
+  mapM_ (modifyEnv . flip defineTypeSig typeExpr . HS.Ident . fromDeclIdent)
+        idents
+filterAndDefineTypeSig _ = return () -- ignore other declarations.
+
+-- | Looks up the annoated type of a user defined function with the given name
+--   and reports a fatal error message if there is no such type signature.
+--
+--   If an error is encountered, the reported message points to the given
+--   source span.
+lookupTypeSigOrFail :: SrcSpan -> HS.Name -> Converter HS.Type
+lookupTypeSigOrFail srcSpan ident = do
+  mTypeExpr <- inEnv $ lookupTypeSig ident
+  case mTypeExpr of
+    Just typeExpr -> return typeExpr
+    Nothing ->
+      reportFatal
+        $ Message (Just srcSpan) Error
+        $ ("Missing type signature for " ++ showPretty ident)
+
+-- | Splits the annotated type of a Haskell function with the given arity into
+--   its argument and return types.
+--
+--   A function with arity \(n\) has \(n\) argument types. TODO  Type synonyms
+--   are expanded if neccessary.
+splitFuncType :: HS.Type -> Int -> Converter ([HS.Type], HS.Type)
+splitFuncType funcType              0     = return ([], funcType)
+splitFuncType (HS.TypeFunc _ t1 t2) arity = do
+  (argTypes, returnType) <- splitFuncType t2 (arity - 1)
+  return (t1 : argTypes, returnType)
+
+-------------------------------------------------------------------------------
+-- Function declarations                                                     --
+-------------------------------------------------------------------------------
+
+-- | Converts a strongly connected component of the function dependency graph.
+convertFuncComponent :: DependencyComponent -> Converter [G.Sentence]
+convertFuncComponent (NonRecursive decl) = convertNonRecFuncDecl decl
+convertFuncComponent (Recursive decls) =
+  error "convertFuncComponent: recursive functions not yet implemented."
+
+-------------------------------------------------------------------------------
+-- Non-recursive function declarations                                       --
+-------------------------------------------------------------------------------
+
+-- | Converts a non-recursive Haskell function declaration to a Coq
+--   @Definition@ sentence.
+convertNonRecFuncDecl :: HS.Decl -> Converter [G.Sentence]
+convertNonRecFuncDecl (HS.FuncDecl _ (HS.DeclIdent srcSpan ident) args expr) =
+  do
+    let arity = length args
+    ident' <- renameAndDefineFunc ident arity
+    localEnv $ do
+      funcType               <- lookupTypeSigOrFail srcSpan (HS.Ident ident)
+      (argTypes, returnType) <- splitFuncType funcType arity
+      typeVarDecls' <- generateTypeVarDecls G.Implicit (typeVars funcType)
+      args'                  <- zipWithM convertTypedArg args argTypes
+      returnType'            <- convertType returnType
+      expr'                  <- convertExpr expr
+      return
+        [ G.DefinitionSentence
+            (G.DefinitionDef
+              G.Global
+              (G.bare ident')
+              (genericArgDecls G.Explicit ++ typeVarDecls' ++ args')
+              (Just returnType')
+              expr'
+            )
+        ]
+
+-------------------------------------------------------------------------------
 -- Function argument declarations                                            --
 -------------------------------------------------------------------------------
 
@@ -265,6 +377,11 @@ convertTypeVarDecls explicitness typeVarDecls
 --   Coq binder whose type is inferred by Coq.
 convertInferredArg :: HS.VarPat -> Converter G.Binder
 convertInferredArg = flip convertArg Nothing
+
+-- | Converts the argument of a function (a variable pattern) with the given
+--   type to an explicit Coq binder.
+convertTypedArg :: HS.VarPat -> HS.Type -> Converter G.Binder
+convertTypedArg = flip (flip convertArg . Just)
 
 -- | Converts the argument of a function (a variable pattern) to an explicit
 --   Coq binder.

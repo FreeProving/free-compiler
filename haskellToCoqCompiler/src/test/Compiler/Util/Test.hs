@@ -107,14 +107,14 @@ shouldTranslateExprTo input expectedOutput = do
     `shouldBe` discardWhitespace expectedOutput
     )
 
--- | Translate sthe string representation of a Haskell declaration to Coq and
+-- | Translates the string representation of a Haskell declaration to Coq and
 --   sets the expectation that the result equals the given Gallina sentences.
 --
 --   Whitespace in the actual and expected output does not have to match.
-shouldTranslateDeclsTo :: String -> String -> Converter Expectation
+shouldTranslateDeclsTo :: [String] -> String -> Converter Expectation
 shouldTranslateDeclsTo input expectedOutput = do
-  hsDecl   <- parseTestDecl input
-  coqDecls <- convertDecls [hsDecl]
+  hsDecls  <- mapM parseTestDecl input
+  coqDecls <- convertDecls hsDecls
   return
     $          discardWhitespace (showPretty coqDecls)
     `shouldBe` discardWhitespace expectedOutput
