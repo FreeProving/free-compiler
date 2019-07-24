@@ -407,8 +407,7 @@ simplifyType ty@(H.TyUnboxedSum _ _) = notSupported "Unboxed sums" ty
 simplifyType ty@(H.TyParArray   _ _) = notSupported "Parallel arrays" ty
 simplifyType ty@(H.TyKind _ _ _) =
   notSupported "Types with explicit kind signatures" ty
-simplifyType ty@(H.TyStar _) =
-  notSupported "Kinds" ty
+simplifyType ty@(H.TyStar _) = notSupported "Kinds" ty
 simplifyType ty@(H.TyVar _ (H.Symbol _ _)) = notSupported "Type operators" ty
 simplifyType ty@(H.TyPromoted _ _) = notSupported "Type operators" ty
 simplifyType ty@(H.TyInfix _ _ _ _) = notSupported "Type operators" ty
@@ -525,8 +524,7 @@ simplifyExpr (H.RightSection srcSpan op e2) = do
 -- Negation.
 simplifyExpr (H.NegApp srcSpan e) = do
   e' <- simplifyExpr e
-  -- TODO special `negate` that cannot be shadowed!
-  return (HS.App srcSpan (HS.Var srcSpan (HS.Ident "negate")) e')
+  return (HS.App srcSpan (HS.Var srcSpan (HS.negateOpName)) e')
 
 -- Lambda abstractions.
 simplifyExpr (H.Lambda srcSpan args expr) = do

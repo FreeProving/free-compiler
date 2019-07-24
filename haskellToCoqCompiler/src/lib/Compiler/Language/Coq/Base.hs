@@ -134,17 +134,8 @@ predefineInt =
     . defineFunc (HS.Symbol "/=")    2 (G.bare "neqInt")
     . defineFunc (HS.Symbol ">=")    2 (G.bare "geInt")
     . defineFunc (HS.Symbol ">")     2 (G.bare "gtInt")
-    . defineFunc (HS.Ident "negate") 1 negateOp
-
--- | The Coq identifier for the predefined negation operation.
---
---   'predefineInt' associates the Haskell identifier @negate@ with this Coq
---   identifier already, but we still need this identifier to refer to @negate@
---   when translating the prefix negation operator. This is because we do not
---   support qualified identifiers but the user may shadow @negate@ with a
---   local variable or custom function.
-negateOp :: G.Qualid
-negateOp = G.bare "negate"
+    . defineFunc HS.negateOpName     1 (G.bare "negate")
+    . defineFunc (HS.Ident "negate") 1 (G.bare "negate")
 
 -- | Populates the given environment with the predefined list data type and
 --   its (smart) constructors.

@@ -516,6 +516,13 @@ testConvertInt = context "integer expressions" $ do
     $ fromConverter
     $ shouldTranslateExprTo "-42" "negate Shape Pos (pure 42%Z)"
 
+  it "cannot shadow negate"
+    $ shouldSucceed
+    $ fromConverter
+    $ do
+      "negate0" <- renameAndDefineFunc "negate" 1
+      shouldTranslateExprTo "-42" "negate Shape Pos (pure 42%Z)"
+
   it "translates arithmetic expressions correctly"
     $ shouldSucceed
     $ fromConverter

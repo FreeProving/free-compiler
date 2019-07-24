@@ -297,3 +297,14 @@ consConName = Symbol ":"
 -- | The name of the pair data constructor.
 pairConName :: ConName
 pairConName = Symbol "(,)"
+
+-------------------------------------------------------------------------------
+-- Names of special predefined operators                                     --
+-------------------------------------------------------------------------------
+
+-- | The unary prefix operator @-@ is translated to the application of the
+--   @negate@ function. Because we do not support qualified identifiers we
+--   need to use this special symbol to prevent the user from shadowing
+--   @negate@ accidentaly with a custom function or local variable.
+negateOpName :: VarName
+negateOpName = Symbol "negate"
