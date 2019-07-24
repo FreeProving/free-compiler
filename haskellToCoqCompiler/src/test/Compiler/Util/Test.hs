@@ -59,19 +59,19 @@ shouldReportFatal reporter = case runReporter reporter of
 -------------------------------------------------------------------------------
 
 -- | Parses and simplifies a Haskell type for testing purposes.
-parseTestType :: MonadReporter r => String -> r HS.Type
+parseTestType :: String -> Simplifier HS.Type
 parseTestType input =
-  liftReporter (parseType "<test-input>" input >>= simplifyType)
+  liftReporter (parseType "<test-input>" input) >>= simplifyType
 
 -- | Parses and simplifies a Haskell type for testing purposes.
-parseTestExpr :: MonadReporter r => String -> r HS.Expr
+parseTestExpr :: String -> Simplifier HS.Expr
 parseTestExpr input =
-  liftReporter (parseExpr "<test-input>" input >>= simplifyExpr)
+  liftReporter (parseExpr "<test-input>" input) >>= simplifyExpr
 
 -- | Parses and simplifies a Haskell declaration for testing purposes.
-parseTestDecl :: MonadReporter r => String -> r HS.Decl
+parseTestDecl :: String -> Simplifier HS.Decl
 parseTestDecl input =
-  liftReporter (parseDecl "<test-input>" input >>= simplifyDecl)
+  liftReporter (parseDecl "<test-input>" input) >>= simplifyDecl
 
 -------------------------------------------------------------------------------
 -- Conversion expectations                                                   --

@@ -12,7 +12,8 @@
 --       in declarations or as (type-) variable names.
 
 module Compiler.Language.Haskell.Simplifier
-  ( simplifyModule
+  ( Simplifier
+  , simplifyModule
   , simplifyDecl
   , simplifyType
   , simplifyExpr
@@ -27,9 +28,19 @@ import           Control.Monad                  ( when )
 import qualified Language.Haskell.Exts.Syntax  as H
 
 import           Compiler.Reporter
+import           Compiler.Converter.State
+import           Compiler.Converter.Fresh
 import qualified Compiler.Language.Haskell.SimpleAST
                                                as HS
 import           Compiler.SrcSpan
+
+-------------------------------------------------------------------------------
+-- State monad                                                               --
+-------------------------------------------------------------------------------
+
+-- | The simplifier is a special converter that converts the haskell@-src-exts@
+--   AST to the simplified internal representation for Haskell modules.
+type Simplifier = Converter
 
 -------------------------------------------------------------------------------
 -- Error reporting                                                           --
@@ -42,7 +53,7 @@ notSupported
   :: H.Annotated a
   => String    -- ^ The feature (in plural) that is not supported.
   -> a SrcSpan -- ^ The node that is not supported.
-  -> Reporter r
+  -> Simplifier r
 notSupported feature = usageError (feature ++ " are not supported!")
 
 -- | Creates a reporter that fails with an error message stating that
@@ -51,7 +62,7 @@ expected
   :: H.Annotated a
   => String    -- ^ A description of the expected node.
   -> a SrcSpan -- ^ The actual node.
-  -> Reporter r
+  -> Simplifier r
 expected description = usageError ("Expected " ++ description ++ ".")
 
 -- | Creates a reporter that fails with the given error message.
@@ -59,7 +70,7 @@ usageError
   :: H.Annotated a
   => String    -- ^ The error message.
   -> a SrcSpan -- ^ The node that caused the error.
-  -> Reporter r
+  -> Simplifier r
 usageError message node =
   reportFatal $ Message (Just (H.ann node)) Error message
 
@@ -69,7 +80,7 @@ warnIf
   => Bool      -- ^ The condition to test.
   -> String    -- ^ The waning to print if the condition is not met.
   -> a SrcSpan -- ^ The node that caused the warning.
-  -> Reporter ()
+  -> Simplifier ()
 warnIf cond msg node =
   when cond (report $ Message (Just (H.ann node)) Warning msg)
 
@@ -83,7 +94,7 @@ warnIf cond msg node =
 --   list may be present but is ignored.
 --
 --   Only regular (non XML) modules are supported.
-simplifyModule :: H.Module SrcSpan -> Reporter HS.Module
+simplifyModule :: H.Module SrcSpan -> Simplifier HS.Module
 simplifyModule (H.Module srcSpan modHead pragmas imports decls)
   | not (null pragmas) = notSupported "Module pragmas" (head pragmas)
   | not (null imports) = notSupported "Module imports" (head imports)
@@ -98,7 +109,7 @@ simplifyModule modDecl = notSupported "XML modules" modDecl
 --   If present, the export list is ignored. We do not test whether only
 --   defined functions and data types are exported. A warning is printed
 --   to remind the user that the export list does not have any effect.
-simplifyModuleHead :: H.ModuleHead SrcSpan -> Reporter HS.ModuleIdent
+simplifyModuleHead :: H.ModuleHead SrcSpan -> Simplifier HS.ModuleIdent
 simplifyModuleHead (H.ModuleHead _ (H.ModuleName _ modIdent) _ exports) = do
   warnIf (isJust exports) "Ignoring export list." (fromJust exports)
   return modIdent
@@ -111,7 +122,7 @@ simplifyModuleHead (H.ModuleHead _ (H.ModuleName _ modIdent) _ exports) = do
 --
 --   Only data type, type synonym, function declarations (including pattern
 --   bindings for 0-ary functions) and type signatures are supported.
-simplifyDecl :: H.Decl SrcSpan -> Reporter HS.Decl
+simplifyDecl :: H.Decl SrcSpan -> Simplifier HS.Decl
 
 -- Type synonym declarations.
 simplifyDecl (H.TypeDecl srcSpan declHead typeExpr) = do
@@ -213,13 +224,13 @@ simplifyDecl decl@(H.RoleAnnotDecl _ _ _) =
 
 -- | Converts the data type that is used to mark the operator associativity
 --   in operator fixity declarations.
-simplifyAssoc :: H.Assoc SrcSpan -> Reporter HS.Assoc
+simplifyAssoc :: H.Assoc SrcSpan -> Simplifier HS.Assoc
 simplifyAssoc (H.AssocNone  _) = return HS.AssocNone
 simplifyAssoc (H.AssocLeft  _) = return HS.AssocLeft
 simplifyAssoc (H.AssocRight _) = return HS.AssocRight
 
 -- | Simplifies an infix operator from a fixity declaration.
-simplifyUnqualOp :: H.Op SrcSpan -> Reporter HS.Op
+simplifyUnqualOp :: H.Op SrcSpan -> Simplifier HS.Op
 simplifyUnqualOp (H.VarOp srcSpan name) = do
   HS.DeclIdent _ ident <- simplifyFuncDeclName name
   return (HS.VarOp srcSpan (HS.Ident ident))
@@ -234,7 +245,7 @@ simplifyUnqualOp (H.ConOp srcSpan name) = do
 -- | Gets the name the data type or type synonym declaration as well as the
 --   type variables stored in the head of the declaration.
 simplifyDeclHead
-  :: H.DeclHead SrcSpan -> Reporter (HS.DeclIdent, [HS.TypeVarDecl])
+  :: H.DeclHead SrcSpan -> Simplifier (HS.DeclIdent, [HS.TypeVarDecl])
 simplifyDeclHead (H.DHead _ declName) = do
   declIdent <- simplifyDeclName declName
   return (declIdent, [])
@@ -251,7 +262,7 @@ simplifyDeclHead declHead@(H.DHInfix _ _ _) =
 --
 --   The name of the declaration must not be a symbol because type operators
 --   are not supported.
-simplifyDeclName :: H.Name SrcSpan -> Reporter HS.DeclIdent
+simplifyDeclName :: H.Name SrcSpan -> Simplifier HS.DeclIdent
 simplifyDeclName (H.Ident srcSpan ident) = return (HS.DeclIdent srcSpan ident)
 simplifyDeclName sym@(H.Symbol _ _) = notSupported "Type operators" sym
 
@@ -259,7 +270,7 @@ simplifyDeclName sym@(H.Symbol _ _) = notSupported "Type operators" sym
 --
 --   The type variable must not be a symbol and the binder must not have
 --   an explicit kind annotation.
-simplifyTypeVarBind :: H.TyVarBind SrcSpan -> Reporter HS.TypeVarDecl
+simplifyTypeVarBind :: H.TyVarBind SrcSpan -> Simplifier HS.TypeVarDecl
 simplifyTypeVarBind (H.UnkindedVar srcSpan (H.Ident _ ident)) =
   return (HS.DeclIdent srcSpan ident)
 simplifyTypeVarBind typeVarBind@(H.UnkindedVar _ (H.Symbol _ _)) =
@@ -274,7 +285,7 @@ simplifyTypeVarBind typeVarBind@(H.KindedVar _ _ _) =
 -- | Simplifies a constructor declaration of a data type declaration with
 --   optional existential quantification binding. Existential quantification
 --   bindings are not supported.
-simplifyConDecl :: H.QualConDecl SrcSpan -> Reporter HS.ConDecl
+simplifyConDecl :: H.QualConDecl SrcSpan -> Simplifier HS.ConDecl
 simplifyConDecl (H.QualConDecl _ Nothing Nothing conDecl) =
   simplifyConDecl' conDecl
 simplifyConDecl conDecl@(H.QualConDecl _ (Just _) _ _) =
@@ -288,7 +299,7 @@ simplifyConDecl conDecl@(H.QualConDecl _ _ (Just _) _) =
 --   @t1 `C` t2@ are treated as syntactic sugar for @C t1 t2@.
 --   Record constructors and constructors whose name is a symbol (see
 --   'simplifyConDeclName') are not supported.
-simplifyConDecl' :: H.ConDecl SrcSpan -> Reporter HS.ConDecl
+simplifyConDecl' :: H.ConDecl SrcSpan -> Simplifier HS.ConDecl
 simplifyConDecl' (H.ConDecl srcSpan conName args) = do
   conIdent <- simplifyConDeclName conName
   args'    <- mapM simplifyType args
@@ -302,7 +313,7 @@ simplifyConDecl' conDecl@(H.RecDecl _ _ _) =
 --
 --   The name of the declaration must not be a symbol because custom
 --   constructor operators are not supported.
-simplifyConDeclName :: H.Name SrcSpan -> Reporter HS.DeclIdent
+simplifyConDeclName :: H.Name SrcSpan -> Simplifier HS.DeclIdent
 simplifyConDeclName (H.Ident srcSpan ident) =
   return (HS.DeclIdent srcSpan ident)
 simplifyConDeclName sym@(H.Symbol _ _) =
@@ -313,7 +324,7 @@ simplifyConDeclName sym@(H.Symbol _ _) =
 -------------------------------------------------------------------------------
 
 -- | Simplifies the single rule of a function declaration.
-simplifyFuncDecl :: H.Match SrcSpan -> Reporter HS.Decl
+simplifyFuncDecl :: H.Match SrcSpan -> Simplifier HS.Decl
 simplifyFuncDecl (H.Match srcSpan declName args (H.UnGuardedRhs _ expr) Nothing)
   = do
     declIdent <- simplifyFuncDeclName declName
@@ -338,7 +349,7 @@ simplifyFuncDecl (H.InfixMatch pos arg declName args rhs binds) =
 --
 --   The name of the declaration must not be a symbol because custom operator
 --   declarations are not supported.
-simplifyFuncDeclName :: H.Name SrcSpan -> Reporter HS.DeclIdent
+simplifyFuncDeclName :: H.Name SrcSpan -> Simplifier HS.DeclIdent
 simplifyFuncDeclName (H.Ident srcSpan ident) =
   return (HS.DeclIdent srcSpan ident)
 simplifyFuncDeclName sym@(H.Symbol _ _) =
@@ -349,7 +360,7 @@ simplifyFuncDeclName sym@(H.Symbol _ _) =
 -------------------------------------------------------------------------------
 
 -- | Simplifies the a type expression.
-simplifyType :: H.Type SrcSpan -> Reporter HS.Type
+simplifyType :: H.Type SrcSpan -> Simplifier HS.Type
 
 -- Function type @'t1' -> 't2'@.
 simplifyType (H.TyFun srcSpan t1 t2) = do
@@ -396,6 +407,8 @@ simplifyType ty@(H.TyUnboxedSum _ _) = notSupported "Unboxed sums" ty
 simplifyType ty@(H.TyParArray   _ _) = notSupported "Parallel arrays" ty
 simplifyType ty@(H.TyKind _ _ _) =
   notSupported "Types with explicit kind signatures" ty
+simplifyType ty@(H.TyStar _) =
+  notSupported "Kinds" ty
 simplifyType ty@(H.TyVar _ (H.Symbol _ _)) = notSupported "Type operators" ty
 simplifyType ty@(H.TyPromoted _ _) = notSupported "Type operators" ty
 simplifyType ty@(H.TyInfix _ _ _ _) = notSupported "Type operators" ty
@@ -406,7 +419,7 @@ simplifyType ty@(H.TyWildCard _ _) = notSupported "Type wildcards" ty
 simplifyType ty@(H.TyQuasiQuote _ _ _) = notSupported "Quasiquotation types" ty
 
 -- | Simplifies the name of a build-in or user defined type constructor.
-simplifyTypeConName :: H.QName SrcSpan -> Reporter HS.TypeConName
+simplifyTypeConName :: H.QName SrcSpan -> Simplifier HS.TypeConName
 simplifyTypeConName (H.UnQual  _ (H.Ident _ ident)) = return (HS.Ident ident)
 simplifyTypeConName (H.Special _ (H.UnitCon _    )) = return HS.unitTypeConName
 simplifyTypeConName (H.Special _ (H.ListCon _    )) = return HS.listTypeConName
@@ -436,7 +449,7 @@ simplifyTypeConName name@(H.Special _ (H.Cons _)) = usageError
 -------------------------------------------------------------------------------
 
 -- | Simplifies an expression.
-simplifyExpr :: H.Exp SrcSpan -> Reporter HS.Expr
+simplifyExpr :: H.Exp SrcSpan -> Simplifier HS.Expr
 
 -- Error terms are regular functions but need to be handled differently.
 simplifyExpr (H.Var srcSpan (H.UnQual _ (H.Ident _ "undefined"))) =
@@ -491,22 +504,29 @@ simplifyExpr (H.InfixApp srcSpan e1 op e2) = do
   e1' <- simplifyExpr e1
   op' <- simplifyOp op
   e2' <- simplifyExpr e2
-  return (HS.InfixApp srcSpan e1' op' e2')
+  return (HS.app srcSpan op' [e1', e2'])
 
--- Partial infix applications.
+-- Partial infix applications. For right sections we need to introduce a
+-- fresh variable for the missing left argument using a lambda abstraction.
 simplifyExpr (H.LeftSection srcSpan e1 op) = do
   e1' <- simplifyExpr e1
   op' <- simplifyOp op
-  return (HS.LeftSection srcSpan e1' op')
+  return (HS.App srcSpan op' e1')
 simplifyExpr (H.RightSection srcSpan op e2) = do
+  x   <- freshHaskellIdent
   op' <- simplifyOp op
   e2' <- simplifyExpr e2
-  return (HS.RightSection srcSpan op' e2')
+  return
+    (HS.Lambda srcSpan
+               [HS.VarPat srcSpan x]
+               (HS.app srcSpan op' [HS.Var srcSpan (HS.Ident x), e2'])
+    )
 
 -- Negation.
 simplifyExpr (H.NegApp srcSpan e) = do
   e' <- simplifyExpr e
-  return (HS.NegApp srcSpan e')
+  -- TODO special `negate` that cannot be shadowed!
+  return (HS.App srcSpan (HS.Var srcSpan (HS.Ident "negate")) e')
 
 -- Lambda abstractions.
 simplifyExpr (H.Lambda srcSpan args expr) = do
@@ -605,15 +625,15 @@ simplifyExpr expr@(H.Lit _ (H.PrimString _ _ _)) =
   notSupported "Unboxed string literals" expr
 
 -- | Simplifies an infix operator.
-simplifyOp :: H.QOp SrcSpan -> Reporter HS.Op
+simplifyOp :: H.QOp SrcSpan -> Simplifier HS.Expr
 simplifyOp (H.QVarOp srcSpan name) =
-  simplifyVarName name >>= return . HS.VarOp srcSpan
+  simplifyVarName name >>= return . HS.Var srcSpan
 simplifyOp (H.QConOp srcSpan name) =
-  simplifyConName name >>= return . HS.ConOp srcSpan
+  simplifyConName name >>= return . HS.Con srcSpan
 
 -- | Gets the name of a variable, defined function or predefined function (e.g.
 --   @(+)@).
-simplifyVarName :: H.QName SrcSpan -> Reporter HS.VarName
+simplifyVarName :: H.QName SrcSpan -> Simplifier HS.VarName
 simplifyVarName (H.UnQual _ (H.Ident _ ident)) = return (HS.Ident ident)
 simplifyVarName (H.UnQual _ (H.Symbol _ sym)) = return (HS.Symbol sym)
 simplifyVarName name@(H.Qual _ _ _) = notSupported "Qualified identifiers" name
@@ -621,7 +641,7 @@ simplifyVarName name@(H.Special _ _) =
   usageError "Constructors cannot be used as variables!" name
 
 -- | Gets the name of a build-in or user defined constructor.
-simplifyConName :: H.QName SrcSpan -> Reporter HS.ConName
+simplifyConName :: H.QName SrcSpan -> Simplifier HS.ConName
 simplifyConName (H.UnQual  _ (H.Ident _ ident)) = return (HS.Ident ident)
 simplifyConName (H.Special _ (H.UnitCon _    )) = return HS.unitConName
 simplifyConName (H.Special _ (H.ListCon _    )) = return HS.nilConName
@@ -647,7 +667,7 @@ simplifyConName name@(H.Special _ (H.ExprHole _)) =
 --   or function declaration).
 --
 --  Parenthesis are ignored.
-simplifyVarPat :: H.Pat SrcSpan -> Reporter HS.VarPat
+simplifyVarPat :: H.Pat SrcSpan -> Simplifier HS.VarPat
 simplifyVarPat (H.PVar srcSpan (H.Ident _ ident)) =
   return (HS.VarPat srcSpan ident)
 simplifyVarPat pat = expected "variable pattern" pat
@@ -661,7 +681,7 @@ simplifyVarPat pat = expected "variable pattern" pat
 -- @()@) or pair (i.e. @(x, y)@) constructor pattern, however the list pattern
 -- @[x1, ..., xn]@ is not allowed.
 --  Parentheses are ignored.
-simplifyConPat :: H.Pat SrcSpan -> Reporter (HS.ConPat, [HS.VarPat])
+simplifyConPat :: H.Pat SrcSpan -> Simplifier (HS.ConPat, [HS.VarPat])
 
 -- Ignore parentheses.
 simplifyConPat (H.PParen _ pat    ) = simplifyConPat pat
@@ -706,7 +726,7 @@ simplifyConPat pat@(H.PRec _ _ _) = notSupported "Record constructors" pat
 simplifyConPat pat                = expected "constructor pattern" pat
 
 -- | Simplifies an alternative of a case expression.
-simplifyAlt :: H.Alt SrcSpan -> Reporter HS.Alt
+simplifyAlt :: H.Alt SrcSpan -> Simplifier HS.Alt
 simplifyAlt (H.Alt srcSpan pat (H.UnGuardedRhs _ expr) Nothing) = do
   (con, vars) <- simplifyConPat pat
   expr'       <- simplifyExpr expr

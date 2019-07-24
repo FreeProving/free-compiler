@@ -140,13 +140,6 @@ exprDependencies' (HS.Var _ name) = varName name
 exprDependencies' (HS.Con _ name) = conName name
 exprDependencies' (HS.App _ e1 e2) =
   exprDependencies' e1 `Set.union` exprDependencies' e2
-exprDependencies' (HS.InfixApp _ e1 op e2) =
-  Set.unions (opDependencies op : map exprDependencies' [e1, e2])
-exprDependencies' (HS.LeftSection _ e1 op) =
-  opDependencies op `Set.union` exprDependencies' e1
-exprDependencies' (HS.RightSection _ op e2) =
-  opDependencies op `Set.union` exprDependencies' e2
-exprDependencies' (HS.NegApp _ expr) = exprDependencies' expr
 exprDependencies' (HS.If _ e1 e2 e3) =
   Set.unions (map exprDependencies' [e1, e2, e3])
 exprDependencies' (HS.Case _ expr alts) =

@@ -535,22 +535,6 @@ convertExpr' (HS.App _ e1 e2) = do
     then generateBind' e1' Nothing $ \f -> return (G.app (G.Qualid f) [e2'])
     else return (G.app e1' [e2'], arity - 1)
 
--- Treat infix applications as syntactic suggar for regular applications.
-convertExpr' (HS.InfixApp srcSpan e1 op e2) =
-  convertExpr' (HS.app srcSpan (opToExpr op) [e1, e2])
-convertExpr' (HS.LeftSection srcSpan e1 op) =
-  convertExpr' (HS.app srcSpan (opToExpr op) [e1])
-convertExpr' (HS.RightSection srcSpan op e2) = do
-  x1 <- freshHaskellIdent
-  let e1 = HS.Var srcSpan (HS.Ident x1)
-  convertExpr'
-    (HS.Lambda srcSpan [HS.VarPat srcSpan x1] (HS.InfixApp srcSpan e1 op e2))
-
--- Treat negation operator as syntactic suggar for application of `negate`.
-convertExpr' (HS.NegApp _ expr) = do
-  expr' <- convertExpr expr
-  return (genericApply CoqBase.negateOp [expr'], 0)
-
 -- @if@-expressions.
 convertExpr' (HS.If _ e1 e2 e3) = do
   e1' <- convertExpr e1
@@ -573,10 +557,8 @@ convertExpr' (HS.ErrorExpr _ msg) =
   return (G.app (G.Qualid CoqBase.partialError) [G.string msg], 0)
 
 -- Integer literals.
-convertExpr' expr@(HS.IntLiteral srcSpan value)
-  | value < 0 = convertExpr' (HS.NegApp srcSpan expr)
-  | otherwise = return
-    (generatePure (G.InScope (G.Num (fromInteger value)) (G.ident "Z")), 0)
+convertExpr' (HS.IntLiteral srcSpan value) =
+  return (generatePure (G.InScope (G.Num (fromInteger value)) (G.ident "Z")), 0)
 
 -- Lambda abstractions.
 convertExpr' (HS.Lambda _ args expr) = localEnv $ do

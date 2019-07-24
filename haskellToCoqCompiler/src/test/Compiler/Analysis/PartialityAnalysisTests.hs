@@ -13,6 +13,7 @@ testPartialityAnalysis :: Spec
 testPartialityAnalysis = describe "Compiler.Analysis.PartialityAnalysis" $ do
   it "recognizes directly partial functions using 'undefined'"
     $ shouldSucceed
+    $ fromConverter
     $ do
         decls <- mapM
           parseTestDecl
@@ -26,6 +27,7 @@ testPartialityAnalysis = describe "Compiler.Analysis.PartialityAnalysis" $ do
 
   it "recognizes indirectly partial functions using 'undefined'"
     $ shouldSucceed
+    $ fromConverter
     $ do
         decls <- mapM
           parseTestDecl
@@ -41,6 +43,7 @@ testPartialityAnalysis = describe "Compiler.Analysis.PartialityAnalysis" $ do
 
   it "recognizes directly partial functions using 'error'"
     $ shouldSucceed
+    $ fromConverter
     $ do
         decls <- mapM
           parseTestDecl
@@ -57,6 +60,7 @@ testPartialityAnalysis = describe "Compiler.Analysis.PartialityAnalysis" $ do
 
   it "recognizes indirectly partial functions using 'error'"
     $ shouldSucceed
+    $ fromConverter
     $ do
         decls <- mapM
           parseTestDecl

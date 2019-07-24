@@ -155,10 +155,10 @@ run opts
 --   AST is written to the console or output file.
 processInputFile :: Options -> FilePath -> ReporterIO (IO ())
 processInputFile opts inputFile = do
-  haskellAst  <- parseModuleFile inputFile
-  haskellAst' <- hoist $ simplifyModule haskellAst
-  coqAst      <- hoist
-    $ evalConverter (convertModuleWithPreamble haskellAst') defaultEnvironment
+  haskellAst <- parseModuleFile inputFile
+  coqAst     <- hoist $ flip evalConverter defaultEnvironment $ do
+    haskellAst' <- simplifyModule haskellAst
+    convertModuleWithPreamble haskellAst'
 
   return $ case (optOutputDir opts) of
     Nothing -> putPrettyLn coqAst

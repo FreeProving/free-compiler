@@ -185,16 +185,15 @@ data Type
 -------------------------------------------------------------------------------
 
 -- | A Haskell expression.
+--
+--  Even though there are no dedicated constructors, the infix applications of
+--  functions and constructors (including left and right sections) are
+--  supported. This kind of syntactic suggar is removed during simplification
+--  (see "Compiler.Language.Haskell.Simplifier").
 data Expr
   = Con SrcSpan ConName           -- ^ A constructor.
   | Var SrcSpan VarName           -- ^ A function or local variable.
-
   | App SrcSpan Expr Expr         -- ^ Function or constructor application.
-
-  | InfixApp SrcSpan Expr Op Expr -- ^ Infix application of a function or constructor.
-  | LeftSection SrcSpan Expr Op   -- ^ Partial infix application with left argument.
-  | RightSection SrcSpan Op Expr  -- ^ Partial infix application with right argument.
-  | NegApp SrcSpan Expr           -- ^ Application of the negation prefix operator.
 
   | If SrcSpan Expr Expr Expr     -- ^ @if@ expression.
   | Case SrcSpan Expr [Alt]       -- ^ @case@ expression.
