@@ -17,6 +17,8 @@ module Compiler.Language.Coq.AST
     -- * Binders
   , typedBinder
   , typedBinder'
+  -- * Definition sentences
+  , definitionSentence
     -- * Types
   , sortType
     -- * Expressions
@@ -114,6 +116,22 @@ typedBinder explicitness =
 -- | Like 'typedBinder' but for a single identifier.
 typedBinder' :: G.Explicitness -> G.Qualid -> G.Term -> G.Binder
 typedBinder' = flip (flip typedBinder . (: []))
+
+-------------------------------------------------------------------------------
+-- Definition sentences                                                      --
+-------------------------------------------------------------------------------
+
+-- | Smart constructor for a Coq definition sentence.
+definitionSentence
+  :: G.Qualid   -- ^ The name of the definition.
+  -> [G.Binder] -- ^ Binders for the parameters of the definition.
+  -> G.Term     -- ^ The return type of the definition.
+  -> G.Term     -- ^ The right hand side of the definition.
+  -> G.Sentence
+definitionSentence qualid binders returnType term =
+  (G.DefinitionSentence
+    (G.DefinitionDef G.Global qualid binders (Just returnType) term)
+  )
 
 -------------------------------------------------------------------------------
 -- Types                                                                     --

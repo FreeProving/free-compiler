@@ -208,15 +208,12 @@ convertDataDecl (HS.DataDecl srcSpan (HS.DeclIdent _ ident) typeVarDecls conDecl
                                             (map Just argTypes)
     returnType' <- convertType returnType
     return
-      (G.DefinitionSentence -- TODO smart constructor
-        (G.DefinitionDef
-          G.Global
-          smartQualid
-          (genericArgDecls G.Explicit ++ typeVarDecls' ++ argDecls')
-          (Just returnType')
-          (generatePure
-            (G.app (G.Qualid qualid) (map (G.Qualid . G.bare) argIdents'))
-          )
+      (G.definitionSentence
+        smartQualid
+        (genericArgDecls G.Explicit ++ typeVarDecls' ++ argDecls')
+        returnType'
+        (generatePure
+          (G.app (G.Qualid qualid) (map (G.Qualid . G.bare) argIdents'))
         )
       )
 
@@ -362,18 +359,15 @@ convertNonRecFuncDecl (HS.FuncDecl _ (HS.DeclIdent srcSpan ident) args expr) =
       returnType'   <- convertType returnType
       expr'         <- convertExpr expr
       return
-        [ G.DefinitionSentence
-            (G.DefinitionDef
-              G.Global
-              (G.bare ident')
-              (  genericArgDecls G.Explicit
-              ++ [ partialArgDecl | partial ]
-              ++ typeVarDecls'
-              ++ args'
-              )
-              (Just returnType')
-              expr'
+        [ G.definitionSentence
+            (G.bare ident')
+            (  genericArgDecls G.Explicit
+            ++ [ partialArgDecl | partial ]
+            ++ typeVarDecls'
+            ++ args'
             )
+            returnType'
+            expr'
         ]
 
 -------------------------------------------------------------------------------
