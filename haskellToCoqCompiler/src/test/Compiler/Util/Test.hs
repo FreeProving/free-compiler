@@ -6,6 +6,7 @@ import           Test.Hspec
 
 import           Compiler.Converter
 import           Compiler.Converter.State
+import           Compiler.Language.Coq.AST     as G
 import           Compiler.Language.Haskell.Parser
 import           Compiler.Language.Haskell.SimpleAST
                                                as HS
@@ -73,6 +74,31 @@ parseTestDecl :: String -> Simplifier HS.Decl
 parseTestDecl input =
   liftReporter (parseDecl "<test-input>" input) >>= simplifyDecl
 
+-- | Parses and simplifies Haskell declarations for testing purposes.
+parseTestDecls :: [String] -> Simplifier [HS.Decl]
+parseTestDecls = mapM parseTestDecl
+
+-------------------------------------------------------------------------------
+-- Conversion utility functions                                              --
+-------------------------------------------------------------------------------
+
+-- | Parses, simplifies and converts a Haskell type for testing purposes.
+convertTestType :: String -> Converter G.Term
+convertTestType input = parseTestType input >>= convertType
+
+-- | Parses, simplifies and converts a Haskell expression for testing purposes.
+convertTestExpr :: String -> Converter G.Term
+convertTestExpr input = parseTestExpr input >>= convertExpr
+
+-- | Parses, simplifies and converts a Haskell declaration for testing purposes.
+convertTestDecl :: String -> Converter [G.Sentence]
+convertTestDecl = convertTestDecls . return
+
+-- | Parses, simplifies and converts a Haskell declarations for testing
+--   purposes.
+convertTestDecls :: [String] -> Converter [G.Sentence]
+convertTestDecls input = parseTestDecls input >>= convertDecls
+
 -------------------------------------------------------------------------------
 -- Conversion expectations                                                   --
 -------------------------------------------------------------------------------
@@ -85,8 +111,7 @@ shouldTranslateTypeTo
   -> String -- ^ The expected output Coq type.
   -> Converter Expectation
 shouldTranslateTypeTo input expectedOutput = do
-  hsType  <- parseTestType input
-  coqType <- convertType hsType
+  coqType <- convertTestType input
   return
     (          discardWhitespace (showPretty coqType)
     `shouldBe` discardWhitespace expectedOutput
@@ -100,8 +125,7 @@ shouldTranslateExprTo
   -> String -- ^ The expected output Coq expression.
   -> Converter Expectation
 shouldTranslateExprTo input expectedOutput = do
-  hsExpr  <- parseTestExpr input
-  coqExpr <- convertExpr hsExpr
+  coqExpr <- convertTestExpr input
   return
     (          discardWhitespace (showPretty coqExpr)
     `shouldBe` discardWhitespace expectedOutput
@@ -113,8 +137,7 @@ shouldTranslateExprTo input expectedOutput = do
 --   Whitespace in the actual and expected output does not have to match.
 shouldTranslateDeclsTo :: [String] -> String -> Converter Expectation
 shouldTranslateDeclsTo input expectedOutput = do
-  hsDecls  <- mapM parseTestDecl input
-  coqDecls <- convertDecls hsDecls
+  coqDecls <- convertTestDecls input
   return
     $          discardWhitespace (showPretty coqDecls)
     `shouldBe` discardWhitespace expectedOutput

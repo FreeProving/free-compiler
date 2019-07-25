@@ -2,7 +2,6 @@ module Compiler.ConverterTests where
 
 import           Test.Hspec
 
-import           Compiler.Converter
 import           Compiler.Converter.Renamer
 import           Compiler.Converter.State
 import           Compiler.Language.Haskell.SimpleAST
@@ -95,7 +94,7 @@ testConvertDataDecls = describe "convertDataDecls" $ do
     $ fromConverter
     $ do
         shouldTranslateDeclsTo ["data Foo = Foo Bar", "data Bar = Bar Foo"]
-          $ "Inductive Bar (Shape : Type) (Pos : Shape -> Type) : Type"
+          $  "Inductive Bar (Shape : Type) (Pos : Shape -> Type) : Type"
           ++ "  := bar : Free Shape Pos (Foo Shape Pos) -> Bar Shape Pos "
           ++ "with Foo (Shape : Type) (Pos : Shape -> Type) : Type"
           ++ "  := foo : Free Shape Pos (Bar Shape Pos) -> Foo Shape Pos. "
@@ -114,9 +113,8 @@ testConvertDataDecls = describe "convertDataDecls" $ do
           ++ "  : Free Shape Pos (Foo Shape Pos)"
           ++ "  := pure (foo _0)."
 
-
 -------------------------------------------------------------------------------
--- Function declarations                                                     --
+-- Non-recursive function declarations                                       --
 -------------------------------------------------------------------------------
 
 -- | Test group for 'convertNonRecFuncDecl' tests.
@@ -192,12 +190,12 @@ testConvertType = describe "convertType" $ do
   it "fails to translate unknown type varaibles"
     $ shouldReportFatal
     $ fromConverter
-    $ (parseTestType "a" >>= convertType)
+    $ convertTestType "a"
 
   it "fails to translate unknown type constructor"
     $ shouldReportFatal
     $ fromConverter
-    $ (parseTestType "NoSuchType" >>= convertType)
+    $ convertTestType "NoSuchType"
 
   it "translates 'a' correctly" $ shouldSucceed $ fromConverter $ do
     "a" <- renameAndDefineTypeVar "a"
@@ -257,12 +255,12 @@ testConvertUnknownIdents = context "unknown identifiers are reported" $ do
   it "fails to translate unknown constructors"
     $ shouldReportFatal
     $ fromConverter
-    $ (parseTestExpr "C" >>= convertExpr)
+    $ convertTestExpr "C"
 
   it "fails to translate unknown variables or functions"
     $ shouldReportFatal
     $ fromConverter
-    $ (parseTestExpr "x" >>= convertExpr)
+    $ convertTestExpr "x"
 
 -- | Test group for translation of constructor application expressions.
 testConvertConApp :: Spec
@@ -516,12 +514,9 @@ testConvertInt = context "integer expressions" $ do
     $ fromConverter
     $ shouldTranslateExprTo "-42" "negate Shape Pos (pure 42%Z)"
 
-  it "cannot shadow negate"
-    $ shouldSucceed
-    $ fromConverter
-    $ do
-      "negate0" <- renameAndDefineFunc "negate" 1
-      shouldTranslateExprTo "-42" "negate Shape Pos (pure 42%Z)"
+  it "cannot shadow negate" $ shouldSucceed $ fromConverter $ do
+    "negate0" <- renameAndDefineFunc "negate" 1
+    shouldTranslateExprTo "-42" "negate Shape Pos (pure 42%Z)"
 
   it "translates arithmetic expressions correctly"
     $ shouldSucceed
