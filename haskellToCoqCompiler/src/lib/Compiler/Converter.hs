@@ -295,7 +295,7 @@ generateTypeVarDecls' explicitness idents
 --   TODO error if there are multiple type signatures for the same function.
 --   TODO warn if there are unused type signatures.
 filterAndDefineTypeSig :: HS.Decl -> Converter ()
-filterAndDefineTypeSig (HS.TypeSig srcSpan idents typeExpr) = do
+filterAndDefineTypeSig (HS.TypeSig _ idents typeExpr) = do
   mapM_ (modifyEnv . flip defineTypeSig typeExpr . HS.Ident . fromDeclIdent)
         idents
 filterAndDefineTypeSig _ = return () -- ignore other declarations.
@@ -551,7 +551,7 @@ convertExpr' (HS.ErrorExpr _ msg) =
   return (G.app (G.Qualid CoqBase.partialError) [G.string msg], 0)
 
 -- Integer literals.
-convertExpr' (HS.IntLiteral srcSpan value) =
+convertExpr' (HS.IntLiteral _ value) =
   return (generatePure (G.InScope (G.Num (fromInteger value)) (G.ident "Z")), 0)
 
 -- Lambda abstractions.
@@ -559,14 +559,6 @@ convertExpr' (HS.Lambda _ args expr) = localEnv $ do
   args' <- mapM convertInferredArg args
   expr' <- convertExpr expr
   return (foldr (generatePure .: G.Fun . return) expr' args', 0)
-
--- | Converts an infix operator to an expression.
---
---   This can be used to convert the operator @+@ in @e1 + e2@ to the
---   expression @(+)@.
-opToExpr :: HS.Op -> HS.Expr
-opToExpr (HS.VarOp srcSpan opName) = HS.Var srcSpan opName
-opToExpr (HS.ConOp srcSpan opName) = HS.Con srcSpan opName
 
 -- | Converts an alternative of a Haskell @case@-expressions to Coq.
 convertAlt :: HS.Alt -> Converter G.Equation

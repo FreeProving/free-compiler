@@ -40,6 +40,9 @@ import           Compiler.SrcSpan
 
 -- | The simplifier is a special converter that converts the haskell@-src-exts@
 --   AST to the simplified internal representation for Haskell modules.
+--
+--   During simplification the environment is usually empty (except for fresh
+--   variables created by the simplifier).
 type Simplifier = Converter
 
 -------------------------------------------------------------------------------
@@ -522,9 +525,9 @@ simplifyExpr (H.RightSection srcSpan op e2) = do
     )
 
 -- Negation.
-simplifyExpr (H.NegApp srcSpan e) = do
-  e' <- simplifyExpr e
-  return (HS.App srcSpan (HS.Var srcSpan (HS.negateOpName)) e')
+simplifyExpr (H.NegApp srcSpan expr) = do
+  expr' <- simplifyExpr expr
+  return (HS.App srcSpan (HS.Var srcSpan (HS.negateOpName)) expr')
 
 -- Lambda abstractions.
 simplifyExpr (H.Lambda srcSpan args expr) = do
