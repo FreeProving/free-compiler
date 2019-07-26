@@ -27,6 +27,7 @@ import           Data.Composition
 import           Data.Maybe                     ( maybe
                                                 , catMaybes
                                                 )
+import           Data.List.NonEmpty             ( NonEmpty((:|)) )
 import qualified Data.List.NonEmpty            as NonEmpty
 
 import           Compiler.Analysis.DependencyAnalysis
@@ -511,7 +512,11 @@ convertExpr' (HS.Var srcSpan name) = do
   -- @Pos@ arguments.
   mArity <- inEnv $ lookupArity VarScope name
   case mArity of
-    Nothing    -> return (G.Qualid qualid, 0)
+    Nothing -> do
+      pureArg <- inEnv $ isPureVar name
+      if pureArg
+        then return (generatePure (G.Qualid qualid), 0)
+        else return (G.Qualid qualid, 0)
     Just arity -> do
       partial <- inEnv $ isPartial name
       return
@@ -526,7 +531,7 @@ convertExpr' (HS.App _ e1 e2) = do
   (e1', arity) <- convertExpr' e1
   e2'          <- convertExpr e2
   if arity == 0
-    then generateBind' e1' Nothing $ \f -> return (G.app (G.Qualid f) [e2'])
+    then generateBind' e1' Nothing $ \f -> return (G.app f [e2'])
     else return (G.app e1' [e2'], arity - 1)
 
 -- @if@-expressions.
@@ -536,14 +541,14 @@ convertExpr' (HS.If _ e1 e2 e3) = do
   generateBind' e1' (Just bool') $ \cond -> do
     e2' <- convertExpr e2
     e3' <- convertExpr e3
-    return (G.If G.SymmetricIf (G.Qualid cond) Nothing e2' e3')
+    return (G.If G.SymmetricIf cond Nothing e2' e3')
 
 -- @case@-expressions.
 convertExpr' (HS.Case _ expr alts) = do
   expr' <- convertExpr expr
   generateBind' expr' Nothing $ \value -> do
     alts' <- mapM convertAlt alts
-    return (G.match (G.Qualid value) alts')
+    return (G.match value alts')
 
 -- Error terms.
 convertExpr' (HS.Undefined _) = return (G.Qualid CoqBase.partialUndefined, 0)
@@ -620,6 +625,9 @@ generatePure = G.app (G.Qualid CoqBase.freePureCon) . (: [])
 --
 --   The generated fresh variable is passed to the given function. It is not
 --   visible outside of that function.
+--   If the given expression is an application of the @pure@ constructor,
+--   no bind will be generated. The wrapped value is passed directly to
+--   the given function instead of a fresh variable.
 --
 --   If the second argument is @Nothing@, the type of the fresh variable is
 --   inferred by Coq.
@@ -627,21 +635,23 @@ generateBind
   :: G.Term        -- ^ The left hand side of the bind operator.
   -> Maybe G.Term  -- ^ The  Coq type of the value to bind or @Nothing@ if it
                    --   should be inferred by Coq.
-  -> (G.Qualid -> Converter G.Term)
+  -> (G.Term -> Converter G.Term)
                    -- ^ Converter for the right hand side of the generated
                    --   function. The first argument is the fresh variable.
   -> Converter G.Term
+generateBind (G.App (G.Qualid con) ((G.PosArg arg) :| [])) _ generateRHS
+  | con == CoqBase.freePureCon = generateRHS arg
 generateBind expr' argType' generateRHS = localEnv $ do
-  f   <- freshCoqIdent
-  rhs <- generateRHS (G.bare f)
-  return (G.app (G.Qualid CoqBase.freeBind) [expr', G.fun [f] [argType'] rhs])
+  x   <- freshCoqIdent freshArgPrefix
+  rhs <- generateRHS (G.Qualid (G.bare x))
+  return (G.app (G.Qualid CoqBase.freeBind) [expr', G.fun [x] [argType'] rhs])
 
 -- | Like 'generateBind', but the return type is compatible
 --   with 'convertExpr''.
 generateBind'
   :: G.Term
   -> Maybe G.Term
-  -> (G.Qualid -> Converter G.Term)
+  -> (G.Term -> Converter G.Term)
   -> Converter (G.Term, Int)
 generateBind' expr' argType' generateRHS = do
   res <- generateBind expr' argType' generateRHS
