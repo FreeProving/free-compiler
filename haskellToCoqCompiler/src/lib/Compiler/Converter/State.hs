@@ -93,8 +93,9 @@ type ScopedName = (Scope, HS.Name)
 
 -- | Data type that encapsulates the state of the converter.
 data Environment = Environment
-  { freshIdentCount :: Int
-    -- ^ The number of fresh identifiers that were used in the environment.
+  { freshIdentCount :: Map String Int
+    -- ^ The number of fresh identifiers that were used in the environment
+    --   with a certain prefix.
   , partialFunctions :: Set HS.Name
     -- ^ The names of partial functions.This map also contains entries for
     --   functions that have not yet been defined and functions that are
@@ -124,7 +125,7 @@ data Environment = Environment
 --   functions.
 emptyEnvironment :: Environment
 emptyEnvironment = Environment
-  { freshIdentCount  = 0
+  { freshIdentCount  = Map.empty
   , partialFunctions = Set.empty
   , pureVars         = Set.empty
   , decArgs          = Map.empty

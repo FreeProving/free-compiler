@@ -406,7 +406,7 @@ convertArg' ident' (Just argType) = do
 --   and returned together with the binder.
 convertAnonymousArg :: Maybe HS.Type -> Converter (String, G.Binder)
 convertAnonymousArg mArgType = do
-  ident' <- freshCoqIdent
+  ident'    <- freshCoqIdent freshArgPrefix
   binder <- convertArg' ident' mArgType
   return (ident', binder)
 
@@ -474,7 +474,7 @@ convertExpr expr = convertExpr' expr >>= uncurry etaConvert
   etaConvert :: G.Term -> Int -> Converter G.Term
   etaConvert term 0     = return term
   etaConvert term arity = do
-    x     <- freshCoqIdent
+    x     <- freshCoqIdent freshArgPrefix
     term' <- etaConvert (G.app term [G.Qualid (G.bare x)]) (arity - 1)
     return (generatePure (G.fun [x] [Nothing] term'))
 

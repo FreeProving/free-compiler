@@ -515,7 +515,7 @@ simplifyExpr (H.LeftSection srcSpan e1 op) = do
   op' <- simplifyOp op
   return (HS.App srcSpan op' e1')
 simplifyExpr (H.RightSection srcSpan op e2) = do
-  x   <- freshHaskellIdent
+  x   <- freshHaskellIdent freshArgPrefix
   op' <- simplifyOp op
   e2' <- simplifyExpr e2
   return
