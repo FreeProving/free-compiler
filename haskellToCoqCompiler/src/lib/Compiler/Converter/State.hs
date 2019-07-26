@@ -17,11 +17,16 @@ module Compiler.Converter.State
   , freshIdentCount
     -- * Inserting entries into the environment
   , definePartial
+  , definePureVar
+  , defineDecArg
   , defineTypeSig
   , defineIdent
   , defineArity
     -- * Looking up entries from the environment
+  , isFunction
   , isPartial
+  , isPureVar
+  , lookupDecArg
   , lookupTypeSig
   , lookupIdent
   , lookupArity
@@ -48,8 +53,10 @@ where
 
 import           Control.Monad.Fail
 import           Control.Monad.State
+import           Data.Composition               ( (.:) )
 import           Data.Map.Strict                ( Map )
 import qualified Data.Map.Strict               as Map
+import           Data.Maybe                     ( isJust )
 import           Data.Set                       ( Set )
 import qualified Data.Set                      as Set
 
@@ -92,6 +99,12 @@ data Environment = Environment
     -- ^ The names of partial functions.This map also contains entries for
     --   functions that have not yet been defined and functions that are
     --   shadowed by local vairables.
+  , pureVars :: Set HS.Name
+    -- ^ The names of Haskell variables that are not monadic.
+  , decArgs :: Map HS.Name Int
+    -- ^ Maps Haskell function names to the index of their decreasing argument.
+    --   Contains no entry for non-recursive functions, but there are also
+    --   entries for functions that are shadowed by local variables.
   , definedTypeSigs :: Map HS.Name HS.Type
     -- ^ Maps Haskell function names to their annotated type. This map also
     --   contains entries for functions that have not yet been defined and
@@ -113,6 +126,8 @@ emptyEnvironment :: Environment
 emptyEnvironment = Environment
   { freshIdentCount  = 0
   , partialFunctions = Set.empty
+  , pureVars         = Set.empty
+  , decArgs          = Map.empty
   , definedTypeSigs  = Map.empty
   , definedIdents    = Map.empty
   , definedArities   = Map.empty
@@ -131,6 +146,16 @@ usedIdents = Map.elems . definedIdents
 definePartial :: HS.Name -> Environment -> Environment
 definePartial name env =
   env { partialFunctions = Set.insert name (partialFunctions env) }
+
+-- | Inserts the given variable name into the set of non-monadic variables.
+definePureVar :: HS.Name -> Environment -> Environment
+definePureVar name env = env { pureVars = Set.insert name (pureVars env) }
+
+-- | Stores the index of the decreasing argument of a recursive function
+--   in the environment.
+defineDecArg :: HS.Name -> Int -> Environment -> Environment
+defineDecArg name index env =
+  env { decArgs = Map.insert name index (decArgs env) }
 
 -- | Associates the name of a Haskell function with it's annoated type.
 --
@@ -175,11 +200,29 @@ defineArity scope name arity env =
 -- Looking up entries from the environment                                   --
 -------------------------------------------------------------------------------
 
+-- | Tests whether the given name identifies a function in the given
+--   environment.
+--
+--   Returns @False@ if there is no such function.
+isFunction :: HS.Name -> Environment -> Bool
+isFunction = isJust .: lookupArity VarScope
+
 -- | Tests whether the function with the given name is partial.
 --
 --   Returns @False@ if there is no such function.
 isPartial :: HS.Name -> Environment -> Bool
 isPartial name = Set.member name . partialFunctions
+
+-- | Test whether the variable with the given name is not monadic.
+isPureVar :: HS.Name -> Environment -> Bool
+isPureVar name = Set.member name . pureVars
+
+-- | Lookups the index of the decreasing argument of the recursive function
+--   with the given name.
+--
+--   Returns @Nothing@ if there is no such recursive function.
+lookupDecArg :: HS.Name -> Environment -> Maybe Int
+lookupDecArg name = Map.lookup name . decArgs
 
 -- | Looks up the annotated type of a user defined Haskell function with the
 --   given name.
@@ -194,7 +237,7 @@ lookupTypeSig name = Map.lookup name . definedTypeSigs
 lookupIdent :: Scope -> HS.Name -> Environment -> Maybe G.Qualid
 lookupIdent scope name = Map.lookup (scope, name) . definedIdents
 
--- | Looks up the number of (type) arguments expected by the given Haskell
+-- | Looks up the number of (type) monadicarguments expected by the given Haskell
 --   function or (type/smart) constructor.
 --
 --   Returns @Nothing@ if there is no such function, (type/smart) constructor,
