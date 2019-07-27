@@ -33,6 +33,7 @@ library haskell-to-coq-internal
                       , Compiler.Analysis.PartialityAnalysis
                       , Compiler.Converter
                       , Compiler.Converter.Fresh
+                      , Compiler.Converter.Inliner
                       , Compiler.Converter.Renamer
                       , Compiler.Converter.State
                       , Compiler.Converter.Subst
