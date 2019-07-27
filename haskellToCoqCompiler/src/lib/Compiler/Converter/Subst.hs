@@ -1,3 +1,9 @@
+-- | This module contains a definition of substitutions for Haskell
+--   expressions.
+--
+--   Substitutions are used by "Compiler.Converter.Inliner" to replace
+--   parameters of inlined functions with their actual arguments.
+
 module Compiler.Converter.Subst
   ( Subst
     -- * Construction

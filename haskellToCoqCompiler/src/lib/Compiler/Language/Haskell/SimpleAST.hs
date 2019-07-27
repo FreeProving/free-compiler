@@ -217,38 +217,38 @@ fromVarPat (VarPat _ ident) = ident
 -------------------------------------------------------------------------------
 
 -- | This type class provides a getter for the source span of an AST node of
---   type 'a'.
+--   type @a@.
 class GetSrcSpan a where
   -- | Gets the source span of the given AST node.
   getSrcSpan :: a -> SrcSpan
 
--- | 'GetTypeSpan' instance for names of declarations.
+-- | 'GetSrcSpan' instance for names of declarations.
 instance GetSrcSpan DeclIdent where
   getSrcSpan (DeclIdent srcSpan _) = srcSpan
 
--- | 'GetTypeSpan' instance for modules.
+-- | 'GetSrcSpan' instance for modules.
 instance GetSrcSpan Module where
   getSrcSpan (Module srcSpan _ _) = srcSpan
 
--- | 'GetTypeSpan' instance for top-level declarations.
+-- | 'GetSrcSpan' instance for top-level declarations.
 instance GetSrcSpan Decl where
   getSrcSpan (DataDecl  srcSpan _ _ _) = srcSpan
   getSrcSpan (TypeDecl  srcSpan _ _ _) = srcSpan
   getSrcSpan (FuncDecl  srcSpan _ _ _) = srcSpan
   getSrcSpan (TypeSig   srcSpan _ _  ) = srcSpan
 
--- | 'GetTypeSpan' instance for constructor declarations.
+-- | 'GetSrcSpan' instance for constructor declarations.
 instance GetSrcSpan ConDecl where
   getSrcSpan (ConDecl srcSpan _ _) = srcSpan
 
--- | 'GetTypeSpan' instance for type expressions.
+-- | 'GetSrcSpan' instance for type expressions.
 instance GetSrcSpan Type where
   getSrcSpan (TypeVar  srcSpan _  ) = srcSpan
   getSrcSpan (TypeCon  srcSpan _  ) = srcSpan
   getSrcSpan (TypeApp  srcSpan _ _) = srcSpan
   getSrcSpan (TypeFunc srcSpan _ _) = srcSpan
 
--- | 'GetTypeSpan' instance for expressions.
+-- | 'GetSrcSpan' instance for expressions.
 instance GetSrcSpan Expr where
   getSrcSpan (Con        srcSpan _    ) = srcSpan
   getSrcSpan (Var        srcSpan _    ) = srcSpan
@@ -260,7 +260,7 @@ instance GetSrcSpan Expr where
   getSrcSpan (IntLiteral srcSpan _    ) = srcSpan
   getSrcSpan (Lambda     srcSpan _ _  ) = srcSpan
 
--- | 'GetTypeSpan' instance for @case@-expression alternatives.
+-- | 'GetSrcSpan' instance for @case@-expression alternatives.
 instance GetSrcSpan Alt where
   getSrcSpan (Alt srcSpan _ _ _) = srcSpan
 

@@ -427,7 +427,7 @@ convertRecFuncDecls decls = do
 --
 --   TODO the case expression does not have to be the outermost expression.
 identifyDecArg :: HS.Expr -> Converter HS.Name
-identifyDecArg expr@(HS.Case _ (HS.Var srcSpan decArg) _) = do
+identifyDecArg (HS.Case _ (HS.Var srcSpan decArg) _) = do
   isArg <- inEnv $ not . isFunction decArg
   if isArg
     then return decArg
@@ -481,7 +481,8 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent args expr) = do
 
   return ([helperFuncDecl], mainFuncDecl)
 
--- | TODO
+-- | Converts a recursive helper function to the body of a Coq @Fixpoint@
+--   sentence.
 convertRecHelperFuncDecl :: HS.Decl -> Converter G.FixBody
 convertRecHelperFuncDecl (HS.FuncDecl srcSpan declIdent args expr) =
   localEnv $ do

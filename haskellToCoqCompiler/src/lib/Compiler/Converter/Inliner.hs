@@ -1,3 +1,10 @@
+-- | This module contains functions for inlining the definition of
+--   functions into expressions or other function declarations.
+--
+--   This is used during the translation of recursive function declarations
+--   to inline the definition of the non-recursive main function into the
+--   recursive helper functions.
+
 module Compiler.Converter.Inliner where
 
 import           Data.Map.Strict                ( Map )
@@ -22,12 +29,12 @@ inlineDecl _ decl = return decl
 inlineExpr :: [HS.Decl] -> HS.Expr -> Converter HS.Expr
 inlineExpr decls = inlineAndBind
  where
-   -- | Maps the names of function declarations in 'decls' to the arguments
-   --   and right hand sides of the functions.
+  -- | Maps the names of function declarations in 'decls' to the arguments
+  --   and right hand sides of the functions.
   declMap :: Map HS.Name ([HS.VarPat], HS.Expr)
   declMap = foldr insertFuncDecl Map.empty decls
 
-   -- | Inserts a function declaration into 'declMap'.
+  -- | Inserts a function declaration into 'declMap'.
   insertFuncDecl
     :: HS.Decl                          -- ^ The declaration to insert.
     -> Map HS.Name ([HS.VarPat], HS.Expr) -- ^ The map to insert into.
