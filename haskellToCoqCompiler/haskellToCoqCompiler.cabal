@@ -35,6 +35,7 @@ library haskell-to-coq-internal
                       , Compiler.Converter.Fresh
                       , Compiler.Converter.Renamer
                       , Compiler.Converter.State
+                      , Compiler.Converter.Subst
                       , Compiler.Language.Coq.AST
                       , Compiler.Language.Coq.Base
                       , Compiler.Language.Coq.Keywords
