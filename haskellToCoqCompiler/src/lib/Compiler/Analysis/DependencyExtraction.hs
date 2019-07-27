@@ -191,10 +191,8 @@ conDeclDependencies (HS.ConDecl _ _ types) =
 -- | Removes the names of the given type variable declarations from a set
 --   of dependency names.
 withoutTypeArgs :: [HS.TypeVarDecl] -> Set DependencyName -> Set DependencyName
-withoutTypeArgs args set = set \\ Set.fromList (map varPatToName args)
- where
-  varPatToName :: HS.TypeVarDecl -> DependencyName
-  varPatToName (HS.DeclIdent _ ident) = VarName (HS.Ident ident)
+withoutTypeArgs args set =
+  set \\ Set.fromList (map (VarName . HS.Ident . HS.fromDeclIdent) args)
 
 -------------------------------------------------------------------------------
 -- Function declarations                                                     --
@@ -222,7 +220,5 @@ funcDeclDependencies' _ = Set.empty
 -- | Removes the names for the given variable patterns from a set of
 --   dependencies.
 withoutArgs :: [HS.VarPat] -> Set DependencyName -> Set DependencyName
-withoutArgs args set = set \\ Set.fromList (map varPatToName args)
- where
-  varPatToName :: HS.VarPat -> DependencyName
-  varPatToName (HS.VarPat _ ident) = VarName (HS.Ident ident)
+withoutArgs args set =
+  set \\ Set.fromList (map (VarName . HS.Ident . HS.fromVarPat) args)

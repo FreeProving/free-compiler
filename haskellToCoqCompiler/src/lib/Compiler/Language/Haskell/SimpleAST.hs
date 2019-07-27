@@ -201,6 +201,18 @@ data Alt = Alt
   deriving (Eq, Show)
 
 -------------------------------------------------------------------------------
+-- Getters                                                                   --
+-------------------------------------------------------------------------------
+
+-- | Extracts the actual identifier from an identifier in a declaration.
+fromDeclIdent :: DeclIdent -> String
+fromDeclIdent (DeclIdent _ ident) = ident
+
+-- | Extracts the actual identifier from a variable pattern.
+fromVarPat :: VarPat -> String
+fromVarPat (VarPat _ ident) = ident
+
+-------------------------------------------------------------------------------
 -- Smart constructors                                                        --
 -------------------------------------------------------------------------------
 

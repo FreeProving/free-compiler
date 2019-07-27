@@ -146,7 +146,7 @@ convertDataDecl (HS.DataDecl srcSpan (HS.DeclIdent _ ident) typeVarDecls conDecl
   returnType = HS.typeApp
     srcSpan
     (HS.Ident ident)
-    (map (HS.TypeVar srcSpan . fromDeclIdent) typeVarDecls)
+    (map (HS.TypeVar srcSpan . HS.fromDeclIdent) typeVarDecls)
 
   -- | Generates the body of the @Inductive@ sentence and the @Arguments@
   --   sentences for the constructors but not the smart the smart constructors
@@ -183,7 +183,7 @@ convertDataDecl (HS.DataDecl srcSpan (HS.DeclIdent _ ident) typeVarDecls conDecl
   generateArgumentsSentence :: HS.ConDecl -> Converter G.Sentence
   generateArgumentsSentence (HS.ConDecl _ (HS.DeclIdent _ conIdent) _) = do
     Just qualid <- inEnv $ lookupIdent ConScope (HS.Ident conIdent)
-    let typeVarIdents = map (HS.Ident . fromDeclIdent) typeVarDecls
+    let typeVarIdents = map (HS.Ident . HS.fromDeclIdent) typeVarDecls
     typeVarQualids <- mapM (inEnv . lookupIdent TypeScope) typeVarIdents
     return
       (G.ArgumentsSentence
@@ -201,7 +201,7 @@ convertDataDecl (HS.DataDecl srcSpan (HS.DeclIdent _ ident) typeVarDecls conDecl
   --   declaration.
   generateSmartConDecl :: HS.ConDecl -> Converter G.Sentence
   generateSmartConDecl (HS.ConDecl _ declIdent argTypes) = localEnv $ do
-    let conIdent = HS.Ident (fromDeclIdent declIdent)
+    let conIdent = HS.Ident (HS.fromDeclIdent declIdent)
     Just qualid             <- inEnv $ lookupIdent ConScope conIdent
     Just smartQualid        <- inEnv $ lookupIdent SmartConScope conIdent
     typeVarDecls'           <- convertTypeVarDecls G.Implicit typeVarDecls
@@ -258,7 +258,7 @@ convertTypeVarDecls
   -> [HS.TypeVarDecl] -- ^ The type variable declarations.
   -> Converter [G.Binder]
 convertTypeVarDecls explicitness typeVarDecls =
-  generateTypeVarDecls' explicitness (map fromDeclIdent typeVarDecls)
+  generateTypeVarDecls' explicitness (map HS.fromDeclIdent typeVarDecls)
 
 -- | Generates explicit or implicit Coq binders for the type variables with
 --   the given names that are either declared in the head of a data type or
@@ -297,7 +297,7 @@ generateTypeVarDecls' explicitness idents
 --   TODO warn if there are unused type signatures.
 filterAndDefineTypeSig :: HS.Decl -> Converter ()
 filterAndDefineTypeSig (HS.TypeSig _ idents typeExpr) = do
-  mapM_ (modifyEnv . flip defineTypeSig typeExpr . HS.Ident . fromDeclIdent)
+  mapM_ (modifyEnv . flip defineTypeSig typeExpr . HS.Ident . HS.fromDeclIdent)
         idents
 filterAndDefineTypeSig _ = return () -- ignore other declarations.
 
@@ -407,7 +407,7 @@ convertArg' ident' (Just argType) = do
 --   and returned together with the binder.
 convertAnonymousArg :: Maybe HS.Type -> Converter (String, G.Binder)
 convertAnonymousArg mArgType = do
-  ident'    <- freshCoqIdent freshArgPrefix
+  ident' <- freshCoqIdent freshArgPrefix
   binder <- convertArg' ident' mArgType
   return (ident', binder)
 
@@ -586,14 +586,6 @@ convertVarPat (HS.VarPat _ ident) = do
   -- TODO detect redefinition
   ident' <- renameAndDefineVar ident
   return (G.QualidPat (G.bare ident'))
-
--------------------------------------------------------------------------------
--- Utility functions                                                         --
--------------------------------------------------------------------------------
-
--- | Extracts the actual identifier from an identifier in a declaration.
-fromDeclIdent :: HS.DeclIdent -> String
-fromDeclIdent (HS.DeclIdent _ ident) = ident
 
 -------------------------------------------------------------------------------
 -- Free monad                                                                --
