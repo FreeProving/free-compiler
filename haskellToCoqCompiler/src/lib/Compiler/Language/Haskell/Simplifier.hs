@@ -20,7 +20,8 @@ module Compiler.Language.Haskell.Simplifier
   )
 where
 
-import           Data.Maybe                     ( isJust
+import           Data.Maybe                     ( catMaybes
+                                                , isJust
                                                 , fromJust
                                                 )
 import           Control.Monad                  ( when )
@@ -102,7 +103,7 @@ simplifyModule (H.Module srcSpan modHead pragmas imports decls)
   | otherwise = do
     modIdent <- mapM simplifyModuleHead modHead
     decls'   <- mapM simplifyDecl decls
-    return (HS.Module srcSpan modIdent decls')
+    return (HS.Module srcSpan modIdent (catMaybes decls'))
 simplifyModule modDecl = notSupported "XML modules" modDecl
 
 -- | Gets the module name from the module head.
@@ -123,20 +124,21 @@ simplifyModuleHead (H.ModuleHead _ (H.ModuleName _ modIdent) _ exports) = do
 --
 --   Only data type, type synonym, function declarations (including pattern
 --   bindings for 0-ary functions) and type signatures are supported.
-simplifyDecl :: H.Decl SrcSpan -> Simplifier HS.Decl
+--   Fixity signatures are allowed but will return @Nothing@.
+simplifyDecl :: H.Decl SrcSpan -> Simplifier (Maybe HS.Decl)
 
 -- Type synonym declarations.
 simplifyDecl (H.TypeDecl srcSpan declHead typeExpr) = do
   (declIdent, typeVars) <- simplifyDeclHead declHead
   typeExpr'             <- simplifyType typeExpr
-  return (HS.TypeDecl srcSpan declIdent typeVars typeExpr')
+  return (Just (HS.TypeDecl srcSpan declIdent typeVars typeExpr'))
 
 -- Data type declarations.
 simplifyDecl (H.DataDecl srcSpan (H.DataType _) Nothing declHead conDecls []) =
   do
     (declIdent, typeVars) <- simplifyDeclHead declHead
     conDecls'             <- mapM simplifyConDecl conDecls
-    return (HS.DataDecl srcSpan declIdent typeVars conDecls')
+    return (Just (HS.DataDecl srcSpan declIdent typeVars conDecls'))
 
 -- Not supported data declarations.
 simplifyDecl decl@(H.DataDecl _ (H.NewType _) _ _ _ _) =
@@ -147,7 +149,7 @@ simplifyDecl decl@(H.DataDecl _ _ _ _ _ (_ : _)) =
   notSupported "Type classes" decl
 
 -- Function declarations.
-simplifyDecl (H.FunBind _ [match]) = simplifyFuncDecl match
+simplifyDecl (H.FunBind _ [match]) = simplifyFuncDecl match >>= return . Just
 
 -- Function declarations with more than one rule are not supported.
 simplifyDecl decl@(H.FunBind _ _) =
@@ -158,7 +160,7 @@ simplifyDecl (H.PatBind srcSpan (H.PVar _ declName) (H.UnGuardedRhs _ expr) Noth
   = do
     declIdent <- simplifyFuncDeclName declName
     expr'     <- simplifyExpr expr
-    return (HS.FuncDecl srcSpan declIdent [] expr')
+    return (Just (HS.FuncDecl srcSpan declIdent [] expr'))
 
 -- The pattern-binding for a 0-ary function must not use guards are have a
 -- where block.
@@ -175,14 +177,12 @@ simplifyDecl decl@(H.PatBind _ _ _ _) =
 simplifyDecl (H.TypeSig srcSpan names typeExpr) = do
   names'    <- mapM simplifyFuncDeclName names
   typeExpr' <- simplifyType typeExpr
-  return (HS.TypeSig srcSpan names' typeExpr')
+  return (Just (HS.TypeSig srcSpan names' typeExpr'))
 
 -- The user is allowed to specify fixities of custom infix declarations
--- and they are respected by the haskell-src-exts parser.
-simplifyDecl (H.InfixDecl srcSpan assoc precedence ops) = do
-  assoc' <- simplifyAssoc assoc
-  ops'   <- mapM simplifyUnqualOp ops
-  return (HS.FixitySig srcSpan assoc' precedence ops')
+-- and they are respected by the haskell-src-exts parser, but we do not
+-- represent them in the AST.
+simplifyDecl (     H.InfixDecl   _ _ _ _) = return Nothing
 
 -- All other declarations are not supported.
 simplifyDecl decl@(H.TypeFamDecl _ _ _ _) = notSupported "Type families" decl
@@ -218,26 +218,6 @@ simplifyDecl decl@(H.MinimalPragma _ _      ) = notSupported "Pragmas" decl
 simplifyDecl decl@(H.CompletePragma _ _ _   ) = notSupported "Pragmas" decl
 simplifyDecl decl@(H.RoleAnnotDecl _ _ _) =
   notSupported "Role annotations" decl
-
--------------------------------------------------------------------------------
--- Infix operator fixity declarations                                        --
--------------------------------------------------------------------------------
-
--- | Converts the data type that is used to mark the operator associativity
---   in operator fixity declarations.
-simplifyAssoc :: H.Assoc SrcSpan -> Simplifier HS.Assoc
-simplifyAssoc (H.AssocNone  _) = return HS.AssocNone
-simplifyAssoc (H.AssocLeft  _) = return HS.AssocLeft
-simplifyAssoc (H.AssocRight _) = return HS.AssocRight
-
--- | Simplifies an infix operator from a fixity declaration.
-simplifyUnqualOp :: H.Op SrcSpan -> Simplifier HS.Op
-simplifyUnqualOp (H.VarOp srcSpan name) = do
-  HS.DeclIdent _ ident <- simplifyFuncDeclName name
-  return (HS.VarOp srcSpan (HS.Ident ident))
-simplifyUnqualOp (H.ConOp srcSpan name) = do
-  HS.DeclIdent _ ident <- simplifyConDeclName name
-  return (HS.ConOp srcSpan (HS.Ident ident))
 
 -------------------------------------------------------------------------------
 -- Data type and type synonym declarations                                   --

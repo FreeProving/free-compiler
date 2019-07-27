@@ -39,10 +39,6 @@ instance Pretty Name where
   pretty (Ident ident) = prettyString ident
   pretty (Symbol symbol) = parens (prettyString symbol)
 
--- | The name of a function, constructor or build-in operator used in infix
---   notation, e.g. @x \`f\` y@ or @x : xs@, @n + m@.
-type OpName = Name
-
 -- | The name of a function or build-in operator used in prefix notation, e.g.
 --   @f x y@ or @(+) n m@
 type VarName = Name
@@ -78,13 +74,6 @@ data ConPat = ConPat SrcSpan ConName
 --   The only purpose of this data type is to add location information to
 --   the identifer for a variable.
 data VarPat = VarPat SrcSpan String
-  deriving (Eq, Show)
-
--- | The name of a function or constructor that is used in infix notation.
---
---   E.g. @'VarOp' ('Ident' \"f\")@ for @\`f\`@ or @'ConOp' ('Symbol' \":\")@
---   for @(:)@.
-data Op = VarOp SrcSpan OpName | ConOp SrcSpan OpName
   deriving (Eq, Show)
 
 -------------------------------------------------------------------------------
@@ -141,8 +130,6 @@ data Decl
     -- ^ A function declaration.
   | TypeSig SrcSpan [DeclIdent] Type
     -- ^ A type signature of one or more function declarations.
-  | FixitySig SrcSpan Assoc (Maybe Int) [Op]
-    -- ^ A fixity signature of an infix declaration.
   deriving (Eq, Show)
 
 -- | A constructor declaration.
@@ -154,10 +141,6 @@ data ConDecl = ConDecl
   SrcSpan   -- ^ A source span that spans the entire constructor declaration.
   DeclIdent -- ^ The name of the constructor.
   [Type]    -- ^ The types of the constructor arguments.
-  deriving (Eq, Show)
-
--- | The associativity of a infix declaration.
-data Assoc = AssocNone | AssocLeft | AssocRight
   deriving (Eq, Show)
 
 -------------------------------------------------------------------------------

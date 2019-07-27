@@ -15,8 +15,7 @@ testPartialityAnalysis = describe "Compiler.Analysis.PartialityAnalysis" $ do
     $ shouldSucceed
     $ fromConverter
     $ do
-        decls <- mapM
-          parseTestDecl
+        decls <- parseTestDecls
           [ "head :: [a] -> a"
           , "head xs = case xs of { [] -> undefined; x : xs' -> x }"
           ]
@@ -29,8 +28,7 @@ testPartialityAnalysis = describe "Compiler.Analysis.PartialityAnalysis" $ do
     $ shouldSucceed
     $ fromConverter
     $ do
-        decls <- mapM
-          parseTestDecl
+        decls <- parseTestDecls
           [ "head :: [a] -> a"
           , "head xs = case xs of { [] -> undefined; x : xs' -> x }"
           , "heads :: [[a]] -> [a]"
@@ -45,8 +43,7 @@ testPartialityAnalysis = describe "Compiler.Analysis.PartialityAnalysis" $ do
     $ shouldSucceed
     $ fromConverter
     $ do
-        decls <- mapM
-          parseTestDecl
+        decls <- parseTestDecls
           [ "head :: [a] -> a"
           , "head xs = case xs of {"
           ++ "  []      -> error \"head: empty list\";"
@@ -62,8 +59,7 @@ testPartialityAnalysis = describe "Compiler.Analysis.PartialityAnalysis" $ do
     $ shouldSucceed
     $ fromConverter
     $ do
-        decls <- mapM
-          parseTestDecl
+        decls <- parseTestDecls
           [ "head :: [a] -> a"
           , "head xs = case xs of {"
           ++ "  []      -> error \"head: empty list\";"

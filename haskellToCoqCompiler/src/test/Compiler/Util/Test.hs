@@ -4,6 +4,8 @@ module Compiler.Util.Test where
 
 import           Test.Hspec
 
+import           Data.Maybe                     ( catMaybes )
+
 import           Compiler.Converter
 import           Compiler.Converter.State
 import           Compiler.Language.Coq.AST     as G
@@ -70,13 +72,13 @@ parseTestExpr input =
   liftReporter (parseExpr "<test-input>" input) >>= simplifyExpr
 
 -- | Parses and simplifies a Haskell declaration for testing purposes.
-parseTestDecl :: String -> Simplifier HS.Decl
+parseTestDecl :: String -> Simplifier (Maybe HS.Decl)
 parseTestDecl input =
   liftReporter (parseDecl "<test-input>" input) >>= simplifyDecl
 
 -- | Parses and simplifies Haskell declarations for testing purposes.
 parseTestDecls :: [String] -> Simplifier [HS.Decl]
-parseTestDecls = mapM parseTestDecl
+parseTestDecls input = mapM parseTestDecl input >>= return . catMaybes
 
 -------------------------------------------------------------------------------
 -- Conversion utility functions                                              --
