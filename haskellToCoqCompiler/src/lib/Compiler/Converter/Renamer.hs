@@ -10,8 +10,11 @@
 --   would cause a name conflict. Therefore, one of them needs to be renamed.
 
 module Compiler.Converter.Renamer
-  ( mustRenameIdent
+  ( -- * Predicates
+    mustRenameIdent
+    -- * Rename identifiers
   , renameIdent
+    -- * Define and automatically rename identifiers
   , renameAndDefineTypeCon
   , renameAndDefineTypeVar
   , renameAndDefineCon

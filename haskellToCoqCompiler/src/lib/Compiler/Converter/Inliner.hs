@@ -3,7 +3,6 @@ module Compiler.Converter.Inliner where
 import           Data.Map.Strict                ( Map )
 import qualified Data.Map.Strict               as Map
 
-import           Compiler.Converter.Fresh
 import           Compiler.Converter.State
 import           Compiler.Converter.Subst
 import qualified Compiler.Language.Haskell.SimpleAST
@@ -23,18 +22,18 @@ inlineDecl _ decl = return decl
 inlineExpr :: [HS.Decl] -> HS.Expr -> Converter HS.Expr
 inlineExpr decls = inlineAndBind
  where
-   -- | Maps the names of function declarations in 'decls' to the argument
-   --   identifiers and right hand sides.
-  declMap :: Map HS.Name ([String], HS.Expr)
+   -- | Maps the names of function declarations in 'decls' to the arguments
+   --   and right hand sides of the functions.
+  declMap :: Map HS.Name ([HS.VarPat], HS.Expr)
   declMap = foldr insertFuncDecl Map.empty decls
 
    -- | Inserts a function declaration into 'declMap'.
   insertFuncDecl
     :: HS.Decl                          -- ^ The declaration to insert.
-    -> Map HS.Name ([String], HS.Expr) -- ^ The map to insert into.
-    -> Map HS.Name ([String], HS.Expr)
+    -> Map HS.Name ([HS.VarPat], HS.Expr) -- ^ The map to insert into.
+    -> Map HS.Name ([HS.VarPat], HS.Expr)
   insertFuncDecl (HS.FuncDecl _ (HS.DeclIdent _ ident) args expr) =
-    Map.insert (HS.Ident ident) (map HS.fromVarPat args, expr)
+    Map.insert (HS.Ident ident) (args, expr)
   insertFuncDecl _ = id
 
   -- | Applies 'inlineExpr'' on the given expression and wraps the result with
@@ -57,14 +56,10 @@ inlineExpr decls = inlineAndBind
   --   argument for the passed value.
   inlineExpr' :: HS.Expr -> Converter ([String], HS.Expr)
   inlineExpr' var@(HS.Var _ name) = case Map.lookup name declMap of
-    Nothing               -> return ([], var)
-    Just (argIdents, rhs) -> do
-      argIdents' <- mapM freshHaskellIdent argIdents
-      let argNames = map HS.Ident argIdents
-          argVars' = map (flip HS.Var . HS.Ident) argIdents'
-          subst    = composeSubsts (zipWith singleSubst' argNames argVars')
-      rhs' <- applySubst subst rhs
-      return (argIdents', rhs')
+    Nothing          -> return ([], var)
+    Just (args, rhs) -> do
+      (args', rhs') <- renameArgs args rhs
+      return (map HS.fromVarPat args', rhs')
 
   -- Substitute argument of inlined function and inline recursively in
   -- function arguments.
@@ -98,6 +93,8 @@ inlineExpr decls = inlineAndBind
   inlineExpr' expr@(HS.ErrorExpr  _ _) = return ([], expr)
   inlineExpr' expr@(HS.IntLiteral _ _) = return ([], expr)
 
+  -- | Performs inlining on the right hand side of the given @case@-expression
+  --   alternative.
   inlineAlt :: HS.Alt -> Converter HS.Alt
   inlineAlt (HS.Alt srcSpan conPat varPats expr) = do
     expr' <- inlineAndBind expr

@@ -8,6 +8,8 @@ module Compiler.Converter.Subst
   , composeSubsts
     -- * Application
   , applySubst
+    -- * Rename arguments
+  , renameArgs
   )
 where
 
@@ -65,7 +67,7 @@ singleSubst'' = Subst .: Map.singleton
 composeSubst :: Subst -> Subst -> Subst
 composeSubst s1@(Subst m1) (Subst m2) =
   let m2' = fmap (\f srcSpan -> f srcSpan >>= applySubst s1) m2
-  in Subst (m1 `Map.union` m2')
+  in  Subst (m1 `Map.union` m2')
 
 -- | Creates a new substituion that applies all given substitutions after
 --   each other.
@@ -119,6 +121,23 @@ applySubst (Subst substMap) = applySubst'
     (varPats', expr') <- renameArgs varPats expr
     return (HS.Alt srcSpan conPat varPats' expr')
 
+-------------------------------------------------------------------------------
+-- Rename arguments                                                          --
+-------------------------------------------------------------------------------
+
+-- | Renames the arguments bound by the given variable patterns in the given
+--   expression to fresh variables.
+--
+--   Returns the new names for the variables
+renameArgs :: [HS.VarPat] -> HS.Expr -> Converter ([HS.VarPat], HS.Expr)
+renameArgs args expr = do
+  args' <- mapM freshVarPat args
+  let argNames = map (HS.Ident . HS.fromVarPat) args
+      argVars' = map (flip HS.Var . HS.Ident . HS.fromVarPat) args'
+      argSubst = composeSubsts (zipWith singleSubst' argNames argVars')
+  expr' <- applySubst argSubst expr
+  return (args', expr')
+ where
   -- | Generates a fresh identifier for the given variable pattern and returns
   --   a variable pattern that preserves the source span of the original
   --   pattern.
@@ -126,14 +145,3 @@ applySubst (Subst substMap) = applySubst'
   freshVarPat (HS.VarPat srcSpan ident) = do
     ident' <- freshHaskellIdent ident
     return (HS.VarPat srcSpan ident')
-
-  -- | Renames the arguments bound by the given variable patterns in the given
-  --   expression by fresh variables.
-  renameArgs :: [HS.VarPat] -> HS.Expr -> Converter ([HS.VarPat], HS.Expr)
-  renameArgs args expr = do
-    args' <- mapM freshVarPat args
-    let argNames = map (HS.Ident . HS.fromVarPat) args
-        argVars' = map (flip HS.Var . HS.Ident . HS.fromVarPat) args'
-        argSubst = composeSubsts (zipWith singleSubst' argNames argVars')
-    expr' <- applySubst argSubst expr
-    return (args', expr')
