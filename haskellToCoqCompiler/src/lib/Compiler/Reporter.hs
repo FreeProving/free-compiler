@@ -71,7 +71,7 @@ data Severity = Internal | Error | Warning | Info
   deriving (Eq, Show)
 
 -- | A message reported by the compiler.
-data Message = Message (Maybe SrcSpan) Severity String
+data Message = Message SrcSpan Severity String
   deriving (Eq, Show)
 
 -------------------------------------------------------------------------------
@@ -127,7 +127,7 @@ instance Monad m => Applicative (ReporterT m) where
 --   'fail' is overwritten such that internal errors (e.g. pattern matching
 --   failures in @do@-blocks) are caught.
 instance Monad m => Monad (ReporterT m) where
-  fail = reportFatal . Message Nothing Internal
+  fail = reportFatal . Message NoSrcSpan Internal
   return = ReporterT . return . return
   (>>=) rt f = ReporterT $ do
      (mx, ms) <- runReporterT rt
@@ -195,7 +195,7 @@ reportIOErrors =
 
 -- | Reports the given IO error as a fatal error with no location information.
 reportIOError :: IOError -> Reporter a
-reportIOError = reportFatal . Message Nothing Error . ioErrorMessageText
+reportIOError = reportFatal . Message NoSrcSpan Error . ioErrorMessageText
  where
   ioErrorMessageText :: IOError -> String
   ioErrorMessageText err =
@@ -275,12 +275,12 @@ instance Pretty Severity where
 --
 --   Lists of messages are separated by a newline.
 instance Pretty Message where
-  pretty (Message maybeSrcSpan severity msg) =
-    (prettyMaybe "<no location info>" maybeSrcSpan <> colon)
+  pretty (Message srcSpan severity msg) =
+    (pretty srcSpan <> colon)
       <+>  (pretty severity <> colon)
       <$$> (indent 4 $ prettyText msg)
       <>   line
-      <>   prettyCodeBlock maybeSrcSpan
+      <>   prettyCodeBlock srcSpan
   prettyList = prettySeparated line
 
 -- | Creates a document that shows the line of code that caused a message to
@@ -288,18 +288,23 @@ instance Pretty Message where
 --
 --   If the message contains no location information or no source code the
 --   empty document is returned.
-prettyCodeBlock :: Maybe SrcSpan -> Doc
-prettyCodeBlock Nothing = empty
-prettyCodeBlock (Just SrcSpan { srcSpanCodeLines = [] }) = empty
-prettyCodeBlock (Just srcSpan@SrcSpan { srcSpanCodeLines = (code : _) }) =
-  gutterDoc
+prettyCodeBlock :: SrcSpan -> Doc
+prettyCodeBlock srcSpan
+  | hasSourceCode srcSpan
+  = gutterDoc
     <$$> firstLineNumberDoc
-    <+>  prettyString code
+    <+>  prettyString firstLine
     <$$> gutterDoc
     <>   highlightDoc
     <>   ellipsisDoc
     <>   line
+  | otherwise
+  = empty
  where
+  -- | The first line of source code spanned by the given source span.
+  firstLine :: String
+  firstLine = head (srcSpanCodeLines srcSpan)
+
   -- | Document for the first line number covered by the source span including
   --   padding and a trailing pipe symbol.
   firstLineNumberDoc :: Doc
@@ -322,7 +327,7 @@ prettyCodeBlock (Just srcSpan@SrcSpan { srcSpanCodeLines = (code : _) }) =
   highlightWidth :: Int
   highlightWidth
     | isMultiLine
-    = length code - srcSpanStartColumn srcSpan + 1
+    = length firstLine - srcSpanStartColumn srcSpan + 1
     | otherwise
     = max 1 $ srcSpanEndColumn srcSpan - srcSpanStartColumn srcSpan
 

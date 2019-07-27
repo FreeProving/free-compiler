@@ -74,8 +74,7 @@ usageError
   => String    -- ^ The error message.
   -> a SrcSpan -- ^ The node that caused the error.
   -> Simplifier r
-usageError message node =
-  reportFatal $ Message (Just (H.ann node)) Error message
+usageError message node = reportFatal $ Message (H.ann node) Error message
 
 -- | Creates a reporter that reports a warning if the given condition is met.
 warnIf
@@ -84,8 +83,7 @@ warnIf
   -> String    -- ^ The waning to print if the condition is not met.
   -> a SrcSpan -- ^ The node that caused the warning.
   -> Simplifier ()
-warnIf cond msg node =
-  when cond (report $ Message (Just (H.ann node)) Warning msg)
+warnIf cond msg node = when cond (report $ Message (H.ann node) Warning msg)
 
 -------------------------------------------------------------------------------
 -- Modules                                                                   --

@@ -65,6 +65,7 @@ import qualified Compiler.Language.Haskell.SimpleAST
                                                as HS
 import           Compiler.Pretty
 import           Compiler.Reporter
+import           Compiler.SrcSpan
 
 -------------------------------------------------------------------------------
 -- Environment                                                               --
@@ -396,4 +397,4 @@ instance MonadReporter Converter where
 -- | Internal errors (e.g. pattern matching failures in @do@-blocks) are
 --   cause fatal error messages to be reported.
 instance MonadFail Converter where
-  fail = reportFatal . Message Nothing Internal
+  fail = reportFatal . Message NoSrcSpan Internal

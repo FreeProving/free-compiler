@@ -13,6 +13,7 @@
 module Compiler.SrcSpan
   ( SrcSpan(..)
   , SrcSpanConverter(..)
+  , hasSourceCode
   , spansMultipleLines
   )
 where
@@ -29,14 +30,16 @@ import           Compiler.Pretty
 --   In contrast to the source spans provided by the @haskell-src-exts@ package
 --   this source span provides access to the lines of code that contain the
 --   source span.
-data SrcSpan = SrcSpan
-  { srcSpanFilename    :: String
-  , srcSpanStartLine   :: Int
-  , srcSpanStartColumn :: Int
-  , srcSpanEndLine     :: Int
-  , srcSpanEndColumn   :: Int
-  , srcSpanCodeLines   :: [String]
-  }
+data SrcSpan =
+  SrcSpan
+    { srcSpanFilename    :: String   -- ^ The name of the file.
+    , srcSpanStartLine   :: Int      -- ^ The number of the first spanned line.
+    , srcSpanStartColumn :: Int      -- ^ The offset within the first line.
+    , srcSpanEndLine     :: Int      -- ^ The number of the last spanned line.
+    , srcSpanEndColumn   :: Int      -- ^ The offset within the last line.
+    , srcSpanCodeLines   :: [String] -- ^ The source code of the spanned lines.
+    }
+  | NoSrcSpan -- ^ Indicates that no location information is available.
   deriving (Eq, Show)
 
 -------------------------------------------------------------------------------
@@ -83,8 +86,14 @@ instance SrcSpanConverter H.SrcLoc where
 -- Utility functions                                                         --
 -------------------------------------------------------------------------------
 
+-- | Tests whether the given source span has attached source code.
+hasSourceCode :: SrcSpan -> Bool
+hasSourceCode NoSrcSpan = False
+hasSourceCode SrcSpan { srcSpanCodeLines = src } = not (null src)
+
 -- | Tests whether the given source span spans multiple lines.
 spansMultipleLines :: SrcSpan -> Bool
+spansMultipleLines NoSrcSpan = False
 spansMultipleLines srcSpan = srcSpanStartLine srcSpan /= srcSpanEndLine srcSpan
 
 -------------------------------------------------------------------------------
@@ -95,10 +104,24 @@ spansMultipleLines srcSpan = srcSpanStartLine srcSpan /= srcSpanEndLine srcSpan
 --   and end position of the source span.
 --
 --   If the source span spans only a single line, the end position is omitted.
+--
+--   If n
 instance Pretty SrcSpan where
-  pretty srcSpan =
-    prettyString (srcSpanFilename srcSpan)
+  pretty NoSrcSpan = prettyString "<no location info>"
+  pretty srcSpan
+    | spansMultipleLines srcSpan
+    = prettyString (srcSpanFilename srcSpan)
       <> colon
+      <> int (srcSpanStartLine srcSpan)
+      <> colon
+      <> int (srcSpanStartColumn srcSpan)
+    | otherwise
+    = prettyString (srcSpanFilename srcSpan)
+      <> colon
+      <> int (srcSpanStartLine srcSpan)
+      <> colon
+      <> int (srcSpanStartColumn srcSpan)
+      <> char '-'
       <> int (srcSpanStartLine srcSpan)
       <> colon
       <> int (srcSpanStartColumn srcSpan)

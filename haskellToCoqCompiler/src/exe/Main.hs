@@ -21,6 +21,7 @@ import           Compiler.Pretty                ( putPrettyLn
                                                 )
 import           Compiler.Pretty.Coq            ( )
 import           Compiler.Reporter
+import           Compiler.SrcSpan
 
 -------------------------------------------------------------------------------
 -- Command line option parser                                                --
@@ -79,9 +80,9 @@ parseArgs
 parseArgs args
   | null errors = return opts { optInputFiles = nonOpts }
   | otherwise = do
-    mapM_ (report . Message Nothing Error) errors
+    mapM_ (report . Message NoSrcSpan Error) errors
     reportFatal $ Message
-      Nothing
+      NoSrcSpan
       Error
       (  "Failed to parse command line arguments.\n"
       ++ "Use '--help' for usage information."
@@ -143,7 +144,7 @@ run :: Options -> ReporterIO (IO ())
 run opts
   | optShowHelp opts = return putUsageInfo
   | null (optInputFiles opts) = do
-    report $ Message Nothing Info "No input file."
+    report $ Message NoSrcSpan Info "No input file."
     return putUsageInfo
   | otherwise = do
     actions <- mapM (processInputFile opts) (optInputFiles opts)

@@ -67,7 +67,7 @@ parseHaskell filename contents =
     ParseOk node ->
       return (fmap (toMessageSrcSpan :: SrcSpanInfo -> SrcSpan) node)
     ParseFailed loc msg -> do
-      reportFatal $ Message (Just (toMessageSrcSpan loc)) Error msg
+      reportFatal $ Message (toMessageSrcSpan loc) Error msg
  where
   -- | A map that maps the name of the Haskell source file to the lines of
   --   source code.

@@ -10,6 +10,7 @@ import           System.IO.Error                ( ioError
 import           Test.Hspec
 
 import           Compiler.Reporter
+import           Compiler.SrcSpan
 
 -- | Test group for all @Compiler.Reporter@ tests.
 testReporter :: Spec
@@ -41,11 +42,11 @@ testRunReporter = describe "runReporter" $ do
 
 -- | A message that is reported by some reporters for testing purposes.
 testMessage1 :: Message
-testMessage1 = Message Nothing Error "Keyboard not found\nPress F1 to Resume"
+testMessage1 = Message NoSrcSpan Error "Keyboard not found\nPress F1 to Resume"
 
 -- | A message that is reported by some reporters for testing purposes.
 testMessage2 :: Message
-testMessage2 = Message Nothing Error "Maximum call stack size exceeded!"
+testMessage2 = Message NoSrcSpan Error "Maximum call stack size exceeded!"
 
 -- | A value that is returned some reporters for testing purposes.
 testValue :: Int

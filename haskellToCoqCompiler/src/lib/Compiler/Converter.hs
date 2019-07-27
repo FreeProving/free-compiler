@@ -313,7 +313,7 @@ lookupTypeSigOrFail srcSpan ident = do
     Just typeExpr -> return typeExpr
     Nothing ->
       reportFatal
-        $ Message (Just srcSpan) Error
+        $ Message srcSpan Error
         $ ("Missing type signature for " ++ showPretty ident)
 
 -- | Splits the annotated type of a Haskell function with the given arity into
@@ -677,5 +677,5 @@ lookupIdentOrFail srcSpan scope name = do
     Just qualid -> return qualid
     Nothing ->
       reportFatal
-        $ Message (Just srcSpan) Error
+        $ Message srcSpan Error
         $ ("Unknown " ++ showPretty scope ++ ": " ++ showPretty name)
