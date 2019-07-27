@@ -4,19 +4,25 @@
 
 module Compiler.Pretty
   ( module Text.PrettyPrint.Leijen.Text
+    -- * Pretty printing
   , prettySeparated
   , prettyMaybe
   , prettyString
   , prettyText
+    -- * Trailing lines
+  , TrailingLine
+    -- * Rendering
   , renderPretty'
+    -- * Output
   , putPretty
   , putPrettyLn
   , hPutPretty
   , hPutPrettyLn
   , writePrettyFile
+    -- * Conversion
   , showPretty
   )
-  where
+where
 
 import           System.IO
 import           Data.List                      ( intersperse )

@@ -36,7 +36,7 @@ import qualified Compiler.Language.Haskell.SimpleAST
 -- Common utilities                                                          --
 -------------------------------------------------------------------------------
 
--- | Wrapper that is used by 'typeDependency'' and 'exprDependencies'' to
+-- | Wrapper that is used by 'typeDependencies'' and 'exprDependencies'' to
 --   remember whether a name is a variable or constructor name such that
 --   'typeVars', 'typeCons', 'vars' and 'cons' can filter them appropriatly.
 data DependencyName = VarName HS.Name | ConName HS.Name
@@ -156,11 +156,6 @@ altDependencies :: HS.Alt -> Set DependencyName
 altDependencies (HS.Alt _ (HS.ConPat _ name) args expr) =
   Set.insert (ConName name) (withoutArgs args (exprDependencies' expr))
 
--- | Gets the name for a function or constructor used in infix notation.
-opDependencies :: HS.Op -> Set DependencyName
-opDependencies (HS.VarOp _ name) = varName name
-opDependencies (HS.ConOp _ name) = conName name
-
 -------------------------------------------------------------------------------
 -- Type declarations                                   --
 -------------------------------------------------------------------------------
@@ -222,7 +217,7 @@ funcDeclDependencies = unwrapSet . funcDeclDependencies'
 funcDeclDependencies' :: HS.Decl -> Set DependencyName
 funcDeclDependencies' (HS.FuncDecl _ _ args expr) =
   withoutArgs args (exprDependencies' expr)
-funcDeclEntries _ = Set.empty
+funcDeclDependencies' _ = Set.empty
 
 -- | Removes the names for the given variable patterns from a set of
 --   dependencies.

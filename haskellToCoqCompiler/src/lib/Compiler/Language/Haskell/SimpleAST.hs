@@ -29,8 +29,8 @@ type TypeVarIdent = String
 --   'Name's are intended to be comparable. They are used as keys to
 --   identify nodes of the dependency graph for example.
 data Name
-  = Ident String  -- ^ An identifier, e.g. @Ident "f"@ for a function @f@.
-  | Symbol String -- ^ A symbolic name, e.g. @Symbol "+"@ for @(+)@.
+  = Ident String  -- ^ An identifier, e.g. @Ident \"f\"@ for a function @f@.
+  | Symbol String -- ^ A symbolic name, e.g. @Symbol \"+\"@ for @(+)@.
   deriving (Eq, Ord, Show)
 
 -- | Haskell identifiers and symbols can be pretty printed because they are
@@ -40,7 +40,7 @@ instance Pretty Name where
   pretty (Symbol symbol) = parens (prettyString symbol)
 
 -- | The name of a function, constructor or build-in operator used in infix
---   notation, e.g. @x `f` y@ or @x : xs@, @n + m@.
+--   notation, e.g. @x \`f\` y@ or @x : xs@, @n + m@.
 type OpName = Name
 
 -- | The name of a function or build-in operator used in prefix notation, e.g.
@@ -82,7 +82,7 @@ data VarPat = VarPat SrcSpan String
 
 -- | The name of a function or constructor that is used in infix notation.
 --
---   E.g. @'VarOp' ('Ident' "f")@ for @`f`@ or @'ConOp' ('Symbol' ":")@
+--   E.g. @'VarOp' ('Ident' \"f\")@ for @\`f\`@ or @'ConOp' ('Symbol' \":\")@
 --   for @(:)@.
 data Op = VarOp SrcSpan OpName | ConOp SrcSpan OpName
   deriving (Eq, Show)
@@ -111,7 +111,7 @@ data Module = Module
 --
 --   @
 --     append :: [a] -> [a] -> [a]
---     xs `append` ys = ...
+--     xs \`append\` ys = ...
 --   @
 --
 --   But it is currently not supported to use symbolic names for such
@@ -126,7 +126,7 @@ data Module = Module
 --   specified as well.
 --
 --   @
---     infixr 5 `append`
+--     infixr 5 \`append\`
 --   @
 --
 --   While it is allowed to define constructors in infix notation, data type

@@ -297,7 +297,7 @@ simplifyConDecl conDecl@(H.QualConDecl _ _ (Just _) _) =
 -- | Simplifies a constructor declaration of a data type declaration.
 --
 --   The constructor must be an ordinary data constructor. Infix constructors
---   @t1 `C` t2@ are treated as syntactic sugar for @C t1 t2@.
+--   @t1 \`C\` t2@ are treated as syntactic sugar for @C t1 t2@.
 --   Record constructors and constructors whose name is a symbol (see
 --   'simplifyConDeclName') are not supported.
 simplifyConDecl' :: H.ConDecl SrcSpan -> Simplifier HS.ConDecl
@@ -339,10 +339,10 @@ simplifyFuncDecl (H.Match _ _ _ rhss@(H.GuardedRhss _ _) _) =
 simplifyFuncDecl (H.Match _ _ _ _ (Just binds)) =
   notSupported "Local declarations" binds
 
--- Infix function declarations are allowed when they have the for @x `f` y = e@
--- but not @x (...) y = e@ (See 'simplifyFuncDeclName').
+-- Infix function declarations are allowed when they have the for
+-- @x \`f\` y = e@ but not @x (...) y = e@ (See 'simplifyFuncDeclName').
 --
--- We treat @x1 `f` x2 ... xn@ as syntactic sugar for @f x1 x2 ... xn@.
+-- We treat @x1 \`f\` x2 ... xn@ as syntactic sugar for @f x1 x2 ... xn@.
 simplifyFuncDecl (H.InfixMatch pos arg declName args rhs binds) =
   simplifyFuncDecl (H.Match pos declName (arg : args) rhs binds)
 
