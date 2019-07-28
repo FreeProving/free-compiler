@@ -227,13 +227,15 @@ testConvertRecFuncDecls = describe "convertRecFuncDecls" $ do
     ++ "  := match xs with"
     ++ "     | nil        => pure 0%Z"
     ++ "     | cons x xs' => addInt Shape Pos"
-    ++ "         (xs' >>= (fun xs'_0 => length_0 Shape Pos xs'_0))"
+    ++ "         (xs' >>= (fun (xs'_0 : List Shape Pos a) =>"
+    ++ "           length_0 Shape Pos xs'_0))"
     ++ "         (pure 1%Z)"
     ++ "     end. "
     ++ "Definition length (Shape : Type) (Pos : Shape -> Type) {a : Type}"
     ++ "  (xs : Free Shape Pos (List Shape Pos a))"
     ++ "  : Free Shape Pos (Int Shape Pos)"
-    ++ "  := xs >>= (fun xs_0 => length_0 Shape Pos xs_0)."
+    ++ "  := xs >>= (fun (xs_0 : List Shape Pos a) =>"
+    ++ "       length_0 Shape Pos xs_0)."
 
   it "lifts uses of the decreasing argument"
     $ shouldSucceed
@@ -249,12 +251,14 @@ testConvertRecFuncDecls = describe "convertRecFuncDecls" $ do
     ++ "     | nil => Nil Shape Pos"
     ++ "     | cons x xs' => Cons Shape Pos"
     ++ "         (pure xs)"
-    ++ "         (xs' >>= (fun xs'_0 => tails_0 Shape Pos xs'_0))"
+    ++ "         (xs' >>= (fun (xs'_0 : List Shape Pos a) =>"
+    ++ "           tails_0 Shape Pos xs'_0))"
     ++ "     end. "
     ++ " Definition tails (Shape : Type) (Pos : Shape -> Type) {a : Type}"
     ++ "   (xs : Free Shape Pos (List Shape Pos a))"
     ++ "   : Free Shape Pos (List Shape Pos (List Shape Pos a))"
-    ++ "   := xs >>= (fun xs_0 => tails_0 Shape Pos xs_0)."
+    ++ "   := xs >>= (fun (xs_0 : List Shape Pos a) =>"
+    ++ "        tails_0 Shape Pos xs_0)."
 
 -------------------------------------------------------------------------------
 -- Types                                                                     --

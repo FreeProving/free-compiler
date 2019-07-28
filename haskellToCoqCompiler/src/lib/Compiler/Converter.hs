@@ -709,7 +709,11 @@ convertExpr' (HS.Var srcSpan name) args = do
           -- The decreasing argument of a recursive helper function must be
           -- unwrapped first.
           let (before, decArg : after) = splitAt index args'
-          generateBind decArg Nothing $ \decArg' ->
+          -- TODO add type annotation
+          Just funcType <- inEnv $ lookupTypeSig name
+          (argTypes, _) <- splitFuncType funcType arity
+          decArgType'   <- convertType' (argTypes !! index)
+          generateBind decArg (Just decArgType') $ \decArg' ->
             generateApplyN arity callee (before ++ decArg' : after)
     else do
       -- If this is the decreasing argument of a recursive helper function,
@@ -824,6 +828,7 @@ genericApply func args = G.app (G.Qualid func) (genericArgs ++ args)
   where genericArgs = map (G.Qualid . fst) CoqBase.freeArgs
 
 -- | Wraps the given Coq term with the @pure@ constructor of the @Free@ monad.
+-- TODO rename or return converter
 generatePure :: G.Term -> G.Term
 generatePure = G.app (G.Qualid CoqBase.freePureCon) . (: [])
 
