@@ -410,9 +410,9 @@ convertNonRecFuncDecl decl@(HS.FuncDecl _ (HS.DeclIdent srcSpan ident) args expr
 convertRecFuncDecls :: [HS.Decl] -> Converter [G.Sentence]
 convertRecFuncDecls decls = do
   (helperDecls, mainDecls) <- mapAndUnzipM transformRecFuncDecl decls
-  fixBodies                <- localEnv $ do
-    helperDecls' <- mapM (inlineDecl mainDecls) (concat helperDecls)
-    mapM convertRecHelperFuncDecl helperDecls'
+  fixBodies                <- mapM
+    (localEnv . (>>= convertRecHelperFuncDecl) . inlineDecl mainDecls)
+    (concat helperDecls)
   mainFunctions <- mapM convertNonRecFuncDecl mainDecls
   return
     ( -- TODO comment
@@ -681,25 +681,36 @@ convertExpr' (HS.Con srcSpan name) args = do
   qualid     <- lookupIdentOrFail srcSpan SmartConScope name
   args'      <- mapM convertExpr args
   Just arity <- inEnv $ lookupArity SmartConScope name
-  let expectedArgs'   = take arity args'
-      additionalArgs' = drop arity args'
-  generateApply (genericApply qualid expectedArgs') additionalArgs'
+  generateApplyN arity (genericApply qualid []) args'
 
 -- Functions and variables.
 convertExpr' (HS.Var srcSpan name) args = do
   qualid   <- lookupIdentOrFail srcSpan VarScope name
   args'    <- mapM convertExpr args
+  -- Is this a variable or function?
   function <- inEnv $ isFunction name
   if function
     then do
+    -- If the function is partial, we need to add the @Partial@ instance.
+      partial <- inEnv $ isPartial name
+      let partialArg = [ G.Qualid (fst CoqBase.partialArg) | partial ]
+          callee     = genericApply qualid partialArg
+      -- Is this a recursive helper function?
       Just arity <- inEnv $ lookupArity VarScope name
-      partial    <- inEnv $ isPartial name
-      let expectedArgs'   = take arity args'
-          additionalArgs' = drop arity args'
-          partialArg      = [ G.Qualid (fst CoqBase.partialArg) | partial ]
-      generateApply (genericApply qualid (partialArg ++ expectedArgs'))
-                    additionalArgs'
+      mDecArg    <- inEnv $ lookupDecArg name
+      case mDecArg of
+        Nothing ->
+          -- Regular functions can be applied directly.
+          generateApplyN arity callee args'
+        Just index -> do
+          -- The decreasing argument of a recursive helper function must be
+          -- unwrapped first.
+          let (before, decArg : after) = splitAt index args'
+          generateBind decArg Nothing $ \decArg' ->
+            generateApplyN arity callee (before ++ decArg' : after)
     else do
+      -- If this is the decreasing argument of a recursive helper function,
+      -- it must be lifted into the @Free@ monad.
       pureArg <- inEnv $ isPureVar name
       if pureArg
         then generateApply (generatePure (G.Qualid qualid)) args'
@@ -753,6 +764,16 @@ generateApply term []           = return term
 generateApply term (arg : args) = do
   term' <- generateBind term Nothing $ \f -> return (G.app f [arg])
   generateApply term' args
+
+-- | Generates a Coq term for applying a function with the given arity to
+--   the given arguments.
+--
+--   If there are too many arguments, the remaining arguments are applied
+--   using 'generateApply'. There should not be too few arguments (i.e. the
+--   function should be fully applied).
+generateApplyN :: Int -> G.Term -> [G.Term] -> Converter G.Term
+generateApplyN arity term args =
+  generateApply (G.app term (take arity args)) (drop arity args)
 
 -- | Converts an alternative of a Haskell @case@-expressions to Coq.
 convertAlt :: HS.Alt -> Converter G.Equation
