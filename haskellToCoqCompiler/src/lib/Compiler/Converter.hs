@@ -630,103 +630,129 @@ convertType' (HS.TypeFunc _ t1 t2) = do
 -- Expressions                                                               --
 -------------------------------------------------------------------------------
 
+-- | Applies eta-abstractions to a function or constructor application util the
+--   function or constructor is fully applied.
+--
+--   E.g. an application @f x@ of a binary function @f@ will be converted
+--   to @\y -> f x y@ where @y@ is a fresh variable. This function does not
+--   apply the eta-conversion recursively.
+--
+--   No eta-conversions are applied to nested expressions.
+etaConvert :: HS.Expr -> Converter HS.Expr
+etaConvert rootExpr = arityOf rootExpr >>= etaAbstractN rootExpr
+ where
+  -- | Determines the number of arguments expected to be passed to the given
+  --   expression.
+  arityOf :: HS.Expr -> Converter Int
+  arityOf (HS.Con _ name) = do
+    arity <- inEnv $ lookupArity SmartConScope name
+    return (maybe 0 id arity)
+  arityOf (HS.Var _ name) = do
+    arity <- inEnv $ lookupArity VarScope name
+    return (maybe 0 id arity)
+  arityOf (HS.App _ e1 _) = do
+    arity <- arityOf e1
+    return (max 0 (arity - 1))
+  arityOf _ = return 0
+
+  -- | Applies the given number of eta-abstractions to an expression.
+  etaAbstractN :: HS.Expr -> Int -> Converter HS.Expr
+  etaAbstractN expr 0 = return expr
+  etaAbstractN expr n = do
+    x     <- freshHaskellIdent freshArgPrefix
+    expr' <- etaAbstractN
+      (HS.app NoSrcSpan expr [HS.Var NoSrcSpan (HS.Ident x)])
+      (n - 1)
+    return (HS.Lambda NoSrcSpan [HS.VarPat NoSrcSpan x] expr')
+
 -- | Converts a Haskell expression to Coq.
 convertExpr :: HS.Expr -> Converter G.Term
-convertExpr expr = convertExpr' expr >>= uncurry etaConvert
- where
-  -- | Performs the given number of eta conversions of the given Coq term.
-  etaConvert :: G.Term -> Int -> Converter G.Term
-  etaConvert term 0     = return term
-  etaConvert term arity = do
-    x     <- freshCoqIdent freshArgPrefix
-    term' <- etaConvert (G.app term [G.Qualid (G.bare x)]) (arity - 1)
-    return (generatePure (G.fun [x] [Nothing] term'))
+convertExpr expr = etaConvert expr >>= flip convertExpr' []
 
--- | Converts a Haskell expression to Coq and returns besides the converted
---   expression the number of arguments it still needs to be applied to.
+-- | Converts the application of a Haskell expression to the given arguments
+--   to Coq.
 --
---   When a defined function is applied partially, the returned function is
---   not wrapped with the @Free@ monad. This is an optimization to make
---   generated function applications more readable (it avoids unwrapping
---   intermediate monadic values in case of fully applied functions). We can
---   apply this optimization because we know that the partial application of a
---   function never fails.
---
---   If the second component of the returned pair is @0@, the expression (first
---   component) does not expect more arguments (regarding the optimization
---   described above) and can be returned directly by 'convertExpr'. Otherwise
---   'convertExpr' needs to perform an eta-conversion i.e. wrap the returned
---   expression with one lambda abstraction @pure (fun x => ...))@ and apply
---   the fresh variable @x@ to the returned expression for every missing
---   argument.
-convertExpr' :: HS.Expr -> Converter (G.Term, Int)
+--   This function assumes the outer most expression to be fully applied
+--   by the given arguments (see also 'etaConvert').
+convertExpr' :: HS.Expr -> [HS.Expr] -> Converter G.Term
 
 -- Constructors.
-convertExpr' (HS.Con srcSpan name) = do
+convertExpr' (HS.Con srcSpan name) args = do
   qualid     <- lookupIdentOrFail srcSpan SmartConScope name
+  args'      <- mapM convertExpr args
   Just arity <- inEnv $ lookupArity SmartConScope name
-  return (genericApply qualid [], arity)
+  let expectedArgs'   = take arity args'
+      additionalArgs' = drop arity args'
+  generateApply (genericApply qualid expectedArgs') additionalArgs'
 
 -- Functions and variables.
-convertExpr' (HS.Var srcSpan name) = do
-  qualid <- lookupIdentOrFail srcSpan VarScope name
-  -- Lookup arity of function. If there is no such entry, this is not
-  -- a function but a variable. Variables do not need the @Shape@ and
-  -- @Pos@ arguments.
-  mArity <- inEnv $ lookupArity VarScope name
-  case mArity of
-    Nothing -> do
+convertExpr' (HS.Var srcSpan name) args = do
+  qualid   <- lookupIdentOrFail srcSpan VarScope name
+  args'    <- mapM convertExpr args
+  function <- inEnv $ isFunction name
+  if function
+    then do
+      Just arity <- inEnv $ lookupArity VarScope name
+      partial    <- inEnv $ isPartial name
+      let expectedArgs'   = take arity args'
+          additionalArgs' = drop arity args'
+          partialArg      = [ G.Qualid (fst CoqBase.partialArg) | partial ]
+      generateApply (genericApply qualid (partialArg ++ expectedArgs'))
+                    additionalArgs'
+    else do
       pureArg <- inEnv $ isPureVar name
       if pureArg
-        then return (generatePure (G.Qualid qualid), 0)
-        else return (G.Qualid qualid, 0)
-    Just arity -> do
-      partial <- inEnv $ isPartial name
-      return
-        ( genericApply qualid [ G.Qualid (fst CoqBase.partialArg) | partial ]
-        , arity
-        )
+        then generateApply (generatePure (G.Qualid qualid)) args'
+        else generateApply (G.Qualid qualid) args'
 
--- If the callee is a partially applied function or constructor that still
--- expects arguments, we can apply it directly. Otherwise it will be a monadic
--- value and we need to bind the contained function first.
-convertExpr' (HS.App _ e1 e2) = do
-  (e1', arity) <- convertExpr' e1
-  e2'          <- convertExpr e2
-  if arity == 0
-    then generateBind' e1' Nothing $ \f -> return (G.app f [e2'])
-    else return (G.app e1' [e2'], arity - 1)
+-- Pass argument from applications to converter for callee.
+convertExpr' (HS.App _ e1 e2  ) args = convertExpr' e1 (e2 : args)
 
 -- @if@-expressions.
-convertExpr' (HS.If _ e1 e2 e3) = do
+convertExpr' (HS.If _ e1 e2 e3) []   = do
   e1' <- convertExpr e1
   let bool' = genericApply CoqBase.boolTypeCon []
-  generateBind' e1' (Just bool') $ \cond -> do
+  generateBind e1' (Just bool') $ \cond -> do
     e2' <- convertExpr e2
     e3' <- convertExpr e3
     return (G.If G.SymmetricIf cond Nothing e2' e3')
 
 -- @case@-expressions.
-convertExpr' (HS.Case _ expr alts) = do
+convertExpr' (HS.Case _ expr alts) [] = do
   expr' <- convertExpr expr
-  generateBind' expr' Nothing $ \value -> do
+  generateBind expr' Nothing $ \value -> do
     alts' <- mapM convertAlt alts
     return (G.match value alts')
 
 -- Error terms.
-convertExpr' (HS.Undefined _) = return (G.Qualid CoqBase.partialUndefined, 0)
-convertExpr' (HS.ErrorExpr _ msg) =
-  return (G.app (G.Qualid CoqBase.partialError) [G.string msg], 0)
+convertExpr' (HS.Undefined _) [] = return (G.Qualid CoqBase.partialUndefined)
+convertExpr' (HS.ErrorExpr _ msg) [] =
+  return (G.app (G.Qualid CoqBase.partialError) [G.string msg])
 
 -- Integer literals.
-convertExpr' (HS.IntLiteral _ value) =
-  return (generatePure (G.InScope (G.Num (fromInteger value)) (G.ident "Z")), 0)
+convertExpr' (HS.IntLiteral _ value) [] =
+  return (generatePure (G.InScope (G.Num (fromInteger value)) (G.ident "Z")))
 
 -- Lambda abstractions.
-convertExpr' (HS.Lambda _ args expr) = localEnv $ do
+convertExpr' (HS.Lambda _ args expr) [] = localEnv $ do
   args' <- mapM convertInferredArg args
   expr' <- convertExpr expr
-  return (foldr (generatePure .: G.Fun . return) expr' args', 0)
+  return (foldr (generatePure .: G.Fun . return) expr' args')
+
+-- Application of an expression other than a function or constructor
+-- application. (We use an as-pattern for @args@ such that we get a compile
+-- time warning when a node is added to the AST that we do not conver above).
+convertExpr' expr args@(_ : _) = do
+  expr' <- convertExpr' expr []
+  args' <- mapM convertExpr args
+  generateApply expr' args'
+
+-- | Generates a Coq term for applying a monadic term to the given arguments.
+generateApply :: G.Term -> [G.Term] -> Converter G.Term
+generateApply term []           = return term
+generateApply term (arg : args) = do
+  term' <- generateBind term Nothing $ \f -> return (G.app f [arg])
+  generateApply term' args
 
 -- | Converts an alternative of a Haskell @case@-expressions to Coq.
 convertAlt :: HS.Alt -> Converter G.Equation
@@ -773,6 +799,7 @@ genericApply :: G.Qualid -> [G.Term] -> G.Term
 genericApply func args = G.app (G.Qualid func) (genericArgs ++ args)
   where genericArgs = map (G.Qualid . fst) CoqBase.freeArgs
 
+-- | Wraps the given Coq term with the @pure@ constructor of the @Free@ monad.
 generatePure :: G.Term -> G.Term
 generatePure = G.app (G.Qualid CoqBase.freePureCon) . (: [])
 
@@ -800,17 +827,6 @@ generateBind expr' argType' generateRHS = localEnv $ do
   x   <- freshCoqIdent freshArgPrefix
   rhs <- generateRHS (G.Qualid (G.bare x))
   return (G.app (G.Qualid CoqBase.freeBind) [expr', G.fun [x] [argType'] rhs])
-
--- | Like 'generateBind', but the return type is compatible
---   with 'convertExpr''.
-generateBind'
-  :: G.Term
-  -> Maybe G.Term
-  -> (G.Term -> Converter G.Term)
-  -> Converter (G.Term, Int)
-generateBind' expr' argType' generateRHS = do
-  res <- generateBind expr' argType' generateRHS
-  return (res, 0)
 
 -------------------------------------------------------------------------------
 -- Error reporting                                                           --
