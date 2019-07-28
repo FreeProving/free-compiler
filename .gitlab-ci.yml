@@ -43,6 +43,21 @@ run-unit-tests:
     - cd haskellToCoqCompiler
     - ./build/bin/unit-tests
 
+# Compile Haskell to Coq compiler.
+build-compiler:
+  stage: build
+  script:
+    - echo "Building compiler..."
+    - cd haskellToCoqCompiler
+    - cabal new-update
+    - cabal new-build haskell-to-coq-compiler
+    - echo "Copy executable to build directory..."
+    - mkdir -p ./build/bin
+    - cp $(find dist-newstyle -name haskell-to-coq-compiler -type f) ./build/bin/haskell-to-coq-compiler
+  artifacts:
+    paths:
+      - ./haskellToCoqCompiler/build/bin/haskell-to-coq-compiler
+
 # Build Haddock documentation.
 build-docs:
   stage: build
