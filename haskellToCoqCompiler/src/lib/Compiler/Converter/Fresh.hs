@@ -17,10 +17,10 @@ freshArgPrefix = "x"
 
 -- | Gets the next fresh Haskell identifier from the current environment.
 --
---   All fresh identifiers start with an at-sign by convention. This ensures
---   that they cannot be confused with actual Haskell identifiers. They are
---   translated to Coq identifiers that start with an underscore by the
---   renamer. The at-sgn (or underscore) is followed by the given prefix and an
+--   All fresh identifiers contain an at-sign. This ensures that they cannot be
+--   confused with actual Haskell identifiers. The corresponding Coq identifier
+--   contains an underscore instead (see "Compiler.Converter.Renamer"). The
+--   at-sign (or underscore) is preceded by the given prefix and followed by an
 --   incrementing number (staring at @0@).
 --
 --   The freshly generated identifier is not inserted into the environment,
@@ -33,7 +33,7 @@ freshHaskellIdent prefix = do
     (env { freshIdentCount = Map.insert prefix (count + 1) (freshIdentCount env)
          }
     )
-  return ("@" ++ prefix ++ show count)
+  return (prefix ++ "@" ++ show count)
 
 -- | Gets the next fresh Haskell identifier from the current environment
 --   and renames it such that it can be used in Coq.

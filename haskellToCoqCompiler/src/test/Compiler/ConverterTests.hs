@@ -55,11 +55,11 @@ testConvertDataDecls = describe "convertDataDecls" $ do
           ++ "Arguments baz {Shape} {Pos} {a} {b}. "
           ++ "(* Smart constructors for Foo *) "
           ++ "Definition Bar (Shape : Type) (Pos : Shape -> Type) "
-          ++ " {a b : Type} (_x0 : Free Shape Pos a) "
-          ++ " : Free Shape Pos (Foo Shape Pos a b) := pure (bar _x0). "
+          ++ " {a b : Type} (x_0 : Free Shape Pos a) "
+          ++ " : Free Shape Pos (Foo Shape Pos a b) := pure (bar x_0). "
           ++ "Definition Baz (Shape : Type) (Pos : Shape -> Type) "
-          ++ " {a b : Type} (_x0 : Free Shape Pos b) "
-          ++ " : Free Shape Pos (Foo Shape Pos a b) := pure (baz _x0)."
+          ++ " {a b : Type} (x_0 : Free Shape Pos b) "
+          ++ " : Free Shape Pos (Foo Shape Pos a b) := pure (baz x_0)."
 
   it "renames constructors with same name as their data type"
     $ shouldSucceed
@@ -86,8 +86,8 @@ testConvertDataDecls = describe "convertDataDecls" $ do
           ++ "Arguments a {Shape} {Pos} {a0}. "
           ++ "(* Smart constructors for Foo *) "
           ++ "Definition A (Shape : Type) (Pos : Shape -> Type) "
-          ++ " {a0 : Type} (_x0 : Free Shape Pos a0) "
-          ++ " : Free Shape Pos (Foo Shape Pos a0) := pure (a _x0)."
+          ++ " {a0 : Type} (x_0 : Free Shape Pos a0) "
+          ++ " : Free Shape Pos (Foo Shape Pos a0) := pure (a x_0)."
 
   it "translates mutually recursive data types correctly"
     $ shouldSucceed
@@ -102,16 +102,16 @@ testConvertDataDecls = describe "convertDataDecls" $ do
           ++ "Arguments bar {Shape} {Pos}. "
           ++ "(* Smart constructors for Bar *) "
           ++ "Definition Bar0 (Shape : Type) (Pos : Shape -> Type)"
-          ++ "  (_x0 : Free Shape Pos (Foo Shape Pos))"
+          ++ "  (x_0 : Free Shape Pos (Foo Shape Pos))"
           ++ "  : Free Shape Pos (Bar Shape Pos)"
-          ++ "  := pure (bar _x0). "
+          ++ "  := pure (bar x_0). "
           ++ "(* Arguments sentences for Foo *) "
           ++ "Arguments foo {Shape} {Pos}. "
           ++ "(* Smart constructors for Foo *) "
           ++ "Definition Foo0 (Shape : Type) (Pos : Shape -> Type)"
-          ++ "  (_x0 : Free Shape Pos (Bar Shape Pos))"
+          ++ "  (x_0 : Free Shape Pos (Bar Shape Pos))"
           ++ "  : Free Shape Pos (Foo Shape Pos)"
-          ++ "  := pure (foo _x0)."
+          ++ "  := pure (foo x_0)."
 
 -------------------------------------------------------------------------------
 -- Non-recursive function declarations                                       --
@@ -160,7 +160,7 @@ testConvertNonRecFuncDecl = describe "convertNonRecursiveFunction" $ do
           ++ "  (x : Free Shape Pos a)"
           ++ "  (y : Free Shape Pos b)"
           ++ "  : Free Shape Pos c"
-          ++ "  := f >>= (fun _x0 => _x0 (Pair_ Shape Pos x y))."
+          ++ "  := f >>= (fun f_0 => f_0 (Pair_ Shape Pos x y))."
 
   it "translates partial functions correctly"
     $ shouldSucceed
@@ -289,7 +289,7 @@ testConvertConApp = context "constructor applications" $ do
         ("c", "C") <- renameAndDefineCon "C" 3
         "x"        <- renameAndDefineVar "x"
         "y"        <- renameAndDefineVar "y"
-        shouldTranslateExprTo "C x y" $ "pure (fun _x0 => C Shape Pos x y _x0)"
+        shouldTranslateExprTo "C x y" $ "pure (fun x_0 => C Shape Pos x y x_0)"
 
   it "converts multiply partial constructor applications correctly"
     $ shouldSucceed
@@ -298,7 +298,7 @@ testConvertConApp = context "constructor applications" $ do
         ("c", "C") <- renameAndDefineCon "C" 3
         "x"        <- renameAndDefineVar "x"
         shouldTranslateExprTo "C x"
-          $ "pure (fun _x0 => pure (fun _x1 => C Shape Pos x _x0 _x1))"
+          $ "pure (fun x_0 => pure (fun x_1 => C Shape Pos x x_0 x_1))"
 
   it "converts unapplied constructors correctly"
     $ shouldSucceed
@@ -306,8 +306,8 @@ testConvertConApp = context "constructor applications" $ do
     $ do
         ("c", "C") <- renameAndDefineCon "C" 3
         shouldTranslateExprTo "C"
-          $  "pure (fun _x0 => pure (fun _x1 => pure (fun _x2 =>"
-          ++ "  C Shape Pos _x0 _x1 _x2"
+          $  "pure (fun x_0 => pure (fun x_1 => pure (fun x_2 =>"
+          ++ "  C Shape Pos x_0 x_1 x_2"
           ++ ")))"
 
   it "converts infix constructor applications correctly"
@@ -345,7 +345,7 @@ testConvertFuncApp = context "function applications" $ do
         "f" <- renameAndDefineFunc "f" 3
         "x" <- renameAndDefineVar "x"
         "y" <- renameAndDefineVar "y"
-        shouldTranslateExprTo "f x y" $ "pure (fun _x0 => f Shape Pos x y _x0)"
+        shouldTranslateExprTo "f x y" $ "pure (fun x_0 => f Shape Pos x y x_0)"
 
   it "converts multiply partial function applications correctly"
     $ shouldSucceed
@@ -354,7 +354,7 @@ testConvertFuncApp = context "function applications" $ do
         "f" <- renameAndDefineFunc "f" 3
         "x" <- renameAndDefineVar "x"
         shouldTranslateExprTo "f x"
-          $ "pure (fun _x0 => pure (fun _x1 => f Shape Pos x _x0 _x1))"
+          $ "pure (fun x_0 => pure (fun x_1 => f Shape Pos x x_0 x_1))"
 
   it "converts unapplied functions correctly"
     $ shouldSucceed
@@ -362,8 +362,8 @@ testConvertFuncApp = context "function applications" $ do
     $ do
         "f" <- renameAndDefineFunc "f" 3
         shouldTranslateExprTo "f"
-          $  "pure (fun _x0 => pure (fun _x1 => pure (fun _x2 =>"
-          ++ "  f Shape Pos _x0 _x1 _x2"
+          $  "pure (fun x_0 => pure (fun x_1 => pure (fun x_2 =>"
+          ++ "  f Shape Pos x_0 x_1 x_2"
           ++ ")))"
 
   it "converts applications of partial functions correctly"
@@ -381,7 +381,7 @@ testConvertFuncApp = context "function applications" $ do
     $ do
         "e1" <- renameAndDefineVar "e1"
         "e2" <- renameAndDefineVar "e2"
-        "e1 e2" `shouldTranslateExprTo` "e1 >>= (fun _x0 => _x0 e2)"
+        "e1 e2" `shouldTranslateExprTo` "e1 >>= (fun e1_0 => e1_0 e2)"
 
   it "converts applications of functions that return functions correctly"
     $ shouldSucceed
@@ -390,7 +390,7 @@ testConvertFuncApp = context "function applications" $ do
         "f" <- renameAndDefineFunc "f" 1
         "x" <- renameAndDefineVar "x"
         "y" <- renameAndDefineVar "y"
-        "f x y" `shouldTranslateExprTo` "f Shape Pos x >>= (fun _x0 => _x0 y)"
+        "f x y" `shouldTranslateExprTo` "f Shape Pos x >>= (fun x_0 => x_0 y)"
 
 -- | Test group for translation of infix expressions.
 testConvertInfix :: Spec
@@ -404,12 +404,12 @@ testConvertInfix = context "infix expressions" $ do
   it "converts left sections correctly" $ shouldSucceed $ fromConverter $ do
     "f"  <- renameAndDefineFunc "f" 2
     "e1" <- renameAndDefineVar "e1"
-    "(e1 `f`)" `shouldTranslateExprTo` "pure (fun _x0 => f Shape Pos e1 _x0)"
+    "(e1 `f`)" `shouldTranslateExprTo` "pure (fun x_0 => f Shape Pos e1 x_0)"
 
   it "converts right sections correctly" $ shouldSucceed $ fromConverter $ do
     "f"  <- renameAndDefineFunc "f" 2
     "e2" <- renameAndDefineVar "e2"
-    "(`f` e2)" `shouldTranslateExprTo` "pure (fun _x0 => f Shape Pos _x0 e2)"
+    "(`f` e2)" `shouldTranslateExprTo` "pure (fun x_0 => f Shape Pos x_0 e2)"
 
 -- | Test group for translation of @if@-expressions.
 testConvertIf :: Spec
@@ -419,7 +419,7 @@ testConvertIf = context "if expressions" $ do
     "e2" <- renameAndDefineVar "e2"
     "e3" <- renameAndDefineVar "e3"
     shouldTranslateExprTo "if e1 then e2 else e3"
-      $ "e1 >>= (fun (_x0 : Bool Shape Pos) => if _x0 then e2 else e3)"
+      $ "e1 >>= (fun (e1_0 : Bool Shape Pos) => if e1_0 then e2 else e3)"
 
   it "there is no name conflict with custom `Bool`"
     $ shouldSucceed
@@ -430,7 +430,7 @@ testConvertIf = context "if expressions" $ do
         "e2"    <- renameAndDefineVar "e2"
         "e3"    <- renameAndDefineVar "e3"
         shouldTranslateExprTo "if e1 then e2 else e3"
-          $ "e1 >>= (fun (_x0 : Bool Shape Pos) => if _x0 then e2 else e3)"
+          $ "e1 >>= (fun (e1_0 : Bool Shape Pos) => if e1_0 then e2 else e3)"
 
 -- | Test group for translation of @case@-expressions.
 testConvertCase :: Spec
@@ -451,8 +451,8 @@ testConvertCase = context "case expressions" $ do
     ("c1", "C1") <- renameAndDefineCon "C1" 0
     ("c2", "C2") <- renameAndDefineCon "C2" 0
     shouldTranslateExprTo "case e of { C1 -> e1;  C2 -> e2 }"
-      $  "e >>= (fun _x0 =>"
-      ++ "  match _x0 with"
+      $  "e >>= (fun e_0 =>"
+      ++ "  match e_0 with"
       ++ "  | c1 => e1"
       ++ "  | c2 => e2"
       ++ "  end)"
@@ -463,8 +463,8 @@ testConvertCase = context "case expressions" $ do
     $ do
         "xs" <- renameAndDefineVar "xs"
         shouldTranslateExprTo "case xs of { [] -> undefined; y : ys -> y }"
-          $  "xs >>= (fun _x0 =>"
-          ++ "  match _x0 with"
+          $  "xs >>= (fun xs_0 =>"
+          ++ "  match xs_0 with"
           ++ "  | nil => undefined"
           ++ "  | cons y ys => y"
           ++ "  end)"

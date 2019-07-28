@@ -845,9 +845,21 @@ generateBind
 generateBind (G.App (G.Qualid con) ((G.PosArg arg) :| [])) _ generateRHS
   | con == CoqBase.freePureCon = generateRHS arg
 generateBind expr' argType' generateRHS = localEnv $ do
-  x   <- freshCoqIdent freshArgPrefix
+  x   <- freshCoqIdent (suggestPrefixFor expr')
   rhs <- generateRHS (G.Qualid (G.bare x))
   return (G.app (G.Qualid CoqBase.freeBind) [expr', G.fun [x] [argType'] rhs])
+ where
+  -- | Suggests a prefix for the fresh varibale the given expression
+  --   is bound to.
+  suggestPrefixFor :: G.Term -> String
+  suggestPrefixFor (G.Qualid qualid) =
+    maybe defaultPrefix id (G.unpackQualid qualid)
+  suggestPrefixFor _ = defaultPrefix
+
+  -- | The prefix for the fresh variable if 'suggestPrefixFor' cannot find
+  --   a better prefix.
+  defaultPrefix :: String
+  defaultPrefix = freshArgPrefix
 
 -------------------------------------------------------------------------------
 -- Error reporting                                                           --
