@@ -15,6 +15,7 @@ module Compiler.Converter.Subst
     -- * Application
   , applySubst
     -- * Rename arguments
+  , renameArgsSubst
   , renameArgs
   )
 where
@@ -91,7 +92,7 @@ composeSubsts = foldl composeSubst identitySubst
 --   abstractions and @case@-alternatives, such that no name conflict can
 --   occur.
 applySubst :: Subst -> HS.Expr -> Converter HS.Expr
-applySubst (Subst substMap) = applySubst'
+applySubst subst@(Subst substMap) = applySubst'
  where
   applySubst' :: HS.Expr -> Converter HS.Expr
   applySubst' expr@(HS.Var srcSpan name) =
@@ -112,7 +113,8 @@ applySubst (Subst substMap) = applySubst'
     alts' <- mapM applySubstAlt alts
     return (HS.Case srcSpan expr' alts')
   applySubst' (HS.Lambda srcSpan args expr) = do
-    (args', expr') <- renameArgs args expr
+    (args', argSubst) <- renameArgsSubst args
+    expr'             <- applySubst (composeSubst subst argSubst) expr
     return (HS.Lambda srcSpan args' expr')
 
   -- All other expressions remain unchanged.
@@ -124,25 +126,25 @@ applySubst (Subst substMap) = applySubst'
   -- | Applies the substituion on the current substitution.
   applySubstAlt :: HS.Alt -> Converter HS.Alt
   applySubstAlt (HS.Alt srcSpan conPat varPats expr) = do
-    (varPats', expr') <- renameArgs varPats expr
+    (varPats', varPatSubst) <- renameArgsSubst varPats
+    expr'                   <- applySubst (composeSubst subst varPatSubst) expr
     return (HS.Alt srcSpan conPat varPats' expr')
 
 -------------------------------------------------------------------------------
 -- Rename arguments                                                          --
 -------------------------------------------------------------------------------
 
--- | Renames the arguments bound by the given variable patterns in the given
---   expression to fresh variables.
+-- | Creates a substitution that renames the arguments bound by the given
+--   variable patterns to fresh variables.
 --
---   Returns the new names for the variables
-renameArgs :: [HS.VarPat] -> HS.Expr -> Converter ([HS.VarPat], HS.Expr)
-renameArgs args expr = do
+--   Returns the new names for the variables and the substitution.
+renameArgsSubst :: [HS.VarPat] -> Converter ([HS.VarPat], Subst)
+renameArgsSubst args = do
   args' <- mapM freshVarPat args
   let argNames = map (HS.Ident . HS.fromVarPat) args
       argVars' = map (flip HS.Var . HS.Ident . HS.fromVarPat) args'
       argSubst = composeSubsts (zipWith singleSubst' argNames argVars')
-  expr' <- applySubst argSubst expr
-  return (args', expr')
+  return (args', argSubst)
  where
   -- | Generates a fresh identifier for the given variable pattern and returns
   --   a variable pattern that preserves the source span of the original
@@ -151,3 +153,13 @@ renameArgs args expr = do
   freshVarPat (HS.VarPat srcSpan ident) = do
     ident' <- freshHaskellIdent ident
     return (HS.VarPat srcSpan ident')
+
+-- | Renames the arguments bound by the given variable patterns in the given
+--   expression to fresh variables.
+--
+--   Returns the new names for the variables and the resulting expression.
+renameArgs :: [HS.VarPat] -> HS.Expr -> Converter ([HS.VarPat], HS.Expr)
+renameArgs args expr = do
+  (args', subst) <- renameArgsSubst args
+  expr'          <- applySubst subst expr
+  return (args', expr')
