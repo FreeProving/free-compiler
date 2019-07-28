@@ -16,6 +16,7 @@ testConverter = describe "Compiler.Converter" $ do
   testConvertDataDecls
   testConvertExpr
   testConvertNonRecFuncDecl
+  testConvertRecFuncDecls
 
 -------------------------------------------------------------------------------
 -- Data type declarations                                                    --
@@ -174,11 +175,86 @@ testConvertNonRecFuncDecl = describe "convertNonRecursiveFunction" $ do
           ++ "  (P : Partial Shape Pos) {a : Type}"
           ++ "  (xs : Free Shape Pos (List Shape Pos a))"
           ++ "  : Free Shape Pos a"
-          ++ "  := xs >>= (fun _x0 =>"
-          ++ "       match _x0 with"
+          ++ "  := xs >>= (fun xs_0 =>"
+          ++ "       match xs_0 with"
           ++ "       | nil        => undefined"
           ++ "       | cons x xs' => x"
           ++ "       end)."
+
+-------------------------------------------------------------------------------
+-- Recursive function declarations                                           --
+-------------------------------------------------------------------------------
+
+-- | Test group for 'convertRecFuncDecls' tests.
+testConvertRecFuncDecls :: Spec
+testConvertRecFuncDecls = describe "convertRecFuncDecls" $ do
+  it "requires a case expression"
+    $ shouldReportFatal
+    $ fromConverter
+    $ convertTestDecls ["loop :: a", "loop = loop"]
+
+  it "requires a case expression for a variable"
+    $ shouldReportFatal
+    $ fromConverter
+    $ convertTestDecls ["loop :: a", "loop = case () of () -> loop"]
+
+  it "requires a case expression for an argument"
+    $ shouldReportFatal
+    $ fromConverter
+    $ do
+        "x" <- renameAndDefineFunc "x" 0
+        convertTestDecls ["loop :: a", "loop = case x of () -> loop"]
+
+  -- TODO detect whether the function is actually decreasing on it's
+  --      decreasing argument.
+  -- it "requires a decreasing argument"
+  --   $ shouldReportFatal
+  --   $ fromConverter
+  --   $ do
+  --       convertTestDecls ["loop :: a -> a", "loop x = case x of () -> loop x"]
+
+  it "translates simple recursive functions correctly"
+    $  shouldSucceed
+    $  fromConverter
+    $  shouldTranslateDeclsTo
+         [ "length :: [a] -> Int"
+         , "length xs = case xs of { [] -> 0; x : xs' -> length xs' + 1 }"
+         ]
+    $  "Fixpoint length_0 (Shape : Type) (Pos : Shape -> Type) {a : Type}"
+    ++ "  (xs : List Shape Pos a)"
+    ++ "  {struct xs}"
+    ++ "  : Free Shape Pos (Int Shape Pos)"
+    ++ "  := match xs with"
+    ++ "     | nil        => pure 0%Z"
+    ++ "     | cons x xs' => addInt Shape Pos"
+    ++ "         (xs' >>= (fun xs'_0 => length_0 Shape Pos xs'_0))"
+    ++ "         (pure 1%Z)"
+    ++ "     end. "
+    ++ "Definition length (Shape : Type) (Pos : Shape -> Type) {a : Type}"
+    ++ "  (xs : Free Shape Pos (List Shape Pos a))"
+    ++ "  : Free Shape Pos (Int Shape Pos)"
+    ++ "  := xs >>= (fun xs_0 => length_0 Shape Pos xs_0)."
+
+  it "lifts uses of the decreasing argument"
+    $ shouldSucceed
+    $ fromConverter
+    $ shouldTranslateDeclsTo
+          ["tails :: [a] -> [[a]]"
+          , "tails xs = case xs of { [] -> []; x : xs' -> xs : tails xs' }"]
+    $ "Fixpoint tails_0 (Shape : Type) (Pos : Shape -> Type) {a : Type}"
+    ++ "  (xs : List Shape Pos a)"
+    ++ "  {struct xs}"
+    ++ "  : Free Shape Pos (List Shape Pos (List Shape Pos a))"
+    ++ "  := match xs with"
+    ++ "     | nil => Nil Shape Pos"
+    ++ "     | cons x xs' => Cons Shape Pos"
+    ++ "         (pure xs)"
+    ++ "         (xs' >>= (fun xs'_0 => tails_0 Shape Pos xs'_0))"
+    ++ "     end. "
+    ++ " Definition tails (Shape : Type) (Pos : Shape -> Type) {a : Type}"
+    ++ "   (xs : Free Shape Pos (List Shape Pos a))"
+    ++ "   : Free Shape Pos (List Shape Pos (List Shape Pos a))"
+    ++ "   := xs >>= (fun xs_0 => tails_0 Shape Pos xs_0)."
 
 -------------------------------------------------------------------------------
 -- Types                                                                     --
