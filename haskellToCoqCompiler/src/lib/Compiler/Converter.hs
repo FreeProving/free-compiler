@@ -487,12 +487,15 @@ convertRecHelperFuncDecl :: HS.Decl -> Converter G.FixBody
 convertRecHelperFuncDecl (HS.FuncDecl srcSpan declIdent args expr) =
   localEnv $ do
     let helperName = HS.Ident (HS.fromDeclIdent declIdent)
+        argNames   = map (HS.Ident . HS.fromVarPat) args
     (qualid, binders, returnType') <- convertFuncHead srcSpan helperName args
     expr'                          <- convertExpr expr
+    Just decArgIndex               <- inEnv $ lookupDecArg helperName
+    Just decArg' <- inEnv $ lookupIdent VarScope (argNames !! decArgIndex)
     return
       (G.FixBody qualid
                  (NonEmpty.fromList binders)
-                 Nothing
+                 (Just (G.StructOrder decArg'))
                  (Just returnType')
                  expr'
       )
