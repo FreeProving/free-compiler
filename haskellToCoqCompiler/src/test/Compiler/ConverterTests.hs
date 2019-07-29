@@ -188,22 +188,24 @@ testConvertNonRecFuncDecl = describe "convertNonRecursiveFunction" $ do
 -- | Test group for 'convertRecFuncDecls' tests.
 testConvertRecFuncDecls :: Spec
 testConvertRecFuncDecls = describe "convertRecFuncDecls" $ do
-  it "requires a case expression"
+  it "requires at least one argument"
     $ shouldReportFatal
     $ fromConverter
     $ convertTestDecls ["loop :: a", "loop = loop"]
 
-  it "requires a case expression for a variable"
+  it "requires a case expression (if expressions don't suffice)"
     $ shouldReportFatal
     $ fromConverter
-    $ convertTestDecls ["loop :: a", "loop = case () of () -> loop"]
+    $ convertTestDecls
+        ["fac :: Int -> Int", "fac n = if n == 0 then 1 else n * fac (n - 1)"]
 
-  it "requires a case expression for an argument"
-    $ shouldReportFatal
-    $ fromConverter
-    $ do
-        "x" <- renameAndDefineFunc "x" 0
-        convertTestDecls ["loop :: a", "loop = case x of () -> loop"]
+  -- TODO matched variable must be an argument.
+  -- it "requires the case expression to match an argument"
+  --   $ shouldReportFatal
+  --   $ fromConverter
+  --   $ do
+  --       "f" <- renameAndDefineFunc "f" 0
+  --       convertTestDecls ["loop :: a", "loop = case f of () -> loop"]
 
   -- TODO detect whether the function is actually decreasing on it's
   --      decreasing argument.
@@ -237,30 +239,7 @@ testConvertRecFuncDecls = describe "convertRecFuncDecls" $ do
     ++ "  := xs >>= (fun (xs_0 : List Shape Pos a) =>"
     ++ "       length_0 Shape Pos xs_0)."
 
-  it "lifts uses of the decreasing argument"
-    $ shouldSucceed
-    $ fromConverter
-    $ shouldTranslateDeclsTo
-          ["tails :: [a] -> [[a]]"
-          , "tails xs = case xs of { [] -> []; x : xs' -> xs : tails xs' }"]
-    $ "Fixpoint tails_0 (Shape : Type) (Pos : Shape -> Type) {a : Type}"
-    ++ "  (xs : List Shape Pos a)"
-    ++ "  {struct xs}"
-    ++ "  : Free Shape Pos (List Shape Pos (List Shape Pos a))"
-    ++ "  := match xs with"
-    ++ "     | nil => Nil Shape Pos"
-    ++ "     | cons x xs' => Cons Shape Pos"
-    ++ "         (pure xs)"
-    ++ "         (xs' >>= (fun (xs'_0 : List Shape Pos a) =>"
-    ++ "           tails_0 Shape Pos xs'_0))"
-    ++ "     end. "
-    ++ " Definition tails (Shape : Type) (Pos : Shape -> Type) {a : Type}"
-    ++ "   (xs : Free Shape Pos (List Shape Pos a))"
-    ++ "   : Free Shape Pos (List Shape Pos (List Shape Pos a))"
-    ++ "   := xs >>= (fun (xs_0 : List Shape Pos a) =>"
-    ++ "        tails_0 Shape Pos xs_0)."
-
-  it "can translate mutually recursive functions"
+  it "translates mutually recursive functions correctly"
     $  shouldSucceed
     $  fromConverter
     $  shouldTranslateDeclsTo
@@ -298,6 +277,29 @@ testConvertRecFuncDecls = describe "convertRecFuncDecls" $ do
     ++ "  : Free Shape Pos (Bool Shape Pos)"
     ++ "  := xs >>= (fun (xs_0 : List Shape Pos a) =>"
     ++ "           odd_len_0 Shape Pos xs_0)."
+
+  it "translates recursive functions with nested case expressions correctly"
+    $  shouldSucceed
+    $  fromConverter
+    $  shouldTranslateDeclsTo
+         [ "tails :: [a] -> [[a]]"
+         , "tails xs = xs : case xs of { [] -> []; x : xs' -> tails xs' }"
+         ]
+    $  "Fixpoint tails_0 (Shape : Type) (Pos : Shape -> Type) {a : Type}"
+    ++ "  (xs : List Shape Pos a)"
+    ++ "  {struct xs}"
+    ++ "  : Free Shape Pos (List Shape Pos (List Shape Pos a))"
+    ++ "  := match xs with"
+    ++ "     | nil => Nil Shape Pos"
+    ++ "     | cons x xs' => Cons Shape Pos xs'"
+    ++ "         (xs' >>=  (fun (xs'_0 : List Shape Pos a) =>"
+    ++ "            tails_0 Shape Pos xs'_0))"
+    ++ "     end. "
+    ++ " Definition tails (Shape : Type) (Pos : Shape -> Type) {a : Type}"
+    ++ "   (xs : Free Shape Pos (List Shape Pos a))"
+    ++ "   : Free Shape Pos (List Shape Pos (List Shape Pos a))"
+    ++ "   := Cons Shape Pos xs (xs >>= (fun (xs_0 : List Shape Pos a) =>"
+    ++ "        tails_0 Shape Pos xs_0))."
 
 -------------------------------------------------------------------------------
 -- Types                                                                     --

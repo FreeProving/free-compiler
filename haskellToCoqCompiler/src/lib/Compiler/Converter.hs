@@ -31,7 +31,9 @@ import           Data.Composition
 import           Data.Maybe                     ( maybe
                                                 , catMaybes
                                                 )
-import           Data.List                      ( elemIndex )
+import           Data.List                      ( elemIndex
+                                                , nub
+                                                )
 import           Data.List.NonEmpty             ( NonEmpty((:|)) )
 import qualified Data.List.NonEmpty            as NonEmpty
 
@@ -425,61 +427,125 @@ convertRecFuncDecls decls = do
 --
 --   Returns the name of the decreasing argument.
 --
---   TODO the case expression does not have to be the outermost expression.
-identifyDecArg :: HS.Expr -> Converter HS.Name
-identifyDecArg (HS.Case _ (HS.Var srcSpan decArg) _) = do
-  isArg <- inEnv $ not . isFunction decArg
-  if isArg
-    then return decArg
-    else
+--   TODO verify that all functions in the SCC are decreasing on this argument.
+identifyDecArg
+  :: HS.Expr -> Converter (HS.Name, [HS.Expr], [HS.Expr] -> HS.Expr)
+identifyDecArg rootExpr = do
+  case identifyDecArg' rootExpr of
+    (Nothing, _, _) ->
       reportFatal
-      $  Message srcSpan Error
-      $  "Expected name of decreasing argument, got function '"
-      ++ showPretty decArg
-      ++ "'."
-identifyDecArg expr =
-  reportFatal
-    $  Message (HS.getSrcSpan expr) Error
-    $  "Outermost expression of recursive function must perform pattern"
-    ++ "matching on structurally decreasing argument."
+        $ Message (HS.getSrcSpan rootExpr) Error
+        $ "Cannot identify decreasing argument."
+    (Just decArg, caseExprs, replaceCases) ->
+      return (decArg, caseExprs, replaceCases)
+ where
+  -- | Recursively identifies the decreasing argument (variable matched by the
+  --   outermost-case expression).
+  identifyDecArg' :: HS.Expr -> (Maybe HS.Name, [HS.Expr], [HS.Expr] -> HS.Expr)
+  identifyDecArg' expr@(HS.Case _ (HS.Var _ decArg) _) =
+    (Just decArg, [expr], \[expr'] -> expr')
+  identifyDecArg' (HS.App srcSpan e1 e2) =
+    let (decArg1, cases1, replace1) = identifyDecArg' e1
+        (decArg2, cases2, replace2) = identifyDecArg' e2
+    in  ( uniqueDecArg [decArg1, decArg2]
+        , cases1 ++ cases2
+        , \exprs ->
+          let e1' = replace1 (take (length cases1) exprs)
+              e2' = replace2 (drop (length cases1) exprs)
+          in  HS.App srcSpan e1' e2'
+        )
+  identifyDecArg' (HS.If srcSpan e1 e2 e3) =
+    let (decArg1, cases1, replace1) = identifyDecArg' e1
+        (decArg2, cases2, replace2) = identifyDecArg' e2
+        (decArg3, cases3, replace3) = identifyDecArg' e3
+    in  ( uniqueDecArg [decArg1, decArg2, decArg3]
+        , cases1 ++ cases2 ++ cases3
+        , \exprs ->
+          let e1' = replace1 (take (length cases1) exprs)
+              e2' =
+                replace2 (take (length cases2) (drop (length cases1) exprs))
+              e3' = replace3 (drop (length cases1 + length cases2) exprs)
+          in  HS.If srcSpan e1' e2' e3'
+        )
+  identifyDecArg' expr = (Nothing, [], const expr)
+
+  -- | Ensures that all the names of the given list are identical (except for
+  --   @Nothing@) and then returns that unique name.
+  --
+  --   Returns @Nothing@ if there is no such unique name (i.e. because the list
+  --   is empty or because there are different names).
+  uniqueDecArg :: [Maybe HS.Name] -> Maybe HS.Name
+  uniqueDecArg decArgs = case nub (catMaybes decArgs) of
+    []       -> Nothing
+    [decArg] -> Just decArg
+    _        -> Nothing
 
 -- | Transforms the given recursive function declaration into recursive
 --   helper functions and a non recursive main function.
 transformRecFuncDecl :: HS.Decl -> Converter ([HS.Decl], HS.Decl)
 transformRecFuncDecl (HS.FuncDecl srcSpan declIdent args expr) = do
-  -- Name of original function.
-  let name     = HS.Ident (HS.fromDeclIdent declIdent)
-      argNames = map (HS.Ident . HS.fromVarPat) args
-      arity    = length (args)
-
   -- Identify decreasing argument of the function.
-  decArg <- identifyDecArg expr
-  let (Just decArgIndex) = elemIndex decArg argNames
+  (decArg, caseExprs, replaceCases) <- identifyDecArg expr
 
-  -- TODO there can be multiple helper functions:
+  -- Generate helper function declaration for each case expression of the
+  -- decreasing argument.
+  (helperNames, helperDecls)        <- mapAndUnzipM (generateHelperDecl decArg)
+                                                    caseExprs
 
-  -- Generate helper function declaration.
-  helperIdent <- freshHaskellIdent (HS.fromDeclIdent declIdent)
-  let helperName      = HS.Ident helperIdent
-      helperDeclIdent = HS.DeclIdent (HS.getSrcSpan declIdent) helperIdent
-      helperFuncDecl  = HS.FuncDecl srcSpan helperDeclIdent args expr
+  -- Generate main function declaration. The main function's right hand side
+  -- is constructed by replacing all case expressions of the decreasing
+  -- argument by an invocation of the corresponding recursive helper function.
+  let mainExpr = replaceCases (map generateHelperApp helperNames)
+      mainDecl = HS.FuncDecl srcSpan declIdent args mainExpr
 
-  -- Register the helper function to the environment.
-  -- The type of the helper function is the same as of the original function.
-  -- Additionally we need to remember the index of the decreasing argument
-  -- (see 'convertDecArg').
-  _        <- renameAndDefineFunc helperIdent arity
-  funcType <- lookupTypeSigOrFail srcSpan name
-  modifyEnv $ defineTypeSig helperName funcType
-  modifyEnv $ defineDecArg helperName decArgIndex
+  return (helperDecls, mainDecl)
+ where
 
-  -- Generate main function declaration.
-  let mainExpr = HS.app NoSrcSpan
-                        (HS.Var NoSrcSpan helperName)
-                        (map (HS.Var NoSrcSpan) argNames)
-      mainFuncDecl = HS.FuncDecl srcSpan declIdent args mainExpr
+  -- | The name of the function to transform.
+  name :: HS.Name
+  name = HS.Ident (HS.fromDeclIdent declIdent)
 
-  return ([helperFuncDecl], mainFuncDecl)
+  -- | The names of the function's arguments.
+  argNames :: [HS.Name]
+  argNames = map (HS.Ident . HS.fromVarPat) args
+
+  -- | The number of arguments accepted by the function.
+  arity :: Int
+  arity = length (args)
+
+  -- | Generates the recursive helper function declaration for the given
+  --   @case@ expression that performs pattern matching on the given decreasing
+  --   argument.
+  generateHelperDecl
+    :: HS.Name -- ^ The name of the decreasing argument.
+    -> HS.Expr -- ^ The @case@ expression.
+    -> Converter (HS.Name, HS.Decl)
+  generateHelperDecl decArg caseExpr = do
+    helperIdent <- freshHaskellIdent (HS.fromDeclIdent declIdent)
+    let helperName         = HS.Ident helperIdent
+        helperDeclIdent    = HS.DeclIdent (HS.getSrcSpan declIdent) helperIdent
+        helperDecl         = HS.FuncDecl srcSpan helperDeclIdent args caseExpr
+        (Just decArgIndex) = elemIndex decArg argNames
+
+    -- Register the helper function to the environment.
+    -- The type of the helper function is the same as of the original function.
+    -- Additionally we need to remember the index of the decreasing argument
+    -- (see 'convertDecArg').
+    _        <- renameAndDefineFunc helperIdent arity
+    funcType <- lookupTypeSigOrFail srcSpan name
+    modifyEnv $ defineTypeSig helperName funcType
+    modifyEnv $ defineDecArg helperName decArgIndex
+
+    return (helperName, helperDecl)
+
+  -- | Generates the application expression for the helper function with the
+  --   given name.
+  generateHelperApp
+    :: HS.Name -- The name of the helper function to apply.
+    -> HS.Expr
+  generateHelperApp helperName = HS.app NoSrcSpan
+                                        (HS.Var NoSrcSpan helperName)
+                                        (map (HS.Var NoSrcSpan) argNames)
 
 -- | Converts a recursive helper function to the body of a Coq @Fixpoint@
 --   sentence.
