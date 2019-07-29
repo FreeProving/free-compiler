@@ -260,6 +260,45 @@ testConvertRecFuncDecls = describe "convertRecFuncDecls" $ do
     ++ "   := xs >>= (fun (xs_0 : List Shape Pos a) =>"
     ++ "        tails_0 Shape Pos xs_0)."
 
+  it "can translate mutually recursive functions"
+    $  shouldSucceed
+    $  fromConverter
+    $  shouldTranslateDeclsTo
+         [ "even_len, odd_len :: [a] -> Bool"
+         , "even_len xs = case xs of { [] -> True; x : xs' -> odd_len xs' }"
+         , "odd_len xs = case xs of { [] -> False; x : xs' -> even_len xs' }"
+         ]
+    $  "Fixpoint even_len_0 (Shape : Type) (Pos : Shape -> Type) {a : Type}"
+    ++ "  (xs : List Shape Pos a)"
+    ++ "  {struct xs}"
+    ++ "  : Free Shape Pos (Bool Shape Pos)"
+    ++ "  := match xs with"
+    ++ "     | nil        => True_ Shape Pos"
+    ++ "     | cons x xs' =>"
+    ++ "         xs' >>= (fun (xs'_0 : List Shape Pos a) =>"
+    ++ "           odd_len_0 Shape Pos xs'_0)"
+    ++ "     end "
+    ++ "with odd_len_0 (Shape : Type) (Pos : Shape -> Type) {a : Type}"
+    ++ "  (xs : List Shape Pos a)"
+    ++ "  {struct xs}"
+    ++ "  : Free Shape Pos (Bool Shape Pos)"
+    ++ "  := match xs with"
+    ++ "     | nil        => False_ Shape Pos"
+    ++ "     | cons x xs' =>"
+    ++ "         xs' >>= (fun (xs'_0 : List Shape Pos a) =>"
+    ++ "           even_len_0 Shape Pos xs'_0)"
+    ++ "     end. "
+    ++ "Definition even_len (Shape : Type) (Pos : Shape -> Type) {a : Type}"
+    ++ "  (xs : Free Shape Pos (List Shape Pos a))"
+    ++ "  : Free Shape Pos (Bool Shape Pos)"
+    ++ "  := xs >>= (fun (xs_0 : List Shape Pos a) =>"
+    ++ "           even_len_0 Shape Pos xs_0). "
+    ++ "Definition odd_len (Shape : Type) (Pos : Shape -> Type) {a : Type}"
+    ++ "  (xs : Free Shape Pos (List Shape Pos a))"
+    ++ "  : Free Shape Pos (Bool Shape Pos)"
+    ++ "  := xs >>= (fun (xs_0 : List Shape Pos a) =>"
+    ++ "           odd_len_0 Shape Pos xs_0)."
+
 -------------------------------------------------------------------------------
 -- Types                                                                     --
 -------------------------------------------------------------------------------
