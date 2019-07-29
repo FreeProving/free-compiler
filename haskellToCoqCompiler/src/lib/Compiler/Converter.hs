@@ -352,7 +352,7 @@ convertFuncComponent (Recursive decls) = convertRecFuncDecls decls
 --   no recursive functions (see 'convertNonRecFuncDecl' and
 --   'convertRecFuncDecls').
 convertFuncHead
-  :: SrcSpan       -- ^ TODO
+  :: SrcSpan       -- ^ The source location to refer to in error messages.
   -> HS.Name       -- ^ The name of the function.
   -> [HS.VarPat]   -- ^ The function argument patterns.
   -> Converter (G.Qualid, [G.Binder], G.Term)
@@ -709,7 +709,7 @@ convertExpr' (HS.Var srcSpan name) args = do
           -- The decreasing argument of a recursive helper function must be
           -- unwrapped first.
           let (before, decArg : after) = splitAt index args'
-          -- TODO add type annotation
+          -- Add type annotation for decreasing argument.
           Just funcType <- inEnv $ lookupTypeSig name
           (argTypes, _) <- splitFuncType funcType arity
           decArgType'   <- convertType' (argTypes !! index)
