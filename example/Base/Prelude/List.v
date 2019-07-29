@@ -21,3 +21,6 @@ Section SecList.
     pure (cons x xs).
 
 End SecList.
+
+Arguments nil  {Shape} {Pos} {A}.
+Arguments cons {Shape} {Pos} {A}.

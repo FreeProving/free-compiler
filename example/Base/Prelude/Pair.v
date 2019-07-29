@@ -16,3 +16,5 @@ Section SecPair.
     pure (pair_ x y).
 
 End SecPair.
+
+Arguments pair_  {Shape} {Pos} {A} {B}.
