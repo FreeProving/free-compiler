@@ -27,10 +27,10 @@ Fixpoint intersperseOneMatch'
   (xs : List Shape Pos (Int Shape Pos)) 
   : Free Shape Pos (List Shape Pos (Int Shape Pos)) :=
   match xs with
-  | nil       => Nil
+  | nil       => Nil Shape Pos
   | cons y ys =>
-    Cons y (
-      Cons (pure 1%Z) (
+    Cons Shape Pos y (
+      Cons Shape Pos (pure 1%Z) (
         ys >>= fun(ys' : List Shape Pos (Int Shape Pos)) => 
           intersperseOneMatch' Shape Pos ys'
       )
@@ -48,7 +48,7 @@ Definition intersperseOne
   (Shape : Type) (Pos : Shape -> Type)
   (xs : Free Shape Pos (List Shape Pos (Int Shape Pos))) 
   : Free Shape Pos (List Shape Pos (Int Shape Pos)) :=
-  Cons (pure 1%Z) (intersperseOneMatch Shape Pos xs).
+  Cons Shape Pos (pure 1%Z) (intersperseOneMatch Shape Pos xs).
 
 End IntersperseOneOldApproach.
 
@@ -70,10 +70,10 @@ Fixpoint intersperseOne'
   (Shape : Type) (Pos : Shape -> Type)
   (xs : List Shape Pos (Int Shape Pos)) : Free Shape Pos (List Shape Pos (Int Shape Pos)) :=
   match xs with
-  | nil       => Nil
+  | nil       => Nil Shape Pos
   | cons y ys =>
-    Cons y (
-      Cons (pure 1%Z) (
+    Cons Shape Pos y (
+      Cons Shape Pos (pure 1%Z) (
         ys >>= fun(ys' : List Shape Pos (Int Shape Pos)) => intersperseOne' Shape Pos ys'
       )
     )
@@ -83,7 +83,7 @@ Definition intersperseOne
   (Shape : Type) (Pos : Shape -> Type)
   (xs : Free Shape Pos (List Shape Pos (Int Shape Pos))) 
   : Free Shape Pos (List Shape Pos (Int Shape Pos)) :=
-  Cons (pure 1%Z) (
+  Cons Shape Pos (pure 1%Z) (
     xs >>= fun(xs' : List Shape Pos (Int Shape Pos)) => intersperseOne' Shape Pos xs'
   ).
 
@@ -111,14 +111,14 @@ Fixpoint intersperse''
   {a : Type} (sep : Free Shape Pos a) (xs : List Shape Pos a) 
   : Free Shape Pos (List Shape Pos a) :=
   match xs with
-  | nil       => Nil
+  | nil       => Nil Shape Pos
   | cons y ys =>
-      Cons y (
+      Cons Shape Pos y (
         ys >>= fun(ys0 : List Shape Pos a) =>
           match ys0 with
-          | nil       => Nil
+          | nil       => Nil Shape Pos
           | cons z zs =>
-              Cons sep (
+              Cons Shape Pos sep (
                 ys >>= fun(ys1 : List Shape Pos a) =>
                   intersperse'' Shape Pos sep ys1
               )

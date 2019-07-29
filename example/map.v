@@ -16,8 +16,8 @@ Module VersionWithoutSections.
                 (xs : List Shape Pos a)
                 : Free Shape Pos (List Shape Pos b) :=
     match xs with
-    | nil        => Nil
-    | cons x xs' => Cons 
+    | nil        => Nil Shape Pos
+    | cons x xs' => Cons Shape Pos
         (f >>= fun(f' : Free Shape Pos a -> Free Shape Pos b) => f' x) 
         (xs' >>= fun(xs'0 : List Shape Pos a) => map' Shape Pos f xs'0)
     end.
@@ -100,8 +100,8 @@ Module VersionWithSections.
     Fixpoint map' (xs : List Shape Pos a)
                   : Free Shape Pos (List Shape Pos b) :=
       match xs with
-      | nil        => Nil
-      | cons x xs' => Cons 
+      | nil        => Nil Shape Pos
+      | cons x xs' => Cons Shape Pos
           (f >>= fun(f' : Free Shape Pos a -> Free Shape Pos b) => f' x) 
           (xs' >>= fun(xs'0 : List Shape Pos a) => map' xs'0)
       end.

@@ -17,13 +17,13 @@ Fixpoint zip'
   {a b : Type} (xs : List Shape Pos a) (ys : Free Shape Pos (List Shape Pos b))
   : Free Shape Pos (List Shape Pos (Pair Shape Pos a b)) :=
   match xs with
-  | nil        => Nil
+  | nil        => Nil Shape Pos
   | cons x xs' =>
       ys >>= fun(ys0 : List Shape Pos b) =>
         match ys0 with
-        | nil        => Nil
+        | nil        => Nil Shape Pos
         | cons y ys' =>
-            Cons (Pair_ x y) (
+            Cons Shape Pos (Pair_ Shape Pos x y) (
               xs' >>= fun(xs'0 : List Shape Pos a) => zip' Shape Pos xs'0 ys'
             )
         end
