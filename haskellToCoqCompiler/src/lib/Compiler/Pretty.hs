@@ -74,13 +74,14 @@ instance Pretty a => Pretty (TrailingLine a) where
 -- Rendering                                                                 --
 -------------------------------------------------------------------------------
 
--- | Pretty prints a value with a maximum line length of @80@ characters.
+-- | Pretty prints a value with a maximum line length of @120@ characters of
+--   which @80@ are allowed to be non-indentation characters.
 renderPretty' :: Pretty a => a -> SimpleDoc
 renderPretty' = renderPretty ribbonFrac maxLineWidth . pretty
  where
   ribbonWidth, maxLineWidth :: Int
-  ribbonWidth  = maxLineWidth
-  maxLineWidth = 80
+  ribbonWidth  = 80
+  maxLineWidth = 120
 
   ribbonFrac :: Float
   ribbonFrac = fromIntegral ribbonWidth / fromIntegral maxLineWidth
