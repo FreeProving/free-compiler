@@ -3,10 +3,7 @@
 
 module Compiler.Language.Coq.Base where
 
-import           Compiler.Converter.State
 import qualified Compiler.Language.Coq.AST     as G
-import qualified Compiler.Language.Haskell.SimpleAST
-                                               as HS
 
 -------------------------------------------------------------------------------
 -- Base library import                                                       --
