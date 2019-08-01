@@ -229,15 +229,21 @@ defineDataDecl (HS.DataDecl _ (HS.DeclIdent _ ident) typeVarDecls conDecls) =
     let arity = length typeVarDecls
     _ <- renameAndDefineTypeCon ident arity
     mapM_ defineConDecl conDecls
+ where
+  -- | The type produced by all constructors of the data type.
+  returnType :: HS.Type
+  returnType = HS.typeApp
+    NoSrcSpan
+    (HS.Ident ident)
+    (map (HS.TypeVar NoSrcSpan . HS.fromDeclIdent) typeVarDecls)
 
--- | Inserts the given data constructor declaration and its smart constructor
---   into the current environment.
-defineConDecl :: HS.ConDecl -> Converter ()
-defineConDecl (HS.ConDecl _ (HS.DeclIdent _ ident) argTypes) = do
-  -- TODO detect redefinition and inform when renamed
-  let arity = length argTypes
-  _ <- renameAndDefineCon ident arity
-  return ()
+  -- | Inserts the given data constructor declaration and its smart constructor
+  --   into the current environment.
+  defineConDecl :: HS.ConDecl -> Converter ()
+  defineConDecl (HS.ConDecl _ (HS.DeclIdent _ conIdent) argTypes) = do
+    -- TODO detect redefinition and inform when renamed
+    _ <- renameAndDefineCon conIdent (map Just argTypes) (Just returnType)
+    return ()
 
 -------------------------------------------------------------------------------
 -- Type variable declarations                                                --
@@ -375,10 +381,9 @@ defineFuncDecl (HS.FuncDecl _ (HS.DeclIdent srcSpan ident) args _) = do
   -- TODO detect redefinition and inform when renamed
   let name  = HS.Ident ident
       arity = length args
-  funcType               <- lookupTypeSigOrFail srcSpan name
-  _                      <- renameAndDefineFunc ident arity
+  funcType <- lookupTypeSigOrFail srcSpan name
   (argTypes, returnType) <- splitFuncType funcType arity
-  modifyEnv $ defineArgTypes VarScope name (map Just argTypes) (Just returnType)
+  _ <- renameAndDefineFunc ident (map Just argTypes) (Just returnType)
   return ()
 
 -------------------------------------------------------------------------------

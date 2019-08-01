@@ -218,6 +218,14 @@ identFromName :: Name -> Maybe String
 identFromName (Ident  ident) = Just ident
 identFromName (Symbol _    ) = Nothing
 
+-- | Splits the type of a function or constructor with the given arity
+--   into the argument and return types.
+splitType :: Type -> Int -> ([Maybe Type], Maybe Type)
+splitType (TypeFunc _ t1 t2) arity | arity > 0 =
+  let (argTypes, returnType) = splitType t2 (arity - 1)
+  in  (Just t1 : argTypes, returnType)
+splitType funcType _ = ([], Just funcType)
+
 -------------------------------------------------------------------------------
 -- Source span getters                                                       --
 -------------------------------------------------------------------------------

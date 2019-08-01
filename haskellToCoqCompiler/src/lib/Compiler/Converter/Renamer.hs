@@ -183,14 +183,18 @@ renameAndDefineTypeVar ident = do
 --   for the regular constructor and the second is the identifier for the
 --   smart constructor.
 renameAndDefineCon
-  :: String -- ^ The name of the data construtcor.
-  -> Int    -- ^ The number of expected arguments.
+  :: String          -- ^ The name of the data construtcor.
+  -> [Maybe HS.Type] -- ^ The types of the constructor's arguments (if known).
+  -> Maybe HS.Type   -- ^ The return type of the constructor (if known).
   -> Converter (String, String)
-renameAndDefineCon ident arity = do
+renameAndDefineCon ident argTypes returnType = do
   ident'      <- inEnv $ renameIdent (toCamel (fromHumps ident))
   smartIdent' <- inEnv $ renameIdent ident
-  modifyEnv
-    $ defineCon (HS.Ident ident) arity (G.bare ident') (G.bare smartIdent')
+  modifyEnv $ defineCon (HS.Ident ident)
+                        (G.bare ident')
+                        (G.bare smartIdent')
+                        argTypes
+                        returnType
   return (ident', smartIdent')
 
 -- | Associates the identifier of a user defined Haskell variable with an
@@ -213,9 +217,10 @@ renameAndDefineVar ident = do
 --   Returns the generated identifier.
 renameAndDefineFunc
   :: String -- ^ The name of the function.
-  -> Int    -- ^ The number of expected arguments.
+  -> [Maybe HS.Type] -- ^ The types of the function's arguments (if known).
+  -> Maybe HS.Type   -- ^ The return type of the function (if known).
   -> Converter String
-renameAndDefineFunc ident arity = do
+renameAndDefineFunc ident argTypes returnType = do
   ident' <- inEnv $ renameIdent ident
-  modifyEnv $ defineFunc (HS.Ident ident) arity (G.bare ident')
+  modifyEnv $ defineFunc (HS.Ident ident) (G.bare ident') argTypes returnType
   return ident'

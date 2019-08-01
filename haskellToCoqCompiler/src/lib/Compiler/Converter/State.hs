@@ -22,7 +22,6 @@ module Compiler.Converter.State
   , defineTypeSig
   , defineIdent
   , defineArgTypes
-  , defineArity
     -- * Looking up entries from the environment
   , isFunction
   , isPartial
@@ -174,9 +173,8 @@ defineDecArg name index env =
 --   already, the entry is overwritten.
 --
 --   All information that is already associated with the identifier is shadowed
---   by this function (e.g. the arity has to be set after the identifier was
---   inserted into the environment, see 'defineArity'). Note that type
---   signatures (see 'defineTypeSig') are never shadowed.
+--   by this function (e.g. the argument and return types have to be set after
+--   the identifier was inserted into the environment, see 'defineArgTypes').
 defineIdent :: Scope -> HS.Name -> G.Qualid -> Environment -> Environment
 defineIdent scope name ident env = env
   { definedIdents   = Map.insert (scope, name) ident (definedIdents env)
@@ -203,11 +201,6 @@ defineArgTypes scope name argTypes returnType env = env
   usedTypeVars =
     nub $ catMaybes $ map HS.identFromName $ concatMap typeVars $ catMaybes
       (argTypes ++ [returnType])
-
--- | TODO remove me
-defineArity :: Scope -> HS.Name -> Int -> Environment -> Environment
-defineArity scope name arity =
-  defineArgTypes scope name (replicate arity Nothing) Nothing
 
 -- | Associates the name of a Haskell function with it's annoated type.
 --
@@ -304,8 +297,7 @@ defineTypeCon
   -> G.Qualid -- ^ The Coq identifier for the type constructor.
   -> Environment
   -> Environment
-defineTypeCon name arity ident =
-  defineArity TypeScope name arity . defineIdent TypeScope name ident
+defineTypeCon name _arity ident = defineIdent TypeScope name ident
 
 -- | Associates the name of a Haskell type variable with the corresponding Coq
 --   identifier in the given environment.
@@ -321,14 +313,15 @@ defineTypeVar = defineIdent TypeScope
 --   If a constructor with the same name exists, the entry is overwritten.
 defineCon
   :: HS.Name  -- ^ The Haskell name of the constructor.
-  -> Int      -- ^ The number of expected arguments.
   -> G.Qualid -- ^ The Coq identifier for the data constructor.
   -> G.Qualid -- ^ The Coq identifier for the smart constructor.
+  -> [Maybe HS.Type] -- ^ The types of the function's arguments (if known).
+  -> Maybe HS.Type   -- ^ The function's return type (if knonw).
   -> Environment
   -> Environment
-defineCon name arity ident smartIdent =
-  defineArity ConScope name arity
-    . defineArity SmartConScope name arity
+defineCon name ident smartIdent argTypes returnType =
+  defineArgTypes ConScope name argTypes returnType
+    . defineArgTypes SmartConScope name argTypes returnType
     . defineIdent ConScope      name ident
     . defineIdent SmartConScope name smartIdent
 
@@ -350,13 +343,15 @@ defineVar = defineIdent VarScope
 --   If a function or variable with the same name exists, the entry is
 --   overwritten.
 defineFunc
-  :: HS.Name  -- ^ The Haskell name of the function.
-  -> Int      -- ^ The number of expected arguments.
-  -> G.Qualid -- ^ The Coq identifier of the function.
+  :: HS.Name         -- ^ The Haskell name of the function.
+  -> G.Qualid        -- ^ The Coq identifier of the function.
+  -> [Maybe HS.Type] -- ^ The types of the function's arguments (if known).
+  -> Maybe HS.Type   -- ^ The function's return type (if knonw).
   -> Environment
   -> Environment
-defineFunc name arity ident =
-  defineArity VarScope name arity . defineIdent VarScope name ident
+defineFunc name ident argTypes returnType =
+  defineArgTypes VarScope name argTypes returnType
+    . defineIdent VarScope name ident
 
 -------------------------------------------------------------------------------
 -- State monad                                                               --

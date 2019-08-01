@@ -62,8 +62,11 @@ import qualified Data.Vector                   as Vector
 
 import           Compiler.Converter.State
 import qualified Compiler.Language.Coq.AST     as G
+import           Compiler.Language.Haskell.Parser
 import qualified Compiler.Language.Haskell.SimpleAST
                                                as HS
+import           Compiler.Language.Haskell.Simplifier
+import           Compiler.Pretty
 import           Compiler.Reporter
 import           Compiler.SrcSpan
 
@@ -83,6 +86,18 @@ instance Aeson.FromJSON HS.Name where
 -- | Restores a Coq identifier from the configuration file.
 instance Aeson.FromJSON G.Qualid where
   parseJSON = Aeson.withText "G.Qualid" $ return . G.bare . T.unpack
+
+-- | Restores a Haskell type from the configuration file.
+instance Aeson.FromJSON HS.Type where
+  parseJSON = Aeson.withText "HS.Type" $ \txt -> do
+    let (res, ms) =
+          runReporter
+            $   flip evalConverter emptyEnvironment
+            $   liftReporter (parseType "<config-input>" (T.unpack txt))
+            >>= simplifyType
+    case res of
+      Nothing -> Aeson.parserThrowError [] (showPretty ms)
+      Just t  -> return t
 
 -- | Restores an 'Environment' from the configuration file.
 instance Aeson.FromJSON Environment where
@@ -111,20 +126,22 @@ instance Aeson.FromJSON Environment where
 
     parseCon :: Aeson.Value -> Aeson.Parser (Environment -> Environment)
     parseCon = Aeson.withObject "Constructor" $ \obj -> do
-      arity        <- obj .: "arity"
-      haskellName  <- obj .: "haskell-name"
-      -- haskellType  <- obj .: "haskell-type"
-      coqName      <- obj .: "coq-name"
-      coqSmartName <- obj .: "coq-smart-name"
-      return (defineCon haskellName arity coqName coqSmartName)
+      arity                  <- obj .: "arity"
+      haskellName            <- obj .: "haskell-name"
+      haskellType            <- obj .: "haskell-type"
+      coqName                <- obj .: "coq-name"
+      coqSmartName           <- obj .: "coq-smart-name"
+      let (argTypes, returnType) = HS.splitType haskellType arity
+      return (defineCon haskellName coqName coqSmartName argTypes returnType)
 
     parseFunc :: Aeson.Value -> Aeson.Parser (Environment -> Environment)
     parseFunc = Aeson.withObject "Function" $ \obj -> do
       arity       <- obj .: "arity"
       haskellName <- obj .: "haskell-name"
-      -- haskellType <- obj .: "haskell-type"
+      haskellType <- obj .: "haskell-type"
       coqName     <- obj .: "coq-name"
-      return (defineFunc haskellName arity coqName)
+      let (argTypes, returnType) = HS.splitType haskellType arity
+      return (defineFunc haskellName coqName argTypes returnType)
 
 -- | Loads an environment configuration file.
 loadEnvironment :: FilePath -> ReporterIO Environment

@@ -8,6 +8,7 @@ import           Data.Maybe                     ( catMaybes )
 
 import           Compiler.Converter
 import           Compiler.Converter.EnvironmentLoader
+import           Compiler.Converter.Renamer
 import           Compiler.Converter.State
 import           Compiler.Language.Coq.AST     as G
 import           Compiler.Language.Haskell.Parser
@@ -86,6 +87,38 @@ parseTestDecl input =
 -- | Parses and simplifies Haskell declarations for testing purposes.
 parseTestDecls :: [String] -> Simplifier [HS.Decl]
 parseTestDecls input = mapM parseTestDecl input >>= return . catMaybes
+
+-------------------------------------------------------------------------------
+-- Defining test idenifiers                                                  --
+-------------------------------------------------------------------------------
+
+-- | Alias for 'renameAndDefineTypeCon'.
+defineTestTypeCon :: String -> Int -> Converter String
+defineTestTypeCon = renameAndDefineTypeCon
+
+-- | Alias for 'renameAndDefineTypeVar'.
+defineTestTypeVar :: String -> Converter String
+defineTestTypeVar = renameAndDefineTypeVar
+
+-- | Like 'renameAndDefineCon' but the argument and return types are parsed
+--   from the given string.
+defineTestCon :: String -> Int -> String -> Converter (String, String)
+defineTestCon ident arity typeStr = do
+  typeExpr               <- parseTestType typeStr
+  let (argTypes, returnType) = HS.splitType typeExpr arity
+  renameAndDefineCon ident argTypes returnType
+
+  -- | Alias for 'defineTestVar'.
+defineTestVar :: String -> Converter String
+defineTestVar = renameAndDefineVar
+
+-- | Like 'renameAndDefineFunc' but the argument and return types are parsed from
+--   the given string.
+defineTestFunc :: String -> Int -> String -> Converter String
+defineTestFunc ident arity typeStr = do
+  typeExpr               <- parseTestType typeStr
+  let (argTypes, returnType) = HS.splitType typeExpr arity
+  renameAndDefineFunc ident argTypes returnType
 
 -------------------------------------------------------------------------------
 -- Conversion utility functions                                              --
