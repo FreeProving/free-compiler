@@ -32,6 +32,7 @@ library haskell-to-coq-internal
                       , Compiler.Analysis.DependencyGraph
                       , Compiler.Analysis.PartialityAnalysis
                       , Compiler.Converter
+                      , Compiler.Converter.EnvironmentLoader
                       , Compiler.Converter.Fresh
                       , Compiler.Converter.Inliner
                       , Compiler.Converter.Renamer
@@ -53,6 +54,7 @@ library haskell-to-coq-internal
                       , transformers      ==0.5.*
                         -- Maps, sets and graphs:
                       , containers        ==0.6.*
+                      , vector            ==0.12.*
                         -- Pretty printing:
                       , text              ==1.2.*
                       , wl-pprint-text    ==1.2.*
@@ -61,6 +63,10 @@ library haskell-to-coq-internal
                       , composition       ==1.0.*
                       , extra             ==1.6.*
                       , regexpr           ==0.5.*
+                        -- Configuration.
+                      , aeson             ==1.4.*
+                      , htoml             ==1.0.*
+                      , parsec            ==3.1.*
                         -- ASTs:
                       , haskell-src-exts  ==1.21.*
                       , language-coq      ==0.0.*

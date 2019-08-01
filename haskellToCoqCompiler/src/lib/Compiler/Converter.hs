@@ -2,9 +2,8 @@
 --   Haskell to Coq using the @Free@ monad.
 
 module Compiler.Converter
-  ( defaultEnvironment
-    -- * Modules
-  , convertModule
+  ( -- * Modules
+    convertModule
   , convertModuleWithPreamble
   , convertDecls
     -- * Data type declarations
@@ -52,12 +51,6 @@ import qualified Compiler.Language.Haskell.SimpleAST
 import           Compiler.Pretty
 import           Compiler.Reporter
 import           Compiler.SrcSpan
-
--- | Initially the environment contains the predefined functions, data types
---   and their constructors from the Coq Base library that accompanies this
---   compiler.
-defaultEnvironment :: Environment
-defaultEnvironment = CoqBase.predefine emptyEnvironment
 
 -------------------------------------------------------------------------------
 -- Modules                                                                   --
@@ -795,7 +788,7 @@ convertExpr' (HS.App _ e1 e2  ) args = convertExpr' e1 (e2 : args)
 -- @if@-expressions.
 convertExpr' (HS.If _ e1 e2 e3) []   = do
   e1' <- convertExpr e1
-  let bool' = genericApply CoqBase.boolTypeCon []
+  bool' <- convertType' (HS.TypeCon NoSrcSpan HS.boolTypeConName)
   generateBind e1' (Just bool') $ \cond -> do
     e2' <- convertExpr e2
     e3' <- convertExpr e3

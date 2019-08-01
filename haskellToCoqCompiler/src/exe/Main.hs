@@ -8,10 +8,12 @@ import           System.Console.GetOpt
 import           System.IO                      ( stderr )
 import           System.FilePath
 
-import           Compiler.Converter             ( defaultEnvironment
-                                                , convertModuleWithPreamble
+import           Compiler.Converter             ( convertModuleWithPreamble )
+import           Compiler.Converter.EnvironmentLoader
+import           Compiler.Converter.State       ( Environment
+                                                , emptyEnvironment
+                                                , evalConverter
                                                 )
-import           Compiler.Converter.State       ( evalConverter )
 import           Compiler.Language.Haskell.Parser
                                                 ( parseModuleFile )
 
@@ -39,16 +41,23 @@ data Options = Options
 
     -- | The output directory or 'Nothing' if the output should be printed
     --   to @stdout@.
-    optOutputDir :: Maybe FilePath
+    optOutputDir :: Maybe FilePath,
+
+    -- | The directory that contains the Coq Base library that accompanies
+    --   this compiler.
+    optBaseLibDir :: Maybe FilePath
   }
 
 -- | The default command line options.
 --
---   By default the @option@ monad is selected and output will be printed to
---   the console.
+--   By default output will be printed to the console.
 defaultOptions :: Options
-defaultOptions =
-  Options {optShowHelp = False, optInputFiles = [], optOutputDir = Nothing}
+defaultOptions = Options
+  { optShowHelp   = False
+  , optInputFiles = []
+  , optOutputDir  = Nothing
+  , optBaseLibDir = Nothing
+  }
 
 -- | Command line option descriptors from the @GetOpt@ library.
 options :: [OptDescr (Options -> Options)]
@@ -63,6 +72,15 @@ options
       (ReqArg (\p opts -> opts { optOutputDir = Just p }) "DIR")
       (  "Path to output directory.\n"
       ++ "Optional. Prints to the console by default."
+      )
+    , Option
+      ['b']
+      ["base-library"]
+      (ReqArg (\p opts -> opts { optBaseLibDir = Just p }) "DIR")
+      (  "Optional. Path to directory that contains the compiler's Coq\n"
+      ++ "Base library. If this argument is missing, you cannot use any\n"
+      ++ "predefined types, constructors or functions (e.g. lists or\n"
+      ++ "arithmetic expressions)."
       )
     ]
 
@@ -128,7 +146,7 @@ putUsageInfo = do
 --   Parses the command line arguments and invokes 'run' if successful.
 --   All reported messages are printed to @stderr@.
 main :: IO ()
-main = join $ reportToOrExit stderr $ do
+main = join $ reportToOrExit stderr $ reportIOErrors $ do
   args <- lift getArgs
   opts <- hoist $ parseArgs args
   run opts
@@ -147,17 +165,34 @@ run opts
     report $ Message NoSrcSpan Info "No input file."
     return putUsageInfo
   | otherwise = do
-    actions <- mapM (processInputFile opts) (optInputFiles opts)
+    env     <- getDefaultEnvironment opts
+    actions <- mapM (processInputFile opts env) (optInputFiles opts)
     return (sequence_ actions)
+
+-- | Initializes the default environment using the specified path to the Coq
+--   Base library.
+getDefaultEnvironment :: Options -> ReporterIO Environment
+getDefaultEnvironment Options { optBaseLibDir = Nothing } = do
+  report
+    $  Message NoSrcSpan Warning
+    $  "Missing path to Coq Base library. Predefined types, constructors and "
+    ++ "functions will not be available!"
+  report
+    $  Message NoSrcSpan Info
+    $  "Perhaps you want to add the '--base-library' command line argument to "
+    ++ "make predefined types, constructors and functions available."
+  return emptyEnvironment
+getDefaultEnvironment Options { optBaseLibDir = Just baseLibDir } =
+  loadEnvironment (baseLibDir </> "env.toml")
 
 -- | Processes the given input file.
 --
 --   The Haskell module is loaded and converted to Coq. The resulting Coq
 --   AST is written to the console or output file.
-processInputFile :: Options -> FilePath -> ReporterIO (IO ())
-processInputFile opts inputFile = do
+processInputFile :: Options -> Environment -> FilePath -> ReporterIO (IO ())
+processInputFile opts env inputFile = do
   haskellAst <- parseModuleFile inputFile
-  coqAst     <- hoist $ flip evalConverter defaultEnvironment $ do
+  coqAst     <- hoist $ flip evalConverter env $ do
     haskellAst' <- simplifyModule haskellAst
     convertModuleWithPreamble haskellAst'
 
@@ -175,33 +210,3 @@ outputFileNameFor
   -> FilePath
 outputFileNameFor inputFile outputDir extension =
   outputDir </> takeBaseName inputFile <.> extension
-
--------------------------------------------------------------------------------
--- REPL shortcuts                                                            --
--------------------------------------------------------------------------------
-
--- compileAndPrintFile :: String -> IO ()
--- compileAndPrintFile f = run defaultOptions { optInputFiles = [f] }
---
--- compileAndSaveFile :: String -> IO ()
--- compileAndSaveFile f = run defaultOptions
---   { optInputFiles = [f]
---   , optOutputDir  = Just "./CoqFiles/OutputFiles/"
---   }
---
--- parseAndPrintFile :: String -> IO ()
--- parseAndPrintFile f = do
---   ast <- parseModuleFile f
---   print ast
---
--- testAst :: IO ()
--- testAst = parseAndPrintFile "TestModules/Test.hs"
---
--- test :: IO ()
--- test = compileAndPrintFile "TestModules/Test.hs"
---
--- saveTest :: IO ()
--- saveTest = compileAndSaveFile "TestModules/Test.hs"
---
--- savePrelude :: IO ()
--- savePrelude = compileAndSaveFile "TestModules/Prelude.hs"

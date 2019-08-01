@@ -19,6 +19,7 @@ module Compiler.SrcSpan
 where
 
 import           Control.Monad                  ( join )
+import           Text.Parsec.Pos               as Parsec
 
 import qualified Language.Haskell.Exts.SrcLoc  as H
 
@@ -82,13 +83,28 @@ instance SrcSpanConverter H.SrcSpanInfo where
 instance SrcSpanConverter H.SrcLoc where
   convertSrcSpan codeByFilename = convertSrcSpan codeByFilename . join H.mkSrcSpan
 
+-- | Converts a Parsec 'SourcePos' to a 'SrcSpan'.
+instance SrcSpanConverter Parsec.SourcePos where
+  convertSrcSpan codeByFilename srcPos = SrcSpan
+    { srcSpanFilename    = Parsec.sourceName srcPos
+    , srcSpanStartLine   = Parsec.sourceLine srcPos
+    , srcSpanStartColumn = Parsec.sourceColumn srcPos
+    , srcSpanEndLine     = Parsec.sourceLine srcPos
+    , srcSpanEndColumn   = Parsec.sourceColumn srcPos
+    , srcSpanCodeLines   =
+      return
+      $ (!! Parsec.sourceLine srcPos)
+      $ maybe [] id
+      $ lookup (Parsec.sourceName srcPos) codeByFilename
+    }
+
 -------------------------------------------------------------------------------
 -- Utility functions                                                         --
 -------------------------------------------------------------------------------
 
 -- | Tests whether the given source span has attached source code.
 hasSourceCode :: SrcSpan -> Bool
-hasSourceCode NoSrcSpan = False
+hasSourceCode NoSrcSpan                          = False
 hasSourceCode SrcSpan { srcSpanCodeLines = src } = not (null src)
 
 -- | Tests whether the given source span spans multiple lines.
@@ -115,13 +131,13 @@ instance Pretty SrcSpan where
       <> int (srcSpanStartLine srcSpan)
       <> colon
       <> int (srcSpanStartColumn srcSpan)
+      <> char '-'
+      <> int (srcSpanEndLine srcSpan)
+      <> colon
+      <> int (srcSpanEndColumn srcSpan)
     | otherwise
     = prettyString (srcSpanFilename srcSpan)
       <> colon
-      <> int (srcSpanStartLine srcSpan)
-      <> colon
-      <> int (srcSpanStartColumn srcSpan)
-      <> char '-'
       <> int (srcSpanStartLine srcSpan)
       <> colon
       <> int (srcSpanStartColumn srcSpan)

@@ -7,6 +7,7 @@ import           Test.Hspec
 import           Data.Maybe                     ( catMaybes )
 
 import           Compiler.Converter
+import           Compiler.Converter.EnvironmentLoader
 import           Compiler.Converter.State
 import           Compiler.Language.Coq.AST     as G
 import           Compiler.Language.Haskell.Parser
@@ -22,8 +23,10 @@ import           Compiler.Reporter
 -------------------------------------------------------------------------------
 
 -- | Evaluates the given converter in the default environment.
-fromConverter :: Converter a -> Reporter a
-fromConverter = flip evalConverter defaultEnvironment
+fromConverter :: Converter a -> ReporterIO a
+fromConverter converter = do
+  env <- loadEnvironment "base/env.toml"
+  hoist $ evalConverter converter env
 
 -------------------------------------------------------------------------------
 -- Expectations for reports                                                  --
@@ -32,30 +35,34 @@ fromConverter = flip evalConverter defaultEnvironment
 -- | Sets the expectation that no fatal message is reported by the given
 --   reporter. If no fatal message is reported, the expectations set by the
 --   reporter are returned. Otherwise the reported messages are printed.
-shouldSucceed :: Reporter Expectation -> Expectation
-shouldSucceed reporter = case runReporter reporter of
-  (Just x , _ ) -> x
-  (Nothing, ms) -> expectationFailure
-    (  "The following "
-    ++ show (length ms)
-    ++ " messages were reported:\n"
-    ++ showPretty ms
-    )
+shouldSucceed :: ReporterIO Expectation -> Expectation
+shouldSucceed reporter = do
+  result <- runReporterT reporter
+  case result of
+    (Just x , _ ) -> x
+    (Nothing, ms) -> expectationFailure
+      (  "The following "
+      ++ show (length ms)
+      ++ " messages were reported:\n"
+      ++ showPretty ms
+      )
 
 -- | Sets the expectation that a fatal messages is reported by the given
 --   reporter. Prints the produced value and reported messages otherwise.
-shouldReportFatal :: Show a => Reporter a -> Expectation
-shouldReportFatal reporter = case runReporter reporter of
-  (Nothing, _) -> return ()
-  (Just x, ms) ->
-    expectationFailure
-      $  "Expected a fatal message to be reported. Got "
-      ++ show (length ms)
-      ++ " messages, none of which is fatal."
-      ++ "\n\nThe following value was produced:"
-      ++ show x
-      ++ "\n\nThe following messages were reported:"
-      ++ showPretty ms
+shouldReportFatal :: Show a => ReporterIO a -> Expectation
+shouldReportFatal reporter = do
+  result <- runReporterT reporter
+  case result of
+    (Nothing, _) -> return ()
+    (Just x, ms) ->
+      expectationFailure
+        $  "Expected a fatal message to be reported. Got "
+        ++ show (length ms)
+        ++ " messages, none of which is fatal."
+        ++ "\n\nThe following value was produced:"
+        ++ show x
+        ++ "\n\nThe following messages were reported:"
+        ++ showPretty ms
 
 -------------------------------------------------------------------------------
 -- Parsing and simplification utility functions                              --

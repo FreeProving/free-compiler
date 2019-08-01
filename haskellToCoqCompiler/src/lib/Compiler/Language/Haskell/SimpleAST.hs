@@ -346,12 +346,19 @@ pairConName :: ConName
 pairConName = Symbol "(,)"
 
 -------------------------------------------------------------------------------
--- Names of special predefined operators                                     --
+-- Names of special predefined types and operators                           --
 -------------------------------------------------------------------------------
+
+-- | When translating @if@ expressions, we annotate the type of the condition
+--   with @Bool@. Because we do not support qualified identifiers we
+--   need to use this special symbol to prevent the user from shadowing
+--   @Bool@ accidentaly with a custom function or local variable.
+boolTypeConName :: TypeConName
+boolTypeConName = Symbol "Prelude.Bool"
 
 -- | The unary prefix operator @-@ is translated to the application of the
 --   @negate@ function. Because we do not support qualified identifiers we
 --   need to use this special symbol to prevent the user from shadowing
 --   @negate@ accidentaly with a custom function or local variable.
 negateOpName :: VarName
-negateOpName = Symbol "negate"
+negateOpName = Symbol "Prelude.negate"
