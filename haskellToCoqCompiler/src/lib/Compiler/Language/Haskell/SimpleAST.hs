@@ -212,6 +212,12 @@ fromDeclIdent (DeclIdent _ ident) = ident
 fromVarPat :: VarPat -> String
 fromVarPat (VarPat _ ident) = ident
 
+-- | Extracts an identifier from a Haskell name. Returns @Nothing@ if the
+--   given name is a symbol and not an identifier.
+identFromName :: Name -> Maybe String
+identFromName (Ident  ident) = Just ident
+identFromName (Symbol _    ) = Nothing
+
 -------------------------------------------------------------------------------
 -- Source span getters                                                       --
 -------------------------------------------------------------------------------

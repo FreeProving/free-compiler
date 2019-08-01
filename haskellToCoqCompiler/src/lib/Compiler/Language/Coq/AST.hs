@@ -123,14 +123,14 @@ typedBinder' = flip (flip typedBinder . (: []))
 
 -- | Smart constructor for a Coq definition sentence.
 definitionSentence
-  :: G.Qualid   -- ^ The name of the definition.
-  -> [G.Binder] -- ^ Binders for the parameters of the definition.
-  -> G.Term     -- ^ The return type of the definition.
-  -> G.Term     -- ^ The right hand side of the definition.
+  :: G.Qualid     -- ^ The name of the definition.
+  -> [G.Binder]   -- ^ Binders for the parameters of the definition.
+  -> Maybe G.Term -- ^ The return type of the definition.
+  -> G.Term       -- ^ The right hand side of the definition.
   -> G.Sentence
 definitionSentence qualid binders returnType term =
   (G.DefinitionSentence
-    (G.DefinitionDef G.Global qualid binders (Just returnType) term)
+    (G.DefinitionDef G.Global qualid binders returnType term)
   )
 
 -------------------------------------------------------------------------------

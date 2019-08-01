@@ -21,15 +21,17 @@ module Compiler.Converter.State
   , defineDecArg
   , defineTypeSig
   , defineIdent
+  , defineArgTypes
   , defineArity
     -- * Looking up entries from the environment
   , isFunction
   , isPartial
   , isPureVar
   , lookupDecArg
-  , lookupTypeSig
   , lookupIdent
+  , lookupArgTypes
   , lookupArity
+  , lookupTypeSig
     -- * Shortcuts for inserting entries into the environment
   , defineTypeCon
   , defineTypeVar
@@ -53,13 +55,20 @@ where
 
 import           Control.Monad.Fail
 import           Control.Monad.State
-import           Data.Composition               ( (.:) )
+import           Data.Composition               ( (.:)
+                                                , (.:.)
+                                                )
 import           Data.Map.Strict                ( Map )
 import qualified Data.Map.Strict               as Map
-import           Data.Maybe                     ( isJust )
+import           Data.Maybe                     ( catMaybes
+                                                , isJust
+                                                )
+import           Data.List                      ( nub )
 import           Data.Set                       ( Set )
 import qualified Data.Set                      as Set
+import           Data.Tuple.Extra               ( snd3 )
 
+import           Compiler.Analysis.DependencyExtraction
 import qualified Compiler.Language.Coq.AST     as G
 import qualified Compiler.Language.Haskell.SimpleAST
                                                as HS
@@ -98,7 +107,7 @@ data Environment = Environment
     -- ^ The number of fresh identifiers that were used in the environment
     --   with a certain prefix.
   , partialFunctions :: Set HS.Name
-    -- ^ The names of partial functions.This map also contains entries for
+    -- ^ The names of partial functions. This map also contains entries for
     --   functions that have not yet been defined and functions that are
     --   shadowed by local vairables.
   , pureVars :: Set HS.Name
@@ -107,18 +116,18 @@ data Environment = Environment
     -- ^ Maps Haskell function names to the index of their decreasing argument.
     --   Contains no entry for non-recursive functions, but there are also
     --   entries for functions that are shadowed by local variables.
-  , definedTypeSigs :: Map HS.Name HS.Type
-    -- ^ Maps Haskell function names to their annotated type. This map also
-    --   contains entries for functions that have not yet been defined and
-    --   functions that are shadowed by local vairables.
   , definedIdents :: Map ScopedName G.Qualid
     -- ^ Maps Haskell names of defined functions, (type/smart) constructors and
     --  (type) variables to corresponding Coq identifiers.
-  , definedArities       :: Map ScopedName Int
-    -- ^ Maps Haskell names to the number of (type) arguments expected by the
-    --   corresponding function or (type/smart) constructor. There should be
-    --   no entry for (type) variables. This allows one to use this map to
-    --   distinguish function and variable identifiers.
+  , definedArgTypes
+      :: Map ScopedName ([HS.TypeVarIdent], [Maybe HS.Type], Maybe HS.Type)
+    -- ^ Maps Haskell names of defined functions and (smart) constructors
+    --   to their argument and return types. If the type of an argument or the
+    --   return type is not known, @Nothing@ is stored instead. The first
+    --   component contains the names of all type variables used in the argument
+    --   and return types. There are no entries in this map for local variables.
+    --   However there are entries for type signatues (the annotated type is
+    --   stored as the return type and the argument type list is empty).
   }
   deriving Show
 
@@ -130,9 +139,8 @@ emptyEnvironment = Environment
   , partialFunctions = Set.empty
   , pureVars         = Set.empty
   , decArgs          = Map.empty
-  , definedTypeSigs  = Map.empty
   , definedIdents    = Map.empty
-  , definedArities   = Map.empty
+  , definedArgTypes  = Map.empty
   }
 
 -- | Gets a list of Coq identifiers for functions, (type/smart) constructors,
@@ -159,18 +167,6 @@ defineDecArg :: HS.Name -> Int -> Environment -> Environment
 defineDecArg name index env =
   env { decArgs = Map.insert name index (decArgs env) }
 
--- | Associates the name of a Haskell function with it's annoated type.
---
---   If there is an entry associated with the same name already, the entry
---   is overwritten.
---
---   Type signatures are defined after all data type declarations have been
---   defined but before any function declaration is converted. There are no
---   entries for predefined functions.
-defineTypeSig :: HS.Name -> HS.Type -> Environment -> Environment
-defineTypeSig name typeExpr env =
-  env { definedTypeSigs = Map.insert name typeExpr (definedTypeSigs env) }
-
 -- | Associates the name of a Haskell function, (type/smart) constructor or
 --   (type) variable with the given Coq identifier.
 --
@@ -183,20 +179,47 @@ defineTypeSig name typeExpr env =
 --   signatures (see 'defineTypeSig') are never shadowed.
 defineIdent :: Scope -> HS.Name -> G.Qualid -> Environment -> Environment
 defineIdent scope name ident env = env
-  { definedIdents  = Map.insert (scope, name) ident (definedIdents env)
-  , definedArities = Map.delete (scope, name) (definedArities env)
+  { definedIdents   = Map.insert (scope, name) ident (definedIdents env)
+  , definedArgTypes = Map.delete (scope, name) (definedArgTypes env)
   }
 
--- | Associates the name of a Haskell function or (type/smart) constructor
---   with the number of expected (type) arguments.
---
---   If there is an entry associated with the same name in the given scope
---   already, the entry is overwritten.
---
---   Unlike 'defineIdent' this function does not shadow existing information.
+-- | Associates the name of a Haskell function or (smart) constructor with its
+--   argument and return types.
+defineArgTypes
+  :: Scope             -- ^ The scope of the name.
+  -> HS.Name           -- ^ The name of the function or constructor.
+  -> [Maybe HS.Type]   -- ^ The known types of the arguments.
+  -> Maybe HS.Type     -- ^ The return type.
+  -> Environment
+  -> Environment
+defineArgTypes scope name argTypes returnType env = env
+  { definedArgTypes = Map.insert (scope, name)
+                                 (usedTypeVars, argTypes, returnType)
+                                 (definedArgTypes env)
+  }
+ where
+  -- | The type variables used by the (knonw) argument and return types.
+  usedTypeVars :: [HS.TypeVarIdent]
+  usedTypeVars =
+    nub $ catMaybes $ map HS.identFromName $ concatMap typeVars $ catMaybes
+      (argTypes ++ [returnType])
+
+-- | TODO remove me
 defineArity :: Scope -> HS.Name -> Int -> Environment -> Environment
-defineArity scope name arity env =
-  env { definedArities = Map.insert (scope, name) arity (definedArities env) }
+defineArity scope name arity =
+  defineArgTypes scope name (replicate arity Nothing) Nothing
+
+-- | Associates the name of a Haskell function with it's annoated type.
+--
+--   If there is an entry associated with the same name already, the entry
+--   is overwritten.
+--
+--   Type signatures are defined after all data type declarations have been
+--   defined but before any function declaration is converted. When a function
+--   is converted it splits the annotated type into argument and return types
+--   and replaces the entry created by this function.
+defineTypeSig :: HS.Name -> HS.Type -> Environment -> Environment
+defineTypeSig name typeExpr = defineArgTypes VarScope name [] (Just typeExpr)
 
 -------------------------------------------------------------------------------
 -- Looking up entries from the environment                                   --
@@ -207,7 +230,7 @@ defineArity scope name arity env =
 --
 --   Returns @False@ if there is no such function.
 isFunction :: HS.Name -> Environment -> Bool
-isFunction = isJust .: lookupArity VarScope
+isFunction = isJust .: lookupArgTypes VarScope
 
 -- | Tests whether the function with the given name is partial.
 --
@@ -226,11 +249,6 @@ isPureVar name = Set.member name . pureVars
 lookupDecArg :: HS.Name -> Environment -> Maybe Int
 lookupDecArg name = Map.lookup name . decArgs
 
--- | Looks up the annotated type of a user defined Haskell function with the
---   given name.
-lookupTypeSig :: HS.Name -> Environment -> Maybe HS.Type
-lookupTypeSig name = Map.lookup name . definedTypeSigs
-
 -- | Looks up the Coq identifier for a Haskell function, (type/smart)
 --   constructor or (type) variable with the given name.
 --
@@ -239,13 +257,38 @@ lookupTypeSig name = Map.lookup name . definedTypeSigs
 lookupIdent :: Scope -> HS.Name -> Environment -> Maybe G.Qualid
 lookupIdent scope name = Map.lookup (scope, name) . definedIdents
 
--- | Looks up the number of (type) monadicarguments expected by the given Haskell
---   function or (type/smart) constructor.
+-- | Looks up the argument and return types of the function or (smart)
+--   constructor with the given name.
 --
---   Returns @Nothing@ if there is no such function, (type/smart) constructor,
---   constructor or (type) variable with the given name.
+--   Returns @Nothing@ if there is no such function or (smart) constructor
+--   with the given name.
+lookupArgTypes
+  :: Scope
+  -> HS.Name
+  -> Environment
+  -> Maybe ([HS.TypeVarIdent], [Maybe HS.Type], Maybe HS.Type)
+lookupArgTypes scope name = Map.lookup (scope, name) . definedArgTypes
+
+-- | Looks up the number of arguments expected by the Haskell function
+--   or smart constructor with the given name.
+--
+--   Returns @Nothing@ if there is no such function or (smart) constructor
+--   with the given name.
 lookupArity :: Scope -> HS.Name -> Environment -> Maybe Int
-lookupArity scope name = Map.lookup (scope, name) . definedArities
+lookupArity = fmap (length . snd3) .:. lookupArgTypes
+
+-- | Looks up the annotated type of a user defined Haskell function with the
+--   given name.
+--
+--   This function assumes that the type signature has been insered into the
+--   environment using 'defineTypeSig' and the entry has not yet been replaced.
+--
+--   Returns @Nothing@, if there is no such type signature or the entry has
+--   been replaced already.
+lookupTypeSig :: HS.Name -> Environment -> Maybe HS.Type
+lookupTypeSig name env = do
+  (_, [], Just returnType) <- lookupArgTypes VarScope name env
+  return returnType
 
 -------------------------------------------------------------------------------
 -- Shortcuts for inserting entries into the environment                      --

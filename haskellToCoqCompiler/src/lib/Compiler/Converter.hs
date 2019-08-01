@@ -214,7 +214,7 @@ convertDataDecl (HS.DataDecl srcSpan (HS.DeclIdent _ ident) typeVarDecls conDecl
       (G.definitionSentence
         smartQualid
         (genericArgDecls G.Explicit ++ typeVarDecls' ++ argDecls')
-        returnType'
+        (Just returnType')
         (generatePure
           (G.app (G.Qualid qualid) (map (G.Qualid . G.bare) argIdents'))
         )
@@ -270,11 +270,7 @@ convertTypeVarDecls explicitness typeVarDecls =
 --   (e.g. @(a : Type)@) or implicit (e.g. @{a : Type}@).
 generateTypeVarDecls :: G.Explicitness -> [HS.Name] -> Converter [G.Binder]
 generateTypeVarDecls explicitness =
-  generateTypeVarDecls' explicitness . catMaybes . map identFromName
- where
-  identFromName :: HS.Name -> Maybe HS.TypeVarIdent
-  identFromName (HS.Ident  ident) = Just ident
-  identFromName (HS.Symbol _    ) = Nothing
+  generateTypeVarDecls' explicitness . catMaybes . map HS.identFromName
 
 -- | Like 'generateTypeVarDecls' but accepts the raw identifiers of the
 --   type variables.
@@ -350,19 +346,19 @@ convertFuncHead
   :: SrcSpan       -- ^ The source location to refer to in error messages.
   -> HS.Name       -- ^ The name of the function.
   -> [HS.VarPat]   -- ^ The function argument patterns.
-  -> Converter (G.Qualid, [G.Binder], G.Term)
+  -> Converter (G.Qualid, [G.Binder], Maybe G.Term)
 convertFuncHead srcSpan name args = do
   -- Lookup the Coq name of the function.
-  Just qualid            <- inEnv $ lookupIdent VarScope name
+  Just qualid <- inEnv $ lookupIdent VarScope name
     -- Lookup type signature and partiality.
-  partial                <- inEnv $ isPartial name
-  funcType               <- lookupTypeSigOrFail srcSpan name
-  (argTypes, returnType) <- splitFuncType funcType (length args)
+  partial     <- inEnv $ isPartial name
+  Just (usedTypeVars, argTypes, returnType) <- inEnv
+    $ lookupArgTypes VarScope name
   -- Convert arguments and return type.
-  typeVarDecls'          <- generateTypeVarDecls G.Implicit (typeVars funcType)
-  decArgIndex            <- inEnv $ lookupDecArg name
-  args'                  <- convertTypedArgs args argTypes decArgIndex
-  returnType'            <- convertType returnType
+  typeVarDecls' <- generateTypeVarDecls' G.Implicit usedTypeVars
+  decArgIndex   <- inEnv $ lookupDecArg name
+  args'         <- convertArgs args argTypes decArgIndex
+  returnType'   <- mapM convertType returnType
   return
     ( qualid
     , (  genericArgDecls G.Explicit
@@ -375,10 +371,14 @@ convertFuncHead srcSpan name args = do
 
 -- | Inserts the given function declaration into the current environment.
 defineFuncDecl :: HS.Decl -> Converter ()
-defineFuncDecl (HS.FuncDecl _ (HS.DeclIdent _ ident) args _) = do
+defineFuncDecl (HS.FuncDecl _ (HS.DeclIdent srcSpan ident) args _) = do
   -- TODO detect redefinition and inform when renamed
-  let arity = length args
-  _ <- renameAndDefineFunc ident arity
+  let name  = HS.Ident ident
+      arity = length args
+  funcType               <- lookupTypeSigOrFail srcSpan name
+  _                      <- renameAndDefineFunc ident arity
+  (argTypes, returnType) <- splitFuncType funcType arity
+  modifyEnv $ defineArgTypes VarScope name (map Just argTypes) (Just returnType)
   return ()
 
 -------------------------------------------------------------------------------
@@ -418,7 +418,9 @@ convertRecFuncDecls decls = do
 -- | Identifies the decreasing argument of a function with the given right
 --   hand side.
 --
---   Returns the name of the decreasing argument.
+--   Returns the name of the decreasing argument, the @case@ expressions that
+--   match the decreasing argument and a function that replaces the @case@
+--   expressions by other expressions.
 --
 --   TODO verify that all functions in the SCC are decreasing on this argument.
 identifyDecArg
@@ -502,10 +504,6 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent args expr) = do
   argNames :: [HS.Name]
   argNames = map (HS.Ident . HS.fromVarPat) args
 
-  -- | The number of arguments accepted by the function.
-  arity :: Int
-  arity = length (args)
-
   -- | Generates the recursive helper function declaration for the given
   --   @case@ expression that performs pattern matching on the given decreasing
   --   argument.
@@ -524,9 +522,9 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent args expr) = do
     -- The type of the helper function is the same as of the original function.
     -- Additionally we need to remember the index of the decreasing argument
     -- (see 'convertDecArg').
-    _        <- renameAndDefineFunc helperIdent arity
     funcType <- lookupTypeSigOrFail srcSpan name
     modifyEnv $ defineTypeSig helperName funcType
+    defineFuncDecl helperDecl
     modifyEnv $ defineDecArg helperName decArgIndex
 
     return (helperName, helperDecl)
@@ -534,7 +532,7 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent args expr) = do
   -- | Generates the application expression for the helper function with the
   --   given name.
   generateHelperApp
-    :: HS.Name -- The name of the helper function to apply.
+    :: HS.Name -- ^ The name of the helper function to apply.
     -> HS.Expr
   generateHelperApp helperName = HS.app NoSrcSpan
                                         (HS.Var NoSrcSpan helperName)
@@ -555,13 +553,38 @@ convertRecHelperFuncDecl (HS.FuncDecl srcSpan declIdent args expr) =
       (G.FixBody qualid
                  (NonEmpty.fromList binders)
                  (Just (G.StructOrder decArg'))
-                 (Just returnType')
+                 returnType'
                  expr'
       )
 
 -------------------------------------------------------------------------------
 -- Function argument declarations                                            --
 -------------------------------------------------------------------------------
+
+-- | Converts the arguments (variable patterns) of a potentially recursive
+--   function with the given types to explicit Coq binders.
+--
+--   If the type of an argument is not known, it's type will be inferred by
+--   Coq.
+--
+--   If the function is recursive, its decreasing argument (given index),
+--   is not lifted.
+convertArgs
+  :: [HS.VarPat]     -- ^ The function arguments.
+  -> [Maybe HS.Type] -- ^ The types of the function arguments.
+  -> Maybe Int       -- ^ The position of the decreasing argument.
+  -> Converter [G.Binder]
+convertArgs args argTypes Nothing = do
+  argTypes' <- mapM (mapM convertType) argTypes
+  zipWithM convertArg args argTypes'
+convertArgs args argTypes (Just index) = do
+  bindersBefore <- convertArgs argsBefore argTypesBefore Nothing
+  decArgBinder  <- convertDecArg decArg decArgType
+  bindersAfter  <- convertArgs argsAfter argTypesAfter Nothing
+  return (bindersBefore ++ decArgBinder : bindersAfter)
+ where
+  (argsBefore    , decArg : argsAfter        ) = splitAt index args
+  (argTypesBefore, decArgType : argTypesAfter) = splitAt index argTypes
 
 -- | Converts the argument of a function (a variable pattern) to an explicit
 --   Coq binder whose type is inferred by Coq.
@@ -581,32 +604,12 @@ convertTypedArg arg argType = do
 --   In contrast to a regular typed argument (see 'convertTypedArg'), the
 --   decreasing argument is not lifted to the @Free@ monad.
 --   It is also registered as a non-monadic value (see 'definePureVar').
-convertDecArg :: HS.VarPat -> HS.Type -> Converter G.Binder
+convertDecArg :: HS.VarPat -> Maybe HS.Type -> Converter G.Binder
 convertDecArg arg argType = do
-  argType' <- convertType' argType
-  binder   <- convertArg arg (Just argType')
+  argType' <- mapM convertType' argType
+  binder   <- convertArg arg argType'
   modifyEnv $ definePureVar (HS.Ident (HS.fromVarPat arg))
   return binder
-
--- | Converts the arguments (variable patterns) of a potentially recursive
---   function with the given types to explicit Coq binders.
---
---   If the function is recursive, its decreasing argument (given index),
---   is not lifted.
-convertTypedArgs
-  :: [HS.VarPat] -- ^ The function arguments.
-  -> [HS.Type]   -- ^ The types of the function arguments.
-  -> Maybe Int   -- ^ The position of the decreasing argument.
-  -> Converter [G.Binder]
-convertTypedArgs args argTypes Nothing = zipWithM convertTypedArg args argTypes
-convertTypedArgs args argTypes (Just index) = do
-  bindersBefore <- convertTypedArgs argsBefore argTypesBefore Nothing
-  decArgBinder  <- convertDecArg decArg decArgType
-  bindersAfter  <- convertTypedArgs argsAfter argTypesAfter Nothing
-  return (bindersBefore ++ decArgBinder : bindersAfter)
- where
-  (argsBefore    , decArg : argsAfter        ) = splitAt index args
-  (argTypesBefore, decArgType : argTypesAfter) = splitAt index argTypes
 
 -- | Converts the argument of a function (a variable pattern) to an explicit
 --   Coq binder.
@@ -769,10 +772,9 @@ convertExpr' (HS.Var srcSpan name) args = do
           -- unwrapped first.
           let (before, decArg : after) = splitAt index args'
           -- Add type annotation for decreasing argument.
-          Just funcType <- inEnv $ lookupTypeSig name
-          (argTypes, _) <- splitFuncType funcType arity
-          decArgType'   <- convertType' (argTypes !! index)
-          generateBind decArg (Just decArgType') $ \decArg' ->
+          Just (_, argTypes, _) <- inEnv $ lookupArgTypes VarScope name
+          decArgType'           <- mapM convertType' (argTypes !! index)
+          generateBind decArg decArgType' $ \decArg' ->
             generateApplyN arity callee (before ++ decArg' : after)
     else do
       -- If this is the decreasing argument of a recursive helper function,
@@ -787,7 +789,7 @@ convertExpr' (HS.App _ e1 e2  ) args = convertExpr' e1 (e2 : args)
 
 -- @if@-expressions.
 convertExpr' (HS.If _ e1 e2 e3) []   = do
-  e1' <- convertExpr e1
+  e1'   <- convertExpr e1
   bool' <- convertType' (HS.TypeCon NoSrcSpan HS.boolTypeConName)
   generateBind e1' (Just bool') $ \cond -> do
     e2' <- convertExpr e2
