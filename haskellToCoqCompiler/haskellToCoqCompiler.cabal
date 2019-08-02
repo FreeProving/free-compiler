@@ -33,6 +33,13 @@ library haskell-to-coq-internal
                       , Compiler.Analysis.PartialityAnalysis
                       , Compiler.Analysis.RecursionAnalysis
                       , Compiler.Converter
+                      , Compiler.Converter.Arg
+                      , Compiler.Converter.Expr
+                      , Compiler.Converter.Free
+                      , Compiler.Converter.FuncDecl
+                      , Compiler.Converter.Module
+                      , Compiler.Converter.Type
+                      , Compiler.Converter.TypeDecl
                       , Compiler.Coq.AST
                       , Compiler.Coq.Base
                       , Compiler.Coq.Keywords
@@ -40,6 +47,7 @@ library haskell-to-coq-internal
                       , Compiler.Environment
                       , Compiler.Environment.Fresh
                       , Compiler.Environment.Loader
+                      , Compiler.Environment.LookupOrFail
                       , Compiler.Environment.Renamer
                       , Compiler.Monad.Converter
                       , Compiler.Monad.Reporter
