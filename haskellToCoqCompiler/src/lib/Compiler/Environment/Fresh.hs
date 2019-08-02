@@ -7,6 +7,7 @@
 module Compiler.Environment.Fresh where
 
 import qualified Data.Map.Strict               as Map
+import           Data.List                      ( elemIndex )
 
 import           Compiler.Environment
 import           Compiler.Environment.Renamer
@@ -24,17 +25,23 @@ freshArgPrefix = "x"
 --   at-sign (or underscore) is preceded by the given prefix and followed by an
 --   incrementing number (staring at @0@).
 --
+--   If the given prefix is a fresh identifier itself (i.e. contains an
+--   at-sign), the prefix of that identifier is used instead.
+--
 --   The freshly generated identifier is not inserted into the environment,
 --   i.e. it can still be used to create a declaration.
 freshHaskellIdent :: String -> Converter String
-freshHaskellIdent prefix = do
-  env <- getEnv
-  let count = Map.findWithDefault 0 prefix (freshIdentCount env)
-  putEnv
-    (env { freshIdentCount = Map.insert prefix (count + 1) (freshIdentCount env)
-         }
-    )
-  return (prefix ++ "@" ++ show count)
+freshHaskellIdent prefix = case elemIndex '@' prefix of
+  Just atIndex -> freshHaskellIdent (take atIndex prefix)
+  Nothing      -> do
+    env <- getEnv
+    let count = Map.findWithDefault 0 prefix (freshIdentCount env)
+    putEnv
+      (env
+        { freshIdentCount = Map.insert prefix (count + 1) (freshIdentCount env)
+        }
+      )
+    return (prefix ++ "@" ++ show count)
 
 -- | Gets the next fresh Haskell identifier from the current environment
 --   and renames it such that it can be used in Coq.
