@@ -16,7 +16,6 @@ import qualified Compiler.Coq.Base             as CoqBase
 import           Compiler.Environment
 import           Compiler.Environment.Renamer
 import qualified Compiler.Haskell.AST          as HS
-import           Compiler.Haskell.SrcSpan
 import           Compiler.Monad.Converter
 
 -------------------------------------------------------------------------------
@@ -69,7 +68,7 @@ convertDataDecls dataDecls = do
 --   Type variables declared by the data type or the smart constructors are
 --   not visible outside of this function.
 convertDataDecl :: HS.Decl -> Converter (G.IndBody, [G.Sentence])
-convertDataDecl (HS.DataDecl srcSpan (HS.DeclIdent _ ident) typeVarDecls conDecls)
+convertDataDecl decl@(HS.DataDecl _ (HS.DeclIdent _ ident) typeVarDecls conDecls)
   = do
     (body, argumentsSentences) <- generateBodyAndArguments
     smartConDecls              <- mapM generateSmartConDecl conDecls
@@ -83,10 +82,7 @@ convertDataDecl (HS.DataDecl srcSpan (HS.DeclIdent _ ident) typeVarDecls conDecl
  where
   -- | The Haskell type produced by the constructors of the data type.
   returnType :: HS.Type
-  returnType = HS.typeApp
-    srcSpan
-    (HS.Ident ident)
-    (map (HS.TypeVar srcSpan . HS.fromDeclIdent) typeVarDecls)
+  returnType = conReturnType decl
 
   -- | Generates the body of the @Inductive@ sentence and the @Arguments@
   --   sentences for the constructors but not the smart the smart constructors
@@ -161,19 +157,15 @@ convertDataDecl (HS.DataDecl srcSpan (HS.DeclIdent _ ident) typeVarDecls conDecl
 -- | Inserts the given data type declaration and its constructor declarations
 --   into the current environment.
 defineDataDecl :: HS.Decl -> Converter ()
-defineDataDecl (HS.DataDecl _ (HS.DeclIdent _ ident) typeVarDecls conDecls) =
-  do
+defineDataDecl decl@(HS.DataDecl _ declIdent typeVarDecls conDecls) = do
     -- TODO detect redefinition and inform when renamed
-    let arity = length typeVarDecls
-    _ <- renameAndDefineTypeCon ident arity
-    mapM_ defineConDecl conDecls
+  let arity = length typeVarDecls
+  _ <- renameAndDefineTypeCon (HS.fromDeclIdent declIdent) arity
+  mapM_ defineConDecl conDecls
  where
   -- | The type produced by all constructors of the data type.
   returnType :: HS.Type
-  returnType = HS.typeApp
-    NoSrcSpan
-    (HS.Ident ident)
-    (map (HS.TypeVar NoSrcSpan . HS.fromDeclIdent) typeVarDecls)
+  returnType = conReturnType decl
 
   -- | Inserts the given data constructor declaration and its smart constructor
   --   into the current environment.
@@ -182,3 +174,11 @@ defineDataDecl (HS.DataDecl _ (HS.DeclIdent _ ident) typeVarDecls conDecls) =
     -- TODO detect redefinition and inform when renamed
     _ <- renameAndDefineCon conIdent (map Just argTypes) (Just returnType)
     return ()
+
+-- | Gets the Haskell return type of the constructors for the given data type
+--   declaration.
+conReturnType :: HS.Decl -> HS.Type
+conReturnType (HS.DataDecl srcSpan (HS.DeclIdent _ ident) typeVarDecls _) =
+  HS.typeApp srcSpan
+             (HS.Ident ident)
+             (map (HS.TypeVar srcSpan . HS.fromDeclIdent) typeVarDecls)
