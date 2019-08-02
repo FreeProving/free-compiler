@@ -333,7 +333,7 @@ testConvertRecFuncDecls = describe "convertRecFuncDecls" $ do
             , "foo xs = bar (\\y -> "
               ++ "case xs of { [] -> []; x : xs' -> y : foo xs' })"
             ]
-          $ "Fixpoint foo_0 (Shape : Type) (Pos : Shape -> Type) {a : Type}"
+          $  "Fixpoint foo_0 (Shape : Type) (Pos : Shape -> Type) {a : Type}"
           ++ "  (xs : List Shape Pos a) y {struct xs}"
           ++ " : Free Shape Pos (List Shape Pos a)"
           ++ " := match xs with"
