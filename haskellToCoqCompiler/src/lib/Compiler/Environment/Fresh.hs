@@ -4,12 +4,13 @@
 --   into the Haskell or Coq AST. They are guranteed not to conflict with any
 --   other valid identifier.
 
-module Compiler.Converter.Fresh where
+module Compiler.Environment.Fresh where
 
 import qualified Data.Map.Strict               as Map
 
-import           Compiler.Converter.Renamer
-import           Compiler.Converter.State
+import           Compiler.Environment
+import           Compiler.Environment.Renamer
+import           Compiler.Monad.Converter
 
 -- | The prefix to use for artificially introduced function arguments.
 freshArgPrefix :: String
@@ -19,7 +20,7 @@ freshArgPrefix = "x"
 --
 --   All fresh identifiers contain an at-sign. This ensures that they cannot be
 --   confused with actual Haskell identifiers. The corresponding Coq identifier
---   contains an underscore instead (see "Compiler.Converter.Renamer"). The
+--   contains an underscore instead (see "Compiler.Environment.Renamer"). The
 --   at-sign (or underscore) is preceded by the given prefix and followed by an
 --   incrementing number (staring at @0@).
 --

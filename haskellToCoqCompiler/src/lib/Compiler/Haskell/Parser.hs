@@ -1,7 +1,7 @@
 -- | This module contains functions for parsing Haskell modules and other
 --   nodes of the Haskell AST.
 
-module Compiler.Language.Haskell.Parser
+module Compiler.Haskell.Parser
   ( parseHaskell
   , parseModule
   , parseModuleFile
@@ -25,8 +25,8 @@ import           Language.Haskell.Exts.Parser   ( ParseMode(..)
 import           Language.Haskell.Exts.SrcLoc   ( SrcSpanInfo )
 import qualified Language.Haskell.Exts.Syntax  as H
 
-import           Compiler.Reporter
-import           Compiler.SrcSpan
+import           Compiler.Monad.Reporter
+import           Compiler.Haskell.SrcSpan
 
 -- | Custom parameters for parsing a Haskell source file with the given name.
 --

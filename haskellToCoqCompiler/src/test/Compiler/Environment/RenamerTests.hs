@@ -1,21 +1,20 @@
-module Compiler.Converter.RenamerTests where
+module Compiler.Environment.RenamerTests where
 
 import           Test.Hspec
 import           Test.QuickCheck
 
 import           Data.Maybe                     ( catMaybes )
 
-import           Compiler.Converter.Renamer
-import           Compiler.Converter.State
-import qualified Compiler.Language.Coq.AST     as G
-import           Compiler.Language.Coq.Keywords
-import qualified Compiler.Language.Coq.Base    as CoqBase
-import qualified Compiler.Language.Haskell.SimpleAST
-                                               as HS
+import           Compiler.Environment
+import           Compiler.Environment.Renamer
+import qualified Compiler.Coq.AST              as G
+import           Compiler.Coq.Keywords
+import qualified Compiler.Coq.Base             as CoqBase
+import qualified Compiler.Haskell.AST          as HS
 
--- | Test group for all @Compiler.Converter.Renamer@ tests.
+-- | Test group for all @Compiler.Environment.Renamer@ tests.
 testRenamer :: Spec
-testRenamer = describe "Compiler.Converter.Renamer" $ do
+testRenamer = describe "Compiler.Environment.Renamer" $ do
   testMustRenameIdent
   testRenameIdent
 

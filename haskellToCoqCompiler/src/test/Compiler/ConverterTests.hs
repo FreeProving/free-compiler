@@ -2,10 +2,9 @@ module Compiler.ConverterTests where
 
 import           Test.Hspec
 
-import           Compiler.Converter.State
-import           Compiler.Language.Haskell.SimpleAST
-                                               as HS
-
+import           Compiler.Environment
+import           Compiler.Haskell.AST          as HS
+import           Compiler.Monad.Converter
 import           Compiler.Util.Test
 
 -- | Test group for all @Compiler.Converter@ tests.

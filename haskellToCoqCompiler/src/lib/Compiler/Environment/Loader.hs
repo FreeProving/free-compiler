@@ -45,7 +45,7 @@
 --       function.
 --     * @arity@ (@Integer@) the number of arguments expected by the function.
 
-module Compiler.Converter.EnvironmentLoader
+module Compiler.Environment.Loader
   ( loadEnvironment
   )
 where
@@ -60,15 +60,15 @@ import           Data.Char                      ( isAlphaNum )
 import qualified Data.Text                     as T
 import qualified Data.Vector                   as Vector
 
-import           Compiler.Converter.State
-import qualified Compiler.Language.Coq.AST     as G
-import           Compiler.Language.Haskell.Parser
-import qualified Compiler.Language.Haskell.SimpleAST
-                                               as HS
-import           Compiler.Language.Haskell.Simplifier
+import           Compiler.Environment
+import qualified Compiler.Coq.AST              as G
+import           Compiler.Haskell.Parser
+import qualified Compiler.Haskell.AST          as HS
+import           Compiler.Haskell.Simplifier
+import           Compiler.Monad.Converter
+import           Compiler.Monad.Reporter
 import           Compiler.Pretty
-import           Compiler.Reporter
-import           Compiler.SrcSpan
+import           Compiler.Haskell.SrcSpan
 
 -- | Restores a Haskell name (symbol or identifier) from the configuration
 --   file.
@@ -102,11 +102,12 @@ instance Aeson.FromJSON HS.Type where
 -- | Restores an 'Environment' from the configuration file.
 instance Aeson.FromJSON Environment where
   parseJSON = Aeson.withObject "Environment" $ \env -> do
-    defineTypes <- env .: "types" >>= Aeson.withArray "Types" (mapM parseType)
-    defineCons  <- env .: "constructors" >>= Aeson.withArray "Constructors"
-                                                             (mapM parseCon)
-    defineFuncs <- env .: "functions" >>= Aeson.withArray "Functions"
-                                                          (mapM parseFunc)
+    defineTypes <- env .: "types"
+      >>= Aeson.withArray "Types" (mapM parseConfigType)
+    defineCons  <- env .: "constructors"
+      >>= Aeson.withArray "Constructors" (mapM parseConfigCon)
+    defineFuncs <- env .: "functions"
+      >>= Aeson.withArray "Functions" (mapM parseConfigFunc)
     return
       (foldr
         ($)
@@ -117,15 +118,15 @@ instance Aeson.FromJSON Environment where
         )
       )
    where
-    parseType :: Aeson.Value -> Aeson.Parser (Environment -> Environment)
-    parseType = Aeson.withObject "Type" $ \obj -> do
+    parseConfigType :: Aeson.Value -> Aeson.Parser (Environment -> Environment)
+    parseConfigType = Aeson.withObject "Type" $ \obj -> do
       arity       <- obj .: "arity"
       haskellName <- obj .: "haskell-name"
       coqName     <- obj .: "coq-name"
       return (defineTypeCon haskellName arity coqName)
 
-    parseCon :: Aeson.Value -> Aeson.Parser (Environment -> Environment)
-    parseCon = Aeson.withObject "Constructor" $ \obj -> do
+    parseConfigCon :: Aeson.Value -> Aeson.Parser (Environment -> Environment)
+    parseConfigCon = Aeson.withObject "Constructor" $ \obj -> do
       arity                  <- obj .: "arity"
       haskellName            <- obj .: "haskell-name"
       haskellType            <- obj .: "haskell-type"
@@ -134,8 +135,8 @@ instance Aeson.FromJSON Environment where
       let (argTypes, returnType) = HS.splitType haskellType arity
       return (defineCon haskellName coqName coqSmartName argTypes returnType)
 
-    parseFunc :: Aeson.Value -> Aeson.Parser (Environment -> Environment)
-    parseFunc = Aeson.withObject "Function" $ \obj -> do
+    parseConfigFunc :: Aeson.Value -> Aeson.Parser (Environment -> Environment)
+    parseConfigFunc = Aeson.withObject "Function" $ \obj -> do
       arity       <- obj .: "arity"
       haskellName <- obj .: "haskell-name"
       haskellType <- obj .: "haskell-type"

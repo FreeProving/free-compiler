@@ -31,23 +31,25 @@ library haskell-to-coq-internal
                       , Compiler.Analysis.DependencyExtraction
                       , Compiler.Analysis.DependencyGraph
                       , Compiler.Analysis.PartialityAnalysis
+                      , Compiler.Analysis.RecursionAnalysis
                       , Compiler.Converter
-                      , Compiler.Converter.EnvironmentLoader
-                      , Compiler.Converter.Fresh
-                      , Compiler.Converter.Inliner
-                      , Compiler.Converter.Renamer
-                      , Compiler.Converter.State
-                      , Compiler.Converter.Subst
-                      , Compiler.Language.Coq.AST
-                      , Compiler.Language.Coq.Base
-                      , Compiler.Language.Coq.Keywords
-                      , Compiler.Language.Haskell.Parser
-                      , Compiler.Language.Haskell.SimpleAST
-                      , Compiler.Language.Haskell.Simplifier
+                      , Compiler.Coq.AST
+                      , Compiler.Coq.Base
+                      , Compiler.Coq.Keywords
+                      , Compiler.Coq.Pretty
+                      , Compiler.Environment
+                      , Compiler.Environment.Fresh
+                      , Compiler.Environment.Loader
+                      , Compiler.Environment.Renamer
+                      , Compiler.Monad.Converter
+                      , Compiler.Monad.Reporter
+                      , Compiler.Haskell.AST
+                      , Compiler.Haskell.Inliner
+                      , Compiler.Haskell.Parser
+                      , Compiler.Haskell.Simplifier
+                      , Compiler.Haskell.SrcSpan
+                      , Compiler.Haskell.Subst
                       , Compiler.Pretty
-                      , Compiler.Pretty.Coq
-                      , Compiler.Reporter
-                      , Compiler.SrcSpan
   build-depends:      base                ==4.12.*
                         -- Monad transformers:
                       , mtl               ==2.2.*
@@ -88,8 +90,8 @@ test-suite unit-tests
   main-is:            Spec.hs
   other-modules:      Compiler.Analysis.PartialityAnalysisTests
                     , Compiler.ConverterTests
-                    , Compiler.Converter.RenamerTests
-                    , Compiler.ReporterTests
+                    , Compiler.Environment.RenamerTests
+                    , Compiler.Monad.ReporterTests
                     , Compiler.Util.Test
   build-depends:      base
                     , hspec

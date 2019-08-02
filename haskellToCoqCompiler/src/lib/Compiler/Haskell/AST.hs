@@ -8,10 +8,10 @@
 --   the AST are usually created by converting an existing AST (e.g. from the
 --   @haskell-src-ext@ package). For testing purposes instances may be created
 --   directly.
-module Compiler.Language.Haskell.SimpleAST where
+module Compiler.Haskell.AST where
 
 import           Compiler.Pretty
-import           Compiler.SrcSpan
+import           Compiler.Haskell.SrcSpan
 
 -------------------------------------------------------------------------------
 -- Identifiers                                                               --
@@ -172,7 +172,7 @@ data Type
 --  Even though there are no dedicated constructors, the infix applications of
 --  functions and constructors (including left and right sections) are
 --  supported. This kind of syntactic suggar is removed during simplification
---  (see "Compiler.Language.Haskell.Simplifier").
+--  (see "Compiler.Haskell.Simplifier").
 data Expr
   = Con SrcSpan ConName           -- ^ A constructor.
   | Var SrcSpan VarName           -- ^ A function or local variable.

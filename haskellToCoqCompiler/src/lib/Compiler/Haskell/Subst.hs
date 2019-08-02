@@ -1,10 +1,10 @@
 -- | This module contains a definition of substitutions for Haskell
 --   expressions.
 --
---   Substitutions are used by "Compiler.Converter.Inliner" to replace
+--   Substitutions are used by "Compiler.Haskell.Inliner" to replace
 --   parameters of inlined functions with their actual arguments.
 
-module Compiler.Converter.Subst
+module Compiler.Haskell.Subst
   ( Subst
     -- * Construction
   , identitySubst
@@ -24,11 +24,10 @@ import           Data.Map.Strict                ( Map )
 import qualified Data.Map.Strict               as Map
 
 
-import           Compiler.Converter.Fresh
-import           Compiler.Converter.State
-import qualified Compiler.Language.Haskell.SimpleAST
-                                               as HS
-import           Compiler.SrcSpan
+import           Compiler.Environment.Fresh
+import qualified Compiler.Haskell.AST          as HS
+import           Compiler.Monad.Converter
+import           Compiler.Haskell.SrcSpan
 
 -- | A substitution is a mapping from Haskell variable names to expressions.
 --

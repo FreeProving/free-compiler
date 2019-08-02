@@ -1,28 +1,23 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-
 -- | This module contains a data type that encapsulates the state of
---   the converter and a state monad which allows the state to be passed
---   implicitly throught the converter.
---
---   There are also utility functions to modify the state and retreive
---   information stored in the state.
+--   the compiler. There are also utility functions to modify the state and
+--   retreive information stored in the state.
 
-module Compiler.Converter.State
-  ( -- * Environment
+module Compiler.Environment
+  (-- * Environment
     Environment
   , Scope(..)
   , emptyEnvironment
   , usedIdents
-    -- * Freh identifiers
+  -- * Freh identifiers
   , freshIdentCount
-    -- * Inserting entries into the environment
+  -- * Inserting entries into the environment
   , definePartial
   , definePureVar
   , defineDecArg
   , defineTypeSig
   , defineIdent
   , defineArgTypes
-    -- * Looking up entries from the environment
+  -- * Looking up entries from the environment
   , isFunction
   , isPartial
   , isPureVar
@@ -31,29 +26,15 @@ module Compiler.Converter.State
   , lookupArgTypes
   , lookupArity
   , lookupTypeSig
-    -- * Shortcuts for inserting entries into the environment
+  -- * Shortcuts for inserting entries into the environment
   , defineTypeCon
   , defineTypeVar
   , defineCon
   , defineVar
   , defineFunc
-    -- * State monad
-  , Converter
-  , runConverter
-  , evalConverter
-  , execConverter
-    -- * Modifying environments
-  , getEnv
-  , inEnv
-  , putEnv
-  , modifyEnv
-  , modifyEnv'
-  , localEnv
   )
 where
 
-import           Control.Monad.Fail
-import           Control.Monad.State
 import           Data.Composition               ( (.:)
                                                 , (.:.)
                                                 )
@@ -68,12 +49,9 @@ import qualified Data.Set                      as Set
 import           Data.Tuple.Extra               ( snd3 )
 
 import           Compiler.Analysis.DependencyExtraction
-import qualified Compiler.Language.Coq.AST     as G
-import qualified Compiler.Language.Haskell.SimpleAST
-                                               as HS
+import qualified Compiler.Coq.AST              as G
+import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Pretty
-import           Compiler.Reporter
-import           Compiler.SrcSpan
 
 -------------------------------------------------------------------------------
 -- Environment                                                               --
@@ -124,9 +102,10 @@ data Environment = Environment
     --   to their argument and return types. If the type of an argument or the
     --   return type is not known, @Nothing@ is stored instead. The first
     --   component contains the names of all type variables used in the argument
-    --   and return types. There are no entries in this map for local variables.
-    --   However there are entries for type signatues (the annotated type is
-    --   stored as the return type and the argument type list is empty).
+    --   and return types. There are no entries in this map for local variables
+    --   or datatype declarations. However there are entries for type signatues
+    --   (the annotated type is stored as the return type and the argument type
+    --   list is empty).
   }
   deriving Show
 
@@ -352,87 +331,3 @@ defineFunc
 defineFunc name ident argTypes returnType =
   defineArgTypes VarScope name argTypes returnType
     . defineIdent VarScope name ident
-
--------------------------------------------------------------------------------
--- State monad                                                               --
--------------------------------------------------------------------------------
-
--- | Type synonym for the state monad used by the converter.
---
---   All converter functions usually require the current 'Environment'
---   to perform the conversion. This monad allows these functions to
---   pass the environment around implicitly.
---
---   Additionally the converter can report error messages and warnings to the
---   user if there is a problem while converting.
-newtype Converter a = Converter
-  { unwrapConverter :: StateT Environment Reporter a
-  }
-  deriving (Functor, Applicative, Monad, MonadState Environment)
-
--- | Runs the converter with the given initial environment and
---   returns the converter's result as well as the final environment.
-runConverter :: Converter a -> Environment -> Reporter (a, Environment)
-runConverter = runStateT . unwrapConverter
-
--- | Runs the converter with the given initial environment and
---   returns the converter's result.
-evalConverter :: Converter a -> Environment -> Reporter a
-evalConverter = evalStateT . unwrapConverter
-
--- | Runs the converter with the given initial environment and
---   returns the final environment.
-execConverter :: Converter a -> Environment -> Reporter Environment
-execConverter = execStateT . unwrapConverter
-
--------------------------------------------------------------------------------
--- Modifying environments                                                    --
--------------------------------------------------------------------------------
-
--- | Gets the current environment.
-getEnv :: Converter Environment
-getEnv = get
-
--- | Gets a specific component of the current environment using the given
---   function to extract the value from the environment.
-inEnv :: (Environment -> a) -> Converter a
-inEnv = gets
-
--- | Sets the current environment.
-putEnv :: Environment -> Converter ()
-putEnv = put
-
--- | Applies the given function to the environment.
-modifyEnv :: (Environment -> Environment) -> Converter ()
-modifyEnv = modify
-
--- | Gets a specific component of the current environment
-modifyEnv' :: (Environment -> (a, Environment)) -> Converter a
-modifyEnv' = state
-
--- | Runs the given converter and returns its result but discards all
---   modifications to the environment.
-localEnv :: Converter a -> Converter a
-localEnv converter = do
-  env <- getEnv
-  x   <- converter
-  putEnv env
-  return x
-
--------------------------------------------------------------------------------
--- Reporting in converter                                                    --
--------------------------------------------------------------------------------
-
--- | Promotes a reporter to a converter that produces the same result and
---   ignores the environment.
---
---   This type class instance allows 'report' and 'reportFatal' to be used
---   directly in @do@-blocks of the 'Converter' monad without explicitly
---   lifting reporters.
-instance MonadReporter Converter where
-  liftReporter = Converter . lift
-
--- | Internal errors (e.g. pattern matching failures in @do@-blocks) are
---   cause fatal error messages to be reported.
-instance MonadFail Converter where
-  fail = reportFatal . Message NoSrcSpan Internal

@@ -10,7 +10,7 @@
 --   Amongst others there are functions to convert other source spans from the
 --   @haskell-src-exts@ package to the data type defined in this module.
 
-module Compiler.SrcSpan
+module Compiler.Haskell.SrcSpan
   ( SrcSpan(..)
   , SrcSpanConverter(..)
   , hasSourceCode

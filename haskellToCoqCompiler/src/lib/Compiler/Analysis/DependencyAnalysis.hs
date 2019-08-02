@@ -19,8 +19,7 @@ where
 import           Data.Graph
 
 import           Compiler.Analysis.DependencyGraph
-import qualified Compiler.Language.Haskell.SimpleAST
-                                               as HS
+import qualified Compiler.Haskell.AST          as HS
 
 -- | A strongly connected component of the dependency graph.
 --

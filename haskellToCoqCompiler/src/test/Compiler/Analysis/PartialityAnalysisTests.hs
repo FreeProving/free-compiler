@@ -4,8 +4,7 @@ import           Test.Hspec
 
 import           Compiler.Analysis.DependencyGraph
 import           Compiler.Analysis.PartialityAnalysis
-import           Compiler.Language.Haskell.SimpleAST
-                                               as HS
+import           Compiler.Haskell.AST          as HS
 
 import           Compiler.Util.Test
 

@@ -9,7 +9,7 @@
 --   data type to have the same name as one of it's constructors. In Coq this
 --   would cause a name conflict. Therefore, one of them needs to be renamed.
 
-module Compiler.Converter.Renamer
+module Compiler.Environment.Renamer
   ( -- * Predicates
     mustRenameIdent
     -- * Rename identifiers
@@ -28,12 +28,12 @@ import           Text.Casing
 import           Data.Maybe                     ( catMaybes )
 import           Data.Char
 
-import           Compiler.Converter.State
-import qualified Compiler.Language.Coq.AST     as G
-import qualified Compiler.Language.Coq.Base    as CoqBase
-import           Compiler.Language.Coq.Keywords
-import qualified Compiler.Language.Haskell.SimpleAST
-                                               as HS
+import           Compiler.Environment
+import qualified Compiler.Coq.AST              as G
+import qualified Compiler.Coq.Base             as CoqBase
+import           Compiler.Coq.Keywords
+import qualified Compiler.Haskell.AST          as HS
+import           Compiler.Monad.Converter
 
 -------------------------------------------------------------------------------
 -- Predicates                                                                --

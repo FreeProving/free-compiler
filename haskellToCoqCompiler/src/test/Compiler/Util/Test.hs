@@ -7,17 +7,16 @@ import           Test.Hspec
 import           Data.Maybe                     ( catMaybes )
 
 import           Compiler.Converter
-import           Compiler.Converter.EnvironmentLoader
-import           Compiler.Converter.Renamer
-import           Compiler.Converter.State
-import           Compiler.Language.Coq.AST     as G
-import           Compiler.Language.Haskell.Parser
-import           Compiler.Language.Haskell.SimpleAST
-                                               as HS
-import           Compiler.Language.Haskell.Simplifier
+import           Compiler.Environment.Loader
+import           Compiler.Environment.Renamer
+import qualified Compiler.Coq.AST              as G
+import           Compiler.Coq.Pretty            ( )
+import           Compiler.Haskell.Parser
+import qualified Compiler.Haskell.AST          as HS
+import           Compiler.Haskell.Simplifier
+import           Compiler.Monad.Converter
+import           Compiler.Monad.Reporter
 import           Compiler.Pretty
-import           Compiler.Pretty.Coq            ( )
-import           Compiler.Reporter
 
 -------------------------------------------------------------------------------
 -- Evaluation of converters                                                  --
@@ -104,7 +103,7 @@ defineTestTypeVar = renameAndDefineTypeVar
 --   from the given string.
 defineTestCon :: String -> Int -> String -> Converter (String, String)
 defineTestCon ident arity typeStr = do
-  typeExpr               <- parseTestType typeStr
+  typeExpr <- parseTestType typeStr
   let (argTypes, returnType) = HS.splitType typeExpr arity
   renameAndDefineCon ident argTypes returnType
 
@@ -116,7 +115,7 @@ defineTestVar = renameAndDefineVar
 --   the given string.
 defineTestFunc :: String -> Int -> String -> Converter String
 defineTestFunc ident arity typeStr = do
-  typeExpr               <- parseTestType typeStr
+  typeExpr <- parseTestType typeStr
   let (argTypes, returnType) = HS.splitType typeExpr arity
   renameAndDefineFunc ident argTypes returnType
 

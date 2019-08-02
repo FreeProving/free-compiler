@@ -1,4 +1,4 @@
-module Compiler.ReporterTests
+module Compiler.Monad.ReporterTests
   ( testReporter
   )
 where
@@ -9,12 +9,12 @@ import           System.IO.Error                ( ioError
 
 import           Test.Hspec
 
-import           Compiler.Reporter
-import           Compiler.SrcSpan
+import           Compiler.Monad.Reporter
+import           Compiler.Haskell.SrcSpan
 
--- | Test group for all @Compiler.Reporter@ tests.
+-- | Test group for all "Compiler.Monad.Reporter" tests.
 testReporter :: Spec
-testReporter = describe "Compiler.Reporter" $ do
+testReporter = describe "Compiler.Monad.Reporter" $ do
   testRunReporter
   testIsFatal
   testMessages

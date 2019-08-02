@@ -28,8 +28,7 @@ import           Data.Set                       ( Set
                                                 )
 import qualified Data.Set                      as Set
 
-import qualified Compiler.Language.Haskell.SimpleAST
-                                               as HS
+import qualified Compiler.Haskell.AST          as HS
 
 
 -------------------------------------------------------------------------------

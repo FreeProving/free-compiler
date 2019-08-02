@@ -5,16 +5,15 @@
 --   to inline the definition of the non-recursive main function into the
 --   recursive helper functions.
 
-module Compiler.Converter.Inliner where
+module Compiler.Haskell.Inliner where
 
 import           Data.Map.Strict                ( Map )
 import qualified Data.Map.Strict               as Map
 
-import           Compiler.Converter.State
-import           Compiler.Converter.Subst
-import qualified Compiler.Language.Haskell.SimpleAST
-                                               as HS
-import           Compiler.SrcSpan
+import           Compiler.Haskell.Subst
+import qualified Compiler.Haskell.AST          as HS
+import           Compiler.Monad.Converter
+import           Compiler.Haskell.SrcSpan
 
 -- | Inlines the right hand sides of the given function declarations into
 --   the right hand sides of other function declarations.

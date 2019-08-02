@@ -30,27 +30,25 @@ import           Data.Composition
 import           Data.Maybe                     ( maybe
                                                 , catMaybes
                                                 )
-import           Data.List                      ( elemIndex
-                                                , nub
-                                                )
+import           Data.List                      ( elemIndex )
 import           Data.List.NonEmpty             ( NonEmpty((:|)) )
 import qualified Data.List.NonEmpty            as NonEmpty
 
 import           Compiler.Analysis.DependencyAnalysis
 import           Compiler.Analysis.DependencyGraph
-import           Compiler.Analysis.DependencyExtraction
 import           Compiler.Analysis.PartialityAnalysis
-import           Compiler.Converter.Fresh
-import           Compiler.Converter.Inliner
-import           Compiler.Converter.State
-import           Compiler.Converter.Renamer
-import qualified Compiler.Language.Coq.AST     as G
-import qualified Compiler.Language.Coq.Base    as CoqBase
-import qualified Compiler.Language.Haskell.SimpleAST
-                                               as HS
+import           Compiler.Analysis.RecursionAnalysis
+import           Compiler.Haskell.Inliner
+import           Compiler.Environment
+import           Compiler.Environment.Fresh
+import           Compiler.Environment.Renamer
+import qualified Compiler.Coq.AST              as G
+import qualified Compiler.Coq.Base             as CoqBase
+import qualified Compiler.Haskell.AST          as HS
+import           Compiler.Monad.Converter
+import           Compiler.Monad.Reporter
 import           Compiler.Pretty
-import           Compiler.Reporter
-import           Compiler.SrcSpan
+import           Compiler.Haskell.SrcSpan
 
 -------------------------------------------------------------------------------
 -- Modules                                                                   --
@@ -266,7 +264,7 @@ convertTypeVarDecls
   -> [HS.TypeVarDecl] -- ^ The type variable declarations.
   -> Converter [G.Binder]
 convertTypeVarDecls explicitness typeVarDecls =
-  generateTypeVarDecls' explicitness (map HS.fromDeclIdent typeVarDecls)
+  generateTypeVarDecls explicitness (map HS.fromDeclIdent typeVarDecls)
 
 -- | Generates explicit or implicit Coq binders for the type variables with
 --   the given names that are either declared in the head of a data type or
@@ -274,17 +272,11 @@ convertTypeVarDecls explicitness typeVarDecls =
 --
 --   The first argument controlls whether the generated binders are explicit
 --   (e.g. @(a : Type)@) or implicit (e.g. @{a : Type}@).
-generateTypeVarDecls :: G.Explicitness -> [HS.Name] -> Converter [G.Binder]
-generateTypeVarDecls explicitness =
-  generateTypeVarDecls' explicitness . catMaybes . map HS.identFromName
-
--- | Like 'generateTypeVarDecls' but accepts the raw identifiers of the
---   type variables.
-generateTypeVarDecls'
+generateTypeVarDecls
   :: G.Explicitness    -- ^ Whether to generate an explicit or implit binder.
   -> [HS.TypeVarIdent] -- ^ The names of the type variables to declare.
   -> Converter [G.Binder]
-generateTypeVarDecls' explicitness idents
+generateTypeVarDecls explicitness idents
   | null idents = return []
   | otherwise = do
     -- TODO detect redefinition
@@ -305,21 +297,6 @@ filterAndDefineTypeSig (HS.TypeSig _ idents typeExpr) = do
     (modifyEnv . flip defineTypeSig typeExpr . HS.Ident . HS.fromDeclIdent)
     idents
 filterAndDefineTypeSig _ = return () -- ignore other declarations.
-
--- | Looks up the annoated type of a user defined function with the given name
---   and reports a fatal error message if there is no such type signature.
---
---   If an error is encountered, the reported message points to the given
---   source span.
-lookupTypeSigOrFail :: SrcSpan -> HS.Name -> Converter HS.Type
-lookupTypeSigOrFail srcSpan ident = do
-  mTypeExpr <- inEnv $ lookupTypeSig ident
-  case mTypeExpr of
-    Just typeExpr -> return typeExpr
-    Nothing ->
-      reportFatal
-        $ Message srcSpan Error
-        $ ("Missing type signature for " ++ showPretty ident)
 
 -- | Splits the annotated type of a Haskell function with the given arity into
 --   its argument and return types.
@@ -349,11 +326,10 @@ convertFuncComponent (Recursive decls) = convertRecFuncDecls decls
 --   no recursive functions (see 'convertNonRecFuncDecl' and
 --   'convertRecFuncDecls').
 convertFuncHead
-  :: SrcSpan       -- ^ The source location to refer to in error messages.
-  -> HS.Name       -- ^ The name of the function.
+  :: HS.Name       -- ^ The name of the function.
   -> [HS.VarPat]   -- ^ The function argument patterns.
   -> Converter (G.Qualid, [G.Binder], Maybe G.Term)
-convertFuncHead srcSpan name args = do
+convertFuncHead name args = do
   -- Lookup the Coq name of the function.
   Just qualid <- inEnv $ lookupIdent VarScope name
     -- Lookup type signature and partiality.
@@ -361,7 +337,7 @@ convertFuncHead srcSpan name args = do
   Just (usedTypeVars, argTypes, returnType) <- inEnv
     $ lookupArgTypes VarScope name
   -- Convert arguments and return type.
-  typeVarDecls' <- generateTypeVarDecls' G.Implicit usedTypeVars
+  typeVarDecls' <- generateTypeVarDecls G.Implicit usedTypeVars
   decArgIndex   <- inEnv $ lookupDecArg name
   args'         <- convertArgs args argTypes decArgIndex
   returnType'   <- mapM convertType returnType
@@ -393,12 +369,12 @@ defineFuncDecl (HS.FuncDecl _ (HS.DeclIdent srcSpan ident) args _) = do
 -- | Converts a non-recursive Haskell function declaration to a Coq
 --   @Definition@ sentence.
 convertNonRecFuncDecl :: HS.Decl -> Converter G.Sentence
-convertNonRecFuncDecl decl@(HS.FuncDecl _ (HS.DeclIdent srcSpan ident) args expr)
-  = do
+convertNonRecFuncDecl decl@(HS.FuncDecl _ (HS.DeclIdent _ ident) args expr) =
+  do
     defineFuncDecl decl
     localEnv $ do
       let name = HS.Ident ident
-      (qualid, binders, returnType') <- convertFuncHead srcSpan name args
+      (qualid, binders, returnType') <- convertFuncHead name args
       expr'                          <- convertExpr expr
       return (G.definitionSentence qualid binders returnType' expr')
 
@@ -419,66 +395,6 @@ convertRecFuncDecls decls = do
       G.FixpointSentence (G.Fixpoint (NonEmpty.fromList fixBodies) [])
     : mainFunctions
     )
-
--- | Identifies the decreasing argument of a function with the given right
---   hand side.
---
---   Returns the name of the decreasing argument, the @case@ expressions that
---   match the decreasing argument and a function that replaces the @case@
---   expressions by other expressions.
---
---   TODO verify that all functions in the SCC are decreasing on this argument.
-identifyDecArg
-  :: HS.Expr -> Converter (HS.Name, [HS.Expr], [HS.Expr] -> HS.Expr)
-identifyDecArg rootExpr = do
-  case identifyDecArg' rootExpr of
-    (Nothing, _, _) ->
-      reportFatal
-        $ Message (HS.getSrcSpan rootExpr) Error
-        $ "Cannot identify decreasing argument."
-    (Just decArg, caseExprs, replaceCases) ->
-      return (decArg, caseExprs, replaceCases)
- where
-  -- | Recursively identifies the decreasing argument (variable matched by the
-  --   outermost-case expression).
-  identifyDecArg' :: HS.Expr -> (Maybe HS.Name, [HS.Expr], [HS.Expr] -> HS.Expr)
-  identifyDecArg' expr@(HS.Case _ (HS.Var _ decArg) _) =
-    (Just decArg, [expr], \[expr'] -> expr')
-  identifyDecArg' (HS.App srcSpan e1 e2) =
-    let (decArg1, cases1, replace1) = identifyDecArg' e1
-        (decArg2, cases2, replace2) = identifyDecArg' e2
-    in  ( uniqueDecArg [decArg1, decArg2]
-        , cases1 ++ cases2
-        , \exprs ->
-          let e1' = replace1 (take (length cases1) exprs)
-              e2' = replace2 (drop (length cases1) exprs)
-          in  HS.App srcSpan e1' e2'
-        )
-  identifyDecArg' (HS.If srcSpan e1 e2 e3) =
-    let (decArg1, cases1, replace1) = identifyDecArg' e1
-        (decArg2, cases2, replace2) = identifyDecArg' e2
-        (decArg3, cases3, replace3) = identifyDecArg' e3
-    in  ( uniqueDecArg [decArg1, decArg2, decArg3]
-        , cases1 ++ cases2 ++ cases3
-        , \exprs ->
-          let e1' = replace1 (take (length cases1) exprs)
-              e2' =
-                replace2 (take (length cases2) (drop (length cases1) exprs))
-              e3' = replace3 (drop (length cases1 + length cases2) exprs)
-          in  HS.If srcSpan e1' e2' e3'
-        )
-  identifyDecArg' expr = (Nothing, [], const expr)
-
-  -- | Ensures that all the names of the given list are identical (except for
-  --   @Nothing@) and then returns that unique name.
-  --
-  --   Returns @Nothing@ if there is no such unique name (i.e. because the list
-  --   is empty or because there are different names).
-  uniqueDecArg :: [Maybe HS.Name] -> Maybe HS.Name
-  uniqueDecArg decArgs = case nub (catMaybes decArgs) of
-    []       -> Nothing
-    [decArg] -> Just decArg
-    _        -> Nothing
 
 -- | Transforms the given recursive function declaration into recursive
 --   helper functions and a non recursive main function.
@@ -546,21 +462,20 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent args expr) = do
 -- | Converts a recursive helper function to the body of a Coq @Fixpoint@
 --   sentence.
 convertRecHelperFuncDecl :: HS.Decl -> Converter G.FixBody
-convertRecHelperFuncDecl (HS.FuncDecl srcSpan declIdent args expr) =
-  localEnv $ do
-    let helperName = HS.Ident (HS.fromDeclIdent declIdent)
-        argNames   = map (HS.Ident . HS.fromVarPat) args
-    (qualid, binders, returnType') <- convertFuncHead srcSpan helperName args
-    expr'                          <- convertExpr expr
-    Just decArgIndex               <- inEnv $ lookupDecArg helperName
-    Just decArg' <- inEnv $ lookupIdent VarScope (argNames !! decArgIndex)
-    return
-      (G.FixBody qualid
-                 (NonEmpty.fromList binders)
-                 (Just (G.StructOrder decArg'))
-                 returnType'
-                 expr'
-      )
+convertRecHelperFuncDecl (HS.FuncDecl _ declIdent args expr) = localEnv $ do
+  let helperName = HS.Ident (HS.fromDeclIdent declIdent)
+      argNames   = map (HS.Ident . HS.fromVarPat) args
+  (qualid, binders, returnType') <- convertFuncHead helperName args
+  expr'                          <- convertExpr expr
+  Just decArgIndex               <- inEnv $ lookupDecArg helperName
+  Just decArg' <- inEnv $ lookupIdent VarScope (argNames !! decArgIndex)
+  return
+    (G.FixBody qualid
+               (NonEmpty.fromList binders)
+               (Just (G.StructOrder decArg'))
+               returnType'
+               expr'
+    )
 
 -------------------------------------------------------------------------------
 -- Function argument declarations                                            --
@@ -957,3 +872,18 @@ lookupIdentOrFail srcSpan scope name = do
       reportFatal
         $ Message srcSpan Error
         $ ("Unknown " ++ showPretty scope ++ ": " ++ showPretty name)
+
+-- | Looks up the annoated type of a user defined function with the given name
+--   and reports a fatal error message if there is no such type signature.
+--
+--   If an error is encountered, the reported message points to the given
+--   source span.
+lookupTypeSigOrFail :: SrcSpan -> HS.Name -> Converter HS.Type
+lookupTypeSigOrFail srcSpan ident = do
+  mTypeExpr <- inEnv $ lookupTypeSig ident
+  case mTypeExpr of
+    Just typeExpr -> return typeExpr
+    Nothing ->
+      reportFatal
+        $ Message srcSpan Error
+        $ ("Missing type signature for " ++ showPretty ident)

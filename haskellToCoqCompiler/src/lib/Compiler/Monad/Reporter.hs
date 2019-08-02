@@ -13,7 +13,7 @@
 --   This module also provides functions for pretty printing the collected
 --   error messages in a similar way to how the GHC prints error messages.
 
-module Compiler.Reporter
+module Compiler.Monad.Reporter
   ( -- * Messages
     Message(..)
   , Severity(..)
@@ -60,7 +60,7 @@ import           System.IO.Error                ( catchIOError
                                                 )
 
 import           Compiler.Pretty
-import           Compiler.SrcSpan
+import           Compiler.Haskell.SrcSpan
 
 -------------------------------------------------------------------------------
 -- Messages                                                                  --

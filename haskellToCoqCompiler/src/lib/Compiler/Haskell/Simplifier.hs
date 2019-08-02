@@ -11,7 +11,7 @@
 --  TODO warn user if reserved names like `error` or `undefined` are used
 --       in declarations or as (type-) variable names.
 
-module Compiler.Language.Haskell.Simplifier
+module Compiler.Haskell.Simplifier
   ( Simplifier
   , simplifyModule
   , simplifyDecl
@@ -28,12 +28,11 @@ import           Control.Monad                  ( when )
 
 import qualified Language.Haskell.Exts.Syntax  as H
 
-import           Compiler.Reporter
-import           Compiler.Converter.State
-import           Compiler.Converter.Fresh
-import qualified Compiler.Language.Haskell.SimpleAST
-                                               as HS
-import           Compiler.SrcSpan
+import           Compiler.Environment.Fresh
+import qualified Compiler.Haskell.AST          as HS
+import           Compiler.Monad.Converter
+import           Compiler.Monad.Reporter
+import           Compiler.Haskell.SrcSpan
 
 -------------------------------------------------------------------------------
 -- State monad                                                               --

@@ -9,21 +9,20 @@ import           System.IO                      ( stderr )
 import           System.FilePath
 
 import           Compiler.Converter             ( convertModuleWithPreamble )
-import           Compiler.Converter.EnvironmentLoader
-import           Compiler.Converter.State       ( Environment
+import           Compiler.Environment           ( Environment
                                                 , emptyEnvironment
-                                                , evalConverter
                                                 )
-import           Compiler.Language.Haskell.Parser
-                                                ( parseModuleFile )
+import           Compiler.Environment.Loader
+import           Compiler.Monad.Converter       ( evalConverter )
+import           Compiler.Monad.Reporter
+import           Compiler.Haskell.Parser        ( parseModuleFile )
 
-import           Compiler.Language.Haskell.Simplifier
+import           Compiler.Haskell.Simplifier
 import           Compiler.Pretty                ( putPrettyLn
                                                 , writePrettyFile
                                                 )
 import           Compiler.Pretty.Coq            ( )
-import           Compiler.Reporter
-import           Compiler.SrcSpan
+import           Compiler.Haskell.SrcSpan
 
 -------------------------------------------------------------------------------
 -- Command line option parser                                                --
