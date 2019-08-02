@@ -19,7 +19,8 @@ import           Compiler.Monad.Reporter
 --
 --   TODO verify that all functions in the SCC are decreasing on this argument.
 identifyDecArg
-  :: HS.Expr -> Converter (HS.Name, [HS.Expr], [HS.Expr] -> HS.Expr)
+  :: HS.Expr
+  -> Converter (HS.Name, [([HS.VarPat], HS.Expr)], [HS.Expr] -> HS.Expr)
 identifyDecArg rootExpr = do
   case identifyDecArg' rootExpr of
     (Nothing, _, _) ->
@@ -31,9 +32,10 @@ identifyDecArg rootExpr = do
  where
   -- | Recursively identifies the decreasing argument (variable matched by the
   --   outermost-case expression).
-  identifyDecArg' :: HS.Expr -> (Maybe HS.Name, [HS.Expr], [HS.Expr] -> HS.Expr)
+  identifyDecArg'
+    :: HS.Expr -> (Maybe HS.Name, [([HS.VarPat], HS.Expr)], [HS.Expr] -> HS.Expr)
   identifyDecArg' expr@(HS.Case _ (HS.Var _ decArg) _) =
-    (Just decArg, [expr], \[expr'] -> expr')
+    (Just decArg, [([], expr)], \[expr'] -> expr')
   identifyDecArg' (HS.App srcSpan e1 e2) =
     let (decArg1, cases1, replace1) = identifyDecArg' e1
         (decArg2, cases2, replace2) = identifyDecArg' e2
@@ -56,6 +58,12 @@ identifyDecArg rootExpr = do
                 replace2 (take (length cases2) (drop (length cases1) exprs))
               e3' = replace3 (drop (length cases1 + length cases2) exprs)
           in  HS.If srcSpan e1' e2' e3'
+        )
+  identifyDecArg' (HS.Lambda srcSpan args expr) =
+    let (decArg, cases, replace) = identifyDecArg' expr
+    in  ( decArg
+        , map (\(usedVars, caseExpr) -> (args ++ usedVars, caseExpr)) cases
+        , \exprs -> let expr' = replace exprs in HS.Lambda srcSpan args expr'
         )
   identifyDecArg' expr = (Nothing, [], const expr)
 
