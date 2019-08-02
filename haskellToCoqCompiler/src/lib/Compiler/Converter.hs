@@ -22,24 +22,28 @@ module Compiler.Converter
   )
 where
 
-import           Control.Monad                        (mapAndUnzipM, zipWithM)
-import           Control.Monad.Extra                  (concatMapM)
+import           Control.Monad                  ( mapAndUnzipM
+                                                , zipWithM
+                                                )
+import           Control.Monad.Extra            ( concatMapM )
 import           Data.Composition
-import           Data.List                            (elemIndex)
-import           Data.List.NonEmpty                   (NonEmpty ((:|)))
-import qualified Data.List.NonEmpty                   as NonEmpty
-import           Data.Maybe                           (catMaybes, maybe)
+import           Data.List                      ( elemIndex )
+import           Data.List.NonEmpty             ( NonEmpty((:|)) )
+import qualified Data.List.NonEmpty            as NonEmpty
+import           Data.Maybe                     ( catMaybes
+                                                , maybe
+                                                )
 
 import           Compiler.Analysis.DependencyAnalysis
 import           Compiler.Analysis.DependencyGraph
 import           Compiler.Analysis.PartialityAnalysis
 import           Compiler.Analysis.RecursionAnalysis
-import qualified Compiler.Coq.AST                     as G
-import qualified Compiler.Coq.Base                    as CoqBase
+import qualified Compiler.Coq.AST              as G
+import qualified Compiler.Coq.Base             as CoqBase
 import           Compiler.Environment
 import           Compiler.Environment.Fresh
 import           Compiler.Environment.Renamer
-import qualified Compiler.Haskell.AST                 as HS
+import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Haskell.Inliner
 import           Compiler.Haskell.SrcSpan
 import           Compiler.Monad.Converter

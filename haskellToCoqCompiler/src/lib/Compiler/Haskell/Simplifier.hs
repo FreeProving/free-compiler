@@ -20,13 +20,16 @@ module Compiler.Haskell.Simplifier
   )
 where
 
-import           Control.Monad                (when)
-import           Data.Maybe                   (catMaybes, fromJust, isJust)
+import           Control.Monad                  ( when )
+import           Data.Maybe                     ( catMaybes
+                                                , fromJust
+                                                , isJust
+                                                )
 
-import qualified Language.Haskell.Exts.Syntax as H
+import qualified Language.Haskell.Exts.Syntax  as H
 
 import           Compiler.Environment.Fresh
-import qualified Compiler.Haskell.AST         as HS
+import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Haskell.SrcSpan
 import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
@@ -241,7 +244,7 @@ simplifyDeclHead declHead@(H.DHInfix _ _ _) =
 --   are not supported.
 simplifyDeclName :: H.Name SrcSpan -> Simplifier HS.DeclIdent
 simplifyDeclName (H.Ident srcSpan ident) = return (HS.DeclIdent srcSpan ident)
-simplifyDeclName sym@(H.Symbol _ _)      = notSupported "Type operators" sym
+simplifyDeclName sym@(H.Symbol _ _) = notSupported "Type operators" sym
 
 -- | Gets the name of the type variable bound by the given binder.
 --
