@@ -307,10 +307,10 @@ simplifyConDeclName sym@(H.Symbol _ _) =
 simplifyFuncDecl :: H.Match SrcSpan -> Simplifier HS.Decl
 simplifyFuncDecl (H.Match srcSpan declName args (H.UnGuardedRhs _ expr) Nothing)
   = do
-    declIdent <- simplifyFuncDeclName declName
-    args'     <- mapM simplifyVarPat args
-    expr'     <- simplifyExpr expr
-    return (HS.FuncDecl srcSpan declIdent args' expr')
+    declIdent       <- simplifyFuncDeclName declName
+    args'           <- mapM simplifyVarPat args
+    (args'', expr') <- simplifyExpr expr >>= return . unlambda
+    return (HS.FuncDecl srcSpan declIdent (args' ++ args'') expr')
 
 -- Function declarations with guards and where blocks are not supported.
 simplifyFuncDecl (H.Match _ _ _ rhss@(H.GuardedRhss _ _) _) =
@@ -334,6 +334,18 @@ simplifyFuncDeclName (H.Ident srcSpan ident) =
   return (HS.DeclIdent srcSpan ident)
 simplifyFuncDeclName sym@(H.Symbol _ _) =
   notSupported "Operator declarations" sym
+
+-- | Splits lambda abstractions into the argument variable patterns and
+--   expressions.
+--
+--   This function is used to convert a \(n\)-ary function declaration with a
+--   lambda abstraction @\x -> e@ on the right hand side, to a \(n + 1\)-ary
+--   function declaration. This simplification step is neccessary for the
+--   correct conversion of recursive function declarations.
+unlambda :: HS.Expr -> ([HS.VarPat], HS.Expr)
+unlambda (HS.Lambda _ args expr) = (args ++ args', expr')
+  where (args', expr') = unlambda expr
+unlambda expr = ([], expr)
 
 -------------------------------------------------------------------------------
 -- Types                                                                     --

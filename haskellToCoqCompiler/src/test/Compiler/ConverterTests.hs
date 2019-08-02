@@ -299,6 +299,42 @@ testConvertRecFuncDecls = describe "convertRecFuncDecls" $ do
     ++ "   := Cons Shape Pos xs (xs >>= (fun (xs_0 : List Shape Pos a) =>"
     ++ "        tails_0 Shape Pos xs_0))."
 
+  it "translates recursive functions with outer lambda abstractions correctly"
+    $  shouldSucceed
+    $  fromConverter
+    $  shouldTranslateDeclsTo
+         [ "append :: [a] -> [a] -> [a]"
+         , "append xs = \\ys -> "
+           ++ "case xs of { [] -> ys; x : xs' -> x : append xs' ys }"
+         ]
+    $  "Fixpoint append_0 (Shape : Type) (Pos : Shape -> Type) {a : Type}"
+    ++ "  (xs : List Shape Pos a) (ys : Free Shape Pos (List Shape Pos a))"
+    ++ "  {struct xs}"
+    ++ " : Free Shape Pos (List Shape Pos a)"
+    ++ " := match xs with"
+    ++ "    | nil        => ys"
+    ++ "    | cons x xs' => Cons Shape Pos x (xs' >>="
+    ++ "      (fun (xs'_0 : List Shape Pos a) => append_0 Shape Pos xs'_0 ys))"
+    ++ "    end. "
+    ++ "Definition append (Shape : Type) (Pos : Shape -> Type) {a : Type}"
+    ++ "  (xs : Free Shape Pos (List Shape Pos a))"
+    ++ "  (ys : Free Shape Pos (List Shape Pos a))"
+    ++ " : Free Shape Pos (List Shape Pos a)"
+    ++ " := xs >>= (fun (xs_0 : List Shape Pos a) =>"
+    ++ "   append_0 Shape Pos xs_0 ys)."
+
+  it "translates recursive functions with nested lambda abstractions correctly"
+    $ shouldSucceed
+    $ fromConverter
+    $ do
+        "bar" <- defineTestFunc "bar" 1 "(a -> [a]) -> [a]"
+        shouldTranslateDeclsTo
+            [ "foo :: [a] -> [a]"
+            , "foo xs = bar (\\y -> "
+              ++ "case xs of { [] -> []; x : xs' -> y : foo xs' })"
+            ]
+          $ ""
+
 -------------------------------------------------------------------------------
 -- Types                                                                     --
 -------------------------------------------------------------------------------
