@@ -22,7 +22,7 @@ import           Compiler.Haskell.SrcSpan
 import           Compiler.Pretty                ( putPrettyLn
                                                 , writePrettyFile
                                                 )
-import           Compiler.Pretty.Coq            ( )
+import           Compiler.Coq.Pretty            ( )
 
 -------------------------------------------------------------------------------
 -- Command line option parser                                                --
