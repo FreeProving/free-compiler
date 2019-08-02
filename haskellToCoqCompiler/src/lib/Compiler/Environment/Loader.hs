@@ -50,25 +50,25 @@ module Compiler.Environment.Loader
   )
 where
 
-import qualified Text.Parsec.Error             as Parsec
-import qualified Text.Toml.Types               as Toml
-import           Text.Toml                      ( parseTomlDoc )
+import           Data.Aeson                     ( (.:) )
 import qualified Data.Aeson                    as Aeson
 import qualified Data.Aeson.Types              as Aeson
-import           Data.Aeson                     ( (.:) )
 import           Data.Char                      ( isAlphaNum )
 import qualified Data.Text                     as T
 import qualified Data.Vector                   as Vector
+import qualified Text.Parsec.Error             as Parsec
+import           Text.Toml                      ( parseTomlDoc )
+import qualified Text.Toml.Types               as Toml
 
-import           Compiler.Environment
 import qualified Compiler.Coq.AST              as G
-import           Compiler.Haskell.Parser
+import           Compiler.Environment
 import qualified Compiler.Haskell.AST          as HS
+import           Compiler.Haskell.Parser
 import           Compiler.Haskell.Simplifier
+import           Compiler.Haskell.SrcSpan
 import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
 import           Compiler.Pretty
-import           Compiler.Haskell.SrcSpan
 
 -- | Restores a Haskell name (symbol or identifier) from the configuration
 --   file.

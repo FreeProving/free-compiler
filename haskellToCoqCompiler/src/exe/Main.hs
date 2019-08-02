@@ -1,28 +1,28 @@
 module Main where
 
 import           Control.Monad                  ( join )
+import           System.Console.GetOpt
 import           System.Environment             ( getArgs
                                                 , getProgName
                                                 )
-import           System.Console.GetOpt
-import           System.IO                      ( stderr )
 import           System.FilePath
+import           System.IO                      ( stderr )
 
 import           Compiler.Converter             ( convertModuleWithPreamble )
 import           Compiler.Environment           ( Environment
                                                 , emptyEnvironment
                                                 )
 import           Compiler.Environment.Loader
+import           Compiler.Haskell.Parser        ( parseModuleFile )
 import           Compiler.Monad.Converter       ( evalConverter )
 import           Compiler.Monad.Reporter
-import           Compiler.Haskell.Parser        ( parseModuleFile )
 
 import           Compiler.Haskell.Simplifier
+import           Compiler.Haskell.SrcSpan
 import           Compiler.Pretty                ( putPrettyLn
                                                 , writePrettyFile
                                                 )
 import           Compiler.Pretty.Coq            ( )
-import           Compiler.Haskell.SrcSpan
 
 -------------------------------------------------------------------------------
 -- Command line option parser                                                --
@@ -32,7 +32,7 @@ import           Compiler.Haskell.SrcSpan
 data Options = Options
   {
     -- | Flag that indicates whether to show the usage information.
-    optShowHelp :: Bool,
+    optShowHelp   :: Bool,
 
     -- | The input files passed to the compiler.
     --   All non-option command line arguments are considered input files.
@@ -40,7 +40,7 @@ data Options = Options
 
     -- | The output directory or 'Nothing' if the output should be printed
     --   to @stdout@.
-    optOutputDir :: Maybe FilePath,
+    optOutputDir  :: Maybe FilePath,
 
     -- | The directory that contains the Coq Base library that accompanies
     --   this compiler.

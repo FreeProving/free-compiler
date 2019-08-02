@@ -5,11 +5,11 @@ import           Test.QuickCheck
 
 import           Data.Maybe                     ( catMaybes )
 
+import qualified Compiler.Coq.AST              as G
+import qualified Compiler.Coq.Base             as CoqBase
+import           Compiler.Coq.Keywords
 import           Compiler.Environment
 import           Compiler.Environment.Renamer
-import qualified Compiler.Coq.AST              as G
-import           Compiler.Coq.Keywords
-import qualified Compiler.Coq.Base             as CoqBase
 import qualified Compiler.Haskell.AST          as HS
 
 -- | Test group for all @Compiler.Environment.Renamer@ tests.

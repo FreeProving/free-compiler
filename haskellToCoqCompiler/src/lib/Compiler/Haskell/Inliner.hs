@@ -10,10 +10,10 @@ module Compiler.Haskell.Inliner where
 import           Data.Map.Strict                ( Map )
 import qualified Data.Map.Strict               as Map
 
-import           Compiler.Haskell.Subst
 import qualified Compiler.Haskell.AST          as HS
-import           Compiler.Monad.Converter
 import           Compiler.Haskell.SrcSpan
+import           Compiler.Haskell.Subst
+import           Compiler.Monad.Converter
 
 -- | Inlines the right hand sides of the given function declarations into
 --   the right hand sides of other function declarations.

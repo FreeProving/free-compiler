@@ -10,8 +10,8 @@
 --   directly.
 module Compiler.Haskell.AST where
 
-import           Compiler.Pretty
 import           Compiler.Haskell.SrcSpan
+import           Compiler.Pretty
 
 -------------------------------------------------------------------------------
 -- Identifiers                                                               --
@@ -36,7 +36,7 @@ data Name
 -- | Haskell identifiers and symbols can be pretty printed because they are
 --   often used in error messages.
 instance Pretty Name where
-  pretty (Ident ident) = prettyString ident
+  pretty (Ident ident)   = prettyString ident
   pretty (Symbol symbol) = parens (prettyString symbol)
 
 -- | The name of a function or build-in operator used in prefix notation, e.g.

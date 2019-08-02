@@ -7,12 +7,12 @@ import           Test.Hspec
 import           Data.Maybe                     ( catMaybes )
 
 import           Compiler.Converter
-import           Compiler.Environment.Loader
-import           Compiler.Environment.Renamer
 import qualified Compiler.Coq.AST              as G
 import           Compiler.Coq.Pretty            ( )
-import           Compiler.Haskell.Parser
+import           Compiler.Environment.Loader
+import           Compiler.Environment.Renamer
 import qualified Compiler.Haskell.AST          as HS
+import           Compiler.Haskell.Parser
 import           Compiler.Haskell.Simplifier
 import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter

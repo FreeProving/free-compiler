@@ -23,15 +23,15 @@ module Compiler.Environment.Renamer
   )
 where
 
-import           Text.RegexPR
-import           Text.Casing
-import           Data.Maybe                     ( catMaybes )
 import           Data.Char
+import           Data.Maybe                     ( catMaybes )
+import           Text.Casing
+import           Text.RegexPR
 
-import           Compiler.Environment
 import qualified Compiler.Coq.AST              as G
 import qualified Compiler.Coq.Base             as CoqBase
 import           Compiler.Coq.Keywords
+import           Compiler.Environment
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Monad.Converter
 

@@ -38,12 +38,12 @@ where
 import           Data.Composition               ( (.:)
                                                 , (.:.)
                                                 )
+import           Data.List                      ( nub )
 import           Data.Map.Strict                ( Map )
 import qualified Data.Map.Strict               as Map
 import           Data.Maybe                     ( catMaybes
                                                 , isJust
                                                 )
-import           Data.List                      ( nub )
 import           Data.Set                       ( Set )
 import qualified Data.Set                      as Set
 import           Data.Tuple.Extra               ( snd3 )

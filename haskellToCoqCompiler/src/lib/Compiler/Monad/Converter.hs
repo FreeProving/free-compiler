@@ -26,8 +26,8 @@ import           Control.Monad.Fail
 import           Control.Monad.State
 
 import           Compiler.Environment
-import           Compiler.Monad.Reporter
 import           Compiler.Haskell.SrcSpan
+import           Compiler.Monad.Reporter
 
 -------------------------------------------------------------------------------
 -- State monad                                                               --

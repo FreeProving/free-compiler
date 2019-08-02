@@ -26,8 +26,8 @@ import qualified Data.Map.Strict               as Map
 
 import           Compiler.Environment.Fresh
 import qualified Compiler.Haskell.AST          as HS
-import           Compiler.Monad.Converter
 import           Compiler.Haskell.SrcSpan
+import           Compiler.Monad.Converter
 
 -- | A substitution is a mapping from Haskell variable names to expressions.
 --

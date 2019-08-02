@@ -30,10 +30,10 @@ module Compiler.Coq.AST
   )
 where
 
-import qualified Data.Text                     as T
 import qualified Data.List.NonEmpty            as NonEmpty
-import qualified Language.Coq.Gallina          as G
+import qualified Data.Text                     as T
 import           Language.Coq.Gallina
+import qualified Language.Coq.Gallina          as G
 
 -------------------------------------------------------------------------------
 -- Comments                                                                  --

@@ -43,8 +43,8 @@ module Compiler.Monad.Reporter
   )
 where
 
-import           Control.Monad                  ( liftM
-                                                , ap
+import           Control.Monad                  ( ap
+                                                , liftM
                                                 )
 import           Control.Monad.Identity
 import           Control.Monad.Trans.Maybe
@@ -59,8 +59,8 @@ import           System.IO.Error                ( catchIOError
                                                 , ioeGetFileName
                                                 )
 
-import           Compiler.Pretty
 import           Compiler.Haskell.SrcSpan
+import           Compiler.Pretty
 
 -------------------------------------------------------------------------------
 -- Messages                                                                  --
@@ -253,9 +253,9 @@ reportToOrExit h reporter = do
 -- | Pretty instance for message severity levels.
 instance Pretty Severity where
   pretty Internal = prettyString "internal error"
-  pretty Error   = prettyString "error"
-  pretty Warning = prettyString "warning"
-  pretty Info    = prettyString "info"
+  pretty Error    = prettyString "error"
+  pretty Warning  = prettyString "warning"
+  pretty Info     = prettyString "info"
 
 -- | Pretty instance for messages.
 --

@@ -15,18 +15,18 @@ import           Language.Haskell.Exts.Extension
                                                 ( Language(..) )
 import           Language.Haskell.Exts.Fixity   ( Fixity
                                                 , infix_
-                                                , infixr_
                                                 , infixl_
+                                                , infixr_
                                                 )
 import           Language.Haskell.Exts.Parser   ( ParseMode(..)
-                                                , Parseable(..)
                                                 , ParseResult(..)
+                                                , Parseable(..)
                                                 )
 import           Language.Haskell.Exts.SrcLoc   ( SrcSpanInfo )
 import qualified Language.Haskell.Exts.Syntax  as H
 
-import           Compiler.Monad.Reporter
 import           Compiler.Haskell.SrcSpan
+import           Compiler.Monad.Reporter
 
 -- | Custom parameters for parsing a Haskell source file with the given name.
 --
