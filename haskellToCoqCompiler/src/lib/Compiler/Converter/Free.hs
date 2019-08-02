@@ -8,13 +8,8 @@ import           Data.Maybe                     ( maybe )
 
 import qualified Compiler.Coq.AST              as G
 import qualified Compiler.Coq.Base             as CoqBase
-import           Compiler.Environment
 import           Compiler.Environment.Fresh
-import qualified Compiler.Haskell.AST          as HS
-import           Compiler.Haskell.SrcSpan
 import           Compiler.Monad.Converter
-import           Compiler.Monad.Reporter
-import           Compiler.Pretty
 
 -------------------------------------------------------------------------------
 -- Generic arguments for free monad                                          --
