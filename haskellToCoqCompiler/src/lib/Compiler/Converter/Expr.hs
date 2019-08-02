@@ -3,6 +3,7 @@
 module Compiler.Converter.Expr where
 
 import           Data.Composition
+import           Data.Foldable                  ( foldrM )
 import           Data.Maybe                     ( maybe )
 
 import           Compiler.Converter.Arg
@@ -112,7 +113,7 @@ convertExpr' (HS.Var srcSpan name) args = do
       -- it must be lifted into the @Free@ monad.
       pureArg <- inEnv $ isPureVar name
       if pureArg
-        then generateApply (generatePure (G.Qualid qualid)) args'
+        then generatePure (G.Qualid qualid) >>= flip generateApply args'
         else generateApply (G.Qualid qualid) args'
 
 -- Pass argument from applications to converter for callee.
@@ -141,13 +142,13 @@ convertExpr' (HS.ErrorExpr _ msg) [] =
 
 -- Integer literals.
 convertExpr' (HS.IntLiteral _ value) [] =
-  return (generatePure (G.InScope (G.Num (fromInteger value)) (G.ident "Z")))
+  generatePure (G.InScope (G.Num (fromInteger value)) (G.ident "Z"))
 
 -- Lambda abstractions.
 convertExpr' (HS.Lambda _ args expr) [] = localEnv $ do
   args' <- mapM convertInferredArg args
   expr' <- convertExpr expr
-  return (foldr (generatePure .: G.Fun . return) expr' args')
+  foldrM (generatePure .: G.Fun . return) expr' args'
 
 -- Application of an expression other than a function or constructor
 -- application. (We use an as-pattern for @args@ such that we get a compile

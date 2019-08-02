@@ -39,9 +39,8 @@ genericApply func args = G.app (G.Qualid func) (genericArgs ++ args)
 -------------------------------------------------------------------------------
 
 -- | Wraps the given Coq term with the @pure@ constructor of the @Free@ monad.
--- TODO rename or return converter
-generatePure :: G.Term -> G.Term
-generatePure = G.app (G.Qualid CoqBase.freePureCon) . (: [])
+generatePure :: G.Term -> Converter G.Term
+generatePure = return . G.app (G.Qualid CoqBase.freePureCon) . (: [])
 
 -- | Generates a Coq expressions that binds the given value to a fresh variable.
 --

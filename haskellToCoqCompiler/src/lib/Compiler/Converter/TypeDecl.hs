@@ -148,14 +148,14 @@ convertDataDecl (HS.DataDecl srcSpan (HS.DeclIdent _ ident) typeVarDecls conDecl
     (argIdents', argDecls') <- mapAndUnzipM convertAnonymousArg
                                             (map Just argTypes)
     returnType' <- convertType returnType
+    rhs         <- generatePure
+      (G.app (G.Qualid qualid) (map (G.Qualid . G.bare) argIdents'))
     return
       (G.definitionSentence
         smartQualid
         (genericArgDecls G.Explicit ++ typeVarDecls' ++ argDecls')
         (Just returnType')
-        (generatePure
-          (G.app (G.Qualid qualid) (map (G.Qualid . G.bare) argIdents'))
-        )
+        rhs
       )
 
 -- | Inserts the given data type declaration and its constructor declarations
