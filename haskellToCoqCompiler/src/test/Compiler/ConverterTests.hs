@@ -62,6 +62,35 @@ testConvertTypeDecl = describe "convertTestDecl" $ do
           ++ " : Free Shape Pos (Expr Shape Pos)"
           ++ " := Var Shape Pos s."
 
+  it "expands type synonyms in mutually recursive data type declarations"
+    $ shouldSucceed
+    $ fromConverter
+    $ do
+        shouldTranslateDeclsTo
+            [ "type Forest a = [Tree a]"
+            , "data Tree a = Leaf a | Branch (Forest a)"
+            ]
+          $  "Definition Forest (Shape : Type) (Pos : Shape -> Type) : Type"
+          ++ " := List Shape Pos (Tree Shape Pos a). "
+          ++ "Inductive Tree (Shape : Type) (Pos : Shape -> Type) (a : Type)"
+          ++ " : Type"
+          ++ " := leaf : Free Shape Pos a -> Tree Shape Pos a"
+          ++ " := branch : Free Shape Pos (List Shape Pos (Tree Shape Pos a))"
+          ++ "              -> Tree Shape Pos a. "
+          ++ "(* Arguments sentences for Tree *) "
+          ++ "Arguments leaf {Shape} {Pos} {a}. "
+          ++ "Arguments branch {Shape} {Pos} {a}. "
+          ++ "(* Smart constructors for Tree *) "
+          ++ "Definition Leaf (Shape : Type) (Pos : Shape -> Type) {a : Type}"
+          ++ "  (x_0 : Free Shape Pos a)"
+          ++ " : Free Shape Pos (Tree Shape Pos a) := pure (leaf x_0). "
+          ++ "Definition Branch (Shape : Type) (Pos : Shape -> Type) {a : Type}"
+          ++ "  (x_0 : Free Shape Pos (List Shape Pos (Tree Shape Pos a)))"
+          ++ " : Free Shape Pos (Tree Shape Pos a) := pure (branch x_0). "
+          ++ "Definition Forest (Shape : Type) (Pos : Shape -> Type) {a : Type}"
+          ++ " : Type"
+          ++ " := List Shape Pos (Tree Shape Pos a)."
+
 -------------------------------------------------------------------------------
 -- Data type declarations                                                    --
 -------------------------------------------------------------------------------
