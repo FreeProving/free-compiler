@@ -22,6 +22,8 @@ import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Haskell.Inliner
 import           Compiler.Haskell.SrcSpan
 import           Compiler.Monad.Converter
+import           Compiler.Monad.Reporter
+import           Compiler.Pretty
 
 -------------------------------------------------------------------------------
 -- Strongly connected components                                             --
@@ -73,23 +75,36 @@ convertFuncHead name args = do
 defineFuncDecl :: HS.Decl -> Converter ()
 defineFuncDecl (HS.FuncDecl _ (HS.DeclIdent srcSpan ident) args _) = do
   -- TODO detect redefinition and inform when renamed
-  let name  = HS.Ident ident
-      arity = length args
+  let name = HS.Ident ident
   funcType <- lookupTypeSigOrFail srcSpan name
-  (argTypes, returnType) <- splitFuncType funcType arity
+  (argTypes, returnType) <- splitFuncType name args funcType
   _ <- renameAndDefineFunc ident (map Just argTypes) (Just returnType)
   return ()
 
--- | Splits the annotated type of a Haskell function with the given arity into
---   its argument and return types.
+-- | Splits the annotated type of a Haskell function with the given arguments
+--   into its argument and return types.
 --
---   A function with arity \(n\) has \(n\) argument types. TODO  Type synonyms
---   are expanded if neccessary.
-splitFuncType :: HS.Type -> Int -> Converter ([HS.Type], HS.Type)
-splitFuncType (HS.TypeFunc _ t1 t2) arity | arity > 0 = do
-  (argTypes, returnType) <- splitFuncType t2 (arity - 1)
-  return (t1 : argTypes, returnType)
-splitFuncType funcType _ = return ([], funcType)
+--   TODO  Type synonyms are expanded if neccessary.
+splitFuncType
+  :: HS.Name     -- ^ The name of the function to display in error messages.
+  -> [HS.VarPat] -- ^ The argument variable patterns whose types to split of.
+  -> HS.Type     -- ^ The type to split.
+  -> Converter ([HS.Type], HS.Type)
+splitFuncType name = splitFuncType'
+ where
+  splitFuncType' :: [HS.VarPat] -> HS.Type -> Converter ([HS.Type], HS.Type)
+  splitFuncType' []         typeExpr              = return ([], typeExpr)
+  splitFuncType' (_ : args) (HS.TypeFunc _ t1 t2) = do
+    (argTypes, returnType) <- splitFuncType' args t2
+    return (t1 : argTypes, returnType)
+  splitFuncType' (arg : _) _ =
+    reportFatal
+      $  Message (HS.getSrcSpan arg) Error
+      $  "Could not determine type of argument '"
+      ++ HS.fromVarPat arg
+      ++ "' for function '"
+      ++ showPretty name
+      ++ "'."
 
 -------------------------------------------------------------------------------
 -- Non-recursive function declarations                                       --
@@ -178,7 +193,7 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent args expr) = do
     -- Additionally we need to remember the index of the decreasing argument
     -- (see 'convertDecArg').
     funcType               <- lookupTypeSigOrFail srcSpan name
-    (argTypes, returnType) <- splitFuncType funcType (length args)
+    (argTypes, returnType) <- splitFuncType name args funcType
     _                      <- renameAndDefineFunc
       helperIdent
       (map Just argTypes ++ replicate (length usedVars) Nothing)

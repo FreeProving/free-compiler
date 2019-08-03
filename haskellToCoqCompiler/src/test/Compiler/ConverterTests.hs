@@ -42,6 +42,25 @@ testConvertTypeDecl = describe "convertTestDecl" $ do
           ++ "  (a : Type) : Type"
           ++ " := Pair Shape Pos (List Shape Pos a) (List Shape Pos a)."
 
+  it "expands function type synonyms correctly"
+    $ shouldSucceed
+    $ fromConverter
+    $ do
+        "String"       <- defineTestTypeCon "String" 0
+        "Expr"         <- defineTestTypeCon "Expr" 0
+        ("var", "Var") <- defineTestCon "Var" 1 "String -> Expr"
+        shouldTranslateDeclsTo
+            [ "type Subst = String -> Expr"
+            , "identity :: Subst"
+            , "identity s = Var s"
+            ]
+          $  "Definition Subst (Shape : Type) (Pos : Shape -> Type) : Type"
+          ++ " := Free Shape Pos (String Shape Pos)"
+          ++ "    -> Free Shape Pos (Expr Shape Pos). "
+          ++ "Definition identity (Shape : Type) (Pos : Shape -> Type)"
+          ++ "  (s : Free Shape Pos (String Shape Pos))"
+          ++ " : Free Shape Pos (Expr Shape Pos)."
+
 -------------------------------------------------------------------------------
 -- Data type declarations                                                    --
 -------------------------------------------------------------------------------

@@ -240,6 +240,14 @@ class GetSrcSpan a where
 instance GetSrcSpan DeclIdent where
   getSrcSpan (DeclIdent srcSpan _) = srcSpan
 
+-- | 'GetSrcSpan' instance for variable patterns.
+instance GetSrcSpan VarPat where
+  getSrcSpan (VarPat srcSpan _) = srcSpan
+
+-- | 'GetSrcSpan' instance for constructor patterns.
+instance GetSrcSpan ConPat where
+  getSrcSpan (ConPat srcSpan _) = srcSpan
+
 -- | 'GetSrcSpan' instance for modules.
 instance GetSrcSpan Module where
   getSrcSpan (Module srcSpan _ _) = srcSpan
