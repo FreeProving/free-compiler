@@ -1,7 +1,11 @@
 module Main where
 
 import           Control.Monad                  ( join )
+import           Control.Monad.Extra            ( unlessM )
 import           System.Console.GetOpt
+import           System.Directory               ( doesFileExist
+                                                , makeAbsolute
+                                                )
 import           System.Environment             ( getArgs
                                                 , getProgName
                                                 )
@@ -30,21 +34,25 @@ import           Compiler.Coq.Pretty            ( )
 
 -- | Data type that stores the command line options passed to the compiler.
 data Options = Options
-  {
-    -- | Flag that indicates whether to show the usage information.
-    optShowHelp   :: Bool,
+  { optShowHelp   :: Bool
+    -- ^ Flag that indicates whether to show the usage information.
 
-    -- | The input files passed to the compiler.
+  , optInputFiles :: [FilePath]
+    -- ^ The input files passed to the compiler.
     --   All non-option command line arguments are considered input files.
-    optInputFiles :: [FilePath],
 
-    -- | The output directory or 'Nothing' if the output should be printed
+  , optOutputDir  :: Maybe FilePath
+    -- ^ The output directory or 'Nothing' if the output should be printed
     --   to @stdout@.
-    optOutputDir  :: Maybe FilePath,
 
-    -- | The directory that contains the Coq Base library that accompanies
+  , optBaseLibDir :: Maybe FilePath
+    -- ^ The directory that contains the Coq Base library that accompanies
     --   this compiler.
-    optBaseLibDir :: Maybe FilePath
+
+  , optCreateCoqProject :: Bool
+    -- ^ Flag that indicates whether to generate a @_CoqProject@ file in the
+    --   ouput directory. This argument is ignored if 'optOutputDir' is not
+    --   specified.
   }
 
 -- | The default command line options.
@@ -52,10 +60,11 @@ data Options = Options
 --   By default output will be printed to the console.
 defaultOptions :: Options
 defaultOptions = Options
-  { optShowHelp   = False
-  , optInputFiles = []
-  , optOutputDir  = Nothing
-  , optBaseLibDir = Nothing
+  { optShowHelp         = False
+  , optInputFiles       = []
+  , optOutputDir        = Nothing
+  , optBaseLibDir       = Nothing
+  , optCreateCoqProject = True
   }
 
 -- | Command line option descriptors from the @GetOpt@ library.
@@ -80,6 +89,15 @@ options
       ++ "Base library. If this argument is missing, you cannot use any\n"
       ++ "predefined types, constructors or functions (e.g. lists or\n"
       ++ "arithmetic expressions)."
+      )
+    , Option
+      []
+      ["no-coq-project"]
+      (NoArg (\opts -> opts { optCreateCoqProject = False }))
+      (  "Disables the creation of a `_CoqProject` file in the output\n"
+      ++ "directory. If the `--output` or `--base-library` option is missing\n"
+      ++ "or the `_CoqProject` file exists already, no `_CoqProject` is\n"
+      ++ "created."
       )
     ]
 
@@ -164,25 +182,14 @@ run opts
     report $ Message NoSrcSpan Info "No input file."
     return putUsageInfo
   | otherwise = do
-    env     <- getDefaultEnvironment opts
+    env <- getDefaultEnvironment opts
+    createCoqProject opts
     actions <- mapM (processInputFile opts env) (optInputFiles opts)
     return (sequence_ actions)
 
--- | Initializes the default environment using the specified path to the Coq
---   Base library.
-getDefaultEnvironment :: Options -> ReporterIO Environment
-getDefaultEnvironment Options { optBaseLibDir = Nothing } = do
-  report
-    $  Message NoSrcSpan Warning
-    $  "Missing path to Coq Base library. Predefined types, constructors and "
-    ++ "functions will not be available!"
-  report
-    $  Message NoSrcSpan Info
-    $  "Perhaps you want to add the '--base-library' command line argument to "
-    ++ "make predefined types, constructors and functions available."
-  return emptyEnvironment
-getDefaultEnvironment Options { optBaseLibDir = Just baseLibDir } =
-  loadEnvironment (baseLibDir </> "env.toml")
+-------------------------------------------------------------------------------
+-- Haskell input files                                                       --
+-------------------------------------------------------------------------------
 
 -- | Processes the given input file.
 --
@@ -209,3 +216,52 @@ outputFileNameFor
   -> FilePath
 outputFileNameFor inputFile outputDir extension =
   outputDir </> takeBaseName inputFile <.> extension
+
+-------------------------------------------------------------------------------
+-- Base library                                                              --
+-------------------------------------------------------------------------------
+
+-- | Initializes the default environment using the specified path to the Coq
+--   Base library.
+getDefaultEnvironment :: Options -> ReporterIO Environment
+getDefaultEnvironment Options { optBaseLibDir = Nothing } = do
+  report
+    $  Message NoSrcSpan Warning
+    $  "Missing path to Coq Base library. Predefined types, constructors and "
+    ++ "functions will not be available!"
+  report
+    $  Message NoSrcSpan Info
+    $  "Perhaps you want to add the '--base-library' command line argument to "
+    ++ "make predefined types, constructors and functions available."
+  return emptyEnvironment
+getDefaultEnvironment Options { optBaseLibDir = Just baseLibDir } =
+  loadEnvironment (baseLibDir </> "env.toml")
+
+-- | Creates a @_CoqProject@ file (if enabled) that maps the physical directory
+--   of the Base library.
+--
+--   The path to the Base library will be relative to the output directory.
+createCoqProject :: Options -> ReporterIO ()
+createCoqProject Options { optOutputDir = Just outputDir, optBaseLibDir = Just baseDir, optCreateCoqProject = True }
+  = lift $ unlessM coqProjectExists $ writeCoqProject
+ where
+  -- | Path to the @_CoqProject@ file to create.
+  coqProject :: FilePath
+  coqProject = outputDir </> "_CoqProject"
+
+  -- | Tests whether the 'coqProject' file does exist already.
+  coqProjectExists :: IO Bool
+  coqProjectExists = doesFileExist coqProject
+
+  -- | Writes  'contents' to the 'coqProject' file.
+  writeCoqProject :: IO ()
+  writeCoqProject = makeContents >>= writeFile coqProject
+
+  -- | Creates the string to write to the 'coqProject' file.
+  makeContents :: IO String
+  makeContents = do
+    absBaseDir   <- makeAbsolute baseDir
+    absOutputDir <- makeAbsolute outputDir
+    let relBaseDir = makeRelative absOutputDir absBaseDir
+    return ("-R Base " ++ relBaseDir ++ "\n")
+createCoqProject _ = return ()

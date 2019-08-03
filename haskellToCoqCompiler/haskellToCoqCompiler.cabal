@@ -87,7 +87,9 @@ executable haskell-to-coq-compiler
   hs-source-dirs:     src/exe
   main-is:            Main.hs
   build-depends:      base
+                    , directory           ==1.3.*
                     , filepath            ==1.4.*
+                    , extra               ==1.6.*
                     , haskell-to-coq-internal
   default-language:   Haskell2010
   ghc-options:        -Wall
