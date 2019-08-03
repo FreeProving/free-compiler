@@ -11,10 +11,36 @@ import           Compiler.Util.Test
 testConverter :: Spec
 testConverter = describe "Compiler.Converter" $ do
   testConvertType
+  testConvertTypeDecl
   testConvertDataDecls
   testConvertExpr
   testConvertNonRecFuncDecl
   testConvertRecFuncDecls
+
+-------------------------------------------------------------------------------
+-- Type synonym declarations                                                 --
+-------------------------------------------------------------------------------
+
+-- | Test group for 'convertTypeDecl' tests.
+testConvertTypeDecl :: Spec
+testConvertTypeDecl = describe "convertTestDecl" $ do
+  it "translates non-polymorphic type synonyms correctly"
+    $ shouldSucceed
+    $ fromConverter
+    $ do
+        shouldTranslateDeclsTo ["type TermPos = [Int]"]
+          $  "Definition TermPos (Shape : Type) (Pos : Shape -> Type)"
+          ++ "  : Type"
+          ++ " := List Shape Pos (Int Shape Pos)."
+
+  it "translates polymorphic type synonyms correctly"
+    $ shouldSucceed
+    $ fromConverter
+    $ do
+        shouldTranslateDeclsTo ["type Queue a = ([a], [a])"]
+          $  "Definition Queue (Shape : Type) (Pos : Shape -> Type)"
+          ++ "  (a : Type) : Type"
+          ++ " := Pair Shape Pos (List Shape Pos a) (List Shape Pos a)."
 
 -------------------------------------------------------------------------------
 -- Data type declarations                                                    --
@@ -23,7 +49,7 @@ testConverter = describe "Compiler.Converter" $ do
 -- | Test group for 'convertDataDecls' tests.
 testConvertDataDecls :: Spec
 testConvertDataDecls = describe "convertDataDecls" $ do
-  it "translates non-polymorphic types correctly"
+  it "translates non-polymorphic data types correctly"
     $ shouldSucceed
     $ fromConverter
     $ do
@@ -40,7 +66,7 @@ testConvertDataDecls = describe "convertDataDecls" $ do
           ++ "Definition Baz (Shape : Type) (Pos : Shape -> Type) "
           ++ " : Free Shape Pos (Foo Shape Pos) := pure baz."
 
-  it "translates polymorphic types correctly"
+  it "translates polymorphic data types correctly"
     $ shouldSucceed
     $ fromConverter
     $ do
