@@ -44,8 +44,11 @@ isTypeDecl _                     = False
 -- | Converts a Haskell type synonym declaration to Coq.
 convertTypeDecl :: HS.Decl -> Converter [G.Sentence]
 convertTypeDecl (HS.TypeDecl _ declIdent typeVarDecls typeExpr) = do
-  let arity = length typeVarDecls
-  ident' <- renameAndDefineTypeCon (HS.fromDeclIdent declIdent) arity
+  let ident = HS.fromDeclIdent declIdent
+      name  = HS.Ident ident
+      arity = length typeVarDecls
+  ident' <- renameAndDefineTypeCon ident arity
+  modifyEnv $ defineTypeSynonym name (map HS.fromDeclIdent typeVarDecls) typeExpr
   localEnv $ do
     typeVarDecls' <- convertTypeVarDecls G.Explicit typeVarDecls
     typeExpr'     <- convertType' typeExpr

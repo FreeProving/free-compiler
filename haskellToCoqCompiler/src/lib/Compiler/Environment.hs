@@ -15,6 +15,7 @@ module Compiler.Environment
   , definePureVar
   , defineDecArg
   , defineTypeSig
+  , defineTypeSynonym
   , defineIdent
   , defineArgTypes
   -- * Looking up entries from the environment
@@ -26,6 +27,7 @@ module Compiler.Environment
   , lookupArgTypes
   , lookupArity
   , lookupTypeSig
+  , lookupTypeSynonym
   -- * Shortcuts for inserting entries into the environment
   , defineTypeCon
   , defineTypeVar
@@ -106,6 +108,10 @@ data Environment = Environment
     --   or datatype declarations. However there are entries for type signatues
     --   (the annotated type is stored as the return type and the argument type
     --   list is empty).
+  , definedTypeSynonyms :: Map HS.Name ([HS.TypeVarIdent], HS.Type)
+    -- ^ Maps names of Haskell type synonyms to the type that is abbreviated
+    --   by the type synonym and the type variables used by that type.
+    --   There should also be an entry in 'definedIdents' for the type synonym.
   }
   deriving Show
 
@@ -113,12 +119,13 @@ data Environment = Environment
 --   functions.
 emptyEnvironment :: Environment
 emptyEnvironment = Environment
-  { freshIdentCount  = Map.empty
-  , partialFunctions = Set.empty
-  , pureVars         = Set.empty
-  , decArgs          = Map.empty
-  , definedIdents    = Map.empty
-  , definedArgTypes  = Map.empty
+  { freshIdentCount     = Map.empty
+  , partialFunctions    = Set.empty
+  , pureVars            = Set.empty
+  , decArgs             = Map.empty
+  , definedIdents       = Map.empty
+  , definedArgTypes     = Map.empty
+  , definedTypeSynonyms = Map.empty
   }
 
 -- | Gets a list of Coq identifiers for functions, (type/smart) constructors,
@@ -193,6 +200,20 @@ defineArgTypes scope name argTypes returnType env = env
 defineTypeSig :: HS.Name -> HS.Type -> Environment -> Environment
 defineTypeSig name typeExpr = defineArgTypes VarScope name [] (Just typeExpr)
 
+-- | Associates the name of a Haskell type synonym with the type that is
+--   abbreviated by the type synonym.
+defineTypeSynonym
+  :: HS.Name           -- ^ The name of the type synonym.
+  -> [HS.TypeVarIdent] -- ^ The type variables of the type synonym.
+  -> HS.Type           -- ^ The abbreviated type.
+  -> Environment
+  -> Environment
+defineTypeSynonym name usedTypeVars typeExpr env = env
+  { definedTypeSynonyms = Map.insert name
+                                     (usedTypeVars, typeExpr)
+                                     (definedTypeSynonyms env)
+  }
+
 -------------------------------------------------------------------------------
 -- Looking up entries from the environment                                   --
 -------------------------------------------------------------------------------
@@ -261,6 +282,13 @@ lookupTypeSig :: HS.Name -> Environment -> Maybe HS.Type
 lookupTypeSig name env = do
   (_, [], Just returnType) <- lookupArgTypes VarScope name env
   return returnType
+
+-- | Looks up the type the type synonym with the given name is associated with.
+--
+--   Returns @Nothing@ if there is no such type synonym.
+lookupTypeSynonym
+  :: HS.Name -> Environment -> Maybe ([HS.TypeVarIdent], HS.Type)
+lookupTypeSynonym name = Map.lookup name . definedTypeSynonyms
 
 -------------------------------------------------------------------------------
 -- Shortcuts for inserting entries into the environment                      --

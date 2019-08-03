@@ -59,7 +59,8 @@ testConvertTypeDecl = describe "convertTestDecl" $ do
           ++ "    -> Free Shape Pos (Expr Shape Pos). "
           ++ "Definition identity (Shape : Type) (Pos : Shape -> Type)"
           ++ "  (s : Free Shape Pos (String Shape Pos))"
-          ++ " : Free Shape Pos (Expr Shape Pos)."
+          ++ " : Free Shape Pos (Expr Shape Pos)"
+          ++ " := Var Shape Pos s."
 
 -------------------------------------------------------------------------------
 -- Data type declarations                                                    --

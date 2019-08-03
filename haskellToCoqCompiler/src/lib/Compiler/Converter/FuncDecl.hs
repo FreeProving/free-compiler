@@ -21,6 +21,7 @@ import           Compiler.Environment.Renamer
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Haskell.Inliner
 import           Compiler.Haskell.SrcSpan
+import           Compiler.Haskell.Subst
 import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
 import           Compiler.Pretty
@@ -84,7 +85,7 @@ defineFuncDecl (HS.FuncDecl _ (HS.DeclIdent srcSpan ident) args _) = do
 -- | Splits the annotated type of a Haskell function with the given arguments
 --   into its argument and return types.
 --
---   TODO  Type synonyms are expanded if neccessary.
+--   Type synonyms are expanded if neccessary.
 splitFuncType
   :: HS.Name     -- ^ The name of the function to display in error messages.
   -> [HS.VarPat] -- ^ The argument variable patterns whose types to split of.
@@ -97,14 +98,37 @@ splitFuncType name = splitFuncType'
   splitFuncType' (_ : args) (HS.TypeFunc _ t1 t2) = do
     (argTypes, returnType) <- splitFuncType' args t2
     return (t1 : argTypes, returnType)
-  splitFuncType' (arg : _) _ =
-    reportFatal
-      $  Message (HS.getSrcSpan arg) Error
-      $  "Could not determine type of argument '"
-      ++ HS.fromVarPat arg
-      ++ "' for function '"
-      ++ showPretty name
-      ++ "'."
+  splitFuncType' args@(arg : _) typeExpr = do
+    mTypeExpr' <- expandTypeSynonym typeExpr []
+    case mTypeExpr' of
+      Just typeExpr' -> splitFuncType' args typeExpr'
+      Nothing ->
+        reportFatal
+          $  Message (HS.getSrcSpan arg) Error
+          $  "Could not determine type of argument '"
+          ++ HS.fromVarPat arg
+          ++ "' for function '"
+          ++ showPretty name
+          ++ "'."
+
+  -- | Expands a type synonym that is applied to the given arguments.
+  --
+  --   Returns @Nothing@ if the given type is not (the application of) a type
+  --   synonym.
+  expandTypeSynonym :: HS.Type -> [HS.Type] -> Converter (Maybe HS.Type)
+  expandTypeSynonym (HS.TypeApp _ e1 e2) args =
+    expandTypeSynonym e1 (e2 : args)
+  expandTypeSynonym (HS.TypeCon _ name) args = do
+    mTypeSynonym <- inEnv $ lookupTypeSynonym name
+    case mTypeSynonym of
+      Nothing                   -> return Nothing
+      Just (typeVars, typeExpr) -> do
+        let subst =
+              composeSubsts (zipWith (singleSubst . HS.Ident) typeVars args)
+        typeExpr' <- applySubst subst typeExpr
+        return (Just typeExpr')
+  expandTypeSynonym (HS.TypeVar _ _   ) _ = return Nothing
+  expandTypeSynonym (HS.TypeFunc _ _ _) _ = return Nothing
 
 -------------------------------------------------------------------------------
 -- Non-recursive function declarations                                       --
