@@ -24,13 +24,37 @@ import           Compiler.Monad.Converter
 
 -- | Converts a strongly connected component of the type dependency graph.
 convertTypeComponent :: DependencyComponent -> Converter [G.Sentence]
-convertTypeComponent (NonRecursive decl) =
-  -- TODO handle type declaration diffently.
-  convertDataDecls [decl]
+convertTypeComponent (NonRecursive decl)
+  | isTypeDecl decl = convertTypeDecl decl
+  | otherwise       = convertDataDecls [decl]
 convertTypeComponent (Recursive decls) =
   -- TODO filter type declarations, handle them separatly and expand
   --      type synonyms from this component in data declarations.
   convertDataDecls decls
+
+-------------------------------------------------------------------------------
+-- Type synonym declarations                                                 --
+-------------------------------------------------------------------------------
+
+-- | Tests whether the given declaration is a type synonym declaration.
+isTypeDecl :: HS.Decl -> Bool
+isTypeDecl (HS.TypeDecl _ _ _ _) = True
+isTypeDecl _                     = False
+
+-- | Converts a Haskell type synonym declaration to Coq.
+convertTypeDecl :: HS.Decl -> Converter [G.Sentence]
+convertTypeDecl (HS.TypeDecl _ declIdent typeVarDecls typeExpr) = do
+  let arity = length typeVarDecls
+  ident' <- renameAndDefineTypeCon (HS.fromDeclIdent declIdent) arity
+  localEnv $ do
+    typeVarDecls' <- convertTypeVarDecls G.Explicit typeVarDecls
+    typeExpr'     <- convertType' typeExpr
+    return
+      [ G.definitionSentence (G.bare ident')
+                             (genericArgDecls G.Explicit ++ typeVarDecls')
+                             (Just G.sortType)
+                             typeExpr'
+      ]
 
 -------------------------------------------------------------------------------
 -- Data type declarations                                                    --
