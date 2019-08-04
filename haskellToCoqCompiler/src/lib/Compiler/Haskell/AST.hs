@@ -86,7 +86,6 @@ data VarPat = VarPat SrcSpan String
 data Module = Module
   SrcSpan             -- ^ A source span that spans the entire module.
   (Maybe ModuleIdent) -- ^ Optional name of the module.
-  [ModuleIdent]       -- ^ The names of imported modules.
   [Decl]              -- ^ The declarations.
   deriving (Eq, Show)
 
@@ -131,6 +130,8 @@ data Decl
     -- ^ A function declaration.
   | TypeSig SrcSpan [DeclIdent] Type
     -- ^ A type signature of one or more function declarations.
+  | ImportDecl SrcSpan ModuleIdent
+    -- ^ An import declaration.
   deriving (Eq, Show)
 
 -- | A constructor declaration.
@@ -251,14 +252,15 @@ instance GetSrcSpan ConPat where
 
 -- | 'GetSrcSpan' instance for modules.
 instance GetSrcSpan Module where
-  getSrcSpan (Module srcSpan _ _ _) = srcSpan
+  getSrcSpan (Module srcSpan _ _) = srcSpan
 
 -- | 'GetSrcSpan' instance for top-level declarations.
 instance GetSrcSpan Decl where
-  getSrcSpan (DataDecl  srcSpan _ _ _) = srcSpan
-  getSrcSpan (TypeDecl  srcSpan _ _ _) = srcSpan
-  getSrcSpan (FuncDecl  srcSpan _ _ _) = srcSpan
-  getSrcSpan (TypeSig   srcSpan _ _  ) = srcSpan
+  getSrcSpan (DataDecl   srcSpan _ _ _) = srcSpan
+  getSrcSpan (TypeDecl   srcSpan _ _ _) = srcSpan
+  getSrcSpan (FuncDecl   srcSpan _ _ _) = srcSpan
+  getSrcSpan (TypeSig    srcSpan _ _  ) = srcSpan
+  getSrcSpan (ImportDecl srcSpan _    ) = srcSpan
 
 -- | 'GetSrcSpan' instance for constructor declarations.
 instance GetSrcSpan ConDecl where
@@ -378,6 +380,13 @@ pairConName = Symbol "(,)"
 --   @Bool@ accidentaly with a custom function or local variable.
 boolTypeConName :: TypeConName
 boolTypeConName = Symbol "Prelude.Bool"
+
+-- | When translating boolean expressions in QuickCheck properties, we have to
+--   generate a check whether the result is @True@. Because we do not support
+--   qualified identifiers we need to use this special symbol to prevent the
+--   user from shadowing @True@ accidentaly with a custom constructor.
+trueConName :: ConName
+trueConName = Symbol "Prelude.True"
 
 -- | The unary prefix operator @-@ is translated to the application of the
 --   @negate@ function. Because we do not support qualified identifiers we

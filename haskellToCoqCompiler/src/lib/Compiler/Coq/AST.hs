@@ -5,6 +5,7 @@ module Compiler.Coq.AST
   ( module Language.Coq.Gallina
     -- * Comments
   , comment
+  , proofPlaceholder
     -- * Identifiers
   , ident
   , bare
@@ -25,6 +26,10 @@ module Compiler.Coq.AST
   , string
   , equation
   , match
+  , equals
+  , notEquals
+  , conj
+  , disj
     -- * Imports
   , requireImportFrom
   )
@@ -42,6 +47,10 @@ import qualified Language.Coq.Gallina          as G
 -- | Smart constructor for Coq comments.
 comment :: String -> G.Sentence
 comment = G.CommentSentence . G.Comment . T.pack
+
+-- | Smart constructor for the placeholder to insert into admitted proofs.
+proofPlaceholder :: G.Tactics
+proofPlaceholder = T.pack "  (* FILL IN HERE *)"
 
 -------------------------------------------------------------------------------
 -- Identifiers                                                               --
@@ -159,6 +168,22 @@ match value eqns = G.Match (return item) Nothing eqns
  where
   item :: G.MatchItem
   item = G.MatchItem value Nothing Nothing
+
+-- | Smart constructor for reflexive equality in Coq.
+equals :: G.Term -> G.Term -> G.Term
+equals t1 t2 = app (G.Qualid (bare "op_=__")) [t1, t2]
+
+-- | Smart constructor for reflexive inequality in Coq.
+notEquals :: G.Term -> G.Term -> G.Term
+notEquals t1 t2 = app (G.Qualid (bare "op_<>__")) [t1, t2]
+
+-- | Smart constructor for a conjunction in Coq.
+conj :: G.Term -> G.Term -> G.Term
+conj t1 t2 = app (G.Qualid (bare "op_/\\__")) [t1, t2]
+
+-- | Smart constructor for a disjunction in Coq.
+disj :: G.Term -> G.Term -> G.Term
+disj t1 t2 = app (G.Qualid (bare "op_\\/__")) [t1, t2]
 
 -------------------------------------------------------------------------------
 -- Imports                                                                   --

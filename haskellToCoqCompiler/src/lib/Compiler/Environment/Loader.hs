@@ -173,7 +173,6 @@ loadEnvironment filename = reportIOErrors $ do
 decodeEnvironment :: Toml.Table -> Reporter Environment
 decodeEnvironment document = case result of
   Aeson.Error msg -> do
-    report $ Message NoSrcSpan Info $ show (Aeson.toJSON document)
     reportFatal
       $  Message NoSrcSpan Error
       $  "Invalid configuration file format: "

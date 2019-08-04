@@ -38,6 +38,7 @@ library haskell-to-coq-internal
                       , Compiler.Converter.Free
                       , Compiler.Converter.FuncDecl
                       , Compiler.Converter.Module
+                      , Compiler.Converter.QuickCheck
                       , Compiler.Converter.Type
                       , Compiler.Converter.TypeDecl
                       , Compiler.Coq.AST

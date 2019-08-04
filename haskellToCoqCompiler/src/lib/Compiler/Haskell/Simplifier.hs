@@ -102,7 +102,7 @@ simplifyModule (H.Module srcSpan modHead pragmas imports decls)
     modIdent <- mapM simplifyModuleHead modHead
     imports' <- mapM simplifyImport imports
     decls'   <- mapM simplifyDecl decls
-    return (HS.Module srcSpan modIdent imports' (catMaybes decls'))
+    return (HS.Module srcSpan modIdent (imports' ++ catMaybes decls'))
 simplifyModule modDecl = notSupported "XML modules" modDecl
 
 -- | Gets the module name from the module head.
@@ -116,7 +116,7 @@ simplifyModuleHead (H.ModuleHead _ (H.ModuleName _ modIdent) _ exports) = do
   return modIdent
 
 -- | Gets the name of the module imported by the given import declaration.
-simplifyImport :: H.ImportDecl SrcSpan -> Simplifier HS.ModuleIdent
+simplifyImport :: H.ImportDecl SrcSpan -> Simplifier HS.Decl
 simplifyImport decl
   | H.importQualified decl = notSupported "Quallified imports" decl
   | H.importSrc decl = notSupported "Mutually recursive modules" decl
@@ -127,7 +127,7 @@ simplifyImport decl
   | isJust (H.importAs decl) = notSupported "Imports with aliases" decl
   | isJust (H.importSpecs decl) = notSupported "Import specifications" decl
   | otherwise = case H.importModule decl of
-    H.ModuleName _ modIdent -> return modIdent
+    H.ModuleName srcSpan modIdent -> return (HS.ImportDecl srcSpan modIdent)
 
 -------------------------------------------------------------------------------
 -- Declarations                                                              --

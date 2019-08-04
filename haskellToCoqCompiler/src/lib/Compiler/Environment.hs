@@ -34,6 +34,9 @@ module Compiler.Environment
   , defineCon
   , defineVar
   , defineFunc
+  -- * QuickCheck support
+  , enableQuickCheck
+  , isQuickCheckEnabled
   )
 where
 
@@ -112,6 +115,9 @@ data Environment = Environment
     -- ^ Maps names of Haskell type synonyms to the type that is abbreviated
     --   by the type synonym and the type variables used by that type.
     --   There should also be an entry in 'definedIdents' for the type synonym.
+  , quickCheckEnabled :: Bool
+    -- ^ Whether the translation of QuickCheck properties is enabled in the
+    --   current environment (i.e. the module imports @Test.QuickCheck@).
   }
   deriving Show
 
@@ -126,6 +132,7 @@ emptyEnvironment = Environment
   , definedIdents       = Map.empty
   , definedArgTypes     = Map.empty
   , definedTypeSynonyms = Map.empty
+  , quickCheckEnabled   = False
   }
 
 -- | Gets a list of Coq identifiers for functions, (type/smart) constructors,
@@ -359,3 +366,19 @@ defineFunc
 defineFunc name ident argTypes returnType =
   defineArgTypes VarScope name argTypes returnType
     . defineIdent VarScope name ident
+
+-------------------------------------------------------------------------------
+-- QuickCheck support                                                        --
+-------------------------------------------------------------------------------
+
+-- | Enables the translation of QuickCheck properties.
+enableQuickCheck :: Environment -> Environment
+enableQuickCheck env = env { quickCheckEnabled = True }
+
+-- | Tests whether the translation of QuickCheck properties is enabled
+--   in the given environment.
+--
+--   This flag is usually set to @True@ if there is a @import Test.QuickCheck@
+--   declaration.
+isQuickCheckEnabled :: Environment -> Bool
+isQuickCheckEnabled = quickCheckEnabled
