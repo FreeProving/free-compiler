@@ -19,6 +19,17 @@ import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
 
 -------------------------------------------------------------------------------
+-- QuickCheck import                                                         --
+-------------------------------------------------------------------------------
+
+-- | Enables the translation of QuickCheck properties and imports the relevant
+--   symbols into the current environment.
+importAndEnableQuickCheck :: Converter ()
+importAndEnableQuickCheck = do
+  modifyEnv $ enableQuickCheck
+  modifyEnv $ defineTypeCon (HS.Ident "Property") 0 (G.bare "Prop")
+
+-------------------------------------------------------------------------------
 -- QuickCheck property declarations                                          --
 -------------------------------------------------------------------------------
 

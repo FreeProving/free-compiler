@@ -9,6 +9,7 @@ import           Data.Maybe                     ( catMaybes )
 import           Compiler.Converter
 import qualified Compiler.Coq.AST              as G
 import           Compiler.Coq.Pretty            ( )
+import           Compiler.Environment
 import           Compiler.Environment.Loader
 import           Compiler.Environment.Renamer
 import qualified Compiler.Haskell.AST          as HS
@@ -111,13 +112,19 @@ defineTestCon ident arity typeStr = do
 defineTestVar :: String -> Converter String
 defineTestVar = renameAndDefineVar
 
--- | Like 'renameAndDefineFunc' but the argument and return types are parsed from
---   the given string.
+-- | Like 'renameAndDefineFunc' but the argument and return types are parsed
+--   from the given string.
 defineTestFunc :: String -> Int -> String -> Converter String
 defineTestFunc ident arity typeStr = do
   typeExpr <- parseTestType typeStr
   let (argTypes, returnType) = HS.splitType typeExpr arity
   renameAndDefineFunc ident argTypes returnType
+
+-- | Like 'defineTestFunc' but also marks the given function as partial.
+definePartialTestFunc :: String -> Int -> String -> Converter String
+definePartialTestFunc ident arity typeStr = do
+  modifyEnv $ definePartial (HS.Ident ident)
+  defineTestFunc ident arity typeStr
 
 -------------------------------------------------------------------------------
 -- Conversion utility functions                                              --

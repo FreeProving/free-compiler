@@ -4,6 +4,7 @@ import           Test.Hspec
 
 import Compiler.Converter.ExprTests
 import Compiler.Converter.FuncDeclTests
+import Compiler.Converter.QuickCheckTests
 import Compiler.Converter.TypeDeclTests
 import Compiler.Converter.TypeTests
 
@@ -16,3 +17,4 @@ testConverter = do
   testConvertExpr
   testConvertNonRecFuncDecl
   testConvertRecFuncDecls
+  testConvertQuickCheckProperty
