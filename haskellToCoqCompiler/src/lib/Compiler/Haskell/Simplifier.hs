@@ -98,11 +98,11 @@ warnIf cond msg node = when cond (report $ Message (H.ann node) Warning msg)
 simplifyModule :: H.Module SrcSpan -> Simplifier HS.Module
 simplifyModule (H.Module srcSpan modHead pragmas imports decls)
   | not (null pragmas) = notSupported "Module pragmas" (head pragmas)
-  | not (null imports) = notSupported "Module imports" (head imports)
   | otherwise = do
     modIdent <- mapM simplifyModuleHead modHead
+    imports' <- mapM simplifyImport imports
     decls'   <- mapM simplifyDecl decls
-    return (HS.Module srcSpan modIdent (catMaybes decls'))
+    return (HS.Module srcSpan modIdent imports' (catMaybes decls'))
 simplifyModule modDecl = notSupported "XML modules" modDecl
 
 -- | Gets the module name from the module head.
@@ -114,6 +114,20 @@ simplifyModuleHead :: H.ModuleHead SrcSpan -> Simplifier HS.ModuleIdent
 simplifyModuleHead (H.ModuleHead _ (H.ModuleName _ modIdent) _ exports) = do
   warnIf (isJust exports) "Ignoring export list." (fromJust exports)
   return modIdent
+
+-- | Gets the name of the module imported by the given import declaration.
+simplifyImport :: H.ImportDecl SrcSpan -> Simplifier HS.ModuleIdent
+simplifyImport decl
+  | H.importQualified decl = notSupported "Quallified imports" decl
+  | H.importSrc decl = notSupported "Mutually recursive modules" decl
+  | H.importSafe decl = notSupported "Safe imports" decl
+  | isJust (H.importPkg decl) = notSupported
+    "Imports with explicit package names"
+    decl
+  | isJust (H.importAs decl) = notSupported "Imports with aliases" decl
+  | isJust (H.importSpecs decl) = notSupported "Import specifications" decl
+  | otherwise = case H.importModule decl of
+    H.ModuleName _ modIdent -> return modIdent
 
 -------------------------------------------------------------------------------
 -- Declarations                                                              --

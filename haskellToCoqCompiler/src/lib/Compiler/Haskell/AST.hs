@@ -86,6 +86,7 @@ data VarPat = VarPat SrcSpan String
 data Module = Module
   SrcSpan             -- ^ A source span that spans the entire module.
   (Maybe ModuleIdent) -- ^ Optional name of the module.
+  [ModuleIdent]       -- ^ The names of imported modules.
   [Decl]              -- ^ The declarations.
   deriving (Eq, Show)
 
@@ -250,7 +251,7 @@ instance GetSrcSpan ConPat where
 
 -- | 'GetSrcSpan' instance for modules.
 instance GetSrcSpan Module where
-  getSrcSpan (Module srcSpan _ _) = srcSpan
+  getSrcSpan (Module srcSpan _ _ _) = srcSpan
 
 -- | 'GetSrcSpan' instance for top-level declarations.
 instance GetSrcSpan Decl where

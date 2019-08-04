@@ -31,10 +31,10 @@ convertModuleWithPreamble ast = do
 --
 --   If no module header is present the generated module is called @"Main"@.
 convertModule :: HS.Module -> Converter G.Sentence
-convertModule (HS.Module _ maybeIdent decls) = do
-  let modName = G.ident (maybe "Main" id maybeIdent)
+convertModule (HS.Module _ maybeIdent _ decls) = do
+  let ident' = G.ident (maybe "Main" id maybeIdent)
   decls' <- convertDecls decls
-  return (G.LocalModuleSentence (G.LocalModule modName decls'))
+  return (G.LocalModuleSentence (G.LocalModule ident' decls'))
 
 -------------------------------------------------------------------------------
 -- Declarations                                                              --
