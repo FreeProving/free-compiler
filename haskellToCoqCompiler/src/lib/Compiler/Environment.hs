@@ -4,12 +4,10 @@
 
 module Compiler.Environment
   (-- * Environment
-    Environment
+    Environment(..)
   , Scope(..)
   , emptyEnvironment
   , usedIdents
-  -- * Freh identifiers
-  , freshIdentCount
   -- * Inserting entries into the environment
   , definePartial
   , definePureVar
@@ -88,7 +86,7 @@ data Environment = Environment
   { freshIdentCount :: Map String Int
     -- ^ The number of fresh identifiers that were used in the environment
     --   with a certain prefix.
-  , partialFunctions :: Set HS.Name
+  , partialFuncs :: Set HS.Name
     -- ^ The names of partial functions. This map also contains entries for
     --   functions that have not yet been defined and functions that are
     --   shadowed by local vairables.
@@ -126,7 +124,7 @@ data Environment = Environment
 emptyEnvironment :: Environment
 emptyEnvironment = Environment
   { freshIdentCount     = Map.empty
-  , partialFunctions    = Set.empty
+  , partialFuncs        = Set.empty
   , pureVars            = Set.empty
   , decArgs             = Map.empty
   , definedIdents       = Map.empty
@@ -147,7 +145,7 @@ usedIdents = Map.elems . definedIdents
 -- | Inserts the given function name into the set of partial functions.
 definePartial :: HS.Name -> Environment -> Environment
 definePartial name env =
-  env { partialFunctions = Set.insert name (partialFunctions env) }
+  env { partialFuncs = Set.insert name (partialFuncs env) }
 
 -- | Inserts the given variable name into the set of non-monadic variables.
 definePureVar :: HS.Name -> Environment -> Environment
@@ -236,7 +234,7 @@ isFunction = isJust .: lookupArgTypes VarScope
 --
 --   Returns @False@ if there is no such function.
 isPartial :: HS.Name -> Environment -> Bool
-isPartial name = Set.member name . partialFunctions
+isPartial name = Set.member name . partialFuncs
 
 -- | Test whether the variable with the given name is not monadic.
 isPureVar :: HS.Name -> Environment -> Bool

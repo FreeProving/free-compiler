@@ -19,7 +19,7 @@ testPartialityAnalysis = describe "Compiler.Analysis.PartialityAnalysis" $ do
           , "head xs = case xs of { [] -> undefined; x : xs' -> x }"
           ]
         return
-          (               partialFunctions (funcDependencyGraph decls)
+          (               identifyPartialFuncs [] (funcDependencyGraph decls)
           `shouldContain` [HS.Ident "head"]
           )
 
@@ -34,7 +34,7 @@ testPartialityAnalysis = describe "Compiler.Analysis.PartialityAnalysis" $ do
           , "heads = map head"
           ]
         return
-          (               partialFunctions (funcDependencyGraph decls)
+          (               identifyPartialFuncs [] (funcDependencyGraph decls)
           `shouldContain` [HS.Ident "heads"]
           )
 
@@ -50,7 +50,7 @@ testPartialityAnalysis = describe "Compiler.Analysis.PartialityAnalysis" $ do
           ++ "}"
           ]
         return
-          (               partialFunctions (funcDependencyGraph decls)
+          (               identifyPartialFuncs [] (funcDependencyGraph decls)
           `shouldContain` [HS.Ident "head"]
           )
 
@@ -68,6 +68,6 @@ testPartialityAnalysis = describe "Compiler.Analysis.PartialityAnalysis" $ do
           , "heads = map head"
           ]
         return
-          (               partialFunctions (funcDependencyGraph decls)
+          (               identifyPartialFuncs [] (funcDependencyGraph decls)
           `shouldContain` [HS.Ident "heads"]
           )

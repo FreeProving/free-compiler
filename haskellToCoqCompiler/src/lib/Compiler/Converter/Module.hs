@@ -3,6 +3,7 @@
 module Compiler.Converter.Module where
 
 import           Control.Monad.Extra            ( concatMapM )
+import qualified Data.Set                      as Set
 import           Data.Maybe                     ( maybe )
 
 import           Compiler.Analysis.DependencyAnalysis
@@ -47,8 +48,10 @@ convertModule (HS.Module _ maybeIdent decls) = do
 convertDecls :: [HS.Decl] -> Converter [G.Sentence]
 convertDecls decls = do
   typeDecls' <- concatMapM convertTypeComponent (groupDependencies typeGraph)
-  mapM_ (modifyEnv . definePartial) (partialFunctions funcGraph)
-  mapM_ filterAndDefineTypeSig      decls
+  predefinedPartialFuncs <- inEnv partialFuncs >>= return . Set.toList
+  mapM_ (modifyEnv . definePartial)
+        (identifyPartialFuncs predefinedPartialFuncs funcGraph)
+  mapM_ filterAndDefineTypeSig decls
   funcDecls' <- concatMapM convertFuncComponentOrQuickCheckProperty
                            (groupDependencies funcGraph)
   return (typeDecls' ++ funcDecls')
@@ -68,9 +71,7 @@ convertDecls decls = do
 convertImportDecl :: HS.Decl -> Converter ()
 convertImportDecl (HS.ImportDecl _ modIdent)
   | modIdent == "Test.QuickCheck"
-  = do
-    modifyEnv $ enableQuickCheck
-    modifyEnv $ defineTypeCon (HS.Ident "Property") 0 (G.bare "Prop")
+  = importAndEnableQuickCheck
   | otherwise
   = reportFatal
     $ Message NoSrcSpan Error

@@ -11,19 +11,25 @@ import           Compiler.Analysis.DependencyGraph
 
 -- | Identifies function declatations that are either partial because they
 --   contain error terms or depend on a function that are partial in turn.
-partialFunctions :: DependencyGraph -> [DGKey]
-partialFunctions (DependencyGraph graph getEntry _) = map (snd3 . getEntry)
-                                                          indirect
+--
+--   The first argument contains the names of (predefined) functions that are
+--   known to be partial.
+identifyPartialFuncs :: [DGKey] -> DependencyGraph -> [DGKey]
+identifyPartialFuncs predefined (DependencyGraph graph getEntry _) = map
+  (snd3 . getEntry)
+  indirect
  where
   -- | Vertices of functions that are partial because they contain error terms.
   direct :: [Vertex]
-  direct = filter (containsErrorTerm . getEntry) (vertices graph)
+  direct = filter (isDirectlyPartial . getEntry) (vertices graph)
 
   -- | Vertices of functions that are partial because they contain error
   --   terms or depend on other partial functions.
   indirect :: [Vertex]
   indirect = nub (concatMap (reachable (transposeG graph)) direct)
 
-  -- | Tests whether a function contains error terms.
-  containsErrorTerm :: DGEntry -> Bool
-  containsErrorTerm (_, _, deps) = any (`elem` deps) [errorKey, undefinedKey]
+  -- | Tests whether a function contains error terms or references to
+  --   predefined partial functions.
+  isDirectlyPartial :: DGEntry -> Bool
+  isDirectlyPartial (_, _, deps) =
+    any (`elem` deps) ([errorKey, undefinedKey] ++ predefined)
