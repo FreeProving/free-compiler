@@ -118,8 +118,8 @@ splitFuncType name = splitFuncType'
   expandTypeSynonym :: HS.Type -> [HS.Type] -> Converter (Maybe HS.Type)
   expandTypeSynonym (HS.TypeApp _ e1 e2) args =
     expandTypeSynonym e1 (e2 : args)
-  expandTypeSynonym (HS.TypeCon _ name) args = do
-    mTypeSynonym <- inEnv $ lookupTypeSynonym name
+  expandTypeSynonym (HS.TypeCon _ typeConName) args = do
+    mTypeSynonym <- inEnv $ lookupTypeSynonym typeConName
     case mTypeSynonym of
       Nothing                   -> return Nothing
       Just (typeVars, typeExpr) -> do

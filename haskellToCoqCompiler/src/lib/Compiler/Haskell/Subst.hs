@@ -144,7 +144,7 @@ instance ApplySubst HS.Expr where
 
 -- | Applies the given substitution to a type expression.
 instance ApplySubst HS.Type where
-  applySubst subst@(Subst substMap) = applySubst'
+  applySubst (Subst substMap) = applySubst'
    where
     applySubst' :: HS.Type -> Converter HS.Type
     applySubst' typeCon@(HS.TypeCon _ _) = return typeCon
