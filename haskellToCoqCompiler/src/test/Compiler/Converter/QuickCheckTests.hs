@@ -9,6 +9,22 @@ import           Compiler.Util.Test
 testConvertQuickCheckProperty :: Spec
 testConvertQuickCheckProperty =
   describe "Compiler.Converter.QuickCheck.convertQuickCheckProperty" $ do
+    it "does nothing if QuickCheck support is not enabled explicitly"
+      $ shouldSucceed
+      $ fromConverter
+      $ do
+          shouldTranslateDeclsTo
+              [ "prop_add_comm :: Int -> Int -> Bool"
+              , "prop_add_comm n m = n + m == m + n"
+              ]
+            $  "Definition prop_add_comm (Shape : Type) (Pos : Shape -> Type)"
+            ++ "  (n : Free Shape Pos (Int Shape Pos))"
+            ++ "  (m : Free Shape Pos (Int Shape Pos))"
+            ++ " : Free Shape Pos (Bool Shape Pos)"
+            ++ " := eqInt Shape Pos"
+            ++ "     (addInt Shape Pos n m)"
+            ++ "     (addInt Shape Pos m n)."
+
     it "translates boolean properties correctly"
       $ shouldSucceed
       $ fromConverter
