@@ -34,7 +34,15 @@ convertFuncComponent :: DependencyComponent -> Converter [G.Sentence]
 convertFuncComponent (NonRecursive decl) = do
   decl' <- convertNonRecFuncDecl decl
   return [decl']
-convertFuncComponent (Recursive decls) = convertRecFuncDecls decls
+convertFuncComponent (Recursive decls) = do
+  decArgs <- identifyDecArgs decls
+  report -- TODO remove me
+    $  Message NoSrcSpan Info
+    $  "Decreasing arguments of "
+    ++ HS.prettyDeclIdents decls
+    ++ " are "
+    ++ show decArgs
+  convertRecFuncDecls decls
 
 -------------------------------------------------------------------------------
 -- Function declarations                                                     --
