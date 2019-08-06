@@ -11,6 +11,7 @@ import           Data.List                      ( partition )
 import qualified Data.List.NonEmpty            as NonEmpty
 
 import           Compiler.Analysis.DependencyAnalysis
+import           Compiler.Analysis.DependencyGraph
 import           Compiler.Environment
 import           Compiler.Converter.Arg
 import           Compiler.Converter.Free
@@ -22,6 +23,7 @@ import           Compiler.Environment.Renamer
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Haskell.Inliner
 import           Compiler.Monad.Converter
+import           Compiler.Monad.Reporter
 
 -------------------------------------------------------------------------------
 -- Strongly connected components                                             --
@@ -34,10 +36,11 @@ convertTypeComponent (NonRecursive decl)
   | otherwise       = convertDataDecls [decl]
 convertTypeComponent (Recursive decls) = do
   let (typeDecls, dataDecls) = partition isTypeDecl decls
-  dataDecls' <- withTypeSynonyms typeDecls $ do
+  sortedTypeDecls <- sortTypeDecls typeDecls
+  dataDecls'      <- withTypeSynonyms sortedTypeDecls $ do
     expandedDataDecls <- mapM expandAllTypeSynonymsInDecl dataDecls
     convertDataDecls expandedDataDecls
-  typeDecls' <- concatMapM convertTypeDecl typeDecls -- TODO sort topologically
+  typeDecls' <- concatMapM convertTypeDecl sortedTypeDecls
   return (dataDecls' ++ typeDecls')
  where
   -- | Creates a converter that runs the given converter in an environment that
@@ -58,6 +61,29 @@ convertTypeComponent (Recursive decls) = do
                                 `Map.union` oldTypeSynonyms
       }
     return x
+
+  -- | Sorts type synonym declarations topologically.
+  --
+  --   After filtering type synonym declaratios from the a strongly connected
+  --   component, they are not mutually dependen on each other anymore (expect
+  --   if they form a cycle). However, type synonyms may still depend on other
+  --   type synonyms from the same strongly connected component. Therefore we
+  --   have to sort the declarations in reverse topological order.
+  sortTypeDecls :: [HS.Decl] -> Converter [HS.Decl]
+  sortTypeDecls =
+    mapM fromNonRecursive . groupDependencies . typeDependencyGraph
+
+  -- | Extracts the single type synonym declaration from a strongly connected
+  --   component of the type dependency graph.
+  --
+  --   Reports a fatal error if the component contains mutually recursive
+  --   declarations (i.e. type synonyms form a cycle).
+  fromNonRecursive :: DependencyComponent -> Converter HS.Decl
+  fromNonRecursive (NonRecursive decl) = return decl
+  fromNonRecursive (Recursive decls) =
+    reportFatal
+      $ Message (HS.getSrcSpan (head decls)) Error
+      $ "Type synonym declarations form a cycle."
 
 -------------------------------------------------------------------------------
 -- Type synonym declarations                                                 --

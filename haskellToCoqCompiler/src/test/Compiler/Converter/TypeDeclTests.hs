@@ -80,7 +80,38 @@ testConvertTypeDecl =
             ++ " : Type"
             ++ " := List Shape Pos (Tree Shape Pos a)."
 
-    -- TODO should fail for recursive type synonym declarations.
+    it "sorts type synonym declarations topologically"
+      $ shouldSucceed
+      $ fromConverter
+      $ do
+          shouldTranslateDeclsTo
+              ["type Bar = Baz", "type Baz = Foo", "data Foo = Foo Bar Baz"]
+            $  "Inductive Foo (Shape : Type) (Pos : Shape -> Type)"
+            ++ " : Type"
+            ++ " := foo : Free Shape Pos (Foo Shape Pos)"
+            ++ "          -> Free Shape Pos (Foo Shape Pos)"
+            ++ "          -> Foo Shape Pos. "
+            ++ "(* Arguments sentences for Foo *) "
+            ++ "Arguments foo {Shape} {Pos}. "
+            ++ "(* Smart constructors for Foo *) "
+            ++ "Definition Foo0 (Shape : Type) (Pos : Shape -> Type)"
+            ++ "  (x_0 : Free Shape Pos (Foo Shape Pos))"
+            ++ "  (x_1 : Free Shape Pos (Foo Shape Pos))"
+            ++ " : Free Shape Pos (Foo Shape Pos)"
+            ++ " := pure (foo x_0 x_1). "
+            ++ "Definition Baz (Shape : Type) (Pos : Shape -> Type)"
+            ++ " : Type"
+            ++ " := Foo Shape Pos. "
+            ++ "Definition Bar (Shape : Type) (Pos : Shape -> Type)"
+            ++ " : Type"
+            ++ " := Baz Shape Pos."
+
+    it "fails if type synonyms form a cycle"
+      $ shouldReportFatal
+      $ fromConverter
+      $ convertTestDecls ["type Foo = Bar", "type Bar = Baz"]
+
+
 
 -------------------------------------------------------------------------------
 -- Data type declarations                                                    --

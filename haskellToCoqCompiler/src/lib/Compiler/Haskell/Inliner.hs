@@ -181,7 +181,7 @@ expandTypeSynonyms maxDepth t0
       Just (typeVars, typeExpr) -> do
         let subst =
               composeSubsts (zipWith (singleSubst . HS.Ident) typeVars args)
-        typeExpr'  <- applySubst subst typeExpr
+        typeExpr' <- applySubst subst typeExpr
         expandTypeSynonyms (maxDepth - 1) typeExpr' >>= return . Just
 
   expandTypeSynonyms' (HS.TypeApp srcSpan t1 t2) args = do
