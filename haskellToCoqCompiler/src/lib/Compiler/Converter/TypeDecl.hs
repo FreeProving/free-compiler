@@ -4,10 +4,14 @@
 module Compiler.Converter.TypeDecl where
 
 import           Control.Monad                  ( mapAndUnzipM )
+import           Control.Monad.Extra            ( concatMapM )
+import qualified Data.Map.Strict               as Map
 import           Data.Maybe                     ( catMaybes )
+import           Data.List                      ( partition )
 import qualified Data.List.NonEmpty            as NonEmpty
 
 import           Compiler.Analysis.DependencyAnalysis
+import           Compiler.Environment
 import           Compiler.Converter.Arg
 import           Compiler.Converter.Free
 import           Compiler.Converter.Type
@@ -16,6 +20,7 @@ import qualified Compiler.Coq.Base             as CoqBase
 import           Compiler.Environment
 import           Compiler.Environment.Renamer
 import qualified Compiler.Haskell.AST          as HS
+import           Compiler.Haskell.Inliner
 import           Compiler.Monad.Converter
 
 -------------------------------------------------------------------------------
@@ -25,12 +30,34 @@ import           Compiler.Monad.Converter
 -- | Converts a strongly connected component of the type dependency graph.
 convertTypeComponent :: DependencyComponent -> Converter [G.Sentence]
 convertTypeComponent (NonRecursive decl)
-  | isTypeDecl decl = convertTypeDecl decl
+  | isTypeDecl decl = defineTypeDecl decl >> convertTypeDecl decl
   | otherwise       = convertDataDecls [decl]
-convertTypeComponent (Recursive decls) =
-  -- TODO filter type declarations, handle them separatly and expand
-  --      type synonyms from this component in data declarations.
-  convertDataDecls decls
+convertTypeComponent (Recursive decls) = do
+  let (typeDecls, dataDecls) = partition isTypeDecl decls
+  dataDecls' <- withTypeSynonyms typeDecls $ do
+    expandedDataDecls <- mapM expandAllTypeSynonymsInDecl dataDecls
+    convertDataDecls expandedDataDecls
+  typeDecls' <- concatMapM convertTypeDecl typeDecls -- TODO sort topologically
+  return (dataDecls' ++ typeDecls')
+ where
+  -- | Creates a converter that runs the given converter in an environment that
+  --   contains only the type synonyms from the given type synonym
+  --   declarations.
+  --
+  --   The resulting environment contains both the old and the given type
+  --   synonym declarations.
+  withTypeSynonyms :: [HS.Decl] -> Converter a -> Converter a
+  withTypeSynonyms typeDecls converter = do
+    oldTypeSynonyms <- inEnv definedTypeSynonyms
+    modifyEnv $ \env ->
+      env { definedTypeSynonyms = definedTypeSynonyms emptyEnvironment }
+    mapM defineTypeDecl typeDecls
+    x <- converter
+    modifyEnv $ \env -> env
+      { definedTypeSynonyms = definedTypeSynonyms env
+                                `Map.union` oldTypeSynonyms
+      }
+    return x
 
 -------------------------------------------------------------------------------
 -- Type synonym declarations                                                 --
@@ -41,23 +68,30 @@ isTypeDecl :: HS.Decl -> Bool
 isTypeDecl (HS.TypeDecl _ _ _ _) = True
 isTypeDecl _                     = False
 
+-- | Inserts the given type synonym declaration into the current environment.
+defineTypeDecl :: HS.Decl -> Converter ()
+defineTypeDecl (HS.TypeDecl _ declIdent typeVarDecls typeExpr) = do
+  let ident    = HS.fromDeclIdent declIdent
+      name     = HS.Ident ident
+      arity    = length typeVarDecls
+      typeVars = map HS.fromDeclIdent typeVarDecls
+  ident' <- renameAndDefineTypeCon ident arity
+  modifyEnv $ defineTypeSynonym name typeVars typeExpr
+
 -- | Converts a Haskell type synonym declaration to Coq.
 convertTypeDecl :: HS.Decl -> Converter [G.Sentence]
-convertTypeDecl (HS.TypeDecl _ declIdent typeVarDecls typeExpr) = do
+convertTypeDecl (HS.TypeDecl _ declIdent typeVarDecls typeExpr) = localEnv $ do
   let ident = HS.fromDeclIdent declIdent
       name  = HS.Ident ident
-      arity = length typeVarDecls
-  ident' <- renameAndDefineTypeCon ident arity
-  modifyEnv $ defineTypeSynonym name (map HS.fromDeclIdent typeVarDecls) typeExpr
-  localEnv $ do
-    typeVarDecls' <- convertTypeVarDecls G.Explicit typeVarDecls
-    typeExpr'     <- convertType' typeExpr
-    return
-      [ G.definitionSentence (G.bare ident')
-                             (genericArgDecls G.Explicit ++ typeVarDecls')
-                             (Just G.sortType)
-                             typeExpr'
-      ]
+  Just qualid   <- inEnv $ lookupIdent TypeScope name
+  typeVarDecls' <- convertTypeVarDecls G.Explicit typeVarDecls
+  typeExpr'     <- convertType' typeExpr
+  return
+    [ G.definitionSentence qualid
+                           (genericArgDecls G.Explicit ++ typeVarDecls')
+                           (Just G.sortType)
+                           typeExpr'
+    ]
 
 -------------------------------------------------------------------------------
 -- Data type declarations                                                    --

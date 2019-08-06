@@ -99,36 +99,17 @@ splitFuncType name = splitFuncType'
     (argTypes, returnType) <- splitFuncType' args t2
     return (t1 : argTypes, returnType)
   splitFuncType' args@(arg : _) typeExpr = do
-    mTypeExpr' <- expandTypeSynonym typeExpr []
-    case mTypeExpr' of
-      Just typeExpr' -> splitFuncType' args typeExpr'
-      Nothing ->
+    typeExpr' <- expandTypeSynonym typeExpr
+    if typeExpr /= typeExpr'
+      then splitFuncType' args typeExpr'
+      else
         reportFatal
-          $  Message (HS.getSrcSpan arg) Error
-          $  "Could not determine type of argument '"
-          ++ HS.fromVarPat arg
-          ++ "' for function '"
-          ++ showPretty name
-          ++ "'."
-
-  -- | Expands a type synonym that is applied to the given arguments.
-  --
-  --   Returns @Nothing@ if the given type is not (the application of) a type
-  --   synonym.
-  expandTypeSynonym :: HS.Type -> [HS.Type] -> Converter (Maybe HS.Type)
-  expandTypeSynonym (HS.TypeApp _ e1 e2) args =
-    expandTypeSynonym e1 (e2 : args)
-  expandTypeSynonym (HS.TypeCon _ typeConName) args = do
-    mTypeSynonym <- inEnv $ lookupTypeSynonym typeConName
-    case mTypeSynonym of
-      Nothing                   -> return Nothing
-      Just (typeVars, typeExpr) -> do
-        let subst =
-              composeSubsts (zipWith (singleSubst . HS.Ident) typeVars args)
-        typeExpr' <- applySubst subst typeExpr
-        return (Just typeExpr')
-  expandTypeSynonym (HS.TypeVar _ _   ) _ = return Nothing
-  expandTypeSynonym (HS.TypeFunc _ _ _) _ = return Nothing
+        $  Message (HS.getSrcSpan arg) Error
+        $  "Could not determine type of argument '"
+        ++ HS.fromVarPat arg
+        ++ "' for function '"
+        ++ showPretty name
+        ++ "'."
 
 -------------------------------------------------------------------------------
 -- Non-recursive function declarations                                       --

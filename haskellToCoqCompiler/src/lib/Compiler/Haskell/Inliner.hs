@@ -1,19 +1,33 @@
 -- | This module contains functions for inlining the definition of
---   functions into expressions or other function declarations.
+--   functions into expressions or other function declarations and
+--   for expanding type synonyms in type expressions, type signatures
+--   as well as data type and other type synonym declarations.
 --
---   This is used during the translation of recursive function declarations
---   to inline the definition of the non-recursive main function into the
---   recursive helper functions.
+--   Inlining is performed during the translation of recursive function
+--   declarations to inline the definition of the non-recursive main
+--   function into the recursive helper functions.
+--
+--   The expansion of type synonyms is used to split the type of a function
+--   into the types of it's arguments and the return type and during the
+--   conversion of mutually recursive data type and type synonym declarations
+--   to break the dependency between of the data type declarations on
+--   the type synonyms (because they cannot be declared in the same sentence).
 
 module Compiler.Haskell.Inliner where
 
 import           Data.Map.Strict                ( Map )
 import qualified Data.Map.Strict               as Map
+import           Data.Maybe                     ( maybe )
 
+import           Compiler.Environment
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Haskell.SrcSpan
 import           Compiler.Haskell.Subst
 import           Compiler.Monad.Converter
+
+-------------------------------------------------------------------------------
+-- Inlining function declarations                                            --
+-------------------------------------------------------------------------------
 
 -- | Inlines the right hand sides of the given function declarations into
 --   the right hand sides of other function declarations.
@@ -105,3 +119,79 @@ inlineExpr decls = inlineAndBind
   inlineAlt (HS.Alt srcSpan conPat varPats expr) = do
     expr' <- inlineAndBind expr
     return (HS.Alt srcSpan conPat varPats expr')
+
+-------------------------------------------------------------------------------
+-- Expanding type synonyms                                                   --
+-------------------------------------------------------------------------------
+
+-- | Expands all type synonyms in all types in the given type signature,
+--   data type or type synonym declaration.
+expandAllTypeSynonymsInDecl :: HS.Decl -> Converter HS.Decl
+expandAllTypeSynonymsInDecl (HS.TypeDecl srcSpan declIdent typeVarDecls typeExpr)
+  = do
+    typeExpr' <- expandAllTypeSynonyms typeExpr
+    return (HS.TypeDecl srcSpan declIdent typeVarDecls typeExpr')
+expandAllTypeSynonymsInDecl (HS.DataDecl srcSpan declIdent typeVarDecls conDecls)
+  = do
+    conDecls' <- mapM expandAllTypeSynonymsInConDecl conDecls
+    return (HS.DataDecl srcSpan declIdent typeVarDecls conDecls')
+expandAllTypeSynonymsInDecl (HS.TypeSig srcSpan declIdents typeExpr) = do
+  typeExpr' <- expandAllTypeSynonyms typeExpr
+  return (HS.TypeSig srcSpan declIdents typeExpr')
+
+-- Leave all other declarations unchanged.
+expandAllTypeSynonymsInDecl decl@(HS.FuncDecl _ _ _ _) = return decl
+expandAllTypeSynonymsInDecl decl@(HS.ImportDecl _ _  ) = return decl
+
+-- | Expands all type synonyms in all types in the given constructor
+--   declaration.
+expandAllTypeSynonymsInConDecl :: HS.ConDecl -> Converter HS.ConDecl
+expandAllTypeSynonymsInConDecl (HS.ConDecl srcSpan declIdent argTypes) = do
+  argTypes' <- mapM expandAllTypeSynonyms argTypes
+  return (HS.ConDecl srcSpan declIdent argTypes')
+
+-- | Expands the outermost type synonym in the given type expression.
+expandTypeSynonym :: HS.Type -> Converter HS.Type
+expandTypeSynonym = expandTypeSynonyms 1
+
+-- | Expands all type synonyms used in the given type expression by the type
+--   they are associated with in the current environment.
+expandAllTypeSynonyms :: HS.Type -> Converter HS.Type
+expandAllTypeSynonyms = expandTypeSynonyms (-1)
+
+-- | Like 'expandAllTypeSynonyms' but accepts an additional argument for the
+--   maximum depth.
+--
+--   If the maximum depth if @0@, the type will be returned unchanged.
+--   If it is @1@ only the outermost type synonym will be expanded.
+--   If it is negative, all type synonyms will be expanded (see also
+--   'expandAllTypeSynonyms').
+expandTypeSynonyms :: Int -> HS.Type -> Converter HS.Type
+expandTypeSynonyms maxDepth t0
+  | maxDepth == 0 = return t0
+  | otherwise = do
+    t0' <- expandTypeSynonyms' t0 []
+    return (maybe t0 id t0')
+ where
+  expandTypeSynonyms' :: HS.Type -> [HS.Type] -> Converter (Maybe HS.Type)
+  expandTypeSynonyms' (HS.TypeCon _ typeConName) args = do
+    mTypeSynonym <- inEnv $ lookupTypeSynonym typeConName
+    case mTypeSynonym of
+      Nothing                   -> return Nothing
+      Just (typeVars, typeExpr) -> do
+        let subst =
+              composeSubsts (zipWith (singleSubst . HS.Ident) typeVars args)
+        typeExpr' <- applySubst subst typeExpr
+        return (Just typeExpr')
+
+  expandTypeSynonyms' (HS.TypeApp srcSpan t1 t2) args = do
+    t2' <- expandTypeSynonyms (maxDepth - 1) t2
+    t1' <- expandTypeSynonyms' t1 (t2' : args)
+    return (Just (maybe (HS.TypeApp srcSpan t1 t2') id t1'))
+
+  expandTypeSynonyms' (HS.TypeFunc srcSpan t1 t2) _ = do
+    t1' <- expandTypeSynonyms (maxDepth - 1) t1
+    t2' <- expandTypeSynonyms (maxDepth - 1) t2
+    return (Just (HS.TypeFunc srcSpan t1' t2'))
+
+  expandTypeSynonyms' (HS.TypeVar _ _) _ = return Nothing
