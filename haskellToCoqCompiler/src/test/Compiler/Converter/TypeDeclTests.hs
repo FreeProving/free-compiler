@@ -58,7 +58,8 @@ testConvertTypeDecl =
               [ "type Forest a = [Tree a]"
               , "data Tree a = Leaf a | Branch (Forest a)"
               ]
-            $  "Inductive Tree (Shape : Type) (Pos : Shape -> Type) (a : Type)"
+            $  "(* Data type declarations for Tree *) "
+            ++ "Inductive Tree (Shape : Type) (Pos : Shape -> Type) (a : Type)"
             ++ " : Type"
             ++ " := leaf : Free Shape Pos a -> Tree Shape Pos a"
             ++ " |  branch : Free Shape Pos (List Shape Pos (Tree Shape Pos a))"
@@ -86,7 +87,8 @@ testConvertTypeDecl =
       $ do
           shouldTranslateDeclsTo
               ["type Bar = Baz", "type Baz = Foo", "data Foo = Foo Bar Baz"]
-            $  "Inductive Foo (Shape : Type) (Pos : Shape -> Type)"
+            $  "(* Data type declarations for Foo *) "
+            ++ "Inductive Foo (Shape : Type) (Pos : Shape -> Type)"
             ++ " : Type"
             ++ " := foo : Free Shape Pos (Foo Shape Pos)"
             ++ "          -> Free Shape Pos (Foo Shape Pos)"
@@ -126,7 +128,8 @@ testConvertDataDecls =
       $ fromConverter
       $ do
           shouldTranslateDeclsTo ["data Foo = Bar | Baz"]
-            $  "Inductive Foo (Shape : Type) (Pos : Shape -> Type) : Type "
+            $  "(* Data type declarations for Foo *) "
+            ++ "Inductive Foo (Shape : Type) (Pos : Shape -> Type) : Type "
             ++ " := bar : Foo Shape Pos "
             ++ " |  baz : Foo Shape Pos. "
             ++ "(* Arguments sentences for Foo *) "
@@ -143,7 +146,8 @@ testConvertDataDecls =
       $ fromConverter
       $ do
           shouldTranslateDeclsTo ["data Foo a b = Bar a | Baz b"]
-            $  "Inductive Foo (Shape : Type) (Pos : Shape -> Type) "
+            $  "(* Data type declarations for Foo *) "
+            ++ "Inductive Foo (Shape : Type) (Pos : Shape -> Type) "
             ++ " (a b : Type) : Type "
             ++ " := bar : Free Shape Pos a -> Foo Shape Pos a b "
             ++ " |  baz : Free Shape Pos b -> Foo Shape Pos a b. "
@@ -163,7 +167,8 @@ testConvertDataDecls =
       $ fromConverter
       $ do
           shouldTranslateDeclsTo ["data Foo = Foo"]
-            $  "Inductive Foo (Shape : Type) (Pos : Shape -> Type) : Type "
+            $  "(* Data type declarations for Foo *) "
+            ++ "Inductive Foo (Shape : Type) (Pos : Shape -> Type) : Type "
             ++ " := foo : Foo Shape Pos. "
             ++ "(* Arguments sentences for Foo *) "
             ++ "Arguments foo {Shape} {Pos}. "
@@ -176,7 +181,8 @@ testConvertDataDecls =
       $ fromConverter
       $ do
           shouldTranslateDeclsTo ["data Foo a = A a"]
-            $  "Inductive Foo (Shape : Type) (Pos : Shape -> Type) "
+            $  "(* Data type declarations for Foo *) "
+            ++ "Inductive Foo (Shape : Type) (Pos : Shape -> Type) "
             ++ " (a0 : Type) : Type "
             ++ " := a : Free Shape Pos a0 -> Foo Shape Pos a0. "
             ++ "(* Arguments sentences for Foo *) "
@@ -191,7 +197,8 @@ testConvertDataDecls =
       $ fromConverter
       $ do
           shouldTranslateDeclsTo ["data Foo = Foo Bar", "data Bar = Bar Foo"]
-            $  "Inductive Bar (Shape : Type) (Pos : Shape -> Type) : Type"
+            $  "(* Data type declarations for Bar, Foo *) "
+            ++ "Inductive Bar (Shape : Type) (Pos : Shape -> Type) : Type"
             ++ "  := bar : Free Shape Pos (Foo Shape Pos) -> Bar Shape Pos "
             ++ "with Foo (Shape : Type) (Pos : Shape -> Type) : Type"
             ++ "  := foo : Free Shape Pos (Bar Shape Pos) -> Foo Shape Pos. "

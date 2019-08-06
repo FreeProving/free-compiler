@@ -139,8 +139,8 @@ convertRecFuncDecls decls = do
     (concat helperDecls)
   mainFunctions <- mapM convertNonRecFuncDecl mainDecls
   return
-    ( -- TODO comment
-      G.FixpointSentence (G.Fixpoint (NonEmpty.fromList fixBodies) [])
+    ( G.comment ("Helper functions for " ++ HS.prettyDeclIdents decls)
+    : G.FixpointSentence (G.Fixpoint (NonEmpty.fromList fixBodies) [])
     : mainFunctions
     )
 
@@ -180,7 +180,8 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent args expr) = do
   --   argument.
   generateHelperDecl
     :: HS.Name     -- ^ The name of the decreasing argument.
-    -> [HS.VarPat] -- ^ The variable patterns of TODO.
+    -> [HS.VarPat] -- ^ Patterns that bind free variables in the given
+                   --   @case@-expression.
     -> HS.Expr     -- ^ The @case@ expression.
     -> Converter (HS.Name, HS.Decl)
   generateHelperDecl decArg usedVars caseExpr = do
@@ -210,7 +211,8 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent args expr) = do
   --   given name.
   generateHelperApp
     :: HS.Name     -- ^ The name of the helper function to apply.
-    -> [HS.VarPat] -- ^ TODO
+    -> [HS.VarPat] -- ^ Patterns that bind local variables in the
+                   --   main function, the helper function may depend on.
     -> HS.Expr
   generateHelperApp helperName usedVars = HS.app
     NoSrcSpan

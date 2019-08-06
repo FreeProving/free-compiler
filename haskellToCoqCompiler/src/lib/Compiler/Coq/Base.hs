@@ -32,8 +32,6 @@ freeImpureCon :: G.Qualid
 freeImpureCon = G.bare "impure"
 
 -- | The Coq identifier for the @>>=@ operator of the @Free@ monad.
---
---   TODO does the pretty printer handle this right (e.g. w.r.t. precedence)?
 freeBind :: G.Qualid
 freeBind = G.bare "op_>>=__"
 

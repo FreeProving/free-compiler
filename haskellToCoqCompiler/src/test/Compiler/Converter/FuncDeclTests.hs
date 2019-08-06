@@ -116,7 +116,8 @@ testConvertRecFuncDecls =
            [ "length :: [a] -> Int"
            , "length xs = case xs of { [] -> 0; x : xs' -> length xs' + 1 }"
            ]
-      $  "Fixpoint length_0 (Shape : Type) (Pos : Shape -> Type) {a : Type}"
+      $  "(* Helper functions for length *) "
+      ++ "Fixpoint length_0 (Shape : Type) (Pos : Shape -> Type) {a : Type}"
       ++ "  (xs : List Shape Pos a)"
       ++ "  {struct xs}"
       ++ "  : Free Shape Pos (Int Shape Pos)"
@@ -141,7 +142,8 @@ testConvertRecFuncDecls =
            , "even_len xs = case xs of { [] -> True; x : xs' -> odd_len xs' }"
            , "odd_len xs = case xs of { [] -> False; x : xs' -> even_len xs' }"
            ]
-      $  "Fixpoint even_len_0 (Shape : Type) (Pos : Shape -> Type) {a : Type}"
+      $  "(* Helper functions for even_len, odd_len *) "
+      ++ "Fixpoint even_len_0 (Shape : Type) (Pos : Shape -> Type) {a : Type}"
       ++ "  (xs : List Shape Pos a)"
       ++ "  {struct xs}"
       ++ "  : Free Shape Pos (Bool Shape Pos)"
@@ -179,7 +181,8 @@ testConvertRecFuncDecls =
            [ "tails :: [a] -> [[a]]"
            , "tails xs = xs : case xs of { [] -> []; x : xs' -> tails xs' }"
            ]
-      $  "Fixpoint tails_0 (Shape : Type) (Pos : Shape -> Type) {a : Type}"
+      $  "(* Helper functions for tails *) "
+      ++ "Fixpoint tails_0 (Shape : Type) (Pos : Shape -> Type) {a : Type}"
       ++ "  (xs : List Shape Pos a)"
       ++ "  {struct xs}"
       ++ "  : Free Shape Pos (List Shape Pos (List Shape Pos a))"
@@ -203,7 +206,8 @@ testConvertRecFuncDecls =
            , "append xs = \\ys -> "
              ++ "case xs of { [] -> ys; x : xs' -> x : append xs' ys }"
            ]
-      $  "Fixpoint append_0 (Shape : Type) (Pos : Shape -> Type) {a : Type}"
+      $  "(* Helper functions for append *) "
+      ++ "Fixpoint append_0 (Shape : Type) (Pos : Shape -> Type) {a : Type}"
       ++ "  (xs : List Shape Pos a) (ys : Free Shape Pos (List Shape Pos a))"
       ++ "  {struct xs}"
       ++ " : Free Shape Pos (List Shape Pos a)"
@@ -230,7 +234,8 @@ testConvertRecFuncDecls =
               , "foo xs = bar (\\y -> "
                 ++ "case xs of { [] -> []; x : xs' -> y : foo xs' })"
               ]
-            $  "Fixpoint foo_0 (Shape : Type) (Pos : Shape -> Type) {a : Type}"
+            $  "(* Helper functions for foo *) "
+            ++ "Fixpoint foo_0 (Shape : Type) (Pos : Shape -> Type) {a : Type}"
             ++ "  (xs : List Shape Pos a) y {struct xs}"
             ++ " : Free Shape Pos (List Shape Pos a)"
             ++ " := match xs with"

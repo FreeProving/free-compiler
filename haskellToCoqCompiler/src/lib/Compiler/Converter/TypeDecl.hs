@@ -7,9 +7,7 @@ import           Control.Monad                  ( mapAndUnzipM )
 import           Control.Monad.Extra            ( concatMapM )
 import qualified Data.Map.Strict               as Map
 import           Data.Maybe                     ( catMaybes )
-import           Data.List                      ( intercalate
-                                                , partition
-                                                )
+import           Data.List                      ( partition )
 import qualified Data.List.NonEmpty            as NonEmpty
 
 import           Compiler.Analysis.DependencyAnalysis
@@ -58,8 +56,7 @@ withTypeSynonyms typeDecls converter = do
   mapM_ defineTypeDecl typeDecls
   x <- converter
   modifyEnv $ \env -> env
-    { definedTypeSynonyms = definedTypeSynonyms env
-                              `Map.union` oldTypeSynonyms
+    { definedTypeSynonyms = definedTypeSynonyms env `Map.union` oldTypeSynonyms
     }
   return x
 
@@ -71,8 +68,7 @@ withTypeSynonyms typeDecls converter = do
 --   type synonyms from the same strongly connected component. Therefore we
 --   have to sort the declarations in reverse topological order.
 sortTypeDecls :: [HS.Decl] -> Converter [HS.Decl]
-sortTypeDecls =
-  mapM fromNonRecursive . groupDependencies . typeDependencyGraph
+sortTypeDecls = mapM fromNonRecursive . groupDependencies . typeDependencyGraph
 
 -- | Extracts the single type synonym declaration from a strongly connected
 --   component of the type dependency graph.
@@ -85,7 +81,7 @@ fromNonRecursive (Recursive decls) =
   reportFatal
     $  Message (HS.getSrcSpan (head decls)) Error
     $  "Type synonym declarations form a cycle: "
-    ++ intercalate ", " (map typeSynonymName decls)
+    ++ HS.prettyDeclIdents decls
 
 -- | Gets the name of a type synonym declaration.
 typeSynonymName :: HS.Decl -> String
@@ -147,8 +143,8 @@ convertDataDecls dataDecls = do
   mapM_ defineDataDecl dataDecls
   (indBodies, extraSentences) <- mapAndUnzipM convertDataDecl dataDecls
   return
-    ( -- TODO comment
-      G.InductiveSentence (G.Inductive (NonEmpty.fromList indBodies) [])
+    ( G.comment ("Data type declarations for " ++ HS.prettyDeclIdents dataDecls)
+    : G.InductiveSentence (G.Inductive (NonEmpty.fromList indBodies) [])
     : concat extraSentences
     )
 

@@ -10,6 +10,9 @@
 --   directly.
 module Compiler.Haskell.AST where
 
+import           Data.Maybe                     ( catMaybes )
+import           Data.List                      ( intercalate )
+
 import           Compiler.Haskell.SrcSpan
 import           Compiler.Pretty
 
@@ -227,6 +230,20 @@ splitType (TypeFunc _ t1 t2) arity | arity > 0 =
   let (argTypes, returnType) = splitType t2 (arity - 1)
   in  (Just t1 : argTypes, returnType)
 splitType funcType _ = ([], Just funcType)
+
+-- | Gets the name of the given declaration.
+declIdent :: Decl -> Maybe DeclIdent
+declIdent (DataDecl _ x _ _) = Just x
+declIdent (TypeDecl _ x _ _) = Just x
+declIdent (FuncDecl _ x _ _) = Just x
+declIdent (TypeSig _ _ _   ) = Nothing
+declIdent (ImportDecl _ _  ) = Nothing
+
+-- | Gets the names of the given declarations and concatenates them with
+--   commas.
+prettyDeclIdents :: [Decl] -> String
+prettyDeclIdents =
+  intercalate ", " . map fromDeclIdent . catMaybes . map declIdent
 
 -------------------------------------------------------------------------------
 -- Source span getters                                                       --
