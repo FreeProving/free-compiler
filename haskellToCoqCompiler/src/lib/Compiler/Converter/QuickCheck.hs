@@ -47,14 +47,14 @@ isQuickCheckProperty _ = False
 convertFuncComponentOrQuickCheckProperty
   :: DependencyComponent -> Converter [G.Sentence]
 convertFuncComponentOrQuickCheckProperty component@(NonRecursive decl) = do
-  quickCheckEnabled <- inEnv $ isQuickCheckEnabled
-  if quickCheckEnabled && isQuickCheckProperty decl
+  quickCheckIsEnabled <- inEnv $ isQuickCheckEnabled
+  if quickCheckIsEnabled && isQuickCheckProperty decl
     then convertQuickCheckProperty decl
     else convertFuncComponent component
 convertFuncComponentOrQuickCheckProperty component@(Recursive decls) = do
-  quickCheckEnabled <- inEnv $ isQuickCheckEnabled
+  quickCheckIsEnabled <- inEnv $ isQuickCheckEnabled
   case find isQuickCheckProperty decls of
-    Just property | quickCheckEnabled ->
+    Just property | quickCheckIsEnabled ->
       reportFatal
         $ Message (HS.getSrcSpan property) Error
         $ "QuickCheck properties must not be recursive."

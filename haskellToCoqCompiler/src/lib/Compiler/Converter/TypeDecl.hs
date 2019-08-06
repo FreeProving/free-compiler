@@ -7,7 +7,9 @@ import           Control.Monad                  ( mapAndUnzipM )
 import           Control.Monad.Extra            ( concatMapM )
 import qualified Data.Map.Strict               as Map
 import           Data.Maybe                     ( catMaybes )
-import           Data.List                      ( partition )
+import           Data.List                      ( intercalate
+                                                , partition
+                                                )
 import qualified Data.List.NonEmpty            as NonEmpty
 
 import           Compiler.Analysis.DependencyAnalysis
@@ -18,7 +20,6 @@ import           Compiler.Converter.Free
 import           Compiler.Converter.Type
 import qualified Compiler.Coq.AST              as G
 import qualified Compiler.Coq.Base             as CoqBase
-import           Compiler.Environment
 import           Compiler.Environment.Renamer
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Haskell.Inliner
@@ -42,48 +43,53 @@ convertTypeComponent (Recursive decls) = do
     convertDataDecls expandedDataDecls
   typeDecls' <- concatMapM convertTypeDecl sortedTypeDecls
   return (dataDecls' ++ typeDecls')
- where
-  -- | Creates a converter that runs the given converter in an environment that
-  --   contains only the type synonyms from the given type synonym
-  --   declarations.
-  --
-  --   The resulting environment contains both the old and the given type
-  --   synonym declarations.
-  withTypeSynonyms :: [HS.Decl] -> Converter a -> Converter a
-  withTypeSynonyms typeDecls converter = do
-    oldTypeSynonyms <- inEnv definedTypeSynonyms
-    modifyEnv $ \env ->
-      env { definedTypeSynonyms = definedTypeSynonyms emptyEnvironment }
-    mapM defineTypeDecl typeDecls
-    x <- converter
-    modifyEnv $ \env -> env
-      { definedTypeSynonyms = definedTypeSynonyms env
-                                `Map.union` oldTypeSynonyms
-      }
-    return x
 
-  -- | Sorts type synonym declarations topologically.
-  --
-  --   After filtering type synonym declaratios from the a strongly connected
-  --   component, they are not mutually dependen on each other anymore (expect
-  --   if they form a cycle). However, type synonyms may still depend on other
-  --   type synonyms from the same strongly connected component. Therefore we
-  --   have to sort the declarations in reverse topological order.
-  sortTypeDecls :: [HS.Decl] -> Converter [HS.Decl]
-  sortTypeDecls =
-    mapM fromNonRecursive . groupDependencies . typeDependencyGraph
+-- | Creates a converter that runs the given converter in an environment that
+--   contains only the type synonyms from the given type synonym
+--   declarations.
+--
+--   The resulting environment contains both the old and the given type
+--   synonym declarations.
+withTypeSynonyms :: [HS.Decl] -> Converter a -> Converter a
+withTypeSynonyms typeDecls converter = do
+  oldTypeSynonyms <- inEnv definedTypeSynonyms
+  modifyEnv $ \env ->
+    env { definedTypeSynonyms = definedTypeSynonyms emptyEnvironment }
+  mapM_ defineTypeDecl typeDecls
+  x <- converter
+  modifyEnv $ \env -> env
+    { definedTypeSynonyms = definedTypeSynonyms env
+                              `Map.union` oldTypeSynonyms
+    }
+  return x
 
-  -- | Extracts the single type synonym declaration from a strongly connected
-  --   component of the type dependency graph.
-  --
-  --   Reports a fatal error if the component contains mutually recursive
-  --   declarations (i.e. type synonyms form a cycle).
-  fromNonRecursive :: DependencyComponent -> Converter HS.Decl
-  fromNonRecursive (NonRecursive decl) = return decl
-  fromNonRecursive (Recursive decls) =
-    reportFatal
-      $ Message (HS.getSrcSpan (head decls)) Error
-      $ "Type synonym declarations form a cycle."
+-- | Sorts type synonym declarations topologically.
+--
+--   After filtering type synonym declaratios from the a strongly connected
+--   component, they are not mutually dependen on each other anymore (expect
+--   if they form a cycle). However, type synonyms may still depend on other
+--   type synonyms from the same strongly connected component. Therefore we
+--   have to sort the declarations in reverse topological order.
+sortTypeDecls :: [HS.Decl] -> Converter [HS.Decl]
+sortTypeDecls =
+  mapM fromNonRecursive . groupDependencies . typeDependencyGraph
+
+-- | Extracts the single type synonym declaration from a strongly connected
+--   component of the type dependency graph.
+--
+--   Reports a fatal error if the component contains mutually recursive
+--   declarations (i.e. type synonyms form a cycle).
+fromNonRecursive :: DependencyComponent -> Converter HS.Decl
+fromNonRecursive (NonRecursive decl) = return decl
+fromNonRecursive (Recursive decls) =
+  reportFatal
+    $  Message (HS.getSrcSpan (head decls)) Error
+    $  "Type synonym declarations form a cycle: "
+    ++ intercalate ", " (map typeSynonymName decls)
+
+-- | Gets the name of a type synonym declaration.
+typeSynonymName :: HS.Decl -> String
+typeSynonymName (HS.TypeDecl _ declIdent _ _) = HS.fromDeclIdent declIdent
 
 -------------------------------------------------------------------------------
 -- Type synonym declarations                                                 --
@@ -101,7 +107,7 @@ defineTypeDecl (HS.TypeDecl _ declIdent typeVarDecls typeExpr) = do
       name     = HS.Ident ident
       arity    = length typeVarDecls
       typeVars = map HS.fromDeclIdent typeVarDecls
-  ident' <- renameAndDefineTypeCon ident arity
+  _ <- renameAndDefineTypeCon ident arity
   modifyEnv $ defineTypeSynonym name typeVars typeExpr
 
 -- | Converts a Haskell type synonym declaration to Coq.
