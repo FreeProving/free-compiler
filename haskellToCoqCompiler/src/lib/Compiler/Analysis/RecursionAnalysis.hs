@@ -78,6 +78,8 @@ checkDecArgs decls decArgIndecies = all (uncurry checkDecArg)
   checkExpr :: HS.Name -> Set HS.Name -> HS.Expr -> [HS.Expr] -> Bool
   checkExpr decArg smaller = checkExpr'
    where
+    -- If one of the recursive functions is applied, there must be a
+    -- structurally smaller variable in the decreasing position.
     checkExpr' (HS.Var _ name) args = case Map.lookup name decArgMap of
       Nothing -> True
       Just decArgIndex
@@ -86,34 +88,53 @@ checkDecArgs decls decArgIndecies = all (uncurry checkDecArg)
           (HS.Var _ argName) -> argName `elem` smaller
           _                  -> False
 
+    -- Function applications and @if@-expressions need to be checked
+    -- recursively. In case of applications we also remember the
+    -- arguments such that the case above can inspect the actual arguments.
     checkExpr' (HS.App _ e1 e2) args =
       checkExpr' e1 (e2 : args) && checkExpr' e2 []
-
     checkExpr' (HS.If _ e1 e2 e3) _ =
       checkExpr' e1 [] && checkExpr' e2 [] && checkExpr' e3 []
 
+    -- @case@-expressions that match the decreasing argument or a variable
+    -- that is structurally smaller than the decreasing argument, introduce
+    -- new structurally smaller variables.
     checkExpr' (HS.Case _ expr alts) _ = case expr of
       (HS.Var _ varName) | varName == decArg || varName `Set.member` smaller ->
         all checkSmallerAlt alts
       _ -> all checkAlt alts
 
+    -- The arguments of lambda expressions shadow existing (structurally
+    -- smaller) variables
     checkExpr' (HS.Lambda _ args expr) _ =
       let smaller' = withoutArgs args smaller
       in  checkExpr decArg smaller' expr []
 
+    -- Base expressions are
     checkExpr' (HS.Con _ _       ) _ = True
     checkExpr' (HS.Undefined _   ) _ = True
     checkExpr' (HS.ErrorExpr  _ _) _ = True
     checkExpr' (HS.IntLiteral _ _) _ = True
 
+    -- | Applies 'checkExpr' on the right hand side of an alternative of a
+    --   @case@ expression.
+    --
+    --   The variable patterns shadow existing (structurally smaller) variables
+    --   with the same name.
     checkAlt :: HS.Alt -> Bool
     checkAlt (HS.Alt _ _ varPats expr) =
       let smaller' = withoutArgs varPats smaller
       in  checkExpr decArg smaller' expr []
 
+    -- | Like 'checkAlt' but for alternatives of @case@-expressions on
+    --   the decreasing argument or a variable that is structurally smaller.
+    --
+    --   All variable patterns are added to the set of structurally smaller
+    --   variables.
     checkSmallerAlt :: HS.Alt -> Bool
-    checkSmallerAlt (HS.Alt _ _ args expr) =
-      let smaller' = withArgs args smaller in checkExpr decArg smaller' expr []
+    checkSmallerAlt (HS.Alt _ _ varPats expr) =
+      let smaller' = withArgs varPats smaller
+      in  checkExpr decArg smaller' expr []
 
     -- | Adds the given variables to the set of structurally smaller variables.
     withArgs :: [HS.VarPat] -> Set HS.Name -> Set HS.Name

@@ -8,6 +8,7 @@ import           Compiler.Haskell.AST          as HS
 
 import           Compiler.Util.Test
 
+-- | Test group for 'identifyPartialFuncs' tests.
 testPartialityAnalysis :: Spec
 testPartialityAnalysis = describe "Compiler.Analysis.PartialityAnalysis" $ do
   it "recognizes directly partial functions using 'undefined'"

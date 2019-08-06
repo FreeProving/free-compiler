@@ -1,6 +1,7 @@
 import           Test.Hspec
 
 import           Compiler.Analysis.PartialityAnalysisTests
+import           Compiler.Analysis.RecursionAnalysisTests
 import           Compiler.ConverterTests
 import           Compiler.Environment.RenamerTests
 import           Compiler.Monad.ReporterTests
@@ -9,6 +10,7 @@ import           Compiler.Monad.ReporterTests
 main :: IO ()
 main = hspec $ do
   testPartialityAnalysis
+  testRecursionAnalysis
   testConverter
   testRenamer
   testReporter
