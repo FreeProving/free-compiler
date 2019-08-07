@@ -113,8 +113,11 @@ test-suite unit-tests
                     , Compiler.Monad.ReporterTests
                     , Compiler.Util.Test
   build-depends:      base
+                      -- Test frameworks:
                     , hspec
                     , QuickCheck
+                      -- Test frameworks:
+                    , containers        ==0.6.*
                     , haskell-to-coq-internal
   default-language:   Haskell2010
   ghc-options:        -Wall

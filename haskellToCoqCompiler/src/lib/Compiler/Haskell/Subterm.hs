@@ -12,11 +12,16 @@ module Compiler.Haskell.Subterm
     -- * Searching for subterms
   , findSubtermPos
   , findSubterms
+    -- * Bound variables
+  , boundVars
   )
 where
 
+import           Data.Composition
 import           Data.List                      ( intersperse )
 import           Data.Maybe                     ( fromJust )
+import qualified Data.Set                      as Set
+import           Data.Set                       ( Set )
 
 import           Compiler.Pretty
 import           Compiler.Haskell.AST          as HS
@@ -146,3 +151,37 @@ findSubtermPos predicate expr =
 findSubterms :: (HS.Expr -> Bool) -> HS.Expr -> [HS.Expr]
 findSubterms predicate expr =
   filter predicate (map (fromJust . selectSubterm expr) (pos expr))
+
+-------------------------------------------------------------------------------
+-- Bound variables                                                           --
+-------------------------------------------------------------------------------
+
+-- | Gets the names of variables that are bound by lambda abstractions or
+--   variable patterns in @case@-expressions at the given position of an
+--   expression.
+--
+--   Returns the empty set if the position is invalid.
+boundVars :: HS.Expr -> Pos -> Set HS.Name
+boundVars = maybe Set.empty id .: boundVars'
+ where
+  boundVars' :: HS.Expr -> Pos -> Maybe (Set HS.Name)
+  boundVars' _    (Pos []      ) = return Set.empty
+  boundVars' expr (Pos (p : ps)) = do
+    child <- selectSubterm expr (Pos [p])
+    bvars <- boundVars' child (Pos ps)
+    case expr of
+      (HS.Case _ _ alts) | p > 1 -> do
+        let altVars = altBoundVars (alts !! (p - 2))
+        return (bvars `Set.union` altVars)
+      (HS.Lambda _ args _) -> return (bvars `Set.union` fromVarPats args)
+      _                    -> return bvars
+
+  -- | Gets the names of variables bound by the variable patterns of the given
+  --   @case@-expression alternative.
+  altBoundVars :: HS.Alt -> Set HS.Name
+  altBoundVars (HS.Alt _ _ varPats _) = fromVarPats varPats
+
+  -- | Converts a list of variable patterns to a set of variable names bound
+  --   by these patterns.
+  fromVarPats :: [HS.VarPat] -> Set HS.Name
+  fromVarPats = Set.fromList . map (HS.Ident . HS.fromVarPat)

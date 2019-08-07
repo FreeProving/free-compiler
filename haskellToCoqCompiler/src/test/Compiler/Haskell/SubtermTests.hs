@@ -4,6 +4,7 @@ import           Test.Hspec
 import           Test.QuickCheck
 
 import           Data.Maybe                     ( isJust )
+import qualified Data.Set                      as Set
 
 import           Compiler.Haskell.AST          as HS
 import           Compiler.Haskell.SrcSpan
@@ -54,43 +55,61 @@ testSubterm = describe "Compiler.Haskell.Subterm" $ do
         ]
       )
     $ do
-        it "selects valid positions successfully" $ \testExpr ->
-          property $ forAll (testPos testExpr) $ \(p, valid) ->
-            isJust (selectSubterm testExpr p) == valid
+        context "selecting and replacing subterms" $ do
+          it "selects valid positions successfully" $ \testExpr ->
+            property $ forAll (testPos testExpr) $ \(p, valid) ->
+              isJust (selectSubterm testExpr p) == valid
 
-        it "replaces valid positions successfully" $ \testExpr ->
-          property $ forAll (testPos testExpr) $ \(p, valid) ->
-            let testExpr' = (HS.Var NoSrcSpan (HS.Ident "x"))
-            in  isJust (replaceSubterm testExpr p testExpr') == valid
-
-        it "produces the input when replacing a subterm with itself"
-          $ \testExpr -> property $ forAll (validTestPos testExpr) $ \p ->
-              let Just subterm = selectSubterm testExpr p
-              in  replaceSubterm testExpr p subterm == Just testExpr
-
-        it "replaces the entire term when replacing at the root position"
-          $ \testExpr -> do
+          it "replaces valid positions successfully" $ \testExpr ->
+            property $ forAll (testPos testExpr) $ \(p, valid) ->
               let testExpr' = (HS.Var NoSrcSpan (HS.Ident "x"))
-              replaceSubterm testExpr rootPos testExpr'
-                `shouldBe` Just testExpr'
+              in  isJust (replaceSubterm testExpr p testExpr') == valid
 
-        it "finds subterm positions" $ \testExpr -> do
-          let isCase (HS.Case _ _ _) = True
-              isCase _               = False
-          findSubtermPos isCase testExpr `shouldBe` [Pos [1, 3, 3]]
+          it "produces the input when replacing a subterm with itself"
+            $ \testExpr -> property $ forAll (validTestPos testExpr) $ \p ->
+                let Just subterm = selectSubterm testExpr p
+                in  replaceSubterm testExpr p subterm == Just testExpr
 
-        it "finds subterms" $ \testExpr -> do
-          let isVar (HS.Var _ _) = True
-              isVar _            = False
-          map (\(HS.Var _ name) -> name) (findSubterms isVar testExpr)
-            `shouldBe` [ HS.Symbol "<"
-                       , HS.Ident "n"
-                       , HS.Symbol "=="
-                       , HS.Ident "n"
-                       , HS.Ident "xs"
-                       , HS.Ident "x"
-                       , HS.Ident "take"
-                       , HS.Symbol "-"
-                       , HS.Ident "n"
-                       , HS.Ident "xs'"
-                       ]
+          it "replaces the entire term when replacing at the root position"
+            $ \testExpr -> do
+                let testExpr' = (HS.Var NoSrcSpan (HS.Ident "x"))
+                replaceSubterm testExpr rootPos testExpr'
+                  `shouldBe` Just testExpr'
+
+        context "searching subterms" $ do
+          it "finds subterm positions" $ \testExpr -> do
+            let isCase (HS.Case _ _ _) = True
+                isCase _               = False
+            findSubtermPos isCase testExpr `shouldBe` [Pos [1, 3, 3]]
+
+          it "finds subterms" $ \testExpr -> do
+            let isVar (HS.Var _ _) = True
+                isVar _            = False
+            map (\(HS.Var _ name) -> name) (findSubterms isVar testExpr)
+              `shouldBe` [ HS.Symbol "<"
+                         , HS.Ident "n"
+                         , HS.Symbol "=="
+                         , HS.Ident "n"
+                         , HS.Ident "xs"
+                         , HS.Ident "x"
+                         , HS.Ident "take"
+                         , HS.Symbol "-"
+                         , HS.Ident "n"
+                         , HS.Ident "xs'"
+                         ]
+
+        context "bound variables" $ do
+          it "finds no bound variables at root position" $ \testExpr -> do
+            boundVars testExpr rootPos `shouldBe` Set.empty
+
+          it "finds bound variables of lambda" $ \testExpr -> do
+            boundVars testExpr (Pos [1])
+              `shouldBe` Set.fromList [HS.Ident "n", HS.Ident "xs"]
+
+          it "finds bound variables of case alternative" $ \testExpr -> do
+            boundVars testExpr (Pos [1, 3, 3, 1])
+              `shouldBe` Set.fromList [HS.Ident "n", HS.Ident "xs"]
+            boundVars testExpr (Pos [1, 3, 3, 2])
+              `shouldBe` Set.fromList [HS.Ident "n", HS.Ident "xs"]
+            boundVars testExpr (Pos [1, 3, 3, 3]) `shouldBe` Set.fromList
+              [HS.Ident "n", HS.Ident "xs", HS.Ident "x", HS.Ident "xs'"]
