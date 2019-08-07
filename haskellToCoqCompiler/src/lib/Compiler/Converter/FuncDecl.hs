@@ -3,11 +3,17 @@
 
 module Compiler.Converter.FuncDecl where
 
-import           Control.Monad                  ( mapAndUnzipM )
+import           Control.Monad                  ( mapAndUnzipM
+                                                , zipWithM
+                                                )
 import           Data.List                      ( elemIndex )
 import qualified Data.List.NonEmpty            as NonEmpty
+import           Data.Maybe                     ( fromJust )
+import qualified Data.Set                      as Set
+import           Data.Set                       ( Set )
 
 import           Compiler.Analysis.DependencyAnalysis
+import           Compiler.Analysis.DependencyExtraction
 import           Compiler.Analysis.RecursionAnalysis
 import           Compiler.Converter.Arg
 import           Compiler.Converter.Expr
@@ -21,6 +27,7 @@ import           Compiler.Environment.Renamer
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Haskell.Inliner
 import           Compiler.Haskell.SrcSpan
+import           Compiler.Haskell.Subterm
 import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
 import           Compiler.Pretty
@@ -35,13 +42,6 @@ convertFuncComponent (NonRecursive decl) = do
   decl' <- convertNonRecFuncDecl decl
   return [decl']
 convertFuncComponent (Recursive decls) = do
-  decArgs <- identifyDecArgs decls
-  report -- TODO remove me
-    $  Message NoSrcSpan Info
-    $  "Decreasing arguments of "
-    ++ HS.prettyDeclIdents decls
-    ++ " are "
-    ++ show decArgs
   convertRecFuncDecls decls
 
 -------------------------------------------------------------------------------
@@ -141,40 +141,42 @@ convertNonRecFuncDecl decl@(HS.FuncDecl _ (HS.DeclIdent _ ident) args expr) =
 -- | Converts (mutually) recursive Haskell function declarations to Coq.
 convertRecFuncDecls :: [HS.Decl] -> Converter [G.Sentence]
 convertRecFuncDecls decls = do
-  (helperDecls, mainDecls) <- mapAndUnzipM transformRecFuncDecl decls
-  fixBodies                <- mapM
-    (localEnv . (>>= convertRecHelperFuncDecl) . inlineDecl mainDecls)
-    (concat helperDecls)
-  mainFunctions <- mapM convertNonRecFuncDecl mainDecls
+  -- Split into helper and main functions.
+  decArgs                  <- identifyDecArgs decls
+  (helperDecls, mainDecls) <- mapAndUnzipM (uncurry transformRecFuncDecl)
+                                           (zip decls decArgs)
+  -- Convert helper and main functions.
+  -- The right hand side of the main functions are inlined into helper the
+  -- functions. Because inlining can produce fesh identifiers, we need to
+  -- perform inlining and conversion of helper functions in a local environment.
+  helperDecls' <- flip mapM (concat helperDecls) $ \helperDecl -> localEnv $ do
+    inlinedHelperDecl <- inlineDecl mainDecls helperDecl
+    convertRecHelperFuncDecl inlinedHelperDecl
+  mainDecls' <- mapM convertNonRecFuncDecl mainDecls
+  -- Create common fixpoint sentence for all helper functions.
   return
     ( G.comment ("Helper functions for " ++ HS.prettyDeclIdents decls)
-    : G.FixpointSentence (G.Fixpoint (NonEmpty.fromList fixBodies) [])
-    : mainFunctions
+    : G.FixpointSentence (G.Fixpoint (NonEmpty.fromList helperDecls') [])
+    : mainDecls'
     )
 
--- | Transforms the given recursive function declaration into recursive
---   helper functions and a non recursive main function.
-transformRecFuncDecl :: HS.Decl -> Converter ([HS.Decl], HS.Decl)
-transformRecFuncDecl (HS.FuncDecl srcSpan declIdent args expr) = do
-  -- Identify decreasing argument of the function.
-  (decArg, caseExprs, replaceCases) <- identifyDecArg expr
-
-  -- Generate helper function declaration for each case expression of the
-  -- decreasing argument.
-  (helperNames, helperDecls)        <- mapAndUnzipM
-    (uncurry (generateHelperDecl decArg))
-    caseExprs
+-- | Transforms the given recursive function declaration with the specified
+--   decreasing argument into recursive helper functions and a non recursive
+--   main function.
+transformRecFuncDecl :: HS.Decl -> DecArgIndex -> Converter ([HS.Decl], HS.Decl)
+transformRecFuncDecl (HS.FuncDecl srcSpan declIdent args expr) decArgIndex = do
+  -- Generate a helper function declaration and application for each case
+  -- expression of the decreasing argument.
+  (helperDecls, helperApps) <- mapAndUnzipM generateHelperDecl caseExprsPos
 
   -- Generate main function declaration. The main function's right hand side
   -- is constructed by replacing all case expressions of the decreasing
   -- argument by an invocation of the corresponding recursive helper function.
-  let mainExpr =
-        replaceCases (zipWith generateHelperApp helperNames (map fst caseExprs))
-      mainDecl = HS.FuncDecl srcSpan declIdent args mainExpr
+  let (Just mainExpr) = replaceSubterms expr (zip caseExprsPos helperApps)
+      mainDecl        = HS.FuncDecl srcSpan declIdent args mainExpr
 
   return (helperDecls, mainDecl)
  where
-
   -- | The name of the function to transform.
   name :: HS.Name
   name = HS.Ident (HS.fromDeclIdent declIdent)
@@ -183,23 +185,56 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent args expr) = do
   argNames :: [HS.Name]
   argNames = map (HS.Ident . HS.fromVarPat) args
 
-  -- | Generates the recursive helper function declaration for the given
-  --   @case@ expression that performs pattern matching on the given decreasing
-  --   argument.
-  generateHelperDecl
-    :: HS.Name     -- ^ The name of the decreasing argument.
-    -> [HS.VarPat] -- ^ Patterns that bind free variables in the given
-                   --   @case@-expression.
-    -> HS.Expr     -- ^ The @case@ expression.
-    -> Converter (HS.Name, HS.Decl)
-  generateHelperDecl decArg usedVars caseExpr = do
+  -- | The name of the decreasing argument.
+  decArg :: HS.Name
+  decArg = argNames !! decArgIndex
+
+  -- | The positions of @case@-expressions for the decreasing argument.
+  --
+  --   TODO restrict to outermost positions.
+  caseExprsPos :: [Pos]
+  caseExprsPos = filter decArgNotShadowed (findSubtermPos isCaseExpr expr)
+
+  -- | Tests whether the given expression is a @case@-expression for the
+  --   the decreasing argument.
+  isCaseExpr :: HS.Expr -> Bool
+  isCaseExpr (HS.Case _ (HS.Var _ name) _) = name == decArg
+  isCaseExpr _                             = False
+
+  -- | Ensures that the decreasing argument is not shadowed by the binding
+  --   of a local variable at the given position.
+  decArgNotShadowed :: Pos -> Bool
+  decArgNotShadowed p = decArg `Set.notMember` boundVarsAt expr p
+
+  -- | Generates the recursive helper function declaration for the @case@
+  --   expression at the given position of the right hand side.
+  --
+  --   Returns the helper function declaration and an expression for the
+  --   application of the helper function.
+  --
+  --   TODO the original function arguments could be shadowed in the case
+  --        expression. We must not pass those arguments to the helper
+  --        function (if the arguments that shadow the original arguments
+  --        are used, they are passed as additional arguments).
+  generateHelperDecl :: Pos -> Converter (HS.Decl, HS.Expr)
+  generateHelperDecl caseExprPos = do
+    -- Generate a fresh name for the helper function.
     helperIdent <- freshHaskellIdent (HS.fromDeclIdent declIdent)
-    let
-      helperName      = HS.Ident helperIdent
-      helperDeclIdent = HS.DeclIdent (HS.getSrcSpan declIdent) helperIdent
-      helperDecl =
-        HS.FuncDecl srcSpan helperDeclIdent (args ++ usedVars) caseExpr
-      (Just decArgIndex) = elemIndex decArg argNames
+    let helperName      = HS.Ident helperIdent
+        helperDeclIdent = HS.DeclIdent (HS.getSrcSpan declIdent) helperIdent
+
+    -- Pass used variables as additional arguments to the helper function.
+    let usedVars = Set.toList (usedVarsAt expr caseExprPos)
+        helperArgs =
+          args
+            ++ map (HS.VarPat NoSrcSpan . fromJust . HS.identFromName) usedVars
+
+    -- Build helper function declaration and application.
+    let (Just caseExpr) = selectSubterm expr caseExprPos
+        helperDecl = HS.FuncDecl srcSpan helperDeclIdent helperArgs caseExpr
+        helperApp = HS.app NoSrcSpan
+                           (HS.Var NoSrcSpan helperName)
+                           (map (HS.Var NoSrcSpan) (argNames ++ usedVars))
 
     -- Register the helper function to the environment.
     -- The type of the helper function is the same as of the original function.
@@ -213,21 +248,7 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent args expr) = do
       (Just returnType)
     modifyEnv $ defineDecArg helperName decArgIndex
 
-    return (helperName, helperDecl)
-
-  -- | Generates the application expression for the helper function with the
-  --   given name.
-  generateHelperApp
-    :: HS.Name     -- ^ The name of the helper function to apply.
-    -> [HS.VarPat] -- ^ Patterns that bind local variables in the
-                   --   main function, the helper function may depend on.
-    -> HS.Expr
-  generateHelperApp helperName usedVars = HS.app
-    NoSrcSpan
-    (HS.Var NoSrcSpan helperName)
-    (  map (HS.Var NoSrcSpan)                            argNames
-    ++ map (HS.Var NoSrcSpan . HS.Ident . HS.fromVarPat) usedVars
-    )
+    return (helperDecl, helperApp)
 
 -- | Converts a recursive helper function to the body of a Coq @Fixpoint@
 --   sentence.

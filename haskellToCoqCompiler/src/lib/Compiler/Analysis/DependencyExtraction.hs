@@ -15,6 +15,7 @@ module Compiler.Analysis.DependencyExtraction
     -- * Expressions
   , exprDependencies
   , vars
+  , varSet
   , cons
     -- * Type declarations
   , typeDeclDependencies
@@ -124,6 +125,10 @@ exprDependencies = unwrapSet . exprDependencies'
 --   error terms @undefined@ and @error@.
 vars :: HS.Expr -> [HS.Name]
 vars = unwrapSet . Set.filter isVarName . exprDependencies'
+
+-- | Like 'vars' but returns a set of variable names.
+varSet :: HS.Expr -> Set HS.Name
+varSet = Set.map unwrap . Set.filter isVarName . exprDependencies'
 
 -- | Extracts the names of all constructors used in the given expression.
 --
