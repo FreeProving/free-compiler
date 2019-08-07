@@ -93,21 +93,15 @@ testConvertRecFuncDecls =
       $ convertTestDecls
           ["fac :: Int -> Int", "fac n = if n == 0 then 1 else n * fac (n - 1)"]
 
-    -- TODO matched variable must be an argument.
-    -- it "requires the case expression to match an argument"
-    --   $ shouldReportFatal
-    --   $ fromConverter
-    --   $ do
-    --       "f" <- defineTestFunc "f" 0 "()"
-    --       convertTestDecls ["loop :: a", "loop = case f of () -> loop"]
+    it "requires the case expression to match an argument"
+      $ shouldReportFatal
+      $ fromConverter
+      $ do
+          "f" <- defineTestFunc "f" 0 "()"
+          convertTestDecls ["loop :: a", "loop = case f of () -> loop"]
 
-    -- TODO detect whether the function is actually decreasing on it's
-    --      decreasing argument.
-    -- it "requires a decreasing argument"
-    --   $ shouldReportFatal
-    --   $ fromConverter
-    --   $ do
-    --       convertTestDecls ["loop :: a -> a", "loop x = case x of () -> loop x"]
+    it "requires a decreasing argument" $ shouldReportFatal $ fromConverter $ do
+      convertTestDecls ["loop :: a -> a", "loop x = case x of () -> loop x"]
 
     it "translates simple recursive functions correctly"
       $  shouldSucceed
