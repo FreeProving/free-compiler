@@ -4,6 +4,7 @@ import           Compiler.Analysis.PartialityAnalysisTests
 import           Compiler.Analysis.RecursionAnalysisTests
 import           Compiler.ConverterTests
 import           Compiler.Environment.RenamerTests
+import           Compiler.Haskell.SubtermTests
 import           Compiler.Monad.ReporterTests
 
 -- | Runs all unit tests for the Haskell to Coq compiler.
@@ -13,4 +14,5 @@ main = hspec $ do
   testRecursionAnalysis
   testConverter
   testRenamer
+  testSubterm
   testReporter

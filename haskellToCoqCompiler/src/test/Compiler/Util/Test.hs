@@ -4,6 +4,7 @@ module Compiler.Util.Test where
 
 import           Test.Hspec
 
+import           Control.Exception
 import           Data.Maybe                     ( catMaybes )
 
 import           Compiler.Converter
@@ -20,7 +21,7 @@ import           Compiler.Monad.Reporter
 import           Compiler.Pretty
 
 -------------------------------------------------------------------------------
--- Evaluation of converters                                                  --
+-- Evaluation of converters and reporters                                    --
 -------------------------------------------------------------------------------
 
 -- | Evaluates the given converter in the default environment.
@@ -28,6 +29,20 @@ fromConverter :: Converter a -> ReporterIO a
 fromConverter converter = do
   env <- loadEnvironment "base/env.toml"
   hoist $ evalConverter converter env
+
+-- | Evaluates the given reporter and throws an IO exception when a fatal
+--   error message is reported.
+fromReporter :: ReporterIO a -> IO a
+fromReporter reporter = do
+  result <- runReporterT reporter
+  case result of
+    (Just x , _ ) -> return x
+    (Nothing, ms) -> throwIO $ userError
+      (  "The following "
+      ++ show (length ms)
+      ++ " messages were reported:\n"
+      ++ showPretty ms
+      )
 
 -------------------------------------------------------------------------------
 -- Expectations for reports                                                  --
