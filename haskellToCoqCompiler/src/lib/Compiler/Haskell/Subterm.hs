@@ -9,11 +9,13 @@ module Compiler.Haskell.Subterm
     -- * Subterms
   , selectSubterm
   , replaceSubterm
+  , replaceSubterms
     -- * Searching for subterms
   , findSubtermPos
   , findSubterms
     -- * Bound variables
-  , boundVars
+  , boundVarsAt
+  , usedVarsAt
   )
 where
 
@@ -23,6 +25,7 @@ import           Data.Maybe                     ( fromJust )
 import qualified Data.Set                      as Set
 import           Data.Set                       ( Set )
 
+import           Compiler.Analysis.DependencyExtraction
 import           Compiler.Pretty
 import           Compiler.Haskell.AST          as HS
 
@@ -136,6 +139,15 @@ replaceSubterm expr (Pos (p : ps)) expr'
   children :: [HS.Expr]
   children = childExprs expr
 
+-- | Replaces all subterms at the given positions with other expressions.
+--
+--   Returns @Nothing@ if any of the subterms could not be replaced
+replaceSubterms :: HS.Expr -> [(Pos, HS.Expr)] -> Maybe HS.Expr
+replaceSubterms expr []             = return expr
+replaceSubterms expr ((p, e) : pes) = do
+  expr' <- replaceSubterm expr p e
+  replaceSubterms expr' pes
+
 -------------------------------------------------------------------------------
 -- Searching for subterms                                                    --
 -------------------------------------------------------------------------------
@@ -161,14 +173,14 @@ findSubterms predicate expr =
 --   expression.
 --
 --   Returns the empty set if the position is invalid.
-boundVars :: HS.Expr -> Pos -> Set HS.Name
-boundVars = maybe Set.empty id .: boundVars'
+boundVarsAt :: HS.Expr -> Pos -> Set HS.Name
+boundVarsAt = maybe Set.empty id .: boundVarsAt'
  where
-  boundVars' :: HS.Expr -> Pos -> Maybe (Set HS.Name)
-  boundVars' _    (Pos []      ) = return Set.empty
-  boundVars' expr (Pos (p : ps)) = do
+  boundVarsAt' :: HS.Expr -> Pos -> Maybe (Set HS.Name)
+  boundVarsAt' _    (Pos []      ) = return Set.empty
+  boundVarsAt' expr (Pos (p : ps)) = do
     child <- selectSubterm expr (Pos [p])
-    bvars <- boundVars' child (Pos ps)
+    bvars <- boundVarsAt' child (Pos ps)
     case expr of
       (HS.Case _ _ alts) | p > 1 -> do
         let altVars = altBoundVars (alts !! (p - 2))
@@ -185,3 +197,15 @@ boundVars = maybe Set.empty id .: boundVars'
   --   by these patterns.
   fromVarPats :: [HS.VarPat] -> Set HS.Name
   fromVarPats = Set.fromList . map (HS.Ident . HS.fromVarPat)
+
+-- | Like 'boundVarsAt' but returns only the names of bound variables that
+--   are actually used by the subterm.
+--
+--   Returns the empty set if the position is invalid.
+usedVarsAt :: HS.Expr -> Pos -> Set HS.Name
+usedVarsAt = maybe Set.empty id .: usedVarsAt'
+ where
+  usedVarsAt' :: HS.Expr -> Pos -> Maybe (Set HS.Name)
+  usedVarsAt' expr p = do
+    subterm <- selectSubterm expr p
+    return (boundVarsAt expr p `Set.intersection` varSet subterm)
