@@ -3,6 +3,10 @@ stages:
   - test
   - deploy
 
+# Enable Git submodules
+variables:
+  GIT_SUBMODULE_STRATEGY: recursive
+
 # Build PDF files for notes.
 # We are using a Docker image that has `texlive-full`, `pygments` and `pandoc`
 # preinstalled. See also <https://hub.docker.com/r/aergus/latex/dockerfile>.
