@@ -10,11 +10,6 @@ if [[ "$#" -lt 1 ]]; then
   exit 1
 fi
 
-# Clone CAU beamer theme if it does not exist.
-if ! [ -d "$theme_dir" ]; then
-  git clone https://cau-git.rz.uni-kiel.de/RZ/document_templates/latex/beamer.git "$theme_dir"
-fi
-
 # Make theme visible to LaTeX.
 export TEXINPUTS="$theme_dir:$TEXINPUTS"
 

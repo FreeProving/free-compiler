@@ -10,12 +10,6 @@ if [[ "$#" -lt 1 ]]; then
   exit 1
 fi
 
-# Clone repositorty with custom pandoc scripts and filters if it was not
-# cloned before.
-if ! [ -d "$pandoc_scripts_dir" ]; then
-  git clone https://just95@bitbucket.org/just95/pandoc-scripts.git "$pandoc_scripts_dir"
-fi
-
 # Optionally typeset the file whenever it is changed.
 typeset_mode="typeset"
 if [ "$1" == "--watch" ]; then
