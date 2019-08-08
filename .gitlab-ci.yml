@@ -12,4 +12,5 @@ typeset-thesis:
   script:
     - ./LaTeX/tool/typeset.sh
   artifacts:
-    - ./LaTeX/thesis.pdf
+    paths:
+      - ./LaTeX/thesis.pdf
