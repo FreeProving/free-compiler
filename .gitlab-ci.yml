@@ -1,0 +1,16 @@
+stages:
+  - build
+  - test
+  - deploy
+
+# Build PDF files for notes.
+# We are using a Docker image that has `texlive-full`, `pygments` and `pandoc`
+# preinstalled. See also <https://hub.docker.com/r/aergus/latex/dockerfile>.
+typeset-notes:
+  image: just95/pandoc-scripts
+  stage: build
+  script:
+    - ./Markdown/tool/typeset-all.sh ./Markdown/notes --toc
+  artifacts:
+    paths:
+      - ./Markdown/notes/*.pdf
