@@ -47,7 +47,7 @@
     -   Convert to simplified AST
     -   Dependency analysis
     -   Convert to Coq AST
-    -   Pretty print
+    -   "Pretty" print
 - Base library
 
 ### Case-Study
@@ -55,11 +55,12 @@
 -   Are the assumptions too restrictive for real world examples?
 -   Can the generated code be used to proof (simple) properties?
 
-### Limitations
+### Limitations & Future work
 
 -   Explicit pattern matching (→ Malte)
 -   No type classes (e.g. equality only for integers)
 -   Higher-order functions
 -   Induction principles
+-   Proof correctness
 
 ### Conclusion
