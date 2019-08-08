@@ -1,0 +1,15 @@
+stages:
+  - build
+  - test
+  - deploy
+
+# Build PDF file for thesis.
+# We are using a Docker image that has `texlive-full`, `pygments` and `pandoc`
+# preinstalled. See also <https://hub.docker.com/r/aergus/latex/dockerfile>.
+typeset-thesis:
+  image: aergus/latex
+  stage: build
+  script:
+    - ./LaTeX/tool/typeset.sh
+  artifacts:
+    - ./LaTeX/thesis.pdf
