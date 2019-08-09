@@ -91,5 +91,5 @@ deploy-docs:
     SERVER: ${SSH_DEPLOY_USER}@${SSH_DEPLOY_HOST}
     TARGET: html/${CI_COMMIT_REF_SLUG}/docs
   script:
-    - ssh "$SERVER" "mkdir -p $(dirname $TARGET)"
-    - scp -r "$SOURCE" "$SERVER:$TARGET"
+    - ssh $SERVER "mkdir -p $(dirname $TARGET)"
+    - scp -r $SOURCE $SERVER:$TARGET
