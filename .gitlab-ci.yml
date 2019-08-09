@@ -78,3 +78,12 @@ build-docs:
     name: docs
     paths:
       - ./haskellToCoqCompiler/build/docs
+
+# Deploy Haddock documentation to <https://thesis.ba.just-otter.com/BRANCH/docs>.
+# We are using a minimal docker image that has installed an OpenSSH client.
+# There is a secret SSH_DEPLOY_KEY variable.
+deploy-docs:
+  stage: deploy
+  image: jaromirpufler/docker-openssh-client
+  script:
+    - ssh-agent
