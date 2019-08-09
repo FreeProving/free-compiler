@@ -16,5 +16,6 @@ typeset-notes:
   script:
     - ./Markdown/tool/typeset-all.sh ./Markdown/notes --toc
   artifacts:
+    name: notes
     paths:
       - ./Markdown/notes/*.pdf
