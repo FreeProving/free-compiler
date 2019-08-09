@@ -139,7 +139,7 @@ deploy-docs:
 # The artifacts contain the generated `.v` files, the Coq Base library
 # and the generated `_CoqProject` file for the Coq Base library.
 test-examples:
-  image: debian:stretch
+  image: haskell:8.6.5 # TODO Create static executable and use 'debian:stretch' instead
   stage: test
   dependencies:
     - build-compiler
