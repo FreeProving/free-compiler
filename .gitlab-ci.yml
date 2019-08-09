@@ -147,7 +147,7 @@ test-examples:
     - cd haskellToCoqCompiler
     - mkdir -p ./build/example
     - cp -r base ./build/example
-    - ./build/haskell-to-coq-compiler -b ./build/example/base -o ./build/example $(find ./example -name "*.hs")
+    - ./build/bin/haskell-to-coq-compiler -b ./build/example/base -o ./build/example $(find ./example -name "*.hs")
   artifacts:
     name: examples
     paths:
