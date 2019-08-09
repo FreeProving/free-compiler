@@ -15,3 +15,13 @@ typeset-thesis:
     name: thesis
     paths:
       - ./LaTeX/thesis.pdf
+
+# Deploy thesis to `https://$SSH_DEPLOY_HOST/$CI_COMMIT_REF_SLUG/thesis.pdf`.
+# We are using a minimal docker image that has a preinstalled an OpenSSH client.
+# Authentication is controlled by secret $SSH_DEPLY_USER and $SSH_DEPLOY_KEY
+# variables configured in GitLab CI.
+deploy-thesis:
+  stage: deploy
+  image: jaromirpufler/docker-openssh-client
+  script:
+    - scp ./LaTeX/thesis.pdf ${SSH_DELOP_USER}@${SSH_DEPLOY_HOST}:html/${CI_COMMIT_REF_SLUG}
