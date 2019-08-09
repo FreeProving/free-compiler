@@ -3,8 +3,9 @@ stages:
   - test
   - deploy
 
-# Use Haskell Docker image.
-image: haskell:8.6.5
+###############################################################################
+# Dependencies                                                                #
+###############################################################################
 
 # We want to avoid recompiling dependencies on subsequent runs of the pipeline.
 # Every job that uses cabal should import this.
@@ -21,14 +22,31 @@ image: haskell:8.6.5
   after_script:
     - mv /root/.cabal ./haskellToCoqCompiler/.cabal
 
+# Download and install dependencies.
+build-dependencies:
+  image: haskell:8.6.5
+  stage: build
+  <<: *cabal-cache
+  script:
+    - echo "Building dependencies..."
+    - cd haskellToCoqCompiler
+    - cabal new-update
+    - cabal new-build --only-dependencies
+
+###############################################################################
+# Unit tests                                                                  #
+###############################################################################
+
 # Compile unit tests.
 build-unit-tests:
+  image: haskell:8.6.5
   stage: build
+  dependencies:
+    - build-dependencies
   <<: *cabal-cache
   script:
     - echo "Building unit tests..."
     - cd haskellToCoqCompiler
-    - cabal new-update
     - cabal new-build unit-tests
     - echo "Copy unit test executable to build directory..."
     - mkdir -p ./build/bin
@@ -40,20 +58,29 @@ build-unit-tests:
 
 # Run unit tests.
 run-unit-tests:
+  image: haskell:8.6.5
   stage:  test
+  dependencies:
+    - build-unit-tests
   script:
     - echo "Running unit tests..."
     - cd haskellToCoqCompiler
     - ./build/bin/unit-tests
 
+###############################################################################
+# Executable                                                                  #
+###############################################################################
+
 # Compile Haskell to Coq compiler.
 build-compiler:
+  image: haskell:8.6.5
   stage: build
+  dependencies:
+    - build-dependencies
   <<: *cabal-cache
   script:
     - echo "Building compiler..."
     - cd haskellToCoqCompiler
-    - cabal new-update
     - cabal new-build haskell-to-coq-compiler
     - echo "Copy executable to build directory..."
     - mkdir -p ./build/bin
@@ -63,9 +90,16 @@ build-compiler:
     paths:
       - ./haskellToCoqCompiler/build/bin/haskell-to-coq-compiler
 
+###############################################################################
+# Documentation                                                               #
+###############################################################################
+
 # Build Haddock documentation.
 build-docs:
+  image: haskell:8.6.5
   stage: build
+  dependencies:
+    - build-dependencies
   <<: *cabal-cache
   script:
     - echo "Building Haddock documentation..."
@@ -84,8 +118,10 @@ build-docs:
 # Authentication is controlled by secret $SSH_DEPLOY_USER and $SSH_DEPLOY_KEY
 # variables configured in GitLab CI.
 deploy-docs:
-  stage: deploy
   image: jaromirpufler/docker-openssh-client
+  stage: deploy
+  dependencies:
+    - build-docs
   variables:
     SOURCE: ./haskellToCoqCompiler/build/docs
     SERVER: ${SSH_DEPLOY_USER}@${SSH_DEPLOY_HOST}
