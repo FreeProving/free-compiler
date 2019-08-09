@@ -30,7 +30,7 @@ deploy-notes:
   variables:
     SOURCE: ./Markdown/notes/*.pdf
     SERVER: ${SSH_DEPLOY_USER}@${SSH_DEPLOY_HOST}
-    TARGET: html/${CI_COMMIT_REF_SLUG}/notes
+    TARGET_DIR: html/${CI_COMMIT_REF_SLUG}/notes
   script:
-    - ssh $SERVER "mkdir -p $(dirname $TARGET)"
-    - scp $SOURCE $SERVER:$TARGET
+    - ssh $SERVER "mkdir -p $TARGET_DIR"
+    - scp $SOURCE $SERVER:$TARGET_DIR
