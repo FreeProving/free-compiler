@@ -73,18 +73,23 @@ build-docs:
     - cabal new-haddock --haddock-hyperlink-source
     - echo "Copy documentation to build directory..."
     - mkdir -p ./build/docs
-    - cp -r $(dirname $(find dist-newstyle -name "index.html")) ./build/docs
+    - cp -r $(dirname $(find dist-newstyle -name "index.html"))/. ./build/docs
   artifacts:
     name: docs
     paths:
       - ./haskellToCoqCompiler/build/docs
 
-# Deploy Haddock documentation to `$SSH_DEPLOY_HOST`.
+# Deploy documentation to `https://$SSH_DEPLOY_HOST/$CI_COMMIT_REF_SLUG/docs`.
 # We are using a minimal docker image that has a preinstalled an OpenSSH client.
 # Authentication is controlled by secret $SSH_DEPLY_USER and $SSH_DEPLOY_KEY
 # variables configured in GitLab CI.
 deploy-docs:
   stage: deploy
   image: jaromirpufler/docker-openssh-client
+  variables:
+    SOURCE: ./haskellToCoqCompiler/build/docs
+    SERVER: ${SSH_DEPLOY_USER}@${SSH_DEPLOY_HOST}
+    TARGET: html/${CI_COMMIT_REF_SLUG}
   script:
-    - scp -r ./haskellToCoqCompiler/build/docs ${SSH_DELOP_USER}@${SSH_DEPLOY_HOST}:html/${CI_COMMIT_REF_SLUG}
+    - ssh "$SERVER" "mkdir -p $(dirname $TARGET)"
+    - scp -r "$SOURCE" "$SERVER:$TARGET"
