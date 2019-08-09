@@ -1,4 +1,5 @@
 stages:
+  - prepare
   - build
   - test
   - deploy
@@ -25,7 +26,7 @@ stages:
 # Download and install dependencies.
 build-dependencies:
   image: haskell:8.6.5
-  stage: build
+  stage: prepare
   <<: *cabal-cache
   script:
     - echo "Building dependencies..."
