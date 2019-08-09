@@ -64,6 +64,7 @@ build-compiler:
 # Build Haddock documentation.
 build-docs:
   stage: build
+  <<: *cabal-cache
   script:
     - echo "Building Haddock documentation..."
     - cd haskellToCoqCompiler
