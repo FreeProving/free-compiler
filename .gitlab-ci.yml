@@ -130,3 +130,25 @@ deploy-docs:
   script:
     - ssh $SERVER "mkdir -p $(dirname $TARGET)"
     - scp -r $SOURCE $SERVER:$TARGET
+
+###############################################################################
+# Examples                                                                    #
+###############################################################################
+
+# Tests the Haskell to Coq compiler with the example modules.
+# The artifacts contain the generated `.v` files, the Coq Base library
+# and the generated `_CoqProject` file for the Coq Base library.
+test-examples:
+  image: debian:stretch
+  stage: test
+  dependencies:
+    - build-compiler
+  script:
+    - cd haskellToCoqCompiler
+    - mkdir -p ./build/example
+    - cp -r base ./build/example
+    - ./build/haskell-to-coq-compiler -b ./build/example/base -o ./build/example $(find ./example -name "*.hs")
+  artifacts:
+    name: examples
+    paths:
+      - ./haskellToCoqCompiler/build/example
