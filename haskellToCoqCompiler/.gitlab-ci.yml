@@ -117,7 +117,7 @@ build-docs:
 
 # Deploy documentation to `https://$SSH_DEPLOY_HOST/$CI_COMMIT_REF_SLUG/docs`.
 deploy-docs:
-  extends: .openssh-client
+  extends: .ssh-deploy
   stage: deploy
   dependencies:
     - build-docs

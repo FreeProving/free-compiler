@@ -13,7 +13,7 @@ typeset-thesis:
 
 # Deploy thesis to `https://$SSH_DEPLOY_HOST/$CI_COMMIT_REF_SLUG/thesis.pdf`.
 deploy-thesis:
-  extends: .openssh-client
+  extends: .ssh-deploy
   stage: deploy
   dependencies:
     - typeset-thesis
