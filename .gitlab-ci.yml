@@ -4,6 +4,40 @@ stages:
   - test
   - deploy
 
+# Enable Git submodules
+variables:
+  GIT_SUBMODULE_STRATEGY: recursive
+
+# Common parent for jobs of the `deploy` stage that require a minimal docker
+# image that has a preinstalled an OpenSSH client.
+#
+# The server and authentication information is controlled by the following
+# variables that should be configured in the GitLab CI web interface.
+#
+#   * `$SSH_DEPLOY_HOST` name of the host to connect to.
+#   * `$SSH_DEPLOY_USER` name of the user on the host to authenticate as.
+#      There should be a folder `html` in the home directory of this user,
+#      where deployed files can be placed into.
+#   * `$SSH_DEPLOY_KEY` private SSH key to use for authentication.
+#      The corresponding public key should be listed in the
+#      `~/.ssh/authorized_keys` file of the user.
+#
+# Before the script of the inheriting job is executed the directory
+# `$DEPLOY_DIR` is created. All files copied to this directory will be
+# uploaded to `$TARGET_DIR` after the script is done.
+.ssh-deploy:
+  image: jaromirpufler/docker-openssh-client
+  variables:
+    SERVER: ${SSH_DEPLOY_USER}@${SSH_DEPLOY_HOST}
+    TARGET_DIR: html/${CI_COMMIT_REF_SLUG}
+    DEPLOY_DIR: "${CI_PROJECT_DIR}/ssh-deploy"
+  before_script:
+    - mkdir "$DEPLOY_DIR"
+  after_script:
+    - ssh $SERVER "mkdir -p $TARGET_DIR"
+    - scp -r $DEPLOY_DIR/. $SERVER:$TARGET_DIR
+
+# Import jobs from subdirectories.
 include:
   - local: '/haskellToCoqCompiler/.gitlab-ci.yml'
   - local: '/LaTeX/.gitlab-ci.yml'

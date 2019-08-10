@@ -116,21 +116,13 @@ build-docs:
       - ./haskellToCoqCompiler/build/docs
 
 # Deploy documentation to `https://$SSH_DEPLOY_HOST/$CI_COMMIT_REF_SLUG/docs`.
-# We are using a minimal docker image that has a preinstalled an OpenSSH client.
-# Authentication is controlled by secret $SSH_DEPLOY_USER and $SSH_DEPLOY_KEY
-# variables configured in GitLab CI.
 deploy-docs:
-  image: jaromirpufler/docker-openssh-client
+  extends: .openssh-client
   stage: deploy
   dependencies:
     - build-docs
-  variables:
-    SOURCE: ./haskellToCoqCompiler/build/docs
-    SERVER: ${SSH_DEPLOY_USER}@${SSH_DEPLOY_HOST}
-    TARGET: html/${CI_COMMIT_REF_SLUG}/docs
   script:
-    - ssh $SERVER "mkdir -p $(dirname $TARGET)"
-    - scp -r $SOURCE $SERVER:$TARGET
+    - cp -r ./haskellToCoqCompiler/build/docs $DEPLOY_DIR
 
 ###############################################################################
 # Examples                                                                    #
