@@ -1,1 +1,1 @@
--R Base Base
+-R Base ../haskellToCoqCompiler/base
