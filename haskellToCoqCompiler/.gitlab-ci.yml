@@ -133,17 +133,22 @@ build-base-library:
 # Tests the Haskell to Coq compiler with the example modules.
 # The artifacts contain the generated `.v` files, the Coq Base library
 # and the generated `_CoqProject` file for the Coq Base library.
+# The generated `.v` files are also compiled with `coqc`. The resulting `.vo`
+# and `.glob` files are not included in the artifacts.
 test-examples:
   extends: .haskell
   stage: test
   dependencies:
     - build-compiler
+    - build-base-library
   script:
     - cd haskellToCoqCompiler
     - mkdir -p ./build/example
     - cp -r base ./build/example
     - ./build/bin/haskell-to-coq-compiler -b ./build/example/base -o ./build/example $(find ./example -name "*.hs")
+    - ./tool/compile-coq.sh
   artifacts:
     name: examples
     paths:
-      - ./haskellToCoqCompiler/build/example
+      - ./haskellToCoqCompiler/build/example/*.v
+      - ./haskellToCoqCompiler/build/example/_CoqBase
