@@ -47,6 +47,8 @@ build-unit-tests:
     - .haskell
     - .cabal-cache
   stage: build
+  dependencies:
+    - build-dependencies
   script:
     - echo "Building unit tests..."
     - cd haskellToCoqCompiler
@@ -81,6 +83,8 @@ build-compiler:
     - .haskell
     - .cabal-cache
   stage: build
+  dependencies:
+    - build-dependencies
   script:
     - echo "Building compiler..."
     - cd haskellToCoqCompiler
@@ -103,6 +107,8 @@ build-docs:
     - .haskell
     - .cabal-cache
   stage: build
+  dependencies:
+    - build-dependencies
   script:
     - echo "Building Haddock documentation..."
     - cd haskellToCoqCompiler
