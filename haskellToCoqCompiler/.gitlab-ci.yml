@@ -132,8 +132,8 @@ build-base-library:
   artifacts:
     name: coq-base-library
     paths:
-      - ./haskellToCoqCompiler/base/*.vo
-      - ./haskellToCoqCompiler/base/*.glob
+      - ./haskellToCoqCompiler/base/**/*.vo
+      - ./haskellToCoqCompiler/base/**/*.glob
 
 ###############################################################################
 # Examples                                                                    #
@@ -167,4 +167,5 @@ test-examples:
     - build-examples
   script:
     - cd haskellToCoqCompiler
+    - ls -al base
     - ./tool/compile-coq.sh ./build/example
