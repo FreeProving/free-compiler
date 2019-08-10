@@ -128,7 +128,7 @@ build-base-library:
   stage: build
   script:
     - cd haskellToCoqCompiler
-    - ./tool/compile.sh base
+    - ./tool/compile-coq.sh base
   artifacts:
     name: coq-base-library
     paths:
