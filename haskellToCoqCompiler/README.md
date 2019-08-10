@@ -4,7 +4,7 @@
 
   * GHC, version 8.6
   * Cabal, version 3.0
-  * Coq Proof Assistant, version 8.8.1
+  * Coq Proof Assistant, version 8.8
 
 ## Documentation
 
