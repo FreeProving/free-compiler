@@ -1,27 +1,36 @@
 ###############################################################################
-# Dependencies                                                                #
+# Common                                                                      #
 ###############################################################################
 
+# We are using a docker image that has GHC and Cabal preinstalled.
+.haskell:
+  image: haskell:8.6.5
+
 # We want to avoid recompiling dependencies on subsequent runs of the pipeline.
-# Every job that uses cabal should import this.
-.cabal-cache: &cabal-cache
+# Thus we save the Cabal directory to the GitLab CI cache. Because we cannot
+# cache files outside of the repository, we need to explicitly move the cabal
+# directory into our repository.
+.cabal-cache:
   cache:
     key: ${CI_COMMIT_REF_SLUG}
     paths:
       - ./haskellToCoqCompiler/dist-newstyle
       - ./haskellToCoqCompiler/.cabal
-  # Because we cannot cache files outside of the repository, we need to
-  # move the cabal directory into our repository.
   before_script:
     - mv ./haskellToCoqCompiler/.cabal /root/.cabal || true
   after_script:
     - mv /root/.cabal ./haskellToCoqCompiler/.cabal
 
+###############################################################################
+# Dependencies                                                                #
+###############################################################################
+
 # Download and install dependencies.
 build-dependencies:
-  image: haskell:8.6.5
+  extends:
+    - .haskell
+    - .cabal-cache
   stage: prepare
-  <<: *cabal-cache
   script:
     - echo "Building dependencies..."
     - cd haskellToCoqCompiler
@@ -34,11 +43,10 @@ build-dependencies:
 
 # Compile unit tests.
 build-unit-tests:
-  image: haskell:8.6.5
+  extends:
+    - .haskell
+    - .cabal-cache
   stage: build
-  dependencies:
-    - build-dependencies
-  <<: *cabal-cache
   script:
     - echo "Building unit tests..."
     - cd haskellToCoqCompiler
@@ -53,7 +61,7 @@ build-unit-tests:
 
 # Run unit tests.
 run-unit-tests:
-  image: haskell:8.6.5
+  extends: .haskell
   stage:  test
   dependencies:
     - build-unit-tests
@@ -67,12 +75,12 @@ run-unit-tests:
 ###############################################################################
 
 # Compile Haskell to Coq compiler.
+# TODO can we generate a statically linked executable?
 build-compiler:
-  image: haskell:8.6.5
+  extends:
+    - .haskell
+    - .cabal-cache
   stage: build
-  dependencies:
-    - build-dependencies
-  <<: *cabal-cache
   script:
     - echo "Building compiler..."
     - cd haskellToCoqCompiler
@@ -91,11 +99,10 @@ build-compiler:
 
 # Build Haddock documentation.
 build-docs:
-  image: haskell:8.6.5
+  extends:
+    - .haskell
+    - .cabal-cache
   stage: build
-  dependencies:
-    - build-dependencies
-  <<: *cabal-cache
   script:
     - echo "Building Haddock documentation..."
     - cd haskellToCoqCompiler
@@ -133,7 +140,7 @@ deploy-docs:
 # The artifacts contain the generated `.v` files, the Coq Base library
 # and the generated `_CoqProject` file for the Coq Base library.
 test-examples:
-  image: haskell:8.6.5 # TODO Create static executable and use 'debian:stretch' instead
+  extends: .haskell
   stage: test
   dependencies:
     - build-compiler
