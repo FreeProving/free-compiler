@@ -1,0 +1,6 @@
+[submodule "Markdown/tool/pandoc-scripts"]
+	path = Markdown/tool/pandoc-scripts
+	url = https://just95@bitbucket.org/just95/pandoc-scripts.git
+[submodule "Markdown/tool/cau_beamertheme"]
+	path = Markdown/tool/cau_beamertheme
+	url = https://cau-git.rz.uni-kiel.de/RZ/document_templates/latex/beamer.git

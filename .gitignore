@@ -18,8 +18,12 @@ Curry_Main_Goal.curry
 .curry
 
 ### Coq ###
+Makefile
+Makefile.conf
 *.glob
 *.vo
+*.aux
+*.d
 
 ### LaTeX ###
 

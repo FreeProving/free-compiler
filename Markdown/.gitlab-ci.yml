@@ -1,0 +1,36 @@
+stages:
+  - build
+  - test
+  - deploy
+
+# Enable Git submodules
+variables:
+  GIT_SUBMODULE_STRATEGY: recursive
+
+# Build PDF files for notes.
+# We are using a Docker image that has `texlive-full`, `pygments` and `pandoc`
+# preinstalled. See also <https://hub.docker.com/r/aergus/latex/dockerfile>.
+typeset-notes:
+  image: just95/pandoc-scripts
+  stage: build
+  script:
+    - ./Markdown/tool/typeset-all.sh ./Markdown/notes --toc
+  artifacts:
+    name: notes
+    paths:
+      - ./Markdown/notes/*.pdf
+
+# Deploy PDF files to `https://$SSH_DEPLOY_HOST/$CI_COMMIT_REF_SLUG/notes`.
+# We are using a minimal docker image that has a preinstalled an OpenSSH client.
+# Authentication is controlled by secret $SSH_DEPLOY_USER and $SSH_DEPLOY_KEY
+# variables configured in GitLab CI.
+deploy-notes:
+  stage: deploy
+  image: jaromirpufler/docker-openssh-client
+  variables:
+    SOURCE: ./Markdown/notes/*.pdf
+    SERVER: ${SSH_DEPLOY_USER}@${SSH_DEPLOY_HOST}
+    TARGET_DIR: html/${CI_COMMIT_REF_SLUG}/notes
+  script:
+    - ssh $SERVER "mkdir -p $TARGET_DIR"
+    - scp $SOURCE $SERVER:$TARGET_DIR
