@@ -167,5 +167,5 @@ test-examples:
     - build-examples
   script:
     - cd haskellToCoqCompiler
-    - ls -al base
-    - ./tool/compile-coq.sh ./build/example
+    - cp -r ./build ./build2 # we have no write access to `./build`
+    - ./tool/compile-coq.sh ./build2/example
