@@ -1,15 +1,16 @@
-###############################################################################
-# Common                                                                      #
-###############################################################################
-
 # We are using a docker image that has GHC and Cabal preinstalled.
 .haskell:
   image: haskell:8.6.5
+
+###############################################################################
+# Dependencies                                                                #
+###############################################################################
 
 # We want to avoid recompiling dependencies on subsequent runs of the pipeline.
 # Thus we save the Cabal directory to the GitLab CI cache. Because we cannot
 # cache files outside of the repository, we need to explicitly move the cabal
 # directory into our repository.
+
 .cabal-cache:
   cache:
     key: ${CI_COMMIT_REF_SLUG}
@@ -18,24 +19,13 @@
       - ./haskellToCoqCompiler/.cabal
   before_script:
     - mv ./haskellToCoqCompiler/.cabal /root/.cabal || true
-  after_script:
-    - mv /root/.cabal ./haskellToCoqCompiler/.cabal
-
-###############################################################################
-# Dependencies                                                                #
-###############################################################################
-
-# Download and install dependencies.
-build-dependencies:
-  extends:
-    - .haskell
-    - .cabal-cache
-  stage: prepare
-  script:
     - echo "Building dependencies..."
     - cd haskellToCoqCompiler
     - cabal new-update
     - cabal new-build --only-dependencies
+    - cd ..
+  after_script:
+    - mv /root/.cabal ./haskellToCoqCompiler/.cabal
 
 ###############################################################################
 # Unit tests                                                                  #
@@ -47,8 +37,6 @@ build-unit-tests:
     - .haskell
     - .cabal-cache
   stage: build
-  dependencies:
-    - build-dependencies
   script:
     - echo "Building unit tests..."
     - cd haskellToCoqCompiler
@@ -83,8 +71,6 @@ build-compiler:
     - .haskell
     - .cabal-cache
   stage: build
-  dependencies:
-    - build-dependencies
   script:
     - echo "Building compiler..."
     - cd haskellToCoqCompiler
@@ -107,8 +93,6 @@ build-docs:
     - .haskell
     - .cabal-cache
   stage: build
-  dependencies:
-    - build-dependencies
   script:
     - echo "Building Haddock documentation..."
     - cd haskellToCoqCompiler
