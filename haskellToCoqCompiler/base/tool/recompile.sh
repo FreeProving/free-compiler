@@ -1,9 +1,10 @@
 #!/bin/bash
 
-# Change into directory containing the Base directory.
-script="$0"
+# Change into the root directory of the Base library.
+script=$(realpath "$0")
 script_dir=$(dirname "$script")
-cd "$script_dir/../.."
+base_lib_dir=$(dirname "$script_dir")
+cd "$base_lib_dir"
 
 # Print help message.
 if [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
@@ -14,7 +15,7 @@ if [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
   echo "is created."
   echo
   echo "The arguments are forwarded to the 'compile.sh' script."
-  echo "Type '$script_dir/compile.sh --help' for more information."
+  echo "Type '$(realpath --relative-to=. "$script_dir")/compile.sh --help' for more information."
   exit 0
 fi
 
@@ -24,4 +25,4 @@ if [ -f Makefile ]; then
   rm Makefile
 fi
 
-./Base/tool/compile.sh "$@"
+"$script_dir"/compile.sh "$@"

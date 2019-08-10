@@ -1,9 +1,10 @@
 #!/bin/bash
 
-# Change into directory containing the Base directory.
-script="$0"
+# Change into the root directory of the Base library.
+script=$(realpath "$0")
 script_dir=$(dirname "$script")
-cd "$script_dir/../.."
+base_lib_dir=$(dirname "$script_dir")
+cd "$base_lib_dir"
 
 # Print help message.
 if [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
@@ -21,7 +22,7 @@ fi
 
 # Generate make file if it does not exist.
 if ! [ -f Makefile ]; then
-  coq_files=$(find Base -name "*.v")
+  coq_files=$(find . -name "*.v")
   coq_makefile -f _CoqProject $coq_files -o Makefile
 fi
 

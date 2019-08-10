@@ -263,5 +263,5 @@ createCoqProject Options { optOutputDir = Just outputDir, optBaseLibDir = Just b
     absBaseDir   <- makeAbsolute baseDir
     absOutputDir <- makeAbsolute outputDir
     let relBaseDir = makeRelative absOutputDir absBaseDir
-    return ("-R Base " ++ relBaseDir ++ "\n")
+    return ("-R " ++ relBaseDir ++ " Base\n")
 createCoqProject _ = return ()
