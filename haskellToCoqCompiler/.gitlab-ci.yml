@@ -118,6 +118,18 @@ deploy-docs:
 # Examples                                                                    #
 ###############################################################################
 
+# Build the Coq Base library.
+build-base-library:
+  extends: .coq
+  stage: build
+  script:
+    - ./haskellToCoqCompiler/base/tool/compile.sh
+  artifacts:
+    name: coq-base-library
+    paths:
+      - ./haskellToCoqCompiler/base/*.vo
+      - ./haskellToCoqCompiler/base/*.glob
+
 # Tests the Haskell to Coq compiler with the example modules.
 # The artifacts contain the generated `.v` files, the Coq Base library
 # and the generated `_CoqProject` file for the Coq Base library.
