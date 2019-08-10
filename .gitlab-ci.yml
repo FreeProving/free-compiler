@@ -6,3 +6,4 @@ stages:
 
 include:
   - local: '/haskellToCoqCompiler/.gitlab-ci.yml'
+  - local: '/LaTeX/.gitlab-ci.yml'
