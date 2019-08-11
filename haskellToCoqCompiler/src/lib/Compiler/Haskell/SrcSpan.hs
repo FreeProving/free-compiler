@@ -41,6 +41,8 @@ data SrcSpan =
     , srcSpanCodeLines   :: [String] -- ^ The source code of the spanned lines.
     }
   | NoSrcSpan -- ^ Indicates that no location information is available.
+  | FileSpan  -- ^ Points to an unknown location in the given file.
+      String -- ^ The name of the file.
   deriving (Eq, Show)
 
 -------------------------------------------------------------------------------
@@ -105,11 +107,13 @@ instance SrcSpanConverter Parsec.SourcePos where
 -- | Tests whether the given source span has attached source code.
 hasSourceCode :: SrcSpan -> Bool
 hasSourceCode NoSrcSpan                          = False
+hasSourceCode (FileSpan _)                       = False
 hasSourceCode SrcSpan { srcSpanCodeLines = src } = not (null src)
 
 -- | Tests whether the given source span spans multiple lines.
 spansMultipleLines :: SrcSpan -> Bool
 spansMultipleLines NoSrcSpan = False
+spansMultipleLines (FileSpan _) = False
 spansMultipleLines srcSpan = srcSpanStartLine srcSpan /= srcSpanEndLine srcSpan
 
 -------------------------------------------------------------------------------
@@ -120,10 +124,9 @@ spansMultipleLines srcSpan = srcSpanStartLine srcSpan /= srcSpanEndLine srcSpan
 --   and end position of the source span.
 --
 --   If the source span spans only a single line, the end position is omitted.
---
---   If n
 instance Pretty SrcSpan where
   pretty NoSrcSpan = prettyString "<no location info>"
+  pretty (FileSpan filename) = prettyString filename
   pretty srcSpan
     | spansMultipleLines srcSpan
     = prettyString (srcSpanFilename srcSpan)

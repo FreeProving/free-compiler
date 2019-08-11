@@ -56,19 +56,17 @@ import qualified Data.Aeson.Types              as Aeson
 import           Data.Char                      ( isAlphaNum )
 import qualified Data.Text                     as T
 import qualified Data.Vector                   as Vector
-import qualified Text.Parsec.Error             as Parsec
-import           Text.Toml                      ( parseTomlDoc )
-import qualified Text.Toml.Types               as Toml
 
+import           Compiler.Config
 import qualified Compiler.Coq.AST              as G
 import           Compiler.Environment
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Haskell.Parser
 import           Compiler.Haskell.Simplifier
-import           Compiler.Haskell.SrcSpan
 import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
 import           Compiler.Pretty
+
 
 -- | Restores a Haskell name (symbol or identifier) from the configuration
 --   file.
@@ -146,38 +144,4 @@ instance Aeson.FromJSON Environment where
 
 -- | Loads an environment configuration file.
 loadEnvironment :: FilePath -> ReporterIO Environment
-loadEnvironment filename = reportIOErrors $ do
-  contents <- lift $ readFile filename
-  case parseTomlDoc filename (T.pack contents) of
-    Right document   -> hoist $ decodeEnvironment document
-    Left  parseError -> reportFatal $ Message
-      (convertSrcSpan [(filename, lines contents)] (Parsec.errorPos parseError))
-      Error
-      ("Failed to parse config file: " ++ Parsec.showErrorMessages
-        msgOr
-        msgUnknown
-        msgExpecting
-        msgUnExpected
-        msgEndOfInput
-        (Parsec.errorMessages parseError)
-      )
- where
-  msgOr, msgUnknown, msgExpecting, msgUnExpected, msgEndOfInput :: String
-  msgOr         = "or"
-  msgUnknown    = "unknown parse error"
-  msgExpecting  = "expecting"
-  msgUnExpected = "unexpected"
-  msgEndOfInput = "end of input"
-
--- | Creates an 'Environment' that is encoded by the given TOML document.
-decodeEnvironment :: Toml.Table -> Reporter Environment
-decodeEnvironment document = case result of
-  Aeson.Error msg -> do
-    reportFatal
-      $  Message NoSrcSpan Error
-      $  "Invalid configuration file format: "
-      ++ msg
-  Aeson.Success env -> return env
- where
-  result :: Aeson.Result Environment
-  result = Aeson.fromJSON (Aeson.toJSON document)
+loadEnvironment = loadConfig
