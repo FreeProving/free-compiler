@@ -44,8 +44,10 @@ variables:
 # Removes deployed files (see `.ssh-deploy`) from the server when a branch gets
 # deleted.
 stop-ssh-deploy:
+  image: jaromirpufler/docker-openssh-client
   stage: deploy
   when: manual
+  dependencies: []
   variables:
     GIT_STRATEGY: none
     SERVER: ${SSH_DEPLOY_USER}@${SSH_DEPLOY_HOST}
