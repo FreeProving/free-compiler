@@ -8,6 +8,7 @@ import           Data.List                      ( find
                                                 , isPrefixOf
                                                 , partition
                                                 )
+import qualified Data.List.NonEmpty            as NonEmpty
 
 import           Compiler.Analysis.DependencyAnalysis
 import qualified Compiler.Coq.AST              as G
@@ -94,7 +95,14 @@ convertQuickCheckProperty decl@(HS.FuncDecl _ declIdent args expr) = do
     expr'                <- convertQuickCheckExpr expr
     proof                <- inEnv $ lookupProof name
     return
-      [G.AssertionSentence (G.Assertion G.Theorem qualid binders expr') proof]
+      [ G.AssertionSentence
+          (G.Assertion G.Theorem
+                       qualid
+                       []
+                       (G.Forall (NonEmpty.fromList binders) expr')
+          )
+          proof
+      ]
 
 -------------------------------------------------------------------------------
 -- QuickCheck property expressions                                           --
