@@ -47,13 +47,18 @@ parseMode filename = ParseMode
 -- | Fixities for all predefined operators and infix constructors.
 predefinedFixities :: [Fixity]
 predefinedFixities = concat
-  [ infixr_ 8 ["^"]
+  [ -- Prelude.
+    infixr_ 8 ["^"]
   , infixl_ 7 ["*"]
   , infixl_ 6 ["+", "-"]
   , infixr_ 5 [":"]
   , infix_ 4 ["==", "/=", "<", "<=", ">=", ">"]
   , infixr_ 3 ["&&"]
   , infixr_ 2 ["||"]
+  -- QuickCheck.
+  , infixr_ 0 ["==>"]
+  , infixr_ 1 [".&&.", ".||."]
+  , infix_ 4 ["===", "=/="]
   ]
 
 -- | Parses a node of the Haskell AST.
