@@ -5,7 +5,8 @@ module Compiler.Coq.AST
   ( module Language.Coq.Gallina
     -- * Comments
   , comment
-  , proofPlaceholder
+    -- * Proofs.
+  , blankProof
     -- * Identifiers
   , ident
   , bare
@@ -48,9 +49,13 @@ import qualified Language.Coq.Gallina          as G
 comment :: String -> G.Sentence
 comment = G.CommentSentence . G.Comment . T.pack
 
--- | Smart constructor for the placeholder to insert into admitted proofs.
-proofPlaceholder :: G.Tactics
-proofPlaceholder = T.pack "  (* FILL IN HERE *)"
+-------------------------------------------------------------------------------
+-- Proofs                                                                    --
+-------------------------------------------------------------------------------
+
+-- | An admitted proof that contains only a placeholder text.
+blankProof :: G.Proof
+blankProof = G.ProofAdmitted (T.pack "  (* FILL IN HERE *)")
 
 -------------------------------------------------------------------------------
 -- Identifiers                                                               --

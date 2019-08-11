@@ -22,7 +22,7 @@
 --       the end of the proof. The default value is @false@, i.e. @Qed.@
 --       will be used.
 
-module Compiler.QuickCheck.ProofLoader
+module Compiler.Environment.ProofLoader
   ( loadProofs
   )
 where
@@ -39,20 +39,23 @@ import           Data.Map.Strict                ( Map )
 import qualified Data.Text                     as T
 
 import           Compiler.Config
+import qualified Compiler.Coq.AST              as G
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Monad.Reporter
-import           Compiler.QuickCheck.Proof
 
 -- | Maps the names of Haskell QuickCheck properties to the corresponding
 --   Coq 'Proof's.
-newtype Proofs = Proofs (Map HS.Name Proof)
+newtype Proofs = Proofs (Map HS.Name G.Proof)
 
 -- | Restores a Coq proof from the configuration file.
-instance Aeson.FromJSON Proof where
+instance Aeson.FromJSON G.Proof where
   parseJSON = Aeson.withObject "Proof" $ \proof -> do
-    tactics <- proof .: "proof"
+    tacticsString <- proof .: "proof"
     admitted <- proof .:? "admitted" .!= False
-    return (Proof {..})
+    let tactics = T.stripEnd (T.pack tacticsString)
+    if admitted
+      then return (G.ProofAdmitted tactics)
+      else return (G.ProofQed tactics)
 
 -- | Restores Coq proofs from the configuration file.
 instance Aeson.FromJSON Proofs where
@@ -60,7 +63,7 @@ instance Aeson.FromJSON Proofs where
     entries <- mapM (uncurry parseEntry) (HashMap.toList document)
     return (Proofs (Map.fromList entries))
    where
-    parseEntry :: T.Text -> Aeson.Value -> Aeson.Parser (HS.Name, Proof)
+    parseEntry :: T.Text -> Aeson.Value -> Aeson.Parser (HS.Name, G.Proof)
     parseEntry key value = do
       let name = HS.Ident (T.unpack key)
       proof <- Aeson.parseJSON value
@@ -68,7 +71,7 @@ instance Aeson.FromJSON Proofs where
 
 -- | Loads Coq proofs for translated QuickCheck properties from a `.toml`
 --   configuration file.
-loadProofs :: FilePath -> ReporterIO (Map HS.Name Proof)
+loadProofs :: FilePath -> ReporterIO (Map HS.Name G.Proof)
 loadProofs filename = do
   Proofs proofs <- loadConfig filename
   return proofs

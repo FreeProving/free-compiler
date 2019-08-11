@@ -59,7 +59,6 @@ import           Compiler.Analysis.DependencyExtraction
 import qualified Compiler.Coq.AST              as G
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Pretty
-import           Compiler.QuickCheck.Proof
 
 -------------------------------------------------------------------------------
 -- Environment                                                               --
@@ -121,7 +120,7 @@ data Environment = Environment
   , quickCheckEnabled :: Bool
     -- ^ Whether the translation of QuickCheck properties is enabled in the
     --   current environment (i.e. the module imports @Test.QuickCheck@).
-  , definedProofs :: Map HS.Name Proof
+  , definedProofs :: Map HS.Name G.Proof
     -- ^ Proofs for QuickCheck properties that were loaded from the proof
     --   configuration file.
   }
@@ -392,12 +391,12 @@ isQuickCheckEnabled = quickCheckEnabled
 
 -- | Adds the Coq proof for the QuickCheck property with the given name
 --   to the environment.
-defineProof :: HS.Name -> Proof -> Environment -> Environment
+defineProof :: HS.Name -> G.Proof -> Environment -> Environment
 defineProof name proof env =
   env { definedProofs = Map.insert name proof (definedProofs env) }
 
 -- | Adds multiple Coq proofs for QuickCheck properties to the environment.
-defineProofs :: Map HS.Name Proof -> Environment -> Environment
+defineProofs :: Map HS.Name G.Proof -> Environment -> Environment
 defineProofs proofs env =
   env { definedProofs = Map.union proofs (definedProofs env) }
 
@@ -405,5 +404,5 @@ defineProofs proofs env =
 --
 --   Returns a 'blankProof' if there is no proof for the that QuickCheck
 --   property.
-lookupProof :: HS.Name -> Environment -> Proof
-lookupProof name = maybe blankProof id . Map.lookup name . definedProofs
+lookupProof :: HS.Name -> Environment -> G.Proof
+lookupProof name = maybe G.blankProof id . Map.lookup name . definedProofs

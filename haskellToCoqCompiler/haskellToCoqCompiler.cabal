@@ -50,6 +50,7 @@ library haskell-to-coq-internal
                       , Compiler.Environment.Fresh
                       , Compiler.Environment.Loader
                       , Compiler.Environment.LookupOrFail
+                      , Compiler.Environment.ProofLoader
                       , Compiler.Environment.Renamer
                       , Compiler.Monad.Converter
                       , Compiler.Monad.Reporter
@@ -61,8 +62,6 @@ library haskell-to-coq-internal
                       , Compiler.Haskell.Subterm
                       , Compiler.Haskell.Subst
                       , Compiler.Pretty
-                      , Compiler.QuickCheck.Proof
-                      , Compiler.QuickCheck.ProofLoader
   build-depends:      base                   ==4.12.*
                         -- Monad transformers:
                       , mtl                  ==2.2.*

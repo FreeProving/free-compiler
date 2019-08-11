@@ -18,6 +18,7 @@ import           Compiler.Environment           ( Environment
                                                 , emptyEnvironment
                                                 )
 import           Compiler.Environment.Loader
+import           Compiler.Environment.ProofLoader
 import           Compiler.Haskell.Parser        ( parseModuleFile )
 import           Compiler.Monad.Converter       ( evalConverter
                                                 , modifyEnv
@@ -29,7 +30,6 @@ import           Compiler.Haskell.SrcSpan
 import           Compiler.Pretty                ( putPrettyLn
                                                 , writePrettyFile
                                                 )
-import           Compiler.QuickCheck.ProofLoader
 import           Compiler.Coq.Pretty            ( )
 
 -------------------------------------------------------------------------------
