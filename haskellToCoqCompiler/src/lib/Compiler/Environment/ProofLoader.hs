@@ -23,7 +23,9 @@
 --       will be used.
 
 module Compiler.Environment.ProofLoader
-  ( loadProofs
+  ( ProofMap
+  , emptyProofMap
+  , loadProofs
   )
 where
 
@@ -44,8 +46,15 @@ import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Monad.Reporter
 
 -- | Maps the names of Haskell QuickCheck properties to the corresponding
---   Coq 'Proof's.
-newtype Proofs = Proofs (Map HS.Name G.Proof)
+--   Coq 'G.Proof's.
+type ProofMap = Map HS.Name G.Proof
+
+-- | Like 'ProofMap' but wrapped such that we can define type class instances.
+newtype Proofs = Proofs ProofMap
+
+-- | A proof map that should be used when there is no proof configuration file.
+emptyProofMap :: ProofMap
+emptyProofMap = Map.empty
 
 -- | Restores a Coq proof from the configuration file.
 instance Aeson.FromJSON G.Proof where

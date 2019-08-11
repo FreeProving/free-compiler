@@ -13,6 +13,7 @@ import           System.FilePath
 import           System.IO                      ( stderr )
 
 import           Compiler.Converter             ( convertModuleWithPreamble )
+import           Compiler.Coq.Pretty            ( )
 import           Compiler.Environment           ( Environment
                                                 , defineProofs
                                                 , emptyEnvironment
@@ -20,17 +21,15 @@ import           Compiler.Environment           ( Environment
 import           Compiler.Environment.Loader
 import           Compiler.Environment.ProofLoader
 import           Compiler.Haskell.Parser        ( parseModuleFile )
+import           Compiler.Haskell.Simplifier
+import           Compiler.Haskell.SrcSpan
 import           Compiler.Monad.Converter       ( evalConverter
                                                 , modifyEnv
                                                 )
 import           Compiler.Monad.Reporter
-
-import           Compiler.Haskell.Simplifier
-import           Compiler.Haskell.SrcSpan
 import           Compiler.Pretty                ( putPrettyLn
                                                 , writePrettyFile
                                                 )
-import           Compiler.Coq.Pretty            ( )
 
 -------------------------------------------------------------------------------
 -- Command line option parser                                                --
@@ -202,7 +201,7 @@ run opts
 processInputFile :: Options -> Environment -> FilePath -> ReporterIO (IO ())
 processInputFile opts env inputFile = do
   haskellAst <- parseModuleFile inputFile
-  proofs     <- loadProofs (proofFileNameFor inputFile)
+  proofs     <- locateAndLoadProofsFor inputFile
   coqAst     <- hoist $ flip evalConverter env $ do
     modifyEnv $ defineProofs proofs
     haskellAst' <- simplifyModule haskellAst
@@ -214,11 +213,6 @@ processInputFile opts env inputFile = do
       let outputFileName = outputFileNameFor inputFile outputDir "v"
       in  writePrettyFile outputFileName coqAst
 
--- | Builds the file name of the `.toml` file that contains proofs for
---   QuickCheck properties.
-proofFileNameFor :: FilePath -> FilePath
-proofFileNameFor inputFile = dropExtension inputFile <.> "proofs" <.> "toml"
-
 -- | Builds the file name of the output file for the given input file.
 outputFileNameFor
   :: FilePath -- ^ The name of the input file.
@@ -227,6 +221,25 @@ outputFileNameFor
   -> FilePath
 outputFileNameFor inputFile outputDir extension =
   outputDir </> takeBaseName inputFile <.> extension
+
+-------------------------------------------------------------------------------
+-- Proofs for QuickCheck properties                                          --
+-------------------------------------------------------------------------------
+
+-- | Builds the file name of the `.toml` file that contains proofs for
+--   QuickCheck properties.
+proofFileNameFor :: FilePath -> FilePath
+proofFileNameFor inputFile = dropExtension inputFile <.> "proofs" <.> "toml"
+
+-- | Locates the `.poofs.toml` file (see 'proofFileNameFor') for the Haskell
+--   module with the given file name and returns the proofs defined in it.
+--
+--   Returns an empty map if the proof file could not be found.
+locateAndLoadProofsFor :: FilePath -> ReporterIO ProofMap
+locateAndLoadProofsFor inputFile = do
+  let proofFile = proofFileNameFor inputFile
+  fileExists <- lift $ doesFileExist proofFile
+  if fileExists then loadProofs proofFile else return emptyProofMap
 
 -------------------------------------------------------------------------------
 -- Base library                                                              --
