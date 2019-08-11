@@ -36,7 +36,7 @@ variables:
     - ssh $SERVER "mkdir -p $TARGET_DIR"
     - scp -r $DEPLOY_DIR/. $SERVER:$TARGET_DIR
   environment:
-    name: $CI_JOB_NAME/$CI_COMMIT_REF_NAME
+    name: $CI_COMMIT_REF_NAME
     url: https://${SSH_DEPLOY_HOST}/${CI_COMMIT_REF_SLUG}
     on_stop: stop-ssh-deploy
 
@@ -52,7 +52,7 @@ stop-ssh-deploy:
   script:
     - ssh $SERVER "rm -r $TARGET_DIR"
   environment:
-    name: $CI_JOB_NAME/$CI_COMMIT_REF_NAME
+    name: $CI_COMMIT_REF_NAME
     action: stop
 
 # Import jobs from subdirectories.
