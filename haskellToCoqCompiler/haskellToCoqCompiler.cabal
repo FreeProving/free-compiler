@@ -61,28 +61,31 @@ library haskell-to-coq-internal
                       , Compiler.Haskell.Subterm
                       , Compiler.Haskell.Subst
                       , Compiler.Pretty
-  build-depends:      base                ==4.12.*
+                      , Compiler.QuickCheck.Proof
+                      , Compiler.QuickCheck.ProofLoader
+  build-depends:      base                   ==4.12.*
                         -- Monad transformers:
-                      , mtl               ==2.2.*
-                      , transformers      ==0.5.*
+                      , mtl                  ==2.2.*
+                      , transformers         ==0.5.*
                         -- Maps, sets and graphs:
-                      , containers        ==0.6.*
-                      , vector            ==0.12.*
+                      , containers           ==0.6.*
+                      , unordered-containers ==0.2.*
+                      , vector               ==0.12.*
                         -- Pretty printing:
-                      , text              ==1.2.*
-                      , wl-pprint-text    ==1.2.*
+                      , text                 ==1.2.*
+                      , wl-pprint-text       ==1.2.*
                         -- Utilities:
-                      , casing            ==0.1.*
-                      , composition       ==1.0.*
-                      , extra             ==1.6.*
-                      , regexpr           ==0.5.*
+                      , casing               ==0.1.*
+                      , composition          ==1.0.*
+                      , extra                ==1.6.*
+                      , regexpr              ==0.5.*
                         -- Configuration.
-                      , aeson             ==1.4.*
-                      , htoml             ==1.0.*
-                      , parsec            ==3.1.*
+                      , aeson                ==1.4.*
+                      , htoml                ==1.0.*
+                      , parsec               ==3.1.*
                         -- ASTs:
-                      , haskell-src-exts  ==1.21.*
-                      , language-coq      ==0.0.*
+                      , haskell-src-exts     ==1.21.*
+                      , language-coq         ==0.0.*
   default-language:   Haskell2010
   ghc-options:        -Wall
 

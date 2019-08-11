@@ -14,11 +14,14 @@ import           System.IO                      ( stderr )
 
 import           Compiler.Converter             ( convertModuleWithPreamble )
 import           Compiler.Environment           ( Environment
+                                                , defineProofs
                                                 , emptyEnvironment
                                                 )
 import           Compiler.Environment.Loader
 import           Compiler.Haskell.Parser        ( parseModuleFile )
-import           Compiler.Monad.Converter       ( evalConverter )
+import           Compiler.Monad.Converter       ( evalConverter
+                                                , modifyEnv
+                                                )
 import           Compiler.Monad.Reporter
 
 import           Compiler.Haskell.Simplifier
@@ -26,6 +29,7 @@ import           Compiler.Haskell.SrcSpan
 import           Compiler.Pretty                ( putPrettyLn
                                                 , writePrettyFile
                                                 )
+import           Compiler.QuickCheck.ProofLoader
 import           Compiler.Coq.Pretty            ( )
 
 -------------------------------------------------------------------------------
@@ -198,7 +202,9 @@ run opts
 processInputFile :: Options -> Environment -> FilePath -> ReporterIO (IO ())
 processInputFile opts env inputFile = do
   haskellAst <- parseModuleFile inputFile
+  proofs     <- loadProofs (proofFileNameFor inputFile)
   coqAst     <- hoist $ flip evalConverter env $ do
+    modifyEnv $ defineProofs proofs
     haskellAst' <- simplifyModule haskellAst
     convertModuleWithPreamble haskellAst'
 
@@ -207,6 +213,11 @@ processInputFile opts env inputFile = do
     Just outputDir ->
       let outputFileName = outputFileNameFor inputFile outputDir "v"
       in  writePrettyFile outputFileName coqAst
+
+-- | Builds the file name of the `.toml` file that contains proofs for
+--   QuickCheck properties.
+proofFileNameFor :: FilePath -> FilePath
+proofFileNameFor inputFile = dropExtension inputFile <.> "proofs" <.> "toml"
 
 -- | Builds the file name of the output file for the given input file.
 outputFileNameFor

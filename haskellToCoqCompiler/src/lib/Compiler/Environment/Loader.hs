@@ -67,7 +67,6 @@ import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
 import           Compiler.Pretty
 
-
 -- | Restores a Haskell name (symbol or identifier) from the configuration
 --   file.
 instance Aeson.FromJSON HS.Name where

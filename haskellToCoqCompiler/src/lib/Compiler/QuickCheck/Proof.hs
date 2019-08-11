@@ -8,6 +8,7 @@ data Proof = Proof
   { tactics :: String -- ^ The Coq tactics to apply.
   , admitted :: Bool  -- ^ Whether the proof still need to be completed.
   }
+ deriving Show
 
 -- | An admitted proof with only a placeholder text.
 blankProof :: Proof

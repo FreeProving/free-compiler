@@ -35,6 +35,9 @@ module Compiler.Environment
   -- * QuickCheck support
   , enableQuickCheck
   , isQuickCheckEnabled
+  , defineProof
+  , defineProofs
+  , lookupProof
   )
 where
 
@@ -46,6 +49,7 @@ import           Data.Map.Strict                ( Map )
 import qualified Data.Map.Strict               as Map
 import           Data.Maybe                     ( catMaybes
                                                 , isJust
+                                                , maybe
                                                 )
 import           Data.Set                       ( Set )
 import qualified Data.Set                      as Set
@@ -55,6 +59,7 @@ import           Compiler.Analysis.DependencyExtraction
 import qualified Compiler.Coq.AST              as G
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Pretty
+import           Compiler.QuickCheck.Proof
 
 -------------------------------------------------------------------------------
 -- Environment                                                               --
@@ -116,6 +121,9 @@ data Environment = Environment
   , quickCheckEnabled :: Bool
     -- ^ Whether the translation of QuickCheck properties is enabled in the
     --   current environment (i.e. the module imports @Test.QuickCheck@).
+  , definedProofs :: Map HS.Name Proof
+    -- ^ Proofs for QuickCheck properties that were loaded from the proof
+    --   configuration file.
   }
   deriving Show
 
@@ -131,6 +139,7 @@ emptyEnvironment = Environment
   , definedArgTypes     = Map.empty
   , definedTypeSynonyms = Map.empty
   , quickCheckEnabled   = False
+  , definedProofs       = Map.empty
   }
 
 -- | Gets a list of Coq identifiers for functions, (type/smart) constructors,
@@ -380,3 +389,21 @@ enableQuickCheck env = env { quickCheckEnabled = True }
 --   declaration.
 isQuickCheckEnabled :: Environment -> Bool
 isQuickCheckEnabled = quickCheckEnabled
+
+-- | Adds the Coq proof for the QuickCheck property with the given name
+--   to the environment.
+defineProof :: HS.Name -> Proof -> Environment -> Environment
+defineProof name proof env =
+  env { definedProofs = Map.insert name proof (definedProofs env) }
+
+-- | Adds multiple Coq proofs for QuickCheck properties to the environment.
+defineProofs :: Map HS.Name Proof -> Environment -> Environment
+defineProofs proofs env =
+  env { definedProofs = Map.union proofs (definedProofs env) }
+
+-- | Looks up the Coq proof for the QuickCheck property with the given name.
+--
+--   Returns a 'blankProof' if there is no proof for the that QuickCheck
+--   property.
+lookupProof :: HS.Name -> Environment -> Proof
+lookupProof name = maybe blankProof id . Map.lookup name . definedProofs
