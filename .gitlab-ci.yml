@@ -36,6 +36,25 @@ variables:
   after_script:
     - ssh $SERVER "mkdir -p $TARGET_DIR"
     - scp -r $DEPLOY_DIR/. $SERVER:$TARGET_DIR
+  environment:
+    name: $CI_JOB_NAME/$CI_COMMIT_REF_NAME
+    url: https://${SSH_DEPLOY_HOST}/${CI_COMMIT_REF_SLUG}
+    on_stop: stop-ssh-deploy
+
+# Removes deployed files (see `.ssh-deploy`) from the server when a branch gets
+# deleted.
+stop-ssh-deploy:
+  stage: deploy
+  when: manual
+  variables:
+    GIT_STRATEGY: none
+    SERVER: ${SSH_DEPLOY_USER}@${SSH_DEPLOY_HOST}
+    TARGET_DIR: html/${CI_COMMIT_REF_SLUG}
+  script:
+    - ssh $SERVER "rm -r $TARGET_DIR"
+  environment:
+    name: $CI_JOB_NAME/$CI_COMMIT_REF_NAME
+    action: stop
 
 # Import jobs from subdirectories.
 include:
