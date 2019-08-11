@@ -3,14 +3,9 @@
 
 module Compiler.Analysis.RecursionAnalysis where
 
-import           Data.List                      ( nub
-                                                , find
-                                                )
+import           Data.List                      ( find )
 import           Data.Map.Strict                ( Map )
 import qualified Data.Map.Strict               as Map
-import           Data.Maybe                     ( catMaybes
-                                                , maybe
-                                                )
 import           Data.Set                       ( Set
                                                 , (\\)
                                                 )
