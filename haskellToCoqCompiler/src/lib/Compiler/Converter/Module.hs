@@ -9,6 +9,7 @@ import           Data.Maybe                     ( maybe )
 import           Compiler.Analysis.DependencyAnalysis
 import           Compiler.Analysis.DependencyGraph
 import           Compiler.Analysis.PartialityAnalysis
+import           Compiler.Converter.FuncDecl
 import           Compiler.Converter.TypeDecl
 import           Compiler.Converter.QuickCheck
 import qualified Compiler.Coq.AST              as G
@@ -47,18 +48,33 @@ convertModule (HS.Module _ maybeIdent decls) = do
 -- | Converts the declarations from a Haskell module to Coq.
 convertDecls :: [HS.Decl] -> Converter [G.Sentence]
 convertDecls decls = do
-  typeDecls' <- concatMapM convertTypeComponent (groupDependencies typeGraph)
+  -- Convert data type and type synonym declarations.
+  typeDecls'             <- concatMapM convertTypeComponent typeComponents
+  -- Identify and remember partial functions.
   predefinedPartialFuncs <- inEnv partialFuncs >>= return . Set.toList
   mapM_ (modifyEnv . definePartial)
         (identifyPartialFuncs predefinedPartialFuncs funcGraph)
+  -- Remember type signatures.
   mapM_ filterAndDefineTypeSig decls
-  funcDecls' <- concatMapM convertFuncComponentOrQuickCheckProperty
-                           (groupDependencies funcGraph)
-  return (typeDecls' ++ funcDecls')
+  -- Filter QuickCheck properties.
+  (properties, funcComponents') <- filterQuickCheckProperties funcComponents
+  -- Convert function declarations and QuickCheck properties.
+  funcDecls' <- concatMapM convertFuncComponent funcComponents'
+  properties' <- concatMapM convertQuickCheckProperty properties
+  return
+    (  typeDecls'
+    ++ funcDecls'
+    ++ [G.comment "QuickCheck properties"]
+    ++ properties'
+    )
  where
   typeGraph, funcGraph :: DependencyGraph
   typeGraph = typeDependencyGraph decls
   funcGraph = funcDependencyGraph decls
+
+  typeComponents, funcComponents :: [DependencyComponent]
+  typeComponents = groupDependencies typeGraph
+  funcComponents = groupDependencies funcGraph
 
 -------------------------------------------------------------------------------
 -- Import declarations                                                       --

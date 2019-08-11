@@ -6,6 +6,7 @@ module Compiler.Converter.QuickCheck where
 
 import           Data.List                      ( find
                                                 , isPrefixOf
+                                                , partition
                                                 )
 
 import           Compiler.Analysis.DependencyAnalysis
@@ -30,7 +31,7 @@ importAndEnableQuickCheck = do
   modifyEnv $ defineTypeCon (HS.Ident "Property") 0 (G.bare "Prop")
 
 -------------------------------------------------------------------------------
--- QuickCheck property declarations                                          --
+-- Filter QuickCheck property declarations                                   --
 -------------------------------------------------------------------------------
 
 -- | Tests whether the given declaration is a QuickCheck property.
@@ -39,26 +40,48 @@ isQuickCheckProperty (HS.FuncDecl _ (HS.DeclIdent _ ident) _ _) =
   "prop_" `isPrefixOf` ident
 isQuickCheckProperty _ = False
 
--- | Like 'convertFuncComponent' but if the translation of QuickCheck
---   properties is enabled, they are passed to 'convertQuickCheckProperty'
---   instead.
+-- | Tests whether the given strongly connected component of the function
+--   dependency graph contains a QuickCheck property.
+containsQuickCheckProperty :: DependencyComponent -> Bool
+containsQuickCheckProperty (NonRecursive decl ) = isQuickCheckProperty decl
+containsQuickCheckProperty (Recursive    decls) = any isQuickCheckProperty decls
+
+-- | Partitions the given list of strongly connected components of the
+--   function dependency graph into a list of QuickCheck properties
+--   and dependency components that contain no QuickCheck properties.
 --
---   QuickCheck properties are not allowed to be (mutually) recursive.
-convertFuncComponentOrQuickCheckProperty
-  :: DependencyComponent -> Converter [G.Sentence]
-convertFuncComponentOrQuickCheckProperty component@(NonRecursive decl) = do
-  quickCheckIsEnabled <- inEnv $ isQuickCheckEnabled
-  if quickCheckIsEnabled && isQuickCheckProperty decl
-    then convertQuickCheckProperty decl
-    else convertFuncComponent component
-convertFuncComponentOrQuickCheckProperty component@(Recursive decls) = do
-  quickCheckIsEnabled <- inEnv $ isQuickCheckEnabled
-  case find isQuickCheckProperty decls of
-    Just property | quickCheckIsEnabled ->
-      reportFatal
-        $ Message (HS.getSrcSpan property) Error
-        $ "QuickCheck properties must not be recursive."
-    _ -> convertFuncComponent component
+--   Reports a fatal error message if there is there is a (mutually) recursive
+--   QuickCheck property in one of the components.
+filterQuickCheckProperties
+  :: [DependencyComponent] -> Converter ([HS.Decl], [DependencyComponent])
+filterQuickCheckProperties components = do
+  quickCheckIsEnabled <- inEnv isQuickCheckEnabled
+  if not quickCheckIsEnabled
+    then return ([], components)
+    else do
+      quickCheckProperties <- mapM fromDependencyComponent quickCheckComponents
+      return (quickCheckProperties, otherComponents)
+ where
+  quickCheckComponents, otherComponents :: [DependencyComponent]
+  (quickCheckComponents, otherComponents) =
+    partition containsQuickCheckProperty components
+
+  -- | Extracts the only (non-recursive) QuickCheck property in the given
+  --   strongly connected component.
+  --
+  --   Reports a fatal error message, if the given component contains
+  --   recursive function declarations.
+  fromDependencyComponent :: DependencyComponent -> Converter HS.Decl
+  fromDependencyComponent (NonRecursive decl ) = return decl
+  fromDependencyComponent (Recursive    decls) = do
+    let (Just property) = find isQuickCheckProperty decls
+    reportFatal
+      $ Message (HS.getSrcSpan property) Error
+      $ "QuickCheck properties must not be recursive."
+
+-------------------------------------------------------------------------------
+-- Convert QuickCheck property declarations                                  --
+-------------------------------------------------------------------------------
 
 -- | Converts the given QuickCheck property to a Coq @Theorem@ with an
 --   empty @Proof@.
