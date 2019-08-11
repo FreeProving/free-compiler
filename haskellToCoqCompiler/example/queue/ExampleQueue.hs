@@ -9,6 +9,11 @@ null xs = case xs of
   []     -> True
   x : xs -> False
 
+not :: Bool -> Bool
+not b = case b of
+  True  -> False
+  False -> True
+
 append :: [a] -> [a] -> [a]
 append xs ys = case xs of
   []      -> ys
@@ -68,3 +73,20 @@ flipQ a20
         (a21, a22) -> case a21 of
                           []          -> (reverse a22, [])
                           (:) a25 a26 -> ((:) a25 a26, a22)
+
+-------------------------------------------------------------------------------
+
+toQueue :: QueueI a -> Queue a
+toQueue qi = case qi of (f,b) -> f `append` reverse b
+
+invariant :: QueueI a -> Bool
+invariant qi = case qi of (f,b) -> null b || not (null f)
+
+prop_isEmpty :: QueueI a -> Property
+prop_isEmpty qi = invariant qi ==> isEmptyI qi === isEmpty (toQueue qi)
+
+prop_add :: a -> QueueI a -> Property
+prop_add x qi = toQueue (addI x qi) === add x (toQueue qi)
+
+prop_front :: QueueI a -> Property
+prop_front qi = invariant qi && not (isEmptyI qi) ==> frontI qi === front (toQueue qi)
