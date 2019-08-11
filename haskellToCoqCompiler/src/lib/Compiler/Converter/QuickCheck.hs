@@ -69,10 +69,9 @@ convertQuickCheckProperty decl@(HS.FuncDecl _ declIdent args expr) = do
     let name = HS.Ident (HS.fromDeclIdent declIdent)
     (qualid, binders, _) <- convertFuncHead name args
     expr'                <- convertQuickCheckExpr expr
+    proof                <- inEnv $ lookupProof name
     return
-      [ G.AssertionSentence (G.Assertion G.Theorem qualid binders expr')
-                            (G.ProofAdmitted G.proofPlaceholder)
-      ]
+      [G.AssertionSentence (G.Assertion G.Theorem qualid binders expr') proof]
 
 -------------------------------------------------------------------------------
 -- QuickCheck property expressions                                           --
