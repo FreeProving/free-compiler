@@ -34,7 +34,7 @@ variables:
     - mkdir "$DEPLOY_DIR"
   after_script:
     - ssh $SERVER "mkdir -p $TARGET_DIR"
-    - scp -r $DEPLOY_DIR/. $SERVER:$TARGET_DIR
+    - scp -r $DEPLOY_DIR/* $SERVER:$TARGET_DIR
   environment:
     name: $CI_COMMIT_REF_NAME
     url: https://${SSH_DEPLOY_HOST}/${CI_COMMIT_REF_SLUG}
