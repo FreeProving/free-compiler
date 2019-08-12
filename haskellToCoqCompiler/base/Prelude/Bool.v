@@ -18,14 +18,10 @@ Section SecBool.
 
   (* conjunction *)
   Definition andBool (b1 : Free' Bool') (b2 : Free' Bool') : Free' Bool' :=
-    b1 >>= fun(b1' : Bool') =>
-      b2 >>= fun(b2' : Bool') =>
-        pure (andb b1' b2').
+    b1 >>= fun(b1' : Bool') => if b1' then b2 else False_.
 
   (* disjunction *)
   Definition orBool (b1 : Free' Bool') (b2 : Free' Bool') : Free' Bool' :=
-    b1 >>= fun(b1' : Bool') =>
-      b2 >>= fun(b2' : Bool') =>
-        pure (orb b1' b2').
+    b1 >>= fun(b1' : Bool') => if b1' then True_ else b2.
 
 End SecBool.
