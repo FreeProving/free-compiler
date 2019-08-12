@@ -64,7 +64,7 @@ convertDecls decls = do
   return
     (  typeDecls'
     ++ funcDecls'
-    ++ [G.comment "QuickCheck properties"]
+    ++ [G.comment "QuickCheck properties" | not (null properties')]
     ++ properties'
     )
  where
