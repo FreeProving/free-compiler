@@ -1,17 +1,18 @@
 From Base Require Import Free Prelude.
-From Examples Require ExampleQueue.
-Import ExampleQueue.ExampleQueue.
 
 Require Import Coq.Logic.FunctionalExtensionality.
 Require Import Coq.Program.Equality.
 
+From Examples Require Import ExampleQueue.
+Import ExampleQueue.ExampleQueue.
+
 (* TODO: Can we generate generate total_* properties? *)
 
-Inductive total_list (Shape : Type) (Pos : Shape -> Type) {a : Type} 
+Inductive total_list (Shape : Type) (Pos : Shape -> Type) {a : Type}
     (total_a : Free Shape Pos a -> Prop)
   : Free Shape Pos (List Shape Pos a) -> Prop :=
   | total_nil : total_list Shape Pos total_a (pure nil)
-  | total_cons : forall (fx : Free Shape Pos a) 
+  | total_cons : forall (fx : Free Shape Pos a)
                         (fxs : Free Shape Pos (List Shape Pos a)),
                  total_a fx
                  -> total_list Shape Pos total_a fxs
@@ -23,7 +24,7 @@ Inductive total_pair (Shape : Type) (Pos : Shape -> Type) {a : Type} {b : Type}
   : Free Shape Pos (Pair Shape Pos a b) -> Prop :=
   | total_pair_ : forall (fx : Free Shape Pos a)
                          (fy : Free Shape Pos b),
-                  total_a fx 
+                  total_a fx
                   -> total_b fy
                   -> total_pair Shape Pos total_a total_b (Pair_ Shape Pos fx fy).
 
@@ -75,7 +76,7 @@ Lemma null_rev :
 Proof.
   intros Shape Pos a fxs Hnull.
   destruct fxs as [ xs |  ].
-  - (* fxs = pure xs *) 
+  - (* fxs = pure xs *)
     destruct xs.
     + (* xs = nil *) trivial.
     + (* xs = cons _ _ *) discriminate Hnull.
@@ -83,11 +84,11 @@ Proof.
     discriminate Hnull.
 Qed.
 
-Lemma append_nil: 
+Lemma append_nil:
   forall (Shape : Type)
          (Pos : Shape -> Type)
          (a : Type)
-         (fxs : Free Shape Pos (List Shape Pos a)), 
+         (fxs : Free Shape Pos (List Shape Pos a)),
   append Shape Pos fxs (pure nil) = fxs.
 Proof.
   intros Shape Pos a fxs.
@@ -98,13 +99,13 @@ Proof.
   - repeat apply f_equal. extensionality p. apply H.
 Qed.
 
-Lemma append_0_assoc : 
+Lemma append_0_assoc :
   forall (Shape : Type)
          (Pos : Shape -> Type)
          {a : Type}
-         (xs : List Shape Pos a) 
+         (xs : List Shape Pos a)
          (fys fzs : Free Shape Pos (List Shape Pos a)),
-      append_0 Shape Pos xs (append Shape Pos fys fzs) 
+      append_0 Shape Pos xs (append Shape Pos fys fzs)
       = append Shape Pos (append_0 Shape Pos xs fys) fzs.
 Proof.
   intros Shape Pos a xs fys fzs.
@@ -117,12 +118,12 @@ Proof.
       simplify H as IH. apply IH.
 Qed.
 
-Lemma append_assoc : 
+Lemma append_assoc :
   forall (Shape : Type)
          (Pos : Shape -> Type)
          {a : Type}
          (fxs fys fzs : Free Shape Pos (List Shape Pos a)),
-    append Shape Pos fxs (append Shape Pos fys fzs) 
+    append Shape Pos fxs (append Shape Pos fys fzs)
     = append Shape Pos (append Shape Pos fxs fys) fzs.
 Proof.
   intros Shape Pos a fxs fys fzs.
@@ -202,7 +203,7 @@ Proof.
       destruct Hinv as [Hnull | Hcontra].
       -- (* null Shape Pos fys *)
          apply f_equal, functional_extensionality. intros x.
-         apply null_rev in Hnull. 
+         apply null_rev in Hnull.
          destruct (reverse Shape Pos fys) as [[| y ys'] |].
          ++ (* reverse Shape Pos fys = Nil Shape Pos *)
             rewrite append_nil. unfold isEmpty. reflexivity.
@@ -216,14 +217,14 @@ Proof.
     simpl in Hinv. discriminate Hinv.
 Qed.
 
-Theorem prop_add : 
+Theorem prop_add :
   forall
     (Shape : Type)
     (Pos : Shape -> Type)
     {a : Type}
     (x : Free Shape Pos a)
     (qi : Free Shape Pos (QueueI Shape Pos a)),
-  toQueue Shape Pos (addI Shape Pos x qi) 
+  toQueue Shape Pos (addI Shape Pos x qi)
   = add Shape Pos x (toQueue Shape Pos qi).
 Proof.
   intros Shape Pos a fx fqi.
@@ -247,7 +248,7 @@ Proof.
 Qed.
 
 (* Version of prop_add if we would generate totality constraints automatically. *)
-Theorem prop_add' : 
+Theorem prop_add' :
   forall
     (Shape : Type)
     (Pos : Shape -> Type)
@@ -256,7 +257,7 @@ Theorem prop_add' :
     (qi : Free Shape Pos (QueueI Shape Pos a)),
   total_a x
   -> total_queue Shape Pos total_a qi
-  -> toQueue Shape Pos (addI Shape Pos x qi) 
+  -> toQueue Shape Pos (addI Shape Pos x qi)
      = add Shape Pos x (toQueue Shape Pos qi).
 Proof.
   intros Shape Pos a total_a fx fqi HtotalX HtotalQ.
@@ -280,17 +281,17 @@ Proof.
     inversion HtotalQ.
 Qed.
 
-Theorem prop_front : 
+Theorem prop_front :
   forall (Shape : Type)
          (Pos : Shape -> Type)
          (P : Partial Shape Pos)
          {a : Type} (total_a : Free Shape Pos a -> Prop)
          (qi : Free Shape Pos (QueueI Shape Pos a)),
   total_queue Shape Pos total_a qi
-  -> (andBool Shape Pos 
-        (invariant Shape Pos qi) 
-        (not Shape Pos (isEmptyI Shape Pos qi)) 
-      = True_ Shape Pos) 
+  -> (andBool Shape Pos
+        (invariant Shape Pos qi)
+        (not Shape Pos (isEmptyI Shape Pos qi))
+      = True_ Shape Pos)
   -> (frontI Shape Pos P qi = front Shape Pos P (toQueue Shape Pos qi)).
 Proof.
   intros Shape Pos P a total_a fqi Htotal HinvNempty.
@@ -298,7 +299,7 @@ Proof.
   destruct HinvNempty as [Hinv Hnempty].
   destruct Htotal as [ff fb Htotal1 Htotal2]. (* fqi = pure (ff, fb) *)
   destruct ff as [f |].
-    + (* ff = pure f *) 
+    + (* ff = pure f *)
       destruct f.
       * (* f = nil *) discriminate Hnempty.
       * (* f = cons _ _ *) simpl. reflexivity.
