@@ -29,7 +29,6 @@
 
 module Compiler.Analysis.DependencyGraph
   ( DGKey
-  , DGNode
   , DGEntry
   , DependencyGraph(..)
   , errorKey
@@ -56,17 +55,14 @@ import           Compiler.Pretty
 --   We use the Haskell identifiers and symbols to identify the nodes.
 type DGKey = HS.Name
 
--- | The nodes of the dependency graph are Haskell declaraions.
-type DGNode = HS.Decl
-
 -- | Every node (declaration) in a dependency graph is associated with a
 --   unique key (Haskell identifier) and a list of keys that identify the
 --   nodes this node depends on (adjacency list).
-type DGEntry = (DGNode, DGKey, [DGKey])
+type DGEntry node = (node, DGKey, [DGKey])
 
 -- | A dependency graph is a directed graph whose nodes are Haskell
---   declarations (See 'DGNode'). There is an edge from node @A@ to
---   node @B@ if the declaration of @A@ depends on @B@.
+--   declarations (Usually 'HS.TypeDecl' or 'HS.FuncDecl'). There is an edge
+--   from node @A@ to node @B@ if the declaration of @A@ depends on @B@.
 --
 --   Nodes are identified by their Haskell identifier (See 'DGKey').
 --   Internally nodes are identified by a number (See 'Vertex').
@@ -74,11 +70,11 @@ type DGEntry = (DGNode, DGKey, [DGKey])
 --   In addition to the actual 'Graph' that stores the adjacency matrix
 --   of the internal identifiers, this tuple contains functions to convert
 --   between the internal and high level representation.
-data DependencyGraph =
+data DependencyGraph node =
   DependencyGraph
-    Graph                   -- ^ The actual graph.
-    (Vertex -> DGEntry)     -- ^ Gets an entry for a vertex of the graph.
-    (DGKey -> Maybe Vertex) -- ^ Gets the vertex of the node with the given key.
+    Graph                    -- ^ The actual graph.
+    (Vertex -> DGEntry node) -- ^ Gets an entry for a vertex of the graph.
+    (DGKey -> Maybe Vertex)  -- ^ Gets the vertex of a node with the given key.
 
 -------------------------------------------------------------------------------
 -- Special keys                                                              --
@@ -98,7 +94,7 @@ undefinedKey = HS.Ident "undefined"
 -------------------------------------------------------------------------------
 
 -- | Gets the entries of the given dependency graph.
-entries :: DependencyGraph -> [DGEntry]
+entries :: DependencyGraph node -> [DGEntry node]
 entries (DependencyGraph graph getEntry _) = map getEntry (vertices graph)
 
 -------------------------------------------------------------------------------
@@ -109,21 +105,17 @@ entries (DependencyGraph graph getEntry _) = map getEntry (vertices graph)
 --   declarations.
 --
 --   If the given list contains other kinds of declarations, they are ignored.
-typeDependencyGraph :: [HS.Decl] -> DependencyGraph
+typeDependencyGraph :: [HS.TypeDecl] -> DependencyGraph HS.TypeDecl
 typeDependencyGraph =
-  uncurry3 DependencyGraph . graphFromEdges . catMaybes . map typeDeclEntries
+  uncurry3 DependencyGraph . graphFromEdges . map typeDeclEntries
 
 -- | Creates an entry of the dependency graph for the given data type or type
 --   synonym declaration.
---
---   Returns @Nothing@ if the given declaration is not a data type or type
---   synonym declaration.
-typeDeclEntries :: HS.Decl -> Maybe DGEntry
-typeDeclEntries decl@(HS.TypeDecl _ (HS.DeclIdent _ ident) _ _) =
-  Just (decl, HS.Ident ident, typeDeclDependencies decl)
+typeDeclEntries :: HS.TypeDecl -> DGEntry HS.TypeDecl
+typeDeclEntries decl@(HS.TypeSynDecl _ (HS.DeclIdent _ ident) _ _) =
+  (decl, HS.Ident ident, typeDeclDependencies decl)
 typeDeclEntries decl@(HS.DataDecl _ (HS.DeclIdent _ ident) _ _) =
-  Just (decl, HS.Ident ident, typeDeclDependencies decl)
-typeDeclEntries _ = Nothing
+  (decl, HS.Ident ident, typeDeclDependencies decl)
 
 -------------------------------------------------------------------------------
 -- Function dependencies                                                     --
@@ -132,23 +124,22 @@ typeDeclEntries _ = Nothing
 -- | Creates the dependency graph for a list of function declarations.
 --
 --   If the given list contains other kinds of declarations, they are ignored.
-funcDependencyGraph :: [HS.Decl] -> DependencyGraph
+funcDependencyGraph :: [HS.FuncDecl] -> DependencyGraph HS.FuncDecl
 funcDependencyGraph =
-  uncurry3 DependencyGraph . graphFromEdges . catMaybes . map funcDeclEntries
+  uncurry3 DependencyGraph . graphFromEdges . map funcDeclEntries
 
 -- | Creates an entry of the dependency graph for the given function
 --   declaration or pattern binding.
-funcDeclEntries :: HS.Decl -> Maybe DGEntry
+funcDeclEntries :: HS.FuncDecl -> DGEntry HS.FuncDecl
 funcDeclEntries decl@(HS.FuncDecl _ (HS.DeclIdent _ ident) _ _) =
-  Just (decl, HS.Ident ident, funcDeclDependencies decl)
-funcDeclEntries _ = Nothing
+  (decl, HS.Ident ident, funcDeclDependencies decl)
 
 -------------------------------------------------------------------------------
 -- Pretty print dependency graph                                             --
 -------------------------------------------------------------------------------
 
 -- | Pretty instance that converts a dependency graph to the DOT format.
-instance Pretty DependencyGraph where
+instance Pretty (DependencyGraph node) where
   pretty (DependencyGraph graph getEntry getVertex) =
     digraph
       <+> braces (line <> indent 2 (vcat (nodeDocs ++ edgesDocs)) <> line)

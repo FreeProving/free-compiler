@@ -13,7 +13,7 @@ testRecursionAnalysis = describe "Compiler.Analysis.RecursionAnalysis" $ do
     $ shouldReportFatal
     $ fromConverter
     $ do
-        decls <- parseTestDecls
+        (_, _, funcDecls) <- parseTestDecls
           [ -- data Rose a = Rose [Rose a] a
             -- mapRose :: (a -> b) -> Rose a -> Rose b
             unlines
@@ -22,13 +22,13 @@ testRecursionAnalysis = describe "Compiler.Analysis.RecursionAnalysis" $ do
               , "    (Rose rs x) -> Rose (map (mapRose f) rs) (f x)"
               ]
           ]
-        identifyDecArgs decls
+        identifyDecArgs funcDecls
 
   it "cannot guess decreasing argument if the argument is not a variable"
     $ shouldReportFatal
     $ fromConverter
     $ do
-        decls <- parseTestDecls
+        (_, _, funcDecls) <- parseTestDecls
           [ -- qsort :: [a] -> [a]
             unlines
               [ "qsort xs = case xs of"
@@ -39,23 +39,23 @@ testRecursionAnalysis = describe "Compiler.Analysis.RecursionAnalysis" $ do
               , "      `append` (qsort (filter (> x) xs))              "
               ]
           ]
-        identifyDecArgs decls
+        identifyDecArgs funcDecls
 
   it "identifies the decreasing argument of simple recursive functions"
     $ shouldSucceed
     $ fromConverter
     $ do
-        decls <- parseTestDecls
+        (_, _, funcDecls) <- parseTestDecls
           [ -- map :: (a -> b) -> [a] -> [b]
            "map f xs = case xs of {[] -> []; x : xs' -> f x : map f xs'}"]
-        decArgIndecies <- identifyDecArgs decls
+        decArgIndecies <- identifyDecArgs funcDecls
         return (decArgIndecies `shouldBe` [1])
 
   it "identifies the decreasing argument if there are nested case expressions"
     $ shouldSucceed
     $ fromConverter
     $ do
-        decls <- parseTestDecls
+        (_, _, funcDecls) <- parseTestDecls
           [ -- isSubsequenceOf :: [Int] -> [Int] -> Bool
             unlines
               [ "isSubsequenceOf xs ys = case xs of"
@@ -67,14 +67,14 @@ testRecursionAnalysis = describe "Compiler.Analysis.RecursionAnalysis" $ do
               , "      else isSubsequenceOf xs ys'"
               ]
           ]
-        decArgIndecies <- identifyDecArgs decls
+        decArgIndecies <- identifyDecArgs funcDecls
         return (decArgIndecies `shouldBe` [1])
 
   it "allows arbitrarily deep subterms of decreasing argument in recursive call"
     $ shouldSucceed
     $ fromConverter
     $ do
-        decls <- parseTestDecls
+        (_, _, funcDecls) <- parseTestDecls
           [ -- data Nat = O | S Nat
             -- mod2 :: Nat -> Nat
             unlines
@@ -85,5 +85,5 @@ testRecursionAnalysis = describe "Compiler.Analysis.RecursionAnalysis" $ do
               , "    S q -> mod2 q"
               ]
           ]
-        decArgIndecies <- identifyDecArgs decls
+        decArgIndecies <- identifyDecArgs funcDecls
         return (decArgIndecies `shouldBe` [0])

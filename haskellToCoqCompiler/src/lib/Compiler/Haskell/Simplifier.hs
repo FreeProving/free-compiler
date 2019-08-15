@@ -14,15 +14,15 @@
 module Compiler.Haskell.Simplifier
   ( Simplifier
   , simplifyModule
-  , simplifyDecl
+  , simplifyDecls
   , simplifyType
   , simplifyExpr
   )
 where
 
 import           Control.Monad                  ( when )
-import           Data.Maybe                     ( catMaybes
-                                                , fromJust
+import           Data.List.Extra                ( concatUnzip3 )
+import           Data.Maybe                     ( fromJust
                                                 , isJust
                                                 )
 
@@ -99,10 +99,19 @@ simplifyModule :: H.Module SrcSpan -> Simplifier HS.Module
 simplifyModule (H.Module srcSpan modHead pragmas imports decls)
   | not (null pragmas) = notSupported "Module pragmas" (head pragmas)
   | otherwise = do
-    modIdent <- mapM simplifyModuleHead modHead
-    imports' <- mapM simplifyImport imports
-    decls'   <- mapM simplifyDecl decls
-    return (HS.Module srcSpan modIdent (imports' ++ catMaybes decls'))
+    modIdent                            <- mapM simplifyModuleHead modHead
+    imports'                            <- mapM simplifyImport imports
+    (typeDecls', typeSigs', funcDecls') <- simplifyDecls decls
+    return
+      (HS.Module
+        { HS.modSrcSpan   = srcSpan
+        , HS.modName      = modIdent
+        , HS.modImports   = imports'
+        , HS.modTypeDecls = typeDecls'
+        , HS.modTypeSigs  = typeSigs'
+        , HS.modFuncDecls = funcDecls'
+        }
+      )
 simplifyModule modDecl = notSupported "XML modules" modDecl
 
 -- | Gets the module name from the module head.
@@ -116,7 +125,7 @@ simplifyModuleHead (H.ModuleHead _ (H.ModuleName _ modIdent) _ exports) = do
   return modIdent
 
 -- | Gets the name of the module imported by the given import declaration.
-simplifyImport :: H.ImportDecl SrcSpan -> Simplifier HS.Decl
+simplifyImport :: H.ImportDecl SrcSpan -> Simplifier HS.ImportDecl
 simplifyImport decl
   | H.importQualified decl = notSupported "Quallified imports" decl
   | H.importSrc decl = notSupported "Mutually recursive modules" decl
@@ -133,25 +142,34 @@ simplifyImport decl
 -- Declarations                                                              --
 -------------------------------------------------------------------------------
 
+-- | Simplifies the given declarations.
+simplifyDecls
+  :: [H.Decl SrcSpan] -> Simplifier ([HS.TypeDecl], [HS.TypeSig], [HS.FuncDecl])
+simplifyDecls decls = do
+  decls' <- mapM simplifyDecl decls
+  return (concatUnzip3 decls')
+
 -- | Simplifies a declaration.
 --
 --   Only data type, type synonym, function declarations (including pattern
 --   bindings for 0-ary functions) and type signatures are supported.
---   Fixity signatures are allowed but will return @Nothing@.
-simplifyDecl :: H.Decl SrcSpan -> Simplifier (Maybe HS.Decl)
+--   Fixity signatures are allowed but don't have a corresponding node in
+--   the AST.
+simplifyDecl
+  :: H.Decl SrcSpan -> Simplifier ([HS.TypeDecl], [HS.TypeSig], [HS.FuncDecl])
 
 -- Type synonym declarations.
 simplifyDecl (H.TypeDecl srcSpan declHead typeExpr) = do
   (declIdent, typeVars) <- simplifyDeclHead declHead
   typeExpr'             <- simplifyType typeExpr
-  return (Just (HS.TypeDecl srcSpan declIdent typeVars typeExpr'))
+  return ([HS.TypeSynDecl srcSpan declIdent typeVars typeExpr'], [], [])
 
 -- Data type declarations.
 simplifyDecl (H.DataDecl srcSpan (H.DataType _) Nothing declHead conDecls []) =
   do
     (declIdent, typeVars) <- simplifyDeclHead declHead
     conDecls'             <- mapM simplifyConDecl conDecls
-    return (Just (HS.DataDecl srcSpan declIdent typeVars conDecls'))
+    return ([HS.DataDecl srcSpan declIdent typeVars conDecls'], [], [])
 
 -- Not supported data declarations.
 simplifyDecl decl@(H.DataDecl _ (H.NewType _) _ _ _ _) =
@@ -162,7 +180,9 @@ simplifyDecl decl@(H.DataDecl _ _ _ _ _ (_ : _)) =
   notSupported "Type classes" decl
 
 -- Function declarations.
-simplifyDecl (H.FunBind _ [match]) = simplifyFuncDecl match >>= return . Just
+simplifyDecl (H.FunBind _ [match]) = do
+  funcDecl <- simplifyFuncDecl match
+  return ([], [], [funcDecl])
 
 -- Function declarations with more than one rule are not supported.
 simplifyDecl decl@(H.FunBind _ _) =
@@ -173,9 +193,9 @@ simplifyDecl (H.PatBind srcSpan (H.PVar _ declName) (H.UnGuardedRhs _ expr) Noth
   = do
     declIdent <- simplifyFuncDeclName declName
     expr'     <- simplifyExpr expr
-    return (Just (HS.FuncDecl srcSpan declIdent [] expr'))
+    return ([], [], [HS.FuncDecl srcSpan declIdent [] expr'])
 
--- The pattern-binding for a 0-ary function must not use guards are have a
+-- The pattern-binding for a 0-ary function must not use guards or have a
 -- where block.
 simplifyDecl (H.PatBind _ (H.PVar _ _) rhss@(H.GuardedRhss _ _) _) = do
   notSupported "Guards" rhss
@@ -190,12 +210,12 @@ simplifyDecl decl@(H.PatBind _ _ _ _) =
 simplifyDecl (H.TypeSig srcSpan names typeExpr) = do
   names'    <- mapM simplifyFuncDeclName names
   typeExpr' <- simplifyType typeExpr
-  return (Just (HS.TypeSig srcSpan names' typeExpr'))
+  return ([], [HS.TypeSig srcSpan names' typeExpr'], [])
 
 -- The user is allowed to specify fixities of custom infix declarations
 -- and they are respected by the haskell-src-exts parser, but we do not
 -- represent them in the AST.
-simplifyDecl (     H.InfixDecl   _ _ _ _) = return Nothing
+simplifyDecl (     H.InfixDecl   _ _ _ _) = return ([], [], [])
 
 -- All other declarations are not supported.
 simplifyDecl decl@(H.TypeFamDecl _ _ _ _) = notSupported "Type families" decl
@@ -318,7 +338,7 @@ simplifyConDeclName sym@(H.Symbol _ _) =
 -------------------------------------------------------------------------------
 
 -- | Simplifies the single rule of a function declaration.
-simplifyFuncDecl :: H.Match SrcSpan -> Simplifier HS.Decl
+simplifyFuncDecl :: H.Match SrcSpan -> Simplifier HS.FuncDecl
 simplifyFuncDecl (H.Match srcSpan declName args (H.UnGuardedRhs _ expr) Nothing)
   = do
     declIdent       <- simplifyFuncDeclName declName

@@ -36,14 +36,13 @@ importAndEnableQuickCheck = do
 -------------------------------------------------------------------------------
 
 -- | Tests whether the given declaration is a QuickCheck property.
-isQuickCheckProperty :: HS.Decl -> Bool
+isQuickCheckProperty :: HS.FuncDecl -> Bool
 isQuickCheckProperty (HS.FuncDecl _ (HS.DeclIdent _ ident) _ _) =
   "prop_" `isPrefixOf` ident
-isQuickCheckProperty _ = False
 
 -- | Tests whether the given strongly connected component of the function
 --   dependency graph contains a QuickCheck property.
-containsQuickCheckProperty :: DependencyComponent -> Bool
+containsQuickCheckProperty :: DependencyComponent HS.FuncDecl -> Bool
 containsQuickCheckProperty (NonRecursive decl ) = isQuickCheckProperty decl
 containsQuickCheckProperty (Recursive    decls) = any isQuickCheckProperty decls
 
@@ -54,16 +53,17 @@ containsQuickCheckProperty (Recursive    decls) = any isQuickCheckProperty decls
 --   Reports a fatal error message if there is there is a (mutually) recursive
 --   QuickCheck property in one of the components.
 filterQuickCheckProperties
-  :: [DependencyComponent] -> Converter ([HS.Decl], [DependencyComponent])
+  :: [DependencyComponent HS.FuncDecl]
+  -> Converter ([HS.FuncDecl], [DependencyComponent HS.FuncDecl])
 filterQuickCheckProperties components = do
   quickCheckIsEnabled <- inEnv isQuickCheckEnabled
   if not quickCheckIsEnabled
     then return ([], components)
     else do
-      quickCheckProperties <- mapM fromDependencyComponent quickCheckComponents
+      quickCheckProperties <- mapM fromNonRecursive quickCheckComponents
       return (quickCheckProperties, otherComponents)
  where
-  quickCheckComponents, otherComponents :: [DependencyComponent]
+  quickCheckComponents, otherComponents :: [DependencyComponent HS.FuncDecl]
   (quickCheckComponents, otherComponents) =
     partition containsQuickCheckProperty components
 
@@ -72,21 +72,23 @@ filterQuickCheckProperties components = do
   --
   --   Reports a fatal error message, if the given component contains
   --   recursive function declarations.
-  fromDependencyComponent :: DependencyComponent -> Converter HS.Decl
-  fromDependencyComponent (NonRecursive decl ) = return decl
-  fromDependencyComponent (Recursive    decls) = do
+  fromNonRecursive :: DependencyComponent HS.FuncDecl -> Converter HS.FuncDecl
+  fromNonRecursive (NonRecursive decl ) = return decl
+  fromNonRecursive (Recursive    decls) = do
     let (Just property) = find isQuickCheckProperty decls
     reportFatal
-      $ Message (HS.getSrcSpan property) Error
-      $ "QuickCheck properties must not be recursive."
+      $  Message (HS.getSrcSpan property) Error
+      $  "QuickCheck properties must not be recursive. "
+      ++ "Found (mutually) recursive function declarations: "
+      ++ HS.prettyDeclIdents decls
 
 -------------------------------------------------------------------------------
 -- Convert QuickCheck property declarations                                  --
 -------------------------------------------------------------------------------
 
 -- | Converts the given QuickCheck property to a Coq @Theorem@ with an
---   empty @Proof@.
-convertQuickCheckProperty :: HS.Decl -> Converter [G.Sentence]
+--   empty @Proof@ (or the proof configured in the `.proofs.toml` file).
+convertQuickCheckProperty :: HS.FuncDecl -> Converter [G.Sentence]
 convertQuickCheckProperty decl@(HS.FuncDecl _ declIdent args expr) = do
   defineFuncDecl decl
   localEnv $ do

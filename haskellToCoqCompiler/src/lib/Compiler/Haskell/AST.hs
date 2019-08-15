@@ -10,7 +10,6 @@
 --   directly.
 module Compiler.Haskell.AST where
 
-import           Data.Maybe                     ( catMaybes )
 import           Data.List                      ( intercalate )
 
 import           Compiler.Haskell.SrcSpan
@@ -87,16 +86,38 @@ data VarPat = VarPat SrcSpan String
 --
 --   If the module has no module header, the module name is @'Nothing'@.
 data Module = Module
-  SrcSpan             -- ^ A source span that spans the entire module.
-  (Maybe ModuleIdent) -- ^ Optional name of the module.
-  [Decl]              -- ^ The declarations.
+  { modSrcSpan   :: SrcSpan
+  , modName      :: Maybe ModuleIdent
+  , modImports   :: [ImportDecl]
+  , modTypeDecls :: [TypeDecl]
+  , modTypeSigs  :: [TypeSig]
+  , modFuncDecls :: [FuncDecl]
+  }
   deriving (Eq, Show)
 
 -------------------------------------------------------------------------------
 -- Declarations                                                              --
 -------------------------------------------------------------------------------
 
--- | A Haskell declaration.
+-- | An import declaration.
+data ImportDecl = ImportDecl SrcSpan ModuleIdent
+  deriving (Eq, Show)
+
+-- | A data type or type synonym declaration.
+--
+--   While it is allowed to define constructors in infix notation, data type
+--   and type synonym declarations must not be in infix notation. This is
+--   because the @TypeOperators@ language extension is not supported.
+data TypeDecl =
+    DataDecl SrcSpan DeclIdent [TypeVarDecl] [ConDecl]
+  | TypeSynDecl SrcSpan DeclIdent [TypeVarDecl] Type
+  deriving (Eq, Show)
+
+-- | A type signature of one or more function declarations.
+data TypeSig = TypeSig SrcSpan [DeclIdent] Type
+  deriving (Eq, Show)
+
+-- | A function declaration.
 --
 --   Even though there is not a separate constructor, it is allowed to define
 --   functions in infix notation e.g.:
@@ -120,21 +141,7 @@ data Module = Module
 --   @
 --     infixr 5 \`append\`
 --   @
---
---   While it is allowed to define constructors in infix notation, data type
---   and type synonym declarations must not be in infix notation. This is
---   because the @TypeOperators@ language extension is not supported.
-data Decl
-  = DataDecl SrcSpan DeclIdent [TypeVarDecl] [ConDecl]
-    -- ^ A data type declaration.
-  | TypeDecl SrcSpan DeclIdent [TypeVarDecl] Type
-    -- ^ A type synonym declaration.
-  | FuncDecl SrcSpan DeclIdent [VarPat] Expr
-    -- ^ A function declaration.
-  | TypeSig SrcSpan [DeclIdent] Type
-    -- ^ A type signature of one or more function declarations.
-  | ImportDecl SrcSpan ModuleIdent
-    -- ^ An import declaration.
+data FuncDecl = FuncDecl SrcSpan DeclIdent [VarPat] Expr
   deriving (Eq, Show)
 
 -- | A constructor declaration.
@@ -231,19 +238,28 @@ splitType (TypeFunc _ t1 t2) arity | arity > 0 =
   in  (Just t1 : argTypes, returnType)
 splitType funcType _ = ([], Just funcType)
 
--- | Gets the name of the given declaration.
-declIdent :: Decl -> Maybe DeclIdent
-declIdent (DataDecl _ x _ _) = Just x
-declIdent (TypeDecl _ x _ _) = Just x
-declIdent (FuncDecl _ x _ _) = Just x
-declIdent (TypeSig _ _ _   ) = Nothing
-declIdent (ImportDecl _ _  ) = Nothing
+-------------------------------------------------------------------------------
+-- Declaration identifier getters                                            --
+-------------------------------------------------------------------------------
+
+-- | This type class provides a getter for the name of declarations of
+--   type @decl@.
+class GetDeclIdent decl where
+  getDeclIdent :: decl -> DeclIdent
+
+-- | 'GetDeclIdent' instance for data type and type synonym declarations.
+instance GetDeclIdent TypeDecl where
+  getDeclIdent (DataDecl    _ declIdent _ _) = declIdent
+  getDeclIdent (TypeSynDecl _ declIdent _ _) = declIdent
+
+-- | 'GetDeclIdent' instance for function declarations.
+instance GetDeclIdent FuncDecl where
+  getDeclIdent (FuncDecl _ declIdent _ _) = declIdent
 
 -- | Gets the names of the given declarations and concatenates them with
 --   commas.
-prettyDeclIdents :: [Decl] -> String
-prettyDeclIdents =
-  intercalate ", " . map fromDeclIdent . catMaybes . map declIdent
+prettyDeclIdents :: GetDeclIdent decl => [decl] -> String
+prettyDeclIdents = intercalate ", " . map fromDeclIdent . map getDeclIdent
 
 -------------------------------------------------------------------------------
 -- Source span getters                                                       --
@@ -269,15 +285,21 @@ instance GetSrcSpan ConPat where
 
 -- | 'GetSrcSpan' instance for modules.
 instance GetSrcSpan Module where
-  getSrcSpan (Module srcSpan _ _) = srcSpan
+  getSrcSpan = modSrcSpan
 
--- | 'GetSrcSpan' instance for top-level declarations.
-instance GetSrcSpan Decl where
-  getSrcSpan (DataDecl   srcSpan _ _ _) = srcSpan
-  getSrcSpan (TypeDecl   srcSpan _ _ _) = srcSpan
-  getSrcSpan (FuncDecl   srcSpan _ _ _) = srcSpan
-  getSrcSpan (TypeSig    srcSpan _ _  ) = srcSpan
-  getSrcSpan (ImportDecl srcSpan _    ) = srcSpan
+-- | 'GetSrcSpan' instance for data type and type synonym declarations.
+instance GetSrcSpan TypeDecl where
+  getSrcSpan (DataDecl srcSpan _ _ _) = srcSpan
+  getSrcSpan (TypeSynDecl srcSpan _ _ _) = srcSpan
+
+instance GetSrcSpan FuncDecl where
+  getSrcSpan (FuncDecl srcSpan _ _ _) = srcSpan
+
+instance GetSrcSpan TypeSig where
+  getSrcSpan (TypeSig srcSpan _ _  ) = srcSpan
+
+instance GetSrcSpan ImportDecl where
+  getSrcSpan (ImportDecl srcSpan _) = srcSpan
 
 -- | 'GetSrcSpan' instance for constructor declarations.
 instance GetSrcSpan ConDecl where

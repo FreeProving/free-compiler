@@ -27,8 +27,7 @@ import           Compiler.Monad.Reporter
 -- | Converts a Haskell module to a Gallina module sentence and adds
 --   import sentences for the Coq Base library that accompanies the compiler.
 convertModuleWithPreamble :: HS.Module -> Converter [G.Sentence]
-convertModuleWithPreamble ast@(HS.Module _ _ decls) = do
-  mapM_ convertImportDecl decls
+convertModuleWithPreamble ast = do
   coqAst <- convertModule ast
   return [CoqBase.imports, coqAst]
 
@@ -36,45 +35,56 @@ convertModuleWithPreamble ast@(HS.Module _ _ decls) = do
 --
 --   If no module header is present the generated module is called @"Main"@.
 convertModule :: HS.Module -> Converter G.Sentence
-convertModule (HS.Module _ maybeIdent decls) = do
-  let ident' = G.ident (maybe "Main" id maybeIdent)
-  decls' <- convertDecls decls
+convertModule ast = do
+  let ident' = G.ident $ maybe "Main" id $ HS.modName ast
+  mapM_ convertImportDecl (HS.modImports ast)
+  decls' <- convertDecls (HS.modTypeDecls ast)
+                         (HS.modTypeSigs ast)
+                         (HS.modFuncDecls ast)
   return (G.LocalModuleSentence (G.LocalModule ident' decls'))
 
 -------------------------------------------------------------------------------
 -- Declarations                                                              --
 -------------------------------------------------------------------------------
 
--- | Converts the declarations from a Haskell module to Coq.
-convertDecls :: [HS.Decl] -> Converter [G.Sentence]
-convertDecls decls = do
-  -- Convert data type and type synonym declarations.
-  typeDecls'             <- concatMapM convertTypeComponent typeComponents
+-- | Converts the given declarations of a Haskell module.
+convertDecls
+  :: [HS.TypeDecl] -> [HS.TypeSig] -> [HS.FuncDecl] -> Converter [G.Sentence]
+convertDecls typeDecls typeSigs funcDecls = do
+  typeDecls' <- convertTypeDecls typeDecls
+  mapM_ defineTypeSigDecl typeSigs
+  funcDecls' <- convertFuncDecls funcDecls
+  return (typeDecls' ++ funcDecls')
+
+-- | Converts the given data type or type synonym declarations.
+convertTypeDecls :: [HS.TypeDecl] -> Converter [G.Sentence]
+convertTypeDecls typeDecls = do
+  let dependencyGraph = typeDependencyGraph typeDecls
+      components      = groupDependencies dependencyGraph
+  concatMapM convertTypeComponent components
+
+-- | Converts the given function declarations.
+convertFuncDecls :: [HS.FuncDecl] -> Converter [G.Sentence]
+convertFuncDecls funcDecls = do
+  let dependencyGraph = funcDependencyGraph funcDecls
+      components      = groupDependencies dependencyGraph
+
   -- Identify and remember partial functions.
-  predefinedPartialFuncs <- inEnv partialFuncs >>= return . Set.toList
+  predefinedPartialFuncs <- inEnv envPartialFuncs >>= return . Set.toList
   mapM_ (modifyEnv . definePartial)
-        (identifyPartialFuncs predefinedPartialFuncs funcGraph)
-  -- Remember type signatures.
-  mapM_ filterAndDefineTypeSig decls
+        (identifyPartialFuncs predefinedPartialFuncs dependencyGraph)
+
   -- Filter QuickCheck properties.
-  (properties, funcComponents') <- filterQuickCheckProperties funcComponents
+  (properties, funcComponents) <- filterQuickCheckProperties components
+
   -- Convert function declarations and QuickCheck properties.
-  funcDecls' <- concatMapM convertFuncComponent funcComponents'
+  funcDecls' <- concatMapM convertFuncComponent funcComponents
   properties' <- concatMapM convertQuickCheckProperty properties
   return
-    (  typeDecls'
-    ++ funcDecls'
-    ++ [G.comment "QuickCheck properties" | not (null properties')]
+    (  funcDecls'
+    ++ [ G.comment "QuickCheck properties" | not (null properties') ]
     ++ properties'
     )
- where
-  typeGraph, funcGraph :: DependencyGraph
-  typeGraph = typeDependencyGraph decls
-  funcGraph = funcDependencyGraph decls
-
-  typeComponents, funcComponents :: [DependencyComponent]
-  typeComponents = groupDependencies typeGraph
-  funcComponents = groupDependencies funcGraph
 
 -------------------------------------------------------------------------------
 -- Import declarations                                                       --
@@ -84,7 +94,7 @@ convertDecls decls = do
 --
 --   Currently only the import of @Test.QuickCheck@ is allowed. It enables
 --   support for the translation of QuickCheck properties.
-convertImportDecl :: HS.Decl -> Converter ()
+convertImportDecl :: HS.ImportDecl -> Converter ()
 convertImportDecl (HS.ImportDecl _ modIdent)
   | modIdent == "Test.QuickCheck"
   = importAndEnableQuickCheck
@@ -92,7 +102,6 @@ convertImportDecl (HS.ImportDecl _ modIdent)
   = reportFatal
     $ Message NoSrcSpan Error
     $ "Only the import of 'Test.QuickCheck' is supported."
-convertImportDecl _ = return () -- Ignore other declarations.
 
 -------------------------------------------------------------------------------
 -- Type signatures                                                           --
@@ -102,8 +111,7 @@ convertImportDecl _ = return () -- Ignore other declarations.
 --
 --   TODO error if there are multiple type signatures for the same function.
 --   TODO warn if there are unused type signatures.
-filterAndDefineTypeSig :: HS.Decl -> Converter ()
-filterAndDefineTypeSig (HS.TypeSig _ idents typeExpr) = mapM_
+defineTypeSigDecl :: HS.TypeSig -> Converter ()
+defineTypeSigDecl (HS.TypeSig _ idents typeExpr) = mapM_
   (modifyEnv . flip defineTypeSig typeExpr . HS.Ident . HS.fromDeclIdent)
   idents
-filterAndDefineTypeSig _ = return () -- ignore other declarations.

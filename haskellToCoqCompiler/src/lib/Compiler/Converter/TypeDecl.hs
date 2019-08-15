@@ -29,18 +29,19 @@ import           Compiler.Monad.Reporter
 -------------------------------------------------------------------------------
 
 -- | Converts a strongly connected component of the type dependency graph.
-convertTypeComponent :: DependencyComponent -> Converter [G.Sentence]
+convertTypeComponent
+  :: DependencyComponent HS.TypeDecl -> Converter [G.Sentence]
 convertTypeComponent (NonRecursive decl)
-  | isTypeDecl decl = defineTypeDecl decl >> convertTypeDecl decl
-  | otherwise       = convertDataDecls [decl]
+  | isTypeSynDecl decl = defineTypeDecl decl >> convertTypeSynDecl decl
+  | otherwise          = convertDataDecls [decl]
 convertTypeComponent (Recursive decls) = do
-  let (typeDecls, dataDecls) = partition isTypeDecl decls
-  sortedTypeDecls <- sortTypeDecls typeDecls
-  dataDecls'      <- withTypeSynonyms sortedTypeDecls $ do
+  let (typeSynDecls, dataDecls) = partition isTypeSynDecl decls
+  sortedTypeSynDecls <- sortTypeSynDecls typeSynDecls
+  dataDecls'         <- withTypeSynonyms sortedTypeSynDecls $ do
     expandedDataDecls <- mapM expandAllTypeSynonymsInDecl dataDecls
     convertDataDecls expandedDataDecls
-  typeDecls' <- concatMapM convertTypeDecl sortedTypeDecls
-  return (dataDecls' ++ typeDecls')
+  typeSynDecls' <- concatMapM convertTypeSynDecl sortedTypeSynDecls
+  return (dataDecls' ++ typeSynDecls')
 
 -- | Creates a converter that runs the given converter in an environment that
 --   contains only the type synonyms from the given type synonym
@@ -48,15 +49,16 @@ convertTypeComponent (Recursive decls) = do
 --
 --   The resulting environment contains both the old and the given type
 --   synonym declarations.
-withTypeSynonyms :: [HS.Decl] -> Converter a -> Converter a
-withTypeSynonyms typeDecls converter = do
-  oldTypeSynonyms <- inEnv definedTypeSynonyms
+withTypeSynonyms :: [HS.TypeDecl] -> Converter a -> Converter a
+withTypeSynonyms typeSynDecls converter = do
+  oldTypeSynonyms <- inEnv envDefinedTypeSynonyms
   modifyEnv $ \env ->
-    env { definedTypeSynonyms = definedTypeSynonyms emptyEnvironment }
-  mapM_ defineTypeDecl typeDecls
+    env { envDefinedTypeSynonyms = envDefinedTypeSynonyms emptyEnvironment }
+  mapM_ defineTypeDecl typeSynDecls
   x <- converter
   modifyEnv $ \env -> env
-    { definedTypeSynonyms = definedTypeSynonyms env `Map.union` oldTypeSynonyms
+    { envDefinedTypeSynonyms = envDefinedTypeSynonyms env
+                                 `Map.union` oldTypeSynonyms
     }
   return x
 
@@ -67,15 +69,16 @@ withTypeSynonyms typeDecls converter = do
 --   if they form a cycle). However, type synonyms may still depend on other
 --   type synonyms from the same strongly connected component. Therefore we
 --   have to sort the declarations in reverse topological order.
-sortTypeDecls :: [HS.Decl] -> Converter [HS.Decl]
-sortTypeDecls = mapM fromNonRecursive . groupDependencies . typeDependencyGraph
+sortTypeSynDecls :: [HS.TypeDecl] -> Converter [HS.TypeDecl]
+sortTypeSynDecls =
+  mapM fromNonRecursive . groupDependencies . typeDependencyGraph
 
 -- | Extracts the single type synonym declaration from a strongly connected
 --   component of the type dependency graph.
 --
 --   Reports a fatal error if the component contains mutually recursive
 --   declarations (i.e. type synonyms form a cycle).
-fromNonRecursive :: DependencyComponent -> Converter HS.Decl
+fromNonRecursive :: DependencyComponent HS.TypeDecl -> Converter HS.TypeDecl
 fromNonRecursive (NonRecursive decl) = return decl
 fromNonRecursive (Recursive decls) =
   reportFatal
@@ -83,43 +86,73 @@ fromNonRecursive (Recursive decls) =
     $  "Type synonym declarations form a cycle: "
     ++ HS.prettyDeclIdents decls
 
--- | Gets the name of a type synonym declaration.
-typeSynonymName :: HS.Decl -> String
-typeSynonymName (HS.TypeDecl _ declIdent _ _) = HS.fromDeclIdent declIdent
-
 -------------------------------------------------------------------------------
--- Type synonym declarations                                                 --
+-- Type declarations                                                         --
 -------------------------------------------------------------------------------
 
--- | Tests whether the given declaration is a type synonym declaration.
-isTypeDecl :: HS.Decl -> Bool
-isTypeDecl (HS.TypeDecl _ _ _ _) = True
-isTypeDecl _                     = False
-
--- | Inserts the given type synonym declaration into the current environment.
-defineTypeDecl :: HS.Decl -> Converter ()
-defineTypeDecl (HS.TypeDecl _ declIdent typeVarDecls typeExpr) = do
+-- | Inserts the given data type (including its constructors) or type synonym
+--   declaration into the current environment.
+defineTypeDecl :: HS.TypeDecl -> Converter ()
+defineTypeDecl (HS.TypeSynDecl _ declIdent typeVarDecls typeExpr) = do
   let ident    = HS.fromDeclIdent declIdent
       name     = HS.Ident ident
       arity    = length typeVarDecls
       typeVars = map HS.fromDeclIdent typeVarDecls
   _ <- renameAndDefineTypeCon ident arity
   modifyEnv $ defineTypeSynonym name typeVars typeExpr
+defineTypeDecl (HS.DataDecl srcSpan declIdent typeVarDecls conDecls) = do
+    -- TODO detect redefinition and inform when renamed
+  let arity = length typeVarDecls
+  _ <- renameAndDefineTypeCon ident arity
+  mapM_ defineConDecl conDecls
+ where
+  -- | The name of the data type.
+  ident :: String
+  ident = HS.fromDeclIdent declIdent
+
+  -- | The type produced by all constructors of the data type.
+  returnType :: HS.Type
+  returnType = HS.typeApp
+    srcSpan
+    (HS.Ident ident)
+    (map (HS.TypeVar srcSpan . HS.fromDeclIdent) typeVarDecls)
+
+  -- | Inserts the given data constructor declaration and its smart constructor
+  --   into the current environment.
+  defineConDecl :: HS.ConDecl -> Converter ()
+  defineConDecl (HS.ConDecl _ (HS.DeclIdent _ conIdent) argTypes) = do
+    -- TODO detect redefinition and inform when renamed
+    _ <- renameAndDefineCon conIdent (map Just argTypes) (Just returnType)
+    return ()
+
+-------------------------------------------------------------------------------
+-- Type synonym declarations                                                 --
+-------------------------------------------------------------------------------
+
+-- | Tests whether the given declaration is a type synonym declaration.
+isTypeSynDecl :: HS.TypeDecl -> Bool
+isTypeSynDecl (HS.TypeSynDecl _ _ _ _) = True
+isTypeSynDecl (HS.DataDecl    _ _ _ _) = False
 
 -- | Converts a Haskell type synonym declaration to Coq.
-convertTypeDecl :: HS.Decl -> Converter [G.Sentence]
-convertTypeDecl (HS.TypeDecl _ declIdent typeVarDecls typeExpr) = localEnv $ do
-  let ident = HS.fromDeclIdent declIdent
-      name  = HS.Ident ident
-  Just qualid   <- inEnv $ lookupIdent TypeScope name
-  typeVarDecls' <- convertTypeVarDecls G.Explicit typeVarDecls
-  typeExpr'     <- convertType' typeExpr
-  return
-    [ G.definitionSentence qualid
-                           (genericArgDecls G.Explicit ++ typeVarDecls')
-                           (Just G.sortType)
-                           typeExpr'
-    ]
+convertTypeSynDecl :: HS.TypeDecl -> Converter [G.Sentence]
+convertTypeSynDecl (HS.TypeSynDecl _ declIdent typeVarDecls typeExpr) =
+  localEnv $ do
+    let ident = HS.fromDeclIdent declIdent
+        name  = HS.Ident ident
+    Just qualid   <- inEnv $ lookupIdent TypeScope name
+    typeVarDecls' <- convertTypeVarDecls G.Explicit typeVarDecls
+    typeExpr'     <- convertType' typeExpr
+    return
+      [ G.definitionSentence qualid
+                             (genericArgDecls G.Explicit ++ typeVarDecls')
+                             (Just G.sortType)
+                             typeExpr'
+      ]
+
+-- Data type declarations are not allowed in this function.
+convertTypeSynDecl (HS.DataDecl _ _ _ _) =
+  error "convertTypeSynDecl: Data type declaration not allowed."
 
 -------------------------------------------------------------------------------
 -- Data type declarations                                                    --
@@ -138,9 +171,9 @@ convertTypeDecl (HS.TypeDecl _ declIdent typeVarDecls typeExpr) = localEnv $ do
 --   After the @Inductive@ sentences for the data type declarations there
 --   is one @Arguments@ sentence and one smart constructor declaration for
 --   each constructor declaration of the given data types.
-convertDataDecls :: [HS.Decl] -> Converter [G.Sentence]
+convertDataDecls :: [HS.TypeDecl] -> Converter [G.Sentence]
 convertDataDecls dataDecls = do
-  mapM_ defineDataDecl dataDecls
+  mapM_ defineTypeDecl dataDecls
   (indBodies, extraSentences) <- mapAndUnzipM convertDataDecl dataDecls
   return
     ( G.comment ("Data type declarations for " ++ HS.prettyDeclIdents dataDecls)
@@ -153,12 +186,12 @@ convertDataDecls dataDecls = do
 --   constructor declarations.
 --
 --   This function assumes, that the identifiers for the declared data type
---   and it's (smart) constructors are defined already (see 'defineDataDecl').
+--   and it's (smart) constructors are defined already (see 'defineTypeDecl').
 --   Type variables declared by the data type or the smart constructors are
 --   not visible outside of this function.
-convertDataDecl :: HS.Decl -> Converter (G.IndBody, [G.Sentence])
-convertDataDecl decl@(HS.DataDecl _ (HS.DeclIdent _ ident) typeVarDecls conDecls)
-  = do
+convertDataDecl :: HS.TypeDecl -> Converter (G.IndBody, [G.Sentence])
+convertDataDecl (HS.DataDecl _ (HS.DeclIdent _ ident) typeVarDecls conDecls) =
+  do
     (body, argumentsSentences) <- generateBodyAndArguments
     smartConDecls              <- mapM generateSmartConDecl conDecls
     return
@@ -169,10 +202,6 @@ convertDataDecl decl@(HS.DataDecl _ (HS.DeclIdent _ ident) typeVarDecls conDecls
       :  smartConDecls
       )
  where
-  -- | The Haskell type produced by the constructors of the data type.
-  returnType :: HS.Type
-  returnType = conReturnType decl
-
   -- | Generates the body of the @Inductive@ sentence and the @Arguments@
   --   sentences for the constructors but not the smart the smart constructors
   --   of the data type.
@@ -199,9 +228,11 @@ convertDataDecl decl@(HS.DataDecl _ (HS.DeclIdent _ ident) typeVarDecls conDecls
   -- | Converts a constructor of the data type.
   convertConDecl :: HS.ConDecl -> Converter (G.Qualid, [G.Binder], Maybe G.Term)
   convertConDecl (HS.ConDecl _ (HS.DeclIdent _ conIdent) args) = do
-    Just conQualid <- inEnv $ lookupIdent ConScope (HS.Ident conIdent)
-    args'          <- mapM convertType args
-    returnType'    <- convertType' returnType
+    let conName = (HS.Ident conIdent)
+    Just conQualid               <- inEnv $ lookupIdent ConScope conName
+    Just (_, _, Just returnType) <- inEnv $ lookupArgTypes ConScope conName
+    args'                        <- mapM convertType args
+    returnType'                  <- convertType' returnType
     return (conQualid, [], Just (args' `G.arrows` returnType'))
 
   -- | Generates the @Arguments@ sentence for the given constructor declaration.
@@ -226,12 +257,13 @@ convertDataDecl decl@(HS.DataDecl _ (HS.DeclIdent _ ident) typeVarDecls conDecls
   --   declaration.
   generateSmartConDecl :: HS.ConDecl -> Converter G.Sentence
   generateSmartConDecl (HS.ConDecl _ declIdent argTypes) = localEnv $ do
-    let conIdent = HS.Ident (HS.fromDeclIdent declIdent)
-    Just qualid             <- inEnv $ lookupIdent ConScope conIdent
-    Just smartQualid        <- inEnv $ lookupIdent SmartConScope conIdent
-    typeVarDecls'           <- convertTypeVarDecls G.Implicit typeVarDecls
-    (argIdents', argDecls') <- mapAndUnzipM convertAnonymousArg
-                                            (map Just argTypes)
+    let conName = HS.Ident (HS.fromDeclIdent declIdent)
+    Just qualid                  <- inEnv $ lookupIdent ConScope conName
+    Just smartQualid             <- inEnv $ lookupIdent SmartConScope conName
+    Just (_, _, Just returnType) <- inEnv $ lookupArgTypes SmartConScope conName
+    typeVarDecls'                <- convertTypeVarDecls G.Implicit typeVarDecls
+    (argIdents', argDecls')      <- mapAndUnzipM convertAnonymousArg
+                                                 (map Just argTypes)
     returnType' <- convertType returnType
     rhs         <- generatePure
       (G.app (G.Qualid qualid) (map (G.Qualid . G.bare) argIdents'))
@@ -243,31 +275,6 @@ convertDataDecl decl@(HS.DataDecl _ (HS.DeclIdent _ ident) typeVarDecls conDecls
         rhs
       )
 
--- | Inserts the given data type declaration and its constructor declarations
---   into the current environment.
-defineDataDecl :: HS.Decl -> Converter ()
-defineDataDecl decl@(HS.DataDecl _ declIdent typeVarDecls conDecls) = do
-    -- TODO detect redefinition and inform when renamed
-  let arity = length typeVarDecls
-  _ <- renameAndDefineTypeCon (HS.fromDeclIdent declIdent) arity
-  mapM_ defineConDecl conDecls
- where
-  -- | The type produced by all constructors of the data type.
-  returnType :: HS.Type
-  returnType = conReturnType decl
-
-  -- | Inserts the given data constructor declaration and its smart constructor
-  --   into the current environment.
-  defineConDecl :: HS.ConDecl -> Converter ()
-  defineConDecl (HS.ConDecl _ (HS.DeclIdent _ conIdent) argTypes) = do
-    -- TODO detect redefinition and inform when renamed
-    _ <- renameAndDefineCon conIdent (map Just argTypes) (Just returnType)
-    return ()
-
--- | Gets the Haskell return type of the constructors for the given data type
---   declaration.
-conReturnType :: HS.Decl -> HS.Type
-conReturnType (HS.DataDecl srcSpan (HS.DeclIdent _ ident) typeVarDecls _) =
-  HS.typeApp srcSpan
-             (HS.Ident ident)
-             (map (HS.TypeVar srcSpan . HS.fromDeclIdent) typeVarDecls)
+-- Type synonyms are not allowed in this function.
+convertDataDecl (HS.TypeSynDecl _ _ _ _) =
+  error "convertDataDecl: Type synonym not allowed."

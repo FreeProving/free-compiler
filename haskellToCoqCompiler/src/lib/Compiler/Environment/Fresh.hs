@@ -35,10 +35,12 @@ freshHaskellIdent prefix = case elemIndex '@' prefix of
   Just atIndex -> freshHaskellIdent (take atIndex prefix)
   Nothing      -> do
     env <- getEnv
-    let count = Map.findWithDefault 0 prefix (freshIdentCount env)
+    let count = Map.findWithDefault 0 prefix (envFreshIdentCount env)
     putEnv
       (env
-        { freshIdentCount = Map.insert prefix (count + 1) (freshIdentCount env)
+        { envFreshIdentCount = Map.insert prefix
+                                          (count + 1)
+                                          (envFreshIdentCount env)
         }
       )
     return (prefix ++ "@" ++ show count)

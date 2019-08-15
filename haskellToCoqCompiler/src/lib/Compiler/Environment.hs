@@ -87,23 +87,23 @@ type ScopedName = (Scope, HS.Name)
 
 -- | Data type that encapsulates the state of the converter.
 data Environment = Environment
-  { freshIdentCount :: Map String Int
+  { envFreshIdentCount :: Map String Int
     -- ^ The number of fresh identifiers that were used in the environment
     --   with a certain prefix.
-  , partialFuncs :: Set HS.Name
+  , envPartialFuncs :: Set HS.Name
     -- ^ The names of partial functions. This map also contains entries for
     --   functions that have not yet been defined and functions that are
     --   shadowed by local vairables.
-  , pureVars :: Set HS.Name
+  , envPureVars :: Set HS.Name
     -- ^ The names of Haskell variables that are not monadic.
-  , decArgs :: Map HS.Name Int
+  , envDecArgs :: Map HS.Name Int
     -- ^ Maps Haskell function names to the index of their decreasing argument.
     --   Contains no entry for non-recursive functions, but there are also
     --   entries for functions that are shadowed by local variables.
-  , definedIdents :: Map ScopedName G.Qualid
+  , envDefinedIdents :: Map ScopedName G.Qualid
     -- ^ Maps Haskell names of defined functions, (type/smart) constructors and
     --  (type) variables to corresponding Coq identifiers.
-  , definedArgTypes
+  , envDefinedArgTypes
       :: Map ScopedName ([HS.TypeVarIdent], [Maybe HS.Type], Maybe HS.Type)
     -- ^ Maps Haskell names of defined functions and (smart) constructors
     --   to their argument and return types. If the type of an argument or the
@@ -113,14 +113,14 @@ data Environment = Environment
     --   or datatype declarations. However there are entries for type signatues
     --   (the annotated type is stored as the return type and the argument type
     --   list is empty).
-  , definedTypeSynonyms :: Map HS.Name ([HS.TypeVarIdent], HS.Type)
+  , envDefinedTypeSynonyms :: Map HS.Name ([HS.TypeVarIdent], HS.Type)
     -- ^ Maps names of Haskell type synonyms to the type that is abbreviated
     --   by the type synonym and the type variables used by that type.
-    --   There should also be an entry in 'definedIdents' for the type synonym.
-  , quickCheckEnabled :: Bool
+    --   There should also be an entry in 'envDefinedIdents' for the type synonym.
+  , envQuickCheckEnabled :: Bool
     -- ^ Whether the translation of QuickCheck properties is enabled in the
     --   current environment (i.e. the module imports @Test.QuickCheck@).
-  , definedProofs :: Map HS.Name G.Proof
+  , envDefinedProofs :: Map HS.Name G.Proof
     -- ^ Proofs for QuickCheck properties that were loaded from the proof
     --   configuration file.
   }
@@ -130,21 +130,21 @@ data Environment = Environment
 --   functions.
 emptyEnvironment :: Environment
 emptyEnvironment = Environment
-  { freshIdentCount     = Map.empty
-  , partialFuncs        = Set.empty
-  , pureVars            = Set.empty
-  , decArgs             = Map.empty
-  , definedIdents       = Map.empty
-  , definedArgTypes     = Map.empty
-  , definedTypeSynonyms = Map.empty
-  , quickCheckEnabled   = False
-  , definedProofs       = Map.empty
+  { envFreshIdentCount     = Map.empty
+  , envPartialFuncs        = Set.empty
+  , envPureVars            = Set.empty
+  , envDecArgs             = Map.empty
+  , envDefinedIdents       = Map.empty
+  , envDefinedArgTypes     = Map.empty
+  , envDefinedTypeSynonyms = Map.empty
+  , envQuickCheckEnabled   = False
+  , envDefinedProofs       = Map.empty
   }
 
 -- | Gets a list of Coq identifiers for functions, (type/smart) constructors,
 --   (type/fresh) variables that were used in the given environment already.
 usedIdents :: Environment -> [G.Qualid]
-usedIdents = Map.elems . definedIdents
+usedIdents = Map.elems . envDefinedIdents
 
 -------------------------------------------------------------------------------
 -- Inserting entries into the environment                                    --
@@ -153,17 +153,18 @@ usedIdents = Map.elems . definedIdents
 -- | Inserts the given function name into the set of partial functions.
 definePartial :: HS.Name -> Environment -> Environment
 definePartial name env =
-  env { partialFuncs = Set.insert name (partialFuncs env) }
+  env { envPartialFuncs = Set.insert name (envPartialFuncs env) }
 
 -- | Inserts the given variable name into the set of non-monadic variables.
 definePureVar :: HS.Name -> Environment -> Environment
-definePureVar name env = env { pureVars = Set.insert name (pureVars env) }
+definePureVar name env =
+  env { envPureVars = Set.insert name (envPureVars env) }
 
 -- | Stores the index of the decreasing argument of a recursive function
 --   in the environment.
 defineDecArg :: HS.Name -> Int -> Environment -> Environment
 defineDecArg name index env =
-  env { decArgs = Map.insert name index (decArgs env) }
+  env { envDecArgs = Map.insert name index (envDecArgs env) }
 
 -- | Associates the name of a Haskell function, (type/smart) constructor or
 --   (type) variable with the given Coq identifier.
@@ -176,8 +177,8 @@ defineDecArg name index env =
 --   the identifier was inserted into the environment, see 'defineArgTypes').
 defineIdent :: Scope -> HS.Name -> G.Qualid -> Environment -> Environment
 defineIdent scope name ident env = env
-  { definedIdents   = Map.insert (scope, name) ident (definedIdents env)
-  , definedArgTypes = Map.delete (scope, name) (definedArgTypes env)
+  { envDefinedIdents   = Map.insert (scope, name) ident (envDefinedIdents env)
+  , envDefinedArgTypes = Map.delete (scope, name) (envDefinedArgTypes env)
   }
 
 -- | Associates the name of a Haskell function or (smart) constructor with its
@@ -190,9 +191,9 @@ defineArgTypes
   -> Environment
   -> Environment
 defineArgTypes scope name argTypes returnType env = env
-  { definedArgTypes = Map.insert (scope, name)
-                                 (usedTypeVars, argTypes, returnType)
-                                 (definedArgTypes env)
+  { envDefinedArgTypes = Map.insert (scope, name)
+                                    (usedTypeVars, argTypes, returnType)
+                                    (envDefinedArgTypes env)
   }
  where
   -- | The type variables used by the (knonw) argument and return types.
@@ -222,9 +223,9 @@ defineTypeSynonym
   -> Environment
   -> Environment
 defineTypeSynonym name usedTypeVars typeExpr env = env
-  { definedTypeSynonyms = Map.insert name
-                                     (usedTypeVars, typeExpr)
-                                     (definedTypeSynonyms env)
+  { envDefinedTypeSynonyms = Map.insert name
+                                        (usedTypeVars, typeExpr)
+                                        (envDefinedTypeSynonyms env)
   }
 
 -------------------------------------------------------------------------------
@@ -242,18 +243,18 @@ isFunction = isJust .: lookupArgTypes VarScope
 --
 --   Returns @False@ if there is no such function.
 isPartial :: HS.Name -> Environment -> Bool
-isPartial name = Set.member name . partialFuncs
+isPartial name = Set.member name . envPartialFuncs
 
 -- | Test whether the variable with the given name is not monadic.
 isPureVar :: HS.Name -> Environment -> Bool
-isPureVar name = Set.member name . pureVars
+isPureVar name = Set.member name . envPureVars
 
 -- | Lookups the index of the decreasing argument of the recursive function
 --   with the given name.
 --
 --   Returns @Nothing@ if there is no such recursive function.
 lookupDecArg :: HS.Name -> Environment -> Maybe Int
-lookupDecArg name = Map.lookup name . decArgs
+lookupDecArg name = Map.lookup name . envDecArgs
 
 -- | Looks up the Coq identifier for a Haskell function, (type/smart)
 --   constructor or (type) variable with the given name.
@@ -261,7 +262,7 @@ lookupDecArg name = Map.lookup name . decArgs
 --   Returns @Nothing@ if there is no such function, (type/smart) constructor,
 --   constructor or (type) variable with the given name.
 lookupIdent :: Scope -> HS.Name -> Environment -> Maybe G.Qualid
-lookupIdent scope name = Map.lookup (scope, name) . definedIdents
+lookupIdent scope name = Map.lookup (scope, name) . envDefinedIdents
 
 -- | Looks up the argument and return types of the function or (smart)
 --   constructor with the given name.
@@ -273,7 +274,7 @@ lookupArgTypes
   -> HS.Name
   -> Environment
   -> Maybe ([HS.TypeVarIdent], [Maybe HS.Type], Maybe HS.Type)
-lookupArgTypes scope name = Map.lookup (scope, name) . definedArgTypes
+lookupArgTypes scope name = Map.lookup (scope, name) . envDefinedArgTypes
 
 -- | Looks up the number of arguments expected by the Haskell function
 --   or smart constructor with the given name.
@@ -301,7 +302,7 @@ lookupTypeSig name env = do
 --   Returns @Nothing@ if there is no such type synonym.
 lookupTypeSynonym
   :: HS.Name -> Environment -> Maybe ([HS.TypeVarIdent], HS.Type)
-lookupTypeSynonym name = Map.lookup name . definedTypeSynonyms
+lookupTypeSynonym name = Map.lookup name . envDefinedTypeSynonyms
 
 -------------------------------------------------------------------------------
 -- Shortcuts for inserting entries into the environment                      --
@@ -379,7 +380,7 @@ defineFunc name ident argTypes returnType =
 
 -- | Enables the translation of QuickCheck properties.
 enableQuickCheck :: Environment -> Environment
-enableQuickCheck env = env { quickCheckEnabled = True }
+enableQuickCheck env = env { envQuickCheckEnabled = True }
 
 -- | Tests whether the translation of QuickCheck properties is enabled
 --   in the given environment.
@@ -387,22 +388,22 @@ enableQuickCheck env = env { quickCheckEnabled = True }
 --   This flag is usually set to @True@ if there is a @import Test.QuickCheck@
 --   declaration.
 isQuickCheckEnabled :: Environment -> Bool
-isQuickCheckEnabled = quickCheckEnabled
+isQuickCheckEnabled = envQuickCheckEnabled
 
 -- | Adds the Coq proof for the QuickCheck property with the given name
 --   to the environment.
 defineProof :: HS.Name -> G.Proof -> Environment -> Environment
 defineProof name proof env =
-  env { definedProofs = Map.insert name proof (definedProofs env) }
+  env { envDefinedProofs = Map.insert name proof (envDefinedProofs env) }
 
 -- | Adds multiple Coq proofs for QuickCheck properties to the environment.
 defineProofs :: Map HS.Name G.Proof -> Environment -> Environment
 defineProofs proofs env =
-  env { definedProofs = Map.union proofs (definedProofs env) }
+  env { envDefinedProofs = Map.union proofs (envDefinedProofs env) }
 
 -- | Looks up the Coq proof for the QuickCheck property with the given name.
 --
 --   Returns a 'blankProof' if there is no proof for the that QuickCheck
 --   property.
 lookupProof :: HS.Name -> Environment -> G.Proof
-lookupProof name = maybe G.blankProof id . Map.lookup name . definedProofs
+lookupProof name = maybe G.blankProof id . Map.lookup name . envDefinedProofs

@@ -31,15 +31,14 @@ import           Compiler.Monad.Converter
 
 -- | Inlines the right hand sides of the given function declarations into
 --   the right hand sides of other function declarations.
-inlineDecl :: [HS.Decl] -> HS.Decl -> Converter HS.Decl
-inlineDecl decls (HS.FuncDecl srcSpan declIdent args expr) = do
+inlineFuncDecls :: [HS.FuncDecl] -> HS.FuncDecl -> Converter HS.FuncDecl
+inlineFuncDecls decls (HS.FuncDecl srcSpan declIdent args expr) = do
   expr' <- inlineExpr decls expr
   return (HS.FuncDecl srcSpan declIdent args expr')
-inlineDecl _ decl = return decl
 
 -- | Inlines the right hand sides of the given function declarations into an
 --   expression.
-inlineExpr :: [HS.Decl] -> HS.Expr -> Converter HS.Expr
+inlineExpr :: [HS.FuncDecl] -> HS.Expr -> Converter HS.Expr
 inlineExpr decls = inlineAndBind
  where
   -- | Maps the names of function declarations in 'decls' to the arguments
@@ -49,12 +48,11 @@ inlineExpr decls = inlineAndBind
 
   -- | Inserts a function declaration into 'declMap'.
   insertFuncDecl
-    :: HS.Decl                            -- ^ The declaration to insert.
+    :: HS.FuncDecl                        -- ^ The declaration to insert.
     -> Map HS.Name ([HS.VarPat], HS.Expr) -- ^ The map to insert into.
     -> Map HS.Name ([HS.VarPat], HS.Expr)
   insertFuncDecl (HS.FuncDecl _ (HS.DeclIdent _ ident) args expr) =
     Map.insert (HS.Ident ident) (args, expr)
-  insertFuncDecl _ = id
 
   -- | Applies 'inlineExpr'' on the given expression and wraps the result with
   --   lambda abstractions for the remaining arguments.
@@ -124,24 +122,17 @@ inlineExpr decls = inlineAndBind
 -- Expanding type synonyms                                                   --
 -------------------------------------------------------------------------------
 
--- | Expands all type synonyms in all types in the given type signature,
---   data type or type synonym declaration.
-expandAllTypeSynonymsInDecl :: HS.Decl -> Converter HS.Decl
-expandAllTypeSynonymsInDecl (HS.TypeDecl srcSpan declIdent typeVarDecls typeExpr)
+-- | Expands all type synonyms in all types in the given data type or type
+--   synonym declaration.
+expandAllTypeSynonymsInDecl :: HS.TypeDecl -> Converter HS.TypeDecl
+expandAllTypeSynonymsInDecl (HS.TypeSynDecl srcSpan declIdent typeVarDecls typeExpr)
   = do
     typeExpr' <- expandAllTypeSynonyms typeExpr
-    return (HS.TypeDecl srcSpan declIdent typeVarDecls typeExpr')
+    return (HS.TypeSynDecl srcSpan declIdent typeVarDecls typeExpr')
 expandAllTypeSynonymsInDecl (HS.DataDecl srcSpan declIdent typeVarDecls conDecls)
   = do
     conDecls' <- mapM expandAllTypeSynonymsInConDecl conDecls
     return (HS.DataDecl srcSpan declIdent typeVarDecls conDecls')
-expandAllTypeSynonymsInDecl (HS.TypeSig srcSpan declIdents typeExpr) = do
-  typeExpr' <- expandAllTypeSynonyms typeExpr
-  return (HS.TypeSig srcSpan declIdents typeExpr')
-
--- Leave all other declarations unchanged.
-expandAllTypeSynonymsInDecl decl@(HS.FuncDecl _ _ _ _) = return decl
-expandAllTypeSynonymsInDecl decl@(HS.ImportDecl _ _  ) = return decl
 
 -- | Expands all type synonyms in all types in the given constructor
 --   declaration.

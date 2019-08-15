@@ -22,7 +22,7 @@ type DecArgIndex = Int
 --   mutually recursive function declarations.
 --
 --   Returns a list of all possible combinations of argument indecies.
-guessDecArgs :: [HS.Decl] -> [[DecArgIndex]]
+guessDecArgs :: [HS.FuncDecl] -> [[DecArgIndex]]
 guessDecArgs []                               = return []
 guessDecArgs (HS.FuncDecl _ _ args _ : decls) = do
   decArgIndecies <- guessDecArgs decls
@@ -33,7 +33,7 @@ guessDecArgs (HS.FuncDecl _ _ args _ : decls) = do
 --   arguments of function declarations in a strongly connected component
 --   is valid (i.e. all function declarations actually decrease the
 --   corresponding argument)
-checkDecArgs :: [HS.Decl] -> [DecArgIndex] -> Bool
+checkDecArgs :: [HS.FuncDecl] -> [DecArgIndex] -> Bool
 checkDecArgs decls decArgIndecies = all (uncurry checkDecArg)
                                         (zip decArgIndecies decls)
  where
@@ -46,7 +46,7 @@ checkDecArgs decls decArgIndecies = all (uncurry checkDecArg)
   -- | Inserts a function declaration with the given decreasing argument index
   --   into 'decArgMap'.
   insertFuncDecl
-    :: HS.Decl
+    :: HS.FuncDecl
     -> DecArgIndex
     -> Map HS.Name DecArgIndex
     -> Map HS.Name DecArgIndex
@@ -55,7 +55,7 @@ checkDecArgs decls decArgIndecies = all (uncurry checkDecArg)
 
   -- | Tests whether the given function declaration actually decreases on the
   --   argument with the given index.
-  checkDecArg :: DecArgIndex -> HS.Decl -> Bool
+  checkDecArg :: DecArgIndex -> HS.FuncDecl -> Bool
   checkDecArg decArgIndex (HS.FuncDecl _ _ args expr) =
     let decArg = HS.Ident (HS.fromVarPat (args !! decArgIndex))
     in  checkExpr decArg Set.empty expr []
@@ -147,7 +147,7 @@ checkDecArgs decls decArgIndecies = all (uncurry checkDecArg)
 --   function declarations.
 --
 --   Returns @Nothing@ if the decreasing argument could not be identified.
-maybeIdentifyDecArgs :: [HS.Decl] -> Maybe [Int]
+maybeIdentifyDecArgs :: [HS.FuncDecl] -> Maybe [Int]
 maybeIdentifyDecArgs decls = find (checkDecArgs decls) (guessDecArgs decls)
 
 -- | Identifies the decreasing arguments of the given mutually recursive
@@ -155,7 +155,7 @@ maybeIdentifyDecArgs decls = find (checkDecArgs decls) (guessDecArgs decls)
 --
 --   Reports a fatal error message, if the decreasing arguments could not be
 --   identified.
-identifyDecArgs :: [HS.Decl] -> Converter [Int]
+identifyDecArgs :: [HS.FuncDecl] -> Converter [Int]
 identifyDecArgs decls = maybe decArgError return (maybeIdentifyDecArgs decls)
  where
   decArgError :: Converter a

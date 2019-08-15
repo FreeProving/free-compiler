@@ -7,10 +7,12 @@ module Compiler.Converter
   , convertModuleWithPreamble
   , convertDecls
     -- * Data type declarations
+  , convertTypeDecls
   , convertTypeComponent
   , convertDataDecls
   , convertDataDecl
     -- * Function declarations
+  , convertFuncDecls
   , convertFuncComponent
   , convertNonRecFuncDecl
   , convertRecFuncDecls
@@ -25,6 +27,8 @@ where
 import           Compiler.Converter.Module      ( convertModule
                                                 , convertModuleWithPreamble
                                                 , convertDecls
+                                                , convertFuncDecls
+                                                , convertTypeDecls
                                                 )
 import           Compiler.Converter.Expr        ( convertExpr )
 import           Compiler.Converter.FuncDecl    ( convertFuncComponent

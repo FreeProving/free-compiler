@@ -170,21 +170,18 @@ altDependencies (HS.Alt _ (HS.ConPat _ name) args expr) =
 --   variables as well).
 --
 --   Returns an empty set if the given declaration is not a type declaration.
-typeDeclDependencies :: HS.Decl -> [HS.Name]
+typeDeclDependencies :: HS.TypeDecl -> [HS.Name]
 typeDeclDependencies = unwrapSet . typeDeclDependencies'
 
 -- | Extracts the dependencies of the given data type or type synonym
 --   declaration on type constructors (and undeclared type variables) and
 --   remebers for every name whether it is the name of a type variable or
 --   of a type constructor.
---
---   Returns an empty set if the given declaration is not a type declaration.
-typeDeclDependencies' :: HS.Decl -> Set DependencyName
-typeDeclDependencies' (HS.TypeDecl _ _ typeArgs typeExpr) =
+typeDeclDependencies' :: HS.TypeDecl -> Set DependencyName
+typeDeclDependencies' (HS.TypeSynDecl _ _ typeArgs typeExpr) =
   withoutTypeArgs typeArgs (typeDependencies' typeExpr)
 typeDeclDependencies' (HS.DataDecl _ _ typeArgs conDecls) =
   withoutTypeArgs typeArgs (Set.unions (map conDeclDependencies conDecls))
-typeDeclDependencies' _ = Set.empty
 
 -- | Extracts the dependencies of the field types of the given constructor
 --   declaration.
@@ -207,19 +204,15 @@ withoutTypeArgs args set =
 --
 --   Returns an empty set if the given declaration is not a function
 --   declaration.
-funcDeclDependencies :: HS.Decl -> [HS.Name]
+funcDeclDependencies :: HS.FuncDecl -> [HS.Name]
 funcDeclDependencies = unwrapSet . funcDeclDependencies'
 
 -- | Extracts the dependencies of the given function declaration on
 --   constructors and other functions and remembers for every name whether it
 --   is the name of a function or constructor.
---
---   Returns an empty set if the given declaration is not a function
---   declaration.
-funcDeclDependencies' :: HS.Decl -> Set DependencyName
+funcDeclDependencies' :: HS.FuncDecl -> Set DependencyName
 funcDeclDependencies' (HS.FuncDecl _ _ args expr) =
   withoutArgs args (exprDependencies' expr)
-funcDeclDependencies' _ = Set.empty
 
 -- | Removes the names for the given variable patterns from a set of
 --   dependencies.

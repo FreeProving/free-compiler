@@ -14,7 +14,7 @@ import           Compiler.Analysis.DependencyGraph
 --
 --   The first argument contains the names of (predefined) functions that are
 --   known to be partial.
-identifyPartialFuncs :: [DGKey] -> DependencyGraph -> [DGKey]
+identifyPartialFuncs :: [DGKey] -> DependencyGraph decl -> [DGKey]
 identifyPartialFuncs predefined (DependencyGraph graph getEntry _) = map
   (snd3 . getEntry)
   indirect
@@ -30,6 +30,6 @@ identifyPartialFuncs predefined (DependencyGraph graph getEntry _) = map
 
   -- | Tests whether a function contains error terms or references to
   --   predefined partial functions.
-  isDirectlyPartial :: DGEntry -> Bool
+  isDirectlyPartial :: DGEntry decl -> Bool
   isDirectlyPartial (_, _, deps) =
     any (`elem` deps) ([errorKey, undefinedKey] ++ predefined)

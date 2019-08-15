@@ -26,16 +26,16 @@ import qualified Compiler.Haskell.AST          as HS
 --   All declarations that mutually depend on each other are in the same
 --   strongly connected component.
 --
---   The only difference to @'SCC' 'HS.Decl'@ is that the constructors
+--   The only difference to @'SCC' decl@ is that the constructors
 --   have been renamed to be more explainatory in the context of dependency
 --   analysis.
-data DependencyComponent =
-  NonRecursive (HS.Decl) -- ^ A single non-recursive declaration.
-  | Recursive [HS.Decl]  -- ^ A list of mutually recursive declarations.
+data DependencyComponent decl =
+  NonRecursive decl   -- ^ A single non-recursive declaration.
+  | Recursive [decl]  -- ^ A list of mutually recursive declarations.
 
 -- | Converts a strongly connected component from @Data.Graph@ to a
 --   'DependencyComponent'.
-convertSCC :: SCC HS.Decl -> DependencyComponent
+convertSCC :: SCC decl -> DependencyComponent decl
 convertSCC (AcyclicSCC decl ) = NonRecursive decl
 convertSCC (CyclicSCC  decls) = Recursive decls
 
@@ -49,17 +49,17 @@ convertSCC (CyclicSCC  decls) = Recursive decls
 --   @A@ contains any declaration that depends on a declartion in $B$.
 --   If two components do not depend on each other, they are in reverse
 --   alphabetical order.
-groupDependencies :: DependencyGraph -> [DependencyComponent]
+groupDependencies :: DependencyGraph decl -> [DependencyComponent decl]
 groupDependencies = map convertSCC . stronglyConnComp . entries
 
 -- | Combines the construction of the dependency graphs for the given
 --   type declarations (See 'typeDependencyGraph') with the computaton of
 --   strongly connected components.
-groupTypeDecls :: [HS.Decl] -> [DependencyComponent]
+groupTypeDecls :: [HS.TypeDecl] -> [DependencyComponent HS.TypeDecl]
 groupTypeDecls decls = groupDependencies (typeDependencyGraph decls)
 
 -- | Combines the construction of the dependency graphs for the given
 --   function declarations (See 'funcDependencyGraph') with the computaton
 --   of strongly connected components.
-groupFuncDecls :: [HS.Decl] -> [DependencyComponent]
+groupFuncDecls :: [HS.FuncDecl] -> [DependencyComponent HS.FuncDecl]
 groupFuncDecls decls = groupDependencies (funcDependencyGraph decls)

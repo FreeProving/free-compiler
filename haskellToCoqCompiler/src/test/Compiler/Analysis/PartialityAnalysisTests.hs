@@ -15,12 +15,12 @@ testPartialityAnalysis = describe "Compiler.Analysis.PartialityAnalysis" $ do
     $ shouldSucceed
     $ fromConverter
     $ do
-        decls <- parseTestDecls
+        (_, _, funcDecls) <- parseTestDecls
           [ "head :: [a] -> a"
           , "head xs = case xs of { [] -> undefined; x : xs' -> x }"
           ]
         return
-          (               identifyPartialFuncs [] (funcDependencyGraph decls)
+          (identifyPartialFuncs [] (funcDependencyGraph funcDecls)
           `shouldContain` [HS.Ident "head"]
           )
 
@@ -28,14 +28,14 @@ testPartialityAnalysis = describe "Compiler.Analysis.PartialityAnalysis" $ do
     $ shouldSucceed
     $ fromConverter
     $ do
-        decls <- parseTestDecls
+        (_, _, funcDecls) <- parseTestDecls
           [ "head :: [a] -> a"
           , "head xs = case xs of { [] -> undefined; x : xs' -> x }"
           , "heads :: [[a]] -> [a]"
           , "heads = map head"
           ]
         return
-          (               identifyPartialFuncs [] (funcDependencyGraph decls)
+          (identifyPartialFuncs [] (funcDependencyGraph funcDecls)
           `shouldContain` [HS.Ident "heads"]
           )
 
@@ -43,7 +43,7 @@ testPartialityAnalysis = describe "Compiler.Analysis.PartialityAnalysis" $ do
     $ shouldSucceed
     $ fromConverter
     $ do
-        decls <- parseTestDecls
+        (_, _, funcDecls) <- parseTestDecls
           [ "head :: [a] -> a"
           , "head xs = case xs of {"
           ++ "  []      -> error \"head: empty list\";"
@@ -51,7 +51,7 @@ testPartialityAnalysis = describe "Compiler.Analysis.PartialityAnalysis" $ do
           ++ "}"
           ]
         return
-          (               identifyPartialFuncs [] (funcDependencyGraph decls)
+          (identifyPartialFuncs [] (funcDependencyGraph funcDecls)
           `shouldContain` [HS.Ident "head"]
           )
 
@@ -59,7 +59,7 @@ testPartialityAnalysis = describe "Compiler.Analysis.PartialityAnalysis" $ do
     $ shouldSucceed
     $ fromConverter
     $ do
-        decls <- parseTestDecls
+        (_, _, funcDecls) <- parseTestDecls
           [ "head :: [a] -> a"
           , "head xs = case xs of {"
           ++ "  []      -> error \"head: empty list\";"
@@ -69,6 +69,6 @@ testPartialityAnalysis = describe "Compiler.Analysis.PartialityAnalysis" $ do
           , "heads = map head"
           ]
         return
-          (               identifyPartialFuncs [] (funcDependencyGraph decls)
+          (identifyPartialFuncs [] (funcDependencyGraph funcDecls)
           `shouldContain` [HS.Ident "heads"]
           )

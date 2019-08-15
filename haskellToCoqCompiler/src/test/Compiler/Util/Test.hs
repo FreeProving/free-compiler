@@ -5,7 +5,6 @@ module Compiler.Util.Test where
 import           Test.Hspec
 
 import           Control.Exception
-import           Data.Maybe                     ( catMaybes )
 
 import           Compiler.Converter
 import qualified Compiler.Coq.AST              as G
@@ -94,14 +93,11 @@ parseTestExpr :: String -> Simplifier HS.Expr
 parseTestExpr input =
   liftReporter (parseExpr "<test-input>" input) >>= simplifyExpr
 
--- | Parses and simplifies a Haskell declaration for testing purposes.
-parseTestDecl :: String -> Simplifier (Maybe HS.Decl)
-parseTestDecl input =
-  liftReporter (parseDecl "<test-input>" input) >>= simplifyDecl
-
 -- | Parses and simplifies Haskell declarations for testing purposes.
-parseTestDecls :: [String] -> Simplifier [HS.Decl]
-parseTestDecls input = mapM parseTestDecl input >>= return . catMaybes
+parseTestDecls
+  :: [String] -> Simplifier ([HS.TypeDecl], [HS.TypeSig], [HS.FuncDecl])
+parseTestDecls input =
+  liftReporter (mapM (parseDecl "<test-input>") input) >>= simplifyDecls
 
 -------------------------------------------------------------------------------
 -- Defining test idenifiers                                                  --
@@ -160,7 +156,10 @@ convertTestDecl = convertTestDecls . return
 -- | Parses, simplifies and converts a Haskell declarations for testing
 --   purposes.
 convertTestDecls :: [String] -> Converter [G.Sentence]
-convertTestDecls input = parseTestDecls input >>= convertDecls
+convertTestDecls input = do
+  (typeDecls, typeSigs, funcDecls) <- parseTestDecls input
+  decls'                           <- convertDecls typeDecls typeSigs funcDecls
+  return decls'
 
 -------------------------------------------------------------------------------
 -- Conversion expectations                                                   --
@@ -204,7 +203,6 @@ shouldTranslateDeclsTo input expectedOutput = do
   return
     $          discardWhitespace (showPretty coqDecls)
     `shouldBe` discardWhitespace expectedOutput
-
 
 -------------------------------------------------------------------------------
 -- Utility functions                                                        --

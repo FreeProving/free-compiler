@@ -3,17 +3,12 @@
 
 module Compiler.Converter.FuncDecl where
 
-import           Control.Monad                  ( mapAndUnzipM
-                                                , zipWithM
-                                                )
-import           Data.List                      ( elemIndex )
+import           Control.Monad                  ( mapAndUnzipM )
 import qualified Data.List.NonEmpty            as NonEmpty
 import           Data.Maybe                     ( fromJust )
 import qualified Data.Set                      as Set
-import           Data.Set                       ( Set )
 
 import           Compiler.Analysis.DependencyAnalysis
-import           Compiler.Analysis.DependencyExtraction
 import           Compiler.Analysis.RecursionAnalysis
 import           Compiler.Converter.Arg
 import           Compiler.Converter.Expr
@@ -37,7 +32,8 @@ import           Compiler.Pretty
 -------------------------------------------------------------------------------
 
 -- | Converts a strongly connected component of the function dependency graph.
-convertFuncComponent :: DependencyComponent -> Converter [G.Sentence]
+convertFuncComponent
+  :: DependencyComponent HS.FuncDecl -> Converter [G.Sentence]
 convertFuncComponent (NonRecursive decl) = do
   decl' <- convertNonRecFuncDecl decl
   return [decl']
@@ -80,7 +76,7 @@ convertFuncHead name args = do
     )
 
 -- | Inserts the given function declaration into the current environment.
-defineFuncDecl :: HS.Decl -> Converter ()
+defineFuncDecl :: HS.FuncDecl -> Converter ()
 defineFuncDecl (HS.FuncDecl _ (HS.DeclIdent srcSpan ident) args _) = do
   -- TODO detect redefinition and inform when renamed
   let name = HS.Ident ident
@@ -124,7 +120,7 @@ splitFuncType name = splitFuncType'
 
 -- | Converts a non-recursive Haskell function declaration to a Coq
 --   @Definition@ sentence.
-convertNonRecFuncDecl :: HS.Decl -> Converter G.Sentence
+convertNonRecFuncDecl :: HS.FuncDecl -> Converter G.Sentence
 convertNonRecFuncDecl decl@(HS.FuncDecl _ (HS.DeclIdent _ ident) args expr) =
   do
     defineFuncDecl decl
@@ -139,7 +135,7 @@ convertNonRecFuncDecl decl@(HS.FuncDecl _ (HS.DeclIdent _ ident) args expr) =
 -------------------------------------------------------------------------------
 
 -- | Converts (mutually) recursive Haskell function declarations to Coq.
-convertRecFuncDecls :: [HS.Decl] -> Converter [G.Sentence]
+convertRecFuncDecls :: [HS.FuncDecl] -> Converter [G.Sentence]
 convertRecFuncDecls decls = do
   -- Split into helper and main functions.
   decArgs                  <- identifyDecArgs decls
@@ -150,7 +146,7 @@ convertRecFuncDecls decls = do
   -- functions. Because inlining can produce fesh identifiers, we need to
   -- perform inlining and conversion of helper functions in a local environment.
   helperDecls' <- flip mapM (concat helperDecls) $ \helperDecl -> localEnv $ do
-    inlinedHelperDecl <- inlineDecl mainDecls helperDecl
+    inlinedHelperDecl <- inlineFuncDecls mainDecls helperDecl
     convertRecHelperFuncDecl inlinedHelperDecl
   mainDecls' <- mapM convertNonRecFuncDecl mainDecls
   -- Create common fixpoint sentence for all helper functions.
@@ -163,7 +159,8 @@ convertRecFuncDecls decls = do
 -- | Transforms the given recursive function declaration with the specified
 --   decreasing argument into recursive helper functions and a non recursive
 --   main function.
-transformRecFuncDecl :: HS.Decl -> DecArgIndex -> Converter ([HS.Decl], HS.Decl)
+transformRecFuncDecl
+  :: HS.FuncDecl -> DecArgIndex -> Converter ([HS.FuncDecl], HS.FuncDecl)
 transformRecFuncDecl (HS.FuncDecl srcSpan declIdent args expr) decArgIndex = do
   -- Generate a helper function declaration and application for each case
   -- expression of the decreasing argument.
@@ -198,8 +195,8 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent args expr) decArgIndex = do
   -- | Tests whether the given expression is a @case@-expression for the
   --   the decreasing argument.
   isCaseExpr :: HS.Expr -> Bool
-  isCaseExpr (HS.Case _ (HS.Var _ name) _) = name == decArg
-  isCaseExpr _                             = False
+  isCaseExpr (HS.Case _ (HS.Var _ varName) _) = varName == decArg
+  isCaseExpr _                                = False
 
   -- | Ensures that the decreasing argument is not shadowed by the binding
   --   of a local variable at the given position.
@@ -216,7 +213,7 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent args expr) decArgIndex = do
   --        expression. We must not pass those arguments to the helper
   --        function (if the arguments that shadow the original arguments
   --        are used, they are passed as additional arguments).
-  generateHelperDecl :: Pos -> Converter (HS.Decl, HS.Expr)
+  generateHelperDecl :: Pos -> Converter (HS.FuncDecl, HS.Expr)
   generateHelperDecl caseExprPos = do
     -- Generate a fresh name for the helper function.
     helperIdent <- freshHaskellIdent (HS.fromDeclIdent declIdent)
@@ -252,7 +249,7 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent args expr) decArgIndex = do
 
 -- | Converts a recursive helper function to the body of a Coq @Fixpoint@
 --   sentence.
-convertRecHelperFuncDecl :: HS.Decl -> Converter G.FixBody
+convertRecHelperFuncDecl :: HS.FuncDecl -> Converter G.FixBody
 convertRecHelperFuncDecl (HS.FuncDecl _ declIdent args expr) = localEnv $ do
   let helperName = HS.Ident (HS.fromDeclIdent declIdent)
       argNames   = map (HS.Ident . HS.fromVarPat) args
