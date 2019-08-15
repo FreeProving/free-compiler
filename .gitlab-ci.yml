@@ -1,6 +1,7 @@
 stages:
   - build
   - test
+  - test-2
   - deploy
 
 # Enable Git submodules
