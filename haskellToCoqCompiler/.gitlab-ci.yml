@@ -148,14 +148,15 @@ test-examples:
     - build-compiler
   script:
     - cd haskellToCoqCompiler
-    - mkdir -p ./example/generated # We don't have permission to write to build.
+    - mkdir -p ./example/generated
     - ./build/bin/haskell-to-coq-compiler -b ./base -o ./example/generated $(find ./example -name "*.hs")
+    - mkdir -p ./build/example
+    - cp -r ./example/generated ./build/example
   artifacts:
     name: examples
     paths:
-      - ./haskellToCoqCompiler/example/generated
+      - ./haskellToCoqCompiler/build/example
 
-#
 # This job verifies that the Coq code generated during `test-examples` compiles
 # and the proofs for the QuickCheck properties pass.
 test-generated-code:
@@ -165,5 +166,7 @@ test-generated-code:
     - build-base-library
     - test-examples
   script:
-  - cp -r ./build/base ./base       # Restore compiled base library.
-  - ./tool/compile-coq.sh ./example # Compile tests and generated Coq files.
+    - cd ./haskellToCoqCompiler
+    - cp -r ./build/base/. ./base # Restore compiled base library.
+    - cp -r ./build/example ./example/generated # Restore compiled examples.
+    - ./tool/compile-coq.sh ./example # Compile tests and generated Coq files.
