@@ -84,15 +84,15 @@ testRenameIdent = describe "renameIdent" $ do
 -- | Test group for 'defineLocally' tests.
 testDefineLocally :: Spec
 testDefineLocally = describe "defineLocally" $ do
-  it "detects redefinitions of function declarations"
-    $ shouldReportFatal
-    $ fromConverter
-    $ convertTestDecls ["foo = 42", "foo :: Int", "foo = 1337"]
-
   it "detects redefinitions of data type declarations"
     $ shouldReportFatal
     $ fromConverter
     $ convertTestDecls ["data Foo = Foo", "data Foo = Bar"]
+
+  it "detects redefinitions of type synonym declarations"
+    $ shouldReportFatal
+    $ fromConverter
+    $ convertTestDecls ["type Foo = Int", "type Foo a = [a]"]
 
   it "detects redefinitions of constructor declarations"
     $ shouldReportFatal
@@ -108,3 +108,28 @@ testDefineLocally = describe "defineLocally" $ do
     $ shouldReportFatal
     $ fromConverter
     $ convertTestDecls ["data Foo a a = Foo a"]
+
+  it "detects redefinitions of variables"
+    $ shouldReportFatal
+    $ fromConverter
+    $ convertTestDecls ["data Foo a a = Foo a"]
+
+  it "detects redefinitions of function declarations"
+    $ shouldReportFatal
+    $ fromConverter
+    $ convertTestDecls ["foo = 42", "foo :: Int", "foo = 1337"]
+
+  it "detects redefinitions of function arguments"
+    $ shouldReportFatal
+    $ fromConverter
+    $ convertTestDecls ["add :: Int -> Int -> Int", "add x x = x + x"]
+
+  it "detects redefinitions of constructor pattern arguments"
+    $ shouldReportFatal
+    $ fromConverter
+    $ convertTestDecls ["head xs = case xs of {[] -> undefined; x:x -> x}"]
+
+  it "allows to shadow variables " $ shouldSucceed $ fromConverter $ do
+    _ <- convertTestDecls
+      ["head :: [a] -> a", "head xs = case xs of {[] -> undefined; x:xs -> x}"]
+    return (return ())
