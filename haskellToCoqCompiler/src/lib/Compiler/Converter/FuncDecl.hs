@@ -78,7 +78,6 @@ convertFuncHead name args = do
 -- | Inserts the given function declaration into the current environment.
 defineFuncDecl :: HS.FuncDecl -> Converter ()
 defineFuncDecl (HS.FuncDecl srcSpan (HS.DeclIdent _ ident) args _) = do
-  -- TODO detect redefinition and inform when renamed
   let name = HS.Ident ident
   funcType <- lookupTypeSigOrFail srcSpan name
   (argTypes, returnType) <- splitFuncType name args funcType

@@ -101,7 +101,6 @@ defineTypeDecl (HS.TypeSynDecl srcSpan declIdent typeVarDecls typeExpr) = do
   _ <- renameAndDefineTypeCon srcSpan ident arity
   modifyEnv $ defineTypeSynonym name typeVars typeExpr
 defineTypeDecl (HS.DataDecl srcSpan declIdent typeVarDecls conDecls) = do
-    -- TODO detect redefinition and inform when renamed
   let arity = length typeVarDecls
   _ <- renameAndDefineTypeCon srcSpan ident arity
   mapM_ defineConDecl conDecls
@@ -121,7 +120,6 @@ defineTypeDecl (HS.DataDecl srcSpan declIdent typeVarDecls conDecls) = do
   --   into the current environment.
   defineConDecl :: HS.ConDecl -> Converter ()
   defineConDecl (HS.ConDecl consrcSpan (HS.DeclIdent _ conIdent) argTypes) = do
-    -- TODO detect redefinition and inform when renamed
     _ <- renameAndDefineCon consrcSpan
                             conIdent
                             (map Just argTypes)
