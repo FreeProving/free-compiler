@@ -93,17 +93,17 @@ fromNonRecursive (Recursive decls) =
 -- | Inserts the given data type (including its constructors) or type synonym
 --   declaration into the current environment.
 defineTypeDecl :: HS.TypeDecl -> Converter ()
-defineTypeDecl (HS.TypeSynDecl _ declIdent typeVarDecls typeExpr) = do
+defineTypeDecl (HS.TypeSynDecl srcSpan declIdent typeVarDecls typeExpr) = do
   let ident    = HS.fromDeclIdent declIdent
       name     = HS.Ident ident
       arity    = length typeVarDecls
       typeVars = map HS.fromDeclIdent typeVarDecls
-  _ <- renameAndDefineTypeCon ident arity
+  _ <- renameAndDefineTypeCon srcSpan ident arity
   modifyEnv $ defineTypeSynonym name typeVars typeExpr
 defineTypeDecl (HS.DataDecl srcSpan declIdent typeVarDecls conDecls) = do
     -- TODO detect redefinition and inform when renamed
   let arity = length typeVarDecls
-  _ <- renameAndDefineTypeCon ident arity
+  _ <- renameAndDefineTypeCon srcSpan ident arity
   mapM_ defineConDecl conDecls
  where
   -- | The name of the data type.
@@ -120,9 +120,12 @@ defineTypeDecl (HS.DataDecl srcSpan declIdent typeVarDecls conDecls) = do
   -- | Inserts the given data constructor declaration and its smart constructor
   --   into the current environment.
   defineConDecl :: HS.ConDecl -> Converter ()
-  defineConDecl (HS.ConDecl _ (HS.DeclIdent _ conIdent) argTypes) = do
+  defineConDecl (HS.ConDecl consrcSpan (HS.DeclIdent _ conIdent) argTypes) = do
     -- TODO detect redefinition and inform when renamed
-    _ <- renameAndDefineCon conIdent (map Just argTypes) (Just returnType)
+    _ <- renameAndDefineCon consrcSpan
+                            conIdent
+                            (map Just argTypes)
+                            (Just returnType)
     return ()
 
 -------------------------------------------------------------------------------

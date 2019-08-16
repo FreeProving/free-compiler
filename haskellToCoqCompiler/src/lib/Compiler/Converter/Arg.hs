@@ -11,6 +11,7 @@ import           Compiler.Environment
 import           Compiler.Environment.Fresh
 import           Compiler.Environment.Renamer
 import qualified Compiler.Haskell.AST          as HS
+import           Compiler.Haskell.SrcSpan
 import           Compiler.Monad.Converter
 
 -------------------------------------------------------------------------------
@@ -33,8 +34,10 @@ convertTypeVarDecls
   :: G.Explicitness   -- ^ Whether to generate an explicit or implit binder.
   -> [HS.TypeVarDecl] -- ^ The type variable declarations.
   -> Converter [G.Binder]
-convertTypeVarDecls explicitness typeVarDecls =
-  generateTypeVarDecls explicitness (map HS.fromDeclIdent typeVarDecls)
+convertTypeVarDecls explicitness typeVarDecls = generateTypeVarDecls'
+  explicitness
+  (map HS.getSrcSpan typeVarDecls)
+  (map HS.fromDeclIdent typeVarDecls)
 
 -- | Generates explicit or implicit Coq binders for the type variables with
 --   the given names that are either declared in the head of a data type or
@@ -46,11 +49,19 @@ generateTypeVarDecls
   :: G.Explicitness    -- ^ Whether to generate an explicit or implit binder.
   -> [HS.TypeVarIdent] -- ^ The names of the type variables to declare.
   -> Converter [G.Binder]
-generateTypeVarDecls explicitness idents
+generateTypeVarDecls = flip generateTypeVarDecls' (repeat NoSrcSpan)
+
+-- | Like 'generateTypeVarDecls' but also accepts the location of the
+--   type variables (for error reporting purposes).
+generateTypeVarDecls'
+  :: G.Explicitness    -- ^ Whether to generate an explicit or implit binder.
+  -> [SrcSpan]         -- ^ The location of the type variable declarations.
+  -> [HS.TypeVarIdent] -- ^ The names of the type variables to declare.
+  -> Converter [G.Binder]
+generateTypeVarDecls' explicitness srcSpans idents
   | null idents = return []
   | otherwise = do
-    -- TODO detect redefinition
-    idents' <- mapM renameAndDefineTypeVar idents
+    idents' <- zipWithM renameAndDefineTypeVar srcSpans idents
     return [G.typedBinder explicitness (map (G.bare) idents') G.sortType]
 
 -------------------------------------------------------------------------------
@@ -110,9 +121,8 @@ convertDecArg arg argType = do
 -- | Converts the argument of a function (a variable pattern) to an explicit
 --   Coq binder.
 convertArg :: HS.VarPat -> Maybe G.Term -> Converter G.Binder
-convertArg (HS.VarPat _ ident) mArgType' = do
-  -- TODO detect redefinition.
-  ident' <- renameAndDefineVar ident
+convertArg (HS.VarPat srcSpan ident) mArgType' = do
+  ident' <- renameAndDefineVar srcSpan ident
   generateArgBinder ident' mArgType'
 
 -- | Generates an explicit Coq binder for a function argument with the given

@@ -15,6 +15,7 @@ module Compiler.Environment
   , defineTypeSig
   , defineTypeSynonym
   , defineIdent
+  , defineSrcSpan
   , defineArgTypes
   -- * Looking up entries from the environment
   , isFunction
@@ -22,6 +23,7 @@ module Compiler.Environment
   , isPureVar
   , lookupDecArg
   , lookupIdent
+  , lookupSrcSpan
   , lookupArgTypes
   , lookupArity
   , lookupTypeSig
@@ -58,6 +60,7 @@ import           Data.Tuple.Extra               ( snd3 )
 import           Compiler.Analysis.DependencyExtraction
 import qualified Compiler.Coq.AST              as G
 import qualified Compiler.Haskell.AST          as HS
+import           Compiler.Haskell.SrcSpan
 import           Compiler.Pretty
 
 -------------------------------------------------------------------------------
@@ -103,6 +106,12 @@ data Environment = Environment
   , envDefinedIdents :: Map ScopedName G.Qualid
     -- ^ Maps Haskell names of defined functions, (type/smart) constructors and
     --  (type) variables to corresponding Coq identifiers.
+  , envLocalSrcSpans :: Map ScopedName SrcSpan
+    -- ^ The location of identifiers that have been defined (locally).
+    --   On top level this contains the source spans for defined functions,
+    --   data types and other declarations. Within a function declaration this
+    --   contains the names of parameters for example, however no top level
+    --   declarations. This is used to detect name conflicts.
   , envDefinedArgTypes
       :: Map ScopedName ([HS.TypeVarIdent], [Maybe HS.Type], Maybe HS.Type)
     -- ^ Maps Haskell names of defined functions and (smart) constructors
@@ -135,6 +144,7 @@ emptyEnvironment = Environment
   , envPureVars            = Set.empty
   , envDecArgs             = Map.empty
   , envDefinedIdents       = Map.empty
+  , envLocalSrcSpans       = Map.empty
   , envDefinedArgTypes     = Map.empty
   , envDefinedTypeSynonyms = Map.empty
   , envQuickCheckEnabled   = False
@@ -179,6 +189,13 @@ defineIdent :: Scope -> HS.Name -> G.Qualid -> Environment -> Environment
 defineIdent scope name ident env = env
   { envDefinedIdents   = Map.insert (scope, name) ident (envDefinedIdents env)
   , envDefinedArgTypes = Map.delete (scope, name) (envDefinedArgTypes env)
+  }
+
+-- | Associates the name of a Haskell function, (type/smart) constructors
+--   or (type) variables with the location of the it's definition.
+defineSrcSpan :: Scope -> HS.Name -> SrcSpan -> Environment -> Environment
+defineSrcSpan scope name srcSpan env = env
+  { envLocalSrcSpans = Map.insert (scope, name) srcSpan (envLocalSrcSpans env)
   }
 
 -- | Associates the name of a Haskell function or (smart) constructor with its
@@ -263,6 +280,10 @@ lookupDecArg name = Map.lookup name . envDecArgs
 --   constructor or (type) variable with the given name.
 lookupIdent :: Scope -> HS.Name -> Environment -> Maybe G.Qualid
 lookupIdent scope name = Map.lookup (scope, name) . envDefinedIdents
+
+-- | Looks up the location .
+lookupSrcSpan :: Scope -> HS.Name -> Environment -> Maybe SrcSpan
+lookupSrcSpan scope name = Map.lookup (scope, name) . envLocalSrcSpans
 
 -- | Looks up the argument and return types of the function or (smart)
 --   constructor with the given name.

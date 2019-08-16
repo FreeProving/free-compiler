@@ -14,6 +14,7 @@ import           Compiler.Environment.Loader
 import           Compiler.Environment.Renamer
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Haskell.Parser
+import           Compiler.Haskell.SrcSpan
 import           Compiler.Haskell.Simplifier
 import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
@@ -105,11 +106,11 @@ parseTestDecls input =
 
 -- | Alias for 'renameAndDefineTypeCon'.
 defineTestTypeCon :: String -> Int -> Converter String
-defineTestTypeCon = renameAndDefineTypeCon
+defineTestTypeCon = renameAndDefineTypeCon NoSrcSpan
 
 -- | Alias for 'renameAndDefineTypeVar'.
 defineTestTypeVar :: String -> Converter String
-defineTestTypeVar = renameAndDefineTypeVar
+defineTestTypeVar = renameAndDefineTypeVar NoSrcSpan
 
 -- | Like 'renameAndDefineCon' but the argument and return types are parsed
 --   from the given string.
@@ -117,11 +118,11 @@ defineTestCon :: String -> Int -> String -> Converter (String, String)
 defineTestCon ident arity typeStr = do
   typeExpr <- parseTestType typeStr
   let (argTypes, returnType) = HS.splitType typeExpr arity
-  renameAndDefineCon ident argTypes returnType
+  renameAndDefineCon NoSrcSpan ident argTypes returnType
 
   -- | Alias for 'defineTestVar'.
 defineTestVar :: String -> Converter String
-defineTestVar = renameAndDefineVar
+defineTestVar = renameAndDefineVar NoSrcSpan
 
 -- | Like 'renameAndDefineFunc' but the argument and return types are parsed
 --   from the given string.
@@ -129,7 +130,7 @@ defineTestFunc :: String -> Int -> String -> Converter String
 defineTestFunc ident arity typeStr = do
   typeExpr <- parseTestType typeStr
   let (argTypes, returnType) = HS.splitType typeExpr arity
-  renameAndDefineFunc ident argTypes returnType
+  renameAndDefineFunc NoSrcSpan ident argTypes returnType
 
 -- | Like 'defineTestFunc' but also marks the given function as partial.
 definePartialTestFunc :: String -> Int -> String -> Converter String

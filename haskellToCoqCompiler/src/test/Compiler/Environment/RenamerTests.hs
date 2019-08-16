@@ -11,12 +11,14 @@ import           Compiler.Coq.Keywords
 import           Compiler.Environment
 import           Compiler.Environment.Renamer
 import qualified Compiler.Haskell.AST          as HS
+import           Compiler.Util.Test
 
 -- | Test group for all @Compiler.Environment.Renamer@ tests.
 testRenamer :: Spec
 testRenamer = describe "Compiler.Environment.Renamer" $ do
   testMustRenameIdent
   testRenameIdent
+  testDefineLocally
 
 -------------------------------------------------------------------------------
 -- Test identifiers                                                          --
@@ -74,3 +76,35 @@ testRenameIdent = describe "renameIdent" $ do
     property $ forAll genIdent $ \ident ->
       let ident' = renameIdent ident emptyEnvironment
       in  renameIdent ident' emptyEnvironment == ident'
+
+-------------------------------------------------------------------------------
+-- Tests for @defineLocally@                                                 --
+-------------------------------------------------------------------------------
+
+-- | Test group for 'defineLocally' tests.
+testDefineLocally :: Spec
+testDefineLocally = describe "defineLocally" $ do
+  it "detects redefinitions of function declarations"
+    $ shouldReportFatal
+    $ fromConverter
+    $ convertTestDecls ["foo = 42", "foo :: Int", "foo = 1337"]
+
+  it "detects redefinitions of data type declarations"
+    $ shouldReportFatal
+    $ fromConverter
+    $ convertTestDecls ["data Foo = Foo", "data Foo = Bar"]
+
+  it "detects redefinitions of constructor declarations"
+    $ shouldReportFatal
+    $ fromConverter
+    $ convertTestDecls ["data Foo = Foo | Foo"]
+
+  it "detects redefinitions of constructor declarations"
+    $ shouldReportFatal
+    $ fromConverter
+    $ convertTestDecls ["data Foo = Foo", "data Bar = Foo"]
+
+  it "detects redefinitions of type variables"
+    $ shouldReportFatal
+    $ fromConverter
+    $ convertTestDecls ["data Foo a a = Foo a"]

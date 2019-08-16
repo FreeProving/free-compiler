@@ -200,7 +200,7 @@ convertConPat (HS.ConPat srcSpan ident) varPats = do
 
 -- | Converts a Haskell variable pattern to a Coq variable pattern.
 convertVarPat :: HS.VarPat -> Converter G.Pattern
-convertVarPat (HS.VarPat _ ident) = do
+convertVarPat (HS.VarPat srcSpan ident) = do
   -- TODO detect redefinition
-  ident' <- renameAndDefineVar ident
+  ident' <- renameAndDefineVar srcSpan ident
   return (G.QualidPat (G.bare ident'))

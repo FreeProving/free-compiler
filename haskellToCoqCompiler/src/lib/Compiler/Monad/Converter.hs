@@ -91,7 +91,8 @@ modifyEnv' = state
 localEnv :: Converter a -> Converter a
 localEnv converter = do
   env <- getEnv
-  x   <- converter
+  putEnv (env { envLocalSrcSpans = envLocalSrcSpans emptyEnvironment })
+  x <- converter
   putEnv env
   return x
 

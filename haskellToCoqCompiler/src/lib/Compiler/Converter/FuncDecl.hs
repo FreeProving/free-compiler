@@ -77,12 +77,12 @@ convertFuncHead name args = do
 
 -- | Inserts the given function declaration into the current environment.
 defineFuncDecl :: HS.FuncDecl -> Converter ()
-defineFuncDecl (HS.FuncDecl _ (HS.DeclIdent srcSpan ident) args _) = do
+defineFuncDecl (HS.FuncDecl srcSpan (HS.DeclIdent _ ident) args _) = do
   -- TODO detect redefinition and inform when renamed
   let name = HS.Ident ident
   funcType <- lookupTypeSigOrFail srcSpan name
   (argTypes, returnType) <- splitFuncType name args funcType
-  _ <- renameAndDefineFunc ident (map Just argTypes) (Just returnType)
+  _ <- renameAndDefineFunc srcSpan ident (map Just argTypes) (Just returnType)
   return ()
 
 -- | Splits the annotated type of a Haskell function with the given arguments
@@ -196,7 +196,7 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent args expr) decArgIndex = do
   --   the decreasing argument.
   isCaseExpr :: HS.Expr -> Bool
   isCaseExpr (HS.Case _ (HS.Var _ varName) _) = varName == decArg
-  isCaseExpr _                                = False
+  isCaseExpr _ = False
 
   -- | Ensures that the decreasing argument is not shadowed by the binding
   --   of a local variable at the given position.
@@ -240,6 +240,7 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent args expr) decArgIndex = do
     funcType               <- lookupTypeSigOrFail srcSpan name
     (argTypes, returnType) <- splitFuncType name args funcType
     _                      <- renameAndDefineFunc
+      NoSrcSpan
       helperIdent
       (map Just argTypes ++ replicate (length usedVars) Nothing)
       (Just returnType)
