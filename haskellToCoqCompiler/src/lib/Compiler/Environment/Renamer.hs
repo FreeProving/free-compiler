@@ -160,9 +160,9 @@ renameAndDefineTypeCon
   -> Converter String
 renameAndDefineTypeCon srcSpan ident arity = do
   let name = HS.Ident ident
-  defineLocally TypeScope name srcSpan
-  ident' <- inEnv $ renameIdent ident
+  ident' <- renameIdentAndInform srcSpan TypeScope ident
   modifyEnv $ defineTypeCon name arity (G.bare ident')
+  defineLocally TypeScope name srcSpan
   return ident'
 
 -- | Associates the identifier of a user defined Haskell type variable with an
@@ -176,9 +176,9 @@ renameAndDefineTypeVar
   -> Converter String
 renameAndDefineTypeVar srcSpan ident = do
   let name = HS.Ident ident
-  defineLocally TypeScope name srcSpan
   ident' <- inEnv $ renameIdent ident
   modifyEnv $ defineTypeVar name (G.bare ident')
+  defineLocally TypeScope name srcSpan
   return ident'
 
 -- | Associates the identifier of a user defined Haskell data constructor
@@ -198,14 +198,15 @@ renameAndDefineCon
   -> [Maybe HS.Type] -- ^ The types of the constructor's arguments (if known).
   -> Maybe HS.Type   -- ^ The return type of the constructor (if known).
   -> Converter (String, String)
-renameAndDefineCon srcSpan ident argTypes returnType = do
-  let name = HS.Ident ident
-  defineLocally ConScope      name srcSpan
-  defineLocally SmartConScope name srcSpan
-  ident'      <- inEnv $ renameIdent (toCamel (fromHumps ident))
-  smartIdent' <- inEnv $ renameIdent ident
+renameAndDefineCon srcSpan smartIdent argTypes returnType = do
+  let ident = toCamel (fromHumps smartIdent)
+      name  = HS.Ident smartIdent
+  ident'      <- inEnv $ renameIdent ident
+  smartIdent' <- renameIdentAndInform srcSpan SmartConScope smartIdent
   modifyEnv
     $ defineCon name (G.bare ident') (G.bare smartIdent') argTypes returnType
+  defineLocally ConScope      name srcSpan
+  defineLocally SmartConScope name srcSpan
   return (ident', smartIdent')
 
 -- | Associates the identifier of a user defined Haskell variable with an
@@ -219,9 +220,9 @@ renameAndDefineVar
   -> Converter String
 renameAndDefineVar srcSpan ident = do
   let name = HS.Ident ident
-  defineLocally VarScope name srcSpan
   ident' <- inEnv $ renameIdent ident
   modifyEnv $ defineVar name (G.bare ident')
+  defineLocally VarScope name srcSpan
   return ident'
 
 -- | Associates the identifier of a user defined Haskell function with an
@@ -237,9 +238,9 @@ renameAndDefineFunc
   -> Converter String
 renameAndDefineFunc srcSpan ident argTypes returnType = do
   let name = HS.Ident ident
-  defineLocally VarScope name srcSpan
-  ident' <- inEnv $ renameIdent ident
+  ident' <- renameIdentAndInform srcSpan VarScope ident
   modifyEnv $ defineFunc name (G.bare ident') argTypes returnType
+  defineLocally VarScope name srcSpan
   return ident'
 
 -------------------------------------------------------------------------------
@@ -263,5 +264,25 @@ defineLocally scope name srcSpan = do
         ++ "'. Declared at "
         ++ showPretty srcSpan
         ++ " and "
-        ++ showPretty srcSpan
+        ++ showPretty srcSpan2
         ++ "."
+
+-- | Renames the given Haskell identifier (if necessary) such that it can be
+--   safely used in Coq.
+--
+--   If the identifier is renamed, the user is informed.
+renameIdentAndInform
+  :: SrcSpan -> Scope -> String -> Converter String
+renameIdentAndInform srcSpan scope ident = do
+  ident' <- inEnv $ renameIdent ident
+  when (ident' /= ident)
+    $  report
+    $  Message srcSpan Info
+    $  "Renamed "
+    ++ showPretty scope
+    ++ " '"
+    ++ ident
+    ++ "' to '"
+    ++ ident'
+    ++ "'."
+  return ident'
