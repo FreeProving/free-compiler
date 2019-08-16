@@ -23,7 +23,14 @@ copyright:           (c) 2018, Flensburg University of Applied Sciences
                      (c) 2019, Kiel University
 category:            Language
 build-type:          Simple
--- extra-source-files:  TODO Coq Base library
+data-files:          base/env.toml
+                   , base/Prelude.v
+                   , base/Prelude/*.v
+                   , base/Free.v
+                   , base/Free/*.v
+                   , base/Free/Instance/*.v
+                   , base/Free/Tactic/*.v
+                   , base/Free/Util/*.v
 
 library haskell-to-coq-internal
   hs-source-dirs:     src/lib
@@ -91,6 +98,7 @@ library haskell-to-coq-internal
 executable haskell-to-coq-compiler
   hs-source-dirs:     src/exe
   main-is:            Main.hs
+  other-modules:      Paths_haskellToCoqCompiler
   build-depends:      base
                     , directory           ==1.3.*
                     , filepath            ==1.4.*
@@ -103,7 +111,8 @@ test-suite unit-tests
   type:               exitcode-stdio-1.0
   hs-source-dirs:     src/test
   main-is:            Spec.hs
-  other-modules:      Compiler.Analysis.PartialityAnalysisTests
+  other-modules:      Paths_haskellToCoqCompiler
+                    , Compiler.Analysis.PartialityAnalysisTests
                     , Compiler.Analysis.RecursionAnalysisTests
                     , Compiler.ConverterTests
                     , Compiler.Converter.ExprTests

@@ -16,7 +16,6 @@ import           Compiler.Converter             ( convertModuleWithPreamble )
 import           Compiler.Coq.Pretty            ( )
 import           Compiler.Environment           ( Environment
                                                 , defineProofs
-                                                , emptyEnvironment
                                                 )
 import           Compiler.Environment.Loader
 import           Compiler.Environment.ProofLoader
@@ -30,6 +29,8 @@ import           Compiler.Monad.Reporter
 import           Compiler.Pretty                ( putPrettyLn
                                                 , writePrettyFile
                                                 )
+
+import           Paths_haskellToCoqCompiler     ( getDataFileName )
 
 -------------------------------------------------------------------------------
 -- Command line option parser                                                --
@@ -48,7 +49,7 @@ data Options = Options
     -- ^ The output directory or 'Nothing' if the output should be printed
     --   to @stdout@.
 
-  , optBaseLibDir :: Maybe FilePath
+  , optBaseLibDir :: FilePath
     -- ^ The directory that contains the Coq Base library that accompanies
     --   this compiler.
 
@@ -61,14 +62,16 @@ data Options = Options
 -- | The default command line options.
 --
 --   By default output will be printed to the console.
-defaultOptions :: Options
-defaultOptions = Options
-  { optShowHelp         = False
-  , optInputFiles       = []
-  , optOutputDir        = Nothing
-  , optBaseLibDir       = Nothing
-  , optCreateCoqProject = True
-  }
+makeDefaultOptions :: IO Options
+makeDefaultOptions = do
+  defaultBaseLibDir <- getDataFileName "base"
+  return $ Options
+    { optShowHelp         = False
+    , optInputFiles       = []
+    , optOutputDir        = Nothing
+    , optBaseLibDir       = defaultBaseLibDir
+    , optCreateCoqProject = True
+    }
 
 -- | Command line option descriptors from the @GetOpt@ library.
 options :: [OptDescr (Options -> Options)]
@@ -87,20 +90,18 @@ options
     , Option
       ['b']
       ["base-library"]
-      (ReqArg (\p opts -> opts { optBaseLibDir = Just p }) "DIR")
+      (ReqArg (\p opts -> opts { optBaseLibDir = p }) "DIR")
       (  "Optional. Path to directory that contains the compiler's Coq\n"
-      ++ "Base library. If this argument is missing, you cannot use any\n"
-      ++ "predefined types, constructors or functions (e.g. lists or\n"
-      ++ "arithmetic expressions)."
+      ++ "Base library. By default the compiler will look for the Base library"
+      ++ "in it's data directory."
       )
     , Option
       []
       ["no-coq-project"]
       (NoArg (\opts -> opts { optCreateCoqProject = False }))
       (  "Disables the creation of a `_CoqProject` file in the output\n"
-      ++ "directory. If the `--output` or `--base-library` option is missing\n"
-      ++ "or the `_CoqProject` file exists already, no `_CoqProject` is\n"
-      ++ "created."
+      ++ "directory. If the `--output` option is missing or the `_CoqProject`\n"
+      ++ "file exists already, no `_CoqProject` is created.\n"
       )
     ]
 
@@ -111,12 +112,16 @@ options
 --
 --   All non-option arguments are considered as input files.
 --
---   Returns the 'defaultOptions' if no arguments are specified.
+--   Returns the default options (see 'makeDefaultOptions') if no arguments are
+--   specified.
 parseArgs
   :: [String] -- ^ The command line arguments.
-  -> Reporter Options
+  -> ReporterIO Options
 parseArgs args
-  | null errors = return opts { optInputFiles = nonOpts }
+  | null errors = do
+    defaultOptions <- lift $ makeDefaultOptions
+    let opts = foldr ($) defaultOptions optSetters
+    return opts { optInputFiles = nonOpts }
   | otherwise = do
     mapM_ (report . Message NoSrcSpan Error) errors
     reportFatal $ Message
@@ -130,9 +135,6 @@ parseArgs args
   nonOpts :: [String]
   errors :: [String]
   (optSetters, nonOpts, errors) = getOpt Permute options args
-
-  opts :: Options
-  opts = foldr ($) defaultOptions optSetters
 
 -------------------------------------------------------------------------------
 -- Help message                                                              --
@@ -168,7 +170,7 @@ putUsageInfo = do
 main :: IO ()
 main = join $ reportToOrExit stderr $ reportIOErrors $ do
   args <- lift getArgs
-  opts <- hoist $ parseArgs args
+  opts <- parseArgs args
   run opts
 
 -- | Handles the given command line options.
@@ -247,18 +249,11 @@ locateAndLoadProofsFor inputFile = do
 
 -- | Initializes the default environment using the specified path to the Coq
 --   Base library.
+--
+--   If the `--base-library` option is omited, we look for the base library in
+--   the `data-files` field of the `.cabal` file.
 getDefaultEnvironment :: Options -> ReporterIO Environment
-getDefaultEnvironment Options { optBaseLibDir = Nothing } = do
-  report
-    $  Message NoSrcSpan Warning
-    $  "Missing path to Coq Base library. Predefined types, constructors and "
-    ++ "functions will not be available!"
-  report
-    $  Message NoSrcSpan Info
-    $  "Perhaps you want to add the '--base-library' command line argument to "
-    ++ "make predefined types, constructors and functions available."
-  return emptyEnvironment
-getDefaultEnvironment Options { optBaseLibDir = Just baseLibDir } =
+getDefaultEnvironment Options { optBaseLibDir = baseLibDir } =
   loadEnvironment (baseLibDir </> "env.toml")
 
 -- | Creates a @_CoqProject@ file (if enabled) that maps the physical directory
@@ -266,7 +261,7 @@ getDefaultEnvironment Options { optBaseLibDir = Just baseLibDir } =
 --
 --   The path to the Base library will be relative to the output directory.
 createCoqProject :: Options -> ReporterIO ()
-createCoqProject Options { optOutputDir = Just outputDir, optBaseLibDir = Just baseDir, optCreateCoqProject = True }
+createCoqProject Options { optOutputDir = Just outputDir, optBaseLibDir = baseDir, optCreateCoqProject = True }
   = lift $ unlessM coqProjectExists $ writeCoqProject
  where
   -- | Path to the @_CoqProject@ file to create.

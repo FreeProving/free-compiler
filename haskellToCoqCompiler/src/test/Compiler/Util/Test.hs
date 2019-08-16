@@ -20,6 +20,8 @@ import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
 import           Compiler.Pretty
 
+import           Paths_haskellToCoqCompiler     ( getDataFileName )
+
 -------------------------------------------------------------------------------
 -- Evaluation of converters and reporters                                    --
 -------------------------------------------------------------------------------
@@ -27,7 +29,8 @@ import           Compiler.Pretty
 -- | Evaluates the given converter in the default environment.
 fromConverter :: Converter a -> ReporterIO a
 fromConverter converter = do
-  env <- loadEnvironment "base/env.toml"
+  baseLibConfig <- lift $ getDataFileName "base/env.toml"
+  env <- loadEnvironment baseLibConfig
   hoist $ evalConverter converter env
 
 -- | Evaluates the given reporter and throws an IO exception when a fatal
