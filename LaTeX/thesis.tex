@@ -6,9 +6,6 @@
         , bibresource={thesis.bib}
         ]{ifiseries}
 
-% <++PERHAPS CHANGE NAME OF BIBLIOGRAPHY RESOURCE ON LINE ABOVE++>
-% <++USE language=german IF YOUR DOCUMENT WILL BE IN GERMAN ++>
-
 \usepackage{minted}
 
 \begin{document}
@@ -16,16 +13,13 @@
 \frontmatter
 
 \studtitlepage%
-{<++TITLE++> \\[.1em]
-<++OVER TWO LINES++>}%
-{<++SUBTITLE++>}%
-{<++NAME++>}%
-{<++THESIS TYPE++>}%
-{<++MONTH AND YEAR++>}%
-{Programming Languages and Compiler Construction}%
-% in case of a german thesis you should use
-% {Programmiersprachen und \"Ubersetzerkonstruktion}%
-{Michael Hanus}
+  {Translation from Haskell to Coq}
+  {}% No subtitile.
+  {Justin Andresen}%
+  {Bachelor's thesis}%
+  {October 2019>}%
+  {Programming Languages and Compiler Construction}%
+  {Michael Hanus}
 \cleardoublepage
 \eidesstatt
 
@@ -38,31 +32,9 @@
 \tableofcontents
 \mainmatter
 
-\chapter{Introduction}
-\chapter{Functional Logic Programming}
-\cite{hanus2013functional} gives a detailed overview on the functional
-logic programming language Curry.
-
-\begin{minted}[mathescape,
-               numbersep=5pt,
-               frame=lines,
-               framesep=2mm]{haskell}
---  In a set-based semantics, the `?`-operator can be understood as $\cup$.
-(?) :: a -> a -> a
-x ? y = x
-x ? y = y
-
-coin :: Bool
-coin = 1 ? 2
-\end{minted}
-\chapter{<++THIRD CHAPTER++>}
-\chapter{<++FOURTH CHAPTER++>}
-\chapter{Conclusion and Future Work}
-
 \appendix
-\chapter{<++FIRST CHAPTER OF APPENDIX++>}
-\chapter{<++SECOND CHAPTER OF APPENDIX++>}
 
 \backmatter
+\nocite{*} % TODO remove me.
 \tocbibliography
 \end{document}
