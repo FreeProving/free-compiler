@@ -6,7 +6,17 @@
         , bibresource={thesis.bib}
         ]{ifiseries}
 
+% Configure syntax highlighting.
 \usepackage{minted}
+\setminted{
+  mathescape,
+  escapeinside=@@,
+  tabsize=2,
+  breaklines,
+  numbersep=5pt,
+  frame=lines,
+  framesep=2mm
+}
 
 \begin{document}
 
