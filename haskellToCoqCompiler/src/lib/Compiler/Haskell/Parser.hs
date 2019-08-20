@@ -34,7 +34,7 @@ import           Compiler.Monad.Reporter
 parseMode :: String -> ParseMode
 parseMode filename = ParseMode
   { parseFilename         = filename
-  , baseLanguage          = Haskell98
+  , baseLanguage          = Haskell2010
   , extensions            = []
   , ignoreLanguagePragmas = True
   , ignoreLinePragmas     = True
