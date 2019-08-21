@@ -18,10 +18,6 @@
   framesep=2mm
 }
 
-% Don't indent paragraphs.
-\setlength{\parindent}{0em}
-\setlength{\parskip}{1em}
-
 \begin{document}
 
 \frontmatter
@@ -38,8 +34,12 @@
 \eidesstatt
 
 \input{chapter/00-abstract.tex}
-
 \tableofcontents
+
+% Don't indent paragraphs.
+\setlength{\parindent}{0em}
+\setlength{\parskip}{1em}
+
 \mainmatter
 \input{chapter/01-introduction.tex}
 \input{chapter/02-preliminaries.tex}
