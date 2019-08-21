@@ -13,10 +13,15 @@
   escapeinside=@@,
   tabsize=2,
   breaklines,
-  numbersep=5pt,
-  frame=lines,
-  framesep=2mm
 }
+
+% Shortcuts for minted code listings.
+\newminted{haskell}{fontsize=\small} % Add `haskellcode` environment.
+\newminted{coq}{fontsize=\small}     % Add `coqcode` environment.
+
+% Shortcuts for minted inline code snippets.
+\newcommand{\coq}[1]{\mintinline{coq}{#1}}
+\newcommand{\haskell}[1]{\mintinline{haskell}{#1}}
 
 \begin{document}
 
