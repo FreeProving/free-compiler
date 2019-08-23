@@ -1,0 +1,86 @@
+\section{Translation of Type Expressionss} \label{sec:translation:type}
+
+A computation in Haskell does not necessarily produce a value but can also result in an effect, for example due to partiality.
+Coq on the other hand does not support such effects directly.
+As dicussed before, we bypass this restriction by modeling effects using the free monad in Coq.
+This fact needs to be reflected on type level as well.
+Therefore, every Haskell type $\tau$ is lifted into the free monad during the translation.
+
+\[
+  \toCoq{\tau} = \Free{\tau'}
+\]
+
+However, the translation rule above is incomplete when we take higher-order functions into account.
+Consider for example the following function declaration.
+
+\begin{minted}{haskell}
+map :: (a -> b) -> [a] -> [b]
+map f xs = {- ... -}
+\end{minted}
+
+The parameter \haskell{xs} is of type $[a]$ and does not pose any problem.
+Assuming \coq{List} is the Coq type constructor corresponding to \haskell{[]} (i.e. $[]' = List$), we can translate the type of \haskell{xs} as follows.
+
+\[
+  \toCoq{[a]} = \Free{(\texttt{List}\;a)}
+\]
+
+This allows an application of \haskell{map} to pass an effectful computation as the second argument.
+If we define the constructors of \coq{List} appopriatly (see \autoref{sec:translation:type-decl}), the list items can also have effects themselves.
+We do not have to lift the type argument $a$ explicitly.
+
+The parameter \haskell{f} is different though.
+While it is correct to lift its type $a \rightarrow b$ into the free monad such that potential effects in the first argument of \haskell{map} can be handled, this is not sufficent.
+
+\[
+  \toCoq{(a \rightarrow b)} = \Free{(a \rightarrow b)}
+\]
+
+The argument in an application of \haskell{f} could have an effect as well and its result is also potentially effectful.
+In case of \haskell{xs} the \coq{List} constructors took care of lifting the item types.
+However, we do not provide a type constructor for \coq{->} that does the same for functions.
+Therefore, we need to lift the argument and return type of \haskell{f} explicitly.
+
+\[
+  \toCoq{(a \rightarrow b)} = \Free{(\Free{a} \rightarrow \Free{b})}
+\]
+
+This needs to be done for all arbitrarily deeply nested function types in $\tau$.
+For this purpose we introduce another translation operation $\toCoqT{\tau}$ as shown in \autoref{eqn:translation:type}.
+
+\begin{figure}[H]
+\begin{align*}
+     \toCoq{\tau}
+  &= \Free{\toCoqT{\tau}}
+  && \forall \tau \text{ type expression}
+  \\
+  \\
+     \toCoqT{(\tau_1 \rightarrow \tau_2)}
+  &= \toCoq{\tau_1} \rightarrow \toCoq{\tau_2}
+  && \forall \tau_1, \tau_2 \text{ type expression}
+  \\
+     \toCoqT{(\tau_1\;\tau_2)}
+  &= \toCoqT{\tau_1}\;\toCoqT{\tau_2}
+  && \forall \tau_1, \tau_2 \text{ type expression}
+  \\
+     \toCoqT{D}
+  &= \genApply{D'}
+  && \forall D \text{ type constructor}
+  \\
+  \toCoqT{\alpha}
+  &= \alpha'
+  && \forall \alpha \text{ type variable}
+\end{align*}
+\label{eqn:translation:type}
+\caption{Final translation rules for type expressions.}
+\end{figure}
+
+It recursively lifts the argument and return types of function types contained in $\tau$.
+Additionally, the parameters $Shape$ and $Pos$ are passed to type constructors.
+That is, in the example above, the type of \haskell{xs} would be translated as follows.
+
+\[
+  \toCoq{[a]} = \Free{\genApply{\texttt{List}}\;a}
+\]
+
+This is required because \coq{List} needs $Shape$ and $Pos$ to use the free monad.

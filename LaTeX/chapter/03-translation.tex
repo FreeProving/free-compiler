@@ -1,4 +1,13 @@
 \chapter{Translation} \label{chp:translation}
 
+This chapter gives an overview for the translation rules we apply to generate Coq code from Haskell modules.
+Because it would be error prone and infeasible to support the full set of Haskell, we start in the first section by specifying a subset of Haskell that we are going to focus on for the rest of this thesis.
+The second section gives a brief introducton to the notation we are going to employ to describe the translation rules.
+The subsequent sections deal with the formal specification of the actual translation rules.
+
 \input{chapter/03-translation/01-assumtions.tex}
-\input{chapter/03-translation/02-translation.tex}
+\input{chapter/03-translation/02-notation.tex}
+\input{chapter/03-translation/03-type.tex}
+\input{chapter/03-translation/04-type-decl.tex}
+\input{chapter/03-translation/05-expr.tex}
+\input{chapter/03-translation/06-func-decl.tex}
