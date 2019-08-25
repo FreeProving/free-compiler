@@ -56,7 +56,7 @@ Now we can proof the proposition by applying the translation rules for types pre
        \tag{\autoref{eqn:translation:type}} \\
     &= \Free{\sigma'(\toCoqT{\tau})}
        \tag{$\star$} \\
-    &= \beta_C{(\Free{(S'\;\Shape\;\Pos\;\toCoqT{\tau_1}\;\ldots\;\toCoqT{\tau_n})})}
+    &= \beta_C{(\Free{(\genApply{S'}\;\toCoqT{\tau_1}\;\ldots\;\toCoqT{\tau_n})})}
        \tag{undo expansion of $S'$} \\
     &= \beta_C{(\Free{\toCoqT{(S\;\tau_1\;\ldots\;\tau_n)}})}
        \tag{\autoref{eqn:translation:type:application} and \ref{eqn:translation:type:constructor}} \\
@@ -75,4 +75,113 @@ The equation marked with $(\star)$ follows from the following property of $\sigm
 We assume without a proof that this property holds for the extensions of $\sigma$ and $\sigma'$ as well.
 
 \subsection{Data Types}
+Until now we have described how to translate type expressions and assign names to them but we are not able to actually define our own types for usage in those type expressions.
+One of the simplest kinds of data types that can be defined in Haskell are so called \textit{sum types}.
+A well known expamle for a sum type is \haskell{Bool} which is commonly defined as follows.
+\begin{minted}{haskell}
+  data Bool = True | False
+\end{minted}
+In general, the constructors of a sum type do not have any arguments and are enumerated on the right hand side of a \haskell{data} type declaration.
+In Coq data types are defined using \coq{Inductive}-sentences in a very similar fation to \haskell{data} declarations in Haskell.
+The \haskell{Bool} type could look like this for example.
+\begin{minted}{coq}
+  Inductive Bool : Type
+    := true  : Bool
+     | false : Bool.
+\end{minted}
+Apart from the concrete syntax, the main difference is that the type of the constructors is annotated explicitly.
+In contrast to Haskell, we follow the Coq convention to choose lower case names for the constructors.
+
+Sum types on their own are usually not very usefull.
+Instead one wishes to compose existing data types to more interesting data structures.
+Such types are refered to as \textit{product types}.
+If there was for instance a type \haskell{Double} that represents floating point numbers, we could compose two such numbers to model a complex number.
+\begin{minted}{haskell}
+  data Complex = Complex Double Double
+\end{minted}
+This time the constructor \haskell{Complex} is not a constant like \haskell{True} but a function that takes two values of type \haskell{Double} and produces a \haskell{Complex} number.
+\begin{minted}{haskell}
+  -- GHCi> :t Complex
+  Complex :: Double -> Double -> Complex
+\end{minted}
+This insight is important, as we need to annotate the full type of the constructor in Coq again.
+By applying the translation rules for types we would obtain the following Coq type for the constructor.
+\begin{align*}
+  \toCoqT{(Double \rightarrow Double \rightarrow Complex)}
+    &= \toCoq{Double} \rightarrow \toCoq{(Double \rightarrow Complex)}
+    \tag{\autoref{eqn:translation:type:function}}
+    \\
+    &= \toCoq{Double} \rightarrow \Free{\toCoqT{(Double \rightarrow Complex)}}
+    \tag{\autoref{eqn:translation:type}}
+\end{align*}
+Wrapping the return type of a constructor is not allowed in Coq though.
+However, it is not necessary for us to lift the intermediate results of the constructor either.
+This is because (partial) constructor applications never have an effect in Haskell.
+Therefore, it is sufficent to lift the argument types of the constructor (which could indeed be effectful).
+For this purpose we still need to add the parameters $\Shape$ and $\Pos$ to the generated sentence.
+\begin{minted}{coq}
+  Inductive Complex (@$\Shape$@ : Type) (@$\Pos$@ : @$\Shape$@ -> Type) : Type
+    := complex : Free @$\Shape$@ @$\Pos$@ (Double @$\Shape$@ @$\Pos$@)
+              -> Free @$\Shape$@ @$\Pos$@ (Double @$\Shape$@ @$\Pos$@)
+              -> Complex @$\Shape$@ @$\Pos$@.
+\end{minted}
+
+Haskell allows us to use \textit{parametric polymorphism} to generalize from this example and define pairs of two arbitrary types.
+\begin{minted}{haskell}
+  data Pair a b = Pair a b
+\end{minted}
+Analogously to how we added the parameters $\Shape$ and $\Pos$ above, we can also introduce the type variables $a$ and $b$ in the header of the \coq{Inductive}-sentence.
+\begin{minted}{coq}
+  Inductive Pair (@$\Shape$@ : Type) (@$\Pos$@ : @$\Shape$@ -> Type) (a b : Type) : Type
+    := pair : Free @$\Shape$@ @$\Pos$@ a
+              -> Free @$\Shape$@ @$\Pos$@ b
+              -> Pair @$\Shape$@ @$\Pos$@ a b.
+\end{minted}
+We wrap $a$ and $b$ in regular parentheses, because we want to pass them explicitly to \coq{Pair} when we instantiate the data type.
+However, Coq also adds all parameters of the \coq{Inductive}-sentence to the constructors automatically, i.e. \coq{pair} takes four additional parameters.
+\begin{minted}{coq}
+  Check pair.
+  (* ==> pair : forall (Shape : Type) (Pos : Shape -> Type) (a b : Type),
+                Free Shape Pos a -> Free Shape Pos b -> Pair Shape Pos a b *)
+\end{minted}
+For convenience we can "hide" those arguments using an \coq{Arguments}-sentence.
+\begin{minted}{coq}
+  Arguments pair {Shape} {Pos} {a} {b}.
+\end{minted}
+Coq will then try to infer the values of $Shape$, $Pos$, $a$ and $b$ from the context as well as the types of the remaining arguments.
+\begin{minted}{coq}
+  Check pair.
+  (* ==> pair : Free ?Shape ?Pos ?a -> Free ?Shape ?Pos ?b -> Pair ?Shape ?Pos ?a ?b
+            where
+              ?Shape : [ |- Type]
+              ?Pos : [ |- ?Shape -> Type]
+              ?a : [ |- Type]
+              ?b : [ |- Type] *)
+\end{minted}
+
+% TODO recursive types.
+% TODO smart constructors.
+
+\begin{figure}[H]
+ \[
+   \toCoq{\left(
+     \begin{array}{ll}
+       \haskellM{data @$D$@ @$\alpha_1$@ @$\ldots$@ @$\alpha_n$@}              \\
+         \quad\haskellM{= @$C_1$@ @$\tau_{1,1}$@ @$\ldots$@  @$\tau_{1,p_1}$@} \\
+         \quad\haskellM{| @$\ldots$@}                                          \\
+         \quad\haskellM{| @$C_m$@ @$\tau_{m,1}$@ @$\ldots$@  @$\tau_{m,p_m}$@}
+     \end{array}
+   \right)}
+   = \begin{array}{l}
+     \coqM{Inductive @$D$@ (@$\Shape$@ : Type) (@$\Pos$@ : @$\Shape$@ -> Type)}                      \\
+     \phantom{\coqM{Inductive @$D$@}}\;\;\coqM{(@$\alpha_1$@ @$\ldots$@ @$\alpha_n$@ : Type) : Type} \\
+     \quad\coqM{:= @$c_1'$@ : @${\tau_{1,1}}^{\dagger}$@ -> @$\ldots$@ -> @${\tau_{1,p_1}}^{\dagger}$@ -> @${(D\;\alpha_1\;\ldots\;\alpha_n)}^{\dagger}$@} \\
+     \quad\;\;\coqM{| @$\ldots$@}                                                                                                                             \\
+     \quad\;\;\coqM{| @$c_m'$@ : @${\tau_{m,1}}^{\dagger}$@ -> @$\ldots$@ -> @${\tau_{m,p_m}}^{\dagger}$@ -> @${(D\;\alpha_1\;\ldots\;\alpha_n)}^{\dagger}$@.}
+ \end{array}
+ \]
+ \caption{Translation rule for $n$-ary polymorphic data type declarations with $m$ constructors. In Coq we are using renamed lower case variations $c_i'$ of the Haskell constructors $C_i$.}
+ \label{fig:translation:type-decl:data}
+\end{figure}
+
 \subsection{Handling Mutually Dependent Type Declarations}
