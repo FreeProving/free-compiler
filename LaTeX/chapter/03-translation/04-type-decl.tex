@@ -1,11 +1,11 @@
 \section{Translation of Type Declarations} \label{sec:translation:type-decl}
 This section covers the translation of type synonyms and data type declarations.
 Because the order of declarations matters in Coq, special care needs to be taken to translate only declarations whose dependencies were translated already.
-For simplicity we will first consider only independent declarations and extend the resulting translation rules to support mutually dependendent declarations at the end of this section.
+For simplicity we will first consider only independent declarations and extend the resulting translation rules to support mutually dependent declarations at the end of this section.
 
 \subsection{Type synonym declarations}
 Type synonyms can be used in Haskell to give a name to a more complex type expression.
-Similarily we can use a \coq{Definition}-sentence to to assign a name to a term in Coq.
+Similarly we can use a \coq{Definition}-sentence to to assign a name to a term in Coq.
 Because Coq does not distinguish types and terms, declarations of type synonyms can be simply translated to \coq{Definition}-sentences as shown in \autoref{fig:translation:type-decl:type-syn}.
 
 \begin{figure}[H]
@@ -35,13 +35,13 @@ needs $Shape$ and $Pos$ when translated to to Coq because they need to be passed
 
 On the right hand side of the \coq{Definition}-sentence in \autoref{fig:translation:type-decl:type-syn} the $\toCoqT{}$ translation is applied instead of $\toCoq{}$.
 This is because we desire the expansion of type synonyms in Haskell and Coq to be compatible with respect to the $\toCoq{}$ translation.
-To convince ourselves that the translation rule above fulfills this property lets denote the expansion of type synonyms in Haskell and Coq with $\beta_H$ and $\beta_C$ repectively and show that for all type synonyms \haskell{type @$S$@ @$\alpha_1$@ @$\ldots$@ @$\alpha_n$@ = @$\tau$@} and type expressions $\tau_1, \ldots \tau_n$ the following holds true.
+To convince ourselves that the translation rule above fulfills this property lets denote the expansion of type synonyms in Haskell and Coq with $\beta_H$ and $\beta_C$ respectively and show that for all type synonyms \haskell{type @$S$@ @$\alpha_1$@ @$\ldots$@ @$\alpha_n$@ = @$\tau$@} and type expressions $\tau_1, \ldots \tau_n$ the following holds true.
 \[
   \toCoq{\beta_H(S\;\tau_1\;\ldots\;\tau_n)}
   = \beta_C(\toCoq{(S\;\tau_1\;\ldots\;\tau_n)})
 \]
 
-For the istantiation of $S$ and $S'$ we first define substitutions $\sigma$ and $\sigma'$.
+For the instantiation of $S$ and $S'$ we first define substitutions $\sigma$ and $\sigma'$.
 \begin{align*}
   \sigma &\coloneqq \{\, \alpha_1 \mapsto \tau_1, \ldots, \alpha_n \mapsto \tau_n \,\} \\
   \sigma' &\coloneqq \{\, \alpha_1' \mapsto \toCoqT{\tau_1}, \ldots, \alpha_n' \mapsto \toCoqT{\tau_n} \,\}
@@ -59,9 +59,9 @@ Now we can proof the proposition by applying the translation rules for types pre
     &= \beta_C{(\Free{(S'\;Shape\;Pos\;\toCoqT{\tau_1}\;\ldots\;\toCoqT{\tau_n})})}
        \tag{undo expansion of $S'$} \\
     &= \beta_C{(\Free{\toCoqT{(S\;\tau_1\;\ldots\;\tau_n)}})}
-       \tag{???} \\
+       \tag{\autoref{eqn:translation:type:application} and \ref{eqn:translation:type:constructor}} \\
     &= \beta_C(\toCoq{(S\;\tau_1\;\ldots\;\tau_n)})
-       \tag{\autoref{eqn:translation:type:application} and \ref{eqn:translation:type:constructor}}
+       \tag{\autoref{eqn:translation:type}}
 \end{align*}
 \qed
 
@@ -72,7 +72,7 @@ The equation marked with $(\star)$ follows from the following property of $\sigm
                             = \sigma'(\toCoqT{\alpha_i})
   &&\forall i \in \{\, 1, \ldots, n \,\}
 \end{align*}
-We assume without a proof that this property translates to the extensions of $\sigma$ and $\sigma'$.
+We assume without a proof that this property holds for the extensions of $\sigma$ and $\sigma'$ as well.
 
 \subsection{Data Types}
-\subsection{Handling Mutually Dependend Type Declarations}
+\subsection{Handling Mutually Dependent Type Declarations}

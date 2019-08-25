@@ -1,7 +1,7 @@
-\section{Translation of Type Expressionss} \label{sec:translation:type}
+\section{Translation of Type Expressions} \label{sec:translation:type}
 A computation in Haskell does not necessarily produce a value but can also result in an effect, for example due to partiality.
 Coq on the other hand does not support such implicit effects.
-As dicussed before, we bypass this restriction by modeling effects using the free monad in Coq.
+As discussed before, we bypass this restriction by modeling effects using the free monad in Coq.
 This fact needs to be reflected on type level as well.
 Therefore, every Haskell type $\tau$ is lifted into the free monad during the translation.
 
@@ -22,11 +22,11 @@ Assuming \coq{List} is the Coq type constructor corresponding to \haskell{[]} (i
   \toCoq{[a]} = \Free{(\texttt{List}\;a)}
 \]
 This allows an application of \haskell{map} to pass an effectful computation as the second argument.
-If we define the constructors of \coq{List} appopriatly (see \autoref{sec:translation:type-decl}), the list items can also have effects themselves.
+If we define the constructors of \coq{List} appropriately (see \autoref{sec:translation:type-decl}), the list items can also have effects themselves.
 We do not have to lift the type argument $a$ explicitly.
 
 The parameter \haskell{f} is different though.
-While it is correct to lift its type $a \rightarrow b$ into the free monad such that potential effects in the first argument of \haskell{map} can be handled, this is not sufficent.
+While it is correct to lift its type $a \rightarrow b$ into the free monad such that potential effects in the first argument of \haskell{map} can be handled, this is not sufficient.
 \[
   \toCoq{(a \rightarrow b)} = \Free{(a \rightarrow b)}
 \]
