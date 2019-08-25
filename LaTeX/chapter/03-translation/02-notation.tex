@@ -1,20 +1,15 @@
 \section{Notation} \label{sec:translation:notation}
-
 \subsection{Notation for Translation Rules}
-
 The translation rules presented in this chapter are based on the work by \cite{Abel:2005}.
 We are also going to adopt their notation and write
-
 \[
   \toCoq{H} = G
 \]
-
 to express that the Haskell language construct $H$ (e.g. a type, expression or declaration) should be converted to the corresponding Gallina language construct $G$ (e.g. a term or sentence).
 
 \subsection{Notation for renamed identifiers}
-
 Not all Haskell identifiers are valid Coq identifiers and need to be renamed if necessary.
-For example \haskell{with} could be used in Haskell as the name for a function or variable, but not in Coq as it is a keyword there.
+For example \haskell{with} could be used in Haskell as the name for a function or variable, but not in Coq as it is a keyword.
 
 Similarily Haskell allows types and constructors to have the same name because their namespaces are separated.
 But Coq is a dependently typed language, that is types in Coq can contain values.
