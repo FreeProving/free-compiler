@@ -13,7 +13,7 @@ typeset-thesis:
 
 # Spell checking.
 spell-check-thesis:
-  image: starefossen/aspell
+  image: just95/aspell
   stage: test
   script:
     - ./LaTeX/tool/spell-check.sh
