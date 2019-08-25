@@ -11,6 +11,13 @@ typeset-thesis:
     paths:
       - ./LaTeX/thesis.pdf
 
+# Spell checking.
+spell-check-thesis:
+  image: starefossen/aspell
+  stage: test
+  script:
+    - ./LaTeX/tool/spell-check.sh
+
 # Deploy thesis to `https://$SSH_DEPLOY_HOST/$CI_COMMIT_REF_SLUG/thesis.pdf`.
 deploy-thesis:
   extends: .ssh-deploy
