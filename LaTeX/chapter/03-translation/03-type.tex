@@ -73,11 +73,11 @@ For this purpose we introduce another translation operation $\toCoqT{\tau}$ as s
 \end{figure}
 
 It recursively lifts the argument and return types of function types contained in $\tau$.
-Additionally, the parameters $Shape$ and $Pos$ are passed to type constructors.
+Additionally, the parameters $\Shape$ and $\Pos$ are passed to type constructors.
 That is, in the example above, the type of \haskell{xs} would be translated as follows.
 \[
   \toCoq{[a]} = \Free{(\genApply{\texttt{List}}\;a)}
 \]
-\coq{List} must be provided with $Shape$ and $Pos$ to lift the argument types of its constructors.
+\coq{List} must be provided with $\Shape$ and $\Pos$ to lift the argument types of its constructors.
 Otherwise list items would not be allowed to be effectful.
 The translation of data types and their constructors will be elaborated on in the next section.
