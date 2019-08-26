@@ -1,7 +1,15 @@
 \section{Translation of Type Declarations} \label{sec:translation:type-decl}
 This section covers the translation of type synonyms and data type declarations.
-Because the order of declarations matters in Coq, special care needs to be taken to translate only declarations whose dependencies were translated already.
-For simplicity we will first consider only independent declarations and extend the resulting translation rules to support mutually dependent declarations at the end of this section.
+
+Because the order of declarations matters in Coq, special care needs to be taken to translate only declarations whose dependencies were translated before.
+We say that a type expression $\tau$ depends on the declaration of a type constructor $T$ (e.g. the name of a type synonym or data type declaration) if $\tau$ contains an application of the type constructor $T$.
+For short we also say that $\tau$ depends on or uses $T$.
+A type synonym now depends on all type constructor used by its right hand side.
+Likewise, a data type declaration depends on all type constructors used by the fields of its data constructors.
+
+For simplicity we will first consider only individual declarations and assume all additional data types used by our examples to have been declared beforehand.
+At the end of this section, we describe how to translate multiple type declarations without introducing dependency related issues to the generated Coq code.
+We also extend the translation rules to support mutually recursive declarations in the final subsection.
 
 \subsection{Translation of Type Synonym Declarations}
 Type synonyms can be used in Haskell to give a name to a more complex type expression.
@@ -101,7 +109,7 @@ If there was for instance a type \haskell{Double} that represents floating point
 \end{minted}
 This time the constructor \haskell{Complex} is not a constant like \haskell{True} but a function that takes two values of type \haskell{Double} and produces a \haskell{Complex} number.
 \begin{minted}{haskell}
-  -- GHCi> :t Complex
+  GHCi> :t Complex
   Complex :: Double -> Double -> Complex
 \end{minted}
 This insight is important, as we need to annotate the full type of the constructor in Coq again.
@@ -160,12 +168,10 @@ Coq will then try to infer the values of $\Shape$, $\Pos$, $a$ and $b$ from the 
 \end{minted}
 
 Both Haskell and Coq do not require us to distinguish sum and product types.
-For example, we can combine both concepts to define a data type for singly linked lists.
+For example, we can combine both concepts to define a data type for optional values.
 \begin{minted}{haskell}
-  data List a = Nil | Cons a (List a)
+  data Maybe a = Nothing | Just a
 \end{minted}
-In this case, \haskell{List} is also an example for a recursive data type, i.e. values of type \haskell{List} are used to construct new lists.
-Data types with more complex depenency relationships will be discussed in the next section but for the translation of \haskell{List} our current approach survices.
 As shown in \autoref{fig:translation:type-decl:data}, an arbitrary data type can be translated similar to how we translated product types above.
 Just as with sum types, additional constructors are separated by a vertical bar.
 
@@ -191,13 +197,12 @@ Just as with sum types, additional constructors are separated by a vertical bar.
   \label{fig:translation:type-decl:data}
 \end{figure}
 
-If we apply this translation rule to our \haskell{List} data type, we obtain the following \coq{Inductive}-sentence for example.
+If we apply this translation rule to our \haskell{Maybe} data type, we obtain the following \coq{Inductive}-sentence for example.
 \begin{minted}{coq}
-  Inductive List (@$\Shape$@ : Type) (@$\Pos$@ : @$\Shape$@ -> Type) (a : Type) : Type
-    := nil  : List @$\Shape$@ @$\Pos$@ a
-     | cons : Free @$\Shape$@ @$\Pos$@ a
-              -> Free @$\Shape$@ @$\Pos$@ (List @$\Shape$@ @$\Pos$@ a)
-              -> List @$\Shape$@ @$\Pos$@ a.
+  Inductive Maybe (@$\Shape$@ : Type) (@$\Pos$@ : @$\Shape$@ -> Type) (a : Type) : Type
+    := nothing : Maybe @$\Shape$@ @$\Pos$@ a
+     | just : Free @$\Shape$@ @$\Pos$@ a
+              -> Maybe @$\Shape$@ @$\Pos$@ a.
 \end{minted}
 
 Before we conclude this section, notice that we are using the $\toCoqT{}$ translation for the return type of constructors in \autoref{fig:translation:type-decl:data}.
@@ -205,13 +210,12 @@ This is because $\toCoq{}$ would lift the type to the free monad but Coq does no
 However, we are usually interested in lifted values.
 With that end in view, we define a function for each regular constructor that simply applies the constructor and lifts it's result using the \coq{pure} constructor of the free monad.
 We are going to refer to these functions as \textit{smart constructors} hereinafter.
-The smart constructor for \coq{cons} would look as follows.
+The smart constructor for \coq{just} would look as follows.
 \begin{minted}{coq}
-  Definition Cons (@$\Shape$@ : Type) (@$\Pos$@ : @$\Shape$@ -> Type) {a : Type}
+  Definition Just (@$\Shape$@ : Type) (@$\Pos$@ : @$\Shape$@ -> Type) {a : Type}
                   (x : Free @$\Shape$@ @$\Pos$@ a)
-                  (xs : Free @$\Shape$@ @$\Pos$@ (List @$\Shape$@ @$\Pos$@ a))
-                  : Free @$\Shape$@ @$\Pos$@ (List @$\Shape$@ @$\Pos$@ a)
-                  := pure (cons x xs)
+                  : Free @$\Shape$@ @$\Pos$@ (Maybe @$\Shape$@ @$\Pos$@ a)
+                  := pure (just x)
 \end{minted}
 This time we are using upper case indentifiers again.
 Unlike with regular constructor, we do not have to generate an \coq{Arguments}-sentence for the smart constructor.
@@ -234,4 +238,21 @@ The gneration of freh identifiers will be covered in \autoref{chp:implementation
   \label{fig:translation:type-decl:con}
 \end{figure}
 
-\subsection{Handling Mutually Dependent Type Declarations}
+\subsection{Handling Mutually Recursive Type Declarations}
+
+% Recursive data types.
+\begin{minted}{haskell}
+  data List a = Nil | Cons a (List a)
+\end{minted}
+
+% Mutually recursive data types.
+\begin{minted}{haskell}
+  data Tree a = Tree a (Forest a)
+  data Forest a = Empty | NonEmpty (Tree a) (Forest a)
+\end{minted}
+
+% Type synonyms in recursive data types.
+\begin{minted}{haskell}
+  data Tree a = Tree a (Forest a)
+  type Forest a = List (Type a)
+\end{minted}
