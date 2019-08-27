@@ -1,4 +1,14 @@
 \section{Translation of Function Declarations} \label{sec:translation:func-decl}
+In this final section of the chapter we will cover the translation of the eponymous component for functional programming languages: function declarations.
+
+Just as with type declarations the order of function declarations matters in Coq as well.
+Thus, we have to perform a dependency analysis again.
+Although the basic principles of the dependency alaysis still apply, adding support for recursive and mutually recursive functions is more involved this time.
+This is because Coq strikly distunguishes recursive and non-recursive function declarations.
+Therefore, it is not sufficient to simply concatenate generated sentences.
+Instead we have to apply a completly different translation scheme to recursive function declarations.
+For this reason, we will focus on non-recursive function declarations first.
+The translation of recursive functions is covered in the second half of this section.
 
 \subsection{Non-Recursive Functions}
 \subsection{Recursive Functions}
