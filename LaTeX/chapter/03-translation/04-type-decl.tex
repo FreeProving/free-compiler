@@ -328,9 +328,9 @@ If the component $SCC_1$ contains at least one declaration that depends on a dec
 This is also refered to as \textit{reverse topological order} and can be solved in linear time as well.
 In our case we obtain the following sorted lists of strongly connected components:
 \begin{align*}
-  &\left[\{\, \haskellM{B} \,\}, \{\, \haskellM{A} \,\}\right] \\
-  &\left[\{\, \haskellM{List} \,\}\right]                      \\
-  &\left[\{\, \haskellM{Tree}, \haskellM{Forest} \,\}\right]   \\
+  [\{\, \haskellM{B} \,\}, \{\, \haskellM{A} \,\}]
+  && [\{\, \haskellM{List} \,\}]
+  && [\{\, \haskellM{Tree}, \haskellM{Forest} \,\}]
 \end{align*}
 
 % Type synonyms in recursive data types.
@@ -362,25 +362,39 @@ After this preprocessing step we obtain the following Haskell declarations.
 However, \haskell{Tree} can now be translated independently as can be seen in \autoref{fig:translation:type-decl:graph2}.
 
 \begin{figure}[H]
-  \digraph[scale=0.75]{ExampleTypeDependencyGraphBeforeInlining}{
-    subgraph cluster_scc {
-      graph[style = "dotted"];
-      label = "strongly connected component";
-      { rank = "same"; Tree; Forest; }
-    }
-    List;
-    Forest -> Tree;
-    Forest -> List;
-    Tree   -> Forest;
+  \begin{center}
+    \begin{minipage}[t]{0.45\textwidth}
+      \begin{center}
+        \digraph[scale=0.75]{ExampleTypeDependencyGraphBeforeInlining}{
+          subgraph cluster_scc {
+            graph[style = "dotted"];
+            { rank = "same"; Tree; Forest; }
+          }
+          List;
+          Forest -> Tree;
+          Forest -> List;
+          Tree   -> Forest;
+        }
+        $[\{\, \haskellM{List} \,\}, \{\, \haskellM{Tree}, \haskellM{Forest} \,\}]$
+      \end{center}
+    \end{minipage}
+    \begin{minipage}[t]{0.45\textwidth}
+      \begin{center}
+        \digraph[scale=0.75]{ExampleTypeDependencyGraphAfterInlining}{
+          { rank = 'same'; Tree; Forest; }
+          List;
+          Forest -> Tree;
+          Forest -> List;
+          Tree   -> List;
+        }
+        $[\{\, \haskellM{List} \,\}, \{\, \haskellM{Tree} \,\}, \{\, \haskellM{Forest} \,\}]$
+      \end{center}
+    \end{minipage}
+  \end{center}
+  \caption{
+    Dependency graphs for \haskell{Tree} and \haskell{Forest} before inlining the type synonym \haskell{Forest} into the definition of \haskell{Tree} (left) and after inlining (right).
+    Strongly connected components are listed in reverse topological order below the graphs.
   }
-  \digraph[scale=0.75]{ExampleTypeDependencyGraphAfterInlining}{
-    { rank = 'same'; Tree; Forest; }
-    List;
-    Forest -> Tree;
-    Forest -> List;
-    Tree   -> List;
-  }
-  \caption{Dependency graphs for \haskell{Tree} and \haskell{Forest} before inlining the type synonym \haskell{Forest} into the definition of \haskell{Tree} (left) and after inlining (right).}
   \label{fig:translation:type-decl:graph2}
 \end{figure}
 
