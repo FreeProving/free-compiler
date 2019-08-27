@@ -33,7 +33,7 @@ Because Coq does not distinguish types and terms, declarations of type synonyms 
 The parameters $\Shape$ and $\Pos$ have to be added such that the translated type can use the free monad or other data types.
 For example the following type synonym
 \begin{minted}{haskell}
-  type Queue a = [a]
+  type Queue a = List a
 \end{minted}
 needs $\Shape$ and $\Pos$ when translated to to Coq because they need to be passed to \coq{List}.
 \begin{minted}{coq}
@@ -201,8 +201,7 @@ If we apply this translation rule to our \haskell{Maybe} data type, we obtain th
 \begin{minted}{coq}
   Inductive Maybe (@$\Shape$@ : Type) (@$\Pos$@ : @$\Shape$@ -> Type) (a : Type) : Type
     := nothing : Maybe @$\Shape$@ @$\Pos$@ a
-     | just : Free @$\Shape$@ @$\Pos$@ a
-              -> Maybe @$\Shape$@ @$\Pos$@ a.
+     | just    : Free @$\Shape$@ @$\Pos$@ a -> Maybe @$\Shape$@ @$\Pos$@ a.
 \end{minted}
 
 Before we conclude this section, notice that we are using the $\toCoqT{}$ translation for the return type of constructors in \autoref{fig:translation:type-decl:data}.
@@ -221,7 +220,7 @@ This time we are using upper case indentifiers again.
 Unlike with regular constructor, we do not have to generate an \coq{Arguments}-sentence for the smart constructor.
 This is because we can mark the type argument as implicit directly in the \coq{Definition}-sentence by wrapping its binder in curly braces.
 The general generation scheme for smart constructors and \coq{Arguments}-sentences is summarized in \autoref{fig:translation:type-decl:con}.
-In case of \coq{cons} we were able to manully choose appropriate names for the arguments of the smart constructor.
+In case of \coq{Just} we were able to manully choose appropriate names for the arguments of the smart constructor.
 However, when we generate those sentences, we need to generate \textit{fresh identifiers} automatically.
 The gneration of freh identifiers will be covered in \autoref{chp:implementation}. % TODO more specific reference.
 
@@ -239,20 +238,152 @@ The gneration of freh identifiers will be covered in \autoref{chp:implementation
 \end{figure}
 
 \subsection{Handling Mutually Recursive Type Declarations}
+In Haskell the order of declarations does not matter.
+Therefore, \haskell{A} is allowed to use \haskell{B} in the following example, even though \haskell{B} is declared after \haskell{A}.
+\begin{minted}{haskell}
+  data A = A B
+  data B = B
+\end{minted}
+In Coq this is not the case.
+If we convert the example to Coq, the declaration of \coq{B} must preceed the declaration of \coq{A}.
+\begin{minted}{coq}
+  Inductive A (@$\Shape$@ : Type) (@$\Pos$@ : @$\Shape$@ -> Type) : Type := a : @$\toCoq{\texttt{B}}$@ -> @$\toCoqT{\texttt{A}}$@.
+  (* ==> The reference B was not found in the current environment. *)
+  Inductive B (@$\Shape$@ : Type) (@$\Pos$@ : @$\Shape$@ -> Type) : Type := b : @$\toCoqT{\texttt{B}}$@.
+\end{minted}
+For this reason we have to analyse the dependencies of all data type declarations in the Haskell module before we translate them to Coq.
+As a first approach, we can simply sort the declarations according to their dependencies.
+In the example above, we would obtain the list \haskell{[B, A]} of sorted data type declarations.
+Translating the declarations in that order, yields a valid Coq program.
+\begin{minted}{coq}
+  Inductive B (@$\Shape$@ : Type) (@$\Pos$@ : @$\Shape$@ -> Type) : Type := b : @$\toCoqT{\texttt{B}}$@.
+  Inductive A (@$\Shape$@ : Type) (@$\Pos$@ : @$\Shape$@ -> Type) : Type := a : @$\toCoq{\texttt{B}}$@ -> @$\toCoqT{\texttt{A}}$@.
+\end{minted}
 
 % Recursive data types.
+This approach also suffices to translate simple \textit{recursive data types} such as \haskell{List}.
 \begin{minted}{haskell}
   data List a = Nil | Cons a (List a)
 \end{minted}
+A data type is called recursive if values of that type are used to construct new values of the same type.
+Because Coq allows \coq{Inductive}-sentences to use the data type that is declared in the same sentence, we can apply the existing translation rule in such cases directly.
+\begin{minted}{coq}
+  Inductive List (@$\Shape$@ : Type) (@$\Pos$@ : @$\Shape$@ -> Type) (a : Type) : Type
+    := nil  : List @$\Shape$@ @$\Pos$@ a
+     | cons : Free @$\Shape$@ @$\Pos$@ a -> Free @$\Shape$@ @$\Pos$@ (List @$\Shape$@ @$\Pos$@ a) -> List @$\Shape$@ @$\Pos$@ a.
+\end{minted}
 
 % Mutually recursive data types.
+However, this cannot be done in case of \textit{mutually recursive data types}.
 \begin{minted}{haskell}
   data Tree a = Tree a (Forest a)
   data Forest a = Empty | NonEmpty (Tree a) (Forest a)
 \end{minted}
+The declarations of \haskell{Tree} depends on the declaration of \haskell{Forest} and vice versa.
+Regardless of which data type we choose to translate first, Coq will reject the generated code as the other one will be undefined.
+As we have seen in case of ordninary recursive data types like \coq{List}, Coq allows us to use the data type defined by an \coq{Inductive}-sentence within that sentence.
+Thus, we need a mechanism to define both \coq{Tree} and \coq{Forest} in the same \coq{Inductive}-sentence, such that they can use each other.
+Coq offers the \coq{with} keyword for this purpose.
+It is used to concatenate multiple \coq{Inductive}-sentences to a single sentence.
+In the example above, the following would work.
+\begin{minted}{coq}
+  Inductive Tree (@$\Shape$@ : Type) (@$\Pos$@ : @$\Shape$@ -> Type) (a : Type) : Type
+    := tree : Free @$\Shape$@ @$\Pos$@ a -> Forest @$\Shape$@ @$\Pos$@ a -> Tree @$\Shape$@ @$\Pos$@ a
+  with Forest (@$\Shape$@ : Type) (@$\Pos$@ : @$\Shape$@ -> Type) (a : Type) : Type
+    := empty    : Forest @$\Shape$@ @$\Pos$@ a
+    |  nonEmpty : Free @$\Shape$@ @$\Pos$@ (Tree @$\Shape$@ @$\Pos$@ a) -> Forest @$\Shape$@ @$\Pos$@ a
+\end{minted}
+
+% Dependency analysis.
+The question that remains is how we can identify mutually recursive data type declarations.
+For this purpose we represent the dependencies among the data types as a directed graph.
+The nodes of the \textit{dependency graph} correspond to data type and type synonym declarations.
+There is an edge between the nodes of two declarations $D_1$ and $D_2$ if and only if $D_1$ depends on $D_2$.
+The dependency graphs for the data type declarations covered in this subsection so far are depicted in \autoref{fig:translation:type-decl:graph1}.
+
+\begin{figure}[H]
+  \digraph[scale=0.75]{ExampleTypeDependencyGraphs}{
+    A -> B;
+    List -> List;
+    Tree -> Forest; Forest -> Tree;
+  }
+  \caption{Dependency graphs for the data types \haskell{A} and \haskell{B}, \haskell{List} as well as \haskell{Tree} and \haskell{Forest} as defined above.}
+  \label{fig:translation:type-decl:graph1}
+\end{figure}
+
+If there is an edge between $D_1$ and $D_2$, $D_2$ needs to be declared before or in the same sentence as $D_1$.
+The same is true if there is a path from $D_1$ to $D_2$.
+If a path from $D_2$ to $D_1$ exists as well, it follows that they need to be declared in the same sentence.
+In our concrete examples that means that \haskell{B} needs to be declared before \haskell{A} because there is an edge from \haskell{A} to \haskell{B}.
+It would also be okay to declare them in the same sentence.
+\haskell{Tree} and \haskell{Forest} on the other hand definitly need to be declared in the same sentence, as the corresponding nodes are reachable from each other.
+
+In graph theory a set of nodes with the property that all nodes within the set are reachable from all other nodes within the set is refered to as a \textit{strongly connected component} of the graph.
+In our case that means that all declarations whose nodes form a stronly connected component of the dependency graph need to be declared in the same sentence.
+Likewise, if two declarations depend on each other~--~and therefore need to be declared in the same sentence~--~they are also necessarily in the same strongly connected component.
+Thus, the identification of mutually recursive data type declarations coincides with the identification of strongly connected components of the dependency graph.
+There are algorithms to compute strongly connected components in linear time.
+As a final step the identified strongly connected components need to be sorted.
+If the component $SCC_1$ contains at least one declaration that depends on a declaration in $SCC_2$, $SCC_2$ should preceed $SCC_1$.
+This is also refered to as \textit{reverse topological order} and can be solved in linear time as well.
+In our case we obtain the following sorted lists of strongly connected components:
+\begin{align*}
+  &\left[\{\, \haskellM{B} \,\}, \{\, \haskellM{A} \,\}\right] \\
+  &\left[\{\, \haskellM{List} \,\}\right]                      \\
+  &\left[\{\, \haskellM{Tree}, \haskellM{Forest} \,\}\right]   \\
+\end{align*}
 
 % Type synonyms in recursive data types.
+There is one additional caveat to be aware of.
+Until now we only considered mutually recursive data type declarations.
+This is because type synonym declarations are not allowed to form a cycle on their own.
+Thus, the following is invalid in Haskell.
+\begin{minted}{haskell}
+  type A = B
+  type B = A
+\end{minted}
+However, it is perfectly fine for a type synonym declaration to be part of a cycle formed by data type declarations.
+For example, one may notice that the \haskell{Forest} data type we defined earlier, can also be expressed in terms of \haskell{List}.
 \begin{minted}{haskell}
   data Tree a = Tree a (Forest a)
-  type Forest a = List (Type a)
+  type Forest a = List (Tree a)
 \end{minted}
+Again, \haskell{Tree} and \haskell{Forest} form a strongly connected component of the dependency graph.
+Unlike before, we cannot use the \coq{with} keyword in this case.
+This is because \haskell{Tree} is translated to an \coq{Inductive}-sentence while \haskell{Forest} is translated to a \coq{Definition}-sentence.
+But \coq{with} can only be used to join two or more \coq{Inductive}-sentences.
+The solution is to expand type synonyms that occur within such a strongly connected component.
+After this preprocessing step we obtain the following Haskell declarations.
+\begin{minted}{haskell}
+  data Tree a = Tree a (List (Tree a))
+  type Forest a = List (Tree a)
+\end{minted}
+\haskell{Forest} still depends on \haskell{Tree} and needs to be translated afterwards.
+However, \haskell{Tree} can now be translated independently as can be seen in \autoref{fig:translation:type-decl:graph2}.
+
+\begin{figure}[H]
+  \digraph[scale=0.75]{ExampleTypeDependencyGraphBeforeInlining}{
+    subgraph cluster_scc {
+      graph[style = "dotted"];
+      label = "strongly connected component";
+      { rank = "same"; Tree; Forest; }
+    }
+    List;
+    Forest -> Tree;
+    Forest -> List;
+    Tree   -> Forest;
+  }
+  \digraph[scale=0.75]{ExampleTypeDependencyGraphAfterInlining}{
+    { rank = 'same'; Tree; Forest; }
+    List;
+    Forest -> Tree;
+    Forest -> List;
+    Tree   -> List;
+  }
+  \caption{Dependency graphs for \haskell{Tree} and \haskell{Forest} before inlining the type synonym \haskell{Forest} into the definition of \haskell{Tree} (left) and after inlining (right).}
+  \label{fig:translation:type-decl:graph2}
+\end{figure}
+
+If there are more than one type synonyms in the strongly connected component, we need to sort them with respect to their dependencies among each other.
+But as pointed out above, we can be sure in those cases that they do not form a cycle themselves.
+Therefore, it is fine to translate them individually as we did before.
