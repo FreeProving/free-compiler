@@ -7,6 +7,23 @@ We are also going to adopt their notation and write
 \]
 to express that the Haskell language construct $H$ (e.g. a type, expression or declaration) should be converted to the corresponding Gallina language construct $G$ (e.g. a term or sentence).
 
+\subsection{Naming conventions}
+In the translation rules we make extensive use of placeholders for identifiers, expressions or types.
+For the sake of readability those placeholders will not always be introduced explicitly.
+Instead we rely on naming conventions outlined in this section to determine what the placeholder stands for.
+If there are multiple placeholders of the same kind, an index will be appended.
+
+The symbols $\tau$, $T$, $\alpha$ are used in place of type expressions, constructors and variables respectively.
+Data type and type synonym declarations will usually be named $D$ or $S$.
+Analogously $e$, $C$ and $x$ are used for regular expressions, constructors and variables.
+Function declarations are called $f$ by convention.
+A lower case $c$ is used as placeholder for the name of a data constructor in Coq.
+It should usually differ from a capital $C$ only in that its first letter is converted to lower case.
+E.g. if $C_i = \texttt{Foo}$ for some index $i$, then $c_i$ will be \coq{foo}.
+
+We are also using $\Shape$ and $\Pos$ as placeholders for the arguments of the free monad.
+They are passed explicitly as parameters of generated Gallina sentences.
+
 \subsection{Notation for renamed identifiers}
 Not all Haskell identifiers are valid Coq identifiers and need to be renamed if necessary.
 For example \haskell{with} could be used in Haskell as the name for a function or variable, but not in Coq as it is a keyword.
