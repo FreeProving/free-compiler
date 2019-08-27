@@ -1,1 +1,25 @@
 \section{Assumptions} \label{sec:translation:assumtions}
+\subsection{Predefined operations and data types}
+Haskell's \textit{Prelude} offers a rich set of predefined data types and operations.
+We do not aim to recreate the entire Prelude but still want to expose some commonly used functionalities.
+We are especially interested in data types with a special syntax.
+This is because we see the fact that they have their own notation as a strong indicator for their importance in actual Haskell code.
+Namely we support lists \haskell{[a]}, pairs \haskell{(a, b)} and the unit type \haskell{()} as well as their constructors.
+Internally we will not handle these types different in any way.
+For example, the type \haskell{(@$\tau_1$@, @$\tau_2$@)} will simply be handled as the application of the type constructor \haskell{(,)} to the types $\tau_1$ and $\tau_2$.
+As \textit{syntactic sugar} we allow the list notation \haskell{[@$e_1$@, @$\ldots$@, @$e_n$@]} for \haskell{@$e_1$@:@$\ldots$@:@$e_n$@:[]}.
+
+Furthermore, we add support for the data types \haskell{Bool} and \haskell{Int}.
+In theory \haskell{Bool} and its constructors \haskell{True} and \haskell{False} could be defined by the user.
+However, \haskell{Bool} is important for the translation of \haskell{if} expressions.
+Due to the lack of type classes, \haskell{Int} will be used as the type for number literals.
+Decimal, hexadecimal and octal notation can be used.
+Types for other literals such as \haskell{String}s are not yet supported.
+
+Commonly used operations for \haskell{Bool} and \haskell{Int} are supported as well.
+The following operations are implemented:
+\begin{itemize}
+  \item \textbf{Arithmetic operations:} addition \haskell{(+)}, subtraction \haskell{(-)}, multiplication \haskell{(*)}, exponentiation \haskell{(^)} and negation (using the \haskell{negate} function or unary minus operator).
+  \item \textbf{Boolean operations:} conjunction \haskell{(&&)} and disjunction \haskell{(||)}
+  \item \textbf{Comparison of integers:} \haskell{(<=)}, \haskell{(<)}, \haskell{(==)}, \haskell{(/=)}, \haskell{(>=)}, \haskell{(>)}
+\end{itemize}
