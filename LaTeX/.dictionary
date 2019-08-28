@@ -1,4 +1,5 @@
 Andresen
+ary
 Coq
 disjunction
 effectful
@@ -6,5 +7,7 @@ Gallina
 Hanus
 instantiation
 monad
+monadic
 namespaces
 unary
+unlifted

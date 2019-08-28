@@ -1,1 +1,198 @@
 \section{Translation of Expressions} \label{sec:translation:expr}
+Starting with this section we direct our attention away from type level language constructs.
+Instead, we will have a look at the translation of expressions.
+Nevertheless, we have to keep the translation rules for types in mind.
+This is because an important invariant that should be fulfilled is that when an expression $e$ of type $\tau$ is translated to Coq, the resulting term $\toCoq{e}$ must be of type $\toCoq{\tau}$.
+
+\subsection{Translation of Variables}
+In the simplest case, the expression is just a variable $x$.
+As mentioned before, when translating $x$ to Coq, we may have to rename it to avoid name conflicts.
+\[
+  \toCoq{x} = x'
+\]
+If we design the translation rules that are concerned with binding variables correctly, the invariant holds automatically.
+For example, when we perform pattern matching on a list (as defined in the previous section) the pattern \coq{cons x xs} binds the variables \coq{x} and \coq{xs} to values of type $\toCoq{\texttt{a}}$ and $\toCoq{(\texttt{List a})}$ respectively.
+However, as we will see later, there are some rare cases in which we need unlifted variables, i.e. variables of type $\toCoqT{\tau}$.
+In this case we have to manually lift $x'$ to restore the invariant.
+Thus, the final translation rule for variables are as shown in \autoref{fig:translation:expr:var}.
+
+\begin{figure}[H]
+  \[
+    \toCoq{x} = \begin{cases}
+      x'        &\text{if } x' : \toCoq{\tau} \\
+      \pure{x'} &\text{if } x' : \toCoqT{\tau}
+    \end{cases}
+  \]
+  \caption{The translation of a variable $x$ depends on the type it has been bound to.}
+  \label{fig:translation:expr:var}
+\end{figure}
+
+\subsection{Translation of Function Applications}
+In general a function application has the form $e_1\;e_2$ in Haskell where $e_1$ is of some function type $\tau_1 \rightarrow \tau_2$ and $e_2$ is of type $\tau_1$.
+The application of $e_1$ to $e_2$ yields a value of type $\tau_2$.
+If we now translate both expressions to Coq, the invariant guarantees us to obtain lifted values.
+\begin{align*}
+  \toCoq{e_1} &: \toCoq{(\tau_1 \rightarrow \tau_2)}
+  \implies \toCoq{e_1} : \Free{(\toCoq{\tau_1} \rightarrow \toCoq{\tau_2})} \\
+  \toCoq{e_2} &: \toCoq{\tau_1}
+\end{align*}
+If we had a value of type $\toCoq{\tau_1} \rightarrow \toCoq{\tau_2}$ we could apply it to $\toCoq{e_2}$ to obtain a value of type $\toCoq{\tau_2}$ which would satisfy the invariant.
+But $\toCoq{e_1}$ is lifted to the free monad.
+Thus, we cannot access the contained function directly but have to use the bind operator to unwrap the function as shown in \autoref{fig:translation:expr:app}.
+\begin{figure}[H]
+  \[
+    \toCoq{(e_1\;e_2)} = \toCoq{e_1}\;\coqM{>>= (fun @$f$@ => @$f$@ @$e_2$@)}
+  \]
+  \caption{General translation rule for function applications. More specific rules will be introduced for the application of constructors and defined functions below.}
+  \label{fig:translation:expr:app}
+\end{figure}
+
+Usually functions do not take just a single argument though.
+For example, consider the application of a function $f$ to $n$ arguments.
+\begin{align*}
+  \toCoq{(f\;e_1\;\ldots\;e_n)}
+    = \toCoq{f}\;&\coqM{>>= (fun @$f_1$@ => @$f_1$@}\;\toCoq{e_1}\coqM{)} \\
+                 &\vdots                                                  \\
+                 &\coqM{>>= (fun @$f_n$@ => @$f_n$@}\;\toCoq{e_n}\coqM{)}
+\end{align*}
+As this example demonstrates, the rule above will cause the generation of code that is long and difficult to comprehend.
+Moreover, binding the intermediate results is often superfluous because we know that the partial application of a constructor or defined function will never have an effect in Haskell.
+For this reason \cite{Abel:2005} suggest an optimization that allows the generation of more readable code if a constructor or defined function is fully applied.
+\begin{figure}[H]
+  \begin{align*}
+    \toCoq{(C\;e_1\;\ldots\;e_n)} = C'\;\Shape\;\Pos\;\toCoq{e_1}\;\ldots\;\toCoq{e_n} \\
+    \toCoq{(f\;e_1\;\ldots\;e_n)} = f'\;\Shape\;\Pos\;\toCoq{e_1}\;\ldots\;\toCoq{e_n}
+  \end{align*}
+  \caption{Translation rule for the full application of a $n$-ary constructor $C$ or defined function $f$.}
+  \label{fig:translation:expr:fun_app}
+\end{figure}
+
+We actually applied this optimization already during the generation of smart constructors.
+The constructor \haskell{Just} of the \haskell{Maybe} data type has the type $a \rightarrow \texttt{Maybe}\;a$ for example.
+According to the invariant, the expression \haskell{Just} should now be translated to to a Coq term of type
+\[
+  \toCoq{(a \rightarrow \texttt{Maybe}\;a)}
+    = \Free{\toCoqT{(a \rightarrow \texttt{Maybe}\;a)}}
+\]
+But the smart constructor \coq{Just} has never been lifted to the free monad.
+Only it's argument and return types are monadic.
+\begin{minted}{coq}
+Check Just.
+(* ==> Just : forall (Shape : Type) (Pos : Shape -> Type) (a : Type),
+              Free Shape Pos a -> Free Shape Pos (Maybe Shape Pos a) *)
+\end{minted}
+Therefore, the application of \coq{Just} does not involve the bind operator as shown in \autoref{fig:translation:expr:fun_app}.
+We will apply the same optimization when we translate function declarations in the final section of this chapter.
+
+The only drawback is, that the optimization does not allow partial function applications so far.
+As \cite{Abel:2005} point out, this problem can easily be solved by performing $\eta$-abstractions until all function applications are fully applied.
+An individual $\eta$-abstraction transforms a function $f$ to an equivalent function by wrapping it with a lambda abstraction and and passing the argument to $f$.
+\[
+  f \xrightarrow[\eta]{} \lambda x. f\;x
+\]
+The full process is depicted in \autoref{fig:translation:expr:eta}.
+The right hand side of both equations requires us to be able to convert lambda abstractions to Coq.
+Thus, we will look into the translation of lambda abstractions next.
+\begin{figure}[H]
+  \begin{align*}
+    \toCoq{(C\;e_1\;\ldots\;e_m)} = \toCoq{(\haskellM{\@$x_1$@ -> @$\ldots$@ \@$x_{m - n}$@ ->}\; C\;e_1\;\ldots\;e_m\;x_1\;\ldots\;x_{n - m})} \\
+    \toCoq{(f\;e_1\;\ldots\;e_m)} = \toCoq{(\haskellM{\@$x_1$@ -> @$\ldots$@ \@$x_{m - n}$@ ->}\; f\;e_1\;\ldots\;e_m\;x_1\;\ldots\;x_{n - m})}
+  \end{align*}
+  \caption{Translation rule for the partial application of a $n$-ary constructor $C$ or defined function $f$ to $m < n$ arguments.}
+  \label{fig:translation:expr:eta}
+\end{figure}
+
+\subsection{Translation of Lambda Abstractions}
+Lets first consider a lambda abstraction \haskell{\@$x$@ -> @$e$@} with a single argument.
+We have seen a Coq lambda abstraction on the right hand side of \coq{>>=} in the previous subsection already.
+In Coq our unary lambda abstraction could be represented by the term \coq{fun @$x'$@ => @$\toCoq{e}$@}.
+However, we still need to wrap the function with the \coq{pure} constructor of the free monad to make the invariant hold.
+\[
+  \toCoq{(\haskellM{\@$x$@ -> @$e$@})} = \coqM{pure (fun @$x'$@ => @$e^{\dagger}$@)} % FIXME \toCoq does not work
+\]
+If we now try to extend this rule to lambda abstractions \haskell{\@$x_1$@ @$\ldots$@ @$x_n$@ -> @$e$@} with multiple arguments, we cannot simply add more binders to the Coq function.
+The following would be valid Coq, but violates our invariant.
+\[
+  \coqM{pure (fun @$x_1'$@ @$\ldots$@ @$x_n'$@ => @$e^{\dagger}$@)} % FIXME \toCoq does not work
+\]
+This is because the term above has the type
+\[
+  \Free{(\toCoq{\tau_1}
+    \rightarrow \ldots
+    \rightarrow \toCoq{\tau_n}
+    \rightarrow \toCoq{\tau})}
+\]
+but should have the type
+\[
+  \Free{(\toCoq{\tau_1}
+    \rightarrow \Free{(\ldots
+    \rightarrow \Free{(\toCoq{\tau_n}
+    \rightarrow \toCoq{\tau})} \ldots)})}
+\]
+according to our invariant.
+Therefore, we have to wrap all intermediate results with \coq{pure}.
+We can do so by rewriting a lambda abstraction with multiple arguments to multiple nested unary lambda abstractions as shown in \autoref{fig:translation:expr:lambda}.
+
+\begin{figure}[H]
+  \begin{align*}
+    \toCoq{(\haskellM{\@$x$@ -> @$e$@})} &= \coqM{pure (fun @$x'$@ =>}\;\toCoq{e}\coqM{)} \\
+    \toCoq{(\haskellM{\@$x_1$@ @$\ldots$@ @$x_n$@ -> @$e$@})} &= \toCoq{(\haskellM{\@$x_1$@ -> @$\ldots$@ -> \@$x_n$@ -> @$e$@})}
+    \tag{if $n > 0$}
+  \end{align*}
+  \caption{Translation rules for lambda abstractions.}
+  \label{fig:translation:expr:lambda}
+\end{figure}
+
+\subsection{Translation of \haskell{case} and \haskell{if} Expressions}
+In this subsection we cover both the translation of \haskell{case} and \haskell{if} expressions.
+This is because both kinds of expressions behave very similar.
+In fact the Haskell Language Report defines the semantics of \haskell{if} expressions in terms of \haskell{case} expressions \cite[p. 20]{Marlow:2010}.
+\[
+  \haskellM{if @$e_1$@ then @$e_2$@ else @$e_3$@}
+    = \haskellM{case @$e_1$@ of { True -> @$e_2$@ ; False -> @$e_3$@ }}
+\]
+For simplicity, lets first focus on the translation of \haskell{if} expressions.
+
+Unlike before, we cannot base our translation rule for \haskell{if} expressions on the invariant.
+If the expression \haskell{if @$e_1$@ then @$e_2$@ else @$e_3$@} has type $\tau$, both $e_2$ and $e_3$ must also have type $\tau$.
+If we naïvely translated the expression by just translating $e_1$ through $e_3$, the resulting term
+\[
+  \coqM{if @${e_1}^{\dagger}$@ then @${e_2}^{\dagger}$@ else @${e_3}^{\dagger}$@} % FIXME \toCoq does not work
+\]
+complies with our invariant because $\toCoq{e_2}$ and $\toCoq{e_3}$ both have the type $\toCoq{\tau}$ and therefore the entire term has that type.
+Interrestingly, if we applied this naïve translation rule, the generated code works.
+However, it does not behave as intended.
+\begin{minted}{coq}
+  Compute (if @$\toCoq{\texttt{True}}$@      then 1 else 2). (* ==> 1 *)
+  Compute (if @$\toCoq{\texttt{False}}$@     then 1 else 2). (* ==> 1 *)
+  Compute (if @$\toCoq{\texttt{undefined}}$@ then 1 else 2). (* ==> 2 *)
+\end{minted}
+This is because \coq{if} expressions are not limited to boolean values in Coq.
+Their condition can be of any type with exactly two constructors.
+The first constructor is interpreted as \textit{truthy} and the other as \textit{falsy}.
+Because the type of $\toCoq{e_1}$ is \coq{Free @$\Shape$@ @$\Pos$@ (Bool @$\Shape$@ @$\Pos$@)} and \coq{Free} has exectly two constructors \coq{pure} and \coq{impure}, it can be used in \haskell{if} expressions.
+This complies with the results of the listing above.
+\haskell{True} and \haskell{False} are values without an effect.
+Therefore, their underlying representation uses the \coq{pure} constructor which is interpreted as \textit{truthy}.
+\haskell{undefined} on the other hand does have an effect.
+The usage of the \coq{impure} constructor leads to \haskell{undefined} being interpreted as \textit{falsy}.
+
+What we actually wanted is to test whether the value wrapped by the \coq{pure} constructor is \coq{true} or \coq{false}.
+Similar to how we had to unwrap a function expression before we could apply the actual function, we have to bind the condition this time as well.
+This corresponds to the fact that Haskell evaluates the condition to \textit{head normal form} before selecting the \haskell{then} or \haskell{else} branch.
+
+\begin{figure}[H]
+  \[
+    \haskellM{if @$e_1$@ then @$e_2$@ else @$e_3$@}
+      = \coqM{@${e_1}^{\dagger}$@ >>= fun (@$x$@ :}\;\toCoq{\haskellM{Bool}}\coqM{) => if @$x$@ then @${e_2}^{\dagger}$@ else @${e_3}^{\dagger}$@} % FIXME \toCoq does not work
+  \]
+  \caption{Translation rule for \haskell{if} expressions.}
+  \label{fig:translation:expr:if}
+\end{figure}
+
+With the translation rule shown in \autoref{fig:translation:expr:if} we get the expected behaviour.
+\begin{minted}{coq}
+  Compute (@$\toCoq{\texttt{True}}$@      >>= (fun x => if x then pure 1 else pure 2)). (* ==> pure 1 *)
+  Compute (@$\toCoq{\texttt{False}}$@     >>= (fun x => if x then pure 1 else pure 2)). (* ==> pure 2 *)
+  Compute (@$\toCoq{\texttt{undefined}}$@ >>= (fun x => if x then pure 1 else pure 2)). (* ==> impure _ _ *)
+\end{minted}

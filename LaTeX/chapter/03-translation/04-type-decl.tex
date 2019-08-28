@@ -214,7 +214,7 @@ The smart constructor for \coq{just} would look as follows.
   Definition Just (@$\Shape$@ : Type) (@$\Pos$@ : @$\Shape$@ -> Type) {a : Type}
                   (x : Free @$\Shape$@ @$\Pos$@ a)
                   : Free @$\Shape$@ @$\Pos$@ (Maybe @$\Shape$@ @$\Pos$@ a)
-                  := pure (just x)
+                  := pure (just x).
 \end{minted}
 This time we are using upper case indentifiers again.
 Unlike with regular constructor, we do not have to generate an \coq{Arguments}-sentence for the smart constructor.
@@ -231,7 +231,7 @@ The gneration of freh identifiers will be covered in \autoref{chp:implementation
     Definition @$C'$@ (@$\Shape$@ : Type) (@$\Pos$@ : @$\Shape$@ -> Type) {@$\alpha_1$@ @$\ldots$@ @$\alpha_n$@ : Type}
                   (@$x_1$@ : @$\toCoq{\tau_1}$@) @$\ldots$@ (@$x_p$@ @$\toCoq{\tau_p}$@)
                   : @$\toCoq{(D\;\alpha_1\;\ldots\;\alpha_n)}$@
-                  := pure (@$C$@ @$x_1$@ @$\ldots$@ @$x_p$@)
+                  := pure (@$C$@ @$x_1$@ @$\ldots$@ @$x_p$@).
   \end{minted}
   \caption{Additional sentences to generate for each data constructor \haskell{@$C$@ @$\tau_1$@ @$\ldots$@ @$\tau_p$@} of a data type \haskell{@$D$@ @$\alpha_1$@ @$\ldots$@ @$\alpha_n$@}. $c'$ refers to the renamed lower case constructor name. $x_1, \ldots, x_p$ are fresh identifiers.}
   \label{fig:translation:type-decl:con}
@@ -291,7 +291,7 @@ In the example above, the following would work.
     := tree : Free @$\Shape$@ @$\Pos$@ a -> Forest @$\Shape$@ @$\Pos$@ a -> Tree @$\Shape$@ @$\Pos$@ a
   with Forest (@$\Shape$@ : Type) (@$\Pos$@ : @$\Shape$@ -> Type) (a : Type) : Type
     := empty    : Forest @$\Shape$@ @$\Pos$@ a
-    |  nonEmpty : Free @$\Shape$@ @$\Pos$@ (Tree @$\Shape$@ @$\Pos$@ a) -> Forest @$\Shape$@ @$\Pos$@ a
+    |  nonEmpty : Free @$\Shape$@ @$\Pos$@ (Tree @$\Shape$@ @$\Pos$@ a) -> Forest @$\Shape$@ @$\Pos$@ a.
 \end{minted}
 
 % Dependency analysis.

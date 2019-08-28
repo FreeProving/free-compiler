@@ -35,7 +35,7 @@ for file in $files; do
            --add-tex-command "setminted p"                  \
            --add-tex-command "newmintinline opp"            \
            --add-tex-command "haskell p"                    \
-           --add-tex-command "cop p"                        |
+           --add-tex-command "coq p"                        |
 
     # Remove duplicates.
     sort                                                    |
