@@ -29,6 +29,7 @@ for file in $files; do
     # Spell check.
     aspell list                                             \
            --lang=en                                        \
+           --encoding=utf-8                                 \
            --mode=tex                                       \
            --add-tex-command "autoref p"                    \
            --add-tex-command "coq p"                        \
