@@ -184,7 +184,7 @@ This corresponds to the fact that Haskell evaluates the condition to \textit{hea
 \begin{figure}[H]
   \[
     \haskellM{if @$e_1$@ then @$e_2$@ else @$e_3$@}
-      = \coqM{@${e_1}^{\dagger}$@ >>= fun (@$x$@ :}\;\toCoq{\haskellM{Bool}}\coqM{) => if @$x$@ then @${e_2}^{\dagger}$@ else @${e_3}^{\dagger}$@} % FIXME \toCoq does not work
+      = \coqM{@${e_1}^{\dagger}$@ >>= (fun (@$x$@ :}\;\toCoq{\haskellM{Bool}}\coqM{) => if @$x$@ then @${e_2}^{\dagger}$@ else @${e_3}^{\dagger}$@)} % FIXME \toCoq does not work
   \]
   \caption{Translation rule for \haskell{if} expressions.}
   \label{fig:translation:expr:if}
@@ -196,3 +196,114 @@ With the translation rule shown in \autoref{fig:translation:expr:if} we get the 
   Compute (@$\toCoq{\texttt{False}}$@     >>= (fun x => if x then pure 1 else pure 2)). (* ==> pure 2 *)
   Compute (@$\toCoq{\texttt{undefined}}$@ >>= (fun x => if x then pure 1 else pure 2)). (* ==> impure _ _ *)
 \end{minted}
+
+We can apply the same idea to the translation of \haskell{case} expressions.
+Instead of performing pattern matching on the free monad, we want to inspect the actual value.
+Thus, we have to add the bind operator.
+Aside from that, the differences between pattern matching in Haskell and Coq shown in \autoref{fig:translation:expr:case} are mostly of syntactical nature.
+This is because of our initial assumptions.
+If we allowed guards or nested patterns for example, the translation of \haskell{case} expressions would be much more difficult.
+
+\begin{figure}[H]
+  \[
+    \toCoq{\left(
+      \begin{array}{l}
+        \haskellM{case @$e$@ of}                                                \\
+        \quad\haskellM{@$C_1$@ @$x_{1,1}$@ @$\ldots$@ @$x_{1,p_1}$@ -> @$e_1$@} \\
+        \quad\vdots                                                             \\
+        \quad\haskellM{@$C_n$@ @$x_{n,1}$@ @$\ldots$@ @$x_{n,p_n}$@ -> @$e_n$@}
+      \end{array}
+    \right)}
+    = \begin{array}{l}
+      % FIXME \toCoq does not work
+      \coqM{@${e}^{\dagger}$@ >>= (fun @$x$@ => match @$x$@ with}                           \\
+      \quad\coqM{| @$c_1'$@ @$x_{1,1}'$@ @$\ldots$@ @$x_{1,p_1}'$@ => @${e_1}^{\dagger}$@} \\
+      \quad\coqM{| @$\vdots$@}                                                             \\
+      \quad\coqM{| @$c_n'$@ @$x_{n,1}'$@ @$\ldots$@ @$x_{n,p_n}'$@ => @${e_n}^{\dagger}$@} \\
+      \coqM{end)}
+    \end{array}
+  \]
+  \caption{Translation rule for a \haskell{case} expression that performs pattern matching on an expression $e$ whose type has $n$ constructors $C_1$ through $C_n$. Note that we match the unwrapped Coq term with the regular constructors $c_i'$, not the smart constructors $C_i'$.}
+  \label{fig:translation:expr:case}
+\end{figure}
+
+Also the requirement of Coq that pattern matching must be total is simply passed down to the user of our compiler.
+Therefore, pattern matching failures must be handled explicitly using error terms.
+The translation of said error terms to Coq is described next.
+
+\subsection{Translation of error terms}
+So far we have seen no way to introduce actual effects into our programs.
+As noted earlier, one important effect that we would like to support is partiality.
+In Haskell partiality usually arises from the usage of incomplete pattern matching.
+Due to our assumption that pattern matching is total, we have to handle such cases explicitly.
+\begin{minted}{haskell}
+  head :: [a] -> a
+  head xs = case xs of []     -> error "head: empty list"
+                       x : xs -> x
+\end{minted}
+In general, Haskell provides two functions \haskell{error} and \haskell{undefined} that can be used to deliberately cause runtime errors.
+If an application of one of those functions is evaluated, the program terminates immediately \cite[p. 16]{Marlow:2010}.
+Additionally, a brief description for the cause of the error can be passed to \haskell{error} as demonstrated in the example above already.
+\begin{minted}{haskell}
+error :: String -> a
+undefined :: a
+\end{minted}
+
+The question is now how we can implement those two functions in Coq.
+The authors of \texttt{hs-to-coq} for example do so by introducing a polymorphic value (or "axiom") \coq{patternFailure} \cite[p. 10]{SpectorZabusky:2017}.
+However, as they point out themselves, this axiom is inherently unsound, i.e. can be used to prove arbitrary propositions.
+\begin{minted}{coq}
+  Local Axiom patternFailure : forall {a}, a.
+
+  Theorem contradiction: False.
+  Proof. apply patternFailure. Qed.
+\end{minted}
+
+For this reason, avoiding the introduction of such an axiom has been the very motivation for the monadic transformation performed by our implementation.
+If we lifted our programs using the \haskell{Maybe} monad for example, we do not need the axiom above, but can represent \haskell{undefined} with \haskell{Nothing}.
+\begin{minted}{haskell}
+  undefined :: Maybe a
+  undefined = Nothing
+\end{minted}
+For the translation of \haskell{undefined}, we now just need to model the \haskell{Maybe} monad using the free monad, i.e. instatiate $Shape$ and $Pos$ appropriately.
+How this can be done, has originally been presented by \cite{Dylus:2018} and will be explained in more detail in \autoref{chp:implementation}. % TODO more concrete reference.
+
+We can also use \haskell{Nothing} to implement \haskell{error} if we are willing to simply discard the error message.
+\begin{minted}{haskell}
+  error :: String -> Maybe a
+  error msg = Nothing
+\end{minted}
+However, if we want to keep the error message, we need a different monad, i.e. have to instantiate $Shape$ and $Pos$ differently.
+This alternative monad would not be limited to the translation of \haskell{error} as we can express \haskell{undefined} in terms of \haskell{error}.
+\begin{minted}{haskell}
+undefined :: a
+undefined = error "undefined"
+\end{minted}
+
+Because we want to leave the choice of the concrete monad to the user, we abstract from the instantiation of $Shape$ and $Pos$ using a type class.
+Instances of the type class contain the implementation of \haskell{undefined} and \haskell{error} for the monad represented by $Shape$ and $Pos$.
+\begin{minted}{coq}
+  Require Import Coq.Strings.String.
+
+  Class Partial (Shape : Type) (Pos : Shape -> Type) :=
+    {
+      undefined : forall {A : Type}, Free Shape Pos A;
+      error     : forall {A : Type}, string -> Free Shape Pos A
+    }.
+\end{minted}
+The code generated by the rules in \autoref{fig:translation:expr:error} uses the interface of \coq{Partial}.
+Therefore, it works with any monad for which such an instance can be defined.
+For example we can define a \coq{Partial} instance for the \haskell{Maybe} monad by implementing both \coq{error} and \coq{undefined} with \haskell{Nothing}.
+For the \coq{Identity} monad, on the other hand, no \coq{Partial} can be specified.
+
+\begin{figure}[H]
+  \begin{align*}
+    \toCoq{\haskellM{undefined}}       &= \coqM{undefined} \\
+    \toCoq{(\haskellM{error @$msg$@})} &= \coqM{error @$msg$@}
+  \end{align*}
+  \caption{
+    Translation rules for error terms.
+    Both rules require an instance of the \coq{Partial} type class for $Shape$ and $Pos$ to be available in the current context.
+  }
+  \label{fig:translation:expr:error}
+\end{figure}
