@@ -22,20 +22,23 @@ for file in $files; do
   words=$(
     cat "$file"                                             |
 
-    # Ignore minted code blocks.
-    tr '\n' ' '                                             |
-    sed -e 's/\\begin{minted}.*\end{minted}//g'             |
+    # Ignore minted code blocks and inline math.
+    perl -0pe 's|\\begin\{minted\}.*?\\end\{minted\}||smg'  |
+    perl -0pe 's|\$.*?\$||smg'                              |
 
     # Spell check.
     aspell list                                             \
            --lang=en                                        \
            --mode=tex                                       \
            --add-tex-command "autoref p"                    \
-           --add-tex-command "newcommand pop"               \
-           --add-tex-command "setminted p"                  \
-           --add-tex-command "newmintinline opp"            \
+           --add-tex-command "coq p"                        \
+           --add-tex-command "coqM p"                       \
+           --add-tex-command "digraph pp"                   \
            --add-tex-command "haskell p"                    \
-           --add-tex-command "coq p"                        |
+           --add-tex-command "haskellM p"                   \
+           --add-tex-command "newcommand pop"               \
+           --add-tex-command "newmintinline opp"            \
+           --add-tex-command "setminted p"                  |
 
     # Remove duplicates.
     sort                                                    |
