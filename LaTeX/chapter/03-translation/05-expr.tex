@@ -265,7 +265,7 @@ If we lifted our programs using the \haskell{Maybe} monad for example, we do not
   undefined :: Maybe a
   undefined = Nothing
 \end{minted}
-For the translation of \haskell{undefined}, we now just need to model the \haskell{Maybe} monad using the free monad, i.e. instatiate $Shape$ and $Pos$ appropriately.
+For the translation of \haskell{undefined}, we now just need to model the \haskell{Maybe} monad using the free monad, i.e. instantiate $Shape$ and $Pos$ appropriately.
 How this can be done, has originally been presented by \cite{Dylus:2018} and will be explained in more detail in \autoref{chp:implementation}. % TODO more concrete reference.
 
 We can also use \haskell{Nothing} to implement \haskell{error} if we are willing to simply discard the error message.
