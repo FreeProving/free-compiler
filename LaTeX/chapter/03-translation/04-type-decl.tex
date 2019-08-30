@@ -85,12 +85,12 @@ We assume without a proof that this property holds for the extensions of $\sigma
 \subsection{Translation of Data Type Declarations}
 Until now we have described how to translate type expressions and assign names to them but we are not able to actually define our own types for usage in those type expressions.
 One of the simplest kinds of data types that can be defined in Haskell are so called \textit{sum types}.
-A well known expamle for a sum type is \haskell{Bool} which is commonly defined as follows.
+A well known example for a sum type is \haskell{Bool} which is commonly defined as follows.
 \begin{minted}{haskell}
   data Bool = True | False
 \end{minted}
 In general, the constructors of a sum type do not have any arguments and are enumerated on the right hand side of a \haskell{data} type declaration.
-In Coq data types are defined using \coq{Inductive}-sentences in a very similar fation to \haskell{data} declarations in Haskell.
+In Coq data types are defined using \coq{Inductive}-sentences in a very similar fashion to \haskell{data} declarations in Haskell.
 The \haskell{Bool} type could look like this for example.
 \begin{minted}{coq}
   Inductive Bool : Type
@@ -100,9 +100,9 @@ The \haskell{Bool} type could look like this for example.
 Apart from the concrete syntax, the main difference is that the type of the constructors is annotated explicitly.
 In contrast to Haskell, we follow the Coq convention to choose lower case names for the constructors.
 
-Sum types on their own are usually not very usefull.
+Sum types on their own are usually not very useful.
 Instead one wishes to compose existing data types to more interesting data structures.
-Such types are refered to as \textit{product types}.
+Such types are referred to as \textit{product types}.
 If there was for instance a type \haskell{Double} that represents floating point numbers, we could compose two such numbers to model a complex number.
 \begin{minted}{haskell}
   data Complex = Complex Double Double
@@ -125,7 +125,7 @@ By applying the translation rules for types we would obtain the following Coq ty
 Wrapping the return type of a constructor is not allowed in Coq though.
 However, it is not necessary for us to lift the intermediate results of the constructor either.
 This is because (partial) constructor applications never have an effect in Haskell.
-Therefore, it is sufficent to lift the argument types of the constructor (which could indeed be effectful).
+Therefore, it is sufficient to lift the argument types of the constructor (which could indeed be effectful).
 For this purpose we still need to add the parameters $\Shape$ and $\Pos$ to the generated sentence.
 \begin{minted}{coq}
   Inductive Complex (@$\Shape$@ : Type) (@$\Pos$@ : @$\Shape$@ -> Type) : Type
@@ -216,13 +216,13 @@ The smart constructor for \coq{just} would look as follows.
                   : Free @$\Shape$@ @$\Pos$@ (Maybe @$\Shape$@ @$\Pos$@ a)
                   := pure (just x).
 \end{minted}
-This time we are using upper case indentifiers again.
+This time we are using upper case identifiers again.
 Unlike with regular constructor, we do not have to generate an \coq{Arguments}-sentence for the smart constructor.
 This is because we can mark the type argument as implicit directly in the \coq{Definition}-sentence by wrapping its binder in curly braces.
 The general generation scheme for smart constructors and \coq{Arguments}-sentences is summarized in \autoref{fig:translation:type-decl:con}.
-In case of \coq{Just} we were able to manully choose appropriate names for the arguments of the smart constructor.
+In case of \coq{Just} we were able to manually choose appropriate names for the arguments of the smart constructor.
 However, when we generate those sentences, we need to generate \textit{fresh identifiers} automatically.
-The gneration of freh identifiers will be covered in \autoref{chp:implementation}. % TODO more specific reference.
+The generation of fresh identifiers will be covered in \autoref{chp:implementation}. % TODO more specific reference.
 
 \begin{figure}[H]
   \begin{minted}{coq}
@@ -245,7 +245,7 @@ Therefore, \haskell{A} is allowed to use \haskell{B} in the following example, e
   data B = B
 \end{minted}
 In Coq this is not the case.
-If we convert the example to Coq, the declaration of \coq{B} must preceed the declaration of \coq{A}.
+If we convert the example to Coq, the declaration of \coq{B} must precede the declaration of \coq{A}.
 \begin{minted}{coq}
   Inductive A (@$\Shape$@ : Type) (@$\Pos$@ : @$\Shape$@ -> Type) : Type := a : @$\toCoq{\texttt{B}}$@ -> @$\toCoqT{\texttt{A}}$@.
   (* ==> The reference B was not found in the current environment. *)
@@ -281,7 +281,7 @@ However, this cannot be done in case of \textit{mutually recursive data types}.
 \end{minted}
 The declarations of \haskell{Tree} depends on the declaration of \haskell{Forest} and vice versa.
 Regardless of which data type we choose to translate first, Coq will reject the generated code as the other one will be undefined.
-As we have seen in case of ordninary recursive data types like \coq{List}, Coq allows us to use the data type defined by an \coq{Inductive}-sentence within that sentence.
+As we have seen in case of ordinary recursive data types like \coq{List}, Coq allows us to use the data type defined by an \coq{Inductive}-sentence within that sentence.
 Thus, we need a mechanism to define both \coq{Tree} and \coq{Forest} in the same \coq{Inductive}-sentence, such that they can use each other.
 Coq offers the \coq{with} keyword for this purpose.
 It is used to concatenate multiple \coq{Inductive}-sentences to a single sentence.
@@ -316,16 +316,16 @@ The same is true if there is a path from $D_1$ to $D_2$.
 If a path from $D_2$ to $D_1$ exists as well, it follows that they need to be declared in the same sentence.
 In our concrete examples that means that \haskell{B} needs to be declared before \haskell{A} because there is an edge from \haskell{A} to \haskell{B}.
 It would also be okay to declare them in the same sentence.
-\haskell{Tree} and \haskell{Forest} on the other hand definitly need to be declared in the same sentence, as the corresponding nodes are reachable from each other.
+\haskell{Tree} and \haskell{Forest} on the other hand definitely need to be declared in the same sentence, as the corresponding nodes are reachable from each other.
 
-In graph theory a set of nodes with the property that all nodes within the set are reachable from all other nodes within the set is refered to as a \textit{strongly connected component} of the graph.
-In our case that means that all declarations whose nodes form a stronly connected component of the dependency graph need to be declared in the same sentence.
+In graph theory a set of nodes with the property that all nodes within the set are reachable from all other nodes within the set is referred to as a \textit{strongly connected component} of the graph.
+In our case that means that all declarations whose nodes form a strongly connected component of the dependency graph need to be declared in the same sentence.
 Likewise, if two declarations depend on each other~--~and therefore need to be declared in the same sentence~--~they are also necessarily in the same strongly connected component.
 Thus, the identification of mutually recursive data type declarations coincides with the identification of strongly connected components of the dependency graph.
 There are algorithms to compute strongly connected components in linear time.
 As a final step the identified strongly connected components need to be sorted.
-If the component $SCC_1$ contains at least one declaration that depends on a declaration in $SCC_2$, $SCC_2$ should preceed $SCC_1$.
-This is also refered to as \textit{reverse topological order} and can be solved in linear time as well.
+If the component $SCC_1$ contains at least one declaration that depends on a declaration in $SCC_2$, $SCC_2$ should precede $SCC_1$.
+This is also referred to as \textit{reverse topological order} and can be solved in linear time as well.
 In our case we obtain the following sorted lists of strongly connected components:
 \begin{align*}
   [\{\, \haskellM{B} \,\}, \{\, \haskellM{A} \,\}]
