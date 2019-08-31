@@ -1,6 +1,8 @@
 Andresen
 ary
 boolean
+backticks
+backquotes
 Coq
 disjunction
 effectful
@@ -15,6 +17,7 @@ naïve
 naïvely
 polymorphism
 preprocessing
+readability
 runtime
 unary
 unlifted

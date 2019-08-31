@@ -55,7 +55,7 @@ For example, consider the application of a function $f$ to $n$ arguments.
                  &\vdots                                                  \\
                  &\coqM{>>= (fun @$f_n$@ => @$f_n$@}\;\toCoq{e_n}\coqM{)}
 \end{align*}
-As this example demonstrates, the rule above will cause the generation of code that is long and difficult to comprehend.
+As this example suggests, the rule above will cause the generation of code that is long and difficult to comprehend.
 Moreover, binding the intermediate results is often superfluous because we know that the partial application of a constructor or defined function will never have an effect in Haskell.
 For this reason \cite{Abel:2005} suggest an optimization that allows the generation of more readable code if a constructor or defined function is fully applied.
 \begin{figure}[H]
@@ -92,7 +92,8 @@ An individual $\eta$-abstraction transforms a function $f$ to an equivalent func
 \]
 The full process is depicted in \autoref{fig:translation:expr:eta}.
 The right hand side of both equations requires us to be able to convert lambda abstractions to Coq.
-Thus, we will look into the translation of lambda abstractions next.
+But before we examine the translation of lambda abstractions next lets first look into another kind of function application.
+Namely operator applications.
 \begin{figure}[H]
   \begin{align*}
     \toCoq{(C\;e_1\;\ldots\;e_m)} = \toCoq{(\haskellM{\@$x_1$@ -> @$\ldots$@ \@$x_{m - n}$@ ->}\; C\;e_1\;\ldots\;e_m\;x_1\;\ldots\;x_{n - m})} \\
@@ -101,6 +102,44 @@ Thus, we will look into the translation of lambda abstractions next.
   \caption{Translation rule for the partial application of a $n$-ary constructor $C$ or defined function $f$ to $m < n$ arguments.}
   \label{fig:translation:expr:eta}
 \end{figure}
+
+Most binary operations such as \haskell{(+)} or \haskell{(==)} as well as the list constructor \haskell{(:)} are usually written in infix rather than prefix notation.
+It is also possible to write custom functions in infix notation by surrounding the function name in grave accents ("backticks" or "backquotes").
+For example instead of \haskell{div @$x$@ @$y$@} one can write \haskell{@$x$@ `div` @$y$@}.
+When properly used, this notation can often increase the readability of programs.
+Similarly, there is a unary minus prefix operator that can be used as \textit{syntactic sugar} for the application of the \haskell{negate} function from Haskell's Prelude.
+As \autoref{fig:translation:expr:op} demonstrates, the translation of operator applications is straightforward.
+
+\begin{figure}[H]
+  \begin{align*}
+    \toCoq{(e_1 \circ e_2)} &= \toCoq{(\haskellM{(@$\circ$@) @$e_1$@ @$e_2$@})} \\
+    \toCoq{(\haskellM{-@$e$@})} &= \toCoq{(\haskellM{negate @$e$@})}
+  \end{align*}
+  \caption{
+    Translation rules for operator applications based on the identities listed by the Haskell Report \cite[p.~18]{Marlow:2010}.
+  }
+  \label{fig:translation:expr:op}
+\end{figure}
+
+However, in Haskell it is also possible to apply operators only partially.
+So called \textit{sections} are written as \haskell{(@$e_1$@ @$\circ$@)} ("left section") or \haskell{(@$\circ$@ @$e_2$@)} ("right section").
+A right section coincides with a regular partial application of the operator.
+A left section on the other hand cannot be expressed in this way.
+Therefore we need to introduce the missing left argument in a similar way to an $\eta$-abstraction.
+\begin{figure}[H]
+  \begin{align*}
+    \toCoq{(e_1\;\circ)}
+      &= \toCoq{(\haskellM{(@$\circ$@) @$e_1$@})}                      \\
+      &\xrightarrow[\eta]{} \toCoq{(\haskellM{\@$x_2$@ -> (@$\circ$@) @$e_1$@ @$x_2$@})} \\
+    \toCoq{(\circ\;e_2)}
+      &= \toCoq{(\haskellM{\@$x_1$@ -> (@$\circ$@) @$x_1$@ @$e_2$@})}
+  \end{align*}
+  \caption{
+    Translation rules for left and right sections based on the identities listed by the Haskell Report \cite[p.~19]{Marlow:2010}.
+  }
+  \label{fig:translation:expr:op}
+\end{figure}
+
 
 \subsection{Translation of Lambda Abstractions}
 Lets first consider a lambda abstraction \haskell{\@$x$@ -> @$e$@} with a single argument.
