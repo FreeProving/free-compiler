@@ -11,4 +11,92 @@ For this reason, we will focus on non-recursive function declarations first.
 The translation of recursive functions is covered in the second half of this section.
 
 \subsection{Non-Recursive Functions}
+In \autoref{sec:translation:type-decl} we have already seen function declarations in Coq on the example of smart constructors.
+In order to recall the basic structure of such function declarations, consider the following implementation of boolean negation without monadic lifting.
+\begin{minted}{coq}
+  Definition not (b : bool) : bool :=
+    match b with
+    | true  => false
+    | false => true
+    end.
+\end{minted}
+As we can see, Coq's function declarations are parameterized \coq{Definition} sentences.
+Unlike in Haskell, there are not multiple rules and pattern matching is performed explicitly on the right hand side using \coq{match} expressions.
+The return type of the function as well as the types of its arguments are annotated inside the declaration itself.
+Due to our assumptions, i.e. that there is only one rule and the parameters are variable patterns, all Haskell function declarations we are concerned with already look remarkably similar to the \coq{Definition} sentences that we need to generate.
+\begin{minted}{haskell}
+  @$f$@ :: @$\tau$@
+  @$f$@ @$x_1$@ @$\ldots$@ @$x_n$@ = @$e$@
+\end{minted}
+The main difference here is that the type signature is independent of the actual function declaration.
+If we had a type signature of the form \haskell{@$f$@ :: @$\tau_1$@ -> @$\ldots$@ -> @$\tau_n$@ -> @$\tau$@}, we could apply the translation proposed in \autoref{fig:translation:func-decl:non-rec} directly.
+
+\begin{figure}[H]
+  \[
+    \toCoq{\left(
+      \begin{array}{l}
+        \haskellM{@$f$@ :: @$\tau_1$@ -> @$\ldots$@ -> @$\tau_n$@ -> @$\tau$@} \\
+        \haskellM{@$f$@ @$x_1$@ @$\ldots$@ @$x_n$@ = @$e$@}
+      \end{array}
+    \right)}
+    = \begin{array}{ll}
+        \coqM{Definition @$f'$@}
+          &\coqM{(@$\Shape$@ : Type) (@$\Pos$@ : @$\Shape$@ -> Type)}     \\
+          &\coqM{{@$\alpha_1$@ @$\ldots$@ @$\alpha_m$@ : Type}}           \\
+          &\coqM{(@$x_1$@ : @${\tau_1}^{\dagger}$@) @$\ldots$@ (@$x_n$@ : @${\tau_n}^{\dagger}$@)}                                        \\
+          &\coqM{: @${\tau}^{\dagger}$@}                                  \\
+          &\coqM{:= @$\toCoq{e}$@.}                                       \\
+      \end{array}
+  \]
+  \caption{
+    Translation rule for a $n$-ary polymorphic function declaration with $m$ type variables.
+    The types $\tau_1$ through $\tau_n$ are the types of the variables $x_1$ through $x_n$ respectively.
+  }
+  \label{fig:translation:func-decl:non-rec}
+\end{figure}
+
+However, in general this is not the case.
+This is because the type signature could contain type synonyms.
+Consider for example the following function declaration.
+\begin{minted}{haskell}
+  type Predicate a = a -> Bool
+
+  nonZero :: Predicate Integer
+  nonZero n = n /= 0
+\end{minted}
+To determine the type of \haskell{n} as well as the return type of \haskell{nonZero} we need to expand the type synonym \haskell{Predicate Integer}.
+Not all type synonyms need to be expanded though.
+In case of the following function declaration, the argument and return types can be determined with our current approach.
+\begin{minted}{haskell}
+  filter :: Predicate a -> [a] -> [a]
+  filter p xs = {- ... -}
+\end{minted}
+
+The rule shown in \autoref{fig:translation:func-decl:non-rec:expansion} expands only those type synonyms that need to be expanded in order to determine the type of an argument.
+In the example above, it would expand the type of \haskell{nonZero} to \haskell{Integer -> Bool} and leaves the type of \haskell{filter} unchanged.
+
+\begin{figure}[H]
+  \begin{align*}
+    \toCoq{\left(
+      \begin{array}{l}
+        \haskellM{@$f$@ :: @$\tau_1$@ -> @$\ldots$@ -> @$\tau_i$@ -> @$S$@ @$\kappa_1$@ @$\ldots$@ @$\kappa_m$@} \\
+        \haskellM{@$f$@ @$x_1$@ @$\ldots$@ @$x_n$@ = @$e$@}
+      \end{array}
+    \right)}
+    = \toCoq{\left(
+      \begin{array}{l}
+        \haskellM{@$f$@ :: @$\tau_1$@ -> @$\ldots$@ -> @$\tau_i$@ -> @$\sigma(\kappa)$@} \\
+        \haskellM{@$f$@ @$x_1$@ @$\ldots$@ @$x_n$@ = @$e$@}
+      \end{array}
+    \right)}
+    &&\forall i < n
+  \end{align*}
+  \caption{
+    A demand driven approach to the expansion of type synonyms in $n$-ary function declarations.
+    We assume that \haskell{type @$S$@ @$\alpha_1$@ @$\ldots$@ @$\alpha_m$@ = @$\kappa$@} is a type synonym declaration.
+    The expansion of $S$ requires us to apply the substitution $\sigma = \{\, \alpha_1 \mapsto \kappa_1, \ldots, \alpha_m \mapsto \kappa_m \,\}$.
+  }
+  \label{fig:translation:func-decl:non-rec:expansion}
+\end{figure}
+
 \subsection{Recursive Functions}
