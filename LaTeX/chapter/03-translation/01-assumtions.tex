@@ -5,21 +5,40 @@ We do not aim to recreate the entire Prelude but still want to expose some commo
 We are especially interested in data types with a special syntax.
 This is because we see the fact that they have their own notation as a strong indicator for their importance in actual Haskell code.
 Namely we support lists \haskell{[a]}, pairs \haskell{(a, b)} and the unit type \haskell{()} as well as their constructors.
-Internally we will not handle these types different in any way.
-For example, the type \haskell{(@$\tau_1$@, @$\tau_2$@)} will simply be handled as the application of the type constructor \haskell{(,)} to the types $\tau_1$ and $\tau_2$.
-As \textit{syntactic sugar} we allow the list notation \haskell{[@$e_1$@, @$\ldots$@, @$e_n$@]} for \haskell{@$e_1$@:@$\ldots$@:@$e_n$@:[]}.
+Internally we will not handle these types any different from user defined types and constructors, i.e. the following identities hold:
+\begin{align*}
+  \haskellM{[@$\tau$@]}
+  &= \haskellM{[] @$\tau$@}
+  &&\forall \tau \text{ type expression}
+  \\
+  \haskellM{(@$\tau_1$@, @$\tau_2$@)}
+  &= \haskellM{(,) @$\tau_1$@ @$\tau_2$@}
+  &&\forall \tau_1, \tau_2 \text{ type expression}
+\end{align*}
 
-Furthermore, we add support for the data types \haskell{Bool} and \haskell{Int}.
+In addition to the constructors there is a more readable shorthand notation for lists and pairs \cite[pp.~20-21]{Marlow:2010}.
+\begin{align}
+  \haskellM{[@$e_1$@, @$e_2$@, @$\ldots$@, @$e_n$@]}
+  &= \haskellM{@$e_1$@ : (@$e_2$@ : (@$\ldots$@ : (@$e_n$@ : [])@$\ldots$@))}
+  &&\forall e_1, e_2, \ldots, e_n \text{ expression}
+  \label{eqn:translation:assumtions:list-literal}
+  \\
+  \haskellM{(@$e_1$@, @$e_2$@)}
+  &= \haskellM{(,) @$e_1$@ @$e_2$@}
+  &&\forall e_1, e_2 \text{ expression}
+  \label{eqn:translation:assumtions:pair-literal}
+\end{align}
+
+Furthermore, we add support for the data types \haskell{Bool} and \haskell{Integer}.
 In theory \haskell{Bool} and its constructors \haskell{True} and \haskell{False} could be defined by the user.
 However, \haskell{Bool} is important for the translation of \haskell{if} expressions.
-Due to the lack of type classes, \haskell{Int} will be used as the type for number literals.
+Due to the lack of type classes, \haskell{Integer} will be used as the type for all number literals, i.e. there are no fixed-precision integers of type \haskell{Int}.
 Decimal, hexadecimal and octal notation can be used.
-Types for other literals such as \haskell{String}s are not yet supported.
 
-Commonly used operations for \haskell{Bool} and \haskell{Int} are supported as well.
-The following operations are implemented:
+The following commonly used operations for \haskell{Bool} and \haskell{Integer} are build into the compiler.
 \begin{itemize}
   \item \textbf{Arithmetic operations:} addition \haskell{(+)}, subtraction \haskell{(-)}, multiplication \haskell{(*)}, exponentiation \haskell{(^)} and negation (using the \haskell{negate} function or unary minus operator).
   \item \textbf{Boolean operations:} conjunction \haskell{(&&)} and disjunction \haskell{(||)}
   \item \textbf{Comparison of integers:} \haskell{(<=)}, \haskell{(<)}, \haskell{(==)}, \haskell{(/=)}, \haskell{(>=)}, \haskell{(>)}
 \end{itemize}
+Floating point numbers, other literals such as \haskell{String}s and tuples with more than two elements are not supported yet.

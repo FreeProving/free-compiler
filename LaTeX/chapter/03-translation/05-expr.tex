@@ -146,7 +146,7 @@ We can do so by rewriting a lambda abstraction with multiple arguments to multip
 \subsection{Translation of \haskell{case} and \haskell{if} Expressions}
 In this subsection we cover both the translation of \haskell{case} and \haskell{if} expressions.
 This is because both kinds of expressions behave very similar.
-In fact the Haskell Language Report defines the semantics of \haskell{if} expressions in terms of \haskell{case} expressions \cite[p. 20]{Marlow:2010}.
+In fact the Haskell Language Report defines the semantics of \haskell{if} expressions in terms of \haskell{case} expressions \cite[p.~20]{Marlow:2010}.
 \[
   \haskellM{if @$e_1$@ then @$e_2$@ else @$e_3$@}
     = \haskellM{case @$e_1$@ of { True -> @$e_2$@ ; False -> @$e_3$@ }}
@@ -168,18 +168,18 @@ However, it does not behave as intended.
   Compute (if @$\toCoq{\texttt{undefined}}$@ then 1 else 2). (* ==> 2 *)
 \end{minted}
 This is because \coq{if} expressions are not limited to boolean values in Coq.
-Their condition can be of any type with exactly two constructors \cite[p. 48]{CoqDevTeam:2018}.
-If the condition matches the first constructor the \coq{then} branch is selected and the \coq{else} branch otherwise.
+Their condition can be of any type with exactly two constructors \cite[p.~48]{CoqDevTeam:2018}.
+If the condition matches the first constructor, the \coq{then} branch is selected and the \coq{else} branch otherwise.
 Because the type of $\toCoq{e_1}$ is \coq{Free @$\Shape$@ @$\Pos$@ (Bool @$\Shape$@ @$\Pos$@)} and \coq{Free} has exactly two constructors \coq{pure} and \coq{impure}, it can be used in \haskell{if} expressions.
-This complies with the observation in the listing above.
+This fits the observation in the listing above.
 \haskell{True} and \haskell{False} are values without an effect.
 Therefore, their underlying representation uses the \coq{pure} constructor which is the first constructor of \coq{Free}.
 \haskell{undefined} on the other hand does have an effect.
-The usage of the \coq{impure} constructor leads to the \coq{else} branch being selected if the condition is \haskell{undefined}.
+The usage of the \coq{impure} constructor for the representation of effects leads to the \coq{else} branch being selected if the condition is \haskell{undefined}.
 
 What we actually wanted is to test whether the value wrapped by the \coq{pure} constructor is \coq{true} or \coq{false}.
 Similar to how we had to unwrap a function expression before we could apply the actual function, we have to bind the condition this time as well.
-This corresponds to the fact that Haskell evaluates the condition to \textit{head normal form} before selecting the \haskell{then} or \haskell{else} branch.
+This corresponds to the fact that Haskell evaluates the condition before selecting the \haskell{then} or \haskell{else} branch.
 
 \begin{figure}[H]
   \[
@@ -231,7 +231,7 @@ Also the requirement of Coq that pattern matching must be total is simply passed
 Therefore, pattern matching failures must be handled explicitly using error terms.
 The translation of said error terms to Coq is described next.
 
-\subsection{Translation of error terms}
+\subsection{Translation of Error Terms}
 So far we have seen no way to introduce actual effects into our programs.
 As noted earlier, one important effect that we would like to support is partiality.
 In Haskell partiality usually arises from the usage of incomplete pattern matching.
@@ -242,7 +242,7 @@ Due to our assumption that pattern matching is total, we have to handle such cas
                        x : xs -> x
 \end{minted}
 In general, Haskell provides two functions \haskell{error} and \haskell{undefined} that can be used to deliberately cause runtime errors.
-If an application of one of those functions is evaluated, the program terminates immediately \cite[p. 16]{Marlow:2010}.
+If an application of one of those functions is evaluated, the program terminates immediately \cite[p.~16]{Marlow:2010}.
 Additionally, a brief description for the cause of the error can be passed to \haskell{error} as demonstrated in the example above already.
 \begin{minted}{haskell}
 error :: String -> a
@@ -250,7 +250,7 @@ undefined :: a
 \end{minted}
 
 The question is now how we can implement those two functions in Coq.
-The authors of \texttt{hs-to-coq} for example do so by introducing a polymorphic value (or "axiom") \coq{patternFailure} \cite[p. 10]{SpectorZabusky:2017}.
+The authors of \texttt{hs-to-coq} for example do so by introducing a polymorphic value (or "axiom") \coq{patternFailure} \cite[p.~10]{SpectorZabusky:2017}.
 However, as they point out themselves, this axiom is inherently unsound, i.e. can be used to prove arbitrary propositions.
 \begin{minted}{coq}
   Local Axiom patternFailure : forall {a}, a.
@@ -285,16 +285,16 @@ Instances of the type class contain the implementation of \haskell{undefined} an
 \begin{minted}{coq}
   Require Import Coq.Strings.String.
 
-  Class Partial (Shape : Type) (Pos : Shape -> Type) :=
+  Class Partial (@$\Shape$@ : Type) (@$\Pos$@ : @$\Shape$@ -> Type) :=
     {
-      undefined : forall {A : Type}, Free Shape Pos A;
-      error     : forall {A : Type}, string -> Free Shape Pos A
+      undefined : forall {A : Type}, Free @$\Shape$@ @$\Pos$@ A;
+      error     : forall {A : Type}, string -> Free @$\Shape$@ @$\Pos$@ A
     }.
 \end{minted}
 The code generated by the rules in \autoref{fig:translation:expr:error} uses the interface of \coq{Partial}.
 Therefore, it works with any monad for which such an instance can be defined.
 For example we can define a \coq{Partial} instance for the \haskell{Maybe} monad by implementing both \coq{error} and \coq{undefined} with \haskell{Nothing}.
-For the \coq{Identity} monad, on the other hand, no \coq{Partial} instance can be specified.
+In contrast, no \coq{Partial} instance can be specified for the \coq{Identity} monad.
 
 \begin{figure}[H]
   \begin{align*}
@@ -306,4 +306,76 @@ For the \coq{Identity} monad, on the other hand, no \coq{Partial} instance can b
     Both rules require an instance of the \coq{Partial} type class for $Shape$ and $Pos$ to be available in the current context.
   }
   \label{fig:translation:expr:error}
+\end{figure}
+
+\subsection{Translation of Literals}
+The last kind of expression whose translation we did not cover yet are literals.
+We support list, pair and integer literals.
+As mentioned in \autoref{sec:translation:assumtions} already, list and pair literals are just \textit{syntactic sugar} for the application of their constructors.
+Thus, we can specify their translation rules directly as listed in \autoref{fig:translation:expr:literals:list-and-pair}.
+
+\begin{figure}[H]
+  \begin{align*}
+    \toCoq{\haskellM{[@$e_1$@, @$e_2$@, @$\ldots$@, @$e_n$@]}}
+    &= \toCoq{(\haskellM{@$e_1$@ : (@$e_2$@ : (@$\ldots$@ : (@$e_n$@ : [])@$\ldots$@))})}
+    \\
+    \toCoq{\haskellM{(@$e_1$@, @$e_2$@)}}
+    &= \toCoq{(\haskellM{(,) @$e_1$@ @$e_2$@})}
+  \end{align*}
+  \caption{Translation rules for list and pair literals as derived from \autoref{eqn:translation:assumtions:list-literal} and \autoref{eqn:translation:assumtions:pair-literal}.}
+  \label{fig:translation:expr:literals:list-and-pair}
+\end{figure}
+
+However, before we can specify how to translate integer literals we have to find an appropriate representation for the type \haskell{Integer} in Coq first.
+The Haskell to Coq compiler developed by \cite{Jessen:2019} does not support \haskell{Integer} but translates \haskell{Int} with \coq{nat}.
+The type \coq{nat} is defined in Coq's standard library and represents natural numbers.
+\begin{minted}{coq}
+  Inductive nat : Set
+    := O : nat
+    |  S : nat -> nat.
+\end{minted}
+There are two problems that make \coq{nat} unsuitable for the representation of integers. First of all, \coq{nat} can represent arbitrarily large numbers whereas the size of \haskell{Int} is bounded in Haskell.
+Even more problematic is the fact that the exact upper bound is not specified.
+Nowadays integers are 64 bits wide on most machines.
+\begin{minted}{haskell}
+GHCi> maxBound :: Int
+9223372036854775807
+\end{minted}
+Haskell only guarantees at least 30 bits of precision for \haskell{Int} though \cite[p.~181]{Marlow:2010}.
+Proofs would therefore be implementation specific.
+For this reason, we avoid \haskell{Int} and use \haskell{Integer} instead.
+Similar to \coq{nat}, \haskell{Integer} has no upper bound.
+The second problem that remains is that \coq{nat} cannot represent negative numbers.
+While \coq{nat} represents $\mathbb{N}$, \haskell{Integer} corresponds more closely to $\mathbb{Z}$.
+Therefore, the type \coq{Z} from the \coq{ZArith} library is used by \texttt{hs-to-coq} instead of \coq{nat} \footnote{\url{https://github.com/antalsz/hs-to-coq/blob/0cd052b8162ea53611871d7be3bf186cc38a4a74/hs-to-coq/examples/ghc-base/GHC/Num.v\#L4}}.
+\begin{minted}{coq}
+  Require Export ZArith.
+  Definition Integer := Z.
+\end{minted}
+We adapt their definition slightly such that it is compatible with our translation of custom data type and type synonym declarations.
+To do so the parameters $Shape$ and $Pos$ must be added, even though \coq{Integer} does not need them.
+\begin{minted}{coq}
+  Definition Integer (@$\Shape$@ : Type) (@$\Pos$@ : @$\Shape$@ -> Type) : Type := Z.
+\end{minted}
+The actual integer literals can now be translated by using the numeral notation for \coq{Z}.
+In contrast to Haskell, Coq does not support hexadecimal or octal notation.
+Thus, we have to convert integer literals to decimal notation first.
+By default number literals are interpreted as values of type \coq{nat} by Coq.
+To create a value of type \coq{Z} we have to append the suffix \coq{%Z}.
+\begin{minted}{coq}
+  Check 42.   (* ==> 42   : nat *)
+  Check 42%Z. (* ==> 42%Z : Z *)
+\end{minted}
+Because \coq{Integer @$Shape$@ @$Pos$@} is just a synonym for \coq{Z}, \coq{42%Z} is also of type $\toCoqT{\haskellM{Integer}}$.
+To fulfill our invariant we finally need to lift the value into the free monad.
+\begin{figure}[H]
+  \[
+    \toCoq{i} = \coqM{
+      pure @$i'$@%Z
+    }
+  \]
+  \caption{
+    Translation of an integer literal $i$.
+    The decimal value of $i$ is denoted $i'$.
+  }
 \end{figure}
