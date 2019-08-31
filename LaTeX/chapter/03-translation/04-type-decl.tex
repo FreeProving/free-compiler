@@ -229,7 +229,7 @@ The generation of fresh identifiers will be covered in \autoref{chp:implementati
     Arguments @$c'$@ {@$\Shape$@} {@$\Pos$@} {@$\alpha_1$@} @$\ldots$@ {@$\alpha_n$@}.
 
     Definition @$C'$@ (@$\Shape$@ : Type) (@$\Pos$@ : @$\Shape$@ -> Type) {@$\alpha_1$@ @$\ldots$@ @$\alpha_n$@ : Type}
-                  (@$x_1$@ : @$\toCoq{\tau_1}$@) @$\ldots$@ (@$x_p$@ @$\toCoq{\tau_p}$@)
+                  (@$x_1$@ : @$\toCoq{\tau_1}$@) @$\ldots$@ (@$x_p$@ : @$\toCoq{\tau_p}$@)
                   : @$\toCoq{(D\;\alpha_1\;\ldots\;\alpha_n)}$@
                   := pure (@$C$@ @$x_1$@ @$\ldots$@ @$x_p$@).
   \end{minted}
@@ -247,8 +247,9 @@ Therefore, \haskell{A} is allowed to use \haskell{B} in the following example, e
 In Coq this is not the case.
 If we convert the example to Coq, the declaration of \coq{B} must precede the declaration of \coq{A}.
 \begin{minted}{coq}
-  Inductive A (@$\Shape$@ : Type) (@$\Pos$@ : @$\Shape$@ -> Type) : Type := a : @$\toCoq{\texttt{B}}$@ -> @$\toCoqT{\texttt{A}}$@.
-  (* ==> The reference B was not found in the current environment. *)
+  Fail Inductive A (@$\Shape$@ : Type) (@$\Pos$@ : @$\Shape$@ -> Type) : Type := a : @$\toCoq{\texttt{B}}$@ -> @$\toCoqT{\texttt{A}}$@.
+  (* ==> The command has indeed failed with message:
+         The reference B was not found in the current environment. *)
   Inductive B (@$\Shape$@ : Type) (@$\Pos$@ : @$\Shape$@ -> Type) : Type := b : @$\toCoqT{\texttt{B}}$@.
 \end{minted}
 For this reason we have to analyse the dependencies of all data type declarations in the Haskell module before we translate them to Coq.
