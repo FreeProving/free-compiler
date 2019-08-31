@@ -21,7 +21,7 @@ testConvertExpr = describe "Compiler.Converter.Expr.convertExpr" $ do
   testConvertIf
   testConvertCase
   testConvertLambda
-  testConvertInt
+  testConvertInteger
   testConvertBool
   testConvertLists
   testConvertTuples
@@ -303,8 +303,8 @@ testConvertLambda = context "lambda abstractions" $ do
 -------------------------------------------------------------------------------
 
 -- | Test group for translation of integer expressions.
-testConvertInt :: Spec
-testConvertInt = context "integer expressions" $ do
+testConvertInteger :: Spec
+testConvertInteger = context "integer expressions" $ do
   it "translates zero correctly"
     $ shouldSucceed
     $ fromConverter
@@ -331,7 +331,7 @@ testConvertInt = context "integer expressions" $ do
     $ shouldTranslateExprTo "-42" "negate Shape Pos (pure 42%Z)"
 
   it "cannot shadow negate" $ shouldSucceed $ fromConverter $ do
-    "negate0" <- defineTestFunc "negate" 1 "Int -> Int"
+    "negate0" <- defineTestFunc "negate" 1 "Integer -> Integer"
     shouldTranslateExprTo "-42" "negate Shape Pos (pure 42%Z)"
 
   it "translates arithmetic expressions correctly"
@@ -343,10 +343,10 @@ testConvertInt = context "integer expressions" $ do
         "c" <- defineTestVar "c"
         "x" <- defineTestVar "x"
         shouldTranslateExprTo "a * x^2 + b * x + c"
-          $  "addInt Shape Pos"
-          ++ "  (addInt Shape Pos"
-          ++ "    (mulInt Shape Pos a (powInt Shape Pos x (pure 2%Z)))"
-          ++ "    (mulInt Shape Pos b x))"
+          $  "addInteger Shape Pos"
+          ++ "  (addInteger Shape Pos"
+          ++ "    (mulInteger Shape Pos a (powInteger Shape Pos x (pure 2%Z)))"
+          ++ "    (mulInteger Shape Pos b x))"
           ++ "  c"
 
 -------------------------------------------------------------------------------

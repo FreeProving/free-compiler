@@ -16,10 +16,10 @@ testConvertTypeDecl =
       $ shouldSucceed
       $ fromConverter
       $ do
-          shouldTranslateDeclsTo ["type TermPos = [Int]"]
+          shouldTranslateDeclsTo ["type TermPos = [Integer]"]
             $  "Definition TermPos (Shape : Type) (Pos : Shape -> Type)"
             ++ "  : Type"
-            ++ " := List Shape Pos (Int Shape Pos)."
+            ++ " := List Shape Pos (Integer Shape Pos)."
 
     it "translates polymorphic type synonyms correctly"
       $ shouldSucceed

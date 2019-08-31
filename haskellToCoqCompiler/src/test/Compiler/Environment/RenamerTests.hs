@@ -92,7 +92,7 @@ testDefineLocally = describe "defineLocally" $ do
   it "detects redefinitions of type synonym declarations"
     $ shouldReportFatal
     $ fromConverter
-    $ convertTestDecls ["type Foo = Int", "type Foo a = [a]"]
+    $ convertTestDecls ["type Foo = Integer", "type Foo a = [a]"]
 
   it "detects redefinitions of constructor declarations"
     $ shouldReportFatal
@@ -117,12 +117,12 @@ testDefineLocally = describe "defineLocally" $ do
   it "detects redefinitions of function declarations"
     $ shouldReportFatal
     $ fromConverter
-    $ convertTestDecls ["foo = 42", "foo :: Int", "foo = 1337"]
+    $ convertTestDecls ["foo = 42", "foo :: Integer", "foo = 1337"]
 
   it "detects redefinitions of function arguments"
     $ shouldReportFatal
     $ fromConverter
-    $ convertTestDecls ["add :: Int -> Int -> Int", "add x x = x + x"]
+    $ convertTestDecls ["add :: Integer -> Integer -> Integer", "add x x = x + x"]
 
   it "detects redefinitions of constructor pattern arguments"
     $ shouldReportFatal

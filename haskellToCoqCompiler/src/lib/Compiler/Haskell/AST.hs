@@ -48,7 +48,7 @@ type VarName = Name
 -- | The name of an constructor used in prefix notation, e.g. @(:) x xs@.
 type ConName = Name
 
--- | The name of a type or type constructor, e.g. @Int@ or @[] a@
+-- | The name of a type or type constructor, e.g. @Integer@ or @[] a@
 type TypeConName = Name
 
 -- | The name of a function, data type, type synonym or constructor defined

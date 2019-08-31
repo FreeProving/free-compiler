@@ -56,7 +56,7 @@ testRecursionAnalysis = describe "Compiler.Analysis.RecursionAnalysis" $ do
     $ fromConverter
     $ do
         (_, _, funcDecls) <- parseTestDecls
-          [ -- isSubsequenceOf :: [Int] -> [Int] -> Bool
+          [ -- isSubsequenceOf :: [Integer] -> [Integer] -> Bool
             unlines
               [ "isSubsequenceOf xs ys = case xs of"
               , "  []      -> True"

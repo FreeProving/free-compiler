@@ -14,16 +14,16 @@ testConvertQuickCheckProperty =
       $ fromConverter
       $ do
           shouldTranslateDeclsTo
-              [ "prop_add_comm :: Int -> Int -> Bool"
+              [ "prop_add_comm :: Integer -> Integer -> Bool"
               , "prop_add_comm n m = n + m == m + n"
               ]
             $  "Definition prop_add_comm (Shape : Type) (Pos : Shape -> Type)"
-            ++ "  (n : Free Shape Pos (Int Shape Pos))"
-            ++ "  (m : Free Shape Pos (Int Shape Pos))"
+            ++ "  (n : Free Shape Pos (Integer Shape Pos))"
+            ++ "  (m : Free Shape Pos (Integer Shape Pos))"
             ++ " : Free Shape Pos (Bool Shape Pos)"
-            ++ " := eqInt Shape Pos"
-            ++ "     (addInt Shape Pos n m)"
-            ++ "     (addInt Shape Pos m n)."
+            ++ " := eqInteger Shape Pos"
+            ++ "     (addInteger Shape Pos n m)"
+            ++ "     (addInteger Shape Pos m n)."
 
     it "translates boolean properties correctly"
       $ shouldSucceed
@@ -31,36 +31,36 @@ testConvertQuickCheckProperty =
       $ do
           importAndEnableQuickCheck
           shouldTranslateDeclsTo
-              [ "prop_add_comm :: Int -> Int -> Bool"
+              [ "prop_add_comm :: Integer -> Integer -> Bool"
               , "prop_add_comm n m = n + m == m + n"
               ]
             $  "(* QuickCheck properties *) "
             ++ "Theorem prop_add_comm"
             ++ " : forall (Shape : Type)"
             ++ "          (Pos : Shape -> Type)"
-            ++ "          (n : Free Shape Pos (Int Shape Pos))"
-            ++ "          (m : Free Shape Pos (Int Shape Pos)),"
-            ++ "   eqInt Shape Pos"
-            ++ "     (addInt Shape Pos n m)"
-            ++ "     (addInt Shape Pos m n)"
+            ++ "          (n : Free Shape Pos (Integer Shape Pos))"
+            ++ "          (m : Free Shape Pos (Integer Shape Pos)),"
+            ++ "   eqInteger Shape Pos"
+            ++ "     (addInteger Shape Pos n m)"
+            ++ "     (addInteger Shape Pos m n)"
             ++ "   = True_ Shape Pos. "
             ++ "Proof. (* FILL IN HERE *) Admitted."
 
     it "translates implications correctly" $ shouldSucceed $ fromConverter $ do
       importAndEnableQuickCheck
-      "odd"  <- defineTestFunc "odd" 1 "Int -> Bool"
-      "even" <- defineTestFunc "even" 1 "Int -> Bool"
+      "odd"  <- defineTestFunc "odd" 1 "Integer -> Bool"
+      "even" <- defineTestFunc "even" 1 "Integer -> Bool"
       shouldTranslateDeclsTo
-          [ "prop_odd_even :: Int -> Property"
+          [ "prop_odd_even :: Integer -> Property"
           , "prop_odd_even n = odd n ==> even (n + 1)"
           ]
         $  "(* QuickCheck properties *) "
         ++ "Theorem prop_odd_even"
         ++ " : forall (Shape : Type)"
         ++ "          (Pos : Shape -> Type)"
-        ++ "          (n : Free Shape Pos (Int Shape Pos)),"
+        ++ "          (n : Free Shape Pos (Integer Shape Pos)),"
         ++ "   (odd Shape Pos n = True_ Shape Pos)"
-        ++ "   -> (even Shape Pos (addInt Shape Pos n (pure 1%Z))"
+        ++ "   -> (even Shape Pos (addInteger Shape Pos n (pure 1%Z))"
         ++ "      = True_ Shape Pos). "
         ++ "Proof. (* FILL IN HERE *) Admitted."
 

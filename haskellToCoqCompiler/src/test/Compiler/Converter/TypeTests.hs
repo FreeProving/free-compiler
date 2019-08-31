@@ -28,8 +28,8 @@ testConvertType = describe "Compiler.Converter.Type.convertType" $ do
   it "translates 'Bool' correctly" $ shouldSucceed $ fromConverter $ do
     "Bool" `shouldTranslateTypeTo` "Free Shape Pos (Bool Shape Pos)"
 
-  it "translates 'Int' correctly" $ shouldSucceed $ fromConverter $ do
-    "Int" `shouldTranslateTypeTo` "Free Shape Pos (Int Shape Pos)"
+  it "translates 'Integer' correctly" $ shouldSucceed $ fromConverter $ do
+    "Integer" `shouldTranslateTypeTo` "Free Shape Pos (Integer Shape Pos)"
 
   it "translates custom types correctly" $ shouldSucceed $ fromConverter $ do
     "Foo" <- defineTestTypeCon "Foo" 0

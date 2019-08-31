@@ -16,9 +16,9 @@ testConvertNonRecFuncDecl =
       $ shouldSucceed
       $ fromConverter
       $ do
-          shouldTranslateDeclsTo ["foo :: Int", "foo = 42"]
+          shouldTranslateDeclsTo ["foo :: Integer", "foo = 42"]
             $  "Definition foo (Shape : Type) (Pos : Shape -> Type)"
-            ++ "  : Free Shape Pos (Int Shape Pos)"
+            ++ "  : Free Shape Pos (Integer Shape Pos)"
             ++ "  := pure 42%Z."
 
     it "translates polymorphic functions correctly"
@@ -91,7 +91,7 @@ testConvertRecFuncDecls =
       $ shouldReportFatal
       $ fromConverter
       $ convertTestDecls
-          ["fac :: Int -> Int", "fac n = if n == 0 then 1 else n * fac (n - 1)"]
+          ["fac :: Integer -> Integer", "fac n = if n == 0 then 1 else n * fac (n - 1)"]
 
     it "requires the case expression to match an argument"
       $ shouldReportFatal
@@ -107,24 +107,24 @@ testConvertRecFuncDecls =
       $  shouldSucceed
       $  fromConverter
       $  shouldTranslateDeclsTo
-           [ "length :: [a] -> Int"
+           [ "length :: [a] -> Integer"
            , "length xs = case xs of { [] -> 0; x : xs' -> length xs' + 1 }"
            ]
       $  "(* Helper functions for length *) "
       ++ "Fixpoint length_0 (Shape : Type) (Pos : Shape -> Type) {a : Type}"
       ++ "  (xs : List Shape Pos a)"
       ++ "  {struct xs}"
-      ++ "  : Free Shape Pos (Int Shape Pos)"
+      ++ "  : Free Shape Pos (Integer Shape Pos)"
       ++ "  := match xs with"
       ++ "     | nil        => pure 0%Z"
-      ++ "     | cons x xs' => addInt Shape Pos"
+      ++ "     | cons x xs' => addInteger Shape Pos"
       ++ "         (xs' >>= (fun (xs'_0 : List Shape Pos a) =>"
       ++ "           length_0 Shape Pos xs'_0))"
       ++ "         (pure 1%Z)"
       ++ "     end. "
       ++ "Definition length (Shape : Type) (Pos : Shape -> Type) {a : Type}"
       ++ "  (xs : Free Shape Pos (List Shape Pos a))"
-      ++ "  : Free Shape Pos (Int Shape Pos)"
+      ++ "  : Free Shape Pos (Integer Shape Pos)"
       ++ "  := xs >>= (fun (xs_0 : List Shape Pos a) =>"
       ++ "       length_0 Shape Pos xs_0)."
 
