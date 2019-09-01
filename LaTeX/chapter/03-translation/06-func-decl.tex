@@ -30,6 +30,8 @@ Due to our assumptions, i.e. that there is only one rule and the parameters are 
 \end{minted}
 The main difference here is that the type signature is independent of the actual function declaration.
 If we had a type signature of the form \haskell{@$f$@ :: @$\tau_1$@ -> @$\ldots$@ -> @$\tau_n$@ -> @$\tau$@}, we could apply the translation proposed in \autoref{fig:translation:func-decl:non-rec} directly.
+Note that we implicitly apply the optimization by \cite{Abel:2005} again, i.e.
+the type of the converted function is not $\toCoq{(\tau_1 \rightarrow \ldots \rightarrow \tau_n \rightarrow \tau)}$ but $\toCoq{\tau_1} \rightarrow \ldots \rightarrow \toCoq{\tau_n} \rightarrow \toCoq{\tau}$.
 
 \begin{figure}[H]
   \[
@@ -55,7 +57,7 @@ If we had a type signature of the form \haskell{@$f$@ :: @$\tau_1$@ -> @$\ldots$
   \label{fig:translation:func-decl:non-rec}
 \end{figure}
 
-However, in general this is not the case.
+However, in general the type signature does not necessarily have that format.
 This is because the type signature could contain type synonyms.
 Consider for example the following function declaration.
 \begin{minted}{haskell}
@@ -66,14 +68,17 @@ Consider for example the following function declaration.
 \end{minted}
 To determine the type of \haskell{n} as well as the return type of \haskell{nonZero} we need to expand the type synonym \haskell{Predicate Integer}.
 Not all type synonyms need to be expanded though.
-In case of the following function declaration, the argument and return types can be determined with our current approach.
+Our current approach suffices to determine the argument and return types the following two functions.
 \begin{minted}{haskell}
-  filter :: Predicate a -> [a] -> [a]
-  filter p xs = {- ... -}
+  testZero :: Predicate Integer -> Bool
+  testZero p = p 0
+
+  greaterThan :: Integer -> Predicate Integer
+  greaterThan n = (> n)
 \end{minted}
 
 The rule shown in \autoref{fig:translation:func-decl:non-rec:expansion} expands only those type synonyms that need to be expanded in order to determine the type of an argument.
-In the example above, it would expand the type of \haskell{nonZero} to \haskell{Integer -> Bool} and leaves the type of \haskell{filter} unchanged.
+In the example above, it would expand the type of \haskell{nonZero} to \haskell{Integer -> Bool} but leaves the type of both \haskell{testZero} and \haskell{greaterThan} unchanged.
 
 \begin{figure}[H]
   \begin{align*}
@@ -93,10 +98,58 @@ In the example above, it would expand the type of \haskell{nonZero} to \haskell{
   \end{align*}
   \caption{
     A demand driven approach to the expansion of type synonyms in $n$-ary function declarations.
-    We assume that \haskell{type @$S$@ @$\alpha_1$@ @$\ldots$@ @$\alpha_m$@ = @$\kappa$@} is a type synonym declaration.
-    The expansion of $S$ requires us to apply the substitution $\sigma = \{\, \alpha_1 \mapsto \kappa_1, \ldots, \alpha_m \mapsto \kappa_m \,\}$.
+    We assume that there is type synonym declaration \haskell{type @$S$@ @$\alpha_1$@ @$\ldots$@ @$\alpha_m$@ = @$\kappa$@}.
+    For the expansion of $S$ we apply the substitution $\sigma = \{\, \alpha_1 \mapsto \kappa_1, \ldots, \alpha_m \mapsto \kappa_m \,\}$.
   }
   \label{fig:translation:func-decl:non-rec:expansion}
 \end{figure}
 
 \subsection{Recursive Functions}
+If we tried to apply the translation rule for non-recursive function declarations to the declaration of a recursive function like \haskell{append} (as defined in the listing below), Coq would complain that there is no such function when it encounters the recursive call to \haskell{append}.
+\begin{minted}{haskell}
+  append :: [a] -> [a] -> [a]
+  append xs ys = case xs of
+    []      -> ys
+    x : xs' -> x : append xs' ys
+\end{minted}
+This is because \coq{Definition} sentences are not allowed to reference themselves in Coq.
+If they were allowed to do so, it would be possible to define a non-terminating function.
+The following is allowed in Haskell for example.
+\begin{minted}{haskell}
+  loop :: a
+  loop = loop
+\end{minted}
+Similar to \haskell{undefined}, \haskell{loop} is a polymorphic value.
+In much the same way as shown for \haskell{undefined} in \autoref{sec:translation:expr:errors}, \haskell{loop} could therefore be used to proof arbitrary propositions when translated to Coq.
+Nevertheless, recursion is an important aspect of functional programming languages and most recursive functions also terminate eventually.
+In order to still allow recursion, Coq needs to ensure that recursive functions terminate on all inputs.
+To indicate that this check needs to be performed by Coq, the user has to explicitly annotate a recursive function as such.
+Instead of a \coq{Definition} sentence, a \coq{Fixpoint} sentence is used in this case.
+The following non-lifted implementation of \coq{append} would be accepted by Coq for example.
+\begin{minted}{coq}
+  Fixpoint append {a : Type} (xs : list a) (ys : list a) : list a
+    := match xs with
+       | nil        => ys
+       | cons x xs' => cons x (append xs' ys)
+       end.
+\end{minted}
+To check that functions like \coq{append} actually terminate, Coq carries out a syntactic analysis of the \coq{Fixpoint} sentence.
+Namely Coq must be able to recognize that the function \textit{decreases} on one of its arguments.
+We say that a \coq{Fixpoint} sentence \coq{Fixpoint @$f$@ (@$x_1$@ : @$\tau_1$@) @$\ldots$@ (@$x_1$@ : @$\tau_1$@) : @$\tau$@ := @$e$@.} decreases on $x_i$ if the $i$-th argument of every recursive call to $f$ in $e$ is \textit{structurally smaller} than the original argument $x_i$ \cite[p.~111]{CoqDevTeam:2018}.
+One source of structurally smaller smaller terms is pattern matching.
+If pattern matching is performed on the decreasing argument or a structurally smaller term, the variables in the patterns are structurally smaller than the decreasing argument themselves.
+In the example above, \coq{append} is decreasing on its first explicit argument, i.e. \coq{xs}.
+This is because in the only recursive call \coq{append xs' ys} the first argument, i.e. \coq{xs'}, is bound to a subterm of \coq{xs} by the means of pattern matching.
+
+Although Coq's termination checker uses a more sophisticated ruleset to determine whether a term is structurally smaller than another, it rejects the lifted version of \coq{append} that the translation rule in \autoref{fig:translation:func-decl:non-rec} would produce if we simply swapped \coq{Definition} for \coq{Fixpoint}.
+\begin{minted}{coq}
+  Fixpoint append (@$\Shape$@ : Type) (@$Pos$@ : @$\Shape$@ -> Type) {a b : Type}
+                  (f : @$\toCoq{(a \rightarrow b)}$@) (xs : @$\toCoq{[a]}$@) : @$\toCoq{[b]}$@
+    := xs >>= (fun xs_0 =>
+         match xs_0 with
+         | nil        => ys
+         | cons x xs' => Cons @$\Shape$@ @$Pos$@ x (append xs' ys)
+         end).
+\end{minted}
+This is because this time \coq{xs'} is not a direct subterm of \coq{xs} but of \coq{xs_0}.
+That the \coq{>>=} operator is implemented in such a way that \coq{xs_0} is always bound to a subterm of \coq{xs} is not checked by Coq.
