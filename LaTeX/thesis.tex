@@ -36,6 +36,13 @@
 \newcommand{\toCoq}[1]{{#1}^{\dagger}} % Regular translation.
 \newcommand{\toCoqT}[1]{{#1}^{*}}      % Recursive translation of types.
 
+% To make the commands above work in some situations (e.g. math mode in minted in math mode) we have to emply the following hack.
+% This is because minted inserts a space after the command name in this situation, but LaTeX does not skip the space because minted has altered the space's catcode.
+\catcode` = 13
+\def\toCoqX #1{{#1}^{\dagger}}
+\def\toCoqTX #1{{#1}^{*}}
+\catcode` = 10
+
 \begin{document}
 
 \frontmatter

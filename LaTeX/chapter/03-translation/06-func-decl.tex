@@ -43,9 +43,9 @@ If we had a type signature of the form \haskell{@$f$@ :: @$\tau_1$@ -> @$\ldots$
         \coqM{Definition @$f'$@}
           &\coqM{(@$\Shape$@ : Type) (@$\Pos$@ : @$\Shape$@ -> Type)}     \\
           &\coqM{{@$\alpha_1$@ @$\ldots$@ @$\alpha_m$@ : Type}}           \\
-          &\coqM{(@$x_1$@ : @${\tau_1}^{\dagger}$@) @$\ldots$@ (@$x_n$@ : @${\tau_n}^{\dagger}$@)}                                        \\
-          &\coqM{: @${\tau}^{\dagger}$@}                                  \\
-          &\coqM{:= @$\toCoq{e}$@.}                                       \\
+          &\coqM{(@$x_1$@ : @$\toCoqX{\tau_1}$@) @$\ldots$@ (@$x_n$@ : @$\toCoqX{\tau_n}$@)}                                           \\
+          &\coqM{: @$\toCoqX{\tau}$@}                                     \\
+          &\coqM{:= @$\toCoqX{e}$@.}                                      \\
       \end{array}
   \]
   \caption{

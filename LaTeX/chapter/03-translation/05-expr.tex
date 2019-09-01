@@ -129,7 +129,7 @@ Therefore we need to introduce the missing left argument in a similar way to an 
 \begin{figure}[H]
   \begin{align*}
     \toCoq{(e_1\;\circ)}
-      &= \toCoq{(\haskellM{(@$\circ$@) @$e_1$@})}                      \\
+      &= \toCoq{(\haskellM{(@$\circ$@) @$e_1$@})}                                        \\
       &\xrightarrow[\eta]{} \toCoq{(\haskellM{\@$x_2$@ -> (@$\circ$@) @$e_1$@ @$x_2$@})} \\
     \toCoq{(\circ\;e_2)}
       &= \toCoq{(\haskellM{\@$x_1$@ -> (@$\circ$@) @$x_1$@ @$e_2$@})}
@@ -147,12 +147,12 @@ We have seen a Coq lambda abstraction on the right hand side of \coq{>>=} in the
 In Coq our unary lambda abstraction could be represented by the term \coq{fun @$x'$@ => @$\toCoq{e}$@}.
 However, we still need to wrap the function with the \coq{pure} constructor of the free monad to make the invariant hold.
 \[
-  \toCoq{(\haskellM{\@$x$@ -> @$e$@})} = \coqM{pure (fun @$x'$@ => @$e^{\dagger}$@)} % FIXME \toCoq does not work
+  \toCoq{(\haskellM{\@$x$@ -> @$e$@})} = \coqM{pure (fun @$x'$@ => @$\toCoqX{e}$@)}
 \]
 If we now try to extend this rule to lambda abstractions \haskell{\@$x_1$@ @$\ldots$@ @$x_n$@ -> @$e$@} with multiple arguments, we cannot simply add more binders to the Coq function.
 The following would be valid Coq, but violates our invariant.
 \[
-  \coqM{pure (fun @$x_1'$@ @$\ldots$@ @$x_n'$@ => @$e^{\dagger}$@)} % FIXME \toCoq does not work
+  \coqM{pure (fun @$x_1'$@ @$\ldots$@ @$x_n'$@ => @$\toCoqX{e}$@)}
 \]
 This is because the term above has the type
 \[
@@ -196,7 +196,7 @@ Unlike before, we cannot base our translation rule for \haskell{if} expressions 
 If the expression \haskell{if @$e_1$@ then @$e_2$@ else @$e_3$@} has type $\tau$, both $e_2$ and $e_3$ must also have type $\tau$.
 If we naïvely translated the expression by just translating $e_1$ through $e_3$, the resulting term
 \[
-  \coqM{if @${e_1}^{\dagger}$@ then @${e_2}^{\dagger}$@ else @${e_3}^{\dagger}$@} % FIXME \toCoq does not work
+  \coqM{if @$\toCoqX{e_1}$@ then @$\toCoqX{e_2}$@ else @$\toCoqX{e_3}$@}
 \]
 satisfies our invariant because $\toCoq{e_2}$ and $\toCoq{e_3}$ both have the type $\toCoq{\tau}$ and therefore the entire term has that type.
 Interestingly, if we applied this naïve translation rule, the generated code works.
@@ -223,7 +223,7 @@ This corresponds to the fact that Haskell evaluates the condition before selecti
 \begin{figure}[H]
   \[
     \haskellM{if @$e_1$@ then @$e_2$@ else @$e_3$@}
-      = \coqM{@${e_1}^{\dagger}$@ >>= (fun (@$x$@ :}\;\toCoq{\haskellM{Bool}}\coqM{) => if @$x$@ then @${e_2}^{\dagger}$@ else @${e_3}^{\dagger}$@)} % FIXME \toCoq does not work
+      = \coqM{@$\toCoqX{e_1}$@ >>= (fun (@$x$@ :}\;\toCoq{\haskellM{Bool}}\coqM{) => if @$x$@ then @$\toCoqX{e_2}$@ else @$\toCoqX{e_3}$@)}
   \]
   \caption{Translation rule for \haskell{if} expressions.}
   \label{fig:translation:expr:if}
@@ -265,11 +265,10 @@ If we allowed guards or nested patterns for example, the translation of \haskell
       \end{array}
     \right)}
     = \begin{array}{l}
-      % FIXME \toCoq does not work
-      \coqM{@${e}^{\dagger}$@ >>= (fun @$x$@ => match @$x$@ with}                           \\
-      \quad\coqM{| @$c_1'$@ @$x_{1,1}'$@ @$\ldots$@ @$x_{1,p_1}'$@ => @${e_1}^{\dagger}$@} \\
-      \quad\coqM{| @$\vdots$@}                                                             \\
-      \quad\coqM{| @$c_n'$@ @$x_{n,1}'$@ @$\ldots$@ @$x_{n,p_n}'$@ => @${e_n}^{\dagger}$@} \\
+      \coqM{@$\toCoqX{e}$@ >>= (fun @$x$@ => match @$x$@ with}                          \\
+      \quad\coqM{| @$c_1'$@ @$x_{1,1}'$@ @$\ldots$@ @$x_{1,p_1}'$@ => @$\toCoqX{e_1}$@} \\
+      \quad\coqM{| @$\vdots$@}                                                          \\
+      \quad\coqM{| @$c_n'$@ @$x_{n,1}'$@ @$\ldots$@ @$x_{n,p_n}'$@ => @$\toCoqX{e_n}$@} \\
       \coqM{end)}
     \end{array}
   \]

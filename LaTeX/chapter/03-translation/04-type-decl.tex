@@ -24,7 +24,7 @@ Because Coq does not distinguish types and terms, declarations of type synonyms 
     = \coqM{Definition @$S'$@} &\;\coqM{(@$\Shape$@ : Type) (@$\Pos$@ : @$\Shape$@ -> Type)           } \\
                                &\;\coqM{(@$\alpha_1'$@ @$\ldots$@ @$\alpha_n'$@ : Type)} \\
                                &\;\coqM{: Type                                         } \\
-                               &\;\coqM{:= @${\tau}^{*}$@.                             } % FIXME \toCoqT does not work in this situation.
+                               &\;\coqM{:= @$\toCoqTX{\tau}$@.                             }
   \end{align*}
   \caption{Translation rule for $n$-ary polymorphic type synonym declarations.}
   \label{fig:translation:type-decl:type-syn}
@@ -188,9 +188,9 @@ Just as with sum types, additional constructors are separated by a vertical bar.
     = \begin{array}{l}
       \coqM{Inductive @$D$@ (@$\Shape$@ : Type) (@$\Pos$@ : @$\Shape$@ -> Type)}                      \\
       \phantom{\coqM{Inductive @$D$@}}\;\;\coqM{(@$\alpha_1$@ @$\ldots$@ @$\alpha_n$@ : Type) : Type} \\
-      \quad\coqM{:= @$c_1'$@ : @${\tau_{1,1}}^{\dagger}$@ -> @$\ldots$@ -> @${\tau_{1,p_1}}^{\dagger}$@ -> @${(D\;\alpha_1\;\ldots\;\alpha_n)}^{*}$@} \\
+      \quad\coqM{:= @$c_1'$@ : @$\toCoqX{\tau_{1,1}}$@ -> @$\ldots$@ -> @$\toCoqX{\tau_{1,p_1}}$@ -> @$\toCoqTX{(D\;\alpha_1\;\ldots\;\alpha_n)}$@} \\
       \quad\;\;\coqM{| @$\ldots$@}                                                                                                                             \\
-      \quad\;\;\coqM{| @$c_m'$@ : @${\tau_{m,1}}^{\dagger}$@ -> @$\ldots$@ -> @${\tau_{m,p_m}}^{\dagger}$@ -> @${(D\;\alpha_1\;\ldots\;\alpha_n)}^{*}$@.}
+      \quad\;\;\coqM{| @$c_m'$@ : @$\toCoqX{\tau_{m,1}}$@ -> @$\ldots$@ -> @$\toCoqX{\tau_{m,p_m}}$@ -> @$\toCoqTX{(D\;\alpha_1\;\ldots\;\alpha_n)}$@.}
     \end{array}
   \]
   \caption{Translation rule for $n$-ary polymorphic data type declarations with $m$ constructors. In Coq we are using renamed lower case variations $c_i'$ of the Haskell constructors $C_i$.}
