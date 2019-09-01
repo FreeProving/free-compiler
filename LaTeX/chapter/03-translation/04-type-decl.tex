@@ -157,15 +157,6 @@ For convenience we can "hide" those arguments using an \coq{Arguments}-sentence.
   Arguments pair {@$\Shape$@} {@$\Pos$@} {a} {b}.
 \end{minted}
 Coq will then try to infer the values of $\Shape$, $\Pos$, $a$ and $b$ from the context as well as the types of the remaining arguments.
-\begin{minted}{coq}
-  Check pair.
-  (* ==> pair : Free ?Shape ?Pos ?a -> Free ?Shape ?Pos ?b -> Pair ?Shape ?Pos ?a ?b
-            where
-              ?Shape : [ |- Type]
-              ?Pos : [ |- ?Shape -> Type]
-              ?a : [ |- Type]
-              ?b : [ |- Type] *)
-\end{minted}
 
 Both Haskell and Coq do not require us to distinguish sum and product types.
 For example, we can combine both concepts to define a data type for optional values.

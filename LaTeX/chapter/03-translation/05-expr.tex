@@ -4,7 +4,7 @@ Instead, we will have a look at the translation of expressions.
 Nevertheless, we have to keep the translation rules for types in mind.
 This is because an important invariant that should be fulfilled is that when an expression $e$ of type $\tau$ is translated to Coq, the resulting term $\toCoq{e}$ must be of type $\toCoq{\tau}$.
 
-\subsection{Translation of Variables}
+\subsection{Translation of Variables} \label{sec:translation:expr:vars}
 In the simplest case, the expression is just a variable $x$.
 As mentioned before, when translating $x$ to Coq, we may have to rename it to avoid name conflicts.
 \[
@@ -27,7 +27,7 @@ Thus, the final translation rule for variables are as shown in \autoref{fig:tran
   \label{fig:translation:expr:var}
 \end{figure}
 
-\subsection{Translation of Function Applications}
+\subsection{Translation of Function Applications} \label{sec:translation:expr:app}
 In general a function application has the form $e_1\;e_2$ in Haskell where $e_1$ is of some function type $\tau_1 \rightarrow \tau_2$ and $e_2$ is of type $\tau_1$.
 The application of $e_1$ to $e_2$ yields a value of type $\tau_2$.
 If we now translate both expressions to Coq, the invariant guarantees us to obtain lifted values.
@@ -140,8 +140,7 @@ Therefore we need to introduce the missing left argument in a similar way to an 
   \label{fig:translation:expr:op}
 \end{figure}
 
-
-\subsection{Translation of Lambda Abstractions}
+\subsection{Translation of Lambda Abstractions} \label{sec:translation:expr:lambda}
 Lets first consider a lambda abstraction \haskell{\@$x$@ -> @$e$@} with a single argument.
 We have seen a Coq lambda abstraction on the right hand side of \coq{>>=} in the previous subsection already.
 In Coq our unary lambda abstraction could be represented by the term \coq{fun @$x'$@ => @$\toCoq{e}$@}.
@@ -280,7 +279,7 @@ Also the requirement of Coq that pattern matching must be total is simply passed
 Therefore, pattern matching failures must be handled explicitly using error terms.
 The translation of said error terms to Coq is described next.
 
-\subsection{Translation of Error Terms}
+\subsection{Translation of Error Terms} \label{sec:translation:expr:errors}
 So far we have seen no way to introduce actual effects into our programs.
 As noted earlier, one important effect that we would like to support is partiality.
 In Haskell partiality usually arises from the usage of incomplete pattern matching.
@@ -325,8 +324,8 @@ We can also use \haskell{Nothing} to implement \haskell{error} if we are willing
 However, if we want to keep the error message, we need a different monad, i.e. have to instantiate $Shape$ and $Pos$ differently.
 This alternative monad would not be limited to the translation of \haskell{error} as we can express \haskell{undefined} in terms of \haskell{error}.
 \begin{minted}{haskell}
-undefined :: a
-undefined = error "undefined"
+  undefined :: a
+  undefined = error "undefined"
 \end{minted}
 
 Because we want to leave the choice of the concrete monad to the user, we abstract from the instantiation of $Shape$ and $Pos$ using a type class.
@@ -357,7 +356,7 @@ In contrast, no \coq{Partial} instance can be specified for the \coq{Identity} m
   \label{fig:translation:expr:error}
 \end{figure}
 
-\subsection{Translation of Literals}
+\subsection{Translation of Literals} \label{sec:translation:expr:literals}
 The last kind of expression whose translation we did not cover yet are literals.
 We support list, pair and integer literals.
 As mentioned in \autoref{sec:translation:assumtions} already, list and pair literals are just \textit{syntactic sugar} for the application of their constructors.
@@ -387,15 +386,15 @@ There are two problems that make \coq{nat} unsuitable for the representation of 
 Even more problematic is the fact that the exact upper bound is not specified.
 Nowadays integers are 64 bits wide on most machines.
 \begin{minted}{haskell}
-GHCi> maxBound :: Int
-9223372036854775807
+  GHCi> maxBound :: Int
+  9223372036854775807
 \end{minted}
 Haskell only guarantees at least 30 bits of precision for \haskell{Int} though \cite[p.~181]{Marlow:2010}.
 Proofs would therefore be implementation specific.
 For this reason, we avoid \haskell{Int} and use \haskell{Integer} instead.
 Similar to \coq{nat}, \haskell{Integer} has no upper bound.
 The second problem that remains is that \coq{nat} cannot represent negative numbers.
-While \coq{nat} represents $\mathbb{N}$, \haskell{Integer} corresponds more closely to $\mathbb{Z}$.
+While \coq{nat} represents $\mathbb{N}$, \haskell{Integer} corresponds to $\mathbb{Z}$.
 Therefore, the type \coq{Z} from the \coq{ZArith} library is used by \texttt{hs-to-coq} instead of \coq{nat} \footnote{\url{https://github.com/antalsz/hs-to-coq/blob/0cd052b8162ea53611871d7be3bf186cc38a4a74/hs-to-coq/examples/ghc-base/GHC/Num.v\#L4}}.
 \begin{minted}{coq}
   Require Export ZArith.
@@ -427,4 +426,5 @@ To fulfill our invariant we finally need to lift the value into the free monad.
     Translation of an integer literal $i$.
     The decimal value of $i$ is denoted $i'$.
   }
+  \label{fig:translation:expr:literals:int}
 \end{figure}
