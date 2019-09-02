@@ -20,31 +20,33 @@ files=$(find . -name "*.tex")
 for file in $files; do
   echo -n "[  ] ${bold}${file}${reset}"
   words=$(
-    cat "$file"                                             |
+    cat "$file"                                                |
 
-    # Ignore minted code blocks and inline math.
-    perl -0pe 's|\\begin\{minted\}.*?\\end\{minted\}||smg'  |
-    perl -0pe 's|\$.*?\$||smg'                              |
+    # Ignore minted code blocks and math.
+    perl -0pe 's|\\begin\{minted\}.*?\\end\{minted\}||smg'     |
+    perl -0pe 's|\$([^\$@]+\|@\$[^\$]+\$@)*?\$||smg'           |
+    perl -0pe 's|\\\[.*?\\\]||smg'                             |
+    perl -0pe 's|\\begin\{align\*?\}.*?\\end\{align\*?\}||smg' |
 
     # Spell check.
-    aspell list                                             \
-           --lang=en                                        \
-           --encoding=utf-8                                 \
-           --mode=tex                                       \
-           --add-tex-command "autoref p"                    \
-           --add-tex-command "coq p"                        \
-           --add-tex-command "coqM p"                       \
-           --add-tex-command "digraph pp"                   \
-           --add-tex-command "haskell p"                    \
-           --add-tex-command "haskellM p"                   \
-           --add-tex-command "newcommand pop"               \
-           --add-tex-command "newmintinline opp"            \
-           --add-tex-command "setminted p"                  \
-           --add-tex-command "texttt p"                     |
+    aspell list                                                \
+           --lang=en                                           \
+           --encoding=utf-8                                    \
+           --mode=tex                                          \
+           --add-tex-command "autoref p"                       \
+           --add-tex-command "coq p"                           \
+           --add-tex-command "coqM p"                          \
+           --add-tex-command "digraph pp"                      \
+           --add-tex-command "haskell p"                       \
+           --add-tex-command "haskellM p"                      \
+           --add-tex-command "newcommand pop"                  \
+           --add-tex-command "newmintinline opp"               \
+           --add-tex-command "setminted p"                     \
+           --add-tex-command "texttt p"                        |
 
     # Remove duplicates.
-    sort                                                    |
-    uniq                                                    |
+    sort                                                       |
+    uniq                                                       |
 
     # Ignore words from dictionary file.
     grep -v -w -f "$dictionary"

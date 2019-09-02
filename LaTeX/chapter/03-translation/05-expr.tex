@@ -238,7 +238,7 @@ With the translation rule shown in \autoref{fig:translation:expr:if} we get the 
 Note that we have to annotate the type of the fresh variable $x$ in \autoref{fig:translation:expr:if} and in the examples above explicitly.
 This is due to the flexibility of \coq{if} expressions in Coq.
 While we know in Haskell that $x$ in \haskell{if @$x$@ then @$e_1$@ else @$e_2$@} has to be of type \haskell{Bool}, it could be of any type with exactly two constructors in Coq.
-Therefore Coq could not infer the type of the fresh variable introduced during the translation of an expression like \haskell{if undefined then @$e_1$ else @$e_2$}.
+Therefore Coq could not infer the type of the fresh variable introduced during the translation of an expression like \haskell{if undefined then @$e_1$@ else @$e_2$@}.
 \begin{minted}{coq}
   Fail Compute (@$\toCoq{\texttt{undefined}}$@ >>= (fun x => if x then @$\toCoq{e_1}$@ else @$\toCoq{e_2}$@)).
   (* ==> The command has indeed failed with message:

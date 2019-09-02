@@ -12,6 +12,7 @@ inlining
 instantiation
 monad
 monadic
+monadically
 naïve
 naïvely
 namespaces
@@ -19,8 +20,10 @@ parameterized
 polymorphism
 preprocessing
 readability
+reimplementing
 ruleset
 runtime
+splitted
 subterm
 th
 unary
