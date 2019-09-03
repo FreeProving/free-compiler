@@ -91,7 +91,9 @@ testConvertRecFuncDecls =
       $ shouldReportFatal
       $ fromConverter
       $ convertTestDecls
-          ["fac :: Integer -> Integer", "fac n = if n == 0 then 1 else n * fac (n - 1)"]
+          [ "fac :: Integer -> Integer"
+          , "fac n = if n == 0 then 1 else n * fac (n - 1)"
+          ]
 
     it "requires the case expression to match an argument"
       $ shouldReportFatal
@@ -126,6 +128,41 @@ testConvertRecFuncDecls =
       ++ "  : Free Shape Pos (Integer Shape Pos)"
       ++ "  := xs >>= (fun (xs_0 : List Shape Pos a) =>"
       ++ "       length_0 Shape Pos xs_0)."
+
+    it "translates partial recursive functions correctly"
+      $  shouldSucceed
+      $  fromConverter
+      $  shouldTranslateDeclsTo
+           [ "findJust :: (a -> Bool) -> [a] -> a"
+           , "findJust p xs = case xs of {"
+           ++ "  []      -> undefined;"
+           ++ "  x : xs' -> if p x then x else findJust p xs'"
+           ++ "}"
+           ]
+      $  "(* Helper functions for findJust *) "
+      ++ "Fixpoint findJust_0 (Shape : Type) (Pos : Shape -> Type)"
+      ++ "  (P : Partial Shape Pos) {a : Type}"
+      ++ "  (p : Free Shape Pos"
+      ++ "         (Free Shape Pos a -> Free Shape Pos (Bool Shape Pos)))"
+      ++ "  (xs : List Shape Pos a) {struct xs}"
+      ++ "  := match xs with"
+      ++ "     | nil => undefined"
+      ++ "     | cons x xs' =>"
+      ++ "        (p >>= (fun p_1 => p_1 x)) >>="
+      ++ "        (fun (x_0 : Bool Shape Pos) =>"
+      ++ "           if x_0"
+      ++ "           then x"
+      ++ "           else xs' >>= (fun (xs'_0 : List Shape Pos a) =>"
+      ++ "                      findJust_0 Shape Pos P p xs'_0))"
+      ++ "     end. "
+      ++ "Definition findJust (Shape : Type) (Pos : Shape -> Type)"
+      ++ "  (P : Partial Shape Pos) {a : Type}"
+      ++ "  (p : Free Shape Pos"
+      ++ "         (Free Shape Pos a -> Free Shape Pos (Bool Shape Pos)))"
+      ++ "  (xs : Free Shape Pos (List Shape Pos a))"
+      ++ "  : Free Shape Pos a"
+      ++ "  := xs >>= (fun (xs_0 : List Shape Pos a) =>"
+      ++ "          findJust_0 Shape Pos P p xs_0)."
 
     it "translates mutually recursive functions correctly"
       $  shouldSucceed

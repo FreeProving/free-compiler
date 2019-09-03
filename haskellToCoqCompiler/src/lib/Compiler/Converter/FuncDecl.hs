@@ -3,7 +3,9 @@
 
 module Compiler.Converter.FuncDecl where
 
-import           Control.Monad                  ( mapAndUnzipM )
+import           Control.Monad                  ( mapAndUnzipM
+                                                , when
+                                                )
 import qualified Data.List.NonEmpty            as NonEmpty
 import           Data.Maybe                     ( fromJust )
 import qualified Data.Set                      as Set
@@ -236,8 +238,6 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent args expr) decArgIndex = do
     -- The types of the original parameters are known, but we neither know the
     -- type of the additional parameters nor the return type of the helper
     -- function.
-    -- Additionally we need to remember the index of the decreasing argument
-    -- (see 'convertDecArg').
     funcType      <- lookupTypeSigOrFail srcSpan name
     (argTypes, _) <- splitFuncType name args funcType
     _             <- renameAndDefineFunc
@@ -245,6 +245,14 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent args expr) decArgIndex = do
       helperIdent
       (map Just argTypes ++ replicate (length usedVars) Nothing)
       Nothing
+
+    -- If the original function was partial, the helper function is partial as
+    -- well.
+    partial <- inEnv $ isPartial name
+    when partial (modifyEnv $ definePartial helperName)
+
+    -- Additionally we need to remember the index of the decreasing argument
+    -- (see 'convertDecArg').
     modifyEnv $ defineDecArg helperName decArgIndex
 
     return (helperDecl, helperApp)
