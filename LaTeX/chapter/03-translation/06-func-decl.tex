@@ -9,6 +9,7 @@ Therefore, it is not sufficient to simply concatenate generated sentences.
 Instead we have to apply a completely different translation scheme to recursive function declarations.
 For this reason, we will focus on non-recursive function declarations first.
 The translation of recursive functions is covered in the second half of this section.
+In the last section, there are some remarks regarding the translation of partial functions.
 
 \subsection{Translation of Non-Recursive Functions}
 In \autoref{sec:translation:type-decl} we have already seen function declarations in Coq on the example of smart constructors.
@@ -407,3 +408,63 @@ To make sure that Coq does not guess a different decreasing argument, we explici
   }
   \label{fig:translation:func-decl:rec}
 \end{figure}
+
+\subsection{Translation of Partial Functions}
+The translation of error terms show in \autoref{fig:translation:expr:error} required an instance of the \coq{Partial} type class for $Shape$ and $Pos$ to be available in the current context.
+In Haskell it would suffice to have a \haskell{instance} declaration in the current module or import a module that contains such a declaration.
+\begin{minted}{haskell}
+  instance Partial (Maybe a) where
+    undefined  = Nothing
+    error _msg = Nothing
+\end{minted}
+When \haskell{undefined} is used in a place where a value of type \haskell{Maybe a} is expected, Haskell would automatically use the implementation of \haskell{undefined} from the type class instance above.
+In Coq, however, type class instances must be passed as arguments to functions, similar to how type arguments are passed to functions as well.
+Thus, if a function contains an error term, i.e. invokes \haskell{undefined} or \haskell{error}, then the function must have an additional argument for the \coq{Partial} type class instance.
+For example, \haskell{head} needs a \coq{Partial} instance when converted to Coq.
+Therefore, we add another explicit parameter after $Shape$ and $Pos$.
+\[
+  \toCoq{\left(\begin{array}{l}
+    \haskellM{head :: [a] -> a}           \\
+    \haskellM{head xs = case xs of}       \\
+    \quad\haskellM{[]      -> undefined} \\
+    \quad\haskellM{x : xs' -> x}         \\
+  \end{array}\right)}
+  = \begin{array}{ll}
+    \coqM{Definition head}\;
+      &\coqM{(@$\Shape$@ : Type) (@$\Pos$@ : @$\Shape$@ -> Type)} \\
+      &\coqM{(@$P$@ : Partial @$\Shape$@ @$\Pos$@) {a : Type}}    \\
+      &\coqM{(xs : @$\toCoqX{[a]}$@) : @$\toCoqX{[a]}$@ := (* ... *).}
+  \end{array}
+\]
+In consequence, every function that uses \haskell{head} also needs a \coq{Partial} instance in order to invoke \haskell{head}.
+If we consider \haskell{error} and \haskell{undefined} to be normal functions, we can use the dependency graph to determine which functions need to be equipped with a \coq{Partial} instance: if there is a directed path from a function to the nodes of the dependency graph that correspond to \haskell{error} or \haskell{undefined}, a parameter for the \coq{Partial} instances must be added.
+In case of recursive functions, the main and main and helper functions need a \coq{Partial} instance if and only if the original function needs a \coq{Partial} instance.
+Hereinafter, we will refer to functions that take a \coq{Partial} instance as a parameter as \textit{partial functions}.
+
+The only change to the existing translation rules in \autoref{fig:translation:func-decl:non-rec} \autoref{fig:translation:func-decl:rec} is that the parameter \coqM{(@$P$@ : Partial @$\Shape$@ @$\Pos$@)} is added after $Shape$ and $Pos$ if the declared function is partial.
+Additionally, we have to revise the translation rule for the application of defined functions from \autoref{fig:translation:expr:fun_app}.
+If the function is partial, the type class instance $P$ must be passed after $Shape$ and $Pos$ as shown in \autoref{fig:translation:func-decl:partial_app}.
+\begin{figure}[H]
+  \begin{align*}
+    \toCoq{(f\;e_1\;\ldots\;e_n)} = f'\;\Shape\;\Pos\;P\;\toCoq{e_1}\;\ldots\;\toCoq{e_n}
+  \end{align*}
+  \caption{Translation rule for the full application of a $n$-ary partial function $f$.}
+  \label{fig:translation:func-decl:partial_app}
+\end{figure}
+
+Lastly, note that higher-order functions are not required to be partial, even though a function that is passed to them could be partial.
+For example, \haskell{map} does not require a \coq{Partial} instance.
+The only function invoked by \haskell{map} except for itself is the function passed as its first argument.
+\begin{minted}{haskell}
+  map :: (a -> b) -> [a] -> [b]
+  map f xs = case xs of
+    []      -> []
+    x : xs' -> f x : map f xs'
+\end{minted}
+If we try to plug a partial function like \haskell{head} into \haskell{map}, \haskell{head} is equipped with the \coq{Partial} instance at call-time already.
+\[
+  \toCoq{(\haskellM{map head xss})}
+  =
+  \coqM{map (fun xs => head @$Shape$@ @$Pos$@ @$P$@ xs) xss}
+\]
+Therefore, there is no need for \haskell{map} to know about the \coq{Partial} instance.
