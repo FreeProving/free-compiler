@@ -8,6 +8,7 @@ disjunction
 effectful
 Gallina
 Hanus
+inlined
 inlining
 instantiation
 monad
@@ -25,6 +26,7 @@ ruleset
 runtime
 splitted
 subterm
+subterms
 th
 unary
 unlifted

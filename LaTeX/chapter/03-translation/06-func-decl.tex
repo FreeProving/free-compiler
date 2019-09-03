@@ -208,11 +208,7 @@ In summary the following steps need to be performed for the translation.
   \item
   Inline the definition of the main functions into the helper functions.
   \item
-  Translate all helper functions to a single joined \coq{Fixpoint} sentence.
-  Just like with \coq{Inductive} sentences, \coq{Fixpoint} sentences can be concatenated using the \coq{with} keyword.
-  \item
-  Translate the individual main functions according to \autoref{fig:translation:func-decl:non-rec}.
-  The order of the main functions does not matter as only the helper functions can contain references to other functions in the strongly connected component.
+  Translate all helper functions to a single joined \coq{Fixpoint} sentence and the main functions into individual \coq{Definition} sentences.
 \end{enumerate}
 
 For the remainder of this section we are going to sort out the details of those steps.
@@ -236,7 +232,7 @@ If \haskell{bar} is decreasing on its first argument, then \haskell{foo} is also
 Conversely, if \haskell{bar} does not decrease on its first argument, then the \haskell{x} is also an invalid choice for the decreasing argument of \haskell{foo}.
 Therefore we have to consider every possible combination of decreasing arguments and test whether all functions in the strongly connected actually decrease on those arguments.
 
-\paragraph{Splitting into Helper and Main Function}
+\paragraph{Splitting into Helper and Main Functions}
 Unlike in the example of \coq{append}, we are going to perform the transformation of the original function into a helper and main function before the conversion to Coq.
 Another way in which the general case differs from the example is that the generation of a single helper function may not suffice.
 This is because the call to the helper function cannot be inserted before the decreasing argument has been bound for the first time.
@@ -373,3 +369,38 @@ It involves the following steps.
   If there are more \haskell{case} expressions for the decreasing argument, go to step 2.
   Otherwise we are done.
 \end{enumerate}
+
+After all function declarations in the strongly connected component have been splitted into helper and main functions, the definitions of the main functions need to be inlined into the helper functions.
+It does not suffice to inline the main function into the helper functions that were generated from the same original function only.
+
+\paragraph{Conversion to Coq}
+In the last step, the generated main and helper functions need to be converted to Coq.
+Because the main functions are not recursive anymore, they can be translated to \coq{Definition} sentences as shown in \autoref{fig:translation:func-decl:non-rec}.
+The order of the main functions does not matter, as all calls to other functions in the strongly connected component must be subterms of the \haskell{case} expressions captured by the helper functions.
+
+The helper functions on the other hand remain mutually recursive.
+Thus, they need to be translated into a single \coq{Fixpoint} sentence.
+\autoref{fig:translation:func-decl:rec} shows the translation of a single helper function to a \coq{Fixpoint} sentence.
+If there are multiple helper functions, the individual \coq{Fixpoint} sentences can be concatenated using the \coq{with} keyword just as with \coq{Inductive} sentences.
+
+\begin{figure}[H]
+  \begin{align*}
+    &\toCoq{\left(\begin{array}{l}
+      \haskellM{@$h$@ :: @$\tau_1$@ -> @$\ldots$@ -> @$\tau_n$@ -> @$\kappa_1$@ -> @$\ldots$@ -> @$\kappa_p$@ -> @$\kappa$@} \\
+      \haskellM{@$h$@ @$x_1$@ @$\ldots$@ @$x_n$@ @$y_1$@ @$\ldots$@ @$y_p$@ = @$e$@}
+    \end{array}\right)}
+    \\
+    &\qquad\qquad\qquad=
+    \begin{array}{ll}
+      \coqM{Fixpoint @$h'$@}
+        &\coqM{(@$\Shape$@ : Type) (@$\Pos$@ : @$\Shape$@ -> Type) {@$\alpha_1$@ @$\ldots$@ @$\alpha_m$@ : Type}} \\
+        &\coqM{(@$x_1$@ : @$\toCoqX{\tau_1}$@) @$\ldots$@ (@$x_n$@ : @$\toCoqX{\tau_n}$@) @$y_1$@ @$\ldots$@ @$y_p$@ := @$\toCoqX{e}$@.}                                      \\
+    \end{array}
+  \end{align*}
+  \caption{
+    Translation rule for a single helper function $h$.
+    $y_1, \ldots, y_p$ are the additional parameters of unknown type $\kappa_1, \ldots, \kappa_p$.
+    The return type $\kappa$ of the helper function is also not known and must be inferred by Coq.
+  }
+  \label{fig:translation:func-decl:rec}
+\end{figure}
