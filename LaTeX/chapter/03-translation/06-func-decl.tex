@@ -240,13 +240,17 @@ Therefore we have to consider every possible combination of decreasing arguments
 Unlike in the example of \coq{append}, we are going to perform the transformation of the original function into a helper and main function before the conversion to Coq.
 Another way in which the general case differs from the example is that the generation of a single helper function may not suffice.
 This is because the call to the helper function cannot be inserted before the decreasing argument has been bound for the first time.
-During the translation to Coq, the bind operator is applied to the decreasing argument when pattern matching is performed on it.
+A bind operator is inserted when translating \haskell{case} and \haskell{if} expressions and when invoking a function.
+Because the decreasing argument must be inductively defined, it cannot be a function.
+Even though it would be possible for the decreasing argument to be bound by an \haskell{if} expression, decreasing on a boolean value is not plausible in the first place.
+Therefore, the only way for a decreasing argument to be bound is when pattern matching is performed on it.
 As there can be multiple such \haskell{case} expressions, one helper function must be generated for each of them.
 For example two helper functions must be generated for the following function: one for the \haskell{case} expression in the \haskell{then} branch and one for the other in the \haskell{else} branch.
 
 \begin{center}
   \begin{minipage}[t]{0.3\textwidth}
     \begin{minted}{haskell}
+      @$f$@ :: @$\tau_1$@ -> @$\tau_2$@
       @$f$@ x = if @$...$@
         then case x of @$...$@
         else case x of @$...$@
@@ -257,6 +261,7 @@ For example two helper functions must be generated for the following function: o
   \end{minipage}
   \begin{minipage}[t]{0.35\textwidth}
     \begin{minted}{haskell}
+      @$f$@, @$f_1$@, @$f_2$@ :: @$\tau_1$@ -> @$\tau_2$@
       @$f$@ x = if @$...$@ then @$f_0$@ x else @$f_1$@ x
       @$f_0$@ x = case x of @$...$@
       @$f_1$@ x = case x of @$...$@
@@ -265,7 +270,7 @@ For example two helper functions must be generated for the following function: o
 \end{center}
 
 If the \haskell{if} expression would have been a \haskell{case} expression itself, the generation of the helper functions would further be complicated by the fact that the inner \haskell{case} expressions could reference variable patterns from the outer \haskell{case} expression.
-The same happens when the \haskell{case} expression is wrapped by a lambda expressions.
+The is true when the \haskell{case} expression is wrapped by a lambda abstraction.
 For this reason, additional arguments may have to be added to the generated helper functions.
 
 \begin{center}
@@ -282,10 +287,89 @@ For this reason, additional arguments may have to be added to the generated help
   \begin{minipage}[t]{0.35\textwidth}
     \begin{minted}{haskell}
       @$f$@ x = case @$...$@ of
-        @$C_1$@ y   -> @$f_0$@ x y
-        @$C_2$@ y z -> @$f_1$@ x y z
-      @$f_0$@ x y   = case x of @$...$@
-      @$f_1$@ x y z = case x of @$...$@
+        @$C_1$@ y   -> @$f_1$@ x y
+        @$C_2$@ y z -> @$f_2$@ x y z
+      @$f_1$@ x y   = case x of @$...$@
+      @$f_2$@ x y z = case x of @$...$@
     \end{minted}
   \end{minipage}
 \end{center}
+
+Furthermore, we neither know the return type of the generated helper functions nor the types of the additional arguments.
+For example consider a function \haskell{@$g$@ :: @$\kappa$@ -> @$\tau$@}.
+If a call to $g$ wraps the \haskell{case} expression, the corresponding helper function must produce a value of type $\kappa$.
+However, due to a lack of type inference we do not know $\kappa$.
+\begin{center}
+  \begin{minipage}[t]{0.3\textwidth}
+    \begin{minted}{haskell}
+      @$f$@ :: @$\tau_1$@ -> @$\tau$@
+      @$f$@ x = g (case x of @$...$@)
+    \end{minted}
+  \end{minipage}
+  \begin{minipage}[c]{0.1\textwidth}
+    $\mathlarger{\mathlarger{\mathlarger{\rightsquigarrow}}}$
+  \end{minipage}
+  \begin{minipage}[t]{0.35\textwidth}
+    \begin{minted}{haskell}
+      @$f$@ :: @$\tau_1$@ -> @$\tau$@
+      @$f$@ x = g (@$f_1$@ x)
+      @$f_1$@ :: @$\tau_1$@ -> @$\kappa$@
+      @$f_1$@ x = case x of @$...$@
+    \end{minted}
+  \end{minipage}
+\end{center}
+
+As suggested by the examples above, formalizing the process of splitting recursive functions is more technical compared to all translation rules we have seen so far.
+It involves the following steps.
+
+\begin{enumerate}
+  \item
+  Consider a $n$-ary recursive function declaration $f$ that decreases on it's $i$-th argument.
+  \begin{minted}{haskell}
+     @$f$@ :: @$\tau_1$@ -> @$\ldots$@ -> @$\tau_n$@ -> @$\tau$@
+     @$f$@ @$x_1$@ @$\ldots$@ @$x_n$@ = @$e$@
+  \end{minted}
+  If necessary, expand type synonyms in the type signature of $f$ as shown in \autoref{fig:translation:func-decl:non-rec:expansion}.
+
+  \item
+  Find a position $p \in Pos(e)$ of a \haskell{case} expression for the decreasing argument.
+  \[
+    \subterm{e}{p} = \haskellM{case @$x_i$@ of @$alts_p$@}
+  \]
+
+  The selected case expression must not be nested inside another \haskell{case} expression for the decreasing argument.
+  \[
+    \forall q < p \colon \subterm{e}{q} \ne \haskellM{case @$x_i$@ of @$alts_q$@}
+  \]
+
+  \item
+  Determine the additional parameters $y_1, \ldots, y_m$ that need to be added to the corresponding helper function.
+  A variable must be added as an additional parameter if it is bound by a surrounding \haskell{case} expression or lambda abstraction and occurs freely in $\subterm{e}{p}$.
+
+  \item
+  Generate a helper function $f_p$ and replace the \haskell{case} expression in the original function by a call to the helper function.
+  \begin{center}
+    \begin{minipage}[t]{0.3\textwidth}
+      \begin{minted}{haskell}
+        @$f$@ :: @$\tau_1$@ -> @$\ldots$@ -> @$\tau_n$@ -> @$\tau$@
+        @$f$@ @$x_1$@ @$\ldots$@ @$x_n$@ = @$e$@
+      \end{minted}
+    \end{minipage}
+    \begin{minipage}[c]{0.05\textwidth}
+      $\mathlarger{\mathlarger{\mathlarger{\rightsquigarrow}}}$
+    \end{minipage}
+    \begin{minipage}[t]{0.5\textwidth}
+      \begin{minted}{haskell}
+        @$f$@ :: @$\tau_1$@ -> @$\ldots$@ -> @$\tau_n$@ -> @$\tau$@
+        @$f$@ @$x_1$@ @$\ldots$@ @$x_n$@ = @$\replaceSubterm{e}{f_p\;x_1\;\ldots\;x_n\;y_1\;\ldots\;y_m}{p}$@
+        @$f_p$@ :: @$\tau_1$@ -> @$\ldots$@ -> @$\tau_n$@ -> @$\kappa_1$@ -> @$\ldots$@ -> @$\kappa_m$@ -> @$\kappa$@
+        @$f_p$@ @$x_1$@ @$\ldots$@ @$x_n$@ @$y_1$@ @$\ldots$@ @$y_m$@ = @$\subterm{e}{p}$@
+      \end{minted}
+    \end{minipage}
+  \end{center}
+  Where $\kappa_1, \ldots, \kappa_m$ denote the unknown types of the additional parameters $y_1, \ldots, y_m$ respectively and $\kappa$ denotes the unknown return type of the generated helper function.
+
+  \item
+  If there are more \haskell{case} expressions for the decreasing argument, go to step 2.
+  Otherwise we are done.
+\end{enumerate}

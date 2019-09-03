@@ -43,6 +43,10 @@
 \def\toCoqTX #1{{#1}^{*}}
 \catcode` = 10
 
+% Commands for term rewriting system notation.
+\newcommand{\subterm}[2]{{#1}|_{#2}}
+\newcommand{\replaceSubterm}[3]{{#1}[{#2}]_{#3}}
+
 \begin{document}
 
 \frontmatter
