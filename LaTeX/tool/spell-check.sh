@@ -33,6 +33,7 @@ for file in $files; do
            --lang=en                                           \
            --encoding=utf-8                                    \
            --mode=tex                                          \
+           --add-tex-command "aspellIgnore p"                  \
            --add-tex-command "autoref p"                       \
            --add-tex-command "coq p"                           \
            --add-tex-command "coqM p"                          \

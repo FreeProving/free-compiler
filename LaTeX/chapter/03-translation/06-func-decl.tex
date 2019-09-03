@@ -382,7 +382,7 @@ The helper functions on the other hand remain mutually recursive.
 Thus, they need to be translated into a single \coq{Fixpoint} sentence.
 \autoref{fig:translation:func-decl:rec} shows the translation of a single helper function to a \coq{Fixpoint} sentence.
 If there are multiple helper functions, the individual \coq{Fixpoint} sentences can be concatenated using the \coq{with} keyword just as with \coq{Inductive} sentences.
-To make sure that Coq does not guess a different decreasing argument, we explicitly mark the decreasing argument with a \coq{{struct @$x$@}} annotation.
+To make sure that Coq does not guess a different decreasing argument, we explicitly mark the decreasing argument with a \coq{{@\aspellIgnore{@struct@}@ @$x$@}} annotation.
 
 \begin{figure}[H]
   \begin{align*}
