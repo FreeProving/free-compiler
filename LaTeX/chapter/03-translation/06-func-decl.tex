@@ -10,7 +10,7 @@ Instead we have to apply a completely different translation scheme to recursive 
 For this reason, we will focus on non-recursive function declarations first.
 The translation of recursive functions is covered in the second half of this section.
 
-\subsection{Non-Recursive Functions}
+\subsection{Translation of Non-Recursive Functions}
 In \autoref{sec:translation:type-decl} we have already seen function declarations in Coq on the example of smart constructors.
 In order to recall the basic structure of such function declarations, consider the following implementation of boolean negation without monadic lifting.
 \begin{minted}{coq}
@@ -45,7 +45,7 @@ the type of the converted function is not $\toCoq{(\tau_1 \rightarrow \ldots \ri
         \coqM{Definition @$f'$@}
           &\coqM{(@$\Shape$@ : Type) (@$\Pos$@ : @$\Shape$@ -> Type)}     \\
           &\coqM{{@$\alpha_1$@ @$\ldots$@ @$\alpha_m$@ : Type}}           \\
-          &\coqM{(@$x_1$@ : @$\toCoqX{\tau_1}$@) @$\ldots$@ (@$x_n$@ : @$\toCoqX{\tau_n}$@)}                                           \\
+          &\coqM{(@$x_1'$@ : @$\toCoqX{\tau_1}$@) @$\ldots$@ (@$x_n'$@ : @$\toCoqX{\tau_n}$@)}                                           \\
           &\coqM{: @$\toCoqX{\tau}$@}                                     \\
           &\coqM{:= @$\toCoqX{e}$@.}                                      \\
       \end{array}
@@ -104,7 +104,7 @@ In the example above, it would expand the type of \haskell{nonZero} to \haskell{
   \label{fig:translation:func-decl:non-rec:expansion}
 \end{figure}
 
-\subsection{Recursive Functions}
+\subsection{Translation of Recursive Functions}
 If we tried to apply the translation rule for non-recursive function declarations to the declaration of a recursive function like \haskell{append} (as defined in the listing below), Coq would complain that there is no such function when it encounters the recursive call to \haskell{append}.
 \begin{minted}{haskell}
   append :: [a] -> [a] -> [a]
@@ -382,25 +382,28 @@ The helper functions on the other hand remain mutually recursive.
 Thus, they need to be translated into a single \coq{Fixpoint} sentence.
 \autoref{fig:translation:func-decl:rec} shows the translation of a single helper function to a \coq{Fixpoint} sentence.
 If there are multiple helper functions, the individual \coq{Fixpoint} sentences can be concatenated using the \coq{with} keyword just as with \coq{Inductive} sentences.
+To make sure that Coq does not guess a different decreasing argument, we explicitly mark the decreasing argument with a \coq{{struct @$x$@}} annotation.
 
 \begin{figure}[H]
   \begin{align*}
     &\toCoq{\left(\begin{array}{l}
       \haskellM{@$h$@ :: @$\tau_1$@ -> @$\ldots$@ -> @$\tau_n$@ -> @$\kappa_1$@ -> @$\ldots$@ -> @$\kappa_p$@ -> @$\kappa$@} \\
-      \haskellM{@$h$@ @$x_1$@ @$\ldots$@ @$x_n$@ @$y_1$@ @$\ldots$@ @$y_p$@ = @$e$@}
+      \haskellM{@$h$@ @$x_1$@ @$\ldots$@ @$x_n$@ @$y_1$@ @$\ldots$@ @$y_p$@ = case @$x_i$@ of @$e$@}
     \end{array}\right)}
     \\
     &\qquad\qquad\qquad=
     \begin{array}{ll}
       \coqM{Fixpoint @$h'$@}
         &\coqM{(@$\Shape$@ : Type) (@$\Pos$@ : @$\Shape$@ -> Type) {@$\alpha_1$@ @$\ldots$@ @$\alpha_m$@ : Type}} \\
-        &\coqM{(@$x_1$@ : @$\toCoqX{\tau_1}$@) @$\ldots$@ (@$x_n$@ : @$\toCoqX{\tau_n}$@) @$y_1$@ @$\ldots$@ @$y_p$@ := @$\toCoqX{e}$@.}                                      \\
+        &\coqM{(@$x_1'$@ : @$\toCoqX{\tau_1}$@) @$\ldots$@ (@$x_i'$@ : @$\toCoqTX{\tau_i}$@) @$\ldots$@ (@$x_n'$@ : @$\toCoqX{\tau_n}$@)} \\
+        &\coqM{@$y_1'$@ @$\ldots$@ @$y_p'$@ {struct @$x_i'$@} :=}\;\toCoq{(\haskellM{case @$x_i$@ of @$e$@})}\coqM{.}  \\
     \end{array}
   \end{align*}
   \caption{
-    Translation rule for a single helper function $h$.
+    Translation rule for a single helper function $h$ that is decreasing on its $i$-th argument.
     $y_1, \ldots, y_p$ are the additional parameters of unknown type $\kappa_1, \ldots, \kappa_p$.
     The return type $\kappa$ of the helper function is also not known and must be inferred by Coq.
+    The decreasing argument $x_i$ is not lifted into the free monad.
   }
   \label{fig:translation:func-decl:rec}
 \end{figure}
