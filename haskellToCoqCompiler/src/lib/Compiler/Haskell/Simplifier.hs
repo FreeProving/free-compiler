@@ -374,8 +374,8 @@ simplifyFuncDeclName sym@(H.Symbol _ _) =
 --
 --   This function is used to convert a \(n\)-ary function declaration with a
 --   lambda abstraction @\x -> e@ on the right hand side, to a \(n + 1\)-ary
---   function declaration. This simplification step is neccessary for the
---   correct conversion of recursive function declarations.
+--   function declaration. This simplification step is not necessary but leads
+--   to the generation of more readable code.
 unlambda :: HS.Expr -> ([HS.VarPat], HS.Expr)
 unlambda (HS.Lambda _ args expr) = (args ++ args', expr')
   where (args', expr') = unlambda expr

@@ -233,16 +233,18 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent args expr) decArgIndex = do
                            (map (HS.Var NoSrcSpan) (argNames ++ usedVars))
 
     -- Register the helper function to the environment.
-    -- The type of the helper function is the same as of the original function.
+    -- The types of the original parameters are known, but we neither know the
+    -- type of the additional parameters nor the return type of the helper
+    -- function.
     -- Additionally we need to remember the index of the decreasing argument
     -- (see 'convertDecArg').
-    funcType               <- lookupTypeSigOrFail srcSpan name
-    (argTypes, returnType) <- splitFuncType name args funcType
-    _                      <- renameAndDefineFunc
+    funcType      <- lookupTypeSigOrFail srcSpan name
+    (argTypes, _) <- splitFuncType name args funcType
+    _             <- renameAndDefineFunc
       NoSrcSpan
       helperIdent
       (map Just argTypes ++ replicate (length usedVars) Nothing)
-      (Just returnType)
+      Nothing
     modifyEnv $ defineDecArg helperName decArgIndex
 
     return (helperDecl, helperApp)
