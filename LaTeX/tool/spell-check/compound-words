@@ -1,5 +1,9 @@
 error-prone
 meta-variables
+non-lifted
+non-monadic
+non-recursive
+non-terminating
 right-hand
 type-level
 user-defined

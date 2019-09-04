@@ -168,7 +168,7 @@ The \coq{List} type is called a nested inductive type because in the second argu
 As described by \cite{Dylus:2018}, we can work around the restriction of Coq's termination checker concerning nested inductive types by transform the recursive function such that it resembles the nested structure of the decreasing argument's data type.
 For this purpose, the original function is splitted into a recursive helper function and a non-recursive main function.
 The helper function, must be defined such that its decreasing argument is not lifted to the free monad.
-In case of \coq{append}, the fact that the helper function \coq{append'} expects a non monadic argument means that \coq{append'} cannot be invoked before the bind operation has been performed.
+In case of \coq{append}, the fact that the helper function \coq{append'} expects a non-monadic argument means that \coq{append'} cannot be invoked before the bind operation has been performed.
 Therefore, the main function for \coq{append} looks as follows if we insert the call to the helper function as soon as possible.
 \begin{minted}{coq}
   Definition append (@$\Shape$@ : Type) (@$Pos$@ : @$\Shape$@ -> Type) {a : Type}
