@@ -1,7 +1,7 @@
 \section{Translation of Type Declarations} \label{sec:translation:type-decl}
 This section covers the translation of type synonyms and data type declarations.
 
-Because the order of declarations matters in Coq, special care needs to be taken to translate only declarations whose dependencies were translated before.
+Since the order of declarations matters in Coq, special care needs to be taken to translate only declarations whose dependencies were translated before.
 We say that a type expression $\tau$ depends on the declaration of a type constructor $T$ (e.g. the name of a type synonym or data type declaration) if $\tau$ contains an application of the type constructor $T$.
 For short we also say that $\tau$ depends on or uses $T$.
 A type synonym now depends on all type constructor used by its right-hand side.
@@ -14,7 +14,7 @@ We also extend the translation rules to support mutually recursive declarations 
 \subsection{Translation of Type Synonym Declarations} \label{sec:translation:type-decl:type-syn}
 Type synonyms can be used in Haskell to give a name to a more complex type expression.
 Similarly we can use a \coq{Definition}-sentence to to assign a name to a term in Coq.
-Because Coq does not distinguish types and terms, declarations of type synonyms can be simply translated to \coq{Definition}-sentences as shown in \autoref{fig:translation:type-decl:type-syn}.
+As Coq does not distinguish types and terms, declarations of type synonyms can be simply translated to \coq{Definition}-sentences as shown in \autoref{fig:translation:type-decl:type-syn}.
 
 \begin{figure}[H]
   \begin{align*}
@@ -258,7 +258,7 @@ This approach also suffices to translate simple \textit{recursive data types} su
   data List a = Nil | Cons a (List a)
 \end{minted}
 A data type is called recursive if values of that type are used to construct new values of the same type.
-Because Coq allows \coq{Inductive}-sentences to use the data type that is declared in the same sentence, we can apply the existing translation rule in such cases directly.
+As Coq allows \coq{Inductive}-sentences to use the data type that is declared in the same sentence, we can apply the existing translation rule in such cases directly.
 \begin{minted}{coq}
   Inductive List (@$\Shape$@ : Type) (@$\Pos$@ : @$\Shape$@ -> Type) (a : Type) : Type
     := nil  : List @$\Shape$@ @$\Pos$@ a
