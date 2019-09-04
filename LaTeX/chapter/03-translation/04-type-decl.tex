@@ -318,7 +318,7 @@ There are algorithms to compute strongly connected components in linear time.
 As a final step the identified strongly connected components need to be sorted.
 If the component $SCC_1$ contains at least one declaration that depends on a declaration in $SCC_2$, $SCC_2$ should precede $SCC_1$.
 This is also referred to as \textit{reverse topological order} and can be solved in linear time as well.
-In our case we obtain the following sorted lists of strongly connected components:
+In our case we obtain the following sorted lists of strongly connected components.
 \begin{align*}
   [\{\, \haskellM{B} \,\}, \{\, \haskellM{A} \,\}]
   && [\{\, \haskellM{List} \,\}]

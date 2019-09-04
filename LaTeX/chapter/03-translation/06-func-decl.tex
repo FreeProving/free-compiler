@@ -223,7 +223,7 @@ However, reimplementing the entire termination checker of Coq is beyond the scop
 
 To determine the decreasing argument of a function declaration, we have to test for every argument of the function declaration whether it is decreasing on this argument.
 This cannot be done independently for each function declaration, because the choice of a decreasing argument influences which arguments of another function are decreasing.
-Consider two mutually recursive binary functions \haskell{foo} and \haskell{bar}, where \haskell{foo}'s implementation looks something like this:
+Consider two mutually recursive binary functions \haskell{foo} and \haskell{bar}, where \haskell{foo}'s implementation looks something like this.
 \begin{minted}{haskell}
   foo x y = case x of
     C x' -> case y of
