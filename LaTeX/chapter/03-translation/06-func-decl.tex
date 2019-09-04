@@ -120,7 +120,7 @@ The following is allowed in Haskell for example.
   loop = loop
 \end{minted}
 Similar to \haskell{undefined}, \haskell{loop} is a polymorphic value.
-In much the same way as shown for \haskell{undefined} in \autoref{sec:translation:expr:errors}, \haskell{loop} could therefore be used to proof arbitrary propositions when translated to Coq.
+In much the same way as shown for \haskell{undefined} in \autoref{sec:translation:expr:errors}, \haskell{loop} could therefore be used to prove arbitrary propositions when translated to Coq.
 Nevertheless, recursion is an important aspect of functional programming languages and most recursive functions also terminate eventually.
 In order to still allow recursion, Coq needs to ensure that recursive functions terminate on all inputs.
 To indicate that this check needs to be performed by Coq, the user has to explicitly annotate a recursive function as such.
