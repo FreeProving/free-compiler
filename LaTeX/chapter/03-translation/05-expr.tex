@@ -6,7 +6,7 @@ This is because an important invariant that should be fulfilled is that when an 
 
 \subsection{Translation of Variables} \label{sec:translation:expr:vars}
 In the simplest case, the expression is just a variable $x$.
-As mentioned before, when translating $x$ to Coq, we may have to rename it to avoid name conflicts.
+As mentioned before, when translating $x$ to Coq, we may have to rename $x$ to avoid name conflicts.
 \[
   \toCoq{x} = x'
 \]
@@ -23,7 +23,7 @@ Thus, the final translation rule for variables are as shown in \autoref{fig:tran
       \pure{x'} &\text{if } x' : \toCoqT{\tau}
     \end{cases}
   \]
-  \caption{The translation of a variable $x$ depends on the type it has been bound to.}
+  \caption{The translation of a variable $x$ depends on the type $x'$ has been bound to in Coq.}
   \label{fig:translation:expr:var}
 \end{figure}
 
@@ -36,7 +36,7 @@ If we now translate both expressions to Coq, the invariant guarantees us to obta
   \implies \toCoq{e_1} : \Free{(\toCoq{\tau_1} \rightarrow \toCoq{\tau_2})} \\
   \toCoq{e_2} &: \toCoq{\tau_1}
 \end{align*}
-If we had a value of type $\toCoq{\tau_1} \rightarrow \toCoq{\tau_2}$, we could apply it to $\toCoq{e_2}$ to obtain a value of type $\toCoq{\tau_2}$ which would satisfy the invariant.
+If we had a value $f$ of type $\toCoq{\tau_1} \rightarrow \toCoq{\tau_2}$, we could apply $f$ to $\toCoq{e_2}$ to obtain a value of type $\toCoq{\tau_2}$ which would satisfy the invariant.
 As $\toCoq{e_1}$ is lifted to the free monad, we cannot access the contained function directly but have to use the bind operator to unwrap the function as shown in \autoref{fig:translation:expr:app}.
 \begin{figure}[H]
   \[
@@ -74,7 +74,7 @@ According to the invariant, the expression \haskell{Just} should now be translat
     = \Free{\toCoqT{(a \rightarrow \texttt{Maybe}\;a)}}
 \]
 However, the smart constructor \coq{Just} has never been lifted to the free monad.
-Only it's argument and return types are monadic.
+Only its argument and return types are monadic.
 \begin{minted}{coq}
 Check Just.
 (* ==> Just : forall (Shape : Type) (Pos : Shape -> Type) (a : Type),
@@ -85,7 +85,7 @@ We will apply the same optimization when we translate function declarations in t
 
 The only drawback is, that the optimization does not allow partial function applications so far.
 As \cite{Abel:2005} point out, this problem can easily be solved by performing $\eta$-abstractions until all function applications are fully applied.
-An individual $\eta$-abstraction transforms a function $f$ to an equivalent function by wrapping it with a lambda abstraction and and passing the argument to $f$.
+An individual $\eta$-abstraction transforms a function $f$ to an equivalent function by wrapping $f$ with a lambda abstraction and and passing the argument to $f$.
 \[
   f \xrightarrow[\eta]{} \lambda x. f\;x
 \]
@@ -197,7 +197,7 @@ If we naïvely translated the expression by just translating $e_1$ through $e_3$
 \]
 satisfies our invariant because $\toCoq{e_2}$ and $\toCoq{e_3}$ both have the type $\toCoq{\tau}$ and therefore the entire term has that type.
 Interestingly, if we applied this naïve translation rule, the generated code works.
-However, it does not behave as intended.
+However, the generated code does not behave as intended.
 \begin{minted}{coq}
   Compute (if @$\toCoq{\texttt{True}}$@      then @$\toCoq{e_1}$@ else @$\toCoq{e_2}$@). (* ==> $\toCoq{e_1}$ *)
   Compute (if @$\toCoq{\texttt{False}}$@     then @$\toCoq{e_1}$@ else @$\toCoq{e_2}$@). (* ==> $\toCoq{e_1}$ *)
@@ -206,7 +206,7 @@ However, it does not behave as intended.
 This is because \coq{if} expressions are not limited to boolean values in Coq.
 Their condition can be of any type with exactly two constructors \cite[p.~48]{CoqDevTeam:2018}.
 If the condition matches the first constructor, the \coq{then} branch is selected and the \coq{else} branch otherwise.
-Since the type of $\toCoq{e_1}$ is \coq{Free @$\Shape$@ @$\Pos$@ (Bool @$\Shape$@ @$\Pos$@)} and \coq{Free} has exactly two constructors \coq{pure} and \coq{impure}, it can be used in \haskell{if} expressions.
+Since the type of $\toCoq{e_1}$ is \coq{Free @$\Shape$@ @$\Pos$@ (Bool @$\Shape$@ @$\Pos$@)} and \coq{Free} has exactly two constructors \coq{pure} and \coq{impure}, $\toCoq{e_1}$ can be used in \haskell{if} expressions.
 This fits the observation in the listing above.
 \haskell{True} and \haskell{False} are values without an effect.
 Therefore, their underlying representation uses the \coq{pure} constructor which is the first constructor of \coq{Free}.
@@ -235,7 +235,7 @@ With the translation rule shown in \autoref{fig:translation:expr:if} we get the 
 
 Note that we have to annotate the type of the fresh variable $x$ in \autoref{fig:translation:expr:if} and in the examples above explicitly.
 This is due to the flexibility of \coq{if} expressions in Coq.
-While we know in Haskell that $x$ in \haskell{if @$x$@ then @$e_1$@ else @$e_2$@} has to be of type \haskell{Bool}, it could be of any type with exactly two constructors in Coq.
+While we know in Haskell that $x$ in \haskell{if @$x$@ then @$e_1$@ else @$e_2$@} has to be of type \haskell{Bool}, $x$ could be of any type with exactly two constructors in Coq.
 Therefore, Coq could not infer the type of the fresh variable introduced during the translation of an expression like \haskell{if undefined then @$e_1$@ else @$e_2$@}.
 \begin{minted}{coq}
   Fail Compute (@$\toCoq{\texttt{undefined}}$@ >>= (fun x => if x then @$\toCoq{e_1}$@ else @$\toCoq{e_2}$@)).
@@ -338,7 +338,7 @@ Instances of the type class contain the implementation of \haskell{undefined} an
     }.
 \end{minted}
 The code generated by the rules in \autoref{fig:translation:expr:error} uses the interface of \coq{Partial}.
-Therefore, it works with any monad for which such an instance can be defined.
+Therefore, the generated code works with any monad for which such an instance can be defined.
 For example, we can define a \coq{Partial} instance for the \haskell{Maybe} monad by implementing both \coq{error} and \coq{undefined} with \haskell{Nothing}.
 In contrast, no \coq{Partial} instance can be specified for the \coq{Identity} monad.
 
@@ -398,7 +398,7 @@ Therefore, the type \coq{Z} from the \coq{ZArith} library is used by \texttt{hs-
   Require Export ZArith.
   Definition Integer := Z.
 \end{minted}
-We adapt their definition slightly such that it is compatible with our translation of custom data type and type synonym declarations.
+We adapt their code slightly such that the definition is compatible with our translation of custom data type and type synonym declarations.
 To do so the parameters $Shape$ and $Pos$ must be added, even though \coq{Integer} does not need them.
 \begin{minted}{coq}
   Definition Integer (@$\Shape$@ : Type) (@$\Pos$@ : @$\Shape$@ -> Type) : Type := Z.

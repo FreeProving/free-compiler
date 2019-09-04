@@ -79,7 +79,7 @@ Our current approach suffices to determine the argument and return types the fol
 \end{minted}
 
 The rule shown in \autoref{fig:translation:func-decl:non-rec:expansion} expands only those type synonyms that need to be expanded in order to determine the type of an argument.
-In the example above, it would expand the type of \haskell{nonZero} to \haskell{Integer -> Bool} but leaves the type of both \haskell{testZero} and \haskell{greaterThan} unchanged.
+In the example above, $\toCoq{}$ would expand the type of \haskell{nonZero} to \haskell{Integer -> Bool} but leaves the type of both \haskell{testZero} and \haskell{greaterThan} unchanged.
 
 \begin{figure}[H]
   \begin{align*}
@@ -163,12 +163,12 @@ Lets first recall the definition of the monadically lifted \coq{List} type from 
     := nil  : List @$\Shape$@ @$\Pos$@ a
      | cons : Free @$\Shape$@ @$\Pos$@ a -> Free @$\Shape$@ @$\Pos$@ (List @$\Shape$@ @$\Pos$@ a) -> List @$\Shape$@ @$\Pos$@ a.
 \end{minted}
-It is called a nested inductive type because in the second argument of the \coq{cons} constructor the type \coq{List @$\Shape$@ @$\Pos$@ a} occurs \textit{nested} inside the type constructor \coq{Free @$\Shape$@ @$\Pos$@} \cite[p.~29]{Dylus:2018}.
+The \coq{List} type is called a nested inductive type because in the second argument of the \coq{cons} constructor the type \coq{List @$\Shape$@ @$\Pos$@ a} occurs \textit{nested} inside the type constructor \coq{Free @$\Shape$@ @$\Pos$@} \cite[p.~29]{Dylus:2018}.
 
 As described by \cite{Dylus:2018}, we can work around the restriction of Coq's termination checker concerning nested inductive types by transform the recursive function such that it resembles the nested structure of the decreasing argument's data type.
 For this purpose, the original function is splitted into a recursive helper function and a non-recursive main function.
 The helper function, must be defined such that its decreasing argument is not lifted to the free monad.
-In case of \coq{append}, the fact that the helper function \coq{append'} expects a non monadic argument means that it cannot be invoked before the bind operation has been performed.
+In case of \coq{append}, the fact that the helper function \coq{append'} expects a non monadic argument means that \coq{append'} cannot be invoked before the bind operation has been performed.
 Therefore, the main function for \coq{append} looks as follows if we insert the call to the helper function as soon as possible.
 \begin{minted}{coq}
   Definition append (@$\Shape$@ : Type) (@$Pos$@ : @$\Shape$@ -> Type) {a : Type}
@@ -182,7 +182,7 @@ The body of the helper function now has to contain the \coq{match} term that we 
   | cons x xs' => Cons @$\Shape$@ @$Pos$@ x (append xs' ys)
   end
 \end{minted}
-However, because \coq{append'} must be defined before \coq{append}, it cannot reference \coq{append}.
+However, because \coq{append'} must be defined before \coq{append}, \coq{append'} cannot reference \coq{append}.
 We can solve this problem by inlining the definition of \coq{append} into \coq{append'}.
 \begin{minted}{coq}
   Fixpoint append' (@$\Shape$@ : Type) (@$Pos$@ : @$\Shape$@ -> Type) {a : Type}
@@ -221,7 +221,7 @@ We are going to use the same simplified version of that algorithm.
 Of course, that means that we can only translate a subset of all recursive functions that Coq would be able to accept.
 However, reimplementing the entire termination checker of Coq is beyond the scope of this thesis.
 
-To determine the decreasing argument of a function declaration, we have to test for every argument of the function declaration whether it is decreasing on this argument.
+To determine the decreasing argument of a function declaration, we have to test for every argument of the function declaration whether the function is decreasing on this argument.
 This cannot be done independently for each function declaration, because the choice of a decreasing argument influences which arguments of another function are decreasing.
 Consider two mutually recursive binary functions \haskell{foo} and \haskell{bar}, where \haskell{foo}'s implementation looks something like this.
 \begin{minted}{haskell}
@@ -230,7 +230,7 @@ Consider two mutually recursive binary functions \haskell{foo} and \haskell{bar}
       C y' -> bar x' y'
 \end{minted}
 If \haskell{bar} is decreasing on its first argument, then \haskell{foo} is also decreasing on its first argument.
-Conversely, if \haskell{bar} does not decrease on its first argument, then the \haskell{x} is also an invalid choice for the decreasing argument of \haskell{foo}.
+Conversely, if \haskell{bar} does not decrease on its first argument, then \haskell{x} is also an invalid choice for the decreasing argument of \haskell{foo}.
 Therefore, we have to consider every possible combination of decreasing arguments and test whether all functions in the strongly connected actually decrease on those arguments.
 
 \paragraph{Splitting into Helper and Main Functions}
@@ -238,9 +238,9 @@ Unlike in the example of \coq{append}, we are going to perform the transformatio
 Another way in which the general case differs from the example is that the generation of a single helper function may not suffice.
 This is because the call to the helper function cannot be inserted before the decreasing argument has been bound for the first time.
 A bind operator is inserted when translating \haskell{case} or \haskell{if} expressions or when invoking a function.
-As the decreasing argument must be inductively defined, it cannot be a function.
+As the decreasing argument must be inductively defined, the decreasing argument cannot be a function and will therefore never be invoked.
 Even though it would be possible for the decreasing argument to be bound by an \haskell{if} expression, decreasing on a boolean value is not plausible in the first place.
-Therefore, the only way for a decreasing argument to be bound is when pattern matching is performed on it.
+Therefore, the only way for a decreasing argument to be bound is when pattern matching is performed on the decreasing argument.
 As there can be multiple such \haskell{case} expressions, one helper function must be generated for each of them.
 For example, two helper functions must be generated for the following function: one for the \haskell{case} expression in the \haskell{then} branch and one for the other in the \haskell{else} branch.
 
@@ -317,11 +317,11 @@ However, due to a lack of type inference we do not know $\kappa$.
 \end{center}
 
 As suggested by the examples above, formalizing the process of splitting recursive functions is more technical compared to all translation rules we have seen so far.
-It involves the following steps.
+The splitting procedure involves the following steps.
 
 \begin{enumerate}
   \item
-  Consider a $n$-ary recursive function declaration $f$ that decreases on it's $i$-th argument.
+  Consider a $n$-ary recursive function declaration $f$ that decreases on its $i$-th argument.
   \begin{minted}{haskell}
      @$f$@ :: @$\tau_1$@ -> @$\ldots$@ -> @$\tau_n$@ -> @$\tau$@
      @$f$@ @$x_1$@ @$\ldots$@ @$x_n$@ = @$e$@

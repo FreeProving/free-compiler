@@ -198,7 +198,7 @@ If we apply this translation rule to our \haskell{Maybe} data type, we obtain th
 Before we conclude this section, notice that we are using the $\toCoqT{}$ translation for the return type of constructors in \autoref{fig:translation:type-decl:data}.
 This is because $\toCoq{}$ would lift the type to the free monad but Coq does not allow us to wrap the return type of constructors as we pointed out above already.
 However, we are usually interested in lifted values.
-With that end in view, we define a function for each regular constructor that simply applies the constructor and lifts it's result using the \coq{pure} constructor of the free monad.
+With that end in view, we define a function for each regular constructor that simply applies the constructor and lifts its result using the \coq{pure} constructor of the free monad.
 We are going to refer to these functions as \textit{smart constructors} hereinafter.
 The smart constructor for \coq{just} would look as follows.
 \begin{minted}{coq}
@@ -276,7 +276,7 @@ Regardless of which data type we choose to translate first, Coq will reject the 
 As we have seen in case of ordinary recursive data types like \coq{List}, Coq allows us to use the data type defined by an \coq{Inductive}-sentence within that sentence.
 Thus, we need a mechanism to define both \coq{Tree} and \coq{Forest} in the same \coq{Inductive}-sentence, such that they can use each other.
 Coq offers the \coq{with} keyword for this purpose.
-It is used to concatenate multiple \coq{Inductive}-sentences to a single sentence.
+The \coq{with} keyword is used to concatenate multiple \coq{Inductive}-sentences to a single sentence.
 In the example above, the following would work.
 \begin{minted}{coq}
   Inductive Tree (@$\Shape$@ : Type) (@$\Pos$@ : @$\Shape$@ -> Type) (a : Type) : Type
@@ -305,7 +305,7 @@ The dependency graphs for the data type declarations covered in this subsection 
 
 If there is an edge between $D_1$ and $D_2$, $D_2$ needs to be declared before or in the same sentence as $D_1$.
 The same is true if there is a path from $D_1$ to $D_2$.
-If a path from $D_2$ to $D_1$ exists as well, it follows that they need to be declared in the same sentence.
+Hence, both must be declared in the same sentence if a path from $D_2$ to $D_1$ exists as well.
 In our concrete examples that means that \haskell{B} needs to be declared before \haskell{A} because there is an edge from \haskell{A} to \haskell{B}.
 It would also be okay to declare them in the same sentence.
 \haskell{Tree} and \haskell{Forest} on the other hand definitely need to be declared in the same sentence, as the corresponding nodes are reachable from each other.

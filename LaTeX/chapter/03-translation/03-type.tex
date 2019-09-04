@@ -26,7 +26,7 @@ If we define the constructors of \coq{List} appropriately (see \autoref{sec:tran
 We do not have to lift the type argument $a$ explicitly.
 
 The parameter \haskell{f} is different though.
-While it is correct to lift its type $a \rightarrow b$ into the free monad such that potential effects in the first argument of \haskell{map} can be handled, this is not sufficient.
+While it is correct to lift the type of \haskell{f}, i.e., $a \rightarrow b$, into the free monad such that potential effects in the first argument of \haskell{map} can be handled, doing so is not sufficient.
 \[
   \toCoq{(a \rightarrow b)} = \Free{(a \rightarrow b)}
 \]
@@ -72,7 +72,7 @@ For this purpose, we introduce another translation operation $\toCoqT{\tau}$ as 
   \label{fig:translation:type}
 \end{figure}
 
-It recursively lifts the argument and return types of function types contained in $\tau$.
+The $\toCoqT{}$ operation recursively lifts the argument and return types of function types contained in $\tau$.
 Additionally, the parameters $\Shape$ and $\Pos$ are passed to type constructors.
 That is, in the example above, the type of \haskell{xs} would be translated as follows.
 \[
