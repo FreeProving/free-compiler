@@ -17,7 +17,7 @@ Consider for example the following function declaration.
 \end{minted}
 
 The parameter \haskell{xs} is of type $[a]$ and does not pose any problem.
-Assuming \coq{List} is the Coq type constructor corresponding to \haskell{[]} (i.e. $[]' = List$), we can translate the type of \haskell{xs} as follows.
+Assuming \coq{List} is the Coq type constructor corresponding to \haskell{[]} (i.e., $[]' = List$), we can translate the type of \haskell{xs} as follows.
 \[
   \toCoq{[a]} = \Free{(\texttt{List}\;a)}
 \]
@@ -31,7 +31,7 @@ While it is correct to lift its type $a \rightarrow b$ into the free monad such 
   \toCoq{(a \rightarrow b)} = \Free{(a \rightarrow b)}
 \]
 The argument in an application of \haskell{f} could have an effect as well and its result is also potentially effectful.
-In case of \haskell{xs} the \coq{List} constructors took care of lifting the item types.
+In case of \haskell{xs}, the \coq{List} constructors took care of lifting the item types.
 However, we do not provide a type constructor for \coq{->} that does the same for functions.
 Therefore, we need to lift the argument and return type of \haskell{f} explicitly.
 \[
@@ -39,7 +39,7 @@ Therefore, we need to lift the argument and return type of \haskell{f} explicitl
 \]
 
 This needs to be done for all arbitrarily deeply nested function types in $\tau$.
-For this purpose we introduce another translation operation $\toCoqT{\tau}$ as shown in \autoref{fig:translation:type}.
+For this purpose, we introduce another translation operation $\toCoqT{\tau}$ as shown in \autoref{fig:translation:type}.
 \begin{figure}[H]
   \begin{align}
        \toCoq{\tau}
@@ -79,5 +79,5 @@ That is, in the example above, the type of \haskell{xs} would be translated as f
   \toCoq{[a]} = \Free{(\genApply{\texttt{List}}\;a)}
 \]
 \coq{List} must be provided with $\Shape$ and $\Pos$ to lift the argument types of its constructors.
-Otherwise list items would not be allowed to be effectful.
+Otherwise, list items would not be allowed to be effectful.
 The translation of data types and their constructors will be elaborated on in the next section.

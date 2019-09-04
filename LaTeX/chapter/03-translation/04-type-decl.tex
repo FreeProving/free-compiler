@@ -2,18 +2,18 @@
 This section covers the translation of type synonyms and data type declarations.
 
 Since the order of declarations matters in Coq, special care needs to be taken to translate only declarations whose dependencies were translated before.
-We say that a type expression $\tau$ depends on the declaration of a type constructor $T$ (e.g. the name of a type synonym or data type declaration) if $\tau$ contains an application of the type constructor $T$.
-For short we also say that $\tau$ depends on or uses $T$.
+We say that a type expression $\tau$ depends on the declaration of a type constructor $T$ (e.g., the name of a type synonym or data type declaration) if $\tau$ contains an application of the type constructor $T$.
+For short, we also say that $\tau$ depends on or uses $T$.
 A type synonym now depends on all type constructor used by its right-hand side.
 Likewise, a data type declaration depends on all type constructors used by the fields of its data constructors.
 
-For simplicity we will first consider only individual declarations and assume all additional data types used by our examples to have been declared beforehand.
+For simplicity, we will first consider only individual declarations and assume all additional data types used by our examples to have been declared beforehand.
 At the end of this section, we describe how to translate multiple type declarations without introducing dependency related issues to the generated Coq code.
 We also extend the translation rules to support mutually recursive declarations in the final subsection.
 
 \subsection{Translation of Type Synonym Declarations} \label{sec:translation:type-decl:type-syn}
 Type synonyms can be used in Haskell to give a name to a more complex type expression.
-Similarly we can use a \coq{Definition}-sentence to to assign a name to a term in Coq.
+Similarly, we can use a \coq{Definition}-sentence to to assign a name to a term in Coq.
 As Coq does not distinguish types and terms, declarations of type synonyms can be simply translated to \coq{Definition}-sentences as shown in \autoref{fig:translation:type-decl:type-syn}.
 
 \begin{figure}[H]
@@ -43,13 +43,13 @@ needs $\Shape$ and $\Pos$ when translated to to Coq because they need to be pass
 
 On the right-hand side of the \coq{Definition}-sentence in \autoref{fig:translation:type-decl:type-syn} the $\toCoqT{}$ translation is applied instead of $\toCoq{}$.
 This is because we desire the expansion of type synonyms in Haskell and Coq to be compatible with respect to the $\toCoq{}$ translation.
-To convince ourselves that the translation rule above fulfills this property lets denote the expansion of type synonyms in Haskell and Coq with $\beta_H$ and $\beta_C$ respectively and show that for all type synonyms \haskell{type @$S$@ @$\alpha_1$@ @$\ldots$@ @$\alpha_n$@ = @$\tau$@} and type expressions $\tau_1, \ldots \tau_n$ the following holds true.
+To convince ourselves that the translation rule above fulfills this property lets denote the expansion of type synonyms in Haskell and Coq with $\beta_H$ and $\beta_C$, respectively, and show that for all type synonyms \haskell{type @$S$@ @$\alpha_1$@ @$\ldots$@ @$\alpha_n$@ = @$\tau$@} and type expressions $\tau_1, \ldots \tau_n$ the following holds true.
 \[
   \toCoq{\beta_H(S\;\tau_1\;\ldots\;\tau_n)}
   = \beta_C(\toCoq{(S\;\tau_1\;\ldots\;\tau_n)})
 \]
 
-For the instantiation of $S$ and $S'$ we first define substitutions $\sigma$ and $\sigma'$.
+For the instantiation of $S$ and $S'$, we first define substitutions $\sigma$ and $\sigma'$.
 \begin{align*}
   \sigma &\coloneqq \{\, \alpha_1 \mapsto \tau_1, \ldots, \alpha_n \mapsto \tau_n \,\} \\
   \sigma' &\coloneqq \{\, \alpha_1' \mapsto \toCoqT{\tau_1}, \ldots, \alpha_n' \mapsto \toCoqT{\tau_n} \,\}
@@ -83,7 +83,7 @@ The equation marked with $(\star)$ follows from the following property of $\sigm
 We assume without a proof that this property holds for the extensions of $\sigma$ and $\sigma'$ as well.
 
 \subsection{Translation of Data Type Declarations} \label{sec:translation:type-decl:data}
-Until now we have described how to translate type expressions and assign names to them but we are not able to actually define our own types for usage in those type expressions.
+Until now we have described how to translate type expressions and assign names to them, but we are not able to actually define our own types for usage in those type expressions.
 One of the simplest kinds of data types that can be defined in Haskell are so called \textit{sum types}.
 A well known example for a sum type is \haskell{Bool} which is commonly defined as follows.
 \begin{minted}{haskell}
@@ -101,7 +101,7 @@ Apart from the concrete syntax, the main difference is that the type of the cons
 In contrast to Haskell, we follow the Coq convention to choose lower case names for the constructors.
 
 Sum types on their own are usually not very useful.
-Instead one wishes to compose existing data types to more interesting data structures.
+Instead, one wishes to compose existing data types to more interesting data structures.
 Such types are referred to as \textit{product types}.
 If there was for instance a type \haskell{Double} that represents floating point numbers, we could compose two such numbers to model a complex number.
 \begin{minted}{haskell}
@@ -126,7 +126,7 @@ Wrapping the return type of a constructor is not allowed in Coq though.
 However, it is not necessary for us to lift the intermediate results of the constructor either.
 This is because (partial) constructor applications never have an effect in Haskell.
 Therefore, it is sufficient to lift the argument types of the constructor (which could indeed be effectful).
-For this purpose we still need to add the parameters $\Shape$ and $\Pos$ to the generated sentence.
+For this purpose, we still need to add the parameters $\Shape$ and $\Pos$ to the generated sentence.
 \begin{minted}{coq}
   Inductive Complex (@$\Shape$@ : Type) (@$\Pos$@ : @$\Shape$@ -> Type) : Type
     := complex : Free @$\Shape$@ @$\Pos$@ (Double @$\Shape$@ @$\Pos$@)
@@ -146,13 +146,13 @@ Analogously to how we added the parameters $\Shape$ and $\Pos$ above, we can als
               -> Pair @$\Shape$@ @$\Pos$@ a b.
 \end{minted}
 We wrap the binders of $a$ and $b$ in regular parentheses, because we want to pass the type arguments explicitly to \coq{Pair} when we instantiate the data type.
-However, Coq also adds all parameters of the \coq{Inductive}-sentence to the constructors automatically, i.e. \coq{pair} takes four additional parameters.
+However, Coq also adds all parameters of the \coq{Inductive}-sentence to the constructors automatically, i.e., \coq{pair} takes four additional parameters.
 \begin{minted}{coq}
   Check pair.
   (* ==> pair : forall (Shape : Type) (Pos : Shape -> Type) (a b : Type),
                 Free Shape Pos a -> Free Shape Pos b -> Pair Shape Pos a b *)
 \end{minted}
-For convenience we can "hide" those arguments using an \coq{Arguments}-sentence.
+For convenience, we can "hide" those arguments using an \coq{Arguments}-sentence.
 \begin{minted}{coq}
   Arguments pair {@$\Shape$@} {@$\Pos$@} {a} {b}.
 \end{minted}
@@ -211,7 +211,7 @@ This time we are using upper case identifiers again.
 Unlike with regular constructor, we do not have to generate an \coq{Arguments}-sentence for the smart constructor.
 This is because we can mark the type argument as implicit directly in the \coq{Definition}-sentence by wrapping its binder in curly braces.
 The general generation scheme for smart constructors and \coq{Arguments}-sentences is summarized in \autoref{fig:translation:type-decl:con}.
-In case of \coq{Just} we were able to manually choose appropriate names for the arguments of the smart constructor.
+In case of \coq{Just}, we were able to manually choose appropriate names for the arguments of the smart constructor.
 However, when we generate those sentences, we need to generate \textit{fresh identifiers} automatically.
 The generation of fresh identifiers will be covered in \autoref{chp:implementation}. % TODO more specific reference.
 
@@ -243,7 +243,7 @@ If we convert the example to Coq, the declaration of \coq{B} must precede the de
          The reference B was not found in the current environment. *)
   Inductive B (@$\Shape$@ : Type) (@$\Pos$@ : @$\Shape$@ -> Type) : Type := b : @$\toCoqT{\texttt{B}}$@.
 \end{minted}
-For this reason we have to analyse the dependencies of all data type declarations in the Haskell module before we translate them to Coq.
+For this reason, we have to analyse the dependencies of all data type declarations in the Haskell module before we translate them to Coq.
 As a first approach, we can simply sort the declarations according to their dependencies.
 In the example above, we would obtain the list \haskell{[B, A]} of sorted data type declarations.
 Translating the declarations in that order, yields a valid Coq program.
@@ -288,7 +288,7 @@ In the example above, the following would work.
 
 % Dependency analysis.
 The question that remains is how we can identify mutually recursive data type declarations.
-For this purpose we represent the dependencies among the data types as a directed graph.
+For this purpose, we represent the dependencies among the data types as a directed graph.
 The nodes of the \textit{dependency graph} correspond to data type and type synonym declarations.
 There is an edge between the nodes of two declarations $D_1$ and $D_2$ if and only if $D_1$ depends on $D_2$.
 The dependency graphs for the data type declarations covered in this subsection so far are depicted in \autoref{fig:translation:type-decl:graph1}.
@@ -315,7 +315,7 @@ In our case that means that all declarations whose nodes form a strongly connect
 Likewise, if two declarations depend on each other~--~and therefore need to be declared in the same sentence~--~they are also necessarily in the same strongly connected component.
 Thus, the identification of mutually recursive data type declarations coincides with the identification of strongly connected components of the dependency graph.
 There are algorithms to compute strongly connected components in linear time.
-As a final step the identified strongly connected components need to be sorted.
+As a final step, the identified strongly connected components need to be sorted.
 If the component $SCC_1$ contains at least one declaration that depends on a declaration in $SCC_2$, $SCC_2$ should precede $SCC_1$.
 This is also referred to as \textit{reverse topological order} and can be solved in linear time as well.
 In our case we obtain the following sorted lists of strongly connected components.
@@ -327,7 +327,7 @@ In our case we obtain the following sorted lists of strongly connected component
 
 % Type synonyms in recursive data types.
 There is one additional caveat to be aware of.
-Until now we only considered mutually recursive data type declarations.
+Until now, we only considered mutually recursive data type declarations.
 This is because type synonym declarations are not allowed to form a cycle on their own.
 Thus, the following is invalid in Haskell.
 \begin{minted}{haskell}
@@ -343,9 +343,9 @@ For example, one may notice that the \haskell{Forest} data type we defined earli
 Again, \haskell{Tree} and \haskell{Forest} form a strongly connected component of the dependency graph.
 Unlike before, we cannot use the \coq{with} keyword in this case.
 This is because \haskell{Tree} is translated to an \coq{Inductive}-sentence while \haskell{Forest} is translated to a \coq{Definition}-sentence.
-But \coq{with} can only be used to join two or more \coq{Inductive}-sentences.
+Unfortunately, \coq{with} can only be used to join two or more \coq{Inductive}-sentences.
 The solution is to expand type synonyms that occur within such a strongly connected component.
-After this preprocessing step we obtain the following Haskell declarations.
+After this preprocessing step, we obtain the following Haskell declarations.
 \begin{minted}{haskell}
   data Tree a = Tree a (List (Tree a))
   type Forest a = List (Tree a)
