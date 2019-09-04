@@ -8,23 +8,24 @@ We are also going to adopt their notation and write
 to express that the Haskell language construct $H$ (e.g. a type, expression or declaration) should be converted to the corresponding Gallina language construct $G$ (e.g. a term or sentence).
 
 \subsection{Naming conventions}
-In the translation rules we make extensive use of placeholders for identifiers, expressions or types.
-For the sake of readability those placeholders will not always be introduced explicitly.
-Instead we rely on naming conventions outlined in this section to determine what the placeholder stands for.
-If there are multiple placeholders of the same kind, an index will be appended.
+In the translation rules we make extensive use of meta-variables for identifiers, expressions or types.
+For the sake of readability those meta-variables will not always be introduced explicitly.
+Instead we rely on naming conventions outlined in this section to determine what the meta-variables stands for.
+If there are multiple meta-variables of the same kind, we use a subscripted index.
 
-The symbols $\tau$, $T$, $\alpha$ are used in place of type expressions, constructors and variables respectively.
+The symbols $\tau$, $T$, $\alpha$ are used as identifiers for type expressions, constructors and variables respectively.
 Instead of $\tau$ we also use $\kappa$ for type expressions in some places.
 Data type and type synonym declarations will usually be named $D$ or $S$.
 Analogously $e$, $C$ and $x$ are used for expressions, constructors and variables.
+Alternatively, $y$ is used for variables as well.
 Function declarations are called $f$ by convention.
-We use $\circ$ as a placeholder for infix operators.
-A lower case $c$ is used as placeholder for the name of a data constructor in Coq.
-It should usually differ from a capital $C$ only in that its first letter is converted to lower case.
+We use $\circ$ for infix operators.
+A lower case $c$ is used for the name of a data constructor in Coq.
+The lower case $c$ should differ from the corresponding capital $C$ only in that its first letter is converted to lower case.
 E.g. if $C_i = \texttt{Foo}$ for some index $i$, then $c_i$ will be \coq{foo}.
 
-We are also using $\Shape$ and $\Pos$ as placeholders for the arguments of the free monad.
-They are passed explicitly as parameters of generated Gallina sentences.
+We are also using $\Shape$ and $\Pos$ as identifiers for the arguments of the free monad.
+They are passed explicitly as parameters to generated Coq sentences.
 
 \subsection{Notation for renamed identifiers}
 Not all Haskell identifiers are valid Coq identifiers and need to be renamed if necessary.
