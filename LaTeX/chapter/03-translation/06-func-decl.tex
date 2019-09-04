@@ -22,7 +22,7 @@ In order to recall the basic structure of such function declarations, consider t
     end.
 \end{minted}
 As we can see, Coq's function declarations are parameterized \coq{Definition} sentences.
-Unlike in Haskell, there are not multiple rules and pattern matching is performed explicitly on the right hand side using \coq{match} expressions.
+Unlike in Haskell, there are not multiple rules and pattern matching is performed explicitly on the right-hand side using \coq{match} expressions.
 The return type of the function as well as the types of its arguments are annotated inside the declaration itself.
 Due to our assumptions, i.e. that there is only one rule and the parameters are variable patterns, all Haskell function declarations we are concerned with already look remarkably similar to the \coq{Definition} sentences that we need to generate.
 \begin{minted}{haskell}

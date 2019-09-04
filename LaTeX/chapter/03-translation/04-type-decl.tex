@@ -4,7 +4,7 @@ This section covers the translation of type synonyms and data type declarations.
 Because the order of declarations matters in Coq, special care needs to be taken to translate only declarations whose dependencies were translated before.
 We say that a type expression $\tau$ depends on the declaration of a type constructor $T$ (e.g. the name of a type synonym or data type declaration) if $\tau$ contains an application of the type constructor $T$.
 For short we also say that $\tau$ depends on or uses $T$.
-A type synonym now depends on all type constructor used by its right hand side.
+A type synonym now depends on all type constructor used by its right-hand side.
 Likewise, a data type declaration depends on all type constructors used by the fields of its data constructors.
 
 For simplicity we will first consider only individual declarations and assume all additional data types used by our examples to have been declared beforehand.
@@ -41,7 +41,7 @@ needs $\Shape$ and $\Pos$ when translated to to Coq because they need to be pass
                    := List @$\Shape$@ @$\Pos$@ a.
 \end{minted}
 
-On the right hand side of the \coq{Definition}-sentence in \autoref{fig:translation:type-decl:type-syn} the $\toCoqT{}$ translation is applied instead of $\toCoq{}$.
+On the right-hand side of the \coq{Definition}-sentence in \autoref{fig:translation:type-decl:type-syn} the $\toCoqT{}$ translation is applied instead of $\toCoq{}$.
 This is because we desire the expansion of type synonyms in Haskell and Coq to be compatible with respect to the $\toCoq{}$ translation.
 To convince ourselves that the translation rule above fulfills this property lets denote the expansion of type synonyms in Haskell and Coq with $\beta_H$ and $\beta_C$ respectively and show that for all type synonyms \haskell{type @$S$@ @$\alpha_1$@ @$\ldots$@ @$\alpha_n$@ = @$\tau$@} and type expressions $\tau_1, \ldots \tau_n$ the following holds true.
 \[
@@ -89,7 +89,7 @@ A well known example for a sum type is \haskell{Bool} which is commonly defined 
 \begin{minted}{haskell}
   data Bool = True | False
 \end{minted}
-In general, the constructors of a sum type do not have any arguments and are enumerated on the right hand side of a \haskell{data} type declaration.
+In general, the constructors of a sum type do not have any arguments and are enumerated on the right-hand side of a \haskell{data} type declaration.
 In Coq data types are defined using \coq{Inductive}-sentences in a very similar fashion to \haskell{data} declarations in Haskell.
 The \haskell{Bool} type could look like this for example.
 \begin{minted}{coq}

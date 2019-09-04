@@ -1,5 +1,5 @@
 \section{Translation of Expressions} \label{sec:translation:expr}
-Starting with this section we direct our attention away from type level language constructs.
+Starting with this section we direct our attention away from type-level language constructs.
 Instead, we will have a look at the translation of expressions.
 Nevertheless, we have to keep the translation rules for types in mind.
 This is because an important invariant that should be fulfilled is that when an expression $e$ of type $\tau$ is translated to Coq, the resulting term $\toCoq{e}$ must be of type $\toCoq{\tau}$.
@@ -91,7 +91,7 @@ An individual $\eta$-abstraction transforms a function $f$ to an equivalent func
   f \xrightarrow[\eta]{} \lambda x. f\;x
 \]
 The full process is depicted in \autoref{fig:translation:expr:eta}.
-The right hand side of both equations requires us to be able to convert lambda abstractions to Coq.
+The right-hand side of both equations requires us to be able to convert lambda abstractions to Coq.
 But before we examine the translation of lambda abstractions next lets first look into another kind of function application.
 Namely operator applications.
 \begin{figure}[H]
@@ -142,7 +142,7 @@ Therefore we need to introduce the missing left argument in a similar way to an 
 
 \subsection{Translation of Lambda Abstractions} \label{sec:translation:expr:lambda}
 Lets first consider a lambda abstraction \haskell{\@$x$@ -> @$e$@} with a single argument.
-We have seen a Coq lambda abstraction on the right hand side of \coq{>>=} in the previous subsection already.
+We have seen a Coq lambda abstraction on the right-hand side of \coq{>>=} in the previous subsection already.
 In Coq our unary lambda abstraction could be represented by the term \coq{fun @$x'$@ => @$\toCoq{e}$@}.
 However, we still need to wrap the function with the \coq{pure} constructor of the free monad to make the invariant hold.
 \[
