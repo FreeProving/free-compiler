@@ -24,6 +24,16 @@ dictionary="./tool/spell-check/dictionary"
 # Custom dictionary file that contains words to hyphenate.
 compound_words="./tool/spell-check/compound-words"
 
+# Words that must (eventually) be followed by a comma.
+transitional_words="./tool/spell-check/transitional-words"
+
+# Construct a regular expression that matches any of the $transitional_words.
+transitional_word_pattern=$(
+  cat "$transitional_words" |
+  perl -pe 'chomp if eof' |
+  tr '\n' '|'
+)
+
 # Spell check all LaTeX files in the current directory.
 error_code="0"
 files=$(find . -name "*.tex")
@@ -73,8 +83,15 @@ for file in $files; do
     uniq
   )
 
+  # Find sentences that start with a transitional word, but do not contain a
+  # comma.
+  missing_commas=$(
+    cat "$file" |
+      perl -ne 's/(.*?)('"$transitional_word_pattern"')\s[^,]*\.(.*?)/ - '"$bold"'line $.'"$reset"': $2'"${red}${bold},${reset}"'/sg && print'
+  )
+
   # Print misspelled words.
-  if [ -z "$typos" ] && [ -z "$unhyphenated" ]; then
+  if [ -z "$typos" ] && [ -z "$unhyphenated" ] && [ -z "$missing_commas" ]; then
     echo $'\r'"[${bold}${green}✓${reset}"
   else
     if [ -z "$typos" ]; then
@@ -88,6 +105,9 @@ for file in $files; do
     fi
     if ! [ -z "$unhyphenated" ]; then
       echo "$unhyphenated" | sed -rn 's/^(.*)$/ - '"${yellow}"'\1'"${reset}"' /gp'
+    fi
+    if ! [ -z "$missing_commas" ]; then
+      echo "$missing_commas"
     fi
     error_code="1"
   fi
