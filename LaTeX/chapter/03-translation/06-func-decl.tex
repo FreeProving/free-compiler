@@ -4,7 +4,7 @@ In this final section of the chapter we will cover the translation of the eponym
 Just as with type declarations the order of function declarations matters in Coq as well.
 Thus, we have to perform a dependency analysis again.
 Although the basic principles of the dependency analysis still apply, adding support for recursive and mutually recursive functions is more involved this time.
-This is because Coq strictly distinguishes recursive and non-recursive function declarations.
+The additional complexity arises from the fact that Coq strictly distinguishes recursive and non-recursive function declarations.
 Therefore, it is not sufficient to simply concatenate generated sentences.
 Instead, we have to apply a completely different translation scheme to recursive function declarations.
 For this reason, we will focus on non-recursive function declarations first.
@@ -58,8 +58,7 @@ the type of the converted function is not $\toCoq{(\tau_1 \rightarrow \ldots \ri
   \label{fig:translation:func-decl:non-rec}
 \end{figure}
 
-However, in general the type signature does not necessarily have that format.
-This is because the type signature could contain type synonyms.
+However, in general the type signature does not necessarily have that format due to the potential usage of type synonyms.
 Consider for example the following function declaration.
 \begin{minted}{haskell}
   type Predicate a = a -> Bool
@@ -113,7 +112,7 @@ If we tried to apply the translation rule for non-recursive function declaration
     []      -> ys
     x : xs' -> x : append xs' ys
 \end{minted}
-This is because \coq{Definition} sentences are not allowed to reference themselves in Coq.
+The reason for this error is that \coq{Definition} sentences are not allowed to reference themselves in Coq.
 If they were allowed to do so, it would be possible to define a non-terminating function.
 The following is allowed in Haskell for example.
 \begin{minted}{haskell}
@@ -139,8 +138,8 @@ Namely, Coq must be able to recognize that the function \textit{decreases} on on
 We say that a \coq{Fixpoint} sentence \coq{Fixpoint @$f$@ (@$x_1$@ : @$\tau_1$@) @$\ldots$@ (@$x_1$@ : @$\tau_1$@) : @$\tau$@ := @$e$@.} decreases on $x_i$ if the $i$-th argument of every recursive call to $f$ in $e$ is \textit{structurally smaller} than the original argument $x_i$ \cite[p.~111]{CoqDevTeam:2018}.
 One source of structurally smaller terms is pattern matching.
 If pattern matching is performed on the decreasing argument or a structurally smaller term, the variables in the patterns are structurally smaller than the decreasing argument themselves.
-In the example above, \coq{append} is decreasing on its first explicit argument, i.e., \coq{xs}.
-This is because in the only recursive call \coq{append xs' ys} the first argument, i.e., \coq{xs'}, is bound to a subterm of \coq{xs} by the means of pattern matching.
+In the example above, \coq{append} is decreasing on its first explicit argument, namely \coq{xs}.
+It is decreasing on this argument because in the only recursive call \coq{append xs' ys} the first argument, i.e., \coq{xs'}, is bound to a subterm of \coq{xs} by the means of pattern matching.
 
 Although Coq's termination checker uses an even more sophisticated ruleset to determine whether a term is structurally smaller than another, it rejects the lifted version of \coq{append} that the translation rule in \autoref{fig:translation:func-decl:non-rec} would produce if we simply swapped \coq{Definition} for \coq{Fixpoint}.
 \begin{minted}{coq}
@@ -154,7 +153,7 @@ Although Coq's termination checker uses an even more sophisticated ruleset to de
 \end{minted}
 The definition is rejected because this time \coq{xs'} is not a direct subterm of \coq{xs} but of \coq{xs_0}.
 That the \coq{>>=} operator is implemented in such a way that \coq{xs_0} is always bound to a subterm of \coq{xs} is not checked by Coq.
-This is a limitation of the heuristic employed by Coq's termination checker without any particular theoretical justification \cite[p.~62]{Chlipala:2013}.
+There is no particular theoretical justification for this limitation of the heuristic employed by Coq's termination checker \cite[p.~62]{Chlipala:2013}.
 As the \textit{halting problem} is undecidable, it is natural that there are always situations like this, where the termination checker cannot guess the decreasing argument.
 In this concrete situation, the problem results from the usage of a \textit{nested inductive type}.
 Lets first recall the definition of the monadically lifted \coq{List} type from \autoref{sec:translation:type-decl:rec}.
@@ -194,7 +193,7 @@ We can solve this problem by inlining the definition of \coq{append} into \coq{a
 \end{minted}
 This pair of definitions is now accepted by Coq's termination checker.
 Most importantly though, the transformation also does not change the behaviour of \coq{append}.
-Intuitively, this is the case because we perform a bind only when the original definition would also have performed a bind.
+Intuitively, the transformed function behaves in the same way because we perform a bind only when the original definition would also have performed a bind.
 % TODO worker/wrapper transformation?
 
 Next, we want to generalize the approach outlined above.
@@ -222,7 +221,7 @@ Of course, that means that we can only translate a subset of all recursive funct
 However, reimplementing the entire termination checker of Coq is beyond the scope of this thesis.
 
 To determine the decreasing argument of a function declaration, we have to test for every argument of the function declaration whether the function is decreasing on this argument.
-This cannot be done independently for each function declaration, because the choice of a decreasing argument influences which arguments of another function are decreasing.
+This test cannot be performed independently for each function declaration, because the choice of a decreasing argument influences which arguments of another function are decreasing.
 Consider two mutually recursive binary functions \haskell{foo} and \haskell{bar}, where \haskell{foo}'s implementation looks something like this.
 \begin{minted}{haskell}
   foo x y = case x of
@@ -236,7 +235,7 @@ Therefore, we have to consider every possible combination of decreasing argument
 \paragraph{Splitting into Helper and Main Functions}
 Unlike in the example of \coq{append}, we are going to perform the transformation of the original function into a helper and main function before the conversion to Coq.
 Another way in which the general case differs from the example is that the generation of a single helper function may not suffice.
-This is because the call to the helper function cannot be inserted before the decreasing argument has been bound for the first time.
+The need for additional helper functions is a consequence of the restriction that the call to a helper function cannot be inserted before the decreasing argument has been bound for the first time.
 A bind operator is inserted when translating \haskell{case} or \haskell{if} expressions or when invoking a function.
 As the decreasing argument must be inductively defined, the decreasing argument cannot be a function and will therefore never be invoked.
 Even though it would be possible for the decreasing argument to be bound by an \haskell{if} expression, decreasing on a boolean value is not plausible in the first place.

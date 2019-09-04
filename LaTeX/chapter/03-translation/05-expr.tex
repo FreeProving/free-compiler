@@ -2,7 +2,15 @@
 Starting with this section we direct our attention away from type-level language constructs.
 Instead, we will have a look at the translation of expressions.
 Nevertheless, we have to keep the translation rules for types in mind.
-This is because an important invariant that should be fulfilled is that when an expression $e$ of type $\tau$ is translated to Coq, the resulting term $\toCoq{e}$ must be of type $\toCoq{\tau}$.
+We have to do so because we wish the translation of expressions to be compatible with the translation of expressions.
+In other words, when an expression $e$ of type $\tau$ is translated to Coq, the resulting term $\toCoq{e}$ must be of type $\toCoq{\tau}$.
+When designing the translation rules for expressions, we have to make sure that this \textit{invariant} is preserved at all times.
+\[
+  \haskellM{@$e$@ :: @$\tau$@}
+  \implies \coqM{@$\toCoqX{e}$@ : @$\toCoqX{\tau}$@}
+  \tag{invariant}
+  \label{eqn:translation:expr:invariant}
+\]
 
 \subsection{Translation of Variables} \label{sec:translation:expr:vars}
 In the simplest case, the expression is just a variable $x$.
@@ -10,10 +18,10 @@ As mentioned before, when translating $x$ to Coq, we may have to rename $x$ to a
 \[
   \toCoq{x} = x'
 \]
-If we design the translation rules that are concerned with binding variables correctly, the invariant holds automatically.
+If we design the translation rules that are concerned with binding variables correctly, the \ref{eqn:translation:expr:invariant} holds automatically.
 For example, when we perform pattern matching on a list (as defined in the previous section) the pattern \coq{cons x xs} binds the variables \coq{x} and \coq{xs} to values of type $\toCoq{\texttt{a}}$ and $\toCoq{(\texttt{List a})}$, respectively.
 However, as we will see later, there are some rare cases in which we need unlifted variables, i.e., variables of type $\toCoqT{\tau}$.
-In this case, we have to manually lift $x'$ to restore the invariant.
+In this case, we have to manually lift $x'$ to restore the \ref{eqn:translation:expr:invariant}.
 Thus, the final translation rule for variables are as shown in \autoref{fig:translation:expr:var}.
 
 \begin{figure}[H]
@@ -30,13 +38,13 @@ Thus, the final translation rule for variables are as shown in \autoref{fig:tran
 \subsection{Translation of Function Applications} \label{sec:translation:expr:app}
 In general, a function application has the form $e_1\;e_2$ in Haskell where $e_1$ is of some function type $\tau_1 \rightarrow \tau_2$ and $e_2$ is of type $\tau_1$.
 The application of $e_1$ to $e_2$ yields a value of type $\tau_2$.
-If we now translate both expressions to Coq, the invariant guarantees us to obtain lifted values.
+If we now translate both expressions to Coq, the \ref{eqn:translation:expr:invariant} guarantees us to obtain lifted values.
 \begin{align*}
   \toCoq{e_1} &: \toCoq{(\tau_1 \rightarrow \tau_2)}
   \implies \toCoq{e_1} : \Free{(\toCoq{\tau_1} \rightarrow \toCoq{\tau_2})} \\
   \toCoq{e_2} &: \toCoq{\tau_1}
 \end{align*}
-If we had a value $f$ of type $\toCoq{\tau_1} \rightarrow \toCoq{\tau_2}$, we could apply $f$ to $\toCoq{e_2}$ to obtain a value of type $\toCoq{\tau_2}$ which would satisfy the invariant.
+If we had a value $f$ of type $\toCoq{\tau_1} \rightarrow \toCoq{\tau_2}$, we could apply $f$ to $\toCoq{e_2}$ to obtain a value of type $\toCoq{\tau_2}$ which would satisfy the \ref{eqn:translation:expr:invariant}.
 As $\toCoq{e_1}$ is lifted to the free monad, we cannot access the contained function directly but have to use the bind operator to unwrap the function as shown in \autoref{fig:translation:expr:app}.
 \begin{figure}[H]
   \[
@@ -68,7 +76,7 @@ For this reason, \cite{Abel:2005} suggest an optimization that allows the genera
 
 We actually applied this optimization already during the generation of smart constructors.
 The constructor \haskell{Just} of the \haskell{Maybe} data type has the type $a \rightarrow \texttt{Maybe}\;a$ for example.
-According to the invariant, the expression \haskell{Just} should now be translated to to a Coq term of type
+According to the \ref{eqn:translation:expr:invariant}, the expression \haskell{Just} should now be translated to to a Coq term of type
 \[
   \toCoq{(a \rightarrow \texttt{Maybe}\;a)}
     = \Free{\toCoqT{(a \rightarrow \texttt{Maybe}\;a)}}
@@ -142,16 +150,16 @@ Therefore, we need to introduce the missing left argument in a similar way to an
 Lets first consider a lambda abstraction \haskell{\@$x$@ -> @$e$@} with a single argument.
 We have seen a Coq lambda abstraction on the right-hand side of \coq{>>=} in the previous subsection already.
 In Coq our unary lambda abstraction could be represented by the term \coq{fun @$x'$@ => @$\toCoq{e}$@}.
-However, we still need to wrap the function with the \coq{pure} constructor of the free monad to make the invariant hold.
+However, we still need to wrap the function with the \coq{pure} constructor of the free monad to make the \ref{eqn:translation:expr:invariant} hold.
 \[
   \toCoq{(\haskellM{\@$x$@ -> @$e$@})} = \coqM{pure (fun @$x'$@ => @$\toCoqX{e}$@)}
 \]
 If we now try to extend this rule to lambda abstractions \haskell{\@$x_1$@ @$\ldots$@ @$x_n$@ -> @$e$@} with multiple arguments, we cannot simply add more binders to the Coq function.
-The following would be valid Coq, but violates our invariant.
+The following would be valid Coq, but violates our \ref{eqn:translation:expr:invariant}.
 \[
   \coqM{pure (fun @$x_1'$@ @$\ldots$@ @$x_n'$@ => @$\toCoqX{e}$@)}
 \]
-This is because the term above has the type
+The term above has the type
 \[
   \Free{(\toCoq{\tau_1}
     \rightarrow \ldots
@@ -165,7 +173,7 @@ but should have the type
     \rightarrow \Free{(\toCoq{\tau_n}
     \rightarrow \toCoq{\tau})} \ldots)})}
 \]
-according to our invariant.
+according to our \ref{eqn:translation:expr:invariant}.
 Therefore, we have to wrap all intermediate results with \coq{pure}.
 We can do so by rewriting a lambda abstraction with multiple arguments to multiple nested unary lambda abstractions as shown in \autoref{fig:translation:expr:lambda}.
 
@@ -181,7 +189,7 @@ We can do so by rewriting a lambda abstraction with multiple arguments to multip
 
 \subsection{Translation of \haskell{case} and \haskell{if} Expressions}
 In this subsection we cover both the translation of \haskell{case} and \haskell{if} expressions.
-This is because both kinds of expressions behave very similar.
+Since both kinds of expressions behave very similar, their translation rules are based on the same key ideas.
 In fact, the Haskell Language Report defines the semantics of \haskell{if} expressions in terms of \haskell{case} expressions \cite[p.~20]{Marlow:2010}.
 \[
   \haskellM{if @$e_1$@ then @$e_2$@ else @$e_3$@}
@@ -189,13 +197,13 @@ In fact, the Haskell Language Report defines the semantics of \haskell{if} expre
 \]
 For simplicity, lets first focus on the translation of \haskell{if} expressions.
 
-Unlike before, we cannot base our translation rule for \haskell{if} expressions on the invariant.
+Unlike before, we cannot base our translation rule for \haskell{if} expressions on the \ref{eqn:translation:expr:invariant}.
 If the expression \haskell{if @$e_1$@ then @$e_2$@ else @$e_3$@} has type $\tau$, both $e_2$ and $e_3$ must also have type $\tau$.
 If we naïvely translated the expression by just translating $e_1$ through $e_3$, the resulting term
 \[
   \coqM{if @$\toCoqX{e_1}$@ then @$\toCoqX{e_2}$@ else @$\toCoqX{e_3}$@}
 \]
-satisfies our invariant because $\toCoq{e_2}$ and $\toCoq{e_3}$ both have the type $\toCoq{\tau}$ and therefore the entire term has that type.
+satisfies our \ref{eqn:translation:expr:invariant} because $\toCoq{e_2}$ and $\toCoq{e_3}$ both have the type $\toCoq{\tau}$ and therefore the entire term has that type.
 Interestingly, if we applied this naïve translation rule, the generated code works.
 However, the generated code does not behave as intended.
 \begin{minted}{coq}
@@ -203,11 +211,12 @@ However, the generated code does not behave as intended.
   Compute (if @$\toCoq{\texttt{False}}$@     then @$\toCoq{e_1}$@ else @$\toCoq{e_2}$@). (* ==> $\toCoq{e_1}$ *)
   Compute (if @$\toCoq{\texttt{undefined}}$@ then @$\toCoq{e_1}$@ else @$\toCoq{e_2}$@). (* ==> $\toCoq{e_2}$ *)
 \end{minted}
-This is because \coq{if} expressions are not limited to boolean values in Coq.
-Their condition can be of any type with exactly two constructors \cite[p.~48]{CoqDevTeam:2018}.
+This odd behaviour results from the flexibility of \coq{if} expressions in Coq.
+Coq does not have a build-in boolean type.
+Therefore, the condition of \coq{if} expressions can be of any type with exactly two constructors \cite[p.~48]{CoqDevTeam:2018}.
 If the condition matches the first constructor, the \coq{then} branch is selected and the \coq{else} branch otherwise.
 Since the type of $\toCoq{e_1}$ is \coq{Free @$\Shape$@ @$\Pos$@ (Bool @$\Shape$@ @$\Pos$@)} and \coq{Free} has exactly two constructors \coq{pure} and \coq{impure}, $\toCoq{e_1}$ can be used in \haskell{if} expressions.
-This fits the observation in the listing above.
+The semantics of Coq's \coq{if} expressions fit the observation in the listing above.
 \haskell{True} and \haskell{False} are values without an effect.
 Therefore, their underlying representation uses the \coq{pure} constructor which is the first constructor of \coq{Free}.
 \haskell{undefined} on the other hand does have an effect.
@@ -215,7 +224,7 @@ The usage of the \coq{impure} constructor for the representation of effects lead
 
 What we actually wanted is to test whether the value wrapped by the \coq{pure} constructor is \coq{true} or \coq{false}.
 Similar to how we had to unwrap a function expression before we could apply the actual function, we have to bind the condition this time as well.
-This corresponds to the fact that Haskell evaluates the condition before selecting the \haskell{then} or \haskell{else} branch.
+The bind operation corresponds to the fact that Haskell evaluates the condition before selecting the \haskell{then} or \haskell{else} branch.
 
 \begin{figure}[H]
   \[
@@ -234,7 +243,7 @@ With the translation rule shown in \autoref{fig:translation:expr:if} we get the 
 \end{minted}
 
 Note that we have to annotate the type of the fresh variable $x$ in \autoref{fig:translation:expr:if} and in the examples above explicitly.
-This is due to the flexibility of \coq{if} expressions in Coq.
+The type has to be annotated due to the flexibility of \coq{if} expressions in Coq.
 While we know in Haskell that $x$ in \haskell{if @$x$@ then @$e_1$@ else @$e_2$@} has to be of type \haskell{Bool}, $x$ could be of any type with exactly two constructors in Coq.
 Therefore, Coq could not infer the type of the fresh variable introduced during the translation of an expression like \haskell{if undefined then @$e_1$@ else @$e_2$@}.
 \begin{minted}{coq}
@@ -248,7 +257,7 @@ Instead of performing pattern matching on the free monad, we want to inspect the
 Thus, we have to add the bind operator.
 This time we do not have to annotate the type explicitly because Coq should be able to infer the type from the constructors in the patterns.
 Aside from that, the differences between pattern matching in Haskell and Coq shown in \autoref{fig:translation:expr:case} are mostly of syntactical nature.
-This is because of our initial assumptions.
+The observed similarity stems from our initial assumptions.
 If we allowed guards or nested patterns for example, the translation of \haskell{case} expressions would be much more difficult.
 
 \begin{figure}[H]
@@ -312,7 +321,7 @@ If we lifted our programs using the \haskell{Maybe} monad for example, we do not
   undefined = Nothing
 \end{minted}
 For the translation of \haskell{undefined}, we now just need to model the \haskell{Maybe} monad using the free monad, i.e., instantiate $Shape$ and $Pos$ appropriately.
-How this can be done, has originally been presented by \cite{Dylus:2018} and will be explained in more detail in \autoref{chp:implementation}. % TODO more concrete reference.
+How $SHape$ and $Pos$ would have to look like in case of \haskell{Maybe}, has originally been presented by \cite{Dylus:2018} and will be explained in more detail in \autoref{chp:implementation}. % TODO more concrete reference.
 
 We can also use \haskell{Nothing} to implement \haskell{error} if we are willing to simply discard the error message.
 \begin{minted}{haskell}
@@ -413,7 +422,7 @@ To create a value of type \coq{Z}, we have to append the suffix \coq{%Z}.
   Check 42%Z. (* ==> 42%Z : Z *)
 \end{minted}
 Since \coq{Integer @$Shape$@ @$Pos$@} is just a synonym for \coq{Z}, \coq{42%Z} is also of type $\toCoqT{\haskellM{Integer}}$.
-To fulfill our invariant, we finally need to lift the value into the free monad.
+To fulfill our \ref{eqn:translation:expr:invariant}, we finally need to lift the value into the free monad.
 \begin{figure}[H]
   \[
     \toCoq{i} = \coqM{

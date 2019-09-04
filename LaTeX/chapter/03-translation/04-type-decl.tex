@@ -42,7 +42,7 @@ needs $\Shape$ and $\Pos$ when translated to to Coq because they need to be pass
 \end{minted}
 
 On the right-hand side of the \coq{Definition}-sentence in \autoref{fig:translation:type-decl:type-syn} the $\toCoqT{}$ translation is applied instead of $\toCoq{}$.
-This is because we desire the expansion of type synonyms in Haskell and Coq to be compatible with respect to the $\toCoq{}$ translation.
+We have to use $\toCoqT{}$ because we desire the expansion of type synonyms in Haskell and Coq to be compatible with respect to the $\toCoq{}$ translation.
 To convince ourselves that the translation rule above fulfills this property lets denote the expansion of type synonyms in Haskell and Coq with $\beta_H$ and $\beta_C$, respectively, and show that for all type synonyms \haskell{type @$S$@ @$\alpha_1$@ @$\ldots$@ @$\alpha_n$@ = @$\tau$@} and type expressions $\tau_1, \ldots \tau_n$ the following holds true.
 \[
   \toCoq{\beta_H(S\;\tau_1\;\ldots\;\tau_n)}
@@ -124,7 +124,7 @@ By applying the translation rules for types we would obtain the following Coq ty
 \end{align*}
 Wrapping the return type of a constructor is not allowed in Coq though.
 However, it is not necessary for us to lift the intermediate results of the constructor either.
-This is because (partial) constructor applications never have an effect in Haskell.
+Lifting them would be redundant as (partial) constructor applications never have an effect in Haskell.
 Therefore, it is sufficient to lift the argument types of the constructor (which could indeed be effectful).
 For this purpose, we still need to add the parameters $\Shape$ and $\Pos$ to the generated sentence.
 \begin{minted}{coq}
@@ -196,7 +196,7 @@ If we apply this translation rule to our \haskell{Maybe} data type, we obtain th
 \end{minted}
 
 Before we conclude this section, notice that we are using the $\toCoqT{}$ translation for the return type of constructors in \autoref{fig:translation:type-decl:data}.
-This is because $\toCoq{}$ would lift the type to the free monad but Coq does not allow us to wrap the return type of constructors as we pointed out above already.
+We have to do so because $\toCoq{}$ would lift the type to the free monad but Coq does not allow us to wrap the return type of constructors as we pointed out above already.
 However, we are usually interested in lifted values.
 With that end in view, we define a function for each regular constructor that simply applies the constructor and lifts its result using the \coq{pure} constructor of the free monad.
 We are going to refer to these functions as \textit{smart constructors} hereinafter.
@@ -209,7 +209,7 @@ The smart constructor for \coq{just} would look as follows.
 \end{minted}
 This time we are using upper case identifiers again.
 Unlike with regular constructor, we do not have to generate an \coq{Arguments}-sentence for the smart constructor.
-This is because we can mark the type argument as implicit directly in the \coq{Definition}-sentence by wrapping its binder in curly braces.
+Generating \coq{Arguments}-sentence is not necessary as we can mark the type argument as implicit directly in the \coq{Definition}-sentence by wrapping its binder in curly braces.
 The general generation scheme for smart constructors and \coq{Arguments}-sentences is summarized in \autoref{fig:translation:type-decl:con}.
 In case of \coq{Just}, we were able to manually choose appropriate names for the arguments of the smart constructor.
 However, when we generate those sentences, we need to generate \textit{fresh identifiers} automatically.
@@ -235,7 +235,7 @@ Therefore, \haskell{A} is allowed to use \haskell{B} in the following example, e
   data A = A B
   data B = B
 \end{minted}
-In Coq this is not the case.
+In Coq, on the other hand, the order of declarations is relevant.
 If we convert the example to Coq, the declaration of \coq{B} must precede the declaration of \coq{A}.
 \begin{minted}{coq}
   Fail Inductive A (@$\Shape$@ : Type) (@$\Pos$@ : @$\Shape$@ -> Type) : Type := a : @$\toCoq{\texttt{B}}$@ -> @$\toCoqT{\texttt{A}}$@.
@@ -266,7 +266,7 @@ As Coq allows \coq{Inductive}-sentences to use the data type that is declared in
 \end{minted}
 
 % Mutually recursive data types.
-However, this cannot be done in case of \textit{mutually recursive data types}.
+However, the approach above fails in case of \textit{mutually recursive data types}.
 \begin{minted}{haskell}
   data Tree a = Tree a (Forest a)
   data Forest a = Empty | NonEmpty (Tree a) (Forest a)
@@ -317,7 +317,7 @@ Thus, the identification of mutually recursive data type declarations coincides 
 There are algorithms to compute strongly connected components in linear time.
 As a final step, the identified strongly connected components need to be sorted.
 If the component $SCC_1$ contains at least one declaration that depends on a declaration in $SCC_2$, $SCC_2$ should precede $SCC_1$.
-This is also referred to as \textit{reverse topological order} and can be solved in linear time as well.
+This order also referred to as \textit{reverse topological order} and can be solved in linear time as well.
 In our case we obtain the following sorted lists of strongly connected components.
 \begin{align*}
   [\{\, \haskellM{B} \,\}, \{\, \haskellM{A} \,\}]
@@ -328,7 +328,7 @@ In our case we obtain the following sorted lists of strongly connected component
 % Type synonyms in recursive data types.
 There is one additional caveat to be aware of.
 Until now, we only considered mutually recursive data type declarations.
-This is because type synonym declarations are not allowed to form a cycle on their own.
+We did not consider mutually recursive type synonym declarations because type synonym declarations are not allowed to form a cycle on their own.
 Thus, the following is invalid in Haskell.
 \begin{minted}{haskell}
   type A = B
@@ -342,7 +342,7 @@ For example, one may notice that the \haskell{Forest} data type we defined earli
 \end{minted}
 Again, \haskell{Tree} and \haskell{Forest} form a strongly connected component of the dependency graph.
 Unlike before, we cannot use the \coq{with} keyword in this case.
-This is because \haskell{Tree} is translated to an \coq{Inductive}-sentence while \haskell{Forest} is translated to a \coq{Definition}-sentence.
+\haskell{Tree} is translated to an \coq{Inductive}-sentence while \haskell{Forest} is translated to a \coq{Definition}-sentence.
 Unfortunately, \coq{with} can only be used to join two or more \coq{Inductive}-sentences.
 The solution is to expand type synonyms that occur within such a strongly connected component.
 After this preprocessing step, we obtain the following Haskell declarations.

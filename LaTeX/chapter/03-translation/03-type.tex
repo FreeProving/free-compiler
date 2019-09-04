@@ -21,7 +21,7 @@ Assuming \coq{List} is the Coq type constructor corresponding to \haskell{[]} (i
 \[
   \toCoq{[a]} = \Free{(\texttt{List}\;a)}
 \]
-This allows an application of \haskell{map} to pass an effectful computation as the second argument.
+Lifting the type of \haskell{xs} to the free monad allows an application of \haskell{map} to pass an effectful computation as the second argument.
 If we define the constructors of \coq{List} appropriately (see \autoref{sec:translation:type-decl}), the list items can also have effects themselves.
 We do not have to lift the type argument $a$ explicitly.
 
@@ -38,7 +38,7 @@ Therefore, we need to lift the argument and return type of \haskell{f} explicitl
   \toCoq{(a \rightarrow b)} = \Free{(\Free{a} \rightarrow \Free{b})}
 \]
 
-This needs to be done for all arbitrarily deeply nested function types in $\tau$.
+In general, the argument and return types of all arbitrarily deeply nested function types in $\tau$ need to be lifted.
 For this purpose, we introduce another translation operation $\toCoqT{\tau}$ as shown in \autoref{fig:translation:type}.
 \begin{figure}[H]
   \begin{align}
