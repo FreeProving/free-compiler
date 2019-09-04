@@ -4,7 +4,8 @@ Haskell's \textit{Prelude} offers a rich set of predefined data types and operat
 We do not aim to recreate the entire Prelude but still want to expose some commonly used functionalities.
 We are especially interested in data types with a special syntax.
 This is because we see the fact that they have their own notation as a strong indicator for their importance in actual Haskell code.
-Namely we support lists \haskell{[a]}, pairs \haskell{(a, b)} and the unit type \haskell{()} as well as their constructors.
+Namely we support lists, pairs and the unit type as well as their constructors.
+\autoref{tbl:translation:assumtions:predefined} lists all predefined data types and the corresponding constructors.
 Internally we will not handle these types any different from user defined types and constructors, i.e. the following identities hold:
 \begin{align*}
   \haskellM{[@$\tau$@]}
@@ -29,11 +30,27 @@ In addition to the constructors there is a more readable shorthand notation for 
   \label{eqn:translation:assumtions:pair-literal}
 \end{align}
 
-Furthermore, we add support for the data types \haskell{Bool} and \haskell{Integer}.
+Furthermore, \autoref{tbl:translation:assumtions:predefined} lists \haskell{Bool} and \haskell{Integer} as predefined data types.
 In theory \haskell{Bool} and its constructors \haskell{True} and \haskell{False} could be defined by the user.
 However, \haskell{Bool} is important for the translation of \haskell{if} expressions.
 Due to the lack of type classes, \haskell{Integer} will be used as the type for all number literals, i.e. there are no fixed-precision integers of type \haskell{Int}.
 Decimal, hexadecimal and octal notation can be used.
+
+\begin{table}[H]
+  \begin{tabular}{l c r}
+    \toprule[\heavyrulewidth]\toprule[\heavyrulewidth]
+    \textbf{Name} & \textbf{Type} & \textbf{Constructors} \\
+    \midrule
+    unit     & \haskell{()} & \haskell{()} \\
+    pairs    & \haskell{(@$\tau_1$@, @$\tau_2$@)} & \haskell{(,)} \\
+    lists    & \haskell{[@$\tau$@]} & \haskell{[]} and \haskell{(:)} \\
+    booleans & \haskell{Bool} & \haskell{True} and \haskell{False} \\
+    integers & \haskell{Integer} &\\
+    \bottomrule[\heavyrulewidth]
+  \end{tabular}
+  \caption{Predefined data types and their constructors.}
+  \label{tbl:translation:assumtions:predefined}
+\end{table}
 
 The following commonly used operations for \haskell{Bool} and \haskell{Integer} are build into the compiler.
 \begin{itemize}
