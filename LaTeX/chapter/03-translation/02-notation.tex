@@ -32,9 +32,9 @@ Not all Haskell identifiers are valid Coq identifiers and need to be renamed if 
 For example \haskell{with} could be used in Haskell as the name for a function or variable, but not in Coq as it is a keyword.
 
 Similarly Haskell allows types and constructors to have the same name because their namespaces are separated.
-But Coq is a dependently typed language, that is types in Coq can contain values.
-Therefore, Coq constructors would conflict with types of the same name and may need to be renamed as well.
+Since Coq is a dependently typed language, types in Coq can contain values.
+Therefore, Coq constructors can conflict with types of the same name and need to be renamed as well.
 
-Details on how identifiers are actually being renamed will be given in \autoref{chp:implementation}.
-In this chapter we will simply write $i'$ for the renamed version of a Haskell identifier $i$.
-For short we write $e'$ or $\tau'$ for an expression $e$ or type expressions $\tau'$ in which all identifiers have been renamed appropriately.
+Details on how identifiers are renamed will be given in \autoref{chp:implementation}.
+In this chapter we will simply write $I'$ for the renamed version of a Haskell identifier $I$.
+For short we write $e'$ or $\tau'$ for an expression $e$ or type expressions $\tau$ in which all identifiers have been renamed appropriately.

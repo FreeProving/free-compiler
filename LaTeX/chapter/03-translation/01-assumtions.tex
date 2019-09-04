@@ -17,7 +17,7 @@ Internally we will not handle these types any different from user-defined types 
   &&\forall \tau_1, \tau_2 \text{ type expression}
 \end{align*}
 
-In addition to the constructors there is a more readable shorthand notation for lists and pairs \cite[pp.~20-21]{Marlow:2010}.
+In addition to the constructors there is a more concise notation for lists and pairs.
 \begin{align}
   \haskellM{[@$e_1$@, @$e_2$@, @$\ldots$@, @$e_n$@]}
   &= \haskellM{@$e_1$@ : (@$e_2$@ : (@$\ldots$@ : (@$e_n$@ : [])@$\ldots$@))}
@@ -33,7 +33,7 @@ In addition to the constructors there is a more readable shorthand notation for 
 Furthermore, \autoref{tbl:translation:assumtions:predefined} lists \haskell{Bool} and \haskell{Integer} as predefined data types.
 In theory \haskell{Bool} and its constructors \haskell{True} and \haskell{False} could be defined by the user.
 However, \haskell{Bool} is important for the translation of \haskell{if} expressions.
-Due to the lack of type classes, \haskell{Integer} will be used as the type for all number literals, i.e. there are no fixed-precision integers of type \haskell{Int}.
+Due to the lack of type classes, \haskell{Integer} will be used as the type for all numeric literals, i.e. there are no fixed-precision integers of type \haskell{Int}.
 Decimal, hexadecimal and octal notation can be used.
 
 \begin{table}[H]
