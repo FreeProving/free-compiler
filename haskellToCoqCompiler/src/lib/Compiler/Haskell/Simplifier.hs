@@ -394,11 +394,11 @@ simplifyType (H.TyFun srcSpan t1 t2) = do
   t2' <- simplifyType t2
   return (HS.TypeFunc srcSpan t1' t2')
 
--- Pair type @('t1', 't2')@.
-simplifyType (H.TyTuple srcSpan H.Boxed [t1, t2]) = do
-  t1' <- simplifyType t1
-  t2' <- simplifyType t2
-  return (HS.typeApp srcSpan HS.pairTypeConName [t1', t2'])
+-- Tuple type @('t1', ..., 'tn')@.
+simplifyType (H.TyTuple srcSpan H.Boxed ts) = do
+  let n = length ts
+  ts' <- mapM simplifyType ts
+  return (HS.typeApp srcSpan (HS.tupleTypeConName n) ts')
 
 -- List type @['t']@.
 simplifyType (H.TyList srcSpan t) = do
@@ -427,10 +427,8 @@ simplifyType (H.TyParen _ t) = simplifyType t
 simplifyType ty@(H.TyForall _ _ _ _) =
   notSupported "Explicit type variable quantifications" ty
 simplifyType ty@(H.TyTuple _ H.Unboxed _) = notSupported "Unboxed tuples" ty
-simplifyType ty@(H.TyTuple _ H.Boxed _) =
-  notSupported "Tuples other than unit and pairs" ty
-simplifyType ty@(H.TyUnboxedSum _ _) = notSupported "Unboxed sums" ty
-simplifyType ty@(H.TyParArray   _ _) = notSupported "Parallel arrays" ty
+simplifyType ty@(H.TyUnboxedSum _ _     ) = notSupported "Unboxed sums" ty
+simplifyType ty@(H.TyParArray   _ _     ) = notSupported "Parallel arrays" ty
 simplifyType ty@(H.TyKind _ _ _) =
   notSupported "Types with explicit kind signatures" ty
 simplifyType ty@(H.TyStar _) = notSupported "Kinds" ty
@@ -448,9 +446,8 @@ simplifyTypeConName :: H.QName SrcSpan -> Simplifier HS.TypeConName
 simplifyTypeConName (H.UnQual  _ (H.Ident _ ident)) = return (HS.Ident ident)
 simplifyTypeConName (H.Special _ (H.UnitCon _    )) = return HS.unitTypeConName
 simplifyTypeConName (H.Special _ (H.ListCon _    )) = return HS.listTypeConName
-simplifyTypeConName name@(H.Special _ (H.TupleCon _ H.Boxed n))
-  | n == 2    = return HS.pairTypeConName
-  | otherwise = notSupported "Tuples other than unit and pairs" name
+simplifyTypeConName (H.Special _ (H.TupleCon _ H.Boxed n)) =
+  return (HS.tupleTypeConName n)
 
 -- Not supported type constructor names.
 simplifyTypeConName name@(H.UnQual _ (H.Symbol _ _)) =
@@ -503,11 +500,11 @@ simplifyExpr (H.Con srcSpan name) = do
 simplifyExpr (H.Lit srcSpan (H.Int _ value _)) =
   return (HS.IntLiteral srcSpan value)
 
--- Pairs.
-simplifyExpr (H.Tuple srcSpan H.Boxed [e1, e2]) = do
-  e1' <- simplifyExpr e1
-  e2' <- simplifyExpr e2
-  return (HS.conApp srcSpan HS.pairConName [e1', e2'])
+-- Tuples.
+simplifyExpr (H.Tuple srcSpan H.Boxed es) = do
+  let n = length es
+  es' <- mapM simplifyExpr es
+  return (HS.conApp srcSpan (HS.tupleConName n) es')
 
 -- List literals are converted to a chain of 'HS.consConName' applications
 -- with a trailing 'HS.nilConName'. All generated constructors refer to
@@ -579,11 +576,9 @@ simplifyExpr expr@(H.IPVar _ _) =
 simplifyExpr expr@(H.Let _ _ _) = notSupported "Local declarations" expr
 simplifyExpr expr@(H.MultiIf _ _) =
   notSupported "Multi-Way if expressions" expr
-simplifyExpr expr@(H.Do  _ _            ) = notSupported "do-expressions" expr
-simplifyExpr expr@(H.MDo _ _            ) = notSupported "mdo-expressions" expr
+simplifyExpr expr@(H.Do _ _) = notSupported "do-expressions" expr
+simplifyExpr expr@(H.MDo _ _) = notSupported "mdo-expressions" expr
 simplifyExpr expr@(H.Tuple _ H.Unboxed _) = notSupported "Unboxed tuples" expr
-simplifyExpr expr@(H.Tuple _ H.Boxed _) =
-  notSupported "Tuples other than unit and pairs" expr
 simplifyExpr expr@(H.UnboxedSum _ _ _ _) = notSupported "Unboxed sums" expr
 simplifyExpr expr@(H.TupleSection _ _ _) = notSupported "Tuple sections" expr
 simplifyExpr expr@(H.ParArray _ _) = notSupported "Parallel arrays" expr
@@ -670,9 +665,8 @@ simplifyConName (H.UnQual  _ (H.Ident _ ident)) = return (HS.Ident ident)
 simplifyConName (H.Special _ (H.UnitCon _    )) = return HS.unitConName
 simplifyConName (H.Special _ (H.ListCon _    )) = return HS.nilConName
 simplifyConName (H.Special _ (H.Cons    _    )) = return HS.consConName
-simplifyConName name@(H.Special _ (H.TupleCon _ H.Boxed n))
-  | n == 2    = return HS.pairConName
-  | otherwise = notSupported "Tuples other than unit and pairs" name
+simplifyConName (H.Special _ (H.TupleCon _ H.Boxed n)) =
+  return (HS.tupleConName n)
 
 -- Not supported constructor names.
 simplifyConName name@(H.Qual _ _ _) = notSupported "Qualified identifiers" name
@@ -723,16 +717,14 @@ simplifyConPat (H.PInfixApp _ p1 name p2) = do
   v2    <- simplifyVarPat p2
   return (HS.ConPat (H.ann name) name', [v1, v2])
 
--- Pair constructor pattern.
-simplifyConPat (H.PTuple srcSpan H.Boxed [p1, p2]) = do
-  v1 <- simplifyVarPat p1
-  v2 <- simplifyVarPat p2
-  return (HS.ConPat srcSpan HS.pairConName, [v1, v2])
+-- Tuple constructor pattern.
+simplifyConPat (H.PTuple srcSpan H.Boxed ps) = do
+  let n = length ps
+  vs <- mapM simplifyVarPat ps
+  return (HS.ConPat srcSpan (HS.tupleConName n), vs)
 
 -- Other tuple constructor patterns are not supported.
 simplifyConPat pat@(H.PTuple _ H.Unboxed _) = notSupported "Unboxed tuples" pat
-simplifyConPat pat@(H.PTuple _ H.Boxed _) =
-  notSupported "Tuples other than unit and pairs" pat
 
 -- The list notation pattern @[x1, ..., xn]@ is not supported because it is
 -- not a shallow pattern (i.e. cannot be represented as a pair of constructor

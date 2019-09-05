@@ -381,9 +381,9 @@ conApp srcSpan = app srcSpan . Con srcSpan
 unitTypeConName :: TypeConName
 unitTypeConName = Symbol "()"
 
--- | The name of the pair type constructor.
-pairTypeConName :: TypeConName
-pairTypeConName = Symbol "(,)"
+-- | The name of the @n@-ary tuple type constructor.
+tupleTypeConName :: Int -> TypeConName
+tupleTypeConName n = Symbol ("(" ++ replicate (n - 1) ',' ++ ")")
 
 -- | The name of the list type constructor.
 listTypeConName :: TypeConName
@@ -405,9 +405,9 @@ nilConName = Symbol "[]"
 consConName :: ConName
 consConName = Symbol ":"
 
--- | The name of the pair data constructor.
-pairConName :: ConName
-pairConName = Symbol "(,)"
+-- | The name of the @n@-ary tuple data constructor.
+tupleConName :: Int -> ConName
+tupleConName n = Symbol ("(" ++ replicate (n - 1) ',' ++ ")")
 
 -------------------------------------------------------------------------------
 -- Names of special predefined types and operators                           --
