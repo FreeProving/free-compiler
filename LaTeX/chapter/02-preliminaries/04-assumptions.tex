@@ -1,0 +1,124 @@
+\section{Assumptions} \label{sec:preliminaries:assumptions}
+Since it would be error-prone and infeasible to support the complete language specification of Haskell, we make assumptions about input modules that simplify the translation to Coq.
+Effectively, we specify a subset of Haskell that we are going to focus on for the remainder of this thesis.
+The language supported by our compiler is based on the Haskell 2010 Language Report \citep{Marlow:2010}.
+There is no support for language extensions.
+
+\subsection{Type Signatures}
+As a general requirement we specify that all input modules should be valid Haskell modules, i.e., the GHC should be able to compile the module successfully.
+In particular, we assume the Haskell program to be correctly typed.
+Performing type inference is beyond the scope of this thesis.
+Nevertheless, type information is needed for the translation to Coq.
+Consequently, we require explicit type signatures for all function declarations to be present.
+
+\subsection{Declarations}
+Only some of the most important kinds of declarations are supported.
+Namely, data type and type synonym declarations as well as function declarations are supported.
+A Haskell module must not contain any other declarations.
+In particular, type classes are not supported.
+No local declarations using \haskell{let} or \haskell{where} are permitted either.
+Lastly, we do not allow the user to declare custom operators.
+For instance, list concatenation is commonly called \haskell{(++)}.
+In our case, a non-symbolic name must be given to this operation as shown in \autoref{fig:preliminaries:assumptions:append}.
+Infix notation is still allowed.
+
+\begin{figure}[H]
+  \begin{center}
+    \begin{minipage}[t]{0.45\textwidth}
+      \begin{minted}{haskell}
+        (++) :: [a] -> [a] -> [a]
+        xs ++ ys = {- ... -}
+      \end{minted}
+    \end{minipage}
+    \begin{minipage}[t]{0.45\textwidth}
+      \begin{minted}{haskell}
+        append :: [a] -> [a] -> [a]
+        xs `append` ys = {- ... -}
+      \end{minted}
+    \end{minipage}
+  \end{center}
+  \caption{Definition of list concatenation using a symbolic name (left) and an identifier (right).}
+  \label{fig:preliminaries:assumptions:append}
+\end{figure}
+
+\paragraph{Type declarations}
+User-defined data types can be specified using \haskell{data} and \haskell{type} declarations.
+There is no support for \haskell{newtype} at this point in time.
+Furthermore, record syntax for constructors is not supported.
+As a result, data type declaration always have the following form.
+\begin{minted}{haskell}
+  data @$D$@ @$\alpha_1$@ @$\ldots$@ @$\alpha_n$@ =
+      @$C_1$@ @$\tau_{1,1}$@ @$\ldots$@ @$\tau_{1,p_1}$@
+    | @$C_2$@ @$\tau_{2,1}$@ @$\ldots$@ @$\tau_{2,p_2}$@
+    | @$\ldots$@
+    | @$C_m$@ @$\tau_{m,1}$@ @$\ldots$@ @$\tau_{m,p_m}$@
+\end{minted}
+
+\paragraph{Function declarations}
+
+
+\subsection{Pattern Matching}
+
+\subsection{Predefined operations and data types}
+Haskell's \textit{Prelude} offers a rich set of predefined data types and operations.
+We do not aim to recreate the entire Prelude but still want to expose some commonly used functionalities.
+\autoref{tbl:translation:assumptions:predefined} lists all predefined data types and the corresponding constructors supported by our compiler.
+
+\begin{table}[H]
+  \begin{tabular}{l c r}
+    \toprule[\heavyrulewidth]\toprule[\heavyrulewidth]
+    \textbf{Name} & \textbf{Type} & \textbf{Constructors} \\
+    \midrule
+    unit     & \haskell{()} & \haskell{()} \\
+    pairs    & \haskell{(@$\tau_1$@, @$\tau_2$@)} & \haskell{(,)} \\
+    lists    & \haskell{[@$\tau$@]} & \haskell{[]} and \haskell{(:)} \\
+    booleans & \haskell{Bool} & \haskell{True} and \haskell{False} \\
+    integers & \haskell{Integer} &\\
+    \bottomrule[\heavyrulewidth]
+  \end{tabular}
+  \caption{Predefined data types and their constructors.}
+  \label{tbl:translation:assumptions:predefined}
+\end{table}
+
+We are especially interested in data types with their own syntax, namely, lists, pairs and the unit type.
+That these data types have their own notation can be seen as a strong indicator for their importance in actual Haskell code.
+Internally, we will not handle these types any different from user-defined types and constructors, i.e., the following identities hold.
+\begin{align*}
+  \haskellM{[@$\tau$@]}
+  &= \haskellM{[] @$\tau$@}
+  &&\forall \tau \text{ type expression}
+  \\
+  \haskellM{(@$\tau_1$@, @$\tau_2$@)}
+  &= \haskellM{(,) @$\tau_1$@ @$\tau_2$@}
+  &&\forall \tau_1, \tau_2 \text{ type expression}
+\end{align*}
+
+In addition to the constructors, there is a more concise notation for lists and pairs.
+\begin{align}
+  \haskellM{[@$e_1$@, @$e_2$@, @$\ldots$@, @$e_n$@]}
+  &= \haskellM{@$e_1$@ : (@$e_2$@ : (@$\ldots$@ : (@$e_n$@ : [])@$\ldots$@))}
+  &&\forall e_1, e_2, \ldots, e_n \text{ expression}
+  \label{eqn:translation:assumptions:list-literal}
+  \\
+  \haskellM{(@$e_1$@, @$e_2$@)}
+  &= \haskellM{(,) @$e_1$@ @$e_2$@}
+  &&\forall e_1, e_2 \text{ expression}
+  \label{eqn:translation:assumptions:pair-literal}
+\end{align}
+
+Furthermore, \autoref{tbl:translation:assumptions:predefined} lists \haskell{Bool} and \haskell{Integer} as predefined data types.
+In theory \haskell{Bool} and its constructors \haskell{True} and \haskell{False} could be defined by the user.
+However, \haskell{Bool} is important for the translation of \haskell{if} expressions.
+Due to the lack of type classes, \haskell{Integer} will be used as the type for all numeric literals, i.e., there are no fixed-precision integers of type \haskell{Int}.
+Decimal, hexadecimal and octal notation can be used.
+
+The following commonly used operations for \haskell{Bool} and \haskell{Integer} are build into the compiler.
+\begin{itemize}
+  \item \textbf{Arithmetic operations:} addition \haskell{(+)}, subtraction \haskell{(-)}, multiplication \haskell{(*)}, exponentiation \haskell{(^)} and negation (using the \haskell{negate} function or unary minus operator).
+  \item \textbf{Boolean operations:} conjunction \haskell{(&&)} and disjunction \haskell{(||)}
+  \item \textbf{Comparison of integers:} \haskell{(<=)}, \haskell{(<)}, \haskell{(==)}, \haskell{(/=)}, \haskell{(>=)}, \haskell{(>)}
+\end{itemize}
+Floating point numbers, other literals such as \haskell{String}s and tuples with more than two elements are not supported yet.
+
+Apart from the predefined data types, constructors and operations mentioned in this section, all Haskell modules must be self contained.
+In particular, \haskell{import} declarations are not supported.

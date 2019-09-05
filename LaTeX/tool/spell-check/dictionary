@@ -6,8 +6,10 @@ boolean
 booleans
 Coq
 disjunction
+Dylus
 effectful
 Gallina
+GHC
 Hanus
 inlined
 inlining
@@ -18,6 +20,7 @@ monadically
 naïve
 naïvely
 namespaces
+notational
 parameterized
 polymorphism
 preprocessing

@@ -1,8 +1,8 @@
 \section{Notation} \label{sec:preliminaries:notation}
-This section introduces notational conventions used for the remainder of this chapter to describe the translation rules.
+This section introduces notational conventions used throughout this thesis.
 
 \subsection{Notation for Translation Rules}
-The translation rules presented in this chapter are based on the work by \cite{Abel:2005}.
+The translation rules presented in \autoref{chp:translation} are based on the work by \cite{Abel:2005}.
 We are also going to adopt their notation and write
 \[
   \toCoq{H} = G
@@ -10,7 +10,7 @@ We are also going to adopt their notation and write
 to express that the Haskell language construct $H$ (e.g., a type, expression or declaration) should be converted to the corresponding Gallina language construct $G$ (e.g., a term or sentence).
 
 \subsection{Naming conventions}
-In the translation rules we make extensive use of meta-variables for identifiers, expressions or types.
+When formalizing the assumptions and translation rules we make extensive use of meta-variables for identifiers, expressions and types.
 For the sake of readability, those meta-variables will not always be introduced explicitly.
 Instead, we rely on naming conventions outlined in this section to determine what the meta-variables stands for.
 If there are multiple meta-variables of the same kind, we use a subscripted index.
@@ -38,5 +38,5 @@ Since Coq is a dependently typed language, types in Coq can contain values.
 Therefore, Coq constructors can conflict with types of the same name and need to be renamed as well.
 
 Details on how identifiers are renamed will be given in \autoref{chp:implementation}.
-In this chapter we will simply write $I'$ for the renamed version of a Haskell identifier $I$.
+For the time being, we will simply write $I'$ for the renamed version of a Haskell identifier $I$.
 For short, we write $e'$ or $\tau'$ for an expression $e$ or type expressions $\tau$ in which all identifiers have been renamed appropriately.

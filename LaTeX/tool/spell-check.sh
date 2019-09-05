@@ -57,6 +57,7 @@ for file in $files; do
            --mode=tex                                          \
            --add-tex-command "aspellIgnore p"                  \
            --add-tex-command "autoref p"                       \
+           --add-tex-command "citep p"                         \
            --add-tex-command "coq p"                           \
            --add-tex-command "coqM p"                          \
            --add-tex-command "digraph pp"                      \
@@ -72,7 +73,7 @@ for file in $files; do
     uniq                                                       |
 
     # Ignore words from dictionary file.
-    grep -v -w -f "$dictionary"
+    grep -i -v -w -f "$dictionary"
   )
 
   # Find unhyphenated compound words.
