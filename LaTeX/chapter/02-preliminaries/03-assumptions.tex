@@ -1,11 +1,32 @@
-\section{Assumptions} \label{sec:translation:assumptions}
+\section{Assumptions} \label{sec:preliminaries:assumptions}
+Since it would be error-prone and infeasible to support the complete language specification of Haskell, we make assumtions about input modules that simplify the translation to Coq.
+Effectively, we specify a subset of Haskell that we are going to focus on for the remainder of this thesis.
+
+\subsection{Pattern Matching}
+
 \subsection{Predefined operations and data types}
 Haskell's \textit{Prelude} offers a rich set of predefined data types and operations.
 We do not aim to recreate the entire Prelude but still want to expose some commonly used functionalities.
-We are especially interested in data types with their own syntax.
-Namely, we support lists, pairs and the unit type as well as their constructors.
+\autoref{tbl:translation:assumtions:predefined} lists all predefined data types and the corresponding constructors supported by our compiler.
+
+\begin{table}[H]
+  \begin{tabular}{l c r}
+    \toprule[\heavyrulewidth]\toprule[\heavyrulewidth]
+    \textbf{Name} & \textbf{Type} & \textbf{Constructors} \\
+    \midrule
+    unit     & \haskell{()} & \haskell{()} \\
+    pairs    & \haskell{(@$\tau_1$@, @$\tau_2$@)} & \haskell{(,)} \\
+    lists    & \haskell{[@$\tau$@]} & \haskell{[]} and \haskell{(:)} \\
+    booleans & \haskell{Bool} & \haskell{True} and \haskell{False} \\
+    integers & \haskell{Integer} &\\
+    \bottomrule[\heavyrulewidth]
+  \end{tabular}
+  \caption{Predefined data types and their constructors.}
+  \label{tbl:translation:assumtions:predefined}
+\end{table}
+
+We are especially interested in data types with their own syntax, namely, lists, pairs and the unit type.
 That these data types have their own notation can be seen as a strong indicator for their importance in actual Haskell code.
-\autoref{tbl:translation:assumtions:predefined} lists all predefined data types and the corresponding constructors.
 Internally, we will not handle these types any different from user-defined types and constructors, i.e., the following identities hold.
 \begin{align*}
   \haskellM{[@$\tau$@]}
@@ -35,22 +56,6 @@ In theory \haskell{Bool} and its constructors \haskell{True} and \haskell{False}
 However, \haskell{Bool} is important for the translation of \haskell{if} expressions.
 Due to the lack of type classes, \haskell{Integer} will be used as the type for all numeric literals, i.e., there are no fixed-precision integers of type \haskell{Int}.
 Decimal, hexadecimal and octal notation can be used.
-
-\begin{table}[H]
-  \begin{tabular}{l c r}
-    \toprule[\heavyrulewidth]\toprule[\heavyrulewidth]
-    \textbf{Name} & \textbf{Type} & \textbf{Constructors} \\
-    \midrule
-    unit     & \haskell{()} & \haskell{()} \\
-    pairs    & \haskell{(@$\tau_1$@, @$\tau_2$@)} & \haskell{(,)} \\
-    lists    & \haskell{[@$\tau$@]} & \haskell{[]} and \haskell{(:)} \\
-    booleans & \haskell{Bool} & \haskell{True} and \haskell{False} \\
-    integers & \haskell{Integer} &\\
-    \bottomrule[\heavyrulewidth]
-  \end{tabular}
-  \caption{Predefined data types and their constructors.}
-  \label{tbl:translation:assumtions:predefined}
-\end{table}
 
 The following commonly used operations for \haskell{Bool} and \haskell{Integer} are build into the compiler.
 \begin{itemize}
