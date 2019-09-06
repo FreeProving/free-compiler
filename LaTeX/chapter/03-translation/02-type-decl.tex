@@ -178,7 +178,7 @@ Just as with sum types, additional constructors are separated by a vertical bar.
     \right)}
     = \begin{array}{l}
       \coqM{Inductive @$D$@ (@$\Shape$@ : Type) (@$\Pos$@ : @$\Shape$@ -> Type)}                      \\
-      \phantom{\coqM{Inductive @$D$@}}\;\;\coqM{(@$\alpha_1$@ @$\ldots$@ @$\alpha_n$@ : Type) : Type} \\
+      \phantom{\coqM{Inductive @$D$@}}\;\;\coqM{(@$\alpha_1'$@ @$\ldots$@ @$\alpha_n'$@ : Type) : Type} \\
       \quad\coqM{:= @$c_1'$@ : @$\toCoqX{\tau_{1,1}}$@ -> @$\ldots$@ -> @$\toCoqX{\tau_{1,p_1}}$@ -> @$\toCoqTX{(D\;\alpha_1\;\ldots\;\alpha_n)}$@} \\
       \quad\;\;\coqM{| @$\ldots$@}                                                                                                                             \\
       \quad\;\;\coqM{| @$c_m'$@ : @$\toCoqX{\tau_{m,1}}$@ -> @$\ldots$@ -> @$\toCoqX{\tau_{m,p_m}}$@ -> @$\toCoqTX{(D\;\alpha_1\;\ldots\;\alpha_n)}$@.}

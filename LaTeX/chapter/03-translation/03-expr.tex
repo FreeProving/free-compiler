@@ -228,7 +228,7 @@ The bind operation corresponds to the fact that Haskell evaluates the condition 
 
 \begin{figure}[H]
   \[
-    \haskellM{if @$e_1$@ then @$e_2$@ else @$e_3$@}
+    \toCoq{(\haskellM{if @$e_1$@ then @$e_2$@ else @$e_3$@})}
       = \coqM{@$\toCoqX{e_1}$@ >>= (fun (@$x$@ :}\;\toCoq{\haskellM{Bool}}\coqM{) => if @$x$@ then @$\toCoqX{e_2}$@ else @$\toCoqX{e_3}$@)}
   \]
   \caption{Translation rule for \haskell{if} expressions.}

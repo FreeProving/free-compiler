@@ -1,8 +1,12 @@
 \chapter{Translation} \label{chp:translation}
 This chapter deals with the specification and explanation of the translation rules that govern the generation of Coq code from Haskell modules.
-The translation rules in this chapter lay the theoretical basis for the implementation of our compiler presented in \autoref{chp:implementation}.
+The translation rules lay the theoretical basis for the implementation of our compiler presented in \autoref{chp:implementation}.
+The first two sections cover the translation of type expressions and declarations while the next two sections addresses the translation of expressions and function declarations.
+The translation rules are based for the most part on work by \cite{Abel:2005}.
+In the final section, an extension to the translation is presented that allows for the generation of templates for Coq theorems from QuickCheck properties.
 
 \input{chapter/03-translation/01-type.tex}
 \input{chapter/03-translation/02-type-decl.tex}
 \input{chapter/03-translation/03-expr.tex}
 \input{chapter/03-translation/04-func-decl.tex}
+\input{chapter/03-translation/05-quickcheck.tex}

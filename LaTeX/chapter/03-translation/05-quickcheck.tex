@@ -1,0 +1,117 @@
+\section{Translation of QuickCheck Properties} \label{sec:translation:func:quickcheck}
+In this last section, an extension to the translation rules for function declarations is presented that allows templates for Coq theorems to be generated from QuickCheck properties.
+
+\subsection{Motivation}
+The goal of the translation to Coq is to prove properties of the original Haskell programs.
+Before such a property can be proven using Coq, the user has to formulate a suitable proposition first.
+Due to the overhead involved with our translation, writing down such propositions in Coq directly is a tedious task.
+However, since we want to state proposition about Haskell code, it is natural to note them down in Haskell.
+QuickCheck provides us with a mechanism for writing properties that we expect our program to fulfill.
+
+The QuickCheck library is usually used during development of Haskell programs to create automated tests.
+The programmer writes a regular function~--~a so called \textit{QuickCheck property}~--~that returns a boolean value for example.
+By convention the names of such QuickCheck properties start with the prefix \haskell{prop_}.
+We can think about them as universally quantified propositions.
+For example, the following QuickCheck property states, that all integers $n$ and $m$ commute under addition.
+\begin{minted}{haskell}
+  prop_add_comm :: Integer -> Integer -> Bool
+  prop_add_comm n m = n + m == m + n
+\end{minted}
+QuickCheck generates arbitrary values for the function's arguments and passes them to the function.
+If the function returns \haskell{True}, the property is satisfied and QuickCheck generates further examples to test the function with.
+Otherwise, QuickCheck terminates printing the counter example it found for the property.
+
+Thus, QuickCheck does not only provide a notation for properties that we want to prove in Coq but also offers the user a way to convince themselves that the program probably fulfills the property before they attempt the proof.
+
+\subsection{Assumptions}
+The extension proposed in this section is optional.
+To enable the translation of QuickCheck properties, the Haskell module must contain the following \haskell{import} declaration.
+\begin{minted}{haskell}
+  import Test.QuickCheck
+\end{minted}
+This \haskell{import} declaration imports only a selected subset of QuickCheck's functionalities.
+Namely, the following operators are supported:
+\begin{itemize}
+  \item \haskell{(==>)          :: Testable prop => Bool -> prop -> Property},
+  \item \haskell{(.&&.), (.||.) :: (Testable prop1, Testable prop2) => prop1 -> prop2 -> Property} and
+  \item \haskell{(===), (=/=)   :: a -> a -> Property}.
+\end{itemize}
+The operations above are available only inside QuickCheck properties, i.e., functions whose name starts with \haskell{prop_}.
+The semantics of the operations is explained in the next subsection.
+
+The type \haskell{Property} is used by QuickCheck to represent more complex properties than \haskell{Bool} can represent.
+In user-defined functions, it is only allowed to be used as the return type of QuickCheck properties.
+The type class \haskell{Testable} is used in the type signatures above to indicate that the corresponding arguments can either be of type \haskell{Bool} or \haskell{Property}.
+
+A QuickCheck property $p$ has the following form where $\tau$ is one of \haskell{Bool} or \haskell{Property}.
+\begin{minted}{haskell}
+  prop_@$p$@ :: @$\tau_1$@ -> @$\ldots$@ -> @$\tau_n$@ -> @$\tau$@
+  prop_@$p$@ @$x_1$@ @$\ldots$@ @$x_n$@ = @$e$@
+\end{minted}
+
+\subsection{Code Generation}
+QuickCheck properties are translated to \coq{Theorem} sentences as shown in \autoref{fig:translation:quickcheck}.
+The arguments of the QuickCheck property~--~including type variables used in it's type signature as well as the parameters $Shape$, $Pos$ and potentially $P$~--~must be quantified universally.
+For the translation of the right-hand sides of QuickCheck properties, we introduce a new translation operation denoted by $\toCoqQ{}$.
+The corresponding proof is left blank and must be filled in by the user.
+
+\begin{figure}[H]
+  \[
+    \toCoq{\left(\begin{array}{l}
+      \haskellM{prop_@$p'$@ :: @$\tau_1$@ -> @$\ldots$@ -> @$\tau_n$@ -> @$\tau$@} \\
+      \haskellM{prop_@$p'$@ @$x_1$@ @$\ldots$@ @$x_n$@ = @$e$@}
+    \end{array}\right)}
+    = \begin{array}{l}
+      \coqM{Theorem prop_@$p$@:} \\
+      \quad\coqM{forall}
+      \;\coqM{(@$Shape$@ : Type) (@$Pos$@ : @Shape@ -> Type)} \\
+      \qquad\qquad\;\coqM{(@$\alpha_1'$@ @$\ldots$@ @$\alpha_m'$@ : Type) (@$x_1'$@ : @$\toCoqX{\tau_1}$@) @$\ldots$@ (@$x_n'$@ : @$\toCoqX{\tau_n}$@), @$\toCoqQX{e}$@.} \\
+      \coqM{Proof. (* FILL IN HERE *) Admitted.} \\
+    \end{array}
+  \]
+  \caption{
+    Translation rule for QuickCheck properties.
+    If the function \haskell{prop_@$p$@} is partial, an additional binding \coq{(@$P$@ : Partial @$Shape$@ @$Pos$@)} must be added.
+  }
+  \label{fig:translation:quickcheck}
+\end{figure}
+
+In the simplest case, the right-hand side of the property is an expression of type \haskell{Bool}.
+Such a property holds if the boolean expressions evaluates to \haskell{True}.
+\begin{align*}
+  \toCoqQ{e}
+  = \coqM{@$\toCoqX{e}$@ =}\;\;\toCoq{\haskellM{True}}
+  &&\text{if } \haskellM{@$e$@ :: Bool}
+\end{align*}
+
+Since we do not support type classes, \haskell{(==)} and \haskell{(/=)} can only be used for the comparison of integers.
+This complicates writing properties that involve equality of other data types.
+For example, the following is invalid.
+\begin{minted}{haskell}
+  prop_append_assoc :: [a] -> [a] -> [a] -> Bool
+  prop_append_assoc xs ys zs = (xs `append` ys) `append` zs == xs `append` (ys `append` zs)
+\end{minted}
+For this reason, we translate QuickCheck's \haskell{(===)} and \haskell{(=/=)} operators to Coq's reflexive equality.
+\begin{align*}
+  \toCoqQ{(\haskellM{@$e_1$@ === @$e_2$@})}
+  &= \coqM{@$\toCoqX{e_1}$@ = @$\toCoqX{e_2}$@} \\
+  \toCoqQ{(\haskellM{@$e_1$@ =/= @$e_2$@})}
+  &= \coqM{@$\toCoqX{e_1}$@ <> @$\toCoqX{e_2}$@} \\
+\end{align*}
+
+Furthermore, the precondition operator \haskell{(==>)} is translated to an implication in Coq.
+\begin{align*}
+  \toCoqQ{(\haskellM{@$e_1$@ ==> @$e_2$@})}
+  = \coqM{@$\toCoqQX{e_1}$@ -> @$\toCoqQX{e_2}$@}
+\end{align*}
+
+The operators \haskell{(===)}, \haskell{(=/=)} and \haskell{(==>)} produce values of type \haskell{Property} and correspond to Coq propositions formed by \coq{=}, \coq{<>} and \coq{->}.
+Therefore, we cannot use \haskell{(&&)} or \haskell{(||)} to combine such values.
+In Coq \coq{/\} and \coq{\/} can be used to denote the conjunction and disjunction of propositions, respectively.
+We are using QuickChecks \haskell{(.&&.)} and \haskell{(.||.)} operators for this purpose.
+\begin{align*}
+  \toCoqQ{(\haskellM{@$e_1$@ .&&. @$e_2$@})}
+  &= \coqM{@$\toCoqX{e_1}$@ /\ @$\toCoqX{e_2}$@} \\
+  \toCoqQ{(\haskellM{@$e_1$@ .||. @$e_2$@})}
+  &= \coqM{@$\toCoqX{e_1}$@ \/ @$\toCoqX{e_2}$@} \\
+\end{align*}
