@@ -191,7 +191,7 @@ simplifyDecl decl@(H.FunBind _ _) =
 -- Pattern-bindings for 0-ary functions.
 simplifyDecl (H.PatBind srcSpan (H.PVar _ declName) (H.UnGuardedRhs _ expr) Nothing)
   = do
-    declIdent <- simplifyFuncDeclName declName
+    declIdent      <- simplifyFuncDeclName declName
     (args', expr') <- simplifyExpr expr >>= return . unlambda
     return ([], [], [HS.FuncDecl srcSpan declIdent args' expr'])
 
