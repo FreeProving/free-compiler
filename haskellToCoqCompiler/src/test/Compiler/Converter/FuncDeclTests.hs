@@ -11,13 +11,34 @@ import           Compiler.Util.Test
 -- | Test group for 'convertNonRecFuncDecl' tests.
 testConvertNonRecFuncDecl :: Spec
 testConvertNonRecFuncDecl =
-  describe "FuncDecl.convertNonRecursiveFunction" $ do
+  describe "Compiler.Converter.FuncDecl.convertNonRecursiveFunction" $ do
     it "translates 0-ary functions (pattern-bindings) correctly"
       $ shouldSucceed
       $ fromConverter
       $ do
           shouldTranslateDeclsTo ["foo :: Integer", "foo = 42"]
             $  "Definition foo (Shape : Type) (Pos : Shape -> Type)"
+            ++ "  : Free Shape Pos (Integer Shape Pos)"
+            ++ "  := pure 42%Z."
+
+    it "translates 0-ary functions that return functions correctly"
+      $ shouldSucceed
+      $ fromConverter
+      $ do
+          shouldTranslateDeclsTo ["foo :: a -> Integer", "foo = \\x -> 42"]
+            $  "Definition foo (Shape : Type) (Pos : Shape -> Type) {a : Type}"
+            ++ "  (x : Free Shape Pos a)"
+            ++ "  : Free Shape Pos (Integer Shape Pos)"
+            ++ "  := pure 42%Z."
+
+    it "translates functions that return functions correctly"
+      $ shouldSucceed
+      $ fromConverter
+      $ do
+          shouldTranslateDeclsTo
+              ["foo :: a -> b -> Integer", "foo x = \\y -> 42"]
+            $  "Definition foo (Shape : Type) (Pos : Shape -> Type)"
+            ++ "  {a b : Type} (x : Free Shape Pos a) (y : Free Shape Pos b)"
             ++ "  : Free Shape Pos (Integer Shape Pos)"
             ++ "  := pure 42%Z."
 

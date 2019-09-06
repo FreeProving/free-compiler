@@ -79,7 +79,7 @@ usageError message node = reportFatal $ Message (H.ann node) Error message
 -- | Creates a reporter that reports a warning if the given condition is met.
 warnIf
   :: H.Annotated a
-  => Bool      -- ^ The condition to test.
+  => Bool      -- ^ The conditiuon to test.
   -> String    -- ^ The waning to print if the condition is not met.
   -> a SrcSpan -- ^ The node that caused the warning.
   -> Simplifier ()
@@ -192,8 +192,8 @@ simplifyDecl decl@(H.FunBind _ _) =
 simplifyDecl (H.PatBind srcSpan (H.PVar _ declName) (H.UnGuardedRhs _ expr) Nothing)
   = do
     declIdent <- simplifyFuncDeclName declName
-    expr'     <- simplifyExpr expr
-    return ([], [], [HS.FuncDecl srcSpan declIdent [] expr'])
+    (args', expr') <- simplifyExpr expr >>= return . unlambda
+    return ([], [], [HS.FuncDecl srcSpan declIdent args' expr'])
 
 -- The pattern-binding for a 0-ary function must not use guards or have a
 -- where block.
