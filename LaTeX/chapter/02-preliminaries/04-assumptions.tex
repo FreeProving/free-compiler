@@ -2,50 +2,15 @@
 Since it would be error-prone and infeasible to support the complete language specification of Haskell, we make assumptions about input modules that simplify the translation to Coq.
 Effectively, we specify a subset of Haskell that we are going to focus on for the remainder of this thesis.
 The language supported by our compiler is based on the Haskell 2010 Language Report \citep{Marlow:2010}.
-There is no support for language extensions.
+As a general requirement, we specify that all input modules should be valid Haskell modules, i.e., the GHC should be able to compile the module successfully.
+However, just a small selection of expressions and declarations is actually permitted.
+There is neither support for language extensions nor type classes.
 
-\subsection{Type Signatures}
-As a general requirement we specify that all input modules should be valid Haskell modules, i.e., the GHC should be able to compile the module successfully.
-In particular, we assume the Haskell program to be correctly typed.
-Performing type inference is beyond the scope of this thesis.
-Nevertheless, type information is needed for the translation to Coq.
-Consequently, we require explicit type signatures for all function declarations to be present.
-
-\subsection{Declarations}
-Only some of the most important kinds of declarations are supported.
-Namely, data type and type synonym declarations as well as function declarations are supported.
-A Haskell module must not contain any other declarations.
-In particular, type classes are not supported.
-No local declarations using \haskell{let} or \haskell{where} are permitted either.
-Lastly, we do not allow the user to declare custom operators.
-For instance, list concatenation is commonly called \haskell{(++)}.
-In our case, a non-symbolic name must be given to this operation as shown in \autoref{fig:preliminaries:assumptions:append}.
-Infix notation is still allowed.
-
-\begin{figure}[H]
-  \begin{center}
-    \begin{minipage}[t]{0.45\textwidth}
-      \begin{minted}{haskell}
-        (++) :: [a] -> [a] -> [a]
-        xs ++ ys = {- ... -}
-      \end{minted}
-    \end{minipage}
-    \begin{minipage}[t]{0.45\textwidth}
-      \begin{minted}{haskell}
-        append :: [a] -> [a] -> [a]
-        xs `append` ys = {- ... -}
-      \end{minted}
-    \end{minipage}
-  \end{center}
-  \caption{Definition of list concatenation using a symbolic name (left) and an identifier (right).}
-  \label{fig:preliminaries:assumptions:append}
-\end{figure}
-
-\paragraph{Type declarations}
-User-defined data types can be specified using \haskell{data} and \haskell{type} declarations.
-There is no support for \haskell{newtype} at this point in time.
-Furthermore, record syntax for constructors is not supported.
-As a result, data type declaration always have the following form.
+\subsection{Data Type Declarations} \label{sec:preliminaries:assumptions:data-decl}
+For the definition of custom data types, we allow the usage of \haskell{data} declarations.
+No \haskell{newtype} declarations are supported.
+Furthermore, the constructors of the data type do not support record syntax.
+Hence, a declaration of a data type $D$ with $n$ type arguments $\alpha_1$ through $\alpha_n$ and $m$ constructors $C_1$ through $C_m$ has the following form.
 \begin{minted}{haskell}
   data @$D$@ @$\alpha_1$@ @$\ldots$@ @$\alpha_n$@ =
       @$C_1$@ @$\tau_{1,1}$@ @$\ldots$@ @$\tau_{1,p_1}$@
@@ -53,13 +18,139 @@ As a result, data type declaration always have the following form.
     | @$\ldots$@
     | @$C_m$@ @$\tau_{m,1}$@ @$\ldots$@ @$\tau_{m,p_m}$@
 \end{minted}
+Since type classes are not allowed, there is no \haskell{deriving} clause.
 
-\paragraph{Function declarations}
+Constructors can be written in infix notation, but we do not allow the usage of symbolic names.
+For example, the left definition of a "rose tree" below is not allowed and must be declared as show to the right.
+\begin{center}
+  % The two @@ are just needed to fix some syntax highl;ighting issues I encounted locally.
+  \begin{minipage}[t]{0.35\textwidth}
+    \begin{minted}{haskell}
+      {- INALID -}
+      @@data Rose a = a :> [Rose a]
+    \end{minted}
+  \end{minipage}
+  \begin{minipage}[t]{0.35\textwidth}
+    \begin{minted}{haskell}
+      {- VALID -}
+      @@data Rose a = a `Rose` [Rose a]
+    \end{minted}
+  \end{minipage}
+\end{center}
 
+\subsection{Type Synonym Declarations} \label{sec:preliminaries:assumptions:type-decl}
+In addition to data type declarations, user-defined types can be introduced using \haskell{type} declarations.
+A declaration of a type synonym $S$ with $n$ type arguments $\alpha_1$ through $\alpha_n$ has the following form.
+\begin{minted}{haskell}
+  type @$S$@ @$\alpha_1$@ @$\ldots$@ @$\alpha_n$@ = @$\tau$@
+\end{minted}
 
-\subsection{Pattern Matching}
+\subsection{Function Declarations} \label{sec:preliminaries:assumptions:func-decl}
+In Haskell functions are usually defined by performing pattern matching over their arguments.
+For example, boolean negation can be defined by two rules, each matching one of \haskell{Bool}'s constructors.
+\begin{minted}{haskell}
+  not True  = False
+  not False = True
+\end{minted}
+For simplicity, we restrict pattern matching to the right-hand side of function declarations (see also \autoref{sec:preliminaries:assumptions:pattern-matching}).
+Therefore, all function declarations consist of exactly one rule and the arguments on the left-hand side are variable patterns.
+\begin{minted}{haskell}
+  @$f$@ @$x_1$@ @$\ldots$@ @$x_n$@ = @$e$@
+\end{minted}
+In the example above, \haskell{not} would have to be defined as follows.
+\begin{minted}{haskell}
+  not x = case x of
+    True  -> False
+    False -> True
+\end{minted}
+Guards and local declarations, i.e., \haskell{where} clauses, are not permitted.
 
-\subsection{Predefined operations and data types}
+Functions can be written in infix notation, but we do not allow the definition of custom operators.
+For example, the left definition of list concatenation below is not allowed and must be declared as show to the right.
+\begin{center}
+  \begin{minipage}[t]{0.35\textwidth}
+    \begin{minted}{haskell}
+      {- INVALID -}
+      (++) :: [a] -> [a] -> [a]
+      xs ++ ys = {- ... -}
+    \end{minted}
+  \end{minipage}
+  \begin{minipage}[t]{0.35\textwidth}
+    \begin{minted}{haskell}
+      {- VALID -}
+      append :: [a] -> [a] -> [a]
+      xs `append` ys = {- ... -}
+    \end{minted}
+  \end{minipage}
+\end{center}
+
+In addition to \textit{function bindings}~--~that were covered above, the Haskell Report defines so called \textit{pattern bindings} \cite[p.~53]{Marlow:2010}.
+Pattern bindings are declarations that bind variables in patterns to values.
+For example, the following pattern binding binds the value \haskell{42} and \haskell{True} to the variables \haskell{x} and \haskell{y}, respectively.
+\begin{minted}{haskell}
+  (x, y) = (42, True)
+\end{minted}
+Since we allow only explicit pattern matching on the right-hand side of function declarations, all pattern bindings have the following form, i.e., coincide with nullary function declarations.
+\begin{minted}{haskell}
+  @$x$@ = @$e$@
+\end{minted}
+
+\subsection{Type Signatures and Kinds} \label{sec:preliminaries:assumptions:type-sigs}
+As performing type inference is beyond the scope of this thesis,
+we assume Haskell programs to be correctly typed.
+Nevertheless, type information is needed for the translation to Coq.
+Consequently, we require explicit type signatures for all function declarations to be present.
+
+Similar to how type inference checks the types of functions and expressions, kind inference is a mechanism to check the validity of type expressions \cite[p.~37]{Marlow:2010}.
+A \textit{kind} can be thought of as the type of a type.
+The kind of nullary type constructor is denoted \haskell{*}.
+A type constructor that takes a type argument of kind $\kappa_1$ and produces a type of kind $\kappa_2$ is denoted \haskell{@$\kappa_1$@ -> @$\kappa_2$@}.
+Just like type inference, kind inference is beyond the scope of this thesis as well.
+However, the kinds of type variables are not explicitly annotated.
+Therefore, we assume all type variables to be of kind \haskell{*}.
+Consequently, all $n$-ary type constructors are of kind $\underbrace{\haskellM{* -> @$\ldots$@ -> *}}_{n\text{-times}}\;\haskellM{-> *}$.
+
+For example, the following type synonym that introduces an alias for type constructor application is not allowed because the kind of the type variable \haskell{t1} is \haskell{* -> *}.
+\begin{minted}{haskell}
+  {- INVALID -}
+  type App t1 t2 = t1 t2
+\end{minted}
+This is not really a restriction, as in real applications the usage of type variables as type constructors is usually only useful in conjunction with type classes.
+
+\subsection{Pattern Matching} \label{sec:preliminaries:assumptions:pattern-matching}
+As mentioned above, pattern matching must be performed explicitly on the right-hand side of function declarations using \haskell{case} expressions.
+We further restrict patterns in \haskell{case} expressions to shallow constructor patterns, i.e., all patterns have the form \haskell{@$C$@ @$x_1$@ @$\ldots$@ @$x_n$@}, where $C$ is an $n$-ary constructor and $x_1$ through $x_n$ are variable patterns.
+As we neither allow guards nor \haskell{where} clauses, \haskell{case} expressions have the following form.
+\begin{minted}{haskell}
+  case @$e$@ of
+    @$C_1$@ @$x_{1,1}$@ @$\ldots$@ @$x_{1,p_1}$@ -> @$e_1$@
+    @$C_2$@ @$x_{2,1}$@ @$\ldots$@ @$x_{2,p_2}$@ -> @$e_2$@
+    @$\ldots$@
+    @$C_m$@ @$x_{m,1}$@ @$\ldots$@ @$x_{m,p_m}$@ -> @$e_m$@
+\end{minted}
+Moreover, we assume pattern matching to be \textit{exhaustive}.
+If $e$ is of type \haskell{@$D$@ @$\tau_1$@ @$\ldots$@ @$\tau_n$@}, then $D$ must be a data type with exactly $m$ constructors.
+\begin{minted}{haskell}
+  data @$D$@ @$\alpha_1$@ @$\ldots$@ @$\alpha_n$@ =
+      @$C_1$@ @$\tau_{1,1}$@ @$\ldots$@ @$\tau_{1,p_1}$@
+    | @$C_2$@ @$\tau_{2,1}$@ @$\ldots$@ @$\tau_{2,p_2}$@
+    | @$\ldots$@
+    | @$C_m$@ @$\tau_{m,1}$@ @$\ldots$@ @$\tau_{m,p_m}$@
+\end{minted}
+Runtime errors that occur due to non-exhaustive patterns must be modeled explicitly by invoking one of the predefined functions \haskell{undefined} or \haskell{error}.
+\begin{minted}{haskell}
+  head :: [a] -> a
+  head xs = case xs of
+    []      -> error "head: empty list"
+    x : xs' -> x
+\end{minted}
+
+\subsection{Expressions}
+In addition to \haskell{case} expressions, \haskell{if} expressions and lambda abstractions are supported.
+In case of lambda abstractions, the same restrictions regarding pattern matching apply as to function declarations, i.e., their arguments must be variable patterns.
+Therefore, lambda abstractions have the form \haskell{\@$x_1$@ @$\ldots$@ @$x_n$@ -> @$e$@}.
+
+\subsection{Predefined operations and data types} \label{sec:preliminaries:assumptions:prelude}
 Haskell's \textit{Prelude} offers a rich set of predefined data types and operations.
 We do not aim to recreate the entire Prelude but still want to expose some commonly used functionalities.
 \autoref{tbl:translation:assumptions:predefined} lists all predefined data types and the corresponding constructors supported by our compiler.
@@ -119,6 +210,8 @@ The following commonly used operations for \haskell{Bool} and \haskell{Integer} 
   \item \textbf{Comparison of integers:} \haskell{(<=)}, \haskell{(<)}, \haskell{(==)}, \haskell{(/=)}, \haskell{(>=)}, \haskell{(>)}
 \end{itemize}
 Floating point numbers, other literals such as \haskell{String}s and tuples with more than two elements are not supported yet.
+Invocations of the \haskell{error} function are the only exception.
+Even though strings are otherwise not officially supported, the argument of \haskell{error} is allowed to be a string literal.
 
 Apart from the predefined data types, constructors and operations mentioned in this section, all Haskell modules must be self contained.
 In particular, \haskell{import} declarations are not supported.
