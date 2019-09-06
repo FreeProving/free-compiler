@@ -150,6 +150,8 @@ In addition to \haskell{case} expressions, \haskell{if} expressions and lambda a
 In case of lambda abstractions, the same restrictions regarding pattern matching apply as to function declarations, i.e., their arguments must be variable patterns.
 Therefore, lambda abstractions have the form \haskell{\@$x_1$@ @$\ldots$@ @$x_n$@ -> @$e$@}.
 
+There is no support for local declarations using \haskell{let} expressions.
+
 \subsection{Predefined operations and data types} \label{sec:preliminaries:assumptions:prelude}
 Haskell's \textit{Prelude} offers a rich set of predefined data types and operations.
 We do not aim to recreate the entire Prelude but still want to expose some commonly used functionalities.
