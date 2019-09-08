@@ -40,15 +40,20 @@ files=$(find . -name "*.tex")
 for file in $files; do
   echo -n "[  ] ${bold}${file}${reset}"
 
-  # Find misspelled words.
-  typos=$(
+  # Remove minted code blocks and math from input file.
+  contents=$(
     cat "$file"                                                |
 
     # Ignore minted code blocks and math.
-    perl -0pe 's|\\begin\{minted\}.*?\\end\{minted\}||smg'     |
     perl -0pe 's|\$([^\$@]+\|@\$[^\$]+\$@)*?\$||smg'           |
-    perl -0pe 's|\\\[.*?\\\]||smg'                             |
-    perl -0pe 's|\\begin\{align\*?\}.*?\\end\{align\*?\}||smg' |
+    perl -0pe 's|\\\[(.*?)\\\]|"\n"x($1 =~ tr/\n//)|smge'      |
+    perl -0pe 's|\\begin\{minted\}(.*?)\\end\{minted\}|"\n"x($1 =~ tr/\n//)|smge' |
+    perl -0pe 's|\\begin\{align\*?\}(.*?)\\end\{align\*?\}|"\n"x($1 =~ tr/\n//)|smge'
+  )
+
+  # Find misspelled words.
+  typos=$(
+    echo "$contents" |
 
     # Spell check.
     aspell list                                                \
@@ -78,7 +83,7 @@ for file in $files; do
 
   # Find unhyphenated compound words.
   unhyphenated=$(
-    cat "$file"                                       |
+    echo "$contents"                                  |
     grep -w -o -f <(cat $compound_words | tr '-' ' ') |
     sort                                              |
     uniq
@@ -87,8 +92,8 @@ for file in $files; do
   # Find sentences that start with a transitional word, but do not contain a
   # comma.
   missing_commas=$(
-    cat "$file" |
-      perl -ne 's/(.*?)('"$transitional_word_pattern"')\s[^,]*\.(.*?)/ - '"$bold"'line $.'"$reset"': $2'"${red}${bold},${reset}"'/sg && print'
+    echo "$contents" |
+    perl -ne 's/(.*?)('"$transitional_word_pattern"')\s[^,]*\.(.*?)/ - '"$bold"'line $.'"$reset"': $2'"${red}${bold},${reset}"'/sg && print'
   )
 
   # Print misspelled words.
