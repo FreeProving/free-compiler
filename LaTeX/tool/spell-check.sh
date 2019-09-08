@@ -70,8 +70,10 @@ for file in $files; do
            --add-tex-command "haskellM p"                      \
            --add-tex-command "newcommand pop"                  \
            --add-tex-command "newmintinline opp"               \
+           --add-tex-command "path p"                          \
            --add-tex-command "setminted p"                     \
-           --add-tex-command "texttt p"                        |
+           --add-tex-command "texttt p"                        \
+           --add-tex-command "toml p"                          |
 
     # Remove duplicates.
     sort                                                       |

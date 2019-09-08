@@ -1,0 +1,7 @@
+\section{Partiality Analysis} \label{sec:implementation:partiality-analysis}
+In addition to sorting function declarations during the dependency analysis, the function dependency graph can also be used to identify partial functions.
+As discussed in \autoref{sec:translation:func-decl:partial}, partial functions can be identified by adding two nodes additional nodes to the dependency graph for \haskell{undefined} and \haskell{error}.
+However, we cannot simply add an entry for \haskell{undefined} and \haskell{error} to the list of triples from the previous section since there is no AST node for them that could go into the first components.
+
+Therefore, we first have to look through the list of triples for the names of functions that refer to the identifiers \haskell{error} or \haskell{undefined}, i.e., identify directly partial functions.
+We can use \haskell{Data.Graph} to find the names of all indirectly partial functions, i.e., all nodes from which a path to a directly partial function exists within the dependency graph.

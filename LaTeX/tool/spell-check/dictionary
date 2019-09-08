@@ -1,5 +1,8 @@
 Andresen
+arity
 ary
+AST
+ASTs
 backquotes
 backticks
 boolean
@@ -10,10 +13,13 @@ Dylus
 effectful
 Gallina
 GHC
+Hackage
 Hanus
+INI
 inlined
 inlining
 instantiation
+JSON
 monad
 monadic
 monadically
@@ -23,6 +29,7 @@ namespaces
 notational
 nullary
 parameterized
+parsers
 polymorphism
 preprocessing
 QuickCheck
@@ -30,10 +37,13 @@ readability
 reimplementing
 ruleset
 runtime
+simplifier
 splitted
 subscripted
 subterm
 subterms
 th
+TOML
 unary
 unlifted
+YAML

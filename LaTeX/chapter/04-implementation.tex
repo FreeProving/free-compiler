@@ -1,1 +1,13 @@
 \chapter{Implementation} \label{chp:implementation}
+In this chapter the actual implementation of the Haskell to Coq compiler is presented.
+The first section gives an overview of the general architecture of the compiler.
+Technologies that have been used for the implementation of the compiler and the phases of the compilation process are summarized.
+In section two through six, the individual phases of the compilation process are described in more detail.
+
+\input{chapter/04-implementation/01-architecture.tex}
+\input{chapter/04-implementation/02-parser.tex}
+\input{chapter/04-implementation/03-simplification.tex}
+\input{chapter/04-implementation/04-dependency-analysis.tex}
+\input{chapter/04-implementation/05-partiality-analysis.tex}
+\input{chapter/04-implementation/06-coq-ast.tex}
+\input{chapter/04-implementation/07-base-library.tex}

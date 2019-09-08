@@ -28,6 +28,7 @@
 --
 --   The tables in the @constructors@ array must contain the following
 --   key/value pairs:
+--     * @haskell-type@ (@String@) the Haskell type of the data constructor.
 --     * @haskell-name@ (@String@) the Haskell name of the data constructor.
 --     * @coq-name@ (@String@) the identifier of the corresponding Coq data
 --       constructor.
@@ -40,6 +41,7 @@
 --
 --   The tables in the @functions@ array must contain the following
 --   key/value pairs:
+--     * @haskell-type@ (@String@) the Haskell type of the function.
 --     * @haskell-name@ (@String@) the Haskell name of the function.
 --     * @coq-name@ (@String@) the identifier of the corresponding Coq
 --       function.
