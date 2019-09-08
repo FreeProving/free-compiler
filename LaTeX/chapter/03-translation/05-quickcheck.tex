@@ -1,7 +1,7 @@
 \section{Translation of QuickCheck Properties} \label{sec:translation:func:quickcheck}
 In this last section, an extension to the translation rules for function declarations is presented that allows templates for Coq theorems to be generated from QuickCheck properties.
 
-\subsection{Motivation}
+\subsection{Motivation} \label{sec:translation:quickcheck:motivation}
 The goal of the translation to Coq is to prove properties of the original Haskell programs.
 Before such a property can be proven using Coq, the user has to formulate a suitable proposition first.
 Due to the overhead involved with our translation, writing down such propositions in Coq directly is a tedious task.
@@ -23,7 +23,7 @@ Otherwise, QuickCheck terminates printing the counter example it found for the p
 
 Thus, QuickCheck does not only provide a notation for properties that we want to prove in Coq but also offers the user a way to convince themselves that the program probably fulfills the property before they attempt the proof.
 
-\subsection{Assumptions}
+\subsection{Assumptions} \label{sec:translation:quickcheck:assumptions}
 The extension proposed in this section is optional.
 To enable the translation of QuickCheck properties, the Haskell module must contain the following \haskell{import} declaration.
 \begin{minted}{haskell}
@@ -49,7 +49,7 @@ A QuickCheck property $p$ has the following form where $\tau$ is one of \haskell
   prop_@$p$@ @$x_1$@ @$\ldots$@ @$x_n$@ = @$e$@
 \end{minted}
 
-\subsection{Code Generation}
+\subsection{Code Generation} \label{sec:translation:quickcheck:code-generation}
 QuickCheck properties are translated to \coq{Theorem} sentences as shown in \autoref{fig:translation:quickcheck}.
 The arguments of the QuickCheck property~--~including type variables used in it's type signature as well as the parameters $Shape$, $Pos$ and potentially $P$~--~must be quantified universally.
 For the translation of the right-hand sides of QuickCheck properties, we introduce a new translation operation denoted by $\toCoqQ{}$.

@@ -145,7 +145,7 @@ Runtime errors that occur due to non-exhaustive patterns must be modeled explici
     x : xs' -> x
 \end{minted}
 
-\subsection{Expressions}
+\subsection{Expressions} \label{sec:preliminaries:assumptions:expressions}
 In addition to \haskell{case} expressions, \haskell{if} expressions and lambda abstractions are supported.
 In case of lambda abstractions, the same restrictions regarding pattern matching apply as to function declarations, i.e., their arguments must be variable patterns.
 Therefore, lambda abstractions have the form \haskell{\@$x_1$@ @$\ldots$@ @$x_n$@ -> @$e$@}.

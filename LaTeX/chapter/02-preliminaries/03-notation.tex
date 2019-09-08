@@ -1,7 +1,7 @@
 \section{Notation} \label{sec:preliminaries:notation}
 This section introduces notational conventions used throughout this thesis.
 
-\subsection{Notation for Translation Rules}
+\subsection{Notation for Translation Rules} \label{sec:preliminaries:notation:rules}
 The translation rules presented in \autoref{chp:translation} are based on the work by \cite{Abel:2005}.
 We are also going to adopt their notation and write
 \[
@@ -9,7 +9,7 @@ We are also going to adopt their notation and write
 \]
 to express that the Haskell language construct $H$ (e.g., a type, expression or declaration) should be converted to the corresponding Gallina language construct $G$ (e.g., a term or sentence).
 
-\subsection{Naming conventions}
+\subsection{Naming conventions} \label{sec:preliminaries:notation:naming-conventions}
 When formalizing the assumptions and translation rules, we make extensive use of meta-variables for identifiers, expressions and types.
 For the sake of readability, those meta-variables will not always be introduced explicitly.
 Instead, we rely on naming conventions outlined in this section to determine what the meta-variables stands for.
@@ -29,7 +29,7 @@ E.g. if $C_i = \texttt{Foo}$ for some index $i$, then $c_i$ will be \coq{foo}.
 We are also using $\Shape$ and $\Pos$ as identifiers for the arguments of the free monad.
 They are passed explicitly as parameters to generated Coq sentences.
 
-\subsection{Notation for renamed identifiers}
+\subsection{Notation for renamed identifiers} \label{sec:preliminaries:notation:renaming}
 Not all Haskell identifiers are valid Coq identifiers and need to be renamed if necessary.
 For example \haskell{with} could be used in Haskell as the name for a function or variable, but not in Coq as \haskell{with} is a keyword in Coq.
 
