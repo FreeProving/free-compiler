@@ -28,7 +28,11 @@ testRenamer = describe "Compiler.Environment.Renamer" $ do
 genIdent :: Gen String
 genIdent = do
   ident <- frequency
-    [(6, genRegularIdent), (3, genKeyword), (1, genReservedIdent)]
+    [ (6, genRegularIdent)
+    , (2, genKeyword)
+    , (2, genVernacularCommand)
+    , (1, genReservedIdent)
+    ]
   num <- choose (0, 42) :: Gen Int
   oneof $ map return [ident, (ident ++ show num)]
 
@@ -44,6 +48,10 @@ genReservedIdent =
 -- | Generator for arbitrary Coq keywords.
 genKeyword :: Gen String
 genKeyword = oneof $ map return coqKeywords
+
+-- | Generator for arbitrary Vernacular commands.
+genVernacularCommand :: Gen String
+genVernacularCommand = oneof $ map return vernacularCommands
 
 -------------------------------------------------------------------------------
 -- Tests for @mustRenameIdent@                                              --

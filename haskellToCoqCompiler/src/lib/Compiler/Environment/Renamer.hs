@@ -50,6 +50,26 @@ import           Compiler.Pretty
 isCoqKeyword :: String -> Bool
 isCoqKeyword = flip elem coqKeywords
 
+-- | Tests whether the given Coq identifier is part of a command of
+--   The Vernacular.
+--
+--   If the identifier conflicts with a command, it should be renamed to avoid
+--   naming conflicts, e.g. the following Haskell data type
+--
+--   @
+--     data Definition = {- ... -}
+--   @
+--
+--   would result in a Coq @Inductive@ sentence like
+--
+--   @
+--     Inductive Definition : Type := (* ... *).
+--   @
+--
+--   which is not valid.
+isVernacularCommand :: String -> Bool
+isVernacularCommand = flip elem vernacularCommands
+
 -- | Tests whether the given Coq identifier refers to a predefined type
 --   or function without Haskell equivalent from the Coq @Base@ library.
 --
@@ -71,7 +91,10 @@ isUsedIdent = flip elem . catMaybes . map G.unpackQualid . usedIdents
 --   identifier.
 mustRenameIdent :: String -> Environment -> Bool
 mustRenameIdent ident env =
-  isCoqKeyword ident || isReservedIdent ident || isUsedIdent env ident
+  isCoqKeyword ident
+    || isVernacularCommand ident
+    || isReservedIdent ident
+    || isUsedIdent env ident
 
 -- | Tests whether the given character is allowed in a Coq identifier.
 --
@@ -271,8 +294,7 @@ defineLocally scope name srcSpan = do
 --   safely used in Coq.
 --
 --   If the identifier is renamed, the user is informed.
-renameIdentAndInform
-  :: SrcSpan -> Scope -> String -> Converter String
+renameIdentAndInform :: SrcSpan -> Scope -> String -> Converter String
 renameIdentAndInform srcSpan scope ident = do
   ident' <- inEnv $ renameIdent ident
   when (ident' /= ident)
