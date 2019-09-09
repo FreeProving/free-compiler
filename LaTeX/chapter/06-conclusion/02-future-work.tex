@@ -1,1 +1,32 @@
 \section{Future Work} \label{sec:conclusion:future-work}
+
+% - Integrate Malte's tool.
+The subset of Haskell supported by our compiler is very restrictive at the moment.
+To eliminate the limitation on pattern matching, a pattern matching compiler library\footnote{\url{https://git.informatik.uni-kiel.de/stu204333/placc-thesis}} that is currently being developed by \aspellIgnore{Malte Clement}, could be integrated into our compiler in the future.
+% - Implement `newtype` and bang patterns.
+How Haskell features involving strictness, e.g., \haskell{newtype} declarations and bang patterns, could be modeled in Coq is described by \citet[pp.~132-134]{Christiansen:2019}.
+% - Add type inference, let/where and type classes.
+Further language features that we would like to support in the future include type classes, local declarations and type inference.
+% - More predefined data types and operations.
+More predefined data types and operations from the Prelude should be added as well.
+Due to the modular design of our Base library, we expect the extension of the Prelude to be straightforward.
+% Add support for module dependencies.
+The configuration file format developed for the Base library could be reused for the implementation of \haskell{import} declarations as well.
+
+% - Improve translation of recursive functions.
+Furthermore, improvements need to be made to the translation of recursive functions.
+Even though the detection of decreasing arguments is very complicated already, its limitations greatly reduce the user's flexibility.
+In addition, the current translation scheme also does not work very well in conjunction with recursive higher-order functions.
+
+% - Prove correctness of translation rules.
+While we have tried to convince ourselves in \autoref{chp:translation} that the translation rules are most likely correct, we have not actually proven their correctness in this thesis.
+Before definitive conclusions can be drawn from proofs about translated programs, it remains to be formally verified that our translation rules model the behaviour of the original program correctly.
+% - Model sharing in Coq.
+One aspect of Haskell's semantics which we know is not reflected by the generated Coq code is sharing.
+Effects are triggered in our implementation through the use of bind operators.
+If the value is bound twice, the effect is triggered twice.
+In Haskell sharing prevents a value from being evaluated twice, therefore every effect is triggered at most once.
+In case of partiality, we cannot distinguish between an effect being triggered once or twice \cite[p.~131]{Christiansen:2019}.
+However, we can use the free monad to model a logging effect as provided by the function \haskell{trace} in Haskell.
+In contrast to partiality, we can distinguish an implementation with and without sharing for this effect since in the absence of sharing, the same message may be logged multiple times \cite[p.~131]{Christiansen:2019}.
+Therefore, the compiler must be adapted to model sharing before it is truly effect generic.

@@ -224,7 +224,7 @@ The usage of the \coq{impure} constructor for the representation of effects lead
 
 What we actually wanted is to test whether the value wrapped by the \coq{pure} constructor is \coq{true} or \coq{false}.
 Similar to how we had to unwrap a function expression before we could apply the actual function, we have to bind the condition this time as well.
-The bind operation corresponds to the fact that Haskell evaluates the condition before selecting the \haskell{then} or \haskell{else} branch.
+The bind operation corresponds to the fact that Haskell evaluates the condition to head normal form \cite[p.~132]{Christiansen:2019} before selecting the \haskell{then} or \haskell{else} branch.
 
 \begin{figure}[H]
   \[
