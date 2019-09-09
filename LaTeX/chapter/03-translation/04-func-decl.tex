@@ -388,7 +388,7 @@ To make sure that Coq does not guess a different decreasing argument, we explici
   \begin{align*}
     &\toCoq{\left(\begin{array}{l}
       \haskellM{@$h$@ :: @$\tau_1$@ -> @$\ldots$@ -> @$\tau_n$@ -> @$\kappa_1$@ -> @$\ldots$@ -> @$\kappa_p$@ -> @$\kappa$@} \\
-      \haskellM{@$h$@ @$x_1$@ @$\ldots$@ @$x_n$@ @$y_1$@ @$\ldots$@ @$y_p$@ = case @$x_i$@ of @$e$@}
+      \haskellM{@$h$@ @$x_1$@ @$\ldots$@ @$x_n$@ @$y_1$@ @$\ldots$@ @$y_p$@ = case @$x_i$@ of @$alts$@}
     \end{array}\right)}
     \\
     &\qquad\qquad\qquad=
@@ -396,7 +396,7 @@ To make sure that Coq does not guess a different decreasing argument, we explici
       \coqM{Fixpoint @$h'$@}
         &\coqM{(@$\Shape$@ : Type) (@$\Pos$@ : @$\Shape$@ -> Type) {@$\alpha_1'$@ @$\ldots$@ @$\alpha_m'$@ : Type}} \\
         &\coqM{(@$x_1'$@ : @$\toCoqX{\tau_1}$@) @$\ldots$@ (@$x_i'$@ : @$\toCoqTX{\tau_i}$@) @$\ldots$@ (@$x_n'$@ : @$\toCoqX{\tau_n}$@)} \\
-        &\coqM{@$y_1'$@ @$\ldots$@ @$y_p'$@ {struct @$x_i'$@} :=}\;\toCoq{(\haskellM{case @$x_i$@ of @$e$@})}\coqM{.}  \\
+        &\coqM{@$y_1'$@ @$\ldots$@ @$y_p'$@ {struct @$x_i'$@} :=}\;\toCoq{(\haskellM{case @$x_i$@ of @$alts$@})}\coqM{.}  \\
     \end{array}
   \end{align*}
   \caption{

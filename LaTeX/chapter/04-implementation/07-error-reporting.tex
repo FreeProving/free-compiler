@@ -1,0 +1,33 @@
+\section{Error Reporting} \label{sec:implementation:error-reporting}
+Errors can occur in all stages of the compilation process.
+For example, there could be:
+\begin{itemize}
+  \item an IO error while loading the input file,
+  \item a syntax error when parsing the input file's content,
+  \item an error due to the usage of unsupported Haskell features during the simplification of the AST or
+  \item an error due to the usage of an undefined identifier during the conversion to Coq.
+\end{itemize}
+One way to report errors in Haskell is by using the \haskell{error} function which prints an error message and terminates the program immediately.
+However, we do not want our compiler to crash but rather print the error message in a user-friendly manner and terminate gracefully.
+Furthermore, there are non-fatal kinds of messages, i.e., hints and warnings, that we would like to report to the user.
+For example, the user should be informed when an identifier is renamed during the conversion to Coq.
+
+Therefore, we model the entire compilation process as a monadic computation based on the \haskell{Maybe} and \haskell{Writer} monads.
+Our monad collects reported messages during the computation and cancels the computation if a fatal error occurs.
+When the computation returns to the compiler's main loop, the collected error messages are printed to the console via the \haskell{IO} monad.
+We are printing messages in a format based on the GHC's message format.
+For example, the following program
+\begin{minted}[linenos]{haskell}
+module Test where
+
+head :: [a] -> a
+head (x : xs) = x
+\end{minted}
+causes the following error message to be reported.
+\begin{minted}{text}
+Test.hs:4:6: error:
+    Expected variable pattern.
+   |
+ 4 | head (x : xs) = x
+   |      ^^^^^^^^
+\end{minted}
