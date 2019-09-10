@@ -19,6 +19,7 @@ INI
 inlined
 inlining
 instantiation
+isomorphism
 JSON
 monad
 monadic
@@ -32,8 +33,11 @@ notational
 nullary
 parameterized
 parsers
+Peano
 polymorphism
 preprocessing
+prover
+provers
 QuickCheck
 readability
 reimplementing

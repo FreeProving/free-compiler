@@ -84,9 +84,9 @@ According to the \ref{eqn:translation:expr:invariant}, the expression \haskell{J
 However, the smart constructor \coq{Just} has never been lifted to the free monad.
 Only its argument and return types are monadic.
 \begin{minted}{coq}
-Check Just.
-(* ==> Just : forall (Shape : Type) (Pos : Shape -> Type) (a : Type),
-              Free Shape Pos a -> Free Shape Pos (Maybe Shape Pos a) *)
+  Check Just.
+  (* ==> Just : forall (Shape : Type) (Pos : Shape -> Type) (a : Type),
+                Free Shape Pos a -> Free Shape Pos (Maybe Shape Pos a) *)
 \end{minted}
 Therefore, the application of \coq{Just} does not involve the bind operator as shown in \autoref{fig:translation:expr:fun_app}.
 We will apply the same optimization when we translate function declarations in the final section of this chapter.
@@ -385,7 +385,7 @@ However, before we can specify how to translate integer literals we have to find
 The Haskell to Coq compiler developed by \cite{Jessen:2019} does not support \haskell{Integer} but translates \haskell{Int} with \coq{nat}.
 The type \coq{nat} is defined in Coq's standard library and represents natural numbers.
 \begin{minted}{coq}
-  Inductive nat : Set
+  Inductive nat : Type
     := O : nat
     |  S : nat -> nat.
 \end{minted}

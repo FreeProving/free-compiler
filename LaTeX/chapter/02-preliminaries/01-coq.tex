@@ -1,1 +1,200 @@
 \section{The Proof Assistant Coq} \label{sec:preliminaries:coq}
+Coq is an interactive theorem prover that has been under development since 1983.
+Unlike automated theorem provers, Coq does not attempt to prove a proposition autonomously but in an interactive fashion with the help of human guidance.
+First, the user creates a model of the mathematical objects and algorithms they want to reason about in a functional programming language called \textit{Gallina}.
+The same language is then used to state propositions about the functional program and construct proofs for these propositions.
+Coq offers so called \textit{tactics} to automate some otherwise tedious tasks in the proof construction process.
+The correctness of the final proof is then checked by Coq.
+Hereinafter, we are going to use the term Coq to refer to both the proof assistant and the programming language.
+In the following subsections, the most important syntactic constructs of Coq's specification language used throughout this thesis are presented.
+
+\subsection{Types and Data Type Declarations} \label{sec:preliminaries:coq:data-decls}
+In contrast to many other programming languages, Coq has a minimal set of build-in data types.
+Data types like numbers and booleans~--~which are commonly directly build into a language~--~can be defined using the same mechanisms as for user-defined types.
+Custom types are declared using the \coq{Inductive} keyword.
+The following example demonstrates the declaration of a boolean data type.
+\begin{minted}{coq}
+  Inductive bool : Type
+    := true
+     | false.
+\end{minted}
+In Coq, declarations are formed by so called \textit{sentences} which start with a capitalized \textit{command} and end with a period \cite[p.~30]{CoqDevTeam:2018}.
+The \coq{Inductive} sentence, in the example above, declares a data type \coq{bool} with two constructors \coq{true} and \coq{false}.
+Unlike in Haskell, there are no capitalization rules for identifiers.
+The colon in the first line annotates the type of \coq{bool}.
+In this case, \coq{bool} is of the build-in type \coq{Type}.
+Similarly, we can use a colon to declare the type of the constructors.
+Both \coq{true} and \coq{false} are constants of the newly declared type \coq{bool}.
+\begin{minted}{coq}
+  Inductive bool : Type
+    := true  : bool
+    |  false : bool.
+\end{minted}
+Natural numbers can be represented in Coq by the means of Peano numbers using the following \coq{Inductive} sentence.
+\begin{minted}{coq}
+  Inductive nat : Type
+    := O           : nat
+    |  S (n : nat) : nat.
+\end{minted}
+This time, the constructor \coq{S} takes an argument \coq{n} of type \coq{nat}.
+\coq{(n : nat)} is called a binder for the argument \coq{n}.
+Multiple arguments of the same type can be combined into a single binder.
+For example, \coq{(n m : nat)} declares two arguments \coq{n} and \coq{m}  of type \coq{nat}.
+In constructor declarations we can also choose to declare the arguments anonymously.
+In this case, the constructor \coq{S} must be annotated with a function type as shown below.
+\begin{minted}{coq}
+  Inductive nat : Type
+    := O : nat
+    |  S : nat -> nat.
+\end{minted}
+Even though, they are not directly build into the language, the types \coq{bool} and \coq{nat} are part of Coq's standard library and can be used in every Coq program.
+
+Coq also supports the declaration of polymorphic types.
+Type arguments are passed like regular arguments, i.e., to declare a polymorphic list data type, we just have to add a binder for a type variable to the \coq{Inductive} sentence.
+\begin{minted}{coq}
+  Inductive list (X : Type) : Type
+    := nil  : list X
+    |  cons : X -> list X -> list X.
+\end{minted}
+Now \coq{list} is a function that produces a list data type for the given value data type.
+In Coq, we can print the type of a term using the \coq{Check} command.
+\begin{minted}{coq}
+  Check list. (* ==> list : Type -> Type *)
+\end{minted}
+However, the type argument \coq{X} has been added to the constructors \coq{nil} and \coq{cons} as well.
+\begin{minted}{coq}
+  Check nil.  (* ==> nil  : forall X : Type, list X *)
+  Check cons. (* ==> cons : forall X : Type, X -> list X -> list X *)
+\end{minted}
+We can interpret types with \coq{forall} quantifiers as function types which additionally give a name to their arguments.
+In other words, \coq{nil} is a function which takes a type as its first argument \coq{X}.
+The return type of that function depends on the type given as \coq{nil}'s first argument.
+The term \coq{nil nat} for example is of type \coq{list nat}.
+Since the return types of functions can depend on their arguments, Coq is called a \textit{dependently typed language}.
+
+We do not have to pass the type arguments explicitly though.
+Using a \coq{Arguments} sentence we can specify which arguments of a function should be passed explicitly and which should be inferred by Coq.
+Inferred arguments are simply wrapped in curly braces.
+\begin{minted}{coq}
+  Arguments nil {X}.
+  Arguments cons {X}.
+\end{minted}
+Now, the type of \coq{nil} is \coq{list ?X} where \coq{?X} is a type inferred from the respective context.
+It is also possible to specify that the arguments bound by a binder should be inferred in the declaration itself.
+The following marks the type argument \coq{X} as implicit for example.
+\begin{minted}{coq}
+  Inductive list {X : Type} : Type
+    := nil  : list X
+    |  cons : X -> list X -> list X.
+\end{minted}
+However, now \coq{X} is not only an implicit argument of \coq{nil} and \coq{cons} but also of \coq{list}.
+Therefore, \coq{list} tries to infer the value type from the context which is not necessarily what we want.
+
+\subsection{Function Declarations and Expressions} \label{sec:preliminaries:coq:func-decls}
+In Coq functions are declared using \coq{Definition} sentences.
+The \coq{Definition} command is followed by the name of the function to declare, binders for its arguments, an annotation of the function's return type and finally a term on the right-hand side of the function declaration.
+For example, the following \coq{Definition} sentence declares a function \coq{isEmpty} that tests whether a list \coq{xs} is empty or not.
+\begin{minted}{coq}
+  Definition isEmpty {X : Type} (xs : list X) : bool :=
+    match xs with
+    | nil        => true
+    | cons x xs' => false
+    end.
+\end{minted}
+On the right-hand side of \coq{isEmpty} we are using a \coq{match} expression to perform pattern matching.
+The \coq{match} expression corresponds to a \haskell{case} expression in Haskell.
+However, Coq requires us to list all constructors of the matched data type.
+Therefore, the following declaration of a function that returns the first element of a list is not allowed in Coq since there is no alternative for the \coq{nil} constructor.
+\begin{minted}{coq}
+  Fail Definition head {X : Type} (xs : list X) : X :=
+    match xs with
+    | cons x xs' => x
+    end.
+  (* ==> The command has indeed failed with message:
+         Non exhaustive pattern-matching: no clause found for pattern nil *)
+\end{minted}
+The \coq{Fail} command checks that the subsequent declaration contains an error and then continues processing the Coq source file without declaring the function.
+
+Further kinds of Coq expressions known from Haskell include \coq{if} expressions, number literals and lambda abstractions.
+\coq{if} expressions look just like in Haskell but since \coq{bool} is not build directly into Coq, they work with any data type which has exactly two constructors \cite[p.~48]{CoqDevTeam:2018}.
+The following example demonstrates, that we can use values of type \coq{nat} for the condition of \coq{if} expressions.
+The first constructor \coq{O} is handled like \coq{true} and the second constructor \coq{S} like \coq{false}.
+\begin{minted}{coq}
+  Compute if O then 1 else 2.   (* ==> 1 *)
+  Compute if S O then 1 else 2. (* ==> 2 *)
+\end{minted}
+The literals \coq{1} and \coq{2} denote values of type \coq{nat} and are short for \coq{S O} and \coq{S (S O)}, respectively.
+
+Lambda abstractions are created with the \coq{fun} keyword followed by binders for the arguments.
+The following lambda abstraction computes the successor of a natural number.
+\begin{minted}{coq}
+  fun (n : nat) => S n
+\end{minted}
+Similar to how we did not have to annotate the types of \coq{x} and \coq{xs'} in the pattern \coq{cons x xs'} above, we do not have to annotate the type of the lambda abstraction's argument either.
+\begin{minted}{coq}
+  fun n => S n
+\end{minted}
+In this case, Coq infers the type of \coq{n} from the right-hand side of the lambda abstraction.
+
+One crucial difference between functions in Haskell and Coq is, that Coq distinguishes between non-recursive functions~--~like \coq{isEmpty}~--~and recursive functions.
+Recursive functions must be declared with the \coq{Fixpoint} command instead of the \coq{Definition} command.
+The following function computes the length of a list for example.
+\begin{minted}{coq}
+  Fixpoint length {X : Type} (xs : list X) : nat :=
+    match xs with
+    | nil        => O
+    | cons x xs' => S (length xs')
+    end.
+\end{minted}
+Coq employs an additional check to verify that the function declarations declared by such \coq{Fixpoint} sentences terminate on all inputs.
+More details on the Coq's termination analysis are given in \autoref{sec:translation:func-decl:rec}.
+
+\subsection{Propositions and Proofs} \label{sec:preliminaries:coq:theorems}
+Since Coq is a proof assistant, it provides a mechanism to denote propositions and their proofs.
+Propositions are given a name through \coq{Theorem} sentences.
+For example, the following sentence declares a theorem called \coq{isEmpty_length} that states that if a list is empty, its length is zero.
+\begin{minted}{coq}
+  Theorem isEmpty_length: forall (X : Type) (xs : list X),
+                          isEmpty xs = true -> length xs = 0.
+  Proof. (* ... *) Qed.
+\end{minted}
+After the theorem has been declared, the user writes a proof script which constructs a proof for the theorem using the tactics provided by Coq.
+Since we will not write any proofs using Coq in this thesis, the proof script is left blank in the example above.
+However, one aspect that we have to understand about proofs in Coq is how Coq checks whether the proof constructed by the user actually proves the stated proposition.
+
+Coq makes use of the so called \textit{Curry-Howard isomorphism}, to check the validity of proofs \cite[p.~1]{CoqDevTeam:2018}.
+Basically, propositions are represented by types and values correspond to proofs.
+A proposition is true if and only if there is a value of the corresponding type.
+Therefore, Coq can employ its type checker to verify that the proof specified by the user is correct.
+For example, the propositions \coq{True} and \coq{False} are defined as follows in Coq.
+\begin{minted}{coq}
+  Inductive False : Prop := .
+  Inductive True  : Prop := I : True.
+\end{minted}
+The build-in type \coq{Prop} denotes the type of propositions and is a subset of \coq{Type}.
+Hence, \coq{False} is a type with no constructor and \coq{True} is a type with exactly one value denoted by the constant \coq{I}.
+A theorem that states that the proposition \coq{True} is true just needs to apply the constructor \coq{I} to create a value of type \coq{True} which serves as evidence, that the proposition holds.
+\begin{minted}{coq}
+  Theorem true_is_true: True.
+  Proof. apply I. Qed.
+\end{minted}
+On the other hand, since no value of type \coq{False} exists, the proposition \coq{False} does not hold which is exactly what we would expect.
+
+Of course, the proof scripts of \coq{isEmpty_length} and other real theorems and the proofs constructed by them are much more complicated than that.
+What may be confusing is that the proposition on the right-hand side of \coq{isEmpty_length} does not even look like a type anymore since it contains values like \coq{true} and \coq{0}.
+That values occur within types is a common feature of dependently typed languages.
+In fact, there is no difference between types and terms in Coq.
+As we have seen already, types are passed to functions like regular arguments for example.
+
+\subsection{Differences between Haskell and Coq} \label{sec:preliminaries:coq:summary}
+Lets conclude this brief introduction to Coq by summarizing the key differences between Haskell and Coq.
+First of all, both Coq and Haskell are functional programming languages and share a lot of similarities as such.
+Additionally, Coq introduces dependent types which allow it to be used to be used as a proof assistant.
+However, this extension to the type system requires Coq to enforce the following two restrictions:
+\begin{enumerate}
+  \item all pattern matching must be exhaustive and
+  \item all functions must terminate on all inputs.
+\end{enumerate}
+In consequence, there is no partiality, no infinite data structures and Coq is not \textit{Turing complete}.
+Satisfying the termination requirement of Coq presents one of the mayor challenges for the implementation of our compiler.
+The next section, presents an approach to model partiality in Coq.
