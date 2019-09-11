@@ -20,3 +20,26 @@ deploy-notes:
   script:
     - mkdir $DEPLOY_DIR/notes
     - cp ./Markdown/notes/*.pdf $DEPLOY_DIR/notes
+
+# Build presentations.
+typeset-presentations:
+  image: just95/pandoc-scripts
+  stage: build
+  script:
+    # - ./Markdown/tool/typeset-all.sh --beamer ./Markdown/presentation
+    - ./Markdown/tool/typeset-all.sh --revealjs ./Markdown/presentation
+  artifacts:
+    name: presentations
+    paths:
+      - ./Markdown/presentation/*/*.html
+      - ./Markdown/presentation/*/bower.json
+
+# Deploy presentation to `https://$SSH_DEPLOY_HOST/$CI_COMMIT_REF_SLUG/presentations`.
+deploy-presentation:
+  extends: .ssh-deploy
+  stage: deploy
+  dependencies:
+    - typeset-presentations
+  script:
+    - mkdir $DEPLOY_DIR/notes
+    - cp ./Markdown/presentations/* $DEPLOY_DIR/presentations
