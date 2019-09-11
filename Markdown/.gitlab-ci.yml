@@ -59,11 +59,11 @@ bower-install-presentations:
   after_script: []
   script:
     - >
-      ssh $SERVER "
-        cd $DEPLOY_DIR/presentations
+      ssh $SERVER '
+        cd '"$TARGET_DIR"'/presentations
         for p in $(find * -maxdepth 0 -type d); do
           cd $p
           bower install
           cd ..
         done
-      "
+      '
