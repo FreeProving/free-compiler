@@ -93,15 +93,15 @@ Therefore, \coq{list} tries to infer the value type from the context which is no
 \subsection{Function Declarations and Expressions} \label{sec:preliminaries:coq:func-decls}
 In Coq functions are declared using \coq{Definition} sentences.
 The \coq{Definition} command is followed by the name of the function to declare, binders for its arguments, an annotation of the function's return type and finally a term on the right-hand side of the function declaration.
-For example, the following \coq{Definition} sentence declares a function \coq{isEmpty} that tests whether a list \coq{xs} is empty or not.
+For example, the following \coq{Definition} sentence declares a function \coq{null} that tests whether a list \coq{xs} is empty or not.
 \begin{minted}{coq}
-  Definition isEmpty {X : Type} (xs : list X) : bool :=
+  Definition null {X : Type} (xs : list X) : bool :=
     match xs with
     | nil        => true
     | cons x xs' => false
     end.
 \end{minted}
-On the right-hand side of \coq{isEmpty} we are using a \coq{match} expression to perform pattern matching.
+On the right-hand side of \coq{null} we are using a \coq{match} expression to perform pattern matching.
 The \coq{match} expression corresponds to a \haskell{case} expression in Haskell.
 However, Coq requires us to list all constructors of the matched data type.
 Therefore, the following declaration of a function that returns the first element of a list is not allowed in Coq since there is no alternative for the \coq{nil} constructor.
@@ -136,7 +136,7 @@ Similar to how we did not have to annotate the types of \coq{x} and \coq{xs'} in
 \end{minted}
 In this case, Coq infers the type of \coq{n} from the right-hand side of the lambda abstraction.
 
-One crucial difference between functions in Haskell and Coq is, that Coq distinguishes between non-recursive functions~--~like \coq{isEmpty}~--~and recursive functions.
+One crucial difference between functions in Haskell and Coq is, that Coq distinguishes between non-recursive functions~--~like \coq{null}~--~and recursive functions.
 Recursive functions must be declared with the \coq{Fixpoint} command instead of the \coq{Definition} command.
 The following function computes the length of a list for example.
 \begin{minted}{coq}
@@ -152,10 +152,10 @@ More details on the Coq's termination analysis are given in \autoref{sec:transla
 \subsection{Propositions and Proofs} \label{sec:preliminaries:coq:theorems}
 Since Coq is a proof assistant, it provides a mechanism to denote propositions and their proofs.
 Propositions are given a name through \coq{Theorem} sentences.
-For example, the following sentence declares a theorem called \coq{isEmpty_length} that states that if a list is empty, its length is zero.
+For example, the following sentence declares a theorem called \coq{null_length} that states that if a list is empty, its length is zero.
 \begin{minted}{coq}
-  Theorem isEmpty_length: forall (X : Type) (xs : list X),
-                          isEmpty xs = true -> length xs = 0.
+  Theorem null_length: forall (X : Type) (xs : list X),
+                       null xs = true -> length xs = 0.
   Proof. (* ... *) Qed.
 \end{minted}
 After the theorem has been declared, the user writes a proof script which constructs a proof for the theorem using the tactics provided by Coq.
@@ -180,8 +180,8 @@ A theorem that states that the proposition \coq{True} is true just needs to appl
 \end{minted}
 On the other hand, since no value of type \coq{False} exists, the proposition \coq{False} does not hold which is exactly what we would expect.
 
-Of course, the proof scripts of \coq{isEmpty_length} and other real theorems and the proofs constructed by them are much more complicated than that.
-What may be confusing is that the proposition on the right-hand side of \coq{isEmpty_length} does not even look like a type anymore since it contains values like \coq{true} and \coq{0}.
+Of course, the proof scripts of \coq{null_length} and other real theorems and the proofs constructed by them are much more complicated than that.
+What may be confusing is that the proposition on the right-hand side of \coq{null_length} does not even look like a type anymore since it contains values like \coq{true} and \coq{0}.
 That values occur within types is a common feature of dependently typed languages.
 In fact, there is no difference between types and terms in Coq.
 As we have seen already, types are passed to functions like regular arguments for example.
