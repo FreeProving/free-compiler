@@ -41,5 +41,5 @@ deploy-presentation:
   dependencies:
     - typeset-presentations
   script:
-    - mkdir $DEPLOY_DIR/notes
+    - mkdir $DEPLOY_DIR/presentations
     - cp ./Markdown/presentations/* $DEPLOY_DIR/presentations
