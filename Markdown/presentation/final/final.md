@@ -3,7 +3,7 @@ title: |
   Übersetzung
   <small>von Haskell nach Coq</small>
 author: Justin Andresen
-date: 13.06.2019
+date: ??.09.2019
 lang: de-DE
 pandoc-minted:
   default-attributes:
@@ -37,59 +37,137 @@ include-before: |
   .reveal .small-heading h2 {
     font-size: 1.55em !important;
   }
+  .reveal .fix-ul-width ul {
+    width: 100%;
+  }
   </style>
 ---
 
 # Motivation
 
-<!--
-  - Was ist Coq?
-  - Warum Haskell zu Coq übersetzen?
-  - Welche Hauptprobleme sind dabei zu lösen?
--->
+## Was ist Coq? {style="height:90%" data-transition="slide-in none-out"}
 
-## Was ist Coq?
+- Funktionalle Spezifikationssprache Gallina
 
-::: incremental
+  ::: fragment
+  ```coq
+  Inductive list (X : Type) : Type
+    := nil  : list X
+     | cons : X -> list X -> list X.
+
+  Definition null {X : Type} (xs : list X) : bool
+    := match xs with
+       | nil        => true
+       | cons x xs' => false
+       end.
+  ```
+  :::
+
+## Was ist Coq? {style="height:90%" data-transition="fade-in none-out"}
+
+- Funktionalle Spezifikationssprache Gallina
 
 - Beweisassistenzsystem
+
+  ::: fragment
+  ```coq
+  Theorem isEmpty_length:
+    forall (X : Type) (xs : list X),
+    isEmpty xs = true -> length xs = 0.
+  Proof. (* ... *) Qed.
+  ```
+  :::
+
+## Was ist Coq? {style="height:90%" data-transition="fade-in slide-out"}
+
 - Funktionalle Spezifikationssprache Gallina
+
+- Beweisassistenzsystem
+
 - Extraktion der verifizierten Programme  
   (z.B. Coq → Haskell)
 
+::: {.fragment}
+- **Ziel:** Verifikation bestehender Programme  
+  (d.h. Haskell → Coq)
 :::
 
-## Haskell → Coq
+## Unterschiede zu Haskell {.fix-ul-width style="height:90%" data-transition="slide-in none-out"}
 
-::: incremental
+::: fragment
+- In Coq ist die **Deklarationsreihenfolge** wichtig.
 
-- Verifikation bestehender Programme
-- Beweise aufwendiger als Testen
-- Bequemlichkeit
+  ```coq
+  Definition null {X : Type} (xs : list X) : bool
+    := match xs with               ^^^^^^
+       | nil        => true
+       | cons x xs' => false
+       end.
 
+  Inductive list (X : Type) : Type
+    := nil  : list X
+     | cons : X -> list X -> list X.
+  ```
 :::
 
-## Hauptherausforderungen {.fragile}
+## Unterschiede zu Haskell {.fix-ul-width style="height:90%" data-transition="fade-in none-out"}
 
-::: incremental
+- In Coq ist die **Deklarationsreihenfolge** wichtig.
 
-- In Coq müssen alle Funktionen
+- In Coq muss Pattern-Matching **vollständig** sein.
 
-    + **total** sein <span class="fragment" data-autoslide="1">und</span>
+  ::: fragment
+  ```coq
+  Definition head {X : Type} (xs : list X) : X
+    := match xs with
+       | cons x xs' => x
+       end.
+  ```
+  :::
 
-    + **terminieren**
+## Unterschiede zu Haskell {.fix-ul-width style="height:90%" data-transition="fade-in none-out"}
 
-      ::: fragment
-      ```haskell
-      fac :: Int -> Int
-      fac n = if n == 0 then 1
-                        else n * fac (n - 1)
-      ```
-      :::
+- In Coq ist die **Deklarationsreihenfolge** wichtig.
 
-- Unterschiedliche Auswertungsstrategien
+- In Coq muss Pattern-Matching **vollständig** sein.
 
-:::
+  ```coq
+  Definition head {X : Type} (xs : list X) : X
+    := match xs with
+       | nil        => (* ??? *)
+       | cons x xs' => x
+       end.
+  ```
+
+## Unterschiede zu Haskell {.fix-ul-width style="height:90%" data-transition="fade-in none-out"}
+
+- In Coq ist die **Deklarationsreihenfolge** wichtig.
+
+- In Coq müssen alle Funktionen **total** sein.
+
+  ```haskell
+  undefined :: a
+  ```
+
+  ::: fragment
+  ```coq
+  Theorem contradiction: False.
+  Proof. apply undefined. Qed.
+  ```
+  :::
+
+## Unterschiede zu Haskell {.fix-ul-width style="height:90%" data-transition="fade-in slide-out"}
+
+- In Coq ist die **Deklarationsreihenfolge** wichtig.
+
+- In Coq müssen alle Funktionen **total** sein.
+
+- In Coq müssen alle Funktionen  **terminieren**.
+
+  ```haskell
+  loop :: a
+  loop = loop
+  ```
 
 # Existierende Ansätze
 
