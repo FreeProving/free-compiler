@@ -49,3 +49,21 @@ deploy-presentation:
         cp $p/bower.json $DEPLOY_DIR/presentations/$p
         cp $p/$p.html $DEPLOY_DIR/presentations/$p
       done
+
+# Install bower dependencies of the deployed presentations.
+bower-install-presentations:
+  extends: .ssh-deploy
+  stage: deploy
+  when: manual
+  before_script: []
+  after_script: []
+  script:
+    - >
+      ssh $SERVER "
+        cd $DEPLOY_DIR/presentations
+        for p in $(find * -maxdepth 0 -type d); do
+          cd $p
+          bower install
+          cd ..
+        done
+      "
