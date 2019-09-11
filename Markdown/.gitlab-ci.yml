@@ -47,7 +47,7 @@ deploy-presentation:
     - >
       for p in $(find * -maxdepth 0 -type d); do
         mkdir $DEPLOY_DIR/presentations/$p
-        cp $p/*.{json,html,svg} $DEPLOY_DIR/presentations/$p
+        cp -r $p $DEPLOY_DIR/presentations
       done
 
 # Install bower dependencies of the deployed presentations.
