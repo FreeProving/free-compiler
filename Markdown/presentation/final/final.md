@@ -71,9 +71,9 @@ include-before: |
 
   ::: fragment
   ```coq
-  Theorem isEmpty_length:
+  Theorem null_length:
     forall (X : Type) (xs : list X),
-    isEmpty xs = true -> length xs = 0.
+    null xs = true -> length xs = 0.
   Proof. (* ... *) Qed.
   ```
   :::
@@ -164,10 +164,62 @@ include-before: |
 
 - In Coq müssen alle Funktionen  **terminieren**.
 
+  ::: fragment
   ```haskell
   loop :: a
   loop = loop
   ```
+  :::
+
+# Annahmen
+
+<!--
+  - Welche Haskell Features sollen unterstützt werden?
+-->
+
+## Annahmen {.fragile}
+
+- Zu jeder Funktion wird die **Typsignatur** explizit angegeben.
+
+::: incremental
+
+- Vordefinierte Typen: `Integer`{.haskell}, `Bool`{.haskell}, `[a]`{.haskell},
+  `()`{.haskell} und `(a, b)`{.haskell}
+- Benutzerdefinierte Typen mit `data`{.haskell} und `type`{.haskell},
+  aber nicht `newtype`{.haskell}
+
+:::
+
+## Annahmen {.fragile .fix-ul-width}
+
+- Jede Funktion wird durch **genau eine Regel** definiert.
+
+  ```haskell
+  @$f$@ :: @$\tau_1$@ -> @$\ldots$@ -> @$\tau_n$@ -> @$\tau$@
+  @$f$@ @$x_1$@ @$\ldots$@ @$x_n$@ = @$e$@
+  ```
+
+::: incremental
+- Keine lokalen Deklarationen mit `where`{.haskell}
+
+- Explizites und vollständiges Pattern-Matching
+
+  ```haskell
+  case xs of
+    []      -> undefined
+    x : xs' -> x
+  ```
+
+- Keine verschachtelten Pattern
+:::
+
+## Annahmen {.fragile}
+
+- Keine `let`{.haskell} oder `do`{.haskell} Ausdrücke
+
+- Keine Typklassen
+
+- Keine `import`{.haskell}s
 
 # Existierende Ansätze
 
@@ -198,54 +250,23 @@ include-before: |
 ::: incremental
 
 - Bachlorarbeit aus Flensburg
+
 - Monadische übersetzung nach [Abel et al.](http://www2.tcs.ifi.lmu.de/~abel/haskell05.pdf)
+
+  ::: fragment
+  ```haskell
+  head :: [a] -> Maybe a
+  head xs = case xs of
+    []      -> Nothing
+    x : xs' -> Just x
+  ```
+  :::
+
 - `Maybe`{.haskell} oder `Identity`{.haskell} Monade
+
 - Prototypische Umsetzung
 
 :::
-
-# Annahmen
-
-<!--
-  - Welche Haskell Features sollen unterstützt werden?
--->
-
-## Annahmen {.fragile}
-
-- Zu jeder Funktion wird die **Typsignatur** explizit angegeben.
-
-::: incremental
-
-- Vordefinierte Typen: `Int`{.haskell}, `Bool`{.haskell}, `[a]`{.haskell},
-  `()`{.haskell} und `(a, b)`{.haskell}
-- Benutzerdefinierte Typen mit `data`{.haskell} und `type`{.haskell},
-  aber nicht `newtype`{.haskell}
-
-:::
-
-## Annahmen {.fragile}
-
-- Jede Funktion wird durch **genau eine Regel** definiert.
-
-    ```haskell
-    @$f$@ :: @$\tau_1$@ -> @$\ldots$@ -> @$\tau_n$@ -> @$\tau$@
-    @$f$@ @$x_1$@ @$\ldots$@ @$x_n$@ = @$e$@
-    ```
-- Explizites und vollständiges Pattern-Matching
-
-    ```haskell
-    case xs of
-      []      -> undefined
-      x : xs' -> x
-    ```
-
-## Annahmen {.fragile}
-
-- Keine `let`{.haskell} oder `do`{.haskell} Ausdrücke
-
-- Keine Typklassen
-
-- Keine `import`{.haskell}s
 
 # Übersetzung
 
