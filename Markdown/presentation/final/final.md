@@ -37,6 +37,15 @@ include-before: |
   .reveal .small-heading h2 {
     font-size: 1.55em !important;
   }
+  .reveal .hidden {
+    visibility: hidden;
+  }
+  .reveal .fix-height {
+    height: 90%;
+  }
+  .reveal .fix-height-sm {
+    height: 75%;
+  }
   .reveal .fix-ul-width ul {
     width: 100%;
   }
@@ -45,7 +54,7 @@ include-before: |
 
 # Motivation
 
-## Was ist Coq? {style="height:90%" data-transition="slide-in none-out"}
+## Was ist Coq? {.fix-height data-transition="slide-in none-out"}
 
 - Funktionalle Spezifikationssprache Gallina
 
@@ -63,7 +72,7 @@ include-before: |
   ```
   :::
 
-## Was ist Coq? {style="height:90%" data-transition="fade-in none-out"}
+## Was ist Coq? {.fix-height data-transition="fade-in none-out"}
 
 - Funktionalle Spezifikationssprache Gallina
 
@@ -78,7 +87,7 @@ include-before: |
   ```
   :::
 
-## Was ist Coq? {style="height:90%" data-transition="fade-in slide-out"}
+## Was ist Coq? {.fix-height data-transition="fade-in slide-out"}
 
 - Funktionalle Spezifikationssprache Gallina
 
@@ -92,7 +101,7 @@ include-before: |
   (d.h. Haskell → Coq)
 :::
 
-## Unterschiede zu Haskell {.fix-ul-width style="height:90%" data-transition="slide-in none-out"}
+## Unterschiede zu Haskell {.fix-ul-width .fix-height data-transition="slide-in none-out"}
 
 ::: fragment
 - In Coq ist die **Deklarationsreihenfolge** wichtig.
@@ -110,7 +119,7 @@ include-before: |
   ```
 :::
 
-## Unterschiede zu Haskell {.fix-ul-width style="height:90%" data-transition="fade-in none-out"}
+## Unterschiede zu Haskell {.fix-ul-width .fix-height data-transition="fade-in none-out"}
 
 - In Coq ist die **Deklarationsreihenfolge** wichtig.
 
@@ -125,7 +134,7 @@ include-before: |
   ```
   :::
 
-## Unterschiede zu Haskell {.fix-ul-width style="height:90%" data-transition="fade-in none-out"}
+## Unterschiede zu Haskell {.fix-ul-width .fix-height data-transition="fade-in none-out"}
 
 - In Coq ist die **Deklarationsreihenfolge** wichtig.
 
@@ -139,7 +148,7 @@ include-before: |
        end.
   ```
 
-## Unterschiede zu Haskell {.fix-ul-width style="height:90%" data-transition="fade-in none-out"}
+## Unterschiede zu Haskell {.fix-ul-width .fix-height data-transition="fade-in none-out"}
 
 - In Coq ist die **Deklarationsreihenfolge** wichtig.
 
@@ -156,7 +165,7 @@ include-before: |
   ```
   :::
 
-## Unterschiede zu Haskell {.fix-ul-width style="height:90%" data-transition="fade-in slide-out"}
+## Unterschiede zu Haskell {.fix-ul-width .fix-height data-transition="fade-in slide-out"}
 
 - In Coq ist die **Deklarationsreihenfolge** wichtig.
 
@@ -229,11 +238,11 @@ include-before: |
   - Was soll meine Implementierung anders/besser machen?
 -->
 
-## [hs-to-coq](https://github.com/antalsz/hs-to-coq) {.fragile}
-
-::: incremental
+## [hs-to-coq](https://github.com/antalsz/hs-to-coq) {.fragile .fix-ul-width}
 
 - Entwickelt an der Universität von Pennsylvania
+
+::: incremental
 
 - Übersetzt **totale** Haskell Programme zu Coq
 
@@ -247,189 +256,184 @@ include-before: |
 
 ## [haskellToCoqCompiler](https://github.com/beje8442/haskellToCoqCompiler) {.fragile}
 
-::: incremental
-
 - Bachlorarbeit aus Flensburg
 
-- Monadische übersetzung nach [Abel et al.](http://www2.tcs.ifi.lmu.de/~abel/haskell05.pdf)
+- Monadische Transformation nach [Abel et al.](http://www2.tcs.ifi.lmu.de/~abel/haskell05.pdf)
 
-  ::: fragment
-  ```haskell
-  head :: [a] -> Maybe a
-  head xs = case xs of
-    []      -> Nothing
-    x : xs' -> Just x
-  ```
-  :::
+## Monadische Transformation {.fragile .small-heading .fix-height-sm data-transition="slide-in none-out"}
 
-- `Maybe`{.haskell} oder `Identity`{.haskell} Monade
+```coq
+Definition head {X : Type} (xs : list X) : X
+  := match xs with
+     | nil        => (* ??? *)
+     | cons x xs' => x
+     end.
+```
 
+::: fragment
+```coq
+Definition head {X : Type} (xs : list X) : option X
+  := match xs with
+     | nil        => None
+     | cons x xs' => Some x
+     end.
+```
+:::
+
+::: fragment
+```coq
+head (head xss)
+```
+:::
+
+## Monadische Transformation {.fragile .small-heading .fix-height-sm data-transition="fade-in none-out"}
+
+::: hidden
+```coq
+Inductive list (X : Type) : Type
+  := nil  : list X
+   | cons : option X -> option (list X) -> list X.
+```
+:::
+
+```coq
+Definition head {X : Type} (xs : option (list X)) : option X
+  := xs >>= fun xs_0 => (
+       match xs with
+       | nil        => None
+       | cons x xs' => Some x
+       end).
+```
+
+## Monadische Transformation {.fragile .small-heading .fix-height-sm data-transition="fade-in slide-out"}
+
+```coq
+Inductive list (X : Type) : Type
+  := nil  : list X
+   | cons : option X -> option (list X) -> list X.
+```
+
+```coq
+Definition head {X : Type} (xs : option (list X)) : option X
+  := xs >>= fun xs_0 => (
+       match xs with
+       | nil        => None
+       | cons x xs' => x
+       end).
+```
+
+
+## [haskellToCoqCompiler](https://github.com/beje8442/haskellToCoqCompiler) {.fragile .fix-ul-width}
+
+- Bachlorarbeit aus Flensburg
+- Monadische Transformation nach [Abel et al.](http://www2.tcs.ifi.lmu.de/~abel/haskell05.pdf)
+
+::: fragment
 - Prototypische Umsetzung
-
-:::
-
-# Übersetzung
-
-## Beispiel {.fragile}
-
-```haskell
-head :: [a] -> a
-head (x:_) = x
-```
-
-::: fragment
-```haskell
-head :: [a] -> a
-head xs = case xs of
-  []    -> undefined
-  x:xs' -> x
-```
-:::
-
-## Beispiel {.fragile}
-
-```haskell
-head :: [a] -> a
-head xs = case xs of
-  []    -> undefined
-  x:xs' -> x
-```
-
-::: fragment
-```coq
-Definition head {a : Type} (xs : List a) : a :=
-  match xs with
-  | nil        => (* ??? *)
-  | cons x xs' => x
-  end.
-```
 :::
 
 ::: fragment
-```coq
-Definition head {a : Type} (xs : List a) : option a :=
-  match xs with
-  | nil        => None
-  | cons x xs' => Some x
-  end.
-```
+- Nur `Maybe`{.haskell} und `Identity`{.haskell} Monade
 :::
 
-## Beispiel {.fragile}
-
-::: fragment
-```coq
-Inductive List (a : Type) : Type :=
-  | nil  : List a
-  | cons : option a -> option (List a) -> List a.
-```
-:::
+## Effekt generischer Ansatz {.fragile}
 
 ```coq
-Definition head {a : Type} (oxs : option (List a)) : option a :=
-  oxs >>= fun(xs : List a) =>
-    match xs with
-    | nil          => None
-    | cons ox oxs' => ox
-    end.
-```
-
-## Beispiel {.fragile}
-
-```coq
-Inductive List (m : Type -> Type) (a : Type) : Type :=
-  | nil  : List m a
-  | cons : m a -> m (List m a) -> List m a.
+Inductive List (M : Type -> Type) (X : Type) : Type
+  := nil  : List M X
+   | cons : M X -> M (List M X) -> List M X.
 ```
 
 ::: fragment
 > Error: Non strictly positive occurrence of "List" in
-> "m a -> m (List m a) -> List m a".
+> "M X -> M (List M X) -> List M X".
 :::
 
-## Freie Monade {.fragile data-transition="slide-in fade-out"}
+<!--
+
+## Freie Monade {.fragile data-transition="slide-in none-out"}
 
 ```haskell
 data Free f a = Pure a | Impure (f (Free f a))
 ```
 
 ::: fragment
-```dot
-graph {
-  {
-    rankdir="LR";
-    node [shape = "rectangle"];
-    rank = "same";
-    "Freie Monade"; "Monade"; "Funktor";
-    "Container" [style = "invis"];
-  }
-
-  edge [minlen = 3];
-
-  "Container" -- "Funktor"      [dir = "forward", arrowhead = "empty", style = "invis"];
-  "Funktor" -- "Freie Monade"   [label = "«use»", dir = "back", arrowtail = "open", style = "dashed"];
-  "Container" -- "Freie Monade" [xlabel = "«use»", dir = "back", arrowtail = "open", style = "dashed", style = "invis"];
-  "Freie Monade" -- "Monade"    [dir = "forward", arrowhead = "empty"];
-}
+```haskell
+data Zero a
+data Free Zero a = Pure a | Impure (Zero (Free Zero a))
 ```
 :::
 
-## Freie Monade {.fragile data-transition="fade"}
+## Freie Monade {.fragile data-transition="fade-in none-out"}
 
 ```haskell
 data Free f a = Pure a | Impure (f (Free f a))
 ```
 
-```dot
-graph {
-  {
-    rankdir="LR";
-    node [shape = "rectangle"];
-    rank = "same";
-    "Container"; "Funktor"; "Freie Monade"; "Monade"
-  }
-
-  edge [minlen = 3];
-
-  "Container" -- "Funktor"      [dir = "forward", arrowhead = "empty"];
-  "Funktor" -- "Freie Monade"   [label = "«use»", dir = "back", arrowtail = "open", style = "dashed"];
-  "Container" -- "Freie Monade" [xlabel = "«use»", dir = "back", arrowtail = "open", style = "dashed", style = "invis"];
-  "Freie Monade" -- "Monade"    [dir = "forward", arrowhead = "empty"];
-}
+```haskell
+data Zero a
+data Free Zero a = Pure a
 ```
 
-## Freie Monade {.fragile data-transition="fade-in slide-out"}
+## Freie Monade {.fragile data-transition="fade-in none-out"}
 
 ```haskell
 data Free f a = Pure a | Impure (f (Free f a))
 ```
 
-```dot
-graph {
-  {
-    rankdir="LR";
-    node [shape = "rectangle"];
-    rank = "same";
-    "Container"; "Funktor"; "Freie Monade"; "Monade"
-  }
-
-  edge [minlen = 3];
-
-  "Container" -- "Funktor"      [dir = "forward", arrowhead = "empty"];
-  "Funktor" -- "Freie Monade"   [label = "«use»", dir = "back", arrowtail = "open", style = "dashed", style = "invis"];
-  "Container" -- "Freie Monade" [xlabel = "«use»", dir = "back", arrowtail = "open", style = "dashed"];
-  "Freie Monade" -- "Monade"    [dir = "forward", arrowhead = "empty"];
-}
+```haskell
+data Identity a = Identity a
 ```
+
+## Freie Monade {.fragile data-transition="fade-in none-out"}
+
+```haskell
+data Free f a = Pure a | Impure (f (Free f a))
+```
+
+```haskell
+data One a = One
+data Free One a = Pure a | Impure (One (Free One a))
+```
+
+## Freie Monade {.fragile data-transition="fade-in none-out"}
+
+```haskell
+data Free f a = Pure a | Impure (f (Free f a))
+```
+
+```haskell
+data One a = One
+data Free One a = Pure a | Impure
+```
+
+## Freie Monade {.fragile data-transition="fade-in none-out"}
+
+```haskell
+data Free f a = Pure a | Impure (f (Free f a))
+```
+
+```haskell
+data Maybe a = Just a | Nothing
+```
+
+-->
 
 ## Freie Monade {.fragile}
 
-```coq
-Inductive List {@$F$@ : Type -> Type} (@$C_F$@ : Container @$F$@)
-               (a : Type) :=
-  | nil  : List @$C_F$@ a
-  | cons : Free @$C_F$@ a -> Free @$C_F$@ (List @$C_F$@ a) -> List @$C_F$@ a.
+```haskell
+data Free f a = Pure a | Impure (f (Free f a))
 ```
+
+::: fragment
+```coq
+Inductive List (@$Shape$@ : Type) (@$Pos$@ : @$Shape$@ -> Type) (X : Type)
+  := nil  : List @$Shape$@ @$Pos$@ X
+   | cons : Free @$Shape$@ @$Pos$@ X
+            -> Free @$Shape$@ @$Pos$@ (List @$Shape$@ @$Pos$@ X)
+            -> List @$Shape$@ @$Pos$@ X.
+```
+:::
 
 # Ausblick
 
@@ -440,67 +444,6 @@ Inductive List {@$F$@ : Type -> Type} (@$C_F$@ : Container @$F$@)
 # Fragen?
 
 <!-- Backup slides: -->
-
-# Warum kann man `fac`{.haskell} nicht übersetzen? {.small-heading}
-
-## `fac`{.haskell} über `Int`{.haskell} {.fragile}
-
-```haskell
-fac :: Int -> Int
-fac n = if n == 0 then 1 else n * fac (n - 1)
-```
-
-::: fragment
-```haskell
-fac (-1) @$\rightarrow$@ (-1) * fac (-2)
-         @$\rightarrow$@ 2 * fac (-3)
-         @$\rightarrow$@ @$\ldots$@
-```
-:::
-
-## `fac`{.haskell} über `nat`{.coq} {.fragile}
-
-```haskell
-fac :: Int -> Int
-fac n = if n == 0 then 1 else n * fac (n - 1)
-```
-
-```coq
-(* Compiliert nicht, da n nicht strukturell abgebaut wird. *)
-Fixpoint fac (n : nat) : nat :=
-  if Nat.eqb n 0 then 1 else n * fac (n - 1).
-```
-
-## `fac`{.haskell} mit `match`{.coq} {.fragile data-transition="slide-in fade-out"}
-
-```haskell
-fac :: Int -> Int
-fac n = if n == 0 then 1 else n * fac (n - 1)
-```
-
-```coq
-Fixpoint fac (n : nat) : nat :=
-  match n with
-  | O    => 1
-  | S n' => n * fac n'
-  end.
-```
-
-## `fac`{.haskell} mit `match`{.coq} {.fragile data-transition="fade-in slide-out"}
-
-```haskell
-fac :: Int -> Int
-fac n = case n of 0          -> 1
-                  {- S n' -} -> n * fac {- n' -}
-```
-
-```coq
-Fixpoint fac (n : nat) : nat :=
-  match n with
-  | O    => 1
-  | S n' => n * fac n'
-  end.
-```
 
 # Beispiele für freie Monaden {.small-heading}
 
