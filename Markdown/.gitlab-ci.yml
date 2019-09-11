@@ -31,8 +31,9 @@ typeset-presentations:
   artifacts:
     name: presentations
     paths:
-      - ./Markdown/presentation/*/*.html
       - ./Markdown/presentation/*/bower.json
+      - ./Markdown/presentation/*/*.html
+      - ./Markdown/presentation/*/*.svg
 
 # Deploy presentation to `https://$SSH_DEPLOY_HOST/$CI_COMMIT_REF_SLUG/presentations`.
 deploy-presentation:
@@ -46,8 +47,7 @@ deploy-presentation:
     - >
       for p in $(find * -maxdepth 0 -type d); do
         mkdir $DEPLOY_DIR/presentations/$p
-        cp $p/bower.json $DEPLOY_DIR/presentations/$p
-        cp $p/$p.html $DEPLOY_DIR/presentations/$p
+        cp $p/*.{json,html,svg} $DEPLOY_DIR/presentations/$p
       done
 
 # Install bower dependencies of the deployed presentations.
