@@ -248,7 +248,7 @@ Inductive list (X : Type) : Type
 
 ```coq
 Definition head {X : Type} (xs : option (list X)) : option X
-  := xs >>= fun xs_0 => (
+  := xs >>= (fun xs_0 =>
        match xs with
        | nil        => None
        | cons x xs' => Some x
@@ -388,6 +388,17 @@ Inductive List (@$Shape$@ : Type) (@$Pos$@ : @$Shape$@ -> Type) (X : Type)
 
 # Demo
 
+# Fazit
+
+## Weitere Arbeiten
+
+::: incremental
+- Unterstützter Sprachumfang ausweiten
+- Übersetzung rekursiver Funktionen verbessern
+- Korrektheit der Übersetzung beweisen
+- Sharing modellieren
+:::
+
 # Fragen?
 
 <!-- Backup slides: -->
@@ -413,3 +424,5 @@ type One a = ()
 
 data Maybe a = Just a | Nothing
 ```
+
+# Definition von `Free`{.coq}
