@@ -288,11 +288,11 @@ Definition head {X : Type} (xs : option (list X)) : option X
 
 # Umsetzung
 
-## Zielsetzung {.fix-ul-width}
+## Umsetzung {.fix-ul-width}
 
-- Erweitung auf Effekt generischen Ansatz
+- **Ziel**: Erweitung auf Effekt generischen Ansatz
 
-## Effekt generischer Ansatz {.fragile}
+## Effekt generischer Ansatz {.fragile .small-heading}
 
 ```coq
 Inductive List (M : Type -> Type) (X : Type) : Type
@@ -321,12 +321,12 @@ Inductive List (@$Shape$@ : Type) (@$Pos$@ : @$Shape$@ -> Type) (X : Type)
 ```
 :::
 
-## Zielsetzung {.fix-ul-width}
+## Umsetzung {.fix-ul-width}
 
-- Erweitung auf Effekt generischen Ansatz
+- **Ziel**: Erweitung auf Effekt generischen Ansatz
 
 ::: fragment
-- Zunächst nur kleiner Sprachumfang
+- Zunächst nur kleiner Sprachumfang unterstützt
 :::
 
 ## Annahmen {.fragile}
@@ -373,7 +373,20 @@ Inductive List (@$Shape$@ : Type) (@$Pos$@ : @$Shape$@ -> Type) (X : Type)
 
 - Keine `import`{.haskell}s
 
-<!-- ... -->
+
+## Umsetzung {.fix-ul-width}
+
+- **Ziel**: Erweitung auf Effekt generischen Ansatz
+
+- Zunächst nur kleiner Sprachumfang unterstützt
+
+::: incremental
+- Formalisierung der Übersetzung
+
+- Impementierung der Übersetzung
+:::
+
+# Demo
 
 # Fragen?
 
