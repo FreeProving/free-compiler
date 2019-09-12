@@ -180,56 +180,6 @@ include-before: |
   ```
   :::
 
-# Annahmen
-
-<!--
-  - Welche Haskell Features sollen unterstützt werden?
--->
-
-## Annahmen {.fragile}
-
-- Zu jeder Funktion wird die **Typsignatur** explizit angegeben.
-
-::: incremental
-
-- Vordefinierte Typen: `Integer`{.haskell}, `Bool`{.haskell}, `[a]`{.haskell},
-  `()`{.haskell} und `(a, b)`{.haskell}
-- Benutzerdefinierte Typen mit `data`{.haskell} und `type`{.haskell},
-  aber nicht `newtype`{.haskell}
-
-:::
-
-## Annahmen {.fragile .fix-ul-width}
-
-- Jede Funktion wird durch **genau eine Regel** definiert.
-
-  ```haskell
-  @$f$@ :: @$\tau_1$@ -> @$\ldots$@ -> @$\tau_n$@ -> @$\tau$@
-  @$f$@ @$x_1$@ @$\ldots$@ @$x_n$@ = @$e$@
-  ```
-
-::: incremental
-- Keine lokalen Deklarationen mit `where`{.haskell}
-
-- Explizites und vollständiges Pattern-Matching
-
-  ```haskell
-  case xs of
-    []      -> undefined
-    x : xs' -> x
-  ```
-
-- Keine verschachtelten Pattern
-:::
-
-## Annahmen {.fragile}
-
-- Keine `let`{.haskell} oder `do`{.haskell} Ausdrücke
-
-- Keine Typklassen
-
-- Keine `import`{.haskell}s
-
 # Existierende Ansätze
 
 <!--
@@ -336,6 +286,12 @@ Definition head {X : Type} (xs : option (list X)) : option X
 - Nur `Maybe`{.haskell} und `Identity`{.haskell} Monade
 :::
 
+# Umsetzung
+
+## Zielsetzung {.fix-ul-width}
+
+- Erweitung auf Effekt generischen Ansatz
+
 ## Effekt generischer Ansatz {.fragile}
 
 ```coq
@@ -348,76 +304,6 @@ Inductive List (M : Type -> Type) (X : Type) : Type
 > Error: Non strictly positive occurrence of "List" in
 > "M X -> M (List M X) -> List M X".
 :::
-
-<!--
-
-## Freie Monade {.fragile data-transition="slide-in none-out"}
-
-```haskell
-data Free f a = Pure a | Impure (f (Free f a))
-```
-
-::: fragment
-```haskell
-data Zero a
-data Free Zero a = Pure a | Impure (Zero (Free Zero a))
-```
-:::
-
-## Freie Monade {.fragile data-transition="fade-in none-out"}
-
-```haskell
-data Free f a = Pure a | Impure (f (Free f a))
-```
-
-```haskell
-data Zero a
-data Free Zero a = Pure a
-```
-
-## Freie Monade {.fragile data-transition="fade-in none-out"}
-
-```haskell
-data Free f a = Pure a | Impure (f (Free f a))
-```
-
-```haskell
-data Identity a = Identity a
-```
-
-## Freie Monade {.fragile data-transition="fade-in none-out"}
-
-```haskell
-data Free f a = Pure a | Impure (f (Free f a))
-```
-
-```haskell
-data One a = One
-data Free One a = Pure a | Impure (One (Free One a))
-```
-
-## Freie Monade {.fragile data-transition="fade-in none-out"}
-
-```haskell
-data Free f a = Pure a | Impure (f (Free f a))
-```
-
-```haskell
-data One a = One
-data Free One a = Pure a | Impure
-```
-
-## Freie Monade {.fragile data-transition="fade-in none-out"}
-
-```haskell
-data Free f a = Pure a | Impure (f (Free f a))
-```
-
-```haskell
-data Maybe a = Just a | Nothing
-```
-
--->
 
 ## Freie Monade {.fragile}
 
@@ -435,11 +321,59 @@ Inductive List (@$Shape$@ : Type) (@$Pos$@ : @$Shape$@ -> Type) (X : Type)
 ```
 :::
 
-# Ausblick
+## Zielsetzung {.fix-ul-width}
 
-<!--
-  - Aktueller Stand und was noch zu tun ist.
--->
+- Erweitung auf Effekt generischen Ansatz
+
+::: fragment
+- Zunächst nur kleiner Sprachumfang
+:::
+
+## Annahmen {.fragile}
+
+- Zu jeder Funktion wird die **Typsignatur** explizit angegeben.
+
+::: incremental
+
+- Vordefinierte Typen: `Integer`{.haskell}, `Bool`{.haskell}, `[a]`{.haskell},
+  `()`{.haskell} und `(a, b)`{.haskell}
+- Benutzerdefinierte Typen mit `data`{.haskell} und `type`{.haskell},
+  aber nicht `newtype`{.haskell}
+
+:::
+
+## Annahmen {.fragile .fix-ul-width}
+
+- Jede Funktion wird durch **genau eine Regel** definiert.
+
+  ```haskell
+  @$f$@ :: @$\tau_1$@ -> @$\ldots$@ -> @$\tau_n$@ -> @$\tau$@
+  @$f$@ @$x_1$@ @$\ldots$@ @$x_n$@ = @$e$@
+  ```
+
+::: incremental
+- Keine lokalen Deklarationen mit `where`{.haskell}
+
+- Explizites und vollständiges Pattern-Matching
+
+  ```haskell
+  case xs of
+    []      -> undefined
+    x : xs' -> x
+  ```
+
+- Keine verschachtelten Pattern
+:::
+
+## Annahmen {.fragile}
+
+- Keine `let`{.haskell} oder `do`{.haskell} Ausdrücke
+
+- Keine Typklassen
+
+- Keine `import`{.haskell}s
+
+<!-- ... -->
 
 # Fragen?
 
