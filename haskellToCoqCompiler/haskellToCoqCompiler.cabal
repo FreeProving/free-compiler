@@ -23,14 +23,7 @@ copyright:           (c) 2018, Flensburg University of Applied Sciences
                      (c) 2019, Kiel University
 category:            Language
 build-type:          Simple
-data-files:          base/env.toml
-                   , base/Prelude.v
-                   , base/Prelude/*.v
-                   , base/Free.v
-                   , base/Free/*.v
-                   , base/Free/Instance/*.v
-                   , base/Free/Tactic/*.v
-                   , base/Free/Util/*.v
+data-files:          base/**/*.v
 
 library haskell-to-coq-internal
   hs-source-dirs:     src/lib
