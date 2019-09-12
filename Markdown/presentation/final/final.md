@@ -425,4 +425,13 @@ type One a = ()
 data Maybe a = Just a | Nothing
 ```
 
-# Definition von `Free`{.coq}
+# Definition von `Free`{.coq} {.small-heading}
+
+## Definition von `Free`{.coq}
+
+```coq
+Inductive Free @$Shape$@ @$Pos$@ (A : Type) : Type :=
+  | pure : A -> Free @$Shape$@ @$Pos$@ A
+  | impure : forall (s : Shape),
+      (Pos s -> Free @$Shape$@ @$Pos$@ A) -> Free @$Shape$@ @$Pos$@ A.
+```
