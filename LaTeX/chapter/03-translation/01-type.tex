@@ -25,7 +25,7 @@ Lifting the type of \haskell{xs} to the free monad allows an application of \has
 If we define the constructors of \coq{List} appropriately (see \autoref{sec:translation:type-decl}), the list items can also have effects themselves.
 We do not have to lift the type argument $a$ explicitly.
 
-The parameter \haskell{f} is different though.
+The parameter \haskell{f} is different, though.
 While it is correct to lift the type of \haskell{f}, i.e., $a \rightarrow b$, into the free monad such that potential effects in the first argument of \haskell{map} can be handled, doing so is not sufficient.
 \[
   \toCoq{(a \rightarrow b)} = \Free{(a \rightarrow b)}

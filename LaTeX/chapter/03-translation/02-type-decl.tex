@@ -122,7 +122,7 @@ By applying the translation rules for types we would obtain the following Coq ty
     &= \toCoq{Double} \rightarrow \Free{\toCoqT{(Double \rightarrow Complex)}}
     \tag{\autoref{eqn:translation:type}}
 \end{align*}
-Wrapping the return type of a constructor is not allowed in Coq though.
+Wrapping the return type of a constructor is not allowed in Coq, though.
 However, it is not necessary for us to lift the intermediate results of the constructor either.
 Lifting them would be redundant as (partial) constructor applications never have an effect in Haskell.
 Therefore, it is sufficient to lift the argument types of the constructor (which could indeed be effectful).

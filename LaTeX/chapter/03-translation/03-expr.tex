@@ -54,7 +54,7 @@ As $\toCoq{e_1}$ is lifted to the free monad, we cannot access the contained fun
   \label{fig:translation:expr:app}
 \end{figure}
 
-Usually, functions do not take just a single argument though.
+Usually, functions do not take just a single argument, though.
 For example, consider the application of a function $f$ to $n$ arguments.
 \begin{align*}
   \toCoq{(f\;e_1\;\ldots\;e_n)}
@@ -396,7 +396,7 @@ Nowadays integers are 64 bits wide on most machines.
   GHCi> maxBound :: Int
   9223372036854775807
 \end{minted}
-Haskell only guarantees at least 30 bits of precision for \haskell{Int} though \cite[p.~181]{Marlow:2010}.
+Haskell only guarantees at least 30 bits of precision for \haskell{Int}, though \cite[p.~181]{Marlow:2010}.
 Proofs would therefore be implementation specific.
 For this reason, we avoid \haskell{Int} and use \haskell{Integer} instead.
 Similar to \coq{nat}, \haskell{Integer} has no upper bound.
