@@ -210,7 +210,7 @@ The free monad can be used to model, among others, the \haskell{Maybe} and \hask
 If we instantiate the functor $f$ with a data type \haskell{Zero} that does not have a constructor, we cannot create a value of type \haskell{Free Zero a} using the \haskell{Impure} constructor (in a total setting).
 Therefore, only the \haskell{Pure} constructor remains and the data type behaves like \haskell{Identity}.
 \begin{minted}{haskell}
-  data Zero a
+  data Zero a {- polymorphic type without constructors -}
   data Identity a = Identity a
 \end{minted}
 Similarly, a data type \haskell{One}, with a single inhabitant, can be used to to model the \haskell{Maybe} monad.
@@ -218,7 +218,7 @@ Similarly, a data type \haskell{One}, with a single inhabitant, can be used to t
   data One a = One
   data Maybe a = Just a | Nothing
 \end{minted}
-The \haskell{Pure} constructor corresponds to \haskell{Just} and \haskell{Impure One} corresponds to \haskell{Nothing}.
+The \haskell{Pure} constructor corresponds to \haskell{Just} and \haskell{Impure ()} corresponds to \haskell{Nothing}.
 
 In the context of our monadic translation, the \haskell{Pure} constructor corresponds to an effect-free head normal form and values constructed with \haskell{Impure} are interpreted as the monad's effects \cite[p.~127]{Christiansen:2019}.
 In case of the \haskell{Identity} monad, there are no effects and in case of the \haskell{Maybe} monad, there is exactly one effect: the absence of a value.
@@ -233,3 +233,49 @@ To eliminate the possibility of defining non-terminating functions using \coq{Fr
 
 \subsection{Containers}
 \label{sec:preliminaries:modeling-effects:containers}
+Containers provide an abstraction for modeling data types that store values \cite[p.~8]{Dylus:2018}.
+A list, for example, can be characterized through its length and a function that maps indices to values within the list.
+Similarly, a tree can be modeled by a function that labels its leafs.
+This time, the values are not identified by a single index but by a more complex \textit{position} within the tree (e.g., the path to the leaf from the root).
+Just as the length of the list determines which indices are valid positions within the list, the exact \textit{shape} of the tree determines the valid positions of leafs.
+
+In general, a container is characterized by its \textit{shape} and a function that maps \textit{positions} within the shape to values stored by the container.
+We will denote the data type of the container's shape as $\Shape$.
+The position data type \coq{@$\Pos$@ s} depends on the concrete choice of a shape \coq{s : @$\Shape$@}.
+In case of lists, the shape is a natural number (i.e., the length of the list) and the position type is an interval of valid indices.
+\begin{align*}
+  \Shape &= \mathbb{N}
+  \\
+  \Pos(n) &= [0; n)
+\end{align*}
+
+We want to use containers to model functors that are passed into the free monad.
+For modeling the \haskell{Identity} and \haskell{Maybe} monads, we introduced the functors \haskell{Zero} and \haskell{One}, respectively.
+Since there are no constructors in case of the data type \haskell{Zero}, no values of type \haskell{Zero @$\tau$@} exist for any type $\tau$.
+Hence, values of type \haskell{Zero @$\tau$@} neither have a shape nor any positions where values of type $\tau$ could be stored.
+\begin{minted}{coq}
+  Inductive Void : Type := (* non-polymorphic type without constructors *).
+  Definition @$\Shape_{Zero}$@ = Void.
+  Definition @$\Pos_{Zero}$@ (s : @$\Shape_{Zero}$@) = Void.
+\end{minted}
+The data type \haskell{One}, on the other hand, has exactly one constructor without any arguments.
+Thus, all values of type \haskell{One @$\tau$@} have the same shape.
+In the following listing we are using the \coq{unit} data type as defined in Coq's standard library.
+Since, the constructor of \haskell{One} has no arguments, there are again no positions inside of values of type \haskell{One @$\tau$@}.
+\begin{minted}{coq}
+  Inductive unit : Type := tt : unit.
+  Definition @$\Shape_{One}$@ = unit.
+  Definition @$\Pos_{One}$@ (s : @$\Shape_{One}$@) = Void.
+\end{minted}
+
+Finally, we need a way to incorporate containers into the definition of \coq{Free}.
+For this purpose, we replace the type argument \coq{F} by two new type arguments for $\Shape$ and $\Pos$ respectively.
+In the \coq{impure} constructor instead of a data structure of type \coq{F (Free F A)} we need the concrete shape \coq{s} that characterizes the container and a function \coq{pf} that maps positions to values inside of the container.
+In this case, the values inside of the container are free monads themselves.
+\begin{minted}{coq}
+  Inductive Free (@$\Shape$@ : Type) (@$\Pos$@ : @$\Shape$@ -> Type) (A : Type) : Type
+    := pure   : A -> Free @$\Shape$@ @$\Pos$@ A
+     | impure : forall (s : @$\Shape$@) (pf : @$Pos$@ s -> Free @\Shape@ @$\Pos$@ A), Free @\Shape@ @$\Pos$@ A
+\end{minted}
+This time, Coq does not reject the definition anymore.
+Therefore, we will use this definition of \coq{Free} for the effect-generic monadic translation implemented by our compiler.
