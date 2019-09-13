@@ -190,8 +190,46 @@ Since Coq requires functions to terminate on all inputs, the definition of \coq{
 Therefore, \citep{Dylus:2018} model monads using a combination the free monad and a container representation for functors.
 In the next two subsections, we give a brief introduction to the free monad and containers.
 
-\subsection{Free Monads}
+\subsection{Free Monad}
 \label{sec:preliminaries:modeling-effects:free}
+The free monad is a data type that turns any functor into a monad \cite[p.~7]{Dylus:2018}.
+In Haskell the free monad can be defined as follows.
+\begin{minted}{haskell}
+  data Free f a = Pure a | Impure (f (Free f a))
+\end{minted}
+For any functor $f$, \haskell{Free @$f$@} is a monad, i.e., the following definitions fulfill the monad laws.
+\begin{minted}{haskell}
+  return :: Functor f => a -> Free f a
+  return = Pure
+
+  (>>=) :: Functor f => Free f a -> (a -> Free f b) -> Free f b
+  (Pure x)    >>= f = f x
+  (Impure fx) >>= f = fmap (>>= f) fx
+\end{minted}
+The free monad can be used to model, among others, the \haskell{Maybe} and \haskell{Identity} monads.
+If we instantiate the functor $f$ with a data type \haskell{Zero} that does not have a constructor, we cannot create a value of type \haskell{Free Zero a} using the \haskell{Impure} constructor (in a total setting).
+Therefore, only the \haskell{Pure} constructor remains and the data type behaves like \haskell{Identity}.
+\begin{minted}{haskell}
+  data Zero a
+  data Identity a = Identity a
+\end{minted}
+Similarly, a data type \haskell{One}, with a single inhabitant, can be used to to model the \haskell{Maybe} monad.
+\begin{minted}{haskell}
+  data One a = One
+  data Maybe a = Just a | Nothing
+\end{minted}
+The \haskell{Pure} constructor corresponds to \haskell{Just} and \haskell{Impure One} corresponds to \haskell{Nothing}.
+
+In the context of our monadic translation, the \haskell{Pure} constructor corresponds to an effect-free head normal form and values constructed with \haskell{Impure} are interpreted as the monad's effects \cite[p.~127]{Christiansen:2019}.
+In case of the \haskell{Identity} monad, there are no effects and in case of the \haskell{Maybe} monad, there is exactly one effect: the absence of a value.
+
+Unfortunately, if we try to define \coq{Free} in Coq, we run into the same problems as with \coq{list} in the previous subsection.
+\begin{minted}{coq}
+  Fail Inductive Free (F : Type -> Type) (A : Type) : Type
+    := pure   : A -> Free F A
+     | impure : F (Free F A) -> Free F A.
+\end{minted}
+To eliminate the possibility of defining non-terminating functions using \coq{Free}, the type argument \coq{F} is replaced by a container data structure that models the original functor but does not permit types like \coq{NatFun} which were used to implement non-terminating functions.
 
 \subsection{Containers}
-\label{sec:preliminaries:modeling-effects:free}
+\label{sec:preliminaries:modeling-effects:containers}

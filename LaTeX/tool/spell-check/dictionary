@@ -12,6 +12,7 @@ Coq
 disjunction
 Dylus
 effectful
+functor
 functors
 Gallina
 GHC
