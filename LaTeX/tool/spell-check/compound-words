@@ -1,6 +1,7 @@
 effect-generic
 error-prone
 higher-order
+left-hand
 meta-variables
 non-lifted
 non-monadic

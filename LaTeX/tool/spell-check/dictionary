@@ -8,6 +8,7 @@ backquotes
 backticks
 boolean
 booleans
+constructible
 Coq
 disjunction
 Dylus
@@ -48,6 +49,7 @@ ruleset
 runtime
 simplifier
 splitted
+sublists
 subscripted
 subterm
 subterms
