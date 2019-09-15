@@ -49,6 +49,7 @@ ruleset
 runtime
 simplifier
 splitted
+subdirectory
 sublists
 subscripted
 subterm
