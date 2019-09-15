@@ -146,7 +146,7 @@ Finally, the \haskell{head} function can now be implemented as follows.
 \end{tabular}
 
 The process of lifting argument and return types of functions as well as the arguments of constructors, as shown above, is known as a \textit{monadic translation} of the program.
-\cite{Abel:2005} present a monadic translation from Haskell programs to Agda~--~a proof assistant similar to Coq.
+\cite{Abel:2005} present a monadic translation from Haskell programs to Agda.
 Based on their translation rules, \cite{Jessen:2019} developed a prototype for a compiler that monadically translates Haskell programs to Coq.
 
 Note that except for the representation of \haskell{undefined} as \haskell{Nothing}, the definitions above are completely independent of the \haskell{Maybe} and \coq{option} data types, i.e., we can simply swap the \haskell{Maybe} monad for another monad to model other effects.

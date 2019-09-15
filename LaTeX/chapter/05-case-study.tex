@@ -262,5 +262,8 @@ The \haskell{(===)} operator is translated to Coq's reflexive equality by our co
 Due to minor differences in the definition of the \coq{Free} monad, slight modifications need to be done to the proofs presented by \cite{Dylus:2018}.
 There are further differences in the exact definition of the inductive propositions like \coq{total_queue} which we need for \coq{prop_front} again.
 Apart from that we can copy their proofs.
-Since their proof for \coq{} makes use of induction, we also have to copy and adapt the their induction principles for the free monad \cite[pp.~29-31]{Dylus:2018}.
+Since their proof for \coq{prop_add} makes use of induction, we also have to copy and adapt the their induction principles for the free monad \cite[pp.~29-31]{Dylus:2018}.
 As proofs by induction are very common, the induction principles have been added to our base library.
+Only the theorem for \coq{prop_front} requires a \coq{Partial} instance.
+The other properties are completely effect-generic.
+While \cite{Dylus:2018} were only able to prove \coq{prop_front} for specific monads that model partiality, our approach with the \coq{Partial} type class allows us to extend the proof of \coq{prop_front} to all monads for which a notion of partiality exists.
