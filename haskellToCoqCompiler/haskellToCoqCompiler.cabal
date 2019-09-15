@@ -24,6 +24,10 @@ copyright:           (c) 2018, Flensburg University of Applied Sciences
 category:            Language
 build-type:          Simple
 data-files:          base/env.toml
+                     -- Due to a Bug in Cabal version 2.4, we cannot make
+                     -- use of `**` wildcard patterns here. Otherwise, the
+                     -- `new-install` command fails.
+                     -- base/**/*.v
                    , base/Prelude.v
                    , base/Prelude/*.v
                    , base/Free.v
@@ -31,6 +35,14 @@ data-files:          base/env.toml
                    , base/Free/Instance/*.v
                    , base/Free/Tactic/*.v
                    , base/Free/Util/*.v
+                     -- base/**/*.vo
+                   , base/Prelude.vo
+                   , base/Prelude/*.vo
+                   , base/Free.vo
+                   , base/Free/*.vo
+                   , base/Free/Instance/*.vo
+                   , base/Free/Tactic/*.vo
+                   , base/Free/Util/*.vo
 
 library haskell-to-coq-internal
   hs-source-dirs:     src/lib
