@@ -1,1 +1,16 @@
 \section{Summary and Results} \label{sec:conclusion:summary}
+The goal of this thesis was to develop a compiler for the monadic translation for effectful Haskell programs to Coq.
+First, we have familiarized ourselves with Coq and presented the approach by \cite{Dylus:2018} for modeling effectful Haskell code in Coq.
+Next, we formalized the monadic translation for a subset of Haskell based on the translation from Haskell to Agda by \cite{Abel:2005}.
+The resulting translation rules were implemented in Haskell with the help of third party libraries.
+We extended and adapted an existing prototypical implementation by \cite{Jessen:2019} for our implementation.
+
+As demonstrated by our case study in \autoref{chp:case-study}, our compiler generates code which is most often accepted by Coq without user intervention.
+Minor modifications are sometimes needed due to the lack of type inference.
+The extension for the translation of QuickCheck properties presented in \autoref{sec:translation:quickcheck} helps the user to prove properties by generating templates of theorems from Haskell code.
+Implicit assumptions of the Haskell code need to be modeled by the user manually in order to prove some properties.
+Parts of this process could be automated in the future.
+
+In total, we are confident that the compiler presented in this thesis provides a solid basis for future research and the verification of effectful Haskell programs.
+Nevertheless, our implementation is far from perfect.
+We present some ideas for future improvements and extensions of our work in the next section.
