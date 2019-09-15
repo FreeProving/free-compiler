@@ -275,7 +275,7 @@ In this case, the values inside of the container are free monads themselves.
 \begin{minted}{coq}
   Inductive Free (@$\Shape$@ : Type) (@$\Pos$@ : @$\Shape$@ -> Type) (A : Type) : Type
     := pure   : A -> Free @$\Shape$@ @$\Pos$@ A
-     | impure : forall (s : @$\Shape$@) (pf : @$Pos$@ s -> Free @\Shape@ @$\Pos$@ A), Free @\Shape@ @$\Pos$@ A
+     | impure : forall (s : @$\Shape$@) (pf : @$\Pos$@ s -> Free @\Shape@ @$\Pos$@ A), Free @\Shape@ @$\Pos$@ A
 \end{minted}
 This time, Coq does not reject the definition anymore.
 Therefore, we will use this definition of \coq{Free} for the effect-generic monadic translation implemented by our compiler.

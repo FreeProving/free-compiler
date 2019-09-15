@@ -51,7 +51,7 @@ A QuickCheck property $p$ has the following form where $\tau$ is one of \haskell
 
 \subsection{Code Generation} \label{sec:translation:quickcheck:code-generation}
 QuickCheck properties are translated to \coq{Theorem} sentences as shown in \autoref{fig:translation:quickcheck}.
-The arguments of the QuickCheck property~--~including type variables used in it's type signature as well as the parameters $Shape$, $Pos$ and potentially $P$~--~must be quantified universally.
+The arguments of the QuickCheck property~--~including type variables used in it's type signature as well as the parameters $\Shape$, $\Pos$ and potentially $P$~--~must be quantified universally.
 For the translation of the right-hand sides of QuickCheck properties, we introduce a new translation operation denoted by $\toCoqQ{}$.
 The corresponding proof is left blank and must be filled in by the user.
 
@@ -64,14 +64,14 @@ The corresponding proof is left blank and must be filled in by the user.
     = \begin{array}{l}
       \coqM{Theorem prop_@$p$@:} \\
       \quad\coqM{forall}
-      \;\coqM{(@$Shape$@ : Type) (@$Pos$@ : @Shape@ -> Type)} \\
+      \;\coqM{(@$\Shape$@ : Type) (@$\Pos$@ : @Shape@ -> Type)} \\
       \qquad\qquad\;\coqM{{@$\alpha_1'$@ @$\ldots$@ @$\alpha_m'$@ : Type} (@$x_1'$@ : @$\toCoqX{\tau_1}$@) @$\ldots$@ (@$x_n'$@ : @$\toCoqX{\tau_n}$@), @$\toCoqQX{e}$@.} \\
       \coqM{Proof. (* FILL IN HERE *) Admitted.} \\
     \end{array}
   \]
   \caption{
     Translation rule for QuickCheck properties.
-    If the function \haskell{prop_@$p$@} is partial, an additional binding \coq{(@$P$@ : Partial @$Shape$@ @$Pos$@)} must be added.
+    If the function \haskell{prop_@$p$@} is partial, an additional binding \coq{(@$P$@ : Partial @$\Shape$@ @$\Pos$@)} must be added.
   }
   \label{fig:translation:quickcheck}
 \end{figure}

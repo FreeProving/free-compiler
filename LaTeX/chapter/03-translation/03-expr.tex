@@ -320,23 +320,23 @@ If we lifted our programs using the \haskell{Maybe} monad for example, we do not
   undefined :: Maybe a
   undefined = Nothing
 \end{minted}
-For the translation of \haskell{undefined}, we now just need to model the \haskell{Maybe} monad using the free monad, i.e., instantiate $Shape$ and $Pos$ appropriately.
-How $SHape$ and $Pos$ would have to look like in case of \haskell{Maybe}, has originally been presented by \cite{Dylus:2018} and will be explained in more detail in \autoref{chp:implementation}. % TODO more concrete reference.
+For the translation of \haskell{undefined}, we now just need to model the \haskell{Maybe} monad using the free monad, i.e., instantiate $\Shape$ and $\Pos$ appropriately.
+How $\Shape$ and $\Pos$ would have to look like in case of \haskell{Maybe}, has originally been presented by \cite{Dylus:2018} and will be explained in more detail in \autoref{chp:implementation}. % TODO more concrete reference.
 
 We can also use \haskell{Nothing} to implement \haskell{error} if we are willing to simply discard the error message.
 \begin{minted}{haskell}
   error :: String -> Maybe a
   error msg = Nothing
 \end{minted}
-However, if we want to keep the error message, we need a different monad, i.e., have to instantiate $Shape$ and $Pos$ differently.
+However, if we want to keep the error message, we need a different monad, i.e., have to instantiate $\Shape$ and $\Pos$ differently.
 This alternative monad would not be limited to the translation of \haskell{error} as we can express \haskell{undefined} in terms of \haskell{error}.
 \begin{minted}{haskell}
   undefined :: a
   undefined = error "undefined"
 \end{minted}
 
-As we want to leave the choice of the concrete monad to the user, we abstract from the instantiation of $Shape$ and $Pos$ using a type class.
-Instances of the type class contain the implementation of \haskell{undefined} and \haskell{error} for the monad represented by $Shape$ and $Pos$.
+As we want to leave the choice of the concrete monad to the user, we abstract from the instantiation of $\Shape$ and $\Pos$ using a type class.
+Instances of the type class contain the implementation of \haskell{undefined} and \haskell{error} for the monad represented by $\Shape$ and $\Pos$.
 \begin{minted}{coq}
   Require Import Coq.Strings.String.
 
@@ -358,7 +358,7 @@ In contrast, no \coq{Partial} instance can be specified for the \coq{Identity} m
   \end{align*}
   \caption{
     Translation rules for error terms.
-    Both rules require an instance of the \coq{Partial} type class for $Shape$ and $Pos$ to be available in the current context.
+    Both rules require an instance of the \coq{Partial} type class for $\Shape$ and $\Pos$ to be available in the current context.
   }
   \label{fig:translation:expr:error}
 \end{figure}
@@ -408,7 +408,7 @@ Therefore, the type \coq{Z} from the \coq{ZArith} library is used by \texttt{hs-
   Definition Integer := Z.
 \end{minted}
 We adapt their code slightly such that the definition is compatible with our translation of custom data type and type synonym declarations.
-To do so the parameters $Shape$ and $Pos$ must be added, even though \coq{Integer} does not need them.
+To do so the parameters $\Shape$ and $\Pos$ must be added, even though \coq{Integer} does not need them.
 \begin{minted}{coq}
   Definition Integer (@$\Shape$@ : Type) (@$\Pos$@ : @$\Shape$@ -> Type) : Type := Z.
 \end{minted}
@@ -421,7 +421,7 @@ To create a value of type \coq{Z}, we have to append the suffix \coq{%Z}.
   Check 42.   (* ==> 42   : nat *)
   Check 42%Z. (* ==> 42%Z : Z *)
 \end{minted}
-Since \coq{Integer @$Shape$@ @$Pos$@} is just a synonym for \coq{Z}, \coq{42%Z} is also of type $\toCoqT{\haskellM{Integer}}$.
+Since \coq{Integer @$\Shape$@ @$\Pos$@} is just a synonym for \coq{Z}, \coq{42%Z} is also of type $\toCoqT{\haskellM{Integer}}$.
 To fulfill our \ref{eqn:translation:expr:invariant}, we finally need to lift the value into the free monad.
 \begin{figure}[H]
   \[

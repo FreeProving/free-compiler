@@ -143,12 +143,12 @@ It is decreasing on this argument because in the only recursive call \coq{append
 
 Although Coq's termination checker uses an even more sophisticated ruleset to determine whether a term is structurally smaller than another, it rejects the lifted version of \coq{append} that the translation rule in \autoref{fig:translation:func-decl:non-rec} would produce if we simply swapped \coq{Definition} for \coq{Fixpoint}.
 \begin{minted}{coq}
-  Fixpoint append (@$\Shape$@ : Type) (@$Pos$@ : @$\Shape$@ -> Type) {a : Type}
+  Fixpoint append (@$\Shape$@ : Type) (@$\Pos$@ : @$\Shape$@ -> Type) {a : Type}
                   (xs : @$\toCoq{[a]}$@) (ys : @$\toCoq{[a]}$@) : @$\toCoq{[a]}$@
     := xs >>= (fun xs_0 =>
          match xs_0 with
          | nil        => ys
-         | cons x xs' => Cons @$\Shape$@ @$Pos$@ x (append xs' ys)
+         | cons x xs' => Cons @$\Shape$@ @$\Pos$@ x (append xs' ys)
          end).
 \end{minted}
 The definition is rejected because this time \coq{xs'} is not a direct subterm of \coq{xs} but of \coq{xs_0}.
@@ -170,7 +170,7 @@ The helper function, must be defined such that its decreasing argument is not li
 In case of \coq{append}, the fact that the helper function \coq{append'} expects a non-monadic argument means that \coq{append'} cannot be invoked before the bind operation has been performed.
 Therefore, the main function for \coq{append} looks as follows if we insert the call to the helper function as soon as possible.
 \begin{minted}{coq}
-  Definition append (@$\Shape$@ : Type) (@$Pos$@ : @$\Shape$@ -> Type) {a : Type}
+  Definition append (@$\Shape$@ : Type) (@$\Pos$@ : @$\Shape$@ -> Type) {a : Type}
                   (xs : @$\toCoq{[a]}$@) (ys : @$\toCoq{[a]}$@) : @$\toCoq{[a]}$@
     := xs >>= (fun xs_0 => append' xs_0 ys).
 \end{minted}
@@ -178,23 +178,22 @@ The body of the helper function now has to contain the \coq{match} term that we 
 \begin{minted}{coq}
   match xs_0 with
   | nil        => ys
-  | cons x xs' => Cons @$\Shape$@ @$Pos$@ x (append xs' ys)
+  | cons x xs' => Cons @$\Shape$@ @$\Pos$@ x (append xs' ys)
   end
 \end{minted}
 However, because \coq{append'} must be defined before \coq{append}, \coq{append'} cannot reference \coq{append}.
 We can solve this problem by inlining the definition of \coq{append} into \coq{append'}.
 \begin{minted}{coq}
-  Fixpoint append' (@$\Shape$@ : Type) (@$Pos$@ : @$\Shape$@ -> Type) {a : Type}
+  Fixpoint append' (@$\Shape$@ : Type) (@$\Pos$@ : @$\Shape$@ -> Type) {a : Type}
                    (xs : @$\toCoqT{[a]}$@) (ys : @$\toCoq{[a]}$@) : @$\toCoq{[a]}$@
     := match xs_0 with
        | nil        => ys
-       | cons x xs' => Cons @$\Shape$@ @$Pos$@ x (xs' >>= (fun xs'_0 => append' xs'_0 ys))
+       | cons x xs' => Cons @$\Shape$@ @$\Pos$@ x (xs' >>= (fun xs'_0 => append' xs'_0 ys))
        end.
 \end{minted}
 This pair of definitions is now accepted by Coq's termination checker.
 Most importantly, though, the transformation also does not change the behaviour of \coq{append}.
 Intuitively, the transformed function behaves in the same way because we perform a bind only when the original definition would also have performed a bind.
-% TODO worker/wrapper transformation?
 
 Next, we want to generalize the approach outlined above.
 Since function declaration can be mutually recursive, we have to consider entire strongly connected components of the dependency graph again.
@@ -409,7 +408,7 @@ To make sure that Coq does not guess a different decreasing argument, we explici
 \end{figure}
 
 \subsection{Translation of Partial Functions} \label{sec:translation:func-decl:partial}
-The translation of error terms show in \autoref{fig:translation:expr:error} required an instance of the \coq{Partial} type class for $Shape$ and $Pos$ to be available in the current context.
+The translation of error terms show in \autoref{fig:translation:expr:error} required an instance of the \coq{Partial} type class for $\Shape$ and $\Pos$ to be available in the current context.
 In Haskell it would suffice to have a \haskell{instance} declaration in the current module or import a module that contains such a declaration.
 \begin{minted}{haskell}
   instance Partial (Maybe a) where
@@ -420,7 +419,7 @@ When \haskell{undefined} is used in a place where a value of type \haskell{Maybe
 In Coq, however, type class instances must be passed as arguments to functions, similar to how type arguments are passed to functions as well.
 Thus, if a function contains an error term, i.e., invokes \haskell{undefined} or \haskell{error}, then the function must have an additional argument for the \coq{Partial} type class instance.
 For example, \haskell{head} needs a \coq{Partial} instance when converted to Coq.
-Therefore, we add another explicit parameter after $Shape$ and $Pos$.
+Therefore, we add another explicit parameter after $\Shape$ and $\Pos$.
 \[
   \toCoq{\left(\begin{array}{l}
     \haskellM{head :: [a] -> a}           \\
@@ -440,9 +439,9 @@ If we consider \haskell{error} and \haskell{undefined} to be normal functions, w
 In case of recursive functions, the main and main and helper functions need a \coq{Partial} instance if and only if the original function needs a \coq{Partial} instance.
 Hereinafter, we will refer to functions that take a \coq{Partial} instance as a parameter as \textit{partial functions}.
 
-The only change to the existing translation rules in \autoref{fig:translation:func-decl:non-rec} \autoref{fig:translation:func-decl:rec} is that the parameter \coqM{(@$P$@ : Partial @$\Shape$@ @$\Pos$@)} is added after $Shape$ and $Pos$ if the declared function is partial.
+The only change to the existing translation rules in \autoref{fig:translation:func-decl:non-rec} \autoref{fig:translation:func-decl:rec} is that the parameter \coqM{(@$P$@ : Partial @$\Shape$@ @$\Pos$@)} is added after $\Shape$ and $\Pos$ if the declared function is partial.
 Additionally, we have to revise the translation rule for the application of defined functions from \autoref{fig:translation:expr:fun_app}.
-If the function is partial, the type class instance $P$ must be passed after $Shape$ and $Pos$ as shown in \autoref{fig:translation:func-decl:partial_app}.
+If the function is partial, the type class instance $P$ must be passed after $\Shape$ and $\Pos$ as shown in \autoref{fig:translation:func-decl:partial_app}.
 \begin{figure}[H]
   \begin{align*}
     \toCoq{(f\;e_1\;\ldots\;e_n)} = f'\;\Shape\;\Pos\;P\;\toCoq{e_1}\;\ldots\;\toCoq{e_n}
@@ -464,6 +463,6 @@ If we try to plug a partial function like \haskell{head} into \haskell{map}, \ha
 \[
   \toCoq{(\haskellM{map head xss})}
   =
-  \coqM{map (fun xs => head @$Shape$@ @$Pos$@ @$P$@ xs) xss}
+  \coqM{map (fun xs => head @$\Shape$@ @$\Pos$@ @$P$@ xs) xss}
 \]
 Therefore, there is no need for \haskell{map} to know about the \coq{Partial} instance.
