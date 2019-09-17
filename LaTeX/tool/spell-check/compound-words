@@ -8,6 +8,7 @@ non-monadic
 non-recursive
 non-terminating
 right-hand
+semi-automatically
 type-level
 user-defined
 user-friendly
