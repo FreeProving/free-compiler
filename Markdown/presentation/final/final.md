@@ -3,7 +3,7 @@ title: |
   Übersetzung
   <small>von Haskell nach Coq</small>
 author: Justin Andresen
-date: ??.09.2019
+date: 20.09.2019
 lang: de-DE
 pandoc-minted:
   default-attributes:
