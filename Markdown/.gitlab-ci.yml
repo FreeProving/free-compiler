@@ -44,8 +44,8 @@ deploy-presentation:
     - typeset-presentations
   script:
     - mkdir $DEPLOY_DIR/presentations
-    - cd ./Markdown/presentation
     - cp -r ./LaTeX/thumbnails ./Markdown/presentation/final/thumbnails
+    - cd ./Markdown/presentation
     - >
       for p in $(find * -maxdepth 0 -type d); do
         mkdir $DEPLOY_DIR/presentations/$p
