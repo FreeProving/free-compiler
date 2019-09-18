@@ -40,10 +40,12 @@ deploy-presentation:
   extends: .ssh-deploy
   stage: deploy
   dependencies:
+    - typeset-thesis
     - typeset-presentations
   script:
     - mkdir $DEPLOY_DIR/presentations
     - cd ./Markdown/presentation
+    - cp -r ./LaTeX/thumbnails ./Markdown/presentation/final/thumbnails
     - >
       for p in $(find * -maxdepth 0 -type d); do
         mkdir $DEPLOY_DIR/presentations/$p
