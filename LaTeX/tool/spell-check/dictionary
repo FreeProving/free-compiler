@@ -1,3 +1,4 @@
+Agda
 Andresen
 arity
 ary
@@ -7,10 +8,13 @@ backquotes
 backticks
 boolean
 booleans
+constructible
 Coq
 disjunction
 Dylus
 effectful
+functor
+functors
 Gallina
 GHC
 Hackage
@@ -45,6 +49,8 @@ ruleset
 runtime
 simplifier
 splitted
+subdirectory
+sublists
 subscripted
 subterm
 subterms

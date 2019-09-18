@@ -305,3 +305,60 @@ Proof.
       * (* f = cons _ _ *) simpl. reflexivity.
     + inversion Htotal1.
 Qed.
+
+Fail Theorem prop_inv_empty : forall (Shape : Type) (Pos : Shape -> Type),
+  invariant Shape Pos (emptyI Shape Pos) = True_ Shape Pos.
+(*
+  The command has indeed failed with message:
+  Cannot infer the implicit parameter a of invariant whose type is "Type" in environment:
+  Shape : Type
+  Pos : Shape -> Type
+*)
+
+Theorem prop_inv_empty : forall (Shape : Type) (Pos : Shape -> Type) (a : Type),
+  invariant Shape Pos (@emptyI Shape Pos a) = True_ Shape Pos.
+Proof.
+  intros Shape Pos a.
+  simpl. reflexivity.
+Qed.
+
+Theorem prop_inv_add : forall (Shape : Type)
+  (Pos : Shape -> Type)
+  {a : Type}
+  (x : Free Shape Pos a)
+  (q : Free Shape Pos (QueueI Shape Pos a)),
+  (invariant Shape Pos q = True_ Shape Pos) ->
+  (invariant Shape Pos (addI Shape Pos x q) = True_ Shape Pos).
+Proof.
+  intros Shape Pos a fx fq H. destruct fq as [[ff fb] |].
+  - (* fq = Pair_ Shape Pos ff fb *)
+    destruct ff as [f |]; destruct fb as [b |].
+    + (* ff = pure f; fb = pure b *)
+      destruct f; reflexivity.
+    + (* ff = pure f; fb = impure _ _ *)
+      discriminate H.
+    + (* ff = impure _ _; fb = pure b *)
+      destruct b.
+      * (* b = nil *)
+        admit.
+      * (* b = cons _ _ *)
+        discriminate H.
+    + (* ff = impure _ _; fb = impure _ _ *)
+      discriminate H.
+  - (* fq = impure _ _ *)
+    discriminate H.
+Abort.
+
+Theorem prop_inv_add : forall (Shape : Type)
+  (Pos : Shape -> Type)
+  {a : Type} (total_a : Free Shape Pos a -> Prop)
+  (x : Free Shape Pos a)
+  (q : Free Shape Pos (QueueI Shape Pos a)),
+  total_queue Shape Pos total_a q ->
+  (invariant Shape Pos q = True_ Shape Pos) ->
+  (invariant Shape Pos (addI Shape Pos x q) = True_ Shape Pos).
+Proof.
+  intros Shape Pos a total_a fx fq Htotal H.
+  destruct Htotal as [ff fb HtotalF HtotalB]. (* fq = Pair_ ff fb *)
+  destruct HtotalF; reflexivity.
+Qed.

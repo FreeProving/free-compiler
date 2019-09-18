@@ -10,13 +10,13 @@ Module IntersperseOneOldApproach.
   inlining
 
   ```haskell
-  intersperseOneMatch :: [Int] -> [Int]
+  intersperseOneMatch :: [Integer] -> [Integer]
   intersperseOneMatch xs =
     case xs of
       [] -> []
       y:ys  -> y : (1 : intersperseOneMatch ys)
 
-  intersperseOne :: [Int] -> [Int]
+  intersperseOne :: [Integer] -> [Integer]
   intersperseOne xs =
     1 : intersperseOneMatch xs
   ```
@@ -24,14 +24,14 @@ Module IntersperseOneOldApproach.
 
 Fixpoint intersperseOneMatch'
   (Shape : Type) (Pos : Shape -> Type)
-  (xs : List Shape Pos (Int Shape Pos)) 
-  : Free Shape Pos (List Shape Pos (Int Shape Pos)) :=
+  (xs : List Shape Pos (Integer Shape Pos))
+  : Free Shape Pos (List Shape Pos (Integer Shape Pos)) :=
   match xs with
   | nil       => Nil Shape Pos
   | cons y ys =>
     Cons Shape Pos y (
       Cons Shape Pos (pure 1%Z) (
-        ys >>= fun(ys' : List Shape Pos (Int Shape Pos)) => 
+        ys >>= fun(ys' : List Shape Pos (Integer Shape Pos)) =>
           intersperseOneMatch' Shape Pos ys'
       )
     )
@@ -39,15 +39,15 @@ Fixpoint intersperseOneMatch'
 
 Definition intersperseOneMatch
   (Shape : Type) (Pos : Shape -> Type)
-  (xs : Free Shape Pos (List Shape Pos (Int Shape Pos))) 
-  : Free Shape Pos (List Shape Pos (Int Shape Pos)) :=
-  xs >>= fun(xs' : List Shape Pos (Int Shape Pos)) =>
+  (xs : Free Shape Pos (List Shape Pos (Integer Shape Pos)))
+  : Free Shape Pos (List Shape Pos (Integer Shape Pos)) :=
+  xs >>= fun(xs' : List Shape Pos (Integer Shape Pos)) =>
     intersperseOneMatch' Shape Pos xs'.
 
 Definition intersperseOne
   (Shape : Type) (Pos : Shape -> Type)
-  (xs : Free Shape Pos (List Shape Pos (Int Shape Pos))) 
-  : Free Shape Pos (List Shape Pos (Int Shape Pos)) :=
+  (xs : Free Shape Pos (List Shape Pos (Integer Shape Pos)))
+  : Free Shape Pos (List Shape Pos (Integer Shape Pos)) :=
   Cons Shape Pos (pure 1%Z) (intersperseOneMatch Shape Pos xs).
 
 End IntersperseOneOldApproach.
@@ -58,7 +58,7 @@ Module IntersperseOneNewApproach.
   Translation of `intersperseOne` with new approach
 
   ```haskell
-  intersperseOne :: [Int] -> [Int]
+  intersperseOne :: [Integer] -> [Integer]
   intersperseOne xs =
     1 : case xs of
              [] -> []
@@ -68,23 +68,23 @@ Module IntersperseOneNewApproach.
 
 Fixpoint intersperseOne'
   (Shape : Type) (Pos : Shape -> Type)
-  (xs : List Shape Pos (Int Shape Pos)) : Free Shape Pos (List Shape Pos (Int Shape Pos)) :=
+  (xs : List Shape Pos (Integer Shape Pos)) : Free Shape Pos (List Shape Pos (Integer Shape Pos)) :=
   match xs with
   | nil       => Nil Shape Pos
   | cons y ys =>
     Cons Shape Pos y (
       Cons Shape Pos (pure 1%Z) (
-        ys >>= fun(ys' : List Shape Pos (Int Shape Pos)) => intersperseOne' Shape Pos ys'
+        ys >>= fun(ys' : List Shape Pos (Integer Shape Pos)) => intersperseOne' Shape Pos ys'
       )
     )
   end.
 
 Definition intersperseOne
   (Shape : Type) (Pos : Shape -> Type)
-  (xs : Free Shape Pos (List Shape Pos (Int Shape Pos))) 
-  : Free Shape Pos (List Shape Pos (Int Shape Pos)) :=
+  (xs : Free Shape Pos (List Shape Pos (Integer Shape Pos)))
+  : Free Shape Pos (List Shape Pos (Integer Shape Pos)) :=
   Cons Shape Pos (pure 1%Z) (
-    xs >>= fun(xs' : List Shape Pos (Int Shape Pos)) => intersperseOne' Shape Pos xs'
+    xs >>= fun(xs' : List Shape Pos (Integer Shape Pos)) => intersperseOne' Shape Pos xs'
   ).
 
 End IntersperseOneNewApproach.
@@ -108,7 +108,7 @@ Module InterspersePrime.
 
 Fixpoint intersperse''
   (Shape : Type) (Pos : Shape -> Type)
-  {a : Type} (sep : Free Shape Pos a) (xs : List Shape Pos a) 
+  {a : Type} (sep : Free Shape Pos a) (xs : List Shape Pos a)
   : Free Shape Pos (List Shape Pos a) :=
   match xs with
   | nil       => Nil Shape Pos

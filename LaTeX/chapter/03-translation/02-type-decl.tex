@@ -1,4 +1,4 @@
-\section{Translation of Type Declarations} \label{sec:translation:type-decl}
+\section{Type Declarations} \label{sec:translation:type-decl}
 This section covers the translation of type synonyms and data type declarations.
 
 Since the order of declarations matters in Coq, special care needs to be taken to translate only declarations whose dependencies were translated before.
@@ -122,7 +122,7 @@ By applying the translation rules for types we would obtain the following Coq ty
     &= \toCoq{Double} \rightarrow \Free{\toCoqT{(Double \rightarrow Complex)}}
     \tag{\autoref{eqn:translation:type}}
 \end{align*}
-Wrapping the return type of a constructor is not allowed in Coq though.
+Wrapping the return type of a constructor is not allowed in Coq, though.
 However, it is not necessary for us to lift the intermediate results of the constructor either.
 Lifting them would be redundant as (partial) constructor applications never have an effect in Haskell.
 Therefore, it is sufficient to lift the argument types of the constructor (which could indeed be effectful).
@@ -213,7 +213,7 @@ Generating \coq{Arguments}-sentence is not necessary as we can mark the type arg
 The general generation scheme for smart constructors and \coq{Arguments}-sentences is summarized in \autoref{fig:translation:type-decl:con}.
 In case of \coq{Just}, we were able to manually choose appropriate names for the arguments of the smart constructor.
 However, when we generate those sentences, we need to generate \textit{fresh identifiers} automatically.
-The generation of fresh identifiers will be covered in \autoref{chp:implementation}. % TODO more specific reference.
+The generation of fresh identifiers will be covered in \autoref{sec:implementation:conversion:renaming}.
 
 \begin{figure}[H]
   \begin{minted}{coq}

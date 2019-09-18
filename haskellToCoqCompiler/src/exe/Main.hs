@@ -92,8 +92,8 @@ options
       ["base-library"]
       (ReqArg (\p opts -> opts { optBaseLibDir = p }) "DIR")
       (  "Optional. Path to directory that contains the compiler's Coq\n"
-      ++ "Base library. By default the compiler will look for the Base library"
-      ++ "in it's data directory."
+      ++ "Base library. By default the compiler will look for the Base\n"
+      ++ "library in it's data directory."
       )
     , Option
       []

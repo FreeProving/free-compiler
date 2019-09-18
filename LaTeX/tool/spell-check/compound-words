@@ -1,11 +1,14 @@
+effect-generic
 error-prone
 higher-order
+left-hand
 meta-variables
 non-lifted
 non-monadic
 non-recursive
 non-terminating
 right-hand
+semi-automatically
 type-level
 user-defined
 user-friendly
