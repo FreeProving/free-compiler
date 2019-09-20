@@ -175,7 +175,9 @@ include-before: |
 
 ## Was ist Coq? {.fix-height data-transition="slide-in none-out"}
 
-- Funktionalle Spezifikationssprache Gallina
+::: fragment
+
+- Funktionale Spezifikationssprache Gallina
 
   ::: fragment
   ```coq
@@ -191,9 +193,11 @@ include-before: |
   ```
   :::
 
+:::
+
 ## Was ist Coq? {.fix-height data-transition="fade-in none-out"}
 
-- Funktionalle Spezifikationssprache Gallina
+- Funktionale Spezifikationssprache Gallina
 
 - Beweisassistenzsystem
 
@@ -208,7 +212,7 @@ include-before: |
 
 ## Was ist Coq? {.fix-height data-transition="fade-in slide-out"}
 
-- Funktionalle Spezifikationssprache Gallina
+- Funktionale Spezifikationssprache Gallina
 
 - Beweisassistenzsystem
 
@@ -325,7 +329,7 @@ include-before: |
 
 ## [haskellToCoqCompiler](https://github.com/beje8442/haskellToCoqCompiler) {.fragile}
 
-- Bachlorarbeit aus Flensburg
+- Bachelorarbeit aus Flensburg
 
 - Monadische Transformation nach [Abel et al.](http://www2.tcs.ifi.lmu.de/~abel/haskell05.pdf)
 
@@ -394,22 +398,19 @@ Definition head {X : Type} (xs : option (list X)) : option X
 
 ## [haskellToCoqCompiler](https://github.com/beje8442/haskellToCoqCompiler) {.fragile .fix-ul-width}
 
-- Bachlorarbeit aus Flensburg
+- Bachelorarbeit aus Flensburg
 - Monadische Transformation nach [Abel et al.](http://www2.tcs.ifi.lmu.de/~abel/haskell05.pdf)
 
-::: fragment
-- Prototypische Umsetzung
-:::
-
-::: fragment
+::: incremental
 - Nur `Maybe`{.haskell} und `Identity`{.haskell} Monade
+- Prototypische Umsetzung
 :::
 
 # Umsetzung
 
 ## Umsetzung {.fix-ul-width}
 
-- **Ziel**: Erweitung auf Effekt generischen Ansatz
+- **Ziel**: Erweiterung auf Effekt generischen Ansatz
 
 ## Effekt generischer Ansatz {.fragile .small-heading}
 
@@ -442,7 +443,7 @@ Inductive List (@$Shape$@ : Type) (@$Pos$@ : @$Shape$@ -> Type) (X : Type)
 
 ## Umsetzung {.fix-ul-width}
 
-- **Ziel**: Erweitung auf Effekt generischen Ansatz
+- **Ziel**: Erweiterung auf Effekt generischen Ansatz
 
 ::: fragment
 - Zunächst nur kleiner Sprachumfang unterstützt
@@ -495,7 +496,7 @@ Inductive List (@$Shape$@ : Type) (@$Pos$@ : @$Shape$@ -> Type) (X : Type)
 
 ## Umsetzung {.fix-ul-width data-transition="fade-in none-out"}
 
-- **Ziel**: Erweitung auf Effekt generischen Ansatz
+- **Ziel**: Erweiterung auf Effekt generischen Ansatz
 
 - Zunächst nur kleiner Sprachumfang unterstützt
 
@@ -529,7 +530,7 @@ Inductive List (@$Shape$@ : Type) (@$Pos$@ : @$Shape$@ -> Type) (X : Type)
 
 ## Umsetzung {.fix-ul-width data-transition="none-in fade-out"}
 
-- **Ziel**: Erweitung auf Effekt generischen Ansatz
+- **Ziel**: Erweiterung auf Effekt generischen Ansatz
 
 - Zunächst nur kleiner Sprachumfang unterstützt
 
