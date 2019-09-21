@@ -6,10 +6,13 @@ typeset-thesis:
   stage: build
   script:
     - ./LaTeX/tool/typeset.sh
+    - mkdir ./LaTeX/thumbnails/
+    - convert -background white -alpha remove ./LaTeX/thesis.pdf ./LaTeX/thumbnails/thesis.png
   artifacts:
     name: thesis
     paths:
       - ./LaTeX/thesis.pdf
+      - ./LaTeX/thumbnails/thesis-*.png
 
 # Spell checking.
 spell-check-thesis:

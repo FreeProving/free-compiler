@@ -62,6 +62,7 @@ for file in $files; do
            --mode=tex                                          \
            --add-tex-command "aspellIgnore p"                  \
            --add-tex-command "autoref p"                       \
+           --add-tex-command "bash p"                          \
            --add-tex-command "citep p"                         \
            --add-tex-command "citet p"                         \
            --add-tex-command "coq p"                           \

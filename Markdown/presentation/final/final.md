@@ -3,7 +3,7 @@ title: |
   Übersetzung
   <small>von Haskell nach Coq</small>
 author: Justin Andresen
-date: ??.09.2019
+date: 20.09.2019
 lang: de-DE
 pandoc-minted:
   default-attributes:
@@ -49,6 +49,125 @@ include-before: |
   .reveal .fix-ul-width ul {
     width: 100%;
   }
+  /* Cover slide. */
+  .reveal .slides .cover {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+  }
+  /* Center horrizontally and vertically. */
+  .reveal .slides .flex {
+    display: flex !important;
+  }
+  .reveal .slides .flex.center {
+    align-items: center;
+    justify-content: center;
+  }
+  /* Thesis. */
+  .reveal .slides .paper,
+  .reveal .slides .paper div.fragment {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 960px;
+    height: 700px;
+    z-index: -1;
+  }
+  .reveal .slides .paper img {
+    position: absolute;
+    left: 50%;
+    height: inherit;
+    border: none;
+  }
+  .reveal .slides .paper.portrait img {
+    margin-left: -270px;
+  }
+  .reveal .slides .paper.landscape img {
+    margin-left: -435px;
+  }
+  .reveal .slides .paper img:nth-child(1) {
+    transform: translateX(-15px) translateY(-10px) rotate(-2deg);
+  }
+  .reveal .slides .paper img:nth-child(2) {
+    transform: translateX(-25px) translateY(-20px) rotate(3deg);
+  }
+  .reveal .slides .paper img:nth-child(3) {
+    transform: translateX(-35px) translateY(-30px) rotate(-4deg);
+  }
+  .reveal .slides .paper img:nth-child(4) {
+    transform: translateX(-45px) translateY(-40px) rotate(2deg);
+  }
+
+  /* Fly in animation. */
+  .reveal .slides .fragment.fly-in:not(.fade-in),
+  .reveal .slides .fragment.fly-out:not(.fade-in) {
+    opacity: 1;
+    visibility: visible;
+  }
+  .reveal .slides .fragment.fly-in,
+  .reveal .slides .fragment.fly-out {
+    transition-property: opacity, transform;
+    transition-duration: 1s;
+    transition-timing-function: ease-out, ease;
+  }
+  .reveal .slides .fragment.fly-in:not(.visible),
+  .reveal .slides .fragment.fly-in.top-left:not(.visible),
+  .reveal .slides .fragment.fly-out.visible,
+  .reveal .slides .fragment.fly-out.top-left.visible {
+    transform: translateX(-100vw) translateY(-100vh);
+  }
+  .reveal .slides .fragment.fly-in.top-left:not(.visible),
+  .reveal .slides .fragment.fly-out.top-left.visible {
+    transform: translateX(-100vw) translateY(-100vh);
+  }
+  .reveal .slides .fragment.fly-in.bottom-left:not(.visible),
+  .reveal .slides .fragment.fly-out.bottom-left.visible {
+    transform: translateX(-100vw) translateY(100vh);
+  }
+  .reveal .slides .fragment.fly-in.top-right:not(.visible),
+  .reveal .slides .fragment.fly-out.top-right.visible {
+    transform: translateX(100vw) translateY(-100vh);
+  }
+
+  .reveal .slides .fragment.fly-in.top:not(.visible),
+  .reveal .slides .fragment.fly-out.top.visible {
+    transform: translateY(-100vh);
+  }
+  .reveal .slides .fragment.fly-in.left:not(.visible),
+  .reveal .slides .fragment.fly-out.left.visible {
+    transform: translateX(-100vw);
+  }
+  .reveal .slides .fragment.fly-in.bottom:not(.visible),
+  .reveal .slides .fragment.fly-out.bottom.visible {
+    transform: translateY(100vh);
+  }
+  .reveal .slides .fragment.fly-in.right:not(.visible),
+  .reveal .slides .fragment.fly-out.right.visible {
+    transform: translateX(100vw);
+  }
+
+  /* Slowly zoom and rotate. */
+  .reveal .slides .grow-and-rotate-loop {
+    animation: 60s grow-and-rotate-loop infinite alternate ease-in-out;
+  }
+
+  @keyframes grow-and-rotate-loop {
+    0% {
+      transform: rotate(-5deg) scale(1.25);
+    }
+    33% {
+      transform: rotate(5deg) scale(1.5);
+    }
+    66% {
+      transform: rotate(-15deg) scale(2.0);
+    }
+    100% {
+      transform: rotate(-10deg) scale(1.25);
+    }
+  }
   </style>
 ---
 
@@ -56,7 +175,9 @@ include-before: |
 
 ## Was ist Coq? {.fix-height data-transition="slide-in none-out"}
 
-- Funktionalle Spezifikationssprache Gallina
+::: fragment
+
+- Funktionale Spezifikationssprache Gallina
 
   ::: fragment
   ```coq
@@ -72,9 +193,11 @@ include-before: |
   ```
   :::
 
+:::
+
 ## Was ist Coq? {.fix-height data-transition="fade-in none-out"}
 
-- Funktionalle Spezifikationssprache Gallina
+- Funktionale Spezifikationssprache Gallina
 
 - Beweisassistenzsystem
 
@@ -89,7 +212,7 @@ include-before: |
 
 ## Was ist Coq? {.fix-height data-transition="fade-in slide-out"}
 
-- Funktionalle Spezifikationssprache Gallina
+- Funktionale Spezifikationssprache Gallina
 
 - Beweisassistenzsystem
 
@@ -206,7 +329,7 @@ include-before: |
 
 ## [haskellToCoqCompiler](https://github.com/beje8442/haskellToCoqCompiler) {.fragile}
 
-- Bachlorarbeit aus Flensburg
+- Bachelorarbeit aus Flensburg
 
 - Monadische Transformation nach [Abel et al.](http://www2.tcs.ifi.lmu.de/~abel/haskell05.pdf)
 
@@ -275,22 +398,19 @@ Definition head {X : Type} (xs : option (list X)) : option X
 
 ## [haskellToCoqCompiler](https://github.com/beje8442/haskellToCoqCompiler) {.fragile .fix-ul-width}
 
-- Bachlorarbeit aus Flensburg
+- Bachelorarbeit aus Flensburg
 - Monadische Transformation nach [Abel et al.](http://www2.tcs.ifi.lmu.de/~abel/haskell05.pdf)
 
-::: fragment
-- Prototypische Umsetzung
-:::
-
-::: fragment
+::: incremental
 - Nur `Maybe`{.haskell} und `Identity`{.haskell} Monade
+- Prototypische Umsetzung
 :::
 
 # Umsetzung
 
 ## Umsetzung {.fix-ul-width}
 
-- **Ziel**: Erweitung auf Effekt generischen Ansatz
+- **Ziel**: Erweiterung auf Effekt generischen Ansatz
 
 ## Effekt generischer Ansatz {.fragile .small-heading}
 
@@ -323,7 +443,7 @@ Inductive List (@$Shape$@ : Type) (@$Pos$@ : @$Shape$@ -> Type) (X : Type)
 
 ## Umsetzung {.fix-ul-width}
 
-- **Ziel**: Erweitung auf Effekt generischen Ansatz
+- **Ziel**: Erweiterung auf Effekt generischen Ansatz
 
 ::: fragment
 - Zunächst nur kleiner Sprachumfang unterstützt
@@ -374,15 +494,49 @@ Inductive List (@$Shape$@ : Type) (@$Pos$@ : @$Shape$@ -> Type) (X : Type)
 - Keine `import`{.haskell}s
 
 
-## Umsetzung {.fix-ul-width}
+## Umsetzung {.fix-ul-width data-transition="fade-in none-out"}
 
-- **Ziel**: Erweitung auf Effekt generischen Ansatz
+- **Ziel**: Erweiterung auf Effekt generischen Ansatz
 
 - Zunächst nur kleiner Sprachumfang unterstützt
 
-::: incremental
+::: fragment
+- Formalisierung der Übersetzung
+:::
+
+## {.cover .flex .center data-transition="none-in fade-out"}
+
+<div class="paper portrait fragment fade-in" data-fragment-index="3">
+<div class="cover grow-and-rotate-loop"
+     data-fragment-index="3">
+<img src="thumbnails/thesis-30.png"
+     class="fragment fly-in bottom-left"
+     style="transition-delay: 0.00s"
+     data-fragment-index="3" />
+<img src="thumbnails/thesis-29.png"
+     class="fragment fly-in bottom-left"
+     style="transition-delay: 0.20s"
+     data-fragment-index="3" />
+<img src="thumbnails/thesis-28.png"
+     class="fragment fly-in bottom-left"
+     style="transition-delay: 0.30s"
+     data-fragment-index="3" />
+<img src="thumbnails/thesis-27.png"
+     class="fragment fly-in bottom-left"
+     style="transition-delay: 0.35s"
+     data-fragment-index="3" />
+ </div>
+</div>
+
+## Umsetzung {.fix-ul-width data-transition="none-in fade-out"}
+
+- **Ziel**: Erweiterung auf Effekt generischen Ansatz
+
+- Zunächst nur kleiner Sprachumfang unterstützt
+
 - Formalisierung der Übersetzung
 
+::: fragment
 - Impementierung der Übersetzung
 :::
 

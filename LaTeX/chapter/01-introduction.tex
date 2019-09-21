@@ -1,1 +1,38 @@
 \chapter{Introduction} \label{chp:introduction}
+There is an always growing demand for software systems to be secure and reliable.
+While automatic tests help developers to discover and fix bugs during development, testing alone does not suffice to show that a program behaves as intended on all inputs.
+However, in many applications even small malfunctions can have sever consequences.
+Thus, the field of software verification is concerned with proving the correctness of programs with regard to their specification rigorously using methods known from mathematics and logic.
+
+Compared to imperative programming languages, the high level of abstraction provided by purely functional programming languages, such as Haskell, makes it easier for their users to reason about code mathematically.
+Nevertheless, reasoning informally about complex software systems, and code in general, still remains a difficult task that is prone to errors.
+By contrast, interactive theorem provers, like Coq, allow their users to argue about a program's properties semi-automatically and with high confidence.
+In a so called specification language provided by the proof assistant, the user first writes a functional program and specifies properties that should be satisfied by the program.
+The interactive theorem prover assists the user in proving the specified properties.
+Usually, a verified program can be extracted in another programming langauge~--~e.g., Haskell~--~once the correctness of the program has been verified with respect to its specification.
+This approach is not applicable to existing code, though.
+Moreover, the formal verification of a program is much more difficult than well established testing and debugging practices.
+Therefore, it is also favorable to start the development of a new software product in a general purpose programming language rather than Coq or another proof assistant.
+Only once we have convinced ourselves that the program most likely behaves as intended, we want to attempt a proof of the most important properties.
+In order to reason about existing and newly developed Haskell programs in Coq, we need to convert Haskell code to the specification language used by Coq.
+
+The \texttt{hs-to-coq} compiler developed by \cite{SpectorZabusky:2017} performs such a translation from Haskell to Coq.
+Their compiler is primarily designed to translate total Haskell programs.
+The restriction to total Haskell programs is inherited from Coq's requirement that all functions must be total.
+Unfortunately, most real Haskell programs are not total.
+In Agda~--~a proof assistant similar to Coq~--~the same limitation exists.
+\cite{Abel:2005} presented an approach for the translation from Haskell to Agda that does not require the original Haskell programs to be total.
+The translation of partial functions is realized through a process known as \textit{monadic translation}.
+The idea is to model partiality in the target language by the means of the \haskell{Maybe} monad explicitly.
+By performing such a monadic translation, \cite{Jessen:2019} implemented a prototype for a compiler from potentially partial Haskell programs to Coq.
+In this thesis we want to build a compiler for the monadic translation from Haskell to Coq based on the prototype by \cite{Jessen:2019}.
+However, in addition to partiality, we would like to enable our model to represent other \textit{ambient effects} \citep{Christiansen:2019} that can occur in Haskell programs but not in Coq.
+We implement an approach presented by \cite{Dylus:2018} to achieve an \textit{effect-generic} monadic translation.
+
+The remainder of this thesis is structured as follows.
+We begin in \autoref{chp:preliminaries} with the preliminaries of this thesis.
+This includes among others an introduction to the Coq proof assistant and an explanation of the principles behind the effect-generic monadic translation.
+In \autoref{chp:translation} the translation rules for the conversion from Haskell to Coq are formalized and in \autoref{chp:implementation} we present the actual implementation of our compiler.
+The translation rules and their implementation is evaluated by performing a case study in \autoref{chp:case-study}.
+The last chapter discusses and summarizes our implementation as well as the results of our case study.
+Furthermore, we provide an outlook on future improvements and extensions of our compiler.

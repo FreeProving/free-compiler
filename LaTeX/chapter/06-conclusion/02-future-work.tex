@@ -29,4 +29,4 @@ In Haskell sharing prevents a value from being evaluated twice, therefore every 
 In case of partiality, we cannot distinguish between an effect being triggered once or twice \cite[p.~131]{Christiansen:2019}.
 However, we can use the free monad to model a logging effect as provided by the function \haskell{trace} in Haskell.
 In contrast to partiality, we can distinguish an implementation with and without sharing for this effect since in the absence of sharing, the same message may be logged multiple times \cite[p.~131]{Christiansen:2019}.
-Therefore, the compiler must be adapted to model sharing before it is truly effect generic.
+Therefore, the compiler must be adapted to model sharing before it is truly effect-generic.

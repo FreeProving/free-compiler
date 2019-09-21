@@ -1,4 +1,4 @@
-\section{Translation of Type Expressions} \label{sec:translation:type}
+\section{Type Expressions} \label{sec:translation:type}
 A computation in Haskell does not necessarily produce a value but can also result in an effect, for example due to partiality.
 Coq on the other hand does not support such implicit effects.
 As discussed before, we bypass this restriction by modeling effects using the free monad in Coq.
@@ -25,7 +25,7 @@ Lifting the type of \haskell{xs} to the free monad allows an application of \has
 If we define the constructors of \coq{List} appropriately (see \autoref{sec:translation:type-decl}), the list items can also have effects themselves.
 We do not have to lift the type argument $a$ explicitly.
 
-The parameter \haskell{f} is different though.
+The parameter \haskell{f} is different, though.
 While it is correct to lift the type of \haskell{f}, i.e., $a \rightarrow b$, into the free monad such that potential effects in the first argument of \haskell{map} can be handled, doing so is not sufficient.
 \[
   \toCoq{(a \rightarrow b)} = \Free{(a \rightarrow b)}
