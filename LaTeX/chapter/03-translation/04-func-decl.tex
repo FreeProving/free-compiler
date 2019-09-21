@@ -156,7 +156,7 @@ That the \coq{>>=} operator is implemented in such a way that \coq{xs_0} is alwa
 There is no particular theoretical justification for this limitation of the heuristic employed by Coq's termination checker \cite[p.~62]{Chlipala:2013}.
 As the \textit{halting problem} is undecidable, it is natural that there are always situations like this, where the termination checker cannot guess the decreasing argument.
 In this concrete situation, the problem results from the usage of a \textit{nested inductive type}.
-Lets first recall the definition of the monadically lifted \coq{List} type from \autoref{sec:translation:type-decl:rec}.
+Let's first recall the definition of the monadically lifted \coq{List} type from \autoref{sec:translation:type-decl:rec}.
 \begin{minted}[highlightlines={3}]{coq}
   Inductive List (@$\Shape$@ : Type) (@$\Pos$@ : @$\Shape$@ -> Type) (a : Type) : Type
     := nil  : List @$\Shape$@ @$\Pos$@ a

@@ -43,7 +43,7 @@ needs $\Shape$ and $\Pos$ when translated to to Coq because they need to be pass
 
 On the right-hand side of the \coq{Definition}-sentence in \autoref{fig:translation:type-decl:type-syn} the $\toCoqT{}$ translation is applied instead of $\toCoq{}$.
 We have to use $\toCoqT{}$ because we desire the expansion of type synonyms in Haskell and Coq to be compatible with respect to the $\toCoq{}$ translation.
-To convince ourselves that the translation rule above fulfills this property lets denote the expansion of type synonyms in Haskell and Coq with $\beta_H$ and $\beta_C$, respectively, and show that for all type synonyms \haskell{type @$S$@ @$\alpha_1$@ @$\ldots$@ @$\alpha_n$@ = @$\tau$@} and type expressions $\tau_1, \ldots \tau_n$ the following holds true.
+To convince ourselves that the translation rule above fulfills this property let's denote the expansion of type synonyms in Haskell and Coq with $\beta_H$ and $\beta_C$, respectively, and show that for all type synonyms \haskell{type @$S$@ @$\alpha_1$@ @$\ldots$@ @$\alpha_n$@ = @$\tau$@} and type expressions $\tau_1, \ldots \tau_n$ the following holds true.
 \[
   \toCoq{\beta_H(S\;\tau_1\;\ldots\;\tau_n)}
   = \beta_C(\toCoq{(S\;\tau_1\;\ldots\;\tau_n)})
