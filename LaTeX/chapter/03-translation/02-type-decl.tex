@@ -11,7 +11,7 @@ For simplicity, we will first consider only individual declarations and assume a
 At the end of this section, we describe how to translate multiple type declarations without introducing dependency related issues to the generated Coq code.
 We also extend the translation rules to support mutually recursive declarations in the final subsection.
 
-\subsection{Translation of Type Synonym Declarations} \label{sec:translation:type-decl:type-syn}
+\subsection{Type Synonym Declarations} \label{sec:translation:type-decl:type-syn}
 Type synonyms can be used in Haskell to give a name to a more complex type expression.
 Similarly, we can use a \coq{Definition}-sentence to assign a name to a term in Coq.
 As Coq does not distinguish types and terms, declarations of type synonyms can be simply translated to \coq{Definition}-sentences as shown in \autoref{fig:translation:type-decl:type-syn}.
@@ -82,7 +82,7 @@ The equation marked with $(\star)$ follows from the following property of $\sigm
 \end{align*}
 We assume without a proof that this property holds for the extensions of $\sigma$ and $\sigma'$ as well.
 
-\subsection{Translation of Data Type Declarations} \label{sec:translation:type-decl:data}
+\subsection{Data Type Declarations} \label{sec:translation:type-decl:data}
 So far we have described how to translate type expressions and assign names to them, but we are not able to actually define our own data types.
 One of the simplest kinds of data types that can be defined in Haskell are so called \textit{sum types}.
 A well known example for a sum type is \haskell{Bool} which is commonly defined as follows.

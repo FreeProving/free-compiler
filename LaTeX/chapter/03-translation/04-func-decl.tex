@@ -11,7 +11,7 @@ For this reason, we will focus on non-recursive function declarations first.
 The translation of recursive functions is covered in the second half of this section.
 In the last section, there are some remarks regarding the translation of partial functions.
 
-\subsection{Translation of Non-Recursive Functions} \label{sec:translation:func-decl:non-rec}
+\subsection{Non-Recursive Functions} \label{sec:translation:func-decl:non-rec}
 In order to recall the basic structure of function declarations in Coq, consider the following implementation of boolean negation without monadic lifting.
 \begin{minted}{coq}
   Definition not (b : bool) : bool :=
@@ -102,7 +102,7 @@ In the example above, $\toCoq{}$ would expand the type of \haskell{nonZero} to \
   \label{fig:translation:func-decl:non-rec:expansion}
 \end{figure}
 
-\subsection{Translation of Recursive Functions} \label{sec:translation:func-decl:rec}
+\subsection{Recursive Functions} \label{sec:translation:func-decl:rec}
 If we tried to apply the translation rule for non-recursive function declarations to the declaration of a recursive function like \haskell{append} (as defined in the listing below), Coq would complain that there is no such function when it encounters the recursive call to \haskell{append}.
 \begin{minted}{haskell}
   append :: [a] -> [a] -> [a]
@@ -406,7 +406,7 @@ To make sure that Coq does not guess a different decreasing argument, we explici
   \label{fig:translation:func-decl:rec}
 \end{figure}
 
-\subsection{Translation of Partial Functions} \label{sec:translation:func-decl:partial}
+\subsection{Partial Functions} \label{sec:translation:func-decl:partial}
 The translation of error terms show in \autoref{fig:translation:expr:error} required an instance of the \coq{Partial} type class for $\Shape$ and $\Pos$ to be available in the current context.
 In Haskell it would suffice to have a \haskell{instance} declaration in the current module or import a module that contains such a declaration.
 \begin{minted}{haskell}

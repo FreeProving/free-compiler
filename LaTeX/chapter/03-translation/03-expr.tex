@@ -12,7 +12,7 @@ When designing the translation rules for expressions, we have to make sure that 
   \label{eqn:translation:expr:invariant}
 \]
 
-\subsection{Translation of Variables} \label{sec:translation:expr:vars}
+\subsection{Variables} \label{sec:translation:expr:vars}
 In the simplest case, the expression is just a variable $x$.
 As mentioned before, when translating $x$ to Coq, we may have to rename $x$ to avoid name conflicts.
 \[
@@ -35,7 +35,7 @@ Thus, the final translation rule for variables are as shown in \autoref{fig:tran
   \label{fig:translation:expr:var}
 \end{figure}
 
-\subsection{Translation of Function Applications} \label{sec:translation:expr:app}
+\subsection{Function Applications} \label{sec:translation:expr:app}
 In general, a function application has the form $e_1\;e_2$ in Haskell where $e_1$ is of some function type $\tau_1 \rightarrow \tau_2$ and $e_2$ is of type $\tau_1$.
 The application of $e_1$ to $e_2$ yields a value of type $\tau_2$.
 If we now translate both expressions to Coq, the \ref{eqn:translation:expr:invariant} guarantees us to obtain lifted values.
@@ -146,7 +146,7 @@ Therefore, we need to introduce the missing left argument in a similar way to an
   \label{fig:translation:expr:sections}
 \end{figure}
 
-\subsection{Translation of Lambda Abstractions} \label{sec:translation:expr:lambda}
+\subsection{Lambda Abstractions} \label{sec:translation:expr:lambda}
 Lets first consider a lambda abstraction \haskell{\@$x$@ -> @$e$@} with a single argument.
 Such an unary lambda abstraction can be represented in Coq by the term \coq{fun @$x'$@ => @$\toCoq{e}$@}.
 However, we still need to wrap the function with the \coq{pure} constructor of the free monad to make the \ref{eqn:translation:expr:invariant} hold.
@@ -186,7 +186,7 @@ We can do so by rewriting a lambda abstraction with multiple arguments to multip
   \label{fig:translation:expr:lambda}
 \end{figure}
 
-\subsection{Translation of \haskell{case} and \haskell{if} Expressions}
+\subsection{\haskell{case} and \haskell{if} Expressions}
 In this subsection we cover both the translation of \haskell{case} and \haskell{if} expressions.
 Since both kinds of expressions behave very similar, their translation rules are based on the same key ideas.
 In fact, the Haskell Language Report defines the semantics of \haskell{if} expressions in terms of \haskell{case} expressions \cite[p.~20]{Marlow:2010}.
@@ -285,7 +285,7 @@ The requirement of Coq that pattern matching must be total is also simply passed
 Therefore, pattern matching failures must be handled explicitly using error terms.
 The translation of said error terms to Coq is described next.
 
-\subsection{Translation of Error Terms} \label{sec:translation:expr:errors}
+\subsection{Error Terms} \label{sec:translation:expr:errors}
 So far we have seen no way to introduce actual effects into our programs.
 As noted earlier, one important effect that we would like to support is partiality.
 In Haskell partiality usually arises from the usage of incomplete pattern matching.
@@ -362,7 +362,7 @@ In contrast, no \coq{Partial} instance can be specified for the \coq{Identity} m
   \label{fig:translation:expr:error}
 \end{figure}
 
-\subsection{Translation of Literals} \label{sec:translation:expr:literals}
+\subsection{Literals} \label{sec:translation:expr:literals}
 The last kind of expression whose translation we did not cover yet are literals.
 We support list, pair and integer literals.
 As mentioned in \autoref{sec:preliminaries:assumptions} already, list and pair literals are just \textit{syntactic sugar} for the application of their constructors.
