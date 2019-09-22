@@ -297,7 +297,7 @@ defineLocally scope name srcSpan = do
 renameIdentAndInform :: SrcSpan -> Scope -> String -> Converter String
 renameIdentAndInform srcSpan scope ident = do
   ident' <- inEnv $ renameIdent ident
-  when (ident' /= ident)
+  when (ident' /= ident && not (isInternalIdent ident))
     $  report
     $  Message srcSpan Info
     $  "Renamed "
@@ -308,3 +308,7 @@ renameIdentAndInform srcSpan scope ident = do
     ++ ident'
     ++ "'."
   return ident'
+
+-- | Tests whether the given Haskell identifier was generated for internal use.
+isInternalIdent :: String -> Bool
+isInternalIdent ident = elem '@' ident
