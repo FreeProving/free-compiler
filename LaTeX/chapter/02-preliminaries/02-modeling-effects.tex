@@ -187,7 +187,7 @@ We can now implement the following function which invokes the function inside of
 
 Even though \coq{applyFun} itself is not recursive, the evaluation of an expression like \coq{applyFun (cons 0 applyFun)} does not terminate.
 Since Coq requires functions to terminate on all inputs, the definition of \coq{list} with a type argument for \coq{M} is not allowed.
-Therefore, \citep{Dylus:2018} model monads using a combination the free monad and a container representation for functors.
+Therefore, \cite{Dylus:2018} model monads using a combination the free monad and a container representation for functors.
 In the next two subsections, we give a brief introduction to the free monad and containers.
 
 \subsection{Free Monad}
@@ -213,12 +213,12 @@ Therefore, only the \haskell{Pure} constructor remains and the data type behaves
   data Zero a {- polymorphic type without constructors -}
   data Identity a = Identity a
 \end{minted}
-Similarly, a data type \haskell{One}, with a single inhabitant, can be used to to model the \haskell{Maybe} monad.
+Similarly, a data type \haskell{One}, with a single inhabitant, can be used to model the \haskell{Maybe} monad.
 \begin{minted}{haskell}
   data One a = One
   data Maybe a = Just a | Nothing
 \end{minted}
-The \haskell{Pure} constructor corresponds to \haskell{Just} and \haskell{Impure ()} corresponds to \haskell{Nothing}.
+The \haskell{Pure} constructor corresponds to \haskell{Just} and \haskell{Impure One} corresponds to \haskell{Nothing}.
 
 In the context of our monadic translation, the \haskell{Pure} constructor corresponds to an effect-free head normal form and values constructed with \haskell{Impure} are interpreted as the monad's effects \cite[p.~127]{Christiansen:2019}.
 In case of the \haskell{Identity} monad, there are no effects and in case of the \haskell{Maybe} monad, there is exactly one effect: the absence of a value.

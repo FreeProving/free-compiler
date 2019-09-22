@@ -72,9 +72,9 @@ The return type of that function depends on the type given as \coq{nil}'s first 
 The term \coq{nil nat} for example is of type \coq{list nat}.
 Since the return types of functions can depend on their arguments, Coq is called a \textit{dependently typed language}.
 
-We do not have to pass the type arguments explicitly, though.
-Using a \coq{Arguments} sentence we can specify which arguments of a function should be passed explicitly and which should be inferred by Coq.
-Inferred arguments are simply wrapped in curly braces.
+Coq also supports type inference.
+Thus, we do not have to pass the type arguments explicitly if it has been marked as an inferred argument, e.g., using an \coq{Arguments} sentence.
+Arguments that should be inferred by Coq are simply wrapped in curly braces.
 \begin{minted}{coq}
   Arguments nil {X}.
   Arguments cons {X}.
@@ -189,7 +189,7 @@ As we have seen already, types are passed to functions like regular arguments fo
 \subsection{Differences between Haskell and Coq} \label{sec:preliminaries:coq:summary}
 Lets conclude this brief introduction to Coq by summarizing the key differences between Haskell and Coq.
 First of all, both Coq and Haskell are functional programming languages and share a lot of similarities as such.
-Additionally, Coq introduces dependent types which allow it to be used to be used as a proof assistant.
+Additionally, Coq introduces dependent types which allow it to be used as a proof assistant.
 However, this extension to the type system requires Coq to enforce the following two restrictions:
 \begin{enumerate}
   \item all pattern matching must be exhaustive and
