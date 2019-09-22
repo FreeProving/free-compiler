@@ -13,7 +13,7 @@ We also extend the translation rules to support mutually recursive declarations 
 
 \subsection{Translation of Type Synonym Declarations} \label{sec:translation:type-decl:type-syn}
 Type synonyms can be used in Haskell to give a name to a more complex type expression.
-Similarly, we can use a \coq{Definition}-sentence to to assign a name to a term in Coq.
+Similarly, we can use a \coq{Definition}-sentence to assign a name to a term in Coq.
 As Coq does not distinguish types and terms, declarations of type synonyms can be simply translated to \coq{Definition}-sentences as shown in \autoref{fig:translation:type-decl:type-syn}.
 
 \begin{figure}[H]
@@ -31,11 +31,11 @@ As Coq does not distinguish types and terms, declarations of type synonyms can b
 \end{figure}
 
 The parameters $\Shape$ and $\Pos$ have to be added such that the translated type can use the free monad or other data types.
-For example the following type synonym
+For example, the following type synonym
 \begin{minted}{haskell}
   type Queue a = List a
 \end{minted}
-needs $\Shape$ and $\Pos$ when translated to to Coq because they need to be passed to \coq{List}.
+needs $\Shape$ and $\Pos$ when translated to Coq because they need to be passed to \coq{List}.
 \begin{minted}{coq}
   Definition Queue (@$\Shape$@ : Type) (@$\Pos$@ : @$\Shape$@ -> Type) (a : Type) : Type
                    := List @$\Shape$@ @$\Pos$@ a.
@@ -83,7 +83,7 @@ The equation marked with $(\star)$ follows from the following property of $\sigm
 We assume without a proof that this property holds for the extensions of $\sigma$ and $\sigma'$ as well.
 
 \subsection{Translation of Data Type Declarations} \label{sec:translation:type-decl:data}
-Until now we have described how to translate type expressions and assign names to them, but we are not able to actually define our own types for usage in those type expressions.
+So far we have described how to translate type expressions and assign names to them, but we are not able to actually define our own data types.
 One of the simplest kinds of data types that can be defined in Haskell are so called \textit{sum types}.
 A well known example for a sum type is \haskell{Bool} which is commonly defined as follows.
 \begin{minted}{haskell}
@@ -317,7 +317,7 @@ Thus, the identification of mutually recursive data type declarations coincides 
 There are algorithms to compute strongly connected components in linear time.
 As a final step, the identified strongly connected components need to be sorted.
 If the component $SCC_1$ contains at least one declaration that depends on a declaration in $SCC_2$, $SCC_2$ should precede $SCC_1$.
-This order also referred to as \textit{reverse topological order} and can be solved in linear time as well.
+This order also is referred to as \textit{reverse topological order} and can be solved in linear time as well.
 In our case we obtain the following sorted lists of strongly connected components.
 \begin{align*}
   [\{\, \haskellM{B} \,\}, \{\, \haskellM{A} \,\}]

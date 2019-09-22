@@ -76,7 +76,7 @@ For this reason, \cite{Abel:2005} suggest an optimization that allows the genera
 
 We actually applied this optimization already during the generation of smart constructors.
 The constructor \haskell{Just} of the \haskell{Maybe} data type has the type $a \rightarrow \texttt{Maybe}\;a$ for example.
-According to the \ref{eqn:translation:expr:invariant}, the expression \haskell{Just} should now be translated to to a Coq term of type
+According to the \ref{eqn:translation:expr:invariant}, the expression \haskell{Just} should now be translated to a Coq term of type
 \[
   \toCoq{(a \rightarrow \texttt{Maybe}\;a)}
     = \Free{\toCoqT{(a \rightarrow \texttt{Maybe}\;a)}}
@@ -112,7 +112,7 @@ But before we examine the translation of lambda abstractions next, lets first lo
 Most binary operations such as \haskell{(+)} or \haskell{(==)} as well as the list constructor \haskell{(:)} are usually written in infix rather than prefix notation.
 It is also possible to write custom functions in infix notation by surrounding the function name in grave accents ("backticks" or "backquotes").
 For example, instead of \haskell{div @$x$@ @$y$@} one can write \haskell{@$x$@ `div` @$y$@}.
-When properly used, this notation can often increase the readability of programs.
+When used properly, this notation can often increase the readability of programs.
 Similarly, there is a unary minus prefix operator that can be used as \textit{syntactic sugar} for the application of the \haskell{negate} function from Haskell's Prelude.
 As \autoref{fig:translation:expr:op} demonstrates, the translation of operator applications is straightforward.
 
@@ -129,8 +129,8 @@ As \autoref{fig:translation:expr:op} demonstrates, the translation of operator a
 
 However, in Haskell it is also possible to apply operators only partially.
 So called \textit{sections} are written as \haskell{(@$e_1$@ @$\circ$@)} ("left section") or \haskell{(@$\circ$@ @$e_2$@)} ("right section").
-A right section coincides with a regular partial application of the operator.
-A left section on the other hand cannot be expressed in this way.
+A left section coincides with a regular partial application of the operator.
+A right section on the other hand cannot be expressed in this way.
 Therefore, we need to introduce the missing left argument in a similar way to an $\eta$-abstraction.
 \begin{figure}[H]
   \begin{align*}
@@ -148,8 +148,7 @@ Therefore, we need to introduce the missing left argument in a similar way to an
 
 \subsection{Translation of Lambda Abstractions} \label{sec:translation:expr:lambda}
 Lets first consider a lambda abstraction \haskell{\@$x$@ -> @$e$@} with a single argument.
-We have seen a Coq lambda abstraction on the right-hand side of \coq{>>=} in the previous subsection already.
-In Coq our unary lambda abstraction could be represented by the term \coq{fun @$x'$@ => @$\toCoq{e}$@}.
+Such an unary lambda abstraction can be represented in Coq by the term \coq{fun @$x'$@ => @$\toCoq{e}$@}.
 However, we still need to wrap the function with the \coq{pure} constructor of the free monad to make the \ref{eqn:translation:expr:invariant} hold.
 \[
   \toCoq{(\haskellM{\@$x$@ -> @$e$@})} = \coqM{pure (fun @$x'$@ => @$\toCoqX{e}$@)}
@@ -408,7 +407,7 @@ Therefore, the type \coq{Z} from the \coq{ZArith} library is used by \texttt{hs-
   Definition Integer := Z.
 \end{minted}
 We adapt their code slightly such that the definition is compatible with our translation of custom data type and type synonym declarations.
-To do so the parameters $\Shape$ and $\Pos$ must be added, even though \coq{Integer} does not need them.
+To do so, the parameters $\Shape$ and $\Pos$ must be added even though \coq{Integer} does not need them.
 \begin{minted}{coq}
   Definition Integer (@$\Shape$@ : Type) (@$\Pos$@ : @$\Shape$@ -> Type) : Type := Z.
 \end{minted}

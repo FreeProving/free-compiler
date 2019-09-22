@@ -58,11 +58,11 @@ The corresponding proof is left blank and must be filled in by the user.
 \begin{figure}[H]
   \[
     \toCoq{\left(\begin{array}{l}
-      \haskellM{prop_@$p'$@ :: @$\tau_1$@ -> @$\ldots$@ -> @$\tau_n$@ -> @$\tau$@} \\
-      \haskellM{prop_@$p'$@ @$x_1$@ @$\ldots$@ @$x_n$@ = @$e$@}
+      \haskellM{prop_@$p$@ :: @$\tau_1$@ -> @$\ldots$@ -> @$\tau_n$@ -> @$\tau$@} \\
+      \haskellM{prop_@$p$@ @$x_1$@ @$\ldots$@ @$x_n$@ = @$e$@}
     \end{array}\right)}
     = \begin{array}{l}
-      \coqM{Theorem prop_@$p$@:} \\
+      \coqM{Theorem prop_@$p'$@:} \\
       \quad\coqM{forall}
       \;\coqM{(@$\Shape$@ : Type) (@$\Pos$@ : @Shape@ -> Type)} \\
       \qquad\qquad\;\coqM{{@$\alpha_1'$@ @$\ldots$@ @$\alpha_m'$@ : Type} (@$x_1'$@ : @$\toCoqX{\tau_1}$@) @$\ldots$@ (@$x_n'$@ : @$\toCoqX{\tau_n}$@), @$\toCoqQX{e}$@.} \\

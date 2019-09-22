@@ -12,8 +12,7 @@ The translation of recursive functions is covered in the second half of this sec
 In the last section, there are some remarks regarding the translation of partial functions.
 
 \subsection{Translation of Non-Recursive Functions} \label{sec:translation:func-decl:non-rec}
-In \autoref{sec:translation:type-decl} we have already seen function declarations in Coq on the example of smart constructors.
-In order to recall the basic structure of such function declarations, consider the following implementation of boolean negation without monadic lifting.
+In order to recall the basic structure of function declarations in Coq, consider the following implementation of boolean negation without monadic lifting.
 \begin{minted}{coq}
   Definition not (b : bool) : bool :=
     match b with
@@ -21,7 +20,6 @@ In order to recall the basic structure of such function declarations, consider t
     | false => true
     end.
 \end{minted}
-As we can see, Coq's function declarations are parameterized \coq{Definition} sentences.
 Unlike in Haskell, there are not multiple rules and pattern matching is performed explicitly on the right-hand side using \coq{match} expressions.
 The return type of the function as well as the types of its arguments are annotated inside the declaration itself.
 Due to our assumptions, i.e., that there is only one rule and the parameters are variable patterns, all Haskell function declarations we are concerned with already look remarkably similar to the \coq{Definition} sentences that we need to generate.
@@ -194,6 +192,7 @@ We can solve this problem by inlining the definition of \coq{append} into \coq{a
 This pair of definitions is now accepted by Coq's termination checker.
 Most importantly, though, the transformation also does not change the behaviour of \coq{append}.
 Intuitively, the transformed function behaves in the same way because we perform a bind only when the original definition would also have performed a bind.
+However, proving the correctness of this transformation is beyond the scope of this thesis.
 
 Next, we want to generalize the approach outlined above.
 Since function declaration can be mutually recursive, we have to consider entire strongly connected components of the dependency graph again.
