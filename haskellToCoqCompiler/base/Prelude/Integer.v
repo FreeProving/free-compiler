@@ -51,7 +51,7 @@ Section SecInteger.
       n2 >>= fun(n2' : Integer') =>
         pure (Z.pow n1' n2').
 
-  (** * Comparision operators *)
+  (** * Comparison operators *)
 
   (* less than or equal *)
   Definition leInteger (n1 : Free' Integer') (n2 : Free' Integer') : Free' Bool' :=
