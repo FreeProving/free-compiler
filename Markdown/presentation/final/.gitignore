@@ -1,0 +1,9 @@
+### Thumbnail images of thesis ##
+thumbnails
+
+### Dependencies installed via bower ###
+bower_components
+
+### Generated files ###
+final.html
+graph-images

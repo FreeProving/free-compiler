@@ -53,7 +53,7 @@ First, pattern matching on the left-hand side of the function declarations needs
 Furthermore, we have to provide implementations for \haskell{null}, \haskell{(++)} and \haskell{reverse} as they are not yet part of the \haskell{Prelude} provided by our compiler.
 Since we do not permit the declaration of custom operators, we have to rename \haskell{(++)} to \haskell{append}.
 \autoref{fig:case-study:aux} shows the declarations of these auxiliary functions.
-The definitions in \label{fig:case-study:desugared-queues} and \autoref{fig:case-study:aux} can now be converted to Coq and are also accepted by Coq.
+The definitions in \autoref{fig:case-study:desugared-queues} and \autoref{fig:case-study:aux} can now be converted to Coq and are also accepted by Coq.
 
 \begin{figure}[H]
   \begin{tabular}{p{0.40\linewidth} | p{0.40\linewidth}}

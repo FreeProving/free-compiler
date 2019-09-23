@@ -14,4 +14,6 @@ fi
 export TEXINPUTS="$theme_dir:$TEXINPUTS"
 
 # Forward all arguments and add beamer arguments.
-"$script_dir"/typeset.sh "$@" --to beamer --incremental
+"$script_dir"/typeset.sh "$@" \
+  --to beamer                 \
+  --slide-level=2

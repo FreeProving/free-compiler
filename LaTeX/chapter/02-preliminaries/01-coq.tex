@@ -187,13 +187,13 @@ In fact, there is no difference between types and terms in Coq.
 As we have seen already, types are passed to functions like regular arguments for example.
 
 \subsection{Differences between Haskell and Coq} \label{sec:preliminaries:coq:summary}
-Lets conclude this brief introduction to Coq by summarizing the key differences between Haskell and Coq.
+Let's conclude this brief introduction to Coq by summarizing the key differences between Haskell and Coq.
 First of all, both Coq and Haskell are functional programming languages and share a lot of similarities as such.
 Additionally, Coq introduces dependent types which allow it to be used as a proof assistant.
-However, this extension to the type system requires Coq to enforce the following two restrictions:
+However, this extension requires Coq to enforce the following two conditions:
 \begin{enumerate}
   \item all pattern matching must be exhaustive and
-  \item all functions must terminate on all inputs.
+  \item all functions must provably terminate on all inputs.
 \end{enumerate}
 In consequence, there is no partiality, no infinite data structures and Coq is not \textit{Turing complete}.
 Satisfying the termination requirement of Coq presents one of the mayor challenges for the implementation of our compiler.

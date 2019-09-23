@@ -1,0 +1,22 @@
+{
+  "name": "final-presentation",
+  "authors": [
+    "Justin Andresen <jan.dresen.95@gmail.com>"
+  ],
+  "description": "Reveal.js project for my final bachlor theseis presentation.",
+  "main": "final.html",
+  "license": "MIT",
+  "homepage": "",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "reveal.js": "^3.8.0",
+    "MathJax": "^2.7.5"
+  }
+}

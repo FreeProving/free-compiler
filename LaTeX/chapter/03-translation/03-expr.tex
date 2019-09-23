@@ -99,7 +99,7 @@ An individual $\eta$-abstraction transforms a function $f$ to an equivalent func
 \]
 The full process is depicted in \autoref{fig:translation:expr:eta}.
 The right-hand side of both equations requires us to be able to convert lambda abstractions to Coq.
-But before we examine the translation of lambda abstractions next, lets first look into another kind of function application: operator applications.
+But before we examine the translation of lambda abstractions next, let's first look into another kind of function application: operator applications.
 \begin{figure}[H]
   \begin{align*}
     \toCoq{(C\;e_1\;\ldots\;e_m)} = \toCoq{(\haskellM{\@$x_1$@ -> @$\ldots$@ \@$x_{m - n}$@ ->}\; C\;e_1\;\ldots\;e_m\;x_1\;\ldots\;x_{n - m})} \\
@@ -147,7 +147,7 @@ Therefore, we need to introduce the missing left argument in a similar way to an
 \end{figure}
 
 \subsection{Lambda Abstractions} \label{sec:translation:expr:lambda}
-Lets first consider a lambda abstraction \haskell{\@$x$@ -> @$e$@} with a single argument.
+Let's first consider a lambda abstraction \haskell{\@$x$@ -> @$e$@} with a single argument.
 Such an unary lambda abstraction can be represented in Coq by the term \coq{fun @$x'$@ => @$\toCoq{e}$@}.
 However, we still need to wrap the function with the \coq{pure} constructor of the free monad to make the \ref{eqn:translation:expr:invariant} hold.
 \[
@@ -194,7 +194,7 @@ In fact, the Haskell Language Report defines the semantics of \haskell{if} expre
   \haskellM{if @$e_1$@ then @$e_2$@ else @$e_3$@}
     = \haskellM{case @$e_1$@ of { True -> @$e_2$@ ; False -> @$e_3$@ }}
 \]
-For simplicity, lets first focus on the translation of \haskell{if} expressions.
+For simplicity, let's first focus on the translation of \haskell{if} expressions.
 
 Unlike before, we cannot base our translation rule for \haskell{if} expressions on the \ref{eqn:translation:expr:invariant}.
 If the expression \haskell{if @$e_1$@ then @$e_2$@ else @$e_3$@} has type $\tau$, both $e_2$ and $e_3$ must also have type $\tau$.

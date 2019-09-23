@@ -12,7 +12,7 @@ fi
 
 # Optionally typeset the file whenever it is changed.
 typeset_mode="typeset"
-if [ "$1" == "--watch" ]; then
+if [[ "$1" == "--watch" ]]; then
   shift
   typeset_mode="watch"
 fi
