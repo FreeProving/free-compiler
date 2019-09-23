@@ -210,7 +210,7 @@ In summary, the following steps need to be performed for the translation.
 \end{enumerate}
 
 For the remainder of this section, we are going to sort out the details of those steps.
-Of particular interest are steps 1 and 2.
+Of particular interest are the first two steps.
 
 \paragraph{Determining Decreasing Arguments}
 We have seen a simplified description of the algorithm used by Coq to test whether a function is decreasing on a specific argument earlier.
@@ -228,7 +228,7 @@ Consider two mutually recursive binary functions \haskell{foo} and \haskell{bar}
 \end{minted}
 If \haskell{bar} is decreasing on its first argument, then \haskell{foo} is also decreasing on its first argument.
 Conversely, if \haskell{bar} does not decrease on its first argument, then \haskell{x} is also an invalid choice for the decreasing argument of \haskell{foo}.
-Therefore, we have to consider every possible combination of decreasing arguments and test whether all functions in the strongly connected actually decrease on those arguments.
+Therefore, we have to consider every possible combination of decreasing arguments and test whether all functions in the strongly connected component actually decrease on those arguments.
 
 \paragraph{Splitting into Helper and Main Functions}
 Unlike in the example of \coq{append}, we are going to perform the transformation of the original function into a helper and main function before the conversion to Coq.
@@ -264,7 +264,7 @@ For example, two helper functions must be generated for the following function: 
 \end{center}
 
 If the \haskell{if} expression would have been a \haskell{case} expression itself, the generation of the helper functions would further be complicated by the fact that the inner \haskell{case} expressions could reference variable patterns from the outer \haskell{case} expression.
-The is true when the \haskell{case} expression is wrapped by a lambda abstraction.
+The same is true when the \haskell{case} expression is wrapped by a lambda abstraction.
 For this reason, additional arguments may have to be added to the generated helper functions.
 
 \begin{center}
@@ -435,7 +435,7 @@ Therefore, we add another explicit parameter after $\Shape$ and $\Pos$.
 \]
 In consequence, every function that uses \haskell{head} also needs a \coq{Partial} instance in order to invoke \haskell{head}.
 If we consider \haskell{error} and \haskell{undefined} to be normal functions, we can use the dependency graph to determine which functions need to be equipped with a \coq{Partial} instance: if there is a directed path from a function to the nodes of the dependency graph that correspond to \haskell{error} or \haskell{undefined}, a parameter for the \coq{Partial} instances must be added.
-In case of recursive functions, the main and main and helper functions need a \coq{Partial} instance if and only if the original function needs a \coq{Partial} instance.
+In case of recursive functions, the main and helper functions need a \coq{Partial} instance if and only if the original function needs a \coq{Partial} instance.
 Hereinafter, we will refer to functions that take a \coq{Partial} instance as a parameter as \textit{partial functions}.
 
 The only change to the existing translation rules in \autoref{fig:translation:func-decl:non-rec} \autoref{fig:translation:func-decl:rec} is that the parameter \coqM{(@$P$@ : Partial @$\Shape$@ @$\Pos$@)} is added after $\Shape$ and $\Pos$ if the declared function is partial.
@@ -451,7 +451,7 @@ If the function is partial, the type class instance $P$ must be passed after $\S
 
 Lastly, note that higher-order functions are not required to be partial, even though a function that is passed to them could be partial.
 For example, \haskell{map} does not require a \coq{Partial} instance.
-The only function invoked by \haskell{map} except for itself is the function passed as its first argument.
+The only function invoked by \haskell{map}~--~except for constructors and itself~--~is the function passed as its first argument.
 \begin{minted}{haskell}
   map :: (a -> b) -> [a] -> [b]
   map f xs = case xs of

@@ -423,11 +423,11 @@ To create a value of type \coq{Z}, we have to append the suffix \coq{%Z}.
 Since \coq{Integer @$\Shape$@ @$\Pos$@} is just a synonym for \coq{Z}, \coq{42%Z} is also of type $\toCoqT{\haskellM{Integer}}$.
 To fulfill our \ref{eqn:translation:expr:invariant}, we finally need to lift the value into the free monad.
 \begin{figure}[H]
-  \[
-    \toCoq{i} = \coqM{
-      pure @$i'$@%Z
-    }
-  \]
+  \begin{minipage}{0.25\linewidth}
+    \begin{minted}{coq}
+      @$\toCoq{i} =$@ pure @$i'$@%Z
+    \end{minted}
+  \end{minipage}
   \caption{
     Translation of an integer literal $i$.
     The decimal value of $i$ is denoted $i'$.

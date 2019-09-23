@@ -42,6 +42,8 @@ The semantics of the operations is explained in the next subsection.
 The type \haskell{Property} is used by QuickCheck to represent more complex properties than \haskell{Bool} can represent.
 In user-defined functions, it is only allowed to be used as the return type of QuickCheck properties.
 The type class \haskell{Testable} is used in the type signatures above to indicate that the corresponding arguments can either be of type \haskell{Bool} or \haskell{Property}.
+The \haskell{(===)} and \haskell{(=/=)} operations usually require an instance of the type \haskell{Eq} type class.
+Since users cannot implement \haskell{Eq} instances in our compiler, we allow these two operators to be used with any type and use structural equality for the actual comparison.
 
 A QuickCheck property $p$ has the following form where $\tau$ is one of \haskell{Bool} or \haskell{Property}.
 \begin{minted}{haskell}
@@ -91,7 +93,7 @@ For example, the following is invalid.
   prop_append_assoc :: [a] -> [a] -> [a] -> Bool
   prop_append_assoc xs ys zs = (xs `append` ys) `append` zs == xs `append` (ys `append` zs)
 \end{minted}
-For this reason, we translate QuickCheck's \haskell{(===)} and \haskell{(=/=)} operators to Coq's reflexive equality.
+For this reason, we translate QuickCheck's \haskell{(===)} and \haskell{(=/=)} operators to Coq's built-in structural equality.
 \begin{align*}
   \toCoqQ{(\haskellM{@$e_1$@ === @$e_2$@})}
   &= \coqM{@$\toCoqX{e_1}$@ = @$\toCoqX{e_2}$@} \\
@@ -111,7 +113,7 @@ In Coq \coq{/\} and \coq{\/} can be used to denote the conjunction and disjuncti
 We are using QuickChecks \haskell{(.&&.)} and \haskell{(.||.)} operators for this purpose.
 \begin{align*}
   \toCoqQ{(\haskellM{@$e_1$@ .&&. @$e_2$@})}
-  &= \coqM{@$\toCoqX{e_1}$@ /\ @$\toCoqX{e_2}$@} \\
+  &= \coqM{@$\toCoqQX{e_1}$@ /\ @$\toCoqQX{e_2}$@} \\
   \toCoqQ{(\haskellM{@$e_1$@ .||. @$e_2$@})}
-  &= \coqM{@$\toCoqX{e_1}$@ \/ @$\toCoqX{e_2}$@} \\
+  &= \coqM{@$\toCoqQX{e_1}$@ \/ @$\toCoqQX{e_2}$@} \\
 \end{align*}
