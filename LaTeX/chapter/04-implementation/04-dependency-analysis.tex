@@ -13,7 +13,7 @@ To use \haskell{stronglyConnComp} we have to represent dependency graphs as a li
   \item a list of names for types and functions used by the declaration.
 \end{itemize}
 Thus, the only part of the dependency analysis that we have to implement ourselves is the extraction of used types and functions of the declarations.
-For simplicity, we consider type and function declarations independently, i.e., we are creating two separate dependency graphs for one for type declarations and one for functions.
+For simplicity, we consider type and function declarations independently, i.e., we are creating two separate dependency graphs one for type declarations and one for functions.
 We can ignore dependencies between functions and types as all converted type declarations are placed in front of all function declarations later anyway.
 
 For example, the extraction of a \haskell{type} declaration's dependencies is governed by the following rules.

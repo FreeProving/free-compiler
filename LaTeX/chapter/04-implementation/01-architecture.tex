@@ -38,52 +38,6 @@ The converter transforms the simplified Haskell AST to a Coq AST that is printed
   \label{fig:implementation:architecture}
 \end{figure}
 
-% \begin{figure}[H]
-%   \digraph[scale=0.6]{CompielerArchitecture}{
-%     node[shape="rect"];
-%     edge[minlen=1];
-%     rankdir="LR";
-%
-%     # Left nodes.
-%     \{
-%       rank="same";
-%       node[width=2];
-%       input[label="Haskell source file"];
-%       haskellAst[label="Haskell AST"];
-%       simpleAst[label="Simplified AST"];
-%     \}
-%
-%     # Right nodes.
-%     \{
-%       rank="same";
-%       node[width=3];
-%       output[label="Coq source file"];
-%       coqAst[label="Coq AST"];
-%       scc[label="Strongly Connected Components"];
-%     \}
-%
-%     # Invisible edges between opposite facing nodes.
-%     input      -> output [style="invis"];
-%     haskellAst -> coqAst [style="invis"];
-%
-%     # Vertical edges pointing down.
-%     input      -> haskellAst [xlabel="Parser&nbsp;&nbsp;&nbsp;"];
-%     haskellAst -> simpleAst  [xlabel="Simplifier&nbsp;&nbsp;&nbsp;"];
-%
-%     # Horizontal edge.
-%     simpleAst  -> scc        [label="Dependency Analysis"];
-%
-%     # Vertical edges pointing up.
-%     coqAst     -> scc        [dir="back",xlabel="Converter&nbsp;&nbsp;&nbsp;"];
-%     output     -> coqAst     [dir="back",xlabel="Pretty Printer&nbsp;&nbsp;&nbsp;"];
-%   }
-%   \caption{
-%     Stages of the compilation process from Haskell to Coq.
-%     Arrows are labeled with the component of the compiler that is responsible for converting one intermediate representation to another.
-%   }
-%   \label{fig:implementation:architecture}
-% \end{figure}
-
 Using Haskell for the implementation of our compiler allows us to make use of Haskell's package infrastructure.
-Especially, the Haskell and Coq parsers, ASTs and pretty printers have not been implemented by our self.
+Especially, the Haskell and Coq parsers, ASTs and pretty printers have not been implemented by ourselves.
 In the following sections more details will be given regarding the individual stages and used libraries.
