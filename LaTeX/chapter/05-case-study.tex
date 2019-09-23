@@ -135,7 +135,7 @@ The definitions in \autoref{fig:case-study:desugared-queues} and \autoref{fig:ca
 
 % Proving the invariant
 The first property that we want to prove is that all queues constructible using the functions from the implementation with two lists fulfil the following invariant.
-Again, we need to define an auxiliary function that is usually part of the \coq{Prelude}.
+Again, we need to define the auxiliary function \haskell{not} that is usually part of the \haskell{Prelude}.
 \begin{minted}{haskell}
   not :: Bool -> Bool
   not b = case b of
@@ -177,7 +177,7 @@ In case of \coq{prop_inv_add}, Coq can infer the type arguments of \coq{invarian
 However, in case of \coq{prop_inv_empty} the context contains no type information.
 In fact, we wanted to prove that the empty queue fulfills the invariant for any value type, but we never quantify the value type in the theorem above.
 We can fix this issue by adding a binder for a new type variable and passing this type variable explicitly to either \coq{invariant} or \coq{emptyI}.
-The at sing before \coq{emptyI} tells Coq that we want to pass implicit arguments explicitly.
+The \texttt{@} sign before \coq{emptyI} tells Coq that we want to pass implicit arguments explicitly.
 \begin{minted}[escapeinside={}]{coq}
   Theorem prop_inv_empty : forall (Shape : Type) (Pos : Shape -> Type) (a : Type),
     invariant Shape Pos (@emptyI Shape Pos a) = True_ Shape Pos.
@@ -235,7 +235,7 @@ The parameter \coq{total_a} is an arbitrary notion of totality for elements of t
   \item all of their sublists are \coq{pure} and
   \item the values of the queue are total with respect to \coq{total_a}.
 \end{itemize}
-Since \coq{total_a} is universally quantified, the altered theorem does not require the elements of the queue themselves to be total.
+Since \coq{total_a} is universally quantified, the extended theorem does not require the elements of the queue themselves to be total.
 The inductive propositions add a lot of overhead to our Coq file but the proof of \coq{prop_inv_add} is still simple.
 
 % Relating both implementations.
@@ -248,7 +248,7 @@ To relate both implementations, we define a function that converts queues from o
 \end{minted}
 We proceed by defining the following QuickCheck properties.
 In contrast to \cite{Dylus:2018}, we have to use the \haskell{(===)} operator since \haskell{(==)} only works with integers in our implementation.
-The \haskell{(===)} operator is translated to Coq's reflexive equality by our compiler.
+The \haskell{(===)} operator is translated to Coq's structural equality by our compiler.
 \begin{minted}{haskell}
   prop_isEmpty :: QueueI a -> Property
   prop_isEmpty qi = invariant qi ==> isEmptyI qi === isEmpty (toQueue qi)
