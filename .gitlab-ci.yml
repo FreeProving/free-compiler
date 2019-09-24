@@ -32,7 +32,6 @@ stages:
     - echo "Building dependencies..."
     - cabal new-update
     - cabal new-build --only-dependencies
-    - cd ..
   after_script:
     - mv /root/.cabal ./.cabal
 
