@@ -12,10 +12,10 @@ to express that the Haskell language construct $H$ (e.g., a type, expression or 
 \subsection{Naming conventions} \label{sec:preliminaries:notation:naming-conventions}
 When formalizing the assumptions and translation rules, we make extensive use of meta-variables for identifiers, expressions and types.
 For the sake of readability, those meta-variables will not always be introduced explicitly.
-Instead, we rely on naming conventions outlined in this section to determine what the meta-variables stands for.
+Instead, we rely on naming conventions outlined in this section to determine what the meta-variables stand for.
 If there are multiple meta-variables of the same kind, we use a subscripted index.
 
-The symbols $\tau$, $T$, $\alpha$ are used as identifiers for type expressions, constructors and variables, respectively.
+The symbols $\tau$, $T$ and $\alpha$ are used as identifiers for type expressions, constructors and variables, respectively.
 Instead of $\tau$, we also use $\kappa$ for type expressions in some places.
 Data type and type synonym declarations will usually be named $D$ or $S$.
 Analogously $e$, $C$ and $x$ are used for expressions, constructors and variables.
@@ -26,7 +26,7 @@ A lower case $c$ is used for the name of a data constructor in Coq.
 The lower case $c$ should differ from the corresponding capital $C$ only in that its first letter is converted to lower case.
 E.g. if $C_i = \texttt{Foo}$ for some index $i$, then $c_i$ will be \coq{foo}.
 
-We are also using $\Shape$ and $\Pos$ as identifiers for the arguments of the free monad.
+We are also using the meta-variables $\Shape$ and $\Pos$ for the identifiers of the arguments of the free monad.
 They are passed explicitly as parameters to generated Coq sentences.
 
 \subsection{Notation for renamed identifiers} \label{sec:preliminaries:notation:renaming}
@@ -37,6 +37,6 @@ Similarly, Haskell allows types and constructors to have the same name because t
 Since Coq is a dependently typed language, types in Coq can contain values.
 Therefore, Coq constructors can conflict with types of the same name and need to be renamed as well.
 
-Details on how identifiers are renamed will be given in \autoref{chp:implementation}.
+Details on how identifiers are renamed will be given in \autoref{sec:implementation:conversion:renaming}.
 For the time being, we will simply write $I'$ for the renamed version of a Haskell identifier $I$.
 For short, we write $e'$ or $\tau'$ for an expression $e$ or type expressions $\tau$ in which all identifiers have been renamed appropriately.

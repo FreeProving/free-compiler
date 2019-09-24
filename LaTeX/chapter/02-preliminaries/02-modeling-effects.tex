@@ -179,7 +179,7 @@ When \coq{M} is instantiated with \coq{NatFun}, the second argument of the \coq{
 We can now implement the following function which invokes the function inside of the list with the list itself.
 
 \begin{minted}{coq}
-  Definition applyFun (xs : List NatFun nat) : nat
+  Definition applyFun (xs : list NatFun nat) : nat
     := match xs with
        | nil          => 0
        | cons mx mxs' => mxs' xs.
@@ -207,7 +207,7 @@ For any functor $f$, \haskell{Free @$f$@} is a monad, i.e., the following defini
   (Impure fx) >>= f = fmap (>>= f) fx
 \end{minted}
 The free monad can be used to model, among others, the \haskell{Maybe} and \haskell{Identity} monads.
-If we instantiate the functor $f$ with a data type \haskell{Zero} that does not have a constructor, we cannot create a value of type \haskell{Free Zero a} using the \haskell{Impure} constructor (in a total setting).
+If we instantiate the functor $f$ with a data type \haskell{Zero} that does not have any constructor, we cannot create a value of type \haskell{Free Zero a} using the \haskell{Impure} constructor (in a total setting).
 Therefore, only the \haskell{Pure} constructor remains and the data type behaves like \haskell{Identity}.
 \begin{minted}{haskell}
   data Zero a {- polymorphic type without constructors -}
@@ -255,8 +255,8 @@ Since there are no constructors in case of the data type \haskell{Zero}, no valu
 Hence, values of type \haskell{Zero @$\tau$@} neither have a shape nor any positions where values of type $\tau$ could be stored.
 \begin{minted}{coq}
   Inductive Void : Type := (* non-polymorphic type without constructors *).
-  Definition @$\Shape_{Zero}$@ = Void.
-  Definition @$\Pos_{Zero}$@ (s : @$\Shape_{Zero}$@) = Void.
+  Definition @$\Shape_{Zero}$@ := Void.
+  Definition @$\Pos_{Zero}$@ (s : @$\Shape_{Zero}$@) := Void.
 \end{minted}
 The data type \haskell{One}, on the other hand, has exactly one constructor without any arguments.
 Thus, all values of type \haskell{One @$\tau$@} have the same shape.
@@ -264,12 +264,12 @@ In the following listing we are using the \coq{unit} data type as defined in Coq
 Since, the constructor of \haskell{One} has no arguments, there are again no positions inside of values of type \haskell{One @$\tau$@}.
 \begin{minted}{coq}
   Inductive unit : Type := tt : unit.
-  Definition @$\Shape_{One}$@ = unit.
-  Definition @$\Pos_{One}$@ (s : @$\Shape_{One}$@) = Void.
+  Definition @$\Shape_{One}$@ := unit.
+  Definition @$\Pos_{One}$@ (s : @$\Shape_{One}$@) := Void.
 \end{minted}
 
 Finally, we need a way to incorporate containers into the definition of \coq{Free}.
-For this purpose, we replace the type argument \coq{F} by two new type arguments for $\Shape$ and $\Pos$ respectively.
+For this purpose, we replace the type argument \coq{F} by two new type arguments for $\Shape$ and $\Pos$, respectively.
 In the \coq{impure} constructor instead of a data structure of type \coq{F (Free F A)} we need the concrete shape \coq{s} that characterizes the container and a function \coq{pf} that maps positions to values inside of the container.
 In this case, the values inside of the container are free monads themselves.
 \begin{minted}{coq}
