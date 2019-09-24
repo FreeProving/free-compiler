@@ -25,17 +25,16 @@ stages:
   cache:
     key: ${CI_COMMIT_REF_SLUG}
     paths:
-      - ./haskellToCoqCompiler/dist-newstyle
-      - ./haskellToCoqCompiler/.cabal
+      - ./dist-newstyle
+      - ./.cabal
   before_script:
-    - mv ./haskellToCoqCompiler/.cabal /root/.cabal || true
+    - mv ./.cabal /root/.cabal || true
     - echo "Building dependencies..."
-    - cd haskellToCoqCompiler
     - cabal new-update
     - cabal new-build --only-dependencies
     - cd ..
   after_script:
-    - mv /root/.cabal ./haskellToCoqCompiler/.cabal
+    - mv /root/.cabal ./.cabal
 
 ###############################################################################
 # Unit tests                                                                  #
@@ -49,7 +48,6 @@ build-unit-tests:
   stage: build
   script:
     - echo "Building unit tests..."
-    - cd haskellToCoqCompiler
     - cabal new-build unit-tests
     - echo "Copy unit test executable to build directory..."
     - mkdir -p ./build/bin
@@ -57,7 +55,7 @@ build-unit-tests:
   artifacts:
     name: unit-tests
     paths:
-      - ./haskellToCoqCompiler/build/bin/unit-tests
+      - ./build/bin/unit-tests
 
 # Run unit tests.
 run-unit-tests:
@@ -67,7 +65,6 @@ run-unit-tests:
     - build-unit-tests
   script:
     - echo "Running unit tests..."
-    - cd haskellToCoqCompiler
     - ./build/bin/unit-tests
 
 ###############################################################################
@@ -82,7 +79,6 @@ build-compiler:
   stage: build
   script:
     - echo "Building compiler..."
-    - cd haskellToCoqCompiler
     - cabal new-build haskell-to-coq-compiler
     - echo "Copy executable to build directory..."
     - mkdir -p ./build/bin
@@ -90,7 +86,7 @@ build-compiler:
   artifacts:
     name: compiler
     paths:
-      - ./haskellToCoqCompiler/build/bin/haskell-to-coq-compiler
+      - ./build/bin/haskell-to-coq-compiler
 
 ###############################################################################
 # Documentation                                                               #
@@ -104,7 +100,6 @@ build-docs:
   stage: build
   script:
     - echo "Building Haddock documentation..."
-    - cd haskellToCoqCompiler
     - cabal new-haddock --haddock-hyperlink-source
     - echo "Copy documentation to build directory..."
     - mkdir -p ./build/docs
@@ -112,7 +107,7 @@ build-docs:
   artifacts:
     name: docs
     paths:
-      - ./haskellToCoqCompiler/build/docs
+      - ./build/docs
 
 # Deploy documentation to `https://$SSH_DEPLOY_HOST/$CI_COMMIT_REF_SLUG/docs`.
 deploy-docs:
@@ -121,7 +116,7 @@ deploy-docs:
   dependencies:
     - build-docs
   script:
-    - cp -r ./haskellToCoqCompiler/build/docs $DEPLOY_DIR
+    - cp -r ./build/docs $DEPLOY_DIR
 
 ###############################################################################
 # Base library                                                                #
@@ -132,14 +127,13 @@ build-base-library:
   extends: .coq
   stage: build
   script:
-    - cd haskellToCoqCompiler
     - ./tool/compile-coq.sh base
     - mkdir -p ./build/base
     - cp --parents $(find base -name "*.vo" -or -name "*.glob") ./build
   artifacts:
     name: coq-base-library
     paths:
-      - ./haskellToCoqCompiler/build/base
+      - ./build/base
 
 ###############################################################################
 # Examples                                                                    #
@@ -153,7 +147,6 @@ test-examples:
   dependencies:
     - build-compiler
   script:
-    - cd haskellToCoqCompiler
     - mkdir -p ./example/generated
     - ./build/bin/haskell-to-coq-compiler -b ./base -o ./example/generated $(find ./example -name "*.hs")
     - mkdir -p ./build/example
@@ -161,7 +154,7 @@ test-examples:
   artifacts:
     name: examples
     paths:
-      - ./haskellToCoqCompiler/build/example
+      - ./build/example
 
 # This job verifies that the Coq code generated during `test-examples` compiles
 # and the proofs for the QuickCheck properties pass.
@@ -172,7 +165,6 @@ test-generated-code:
     - build-base-library
     - test-examples
   script:
-    - cd ./haskellToCoqCompiler
     - cp -r ./build/base/. ./base # Restore compiled base library.
     - cp -r ./build/example ./example/generated # Restore compiled examples.
     - ./tool/compile-coq.sh ./example # Compile tests and generated Coq files.
