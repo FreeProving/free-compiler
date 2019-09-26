@@ -4,8 +4,8 @@ A compiler for the monadic translation of Haskell programs to Coq that uses the 
 
 ## Documentation
 
-- [Thesis](https://thesis.ba.just-otter.com/master/thesis.pdf)
-- [Haddock documentation](https://thesis.ba.just-otter.com/master/docs/)
+- [Thesis](https://thesis.ba.just-otter.com)
+- [Haddock documentation](https://haskell-to-coq-compiler.just-otter.com)
 
 ## Required Software
 
