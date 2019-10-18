@@ -104,6 +104,8 @@ library haskell-to-coq-internal
                         -- ASTs:
                       , haskell-src-exts     ==1.21.*
                       , language-coq         ==0.0.*
+                      -- Pattrn matching compler.
+                      , CodeTransformation   ==0.1.*
   default-language:   Haskell2010
   ghc-options:        -Wall
 
