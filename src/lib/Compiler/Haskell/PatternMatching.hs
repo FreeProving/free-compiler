@@ -22,6 +22,13 @@ initialState :: PMState
 initialState = PMState
   { nextId      = 0
   , constrMap   = specialCons
+    ++ [ ( "Bool"
+         , [ (H.UnQual () (H.Ident () "True") , 0, False)
+           , (H.UnQual () (H.Ident () "False"), 0, False)
+           ]
+         )
+       ]
+    -- TODO load data type and constructor names from environment
   , funcId      = ["undefined"]
   , matchedPat  = []
   , trivialCC   = False
