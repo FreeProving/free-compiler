@@ -76,6 +76,7 @@ library haskell-to-coq-internal
                       , Compiler.Haskell.AST
                       , Compiler.Haskell.Inliner
                       , Compiler.Haskell.Parser
+                      , Compiler.Haskell.PatternMatching
                       , Compiler.Haskell.Simplifier
                       , Compiler.Haskell.SrcSpan
                       , Compiler.Haskell.Subterm
@@ -115,8 +116,9 @@ executable haskell-to-coq-compiler
   other-modules:      Paths_haskellToCoqCompiler
   build-depends:      base
                     , directory           ==1.3.*
-                    , filepath            ==1.4.*
                     , extra               ==1.6.*
+                    , filepath            ==1.4.*
+                    , haskell-src-exts    ==1.21.*
                     , haskell-to-coq-internal
   default-language:   Haskell2010
   ghc-options:        -Wall

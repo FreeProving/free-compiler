@@ -12,6 +12,8 @@ import           System.Environment             ( getArgs
 import           System.FilePath
 import           System.IO                      ( stderr )
 
+import qualified Language.Haskell.Exts.Syntax  as H
+
 import           Compiler.Converter             ( convertModuleWithPreamble )
 import           Compiler.Coq.Pretty            ( )
 import           Compiler.Environment           ( Environment
@@ -20,6 +22,8 @@ import           Compiler.Environment           ( Environment
 import           Compiler.Environment.Loader
 import           Compiler.Environment.ProofLoader
 import           Compiler.Haskell.Parser        ( parseModuleFile )
+import           Compiler.Haskell.PatternMatching
+                                                ( transformPatternMatching )
 import           Compiler.Haskell.Simplifier
 import           Compiler.Haskell.SrcSpan
 import           Compiler.Monad.Converter       ( evalConverter
@@ -57,6 +61,10 @@ data Options = Options
     -- ^ Flag that indicates whether to generate a @_CoqProject@ file in the
     --   ouput directory. This argument is ignored if 'optOutputDir' is not
     --   specified.
+
+  , optTransformPatternMatching :: Bool
+    -- ^ Flag that indicates whether to transform pattern matching, perform
+    --   guard elimination and case completion.
   }
 
 -- | The default command line options.
@@ -66,11 +74,12 @@ makeDefaultOptions :: IO Options
 makeDefaultOptions = do
   defaultBaseLibDir <- getDataFileName "base"
   return $ Options
-    { optShowHelp         = False
-    , optInputFiles       = []
-    , optOutputDir        = Nothing
-    , optBaseLibDir       = defaultBaseLibDir
-    , optCreateCoqProject = True
+    { optShowHelp                 = False
+    , optInputFiles               = []
+    , optOutputDir                = Nothing
+    , optBaseLibDir               = defaultBaseLibDir
+    , optCreateCoqProject         = True
+    , optTransformPatternMatching = False
     }
 
 -- | Command line option descriptors from the @GetOpt@ library.
@@ -84,8 +93,8 @@ options
       ['o']
       ["output"]
       (ReqArg (\p opts -> opts { optOutputDir = Just p }) "DIR")
-      (  "Path to output directory.\n"
-      ++ "Optional. Prints to the console by default."
+      (  "Optional. Path to output directory.\n"
+      ++ "Prints to the console by default."
       )
     , Option
       ['b']
@@ -102,6 +111,15 @@ options
       (  "Disables the creation of a `_CoqProject` file in the output\n"
       ++ "directory. If the `--output` option is missing or the `_CoqProject`\n"
       ++ "file exists already, no `_CoqProject` is created.\n"
+      )
+    , Option
+      []
+      ["transform-pattern-matching"]
+      (NoArg (\opts -> opts { optTransformPatternMatching = True }))
+      (  "Experimental. Enables the automatic transformation of pattern\n"
+      ++ "matching, including guard elimination and case completion.\n"
+      ++ "If this option is enabled, no location information will be\n"
+      ++ "available in error messages."
       )
     ]
 
@@ -202,7 +220,7 @@ run opts
 --   AST is written to the console or output file.
 processInputFile :: Options -> Environment -> FilePath -> ReporterIO (IO ())
 processInputFile opts env inputFile = do
-  haskellAst <- parseModuleFile inputFile
+  haskellAst <- parseModuleFile inputFile >>= transformInputModule opts
   proofs     <- locateAndLoadProofsFor inputFile
   coqAst     <- hoist $ flip evalConverter env $ do
     modifyEnv $ defineProofs proofs
@@ -214,6 +232,13 @@ processInputFile opts env inputFile = do
     Just outputDir ->
       let outputFileName = outputFileNameFor inputFile outputDir "v"
       in  writePrettyFile outputFileName coqAst
+
+-- | Applies Haskell source code transformations if they are enabled.
+transformInputModule
+  :: Options -> H.Module SrcSpan -> ReporterIO (H.Module SrcSpan)
+transformInputModule opts
+  | optTransformPatternMatching opts = return . transformPatternMatching
+  | otherwise                        = return
 
 -- | Builds the file name of the output file for the given input file.
 outputFileNameFor
