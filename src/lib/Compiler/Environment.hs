@@ -34,6 +34,8 @@ module Compiler.Environment
   , defineCon
   , defineVar
   , defineFunc
+  -- * Shortcuts for extracting entries from the environment
+  , definedCons
   -- * QuickCheck support
   , enableQuickCheck
   , isQuickCheckEnabled
@@ -394,6 +396,24 @@ defineFunc
 defineFunc name ident argTypes returnType =
   defineArgTypes VarScope name argTypes returnType
     . defineIdent VarScope name ident
+
+-------------------------------------------------------------------------------
+-- Shortcuts for extracting entries from the environment                     --
+-------------------------------------------------------------------------------
+
+-- | Gets the names, argument and return types of all defined constructors.
+definedCons :: Environment -> [(HS.Name, [Maybe HS.Type], Maybe HS.Type)]
+definedCons =
+  map (uncurry makeRes) . filter (isCon . fst) . Map.assocs . envDefinedArgTypes
+ where
+  isCon :: ScopedName -> Bool
+  isCon = (== ConScope) . fst
+
+  makeRes
+    :: ScopedName
+    -> ([HS.TypeVarIdent], [Maybe HS.Type], Maybe HS.Type)
+    -> (HS.Name, [Maybe HS.Type], Maybe HS.Type)
+  makeRes (_, name) (_, argTypes, returnType) = (name, argTypes, returnType)
 
 -------------------------------------------------------------------------------
 -- QuickCheck support                                                        --

@@ -26,7 +26,8 @@ import           Compiler.Haskell.PatternMatching
                                                 ( transformPatternMatching )
 import           Compiler.Haskell.Simplifier
 import           Compiler.Haskell.SrcSpan
-import           Compiler.Monad.Converter       ( evalConverter
+import           Compiler.Monad.Converter       ( Converter
+                                                , evalConverter
                                                 , modifyEnv
                                                 )
 import           Compiler.Monad.Reporter
@@ -220,11 +221,11 @@ run opts
 --   AST is written to the console or output file.
 processInputFile :: Options -> Environment -> FilePath -> ReporterIO (IO ())
 processInputFile opts env inputFile = do
-  haskellAst <- parseModuleFile inputFile >>= transformInputModule opts
+  haskellAst <- parseModuleFile inputFile
   proofs     <- locateAndLoadProofsFor inputFile
   coqAst     <- hoist $ flip evalConverter env $ do
     modifyEnv $ defineProofs proofs
-    haskellAst' <- simplifyModule haskellAst
+    haskellAst' <- transformInputModule opts haskellAst >>= simplifyModule
     convertModuleWithPreamble haskellAst'
 
   return $ case (optOutputDir opts) of
@@ -235,9 +236,9 @@ processInputFile opts env inputFile = do
 
 -- | Applies Haskell source code transformations if they are enabled.
 transformInputModule
-  :: Options -> H.Module SrcSpan -> ReporterIO (H.Module SrcSpan)
+  :: Options -> H.Module SrcSpan -> Converter (H.Module SrcSpan)
 transformInputModule opts
-  | optTransformPatternMatching opts = return . transformPatternMatching
+  | optTransformPatternMatching opts = transformPatternMatching
   | otherwise                        = return
 
 -- | Builds the file name of the output file for the given input file.
