@@ -3,7 +3,8 @@ module Main where
 import           Control.Monad                  ( join )
 import           Control.Monad.Extra            ( unlessM )
 import           System.Console.GetOpt
-import           System.Directory               ( doesFileExist
+import           System.Directory               ( createDirectoryIfMissing
+                                                , doesFileExist
                                                 , makeAbsolute
                                                 )
 import           System.Environment             ( getArgs
@@ -19,6 +20,7 @@ import           Compiler.Environment           ( Environment
                                                 )
 import           Compiler.Environment.Loader
 import           Compiler.Environment.ProofLoader
+import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Haskell.Parser        ( parseModuleFile )
 import           Compiler.Haskell.Simplifier
 import           Compiler.Haskell.SrcSpan
@@ -204,25 +206,40 @@ processInputFile :: Options -> Environment -> FilePath -> ReporterIO (IO ())
 processInputFile opts env inputFile = do
   haskellAst <- parseModuleFile inputFile
   proofs     <- locateAndLoadProofsFor inputFile
-  coqAst     <- hoist $ flip evalConverter env $ do
+  hoist $ flip evalConverter env $ do
     modifyEnv $ defineProofs proofs
     haskellAst' <- simplifyModule haskellAst
-    convertModuleWithPreamble haskellAst'
-
-  return $ case (optOutputDir opts) of
-    Nothing -> putPrettyLn coqAst
-    Just outputDir ->
-      let outputFileName = outputFileNameFor inputFile outputDir "v"
-      in  writePrettyFile outputFileName coqAst
+    coqAst      <- convertModuleWithPreamble haskellAst'
+    return $ case (optOutputDir opts) of
+      Nothing -> putPrettyLn coqAst
+      Just outputDir ->
+        let outputFileName =
+              outputFileNameFor inputFile haskellAst' outputDir "v"
+        in  do
+              createDirectoryIfMissing True (takeDirectory outputFileName)
+              writePrettyFile outputFileName coqAst
 
 -- | Builds the file name of the output file for the given input file.
+--
+--   If the Haskell module has a module header, the output file name
+--   is based on the module name. Otherwise, the output file name is
+--   based on the input file name.
 outputFileNameFor
-  :: FilePath -- ^ The name of the input file.
-  -> FilePath -- ^ The path to the output directory.
-  -> String   -- ^ The extension of the output file.
+  :: FilePath  -- ^ The name of the input file.
+  -> HS.Module -- ^ The Haskell module AST.
+  -> FilePath  -- ^ The path to the output directory.
+  -> String    -- ^ The extension of the output file.
   -> FilePath
-outputFileNameFor inputFile outputDir extension =
-  outputDir </> takeBaseName inputFile <.> extension
+outputFileNameFor inputFile haskellAst outputDir extension =
+  outputDir </> outputFile <.> extension
+ where
+  -- | The name of the output file relative to the output directory and
+  --   without extension.
+  outputFile :: FilePath
+  outputFile = case HS.modName haskellAst of
+    Nothing      -> takeBaseName inputFile
+    Just modName -> map (\c -> if c == '.' then '/' else c) modName
+
 
 -------------------------------------------------------------------------------
 -- Proofs for QuickCheck properties                                          --
@@ -274,7 +291,10 @@ createCoqProject Options { optOutputDir = Just outputDir, optBaseLibDir = baseDi
 
   -- | Writes  'contents' to the 'coqProject' file.
   writeCoqProject :: IO ()
-  writeCoqProject = makeContents >>= writeFile coqProject
+  writeCoqProject = do
+    createDirectoryIfMissing True outputDir
+    contents <- makeContents
+    writeFile coqProject contents
 
   -- | Creates the string to write to the 'coqProject' file.
   makeContents :: IO String
