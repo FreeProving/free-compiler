@@ -18,7 +18,7 @@ import           Compiler.Coq.Pretty            ( )
 import           Compiler.Environment           ( Environment
                                                 , defineProofs
                                                 )
-import           Compiler.Environment.Loader
+import           Compiler.Environment.Decoder
 import           Compiler.Environment.ProofLoader
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Haskell.Parser        ( parseModuleFile )

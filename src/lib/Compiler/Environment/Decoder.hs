@@ -47,7 +47,7 @@
 --       function.
 --     * @arity@ (@Integer@) the number of arguments expected by the function.
 
-module Compiler.Environment.Loader
+module Compiler.Environment.Decoder
   ( loadEnvironment
   )
 where

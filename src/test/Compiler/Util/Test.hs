@@ -13,8 +13,8 @@ import           Compiler.Converter
 import qualified Compiler.Coq.AST              as G
 import           Compiler.Coq.Pretty            ( )
 import           Compiler.Environment
+import           Compiler.Environment.Decoder
 import           Compiler.Environment.Entry
-import           Compiler.Environment.Loader
 import           Compiler.Environment.Renamer
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Haskell.Parser

@@ -66,9 +66,9 @@ library haskell-to-coq-internal
                       , Compiler.Coq.Keywords
                       , Compiler.Coq.Pretty
                       , Compiler.Environment
+                      , Compiler.Environment.Decoder
                       , Compiler.Environment.Entry
                       , Compiler.Environment.Fresh
-                      , Compiler.Environment.Loader
                       , Compiler.Environment.LookupOrFail
                       , Compiler.Environment.ProofLoader
                       , Compiler.Environment.Renamer
