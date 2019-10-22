@@ -66,6 +66,7 @@ library haskell-to-coq-internal
                       , Compiler.Coq.Keywords
                       , Compiler.Coq.Pretty
                       , Compiler.Environment
+                      , Compiler.Environment.Entry
                       , Compiler.Environment.Fresh
                       , Compiler.Environment.Loader
                       , Compiler.Environment.LookupOrFail
@@ -81,6 +82,7 @@ library haskell-to-coq-internal
                       , Compiler.Haskell.Subterm
                       , Compiler.Haskell.Subst
                       , Compiler.Pretty
+                      , Compiler.Util.Predicate
   build-depends:      base                   ==4.12.*
                         -- Monad transformers:
                       , mtl                  ==2.2.*

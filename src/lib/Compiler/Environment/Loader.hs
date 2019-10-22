@@ -56,14 +56,19 @@ import           Data.Aeson                     ( (.:) )
 import qualified Data.Aeson                    as Aeson
 import qualified Data.Aeson.Types              as Aeson
 import           Data.Char                      ( isAlphaNum )
+import           Data.Maybe                     ( catMaybes )
 import qualified Data.Text                     as T
 import qualified Data.Vector                   as Vector
 
+import           Compiler.Analysis.DependencyExtraction
+                                                ( typeVars )
 import           Compiler.Config
 import qualified Compiler.Coq.AST              as G
 import           Compiler.Environment
+import           Compiler.Environment.Entry
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Haskell.Parser
+import           Compiler.Haskell.SrcSpan
 import           Compiler.Haskell.Simplifier
 import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
@@ -91,7 +96,7 @@ instance Aeson.FromJSON HS.Type where
   parseJSON = Aeson.withText "HS.Type" $ \txt -> do
     let (res, ms) =
           runReporter
-            $   flip evalConverter emptyEnvironment
+            $   flip evalConverter emptyEnv
             $   liftReporter (parseType "<config-input>" (T.unpack txt))
             >>= simplifyType
     case res of
@@ -110,7 +115,7 @@ instance Aeson.FromJSON Environment where
     return
       (foldr
         ($)
-        emptyEnvironment
+        emptyEnv
         (  Vector.toList defineTypes
         ++ Vector.toList defineCons
         ++ Vector.toList defineFuncs
@@ -122,7 +127,11 @@ instance Aeson.FromJSON Environment where
       arity       <- obj .: "arity"
       haskellName <- obj .: "haskell-name"
       coqName     <- obj .: "coq-name"
-      return (defineTypeCon haskellName arity coqName)
+      return $ importEntry haskellName DataEntry
+        { entrySrcSpan = NoSrcSpan
+        , entryArity = arity
+        , entryIdent = coqName
+        }
 
     parseConfigCon :: Aeson.Value -> Aeson.Parser (Environment -> Environment)
     parseConfigCon = Aeson.withObject "Constructor" $ \obj -> do
@@ -132,7 +141,14 @@ instance Aeson.FromJSON Environment where
       coqName                <- obj .: "coq-name"
       coqSmartName           <- obj .: "coq-smart-name"
       let (argTypes, returnType) = HS.splitType haskellType arity
-      return (defineCon haskellName coqName coqSmartName argTypes returnType)
+      return $ importEntry haskellName ConEntry
+        { entrySrcSpan = NoSrcSpan
+        , entryArity = arity
+        , entryArgTypes = argTypes
+        , entryReturnType = returnType
+        , entryIdent = coqName
+        , entrySmartIdent = coqSmartName
+        }
 
     parseConfigFunc :: Aeson.Value -> Aeson.Parser (Environment -> Environment)
     parseConfigFunc = Aeson.withObject "Function" $ \obj -> do
@@ -141,7 +157,15 @@ instance Aeson.FromJSON Environment where
       haskellType <- obj .: "haskell-type"
       coqName     <- obj .: "coq-name"
       let (argTypes, returnType) = HS.splitType haskellType arity
-      return (defineFunc haskellName coqName argTypes returnType)
+      return $ importEntry haskellName FuncEntry
+        { entrySrcSpan  = NoSrcSpan
+        , entryArity    = arity
+        , entryTypeArgs =
+            catMaybes $ map HS.identFromName $ typeVars haskellType
+        , entryArgTypes = argTypes
+        , entryReturnType = returnType
+        , entryIdent = coqName
+        }
 
 -- | Loads an environment configuration file.
 loadEnvironment :: FilePath -> ReporterIO Environment

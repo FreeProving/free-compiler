@@ -9,8 +9,10 @@ import qualified Compiler.Coq.AST              as G
 import qualified Compiler.Coq.Base             as CoqBase
 import           Compiler.Coq.Keywords
 import           Compiler.Environment
+import           Compiler.Environment.Entry
 import           Compiler.Environment.Renamer
 import qualified Compiler.Haskell.AST          as HS
+import           Compiler.Haskell.SrcSpan
 import           Compiler.Util.Test
 
 -- | Test group for all @Compiler.Environment.Renamer@ tests.
@@ -61,12 +63,15 @@ genVernacularCommand = oneof $ map return vernacularCommands
 testMustRenameIdent :: Spec
 testMustRenameIdent = describe "mustRenameIdent" $ do
   it "keywords must be renamed" $ do
-    property $ forAll genKeyword $ flip mustRenameIdent emptyEnvironment
+    property $ forAll genKeyword $ flip mustRenameIdent emptyEnv
   it "reserved identifiers must be renamed" $ do
-    property $ forAll genReservedIdent $ flip mustRenameIdent emptyEnvironment
+    property $ forAll genReservedIdent $ flip mustRenameIdent emptyEnv
   it "defined identifiers must be renamed" $ do
     property $ forAll genIdent $ \ident ->
-      let env = defineTypeVar (HS.Ident ident) (G.bare ident) emptyEnvironment
+      let env = addEntry
+            (HS.Ident ident)
+            TypeVarEntry {entrySrcSpan = NoSrcSpan, entryIdent = ident}
+            emptyEnv
       in  mustRenameIdent ident env
 
 -------------------------------------------------------------------------------
@@ -78,12 +83,12 @@ testRenameIdent :: Spec
 testRenameIdent = describe "renameIdent" $ do
   it "generated identifiers don't need to be renamed" $ do
     property $ forAll genIdent $ \ident ->
-      let ident' = renameIdent ident emptyEnvironment
-      in  not (mustRenameIdent ident' emptyEnvironment)
+      let ident' = renameIdent ident emptyEnv
+      in  not (mustRenameIdent ident' emptyEnv)
   it "generated identifiers are not renamed again" $ do
     property $ forAll genIdent $ \ident ->
-      let ident' = renameIdent ident emptyEnvironment
-      in  renameIdent ident' emptyEnvironment == ident'
+      let ident' = renameIdent ident emptyEnv
+      in  renameIdent ident' emptyEnv == ident'
 
 -------------------------------------------------------------------------------
 -- Tests for @defineLocally@                                                 --
@@ -130,7 +135,8 @@ testDefineLocally = describe "defineLocally" $ do
   it "detects redefinitions of function arguments"
     $ shouldReportFatal
     $ fromConverter
-    $ convertTestDecls ["add :: Integer -> Integer -> Integer", "add x x = x + x"]
+    $ convertTestDecls
+        ["add :: Integer -> Integer -> Integer", "add x x = x + x"]
 
   it "detects redefinitions of constructor pattern arguments"
     $ shouldReportFatal

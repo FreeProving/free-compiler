@@ -38,10 +38,10 @@ etaConvert rootExpr = arityOf rootExpr >>= etaAbstractN rootExpr
   --   expression.
   arityOf :: HS.Expr -> Converter Int
   arityOf (HS.Con _ name) = do
-    arity <- inEnv $ lookupArity SmartConScope name
+    arity <- inEnv $ lookupArity ValueScope name
     return (maybe 0 id arity)
   arityOf (HS.Var _ name) = do
-    arity <- inEnv $ lookupArity VarScope name
+    arity <- inEnv $ lookupArity ValueScope name
     return (maybe 0 id arity)
   arityOf (HS.App _ e1 _) = do
     arity <- arityOf e1
@@ -75,14 +75,14 @@ convertExpr' :: HS.Expr -> [HS.Expr] -> Converter G.Term
 
 -- Constructors.
 convertExpr' (HS.Con srcSpan name) args = do
-  qualid     <- lookupIdentOrFail srcSpan SmartConScope name
+  qualid     <- lookupSmartIdentOrFail srcSpan name
   args'      <- mapM convertExpr args
-  Just arity <- inEnv $ lookupArity SmartConScope name
+  Just arity <- inEnv $ lookupArity ValueScope name
   generateApplyN arity (genericApply qualid []) args'
 
 -- Functions and variables.
 convertExpr' (HS.Var srcSpan name) args = do
-  qualid   <- lookupIdentOrFail srcSpan VarScope name
+  qualid   <- lookupIdentOrFail srcSpan ValueScope name
   args'    <- mapM convertExpr args
   -- Is this a variable or function?
   function <- inEnv $ isFunction name
@@ -93,7 +93,7 @@ convertExpr' (HS.Var srcSpan name) args = do
       let partialArg = [ G.Qualid (fst CoqBase.partialArg) | partial ]
           callee     = genericApply qualid partialArg
       -- Is this a recursive helper function?
-      Just arity <- inEnv $ lookupArity VarScope name
+      Just arity <- inEnv $ lookupArity ValueScope name
       mDecArg    <- inEnv $ lookupDecArg name
       case mDecArg of
         Nothing ->
@@ -104,8 +104,8 @@ convertExpr' (HS.Var srcSpan name) args = do
           -- unwrapped first.
           let (before, decArg : after) = splitAt index args'
           -- Add type annotation for decreasing argument.
-          Just (_, argTypes, _) <- inEnv $ lookupArgTypes VarScope name
-          decArgType'           <- mapM convertType' (argTypes !! index)
+          Just argTypes <- inEnv $ lookupArgTypes ValueScope name
+          decArgType'   <- mapM convertType' (argTypes !! index)
           generateBind decArg decArgType' $ \decArg' ->
             generateApplyN arity callee (before ++ decArg' : after)
     else do
@@ -194,12 +194,12 @@ convertAlt (HS.Alt _ conPat varPats expr) = localEnv $ do
 --   arguments to a Coq pattern.
 convertConPat :: HS.ConPat -> [HS.VarPat] -> Converter G.Pattern
 convertConPat (HS.ConPat srcSpan ident) varPats = do
-  qualid   <- lookupIdentOrFail srcSpan ConScope ident
+  qualid   <- lookupIdentOrFail srcSpan ValueScope ident
   varPats' <- mapM convertVarPat varPats
   return (G.ArgsPat qualid varPats')
 
 -- | Converts a Haskell variable pattern to a Coq variable pattern.
 convertVarPat :: HS.VarPat -> Converter G.Pattern
 convertVarPat (HS.VarPat srcSpan ident) = do
-  ident' <- renameAndDefineVar srcSpan ident
+  ident' <- renameAndDefineVar srcSpan False ident
   return (G.QualidPat (G.bare ident'))

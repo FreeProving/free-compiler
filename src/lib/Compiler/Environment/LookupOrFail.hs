@@ -12,7 +12,7 @@ import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
 import           Compiler.Pretty
 
--- | Looks up the Coq identifier for a Haskell function, (type/smart)
+-- | Looks up the Coq identifier for a Haskell function, (type)
 --   constructor or (type) variable with the given name or reports a fatal
 --   error message if the identifier has not been defined.
 --
@@ -29,7 +29,25 @@ lookupIdentOrFail srcSpan scope name = do
     Nothing ->
       reportFatal
         $ Message srcSpan Error
-        $ ("Unknown " ++ showPretty scope ++ ": " ++ showPretty name)
+        $ ("Unknown identifier: " ++ showPretty name)
+
+-- | Looks up the Coq identifier of a smart constructor of the Haskell
+--   data constructr with the given name or reports a fatal error message
+--   if there is no such constructor.
+--
+--   If an error is reported, it points to the given source span.
+lookupSmartIdentOrFail
+  :: SrcSpan -- ^ The source location where the identifier is requested.
+  -> HS.Name -- ^ The Haskell identifier to look up.
+  -> Converter G.Qualid
+lookupSmartIdentOrFail srcSpan name = do
+  mQualid <- inEnv $ lookupSmartIdent name
+  case mQualid of
+    Just qualid -> return qualid
+    Nothing ->
+      reportFatal
+        $ Message srcSpan Error
+        $ ("Unknown constructor: " ++ showPretty name)
 
 -- | Looks up the annoated type of a user defined function with the given name
 --   and reports a fatal error message if there is no such type signature.

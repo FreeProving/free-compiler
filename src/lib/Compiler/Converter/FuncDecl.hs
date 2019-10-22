@@ -7,10 +7,14 @@ import           Control.Monad                  ( mapAndUnzipM
                                                 , when
                                                 )
 import qualified Data.List.NonEmpty            as NonEmpty
-import           Data.Maybe                     ( fromJust )
+import           Data.Maybe                     ( catMaybes
+                                                , fromJust
+                                                )
 import qualified Data.Set                      as Set
 
 import           Compiler.Analysis.DependencyAnalysis
+import           Compiler.Analysis.DependencyExtraction
+                                                ( typeVars )
 import           Compiler.Analysis.RecursionAnalysis
 import           Compiler.Converter.Arg
 import           Compiler.Converter.Expr
@@ -18,6 +22,7 @@ import           Compiler.Converter.Free
 import           Compiler.Converter.Type
 import qualified Compiler.Coq.AST              as G
 import           Compiler.Environment
+import           Compiler.Environment.Entry
 import           Compiler.Environment.Fresh
 import           Compiler.Environment.LookupOrFail
 import           Compiler.Environment.Renamer
@@ -57,16 +62,17 @@ convertFuncHead
   -> Converter (G.Qualid, [G.Binder], Maybe G.Term)
 convertFuncHead name args = do
   -- Lookup the Coq name of the function.
-  Just qualid <- inEnv $ lookupIdent VarScope name
+  Just qualid       <- inEnv $ lookupIdent ValueScope name
     -- Lookup type signature and partiality.
-  partial     <- inEnv $ isPartial name
-  Just (usedTypeVars, argTypes, returnType) <- inEnv
-    $ lookupArgTypes VarScope name
+  partial           <- inEnv $ isPartial name
+  Just usedTypeVars <- inEnv $ lookupTypeArgs ValueScope name
+  Just argTypes     <- inEnv $ lookupArgTypes ValueScope name
+  returnType        <- inEnv $ lookupReturnType ValueScope name
   -- Convert arguments and return type.
-  typeVarDecls' <- generateTypeVarDecls G.Implicit usedTypeVars
-  decArgIndex   <- inEnv $ lookupDecArg name
-  args'         <- convertArgs args argTypes decArgIndex
-  returnType'   <- mapM convertType returnType
+  typeVarDecls'     <- generateTypeVarDecls G.Implicit usedTypeVars
+  decArgIndex       <- inEnv $ lookupDecArg name
+  args'             <- convertArgs args argTypes decArgIndex
+  returnType'       <- mapM convertType returnType
   return
     ( qualid
     , (  genericArgDecls G.Explicit
@@ -81,9 +87,16 @@ convertFuncHead name args = do
 defineFuncDecl :: HS.FuncDecl -> Converter ()
 defineFuncDecl (HS.FuncDecl srcSpan (HS.DeclIdent _ ident) args _) = do
   let name = HS.Ident ident
-  funcType <- lookupTypeSigOrFail srcSpan name
+  funcType               <- lookupTypeSigOrFail srcSpan name
   (argTypes, returnType) <- splitFuncType name args funcType
-  _ <- renameAndDefineFunc srcSpan ident (map Just argTypes) (Just returnType)
+  _                      <- renameAndAddEntry FuncEntry
+    { entrySrcSpan    = srcSpan
+    , entryArity      = length argTypes
+    , entryTypeArgs   = catMaybes $ map HS.identFromName $ typeVars funcType
+    , entryArgTypes   = map Just argTypes
+    , entryReturnType = Just returnType
+    , entryIdent      = ident
+    }
   return ()
 
 -- | Splits the annotated type of a Haskell function with the given arguments
@@ -240,11 +253,15 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent args expr) decArgIndex = do
     -- function.
     funcType      <- lookupTypeSigOrFail srcSpan name
     (argTypes, _) <- splitFuncType name args funcType
-    _             <- renameAndDefineFunc
-      NoSrcSpan
-      helperIdent
-      (map Just argTypes ++ replicate (length usedVars) Nothing)
-      Nothing
+    let argTypes' = map Just argTypes ++ replicate (length usedVars) Nothing
+    _ <- renameAndAddEntry $ FuncEntry
+      { entrySrcSpan    = NoSrcSpan
+      , entryArity      = length argTypes'
+      , entryTypeArgs   = catMaybes $ map HS.identFromName $ typeVars funcType
+      , entryArgTypes   = argTypes'
+      , entryReturnType = Nothing
+      , entryIdent      = helperIdent
+      }
 
     -- If the original function was partial, the helper function is partial as
     -- well.
@@ -266,7 +283,7 @@ convertRecHelperFuncDecl (HS.FuncDecl _ declIdent args expr) = localEnv $ do
   (qualid, binders, returnType') <- convertFuncHead helperName args
   expr'                          <- convertExpr expr
   Just decArgIndex               <- inEnv $ lookupDecArg helperName
-  Just decArg' <- inEnv $ lookupIdent VarScope (argNames !! decArgIndex)
+  Just decArg' <- inEnv $ lookupIdent ValueScope (argNames !! decArgIndex)
   return
     (G.FixBody qualid
                (NonEmpty.fromList binders)

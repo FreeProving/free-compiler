@@ -15,6 +15,7 @@ import qualified Compiler.Coq.AST              as G
 import           Compiler.Converter.Expr
 import           Compiler.Converter.FuncDecl
 import           Compiler.Environment
+import           Compiler.Environment.Entry
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Haskell.SrcSpan
 import           Compiler.Monad.Converter
@@ -29,7 +30,9 @@ import           Compiler.Monad.Reporter
 importAndEnableQuickCheck :: Converter ()
 importAndEnableQuickCheck = do
   modifyEnv $ enableQuickCheck
-  modifyEnv $ defineTypeCon (HS.Ident "Property") 0 (G.bare "Prop")
+  modifyEnv $ addEntry
+    (HS.Ident "Property")
+    DataEntry {entrySrcSpan = NoSrcSpan, entryArity = 0, entryIdent = "Prop"}
 
 -------------------------------------------------------------------------------
 -- Filter QuickCheck property declarations                                   --

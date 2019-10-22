@@ -15,11 +15,10 @@ module Compiler.Environment.Renamer
     -- * Rename identifiers
   , renameIdent
     -- * Define and automatically rename identifiers
-  , renameAndDefineTypeCon
+  , renameEntry
+  , renameAndAddEntry
   , renameAndDefineTypeVar
-  , renameAndDefineCon
   , renameAndDefineVar
-  , renameAndDefineFunc
   )
 where
 
@@ -33,6 +32,7 @@ import qualified Compiler.Coq.AST              as G
 import qualified Compiler.Coq.Base             as CoqBase
 import           Compiler.Coq.Keywords
 import           Compiler.Environment
+import           Compiler.Environment.Entry
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Haskell.SrcSpan
 import           Compiler.Monad.Converter
@@ -171,22 +171,34 @@ renameIdent' ident n env
 -- Define and automatically rename identifiers                               --
 -------------------------------------------------------------------------------
 
--- | Associates the identifier of a user defined Haskell type constructor with
---   an automatically generated Coq identifier that does not cause any name
---   conflict in the current environment.
+-- | Renames the identifier of the given entry such that it does not cause
+--   any name conflict in the given environment.
 --
---   Returns the generated identifier.
-renameAndDefineTypeCon
-  :: SrcSpan -- ^ The location of the type constructor declaration.
-  -> String  -- ^ The name of the type constructor.
-  -> Int     -- ^ The number of expected type arguments.
-  -> Converter String
-renameAndDefineTypeCon srcSpan ident arity = do
-  let name = HS.Ident ident
-  ident' <- renameIdentAndInform srcSpan TypeScope ident
-  modifyEnv $ defineTypeCon name arity (G.bare ident')
-  defineLocally TypeScope name srcSpan
-  return ident'
+--   Returns the renamed entry.
+renameEntry :: EnvEntry -> Environment -> EnvEntry
+renameEntry entry env
+  | isConEntry entry = entry
+    { entryIdent      = renameIdent (toCamel (fromHumps ident)) env
+    , entrySmartIdent = renameIdent ident env
+    }
+  | otherwise = entry { entryIdent = renameIdent ident env }
+ where
+  ident :: String
+  ident = entryIdent entry
+
+-- | Renames the identifier of the given entry such that it does not cause
+--   any name conflict in the current environment and inserts it into the
+--   environment.
+--
+--   Returns the renamed entry.
+renameAndAddEntry :: EnvEntry -> Converter EnvEntry
+renameAndAddEntry entry = do
+  let haskellName = HS.Ident (entryIdent entry)
+  entry' <- inEnv $ renameEntry entry
+  checkRedefinition haskellName entry'
+  informIfRenamed entry entry'
+  modifyEnv $ addEntry haskellName entry'
+  return entry'
 
 -- | Associates the identifier of a user defined Haskell type variable with an
 --   automatically generated Coq identifier that does not cause any name
@@ -198,39 +210,11 @@ renameAndDefineTypeVar
   -> String  -- ^ The name of the type variable.
   -> Converter String
 renameAndDefineTypeVar srcSpan ident = do
-  let name = HS.Ident ident
-  ident' <- inEnv $ renameIdent ident
-  modifyEnv $ defineTypeVar name (G.bare ident')
-  defineLocally TypeScope name srcSpan
-  return ident'
-
--- | Associates the identifier of a user defined Haskell data constructor
---   with an automatically generated Coq identifier that does not cause any
---   name conflict in the current environment.
---
---   A name for the smart constructor is generated automatically as well.
---   The regular constructor's identifier starts with a lower case letter
---   (i.e. @camelCase@ instead of @PascalCase@).
---
---   Returns the generated identifiers. The first component is the identiier
---   for the regular constructor and the second is the identifier for the
---   smart constructor.
-renameAndDefineCon
-  :: SrcSpan         -- ^ The location of the constructor declaration.
-  -> String          -- ^ The name of the data construtcor.
-  -> [Maybe HS.Type] -- ^ The types of the constructor's arguments (if known).
-  -> Maybe HS.Type   -- ^ The return type of the constructor (if known).
-  -> Converter (String, String)
-renameAndDefineCon srcSpan smartIdent argTypes returnType = do
-  let ident = toCamel (fromHumps smartIdent)
-      name  = HS.Ident smartIdent
-  ident'      <- inEnv $ renameIdent ident
-  smartIdent' <- renameIdentAndInform srcSpan SmartConScope smartIdent
-  modifyEnv
-    $ defineCon name (G.bare ident') (G.bare smartIdent') argTypes returnType
-  defineLocally ConScope      name srcSpan
-  defineLocally SmartConScope name srcSpan
-  return (ident', smartIdent')
+  entry <- renameAndAddEntry TypeVarEntry
+    { entrySrcSpan = srcSpan
+    , entryIdent   = ident
+    }
+  return (entryIdent entry)
 
 -- | Associates the identifier of a user defined Haskell variable with an
 --   automatically generated Coq identifier that does not cause any name
@@ -239,75 +223,64 @@ renameAndDefineCon srcSpan smartIdent argTypes returnType = do
 --   Returns the generated identifier.
 renameAndDefineVar
   :: SrcSpan -- ^ The location of the variable declaration.
+  -> Bool    -- ^ Whether the variable has not been lifted to the free monad.
   -> String  -- ^ The name of the variable.
   -> Converter String
-renameAndDefineVar srcSpan ident = do
-  let name = HS.Ident ident
-  ident' <- inEnv $ renameIdent ident
-  modifyEnv $ defineVar name (G.bare ident')
-  defineLocally VarScope name srcSpan
-  return ident'
-
--- | Associates the identifier of a user defined Haskell function with an
---   automatically generated Coq identifier that does not cause any name
---   conflict in the current environment.
---
---   Returns the generated identifier.
-renameAndDefineFunc
-  :: SrcSpan -- ^ The location of the type constructor declaration.
-  -> String -- ^ The name of the function.
-  -> [Maybe HS.Type] -- ^ The types of the function's arguments (if known).
-  -> Maybe HS.Type   -- ^ The return type of the function (if known).
-  -> Converter String
-renameAndDefineFunc srcSpan ident argTypes returnType = do
-  let name = HS.Ident ident
-  ident' <- renameIdentAndInform srcSpan VarScope ident
-  modifyEnv $ defineFunc name (G.bare ident') argTypes returnType
-  defineLocally VarScope name srcSpan
-  return ident'
+renameAndDefineVar srcSpan isPure ident = do
+  entry <- renameAndAddEntry VarEntry
+    { entrySrcSpan = srcSpan
+    , entryIsPure  = isPure
+    , entryIdent   = ident
+    }
+  return (entryIdent entry)
 
 -------------------------------------------------------------------------------
 -- Error reporting                                                           --
 -------------------------------------------------------------------------------
 
--- | Tests whether there is a declaration with the given name in the current
---   local environment and given scope.
-defineLocally :: Scope -> HS.Name -> SrcSpan -> Converter ()
-defineLocally scope name srcSpan = do
-  maybeSrcSpan2 <- inEnv $ lookupSrcSpan scope name
-  case maybeSrcSpan2 of
-    Nothing -> modifyEnv $ defineSrcSpan scope name srcSpan
-    Just srcSpan2 ->
-      reportFatal
-        $  Message srcSpan Error
-        $  "Multiple declarations of "
-        ++ showPretty scope
-        ++ " '"
-        ++ showPretty name
-        ++ "'. Declared at "
-        ++ showPretty srcSpan
-        ++ " and "
-        ++ showPretty srcSpan2
-        ++ "."
+-- | Tests whether there is an entry with the same name in the current
+--   scope (not a parent scope) already.
+checkRedefinition :: HS.Name -> EnvEntry -> Converter ()
+checkRedefinition name entry = do
+  localEntry <- inEnv $ isLocalEntry scope name
+  when localEntry $ do
+    maybeEntry' <- inEnv $ lookupEntry scope name
+    case maybeEntry' of
+      Nothing -> return ()
+      Just entry' ->
+        reportFatal
+          $  Message (entrySrcSpan entry) Error
+          $  "Multiple declarations of "
+          ++ prettyEntryType entry
+          ++ " '"
+          ++ showPretty name
+          ++ "'. Declared at "
+          ++ showPretty (entrySrcSpan entry)
+          ++ " and "
+          ++ showPretty (entrySrcSpan entry')
+          ++ "."
+ where
+  scope :: Scope
+  scope = entryScope entry
 
--- | Renames the given Haskell identifier (if necessary) such that it can be
---   safely used in Coq.
---
---   If the identifier is renamed, the user is informed.
-renameIdentAndInform :: SrcSpan -> Scope -> String -> Converter String
-renameIdentAndInform srcSpan scope ident = do
-  ident' <- inEnv $ renameIdent ident
-  when (ident' /= ident && not (isInternalIdent ident))
+-- | Reports a message if the given entry has been renamed.
+informIfRenamed :: EnvEntry -> EnvEntry -> Converter ()
+informIfRenamed entry entry' = do
+  topLevel <- inEnv $ isTopLevel
+  when (topLevel && not (isInternalIdent ident) && ident /= ident')
     $  report
-    $  Message srcSpan Info
+    $  Message (entrySrcSpan entry) Info
     $  "Renamed "
-    ++ showPretty scope
+    ++ prettyEntryType entry
     ++ " '"
     ++ ident
     ++ "' to '"
     ++ ident'
     ++ "'."
-  return ident'
+ where
+  ident, ident' :: String
+  ident  = entryIdent entry
+  ident' = entryIdent entry'
 
 -- | Tests whether the given Haskell identifier was generated for internal use.
 isInternalIdent :: String -> Bool

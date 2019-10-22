@@ -7,7 +7,6 @@ import           Control.Monad                  ( zipWithM )
 
 import           Compiler.Converter.Type
 import qualified Compiler.Coq.AST              as G
-import           Compiler.Environment
 import           Compiler.Environment.Fresh
 import           Compiler.Environment.Renamer
 import qualified Compiler.Haskell.AST          as HS
@@ -110,19 +109,27 @@ convertTypedArg arg argType = do
 --
 --   In contrast to a regular typed argument (see 'convertTypedArg'), the
 --   decreasing argument is not lifted to the @Free@ monad.
---   It is also registered as a non-monadic value (see 'definePureVar').
+--   It is also registered as a non-monadic value.
 convertDecArg :: HS.VarPat -> Maybe HS.Type -> Converter G.Binder
 convertDecArg arg argType = do
   argType' <- mapM convertType' argType
-  binder   <- convertArg arg argType'
-  modifyEnv $ definePureVar (HS.Ident (HS.fromVarPat arg))
-  return binder
+  convertPureArg arg argType'
 
 -- | Converts the argument of a function (a variable pattern) to an explicit
 --   Coq binder.
 convertArg :: HS.VarPat -> Maybe G.Term -> Converter G.Binder
-convertArg (HS.VarPat srcSpan ident) mArgType' = do
-  ident' <- renameAndDefineVar srcSpan ident
+convertArg = convertArg' False
+
+-- | Like 'convertArg' but marks the variable as non-monadic.
+convertPureArg :: HS.VarPat -> Maybe G.Term -> Converter G.Binder
+convertPureArg = convertArg' True
+
+-- | Like 'convertArg' but the first argument indicates whether the varibale
+--   has been lifted to the free monad or not (@True@ for pure values and
+--   @False@ for lifted values).
+convertArg' :: Bool -> HS.VarPat -> Maybe G.Term -> Converter G.Binder
+convertArg' isPure (HS.VarPat srcSpan ident) mArgType' = do
+  ident' <- renameAndDefineVar srcSpan isPure ident
   generateArgBinder ident' mArgType'
 
 -- | Generates an explicit Coq binder for a function argument with the given

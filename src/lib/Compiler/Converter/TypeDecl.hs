@@ -18,6 +18,7 @@ import           Compiler.Converter.Free
 import           Compiler.Converter.Type
 import qualified Compiler.Coq.AST              as G
 import qualified Compiler.Coq.Base             as CoqBase
+import           Compiler.Environment.Entry
 import           Compiler.Environment.Renamer
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Haskell.Inliner
@@ -51,15 +52,12 @@ convertTypeComponent (Recursive decls) = do
 --   synonym declarations.
 withTypeSynonyms :: [HS.TypeDecl] -> Converter a -> Converter a
 withTypeSynonyms typeSynDecls converter = do
-  oldTypeSynonyms <- inEnv envDefinedTypeSynonyms
-  modifyEnv $ \env ->
-    env { envDefinedTypeSynonyms = envDefinedTypeSynonyms emptyEnvironment }
+  (typeSyns, noTypeSyns) <-
+    inEnv $ Map.partition (isTypeSynEntry . fst) . envEntries
+  modifyEnv $ \env -> env { envEntries = noTypeSyns }
   mapM_ defineTypeDecl typeSynDecls
   x <- converter
-  modifyEnv $ \env -> env
-    { envDefinedTypeSynonyms = envDefinedTypeSynonyms env
-                                 `Map.union` oldTypeSynonyms
-    }
+  modifyEnv $ \env -> env { envEntries = envEntries env `Map.union` typeSyns }
   return x
 
 -- | Sorts type synonym declarations topologically.
@@ -94,15 +92,20 @@ fromNonRecursive (Recursive decls) =
 --   declaration into the current environment.
 defineTypeDecl :: HS.TypeDecl -> Converter ()
 defineTypeDecl (HS.TypeSynDecl srcSpan declIdent typeVarDecls typeExpr) = do
-  let ident    = HS.fromDeclIdent declIdent
-      name     = HS.Ident ident
-      arity    = length typeVarDecls
-      typeVars = map HS.fromDeclIdent typeVarDecls
-  _ <- renameAndDefineTypeCon srcSpan ident arity
-  modifyEnv $ defineTypeSynonym name typeVars typeExpr
+  _ <- renameAndAddEntry TypeSynEntry
+    { entrySrcSpan  = srcSpan
+    , entryArity    = length typeVarDecls
+    , entryTypeArgs = map HS.fromDeclIdent typeVarDecls
+    , entryTypeSyn  = typeExpr
+    , entryIdent    = HS.fromDeclIdent declIdent
+    }
+  return ()
 defineTypeDecl (HS.DataDecl srcSpan declIdent typeVarDecls conDecls) = do
-  let arity = length typeVarDecls
-  _ <- renameAndDefineTypeCon srcSpan ident arity
+  _ <- renameAndAddEntry DataEntry
+    { entrySrcSpan = srcSpan
+    , entryArity   = length typeVarDecls
+    , entryIdent   = ident
+    }
   mapM_ defineConDecl conDecls
  where
   -- | The name of the data type.
@@ -119,11 +122,15 @@ defineTypeDecl (HS.DataDecl srcSpan declIdent typeVarDecls conDecls) = do
   -- | Inserts the given data constructor declaration and its smart constructor
   --   into the current environment.
   defineConDecl :: HS.ConDecl -> Converter ()
-  defineConDecl (HS.ConDecl consrcSpan (HS.DeclIdent _ conIdent) argTypes) = do
-    _ <- renameAndDefineCon consrcSpan
-                            conIdent
-                            (map Just argTypes)
-                            (Just returnType)
+  defineConDecl (HS.ConDecl conSrcSpan (HS.DeclIdent _ conIdent) argTypes) = do
+    _ <- renameAndAddEntry ConEntry
+      { entrySrcSpan    = conSrcSpan
+      , entryArity      = length argTypes
+      , entryArgTypes   = map Just argTypes
+      , entryReturnType = Just returnType
+      , entryIdent      = conIdent
+      , entrySmartIdent = undefined
+      }
     return ()
 
 -------------------------------------------------------------------------------
@@ -230,16 +237,16 @@ convertDataDecl (HS.DataDecl _ (HS.DeclIdent _ ident) typeVarDecls conDecls) =
   convertConDecl :: HS.ConDecl -> Converter (G.Qualid, [G.Binder], Maybe G.Term)
   convertConDecl (HS.ConDecl _ (HS.DeclIdent _ conIdent) args) = do
     let conName = (HS.Ident conIdent)
-    Just conQualid               <- inEnv $ lookupIdent ConScope conName
-    Just (_, _, Just returnType) <- inEnv $ lookupArgTypes ConScope conName
-    args'                        <- mapM convertType args
-    returnType'                  <- convertType' returnType
+    Just conQualid  <- inEnv $ lookupIdent ValueScope conName
+    Just returnType <- inEnv $ lookupReturnType ValueScope conName
+    args'           <- mapM convertType args
+    returnType'     <- convertType' returnType
     return (conQualid, [], Just (args' `G.arrows` returnType'))
 
   -- | Generates the @Arguments@ sentence for the given constructor declaration.
   generateArgumentsSentence :: HS.ConDecl -> Converter G.Sentence
   generateArgumentsSentence (HS.ConDecl _ (HS.DeclIdent _ conIdent) _) = do
-    Just qualid <- inEnv $ lookupIdent ConScope (HS.Ident conIdent)
+    Just qualid <- inEnv $ lookupIdent ValueScope (HS.Ident conIdent)
     let typeVarIdents = map (HS.Ident . HS.fromDeclIdent) typeVarDecls
     typeVarQualids <- mapM (inEnv . lookupIdent TypeScope) typeVarIdents
     return
@@ -259,12 +266,12 @@ convertDataDecl (HS.DataDecl _ (HS.DeclIdent _ ident) typeVarDecls conDecls) =
   generateSmartConDecl :: HS.ConDecl -> Converter G.Sentence
   generateSmartConDecl (HS.ConDecl _ declIdent argTypes) = localEnv $ do
     let conName = HS.Ident (HS.fromDeclIdent declIdent)
-    Just qualid                  <- inEnv $ lookupIdent ConScope conName
-    Just smartQualid             <- inEnv $ lookupIdent SmartConScope conName
-    Just (_, _, Just returnType) <- inEnv $ lookupArgTypes SmartConScope conName
-    typeVarDecls'                <- convertTypeVarDecls G.Implicit typeVarDecls
-    (argIdents', argDecls')      <- mapAndUnzipM convertAnonymousArg
-                                                 (map Just argTypes)
+    Just qualid             <- inEnv $ lookupIdent ValueScope conName
+    Just smartQualid        <- inEnv $ lookupSmartIdent conName
+    Just returnType         <- inEnv $ lookupReturnType ValueScope conName
+    typeVarDecls'           <- convertTypeVarDecls G.Implicit typeVarDecls
+    (argIdents', argDecls') <- mapAndUnzipM convertAnonymousArg
+                                            (map Just argTypes)
     returnType' <- convertType returnType
     rhs         <- generatePure
       (G.app (G.Qualid qualid) (map (G.Qualid . G.bare) argIdents'))

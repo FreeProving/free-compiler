@@ -78,7 +78,7 @@ replaceAltChildExpr (HS.Alt srcSpan varPat conPat _) expr' =
 -- Positions                                                                 --
 -------------------------------------------------------------------------------
 
--- Describes a position of a subterm within a Haskell expression.
+-- | Describes a position of a subterm within a Haskell expression.
 data Pos = Pos [Int]
   deriving (Eq, Show)
 

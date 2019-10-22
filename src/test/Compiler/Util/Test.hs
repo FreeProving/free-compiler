@@ -5,11 +5,15 @@ module Compiler.Util.Test where
 import           Test.Hspec
 
 import           Control.Exception
+import           Data.Maybe                     ( catMaybes )
 
+import           Compiler.Analysis.DependencyExtraction
+                                                ( typeVars )
 import           Compiler.Converter
 import qualified Compiler.Coq.AST              as G
 import           Compiler.Coq.Pretty            ( )
 import           Compiler.Environment
+import           Compiler.Environment.Entry
 import           Compiler.Environment.Loader
 import           Compiler.Environment.Renamer
 import qualified Compiler.Haskell.AST          as HS
@@ -104,35 +108,80 @@ parseTestDecls input =
 -- Defining test idenifiers                                                  --
 -------------------------------------------------------------------------------
 
--- | Alias for 'renameAndDefineTypeCon'.
+-- | Adds the given entry to the current environment and renames it such that
+--   no name conflict occurs.
+--
+--   Returns the Coq identifier assigned to the entry by the renamer.
+renameAndAddTestEntry :: EnvEntry -> Converter String
+renameAndAddTestEntry = (>>= return . entryIdent) . renameAndAddEntry
+
+-- | Defines a type constructor for testing purposes.
+--
+--   Returns the Coq identifier assigned to the type constructor.
 defineTestTypeCon :: String -> Int -> Converter String
-defineTestTypeCon = renameAndDefineTypeCon NoSrcSpan
+defineTestTypeCon ident arity = renameAndAddTestEntry DataEntry
+  { entrySrcSpan = NoSrcSpan
+  , entryArity   = arity
+  , entryIdent   = ident
+  }
 
--- | Alias for 'renameAndDefineTypeVar'.
+-- | Defines a type variable 'renameAndDefineTypeVar' for testing purposes.
+--
+--   Returns the Coq identifier assigned to the type variable.
 defineTestTypeVar :: String -> Converter String
-defineTestTypeVar = renameAndDefineTypeVar NoSrcSpan
+defineTestTypeVar ident = renameAndAddTestEntry TypeVarEntry
+  { entrySrcSpan = NoSrcSpan
+  , entryIdent   = ident
+  }
 
--- | Like 'renameAndDefineCon' but the argument and return types are parsed
---   from the given string.
+-- | Adds an entry for a data constructor for testing purposes.
+--
+--   The argument and return types are parsed from the given string.
+--   Returns the Coq identifier assigned to the data constructor.
 defineTestCon :: String -> Int -> String -> Converter (String, String)
 defineTestCon ident arity typeStr = do
   typeExpr <- parseTestType typeStr
   let (argTypes, returnType) = HS.splitType typeExpr arity
-  renameAndDefineCon NoSrcSpan ident argTypes returnType
+  entry <- renameAndAddEntry ConEntry
+    { entrySrcSpan    = NoSrcSpan
+    , entryArity      = arity
+    , entryArgTypes   = argTypes
+    , entryReturnType = returnType
+    , entryIdent      = ident
+    , entrySmartIdent = undefined
+    }
+  return (entryIdent entry, entrySmartIdent entry)
 
-  -- | Alias for 'defineTestVar'.
+-- | Defines a variable for testing purposes.
+
+--   Returns the Coq identifier assigned to the function.
 defineTestVar :: String -> Converter String
-defineTestVar = renameAndDefineVar NoSrcSpan
+defineTestVar ident = renameAndAddTestEntry VarEntry
+  { entrySrcSpan = NoSrcSpan
+  , entryIsPure  = False
+  , entryIdent   = ident
+  }
 
--- | Like 'renameAndDefineFunc' but the argument and return types are parsed
---   from the given string.
+-- | Adds an entry for a function declaration for testing purposes.
+--
+--   The argument and return types are parsed from the given string.
+--   Returns the Coq identifier assigned to the function.
 defineTestFunc :: String -> Int -> String -> Converter String
 defineTestFunc ident arity typeStr = do
   typeExpr <- parseTestType typeStr
   let (argTypes, returnType) = HS.splitType typeExpr arity
-  renameAndDefineFunc NoSrcSpan ident argTypes returnType
+  renameAndAddTestEntry FuncEntry
+    { entrySrcSpan    = NoSrcSpan
+    , entryArity      = arity
+    , entryTypeArgs   = catMaybes $ map HS.identFromName $ typeVars typeExpr
+    , entryArgTypes   = argTypes
+    , entryReturnType = returnType
+    , entryIdent      = ident
+    }
 
 -- | Like 'defineTestFunc' but also marks the given function as partial.
+--
+--   Returns the Coq identifier assigned to the function.
 definePartialTestFunc :: String -> Int -> String -> Converter String
 definePartialTestFunc ident arity typeStr = do
   modifyEnv $ definePartial (HS.Ident ident)
