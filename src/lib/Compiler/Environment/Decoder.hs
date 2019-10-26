@@ -7,6 +7,9 @@
 --   The configuaration file contains the names and types of predefined
 --   functions, constructors and data types. The configuration file format
 --   is TOML (see <https://github.com/toml-lang/toml>).
+--   JSON files can be decoded as well. The TOML format is preferred for
+--   configuration files maintained by humans and JSON should be used to
+--   read automatically generated (serialized) environment configurations.
 --
 --   = Configuration file contents
 --
@@ -204,6 +207,6 @@ instance Aeson.FromJSON Environment where
         , entryIdent = coqName
         }
 
--- | Loads an environment configuration file.
+-- | Loads an environment configuration file from a @.toml@ or @.json@ file.
 loadEnvironment :: FilePath -> ReporterIO Environment
 loadEnvironment = loadConfig
