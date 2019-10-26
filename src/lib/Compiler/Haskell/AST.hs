@@ -192,7 +192,7 @@ instance Pretty Type where
     pretty' _ (TypeVar _ ident)          = prettyString ident
     pretty' _ (TypeCon _ name )          = pretty name
     pretty' n (TypeApp _ t1 t2) | n <= 1 = pretty' 1 t1 <+> pretty' 2 t2
-    pretty' 0 (TypeFunc _ t1 t2)         = pretty' 1 t2 <+> arrow <+> pretty t2
+    pretty' 0 (TypeFunc _ t1 t2)         = pretty' 1 t1 <+> arrow <+> pretty t2
     pretty' _ t                          = parens (pretty t)
 
     -- | A document for the function arrow symbol.
