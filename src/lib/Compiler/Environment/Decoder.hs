@@ -10,12 +10,12 @@
 --
 --   = Configuration file contents
 --
---   The TOML document is expected to contain three arrays of tables @types@,
---   @constructors@ and @functions@. Each table in these arrays defines a
---   Type, Constrcutor or Function respectively. The expected contents of each
---   table is described below.
+--   The TOML document is expected to contain four arrays of tables @types@,
+--   @type-synonyms@, @constructors@ and @functions@. Each table in these
+--   arrays defines a data type, type synonym, constrcutor or function
+--   respectively. The expected contents of each table is described below.
 --
---   == Types
+--   == Data types
 --
 --   The tables in the @types@ array must contain the following key/value pairs:
 --     * @haskell-name@ (@String@) the Haskell name of the type constructor.
@@ -23,6 +23,20 @@
 --       constructor.
 --     * @arity@ (@Integer@) the number of type arguments expected by the
 --       type constructor.
+--
+--   == Type synonyms
+--
+--   The tables in the @type-synonyms@ array must contain the following
+--   key/value pairs:
+--     * @haskell-name@ (@String@) the Haskell name of the type synonym.
+--     * @coq-name@ (@String@) the identifier of the corresponding Coq
+--       definition.
+--     * @arity@ (@Integer@) the number of type arguments expected by the
+--       type synonym.
+--     * @haskell-type@ (@String@) the Haskell type that is abbreviated by
+--       the type synonym.
+--     * @type-arguments@ (@Array@ of @String@) the Haskell identifiers of the
+--       type arguments. Must be of length @arity@.
 --
 --   == Constructors
 --
@@ -52,7 +66,10 @@ module Compiler.Environment.Decoder
   )
 where
 
-import           Data.Aeson                     ( (.:) )
+import           Data.Aeson                     ( (.:)
+                                                , (.:?)
+                                                , (.!=)
+                                                )
 import qualified Data.Aeson                    as Aeson
 import qualified Data.Aeson.Types              as Aeson
 import           Data.Char                      ( isAlphaNum )
@@ -106,30 +123,50 @@ instance Aeson.FromJSON HS.Type where
 -- | Restores an 'Environment' from the configuration file.
 instance Aeson.FromJSON Environment where
   parseJSON = Aeson.withObject "Environment" $ \env -> do
-    defineTypes <- env .: "types"
-      >>= Aeson.withArray "Types" (mapM parseConfigType)
-    defineCons  <- env .: "constructors"
+    defineTypes <- env .:? "types" .!= Aeson.Array Vector.empty
+      >>= Aeson.withArray "Data types" (mapM parseConfigType)
+    defineTypeSyns <- env .:? "type-synonyms" .!= Aeson.Array Vector.empty
+      >>= Aeson.withArray "Type Synonyms" (mapM parseConfigTypeSyn)
+    defineCons  <- env .:? "constructors" .!= Aeson.Array Vector.empty
       >>= Aeson.withArray "Constructors" (mapM parseConfigCon)
-    defineFuncs <- env .: "functions"
+    defineFuncs <- env .:? "functions" .!= Aeson.Array Vector.empty
       >>= Aeson.withArray "Functions" (mapM parseConfigFunc)
     return
       (foldr
         ($)
         emptyEnv
         (  Vector.toList defineTypes
+        ++ Vector.toList defineTypeSyns
         ++ Vector.toList defineCons
         ++ Vector.toList defineFuncs
         )
       )
    where
     parseConfigType :: Aeson.Value -> Aeson.Parser (Environment -> Environment)
-    parseConfigType = Aeson.withObject "Type" $ \obj -> do
+    parseConfigType = Aeson.withObject "Data type" $ \obj -> do
       arity       <- obj .: "arity"
       haskellName <- obj .: "haskell-name"
       coqName     <- obj .: "coq-name"
       return $ importEntry haskellName DataEntry
         { entrySrcSpan = NoSrcSpan
         , entryArity = arity
+        , entryIdent = coqName
+        }
+
+    parseConfigTypeSyn
+      :: Aeson.Value
+      -> Aeson.Parser (Environment -> Environment)
+    parseConfigTypeSyn = Aeson.withObject "Type synonym" $ \obj -> do
+      arity       <- obj .: "arity"
+      typeSyn     <- obj .: "haskell-type"
+      typeArgs    <- obj .: "type-arguments"
+      haskellName <- obj .: "haskell-name"
+      coqName     <- obj .: "coq-name"
+      return $ importEntry haskellName TypeSynEntry
+        { entrySrcSpan = NoSrcSpan
+        , entryArity = arity
+        , entryTypeArgs = typeArgs
+        , entryTypeSyn = typeSyn
         , entryIdent = coqName
         }
 
