@@ -8,6 +8,7 @@ module Compiler.Config
 where
 
 import qualified Data.Aeson                    as Aeson
+import qualified Data.Aeson.Encode.Pretty      as AesonPretty
 import qualified Data.ByteString.Lazy          as B
 import qualified Data.Text                     as T
 import           Data.String                    ( fromString )
@@ -84,4 +85,4 @@ decodeJsonConfig filename contents =
 --   the encoded value as @.json@ file.
 saveConfig :: Aeson.ToJSON a => FilePath -> a -> ReporterIO ()
 saveConfig filename =
-  reportIOErrors . lift . B.writeFile filename . Aeson.encode
+  reportIOErrors . lift . B.writeFile filename . AesonPretty.encodePretty

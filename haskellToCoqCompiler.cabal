@@ -104,6 +104,7 @@ library haskell-to-coq-internal
                       , regexpr              ==0.5.*
                         -- Configuration.
                       , aeson                ==1.4.*
+                      , aeson-pretty         ==0.8.*
                       , htoml                ==1.0.*
                       , parsec               ==3.1.*
                         -- ASTs:
