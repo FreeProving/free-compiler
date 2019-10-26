@@ -2,11 +2,11 @@ module Compiler.ConverterTests where
 
 import           Test.Hspec
 
-import Compiler.Converter.ExprTests
-import Compiler.Converter.FuncDeclTests
-import Compiler.Converter.QuickCheckTests
-import Compiler.Converter.TypeDeclTests
-import Compiler.Converter.TypeTests
+import           Compiler.Converter.ExprTests
+import           Compiler.Converter.FuncDeclTests
+import           Compiler.Converter.QuickCheckTests
+import           Compiler.Converter.TypeDeclTests
+import           Compiler.Converter.TypeTests
 
 -- | Test group for all @Compiler.Converter@ tests.
 testConverter :: Spec
