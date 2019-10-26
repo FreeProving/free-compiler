@@ -12,6 +12,14 @@ module Compiler.Monad.Converter
   , runConverter
   , evalConverter
   , execConverter
+    -- * State monad transformer
+  , ConverterT
+  , runConverterT
+  , evalConverterT
+  , execConverterT
+  , lift
+    -- * Using IO actions in converters
+  , ConverterIO
     -- * Modifying environments
   , getEnv
   , inEnv
@@ -23,7 +31,9 @@ module Compiler.Monad.Converter
 where
 
 import           Control.Monad.Fail
+import           Control.Monad.Identity
 import           Control.Monad.State
+import           Data.Composition               ( (.:) )
 
 import           Compiler.Environment
 import           Compiler.Haskell.SrcSpan
@@ -41,25 +51,61 @@ import           Compiler.Monad.Reporter
 --
 --   Additionally the converter can report error messages and warnings to the
 --   user if there is a problem while converting.
-newtype Converter a = Converter
-  { unwrapConverter :: StateT Environment Reporter a
-  }
-  deriving (Functor, Applicative, Monad, MonadState Environment)
+type Converter = ConverterT Identity
 
 -- | Runs the converter with the given initial environment and
 --   returns the converter's result as well as the final environment.
 runConverter :: Converter a -> Environment -> Reporter (a, Environment)
-runConverter = runStateT . unwrapConverter
+runConverter = runConverterT
 
 -- | Runs the converter with the given initial environment and
 --   returns the converter's result.
 evalConverter :: Converter a -> Environment -> Reporter a
-evalConverter = evalStateT . unwrapConverter
+evalConverter = evalConverterT
 
 -- | Runs the converter with the given initial environment and
 --   returns the final environment.
 execConverter :: Converter a -> Environment -> Reporter Environment
-execConverter = execStateT . unwrapConverter
+execConverter = execConverterT
+
+-------------------------------------------------------------------------------
+-- State monad transformer                                                   --
+-------------------------------------------------------------------------------
+
+-- | A state monad used by the converter parametrerized by the inner monad @m@.
+newtype ConverterT m a
+  = ConverterT { unwrapConverterT :: StateT Environment (ReporterT m) a }
+  deriving (Functor, Applicative, Monad, MonadState Environment)
+
+-- | Runs the converter with the given initial environment and
+--   returns the converter's result as well as the final environment.
+runConverterT
+  :: Monad m => ConverterT m a -> Environment -> ReporterT m (a, Environment)
+runConverterT = runStateT . unwrapConverterT
+
+-- | Runs the converter with the given initial environment and
+--   returns the converter's result.
+evalConverterT :: Monad m => ConverterT m a -> Environment -> ReporterT m a
+evalConverterT = evalStateT . unwrapConverterT
+
+-- | Runs the converter with the given initial environment and
+--   returns the final environment.
+execConverterT
+  :: Monad m => ConverterT m a -> Environment -> ReporterT m Environment
+execConverterT = execStateT . unwrapConverterT
+
+-- @MonadTrans@ instance for 'ConverterT'
+instance MonadTrans ConverterT where
+  lift mx = ConverterT (StateT $ lift . (mx >>=) . (return .: flip (,)))
+
+-------------------------------------------------------------------------------
+-- Using IO actions in converters                                            --
+-------------------------------------------------------------------------------
+
+type ConverterIO = ConverterT IO
+
+instance MonadIO m => MonadIO (ConverterT m) where
+  liftIO = ConverterT . liftIO
 
 -------------------------------------------------------------------------------
 -- Modifying environments                                                    --
@@ -106,10 +152,10 @@ localEnv converter = do
 --   This type class instance allows 'report' and 'reportFatal' to be used
 --   directly in @do@-blocks of the 'Converter' monad without explicitly
 --   lifting reporters.
-instance MonadReporter Converter where
-  liftReporter = Converter . lift
+instance Monad m => MonadReporter (ConverterT m) where
+  liftReporter = ConverterT . lift . hoist
 
 -- | Internal errors (e.g. pattern matching failures in @do@-blocks) are
 --   cause fatal error messages to be reported.
-instance MonadFail Converter where
+instance Monad m => MonadFail (ConverterT m) where
   fail = reportFatal . Message NoSrcSpan Internal
