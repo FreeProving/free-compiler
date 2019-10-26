@@ -16,7 +16,7 @@ where
 import           Data.Aeson                     ( (.=) )
 import qualified Data.Aeson                    as Aeson
 import qualified Data.Map.Strict               as Map
-import           Data.Maybe                     ( fromJust )
+import           Data.Maybe                     ( catMaybes )
 
 import           Compiler.Config
 import           Compiler.Environment
@@ -42,6 +42,7 @@ instance Aeson.ToJSON Environment where
     encodeEntriesWhere :: (EnvEntry -> Bool) -> Aeson.Value
     encodeEntriesWhere p =
       Aeson.toJSON
+        $ catMaybes
         $ map (uncurry (uncurry (const encodeEntry)))
         $ filter (p . snd)
         $ Map.assocs
@@ -49,30 +50,34 @@ instance Aeson.ToJSON Environment where
         $ envEntries env
 
 -- | Encodes an entry of the environment with the given name.
-encodeEntry :: HS.Name -> EnvEntry -> Aeson.Value
+encodeEntry :: HS.Name -> EnvEntry -> Maybe Aeson.Value
 encodeEntry name entry
-  | isDataEntry entry = Aeson.object
+  | isDataEntry entry = return $ Aeson.object
     ["haskell-name" .= haskellName, "coq-name" .= coqName, "arity" .= arity]
-  | isTypeSynEntry entry = Aeson.object
+  | isTypeSynEntry entry = return $ Aeson.object
     [ "haskell-name" .= haskellName
     , "coq-name" .= coqName
     , "arity" .= arity
     , "haskell-type" .= typeSyn
     , "type-arguments" .= typeArgs
     ]
-  | isConEntry entry = Aeson.object
-    [ "haskell-type" .= haskellType
-    , "haskell-name" .= haskellName
-    , "coq-name" .= coqName
-    , "coq-smart-name" .= coqSmartName
-    , "arity" .= arity
-    ]
-  | isFuncEntry entry = Aeson.object
-    [ "haskell-type" .= haskellType
-    , "haskell-name" .= haskellName
-    , "coq-name" .= coqName
-    , "arity" .= arity
-    ]
+  | isConEntry entry = do
+    haskellType <- maybeHaskellType
+    return $ Aeson.object
+      [ "haskell-type" .= haskellType
+      , "haskell-name" .= haskellName
+      , "coq-name" .= coqName
+      , "coq-smart-name" .= coqSmartName
+      , "arity" .= arity
+      ]
+  | isFuncEntry entry = do
+    haskellType <- maybeHaskellType
+    return $ Aeson.object
+      [ "haskell-type" .= haskellType
+      , "haskell-name" .= haskellName
+      , "coq-name" .= coqName
+      , "arity" .= arity
+      ]
   | otherwise = error "encodeEntry: Cannot serialize (type) variable entry."
  where
   haskellName :: Aeson.Value
@@ -85,12 +90,12 @@ encodeEntry name entry
   arity :: Aeson.Value
   arity = Aeson.toJSON (entryArity entry)
 
-  haskellType :: Aeson.Value
-  haskellType =
-    let returnType = fromJust (entryReturnType entry)
-        argTypes   = map fromJust (entryArgTypes entry)
-        funcType   = foldr (HS.TypeFunc NoSrcSpan) returnType argTypes
-    in  Aeson.toJSON (showPretty funcType)
+  maybeHaskellType :: Maybe Aeson.Value
+  maybeHaskellType = do
+    returnType <- entryReturnType entry
+    argTypes   <- mapM id (entryArgTypes entry)
+    let funcType = foldr (HS.TypeFunc NoSrcSpan) returnType argTypes
+    return (Aeson.toJSON (showPretty funcType))
 
   typeSyn :: Aeson.Value
   typeSyn = Aeson.toJSON (showPretty (entryTypeSyn entry))

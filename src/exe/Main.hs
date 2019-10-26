@@ -18,15 +18,14 @@ import           Compiler.Coq.Pretty            ( )
 import           Compiler.Environment           ( Environment
                                                 , defineProofs
                                                 )
+import           Compiler.Environment.Encoder
 import           Compiler.Environment.Decoder
 import           Compiler.Environment.ProofLoader
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Haskell.Parser        ( parseModuleFile )
 import           Compiler.Haskell.Simplifier
 import           Compiler.Haskell.SrcSpan
-import           Compiler.Monad.Converter       ( evalConverter
-                                                , modifyEnv
-                                                )
+import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
 import           Compiler.Pretty                ( putPrettyLn
                                                 , writePrettyFile
@@ -204,33 +203,36 @@ run opts
 --   AST is written to the console or output file.
 processInputFile :: Options -> Environment -> FilePath -> ReporterIO (IO ())
 processInputFile opts env inputFile = do
-  haskellAst <- parseModuleFile inputFile
-  proofs     <- locateAndLoadProofsFor inputFile
-  hoist $ flip evalConverter env $ do
+  haskellAst                    <- parseModuleFile inputFile
+  proofs                        <- locateAndLoadProofsFor inputFile
+  ((haskellAst', coqAst), env') <- hoist $ flip runConverter env $ do
     modifyEnv $ defineProofs proofs
     haskellAst' <- simplifyModule haskellAst
     coqAst      <- convertModuleWithPreamble haskellAst'
-    return $ case (optOutputDir opts) of
-      Nothing -> putPrettyLn coqAst
-      Just outputDir ->
-        let outputFileName =
-              outputFileNameFor inputFile haskellAst' outputDir "v"
-        in  do
-              createDirectoryIfMissing True (takeDirectory outputFileName)
-              writePrettyFile outputFileName coqAst
+    return (haskellAst', coqAst)
+
+  case (optOutputDir opts) of
+    Nothing        -> return (putPrettyLn coqAst)
+    Just outputDir -> do
+      let outputFileWithExt = outputFilenameFor inputFile haskellAst' outputDir
+          outputFilename    = outputFileWithExt "v"
+          envFilename       = outputFileWithExt "json"
+      lift $ createDirectoryIfMissing True (takeDirectory outputFilename)
+      writeEnvironment envFilename env'
+      return (writePrettyFile outputFilename coqAst)
 
 -- | Builds the file name of the output file for the given input file.
 --
 --   If the Haskell module has a module header, the output file name
 --   is based on the module name. Otherwise, the output file name is
 --   based on the input file name.
-outputFileNameFor
+outputFilenameFor
   :: FilePath  -- ^ The name of the input file.
   -> HS.Module -- ^ The Haskell module AST.
   -> FilePath  -- ^ The path to the output directory.
   -> String    -- ^ The extension of the output file.
   -> FilePath
-outputFileNameFor inputFile haskellAst outputDir extension =
+outputFilenameFor inputFile haskellAst outputDir extension =
   outputDir </> outputFile <.> extension
  where
   -- | The name of the output file relative to the output directory and
@@ -239,7 +241,6 @@ outputFileNameFor inputFile haskellAst outputDir extension =
   outputFile = case HS.modName haskellAst of
     Nothing      -> takeBaseName inputFile
     Just modName -> map (\c -> if c == '.' then '/' else c) modName
-
 
 -------------------------------------------------------------------------------
 -- Proofs for QuickCheck properties                                          --
