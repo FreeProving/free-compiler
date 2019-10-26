@@ -175,6 +175,30 @@ data Type
   | TypeFunc SrcSpan Type Type   -- ^ A function type.
   deriving (Eq, Show)
 
+-- | Haskell type expressions can be pretty printed because they have to
+--   be serialized when the environment is saved to a @.json@ file.
+instance Pretty Type where
+  pretty = pretty' 0
+   where
+    -- | Pretty prints a type and adds parenthesis if necessary.
+    --
+    --   The first argument indicates the precedence of the sourrounding
+    --   context.
+    --    * @0@ - Top level. No parenthesis are neccessary.
+    --    * @1@ - Parenthesis are needed arround function types.
+    --    * @2@ - Parenthesis are also needed arround type constructor
+    --            applications.
+    pretty' :: Int -> Type -> Doc
+    pretty' _ (TypeVar _ ident)          = prettyString ident
+    pretty' _ (TypeCon _ name )          = pretty name
+    pretty' n (TypeApp _ t1 t2) | n <= 1 = pretty' 1 t1 <+> pretty' 2 t2
+    pretty' 0 (TypeFunc _ t1 t2)         = pretty' 1 t2 <+> arrow <+> pretty t2
+    pretty' _ t                          = parens (pretty t)
+
+    -- | A document for the function arrow symbol.
+    arrow :: Doc
+    arrow = prettyString "->"
+
 -------------------------------------------------------------------------------
 -- Expressions                                                               --
 -------------------------------------------------------------------------------
