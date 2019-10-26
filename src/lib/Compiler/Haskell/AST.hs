@@ -189,8 +189,21 @@ instance Pretty Type where
     --    * @2@ - Parenthesis are also needed arround type constructor
     --            applications.
     pretty' :: Int -> Type -> Doc
+
+    -- There are never parentheses around type variables or constructors.
     pretty' _ (TypeVar _ ident)          = prettyString ident
     pretty' _ (TypeCon _ name )          = pretty name
+
+    -- Syntactic sugar for lists.
+    pretty' _ (TypeApp _ (TypeCon _ name) t) | name == listTypeConName =
+      brackets (pretty t)
+
+    -- Syntactic sugar for pairs.
+    -- TODO pretty print arbitrary tuple types.
+    pretty' _ (TypeApp _ (TypeApp _ (TypeCon _ name) t1) t2)
+      | name == tupleTypeConName 2 = parens (pretty t1 <> comma <+> pretty t2)
+
+    -- There may be parentheses around type appications and function types.
     pretty' n (TypeApp _ t1 t2) | n <= 1 = pretty' 1 t1 <+> pretty' 2 t2
     pretty' 0 (TypeFunc _ t1 t2)         = pretty' 1 t1 <+> arrow <+> pretty t2
     pretty' _ t                          = parens (pretty t)
@@ -207,7 +220,7 @@ instance Pretty Type where
 --
 --  Even though there are no dedicated constructors, the infix applications of
 --  functions and constructors (including left and right sections) are
---  supported. This kind of syntactic suggar is removed during simplification
+--  supported. This kind of syntactic sugar is removed during simplification
 --  (see "Compiler.Haskell.Simplifier").
 data Expr
   = Con SrcSpan ConName           -- ^ A constructor.
