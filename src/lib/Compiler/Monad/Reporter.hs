@@ -46,6 +46,7 @@ where
 import           Control.Monad                  ( ap
                                                 , liftM
                                                 )
+import           Control.Monad.Fail
 import           Control.Monad.Identity
 import           Control.Monad.Trans.Maybe
 import           Control.Monad.Writer
@@ -124,11 +125,7 @@ instance Monad m => Applicative (ReporterT m) where
   (<*>) = ap
 
 -- | The @Monad@ instance for @ReporterT@.
---
---   'fail' is overwritten such that internal errors (e.g. pattern matching
---   failures in @do@-blocks) are caught.
 instance Monad m => Monad (ReporterT m) where
-  fail = reportFatal . Message NoSrcSpan Internal
   return = ReporterT . return . return
   (>>=) rt f = ReporterT $ do
      (mx, ms) <- runReporterT rt
@@ -169,6 +166,11 @@ reportFatal :: MonadReporter r => Message -> r a
 reportFatal =
   liftReporter . ReporterT . Identity . (>> mzero) . lift . tell . (: [])
 
+-- | Internal errors (e.g. pattern matching failures in @do@-blocks) are
+--   cause fatal error messages to be reported.
+instance Monad m => MonadFail (ReporterT m) where
+  fail = reportFatal . Message NoSrcSpan Internal
+
 -------------------------------------------------------------------------------
 -- Reporting IO errors                                                       --
 -------------------------------------------------------------------------------
@@ -178,9 +180,7 @@ type ReporterIO = ReporterT IO
 
 -- | IO actions can be embedded into reporters.
 instance MonadIO m => MonadIO (ReporterT m) where
-  liftIO action = ReporterT $ do
-     x <- liftIO action
-     return (return x)
+  liftIO = lift . liftIO
 
 -- | Creates an IO action for a reporter that reports all IO errors that
 --   that occur during the given IO action.
