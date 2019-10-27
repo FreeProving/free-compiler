@@ -113,8 +113,10 @@ instance Hoistable ConverterT where
 -- Using IO actions in converters                                            --
 -------------------------------------------------------------------------------
 
+-- | A converter with an IO action as its inner monad.
 type ConverterIO = ConverterT IO
 
+-- | IO actions can be embedded into converters.
 instance MonadIO m => MonadIO (ConverterT m) where
   liftIO = ConverterT . liftIO
 
