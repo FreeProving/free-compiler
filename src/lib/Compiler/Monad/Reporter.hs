@@ -60,6 +60,7 @@ import           System.IO.Error                ( catchIOError
                                                 )
 
 import           Compiler.Haskell.SrcSpan
+import           Compiler.Monad.Class.Hoistable
 import           Compiler.Pretty
 
 -------------------------------------------------------------------------------
@@ -138,15 +139,13 @@ instance Monad m => Monad (ReporterT m) where
 instance MonadTrans ReporterT where
   lift mx = ReporterT (mx >>= return . return)
 
--- | Lifts a reporter to any reporter transformer.
-hoist :: Monad m => Reporter a -> ReporterT m a
-hoist = ReporterT . return . unwrapReporter
+-- | The reporter monad can be lifted to any reporter transformer.
+instance Hoistable ReporterT where
+  hoist = ReporterT . return . unwrapReporter
 
--- | Undoes 'hoist'.
-unhoist :: Monad m => ReporterT m a -> m (Reporter a)
-unhoist rt = do
-  u <- unwrapReporterT rt
-  return (ReporterT (Identity u))
+-- | @hoist@ can be undone for reporters.
+instance UnHoistable ReporterT where
+  unhoist = (>>= return . ReporterT . Identity) . unwrapReporterT
 
 -------------------------------------------------------------------------------
 -- Reporting messages                                                        --

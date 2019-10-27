@@ -18,6 +18,7 @@ module Compiler.Monad.Converter
   , evalConverterT
   , execConverterT
   , lift
+  , hoist
     -- * Using IO actions in converters
   , ConverterIO
     -- * Modifying environments
@@ -37,6 +38,7 @@ import           Data.Composition               ( (.:) )
 
 import           Compiler.Environment
 import           Compiler.Haskell.SrcSpan
+import           Compiler.Monad.Class.Hoistable
 import           Compiler.Monad.Reporter
 
 -------------------------------------------------------------------------------
@@ -97,6 +99,10 @@ execConverterT = execStateT . unwrapConverterT
 -- @MonadTrans@ instance for 'ConverterT'
 instance MonadTrans ConverterT where
   lift mx = ConverterT (StateT $ lift . (mx >>=) . (return .: flip (,)))
+
+-- | The converter monad can be lifted to any convrter transformer.
+instance Hoistable ConverterT where
+  hoist = ConverterT . StateT . (hoist .) . runConverter
 
 -------------------------------------------------------------------------------
 -- Using IO actions in converters                                            --

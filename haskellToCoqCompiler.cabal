@@ -74,6 +74,7 @@ library haskell-to-coq-internal
                       , Compiler.Environment.ProofLoader
                       , Compiler.Environment.Renamer
                       , Compiler.Monad.Converter
+                      , Compiler.Monad.Class.Hoistable
                       , Compiler.Monad.Reporter
                       , Compiler.Haskell.AST
                       , Compiler.Haskell.Inliner
