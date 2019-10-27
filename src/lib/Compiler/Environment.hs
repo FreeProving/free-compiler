@@ -37,9 +37,6 @@ module Compiler.Environment
   -- * QuickCheck support
   , enableQuickCheck
   , isQuickCheckEnabled
-  , defineProof
-  , defineProofs
-  , lookupProof
   )
 where
 
@@ -112,9 +109,6 @@ data Environment = Environment
   , envQuickCheckEnabled :: Bool
     -- ^ Whether the translation of QuickCheck properties is enabled in the
     --   current environment (i.e. the module imports @Test.QuickCheck@).
-  , envDefinedProofs :: Map HS.Name G.Proof
-    -- ^ Proofs for QuickCheck properties that were loaded from the proof
-    --   configuration file.
   }
   deriving Show
 
@@ -129,7 +123,6 @@ emptyEnv = Environment
   , envDecArgs           = Map.empty
   , envTypeSigs          = Map.empty
   , envQuickCheckEnabled = False
-  , envDefinedProofs     = Map.empty
   }
 
 -- | Creates a child environment of the given environment.
@@ -320,21 +313,3 @@ enableQuickCheck env = env { envQuickCheckEnabled = True }
 --   declaration.
 isQuickCheckEnabled :: Environment -> Bool
 isQuickCheckEnabled = envQuickCheckEnabled
-
--- | Adds the Coq proof for the QuickCheck property with the given name
---   to the environment.
-defineProof :: HS.Name -> G.Proof -> Environment -> Environment
-defineProof name proof env =
-  env { envDefinedProofs = Map.insert name proof (envDefinedProofs env) }
-
--- | Adds multiple Coq proofs for QuickCheck properties to the environment.
-defineProofs :: Map HS.Name G.Proof -> Environment -> Environment
-defineProofs proofs env =
-  env { envDefinedProofs = Map.union proofs (envDefinedProofs env) }
-
--- | Looks up the Coq proof for the QuickCheck property with the given name.
---
---   Returns a "G.blankProof" if there is no proof for the that QuickCheck
---   property.
-lookupProof :: HS.Name -> Environment -> G.Proof
-lookupProof name = fromMaybe G.blankProof . Map.lookup name . envDefinedProofs

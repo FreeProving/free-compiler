@@ -98,7 +98,6 @@ convertQuickCheckProperty decl@(HS.FuncDecl _ declIdent args expr) = do
     let name = HS.Ident (HS.fromDeclIdent declIdent)
     (qualid, binders, _) <- convertFuncHead name args
     expr'                <- convertQuickCheckExpr expr
-    proof                <- inEnv $ lookupProof name
     return
       [ G.AssertionSentence
           (G.Assertion G.Theorem
@@ -106,7 +105,7 @@ convertQuickCheckProperty decl@(HS.FuncDecl _ declIdent args expr) = do
                        []
                        (G.Forall (NonEmpty.fromList binders) expr')
           )
-          proof
+          G.blankProof
       ]
 
 -------------------------------------------------------------------------------

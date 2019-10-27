@@ -71,7 +71,6 @@ library haskell-to-coq-internal
                       , Compiler.Environment.Entry
                       , Compiler.Environment.Fresh
                       , Compiler.Environment.LookupOrFail
-                      , Compiler.Environment.ProofLoader
                       , Compiler.Environment.Renamer
                       , Compiler.Monad.Converter
                       , Compiler.Monad.Class.Hoistable

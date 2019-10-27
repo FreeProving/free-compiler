@@ -16,7 +16,6 @@ import qualified Compiler.Coq.AST              as G
 import qualified Compiler.Coq.Base             as CoqBase
 import           Compiler.Environment
 import qualified Compiler.Haskell.AST          as HS
-import           Compiler.Haskell.SrcSpan
 import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
 
@@ -95,12 +94,12 @@ convertFuncDecls funcDecls = do
 --   Currently only the import of @Test.QuickCheck@ is allowed. It enables
 --   support for the translation of QuickCheck properties.
 convertImportDecl :: HS.ImportDecl -> Converter ()
-convertImportDecl (HS.ImportDecl _ modIdent)
+convertImportDecl (HS.ImportDecl srcSpan modIdent)
   | modIdent == "Test.QuickCheck"
   = importAndEnableQuickCheck
   | otherwise
   = reportFatal
-    $ Message NoSrcSpan Error
+    $ Message srcSpan Error
     $ "Only the import of 'Test.QuickCheck' is supported."
 
 -------------------------------------------------------------------------------

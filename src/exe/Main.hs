@@ -15,12 +15,9 @@ import           System.IO                      ( stderr )
 
 import           Compiler.Converter             ( convertModuleWithPreamble )
 import           Compiler.Coq.Pretty            ( )
-import           Compiler.Environment           ( Environment
-                                                , defineProofs
-                                                )
+import           Compiler.Environment           ( Environment )
 import           Compiler.Environment.Encoder
 import           Compiler.Environment.Decoder
-import           Compiler.Environment.ProofLoader
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Haskell.Parser        ( parseModuleFile )
 import           Compiler.Haskell.Simplifier
@@ -203,20 +200,18 @@ run opts
 --   AST is written to the console or output file.
 processInputFile :: Options -> Environment -> FilePath -> ReporterIO (IO ())
 processInputFile opts env inputFile = flip evalConverterT env $ do
-  haskellAst <- lift' $ parseModuleFile inputFile
-  proofs     <- lift' $ locateAndLoadProofsFor inputFile
-  modifyEnv $ defineProofs proofs
+  haskellAst  <- lift' $ parseModuleFile inputFile
   haskellAst' <- hoist $ simplifyModule haskellAst
   coqAst      <- hoist $ convertModuleWithPreamble haskellAst'
   case (optOutputDir opts) of
     Nothing        -> return (putPrettyLn coqAst)
     Just outputDir -> do
       let outputFileWithExt = outputFilenameFor inputFile haskellAst' outputDir
-          outputFilename    = outputFileWithExt "v"
-          envFilename       = outputFileWithExt "json"
-      lift $ createDirectoryIfMissing True (takeDirectory outputFilename)
-      getEnv >>= lift' . writeEnvironment envFilename
-      return (writePrettyFile outputFilename coqAst)
+          outputFile        = outputFileWithExt "v"
+          envFile           = outputFileWithExt "json"
+      lift $ createDirectoryIfMissing True (takeDirectory outputFile)
+      getEnv >>= lift' . writeEnvironment envFile
+      return (writePrettyFile outputFile coqAst)
 
 -- | Builds the file name of the output file for the given input file.
 --
@@ -238,25 +233,6 @@ outputFilenameFor inputFile haskellAst outputDir extension =
   outputFile = case HS.modName haskellAst of
     Nothing      -> takeBaseName inputFile
     Just modName -> map (\c -> if c == '.' then '/' else c) modName
-
--------------------------------------------------------------------------------
--- Proofs for QuickCheck properties                                          --
--------------------------------------------------------------------------------
-
--- | Builds the file name of the `.toml` file that contains proofs for
---   QuickCheck properties.
-proofFileNameFor :: FilePath -> FilePath
-proofFileNameFor inputFile = dropExtension inputFile <.> "proofs" <.> "toml"
-
--- | Locates the `.poofs.toml` file (see 'proofFileNameFor') for the Haskell
---   module with the given file name and returns the proofs defined in it.
---
---   Returns an empty map if the proof file could not be found.
-locateAndLoadProofsFor :: FilePath -> ReporterIO ProofMap
-locateAndLoadProofsFor inputFile = do
-  let proofFile = proofFileNameFor inputFile
-  fileExists <- lift $ doesFileExist proofFile
-  if fileExists then loadProofs proofFile else return emptyProofMap
 
 -------------------------------------------------------------------------------
 -- Base library                                                              --
