@@ -18,6 +18,7 @@ module Compiler.Monad.Converter
   , evalConverterT
   , execConverterT
   , lift
+  , lift'
   , hoist
     -- * Using IO actions in converters
   , ConverterIO
@@ -98,7 +99,11 @@ execConverterT = execStateT . unwrapConverterT
 
 -- @MonadTrans@ instance for 'ConverterT'
 instance MonadTrans ConverterT where
-  lift mx = ConverterT (StateT $ lift . (mx >>=) . (return .: flip (,)))
+  lift mx = ConverterT $ StateT $ lift . (mx >>=) . (return .: flip (,))
+
+-- | Converts a reporter to a converter.
+lift' :: Monad m => ReporterT m a -> ConverterT m a
+lift' mx = ConverterT $ StateT $ (mx >>=) . (return .: flip (,))
 
 -- | The converter monad can be lifted to any convrter transformer.
 instance Hoistable ConverterT where
@@ -118,29 +123,29 @@ instance MonadIO m => MonadIO (ConverterT m) where
 -------------------------------------------------------------------------------
 
 -- | Gets the current environment.
-getEnv :: Converter Environment
+getEnv :: Monad m => ConverterT m Environment
 getEnv = get
 
 -- | Gets a specific component of the current environment using the given
 --   function to extract the value from the environment.
-inEnv :: (Environment -> a) -> Converter a
+inEnv :: Monad m => (Environment -> a) -> ConverterT m a
 inEnv = gets
 
 -- | Sets the current environment.
-putEnv :: Environment -> Converter ()
+putEnv :: Monad m => Environment -> ConverterT m ()
 putEnv = put
 
 -- | Applies the given function to the environment.
-modifyEnv :: (Environment -> Environment) -> Converter ()
+modifyEnv :: Monad m => (Environment -> Environment) -> ConverterT m ()
 modifyEnv = modify
 
 -- | Gets a specific component of the current environment
-modifyEnv' :: (Environment -> (a, Environment)) -> Converter a
+modifyEnv' :: Monad m => (Environment -> (a, Environment)) -> ConverterT m a
 modifyEnv' = state
 
 -- | Runs the given converter and returns its result but discards all
 --   modifications to the environment.
-localEnv :: Converter a -> Converter a
+localEnv :: Monad m => ConverterT m a -> ConverterT m a
 localEnv converter = do
   env <- getEnv
   putEnv (childEnv env)

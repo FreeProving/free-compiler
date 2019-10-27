@@ -202,15 +202,12 @@ run opts
 --   The Haskell module is loaded and converted to Coq. The resulting Coq
 --   AST is written to the console or output file.
 processInputFile :: Options -> Environment -> FilePath -> ReporterIO (IO ())
-processInputFile opts env inputFile = do
-  haskellAst                    <- parseModuleFile inputFile
-  proofs                        <- locateAndLoadProofsFor inputFile
-  ((haskellAst', coqAst), env') <- hoist $ flip runConverter env $ do
-    modifyEnv $ defineProofs proofs
-    haskellAst' <- simplifyModule haskellAst
-    coqAst      <- convertModuleWithPreamble haskellAst'
-    return (haskellAst', coqAst)
-
+processInputFile opts env inputFile = flip evalConverterT env $ do
+  haskellAst <- lift' $ parseModuleFile inputFile
+  proofs     <- lift' $ locateAndLoadProofsFor inputFile
+  modifyEnv $ defineProofs proofs
+  haskellAst' <- hoist $ simplifyModule haskellAst
+  coqAst      <- hoist $ convertModuleWithPreamble haskellAst'
   case (optOutputDir opts) of
     Nothing        -> return (putPrettyLn coqAst)
     Just outputDir -> do
@@ -218,7 +215,7 @@ processInputFile opts env inputFile = do
           outputFilename    = outputFileWithExt "v"
           envFilename       = outputFileWithExt "json"
       lift $ createDirectoryIfMissing True (takeDirectory outputFilename)
-      writeEnvironment envFilename env'
+      getEnv >>= lift' . writeEnvironment envFilename
       return (writePrettyFile outputFilename coqAst)
 
 -- | Builds the file name of the output file for the given input file.
