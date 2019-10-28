@@ -2,6 +2,7 @@ module Main where
 
 import           Control.Monad                  ( join )
 import           Control.Monad.Extra            ( unlessM )
+import           Data.List
 import           System.Console.GetOpt
 import           System.Directory               ( createDirectoryIfMissing
                                                 , doesFileExist
@@ -13,9 +14,10 @@ import           System.Environment             ( getArgs
 import           System.FilePath
 import           System.IO                      ( stderr )
 
+import           Compiler.Analysis.DependencyAnalysis
 import           Compiler.Converter             ( convertModuleWithPreamble )
 import           Compiler.Coq.Pretty            ( )
-import           Compiler.Environment           ( Environment )
+import           Compiler.Environment
 import           Compiler.Environment.Encoder
 import           Compiler.Environment.Decoder
 import qualified Compiler.Haskell.AST          as HS
@@ -25,6 +27,7 @@ import           Compiler.Haskell.SrcSpan
 import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
 import           Compiler.Pretty                ( putPrettyLn
+                                                , showPretty
                                                 , writePrettyFile
                                                 )
 
@@ -175,7 +178,7 @@ main = join $ reportToOrExit stderr $ reportIOErrors $ do
 --
 --   Prints the help message if the @--help@ option or no input file was
 --   specified. Otherwise all input files are processed (see
---   'processInputFile'). If a fatal message is reported while processing
+--   'processInputModule'). If a fatal message is reported while processing
 --   any input file, the compiler will exit. All reported messages will be
 --   printed to @stderr@.
 run :: Options -> ReporterIO (IO ())
@@ -187,51 +190,75 @@ run opts
   | otherwise = do
     env <- getDefaultEnvironment opts
     createCoqProject opts
-    actions <- mapM (processInputFile opts env) (optInputFiles opts)
-    return (sequence_ actions)
+    flip evalConverterT env $ do
+      modules  <- mapM parseInputFile (optInputFiles opts)
+      modules' <- lift' $ hoist $ sortInputModules modules
+      actions  <- mapM (processInputModule opts) modules'
+      return (sequence_ actions)
 
 -------------------------------------------------------------------------------
 -- Haskell input files                                                       --
 -------------------------------------------------------------------------------
 
--- | Processes the given input file.
+-- | Parses and simplifies the given input file.
 --
---   The Haskell module is loaded and converted to Coq. The resulting Coq
---   AST is written to the console or output file.
-processInputFile :: Options -> Environment -> FilePath -> ReporterIO (IO ())
-processInputFile opts env inputFile = flip evalConverterT env $ do
-  haskellAst  <- lift' $ parseModuleFile inputFile
-  haskellAst' <- hoist $ simplifyModule haskellAst
-  coqAst      <- hoist $ convertModuleWithPreamble haskellAst'
+--   If the module has no module header, its name is set to the base name
+--   of the input file.
+parseInputFile :: FilePath -> ConverterIO HS.Module
+parseInputFile inputFile = do
+  haskellAst <- lift' $ parseModuleFile inputFile
+  hoist $ simplifyModule haskellAst
+
+-- | Sorts the given modules based on their dependencies.
+--
+--   If the module dependencies form a cycle, a fatal error is reported.
+sortInputModules :: [HS.Module] -> Reporter [HS.Module]
+sortInputModules = mapM checkForCycle . groupModules
+ where
+  checkForCycle :: DependencyComponent HS.Module -> Reporter HS.Module
+  checkForCycle (NonRecursive m) = return m
+  checkForCycle (Recursive ms) =
+    reportFatal
+      $  Message NoSrcSpan Error
+      $  "Module imports form a cycle: "
+      ++ intercalate ", " (map (showPretty . HS.modName) ms)
+
+-- | Converts the given Haskell module to Coq.
+--
+--   The resulting Coq AST is written to the console or output file.
+processInputModule :: Options -> HS.Module -> ConverterIO (IO ())
+processInputModule opts haskellAst = do
+  coqAst <- hoist $ convertModuleWithPreamble haskellAst
   case (optOutputDir opts) of
     Nothing        -> return (putPrettyLn coqAst)
     Just outputDir -> do
-      let outputFileWithExt = outputFilenameFor inputFile haskellAst' outputDir
+      let outputFileWithExt = outputFileFor haskellAst outputDir
           outputFile        = outputFileWithExt "v"
           envFile           = outputFileWithExt "json"
       lift $ createDirectoryIfMissing True (takeDirectory outputFile)
       getEnv >>= lift' . writeEnvironment envFile
       return (writePrettyFile outputFile coqAst)
 
--- | Builds the file name of the output file for the given input file.
+-- | Builds the file name of the output file for the given module.
 --
 --   If the Haskell module has a module header, the output file name
 --   is based on the module name. Otherwise, the output file name is
---   based on the input file name.
-outputFilenameFor
-  :: FilePath  -- ^ The name of the input file.
-  -> HS.Module -- ^ The Haskell module AST.
+--   based on the input file name (as recorded in the source span).
+outputFileFor
+  :: HS.Module -- ^ The Haskell module AST.
   -> FilePath  -- ^ The path to the output directory.
   -> String    -- ^ The extension of the output file.
   -> FilePath
-outputFilenameFor inputFile haskellAst outputDir extension =
+outputFileFor haskellAst outputDir extension =
   outputDir </> outputFile <.> extension
  where
   -- | The name of the output file relative to the output directory and
   --   without extension.
   outputFile :: FilePath
-  outputFile = case HS.modName haskellAst of
-    Nothing      -> takeBaseName inputFile
+  outputFile = case HS.modName haskellAst >>= HS.identFromName of
+    Nothing ->
+      let inputFile = srcSpanFilename (HS.modSrcSpan haskellAst)
+      in  intercalate "." (splitDirectories (dropExtension inputFile))
     Just modName -> map (\c -> if c == '.' then '/' else c) modName
 
 -------------------------------------------------------------------------------

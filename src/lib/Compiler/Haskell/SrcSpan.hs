@@ -42,7 +42,8 @@ data SrcSpan =
     }
   | NoSrcSpan -- ^ Indicates that no location information is available.
   | FileSpan  -- ^ Points to an unknown location in the given file.
-      String  -- ^ The name of the file.
+      { srcSpanFilename :: String    -- ^ The name of the file.
+      }
   deriving (Eq, Show)
 
 -------------------------------------------------------------------------------
