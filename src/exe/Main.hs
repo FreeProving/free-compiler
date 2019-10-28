@@ -1,7 +1,7 @@
 module Main where
 
-import           Control.Monad                  ( join )
 import           Control.Monad.Extra            ( unlessM )
+import           Control.Monad.IO.Class
 import           Data.List
 import           System.Console.GetOpt
 import           System.Directory               ( createDirectoryIfMissing
@@ -12,7 +12,9 @@ import           System.Environment             ( getArgs
                                                 , getProgName
                                                 )
 import           System.FilePath
-import           System.IO                      ( stderr )
+import           System.IO                      ( hPutStrLn
+                                                , stderr
+                                                )
 
 import           Compiler.Analysis.DependencyAnalysis
 import           Compiler.Converter             ( convertModule )
@@ -169,7 +171,7 @@ putUsageInfo = do
 --   Parses the command line arguments and invokes 'run' if successful.
 --   All reported messages are printed to @stderr@.
 main :: IO ()
-main = join $ reportToOrExit stderr $ reportIOErrors $ do
+main = reportToOrExit stderr $ reportIOErrors $ do
   args <- lift getArgs
   opts <- parseArgs args
   run opts
@@ -181,20 +183,19 @@ main = join $ reportToOrExit stderr $ reportIOErrors $ do
 --   'processInputModule'). If a fatal message is reported while processing
 --   any input file, the compiler will exit. All reported messages will be
 --   printed to @stderr@.
-run :: Options -> ReporterIO (IO ())
+run :: Options -> ReporterIO ()
 run opts
-  | optShowHelp opts = return putUsageInfo
-  | null (optInputFiles opts) = do
-    report $ Message NoSrcSpan Info "No input file."
-    return putUsageInfo
+  | optShowHelp opts = liftIO putUsageInfo
+  | null (optInputFiles opts) = liftIO $ do
+    putStrLn "No input file."
+    putUsageInfo
   | otherwise = do
     env <- getDefaultEnvironment opts
     createCoqProject opts
     flip evalConverterT env $ do
       modules  <- mapM parseInputFile (optInputFiles opts)
       modules' <- lift' $ hoist $ sortInputModules modules
-      actions  <- mapM (processInputModule opts) modules'
-      return (sequence_ actions)
+      mapM_ (processInputModule opts) modules'
 
 -------------------------------------------------------------------------------
 -- Haskell input files                                                       --
@@ -226,18 +227,24 @@ sortInputModules = mapM checkForCycle . groupModules
 -- | Converts the given Haskell module to Coq.
 --
 --   The resulting Coq AST is written to the console or output file.
-processInputModule :: Options -> HS.Module -> ConverterIO (IO ())
-processInputModule opts haskellAst = do
+processInputModule :: Options -> HS.Module -> ConverterIO ()
+processInputModule opts haskellAst = localEnv' $ do
+  putDebug
+    $  "Converting "
+    ++ maybe "Main" showPretty (HS.modName haskellAst)
+    ++ " ("
+    ++ srcSpanFilename (HS.modSrcSpan haskellAst)
+    ++ ")"
   coqAst <- hoist $ convertModule haskellAst
   case (optOutputDir opts) of
-    Nothing        -> return (putPrettyLn coqAst)
+    Nothing        -> liftIO (putPrettyLn coqAst)
     Just outputDir -> do
       let outputFileWithExt = outputFileFor haskellAst outputDir
           outputFile        = outputFileWithExt "v"
           envFile           = outputFileWithExt "json"
       lift $ createDirectoryIfMissing True (takeDirectory outputFile)
       getEnv >>= lift' . writeEnvironment envFile
-      return (writePrettyFile outputFile coqAst)
+      liftIO (writePrettyFile outputFile coqAst)
 
 -- | Builds the file name of the output file for the given module.
 --
@@ -305,3 +312,11 @@ createCoqProject Options { optOutputDir = Just outputDir, optBaseLibDir = baseDi
     let relBaseDir = makeRelative absOutputDir absBaseDir
     return ("-R " ++ relBaseDir ++ " Base\n")
 createCoqProject _ = return ()
+
+-------------------------------------------------------------------------------
+-- Debugging                                                                 --
+-------------------------------------------------------------------------------
+
+-- | Prints the given debugging message to @stderr@
+putDebug :: MonadIO m => String -> m ()
+putDebug = liftIO . hPutStrLn stderr

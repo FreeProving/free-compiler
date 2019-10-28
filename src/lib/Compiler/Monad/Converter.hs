@@ -29,6 +29,7 @@ module Compiler.Monad.Converter
   , modifyEnv
   , modifyEnv'
   , localEnv
+  , localEnv'
   )
 where
 
@@ -141,16 +142,20 @@ putEnv = put
 modifyEnv :: Monad m => (Environment -> Environment) -> ConverterT m ()
 modifyEnv = modify
 
--- | Gets a specific component of the current environment
+-- | Gets a specific component and modifies the environment.
 modifyEnv' :: Monad m => (Environment -> (a, Environment)) -> ConverterT m a
 modifyEnv' = state
 
 -- | Runs the given converter and returns its result but discards all
 --   modifications to the environment.
 localEnv :: Monad m => ConverterT m a -> ConverterT m a
-localEnv converter = do
+localEnv converter = localEnv' $ getEnv >>= putEnv . childEnv >> converter
+
+-- | Like 'localEnv', but the local environment remains at top level (i.e.,
+--   the 'envDepth' is not increased).
+localEnv' :: Monad m => ConverterT m a -> ConverterT m a
+localEnv' converter = do
   env <- getEnv
-  putEnv (childEnv env)
   x <- converter
   putEnv env
   return x
