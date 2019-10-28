@@ -15,7 +15,7 @@ import           System.FilePath
 import           System.IO                      ( stderr )
 
 import           Compiler.Analysis.DependencyAnalysis
-import           Compiler.Converter             ( convertModuleWithPreamble )
+import           Compiler.Converter             ( convertModule )
 import           Compiler.Coq.Pretty            ( )
 import           Compiler.Environment
 import           Compiler.Environment.Encoder
@@ -228,7 +228,7 @@ sortInputModules = mapM checkForCycle . groupModules
 --   The resulting Coq AST is written to the console or output file.
 processInputModule :: Options -> HS.Module -> ConverterIO (IO ())
 processInputModule opts haskellAst = do
-  coqAst <- hoist $ convertModuleWithPreamble haskellAst
+  coqAst <- hoist $ convertModule haskellAst
   case (optOutputDir opts) of
     Nothing        -> return (putPrettyLn coqAst)
     Just outputDir -> do

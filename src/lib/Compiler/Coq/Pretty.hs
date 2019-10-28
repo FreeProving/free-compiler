@@ -26,4 +26,4 @@ import           Compiler.Pretty
 --   concatenated with newlines.
 instance {-# OVERLAPPABLE #-} Gallina a => Pretty a where
   pretty = renderGallina
-  prettyList = prettySeparated line
+  prettyList = prettySeparated (line <> line)

@@ -18,29 +18,23 @@ import           Compiler.Environment
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
+import           Compiler.Pretty
 
 -------------------------------------------------------------------------------
 -- Modules                                                                   --
 -------------------------------------------------------------------------------
 
--- | Converts a Haskell module to a Gallina module sentence and adds
---   import sentences for the Coq Base library that accompanies the compiler.
-convertModuleWithPreamble :: HS.Module -> Converter [G.Sentence]
-convertModuleWithPreamble ast = do
-  coqAst <- convertModule ast
-  return [CoqBase.imports, coqAst]
-
--- | Converts a Haskell module to a Gallina module sentence.
+-- | Converts a Haskell module to a Gallina sentences.
 --
 --   If no module header is present the generated module is called @"Main"@.
-convertModule :: HS.Module -> Converter G.Sentence
+convertModule :: HS.Module -> Converter [G.Sentence]
 convertModule ast = do
-  let ident' = G.ident $ maybe "Main" id $ HS.modName ast >>= HS.identFromName
+  let modName = maybe "Main" showPretty $ HS.modName ast
   mapM_ convertImportDecl (HS.modImports ast)
   decls' <- convertDecls (HS.modTypeDecls ast)
                          (HS.modTypeSigs ast)
                          (HS.modFuncDecls ast)
-  return (G.LocalModuleSentence (G.LocalModule ident' decls'))
+  return (G.comment ("module " ++ modName) : CoqBase.imports : decls')
 
 -------------------------------------------------------------------------------
 -- Declarations                                                              --

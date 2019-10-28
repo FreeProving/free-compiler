@@ -4,7 +4,6 @@
 module Compiler.Converter
   ( -- * Modules
     convertModule
-  , convertModuleWithPreamble
   , convertDecls
     -- * Data type declarations
   , convertTypeDecls
@@ -25,7 +24,6 @@ module Compiler.Converter
 where
 
 import           Compiler.Converter.Module      ( convertModule
-                                                , convertModuleWithPreamble
                                                 , convertDecls
                                                 , convertFuncDecls
                                                 , convertTypeDecls
