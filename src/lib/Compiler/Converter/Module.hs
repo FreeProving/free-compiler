@@ -35,7 +35,7 @@ convertModuleWithPreamble ast = do
 --   If no module header is present the generated module is called @"Main"@.
 convertModule :: HS.Module -> Converter G.Sentence
 convertModule ast = do
-  let ident' = G.ident $ maybe "Main" id $ HS.modName ast
+  let ident' = G.ident $ maybe "Main" id $ HS.modName ast >>= HS.identFromName
   mapM_ convertImportDecl (HS.modImports ast)
   decls' <- convertDecls (HS.modTypeDecls ast)
                          (HS.modTypeSigs ast)
@@ -95,7 +95,7 @@ convertFuncDecls funcDecls = do
 --   support for the translation of QuickCheck properties.
 convertImportDecl :: HS.ImportDecl -> Converter ()
 convertImportDecl (HS.ImportDecl srcSpan modIdent)
-  | modIdent == "Test.QuickCheck"
+  | modIdent == HS.Ident "Test.QuickCheck"
   = importAndEnableQuickCheck
   | otherwise
   = reportFatal

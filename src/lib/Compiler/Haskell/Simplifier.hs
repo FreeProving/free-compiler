@@ -119,10 +119,10 @@ simplifyModule modDecl = notSupported "XML modules" modDecl
 --   If present, the export list is ignored. We do not test whether only
 --   defined functions and data types are exported. A warning is printed
 --   to remind the user that the export list does not have any effect.
-simplifyModuleHead :: H.ModuleHead SrcSpan -> Simplifier HS.ModuleIdent
+simplifyModuleHead :: H.ModuleHead SrcSpan -> Simplifier HS.Name
 simplifyModuleHead (H.ModuleHead _ (H.ModuleName _ modIdent) _ exports) = do
   warnIf (isJust exports) "Ignoring export list." (fromJust exports)
-  return modIdent
+  return (HS.Ident modIdent)
 
 -- | Gets the name of the module imported by the given import declaration.
 simplifyImport :: H.ImportDecl SrcSpan -> Simplifier HS.ImportDecl
@@ -136,7 +136,8 @@ simplifyImport decl
   | isJust (H.importAs decl) = notSupported "Imports with aliases" decl
   | isJust (H.importSpecs decl) = notSupported "Import specifications" decl
   | otherwise = case H.importModule decl of
-    H.ModuleName srcSpan modIdent -> return (HS.ImportDecl srcSpan modIdent)
+    H.ModuleName srcSpan modIdent ->
+      return (HS.ImportDecl srcSpan (HS.Ident modIdent))
 
 -------------------------------------------------------------------------------
 -- Declarations                                                              --

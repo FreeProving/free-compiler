@@ -3,7 +3,8 @@
 --
 --   The dependency analysis is necessary because Coq does not allow functions
 --   and data types to be used before they have been declared and we need to
---   identify (mutually) recursive functions.
+--   identify (mutually) recursive functions. It is also used to translate
+--   modules in the right order.
 --
 --   The dependency analysis does not test whether there are undefined
 --   identifiers. This is done by the converter.
@@ -13,6 +14,7 @@ module Compiler.Analysis.DependencyAnalysis
   , groupDependencies
   , groupTypeDecls
   , groupFuncDecls
+  , groupModules
   )
 where
 
@@ -53,13 +55,23 @@ groupDependencies :: DependencyGraph decl -> [DependencyComponent decl]
 groupDependencies = map convertSCC . stronglyConnComp . entries
 
 -- | Combines the construction of the dependency graphs for the given
---   type declarations (See 'typeDependencyGraph') with the computaton of
+--   type declarations (See 'typeDependencyGraph') with the computation of
 --   strongly connected components.
 groupTypeDecls :: [HS.TypeDecl] -> [DependencyComponent HS.TypeDecl]
-groupTypeDecls decls = groupDependencies (typeDependencyGraph decls)
+groupTypeDecls = groupDependencies . typeDependencyGraph
 
 -- | Combines the construction of the dependency graphs for the given
---   function declarations (See 'funcDependencyGraph') with the computaton
+--   function declarations (See 'funcDependencyGraph') with the computation
 --   of strongly connected components.
 groupFuncDecls :: [HS.FuncDecl] -> [DependencyComponent HS.FuncDecl]
-groupFuncDecls decls = groupDependencies (funcDependencyGraph decls)
+groupFuncDecls = groupDependencies . funcDependencyGraph
+
+-- | Combines the construction of the dependency graph for the given
+--   Haskell modules (See 'moduleDependencyGraph') with the computation
+--   of strongly connected components.
+--
+--   Since cyclic module dependencies are not allowed, all
+--   'DependencyComponent's in the returned list should be 'NonRecursive'.
+--   Otherwise there is a module dependency error.
+groupModules :: [HS.Module] -> [DependencyComponent HS.Module]
+groupModules = groupDependencies . moduleDependencyGraph

@@ -1,9 +1,11 @@
 -- | This module contains functions to construct dependency graphs of
---   Haskell modules. A dependency graph is a directed graph whose nodes
---   are labelled with declarations. There is an edge from node @A@ to @B@
---   if the declaration of @A@ depends on the declaration of @B@ (i.e. in Coq
---   @B@ has to be defined before @A@ or both have to be declared in the same
---   sentence).
+--   Haskell declarations and modules. A dependency graph is a directed
+--   graph whose nodes are labelled with declarations. There is an edge
+--   from node @A@ to @B@ if the declaration of @A@ depends on the declaration
+--   of @B@ (i.e. in Coq @B@ has to be defined before @A@ or both have to be
+--   declared in the same sentence). The module dependency graph contains an
+--   edge from node @A@ to @B@ if the module of @A@ contains an @import@
+--   declaration for the module of @B@.
 
 --   The dependency graph does only contain global, user defined declarations
 --   (i.e. there are no nodes for build-in data types or operations and there
@@ -36,6 +38,7 @@ module Compiler.Analysis.DependencyGraph
   , entries
   , typeDependencyGraph
   , funcDependencyGraph
+  , moduleDependencyGraph
   )
 where
 
@@ -133,6 +136,25 @@ funcDependencyGraph =
 funcDeclEntries :: HS.FuncDecl -> DGEntry HS.FuncDecl
 funcDeclEntries decl@(HS.FuncDecl _ (HS.DeclIdent _ ident) _ _) =
   (decl, HS.Ident ident, funcDeclDependencies decl)
+
+-------------------------------------------------------------------------------
+-- Module dependencies                                                       --
+-------------------------------------------------------------------------------
+
+-- | Creates the dependency graph for a list of Haskell modules.
+--
+--   Modules without a name are excluded from the dependency graph.
+moduleDependencyGraph :: [HS.Module] -> DependencyGraph HS.Module
+moduleDependencyGraph =
+  uncurry3 DependencyGraph . graphFromEdges . catMaybes . map moduleEntries
+
+-- | Creates an entry of the dependency graoh for the given module.
+--
+--   The module must have a name, otherwise @Nothing@ is returned.
+moduleEntries :: HS.Module -> Maybe (DGEntry HS.Module)
+moduleEntries decl = do
+  name <- HS.modName decl
+  return (decl, name, map HS.importName (HS.modImports decl))
 
 -------------------------------------------------------------------------------
 -- Pretty print dependency graph                                             --

@@ -19,9 +19,6 @@ import           Compiler.Pretty
 -- Identifiers                                                               --
 -------------------------------------------------------------------------------
 
--- | The name of a module including the dots.
-type ModuleIdent = String
-
 -- | The name of a type variable.
 type TypeVarIdent = String
 
@@ -31,8 +28,8 @@ type TypeVarIdent = String
 --   'Name's are intended to be comparable. They are used as keys to
 --   identify nodes of the dependency graph for example.
 data Name
-  = Ident String  -- ^ An identifier, e.g. @Ident \"f\"@ for a function @f@.
-  | Symbol String -- ^ A symbolic name, e.g. @Symbol \"+\"@ for @(+)@.
+  = Ident String     -- ^ An identifier, e.g. @Ident \"f\"@ for a function @f@.
+  | Symbol String    -- ^ A symbolic name, e.g. @Symbol \"+\"@ for @(+)@.
   deriving (Eq, Ord, Show)
 
 -- | Haskell identifiers and symbols can be pretty printed because they are
@@ -87,7 +84,7 @@ data VarPat = VarPat SrcSpan String
 --   If the module has no module header, the module name is @'Nothing'@.
 data Module = Module
   { modSrcSpan   :: SrcSpan
-  , modName      :: Maybe ModuleIdent
+  , modName      :: Maybe Name
   , modImports   :: [ImportDecl]
   , modTypeDecls :: [TypeDecl]
   , modTypeSigs  :: [TypeSig]
@@ -100,7 +97,10 @@ data Module = Module
 -------------------------------------------------------------------------------
 
 -- | An import declaration.
-data ImportDecl = ImportDecl SrcSpan ModuleIdent
+data ImportDecl = ImportDecl
+  { importSrcSpan :: SrcSpan
+  , importName    :: Name
+  }
   deriving (Eq, Show)
 
 -- | A data type or type synonym declaration.
@@ -108,8 +108,8 @@ data ImportDecl = ImportDecl SrcSpan ModuleIdent
 --   While it is allowed to define constructors in infix notation, data type
 --   and type synonym declarations must not be in infix notation. This is
 --   because the @TypeOperators@ language extension is not supported.
-data TypeDecl =
-    DataDecl SrcSpan DeclIdent [TypeVarDecl] [ConDecl]
+data TypeDecl
+  = DataDecl SrcSpan DeclIdent [TypeVarDecl] [ConDecl]
   | TypeSynDecl SrcSpan DeclIdent [TypeVarDecl] Type
   deriving (Eq, Show)
 
