@@ -44,7 +44,40 @@ data-files:          base/env.toml
                    , base/Free/Tactic/*.vo
                    , base/Free/Util/*.vo
 
+common deps
+  build-depends:     base                 ==4.12.*
+                     -- Monad transformers:
+                   , mtl                  ==2.2.*
+                   , transformers         ==0.5.*
+                     -- Maps, sets and graphs:
+                   , containers           ==0.6.*
+                   , unordered-containers ==0.2.*
+                   , vector               ==0.12.*
+                     -- Pretty printing:
+                   , text                 ==1.2.*
+                   , wl-pprint-text       ==1.2.*
+                     -- Utilities:
+                   , bytestring           ==0.10.*
+                   , casing               ==0.1.*
+                   , composition          ==1.0.*
+                   , extra                ==1.6.*
+                   , regexpr              ==0.5.*
+                     -- IO:
+                   , filepath             ==1.4.*
+                   , directory            ==1.3.*
+                     -- Configuration.
+                   , aeson                ==1.4.*
+                   , aeson-pretty         ==0.8.*
+                   , htoml                ==1.0.*
+                   , parsec               ==3.1.*
+                     -- ASTs:
+                   , haskell-src-exts     ==1.21.*
+                   , language-coq         ==0.0.*
+  default-language:  Haskell2010
+  ghc-options:       -Wall
+
 library haskell-to-coq-internal
+  import:             deps
   hs-source-dirs:     src/lib
   exposed-modules:      Compiler.Analysis.DependencyAnalysis
                       , Compiler.Analysis.DependencyExtraction
@@ -84,48 +117,16 @@ library haskell-to-coq-internal
                       , Compiler.Haskell.Subst
                       , Compiler.Pretty
                       , Compiler.Util.Predicate
-  build-depends:      base                   ==4.12.*
-                        -- Monad transformers:
-                      , mtl                  ==2.2.*
-                      , transformers         ==0.5.*
-                        -- Maps, sets and graphs:
-                      , containers           ==0.6.*
-                      , unordered-containers ==0.2.*
-                      , vector               ==0.12.*
-                        -- Pretty printing:
-                      , text                 ==1.2.*
-                      , wl-pprint-text       ==1.2.*
-                        -- Utilities:
-                      , bytestring           ==0.10.*
-                      , casing               ==0.1.*
-                      , composition          ==1.0.*
-                      , extra                ==1.6.*
-                      , filepath             ==1.4.*
-                      , regexpr              ==0.5.*
-                        -- Configuration.
-                      , aeson                ==1.4.*
-                      , aeson-pretty         ==0.8.*
-                      , htoml                ==1.0.*
-                      , parsec               ==3.1.*
-                        -- ASTs:
-                      , haskell-src-exts     ==1.21.*
-                      , language-coq         ==0.0.*
-  default-language:   Haskell2010
-  ghc-options:        -Wall
 
 executable haskell-to-coq-compiler
+  import:             deps
   hs-source-dirs:     src/exe
   main-is:            Main.hs
   other-modules:      Paths_haskellToCoqCompiler
-  build-depends:      base
-                    , directory           ==1.3.*
-                    , filepath            ==1.4.*
-                    , extra               ==1.6.*
-                    , haskell-to-coq-internal
-  default-language:   Haskell2010
-  ghc-options:        -Wall
+  build-depends:      haskell-to-coq-internal
 
 test-suite unit-tests
+  import:             deps
   type:               exitcode-stdio-1.0
   hs-source-dirs:     src/test
   main-is:            Spec.hs
@@ -142,12 +143,7 @@ test-suite unit-tests
                     , Compiler.Haskell.SubtermTests
                     , Compiler.Monad.ReporterTests
                     , Compiler.Util.Test
-  build-depends:      base
+  build-depends:      haskell-to-coq-internal
                       -- Test frameworks:
                     , hspec
                     , QuickCheck
-                      -- Test frameworks:
-                    , containers        ==0.6.*
-                    , haskell-to-coq-internal
-  default-language:   Haskell2010
-  ghc-options:        -Wall
