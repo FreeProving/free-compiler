@@ -47,6 +47,7 @@ instance Aeson.ToJSON Environment where
         $ filter (p . snd)
         $ Map.assocs
         $ Map.map fst
+        $ Map.filter ((== 0) . snd)
         $ envEntries env
 
 -- | Encodes an entry of the environment with the given name.
