@@ -113,7 +113,7 @@ parseTestDecls input =
 --
 --   Returns the Coq identifier assigned to the entry by the renamer.
 renameAndAddTestEntry :: EnvEntry -> Converter String
-renameAndAddTestEntry = (>>= return . entryIdent) . renameAndAddEntry
+renameAndAddTestEntry = (fmap entryIdent) . renameAndAddEntry
 
 -- | Defines a type constructor for testing purposes.
 --

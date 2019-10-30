@@ -124,6 +124,10 @@ executable haskell-to-coq-compiler
   hs-source-dirs:     src/exe
   main-is:            Main.hs
   other-modules:      Paths_haskellToCoqCompiler
+                    , Compiler.Application.Debug
+                    , Compiler.Application.Options
+                    , Compiler.Application.State
+                    , Compiler.Monad.Application
   build-depends:      haskell-to-coq-internal
 
 test-suite unit-tests

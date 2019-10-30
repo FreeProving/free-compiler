@@ -1,22 +1,23 @@
 module Main where
 
-import           Control.Monad.Extra            ( unlessM )
+import           Control.Monad.Extra            ( unlessM
+                                                , whenM
+                                                )
 import           Control.Monad.IO.Class
 import           Data.List
-import           System.Console.GetOpt
+import           Data.Maybe                     ( isJust )
 import           System.Directory               ( createDirectoryIfMissing
                                                 , doesFileExist
                                                 , makeAbsolute
                                                 )
-import           System.Environment             ( getArgs
-                                                , getProgName
-                                                )
+import           System.Exit                    ( exitSuccess )
 import           System.FilePath
-import           System.IO                      ( hPutStrLn
-                                                , stderr
-                                                )
 
 import           Compiler.Analysis.DependencyAnalysis
+import           Compiler.Monad.Application
+import           Compiler.Application.Options
+import           Compiler.Application.Debug
+import           Compiler.Application.State
 import           Compiler.Converter             ( convertModule )
 import           Compiler.Coq.Pretty            ( )
 import           Compiler.Environment
@@ -33,169 +34,45 @@ import           Compiler.Pretty                ( putPrettyLn
                                                 , writePrettyFile
                                                 )
 
-import           Paths_haskellToCoqCompiler     ( getDataFileName )
-
--------------------------------------------------------------------------------
--- Command line option parser                                                --
--------------------------------------------------------------------------------
-
--- | Data type that stores the command line options passed to the compiler.
-data Options = Options
-  { optShowHelp   :: Bool
-    -- ^ Flag that indicates whether to show the usage information.
-
-  , optInputFiles :: [FilePath]
-    -- ^ The input files passed to the compiler.
-    --   All non-option command line arguments are considered input files.
-
-  , optOutputDir  :: Maybe FilePath
-    -- ^ The output directory or 'Nothing' if the output should be printed
-    --   to @stdout@.
-
-  , optBaseLibDir :: FilePath
-    -- ^ The directory that contains the Coq Base library that accompanies
-    --   this compiler.
-
-  , optCreateCoqProject :: Bool
-    -- ^ Flag that indicates whether to generate a @_CoqProject@ file in the
-    --   ouput directory. This argument is ignored if 'optOutputDir' is not
-    --   specified.
-  }
-
--- | The default command line options.
---
---   By default output will be printed to the console.
-makeDefaultOptions :: IO Options
-makeDefaultOptions = do
-  defaultBaseLibDir <- getDataFileName "base"
-  return $ Options
-    { optShowHelp         = False
-    , optInputFiles       = []
-    , optOutputDir        = Nothing
-    , optBaseLibDir       = defaultBaseLibDir
-    , optCreateCoqProject = True
-    }
-
--- | Command line option descriptors from the @GetOpt@ library.
-options :: [OptDescr (Options -> Options)]
-options
-  = [ Option ['h']
-             ["help"]
-             (NoArg (\opts -> opts { optShowHelp = True }))
-             "Display this message."
-    , Option
-      ['o']
-      ["output"]
-      (ReqArg (\p opts -> opts { optOutputDir = Just p }) "DIR")
-      (  "Path to output directory.\n"
-      ++ "Optional. Prints to the console by default."
-      )
-    , Option
-      ['b']
-      ["base-library"]
-      (ReqArg (\p opts -> opts { optBaseLibDir = p }) "DIR")
-      (  "Optional. Path to directory that contains the compiler's Coq\n"
-      ++ "Base library. By default the compiler will look for the Base\n"
-      ++ "library in it's data directory."
-      )
-    , Option
-      []
-      ["no-coq-project"]
-      (NoArg (\opts -> opts { optCreateCoqProject = False }))
-      (  "Disables the creation of a `_CoqProject` file in the output\n"
-      ++ "directory. If the `--output` option is missing or the `_CoqProject`\n"
-      ++ "file exists already, no `_CoqProject` is created.\n"
-      )
-    ]
-
--- | Parses the command line arguments.
---
---   If there are errors when parsing the command line arguments, a fatal
---   error message is reported.
---
---   All non-option arguments are considered as input files.
---
---   Returns the default options (see 'makeDefaultOptions') if no arguments are
---   specified.
-parseArgs
-  :: [String] -- ^ The command line arguments.
-  -> ReporterIO Options
-parseArgs args
-  | null errors = do
-    defaultOptions <- lift $ makeDefaultOptions
-    let opts = foldr ($) defaultOptions optSetters
-    return opts { optInputFiles = nonOpts }
-  | otherwise = do
-    mapM_ (report . Message NoSrcSpan Error) errors
-    reportFatal $ Message
-      NoSrcSpan
-      Error
-      (  "Failed to parse command line arguments.\n"
-      ++ "Use '--help' for usage information."
-      )
- where
-  optSetters :: [Options -> Options]
-  nonOpts :: [String]
-  errors :: [String]
-  (optSetters, nonOpts, errors) = getOpt Permute options args
-
--------------------------------------------------------------------------------
--- Help message                                                              --
--------------------------------------------------------------------------------
-
--- | The header of the help message.
---
---   This text is added before the description of the command line arguments.
-usageHeader :: FilePath -> String
-usageHeader progName =
-  "Usage: "
-    ++ progName
-    ++ " [options...] <input-files...>\n\n"
-    ++ "Command line options:"
-
--- | Prints the help message for the compiler.
---
---   The help message is displayed when the user specifies the "--help" option
---   or there are no input files.
-putUsageInfo :: IO ()
-putUsageInfo = do
-  progName <- getProgName
-  putStrLn (usageInfo (usageHeader progName) options)
-
 -------------------------------------------------------------------------------
 -- Main                                                                      --
 -------------------------------------------------------------------------------
 
 -- | The main function of the compiler.
 --
---   Parses the command line arguments and invokes 'run' if successful.
---   All reported messages are printed to @stderr@.
+--   Runs the 'compiler' application and prints all reported messages
+--   to @stderr@.
 main :: IO ()
-main = reportToOrExit stderr $ reportIOErrors $ do
-  args <- lift getArgs
-  opts <- parseArgs args
-  run opts
+main = runApp compiler
 
--- | Handles the given command line options.
+-- | Parses and handles the command line options of the application.
 --
 --   Prints the help message if the @--help@ option or no input file was
 --   specified. Otherwise all input files are processed (see
 --   'processInputModule'). If a fatal message is reported while processing
 --   any input file, the compiler will exit. All reported messages will be
 --   printed to @stderr@.
-run :: Options -> ReporterIO ()
-run opts
-  | optShowHelp opts = liftIO putUsageInfo
-  | null (optInputFiles opts) = liftIO $ do
-    putStrLn "No input file."
+compiler :: Application ()
+compiler = do
+  -- Parse command line arguments.
+  defaultOpts <- inState appOpts
+  opts        <- liftReporterIO $ getOpts defaultOpts
+  modifyState $ \state -> state { appOpts = opts }
+  -- Show help message.
+  whenM (inState (optShowHelp . appOpts)) $ liftIO $ do
     putUsageInfo
-  | otherwise = do
-    env <- getDefaultEnvironment opts
-    createCoqProject opts
-    flip evalConverterT env $ do
-      modules  <- mapM parseInputFile (optInputFiles opts)
-      modules' <- lift' $ hoist $ sortInputModules modules
-      mapM_ (processInputModule opts) modules'
+    exitSuccess
+  whenM (inState (null . optInputFiles . appOpts)) $ liftIO $ do
+    putDebug "No input file.\n"
+    putUsageInfo
+    exitSuccess
+  -- Process input files.
+  env <- getDefaultEnvironment
+  createCoqProject
+  liftReporterIO $ flip evalConverterT env $ do
+    modules  <- mapM parseInputFile (optInputFiles opts)
+    modules' <- lift' $ hoist $ sortInputModules modules
+    mapM_ (processInputModule opts) modules'
 
 -------------------------------------------------------------------------------
 -- Haskell input files                                                       --
@@ -277,46 +154,56 @@ outputFileFor haskellAst outputDir extension =
 --
 --   If the `--base-library` option is omited, we look for the base library in
 --   the `data-files` field of the `.cabal` file.
-getDefaultEnvironment :: Options -> ReporterIO Environment
-getDefaultEnvironment Options { optBaseLibDir = baseLibDir } =
-  loadEnvironment (baseLibDir </> "env.toml")
+getDefaultEnvironment :: Application Environment
+getDefaultEnvironment = do
+  baseLibDir <- inState $ optBaseLibDir . appOpts
+  liftReporterIO $ loadEnvironment (baseLibDir </> "env.toml")
 
 -- | Creates a @_CoqProject@ file (if enabled) that maps the physical directory
 --   of the Base library.
 --
 --   The path to the Base library will be relative to the output directory.
-createCoqProject :: Options -> ReporterIO ()
-createCoqProject Options { optOutputDir = Just outputDir, optBaseLibDir = baseDir, optCreateCoqProject = True }
-  = lift $ unlessM coqProjectExists $ writeCoqProject
+createCoqProject :: Application ()
+createCoqProject =
+  whenM coqProjectEnabled $ unlessM coqProjectExists $ writeCoqProject
  where
+  -- | Tests whether the generation of a @_CoqProject@ file is enabled.
+  --
+  --   The generation of the @_CoqProject@ file can be disabled with the
+  --   command line option @--no-coq-project@. If there is no @--output@
+  --   directory, the generation of the @_CoqProject@ file is disabled as
+  --   well.
+  coqProjectEnabled :: Application Bool
+  coqProjectEnabled = do
+    isEnabled      <- inState $ optCreateCoqProject . appOpts
+    maybeOutputDir <- inState $ optOutputDir . appOpts
+    return (isEnabled && isJust maybeOutputDir)
+
   -- | Path to the @_CoqProject@ file to create.
-  coqProject :: FilePath
-  coqProject = outputDir </> "_CoqProject"
+  getCoqProjectFile :: Application FilePath
+  getCoqProjectFile = do
+    Just outputDir <- inState $ optOutputDir . appOpts
+    return (outputDir </> "_CoqProject")
 
-  -- | Tests whether the 'coqProject' file does exist already.
-  coqProjectExists :: IO Bool
-  coqProjectExists = doesFileExist coqProject
+  -- | Tests whether the @_CoqProject@ file does exist already.
+  coqProjectExists :: Application Bool
+  coqProjectExists = getCoqProjectFile >>= liftIO . doesFileExist
 
-  -- | Writes  'contents' to the 'coqProject' file.
-  writeCoqProject :: IO ()
+  -- | Writes the string returned by 'makeContents' to the @_CoqProject@ file.
+  writeCoqProject :: Application ()
   writeCoqProject = do
-    createDirectoryIfMissing True outputDir
-    contents <- makeContents
-    writeFile coqProject contents
+    coqProject <- getCoqProjectFile
+    contents   <- makeContents
+    liftIO $ do
+      createDirectoryIfMissing True (takeDirectory coqProject)
+      writeFile coqProject contents
 
   -- | Creates the string to write to the 'coqProject' file.
-  makeContents :: IO String
+  makeContents :: Application String
   makeContents = do
-    absBaseDir   <- makeAbsolute baseDir
-    absOutputDir <- makeAbsolute outputDir
+    baseDir        <- inState $ optBaseLibDir . appOpts
+    Just outputDir <- inState $ optOutputDir . appOpts
+    absBaseDir     <- liftIO $ makeAbsolute baseDir
+    absOutputDir   <- liftIO $ makeAbsolute outputDir
     let relBaseDir = makeRelative absOutputDir absBaseDir
     return ("-R " ++ relBaseDir ++ " Base\n")
-createCoqProject _ = return ()
-
--------------------------------------------------------------------------------
--- Debugging                                                                 --
--------------------------------------------------------------------------------
-
--- | Prints the given debugging message to @stderr@
-putDebug :: MonadIO m => String -> m ()
-putDebug = liftIO . hPutStrLn stderr
