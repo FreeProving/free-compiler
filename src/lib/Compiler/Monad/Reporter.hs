@@ -46,7 +46,6 @@ where
 import           Control.Monad                  ( ap
                                                 , liftM
                                                 )
-import           Control.Monad.Fail
 import           Control.Monad.Identity
 import           Control.Monad.Trans.Maybe
 import           Control.Monad.Writer
@@ -142,14 +141,14 @@ instance Hoistable ReporterT where
 
 -- | @hoist@ can be undone for reporters.
 instance UnHoistable ReporterT where
-  unhoist = (>>= return . ReporterT . Identity) . unwrapReporterT
+  unhoist = (fmap (ReporterT . Identity)) . unwrapReporterT
 
 -------------------------------------------------------------------------------
 -- Reporting messages                                                        --
 -------------------------------------------------------------------------------
 
 -- | Type class for all monads within which 'Message's can be reported.
-class MonadReporter r where
+class Monad r => MonadReporter r where
   -- | Promotes a reporter to @r@.
   liftReporter :: Reporter a -> r a
 
@@ -165,11 +164,6 @@ report = liftReporter . ReporterT . Identity . lift . tell . (: [])
 reportFatal :: MonadReporter r => Message -> r a
 reportFatal =
   liftReporter . ReporterT . Identity . (>> mzero) . lift . tell . (: [])
-
--- | Internal errors (e.g. pattern matching failures in @do@-blocks) are
---   cause fatal error messages to be reported.
-instance Monad m => MonadFail (ReporterT m) where
-  fail = reportFatal . Message NoSrcSpan Internal
 
 -------------------------------------------------------------------------------
 -- Reporting IO errors                                                       --

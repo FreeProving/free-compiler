@@ -18,6 +18,7 @@ import           Compiler.Environment.Renamer
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Haskell.SrcSpan
 import           Compiler.Monad.Converter
+import           Compiler.Monad.Instance.Fail   ( )
 
 -------------------------------------------------------------------------------
 -- Eta-Conversion                                                            --

@@ -33,13 +33,11 @@ module Compiler.Monad.Converter
   )
 where
 
-import           Control.Monad.Fail
 import           Control.Monad.Identity
 import           Control.Monad.State
 import           Data.Composition               ( (.:) )
 
 import           Compiler.Environment
-import           Compiler.Haskell.SrcSpan
 import           Compiler.Monad.Class.Hoistable
 import           Compiler.Monad.Reporter
 
@@ -172,8 +170,3 @@ localEnv' converter = do
 --   lifting reporters.
 instance Monad m => MonadReporter (ConverterT m) where
   liftReporter = ConverterT . lift . hoist
-
--- | Internal errors (e.g. pattern matching failures in @do@-blocks) are
---   cause fatal error messages to be reported.
-instance Monad m => MonadFail (ConverterT m) where
-  fail = reportFatal . Message NoSrcSpan Internal
