@@ -10,16 +10,22 @@ module Compiler.Monad.Application
   , putState
   , modifyState
   , modifyState'
-    -- * Reporting in applications
+    -- * Lifting other monads
+  , liftReporter
   , liftReporterIO
+  , liftConverter
+  , liftConverter'
   )
 where
 
 import           Control.Monad.IO.Class
 import           Control.Monad.State
+import           Data.Composition               ( (.:) )
 import           System.IO                      ( stderr )
 
 import           Compiler.Application.State
+import           Compiler.Environment
+import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
 
 -------------------------------------------------------------------------------
@@ -38,10 +44,6 @@ runApp app = do
   defaultAppState <- makeDefaultAppState
   let reporter = evalStateT (unwrapApplication app) defaultAppState
   reportToOrExit stderr (reportIOErrors reporter)
-
--- | IO actions can be embedded into applications.
-instance MonadIO Application where
-  liftIO = Application . liftIO
 
 -------------------------------------------------------------------------------
 -- Accessing and modifying state                                             --
@@ -69,8 +71,12 @@ modifyState' :: (AppState -> (a, AppState)) -> Application a
 modifyState' = state
 
 -------------------------------------------------------------------------------
--- Reporting in applications                                                 --
+-- Lifting other monads                                                      --
 -------------------------------------------------------------------------------
+
+-- | IO actions can be embedded into applications.
+instance MonadIO Application where
+  liftIO = Application . liftIO
 
 -- | Promotes a reporter to an application that produces the same result and
 --   ignores the state.
@@ -85,3 +91,12 @@ instance MonadReporter Application where
 --   and ignores the state.
 liftReporterIO :: ReporterIO a -> Application a
 liftReporterIO = Application . lift
+
+-- | Promotes a 'Converter' to an application that produces the same result
+--   ignores the state and discards the converter's environment.
+liftConverter :: Converter a -> Environment -> Application a
+liftConverter = liftReporter .: evalConverter
+
+-- | Like 'liftConverter' but keeps the environment.
+liftConverter' :: Converter a -> Environment -> Application (a, Environment)
+liftConverter' = liftReporter .: runConverter
