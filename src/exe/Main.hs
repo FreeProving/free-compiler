@@ -56,8 +56,8 @@ compiler :: Application ()
 compiler = do
   -- Parse command line arguments.
   defaultOpts <- inState appOpts
-  opts        <- liftReporterIO $ getOpts defaultOpts
-  modifyState $ \state -> state { appOpts = opts }
+  opts        <- liftReporterIO $ getAndParseArgs defaultOpts
+  modifyState $ setOpts opts
   -- Show help message.
   whenM (inState (optShowHelp . appOpts)) $ liftIO $ do
     putUsageInfo

@@ -5,7 +5,7 @@ module Compiler.Application.Options
   ( Options(..)
   , makeDefaultOptions
   , parseArgs
-  , getOpts
+  , getAndParseArgs
   , putUsageInfo
   )
 where
@@ -133,8 +133,8 @@ parseArgs defaultOptions args
 --
 --   If there are no command line arguments the given default options are
 --   returned. Otherwise the given options are modified accordingly.
-getOpts :: Options -> ReporterIO Options
-getOpts defaultOpts = do
+getAndParseArgs :: Options -> ReporterIO Options
+getAndParseArgs defaultOpts = do
   args <- lift getArgs
   hoist $ parseArgs defaultOpts args
 
