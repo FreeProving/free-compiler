@@ -154,7 +154,7 @@ moduleDependencyGraph =
 moduleEntries :: HS.Module -> Maybe (DGEntry HS.Module)
 moduleEntries decl = do
   name <- HS.modName decl
-  return (decl, name, map HS.importName (HS.modImports decl))
+  return (decl, name, moduleDependencies decl)
 
 -------------------------------------------------------------------------------
 -- Pretty print dependency graph                                             --

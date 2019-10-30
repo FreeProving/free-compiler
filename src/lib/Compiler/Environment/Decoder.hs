@@ -150,7 +150,7 @@ instance Aeson.FromJSON Environment where
       arity       <- obj .: "arity"
       haskellName <- obj .: "haskell-name"
       coqName     <- obj .: "coq-name"
-      return $ importEntry haskellName DataEntry
+      return $ addEntry haskellName DataEntry
         { entrySrcSpan = NoSrcSpan
         , entryArity = arity
         , entryIdent = coqName
@@ -165,7 +165,7 @@ instance Aeson.FromJSON Environment where
       typeArgs    <- obj .: "type-arguments"
       haskellName <- obj .: "haskell-name"
       coqName     <- obj .: "coq-name"
-      return $ importEntry haskellName TypeSynEntry
+      return $ addEntry haskellName TypeSynEntry
         { entrySrcSpan = NoSrcSpan
         , entryArity = arity
         , entryTypeArgs = typeArgs
@@ -181,7 +181,7 @@ instance Aeson.FromJSON Environment where
       coqName                <- obj .: "coq-name"
       coqSmartName           <- obj .: "coq-smart-name"
       let (argTypes, returnType) = HS.splitType haskellType arity
-      return $ importEntry haskellName ConEntry
+      return $ addEntry haskellName ConEntry
         { entrySrcSpan = NoSrcSpan
         , entryArity = arity
         , entryArgTypes = argTypes
@@ -197,7 +197,7 @@ instance Aeson.FromJSON Environment where
       haskellType <- obj .: "haskell-type"
       coqName     <- obj .: "coq-name"
       let (argTypes, returnType) = HS.splitType haskellType arity
-      return $ importEntry haskellName FuncEntry
+      return $ addEntry haskellName FuncEntry
         { entrySrcSpan  = NoSrcSpan
         , entryArity    = arity
         , entryTypeArgs =

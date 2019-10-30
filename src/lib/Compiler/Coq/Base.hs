@@ -9,11 +9,13 @@ import qualified Compiler.Coq.AST              as G
 -- Base library import                                                       --
 -------------------------------------------------------------------------------
 
--- | Import sentence for the @Free@ and @Prelude@ modules from the Base
---   Coq library.
+-- | Import sentence for the @Free@ module from the Base Coq library.
 imports :: G.Sentence
-imports =
-  G.requireImportFrom (G.ident "Base") [G.ident "Free", G.ident "Prelude"]
+imports = G.requireImportFrom baseLibName [G.ident "Free"]
+
+-- | The name of the Base Coq library.
+baseLibName :: G.ModuleIdent
+baseLibName = G.ident "Base"
 
 -------------------------------------------------------------------------------
 -- Free monad                                                                --

@@ -4,7 +4,9 @@ module Compiler.Converter.Module where
 
 import           Control.Monad.Extra            ( concatMapM )
 import qualified Data.Set                      as Set
-import           Data.Maybe                     ( maybe )
+import           Data.Maybe                     ( catMaybes
+                                                , maybe
+                                                )
 
 import           Compiler.Analysis.DependencyAnalysis
 import           Compiler.Analysis.DependencyGraph
@@ -30,11 +32,11 @@ import           Compiler.Pretty
 convertModule :: HS.Module -> Converter [G.Sentence]
 convertModule ast = do
   let modName = maybe "Main" showPretty $ HS.modName ast
-  mapM_ convertImportDecl (HS.modImports ast)
-  decls' <- convertDecls (HS.modTypeDecls ast)
-                         (HS.modTypeSigs ast)
-                         (HS.modFuncDecls ast)
-  return (G.comment ("module " ++ modName) : CoqBase.imports : decls')
+  imports' <- convertImportDecls (HS.modImports ast)
+  decls'   <- convertDecls (HS.modTypeDecls ast)
+                           (HS.modTypeSigs ast)
+                           (HS.modFuncDecls ast)
+  return (G.comment ("module " ++ modName) : imports' ++ decls')
 
 -------------------------------------------------------------------------------
 -- Declarations                                                              --
@@ -83,18 +85,52 @@ convertFuncDecls funcDecls = do
 -- Import declarations                                                       --
 -------------------------------------------------------------------------------
 
--- | Converts import declarations.
+-- | Converts the given
+convertImportDecls :: [HS.ImportDecl] -> Converter [G.Sentence]
+convertImportDecls imports = do
+  preludeImport <- generatePreludeImport
+  imports'      <- mapM convertImportDecl imports
+  return (CoqBase.imports : catMaybes (preludeImport : imports'))
+ where
+  -- | Tests whether there is an explicit import for the @Prelude@ module.
+  importsPrelude :: Bool
+  importsPrelude = elem HS.preludeModuleName (map HS.importName imports)
+
+  -- | Imports the @Prelude@ module implicitly.
+  generatePreludeImport :: Converter (Maybe G.Sentence)
+  generatePreludeImport
+    | importsPrelude = return Nothing
+    | otherwise = do
+      Just preludeEnv <- inEnv $ lookupAvailableModule HS.preludeModuleName
+      modifyEnv $ importEnv preludeEnv
+      Just <$> generateImport HS.preludeModuleName
+
+-- | Convert a import declaration.
 --
---   Currently only the import of @Test.QuickCheck@ is allowed. It enables
---   support for the translation of QuickCheck properties.
-convertImportDecl :: HS.ImportDecl -> Converter ()
-convertImportDecl (HS.ImportDecl srcSpan modIdent)
-  | modIdent == HS.Ident "Test.QuickCheck"
-  = importAndEnableQuickCheck
-  | otherwise
-  = reportFatal
-    $ Message srcSpan Error
-    $ "Only the import of 'Test.QuickCheck' is supported."
+--   Returns @Nothing@ if no Coq import sentence is needed (e.g., in case of
+--   special imports like @Test.QuickCheck@).
+convertImportDecl :: HS.ImportDecl -> Converter (Maybe G.Sentence)
+convertImportDecl (HS.ImportDecl _ (HS.Ident "Test.QuickCheck")) = do
+  importAndEnableQuickCheck
+  return Nothing
+convertImportDecl (HS.ImportDecl srcSpan modName) = do
+  maybeModEnv <- inEnv $ lookupAvailableModule modName
+  case maybeModEnv of
+    Just modEnv -> modifyEnv $ importEnv modEnv
+    Nothing ->
+      reportFatal
+        $  Message srcSpan Error
+        $  "Could not find module '"
+        ++ showPretty modName
+        ++ "'"
+  Just <$> generateImport modName
+
+-- | Generates a Coq import sentence for the module with the given name.
+generateImport :: HS.Name -> Converter G.Sentence
+generateImport modName
+  | modName == HS.preludeModuleName = return
+  $ G.requireImportFrom CoqBase.baseLibName [G.ident "Prelude"]
+  | otherwise = return $ G.requireImport [G.ident (showPretty modName)] -- TODO rename module?
 
 -------------------------------------------------------------------------------
 -- Type signatures                                                           --

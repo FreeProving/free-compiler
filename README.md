@@ -97,7 +97,7 @@ directory if it does not exist already. The `_CoqProject` file tells Coq where
 to find the compiler’s base library. Add the `--no-coq-project` command line
 flag to disable the generation of a `_CoqProject` file.
 
-In order to compile Haskell modules successfully, the compiler needs to know the names of predefined data types and operations. For this purpose, the `base/env.toml` configuration file has to be loaded.
+In order to compile Haskell modules successfully, the compiler needs to know the names of predefined data types and operations. For this purpose, the `base/Prelude.toml` configuration file has to be loaded.
 If the compiler is installed as described above, it will be able to locate the base library automatically.
 Otherwise, it may be necessary to tell the compiler where the base library can be found using the
 `--base-library` (or `-b`) option.

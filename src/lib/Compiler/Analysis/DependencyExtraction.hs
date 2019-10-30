@@ -21,6 +21,8 @@ module Compiler.Analysis.DependencyExtraction
   , typeDeclDependencies
     -- * Function declarations
   , funcDeclDependencies
+    -- * Modules
+  , moduleDependencies
   )
 where
 
@@ -219,3 +221,18 @@ funcDeclDependencies' (HS.FuncDecl _ _ args expr) =
 withoutArgs :: [HS.VarPat] -> Set DependencyName -> Set DependencyName
 withoutArgs args set =
   set \\ Set.fromList (map (VarName . HS.Ident . HS.fromVarPat) args)
+
+-------------------------------------------------------------------------------
+-- Modules                                                                   --
+-------------------------------------------------------------------------------
+
+-- | Extracts the dependencies of the given module on other modules.
+--
+--   Every module depends on the @Prelude@ module implicitly.
+moduleDependencies :: HS.Module -> [HS.Name]
+moduleDependencies =
+  Set.toList
+    . Set.insert HS.preludeModuleName
+    . Set.fromList
+    . map HS.importName
+    . HS.modImports

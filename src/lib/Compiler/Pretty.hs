@@ -29,6 +29,7 @@ import           System.IO
 
 import qualified Data.Text.Lazy                as TL
 import           Text.PrettyPrint.Leijen.Text
+                                         hiding ( (<$>) )
 
 -------------------------------------------------------------------------------
 -- Pretty printing                                                           --

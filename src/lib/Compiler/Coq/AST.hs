@@ -32,6 +32,7 @@ module Compiler.Coq.AST
   , conj
   , disj
     -- * Imports
+  , requireImport
   , requireImportFrom
   )
 where
@@ -194,7 +195,12 @@ disj t1 t2 = app (G.Qualid (bare "op_\\/__")) [t1, t2]
 -- Imports                                                                   --
 -------------------------------------------------------------------------------
 
--- | Creates a "From ... Require Import ..." sentence.
+-- | Creates a @Require Import ...@ sentence.
+requireImport :: [G.ModuleIdent] -> G.Sentence
+requireImport modules = G.ModuleSentence
+  (G.Require Nothing (Just G.Import) (NonEmpty.fromList modules))
+
+-- | Creates a @From ... Require Import ...@ sentence.
 requireImportFrom :: G.ModuleIdent -> [G.ModuleIdent] -> G.Sentence
 requireImportFrom library modules = G.ModuleSentence
   (G.Require (Just library) (Just G.Import) (NonEmpty.fromList modules))

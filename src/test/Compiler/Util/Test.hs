@@ -31,7 +31,8 @@ import           Compiler.Pretty
 -- | Evaluates the given converter in the default environment.
 fromConverter :: Converter a -> ReporterIO a
 fromConverter converter = do
-  env <- loadEnvironment "./base/env.toml"
+  preludeEnv <- loadEnvironment "./base/Prelude.toml"
+  let env = importEnv preludeEnv emptyEnv
   hoist $ evalConverter converter env
 
 -- | Evaluates the given reporter and throws an IO exception when a fatal

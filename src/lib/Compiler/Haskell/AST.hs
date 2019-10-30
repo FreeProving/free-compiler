@@ -411,6 +411,14 @@ conApp
 conApp srcSpan = app srcSpan . Con srcSpan
 
 -------------------------------------------------------------------------------
+-- Names of predefined modules                                               --
+-------------------------------------------------------------------------------
+
+-- | The name of the @Prelude@ module.
+preludeModuleName :: Name
+preludeModuleName = Ident "Prelude"
+
+-------------------------------------------------------------------------------
 -- Names of predefined type constructors                                     --
 -------------------------------------------------------------------------------
 

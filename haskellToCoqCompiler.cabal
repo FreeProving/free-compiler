@@ -23,7 +23,7 @@ copyright:           (c) 2018, Flensburg University of Applied Sciences
                      (c) 2019, Kiel University
 category:            Language
 build-type:          Simple
-data-files:          base/env.toml
+data-files:          base/Prelude.toml
                      -- Due to a Bug in Cabal version 2.4, we cannot make
                      -- use of `**` wildcard patterns here. Otherwise, the
                      -- `new-install` command fails.

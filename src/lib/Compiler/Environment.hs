@@ -13,10 +13,11 @@ module Compiler.Environment
   , isTopLevel
   -- * Inserting entries into the environment
   , addEntry
-  , importEntry
   , definePartial
   , defineDecArg
   , defineTypeSig
+  , importEntry
+  , importEnv
   -- * Looking up entries from the environment
   , lookupEntry
   , isLocalEntry
@@ -34,6 +35,7 @@ module Compiler.Environment
   , lookupTypeSig
   , isPartial
   , lookupDecArg
+  , lookupAvailableModule
   -- * QuickCheck support
   , enableQuickCheck
   , isQuickCheckEnabled
@@ -106,6 +108,8 @@ data Environment = Environment
     -- ^ Maps Haskell function names to the index of their decreasing argument.
     --   Contains no entry for non-recursive functions, but there are also
     --   entries for functions that are shadowed by local variables.
+  , envAvailableModules :: Map HS.Name Environment
+    -- ^ Maps names of modules that can be imported to their environments.
   , envQuickCheckEnabled :: Bool
     -- ^ Whether the translation of QuickCheck properties is enabled in the
     --   current environment (i.e. the module imports @Test.QuickCheck@).
@@ -122,6 +126,7 @@ emptyEnv = Environment
   , envPartialFuncs      = Set.empty
   , envDecArgs           = Map.empty
   , envTypeSigs          = Map.empty
+  , envAvailableModules  = Map.empty
   , envQuickCheckEnabled = False
   }
 
@@ -151,11 +156,6 @@ addEntry' name entry depth env = env
                             (envEntries env)
   }
 
--- | Inserys an entry into the given environment and associates it with the
---   given name.
-importEntry :: HS.Name -> EnvEntry -> Environment -> Environment
-importEntry name entry env = addEntry' name entry (-1) env
-
 -- | Inserts the given type signature into the environment.
 defineTypeSig :: HS.Name -> HS.Type -> Environment -> Environment
 defineTypeSig name typeExpr env =
@@ -171,6 +171,25 @@ definePartial name env =
 defineDecArg :: HS.Name -> Int -> Environment -> Environment
 defineDecArg name index env =
   env { envDecArgs = Map.insert name index (envDecArgs env) }
+
+-- | Inserts an entry into the given environment and associates it with the
+--   given name.
+--
+--   In contrast to 'addEntry' the entry is not added at the current 'envDepth'
+--   but at depth @-1@ which indicates that it is not a top level entry but
+--   an external entry and should not be exported.
+importEntry :: HS.Name -> EnvEntry -> Environment -> Environment
+importEntry name entry env = addEntry' name entry (-1) env
+
+-- | Imports all top level entries of the first environment into the
+--   second environment.
+importEnv :: Environment -> Environment -> Environment
+importEnv fromEnv toEnv =
+  foldr (uncurry (uncurry (const importEntry))) toEnv
+    $ Map.assocs
+    $ Map.map fst
+    $ Map.filter ((== 0) . snd)
+    $ envEntries fromEnv
 
 -------------------------------------------------------------------------------
 -- Looking up entries from the environment                                   --
@@ -291,12 +310,16 @@ lookupTypeSig name = Map.lookup name . envTypeSigs
 isPartial :: HS.Name -> Environment -> Bool
 isPartial name = Set.member name . envPartialFuncs
 
--- | Lookups the index of the decreasing argument of the recursive function
+-- | Looks up the index of the decreasing argument of the recursive function
 --   with the given name.
 --
 --   Returns @Nothing@ if there is no such recursive function.
 lookupDecArg :: HS.Name -> Environment -> Maybe Int
 lookupDecArg name = Map.lookup name . envDecArgs
+
+-- | Looks up the environment of another module that can be imported.
+lookupAvailableModule :: HS.Name -> Environment -> Maybe Environment
+lookupAvailableModule name = Map.lookup name . envAvailableModules
 
 -------------------------------------------------------------------------------
 -- QuickCheck support                                                        --
