@@ -41,9 +41,11 @@ import           Compiler.Pretty
 convertFuncComponent
   :: DependencyComponent HS.FuncDecl -> Converter [G.Sentence]
 convertFuncComponent (NonRecursive decl) = do
+  defineFuncDecl decl
   decl' <- convertNonRecFuncDecl decl
   return [decl']
 convertFuncComponent (Recursive decls) = do
+  mapM_ defineFuncDecl decls
   convertRecFuncDecls decls
 
 -------------------------------------------------------------------------------
@@ -84,11 +86,11 @@ convertFuncHead name args = do
 
 -- | Inserts the given function declaration into the current environment.
 defineFuncDecl :: HS.FuncDecl -> Converter ()
-defineFuncDecl (HS.FuncDecl srcSpan (HS.DeclIdent _ ident) args expr) = do
+defineFuncDecl decl@(HS.FuncDecl srcSpan (HS.DeclIdent _ ident) args _) = do
   let name = HS.Ident ident
   funcType               <- lookupTypeSigOrFail srcSpan name
   (argTypes, returnType) <- splitFuncType name args funcType
-  partial                <- isPartialExpr expr
+  partial                <- isPartialFuncDecl decl
   _                      <- renameAndAddEntry FuncEntry
     { entrySrcSpan    = srcSpan
     , entryArity      = length argTypes
@@ -136,14 +138,12 @@ splitFuncType name = splitFuncType'
 -- | Converts a non-recursive Haskell function declaration to a Coq
 --   @Definition@ sentence.
 convertNonRecFuncDecl :: HS.FuncDecl -> Converter G.Sentence
-convertNonRecFuncDecl decl@(HS.FuncDecl _ (HS.DeclIdent _ ident) args expr) =
-  do
-    defineFuncDecl decl
-    localEnv $ do
-      let name = HS.Ident ident
-      (qualid, binders, returnType') <- convertFuncHead name args
-      expr'                          <- convertExpr expr
-      return (G.definitionSentence qualid binders returnType' expr')
+convertNonRecFuncDecl (HS.FuncDecl _ (HS.DeclIdent _ ident) args expr) =
+  localEnv $ do
+    let name = HS.Ident ident
+    (qualid, binders, returnType') <- convertFuncHead name args
+    expr'                          <- convertExpr expr
+    return (G.definitionSentence qualid binders returnType' expr')
 
 -------------------------------------------------------------------------------
 -- Recursive function declarations                                           --

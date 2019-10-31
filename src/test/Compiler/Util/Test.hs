@@ -168,7 +168,12 @@ defineTestVar ident = renameAndAddTestEntry VarEntry
 --   The argument and return types are parsed from the given string.
 --   Returns the Coq identifier assigned to the function.
 defineTestFunc :: String -> Int -> String -> Converter String
-defineTestFunc ident arity typeStr = do
+defineTestFunc = defineTestFunc' False
+
+-- | Like 'defineTestFunc' but the first argument controls whether the
+--   defined function is partial or not.
+defineTestFunc' :: Bool -> String -> Int -> String -> Converter String
+defineTestFunc' partial ident arity typeStr = do
   typeExpr <- parseTestType typeStr
   let (argTypes, returnType) = HS.splitType typeExpr arity
   renameAndAddTestEntry FuncEntry
@@ -177,6 +182,7 @@ defineTestFunc ident arity typeStr = do
     , entryTypeArgs   = catMaybes $ map HS.identFromName $ typeVars typeExpr
     , entryArgTypes   = argTypes
     , entryReturnType = returnType
+    , entryIsPartial  = partial
     , entryIdent      = ident
     }
 
@@ -184,9 +190,7 @@ defineTestFunc ident arity typeStr = do
 --
 --   Returns the Coq identifier assigned to the function.
 definePartialTestFunc :: String -> Int -> String -> Converter String
-definePartialTestFunc ident arity typeStr = do
-  modifyEnv $ definePartial (HS.Ident ident)
-  defineTestFunc ident arity typeStr
+definePartialTestFunc = defineTestFunc' True
 
 -------------------------------------------------------------------------------
 -- Conversion utility functions                                              --

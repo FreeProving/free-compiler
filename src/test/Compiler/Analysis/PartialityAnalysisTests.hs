@@ -2,9 +2,10 @@ module Compiler.Analysis.PartialityAnalysisTests where
 
 import           Test.Hspec
 
-import           Compiler.Analysis.DependencyGraph
 import           Compiler.Analysis.PartialityAnalysis
-import           Compiler.Haskell.AST          as HS
+import           Compiler.Environment
+import qualified Compiler.Haskell.AST          as HS
+import           Compiler.Monad.Converter
 
 import           Compiler.Util.Test
 
@@ -15,60 +16,33 @@ testPartialityAnalysis = describe "Compiler.Analysis.PartialityAnalysis" $ do
     $ shouldSucceed
     $ fromConverter
     $ do
-        (_, _, funcDecls) <- parseTestDecls
+        _ <- convertTestDecls
           [ "head :: [a] -> a"
           , "head xs = case xs of { [] -> undefined; x : xs' -> x }"
           ]
-        return
-          (identifyPartialFuncs [] (funcDependencyGraph funcDecls)
-          `shouldContain` [HS.Ident "head"]
-          )
-
-  it "recognizes indirectly partial functions using 'undefined'"
-    $ shouldSucceed
-    $ fromConverter
-    $ do
-        (_, _, funcDecls) <- parseTestDecls
-          [ "head :: [a] -> a"
-          , "head xs = case xs of { [] -> undefined; x : xs' -> x }"
-          , "heads :: [[a]] -> [a]"
-          , "heads = map head"
-          ]
-        return
-          (identifyPartialFuncs [] (funcDependencyGraph funcDecls)
-          `shouldContain` [HS.Ident "heads"]
-          )
+        partial <- inEnv $ isPartial (HS.Ident "head")
+        return (partial `shouldBe` True)
 
   it "recognizes directly partial functions using 'error'"
     $ shouldSucceed
     $ fromConverter
     $ do
-        (_, _, funcDecls) <- parseTestDecls
+        _ <- convertTestDecls
           [ "head :: [a] -> a"
           , "head xs = case xs of {"
           ++ "  []      -> error \"head: empty list\";"
           ++ "  x : xs' -> x"
           ++ "}"
           ]
-        return
-          (identifyPartialFuncs [] (funcDependencyGraph funcDecls)
-          `shouldContain` [HS.Ident "head"]
-          )
+        partial <- inEnv $ isPartial (HS.Ident "head")
+        return (partial `shouldBe` True)
 
-  it "recognizes indirectly partial functions using 'error'"
+  it "recognizes indirectly partial functions"
     $ shouldSucceed
     $ fromConverter
     $ do
-        (_, _, funcDecls) <- parseTestDecls
-          [ "head :: [a] -> a"
-          , "head xs = case xs of {"
-          ++ "  []      -> error \"head: empty list\";"
-          ++ "  x : xs' -> x"
-          ++ "}"
-          , "heads :: [[a]] -> [a]"
-          , "heads = map head"
-          ]
-        return
-          (identifyPartialFuncs [] (funcDependencyGraph funcDecls)
-          `shouldContain` [HS.Ident "heads"]
-          )
+        _       <- defineTestFunc "map" 2 "(a -> b) -> [a] -> [b]"
+        _       <- definePartialTestFunc "head" 1 "[a] -> a"
+        _ <- convertTestDecls ["heads :: [[a]] -> [a]", "heads = map head"]
+        partial <- inEnv $ isPartial (HS.Ident "heads")
+        return (partial `shouldBe` True)

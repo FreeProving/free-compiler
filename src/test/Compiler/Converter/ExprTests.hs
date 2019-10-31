@@ -2,9 +2,6 @@ module Compiler.Converter.ExprTests where
 
 import           Test.Hspec
 
-import           Compiler.Environment
-import           Compiler.Haskell.AST          as HS
-import           Compiler.Monad.Converter
 import           Compiler.Util.Test
 
 -------------------------------------------------------------------------------
@@ -164,8 +161,7 @@ testConvertFuncApp = context "function applications" $ do
     $ shouldSucceed
     $ fromConverter
     $ do
-        "f" <- defineTestFunc "f" 1 "a -> b -> c"
-        modifyEnv $ definePartial (HS.Ident "f")
+        "f" <- definePartialTestFunc "f" 1 "a -> b -> c"
         "x" <- defineTestVar "x"
         "f x" `shouldTranslateExprTo` "f Shape Pos P x"
 
