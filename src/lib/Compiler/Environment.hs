@@ -17,6 +17,7 @@ module Compiler.Environment
   , defineTypeSig
   , importEntry
   , importEnv
+  , makeModuleAvailable
   -- * Looking up entries from the environment
   , lookupEntry
   , isLocalEntry
@@ -177,6 +178,12 @@ importEnv fromEnv toEnv =
     $ Map.map fst
     $ Map.filter ((== 0) . snd)
     $ envEntries fromEnv
+
+-- | Inserts the environment of a module with the given name into the
+--   environment such that it can be imported.
+makeModuleAvailable :: HS.Name -> Environment -> Environment -> Environment
+makeModuleAvailable name modEnv env =
+  env { envAvailableModules = Map.insert name modEnv (envAvailableModules env) }
 
 -------------------------------------------------------------------------------
 -- Looking up entries from the environment                                   --

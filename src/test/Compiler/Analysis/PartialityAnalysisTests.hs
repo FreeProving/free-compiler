@@ -2,7 +2,6 @@ module Compiler.Analysis.PartialityAnalysisTests where
 
 import           Test.Hspec
 
-import           Compiler.Analysis.PartialityAnalysis
 import           Compiler.Environment
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Monad.Converter

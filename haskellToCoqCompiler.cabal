@@ -141,6 +141,7 @@ test-suite unit-tests
                     , Compiler.ConverterTests
                     , Compiler.Converter.ExprTests
                     , Compiler.Converter.FuncDeclTests
+                    , Compiler.Converter.ModuleTests
                     , Compiler.Converter.QuickCheckTests
                     , Compiler.Converter.TypeDeclTests
                     , Compiler.Converter.TypeTests

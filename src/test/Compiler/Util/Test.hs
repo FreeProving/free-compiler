@@ -29,11 +29,22 @@ import           Compiler.Pretty
 -------------------------------------------------------------------------------
 
 -- | Evaluates the given converter in the default environment.
+--
+--   The @Prelude@ module is imported first.
 fromConverter :: Converter a -> ReporterIO a
-fromConverter converter = do
-  preludeEnv <- loadEnvironment "./base/Prelude.toml"
-  let env = importEnv preludeEnv emptyEnv
-  hoist $ evalConverter converter env
+fromConverter converter = fromModuleConverter $ do
+  Just preludeEnv <- inEnv $ lookupAvailableModule HS.preludeModuleName
+  modifyEnv $ importEnv preludeEnv
+  converter
+
+-- | Like 'fromConverter' but the @Prelude@ module is not imported
+--   automatically such that Haskell modules can be converted in the
+--   given converter.
+fromModuleConverter :: Converter a -> ReporterIO a
+fromModuleConverter converter = flip evalConverterT emptyEnv $ do
+  preludeEnv <- lift' $ loadEnvironment "./base/Prelude.toml"
+  modifyEnv $ makeModuleAvailable HS.preludeModuleName preludeEnv
+  hoist converter
 
 -- | Evaluates the given reporter and throws an IO exception when a fatal
 --   error message is reported.
@@ -104,6 +115,11 @@ parseTestDecls
   :: [String] -> Simplifier ([HS.TypeDecl], [HS.TypeSig], [HS.FuncDecl])
 parseTestDecls input =
   liftReporter (mapM (parseDecl "<test-input>") input) >>= simplifyDecls
+
+-- | Parses and simplifies a Haskell module for testing purposes.
+parseTestModule :: [String] -> Simplifier HS.Module
+parseTestModule input =
+  liftReporter (parseModule "<test-input>" (unlines input)) >>= simplifyModule
 
 -------------------------------------------------------------------------------
 -- Defining test idenifiers                                                  --
@@ -213,8 +229,16 @@ convertTestDecl = convertTestDecls . return
 convertTestDecls :: [String] -> Converter [G.Sentence]
 convertTestDecls input = do
   (typeDecls, typeSigs, funcDecls) <- parseTestDecls input
-  decls'                           <- convertDecls typeDecls typeSigs funcDecls
-  return decls'
+  convertDecls typeDecls typeSigs funcDecls
+
+-- | Parses, simplifies and converts a Haskell module for testing purposes.
+convertTestModule :: [String] -> Converter [G.Sentence]
+convertTestModule input = do
+  haskellAst <- parseTestModule input
+  let Just modName = HS.modName haskellAst -- TODO
+  (coqAst, modEnv) <- localEnv' $ (,) <$> convertModule haskellAst <*> getEnv
+  modifyEnv $ makeModuleAvailable modName modEnv
+  return coqAst
 
 -------------------------------------------------------------------------------
 -- Conversion expectations                                                   --
