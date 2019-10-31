@@ -78,6 +78,7 @@ encodeEntry name entry
       , "haskell-name" .= haskellName
       , "coq-name" .= coqName
       , "arity" .= arity
+      , "partial" .= partial
       ]
   | otherwise = error "encodeEntry: Cannot serialize (type) variable entry."
  where
@@ -90,6 +91,9 @@ encodeEntry name entry
 
   arity :: Aeson.Value
   arity = Aeson.toJSON (entryArity entry)
+
+  partial :: Aeson.Value
+  partial = Aeson.toJSON (entryIsPartial entry)
 
   maybeHaskellType :: Maybe Aeson.Value
   maybeHaskellType = do

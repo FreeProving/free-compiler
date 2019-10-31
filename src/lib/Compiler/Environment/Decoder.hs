@@ -63,6 +63,8 @@
 --     * @coq-name@ (@String@) the identifier of the corresponding Coq
 --       function.
 --     * @arity@ (@Integer@) the number of arguments expected by the function.
+--     * @partial@ (@Boolean@) whether the function is partial (i.e., requires
+--       an instance of the @Partial@ type class).
 
 module Compiler.Environment.Decoder
   ( loadEnvironment
@@ -152,8 +154,8 @@ instance Aeson.FromJSON Environment where
       coqName     <- obj .: "coq-name"
       return $ addEntry haskellName DataEntry
         { entrySrcSpan = NoSrcSpan
-        , entryArity = arity
-        , entryIdent = coqName
+        , entryArity   = arity
+        , entryIdent   = coqName
         }
 
     parseConfigTypeSyn
@@ -166,11 +168,11 @@ instance Aeson.FromJSON Environment where
       haskellName <- obj .: "haskell-name"
       coqName     <- obj .: "coq-name"
       return $ addEntry haskellName TypeSynEntry
-        { entrySrcSpan = NoSrcSpan
-        , entryArity = arity
+        { entrySrcSpan  = NoSrcSpan
+        , entryArity    = arity
         , entryTypeArgs = typeArgs
-        , entryTypeSyn = typeSyn
-        , entryIdent = coqName
+        , entryTypeSyn  = typeSyn
+        , entryIdent    = coqName
         }
 
     parseConfigCon :: Aeson.Value -> Aeson.Parser (Environment -> Environment)
@@ -182,11 +184,11 @@ instance Aeson.FromJSON Environment where
       coqSmartName           <- obj .: "coq-smart-name"
       let (argTypes, returnType) = HS.splitType haskellType arity
       return $ addEntry haskellName ConEntry
-        { entrySrcSpan = NoSrcSpan
-        , entryArity = arity
-        , entryArgTypes = argTypes
+        { entrySrcSpan    = NoSrcSpan
+        , entryArity      = arity
+        , entryArgTypes   = argTypes
         , entryReturnType = returnType
-        , entryIdent = coqName
+        , entryIdent      = coqName
         , entrySmartIdent = coqSmartName
         }
 
@@ -195,6 +197,7 @@ instance Aeson.FromJSON Environment where
       arity       <- obj .: "arity"
       haskellName <- obj .: "haskell-name"
       haskellType <- obj .: "haskell-type"
+      partial     <- obj .: "partial"
       coqName     <- obj .: "coq-name"
       let (argTypes, returnType) = HS.splitType haskellType arity
       return $ addEntry haskellName FuncEntry
@@ -202,9 +205,10 @@ instance Aeson.FromJSON Environment where
         , entryArity    = arity
         , entryTypeArgs =
             catMaybes $ map HS.identFromName $ typeVars haskellType
-        , entryArgTypes = argTypes
+        , entryArgTypes   = argTypes
         , entryReturnType = returnType
-        , entryIdent = coqName
+        , entryIsPartial  = partial
+        , entryIdent      = coqName
         }
 
 -- | Loads an environment configuration file from a @.toml@ or @.json@ file.

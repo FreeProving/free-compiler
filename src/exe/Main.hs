@@ -112,6 +112,12 @@ processInputModule :: HS.Module -> Application ()
 processInputModule haskellAst = do
   -- Convert module and update environment.
   let (Just modName) = HS.modName haskellAst -- TODO
+  putDebug
+    $  "Compiling "
+    ++ showPretty modName
+    ++ " ("
+    ++ srcSpanFilename (HS.modSrcSpan haskellAst)
+    ++ ")"
   Just env         <- inState $ lookupEnv modName
   availableModules <- inState appEnvs
   (coqAst, env')   <- liftConverter'

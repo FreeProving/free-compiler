@@ -3,9 +3,7 @@
 
 module Compiler.Converter.FuncDecl where
 
-import           Control.Monad                  ( mapAndUnzipM
-                                                , when
-                                                )
+import           Control.Monad                  ( mapAndUnzipM )
 import qualified Data.List.NonEmpty            as NonEmpty
 import           Data.Maybe                     ( catMaybes
                                                 , fromJust
@@ -15,6 +13,7 @@ import qualified Data.Set                      as Set
 import           Compiler.Analysis.DependencyAnalysis
 import           Compiler.Analysis.DependencyExtraction
                                                 ( typeVars )
+import           Compiler.Analysis.PartialityAnalysis
 import           Compiler.Analysis.RecursionAnalysis
 import           Compiler.Converter.Arg
 import           Compiler.Converter.Expr
@@ -85,16 +84,18 @@ convertFuncHead name args = do
 
 -- | Inserts the given function declaration into the current environment.
 defineFuncDecl :: HS.FuncDecl -> Converter ()
-defineFuncDecl (HS.FuncDecl srcSpan (HS.DeclIdent _ ident) args _) = do
+defineFuncDecl (HS.FuncDecl srcSpan (HS.DeclIdent _ ident) args expr) = do
   let name = HS.Ident ident
   funcType               <- lookupTypeSigOrFail srcSpan name
   (argTypes, returnType) <- splitFuncType name args funcType
+  partial                <- isPartialExpr expr
   _                      <- renameAndAddEntry FuncEntry
     { entrySrcSpan    = srcSpan
     , entryArity      = length argTypes
     , entryTypeArgs   = catMaybes $ map HS.identFromName $ typeVars funcType
     , entryArgTypes   = map Just argTypes
     , entryReturnType = Just returnType
+    , entryIsPartial  = partial
     , entryIdent      = ident
     }
   return ()
@@ -251,22 +252,21 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent args expr) decArgIndex = do
     -- The types of the original parameters are known, but we neither know the
     -- type of the additional parameters nor the return type of the helper
     -- function.
+    -- If the original function was partial, the helper function is partial as
+    -- well.
     funcType      <- lookupTypeSigOrFail srcSpan name
     (argTypes, _) <- splitFuncType name args funcType
     let argTypes' = map Just argTypes ++ replicate (length usedVars) Nothing
-    _ <- renameAndAddEntry $ FuncEntry
+    partial <- inEnv $ isPartial name
+    _       <- renameAndAddEntry $ FuncEntry
       { entrySrcSpan    = NoSrcSpan
       , entryArity      = length argTypes'
       , entryTypeArgs   = catMaybes $ map HS.identFromName $ typeVars funcType
       , entryArgTypes   = argTypes'
       , entryReturnType = Nothing
+      , entryIsPartial  = partial
       , entryIdent      = helperIdent
       }
-
-    -- If the original function was partial, the helper function is partial as
-    -- well.
-    partial <- inEnv $ isPartial name
-    when partial (modifyEnv $ definePartial helperName)
 
     -- Additionally we need to remember the index of the decreasing argument
     -- (see 'convertDecArg').

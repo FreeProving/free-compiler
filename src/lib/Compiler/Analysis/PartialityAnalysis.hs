@@ -1,35 +1,60 @@
--- | This module contains a function that uses the function dependency graph
---   to identify partial function declarations.
+-- | This module contains functions for testing  whether a function
+--   declaration is partial (i.e., needs a instance of the @Partial@
+--   type class when translated to Coq).
 
-module Compiler.Analysis.PartialityAnalysis where
+module Compiler.Analysis.PartialityAnalysis
+  ( isPartialFuncDecl
+  , isPartialExpr
+  )
+where
 
-import           Data.Graph
-import           Data.List                      ( nub )
-import           Data.Tuple.Extra
+import           Compiler.Environment
+import           Compiler.Environment.Renamer
+import qualified Compiler.Haskell.AST          as HS
+import           Compiler.Monad.Converter
 
-import           Compiler.Analysis.DependencyGraph
+-- | Tests whether the given function uses a partial function on its
+--   right-hand side.
+isPartialFuncDecl :: HS.FuncDecl -> Converter Bool
+isPartialFuncDecl (HS.FuncDecl _ _ args expr) = localEnv $ do
+  mapM_ shadowVar args
+  isPartialExpr expr
 
--- | Identifies function declatations that are either partial because they
---   contain error terms or depend on a function that are partial in turn.
---
---   The first argument contains the names of (predefined) functions that are
---   known to be partial.
-identifyPartialFuncs :: [DGKey] -> DependencyGraph decl -> [DGKey]
-identifyPartialFuncs predefined (DependencyGraph graph getEntry _) = map
-  (snd3 . getEntry)
-  indirect
- where
-  -- | Vertices of functions that are partial because they contain error terms.
-  direct :: [Vertex]
-  direct = filter (isDirectlyPartial . getEntry) (vertices graph)
+-- | Tests whether the given expression uses a partial function.
+isPartialExpr :: HS.Expr -> Converter Bool
+isPartialExpr (HS.Con _ _    ) = return False
+isPartialExpr (HS.Var _ name ) = inEnv $ isPartial name
+isPartialExpr (HS.App _ e1 e2) = do
+  p1 <- isPartialExpr e1
+  p2 <- isPartialExpr e2
+  return (p1 || p2)
+isPartialExpr (HS.If _ e1 e2 e3) = do
+  p1 <- isPartialExpr e1
+  p2 <- isPartialExpr e2
+  p3 <- isPartialExpr e3
+  return (p1 || p2 || p3)
+isPartialExpr (HS.Case _ expr alts) = do
+  partialExpr <- isPartialExpr expr
+  partialArgs <- mapM isPartialAlt alts
+  return (foldr (||) partialExpr partialArgs)
+isPartialExpr (HS.Undefined _       ) = return True
+isPartialExpr (HS.ErrorExpr  _ _    ) = return True
+isPartialExpr (HS.IntLiteral _ _    ) = return False
+isPartialExpr (HS.Lambda _ args expr) = localEnv $ do
+  mapM_ shadowVar args
+  isPartialExpr expr
 
-  -- | Vertices of functions that are partial because they contain error
-  --   terms or depend on other partial functions.
-  indirect :: [Vertex]
-  indirect = nub (concatMap (reachable (transposeG graph)) direct)
+-- | Tests whether the given alternative of a case expression uses a partial
+--   function on its right-hand side.
+isPartialAlt :: HS.Alt -> Converter Bool
+isPartialAlt (HS.Alt _ _ varPats expr) = localEnv $ do
+  mapM_ shadowVar varPats
+  isPartialExpr expr
 
-  -- | Tests whether a function contains error terms or references to
-  --   predefined partial functions.
-  isDirectlyPartial :: DGEntry decl -> Bool
-  isDirectlyPartial (_, _, deps) =
-    any (`elem` deps) ([errorKey, undefinedKey] ++ predefined)
+-- | Inserts entries for the given variable entry into the current
+--   environment such that function entries with the same name are
+--   shadowed.
+shadowVar :: HS.VarPat -> Converter ()
+shadowVar (HS.VarPat srcSpan ident) = do
+  _ <- renameAndDefineVar srcSpan False ident
+  return ()

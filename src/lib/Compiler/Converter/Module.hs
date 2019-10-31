@@ -3,14 +3,12 @@
 module Compiler.Converter.Module where
 
 import           Control.Monad.Extra            ( concatMapM )
-import qualified Data.Set                      as Set
 import           Data.Maybe                     ( catMaybes
                                                 , maybe
                                                 )
 
 import           Compiler.Analysis.DependencyAnalysis
 import           Compiler.Analysis.DependencyGraph
-import           Compiler.Analysis.PartialityAnalysis
 import           Compiler.Converter.FuncDecl
 import           Compiler.Converter.TypeDecl
 import           Compiler.Converter.QuickCheck
@@ -63,11 +61,6 @@ convertFuncDecls :: [HS.FuncDecl] -> Converter [G.Sentence]
 convertFuncDecls funcDecls = do
   let dependencyGraph = funcDependencyGraph funcDecls
       components      = groupDependencies dependencyGraph
-
-  -- Identify and remember partial functions.
-  predefinedPartialFuncs <- inEnv envPartialFuncs >>= return . Set.toList
-  mapM_ (modifyEnv . definePartial)
-        (identifyPartialFuncs predefinedPartialFuncs dependencyGraph)
 
   -- Filter QuickCheck properties.
   (properties, funcComponents) <- filterQuickCheckProperties components

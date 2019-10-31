@@ -13,7 +13,6 @@ module Compiler.Environment
   , isTopLevel
   -- * Inserting entries into the environment
   , addEntry
-  , definePartial
   , defineDecArg
   , defineTypeSig
   , importEntry
@@ -49,8 +48,6 @@ import           Data.List                      ( find )
 import           Data.Map.Strict                ( Map )
 import qualified Data.Map.Strict               as Map
 import           Data.Maybe                     ( fromMaybe )
-import           Data.Set                       ( Set )
-import qualified Data.Set                      as Set
 import           Data.Tuple.Extra               ( (&&&) )
 import           Control.Monad                  ( join )
 
@@ -100,10 +97,6 @@ data Environment = Environment
   , envFreshIdentCount :: Map String Int
     -- ^ The number of fresh identifiers that were used in the environment
     --   with a certain prefix.
-  , envPartialFuncs :: Set HS.Name
-    -- ^ The names of partial functions. This map also contains entries for
-    --   functions that have not yet been defined and functions that are
-    --   shadowed by local vairables.
   , envDecArgs :: Map HS.Name Int
     -- ^ Maps Haskell function names to the index of their decreasing argument.
     --   Contains no entry for non-recursive functions, but there are also
@@ -123,7 +116,6 @@ emptyEnv = Environment
   { envDepth             = 0
   , envEntries           = Map.empty
   , envFreshIdentCount   = Map.empty
-  , envPartialFuncs      = Set.empty
   , envDecArgs           = Map.empty
   , envTypeSigs          = Map.empty
   , envAvailableModules  = Map.empty
@@ -160,11 +152,6 @@ addEntry' name entry depth env = env
 defineTypeSig :: HS.Name -> HS.Type -> Environment -> Environment
 defineTypeSig name typeExpr env =
   env { envTypeSigs = Map.insert name typeExpr (envTypeSigs env) }
-
--- | Inserts the given function name into the set of partial functions.
-definePartial :: HS.Name -> Environment -> Environment
-definePartial name env =
-  env { envPartialFuncs = Set.insert name (envPartialFuncs env) }
 
 -- | Stores the index of the decreasing argument of a recursive function
 --   in the environmen
@@ -308,7 +295,10 @@ lookupTypeSig name = Map.lookup name . envTypeSigs
 --
 --   Returns @False@ if there is no such function.
 isPartial :: HS.Name -> Environment -> Bool
-isPartial name = Set.member name . envPartialFuncs
+isPartial =
+  fromMaybe False
+    .  fmap (isFuncEntry .&&. entryIsPartial)
+    .: lookupEntry ValueScope
 
 -- | Looks up the index of the decreasing argument of the recursive function
 --   with the given name.

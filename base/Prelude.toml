@@ -40,16 +40,18 @@
   arity          = 0
 
 [[functions]]
-  arity        = 2
   haskell-type = "Bool -> Bool -> Bool"
   haskell-name = "&&"
   coq-name     = "andBool"
+  arity        = 2
+  partial      = false
 
 [[functions]]
   haskell-type = "Bool -> Bool -> Bool"
   haskell-name = "||"
   coq-name     = "orBool"
   arity        = 2
+  partial      = false
 
 ##############################################################################
 # Integer                                                                    #
@@ -65,66 +67,77 @@
   haskell-name = "+"
   coq-name     = "addInteger"
   arity        = 2
+  partial      = false
 
 [[functions]]
   haskell-type = "Integer -> Integer -> Integer"
   haskell-name = "-"
   coq-name     = "subInteger"
   arity        = 2
+  partial      = false
 
 [[functions]]
   haskell-type = "Integer -> Integer -> Integer"
   haskell-name = "*"
   coq-name     = "mulInteger"
   arity        = 2
+  partial      = false
 
 [[functions]]
   haskell-type = "Integer -> Integer -> Integer"
   haskell-name = "^"
   coq-name     = "powInteger"
   arity        = 2
+  partial      = false
 
 [[functions]]
   haskell-type = "Integer -> Integer -> Bool"
   haskell-name = "<="
   coq-name     = "leInteger"
   arity        = 2
+  partial      = false
 
 [[functions]]
   haskell-type = "Integer -> Integer -> Bool"
   haskell-name = "<"
   coq-name     = "ltInteger"
   arity        = 2
+  partial      = false
 
 [[functions]]
   haskell-type = "Integer -> Integer -> Bool"
   haskell-name = "=="
   coq-name     = "eqInteger"
   arity        = 2
+  partial      = false
 
 [[functions]]
   haskell-type = "Integer -> Integer -> Bool"
   haskell-name = "/="
   coq-name     = "neqInteger"
   arity        = 2
+  partial      = false
 
 [[functions]]
   haskell-type = "Integer -> Integer -> Bool"
   haskell-name = ">="
   coq-name     = "geInteger"
   arity        = 2
+  partial      = false
 
 [[functions]]
   haskell-type = "Integer -> Integer -> Bool"
   haskell-name = ">"
   coq-name     = "gtInteger"
   arity        = 2
+  partial      = false
 
 [[functions]]
   haskell-type = "Integer -> Integer -> Integer"
   haskell-name = "negate"
   coq-name     = "negate"
   arity        = 1
+  partial      = false
 
 # Alias for `negate`, that cannot be shadowed.
 [[functions]]
@@ -132,6 +145,7 @@
   haskell-name = "Prelude.negate"
   coq-name     = "negate"
   arity        = 1
+  partial      = false
 
 ##############################################################################
 # Lists                                                                      #
