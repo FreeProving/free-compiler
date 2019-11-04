@@ -20,7 +20,7 @@ isPartialFuncDecl :: HS.FuncDecl -> Converter Bool
 isPartialFuncDecl decl = anyM isPartialFuncName (funcDeclDependencies decl)
  where
   -- | Tests whether the function with the given name is partial.
-  isPartialFuncName :: HS.Name -> Converter Bool
-  isPartialFuncName (HS.Ident "undefined") = return True
-  isPartialFuncName (HS.Ident "error"    ) = return True
-  isPartialFuncName name                   = inEnv $ isPartial name
+  isPartialFuncName :: HS.QName -> Converter Bool
+  isPartialFuncName name | name == HS.undefinedFuncName = return True
+                         | name == HS.errorFuncName     = return True
+                         | otherwise                    = inEnv $ isPartial name

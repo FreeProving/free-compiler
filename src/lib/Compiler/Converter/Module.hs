@@ -93,6 +93,7 @@ convertImportDecls imports = do
     | otherwise = do
       Just preludeEnv <- inEnv $ lookupAvailableModule HS.preludeModuleName
       modifyEnv $ importEnv preludeEnv
+      modifyEnv $ importEnvAs HS.preludeModuleName preludeEnv
       Just <$> generateImport HS.preludeModuleName
 
 -- | Convert a import declaration.
@@ -106,7 +107,9 @@ convertImportDecl (HS.ImportDecl _ "Test.QuickCheck") = do
 convertImportDecl (HS.ImportDecl srcSpan modName) = do
   maybeModEnv <- inEnv $ lookupAvailableModule modName
   case maybeModEnv of
-    Just modEnv -> modifyEnv $ importEnv modEnv
+    Just modEnv -> do
+      modifyEnv $ importEnv modEnv
+      modifyEnv $ importEnvAs modName modEnv
     Nothing ->
       reportFatal
         $  Message srcSpan Error
@@ -132,5 +135,10 @@ generateImport modName
 --   TODO warn if there are unused type signatures.
 defineTypeSigDecl :: HS.TypeSig -> Converter ()
 defineTypeSigDecl (HS.TypeSig _ idents typeExpr) = mapM_
-  (modifyEnv . flip defineTypeSig typeExpr . HS.Ident . HS.fromDeclIdent)
+  ( modifyEnv
+  . flip defineTypeSig typeExpr
+  . HS.UnQual
+  . HS.Ident
+  . HS.fromDeclIdent
+  )
   idents

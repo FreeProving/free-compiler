@@ -117,7 +117,7 @@ defineTypeDecl (HS.DataDecl srcSpan declIdent typeVarDecls conDecls) = do
   returnType :: HS.Type
   returnType = HS.typeApp
     srcSpan
-    (HS.Ident ident)
+    (HS.UnQual (HS.Ident ident))
     (map (HS.TypeVar srcSpan . HS.fromDeclIdent) typeVarDecls)
 
   -- | Inserts the given data constructor declaration and its smart constructor
@@ -148,7 +148,7 @@ convertTypeSynDecl :: HS.TypeDecl -> Converter [G.Sentence]
 convertTypeSynDecl (HS.TypeSynDecl _ declIdent typeVarDecls typeExpr) =
   localEnv $ do
     let ident = HS.fromDeclIdent declIdent
-        name  = HS.Ident ident
+        name  = HS.UnQual (HS.Ident ident)
     Just qualid   <- inEnv $ lookupIdent TypeScope name
     typeVarDecls' <- convertTypeVarDecls G.Explicit typeVarDecls
     typeExpr'     <- convertType' typeExpr
@@ -222,7 +222,7 @@ convertDataDecl (HS.DataDecl _ (HS.DeclIdent _ ident) typeVarDecls conDecls) =
   --   'generateSmartConDecl').
   generateBodyAndArguments :: Converter (G.IndBody, [G.Sentence])
   generateBodyAndArguments = localEnv $ do
-    Just qualid        <- inEnv $ lookupIdent TypeScope (HS.Ident ident)
+    Just qualid <- inEnv $ lookupIdent TypeScope (HS.UnQual (HS.Ident ident))
     typeVarDecls'      <- convertTypeVarDecls G.Explicit typeVarDecls
     conDecls'          <- mapM convertConDecl conDecls
     argumentsSentences <- mapM generateArgumentsSentence conDecls
@@ -237,7 +237,7 @@ convertDataDecl (HS.DataDecl _ (HS.DeclIdent _ ident) typeVarDecls conDecls) =
   -- | Converts a constructor of the data type.
   convertConDecl :: HS.ConDecl -> Converter (G.Qualid, [G.Binder], Maybe G.Term)
   convertConDecl (HS.ConDecl _ (HS.DeclIdent _ conIdent) args) = do
-    let conName = (HS.Ident conIdent)
+    let conName = HS.UnQual (HS.Ident conIdent)
     Just conQualid  <- inEnv $ lookupIdent ValueScope conName
     Just returnType <- inEnv $ lookupReturnType ValueScope conName
     args'           <- mapM convertType args
@@ -247,8 +247,10 @@ convertDataDecl (HS.DataDecl _ (HS.DeclIdent _ ident) typeVarDecls conDecls) =
   -- | Generates the @Arguments@ sentence for the given constructor declaration.
   generateArgumentsSentence :: HS.ConDecl -> Converter G.Sentence
   generateArgumentsSentence (HS.ConDecl _ (HS.DeclIdent _ conIdent) _) = do
-    Just qualid <- inEnv $ lookupIdent ValueScope (HS.Ident conIdent)
-    let typeVarIdents = map (HS.Ident . HS.fromDeclIdent) typeVarDecls
+    Just qualid <- inEnv
+      $ lookupIdent ValueScope (HS.UnQual (HS.Ident conIdent))
+    let typeVarIdents =
+          map (HS.UnQual . HS.Ident . HS.fromDeclIdent) typeVarDecls
     typeVarQualids <- mapM (inEnv . lookupIdent TypeScope) typeVarIdents
     return
       (G.ArgumentsSentence
@@ -266,7 +268,7 @@ convertDataDecl (HS.DataDecl _ (HS.DeclIdent _ ident) typeVarDecls conDecls) =
   --   declaration.
   generateSmartConDecl :: HS.ConDecl -> Converter G.Sentence
   generateSmartConDecl (HS.ConDecl _ declIdent argTypes) = localEnv $ do
-    let conName = HS.Ident (HS.fromDeclIdent declIdent)
+    let conName = HS.UnQual (HS.Ident (HS.fromDeclIdent declIdent))
     Just qualid             <- inEnv $ lookupIdent ValueScope conName
     Just smartQualid        <- inEnv $ lookupSmartIdent conName
     Just returnType         <- inEnv $ lookupReturnType ValueScope conName

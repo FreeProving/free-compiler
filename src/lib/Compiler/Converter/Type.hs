@@ -44,7 +44,7 @@ convertType t = do
 --     remain unchanged otherwise.
 convertType' :: HS.Type -> Converter G.Term
 convertType' (HS.TypeVar srcSpan ident) = do
-  qualid <- lookupIdentOrFail srcSpan TypeScope (HS.Ident ident)
+  qualid <- lookupIdentOrFail srcSpan TypeScope (HS.UnQual (HS.Ident ident))
   return (G.Qualid qualid)
 convertType' (HS.TypeCon srcSpan name) = do
   qualid <- lookupIdentOrFail srcSpan TypeScope name

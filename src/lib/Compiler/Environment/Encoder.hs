@@ -51,8 +51,9 @@ instance Aeson.ToJSON Environment where
         $ envEntries env
 
 -- | Encodes an entry of the environment with the given name.
-encodeEntry :: HS.Name -> EnvEntry -> Maybe Aeson.Value
-encodeEntry name entry
+encodeEntry :: HS.QName -> EnvEntry -> Maybe Aeson.Value
+encodeEntry (HS.Qual _ _) _ = Nothing
+encodeEntry (HS.UnQual name) entry
   | isDataEntry entry = return $ Aeson.object
     ["haskell-name" .= haskellName, "coq-name" .= coqName, "arity" .= arity]
   | isTypeSynEntry entry = return $ Aeson.object

@@ -39,7 +39,7 @@ checkDecArgs decls decArgIndecies = all (uncurry checkDecArg)
  where
   -- | Maps the names of functions in the strongly connected component
   --   to the index of their decreasing argument.
-  decArgMap :: Map HS.Name DecArgIndex
+  decArgMap :: Map HS.QName DecArgIndex
   decArgMap =
     foldr (uncurry insertFuncDecl) Map.empty (zip decls decArgIndecies)
 
@@ -48,16 +48,16 @@ checkDecArgs decls decArgIndecies = all (uncurry checkDecArg)
   insertFuncDecl
     :: HS.FuncDecl
     -> DecArgIndex
-    -> Map HS.Name DecArgIndex
-    -> Map HS.Name DecArgIndex
+    -> Map HS.QName DecArgIndex
+    -> Map HS.QName DecArgIndex
   insertFuncDecl (HS.FuncDecl _ (HS.DeclIdent _ ident) _ _) decArg =
-    Map.insert (HS.Ident ident) decArg
+    Map.insert (HS.UnQual (HS.Ident ident)) decArg
 
   -- | Tests whether the given function declaration actually decreases on the
   --   argument with the given index.
   checkDecArg :: DecArgIndex -> HS.FuncDecl -> Bool
   checkDecArg decArgIndex (HS.FuncDecl _ _ args expr) =
-    let decArg = HS.Ident (HS.fromVarPat (args !! decArgIndex))
+    let decArg = HS.UnQual (HS.Ident (HS.fromVarPat (args !! decArgIndex)))
     in  checkExpr decArg Set.empty expr []
 
   -- | Tests whether there is a variable that is structurally smaller than the
@@ -70,7 +70,7 @@ checkDecArgs decls decArgIndecies = all (uncurry checkDecArg)
   --
   --   The last argument is a list of actual arguments passed to the given
   --   expression.
-  checkExpr :: HS.Name -> Set HS.Name -> HS.Expr -> [HS.Expr] -> Bool
+  checkExpr :: HS.QName -> Set HS.QName -> HS.Expr -> [HS.Expr] -> Bool
   checkExpr decArg smaller = checkExpr'
    where
     -- If one of the recursive functions is applied, there must be a
@@ -132,16 +132,17 @@ checkDecArgs decls decArgIndecies = all (uncurry checkDecArg)
       in  checkExpr decArg smaller' expr []
 
     -- | Adds the given variables to the set of structurally smaller variables.
-    withArgs :: [HS.VarPat] -> Set HS.Name -> Set HS.Name
+    withArgs :: [HS.VarPat] -> Set HS.QName -> Set HS.QName
     withArgs args set =
-      set `Set.union` Set.fromList (map (HS.Ident . HS.fromVarPat) args)
+      set `Set.union` Set.fromList
+        (map (HS.UnQual . HS.Ident . HS.fromVarPat) args)
 
     -- | Removes the given variables to the set of structurally smaller
     --   variables (because they are shadowed by an argument from a lambda
     --   abstraction or @case@-alternative).
-    withoutArgs :: [HS.VarPat] -> Set HS.Name -> Set HS.Name
+    withoutArgs :: [HS.VarPat] -> Set HS.QName -> Set HS.QName
     withoutArgs args set =
-      set \\ Set.fromList (map (HS.Ident . HS.fromVarPat) args)
+      set \\ Set.fromList (map (HS.UnQual . HS.Ident . HS.fromVarPat) args)
 
 -- | Identifies the decreasing arguments of the given mutually recursive
 --   function declarations.

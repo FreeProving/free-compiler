@@ -35,6 +35,7 @@ fromConverter :: Converter a -> ReporterIO a
 fromConverter converter = fromModuleConverter $ do
   Just preludeEnv <- inEnv $ lookupAvailableModule HS.preludeModuleName
   modifyEnv $ importEnv preludeEnv
+  modifyEnv $ importEnvAs HS.preludeModuleName preludeEnv
   converter
 
 -- | Like 'fromConverter' but the @Prelude@ module is not imported
@@ -195,7 +196,7 @@ defineTestFunc' partial ident arity typeStr = do
   renameAndAddTestEntry FuncEntry
     { entrySrcSpan    = NoSrcSpan
     , entryArity      = arity
-    , entryTypeArgs   = catMaybes $ map HS.identFromName $ typeVars typeExpr
+    , entryTypeArgs   = catMaybes $ map HS.identFromQName $ typeVars typeExpr
     , entryArgTypes   = argTypes
     , entryReturnType = returnType
     , entryIsPartial  = partial
@@ -271,7 +272,7 @@ shouldTranslateExprTo input expectedOutput = do
     `shouldBe` discardWhitespace expectedOutput
     )
 
--- | Translates the string representation of a Haskell declaration to Coq and
+-- | Translates the string representation of Haskell declarations to Coq and
 --   sets the expectation that the result equals the given Gallina sentences.
 --
 --   Whitespace in the actual and expected output does not have to match.

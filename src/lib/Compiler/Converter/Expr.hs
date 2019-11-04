@@ -55,7 +55,7 @@ etaConvert rootExpr = arityOf rootExpr >>= etaAbstractN rootExpr
   etaAbstractN expr n = do
     x     <- freshHaskellIdent freshArgPrefix
     expr' <- etaAbstractN
-      (HS.app NoSrcSpan expr [HS.Var NoSrcSpan (HS.Ident x)])
+      (HS.app NoSrcSpan expr [HS.Var NoSrcSpan (HS.UnQual (HS.Ident x))])
       (n - 1)
     return (HS.Lambda NoSrcSpan [HS.VarPat NoSrcSpan x] expr')
 

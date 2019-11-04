@@ -31,7 +31,7 @@ importAndEnableQuickCheck :: Converter ()
 importAndEnableQuickCheck = do
   modifyEnv $ enableQuickCheck
   modifyEnv $ addEntry
-    (HS.Ident "Property")
+    (HS.UnQual (HS.Ident "Property"))
     DataEntry {entrySrcSpan = NoSrcSpan, entryArity = 0, entryIdent = "Prop"}
 
 -------------------------------------------------------------------------------
@@ -95,7 +95,7 @@ convertQuickCheckProperty :: HS.FuncDecl -> Converter [G.Sentence]
 convertQuickCheckProperty decl@(HS.FuncDecl _ declIdent args expr) = do
   defineFuncDecl decl
   localEnv $ do
-    let name = HS.Ident (HS.fromDeclIdent declIdent)
+    let name = HS.UnQual (HS.Ident (HS.fromDeclIdent declIdent))
     (qualid, binders, _) <- convertFuncHead name args
     expr'                <- convertQuickCheckExpr expr
     return
@@ -116,11 +116,11 @@ convertQuickCheckProperty decl@(HS.FuncDecl _ declIdent args expr) = do
 --   declaration.
 convertQuickCheckExpr :: HS.Expr -> Converter G.Term
 convertQuickCheckExpr (HS.App _ (HS.App _ (HS.Var _ name) e1) e2)
-  | name == HS.Symbol "==>"  = convertQuickCheckPrecond e1 e2
-  | name == HS.Symbol "==="  = convertQuickCheckEq e1 e2
-  | name == HS.Symbol "=/="  = convertQuickCheckNeq e1 e2
-  | name == HS.Symbol ".&&." = convertQuickCheckConj e1 e2
-  | name == HS.Symbol ".||." = convertQuickCheckDisj e1 e2
+  | name == HS.UnQual (HS.Symbol "==>")  = convertQuickCheckPrecond e1 e2
+  | name == HS.UnQual (HS.Symbol "===")  = convertQuickCheckEq e1 e2
+  | name == HS.UnQual (HS.Symbol "=/=")  = convertQuickCheckNeq e1 e2
+  | name == HS.UnQual (HS.Symbol ".&&.") = convertQuickCheckConj e1 e2
+  | name == HS.UnQual (HS.Symbol ".||.") = convertQuickCheckDisj e1 e2
 convertQuickCheckExpr expr = do
   convertQuickCheckBool expr
 

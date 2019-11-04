@@ -173,10 +173,10 @@ findSubterms predicate expr =
 --   expression.
 --
 --   Returns the empty set if the position is invalid.
-boundVarsAt :: HS.Expr -> Pos -> Set HS.Name
+boundVarsAt :: HS.Expr -> Pos -> Set HS.QName
 boundVarsAt = maybe Set.empty id .: boundVarsAt'
  where
-  boundVarsAt' :: HS.Expr -> Pos -> Maybe (Set HS.Name)
+  boundVarsAt' :: HS.Expr -> Pos -> Maybe (Set HS.QName)
   boundVarsAt' _    (Pos []      ) = return Set.empty
   boundVarsAt' expr (Pos (p : ps)) = do
     child <- selectSubterm expr (Pos [p])
@@ -190,22 +190,22 @@ boundVarsAt = maybe Set.empty id .: boundVarsAt'
 
   -- | Gets the names of variables bound by the variable patterns of the given
   --   @case@-expression alternative.
-  altBoundVars :: HS.Alt -> Set HS.Name
+  altBoundVars :: HS.Alt -> Set HS.QName
   altBoundVars (HS.Alt _ _ varPats _) = fromVarPats varPats
 
   -- | Converts a list of variable patterns to a set of variable names bound
   --   by these patterns.
-  fromVarPats :: [HS.VarPat] -> Set HS.Name
-  fromVarPats = Set.fromList . map (HS.Ident . HS.fromVarPat)
+  fromVarPats :: [HS.VarPat] -> Set HS.QName
+  fromVarPats = Set.fromList . map (HS.UnQual . HS.Ident . HS.fromVarPat)
 
 -- | Like 'boundVarsAt' but returns only the names of bound variables that
 --   are actually used by the subterm.
 --
 --   Returns the empty set if the position is invalid.
-usedVarsAt :: HS.Expr -> Pos -> Set HS.Name
+usedVarsAt :: HS.Expr -> Pos -> Set HS.QName
 usedVarsAt = maybe Set.empty id .: usedVarsAt'
  where
-  usedVarsAt' :: HS.Expr -> Pos -> Maybe (Set HS.Name)
+  usedVarsAt' :: HS.Expr -> Pos -> Maybe (Set HS.QName)
   usedVarsAt' expr p = do
     subterm <- selectSubterm expr p
     return (boundVarsAt expr p `Set.intersection` varSet subterm)

@@ -40,7 +40,7 @@ import           Compiler.Monad.Converter
 --   apply the first substitution on the elements of the second substitution,
 --   but 'applySubst' is a 'Converter' (because it needs to generate fresh
 --   identifiers).
-newtype Subst a = Subst (Map HS.Name (SrcSpan -> Converter a))
+newtype Subst a = Subst (Map HS.QName (SrcSpan -> Converter a))
 
 -------------------------------------------------------------------------------
 -- Construction                                                              --
@@ -52,21 +52,21 @@ identitySubst = Subst Map.empty
 
 -- | Creates a new substitution that maps the variable with the given name
 --   to the given expression or type expression.
-singleSubst :: HS.Name -> a -> Subst a
+singleSubst :: HS.QName -> a -> Subst a
 singleSubst = flip (flip singleSubst' . const)
 
 -- | Like 'singleSubst', but can be used to preserve the source span of the
 --   variable replaced by 'applySubst'.
 --
 --   For internal use only.
-singleSubst' :: HS.Name -> (SrcSpan -> a) -> Subst a
+singleSubst' :: HS.QName -> (SrcSpan -> a) -> Subst a
 singleSubst' = flip (flip singleSubst'' . (return .))
 
 -- | Like 'singleSubst'', but the generated expression can access the
 --   environment and report errors.
 --
 --   For internal use only.
-singleSubst'' :: HS.Name -> (SrcSpan -> Converter a) -> Subst a
+singleSubst'' :: HS.QName -> (SrcSpan -> Converter a) -> Subst a
 singleSubst'' = Subst .: Map.singleton
 
 -- | Creates a new substituion that applies both given substitutions after
@@ -148,8 +148,10 @@ instance ApplySubst HS.Type where
    where
     applySubst' :: HS.Type -> Converter HS.Type
     applySubst' typeCon@(HS.TypeCon _ _) = return typeCon
-    applySubst' typeVar@(HS.TypeVar srcSpan ident) =
-      maybe (return typeVar) ($ srcSpan) (Map.lookup (HS.Ident ident) substMap)
+    applySubst' typeVar@(HS.TypeVar srcSpan ident) = maybe
+      (return typeVar)
+      ($ srcSpan)
+      (Map.lookup (HS.UnQual (HS.Ident ident)) substMap)
     applySubst' (HS.TypeApp srcSpan t1 t2) = do
       t1' <- applySubst' t1
       t2' <- applySubst' t2
@@ -170,8 +172,8 @@ instance ApplySubst HS.Type where
 renameArgsSubst :: [HS.VarPat] -> Converter ([HS.VarPat], Subst HS.Expr)
 renameArgsSubst args = do
   args' <- mapM freshVarPat args
-  let argNames = map (HS.Ident . HS.fromVarPat) args
-      argVars' = map (flip HS.Var . HS.Ident . HS.fromVarPat) args'
+  let argNames = map (HS.UnQual . HS.Ident . HS.fromVarPat) args
+      argVars' = map (flip HS.Var . HS.UnQual . HS.Ident . HS.fromVarPat) args'
       argSubst = composeSubsts (zipWith singleSubst' argNames argVars')
   return (args', argSubst)
  where

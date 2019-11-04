@@ -60,10 +60,11 @@ testSubterm = describe "Compiler.Haskell.Subterm" $ do
             property $ forAll (testPos testExpr) $ \(p, valid) ->
               isJust (selectSubterm testExpr p) == valid
 
-          it "replaces valid positions successfully" $ \testExpr ->
-            property $ forAll (testPos testExpr) $ \(p, valid) ->
-              let testExpr' = (HS.Var NoSrcSpan (HS.Ident "x"))
-              in  isJust (replaceSubterm testExpr p testExpr') == valid
+          it "replaces valid positions successfully"
+            $ \testExpr ->
+                property $ forAll (testPos testExpr) $ \(p, valid) ->
+                  let testExpr' = HS.Var NoSrcSpan (HS.UnQual (HS.Ident "x"))
+                  in  isJust (replaceSubterm testExpr p testExpr') == valid
 
           it "produces the input when replacing a subterm with itself"
             $ \testExpr -> property $ forAll (validTestPos testExpr) $ \p ->
@@ -72,7 +73,7 @@ testSubterm = describe "Compiler.Haskell.Subterm" $ do
 
           it "replaces the entire term when replacing at the root position"
             $ \testExpr -> do
-                let testExpr' = (HS.Var NoSrcSpan (HS.Ident "x"))
+                let testExpr' = (HS.Var NoSrcSpan (HS.UnQual (HS.Ident "x")))
                 replaceSubterm testExpr rootPos testExpr'
                   `shouldBe` Just testExpr'
 
@@ -86,16 +87,16 @@ testSubterm = describe "Compiler.Haskell.Subterm" $ do
             let isVar (HS.Var _ _) = True
                 isVar _            = False
             map (\(HS.Var _ name) -> name) (findSubterms isVar testExpr)
-              `shouldBe` [ HS.Symbol "<"
-                         , HS.Ident "n"
-                         , HS.Symbol "=="
-                         , HS.Ident "n"
-                         , HS.Ident "xs"
-                         , HS.Ident "x"
-                         , HS.Ident "take"
-                         , HS.Symbol "-"
-                         , HS.Ident "n"
-                         , HS.Ident "xs'"
+              `shouldBe` [ HS.UnQual (HS.Symbol "<")
+                         , HS.UnQual (HS.Ident "n")
+                         , HS.UnQual (HS.Symbol "==")
+                         , HS.UnQual (HS.Ident "n")
+                         , HS.UnQual (HS.Ident "xs")
+                         , HS.UnQual (HS.Ident "x")
+                         , HS.UnQual (HS.Ident "take")
+                         , HS.UnQual (HS.Symbol "-")
+                         , HS.UnQual (HS.Ident "n")
+                         , HS.UnQual (HS.Ident "xs'")
                          ]
 
         context "bound variables" $ do
@@ -103,20 +104,27 @@ testSubterm = describe "Compiler.Haskell.Subterm" $ do
             boundVarsAt testExpr rootPos `shouldBe` Set.empty
 
           it "finds bound variables of lambda" $ \testExpr -> do
-            boundVarsAt testExpr (Pos [1])
-              `shouldBe` Set.fromList [HS.Ident "n", HS.Ident "xs"]
+            boundVarsAt testExpr (Pos [1]) `shouldBe` Set.fromList
+              [HS.UnQual (HS.Ident "n"), HS.UnQual (HS.Ident "xs")]
 
           it "finds bound variables of case alternative" $ \testExpr -> do
-            boundVarsAt testExpr (Pos [1, 3, 3, 1])
-              `shouldBe` Set.fromList [HS.Ident "n", HS.Ident "xs"]
-            boundVarsAt testExpr (Pos [1, 3, 3, 2])
-              `shouldBe` Set.fromList [HS.Ident "n", HS.Ident "xs"]
+            boundVarsAt testExpr (Pos [1, 3, 3, 1]) `shouldBe` Set.fromList
+              [HS.UnQual (HS.Ident "n"), HS.UnQual (HS.Ident "xs")]
+            boundVarsAt testExpr (Pos [1, 3, 3, 2]) `shouldBe` Set.fromList
+              [HS.UnQual (HS.Ident "n"), HS.UnQual (HS.Ident "xs")]
             boundVarsAt testExpr (Pos [1, 3, 3, 3]) `shouldBe` Set.fromList
-              [HS.Ident "n", HS.Ident "xs", HS.Ident "x", HS.Ident "xs'"]
+              [ HS.UnQual (HS.Ident "n")
+              , HS.UnQual (HS.Ident "xs")
+              , HS.UnQual (HS.Ident "x")
+              , HS.UnQual (HS.Ident "xs'")
+              ]
 
           it "filters unused variables" $ \testExpr -> do
             usedVarsAt testExpr (Pos [1, 3, 3, 1])
-              `shouldBe` Set.fromList [HS.Ident "xs"]
+              `shouldBe` Set.fromList [HS.UnQual (HS.Ident "xs")]
             usedVarsAt testExpr (Pos [1, 3, 3, 2]) `shouldBe` Set.empty
             usedVarsAt testExpr (Pos [1, 3, 3, 3]) `shouldBe` Set.fromList
-              [HS.Ident "n", HS.Ident "x", HS.Ident "xs'"]
+              [ HS.UnQual (HS.Ident "n")
+              , HS.UnQual (HS.Ident "x")
+              , HS.UnQual (HS.Ident "xs'")
+              ]

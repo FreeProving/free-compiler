@@ -33,8 +33,6 @@ module Compiler.Analysis.DependencyGraph
   ( DGKey
   , DGEntry
   , DependencyGraph(..)
-  , errorKey
-  , undefinedKey
   , entries
   , typeDependencyGraph
   , funcDependencyGraph
@@ -56,7 +54,7 @@ import           Compiler.Pretty
 
 -- | Every node of the dependency graph is uniquely identified by a key.
 --   We use the Haskell identifiers and symbols to identify the nodes.
-type DGKey = HS.Name
+type DGKey = HS.QName
 
 -- | Every node (declaration) in a dependency graph is associated with a
 --   unique key (Haskell identifier) and a list of keys that identify the
@@ -78,19 +76,6 @@ data DependencyGraph node =
     Graph                    -- ^ The actual graph.
     (Vertex -> DGEntry node) -- ^ Gets an entry for a vertex of the graph.
     (DGKey -> Maybe Vertex)  -- ^ Gets the vertex of a node with the given key.
-
--------------------------------------------------------------------------------
--- Special keys                                                              --
--------------------------------------------------------------------------------
-
--- | The key that functions that use the `error "<message>"` error term depend
---   on.
-errorKey :: DGKey
-errorKey = HS.Ident "error"
-
--- | The key that functions that use the `undefined` error term depend on.
-undefinedKey :: DGKey
-undefinedKey = HS.Ident "undefined"
 
 -------------------------------------------------------------------------------
 -- Getters                                                                   --
@@ -116,9 +101,9 @@ typeDependencyGraph =
 --   synonym declaration.
 typeDeclEntries :: HS.TypeDecl -> DGEntry HS.TypeDecl
 typeDeclEntries decl@(HS.TypeSynDecl _ (HS.DeclIdent _ ident) _ _) =
-  (decl, HS.Ident ident, typeDeclDependencies decl)
+  (decl, HS.UnQual (HS.Ident ident), typeDeclDependencies decl)
 typeDeclEntries decl@(HS.DataDecl _ (HS.DeclIdent _ ident) _ _) =
-  (decl, HS.Ident ident, typeDeclDependencies decl)
+  (decl, HS.UnQual (HS.Ident ident), typeDeclDependencies decl)
 
 -------------------------------------------------------------------------------
 -- Function dependencies                                                     --
@@ -135,7 +120,7 @@ funcDependencyGraph =
 --   declaration or pattern binding.
 funcDeclEntries :: HS.FuncDecl -> DGEntry HS.FuncDecl
 funcDeclEntries decl@(HS.FuncDecl _ (HS.DeclIdent _ ident) _ _) =
-  (decl, HS.Ident ident, funcDeclDependencies decl)
+  (decl, HS.UnQual (HS.Ident ident), funcDeclDependencies decl)
 
 -------------------------------------------------------------------------------
 -- Module dependencies                                                       --
@@ -153,7 +138,10 @@ moduleDependencyGraph =
 --   The module must have a name, otherwise @Nothing@ is returned.
 moduleEntries :: HS.Module -> DGEntry HS.Module
 moduleEntries decl =
-  (decl, HS.Ident (HS.modName decl), map HS.Ident (moduleDependencies decl))
+  ( decl
+  , HS.UnQual (HS.Ident (HS.modName decl))
+  , map (HS.UnQual . HS.Ident) (moduleDependencies decl)
+  )
 
 -------------------------------------------------------------------------------
 -- Pretty print dependency graph                                             --
@@ -188,13 +176,8 @@ instance Pretty (DependencyGraph node) where
      prettyNode v =
        let (_, key, _) = getEntry v
        in  int v
-           <+> brackets (label <> equals <> dquotes (prettyKey key))
+           <+> brackets (label <> equals <> dquotes (pretty key))
            <>  semi
-
-     -- | Pretty prints the key of a node.
-     prettyKey :: DGKey -> Doc
-     prettyKey (HS.Ident ident)   = prettyString ident
-     prettyKey (HS.Symbol symbol) = parens (prettyString symbol)
 
      -- | Pretty printed DOT edges for the dependency graph.
      edgesDocs :: [Doc]

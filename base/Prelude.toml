@@ -11,23 +11,9 @@
   coq-name     = "Bool"
   arity        = 0
 
-# Alias for `Bool` that cannot be shadowed.
-[[types]]
-  haskell-name = "Prelude.Bool"
-  coq-name     = "Bool"
-  arity        = 0
-
 [[constructors]]
   haskell-type   = "Bool"
   haskell-name   = "True"
-  coq-name       = "true"
-  coq-smart-name = "True_"
-  arity          = 0
-
-# Alias for `True` that cannot be shadowed.
-[[constructors]]
-  haskell-type   = "Bool"
-  haskell-name   = "Prelude.True"
   coq-name       = "true"
   coq-smart-name = "True_"
   arity          = 0
@@ -139,14 +125,6 @@
   arity        = 1
   partial      = false
 
-# Alias for `negate`, that cannot be shadowed.
-[[functions]]
-  haskell-type = "Integer -> Integer -> Integer"
-  haskell-name = "Prelude.negate"
-  coq-name     = "negate"
-  arity        = 1
-  partial      = false
-
 ##############################################################################
 # Lists                                                                      #
 ##############################################################################
@@ -175,13 +153,13 @@
 ##############################################################################
 
 [[types]]
-  haskell-name = "(,)"
+  haskell-name = ","
   coq-name     = "Pair"
   arity        = 2
 
 [[constructors]]
   haskell-type   = "a -> b -> (a, b)"
-  haskell-name   = "(,)"
+  haskell-name   = ","
   coq-name       = "pair_"
   coq-smart-name = "Pair_"
   arity          = 2
@@ -191,13 +169,13 @@
 ##############################################################################
 
 [[types]]
-  haskell-name = "()"
+  haskell-name = ""
   coq-name     = "Unit"
   arity        = 0
 
 [[constructors]]
   haskell-type   = "()"
-  haskell-name   = "()"
+  haskell-name   = ""
   coq-name       = "tt"
   coq-smart-name = "Tt"
   arity          = 0

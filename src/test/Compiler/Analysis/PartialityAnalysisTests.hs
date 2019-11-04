@@ -19,7 +19,7 @@ testPartialityAnalysis = describe "Compiler.Analysis.PartialityAnalysis" $ do
           [ "head :: [a] -> a"
           , "head xs = case xs of { [] -> undefined; x : xs' -> x }"
           ]
-        partial <- inEnv $ isPartial (HS.Ident "head")
+        partial <- inEnv $ isPartial (HS.UnQual (HS.Ident "head"))
         return (partial `shouldBe` True)
 
   it "recognizes directly partial functions using 'error'"
@@ -33,7 +33,7 @@ testPartialityAnalysis = describe "Compiler.Analysis.PartialityAnalysis" $ do
           ++ "  x : xs' -> x"
           ++ "}"
           ]
-        partial <- inEnv $ isPartial (HS.Ident "head")
+        partial <- inEnv $ isPartial (HS.UnQual (HS.Ident "head"))
         return (partial `shouldBe` True)
 
   it "recognizes indirectly partial functions"
@@ -43,5 +43,5 @@ testPartialityAnalysis = describe "Compiler.Analysis.PartialityAnalysis" $ do
         _       <- defineTestFunc "map" 2 "(a -> b) -> [a] -> [b]"
         _       <- definePartialTestFunc "head" 1 "[a] -> a"
         _ <- convertTestDecls ["heads :: [[a]] -> [a]", "heads = map head"]
-        partial <- inEnv $ isPartial (HS.Ident "heads")
+        partial <- inEnv $ isPartial (HS.UnQual (HS.Ident "heads"))
         return (partial `shouldBe` True)

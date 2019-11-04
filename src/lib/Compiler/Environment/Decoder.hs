@@ -101,13 +101,19 @@ import           Compiler.Pretty
 instance Aeson.FromJSON HS.Name where
   parseJSON = Aeson.withText "HS.Name" $ \txt -> do
     let str = T.unpack txt
-    if all isIdentChar str
+    if not (null str) && all isIdentChar str
       then return (HS.Ident str)
       else return (HS.Symbol str)
    where
     -- | Tests whether the given character is allowed in a Haskell identifier.
     isIdentChar :: Char -> Bool
     isIdentChar c = isAlphaNum c || c == '\'' || c == '_'
+
+-- | All Haskell names in the configuration file are unqualified.
+instance Aeson.FromJSON HS.QName where
+  parseJSON value = do
+    name <- Aeson.parseJSON value
+    return (HS.UnQual name)
 
 -- | Restores a Coq identifier from the configuration file.
 instance Aeson.FromJSON G.Qualid where
@@ -204,7 +210,7 @@ instance Aeson.FromJSON Environment where
         { entrySrcSpan  = NoSrcSpan
         , entryArity    = arity
         , entryTypeArgs =
-            catMaybes $ map HS.identFromName $ typeVars haskellType
+            catMaybes $ map HS.identFromQName $ typeVars haskellType
         , entryArgTypes   = argTypes
         , entryReturnType = returnType
         , entryIsPartial  = partial

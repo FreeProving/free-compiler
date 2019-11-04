@@ -41,27 +41,27 @@ import qualified Compiler.Haskell.AST          as HS
 -- | Wrapper that is used by 'typeDependencies'' and 'exprDependencies'' to
 --   remember whether a name is a variable or constructor name such that
 --   'typeVars', 'typeCons', 'vars' and 'cons' can filter them appropriatly.
-data DependencyName = VarName HS.Name | ConName HS.Name
+data DependencyName = VarName HS.QName | ConName HS.QName
   deriving (Eq, Ord, Show)
 
 -- | Smart constructor for a set that contains the name of a single (type)
 --   variable dependency.
-varName :: HS.Name -> Set DependencyName
+varName :: HS.QName -> Set DependencyName
 varName = Set.singleton . VarName
 
 -- | Smart constructor for a set that contains the name of a single (type)
 --   constructor dependency.
-conName :: HS.Name -> Set DependencyName
+conName :: HS.QName -> Set DependencyName
 conName = Set.singleton . ConName
 
 -- | Gets the 'HS.Name' wrapped by the given dependency name.
-unwrap :: DependencyName -> HS.Name
+unwrap :: DependencyName -> HS.QName
 unwrap (VarName name) = name
 unwrap (ConName name) = name
 
 -- | Gets a list of all 'HS.Names' wrapped by dependency names in the
 --   given set.
-unwrapSet :: Set DependencyName -> [HS.Name]
+unwrapSet :: Set DependencyName -> [HS.QName]
 unwrapSet = Set.toList . Set.map unwrap
 
 -- | Tests whether the given name is the name of a (type) variable dependency.
@@ -83,26 +83,26 @@ isConName (ConName _) = False
 --   the given type expression.
 --
 --   This also includes the names of predefied constructors.
-typeDependencies :: HS.Type -> [HS.Name]
+typeDependencies :: HS.Type -> [HS.QName]
 typeDependencies = unwrapSet . typeDependencies'
 
 -- | Extracts the names of all type variables used in the given type
 --   expression.
-typeVars :: HS.Type -> [HS.Name]
+typeVars :: HS.Type -> [HS.QName]
 typeVars = unwrapSet . Set.filter isVarName . typeDependencies'
 
 -- | Extracts the names of all type constructors used in the given type
 --   expression.
 --
 --   This also includes the names of predefined constructors.
-typeCons :: HS.Type -> [HS.Name]
+typeCons :: HS.Type -> [HS.QName]
 typeCons = unwrapSet . Set.filter isConName . typeDependencies'
 
 -- | Extracts the names of all type variables and type constructors used in
 --   the given type expression and remembers for every name whether it is
 --   the name of a type variable or type constructor.
 typeDependencies' :: HS.Type -> Set DependencyName
-typeDependencies' (HS.TypeVar _ ident) = varName (HS.Ident ident)
+typeDependencies' (HS.TypeVar _ ident) = varName (HS.UnQual (HS.Ident ident))
 typeDependencies' (HS.TypeCon _ name ) = conName name
 typeDependencies' (HS.TypeApp _ t1 t2) =
   typeDependencies' t1 `Set.union` typeDependencies' t2
@@ -118,24 +118,24 @@ typeDependencies' (HS.TypeFunc _ t1 t2) =
 --
 --   This also includes the names of predefined functions, error terms like
 --   @undefined@ and @error@ as well as constructors.
-exprDependencies :: HS.Expr -> [HS.Name]
+exprDependencies :: HS.Expr -> [HS.QName]
 exprDependencies = unwrapSet . exprDependencies'
 
 -- | Extracts the names of all variables used in the given expression.
 --
 --   This also includes the names of functions, predefined functions and the
 --   error terms @undefined@ and @error@.
-vars :: HS.Expr -> [HS.Name]
+vars :: HS.Expr -> [HS.QName]
 vars = unwrapSet . Set.filter isVarName . exprDependencies'
 
 -- | Like 'vars' but returns a set of variable names.
-varSet :: HS.Expr -> Set HS.Name
+varSet :: HS.Expr -> Set HS.QName
 varSet = Set.map unwrap . Set.filter isVarName . exprDependencies'
 
 -- | Extracts the names of all constructors used in the given expression.
 --
 --   This also includes predefined constructors.
-cons :: HS.Expr -> [HS.Name]
+cons :: HS.Expr -> [HS.QName]
 cons = unwrapSet . Set.filter isConName . exprDependencies'
 
 -- | Extracts the names of all variables, functions and constructors used in
@@ -150,8 +150,8 @@ exprDependencies' (HS.If _ e1 e2 e3) =
   Set.unions (map exprDependencies' [e1, e2, e3])
 exprDependencies' (HS.Case _ expr alts) =
   Set.unions (exprDependencies' expr : map altDependencies alts)
-exprDependencies' (HS.Undefined _   ) = varName (HS.Ident "undefined")
-exprDependencies' (HS.ErrorExpr  _ _) = conName (HS.Ident "error")
+exprDependencies' (HS.Undefined _   ) = varName HS.undefinedFuncName
+exprDependencies' (HS.ErrorExpr  _ _) = conName HS.errorFuncName
 exprDependencies' (HS.IntLiteral _ _) = Set.empty
 exprDependencies' (HS.Lambda _ args expr) =
   withoutArgs args (exprDependencies' expr)
@@ -172,7 +172,7 @@ altDependencies (HS.Alt _ (HS.ConPat _ name) args expr) =
 --   variables as well).
 --
 --   Returns an empty set if the given declaration is not a type declaration.
-typeDeclDependencies :: HS.TypeDecl -> [HS.Name]
+typeDeclDependencies :: HS.TypeDecl -> [HS.QName]
 typeDeclDependencies = unwrapSet . typeDeclDependencies'
 
 -- | Extracts the dependencies of the given data type or type synonym
@@ -194,8 +194,8 @@ conDeclDependencies (HS.ConDecl _ _ types) =
 -- | Removes the names of the given type variable declarations from a set
 --   of dependency names.
 withoutTypeArgs :: [HS.TypeVarDecl] -> Set DependencyName -> Set DependencyName
-withoutTypeArgs args set =
-  set \\ Set.fromList (map (VarName . HS.Ident . HS.fromDeclIdent) args)
+withoutTypeArgs args set = set \\ Set.fromList
+  (map (VarName . HS.UnQual . HS.Ident . HS.fromDeclIdent) args)
 
 -------------------------------------------------------------------------------
 -- Function declarations                                                     --
@@ -206,7 +206,7 @@ withoutTypeArgs args set =
 --
 --   Returns an empty set if the given declaration is not a function
 --   declaration.
-funcDeclDependencies :: HS.FuncDecl -> [HS.Name]
+funcDeclDependencies :: HS.FuncDecl -> [HS.QName]
 funcDeclDependencies = unwrapSet . funcDeclDependencies'
 
 -- | Extracts the dependencies of the given function declaration on
@@ -219,8 +219,8 @@ funcDeclDependencies' (HS.FuncDecl _ _ args expr) =
 -- | Removes the names for the given variable patterns from a set of
 --   dependencies.
 withoutArgs :: [HS.VarPat] -> Set DependencyName -> Set DependencyName
-withoutArgs args set =
-  set \\ Set.fromList (map (VarName . HS.Ident . HS.fromVarPat) args)
+withoutArgs args set = set
+  \\ Set.fromList (map (VarName . HS.UnQual . HS.Ident . HS.fromVarPat) args)
 
 -------------------------------------------------------------------------------
 -- Modules                                                                   --

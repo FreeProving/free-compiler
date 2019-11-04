@@ -18,9 +18,9 @@ import           Compiler.Pretty
 --
 --   If an error is reported, it points to the given source span.
 lookupIdentOrFail
-  :: SrcSpan -- ^ The source location where the identifier is requested.
-  -> Scope   -- ^ The scope to look the identifier up in.
-  -> HS.Name -- ^ The Haskell identifier to look up.
+  :: SrcSpan  -- ^ The source location where the identifier is requested.
+  -> Scope    -- ^ The scope to look the identifier up in.
+  -> HS.QName -- ^ The Haskell identifier to look up.
   -> Converter G.Qualid
 lookupIdentOrFail srcSpan scope name = do
   mQualid <- inEnv $ lookupIdent scope name
@@ -37,8 +37,8 @@ lookupIdentOrFail srcSpan scope name = do
 --
 --   If an error is reported, it points to the given source span.
 lookupSmartIdentOrFail
-  :: SrcSpan -- ^ The source location where the identifier is requested.
-  -> HS.Name -- ^ The Haskell identifier to look up.
+  :: SrcSpan  -- ^ The source location where the identifier is requested.
+  -> HS.QName -- ^ The Haskell identifier to look up.
   -> Converter G.Qualid
 lookupSmartIdentOrFail srcSpan name = do
   mQualid <- inEnv $ lookupSmartIdent name
@@ -54,7 +54,7 @@ lookupSmartIdentOrFail srcSpan name = do
 --
 --   If an error is encountered, the reported message points to the given
 --   source span.
-lookupTypeSigOrFail :: SrcSpan -> HS.Name -> Converter HS.Type
+lookupTypeSigOrFail :: SrcSpan -> HS.QName -> Converter HS.Type
 lookupTypeSigOrFail srcSpan ident = do
   mTypeExpr <- inEnv $ lookupTypeSig ident
   case mTypeExpr of

@@ -43,16 +43,16 @@ inlineExpr decls = inlineAndBind
  where
   -- | Maps the names of function declarations in 'decls' to the arguments
   --   and right hand sides of the functions.
-  declMap :: Map HS.Name ([HS.VarPat], HS.Expr)
+  declMap :: Map HS.QName ([HS.VarPat], HS.Expr)
   declMap = foldr insertFuncDecl Map.empty decls
 
   -- | Inserts a function declaration into 'declMap'.
   insertFuncDecl
     :: HS.FuncDecl                        -- ^ The declaration to insert.
-    -> Map HS.Name ([HS.VarPat], HS.Expr) -- ^ The map to insert into.
-    -> Map HS.Name ([HS.VarPat], HS.Expr)
+    -> Map HS.QName ([HS.VarPat], HS.Expr) -- ^ The map to insert into.
+    -> Map HS.QName ([HS.VarPat], HS.Expr)
   insertFuncDecl (HS.FuncDecl _ (HS.DeclIdent _ ident) args expr) =
-    Map.insert (HS.Ident ident) (args, expr)
+    Map.insert (HS.UnQual (HS.Ident ident)) (args, expr)
 
   -- | Applies 'inlineExpr'' on the given expression and wraps the result with
   --   lambda abstractions for the remaining arguments.
@@ -87,7 +87,7 @@ inlineExpr decls = inlineAndBind
     case remainingArgs of
       []                     -> return ([], HS.App srcSpan e1' e2')
       (arg : remainingArgs') -> do
-        let subst = singleSubst (HS.Ident arg) e2'
+        let subst = singleSubst (HS.UnQual (HS.Ident arg)) e2'
         e1'' <- applySubst subst e1'
         return (remainingArgs', e1'')
 
@@ -170,8 +170,8 @@ expandTypeSynonyms maxDepth t0
     case mTypeSynonym of
       Nothing                   -> return Nothing
       Just (typeVars, typeExpr) -> do
-        let subst =
-              composeSubsts (zipWith (singleSubst . HS.Ident) typeVars args)
+        let subst = composeSubsts
+              (zipWith (singleSubst . HS.UnQual . HS.Ident) typeVars args)
         typeExpr' <- applySubst subst typeExpr
         expandTypeSynonyms (maxDepth - 1) typeExpr' >>= return . Just
 

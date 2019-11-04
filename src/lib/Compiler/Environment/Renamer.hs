@@ -193,7 +193,7 @@ renameEntry entry env
 --   Returns the renamed entry.
 renameAndAddEntry :: EnvEntry -> Converter EnvEntry
 renameAndAddEntry entry = do
-  let haskellName = HS.Ident (entryIdent entry)
+  let haskellName = HS.UnQual (HS.Ident (entryIdent entry))
   entry' <- inEnv $ renameEntry entry
   checkRedefinition haskellName entry'
   informIfRenamed entry entry'
@@ -240,7 +240,7 @@ renameAndDefineVar srcSpan isPure ident = do
 
 -- | Tests whether there is an entry with the same name in the current
 --   scope (not a parent scope) already.
-checkRedefinition :: HS.Name -> EnvEntry -> Converter ()
+checkRedefinition :: HS.QName -> EnvEntry -> Converter ()
 checkRedefinition name entry = do
   localEntry <- inEnv $ isLocalEntry scope name
   when localEntry $ do
@@ -266,7 +266,7 @@ checkRedefinition name entry = do
 -- | Reports a message if the given entry has been renamed.
 informIfRenamed :: EnvEntry -> EnvEntry -> Converter ()
 informIfRenamed entry entry' = do
-  topLevel <- inEnv $ isTopLevel
+  let topLevel = isTopLevelEntry entry
   when (topLevel && not (isInternalIdent ident) && ident /= ident')
     $  report
     $  Message (entrySrcSpan entry) Info

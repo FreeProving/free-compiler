@@ -32,24 +32,35 @@ data Name
   | Symbol String    -- ^ A symbolic name, e.g. @Symbol \"+\"@ for @(+)@.
   deriving (Eq, Ord, Show)
 
+-- | A potentially qualified 'Name'.
+data QName
+  = Qual ModName Name -- ^ A qualified 'Name'.
+  | UnQual Name      -- ^ An unqualified 'Name'.
+  deriving (Eq, Ord, Show)
+
 -- | Haskell identifiers and symbols can be pretty printed because they are
 --   often used in error messages.
 instance Pretty Name where
   pretty (Ident ident)   = prettyString ident
   pretty (Symbol symbol) = parens (prettyString symbol)
 
+-- | Pretty instance for qualifed Haskell identifiers and symbols.
+instance Pretty QName where
+  pretty (Qual modid name) = prettyString modid <> dot <> pretty name
+  pretty (UnQual name) = pretty name
+
 -- | The name of a module.
 type ModName = String
 
 -- | The name of a function or build-in operator used in prefix notation, e.g.
 --   @f x y@ or @(+) n m@
-type VarName = Name
+type VarName = QName
 
 -- | The name of an constructor used in prefix notation, e.g. @(:) x xs@.
-type ConName = Name
+type ConName = QName
 
 -- | The name of a type or type constructor, e.g. @Integer@ or @[] a@
-type TypeConName = Name
+type TypeConName = QName
 
 -- | The name of a function, data type, type synonym or constructor defined
 --   by the user including location information.
@@ -185,7 +196,7 @@ instance Pretty Type where
    where
     -- | Pretty prints a type and adds parenthesis if necessary.
     --
-    --   The first argument indicates the precedence of the sourrounding
+    --   The first argument indicates the precedence expandof the sourrounding
     --   context.
     --    * @0@ - Top level. No parenthesis are neccessary.
     --    * @1@ - Parenthesis are needed arround function types.
@@ -269,6 +280,14 @@ fromVarPat (VarPat _ ident) = ident
 identFromName :: Name -> Maybe String
 identFromName (Ident  ident) = Just ident
 identFromName (Symbol _    ) = Nothing
+
+-- | Extracts an identifier from an unqualified Haskell name.
+--
+--   Returns @Nothing@ if the given name is qualified or a symbol and not an
+--   identifier.
+identFromQName :: QName -> Maybe String
+identFromQName (UnQual name) = identFromName name
+identFromQName (Qual _ _   ) = Nothing
 
 -- | Splits the type of a function or constructor with the given arity
 --   into the argument and return types.
@@ -418,6 +437,9 @@ conApp srcSpan = app srcSpan . Con srcSpan
 -------------------------------------------------------------------------------
 
 -- | The name of the @Prelude@ module.
+--
+--   TODO once @import ... as ...@ is supported, the @Prelude@ could be
+--        renamed by the user.
 preludeModuleName :: ModName
 preludeModuleName = "Prelude"
 
@@ -427,15 +449,15 @@ preludeModuleName = "Prelude"
 
 -- | The name of the unit type constructor.
 unitTypeConName :: TypeConName
-unitTypeConName = Symbol "()"
+unitTypeConName = Qual preludeModuleName (Symbol "")
 
 -- | The name of the @n@-ary tuple type constructor.
 tupleTypeConName :: Int -> TypeConName
-tupleTypeConName n = Symbol ("(" ++ replicate (n - 1) ',' ++ ")")
+tupleTypeConName n = Qual preludeModuleName (Symbol (replicate (n - 1) ','))
 
 -- | The name of the list type constructor.
 listTypeConName :: TypeConName
-listTypeConName = Symbol "[]"
+listTypeConName = Qual preludeModuleName (Symbol "[]")
 
 -------------------------------------------------------------------------------
 -- Names of predefined data constructors                                     --
@@ -443,19 +465,20 @@ listTypeConName = Symbol "[]"
 
 -- | Name of the unit data constructor.
 unitConName :: ConName
-unitConName = Symbol "()"
+unitConName = Qual preludeModuleName (Symbol "")
 
 -- | The name of the empty list data constructor.
 nilConName :: ConName
-nilConName = Symbol "[]"
+nilConName = Qual preludeModuleName (Symbol "[]")
 
 -- | The name of the non empty list data constructor.
 consConName :: ConName
-consConName = Symbol ":"
+consConName = Qual preludeModuleName (Symbol ":")
 
 -- | The name of the @n@-ary tuple data constructor.
 tupleConName :: Int -> ConName
-tupleConName n = Symbol ("(" ++ replicate (n - 1) ',' ++ ")")
+tupleConName n =
+  Qual preludeModuleName (Symbol (replicate (n - 1) ','))
 
 -------------------------------------------------------------------------------
 -- Names of special predefined types and operators                           --
@@ -466,18 +489,30 @@ tupleConName n = Symbol ("(" ++ replicate (n - 1) ',' ++ ")")
 --   need to use this special symbol to prevent the user from shadowing
 --   @Bool@ accidentaly with a custom function or local variable.
 boolTypeConName :: TypeConName
-boolTypeConName = Symbol "Prelude.Bool"
+boolTypeConName = Qual preludeModuleName (Ident "Bool")
 
 -- | When translating boolean expressions in QuickCheck properties, we have to
 --   generate a check whether the result is @True@. Because we do not support
 --   qualified identifiers we need to use this special symbol to prevent the
 --   user from shadowing @True@ accidentaly with a custom constructor.
 trueConName :: ConName
-trueConName = Symbol "Prelude.True"
+trueConName = Qual preludeModuleName (Ident "True")
 
 -- | The unary prefix operator @-@ is translated to the application of the
 --   @negate@ function. Because we do not support qualified identifiers we
 --   need to use this special symbol to prevent the user from shadowing
 --   @negate@ accidentaly with a custom function or local variable.
 negateOpName :: VarName
-negateOpName = Symbol "Prelude.negate"
+negateOpName = Qual preludeModuleName (Ident "negate")
+
+-------------------------------------------------------------------------------
+-- Names of error terms                                                      --
+-------------------------------------------------------------------------------
+
+-- | The name of the @error@ function.
+errorFuncName :: VarName
+errorFuncName = Qual preludeModuleName (Ident "error")
+
+-- | The name of the @undefined@ function.
+undefinedFuncName :: VarName
+undefinedFuncName = Qual preludeModuleName (Ident "undefined")

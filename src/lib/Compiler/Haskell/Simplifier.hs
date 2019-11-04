@@ -444,9 +444,10 @@ simplifyType ty@(H.TyQuasiQuote _ _ _) = notSupported "Quasiquotation types" ty
 
 -- | Simplifies the name of a build-in or user defined type constructor.
 simplifyTypeConName :: H.QName SrcSpan -> Simplifier HS.TypeConName
-simplifyTypeConName (H.UnQual  _ (H.Ident _ ident)) = return (HS.Ident ident)
-simplifyTypeConName (H.Special _ (H.UnitCon _    )) = return HS.unitTypeConName
-simplifyTypeConName (H.Special _ (H.ListCon _    )) = return HS.listTypeConName
+simplifyTypeConName (H.UnQual _ (H.Ident _ ident)) =
+  return (HS.UnQual (HS.Ident ident))
+simplifyTypeConName (H.Special _ (H.UnitCon _)) = return HS.unitTypeConName
+simplifyTypeConName (H.Special _ (H.ListCon _)) = return HS.listTypeConName
 simplifyTypeConName (H.Special _ (H.TupleCon _ H.Boxed n)) =
   return (HS.tupleTypeConName n)
 
@@ -540,9 +541,10 @@ simplifyExpr (H.RightSection srcSpan op e2) = do
   op' <- simplifyOp op
   e2' <- simplifyExpr e2
   return
-    (HS.Lambda srcSpan
-               [HS.VarPat srcSpan x]
-               (HS.app srcSpan op' [HS.Var srcSpan (HS.Ident x), e2'])
+    (HS.Lambda
+      srcSpan
+      [HS.VarPat srcSpan x]
+      (HS.app srcSpan op' [HS.Var srcSpan (HS.UnQual (HS.Ident x)), e2'])
     )
 
 -- Negation.
@@ -654,18 +656,21 @@ simplifyOp (H.QConOp srcSpan name) =
 -- | Gets the name of a variable, defined function or predefined function (e.g.
 --   @(+)@).
 simplifyVarName :: H.QName SrcSpan -> Simplifier HS.VarName
-simplifyVarName (H.UnQual _ (H.Ident _ ident)) = return (HS.Ident ident)
-simplifyVarName (H.UnQual _ (H.Symbol _ sym)) = return (HS.Symbol sym)
+simplifyVarName (H.UnQual _ (H.Ident _ ident)) =
+  return (HS.UnQual (HS.Ident ident))
+simplifyVarName (H.UnQual _ (H.Symbol _ sym)) =
+  return (HS.UnQual (HS.Symbol sym))
 simplifyVarName name@(H.Qual _ _ _) = notSupported "Qualified identifiers" name
 simplifyVarName name@(H.Special _ _) =
   usageError "Constructors cannot be used as variables!" name
 
 -- | Gets the name of a build-in or user defined constructor.
 simplifyConName :: H.QName SrcSpan -> Simplifier HS.ConName
-simplifyConName (H.UnQual  _ (H.Ident _ ident)) = return (HS.Ident ident)
-simplifyConName (H.Special _ (H.UnitCon _    )) = return HS.unitConName
-simplifyConName (H.Special _ (H.ListCon _    )) = return HS.nilConName
-simplifyConName (H.Special _ (H.Cons    _    )) = return HS.consConName
+simplifyConName (H.UnQual _ (H.Ident _ ident)) =
+  return (HS.UnQual (HS.Ident ident))
+simplifyConName (H.Special _ (H.UnitCon _)) = return HS.unitConName
+simplifyConName (H.Special _ (H.ListCon _)) = return HS.nilConName
+simplifyConName (H.Special _ (H.Cons    _)) = return HS.consConName
 simplifyConName (H.Special _ (H.TupleCon _ H.Boxed n)) =
   return (HS.tupleConName n)
 

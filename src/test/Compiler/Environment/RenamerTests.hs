@@ -69,7 +69,7 @@ testMustRenameIdent = describe "mustRenameIdent" $ do
   it "defined identifiers must be renamed" $ do
     property $ forAll genIdent $ \ident ->
       let env = addEntry
-            (HS.Ident ident)
+            (HS.UnQual (HS.Ident ident))
             TypeVarEntry {entrySrcSpan = NoSrcSpan, entryIdent = ident}
             emptyEnv
       in  mustRenameIdent ident env

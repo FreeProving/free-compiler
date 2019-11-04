@@ -6,6 +6,7 @@ module Compiler.Environment.Entry where
 
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Haskell.SrcSpan
+import           Compiler.Util.Predicate
 
 -- | Entry of the environment.
 data EnvEntry
@@ -119,6 +120,13 @@ isFuncEntry _           = False
 isVarEntry :: EnvEntry -> Bool
 isVarEntry VarEntry{} = True
 isVarEntry _          = False
+
+-- | Tests whether the given entry of the environment describes a top-level
+--   data type, type synonym, constructor or function.
+--
+--   Type variables and local variables are no top level entries.
+isTopLevelEntry :: EnvEntry -> Bool
+isTopLevelEntry = not . (isVarEntry .||. isTypeVarEntry)
 
 -------------------------------------------------------------------------------
 -- Pretty printing                                                           --

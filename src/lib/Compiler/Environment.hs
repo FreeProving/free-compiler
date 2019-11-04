@@ -17,6 +17,7 @@ module Compiler.Environment
   , defineTypeSig
   , importEntry
   , importEnv
+  , importEnvAs
   , makeModuleAvailable
   -- * Looking up entries from the environment
   , lookupEntry
@@ -70,7 +71,7 @@ data Scope = TypeScope | ValueScope
 
 -- | Type that is used by maps in the "Compiler.Environment.Environment" to
 --   qualify Haskell names with the scopes they are defined in.
-type ScopedName = (Scope, HS.Name)
+type ScopedName = (Scope, HS.QName)
 
 -- | Gets the scope an entry needs to be defined in.
 entryScope :: EnvEntry -> Scope
@@ -93,12 +94,12 @@ data Environment = Environment
     -- ^ Maps Haskell names to entries for declarations.
     --   In addition to the entry, the 'envDepth' of the environment is
     --   recorded.
-  , envTypeSigs :: Map HS.Name HS.Type
+  , envTypeSigs :: Map HS.QName HS.Type
     -- ^ Maps names of Haskell functions to their annotated types.
   , envFreshIdentCount :: Map String Int
     -- ^ The number of fresh identifiers that were used in the environment
     --   with a certain prefix.
-  , envDecArgs :: Map HS.Name Int
+  , envDecArgs :: Map HS.QName Int
     -- ^ Maps Haskell function names to the index of their decreasing argument.
     --   Contains no entry for non-recursive functions, but there are also
     --   entries for functions that are shadowed by local variables.
@@ -137,12 +138,12 @@ isTopLevel = (== 0) . envDepth
 
 -- | Inserts an entry into the given environment and associates it with
 --   the given name.
-addEntry :: HS.Name -> EnvEntry -> Environment -> Environment
+addEntry :: HS.QName -> EnvEntry -> Environment -> Environment
 addEntry name entry env = addEntry' name entry (envDepth env) env
 
 -- | Like 'addEntry' but has an additional parameter for the 'envDepth' value
 --   to record.
-addEntry' :: HS.Name -> EnvEntry -> Int -> Environment -> Environment
+addEntry' :: HS.QName -> EnvEntry -> Int -> Environment -> Environment
 addEntry' name entry depth env = env
   { envEntries = Map.insert (entryScope entry, name)
                             (entry           , depth)
@@ -150,13 +151,13 @@ addEntry' name entry depth env = env
   }
 
 -- | Inserts the given type signature into the environment.
-defineTypeSig :: HS.Name -> HS.Type -> Environment -> Environment
+defineTypeSig :: HS.QName -> HS.Type -> Environment -> Environment
 defineTypeSig name typeExpr env =
   env { envTypeSigs = Map.insert name typeExpr (envTypeSigs env) }
 
 -- | Stores the index of the decreasing argument of a recursive function
 --   in the environmen
-defineDecArg :: HS.Name -> Int -> Environment -> Environment
+defineDecArg :: HS.QName -> Int -> Environment -> Environment
 defineDecArg name index env =
   env { envDecArgs = Map.insert name index (envDecArgs env) }
 
@@ -166,7 +167,7 @@ defineDecArg name index env =
 --   In contrast to 'addEntry' the entry is not added at the current 'envDepth'
 --   but at depth @-1@ which indicates that it is not a top level entry but
 --   an external entry and should not be exported.
-importEntry :: HS.Name -> EnvEntry -> Environment -> Environment
+importEntry :: HS.QName -> EnvEntry -> Environment -> Environment
 importEntry name entry env = addEntry' name entry (-1) env
 
 -- | Imports all top level entries of the first environment into the
@@ -178,6 +179,23 @@ importEnv fromEnv toEnv =
     $ Map.map fst
     $ Map.filter ((== 0) . snd)
     $ envEntries fromEnv
+
+-- | Like 'importEnv' but all exported entries are qualifed with the given
+--   module name.
+importEnvAs :: HS.ModName -> Environment -> Environment -> Environment
+importEnvAs modName fromEnv toEnv =
+  foldr (uncurry (uncurry (const importEntry))) toEnv
+    $ Map.assocs
+    $ Map.mapKeys (fmap qualify)
+    $ Map.map fst
+    $ Map.filter ((== 0) . snd)
+    $ envEntries fromEnv
+ where
+  -- | Qualifies the name of an imported entry with the module name.
+  qualify :: HS.QName -> HS.QName
+  qualify (HS.UnQual name) = HS.Qual modName name
+  qualify (HS.Qual _ _) =
+    error ("importEnvAs: Cannot import qualified identifiers.")
 
 -- | Inserts the environment of a module with the given name into the
 --   environment such that it can be imported.
@@ -193,12 +211,12 @@ makeModuleAvailable name modEnv env =
 --   given environment.
 --
 --   Returns @Nothing@ if there is no such entry.
-lookupEntry :: Scope -> HS.Name -> Environment -> Maybe EnvEntry
+lookupEntry :: Scope -> HS.QName -> Environment -> Maybe EnvEntry
 lookupEntry scope name = fmap fst . Map.lookup (scope, name) . envEntries
 
 -- | Tests whether the entry with the given name was declared in the current
 --   environment (i.e., was not inherited from a parent environment).
-isLocalEntry :: Scope -> HS.Name -> Environment -> Bool
+isLocalEntry :: Scope -> HS.QName -> Environment -> Bool
 isLocalEntry scope name =
   uncurry (==)
     . (Just . envDepth &&& fmap snd . Map.lookup (scope, name) . envEntries)
@@ -207,11 +225,11 @@ isLocalEntry scope name =
 --   environment.
 --
 --   Returns @False@ if there is no such function.
-isFunction :: HS.Name -> Environment -> Bool
+isFunction :: HS.QName -> Environment -> Bool
 isFunction = fromMaybe False . fmap isFuncEntry .: lookupEntry ValueScope
 
 -- | Test whether the variable with the given name is not monadic.
-isPureVar :: HS.Name -> Environment -> Bool
+isPureVar :: HS.QName -> Environment -> Bool
 isPureVar =
   fromMaybe False . fmap (isVarEntry .&&. entryIsPure) .: lookupEntry ValueScope
 
@@ -220,14 +238,14 @@ isPureVar =
 --
 --   Returns @Nothing@ if there is no such function, (type/smart) constructor,
 --   constructor or (type) variable with the given name.
-lookupIdent :: Scope -> HS.Name -> Environment -> Maybe G.Qualid
+lookupIdent :: Scope -> HS.QName -> Environment -> Maybe G.Qualid
 lookupIdent = fmap (G.bare . entryIdent) .:. lookupEntry
 
 -- | Looks up the Coq identifier for the smart constructor of the Haskell
 --   constructor with the given name.
 --
 --   Returns @Nothing@ if there is no such constructor.
-lookupSmartIdent :: HS.Name -> Environment -> Maybe G.Qualid
+lookupSmartIdent :: HS.QName -> Environment -> Maybe G.Qualid
 lookupSmartIdent =
   fmap (G.bare . entrySmartIdent) . find isConEntry .: lookupEntry ValueScope
 
@@ -242,7 +260,7 @@ usedIdents = concatMap (entryIdents . fst) . Map.elems . envEntries
     | otherwise        = map G.bare [entryIdent entry]
 
 -- | Looks up the location of the declaration with the given name.
-lookupSrcSpan :: Scope -> HS.Name -> Environment -> Maybe SrcSpan
+lookupSrcSpan :: Scope -> HS.QName -> Environment -> Maybe SrcSpan
 lookupSrcSpan = fmap entrySrcSpan .:. lookupEntry
 
 -- | Looks up the type variables used by the type synonym, (smart)
@@ -250,7 +268,7 @@ lookupSrcSpan = fmap entrySrcSpan .:. lookupEntry
 --
 --   Returns @Nothing@ if there is no such type synonym, function or (smart)
 --   constructor with the given name.
-lookupTypeArgs :: Scope -> HS.Name -> Environment -> Maybe [HS.TypeVarIdent]
+lookupTypeArgs :: Scope -> HS.QName -> Environment -> Maybe [HS.TypeVarIdent]
 lookupTypeArgs = fmap entryTypeArgs .:. lookupEntry
 
 -- | Looks up the argument and return types of the function or (smart)
@@ -258,7 +276,7 @@ lookupTypeArgs = fmap entryTypeArgs .:. lookupEntry
 --
 --   Returns @Nothing@ if there is no such function or (smart) constructor
 --   with the given name.
-lookupArgTypes :: Scope -> HS.Name -> Environment -> Maybe [Maybe HS.Type]
+lookupArgTypes :: Scope -> HS.QName -> Environment -> Maybe [Maybe HS.Type]
 lookupArgTypes = fmap entryArgTypes .:. lookupEntry
 
 -- | Looks up the return type of the function or (smart) constructor with the
@@ -266,7 +284,7 @@ lookupArgTypes = fmap entryArgTypes .:. lookupEntry
 --
 --   Returns @Nothing@ if there is no such function or (smart) constructor
 --   with the given name or the return type is not known.
-lookupReturnType :: Scope -> HS.Name -> Environment -> Maybe HS.Type
+lookupReturnType :: Scope -> HS.QName -> Environment -> Maybe HS.Type
 lookupReturnType = join . fmap entryReturnType .:. lookupEntry
 
 -- | Looks up the number of arguments expected by the Haskell function
@@ -274,7 +292,7 @@ lookupReturnType = join . fmap entryReturnType .:. lookupEntry
 --
 --   Returns @Nothing@ if there is no such function or (smart) constructor
 --   with the given name.
-lookupArity :: Scope -> HS.Name -> Environment -> Maybe Int
+lookupArity :: Scope -> HS.QName -> Environment -> Maybe Int
 lookupArity =
   fmap entryArity
     .   find (not . (isVarEntry .||. isTypeVarEntry))
@@ -284,7 +302,7 @@ lookupArity =
 --
 --   Returns @Nothing@ if there is no such type synonym.
 lookupTypeSynonym
-  :: HS.Name -> Environment -> Maybe ([HS.TypeVarIdent], HS.Type)
+  :: HS.QName -> Environment -> Maybe ([HS.TypeVarIdent], HS.Type)
 lookupTypeSynonym =
   fmap (entryTypeArgs &&& entryTypeSyn)
     .  find isTypeSynEntry
@@ -295,13 +313,13 @@ lookupTypeSynonym =
 --
 --   Returns @Nothing@, if there is no such type signature or the entry has
 --   been replaced already.
-lookupTypeSig :: HS.Name -> Environment -> Maybe HS.Type
+lookupTypeSig :: HS.QName -> Environment -> Maybe HS.Type
 lookupTypeSig name = Map.lookup name . envTypeSigs
 
 -- | Tests whether the function with the given name is partial.
 --
 --   Returns @False@ if there is no such function.
-isPartial :: HS.Name -> Environment -> Bool
+isPartial :: HS.QName -> Environment -> Bool
 isPartial =
   fromMaybe False
     .  fmap (isFuncEntry .&&. entryIsPartial)
@@ -311,7 +329,7 @@ isPartial =
 --   with the given name.
 --
 --   Returns @Nothing@ if there is no such recursive function.
-lookupDecArg :: HS.Name -> Environment -> Maybe Int
+lookupDecArg :: HS.QName -> Environment -> Maybe Int
 lookupDecArg name = Map.lookup name . envDecArgs
 
 -- | Looks up the environment of another module that can be imported.

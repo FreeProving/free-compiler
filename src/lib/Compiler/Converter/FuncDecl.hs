@@ -58,8 +58,8 @@ convertFuncComponent (Recursive decls) = do
 --   no recursive functions (see 'convertNonRecFuncDecl' and
 --   'convertRecFuncDecls').
 convertFuncHead
-  :: HS.Name       -- ^ The name of the function.
-  -> [HS.VarPat]   -- ^ The function argument patterns.
+  :: HS.QName    -- ^ The name of the function.
+  -> [HS.VarPat] -- ^ The function argument patterns.
   -> Converter (G.Qualid, [G.Binder], Maybe G.Term)
 convertFuncHead name args = do
   -- Lookup the Coq name of the function.
@@ -87,14 +87,14 @@ convertFuncHead name args = do
 -- | Inserts the given function declaration into the current environment.
 defineFuncDecl :: HS.FuncDecl -> Converter ()
 defineFuncDecl decl@(HS.FuncDecl srcSpan (HS.DeclIdent _ ident) args _) = do
-  let name = HS.Ident ident
+  let name = HS.UnQual (HS.Ident ident)
   funcType               <- lookupTypeSigOrFail srcSpan name
   (argTypes, returnType) <- splitFuncType name args funcType
   partial                <- isPartialFuncDecl decl
   _                      <- renameAndAddEntry FuncEntry
     { entrySrcSpan    = srcSpan
     , entryArity      = length argTypes
-    , entryTypeArgs   = catMaybes $ map HS.identFromName $ typeVars funcType
+    , entryTypeArgs   = catMaybes $ map HS.identFromQName $ typeVars funcType
     , entryArgTypes   = map Just argTypes
     , entryReturnType = Just returnType
     , entryIsPartial  = partial
@@ -107,7 +107,7 @@ defineFuncDecl decl@(HS.FuncDecl srcSpan (HS.DeclIdent _ ident) args _) = do
 --
 --   Type synonyms are expanded if neccessary.
 splitFuncType
-  :: HS.Name     -- ^ The name of the function to display in error messages.
+  :: HS.QName    -- ^ The name of the function to display in error messages.
   -> [HS.VarPat] -- ^ The argument variable patterns whose types to split of.
   -> HS.Type     -- ^ The type to split.
   -> Converter ([HS.Type], HS.Type)
@@ -140,7 +140,7 @@ splitFuncType name = splitFuncType'
 convertNonRecFuncDecl :: HS.FuncDecl -> Converter G.Sentence
 convertNonRecFuncDecl (HS.FuncDecl _ (HS.DeclIdent _ ident) args expr) =
   localEnv $ do
-    let name = HS.Ident ident
+    let name = HS.UnQual (HS.Ident ident)
     (qualid, binders, returnType') <- convertFuncHead name args
     expr'                          <- convertExpr expr
     return (G.definitionSentence qualid binders returnType' expr')
@@ -190,15 +190,15 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent args expr) decArgIndex = do
   return (helperDecls, mainDecl)
  where
   -- | The name of the function to transform.
-  name :: HS.Name
-  name = HS.Ident (HS.fromDeclIdent declIdent)
+  name :: HS.QName
+  name = HS.UnQual (HS.Ident (HS.fromDeclIdent declIdent))
 
   -- | The names of the function's arguments.
-  argNames :: [HS.Name]
-  argNames = map (HS.Ident . HS.fromVarPat) args
+  argNames :: [HS.QName]
+  argNames = map (HS.UnQual . HS.Ident . HS.fromVarPat) args
 
   -- | The name of the decreasing argument.
-  decArg :: HS.Name
+  decArg :: HS.QName
   decArg = argNames !! decArgIndex
 
   -- | The positions of @case@-expressions for the decreasing argument.
@@ -232,14 +232,14 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent args expr) decArgIndex = do
   generateHelperDecl caseExprPos = do
     -- Generate a fresh name for the helper function.
     helperIdent <- freshHaskellIdent (HS.fromDeclIdent declIdent)
-    let helperName      = HS.Ident helperIdent
+    let helperName      = HS.UnQual (HS.Ident helperIdent)
         helperDeclIdent = HS.DeclIdent (HS.getSrcSpan declIdent) helperIdent
 
     -- Pass used variables as additional arguments to the helper function.
     let usedVars = Set.toList (usedVarsAt expr caseExprPos)
         helperArgs =
           args
-            ++ map (HS.VarPat NoSrcSpan . fromJust . HS.identFromName) usedVars
+            ++ map (HS.VarPat NoSrcSpan . fromJust . HS.identFromQName) usedVars
 
     -- Build helper function declaration and application.
     let (Just caseExpr) = selectSubterm expr caseExprPos
@@ -261,7 +261,7 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent args expr) decArgIndex = do
     _       <- renameAndAddEntry $ FuncEntry
       { entrySrcSpan    = NoSrcSpan
       , entryArity      = length argTypes'
-      , entryTypeArgs   = catMaybes $ map HS.identFromName $ typeVars funcType
+      , entryTypeArgs   = catMaybes $ map HS.identFromQName $ typeVars funcType
       , entryArgTypes   = argTypes'
       , entryReturnType = Nothing
       , entryIsPartial  = partial
@@ -278,8 +278,8 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent args expr) decArgIndex = do
 --   sentence.
 convertRecHelperFuncDecl :: HS.FuncDecl -> Converter G.FixBody
 convertRecHelperFuncDecl (HS.FuncDecl _ declIdent args expr) = localEnv $ do
-  let helperName = HS.Ident (HS.fromDeclIdent declIdent)
-      argNames   = map (HS.Ident . HS.fromVarPat) args
+  let helperName = HS.UnQual (HS.Ident (HS.fromDeclIdent declIdent))
+      argNames   = map (HS.UnQual . HS.Ident . HS.fromVarPat) args
   (qualid, binders, returnType') <- convertFuncHead helperName args
   expr'                          <- convertExpr expr
   Just decArgIndex               <- inEnv $ lookupDecArg helperName
