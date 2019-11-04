@@ -12,9 +12,10 @@ import qualified Compiler.Haskell.AST          as HS
 
 -- | Data type that encapsulates the state of the application.
 data AppState = AppState
-  { appOpts :: Options                 -- ^ The command line options.
-  , appEnvs :: Map HS.Name Environment -- ^ Environments of compiled or
-                                       --   imported modules.
+  { appOpts :: Options
+    -- ^ The command line options.
+  , appEnvs :: Map HS.ModName Environment
+    -- ^ Environments of compiled or imported modules.
   }
 
 -- | Builds the default state of the application.
@@ -34,7 +35,7 @@ setOpts opts state = state { appOpts = opts }
 -- | Remembers the environment of a compiled or imported module.
 --
 --   Existing entries are overwritten.
-insertEnv :: HS.Name -> Environment -> AppState -> AppState
+insertEnv :: HS.ModName -> Environment -> AppState -> AppState
 insertEnv name env state =
   state { appEnvs = Map.insert name env (appEnvs state) }
 
@@ -46,5 +47,5 @@ insertEnv name env state =
 --
 --   Returns @Nothing@ if the module has not been converted or
 --   imported before.
-lookupEnv :: HS.Name -> AppState -> Maybe Environment
+lookupEnv :: HS.ModName -> AppState -> Maybe Environment
 lookupEnv name = Map.lookup name . appEnvs

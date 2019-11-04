@@ -102,7 +102,7 @@ data Environment = Environment
     -- ^ Maps Haskell function names to the index of their decreasing argument.
     --   Contains no entry for non-recursive functions, but there are also
     --   entries for functions that are shadowed by local variables.
-  , envAvailableModules :: Map HS.Name Environment
+  , envAvailableModules :: Map HS.ModName Environment
     -- ^ Maps names of modules that can be imported to their environments.
   , envQuickCheckEnabled :: Bool
     -- ^ Whether the translation of QuickCheck properties is enabled in the
@@ -181,7 +181,7 @@ importEnv fromEnv toEnv =
 
 -- | Inserts the environment of a module with the given name into the
 --   environment such that it can be imported.
-makeModuleAvailable :: HS.Name -> Environment -> Environment -> Environment
+makeModuleAvailable :: HS.ModName -> Environment -> Environment -> Environment
 makeModuleAvailable name modEnv env =
   env { envAvailableModules = Map.insert name modEnv (envAvailableModules env) }
 
@@ -315,7 +315,7 @@ lookupDecArg :: HS.Name -> Environment -> Maybe Int
 lookupDecArg name = Map.lookup name . envDecArgs
 
 -- | Looks up the environment of another module that can be imported.
-lookupAvailableModule :: HS.Name -> Environment -> Maybe Environment
+lookupAvailableModule :: HS.ModName -> Environment -> Maybe Environment
 lookupAvailableModule name = Map.lookup name . envAvailableModules
 
 -------------------------------------------------------------------------------

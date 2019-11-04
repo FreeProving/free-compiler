@@ -3,9 +3,7 @@
 module Compiler.Converter.Module where
 
 import           Control.Monad.Extra            ( concatMapM )
-import           Data.Maybe                     ( catMaybes
-                                                , maybe
-                                                )
+import           Data.Maybe                     ( catMaybes )
 
 import           Compiler.Analysis.DependencyAnalysis
 import           Compiler.Analysis.DependencyGraph
@@ -29,12 +27,11 @@ import           Compiler.Pretty
 --   If no module header is present the generated module is called @"Main"@.
 convertModule :: HS.Module -> Converter [G.Sentence]
 convertModule ast = do
-  let modName = maybe "Main" showPretty $ HS.modName ast
   imports' <- convertImportDecls (HS.modImports ast)
   decls'   <- convertDecls (HS.modTypeDecls ast)
                            (HS.modTypeSigs ast)
                            (HS.modFuncDecls ast)
-  return (G.comment ("module " ++ modName) : imports' ++ decls')
+  return (G.comment ("module " ++ HS.modName ast) : imports' ++ decls')
 
 -------------------------------------------------------------------------------
 -- Declarations                                                              --
@@ -103,7 +100,7 @@ convertImportDecls imports = do
 --   Returns @Nothing@ if no Coq import sentence is needed (e.g., in case of
 --   special imports like @Test.QuickCheck@).
 convertImportDecl :: HS.ImportDecl -> Converter (Maybe G.Sentence)
-convertImportDecl (HS.ImportDecl _ (HS.Ident "Test.QuickCheck")) = do
+convertImportDecl (HS.ImportDecl _ "Test.QuickCheck") = do
   importAndEnableQuickCheck
   return Nothing
 convertImportDecl (HS.ImportDecl srcSpan modName) = do
@@ -114,12 +111,12 @@ convertImportDecl (HS.ImportDecl srcSpan modName) = do
       reportFatal
         $  Message srcSpan Error
         $  "Could not find module '"
-        ++ showPretty modName
+        ++ modName
         ++ "'"
   Just <$> generateImport modName
 
 -- | Generates a Coq import sentence for the module with the given name.
-generateImport :: HS.Name -> Converter G.Sentence
+generateImport :: HS.ModName -> Converter G.Sentence
 generateImport modName
   | modName == HS.preludeModuleName = return
   $ G.requireImportFrom CoqBase.baseLibName [G.ident "Prelude"]

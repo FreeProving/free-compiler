@@ -146,15 +146,14 @@ funcDeclEntries decl@(HS.FuncDecl _ (HS.DeclIdent _ ident) _ _) =
 --   Modules without a name are excluded from the dependency graph.
 moduleDependencyGraph :: [HS.Module] -> DependencyGraph HS.Module
 moduleDependencyGraph =
-  uncurry3 DependencyGraph . graphFromEdges . catMaybes . map moduleEntries
+  uncurry3 DependencyGraph . graphFromEdges . map moduleEntries
 
 -- | Creates an entry of the dependency graoh for the given module.
 --
 --   The module must have a name, otherwise @Nothing@ is returned.
-moduleEntries :: HS.Module -> Maybe (DGEntry HS.Module)
-moduleEntries decl = do
-  name <- HS.modName decl
-  return (decl, name, moduleDependencies decl)
+moduleEntries :: HS.Module -> DGEntry HS.Module
+moduleEntries decl =
+  (decl, HS.Ident (HS.modName decl), map HS.Ident (moduleDependencies decl))
 
 -------------------------------------------------------------------------------
 -- Pretty print dependency graph                                             --

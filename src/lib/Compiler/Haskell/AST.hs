@@ -38,6 +38,9 @@ instance Pretty Name where
   pretty (Ident ident)   = prettyString ident
   pretty (Symbol symbol) = parens (prettyString symbol)
 
+-- | The name of a module.
+type ModName = String
+
 -- | The name of a function or build-in operator used in prefix notation, e.g.
 --   @f x y@ or @(+) n m@
 type VarName = Name
@@ -81,10 +84,10 @@ data VarPat = VarPat SrcSpan String
 
 -- | A module declaration.
 --
---   If the module has no module header, the module name is @'Nothing'@.
+--   If the module has no module header, the module name defauts to @'Main'@.
 data Module = Module
   { modSrcSpan   :: SrcSpan
-  , modName      :: Maybe Name
+  , modName      :: ModName
   , modImports   :: [ImportDecl]
   , modTypeDecls :: [TypeDecl]
   , modTypeSigs  :: [TypeSig]
@@ -99,7 +102,7 @@ data Module = Module
 -- | An import declaration.
 data ImportDecl = ImportDecl
   { importSrcSpan :: SrcSpan
-  , importName    :: Name
+  , importName    :: ModName
   }
   deriving (Eq, Show)
 
@@ -415,8 +418,8 @@ conApp srcSpan = app srcSpan . Con srcSpan
 -------------------------------------------------------------------------------
 
 -- | The name of the @Prelude@ module.
-preludeModuleName :: Name
-preludeModuleName = Ident "Prelude"
+preludeModuleName :: ModName
+preludeModuleName = "Prelude"
 
 -------------------------------------------------------------------------------
 -- Names of predefined type constructors                                     --

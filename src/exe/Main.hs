@@ -87,8 +87,7 @@ parseInputFile inputFile = do
   haskellAst         <- liftReporterIO $ parseModuleFile inputFile
   (haskellAst', env) <- liftConverter' (simplifyModule haskellAst) emptyEnv
   -- Remember used fresh variables.
-  let (Just modName) = HS.modName haskellAst' -- TODO
-  modifyState $ insertEnv modName env
+  modifyState $ insertEnv (HS.modName haskellAst') env
   return haskellAst'
 
 -- | Sorts the given modules based on their dependencies.
@@ -111,7 +110,7 @@ sortInputModules = mapM checkForCycle . groupModules
 processInputModule :: HS.Module -> Application ()
 processInputModule haskellAst = do
   -- Convert module and update environment.
-  let (Just modName) = HS.modName haskellAst -- TODO
+  let modName = HS.modName haskellAst
   putDebug
     $  "Compiling "
     ++ showPretty modName
@@ -138,9 +137,7 @@ processInputModule haskellAst = do
 
 -- | Builds the file name of the output file for the given module.
 --
---   If the Haskell module has a module header, the output file name
---   is based on the module name. Otherwise, the output file name is
---   based on the input file name (as recorded in the source span).
+--   The output file name is based on the module name.
 outputFileFor
   :: HS.Module -- ^ The Haskell module AST.
   -> FilePath  -- ^ The path to the output directory.
@@ -152,11 +149,7 @@ outputFileFor haskellAst outputDir extension =
   -- | The name of the output file relative to the output directory and
   --   without extension.
   outputFile :: FilePath
-  outputFile = case HS.modName haskellAst >>= HS.identFromName of
-    Nothing ->
-      let inputFile = srcSpanFilename (HS.modSrcSpan haskellAst)
-      in  intercalate "." (splitDirectories (dropExtension inputFile))
-    Just modName -> map (\c -> if c == '.' then '/' else c) modName
+  outputFile = map (\c -> if c == '.' then '/' else c) (HS.modName haskellAst)
 
 -------------------------------------------------------------------------------
 -- Base library                                                              --

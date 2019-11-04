@@ -229,7 +229,7 @@ withoutArgs args set =
 -- | Extracts the dependencies of the given module on other modules.
 --
 --   Every module depends on the @Prelude@ module implicitly.
-moduleDependencies :: HS.Module -> [HS.Name]
+moduleDependencies :: HS.Module -> [HS.ModName]
 moduleDependencies =
   Set.toList
     . Set.insert HS.preludeModuleName

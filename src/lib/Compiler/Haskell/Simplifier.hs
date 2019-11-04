@@ -23,6 +23,7 @@ where
 import           Control.Monad                  ( when )
 import           Data.List.Extra                ( concatUnzip3 )
 import           Data.Maybe                     ( fromJust
+                                                , fromMaybe
                                                 , isJust
                                                 )
 
@@ -99,13 +100,13 @@ simplifyModule :: H.Module SrcSpan -> Simplifier HS.Module
 simplifyModule (H.Module srcSpan modHead pragmas imports decls)
   | not (null pragmas) = notSupported "Module pragmas" (head pragmas)
   | otherwise = do
-    modIdent                            <- mapM simplifyModuleHead modHead
+    maybeModName                        <- mapM simplifyModuleHead modHead
     imports'                            <- mapM simplifyImport imports
     (typeDecls', typeSigs', funcDecls') <- simplifyDecls decls
     return
       (HS.Module
         { HS.modSrcSpan   = srcSpan
-        , HS.modName      = modIdent
+        , HS.modName      = fromMaybe "Main" maybeModName
         , HS.modImports   = imports'
         , HS.modTypeDecls = typeDecls'
         , HS.modTypeSigs  = typeSigs'
@@ -119,10 +120,10 @@ simplifyModule modDecl = notSupported "XML modules" modDecl
 --   If present, the export list is ignored. We do not test whether only
 --   defined functions and data types are exported. A warning is printed
 --   to remind the user that the export list does not have any effect.
-simplifyModuleHead :: H.ModuleHead SrcSpan -> Simplifier HS.Name
-simplifyModuleHead (H.ModuleHead _ (H.ModuleName _ modIdent) _ exports) = do
+simplifyModuleHead :: H.ModuleHead SrcSpan -> Simplifier HS.ModName
+simplifyModuleHead (H.ModuleHead _ (H.ModuleName _ modName) _ exports) = do
   warnIf (isJust exports) "Ignoring export list." (fromJust exports)
-  return (HS.Ident modIdent)
+  return modName
 
 -- | Gets the name of the module imported by the given import declaration.
 simplifyImport :: H.ImportDecl SrcSpan -> Simplifier HS.ImportDecl
@@ -136,8 +137,7 @@ simplifyImport decl
   | isJust (H.importAs decl) = notSupported "Imports with aliases" decl
   | isJust (H.importSpecs decl) = notSupported "Import specifications" decl
   | otherwise = case H.importModule decl of
-    H.ModuleName srcSpan modIdent ->
-      return (HS.ImportDecl srcSpan (HS.Ident modIdent))
+    H.ModuleName srcSpan modName -> return (HS.ImportDecl srcSpan modName)
 
 -------------------------------------------------------------------------------
 -- Declarations                                                              --
