@@ -12,6 +12,7 @@ import           Compiler.Util.Test
 testConvertModule :: Spec
 testConvertModule = describe "Compiler.Converter.Module.convertModule" $ do
   testConvertImports
+  testQualifiedNames
 
 -------------------------------------------------------------------------------
 -- Imports                                                                   --
@@ -29,7 +30,7 @@ testConvertImports = do
     $ shouldSucceed
     $ fromModuleConverter
     $ do
-        _   <- convertTestModule ["module A where", "data A = A"]
+        _ <- convertTestModule ["module A where", "data A = A"]
         _ <- convertTestModule ["module B where", "import A", "type B = A"]
         return (return ())
   {- FIXME
@@ -39,8 +40,35 @@ testConvertImports = do
     $ do
         _ <- convertTestModule ["module A where", "data A = A"]
         _ <- convertTestModule
-          ["module B where", "import A", "type B = A -> Integer"]
+          ["module B where", "import A", "type B = A -> ()"]
         _ <- convertTestModule
-          ["module C where", "import B", "foo :: B", "foo x = 0"]
+          ["module C where", "import B", "foo :: B", "foo x = ()"]
         return (return ())
   -}
+
+-------------------------------------------------------------------------------
+-- Qualified Identifiers                                                     --
+-------------------------------------------------------------------------------
+
+-- | Test group for qualified identifiers.
+testQualifiedNames :: Spec
+testQualifiedNames = do
+  it "top-level declarations are in scope unqualified"
+    $ shouldSucceed
+    $ fromModuleConverter
+    $ do
+        _ <- convertTestModule
+          ["module M where", "f :: a -> a", "f x = x", "g :: ()", "g = f ()"]
+        return (return ())
+  it "top-level declarations are in scope qualified"
+    $ shouldSucceed
+    $ fromModuleConverter
+    $ do
+        _ <- convertTestModule
+          [ "module M where"
+          , "f :: a -> a"
+          , "f x = x"
+          , "g :: (a -> b) -> a -> b"
+          , "g f x = M.f f x"
+          ]
+        return (return ())
