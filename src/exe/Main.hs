@@ -120,7 +120,7 @@ processInputModule haskellAst = do
   Just env         <- inState $ lookupEnv modName
   availableModules <- inState appEnvs
   (coqAst, env')   <- liftConverter'
-    (convertModule haskellAst)
+    ((,) <$> convertModule haskellAst <*> getEnv)
     env { envAvailableModules = availableModules }
   modifyState $ insertEnv modName env'
   -- Output converted module.

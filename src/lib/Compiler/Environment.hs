@@ -11,6 +11,9 @@ module Compiler.Environment
   , emptyEnv
   , childEnv
   , isTopLevel
+  -- * Module information
+  , makeModuleAvailable
+  , lookupAvailableModule
   -- * Inserting entries into the environment
   , addEntry
   , defineDecArg
@@ -18,10 +21,9 @@ module Compiler.Environment
   , importEntry
   , importEnv
   , importEnvAs
-  , makeModuleAvailable
   -- * Looking up entries from the environment
   , lookupEntry
-  , isLocalEntry
+  , existsLocalEntry
   , isFunction
   , isPureVar
   , lookupIdent
@@ -36,7 +38,6 @@ module Compiler.Environment
   , lookupTypeSig
   , isPartial
   , lookupDecArg
-  , lookupAvailableModule
   -- * QuickCheck support
   , enableQuickCheck
   , isQuickCheckEnabled
@@ -90,21 +91,27 @@ entryScope VarEntry{}     = ValueScope
 data Environment = Environment
   { envDepth :: Int
     -- ^ The number of parent environments.
+
+  , envModName :: HS.ModName
+    -- ^ The name of the currently translated module.
+    --   Defaults to the empty string.
+  , envAvailableModules :: Map HS.ModName Environment
+    -- ^ Maps names of modules that can be imported to their environments.
+
   , envEntries :: Map ScopedName (EnvEntry, Int)
     -- ^ Maps Haskell names to entries for declarations.
     --   In addition to the entry, the 'envDepth' of the environment is
     --   recorded.
   , envTypeSigs :: Map HS.QName HS.Type
     -- ^ Maps names of Haskell functions to their annotated types.
-  , envFreshIdentCount :: Map String Int
-    -- ^ The number of fresh identifiers that were used in the environment
-    --   with a certain prefix.
   , envDecArgs :: Map HS.QName Int
     -- ^ Maps Haskell function names to the index of their decreasing argument.
     --   Contains no entry for non-recursive functions, but there are also
     --   entries for functions that are shadowed by local variables.
-  , envAvailableModules :: Map HS.ModName Environment
-    -- ^ Maps names of modules that can be imported to their environments.
+  , envFreshIdentCount :: Map String Int
+    -- ^ The number of fresh identifiers that were used in the environment
+    --   with a certain prefix.
+
   , envQuickCheckEnabled :: Bool
     -- ^ Whether the translation of QuickCheck properties is enabled in the
     --   current environment (i.e. the module imports @Test.QuickCheck@).
@@ -116,11 +123,15 @@ data Environment = Environment
 emptyEnv :: Environment
 emptyEnv = Environment
   { envDepth             = 0
-  , envEntries           = Map.empty
-  , envFreshIdentCount   = Map.empty
-  , envDecArgs           = Map.empty
-  , envTypeSigs          = Map.empty
+    -- Modules
+  , envModName           = ""
   , envAvailableModules  = Map.empty
+    -- Entries
+  , envEntries           = Map.empty
+  , envTypeSigs          = Map.empty
+  , envDecArgs           = Map.empty
+  , envFreshIdentCount   = Map.empty
+    -- QuickCheck
   , envQuickCheckEnabled = False
   }
 
@@ -131,6 +142,20 @@ childEnv env = env { envDepth = envDepth env + 1 }
 -- | Tests whether the given environment has no parent environment.
 isTopLevel :: Environment -> Bool
 isTopLevel = (== 0) . envDepth
+
+-------------------------------------------------------------------------------
+-- Modules                                                                   --
+-------------------------------------------------------------------------------
+
+-- | Inserts the environment of a module with the given name into the
+--   environment such that it can be imported.
+makeModuleAvailable :: HS.ModName -> Environment -> Environment -> Environment
+makeModuleAvailable name modEnv env =
+  env { envAvailableModules = Map.insert name modEnv (envAvailableModules env) }
+
+-- | Looks up the environment of another module that can be imported.
+lookupAvailableModule :: HS.ModName -> Environment -> Maybe Environment
+lookupAvailableModule name = Map.lookup name . envAvailableModules
 
 -------------------------------------------------------------------------------
 -- Inserting entries into the environment                                    --
@@ -197,12 +222,6 @@ importEnvAs modName fromEnv toEnv =
   qualify (HS.Qual _ _) =
     error ("importEnvAs: Cannot import qualified identifiers.")
 
--- | Inserts the environment of a module with the given name into the
---   environment such that it can be imported.
-makeModuleAvailable :: HS.ModName -> Environment -> Environment -> Environment
-makeModuleAvailable name modEnv env =
-  env { envAvailableModules = Map.insert name modEnv (envAvailableModules env) }
-
 -------------------------------------------------------------------------------
 -- Looking up entries from the environment                                   --
 -------------------------------------------------------------------------------
@@ -214,10 +233,10 @@ makeModuleAvailable name modEnv env =
 lookupEntry :: Scope -> HS.QName -> Environment -> Maybe EnvEntry
 lookupEntry scope name = fmap fst . Map.lookup (scope, name) . envEntries
 
--- | Tests whether the entry with the given name was declared in the current
---   environment (i.e., was not inherited from a parent environment).
-isLocalEntry :: Scope -> HS.QName -> Environment -> Bool
-isLocalEntry scope name =
+-- | Tests whether there is an entry with the given name in the current
+--   environment that was not inherited from a parent environment.
+existsLocalEntry :: Scope -> HS.QName -> Environment -> Bool
+existsLocalEntry scope name =
   uncurry (==)
     . (Just . envDepth &&& fmap snd . Map.lookup (scope, name) . envEntries)
 
@@ -331,10 +350,6 @@ isPartial =
 --   Returns @Nothing@ if there is no such recursive function.
 lookupDecArg :: HS.QName -> Environment -> Maybe Int
 lookupDecArg name = Map.lookup name . envDecArgs
-
--- | Looks up the environment of another module that can be imported.
-lookupAvailableModule :: HS.ModName -> Environment -> Maybe Environment
-lookupAvailableModule name = Map.lookup name . envAvailableModules
 
 -------------------------------------------------------------------------------
 -- QuickCheck support                                                        --

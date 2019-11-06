@@ -26,7 +26,7 @@ import           Compiler.Pretty
 --
 --   If no module header is present the generated module is called @"Main"@.
 convertModule :: HS.Module -> Converter [G.Sentence]
-convertModule ast = do
+convertModule ast = moduleEnv (HS.modName ast) $ do
   imports' <- convertImportDecls (HS.modImports ast)
   decls'   <- convertDecls (HS.modTypeDecls ast)
                            (HS.modTypeSigs ast)

@@ -235,10 +235,8 @@ convertTestDecls input = do
 -- | Parses, simplifies and converts a Haskell module for testing purposes.
 convertTestModule :: [String] -> Converter [G.Sentence]
 convertTestModule input = do
-  haskellAst       <- parseTestModule input
-  (coqAst, modEnv) <- localEnv' $ (,) <$> convertModule haskellAst <*> getEnv
-  modifyEnv $ makeModuleAvailable (HS.modName haskellAst) modEnv
-  return coqAst
+  haskellAst <- parseTestModule input
+  convertModule haskellAst
 
 -------------------------------------------------------------------------------
 -- Conversion expectations                                                   --
