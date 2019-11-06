@@ -19,8 +19,10 @@ module Compiler.Analysis.DependencyExtraction
   , cons
     -- * Type declarations
   , typeDeclDependencies
+  , typeDeclDependencySet
     -- * Function declarations
   , funcDeclDependencies
+  , funcDeclDependencySet
     -- * Modules
   , moduleDependencies
   )
@@ -126,7 +128,7 @@ exprDependencies = unwrapSet . exprDependencies'
 --   This also includes the names of functions, predefined functions and the
 --   error terms @undefined@ and @error@.
 vars :: HS.Expr -> [HS.QName]
-vars = unwrapSet . Set.filter isVarName . exprDependencies'
+vars = Set.toList . varSet
 
 -- | Like 'vars' but returns a set of variable names.
 varSet :: HS.Expr -> Set HS.QName
@@ -173,7 +175,12 @@ altDependencies (HS.Alt _ (HS.ConPat _ name) args expr) =
 --
 --   Returns an empty set if the given declaration is not a type declaration.
 typeDeclDependencies :: HS.TypeDecl -> [HS.QName]
-typeDeclDependencies = unwrapSet . typeDeclDependencies'
+typeDeclDependencies = Set.toList . typeDeclDependencySet
+
+-- | Like 'typeDeclDependencies' but returns the type's dependencies
+--   as a 'Set'.
+typeDeclDependencySet :: HS.TypeDecl -> Set HS.QName
+typeDeclDependencySet = Set.map unwrap . typeDeclDependencies'
 
 -- | Extracts the dependencies of the given data type or type synonym
 --   declaration on type constructors (and undeclared type variables) and
@@ -207,13 +214,18 @@ withoutTypeArgs args set = set \\ Set.fromList
 --   Returns an empty set if the given declaration is not a function
 --   declaration.
 funcDeclDependencies :: HS.FuncDecl -> [HS.QName]
-funcDeclDependencies = unwrapSet . funcDeclDependencies'
+funcDeclDependencies = Set.toList . funcDeclDependencySet
+
+-- | Like 'funcDeclDependencies' but returns the function's dependencies
+--   as a 'Set'.
+funcDeclDependencySet :: HS.FuncDecl -> Set HS.QName
+funcDeclDependencySet = Set.map unwrap . funcDeclDependencySet'
 
 -- | Extracts the dependencies of the given function declaration on
 --   constructors and other functions and remembers for every name whether it
 --   is the name of a function or constructor.
-funcDeclDependencies' :: HS.FuncDecl -> Set DependencyName
-funcDeclDependencies' (HS.FuncDecl _ _ args expr) =
+funcDeclDependencySet' :: HS.FuncDecl -> Set DependencyName
+funcDeclDependencySet' (HS.FuncDecl _ _ args expr) =
   withoutArgs args (exprDependencies' expr)
 
 -- | Removes the names for the given variable patterns from a set of

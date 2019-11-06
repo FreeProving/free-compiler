@@ -49,14 +49,16 @@ convertDecls typeDecls typeSigs funcDecls = do
 -- | Converts the given data type or type synonym declarations.
 convertTypeDecls :: [HS.TypeDecl] -> Converter [G.Sentence]
 convertTypeDecls typeDecls = do
-  let dependencyGraph = typeDependencyGraph typeDecls
+  modName <- inEnv $ envModName
+  let dependencyGraph = typeDependencyGraph modName typeDecls
       components      = groupDependencies dependencyGraph
   concatMapM convertTypeComponent components
 
 -- | Converts the given function declarations.
 convertFuncDecls :: [HS.FuncDecl] -> Converter [G.Sentence]
 convertFuncDecls funcDecls = do
-  let dependencyGraph = funcDependencyGraph funcDecls
+  modName <- inEnv $ envModName
+  let dependencyGraph = funcDependencyGraph modName funcDecls
       components      = groupDependencies dependencyGraph
 
   -- Filter QuickCheck properties.

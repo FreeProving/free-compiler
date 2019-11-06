@@ -40,8 +40,10 @@ module Compiler.Analysis.DependencyGraph
   )
 where
 
+import           Data.Composition               ( (.:) )
 import           Data.Graph
 import           Data.Maybe                     ( catMaybes )
+import qualified Data.Set                      as Set
 import           Data.Tuple.Extra
 
 import           Compiler.Analysis.DependencyExtraction
@@ -93,17 +95,29 @@ entries (DependencyGraph graph getEntry _) = map getEntry (vertices graph)
 --   declarations.
 --
 --   If the given list contains other kinds of declarations, they are ignored.
-typeDependencyGraph :: [HS.TypeDecl] -> DependencyGraph HS.TypeDecl
+typeDependencyGraph
+  :: HS.ModName    -- ^ The name of the module that contains the declarations.
+  -> [HS.TypeDecl] -- ^ The declarations to create the dependency graph for.
+  -> DependencyGraph HS.TypeDecl
 typeDependencyGraph =
-  uncurry3 DependencyGraph . graphFromEdges . map typeDeclEntries
+  uncurry3 DependencyGraph . graphFromEdges .: map . typeDeclEntry
 
 -- | Creates an entry of the dependency graph for the given data type or type
 --   synonym declaration.
-typeDeclEntries :: HS.TypeDecl -> DGEntry HS.TypeDecl
-typeDeclEntries decl@(HS.TypeSynDecl _ (HS.DeclIdent _ ident) _ _) =
-  (decl, HS.UnQual (HS.Ident ident), typeDeclDependencies decl)
-typeDeclEntries decl@(HS.DataDecl _ (HS.DeclIdent _ ident) _ _) =
-  (decl, HS.UnQual (HS.Ident ident), typeDeclDependencies decl)
+typeDeclEntry
+  :: HS.ModName  -- ^ The name of the module that contains the declaration.
+  -> HS.TypeDecl -- ^ The declaration to create an entry for.
+  -> DGEntry HS.TypeDecl
+typeDeclEntry modName decl@(HS.TypeSynDecl _ (HS.DeclIdent _ ident) _ _) =
+  ( decl
+  , HS.UnQual (HS.Ident ident)
+  , Set.toList $ Set.map (unqualify modName) (typeDeclDependencySet decl)
+  )
+typeDeclEntry modName decl@(HS.DataDecl _ (HS.DeclIdent _ ident) _ _) =
+  ( decl
+  , HS.UnQual (HS.Ident ident)
+  , Set.toList $ Set.map (unqualify modName) (typeDeclDependencySet decl)
+  )
 
 -------------------------------------------------------------------------------
 -- Function dependencies                                                     --
@@ -112,15 +126,24 @@ typeDeclEntries decl@(HS.DataDecl _ (HS.DeclIdent _ ident) _ _) =
 -- | Creates the dependency graph for a list of function declarations.
 --
 --   If the given list contains other kinds of declarations, they are ignored.
-funcDependencyGraph :: [HS.FuncDecl] -> DependencyGraph HS.FuncDecl
+funcDependencyGraph
+  :: HS.ModName    -- ^ The name of the module that contains the declarations.
+  -> [HS.FuncDecl] -- ^ The declarations to create the dependency graph for.
+  -> DependencyGraph HS.FuncDecl
 funcDependencyGraph =
-  uncurry3 DependencyGraph . graphFromEdges . map funcDeclEntries
+  uncurry3 DependencyGraph . graphFromEdges .: map . funcDeclEntry
 
 -- | Creates an entry of the dependency graph for the given function
 --   declaration or pattern binding.
-funcDeclEntries :: HS.FuncDecl -> DGEntry HS.FuncDecl
-funcDeclEntries decl@(HS.FuncDecl _ (HS.DeclIdent _ ident) _ _) =
-  (decl, HS.UnQual (HS.Ident ident), funcDeclDependencies decl)
+funcDeclEntry
+  :: HS.ModName  -- ^ The name of the module that contains the declaration.
+  -> HS.FuncDecl -- ^ The declaration to create an entry for.
+  -> DGEntry HS.FuncDecl
+funcDeclEntry modName decl@(HS.FuncDecl _ (HS.DeclIdent _ ident) _ _) =
+  ( decl
+  , HS.UnQual (HS.Ident ident)
+  , Set.toList $ Set.map (unqualify modName) (funcDeclDependencySet decl)
+  )
 
 -------------------------------------------------------------------------------
 -- Module dependencies                                                       --
@@ -142,6 +165,16 @@ moduleEntries decl =
   , HS.UnQual (HS.Ident (HS.modName decl))
   , map (HS.UnQual . HS.Ident) (moduleDependencies decl)
   )
+
+-------------------------------------------------------------------------------
+-- Utility functions                                                         --
+-------------------------------------------------------------------------------
+
+-- | Converts names that are qualified with the given module name to an
+--   unqualified name and leaves all other names unchanged.
+unqualify :: HS.ModName -> HS.QName -> HS.QName
+unqualify modName (HS.Qual modName' name) | modName == modName' = HS.UnQual name
+unqualify _ name = name
 
 -------------------------------------------------------------------------------
 -- Pretty print dependency graph                                             --

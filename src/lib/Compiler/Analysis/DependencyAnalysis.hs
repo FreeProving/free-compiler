@@ -18,6 +18,7 @@ module Compiler.Analysis.DependencyAnalysis
   )
 where
 
+import           Data.Composition               ( (.:) )
 import           Data.Graph
 
 import           Compiler.Analysis.DependencyGraph
@@ -57,14 +58,20 @@ groupDependencies = map convertSCC . stronglyConnComp . entries
 -- | Combines the construction of the dependency graphs for the given
 --   type declarations (See 'typeDependencyGraph') with the computation of
 --   strongly connected components.
-groupTypeDecls :: [HS.TypeDecl] -> [DependencyComponent HS.TypeDecl]
-groupTypeDecls = groupDependencies . typeDependencyGraph
+groupTypeDecls
+  :: HS.ModName    -- ^ The name of the module that contains the declarations.
+  -> [HS.TypeDecl] -- ^ The declarations to group.
+  -> [DependencyComponent HS.TypeDecl]
+groupTypeDecls = groupDependencies .: typeDependencyGraph
 
 -- | Combines the construction of the dependency graphs for the given
 --   function declarations (See 'funcDependencyGraph') with the computation
 --   of strongly connected components.
-groupFuncDecls :: [HS.FuncDecl] -> [DependencyComponent HS.FuncDecl]
-groupFuncDecls = groupDependencies . funcDependencyGraph
+groupFuncDecls
+  :: HS.ModName    -- ^ The name of the module that contains the declarations.
+  -> [HS.FuncDecl] -- ^ The declarations to group.
+  -> [DependencyComponent HS.FuncDecl]
+groupFuncDecls = groupDependencies .: funcDependencyGraph
 
 -- | Combines the construction of the dependency graph for the given
 --   Haskell modules (See 'moduleDependencyGraph') with the computation

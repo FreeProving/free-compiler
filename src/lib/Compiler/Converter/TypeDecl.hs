@@ -11,7 +11,6 @@ import           Data.List                      ( partition )
 import qualified Data.List.NonEmpty            as NonEmpty
 
 import           Compiler.Analysis.DependencyAnalysis
-import           Compiler.Analysis.DependencyGraph
 import           Compiler.Environment
 import           Compiler.Converter.Arg
 import           Compiler.Converter.Free
@@ -69,8 +68,9 @@ withTypeSynonyms typeSynDecls converter = do
 --   type synonyms from the same strongly connected component. Therefore we
 --   have to sort the declarations in reverse topological order.
 sortTypeSynDecls :: [HS.TypeDecl] -> Converter [HS.TypeDecl]
-sortTypeSynDecls =
-  mapM fromNonRecursive . groupDependencies . typeDependencyGraph
+sortTypeSynDecls typeDecls = do
+  modName <- inEnv $ envModName
+  mapM fromNonRecursive (groupTypeDecls modName typeDecls)
 
 -- | Extracts the single type synonym declaration from a strongly connected
 --   component of the type dependency graph.
