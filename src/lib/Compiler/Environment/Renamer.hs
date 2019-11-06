@@ -193,11 +193,21 @@ renameEntry entry env
 --   Returns the renamed entry.
 renameAndAddEntry :: EnvEntry -> Converter EnvEntry
 renameAndAddEntry entry = do
-  let haskellName = HS.UnQual (HS.Ident (entryIdent entry))
+  -- Generate the qualified and unqualified Haskell name.
+  modName <- inEnv $ envModName
+  let name       = HS.Ident (entryIdent entry)
+      qualName   = HS.Qual modName name
+      unqualName = HS.UnQual name
+  -- Generate new Coq identifier.
   entry' <- inEnv $ renameEntry entry
-  checkRedefinition haskellName entry'
+  -- Error handling and notifications.
+  checkRedefinition unqualName entry'
   informIfRenamed entry entry'
-  modifyEnv $ addEntry haskellName entry'
+  -- Associate the entry with both the unqualified name.
+  -- Top-level entries are also associated with their qualified name.
+  modifyEnv $ addEntry unqualName entry'
+  when (not (null modName) && isTopLevelEntry entry')
+    $ modifyEnv (addEntry qualName entry')
   return entry'
 
 -- | Associates the identifier of a user defined Haskell type variable with an
@@ -242,7 +252,7 @@ renameAndDefineVar srcSpan isPure ident = do
 --   scope (not a parent scope) already.
 checkRedefinition :: HS.QName -> EnvEntry -> Converter ()
 checkRedefinition name entry = do
-  localEntry <- inEnv $ isLocalEntry scope name
+  localEntry <- inEnv $ existsLocalEntry scope name
   when localEntry $ do
     maybeEntry' <- inEnv $ lookupEntry scope name
     case maybeEntry' of
