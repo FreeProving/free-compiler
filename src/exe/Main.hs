@@ -19,6 +19,7 @@ import           Compiler.Application.Options
 import           Compiler.Application.Debug
 import           Compiler.Application.State
 import           Compiler.Converter             ( convertModule )
+import qualified Compiler.Coq.AST              as G
 import           Compiler.Coq.Pretty            ( )
 import           Compiler.Environment
 import           Compiler.Environment.Encoder
@@ -49,7 +50,7 @@ main = runApp compiler
 --
 --   Prints the help message if the @--help@ option or no input file was
 --   specified. Otherwise all input files are processed (see
---   'processInputModule'). If a fatal message is reported while processing
+--   'convertInputModule'). If a fatal message is reported while processing
 --   any input file, the compiler will exit. All reported messages will be
 --   printed to @stderr@.
 compiler :: Application ()
@@ -66,38 +67,32 @@ compiler = do
     putDebug "No input file.\n"
     putUsageInfo
     exitSuccess
-  -- Initialize.
+  -- Initialize environment.
   loadPrelude
   createCoqProject
   -- Process input files.
-  modules  <- mapM parseInputFile (optInputFiles opts)
-  modules' <- liftReporter $ sortInputModules modules
-  mapM_ processInputModule modules'
+  modules  <- mapM parseInputFile (optInputFiles opts) >>= sortInputModules
+  modules' <- mapM convertInputModule modules
+  mapM_ (uncurry outputCoqModule) modules'
 
 -------------------------------------------------------------------------------
 -- Haskell input files                                                       --
 -------------------------------------------------------------------------------
 
 -- | Parses and simplifies the given input file.
---
---   Since the simplifier inserts fresh identifiers, an environment is
---   inserted for the module into the state.
 parseInputFile :: FilePath -> Application HS.Module
 parseInputFile inputFile = do
   -- Parse and simplify input file.
-  haskellAst         <- liftReporterIO $ parseModuleFile inputFile
-  (haskellAst', env) <- liftConverter' (simplifyModule haskellAst) emptyEnv
-  -- Remember used fresh variables.
-  modifyState $ insertEnv (HS.modName haskellAst') env
-  return haskellAst'
+  haskellAst <- liftReporterIO $ parseModuleFile inputFile
+  liftConverter (simplifyModule haskellAst)
 
 -- | Sorts the given modules based on their dependencies.
 --
 --   If the module dependencies form a cycle, a fatal error is reported.
-sortInputModules :: [HS.Module] -> Reporter [HS.Module]
+sortInputModules :: [HS.Module] -> Application [HS.Module]
 sortInputModules = mapM checkForCycle . groupModules
  where
-  checkForCycle :: DependencyComponent HS.Module -> Reporter HS.Module
+  checkForCycle :: DependencyComponent HS.Module -> Application HS.Module
   checkForCycle (NonRecursive m) = return m
   checkForCycle (Recursive ms) =
     reportFatal
@@ -108,9 +103,8 @@ sortInputModules = mapM checkForCycle . groupModules
 -- | Converts the given Haskell module to Coq.
 --
 --   The resulting Coq AST is written to the console or output file.
-processInputModule :: HS.Module -> Application ()
-processInputModule haskellAst = do
-  -- Convert module and update environment.
+convertInputModule :: HS.Module -> Application (HS.ModName, [G.Sentence])
+convertInputModule haskellAst = do
   let modName = HS.modName haskellAst
   putDebug
     $  "Compiling "
@@ -118,39 +112,28 @@ processInputModule haskellAst = do
     ++ " ("
     ++ srcSpanFilename (HS.modSrcSpan haskellAst)
     ++ ")"
-  Just env         <- inState $ lookupEnv modName
-  availableModules <- inState appEnvs
-  (coqAst, env')   <- liftConverter
-    ((,) <$> convertModule haskellAst <*> getEnv)
-    env { envAvailableModules = availableModules }
-  modifyState $ insertEnv modName env'
-  -- Output converted module.
+  coqAst <- liftConverter $ convertModule haskellAst
+  return (modName, coqAst)
+
+-------------------------------------------------------------------------------
+-- Output                                                                    --
+-------------------------------------------------------------------------------
+
+-- | Output a Coq module that has been generated from a Haskell module
+--   with the given name.
+outputCoqModule :: HS.ModName -> [G.Sentence] -> Application ()
+outputCoqModule modName coqAst = do
   maybeOutputDir <- inState $ optOutputDir . appOpts
   case maybeOutputDir of
     Nothing        -> liftIO (putPrettyLn coqAst)
     Just outputDir -> do
-      let outputFileWithExt = outputFileFor haskellAst outputDir
-          outputFile        = outputFileWithExt "v"
-          envFile           = outputFileWithExt "json"
+      let outputPath = map (\c -> if c == '.' then '/' else c) modName
+          outputFile = outputDir </> outputPath <.> "v"
+          envFile    = outputDir </> outputPath <.> "json"
+      Just env <- liftConverter $ inEnv $ lookupAvailableModule modName
       liftIO $ createDirectoryIfMissing True (takeDirectory outputFile)
-      liftReporterIO $ writeEnvironment envFile env'
+      liftReporterIO $ writeEnvironment envFile env
       liftIO $ writePrettyFile outputFile coqAst
-
--- | Builds the file name of the output file for the given module.
---
---   The output file name is based on the module name.
-outputFileFor
-  :: HS.Module -- ^ The Haskell module AST.
-  -> FilePath  -- ^ The path to the output directory.
-  -> String    -- ^ The extension of the output file.
-  -> FilePath
-outputFileFor haskellAst outputDir extension =
-  outputDir </> outputFile <.> extension
- where
-  -- | The name of the output file relative to the output directory and
-  --   without extension.
-  outputFile :: FilePath
-  outputFile = map (\c -> if c == '.' then '/' else c) (HS.modName haskellAst)
 
 -------------------------------------------------------------------------------
 -- Base library                                                              --
@@ -164,7 +147,8 @@ loadPrelude :: Application ()
 loadPrelude = do
   baseLibDir <- inState $ optBaseLibDir . appOpts
   preludeEnv <- liftReporterIO $ loadEnvironment (baseLibDir </> "Prelude.toml")
-  modifyState $ insertEnv HS.preludeModuleName preludeEnv
+  liftConverter $ modifyEnv $ makeModuleAvailable HS.preludeModuleName
+                                                  preludeEnv
 
 -- | Creates a @_CoqProject@ file (if enabled) that maps the physical directory
 --   of the Base library.

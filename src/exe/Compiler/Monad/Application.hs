@@ -14,13 +14,12 @@ module Compiler.Monad.Application
   , liftReporter
   , liftReporterIO
   , liftConverter
-  , liftConverter'
+  , liftConverterIO
   )
 where
 
 import           Control.Monad.IO.Class
 import           Control.Monad.State
-import           Data.Composition               ( (.:) )
 import           System.IO                      ( stderr )
 
 import           Compiler.Application.State
@@ -34,7 +33,7 @@ import           Compiler.Monad.Reporter
 
   -- | A state monad used by the compiler application.
 newtype Application a = Application
-  { unwrapApplication :: StateT AppState ReporterIO a
+  { unwrapApplication :: StateT AppState ConverterIO a
   }
  deriving (Functor, Applicative, Monad, MonadState AppState)
 
@@ -42,7 +41,8 @@ newtype Application a = Application
 runApp :: Application a -> IO a
 runApp app = do
   defaultAppState <- makeDefaultAppState
-  let reporter = evalStateT (unwrapApplication app) defaultAppState
+  let converter = evalStateT (unwrapApplication app) defaultAppState
+      reporter  = evalConverterT converter emptyEnv
   reportToOrExit stderr (reportIOErrors reporter)
 
 -------------------------------------------------------------------------------
@@ -85,18 +85,19 @@ instance MonadIO Application where
 --   directly in @do@-blocks of the 'Application' monad without explicitly
 --   lifting reporters.
 instance MonadReporter Application where
-  liftReporter = liftReporterIO . hoist
+  liftReporter = liftConverter . lift'
 
 -- | Promotes a 'ReporterIO' to an application that produces the same result
 --   and ignores the state.
 liftReporterIO :: ReporterIO a -> Application a
-liftReporterIO = Application . lift
+liftReporterIO = liftConverterIO . lift'
 
 -- | Promotes a 'Converter' to an application that produces the same result
---   ignores the state and discards the converter's environment.
-liftConverter :: Converter a -> Environment -> Application a
-liftConverter = liftReporter .: evalConverter
+--   and ignores the state.
+liftConverter :: Converter a -> Application a
+liftConverter = liftConverterIO . hoist
 
--- | Like 'liftConverter' but keeps the environment.
-liftConverter' :: Converter a -> Environment -> Application (a, Environment)
-liftConverter' = liftReporter .: runConverter
+-- | Promotes a 'ConverterIO' to an application that produces the same result
+--   and ignores the state.
+liftConverterIO :: ConverterIO a -> Application a
+liftConverterIO = Application . lift
