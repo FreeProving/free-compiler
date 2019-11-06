@@ -446,6 +446,8 @@ simplifyType ty@(H.TyQuasiQuote _ _ _) = notSupported "Quasiquotation types" ty
 simplifyTypeConName :: H.QName SrcSpan -> Simplifier HS.TypeConName
 simplifyTypeConName (H.UnQual _ (H.Ident _ ident)) =
   return (HS.UnQual (HS.Ident ident))
+simplifyTypeConName (H.Qual _ (H.ModuleName _ modName) (H.Ident _ ident)) =
+  return (HS.Qual modName (HS.Ident ident))
 simplifyTypeConName (H.Special _ (H.UnitCon _)) = return HS.unitTypeConName
 simplifyTypeConName (H.Special _ (H.ListCon _)) = return HS.listTypeConName
 simplifyTypeConName (H.Special _ (H.TupleCon _ H.Boxed n)) =
@@ -454,8 +456,8 @@ simplifyTypeConName (H.Special _ (H.TupleCon _ H.Boxed n)) =
 -- Not supported type constructor names.
 simplifyTypeConName name@(H.UnQual _ (H.Symbol _ _)) =
   notSupported "Type operators" name
-simplifyTypeConName name@(H.Qual _ _ _) =
-  notSupported "Qualified identifiers" name
+simplifyTypeConName name@(H.Qual _ _ (H.Symbol _ _)) =
+  notSupported "Type operators" name
 simplifyTypeConName name@(H.Special _ (H.FunCon _)) =
   notSupported "Function type constructors" name
 simplifyTypeConName name@(H.Special _ (H.TupleCon _ H.Unboxed _)) =
@@ -653,21 +655,25 @@ simplifyOp (H.QVarOp srcSpan name) =
 simplifyOp (H.QConOp srcSpan name) =
   simplifyConName name >>= return . HS.Con srcSpan
 
+-- | Simplifies an unqualified name.
+simplifyName :: H.Name SrcSpan -> Simplifier HS.Name
+simplifyName (H.Ident  _ ident) = return (HS.Ident ident)
+simplifyName (H.Symbol _ sym  ) = return (HS.Symbol sym)
+
 -- | Gets the name of a variable, defined function or predefined function (e.g.
 --   @(+)@).
 simplifyVarName :: H.QName SrcSpan -> Simplifier HS.VarName
-simplifyVarName (H.UnQual _ (H.Ident _ ident)) =
-  return (HS.UnQual (HS.Ident ident))
-simplifyVarName (H.UnQual _ (H.Symbol _ sym)) =
-  return (HS.UnQual (HS.Symbol sym))
-simplifyVarName name@(H.Qual _ _ _) = notSupported "Qualified identifiers" name
+simplifyVarName (H.UnQual _ name) = HS.UnQual <$> simplifyName name
+simplifyVarName (H.Qual _ (H.ModuleName _ modName) name) =
+  HS.Qual modName <$> simplifyName name
 simplifyVarName name@(H.Special _ _) =
   usageError "Constructors cannot be used as variables!" name
 
 -- | Gets the name of a build-in or user defined constructor.
 simplifyConName :: H.QName SrcSpan -> Simplifier HS.ConName
-simplifyConName (H.UnQual _ (H.Ident _ ident)) =
-  return (HS.UnQual (HS.Ident ident))
+simplifyConName (H.UnQual _ name) = HS.UnQual <$> simplifyName name
+simplifyConName (H.Qual _ (H.ModuleName _ modName) name) =
+  HS.Qual modName <$> simplifyName name
 simplifyConName (H.Special _ (H.UnitCon _)) = return HS.unitConName
 simplifyConName (H.Special _ (H.ListCon _)) = return HS.nilConName
 simplifyConName (H.Special _ (H.Cons    _)) = return HS.consConName
@@ -675,9 +681,6 @@ simplifyConName (H.Special _ (H.TupleCon _ H.Boxed n)) =
   return (HS.tupleConName n)
 
 -- Not supported constructor names.
-simplifyConName name@(H.Qual _ _ _) = notSupported "Qualified identifiers" name
-simplifyConName name@(H.UnQual _ (H.Symbol _ _)) =
-  notSupported "User defined data constructor operatos" name
 simplifyConName name@(H.Special _ (H.FunCon _)) =
   usageError "Function type constructor cannot be used as a constructor!" name
 simplifyConName name@(H.Special _ (H.TupleCon _ H.Unboxed _)) =
