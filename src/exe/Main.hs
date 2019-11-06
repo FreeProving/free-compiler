@@ -17,7 +17,6 @@ import           Compiler.Analysis.DependencyAnalysis
 import           Compiler.Monad.Application
 import           Compiler.Application.Options
 import           Compiler.Application.Debug
-import           Compiler.Application.State
 import           Compiler.Converter             ( convertModule )
 import qualified Compiler.Coq.AST              as G
 import           Compiler.Coq.Pretty            ( )
@@ -56,14 +55,12 @@ main = runApp compiler
 compiler :: Application ()
 compiler = do
   -- Parse command line arguments.
-  defaultOpts <- inState appOpts
-  opts        <- liftReporterIO $ getAndParseArgs defaultOpts
-  modifyState $ setOpts opts
+  getOpts >>= liftReporterIO . getAndParseArgs >>= putOpts
   -- Show help message.
-  whenM (inState (optShowHelp . appOpts)) $ liftIO $ do
+  whenM (inOpts optShowHelp) $ liftIO $ do
     putUsageInfo
     exitSuccess
-  whenM (inState (null . optInputFiles . appOpts)) $ liftIO $ do
+  whenM (inOpts (null . optInputFiles)) $ liftIO $ do
     putDebug "No input file.\n"
     putUsageInfo
     exitSuccess
@@ -71,7 +68,7 @@ compiler = do
   loadPrelude
   createCoqProject
   -- Process input files.
-  modules  <- mapM parseInputFile (optInputFiles opts) >>= sortInputModules
+  modules  <- inOpts optInputFiles >>= mapM parseInputFile >>= sortInputModules
   modules' <- mapM convertInputModule modules
   mapM_ (uncurry outputCoqModule) modules'
 
@@ -123,7 +120,7 @@ convertInputModule haskellAst = do
 --   with the given name.
 outputCoqModule :: HS.ModName -> [G.Sentence] -> Application ()
 outputCoqModule modName coqAst = do
-  maybeOutputDir <- inState $ optOutputDir . appOpts
+  maybeOutputDir <- inOpts optOutputDir
   case maybeOutputDir of
     Nothing        -> liftIO (putPrettyLn coqAst)
     Just outputDir -> do
@@ -145,7 +142,7 @@ outputCoqModule modName coqAst = do
 --   base library in the `data-files` field of the `.cabal` file.
 loadPrelude :: Application ()
 loadPrelude = do
-  baseLibDir <- inState $ optBaseLibDir . appOpts
+  baseLibDir <- inOpts optBaseLibDir
   preludeEnv <- liftReporterIO $ loadEnvironment (baseLibDir </> "Prelude.toml")
   liftConverter $ modifyEnv $ makeModuleAvailable HS.preludeModuleName
                                                   preludeEnv
@@ -166,14 +163,14 @@ createCoqProject =
   --   well.
   coqProjectEnabled :: Application Bool
   coqProjectEnabled = do
-    isEnabled      <- inState $ optCreateCoqProject . appOpts
-    maybeOutputDir <- inState $ optOutputDir . appOpts
+    isEnabled      <- inOpts optCreateCoqProject
+    maybeOutputDir <- inOpts optOutputDir
     return (isEnabled && isJust maybeOutputDir)
 
   -- | Path to the @_CoqProject@ file to create.
   getCoqProjectFile :: Application FilePath
   getCoqProjectFile = do
-    Just outputDir <- inState $ optOutputDir . appOpts
+    Just outputDir <- inOpts optOutputDir
     return (outputDir </> "_CoqProject")
 
   -- | Tests whether the @_CoqProject@ file does exist already.
@@ -192,8 +189,8 @@ createCoqProject =
   -- | Creates the string to write to the 'coqProject' file.
   makeContents :: Application String
   makeContents = do
-    baseDir        <- inState $ optBaseLibDir . appOpts
-    Just outputDir <- inState $ optOutputDir . appOpts
+    baseDir        <- inOpts optBaseLibDir
+    Just outputDir <- inOpts optOutputDir
     absBaseDir     <- liftIO $ makeAbsolute baseDir
     absOutputDir   <- liftIO $ makeAbsolute outputDir
     let relBaseDir = makeRelative absOutputDir absBaseDir

@@ -126,7 +126,6 @@ executable haskell-to-coq-compiler
   other-modules:      Paths_haskellToCoqCompiler
                     , Compiler.Application.Debug
                     , Compiler.Application.Options
-                    , Compiler.Application.State
                     , Compiler.Monad.Application
   build-depends:      haskell-to-coq-internal
 
