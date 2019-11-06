@@ -30,7 +30,7 @@ import           Compiler.Monad.Reporter
 importAndEnableQuickCheck :: Converter ()
 importAndEnableQuickCheck = do
   modifyEnv $ enableQuickCheck
-  modifyEnv $ addEntry
+  modifyEnv $ importEntry
     (HS.UnQual (HS.Ident "Property"))
     DataEntry {entrySrcSpan = NoSrcSpan, entryArity = 0, entryIdent = "Prop"}
 
