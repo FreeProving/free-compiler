@@ -44,11 +44,9 @@ instance Aeson.ToJSON Environment where
       Aeson.toJSON
         $ catMaybes
         $ map (uncurry (uncurry (const encodeEntry)))
-        $ filter (p . snd)
         $ Map.assocs
-        $ Map.map fst
-        $ Map.filter ((== 0) . snd)
-        $ envEntries env
+        $ Map.filter p
+        $ exportedEntries env
 
 -- | Encodes an entry of the environment with the given name.
 encodeEntry :: HS.QName -> EnvEntry -> Maybe Aeson.Value

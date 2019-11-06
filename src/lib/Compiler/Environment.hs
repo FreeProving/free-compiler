@@ -14,13 +14,15 @@ module Compiler.Environment
   -- * Module information
   , makeModuleAvailable
   , lookupAvailableModule
+  -- * Import and export entries
+  , exportedEntries
+  , importEntry
+  , importEnv
+  , importEnvAs
   -- * Inserting entries into the environment
   , addEntry
   , defineDecArg
   , defineTypeSig
-  , importEntry
-  , importEnv
-  , importEnvAs
   -- * Looking up entries from the environment
   , lookupEntry
   , existsLocalEntry
@@ -158,6 +160,54 @@ lookupAvailableModule :: HS.ModName -> Environment -> Maybe Environment
 lookupAvailableModule name = Map.lookup name . envAvailableModules
 
 -------------------------------------------------------------------------------
+-- Import and export entries                                                 --
+-------------------------------------------------------------------------------
+
+-- | Gets a map of all exported entries by their name.
+exportedEntries :: Environment -> Map ScopedName EnvEntry
+exportedEntries =
+  Map.filterWithKey (flip (const isUnQual))
+    . Map.map fst
+    . Map.filter ((== 0) . snd)
+    . envEntries
+ where
+  isUnQual :: ScopedName -> Bool
+  isUnQual (_, HS.UnQual _) = True
+  isUnQual (_, HS.Qual _ _) = False
+
+-- | Inserts an entry into the given environment and associates it with the
+--   given name.
+--
+--   In contrast to 'addEntry' the entry is not added at the current 'envDepth'
+--   but at depth @-1@ which indicates that it is not a top level entry but
+--   an external entry and should not be exported.
+importEntry :: HS.QName -> EnvEntry -> Environment -> Environment
+importEntry name entry env = addEntry' name entry (-1) env
+
+-- | Imports all top level entries of the first environment into the
+--   second environment.
+importEnv :: Environment -> Environment -> Environment
+importEnv fromEnv toEnv =
+  foldr (uncurry (uncurry (const importEntry))) toEnv
+    $ Map.assocs
+    $ exportedEntries fromEnv
+
+-- | Like 'importEnv' but all exported entries are qualifed with the given
+--   module name.
+importEnvAs :: HS.ModName -> Environment -> Environment -> Environment
+importEnvAs modName fromEnv toEnv =
+  foldr (uncurry (uncurry (const importEntry))) toEnv
+    $ Map.assocs
+    $ Map.mapKeys (fmap qualify)
+    $ exportedEntries fromEnv
+ where
+  -- | Qualifies the name of an imported entry with the module name.
+  qualify :: HS.QName -> HS.QName
+  qualify (HS.UnQual name) = HS.Qual modName name
+  qualify (HS.Qual _ _) =
+    error ("importEnvAs: Cannot import qualified identifiers.")
+
+-------------------------------------------------------------------------------
 -- Inserting entries into the environment                                    --
 -------------------------------------------------------------------------------
 
@@ -185,42 +235,6 @@ defineTypeSig name typeExpr env =
 defineDecArg :: HS.QName -> Int -> Environment -> Environment
 defineDecArg name index env =
   env { envDecArgs = Map.insert name index (envDecArgs env) }
-
--- | Inserts an entry into the given environment and associates it with the
---   given name.
---
---   In contrast to 'addEntry' the entry is not added at the current 'envDepth'
---   but at depth @-1@ which indicates that it is not a top level entry but
---   an external entry and should not be exported.
-importEntry :: HS.QName -> EnvEntry -> Environment -> Environment
-importEntry name entry env = addEntry' name entry (-1) env
-
--- | Imports all top level entries of the first environment into the
---   second environment.
-importEnv :: Environment -> Environment -> Environment
-importEnv fromEnv toEnv =
-  foldr (uncurry (uncurry (const importEntry))) toEnv
-    $ Map.assocs
-    $ Map.map fst
-    $ Map.filter ((== 0) . snd)
-    $ envEntries fromEnv
-
--- | Like 'importEnv' but all exported entries are qualifed with the given
---   module name.
-importEnvAs :: HS.ModName -> Environment -> Environment -> Environment
-importEnvAs modName fromEnv toEnv =
-  foldr (uncurry (uncurry (const importEntry))) toEnv
-    $ Map.assocs
-    $ Map.mapKeys (fmap qualify)
-    $ Map.map fst
-    $ Map.filter ((== 0) . snd)
-    $ envEntries fromEnv
- where
-  -- | Qualifies the name of an imported entry with the module name.
-  qualify :: HS.QName -> HS.QName
-  qualify (HS.UnQual name) = HS.Qual modName name
-  qualify (HS.Qual _ _) =
-    error ("importEnvAs: Cannot import qualified identifiers.")
 
 -------------------------------------------------------------------------------
 -- Looking up entries from the environment                                   --
