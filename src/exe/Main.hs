@@ -27,6 +27,7 @@ import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Haskell.Parser        ( parseModuleFile )
 import           Compiler.Haskell.Simplifier
 import           Compiler.Haskell.SrcSpan
+import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
 import           Compiler.Pretty                ( putPrettyLn
                                                 , showPretty
@@ -119,7 +120,7 @@ processInputModule haskellAst = do
     ++ ")"
   Just env         <- inState $ lookupEnv modName
   availableModules <- inState appEnvs
-  (coqAst, env')   <- liftConverter'
+  (coqAst, env')   <- liftConverter
     ((,) <$> convertModule haskellAst <*> getEnv)
     env { envAvailableModules = availableModules }
   modifyState $ insertEnv modName env'
