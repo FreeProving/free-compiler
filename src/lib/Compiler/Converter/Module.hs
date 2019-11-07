@@ -2,8 +2,9 @@
 
 module Compiler.Converter.Module where
 
+import           Control.Monad                  ( when )
 import           Control.Monad.Extra            ( concatMapM )
-import           Data.Maybe                     ( catMaybes )
+import           Data.Maybe                     ( maybeToList )
 
 import           Compiler.Analysis.DependencyAnalysis
 import           Compiler.Analysis.DependencyGraph
@@ -82,7 +83,7 @@ convertImportDecls :: [HS.ImportDecl] -> Converter [G.Sentence]
 convertImportDecls imports = do
   preludeImport <- generatePreludeImport
   imports'      <- mapM convertImportDecl imports
-  return (CoqBase.imports : catMaybes (preludeImport : imports'))
+  return (CoqBase.imports : maybeToList preludeImport ++ imports')
  where
   -- | Tests whether there is an explicit import for the @Prelude@ module.
   importsPrelude :: Bool
@@ -102,11 +103,11 @@ convertImportDecls imports = do
 --
 --   Returns @Nothing@ if no Coq import sentence is needed (e.g., in case of
 --   special imports like @Test.QuickCheck@).
-convertImportDecl :: HS.ImportDecl -> Converter (Maybe G.Sentence)
-convertImportDecl (HS.ImportDecl _ "Test.QuickCheck") = do
-  importAndEnableQuickCheck
-  return Nothing
+convertImportDecl :: HS.ImportDecl -> Converter (G.Sentence)
 convertImportDecl (HS.ImportDecl srcSpan modName) = do
+  -- Enable QuickCheck.
+  when (modName == quickCheckModuleName) $ modifyEnv enableQuickCheck
+  -- Lookup and import module environment.
   maybeModEnv <- inEnv $ lookupAvailableModule modName
   case maybeModEnv of
     Just modEnv -> do
@@ -118,7 +119,7 @@ convertImportDecl (HS.ImportDecl srcSpan modName) = do
         $  "Could not find module '"
         ++ modName
         ++ "'"
-  Just <$> generateImport modName
+  generateImport modName
 
 -- | Generates a Coq import sentence for the module with the given name.
 generateImport :: HS.ModName -> Converter G.Sentence

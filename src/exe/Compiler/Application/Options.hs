@@ -37,6 +37,9 @@ data Options = Options
     -- ^ The output directory or 'Nothing' if the output should be printed
     --   to @stdout@.
 
+  , optImportDirs :: [FilePath]
+    -- ^ The directories to look in for imported modules.
+
   , optBaseLibDir :: FilePath
     -- ^ The directory that contains the Coq Base library that accompanies
     --   this compiler.
@@ -49,7 +52,12 @@ data Options = Options
 
 -- | The default command line options.
 --
+--   The base library directory defaults to the @base@ directory in the
+--   cabal data directory.
+--
 --   By default output will be printed to the console.
+--   The compiler looks for imported files in the current directory and
+--   the output directory (if one is specified).
 makeDefaultOptions :: IO Options
 makeDefaultOptions = do
   defaultBaseLibDir <- getDataFileName "base"
@@ -57,6 +65,7 @@ makeDefaultOptions = do
     { optShowHelp         = False
     , optInputFiles       = []
     , optOutputDir        = Nothing
+    , optImportDirs       = ["."]
     , optBaseLibDir       = defaultBaseLibDir
     , optCreateCoqProject = True
     }
@@ -75,9 +84,25 @@ options
     , Option
       ['o']
       ["output"]
-      (ReqArg (\p opts -> opts { optOutputDir = Just p }) "DIR")
-      (  "Path to output directory.\n"
-      ++ "Optional. Prints to the console by default."
+      (ReqArg
+        (\p opts -> opts { optOutputDir  = Just p
+                         , optImportDirs = p : optImportDirs opts
+                         }
+        )
+        "DIR"
+      )
+      (  "Optional. Path to output directory.\n"
+      ++ "Prints to the console by default."
+      )
+    , Option
+      ['i']
+      ["import"]
+      (ReqArg (\p opts -> opts { optImportDirs = p : optImportDirs opts }) "DIR"
+      )
+      (  "Optional. Adds the specified directory to the search path for\n"
+      ++ "imported modules. The compiler looks in the current and output\n"
+      ++ "directory by default. Multiple import directories can be added\n"
+      ++ "by specifying additional `--import` options."
       )
     , Option
       ['b']

@@ -25,14 +25,20 @@ import           Compiler.Monad.Reporter
 -- QuickCheck import                                                         --
 -------------------------------------------------------------------------------
 
--- | Enables the translation of QuickCheck properties and imports the relevant
---   symbols into the current environment.
-importAndEnableQuickCheck :: Converter ()
-importAndEnableQuickCheck = do
-  modifyEnv $ enableQuickCheck
-  modifyEnv $ importEntry
-    (HS.UnQual (HS.Ident "Property"))
-    DataEntry {entrySrcSpan = NoSrcSpan, entryArity = 0, entryIdent = "Prop"}
+-- | The name of the QuickCheck module.
+quickCheckModuleName :: HS.ModName
+quickCheckModuleName = "Test.QuickCheck"
+
+-- | Environment for the @Test.QuickCheck@ module.
+--
+--   Only the @Property@ data type is exported. There are no entries for
+--   the supported QuickCheck operators, they are handled directly by the
+--   converter.
+quickCheckEnv :: Environment
+quickCheckEnv = addEntry
+  (HS.UnQual (HS.Ident "Property"))
+  DataEntry {entrySrcSpan = NoSrcSpan, entryArity = 0, entryIdent = "Prop"}
+  emptyEnv
 
 -------------------------------------------------------------------------------
 -- Filter QuickCheck property declarations                                   --

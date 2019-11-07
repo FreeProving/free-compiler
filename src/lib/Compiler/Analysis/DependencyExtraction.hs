@@ -25,6 +25,7 @@ module Compiler.Analysis.DependencyExtraction
   , funcDeclDependencySet
     -- * Modules
   , moduleDependencies
+  , moduleDependencySet
   )
 where
 
@@ -243,8 +244,8 @@ withoutArgs args set = set
 --   Every module depends on the @Prelude@ module implicitly.
 moduleDependencies :: HS.Module -> [HS.ModName]
 moduleDependencies =
-  Set.toList
-    . Set.insert HS.preludeModuleName
-    . Set.fromList
-    . map HS.importName
-    . HS.modImports
+  Set.toList . Set.insert HS.preludeModuleName . moduleDependencySet
+
+-- | Like 'moduleDependencies' but returnes a set of imported modules.
+moduleDependencySet :: HS.Module -> Set HS.ModName
+moduleDependencySet = Set.fromList . map HS.importName . HS.modImports

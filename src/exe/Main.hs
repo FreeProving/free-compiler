@@ -4,7 +4,7 @@ import           Control.Monad.Extra            ( unlessM
                                                 , whenM
                                                 )
 import           Control.Monad.IO.Class
-import           Data.List
+import           Data.List                      ( intercalate )
 import           Data.Maybe                     ( isJust )
 import           System.Directory               ( createDirectoryIfMissing
                                                 , doesFileExist
@@ -18,6 +18,7 @@ import           Compiler.Monad.Application
 import           Compiler.Application.Options
 import           Compiler.Application.Debug
 import           Compiler.Converter             ( convertModule )
+import           Compiler.Converter.QuickCheck
 import qualified Compiler.Coq.AST              as G
 import           Compiler.Coq.Pretty            ( )
 import           Compiler.Environment
@@ -66,6 +67,7 @@ compiler = do
     exitSuccess
   -- Initialize environment.
   loadPrelude
+  loadQuickCheck
   createCoqProject
   -- Process input files.
   modules  <- inOpts optInputFiles >>= mapM parseInputFile >>= sortInputModules
@@ -109,6 +111,7 @@ convertInputModule haskellAst = do
     ++ " ("
     ++ srcSpanFilename (HS.modSrcSpan haskellAst)
     ++ ")"
+  loadRequiredModules haskellAst
   coqAst <- liftConverter $ convertModule haskellAst
   return (modName, coqAst)
 
@@ -133,6 +136,54 @@ outputCoqModule modName coqAst = do
       liftIO $ writePrettyFile outputFile coqAst
 
 -------------------------------------------------------------------------------
+-- Imports                                                                   --
+-------------------------------------------------------------------------------
+
+-- | Loads the environments of modules imported by the given modules from
+--   their environment file.
+loadRequiredModules :: HS.Module -> Application ()
+loadRequiredModules = mapM_ loadImport . HS.modImports
+
+-- | Loads the environment of the module imported by the given declaration.
+loadImport :: HS.ImportDecl -> Application ()
+loadImport decl = do
+  let srcSpan = HS.importSrcSpan decl
+      modName = HS.importName decl
+  unlessM (liftConverter (inEnv (isModuleAvailable modName)))
+    $ loadModule srcSpan modName
+
+-- | Loads the environment of the module with the given name from the
+--   configured import path.
+--
+--   The given source span is used in error messages if the module could
+--   not be found.
+loadModule :: SrcSpan -> HS.ModName -> Application ()
+loadModule srcSpan modName = do
+  importDirs <- inOpts optImportDirs
+  envFile    <- findEnvFile importDirs
+  env        <- liftReporterIO $ loadEnvironment envFile
+  liftConverter $ modifyEnv $ makeModuleAvailable modName env
+ where
+  -- | The name of the module's environment file relative to the import
+  --   directories.
+  filename :: FilePath
+  filename = (map (\c -> if c == '.' then '/' else c) modName) <.> "json"
+
+  -- | Looks for the module's environment file in the import directories.
+  --
+  --   Reports a fatal message if the file could not be found.
+  findEnvFile :: [FilePath] -> Application FilePath
+  findEnvFile [] =
+    reportFatal
+      $  Message srcSpan Error
+      $  "Could not find imported module "
+      ++ showPretty modName
+  findEnvFile (d : ds) = do
+    let envFile = d </> filename
+    exists <- liftIO $ doesFileExist envFile
+    if exists then return envFile else findEnvFile ds
+
+-------------------------------------------------------------------------------
 -- Base library                                                              --
 -------------------------------------------------------------------------------
 
@@ -146,6 +197,12 @@ loadPrelude = do
   preludeEnv <- liftReporterIO $ loadEnvironment (baseLibDir </> "Prelude.toml")
   liftConverter $ modifyEnv $ makeModuleAvailable HS.preludeModuleName
                                                   preludeEnv
+
+-- | Loads the @Test.QuickCheck@ module.
+loadQuickCheck :: Application ()
+loadQuickCheck = liftConverter $ modifyEnv $ makeModuleAvailable
+  quickCheckModuleName
+  quickCheckEnv
 
 -- | Creates a @_CoqProject@ file (if enabled) that maps the physical directory
 --   of the Base library.

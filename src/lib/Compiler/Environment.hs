@@ -13,6 +13,7 @@ module Compiler.Environment
   , isTopLevel
   -- * Module information
   , makeModuleAvailable
+  , isModuleAvailable
   , lookupAvailableModule
   -- * Import and export entries
   , exportedEntries
@@ -52,7 +53,9 @@ import           Data.Composition               ( (.:)
 import           Data.List                      ( find )
 import           Data.Map.Strict                ( Map )
 import qualified Data.Map.Strict               as Map
-import           Data.Maybe                     ( fromMaybe )
+import           Data.Maybe                     ( fromMaybe
+                                                , isJust
+                                                )
 import           Data.Tuple.Extra               ( (&&&) )
 import           Control.Monad                  ( join )
 
@@ -154,6 +157,10 @@ isTopLevel = (== 0) . envDepth
 makeModuleAvailable :: HS.ModName -> Environment -> Environment -> Environment
 makeModuleAvailable name modEnv env =
   env { envAvailableModules = Map.insert name modEnv (envAvailableModules env) }
+
+-- | Tests whether the module with the given name can be imported.
+isModuleAvailable :: HS.ModName -> Environment -> Bool
+isModuleAvailable = isJust .: lookupAvailableModule
 
 -- | Looks up the environment of another module that can be imported.
 lookupAvailableModule :: HS.ModName -> Environment -> Maybe Environment
