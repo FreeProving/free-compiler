@@ -3,7 +3,16 @@ module Compiler.Converter.QuickCheckTests where
 import           Test.Hspec
 
 import           Compiler.Converter.QuickCheck
+import           Compiler.Environment
+import           Compiler.Monad.Converter
 import           Compiler.Util.Test
+
+-- | Utility function that imports the environment of the @Test.QuickCheck@
+--   module and enables support for the translation of QuickCheck properties.
+importAndEnableQuickCheck :: Converter ()
+importAndEnableQuickCheck = do
+  modifyEnv $ importEnv quickCheckEnv
+  modifyEnv $ enableQuickCheck
 
 -- | Test group for 'convertQuickCheckProperty' tests.
 testConvertQuickCheckProperty :: Spec
