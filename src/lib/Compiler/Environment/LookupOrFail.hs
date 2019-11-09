@@ -6,11 +6,31 @@ module Compiler.Environment.LookupOrFail where
 
 import qualified Compiler.Coq.AST              as G
 import           Compiler.Environment
+import           Compiler.Environment.Entry
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Haskell.SrcSpan
 import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
 import           Compiler.Pretty
+
+-- | Looks up an entry of the environment with the given name or reports
+--   a fatal error message if the identifier has not been defined or the
+--   name is ambigious.
+--
+--   If an error is reported, it points to the given source span.
+lookupEntryOrFail :: SrcSpan -> Scope -> HS.QName -> Converter EnvEntry
+lookupEntryOrFail srcSpan scope name = do
+  entries <- inEnv $ lookupEntries scope name
+  case entries of
+    [entry] -> return entry
+    [] ->
+      reportFatal
+        $ Message srcSpan Error
+        $ ("Identifier not in scope '" ++ showPretty name ++ "'")
+    _ ->
+      reportFatal
+        $ Message srcSpan Error
+        $ ("Ambiguous occurrence '" ++ showPretty name ++ "'")
 
 -- | Looks up the Coq identifier for a Haskell function, (type)
 --   constructor or (type) variable with the given name or reports a fatal
@@ -23,13 +43,8 @@ lookupIdentOrFail
   -> HS.QName -- ^ The Haskell identifier to look up.
   -> Converter G.Qualid
 lookupIdentOrFail srcSpan scope name = do
-  mQualid <- inEnv $ lookupIdent scope name
-  case mQualid of
-    Just qualid -> return qualid
-    Nothing ->
-      reportFatal
-        $ Message srcSpan Error
-        $ ("Unknown identifier: " ++ showPretty name)
+  entry <- lookupEntryOrFail srcSpan scope name
+  return (G.bare (entryIdent entry))
 
 -- | Looks up the Coq identifier of a smart constructor of the Haskell
 --   data constructr with the given name or reports a fatal error message
@@ -41,13 +56,8 @@ lookupSmartIdentOrFail
   -> HS.QName -- ^ The Haskell identifier to look up.
   -> Converter G.Qualid
 lookupSmartIdentOrFail srcSpan name = do
-  mQualid <- inEnv $ lookupSmartIdent name
-  case mQualid of
-    Just qualid -> return qualid
-    Nothing ->
-      reportFatal
-        $ Message srcSpan Error
-        $ ("Unknown constructor: " ++ showPretty name)
+  entry <- lookupEntryOrFail srcSpan ValueScope name
+  return (G.bare (entrySmartIdent entry))
 
 -- | Looks up the annoated type of a user defined function with the given name
 --   and reports a fatal error message if there is no such type signature.
@@ -62,4 +72,4 @@ lookupTypeSigOrFail srcSpan ident = do
     Nothing ->
       reportFatal
         $ Message srcSpan Error
-        $ ("Missing type signature for " ++ showPretty ident)
+        $ ("Missing type signature for '" ++ showPretty ident ++ "'")

@@ -10,7 +10,6 @@ module Compiler.Environment
   , Environment(..)
   , emptyEnv
   , childEnv
-  , isTopLevel
   -- * Module information
   , makeModuleAvailable
   , isModuleAvailable
@@ -25,6 +24,7 @@ module Compiler.Environment
   , defineDecArg
   , defineTypeSig
   -- * Looking up entries from the environment
+  , lookupEntries
   , lookupEntry
   , existsLocalEntry
   , isFunction
@@ -53,9 +53,7 @@ import           Data.Composition               ( (.:)
 import           Data.List                      ( find )
 import           Data.Map.Strict                ( Map )
 import qualified Data.Map.Strict               as Map
-import           Data.Maybe                     ( fromMaybe
-                                                , isJust
-                                                )
+import           Data.Maybe                     ( isJust )
 import           Data.Tuple.Extra               ( (&&&) )
 import           Control.Monad                  ( join )
 
@@ -103,10 +101,12 @@ data Environment = Environment
   , envAvailableModules :: Map HS.ModName Environment
     -- ^ Maps names of modules that can be imported to their environments.
 
-  , envEntries :: Map ScopedName (EnvEntry, Int)
+  , envEntries :: Map ScopedName ([EnvEntry], Int)
     -- ^ Maps Haskell names to entries for declarations.
     --   In addition to the entry, the 'envDepth' of the environment is
     --   recorded.
+    --   There can be multiple entries with the same name as long as they are
+    --   not referenced.
   , envTypeSigs :: Map HS.QName HS.Type
     -- ^ Maps names of Haskell functions to their annotated types.
   , envDecArgs :: Map HS.QName Int
@@ -144,10 +144,6 @@ emptyEnv = Environment
 childEnv :: Environment -> Environment
 childEnv env = env { envDepth = envDepth env + 1 }
 
--- | Tests whether the given environment has no parent environment.
-isTopLevel :: Environment -> Bool
-isTopLevel = (== 0) . envDepth
-
 -------------------------------------------------------------------------------
 -- Modules                                                                   --
 -------------------------------------------------------------------------------
@@ -174,7 +170,7 @@ lookupAvailableModule name = Map.lookup name . envAvailableModules
 exportedEntries :: Environment -> Map ScopedName EnvEntry
 exportedEntries =
   Map.filterWithKey (flip (const isUnQual))
-    . Map.map fst
+    . Map.map (head . fst)
     . Map.filter ((== 0) . snd)
     . envEntries
  where
@@ -227,9 +223,13 @@ addEntry name entry env = addEntry' name entry (envDepth env) env
 --   to record.
 addEntry' :: HS.QName -> EnvEntry -> Int -> Environment -> Environment
 addEntry' name entry depth env = env
-  { envEntries = Map.insert (entryScope entry, name)
-                            (entry           , depth)
-                            (envEntries env)
+  { envEntries = Map.insertWith
+                   (\(es1, d1) (es2, d2) ->
+                     if d2 == d1 then (es1 ++ es2, d1) else (es2, d2)
+                   )
+                   (entryScope entry, name)
+                   ([entry]         , depth)
+                   (envEntries env)
   }
 
 -- | Inserts the given type signature into the environment.
@@ -247,12 +247,18 @@ defineDecArg name index env =
 -- Looking up entries from the environment                                   --
 -------------------------------------------------------------------------------
 
--- | Looksup the entry with the given name in the specified scope of the
---   given environment.
---
---   Returns @Nothing@ if there is no such entry.
+-- | Looks up the entries that have been associated with the given name in
+--   the specified scope of the given environment.
+lookupEntries :: Scope -> HS.QName -> Environment -> [EnvEntry]
+lookupEntries scope name = maybe [] fst . Map.lookup (scope, name) . envEntries
+
+-- Like 'lookupEntries' but returns @Nothing@ if the given name is ambigous.
 lookupEntry :: Scope -> HS.QName -> Environment -> Maybe EnvEntry
-lookupEntry scope name = fmap fst . Map.lookup (scope, name) . envEntries
+lookupEntry = maybeFromSingleton .:. lookupEntries
+ where
+  maybeFromSingleton :: [a] -> Maybe a
+  maybeFromSingleton [x] = Just x
+  maybeFromSingleton _   = Nothing
 
 -- | Tests whether there is an entry with the given name in the current
 --   environment that was not inherited from a parent environment.
@@ -266,12 +272,11 @@ existsLocalEntry scope name =
 --
 --   Returns @False@ if there is no such function.
 isFunction :: HS.QName -> Environment -> Bool
-isFunction = fromMaybe False . fmap isFuncEntry .: lookupEntry ValueScope
+isFunction = maybe False isFuncEntry .: lookupEntry ValueScope
 
 -- | Test whether the variable with the given name is not monadic.
 isPureVar :: HS.QName -> Environment -> Bool
-isPureVar =
-  fromMaybe False . fmap (isVarEntry .&&. entryIsPure) .: lookupEntry ValueScope
+isPureVar = maybe False (isVarEntry .&&. entryIsPure) .: lookupEntry ValueScope
 
 -- | Looks up the Coq identifier for a Haskell function, (type)
 --   constructor or (type) variable with the given name.
@@ -292,7 +297,7 @@ lookupSmartIdent =
 -- | Gets a list of Coq identifiers for functions, (type/smart) constructors,
 --   (type/fresh) variables that were used in the given environment already.
 usedIdents :: Environment -> [G.Qualid]
-usedIdents = concatMap (entryIdents . fst) . Map.elems . envEntries
+usedIdents = concatMap (concatMap entryIdents . fst) . Map.elems . envEntries
  where
   entryIdents :: EnvEntry -> [G.Qualid]
   entryIdents entry
@@ -361,9 +366,7 @@ lookupTypeSig name = Map.lookup name . envTypeSigs
 --   Returns @False@ if there is no such function.
 isPartial :: HS.QName -> Environment -> Bool
 isPartial =
-  fromMaybe False
-    .  fmap (isFuncEntry .&&. entryIsPartial)
-    .: lookupEntry ValueScope
+  maybe False (isFuncEntry .&&. entryIsPartial) .: lookupEntry ValueScope
 
 -- | Looks up the index of the decreasing argument of the recursive function
 --   with the given name.

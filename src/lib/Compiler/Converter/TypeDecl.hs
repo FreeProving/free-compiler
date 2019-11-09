@@ -5,7 +5,6 @@ module Compiler.Converter.TypeDecl where
 
 import           Control.Monad                  ( mapAndUnzipM )
 import           Control.Monad.Extra            ( concatMapM )
-import qualified Data.Map.Strict               as Map
 import           Data.Maybe                     ( catMaybes )
 import           Data.List                      ( partition )
 import qualified Data.List.NonEmpty            as NonEmpty
@@ -33,32 +32,18 @@ import           Compiler.Monad.Instance.Fail   ( )
 convertTypeComponent
   :: DependencyComponent HS.TypeDecl -> Converter [G.Sentence]
 convertTypeComponent (NonRecursive decl)
-  | isTypeSynDecl decl = defineTypeDecl decl >> convertTypeSynDecl decl
+  | isTypeSynDecl decl = convertTypeSynDecl decl
   | otherwise          = convertDataDecls [decl]
 convertTypeComponent (Recursive decls) = do
   let (typeSynDecls, dataDecls) = partition isTypeSynDecl decls
   sortedTypeSynDecls <- sortTypeSynDecls typeSynDecls
-  dataDecls'         <- withTypeSynonyms sortedTypeSynDecls $ do
-    expandedDataDecls <- mapM expandAllTypeSynonymsInDecl dataDecls
-    convertDataDecls expandedDataDecls
+  expandedDataDecls  <- localEnv $ do
+    putEnv emptyEnv
+    mapM_ defineTypeDecl sortedTypeSynDecls
+    mapM expandAllTypeSynonymsInDecl dataDecls
+  dataDecls'    <- convertDataDecls expandedDataDecls
   typeSynDecls' <- concatMapM convertTypeSynDecl sortedTypeSynDecls
   return (dataDecls' ++ typeSynDecls')
-
--- | Creates a converter that runs the given converter in an environment that
---   contains only the type synonyms from the given type synonym
---   declarations.
---
---   The resulting environment contains both the old and the given type
---   synonym declarations.
-withTypeSynonyms :: [HS.TypeDecl] -> Converter a -> Converter a
-withTypeSynonyms typeSynDecls converter = do
-  (typeSyns, noTypeSyns) <-
-    inEnv $ Map.partition (isTypeSynEntry . fst) . envEntries
-  modifyEnv $ \env -> env { envEntries = noTypeSyns }
-  mapM_ defineTypeDecl typeSynDecls
-  x <- converter
-  modifyEnv $ \env -> env { envEntries = envEntries env `Map.union` typeSyns }
-  return x
 
 -- | Sorts type synonym declarations topologically.
 --
@@ -145,7 +130,8 @@ isTypeSynDecl (HS.DataDecl    _ _ _ _) = False
 
 -- | Converts a Haskell type synonym declaration to Coq.
 convertTypeSynDecl :: HS.TypeDecl -> Converter [G.Sentence]
-convertTypeSynDecl (HS.TypeSynDecl _ declIdent typeVarDecls typeExpr) =
+convertTypeSynDecl decl@(HS.TypeSynDecl _ declIdent typeVarDecls typeExpr) = do
+  defineTypeDecl decl
   localEnv $ do
     let ident = HS.fromDeclIdent declIdent
         name  = HS.UnQual (HS.Ident ident)
