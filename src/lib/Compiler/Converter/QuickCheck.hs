@@ -35,10 +35,17 @@ quickCheckModuleName = "Test.QuickCheck"
 --   the supported QuickCheck operators, they are handled directly by the
 --   converter.
 quickCheckEnv :: Environment
-quickCheckEnv = addEntry
-  (HS.UnQual (HS.Ident "Property"))
-  DataEntry {entrySrcSpan = NoSrcSpan, entryArity = 0, entryIdent = "Prop"}
-  emptyEnv
+quickCheckEnv =
+  let propertyName = HS.Ident "Property"
+  in  addEntry
+        (HS.UnQual propertyName)
+        DataEntry
+          { entrySrcSpan = NoSrcSpan
+          , entryArity   = 0
+          , entryIdent   = "Prop"
+          , entryName    = HS.Qual quickCheckModuleName propertyName
+          }
+        emptyEnv
 
 -------------------------------------------------------------------------------
 -- Filter QuickCheck property declarations                                   --

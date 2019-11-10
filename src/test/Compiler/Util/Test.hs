@@ -140,7 +140,8 @@ defineTestTypeCon :: String -> Int -> Converter String
 defineTestTypeCon ident arity = renameAndAddTestEntry DataEntry
   { entrySrcSpan = NoSrcSpan
   , entryArity   = arity
-  , entryIdent   = ident
+  , entryName    = HS.UnQual (HS.Ident ident)
+  , entryIdent   = undefined -- filled by renamer
   }
 
 -- | Defines a type variable 'renameAndDefineTypeVar' for testing purposes.
@@ -149,7 +150,8 @@ defineTestTypeCon ident arity = renameAndAddTestEntry DataEntry
 defineTestTypeVar :: String -> Converter String
 defineTestTypeVar ident = renameAndAddTestEntry TypeVarEntry
   { entrySrcSpan = NoSrcSpan
-  , entryIdent   = ident
+  , entryName    = HS.UnQual (HS.Ident ident)
+  , entryIdent   = undefined -- filled by renamer
   }
 
 -- | Adds an entry for a data constructor for testing purposes.
@@ -165,8 +167,9 @@ defineTestCon ident arity typeStr = do
     , entryArity      = arity
     , entryArgTypes   = argTypes
     , entryReturnType = returnType
-    , entryIdent      = ident
-    , entrySmartIdent = undefined
+    , entryName       = HS.UnQual (HS.Ident ident)
+    , entryIdent      = undefined -- filled by renamer
+    , entrySmartIdent = undefined -- filled by renamer
     }
   return (entryIdent entry, entrySmartIdent entry)
 
@@ -177,7 +180,8 @@ defineTestVar :: String -> Converter String
 defineTestVar ident = renameAndAddTestEntry VarEntry
   { entrySrcSpan = NoSrcSpan
   , entryIsPure  = False
-  , entryIdent   = ident
+  , entryName    = HS.UnQual (HS.Ident ident)
+  , entryIdent   = undefined -- filled by renamer
   }
 
 -- | Adds an entry for a function declaration for testing purposes.
@@ -200,7 +204,8 @@ defineTestFunc' partial ident arity typeStr = do
     , entryArgTypes   = argTypes
     , entryReturnType = returnType
     , entryIsPartial  = partial
-    , entryIdent      = ident
+    , entryName       = HS.UnQual (HS.Ident ident)
+    , entryIdent      = undefined -- filled by renamer
     }
 
 -- | Like 'defineTestFunc' but also marks the given function as partial.

@@ -83,14 +83,16 @@ defineTypeDecl (HS.TypeSynDecl srcSpan declIdent typeVarDecls typeExpr) = do
     , entryArity    = length typeVarDecls
     , entryTypeArgs = map HS.fromDeclIdent typeVarDecls
     , entryTypeSyn  = typeExpr
-    , entryIdent    = HS.fromDeclIdent declIdent
+    , entryName     = HS.UnQual (HS.Ident (HS.fromDeclIdent declIdent))
+    , entryIdent    = undefined -- filled by renamer
     }
   return ()
 defineTypeDecl (HS.DataDecl srcSpan declIdent typeVarDecls conDecls) = do
   _ <- renameAndAddEntry DataEntry
     { entrySrcSpan = srcSpan
     , entryArity   = length typeVarDecls
-    , entryIdent   = ident
+    , entryName    = HS.UnQual (HS.Ident ident)
+    , entryIdent   = undefined -- filled by renamer
     }
   mapM_ defineConDecl conDecls
  where
@@ -114,8 +116,9 @@ defineTypeDecl (HS.DataDecl srcSpan declIdent typeVarDecls conDecls) = do
       , entryArity      = length argTypes
       , entryArgTypes   = map Just argTypes
       , entryReturnType = Just returnType
-      , entryIdent      = conIdent
-      , entrySmartIdent = undefined
+      , entryName       = HS.UnQual (HS.Ident conIdent)
+      , entryIdent      = undefined -- filled by renamer
+      , entrySmartIdent = undefined -- filled by renamer
       }
     return ()
 

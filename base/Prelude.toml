@@ -7,34 +7,34 @@
 ##############################################################################
 
 [[types]]
-  haskell-name = "Bool"
+  haskell-name = "Prelude.Bool"
   coq-name     = "Bool"
   arity        = 0
 
 [[constructors]]
   haskell-type   = "Bool"
-  haskell-name   = "True"
+  haskell-name   = "Prelude.True"
   coq-name       = "true"
   coq-smart-name = "True_"
   arity          = 0
 
 [[constructors]]
   haskell-type   = "Bool"
-  haskell-name   = "False"
+  haskell-name   = "Prelude.False"
   coq-name       = "false"
   coq-smart-name = "False_"
   arity          = 0
 
 [[functions]]
   haskell-type = "Bool -> Bool -> Bool"
-  haskell-name = "&&"
+  haskell-name = "Prelude.(&&)"
   coq-name     = "andBool"
   arity        = 2
   partial      = false
 
 [[functions]]
   haskell-type = "Bool -> Bool -> Bool"
-  haskell-name = "||"
+  haskell-name = "Prelude.(||)"
   coq-name     = "orBool"
   arity        = 2
   partial      = false
@@ -44,83 +44,83 @@
 ##############################################################################
 
 [[types]]
-  haskell-name = "Integer"
+  haskell-name = "Prelude.Integer"
   coq-name     = "Integer"
   arity        = 0
 
 [[functions]]
   haskell-type = "Integer -> Integer -> Integer"
-  haskell-name = "+"
+  haskell-name = "Prelude.(+)"
   coq-name     = "addInteger"
   arity        = 2
   partial      = false
 
 [[functions]]
   haskell-type = "Integer -> Integer -> Integer"
-  haskell-name = "-"
+  haskell-name = "Prelude.(-)"
   coq-name     = "subInteger"
   arity        = 2
   partial      = false
 
 [[functions]]
   haskell-type = "Integer -> Integer -> Integer"
-  haskell-name = "*"
+  haskell-name = "Prelude.(*)"
   coq-name     = "mulInteger"
   arity        = 2
   partial      = false
 
 [[functions]]
   haskell-type = "Integer -> Integer -> Integer"
-  haskell-name = "^"
+  haskell-name = "Prelude.(^)"
   coq-name     = "powInteger"
   arity        = 2
   partial      = false
 
 [[functions]]
   haskell-type = "Integer -> Integer -> Bool"
-  haskell-name = "<="
+  haskell-name = "Prelude.(<=)"
   coq-name     = "leInteger"
   arity        = 2
   partial      = false
 
 [[functions]]
   haskell-type = "Integer -> Integer -> Bool"
-  haskell-name = "<"
+  haskell-name = "Prelude.(<)"
   coq-name     = "ltInteger"
   arity        = 2
   partial      = false
 
 [[functions]]
   haskell-type = "Integer -> Integer -> Bool"
-  haskell-name = "=="
+  haskell-name = "Prelude.(==)"
   coq-name     = "eqInteger"
   arity        = 2
   partial      = false
 
 [[functions]]
   haskell-type = "Integer -> Integer -> Bool"
-  haskell-name = "/="
+  haskell-name = "Prelude.(/=)"
   coq-name     = "neqInteger"
   arity        = 2
   partial      = false
 
 [[functions]]
   haskell-type = "Integer -> Integer -> Bool"
-  haskell-name = ">="
+  haskell-name = "Prelude.(>=)"
   coq-name     = "geInteger"
   arity        = 2
   partial      = false
 
 [[functions]]
   haskell-type = "Integer -> Integer -> Bool"
-  haskell-name = ">"
+  haskell-name = "Prelude.(>)"
   coq-name     = "gtInteger"
   arity        = 2
   partial      = false
 
 [[functions]]
   haskell-type = "Integer -> Integer -> Integer"
-  haskell-name = "negate"
+  haskell-name = "Prelude.negate"
   coq-name     = "negate"
   arity        = 1
   partial      = false
@@ -130,20 +130,20 @@
 ##############################################################################
 
 [[types]]
-  haskell-name = "[]"
+  haskell-name = "Prelude.([])"
   coq-name     = "List"
   arity = 1
 
 [[constructors]]
   haskell-type   = "[a]"
-  haskell-name   = "[]"
+  haskell-name   = "Prelude.([])"
   coq-name       = "nil"
   coq-smart-name = "Nil"
   arity          = 0
 
 [[constructors]]
   haskell-type   = "a -> [a] -> [a]"
-  haskell-name   = ":"
+  haskell-name   = "Prelude.(:)"
   coq-name       = "cons"
   coq-smart-name = "Cons"
   arity          = 2
@@ -153,13 +153,13 @@
 ##############################################################################
 
 [[types]]
-  haskell-name = ","
+  haskell-name = "Prelude.(,)"
   coq-name     = "Pair"
   arity        = 2
 
 [[constructors]]
   haskell-type   = "a -> b -> (a, b)"
-  haskell-name   = ","
+  haskell-name   = "Prelude.(,)"
   coq-name       = "pair_"
   coq-smart-name = "Pair_"
   arity          = 2
@@ -169,13 +169,13 @@
 ##############################################################################
 
 [[types]]
-  haskell-name = ""
+  haskell-name = "Prelude.()"
   coq-name     = "Unit"
   arity        = 0
 
 [[constructors]]
   haskell-type   = "()"
-  haskell-name   = ""
+  haskell-name   = "Prelude.()"
   coq-name       = "tt"
   coq-smart-name = "Tt"
   arity          = 0

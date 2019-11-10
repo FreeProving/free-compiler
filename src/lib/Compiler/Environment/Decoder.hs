@@ -21,7 +21,8 @@
 --   == Data types
 --
 --   The tables in the @types@ array must contain the following key/value pairs:
---     * @haskell-name@ (@String@) the Haskell name of the type constructor.
+--     * @haskell-name@ (@String@) the qualified Haskell name of the type
+--       constructor in the module it has been defined in.
 --     * @coq-name@ (@String@) the identifier of the corresponding Coq type
 --       constructor.
 --     * @arity@ (@Integer@) the number of type arguments expected by the
@@ -31,7 +32,8 @@
 --
 --   The tables in the @type-synonyms@ array must contain the following
 --   key/value pairs:
---     * @haskell-name@ (@String@) the Haskell name of the type synonym.
+--     * @haskell-name@ (@String@) the qualified Haskell name of the type
+--       synonym in the module it has been defined in.
 --     * @coq-name@ (@String@) the identifier of the corresponding Coq
 --       definition.
 --     * @arity@ (@Integer@) the number of type arguments expected by the
@@ -46,7 +48,8 @@
 --   The tables in the @constructors@ array must contain the following
 --   key/value pairs:
 --     * @haskell-type@ (@String@) the Haskell type of the data constructor.
---     * @haskell-name@ (@String@) the Haskell name of the data constructor.
+--     * @haskell-name@ (@String@) the qualified Haskell name of the data
+--       constructor in the module it has been defined in.
 --     * @coq-name@ (@String@) the identifier of the corresponding Coq data
 --       constructor.
 --     * @coq-smart-name@ (@String@) the identifier of the corresponding Coq
@@ -59,7 +62,8 @@
 --   The tables in the @functions@ array must contain the following
 --   key/value pairs:
 --     * @haskell-type@ (@String@) the Haskell type of the function.
---     * @haskell-name@ (@String@) the Haskell name of the function.
+--     * @haskell-name@ (@String@) the qualified Haskell name of the function
+--       in the module it has been defined in.
 --     * @coq-name@ (@String@) the identifier of the corresponding Coq
 --       function.
 --     * @arity@ (@Integer@) the number of arguments expected by the function.
@@ -77,10 +81,10 @@ import           Data.Aeson                     ( (.:)
                                                 )
 import qualified Data.Aeson                    as Aeson
 import qualified Data.Aeson.Types              as Aeson
-import           Data.Char                      ( isAlphaNum )
 import           Data.Maybe                     ( catMaybes )
 import qualified Data.Text                     as T
 import qualified Data.Vector                   as Vector
+import           Text.RegexPR
 
 import           Compiler.Analysis.DependencyExtraction
                                                 ( typeVars )
@@ -96,24 +100,21 @@ import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
 import           Compiler.Pretty
 
--- | Restores a Haskell name (symbol or identifier) from the configuration
---   file.
-instance Aeson.FromJSON HS.Name where
-  parseJSON = Aeson.withText "HS.Name" $ \txt -> do
-    let str = T.unpack txt
-    if not (null str) && all isIdentChar str
-      then return (HS.Ident str)
-      else return (HS.Symbol str)
-   where
-    -- | Tests whether the given character is allowed in a Haskell identifier.
-    isIdentChar :: Char -> Bool
-    isIdentChar c = isAlphaNum c || c == '\'' || c == '_'
-
--- | All Haskell names in the configuration file are unqualified.
+-- | All Haskell names in the configuration file are qualified.
 instance Aeson.FromJSON HS.QName where
-  parseJSON value = do
-    name <- Aeson.parseJSON value
-    return (HS.UnQual name)
+  parseJSON = Aeson.withText "HS.QName" $ \txt -> do
+    let str   = T.unpack txt
+        regex = "(\\w+(\\.\\w+)*)\\.(\\w+|\\([^\\(\\)]*\\))"
+    case matchRegexPR regex str of
+      Just (_, ms) -> do
+        let Just modName = lookup 1 ms
+            Just name = lookup 3 ms
+        return (HS.Qual modName (parseName name))
+      m -> Aeson.parserThrowError [] ("Invalid Haskell name " ++ str ++ " " ++ show m)
+   where
+    parseName :: String -> HS.Name
+    parseName ('(':sym) = HS.Symbol (take (length sym - 1) sym)
+    parseName ident     = HS.Ident ident
 
 -- | Restores a Coq identifier from the configuration file.
 instance Aeson.FromJSON G.Qualid where
@@ -153,15 +154,21 @@ instance Aeson.FromJSON Environment where
         )
       )
    where
+    -- | Removes the module name from a qualified identifier.
+    unqualify :: HS.QName -> HS.QName
+    unqualify (HS.Qual _ name) = HS.UnQual name
+    unqualify name = name
+
     parseConfigType :: Aeson.Value -> Aeson.Parser (Environment -> Environment)
     parseConfigType = Aeson.withObject "Data type" $ \obj -> do
       arity       <- obj .: "arity"
       haskellName <- obj .: "haskell-name"
       coqName     <- obj .: "coq-name"
-      return $ addEntry haskellName DataEntry
+      return $ addEntry (unqualify haskellName) DataEntry
         { entrySrcSpan = NoSrcSpan
         , entryArity   = arity
         , entryIdent   = coqName
+        , entryName    = haskellName
         }
 
     parseConfigTypeSyn
@@ -173,29 +180,31 @@ instance Aeson.FromJSON Environment where
       typeArgs    <- obj .: "type-arguments"
       haskellName <- obj .: "haskell-name"
       coqName     <- obj .: "coq-name"
-      return $ addEntry haskellName TypeSynEntry
+      return $ addEntry (unqualify haskellName) TypeSynEntry
         { entrySrcSpan  = NoSrcSpan
         , entryArity    = arity
         , entryTypeArgs = typeArgs
         , entryTypeSyn  = typeSyn
         , entryIdent    = coqName
+        , entryName     = haskellName
         }
 
     parseConfigCon :: Aeson.Value -> Aeson.Parser (Environment -> Environment)
     parseConfigCon = Aeson.withObject "Constructor" $ \obj -> do
-      arity                  <- obj .: "arity"
-      haskellName            <- obj .: "haskell-name"
-      haskellType            <- obj .: "haskell-type"
-      coqName                <- obj .: "coq-name"
-      coqSmartName           <- obj .: "coq-smart-name"
+      arity        <- obj .: "arity"
+      haskellName  <- obj .: "haskell-name"
+      haskellType  <- obj .: "haskell-type"
+      coqName      <- obj .: "coq-name"
+      coqSmartName <- obj .: "coq-smart-name"
       let (argTypes, returnType) = HS.splitType haskellType arity
-      return $ addEntry haskellName ConEntry
+      return $ addEntry (unqualify haskellName) ConEntry
         { entrySrcSpan    = NoSrcSpan
         , entryArity      = arity
         , entryArgTypes   = argTypes
         , entryReturnType = returnType
         , entryIdent      = coqName
         , entrySmartIdent = coqSmartName
+        , entryName = haskellName
         }
 
     parseConfigFunc :: Aeson.Value -> Aeson.Parser (Environment -> Environment)
@@ -206,15 +215,16 @@ instance Aeson.FromJSON Environment where
       partial     <- obj .: "partial"
       coqName     <- obj .: "coq-name"
       let (argTypes, returnType) = HS.splitType haskellType arity
-      return $ addEntry haskellName FuncEntry
-        { entrySrcSpan  = NoSrcSpan
-        , entryArity    = arity
-        , entryTypeArgs =
+      return $ addEntry (unqualify haskellName) FuncEntry
+        { entrySrcSpan    = NoSrcSpan
+        , entryArity      = arity
+        , entryTypeArgs   =
             catMaybes $ map HS.identFromQName $ typeVars haskellType
         , entryArgTypes   = argTypes
         , entryReturnType = returnType
         , entryIsPartial  = partial
         , entryIdent      = coqName
+        , entryName       = haskellName
         }
 
 -- | Loads an environment configuration file from a @.toml@ or @.json@ file.

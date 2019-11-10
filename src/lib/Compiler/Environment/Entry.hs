@@ -18,6 +18,8 @@ data EnvEntry
       -- ^ The number of type arguments expected by the type constructor.
     , entryIdent :: String
       -- ^ The name of the data type in Coq.
+    , entryName :: HS.QName
+      -- ^ The name of the data type in the module it has been defined in.
     }
   | -- | Entry for a type synonym declaration.
     TypeSynEntry
@@ -31,6 +33,8 @@ data EnvEntry
       -- ^ The type that is abbreviated by this type synonym.
     , entryIdent :: String
       -- ^ The name of the type synonym in Coq.
+    , entryName :: HS.QName
+      -- ^ The name of the type synonym in the module it has been defined in.
     }
   | -- | Entry for a type variable.
     TypeVarEntry
@@ -38,6 +42,8 @@ data EnvEntry
       -- ^ The source code location where the type variable was declared.
     , entryIdent :: String
       -- ^ The name of the type variable in Coq.
+    , entryName :: HS.QName
+      -- ^ The name of the type variable (must be unqualified).
     }
   | -- | Entry for a data constructor.
     ConEntry
@@ -54,6 +60,9 @@ data EnvEntry
       -- ^ The name of the regular data constructor in Coq.
     , entrySmartIdent :: String
       -- ^ The name of the corresponding smart constructor in Coq.
+    , entryName :: HS.QName
+      -- ^ The name of the data constructor in the module it has been
+      --   defined in.
     }
   | -- | Entry for a function declaration.
     FuncEntry
@@ -73,6 +82,8 @@ data EnvEntry
       --   the @Partial@ type class when translated to Coq.
     , entryIdent :: String
       -- ^ The name of the function in Coq.
+    , entryName :: HS.QName
+      -- ^ The name of the function in the module it has been defined in.
     }
   | -- | Entry for a variable.
     VarEntry
@@ -82,6 +93,8 @@ data EnvEntry
       -- ^ Whether the variable has not been lifted to the free monad.
     , entryIdent :: String
       -- ^ The name of the variable in Coq.
+    , entryName :: HS.QName
+      -- ^ The name of the variable (must be unqualified).
     }
  deriving Show
 

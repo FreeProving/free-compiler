@@ -98,7 +98,8 @@ defineFuncDecl decl@(HS.FuncDecl srcSpan (HS.DeclIdent _ ident) args _) = do
     , entryArgTypes   = map Just argTypes
     , entryReturnType = Just returnType
     , entryIsPartial  = partial
-    , entryIdent      = ident
+    , entryName       = HS.UnQual (HS.Ident ident)
+    , entryIdent      = undefined -- filled by renamer
     }
   return ()
 
@@ -265,7 +266,8 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent args expr) decArgIndex = do
       , entryArgTypes   = argTypes'
       , entryReturnType = Nothing
       , entryIsPartial  = partial
-      , entryIdent      = helperIdent
+      , entryName       = HS.UnQual (HS.Ident helperIdent)
+      , entryIdent      = undefined -- filled by renamer
       }
 
     -- Additionally we need to remember the index of the decreasing argument

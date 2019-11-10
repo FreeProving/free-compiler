@@ -180,24 +180,39 @@ renameEntry entry env
   | isConEntry entry = entry
     { entryIdent      = renameIdent (toCamel (fromHumps ident)) env
     , entrySmartIdent = renameIdent ident env
+    , entryName       = qualName
     }
-  | otherwise = entry { entryIdent = renameIdent ident env }
+  | isVarEntry entry || isTypeVarEntry entry = entry
+    { entryIdent = renameIdent ident env
+    }
+  | otherwise = entry { entryIdent = renameIdent ident env
+                      , entryName  = qualName
+                      }
  where
-  ident :: String
-  ident = entryIdent entry
+  unQualName :: HS.Name
+  HS.UnQual (unQualName@(HS.Ident ident)) = entryName entry
+
+  qualName :: HS.QName
+  qualName = HS.Qual (envModName env) unQualName
 
 -- | Renames the identifier of the given entry such that it does not cause
 --   any name conflict in the current environment and inserts it into the
 --   environment.
+--
+--   The 'entryIdent' and 'entrySmartIdent' fields are filled automatically.
+--   The 'entryName' field should contain the unqualified Haskell name.
+--   It is used to generate the Coq names.
+--
+--   When the entry is a top-level entry (i.e., not a variable or type
+--   variable) the qualified name is also added to the environment.
 --
 --   Returns the renamed entry.
 renameAndAddEntry :: EnvEntry -> Converter EnvEntry
 renameAndAddEntry entry = do
   -- Generate the qualified and unqualified Haskell name.
   modName <- inEnv $ envModName
-  let name       = HS.Ident (entryIdent entry)
-      qualName   = HS.Qual modName name
-      unqualName = HS.UnQual name
+  let unqualName@(HS.UnQual name) = entryName entry
+      qualName                    = HS.Qual modName name
   -- Generate new Coq identifier.
   entry' <- inEnv $ renameEntry entry
   -- Error handling and notifications.
@@ -222,7 +237,8 @@ renameAndDefineTypeVar
 renameAndDefineTypeVar srcSpan ident = do
   entry <- renameAndAddEntry TypeVarEntry
     { entrySrcSpan = srcSpan
-    , entryIdent   = ident
+    , entryName    = HS.UnQual (HS.Ident ident)
+    , entryIdent   = undefined -- filled by renamer
     }
   return (entryIdent entry)
 
@@ -240,7 +256,8 @@ renameAndDefineVar srcSpan isPure ident = do
   entry <- renameAndAddEntry VarEntry
     { entrySrcSpan = srcSpan
     , entryIsPure  = isPure
-    , entryIdent   = ident
+    , entryName    = HS.UnQual (HS.Ident ident)
+    , entryIdent   = undefined -- filled by renamer
     }
   return (entryIdent entry)
 
@@ -289,8 +306,8 @@ informIfRenamed entry entry' = do
     ++ "'."
  where
   ident, ident' :: String
-  ident  = entryIdent entry
-  ident' = entryIdent entry'
+  HS.UnQual (HS.Ident ident) = entryName entry
+  ident'                     = entryIdent entry'
 
 -- | Tests whether the given Haskell identifier was generated for internal use.
 isInternalIdent :: String -> Bool

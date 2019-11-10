@@ -43,15 +43,14 @@ instance Aeson.ToJSON Environment where
     encodeEntriesWhere p =
       Aeson.toJSON
         $ catMaybes
-        $ map (uncurry (uncurry (const encodeEntry)))
-        $ Map.assocs
+        $ map encodeEntry
+        $ Map.elems
         $ Map.filter p
         $ exportedEntries env
 
--- | Encodes an entry of the environment with the given name.
-encodeEntry :: HS.QName -> EnvEntry -> Maybe Aeson.Value
-encodeEntry (HS.Qual _ _) _ = Nothing
-encodeEntry (HS.UnQual name) entry
+-- | Encodes an entry of the environment.
+encodeEntry :: EnvEntry -> Maybe Aeson.Value
+encodeEntry entry
   | isDataEntry entry = return $ Aeson.object
     ["haskell-name" .= haskellName, "coq-name" .= coqName, "arity" .= arity]
   | isTypeSynEntry entry = return $ Aeson.object
@@ -82,7 +81,7 @@ encodeEntry (HS.UnQual name) entry
   | otherwise = error "encodeEntry: Cannot serialize (type) variable entry."
  where
   haskellName :: Aeson.Value
-  haskellName = Aeson.toJSON (showPretty name)
+  haskellName = Aeson.toJSON (showPretty (entryName entry))
 
   coqName, coqSmartName :: Aeson.Value
   coqName      = Aeson.toJSON (entryIdent entry)
