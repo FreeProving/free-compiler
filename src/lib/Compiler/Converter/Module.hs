@@ -5,7 +5,7 @@ module Compiler.Converter.Module where
 import           Control.Monad                  ( when )
 import           Control.Monad.Extra            ( concatMapM )
 import qualified Data.Map                      as Map
-import           Data.Maybe                     ( maybeToList )
+import           Data.Maybe                     ( catMaybes )
 import qualified Data.Set                      as Set
 
 import           Compiler.Analysis.DependencyAnalysis
@@ -91,7 +91,7 @@ convertImportDecls :: [HS.ImportDecl] -> Converter [G.Sentence]
 convertImportDecls imports = do
   preludeImport <- generatePreludeImport
   imports'      <- mapM convertImportDecl imports
-  return (CoqBase.imports : maybeToList preludeImport ++ imports')
+  return (CoqBase.imports : catMaybes (preludeImport : imports'))
  where
   -- | Tests whether there is an explicit import for the @Prelude@ module.
   importsPrelude :: Bool
@@ -105,13 +105,13 @@ convertImportDecls imports = do
       Just preludeIface <- inEnv $ lookupAvailableModule HS.preludeModuleName
       modifyEnv $ importInterface preludeIface
       modifyEnv $ importInterfaceAs HS.preludeModuleName preludeIface
-      Just <$> generateImport HS.preludeModuleName
+      generateImport HS.preludeModuleName
 
 -- | Convert a import declaration.
 --
 --   Returns @Nothing@ if no Coq import sentence is needed (e.g., in case of
 --   special imports like @Test.QuickCheck@).
-convertImportDecl :: HS.ImportDecl -> Converter (G.Sentence)
+convertImportDecl :: HS.ImportDecl -> Converter (Maybe G.Sentence)
 convertImportDecl (HS.ImportDecl srcSpan modName) = do
   -- Enable QuickCheck.
   when (modName == quickCheckModuleName) $ modifyEnv enableQuickCheck
@@ -130,11 +130,12 @@ convertImportDecl (HS.ImportDecl srcSpan modName) = do
   generateImport modName
 
 -- | Generates a Coq import sentence for the module with the given name.
-generateImport :: HS.ModName -> Converter G.Sentence
+generateImport :: HS.ModName -> Converter (Maybe G.Sentence)
 generateImport modName
   | modName == HS.preludeModuleName = return
-  $ G.requireImportFrom CoqBase.baseLibName [G.ident "Prelude"]
-  | otherwise = return $ G.requireImport [G.ident (showPretty modName)] -- TODO rename module?
+  $ Just (G.requireImportFrom CoqBase.baseLibName [G.ident "Prelude"])
+  | modName == quickCheckModuleName = return Nothing
+  | otherwise = return $ Just (G.requireImport [G.ident (showPretty modName)]) -- TODO rename module?
 
 -------------------------------------------------------------------------------
 -- Exports                                                                   --
