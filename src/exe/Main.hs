@@ -129,10 +129,10 @@ outputCoqModule modName coqAst = do
     Just outputDir -> do
       let outputPath = map (\c -> if c == '.' then '/' else c) modName
           outputFile = outputDir </> outputPath <.> "v"
-          envFile    = outputDir </> outputPath <.> "json"
-      Just env <- liftConverter $ inEnv $ lookupAvailableModule modName
+          ifaceFile  = outputDir </> outputPath <.> "json"
+      Just iface <- liftConverter $ inEnv $ lookupAvailableModule modName
       liftIO $ createDirectoryIfMissing True (takeDirectory outputFile)
-      liftReporterIO $ writeEnvironment envFile env
+      liftReporterIO $ writeModuleInterface ifaceFile iface
       liftIO $ writePrettyFile outputFile coqAst
 
 -------------------------------------------------------------------------------
@@ -152,7 +152,7 @@ loadImport decl = do
   unlessM (liftConverter (inEnv (isModuleAvailable modName)))
     $ loadModule srcSpan modName
 
--- | Loads the environment of the module with the given name from the
+-- | Loads the interface of the module with the given name from the
 --   configured import path.
 --
 --   The given source span is used in error messages if the module could
@@ -160,28 +160,28 @@ loadImport decl = do
 loadModule :: SrcSpan -> HS.ModName -> Application ()
 loadModule srcSpan modName = do
   importDirs <- inOpts optImportDirs
-  envFile    <- findEnvFile importDirs
-  env        <- liftReporterIO $ loadEnvironment envFile
-  liftConverter $ modifyEnv $ makeModuleAvailable modName env
+  ifaceFile  <- findIfaceFile importDirs
+  iface      <- liftReporterIO $ loadModuleInterface ifaceFile
+  liftConverter $ modifyEnv $ makeModuleAvailable iface
  where
-  -- | The name of the module's environment file relative to the import
+  -- | The name of the module's interface file relative to the import
   --   directories.
   filename :: FilePath
   filename = (map (\c -> if c == '.' then '/' else c) modName) <.> "json"
 
-  -- | Looks for the module's environment file in the import directories.
+  -- | Looks for the module's interface file in the import directories.
   --
   --   Reports a fatal message if the file could not be found.
-  findEnvFile :: [FilePath] -> Application FilePath
-  findEnvFile [] =
+  findIfaceFile :: [FilePath] -> Application FilePath
+  findIfaceFile [] =
     reportFatal
       $  Message srcSpan Error
       $  "Could not find imported module "
       ++ showPretty modName
-  findEnvFile (d : ds) = do
-    let envFile = d </> filename
-    exists <- liftIO $ doesFileExist envFile
-    if exists then return envFile else findEnvFile ds
+  findIfaceFile (d : ds) = do
+    let ifaceFile = d </> filename
+    exists <- liftIO $ doesFileExist ifaceFile
+    if exists then return ifaceFile else findIfaceFile ds
 
 -------------------------------------------------------------------------------
 -- Base library                                                              --
@@ -194,15 +194,14 @@ loadModule srcSpan modName = do
 loadPrelude :: Application ()
 loadPrelude = do
   baseLibDir <- inOpts optBaseLibDir
-  preludeEnv <- liftReporterIO $ loadEnvironment (baseLibDir </> "Prelude.toml")
-  liftConverter $ modifyEnv $ makeModuleAvailable HS.preludeModuleName
-                                                  preludeEnv
+  let preludeIfaceFile = baseLibDir </> "Prelude.toml"
+  preludeIface <- liftReporterIO $ loadModuleInterface preludeIfaceFile
+  liftConverter $ modifyEnv $ makeModuleAvailable preludeIface
 
 -- | Loads the @Test.QuickCheck@ module.
 loadQuickCheck :: Application ()
-loadQuickCheck = liftConverter $ modifyEnv $ makeModuleAvailable
-  quickCheckModuleName
-  quickCheckEnv
+loadQuickCheck =
+  liftConverter $ modifyEnv $ makeModuleAvailable quickCheckInterface
 
 -- | Creates a @_CoqProject@ file (if enabled) that maps the physical directory
 --   of the Base library.

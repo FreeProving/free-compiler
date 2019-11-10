@@ -3,9 +3,8 @@
 --   retreive information stored in the state.
 
 module Compiler.Environment
-  ( -- * Scope
-    Scope(..)
-  , entryScope
+  ( -- * Module interface
+    ModuleInterface(..)
     -- * Environment
   , Environment(..)
   , emptyEnv
@@ -15,10 +14,9 @@ module Compiler.Environment
   , isModuleAvailable
   , lookupAvailableModule
   -- * Import and export entries
-  , exportedEntries
   , importEntry
-  , importEnv
-  , importEnvAs
+  , importInterface
+  , importInterfaceAs
   -- * Inserting entries into the environment
   , addEntry
   , defineDecArg
@@ -54,37 +52,29 @@ import           Data.List                      ( find )
 import           Data.Map.Strict                ( Map )
 import qualified Data.Map.Strict               as Map
 import           Data.Maybe                     ( isJust )
+import           Data.Set                       ( Set )
+import qualified Data.Set                      as Set
 import           Data.Tuple.Extra               ( (&&&) )
 import           Control.Monad                  ( join )
 
 import qualified Compiler.Coq.AST              as G
 import           Compiler.Environment.Entry
+import           Compiler.Environment.Scope
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Haskell.SrcSpan
 import           Compiler.Util.Predicate
 
 -------------------------------------------------------------------------------
--- Scope                                                                     --
+-- Module interface                                                          --
 -------------------------------------------------------------------------------
 
--- | In Haskell type and function names live in separate scopes. Therefore we
---   need to qualify each name stored in the "Compiler.Environment.Environment"
---   with the scope it is defined in.
-data Scope = TypeScope | ValueScope
-  deriving (Eq, Ord, Show)
-
--- | Type that is used by maps in the "Compiler.Environment.Environment" to
---   qualify Haskell names with the scopes they are defined in.
-type ScopedName = (Scope, HS.QName)
-
--- | Gets the scope an entry needs to be defined in.
-entryScope :: EnvEntry -> Scope
-entryScope DataEntry{}    = TypeScope
-entryScope TypeSynEntry{} = TypeScope
-entryScope TypeVarEntry{} = TypeScope
-entryScope ConEntry{}     = ValueScope
-entryScope FuncEntry{}    = ValueScope
-entryScope VarEntry{}     = ValueScope
+-- | Data type that contains the information of a module environment that
+--   is exported and imported.
+data ModuleInterface = ModuleInterface
+  { interfaceModName :: HS.ModName
+  , interfaceEntries :: Set EnvEntry
+  }
+ deriving Show
 
 -------------------------------------------------------------------------------
 -- Environment                                                               --
@@ -98,15 +88,15 @@ data Environment = Environment
   , envModName :: HS.ModName
     -- ^ The name of the currently translated module.
     --   Defaults to the empty string.
-  , envAvailableModules :: Map HS.ModName Environment
-    -- ^ Maps names of modules that can be imported to their environments.
+  , envAvailableModules :: Map HS.ModName ModuleInterface
+    -- ^ Maps names of modules that can be imported to their interface.
 
-  , envEntries :: Map ScopedName ([EnvEntry], Int)
+  , envEntries :: Map ScopedName (Set EnvEntry, Int)
     -- ^ Maps Haskell names to entries for declarations.
     --   In addition to the entry, the 'envDepth' of the environment is
     --   recorded.
     --   There can be multiple entries with the same name as long as they are
-    --   not referenced.
+    --   not referenced. Entries are identified by their original name.
   , envTypeSigs :: Map HS.QName HS.Type
     -- ^ Maps names of Haskell functions to their annotated types.
   , envDecArgs :: Map HS.QName Int
@@ -121,7 +111,7 @@ data Environment = Environment
     -- ^ Whether the translation of QuickCheck properties is enabled in the
     --   current environment (i.e. the module imports @Test.QuickCheck@).
   }
-  deriving Show
+ deriving Show
 
 -- | An environment that does not even contain any predefined types and
 --   functions.
@@ -148,35 +138,26 @@ childEnv env = env { envDepth = envDepth env + 1 }
 -- Modules                                                                   --
 -------------------------------------------------------------------------------
 
--- | Inserts the environment of a module with the given name into the
---   environment such that it can be imported.
-makeModuleAvailable :: HS.ModName -> Environment -> Environment -> Environment
-makeModuleAvailable name modEnv env =
-  env { envAvailableModules = Map.insert name modEnv (envAvailableModules env) }
+-- | Inserts the interface of a module name into the environment such that it
+--   can be imported.
+makeModuleAvailable :: ModuleInterface -> Environment -> Environment
+makeModuleAvailable iface env = env
+  { envAvailableModules = Map.insert (interfaceModName iface)
+                                     iface
+                                     (envAvailableModules env)
+  }
 
 -- | Tests whether the module with the given name can be imported.
 isModuleAvailable :: HS.ModName -> Environment -> Bool
 isModuleAvailable = isJust .: lookupAvailableModule
 
 -- | Looks up the environment of another module that can be imported.
-lookupAvailableModule :: HS.ModName -> Environment -> Maybe Environment
-lookupAvailableModule name = Map.lookup name . envAvailableModules
+lookupAvailableModule :: HS.ModName -> Environment -> Maybe ModuleInterface
+lookupAvailableModule modName = Map.lookup modName . envAvailableModules
 
 -------------------------------------------------------------------------------
 -- Import and export entries                                                 --
 -------------------------------------------------------------------------------
-
--- | Gets a map of all exported entries by their name.
-exportedEntries :: Environment -> Map ScopedName EnvEntry
-exportedEntries =
-  Map.filterWithKey (flip (const isUnQual))
-    . Map.map (head . fst)
-    . Map.filter ((== 0) . snd)
-    . envEntries
- where
-  isUnQual :: ScopedName -> Bool
-  isUnQual (_, HS.UnQual _) = True
-  isUnQual (_, HS.Qual _ _) = False
 
 -- | Inserts an entry into the given environment and associates it with the
 --   given name.
@@ -187,28 +168,37 @@ exportedEntries =
 importEntry :: HS.QName -> EnvEntry -> Environment -> Environment
 importEntry name entry env = addEntry' name entry (-1) env
 
--- | Imports all top level entries of the first environment into the
---   second environment.
-importEnv :: Environment -> Environment -> Environment
-importEnv fromEnv toEnv =
-  foldr (uncurry (uncurry (const importEntry))) toEnv
-    $ Map.assocs
-    $ exportedEntries fromEnv
+-- | TODO comment
+importEntries :: [(HS.QName, EnvEntry)] -> Environment -> Environment
+importEntries = flip (foldr (uncurry importEntry))
+
+-- | Imports all entries from the given module interface into the given
+--   environment.
+importInterface :: ModuleInterface -> Environment -> Environment
+importInterface =
+  importEntries
+    . map (unqualify . entryName &&& id)
+    . Set.toList
+    . interfaceEntries
+ where
+  -- | Removes the module name from a qualified name.
+  unqualify :: HS.QName -> HS.QName
+  unqualify (HS.UnQual name) = HS.UnQual name
+  unqualify (HS.Qual _ name) = HS.UnQual name
 
 -- | Like 'importEnv' but all exported entries are qualifed with the given
 --   module name.
-importEnvAs :: HS.ModName -> Environment -> Environment -> Environment
-importEnvAs modName fromEnv toEnv =
-  foldr (uncurry (uncurry (const importEntry))) toEnv
-    $ Map.assocs
-    $ Map.mapKeys (fmap qualify)
-    $ exportedEntries fromEnv
+importInterfaceAs :: HS.ModName -> ModuleInterface -> Environment -> Environment
+importInterfaceAs modName =
+  importEntries
+    . map (qualify . entryName &&& id)
+    . Set.toList
+    . interfaceEntries
  where
   -- | Qualifies the name of an imported entry with the module name.
   qualify :: HS.QName -> HS.QName
   qualify (HS.UnQual name) = HS.Qual modName name
-  qualify (HS.Qual _ _) =
-    error ("importEnvAs: Cannot import qualified identifiers.")
+  qualify (HS.Qual _ name) = HS.Qual modName name
 
 -------------------------------------------------------------------------------
 -- Inserting entries into the environment                                    --
@@ -225,10 +215,10 @@ addEntry' :: HS.QName -> EnvEntry -> Int -> Environment -> Environment
 addEntry' name entry depth env = env
   { envEntries = Map.insertWith
                    (\(es1, d1) (es2, d2) ->
-                     if d2 == d1 then (es1 ++ es2, d1) else (es2, d2)
+                     if d2 == d1 then (es1 `Set.union` es2, d1) else (es2, d2)
                    )
-                   (entryScope entry, name)
-                   ([entry]         , depth)
+                   (entryScope entry   , name)
+                   (Set.singleton entry, depth)
                    (envEntries env)
   }
 
@@ -250,7 +240,8 @@ defineDecArg name index env =
 -- | Looks up the entries that have been associated with the given name in
 --   the specified scope of the given environment.
 lookupEntries :: Scope -> HS.QName -> Environment -> [EnvEntry]
-lookupEntries scope name = maybe [] fst . Map.lookup (scope, name) . envEntries
+lookupEntries scope name =
+  maybe [] (Set.toList . fst) . Map.lookup (scope, name) . envEntries
 
 -- Like 'lookupEntries' but returns @Nothing@ if the given name is ambigous.
 lookupEntry :: Scope -> HS.QName -> Environment -> Maybe EnvEntry

@@ -39,7 +39,6 @@ import           Control.Monad.State
 import           Data.Composition               ( (.:) )
 
 import           Compiler.Environment
-import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Monad.Class.Hoistable
 import           Compiler.Monad.Reporter
 
@@ -164,15 +163,14 @@ localEnv' converter = do
   putEnv env
   return x
 
--- | Runs the given converter and returns its result. In contrast to
---   'localEnv' the modifications to the environment are not discarded
---   but the resulting environment is added to 'envAvailableModules'.
-moduleEnv :: Monad m => HS.ModName -> ConverterT m a -> ConverterT m a
-moduleEnv modName converter = do
-  (x, env) <- localEnv' $ do
-    modifyEnv $ \env -> env { envModName = modName }
-    (,) <$> converter <*> getEnv
-  modifyEnv $ makeModuleAvailable modName env
+-- | Runs the given converter and returns its result.
+--
+--   Like 'localEnv', the modifications to the environment are discared but
+--   the returned 'ModuleInterface' is inserted into the environment.
+moduleEnv :: Monad m => ConverterT m (a, ModuleInterface) -> ConverterT m a
+moduleEnv converter = do
+  (x, interface) <- localEnv' converter
+  modifyEnv $ makeModuleAvailable interface
   return x
 
 -------------------------------------------------------------------------------

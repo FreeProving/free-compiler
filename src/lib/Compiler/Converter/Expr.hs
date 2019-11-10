@@ -15,6 +15,7 @@ import           Compiler.Environment
 import           Compiler.Environment.Fresh
 import           Compiler.Environment.LookupOrFail
 import           Compiler.Environment.Renamer
+import           Compiler.Environment.Scope
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Haskell.SrcSpan
 import           Compiler.Monad.Converter

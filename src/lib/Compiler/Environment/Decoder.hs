@@ -1,22 +1,29 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
--- | This module contains functions for loading and decoding 'Environment's
+-- | This module contains functions for loading and decoding 'ModuleInterface's
 --   from TOML configuration files.
 --
---   The configuaration file contains the names and types of predefined
---   functions, constructors and data types. The configuration file format
---   is TOML (see <https://github.com/toml-lang/toml>).
+--   The module interface file contains exported entries of the 'Environment'.
+--   The file format is TOML (see <https://github.com/toml-lang/toml>).
 --   JSON files can be decoded as well. The TOML format is preferred for
 --   configuration files maintained by humans and JSON should be used to
---   read automatically generated (serialized) environment configurations.
+--   read automatically generated (serialized) interfaces.
 --
---   = Configuration file contents
+--   = File contents
 --
 --   The TOML document is expected to contain four arrays of tables @types@,
 --   @type-synonyms@, @constructors@ and @functions@. Each table in these
 --   arrays defines a data type, type synonym, constrcutor or function
 --   respectively. The expected contents of each table is described below.
+--   In addition, the module interface file contains meta information in the
+--   top-level table.
+--
+--   == Top-Level
+--
+--   The top-level table must contain the following key/value pairs:
+--     * @module-name@ (@String@) the name of the module that is described by
+--       the module interface file.
 --
 --   == Data types
 --
@@ -71,7 +78,7 @@
 --       an instance of the @Partial@ type class).
 
 module Compiler.Environment.Decoder
-  ( loadEnvironment
+  ( loadModuleInterface
   )
 where
 
@@ -82,6 +89,7 @@ import           Data.Aeson                     ( (.:)
 import qualified Data.Aeson                    as Aeson
 import qualified Data.Aeson.Types              as Aeson
 import           Data.Maybe                     ( catMaybes )
+import qualified Data.Set                      as Set
 import qualified Data.Text                     as T
 import qualified Data.Vector                   as Vector
 import           Text.RegexPR
@@ -100,7 +108,7 @@ import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
 import           Compiler.Pretty
 
--- | All Haskell names in the configuration file are qualified.
+-- | All Haskell names in the interface file are qualified.
 instance Aeson.FromJSON HS.QName where
   parseJSON = Aeson.withText "HS.QName" $ \txt -> do
     let str   = T.unpack txt
@@ -116,11 +124,11 @@ instance Aeson.FromJSON HS.QName where
     parseName ('(':sym) = HS.Symbol (take (length sym - 1) sym)
     parseName ident     = HS.Ident ident
 
--- | Restores a Coq identifier from the configuration file.
+-- | Restores a Coq identifier from the interface file.
 instance Aeson.FromJSON G.Qualid where
   parseJSON = Aeson.withText "G.Qualid" $ return . G.bare . T.unpack
 
--- | Restores a Haskell type from the configuration file.
+-- | Restores a Haskell type from the interface file.
 instance Aeson.FromJSON HS.Type where
   parseJSON = Aeson.withText "HS.Type" $ \txt -> do
     let (res, ms) =
@@ -133,54 +141,47 @@ instance Aeson.FromJSON HS.Type where
       Just t  -> return t
 
 -- | Restores an 'Environment' from the configuration file.
-instance Aeson.FromJSON Environment where
-  parseJSON = Aeson.withObject "Environment" $ \env -> do
-    defineTypes <- env .:? "types" .!= Aeson.Array Vector.empty
+instance Aeson.FromJSON ModuleInterface where
+  parseJSON = Aeson.withObject "ModuleInterface" $ \env -> do
+    modName <- env .: "module-name"
+    types <- env .:? "types" .!= Aeson.Array Vector.empty
       >>= Aeson.withArray "Data types" (mapM parseConfigType)
-    defineTypeSyns <- env .:? "type-synonyms" .!= Aeson.Array Vector.empty
+    typeSyns <- env .:? "type-synonyms" .!= Aeson.Array Vector.empty
       >>= Aeson.withArray "Type Synonyms" (mapM parseConfigTypeSyn)
-    defineCons  <- env .:? "constructors" .!= Aeson.Array Vector.empty
+    cons  <- env .:? "constructors" .!= Aeson.Array Vector.empty
       >>= Aeson.withArray "Constructors" (mapM parseConfigCon)
-    defineFuncs <- env .:? "functions" .!= Aeson.Array Vector.empty
+    funcs <- env .:? "functions" .!= Aeson.Array Vector.empty
       >>= Aeson.withArray "Functions" (mapM parseConfigFunc)
-    return
-      (foldr
-        ($)
-        emptyEnv
-        (  Vector.toList defineTypes
-        ++ Vector.toList defineTypeSyns
-        ++ Vector.toList defineCons
-        ++ Vector.toList defineFuncs
+    return ModuleInterface
+      { interfaceModName = modName
+      , interfaceEntries = Set.fromList
+        (  Vector.toList types
+        ++ Vector.toList typeSyns
+        ++ Vector.toList cons
+        ++ Vector.toList funcs
         )
-      )
+      }
    where
-    -- | Removes the module name from a qualified identifier.
-    unqualify :: HS.QName -> HS.QName
-    unqualify (HS.Qual _ name) = HS.UnQual name
-    unqualify name = name
-
-    parseConfigType :: Aeson.Value -> Aeson.Parser (Environment -> Environment)
+    parseConfigType :: Aeson.Value -> Aeson.Parser EnvEntry
     parseConfigType = Aeson.withObject "Data type" $ \obj -> do
       arity       <- obj .: "arity"
       haskellName <- obj .: "haskell-name"
       coqName     <- obj .: "coq-name"
-      return $ addEntry (unqualify haskellName) DataEntry
+      return DataEntry
         { entrySrcSpan = NoSrcSpan
         , entryArity   = arity
         , entryIdent   = coqName
         , entryName    = haskellName
         }
 
-    parseConfigTypeSyn
-      :: Aeson.Value
-      -> Aeson.Parser (Environment -> Environment)
+    parseConfigTypeSyn :: Aeson.Value -> Aeson.Parser EnvEntry
     parseConfigTypeSyn = Aeson.withObject "Type synonym" $ \obj -> do
       arity       <- obj .: "arity"
       typeSyn     <- obj .: "haskell-type"
       typeArgs    <- obj .: "type-arguments"
       haskellName <- obj .: "haskell-name"
       coqName     <- obj .: "coq-name"
-      return $ addEntry (unqualify haskellName) TypeSynEntry
+      return TypeSynEntry
         { entrySrcSpan  = NoSrcSpan
         , entryArity    = arity
         , entryTypeArgs = typeArgs
@@ -189,7 +190,7 @@ instance Aeson.FromJSON Environment where
         , entryName     = haskellName
         }
 
-    parseConfigCon :: Aeson.Value -> Aeson.Parser (Environment -> Environment)
+    parseConfigCon :: Aeson.Value -> Aeson.Parser EnvEntry
     parseConfigCon = Aeson.withObject "Constructor" $ \obj -> do
       arity        <- obj .: "arity"
       haskellName  <- obj .: "haskell-name"
@@ -197,7 +198,7 @@ instance Aeson.FromJSON Environment where
       coqName      <- obj .: "coq-name"
       coqSmartName <- obj .: "coq-smart-name"
       let (argTypes, returnType) = HS.splitType haskellType arity
-      return $ addEntry (unqualify haskellName) ConEntry
+      return ConEntry
         { entrySrcSpan    = NoSrcSpan
         , entryArity      = arity
         , entryArgTypes   = argTypes
@@ -207,7 +208,7 @@ instance Aeson.FromJSON Environment where
         , entryName = haskellName
         }
 
-    parseConfigFunc :: Aeson.Value -> Aeson.Parser (Environment -> Environment)
+    parseConfigFunc :: Aeson.Value -> Aeson.Parser EnvEntry
     parseConfigFunc = Aeson.withObject "Function" $ \obj -> do
       arity       <- obj .: "arity"
       haskellName <- obj .: "haskell-name"
@@ -215,7 +216,7 @@ instance Aeson.FromJSON Environment where
       partial     <- obj .: "partial"
       coqName     <- obj .: "coq-name"
       let (argTypes, returnType) = HS.splitType haskellType arity
-      return $ addEntry (unqualify haskellName) FuncEntry
+      return FuncEntry
         { entrySrcSpan    = NoSrcSpan
         , entryArity      = arity
         , entryTypeArgs   =
@@ -227,6 +228,6 @@ instance Aeson.FromJSON Environment where
         , entryName       = haskellName
         }
 
--- | Loads an environment configuration file from a @.toml@ or @.json@ file.
-loadEnvironment :: FilePath -> ReporterIO Environment
-loadEnvironment = loadConfig
+-- | Loads an module interface file from a @.toml@ or @.json@ file.
+loadModuleInterface :: FilePath -> ReporterIO ModuleInterface
+loadModuleInterface = loadConfig

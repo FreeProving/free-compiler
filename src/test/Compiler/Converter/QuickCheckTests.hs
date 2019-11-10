@@ -11,7 +11,8 @@ import           Compiler.Util.Test
 --   module and enables support for the translation of QuickCheck properties.
 importAndEnableQuickCheck :: Converter ()
 importAndEnableQuickCheck = do
-  modifyEnv $ importEnv quickCheckEnv
+  modifyEnv $ importInterface quickCheckInterface
+  modifyEnv $ importInterfaceAs quickCheckModuleName quickCheckInterface
   modifyEnv $ enableQuickCheck
 
 -- | Test group for 'convertQuickCheckProperty' tests.

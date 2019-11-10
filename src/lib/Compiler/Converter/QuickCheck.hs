@@ -9,6 +9,7 @@ import           Data.List                      ( find
                                                 , partition
                                                 )
 import qualified Data.List.NonEmpty            as NonEmpty
+import qualified Data.Set                      as Set
 
 import           Compiler.Analysis.DependencyAnalysis
 import qualified Compiler.Coq.AST              as G
@@ -34,18 +35,16 @@ quickCheckModuleName = "Test.QuickCheck"
 --   Only the @Property@ data type is exported. There are no entries for
 --   the supported QuickCheck operators, they are handled directly by the
 --   converter.
-quickCheckEnv :: Environment
-quickCheckEnv =
-  let propertyName = HS.Ident "Property"
-  in  addEntry
-        (HS.UnQual propertyName)
-        DataEntry
-          { entrySrcSpan = NoSrcSpan
-          , entryArity   = 0
-          , entryIdent   = "Prop"
-          , entryName    = HS.Qual quickCheckModuleName propertyName
-          }
-        emptyEnv
+quickCheckInterface :: ModuleInterface
+quickCheckInterface = ModuleInterface
+  { interfaceModName = quickCheckModuleName
+  , interfaceEntries = Set.singleton DataEntry
+    { entrySrcSpan = NoSrcSpan
+    , entryArity   = 0
+    , entryIdent   = "Prop"
+    , entryName    = HS.Qual quickCheckModuleName (HS.Ident "Property")
+    }
+  }
 
 -------------------------------------------------------------------------------
 -- Filter QuickCheck property declarations                                   --

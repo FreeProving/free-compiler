@@ -1,22 +1,23 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
--- | This module contains functions for encoding 'Environment's in JSON
+-- | This module contains functions for encoding 'ModuleInterface's in JSON
 --   and writing them to @.json@ files.
 --
---   See "Compiler.Environemt.Decoder" for the configuration file format.
---   Encoding environments as TOML files is not supported, since TOML is
---   intended for human maintained configuration files only.
+--   See "Compiler.Environemt.Decoder" for the interface file format.
+--   Encoding module interfaces as TOML files is not supported, since TOML is
+--   intended for human maintained configuration files (e.g., the module
+--   interface of the @Prelude@) only.
 
 module Compiler.Environment.Encoder
-  ( writeEnvironment
+  ( writeModuleInterface
   )
 where
 
 import           Data.Aeson                     ( (.=) )
 import qualified Data.Aeson                    as Aeson
-import qualified Data.Map.Strict               as Map
 import           Data.Maybe                     ( catMaybes )
+import qualified Data.Set                      as Set
 
 import           Compiler.Config
 import           Compiler.Environment
@@ -26,12 +27,9 @@ import           Compiler.Haskell.SrcSpan
 import           Compiler.Monad.Reporter
 import           Compiler.Pretty
 
--- | Serializes an 'Environment'.
---
---   The environment must only contain top level entries (i.e., there must be
---   no entries for variables or type variables).
-instance Aeson.ToJSON Environment where
-  toJSON env = Aeson.object
+-- | Serializes a 'ModuleInterface'.
+instance Aeson.ToJSON ModuleInterface where
+  toJSON iface = Aeson.object
     [ "types" .= encodeEntriesWhere isDataEntry
     , "type-synonyms" .= encodeEntriesWhere isTypeSynEntry
     , "constructors" .= encodeEntriesWhere isConEntry
@@ -44,9 +42,9 @@ instance Aeson.ToJSON Environment where
       Aeson.toJSON
         $ catMaybes
         $ map encodeEntry
-        $ Map.elems
-        $ Map.filter p
-        $ exportedEntries env
+        $ Set.toList
+        $ Set.filter p
+        $ interfaceEntries iface
 
 -- | Encodes an entry of the environment.
 encodeEntry :: EnvEntry -> Maybe Aeson.Value
@@ -106,6 +104,6 @@ encodeEntry entry
   typeArgs :: Aeson.Value
   typeArgs = Aeson.toJSON (entryTypeArgs entry)
 
--- | Serializes an environment and writes it to a @.json@ file.
-writeEnvironment :: FilePath -> Environment -> ReporterIO ()
-writeEnvironment = saveConfig
+-- | Serializes a module interface and writes it to a @.json@ file.
+writeModuleInterface :: FilePath -> ModuleInterface -> ReporterIO ()
+writeModuleInterface = saveConfig

@@ -4,6 +4,10 @@
 
 module Compiler.Environment.Entry where
 
+import           Data.Function                  ( on )
+import           Data.Tuple.Extra               ( (&&&) )
+
+import           Compiler.Environment.Scope
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Haskell.SrcSpan
 import           Compiler.Util.Predicate
@@ -97,6 +101,31 @@ data EnvEntry
       -- ^ The name of the variable (must be unqualified).
     }
  deriving Show
+
+-------------------------------------------------------------------------------
+-- Comparision                                                               --
+-------------------------------------------------------------------------------
+
+-- | Entries are identified by their original name.
+instance Eq EnvEntry where
+  (==) = (==) `on` (entryName &&& entryScope)
+
+-- | Entries are ordered by their original name.
+instance Ord EnvEntry where
+  compare = (compare `on` entryName) <> (compare `on` entryScope)
+
+-------------------------------------------------------------------------------
+-- Getters                                                                   --
+-------------------------------------------------------------------------------
+
+-- | Gets the scope an entry needs to be defined in.
+entryScope :: EnvEntry -> Scope
+entryScope DataEntry{}    = TypeScope
+entryScope TypeSynEntry{} = TypeScope
+entryScope TypeVarEntry{} = TypeScope
+entryScope ConEntry{}     = ValueScope
+entryScope FuncEntry{}    = ValueScope
+entryScope VarEntry{}     = ValueScope
 
 -------------------------------------------------------------------------------
 -- Predicates                                                                --

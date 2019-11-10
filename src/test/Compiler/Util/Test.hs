@@ -33,9 +33,9 @@ import           Compiler.Pretty
 --   The @Prelude@ module is imported first.
 fromConverter :: Converter a -> ReporterIO a
 fromConverter converter = fromModuleConverter $ do
-  Just preludeEnv <- inEnv $ lookupAvailableModule HS.preludeModuleName
-  modifyEnv $ importEnv preludeEnv
-  modifyEnv $ importEnvAs HS.preludeModuleName preludeEnv
+  Just preludeIface <- inEnv $ lookupAvailableModule HS.preludeModuleName
+  modifyEnv $ importInterface preludeIface
+  modifyEnv $ importInterfaceAs HS.preludeModuleName preludeIface
   converter
 
 -- | Like 'fromConverter' but the @Prelude@ module is not imported
@@ -43,8 +43,8 @@ fromConverter converter = fromModuleConverter $ do
 --   given converter.
 fromModuleConverter :: Converter a -> ReporterIO a
 fromModuleConverter converter = flip evalConverterT emptyEnv $ do
-  preludeEnv <- lift' $ loadEnvironment "./base/Prelude.toml"
-  modifyEnv $ makeModuleAvailable HS.preludeModuleName preludeEnv
+  preludeIface <- lift' $ loadModuleInterface "./base/Prelude.toml"
+  modifyEnv $ makeModuleAvailable preludeIface
   hoist converter
 
 -- | Evaluates the given reporter and throws an IO exception when a fatal

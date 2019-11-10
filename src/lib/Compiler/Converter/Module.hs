@@ -4,7 +4,9 @@ module Compiler.Converter.Module where
 
 import           Control.Monad                  ( when )
 import           Control.Monad.Extra            ( concatMapM )
+import qualified Data.Map                      as Map
 import           Data.Maybe                     ( maybeToList )
+import qualified Data.Set                      as Set
 
 import           Compiler.Analysis.DependencyAnalysis
 import           Compiler.Analysis.DependencyGraph
@@ -24,15 +26,21 @@ import           Compiler.Pretty
 -------------------------------------------------------------------------------
 
 -- | Converts a Haskell module to a Gallina sentences.
---
---   If no module header is present the generated module is called @"Main"@.
 convertModule :: HS.Module -> Converter [G.Sentence]
-convertModule ast = moduleEnv (HS.modName ast) $ do
-  imports' <- convertImportDecls (HS.modImports ast)
-  decls'   <- convertDecls (HS.modTypeDecls ast)
-                           (HS.modTypeSigs ast)
-                           (HS.modFuncDecls ast)
-  return (G.comment ("module " ++ HS.modName ast) : imports' ++ decls')
+convertModule haskellAst = moduleEnv $ do
+  -- Remember name of converted module.
+  let modName = HS.modName haskellAst
+  modifyEnv $ \env -> env { envModName = modName }
+  -- Convert module contents.
+  imports' <- convertImportDecls (HS.modImports haskellAst)
+  decls'   <- convertDecls (HS.modTypeDecls haskellAst)
+                           (HS.modTypeSigs haskellAst)
+                           (HS.modFuncDecls haskellAst)
+  -- Export module interface.
+  let coqAst = G.comment ("module " ++ modName) : imports' ++ decls'
+  interface <- exportInterface
+  return (coqAst, interface)
+
 
 -------------------------------------------------------------------------------
 -- Declarations                                                              --
@@ -94,9 +102,9 @@ convertImportDecls imports = do
   generatePreludeImport
     | importsPrelude = return Nothing
     | otherwise = do
-      Just preludeEnv <- inEnv $ lookupAvailableModule HS.preludeModuleName
-      modifyEnv $ importEnv preludeEnv
-      modifyEnv $ importEnvAs HS.preludeModuleName preludeEnv
+      Just preludeIface <- inEnv $ lookupAvailableModule HS.preludeModuleName
+      modifyEnv $ importInterface preludeIface
+      modifyEnv $ importInterfaceAs HS.preludeModuleName preludeIface
       Just <$> generateImport HS.preludeModuleName
 
 -- | Convert a import declaration.
@@ -108,11 +116,11 @@ convertImportDecl (HS.ImportDecl srcSpan modName) = do
   -- Enable QuickCheck.
   when (modName == quickCheckModuleName) $ modifyEnv enableQuickCheck
   -- Lookup and import module environment.
-  maybeModEnv <- inEnv $ lookupAvailableModule modName
-  case maybeModEnv of
-    Just modEnv -> do
-      modifyEnv $ importEnv modEnv
-      modifyEnv $ importEnvAs modName modEnv
+  maybeIface <- inEnv $ lookupAvailableModule modName
+  case maybeIface of
+    Just iface -> do
+      modifyEnv $ importInterface iface
+      modifyEnv $ importInterfaceAs modName iface
     Nothing ->
       reportFatal
         $  Message srcSpan Error
@@ -127,6 +135,23 @@ generateImport modName
   | modName == HS.preludeModuleName = return
   $ G.requireImportFrom CoqBase.baseLibName [G.ident "Prelude"]
   | otherwise = return $ G.requireImport [G.ident (showPretty modName)] -- TODO rename module?
+
+-------------------------------------------------------------------------------
+-- Exports                                                                   --
+-------------------------------------------------------------------------------
+
+-- | Generates the module interface exported by the currently translated module.
+exportInterface :: Converter ModuleInterface
+exportInterface = do
+  env <- getEnv
+  return $ ModuleInterface
+    { interfaceModName = envModName env
+    , interfaceEntries = Set.unions
+      $ Map.elems
+      $ Map.map fst
+      $ Map.filter ((== 0) . snd)
+      $ envEntries env
+    }
 
 -------------------------------------------------------------------------------
 -- Type signatures                                                           --

@@ -269,6 +269,7 @@ renameAndDefineVar srcSpan isPure ident = do
 --   scope (not a parent scope) already.
 checkRedefinition :: HS.QName -> EnvEntry -> Converter ()
 checkRedefinition name entry = do
+  let scope = entryScope entry
   localEntry <- inEnv $ existsLocalEntry scope name
   when localEntry $ do
     maybeEntry' <- inEnv $ lookupEntry scope name
@@ -286,9 +287,6 @@ checkRedefinition name entry = do
           ++ " and "
           ++ showPretty (entrySrcSpan entry')
           ++ "."
- where
-  scope :: Scope
-  scope = entryScope entry
 
 -- | Reports a message if the given entry has been renamed.
 informIfRenamed :: EnvEntry -> EnvEntry -> Converter ()

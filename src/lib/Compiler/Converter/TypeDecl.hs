@@ -18,6 +18,7 @@ import qualified Compiler.Coq.AST              as G
 import qualified Compiler.Coq.Base             as CoqBase
 import           Compiler.Environment.Entry
 import           Compiler.Environment.Renamer
+import           Compiler.Environment.Scope
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Haskell.Inliner
 import           Compiler.Monad.Converter
