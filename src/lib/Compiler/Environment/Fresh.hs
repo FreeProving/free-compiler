@@ -11,19 +11,22 @@ import           Data.List                      ( elemIndex )
 
 import           Compiler.Environment
 import           Compiler.Environment.Renamer
+import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Monad.Converter
 
 -- | The prefix to use for artificially introduced function arguments.
 freshArgPrefix :: String
 freshArgPrefix = "x"
 
+
 -- | Gets the next fresh Haskell identifier from the current environment.
 --
---   All fresh identifiers contain an at-sign. This ensures that they cannot be
---   confused with actual Haskell identifiers. The corresponding Coq identifier
---   contains an underscore instead (see "Compiler.Environment.Renamer"). The
---   at-sign (or underscore) is preceded by the given prefix and followed by an
---   incrementing number (staring at @0@).
+--   All fresh identifiers contain an at-sign (See 'HS.internalIdentChar').
+--   This ensures that they cannot be confused with actual Haskell identifiers.
+--   The corresponding Coq identifier contains an underscore instead (see
+--   "Compiler.Environment.Renamer"). The at-sign (or underscore) is preceded
+--   by the given prefix and followed by an incrementing number (staring at
+--   @0@).
 --
 --   If the given prefix is a fresh identifier itself (i.e. contains an
 --   at-sign), the prefix of that identifier is used instead.
@@ -31,7 +34,7 @@ freshArgPrefix = "x"
 --   The freshly generated identifier is not inserted into the environment,
 --   i.e. it can still be used to create a declaration.
 freshHaskellIdent :: String -> Converter String
-freshHaskellIdent prefix = case elemIndex '@' prefix of
+freshHaskellIdent prefix = case elemIndex HS.internalIdentChar prefix of
   Just atIndex -> freshHaskellIdent (take atIndex prefix)
   Nothing      -> do
     env <- getEnv
@@ -43,7 +46,7 @@ freshHaskellIdent prefix = case elemIndex '@' prefix of
                                           (envFreshIdentCount env)
         }
       )
-    return (prefix ++ "@" ++ show count)
+    return (prefix ++ HS.internalIdentChar : show count)
 
 -- | Gets the next fresh Haskell identifier from the current environment
 --   and renames it such that it can be used in Coq.

@@ -292,7 +292,7 @@ checkRedefinition name entry = do
 informIfRenamed :: EnvEntry -> EnvEntry -> Converter ()
 informIfRenamed entry entry' = do
   let topLevel = isTopLevelEntry entry
-  when (topLevel && not (isInternalIdent ident) && ident /= ident')
+  when (topLevel && not (HS.isInternalIdent ident) && ident /= ident')
     $  report
     $  Message (entrySrcSpan entry) Info
     $  "Renamed "
@@ -306,7 +306,3 @@ informIfRenamed entry entry' = do
   ident, ident' :: String
   HS.UnQual (HS.Ident ident) = entryName entry
   ident'                     = entryIdent entry'
-
--- | Tests whether the given Haskell identifier was generated for internal use.
-isInternalIdent :: String -> Bool
-isInternalIdent ident = elem '@' ident

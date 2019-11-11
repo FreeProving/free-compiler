@@ -111,7 +111,7 @@ defineTypeDecl (HS.DataDecl srcSpan declIdent typeVarDecls conDecls) = do
   -- | Inserts the given data constructor declaration and its smart constructor
   --   into the current environment.
   defineConDecl :: HS.ConDecl -> Converter ()
-  defineConDecl (HS.ConDecl conSrcSpan (HS.DeclIdent _ conIdent) argTypes) = do
+  defineConDecl (HS.ConDecl _ (HS.DeclIdent conSrcSpan conIdent) argTypes) = do
     _ <- renameAndAddEntry ConEntry
       { entrySrcSpan    = conSrcSpan
       , entryArity      = length argTypes

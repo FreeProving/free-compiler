@@ -7,6 +7,39 @@
 ##############################################################################
 
 module-name = "Prelude"
+exported-types = [
+    "Prelude.Bool",
+    "Prelude.Integer",
+    "Prelude.([])",
+    "Prelude.(,)",
+    "Prelude.()",
+  ]
+exported-values = [
+    # Bool
+    "Prelude.True",
+    "Prelude.False",
+    "Prelude.(&&)",
+    "Prelude.(||)",
+    # Integer
+    "Prelude.(+)",
+    "Prelude.(-)",
+    "Prelude.(*)",
+    "Prelude.(^)",
+    "Prelude.(<=)",
+    "Prelude.(<)",
+    "Prelude.(==)",
+    "Prelude.(/=)",
+    "Prelude.(>=)",
+    "Prelude.(>)",
+    "Prelude.negate",
+    # Lists
+    "Prelude.([])",
+    "Prelude.(:)",
+    # Pairs
+    "Prelude.(,)",
+    # Unit
+    "Prelude.()",
+  ]
 
 ##############################################################################
 # Bool                                                                       #
@@ -18,28 +51,28 @@ module-name = "Prelude"
   arity        = 0
 
 [[constructors]]
-  haskell-type   = "Bool"
+  haskell-type   = "Prelude.Bool"
   haskell-name   = "Prelude.True"
   coq-name       = "true"
   coq-smart-name = "True_"
   arity          = 0
 
 [[constructors]]
-  haskell-type   = "Bool"
+  haskell-type   = "Prelude.Bool"
   haskell-name   = "Prelude.False"
   coq-name       = "false"
   coq-smart-name = "False_"
   arity          = 0
 
 [[functions]]
-  haskell-type = "Bool -> Bool -> Bool"
+  haskell-type = "Prelude.Bool -> Prelude.Bool -> Prelude.Bool"
   haskell-name = "Prelude.(&&)"
   coq-name     = "andBool"
   arity        = 2
   partial      = false
 
 [[functions]]
-  haskell-type = "Bool -> Bool -> Bool"
+  haskell-type = "Prelude.Bool -> Prelude.Bool -> Prelude.Bool"
   haskell-name = "Prelude.(||)"
   coq-name     = "orBool"
   arity        = 2
@@ -55,77 +88,77 @@ module-name = "Prelude"
   arity        = 0
 
 [[functions]]
-  haskell-type = "Integer -> Integer -> Integer"
+  haskell-type = "Prelude.Integer -> Prelude.Integer -> Prelude.Integer"
   haskell-name = "Prelude.(+)"
   coq-name     = "addInteger"
   arity        = 2
   partial      = false
 
 [[functions]]
-  haskell-type = "Integer -> Integer -> Integer"
+  haskell-type = "Prelude.Integer -> Prelude.Integer -> Prelude.Integer"
   haskell-name = "Prelude.(-)"
   coq-name     = "subInteger"
   arity        = 2
   partial      = false
 
 [[functions]]
-  haskell-type = "Integer -> Integer -> Integer"
+  haskell-type = "Prelude.Integer -> Prelude.Integer -> Prelude.Integer"
   haskell-name = "Prelude.(*)"
   coq-name     = "mulInteger"
   arity        = 2
   partial      = false
 
 [[functions]]
-  haskell-type = "Integer -> Integer -> Integer"
+  haskell-type = "Prelude.Integer -> Prelude.Integer -> Prelude.Integer"
   haskell-name = "Prelude.(^)"
   coq-name     = "powInteger"
   arity        = 2
   partial      = false
 
 [[functions]]
-  haskell-type = "Integer -> Integer -> Bool"
+  haskell-type = "Prelude.Integer -> Prelude.Integer -> Prelude.Bool"
   haskell-name = "Prelude.(<=)"
   coq-name     = "leInteger"
   arity        = 2
   partial      = false
 
 [[functions]]
-  haskell-type = "Integer -> Integer -> Bool"
+  haskell-type = "Prelude.Integer -> Prelude.Integer -> Prelude.Bool"
   haskell-name = "Prelude.(<)"
   coq-name     = "ltInteger"
   arity        = 2
   partial      = false
 
 [[functions]]
-  haskell-type = "Integer -> Integer -> Bool"
+  haskell-type = "Prelude.Integer -> Prelude.Integer -> Prelude.Bool"
   haskell-name = "Prelude.(==)"
   coq-name     = "eqInteger"
   arity        = 2
   partial      = false
 
 [[functions]]
-  haskell-type = "Integer -> Integer -> Bool"
+  haskell-type = "Prelude.Integer -> Prelude.Integer -> Prelude.Bool"
   haskell-name = "Prelude.(/=)"
   coq-name     = "neqInteger"
   arity        = 2
   partial      = false
 
 [[functions]]
-  haskell-type = "Integer -> Integer -> Bool"
+  haskell-type = "Prelude.Integer -> Prelude.Integer -> Prelude.Bool"
   haskell-name = "Prelude.(>=)"
   coq-name     = "geInteger"
   arity        = 2
   partial      = false
 
 [[functions]]
-  haskell-type = "Integer -> Integer -> Bool"
+  haskell-type = "Prelude.Integer -> Prelude.Integer -> Prelude.Bool"
   haskell-name = "Prelude.(>)"
   coq-name     = "gtInteger"
   arity        = 2
   partial      = false
 
 [[functions]]
-  haskell-type = "Integer -> Integer -> Integer"
+  haskell-type = "Prelude.Integer -> Prelude.Integer -> Prelude.Integer"
   haskell-name = "Prelude.negate"
   coq-name     = "negate"
   arity        = 1

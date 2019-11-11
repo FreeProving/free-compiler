@@ -17,6 +17,7 @@ import           Compiler.Converter.Expr
 import           Compiler.Converter.FuncDecl
 import           Compiler.Environment
 import           Compiler.Environment.Entry
+import           Compiler.Environment.Scope
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Haskell.SrcSpan
 import           Compiler.Monad.Converter
@@ -38,13 +39,17 @@ quickCheckModuleName = "Test.QuickCheck"
 quickCheckInterface :: ModuleInterface
 quickCheckInterface = ModuleInterface
   { interfaceModName = quickCheckModuleName
+  , interfaceExports = Set.singleton (TypeScope, propertyName)
   , interfaceEntries = Set.singleton DataEntry
     { entrySrcSpan = NoSrcSpan
     , entryArity   = 0
     , entryIdent   = "Prop"
-    , entryName    = HS.Qual quickCheckModuleName (HS.Ident "Property")
+    , entryName    = propertyName
     }
   }
+ where
+  propertyName :: HS.QName
+  propertyName = HS.Qual quickCheckModuleName (HS.Ident "Property")
 
 -------------------------------------------------------------------------------
 -- Filter QuickCheck property declarations                                   --

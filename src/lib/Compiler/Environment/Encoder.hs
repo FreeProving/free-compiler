@@ -22,15 +22,33 @@ import qualified Data.Set                      as Set
 import           Compiler.Config
 import           Compiler.Environment
 import           Compiler.Environment.Entry
+import           Compiler.Environment.Scope
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Haskell.SrcSpan
 import           Compiler.Monad.Reporter
 import           Compiler.Pretty
 
+instance Aeson.ToJSON HS.QName where
+  toJSON = Aeson.toJSON . showPretty
+
+instance Aeson.ToJSON HS.Type where
+  toJSON = Aeson.toJSON . showPretty
+
 -- | Serializes a 'ModuleInterface'.
 instance Aeson.ToJSON ModuleInterface where
   toJSON iface = Aeson.object
-    [ "types" .= encodeEntriesWhere isDataEntry
+    [ "module-name" .= Aeson.toJSON (interfaceModName iface)
+    , "exported-types" .= Aeson.toJSON
+      (map
+        snd
+        (filter ((== TypeScope) . fst) (Set.toList (interfaceExports iface)))
+      )
+    , "exported-values" .= Aeson.toJSON
+      (map
+        snd
+        (filter ((== ValueScope) . fst) (Set.toList (interfaceExports iface)))
+      )
+    , "types" .= encodeEntriesWhere isDataEntry
     , "type-synonyms" .= encodeEntriesWhere isTypeSynEntry
     , "constructors" .= encodeEntriesWhere isConEntry
     , "functions" .= encodeEntriesWhere isFuncEntry
@@ -79,7 +97,7 @@ encodeEntry entry
   | otherwise = error "encodeEntry: Cannot serialize (type) variable entry."
  where
   haskellName :: Aeson.Value
-  haskellName = Aeson.toJSON (showPretty (entryName entry))
+  haskellName = Aeson.toJSON (entryName entry)
 
   coqName, coqSmartName :: Aeson.Value
   coqName      = Aeson.toJSON (entryIdent entry)
@@ -96,10 +114,10 @@ encodeEntry entry
     returnType <- entryReturnType entry
     argTypes   <- mapM id (entryArgTypes entry)
     let funcType = foldr (HS.TypeFunc NoSrcSpan) returnType argTypes
-    return (Aeson.toJSON (showPretty funcType))
+    return (Aeson.toJSON funcType)
 
   typeSyn :: Aeson.Value
-  typeSyn = Aeson.toJSON (showPretty (entryTypeSyn entry))
+  typeSyn = Aeson.toJSON (entryTypeSyn entry)
 
   typeArgs :: Aeson.Value
   typeArgs = Aeson.toJSON (entryTypeArgs entry)

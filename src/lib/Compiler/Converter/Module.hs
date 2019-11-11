@@ -16,6 +16,7 @@ import           Compiler.Converter.QuickCheck
 import qualified Compiler.Coq.AST              as G
 import qualified Compiler.Coq.Base             as CoqBase
 import           Compiler.Environment
+import           Compiler.Environment.Entry
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
@@ -40,7 +41,6 @@ convertModule haskellAst = moduleEnv $ do
   let coqAst = G.comment ("module " ++ modName) : imports' ++ decls'
   interface <- exportInterface
   return (coqAst, interface)
-
 
 -------------------------------------------------------------------------------
 -- Declarations                                                              --
@@ -142,15 +142,29 @@ generateImport modName
 -------------------------------------------------------------------------------
 
 -- | Generates the module interface exported by the currently translated module.
+--
+--   The interface contains all (non-internal) top-level entries that are
+--   currently in the environment. Only entries that are defined in the
+--   currently translated module are listed as exported. All other entries
+--   are "hidden". Hidden entries are included such that module interfaces
+--   are self contained and type synonyms can be expanded properly.
+--   TODO All references in the entries are converted to fully qualified
+--   identifiers before they are exported.
 exportInterface :: Converter ModuleInterface
 exportInterface = do
   env <- getEnv
   return $ ModuleInterface
     { interfaceModName = envModName env
-    , interfaceEntries = Set.unions
+    , interfaceExports = Set.filter (not . HS.isInternalQName . snd)
+      $ Set.unions
+      $ Map.elems
+      $ Map.map (Set.map entryScopedName . fst)
+      $ Map.filter ((== 0) . snd)
+      $ envEntries env
+    , interfaceEntries = Set.filter (not . HS.isInternalQName . entryName)
+      $ Set.unions
       $ Map.elems
       $ Map.map fst
-      $ Map.filter ((== 0) . snd)
       $ envEntries env
     }
 

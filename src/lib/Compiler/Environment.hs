@@ -72,7 +72,13 @@ import           Compiler.Util.Predicate
 --   is exported and imported.
 data ModuleInterface = ModuleInterface
   { interfaceModName :: HS.ModName
+    -- ^ The name of the module.
+  , interfaceExports :: Set ScopedName
+    -- ^ The names (qualified with their original module name) that are
+    --   exported by the module.
   , interfaceEntries :: Set EnvEntry
+    -- ^ The entries (including hidden entries) defined in or imported
+    --   by the module.
   }
  deriving Show
 
@@ -168,33 +174,47 @@ lookupAvailableModule modName = Map.lookup modName . envAvailableModules
 importEntry :: HS.QName -> EnvEntry -> Environment -> Environment
 importEntry name entry env = addEntry' name entry (-1) env
 
--- | TODO comment
+-- | Inserts multiple entries into the given environment and associates them
+--   with the corresponding name.
 importEntries :: [(HS.QName, EnvEntry)] -> Environment -> Environment
 importEntries = flip (foldr (uncurry importEntry))
 
 -- | Imports all entries from the given module interface into the given
---   environment.
+--   interface.
+--
+--   This function imports only entries that are exported by the given
+--   interface.
 importInterface :: ModuleInterface -> Environment -> Environment
-importInterface =
+importInterface iface =
   importEntries
-    . map (unqualify . entryName &&& id)
-    . Set.toList
-    . interfaceEntries
+    $ map (unqualify . entryName &&& id)
+    $ filter isExported
+    $ Set.toList
+    $ interfaceEntries iface
  where
+  -- | Tests wheter the given entry is exported by the imported interface.
+  isExported :: EnvEntry -> Bool
+  isExported = flip Set.member (interfaceExports iface) . entryScopedName
+
   -- | Removes the module name from a qualified name.
   unqualify :: HS.QName -> HS.QName
   unqualify (HS.UnQual name) = HS.UnQual name
   unqualify (HS.Qual _ name) = HS.UnQual name
 
--- | Like 'importEnv' but all exported entries are qualifed with the given
---   module name.
+-- | Like 'importInterface' but all exported entries are qualifed with the
+--   given module name.
 importInterfaceAs :: HS.ModName -> ModuleInterface -> Environment -> Environment
-importInterfaceAs modName =
+importInterfaceAs modName iface =
   importEntries
-    . map (qualify . entryName &&& id)
-    . Set.toList
-    . interfaceEntries
+    $ map (qualify . entryName &&& id)
+    $ filter isExported
+    $ Set.toList
+    $ interfaceEntries iface
  where
+  -- | Tests wheter the given entry is exported by the imported interface.
+  isExported :: EnvEntry -> Bool
+  isExported = flip Set.member (interfaceExports iface) . entryScopedName
+
   -- | Qualifies the name of an imported entry with the module name.
   qualify :: HS.QName -> HS.QName
   qualify (HS.UnQual name) = HS.Qual modName name

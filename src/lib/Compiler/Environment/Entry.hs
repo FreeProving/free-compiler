@@ -127,6 +127,10 @@ entryScope ConEntry{}     = ValueScope
 entryScope FuncEntry{}    = ValueScope
 entryScope VarEntry{}     = ValueScope
 
+-- | Gets the scope and name of the given entry.
+entryScopedName :: EnvEntry -> ScopedName
+entryScopedName = entryScope &&& entryName
+
 -------------------------------------------------------------------------------
 -- Predicates                                                                --
 -------------------------------------------------------------------------------

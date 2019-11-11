@@ -100,6 +100,7 @@ import           Compiler.Config
 import qualified Compiler.Coq.AST              as G
 import           Compiler.Environment
 import           Compiler.Environment.Entry
+import           Compiler.Environment.Scope
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Haskell.Parser
 import           Compiler.Haskell.SrcSpan
@@ -112,7 +113,7 @@ import           Compiler.Pretty
 instance Aeson.FromJSON HS.QName where
   parseJSON = Aeson.withText "HS.QName" $ \txt -> do
     let str   = T.unpack txt
-        regex = "(\\w+(\\.\\w+)*)\\.(\\w+|\\([^\\(\\)]*\\))"
+        regex = "^(\\w+(\\.\\w+)*)\\.(\\w+|\\([^\\(\\)]*\\))$"
     case matchRegexPR regex str of
       Just (_, ms) -> do
         let Just modName = lookup 1 ms
@@ -144,6 +145,8 @@ instance Aeson.FromJSON HS.Type where
 instance Aeson.FromJSON ModuleInterface where
   parseJSON = Aeson.withObject "ModuleInterface" $ \env -> do
     modName <- env .: "module-name"
+    exportedTypes <- env .: "exported-types"
+    exportedValues <- env .: "exported-values"
     types <- env .:? "types" .!= Aeson.Array Vector.empty
       >>= Aeson.withArray "Data types" (mapM parseConfigType)
     typeSyns <- env .:? "type-synonyms" .!= Aeson.Array Vector.empty
@@ -154,6 +157,10 @@ instance Aeson.FromJSON ModuleInterface where
       >>= Aeson.withArray "Functions" (mapM parseConfigFunc)
     return ModuleInterface
       { interfaceModName = modName
+      , interfaceExports = Set.fromList
+        (  map ((,) TypeScope)  exportedTypes
+        ++ map ((,) ValueScope) exportedValues
+        )
       , interfaceEntries = Set.fromList
         (  Vector.toList types
         ++ Vector.toList typeSyns

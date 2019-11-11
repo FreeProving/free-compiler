@@ -90,6 +90,36 @@ data VarPat = VarPat SrcSpan String
   deriving (Eq, Show)
 
 -------------------------------------------------------------------------------
+-- Internal identifiers                                                      --
+-------------------------------------------------------------------------------
+
+-- | The character that is used to mark internal identifiers.
+--
+--   This is used for example to generate fresh identifiers that don't conflict
+--   with actual Haskell identifiers or to hide entries in module interfaces.
+internalIdentChar :: Char
+internalIdentChar = '@'
+
+-- | Tests whether the given Haskell identifier was generated for internal
+--   use only (i.e., contains 'internalIdentChar').
+isInternalIdent :: String -> Bool
+isInternalIdent ident = elem internalIdentChar ident
+
+-- | Tests whether the given Haskell name was generated for interal use
+--   only (i.e., it is an identifier that matches 'isInternalIdent').
+isInternalName :: Name -> Bool
+isInternalName (Ident  ident) = isInternalIdent ident
+isInternalName (Symbol _    ) = False
+
+-- | Tests whether the given qualified Hasell name was generted for internal
+--   use only (i.e., the name or module name are internal according to
+--   'isInternalIdent' and 'isInternalName', respectively).
+isInternalQName :: QName -> Bool
+isInternalQName (UnQual name) = isInternalName name
+isInternalQName (Qual modIdent name) =
+  isInternalIdent modIdent || isInternalName name
+
+-------------------------------------------------------------------------------
 -- Modules                                                                   --
 -------------------------------------------------------------------------------
 
@@ -203,11 +233,6 @@ instance Pretty Type where
     --    * @2@ - Parenthesis are also needed arround type constructor
     --            applications.
     pretty' :: Int -> Type -> Doc
-
-    -- There are never parentheses around type variables or constructors.
-    pretty' _ (TypeVar _ ident)          = prettyString ident
-    pretty' _ (TypeCon _ name )          = pretty name
-
     -- Syntactic sugar for lists.
     pretty' _ (TypeApp _ (TypeCon _ name) t) | name == listTypeConName =
       brackets (pretty t)
@@ -216,6 +241,14 @@ instance Pretty Type where
     -- TODO pretty print arbitrary tuple types.
     pretty' _ (TypeApp _ (TypeApp _ (TypeCon _ name) t1) t2)
       | name == tupleTypeConName 2 = parens (pretty t1 <> comma <+> pretty t2)
+
+    -- Syntactic sugar for unit.
+    pretty' _ (TypeCon _ name)
+      | name == unitTypeConName = parens (empty)
+
+    -- There are never parentheses around type variables or constructors.
+    pretty' _ (TypeVar _ ident)          = prettyString ident
+    pretty' _ (TypeCon _ name )          = pretty name
 
     -- There may be parentheses around type appications and function types.
     pretty' n (TypeApp _ t1 t2) | n <= 1 = pretty' 1 t1 <+> pretty' 2 t2
@@ -477,8 +510,7 @@ consConName = Qual preludeModuleName (Symbol ":")
 
 -- | The name of the @n@-ary tuple data constructor.
 tupleConName :: Int -> ConName
-tupleConName n =
-  Qual preludeModuleName (Symbol (replicate (n - 1) ','))
+tupleConName n = Qual preludeModuleName (Symbol (replicate (n - 1) ','))
 
 -------------------------------------------------------------------------------
 -- Names of special predefined types and operators                           --
