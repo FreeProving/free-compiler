@@ -53,7 +53,7 @@ convertSCC (CyclicSCC  decls) = Recursive decls
 --   If two components do not depend on each other, they are in reverse
 --   alphabetical order.
 groupDependencies :: DependencyGraph decl -> [DependencyComponent decl]
-groupDependencies = map convertSCC . stronglyConnComp . entries
+groupDependencies = map convertSCC . stronglyConnComp . dependencyGraphEntries
 
 -- | Combines the construction of the dependency graphs for the given
 --   type declarations (See 'typeDependencyGraph') with the computation of

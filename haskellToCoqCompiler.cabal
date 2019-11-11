@@ -105,6 +105,7 @@ library haskell-to-coq-internal
                       , Compiler.Environment.Fresh
                       , Compiler.Environment.LookupOrFail
                       , Compiler.Environment.Renamer
+                      , Compiler.Environment.Resolver
                       , Compiler.Environment.Scope
                       , Compiler.Monad.Converter
                       , Compiler.Monad.Class.Hoistable

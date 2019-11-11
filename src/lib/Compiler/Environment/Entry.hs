@@ -108,11 +108,11 @@ data EnvEntry
 
 -- | Entries are identified by their original name.
 instance Eq EnvEntry where
-  (==) = (==) `on` (entryName &&& entryScope)
+  (==) = (==) `on` entryScopedName
 
 -- | Entries are ordered by their original name.
 instance Ord EnvEntry where
-  compare = (compare `on` entryName) <> (compare `on` entryScope)
+  compare = compare `on` entryScopedName
 
 -------------------------------------------------------------------------------
 -- Getters                                                                   --

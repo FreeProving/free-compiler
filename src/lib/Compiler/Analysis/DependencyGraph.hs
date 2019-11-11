@@ -33,7 +33,7 @@ module Compiler.Analysis.DependencyGraph
   ( DGKey
   , DGEntry
   , DependencyGraph(..)
-  , entries
+  , dependencyGraphEntries
   , typeDependencyGraph
   , funcDependencyGraph
   , moduleDependencyGraph
@@ -84,8 +84,9 @@ data DependencyGraph node =
 -------------------------------------------------------------------------------
 
 -- | Gets the entries of the given dependency graph.
-entries :: DependencyGraph node -> [DGEntry node]
-entries (DependencyGraph graph getEntry _) = map getEntry (vertices graph)
+dependencyGraphEntries :: DependencyGraph node -> [DGEntry node]
+dependencyGraphEntries (DependencyGraph graph getEntry _) =
+  map getEntry (vertices graph)
 
 -------------------------------------------------------------------------------
 -- Type dependencies                                                         --

@@ -17,6 +17,7 @@ import qualified Compiler.Coq.AST              as G
 import qualified Compiler.Coq.Base             as CoqBase
 import           Compiler.Environment
 import           Compiler.Environment.Entry
+import           Compiler.Environment.Resolver
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
@@ -148,24 +149,32 @@ generateImport modName
 --   currently translated module are listed as exported. All other entries
 --   are "hidden". Hidden entries are included such that module interfaces
 --   are self contained and type synonyms can be expanded properly.
---   TODO All references in the entries are converted to fully qualified
+--   All references in the entries are converted to fully qualified
 --   identifiers before they are exported.
 exportInterface :: Converter ModuleInterface
 exportInterface = do
-  env <- getEnv
-  return $ ModuleInterface
-    { interfaceModName = envModName env
-    , interfaceExports = Set.filter (not . HS.isInternalQName . snd)
-      $ Set.unions
-      $ Map.elems
-      $ Map.map (Set.map entryScopedName . fst)
-      $ Map.filter ((== 0) . snd)
-      $ envEntries env
-    , interfaceEntries = Set.filter (not . HS.isInternalQName . entryName)
-      $ Set.unions
-      $ Map.elems
-      $ Map.map fst
-      $ envEntries env
+  modName <- inEnv envModName
+  exports <-
+    inEnv
+    $ Set.filter (not . HS.isInternalQName . snd)
+    . Set.unions
+    . map (Set.map entryScopedName . fst)
+    . filter ((== 0) . snd)
+    . Map.elems
+    . envEntries
+  entries <-
+    inEnv
+    $ filter (not . HS.isInternalQName . entryName)
+    . Set.toList
+    . Set.unions
+    . map fst
+    . Map.elems
+    . envEntries
+  entries' <- mapM resolveReferences entries
+  return ModuleInterface
+    { interfaceModName = modName
+    , interfaceExports = exports
+    , interfaceEntries = Set.fromList entries'
     }
 
 -------------------------------------------------------------------------------
