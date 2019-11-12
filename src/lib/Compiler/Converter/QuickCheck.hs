@@ -4,10 +4,11 @@
 
 module Compiler.Converter.QuickCheck where
 
-import           Data.List                      ( find
-                                                , isPrefixOf
-                                                , partition
+import           Control.Monad.Extra            ( anyM
+                                                , findM
+                                                , partitionM
                                                 )
+import           Data.List                      ( isPrefixOf )
 import qualified Data.List.NonEmpty            as NonEmpty
 
 import           Compiler.Analysis.DependencyAnalysis
@@ -15,6 +16,7 @@ import qualified Compiler.Coq.AST              as G
 import           Compiler.Converter.Expr
 import           Compiler.Converter.FuncDecl
 import           Compiler.Environment
+import           Compiler.Environment.LookupOrFail
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Haskell.SrcSpan
 import           Compiler.Monad.Converter
@@ -36,15 +38,28 @@ importAndEnableQuickCheck = do
 -------------------------------------------------------------------------------
 
 -- | Tests whether the given declaration is a QuickCheck property.
-isQuickCheckProperty :: HS.FuncDecl -> Bool
-isQuickCheckProperty (HS.FuncDecl _ (HS.DeclIdent _ ident) _ _) =
-  "prop_" `isPrefixOf` ident
+--
+--   QuickCheck properties are functions with the prefix `prop_` or which
+--   return a value of type `Property`.
+isQuickCheckProperty :: HS.FuncDecl -> Converter Bool
+isQuickCheckProperty (HS.FuncDecl srcSpan (HS.DeclIdent _ ident) args _)
+  | "prop_" `isPrefixOf` ident = return True
+  | otherwise = do
+    let name = HS.Ident ident
+    funcType        <- lookupTypeSigOrFail srcSpan name
+    (_, returnType) <- splitFuncType name args funcType
+    return (isProperty returnType)
+ where
+  -- | Tests whether the given type is the `Property`
+  isProperty :: HS.Type -> Bool
+  isProperty (HS.TypeCon _ (HS.Ident "Property")) = True
+  isProperty _ = False
 
 -- | Tests whether the given strongly connected component of the function
 --   dependency graph contains a QuickCheck property.
-containsQuickCheckProperty :: DependencyComponent HS.FuncDecl -> Bool
-containsQuickCheckProperty (NonRecursive decl ) = isQuickCheckProperty decl
-containsQuickCheckProperty (Recursive    decls) = any isQuickCheckProperty decls
+containsQuickCheckProperty :: DependencyComponent HS.FuncDecl -> Converter Bool
+containsQuickCheckProperty (NonRecursive decl) = isQuickCheckProperty decl
+containsQuickCheckProperty (Recursive decls) = anyM isQuickCheckProperty decls
 
 -- | Partitions the given list of strongly connected components of the
 --   function dependency graph into a list of QuickCheck properties
@@ -60,13 +75,12 @@ filterQuickCheckProperties components = do
   if not quickCheckIsEnabled
     then return ([], components)
     else do
+      (quickCheckComponents, otherComponents) <- partitionM
+        containsQuickCheckProperty
+        components
       quickCheckProperties <- mapM fromNonRecursive quickCheckComponents
       return (quickCheckProperties, otherComponents)
  where
-  quickCheckComponents, otherComponents :: [DependencyComponent HS.FuncDecl]
-  (quickCheckComponents, otherComponents) =
-    partition containsQuickCheckProperty components
-
   -- | Extracts the only (non-recursive) QuickCheck property in the given
   --   strongly connected component.
   --
@@ -75,7 +89,7 @@ filterQuickCheckProperties components = do
   fromNonRecursive :: DependencyComponent HS.FuncDecl -> Converter HS.FuncDecl
   fromNonRecursive (NonRecursive decl ) = return decl
   fromNonRecursive (Recursive    decls) = do
-    let (Just property) = find isQuickCheckProperty decls
+    Just property <- findM isQuickCheckProperty decls
     reportFatal
       $  Message (HS.getSrcSpan property) Error
       $  "QuickCheck properties must not be recursive. "
