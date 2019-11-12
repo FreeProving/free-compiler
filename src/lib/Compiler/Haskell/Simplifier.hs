@@ -59,6 +59,16 @@ notSupported
   -> Simplifier r
 notSupported feature = usageError (feature ++ " are not supported!")
 
+-- | Like 'notSupported' but refers to the `--transform-pattern-matching`
+--   command line option to enable support for the future.
+experimentallySupported :: H.Annotated a => String -> a SrcSpan -> Simplifier r
+experimentallySupported feature = usageError
+  (  feature
+  ++ " are not supported!\n"
+  ++ "Add the `--transform-pattern-matching` command line option to enable "
+  ++ feature
+  )
+
 -- | Creates a reporter that fails with an error message stating that
 --   a node that matches the given description was expected.
 expected
@@ -186,7 +196,7 @@ simplifyDecl (H.FunBind _ [match]) = do
 
 -- Function declarations with more than one rule are not supported.
 simplifyDecl decl@(H.FunBind _ _) =
-  notSupported "Function declarations with more than one rule" decl
+  experimentallySupported "Function declarations with more than one rule" decl
 
 -- Pattern-bindings for 0-ary functions.
 simplifyDecl (H.PatBind srcSpan (H.PVar _ declName) (H.UnGuardedRhs _ expr) Nothing)
@@ -198,7 +208,7 @@ simplifyDecl (H.PatBind srcSpan (H.PVar _ declName) (H.UnGuardedRhs _ expr) Noth
 -- The pattern-binding for a 0-ary function must not use guards or have a
 -- where block.
 simplifyDecl (H.PatBind _ (H.PVar _ _) rhss@(H.GuardedRhss _ _) _) = do
-  notSupported "Guards" rhss
+  experimentallySupported "Guards" rhss
 simplifyDecl (H.PatBind _ (H.PVar _ _) _ (Just binds)) = do
   notSupported "Local declarations" binds
 
@@ -348,7 +358,7 @@ simplifyFuncDecl (H.Match srcSpan declName args (H.UnGuardedRhs _ expr) Nothing)
 
 -- Function declarations with guards and where blocks are not supported.
 simplifyFuncDecl (H.Match _ _ _ rhss@(H.GuardedRhss _ _) _) =
-  notSupported "Guards" rhss
+  experimentallySupported "Guards" rhss
 simplifyFuncDecl (H.Match _ _ _ _ (Just binds)) =
   notSupported "Local declarations" binds
 
@@ -732,7 +742,8 @@ simplifyConPat pat@(H.PTuple _ H.Unboxed _) = notSupported "Unboxed tuples" pat
 -- But we allow the empty list pattern @[]@.
 simplifyConPat (H.PList srcSpan []) =
   return (HS.ConPat srcSpan HS.nilConName, [])
-simplifyConPat pat@(H.PList _ _ ) = notSupported "List notation patterns" pat
+simplifyConPat pat@(H.PList _ _) =
+  experimentallySupported "List notation patterns" pat
 
 -- Record constructors are not supported.
 simplifyConPat pat@(H.PRec _ _ _) = notSupported "Record constructors" pat
@@ -747,6 +758,7 @@ simplifyAlt (H.Alt srcSpan pat (H.UnGuardedRhs _ expr) Nothing) = do
   (con, vars) <- simplifyConPat pat
   expr'       <- simplifyExpr expr
   return (HS.Alt srcSpan con vars expr')
-simplifyAlt (H.Alt _ _ rhss@(H.GuardedRhss _ _) _) = notSupported "Guards" rhss
+simplifyAlt (H.Alt _ _ rhss@(H.GuardedRhss _ _) _) =
+  experimentallySupported "Guards" rhss
 simplifyAlt (H.Alt _ _ _ (Just binds)) =
   notSupported "Local declarations" binds
