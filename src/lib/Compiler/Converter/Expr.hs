@@ -204,4 +204,4 @@ convertConPat (HS.ConPat srcSpan ident) varPats = do
 convertVarPat :: HS.VarPat -> Converter G.Pattern
 convertVarPat (HS.VarPat srcSpan ident) = do
   ident' <- renameAndDefineVar srcSpan False ident
-  return (G.QualidPat (G.bare ident'))
+  return (G.QualidPat ident')

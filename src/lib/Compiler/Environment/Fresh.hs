@@ -9,6 +9,7 @@ module Compiler.Environment.Fresh where
 import qualified Data.Map.Strict               as Map
 import           Data.List                      ( elemIndex )
 
+import qualified Compiler.Coq.AST              as G
 import           Compiler.Environment
 import           Compiler.Environment.Renamer
 import qualified Compiler.Haskell.AST          as HS
@@ -53,7 +54,7 @@ freshHaskellIdent prefix = case elemIndex HS.internalIdentChar prefix of
 --
 --   The freshly generated identifier is not inserted into the environment,
 --   i.e. it can still be used to create a declaration.
-freshCoqIdent :: String -> Converter String
+freshCoqIdent :: String -> Converter G.Qualid
 freshCoqIdent prefix = do
   ident  <- freshHaskellIdent prefix
   ident' <- inEnv $ renameIdent ident

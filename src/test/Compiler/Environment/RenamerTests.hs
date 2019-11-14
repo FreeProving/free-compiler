@@ -73,7 +73,7 @@ testMustRenameIdent = describe "mustRenameIdent" $ do
             TypeVarEntry
               { entrySrcSpan = NoSrcSpan
               , entryName    = HS.UnQual (HS.Ident ident)
-              , entryIdent   = ident
+              , entryIdent   = G.bare ident
               }
             emptyEnv
       in  mustRenameIdent ident env
@@ -87,12 +87,12 @@ testRenameIdent :: Spec
 testRenameIdent = describe "renameIdent" $ do
   it "generated identifiers don't need to be renamed" $ do
     property $ forAll genIdent $ \ident ->
-      let ident' = renameIdent ident emptyEnv
+      let (Just ident') = G.unpackQualid (renameIdent ident emptyEnv)
       in  not (mustRenameIdent ident' emptyEnv)
   it "generated identifiers are not renamed again" $ do
     property $ forAll genIdent $ \ident ->
-      let ident' = renameIdent ident emptyEnv
-      in  renameIdent ident' emptyEnv == ident'
+      let (Just ident') = G.unpackQualid (renameIdent ident emptyEnv)
+      in  renameIdent ident' emptyEnv == G.bare ident'
 
 -------------------------------------------------------------------------------
 -- Tests for @defineLocally@                                                 --

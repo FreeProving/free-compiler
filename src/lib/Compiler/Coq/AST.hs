@@ -102,11 +102,11 @@ arrows args returnType = foldr G.Arrow returnType args
 --   the given arguments and right hand side.
 --
 --   The second argument contains the types of the arguments are inferred by Coq.
-fun :: [String] -> [Maybe G.Term] -> G.Term -> G.Term
+fun :: [G.Qualid] -> [Maybe G.Term] -> G.Term -> G.Term
 fun args argTypes expr = G.Fun (NonEmpty.fromList binders) expr
  where
   argNames :: [G.Name]
-  argNames = map (G.Ident . bare) args
+  argNames = map G.Ident args
 
   binders :: [G.Binder]
   binders = zipWith makeBinder argTypes (argNames)
@@ -116,7 +116,7 @@ fun args argTypes expr = G.Fun (NonEmpty.fromList binders) expr
   makeBinder (Just t) = flip (G.Typed G.Ungeneralizable G.Explicit) t . return
 
 -- | Like 'fun', but all argument types are inferred.
-inferredFun :: [String] -> G.Term -> G.Term
+inferredFun :: [G.Qualid] -> G.Term -> G.Term
 inferredFun = flip fun (repeat Nothing)
 
 -------------------------------------------------------------------------------

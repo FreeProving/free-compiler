@@ -295,7 +295,7 @@ isPureVar = maybe False (isVarEntry .&&. entryIsPure) .: lookupEntry ValueScope
 --   Returns @Nothing@ if there is no such function, (type/smart) constructor,
 --   constructor or (type) variable with the given name.
 lookupIdent :: Scope -> HS.QName -> Environment -> Maybe G.Qualid
-lookupIdent = fmap (G.bare . entryIdent) .:. lookupEntry
+lookupIdent = fmap entryIdent .:. lookupEntry
 
 -- | Looks up the Coq identifier for the smart constructor of the Haskell
 --   constructor with the given name.
@@ -303,7 +303,7 @@ lookupIdent = fmap (G.bare . entryIdent) .:. lookupEntry
 --   Returns @Nothing@ if there is no such constructor.
 lookupSmartIdent :: HS.QName -> Environment -> Maybe G.Qualid
 lookupSmartIdent =
-  fmap (G.bare . entrySmartIdent) . find isConEntry .: lookupEntry ValueScope
+  fmap entrySmartIdent . find isConEntry .: lookupEntry ValueScope
 
 -- | Gets a list of Coq identifiers for functions, (type/smart) constructors,
 --   (type/fresh) variables that were used in the given environment already.
@@ -312,8 +312,8 @@ usedIdents = concatMap (concatMap entryIdents . fst) . Map.elems . envEntries
  where
   entryIdents :: EnvEntry -> [G.Qualid]
   entryIdents entry
-    | isConEntry entry = map G.bare [entryIdent entry, entrySmartIdent entry]
-    | otherwise        = map G.bare [entryIdent entry]
+    | isConEntry entry = [entryIdent entry, entrySmartIdent entry]
+    | otherwise        = [entryIdent entry]
 
 -- | Looks up the location of the declaration with the given name.
 lookupSrcSpan :: Scope -> HS.QName -> Environment -> Maybe SrcSpan

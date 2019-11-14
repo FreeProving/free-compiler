@@ -43,7 +43,7 @@ quickCheckInterface = ModuleInterface
   , interfaceEntries = Set.singleton DataEntry
     { entrySrcSpan = NoSrcSpan
     , entryArity   = 0
-    , entryIdent   = "Prop"
+    , entryIdent   = G.bare "Prop"
     , entryName    = propertyName
     }
   }

@@ -61,7 +61,7 @@ generateTypeVarDecls' explicitness srcSpans idents
   | null idents = return []
   | otherwise = do
     idents' <- zipWithM renameAndDefineTypeVar srcSpans idents
-    return [G.typedBinder explicitness (map (G.bare) idents') G.sortType]
+    return [G.typedBinder explicitness idents' G.sortType]
 
 -------------------------------------------------------------------------------
 -- Function arguments                                                        --
@@ -136,16 +136,16 @@ convertArg' isPure (HS.VarPat srcSpan ident) mArgType' = do
 --   name and optional Coq type.
 --
 --   If no type is provided, it will be inferred by Coq.
-generateArgBinder :: String -> Maybe G.Term -> Converter G.Binder
+generateArgBinder :: G.Qualid -> Maybe G.Term -> Converter G.Binder
 generateArgBinder ident' Nothing =
-  return (G.Inferred G.Explicit (G.Ident (G.bare ident')))
+  return (G.Inferred G.Explicit (G.Ident ident'))
 generateArgBinder ident' (Just argType') =
-  return (G.typedBinder' G.Explicit (G.bare ident') argType')
+  return (G.typedBinder' G.Explicit ident' argType')
 
 -- | Converts the argument of an artifically generated function to an explicit
 --   Coq binder. A fresh Coq identifier is selected for the argument
 --   and returned together with the binder.
-convertAnonymousArg :: Maybe HS.Type -> Converter (String, G.Binder)
+convertAnonymousArg :: Maybe HS.Type -> Converter (G.Qualid, G.Binder)
 convertAnonymousArg mArgType = do
   ident'    <- freshCoqIdent freshArgPrefix
   mArgType' <- mapM convertType mArgType

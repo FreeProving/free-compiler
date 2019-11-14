@@ -45,7 +45,7 @@ lookupIdentOrFail
   -> Converter G.Qualid
 lookupIdentOrFail srcSpan scope name = do
   entry <- lookupEntryOrFail srcSpan scope name
-  return (G.bare (entryIdent entry))
+  return (entryIdent entry)
 
 -- | Looks up the Coq identifier of a smart constructor of the Haskell
 --   data constructr with the given name or reports a fatal error message
@@ -58,7 +58,7 @@ lookupSmartIdentOrFail
   -> Converter G.Qualid
 lookupSmartIdentOrFail srcSpan name = do
   entry <- lookupEntryOrFail srcSpan ValueScope name
-  return (G.bare (entrySmartIdent entry))
+  return (entrySmartIdent entry)
 
 -- | Looks up the annoated type of a user defined function with the given name
 --   and reports a fatal error message if there is no such type signature.

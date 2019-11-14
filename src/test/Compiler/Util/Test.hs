@@ -5,7 +5,9 @@ module Compiler.Util.Test where
 import           Test.Hspec
 
 import           Control.Exception
-import           Data.Maybe                     ( catMaybes )
+import           Data.Maybe                     ( catMaybes
+                                                , fromJust
+                                                )
 
 import           Compiler.Analysis.DependencyExtraction
                                                 ( typeVars )
@@ -131,7 +133,8 @@ parseTestModule input =
 --
 --   Returns the Coq identifier assigned to the entry by the renamer.
 renameAndAddTestEntry :: EnvEntry -> Converter String
-renameAndAddTestEntry = (fmap entryIdent) . renameAndAddEntry
+renameAndAddTestEntry =
+  fmap (fromJust . G.unpackQualid . entryIdent) . renameAndAddEntry
 
 -- | Defines a type constructor for testing purposes.
 --
@@ -171,7 +174,9 @@ defineTestCon ident arity typeStr = do
     , entryIdent      = undefined -- filled by renamer
     , entrySmartIdent = undefined -- filled by renamer
     }
-  return (entryIdent entry, entrySmartIdent entry)
+  let (Just ident     ) = G.unpackQualid (entryIdent entry)
+      (Just smartIdent) = G.unpackQualid (entrySmartIdent entry)
+  return (ident, smartIdent)
 
 -- | Defines a variable for testing purposes.
 

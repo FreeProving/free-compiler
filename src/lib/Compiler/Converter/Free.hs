@@ -64,7 +64,7 @@ generateBind (G.App (G.Qualid con) ((G.PosArg arg) :| [])) _ generateRHS
   | con == CoqBase.freePureCon = generateRHS arg
 generateBind expr' argType' generateRHS = localEnv $ do
   x   <- freshCoqIdent (suggestPrefixFor expr')
-  rhs <- generateRHS (G.Qualid (G.bare x))
+  rhs <- generateRHS (G.Qualid x)
   return (G.app (G.Qualid CoqBase.freeBind) [expr', G.fun [x] [argType'] rhs])
  where
   -- | Suggests a prefix for the fresh varibale the given expression

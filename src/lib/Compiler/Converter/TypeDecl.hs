@@ -267,7 +267,7 @@ convertDataDecl (HS.DataDecl _ (HS.DeclIdent _ ident) typeVarDecls conDecls) =
                                             (map Just argTypes)
     returnType' <- convertType returnType
     rhs         <- generatePure
-      (G.app (G.Qualid qualid) (map (G.Qualid . G.bare) argIdents'))
+      (G.app (G.Qualid qualid) (map G.Qualid argIdents'))
     return
       (G.definitionSentence
         smartQualid

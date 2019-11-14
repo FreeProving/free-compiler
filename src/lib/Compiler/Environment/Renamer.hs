@@ -147,22 +147,22 @@ sanitizeIdent (firstChar : subsequentChars) =
 --   is appended such that the resulting identifier does not cause a name
 --   conflict anymore. If the identifier already ends with a number, the
 --   enumeration will start from that number.
-renameIdent :: String -> Environment -> String
+renameIdent :: String -> Environment -> G.Qualid
 renameIdent ident env
   | mustRenameIdent ident' env = case matchRegexPR "\\d+$" ident' of
     Just ((number, (prefix, _)), _) -> renameIdent' prefix (read number) env
     Nothing                         -> renameIdent' ident' 0 env
-  | otherwise = ident'
+  | otherwise = G.bare ident'
  where
   ident' :: String
   ident' = sanitizeIdent ident
 
 -- | Renames an identifier by appending a number. The number is increased
 --   until the resulting identifier is available.
-renameIdent' :: String -> Int -> Environment -> String
+renameIdent' :: String -> Int -> Environment -> G.Qualid
 renameIdent' ident n env
   | mustRenameIdent identN env = renameIdent' ident (n + 1) env
-  | otherwise                  = identN
+  | otherwise                  = G.bare identN
  where
   identN :: String
   identN = ident ++ (show n)
@@ -233,7 +233,7 @@ renameAndAddEntry entry = do
 renameAndDefineTypeVar
   :: SrcSpan -- ^ The location of the type variable declaration.
   -> String  -- ^ The name of the type variable.
-  -> Converter String
+  -> Converter G.Qualid
 renameAndDefineTypeVar srcSpan ident = do
   entry <- renameAndAddEntry TypeVarEntry
     { entrySrcSpan = srcSpan
@@ -251,7 +251,7 @@ renameAndDefineVar
   :: SrcSpan -- ^ The location of the variable declaration.
   -> Bool    -- ^ Whether the variable has not been lifted to the free monad.
   -> String  -- ^ The name of the variable.
-  -> Converter String
+  -> Converter G.Qualid
 renameAndDefineVar srcSpan isPure ident = do
   entry <- renameAndAddEntry VarEntry
     { entrySrcSpan = srcSpan
@@ -305,4 +305,4 @@ informIfRenamed entry entry' = do
  where
   ident, ident' :: String
   HS.UnQual (HS.Ident ident) = entryName entry
-  ident'                     = entryIdent entry'
+  Just      ident'           = G.unpackQualid (entryIdent entry')

@@ -7,6 +7,7 @@ module Compiler.Environment.Entry where
 import           Data.Function                  ( on )
 import           Data.Tuple.Extra               ( (&&&) )
 
+import qualified Compiler.Coq.AST              as G
 import           Compiler.Environment.Scope
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Haskell.SrcSpan
@@ -20,7 +21,7 @@ data EnvEntry
       -- ^ The source code location where the data type was declared.
     , entryArity :: Int
       -- ^ The number of type arguments expected by the type constructor.
-    , entryIdent :: String
+    , entryIdent :: G.Qualid
       -- ^ The name of the data type in Coq.
     , entryName :: HS.QName
       -- ^ The name of the data type in the module it has been defined in.
@@ -35,7 +36,7 @@ data EnvEntry
       -- ^ The names of the type arguments.
     , entryTypeSyn :: HS.Type
       -- ^ The type that is abbreviated by this type synonym.
-    , entryIdent :: String
+    , entryIdent :: G.Qualid
       -- ^ The name of the type synonym in Coq.
     , entryName :: HS.QName
       -- ^ The name of the type synonym in the module it has been defined in.
@@ -44,7 +45,7 @@ data EnvEntry
     TypeVarEntry
     { entrySrcSpan :: SrcSpan
       -- ^ The source code location where the type variable was declared.
-    , entryIdent :: String
+    , entryIdent :: G.Qualid
       -- ^ The name of the type variable in Coq.
     , entryName :: HS.QName
       -- ^ The name of the type variable (must be unqualified).
@@ -60,9 +61,9 @@ data EnvEntry
       --   Contains exactly 'entryArity' elements.
     , entryReturnType :: Maybe HS.Type
       -- ^ The return type of the data constructor (if known).
-    , entryIdent :: String
+    , entryIdent :: G.Qualid
       -- ^ The name of the regular data constructor in Coq.
-    , entrySmartIdent :: String
+    , entrySmartIdent :: G.Qualid
       -- ^ The name of the corresponding smart constructor in Coq.
     , entryName :: HS.QName
       -- ^ The name of the data constructor in the module it has been
@@ -84,7 +85,7 @@ data EnvEntry
     , entryIsPartial :: Bool
       -- ^ Whether the function is partial, i.e., requires an instance of
       --   the @Partial@ type class when translated to Coq.
-    , entryIdent :: String
+    , entryIdent :: G.Qualid
       -- ^ The name of the function in Coq.
     , entryName :: HS.QName
       -- ^ The name of the function in the module it has been defined in.
@@ -95,7 +96,7 @@ data EnvEntry
       -- ^ The source code location where the variable was declared.
     , entryIsPure :: Bool
       -- ^ Whether the variable has not been lifted to the free monad.
-    , entryIdent :: String
+    , entryIdent :: G.Qualid
       -- ^ The name of the variable in Coq.
     , entryName :: HS.QName
       -- ^ The name of the variable (must be unqualified).
