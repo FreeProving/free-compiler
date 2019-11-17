@@ -49,8 +49,13 @@ testConvertImports = do
         _ <- convertTestModule ["module B where", "foo :: ()", "foo = ()"]
         convertTestModule
           ["module C where", "import A", "import B", "bar :: ()", "bar = foo"]
-
-  {- FIXME
+  it "does not export imported entries"
+    $ shouldReportFatal
+    $ fromModuleConverter
+    $ do
+        _ <- convertTestModule ["module A where", "type A = ()"]
+        _ <- convertTestModule ["module B where", "import A"]
+        convertTestModule ["module C where", "import B", "type B = A"]
   it "expands imported type synonyms correctly"
     $ shouldSucceed
     $ fromModuleConverter
@@ -61,7 +66,31 @@ testConvertImports = do
         _ <- convertTestModule
           ["module C where", "import B", "foo :: B", "foo x = ()"]
         return (return ())
-  -}
+  it "local entries don't conflict with hidden entries"
+    $ shouldSucceed
+    $ fromModuleConverter
+    $ do
+        _ <- convertTestModule ["module A where", "data A = A"]
+        _ <- convertTestModule
+          ["module B where", "import A", "type B = A -> ()"]
+        shouldTranslateModuleTo
+          [ "module C where"
+          , "import B"
+          , "type A = ()"
+          , "foo :: B"
+          , "foo x = ()"
+          ]
+          [ "(* module C *)"
+          , "From Base Require Import Free."
+          , "From Base Require Import Prelude."
+          , "Require Import B."
+          , "Definition A1 (Shape : Type) (Pos : Shape -> Type) : Type"
+          , "  := Unit Shape Pos."
+          , "Definition foo (Shape : Type) (Pos : Shape -> Type)"
+          , "               (x : Free Shape Pos (A Shape Pos))"
+          , "   : Free Shape Pos (Unit Shape Pos)"
+          , "  := Tt Shape Pos."
+          ]
 
 -------------------------------------------------------------------------------
 -- Qualified Identifiers                                                     --
@@ -88,4 +117,12 @@ testQualifiedNames = do
           , "g :: (a -> b) -> a -> b"
           , "g f x = M.f f x"
           ]
+        return (return ())
+  it "imported entries are in scope qualified"
+    $ shouldSucceed
+    $ fromModuleConverter
+    $ do
+        _ <- convertTestModule ["module A where", "data A = A"]
+        _ <- convertTestModule
+          ["module B where", "import A", "foo :: A", "foo = A.A"]
         return (return ())

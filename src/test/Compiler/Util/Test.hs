@@ -291,6 +291,18 @@ shouldTranslateDeclsTo input expectedOutput = do
     $          discardWhitespace (showPretty coqDecls)
     `shouldBe` discardWhitespace expectedOutput
 
+-- | Converts the string representation of a Haskell module to Coq and sets
+--   the expectation that the result equals the given Gallina Sentences.
+--
+--   Whitespace in the actual and expected output does not have to match.
+shouldTranslateModuleTo :: [String] -> [String] -> Converter Expectation
+shouldTranslateModuleTo input expectedOutputLines = do
+  coqAst <- convertTestModule input
+  let expectedOutput = unlines expectedOutputLines
+  return
+    $          discardWhitespace (showPretty coqAst)
+    `shouldBe` discardWhitespace expectedOutput
+
 -------------------------------------------------------------------------------
 -- Utility functions                                                        --
 -------------------------------------------------------------------------------
