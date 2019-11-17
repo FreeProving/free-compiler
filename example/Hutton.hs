@@ -35,7 +35,7 @@ execStrict s [] = s
 execStrict s (PUSH n : ops) = case s of
                                 []     -> execStrict [n] ops
                                 (c:cs) -> execStrict (n : c :cs) ops
-execStrict s (Add : ops) = case s of
+execStrict s (ADD : ops) = case s of
                              (n : m : s') -> execStrict (n + m : s') ops
 
 {-
