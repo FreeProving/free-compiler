@@ -195,12 +195,19 @@ disj t1 t2 = app (G.Qualid (bare "op_\\/__")) [t1, t2]
 -- Imports                                                                   --
 -------------------------------------------------------------------------------
 
--- | Creates a @Require Import ...@ sentence.
+-- | Creates a @Require Export ...@ sentence.
+--
+--   This does not generate a @Require Import ...@ sentence since modules
+--   depending on the importing module could use definitions from the imported
+--   modules.
 requireImport :: [G.ModuleIdent] -> G.Sentence
 requireImport modules = G.ModuleSentence
-  (G.Require Nothing (Just G.Import) (NonEmpty.fromList modules))
+  (G.Require Nothing (Just G.Export) (NonEmpty.fromList modules))
 
 -- | Creates a @From ... Require Import ...@ sentence.
+--
+--   Since @From ... Require ...@ sentences are only generated for built in
+--   modules, it does not have to @Export@ the required module.
 requireImportFrom :: G.ModuleIdent -> [G.ModuleIdent] -> G.Sentence
 requireImportFrom library modules = G.ModuleSentence
   (G.Require (Just library) (Just G.Import) (NonEmpty.fromList modules))

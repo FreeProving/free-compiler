@@ -83,7 +83,7 @@ testConvertImports = do
           [ "(* module C *)"
           , "From Base Require Import Free."
           , "From Base Require Import Prelude."
-          , "Require Import B."
+          , "Require Export B."
           , "Definition A1 (Shape : Type) (Pos : Shape -> Type) : Type"
           , "  := Unit Shape Pos."
           , "Definition foo (Shape : Type) (Pos : Shape -> Type)"
