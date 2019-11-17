@@ -136,7 +136,7 @@ generateImport modName
   | modName == HS.preludeModuleName = return
   $ Just (G.requireImportFrom CoqBase.baseLibName [G.ident "Prelude"])
   | modName == quickCheckModuleName = return Nothing
-  | otherwise = return $ Just (G.requireImport [G.ident (showPretty modName)]) -- TODO rename module?
+  | otherwise = return $ Just (G.requireImport [G.ident (showPretty modName)])
 
 -------------------------------------------------------------------------------
 -- Exports                                                                   --

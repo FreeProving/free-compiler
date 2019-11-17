@@ -48,7 +48,9 @@ where
 import           Data.Composition               ( (.:)
                                                 , (.:.)
                                                 )
-import           Data.List                      ( find )
+import           Data.List                      ( find
+                                                , partition
+                                                )
 import           Data.Map.Strict                ( Map )
 import qualified Data.Map.Strict               as Map
 import           Data.Maybe                     ( isJust )
@@ -204,16 +206,24 @@ importInterface iface =
 -- | Like 'importInterface' but all exported entries are qualifed with the
 --   given module name.
 importInterfaceAs :: HS.ModName -> ModuleInterface -> Environment -> Environment
-importInterfaceAs modName iface =
-  importEntries
-    $ map (qualify . entryName &&& id)
-    $ filter isExported
-    $ Set.toList
-    $ interfaceEntries iface
+importInterfaceAs modName iface = importHiddenEntries . importExportedEntries
  where
   -- | Tests wheter the given entry is exported by the imported interface.
   isExported :: EnvEntry -> Bool
   isExported = flip Set.member (interfaceExports iface) . entryScopedName
+
+  -- | Imports all entries of the interface that have been exported explicitly.
+  importExportedEntries :: Environment -> Environment
+  importExportedEntries =
+    importEntries $ map (qualify . entryName &&& id) exportedEntries
+
+  -- | Imports all hidden entries of the interface.
+  importHiddenEntries :: Environment -> Environment
+  importHiddenEntries = importEntries $ map (entryName &&& id) hiddenEntries
+
+  exportedEntries, hiddenEntries :: [EnvEntry]
+  (exportedEntries, hiddenEntries) =
+    partition isExported $ Set.toList $ interfaceEntries iface
 
   -- | Qualifies the name of an imported entry with the module name.
   qualify :: HS.QName -> HS.QName
