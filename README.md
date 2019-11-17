@@ -80,7 +80,7 @@ To compile a Haskell module, pass the file name of the module to haskell-to-coq-
 For example, to compile the queue example module run the following command.
 
 ```bash
-haskell-to-coq-compiler ./example/ExampleQueue.hs
+haskell-to-coq-compiler ./example/ExampleQueue/*.hs
 ```
 
 The generated Coq code is printed to the console. To write the generated Coq
@@ -96,6 +96,12 @@ In addition to the Coq file, a `_CoqProject` file is created in the output
 directory if it does not exist already. The `_CoqProject` file tells Coq where
 to find the compiler’s base library. Add the `--no-coq-project` command line
 flag to disable the generation of a `_CoqProject` file.
+
+The compiler also places a JSON file (*interface file*) for every converted module into the output directory.
+The interface file contains information about the functions and types exported by the module and is needed when translating module dependencies.
+Modules are only allowed to import other modules that are compiled in the same pass or modules for which an interface file can be found.
+By default the compiler looks in the working and output directory for interface files.
+Additional locations to look for can be specified using the `--import` (or `-i`) command line option.
 
 In order to compile Haskell modules successfully, the compiler needs to know the names of predefined data types and operations. For this purpose, the `base/Prelude.toml` configuration file has to be loaded.
 If the compiler is installed as described above, it will be able to locate the base library automatically.
