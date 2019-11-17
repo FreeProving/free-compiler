@@ -35,7 +35,7 @@ data Name
 -- | A potentially qualified 'Name'.
 data QName
   = Qual ModName Name -- ^ A qualified 'Name'.
-  | UnQual Name      -- ^ An unqualified 'Name'.
+  | UnQual Name       -- ^ An unqualified 'Name'.
   deriving (Eq, Ord, Show)
 
 -- | Haskell identifiers and symbols can be pretty printed because they are

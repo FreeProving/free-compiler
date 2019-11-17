@@ -13,12 +13,9 @@ module Compiler.Environment
   , makeModuleAvailable
   , isModuleAvailable
   , lookupAvailableModule
-  -- * Import and export entries
-  , importEntry
-  , importInterface
-  , importInterfaceAs
   -- * Inserting entries into the environment
   , addEntry
+  , addEntry'
   , defineDecArg
   , defineTypeSig
   -- * Looking up entries from the environment
@@ -48,9 +45,7 @@ where
 import           Data.Composition               ( (.:)
                                                 , (.:.)
                                                 )
-import           Data.List                      ( find
-                                                , partition
-                                                )
+import           Data.List                      ( find )
 import           Data.Map.Strict                ( Map )
 import qualified Data.Map.Strict               as Map
 import           Data.Maybe                     ( isJust )
@@ -162,73 +157,6 @@ isModuleAvailable = isJust .: lookupAvailableModule
 -- | Looks up the environment of another module that can be imported.
 lookupAvailableModule :: HS.ModName -> Environment -> Maybe ModuleInterface
 lookupAvailableModule modName = Map.lookup modName . envAvailableModules
-
--------------------------------------------------------------------------------
--- Import and export entries                                                 --
--------------------------------------------------------------------------------
-
--- | Inserts an entry into the given environment and associates it with the
---   given name.
---
---   In contrast to 'addEntry' the entry is not added at the current 'envDepth'
---   but at depth @-1@ which indicates that it is not a top level entry but
---   an external entry and should not be exported.
-importEntry :: HS.QName -> EnvEntry -> Environment -> Environment
-importEntry name entry env = addEntry' name entry (-1) env
-
--- | Inserts multiple entries into the given environment and associates them
---   with the corresponding name.
-importEntries :: [(HS.QName, EnvEntry)] -> Environment -> Environment
-importEntries = flip (foldr (uncurry importEntry))
-
--- | Imports all entries from the given module interface into the given
---   interface.
---
---   This function imports only entries that are exported by the given
---   interface.
-importInterface :: ModuleInterface -> Environment -> Environment
-importInterface iface =
-  importEntries
-    $ map (unqualify . entryName &&& id)
-    $ filter isExported
-    $ Set.toList
-    $ interfaceEntries iface
- where
-  -- | Tests wheter the given entry is exported by the imported interface.
-  isExported :: EnvEntry -> Bool
-  isExported = flip Set.member (interfaceExports iface) . entryScopedName
-
-  -- | Removes the module name from a qualified name.
-  unqualify :: HS.QName -> HS.QName
-  unqualify (HS.UnQual name) = HS.UnQual name
-  unqualify (HS.Qual _ name) = HS.UnQual name
-
--- | Like 'importInterface' but all exported entries are qualifed with the
---   given module name.
-importInterfaceAs :: HS.ModName -> ModuleInterface -> Environment -> Environment
-importInterfaceAs modName iface = importHiddenEntries . importExportedEntries
- where
-  -- | Tests wheter the given entry is exported by the imported interface.
-  isExported :: EnvEntry -> Bool
-  isExported = flip Set.member (interfaceExports iface) . entryScopedName
-
-  -- | Imports all entries of the interface that have been exported explicitly.
-  importExportedEntries :: Environment -> Environment
-  importExportedEntries =
-    importEntries $ map (qualify . entryName &&& id) exportedEntries
-
-  -- | Imports all hidden entries of the interface.
-  importHiddenEntries :: Environment -> Environment
-  importHiddenEntries = importEntries $ map (entryName &&& id) hiddenEntries
-
-  exportedEntries, hiddenEntries :: [EnvEntry]
-  (exportedEntries, hiddenEntries) =
-    partition isExported $ Set.toList $ interfaceEntries iface
-
-  -- | Qualifies the name of an imported entry with the module name.
-  qualify :: HS.QName -> HS.QName
-  qualify (HS.UnQual name) = HS.Qual modName name
-  qualify (HS.Qual _ name) = HS.Qual modName name
 
 -------------------------------------------------------------------------------
 -- Inserting entries into the environment                                    --

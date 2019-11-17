@@ -17,6 +17,7 @@ import           Compiler.Coq.Pretty            ( )
 import           Compiler.Environment
 import           Compiler.Environment.Decoder
 import           Compiler.Environment.Entry
+import           Compiler.Environment.Importer
 import           Compiler.Environment.Renamer
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Haskell.Parser
@@ -174,9 +175,9 @@ defineTestCon ident arity typeStr = do
     , entryIdent      = undefined -- filled by renamer
     , entrySmartIdent = undefined -- filled by renamer
     }
-  let (Just ident     ) = G.unpackQualid (entryIdent entry)
-      (Just smartIdent) = G.unpackQualid (entrySmartIdent entry)
-  return (ident, smartIdent)
+  let (Just ident'     ) = G.unpackQualid (entryIdent entry)
+      (Just smartIdent') = G.unpackQualid (entrySmartIdent entry)
+  return (ident', smartIdent')
 
 -- | Defines a variable for testing purposes.
 

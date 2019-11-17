@@ -103,6 +103,7 @@ library haskell-to-coq-internal
                       , Compiler.Environment.Encoder
                       , Compiler.Environment.Entry
                       , Compiler.Environment.Fresh
+                      , Compiler.Environment.Importer
                       , Compiler.Environment.LookupOrFail
                       , Compiler.Environment.Renamer
                       , Compiler.Environment.Resolver

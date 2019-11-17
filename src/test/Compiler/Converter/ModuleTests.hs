@@ -126,3 +126,11 @@ testQualifiedNames = do
         _ <- convertTestModule
           ["module B where", "import A", "foo :: A", "foo = A.A"]
         return (return ())
+  it "hidden entries of imported modules are not in scope"
+    $ shouldReportFatal
+    $ fromModuleConverter
+    $ do
+        _ <- convertTestModule ["module A where", "data A = A"]
+        _ <- convertTestModule ["module B where", "import A", "type B = A"]
+        convertTestModule
+          ["module C where", "import B", "foo :: B", "foo = A.A"]

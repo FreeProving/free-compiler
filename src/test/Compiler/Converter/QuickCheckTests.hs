@@ -4,6 +4,7 @@ import           Test.Hspec
 
 import           Compiler.Converter.QuickCheck
 import           Compiler.Environment
+import           Compiler.Environment.Importer
 import           Compiler.Monad.Converter
 import           Compiler.Util.Test
 

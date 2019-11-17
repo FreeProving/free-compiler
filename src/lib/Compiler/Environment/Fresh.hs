@@ -19,7 +19,6 @@ import           Compiler.Monad.Converter
 freshArgPrefix :: String
 freshArgPrefix = "x"
 
-
 -- | Gets the next fresh Haskell identifier from the current environment.
 --
 --   All fresh identifiers contain an at-sign (See 'HS.internalIdentChar').
