@@ -1,6 +1,7 @@
 module Main where
 
-import           Control.Monad.Extra            ( unlessM
+import           Control.Monad.Extra            ( ifM
+                                                , unlessM
                                                 , whenM
                                                 )
 import           Control.Monad.IO.Class
@@ -85,7 +86,7 @@ compiler = do
 parseInputFile :: FilePath -> Application HS.Module
 parseInputFile inputFile = do
   -- Parse and simplify input file.
-  haskellAst <- liftReporterIO $ parseModuleFile inputFile
+  haskellAst  <- liftReporterIO $ parseModuleFile inputFile
   haskellAst' <- transformInputModule haskellAst
   liftConverter (simplifyModule haskellAst')
 
@@ -109,20 +110,26 @@ sortInputModules = mapM checkForCycle . groupModules
 convertInputModule :: HS.Module -> Application (HS.ModName, [G.Sentence])
 convertInputModule haskellAst = do
   let modName = HS.modName haskellAst
-  putDebug
-    $  "Compiling "
-    ++ showPretty modName
-    ++ " ("
-    ++ srcSpanFilename (HS.modSrcSpan haskellAst)
-    ++ ")"
+      srcSpan = HS.modSrcSpan haskellAst
+  if hasSrcSpanFilename srcSpan
+    then
+      putDebug
+      $  "Compiling "
+      ++ showPretty modName
+      ++ " ("
+      ++ srcSpanFilename srcSpan
+      ++ ")"
+    else putDebug $ "Compiling " ++ showPretty modName
   loadRequiredModules haskellAst
   coqAst <- liftConverter $ convertModule haskellAst
   return (modName, coqAst)
 
 -- | Applies Haskell source code transformations if they are enabled.
-transformInputModule
-  :: H.Module SrcSpan -> Application (H.Module SrcSpan)
-transformInputModule = when (inOpts optTransformPatternMatching) .  transformPatternMatching
+transformInputModule :: H.Module SrcSpan -> Application (H.Module SrcSpan)
+transformInputModule haskellAst = ifM
+  (inOpts optTransformPatternMatching)
+  (liftConverter (transformPatternMatching haskellAst))
+  (return haskellAst)
 
 -------------------------------------------------------------------------------
 -- Output                                                                    --

@@ -36,8 +36,6 @@ module Compiler.Environment
   , lookupTypeSig
   , isPartial
   , lookupDecArg
-  -- * Shortcuts for extracting entries from the environment
-  , definedCons
   -- * QuickCheck support
   , enableQuickCheck
   , isQuickCheckEnabled
@@ -325,24 +323,6 @@ isPartial =
 --   Returns @Nothing@ if there is no such recursive function.
 lookupDecArg :: HS.QName -> Environment -> Maybe Int
 lookupDecArg name = Map.lookup name . envDecArgs
-
--------------------------------------------------------------------------------
--- Shortcuts for extracting entries from the environment                     --
--------------------------------------------------------------------------------
-
--- | Gets the names, argument and return types of all defined constructors.
-definedCons :: Environment -> [(HS.Name, [Maybe HS.Type], Maybe HS.Type)]
-definedCons =
-  map (uncurry makeRes) . filter (isCon . fst) . Map.assocs . envDefinedArgTypes
- where
-  isCon :: ScopedName -> Bool
-  isCon = (== ConScope) . fst
-
-  makeRes
-    :: ScopedName
-    -> ([HS.TypeVarIdent], [Maybe HS.Type], Maybe HS.Type)
-    -> (HS.Name, [Maybe HS.Type], Maybe HS.Type)
-  makeRes (_, name) (_, argTypes, returnType) = (name, argTypes, returnType)
 
 -------------------------------------------------------------------------------
 -- QuickCheck support                                                        --

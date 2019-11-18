@@ -41,17 +41,22 @@ quickCheckModuleName = "Test.QuickCheck"
 quickCheckInterface :: ModuleInterface
 quickCheckInterface = ModuleInterface
   { interfaceModName = quickCheckModuleName
-  , interfaceExports = Set.singleton (TypeScope, propertyName)
+  , interfaceExports = Set.singleton (TypeScope, propertyQName)
   , interfaceEntries = Set.singleton DataEntry
     { entrySrcSpan = NoSrcSpan
     , entryArity   = 0
     , entryIdent   = G.bare "Prop"
-    , entryName    = propertyName
+    , entryName    = propertyQName
     }
   }
- where
-  propertyName :: HS.QName
-  propertyName = HS.Qual quickCheckModuleName (HS.Ident "Property")
+
+-- | The name of the @Property@ data type.
+propertyName :: HS.Name
+propertyName = HS.Ident "Property"
+
+-- | The qualified name of the @Property@ data type.
+propertyQName :: HS.QName
+propertyQName = HS.Qual quickCheckModuleName propertyName
 
 -------------------------------------------------------------------------------
 -- Filter QuickCheck property declarations                                   --
@@ -65,14 +70,15 @@ isQuickCheckProperty :: HS.FuncDecl -> Converter Bool
 isQuickCheckProperty (HS.FuncDecl srcSpan (HS.DeclIdent _ ident) args _)
   | "prop_" `isPrefixOf` ident = return True
   | otherwise = do
-    let name = HS.Ident ident
+    let name = HS.UnQual (HS.Ident ident)
     funcType        <- lookupTypeSigOrFail srcSpan name
     (_, returnType) <- splitFuncType name args funcType
     return (isProperty returnType)
  where
   -- | Tests whether the given type is the `Property`
   isProperty :: HS.Type -> Bool
-  isProperty (HS.TypeCon _ (HS.Ident "Property")) = True
+  isProperty (HS.TypeCon _ name) | name == HS.UnQual propertyName = True
+                                 | name == propertyQName          = True
   isProperty _ = False
 
 -- | Tests whether the given strongly connected component of the function
