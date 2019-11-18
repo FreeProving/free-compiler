@@ -14,6 +14,7 @@
 module Compiler.Haskell.Simplifier
   ( Simplifier
   , simplifyModule
+  , extractModName
   , simplifyDecls
   , simplifyType
   , simplifyExpr
@@ -107,16 +108,16 @@ warnIf cond msg node = when cond (report $ Message (H.ann node) Warning msg)
 --
 --   Only regular (non XML) modules are supported.
 simplifyModule :: H.Module SrcSpan -> Simplifier HS.Module
-simplifyModule (H.Module srcSpan modHead pragmas imports decls)
+simplifyModule ast@(H.Module srcSpan _ pragmas imports decls)
   | not (null pragmas) = notSupported "Module pragmas" (head pragmas)
   | otherwise = do
-    maybeModName                        <- mapM simplifyModuleHead modHead
+    modName                             <- extractModName ast
     imports'                            <- mapM simplifyImport imports
     (typeDecls', typeSigs', funcDecls') <- simplifyDecls decls
     return
       (HS.Module
         { HS.modSrcSpan   = srcSpan
-        , HS.modName      = fromMaybe "Main" maybeModName
+        , HS.modName      = modName
         , HS.modImports   = imports'
         , HS.modTypeDecls = typeDecls'
         , HS.modTypeSigs  = typeSigs'
@@ -124,6 +125,13 @@ simplifyModule (H.Module srcSpan modHead pragmas imports decls)
         }
       )
 simplifyModule modDecl = notSupported "XML modules" modDecl
+
+-- | Gets the name of the given module.
+extractModName :: H.Module SrcSpan -> Simplifier HS.ModName
+extractModName (H.Module _ modHead _ _ _) = do
+  maybeModName <- mapM simplifyModuleHead modHead
+  return (fromMaybe "Main" maybeModName)
+extractModName modDecl = notSupported "XML modules" modDecl
 
 -- | Gets the module name from the module head.
 --

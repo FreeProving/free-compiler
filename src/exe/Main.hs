@@ -29,6 +29,7 @@ import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Haskell.Parser        ( parseModuleFile )
 import           Compiler.Haskell.PatternMatching
                                                 ( transformPatternMatching )
+import           Compiler.Haskell.Pretty        ( )
 import           Compiler.Haskell.Simplifier
 import           Compiler.Haskell.SrcSpan
 import           Compiler.Monad.Application
@@ -124,12 +125,33 @@ convertInputModule haskellAst = do
   coqAst <- liftConverter $ convertModule haskellAst
   return (modName, coqAst)
 
+-------------------------------------------------------------------------------
+-- Pattern matching compilation                                              --
+-------------------------------------------------------------------------------
+
 -- | Applies Haskell source code transformations if they are enabled.
 transformInputModule :: H.Module SrcSpan -> Application (H.Module SrcSpan)
-transformInputModule haskellAst = ifM
-  (inOpts optTransformPatternMatching)
-  (liftConverter (transformPatternMatching haskellAst))
-  (return haskellAst)
+transformInputModule haskellAst = ifM (inOpts optTransformPatternMatching)
+                                      transformPatternMatching'
+                                      (return haskellAst)
+ where
+  transformPatternMatching' :: Application (H.Module SrcSpan)
+  transformPatternMatching' = do
+    haskellAst'  <- liftConverter (transformPatternMatching haskellAst)
+    maybeDumpDir <- inOpts optDumpTransformedModulesDir
+    case maybeDumpDir of
+      Nothing      -> return haskellAst'
+      Just dumpDir -> do
+        -- Generate name of dump file.
+        modName <- liftConverter $ extractModName haskellAst'
+        let modPath  = map (\c -> if c == '.' then '/' else c) modName
+            dumpFile = dumpDir </> modPath <.> "hs"
+        -- Dump the transformed module.
+        liftIO $ createDirectoryIfMissing True (takeDirectory dumpFile)
+        liftIO $ writePrettyFile dumpFile haskellAst'
+        -- Read the dumped module back in, such that source spans in
+        -- error messages refer to the dumped file.
+        liftReporterIO $ parseModuleFile dumpFile
 
 -------------------------------------------------------------------------------
 -- Output                                                                    --

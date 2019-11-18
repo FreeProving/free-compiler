@@ -118,6 +118,7 @@ library haskell-to-coq-internal
                       , Compiler.Haskell.Inliner
                       , Compiler.Haskell.Parser
                       , Compiler.Haskell.PatternMatching
+                      , Compiler.Haskell.Pretty
                       , Compiler.Haskell.Simplifier
                       , Compiler.Haskell.SrcSpan
                       , Compiler.Haskell.Subterm
