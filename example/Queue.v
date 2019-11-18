@@ -3,10 +3,10 @@ From Base Require Import Free Prelude.
 Require Import Coq.Logic.FunctionalExtensionality.
 Require Import Coq.Program.Equality.
 
-From Examples Require Import ExampleQueue.Props.
-From Examples Require Import ExampleQueue.Queue.
-From Examples Require Import ExampleQueue.QueueI.
-From Examples Require Import ExampleQueue.Util.
+From Examples Require Import Queue.Props.
+From Examples Require Import Queue.Queue.
+From Examples Require Import Queue.QueueI.
+From Examples Require Import Queue.Util.
 
 (* TODO: Can we generate generate total_* properties? *)
 

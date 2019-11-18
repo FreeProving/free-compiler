@@ -1,4 +1,4 @@
-module ExampleQueue.Util where
+module QueuePM.Util where
 
 null :: [a] -> Bool
 null [] = True

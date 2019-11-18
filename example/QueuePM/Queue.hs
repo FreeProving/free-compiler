@@ -1,6 +1,6 @@
-module ExampleQueue.Queue where
+module QueuePM.Queue where
 
-import           ExampleQueue.Util
+import           QueuePM.Util
 
 type Queue a = [a]
 

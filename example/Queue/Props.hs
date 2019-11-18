@@ -1,10 +1,10 @@
-module ExampleQueue.Props where
+module Queue.Props where
 
 import           Test.QuickCheck
 
-import           ExampleQueue.Queue
-import           ExampleQueue.QueueI
-import           ExampleQueue.Util
+import           Queue.Queue
+import           Queue.QueueI
+import           Queue.Util
 
 invariant :: QueueI a -> Bool
 invariant qi = case qi of
