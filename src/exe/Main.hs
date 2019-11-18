@@ -6,6 +6,7 @@ import           Control.Monad.Extra            ( unlessM
 import           Control.Monad.IO.Class
 import           Data.List                      ( intercalate )
 import           Data.Maybe                     ( isJust )
+import qualified Language.Haskell.Exts.Syntax  as H
 import           System.Directory               ( createDirectoryIfMissing
                                                 , doesFileExist
                                                 , makeAbsolute
@@ -14,7 +15,6 @@ import           System.Exit                    ( exitSuccess )
 import           System.FilePath
 
 import           Compiler.Analysis.DependencyAnalysis
-import           Compiler.Monad.Application
 import           Compiler.Application.Options
 import           Compiler.Application.Debug
 import           Compiler.Converter             ( convertModule )
@@ -26,8 +26,11 @@ import           Compiler.Environment.Encoder
 import           Compiler.Environment.Decoder
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Haskell.Parser        ( parseModuleFile )
+import           Compiler.Haskell.PatternMatching
+                                                ( transformPatternMatching )
 import           Compiler.Haskell.Simplifier
 import           Compiler.Haskell.SrcSpan
+import           Compiler.Monad.Application
 import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
 import           Compiler.Pretty                ( putPrettyLn
@@ -83,7 +86,8 @@ parseInputFile :: FilePath -> Application HS.Module
 parseInputFile inputFile = do
   -- Parse and simplify input file.
   haskellAst <- liftReporterIO $ parseModuleFile inputFile
-  liftConverter (simplifyModule haskellAst)
+  haskellAst' <- transformInputModule haskellAst
+  liftConverter (simplifyModule haskellAst')
 
 -- | Sorts the given modules based on their dependencies.
 --
@@ -114,6 +118,11 @@ convertInputModule haskellAst = do
   loadRequiredModules haskellAst
   coqAst <- liftConverter $ convertModule haskellAst
   return (modName, coqAst)
+
+-- | Applies Haskell source code transformations if they are enabled.
+transformInputModule
+  :: H.Module SrcSpan -> Application (H.Module SrcSpan)
+transformInputModule = when (inOpts optTransformPatternMatching) .  transformPatternMatching
 
 -------------------------------------------------------------------------------
 -- Output                                                                    --

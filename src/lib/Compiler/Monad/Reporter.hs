@@ -20,6 +20,7 @@ module Compiler.Monad.Reporter
     -- * Reporter monad
   , Reporter
   , runReporter
+  , evalReporter
     -- * Reporter monad transformer
   , ReporterT
   , runReporterT
@@ -98,6 +99,10 @@ unwrapReporter = runIdentity . unwrapReporterT
 --   value is @Nothing@.
 runReporter :: Reporter a -> (Maybe a, [Message])
 runReporter = runIdentity . runReporterT
+
+-- | Like 'runReporter' but discards the reported messages.
+evalReporter :: Reporter a -> Maybe a
+evalReporter = fst . runReporter
 
 -------------------------------------------------------------------------------
 -- Reporter monad transformer                                                --

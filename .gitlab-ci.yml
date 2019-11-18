@@ -147,7 +147,7 @@ test-examples:
     - build-compiler
   script:
     - mkdir -p ./example/generated
-    - ./build/bin/haskell-to-coq-compiler -b ./base -o ./example/generated $(find ./example -name "*.hs")
+    - ./build/bin/haskell-to-coq-compiler --transform-pattern-matching -b ./base -o ./example/generated $(find ./example -name "*.hs")
     - mkdir -p ./build/example
     - cp -r ./example/generated ./build/example
   artifacts:

@@ -73,6 +73,8 @@ common deps
                      -- ASTs:
                    , haskell-src-exts     ==1.21.*
                    , language-coq         ==0.0.*
+                   -- Pattrn matching compiler.
+                   , CodeTransformation   ==0.1.*
   default-language:  Haskell2010
   ghc-options:       -Wall
 
@@ -115,6 +117,7 @@ library haskell-to-coq-internal
                       , Compiler.Haskell.AST
                       , Compiler.Haskell.Inliner
                       , Compiler.Haskell.Parser
+                      , Compiler.Haskell.PatternMatching
                       , Compiler.Haskell.Simplifier
                       , Compiler.Haskell.SrcSpan
                       , Compiler.Haskell.Subterm

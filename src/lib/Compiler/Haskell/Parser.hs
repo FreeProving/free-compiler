@@ -8,6 +8,7 @@ module Compiler.Haskell.Parser
   , parseDecl
   , parseType
   , parseExpr
+  , parseQName
   )
 where
 
@@ -140,3 +141,26 @@ parseExpr
   -> String -- ^ The Haskell source code.
   -> Reporter (H.Exp SrcSpan)
 parseExpr = parseHaskell
+
+-------------------------------------------------------------------------------
+-- Identifiers                                                               --
+-------------------------------------------------------------------------------
+
+-- | Parses an optionally qualified Haskell identifier or symbol of a
+--   constructor.
+--
+--   Since there is no 'Parseable' instance for 'H.QName', the given string
+--   is parsed as a pattern instead. The name of the constructor is extracted
+--   from the pattern.
+parseQName :: String -> Reporter (H.QName SrcSpan)
+parseQName input = parseHaskell "<parseQName>" input >>= qNameFromPat
+ where
+  qNameFromPat :: H.Pat SrcSpan -> Reporter (H.QName SrcSpan)
+  qNameFromPat (H.PApp _ qname []) = return qname
+  qNameFromPat (H.PList srcSpan []) =
+    return (H.Special srcSpan (H.ListCon srcSpan))
+  qNameFromPat (H.PParen _ pat) = qNameFromPat pat
+  qNameFromPat _ =
+    reportFatal
+      $ Message NoSrcSpan Error
+      $ ("Expected symbol or identifier, got " ++ input)

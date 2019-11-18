@@ -48,6 +48,10 @@ data Options = Options
     -- ^ Flag that indicates whether to generate a @_CoqProject@ file in the
     --   ouput directory. This argument is ignored if 'optOutputDir' is not
     --   specified.
+
+  , optTransformPatternMatching :: Bool
+    -- ^ Flag that indicates whether to transform pattern matching, perform
+    --   guard elimination and case completion.
   }
 
 -- | The default command line options.
@@ -68,6 +72,7 @@ makeDefaultOptions = do
     , optImportDirs       = ["."]
     , optBaseLibDir       = defaultBaseLibDir
     , optCreateCoqProject = True
+    , optTransformPatternMatching = False
     }
 
 -------------------------------------------------------------------------------
@@ -119,6 +124,15 @@ options
       (  "Disables the creation of a `_CoqProject` file in the output\n"
       ++ "directory. If the `--output` option is missing or the `_CoqProject`\n"
       ++ "file exists already, no `_CoqProject` is created.\n"
+      )
+    , Option
+      []
+      ["transform-pattern-matching"]
+      (NoArg (\opts -> opts { optTransformPatternMatching = True }))
+      (  "Experimental. Enables the automatic transformation of pattern\n"
+      ++ "matching, including guard elimination and case completion.\n"
+      ++ "If this option is enabled, no location information will be\n"
+      ++ "available in error messages."
       )
     ]
 

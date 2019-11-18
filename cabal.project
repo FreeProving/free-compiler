@@ -2,4 +2,8 @@ source-repository-package
   type: git
   location: git://github.com/just95/language-coq.git
 
+source-repository-package
+  type: git
+  location: https://git.informatik.uni-kiel.de/stu203400/haskell-code-transformation.git
+
 packages: ./haskellToCoqCompiler.cabal
