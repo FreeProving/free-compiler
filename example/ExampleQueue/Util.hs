@@ -1,21 +1,17 @@
 module ExampleQueue.Util where
 
 null :: [a] -> Bool
-null xs = case xs of
-  []     -> True
-  x : xs -> False
+null [] = True
+null _  = False
 
 not :: Bool -> Bool
-not b = case b of
-  True  -> False
-  False -> True
+not True  = False
+not False = True
 
 append :: [a] -> [a] -> [a]
-append xs ys = case xs of
-  []      -> ys
-  x : xs' -> x : (append xs' ys)
+append []        ys = ys
+append (x : xs') ys = x : (append xs' ys)
 
 reverse :: [a] -> [a]
-reverse xs = case xs of
-  []      -> []
-  x : xs' -> reverse xs' `append` [x]
+reverse []        = []
+reverse (x : xs') = reverse xs' `append` [x]
