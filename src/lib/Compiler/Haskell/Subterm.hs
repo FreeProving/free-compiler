@@ -6,6 +6,10 @@ module Compiler.Haskell.Subterm
     Pos(..)
   , rootPos
   , pos
+  , above
+  , below
+  , leftOf
+  , rightOf
     -- * Subterms
   , selectSubterm
   , replaceSubterm
@@ -19,8 +23,10 @@ module Compiler.Haskell.Subterm
   )
 where
 
-import           Data.Composition
-import           Data.List                      ( intersperse )
+import           Data.Composition               ( (.:) )
+import           Data.List                      ( intersperse
+                                                , isPrefixOf
+                                                )
 import           Data.Maybe                     ( fromJust )
 import qualified Data.Set                      as Set
 import           Data.Set                       ( Set )
@@ -102,6 +108,27 @@ pos expr = rootPos
   -- | Adds the given element to the front of a position.
   consPos :: Int -> Pos -> Pos
   consPos x (Pos xs) = Pos (x : xs)
+
+-- Tests whether a position is above another one.
+above :: Pos -> Pos -> Bool
+above (Pos ps1) (Pos ps2) = ps1 `isPrefixOf` ps2
+
+-- Tests whether a position is below another one.
+below :: Pos -> Pos -> Bool
+below = not .: above
+
+-- Tests whether a position is left of another one.
+leftOf :: Pos -> Pos -> Bool
+leftOf (Pos [])         _                = False
+leftOf _                (Pos []        ) = False
+leftOf (Pos (p1 : ps1)) (Pos (p2 : ps2)) = case compare p1 p2 of
+  LT -> True
+  EQ -> leftOf (Pos ps1) (Pos ps2)
+  GT -> False
+
+-- Tests whether a position is right of another one.
+rightOf :: Pos -> Pos -> Bool
+rightOf = flip leftOf
 
 -------------------------------------------------------------------------------
 -- Subterms                                                                  --

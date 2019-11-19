@@ -5,6 +5,7 @@ module Compiler.Converter.FuncDecl where
 
 import           Control.Monad                  ( mapAndUnzipM )
 import qualified Data.List.NonEmpty            as NonEmpty
+import           Data.List                      ( delete )
 import           Data.Maybe                     ( catMaybes
                                                 , fromJust
                                                 )
@@ -204,10 +205,11 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent args expr) decArgIndex = do
   decArg = argNames !! decArgIndex
 
   -- | The positions of @case@-expressions for the decreasing argument.
-  --
-  --   TODO restrict to outermost positions.
   caseExprsPos :: [Pos]
-  caseExprsPos = filter decArgNotShadowed (findSubtermPos isCaseExpr expr)
+  caseExprsPos = [ p | p <- ps, all (not . below p) (delete p ps) ]
+   where
+    ps :: [Pos]
+    ps = filter decArgNotShadowed (findSubtermPos isCaseExpr expr)
 
   -- | Tests whether the given expression is a @case@-expression for the
   --   the decreasing argument.

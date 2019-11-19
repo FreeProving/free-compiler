@@ -297,3 +297,39 @@ testConvertRecFuncDecls =
             ++ " := bar Shape Pos (pure (fun y => xs >>="
             ++ "      (fun (xs_0 : List Shape Pos a) =>"
             ++ "        foo_0 Shape Pos xs_0 y)))."
+
+    it
+        "translates recursive functions with nested pattern matching on recursive argument correctly"
+      $ shouldSucceed
+      $ fromConverter
+      $ do
+          shouldTranslateDeclsTo
+              [ "last :: [a] -> a"
+              , "last xs = case xs of {"
+              ++ "  []       -> undefined;"
+              ++ "   x : xs' -> case xs of {"
+              ++ "     []      -> undefined;"
+              ++ "     y : ys  -> last ys"
+              ++ "   }"
+              ++ "}"
+              ]
+            $  "(* Helper functions for last *) "
+            ++ "Fixpoint last_0 (Shape : Type) (Pos : Shape -> Type)"
+            ++ "  (P : Partial Shape Pos) {a : Type}"
+            ++ "  (xs : List Shape Pos a) {struct xs}"
+            ++ " := match xs with"
+            ++ "    | nil        => undefined"
+            ++ "    | cons x xs' =>"
+            ++ "        match xs with"
+            ++ "        | nil       => undefined"
+            ++ "        | cons y ys => ys >>="
+            ++ "            (fun (ys_0 : List Shape Pos a) => "
+            ++ "               last_0 Shape Pos P ys_0)"
+            ++ "        end"
+            ++ "    end. "
+            ++ "Definition last (Shape : Type) (Pos : Shape -> Type)"
+            ++ "  (P : Partial Shape Pos) {a : Type}"
+            ++ "  (xs : Free Shape Pos (List Shape Pos a))"
+            ++ " : Free Shape Pos a"
+            ++ " := xs >>= (fun (xs_0 : List Shape Pos a) =>"
+            ++ "      last_0 Shape Pos P xs_0)."
