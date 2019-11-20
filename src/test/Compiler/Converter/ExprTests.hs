@@ -273,6 +273,19 @@ testConvertCase = context "case expressions" $ do
           ++ "  | cons y ys => y"
           ++ "  end)"
 
+  it "allows case expressions to shadow local variables"
+    $ shouldSucceed
+    $ fromConverter
+    $ do
+        "e" <- defineTestVar "e"
+        "x" <- defineTestVar "x"
+        shouldTranslateExprTo "case e of { [] -> x; x : xs -> x }"
+          $  "e >>= (fun e_0 =>"
+          ++ "  match e_0 with"
+          ++ "  | nil => x"
+          ++ "  | cons x0 xs => x0"
+          ++ "  end)"
+
 -------------------------------------------------------------------------------
 -- Lambda abstractions                                                       --
 -------------------------------------------------------------------------------
@@ -293,6 +306,13 @@ testConvertLambda = context "lambda abstractions" $ do
     $ do
         "e" <- defineTestVar "e"
         shouldTranslateExprTo "\\x y -> e" "pure (fun x => pure (fun y => e))"
+
+  it "allows lambda abstractions to shadow local variables"
+    $ shouldSucceed
+    $ fromConverter
+    $ do
+        "x" <- defineTestVar "x"
+        shouldTranslateExprTo "\\x -> x" "pure (fun x0 => x0)"
 
 -------------------------------------------------------------------------------
 -- Integer expressions                                                       --

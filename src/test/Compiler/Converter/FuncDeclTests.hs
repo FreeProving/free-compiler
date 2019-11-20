@@ -95,6 +95,24 @@ testConvertNonRecFuncDecl =
             ++ "       | cons x xs' => x"
             ++ "       end)."
 
+    it "allows the function arguments to be shadowed"
+      $ shouldSucceed
+      $ fromConverter
+      $ do
+          shouldTranslateDeclsTo
+              [ "tail :: [a] -> [a]"
+              , "tail xs = case xs of { [] -> undefined; x : xs -> xs }"
+              ]
+            $  "Definition tail (Shape : Type) (Pos : Shape -> Type)"
+            ++ "  (P : Partial Shape Pos) {a : Type}"
+            ++ "  (xs : Free Shape Pos (List Shape Pos a))"
+            ++ "  : Free Shape Pos (List Shape Pos a)"
+            ++ " := xs >>= (fun xs_0 =>"
+            ++ "    match xs_0 with"
+            ++ "    | nil       => undefined"
+            ++ "    | cons x xs0 => xs0"
+            ++ "    end)."
+
 -------------------------------------------------------------------------------
 -- Recursive function declarations                                           --
 -------------------------------------------------------------------------------
@@ -333,3 +351,27 @@ testConvertRecFuncDecls =
             ++ " : Free Shape Pos a"
             ++ " := xs >>= (fun (xs_0 : List Shape Pos a) =>"
             ++ "      last_0 Shape Pos P xs_0)."
+
+    it "allows the arguments of helper functions to be shadowed"
+      $ shouldSucceed
+      $ fromConverter
+      $ do
+          shouldTranslateDeclsTo
+              [ "length :: [a] -> Integer"
+              , "length xs = case xs of { [] -> 0; x : xs -> length xs + 1 }"
+              ]
+            $  "(* Helper functions for length *) "
+            ++ "Fixpoint length_0 (Shape : Type) (Pos : Shape -> Type)"
+            ++ "  {a : Type} (xs : List Shape Pos a) {struct xs}"
+            ++ " := match xs with"
+            ++ "    | nil => pure 0%Z"
+            ++ "    | cons x xs0 => addInteger Shape Pos"
+            ++ "        (xs0 >>= (fun (xs0_0 : List Shape Pos a) =>"
+            ++ "             length_0 Shape Pos xs0_0))"
+            ++ "        (pure 1%Z)"
+            ++ "    end. "
+            ++ "Definition length (Shape : Type) (Pos : Shape -> Type) {a : Type}"
+            ++ "  (xs : Free Shape Pos (List Shape Pos a))"
+            ++ "  : Free Shape Pos (Integer Shape Pos)"
+            ++ " := xs >>= (fun (xs_0 : List Shape Pos a) =>"
+            ++ "    length_0 Shape Pos xs_0)."

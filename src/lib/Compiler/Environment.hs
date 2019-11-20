@@ -171,14 +171,26 @@ addEntry name entry env = addEntry' name entry (envDepth env) env
 --   to record.
 addEntry' :: HS.QName -> EnvEntry -> Int -> Environment -> Environment
 addEntry' name entry depth env = env
-  { envEntries = Map.insertWith
-                   (\(es1, d1) (es2, d2) ->
-                     if d2 == d1 then (es1 `Set.union` es2, d1) else (es2, d2)
-                   )
-                   (entryScope entry   , name)
-                   (Set.singleton entry, depth)
-                   (envEntries env)
+  { envEntries = Map.insertWith mergeEntries
+                                (entryScope entry   , name)
+                                (Set.singleton entry, depth)
+                                (envEntries env)
   }
+ where
+  -- | Adds the given set of entries to an existing set of entries.
+  --
+  --   If the new entries are declared deeper, they shadow the existing
+  --   entries, i.e., the resulting set contains the new entries only.
+  --   If the new entries are declared at the same depth, they are added
+  --   to the existing entries. Both the existing and the new entries
+  --   remain visible.
+  mergeEntries
+    :: (Set EnvEntry, Int) -- ^ The new entries.
+    -> (Set EnvEntry, Int) -- ^ The old entries.
+    -> (Set EnvEntry, Int)
+  mergeEntries (newEntries, newDepth) (oldEntries, oldDepth)
+    | newDepth == oldDepth = (newEntries `Set.union` oldEntries, newDepth)
+    | otherwise            = (newEntries, newDepth)
 
 -- | Inserts the given type signature into the environment.
 defineTypeSig :: HS.QName -> HS.Type -> Environment -> Environment
