@@ -225,8 +225,12 @@ boundVarsAt = maybe Set.empty id .: boundVarsAt'
   fromVarPats :: [HS.VarPat] -> Set HS.QName
   fromVarPats = Set.fromList . map (HS.UnQual . HS.Ident . HS.fromVarPat)
 
--- | Like 'boundVarsAt' but returns only the names of bound variables that
---   are actually used by the subterm.
+-- | Gets the names of variables that are used by the subterm t the given
+--   position.
+--
+--   The returned set also contains function and argument names.
+--   To get a set of variable names only, intersect the result with
+--   'boundVarsAt'.
 --
 --   Returns the empty set if the position is invalid.
 usedVarsAt :: HS.Expr -> Pos -> Set HS.QName
@@ -235,4 +239,4 @@ usedVarsAt = maybe Set.empty id .: usedVarsAt'
   usedVarsAt' :: HS.Expr -> Pos -> Maybe (Set HS.QName)
   usedVarsAt' expr p = do
     subterm <- selectSubterm expr p
-    return (boundVarsAt expr p `Set.intersection` varSet subterm)
+    return (varSet subterm)

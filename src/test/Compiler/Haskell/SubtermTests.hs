@@ -127,4 +127,6 @@ testSubterm = describe "Compiler.Haskell.Subterm" $ do
               [ HS.UnQual (HS.Ident "n")
               , HS.UnQual (HS.Ident "x")
               , HS.UnQual (HS.Ident "xs'")
+              , HS.UnQual (HS.Ident "take")
+              , HS.UnQual (HS.Symbol "-")
               ]

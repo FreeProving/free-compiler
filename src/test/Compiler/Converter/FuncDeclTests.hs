@@ -375,3 +375,32 @@ testConvertRecFuncDecls =
             ++ "  : Free Shape Pos (Integer Shape Pos)"
             ++ " := xs >>= (fun (xs_0 : List Shape Pos a) =>"
             ++ "    length_0 Shape Pos xs_0)."
+
+    it "does not pass shaodwed arguments of main function to helper functions"
+      $ shouldSucceed
+      $ fromConverter
+      $ do
+          shouldTranslateDeclsTo
+              [ "take :: Integer -> [a] -> [a]"
+              , "take n xs ="
+              ++ "(\\n -> case xs of { [] -> []; x : xs' -> take (n - 1) xs' })"
+              ++ " n"
+              ]
+            $  "(* Helper functions for take *) "
+            ++ "Fixpoint take_0 (Shape : Type) (Pos : Shape -> Type)"
+            ++ "  {a : Type} n (xs : List Shape Pos a) {struct xs}"
+            ++ " := match xs with"
+            ++ "    | nil => Nil Shape Pos"
+            ++ "    | cons x xs' =>"
+            ++ "        (fun n_3 => xs' >>= (fun (xs'_0 : List Shape Pos a) =>"
+            ++ "           take_0 Shape Pos"
+            ++ "             n_3"
+            ++ "             xs'_0))"
+            ++ "        (subInteger Shape Pos n (pure 1%Z))"
+            ++ "    end. "
+            ++ "Definition take (Shape : Type) (Pos : Shape -> Type)"
+            ++ "  {a : Type} (n : Free Shape Pos (Integer Shape Pos))"
+            ++ "  (xs : Free Shape Pos (List Shape Pos a))"
+            ++ " : Free Shape Pos (List Shape Pos a)"
+            ++ " := (fun n0 => xs >>= (fun (xs_0 : List Shape Pos a) =>"
+            ++ "       take_0 Shape Pos n0 xs_0)) n."

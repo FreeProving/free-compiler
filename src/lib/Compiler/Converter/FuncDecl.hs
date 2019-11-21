@@ -6,6 +6,7 @@ module Compiler.Converter.FuncDecl where
 import           Control.Monad                  ( mapAndUnzipM )
 import qualified Data.List.NonEmpty            as NonEmpty
 import           Data.List                      ( delete )
+import qualified Data.Map.Strict               as Map
 import           Data.Maybe                     ( catMaybes
                                                 , fromJust
                                                 )
@@ -227,11 +228,6 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent args expr) decArgIndex = do
   --
   --   Returns the helper function declaration and an expression for the
   --   application of the helper function.
-  --
-  --   TODO the original function arguments could be shadowed in the case
-  --        expression. We must not pass those arguments to the helper
-  --        function (if the arguments that shadow the original arguments
-  --        are used, they are passed as additional arguments).
   generateHelperDecl :: Pos -> Converter (HS.FuncDecl, HS.Expr)
   generateHelperDecl caseExprPos = do
     -- Generate a fresh name for the helper function.
@@ -239,18 +235,22 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent args expr) decArgIndex = do
     let helperName      = HS.UnQual (HS.Ident helperIdent)
         helperDeclIdent = HS.DeclIdent (HS.getSrcSpan declIdent) helperIdent
 
-    -- Pass used variables as additional arguments to the helper function.
-    let usedVars = Set.toList (usedVarsAt expr caseExprPos)
-        helperArgs =
-          args
-            ++ map (HS.VarPat NoSrcSpan . fromJust . HS.identFromQName) usedVars
+    -- Pass used variables as additional arguments to the helper function
+    -- but don't pass shadowed arguments to helper function.
+    let
+      nonArgVars     = boundVarsAt expr caseExprPos
+      boundVars      = nonArgVars `Set.union` Set.fromList argNames
+      usedVars       = usedVarsAt expr caseExprPos
+      helperArgNames = Set.toList (usedVars `Set.intersection` boundVars)
+      helperArgs =
+        map (HS.VarPat NoSrcSpan . fromJust . HS.identFromQName) helperArgNames
 
     -- Build helper function declaration and application.
     let (Just caseExpr) = selectSubterm expr caseExprPos
         helperDecl = HS.FuncDecl srcSpan helperDeclIdent helperArgs caseExpr
         helperApp = HS.app NoSrcSpan
                            (HS.Var NoSrcSpan helperName)
-                           (map (HS.Var NoSrcSpan) (argNames ++ usedVars))
+                           (map (HS.Var NoSrcSpan) helperArgNames)
 
     -- Register the helper function to the environment.
     -- The types of the original parameters are known, but we neither know the
@@ -260,7 +260,10 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent args expr) decArgIndex = do
     -- well.
     funcType      <- lookupTypeSigOrFail srcSpan name
     (argTypes, _) <- splitFuncType name args funcType
-    let argTypes' = map Just argTypes ++ replicate (length usedVars) Nothing
+    let argTypeMap = foldr Map.delete
+                           (Map.fromList (zip argNames argTypes))
+                           (Set.toList nonArgVars)
+        argTypes' = map (`Map.lookup` argTypeMap) helperArgNames
     partial <- inEnv $ isPartial name
     _       <- renameAndAddEntry $ FuncEntry
       { entrySrcSpan    = NoSrcSpan
