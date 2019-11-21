@@ -262,10 +262,7 @@ shouldTranslateTypeTo
   -> Converter Expectation
 shouldTranslateTypeTo input expectedOutput = do
   coqType <- convertTestType input
-  return
-    (          discardWhitespace (showPretty coqType)
-    `shouldBe` discardWhitespace expectedOutput
-    )
+  return (coqType `prettyShouldBe` expectedOutput)
 
 -- | Translates the string representation of a Haskell expression to Coq and
 --   sets the expectation that the result equals the given sting representation
@@ -276,10 +273,7 @@ shouldTranslateExprTo
   -> Converter Expectation
 shouldTranslateExprTo input expectedOutput = do
   coqExpr <- convertTestExpr input
-  return
-    (          discardWhitespace (showPretty coqExpr)
-    `shouldBe` discardWhitespace expectedOutput
-    )
+  return (coqExpr `prettyShouldBe` expectedOutput)
 
 -- | Translates the string representation of Haskell declarations to Coq and
 --   sets the expectation that the result equals the given Gallina sentences.
@@ -288,9 +282,7 @@ shouldTranslateExprTo input expectedOutput = do
 shouldTranslateDeclsTo :: [String] -> String -> Converter Expectation
 shouldTranslateDeclsTo input expectedOutput = do
   coqDecls <- convertTestDecls input
-  return
-    $          discardWhitespace (showPretty coqDecls)
-    `shouldBe` discardWhitespace expectedOutput
+  return (coqDecls `prettyShouldBe` expectedOutput)
 
 -- | Converts the string representation of a Haskell module to Coq and sets
 --   the expectation that the result equals the given Gallina Sentences.
@@ -300,13 +292,19 @@ shouldTranslateModuleTo :: [String] -> [String] -> Converter Expectation
 shouldTranslateModuleTo input expectedOutputLines = do
   coqAst <- convertTestModule input
   let expectedOutput = unlines expectedOutputLines
-  return
-    $          discardWhitespace (showPretty coqAst)
-    `shouldBe` discardWhitespace expectedOutput
+  return (coqAst `prettyShouldBe` expectedOutput)
 
 -------------------------------------------------------------------------------
 -- Utility functions                                                        --
 -------------------------------------------------------------------------------
+
+-- | Pretty prints the given value and sets the expectation that the result
+--   equals the given string.
+--
+--   Whitespace is ignored (see 'discardWhitespace').
+prettyShouldBe :: Pretty a => a -> String -> Expectation
+prettyShouldBe input expectedOutput = discardWhitespace (showPretty input)
+  `shouldBe` discardWhitespace expectedOutput
 
 -- | Replaces all whitespace in the given string by a single space.
 discardWhitespace :: String -> String

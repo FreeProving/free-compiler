@@ -151,6 +151,7 @@ test-suite unit-tests
                     , Compiler.Converter.TypeDeclTests
                     , Compiler.Converter.TypeTests
                     , Compiler.Environment.RenamerTests
+                    , Compiler.Haskell.SubstTests
                     , Compiler.Haskell.SubtermTests
                     , Compiler.Monad.ReporterTests
                     , Compiler.Util.Test

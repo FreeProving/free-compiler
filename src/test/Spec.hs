@@ -4,6 +4,7 @@ import           Compiler.Analysis.PartialityAnalysisTests
 import           Compiler.Analysis.RecursionAnalysisTests
 import           Compiler.ConverterTests
 import           Compiler.Environment.RenamerTests
+import           Compiler.Haskell.SubstTests
 import           Compiler.Haskell.SubtermTests
 import           Compiler.Monad.ReporterTests
 
@@ -14,5 +15,6 @@ main = hspec $ do
   testRecursionAnalysis
   testConverter
   testRenamer
+  testExprSubst
   testSubterm
   testReporter

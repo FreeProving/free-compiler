@@ -72,9 +72,9 @@ singleSubst'' = Subst .: Map.singleton
 -- | Creates a new substituion that applies both given substitutions after
 --   each other.
 composeSubst :: ApplySubst a => Subst a -> Subst a -> Subst a
-composeSubst s1@(Subst m1) (Subst m2) =
-  let m2' = fmap (\f srcSpan -> f srcSpan >>= applySubst s1) m2
-  in  Subst (m1 `Map.union` m2')
+composeSubst (Subst m1) s2@(Subst m2) =
+  let m1' = fmap (\f srcSpan -> f srcSpan >>= applySubst s2) m1
+  in  Subst (m2 `Map.union` m1')
 
 -- | Creates a new substituion that applies all given substitutions after
 --   each other.

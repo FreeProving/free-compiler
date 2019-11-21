@@ -4,10 +4,9 @@
 --   The aim of this module is to make the conversion functions easier to
 --   comprehend and reduce coupling with the @haskell-src-ext@ package.
 --
---   This AST can neither be parsed nor pretty printed directly. Instances of
---   the AST are usually created by converting an existing AST (e.g. from the
---   @haskell-src-ext@ package). For testing purposes instances may be created
---   directly.
+--   This AST cannot be parsed directly. Instances of the AST are usually
+--   created by converting an existing AST (e.g. from the @haskell-src-ext@
+--   package). For testing purposes instances may be created directly.
 module Compiler.Haskell.AST where
 
 import           Data.List                      ( intercalate )
@@ -226,7 +225,7 @@ instance Pretty Type where
    where
     -- | Pretty prints a type and adds parenthesis if necessary.
     --
-    --   The first argument indicates the precedence expandof the sourrounding
+    --   The first argument indicates the precedence of the sourrounding
     --   context.
     --    * @0@ - Top level. No parenthesis are neccessary.
     --    * @1@ - Parenthesis are needed arround function types.
@@ -295,6 +294,67 @@ data Alt = Alt
   [VarPat]     -- ^ Variable patterns for the arguments of the constructor.
   Expr         -- ^ The right hand side of this alternative.
   deriving (Eq, Show)
+
+instance Pretty Expr where
+  pretty = pretty' 0
+   where
+    -- | Pretty prints an expression and adds parenthesis if necessary.
+    --
+    --   The first argument indicates the precedence of the sourrounding
+    --   context.
+    --    * @0@ - Top level. No parenthesis are neccessary.
+    --    * @1@ - Parenthesis are needed around @if@, @case@ and lambda
+    --            expressions.
+    --    * @2@ - Parenthesis are also needed around function applications.
+    pretty' :: Int -> Expr -> Doc
+
+    -- Parenthesis can be omitted around @if@, @case@ and lambda expressions
+    -- at top-level only.
+    pretty' 0 (If _ e1 e2 e3) =
+          prettyString "if"
+      <+> pretty' 1 e1
+      <+> prettyString "then"
+      <+> pretty' 0 e2
+      <+> prettyString "else"
+      <+> pretty' 0 e3
+    pretty' 0 (Case _ e alts) =
+          prettyString "case"
+      <+> pretty' 1 e
+      <+> prettyString "of"
+      <+> braces (space <> prettySeparated semi (map pretty alts) <> space)
+    pretty' 0 (Lambda _ args expr) =
+      backslash
+      <> hsep (map pretty args)
+      <+> prettyString "->"
+      <+> pretty' 0 expr
+
+    -- Function application is left-associative.
+    pretty' n (App _ e1 e2) | n <= 1 = pretty' 1 e1 <+> pretty' 2 e2
+    pretty' n (ErrorExpr _ msg) | n <= 1 =
+      prettyString "error" <+> prettyString (show msg)
+
+    -- No parenthesis are needed around variable and constructor names and
+    -- integer literals.
+    pretty' _ (Con _ name) = pretty name
+    pretty' _ (Var _ name) = pretty name
+    pretty' _ (IntLiteral _ i) = integer i
+    pretty' _ (Undefined _) = prettyString "undefined"
+
+    -- Otherwise, there must be parenthesis.
+    pretty' _ e = parens (pretty e)
+
+instance Pretty Alt where
+  pretty (Alt _ conPat varPats expr) =
+        pretty conPat
+    <+> hsep (map pretty varPats)
+    <+> prettyString "->"
+    <+> pretty expr
+
+instance Pretty ConPat where
+  pretty (ConPat _ conName) = pretty conName
+
+instance Pretty VarPat where
+  pretty (VarPat _ varName) = pretty varName
 
 -------------------------------------------------------------------------------
 -- Getters                                                                   --
