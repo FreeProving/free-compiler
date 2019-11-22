@@ -52,6 +52,9 @@ data Options = Options
   , optTransformPatternMatching :: Bool
     -- ^ Flag that indicates whether to transform pattern matching, perform
     --   guard elimination and case completion.
+
+  , optDumpTransformedModulesDir :: Maybe FilePath
+    -- ^ The directory to dump transformed modules to.
   }
 
 -- | The default command line options.
@@ -66,13 +69,14 @@ makeDefaultOptions :: IO Options
 makeDefaultOptions = do
   defaultBaseLibDir <- getDataFileName "base"
   return $ Options
-    { optShowHelp         = False
-    , optInputFiles       = []
-    , optOutputDir        = Nothing
-    , optImportDirs       = ["."]
-    , optBaseLibDir       = defaultBaseLibDir
-    , optCreateCoqProject = True
-    , optTransformPatternMatching = False
+    { optShowHelp                  = False
+    , optInputFiles                = []
+    , optOutputDir                 = Nothing
+    , optImportDirs                = ["."]
+    , optBaseLibDir                = defaultBaseLibDir
+    , optCreateCoqProject          = True
+    , optTransformPatternMatching  = False
+    , optDumpTransformedModulesDir = Nothing
     }
 
 -------------------------------------------------------------------------------
@@ -133,6 +137,15 @@ options
       ++ "matching, including guard elimination and case completion.\n"
       ++ "If this option is enabled, no location information will be\n"
       ++ "available in error messages."
+      )
+    , Option
+      []
+      ["dump-transformed-modules"]
+      (ReqArg (\p opts -> opts { optDumpTransformedModulesDir = Just p }) "DIR")
+      (  "If `--transform-pattern-matching` is enabled, the transformed\n"
+      ++ "Haskell modules will be placed in the given directory.\n"
+      ++ "This option adds location information to error messages that\n"
+      ++ "refer to the dumped file."
       )
     ]
 
