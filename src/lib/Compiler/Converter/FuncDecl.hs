@@ -5,7 +5,9 @@ module Compiler.Converter.FuncDecl where
 
 import           Control.Monad                  ( mapAndUnzipM )
 import qualified Data.List.NonEmpty            as NonEmpty
-import           Data.List                      ( delete )
+import           Data.List                      ( delete
+                                                , elemIndex
+                                                )
 import qualified Data.Map.Strict               as Map
 import           Data.Maybe                     ( catMaybes
                                                 , fromJust
@@ -278,7 +280,8 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent args expr) decArgIndex = do
 
     -- Additionally we need to remember the index of the decreasing argument
     -- (see 'convertDecArg').
-    modifyEnv $ defineDecArg helperName decArgIndex
+    let (Just decArgIndex') = elemIndex decArg helperArgNames
+    modifyEnv $ defineDecArg helperName decArgIndex'
 
     return (helperDecl, helperApp)
 
