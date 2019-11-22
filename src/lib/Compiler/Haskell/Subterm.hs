@@ -115,7 +115,7 @@ above (Pos ps1) (Pos ps2) = ps1 `isPrefixOf` ps2
 
 -- Tests whether a position is below another one.
 below :: Pos -> Pos -> Bool
-below = not .: above
+below = flip above
 
 -- Tests whether a position is left of another one.
 leftOf :: Pos -> Pos -> Bool
