@@ -146,14 +146,16 @@ test-examples:
   dependencies:
     - build-compiler
   script:
-    - mkdir -p ./example/generated
-    - ./build/bin/haskell-to-coq-compiler --transform-pattern-matching -b ./base -o ./example/generated $(find ./example -name "*.hs")
+    - ./build/bin/haskell-to-coq-compiler --transform-pattern-matching --dump-transformed-modules example/transformed -b ./base -o ./example/generated $(find ./example -name "*.hs")
     - mkdir -p ./build/example
+    - mkdir -p ./build/example_transformed
     - cp -r ./example/generated ./build/example
+    - cp -r ./example/transformed ./build/example_transformed
   artifacts:
     name: examples
     paths:
       - ./build/example
+      - ./build/example_transformed
 
 # This job verifies that the Coq code generated during `test-examples` compiles
 # and the proofs for the QuickCheck properties pass.
