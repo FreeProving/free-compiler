@@ -1,19 +1,37 @@
 -- | This module contains functions for analysising recursive function, e.g. to
---   finding the decreasing argument of a recursive function.
+--   finding the decreasing argument of a recursive function and to find
+--   constant arguments of recursive functions.
 
-module Compiler.Analysis.RecursionAnalysis where
+module Compiler.Analysis.RecursionAnalysis
+  ( -- * Decreasing arguments
+    DecArgIndex
+  , identifyDecArgs
+    -- * Constant arguments
+  , identifyConstArgs
+  )
+where
 
+import           Control.Monad                  ( guard )
+import           Data.Graph
 import           Data.List                      ( find )
 import           Data.Map.Strict                ( Map )
 import qualified Data.Map.Strict               as Map
+import           Data.Maybe                     ( catMaybes )
 import           Data.Set                       ( Set
                                                 , (\\)
                                                 )
 import qualified Data.Set                      as Set
 
+import           Compiler.Analysis.DependencyExtraction
+                                                ( varSet )
 import qualified Compiler.Haskell.AST          as HS
+import           Compiler.Haskell.SrcSpan
 import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
+
+-------------------------------------------------------------------------------
+-- Decreaasing arguments                                                     --
+-------------------------------------------------------------------------------
 
 -- | Type for the index of a decreasing argument.
 type DecArgIndex = Int
@@ -165,3 +183,163 @@ identifyDecArgs decls = maybe decArgError return (maybeIdentifyDecArgs decls)
       $  Message (HS.getSrcSpan (head decls)) Error
       $  "Could not identify decreasing arguments of "
       ++ HS.prettyDeclIdents decls
+
+-------------------------------------------------------------------------------
+-- Constant arguments                                                        --
+-------------------------------------------------------------------------------
+
+-- | Nodes of the 'constArgGraph' are pairs of function and argument names.
+type CGNode = (String, String)
+
+-- | The nodes of the 'constArgGraph' are identified by themselves.
+type CGEntry = (CGNode, CGNode, [CGNode])
+
+-- | Constructs a graph that is used to identify contant arguments, i.e.,
+--   arguments that are passed unchanged between the given function
+--   declarations.
+--
+--   The graph is constructed as follows:
+--
+--    * Create one node @(f, x_i)@ for each function declarations
+--      @f x_0 ... x_n = e@ and argument @x_i ∊ {x_0, ..., x_n}@.
+--    * For each pair of function declarations @f x_0 ... x_n = e@
+--      and @g y_0 ... y_m = e'@ draw an edge from @(f,x_i)@ and
+--      @(g,y_j)@ if and only if every application @g e_0 ... e_m@
+--      in @e@ has the form @g e_0 ... e_{j-1} x_i e_{j+1} ... e_m@
+--      (i.e., the argument @x_i@ is passed unchanged to the @j@-th
+--      argument @g@).
+constArgGraph :: [HS.FuncDecl] -> [CGEntry]
+constArgGraph decls = do
+  -- Create one node @(f,x_i)@ for every argument @x_i@ of every function @f@.
+  (node@(_f, x), _i, rhs) <- nodes
+  -- Generate outgoing edges of @(f,x_i)@.
+  let
+    adjacent = do
+      -- Consider every node @(g,y_j)@.
+      ((g, y), j, _) <- nodes
+      let g' = HS.UnQual (HS.Ident g)
+      -- Test whether there is any call to @g@ on the right-hand side of @f@.
+      guard (Set.member g' (varSet rhs))
+      -- Test whether @x_i@ is passed unchanged to @y_j@ in every call
+      -- to @g@ in the right-hand side of @f@.
+      let
+        -- | Tests whether the given expression (a value passed as the @j@-th
+        --   argument to a call to @g@) is the argument @x_i@.
+        checkArg :: HS.Expr -> Bool
+        checkArg (HS.Var _ (HS.UnQual (HS.Ident name))) = name == x
+        checkArg _ = False
+
+        -- | Tests whether @x_j@ is passed unchanged as the @j@-th argument
+        --   to every call to @g@ in the given expression.
+        --
+        --   The second argument contains the arguments that are passed to
+        --   the current expression.
+        checkExpr :: HS.Expr -> [HS.Expr] -> Bool
+
+        -- If this is a call to @g@, check the @j@-th argument.
+        checkExpr (HS.Var _ name) args
+          | name == g' = j < length args && checkArg (args !! j)
+          | otherwise  = True
+
+        -- If this is an application, check for calls to @g@ in the callee
+        -- and argument.
+        checkExpr (HS.App _ e1 e2) args =
+          checkExpr e1 (e2 : args) && checkExpr e2 []
+
+        -- The arguments passed to an @if@ or @case@ expression, are passed to
+        -- all branches.
+        -- If a pattern in a @case@ expression shadows @x_i@, @x_i@ is not
+        -- left unchanged.
+        checkExpr (HS.If _ e1 e2 e3) args =
+          checkExpr e1 [] && checkExpr e2 args && checkExpr e3 args
+        checkExpr (HS.Case _ expr alts) args =
+          checkExpr expr [] && all (flip checkAlt args) alts
+
+        -- No beta reduction is applied when a lambda expression is
+        -- encountered, but the right-hand side still needs to be checked.
+        -- If an argument shadows @x_i@ and there are calls to @g@ on the
+        -- right hand side, @x_i@ is not left unchanged.
+        checkExpr (HS.Lambda _ args expr) _
+          | x `shadowedBy` args = Set.notMember g' (varSet expr)
+          | otherwise           = checkExpr expr []
+
+        -- Constructors, literals and error terms cannot contain further
+        -- calls to @g@.
+        checkExpr (HS.Con        _ _) _ = True
+        checkExpr (HS.IntLiteral _ _) _ = True
+        checkExpr (HS.Undefined _   ) _ = True
+        checkExpr (HS.ErrorExpr _ _ ) _ = True
+
+        -- | Applies 'checkExpr' to the alternative of a @case@ expression.
+        --
+        --   If a variable pattern shadows @x_i@, @x_i@ is not unchanged.
+        checkAlt :: HS.Alt -> [HS.Expr] -> Bool
+        checkAlt (HS.Alt _ _ varPats expr) args
+          | x `shadowedBy` varPats = Set.notMember g' (varSet expr)
+          | otherwise              = checkExpr expr args
+
+        -- | Tests whethe the given variable is shadowed by the given
+        --   variale patterns.
+        shadowedBy :: String -> [HS.VarPat] -> Bool
+        shadowedBy = flip (flip elem . map HS.fromVarPat)
+      guard (checkExpr rhs [])
+      -- Add edge if the test was successful.
+      return (g, y)
+  return (node, node, adjacent)
+ where
+  nodes :: [(CGNode, Int, HS.Expr)]
+  nodes = do
+    (HS.FuncDecl _ declIdent args rhs) <- decls
+    let funName = HS.fromDeclIdent declIdent
+    (argName, argIndex) <- zip (map HS.fromVarPat args) [0 ..]
+    return ((funName, argName), argIndex, rhs)
+
+
+-- | Gets the strongly connected components of 'constArgGraph'.
+--
+--   An acyclic strongly connected component contains an argument
+--   that is never passed unchanged to any other function or is
+--   not passed back unchanged to the original function.
+--
+--   All arguments in a cyclic strongly connected component are
+--   never changed. If such a component contains exactly one
+--   argument of each function, this argument can be moved to
+--   a @Section@ sentence in Coq.
+constArgComponents :: [HS.FuncDecl] -> [SCC CGNode]
+constArgComponents = stronglyConnComp . constArgGraph
+
+-- | Identifies function arguments that can be moved to a @Section@
+--   sentence in Coq.
+--
+--   The call graph of the given function declarations should be strongly
+--   connected.
+identifyConstArgs :: [HS.FuncDecl] -> Converter ()
+identifyConstArgs decls = do
+  let constArgs =
+        filter containsAllFunctions
+          $ catMaybes
+          $ map fromCyclicSCC
+          $ constArgComponents decls
+  report
+    $ Message NoSrcSpan Info
+    $ (  "Const arguments for "
+      ++ show funcNames
+      ++ ": "
+      ++ show constArgs
+      )
+  return ()
+ where
+  -- | The names of all given function declarations.
+  funcNames :: [String]
+  funcNames = map (HS.fromDeclIdent . HS.getDeclIdent) decls
+
+  -- | Tests whether the given list of nodes contains one node for every
+  --   function declaration.
+  containsAllFunctions :: [CGNode] -> Bool
+  containsAllFunctions nodes =
+    length nodes == length decls && all (`elem` (map fst nodes)) funcNames
+
+  -- | Gets the nodes of a cyclic strongly connected component.
+  fromCyclicSCC :: SCC CGNode -> Maybe [CGNode]
+  fromCyclicSCC (AcyclicSCC _    ) = Nothing
+  fromCyclicSCC (CyclicSCC  nodes) = Just nodes

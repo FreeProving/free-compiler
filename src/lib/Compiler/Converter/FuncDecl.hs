@@ -158,6 +158,9 @@ convertNonRecFuncDecl (HS.FuncDecl _ (HS.DeclIdent _ ident) args expr) =
 -- | Converts (mutually) recursive Haskell function declarations to Coq.
 convertRecFuncDecls :: [HS.FuncDecl] -> Converter [G.Sentence]
 convertRecFuncDecls decls = do
+  -- Move constant arguments to section.
+  identifyConstArgs decls
+
   -- Split into helper and main functions.
   decArgs                  <- identifyDecArgs decls
   (helperDecls, mainDecls) <- mapAndUnzipM (uncurry transformRecFuncDecl)
