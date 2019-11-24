@@ -33,7 +33,11 @@ module Compiler.Analysis.DependencyGraph
   ( DGKey
   , DGEntry
   , DependencyGraph(..)
+    -- * Getters
   , dependencyGraphEntries
+    -- * Predicates
+  , dependsDirectlyOn
+    -- * Constructors
   , typeDependencyGraph
   , funcDependencyGraph
   , moduleDependencyGraph
@@ -42,7 +46,9 @@ where
 
 import           Data.Composition               ( (.:) )
 import           Data.Graph
-import           Data.Maybe                     ( catMaybes )
+import           Data.Maybe                     ( catMaybes
+                                                , fromMaybe
+                                                )
 import qualified Data.Set                      as Set
 import           Data.Tuple.Extra
 
@@ -87,6 +93,26 @@ data DependencyGraph node =
 dependencyGraphEntries :: DependencyGraph node -> [DGEntry node]
 dependencyGraphEntries (DependencyGraph graph getEntry _) =
   map getEntry (vertices graph)
+
+-------------------------------------------------------------------------------
+-- Predicates                                                                --
+-------------------------------------------------------------------------------
+
+-- | Tests whether two nodes (identified by the given keys) of the dependency
+--   graph depend on each other directly (i.e., there is an edge from the
+--   first node to the second node).
+--
+--   Returns @False@ if one of the nodes does not exist.
+dependsDirectlyOn
+  :: DependencyGraph node -- ^ The dependency graph.
+  -> DGKey                -- ^ The key of the first node.
+  -> DGKey                -- ^ The key of the second node.
+  -> Bool
+dependsDirectlyOn (DependencyGraph graph _ getVertex) k1 k2 =
+  fromMaybe False $ do
+    v1 <- getVertex k1
+    v2 <- getVertex k2
+    return ((v1, v2) `elem` (edges graph))
 
 -------------------------------------------------------------------------------
 -- Type dependencies                                                         --

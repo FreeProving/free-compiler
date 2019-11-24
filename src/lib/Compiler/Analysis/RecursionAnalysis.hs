@@ -16,14 +16,18 @@ import           Data.Graph
 import           Data.List                      ( find )
 import           Data.Map.Strict                ( Map )
 import qualified Data.Map.Strict               as Map
-import           Data.Maybe                     ( catMaybes )
+import           Data.Maybe                     ( catMaybes
+                                                , maybeToList
+                                                )
 import           Data.Set                       ( Set
                                                 , (\\)
                                                 )
 import qualified Data.Set                      as Set
 
+import           Compiler.Analysis.DependencyGraph
 import           Compiler.Analysis.DependencyExtraction
                                                 ( varSet )
+import           Compiler.Environment
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Haskell.SrcSpan
 import           Compiler.Monad.Converter
@@ -188,10 +192,12 @@ identifyDecArgs decls = maybe decArgError return (maybeIdentifyDecArgs decls)
 -- Constant arguments                                                        --
 -------------------------------------------------------------------------------
 
--- | Nodes of the 'constArgGraph' are pairs of function and argument names.
+-- | Nodes of the the constant argument graph (see 'makeConstArgGraph') are
+--   pairs of function and argument names.
 type CGNode = (String, String)
 
--- | The nodes of the 'constArgGraph' are identified by themselves.
+-- | The nodes of the the constant argument graph (see 'makeConstArgGraph')
+--   are identified by themselves.
 type CGEntry = (CGNode, CGNode, [CGNode])
 
 -- | Constructs a graph that is used to identify contant arguments, i.e.,
@@ -208,8 +214,8 @@ type CGEntry = (CGNode, CGNode, [CGNode])
 --      in @e@ has the form @g e_0 ... e_{j-1} x_i e_{j+1} ... e_m@
 --      (i.e., the argument @x_i@ is passed unchanged to the @j@-th
 --      argument @g@).
-constArgGraph :: [HS.FuncDecl] -> [CGEntry]
-constArgGraph decls = do
+makeConstArgGraph :: HS.ModName -> [HS.FuncDecl] -> [CGEntry]
+makeConstArgGraph modName decls = do
   -- Create one node @(f,x_i)@ for every argument @x_i@ of every function @f@.
   (node@(_f, x), _i, rhs) <- nodes
   -- Generate outgoing edges of @(f,x_i)@.
@@ -217,9 +223,14 @@ constArgGraph decls = do
     adjacent = do
       -- Consider every node @(g,y_j)@.
       ((g, y), j, _) <- nodes
-      let g' = HS.UnQual (HS.Ident g)
       -- Test whether there is any call to @g@ on the right-hand side of @f@.
-      guard (Set.member g' (varSet rhs))
+      -- @g@ could be called qualified or unqualified.
+      let isG :: HS.QName -> Bool
+          isG = (`elem` [HS.UnQual (HS.Ident g), HS.Qual modName (HS.Ident g)])
+
+          callsG :: HS.Expr -> Bool
+          callsG = any isG . varSet
+      guard (callsG rhs)
       -- Test whether @x_i@ is passed unchanged to @y_j@ in every call
       -- to @g@ in the right-hand side of @f@.
       let
@@ -238,8 +249,8 @@ constArgGraph decls = do
 
         -- If this is a call to @g@, check the @j@-th argument.
         checkExpr (HS.Var _ name) args
-          | name == g' = j < length args && checkArg (args !! j)
-          | otherwise  = True
+          | isG name  = j < length args && checkArg (args !! j)
+          | otherwise = True
 
         -- If this is an application, check for calls to @g@ in the callee
         -- and argument.
@@ -260,7 +271,7 @@ constArgGraph decls = do
         -- If an argument shadows @x_i@ and there are calls to @g@ on the
         -- right hand side, @x_i@ is not left unchanged.
         checkExpr (HS.Lambda _ args expr) _
-          | x `shadowedBy` args = Set.notMember g' (varSet expr)
+          | x `shadowedBy` args = not (callsG expr)
           | otherwise           = checkExpr expr []
 
         -- Constructors, literals and error terms cannot contain further
@@ -275,7 +286,7 @@ constArgGraph decls = do
         --   If a variable pattern shadows @x_i@, @x_i@ is not unchanged.
         checkAlt :: HS.Alt -> [HS.Expr] -> Bool
         checkAlt (HS.Alt _ _ varPats expr) args
-          | x `shadowedBy` varPats = Set.notMember g' (varSet expr)
+          | x `shadowedBy` varPats = not (callsG expr)
           | otherwise              = checkExpr expr args
 
         -- | Tests whethe the given variable is shadowed by the given
@@ -294,20 +305,6 @@ constArgGraph decls = do
     (argName, argIndex) <- zip (map HS.fromVarPat args) [0 ..]
     return ((funName, argName), argIndex, rhs)
 
-
--- | Gets the strongly connected components of 'constArgGraph'.
---
---   An acyclic strongly connected component contains an argument
---   that is never passed unchanged to any other function or is
---   not passed back unchanged to the original function.
---
---   All arguments in a cyclic strongly connected component are
---   never changed. If such a component contains exactly one
---   argument of each function, this argument can be moved to
---   a @Section@ sentence in Coq.
-constArgComponents :: [HS.FuncDecl] -> [SCC CGNode]
-constArgComponents = stronglyConnComp . constArgGraph
-
 -- | Identifies function arguments that can be moved to a @Section@
 --   sentence in Coq.
 --
@@ -315,20 +312,54 @@ constArgComponents = stronglyConnComp . constArgGraph
 --   connected.
 identifyConstArgs :: [HS.FuncDecl] -> Converter ()
 identifyConstArgs decls = do
+  modName <- inEnv envModName
+  identifyConstArgs' modName decls
+
+-- | Like 'identifyConstArgs' but takes the name of the currently translated
+--   module as an argument.
+identifyConstArgs' :: HS.ModName -> [HS.FuncDecl] -> Converter ()
+identifyConstArgs' modName decls = do
   let constArgs =
-        filter containsAllFunctions
-          $ catMaybes
-          $ map fromCyclicSCC
-          $ constArgComponents decls
+        filter checkSCC $ catMaybes $ map fromCyclicSCC $ stronglyConnComp
+          constArgGraph
   report
     $ Message NoSrcSpan Info
-    $ (  "Const arguments for "
-      ++ show funcNames
-      ++ ": "
-      ++ show constArgs
-      )
+    $ ("Const arguments for " ++ show funcNames ++ ": " ++ show constArgs)
   return ()
  where
+  -- | The constant argument graph.
+  constArgGraph :: [CGEntry]
+  constArgGraph = makeConstArgGraph modName decls
+
+  -- | Maps the keys of the 'constArgGraph' to the adjacency lists.
+  constArgMap :: Map CGNode [CGNode]
+  constArgMap = Map.fromList [ (k, ks) | (_, k, ks) <- constArgGraph ]
+
+  -- | The dependency graph of the function declarations.
+  callGraph :: DependencyGraph HS.FuncDecl
+  callGraph = funcDependencyGraph modName decls
+
+  -- | Tests whether the given strongly connected component describes a
+  --   valid set of constant arguments.
+  --
+  --   The strongly connected component must contain every function
+  --   exactly once (see 'containsAllFunctions') and if there is an edge
+  --   between two functions in the 'callGraph', there must also be an
+  --   edge between the corresponding nodes of the 'constArgGraph'.
+  checkSCC :: [CGNode] -> Bool
+  checkSCC nodes
+    | not (containsAllFunctions nodes) = False
+    | otherwise = and $ do
+      (f, x) <- nodes
+      (g, y) <- nodes
+      let f' = HS.UnQual (HS.Ident f)
+          g' = HS.UnQual (HS.Ident g)
+      -- If there is an edge from @f@ to @g@ in the call graph...
+      guard (dependsDirectlyOn callGraph f' g')
+      -- ... there must also be an edge in the constant argument graph.
+      adjacent <- maybeToList (Map.lookup (f, x) constArgMap)
+      return ((g, y) `elem` adjacent)
+
   -- | The names of all given function declarations.
   funcNames :: [String]
   funcNames = map (HS.fromDeclIdent . HS.getDeclIdent) decls
