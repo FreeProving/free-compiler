@@ -7,16 +7,22 @@ module Compiler.Analysis.RecursionAnalysis
     DecArgIndex
   , identifyDecArgs
     -- * Constant arguments
+  , ConstArg(..)
   , identifyConstArgs
   )
 where
 
 import           Control.Monad                  ( guard )
 import           Data.Graph
-import           Data.List                      ( find )
+import           Data.List                      ( elemIndex
+                                                , find
+                                                , intercalate
+                                                , nub
+                                                )
 import           Data.Map.Strict                ( Map )
 import qualified Data.Map.Strict               as Map
 import           Data.Maybe                     ( catMaybes
+                                                , fromJust
                                                 , maybeToList
                                                 )
 import           Data.Set                       ( Set
@@ -28,8 +34,8 @@ import           Compiler.Analysis.DependencyGraph
 import           Compiler.Analysis.DependencyExtraction
                                                 ( varSet )
 import           Compiler.Environment
+import           Compiler.Environment.Fresh
 import qualified Compiler.Haskell.AST          as HS
-import           Compiler.Haskell.SrcSpan
 import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
 
@@ -192,6 +198,24 @@ identifyDecArgs decls = maybe decArgError return (maybeIdentifyDecArgs decls)
 -- Constant arguments                                                        --
 -------------------------------------------------------------------------------
 
+-- | Data type that represents a constant argument shared by multiple
+--   mutually recusive functions.
+--
+--   Contains the names and indicies of the corrsponding arguments of the
+--   function declarations and a fresh identifier for the @Variable@ sentence
+--   that replaces the constant argument.
+data ConstArg = ConstArg
+  { constArgIdents :: Map String String
+    -- ^ Maps the names of functions that share the constant argument to the
+    --   names of the corresponding function arguments.
+  , constArgIndicies :: Map String Int
+    -- ^ Maps the names of functions that share the constant argument to the
+    --   index of the corresponding function argument.
+  , constArgFreshIdent :: String
+    -- ^ A fresh identifier for the constant argument.
+  }
+ deriving Show
+
 -- | Nodes of the the constant argument graph (see 'makeConstArgGraph') are
 --   pairs of function and argument names.
 type CGNode = (String, String)
@@ -310,22 +334,47 @@ makeConstArgGraph modName decls = do
 --
 --   The call graph of the given function declarations should be strongly
 --   connected.
-identifyConstArgs :: [HS.FuncDecl] -> Converter ()
+identifyConstArgs :: [HS.FuncDecl] -> Converter [ConstArg]
 identifyConstArgs decls = do
   modName <- inEnv envModName
-  identifyConstArgs' modName decls
+  flip mapM (identifyConstArgs' modName decls) $ \identMap -> do
+    let idents = nub (Map.elems identMap)
+        prefix = intercalate "_" idents
+    freshIdent <- freshHaskellIdent prefix
+    return ConstArg
+      { constArgIdents     = identMap
+      , constArgIndicies   = Map.mapWithKey lookupArgIndex identMap
+      , constArgFreshIdent = freshIdent
+      }
+ where
+  -- | Maps the names of the function declarations to the names of their
+  --   arguments.
+  argNamesMap :: Map String [String]
+  argNamesMap =
+    Map.fromList
+      $ [ (HS.fromDeclIdent declIdent, map HS.fromVarPat args)
+        | (HS.FuncDecl _ declIdent args _) <- decls
+        ]
+
+  -- | Looks up the index of the argument with the given name of the function
+  --   with the given name.
+  lookupArgIndex
+    :: String -- ^ The name of the function.
+    -> String -- ^ The name of the argument.
+    -> Int
+  lookupArgIndex funcName argName = fromJust $ do
+    argNames <- Map.lookup funcName argNamesMap
+    elemIndex argName argNames
 
 -- | Like 'identifyConstArgs' but takes the name of the currently translated
 --   module as an argument.
-identifyConstArgs' :: HS.ModName -> [HS.FuncDecl] -> Converter ()
-identifyConstArgs' modName decls = do
-  let constArgs =
-        filter checkSCC $ catMaybes $ map fromCyclicSCC $ stronglyConnComp
-          constArgGraph
-  report
-    $ Message NoSrcSpan Info
-    $ ("Const arguments for " ++ show funcNames ++ ": " ++ show constArgs)
-  return ()
+identifyConstArgs' :: HS.ModName -> [HS.FuncDecl] -> [Map String String]
+identifyConstArgs' modName decls =
+  map Map.fromList
+    $ filter checkSCC
+    $ catMaybes
+    $ map fromCyclicSCC
+    $ stronglyConnComp constArgGraph
  where
   -- | The constant argument graph.
   constArgGraph :: [CGEntry]
@@ -354,7 +403,7 @@ identifyConstArgs' modName decls = do
       (g, y) <- nodes
       let f' = HS.UnQual (HS.Ident f)
           g' = HS.UnQual (HS.Ident g)
-      -- If there is an edge from @f@ to @g@ in the call graph...
+      -- If there is an edge from @f@ to @g@ in the call graph, ...
       guard (dependsDirectlyOn callGraph f' g')
       -- ... there must also be an edge in the constant argument graph.
       adjacent <- maybeToList (Map.lookup (f, x) constArgMap)
