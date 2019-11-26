@@ -147,7 +147,7 @@ generateArgBinder ident' (Just argType') =
 --   and returned together with the binder.
 convertAnonymousArg :: Maybe HS.Type -> Converter (G.Qualid, G.Binder)
 convertAnonymousArg mArgType = do
-  ident'    <- freshCoqIdent freshArgPrefix
+  ident'    <- freshCoqQualid freshArgPrefix
   mArgType' <- mapM convertType mArgType
   binder    <- generateArgBinder ident' mArgType'
   return (ident', binder)

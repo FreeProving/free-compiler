@@ -14,6 +14,7 @@ module Compiler.Environment.Renamer
     mustRenameIdent
     -- * Rename identifiers
   , renameIdent
+  , renameQualid
     -- * Define and automatically rename identifiers
   , renameEntry
   , renameAndAddEntry
@@ -24,6 +25,7 @@ where
 
 import           Control.Monad                  ( when )
 import           Data.Char
+import           Data.Composition               ( (.:) )
 import           Data.Maybe                     ( catMaybes )
 import           Text.Casing
 import           Text.RegexPR
@@ -147,25 +149,29 @@ sanitizeIdent (firstChar : subsequentChars) =
 --   is appended such that the resulting identifier does not cause a name
 --   conflict anymore. If the identifier already ends with a number, the
 --   enumeration will start from that number.
-renameIdent :: String -> Environment -> G.Qualid
+renameIdent :: String -> Environment -> String
 renameIdent ident env
   | mustRenameIdent ident' env = case matchRegexPR "\\d+$" ident' of
     Just ((number, (prefix, _)), _) -> renameIdent' prefix (read number) env
     Nothing                         -> renameIdent' ident' 0 env
-  | otherwise = G.bare ident'
+  | otherwise = ident'
  where
   ident' :: String
   ident' = sanitizeIdent ident
 
 -- | Renames an identifier by appending a number. The number is increased
 --   until the resulting identifier is available.
-renameIdent' :: String -> Int -> Environment -> G.Qualid
+renameIdent' :: String -> Int -> Environment -> String
 renameIdent' ident n env
   | mustRenameIdent identN env = renameIdent' ident (n + 1) env
-  | otherwise                  = G.bare identN
+  | otherwise                  = identN
  where
   identN :: String
   identN = ident ++ (show n)
+
+-- | Like 'renameIdent' but the Coq identifier is wrapped in a "G.Qualid".
+renameQualid :: String -> Environment -> G.Qualid
+renameQualid = G.bare .: renameIdent
 
 -------------------------------------------------------------------------------
 -- Define and automatically rename identifiers                               --
@@ -178,14 +184,14 @@ renameIdent' ident n env
 renameEntry :: EnvEntry -> Environment -> EnvEntry
 renameEntry entry env
   | isConEntry entry = entry
-    { entryIdent      = renameIdent (toCamel (fromHumps ident)) env
-    , entrySmartIdent = renameIdent ident env
+    { entryIdent      = renameQualid (toCamel (fromHumps ident)) env
+    , entrySmartIdent = renameQualid ident env
     , entryName       = qualName
     }
   | isVarEntry entry || isTypeVarEntry entry = entry
-    { entryIdent = renameIdent ident env
+    { entryIdent = renameQualid ident env
     }
-  | otherwise = entry { entryIdent = renameIdent ident env
+  | otherwise = entry { entryIdent = renameQualid ident env
                       , entryName  = qualName
                       }
  where
@@ -218,7 +224,7 @@ renameAndAddEntry entry = do
   -- Error handling and notifications.
   checkRedefinition unqualName entry'
   informIfRenamed entry entry'
-  -- Associate the entry with both the unqualified name.
+  -- Associate the entry with its unqualified name.
   -- Top-level entries are also associated with their qualified name.
   modifyEnv $ addEntry unqualName entry'
   when (not (null modName) && isTopLevelEntry entry')
