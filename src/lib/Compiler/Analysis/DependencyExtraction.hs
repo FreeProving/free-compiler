@@ -11,6 +11,7 @@ module Compiler.Analysis.DependencyExtraction
   ( -- * Types
     typeDependencies
   , typeVars
+  , typeVarSet
   , typeCons
     -- * Expressions
   , exprDependencies
@@ -92,7 +93,11 @@ typeDependencies = unwrapSet . typeDependencies'
 -- | Extracts the names of all type variables used in the given type
 --   expression.
 typeVars :: HS.Type -> [HS.QName]
-typeVars = unwrapSet . Set.filter isVarName . typeDependencies'
+typeVars = Set.toList . typeVarSet
+
+-- | Like 'typeVars' but returns a set of variable names.
+typeVarSet :: HS.Type -> Set HS.QName
+typeVarSet = Set.map unwrap . Set.filter isVarName . typeDependencies'
 
 -- | Extracts the names of all type constructors used in the given type
 --   expression.

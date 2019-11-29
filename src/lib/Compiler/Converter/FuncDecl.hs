@@ -3,20 +3,29 @@
 
 module Compiler.Converter.FuncDecl where
 
-import           Control.Monad                  ( mapAndUnzipM )
+import           Control.Monad                  ( mapAndUnzipM
+                                                , zipWithM
+                                                )
 import qualified Data.List.NonEmpty            as NonEmpty
 import           Data.List                      ( delete
                                                 , elemIndex
+                                                , intercalate
                                                 )
+import           Data.Map.Strict                ( Map )
 import qualified Data.Map.Strict               as Map
 import           Data.Maybe                     ( catMaybes
                                                 , fromJust
+                                                , fromMaybe
+                                                , maybeToList
                                                 )
 import qualified Data.Set                      as Set
+import           Data.Tuple.Extra               ( (&&&) )
 
 import           Compiler.Analysis.DependencyAnalysis
 import           Compiler.Analysis.DependencyExtraction
-                                                ( typeVars )
+                                                ( typeVars
+                                                , typeVarSet
+                                                )
 import           Compiler.Analysis.PartialityAnalysis
 import           Compiler.Analysis.RecursionAnalysis
 import           Compiler.Converter.Arg
@@ -33,6 +42,7 @@ import           Compiler.Environment.Scope
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Haskell.Inliner
 import           Compiler.Haskell.SrcSpan
+import           Compiler.Haskell.Subst
 import           Compiler.Haskell.Subterm
 import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
@@ -157,10 +167,242 @@ convertNonRecFuncDecl (HS.FuncDecl _ (HS.DeclIdent _ ident) args expr) =
 
 -- | Converts (mutually) recursive Haskell function declarations to Coq.
 convertRecFuncDecls :: [HS.FuncDecl] -> Converter [G.Sentence]
-convertRecFuncDecls decls = do
+convertRecFuncDecls decls = sectionEnv $ do
   -- Move constant arguments to section.
-  identifyConstArgs decls
+  constArgs <- identifyConstArgs decls
+  if null constArgs
+    then convertRecFuncDeclsWithHelpers decls
+    else convertRecFuncDeclsWithSection constArgs decls
 
+-------------------------------------------------------------------------------
+-- Section generation                                                        --
+-------------------------------------------------------------------------------
+
+-- | Converts recursive function decarations and adds a @Section@ sentence
+--   for the given constant arguments.
+convertRecFuncDeclsWithSection
+  :: [ConstArg] -> [HS.FuncDecl] -> Converter [G.Sentence]
+convertRecFuncDeclsWithSection constArgs decls = do
+  -- Lookup the argument and return types of all function declarations.
+  (argTypeMaps, returnTypeMaps) <- mapAndUnzipM argAndReturnTypeMaps decls
+  let argTypeMap    = Map.unions argTypeMaps
+      returnTypeMap = Map.unions returnTypeMaps
+
+  -- Create a @Variable@ sentence for the constant arguments and the type
+  -- variables in the constant arguments types.
+  constArgTypes   <- mapM (lookupConstArgType argTypeMap) constArgs
+  -- TODO apply mgu on all argument and return types.
+  typeArgSentence <- generateConstTypeArgSentence constArgTypes
+  varSentences    <- zipWithM generateConstArgVariable constArgs constArgTypes
+
+  -- Remove the constant arguments from the function declarations and type
+  -- signatures.
+  decls'          <- mapM (removeConstArgsFromFuncDecl constArgs) decls
+  mapM_ (updateTypeSigs argTypeMap returnTypeMap) decls'
+
+  -- Convert the resulting function declarations as usual.
+  decls'' <- convertRecFuncDeclsWithHelpers decls'
+
+  -- Generate a section identifier from the names of all functions in the
+  -- section.
+  let funcNames = map (HS.fromDeclIdent . HS.getDeclIdent) decls'
+  sectionIdent <- freshCoqIdent (intercalate "_" ("section" : funcNames))
+  return
+    [ G.SectionSentence
+        (G.Section
+          (G.ident sectionIdent)
+          (  G.comment
+              ("Constant arguments for " ++ intercalate
+                ", "
+                (map (HS.fromDeclIdent . HS.getDeclIdent) decls)
+              )
+          :  maybeToList typeArgSentence
+          ++ varSentences
+          ++ decls''
+          )
+        )
+    ]
+
+-- | Gets a map that maps the names of the arguments (qualified with the
+--   function name) of the given function declaration to their annotated
+--   type and a second map that maps the function names to their annotated
+--   return types.
+argAndReturnTypeMaps
+  :: HS.FuncDecl -> Converter (Map (String, String) HS.Type, Map String HS.Type)
+argAndReturnTypeMaps (HS.FuncDecl srcSpan (HS.DeclIdent _ ident) args _) = do
+  let name    = HS.UnQual (HS.Ident ident)
+      funArgs = map (const ident &&& HS.fromVarPat) args
+  funcType               <- lookupTypeSigOrFail srcSpan name
+  (argTypes, returnType) <- splitFuncType name args funcType
+  return (Map.fromList (zip funArgs argTypes), Map.singleton ident returnType)
+
+-- | Looks up the type of a constant argument in the given argument type
+--   map (see 'argAndReturnTypeMaps').
+--
+--   Does not check whether all arguments have the same type but returns the
+--   first matching type.
+lookupConstArgType
+  :: Map (String, String) HS.Type -> ConstArg -> Converter HS.Type
+lookupConstArgType argTypeMap constArg = do
+  let idents = Map.assocs (constArgIdents constArg)
+      types  = catMaybes $ map (flip Map.lookup argTypeMap) idents
+  -- TODO unify all types and return mgu for type variables.
+  return (head types)
+
+-- | Removes constant arguments from the argument list of the given
+--   function declaration and replaces the argument by the fresh
+--   identifier of the constant argument.
+--
+--   The constant arguments are also removed from calls to functions
+--   that share the constant argument.
+removeConstArgsFromFuncDecl
+  :: [ConstArg] -> HS.FuncDecl -> Converter HS.FuncDecl
+removeConstArgsFromFuncDecl constArgs (HS.FuncDecl srcSpan declIdent args rhs)
+  = do
+    let ident = HS.fromDeclIdent declIdent
+        removedArgs =
+          fromJust
+            $ Map.lookup ident
+            $ Map.unionsWith (++)
+            $ map (Map.map return)
+            $ map constArgIdents constArgs
+        freshArgs = map constArgFreshIdent constArgs
+        args' = [ arg | arg <- args, HS.fromVarPat arg `notElem` removedArgs ]
+        subst = composeSubsts
+          [ singleSubst' (HS.UnQual (HS.Ident removedArg))
+                         (flip HS.Var (HS.UnQual (HS.Ident freshArg)))
+          | (removedArg, freshArg) <- zip removedArgs freshArgs
+          ]
+    rhs' <- applySubst subst rhs >>= removeConstArgsFromExpr constArgs
+    return (HS.FuncDecl srcSpan declIdent args' rhs')
+
+-- | Removes constant arguments from the applications in the given expressions.
+removeConstArgsFromExpr :: [ConstArg] -> HS.Expr -> Converter HS.Expr
+removeConstArgsFromExpr constArgs = flip removeConstArgsFromExpr' []
+ where
+  -- | Maps the name of functions that share the constant arguments to
+  --   the indicies of their corresponding argument.
+  constArgIndicesMap :: Map String [Int]
+  constArgIndicesMap =
+    Map.unionsWith (++) $ map (Map.map return) $ map constArgIndicies constArgs
+
+  -- | Looks up the indicies of arguments that can be removed from the
+  --   application of a function with the given name.
+  lookupConstArgIndicies :: HS.QName -> Converter [Int]
+  lookupConstArgIndicies (HS.UnQual name) =
+    return (lookupConstArgIndicies' name)
+  lookupConstArgIndicies (HS.Qual modName name) = do
+    modName' <- inEnv envModName
+    if modName == modName'
+      then return []
+      else return (lookupConstArgIndicies' name)
+
+  -- | Like 'lookupConstArgIndicies' for unqualified names.
+  lookupConstArgIndicies' :: HS.Name -> [Int]
+  lookupConstArgIndicies' (HS.Ident ident) =
+    fromMaybe [] $ Map.lookup ident constArgIndicesMap
+  lookupConstArgIndicies' (HS.Symbol _) = []
+
+  -- | Implementation of 'removeConstArgsFromExpr' that takes the current
+  --   sub-expression as its first argument and the arguments it has been
+  --   applied to as the second argument.
+  removeConstArgsFromExpr'
+    :: HS.Expr    -- ^ The expression to remove the constant arguments from.
+    -> [HS.Expr]  -- ^ The arguments the expression is applied to.
+    -> Converter HS.Expr
+
+  -- If a variable is applied, lookup the indicies of the arguments that
+  -- can be removed and remove them.
+  removeConstArgsFromExpr' expr@(HS.Var _ name) args = do
+    indicies <- lookupConstArgIndicies name
+    let args' =
+          map fst $ filter ((`notElem` indicies) . snd) $ zip args [0 ..]
+    return (HS.app NoSrcSpan expr args')
+
+  -- Remove the constant arguments from the argument and pass the argument
+  -- to the applied expression such that it can remove it if necessary.
+  removeConstArgsFromExpr' (HS.App _ e1 e2) args = do
+    e2' <- removeConstArgsFromExpr' e2 []
+    removeConstArgsFromExpr' e1 (e2' : args)
+
+  -- Since we do not know in which branch there is a call to a function which
+  -- shares the constant argument, we have to move the argument list into
+  -- both branches and remove the arguments individually.
+  removeConstArgsFromExpr' (HS.If srcSpan e1 e2 e3) args = do
+    e1' <- removeConstArgsFromExpr' e1 []
+    e2' <- removeConstArgsFromExpr' e2 args
+    e3' <- removeConstArgsFromExpr' e3 args
+    return (HS.If srcSpan e1' e2' e3')
+
+  -- Similar to an @if@ expression, the arguments need to be moved into
+  -- the alternatives of a @case@ expression.
+  removeConstArgsFromExpr' (HS.Case srcSpan expr alts) args = do
+    expr' <- removeConstArgsFromExpr' expr []
+    alts' <- mapM (flip removeConstArgsFromAlt args) alts
+    return (HS.Case srcSpan expr' alts')
+
+  removeConstArgsFromExpr' (HS.Lambda srcSpan varPats expr) args = do
+    -- TODO shadow varPats in expr
+    expr' <- removeConstArgsFromExpr' expr args
+    return (HS.Lambda srcSpan varPats expr')
+
+  -- Leave all other expressions unchanged.
+  removeConstArgsFromExpr' expr args = return (HS.app NoSrcSpan expr args)
+
+  -- | Applies 'removeConstArgsFromExpr'' to the right-hand side of the
+  --   given @case@ expression alternative.
+  removeConstArgsFromAlt :: HS.Alt -> [HS.Expr] -> Converter HS.Alt
+  removeConstArgsFromAlt (HS.Alt srcSpan conPat varPats expr) args = do
+    -- TODO shadow varPats in expr
+    expr' <- removeConstArgsFromExpr' expr args
+    return (HS.Alt srcSpan conPat varPats expr')
+
+-- | Modifies the type signature of the given function declaration, such that
+--   it does not include the removed constant arguments anymore.
+updateTypeSigs
+  :: Map (String, String) HS.Type
+  -> Map String HS.Type
+  -> HS.FuncDecl
+  -> Converter ()
+updateTypeSigs argTypeMap returnTypeMap (HS.FuncDecl _ declIdent args _) = do
+  let ident      = HS.fromDeclIdent declIdent
+      name       = HS.UnQual (HS.Ident ident)
+      funArgs    = map (const ident &&& HS.fromVarPat) args
+      argTypes   = catMaybes (map (flip Map.lookup argTypeMap) funArgs)
+      returnType = fromJust (Map.lookup ident returnTypeMap)
+      funcType   = HS.funcType NoSrcSpan argTypes returnType
+  modifyEnv $ defineTypeSig name funcType
+
+-- | Generates the @Variable@ sentence for the type variables in the given
+--   types of the constant arguments.
+generateConstTypeArgSentence :: [HS.Type] -> Converter (Maybe G.Sentence)
+generateConstTypeArgSentence types = do
+  let typeVarNames  = Set.toList (Set.unions (map typeVarSet types))
+      typeVarIdents = map (fromJust . HS.identFromQName) typeVarNames
+      srcSpans      = repeat NoSrcSpan
+  if null typeVarNames
+    then return Nothing
+    else do
+      typeVarIdents' <- zipWithM renameAndDefineTypeVar srcSpans typeVarIdents
+      return (Just (G.variable typeVarIdents' G.sortType))
+
+-- | Generates a @Variable@ sentence for a constant argument with the
+--   given type.
+generateConstArgVariable :: ConstArg -> HS.Type -> Converter G.Sentence
+generateConstArgVariable constArg constArgType = do
+  let ident = constArgFreshIdent constArg
+  constArgType' <- convertType constArgType
+  ident'        <- renameAndDefineVar NoSrcSpan False ident
+  return (G.variable [ident'] constArgType')
+
+-------------------------------------------------------------------------------
+-- Helper function generation                                                --
+-------------------------------------------------------------------------------
+
+-- | Converts recursive function declarations into recursive helper and
+--   non-recursive main functions.
+convertRecFuncDeclsWithHelpers :: [HS.FuncDecl] -> Converter [G.Sentence]
+convertRecFuncDeclsWithHelpers decls = do
   -- Split into helper and main functions.
   decArgs                  <- identifyDecArgs decls
   (helperDecls, mainDecls) <- mapAndUnzipM (uncurry transformRecFuncDecl)
@@ -173,6 +415,7 @@ convertRecFuncDecls decls = do
     inlinedHelperDecl <- inlineFuncDecls mainDecls helperDecl
     convertRecHelperFuncDecl inlinedHelperDecl
   mainDecls' <- mapM convertNonRecFuncDecl mainDecls
+
   -- Create common fixpoint sentence for all helper functions.
   return
     ( G.comment ("Helper functions for " ++ HS.prettyDeclIdents decls)

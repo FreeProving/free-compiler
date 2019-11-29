@@ -87,12 +87,12 @@ testRenameIdent :: Spec
 testRenameIdent = describe "renameIdent" $ do
   it "generated identifiers don't need to be renamed" $ do
     property $ forAll genIdent $ \ident ->
-      let (Just ident') = G.unpackQualid (renameIdent ident emptyEnv)
+      let ident' = renameIdent ident emptyEnv
       in  not (mustRenameIdent ident' emptyEnv)
   it "generated identifiers are not renamed again" $ do
     property $ forAll genIdent $ \ident ->
-      let (Just ident') = G.unpackQualid (renameIdent ident emptyEnv)
-      in  renameIdent ident' emptyEnv == G.bare ident'
+      let ident' = renameIdent ident emptyEnv
+      in  renameIdent ident' emptyEnv == ident'
 
 -------------------------------------------------------------------------------
 -- Tests for @defineLocally@                                                 --

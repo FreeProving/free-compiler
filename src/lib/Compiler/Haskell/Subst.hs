@@ -9,6 +9,7 @@ module Compiler.Haskell.Subst
     -- * Construction
   , identitySubst
   , singleSubst
+  , singleSubst'
   , composeSubst
   , composeSubsts
     -- * Application

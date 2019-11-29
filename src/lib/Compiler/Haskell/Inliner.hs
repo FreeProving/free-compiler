@@ -102,6 +102,7 @@ inlineExpr decls = inlineAndBind
     alts' <- mapM inlineAlt alts
     return ([], HS.Case srcSpan expr' alts')
   inlineExpr' (HS.Lambda srcSpan args expr) = do
+    -- TODO shadow args in expr
     expr' <- inlineAndBind expr
     return ([], HS.Lambda srcSpan args expr')
 
@@ -115,6 +116,7 @@ inlineExpr decls = inlineAndBind
   --   alternative.
   inlineAlt :: HS.Alt -> Converter HS.Alt
   inlineAlt (HS.Alt srcSpan conPat varPats expr) = do
+    -- TODO shadow varPats in expr
     expr' <- inlineAndBind expr
     return (HS.Alt srcSpan conPat varPats expr')
 

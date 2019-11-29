@@ -19,6 +19,8 @@ module Compiler.Coq.AST
     -- * Binders
   , typedBinder
   , typedBinder'
+    -- * Assumptions
+  , variable
   -- * Definition sentences
   , definitionSentence
     -- * Types
@@ -37,6 +39,7 @@ module Compiler.Coq.AST
   )
 where
 
+import           Data.Composition               ( (.:) )
 import qualified Data.List.NonEmpty            as NonEmpty
 import qualified Data.Text                     as T
 import           Language.Coq.Gallina
@@ -131,6 +134,15 @@ typedBinder explicitness =
 -- | Like 'typedBinder' but for a single identifier.
 typedBinder' :: G.Explicitness -> G.Qualid -> G.Term -> G.Binder
 typedBinder' = flip (flip typedBinder . (: []))
+
+-------------------------------------------------------------------------------
+-- Assumptions                                                               --
+-------------------------------------------------------------------------------
+
+-- | Generates a @Variable@ assumption sentence.
+variable :: [G.Qualid] -> G.Term -> G.Sentence
+variable =
+  G.AssumptionSentence . G.Assumption G.Variable .: G.Assums . NonEmpty.fromList
 
 -------------------------------------------------------------------------------
 -- Definition sentences                                                      --

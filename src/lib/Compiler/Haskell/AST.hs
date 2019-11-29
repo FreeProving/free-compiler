@@ -388,7 +388,7 @@ splitType :: Type -> Int -> ([Maybe Type], Maybe Type)
 splitType (TypeFunc _ t1 t2) arity | arity > 0 =
   let (argTypes, returnType) = splitType t2 (arity - 1)
   in  (Just t1 : argTypes, returnType)
-splitType funcType _ = ([], Just funcType)
+splitType returnType _ = ([], Just returnType)
 
 -------------------------------------------------------------------------------
 -- Declaration identifier getters                                            --
@@ -483,6 +483,10 @@ instance GetSrcSpan Alt where
 -------------------------------------------------------------------------------
 -- Smart constructors                                                        --
 -------------------------------------------------------------------------------
+
+-- | Creates a function type with the given argument and return types.
+funcType :: SrcSpan -> [Type] -> Type -> Type
+funcType srcSpan = flip (foldr (TypeFunc srcSpan))
 
 -- | Creates a type constructor application type.
 --
