@@ -4,6 +4,7 @@
 module Compiler.Converter.Free where
 
 import           Data.List.NonEmpty             ( NonEmpty(..) )
+import           Data.List                      ( elemIndex )
 import           Data.Maybe                     ( maybe )
 
 import qualified Compiler.Coq.AST              as G
@@ -45,24 +46,28 @@ generatePure = return . G.app (G.Qualid CoqBase.freePureCon) . (: [])
 -- | Generates a Coq expressions that binds the given value to a fresh variable.
 --
 --   The generated fresh variable is passed to the given function. It is not
---   visible outside of that function.
+--   visible outside of that function. If the given expression is a variable,
+--   the name of that variable is used as the prefix of the fresh variable.
+--   Otherwise the given default prefix is used.
+--
 --   If the given expression is an application of the @pure@ constructor,
 --   no bind will be generated. The wrapped value is passed directly to
 --   the given function instead of a fresh variable.
 --
---   If the second argument is @Nothing@, the type of the fresh variable is
+--   If the third argument is @Nothing@, the type of the fresh variable is
 --   inferred by Coq.
 generateBind
   :: G.Term        -- ^ The left hand side of the bind operator.
+  -> String        -- ^ A prefix to use for fresh variable by default.
   -> Maybe G.Term  -- ^ The  Coq type of the value to bind or @Nothing@ if it
                    --   should be inferred by Coq.
   -> (G.Term -> Converter G.Term)
                    -- ^ Converter for the right hand side of the generated
                    --   function. The first argument is the fresh variable.
   -> Converter G.Term
-generateBind (G.App (G.Qualid con) ((G.PosArg arg) :| [])) _ generateRHS
+generateBind (G.App (G.Qualid con) ((G.PosArg arg) :| [])) _ _ generateRHS
   | con == CoqBase.freePureCon = generateRHS arg
-generateBind expr' argType' generateRHS = localEnv $ do
+generateBind expr' defaultPrefix argType' generateRHS = localEnv $ do
   x   <- freshCoqQualid (suggestPrefixFor expr')
   rhs <- generateRHS (G.Qualid x)
   return (G.app (G.Qualid CoqBase.freeBind) [expr', G.fun [x] [argType'] rhs])
@@ -71,10 +76,11 @@ generateBind expr' argType' generateRHS = localEnv $ do
   --   is bound to.
   suggestPrefixFor :: G.Term -> String
   suggestPrefixFor (G.Qualid qualid) =
-    maybe defaultPrefix id (G.unpackQualid qualid)
+    maybe defaultPrefix removeIndex (G.unpackQualid qualid)
   suggestPrefixFor _ = defaultPrefix
 
-  -- | The prefix for the fresh variable if 'suggestPrefixFor' cannot find
-  --   a better prefix.
-  defaultPrefix :: String
-  defaultPrefix = freshArgPrefix
+  -- | Removes a trailing underscore and number from the given string.
+  removeIndex :: String -> String
+  removeIndex ident = case elemIndex '_' ident of
+    Just usIndex -> take usIndex ident
+    Nothing -> ident

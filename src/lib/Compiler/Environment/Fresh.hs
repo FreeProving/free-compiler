@@ -15,9 +15,17 @@ import           Compiler.Environment.Renamer
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Monad.Converter
 
--- | The prefix to use for artificially introduced function arguments.
+-- | The prefix to use for artificially introduced variables of type @a@.
 freshArgPrefix :: String
 freshArgPrefix = "x"
+
+-- | The prefix to use for artificially introduced variables of type @a -> b@.
+freshFuncPrefix :: String
+freshFuncPrefix = "f"
+
+-- | The prefix to use for artificially introduced variables of type @Bool@.
+freshBoolPrefix :: String
+freshBoolPrefix = "cond"
 
 -- | Gets the next fresh Haskell identifier from the current environment.
 --

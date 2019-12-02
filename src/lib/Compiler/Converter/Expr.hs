@@ -108,7 +108,7 @@ convertExpr' (HS.Var srcSpan name) args = do
           -- Add type annotation for decreasing argument.
           Just argTypes <- inEnv $ lookupArgTypes ValueScope name
           decArgType'   <- mapM convertType' (argTypes !! index)
-          generateBind decArg decArgType' $ \decArg' ->
+          generateBind decArg freshArgPrefix decArgType' $ \decArg' ->
             generateApplyN arity callee (before ++ decArg' : after)
     else do
       -- If this is the decreasing argument of a recursive helper function,
@@ -125,7 +125,7 @@ convertExpr' (HS.App _ e1 e2  ) args = convertExpr' e1 (e2 : args)
 convertExpr' (HS.If _ e1 e2 e3) []   = do
   e1'   <- convertExpr e1
   bool' <- convertType' (HS.TypeCon NoSrcSpan HS.boolTypeConName)
-  generateBind e1' (Just bool') $ \cond -> do
+  generateBind e1' freshBoolPrefix (Just bool') $ \cond -> do
     e2' <- convertExpr e2
     e3' <- convertExpr e3
     return (G.If G.SymmetricIf cond Nothing e2' e3')
@@ -133,7 +133,7 @@ convertExpr' (HS.If _ e1 e2 e3) []   = do
 -- @case@-expressions.
 convertExpr' (HS.Case _ expr alts) [] = do
   expr' <- convertExpr expr
-  generateBind expr' Nothing $ \value -> do
+  generateBind expr' freshArgPrefix Nothing $ \value -> do
     alts' <- mapM convertAlt alts
     return (G.match value alts')
 
@@ -168,7 +168,8 @@ convertExpr' expr args@(_ : _) = do
 generateApply :: G.Term -> [G.Term] -> Converter G.Term
 generateApply term []           = return term
 generateApply term (arg : args) = do
-  term' <- generateBind term Nothing $ \f -> return (G.app f [arg])
+  term' <- generateBind term freshFuncPrefix Nothing
+    $ \f -> return (G.app f [arg])
   generateApply term' args
 
 -- | Generates a Coq term for applying a function with the given arity to

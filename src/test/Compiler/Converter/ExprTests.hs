@@ -180,7 +180,7 @@ testConvertFuncApp = context "function applications" $ do
         "f" <- defineTestFunc "f" 1 "a -> b -> c"
         "x" <- defineTestVar "x"
         "y" <- defineTestVar "y"
-        "f x y" `shouldTranslateExprTo` "f Shape Pos x >>= (fun x_0 => x_0 y)"
+        "f x y" `shouldTranslateExprTo` "f Shape Pos x >>= (fun f_0 => f_0 y)"
 
 -------------------------------------------------------------------------------
 -- Infix expressions                                                         --
