@@ -4,6 +4,7 @@
 module Compiler.Environment.Resolver
   ( -- * Resolving to original name
     resolveReferences
+  , resolveTypes
     -- * Resolving by custom function
   , resolveReferencesWith
   , resolveReferencesWithM
@@ -27,7 +28,16 @@ import           Compiler.Monad.Converter
 -- | Resolves all type names referenced by the given entry of the environment
 --   to their original name.
 resolveReferences :: EnvEntry -> Converter EnvEntry
-resolveReferences = resolveReferencesWithM $ \srcSpan name -> do
+resolveReferences = resolveReferencesWithM lookupOriginalName
+
+-- | Resolves all type names referenced by the given type expression
+--   to their original name.
+resolveTypes :: HS.Type -> Converter HS.Type
+resolveTypes = resolveTypesWithM lookupOriginalName
+
+-- | Looks up the original name of the entry with the given name.
+lookupOriginalName :: SrcSpan -> HS.QName -> Converter HS.QName
+lookupOriginalName srcSpan name = do
   entry <- lookupEntryOrFail srcSpan TypeScope name
   return (entryName entry)
 
@@ -42,7 +52,7 @@ resolveReferences = resolveReferencesWithM $ \srcSpan name -> do
 resolveReferencesWith
   :: (SrcSpan -> HS.QName -> HS.QName) -> EnvEntry -> EnvEntry
 resolveReferencesWith =
-  runIdentity .: applyToTypes . resolveTypesWith . (return .:)
+  runIdentity .: applyToTypes . resolveTypesWithM . (return .:)
 
 -- | Resolves all type names referenced by the given entry of the environment
 --   by applying the given function monadically.
@@ -50,7 +60,7 @@ resolveReferencesWith =
 --   All referenced entries must be in the environment and unambigious.
 resolveReferencesWithM
   :: Monad m => (SrcSpan -> HS.QName -> m HS.QName) -> EnvEntry -> m EnvEntry
-resolveReferencesWithM = applyToTypes . resolveTypesWith
+resolveReferencesWithM = applyToTypes . resolveTypesWithM
 
 -------------------------------------------------------------------------------
 -- Resolving by custom function                                              --
@@ -70,17 +80,17 @@ applyToTypes f entry
 
 -- | Replaces all constructor names in the given type expression
 --   by the name returned by the given function.
-resolveTypesWith
+resolveTypesWithM
   :: Monad m => (SrcSpan -> HS.QName -> m HS.QName) -> HS.Type -> m HS.Type
-resolveTypesWith _ var@(HS.TypeVar _       _   ) = return var
-resolveTypesWith f (    HS.TypeCon srcSpan name) = do
+resolveTypesWithM _ var@(HS.TypeVar _       _   ) = return var
+resolveTypesWithM f (    HS.TypeCon srcSpan name) = do
   name' <- f srcSpan name
   return (HS.TypeCon srcSpan name')
-resolveTypesWith f (HS.TypeApp srcSpan t1 t2) = do
-  t1' <- resolveTypesWith f t1
-  t2' <- resolveTypesWith f t2
+resolveTypesWithM f (HS.TypeApp srcSpan t1 t2) = do
+  t1' <- resolveTypesWithM f t1
+  t2' <- resolveTypesWithM f t2
   return (HS.TypeApp srcSpan t1' t2')
-resolveTypesWith f (HS.TypeFunc srcSpan t1 t2) = do
-  t1' <- resolveTypesWith f t1
-  t2' <- resolveTypesWith f t2
+resolveTypesWithM f (HS.TypeFunc srcSpan t1 t2) = do
+  t1' <- resolveTypesWithM f t1
+  t2' <- resolveTypesWithM f t2
   return (HS.TypeFunc srcSpan t1' t2')

@@ -39,15 +39,18 @@ import           Compiler.Environment.Entry
 import           Compiler.Environment.Fresh
 import           Compiler.Environment.LookupOrFail
 import           Compiler.Environment.Renamer
+import           Compiler.Environment.Resolver
 import           Compiler.Environment.Scope
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Haskell.Inliner
 import           Compiler.Haskell.SrcSpan
 import           Compiler.Haskell.Subst
 import           Compiler.Haskell.Subterm
+import           Compiler.Haskell.Unification
 import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
 import           Compiler.Pretty
+import qualified Compiler.Util.Map             as Map
 
 -------------------------------------------------------------------------------
 -- Strongly connected components                                             --
@@ -189,10 +192,16 @@ convertRecFuncDeclsWithSection constArgs decls = do
   let argTypeMap    = Map.unions argTypeMaps
       returnTypeMap = Map.unions returnTypeMaps
 
+  -- Unify the argument and return types such that type variable names are
+  -- unique.
+  (constArgTypes, mgus) <- mapAndUnzipM (lookupConstArgType argTypeMap)
+                                        constArgs
+  let mgu = composeSubsts mgus
+  argTypeMap'    <- Map.mapM (applySubst mgu) argTypeMap
+  returnTypeMap' <- Map.mapM (applySubst mgu) returnTypeMap
+
   -- Create a @Variable@ sentence for the constant arguments and the type
   -- variables in the constant arguments types.
-  constArgTypes <- mapM (lookupConstArgType argTypeMap) constArgs
-  -- TODO apply mgu on all argument and return types.
   let typeArgNames  = Set.toList (Set.unions (map typeVarSet constArgTypes))
       typeArgIdents = map (fromJust . HS.identFromQName) typeArgNames
   typeArgSentence <- generateConstTypeArgSentence typeArgIdents
@@ -201,7 +210,7 @@ convertRecFuncDeclsWithSection constArgs decls = do
   -- Remove the constant arguments from the function declarations and type
   -- signatures.
   decls'          <- mapM (removeConstArgsFromFuncDecl constArgs) decls
-  mapM_ (updateTypeSigs typeArgIdents argTypeMap returnTypeMap) decls'
+  mapM_ (updateTypeSigs typeArgIdents argTypeMap' returnTypeMap') decls'
 
   -- Convert the resulting function declarations as usual.
   decls'' <- convertRecFuncDeclsWithHelpers decls'
@@ -236,6 +245,7 @@ argAndReturnTypeMaps (HS.FuncDecl srcSpan (HS.DeclIdent _ ident) args _) = do
   let name    = HS.UnQual (HS.Ident ident)
       funArgs = map (const ident &&& HS.fromVarPat) args
   funcType               <- lookupTypeSigOrFail srcSpan name
+  -- TODO fresh identifiers for all type variables.
   (argTypes, returnType) <- splitFuncType name args funcType
   return (Map.fromList (zip funArgs argTypes), Map.singleton ident returnType)
 
@@ -245,12 +255,18 @@ argAndReturnTypeMaps (HS.FuncDecl srcSpan (HS.DeclIdent _ ident) args _) = do
 --   Does not check whether all arguments have the same type but returns the
 --   first matching type.
 lookupConstArgType
-  :: Map (String, String) HS.Type -> ConstArg -> Converter HS.Type
+  :: Map (String, String) HS.Type
+  -> ConstArg
+  -> Converter (HS.Type, Subst HS.Type)
 lookupConstArgType argTypeMap constArg = do
   let idents = Map.assocs (constArgIdents constArg)
       types  = catMaybes $ map (flip Map.lookup argTypeMap) idents
-  -- TODO unify all types and return mgu for type variables.
-  return (head types)
+  -- Unify all annotated types of the constant argument.
+  expandedTypes <- mapM expandAllTypeSynonyms types
+  resolvedTypes <- mapM resolveTypes expandedTypes
+  mgu           <- unifyAll resolvedTypes
+  constArgType  <- applySubst mgu (head resolvedTypes)
+  return (constArgType, mgu)
 
 -- | Removes constant arguments from the argument list of the given
 --   function declaration and replaces the argument by the fresh
@@ -518,7 +534,7 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent args expr) decArgIndex = do
     -- function.
     -- If the original function was partial, the helper function is partial as
     -- well.
-    Just typeArgs      <- inEnv $ lookupTypeArgs ValueScope name
+    Just typeArgs <- inEnv $ lookupTypeArgs ValueScope name
     funcType      <- lookupTypeSigOrFail srcSpan name
     (argTypes, _) <- splitFuncType name args funcType
     let argTypeMap = foldr Map.delete
