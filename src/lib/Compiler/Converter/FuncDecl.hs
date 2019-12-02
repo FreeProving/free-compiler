@@ -3,7 +3,8 @@
 
 module Compiler.Converter.FuncDecl where
 
-import           Control.Monad                  ( mapAndUnzipM
+import           Control.Monad                  ( filterM
+                                                , mapAndUnzipM
                                                 , zipWithM
                                                 )
 import qualified Data.List.NonEmpty            as NonEmpty
@@ -16,6 +17,7 @@ import qualified Data.Map.Strict               as Map
 import           Data.Maybe                     ( catMaybes
                                                 , fromJust
                                                 , fromMaybe
+                                                , isNothing
                                                 , maybeToList
                                                 )
 import qualified Data.Set                      as Set
@@ -84,11 +86,16 @@ convertFuncHead name args = do
   Just usedTypeVars <- inEnv $ lookupTypeArgs ValueScope name
   Just argTypes     <- inEnv $ lookupArgTypes ValueScope name
   returnType        <- inEnv $ lookupReturnType ValueScope name
+  -- Generate a type variable only if it is not in scope (i.e. there is
+  -- no @Variable@ sentence for the type variable in a section).
+  usedTypeVars'     <- filterM
+    (fmap isNothing . inEnv . lookupIdent TypeScope . HS.UnQual . HS.Ident)
+    usedTypeVars
   -- Convert arguments and return type.
-  typeVarDecls'     <- generateTypeVarDecls G.Implicit usedTypeVars
-  decArgIndex       <- inEnv $ lookupDecArg name
-  args'             <- convertArgs args argTypes decArgIndex
-  returnType'       <- mapM convertType returnType
+  typeVarDecls' <- generateTypeVarDecls G.Implicit usedTypeVars'
+  decArgIndex   <- inEnv $ lookupDecArg name
+  args'         <- convertArgs args argTypes decArgIndex
+  returnType'   <- mapM convertType returnType
   return
     ( qualid
     , (  genericArgDecls G.Explicit
