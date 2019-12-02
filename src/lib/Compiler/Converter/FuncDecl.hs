@@ -3,12 +3,12 @@
 
 module Compiler.Converter.FuncDecl where
 
-import           Control.Monad                  ( filterM
-                                                , mapAndUnzipM
+import           Control.Monad                  ( mapAndUnzipM
                                                 , zipWithM
                                                 )
 import qualified Data.List.NonEmpty            as NonEmpty
-import           Data.List                      ( delete
+import           Data.List                      ( (\\)
+                                                , delete
                                                 , elemIndex
                                                 , intercalate
                                                 )
@@ -17,7 +17,6 @@ import qualified Data.Map.Strict               as Map
 import           Data.Maybe                     ( catMaybes
                                                 , fromJust
                                                 , fromMaybe
-                                                , isNothing
                                                 , maybeToList
                                                 )
 import qualified Data.Set                      as Set
@@ -80,19 +79,14 @@ convertFuncHead
   -> Converter (G.Qualid, [G.Binder], Maybe G.Term)
 convertFuncHead name args = do
   -- Lookup the Coq name of the function.
-  Just qualid       <- inEnv $ lookupIdent ValueScope name
+  Just qualid   <- inEnv $ lookupIdent ValueScope name
     -- Lookup type signature and partiality.
-  partial           <- inEnv $ isPartial name
-  Just usedTypeVars <- inEnv $ lookupTypeArgs ValueScope name
-  Just argTypes     <- inEnv $ lookupArgTypes ValueScope name
-  returnType        <- inEnv $ lookupReturnType ValueScope name
-  -- Generate a type variable only if it is not in scope (i.e. there is
-  -- no @Variable@ sentence for the type variable in a section).
-  usedTypeVars'     <- filterM
-    (fmap isNothing . inEnv . lookupIdent TypeScope . HS.UnQual . HS.Ident)
-    usedTypeVars
+  partial       <- inEnv $ isPartial name
+  Just typeArgs <- inEnv $ lookupTypeArgs ValueScope name
+  Just argTypes <- inEnv $ lookupArgTypes ValueScope name
+  returnType    <- inEnv $ lookupReturnType ValueScope name
   -- Convert arguments and return type.
-  typeVarDecls' <- generateTypeVarDecls G.Implicit usedTypeVars'
+  typeArgs'     <- generateTypeVarDecls G.Implicit typeArgs
   decArgIndex   <- inEnv $ lookupDecArg name
   args'         <- convertArgs args argTypes decArgIndex
   returnType'   <- mapM convertType returnType
@@ -100,7 +94,7 @@ convertFuncHead name args = do
     ( qualid
     , (  genericArgDecls G.Explicit
       ++ [ partialArgDecl | partial ]
-      ++ typeVarDecls'
+      ++ typeArgs'
       ++ args'
       )
     , returnType'
@@ -174,7 +168,7 @@ convertNonRecFuncDecl (HS.FuncDecl _ (HS.DeclIdent _ ident) args expr) =
 
 -- | Converts (mutually) recursive Haskell function declarations to Coq.
 convertRecFuncDecls :: [HS.FuncDecl] -> Converter [G.Sentence]
-convertRecFuncDecls decls = sectionEnv $ do
+convertRecFuncDecls decls = localEnv $ do
   -- Move constant arguments to section.
   constArgs <- identifyConstArgs decls
   if null constArgs
@@ -197,15 +191,17 @@ convertRecFuncDeclsWithSection constArgs decls = do
 
   -- Create a @Variable@ sentence for the constant arguments and the type
   -- variables in the constant arguments types.
-  constArgTypes   <- mapM (lookupConstArgType argTypeMap) constArgs
+  constArgTypes <- mapM (lookupConstArgType argTypeMap) constArgs
   -- TODO apply mgu on all argument and return types.
-  typeArgSentence <- generateConstTypeArgSentence constArgTypes
+  let typeArgNames  = Set.toList (Set.unions (map typeVarSet constArgTypes))
+      typeArgIdents = map (fromJust . HS.identFromQName) typeArgNames
+  typeArgSentence <- generateConstTypeArgSentence typeArgIdents
   varSentences    <- zipWithM generateConstArgVariable constArgs constArgTypes
 
   -- Remove the constant arguments from the function declarations and type
   -- signatures.
   decls'          <- mapM (removeConstArgsFromFuncDecl constArgs) decls
-  mapM_ (updateTypeSigs argTypeMap returnTypeMap) decls'
+  mapM_ (updateTypeSigs typeArgIdents argTypeMap returnTypeMap) decls'
 
   -- Convert the resulting function declarations as usual.
   decls'' <- convertRecFuncDeclsWithHelpers decls'
@@ -367,31 +363,40 @@ removeConstArgsFromExpr constArgs = flip removeConstArgsFromExpr' []
 -- | Modifies the type signature of the given function declaration, such that
 --   it does not include the removed constant arguments anymore.
 updateTypeSigs
-  :: Map (String, String) HS.Type
+  :: [HS.TypeVarIdent]
+  -> Map (String, String) HS.Type
   -> Map String HS.Type
   -> HS.FuncDecl
   -> Converter ()
-updateTypeSigs argTypeMap returnTypeMap (HS.FuncDecl _ declIdent args _) = do
-  let ident      = HS.fromDeclIdent declIdent
-      name       = HS.UnQual (HS.Ident ident)
-      funArgs    = map (const ident &&& HS.fromVarPat) args
-      argTypes   = catMaybes (map (flip Map.lookup argTypeMap) funArgs)
-      returnType = fromJust (Map.lookup ident returnTypeMap)
-      funcType   = HS.funcType NoSrcSpan argTypes returnType
-  modifyEnv $ defineTypeSig name funcType
+updateTypeSigs constTypeVars argTypeMap returnTypeMap (HS.FuncDecl _ declIdent args _)
+  = do
+  -- Modify type signature.
+    let ident      = HS.fromDeclIdent declIdent
+        name       = HS.UnQual (HS.Ident ident)
+        funArgs    = map (const ident &&& HS.fromVarPat) args
+        argTypes   = catMaybes (map (flip Map.lookup argTypeMap) funArgs)
+        returnType = fromJust (Map.lookup ident returnTypeMap)
+        funcType   = HS.funcType NoSrcSpan argTypes returnType
+    modifyEnv $ defineTypeSig name funcType
+    -- Modify entry.
+    Just entry <- inEnv $ lookupEntry ValueScope name
+    let entry' = entry { entryTypeArgs   = entryTypeArgs entry \\ constTypeVars
+                       , entryArgTypes   = map Just argTypes
+                       , entryReturnType = Just returnType
+                       }
+    modifyEnv $ addEntry name entry'
+    modifyEnv $ addEntry (entryName entry) entry'
 
 -- | Generates the @Variable@ sentence for the type variables in the given
 --   types of the constant arguments.
-generateConstTypeArgSentence :: [HS.Type] -> Converter (Maybe G.Sentence)
-generateConstTypeArgSentence types = do
-  let typeVarNames  = Set.toList (Set.unions (map typeVarSet types))
-      typeVarIdents = map (fromJust . HS.identFromQName) typeVarNames
-      srcSpans      = repeat NoSrcSpan
-  if null typeVarNames
-    then return Nothing
-    else do
-      typeVarIdents' <- zipWithM renameAndDefineTypeVar srcSpans typeVarIdents
-      return (Just (G.variable typeVarIdents' G.sortType))
+generateConstTypeArgSentence
+  :: [HS.TypeVarIdent] -> Converter (Maybe G.Sentence)
+generateConstTypeArgSentence typeVarIdents
+  | null typeVarIdents = return Nothing
+  | otherwise = do
+    let srcSpans = repeat NoSrcSpan
+    typeVarIdents' <- zipWithM renameAndDefineTypeVar srcSpans typeVarIdents
+    return (Just (G.variable typeVarIdents' G.sortType))
 
 -- | Generates a @Variable@ sentence for a constant argument with the
 --   given type.
@@ -513,6 +518,7 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent args expr) decArgIndex = do
     -- function.
     -- If the original function was partial, the helper function is partial as
     -- well.
+    Just typeArgs      <- inEnv $ lookupTypeArgs ValueScope name
     funcType      <- lookupTypeSigOrFail srcSpan name
     (argTypes, _) <- splitFuncType name args funcType
     let argTypeMap = foldr Map.delete
@@ -523,7 +529,7 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent args expr) decArgIndex = do
     _       <- renameAndAddEntry $ FuncEntry
       { entrySrcSpan    = NoSrcSpan
       , entryArity      = length argTypes'
-      , entryTypeArgs   = catMaybes $ map HS.identFromQName $ typeVars funcType
+      , entryTypeArgs   = typeArgs
       , entryArgTypes   = argTypes'
       , entryReturnType = Nothing
       , entryIsPartial  = partial
