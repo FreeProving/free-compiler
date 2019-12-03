@@ -31,9 +31,11 @@ module Compiler.Monad.Converter
     -- * Encapsulating environments
   , localEnv
   , moduleEnv
+  , sectionEnv
   )
 where
 
+import           Control.Monad.Extra            ( ifM )
 import           Control.Monad.Identity
 import           Control.Monad.State
 import           Data.Composition               ( (.:) )
@@ -172,6 +174,15 @@ moduleEnv converter = do
   (x, interface) <- localEnv' converter
   modifyEnv $ makeModuleAvailable interface
   return x
+
+-- | Runs the given converter with 'envInSection' set to @True@.
+sectionEnv :: Monad m => ConverterT m a -> ConverterT m a
+sectionEnv converter = do
+  ifM (inEnv envInSection) converter $ do
+    modifyEnv $ \env -> env { envInSection = True }
+    x <- converter
+    modifyEnv $ \env -> env { envInSection = False }
+    return x
 
 -------------------------------------------------------------------------------
 -- Reporting in converter                                                    --

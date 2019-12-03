@@ -3,18 +3,26 @@
 
 module Compiler.Converter.Free where
 
+import           Control.Monad.Extra            ( ifM )
 import           Data.List.NonEmpty             ( NonEmpty(..) )
 import           Data.List                      ( elemIndex )
 import           Data.Maybe                     ( maybe )
 
 import qualified Compiler.Coq.AST              as G
 import qualified Compiler.Coq.Base             as CoqBase
+import           Compiler.Environment
 import           Compiler.Environment.Fresh
 import           Compiler.Monad.Converter
 
 -------------------------------------------------------------------------------
 -- Generic arguments for free monad                                          --
 -------------------------------------------------------------------------------
+
+-- | Returns 'genericArgDecls' if "CoqBase.freeArgs" are not defined
+--   in the current scope.
+generateGenericArgDecls :: G.Explicitness -> Converter [G.Binder]
+generateGenericArgDecls explicitness =
+  ifM (inEnv envInSection) (return []) (return (genericArgDecls explicitness))
 
 -- | The declarations of type parameters for the @Free@ monad.
 --
@@ -23,6 +31,10 @@ import           Compiler.Monad.Converter
 genericArgDecls :: G.Explicitness -> [G.Binder]
 genericArgDecls explicitness =
   map (uncurry (G.typedBinder' explicitness)) CoqBase.freeArgs
+
+-- | @Variable@ sentences for the parameters of the @Free@ monad.
+genericArgVariables :: [G.Sentence]
+genericArgVariables = map (uncurry (G.variable . return)) CoqBase.freeArgs
 
 -- | An explicit binder for the @Partial@ instance that is passed to partial
 --   function declarations.
@@ -83,4 +95,4 @@ generateBind expr' defaultPrefix argType' generateRHS = localEnv $ do
   removeIndex :: String -> String
   removeIndex ident = case elemIndex '_' ident of
     Just usIndex -> take usIndex ident
-    Nothing -> ident
+    Nothing      -> ident

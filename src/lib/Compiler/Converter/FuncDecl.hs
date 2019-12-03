@@ -83,7 +83,9 @@ convertFuncHead
 convertFuncHead name args = do
   -- Lookup the Coq name of the function.
   Just qualid   <- inEnv $ lookupIdent ValueScope name
-    -- Lookup type signature and partiality.
+  -- Generate arguments for free monad if they are not in scope.
+  freeArgDecls  <- generateGenericArgDecls G.Explicit
+  -- Lookup type signature and partiality.
   partial       <- inEnv $ isPartial name
   Just typeArgs <- inEnv $ lookupTypeArgs ValueScope name
   Just argTypes <- inEnv $ lookupArgTypes ValueScope name
@@ -95,11 +97,7 @@ convertFuncHead name args = do
   returnType'   <- mapM convertType returnType
   return
     ( qualid
-    , (  genericArgDecls G.Explicit
-      ++ [ partialArgDecl | partial ]
-      ++ typeArgs'
-      ++ args'
-      )
+    , (freeArgDecls ++ [ partialArgDecl | partial ] ++ typeArgs' ++ args')
     , returnType'
     )
 
@@ -111,14 +109,15 @@ defineFuncDecl decl@(HS.FuncDecl srcSpan (HS.DeclIdent _ ident) args _) = do
   (argTypes, returnType) <- splitFuncType name args funcType
   partial                <- isPartialFuncDecl decl
   _                      <- renameAndAddEntry FuncEntry
-    { entrySrcSpan    = srcSpan
-    , entryArity      = length argTypes
-    , entryTypeArgs   = catMaybes $ map HS.identFromQName $ typeVars funcType
-    , entryArgTypes   = map Just argTypes
-    , entryReturnType = Just returnType
-    , entryIsPartial  = partial
-    , entryName       = HS.UnQual (HS.Ident ident)
-    , entryIdent      = undefined -- filled by renamer
+    { entrySrcSpan       = srcSpan
+    , entryArity         = length argTypes
+    , entryTypeArgs      = catMaybes $ map HS.identFromQName $ typeVars funcType
+    , entryArgTypes      = map Just argTypes
+    , entryReturnType    = Just returnType
+    , entryNeedsFreeArgs = True
+    , entryIsPartial     = partial
+    , entryName          = HS.UnQual (HS.Ident ident)
+    , entryIdent         = undefined -- filled by renamer
     }
   return ()
 
@@ -213,7 +212,7 @@ convertRecFuncDeclsWithSection constArgs decls = do
   mapM_ (updateTypeSigs typeArgIdents argTypeMap' returnTypeMap') decls'
 
   -- Convert the resulting function declarations as usual.
-  decls'' <- convertRecFuncDeclsWithHelpers decls'
+  decls'' <- sectionEnv $ convertRecFuncDeclsWithHelpers decls'
 
   -- Generate a section identifier from the names of all functions in the
   -- section.
@@ -228,7 +227,8 @@ convertRecFuncDeclsWithSection constArgs decls = do
                 ", "
                 (map (HS.fromDeclIdent . HS.getDeclIdent) decls)
               )
-          :  maybeToList typeArgSentence
+          :  genericArgVariables
+          ++ maybeToList typeArgSentence
           ++ varSentences
           ++ decls''
           )
@@ -380,9 +380,13 @@ removeConstArgsFromExpr constArgs = flip removeConstArgsFromExpr' []
 --   it does not include the removed constant arguments anymore.
 updateTypeSigs
   :: [HS.TypeVarIdent]
+     -- ^ The type arguments declared in the section already.
   -> Map (String, String) HS.Type
+     -- ^ The types of the arguments by function and argument name.
   -> Map String HS.Type
+     -- ^ The return types by function name.
   -> HS.FuncDecl
+    -- ^ The function declaration whose type signature to update.
   -> Converter ()
 updateTypeSigs constTypeVars argTypeMap returnTypeMap (HS.FuncDecl _ declIdent args _)
   = do
@@ -395,10 +399,13 @@ updateTypeSigs constTypeVars argTypeMap returnTypeMap (HS.FuncDecl _ declIdent a
         funcType   = HS.funcType NoSrcSpan argTypes returnType
     modifyEnv $ defineTypeSig name funcType
     -- Modify entry.
+    -- Since the arguments of the @Free@ monad have been defined in the
+    -- section already, 'entryNeedsFreeArgs' can be set to @False@.
     Just entry <- inEnv $ lookupEntry ValueScope name
-    let entry' = entry { entryTypeArgs   = entryTypeArgs entry \\ constTypeVars
-                       , entryArgTypes   = map Just argTypes
-                       , entryReturnType = Just returnType
+    let entry' = entry { entryTypeArgs = entryTypeArgs entry \\ constTypeVars
+                       , entryArgTypes      = map Just argTypes
+                       , entryReturnType    = Just returnType
+                       , entryNeedsFreeArgs = False
                        }
     modifyEnv $ addEntry name entry'
     modifyEnv $ addEntry (entryName entry) entry'
@@ -541,16 +548,18 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent args expr) decArgIndex = do
                            (Map.fromList (zip argNames argTypes))
                            (Set.toList nonArgVars)
         argTypes' = map (`Map.lookup` argTypeMap) helperArgNames
-    partial <- inEnv $ isPartial name
-    _       <- renameAndAddEntry $ FuncEntry
-      { entrySrcSpan    = NoSrcSpan
-      , entryArity      = length argTypes'
-      , entryTypeArgs   = typeArgs
-      , entryArgTypes   = argTypes'
-      , entryReturnType = Nothing
-      , entryIsPartial  = partial
-      , entryName       = HS.UnQual (HS.Ident helperIdent)
-      , entryIdent      = undefined -- filled by renamer
+    freeArgsNeeded <- inEnv $ needsFreeArgs name
+    partial        <- inEnv $ isPartial name
+    _              <- renameAndAddEntry $ FuncEntry
+      { entrySrcSpan       = NoSrcSpan
+      , entryArity         = length argTypes'
+      , entryTypeArgs      = typeArgs
+      , entryArgTypes      = argTypes'
+      , entryReturnType    = Nothing
+      , entryNeedsFreeArgs = freeArgsNeeded
+      , entryIsPartial     = partial
+      , entryName          = HS.UnQual (HS.Ident helperIdent)
+      , entryIdent         = undefined -- filled by renamer
       }
 
     -- Additionally we need to remember the index of the decreasing argument

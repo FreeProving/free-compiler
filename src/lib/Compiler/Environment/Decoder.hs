@@ -223,16 +223,17 @@ instance Aeson.FromJSON ModuleInterface where
       partial     <- obj .: "partial"
       coqName     <- obj .: "coq-name"
       let (argTypes, returnType) = HS.splitType haskellType arity
+          typeArgs = catMaybes $ map HS.identFromQName $ typeVars haskellType
       return FuncEntry
-        { entrySrcSpan    = NoSrcSpan
-        , entryArity      = arity
-        , entryTypeArgs   =
-            catMaybes $ map HS.identFromQName $ typeVars haskellType
-        , entryArgTypes   = argTypes
-        , entryReturnType = returnType
-        , entryIsPartial  = partial
-        , entryIdent      = coqName
-        , entryName       = haskellName
+        { entrySrcSpan       = NoSrcSpan
+        , entryArity         = arity
+        , entryTypeArgs      = typeArgs
+        , entryArgTypes      = argTypes
+        , entryReturnType    = returnType
+        , entryNeedsFreeArgs = True
+        , entryIsPartial     = partial
+        , entryIdent         = coqName
+        , entryName          = haskellName
         }
 
 -- | Loads an module interface file from a @.toml@ or @.json@ file.

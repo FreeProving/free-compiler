@@ -2,6 +2,7 @@
 
 module Compiler.Converter.Expr where
 
+import           Control.Monad.Extra            ( ifM )
 import           Data.Composition
 import           Data.Foldable                  ( foldrM )
 import           Data.Maybe                     ( maybe )
@@ -90,10 +91,14 @@ convertExpr' (HS.Var srcSpan name) args = do
   function <- inEnv $ isFunction name
   if function
     then do
-    -- If the function is partial, we need to add the @Partial@ instance.
-      partial <- inEnv $ isPartial name
-      let partialArg = [ G.Qualid (fst CoqBase.partialArg) | partial ]
-          callee     = genericApply qualid partialArg
+      -- Add the arguments of the @Free@ monad if necessary. If the function
+      -- is partial, we need to add the @Partial@ instance as well.
+      partialArg <- ifM (inEnv $ isPartial name)
+                        (return [G.Qualid (fst CoqBase.partialArg)])
+                        (return [])
+      callee <- ifM (inEnv $ needsFreeArgs name)
+                    (return (genericApply qualid partialArg))
+                    (return (G.app (G.Qualid qualid) partialArg))
       -- Is this a recursive helper function?
       Just arity <- inEnv $ lookupArity ValueScope name
       mDecArg    <- inEnv $ lookupDecArg name

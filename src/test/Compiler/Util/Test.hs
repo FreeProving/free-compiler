@@ -204,14 +204,15 @@ defineTestFunc' partial ident arity typeStr = do
   typeExpr <- parseTestType typeStr
   let (argTypes, returnType) = HS.splitType typeExpr arity
   renameAndAddTestEntry FuncEntry
-    { entrySrcSpan    = NoSrcSpan
-    , entryArity      = arity
-    , entryTypeArgs   = catMaybes $ map HS.identFromQName $ typeVars typeExpr
-    , entryArgTypes   = argTypes
-    , entryReturnType = returnType
-    , entryIsPartial  = partial
-    , entryName       = HS.UnQual (HS.Ident ident)
-    , entryIdent      = undefined -- filled by renamer
+    { entrySrcSpan       = NoSrcSpan
+    , entryArity         = arity
+    , entryTypeArgs      = catMaybes $ map HS.identFromQName $ typeVars typeExpr
+    , entryArgTypes      = argTypes
+    , entryReturnType    = returnType
+    , entryNeedsFreeArgs = True
+    , entryIsPartial     = partial
+    , entryName          = HS.UnQual (HS.Ident ident)
+    , entryIdent         = undefined -- filled by renamer
     }
 
 -- | Like 'defineTestFunc' but also marks the given function as partial.

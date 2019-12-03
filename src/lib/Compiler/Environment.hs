@@ -34,6 +34,7 @@ module Compiler.Environment
   , lookupArity
   , lookupTypeSynonym
   , lookupTypeSig
+  , needsFreeArgs
   , isPartial
   , lookupDecArg
   -- * QuickCheck support
@@ -93,6 +94,9 @@ data Environment = Environment
     --   Defaults to the empty string.
   , envAvailableModules :: Map HS.ModName ModuleInterface
     -- ^ Maps names of modules that can be imported to their interface.
+  , envInSection :: Bool
+    -- ^ Whether the currently converted node is inside of a @Section@
+    --   sentence.
 
   , envEntries :: Map ScopedName (Set EnvEntry, Int)
     -- ^ Maps Haskell names to entries for declarations.
@@ -121,9 +125,10 @@ data Environment = Environment
 emptyEnv :: Environment
 emptyEnv = Environment
   { envDepth             = 0
-    -- Modules
+    -- Modules and sections
   , envModName           = ""
   , envAvailableModules  = Map.empty
+  , envInSection         = False
     -- Entries
   , envEntries           = Map.empty
   , envTypeSigs          = Map.empty
@@ -321,6 +326,14 @@ lookupTypeSynonym =
 --   been replaced already.
 lookupTypeSig :: HS.QName -> Environment -> Maybe HS.Type
 lookupTypeSig name = Map.lookup name . envTypeSigs
+
+-- | Tests whether the function with the given name needs the arguments
+--   of the @Free@ monad.
+--
+--   Returns @False@ if there is no such function.
+needsFreeArgs :: HS.QName -> Environment -> Bool
+needsFreeArgs =
+  maybe False (isFuncEntry .&&. entryNeedsFreeArgs) .: lookupEntry ValueScope
 
 -- | Tests whether the function with the given name is partial.
 --

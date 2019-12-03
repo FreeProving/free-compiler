@@ -82,6 +82,9 @@ data EnvEntry
       --   Contains exactly 'entryArity' elements.
     , entryReturnType :: Maybe HS.Type
       -- ^ The return type of the function (if known).
+    , entryNeedsFreeArgs :: Bool
+      -- ^ Whether the arguments of the @Free@ monad need to be
+      --   passed to the function.
     , entryIsPartial :: Bool
       -- ^ Whether the function is partial, i.e., requires an instance of
       --   the @Partial@ type class when translated to Coq.
