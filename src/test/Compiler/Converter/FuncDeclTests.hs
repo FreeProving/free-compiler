@@ -203,7 +203,8 @@ testConvertRecFuncDecls =
       ++ "  : Free Shape Pos a"
       ++ "  := xs >>= (fun (xs_0 : List Shape Pos a) =>"
       ++ "          findJust_0 P xs_0). "
-      ++ "End section_findJust_0."
+      ++ "End section_findJust_0. "
+      ++ "Arguments findJust Shape Pos P {a}."
 
     it "translates mutually recursive functions correctly"
       $  shouldSucceed
@@ -292,7 +293,8 @@ testConvertRecFuncDecls =
       ++ " : Free Shape Pos (List Shape Pos a)"
       ++ " := xs >>= (fun (xs_0 : List Shape Pos a) =>"
       ++ "   append_0 xs_0). "
-      ++ "End section_append_0."
+      ++ "End section_append_0. "
+      ++ "Arguments append Shape Pos {a}."
 
     it
         "translates recursive functions with nested lambda abstractions correctly"

@@ -34,6 +34,7 @@ import           Compiler.Converter.Expr
 import           Compiler.Converter.Free
 import           Compiler.Converter.Type
 import qualified Compiler.Coq.AST              as G
+import qualified Compiler.Coq.Base             as CoqBase
 import           Compiler.Environment
 import           Compiler.Environment.Entry
 import           Compiler.Environment.Fresh
@@ -203,23 +204,28 @@ convertRecFuncDeclsWithSection constArgs decls = do
   -- variables in the constant arguments types.
   let typeArgNames  = Set.toList (Set.unions (map typeVarSet constArgTypes))
       typeArgIdents = map (fromJust . HS.identFromQName) typeArgNames
-  typeArgSentence <- generateConstTypeArgSentence typeArgIdents
-  varSentences    <- zipWithM generateConstArgVariable constArgs constArgTypes
+  (maybeTypeArgSentence, typeArgIdents') <- generateConstTypeArgSentence
+    typeArgIdents
+  varSentences <- zipWithM generateConstArgVariable constArgs constArgTypes
 
   -- Remove the constant arguments from the function declarations and type
   -- signatures.
-  decls'          <- mapM (removeConstArgsFromFuncDecl constArgs) decls
+  decls'       <- mapM (removeConstArgsFromFuncDecl constArgs) decls
   mapM_ (updateTypeSigs typeArgIdents argTypeMap' returnTypeMap') decls'
 
   -- Convert the resulting function declarations as usual.
-  decls'' <- sectionEnv $ convertRecFuncDeclsWithHelpers decls'
+  decls''            <- sectionEnv $ convertRecFuncDeclsWithHelpers decls'
+
+  -- Generate arguments sentences to make the constant type arguments
+  -- implicit.
+  argumentsSentences <- mapM (generateArgumentsSentence typeArgIdents') decls
 
   -- Generate a section identifier from the names of all functions in the
   -- section.
   let funcNames = map (HS.fromDeclIdent . HS.getDeclIdent) decls'
   sectionIdent <- freshCoqIdent (intercalate "_" ("section" : funcNames))
   return
-    [ G.SectionSentence
+    ( G.SectionSentence
         (G.Section
           (G.ident sectionIdent)
           (  G.comment
@@ -228,12 +234,63 @@ convertRecFuncDeclsWithSection constArgs decls = do
                 (map (HS.fromDeclIdent . HS.getDeclIdent) decls)
               )
           :  genericArgVariables
-          ++ maybeToList typeArgSentence
+          ++ maybeToList maybeTypeArgSentence
           ++ varSentences
           ++ decls''
           )
         )
-    ]
+    : argumentsSentences
+    )
+
+-- | Generates the @Arguments@ sentence for the given function declaration
+--   that makes the type arguments of @Section@ implicit.
+--
+--   The given function declaration should be the original function
+--   declaration (i.e. before constant arguments have been removed).
+--   However, the function assums that it is executed in an environment
+--   where the type signature of the function has been modified (see
+--   'updateTypeSigs').
+--
+--   The @Arguments@ sentence includes a @_@ for every argument of the
+--   function such that Coq fails if Coq drops one of the constant arguments.
+generateArgumentsSentence :: [G.Qualid] -> HS.FuncDecl -> Converter G.Sentence
+generateArgumentsSentence constTypeArgs (HS.FuncDecl _ declIdent args _) = do
+  let ident = HS.fromDeclIdent declIdent
+      name  = HS.UnQual (HS.Ident ident)
+  Just qualid   <- inEnv $ lookupIdent ValueScope name
+  Just typeArgs <- inEnv $ lookupTypeArgs ValueScope name
+  partial       <- inEnv $ isPartial name
+  let freeArgSpecs =
+        [ G.ArgumentSpec G.ArgExplicit (G.Ident typeVarQualid) Nothing
+        | typeVarQualid <- map fst CoqBase.freeArgs
+        ]
+      partialArgSpec = G.ArgumentSpec G.ArgExplicit
+                                      (G.Ident (fst CoqBase.partialArg))
+                                      Nothing
+      constTypeArgSpecs =
+        [ G.ArgumentSpec G.ArgMaximal (G.Ident typeVarQualid) Nothing
+        | typeVarQualid <- constTypeArgs
+        ]
+      typeArgSpecs = replicate
+        (length typeArgs)
+        (G.ArgumentSpec G.ArgMaximal (G.Ident (G.bare "_")) Nothing)
+      argSpecs = replicate
+        (length args)
+        (G.ArgumentSpec G.ArgExplicit (G.Ident (G.bare "_")) Nothing)
+  return
+    (G.ArgumentsSentence
+      (G.Arguments
+        Nothing
+        qualid
+        (  freeArgSpecs
+        ++ [ partialArgSpec | partial ]
+        ++ constTypeArgSpecs
+        ++ typeArgSpecs
+        ++ argSpecs
+        )
+      )
+    )
+
 
 -- | Gets a map that maps the names of the arguments (qualified with the
 --   function name) of the given function declaration to their annotated
@@ -402,7 +459,8 @@ updateTypeSigs constTypeVars argTypeMap returnTypeMap (HS.FuncDecl _ declIdent a
     -- Since the arguments of the @Free@ monad have been defined in the
     -- section already, 'entryNeedsFreeArgs' can be set to @False@.
     Just entry <- inEnv $ lookupEntry ValueScope name
-    let entry' = entry { entryTypeArgs = entryTypeArgs entry \\ constTypeVars
+    let entry' = entry { entryArity         = length args
+                       , entryTypeArgs = entryTypeArgs entry \\ constTypeVars
                        , entryArgTypes      = map Just argTypes
                        , entryReturnType    = Just returnType
                        , entryNeedsFreeArgs = False
@@ -413,13 +471,13 @@ updateTypeSigs constTypeVars argTypeMap returnTypeMap (HS.FuncDecl _ declIdent a
 -- | Generates the @Variable@ sentence for the type variables in the given
 --   types of the constant arguments.
 generateConstTypeArgSentence
-  :: [HS.TypeVarIdent] -> Converter (Maybe G.Sentence)
+  :: [HS.TypeVarIdent] -> Converter (Maybe G.Sentence, [G.Qualid])
 generateConstTypeArgSentence typeVarIdents
-  | null typeVarIdents = return Nothing
+  | null typeVarIdents = return (Nothing, [])
   | otherwise = do
     let srcSpans = repeat NoSrcSpan
     typeVarIdents' <- zipWithM renameAndDefineTypeVar srcSpans typeVarIdents
-    return (Just (G.variable typeVarIdents' G.sortType))
+    return (Just (G.variable typeVarIdents' G.sortType), typeVarIdents')
 
 -- | Generates a @Variable@ sentence for a constant argument with the
 --   given type.
