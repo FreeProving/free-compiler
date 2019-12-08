@@ -275,7 +275,7 @@ generateInterfaceDecl
      -- ^ The original function declaration.
   -> Converter G.Sentence
 generateInterfaceDecl constArgs isConstArgUsed identMap (HS.FuncDecl _ (HS.DeclIdent _ ident) args _)
-  = do
+  = localEnv $ do
     let
       name          = HS.UnQual (HS.Ident ident)
       name'         = HS.UnQual (HS.Ident ident')

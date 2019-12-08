@@ -177,7 +177,7 @@ moduleEnv converter = do
 
 -- | Runs the given converter with 'envInSection' set to @True@.
 sectionEnv :: Monad m => ConverterT m a -> ConverterT m a
-sectionEnv converter = do
+sectionEnv converter = localEnv' $ do
   ifM (inEnv envInSection) converter $ do
     modifyEnv $ \env -> env { envInSection = True }
     x <- converter
