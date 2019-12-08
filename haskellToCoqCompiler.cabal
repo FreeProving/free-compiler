@@ -125,7 +125,6 @@ library haskell-to-coq-internal
                       , Compiler.Haskell.Subst
                       , Compiler.Haskell.Unification
                       , Compiler.Pretty
-                      , Compiler.Util.Map
                       , Compiler.Util.Predicate
 
 executable haskell-to-coq-compiler

@@ -53,7 +53,6 @@ import           Compiler.Haskell.Unification
 import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
 import           Compiler.Pretty
-import qualified Compiler.Util.Map             as Map
 
 -------------------------------------------------------------------------------
 -- Strongly connected components                                             --
@@ -206,14 +205,12 @@ convertRecFuncDeclsWithSection constArgs decls = do
   let mgu           = composeSubsts mgus
       typeArgNames  = Set.toList (Set.unions (map typeVarSet constArgTypes))
       typeArgIdents = map (fromJust . HS.identFromQName) typeArgNames
-  argTypeMap'    <- Map.mapM (applySubst mgu) argTypeMap
-  returnTypeMap' <- Map.mapM (applySubst mgu) returnTypeMap
 
   -- Remove constant arguments from the renamed function declarations
   -- and their type signatures.
-  sectionDecls   <- mapM (removeConstArgsFromFuncDecl renamedConstArgs)
-                         renamedDecls
-  mapM_ (updateTypeSigs typeArgIdents argTypeMap' returnTypeMap') sectionDecls
+  sectionDecls <- mapM (removeConstArgsFromFuncDecl renamedConstArgs)
+                       renamedDecls
+  mapM_ (updateTypeSigs mgu typeArgIdents argTypeMap returnTypeMap) sectionDecls
 
   -- Remove the constant arguments from the type signature.
 
@@ -338,6 +335,9 @@ lookupConstArgType argTypeMap constArg = do
 --   The type signatues and environment entries are copied from the
 --   original function.
 --
+--   Fresh identifiers are also generated for type variables in the type
+--   signatures.
+--
 --   Returns the renamed function declarations and a map from old names
 --   to new names.
 renameFuncDecls :: [HS.FuncDecl] -> Converter ([HS.FuncDecl], Map String String)
@@ -362,11 +362,30 @@ renameFuncDecls decls = do
               name'       = HS.UnQual (HS.Ident ident')
           -- Rename function references on right-hand side.
           rhs'          <- applySubst subst rhs
-          -- Copy type signature and environment entry.
+          -- Lookup type signature and environment entry.
           Just funcType <- inEnv $ lookupTypeSig name
-          modifyEnv $ defineTypeSig name' funcType
-          Just entry <- inEnv $ lookupEntry ValueScope name
-          _          <- renameAndAddEntry entry { entryName = name' }
+          Just entry    <- inEnv $ lookupEntry ValueScope name
+          -- Generate fresh identifiers for type variables.
+          let typeArgs   = entryTypeArgs entry
+              argTypes   = entryArgTypes entry
+              returnType = entryReturnType entry
+          typeArgs' <- mapM freshHaskellIdent typeArgs
+          let typeVarSubst = composeSubsts
+                (zipWith singleSubst'
+                         (map (HS.UnQual . HS.Ident) typeArgs)
+                         (map (flip HS.TypeVar) typeArgs')
+                )
+          funcType'   <- applySubst typeVarSubst funcType
+          argTypes'   <- mapM (mapM (applySubst typeVarSubst)) argTypes
+          returnType' <- mapM (applySubst typeVarSubst) returnType
+
+          -- Set type signature and environment entry for renamed function.
+          modifyEnv $ defineTypeSig name' funcType'
+          _ <- renameAndAddEntry entry { entryName       = name'
+                                       , entryTypeArgs   = typeArgs'
+                                       , entryArgTypes   = argTypes'
+                                       , entryReturnType = returnType'
+                                       }
           -- Rename function declaration.
           return (HS.FuncDecl srcSpan (HS.DeclIdent srcSpan' ident') args rhs')
   return (decls', Map.fromList identMap)
@@ -493,7 +512,9 @@ removeConstArgsFromExpr constArgs = flip removeConstArgsFromExpr' []
 -- | Modifies the type signature of the given function declaration, such that
 --   it does not include the removed constant arguments anymore.
 updateTypeSigs
-  :: [HS.TypeVarIdent]
+  :: Subst HS.Type
+     -- ^ The most general unificator for the constant argument types.
+  -> [HS.TypeVarIdent]
      -- ^ The type arguments declared in the section already.
   -> Map (String, String) HS.Type
      -- ^ The types of the arguments by function and argument name.
@@ -502,22 +523,26 @@ updateTypeSigs
   -> HS.FuncDecl
     -- ^ The function declaration whose type signature to update.
   -> Converter ()
-updateTypeSigs constTypeVars argTypeMap returnTypeMap (HS.FuncDecl _ declIdent args _)
+updateTypeSigs mgu constTypeVars argTypeMap returnTypeMap (HS.FuncDecl _ declIdent args _)
   = do
   -- Modify type signature.
-    let ident      = HS.fromDeclIdent declIdent
-        name       = HS.UnQual (HS.Ident ident)
-        funArgs    = map (const ident &&& HS.fromVarPat) args
-        argTypes   = catMaybes (map (flip Map.lookup argTypeMap) funArgs)
-        returnType = fromJust (Map.lookup ident returnTypeMap)
-        funcType   = HS.funcType NoSrcSpan argTypes returnType
+    let ident   = HS.fromDeclIdent declIdent
+        name    = HS.UnQual (HS.Ident ident)
+        funArgs = map (const ident &&& HS.fromVarPat) args
+    argTypes <- mapM (applySubst mgu)
+                     (catMaybes (map (flip Map.lookup argTypeMap) funArgs))
+    returnType <- applySubst mgu (fromJust (Map.lookup ident returnTypeMap))
+    let funcType = HS.funcType NoSrcSpan argTypes returnType
     modifyEnv $ defineTypeSig name funcType
     -- Modify entry.
     -- Since the arguments of the @Free@ monad have been defined in the
     -- section already, 'entryNeedsFreeArgs' can be set to @False@.
-    Just entry <- inEnv $ lookupEntry ValueScope name
+    Just entry  <- inEnv $ lookupEntry ValueScope name
+    typeArgVars <- mapM (applySubst mgu . HS.TypeVar NoSrcSpan)
+                        (entryTypeArgs entry)
+    let typeArgs = map (\(HS.TypeVar _ typeArg) -> typeArg) typeArgVars
     let entry' = entry { entryArity         = length args
-                       , entryTypeArgs = entryTypeArgs entry \\ constTypeVars
+                       , entryTypeArgs      = typeArgs \\ constTypeVars
                        , entryArgTypes      = map Just argTypes
                        , entryReturnType    = Just returnType
                        , entryNeedsFreeArgs = False
