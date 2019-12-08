@@ -3,6 +3,7 @@
 
 module Compiler.Converter.FuncDecl where
 
+import           Control.Monad.Extra            ( ifM )
 import           Control.Monad                  ( mapAndUnzipM
                                                 , zipWithM
                                                 )
@@ -172,7 +173,7 @@ convertNonRecFuncDecl (HS.FuncDecl _ (HS.DeclIdent _ ident) args expr) =
 -- | Converts (mutually) recursive Haskell function declarations to Coq.
 convertRecFuncDecls :: [HS.FuncDecl] -> Converter [G.Sentence]
 convertRecFuncDecls decls = localEnv $ do
-  -- Move constant arguments to section.
+  -- If there are constant arguments, move them to a section.
   constArgs <- identifyConstArgs decls
   if null constArgs
     then convertRecFuncDeclsWithHelpers decls
@@ -187,110 +188,93 @@ convertRecFuncDecls decls = localEnv $ do
 convertRecFuncDeclsWithSection
   :: [ConstArg] -> [HS.FuncDecl] -> Converter [G.Sentence]
 convertRecFuncDeclsWithSection constArgs decls = do
-  -- Lookup the argument and return types of all function declarations.
-  (argTypeMaps, returnTypeMaps) <- mapAndUnzipM argAndReturnTypeMaps decls
-  let argTypeMap    = Map.unions argTypeMaps
-      returnTypeMap = Map.unions returnTypeMaps
+  -- Rename the function declarations in the section.
+  (renamedDecls, identMap) <- renameFuncDecls decls
+  let renamedConstArgs = map (renameConstArg identMap) constArgs
 
-  -- Unify the argument and return types such that type variable names are
-  -- unique.
-  (constArgTypes, mgus) <- mapAndUnzipM (lookupConstArgType argTypeMap)
-                                        constArgs
-  let mgu = composeSubsts mgus
-  argTypeMap'    <- Map.mapM (applySubst mgu) argTypeMap
-  returnTypeMap' <- Map.mapM (applySubst mgu) returnTypeMap
+  section <- localEnv $ do
+    -- Lookup the argument and return types of all function declarations.
+    (argTypeMaps, returnTypeMaps) <- mapAndUnzipM argAndReturnTypeMaps
+                                                  renamedDecls
+    let argTypeMap    = Map.unions argTypeMaps
+        returnTypeMap = Map.unions returnTypeMaps
 
-  -- Create a @Variable@ sentence for the constant arguments and the type
-  -- variables in the constant arguments types.
-  let typeArgNames  = Set.toList (Set.unions (map typeVarSet constArgTypes))
-      typeArgIdents = map (fromJust . HS.identFromQName) typeArgNames
-  (maybeTypeArgSentence, typeArgIdents') <- generateConstTypeArgSentence
-    typeArgIdents
-  varSentences <- zipWithM generateConstArgVariable constArgs constArgTypes
+    -- Unify the argument and return types such that type variable names are
+    -- unique.
+    (constArgTypes, mgus) <- mapAndUnzipM (lookupConstArgType argTypeMap)
+                                          renamedConstArgs
+    let mgu = composeSubsts mgus
+    argTypeMap'    <- Map.mapM (applySubst mgu) argTypeMap
+    returnTypeMap' <- Map.mapM (applySubst mgu) returnTypeMap
 
-  -- Remove the constant arguments from the function declarations and type
-  -- signatures.
-  decls'       <- mapM (removeConstArgsFromFuncDecl constArgs) decls
-  mapM_ (updateTypeSigs typeArgIdents argTypeMap' returnTypeMap') decls'
+    -- Create a @Variable@ sentence for the constant arguments and the type
+    -- variables in the constant arguments types.
+    let typeArgNames  = Set.toList (Set.unions (map typeVarSet constArgTypes))
+        typeArgIdents = map (fromJust . HS.identFromQName) typeArgNames
+    maybeTypeArgSentence <- generateConstTypeArgSentence typeArgIdents
+    varSentences         <- zipWithM generateConstArgVariable
+                                     renamedConstArgs
+                                     constArgTypes
 
-  -- Convert the resulting function declarations as usual.
-  decls''            <- sectionEnv $ convertRecFuncDeclsWithHelpers decls'
+    -- Remove constant arguments from the function declarations and type
+    -- signatures.
+    sectionDecls <- mapM (removeConstArgsFromFuncDecl renamedConstArgs)
+                         renamedDecls
+    mapM_ (updateTypeSigs typeArgIdents argTypeMap' returnTypeMap') sectionDecls
 
-  -- Generate arguments sentences to make the constant type arguments
-  -- implicit.
-  argumentsSentences <- mapM (generateArgumentsSentence typeArgIdents') decls
-
-  -- Generate a section identifier from the names of all functions in the
-  -- section.
-  let funcNames = map (HS.fromDeclIdent . HS.getDeclIdent) decls'
-  sectionIdent <- freshCoqIdent (intercalate "_" ("section" : funcNames))
-  return
-    ( G.SectionSentence
+    -- Generate a section identifier from the names of the original functions
+    -- and convert the renamed functions as usual.
+    let funcNames = map (HS.fromDeclIdent . HS.getDeclIdent) decls
+    sectionIdent <- freshCoqIdent (intercalate "_" ("section" : funcNames))
+    (helperDecls', mainDecls') <- sectionEnv
+      $ convertRecFuncDeclsWithHelpers' sectionDecls
+    return
+      (G.SectionSentence
         (G.Section
           (G.ident sectionIdent)
-          (  G.comment
-              ("Constant arguments for " ++ intercalate
-                ", "
-                (map (HS.fromDeclIdent . HS.getDeclIdent) decls)
-              )
+          (  G.comment ("Constant arguments for " ++ intercalate ", " funcNames)
           :  genericArgVariables
           ++ maybeToList maybeTypeArgSentence
           ++ varSentences
-          ++ decls''
+          ++ G.comment ("Helper functions for " ++ intercalate ", " funcNames)
+          :  helperDecls'
+          ++ G.comment ("Main functions for " ++ intercalate ", " funcNames)
+          :  mainDecls'
           )
         )
-    : argumentsSentences
-    )
-
--- | Generates the @Arguments@ sentence for the given function declaration
---   that makes the type arguments of @Section@ implicit.
---
---   The given function declaration should be the original function
---   declaration (i.e. before constant arguments have been removed).
---   However, the function assums that it is executed in an environment
---   where the type signature of the function has been modified (see
---   'updateTypeSigs').
---
---   The @Arguments@ sentence includes a @_@ for every argument of the
---   function such that Coq fails if Coq drops one of the constant arguments.
-generateArgumentsSentence :: [G.Qualid] -> HS.FuncDecl -> Converter G.Sentence
-generateArgumentsSentence constTypeArgs (HS.FuncDecl _ declIdent args _) = do
-  let ident = HS.fromDeclIdent declIdent
-      name  = HS.UnQual (HS.Ident ident)
-  Just qualid   <- inEnv $ lookupIdent ValueScope name
-  Just typeArgs <- inEnv $ lookupTypeArgs ValueScope name
-  partial       <- inEnv $ isPartial name
-  let freeArgSpecs =
-        [ G.ArgumentSpec G.ArgExplicit (G.Ident typeVarQualid) Nothing
-        | typeVarQualid <- map fst CoqBase.freeArgs
-        ]
-      partialArgSpec = G.ArgumentSpec G.ArgExplicit
-                                      (G.Ident (fst CoqBase.partialArg))
-                                      Nothing
-      constTypeArgSpecs =
-        [ G.ArgumentSpec G.ArgMaximal (G.Ident typeVarQualid) Nothing
-        | typeVarQualid <- constTypeArgs
-        ]
-      typeArgSpecs = replicate
-        (length typeArgs)
-        (G.ArgumentSpec G.ArgMaximal (G.Ident (G.bare "_")) Nothing)
-      argSpecs = replicate
-        (length args)
-        (G.ArgumentSpec G.ArgExplicit (G.Ident (G.bare "_")) Nothing)
-  return
-    (G.ArgumentsSentence
-      (G.Arguments
-        Nothing
-        qualid
-        (  freeArgSpecs
-        ++ [ partialArgSpec | partial ]
-        ++ constTypeArgSpecs
-        ++ typeArgSpecs
-        ++ argSpecs
-        )
       )
-    )
 
+  -- -- Add functions with correct argument order after the section.
+  interfaceDecls' <- mapM (generateInterfaceDecl constArgs identMap) decls
+  return (section : interfaceDecls')
+
+-- | Generates a @Definition@ sentence for the given function declaration
+--   that passes the arguments to the function declared inside the @Section@
+--   sentence in the correct order.
+generateInterfaceDecl
+  :: [ConstArg] -> Map String String -> HS.FuncDecl -> Converter G.Sentence
+generateInterfaceDecl constArgs identMap (HS.FuncDecl _ (HS.DeclIdent _ ident) args _)
+  = do
+    let name          = HS.UnQual (HS.Ident ident)
+        name'         = HS.UnQual (HS.Ident ident')
+        Just ident'   = Map.lookup ident identMap
+        constArgNames = map (HS.UnQual . HS.Ident) $ catMaybes $ map
+          (Map.lookup ident . constArgIdents)
+          constArgs
+    (qualid, binders, returnType') <- convertFuncHead name args
+    Just qualid'                   <- inEnv $ lookupIdent ValueScope name'
+    constArgNames'                 <-
+      catMaybes <$> mapM (inEnv . lookupIdent ValueScope) constArgNames
+    partialArg <- ifM (inEnv $ isPartial name)
+                      (return [fst CoqBase.partialArg])
+                      (return [])
+    let nonConstArgNames =
+          map (HS.UnQual . HS.Ident . HS.fromVarPat) args \\ constArgNames
+    nonConstArgNames' <-
+      catMaybes <$> mapM (inEnv . lookupIdent ValueScope) nonConstArgNames
+    let argNames' = constArgNames' ++ partialArg ++ nonConstArgNames'
+        rhs'      = genericApply qualid' (map G.Qualid argNames')
+    return (G.definitionSentence qualid binders returnType' rhs')
 
 -- | Gets a map that maps the names of the arguments (qualified with the
 --   function name) of the given function declaration to their annotated
@@ -324,6 +308,55 @@ lookupConstArgType argTypeMap constArg = do
   mgu           <- unifyAll resolvedTypes
   constArgType  <- applySubst mgu (head resolvedTypes)
   return (constArgType, mgu)
+
+-- | Renames the given function declarations using fresh identifiers.
+--
+--   The type signatues and environment entries are copied from the
+--   original function.
+--
+--   Returns the renamed function declarations and a map from old names
+--   to new names.
+renameFuncDecls :: [HS.FuncDecl] -> Converter ([HS.FuncDecl], Map String String)
+renameFuncDecls decls = do
+  -- Create a substitution from old identifiers to fresh identifiers.
+  modName <- inEnv envModName
+  let idents = map (HS.fromDeclIdent . HS.getDeclIdent) decls
+  idents' <- mapM freshHaskellIdent idents
+  let identMap = zip idents idents'
+      subst    = composeSubsts $ do
+        (ident, ident') <- identMap
+        name <- [HS.UnQual (HS.Ident ident), HS.Qual modName (HS.Ident ident)]
+        let name' = HS.UnQual (HS.Ident ident')
+        return (singleSubst' name (flip HS.Var name'))
+  -- Rename function declarations, apply substituion to right-hand side
+  -- and copy type signature and entry of original function.
+  decls' <-
+    flip mapM decls
+      $ \(HS.FuncDecl srcSpan (HS.DeclIdent srcSpan' ident) args rhs) -> do
+          let Just ident' = lookup ident identMap
+              name        = HS.UnQual (HS.Ident ident)
+              name'       = HS.UnQual (HS.Ident ident')
+          -- Rename function references on right-hand side.
+          rhs'          <- applySubst subst rhs
+          -- Copy type signature and environment entry.
+          Just funcType <- inEnv $ lookupTypeSig name
+          modifyEnv $ defineTypeSig name' funcType
+          Just entry <- inEnv $ lookupEntry ValueScope name
+          _          <- renameAndAddEntry entry { entryName = name' }
+          -- Rename function declaration.
+          return (HS.FuncDecl srcSpan (HS.DeclIdent srcSpan' ident') args rhs')
+  return (decls', Map.fromList identMap)
+
+-- | Replaces the function names in the given 'ConstArg' using the given map.
+renameConstArg :: Map String String -> ConstArg -> ConstArg
+renameConstArg identMap constArg = constArg
+  { constArgIdents   = renameKeys (constArgIdents constArg)
+  , constArgIndicies = renameKeys (constArgIndicies constArg)
+  }
+ where
+  -- | Replaces the keys of the given map using 'identMap'.
+  renameKeys :: Map String v -> Map String v
+  renameKeys = Map.mapKeys (fromJust . flip Map.lookup identMap)
 
 -- | Removes constant arguments from the argument list of the given
 --   function declaration and replaces the argument by the fresh
@@ -471,13 +504,13 @@ updateTypeSigs constTypeVars argTypeMap returnTypeMap (HS.FuncDecl _ declIdent a
 -- | Generates the @Variable@ sentence for the type variables in the given
 --   types of the constant arguments.
 generateConstTypeArgSentence
-  :: [HS.TypeVarIdent] -> Converter (Maybe G.Sentence, [G.Qualid])
+  :: [HS.TypeVarIdent] -> Converter (Maybe G.Sentence)
 generateConstTypeArgSentence typeVarIdents
-  | null typeVarIdents = return (Nothing, [])
+  | null typeVarIdents = return Nothing
   | otherwise = do
     let srcSpans = repeat NoSrcSpan
     typeVarIdents' <- zipWithM renameAndDefineTypeVar srcSpans typeVarIdents
-    return (Just (G.variable typeVarIdents' G.sortType), typeVarIdents')
+    return (Just (G.variable typeVarIdents' G.sortType))
 
 -- | Generates a @Variable@ sentence for a constant argument with the
 --   given type.
@@ -496,6 +529,18 @@ generateConstArgVariable constArg constArgType = do
 --   non-recursive main functions.
 convertRecFuncDeclsWithHelpers :: [HS.FuncDecl] -> Converter [G.Sentence]
 convertRecFuncDeclsWithHelpers decls = do
+  (helperDecls', mainDecls') <- convertRecFuncDeclsWithHelpers' decls
+  return
+    (  G.comment ("Helper functions for " ++ HS.prettyDeclIdents decls)
+    :  helperDecls'
+    ++ mainDecls'
+    )
+
+-- | Like 'convertRecFuncDeclsWithHelpers' but does return the helper and
+--   main functions separtly.
+convertRecFuncDeclsWithHelpers'
+  :: [HS.FuncDecl] -> Converter ([G.Sentence], [G.Sentence])
+convertRecFuncDeclsWithHelpers' decls = do
   -- Split into helper and main functions.
   decArgs                  <- identifyDecArgs decls
   (helperDecls, mainDecls) <- mapAndUnzipM (uncurry transformRecFuncDecl)
@@ -511,9 +556,8 @@ convertRecFuncDeclsWithHelpers decls = do
 
   -- Create common fixpoint sentence for all helper functions.
   return
-    ( G.comment ("Helper functions for " ++ HS.prettyDeclIdents decls)
-    : G.FixpointSentence (G.Fixpoint (NonEmpty.fromList helperDecls') [])
-    : mainDecls'
+    ( [G.FixpointSentence (G.Fixpoint (NonEmpty.fromList helperDecls') [])]
+    , mainDecls'
     )
 
 -- | Transforms the given recursive function declaration with the specified
