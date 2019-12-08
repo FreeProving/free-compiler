@@ -17,6 +17,7 @@ testConverter = do
   testConvertDataDecls
   testConvertExpr
   testConvertNonRecFuncDecl
-  testConvertRecFuncDecls
+  testConvertRecFuncDeclsWithHelpers
+  testConvertRecFuncDeclsWithSections
   testConvertQuickCheckProperty
   testConvertModule

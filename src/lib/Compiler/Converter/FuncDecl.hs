@@ -27,6 +27,7 @@ import           Compiler.Analysis.DependencyAnalysis
 import           Compiler.Analysis.DependencyExtraction
                                                 ( typeVars
                                                 , typeVarSet
+                                                , varSet
                                                 )
 import           Compiler.Analysis.PartialityAnalysis
 import           Compiler.Analysis.RecursionAnalysis
@@ -192,35 +193,45 @@ convertRecFuncDeclsWithSection constArgs decls = do
   (renamedDecls, identMap) <- renameFuncDecls decls
   let renamedConstArgs = map (renameConstArg identMap) constArgs
 
+  -- Lookup the argument and return types of all function declarations.
+  (argTypeMaps, returnTypeMaps) <- mapAndUnzipM argAndReturnTypeMaps
+                                                renamedDecls
+  let argTypeMap    = Map.unions argTypeMaps
+      returnTypeMap = Map.unions returnTypeMaps
+
+  -- Unify the argument and return types such that type variable names are
+  -- unique.
+  (constArgTypes, mgus) <- mapAndUnzipM (lookupConstArgType argTypeMap)
+                                        renamedConstArgs
+  let mgu           = composeSubsts mgus
+      typeArgNames  = Set.toList (Set.unions (map typeVarSet constArgTypes))
+      typeArgIdents = map (fromJust . HS.identFromQName) typeArgNames
+  argTypeMap'    <- Map.mapM (applySubst mgu) argTypeMap
+  returnTypeMap' <- Map.mapM (applySubst mgu) returnTypeMap
+
+  -- Remove constant arguments from the renamed function declarations
+  -- and their type signatures.
+  sectionDecls   <- mapM (removeConstArgsFromFuncDecl renamedConstArgs)
+                         renamedDecls
+  mapM_ (updateTypeSigs typeArgIdents argTypeMap' returnTypeMap') sectionDecls
+
+  -- Remove the constant arguments from the type signature.
+
+  -- Test which of the constant arguments is actually used by any function
+  -- in the section.
+  let isConstArgUsed = map (flip any sectionDecls . isConstArgUsedBy) constArgs
+
+  -- Generate @Section@ sentence.
   section <- localEnv $ do
-    -- Lookup the argument and return types of all function declarations.
-    (argTypeMaps, returnTypeMaps) <- mapAndUnzipM argAndReturnTypeMaps
-                                                  renamedDecls
-    let argTypeMap    = Map.unions argTypeMaps
-        returnTypeMap = Map.unions returnTypeMaps
-
-    -- Unify the argument and return types such that type variable names are
-    -- unique.
-    (constArgTypes, mgus) <- mapAndUnzipM (lookupConstArgType argTypeMap)
-                                          renamedConstArgs
-    let mgu = composeSubsts mgus
-    argTypeMap'    <- Map.mapM (applySubst mgu) argTypeMap
-    returnTypeMap' <- Map.mapM (applySubst mgu) returnTypeMap
-
-    -- Create a @Variable@ sentence for the constant arguments and the type
-    -- variables in the constant arguments types.
-    let typeArgNames  = Set.toList (Set.unions (map typeVarSet constArgTypes))
-        typeArgIdents = map (fromJust . HS.identFromQName) typeArgNames
+    -- Create a @Variable@ sentence for the constant arguments and their type
+    -- variables. No @Variable@ sentence is created if a constant argument is
+    -- never used (Coq would ignore the @Variable@ sentence anyway).
     maybeTypeArgSentence <- generateConstTypeArgSentence typeArgIdents
     varSentences         <- zipWithM generateConstArgVariable
                                      renamedConstArgs
                                      constArgTypes
-
-    -- Remove constant arguments from the function declarations and type
-    -- signatures.
-    sectionDecls <- mapM (removeConstArgsFromFuncDecl renamedConstArgs)
-                         renamedDecls
-    mapM_ (updateTypeSigs typeArgIdents argTypeMap' returnTypeMap') sectionDecls
+    let usedVarSentences =
+          map fst $ filter snd $ zip varSentences isConstArgUsed
 
     -- Generate a section identifier from the names of the original functions
     -- and convert the renamed functions as usual.
@@ -235,7 +246,7 @@ convertRecFuncDeclsWithSection constArgs decls = do
           (  G.comment ("Constant arguments for " ++ intercalate ", " funcNames)
           :  genericArgVariables
           ++ maybeToList maybeTypeArgSentence
-          ++ varSentences
+          ++ usedVarSentences
           ++ G.comment ("Helper functions for " ++ intercalate ", " funcNames)
           :  helperDecls'
           ++ G.comment ("Main functions for " ++ intercalate ", " funcNames)
@@ -245,26 +256,39 @@ convertRecFuncDeclsWithSection constArgs decls = do
       )
 
   -- -- Add functions with correct argument order after the section.
-  interfaceDecls' <- mapM (generateInterfaceDecl constArgs identMap) decls
+  interfaceDecls' <- mapM
+    (generateInterfaceDecl constArgs isConstArgUsed identMap)
+    decls
   return (section : interfaceDecls')
 
 -- | Generates a @Definition@ sentence for the given function declaration
 --   that passes the arguments to the function declared inside the @Section@
 --   sentence in the correct order.
 generateInterfaceDecl
-  :: [ConstArg] -> Map String String -> HS.FuncDecl -> Converter G.Sentence
-generateInterfaceDecl constArgs identMap (HS.FuncDecl _ (HS.DeclIdent _ ident) args _)
+  :: [ConstArg]
+     -- ^ The constant arguments of the function.
+  -> [Bool]
+     -- ^ Whether the constant argument is used by any function.
+  -> Map String String
+     -- ^ Maps the names of the original functions to renamed/main functions.
+  -> HS.FuncDecl
+     -- ^ The original function declaration.
+  -> Converter G.Sentence
+generateInterfaceDecl constArgs isConstArgUsed identMap (HS.FuncDecl _ (HS.DeclIdent _ ident) args _)
   = do
-    let name          = HS.UnQual (HS.Ident ident)
-        name'         = HS.UnQual (HS.Ident ident')
-        Just ident'   = Map.lookup ident identMap
-        constArgNames = map (HS.UnQual . HS.Ident) $ catMaybes $ map
-          (Map.lookup ident . constArgIdents)
-          constArgs
+    let
+      name          = HS.UnQual (HS.Ident ident)
+      name'         = HS.UnQual (HS.Ident ident')
+      Just ident'   = Map.lookup ident identMap
+      constArgNames = map (HS.UnQual . HS.Ident) $ catMaybes $ map
+        (Map.lookup ident . constArgIdents)
+        constArgs
+      usedConstArgNames =
+        map fst $ filter snd $ zip constArgNames isConstArgUsed
     (qualid, binders, returnType') <- convertFuncHead name args
     Just qualid'                   <- inEnv $ lookupIdent ValueScope name'
     constArgNames'                 <-
-      catMaybes <$> mapM (inEnv . lookupIdent ValueScope) constArgNames
+      catMaybes <$> mapM (inEnv . lookupIdent ValueScope) usedConstArgNames
     partialArg <- ifM (inEnv $ isPartial name)
                       (return [fst CoqBase.partialArg])
                       (return [])
@@ -500,6 +524,12 @@ updateTypeSigs constTypeVars argTypeMap returnTypeMap (HS.FuncDecl _ declIdent a
                        }
     modifyEnv $ addEntry name entry'
     modifyEnv $ addEntry (entryName entry) entry'
+
+-- | Tests whether the given (renamed) function declaration uses the constant
+--   argument.
+isConstArgUsedBy :: ConstArg -> HS.FuncDecl -> Bool
+isConstArgUsedBy constArg (HS.FuncDecl _ _ _ rhs) =
+  HS.UnQual (HS.Ident (constArgFreshIdent constArg)) `Set.member` varSet rhs
 
 -- | Generates the @Variable@ sentence for the type variables in the given
 --   types of the constant arguments.

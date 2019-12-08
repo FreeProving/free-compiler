@@ -118,9 +118,9 @@ testConvertNonRecFuncDecl =
 -------------------------------------------------------------------------------
 
 -- | Test group for 'convertRecFuncDecls' tests.
-testConvertRecFuncDecls :: Spec
-testConvertRecFuncDecls =
-  describe "Compiler.Converter.FuncDecl.convertRecFuncDecls" $ do
+testConvertRecFuncDeclsWithHelpers :: Spec
+testConvertRecFuncDeclsWithHelpers =
+  describe "Compiler.Converter.FuncDecl.convertRecFuncDeclsWithHelpers" $ do
     it "requires at least one argument"
       $ shouldReportFatal
       $ fromConverter
@@ -213,7 +213,6 @@ testConvertRecFuncDecls =
       ++ "  (xs : Free Shape Pos (List Shape Pos a))"
       ++ "  : Free Shape Pos a"
       ++ "  := findJust_0 Shape Pos p P xs."
-
 
     it "translates mutually recursive functions correctly"
       $  shouldSucceed
@@ -427,3 +426,79 @@ testConvertRecFuncDecls =
             ++ " : Free Shape Pos (List Shape Pos a)"
             ++ " := (fun n0 => xs >>= (fun (xs_0 : List Shape Pos a) =>"
             ++ "       take_0 Shape Pos n0 xs_0)) n."
+
+-------------------------------------------------------------------------------
+-- Recursive function declarations with constant arguments                   --
+-------------------------------------------------------------------------------
+
+testConvertRecFuncDeclsWithSections :: Spec
+testConvertRecFuncDeclsWithSections = do
+  describe "Compiler.Converter.FuncDecl.convertRecFuncDeclsWithSections" $ do
+    it "creates variable sentences for constant arguments"
+      $  shouldSucceed
+      $  fromConverter
+      $  shouldTranslateDeclsTo
+           [ "map :: (a -> b) -> [a] -> [b]"
+           , "map f xs = case xs of { [] -> []; x : xs' -> f x : map f xs' }"
+           ]
+      $  "Section section_map_0. "
+      ++ "(* Constant arguments for map *) "
+      ++ "Variable Shape : Type. "
+      ++ "Variable Pos : Shape -> Type. "
+      ++ "Variable a b : Type. "
+      ++ "Variable f_0 : Free Shape Pos"
+      ++ "  (Free Shape Pos a -> Free Shape Pos b). "
+      ++ "(* Helper functions for map *) "
+      ++ "Fixpoint map_1 (xs : List Shape Pos a) {struct xs}"
+      ++ "  := match xs with"
+      ++ "     | nil            => Nil Shape Pos"
+      ++ "     | cons x_1 xs'_1 =>"
+      ++ "        Cons Shape Pos"
+      ++ "          (f_0 >>= (fun f_1 => f_1 x_1))"
+      ++ "          (xs'_1 >>= (fun (xs'_2 : List Shape Pos a) =>"
+      ++ "             map_1 xs'_2))"
+      ++ "     end. "
+      ++ "(* Main functions for map *) "
+      ++ "Definition map_0 (xs : Free Shape Pos (List Shape Pos a))"
+      ++ "  : Free Shape Pos (List Shape Pos b)"
+      ++ "  := xs >>= (fun (xs_0 : List Shape Pos a) => map_1 xs_0). "
+      ++ "End section_map_0. "
+      ++ "Definition map (Shape : Type) (Pos : Shape -> Type)"
+      ++ "  {a b : Type}"
+      ++ "  (f : Free Shape Pos (Free Shape Pos a -> Free Shape Pos b))"
+      ++ "  (xs : Free Shape Pos (List Shape Pos a))"
+      ++ "  : Free Shape Pos (List Shape Pos b)"
+      ++ "  := map_0 Shape Pos f xs."
+  it "does not create variable sentences for unsued constant arguments"
+    $  shouldSucceed
+    $  fromConverter
+    $  shouldTranslateDeclsTo
+         [ "foo :: a -> a -> [a] -> [a]"
+         , "foo u v xs = case xs of { [] -> []; x : xs' -> v : foo u v xs' }"
+         ]
+    $  "Section section_foo_0. "
+    ++ "(* Constant arguments for foo *) "
+    ++ "Variable Shape : Type. "
+    ++ "Variable Pos : Shape -> Type. "
+    ++ "Variable a : Type. "
+    ++ "Variable v_0 : Free Shape Pos a. "
+    ++ "(* Helper functions for foo *) "
+    ++ "Fixpoint foo_1 (xs : List Shape Pos a) {struct xs}"
+    ++ "  := match xs with"
+    ++ "     | nil            => Nil Shape Pos"
+    ++ "     | cons x_1 xs'_1 =>"
+    ++ "        Cons Shape Pos v"
+    ++ "          (xs'_1 >>= (fun (xs'_2 : List Shape Pos a) => foo_1 xs'_2))"
+    ++ "     end. "
+    ++ "(* Main functions for foo *) "
+    ++ "Definition foo_0 (xs : Free Shape Pos (List Shape Pos a))"
+    ++ "  : Free Shape Pos (List Shape Pos a)"
+    ++ "  := xs >>= (fun (xs_0 : List Shape Pos a) => foo_1 xs_0). "
+    ++ "End section_foo_0. "
+    ++ "Definition foo (Shape : Type) (Pos : Shape -> Type)"
+    ++ "  {a : Type}"
+    ++ "  (u : Free Shape Pos a)"
+    ++ "  (v : Free Shape Pos a)"
+    ++ "  (xs : Free Shape Pos (List Shape Pos a))"
+    ++ "  : Free Shape Pos (List Shape Pos a)"
+    ++ "  := foo_0 Shape Pos v xs."

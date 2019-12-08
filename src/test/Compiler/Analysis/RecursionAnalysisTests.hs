@@ -181,9 +181,7 @@ testIdentifyConstArgs = do
         identMaps <- map (Map.assocs . constArgIdents)
           <$> identifyConstArgs funcDecls
         return
-          (          identMaps
-          `shouldBe` [ [("bar", "n"), ("baz", "n"), ("foo", "n")] ]
-          )
+          (identMaps `shouldBe` [[("bar", "n"), ("baz", "n"), ("foo", "n")]])
   it "does not identify argument as constant if it is modified in one call"
     $ shouldSucceed
     $ fromConverter
@@ -210,7 +208,4 @@ testIdentifyConstArgs = do
           ]
         identMaps <- map (Map.assocs . constArgIdents)
           <$> identifyConstArgs funcDecls
-        return
-          (          identMaps
-          `shouldBe` []
-          )
+        return (identMaps `shouldBe` [])
