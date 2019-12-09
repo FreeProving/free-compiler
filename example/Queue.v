@@ -94,7 +94,6 @@ Lemma append_nil:
   append Shape Pos fxs (pure nil) = fxs.
 Proof.
   intros Shape Pos a fxs.
-  Check append_1.
   induction fxs using FreeList_ind with (P := fun xs => append_1 Shape Pos a (pure nil) xs = pure xs); simpl.
   - reflexivity.
   - unfold Cons; simpl; repeat apply f_equal. apply IHfxs1.
