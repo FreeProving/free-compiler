@@ -41,7 +41,6 @@ initialState = do
   return PMState
     { nextId      = 0
     , constrMap   = Map.assocs consMap
-    , funcId      = ["undefined"]
     , matchedPat  = []
     , trivialCC   = False
     , opt         = True
