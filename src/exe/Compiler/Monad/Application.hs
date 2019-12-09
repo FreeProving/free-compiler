@@ -4,6 +4,7 @@ module Compiler.Monad.Application
   ( -- * State monad
     Application
   , runApp
+  , reportApp
     -- * Accessing and modifying state
   , getOpts
   , inOpts
@@ -47,6 +48,18 @@ runApp app = do
   let converter = evalStateT (unwrapApplication app) defaultOptions
       reporter  = evalConverterT converter emptyEnv
   reportToOrExit stderr (reportIOErrors reporter)
+
+-- | Runs the given application and prints the reported messages.
+reportApp :: Application a -> Application a
+reportApp app = do
+  opts <- getOpts
+  env  <- liftConverter getEnv
+  let converter = runStateT (unwrapApplication app) opts
+      reporter  = runConverterT converter env
+  ((x, opts'), env') <- liftIO (reportToOrExit stderr (reportIOErrors reporter))
+  liftConverter $ putEnv env'
+  putOpts opts'
+  return x
 
 -------------------------------------------------------------------------------
 -- Accessing and modifying state                                             --

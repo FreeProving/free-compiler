@@ -121,9 +121,10 @@ convertInputModule haskellAst = do
       ++ srcSpanFilename srcSpan
       ++ ")"
     else putDebug $ "Compiling " ++ showPretty modName
-  loadRequiredModules haskellAst
-  coqAst <- liftConverter $ convertModule haskellAst
-  return (modName, coqAst)
+  reportApp $ do
+    loadRequiredModules haskellAst
+    coqAst <- liftConverter $ convertModule haskellAst
+    return (modName, coqAst)
 
 -------------------------------------------------------------------------------
 -- Pattern matching compilation                                              --
