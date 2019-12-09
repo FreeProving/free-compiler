@@ -216,11 +216,9 @@ convertRecFuncDeclsWithSection constArgs decls = do
       typeArgNames  = Set.toList (Set.unions (map typeVarSet constArgTypes))
       typeArgIdents = map (fromJust . HS.identFromQName) typeArgNames
 
-  -- Remove constant arguments from the renamed function declarations
-  -- and their type signatures.
+  -- Remove constant arguments from the renamed function declarations.
   sectionDecls <- mapM (removeConstArgsFromFuncDecl renamedConstArgs)
                        renamedDecls
-  mapM_ (updateTypeSigs mgu typeArgIdents argTypeMap returnTypeMap) sectionDecls
 
   -- Remove the constant arguments from the type signature.
 
@@ -233,6 +231,12 @@ convertRecFuncDeclsWithSection constArgs decls = do
       isTypeArgUsed v =
         any (Set.member (HS.UnQual (HS.Ident v)) . typeVarSet) usedConstArgTypes
       usedTypeArgIdents = filter isTypeArgUsed typeArgIdents
+
+    -- Remove constant arguments from the type signatures of the renamed
+    -- function declarations.
+  mapM_ (updateTypeSigs mgu usedTypeArgIdents argTypeMap returnTypeMap)
+        sectionDecls
+
   -- Generate @Section@ sentence.
   section <- localEnv $ do
     -- Create a @Variable@ sentence for the constant arguments and their type
@@ -266,7 +270,7 @@ convertRecFuncDeclsWithSection constArgs decls = do
         )
       )
 
-  -- -- Add functions with correct argument order after the section.
+  -- Add functions with correct argument order after the section.
   interfaceDecls' <- zipWithM
     (generateInterfaceDecl constArgs
                            isConstArgUsed
