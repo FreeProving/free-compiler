@@ -212,7 +212,7 @@ testConvertRecFuncDeclsWithHelpers =
       ++ "         (Free Shape Pos a -> Free Shape Pos (Bool Shape Pos)))"
       ++ "  (xs : Free Shape Pos (List Shape Pos a))"
       ++ "  : Free Shape Pos a"
-      ++ "  := findJust_0 Shape Pos p P xs."
+      ++ "  := findJust_0 Shape Pos a p P xs."
 
     it "translates mutually recursive functions correctly"
       $  shouldSucceed
@@ -308,7 +308,7 @@ testConvertRecFuncDeclsWithHelpers =
       ++ "  (xs : Free Shape Pos (List Shape Pos a))"
       ++ "  (ys : Free Shape Pos (List Shape Pos a))"
       ++ "  : Free Shape Pos (List Shape Pos a)"
-      ++ "  := append_0 Shape Pos ys xs. "
+      ++ "  := append_0 Shape Pos a ys xs. "
 
     it
         "translates recursive functions with nested lambda abstractions correctly"
@@ -468,7 +468,7 @@ testConvertRecFuncDeclsWithSections = do
       ++ "  (f : Free Shape Pos (Free Shape Pos a -> Free Shape Pos b))"
       ++ "  (xs : Free Shape Pos (List Shape Pos a))"
       ++ "  : Free Shape Pos (List Shape Pos b)"
-      ++ "  := map_0 Shape Pos f xs."
+      ++ "  := map_0 Shape Pos a b f xs."
   it "creates variable sentences for type variables in constant argument types"
     $  shouldSucceed
     $  fromConverter
@@ -523,13 +523,13 @@ testConvertRecFuncDeclsWithSections = do
     ++ "  (f : Free Shape Pos (Free Shape Pos a -> Free Shape Pos b))"
     ++ "  (xs : Free Shape Pos (List Shape Pos a))"
     ++ "  : Free Shape Pos (List Shape Pos b)"
-    ++ "  := mapAlt_0 Shape Pos f xs. "
+    ++ "  := mapAlt_0 Shape Pos a b f xs. "
     ++ "Definition mapAlt' (Shape : Type) (Pos : Shape -> Type)"
     ++ "  {a b : Type}"
     ++ "  (f : Free Shape Pos (Free Shape Pos b -> Free Shape Pos a))"
     ++ "  (xs : Free Shape Pos (List Shape Pos b))"
     ++ "  : Free Shape Pos (List Shape Pos a)"
-    ++ "  := mapAlt'_0 Shape Pos f xs."
+    ++ "  := mapAlt'_0 Shape Pos b a f xs."
   it "does not create variable sentences for unsued constant arguments"
     $  shouldSucceed
     $  fromConverter
@@ -562,4 +562,39 @@ testConvertRecFuncDeclsWithSections = do
     ++ "  (v : Free Shape Pos a)"
     ++ "  (xs : Free Shape Pos (List Shape Pos a))"
     ++ "  : Free Shape Pos (List Shape Pos a)"
-    ++ "  := foo_0 Shape Pos v xs."
+    ++ "  := foo_0 Shape Pos a v xs."
+  it "passes constant type arguments explicitly the main function"
+    $  shouldSucceed
+    $  fromConverter
+    $  shouldTranslateDeclsTo
+         [ "foo :: a -> b -> [c] -> [b]"
+         , "foo u v xs = case xs of { [] -> []; x : xs' -> v : foo u v xs' }"
+         ]
+    $  "Section section_foo_0. "
+    ++ "(* Constant arguments for foo *) "
+    ++ "Variable Shape : Type. "
+    ++ "Variable Pos : Shape -> Type. "
+    ++ "Variable b_0 : Type. "
+    ++ "Variable v_0 : Free Shape Pos b_0. "
+    ++ "(* Helper functions for foo *) "
+    ++ "Fixpoint foo_1 {c_0 : Type}"
+    ++ "  (xs : List Shape Pos c_0) {struct xs}"
+    ++ "  := match xs with"
+    ++ "     | nil            => Nil Shape Pos"
+    ++ "     | cons x_1 xs'_1 =>"
+    ++ "        Cons Shape Pos v_0"
+    ++ "          (xs'_1 >>= (fun (xs'_2 : List Shape Pos c_0) => foo_1 xs'_2))"
+    ++ "     end. "
+    ++ "(* Main functions for foo *) "
+    ++ "Definition foo_0 {c_0 : Type}"
+    ++ "  (xs : Free Shape Pos (List Shape Pos c_0))"
+    ++ "  : Free Shape Pos (List Shape Pos b_0)"
+    ++ "  := xs >>= (fun (xs_0 : List Shape Pos c_0) => foo_1 xs_0). "
+    ++ "End section_foo_0. "
+    ++ "Definition foo (Shape : Type) (Pos : Shape -> Type)"
+    ++ "  {a b c : Type}"
+    ++ "  (u : Free Shape Pos a)"
+    ++ "  (v : Free Shape Pos b)"
+    ++ "  (xs : Free Shape Pos (List Shape Pos c))"
+    ++ "  : Free Shape Pos (List Shape Pos b)"
+    ++ "  := foo_0 Shape Pos b v xs."

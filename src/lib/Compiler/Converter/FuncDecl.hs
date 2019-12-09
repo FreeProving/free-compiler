@@ -191,6 +191,16 @@ convertRecFuncDeclsWithSection constArgs decls = do
   -- Rename the function declarations in the section.
   (renamedDecls, identMap) <- renameFuncDecls decls
   let renamedConstArgs = map (renameConstArg identMap) constArgs
+  renamedTypeArgs <- mapM
+    ( fmap fromJust
+    . inEnv
+    . lookupTypeArgs ValueScope
+    . HS.UnQual
+    . HS.Ident
+    . HS.fromDeclIdent
+    . HS.getDeclIdent
+    )
+    renamedDecls
 
   -- Lookup the argument and return types of all function declarations.
   (argTypeMaps, returnTypeMaps) <- mapAndUnzipM argAndReturnTypeMaps
@@ -215,20 +225,24 @@ convertRecFuncDeclsWithSection constArgs decls = do
   -- Remove the constant arguments from the type signature.
 
   -- Test which of the constant arguments is actually used by any function
-  -- in the section.
+  -- in the section and which of the type arguments is needed by the types
+  -- of used .
   let isConstArgUsed = map (flip any sectionDecls . isConstArgUsedBy) constArgs
-
+      usedConstArgTypes =
+        map snd $ filter fst $ zip isConstArgUsed constArgTypes
+      isTypeArgUsed v =
+        any (Set.member (HS.UnQual (HS.Ident v)) . typeVarSet) usedConstArgTypes
+      usedTypeArgIdents = filter isTypeArgUsed typeArgIdents
   -- Generate @Section@ sentence.
   section <- localEnv $ do
     -- Create a @Variable@ sentence for the constant arguments and their type
     -- variables. No @Variable@ sentence is created if a constant argument is
     -- never used (Coq would ignore the @Variable@ sentence anyway).
-    maybeTypeArgSentence <- generateConstTypeArgSentence typeArgIdents
-    varSentences         <- zipWithM generateConstArgVariable
-                                     renamedConstArgs
-                                     constArgTypes
-    let usedVarSentences =
-          map fst $ filter snd $ zip varSentences isConstArgUsed
+    maybeTypeArgSentence <- generateConstTypeArgSentence usedTypeArgIdents
+    varSentences         <- zipWithM
+      generateConstArgVariable
+      (map fst $ filter snd $ zip renamedConstArgs isConstArgUsed)
+      (map fst $ filter snd $ zip constArgTypes isConstArgUsed)
 
     -- Generate a section identifier from the names of the original functions
     -- and convert the renamed functions as usual.
@@ -243,7 +257,7 @@ convertRecFuncDeclsWithSection constArgs decls = do
           (  G.comment ("Constant arguments for " ++ intercalate ", " funcNames)
           :  genericArgVariables
           ++ maybeToList maybeTypeArgSentence
-          ++ usedVarSentences
+          ++ varSentences
           ++ G.comment ("Helper functions for " ++ intercalate ", " funcNames)
           :  helperDecls'
           ++ G.comment ("Main functions for " ++ intercalate ", " funcNames)
@@ -253,8 +267,14 @@ convertRecFuncDeclsWithSection constArgs decls = do
       )
 
   -- -- Add functions with correct argument order after the section.
-  interfaceDecls' <- mapM
-    (generateInterfaceDecl constArgs isConstArgUsed identMap)
+  interfaceDecls' <- zipWithM
+    (generateInterfaceDecl constArgs
+                           isConstArgUsed
+                           identMap
+                           mgu
+                           usedTypeArgIdents
+    )
+    renamedTypeArgs
     decls
   return (section : interfaceDecls')
 
@@ -268,10 +288,17 @@ generateInterfaceDecl
      -- ^ Whether the constant argument is used by any function.
   -> Map String String
      -- ^ Maps the names of the original functions to renamed/main functions.
+  -> Subst HS.Type
+     -- ^ The substitution of type variables of the function to type
+     --   variables in the @Section@.
+  -> [HS.TypeVarIdent]
+     -- ^ The names of the @Section@'s type variables.
+  -> [HS.TypeVarIdent]
+     -- ^ The names of the renamed function's type variables.
   -> HS.FuncDecl
      -- ^ The original function declaration.
   -> Converter G.Sentence
-generateInterfaceDecl constArgs isConstArgUsed identMap (HS.FuncDecl _ (HS.DeclIdent _ ident) args _)
+generateInterfaceDecl constArgs isConstArgUsed identMap mgu sectionTypeArgs renamedTypeArgs (HS.FuncDecl srcSpan (HS.DeclIdent _ ident) args _)
   = localEnv $ do
     let
       name          = HS.UnQual (HS.Ident ident)
@@ -282,20 +309,68 @@ generateInterfaceDecl constArgs isConstArgUsed identMap (HS.FuncDecl _ (HS.DeclI
         constArgs
       usedConstArgNames =
         map fst $ filter snd $ zip constArgNames isConstArgUsed
+
+    -- Generate the head of the interface function definition.
     (qualid, binders, returnType') <- convertFuncHead name args
+
+    -- Lookup the name of the main function.
     Just qualid'                   <- inEnv $ lookupIdent ValueScope name'
-    constArgNames'                 <-
+
+    -- Lookup the names of type arguments that have to be passed to the
+    -- main function.
+    Just typeArgs                  <- inEnv $ lookupTypeArgs ValueScope name
+    typeArgNames                   <- mapM
+      (lookupTypeArgName typeArgs (zip renamedTypeArgs [0 ..]))
+      sectionTypeArgs
+    typeArgNames' <-
+      catMaybes <$> mapM (inEnv . lookupIdent TypeScope) typeArgNames
+
+    -- Lookup the names of the constant arguments to pass to the main function.
+    constArgNames' <-
       catMaybes <$> mapM (inEnv . lookupIdent ValueScope) usedConstArgNames
+
+    -- If the function is partial, the @Partial@ instance needs to be passed
+    -- to the main function.
     partialArg <- ifM (inEnv $ isPartial name)
                       (return [fst CoqBase.partialArg])
                       (return [])
+
+    -- Lookup the names of all other arguments to pass to the main function.
     let nonConstArgNames =
           map (HS.UnQual . HS.Ident . HS.fromVarPat) args \\ constArgNames
     nonConstArgNames' <-
       catMaybes <$> mapM (inEnv . lookupIdent ValueScope) nonConstArgNames
-    let argNames' = constArgNames' ++ partialArg ++ nonConstArgNames'
-        rhs'      = genericApply qualid' (map G.Qualid argNames')
+
+    -- Generate invocation of the main function.
+    let argNames' =
+          typeArgNames' ++ constArgNames' ++ partialArg ++ nonConstArgNames'
+        rhs' = genericApply qualid' (map G.Qualid argNames')
     return (G.definitionSentence qualid binders returnType' rhs')
+ where
+  -- | Looks up the name of the function's type argument that corresponds to
+  --   the given type argument of the @Section@.
+  lookupTypeArgName
+    :: [HS.TypeVarIdent]
+       -- ^ The type arguments of the function.
+    -> [(HS.TypeVarIdent, Int)]
+       -- ^ The renamed type arguments of the function and their index.
+    -> HS.TypeVarIdent
+       -- ^ The type argument of the section.
+    -> Converter HS.QName
+  lookupTypeArgName _ [] u =
+    reportFatal
+      $  Message srcSpan Error
+      $  "Cannot find name of section type argument "
+      ++ u
+      ++ " for "
+      ++ ident
+  lookupTypeArgName ws ((v, i) : vs) u = do
+    (HS.TypeVar _ v') <- applySubst mgu (HS.TypeVar NoSrcSpan v)
+    if v' == u
+      then do
+        let w = ws !! i
+        return (HS.UnQual (HS.Ident w))
+      else lookupTypeArgName ws vs u
 
 -- | Gets a map that maps the names of the arguments (qualified with the
 --   function name) of the given function declaration to their annotated
