@@ -15,7 +15,7 @@ import qualified Data.Set                      as Set
 import           Compiler.Analysis.DependencyAnalysis
 import qualified Compiler.Coq.AST              as G
 import           Compiler.Converter.Expr
-import           Compiler.Converter.FuncDecl
+import           Compiler.Converter.FuncDecl.Common
 import           Compiler.Environment
 import           Compiler.Environment.Entry
 import           Compiler.Environment.Scope

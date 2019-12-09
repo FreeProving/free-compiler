@@ -92,6 +92,11 @@ library haskell-to-coq-internal
                       , Compiler.Converter.Expr
                       , Compiler.Converter.Free
                       , Compiler.Converter.FuncDecl
+                      , Compiler.Converter.FuncDecl.Common
+                      , Compiler.Converter.FuncDecl.NonRec
+                      , Compiler.Converter.FuncDecl.Rec
+                      , Compiler.Converter.FuncDecl.Rec.WithHelpers
+                      , Compiler.Converter.FuncDecl.Rec.WithSections
                       , Compiler.Converter.Module
                       , Compiler.Converter.QuickCheck
                       , Compiler.Converter.Type

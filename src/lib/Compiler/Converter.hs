@@ -29,10 +29,11 @@ import           Compiler.Converter.Module      ( convertModule
                                                 , convertTypeDecls
                                                 )
 import           Compiler.Converter.Expr        ( convertExpr )
-import           Compiler.Converter.FuncDecl    ( convertFuncComponent
-                                                , convertNonRecFuncDecl
-                                                , convertRecFuncDecls
-                                                )
+import           Compiler.Converter.FuncDecl    ( convertFuncComponent )
+import           Compiler.Converter.FuncDecl.NonRec
+                                                ( convertNonRecFuncDecl )
+import           Compiler.Converter.FuncDecl.Rec
+                                                ( convertRecFuncDecls )
 import           Compiler.Converter.Type        ( convertType
                                                 , convertType'
                                                 )
