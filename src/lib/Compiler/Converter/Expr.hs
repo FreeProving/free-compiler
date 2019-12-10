@@ -157,6 +157,12 @@ convertExpr' (HS.Lambda _ args expr) [] = localEnv $ do
   expr' <- convertExpr expr
   foldrM (generatePure .: G.Fun . return) expr' args'
 
+-- Type signatures.
+convertExpr' (HS.ExprTypeSig _ expr typeExpr) [] = do
+  expr'     <- convertExpr' expr []
+  typeExpr' <- convertType typeExpr
+  return (G.HasType expr' typeExpr')
+
 -- Application of an expression other than a function or constructor
 -- application. (We use an as-pattern for @args@ such that we get a compile
 -- time warning when a node is added to the AST that we do not conver above).

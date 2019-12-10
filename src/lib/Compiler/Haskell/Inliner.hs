@@ -105,6 +105,9 @@ inlineExpr decls = inlineAndBind
     -- TODO shadow args in expr
     expr' <- inlineAndBind expr
     return ([], HS.Lambda srcSpan args expr')
+  inlineExpr' (HS.ExprTypeSig srcSpan expr typeExpr) = do
+    expr' <- inlineAndBind expr
+    return ([], HS.ExprTypeSig srcSpan expr' typeExpr)
 
   -- All other expressions remain unchanged.
   inlineExpr' expr@(HS.Con _ _       ) = return ([], expr)

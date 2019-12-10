@@ -125,6 +125,9 @@ instance ApplySubst HS.Expr where
       (args', argSubst) <- renameArgsSubst args
       expr'             <- applySubst (composeSubst subst argSubst) expr
       return (HS.Lambda srcSpan args' expr')
+    applySubst' (HS.ExprTypeSig srcSpan expr typeExpr) = do
+      expr' <- applySubst' expr
+      return (HS.ExprTypeSig srcSpan expr' typeExpr)
 
     -- All other expressions remain unchanged.
     applySubst' expr@(HS.Con _ _       ) = return expr

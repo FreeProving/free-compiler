@@ -41,15 +41,16 @@ import           Compiler.Haskell.AST          as HS
 
 -- | Gets the direct child expression nodes of the given expression.
 childExprs :: HS.Expr -> [HS.Expr]
-childExprs (HS.App _ e1 e2       ) = [e1, e2]
-childExprs (HS.If _ e1 e2 e3     ) = [e1, e2, e3]
-childExprs (HS.Case   _ expr alts) = expr : map altChildExpr alts
-childExprs (HS.Lambda _ _    expr) = [expr]
-childExprs (HS.Con _ _           ) = []
-childExprs (HS.Var _ _           ) = []
-childExprs (HS.Undefined _       ) = []
-childExprs (HS.ErrorExpr  _ _    ) = []
-childExprs (HS.IntLiteral _ _    ) = []
+childExprs (HS.App _ e1 e2            ) = [e1, e2]
+childExprs (HS.If _ e1 e2 e3          ) = [e1, e2, e3]
+childExprs (HS.Case        _ expr alts) = expr : map altChildExpr alts
+childExprs (HS.Lambda      _ _    expr) = [expr]
+childExprs (HS.ExprTypeSig _ expr _   ) = [expr]
+childExprs (HS.Con _ _                ) = []
+childExprs (HS.Var _ _                ) = []
+childExprs (HS.Undefined _            ) = []
+childExprs (HS.ErrorExpr  _ _         ) = []
+childExprs (HS.IntLiteral _ _         ) = []
 
 -- | Gets the expression on the right hand side of the given @case@-expression
 --   alternative.

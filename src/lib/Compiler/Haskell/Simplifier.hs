@@ -591,6 +591,12 @@ simplifyExpr (H.Case srcSpan expr alts) = do
   alts' <- mapM simplifyAlt alts
   return (HS.Case srcSpan expr' alts')
 
+-- Type signatures.
+simplifyExpr (H.ExpTypeSig srcSpan expr typeExpr) = do
+  expr' <- simplifyExpr expr
+  typeExpr' <- simplifyType typeExpr
+  return (HS.ExprTypeSig srcSpan expr' typeExpr')
+
 -- Not supported expressions.
 simplifyExpr expr@(H.OverloadedLabel _ _) =
   notSupported "Overloaded labels" expr
@@ -620,8 +626,6 @@ simplifyExpr expr@(H.ParComp _ _ _) =
   notSupported "Parallel list comprehensions" expr
 simplifyExpr expr@(H.ParArrayComp _ _ _) =
   notSupported "Parallel array comprehensions" expr
-simplifyExpr expr@(H.ExpTypeSig _ _ _) =
-  notSupported "Expressions with explicit type signatures" expr
 simplifyExpr expr@(H.VarQuote   _ _  ) = notSupported "Template Haskell" expr
 simplifyExpr expr@(H.TypQuote   _ _  ) = notSupported "Template Haskell" expr
 simplifyExpr expr@(H.BracketExp _ _  ) = notSupported "Template Haskell" expr

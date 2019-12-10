@@ -133,11 +133,14 @@ checkDecArgs decls decArgIndecies = all (uncurry checkDecArg)
       let smaller' = withoutArgs args smaller
       in  checkExpr decArg smaller' expr []
 
+    -- Recursively check expression with type signature.
+    checkExpr' (HS.ExprTypeSig _ expr _) args = checkExpr' expr args
+
     -- Base expressions are
-    checkExpr' (HS.Con _ _       ) _ = True
-    checkExpr' (HS.Undefined _   ) _ = True
-    checkExpr' (HS.ErrorExpr  _ _) _ = True
-    checkExpr' (HS.IntLiteral _ _) _ = True
+    checkExpr' (HS.Con _ _       ) _     = True
+    checkExpr' (HS.Undefined _   ) _     = True
+    checkExpr' (HS.ErrorExpr  _ _) _     = True
+    checkExpr' (HS.IntLiteral _ _) _     = True
 
     -- | Applies 'checkExpr' on the right hand side of an alternative of a
     --   @case@ expression.
@@ -298,12 +301,15 @@ makeConstArgGraph modName decls = do
           | x `shadowedBy` args = not (callsG expr)
           | otherwise           = checkExpr expr []
 
+        -- Check expression with type signature recursively.
+        checkExpr (HS.ExprTypeSig _ expr _) args = checkExpr expr args
+
         -- Constructors, literals and error terms cannot contain further
         -- calls to @g@.
-        checkExpr (HS.Con        _ _) _ = True
-        checkExpr (HS.IntLiteral _ _) _ = True
-        checkExpr (HS.Undefined _   ) _ = True
-        checkExpr (HS.ErrorExpr _ _ ) _ = True
+        checkExpr (HS.Con        _ _) _     = True
+        checkExpr (HS.IntLiteral _ _) _     = True
+        checkExpr (HS.Undefined _   ) _     = True
+        checkExpr (HS.ErrorExpr _ _ ) _     = True
 
         -- | Applies 'checkExpr' to the alternative of a @case@ expression.
         --

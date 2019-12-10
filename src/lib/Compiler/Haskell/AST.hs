@@ -281,6 +281,8 @@ data Expr
 
   | IntLiteral SrcSpan Integer    -- ^ An integer literal.
   | Lambda SrcSpan [VarPat] Expr  -- ^ A lambda abstraction.
+
+  | ExprTypeSig SrcSpan Expr Type -- ^ A type annotation.
   deriving (Eq, Show)
 
 -- | One alternative of a case expression.
@@ -466,15 +468,16 @@ instance GetSrcSpan Type where
 
 -- | 'GetSrcSpan' instance for expressions.
 instance GetSrcSpan Expr where
-  getSrcSpan (Con        srcSpan _    ) = srcSpan
-  getSrcSpan (Var        srcSpan _    ) = srcSpan
-  getSrcSpan (App        srcSpan _ _  ) = srcSpan
-  getSrcSpan (If         srcSpan _ _ _) = srcSpan
-  getSrcSpan (Case       srcSpan _ _  ) = srcSpan
-  getSrcSpan (Undefined  srcSpan      ) = srcSpan
-  getSrcSpan (ErrorExpr  srcSpan _    ) = srcSpan
-  getSrcSpan (IntLiteral srcSpan _    ) = srcSpan
-  getSrcSpan (Lambda     srcSpan _ _  ) = srcSpan
+  getSrcSpan (Con         srcSpan _    ) = srcSpan
+  getSrcSpan (Var         srcSpan _    ) = srcSpan
+  getSrcSpan (App         srcSpan _ _  ) = srcSpan
+  getSrcSpan (If          srcSpan _ _ _) = srcSpan
+  getSrcSpan (Case        srcSpan _ _  ) = srcSpan
+  getSrcSpan (Undefined   srcSpan      ) = srcSpan
+  getSrcSpan (ErrorExpr   srcSpan _    ) = srcSpan
+  getSrcSpan (IntLiteral  srcSpan _    ) = srcSpan
+  getSrcSpan (Lambda      srcSpan _ _  ) = srcSpan
+  getSrcSpan (ExprTypeSig srcSpan _ _  ) = srcSpan
 
 -- | 'GetSrcSpan' instance for @case@-expression alternatives.
 instance GetSrcSpan Alt where

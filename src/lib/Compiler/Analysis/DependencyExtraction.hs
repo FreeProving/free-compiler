@@ -163,6 +163,7 @@ exprDependencies' (HS.ErrorExpr  _ _) = conName HS.errorFuncName
 exprDependencies' (HS.IntLiteral _ _) = Set.empty
 exprDependencies' (HS.Lambda _ args expr) =
   withoutArgs args (exprDependencies' expr)
+exprDependencies' (HS.ExprTypeSig _ expr _) = exprDependencies' expr
 
 -- | Extracts the names of all variables, functions and constructors used in
 --   the given alternative of a @case@-expression.

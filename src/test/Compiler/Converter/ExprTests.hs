@@ -18,6 +18,7 @@ testConvertExpr = describe "Compiler.Converter.Expr.convertExpr" $ do
   testConvertIf
   testConvertCase
   testConvertLambda
+  testConvertExprTypeSigs
   testConvertInteger
   testConvertBool
   testConvertLists
@@ -313,6 +314,21 @@ testConvertLambda = context "lambda abstractions" $ do
     $ do
         "x" <- defineTestVar "x"
         shouldTranslateExprTo "\\x -> x" "pure (fun x0 => x0)"
+
+-------------------------------------------------------------------------------
+-- Type signatures                                                           --
+-------------------------------------------------------------------------------
+
+-- | Test group for translation of expressions with type signatures.
+testConvertExprTypeSigs :: Spec
+testConvertExprTypeSigs = context "type signatures" $ do
+  it "translates expressions with type signatures correctly"
+    $ shouldSucceed
+    $ fromConverter
+    $ do
+        "x" <- defineTestVar "x"
+        "a" <- defineTestTypeVar "a"
+        "x :: a" `shouldTranslateExprTo` "x : Free Shape Pos a"
 
 -------------------------------------------------------------------------------
 -- Integer expressions                                                       --
