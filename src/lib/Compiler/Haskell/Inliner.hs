@@ -20,10 +20,12 @@ import qualified Data.Map.Strict               as Map
 import           Data.Maybe                     ( maybe )
 
 import           Compiler.Environment
+import           Compiler.Environment.Scope
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Haskell.SrcSpan
 import           Compiler.Haskell.Subst
 import           Compiler.Monad.Converter
+import           Compiler.Monad.Instance.Fail   ( )
 
 -------------------------------------------------------------------------------
 -- Inlining function declarations                                            --
@@ -76,8 +78,9 @@ inlineExpr decls = inlineAndBind
   inlineExpr' var@(HS.Var _ name) = case Map.lookup name declMap of
     Nothing          -> return ([], var)
     Just (args, rhs) -> do
-      (args', rhs') <- renameArgs args rhs
-      return (map HS.fromVarPat args', rhs')
+      (args', rhs')   <- renameArgs args rhs
+      Just returnType <- inEnv $ lookupReturnType ValueScope name
+      return (map HS.fromVarPat args', HS.ExprTypeSig NoSrcSpan rhs' returnType)
 
   -- Substitute argument of inlined function and inline recursively in
   -- function arguments.
