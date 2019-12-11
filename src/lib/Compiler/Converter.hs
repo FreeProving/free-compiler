@@ -15,9 +15,10 @@ module Compiler.Converter
   , convertFuncComponent
   , convertNonRecFuncDecl
   , convertRecFuncDecls
-    -- * Type expressions
+    -- * Type expressions and type schemas
   , convertType
   , convertType'
+  , convertTypeSchema
    -- * Expressions
   , convertExpr
   )
@@ -41,3 +42,4 @@ import           Compiler.Converter.TypeDecl    ( convertTypeComponent
                                                 , convertDataDecls
                                                 , convertDataDecl
                                                 )
+import           Compiler.Converter.TypeSchema  ( convertTypeSchema )

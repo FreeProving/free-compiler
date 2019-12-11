@@ -202,6 +202,10 @@ data ConDecl = ConDecl
 -- Type expressions                                                          --
 -------------------------------------------------------------------------------
 
+-- | A Haskell type expression with explicitly introduced type variables.
+data TypeSchema = TypeSchema SrcSpan [TypeVarDecl] Type
+ deriving (Eq, Show)
+
 -- | A Haskell type expression.
 --
 --  Build-in types are represented by applications of their type constructors.
@@ -282,7 +286,7 @@ data Expr
   | IntLiteral SrcSpan Integer    -- ^ An integer literal.
   | Lambda SrcSpan [VarPat] Expr  -- ^ A lambda abstraction.
 
-  | ExprTypeSig SrcSpan Expr Type -- ^ A type annotation.
+  | ExprTypeSig SrcSpan Expr TypeSchema -- ^ A type annotation.
   deriving (Eq, Show)
 
 -- | One alternative of a case expression.

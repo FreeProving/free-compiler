@@ -80,7 +80,10 @@ inlineExpr decls = inlineAndBind
     Just (args, rhs) -> do
       (args', rhs')   <- renameArgs args rhs
       Just returnType <- inEnv $ lookupReturnType ValueScope name
-      return (map HS.fromVarPat args', HS.ExprTypeSig NoSrcSpan rhs' returnType)
+      return
+        ( map HS.fromVarPat args'
+        , HS.ExprTypeSig NoSrcSpan rhs' (HS.TypeSchema NoSrcSpan [] returnType)
+        )
 
   -- Substitute argument of inlined function and inline recursively in
   -- function arguments.

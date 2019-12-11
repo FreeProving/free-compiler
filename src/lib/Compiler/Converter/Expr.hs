@@ -9,6 +9,7 @@ import           Data.Maybe                     ( maybe )
 
 import           Compiler.Converter.Arg
 import           Compiler.Converter.Type
+import           Compiler.Converter.TypeSchema
 import           Compiler.Converter.Free
 import qualified Compiler.Coq.AST              as G
 import qualified Compiler.Coq.Base             as CoqBase
@@ -158,10 +159,10 @@ convertExpr' (HS.Lambda _ args expr) [] = localEnv $ do
   foldrM (generatePure .: G.Fun . return) expr' args'
 
 -- Type signatures.
-convertExpr' (HS.ExprTypeSig _ expr typeExpr) [] = do
-  expr'     <- convertExpr' expr []
-  typeExpr' <- convertType typeExpr
-  return (G.HasType expr' typeExpr')
+convertExpr' (HS.ExprTypeSig _ expr typeSchema) [] = do
+  expr'       <- convertExpr expr
+  typeSchema' <- convertTypeSchema typeSchema
+  return (G.HasType expr' typeSchema')
 
 -- Application of an expression other than a function or constructor
 -- application. (We use an as-pattern for @args@ such that we get a compile

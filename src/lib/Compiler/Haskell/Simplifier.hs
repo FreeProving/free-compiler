@@ -30,6 +30,8 @@ import           Data.Maybe                     ( fromJust
 
 import qualified Language.Haskell.Exts.Syntax  as H
 
+import           Compiler.Analysis.DependencyExtraction
+                                                ( typeVars )
 import           Compiler.Environment.Fresh
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Haskell.SrcSpan
@@ -179,16 +181,16 @@ simplifyDecl
 
 -- Type synonym declarations.
 simplifyDecl (H.TypeDecl srcSpan declHead typeExpr) = do
-  (declIdent, typeVars) <- simplifyDeclHead declHead
+  (declIdent, typeArgs) <- simplifyDeclHead declHead
   typeExpr'             <- simplifyType typeExpr
-  return ([HS.TypeSynDecl srcSpan declIdent typeVars typeExpr'], [], [])
+  return ([HS.TypeSynDecl srcSpan declIdent typeArgs typeExpr'], [], [])
 
 -- Data type declarations.
 simplifyDecl (H.DataDecl srcSpan (H.DataType _) Nothing declHead conDecls []) =
   do
-    (declIdent, typeVars) <- simplifyDeclHead declHead
+    (declIdent, typeArgs) <- simplifyDeclHead declHead
     conDecls'             <- mapM simplifyConDecl conDecls
-    return ([HS.DataDecl srcSpan declIdent typeVars conDecls'], [], [])
+    return ([HS.DataDecl srcSpan declIdent typeArgs conDecls'], [], [])
 
 -- Not supported data declarations.
 simplifyDecl decl@(H.DataDecl _ (H.NewType _) _ _ _ _) =
@@ -284,9 +286,9 @@ simplifyDeclHead (H.DHead _ declName) = do
   return (declIdent, [])
 simplifyDeclHead (H.DHParen _ declHead          ) = simplifyDeclHead declHead
 simplifyDeclHead (H.DHApp _ declHead typeVarBind) = do
-  (declIdent, typeVars) <- simplifyDeclHead declHead
-  typeVar               <- simplifyTypeVarBind typeVarBind
-  return (declIdent, typeVars ++ [typeVar])
+  (declIdent, typeArgs) <- simplifyDeclHead declHead
+  typeArg               <- simplifyTypeVarBind typeVarBind
+  return (declIdent, typeArgs ++ [typeArg])
 simplifyDeclHead declHead@(H.DHInfix _ _ _) =
   notSupported "Type operators" declHead
 
@@ -593,9 +595,20 @@ simplifyExpr (H.Case srcSpan expr alts) = do
 
 -- Type signatures.
 simplifyExpr (H.ExpTypeSig srcSpan expr typeExpr) = do
-  expr' <- simplifyExpr expr
+  expr'     <- simplifyExpr expr
   typeExpr' <- simplifyType typeExpr
-  return (HS.ExprTypeSig srcSpan expr' typeExpr')
+  return
+    (HS.ExprTypeSig
+      srcSpan
+      expr'
+      (HS.TypeSchema
+        NoSrcSpan
+        (map (HS.DeclIdent NoSrcSpan . fromJust . HS.identFromQName)
+             (typeVars typeExpr')
+        )
+        typeExpr'
+      )
+    )
 
 -- Not supported expressions.
 simplifyExpr expr@(H.OverloadedLabel _ _) =

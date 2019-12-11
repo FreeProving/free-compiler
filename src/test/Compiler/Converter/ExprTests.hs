@@ -326,9 +326,16 @@ testConvertExprTypeSigs = context "type signatures" $ do
     $ shouldSucceed
     $ fromConverter
     $ do
-        "x" <- defineTestVar "x"
-        "a" <- defineTestTypeVar "a"
-        "x :: a" `shouldTranslateExprTo` "x : Free Shape Pos a"
+        shouldTranslateExprTo
+          "42 :: Integer"
+          ("pure 42%Z : Free Shape Pos (Integer Shape Pos)")
+  it "type variables are implicit"
+    $ shouldSucceed
+    $ fromConverter
+    $ do
+        shouldTranslateExprTo
+          "[] :: [a]"
+          ("Nil Shape Pos : Free Shape Pos (List Shape Pos _)")
 
 -------------------------------------------------------------------------------
 -- Integer expressions                                                       --

@@ -101,6 +101,7 @@ library haskell-to-coq-internal
                       , Compiler.Converter.QuickCheck
                       , Compiler.Converter.Type
                       , Compiler.Converter.TypeDecl
+                      , Compiler.Converter.TypeSchema
                       , Compiler.Coq.AST
                       , Compiler.Coq.Base
                       , Compiler.Coq.Keywords
