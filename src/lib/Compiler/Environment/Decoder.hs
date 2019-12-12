@@ -25,6 +25,14 @@
 --
 --     * @module-name@ (@String@) the name of the module that is described by
 --       the module interface file.
+--     * @exported-types@ (@Array@ of @String@) the names (@haskell-name@) of
+--       the type-level entries exported by the module. All other entries in
+--       the @types@ and @type-synonyms@ tables are "hidden" (i.e. cannot be
+--       used by an importing module directly).
+--     * @exported-values@ (@Array@ of @String@) the names (@haskell-name@) of
+--       the value-level entries exported by the module. All other entries in
+--       the @constructors@ and @functions@ tables are "hidden" (i.e. cannot be
+--       used by an importing module directly).
 --
 --   == Data types
 --
