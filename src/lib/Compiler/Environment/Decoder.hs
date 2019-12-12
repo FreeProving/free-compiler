@@ -22,12 +22,14 @@
 --   == Top-Level
 --
 --   The top-level table must contain the following key/value pairs:
+--
 --     * @module-name@ (@String@) the name of the module that is described by
 --       the module interface file.
 --
 --   == Data types
 --
 --   The tables in the @types@ array must contain the following key/value pairs:
+--
 --     * @haskell-name@ (@String@) the qualified Haskell name of the type
 --       constructor in the module it has been defined in.
 --     * @coq-name@ (@String@) the identifier of the corresponding Coq type
@@ -39,6 +41,7 @@
 --
 --   The tables in the @type-synonyms@ array must contain the following
 --   key/value pairs:
+--
 --     * @haskell-name@ (@String@) the qualified Haskell name of the type
 --       synonym in the module it has been defined in.
 --     * @coq-name@ (@String@) the identifier of the corresponding Coq
@@ -54,6 +57,7 @@
 --
 --   The tables in the @constructors@ array must contain the following
 --   key/value pairs:
+--
 --     * @haskell-type@ (@String@) the Haskell type of the data constructor.
 --     * @haskell-name@ (@String@) the qualified Haskell name of the data
 --       constructor in the module it has been defined in.
@@ -68,6 +72,7 @@
 --
 --   The tables in the @functions@ array must contain the following
 --   key/value pairs:
+--
 --     * @haskell-type@ (@String@) the Haskell type of the function.
 --     * @haskell-name@ (@String@) the qualified Haskell name of the function
 --       in the module it has been defined in.
