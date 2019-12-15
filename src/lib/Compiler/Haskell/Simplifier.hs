@@ -70,10 +70,20 @@ skipNotSupported
   => String    -- ^ The feature (in plural) that is not supported.
   -> a SrcSpan -- ^ The node that is skipped.
   -> Simplifier ()
-skipNotSupported feature node = report $ Message
+skipNotSupported feature = skipNotSupported' feature "will be skipped"
+
+-- | Like 'skipNotSupported' but an additional parameter describes what is
+--   done to skip the feature.
+skipNotSupported'
+  :: H.Annotated a
+  => String    -- ^ The feature (in plural) that is not supported.
+  -> String    -- ^ Description of what will be done to skip the feature.
+  -> a SrcSpan -- ^ The node that is skipped.
+  -> Simplifier ()
+skipNotSupported' feature strategy node = report $ Message
   (H.ann node)
   Warning
-  (feature ++ " are not supported and will be skipped!")
+  (feature ++ " are not supported and " ++ strategy ++ "!")
 
 -- | Like 'notSupported' but refers to the `--transform-pattern-matching`
 --   command line option to enable support for the future.
@@ -167,7 +177,12 @@ simplifyImport decl
     "Imports with explicit package names"
     decl
   | isJust (H.importAs decl) = notSupported "Imports with aliases" decl
-  | isJust (H.importSpecs decl) = notSupported "Import specifications" decl
+  | isJust (H.importSpecs decl) = do
+    skipNotSupported'
+      "Import specifications"
+      "everything will be imported"
+      (fromJust (H.importSpecs decl))
+    simplifyImport decl { H.importSpecs = Nothing }
   | otherwise = case H.importModule decl of
     H.ModuleName srcSpan modName -> return (HS.ImportDecl srcSpan modName)
 
@@ -461,7 +476,7 @@ simplifyType (H.TyCon srcSpan name) = do
   return (HS.TypeCon srcSpan name')
 
 -- Type wrapped in parentheses @('t')@.
-simplifyType (H.TyParen _ t) = simplifyType t
+simplifyType (H.TyParen _ t                        ) = simplifyType t
 
 -- Skip type class contexts.
 simplifyType (H.TyForall _ Nothing (Just context) t) = do
