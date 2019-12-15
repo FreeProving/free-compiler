@@ -63,6 +63,18 @@ notSupported
   -> Simplifier r
 notSupported feature = usageError (feature ++ " are not supported!")
 
+-- | Reports that a feature is not supported and the given Haskell AST node
+--   will therefore be ignored.
+skipNotSupported
+  :: H.Annotated a
+  => String    -- ^ The feature (in plural) that is not supported.
+  -> a SrcSpan -- ^ The node that is skipped.
+  -> Simplifier ()
+skipNotSupported feature node = report $ Message
+  (H.ann node)
+  Warning
+  (feature ++ " are not supported and will be skipped!")
+
 -- | Like 'notSupported' but refers to the `--transform-pattern-matching`
 --   command line option to enable support for the future.
 experimentallySupported :: H.Annotated a => String -> a SrcSpan -> Simplifier r
@@ -192,13 +204,20 @@ simplifyDecl (H.DataDecl srcSpan (H.DataType _) Nothing declHead conDecls []) =
     conDecls'             <- mapM simplifyConDecl conDecls
     return ([HS.DataDecl srcSpan declIdent typeArgs conDecls'], [], [])
 
--- Not supported data declarations.
+-- `newtype` declarations are not supported.
 simplifyDecl decl@(H.DataDecl _ (H.NewType _) _ _ _ _) =
   notSupported "Newtype declarations" decl
-simplifyDecl decl@(H.DataDecl _ _ (Just _) _ _ _) =
-  notSupported "Type classes" decl
-simplifyDecl decl@(H.DataDecl _ _ _ _ _ (_ : _)) =
-  notSupported "Type classes" decl
+
+-- Skip deriving and type class contexts.
+simplifyDecl (H.DataDecl srcSpan dataType (Just context) declHead conDecls derivingClauses)
+  = do
+    skipNotSupported "Type class contexts" context
+    simplifyDecl
+      (H.DataDecl srcSpan dataType Nothing declHead conDecls derivingClauses)
+simplifyDecl (H.DataDecl srcSpan dataType Nothing declHead conDecls (derivingDecl : _))
+  = do
+    skipNotSupported "Deriving clauses" derivingDecl
+    simplifyDecl (H.DataDecl srcSpan dataType Nothing declHead conDecls [])
 
 -- Function declarations.
 simplifyDecl (H.FunBind _ [match]) = do
@@ -444,9 +463,14 @@ simplifyType (H.TyCon srcSpan name) = do
 -- Type wrapped in parentheses @('t')@.
 simplifyType (H.TyParen _ t) = simplifyType t
 
+-- Skip type class contexts.
+simplifyType (H.TyForall _ Nothing (Just context) t) = do
+  skipNotSupported "Type class contexts" context
+  simplifyType t
+
 -- Not supported types.
 simplifyType ty@(H.TyForall _ _ _ _) =
-  notSupported "Explicit type variable quantifications" ty
+  notSupported ("Explicit type variable quantifications") ty
 simplifyType ty@(H.TyTuple _ H.Unboxed _) = notSupported "Unboxed tuples" ty
 simplifyType ty@(H.TyUnboxedSum _ _     ) = notSupported "Unboxed sums" ty
 simplifyType ty@(H.TyParArray   _ _     ) = notSupported "Parallel arrays" ty
