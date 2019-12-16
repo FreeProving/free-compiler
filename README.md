@@ -90,7 +90,7 @@ Modules are only allowed to import other modules that are compiled in the same p
 By default the compiler looks in the working and output directory for interface files.
 Additional locations to look for can be specified using the `--import` (or `-i`) command line option.
 
-In order to compile Haskell modules successfully, the compiler needs to know the names of predefined data types and operations. For this purpose, the `base/Prelude.toml` configuration file has to be loaded.
+In order to compile Haskell modules successfully, the compiler needs to know the names of predefined data types and operations. For this purpose, the `base/Prelude.toml` configuration file has to be loaded (the configuration file format is documented in [`doc/ModuleInterfaceFileFormat.md`](https://git.informatik.uni-kiel.de/stu203400/haskell-to-coq-compiler/blob/master/doc/ModuleInterfaceFileFormat.md)).
 If the compiler is installed as described above, it will be able to locate the base library automatically.
 Otherwise, it may be necessary to tell the compiler where the base library can be found using the `--base-library` (or `-b`) option.
 
