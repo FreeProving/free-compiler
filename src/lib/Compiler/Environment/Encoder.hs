@@ -21,7 +21,7 @@ import qualified Data.Set                      as Set
 
 import           Compiler.Config
 import qualified Compiler.Coq.AST              as G
-import           Compiler.Coq.Pretty            ( )
+import           Compiler.Coq.Pretty
 import           Compiler.Environment
 import           Compiler.Environment.Entry
 import           Compiler.Environment.Scope
@@ -37,7 +37,7 @@ instance Aeson.ToJSON HS.Type where
   toJSON = Aeson.toJSON . showPretty
 
 instance Aeson.ToJSON G.Qualid where
-  toJSON = Aeson.toJSON . showPretty
+  toJSON = Aeson.toJSON . showPretty . PrettyCoq
 
 -- | Serializes a 'ModuleInterface'.
 instance Aeson.ToJSON ModuleInterface where

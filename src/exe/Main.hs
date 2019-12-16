@@ -21,7 +21,7 @@ import           Compiler.Application.Debug
 import           Compiler.Converter             ( convertModule )
 import           Compiler.Converter.QuickCheck
 import qualified Compiler.Coq.AST              as G
-import           Compiler.Coq.Pretty            ( )
+import           Compiler.Coq.Pretty
 import           Compiler.Environment
 import           Compiler.Environment.Encoder
 import           Compiler.Environment.Decoder
@@ -164,7 +164,7 @@ outputCoqModule :: HS.ModName -> [G.Sentence] -> Application ()
 outputCoqModule modName coqAst = do
   maybeOutputDir <- inOpts optOutputDir
   case maybeOutputDir of
-    Nothing        -> liftIO (putPrettyLn coqAst)
+    Nothing        -> liftIO (putPrettyLn (map PrettyCoq coqAst))
     Just outputDir -> do
       let outputPath = map (\c -> if c == '.' then '/' else c) modName
           outputFile = outputDir </> outputPath <.> "v"
@@ -172,7 +172,7 @@ outputCoqModule modName coqAst = do
       Just iface <- liftConverter $ inEnv $ lookupAvailableModule modName
       liftIO $ createDirectoryIfMissing True (takeDirectory outputFile)
       liftReporterIO $ writeModuleInterface ifaceFile iface
-      liftIO $ writePrettyFile outputFile coqAst
+      liftIO $ writePrettyFile outputFile (map PrettyCoq coqAst)
 
 -------------------------------------------------------------------------------
 -- Imports                                                                   --

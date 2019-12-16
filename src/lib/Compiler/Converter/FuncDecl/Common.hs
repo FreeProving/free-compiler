@@ -24,7 +24,6 @@ import           Compiler.Environment.Scope
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Haskell.Inliner
 import           Compiler.Monad.Converter
-import           Compiler.Monad.Instance.Fail ()
 import           Compiler.Monad.Reporter
 import           Compiler.Pretty
 

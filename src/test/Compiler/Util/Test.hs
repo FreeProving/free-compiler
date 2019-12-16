@@ -13,7 +13,7 @@ import           Compiler.Analysis.DependencyExtraction
                                                 ( typeVars )
 import           Compiler.Converter
 import qualified Compiler.Coq.AST              as G
-import           Compiler.Coq.Pretty            ( )
+import           Compiler.Coq.Pretty
 import           Compiler.Environment
 import           Compiler.Environment.Decoder
 import           Compiler.Environment.Entry
@@ -263,7 +263,7 @@ shouldTranslateTypeTo
   -> Converter Expectation
 shouldTranslateTypeTo input expectedOutput = do
   coqType <- convertTestType input
-  return (coqType `prettyShouldBe` expectedOutput)
+  return (PrettyCoq coqType `prettyShouldBe` expectedOutput)
 
 -- | Translates the string representation of a Haskell expression to Coq and
 --   sets the expectation that the result equals the given sting representation
@@ -274,7 +274,7 @@ shouldTranslateExprTo
   -> Converter Expectation
 shouldTranslateExprTo input expectedOutput = do
   coqExpr <- convertTestExpr input
-  return (coqExpr `prettyShouldBe` expectedOutput)
+  return (PrettyCoq coqExpr `prettyShouldBe` expectedOutput)
 
 -- | Translates the string representation of Haskell declarations to Coq and
 --   sets the expectation that the result equals the given Gallina sentences.
@@ -283,7 +283,7 @@ shouldTranslateExprTo input expectedOutput = do
 shouldTranslateDeclsTo :: [String] -> String -> Converter Expectation
 shouldTranslateDeclsTo input expectedOutput = do
   coqDecls <- convertTestDecls input
-  return (coqDecls `prettyShouldBe` expectedOutput)
+  return (map PrettyCoq coqDecls `prettyShouldBe` expectedOutput)
 
 -- | Converts the string representation of a Haskell module to Coq and sets
 --   the expectation that the result equals the given Gallina Sentences.
@@ -293,7 +293,7 @@ shouldTranslateModuleTo :: [String] -> [String] -> Converter Expectation
 shouldTranslateModuleTo input expectedOutputLines = do
   coqAst <- convertTestModule input
   let expectedOutput = unlines expectedOutputLines
-  return (coqAst `prettyShouldBe` expectedOutput)
+  return (map PrettyCoq coqAst `prettyShouldBe` expectedOutput)
 
 -------------------------------------------------------------------------------
 -- Utility functions                                                        --

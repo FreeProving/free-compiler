@@ -25,7 +25,6 @@ import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Haskell.SrcSpan
 import           Compiler.Haskell.Subst
 import           Compiler.Monad.Converter
-import           Compiler.Monad.Instance.Fail   ( )
 
 -------------------------------------------------------------------------------
 -- Inlining function declarations                                            --

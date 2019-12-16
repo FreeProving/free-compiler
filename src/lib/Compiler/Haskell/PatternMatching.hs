@@ -24,7 +24,6 @@ import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Haskell.Parser
 import           Compiler.Haskell.SrcSpan
 import           Compiler.Monad.Converter
-import           Compiler.Monad.Instance.Fail   ( )
 import           Compiler.Monad.Reporter
 import           Compiler.Pretty
 

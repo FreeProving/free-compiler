@@ -46,10 +46,18 @@ where
 
 import           Control.Monad                  ( ap
                                                 , liftM
+                                                , mzero
                                                 )
-import           Control.Monad.Identity
-import           Control.Monad.Trans.Maybe
-import           Control.Monad.Writer
+import           Control.Monad.Fail             ( MonadFail(..) )
+import           Control.Monad.Identity         ( Identity(..) )
+import           Control.Monad.Trans.Maybe      ( MaybeT(..) )
+import           Control.Monad.Writer           ( Writer
+                                                , MonadIO(..)
+                                                , MonadTrans(..)
+                                                , runWriter
+                                                , tell
+                                                , writer
+                                                )
 import           Data.Maybe                     ( isNothing
                                                 , maybe
                                                 )
@@ -169,6 +177,11 @@ report = liftReporter . ReporterT . Identity . lift . tell . (: [])
 reportFatal :: MonadReporter r => Message -> r a
 reportFatal =
   liftReporter . ReporterT . Identity . (>> mzero) . lift . tell . (: [])
+
+-- | Internal errors (e.g. pattern matching failures in @do@-blocks) are
+--   cause fatal error messages to be reported.
+instance Monad m => MonadFail (ReporterT m) where
+  fail = reportFatal . Message NoSrcSpan Internal
 
 -------------------------------------------------------------------------------
 -- Reporting IO errors                                                       --

@@ -35,9 +35,23 @@ module Compiler.Monad.Converter
   )
 where
 
+import           Prelude                 hiding ( fail )
+
 import           Control.Monad.Extra            ( ifM )
-import           Control.Monad.Identity
-import           Control.Monad.State
+import           Control.Monad.Fail             ( MonadFail(..) )
+import           Control.Monad.Identity         ( Identity(..) )
+import           Control.Monad.State            ( StateT(..)
+                                                , MonadIO(..)
+                                                , MonadState(..)
+                                                , MonadTrans(..)
+                                                , evalStateT
+                                                , execStateT
+                                                , get
+                                                , gets
+                                                , modify
+                                                , put
+                                                , state
+                                                )
 import           Data.Composition               ( (.:) )
 
 import           Compiler.Environment
@@ -196,3 +210,7 @@ sectionEnv converter = localEnv' $ do
 --   lifting reporters.
 instance Monad m => MonadReporter (ConverterT m) where
   liftReporter = ConverterT . lift . hoist
+
+-- | Use 'MonadReporter' to lift @fail@ of 'Reporter' to a 'ConverterT'.
+instance Monad m => MonadFail (ConverterT m) where
+  fail = liftReporter . fail

@@ -118,7 +118,6 @@ library haskell-to-coq-internal
                       , Compiler.Environment.Scope
                       , Compiler.Monad.Converter
                       , Compiler.Monad.Class.Hoistable
-                      , Compiler.Monad.Instance.Fail
                       , Compiler.Monad.Reporter
                       , Compiler.Haskell.AST
                       , Compiler.Haskell.Inliner
