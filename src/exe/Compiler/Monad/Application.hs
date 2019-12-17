@@ -19,8 +19,20 @@ module Compiler.Monad.Application
   )
 where
 
-import           Control.Monad.IO.Class
-import           Control.Monad.State
+import           Prelude                 hiding ( fail )
+
+import           Control.Monad.Fail             ( MonadFail(..) )
+import           Control.Monad.State            ( StateT(..)
+                                                , MonadIO(..)
+                                                , MonadState(..)
+                                                , MonadTrans(..)
+                                                , evalStateT
+                                                , get
+                                                , gets
+                                                , modify
+                                                , put
+                                                , state
+                                                )
 import           System.IO                      ( stderr )
 
 import           Compiler.Application.Options
@@ -102,6 +114,10 @@ instance MonadIO Application where
 --   lifting reporters.
 instance MonadReporter Application where
   liftReporter = liftConverter . lift'
+
+-- | Use 'MonadReporter' to lift @fail@ of 'Reporter' to an 'Application'.
+instance MonadFail Application where
+  fail = liftReporter . fail
 
 -- | Promotes a 'ReporterIO' to an application that produces the same result
 --   and ignores the application's options.
