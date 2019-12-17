@@ -69,6 +69,12 @@ testTypeInference =
       $ fromConverter
       $ do
           "undefined" `shouldInferType` "forall a0. a0"
+    it "renames variables"
+      $ shouldSucceed
+      $ fromConverter
+      $ do
+          shouldInferType "\\x -> (x, \\x -> x)"
+                          "forall a0 a1. a0 -> (a0, a1 -> a1)"
     it "rejects lists with heterogeneous element types"
       $ shouldReportFatal
       $ fromConverter

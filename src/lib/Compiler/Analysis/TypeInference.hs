@@ -23,11 +23,10 @@ import           Compiler.Monad.Converter
 --   and abstracts it's type to a type schema.
 inferExprType :: HS.Expr -> Converter HS.TypeSchema
 inferExprType expr = localEnv $ do
-  -- TODO rename variables in expr
-  typeVar    <- freshTypeVar
-  (ps, eqns) <- execWriterT $ simplifyTypedExpr expr typeVar
-  mgu        <- unifyEquations (makeTypeEquations ps ++ eqns)
-  exprType   <- applySubst mgu typeVar
+  typeVar          <- freshTypeVar
+  (varTypes, eqns) <- execWriterT $ simplifyTypedExpr expr typeVar
+  mgu              <- unifyEquations (makeTypeEquations varTypes ++ eqns)
+  exprType         <- applySubst mgu typeVar
   abstractTypeSchema exprType
 
 -------------------------------------------------------------------------------
@@ -66,7 +65,7 @@ addTypeEquationFor name resType = do
 simplifyTypedExpr :: HS.Expr -> HS.Type -> TypedExprSimplifier ()
 
 -- | If @f :: τ@ is a predefined function with @f :: forall α₀ … αₙ. τ'@, then
---   then @τ = σ(τ')@ with @σ = { α₀ ↦ β₀, …, αₙ ↦ βₙ }@ and @β₀, …, βₙ@ new
+--   @τ = σ(τ')@ with @σ = { α₀ ↦ β₀, …, αₙ ↦ βₙ }@ where @β₀, …, βₙ@ are new
 --   type variables.
 simplifyTypedExpr (HS.Con _ conName) resType =
   addTypeEquationFor conName resType
@@ -107,10 +106,11 @@ simplifyTypedExpr (HS.IntLiteral _ _) resType = do
 -- If @\x₀ … xₙ -> e :: τ@, then @x₀ :: α₀, … xₙ :: αₙ@ and @x :: β@ for new
 -- type variables @α₀ … αₙ@ and @α₀ -> … -> αₙ -> β = τ@.
 simplifyTypedExpr (HS.Lambda _ args expr) resType = do
-  argTypes   <- mapM (const (lift freshTypeVar)) args
+  (args', expr') <- lift $ renameArgs args expr
+  argTypes   <- mapM (const (lift freshTypeVar)) args'
   returnType <- lift freshTypeVar
-  zipWithM_ simplifyTypedExpr (map HS.varPatToExpr args) argTypes
-  simplifyTypedExpr expr returnType
+  zipWithM_ simplifyTypedExpr (map HS.varPatToExpr args') argTypes
+  simplifyTypedExpr expr' returnType
   let funcType = HS.funcType NoSrcSpan argTypes returnType
   addTypeEquation funcType resType
 
@@ -130,10 +130,11 @@ simplifyTypedAlt
   -> HS.Type -- ^ The type of the right-hand side.
   -> TypedExprSimplifier ()
 simplifyTypedAlt (HS.Alt _ conPat varPats expr) patType exprType = do
+  (varPats', expr') <- lift $ renameArgs varPats expr
   let pat =
-        HS.app NoSrcSpan (HS.conPatToExpr conPat) (map HS.varPatToExpr varPats)
-  simplifyTypedExpr pat  patType
-  simplifyTypedExpr expr exprType
+        HS.app NoSrcSpan (HS.conPatToExpr conPat) (map HS.varPatToExpr varPats')
+  simplifyTypedExpr pat   patType
+  simplifyTypedExpr expr' exprType
 
 -------------------------------------------------------------------------------
 -- Solving type equations                                                    --
