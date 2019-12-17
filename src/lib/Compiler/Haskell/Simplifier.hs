@@ -419,12 +419,12 @@ simplifyType (H.TyFun srcSpan t1 t2) = do
 simplifyType (H.TyTuple srcSpan H.Boxed ts) = do
   let n = length ts
   ts' <- mapM simplifyType ts
-  return (HS.typeApp srcSpan (HS.tupleTypeConName n) ts')
+  return (HS.typeConApp srcSpan (HS.tupleTypeConName n) ts')
 
 -- List type @['t']@.
 simplifyType (H.TyList srcSpan t) = do
   t' <- simplifyType t
-  return (HS.typeApp srcSpan HS.listTypeConName [t'])
+  return (HS.typeConApp srcSpan HS.listTypeConName [t'])
 
 -- Type constructor application @'t1' 't2'@.
 simplifyType (H.TyApp srcSpan t1 t2) = do

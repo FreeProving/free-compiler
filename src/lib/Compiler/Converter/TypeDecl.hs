@@ -102,7 +102,7 @@ defineTypeDecl (HS.DataDecl srcSpan declIdent typeVarDecls conDecls) = do
 
   -- | The type produced by all constructors of the data type.
   returnType :: HS.Type
-  returnType = HS.typeApp
+  returnType = HS.typeConApp
     srcSpan
     (HS.UnQual (HS.Ident ident))
     (map (HS.TypeVar srcSpan . HS.fromDeclIdent) typeVarDecls)

@@ -15,9 +15,10 @@
 
 module Compiler.Haskell.Inliner where
 
+import           Control.Applicative            ( (<|>) )
 import           Data.Map.Strict                ( Map )
 import qualified Data.Map.Strict               as Map
-import           Data.Maybe                     ( maybe )
+import           Data.Maybe                     ( fromMaybe )
 
 import           Compiler.Environment
 import           Compiler.Environment.Scope
@@ -172,7 +173,7 @@ expandTypeSynonyms maxDepth t0
   | maxDepth == 0 = return t0
   | otherwise = do
     t0' <- expandTypeSynonyms' t0 []
-    return (maybe t0 id t0')
+    return (fromMaybe t0 t0')
  where
   expandTypeSynonyms' :: HS.Type -> [HS.Type] -> Converter (Maybe HS.Type)
   expandTypeSynonyms' (HS.TypeCon _ typeConName) args = do
@@ -183,12 +184,13 @@ expandTypeSynonyms maxDepth t0
         let subst = composeSubsts
               (zipWith (singleSubst . HS.UnQual . HS.Ident) typeVars args)
         typeExpr' <- applySubst subst typeExpr
-        expandTypeSynonyms (maxDepth - 1) typeExpr' >>= return . Just
+        Just <$> expandTypeSynonyms (maxDepth - 1) typeExpr'
 
   expandTypeSynonyms' (HS.TypeApp srcSpan t1 t2) args = do
     t2' <- expandTypeSynonyms (maxDepth - 1) t2
-    t1' <- expandTypeSynonyms' t1 (t2' : args)
-    return (Just (maybe (HS.TypeApp srcSpan t1 t2') id t1'))
+    let args' = t2' : args
+    t1' <- expandTypeSynonyms' t1 args'
+    return (t1' <|> Just (HS.typeApp srcSpan t1 args'))
 
   expandTypeSynonyms' (HS.TypeFunc srcSpan t1 t2) _ = do
     t1' <- expandTypeSynonyms (maxDepth - 1) t1

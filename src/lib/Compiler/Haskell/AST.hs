@@ -534,10 +534,22 @@ funcType srcSpan = flip (foldr (TypeFunc srcSpan))
 --   and every generated type constructor application.
 typeApp
   :: SrcSpan     -- ^ The source span to insert into generated nodes.
+  -> Type        -- ^ The partially applied type constructor.
+  -> [Type]      -- ^ The type arguments to pass to the type constructor.
+  -> Type
+typeApp srcSpan = foldl (TypeApp srcSpan)
+
+-- | Creates a type constructor application type for the constructor with
+--   the given name.
+--
+--   The given source span is inserted into the generated type constructor
+--   and every generated type constructor application.
+typeConApp
+  :: SrcSpan     -- ^ The source span to insert into generated nodes.
   -> TypeConName -- ^ The name of the type constructor to apply.
   -> [Type]      -- ^ The type arguments to pass to the type constructor.
   -> Type
-typeApp srcSpan = foldl (TypeApp srcSpan) . TypeCon srcSpan
+typeConApp srcSpan = typeApp srcSpan . TypeCon srcSpan
 
 -- | Creates an expression for applying the given expression to the provided
 --   arguments.
