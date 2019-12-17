@@ -31,6 +31,7 @@ module Compiler.Environment
   , lookupTypeArgs
   , lookupArgTypes
   , lookupReturnType
+  , lookupTypeSchema
   , lookupArity
   , lookupTypeSynonym
   , lookupTypeSig
@@ -49,7 +50,9 @@ import           Data.Composition               ( (.:)
 import           Data.List                      ( find )
 import           Data.Map.Strict                ( Map )
 import qualified Data.Map.Strict               as Map
-import           Data.Maybe                     ( isJust )
+import           Data.Maybe                     ( catMaybes
+                                                , isJust
+                                                )
 import           Data.Set                       ( Set )
 import qualified Data.Set                      as Set
 import           Data.Tuple.Extra               ( (&&&) )
@@ -280,7 +283,10 @@ lookupSrcSpan = fmap entrySrcSpan .:. lookupEntry
 --   Returns @Nothing@ if there is no such type synonym, function or (smart)
 --   constructor with the given name.
 lookupTypeArgs :: Scope -> HS.QName -> Environment -> Maybe [HS.TypeVarIdent]
-lookupTypeArgs = fmap entryTypeArgs .:. lookupEntry
+lookupTypeArgs =
+  fmap entryTypeArgs
+    .   find (isTypeSynEntry .||. isConEntry .||. isFuncEntry)
+    .:. lookupEntry
 
 -- | Looks up the argument and return types of the function or (smart)
 --   constructor with the given name.
@@ -288,7 +294,8 @@ lookupTypeArgs = fmap entryTypeArgs .:. lookupEntry
 --   Returns @Nothing@ if there is no such function or (smart) constructor
 --   with the given name.
 lookupArgTypes :: Scope -> HS.QName -> Environment -> Maybe [Maybe HS.Type]
-lookupArgTypes = fmap entryArgTypes .:. lookupEntry
+lookupArgTypes =
+  fmap entryArgTypes . find (isConEntry .||. isFuncEntry) .:. lookupEntry
 
 -- | Looks up the return type of the function or (smart) constructor with the
 --   given name.
@@ -296,7 +303,22 @@ lookupArgTypes = fmap entryArgTypes .:. lookupEntry
 --   Returns @Nothing@ if there is no such function or (smart) constructor
 --   with the given name or the return type is not known.
 lookupReturnType :: Scope -> HS.QName -> Environment -> Maybe HS.Type
-lookupReturnType = join . fmap entryReturnType .:. lookupEntry
+lookupReturnType =
+  join
+    .   fmap entryReturnType
+    .   find (isConEntry .||. isFuncEntry)
+    .:. lookupEntry
+
+-- | Gets the type schema of the variable, function or constructor with the
+--   given name.
+lookupTypeSchema :: Scope -> HS.QName -> Environment -> Maybe HS.TypeSchema
+lookupTypeSchema scope name env = do
+  typeArgs   <- lookupTypeArgs scope name env
+  argTypes   <- lookupArgTypes scope name env
+  returnType <- lookupReturnType scope name env
+  let typeArgDecls = map (HS.DeclIdent NoSrcSpan) typeArgs
+      funcType     = HS.funcType NoSrcSpan (catMaybes argTypes) returnType
+  return (HS.TypeSchema NoSrcSpan typeArgDecls funcType)
 
 -- | Looks up the number of arguments expected by the Haskell function
 --   or smart constructor with the given name.

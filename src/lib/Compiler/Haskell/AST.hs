@@ -73,20 +73,9 @@ data DeclIdent = DeclIdent SrcSpan String
 --   type synonym declaration including location information.
 type TypeVarDecl = DeclIdent
 
--- | A constructor pattern used in an alternative of a @case@ expression.
---
---   The only purpose of this data type is to add location information
---   to a 'ConName'.
-data ConPat = ConPat SrcSpan ConName
-  deriving (Eq, Show)
-
--- | A variable pattern used as an argument to a function, lambda abstraction
---   or constructor pattern.
---
---   The only purpose of this data type is to add location information to
---   the identifer for a variable.
-data VarPat = VarPat SrcSpan String
-  deriving (Eq, Show)
+-- | Pretty instance for identifiers in declarations.
+instance Pretty DeclIdent where
+  pretty = prettyString . fromDeclIdent
 
 -------------------------------------------------------------------------------
 -- Internal identifiers                                                      --
@@ -222,6 +211,19 @@ data Type
   | TypeFunc SrcSpan Type Type   -- ^ A function type.
   deriving (Eq, Show)
 
+-------------------------------------------------------------------------------
+-- Pretty printing type expressions                                          --
+-------------------------------------------------------------------------------
+
+-- | Pretty instance for type schemas.
+instance Pretty TypeSchema where
+  pretty (TypeSchema _ [] typeExpr) = pretty typeExpr
+  pretty (TypeSchema _ typeArgs typeExpr) =
+    prettyString "forall"
+      <+> hsep (map pretty typeArgs)
+      <>  dot
+      <+> pretty typeExpr
+
 -- | Haskell type expressions can be pretty printed because they have to
 --   be serialized when the environment is saved to a @.json@ file.
 instance Pretty Type where
@@ -301,6 +303,41 @@ data Alt = Alt
   Expr         -- ^ The right hand side of this alternative.
   deriving (Eq, Show)
 
+-------------------------------------------------------------------------------
+-- Patterns                                                                  --
+-------------------------------------------------------------------------------
+
+-- | A constructor pattern used in an alternative of a @case@ expression.
+--
+--   The only purpose of this data type is to add location information
+--   to a 'ConName'.
+data ConPat = ConPat SrcSpan ConName
+  deriving (Eq, Show)
+
+-- | Converts a constructor pattern to a constructor expression.
+conPatToExpr :: ConPat -> Expr
+conPatToExpr (ConPat srcSpan conName) = Con srcSpan conName
+
+-- | A variable pattern used as an argument to a function, lambda abstraction
+--   or constructor pattern.
+--
+--   The only purpose of this data type is to add location information to
+--   the identifer for a variable.
+data VarPat = VarPat SrcSpan String
+  deriving (Eq, Show)
+
+-- | Converts a variable pattern to a variable expression.
+varPatToExpr :: VarPat -> Expr
+varPatToExpr (VarPat srcSpan varName) = Var srcSpan (UnQual (Ident varName))
+
+-- | Extracts the actual identifier from a variable pattern.
+fromVarPat :: VarPat -> String
+fromVarPat (VarPat _ ident) = ident
+
+-------------------------------------------------------------------------------
+-- Pretty printing expressions                                               --
+-------------------------------------------------------------------------------
+
 instance Pretty Expr where
   pretty = pretty' 0
    where
@@ -369,10 +406,6 @@ instance Pretty VarPat where
 -- | Extracts the actual identifier from an identifier in a declaration.
 fromDeclIdent :: DeclIdent -> String
 fromDeclIdent (DeclIdent _ ident) = ident
-
--- | Extracts the actual identifier from a variable pattern.
-fromVarPat :: VarPat -> String
-fromVarPat (VarPat _ ident) = ident
 
 -- | Extracts an identifier from a Haskell name. Returns @Nothing@ if the
 --   given name is a symbol and not an identifier.
@@ -586,6 +619,10 @@ tupleConName n = Qual preludeModuleName (Symbol (replicate (n - 1) ','))
 -------------------------------------------------------------------------------
 -- Names of special predefined types and operators                           --
 -------------------------------------------------------------------------------
+
+-- | When inferring the type of 'IntegerLiteral's this is the type to infer.
+integerTypeConName :: TypeConName
+integerTypeConName = Qual preludeModuleName (Ident "Integer")
 
 -- | When translating @if@ expressions, we annotate the type of the condition
 --   with @Bool@. Because we do not support qualified identifiers we

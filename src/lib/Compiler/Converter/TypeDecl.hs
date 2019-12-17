@@ -114,6 +114,7 @@ defineTypeDecl (HS.DataDecl srcSpan declIdent typeVarDecls conDecls) = do
     _ <- renameAndAddEntry ConEntry
       { entrySrcSpan    = conSrcSpan
       , entryArity      = length argTypes
+      , entryTypeArgs   = map HS.fromDeclIdent typeVarDecls
       , entryArgTypes   = map Just argTypes
       , entryReturnType = Just returnType
       , entryName       = HS.UnQual (HS.Ident conIdent)

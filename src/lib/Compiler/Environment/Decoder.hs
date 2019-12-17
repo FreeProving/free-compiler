@@ -208,6 +208,9 @@ instance Aeson.FromJSON ModuleInterface where
       return ConEntry
         { entrySrcSpan    = NoSrcSpan
         , entryArity      = arity
+        , entryTypeArgs   = maybe []
+                                  (catMaybes . map HS.identFromQName . typeVars)
+                                  returnType
         , entryArgTypes   = argTypes
         , entryReturnType = returnType
         , entryIdent      = coqName

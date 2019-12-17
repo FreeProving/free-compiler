@@ -11,6 +11,7 @@ import           Control.Applicative            ( (<|>)
                                                 , empty
                                                 )
 
+import           Compiler.Environment.Resolver
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Haskell.Subst
 import           Compiler.Monad.Converter
@@ -21,7 +22,14 @@ import           Compiler.Pretty                ( showPretty )
 --
 --   Reports a fatal error if the types cannot be unified.
 unify :: HS.Type -> HS.Type -> Converter (Subst HS.Type)
-unify t s = case disagreementSet t s of
+unify t s = do
+  t' <- resolveTypes t
+  s' <- resolveTypes s
+  unify' t' s'
+
+-- | Like 'unify' but assumes the type constructor names to be normalized.
+unify' :: HS.Type -> HS.Type -> Converter (Subst HS.Type)
+unify' t s = case disagreementSet t s of
   Nothing                               -> return identitySubst
   Just (HS.TypeVar _ x, u             ) -> step x u
   Just (u             , HS.TypeVar _ x) -> step x u

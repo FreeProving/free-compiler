@@ -13,7 +13,12 @@ import qualified Compiler.Coq.AST              as G
 import           Compiler.Environment
 import           Compiler.Environment.Renamer
 import qualified Compiler.Haskell.AST          as HS
+import           Compiler.Haskell.SrcSpan
 import           Compiler.Monad.Converter
+
+-------------------------------------------------------------------------------
+-- Prefixes                                                                  --
+-------------------------------------------------------------------------------
 
 -- | The prefix to use for artificially introduced variables of type @a@.
 freshArgPrefix :: String
@@ -26,6 +31,14 @@ freshFuncPrefix = "f"
 -- | The prefix to use for artificially introduced variables of type @Bool@.
 freshBoolPrefix :: String
 freshBoolPrefix = "cond"
+
+-- | The prefix to use for aritifcially introduced type variables of kind @*@.
+freshTypeVarPrefix :: String
+freshTypeVarPrefix = "a"
+
+-------------------------------------------------------------------------------
+-- Generating fresh Haskell identifiers                                      --
+-------------------------------------------------------------------------------
 
 -- | Gets the next fresh Haskell identifier from the current environment.
 --
@@ -55,6 +68,16 @@ freshHaskellIdent prefix = case elemIndex HS.internalIdentChar prefix of
         }
       )
     return (prefix ++ HS.internalIdentChar : show count)
+
+-- | Generates a fresh Haskell type variable.
+freshTypeVar :: Converter HS.Type
+freshTypeVar = do
+  ident <- freshHaskellIdent freshTypeVarPrefix
+  return (HS.TypeVar NoSrcSpan ident)
+
+-------------------------------------------------------------------------------
+-- Generating fresh Coq identifiers                                          --
+-------------------------------------------------------------------------------
 
 -- | Gets the next fresh Haskell identifier from the current environment
 --   and renames it such that it can be used in Coq.

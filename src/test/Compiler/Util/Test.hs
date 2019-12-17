@@ -169,6 +169,9 @@ defineTestCon ident arity typeStr = do
   entry <- renameAndAddEntry ConEntry
     { entrySrcSpan    = NoSrcSpan
     , entryArity      = arity
+    , entryTypeArgs   = maybe []
+                              (catMaybes . map HS.identFromQName . typeVars)
+                              returnType
     , entryArgTypes   = argTypes
     , entryReturnType = returnType
     , entryName       = HS.UnQual (HS.Ident ident)

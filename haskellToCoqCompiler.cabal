@@ -86,6 +86,7 @@ library haskell-to-coq-internal
                       , Compiler.Analysis.DependencyGraph
                       , Compiler.Analysis.PartialityAnalysis
                       , Compiler.Analysis.RecursionAnalysis
+                      , Compiler.Analysis.TypeInference
                       , Compiler.Config
                       , Compiler.Converter
                       , Compiler.Converter.Arg
@@ -150,6 +151,7 @@ test-suite unit-tests
   other-modules:      Paths_haskellToCoqCompiler
                     , Compiler.Analysis.PartialityAnalysisTests
                     , Compiler.Analysis.RecursionAnalysisTests
+                    , Compiler.Analysis.TypeInferenceTests
                     , Compiler.ConverterTests
                     , Compiler.Converter.ExprTests
                     , Compiler.Converter.FuncDeclTests

@@ -56,6 +56,8 @@ data EnvEntry
       -- ^ The source code location where the data constructor was declared.
     , entryArity :: Int
       -- ^ The number of arguments expected by the data constructor.
+    , entryTypeArgs :: [HS.TypeVarIdent]
+      -- ^ The names of the type arguments.
     , entryArgTypes :: [Maybe HS.Type]
       -- ^ The types of the constructor's arguments (if known).
       --   Contains exactly 'entryArity' elements.
