@@ -20,9 +20,21 @@ testExprSubst = do
           let s1    = singleSubst (HS.UnQual (HS.Ident "x")) z
               s2    = singleSubst (HS.UnQual (HS.Ident "x")) y
               subst = s1 `composeSubst` s2
-          e  <- parseTestExpr "x z"
+          e  <- parseTestExpr "x y z"
           e' <- applySubst subst e
-          return (e' `prettyShouldBe` "y z")
+          return (e' `prettyShouldBe` "y y z")
+    it "applies the second substitution to the first"
+      $ shouldSucceed
+      $ fromConverter
+      $ do
+          y <- parseTestExpr "y"
+          z <- parseTestExpr "z"
+          let s1    = singleSubst (HS.UnQual (HS.Ident "y")) z
+              s2    = singleSubst (HS.UnQual (HS.Ident "x")) y
+              subst = s1 `composeSubst` s2
+          e  <- parseTestExpr "x y z"
+          e' <- applySubst subst e
+          return (e' `prettyShouldBe` "z z z")
   describe "Compiler.Haskell.Subst.applySubst" $ do
     it "cannot substitute variables bound by lambda"
       $ shouldSucceed
