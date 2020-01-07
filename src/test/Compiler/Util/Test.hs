@@ -148,6 +148,21 @@ defineTestTypeCon ident arity = renameAndAddTestEntry DataEntry
   , entryIdent   = undefined -- filled by renamer
   }
 
+-- | Defines a type synonym for testing purposes.
+--
+--   Returns the Coq identifier assigned to the type synonym.
+defineTestTypeSyn :: String -> [String] -> String -> Converter String
+defineTestTypeSyn ident typeArgs typeStr = do
+  typeExpr <- parseTestType typeStr
+  renameAndAddTestEntry TypeSynEntry
+    { entrySrcSpan  = NoSrcSpan
+    , entryArity    = length typeArgs
+    , entryTypeArgs = typeArgs
+    , entryTypeSyn  = typeExpr
+    , entryName     = HS.UnQual (HS.Ident ident)
+    , entryIdent    = undefined -- filled by renamer
+    }
+
 -- | Defines a type variable 'renameAndDefineTypeVar' for testing purposes.
 --
 --   Returns the Coq identifier assigned to the type variable.

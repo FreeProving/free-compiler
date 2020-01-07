@@ -3,8 +3,8 @@ module Compiler.Analysis.TypeInferenceTests where
 import           Test.Hspec
 
 import           Compiler.Analysis.TypeInference
-import           Compiler.Monad.Converter
 import qualified Compiler.Haskell.AST          as HS
+import           Compiler.Monad.Converter
 import           Compiler.Pretty
 
 import           Compiler.Util.Test
@@ -69,12 +69,22 @@ testTypeInference =
       $ fromConverter
       $ do
           "undefined" `shouldInferType` "forall a0. a0"
-    it "renames variables"
+    it "infer the type of variables that shadow variables correctly"
       $ shouldSucceed
       $ fromConverter
       $ do
           shouldInferType "\\x -> (x, \\x -> x)"
                           "forall a0 a1. a0 -> (a0, a1 -> a1)"
+    it "can match types with type synonyms" $ shouldSucceed $ fromConverter $ do
+      "Foo" <- defineTestTypeSyn "Foo" [] "[Integer]"
+      "[] :: Foo" `shouldInferType` "[Prelude.Integer]"
+    it "expands type synonyms when necessary"
+      $ shouldSucceed
+      $ fromConverter
+      $ do
+          "Foo"  <- defineTestTypeSyn "Foo" [] "[Integer]"
+          "head" <- defineTestFunc "head" 1 "[a] -> a"
+          "head ([] :: Foo)" `shouldInferType` "Prelude.Integer"
     it "rejects lists with heterogeneous element types"
       $ shouldReportFatal
       $ fromConverter

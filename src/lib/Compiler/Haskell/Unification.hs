@@ -13,6 +13,7 @@ import           Control.Applicative            ( (<|>)
 
 import           Compiler.Environment.Resolver
 import qualified Compiler.Haskell.AST          as HS
+import           Compiler.Haskell.Inliner
 import           Compiler.Haskell.Subst
 import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
@@ -23,11 +24,12 @@ import           Compiler.Pretty                ( showPretty )
 --   Reports a fatal error if the types cannot be unified.
 unify :: HS.Type -> HS.Type -> Converter (Subst HS.Type)
 unify t s = do
-  t' <- resolveTypes t
-  s' <- resolveTypes s
+  t' <- expandAllTypeSynonyms t >>= resolveTypes
+  s' <- expandAllTypeSynonyms s >>= resolveTypes
   unify' t' s'
 
--- | Like 'unify' but assumes the type constructor names to be normalized.
+-- | Like 'compareAndUnify' but assumes the type constructor names to be
+--   normalized.
 unify' :: HS.Type -> HS.Type -> Converter (Subst HS.Type)
 unify' t s = case disagreementSet t s of
   Nothing                               -> return identitySubst
@@ -53,7 +55,7 @@ unify' t s = case disagreementSet t s of
     let subst = singleSubst (HS.UnQual (HS.Ident x)) u
     t'  <- applySubst subst t
     s'  <- applySubst subst s
-    mgu <- unify t' s'
+    mgu <- unify' t' s'
     return (composeSubst mgu subst)
 
   -- | Tests whether the given variable occurs in the given type expression.

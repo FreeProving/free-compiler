@@ -25,8 +25,9 @@ inferExprType :: HS.Expr -> Converter HS.TypeSchema
 inferExprType expr = localEnv $ do
   typeVar          <- freshTypeVar
   (varTypes, eqns) <- execWriterT $ simplifyTypedExpr expr typeVar
-  mgu              <- unifyEquations (makeTypeEquations varTypes ++ eqns)
-  exprType         <- applySubst mgu typeVar
+  let eqns' = makeTypeEquations varTypes ++ eqns
+  mgu      <- unifyEquations eqns'
+  exprType <- applySubst mgu typeVar
   abstractTypeSchema exprType
 
 -------------------------------------------------------------------------------
@@ -107,8 +108,8 @@ simplifyTypedExpr (HS.IntLiteral _ _) resType = do
 -- type variables @α₀ … αₙ@ and @α₀ -> … -> αₙ -> β = τ@.
 simplifyTypedExpr (HS.Lambda _ args expr) resType = do
   (args', expr') <- lift $ renameArgs args expr
-  argTypes   <- mapM (const (lift freshTypeVar)) args'
-  returnType <- lift freshTypeVar
+  argTypes       <- mapM (const (lift freshTypeVar)) args'
+  returnType     <- lift freshTypeVar
   zipWithM_ simplifyTypedExpr (map HS.varPatToExpr args') argTypes
   simplifyTypedExpr expr' returnType
   let funcType = HS.funcType NoSrcSpan argTypes returnType
@@ -159,7 +160,8 @@ unifyEquations = unifyEquations' identitySubst
     t1' <- applySubst subst t1
     t2' <- applySubst subst t2
     mgu <- unify t1' t2'
-    unifyEquations' (composeSubst subst mgu) eqns
+    let subst' = composeSubst mgu subst
+    unifyEquations' subst' eqns
 
 -------------------------------------------------------------------------------
 -- Type schemas                                                              --
