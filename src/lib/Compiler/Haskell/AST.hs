@@ -45,7 +45,9 @@ instance Pretty Name where
 
 -- | Pretty instance for qualifed Haskell identifiers and symbols.
 instance Pretty QName where
-  pretty (Qual modid name) = prettyString modid <> dot <> pretty name
+  pretty (Qual modid name)
+    | null modid = pretty name
+    | otherwise = prettyString modid <> dot <> pretty name
   pretty (UnQual name) = pretty name
 
 -- | The name of a module.

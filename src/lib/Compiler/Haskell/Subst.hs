@@ -23,12 +23,15 @@ where
 import           Data.Composition               ( (.:) )
 import           Data.Map.Strict                ( Map )
 import qualified Data.Map.Strict               as Map
+import           Data.Maybe                     ( fromMaybe )
 
-
+import           Compiler.Environment
 import           Compiler.Environment.Fresh
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Haskell.SrcSpan
 import           Compiler.Monad.Converter
+import           Compiler.Monad.Reporter
+import           Compiler.Pretty
 
 -- | A substitution is a mapping from Haskell variable names to expressions
 --   (i.e. @'Subst' 'HS.Expr'@) or type expressions (i.e. @'Subst' 'HS.Type'@).
@@ -42,6 +45,19 @@ import           Compiler.Monad.Converter
 --   but 'applySubst' is a 'Converter' (because it needs to generate fresh
 --   identifiers).
 newtype Subst a = Subst (Map HS.QName (SrcSpan -> Converter a))
+
+-- | Substitutions can be pretty printed for testing purposes.
+instance Pretty a => Pretty (Subst a) where
+  pretty (Subst m) =
+    braces
+      $ prettySeparated (comma <> space)
+      $ fromMaybe []
+      $ evalReporter
+      $ flip evalConverter emptyEnv
+      $ flip mapM          (Map.assocs m)
+      $ \(v, f) -> do
+          x <- f NoSrcSpan
+          return (pretty v <+> prettyString "->" <+> pretty x)
 
 -------------------------------------------------------------------------------
 -- Construction                                                              --
