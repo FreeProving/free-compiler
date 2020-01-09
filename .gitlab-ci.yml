@@ -188,6 +188,11 @@ test-generated-code:
 #      The corresponding public key should be listed in the
 #      `~/.ssh/authorized_keys` file of the user.
 #
+# Since, the variables contain sensitive information, they should be
+# made available to protected branches and tags only.
+# Thus, jobs that extend `.ssh-deploy` are should run for protected branches
+# and tags only.
+#
 # Before the script of the inheriting job is executed the directory
 # `$DEPLOY_DIR` is created. All files copied to this directory will be
 # uploaded to `$TARGET_DIR` after the script is done.
@@ -197,6 +202,9 @@ test-generated-code:
     SERVER: ${SSH_DEPLOY_USER}@${SSH_DEPLOY_HOST}
     TARGET_DIR: html/${CI_COMMIT_REF_SLUG}
     DEPLOY_DIR: "${CI_PROJECT_DIR}/ssh-deploy"
+  only:
+    variables:
+      - "$CI_COMMIT_REF_PROTECTED"
   before_script:
     - mkdir "$DEPLOY_DIR"
   after_script:

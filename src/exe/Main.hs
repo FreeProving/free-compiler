@@ -85,7 +85,7 @@ compiler = do
 
 -- | Parses and simplifies the given input file.
 parseInputFile :: FilePath -> Application HS.Module
-parseInputFile inputFile = do
+parseInputFile inputFile = reportApp $ do
   -- Parse and simplify input file.
   haskellAst  <- liftReporterIO $ parseModuleFile inputFile
   haskellAst' <- transformInputModule haskellAst

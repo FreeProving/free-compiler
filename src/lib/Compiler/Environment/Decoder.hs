@@ -22,12 +22,22 @@
 --   == Top-Level
 --
 --   The top-level table must contain the following key/value pairs:
+--
 --     * @module-name@ (@String@) the name of the module that is described by
 --       the module interface file.
+--     * @exported-types@ (@Array@ of @String@) the names (@haskell-name@) of
+--       the type-level entries exported by the module. All other entries in
+--       the @types@ and @type-synonyms@ tables are "hidden" (i.e. cannot be
+--       used by an importing module directly).
+--     * @exported-values@ (@Array@ of @String@) the names (@haskell-name@) of
+--       the value-level entries exported by the module. All other entries in
+--       the @constructors@ and @functions@ tables are "hidden" (i.e. cannot be
+--       used by an importing module directly).
 --
 --   == Data types
 --
 --   The tables in the @types@ array must contain the following key/value pairs:
+--
 --     * @haskell-name@ (@String@) the qualified Haskell name of the type
 --       constructor in the module it has been defined in.
 --     * @coq-name@ (@String@) the identifier of the corresponding Coq type
@@ -39,6 +49,7 @@
 --
 --   The tables in the @type-synonyms@ array must contain the following
 --   key/value pairs:
+--
 --     * @haskell-name@ (@String@) the qualified Haskell name of the type
 --       synonym in the module it has been defined in.
 --     * @coq-name@ (@String@) the identifier of the corresponding Coq
@@ -54,6 +65,7 @@
 --
 --   The tables in the @constructors@ array must contain the following
 --   key/value pairs:
+--
 --     * @haskell-type@ (@String@) the Haskell type of the data constructor.
 --     * @haskell-name@ (@String@) the qualified Haskell name of the data
 --       constructor in the module it has been defined in.
@@ -68,6 +80,7 @@
 --
 --   The tables in the @functions@ array must contain the following
 --   key/value pairs:
+--
 --     * @haskell-type@ (@String@) the Haskell type of the function.
 --     * @haskell-name@ (@String@) the qualified Haskell name of the function
 --       in the module it has been defined in.
