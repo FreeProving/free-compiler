@@ -40,7 +40,7 @@ convertModule haskellAst = moduleEnv $ do
   -- Convert module contents.
   imports' <- convertImportDecls (HS.modImports haskellAst)
   mapM_ (addDecArgPragma (HS.modFuncDecls haskellAst))
-        (HS.modDecArgs haskellAst)
+        (HS.modPragmas haskellAst)
   decls' <- convertDecls (HS.modTypeDecls haskellAst)
                          (HS.modTypeSigs haskellAst)
                          (HS.modFuncDecls haskellAst)
@@ -58,7 +58,9 @@ convertModule haskellAst = moduleEnv $ do
 --
 --   Decreasing arguments can be annotated for all function declarations
 --   in the current module (first argument).
-addDecArgPragma :: [HS.FuncDecl] -> HS.DecArgPragma -> Converter ()
+--
+--   All other pragmas are ignored.
+addDecArgPragma :: [HS.FuncDecl] -> HS.Pragma -> Converter ()
 addDecArgPragma funcDecls (HS.DecArgPragma srcSpan funcIdent decArgIdent) = do
   case find ((== funcIdent) . HS.fromDeclIdent . HS.getDeclIdent) funcDecls of
     Just (HS.FuncDecl _ _ args _) -> do

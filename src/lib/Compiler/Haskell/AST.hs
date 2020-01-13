@@ -131,7 +131,7 @@ data Module = Module
   , modImports   :: [ImportDecl]
   , modTypeDecls :: [TypeDecl]
   , modTypeSigs  :: [TypeSig]
-  , modDecArgs   :: [DecArgPragma]
+  , modPragmas   :: [Pragma]
   , modFuncDecls :: [FuncDecl]
   }
   deriving (Eq, Show)
@@ -155,8 +155,10 @@ data Comment
 customPragmaPrefix :: String
 customPragmaPrefix = "HASKELL_TO_COQ"
 
--- | A @{-# HASKELL_TO_COQ <function> DECREASES ON <argument> #-}@ pragma.
-data DecArgPragma = DecArgPragma SrcSpan String String
+-- | Data type for custom @{-# HASKELL_TO_COQ ... #-}@ pragmas.
+data Pragma
+  = DecArgPragma SrcSpan String String
+    -- ^ A @{-# HASKELL_TO_COQ <function> DECREASES ON <argument> #-}@ pragma.
  deriving (Eq, Show)
 
 -------------------------------------------------------------------------------
@@ -469,7 +471,7 @@ instance GetSrcSpan ConPat where
 instance GetSrcSpan Module where
   getSrcSpan = modSrcSpan
 
-instance GetSrcSpan DecArgPragma where
+instance GetSrcSpan Pragma where
   getSrcSpan (DecArgPragma srcSpan _ _) = srcSpan
 
 -- | 'GetSrcSpan' instance for data type and type synonym declarations.

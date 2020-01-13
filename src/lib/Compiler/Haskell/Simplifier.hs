@@ -23,12 +23,10 @@ where
 
 import           Control.Monad                  ( when )
 import           Data.List.Extra                ( concatUnzip3 )
-import           Data.Maybe                     ( catMaybes
-                                                , fromJust
+import           Data.Maybe                     ( fromJust
                                                 , fromMaybe
                                                 , isJust
                                                 )
-import           Text.RegexPR
 
 import qualified Language.Haskell.Exts.Syntax  as H
 
@@ -36,6 +34,7 @@ import           Compiler.Analysis.DependencyExtraction
                                                 ( typeVars )
 import           Compiler.Environment.Fresh
 import qualified Compiler.Haskell.AST          as HS
+import           Compiler.Haskell.PragmaParser
 import           Compiler.Haskell.SrcSpan
 import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
@@ -140,7 +139,7 @@ simplifyModuleWithComments ast@(H.Module srcSpan _ pragmas imports decls) commen
     when (not (null pragmas)) $ skipNotSupported "Module pragmas" (head pragmas)
     modName                             <- extractModName ast
     imports'                            <- mapM simplifyImport imports
-    decArgPragmas                       <- simplifyPragmas comments
+    custumPragmas <- liftReporter $ parseCustomPragmas comments
     (typeDecls', typeSigs', funcDecls') <- simplifyDecls decls
     return
       (HS.Module
@@ -149,7 +148,7 @@ simplifyModuleWithComments ast@(H.Module srcSpan _ pragmas imports decls) commen
         , HS.modImports   = imports'
         , HS.modTypeDecls = typeDecls'
         , HS.modTypeSigs  = typeSigs'
-        , HS.modDecArgs   = decArgPragmas
+        , HS.modPragmas   = custumPragmas
         , HS.modFuncDecls = funcDecls'
         }
       )
@@ -189,37 +188,6 @@ simplifyImport decl
     simplifyImport decl { H.importSpecs = Nothing }
   | otherwise = case H.importModule decl of
     H.ModuleName srcSpan modName -> return (HS.ImportDecl srcSpan modName)
-
--------------------------------------------------------------------------------
--- Pragmas                                                                   --
--------------------------------------------------------------------------------
-
--- | Parses custom pragmas (i.e., 'HS.DecArgPragma') from the comments of a
---   module.
-simplifyPragmas :: [HS.Comment] -> Simplifier [HS.DecArgPragma]
-simplifyPragmas = fmap catMaybes . mapM simplifyPragma
- where
-  -- | Parses a pragma from the given comment.
-  --
-  --   Returns @Nothing@ if the given comment is not a pragma or an
-  --   unrecognised pragma.
-  simplifyPragma :: HS.Comment -> Simplifier (Maybe HS.DecArgPragma)
-  simplifyPragma (HS.LineComment _ _) = return Nothing
-  simplifyPragma (HS.BlockComment srcSpan text)
-    | length text <= 1 || head text /= '#' || last text /= '#' = return Nothing
-    | otherwise = case matchRegexPR decArgPattern text of
-      Just (_, [(2, decArgIdent), (1, funcIdent)]) -> do
-        return (Just (HS.DecArgPragma srcSpan funcIdent decArgIdent))
-      _ -> do
-        report $ Message srcSpan Warning $ "Unrecognised pragma"
-        return Nothing
-
-  -- | A regular expression for a decreasing argument pragma.
-  decArgPattern :: String
-  decArgPattern =
-    "^#\\s*"
-      ++ HS.customPragmaPrefix
-      ++ "\\s+(\\S+)\\s+DECREASES\\s+ON\\s+(\\S+)\\s*#$"
 
 -------------------------------------------------------------------------------
 -- Declarations                                                              --

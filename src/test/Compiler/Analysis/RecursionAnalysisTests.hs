@@ -45,9 +45,9 @@ testIdentifyDecArgs = do
           , "  case r of"
           , "    (Rose rs x) -> Rose (map (mapRose f) rs) (f x)"
           ]
-        let funcDecls     = HS.modFuncDecls ast
-            decArgPragmas = HS.modDecArgs ast
-        mapM_ (addDecArgPragma funcDecls) decArgPragmas
+        let funcDecls = HS.modFuncDecls ast
+            pragmas   = HS.modPragmas ast
+        mapM_ (addDecArgPragma funcDecls) pragmas
         _ <- identifyDecArgs funcDecls
         return (return ())
 
