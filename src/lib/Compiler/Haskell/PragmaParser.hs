@@ -22,6 +22,11 @@ import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Haskell.SrcSpan
 import           Compiler.Monad.Reporter
 
+-- | Type alias for a function that creates a pragma AST node
+--   from the capturing groups of a regular expression.
+--
+--   The given source span is the source span of the comment that
+--   declares the pragma.
 type CustomPragmaBuilder = SrcSpan -> [(Int, String)] -> Reporter HS.Pragma
 
 -- | A regular expression for custom pragmas.
@@ -66,9 +71,13 @@ parseCustomPragmas = fmap catMaybes . mapM parseCustomPragma
   parseCustomPragma :: HS.Comment -> Reporter (Maybe HS.Pragma)
   parseCustomPragma (HS.LineComment _ _) = return Nothing
   parseCustomPragma (HS.BlockComment srcSpan text) =
+    -- Test whether this comment is a custom pragma.
     case matchRegexPR customPragmaPattern text of
       Nothing          -> return Nothing
       Just (_, groups) -> do
+        -- Try to match the contents of the pragma with the pattern
+        -- of each custom pragma and return the result of the builder
+        -- asociated with the first matching pattern.
         let Just text' = lookup 1 groups
         fmap msum
           $ flip mapM customPragmas
