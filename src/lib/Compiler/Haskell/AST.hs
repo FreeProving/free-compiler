@@ -156,7 +156,7 @@ customPragmaPrefix :: String
 customPragmaPrefix = "HASKELL_TO_COQ"
 
 -- | A @{-# HASKELL_TO_COQ <function> DECREASES ON <argument> #-}@ pragma.
-data DecArgPragma = DecArgPragma SrcSpan Name Name
+data DecArgPragma = DecArgPragma SrcSpan String String
  deriving (Eq, Show)
 
 -------------------------------------------------------------------------------

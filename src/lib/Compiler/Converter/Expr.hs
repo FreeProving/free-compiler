@@ -101,9 +101,9 @@ convertExpr' (HS.Var srcSpan name) args = do
                     (return (genericApply qualid partialArg))
                     (return (G.app (G.Qualid qualid) partialArg))
       -- Is this a recursive helper function?
-      Just arity <- inEnv $ lookupArity ValueScope name
-      mDecArg    <- inEnv $ lookupDecArg name
-      case mDecArg of
+      Just arity   <- inEnv $ lookupArity ValueScope name
+      mDecArgIndex <- inEnv $ lookupDecArgIndex name
+      case mDecArgIndex of
         Nothing ->
           -- Regular functions can be applied directly.
           generateApplyN arity callee args'

@@ -69,7 +69,7 @@ convertFuncHead name args = do
   returnType    <- inEnv $ lookupReturnType ValueScope name
   -- Convert arguments and return type.
   typeArgs'     <- generateTypeVarDecls G.Implicit typeArgs
-  decArgIndex   <- inEnv $ lookupDecArg name
+  decArgIndex   <- inEnv $ lookupDecArgIndex name
   args'         <- convertArgs args argTypes decArgIndex
   returnType'   <- mapM convertType returnType
   return

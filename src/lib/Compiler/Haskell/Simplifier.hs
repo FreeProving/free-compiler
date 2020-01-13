@@ -208,10 +208,8 @@ simplifyPragmas = fmap catMaybes . mapM simplifyPragma
   simplifyPragma (HS.BlockComment srcSpan text)
     | length text <= 1 || head text /= '#' || last text /= '#' = return Nothing
     | otherwise = case matchRegexPR decArgPattern text of
-      Just (_, [(2, argIdent), (1, funIdent)]) -> do
-        let funName = HS.Ident funIdent
-            argName = HS.Ident argIdent
-        return (Just (HS.DecArgPragma srcSpan funName argName))
+      Just (_, [(2, decArgIdent), (1, funcIdent)]) -> do
+        return (Just (HS.DecArgPragma srcSpan funcIdent decArgIdent))
       _ -> do
         report $ Message srcSpan Warning $ "Unrecognised pragma"
         return Nothing

@@ -6,6 +6,9 @@ import           Control.Monad                  ( when )
 import           Control.Monad.Extra            ( concatMapM )
 import qualified Data.Map                      as Map
 import           Data.Maybe                     ( catMaybes )
+import           Data.List                      ( find
+                                                , findIndex
+                                                )
 import qualified Data.Set                      as Set
 
 import           Compiler.Analysis.DependencyAnalysis
@@ -36,13 +39,50 @@ convertModule haskellAst = moduleEnv $ do
   modifyEnv $ \env -> env { envModName = modName }
   -- Convert module contents.
   imports' <- convertImportDecls (HS.modImports haskellAst)
-  decls'   <- convertDecls (HS.modTypeDecls haskellAst)
-                           (HS.modTypeSigs haskellAst)
-                           (HS.modFuncDecls haskellAst)
+  mapM_ (addDecArgPragma (HS.modFuncDecls haskellAst))
+        (HS.modDecArgs haskellAst)
+  decls' <- convertDecls (HS.modTypeDecls haskellAst)
+                         (HS.modTypeSigs haskellAst)
+                         (HS.modFuncDecls haskellAst)
   -- Export module interface.
   let coqAst = G.comment ("module " ++ modName) : imports' ++ decls'
   interface <- exportInterface
   return (coqAst, interface)
+
+-------------------------------------------------------------------------------
+-- Pragmas                                                                   --
+-------------------------------------------------------------------------------
+
+-- | Inserts the decreasing argument's index annotated by the given pragma
+--   into the environment.
+--
+--   Decreasing arguments can be annotated for all function declarations
+--   in the current module (first argument).
+addDecArgPragma :: [HS.FuncDecl] -> HS.DecArgPragma -> Converter ()
+addDecArgPragma funcDecls (HS.DecArgPragma srcSpan funcIdent decArgIdent) = do
+  case find ((== funcIdent) . HS.fromDeclIdent . HS.getDeclIdent) funcDecls of
+    Just (HS.FuncDecl _ _ args _) -> do
+      case findIndex ((== decArgIdent) . HS.fromVarPat) args of
+        Just decArgIndex -> do
+          let name = HS.UnQual (HS.Ident funcIdent)
+          modifyEnv $ defineDecArg name decArgIndex decArgIdent
+        Nothing -> do
+          reportFatal
+            $  Message srcSpan Error
+            $  "The function "
+            ++ funcIdent
+            ++ " does not have an argument pattern "
+            ++ decArgIdent
+            ++ "."
+    Nothing -> do
+      modName <- inEnv envModName
+      reportFatal
+        $  Message srcSpan Error
+        $  "The module "
+        ++ modName
+        ++ " does not declare a function "
+        ++ funcIdent
+        ++ "."
 
 -------------------------------------------------------------------------------
 -- Declarations                                                              --
