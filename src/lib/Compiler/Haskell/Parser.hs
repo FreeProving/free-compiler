@@ -4,13 +4,17 @@
 module Compiler.Haskell.Parser
   ( parseHaskell
   , parseModule
+  , parseModuleWithComments
   , parseModuleFile
+  , parseModuleFileWithComments
   , parseDecl
   , parseType
   , parseExpr
   , parseQName
   )
 where
+
+import           Data.Composition               ( (.:) )
 
 import           Language.Haskell.Exts.Extension
                                                 ( Language(..) )
@@ -24,8 +28,11 @@ import           Language.Haskell.Exts.Parser   ( ParseMode(..)
                                                 , Parseable(..)
                                                 )
 import           Language.Haskell.Exts.SrcLoc   ( SrcSpanInfo )
+import qualified Language.Haskell.Exts.Comments
+                                               as H
 import qualified Language.Haskell.Exts.Syntax  as H
 
+import           Compiler.Haskell.AST          as HS
 import           Compiler.Haskell.SrcSpan
 import           Compiler.Monad.Reporter
 
@@ -68,10 +75,20 @@ parseHaskell
   => String -- ^ The name of the Haskell source file.
   -> String -- ^ The Haskell source code.
   -> Reporter (ast SrcSpan)
-parseHaskell filename contents =
-  case parseWithMode (parseMode filename) contents of
-    ParseOk node ->
-      return (fmap (toMessageSrcSpan :: SrcSpanInfo -> SrcSpan) node)
+parseHaskell = fmap fst .: parseHaskellWithComments
+
+-- | Like 'parseHaskell' but returns comments in addition to the AST.
+parseHaskellWithComments
+  :: (Functor ast, Parseable (ast SrcSpanInfo))
+  => String -- ^ The name of the Haskell source file.
+  -> String -- ^ The Haskell source code.
+  -> Reporter (ast SrcSpan, [HS.Comment])
+parseHaskellWithComments filename contents =
+  case parseWithComments (parseMode filename) contents of
+    ParseOk (node, comments) -> return
+      ( fmap (toMessageSrcSpan :: SrcSpanInfo -> SrcSpan) node
+      , map convertComment comments
+      )
     ParseFailed loc msg -> do
       reportFatal $ Message (toMessageSrcSpan loc) Error msg
  where
@@ -88,6 +105,15 @@ parseHaskell filename contents =
   toMessageSrcSpan :: SrcSpanConverter l => l -> SrcSpan
   toMessageSrcSpan = convertSrcSpan codeByFilename
 
+  -- | Unlike all other AST nodes of @haskell-src-exts@, the
+  --   'Language.Haskell.Exts.Comments.Comment' data type does
+  --   not have a type parameter for the source span information.
+  --   Therefore, we have to convert comments in this phase already.
+  convertComment :: H.Comment -> HS.Comment
+  convertComment (H.Comment isBlockComment srcSpan text)
+    | isBlockComment = HS.BlockComment (toMessageSrcSpan srcSpan) text
+    | otherwise      = HS.LineComment (toMessageSrcSpan srcSpan) text
+
 -------------------------------------------------------------------------------
 -- Modules                                                                   --
 -------------------------------------------------------------------------------
@@ -101,13 +127,26 @@ parseModule
   -> Reporter (H.Module SrcSpan)
 parseModule = parseHaskell
 
+-- | Like 'parseModule' but returns the comments in addtion to the AST.
+parseModuleWithComments
+  :: String  -- ^ The name of the Haskell source file.
+  -> String  -- ^ The Haskell source code.
+  -> Reporter (H.Module SrcSpan, [HS.Comment])
+parseModuleWithComments = parseHaskellWithComments
+
 -- | Loads and parses a Haskell module from the file with the given name.
 parseModuleFile
   :: String -- ^ The name of the Haskell source file.
   -> ReporterIO (H.Module SrcSpan)
-parseModuleFile filename = reportIOErrors $ do
+parseModuleFile = fmap fst . parseModuleFileWithComments
+
+-- | Like 'parseModuleFile' but returns the comments in addtion to the AST.
+parseModuleFileWithComments
+  :: String -- ^ The name of the Haskell source file.
+  -> ReporterIO (H.Module SrcSpan, [HS.Comment])
+parseModuleFileWithComments filename = reportIOErrors $ do
   contents <- lift $ readFile filename
-  hoist $ parseModule filename contents
+  hoist $ parseModuleWithComments filename contents
 
 -------------------------------------------------------------------------------
 -- Declarations                                                              --

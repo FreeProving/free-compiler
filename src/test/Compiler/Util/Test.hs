@@ -123,7 +123,8 @@ parseTestDecls input =
 -- | Parses and simplifies a Haskell module for testing purposes.
 parseTestModule :: [String] -> Simplifier HS.Module
 parseTestModule input =
-  liftReporter (parseModule "<test-input>" (unlines input)) >>= simplifyModule
+  liftReporter (parseModuleWithComments "<test-input>" (unlines input))
+    >>= uncurry simplifyModuleWithComments
 
 -------------------------------------------------------------------------------
 -- Defining test idenifiers                                                  --
