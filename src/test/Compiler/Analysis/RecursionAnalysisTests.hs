@@ -4,6 +4,8 @@ import qualified Data.Map.Strict               as Map
 import           Test.Hspec
 
 import           Compiler.Analysis.RecursionAnalysis
+import           Compiler.Haskell.AST          as HS
+import           Compiler.Converter.Module      ( addDecArgPragma )
 
 import           Compiler.Util.Test
 
@@ -30,6 +32,24 @@ testIdentifyDecArgs = do
               ]
           ]
         identifyDecArgs funcDecls
+
+  it "allows the decreasing argument to be annotated using pragmas"
+    $ shouldSucceed
+    $ fromConverter
+    $ do
+        ast <- parseTestModule
+          [ "data Rose a = Rose [Rose a] a"
+          , "{-# HASKELL_TO_COQ mapRose DECREASES ON r #-}"
+          , "mapRose :: (a -> b) -> Rose a -> Rose b"
+          , "mapRose f r ="
+          , "  case r of"
+          , "    (Rose rs x) -> Rose (map (mapRose f) rs) (f x)"
+          ]
+        let funcDecls     = HS.modFuncDecls ast
+            decArgPragmas = HS.modDecArgs ast
+        mapM_ (addDecArgPragma funcDecls) decArgPragmas
+        _ <- identifyDecArgs funcDecls
+        return (return ())
 
   it "cannot guess decreasing argument if the argument is not a variable"
     $ shouldReportFatal
