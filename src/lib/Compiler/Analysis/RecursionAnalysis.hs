@@ -235,7 +235,10 @@ identifyDecArgs decls = do
       $  Message (HS.getSrcSpan (head decls)) Error
       $  "Could not identify decreasing arguments of "
       ++ HS.prettyDeclIdents decls
-
+      ++ ".\n"
+      ++ "Consider adding a "
+      ++ "{-# HASKELL_TO_COQ <function> DECREASES ON <argument> #-} "
+      ++ "annotation."
 
 -------------------------------------------------------------------------------
 -- Constant arguments                                                        --

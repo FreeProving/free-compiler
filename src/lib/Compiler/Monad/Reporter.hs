@@ -276,7 +276,7 @@ instance Pretty Message where
   pretty (Message srcSpan severity msg) =
     (pretty srcSpan <> colon)
       <+>  (pretty severity <> colon)
-      <$$> (indent 4 $ prettyText msg)
+      <$$> (indent 4 $ prettyLines msg)
       <>   line
       <>   prettyCodeBlock srcSpan
   prettyList = prettySeparated line
