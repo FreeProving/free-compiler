@@ -255,42 +255,39 @@ instance Pretty TypeSchema where
 -- | Haskell type expressions can be pretty printed because they have to
 --   be serialized when the environment is saved to a @.json@ file.
 instance Pretty Type where
-  pretty = pretty' 0
-   where
-    -- | Pretty prints a type and adds parenthesis if necessary.
-    --
-    --   The first argument indicates the precedence of the sourrounding
-    --   context.
-    --    * @0@ - Top level. No parenthesis are neccessary.
-    --    * @1@ - Parenthesis are needed arround function types.
-    --    * @2@ - Parenthesis are also needed arround type constructor
-    --            applications.
-    pretty' :: Int -> Type -> Doc
-    -- Syntactic sugar for lists.
-    pretty' _ (TypeApp _ (TypeCon _ name) t) | name == listTypeConName =
-      brackets (pretty t)
+  pretty = prettyTypePred 0
 
-    -- Syntactic sugar for pairs.
-    -- TODO pretty print arbitrary tuple types.
-    pretty' _ (TypeApp _ (TypeApp _ (TypeCon _ name) t1) t2)
-      | name == tupleTypeConName 2 = parens (pretty t1 <> comma <+> pretty t2)
+-- | Pretty prints a type and adds parenthesis if necessary.
+--
+--   The first argument indicates the precedence of the sourrounding
+--   context.
+--    * @0@ - Top level. No parenthesis are neccessary.
+--    * @1@ - Parenthesis are needed arround function types.
+--    * @2@ - Parenthesis are also needed arround type constructor
+--            applications.
+prettyTypePred :: Int -> Type -> Doc
+-- Syntactic sugar for lists.
+prettyTypePred _ (TypeApp _ (TypeCon _ name) t) | name == listTypeConName =
+  brackets (pretty t)
 
-    -- Syntactic sugar for unit.
-    pretty' _ (TypeCon _ name)
-      | name == unitTypeConName = parens (empty)
+-- Syntactic sugar for pairs.
+-- TODO pretty print arbitrary tuple types.
+prettyTypePred _ (TypeApp _ (TypeApp _ (TypeCon _ name) t1) t2)
+  | name == tupleTypeConName 2 = parens (pretty t1 <> comma <+> pretty t2)
 
-    -- There are never parentheses around type variables or constructors.
-    pretty' _ (TypeVar _ ident)          = prettyString ident
-    pretty' _ (TypeCon _ name )          = pretty name
+-- Syntactic sugar for unit.
+prettyTypePred _ (TypeCon _ name) | name == unitTypeConName = parens (empty)
 
-    -- There may be parentheses around type appications and function types.
-    pretty' n (TypeApp _ t1 t2) | n <= 1 = pretty' 1 t1 <+> pretty' 2 t2
-    pretty' 0 (TypeFunc _ t1 t2)         = pretty' 1 t1 <+> arrow <+> pretty t2
-    pretty' _ t                          = parens (pretty t)
+-- There are never parentheses around type variables or constructors.
+prettyTypePred _ (TypeVar _ ident)                          = prettyString ident
+prettyTypePred _ (TypeCon _ name )                          = pretty name
 
-    -- | A document for the function arrow symbol.
-    arrow :: Doc
-    arrow = prettyString "->"
+-- There may be parentheses around type appications and function types.
+prettyTypePred n (TypeApp _ t1 t2) | n <= 1 =
+  prettyTypePred 1 t1 <+> prettyTypePred 2 t2
+prettyTypePred 0 (TypeFunc _ t1 t2) =
+  prettyTypePred 1 t1 <+> prettyString "->" <+> pretty t2
+prettyTypePred _ t = parens (pretty t)
 
 -------------------------------------------------------------------------------
 -- Expressions                                                               --
@@ -306,6 +303,7 @@ data Expr
   = Con SrcSpan ConName           -- ^ A constructor.
   | Var SrcSpan VarName           -- ^ A function or local variable.
   | App SrcSpan Expr Expr         -- ^ Function or constructor application.
+  | TypeAppExpr SrcSpan Expr Type -- ^ Visible type application.
 
   | If SrcSpan Expr Expr Expr     -- ^ @if@ expression.
   | Case SrcSpan Expr [Alt]       -- ^ @case@ expression.
@@ -367,52 +365,53 @@ fromVarPat (VarPat _ ident) = ident
 -------------------------------------------------------------------------------
 
 instance Pretty Expr where
-  pretty = pretty' 0
-   where
-    -- | Pretty prints an expression and adds parenthesis if necessary.
-    --
-    --   The first argument indicates the precedence of the sourrounding
-    --   context.
-    --    * @0@ - Top level. No parenthesis are neccessary.
-    --    * @1@ - Parenthesis are needed around @if@, @case@ and lambda
-    --            expressions.
-    --    * @2@ - Parenthesis are also needed around function applications.
-    pretty' :: Int -> Expr -> Doc
+  pretty = prettyExprPred 0
 
-    -- Parenthesis can be omitted around @if@, @case@ and lambda expressions
-    -- at top-level only.
-    pretty' 0 (If _ e1 e2 e3) =
-          prettyString "if"
-      <+> pretty' 1 e1
-      <+> prettyString "then"
-      <+> pretty' 0 e2
-      <+> prettyString "else"
-      <+> pretty' 0 e3
-    pretty' 0 (Case _ e alts) =
-          prettyString "case"
-      <+> pretty' 1 e
-      <+> prettyString "of"
-      <+> braces (space <> prettySeparated semi (map pretty alts) <> space)
-    pretty' 0 (Lambda _ args expr) =
-      backslash
-      <> hsep (map pretty args)
-      <+> prettyString "->"
-      <+> pretty' 0 expr
+-- | Pretty prints an expression and adds parenthesis if necessary.
+--
+--   The first argument indicates the precedence of the sourrounding
+--   context.
+--    * @0@ - Top level. No parenthesis are neccessary.
+--    * @1@ - Parenthesis are needed around @if@, @case@ and lambda
+--            expressions.
+--    * @2@ - Parenthesis are also needed around function applications.
+prettyExprPred :: Int -> Expr -> Doc
 
-    -- Function application is left-associative.
-    pretty' n (App _ e1 e2) | n <= 1 = pretty' 1 e1 <+> pretty' 2 e2
-    pretty' n (ErrorExpr _ msg) | n <= 1 =
-      prettyString "error" <+> prettyString (show msg)
+-- Parenthesis can be omitted around @if@, @case@ and lambda expressions
+-- at top-level only.
+prettyExprPred 0 (If _ e1 e2 e3) =
+  prettyString "if"
+    <+> prettyExprPred 1 e1
+    <+> prettyString "then"
+    <+> prettyExprPred 0 e2
+    <+> prettyString "else"
+    <+> prettyExprPred 0 e3
+prettyExprPred 0 (Case _ e alts) =
+  prettyString "case" <+> prettyExprPred 1 e <+> prettyString "of" <+> braces
+    (space <> prettySeparated semi (map pretty alts) <> space)
+prettyExprPred 0 (Lambda _ args expr) =
+  backslash
+    <>  hsep (map pretty args)
+    <+> prettyString "->"
+    <+> prettyExprPred 0 expr
 
-    -- No parenthesis are needed around variable and constructor names and
-    -- integer literals.
-    pretty' _ (Con _ name) = pretty name
-    pretty' _ (Var _ name) = pretty name
-    pretty' _ (IntLiteral _ i) = integer i
-    pretty' _ (Undefined _) = prettyString "undefined"
+-- Function application is left-associative.
+prettyExprPred n (App _ e1 e2) | n <= 1 =
+  prettyExprPred 1 e1 <+> prettyExprPred 2 e2
+prettyExprPred n (TypeAppExpr _ e t) | n <= 1 =
+  prettyExprPred 1 e <+> char '@' <> prettyTypePred 2 t
+prettyExprPred n (ErrorExpr _ msg) | n <= 1 =
+  prettyString "error" <+> prettyString (show msg)
 
-    -- Otherwise, there must be parenthesis.
-    pretty' _ e = parens (pretty e)
+-- No parenthesis are needed around variable and constructor names and
+-- integer literals.
+prettyExprPred _ (Con        _ name) = pretty name
+prettyExprPred _ (Var        _ name) = pretty name
+prettyExprPred _ (IntLiteral _ i   ) = integer i
+prettyExprPred _ (Undefined _      ) = prettyString "undefined"
+
+-- Otherwise, there must be parenthesis.
+prettyExprPred _ e                   = parens (pretty e)
 
 instance Pretty Alt where
   pretty (Alt _ conPat varPats expr) =
@@ -611,6 +610,14 @@ conApp
   -> [Expr]  -- ^ The arguments to pass to the constructor.
   -> Expr
 conApp srcSpan = app srcSpan . Con srcSpan
+
+-- | Creates an expression for passing the type arguments of a function or
+--   constructor explicitly.
+--
+--   The given source span is inserted into every generated visible type
+--   application node.
+visibleTypeApp :: SrcSpan -> Expr -> [Type] -> Expr
+visibleTypeApp = foldl . TypeAppExpr
 
 -------------------------------------------------------------------------------
 -- Names of predefined modules                                               --

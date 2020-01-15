@@ -1,3 +1,5 @@
+{-# LANGUAGE MultiParamTypeClasses #-}
+
 -- | This module contains a definition of substitutions for Haskell
 --   expressions.
 --
@@ -15,6 +17,8 @@ module Compiler.Haskell.Subst
     -- * Application
   , ApplySubst(..)
     -- * Rename arguments
+  , renameTypeArgsSubst
+  , renameTypeArgsSubst'
   , renameArgsSubst
   , renameArgs
   )
@@ -88,7 +92,7 @@ singleSubst'' = Subst .: Map.singleton
 
 -- | Creates a new substituion that applies both given substitutions after
 --   each other.
-composeSubst :: ApplySubst a => Subst a -> Subst a -> Subst a
+composeSubst :: ApplySubst a a => Subst a -> Subst a -> Subst a
 composeSubst s2@(Subst m2) (Subst m1) =
   let m1' = fmap (\f srcSpan -> f srcSpan >>= applySubst s2) m1
       m2' = Map.filterWithKey (const . (`Map.notMember` m1)) m2
@@ -96,28 +100,29 @@ composeSubst s2@(Subst m2) (Subst m1) =
 
 -- | Creates a new substituion that applies all given substitutions after
 --   each other.
-composeSubsts :: ApplySubst a => [Subst a] -> Subst a
+composeSubsts :: ApplySubst a a => [Subst a] -> Subst a
 composeSubsts = foldl composeSubst identitySubst
 
 -------------------------------------------------------------------------------
+-- Application of substitutions                                              --
+-------------------------------------------------------------------------------
+
+-- | Type class for applying a substitution that replaces variables by
+--   values of type @a@ on values of type @b@.
+class ApplySubst a b where
+  applySubst :: Subst a -> b -> Converter b
+
+-------------------------------------------------------------------------------
 -- Application to expressions                                                --
 -------------------------------------------------------------------------------
 
--- | Type class for applying a substitution.
-class ApplySubst a where
-  applySubst :: Subst a -> a -> Converter a
-
--------------------------------------------------------------------------------
--- Application to expressions                                                --
--------------------------------------------------------------------------------
-
--- | Applies the given substitution to an expression.
+-- | Applies the given expression substitution to an expression.
 --
 --   This function uses the 'Converter' monad, because we need to create fresh
 --   identifiers. This is because we have to rename arguments of lambda
 --   abstractions and @case@-alternatives, such that no name conflict can
 --   occur.
-instance ApplySubst HS.Expr where
+instance ApplySubst HS.Expr HS.Expr where
   applySubst subst@(Subst substMap) = applySubst'
    where
     applySubst' :: HS.Expr -> Converter HS.Expr
@@ -142,9 +147,9 @@ instance ApplySubst HS.Expr where
       (args', argSubst) <- renameArgsSubst args
       expr'             <- applySubst (composeSubst subst argSubst) expr
       return (HS.Lambda srcSpan args' expr')
-    applySubst' (HS.ExprTypeSig srcSpan expr typeExpr) = do
+    applySubst' (HS.ExprTypeSig srcSpan expr typeSchema) = do
       expr' <- applySubst' expr
-      return (HS.ExprTypeSig srcSpan expr' typeExpr)
+      return (HS.ExprTypeSig srcSpan expr' typeSchema)
 
     -- All other expressions remain unchanged.
     applySubst' expr@(HS.Con _ _       ) = return expr
@@ -159,12 +164,44 @@ instance ApplySubst HS.Expr where
       expr' <- applySubst (composeSubst subst varPatSubst) expr
       return (HS.Alt srcSpan conPat varPats' expr')
 
+-- | Applies the given type substitution to an expression.
+instance ApplySubst HS.Type HS.Expr where
+  applySubst subst@(Subst substMap) = applySubst'
+   where
+    applySubst' :: HS.Expr -> Converter HS.Expr
+    applySubst' (HS.App srcSpan e1 e2) = do
+      e1' <- applySubst' e1
+      e2' <- applySubst' e2
+      return (HS.App srcSpan e1' e2')
+    applySubst' (HS.If srcSpan e1 e2 e3) = do
+      e1' <- applySubst' e1
+      e2' <- applySubst' e2
+      e3' <- applySubst' e3
+      return (HS.If srcSpan e1' e2' e3')
+    applySubst' (HS.Case srcSpan expr alts) = do
+      expr' <- applySubst' expr
+      return (HS.Case srcSpan expr' alts)
+    applySubst' (HS.Lambda srcSpan args expr) = do
+      expr' <- applySubst' expr
+      return (HS.Lambda srcSpan args expr')
+    applySubst' (HS.ExprTypeSig srcSpan expr typeSchema) = do
+      expr' <- applySubst' expr
+      typeSchema' <- applySubst subst typeSchema
+      return (HS.ExprTypeSig srcSpan expr' typeSchema')
+
+    -- All other expressions remain unchanged.
+    applySubst' expr@(HS.Var _ _) = return expr
+    applySubst' expr@(HS.Con _ _       ) = return expr
+    applySubst' expr@(HS.Undefined _   ) = return expr
+    applySubst' expr@(HS.ErrorExpr  _ _) = return expr
+    applySubst' expr@(HS.IntLiteral _ _) = return expr
+
 -------------------------------------------------------------------------------
 -- Application to type expressions                                           --
 -------------------------------------------------------------------------------
 
--- | Applies the given substitution to a type expression.
-instance ApplySubst HS.Type where
+-- | Applies the given type substitution to a type expression.
+instance ApplySubst HS.Type HS.Type where
   applySubst (Subst substMap) = applySubst'
    where
     applySubst' :: HS.Type -> Converter HS.Type
@@ -183,8 +220,38 @@ instance ApplySubst HS.Type where
       return (HS.TypeFunc srcSpan t1' t2')
 
 -------------------------------------------------------------------------------
+-- Application to type schemas                                           --
+-------------------------------------------------------------------------------
+
+-- | Applies the given type substitution to a type schema.
+instance ApplySubst HS.Type HS.TypeSchema where
+  applySubst subst (HS.TypeSchema srcSpan typeArgs typeExpr) = do
+    let typeArgIdents     = map HS.fromDeclIdent typeArgs
+        declIdentSrcSpans = map HS.getSrcSpan typeArgs
+    (typeArgSubst, typeArgsIdents') <- renameTypeArgsSubst' typeArgIdents
+    let subst'    = composeSubst subst typeArgSubst
+        typeArgs' = zipWith HS.DeclIdent declIdentSrcSpans typeArgsIdents'
+    typeExpr' <- applySubst subst' typeExpr
+    return (HS.TypeSchema srcSpan typeArgs' typeExpr')
+
+-------------------------------------------------------------------------------
 -- Rename arguments                                                          --
 -------------------------------------------------------------------------------
+
+-- | Creates a substitution that renames the given type variables to fresh
+--   variables.
+renameTypeArgsSubst :: [HS.TypeVarIdent] -> Converter (Subst HS.Type)
+renameTypeArgsSubst = fmap fst . renameTypeArgsSubst'
+
+-- | Like 'renameTypeArgsSubst' but also returns the new type variables.
+renameTypeArgsSubst'
+  :: [HS.TypeVarIdent] -> Converter (Subst HS.Type, [HS.TypeVarIdent])
+renameTypeArgsSubst' typeArgIdents = do
+  typeArgIdents' <- mapM freshHaskellIdent typeArgIdents
+  let typeArgs'    = map (HS.TypeVar NoSrcSpan) typeArgIdents'
+      typeArgNames = map (HS.UnQual . HS.Ident) typeArgIdents
+      subst        = composeSubsts (zipWith singleSubst typeArgNames typeArgs')
+  return (subst, typeArgIdents')
 
 -- | Creates a substitution that renames the arguments bound by the given
 --   variable patterns to fresh variables.
