@@ -9,6 +9,7 @@ module Compiler.Pretty
   , prettyMaybe
   , prettyString
   , prettyText
+  , prettyLines
     -- * Trailing lines
   , TrailingLine
     -- * Rendering
@@ -58,6 +59,11 @@ prettyString = text . TL.pack
 --   are automatically broken between two words.
 prettyText :: String -> Doc
 prettyText = foldr (</>) empty . map prettyString . words
+
+-- | Pretty prints each line of the given string using 'prettyText' and
+--   concatenates the resulting documents vertically.
+prettyLines :: String -> Doc
+prettyLines = vcat . map prettyText . lines
 
 -------------------------------------------------------------------------------
 -- Trailing lines                                                            --

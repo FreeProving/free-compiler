@@ -17,6 +17,7 @@ import           Control.Monad                  ( mapAndUnzipM
                                                 , zipWithM
                                                 )
 import           Data.List                      ( (\\)
+                                                , elemIndex
                                                 , intercalate
                                                 )
 import           Data.Map.Strict                ( Map )
@@ -106,7 +107,7 @@ convertRecFuncDeclsWithSection constArgs decls = do
 
     -- Remove constant arguments from the type signatures of the renamed
     -- function declarations.
-  mapM_ (updateTypeSigs mgu usedTypeArgIdents argTypeMap returnTypeMap)
+  mapM_ (updateTypeSig mgu usedTypeArgIdents argTypeMap returnTypeMap)
         sectionDecls
 
   -- Generate @Section@ sentence.
@@ -214,6 +215,15 @@ renameFuncDecls decls = do
                                        , entryArgTypes   = argTypes'
                                        , entryReturnType = returnType'
                                        }
+
+          -- If the decreasing argument of the original function has been
+          -- annotated, copy that annotation.
+          maybeDecArg <- inEnv $ lookupDecArg name
+          case maybeDecArg of
+            Just (decArgIndex, decArgIdent) ->
+              modifyEnv $ defineDecArg name' decArgIndex decArgIdent
+            Nothing -> return ()
+
           -- Rename function declaration.
           return (HS.FuncDecl srcSpan (HS.DeclIdent srcSpan' ident') args rhs')
   return (decls', Map.fromList identMap)
@@ -409,7 +419,7 @@ removeConstArgsFromExpr constArgs = flip removeConstArgsFromExpr' []
 
 -- | Modifies the type signature of the given function declaration, such that
 --   it does not include the removed constant arguments anymore.
-updateTypeSigs
+updateTypeSig
   :: Subst HS.Type
      -- ^ The most general unificator for the constant argument types.
   -> [HS.TypeVarIdent]
@@ -421,12 +431,13 @@ updateTypeSigs
   -> HS.FuncDecl
     -- ^ The function declaration whose type signature to update.
   -> Converter ()
-updateTypeSigs mgu constTypeVars argTypeMap returnTypeMap (HS.FuncDecl _ declIdent args _)
+updateTypeSig mgu constTypeVars argTypeMap returnTypeMap (HS.FuncDecl _ declIdent args _)
   = do
   -- Modify type signature.
-    let ident   = HS.fromDeclIdent declIdent
-        name    = HS.UnQual (HS.Ident ident)
-        funArgs = map (const ident &&& HS.fromVarPat) args
+    let ident     = HS.fromDeclIdent declIdent
+        name      = HS.UnQual (HS.Ident ident)
+        argIdents = map HS.fromVarPat args
+        funArgs   = zip (repeat ident) argIdents
     argTypes <- mapM (applySubst mgu)
                      (catMaybes (map (flip Map.lookup argTypeMap) funArgs))
     returnType <- applySubst mgu (fromJust (Map.lookup ident returnTypeMap))
@@ -447,6 +458,14 @@ updateTypeSigs mgu constTypeVars argTypeMap returnTypeMap (HS.FuncDecl _ declIde
                        }
     modifyEnv $ addEntry name entry'
     modifyEnv $ addEntry (entryName entry) entry'
+    -- Update the index of the decreasing argument if it has been
+    -- specified by the user.
+    maybeDecArgIdent <- inEnv $ lookupDecArgIdent name
+    case maybeDecArgIdent of
+      Just decArgIdent -> do
+        let Just decArgIndex = elemIndex decArgIdent argIdents
+        modifyEnv $ defineDecArg name decArgIndex decArgIdent
+      Nothing -> return ()
 
 -------------------------------------------------------------------------------
 -- Interface functions                                                       --
@@ -483,6 +502,10 @@ generateInterfaceDecl constArgs isConstArgUsed identMap mgu sectionTypeArgs rena
         constArgs
       usedConstArgNames =
         map fst $ filter snd $ zip constArgNames isConstArgUsed
+
+    -- The interface function is not recursive. Thus, we have to remove the
+    -- decreasing argument, if ne has been specified by the user
+    modifyEnv $ removeDecArg name
 
     -- Generate the head of the interface function definition.
     (qualid, binders, returnType') <- convertFuncHead name args

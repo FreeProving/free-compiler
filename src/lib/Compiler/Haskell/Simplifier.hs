@@ -13,7 +13,7 @@
 
 module Compiler.Haskell.Simplifier
   ( Simplifier
-  , simplifyModule
+  , simplifyModuleWithComments
   , extractModName
   , simplifyDecls
   , simplifyType
@@ -34,6 +34,7 @@ import           Compiler.Analysis.DependencyExtraction
                                                 ( typeVars )
 import           Compiler.Environment.Fresh
 import qualified Compiler.Haskell.AST          as HS
+import           Compiler.Haskell.PragmaParser
 import           Compiler.Haskell.SrcSpan
 import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
@@ -131,12 +132,14 @@ warnIf cond msg node = when cond (report $ Message (H.ann node) Warning msg)
 --   list may be present but is ignored.
 --
 --   Only regular (non XML) modules are supported.
-simplifyModule :: H.Module SrcSpan -> Simplifier HS.Module
-simplifyModule ast@(H.Module srcSpan _ pragmas imports decls)
-  | not (null pragmas) = notSupported "Module pragmas" (head pragmas)
-  | otherwise = do
+simplifyModuleWithComments
+  :: H.Module SrcSpan -> [HS.Comment] -> Simplifier HS.Module
+simplifyModuleWithComments ast@(H.Module srcSpan _ pragmas imports decls) comments
+  = do
+    when (not (null pragmas)) $ skipNotSupported "Module pragmas" (head pragmas)
     modName                             <- extractModName ast
     imports'                            <- mapM simplifyImport imports
+    custumPragmas <- liftReporter $ parseCustomPragmas comments
     (typeDecls', typeSigs', funcDecls') <- simplifyDecls decls
     return
       (HS.Module
@@ -145,10 +148,11 @@ simplifyModule ast@(H.Module srcSpan _ pragmas imports decls)
         , HS.modImports   = imports'
         , HS.modTypeDecls = typeDecls'
         , HS.modTypeSigs  = typeSigs'
+        , HS.modPragmas   = custumPragmas
         , HS.modFuncDecls = funcDecls'
         }
       )
-simplifyModule modDecl = notSupported "XML modules" modDecl
+simplifyModuleWithComments modDecl _ = notSupported "XML modules" modDecl
 
 -- | Gets the name of the given module.
 extractModName :: H.Module SrcSpan -> Simplifier HS.ModName
@@ -178,10 +182,9 @@ simplifyImport decl
     decl
   | isJust (H.importAs decl) = notSupported "Imports with aliases" decl
   | isJust (H.importSpecs decl) = do
-    skipNotSupported'
-      "Import specifications"
-      "everything will be imported"
-      (fromJust (H.importSpecs decl))
+    skipNotSupported' "Import specifications"
+                      "everything will be imported"
+                      (fromJust (H.importSpecs decl))
     simplifyImport decl { H.importSpecs = Nothing }
   | otherwise = case H.importModule decl of
     H.ModuleName srcSpan modName -> return (HS.ImportDecl srcSpan modName)
@@ -270,7 +273,42 @@ simplifyDecl (H.TypeSig srcSpan names typeExpr) = do
 -- The user is allowed to specify fixities of custom infix declarations
 -- and they are respected by the haskell-src-exts parser, but we do not
 -- represent them in the AST.
-simplifyDecl (     H.InfixDecl   _ _ _ _) = return ([], [], [])
+simplifyDecl (     H.InfixDecl _ _ _ _ ) = return ([], [], [])
+
+-- Skip pragmas.
+simplifyDecl decl@(H.RulePragmaDecl _ _) = do
+  skipNotSupported "RULES pragmas" decl
+  return ([], [], [])
+simplifyDecl decl@(H.DeprPragmaDecl _ _) = do
+  skipNotSupported "DEPRECATED pragmas" decl
+  return ([], [], [])
+simplifyDecl decl@(H.WarnPragmaDecl _ _) = do
+  skipNotSupported "WARNING pragmas" decl
+  return ([], [], [])
+simplifyDecl decl@(H.InlineSig _ _ _ _) = do
+  skipNotSupported "INLINE pragmas" decl
+  return ([], [], [])
+simplifyDecl decl@(H.InlineConlikeSig _ _ _) = do
+  skipNotSupported "INLINE CONLIKE pragmas" decl
+  return ([], [], [])
+simplifyDecl decl@(H.SpecSig _ _ _ _) = do
+  skipNotSupported "SPECIALISE pragma" decl
+  return ([], [], [])
+simplifyDecl decl@(H.SpecInlineSig _ _ _ _ _) = do
+  skipNotSupported "SPECIALISE INLINE pragmas" decl
+  return ([], [], [])
+simplifyDecl decl@(H.InstSig _ _) = do
+  skipNotSupported "SPECIALISE instance pragmas" decl
+  return ([], [], [])
+simplifyDecl decl@(H.AnnPragma _ _) = do
+  skipNotSupported "ANN pragmas" decl
+  return ([], [], [])
+simplifyDecl decl@(H.MinimalPragma _ _) = do
+  skipNotSupported "MINIMAL pragmas" decl
+  return ([], [], [])
+simplifyDecl decl@(H.CompletePragma _ _ _) = do
+  skipNotSupported "COMPLETE pragma" decl
+  return ([], [], [])
 
 -- All other declarations are not supported.
 simplifyDecl decl@(H.TypeFamDecl _ _ _ _) = notSupported "Type families" decl
@@ -290,20 +328,9 @@ simplifyDecl decl@(H.DefaultDecl _ _    ) = notSupported "Type classes" decl
 simplifyDecl decl@(H.SpliceDecl  _ _    ) = notSupported "Template Haskell" decl
 simplifyDecl decl@(H.PatSynSig _ _ _ _ _ _ _) =
   notSupported "Pattern synonyms" decl
-simplifyDecl decl@(H.PatSyn _ _ _ _) = notSupported "Pattern synonyms" decl
+simplifyDecl decl@(H.PatSyn _ _ _ _    ) = notSupported "Pattern synonyms" decl
 simplifyDecl decl@(H.ForImp _ _ _ _ _ _) = notSupported "Foreign imports" decl
-simplifyDecl decl@(H.ForExp _ _ _ _ _) = notSupported "Foreign exports" decl
-simplifyDecl decl@(H.RulePragmaDecl _ _     ) = notSupported "Pragmas" decl
-simplifyDecl decl@(H.DeprPragmaDecl _ _     ) = notSupported "Pragmas" decl
-simplifyDecl decl@(H.WarnPragmaDecl _ _     ) = notSupported "Pragmas" decl
-simplifyDecl decl@(H.InlineSig _ _ _ _      ) = notSupported "Pragmas" decl
-simplifyDecl decl@(H.InlineConlikeSig _ _ _ ) = notSupported "Pragmas" decl
-simplifyDecl decl@(H.SpecSig _ _ _ _        ) = notSupported "Pragmas" decl
-simplifyDecl decl@(H.SpecInlineSig _ _ _ _ _) = notSupported "Pragmas" decl
-simplifyDecl decl@(H.InstSig       _ _      ) = notSupported "Pragmas" decl
-simplifyDecl decl@(H.AnnPragma     _ _      ) = notSupported "Pragmas" decl
-simplifyDecl decl@(H.MinimalPragma _ _      ) = notSupported "Pragmas" decl
-simplifyDecl decl@(H.CompletePragma _ _ _   ) = notSupported "Pragmas" decl
+simplifyDecl decl@(H.ForExp _ _ _ _ _  ) = notSupported "Foreign exports" decl
 simplifyDecl decl@(H.RoleAnnotDecl _ _ _) =
   notSupported "Role annotations" decl
 
@@ -649,6 +676,17 @@ simplifyExpr (H.ExpTypeSig srcSpan expr typeExpr) = do
       )
     )
 
+-- Skip pragmas.
+simplifyExpr pragma@(H.CorePragma _ _ expr) = do
+  skipNotSupported "CORE pragmas" pragma
+  simplifyExpr expr
+simplifyExpr pragma@(H.SCCPragma _ _ expr) = do
+  skipNotSupported "SCC pragmas" pragma
+  simplifyExpr expr
+simplifyExpr pragma@(H.GenPragma _ _ _ _ expr) = do
+  skipNotSupported "GENERATED pragmas" pragma
+  simplifyExpr expr
+
 -- Not supported expressions.
 simplifyExpr expr@(H.OverloadedLabel _ _) =
   notSupported "Overloaded labels" expr
@@ -685,16 +723,13 @@ simplifyExpr expr@(H.SpliceExp  _ _  ) = notSupported "Template Haskell" expr
 simplifyExpr expr@(H.QuasiQuote _ _ _) = notSupported "Quasiquotation" expr
 simplifyExpr expr@(H.TypeApp _ _) =
   notSupported "Visible type applications" expr
-simplifyExpr expr@(H.XTag _ _ _ _ _     ) = notSupported "XML elements" expr
-simplifyExpr expr@(H.XETag _ _ _ _      ) = notSupported "XML elements" expr
-simplifyExpr expr@(H.XPcdata   _ _      ) = notSupported "XML elements" expr
-simplifyExpr expr@(H.XExpTag   _ _      ) = notSupported "XML elements" expr
-simplifyExpr expr@(H.XChildTag _ _      ) = notSupported "XML elements" expr
-simplifyExpr expr@(H.CorePragma _ _ _   ) = notSupported "Pragmas" expr
-simplifyExpr expr@(H.SCCPragma  _ _ _   ) = notSupported "Pragmas" expr
-simplifyExpr expr@(H.GenPragma _ _ _ _ _) = notSupported "Pragmas" expr
-simplifyExpr expr@(H.Proc _ _ _) = notSupported "Arrow expressions" expr
-simplifyExpr expr@(H.LeftArrApp _ _ _) = notSupported "Arrow expressions" expr
+simplifyExpr expr@(H.XTag _ _ _ _ _   ) = notSupported "XML elements" expr
+simplifyExpr expr@(H.XETag _ _ _ _    ) = notSupported "XML elements" expr
+simplifyExpr expr@(H.XPcdata   _ _    ) = notSupported "XML elements" expr
+simplifyExpr expr@(H.XExpTag   _ _    ) = notSupported "XML elements" expr
+simplifyExpr expr@(H.XChildTag _ _    ) = notSupported "XML elements" expr
+simplifyExpr expr@(H.Proc        _ _ _) = notSupported "Arrow expressions" expr
+simplifyExpr expr@(H.LeftArrApp  _ _ _) = notSupported "Arrow expressions" expr
 simplifyExpr expr@(H.RightArrApp _ _ _) = notSupported "Arrow expressions" expr
 simplifyExpr expr@(H.LeftArrHighApp _ _ _) =
   notSupported "Arrow expressions" expr

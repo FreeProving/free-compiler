@@ -122,9 +122,35 @@ data Module = Module
   , modImports   :: [ImportDecl]
   , modTypeDecls :: [TypeDecl]
   , modTypeSigs  :: [TypeSig]
+  , modPragmas   :: [Pragma]
   , modFuncDecls :: [FuncDecl]
   }
   deriving (Eq, Show)
+
+-------------------------------------------------------------------------------
+-- Comments and pragmas                                                      --
+-------------------------------------------------------------------------------
+
+-- | A comment.
+--
+--   Comments are collected during parsing. However, the final AST
+--   contains no comments. Pragmas (see 'DecArgPragma') are extracted
+--   from comments during simplification.
+data Comment
+  = BlockComment SrcSpan String
+    -- ^ A multi-line comment (i.e., @{- ... -}@).
+  | LineComment SrcSpan String
+    -- ^ A single-line comment (i.e., @-- ...@).
+
+-- | All custom pragmas of the compiler start with @HASKELL_TO_COQ@.
+customPragmaPrefix :: String
+customPragmaPrefix = "HASKELL_TO_COQ"
+
+-- | Data type for custom @{-# HASKELL_TO_COQ ... #-}@ pragmas.
+data Pragma
+  = DecArgPragma SrcSpan String String
+    -- ^ A @{-# HASKELL_TO_COQ <function> DECREASES ON <argument> #-}@ pragma.
+ deriving (Eq, Show)
 
 -------------------------------------------------------------------------------
 -- Declarations                                                              --
@@ -479,6 +505,9 @@ instance GetSrcSpan ConPat where
 -- | 'GetSrcSpan' instance for modules.
 instance GetSrcSpan Module where
   getSrcSpan = modSrcSpan
+
+instance GetSrcSpan Pragma where
+  getSrcSpan (DecArgPragma srcSpan _ _) = srcSpan
 
 -- | 'GetSrcSpan' instance for data type and type synonym declarations.
 instance GetSrcSpan TypeDecl where

@@ -86,6 +86,11 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent args expr) decArgIndex = do
   let (Just mainExpr) = replaceSubterms expr (zip caseExprsPos helperApps)
       mainDecl        = HS.FuncDecl srcSpan declIdent args mainExpr
 
+  -- If the user specified the decreasing argument of the function to
+  -- transform, that information needs to be removed since the main function
+  -- is not recursive anymore.
+  modifyEnv $ removeDecArg name
+
   return (helperDecls, mainDecl)
  where
   -- | The name of the function to transform.
@@ -176,8 +181,9 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent args expr) decArgIndex = do
 
     -- Additionally we need to remember the index of the decreasing argument
     -- (see 'convertDecArg').
-    let (Just decArgIndex') = elemIndex decArg helperArgNames
-    modifyEnv $ defineDecArg helperName decArgIndex'
+    let Just decArgIndex' = elemIndex decArg helperArgNames
+        Just decArgIdent  = HS.identFromQName decArg
+    modifyEnv $ defineDecArg helperName decArgIndex' decArgIdent
 
     return (helperDecl, helperApp)
 
@@ -189,7 +195,7 @@ convertRecHelperFuncDecl (HS.FuncDecl _ declIdent args expr) = localEnv $ do
       argNames   = map (HS.UnQual . HS.Ident . HS.fromVarPat) args
   (qualid, binders, returnType') <- convertFuncHead helperName args
   expr'                          <- convertExpr expr
-  Just decArgIndex               <- inEnv $ lookupDecArg helperName
+  Just decArgIndex               <- inEnv $ lookupDecArgIndex helperName
   Just decArg' <- inEnv $ lookupIdent ValueScope (argNames !! decArgIndex)
   return
     (G.FixBody qualid

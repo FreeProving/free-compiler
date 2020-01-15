@@ -26,7 +26,9 @@ import           Compiler.Environment
 import           Compiler.Environment.Encoder
 import           Compiler.Environment.Decoder
 import qualified Compiler.Haskell.AST          as HS
-import           Compiler.Haskell.Parser        ( parseModuleFile )
+import           Compiler.Haskell.Parser        ( parseModuleFile
+                                                , parseModuleFileWithComments
+                                                )
 import           Compiler.Haskell.PatternMatching
                                                 ( transformPatternMatching )
 import           Compiler.Haskell.Pretty        ( )
@@ -87,9 +89,10 @@ compiler = do
 parseInputFile :: FilePath -> Application HS.Module
 parseInputFile inputFile = reportApp $ do
   -- Parse and simplify input file.
-  haskellAst  <- liftReporterIO $ parseModuleFile inputFile
+  (haskellAst, comments) <- liftReporterIO
+    $ parseModuleFileWithComments inputFile
   haskellAst' <- transformInputModule haskellAst
-  liftConverter (simplifyModule haskellAst')
+  liftConverter (simplifyModuleWithComments haskellAst' comments)
 
 -- | Sorts the given modules based on their dependencies.
 --

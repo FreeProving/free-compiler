@@ -29,6 +29,7 @@ import           Data.Set                       ( Set
                                                 , (\\)
                                                 )
 import qualified Data.Set                      as Set
+import           Data.Tuple.Extra               ( uncurry3 )
 
 import           Compiler.Analysis.DependencyGraph
 import           Compiler.Analysis.DependencyExtraction
@@ -49,21 +50,35 @@ type DecArgIndex = Int
 -- | Guesses all possible combinations of decreasing arguments for the given
 --   mutually recursive function declarations.
 --
+--   The second argument contains the known decreasing arguments as specified
+--   by the user.
+--
 --   Returns a list of all possible combinations of argument indecies.
-guessDecArgs :: [HS.FuncDecl] -> [[DecArgIndex]]
-guessDecArgs []                               = return []
-guessDecArgs (HS.FuncDecl _ _ args _ : decls) = do
-  decArgIndecies <- guessDecArgs decls
-  decArgIndex    <- [0 .. length args - 1]
+guessDecArgs :: [HS.FuncDecl] -> [Maybe DecArgIndex] -> [[DecArgIndex]]
+guessDecArgs []          _  = return []
+guessDecArgs _           [] = return []
+guessDecArgs (_ : decls) (Just decArgIndex : knownDecArgIndecies) = do
+  decArgIndecies <- guessDecArgs decls knownDecArgIndecies
   return (decArgIndex : decArgIndecies)
+guessDecArgs (HS.FuncDecl _ _ args _ : decls) (Nothing : knownDecArgIndecies) =
+  do
+    decArgIndecies <- guessDecArgs decls knownDecArgIndecies
+    decArgIndex    <- [0 .. length args - 1]
+    return (decArgIndex : decArgIndecies)
 
 -- | Tests whether the given combination of choices for the decreasing
 --   arguments of function declarations in a strongly connected component
 --   is valid (i.e. all function declarations actually decrease the
---   corresponding argument)
-checkDecArgs :: [HS.FuncDecl] -> [DecArgIndex] -> Bool
-checkDecArgs decls decArgIndecies = all (uncurry checkDecArg)
-                                        (zip decArgIndecies decls)
+--   corresponding argument).
+--
+--   The second argument contains the known decreasing arguments as specified
+--   by the user. If the user has specied the decreasing argument of a function
+--   it is not checked whether the function actually decreases on the argument
+--   (such that the user is not limited by our termination checker).
+checkDecArgs :: [HS.FuncDecl] -> [Maybe DecArgIndex] -> [DecArgIndex] -> Bool
+checkDecArgs decls knownDecArgIndecies decArgIndecies = all
+  (uncurry3 checkDecArg)
+  (zip3 knownDecArgIndecies decArgIndecies decls)
  where
   -- | Maps the names of functions in the strongly connected component
   --   to the index of their decreasing argument.
@@ -83,8 +98,12 @@ checkDecArgs decls decArgIndecies = all (uncurry checkDecArg)
 
   -- | Tests whether the given function declaration actually decreases on the
   --   argument with the given index.
-  checkDecArg :: DecArgIndex -> HS.FuncDecl -> Bool
-  checkDecArg decArgIndex (HS.FuncDecl _ _ args expr) =
+  --
+  --   The first argument is the index of the decreasing argument as specified
+  --   by the user or @Nothing@ if there is no such annotation.
+  checkDecArg :: Maybe DecArgIndex -> DecArgIndex -> HS.FuncDecl -> Bool
+  checkDecArg (Just _) _ _ = True
+  checkDecArg _ decArgIndex (HS.FuncDecl _ _ args expr) =
     let decArg = HS.UnQual (HS.Ident (HS.fromVarPat (args !! decArgIndex)))
     in  checkExpr decArg Set.empty expr []
 
@@ -137,10 +156,10 @@ checkDecArgs decls decArgIndecies = all (uncurry checkDecArg)
     checkExpr' (HS.ExprTypeSig _ expr _) args = checkExpr' expr args
 
     -- Base expressions are
-    checkExpr' (HS.Con _ _       ) _     = True
-    checkExpr' (HS.Undefined _   ) _     = True
-    checkExpr' (HS.ErrorExpr  _ _) _     = True
-    checkExpr' (HS.IntLiteral _ _) _     = True
+    checkExpr' (HS.Con _ _             ) _    = True
+    checkExpr' (HS.Undefined _         ) _    = True
+    checkExpr' (HS.ErrorExpr  _ _      ) _    = True
+    checkExpr' (HS.IntLiteral _ _      ) _    = True
 
     -- | Applies 'checkExpr' on the right hand side of an alternative of a
     --   @case@ expression.
@@ -178,24 +197,48 @@ checkDecArgs decls decArgIndecies = all (uncurry checkDecArg)
 -- | Identifies the decreasing arguments of the given mutually recursive
 --   function declarations.
 --
+--   The second argument contains the known decreasing arguments as specified
+--   by the user.
+--
 --   Returns @Nothing@ if the decreasing argument could not be identified.
-maybeIdentifyDecArgs :: [HS.FuncDecl] -> Maybe [Int]
-maybeIdentifyDecArgs decls = find (checkDecArgs decls) (guessDecArgs decls)
+maybeIdentifyDecArgs
+  :: [HS.FuncDecl] -> [Maybe DecArgIndex] -> Maybe [DecArgIndex]
+maybeIdentifyDecArgs decls knownDecArgIndecies = find
+  (checkDecArgs decls knownDecArgIndecies)
+  (guessDecArgs decls knownDecArgIndecies)
 
 -- | Identifies the decreasing arguments of the given mutually recursive
 --   function declarations.
 --
 --   Reports a fatal error message, if the decreasing arguments could not be
 --   identified.
-identifyDecArgs :: [HS.FuncDecl] -> Converter [Int]
-identifyDecArgs decls = maybe decArgError return (maybeIdentifyDecArgs decls)
+identifyDecArgs :: [HS.FuncDecl] -> Converter [DecArgIndex]
+identifyDecArgs decls = do
+  knownDecArgIndecies <- mapM lookupDecArgIndexOfDecl decls
+  maybe decArgError return (maybeIdentifyDecArgs decls knownDecArgIndecies)
  where
+  -- | Looks up the index of an annotated decreasing argument.
+  lookupDecArgIndexOfDecl :: HS.FuncDecl -> Converter (Maybe Int)
+  lookupDecArgIndexOfDecl =
+    inEnv
+      . lookupDecArgIndex
+      . HS.UnQual
+      . HS.Ident
+      . HS.fromDeclIdent
+      . HS.getDeclIdent
+
+  -- | Prints an error message if the decreasing arguments could not
+  --   be identified.
   decArgError :: Converter a
   decArgError =
     reportFatal
       $  Message (HS.getSrcSpan (head decls)) Error
       $  "Could not identify decreasing arguments of "
       ++ HS.prettyDeclIdents decls
+      ++ ".\n"
+      ++ "Consider adding a "
+      ++ "{-# HASKELL_TO_COQ <function> DECREASES ON <argument> #-} "
+      ++ "annotation."
 
 -------------------------------------------------------------------------------
 -- Constant arguments                                                        --
@@ -306,10 +349,10 @@ makeConstArgGraph modName decls = do
 
         -- Constructors, literals and error terms cannot contain further
         -- calls to @g@.
-        checkExpr (HS.Con        _ _) _     = True
-        checkExpr (HS.IntLiteral _ _) _     = True
-        checkExpr (HS.Undefined _   ) _     = True
-        checkExpr (HS.ErrorExpr _ _ ) _     = True
+        checkExpr (HS.Con        _ _      ) _    = True
+        checkExpr (HS.IntLiteral _ _      ) _    = True
+        checkExpr (HS.Undefined _         ) _    = True
+        checkExpr (HS.ErrorExpr _ _       ) _    = True
 
         -- | Applies 'checkExpr' to the alternative of a @case@ expression.
         --

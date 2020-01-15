@@ -17,6 +17,7 @@ module Compiler.Environment
   , addEntry
   , addEntry'
   , defineDecArg
+  , removeDecArg
   , defineTypeSig
   -- * Looking up entries from the environment
   , lookupEntries
@@ -38,6 +39,8 @@ module Compiler.Environment
   , needsFreeArgs
   , isPartial
   , lookupDecArg
+  , lookupDecArgIndex
+  , lookupDecArgIdent
   -- * QuickCheck support
   , enableQuickCheck
   , isQuickCheckEnabled
@@ -109,10 +112,10 @@ data Environment = Environment
     --   not referenced. Entries are identified by their original name.
   , envTypeSigs :: Map HS.QName HS.Type
     -- ^ Maps names of Haskell functions to their annotated types.
-  , envDecArgs :: Map HS.QName Int
-    -- ^ Maps Haskell function names to the index of their decreasing argument.
-    --   Contains no entry for non-recursive functions, but there are also
-    --   entries for functions that are shadowed by local variables.
+  , envDecArgs :: Map HS.QName (Int, String)
+    -- ^ Maps Haskell function names to the index and name of their decreasing
+    --   argument. Contains no entry for non-recursive functions, but there are
+    --   also entries for functions that are shadowed by local variables.
   , envFreshIdentCount :: Map String Int
     -- ^ The number of fresh identifiers that were used in the environment
     --   with a certain prefix.
@@ -206,10 +209,18 @@ defineTypeSig name typeExpr env =
   env { envTypeSigs = Map.insert name typeExpr (envTypeSigs env) }
 
 -- | Stores the index of the decreasing argument of a recursive function
---   in the environmen
-defineDecArg :: HS.QName -> Int -> Environment -> Environment
-defineDecArg name index env =
-  env { envDecArgs = Map.insert name index (envDecArgs env) }
+--   in the environment.
+defineDecArg :: HS.QName -> Int -> String -> Environment -> Environment
+defineDecArg funcName decArgIndex decArgIdent env = env
+  { envDecArgs = Map.insert funcName (decArgIndex, decArgIdent) (envDecArgs env)
+  }
+
+-- | Removes the index of the decreasing argument of a recursive function
+--   from the environment (e.g., because the function has been transformed
+--   into a non-recursive function).
+removeDecArg :: HS.QName -> Environment -> Environment
+removeDecArg funcName env =
+  env { envDecArgs = Map.delete funcName (envDecArgs env) }
 
 -------------------------------------------------------------------------------
 -- Looking up entries from the environment                                   --
@@ -364,12 +375,20 @@ isPartial :: HS.QName -> Environment -> Bool
 isPartial =
   maybe False (isFuncEntry .&&. entryIsPartial) .: lookupEntry ValueScope
 
--- | Looks up the index of the decreasing argument of the recursive function
---   with the given name.
+-- | Looks up the index and name of the decreasing argument of the recursive
+--   function with the given name.
 --
 --   Returns @Nothing@ if there is no such recursive function.
-lookupDecArg :: HS.QName -> Environment -> Maybe Int
+lookupDecArg :: HS.QName -> Environment -> Maybe (Int, String)
 lookupDecArg name = Map.lookup name . envDecArgs
+
+-- | Like 'lookupDecArg' but returns the decreasing argument's index only.
+lookupDecArgIndex :: HS.QName -> Environment -> Maybe Int
+lookupDecArgIndex = fmap fst .: lookupDecArg
+
+-- | Like 'lookupDecArg' but returns the decreasing argument's name only.
+lookupDecArgIdent :: HS.QName -> Environment -> Maybe String
+lookupDecArgIdent = fmap snd .: lookupDecArg
 
 -------------------------------------------------------------------------------
 -- QuickCheck support                                                        --
