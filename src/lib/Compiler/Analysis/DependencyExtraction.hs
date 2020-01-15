@@ -154,6 +154,7 @@ exprDependencies' (HS.Var _ name) = varName name
 exprDependencies' (HS.Con _ name) = conName name
 exprDependencies' (HS.App _ e1 e2) =
   exprDependencies' e1 `Set.union` exprDependencies' e2
+exprDependencies' (HS.TypeAppExpr _ expr _) = exprDependencies' expr
 exprDependencies' (HS.If _ e1 e2 e3) =
   Set.unions (map exprDependencies' [e1, e2, e3])
 exprDependencies' (HS.Case _ expr alts) =

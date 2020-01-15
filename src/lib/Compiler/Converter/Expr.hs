@@ -126,6 +126,8 @@ convertExpr' (HS.Var srcSpan name) args = do
 -- Pass argument from applications to converter for callee.
 convertExpr' (HS.App _ e1 e2  ) args = convertExpr' e1 (e2 : args)
 
+-- TODO implement conversion of visible type applications
+
 -- @if@-expressions.
 convertExpr' (HS.If _ e1 e2 e3) []   = do
   e1'   <- convertExpr e1

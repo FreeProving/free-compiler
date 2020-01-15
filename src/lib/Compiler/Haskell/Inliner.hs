@@ -97,6 +97,8 @@ inlineExpr decls = inlineAndBind
         e1'' <- applySubst subst e1'
         return (remainingArgs', e1'')
 
+  -- TODO bind visibly applied types
+
   -- Inline recursively.
   inlineExpr' (HS.If srcSpan e1 e2 e3) = do
     e1' <- inlineAndBind e1

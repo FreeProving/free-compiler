@@ -538,6 +538,7 @@ instance GetSrcSpan Expr where
   getSrcSpan (Con         srcSpan _    ) = srcSpan
   getSrcSpan (Var         srcSpan _    ) = srcSpan
   getSrcSpan (App         srcSpan _ _  ) = srcSpan
+  getSrcSpan (TypeAppExpr srcSpan _ _  ) = srcSpan
   getSrcSpan (If          srcSpan _ _ _) = srcSpan
   getSrcSpan (Case        srcSpan _ _  ) = srcSpan
   getSrcSpan (Undefined   srcSpan      ) = srcSpan

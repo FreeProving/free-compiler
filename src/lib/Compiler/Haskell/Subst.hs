@@ -134,6 +134,9 @@ instance ApplySubst HS.Expr HS.Expr where
       e1' <- applySubst' e1
       e2' <- applySubst' e2
       return (HS.App srcSpan e1' e2')
+    applySubst' (HS.TypeAppExpr srcSpan expr typeExpr) = do
+      expr' <- applySubst' expr
+      return (HS.TypeAppExpr srcSpan expr' typeExpr)
     applySubst' (HS.If srcSpan e1 e2 e3) = do
       e1' <- applySubst' e1
       e2' <- applySubst' e2
@@ -166,13 +169,17 @@ instance ApplySubst HS.Expr HS.Expr where
 
 -- | Applies the given type substitution to an expression.
 instance ApplySubst HS.Type HS.Expr where
-  applySubst subst@(Subst substMap) = applySubst'
+  applySubst subst = applySubst'
    where
     applySubst' :: HS.Expr -> Converter HS.Expr
     applySubst' (HS.App srcSpan e1 e2) = do
       e1' <- applySubst' e1
       e2' <- applySubst' e2
       return (HS.App srcSpan e1' e2')
+    applySubst' (HS.TypeAppExpr srcSpan expr typeExpr) = do
+      expr' <- applySubst' expr
+      typeExpr' <- applySubst subst typeExpr
+      return (HS.TypeAppExpr srcSpan expr' typeExpr')
     applySubst' (HS.If srcSpan e1 e2 e3) = do
       e1' <- applySubst' e1
       e2' <- applySubst' e2

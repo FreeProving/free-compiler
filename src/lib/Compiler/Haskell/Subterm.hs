@@ -41,7 +41,8 @@ import           Compiler.Haskell.AST          as HS
 
 -- | Gets the direct child expression nodes of the given expression.
 childExprs :: HS.Expr -> [HS.Expr]
-childExprs (HS.App _ e1 e2            ) = [e1, e2]
+childExprs (HS.App         _ e1   e2  ) = [e1, e2]
+childExprs (HS.TypeAppExpr _ expr _   ) = [expr]
 childExprs (HS.If _ e1 e2 e3          ) = [e1, e2, e3]
 childExprs (HS.Case        _ expr alts) = expr : map altChildExpr alts
 childExprs (HS.Lambda      _ _    expr) = [expr]
