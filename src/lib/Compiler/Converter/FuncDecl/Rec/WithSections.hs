@@ -401,10 +401,10 @@ removeConstArgsFromExpr constArgs = flip removeConstArgsFromExpr' []
     alts' <- mapM (flip removeConstArgsFromAlt args) alts
     return (HS.Case srcSpan expr' alts')
 
-  removeConstArgsFromExpr' (HS.Lambda srcSpan varPats expr) args = do
-    -- TODO shadow varPats in expr
-    expr' <- removeConstArgsFromExpr' expr args
-    return (HS.Lambda srcSpan varPats expr')
+  removeConstArgsFromExpr' (HS.Lambda srcSpan varPats expr) args =
+    shadowVarPats varPats $ do
+      expr' <- removeConstArgsFromExpr' expr args
+      return (HS.Lambda srcSpan varPats expr')
 
   -- Leave all other expressions unchanged.
   removeConstArgsFromExpr' expr args = return (HS.app NoSrcSpan expr args)
@@ -412,10 +412,10 @@ removeConstArgsFromExpr constArgs = flip removeConstArgsFromExpr' []
   -- | Applies 'removeConstArgsFromExpr'' to the right-hand side of the
   --   given @case@ expression alternative.
   removeConstArgsFromAlt :: HS.Alt -> [HS.Expr] -> Converter HS.Alt
-  removeConstArgsFromAlt (HS.Alt srcSpan conPat varPats expr) args = do
-    -- TODO shadow varPats in expr
-    expr' <- removeConstArgsFromExpr' expr args
-    return (HS.Alt srcSpan conPat varPats expr')
+  removeConstArgsFromAlt (HS.Alt srcSpan conPat varPats expr) args =
+    shadowVarPats varPats $ do
+      expr' <- removeConstArgsFromExpr' expr args
+      return (HS.Alt srcSpan conPat varPats expr')
 
 -- | Modifies the type signature of the given function declaration, such that
 --   it does not include the removed constant arguments anymore.

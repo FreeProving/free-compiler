@@ -32,6 +32,7 @@ module Compiler.Monad.Converter
   , localEnv
   , moduleEnv
   , sectionEnv
+  , shadowVarPats
   )
 where
 
@@ -55,6 +56,8 @@ import           Control.Monad.State            ( StateT(..)
 import           Data.Composition               ( (.:) )
 
 import           Compiler.Environment
+import           Compiler.Environment.Entry
+import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Monad.Class.Hoistable
 import           Compiler.Monad.Reporter
 
@@ -197,6 +200,26 @@ sectionEnv converter = localEnv' $ do
     x <- converter
     modifyEnv $ \env -> env { envInSection = False }
     return x
+
+-- | Adds entries for variable patterns during the execution of the given
+--   converter.
+--
+--   Unlike 'localEnv', all modifications to the environment are keept
+--   (except for added entries), except for the definition of the variables.
+shadowVarPats :: Monad m => [HS.VarPat] -> ConverterT m a -> ConverterT m a
+shadowVarPats varPats converter = do
+  oldEntries <- inEnv envEntries
+  flip mapM_ varPats $ \(HS.VarPat srcSpan varIdent) -> do
+    let varName = HS.UnQual (HS.Ident varIdent)
+    modifyEnv $ addEntry varName VarEntry
+      { entrySrcSpan = srcSpan
+      , entryIsPure  = False
+      , entryIdent   = undefined
+      , entryName    = varName
+      }
+  x <- converter
+  modifyEnv $ \env -> env { envEntries = oldEntries }
+  return x
 
 -------------------------------------------------------------------------------
 -- Reporting in converter                                                    --

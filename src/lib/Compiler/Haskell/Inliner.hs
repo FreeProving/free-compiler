@@ -109,10 +109,9 @@ inlineExpr decls = inlineAndBind
     expr' <- inlineAndBind expr
     alts' <- mapM inlineAlt alts
     return ([], HS.Case srcSpan expr' alts')
-  inlineExpr' (HS.Lambda srcSpan args expr) = do
-    -- TODO shadow args in expr
+  inlineExpr' (HS.Lambda srcSpan varPats expr) = shadowVarPats varPats $ do
     expr' <- inlineAndBind expr
-    return ([], HS.Lambda srcSpan args expr')
+    return ([], HS.Lambda srcSpan varPats expr')
   inlineExpr' (HS.ExprTypeSig srcSpan expr typeExpr) = do
     expr' <- inlineAndBind expr
     return ([], HS.ExprTypeSig srcSpan expr' typeExpr)
@@ -126,8 +125,7 @@ inlineExpr decls = inlineAndBind
   -- | Performs inlining on the right hand side of the given @case@-expression
   --   alternative.
   inlineAlt :: HS.Alt -> Converter HS.Alt
-  inlineAlt (HS.Alt srcSpan conPat varPats expr) = do
-    -- TODO shadow varPats in expr
+  inlineAlt (HS.Alt srcSpan conPat varPats expr) = shadowVarPats varPats $ do
     expr' <- inlineAndBind expr
     return (HS.Alt srcSpan conPat varPats expr')
 
