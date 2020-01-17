@@ -5,7 +5,6 @@ import           Test.Hspec
 import           Compiler.Analysis.TypeInference
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Monad.Converter
-import           Compiler.Pretty
 
 import           Compiler.Util.Test
 
@@ -91,6 +90,50 @@ testTypeInference =
       $ do
           inferTestType "[42, True]"
 
+-- | Test group for type 'addTypeAppExprs' tests.
+testAddTypeAppExprs :: Spec
+testAddTypeAppExprs =
+  describe "Compiler.Analysis.TypeInference.addTypeAppExprs" $ do
+    it "type arguments of constructors are applied visibly"
+      $ shouldSucceed
+      $ fromConverter
+      $ do
+          shouldAddTypeAppExprs "(42, True)"
+            $ "Prelude.(,) @Prelude.Integer @Prelude.Bool 42 True"
+    it "type arguments of functions are applied visibly"
+      $ shouldSucceed
+      $ fromConverter
+      $ do
+          "head" <- defineTestFunc "head" 1 "[a] -> a"
+          shouldAddTypeAppExprs "head [1]"
+            $  "head @Prelude.Integer (Prelude.(:) @Prelude.Integer 1 "
+            ++ "(Prelude.([]) @Prelude.Integer))"
+    it "does not apply functions shadowed by lambda visibly"
+      $ shouldSucceed
+      $ fromConverter
+      $ do
+          "f" <- defineTestFunc "f" 1 "a -> a"
+          "\\f x -> f x" `shouldAddTypeAppExprs` "\\f x -> f x"
+    it "does not apply functions shadowed by case visibly"
+      $ shouldSucceed
+      $ fromConverter
+      $ do
+          "f" <- defineTestFunc "f" 1 "a -> a"
+          shouldAddTypeAppExprs "case (f, 42) of (f, x) -> f x"
+            $  "case Prelude.(,) @(Prelude.Integer -> Prelude.Integer) "
+            ++ "                 @Prelude.Integer (f @Prelude.Integer) 42 of {"
+            ++ "    Prelude.(,) f x -> f x"
+            ++ "  }"
+
+    it "generates distinct fresh type variables in different scopes"
+      $ shouldSucceed
+      $ fromConverter
+      $ do
+          "f" <- defineTestFunc "f" 1 "a -> a"
+          shouldAddTypeAppExprs "(\\x -> f x, \\x -> f x)"
+            $  "Prelude.(,) @(a@1 -> a@1) @(a@2 -> a@2)"
+            ++ "            (\\x -> f @a@1 x) (\\x -> f @a@2 x)"
+
 -------------------------------------------------------------------------------
 -- Utility functions                                                         --
 -------------------------------------------------------------------------------
@@ -106,4 +149,14 @@ inferTestType input = do
 shouldInferType :: String -> String -> Converter Expectation
 shouldInferType input expectedType = do
   inferredType <- inferTestType input
-  return (showPretty inferredType `shouldBe` expectedType)
+  return (inferredType `prettyShouldBe` expectedType)
+
+addTypeAppTestExprs :: String -> Converter HS.Expr
+addTypeAppTestExprs input = do
+  expr <- parseTestExpr input
+  addTypeAppExprs expr
+
+shouldAddTypeAppExprs :: String -> String -> Converter Expectation
+shouldAddTypeAppExprs input expectedOutput = do
+  output <- addTypeAppTestExprs input
+  return (output `prettyShouldBe` expectedOutput)

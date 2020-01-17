@@ -2,10 +2,13 @@
 
 module Compiler.Analysis.TypeInference
   ( inferExprType
+  , addTypeAppExprs
   )
 where
 
-import           Control.Monad.Extra            ( ifM )
+import           Control.Monad.Extra            ( ifM
+                                                , replicateM
+                                                )
 import           Control.Monad.Writer
 
 import           Compiler.Analysis.DependencyExtraction
@@ -18,20 +21,106 @@ import           Compiler.Haskell.SrcSpan
 import           Compiler.Haskell.Subst
 import           Compiler.Haskell.Unification
 import           Compiler.Monad.Converter
+import           Compiler.Monad.Reporter
 
 -- | Tries to infer the type of the given expression from the current context
 --   and abstracts it's type to a type schema.
 inferExprType :: HS.Expr -> Converter HS.TypeSchema
-inferExprType expr = localEnv $ do
-  typeVar          <- freshTypeVar
-  (varTypes, eqns) <- execWriterT $ simplifyTypedExpr expr typeVar
-  let eqns' = makeTypeEquations varTypes ++ eqns
-  mgu      <- unifyEquations eqns'
-  exprType <- applySubst mgu typeVar
+inferExprType expr = do
+  (exprType, _) <- inferExprType' expr
   abstractTypeSchema exprType
 
+-- | Like 'inferExprType' but does not abstract the type to a type schema and
+--   also returns the substitution.
+inferExprType' :: HS.Expr -> Converter (HS.Type, Subst HS.Type)
+inferExprType' expr = localEnv $ do
+  typeVar  <- freshTypeVar
+  eqns     <- execTypedExprSimplifier $ simplifyTypedExpr expr typeVar
+  mgu      <- unifyEquations eqns
+  exprType <- applySubst mgu typeVar
+  return (exprType, mgu)
+
+-- | Infers the types of type arguments to functions and constructors
+--   used by the given expression.
+--
+--   Returns an expression where the type arguments of functions and
+--   constructors are applied explicitly.
+addTypeAppExprs :: HS.Expr -> Converter HS.Expr
+addTypeAppExprs expr = localEnv $ do
+  expr'    <- addTypeAppVars expr
+  (_, mgu) <- inferExprType' expr'
+  applySubst mgu expr'
+
 -------------------------------------------------------------------------------
--- Simplification of expression/type                                         --
+-- Visible type application                                                  --
+-------------------------------------------------------------------------------
+
+-- | Add one visible type application node with a fresh type variable around
+--   the given expression for each type argument of the function or constructor
+--   with the given name.
+addTypeAppVarsFor
+  :: HS.QName -- ^ The name of the function or constructor.
+  -> HS.Expr  -- ^ The variable or constructor expression.
+  -> Converter HS.Expr
+addTypeAppVarsFor name expr = do
+  Just typeArgIdents <- inEnv $ lookupTypeArgs ValueScope name
+  typeArgIdents'     <- mapM freshHaskellIdent typeArgIdents
+  let srcSpan  = HS.getSrcSpan expr
+      typeArgs = map (HS.TypeVar srcSpan) typeArgIdents'
+  return (HS.visibleTypeApp srcSpan expr typeArgs)
+
+-- | Applies the type arguments of each function and constructor invoked
+--   by the given expression visibly using fresh type variables.
+--
+--   The fresh type variables are later replced by the actual type to
+--   instantiate the type argument with using the substitution computed
+--   during type inference.
+addTypeAppVars :: HS.Expr -> Converter HS.Expr
+
+-- Add visible type application to type variables.
+addTypeAppVars expr@(HS.Con _ conName) = do
+  addTypeAppVarsFor conName expr
+addTypeAppVars expr@(HS.Var _ varName) = ifM (inEnv $ isFunction varName)
+                                             (addTypeAppVarsFor varName expr)
+                                             (return expr)
+
+-- Discard existing visible type applications.
+addTypeAppVars (HS.TypeAppExpr _       expr _ ) = return expr
+
+-- Add visible type applications recursively.
+addTypeAppVars (HS.App         srcSpan e1   e2) = do
+  e1' <- addTypeAppVars e1
+  e2' <- addTypeAppVars e2
+  return (HS.App srcSpan e1' e2')
+addTypeAppVars (HS.If srcSpan e1 e2 e3) = do
+  e1' <- addTypeAppVars e1
+  e2' <- addTypeAppVars e2
+  e3' <- addTypeAppVars e3
+  return (HS.If srcSpan e1' e2' e3')
+addTypeAppVars (HS.Case srcSpan expr alts) = do
+  expr' <- addTypeAppVars expr
+  alts' <- mapM addTypeAppVarsAlt alts
+  return (HS.Case srcSpan expr' alts')
+addTypeAppVars (HS.Lambda srcSpan varPats expr) = shadowVarPats varPats $ do
+  expr' <- addTypeAppVars expr
+  return (HS.Lambda srcSpan varPats expr')
+addTypeAppVars (HS.ExprTypeSig srcSpan expr typeSchema) = do
+  expr' <- addTypeAppVars expr
+  return (HS.ExprTypeSig srcSpan expr' typeSchema)
+addTypeAppVars expr@(HS.Undefined _   ) = return expr
+addTypeAppVars expr@(HS.ErrorExpr  _ _) = return expr
+addTypeAppVars expr@(HS.IntLiteral _ _) = return expr
+
+-- | Applies 'addTypeAppVars' to the right-hand side of an alternative of  a
+--   @case@-expression.
+addTypeAppVarsAlt :: HS.Alt -> Converter HS.Alt
+addTypeAppVarsAlt (HS.Alt srcSpan conPat varPats expr) =
+  shadowVarPats varPats $ do
+    expr' <- addTypeAppVars expr
+    return (HS.Alt srcSpan conPat varPats expr')
+
+-------------------------------------------------------------------------------
+-- Simplification of expression/type pairs                                   --
 -------------------------------------------------------------------------------
 
 -- | A pair of a variable name and it's type.
@@ -44,6 +133,20 @@ type TypeEquation = (HS.Type, HS.Type)
 --   and 'TypeEquation's implicitly.
 type TypedExprSimplifier a = WriterT ([TypedVar], [TypeEquation]) Converter a
 
+-- | Runs the given simplifier for expression/type pairs and returns the
+--   yielded type equations (including type equations for variable/type pairs
+--   with the same name, see 'makeTypeEquations') in addition to the
+--   simplifiers result.
+runTypedExprSimplifier :: TypedExprSimplifier a -> Converter (a, [TypeEquation])
+runTypedExprSimplifier mx = do
+  (x, (varTypes, eqns)) <- runWriterT mx
+  let eqns' = makeTypeEquations varTypes ++ eqns
+  return (x, eqns')
+
+-- | Like 'runTypedExprSimplifier' but discards the result.
+execTypedExprSimplifier :: TypedExprSimplifier a -> Converter [TypeEquation]
+execTypedExprSimplifier = fmap snd . runTypedExprSimplifier
+
 -- | Adds a 'TypedVar' entry to a 'TypedExprSimplifier'.
 addVarType :: HS.QName -> HS.Type -> TypedExprSimplifier ()
 addVarType v t = tell ([(v, t)], [])
@@ -55,73 +158,111 @@ addTypeEquation t t' = tell ([], [(t, t')])
 -- | Instantiates the type schema of the function or constructor with the
 --   given name and adds a 'TypeEquation' for the resulting type and the
 --   given type.
-addTypeEquationFor :: HS.QName -> HS.Type -> TypedExprSimplifier ()
+--
+--   Returns the type variables the type schema of a predefined function
+--   or constructor has been instantiated with. This is needed for the
+--   implementation of visible type applications.
+addTypeEquationFor :: HS.QName -> HS.Type -> TypedExprSimplifier [HS.Type]
 addTypeEquationFor name resType = do
-  Just typeSchema <- lift $ inEnv $ lookupTypeSchema ValueScope name
-  funcType        <- lift $ instantiateTypeSchema typeSchema
+  Just typeSchema      <- lift $ inEnv $ lookupTypeSchema ValueScope name
+  (funcType, typeArgs) <- lift $ instantiateTypeSchema' typeSchema
   addTypeEquation funcType resType
+  return typeArgs
 
 -- | Simplifies expression/type pairs to pairs of variables and types and
 --   type equations.
-simplifyTypedExpr :: HS.Expr -> HS.Type -> TypedExprSimplifier ()
+--
+--   Returns the type variables the type schema of a predefined function
+--   or constructor has been instantiated with. This is needed for the
+--   implementation of visible type applications.
+simplifyTypedExpr :: HS.Expr -> HS.Type -> TypedExprSimplifier [HS.Type]
+
+-- | If @C :: τ@ is a predefined constructor with @C :: forall α₀ … αₙ. τ'@,
+--   then @τ = σ(τ')@ with @σ = { α₀ ↦ β₀, …, αₙ ↦ βₙ }@ where @β₀, …, βₙ@ are
+--   new type variables.
+simplifyTypedExpr (HS.Con _ conName) resType =
+  addTypeEquationFor conName resType
 
 -- | If @f :: τ@ is a predefined function with @f :: forall α₀ … αₙ. τ'@, then
 --   @τ = σ(τ')@ with @σ = { α₀ ↦ β₀, …, αₙ ↦ βₙ }@ where @β₀, …, βₙ@ are new
 --   type variables.
-simplifyTypedExpr (HS.Con _ conName) resType =
-  addTypeEquationFor conName resType
+--   If @x :: τ@ is not a predefined function (i.e., a local variable or a
+--   function whose type to infer), just remember that @x@ is of type @τ@.
 simplifyTypedExpr (HS.Var _ varName) resType = ifM
   (lift $ inEnv $ isFunction varName)
   (addTypeEquationFor varName resType)
-  (addVarType varName resType)
+  (addVarType varName resType >> return [])
 
 -- If @(e₁ e₂) :: τ@, then @e₁ :: α -> τ@ and @e₂ :: α@ where @α@ is a new
 -- type variable.
 simplifyTypedExpr (HS.App _ e1 e2) resType = do
   argType <- lift freshTypeVar
-  simplifyTypedExpr e1 (HS.TypeFunc NoSrcSpan argType resType)
-  simplifyTypedExpr e2 argType
+  _       <- simplifyTypedExpr e1 (HS.TypeFunc NoSrcSpan argType resType)
+  _       <- simplifyTypedExpr e2 argType
+  return []
+
+-- If @e \@τ :: τ'@ and @e@ is a predefined function or constructor of type
+-- @forall α₀ … αₙ. κ@ that has been instantiated with
+-- @σ = { α₀ ↦ β₀, …, αₙ ↦ βₙ }@ and the first @i@ type arguments of @e@ have
+-- been applied visibly already, add the type equation @τ = βᵢ@.
+simplifyTypedExpr (HS.TypeAppExpr srcSpan expr typeExpr) resType = do
+  typeArgs <- simplifyTypedExpr expr resType
+  case typeArgs of
+    [] ->
+      lift
+        $  reportFatal
+        $  Message srcSpan Error
+        $  "Every visible type application must have a corresponding "
+        ++ "type argument."
+    (typeArg : typeArgs') -> do
+      addTypeEquation typeArg typeExpr
+      return typeArgs'
 
 -- If @if e₁ then e₂ else e₃ :: τ@, then @e₁ :: Bool@ and @e₂, e₃ :: τ@.
 simplifyTypedExpr (HS.If _ e1 e2 e3) resType = do
   let condType = HS.TypeCon NoSrcSpan HS.boolTypeConName
-  simplifyTypedExpr e1 condType
-  simplifyTypedExpr e2 resType
-  simplifyTypedExpr e3 resType
+  _ <- simplifyTypedExpr e1 condType
+  _ <- simplifyTypedExpr e2 resType
+  _ <- simplifyTypedExpr e3 resType
+  return []
 
 -- If @case e of {p₀ -> e₀; …; pₙ -> eₙ} :: τ@, then @e₀, …, eₙ :: τ@ and
 -- @e :: α@ and @p₀, …, pₙ :: α@ where @α@ is a new type variable.
 simplifyTypedExpr (HS.Case _ expr alts) resType = do
   exprType <- lift freshTypeVar
-  simplifyTypedExpr expr exprType
+  _        <- simplifyTypedExpr expr exprType
   mapM_ (\alt -> simplifyTypedAlt alt exprType resType) alts
+  return []
 
 -- Error terms are always typed correctly.
-simplifyTypedExpr (HS.Undefined _   ) _       = return ()
-simplifyTypedExpr (HS.ErrorExpr  _ _) _       = return ()
+simplifyTypedExpr (HS.Undefined _   ) _       = return []
+simplifyTypedExpr (HS.ErrorExpr  _ _) _       = return []
 
 -- If @n :: τ@ for some integer literal @n@, then @τ = Integer@.
 simplifyTypedExpr (HS.IntLiteral _ _) resType = do
   addTypeEquation resType (HS.TypeCon NoSrcSpan HS.integerTypeConName)
+  return []
 
 -- If @\x₀ … xₙ -> e :: τ@, then @x₀ :: α₀, … xₙ :: αₙ@ and @x :: β@ for new
 -- type variables @α₀ … αₙ@ and @α₀ -> … -> αₙ -> β = τ@.
 simplifyTypedExpr (HS.Lambda _ args expr) resType = do
   (args', expr') <- lift $ renameArgs args expr
-  argTypes       <- mapM (const (lift freshTypeVar)) args'
+  argTypes       <- replicateM (length args') (lift freshTypeVar)
   returnType     <- lift freshTypeVar
   zipWithM_ simplifyTypedExpr (map HS.varPatToExpr args') argTypes
-  simplifyTypedExpr expr' returnType
+  _ <- simplifyTypedExpr expr' returnType
   let funcType = HS.funcType NoSrcSpan argTypes returnType
   addTypeEquation funcType resType
+  return []
 
 -- If @(e :: forall α₀, …, αₙ. τ) :: τ'@, then @e :: σ(τ)@ and @σ(τ) = τ'@
 -- where @σ = { α₀ ↦ β₀, …, αₙ ↦ βₙ }@ maps the quantified type variables
 -- of @τ@ to new type variables @β₀, …, βₙ@.
 simplifyTypedExpr (HS.ExprTypeSig _ expr typeSchema) resType = do
   exprType <- lift $ instantiateTypeSchema typeSchema
-  simplifyTypedExpr expr exprType
+  _        <- simplifyTypedExpr expr exprType
   addTypeEquation exprType resType
+  return []
 
 -- | Applies 'simplifyTypedExpr' to the pattern and right-hand side of a
 --   @case@-expression alternative.
@@ -134,8 +275,9 @@ simplifyTypedAlt (HS.Alt _ conPat varPats expr) patType exprType = do
   (varPats', expr') <- lift $ renameArgs varPats expr
   let pat =
         HS.app NoSrcSpan (HS.conPatToExpr conPat) (map HS.varPatToExpr varPats')
-  simplifyTypedExpr pat   patType
-  simplifyTypedExpr expr' exprType
+  _ <- simplifyTypedExpr pat patType
+  _ <- simplifyTypedExpr expr' exprType
+  return ()
 
 -------------------------------------------------------------------------------
 -- Solving type equations                                                    --
@@ -170,11 +312,17 @@ unifyEquations = unifyEquations' identitySubst
 -- | Replaces the type variables in the given type schema by fresh type
 --   variables.
 instantiateTypeSchema :: HS.TypeSchema -> Converter HS.Type
-instantiateTypeSchema (HS.TypeSchema _ typeArgs typeExpr) = do
-  typeArgs' <- mapM (const freshTypeVar) typeArgs
-  let names = map (HS.UnQual . HS.Ident . HS.fromDeclIdent) typeArgs
-      subst = composeSubsts (zipWith singleSubst names typeArgs')
-  applySubst subst typeExpr
+instantiateTypeSchema = fmap fst . instantiateTypeSchema'
+
+-- | Like 'instantiateTypeSchema'' but also returns the fresh type variables,
+--   the type schema has been instantiated with.
+instantiateTypeSchema' :: HS.TypeSchema -> Converter (HS.Type, [HS.Type])
+instantiateTypeSchema' (HS.TypeSchema _ typeArgs typeExpr) = do
+  let typeArgIdents = map HS.fromDeclIdent typeArgs
+  (subst, typeArgIdents') <- renameTypeArgsSubst' typeArgIdents
+  typeExpr'               <- applySubst subst typeExpr
+  let typeArgs' = map (HS.TypeVar NoSrcSpan) typeArgIdents'
+  return (typeExpr', typeArgs')
 
 -- | Normalizes the names of type variables in the given type and returns
 --   it as a type schema.
