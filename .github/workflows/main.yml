@@ -1,0 +1,23 @@
+name: Haskell To Coq Compiler CI
+
+on: [push]
+
+jobs:
+  unit-tests:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Setup Haskell
+      uses: actions/setup-haskell@v1
+      with:
+        ghc-version: '8.6.5'
+        cabal-version: '2.4'
+    - name: Install dependencies
+      run: |
+        cabal new-update
+        cabal new-build --only-dependencies
+    - name: Build unit tests
+      run: cabal new-build unit-tests
+    - name: Run unit tests
+      run: cabal new-run unit-tests
