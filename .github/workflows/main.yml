@@ -7,7 +7,8 @@ jobs:
     name: Unit tests
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
+    - name: Checkout
+      uses: actions/checkout@v1
     - name: Setup Haskell
       uses: actions/setup-haskell@v1
       with:
@@ -16,8 +17,36 @@ jobs:
     - name: Install dependencies
       run: |
         cabal new-update
-        cabal new-build --only-dependencies
+        cabal new-build unit-tests --only-dependencies
     - name: Build unit tests
       run: cabal new-build unit-tests
     - name: Run unit tests
       run: cabal new-run unit-tests
+
+  build-compiler:
+    name: Build compiler
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@1
+    - name: Setup Haskell
+      uses: actyions/setup-haskell@1
+      with:
+        ghc-version: '8.6.5'
+        cabal-version: '2.4'
+    - name: Install dependencies
+      run: |
+        cabal new-update
+        cabal new-build haskell-to-coq-compiler --only-dependencies
+    - name: Build compiler
+      run: cabal new-build haskell-to-coq-compiler
+    - name: Copy executable to build directory
+      run: |
+        mkdir -p ./build/bin
+        cp $(find dist-newstyle -name haskell-to-coq-compiler -type f)\
+           ./build/bin/haskell-to-coq-compiler
+    - name: Upload executable
+      uses: actions/upload-artifact@v1
+      with:
+        name: compiler
+        path: ./build/bin/haskell-to-coq-compiler
