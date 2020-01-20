@@ -216,6 +216,7 @@ jobs:
       uses: actions/download-artifact@v1
       with:
         name: compiler
+        path: ./
     - name: Download base library
       uses: actions/download-artifact@v1
       with:
@@ -223,11 +224,12 @@ jobs:
         path: ./base
     - name: Compile examples
       run: |
-        haskell-to-coq-compiler --transform-pattern-matching                   \
-                                --dump-transformed-modules example/transformed \
-                                -b ./base                                      \
-                                -o ./example/generated                         \
-                                $(find ./example -name "*.hs")
+        ./haskell-to-coq-compiler                        \
+          --transform-pattern-matching                   \
+          --dump-transformed-modules example/transformed \
+          -b ./base                                      \
+          -o ./example/generated                         \
+          $(find ./example -name "*.hs")
     - name: Copy compiled examples to build directory
       run:
         mkdir -p ./build/examples
