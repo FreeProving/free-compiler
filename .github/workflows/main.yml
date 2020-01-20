@@ -85,6 +85,8 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v1
+    - name: Fix file permissions
+      run: sudo chown -R coq:coq .
     - name: Setup Coq
       run: echo "::add-path::/home/coq/.opam/$COMPILER/bin"
     - name: Build Coq base library
