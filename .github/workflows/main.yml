@@ -77,3 +77,22 @@ jobs:
       with:
         name: documentation
         path: ./build/docs
+
+  build-base-library:
+    name: Build Coq base library
+    runs-on: ubuntu-latest
+    container: coqorg/coq:8.8.2
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v1
+    - name: Build Coq base library
+      run: ./tool/compile-coq.sh base
+    - name: Copy compiled base library to build directory
+      run: |
+        mkdir -p ./build/base
+        cp --parents $(find base -name "*.vo" -or -name "*.glob") ./build
+    - name: Upload compiled base library
+      uses: actions/upload-artifact@v1
+      with:
+        name: coq-base-library
+        path: ./build/base
