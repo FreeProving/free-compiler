@@ -233,15 +233,15 @@ jobs:
           -o ./example/generated                         \
           $(find ./example -name "*.hs")
     - name: Copy compiled examples to build directory
-      run:
+      run: |
         mkdir -p ./build/examples
         cp -r ./example/generated ./build/examples
         cp -r ./example/transformed ./build/examples
     - name: Upload compiled examples
-      uses: actions/download-artifact@v1
+      uses: actions/upload-artifact@v1
       with:
         name: examples
-        path: ./build/example
+        path: ./build/examples
 
   test-generated-code:
     name: Test generated Coq code
