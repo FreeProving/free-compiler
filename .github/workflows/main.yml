@@ -100,3 +100,58 @@ jobs:
       with:
         name: coq-base-library
         path: ./build/base
+
+  test-examples:
+    name: Test examples
+    needs: [build-compiler, build-base-library]
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v1
+    - name: Download compiler
+      uses: actions/download-artifact@v1
+      with:
+        name: compiler
+    - name: Download base library
+      uses: actions/download-artifact@v1
+      with:
+        name: coq-base-library
+        path: ./base
+    - name: Compile examples
+      run: |
+        haskell-to-coq-compiler --transform-pattern-matching                   \
+                                --dump-transformed-modules example/transformed \
+                                -b ./base                                      \
+                                -o ./example/generated                         \
+                                $(find ./example -name "*.hs")
+    - name: Copy compiled examples to build directory
+      run:
+        mkdir -p ./build/examples
+        cp -r ./example/generated ./build/examples
+        cp -r ./example/transformed ./build/examples
+    - name: Upload compiled examples
+      uses: actions/download-artifact@v1
+      with:
+        name: examples
+        path: ./build/example
+
+  test-generated-code:
+    name: Test generated Coq code
+    needs: [test-examples]
+    runs-on: ubuntu-latest
+    container: coqorg/coq:8.8.2
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v1
+    - name: Download base library
+      uses: actions/download-artifact@v1
+      with:
+        name: coq-base-library
+        path: ./base
+    - name: Download compiled examples
+      uses: actions/download-artifact@v1
+      with:
+        name: examples
+        path: ./example
+    - name: Compile (generated) Coq code
+      run: ./tool/compile-coq.sh ./example
