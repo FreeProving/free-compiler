@@ -222,6 +222,8 @@ jobs:
       with:
         name: coq-base-library
         path: ./base
+    - name: Mark compiler as executable
+      run: chmod +x haskell-to-coq-compiler
     - name: Compile examples
       run: |
         ./haskell-to-coq-compiler                        \
