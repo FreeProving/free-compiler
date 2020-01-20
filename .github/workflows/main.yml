@@ -28,9 +28,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
-      uses: actions/checkout@1
+      uses: actions/checkout@v1
     - name: Setup Haskell
-      uses: actyions/setup-haskell@1
+      uses: actions/setup-haskell@v1
       with:
         ghc-version: '8.6.5'
         cabal-version: '2.4'
