@@ -85,6 +85,8 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v1
+    - name: Setup Coq
+      run: echo "::add-path::/home/coq/.opam/$COMPILER/bin"
     - name: Build Coq base library
       run: ./tool/compile-coq.sh base
     - name: Copy compiled base library to build directory
