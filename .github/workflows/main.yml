@@ -22,17 +22,23 @@ jobs:
       uses: actions/cache@v1
       with:
         path: ~/.cabal/packages
-        key: cabal-packages
+        key: cabal-packages-${{ hashFiles('*cabal*') }}
+        restore-keys: |
+          cabal-packages-
     - name: Cache ~/.cabal/store
       uses: actions/cache@v1
       with:
         path: ~/.cabal/store
-        key: cabal-store
+        key: cabal-store-${{ hashFiles('*cabal*') }}
+        restore-keys: |
+          cabal-store-
     - name: Cache dist-newstyle
       uses: actions/cache@v1
       with:
         path: dist-newstyle
-        key: dist-newstyle
+        key: dist-newstyle-${{ hashFiles('*cabal*') }}
+        restore-keys: |
+          dist-newstyle-
     - name: Install dependencies
       run: |
         cabal new-update
@@ -59,17 +65,23 @@ jobs:
       uses: actions/cache@v1
       with:
         path: ~/.cabal/packages
-        key: cabal-packages
+        key: cabal-packages-${{ hashFiles('*cabal*') }}
+        restore-keys: |
+          cabal-packages-
     - name: Cache ~/.cabal/store
       uses: actions/cache@v1
       with:
         path: ~/.cabal/store
-        key: cabal-store
+        key: cabal-store-${{ hashFiles('*cabal*') }}
+        restore-keys: |
+          cabal-store-
     - name: Cache dist-newstyle
       uses: actions/cache@v1
       with:
         path: dist-newstyle
-        key: dist-newstyle
+        key: dist-newstyle-${{ hashFiles('*cabal*') }}
+        restore-keys: |
+          dist-newstyle-
     - name: Install dependencies
       run: |
         cabal new-update
@@ -100,17 +112,23 @@ jobs:
       uses: actions/cache@v1
       with:
         path: ~/.cabal/packages
-        key: cabal-packages
+        key: cabal-packages-${{ hashFiles('*cabal*') }}
+        restore-keys: |
+          cabal-packages-
     - name: Cache ~/.cabal/store
       uses: actions/cache@v1
       with:
         path: ~/.cabal/store
-        key: cabal-store
+        key: cabal-store-${{ hashFiles('*cabal*') }}
+        restore-keys: |
+          cabal-store-
     - name: Cache dist-newstyle
       uses: actions/cache@v1
       with:
         path: dist-newstyle
-        key: dist-newstyle
+        key: dist-newstyle-${{ hashFiles('*cabal*') }}
+        restore-keys: |
+          dist-newstyle-
     - name: Install dependencies
       run: |
         cabal new-update
@@ -149,17 +167,23 @@ jobs:
       uses: actions/cache@v1
       with:
         path: ~/.cabal/packages
-        key: cabal-packages
+        key: cabal-packages-${{ hashFiles('*cabal*') }}
+        restore-keys: |
+          cabal-packages-
     - name: Cache ~/.cabal/store
       uses: actions/cache@v1
       with:
         path: ~/.cabal/store
-        key: cabal-store
+        key: cabal-store-${{ hashFiles('*cabal*') }}
+        restore-keys: |
+          cabal-store-
     - name: Cache dist-newstyle
       uses: actions/cache@v1
       with:
         path: dist-newstyle
-        key: dist-newstyle
+        key: dist-newstyle-${{ hashFiles('*cabal*') }}
+        restore-keys: |
+          dist-newstyle-
     - name: Install dependencies
       run: |
         cabal new-update
