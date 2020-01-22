@@ -3,14 +3,21 @@ name: Haskell To Coq Compiler CI
 on: [push]
 
 jobs:
+  #############################################################################
+  # Dependencies                                                              #
+  #############################################################################
+
   install-dependencies:
     name: Install dependencies
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
       uses: actions/checkout@v1
-    - name: Setup haskell
+    - name: Setup Haskell
       uses: actions/setup-haskell@v1
+      with:
+        ghc-version: '8.6.5'
+        cabal-version: '2.4'
     - name: Cache ~/.cabal/packages
       id: cache-cabal-packages
       uses: actions/cache@v1
@@ -37,6 +44,10 @@ jobs:
         cabal new-update
         cabal new-build unit-tests --only-dependencies
         cabal new-build haskell-to-coq-compiler --only-dependencies
+
+  #############################################################################
+  # Unit tests                                                                #
+  #############################################################################
 
   unit-tests:
     name: Unit tests
@@ -80,6 +91,10 @@ jobs:
       run: cabal new-build unit-tests
     - name: Run unit tests
       run: cabal new-run unit-tests
+
+  #############################################################################
+  # Executable                                                                #
+  #############################################################################
 
   build-compiler:
     name: Build compiler
@@ -132,6 +147,10 @@ jobs:
         name: compiler
         path: ./build/bin/haskell-to-coq-compiler
 
+  #############################################################################
+  # Documentation                                                             #
+  #############################################################################
+
   build-docs:
     name: Build Haddock documentation
     needs: [install-dependencies]
@@ -143,7 +162,7 @@ jobs:
       uses: actions/setup-haskell@v1
       with:
         ghc-version: '8.6.5'
-        cabal-cersion: '2.4'
+        cabal-version: '2.4'
     - name: Cache ~/.cabal/packages
       id: cache-cabal-packages
       uses: actions/cache@v1
@@ -182,6 +201,10 @@ jobs:
         name: documentation
         path: ./build/docs
 
+  #############################################################################
+  # Base library                                                              #
+  #############################################################################
+
   build-base-library:
     name: Build Coq base library
     runs-on: ubuntu-latest
@@ -204,6 +227,10 @@ jobs:
       with:
         name: coq-base-library
         path: ./build/base
+
+  #############################################################################
+  # Examples                                                                  #
+  #############################################################################
 
   test-examples:
     name: Test examples
