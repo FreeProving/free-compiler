@@ -227,18 +227,20 @@ jobs:
       uses: webfactory/ssh-agent@v0.2.0
       with:
         ssh-private-key: ${{ secrets.DEPLOY_KEY }}
+    - name: Slug GitHub variables
+      uses: rlespinasse/github-slug-action@master
     - name: Download documentation
       uses: actions/download-artifact@v1
       with:
         name: documentation
-        path: docs
+        path: ./build/docs
     - name: Deploy to GitHub pages
       uses: JamesIves/github-pages-deploy-action@releases/v3
       with:
         SSH: true
         BRANCH: gh-pages
-        FOLDER: docs
-        TARGET_FOLDER: ${{ github.ref }}/docs
+        FOLDER: build/docs
+        TARGET_FOLDER: docs/${{ env.GITHUB_REF_SLUG }}
 
   #############################################################################
   # Base library                                                              #
