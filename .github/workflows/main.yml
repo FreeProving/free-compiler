@@ -19,27 +19,21 @@ jobs:
         ghc-version: '8.6.5'
         cabal-version: '2.4'
     - name: Cache ~/.cabal/packages
-      id: cache-cabal-packages
       uses: actions/cache@v1
       with:
         path: ~/.cabal/packages
         key: cabal-packages
     - name: Cache ~/.cabal/store
-      id: cache-cabal-store
       uses: actions/cache@v1
       with:
         path: ~/.cabal/store
         key: cabal-store
     - name: Cache dist-newstyle
-      id: cache-dist-newstyle
       uses: actions/cache@v1
       with:
         path: dist-newstyle
         key: dist-newstyle
     - name: Install dependencies
-      if: steps.cache-cabal-packages.outputs.cache-hit != 'true' ||
-          steps.cache-cabal-store.outputs.cache-hit != 'true' ||
-          steps.cache-dist-newstyle.outputs.cache-hit != 'true'
       run: |
         cabal new-update
         cabal new-build unit-tests --only-dependencies
@@ -62,27 +56,21 @@ jobs:
         ghc-version: '8.6.5'
         cabal-version: '2.4'
     - name: Cache ~/.cabal/packages
-      id: cache-cabal-packages
       uses: actions/cache@v1
       with:
         path: ~/.cabal/packages
         key: cabal-packages
     - name: Cache ~/.cabal/store
-      id: cache-cabal-store
       uses: actions/cache@v1
       with:
         path: ~/.cabal/store
         key: cabal-store
     - name: Cache dist-newstyle
-      id: cache-dist-newstyle
       uses: actions/cache@v1
       with:
         path: dist-newstyle
         key: dist-newstyle
     - name: Install dependencies
-      if: steps.cache-cabal-packages.outputs.cache-hit != 'true' ||
-          steps.cache-cabal-store.outputs.cache-hit != 'true' ||
-          steps.cache-dist-newstyle.outputs.cache-hit != 'true'
       run: |
         cabal new-update
         cabal new-build unit-tests --only-dependencies
@@ -109,27 +97,21 @@ jobs:
         ghc-version: '8.6.5'
         cabal-version: '2.4'
     - name: Cache ~/.cabal/packages
-      id: cache-cabal-packages
       uses: actions/cache@v1
       with:
         path: ~/.cabal/packages
         key: cabal-packages
     - name: Cache ~/.cabal/store
-      id: cache-cabal-store
       uses: actions/cache@v1
       with:
         path: ~/.cabal/store
         key: cabal-store
     - name: Cache dist-newstyle
-      id: cache-dist-newstyle
       uses: actions/cache@v1
       with:
         path: dist-newstyle
         key: dist-newstyle
     - name: Install dependencies
-      if: steps.cache-cabal-packages.outputs.cache-hit != 'true' ||
-          steps.cache-cabal-store.outputs.cache-hit != 'true' ||
-          steps.cache-dist-newstyle.outputs.cache-hit != 'true'
       run: |
         cabal new-update
         cabal new-build unit-tests --only-dependencies
@@ -164,27 +146,21 @@ jobs:
         ghc-version: '8.6.5'
         cabal-version: '2.4'
     - name: Cache ~/.cabal/packages
-      id: cache-cabal-packages
       uses: actions/cache@v1
       with:
         path: ~/.cabal/packages
         key: cabal-packages
     - name: Cache ~/.cabal/store
-      id: cache-cabal-store
       uses: actions/cache@v1
       with:
         path: ~/.cabal/store
         key: cabal-store
     - name: Cache dist-newstyle
-      id: cache-dist-newstyle
       uses: actions/cache@v1
       with:
         path: dist-newstyle
         key: dist-newstyle
     - name: Install dependencies
-      if: steps.cache-cabal-packages.outputs.cache-hit != 'true' ||
-          steps.cache-cabal-store.outputs.cache-hit != 'true' ||
-          steps.cache-dist-newstyle.outputs.cache-hit != 'true'
       run: |
         cabal new-update
         cabal new-build unit-tests --only-dependencies
