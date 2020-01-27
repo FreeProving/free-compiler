@@ -174,7 +174,7 @@ data TypeDecl
   deriving (Eq, Show)
 
 -- | A type signature of one or more function declarations.
-data TypeSig = TypeSig SrcSpan [DeclIdent] Type
+data TypeSig = TypeSig SrcSpan [DeclIdent] TypeSchema
   deriving (Eq, Show)
 
 -- | A function declaration.
@@ -447,6 +447,11 @@ identFromName (Symbol _    ) = Nothing
 identFromQName :: QName -> Maybe String
 identFromQName (UnQual name) = identFromName name
 identFromQName (Qual _ _   ) = Nothing
+
+-- | Extracts the name of the given type variable.
+typeVarIdent :: Type -> Maybe TypeVarIdent
+typeVarIdent (TypeVar _ ident) = Just ident
+typeVarIdent _                 = Nothing
 
 -- | Splits the type of a function or constructor with the given arity
 --   into the argument and return types.

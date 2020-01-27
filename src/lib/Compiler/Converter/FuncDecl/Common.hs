@@ -31,13 +31,13 @@ import           Compiler.Pretty
 defineFuncDecl :: HS.FuncDecl -> Converter ()
 defineFuncDecl decl@(HS.FuncDecl srcSpan (HS.DeclIdent _ ident) args _) = do
   let name = HS.UnQual (HS.Ident ident)
-  funcType               <- lookupTypeSigOrFail srcSpan name
-  (argTypes, returnType) <- splitFuncType name args funcType
-  partial                <- isPartialFuncDecl decl
-  _                      <- renameAndAddEntry FuncEntry
+  (HS.TypeSchema _ typeArgs funcType) <- lookupTypeSigOrFail srcSpan name
+  (argTypes, returnType)              <- splitFuncType name args funcType
+  partial                             <- isPartialFuncDecl decl
+  _                                   <- renameAndAddEntry FuncEntry
     { entrySrcSpan       = srcSpan
     , entryArity         = length argTypes
-    , entryTypeArgs      = catMaybes $ map HS.identFromQName $ typeVars funcType
+    , entryTypeArgs      = map HS.fromDeclIdent typeArgs
     , entryArgTypes      = map Just argTypes
     , entryReturnType    = Just returnType
     , entryNeedsFreeArgs = True

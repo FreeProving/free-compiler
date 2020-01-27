@@ -110,7 +110,7 @@ data Environment = Environment
     --   recorded.
     --   There can be multiple entries with the same name as long as they are
     --   not referenced. Entries are identified by their original name.
-  , envTypeSigs :: Map HS.QName HS.Type
+  , envTypeSigs :: Map HS.QName HS.TypeSchema
     -- ^ Maps names of Haskell functions to their annotated types.
   , envDecArgs :: Map HS.QName (Int, String)
     -- ^ Maps Haskell function names to the index and name of their decreasing
@@ -204,9 +204,9 @@ addEntry' name entry depth env = env
     | otherwise            = (newEntries, newDepth)
 
 -- | Inserts the given type signature into the environment.
-defineTypeSig :: HS.QName -> HS.Type -> Environment -> Environment
-defineTypeSig name typeExpr env =
-  env { envTypeSigs = Map.insert name typeExpr (envTypeSigs env) }
+defineTypeSig :: HS.QName -> HS.TypeSchema -> Environment -> Environment
+defineTypeSig name typeSchema env =
+  env { envTypeSigs = Map.insert name typeSchema (envTypeSigs env) }
 
 -- | Stores the index of the decreasing argument of a recursive function
 --   in the environment.
@@ -357,7 +357,7 @@ lookupTypeSynonym =
 --
 --   Returns @Nothing@, if there is no such type signature or the entry has
 --   been replaced already.
-lookupTypeSig :: HS.QName -> Environment -> Maybe HS.Type
+lookupTypeSig :: HS.QName -> Environment -> Maybe HS.TypeSchema
 lookupTypeSig name = Map.lookup name . envTypeSigs
 
 -- | Tests whether the function with the given name needs the arguments

@@ -17,9 +17,10 @@ import           Compiler.Converter.FuncDecl.Rec.WithSections
 -- | Converts (mutually) recursive Haskell function declarations to Coq.
 --
 --   The function declarations are analysed first. If they contain constant
---   arguments (i.e. arguments that are passed unchanged betwen recursive
---   calls), they are converted using a @Section@ sentence. Otherwise they
---   are converted into helper and main functions.
+--   arguments (i.e. arguments that are passed unchanged between recursive
+--   calls), they are converted using a @Section@ sentence (see
+--   'convertRecFuncDeclsWithHelpers'). Otherwise they are converted into
+--   helper and main functions (see 'convertRecFuncDeclsWithSection').
 convertRecFuncDecls :: [HS.FuncDecl] -> Converter [G.Sentence]
 convertRecFuncDecls decls = localEnv $ do
   -- If there are constant arguments, move them to a section.

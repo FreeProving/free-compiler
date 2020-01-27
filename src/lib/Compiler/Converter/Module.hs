@@ -229,9 +229,9 @@ exportInterface = do
 --   TODO error if there are multiple type signatures for the same function.
 --   TODO warn if there are unused type signatures.
 defineTypeSigDecl :: HS.TypeSig -> Converter ()
-defineTypeSigDecl (HS.TypeSig _ idents typeExpr) = mapM_
+defineTypeSigDecl (HS.TypeSig _ idents typeSchema) = mapM_
   ( modifyEnv
-  . flip defineTypeSig typeExpr
+  . flip defineTypeSig typeSchema
   . HS.UnQual
   . HS.Ident
   . HS.fromDeclIdent

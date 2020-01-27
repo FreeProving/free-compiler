@@ -71,8 +71,8 @@ isQuickCheckProperty (HS.FuncDecl srcSpan (HS.DeclIdent _ ident) args _)
   | "prop_" `isPrefixOf` ident = return True
   | otherwise = do
     let name = HS.UnQual (HS.Ident ident)
-    funcType        <- lookupTypeSigOrFail srcSpan name
-    (_, returnType) <- splitFuncType name args funcType
+    (HS.TypeSchema _ typeArgs funcType) <- lookupTypeSigOrFail srcSpan name
+    (_, returnType)                     <- splitFuncType name args funcType
     return (isProperty returnType)
  where
   -- | Tests whether the given type is the `Property`
@@ -127,7 +127,7 @@ filterQuickCheckProperties components = do
 -------------------------------------------------------------------------------
 
 -- | Converts the given QuickCheck property to a Coq @Theorem@ with an
---   empty @Proof@ (or the proof configured in the `.proofs.toml` file).
+--   empty @Proof@.
 convertQuickCheckProperty :: HS.FuncDecl -> Converter [G.Sentence]
 convertQuickCheckProperty decl@(HS.FuncDecl _ declIdent args expr) = do
   defineFuncDecl decl

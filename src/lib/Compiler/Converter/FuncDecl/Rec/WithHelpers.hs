@@ -158,9 +158,8 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent args expr) decArgIndex = do
     -- function.
     -- If the original function was partial, the helper function is partial as
     -- well.
-    Just typeArgs <- inEnv $ lookupTypeArgs ValueScope name
-    funcType      <- lookupTypeSigOrFail srcSpan name
-    (argTypes, _) <- splitFuncType name args funcType
+    (HS.TypeSchema _ typeArgs funcType) <- lookupTypeSigOrFail srcSpan name
+    (argTypes, _)                       <- splitFuncType name args funcType
     let argTypeMap = foldr Map.delete
                            (Map.fromList (zip argNames argTypes))
                            (Set.toList nonArgVars)
@@ -170,7 +169,7 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent args expr) decArgIndex = do
     _              <- renameAndAddEntry $ FuncEntry
       { entrySrcSpan       = NoSrcSpan
       , entryArity         = length argTypes'
-      , entryTypeArgs      = typeArgs
+      , entryTypeArgs      = map HS.fromDeclIdent typeArgs
       , entryArgTypes      = argTypes'
       , entryReturnType    = Nothing
       , entryNeedsFreeArgs = freeArgsNeeded

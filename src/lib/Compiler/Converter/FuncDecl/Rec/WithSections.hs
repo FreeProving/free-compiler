@@ -190,16 +190,20 @@ renameFuncDecls decls = do
               name        = HS.UnQual (HS.Ident ident)
               name'       = HS.UnQual (HS.Ident ident')
           -- Rename function references on right-hand side.
-          rhs'          <- applySubst subst rhs
+          rhs' <- applySubst subst rhs
           -- Lookup type signature and environment entry.
-          Just funcType <- inEnv $ lookupTypeSig name
-          Just entry    <- inEnv $ lookupEntry ValueScope name
+          (HS.TypeSchema _ typeArgDecls funcType) <- lookupTypeSigOrFail
+            srcSpan'
+            name
+          entry <- lookupEntryOrFail srcSpan' ValueScope name
           -- Generate fresh identifiers for type variables.
-          let typeArgs   = entryTypeArgs entry
+          let typeArgs   = map HS.fromDeclIdent typeArgDecls
               argTypes   = entryArgTypes entry
               returnType = entryReturnType entry
           typeArgs' <- mapM freshHaskellIdent typeArgs
-          let typeVarSubst = composeSubsts
+          let typeArgDecls' =
+                zipWith (HS.DeclIdent . HS.getSrcSpan) typeArgDecls typeArgs'
+              typeVarSubst = composeSubsts
                 (zipWith singleSubst'
                          (map (HS.UnQual . HS.Ident) typeArgs)
                          (map (flip HS.TypeVar) typeArgs')
@@ -209,7 +213,8 @@ renameFuncDecls decls = do
           returnType' <- mapM (applySubst typeVarSubst) returnType
 
           -- Set type signature and environment entry for renamed function.
-          modifyEnv $ defineTypeSig name' funcType'
+          let typeSchema' = HS.TypeSchema NoSrcSpan typeArgDecls' funcType'
+          modifyEnv $ defineTypeSig name' typeSchema'
           _ <- renameAndAddEntry entry { entryName       = name'
                                        , entryTypeArgs   = typeArgs'
                                        , entryArgTypes   = argTypes'
@@ -252,8 +257,8 @@ argAndReturnTypeMaps
 argAndReturnTypeMaps (HS.FuncDecl srcSpan (HS.DeclIdent _ ident) args _) = do
   let name    = HS.UnQual (HS.Ident ident)
       funArgs = map (const ident &&& HS.fromVarPat) args
-  funcType               <- lookupTypeSigOrFail srcSpan name
-  (argTypes, returnType) <- splitFuncType name args funcType
+  (HS.TypeSchema _ _ funcType) <- lookupTypeSigOrFail srcSpan name
+  (argTypes, returnType)       <- splitFuncType name args funcType
   return (Map.fromList (zip funArgs argTypes), Map.singleton ident returnType)
 
 -- | Looks up the type of a constant argument in the given argument type
@@ -433,25 +438,29 @@ updateTypeSig
   -> Converter ()
 updateTypeSig mgu constTypeVars argTypeMap returnTypeMap (HS.FuncDecl _ declIdent args _)
   = do
+    -- Lookup entry.
+    let ident = HS.fromDeclIdent declIdent
+        name  = HS.UnQual (HS.Ident ident)
+    Just entry <- inEnv $ lookupEntry ValueScope name
   -- Modify type signature.
-    let ident     = HS.fromDeclIdent declIdent
-        name      = HS.UnQual (HS.Ident ident)
-        argIdents = map HS.fromVarPat args
+    let argIdents = map HS.fromVarPat args
         funArgs   = zip (repeat ident) argIdents
+    typeArgVars <- mapM (applySubst mgu . HS.TypeVar NoSrcSpan)
+                        (entryTypeArgs entry)
     argTypes <- mapM (applySubst mgu)
                      (catMaybes (map (flip Map.lookup argTypeMap) funArgs))
     returnType <- applySubst mgu (fromJust (Map.lookup ident returnTypeMap))
-    let funcType = HS.funcType NoSrcSpan argTypes returnType
-    modifyEnv $ defineTypeSig name funcType
+    let typeArgs =
+          map (fromJust . HS.typeVarIdent) typeArgVars \\ constTypeVars
+        typeArgsDecls = map (HS.DeclIdent NoSrcSpan) typeArgs
+        funcType      = HS.funcType NoSrcSpan argTypes returnType
+        typeSchema    = HS.TypeSchema NoSrcSpan typeArgsDecls funcType
+    modifyEnv $ defineTypeSig name typeSchema
     -- Modify entry.
     -- Since the arguments of the @Free@ monad have been defined in the
     -- section already, 'entryNeedsFreeArgs' can be set to @False@.
-    Just entry  <- inEnv $ lookupEntry ValueScope name
-    typeArgVars <- mapM (applySubst mgu . HS.TypeVar NoSrcSpan)
-                        (entryTypeArgs entry)
-    let typeArgs = map (\(HS.TypeVar _ typeArg) -> typeArg) typeArgVars
     let entry' = entry { entryArity         = length args
-                       , entryTypeArgs      = typeArgs \\ constTypeVars
+                       , entryTypeArgs      = typeArgs
                        , entryArgTypes      = map Just argTypes
                        , entryReturnType    = Just returnType
                        , entryNeedsFreeArgs = False

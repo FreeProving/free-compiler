@@ -65,11 +65,11 @@ lookupSmartIdentOrFail srcSpan name = do
 --
 --   If an error is encountered, the reported message points to the given
 --   source span.
-lookupTypeSigOrFail :: SrcSpan -> HS.QName -> Converter HS.Type
+lookupTypeSigOrFail :: SrcSpan -> HS.QName -> Converter HS.TypeSchema
 lookupTypeSigOrFail srcSpan ident = do
-  mTypeExpr <- inEnv $ lookupTypeSig ident
-  case mTypeExpr of
-    Just typeExpr -> return typeExpr
+  mTypeSchema <- inEnv $ lookupTypeSig ident
+  case mTypeSchema of
+    Just typeSchema -> return typeSchema
     Nothing ->
       reportFatal
         $ Message srcSpan Error

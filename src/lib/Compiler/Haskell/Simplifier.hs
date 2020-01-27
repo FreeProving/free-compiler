@@ -266,9 +266,9 @@ simplifyDecl decl@(H.PatBind _ _ _ _) =
 
 -- Type signatures.
 simplifyDecl (H.TypeSig srcSpan names typeExpr) = do
-  names'    <- mapM simplifyFuncDeclName names
-  typeExpr' <- simplifyType typeExpr
-  return ([], [HS.TypeSig srcSpan names' typeExpr'], [])
+  names'      <- mapM simplifyFuncDeclName names
+  typeSchema' <- simplifyTypeSchema typeExpr
+  return ([], [HS.TypeSig srcSpan names' typeSchema'], [])
 
 -- The user is allowed to specify fixities of custom infix declarations
 -- and they are respected by the haskell-src-exts parser, but we do not
@@ -468,6 +468,15 @@ unlambda expr = ([], expr)
 -- Types                                                                     --
 -------------------------------------------------------------------------------
 
+-- | Simplifies the given type expression and abstracts it to a type schema.
+simplifyTypeSchema :: H.Type SrcSpan -> Simplifier HS.TypeSchema
+simplifyTypeSchema typeExpr = do
+  typeExpr' <- simplifyType typeExpr
+  let srcSpan  = HS.getSrcSpan typeExpr'
+      typeArgs = map (HS.DeclIdent NoSrcSpan . fromJust . HS.identFromQName)
+                     (typeVars typeExpr')
+  return (HS.TypeSchema srcSpan typeArgs typeExpr')
+
 -- | Simplifies the a type expression.
 simplifyType :: H.Type SrcSpan -> Simplifier HS.Type
 
@@ -662,20 +671,9 @@ simplifyExpr (H.Case srcSpan expr alts) = do
 
 -- Type signatures.
 simplifyExpr (H.ExpTypeSig srcSpan expr typeExpr) = do
-  expr'     <- simplifyExpr expr
-  typeExpr' <- simplifyType typeExpr
-  return
-    (HS.ExprTypeSig
-      srcSpan
-      expr'
-      (HS.TypeSchema
-        NoSrcSpan
-        (map (HS.DeclIdent NoSrcSpan . fromJust . HS.identFromQName)
-             (typeVars typeExpr')
-        )
-        typeExpr'
-      )
-    )
+  expr'       <- simplifyExpr expr
+  typeSchema' <- simplifyTypeSchema typeExpr
+  return (HS.ExprTypeSig srcSpan expr' typeSchema')
 
 -- Skip pragmas.
 simplifyExpr pragma@(H.CorePragma _ _ expr) = do
