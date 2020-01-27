@@ -326,6 +326,7 @@ simplifyDecl decl@(H.InstDecl  _ _ _ _  ) = notSupported "Type classes" decl
 simplifyDecl decl@(H.DerivDecl _ _ _ _  ) = notSupported "Type classes" decl
 simplifyDecl decl@(H.DefaultDecl _ _    ) = notSupported "Type classes" decl
 simplifyDecl decl@(H.SpliceDecl  _ _    ) = notSupported "Template Haskell" decl
+simplifyDecl decl@(H.TSpliceDecl _ _    ) = notSupported "Template Haskell" decl
 simplifyDecl decl@(H.PatSynSig _ _ _ _ _ _ _) =
   notSupported "Pattern synonyms" decl
 simplifyDecl decl@(H.PatSyn _ _ _ _    ) = notSupported "Pattern synonyms" decl
@@ -735,6 +736,7 @@ simplifyExpr expr@(H.LeftArrHighApp _ _ _) =
   notSupported "Arrow expressions" expr
 simplifyExpr expr@(H.RightArrHighApp _ _ _) =
   notSupported "Arrow expressions" expr
+simplifyExpr expr@(H.ArrOp _ _) = notSupported "Arrow control operators" expr
 simplifyExpr expr@(H.LCase _ _) = notSupported "Lambda case expressions" expr
 
 -- Not supported literals.
