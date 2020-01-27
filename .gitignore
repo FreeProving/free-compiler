@@ -52,3 +52,6 @@ _minted*
 
 # MacOS
 .DS_Store
+
+### SSH deploy keys ###
+.ssh/
