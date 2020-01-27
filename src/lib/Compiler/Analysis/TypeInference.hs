@@ -6,6 +6,7 @@ module Compiler.Analysis.TypeInference
   )
 where
 
+import           Control.Applicative            ( (<|>) )
 import           Control.Monad.Extra            ( ifM
                                                 , replicateM
                                                 )
@@ -22,6 +23,7 @@ import           Compiler.Haskell.Subst
 import           Compiler.Haskell.Unification
 import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
+import           Compiler.Util.Predicate        ( (.||.) )
 
 -- | Tries to infer the type of the given expression from the current context
 --   and abstracts it's type to a type schema.
@@ -164,7 +166,9 @@ addTypeEquation t t' = tell ([], [(t, t')])
 --   implementation of visible type applications.
 addTypeEquationFor :: HS.QName -> HS.Type -> TypedExprSimplifier [HS.Type]
 addTypeEquationFor name resType = do
-  Just typeSchema      <- lift $ inEnv $ lookupTypeSchema ValueScope name
+  maybeTypeSchema <- lift $ inEnv $ lookupTypeSchema ValueScope name
+  maybeTypeSig    <- lift $ inEnv $ lookupTypeSig name
+  let Just typeSchema = maybeTypeSchema <|> maybeTypeSig
   (funcType, typeArgs) <- lift $ instantiateTypeSchema' typeSchema
   addTypeEquation funcType resType
   return typeArgs
@@ -189,7 +193,7 @@ simplifyTypedExpr (HS.Con _ conName) resType =
 --   If @x :: τ@ is not a predefined function (i.e., a local variable or a
 --   function whose type to infer), just remember that @x@ is of type @τ@.
 simplifyTypedExpr (HS.Var _ varName) resType = ifM
-  (lift $ inEnv $ isFunction varName)
+  (lift $ inEnv $ (isFunction varName .||. hasTypeSig varName))
   (addTypeEquationFor varName resType)
   (addVarType varName resType >> return [])
 

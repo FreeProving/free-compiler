@@ -24,6 +24,7 @@ module Compiler.Environment
   , lookupEntry
   , existsLocalEntry
   , isFunction
+  , hasTypeSig
   , isPureVar
   , lookupIdent
   , lookupSmartIdent
@@ -253,6 +254,10 @@ existsLocalEntry scope name =
 --   Returns @False@ if there is no such function.
 isFunction :: HS.QName -> Environment -> Bool
 isFunction = maybe False isFuncEntry .: lookupEntry ValueScope
+
+-- | Tests whether there is a type signature for the given identifier.
+hasTypeSig :: HS.QName -> Environment -> Bool
+hasTypeSig name = Map.member name . envTypeSigs
 
 -- | Test whether the variable with the given name is not monadic.
 isPureVar :: HS.QName -> Environment -> Bool
