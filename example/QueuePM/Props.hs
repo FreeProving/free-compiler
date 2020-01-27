@@ -7,8 +7,7 @@ import           QueuePM.QueueI
 import           QueuePM.Util
 
 invariant :: QueueI a -> Bool
-invariant qi = case qi of
-  (f, b) -> null b || not (null f)
+invariant (f, b) = null b || not (null f)
 
 -- When translating this property to Coq, we need to manually fix a type error
 -- since Coq cannot infer the type of invariant and emptyI.
@@ -21,8 +20,7 @@ prop_inv_add x q = invariant q ==> invariant (addI x q)
 -------------------------------------------------------------------------------
 
 toQueue :: QueueI a -> Queue a
-toQueue qi = case qi of
-  (f, b) -> f `append` reverse b
+toQueue (f, b) = f `append` reverse b
 
 prop_isEmpty :: QueueI a -> Property
 prop_isEmpty qi = invariant qi ==> isEmptyI qi === isEmpty (toQueue qi)

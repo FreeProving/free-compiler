@@ -11,7 +11,9 @@ isEmpty :: Queue a -> Bool
 isEmpty q = null q
 
 front :: Queue a -> a
-front (x : q) = x
+front q = case q of
+  []     -> error "front: empty queue"
+  x : q' -> x
 
 add :: a -> Queue a -> Queue a
 add x q = q `append` [x]
