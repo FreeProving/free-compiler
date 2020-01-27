@@ -1,13 +1,18 @@
 -- | This module contains a function for infering the type of an expression.
 
 module Compiler.Analysis.TypeInference
-  ( inferExprType
+  ( -- * Function declarations
+    inferFuncDeclTypes
+    -- * Expressions
+  , inferExprType
   , addTypeAppExprs
   )
 where
 
 import           Control.Applicative            ( (<|>) )
-import           Control.Monad.Extra            ( ifM
+import           Control.Monad.Extra            ( concatMapM
+                                                , ifM
+                                                , mapAndUnzipM
                                                 , replicateM
                                                 )
 import           Control.Monad.Writer
@@ -24,6 +29,47 @@ import           Compiler.Haskell.Unification
 import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
 import           Compiler.Util.Predicate        ( (.||.) )
+
+-------------------------------------------------------------------------------
+-- Function declarations                                                     --
+-------------------------------------------------------------------------------
+
+-- | Tries to infer the types of (mutually recursive) function declarations.
+inferFuncDeclTypes :: [HS.FuncDecl] -> Converter [HS.TypeSchema]
+inferFuncDeclTypes funcDecls = do
+  (funcTypes, _) <- inferFuncDeclTypes' funcDecls
+  mapM abstractTypeSchema funcTypes
+
+-- | Like 'inferFuncDeclTypes' but does not abstract the type to a type
+--   schema and returns the substitution.
+inferFuncDeclTypes' :: [HS.FuncDecl] -> Converter ([HS.Type], Subst HS.Type)
+inferFuncDeclTypes' funcDecls = do
+  (typedExprs, funcTypeVars) <- mapAndUnzipM makeTypedExprs funcDecls
+  eqns                       <- execTypedExprSimplifier
+    $ concatMapM (uncurry simplifyTypedExpr) (concat typedExprs)
+  mgu       <- unifyEquations eqns
+  funcTypes <- mapM (applySubst mgu) funcTypeVars
+  return (funcTypes, mgu)
+
+-- | Creates fresh type variables @a@ and @b@ and the expression/type pairs
+--   @f :: a@, @f x1 ... xn :: b@ and @e :: b@ for the given function
+--   declaration @f x1 ... xn = e@ and returns the expression/type pairs as
+--   well as the fresh type variable @a@.
+makeTypedExprs :: HS.FuncDecl -> Converter ([(HS.Expr, HS.Type)], HS.Type)
+makeTypedExprs (HS.FuncDecl _ (HS.DeclIdent srcSpan ident) args rhs) = do
+  funcTypeVar <- freshTypeVar
+  resTypeVar  <- freshTypeVar
+  let
+    funcExpr = HS.Var srcSpan (HS.UnQual (HS.Ident ident))
+    argExprs = map HS.varPatToExpr args
+    lhs      = HS.app srcSpan funcExpr argExprs
+    typedExprs =
+      [(funcExpr, funcTypeVar), (lhs, resTypeVar), (rhs, resTypeVar)]
+  return (typedExprs, funcTypeVar)
+
+-------------------------------------------------------------------------------
+-- Expressions                                                               --
+-------------------------------------------------------------------------------
 
 -- | Tries to infer the type of the given expression from the current context
 --   and abstracts it's type to a type schema.

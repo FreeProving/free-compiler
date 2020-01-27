@@ -2,15 +2,81 @@ module Compiler.Analysis.TypeInferenceTests where
 
 import           Test.Hspec
 
+import           Control.Monad.Extra            ( zipWithM_ )
+
 import           Compiler.Analysis.TypeInference
+import           Compiler.Converter.Module      ( defineTypeSigDecl )
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Monad.Converter
 
 import           Compiler.Util.Test
 
--- | Test group for type 'inferExprType' tests.
+-- | Test group for type inference tests.
 testTypeInference :: Spec
-testTypeInference =
+testTypeInference = do
+  testInferExprType
+  testInferFuncDeclTypes
+
+-------------------------------------------------------------------------------
+-- Function declarations                                                     --
+-------------------------------------------------------------------------------
+
+testInferFuncDeclTypes :: Spec
+testInferFuncDeclTypes =
+  describe "Compiler.Analysis.TypeInference.inferFuncDeclTypes" $ do
+    it "infers the type of non-recursive functions correctly"
+      $ shouldSucceed
+      $ fromConverter
+      $ do
+          shouldInferFuncDeclTypes
+            [ "null xs = case xs of {"
+              ++ "    [] -> True;"
+              ++ "    x : xs' -> False"
+              ++ "  }"
+            ]
+            ["forall a0. [a0] -> Prelude.Bool"]
+    it "infers the type of recursive functions correctly"
+      $ shouldSucceed
+      $ fromConverter
+      $ do
+          shouldInferFuncDeclTypes
+            [ "length xs = case xs of {"
+              ++ "    [] -> 0;"
+              ++ "    x : xs' -> 1 + length xs'"
+              ++ "  }"
+            ]
+            ["forall a0. [a0] -> Prelude.Integer"]
+    it "infers the type of partial functions correctly"
+      $ shouldSucceed
+      $ fromConverter
+      $ do
+          shouldInferFuncDeclTypes
+            [ "head xs = case xs of {"
+              ++ "    [] -> error \"head: empty list\";"
+              ++ "    x : xs' -> x"
+              ++ "  }"
+            ]
+            ["forall a0. [a0] -> a0"]
+    it "allows type signaturs to make the type more specific"
+      $ shouldSucceed
+      $ fromConverter
+      $ do
+          shouldInferFuncDeclTypes
+            [ "intHead :: [Integer] -> Integer"
+            , "intHead xs = case xs of {"
+            ++ "    [] -> error \"intHead: empty list\";"
+            ++ "    x : xs' -> x"
+            ++ "  }"
+            ]
+            ["[Prelude.Integer] -> Prelude.Integer"]
+
+-------------------------------------------------------------------------------
+-- Expressions                                                               --
+-------------------------------------------------------------------------------
+
+-- | Test group for type 'inferExprType' tests.
+testInferExprType :: Spec
+testInferExprType =
   describe "Compiler.Analysis.TypeInference.inferExprType" $ do
     it "infers the type of integer literals correctly"
       $ shouldSucceed
@@ -151,11 +217,37 @@ shouldInferType input expectedType = do
   inferredType <- inferTestType input
   return (inferredType `prettyShouldBe` expectedType)
 
+-- | Parses the given declarations, adds the type signatures to the environment
+--   and infers the types of the function declarations.
+--
+--   There must be no type declarations. The function declarations should form
+--   a single strongly connected component of the dependency graph.
+--
+--   Returns the types of the function declarations in order of their
+--   declaration.
+inferTestFuncDeclTypes :: [String] -> Converter [HS.TypeSchema]
+inferTestFuncDeclTypes input = localEnv $ do
+  ([], typeSigs, funcDecls) <- parseTestDecls input
+  mapM_ defineTypeSigDecl typeSigs
+  inferFuncDeclTypes funcDecls
+
+-- | Parses the given function declarations, infers its type schema and sets
+--   the expectation that the given type schemas are inferred.
+shouldInferFuncDeclTypes :: [String] -> [String] -> Converter Expectation
+shouldInferFuncDeclTypes input expectedTypes = do
+  inferredTypes <- inferTestFuncDeclTypes input
+  return (zipWithM_ prettyShouldBe inferredTypes expectedTypes)
+
+-- | Parses the given expression and adds 'HS.TypeAppExpr' nodes to all
+--   function and constructor applications for the type arguments of the
+--   invoked function or constructor.
 addTypeAppTestExprs :: String -> Converter HS.Expr
 addTypeAppTestExprs input = do
   expr <- parseTestExpr input
   addTypeAppExprs expr
 
+-- | Parses the given expression, adds 'HS.TypeAppExpr' nodes and sets the
+--   expectation that the given expression is obtained.
 shouldAddTypeAppExprs :: String -> String -> Converter Expectation
 shouldAddTypeAppExprs input expectedOutput = do
   output <- addTypeAppTestExprs input
