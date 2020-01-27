@@ -8,14 +8,21 @@ emptyI :: QueueI a
 emptyI = ([], [])
 
 isEmptyI :: QueueI a -> Bool
-isEmptyI (f, b) = null f
+isEmptyI qi = case qi of
+  (f, b) -> null f
 
 frontI :: QueueI a -> a
-frontI (x : f, b) = x
+frontI qi = case qi of
+  (f, b) -> case f of
+    []       -> error "frontI: empty queue"
+    (x : f') -> x
 
 addI :: a -> QueueI a -> QueueI a
-addI x (f, b) = flipQ (f, x : b)
+addI x qi = case qi of
+  (f, b) -> flipQ (f, x : b)
 
 flipQ :: QueueI a -> QueueI a
-flipQ ([], b) = (reverse b, [])
-flipQ q       = q
+flipQ qi = case qi of
+  (f, b) -> case f of
+    []       -> (reverse b, [])
+    (x : f') -> (x : f', b)
