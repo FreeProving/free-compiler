@@ -8,10 +8,7 @@ module Compiler.Converter.FuncDecl.Common
   )
 where
 
-import           Data.Maybe                     ( catMaybes )
-
 import           Compiler.Analysis.PartialityAnalysis
-import           Compiler.Analysis.DependencyExtraction
 import           Compiler.Converter.Arg
 import           Compiler.Converter.Free
 import           Compiler.Converter.Type

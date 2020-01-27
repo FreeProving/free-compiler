@@ -71,8 +71,8 @@ isQuickCheckProperty (HS.FuncDecl srcSpan (HS.DeclIdent _ ident) args _)
   | "prop_" `isPrefixOf` ident = return True
   | otherwise = do
     let name = HS.UnQual (HS.Ident ident)
-    (HS.TypeSchema _ typeArgs funcType) <- lookupTypeSigOrFail srcSpan name
-    (_, returnType)                     <- splitFuncType name args funcType
+    (HS.TypeSchema _ _ funcType) <- lookupTypeSigOrFail srcSpan name
+    (_, returnType)              <- splitFuncType name args funcType
     return (isProperty returnType)
  where
   -- | Tests whether the given type is the `Property`
