@@ -7,7 +7,7 @@ A compiler for the monadic translation of Haskell programs to Coq that uses the 
 ## Documentation
 
 -   [Thesis](https://thesis.ba.just-otter.com)
--   [Haddock documentation](https://freeproving.github.io/free-compiler/docs)
+-   [Haddock documentation](https://freeproving.github.io/free-compiler/docs/master)
 
 ## Required Software
 
