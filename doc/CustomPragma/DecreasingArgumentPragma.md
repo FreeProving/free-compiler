@@ -4,7 +4,7 @@
 
 Our termination checker cannot identify the decreasing argument in all cases
 (even if Coq can). For example, the following example does not compile (see
-also [`example/Rose.hs`](https://git.informatik.uni-kiel.de/stu203400/haskell-to-coq-compiler/blob/master/example/Rose.hs)).
+also [`example/Rose.hs`](https://github.com/FreeProving/free-compiler/blob/master/example/Rose.hs)).
 
 ```haskell
 data Rose a = Rose a [Rose a]

@@ -1,13 +1,13 @@
 # Haskell To Coq Compiler
 
-![Haskell To Coq Compiler CI](https://github.com/just95/haskell-to-coq/workflows/Haskell%20To%20Coq%20Compiler%20CI/badge.svg)
+![Haskell To Coq Compiler CI](https://github.com/FreeProving/free-compiler/workflows/Haskell%20To%20Coq%20Compiler%20CI/badge.svg)
 
 A compiler for the monadic translation of Haskell programs to Coq that uses the `Free` monad as presented by [Dylus et al.](https://arxiv.org/abs/1805.08059) to model partiality and other ambient effects.
 
 ## Documentation
 
 -   [Thesis](https://thesis.ba.just-otter.com)
--   [Haddock documentation](https://just95.github.io/haskell-to-coq/docs)
+-   [Haddock documentation](https://freeproving.github.io/free-compiler/docs)
 
 ## Required Software
 
@@ -92,7 +92,7 @@ Modules are only allowed to import other modules that are compiled in the same p
 By default the compiler looks in the working and output directory for interface files.
 Additional locations to look for can be specified using the `--import` (or `-i`) command line option.
 
-In order to compile Haskell modules successfully, the compiler needs to know the names of predefined data types and operations. For this purpose, the `base/Prelude.toml` configuration file has to be loaded (the configuration file format is documented in [`doc/ModuleInterfaceFileFormat.md`](https://git.informatik.uni-kiel.de/stu203400/haskell-to-coq-compiler/blob/master/doc/ModuleInterfaceFileFormat.md)).
+In order to compile Haskell modules successfully, the compiler needs to know the names of predefined data types and operations. For this purpose, the `base/Prelude.toml` configuration file has to be loaded (the configuration file format is documented in [`doc/ModuleInterfaceFileFormat.md`](https://github.com/FreeProving/free-compiler/blob/master/doc/ModuleInterfaceFileFormat.md)).
 If the compiler is installed as described above, it will be able to locate the base library automatically.
 Otherwise, it may be necessary to tell the compiler where the base library can be found using the `--base-library` (or `-b`) option.
 
@@ -105,7 +105,7 @@ Use the `--help` (or `-h`) option for more details on supported command line opt
 By default the compiler does support a limited subset of the Haskell programming language only.
 There is experimental support to relax some of those restrictions.
 Add the `--transform-pattern-matching` command line option to enable the translation of function declarations with multiple rules and guards.
-The Haskell to Coq compiler uses a slightly [adapted version](https://git.informatik.uni-kiel.de/stu203400/haskell-code-transformation) of the [pattern matching compiler](https://git.informatik.uni-kiel.de/stu204333/placc-thesis) developed by [Malte Clement](https://git.informatik.uni-kiel.de/stu204333).
+The Haskell to Coq compiler uses a slightly [adapted version](https://github.com/FreeProving/haskell-src-transformations) of the [pattern matching compiler](https://git.informatik.uni-kiel.de/stu204333/placc-thesis) developed by [Malte Clement](https://git.informatik.uni-kiel.de/stu204333).
 Note that if pattern matching compilation is enabled, error messages will not contain any location information.
 
 ##### Example
