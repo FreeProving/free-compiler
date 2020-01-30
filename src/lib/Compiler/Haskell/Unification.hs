@@ -7,8 +7,8 @@ module Compiler.Haskell.Unification
   )
 where
 
-import           Control.Applicative            ( (<|>)
-                                                , empty
+import           Control.Applicative            ( empty
+                                                , (<|>)
                                                 )
 
 import qualified Compiler.Haskell.AST          as HS

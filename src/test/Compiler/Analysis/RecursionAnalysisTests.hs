@@ -4,8 +4,8 @@ import qualified Data.Map.Strict               as Map
 import           Test.Hspec
 
 import           Compiler.Analysis.RecursionAnalysis
-import           Compiler.Haskell.AST          as HS
 import           Compiler.Converter.Module      ( addDecArgPragma )
+import           Compiler.Haskell.AST          as HS
 
 import           Compiler.Util.Test
 

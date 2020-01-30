@@ -5,25 +5,25 @@ module Compiler.Converter.TypeDecl where
 
 import           Control.Monad                  ( mapAndUnzipM )
 import           Control.Monad.Extra            ( concatMapM )
-import           Data.Maybe                     ( catMaybes )
 import           Data.List                      ( partition )
 import qualified Data.List.NonEmpty            as NonEmpty
+import           Data.Maybe                     ( catMaybes )
 
 import           Compiler.Analysis.DependencyAnalysis
-import           Compiler.Environment
 import           Compiler.Converter.Arg
 import           Compiler.Converter.Free
 import           Compiler.Converter.Type
 import qualified Compiler.Coq.AST              as G
 import qualified Compiler.Coq.Base             as CoqBase
+import           Compiler.Environment
 import           Compiler.Environment.Entry
 import           Compiler.Environment.Renamer
 import           Compiler.Environment.Scope
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Haskell.Inliner
 import           Compiler.Monad.Converter
-import           Compiler.Monad.Reporter
 import           Compiler.Monad.Instance.Fail   ( )
+import           Compiler.Monad.Reporter
 
 -------------------------------------------------------------------------------
 -- Strongly connected components                                             --
@@ -266,8 +266,7 @@ convertDataDecl (HS.DataDecl _ (HS.DeclIdent _ ident) typeVarDecls conDecls) =
     (argIdents', argDecls') <- mapAndUnzipM convertAnonymousArg
                                             (map Just argTypes)
     returnType' <- convertType returnType
-    rhs         <- generatePure
-      (G.app (G.Qualid qualid) (map G.Qualid argIdents'))
+    rhs <- generatePure (G.app (G.Qualid qualid) (map G.Qualid argIdents'))
     return
       (G.definitionSentence
         smartQualid

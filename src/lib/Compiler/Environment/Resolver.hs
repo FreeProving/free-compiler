@@ -11,8 +11,8 @@ module Compiler.Environment.Resolver
   )
 where
 
-import           Data.Composition               ( (.:) )
 import           Control.Monad.Identity
+import           Data.Composition               ( (.:) )
 
 import           Compiler.Environment.Entry
 import           Compiler.Environment.LookupOrFail

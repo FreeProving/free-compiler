@@ -8,9 +8,9 @@ import           Data.Foldable                  ( foldrM )
 import           Data.Maybe                     ( maybe )
 
 import           Compiler.Converter.Arg
+import           Compiler.Converter.Free
 import           Compiler.Converter.Type
 import           Compiler.Converter.TypeSchema
-import           Compiler.Converter.Free
 import qualified Compiler.Coq.AST              as G
 import qualified Compiler.Coq.Base             as CoqBase
 import           Compiler.Environment

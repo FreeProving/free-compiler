@@ -46,7 +46,7 @@ instance Pretty Name where
 -- | Pretty instance for qualifed Haskell identifiers and symbols.
 instance Pretty QName where
   pretty (Qual modid name) = prettyString modid <> dot <> pretty name
-  pretty (UnQual name) = pretty name
+  pretty (UnQual name)     = pretty name
 
 -- | The name of a module.
 type ModName = String
@@ -476,7 +476,7 @@ instance GetSrcSpan Pragma where
 
 -- | 'GetSrcSpan' instance for data type and type synonym declarations.
 instance GetSrcSpan TypeDecl where
-  getSrcSpan (DataDecl srcSpan _ _ _) = srcSpan
+  getSrcSpan (DataDecl srcSpan _ _ _)    = srcSpan
   getSrcSpan (TypeSynDecl srcSpan _ _ _) = srcSpan
 
 instance GetSrcSpan FuncDecl where

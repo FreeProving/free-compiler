@@ -4,18 +4,18 @@ module Compiler.Converter.Module where
 
 import           Control.Monad                  ( when )
 import           Control.Monad.Extra            ( concatMapM )
-import qualified Data.Map                      as Map
-import           Data.Maybe                     ( catMaybes )
 import           Data.List                      ( find
                                                 , findIndex
                                                 )
+import qualified Data.Map                      as Map
+import           Data.Maybe                     ( catMaybes )
 import qualified Data.Set                      as Set
 
 import           Compiler.Analysis.DependencyAnalysis
 import           Compiler.Analysis.DependencyGraph
 import           Compiler.Converter.FuncDecl
-import           Compiler.Converter.TypeDecl
 import           Compiler.Converter.QuickCheck
+import           Compiler.Converter.TypeDecl
 import qualified Compiler.Coq.AST              as G
 import qualified Compiler.Coq.Base             as CoqBase
 import           Compiler.Environment

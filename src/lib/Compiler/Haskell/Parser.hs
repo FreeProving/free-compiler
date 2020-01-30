@@ -16,6 +16,8 @@ where
 
 import           Data.Composition               ( (.:) )
 
+import qualified Language.Haskell.Exts.Comments
+                                               as H
 import           Language.Haskell.Exts.Extension
                                                 ( Language(..) )
 import           Language.Haskell.Exts.Fixity   ( Fixity
@@ -28,8 +30,6 @@ import           Language.Haskell.Exts.Parser   ( ParseMode(..)
                                                 , Parseable(..)
                                                 )
 import           Language.Haskell.Exts.SrcLoc   ( SrcSpanInfo )
-import qualified Language.Haskell.Exts.Comments
-                                               as H
 import qualified Language.Haskell.Exts.Syntax  as H
 
 import           Compiler.Haskell.AST          as HS

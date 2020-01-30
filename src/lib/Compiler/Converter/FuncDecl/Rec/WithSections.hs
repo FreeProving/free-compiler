@@ -12,13 +12,13 @@ module Compiler.Converter.FuncDecl.Rec.WithSections
   )
 where
 
-import           Control.Monad.Extra            ( ifM )
 import           Control.Monad                  ( mapAndUnzipM
                                                 , zipWithM
                                                 )
-import           Data.List                      ( (\\)
-                                                , elemIndex
+import           Control.Monad.Extra            ( ifM )
+import           Data.List                      ( elemIndex
                                                 , intercalate
+                                                , (\\)
                                                 )
 import           Data.Map.Strict                ( Map )
 import qualified Data.Map.Strict               as Map

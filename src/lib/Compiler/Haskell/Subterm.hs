@@ -28,12 +28,12 @@ import           Data.List                      ( intersperse
                                                 , isPrefixOf
                                                 )
 import           Data.Maybe                     ( fromJust )
-import qualified Data.Set                      as Set
 import           Data.Set                       ( Set )
+import qualified Data.Set                      as Set
 
 import           Compiler.Analysis.DependencyExtraction
-import           Compiler.Pretty
 import           Compiler.Haskell.AST          as HS
+import           Compiler.Pretty
 
 -------------------------------------------------------------------------------
 -- Direct children                                                           --

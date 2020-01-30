@@ -5,8 +5,8 @@ module Compiler.Converter.FuncDecl where
 
 import           Compiler.Analysis.DependencyAnalysis
 import           Compiler.Converter.FuncDecl.Common
-import           Compiler.Converter.FuncDecl.Rec
 import           Compiler.Converter.FuncDecl.NonRec
+import           Compiler.Converter.FuncDecl.Rec
 import qualified Compiler.Coq.AST              as G
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Monad.Converter
