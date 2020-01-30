@@ -10,8 +10,8 @@ where
 import qualified Data.Aeson                    as Aeson
 import qualified Data.Aeson.Encode.Pretty      as AesonPretty
 import qualified Data.ByteString.Lazy          as B
-import qualified Data.Text                     as T
 import           Data.String                    ( fromString )
+import qualified Data.Text                     as T
 import           System.FilePath
 import qualified Text.Parsec.Error             as Parsec
 import           Text.Toml                      ( parseTomlDoc )

@@ -95,9 +95,9 @@ module Compiler.Environment.Decoder
   )
 where
 
-import           Data.Aeson                     ( (.:)
+import           Data.Aeson                     ( (.!=)
+                                                , (.:)
                                                 , (.:?)
-                                                , (.!=)
                                                 )
 import qualified Data.Aeson                    as Aeson
 import qualified Data.Aeson.Types              as Aeson
@@ -116,8 +116,8 @@ import           Compiler.Environment.Entry
 import           Compiler.Environment.Scope
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Haskell.Parser
-import           Compiler.Haskell.SrcSpan
 import           Compiler.Haskell.Simplifier
+import           Compiler.Haskell.SrcSpan
 import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
 import           Compiler.Pretty

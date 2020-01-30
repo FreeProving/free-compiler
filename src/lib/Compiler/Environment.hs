@@ -48,6 +48,7 @@ module Compiler.Environment
   )
 where
 
+import           Control.Monad                  ( join )
 import           Data.Composition               ( (.:)
                                                 , (.:.)
                                                 )
@@ -60,7 +61,6 @@ import           Data.Maybe                     ( catMaybes
 import           Data.Set                       ( Set )
 import qualified Data.Set                      as Set
 import           Data.Tuple.Extra               ( (&&&) )
-import           Control.Monad                  ( join )
 
 import qualified Compiler.Coq.AST              as G
 import           Compiler.Environment.Entry
@@ -93,31 +93,31 @@ data ModuleInterface = ModuleInterface
 
 -- | Data type that encapsulates the state of the converter.
 data Environment = Environment
-  { envDepth :: Int
+  { envDepth             :: Int
     -- ^ The number of parent environments.
 
-  , envModName :: HS.ModName
+  , envModName           :: HS.ModName
     -- ^ The name of the currently translated module.
     --   Defaults to the empty string.
-  , envAvailableModules :: Map HS.ModName ModuleInterface
+  , envAvailableModules  :: Map HS.ModName ModuleInterface
     -- ^ Maps names of modules that can be imported to their interface.
-  , envInSection :: Bool
+  , envInSection         :: Bool
     -- ^ Whether the currently converted node is inside of a @Section@
     --   sentence.
 
-  , envEntries :: Map ScopedName (Set EnvEntry, Int)
+  , envEntries           :: Map ScopedName (Set EnvEntry, Int)
     -- ^ Maps Haskell names to entries for declarations.
     --   In addition to the entry, the 'envDepth' of the environment is
     --   recorded.
     --   There can be multiple entries with the same name as long as they are
     --   not referenced. Entries are identified by their original name.
-  , envTypeSigs :: Map HS.QName HS.TypeSchema
+  , envTypeSigs          :: Map HS.QName HS.TypeSchema
     -- ^ Maps names of Haskell functions to their annotated types.
-  , envDecArgs :: Map HS.QName (Int, String)
+  , envDecArgs           :: Map HS.QName (Int, String)
     -- ^ Maps Haskell function names to the index and name of their decreasing
     --   argument. Contains no entry for non-recursive functions, but there are
     --   also entries for functions that are shadowed by local variables.
-  , envFreshIdentCount :: Map String Int
+  , envFreshIdentCount   :: Map String Int
     -- ^ The number of fresh identifiers that were used in the environment
     --   with a certain prefix.
 

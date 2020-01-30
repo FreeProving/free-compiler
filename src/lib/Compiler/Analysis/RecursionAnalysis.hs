@@ -31,9 +31,9 @@ import           Data.Set                       ( Set
 import qualified Data.Set                      as Set
 import           Data.Tuple.Extra               ( uncurry3 )
 
-import           Compiler.Analysis.DependencyGraph
 import           Compiler.Analysis.DependencyExtraction
                                                 ( varSet )
+import           Compiler.Analysis.DependencyGraph
 import           Compiler.Environment
 import           Compiler.Environment.Fresh
 import qualified Compiler.Haskell.AST          as HS
@@ -253,10 +253,10 @@ identifyDecArgs decls = do
 --   function declarations and a fresh identifier for the @Variable@ sentence
 --   that replaces the constant argument.
 data ConstArg = ConstArg
-  { constArgIdents :: Map String String
+  { constArgIdents     :: Map String String
     -- ^ Maps the names of functions that share the constant argument to the
     --   names of the corresponding function arguments.
-  , constArgIndicies :: Map String Int
+  , constArgIndicies   :: Map String Int
     -- ^ Maps the names of functions that share the constant argument to the
     --   index of the corresponding function argument.
   , constArgFreshIdent :: String

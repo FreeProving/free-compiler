@@ -1,12 +1,15 @@
 -- | This module contains a function for converting type schemas from Haskell
 --   to Coq.
 
-module Compiler.Converter.TypeSchema(convertTypeSchema) where
+module Compiler.Converter.TypeSchema
+  ( convertTypeSchema
+  )
+where
 
 import           Compiler.Converter.Type
+import qualified Compiler.Coq.AST              as G
 import           Compiler.Environment
 import           Compiler.Environment.Entry
-import qualified Compiler.Coq.AST              as G
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Monad.Converter
 
@@ -22,8 +25,10 @@ convertTypeSchema (HS.TypeSchema _ typeVars typeExpr) = localEnv $ do
 makeTypeVarImplicit :: HS.TypeVarDecl -> Converter ()
 makeTypeVarImplicit (HS.DeclIdent srcSpan ident) = do
   let name = HS.UnQual (HS.Ident ident)
-  modifyEnv $ addEntry name TypeVarEntry
-    { entrySrcSpan = srcSpan
-    , entryName    = name
-    , entryIdent   = G.bare "_"
-    }
+  modifyEnv $ addEntry
+    name
+    TypeVarEntry
+      { entrySrcSpan = srcSpan
+      , entryName    = name
+      , entryIdent   = G.bare "_"
+      }

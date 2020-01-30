@@ -19,91 +19,91 @@ data EnvEntry
     DataEntry
     { entrySrcSpan :: SrcSpan
       -- ^ The source code location where the data type was declared.
-    , entryArity :: Int
+    , entryArity   :: Int
       -- ^ The number of type arguments expected by the type constructor.
-    , entryIdent :: G.Qualid
+    , entryIdent   :: G.Qualid
       -- ^ The name of the data type in Coq.
-    , entryName :: HS.QName
+    , entryName    :: HS.QName
       -- ^ The name of the data type in the module it has been defined in.
     }
   | -- | Entry for a type synonym declaration.
     TypeSynEntry
-    { entrySrcSpan :: SrcSpan
+    { entrySrcSpan  :: SrcSpan
       -- ^ The source code location where the type synonym was declared.
-    , entryArity :: Int
+    , entryArity    :: Int
       -- ^ The number of type arguments expected by the type constructor.
     , entryTypeArgs :: [HS.TypeVarIdent]
       -- ^ The names of the type arguments.
-    , entryTypeSyn :: HS.Type
+    , entryTypeSyn  :: HS.Type
       -- ^ The type that is abbreviated by this type synonym.
-    , entryIdent :: G.Qualid
+    , entryIdent    :: G.Qualid
       -- ^ The name of the type synonym in Coq.
-    , entryName :: HS.QName
+    , entryName     :: HS.QName
       -- ^ The name of the type synonym in the module it has been defined in.
     }
   | -- | Entry for a type variable.
     TypeVarEntry
     { entrySrcSpan :: SrcSpan
       -- ^ The source code location where the type variable was declared.
-    , entryIdent :: G.Qualid
+    , entryIdent   :: G.Qualid
       -- ^ The name of the type variable in Coq.
-    , entryName :: HS.QName
+    , entryName    :: HS.QName
       -- ^ The name of the type variable (must be unqualified).
     }
   | -- | Entry for a data constructor.
     ConEntry
-    { entrySrcSpan :: SrcSpan
+    { entrySrcSpan    :: SrcSpan
       -- ^ The source code location where the data constructor was declared.
-    , entryArity :: Int
+    , entryArity      :: Int
       -- ^ The number of arguments expected by the data constructor.
-    , entryTypeArgs :: [HS.TypeVarIdent]
+    , entryTypeArgs   :: [HS.TypeVarIdent]
       -- ^ The names of the type arguments.
-    , entryArgTypes :: [Maybe HS.Type]
+    , entryArgTypes   :: [Maybe HS.Type]
       -- ^ The types of the constructor's arguments (if known).
       --   Contains exactly 'entryArity' elements.
     , entryReturnType :: Maybe HS.Type
       -- ^ The return type of the data constructor (if known).
-    , entryIdent :: G.Qualid
+    , entryIdent      :: G.Qualid
       -- ^ The name of the regular data constructor in Coq.
     , entrySmartIdent :: G.Qualid
       -- ^ The name of the corresponding smart constructor in Coq.
-    , entryName :: HS.QName
+    , entryName       :: HS.QName
       -- ^ The name of the data constructor in the module it has been
       --   defined in.
     }
   | -- | Entry for a function declaration.
     FuncEntry
-    { entrySrcSpan :: SrcSpan
+    { entrySrcSpan       :: SrcSpan
       -- ^ The source code location where the function was declared.
-    , entryArity :: Int
+    , entryArity         :: Int
       -- ^ The number of arguments expected by the function.
-    , entryTypeArgs :: [HS.TypeVarIdent]
+    , entryTypeArgs      :: [HS.TypeVarIdent]
       -- ^ The names of the type arguments.
-    , entryArgTypes :: [Maybe HS.Type]
+    , entryArgTypes      :: [Maybe HS.Type]
       -- ^ The types of the function arguments (if known).
       --   Contains exactly 'entryArity' elements.
-    , entryReturnType :: Maybe HS.Type
+    , entryReturnType    :: Maybe HS.Type
       -- ^ The return type of the function (if known).
     , entryNeedsFreeArgs :: Bool
       -- ^ Whether the arguments of the @Free@ monad need to be
       --   passed to the function.
-    , entryIsPartial :: Bool
+    , entryIsPartial     :: Bool
       -- ^ Whether the function is partial, i.e., requires an instance of
       --   the @Partial@ type class when translated to Coq.
-    , entryIdent :: G.Qualid
+    , entryIdent         :: G.Qualid
       -- ^ The name of the function in Coq.
-    , entryName :: HS.QName
+    , entryName          :: HS.QName
       -- ^ The name of the function in the module it has been defined in.
     }
   | -- | Entry for a variable.
     VarEntry
     { entrySrcSpan :: SrcSpan
       -- ^ The source code location where the variable was declared.
-    , entryIsPure :: Bool
+    , entryIsPure  :: Bool
       -- ^ Whether the variable has not been lifted to the free monad.
-    , entryIdent :: G.Qualid
+    , entryIdent   :: G.Qualid
       -- ^ The name of the variable in Coq.
-    , entryName :: HS.QName
+    , entryName    :: HS.QName
       -- ^ The name of the variable (must be unqualified).
     }
  deriving Show

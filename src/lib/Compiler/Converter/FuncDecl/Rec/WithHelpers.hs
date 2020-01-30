@@ -10,10 +10,10 @@ module Compiler.Converter.FuncDecl.Rec.WithHelpers
 where
 
 import           Control.Monad                  ( mapAndUnzipM )
-import qualified Data.List.NonEmpty            as NonEmpty
 import           Data.List                      ( delete
                                                 , elemIndex
                                                 )
+import qualified Data.List.NonEmpty            as NonEmpty
 import qualified Data.Map.Strict               as Map
 import           Data.Maybe                     ( fromJust )
 import qualified Data.Set                      as Set

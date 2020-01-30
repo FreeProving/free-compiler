@@ -4,8 +4,8 @@
 module Compiler.Converter.Free where
 
 import           Control.Monad.Extra            ( ifM )
-import           Data.List.NonEmpty             ( NonEmpty(..) )
 import           Data.List                      ( elemIndex )
+import           Data.List.NonEmpty             ( NonEmpty(..) )
 import           Data.Maybe                     ( maybe )
 
 import qualified Compiler.Coq.AST              as G

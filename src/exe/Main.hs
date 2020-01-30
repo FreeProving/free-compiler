@@ -16,15 +16,15 @@ import           System.Exit                    ( exitSuccess )
 import           System.FilePath
 
 import           Compiler.Analysis.DependencyAnalysis
-import           Compiler.Application.Options
 import           Compiler.Application.Debug
+import           Compiler.Application.Options
 import           Compiler.Converter             ( convertModule )
 import           Compiler.Converter.QuickCheck
 import qualified Compiler.Coq.AST              as G
 import           Compiler.Coq.Pretty
 import           Compiler.Environment
-import           Compiler.Environment.Encoder
 import           Compiler.Environment.Decoder
+import           Compiler.Environment.Encoder
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Haskell.Parser        ( parseModuleFile
                                                 , parseModuleFileWithComments

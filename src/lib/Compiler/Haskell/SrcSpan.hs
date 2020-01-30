@@ -110,7 +110,7 @@ instance SrcSpanConverter Parsec.SourcePos where
 --   there is a field `srcSpanFilename`).
 hasSrcSpanFilename :: SrcSpan -> Bool
 hasSrcSpanFilename NoSrcSpan = False
-hasSrcSpanFilename _ = True
+hasSrcSpanFilename _         = True
 
 -- | Tests whether the given source span has attached source code.
 hasSourceCode :: SrcSpan -> Bool

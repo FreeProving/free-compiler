@@ -24,22 +24,22 @@ module Compiler.Converter
   )
 where
 
-import           Compiler.Converter.Module      ( convertModule
-                                                , convertDecls
-                                                , convertFuncDecls
-                                                , convertTypeDecls
-                                                )
 import           Compiler.Converter.Expr        ( convertExpr )
 import           Compiler.Converter.FuncDecl    ( convertFuncComponent )
 import           Compiler.Converter.FuncDecl.NonRec
                                                 ( convertNonRecFuncDecl )
 import           Compiler.Converter.FuncDecl.Rec
                                                 ( convertRecFuncDecls )
+import           Compiler.Converter.Module      ( convertDecls
+                                                , convertFuncDecls
+                                                , convertModule
+                                                , convertTypeDecls
+                                                )
 import           Compiler.Converter.Type        ( convertType
                                                 , convertType'
                                                 )
-import           Compiler.Converter.TypeDecl    ( convertTypeComponent
+import           Compiler.Converter.TypeDecl    ( convertDataDecl
                                                 , convertDataDecls
-                                                , convertDataDecl
+                                                , convertTypeComponent
                                                 )
 import           Compiler.Converter.TypeSchema  ( convertTypeSchema )

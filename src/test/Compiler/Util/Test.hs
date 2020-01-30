@@ -21,8 +21,8 @@ import           Compiler.Environment.Importer
 import           Compiler.Environment.Renamer
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Haskell.Parser
-import           Compiler.Haskell.SrcSpan
 import           Compiler.Haskell.Simplifier
+import           Compiler.Haskell.SrcSpan
 import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
 import           Compiler.Pretty

@@ -13,13 +13,13 @@ import qualified Data.List.NonEmpty            as NonEmpty
 import qualified Data.Set                      as Set
 
 import           Compiler.Analysis.DependencyAnalysis
-import qualified Compiler.Coq.AST              as G
 import           Compiler.Converter.Expr
 import           Compiler.Converter.FuncDecl.Common
+import qualified Compiler.Coq.AST              as G
 import           Compiler.Environment
 import           Compiler.Environment.Entry
-import           Compiler.Environment.Scope
 import           Compiler.Environment.LookupOrFail
+import           Compiler.Environment.Scope
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Haskell.SrcSpan
 import           Compiler.Monad.Converter

@@ -6,8 +6,8 @@
 
 module Compiler.Environment.Fresh where
 
-import qualified Data.Map.Strict               as Map
 import           Data.List                      ( elemIndex )
+import qualified Data.Map.Strict               as Map
 
 import qualified Compiler.Coq.AST              as G
 import           Compiler.Environment

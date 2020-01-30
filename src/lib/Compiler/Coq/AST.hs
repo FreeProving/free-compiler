@@ -104,7 +104,8 @@ arrows args returnType = foldr G.Arrow returnType args
 -- | Smart constructor for the construction of a Coq lambda expression with
 --   the given arguments and right hand side.
 --
---   The second argument contains the types of the arguments are inferred by Coq.
+--   The second argument contains the types of the arguments are inferred
+--   by Coq.
 fun :: [G.Qualid] -> [Maybe G.Term] -> G.Term -> G.Term
 fun args argTypes expr = G.Fun (NonEmpty.fromList binders) expr
  where
@@ -169,7 +170,7 @@ sortType :: G.Term
 sortType = G.Sort G.Type
 
 -------------------------------------------------------------------------------
--- Expressions                                                                   --
+-- Expressions                                                              --
 -------------------------------------------------------------------------------
 
 -- | Smart constructor for Coq string literals.

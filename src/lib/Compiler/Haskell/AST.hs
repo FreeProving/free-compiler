@@ -515,7 +515,7 @@ instance GetSrcSpan Pragma where
 
 -- | 'GetSrcSpan' instance for data type and type synonym declarations.
 instance GetSrcSpan TypeDecl where
-  getSrcSpan (DataDecl srcSpan _ _ _) = srcSpan
+  getSrcSpan (DataDecl srcSpan _ _ _)    = srcSpan
   getSrcSpan (TypeSynDecl srcSpan _ _ _) = srcSpan
 
 instance GetSrcSpan FuncDecl where
