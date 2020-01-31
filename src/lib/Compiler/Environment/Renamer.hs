@@ -311,4 +311,6 @@ informIfRenamed entry entry' = do
  where
   ident, ident' :: String
   HS.UnQual (HS.Ident ident) = entryName entry
-  Just      ident'           = G.unpackQualid (entryIdent entry')
+  Just ident'
+    | entryHasSmartIdent entry = G.unpackQualid (entrySmartIdent entry')
+    | otherwise                = G.unpackQualid (entryIdent entry')

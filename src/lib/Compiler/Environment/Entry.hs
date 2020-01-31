@@ -178,6 +178,11 @@ isVarEntry _          = False
 isTopLevelEntry :: EnvEntry -> Bool
 isTopLevelEntry = not . (isVarEntry .||. isTypeVarEntry)
 
+-- | Tests whether the given entry distinguishes between a @entryIdent@ and
+--   @entrySmartIdent@.
+entryHasSmartIdent :: EnvEntry -> Bool
+entryHasSmartIdent = isConEntry
+
 -------------------------------------------------------------------------------
 -- Pretty printing                                                           --
 -------------------------------------------------------------------------------
