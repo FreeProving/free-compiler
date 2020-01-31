@@ -17,8 +17,7 @@ import           Compiler.Monad.Converter
 convertTypeSchema :: HS.TypeSchema -> Converter G.Term
 convertTypeSchema (HS.TypeSchema _ typeVars typeExpr) = localEnv $ do
   mapM_ makeTypeVarImplicit typeVars
-  typeExpr' <- convertType typeExpr
-  return typeExpr'
+  convertType typeExpr
 
 -- | Adds the given type variable to the environment and assigns the
 --   Coq name @_@ to it.

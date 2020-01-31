@@ -13,6 +13,7 @@ module Compiler.Coq.AST
   , unpackQualid
     -- * Functions
   , app
+  , explicitApp
   , arrows
   , fun
   , inferredFun
@@ -93,6 +94,14 @@ app func [] = func
 app (G.App func args) args' =
   G.App func (args <> NonEmpty.fromList (map G.PosArg args'))
 app func args = G.App func (NonEmpty.fromList (map G.PosArg args))
+
+-- | Smart constructor for the explicit application of a Coq function or
+--   constructor to otherwise inferred type arguments.
+--
+--   If there are no type arguments, no 'G.ExplicitApp' will be created.
+explicitApp :: G.Qualid -> [G.Term] -> G.Term
+explicitApp qualid [] = G.Qualid qualid
+explicitApp qualid typeArgs = G.ExplicitApp qualid typeArgs
 
 -- | Smart constructor for a Coq function type.
 arrows

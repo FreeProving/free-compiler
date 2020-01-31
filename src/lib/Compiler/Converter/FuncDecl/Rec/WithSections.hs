@@ -548,9 +548,11 @@ generateInterfaceDecl constArgs isConstArgUsed identMap mgu sectionTypeArgs rena
       catMaybes <$> mapM (inEnv . lookupIdent ValueScope) nonConstArgNames
 
     -- Generate invocation of the main function.
+    -- TODO do we have to pass the remaining type arguments to the main
+    --      function as well (using explicit type arguments)?
     let argNames' =
           typeArgNames' ++ constArgNames' ++ partialArg ++ nonConstArgNames'
-        rhs' = genericApply qualid' (map G.Qualid argNames')
+        rhs' = genericApply (G.Qualid qualid') (map G.Qualid argNames')
     return (G.definitionSentence qualid binders returnType' rhs')
  where
   -- | Looks up the name of the function's type argument that corresponds to

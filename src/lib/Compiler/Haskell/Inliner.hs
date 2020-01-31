@@ -50,7 +50,7 @@ inlineExpr decls = inlineAndBind
 
   -- | Inserts a function declaration into 'declMap'.
   insertFuncDecl
-    :: HS.FuncDecl                        -- ^ The declaration to insert.
+    :: HS.FuncDecl                         -- ^ The declaration to insert.
     -> Map HS.QName ([HS.VarPat], HS.Expr) -- ^ The map to insert into.
     -> Map HS.QName ([HS.VarPat], HS.Expr)
   insertFuncDecl (HS.FuncDecl _ (HS.DeclIdent _ ident) args expr) =

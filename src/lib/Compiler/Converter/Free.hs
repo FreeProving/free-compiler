@@ -43,8 +43,8 @@ partialArgDecl = uncurry (G.typedBinder' G.Explicit) CoqBase.partialArg
 
 -- | Smart constructor for the application of a Coq function or (type)
 --   constructor that requires the parameters for the @Free@ monad.
-genericApply :: G.Qualid -> [G.Term] -> G.Term
-genericApply func args = G.app (G.Qualid func) (genericArgs ++ args)
+genericApply :: G.Term -> [G.Term] -> G.Term
+genericApply func args = G.app func (genericArgs ++ args)
   where genericArgs = map (G.Qualid . fst) CoqBase.freeArgs
 
 -------------------------------------------------------------------------------

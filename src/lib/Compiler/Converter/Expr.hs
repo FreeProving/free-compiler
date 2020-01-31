@@ -2,7 +2,9 @@
 
 module Compiler.Converter.Expr where
 
-import           Control.Monad.Extra            ( ifM )
+import           Control.Monad.Extra            ( ifM
+                                                , when
+                                                )
 import           Data.Composition
 import           Data.Foldable                  ( foldrM )
 import           Data.Maybe                     ( maybe )
@@ -21,6 +23,8 @@ import           Compiler.Environment.Scope
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Haskell.SrcSpan
 import           Compiler.Monad.Converter
+import           Compiler.Monad.Reporter
+import           Compiler.Pretty
 
 -------------------------------------------------------------------------------
 -- Eta-Conversion                                                            --
@@ -67,26 +71,47 @@ etaConvert rootExpr = arityOf rootExpr >>= etaAbstractN rootExpr
 
 -- | Converts a Haskell expression to Coq.
 convertExpr :: HS.Expr -> Converter G.Term
-convertExpr expr = etaConvert expr >>= flip convertExpr' []
+convertExpr expr = do
+  expr' <- etaConvert expr
+  convertExpr' expr' [] []
 
 -- | Converts the application of a Haskell expression to the given arguments
---   to Coq.
+--   and visibly applied type arguments to Coq.
 --
 --   This function assumes the outer most expression to be fully applied
 --   by the given arguments (see also 'etaConvert').
-convertExpr' :: HS.Expr -> [HS.Expr] -> Converter G.Term
+convertExpr' :: HS.Expr -> [HS.Type] -> [HS.Expr] -> Converter G.Term
 
 -- Constructors.
-convertExpr' (HS.Con srcSpan name) args = do
+convertExpr' (HS.Con srcSpan name) typeArgs args = do
   qualid     <- lookupSmartIdentOrFail srcSpan name
+  typeArgs'  <- mapM convertType typeArgs
   args'      <- mapM convertExpr args
   Just arity <- inEnv $ lookupArity ValueScope name
-  generateApplyN arity (genericApply qualid []) args'
+  generateApplyN arity (genericApply (G.explicitApp qualid typeArgs') []) args'
 
 -- Functions and variables.
-convertExpr' (HS.Var srcSpan name) args = do
-  qualid   <- lookupIdentOrFail srcSpan ValueScope name
-  args'    <- mapM convertExpr args
+convertExpr' (HS.Var srcSpan name) typeArgs args = do
+  qualid       <- lookupIdentOrFail srcSpan ValueScope name
+  typeArgs'    <- mapM convertType typeArgs
+  args'        <- mapM convertExpr args
+  -- The number of type arguments must match the number of type parameters.
+  -- In case of variables, @typeArgArity@ is @0@, i.e., there must be no
+  -- type arguments. Since, the user cannot create visible type applications,
+  -- it is an internal error if the number of type arguments does not match.
+  typeArgArity <- inEnv $ lookupTypeArgArity ValueScope name
+  let typeArgCount = length typeArgs
+  when (typeArgCount /= typeArgArity)
+    $  reportFatal
+    $  Message srcSpan Internal
+    $  "The function '"
+    ++ showPretty name
+    ++ "' is applied to the wrong number of type arguments.\n"
+    ++ "Expected "
+    ++ show typeArgArity
+    ++ " type arguments, got "
+    ++ show typeArgCount
+    ++ "."
   -- Is this a variable or function?
   function <- inEnv $ isFunction name
   if function
@@ -96,9 +121,10 @@ convertExpr' (HS.Var srcSpan name) args = do
       partialArg <- ifM (inEnv $ isPartial name)
                         (return [G.Qualid (fst CoqBase.partialArg)])
                         (return [])
-      callee <- ifM (inEnv $ needsFreeArgs name)
-                    (return (genericApply qualid partialArg))
-                    (return (G.app (G.Qualid qualid) partialArg))
+      callee <- ifM
+        (inEnv $ needsFreeArgs name)
+        (return (genericApply (G.explicitApp qualid typeArgs') partialArg))
+        (return (G.app (G.Qualid qualid) partialArg))
       -- Is this a recursive helper function?
       Just arity   <- inEnv $ lookupArity ValueScope name
       mDecArgIndex <- inEnv $ lookupDecArgIndex name
@@ -124,12 +150,14 @@ convertExpr' (HS.Var srcSpan name) args = do
         else generateApply (G.Qualid qualid) args'
 
 -- Pass argument from applications to converter for callee.
-convertExpr' (HS.App _ e1 e2  ) args = convertExpr' e1 (e2 : args)
+convertExpr' (HS.App _ e1 e2) [] args = convertExpr' e1 [] (e2 : args)
 
--- TODO implement conversion of visible type applications
+-- Pass type argument from visible type application to converter for callee.
+convertExpr' (HS.TypeAppExpr _ e t) typeArgs args =
+  convertExpr' e (t : typeArgs) args
 
 -- @if@-expressions.
-convertExpr' (HS.If _ e1 e2 e3) []   = do
+convertExpr' (HS.If _ e1 e2 e3) [] [] = do
   e1'   <- convertExpr e1
   bool' <- convertType' (HS.TypeCon NoSrcSpan HS.boolTypeConName)
   generateBind e1' freshBoolPrefix (Just bool') $ \cond -> do
@@ -138,38 +166,49 @@ convertExpr' (HS.If _ e1 e2 e3) []   = do
     return (G.If G.SymmetricIf cond Nothing e2' e3')
 
 -- @case@-expressions.
-convertExpr' (HS.Case _ expr alts) [] = do
+convertExpr' (HS.Case _ expr alts) [] [] = do
   expr' <- convertExpr expr
   generateBind expr' freshArgPrefix Nothing $ \value -> do
     alts' <- mapM convertAlt alts
     return (G.match value alts')
 
 -- Error terms.
-convertExpr' (HS.Undefined _) [] = return (G.Qualid CoqBase.partialUndefined)
-convertExpr' (HS.ErrorExpr _ msg) [] =
+convertExpr' (HS.Undefined _) [] [] =
+  return (G.Qualid CoqBase.partialUndefined)
+convertExpr' (HS.ErrorExpr _ msg) [] [] =
   return (G.app (G.Qualid CoqBase.partialError) [G.string msg])
 
 -- Integer literals.
-convertExpr' (HS.IntLiteral _ value) [] =
+convertExpr' (HS.IntLiteral _ value) [] [] =
   generatePure (G.InScope (G.Num (fromInteger value)) (G.ident "Z"))
 
 -- Lambda abstractions.
-convertExpr' (HS.Lambda _ args expr) [] = localEnv $ do
+convertExpr' (HS.Lambda _ args expr) [] [] = localEnv $ do
   args' <- mapM convertInferredArg args
   expr' <- convertExpr expr
   foldrM (generatePure .: G.Fun . return) expr' args'
 
 -- Type signatures.
-convertExpr' (HS.ExprTypeSig _ expr typeSchema) [] = do
+convertExpr' (HS.ExprTypeSig _ expr typeSchema) [] [] = do
   expr'       <- convertExpr expr
   typeSchema' <- convertTypeSchema typeSchema
   return (G.HasType expr' typeSchema')
 
+-- Visible type application of an expression other than a function or
+-- constructor. We use an as-pattern for @typeArgs@ such that we get a compile
+-- time warning when a node is added to the AST that we do not conver above.
+convertExpr' expr (_ : _) _ = do
+  let srcSpan = HS.getSrcSpan expr
+  reportFatal
+    $  Message srcSpan Internal
+    $  "Only type arguments of functions and constructors can be "
+    ++ "applied visibly."
+
 -- Application of an expression other than a function or constructor
--- application. (We use an as-pattern for @args@ such that we get a compile
--- time warning when a node is added to the AST that we do not conver above).
-convertExpr' expr args@(_ : _) = do
-  expr' <- convertExpr' expr []
+-- application. We use an as-pattern for @args@ such that we get a compile
+-- time warning when a node is added to the AST that we do not conver above.
+convertExpr' expr [] args@(_ : _) = do
+  expr' <- convertExpr' expr [] []
   args' <- mapM convertExpr args
   generateApply expr' args'
 
