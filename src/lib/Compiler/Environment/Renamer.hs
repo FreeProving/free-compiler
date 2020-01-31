@@ -227,7 +227,7 @@ renameAndAddEntry entry = do
   -- Associate the entry with its unqualified name.
   -- Top-level entries are also associated with their qualified name.
   modifyEnv $ addEntry unqualName entry'
-  when (not (null modName) && isTopLevelEntry entry')
+  when (isTopLevelEntry entry')
     $ modifyEnv (addEntry qualName entry')
   return entry'
 

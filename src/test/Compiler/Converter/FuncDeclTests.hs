@@ -113,6 +113,16 @@ testConvertNonRecFuncDecl =
             ++ "    | cons x xs0 => xs0"
             ++ "    end)."
 
+    it "allows the type signature to be omitted"
+      $ shouldSucceed
+      $ fromConverter
+      $ do
+          shouldTranslateDeclsTo ["foo x = x"]
+            $  "Definition foo (Shape : Type) (Pos : Shape -> Type)"
+            ++ "  {a0 : Type} (x : Free Shape Pos a0)"
+            ++ "  : Free Shape Pos a0"
+            ++ " := x."
+
 -------------------------------------------------------------------------------
 -- Recursive function declarations                                           --
 -------------------------------------------------------------------------------

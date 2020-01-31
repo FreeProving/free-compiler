@@ -28,6 +28,7 @@ import           Compiler.Haskell.Subst
 import           Compiler.Haskell.Unification
 import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
+import           Compiler.Pretty
 import           Compiler.Util.Predicate        ( (.||.) )
 
 -------------------------------------------------------------------------------
@@ -43,7 +44,7 @@ inferFuncDeclTypes funcDecls = do
 -- | Like 'inferFuncDeclTypes' but does not abstract the type to a type
 --   schema and returns the substitution.
 inferFuncDeclTypes' :: [HS.FuncDecl] -> Converter ([HS.Type], Subst HS.Type)
-inferFuncDeclTypes' funcDecls = do
+inferFuncDeclTypes' funcDecls = localEnv $ do
   (typedExprs, funcTypeVars) <- mapAndUnzipM makeTypedExprs funcDecls
   eqns                       <- execTypedExprSimplifier
     $ concatMapM (uncurry simplifyTypedExpr) (concat typedExprs)
@@ -210,14 +211,26 @@ addTypeEquation t t' = tell ([], [(t, t')])
 --   Returns the type variables the type schema of a predefined function
 --   or constructor has been instantiated with. This is needed for the
 --   implementation of visible type applications.
-addTypeEquationFor :: HS.QName -> HS.Type -> TypedExprSimplifier [HS.Type]
-addTypeEquationFor name resType = do
+--
+--   If there is no entry for the given name, a fatal error is reported.
+--   The error message refers to the given source location information.
+addTypeEquationFor
+  :: SrcSpan -> HS.QName -> HS.Type -> TypedExprSimplifier [HS.Type]
+addTypeEquationFor srcSpan name resType = do
   maybeTypeSchema <- lift $ inEnv $ lookupTypeSchema ValueScope name
   maybeTypeSig    <- lift $ inEnv $ lookupTypeSig name
-  let Just typeSchema = maybeTypeSchema <|> maybeTypeSig
-  (funcType, typeArgs) <- lift $ instantiateTypeSchema' typeSchema
-  addTypeEquation funcType resType
-  return typeArgs
+  case maybeTypeSchema <|> maybeTypeSig of
+    Nothing ->
+      lift
+        $  reportFatal
+        $  Message srcSpan Error
+        $  "Identifier not in scope '"
+        ++ showPretty name
+        ++ "'"
+    Just typeSchema -> do
+      (funcType, typeArgs) <- lift $ instantiateTypeSchema' typeSchema
+      addTypeEquation funcType resType
+      return typeArgs
 
 -- | Simplifies expression/type pairs to pairs of variables and types and
 --   type equations.
@@ -230,17 +243,17 @@ simplifyTypedExpr :: HS.Expr -> HS.Type -> TypedExprSimplifier [HS.Type]
 -- | If @C :: τ@ is a predefined constructor with @C :: forall α₀ … αₙ. τ'@,
 --   then @τ = σ(τ')@ with @σ = { α₀ ↦ β₀, …, αₙ ↦ βₙ }@ where @β₀, …, βₙ@ are
 --   new type variables.
-simplifyTypedExpr (HS.Con _ conName) resType =
-  addTypeEquationFor conName resType
+simplifyTypedExpr (HS.Con srcSpan conName) resType =
+  addTypeEquationFor srcSpan conName resType
 
 -- | If @f :: τ@ is a predefined function with @f :: forall α₀ … αₙ. τ'@, then
 --   @τ = σ(τ')@ with @σ = { α₀ ↦ β₀, …, αₙ ↦ βₙ }@ where @β₀, …, βₙ@ are new
 --   type variables.
 --   If @x :: τ@ is not a predefined function (i.e., a local variable or a
 --   function whose type to infer), just remember that @x@ is of type @τ@.
-simplifyTypedExpr (HS.Var _ varName) resType = ifM
+simplifyTypedExpr (HS.Var srcSpan varName) resType = ifM
   (lift $ inEnv $ (isFunction varName .||. hasTypeSig varName))
-  (addTypeEquationFor varName resType)
+  (addTypeEquationFor srcSpan varName resType)
   (addVarType varName resType >> return [])
 
 -- If @(e₁ e₂) :: τ@, then @e₁ :: α -> τ@ and @e₂ :: α@ where @α@ is a new
