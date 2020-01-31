@@ -146,6 +146,8 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent args expr) decArgIndex = do
         map (HS.VarPat NoSrcSpan . fromJust . HS.identFromQName) helperArgNames
 
     -- Build helper function declaration and application.
+    -- TODO we have to pass the type arguments to the helper function
+    --      explicitly.
     let (Just caseExpr) = selectSubterm expr caseExprPos
         helperDecl = HS.FuncDecl srcSpan helperDeclIdent helperArgs caseExpr
         helperApp = HS.app NoSrcSpan

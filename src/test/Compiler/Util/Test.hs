@@ -11,6 +11,7 @@ import           Data.Maybe                     ( catMaybes
 
 import           Compiler.Analysis.DependencyExtraction
                                                 ( typeVars )
+import           Compiler.Analysis.TypeInference
 import           Compiler.Converter
 import qualified Compiler.Coq.AST              as G
 import           Compiler.Coq.Pretty
@@ -250,7 +251,7 @@ convertTestType input = parseTestType input >>= convertType
 
 -- | Parses, simplifies and converts a Haskell expression for testing purposes.
 convertTestExpr :: String -> Converter G.Term
-convertTestExpr input = parseTestExpr input >>= convertExpr
+convertTestExpr input = parseTestExpr input >>= addTypeAppExprs >>= convertExpr
 
 -- | Parses, simplifies and converts a Haskell declaration for testing purposes.
 convertTestDecl :: String -> Converter [G.Sentence]

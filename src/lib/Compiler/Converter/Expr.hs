@@ -92,26 +92,36 @@ convertExpr' (HS.Con srcSpan name) typeArgs args = do
 
 -- Functions and variables.
 convertExpr' (HS.Var srcSpan name) typeArgs args = do
-  qualid       <- lookupIdentOrFail srcSpan ValueScope name
-  typeArgs'    <- mapM convertType typeArgs
-  args'        <- mapM convertExpr args
+  qualid    <- lookupIdentOrFail srcSpan ValueScope name
+  typeArgs' <- mapM convertType typeArgs
+  args'     <- mapM convertExpr args
   -- The number of type arguments must match the number of type parameters.
-  -- In case of variables, @typeArgArity@ is @0@, i.e., there must be no
-  -- type arguments. Since, the user cannot create visible type applications,
-  -- it is an internal error if the number of type arguments does not match.
-  typeArgArity <- inEnv $ lookupTypeArgArity ValueScope name
+  -- In case of variables, there must be no type arguments.
+  -- Since, the user cannot create visible type applications, it is an
+  -- internal error if the number of type arguments does not match.
   let typeArgCount = length typeArgs
-  when (typeArgCount /= typeArgArity)
-    $  reportFatal
-    $  Message srcSpan Internal
-    $  "The function '"
-    ++ showPretty name
-    ++ "' is applied to the wrong number of type arguments.\n"
-    ++ "Expected "
-    ++ show typeArgArity
-    ++ " type arguments, got "
-    ++ show typeArgCount
-    ++ "."
+  maybeTypeArgArity <- inEnv $ lookupTypeArgArity ValueScope name
+  case maybeTypeArgArity of
+    Just typeArgArity -> when (typeArgCount /= typeArgArity) $ do
+      reportFatal
+        $  Message srcSpan Internal
+        $  "The function '"
+        ++ showPretty name
+        ++ "' is applied to the wrong number of type arguments.\n"
+        ++ "Expected "
+        ++ show typeArgArity
+        ++ " type arguments, got "
+        ++ show typeArgCount
+        ++ "."
+    Nothing -> when (typeArgCount /= 0) $ do
+      reportFatal
+        $  Message srcSpan Internal
+        $  "The variable '"
+        ++ showPretty name
+        ++ "' must not be applied to type arguments.\n"
+        ++ "Got "
+        ++ show typeArgCount
+        ++ " type arguments."
   -- Is this a variable or function?
   function <- inEnv $ isFunction name
   if function

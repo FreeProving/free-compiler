@@ -3,9 +3,12 @@
 module Compiler.Analysis.TypeInference
   ( -- * Function declarations
     inferFuncDeclTypes
+  , addTypeAppExprsToFuncDecls
+  , addTypeAppExprsToFuncDecls'
     -- * Expressions
   , inferExprType
   , addTypeAppExprs
+  , addTypeAppExprs'
   )
 where
 
@@ -68,6 +71,26 @@ makeTypedExprs (HS.FuncDecl _ (HS.DeclIdent srcSpan ident) args rhs) = do
       [(funcExpr, funcTypeVar), (lhs, resTypeVar), (rhs, resTypeVar)]
   return (typedExprs, funcTypeVar)
 
+-- | Infers the types of type arguments to functions and constructors
+--   used by the right-hand side of the given function declaration.
+addTypeAppExprsToFuncDecls :: [HS.FuncDecl] -> Converter [HS.FuncDecl]
+addTypeAppExprsToFuncDecls = fmap fst . addTypeAppExprsToFuncDecls'
+
+-- | Like 'addTypeAppExprsToFuncDecls' but also returns the type of the
+--   function declaration.
+addTypeAppExprsToFuncDecls'
+  :: [HS.FuncDecl] -> Converter ([HS.FuncDecl], [HS.TypeSchema])
+addTypeAppExprsToFuncDecls' funcDecls = localEnv $ do
+  funcDecls'       <- mapM addTypeAppVarsToFuncDecl funcDecls
+  (typeExprs, mgu) <- inferFuncDeclTypes' funcDecls'
+  (,) <$> mapM (applySubst mgu) funcDecls' <*> mapM abstractTypeSchema typeExprs
+
+-- | Applies 'addTypeAppVars' to the right-hand side of a function declaration.
+addTypeAppVarsToFuncDecl :: HS.FuncDecl -> Converter HS.FuncDecl
+addTypeAppVarsToFuncDecl (HS.FuncDecl srcSpan declIdent args rhs) = do
+  rhs' <- addTypeAppVars rhs
+  return (HS.FuncDecl srcSpan declIdent args rhs')
+
 -------------------------------------------------------------------------------
 -- Expressions                                                               --
 -------------------------------------------------------------------------------
@@ -95,10 +118,14 @@ inferExprType' expr = localEnv $ do
 --   Returns an expression where the type arguments of functions and
 --   constructors are applied explicitly.
 addTypeAppExprs :: HS.Expr -> Converter HS.Expr
-addTypeAppExprs expr = localEnv $ do
-  expr'    <- addTypeAppVars expr
-  (_, mgu) <- inferExprType' expr'
-  applySubst mgu expr'
+addTypeAppExprs = fmap fst . addTypeAppExprs'
+
+-- | Like 'addTypeAppExprs' but also returns the type of the expression.
+addTypeAppExprs' :: HS.Expr -> Converter (HS.Expr, HS.TypeSchema)
+addTypeAppExprs' expr = localEnv $ do
+  expr'           <- addTypeAppVars expr
+  (typeExpr, mgu) <- inferExprType' expr'
+  (,) <$> applySubst mgu expr' <*> abstractTypeSchema typeExpr
 
 -------------------------------------------------------------------------------
 -- Visible type application                                                  --

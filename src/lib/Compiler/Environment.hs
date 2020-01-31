@@ -305,10 +305,9 @@ lookupTypeArgs =
     .   find (isTypeSynEntry .||. isConEntry .||. isFuncEntry)
     .:. lookupEntry
 
--- | Returns the length of the list returned by @lookupTypeArgs@ or @0@ if
---   @Nothing@ is returned.
-lookupTypeArgArity :: Scope -> HS.QName -> Environment -> Int
-lookupTypeArgArity = length .:. lookupTypeArgs
+-- | Returns the length of the list returned by @lookupTypeArgs@.
+lookupTypeArgArity :: Scope -> HS.QName -> Environment -> Maybe Int
+lookupTypeArgArity = fmap length .:. lookupTypeArgs
 
 -- | Looks up the argument and return types of the function or (smart)
 --   constructor with the given name.
