@@ -204,6 +204,25 @@ instance ApplySubst HS.Type HS.Expr where
     applySubst' expr@(HS.IntLiteral _ _) = return expr
 
 -------------------------------------------------------------------------------
+-- Application to function declarations.                                     --
+-------------------------------------------------------------------------------
+
+-- | Applies the given expression substitution to the right-hand side of a
+--   function declaration.
+instance ApplySubst HS.Expr HS.FuncDecl where
+  applySubst subst (HS.FuncDecl srcSpan declIdent args rhs) = do
+    (args', argSubst) <- renameArgsSubst args
+    rhs'              <- applySubst (composeSubst subst argSubst) rhs
+    return (HS.FuncDecl srcSpan declIdent args' rhs')
+
+-- | Applies the given type substitution to the right-hand side of a
+--   function declaration.
+instance ApplySubst HS.Type HS.FuncDecl where
+  applySubst subst (HS.FuncDecl srcSpan declIdent args rhs) = do
+    rhs' <- applySubst subst rhs
+    return (HS.FuncDecl srcSpan declIdent args rhs')
+
+-------------------------------------------------------------------------------
 -- Application to type expressions                                           --
 -------------------------------------------------------------------------------
 
