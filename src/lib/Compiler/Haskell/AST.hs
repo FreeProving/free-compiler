@@ -128,6 +128,22 @@ data Module = Module
   deriving (Eq, Show)
 
 -------------------------------------------------------------------------------
+-- Pretty printing modules                                                   --
+-------------------------------------------------------------------------------
+
+-- | Pretty instance for modules.
+instance Pretty Module where
+  pretty ast =
+    prettyString "module"
+      <+>  prettyString (modName ast)
+      <+>  prettyString "where"
+      <$$> vcat (map pretty (modImports ast))
+      <$$> vcat (map pretty (modTypeDecls ast))
+      <$$> vcat (map pretty (modTypeSigs ast))
+      <$$> vcat (map pretty (modPragmas ast))
+      <$$> vcat (map pretty (modFuncDecls ast))
+
+-------------------------------------------------------------------------------
 -- Comments and pragmas                                                      --
 -------------------------------------------------------------------------------
 
@@ -151,6 +167,18 @@ data Pragma
   = DecArgPragma SrcSpan String String
     -- ^ A @{-# HASKELL_TO_COQ <function> DECREASES ON <argument> #-}@ pragma.
  deriving (Eq, Show)
+
+instance Pretty Pragma where
+  pretty (DecArgPragma _ funName argName) = prettyPragma (prettyString funName <+> prettyString "DECREASES ON" <+> prettyString argName)
+
+-- | Pretty prints a custom @{-# HASKELL_TO_COQ ... #-}@ pragma with the given
+--   contents.
+prettyPragma :: Doc -> Doc
+prettyPragma contents =
+  prettyString "{-#"
+    <+> prettyString customPragmaPrefix
+    <+> contents
+    <+> prettyString "#-}"
 
 -------------------------------------------------------------------------------
 -- Declarations                                                              --
@@ -214,6 +242,50 @@ data ConDecl = ConDecl
   DeclIdent -- ^ The name of the constructor.
   [Type]    -- ^ The types of the constructor arguments.
   deriving (Eq, Show)
+
+-------------------------------------------------------------------------------
+-- Pretty printing declarations                                              --
+-------------------------------------------------------------------------------
+
+-- | Pretty instance for import declarations.
+instance Pretty ImportDecl where
+  pretty decl = prettyString "import" <+> prettyString (importName decl)
+
+-- | Pretty instance for type declarations.
+instance Pretty TypeDecl where
+  pretty (DataDecl _ declIdent typeVarDecls conDecls) =
+    prettyString "data"
+      <+> pretty declIdent
+      <+> hsep (map pretty typeVarDecls)
+      <+> align (vcat (zipWith prettyConDecl [0..] conDecls))
+   where
+    prettyConDecl :: Int -> ConDecl -> Doc
+    prettyConDecl i conDecl | i == 0    = equals <+> pretty conDecl
+                            | otherwise = char '|' <+> pretty conDecl
+  pretty (TypeSynDecl _ declIdent typeVarDecls typeExpr) =
+    prettyString "type"
+      <+> pretty declIdent
+      <+> hsep (map pretty typeVarDecls)
+      <+> equals
+      <+> pretty typeExpr
+
+-- | Pretty instance for type signatures.
+instance Pretty TypeSig where
+  pretty (TypeSig _ declIdents typeSchema) =
+    prettySeparated (comma <> space) (map pretty declIdents)
+      <+> colon
+      <>  colon
+      <+> pretty typeSchema
+
+-- | Pretty instance for function declarations.
+instance Pretty FuncDecl where
+  pretty (FuncDecl _ declIdent args rhs) =
+    pretty declIdent <+> hsep (map pretty args) <+> equals <+> pretty rhs
+
+-- | Pretty instance for data constructor declarations.
+instance Pretty ConDecl where
+  pretty (ConDecl _ declIdent types) =
+    pretty declIdent <+> hsep (map pretty types)
 
 -------------------------------------------------------------------------------
 -- Type expressions                                                          --
@@ -314,7 +386,7 @@ data Expr
   | IntLiteral SrcSpan Integer    -- ^ An integer literal.
   | Lambda SrcSpan [VarPat] Expr  -- ^ A lambda abstraction.
 
-  | ExprTypeSig SrcSpan Expr TypeSchema -- ^ A type annotation.
+  | ExprTypeSig SrcSpan Expr TypeSchema -- ^ A type annotation.semi
   deriving (Eq, Show)
 
 -- | One alternative of a case expression.
@@ -388,7 +460,7 @@ prettyExprPred 0 (If _ e1 e2 e3) =
     <+> prettyExprPred 0 e3
 prettyExprPred 0 (Case _ e alts) =
   prettyString "case" <+> prettyExprPred 1 e <+> prettyString "of" <+> braces
-    (space <> prettySeparated semi (map pretty alts) <> space)
+    (space <> prettySeparated (semi <> space) (map pretty alts) <> space)
 prettyExprPred 0 (Lambda _ args expr) =
   backslash
     <>  hsep (map pretty args)
