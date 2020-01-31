@@ -61,7 +61,7 @@ instance Pretty a => Pretty (Subst a) where
       $ flip mapM          (Map.assocs m)
       $ \(v, f) -> do
           x <- f NoSrcSpan
-          return (pretty v <+> prettyString "->" <+> pretty x)
+          return (pretty v <+> prettyString "↦" <+> pretty x)
 
 -------------------------------------------------------------------------------
 -- Construction                                                              --
