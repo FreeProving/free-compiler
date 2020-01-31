@@ -436,6 +436,7 @@ fromVarPat (VarPat _ ident) = ident
 -- Pretty printing expressions                                               --
 -------------------------------------------------------------------------------
 
+-- | Pretty instance for expressions.
 instance Pretty Expr where
   pretty = prettyExprPred 0
 
@@ -485,6 +486,7 @@ prettyExprPred _ (Undefined _      ) = prettyString "undefined"
 -- Otherwise, there must be parenthesis.
 prettyExprPred _ e                   = parens (pretty e)
 
+-- | Pretty instance for @case@ expression alternatives.
 instance Pretty Alt where
   pretty (Alt _ conPat varPats expr) =
         pretty conPat
@@ -492,9 +494,11 @@ instance Pretty Alt where
     <+> prettyString "->"
     <+> pretty expr
 
+-- | Pretty instance for constructor patterns.
 instance Pretty ConPat where
   pretty (ConPat _ conName) = pretty conName
 
+-- | Pretty instance for variable patterns.
 instance Pretty VarPat where
   pretty (VarPat _ varName) = pretty varName
 
