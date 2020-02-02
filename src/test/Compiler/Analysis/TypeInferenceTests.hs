@@ -34,7 +34,7 @@ testInferFuncDeclTypes =
               ++ "    x : xs' -> False"
               ++ "  }"
             ]
-            ["forall a0. [a0] -> Prelude.Bool"]
+            ["forall t0. [t0] -> Prelude.Bool"]
     it "infers the type of recursive functions correctly"
       $ shouldSucceed
       $ fromConverter
@@ -45,7 +45,7 @@ testInferFuncDeclTypes =
               ++ "    x : xs' -> 1 + length xs'"
               ++ "  }"
             ]
-            ["forall a0. [a0] -> Prelude.Integer"]
+            ["forall t0. [t0] -> Prelude.Integer"]
     it "infers the type of partial functions correctly"
       $ shouldSucceed
       $ fromConverter
@@ -56,7 +56,7 @@ testInferFuncDeclTypes =
               ++ "    x : xs' -> x"
               ++ "  }"
             ]
-            ["forall a0. [a0] -> a0"]
+            ["forall t0. [t0] -> t0"]
     it "allows type signaturs to make the type more specific"
       $ shouldSucceed
       $ fromConverter
@@ -117,7 +117,7 @@ testInferExprType =
       $ do
           "length" <- defineTestFunc "length" 1 "[a] -> Integer"
           shouldInferType "\\xs ys -> length xs + length ys"
-                          "forall a0 a1. [a0] -> [a1] -> Prelude.Integer"
+                          "forall t0 t1. [t0] -> [t1] -> Prelude.Integer"
     it "can match hidden and non-hidden types"
       $ shouldSucceed
       $ fromConverter
@@ -133,13 +133,13 @@ testInferExprType =
       $ shouldSucceed
       $ fromConverter
       $ do
-          "undefined" `shouldInferType` "forall a0. a0"
+          "undefined" `shouldInferType` "forall t0. t0"
     it "infer the type of variables that shadow variables correctly"
       $ shouldSucceed
       $ fromConverter
       $ do
           shouldInferType "\\x -> (x, \\x -> x)"
-                          "forall a0 a1. a0 -> (a0, a1 -> a1)"
+                          "forall t0 t1. t0 -> (t0, t1 -> t1)"
     it "can match types with type synonyms" $ shouldSucceed $ fromConverter $ do
       "Foo" <- defineTestTypeSyn "Foo" [] "[Integer]"
       "[] :: Foo" `shouldInferType` "[Prelude.Integer]"

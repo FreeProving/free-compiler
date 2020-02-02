@@ -36,6 +36,11 @@ freshBoolPrefix = "cond"
 freshTypeVarPrefix :: String
 freshTypeVarPrefix = "a"
 
+-- | The prefix to use for aritifcially introduced type variables of kind @*@
+--   that are passed as a type argument to a function.
+freshTypeArgPrefix :: String
+freshTypeArgPrefix = "t"
+
 -------------------------------------------------------------------------------
 -- Generating fresh Haskell identifiers                                      --
 -------------------------------------------------------------------------------

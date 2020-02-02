@@ -119,8 +119,8 @@ testConvertNonRecFuncDecl =
       $ do
           shouldTranslateDeclsTo ["foo x = x"]
             $  "Definition foo (Shape : Type) (Pos : Shape -> Type)"
-            ++ "  {a0 : Type} (x : Free Shape Pos a0)"
-            ++ "  : Free Shape Pos a0"
+            ++ "  {t0 : Type} (x : Free Shape Pos t0)"
+            ++ "  : Free Shape Pos t0"
             ++ " := x."
 
 -------------------------------------------------------------------------------

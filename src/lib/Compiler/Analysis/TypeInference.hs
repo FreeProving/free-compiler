@@ -19,6 +19,7 @@ import           Control.Monad.Extra            ( concatMapM
                                                 , replicateM
                                                 )
 import           Control.Monad.Writer
+import           Data.Maybe                     ( fromJust )
 
 import           Compiler.Analysis.DependencyExtraction
                                                 ( typeVars )
@@ -48,12 +49,13 @@ inferFuncDeclTypes funcDecls = do
 --   schema and returns the substitution.
 inferFuncDeclTypes' :: [HS.FuncDecl] -> Converter ([HS.Type], Subst HS.Type)
 inferFuncDeclTypes' funcDecls = localEnv $ do
-  (typedExprs, funcTypeVars) <- mapAndUnzipM makeTypedExprs funcDecls
-  eqns                       <- execTypedExprSimplifier
-    $ concatMapM (uncurry simplifyTypedExpr) (concat typedExprs)
-  mgu       <- unifyEquations eqns
-  funcTypes <- mapM (applySubst mgu) funcTypeVars
-  return (funcTypes, mgu)
+  (typedExprs, funcTypes) <- mapAndUnzipM makeTypedExprs funcDecls
+  eqns                    <- execTypedExprSimplifier $ do
+    zipWithM_ addTypeSigEquation funcDecls funcTypes
+    concatMapM (uncurry simplifyTypedExpr) (concat typedExprs)
+  mgu        <- unifyEquations eqns
+  funcTypes' <- mapM (applySubst mgu) funcTypes
+  return (funcTypes', mgu)
 
 -- | Creates fresh type variables @a@ and @a1 ... an@ and the expression/type
 --   pairs @f :: a1 -> ... -> an -> a, x1 :: a1, ..., xn :: an@ and @e :: a@
@@ -64,12 +66,26 @@ makeTypedExprs (HS.FuncDecl _ (HS.DeclIdent srcSpan ident) args rhs) = do
   (args', rhs') <- renameArgs args rhs
   argTypeVars   <- replicateM (length args) freshTypeVar
   resTypeVar    <- freshTypeVar
-  let funcExpr = HS.Var srcSpan (HS.UnQual (HS.Ident ident))
+  let funcName = HS.UnQual (HS.Ident ident)
+      funcExpr = HS.Var srcSpan funcName
       funcType = HS.funcType NoSrcSpan argTypeVars resTypeVar
       argExprs = map HS.varPatToExpr args'
       typedExprs =
         (funcExpr, funcType) : (rhs', resTypeVar) : zip argExprs argTypeVars
   return (typedExprs, funcType)
+
+-- If the given function has a type signature @f :: τ@ and 'makeTypedExprs'
+-- added the expression type pair @f :: τ'@, the type equation @τ = τ'@ is
+-- added without instantiating the type variables in the type signature with
+-- fresh identifiers such that the inferred type uses the same type variable
+-- names as specified by the user.
+addTypeSigEquation :: HS.FuncDecl -> HS.Type -> TypedExprSimplifier ()
+addTypeSigEquation funcDecl funcType = do
+  let funcIdent = HS.fromDeclIdent (HS.getDeclIdent funcDecl)
+      funcName  = HS.UnQual (HS.Ident funcIdent)
+  maybeTypeSig <- lift $ inEnv $ lookupTypeSig funcName
+  mapM_ (\(HS.TypeSchema _ _ typeSig) -> addTypeEquation typeSig funcType)
+        maybeTypeSig
 
 -- | Infers the types of type arguments to functions and constructors
 --   used by the right-hand side of the given function declaration.
@@ -247,20 +263,25 @@ addTypeEquation t t' = tell ([], [(t, t')])
 addTypeEquationFor
   :: SrcSpan -> HS.QName -> HS.Type -> TypedExprSimplifier [HS.Type]
 addTypeEquationFor srcSpan name resType = do
-  maybeTypeSchema <- lift $ inEnv $ lookupTypeSchema ValueScope name
-  maybeTypeSig    <- lift $ inEnv $ lookupTypeSig name
+  typeSchema           <- lift $ lookupTypeSchemaOrTypeSig srcSpan name
+  (funcType, typeArgs) <- lift $ instantiateTypeSchema' typeSchema
+  addTypeEquation funcType resType
+  return typeArgs
+
+-- | Looks up the type schema of a predefined function or constructor or
+--   the type signature of a function.
+lookupTypeSchemaOrTypeSig :: SrcSpan -> HS.QName -> Converter HS.TypeSchema
+lookupTypeSchemaOrTypeSig srcSpan name = do
+  maybeTypeSchema <- inEnv $ lookupTypeSchema ValueScope name
+  maybeTypeSig    <- inEnv $ lookupTypeSig name
   case maybeTypeSchema <|> maybeTypeSig of
     Nothing ->
-      lift
-        $  reportFatal
+      reportFatal
         $  Message srcSpan Error
         $  "Identifier not in scope '"
         ++ showPretty name
         ++ "'"
-    Just typeSchema -> do
-      (funcType, typeArgs) <- lift $ instantiateTypeSchema' typeSchema
-      addTypeEquation funcType resType
-      return typeArgs
+    Just typeSchema -> return typeSchema
 
 -- | Simplifies expression/type pairs to pairs of variables and types and
 --   type equations.
@@ -426,9 +447,14 @@ abstractTypeSchema = fmap fst . abstractTypeSchema'
 --   was applied to replace the type variables.
 abstractTypeSchema' :: HS.Type -> Converter (HS.TypeSchema, Subst HS.Type)
 abstractTypeSchema' t = do
-  let vs    = typeVars t
-      vs'   = map ((freshTypeVarPrefix ++) . show) [0 .. length vs - 1]
+  let names = typeVars t
+      vs    = map (fromJust . HS.identFromQName) names
+      us    = filter (not . HS.isInternalIdent) vs
+      vs'   = us ++ map makeTypeArg [0 .. length vs - length us - 1]
       ts    = map (HS.TypeVar NoSrcSpan) vs'
-      subst = composeSubsts (zipWith singleSubst vs ts)
+      subst = composeSubsts (zipWith singleSubst names ts)
   t' <- applySubst subst t
   return (HS.TypeSchema NoSrcSpan (map (HS.DeclIdent NoSrcSpan) vs') t', subst)
+ where
+  makeTypeArg :: Int -> HS.TypeVarIdent
+  makeTypeArg = (freshTypeArgPrefix ++) . show

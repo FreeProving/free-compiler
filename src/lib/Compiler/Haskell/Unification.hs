@@ -21,6 +21,11 @@ import           Compiler.Pretty                ( showPretty )
 
 -- | Calculates the mgu of the given type expressions.
 --
+--   The algorithm will preferably map the internal variable names to
+--   non-internal variables. This ensures that the names specified by
+--   the user are preserved. Otherwise variables in the first argument
+--   preferably mapped to variables in the second argument.
+--
 --   Reports a fatal error if the types cannot be unified.
 unify :: HS.Type -> HS.Type -> Converter (Subst HS.Type)
 unify t s = do
@@ -32,9 +37,12 @@ unify t s = do
 --   normalized.
 unify' :: HS.Type -> HS.Type -> Converter (Subst HS.Type)
 unify' t s = case disagreementSet t s of
-  Nothing                               -> return identitySubst
-  Just (HS.TypeVar _ x, u             ) -> step x u
-  Just (u             , HS.TypeVar _ x) -> step x u
+  Nothing -> return identitySubst
+  Just (u@(HS.TypeVar _ x), v@(HS.TypeVar _ y))
+    | HS.isInternalIdent y -> step y u
+    | HS.isInternalIdent x -> step x v
+  Just (HS.TypeVar _ x, v             ) -> step x v
+  Just (u             , HS.TypeVar _ y) -> step y u
   Just (u, v) ->
     reportFatal
       $  Message (HS.getSrcSpan u) Error
