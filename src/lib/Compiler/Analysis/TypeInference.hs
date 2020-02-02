@@ -433,7 +433,7 @@ instantiateTypeSchema = fmap fst . instantiateTypeSchema'
 instantiateTypeSchema' :: HS.TypeSchema -> Converter (HS.Type, [HS.Type])
 instantiateTypeSchema' (HS.TypeSchema _ typeArgs typeExpr) = do
   let typeArgIdents = map HS.fromDeclIdent typeArgs
-  (subst, typeArgIdents') <- renameTypeArgsSubst' typeArgIdents
+  (typeArgIdents', subst) <- renameTypeArgsSubst typeArgIdents
   typeExpr'               <- applySubst subst typeExpr
   let typeArgs' = map (HS.TypeVar NoSrcSpan) typeArgIdents'
   return (typeExpr', typeArgs')

@@ -1,4 +1,4 @@
-{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE MultiParamTypeClasses, FlexibleContexts #-}
 
 -- | This module contains a definition of substitutions for Haskell
 --   expressions.
@@ -18,7 +18,7 @@ module Compiler.Haskell.Subst
   , ApplySubst(..)
     -- * Rename arguments
   , renameTypeArgsSubst
-  , renameTypeArgsSubst'
+  , renameTypeArgs
   , renameArgsSubst
   , renameArgs
   )
@@ -254,7 +254,7 @@ instance ApplySubst HS.Type HS.TypeSchema where
   applySubst subst (HS.TypeSchema srcSpan typeArgs typeExpr) = do
     let typeArgIdents     = map HS.fromDeclIdent typeArgs
         declIdentSrcSpans = map HS.getSrcSpan typeArgs
-    (typeArgSubst, typeArgsIdents') <- renameTypeArgsSubst' typeArgIdents
+    (typeArgsIdents', typeArgSubst) <- renameTypeArgsSubst typeArgIdents
     let subst'    = composeSubst subst typeArgSubst
         typeArgs' = zipWith HS.DeclIdent declIdentSrcSpans typeArgsIdents'
     typeExpr' <- applySubst subst' typeExpr
@@ -266,18 +266,28 @@ instance ApplySubst HS.Type HS.TypeSchema where
 
 -- | Creates a substitution that renames the given type variables to fresh
 --   variables.
-renameTypeArgsSubst :: [HS.TypeVarIdent] -> Converter (Subst HS.Type)
-renameTypeArgsSubst = fmap fst . renameTypeArgsSubst'
-
--- | Like 'renameTypeArgsSubst' but also returns the new type variables.
-renameTypeArgsSubst'
-  :: [HS.TypeVarIdent] -> Converter (Subst HS.Type, [HS.TypeVarIdent])
-renameTypeArgsSubst' typeArgIdents = do
+--
+--   Returns the new names for the type variables and the substitution.
+renameTypeArgsSubst
+  :: [HS.TypeVarIdent] -> Converter ([HS.TypeVarIdent], Subst HS.Type)
+renameTypeArgsSubst typeArgIdents = do
   typeArgIdents' <- mapM freshHaskellIdent typeArgIdents
   let typeArgs'    = map (HS.TypeVar NoSrcSpan) typeArgIdents'
       typeArgNames = map (HS.UnQual . HS.Ident) typeArgIdents
       subst        = composeSubsts (zipWith singleSubst typeArgNames typeArgs')
-  return (subst, typeArgIdents')
+  return (typeArgIdents', subst)
+
+-- | Renames the given type variables in the given expression or type
+--   to fresh type variables.
+renameTypeArgs
+  :: ApplySubst HS.Type a
+  => [HS.TypeVarIdent]
+  -> a
+  -> Converter ([HS.TypeVarIdent], a)
+renameTypeArgs typeArgIdents x = do
+  (typeArgIdents', subst) <- renameTypeArgsSubst typeArgIdents
+  x'                      <- applySubst subst x
+  return (typeArgIdents', x')
 
 -- | Creates a substitution that renames the arguments bound by the given
 --   variable patterns to fresh variables.

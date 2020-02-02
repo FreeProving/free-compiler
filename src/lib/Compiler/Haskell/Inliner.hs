@@ -58,69 +58,79 @@ inlineExpr decls = inlineAndBind
 
   -- | Applies 'inlineExpr'' on the given expression and wraps the result with
   --   lambda abstractions for the remaining arguments.
+  --
+  --   It is an error if not all type arguments of an inlined function are
+  --   bound by visible type application expressions.
   inlineAndBind :: HS.Expr -> Converter HS.Expr
   inlineAndBind expr = do
-    (remainingArgIdents, expr') <- inlineExpr' expr
-    if null remainingArgIdents
+    ([], remainingArgs, expr') <- inlineExpr' expr
+    if null remainingArgs
       then return expr'
       else do
-        let remainingArgPats = map (HS.VarPat NoSrcSpan) remainingArgIdents
+        let remainingArgPats = map (HS.VarPat NoSrcSpan) remainingArgs
         return (HS.Lambda NoSrcSpan remainingArgPats expr')
 
   -- | Performs inlining on the given subexpression.
   --
   --   If a function is inlined, fresh free variables are introduced for the
-  --   function arguments. The first component of the returned pair contains
-  --   the names of the variables that still need to be bound. Function
-  --   application expressions automatically substitute the corresponding
-  --   argument for the passed value.
-  inlineExpr' :: HS.Expr -> Converter ([String], HS.Expr)
+  --   function arguments. The first two components of the returned tuple
+  --   contain the names of the type variables and variables that still need
+  --   to be bound. Function application and visible type application
+  --   expressions automatically substitute the corresponding argument for
+  --   the passed value.
+  inlineExpr' :: HS.Expr -> Converter ([String], [String], HS.Expr)
   inlineExpr' var@(HS.Var _ name) = case Map.lookup name declMap of
-    Nothing          -> return ([], var)
+    Nothing          -> return ([], [], var)
     Just (args, rhs) -> do
-      (args', rhs')   <- renameArgs args rhs
-      Just returnType <- inEnv $ lookupReturnType ValueScope name
-      return
-        ( map HS.fromVarPat args'
-        , HS.ExprTypeSig NoSrcSpan rhs' (HS.TypeSchema NoSrcSpan [] returnType)
-        )
+      Just typeArgs      <- inEnv $ lookupTypeArgs ValueScope name
+      (typeArgs', rhs' ) <- renameTypeArgs typeArgs rhs
+      (args'    , rhs'') <- renameArgs args rhs'
+      return (typeArgs', map HS.fromVarPat args', rhs'')
 
   -- Substitute argument of inlined function and inline recursively in
   -- function arguments.
   inlineExpr' (HS.App srcSpan e1 e2) = do
-    (remainingArgs, e1') <- inlineExpr' e1
-    e2'                  <- inlineAndBind e2
+    ([], remainingArgs, e1') <- inlineExpr' e1
+    e2' <- inlineAndBind e2
     case remainingArgs of
-      []                     -> return ([], HS.App srcSpan e1' e2')
+      []                     -> return ([], [], HS.App srcSpan e1' e2')
       (arg : remainingArgs') -> do
         let subst = singleSubst (HS.UnQual (HS.Ident arg)) e2'
         e1'' <- applySubst subst e1'
-        return (remainingArgs', e1'')
+        return ([], remainingArgs', e1'')
 
-  -- TODO bind visibly applied types
+  -- Substitute type arguments of inlined function.
+  inlineExpr' (HS.TypeAppExpr srcSpan e t) = do
+    (remainingTypeArgs, remainingArgs, e') <- inlineExpr' e
+    case remainingTypeArgs of
+      [] -> return ([], remainingArgs, HS.TypeAppExpr srcSpan e' t)
+      (typeArg : remainingTypeArgs') -> do
+        let subst = singleSubst (HS.UnQual (HS.Ident typeArg)) t
+        e'' <- applySubst subst e'
+        return (remainingTypeArgs', remainingArgs, e'')
 
   -- Inline recursively.
   inlineExpr' (HS.If srcSpan e1 e2 e3) = do
     e1' <- inlineAndBind e1
     e2' <- inlineAndBind e2
     e3' <- inlineAndBind e3
-    return ([], HS.If srcSpan e1' e2' e3')
+    return ([], [], HS.If srcSpan e1' e2' e3')
   inlineExpr' (HS.Case srcSpan expr alts) = do
     expr' <- inlineAndBind expr
     alts' <- mapM inlineAlt alts
-    return ([], HS.Case srcSpan expr' alts')
+    return ([], [], HS.Case srcSpan expr' alts')
   inlineExpr' (HS.Lambda srcSpan varPats expr) = shadowVarPats varPats $ do
     expr' <- inlineAndBind expr
-    return ([], HS.Lambda srcSpan varPats expr')
+    return ([], [], HS.Lambda srcSpan varPats expr')
   inlineExpr' (HS.ExprTypeSig srcSpan expr typeExpr) = do
     expr' <- inlineAndBind expr
-    return ([], HS.ExprTypeSig srcSpan expr' typeExpr)
+    return ([], [], HS.ExprTypeSig srcSpan expr' typeExpr)
 
   -- All other expressions remain unchanged.
-  inlineExpr' expr@(HS.Con _ _       ) = return ([], expr)
-  inlineExpr' expr@(HS.Undefined _   ) = return ([], expr)
-  inlineExpr' expr@(HS.ErrorExpr  _ _) = return ([], expr)
-  inlineExpr' expr@(HS.IntLiteral _ _) = return ([], expr)
+  inlineExpr' expr@(HS.Con _ _       ) = return ([], [], expr)
+  inlineExpr' expr@(HS.Undefined _   ) = return ([], [], expr)
+  inlineExpr' expr@(HS.ErrorExpr  _ _) = return ([], [], expr)
+  inlineExpr' expr@(HS.IntLiteral _ _) = return ([], [], expr)
 
   -- | Performs inlining on the right hand side of the given @case@-expression
   --   alternative.
