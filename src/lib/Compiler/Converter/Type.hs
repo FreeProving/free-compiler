@@ -19,7 +19,7 @@ import           Compiler.Monad.Converter
 convertType :: HS.Type -> Converter G.Term
 convertType t = do
   t' <- convertType' t
-  return (genericApply (G.Qualid CoqBase.free) [t'])
+  return (genericApply CoqBase.free [] [] [t'])
 
 -- | Converts a Haskell type to Coq.
 --
@@ -48,7 +48,7 @@ convertType' (HS.TypeVar srcSpan ident) = do
   return (G.Qualid qualid)
 convertType' (HS.TypeCon srcSpan name) = do
   qualid <- lookupIdentOrFail srcSpan TypeScope name
-  return (genericApply (G.Qualid qualid) [])
+  return (genericApply qualid [] [] [])
 convertType' (HS.TypeApp _ t1 t2) = do
   t1' <- convertType' t1
   t2' <- convertType' t2

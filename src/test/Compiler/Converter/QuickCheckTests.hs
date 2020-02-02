@@ -93,5 +93,5 @@ testConvertQuickCheckProperty =
             ++ "          {a : Type}"
             ++ "          (x : Free Shape Pos a)"
             ++ "          (xs : Free Shape Pos (List Shape Pos a)),"
-            ++ "   head Shape Pos P (Cons Shape Pos x xs) = x. "
+            ++ "   @head Shape Pos P a (@Cons Shape Pos a x xs) = x. "
             ++ "Proof. (* FILL IN HERE *) Admitted."

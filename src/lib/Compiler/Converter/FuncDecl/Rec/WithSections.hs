@@ -552,7 +552,7 @@ generateInterfaceDecl constArgs isConstArgUsed identMap mgu sectionTypeArgs rena
     --      function as well (using explicit type arguments)?
     let argNames' =
           typeArgNames' ++ constArgNames' ++ partialArg ++ nonConstArgNames'
-        rhs' = genericApply (G.Qualid qualid') (map G.Qualid argNames')
+        rhs' = genericApply qualid' [] [] (map G.Qualid argNames')
     return (G.definitionSentence qualid binders returnType' rhs')
  where
   -- | Looks up the name of the function's type argument that corresponds to

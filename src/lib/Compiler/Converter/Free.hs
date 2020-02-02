@@ -43,9 +43,21 @@ partialArgDecl = uncurry (G.typedBinder' G.Explicit) CoqBase.partialArg
 
 -- | Smart constructor for the application of a Coq function or (type)
 --   constructor that requires the parameters for the @Free@ monad.
-genericApply :: G.Term -> [G.Term] -> G.Term
-genericApply func args = G.app func (genericArgs ++ args)
-  where genericArgs = map (G.Qualid . fst) CoqBase.freeArgs
+genericApply
+  :: G.Qualid -- ^ The name of the function or (type) constructor
+  -> [G.Term] -- ^ The type class instances to pass to the callee.
+  -> [G.Term] -- ^ Implicit arguments to pass explicitly to the callee.
+  -> [G.Term] -- ^ The actual arguments of the callee.
+  -> G.Term
+genericApply func effectArgs implicitArgs args
+  | null implicitArgs = G.app (G.Qualid func) allArgs
+  | otherwise         = G.explicitApp func allArgs
+ where
+  genericArgs :: [G.Term]
+  genericArgs = map (G.Qualid . fst) CoqBase.freeArgs
+
+  allArgs :: [G.Term]
+  allArgs = genericArgs ++ effectArgs ++ implicitArgs ++ args
 
 -------------------------------------------------------------------------------
 -- Free monad operations                                                     --

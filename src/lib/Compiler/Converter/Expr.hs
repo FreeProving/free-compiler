@@ -88,7 +88,7 @@ convertExpr' (HS.Con srcSpan name) typeArgs args = do
   typeArgs'  <- mapM convertType' typeArgs
   args'      <- mapM convertExpr args
   Just arity <- inEnv $ lookupArity ValueScope name
-  generateApplyN arity (genericApply (G.explicitApp qualid typeArgs') []) args'
+  generateApplyN arity (genericApply qualid [] typeArgs' []) args'
 
 -- Functions and variables.
 convertExpr' (HS.Var srcSpan name) typeArgs args = do
@@ -131,10 +131,9 @@ convertExpr' (HS.Var srcSpan name) typeArgs args = do
       partialArg <- ifM (inEnv $ isPartial name)
                         (return [G.Qualid (fst CoqBase.partialArg)])
                         (return [])
-      callee <- ifM
-        (inEnv $ needsFreeArgs name)
-        (return (genericApply (G.explicitApp qualid typeArgs') partialArg))
-        (return (G.app (G.Qualid qualid) partialArg))
+      callee <- ifM (inEnv $ needsFreeArgs name)
+                    (return (genericApply qualid partialArg typeArgs' []))
+                    (return (G.app (G.Qualid qualid) partialArg))
       -- Is this a recursive helper function?
       Just arity   <- inEnv $ lookupArity ValueScope name
       mDecArgIndex <- inEnv $ lookupDecArgIndex name

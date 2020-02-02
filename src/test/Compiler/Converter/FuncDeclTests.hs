@@ -58,7 +58,7 @@ testConvertNonRecFuncDecl =
             $ "Definition foo (Shape : Type) (Pos : Shape -> Type) {a b : Type}"
             ++ "  (x : Free Shape Pos a) (y : Free Shape Pos b)"
             ++ "  : Free Shape Pos (Pair Shape Pos a b)"
-            ++ "  := Pair_ Shape Pos x y."
+            ++ "  := @Pair_ Shape Pos a b x y."
 
     it "translates higher order functions correctly"
       $ shouldSucceed
@@ -75,7 +75,7 @@ testConvertNonRecFuncDecl =
             ++ "  (x : Free Shape Pos a)"
             ++ "  (y : Free Shape Pos b)"
             ++ "  : Free Shape Pos c"
-            ++ "  := f >>= (fun f_0 => f_0 (Pair_ Shape Pos x y))."
+            ++ "  := f >>= (fun f_0 => f_0 (@Pair_ Shape Pos a b x y))."
 
     it "translates partial functions correctly"
       $ shouldSucceed
