@@ -85,7 +85,7 @@ convertExpr' :: HS.Expr -> [HS.Type] -> [HS.Expr] -> Converter G.Term
 -- Constructors.
 convertExpr' (HS.Con srcSpan name) typeArgs args = do
   qualid     <- lookupSmartIdentOrFail srcSpan name
-  typeArgs'  <- mapM convertType typeArgs
+  typeArgs'  <- mapM convertType' typeArgs
   args'      <- mapM convertExpr args
   Just arity <- inEnv $ lookupArity ValueScope name
   generateApplyN arity (genericApply (G.explicitApp qualid typeArgs') []) args'
@@ -93,7 +93,7 @@ convertExpr' (HS.Con srcSpan name) typeArgs args = do
 -- Functions and variables.
 convertExpr' (HS.Var srcSpan name) typeArgs args = do
   qualid    <- lookupIdentOrFail srcSpan ValueScope name
-  typeArgs' <- mapM convertType typeArgs
+  typeArgs' <- mapM convertType' typeArgs
   args'     <- mapM convertExpr args
   -- The number of type arguments must match the number of type parameters.
   -- In case of variables, there must be no type arguments.
