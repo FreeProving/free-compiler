@@ -53,7 +53,19 @@ etaConvert rootExpr = arityOf rootExpr >>= etaAbstractN rootExpr
   arityOf (HS.App _ e1 _) = do
     arity <- arityOf e1
     return (max 0 (arity - 1))
-  arityOf _ = return 0
+
+  -- Visible type applications and type signatures do not affect the
+  -- function's arity.
+  arityOf (HS.TypeAppExpr _ e _) = arityOf e
+  arityOf (HS.ExprTypeSig _ e _) = arityOf e
+
+  -- All other expressions do not expect any arguments.
+  arityOf (HS.If _ _ _ _       ) = return 0
+  arityOf (HS.Case _ _ _       ) = return 0
+  arityOf (HS.Undefined _      ) = return 0
+  arityOf (HS.ErrorExpr  _ _   ) = return 0
+  arityOf (HS.IntLiteral _ _   ) = return 0
+  arityOf (HS.Lambda _ _ _     ) = return 0
 
   -- | Applies the given number of eta-abstractions to an expression.
   etaAbstractN :: HS.Expr -> Int -> Converter HS.Expr
