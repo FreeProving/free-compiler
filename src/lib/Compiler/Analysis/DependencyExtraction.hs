@@ -83,39 +83,81 @@ isConName (ConName _) = False
 -- Types                                                                     --
 -------------------------------------------------------------------------------
 
+-- | Type class for AST nodes that can depend on types.
+class TypeDependencies a where
+  -- | Extracts the names of all type variables and type constructors used
+  --   by the given AST node and remembers for every name whether it is
+  --   the name of a type variable or type constructor.
+  typeDependencies' :: a -> Set DependencyName
+
+-- | Type expressions can depend on types.
+instance TypeDependencies HS.Type where
+  typeDependencies' (HS.TypeVar _ ident) = varName (HS.UnQual (HS.Ident ident))
+  typeDependencies' (HS.TypeCon _ name ) = conName name
+  typeDependencies' (HS.TypeApp _ t1 t2) =
+    typeDependencies' t1 `Set.union` typeDependencies' t2
+  typeDependencies' (HS.TypeFunc _ t1 t2) =
+    typeDependencies' t1 `Set.union` typeDependencies' t2
+
+-- | A type schema depends on the types it's type expression depends on
+--   but not on the type variables bound by the type schema.
+instance TypeDependencies HS.TypeSchema where
+  typeDependencies' (HS.TypeSchema _ typeArgs typeExpr) =
+    withoutTypeArgs typeArgs (typeDependencies' typeExpr)
+
+-- | An expression depends on the types used in explicit type applications
+--   and type signatures.
+instance TypeDependencies HS.Expr where
+  typeDependencies' (HS.Con _ _) = Set.empty
+  typeDependencies' (HS.Var _ _) = Set.empty
+  typeDependencies' (HS.App _ e1 e2) =
+    typeDependencies' e1 `Set.union` typeDependencies' e2
+  typeDependencies' (HS.TypeAppExpr _ expr typeExpr) =
+    typeDependencies' expr `Set.union` typeDependencies' typeExpr
+  typeDependencies' (HS.If _ e1 e2 e3) =
+    Set.unions (map typeDependencies' [e1, e2, e3])
+  typeDependencies' (HS.Case _ expr alts) =
+    Set.unions (typeDependencies' expr : map typeDependencies' alts)
+  typeDependencies' (HS.Undefined _    ) = Set.empty
+  typeDependencies' (HS.ErrorExpr  _ _ ) = Set.empty
+  typeDependencies' (HS.IntLiteral _ _ ) = Set.empty
+  typeDependencies' (HS.Lambda _ _ expr) = typeDependencies' expr
+  typeDependencies' (HS.ExprTypeSig _ expr typeSchema) =
+    typeDependencies' expr `Set.union` typeDependencies' typeSchema
+
+-- | An alternative of a @case@ expression depends on the types it's
+--   right-hand side depends on.
+instance TypeDependencies HS.Alt where
+  typeDependencies' (HS.Alt _ _ _ expr) = typeDependencies' expr
+
+-- | A function declaration depends on the types it's right-hand side
+--   depends on.
+instance TypeDependencies HS.FuncDecl where
+  typeDependencies' (HS.FuncDecl _ _ _ rhs) = typeDependencies' rhs
+
 -- | Extracts the names of all type variables and type constructors used in
 --   the given type expression.
 --
 --   This also includes the names of predefied constructors.
-typeDependencies :: HS.Type -> [HS.QName]
+typeDependencies :: TypeDependencies a => a -> [HS.QName]
 typeDependencies = unwrapSet . typeDependencies'
 
 -- | Extracts the names of all type variables used in the given type
 --   expression.
-typeVars :: HS.Type -> [HS.QName]
+typeVars :: TypeDependencies a => a -> [HS.QName]
 typeVars = Set.toList . typeVarSet
 
 -- | Like 'typeVars' but returns a set of variable names.
-typeVarSet :: HS.Type -> Set HS.QName
+typeVarSet :: TypeDependencies a => a -> Set HS.QName
 typeVarSet = Set.map unwrap . Set.filter isVarName . typeDependencies'
 
 -- | Extracts the names of all type constructors used in the given type
 --   expression.
 --
---   This also includes the names of predefined constructors.
-typeCons :: HS.Type -> [HS.QName]
+--   This also includes the names of predefined constructors (e.g. the list
+--   and pair constructors).
+typeCons :: TypeDependencies a => a -> [HS.QName]
 typeCons = unwrapSet . Set.filter isConName . typeDependencies'
-
--- | Extracts the names of all type variables and type constructors used in
---   the given type expression and remembers for every name whether it is
---   the name of a type variable or type constructor.
-typeDependencies' :: HS.Type -> Set DependencyName
-typeDependencies' (HS.TypeVar _ ident) = varName (HS.UnQual (HS.Ident ident))
-typeDependencies' (HS.TypeCon _ name ) = conName name
-typeDependencies' (HS.TypeApp _ t1 t2) =
-  typeDependencies' t1 `Set.union` typeDependencies' t2
-typeDependencies' (HS.TypeFunc _ t1 t2) =
-  typeDependencies' t1 `Set.union` typeDependencies' t2
 
 -------------------------------------------------------------------------------
 -- Expressions                                                               --
