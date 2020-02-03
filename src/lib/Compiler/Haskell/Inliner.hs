@@ -16,6 +16,7 @@
 module Compiler.Haskell.Inliner where
 
 import           Control.Applicative            ( (<|>) )
+import           Control.Monad                  ( when )
 import           Data.Map.Strict                ( Map )
 import qualified Data.Map.Strict               as Map
 import           Data.Maybe                     ( fromMaybe )
@@ -26,6 +27,8 @@ import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Haskell.SrcSpan
 import           Compiler.Haskell.Subst
 import           Compiler.Monad.Converter
+import           Compiler.Monad.Reporter
+import           Compiler.Pretty
 
 -------------------------------------------------------------------------------
 -- Inlining function declarations                                            --
@@ -63,12 +66,28 @@ inlineExpr decls = inlineAndBind
   --   bound by visible type application expressions.
   inlineAndBind :: HS.Expr -> Converter HS.Expr
   inlineAndBind expr = do
-    ([], remainingArgs, expr') <- inlineExpr' expr
+    (remainingArgs, expr') <- inlineVisiblyApplied expr
     if null remainingArgs
       then return expr'
       else do
         let remainingArgPats = map (HS.VarPat NoSrcSpan) remainingArgs
         return (HS.Lambda NoSrcSpan remainingArgPats expr')
+
+  -- | Applies 'inlineExpr'' on the given expression and reports an
+  --   internal fatal error if not all type arguments have been
+  --   applied visibly.
+  inlineVisiblyApplied :: HS.Expr -> Converter ([String], HS.Expr)
+  inlineVisiblyApplied e = do
+    (remainingTypeArgs, remainingArgs, e') <- inlineExpr' e
+    when (not (null remainingTypeArgs))
+      $  reportFatal
+      $  Message (HS.getSrcSpan e) Internal
+      $  "Missing visible application of "
+      ++ show (length remainingTypeArgs)
+      ++ " type arguments in an application of '"
+      ++ showPretty e
+      ++ "'."
+    return (remainingArgs, e')
 
   -- | Performs inlining on the given subexpression.
   --
@@ -90,8 +109,8 @@ inlineExpr decls = inlineAndBind
   -- Substitute argument of inlined function and inline recursively in
   -- function arguments.
   inlineExpr' (HS.App srcSpan e1 e2) = do
-    ([], remainingArgs, e1') <- inlineExpr' e1
-    e2' <- inlineAndBind e2
+    (remainingArgs, e1') <- inlineVisiblyApplied e1
+    e2'                  <- inlineAndBind e2
     case remainingArgs of
       []                     -> return ([], [], HS.App srcSpan e1' e2')
       (arg : remainingArgs') -> do
