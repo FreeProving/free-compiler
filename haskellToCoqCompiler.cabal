@@ -51,7 +51,7 @@ common deps
                    , transformers                ==0.5.*
                      -- Maps, sets and graphs:
                    , containers                  ==0.6.*
-                   , unordered-containers        ==0.2.*
+                   , ordered-containers          ==0.2.*
                    , vector                      ==0.12.*
                      -- Pretty printing:
                    , text                        ==1.2.*
@@ -150,6 +150,7 @@ test-suite unit-tests
   hs-source-dirs:     src/test
   main-is:            Spec.hs
   other-modules:      Paths_haskellToCoqCompiler
+                    , Compiler.Analysis.DependencyExtractionTests
                     , Compiler.Analysis.PartialityAnalysisTests
                     , Compiler.Analysis.RecursionAnalysisTests
                     , Compiler.Analysis.TypeInferenceTests

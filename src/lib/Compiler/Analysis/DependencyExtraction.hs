@@ -30,10 +30,14 @@ module Compiler.Analysis.DependencyExtraction
   )
 where
 
-import           Data.Set                       ( Set
+import qualified Data.Foldable                 as OSet
+                                                ( toList )
+import           Data.Set                       ( Set )
+import qualified Data.Set                      as Set
+import           Data.Set.Ordered               ( OSet
                                                 , (\\)
                                                 )
-import qualified Data.Set                      as Set
+import qualified Data.Set.Ordered              as OSet
 
 import qualified Compiler.Haskell.AST          as HS
 
@@ -50,13 +54,13 @@ data DependencyName = VarName HS.QName | ConName HS.QName
 
 -- | Smart constructor for a set that contains the name of a single (type)
 --   variable dependency.
-varName :: HS.QName -> Set DependencyName
-varName = Set.singleton . VarName
+varName :: HS.QName -> OSet DependencyName
+varName = OSet.singleton . VarName
 
 -- | Smart constructor for a set that contains the name of a single (type)
 --   constructor dependency.
-conName :: HS.QName -> Set DependencyName
-conName = Set.singleton . ConName
+conName :: HS.QName -> OSet DependencyName
+conName = OSet.singleton . ConName
 
 -- | Gets the 'HS.Name' wrapped by the given dependency name.
 unwrap :: DependencyName -> HS.QName
@@ -65,8 +69,8 @@ unwrap (ConName name) = name
 
 -- | Gets a list of all 'HS.Names' wrapped by dependency names in the
 --   given set.
-unwrapSet :: Set DependencyName -> [HS.QName]
-unwrapSet = Set.toList . Set.map unwrap
+unwrapSet :: OSet DependencyName -> [HS.QName]
+unwrapSet = map unwrap . OSet.toList
 
 -- | Tests whether the given name is the name of a (type) variable dependency.
 isVarName :: DependencyName -> Bool
@@ -79,6 +83,21 @@ isConName :: DependencyName -> Bool
 isConName (VarName _) = True
 isConName (ConName _) = False
 
+-- | Inserts an element before all elements in the given set.
+--
+--   If the set contains the element already, the new index takes precedence.
+insertBefore :: Ord a => a -> OSet a -> OSet a
+insertBefore = (OSet.|<)
+
+-- | When calculating the union of two ordered sets and an element is a
+--   member of both sets, the indices of the first set take precedence.
+union :: Ord a => OSet a -> OSet a -> OSet a
+union = (OSet.|<>)
+
+-- | Calculates the union of the given set using 'union'.
+unions :: Ord a => [OSet a] -> OSet a
+unions = foldr union OSet.empty
+
 -------------------------------------------------------------------------------
 -- Types                                                                     --
 -------------------------------------------------------------------------------
@@ -88,16 +107,16 @@ class TypeDependencies a where
   -- | Extracts the names of all type variables and type constructors used
   --   by the given AST node and remembers for every name whether it is
   --   the name of a type variable or type constructor.
-  typeDependencies' :: a -> Set DependencyName
+  typeDependencies' :: a -> OSet DependencyName
 
 -- | Type expressions can depend on types.
 instance TypeDependencies HS.Type where
   typeDependencies' (HS.TypeVar _ ident) = varName (HS.UnQual (HS.Ident ident))
   typeDependencies' (HS.TypeCon _ name ) = conName name
   typeDependencies' (HS.TypeApp _ t1 t2) =
-    typeDependencies' t1 `Set.union` typeDependencies' t2
+    typeDependencies' t1 `union` typeDependencies' t2
   typeDependencies' (HS.TypeFunc _ t1 t2) =
-    typeDependencies' t1 `Set.union` typeDependencies' t2
+    typeDependencies' t1 `union` typeDependencies' t2
 
 -- | A type schema depends on the types it's type expression depends on
 --   but not on the type variables bound by the type schema.
@@ -108,22 +127,22 @@ instance TypeDependencies HS.TypeSchema where
 -- | An expression depends on the types used in explicit type applications
 --   and type signatures.
 instance TypeDependencies HS.Expr where
-  typeDependencies' (HS.Con _ _) = Set.empty
-  typeDependencies' (HS.Var _ _) = Set.empty
+  typeDependencies' (HS.Con _ _) = OSet.empty
+  typeDependencies' (HS.Var _ _) = OSet.empty
   typeDependencies' (HS.App _ e1 e2) =
-    typeDependencies' e1 `Set.union` typeDependencies' e2
+    typeDependencies' e1 `union` typeDependencies' e2
   typeDependencies' (HS.TypeAppExpr _ expr typeExpr) =
-    typeDependencies' expr `Set.union` typeDependencies' typeExpr
+    typeDependencies' expr `union` typeDependencies' typeExpr
   typeDependencies' (HS.If _ e1 e2 e3) =
-    Set.unions (map typeDependencies' [e1, e2, e3])
+    unions (map typeDependencies' [e1, e2, e3])
   typeDependencies' (HS.Case _ expr alts) =
-    Set.unions (typeDependencies' expr : map typeDependencies' alts)
-  typeDependencies' (HS.Undefined _    ) = Set.empty
-  typeDependencies' (HS.ErrorExpr  _ _ ) = Set.empty
-  typeDependencies' (HS.IntLiteral _ _ ) = Set.empty
+    unions (typeDependencies' expr : map typeDependencies' alts)
+  typeDependencies' (HS.Undefined _    ) = OSet.empty
+  typeDependencies' (HS.ErrorExpr  _ _ ) = OSet.empty
+  typeDependencies' (HS.IntLiteral _ _ ) = OSet.empty
   typeDependencies' (HS.Lambda _ _ expr) = typeDependencies' expr
   typeDependencies' (HS.ExprTypeSig _ expr typeSchema) =
-    typeDependencies' expr `Set.union` typeDependencies' typeSchema
+    typeDependencies' expr `union` typeDependencies' typeSchema
 
 -- | An alternative of a @case@ expression depends on the types it's
 --   right-hand side depends on.
@@ -145,11 +164,12 @@ typeDependencies = unwrapSet . typeDependencies'
 -- | Extracts the names of all type variables used in the given type
 --   expression.
 typeVars :: TypeDependencies a => a -> [HS.QName]
-typeVars = Set.toList . typeVarSet
+typeVars = map unwrap . filter isVarName . OSet.toList . typeDependencies'
 
 -- | Like 'typeVars' but returns a set of variable names.
 typeVarSet :: TypeDependencies a => a -> Set HS.QName
-typeVarSet = Set.map unwrap . Set.filter isVarName . typeDependencies'
+typeVarSet =
+  Set.map unwrap . Set.filter isVarName . OSet.toSet . typeDependencies'
 
 -- | Extracts the names of all type constructors used in the given type
 --   expression.
@@ -157,7 +177,7 @@ typeVarSet = Set.map unwrap . Set.filter isVarName . typeDependencies'
 --   This also includes the names of predefined constructors (e.g. the list
 --   and pair constructors).
 typeCons :: TypeDependencies a => a -> [HS.QName]
-typeCons = unwrapSet . Set.filter isConName . typeDependencies'
+typeCons = unwrapSet . OSet.filter isConName . typeDependencies'
 
 -------------------------------------------------------------------------------
 -- Expressions                                                               --
@@ -180,39 +200,39 @@ vars = Set.toList . varSet
 
 -- | Like 'vars' but returns a set of variable names.
 varSet :: HS.Expr -> Set HS.QName
-varSet = Set.map unwrap . Set.filter isVarName . exprDependencies'
+varSet = Set.map unwrap . Set.filter isVarName . OSet.toSet . exprDependencies'
 
 -- | Extracts the names of all constructors used in the given expression.
 --
 --   This also includes predefined constructors.
 cons :: HS.Expr -> [HS.QName]
-cons = unwrapSet . Set.filter isConName . exprDependencies'
+cons = unwrapSet . OSet.filter isConName . exprDependencies'
 
 -- | Extracts the names of all variables, functions and constructors used in
 --   the given expression and remembers for every name whether it is the name
 --   of a variable (or function) or constructor.
-exprDependencies' :: HS.Expr -> Set DependencyName
+exprDependencies' :: HS.Expr -> OSet DependencyName
 exprDependencies' (HS.Var _ name) = varName name
 exprDependencies' (HS.Con _ name) = conName name
 exprDependencies' (HS.App _ e1 e2) =
-  exprDependencies' e1 `Set.union` exprDependencies' e2
+  exprDependencies' e1 `union` exprDependencies' e2
 exprDependencies' (HS.TypeAppExpr _ expr _) = exprDependencies' expr
 exprDependencies' (HS.If _ e1 e2 e3) =
-  Set.unions (map exprDependencies' [e1, e2, e3])
+  unions (map exprDependencies' [e1, e2, e3])
 exprDependencies' (HS.Case _ expr alts) =
-  Set.unions (exprDependencies' expr : map altDependencies alts)
+  unions (exprDependencies' expr : map altDependencies alts)
 exprDependencies' (HS.Undefined _   ) = varName HS.undefinedFuncName
 exprDependencies' (HS.ErrorExpr  _ _) = conName HS.errorFuncName
-exprDependencies' (HS.IntLiteral _ _) = Set.empty
+exprDependencies' (HS.IntLiteral _ _) = OSet.empty
 exprDependencies' (HS.Lambda _ args expr) =
   withoutArgs args (exprDependencies' expr)
 exprDependencies' (HS.ExprTypeSig _ expr _) = exprDependencies' expr
 
 -- | Extracts the names of all variables, functions and constructors used in
 --   the given alternative of a @case@-expression.
-altDependencies :: HS.Alt -> Set DependencyName
+altDependencies :: HS.Alt -> OSet DependencyName
 altDependencies (HS.Alt _ (HS.ConPat _ name) args expr) =
-  Set.insert (ConName name) (withoutArgs args (exprDependencies' expr))
+  ConName name `insertBefore` withoutArgs args (exprDependencies' expr)
 
 -------------------------------------------------------------------------------
 -- Type declarations                                   --
@@ -225,33 +245,34 @@ altDependencies (HS.Alt _ (HS.ConPat _ name) args expr) =
 --
 --   Returns an empty set if the given declaration is not a type declaration.
 typeDeclDependencies :: HS.TypeDecl -> [HS.QName]
-typeDeclDependencies = Set.toList . typeDeclDependencySet
+typeDeclDependencies = map unwrap . OSet.toList . typeDeclDependencies'
 
 -- | Like 'typeDeclDependencies' but returns the type's dependencies
 --   as a 'Set'.
 typeDeclDependencySet :: HS.TypeDecl -> Set HS.QName
-typeDeclDependencySet = Set.map unwrap . typeDeclDependencies'
+typeDeclDependencySet = Set.map unwrap . OSet.toSet . typeDeclDependencies'
 
 -- | Extracts the dependencies of the given data type or type synonym
 --   declaration on type constructors (and undeclared type variables) and
 --   remebers for every name whether it is the name of a type variable or
 --   of a type constructor.
-typeDeclDependencies' :: HS.TypeDecl -> Set DependencyName
+typeDeclDependencies' :: HS.TypeDecl -> OSet DependencyName
 typeDeclDependencies' (HS.TypeSynDecl _ _ typeArgs typeExpr) =
   withoutTypeArgs typeArgs (typeDependencies' typeExpr)
 typeDeclDependencies' (HS.DataDecl _ _ typeArgs conDecls) =
-  withoutTypeArgs typeArgs (Set.unions (map conDeclDependencies conDecls))
+  withoutTypeArgs typeArgs (unions (map conDeclDependencies conDecls))
 
 -- | Extracts the dependencies of the field types of the given constructor
 --   declaration.
-conDeclDependencies :: HS.ConDecl -> Set DependencyName
+conDeclDependencies :: HS.ConDecl -> OSet DependencyName
 conDeclDependencies (HS.ConDecl _ _ types) =
-  Set.unions (map typeDependencies' types)
+  unions (map typeDependencies' types)
 
 -- | Removes the names of the given type variable declarations from a set
 --   of dependency names.
-withoutTypeArgs :: [HS.TypeVarDecl] -> Set DependencyName -> Set DependencyName
-withoutTypeArgs args set = set \\ Set.fromList
+withoutTypeArgs
+  :: [HS.TypeVarDecl] -> OSet DependencyName -> OSet DependencyName
+withoutTypeArgs args set = set \\ OSet.fromList
   (map (VarName . HS.UnQual . HS.Ident . HS.fromDeclIdent) args)
 
 -------------------------------------------------------------------------------
@@ -269,20 +290,20 @@ funcDeclDependencies = Set.toList . funcDeclDependencySet
 -- | Like 'funcDeclDependencies' but returns the function's dependencies
 --   as a 'Set'.
 funcDeclDependencySet :: HS.FuncDecl -> Set HS.QName
-funcDeclDependencySet = Set.map unwrap . funcDeclDependencySet'
+funcDeclDependencySet = Set.map unwrap . OSet.toSet . funcDeclDependencySet'
 
 -- | Extracts the dependencies of the given function declaration on
 --   constructors and other functions and remembers for every name whether it
 --   is the name of a function or constructor.
-funcDeclDependencySet' :: HS.FuncDecl -> Set DependencyName
+funcDeclDependencySet' :: HS.FuncDecl -> OSet DependencyName
 funcDeclDependencySet' (HS.FuncDecl _ _ args expr) =
   withoutArgs args (exprDependencies' expr)
 
 -- | Removes the names for the given variable patterns from a set of
 --   dependencies.
-withoutArgs :: [HS.VarPat] -> Set DependencyName -> Set DependencyName
+withoutArgs :: [HS.VarPat] -> OSet DependencyName -> OSet DependencyName
 withoutArgs args set = set
-  \\ Set.fromList (map (VarName . HS.UnQual . HS.Ident . HS.fromVarPat) args)
+  \\ OSet.fromList (map (VarName . HS.UnQual . HS.Ident . HS.fromVarPat) args)
 
 -------------------------------------------------------------------------------
 -- Modules                                                                   --
