@@ -19,7 +19,11 @@ import           Control.Monad.Extra            ( concatMapM
                                                 , replicateM
                                                 )
 import           Control.Monad.Writer
-import           Data.List                      ( (\\) )
+import           Data.Composition               ( (.:) )
+import           Data.List                      ( (\\)
+                                                , nub
+                                                , partition
+                                                )
 import           Data.Maybe                     ( fromJust )
 
 import           Compiler.Analysis.DependencyExtraction
@@ -42,9 +46,7 @@ import           Compiler.Util.Predicate        ( (.||.) )
 
 -- | Tries to infer the types of (mutually recursive) function declarations.
 inferFuncDeclTypes :: [HS.FuncDecl] -> Converter [HS.TypeSchema]
-inferFuncDeclTypes funcDecls = do
-  (funcTypes, _) <- inferFuncDeclTypes' funcDecls
-  mapM abstractTypeSchema funcTypes
+inferFuncDeclTypes = fmap snd . addTypeAppExprsToFuncDecls'
 
 -- | Like 'inferFuncDeclTypes' but does not abstract the type to a type
 --   schema and returns the substitution.
@@ -98,18 +100,16 @@ addTypeAppExprsToFuncDecls = fmap fst . addTypeAppExprsToFuncDecls'
 addTypeAppExprsToFuncDecls'
   :: [HS.FuncDecl] -> Converter ([HS.FuncDecl], [HS.TypeSchema])
 addTypeAppExprsToFuncDecls' funcDecls = localEnv $ do
-  funcDecls'            <- mapM addTypeAppVarsToFuncDecl funcDecls
-  (typeExprs  , mgu   ) <- inferFuncDeclTypes' funcDecls'
-  (typeSchemas, substs) <- mapAndUnzipM abstractTypeSchema' typeExprs
-  funcDecls'' <- zipWithM (applySubst . (`composeSubst` mgu)) substs funcDecls'
-  return (funcDecls'', typeSchemas)
-
--- | Applies 'addTypeAppVars' to the right-hand side of a function declaration.
-addTypeAppVarsToFuncDecl :: HS.FuncDecl -> Converter HS.FuncDecl
-addTypeAppVarsToFuncDecl (HS.FuncDecl srcSpan declIdent args rhs) =
-  shadowVarPats args $ do
-    rhs' <- addTypeAppVars rhs
-    return (HS.FuncDecl srcSpan declIdent args rhs')
+  funcDecls'       <- mapM addTypeAppVarsToFuncDecl funcDecls
+  (typeExprs, mgu) <- inferFuncDeclTypes' funcDecls'
+  funcDecls''      <- mapM (applySubst mgu) funcDecls'
+  let typeArgs           = map typeVars typeExprs
+      additionalTypeArgs = map typeVars funcDecls''
+      allTypeArgs        = zipWith (nub .: (++)) additionalTypeArgs typeArgs
+  (typeSchemas, substs) <-
+    unzip <$> zipWithM abstractTypeSchema' allTypeArgs typeExprs
+  funcDecls''' <- zipWithM applySubst substs funcDecls''
+  return (funcDecls''', typeSchemas)
 
 -------------------------------------------------------------------------------
 -- Expressions                                                               --
@@ -118,9 +118,7 @@ addTypeAppVarsToFuncDecl (HS.FuncDecl srcSpan declIdent args rhs) =
 -- | Tries to infer the type of the given expression from the current context
 --   and abstracts it's type to a type schema.
 inferExprType :: HS.Expr -> Converter HS.TypeSchema
-inferExprType expr = do
-  (exprType, _) <- inferExprType' expr
-  abstractTypeSchema exprType
+inferExprType = fmap snd . addTypeAppExprs'
 
 -- | Like 'inferExprType' but does not abstract the type to a type schema and
 --   also returns the substitution.
@@ -145,7 +143,11 @@ addTypeAppExprs' :: HS.Expr -> Converter (HS.Expr, HS.TypeSchema)
 addTypeAppExprs' expr = localEnv $ do
   expr'           <- addTypeAppVars expr
   (typeExpr, mgu) <- inferExprType' expr'
-  (,) <$> applySubst mgu expr' <*> abstractTypeSchema typeExpr
+  expr''          <- applySubst mgu expr'
+  let typeArgs = nub (typeVars expr'' ++ typeVars typeExpr)
+  (typeSchema, subst) <- abstractTypeSchema' typeArgs typeExpr
+  expr'''             <- applySubst subst expr''
+  return (expr''', typeSchema)
 
 -------------------------------------------------------------------------------
 -- Visible type application                                                  --
@@ -195,7 +197,7 @@ addTypeAppVars (HS.If srcSpan e1 e2 e3) = do
   return (HS.If srcSpan e1' e2' e3')
 addTypeAppVars (HS.Case srcSpan expr alts) = do
   expr' <- addTypeAppVars expr
-  alts' <- mapM addTypeAppVarsAlt alts
+  alts' <- mapM addTypeAppVarsToAlt alts
   return (HS.Case srcSpan expr' alts')
 addTypeAppVars (HS.Lambda srcSpan varPats expr) = shadowVarPats varPats $ do
   expr' <- addTypeAppVars expr
@@ -209,11 +211,18 @@ addTypeAppVars expr@(HS.IntLiteral _ _) = return expr
 
 -- | Applies 'addTypeAppVars' to the right-hand side of an alternative of  a
 --   @case@-expression.
-addTypeAppVarsAlt :: HS.Alt -> Converter HS.Alt
-addTypeAppVarsAlt (HS.Alt srcSpan conPat varPats expr) =
+addTypeAppVarsToAlt :: HS.Alt -> Converter HS.Alt
+addTypeAppVarsToAlt (HS.Alt srcSpan conPat varPats expr) =
   shadowVarPats varPats $ do
     expr' <- addTypeAppVars expr
     return (HS.Alt srcSpan conPat varPats expr')
+
+-- | Applies 'addTypeAppVars' to the right-hand side of a function declaration.
+addTypeAppVarsToFuncDecl :: HS.FuncDecl -> Converter HS.FuncDecl
+addTypeAppVarsToFuncDecl (HS.FuncDecl srcSpan declIdent args rhs) =
+  shadowVarPats args $ do
+    rhs' <- addTypeAppVars rhs
+    return (HS.FuncDecl srcSpan declIdent args rhs')
 
 -------------------------------------------------------------------------------
 -- Simplification of expression/type pairs                                   --
@@ -442,24 +451,27 @@ instantiateTypeSchema' (HS.TypeSchema _ typeArgs typeExpr) = do
 -- | Normalizes the names of type variables in the given type and returns
 --   it as a type schema.
 --
+--   The first argument contains the names of type variables that should be
+--   bound by the type schema. Usually these are the type variables that
+--   occur in the given type (see 'typeVars').
+--
 --   Fresh type variables used by the given type are replaced by regular type
 --   varibales with the prefix 'freshTypeArgPrefix'. All other type variables
 --   are not renamed.
-abstractTypeSchema :: HS.Type -> Converter HS.TypeSchema
-abstractTypeSchema = fmap fst . abstractTypeSchema'
+abstractTypeSchema :: [HS.QName] -> HS.Type -> Converter HS.TypeSchema
+abstractTypeSchema = fmap fst .: abstractTypeSchema'
 
 -- | Like 'abstractTypeSchema' but also returns the substitution that
 --   was applied to replace the type variables.
-abstractTypeSchema' :: HS.Type -> Converter (HS.TypeSchema, Subst HS.Type)
-abstractTypeSchema' t = do
-  let names = typeVars t
-      vs    = map (fromJust . HS.identFromQName) names
-      us    = filter (not . HS.isInternalIdent) vs
-      n     = length vs - length us
-      us'   = map makeTypeArg [0..] \\ us
-      vs'   = us ++ take n us'
-      ts    = map (HS.TypeVar NoSrcSpan) vs'
-      subst = composeSubsts (zipWith singleSubst names ts)
+abstractTypeSchema'
+  :: [HS.QName] -> HS.Type -> Converter (HS.TypeSchema, Subst HS.Type)
+abstractTypeSchema' ns t = do
+  let vs         = map (fromJust . HS.identFromQName) ns
+      (ivs, uvs) = partition HS.isInternalIdent vs
+      vs'        = uvs ++ take (length ivs) (map makeTypeArg [0 ..] \\ uvs)
+      ns'        = map (HS.UnQual . HS.Ident) (uvs ++ ivs)
+      ts         = map (HS.TypeVar NoSrcSpan) vs'
+      subst      = composeSubsts (zipWith singleSubst ns' ts)
   t' <- applySubst subst t
   return (HS.TypeSchema NoSrcSpan (map (HS.DeclIdent NoSrcSpan) vs') t', subst)
  where
