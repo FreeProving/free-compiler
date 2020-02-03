@@ -57,6 +57,29 @@ testInferFuncDeclTypes =
               ++ "  }"
             ]
             ["forall t0. [t0] -> t0"]
+    it "uses type variables from the type signature"
+      $ shouldSucceed
+      $ fromConverter
+      $ do
+          shouldInferFuncDeclTypes
+            [ "foldr :: (a -> b -> b) -> b -> [a] -> b"
+            , "foldr f e xs = case xs of {"
+            ++ "    [] -> e;"
+            ++ "    x : xs' -> f x (foldr f e xs')"
+            ++ "  }"
+            ]
+            ["forall a b. (a -> b -> b) -> b -> [a] -> b"]
+    it "abstracted type variable names don't conflict with user defined names"
+      $ shouldSucceed
+      $ fromConverter
+      $ do
+          "null" <- defineTestFunc "null" 1 "[a] -> Bool"
+          "append" <- defineTestFunc "append" 2 "[a] -> [a] -> [a]"
+          shouldInferFuncDeclTypes
+            [ "constTrue :: t0 -> Bool"
+            , "constTrue x = null ([] `append` [])"
+            ]
+            ["forall t0 t1. t0 -> Prelude.Bool"]
     it "allows type signaturs to make the type more specific"
       $ shouldSucceed
       $ fromConverter

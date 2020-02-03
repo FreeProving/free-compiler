@@ -19,6 +19,7 @@ import           Control.Monad.Extra            ( concatMapM
                                                 , replicateM
                                                 )
 import           Control.Monad.Writer
+import           Data.List                      ( (\\) )
 import           Data.Maybe                     ( fromJust )
 
 import           Compiler.Analysis.DependencyExtraction
@@ -440,6 +441,10 @@ instantiateTypeSchema' (HS.TypeSchema _ typeArgs typeExpr) = do
 
 -- | Normalizes the names of type variables in the given type and returns
 --   it as a type schema.
+--
+--   Fresh type variables used by the given type are replaced by regular type
+--   varibales with the prefix 'freshTypeArgPrefix'. All other type variables
+--   are not renamed.
 abstractTypeSchema :: HS.Type -> Converter HS.TypeSchema
 abstractTypeSchema = fmap fst . abstractTypeSchema'
 
@@ -450,7 +455,9 @@ abstractTypeSchema' t = do
   let names = typeVars t
       vs    = map (fromJust . HS.identFromQName) names
       us    = filter (not . HS.isInternalIdent) vs
-      vs'   = us ++ map makeTypeArg [0 .. length vs - length us - 1]
+      n     = length vs - length us
+      us'   = map makeTypeArg [0..] \\ us
+      vs'   = us ++ take n us'
       ts    = map (HS.TypeVar NoSrcSpan) vs'
       subst = composeSubsts (zipWith singleSubst names ts)
   t' <- applySubst subst t
