@@ -104,7 +104,8 @@ testConvertConApp = context "constructor applications" $ do
     $ do
         "x"  <- defineTestVar "x"
         "xs" <- defineTestVar "xs"
-        "x : xs" `shouldTranslateExprTo` "Cons Shape Pos x xs"
+        "t0" <- defineTestTypeVar "t0"
+        "x : xs" `shouldTranslateExprTo` "@Cons Shape Pos t0 x xs"
 
 -------------------------------------------------------------------------------
 -- Function applications                                                     --
@@ -117,54 +118,76 @@ testConvertFuncApp = context "function applications" $ do
     $ shouldSucceed
     $ fromConverter
     $ do
-        "f" <- defineTestFunc "f" 0 "a"
-        "f" `shouldTranslateExprTo` "f Shape Pos"
+        "f"  <- defineTestFunc "f" 0 "a"
+        "t0" <- defineTestTypeVar "t0"
+        "f" `shouldTranslateExprTo` "@f Shape Pos t0"
 
   it "converts complete function applications correctly"
     $ shouldSucceed
     $ fromConverter
     $ do
-        "f" <- defineTestFunc "f" 3 "a -> b -> c -> d"
-        "x" <- defineTestVar "x"
-        "y" <- defineTestVar "y"
-        "z" <- defineTestVar "z"
-        "f x y z" `shouldTranslateExprTo` "f Shape Pos x y z"
+        "f"  <- defineTestFunc "f" 3 "a -> b -> c -> d"
+        "x"  <- defineTestVar "x"
+        "y"  <- defineTestVar "y"
+        "z"  <- defineTestVar "z"
+        "t0" <- defineTestTypeVar "t0"
+        "t1" <- defineTestTypeVar "t1"
+        "t2" <- defineTestTypeVar "t2"
+        "t3" <- defineTestTypeVar "t3"
+        "f x y z" `shouldTranslateExprTo` "@f Shape Pos t0 t1 t2 t3 x y z"
 
   it "converts partial function applications correctly"
     $ shouldSucceed
     $ fromConverter
     $ do
-        "f" <- defineTestFunc "f" 3 "a -> b -> c -> d"
-        "x" <- defineTestVar "x"
-        "y" <- defineTestVar "y"
-        shouldTranslateExprTo "f x y" $ "pure (fun x_0 => f Shape Pos x y x_0)"
+        "f"  <- defineTestFunc "f" 3 "a -> b -> c -> d"
+        "x"  <- defineTestVar "x"
+        "y"  <- defineTestVar "y"
+        "t0" <- defineTestTypeVar "t0"
+        "t1" <- defineTestTypeVar "t1"
+        "t2" <- defineTestTypeVar "t2"
+        "t3" <- defineTestTypeVar "t3"
+        shouldTranslateExprTo "f x y"
+          $ "pure (fun x_0 => @f Shape Pos t0 t1 t2 t3 x y x_0)"
 
   it "converts multiply partial function applications correctly"
     $ shouldSucceed
     $ fromConverter
     $ do
-        "f" <- defineTestFunc "f" 3 "a -> b -> c -> d"
-        "x" <- defineTestVar "x"
+        "f"  <- defineTestFunc "f" 3 "a -> b -> c -> d"
+        "x"  <- defineTestVar "x"
+        "t0" <- defineTestTypeVar "t0"
+        "t1" <- defineTestTypeVar "t1"
+        "t2" <- defineTestTypeVar "t2"
+        "t3" <- defineTestTypeVar "t3"
         shouldTranslateExprTo "f x"
-          $ "pure (fun x_0 => pure (fun x_1 => f Shape Pos x x_0 x_1))"
+          $  "pure (fun x_0 => pure (fun x_1 =>"
+          ++ "  @f Shape Pos t0 t1 t2 t3 x x_0 x_1))"
 
   it "converts unapplied functions correctly"
     $ shouldSucceed
     $ fromConverter
     $ do
-        "f" <- defineTestFunc "f" 3 "a -> b -> c -> d"
+        "f"  <- defineTestFunc "f" 3 "a -> b -> c -> d"
+        "t0" <- defineTestTypeVar "t0"
+        "t1" <- defineTestTypeVar "t1"
+        "t2" <- defineTestTypeVar "t2"
+        "t3" <- defineTestTypeVar "t3"
         shouldTranslateExprTo "f"
           $  "pure (fun x_0 => pure (fun x_1 => pure (fun x_2 =>"
-          ++ "  f Shape Pos x_0 x_1 x_2"
+          ++ "  @f Shape Pos t0 t1 t2 t3 x_0 x_1 x_2"
           ++ ")))"
 
   it "converts applications of partial functions correctly"
     $ shouldSucceed
     $ fromConverter
     $ do
-        "f" <- definePartialTestFunc "f" 1 "a -> b -> c"
-        "x" <- defineTestVar "x"
-        "f x" `shouldTranslateExprTo` "f Shape Pos P x"
+        "f"  <- definePartialTestFunc "f" 1 "a -> b -> c"
+        "x"  <- defineTestVar "x"
+        "t0" <- defineTestTypeVar "t0"
+        "t1" <- defineTestTypeVar "t1"
+        "t2" <- defineTestTypeVar "t2"
+        "f x" `shouldTranslateExprTo` "@f Shape Pos P t0 t1 t2 x"
 
   it "converts applications of functions correctly"
     $ shouldSucceed
@@ -178,10 +201,14 @@ testConvertFuncApp = context "function applications" $ do
     $ shouldSucceed
     $ fromConverter
     $ do
-        "f" <- defineTestFunc "f" 1 "a -> b -> c"
-        "x" <- defineTestVar "x"
-        "y" <- defineTestVar "y"
-        "f x y" `shouldTranslateExprTo` "f Shape Pos x >>= (fun f_0 => f_0 y)"
+        "f"  <- defineTestFunc "f" 1 "a -> b -> c"
+        "x"  <- defineTestVar "x"
+        "y"  <- defineTestVar "y"
+        "t0" <- defineTestTypeVar "t0"
+        "t1" <- defineTestTypeVar "t1"
+        "t2" <- defineTestTypeVar "t2"
+        shouldTranslateExprTo "f x y"
+                              "@f Shape Pos t0 t1 t2 x >>= (fun f_0 => f_0 y)"
 
 -------------------------------------------------------------------------------
 -- Infix expressions                                                         --
@@ -194,17 +221,28 @@ testConvertInfix = context "infix expressions" $ do
     "f"  <- defineTestFunc "f" 2 "a -> b -> c"
     "e1" <- defineTestVar "e1"
     "e2" <- defineTestVar "e2"
-    "e1 `f` e2" `shouldTranslateExprTo` "f Shape Pos e1 e2"
+    "t0" <- defineTestTypeVar "t0"
+    "t1" <- defineTestTypeVar "t1"
+    "t2" <- defineTestTypeVar "t2"
+    "e1 `f` e2" `shouldTranslateExprTo` "@f Shape Pos t0 t1 t2 e1 e2"
 
   it "converts left sections correctly" $ shouldSucceed $ fromConverter $ do
     "f"  <- defineTestFunc "f" 2 "a -> b -> c"
     "e1" <- defineTestVar "e1"
-    "(e1 `f`)" `shouldTranslateExprTo` "pure (fun x_0 => f Shape Pos e1 x_0)"
+    "t0" <- defineTestTypeVar "t0"
+    "t1" <- defineTestTypeVar "t1"
+    "t2" <- defineTestTypeVar "t2"
+    shouldTranslateExprTo "(e1 `f`)"
+                          "pure (fun x_0 => @f Shape Pos t0 t1 t2 e1 x_0)"
 
   it "converts right sections correctly" $ shouldSucceed $ fromConverter $ do
     "f"  <- defineTestFunc "f" 2 "a -> b -> c"
     "e2" <- defineTestVar "e2"
-    "(`f` e2)" `shouldTranslateExprTo` "pure (fun x_0 => f Shape Pos x_0 e2)"
+    "t0" <- defineTestTypeVar "t0"
+    "t1" <- defineTestTypeVar "t1"
+    "t2" <- defineTestTypeVar "t2"
+    shouldTranslateExprTo "(`f` e2)"
+                          "pure (fun x_0 => @f Shape Pos t0 t1 t2 x_0 e2)"
 
 -------------------------------------------------------------------------------
 -- If-expressions                                                            --
@@ -329,10 +367,15 @@ testConvertExprTypeSigs = context "type signatures" $ do
         shouldTranslateExprTo
           "42 :: Integer"
           ("pure 42%Z : Free Shape Pos (Integer Shape Pos)")
-  it "type variables are implicit" $ shouldSucceed $ fromConverter $ do
-    shouldTranslateExprTo
-      "[] :: [a]"
-      ("Nil Shape Pos : Free Shape Pos (List Shape Pos _)")
+  it "type signatures make type arguments more specific"
+    $ shouldSucceed
+    $ fromConverter
+    $ do
+        shouldTranslateExprTo
+          "[] :: [Integer]"
+          (  "@Nil Shape Pos (Integer Shape Pos)"
+          ++ "  : Free Shape Pos (List Shape Pos (Integer Shape Pos))"
+          )
 
 -------------------------------------------------------------------------------
 -- Integer expressions                                                       --
@@ -418,7 +461,9 @@ testConvertLists = context "list expressions" $ do
   it "translates empty list constructor correctly"
     $ shouldSucceed
     $ fromConverter
-    $ shouldTranslateExprTo "[]" "Nil Shape Pos"
+    $ do
+        "t0" <- defineTestTypeVar "t0"
+        shouldTranslateExprTo "[]" "@Nil Shape Pos t0"
 
   it "translates non-empty list constructor correctly"
     $ shouldSucceed
@@ -426,17 +471,19 @@ testConvertLists = context "list expressions" $ do
     $ do
         "x"  <- defineTestVar "x"
         "xs" <- defineTestVar "xs"
-        "x : xs" `shouldTranslateExprTo` "Cons Shape Pos x xs"
+        "t0" <- defineTestTypeVar "t0"
+        "x : xs" `shouldTranslateExprTo` "@Cons Shape Pos t0 x xs"
 
   it "translates list literal correctly" $ shouldSucceed $ fromConverter $ do
     "x1" <- defineTestVar "x1"
     "x2" <- defineTestVar "x2"
     "x3" <- defineTestVar "x3"
+    "t0" <- defineTestTypeVar "t0"
     shouldTranslateExprTo "[x1, x2, x3]"
-      $  "Cons Shape Pos x1 ("
-      ++ "Cons Shape Pos x2 ("
-      ++ "Cons Shape Pos x3 ("
-      ++ "Nil Shape Pos)))"
+      $  "@Cons Shape Pos t0 x1 ("
+      ++ "@Cons Shape Pos t0 x2 ("
+      ++ "@Cons Shape Pos t0 x3 ("
+      ++ "@Nil Shape Pos t0)))"
 
 -------------------------------------------------------------------------------
 -- Tuples                                                                    --
@@ -449,9 +496,11 @@ testConvertTuples = context "tuple expressions" $ do
     "()" `shouldTranslateExprTo` "Tt Shape Pos"
 
   it "translates pair literals correctly" $ shouldSucceed $ fromConverter $ do
-    "x" <- defineTestVar "x"
-    "y" <- defineTestVar "y"
-    "(x, y)" `shouldTranslateExprTo` "Pair_ Shape Pos x y"
+    "x"  <- defineTestVar "x"
+    "y"  <- defineTestVar "y"
+    "t0" <- defineTestTypeVar "t0"
+    "t1" <- defineTestTypeVar "t1"
+    "(x, y)" `shouldTranslateExprTo` "@Pair_ Shape Pos t0 t1 x y"
 
   it "translates pair constructor correctly"
     $ shouldSucceed
@@ -459,4 +508,6 @@ testConvertTuples = context "tuple expressions" $ do
     $ do
         "x" <- defineTestVar "x"
         "y" <- defineTestVar "y"
-        "(,) x y" `shouldTranslateExprTo` "Pair_ Shape Pos x y"
+        "t0" <- defineTestTypeVar "t0"
+        "t1" <- defineTestTypeVar "t1"
+        "(,) x y" `shouldTranslateExprTo` "@Pair_ Shape Pos t0 t1 x y"
