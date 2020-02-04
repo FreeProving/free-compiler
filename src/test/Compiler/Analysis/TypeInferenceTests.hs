@@ -202,13 +202,23 @@ testAddTypeAppExprs =
       $ fromConverter
       $ do
           shouldAddTypeAppExprs "True || undefined"
-            $  "(||) True (undefined @Prelude.Bool)"
+            $ "(||) True (undefined @Prelude.Bool)"
     it "type arguments of 'error \"...\"' are applied visibly"
       $ shouldSucceed
       $ fromConverter
       $ do
           shouldAddTypeAppExprs "False && error \"...\""
-            $  "(&&) False (error @Prelude.Bool \"...\")"
+            $ "(&&) False (error @Prelude.Bool \"...\")"
+    it "type arguments of constructor patterns are not applied visibly"
+      $ shouldSucceed
+      $ fromConverter
+      $ do
+          "f" <- defineTestFunc "f" 1 "a -> [a]"
+          shouldAddTypeAppExprs "case f 42 of { [] -> (); (x : xs) -> () }"
+            $  "case f @Prelude.Integer 42 of {"
+            ++ "    Prelude.([]) -> Prelude.();"
+            ++ "    Prelude.(:) x xs -> Prelude.()"
+            ++ "  }"
     it "does not apply functions shadowed by lambda visibly"
       $ shouldSucceed
       $ fromConverter

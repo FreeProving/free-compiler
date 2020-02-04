@@ -403,9 +403,7 @@ simplifyTypedAlt
   -> TypedExprSimplifier ()
 simplifyTypedAlt (HS.Alt _ conPat varPats expr) patType exprType = do
   (varPats', expr') <- lift $ renameArgs varPats expr
-  let pat =
-        HS.app NoSrcSpan (HS.conPatToExpr conPat) (map HS.varPatToExpr varPats')
-  simplifyTypedExpr' pat   patType
+  simplifyTypedPat conPat varPats' patType
   simplifyTypedExpr' expr' exprType
 
 -- | Like 'simplifyTypedExpr' but reports an internal fatal error if not
@@ -420,6 +418,17 @@ simplifyTypedExpr' expr typeExpr = do
     $  "Every type argument must be applied visibly. Got "
     ++ show (length typeArgs)
     ++ " unapplied type arguments."
+
+simplifyTypedPat
+  :: HS.ConPat -> [HS.VarPat] -> HS.Type -> TypedExprSimplifier ()
+simplifyTypedPat conPat varPats patType = do
+  varPatTypes <- lift $ replicateM (length varPats) freshTypeVar
+  let conExpr    = HS.conPatToExpr conPat
+      varExprs   = map HS.varPatToExpr varPats
+      conPatType = HS.funcType NoSrcSpan varPatTypes patType
+  _ <- simplifyTypedExpr conExpr conPatType
+  zipWithM_ simplifyTypedExpr varExprs varPatTypes
+  return ()
 
 -------------------------------------------------------------------------------
 -- Solving type equations                                                    --
