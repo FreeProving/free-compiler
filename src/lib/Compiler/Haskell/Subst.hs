@@ -144,7 +144,7 @@ instance ApplySubst HS.Expr HS.Expr where
       return (HS.If srcSpan e1' e2' e3')
     applySubst' (HS.Case srcSpan expr alts) = do
       expr' <- applySubst' expr
-      alts' <- mapM applySubstAlt alts
+      alts' <- mapM (applySubst subst) alts
       return (HS.Case srcSpan expr' alts')
     applySubst' (HS.Lambda srcSpan args expr) = do
       (args', argSubst) <- renameArgsSubst args
@@ -160,12 +160,13 @@ instance ApplySubst HS.Expr HS.Expr where
     applySubst' expr@(HS.ErrorExpr  _ _) = return expr
     applySubst' expr@(HS.IntLiteral _ _) = return expr
 
-    -- | Applies the substituion on the current substitution.
-    applySubstAlt :: HS.Alt -> Converter HS.Alt
-    applySubstAlt (HS.Alt srcSpan conPat varPats expr) = do
-      (varPats', varPatSubst) <- renameArgsSubst varPats
-      expr' <- applySubst (composeSubst subst varPatSubst) expr
-      return (HS.Alt srcSpan conPat varPats' expr')
+-- | Applies the given expression substitution to the right-hand side of the
+--   given @case@-expression alterntaive.
+instance ApplySubst HS.Expr HS.Alt where
+  applySubst subst (HS.Alt srcSpan conPat varPats expr) = do
+    (varPats', varPatSubst) <- renameArgsSubst varPats
+    expr' <- applySubst (composeSubst subst varPatSubst) expr
+    return (HS.Alt srcSpan conPat varPats' expr')
 
 -- | Applies the given type substitution to an expression.
 instance ApplySubst HS.Type HS.Expr where
@@ -187,7 +188,8 @@ instance ApplySubst HS.Type HS.Expr where
       return (HS.If srcSpan e1' e2' e3')
     applySubst' (HS.Case srcSpan expr alts) = do
       expr' <- applySubst' expr
-      return (HS.Case srcSpan expr' alts)
+      alts' <- mapM (applySubst subst) alts
+      return (HS.Case srcSpan expr' alts')
     applySubst' (HS.Lambda srcSpan args expr) = do
       expr' <- applySubst' expr
       return (HS.Lambda srcSpan args expr')
@@ -202,6 +204,13 @@ instance ApplySubst HS.Type HS.Expr where
     applySubst' expr@(HS.Undefined _   ) = return expr
     applySubst' expr@(HS.ErrorExpr  _ _) = return expr
     applySubst' expr@(HS.IntLiteral _ _) = return expr
+
+-- | Applies the given type substitution to the right-hand side of the
+--   given @case@-expression alterntaive.
+instance ApplySubst HS.Type HS.Alt where
+  applySubst subst (HS.Alt srcSpan conPat varPats expr) = do
+    expr' <- applySubst subst expr
+    return (HS.Alt srcSpan conPat varPats expr')
 
 -------------------------------------------------------------------------------
 -- Application to function declarations.                                     --
