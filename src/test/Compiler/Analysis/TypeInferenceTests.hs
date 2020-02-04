@@ -73,12 +73,10 @@ testInferFuncDeclTypes =
       $ shouldSucceed
       $ fromConverter
       $ do
-          "null" <- defineTestFunc "null" 1 "[a] -> Bool"
+          "null"   <- defineTestFunc "null" 1 "[a] -> Bool"
           "append" <- defineTestFunc "append" 2 "[a] -> [a] -> [a]"
           shouldInferFuncDeclTypes
-            [ "constTrue :: t0 -> Bool"
-            , "constTrue x = null ([] `append` [])"
-            ]
+            ["constTrue :: t0 -> Bool", "constTrue x = null ([] `append` [])"]
             ["forall t0 t1. t0 -> Prelude.Bool"]
     it "allows type signaturs to make the type more specific"
       $ shouldSucceed
@@ -235,15 +233,14 @@ testAddTypeAppExprs =
             ++ "                 @Prelude.Integer (f @Prelude.Integer) 42 of {"
             ++ "    Prelude.(,) f x -> f x"
             ++ "  }"
-
     it "generates distinct fresh type variables in different scopes"
       $ shouldSucceed
       $ fromConverter
       $ do
           "f" <- defineTestFunc "f" 1 "a -> a"
           shouldAddTypeAppExprs "(\\x -> f x, \\x -> f x)"
-            $  "Prelude.(,) @(a@1 -> a@1) @(a@2 -> a@2)"
-            ++ "            (\\x -> f @a@1 x) (\\x -> f @a@2 x)"
+            $  "Prelude.(,) @(t0 -> t0) @(t1 -> t1)"
+            ++ "            (\\x -> f @t0 x) (\\x -> f @t1 x)"
 
 -------------------------------------------------------------------------------
 -- Utility functions                                                         --

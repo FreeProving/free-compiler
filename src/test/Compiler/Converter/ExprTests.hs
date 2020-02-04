@@ -305,10 +305,11 @@ testConvertCase = context "case expressions" $ do
     $ fromConverter
     $ do
         "xs" <- defineTestVar "xs"
+        "t0" <- defineTestTypeVar "t0"
         shouldTranslateExprTo "case xs of { [] -> undefined; y : ys -> y }"
           $  "xs >>= (fun xs_0 =>"
           ++ "  match xs_0 with"
-          ++ "  | nil => undefined"
+          ++ "  | nil => @undefined Shape Pos P t0"
           ++ "  | cons y ys => y"
           ++ "  end)"
 
@@ -506,8 +507,8 @@ testConvertTuples = context "tuple expressions" $ do
     $ shouldSucceed
     $ fromConverter
     $ do
-        "x" <- defineTestVar "x"
-        "y" <- defineTestVar "y"
+        "x"  <- defineTestVar "x"
+        "y"  <- defineTestVar "y"
         "t0" <- defineTestTypeVar "t0"
         "t1" <- defineTestTypeVar "t1"
         "(,) x y" `shouldTranslateExprTo` "@Pair_ Shape Pos t0 t1 x y"

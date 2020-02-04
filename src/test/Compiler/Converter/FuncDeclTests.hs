@@ -91,7 +91,7 @@ testConvertNonRecFuncDecl =
             ++ "  : Free Shape Pos a"
             ++ "  := xs >>= (fun xs_0 =>"
             ++ "       match xs_0 with"
-            ++ "       | nil        => undefined"
+            ++ "       | nil        => @undefined Shape Pos P a"
             ++ "       | cons x xs' => x"
             ++ "       end)."
 
@@ -109,7 +109,7 @@ testConvertNonRecFuncDecl =
             ++ "  : Free Shape Pos (List Shape Pos a)"
             ++ " := xs >>= (fun xs_0 =>"
             ++ "    match xs_0 with"
-            ++ "    | nil       => undefined"
+            ++ "    | nil       => @undefined Shape Pos P (List Shape Pos a)"
             ++ "    | cons x xs0 => xs0"
             ++ "    end)."
 
