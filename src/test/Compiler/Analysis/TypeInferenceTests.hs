@@ -197,6 +197,18 @@ testAddTypeAppExprs =
           shouldAddTypeAppExprs "head [1]"
             $  "head @Prelude.Integer (Prelude.(:) @Prelude.Integer 1 "
             ++ "(Prelude.([]) @Prelude.Integer))"
+    it "type arguments of 'undefined' are applied visibly"
+      $ shouldSucceed
+      $ fromConverter
+      $ do
+          shouldAddTypeAppExprs "True || undefined"
+            $  "(||) True (undefined @Prelude.Bool)"
+    it "type arguments of 'error \"...\"' are applied visibly"
+      $ shouldSucceed
+      $ fromConverter
+      $ do
+          shouldAddTypeAppExprs "False && error \"...\""
+            $  "(&&) False (error @Prelude.Bool \"...\")"
     it "does not apply functions shadowed by lambda visibly"
       $ shouldSucceed
       $ fromConverter

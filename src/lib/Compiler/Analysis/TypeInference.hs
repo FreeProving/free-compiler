@@ -175,12 +175,20 @@ addTypeAppVarsFor name expr = do
 --   during type inference.
 addTypeAppVars :: HS.Expr -> Converter HS.Expr
 
--- Add visible type application to type variables.
+-- Add visible type application to functions and constructors.
 addTypeAppVars expr@(HS.Con _ conName) = do
   addTypeAppVarsFor conName expr
 addTypeAppVars expr@(HS.Var _ varName) = ifM (inEnv $ isFunction varName)
                                              (addTypeAppVarsFor varName expr)
                                              (return expr)
+
+-- Add visible type application to error terms.
+addTypeAppVars expr@(HS.Undefined srcSpan) = do
+  typeArgIdents <- freshTypeVar
+  return (HS.TypeAppExpr srcSpan expr typeArgIdents)
+addTypeAppVars expr@(HS.ErrorExpr srcSpan _) = do
+  typeArgIdents <- freshTypeVar
+  return (HS.TypeAppExpr srcSpan expr typeArgIdents)
 
 -- Discard existing visible type applications.
 addTypeAppVars (HS.TypeAppExpr _       expr _ ) = addTypeAppVars expr
@@ -205,8 +213,6 @@ addTypeAppVars (HS.Lambda srcSpan varPats expr) = shadowVarPats varPats $ do
 addTypeAppVars (HS.ExprTypeSig srcSpan expr typeSchema) = do
   expr' <- addTypeAppVars expr
   return (HS.ExprTypeSig srcSpan expr' typeSchema)
-addTypeAppVars expr@(HS.Undefined _   ) = return expr
-addTypeAppVars expr@(HS.ErrorExpr  _ _) = return expr
 addTypeAppVars expr@(HS.IntLiteral _ _) = return expr
 
 -- | Applies 'addTypeAppVars' to the right-hand side of an alternative of  a
@@ -359,8 +365,8 @@ simplifyTypedExpr (HS.Case _ expr alts) resType = do
   return []
 
 -- Error terms are always typed correctly.
-simplifyTypedExpr (HS.Undefined _   ) _       = return []
-simplifyTypedExpr (HS.ErrorExpr  _ _) _       = return []
+simplifyTypedExpr (HS.Undefined _   ) resType = return [resType]
+simplifyTypedExpr (HS.ErrorExpr  _ _) resType = return [resType]
 
 -- If @n :: τ@ for some integer literal @n@, then @τ = Integer@.
 simplifyTypedExpr (HS.IntLiteral _ _) resType = do

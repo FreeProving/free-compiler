@@ -468,6 +468,11 @@ prettyExprPred 0 (Lambda _ args expr) =
     <+> prettyString "->"
     <+> prettyExprPred 0 expr
 
+-- Fix placement of visible type arguments in for error terms.
+prettyExprPred n (TypeAppExpr _ (ErrorExpr _ msg) t) | n <= 1 =
+  prettyString "error" <+> char '@' <> prettyTypePred 2 t <+> prettyString
+    (show msg)
+
 -- Function application is left-associative.
 prettyExprPred n (App _ e1 e2) | n <= 1 =
   prettyExprPred 1 e1 <+> prettyExprPred 2 e2

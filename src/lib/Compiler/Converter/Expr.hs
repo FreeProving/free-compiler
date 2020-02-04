@@ -194,10 +194,34 @@ convertExpr' (HS.Case _ expr alts) [] [] = do
     return (G.match value alts')
 
 -- Error terms.
-convertExpr' (HS.Undefined _) [] [] =
-  return (G.Qualid CoqBase.partialUndefined)
-convertExpr' (HS.ErrorExpr _ msg) [] [] =
-  return (G.app (G.Qualid CoqBase.partialError) [G.string msg])
+convertExpr' (HS.Undefined srcSpan) typeArgs [] = do
+  when (length typeArgs /= 1)
+    $  reportFatal
+    $  Message srcSpan Internal
+    $  "The error term 'undefined' is applied to the wrong number of"
+    ++ "type arguments.\n"
+    ++ "Expected 1 type arguments, got "
+    ++ show (length typeArgs)
+    ++ "."
+  let partialArg = G.Qualid (fst CoqBase.partialArg)
+  typeArgs' <- mapM convertType' typeArgs
+  return (genericApply CoqBase.partialUndefined [partialArg] typeArgs' [])
+
+convertExpr' (HS.ErrorExpr srcSpan msg) typeArgs [] = do
+  when (length typeArgs /= 1)
+    $  reportFatal
+    $  Message srcSpan Internal
+    $  "The error term 'error "
+    ++ show msg
+    ++ "' is applied to the wrong number of"
+    ++ "type arguments.\n"
+    ++ "Expected 1 type arguments, got "
+    ++ show (length typeArgs)
+    ++ "."
+  let partialArg = G.Qualid (fst CoqBase.partialArg)
+  typeArgs' <- mapM convertType' typeArgs
+  return
+    (genericApply CoqBase.partialError [partialArg] typeArgs' [G.string msg])
 
 -- Integer literals.
 convertExpr' (HS.IntLiteral _ value) [] [] =
