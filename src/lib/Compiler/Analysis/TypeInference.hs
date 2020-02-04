@@ -327,8 +327,8 @@ simplifyTypedExpr (HS.Var srcSpan varName) resType = ifM
 -- type variable.
 simplifyTypedExpr (HS.App _ e1 e2) resType = do
   argType <- lift freshTypeVar
-  _       <- simplifyTypedExpr e1 (HS.TypeFunc NoSrcSpan argType resType)
-  _       <- simplifyTypedExpr e2 argType
+  simplifyTypedExpr' e1 (HS.TypeFunc NoSrcSpan argType resType)
+  simplifyTypedExpr' e2 argType
   return []
 
 -- If @e \@τ :: τ'@ and @e@ is a predefined function or constructor of type
@@ -351,16 +351,16 @@ simplifyTypedExpr (HS.TypeAppExpr srcSpan expr typeExpr) resType = do
 -- If @if e₁ then e₂ else e₃ :: τ@, then @e₁ :: Bool@ and @e₂, e₃ :: τ@.
 simplifyTypedExpr (HS.If _ e1 e2 e3) resType = do
   let condType = HS.TypeCon NoSrcSpan HS.boolTypeConName
-  _ <- simplifyTypedExpr e1 condType
-  _ <- simplifyTypedExpr e2 resType
-  _ <- simplifyTypedExpr e3 resType
+  simplifyTypedExpr' e1 condType
+  simplifyTypedExpr' e2 resType
+  simplifyTypedExpr' e3 resType
   return []
 
 -- If @case e of {p₀ -> e₀; …; pₙ -> eₙ} :: τ@, then @e₀, …, eₙ :: τ@ and
 -- @e :: α@ and @p₀, …, pₙ :: α@ where @α@ is a new type variable.
 simplifyTypedExpr (HS.Case _ expr alts) resType = do
   exprType <- lift freshTypeVar
-  _        <- simplifyTypedExpr expr exprType
+  simplifyTypedExpr' expr exprType
   mapM_ (\alt -> simplifyTypedAlt alt exprType resType) alts
   return []
 
@@ -380,7 +380,7 @@ simplifyTypedExpr (HS.Lambda _ args expr) resType = do
   argTypes       <- replicateM (length args') (lift freshTypeVar)
   returnType     <- lift freshTypeVar
   zipWithM_ simplifyTypedExpr (map HS.varPatToExpr args') argTypes
-  _ <- simplifyTypedExpr expr' returnType
+  simplifyTypedExpr' expr' returnType
   let funcType = HS.funcType NoSrcSpan argTypes returnType
   addTypeEquation funcType resType
   return []
@@ -390,7 +390,7 @@ simplifyTypedExpr (HS.Lambda _ args expr) resType = do
 -- of @τ@ to new type variables @β₀, …, βₙ@.
 simplifyTypedExpr (HS.ExprTypeSig _ expr typeSchema) resType = do
   exprType <- lift $ instantiateTypeSchema typeSchema
-  _        <- simplifyTypedExpr expr exprType
+  simplifyTypedExpr' expr exprType
   addTypeEquation exprType resType
   return []
 
@@ -405,9 +405,21 @@ simplifyTypedAlt (HS.Alt _ conPat varPats expr) patType exprType = do
   (varPats', expr') <- lift $ renameArgs varPats expr
   let pat =
         HS.app NoSrcSpan (HS.conPatToExpr conPat) (map HS.varPatToExpr varPats')
-  _ <- simplifyTypedExpr pat patType
-  _ <- simplifyTypedExpr expr' exprType
-  return ()
+  simplifyTypedExpr' pat   patType
+  simplifyTypedExpr' expr' exprType
+
+-- | Like 'simplifyTypedExpr' but reports an internal fatal error if not
+--   all type arguments have been applied visibly.
+simplifyTypedExpr' :: HS.Expr -> HS.Type -> TypedExprSimplifier ()
+simplifyTypedExpr' expr typeExpr = do
+  typeArgs <- simplifyTypedExpr expr typeExpr
+  when (not (null typeArgs))
+    $  lift
+    $  reportFatal
+    $  Message (HS.getSrcSpan expr) Internal
+    $  "Every type argument must be applied visibly. Got "
+    ++ show (length typeArgs)
+    ++ " unapplied type arguments."
 
 -------------------------------------------------------------------------------
 -- Solving type equations                                                    --
