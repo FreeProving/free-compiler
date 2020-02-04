@@ -145,15 +145,6 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent args expr) decArgIndex = do
       helperArgs =
         map (HS.VarPat NoSrcSpan . fromJust . HS.identFromQName) helperArgNames
 
-    -- Build helper function declaration and application.
-    -- TODO we have to pass the type arguments to the helper function
-    --      explicitly.
-    let (Just caseExpr) = selectSubterm expr caseExprPos
-        helperDecl = HS.FuncDecl srcSpan helperDeclIdent helperArgs caseExpr
-        helperApp = HS.app NoSrcSpan
-                           (HS.Var NoSrcSpan helperName)
-                           (map (HS.Var NoSrcSpan) helperArgNames)
-
     -- Register the helper function to the environment.
     -- The types of the original parameters are known, but we neither know the
     -- type of the additional parameters nor the return type of the helper
@@ -185,6 +176,16 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent args expr) decArgIndex = do
     let Just decArgIndex' = elemIndex decArg helperArgNames
         Just decArgIdent  = HS.identFromQName decArg
     modifyEnv $ defineDecArg helperName decArgIndex' decArgIdent
+
+    -- Build helper function declaration and application.
+    let
+      typeArgs'       = map HS.typeVarDeclToType typeArgs
+      (Just caseExpr) = selectSubterm expr caseExprPos
+      helperDecl      = HS.FuncDecl srcSpan helperDeclIdent helperArgs caseExpr
+      helperApp       = HS.app
+        NoSrcSpan
+        (HS.visibleTypeApp NoSrcSpan (HS.Var NoSrcSpan helperName) typeArgs')
+        (map (HS.Var NoSrcSpan) helperArgNames)
 
     return (helperDecl, helperApp)
 

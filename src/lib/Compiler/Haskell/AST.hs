@@ -75,6 +75,10 @@ data DeclIdent = DeclIdent SrcSpan String
 --   type synonym declaration including location information.
 type TypeVarDecl = DeclIdent
 
+-- | Converts the declaration of a type variable to a type.
+typeVarDeclToType :: TypeVarDecl -> Type
+typeVarDeclToType (DeclIdent srcSpan ident) = TypeVar srcSpan ident
+
 -- | Pretty instance for identifiers in declarations.
 instance Pretty DeclIdent where
   pretty = prettyString . fromDeclIdent
@@ -168,8 +172,13 @@ data Pragma
     -- ^ A @{-# HASKELL_TO_COQ <function> DECREASES ON <argument> #-}@ pragma.
  deriving (Eq, Show)
 
+-- | Pretty instance for custom @{-# HASKELL_TO_COQ ... #-}@ pragmas.
 instance Pretty Pragma where
-  pretty (DecArgPragma _ funName argName) = prettyPragma (prettyString funName <+> prettyString "DECREASES ON" <+> prettyString argName)
+  pretty (DecArgPragma _ funName argName) = prettyPragma
+    (   prettyString funName
+    <+> prettyString "DECREASES ON"
+    <+> prettyString argName
+    )
 
 -- | Pretty prints a custom @{-# HASKELL_TO_COQ ... #-}@ pragma with the given
 --   contents.
