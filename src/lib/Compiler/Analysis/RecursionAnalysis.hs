@@ -329,14 +329,12 @@ makeConstArgGraph modName decls = do
         checkExpr (HS.App _ e1 e2) args =
           checkExpr e1 (e2 : args) && checkExpr e2 []
 
-        -- The arguments passed to an @if@ or @case@ expression, are passed to
-        -- all branches.
-        -- If a pattern in a @case@ expression shadows @x_i@, @x_i@ is not
-        -- left unchanged.
-        checkExpr (HS.If _ e1 e2 e3) args =
-          checkExpr e1 [] && checkExpr e2 args && checkExpr e3 args
-        checkExpr (HS.Case _ expr alts) args =
-          checkExpr expr [] && all (flip checkAlt args) alts
+        -- The arguments are not distributed among the branches of @if@
+        -- and @case@ expressions.
+        checkExpr (HS.If _ e1 e2 e3) _ =
+          checkExpr e1 [] && checkExpr e2 [] && checkExpr e3 []
+        checkExpr (HS.Case _ expr alts) _ =
+          checkExpr expr [] && all (flip checkAlt []) alts
 
         -- No beta reduction is applied when a lambda expression is
         -- encountered, but the right-hand side still needs to be checked.

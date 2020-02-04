@@ -343,7 +343,9 @@ removeConstArgsFromFuncDecl constArgs (HS.FuncDecl srcSpan declIdent args rhs)
 
 -- | Removes constant arguments from the applications in the given expressions.
 removeConstArgsFromExpr :: [ConstArg] -> HS.Expr -> Converter HS.Expr
-removeConstArgsFromExpr constArgs = flip removeConstArgsFromExpr' []
+removeConstArgsFromExpr constArgs rootExpr = do
+  (rootExpr', []) <- removeConstArgsFromExpr' rootExpr
+  return rootExpr'
  where
   -- | Maps the name of functions that share the constant arguments to
   --   the indicies of their corresponding argument.
@@ -368,58 +370,66 @@ removeConstArgsFromExpr constArgs = flip removeConstArgsFromExpr' []
     fromMaybe [] $ Map.lookup ident constArgIndicesMap
   lookupConstArgIndicies' (HS.Symbol _) = []
 
-  -- | Implementation of 'removeConstArgsFromExpr' that takes the current
-  --   sub-expression as its first argument and the arguments it has been
-  --   applied to as the second argument.
+  -- | Implementation of 'removeConstArgsFromExpr' that returns the indicies
+  --   of the arguments that still need to be removed.
   removeConstArgsFromExpr'
     :: HS.Expr    -- ^ The expression to remove the constant arguments from.
-    -> [HS.Expr]  -- ^ The arguments the expression is applied to.
-    -> Converter HS.Expr
+    -> Converter (HS.Expr, [Int])
 
   -- If a variable is applied, lookup the indicies of the arguments that
-  -- can be removed and remove them.
-  removeConstArgsFromExpr' expr@(HS.Var _ name) args = do
+  -- can be removed.
+  removeConstArgsFromExpr' expr@(HS.Var _ name) = do
     indicies <- lookupConstArgIndicies name
-    let args' =
-          map fst $ filter ((`notElem` indicies) . snd) $ zip args [0 ..]
-    return (HS.app NoSrcSpan expr args')
+    return (expr, indicies)
 
-  -- Remove the constant arguments from the argument and pass the argument
-  -- to the applied expression such that it can remove it if necessary.
-  removeConstArgsFromExpr' (HS.App _ e1 e2) args = do
-    e2' <- removeConstArgsFromExpr' e2 []
-    removeConstArgsFromExpr' e1 (e2' : args)
+  -- Remove constant arguments from the applied expression. If the current
+  -- argument (index @0@) needs to be removed, remove it. Otherwise remove
+  -- constant arguments from the argument recursively.
+  removeConstArgsFromExpr' (HS.App srcSpan e1 e2) = do
+    (e1', indicies) <- removeConstArgsFromExpr' e1
+    let indicies' = map (subtract 1) (filter (> 0) indicies)
+    if 0 `elem` indicies
+      then return (e1', indicies')
+      else do
+        (e2', []) <- removeConstArgsFromExpr' e2
+        return (HS.App srcSpan e1' e2', indicies')
 
-  -- Since we do not know in which branch there is a call to a function which
-  -- shares the constant argument, we have to move the argument list into
-  -- both branches and remove the arguments individually.
-  removeConstArgsFromExpr' (HS.If srcSpan e1 e2 e3) args = do
-    e1' <- removeConstArgsFromExpr' e1 []
-    e2' <- removeConstArgsFromExpr' e2 args
-    e3' <- removeConstArgsFromExpr' e3 args
-    return (HS.If srcSpan e1' e2' e3')
+  -- Remove constant arguments recursively and pass through the indicies of
+  -- arguments that still have to be removed.
+  removeConstArgsFromExpr' (HS.ExprTypeSig srcSpan expr typeSchema) = do
+    (expr', indicies) <- removeConstArgsFromExpr' expr
+    return (HS.ExprTypeSig srcSpan expr' typeSchema, indicies)
+  removeConstArgsFromExpr' (HS.TypeAppExpr srcSpan expr typeExpr) = do
+    (expr', indicies) <- removeConstArgsFromExpr' expr
+    return (HS.TypeAppExpr srcSpan expr' typeExpr, indicies)
 
-  -- Similar to an @if@ expression, the arguments need to be moved into
-  -- the alternatives of a @case@ expression.
-  removeConstArgsFromExpr' (HS.Case srcSpan expr alts) args = do
-    expr' <- removeConstArgsFromExpr' expr []
-    alts' <- mapM (flip removeConstArgsFromAlt args) alts
-    return (HS.Case srcSpan expr' alts')
-
-  removeConstArgsFromExpr' (HS.Lambda srcSpan varPats expr) args =
+  -- Remove constant arguments recursively.
+  removeConstArgsFromExpr' (HS.Lambda srcSpan varPats expr) =
     shadowVarPats varPats $ do
-      expr' <- removeConstArgsFromExpr' expr args
-      return (HS.Lambda srcSpan varPats expr')
+      (expr', []) <- removeConstArgsFromExpr' expr
+      return (HS.Lambda srcSpan varPats expr', [])
+  removeConstArgsFromExpr' (HS.If srcSpan e1 e2 e3) = do
+    (e1', []) <- removeConstArgsFromExpr' e1
+    (e2', []) <- removeConstArgsFromExpr' e2
+    (e3', []) <- removeConstArgsFromExpr' e3
+    return (HS.If srcSpan e1' e2' e3', [])
+  removeConstArgsFromExpr' (HS.Case srcSpan expr alts) = do
+    (expr', []) <- removeConstArgsFromExpr' expr
+    alts'       <- mapM removeConstArgsFromAlt alts
+    return (HS.Case srcSpan expr' alts', [])
 
   -- Leave all other expressions unchanged.
-  removeConstArgsFromExpr' expr args = return (HS.app NoSrcSpan expr args)
+  removeConstArgsFromExpr' expr@(HS.Con _ _       ) = return (expr, [])
+  removeConstArgsFromExpr' expr@(HS.Undefined _   ) = return (expr, [])
+  removeConstArgsFromExpr' expr@(HS.ErrorExpr  _ _) = return (expr, [])
+  removeConstArgsFromExpr' expr@(HS.IntLiteral _ _) = return (expr, [])
 
   -- | Applies 'removeConstArgsFromExpr'' to the right-hand side of the
   --   given @case@ expression alternative.
-  removeConstArgsFromAlt :: HS.Alt -> [HS.Expr] -> Converter HS.Alt
-  removeConstArgsFromAlt (HS.Alt srcSpan conPat varPats expr) args =
+  removeConstArgsFromAlt :: HS.Alt -> Converter HS.Alt
+  removeConstArgsFromAlt (HS.Alt srcSpan conPat varPats expr) =
     shadowVarPats varPats $ do
-      expr' <- removeConstArgsFromExpr' expr args
+      (expr', []) <- removeConstArgsFromExpr' expr
       return (HS.Alt srcSpan conPat varPats expr')
 
 -- | Modifies the type signature of the given function declaration, such that
