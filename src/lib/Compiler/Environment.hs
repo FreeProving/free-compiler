@@ -24,6 +24,7 @@ module Compiler.Environment
   , lookupEntry
   , existsLocalEntry
   , isFunction
+  , isVariable
   , hasTypeSig
   , isPureVar
   , lookupIdent
@@ -255,6 +256,13 @@ existsLocalEntry scope name =
 --   Returns @False@ if there is no such function.
 isFunction :: HS.QName -> Environment -> Bool
 isFunction = maybe False isFuncEntry .: lookupEntry ValueScope
+
+-- | Tests whether the given name identifies a local variable in the given
+--   environment.
+--
+--   Returns @False@ if there is no such variable.
+isVariable :: HS.QName -> Environment -> Bool
+isVariable = maybe False isVarEntry .: lookupEntry ValueScope
 
 -- | Tests whether there is a type signature for the given identifier.
 hasTypeSig :: HS.QName -> Environment -> Bool

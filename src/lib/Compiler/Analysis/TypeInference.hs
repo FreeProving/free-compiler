@@ -38,7 +38,9 @@ import           Compiler.Haskell.Unification
 import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
 import           Compiler.Pretty
-import           Compiler.Util.Predicate        ( (.||.) )
+import           Compiler.Util.Predicate        ( (.||.)
+                                                , (.&&.)
+                                                )
 
 -------------------------------------------------------------------------------
 -- Function declarations                                                     --
@@ -161,10 +163,11 @@ addTypeAppVarsFor
   -> HS.Expr  -- ^ The variable or constructor expression.
   -> Converter HS.Expr
 addTypeAppVarsFor name expr = do
-  Just typeArgIdents <- inEnv $ lookupTypeArgs ValueScope name
-  typeArgIdents'     <- mapM freshHaskellIdent typeArgIdents
-  let srcSpan  = HS.getSrcSpan expr
-      typeArgs = map (HS.TypeVar srcSpan) typeArgIdents'
+  let srcSpan = HS.getSrcSpan expr
+  (HS.TypeSchema _ typeArgDecls _) <- lookupTypeSchemaOrTypeSig srcSpan name
+  let typeArgIdents = map HS.fromDeclIdent typeArgDecls
+  typeArgIdents' <- mapM freshHaskellIdent typeArgIdents
+  let typeArgs = map (HS.TypeVar srcSpan) typeArgIdents'
   return (HS.visibleTypeApp srcSpan expr typeArgs)
 
 -- | Applies the type arguments of each function and constructor invoked
@@ -178,9 +181,12 @@ addTypeAppVars :: HS.Expr -> Converter HS.Expr
 -- Add visible type application to functions and constructors.
 addTypeAppVars expr@(HS.Con _ conName) = do
   addTypeAppVarsFor conName expr
-addTypeAppVars expr@(HS.Var _ varName) = ifM (inEnv $ isFunction varName)
-                                             (addTypeAppVarsFor varName expr)
-                                             (return expr)
+addTypeAppVars expr@(HS.Var _ varName) = ifM
+  (inEnv
+    (isFunction varName .||. hasTypeSig varName .&&. (not . isVariable varName))
+  )
+  (addTypeAppVarsFor varName expr)
+  (return expr)
 
 -- Add visible type application to error terms.
 addTypeAppVars expr@(HS.Undefined srcSpan) = do
@@ -319,7 +325,7 @@ simplifyTypedExpr (HS.Con srcSpan conName) resType =
 --   If @x :: τ@ is not a predefined function (i.e., a local variable or a
 --   function whose type to infer), just remember that @x@ is of type @τ@.
 simplifyTypedExpr (HS.Var srcSpan varName) resType = ifM
-  (lift $ inEnv $ (isFunction varName .||. hasTypeSig varName))
+  (lift $ inEnv (isFunction varName .||. hasTypeSig varName))
   (addTypeEquationFor srcSpan varName resType)
   (addVarType varName resType >> return [])
 
