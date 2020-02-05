@@ -93,11 +93,9 @@ convertRecFuncDeclsWithSection constArgs decls = do
   sectionDecls <- mapM (removeConstArgsFromFuncDecl renamedConstArgs)
                        renamedDecls
 
-  -- Remove the constant arguments from the type signature.
-
   -- Test which of the constant arguments is actually used by any function
   -- in the section and which of the type arguments is needed by the types
-  -- of used .
+  -- of used arguments.
   let isConstArgUsed = map (flip any sectionDecls . isConstArgUsedBy) constArgs
       usedConstArgTypes =
         map snd $ filter fst $ zip isConstArgUsed constArgTypes
@@ -189,8 +187,6 @@ renameFuncDecls decls = do
           let Just ident' = lookup ident identMap
               name        = HS.UnQual (HS.Ident ident)
               name'       = HS.UnQual (HS.Ident ident')
-          -- Rename function references on right-hand side.
-          rhs' <- applySubst subst rhs
           -- Lookup type signature and environment entry.
           (HS.TypeSchema _ typeArgDecls funcType) <- lookupTypeSigOrFail
             srcSpan'
@@ -228,6 +224,9 @@ renameFuncDecls decls = do
             Just (decArgIndex, decArgIdent) ->
               modifyEnv $ defineDecArg name' decArgIndex decArgIdent
             Nothing -> return ()
+
+          -- Rename function references and type variables on right-hand side.
+          rhs' <- applySubst subst rhs >>= applySubst typeVarSubst
 
           -- Rename function declaration.
           return (HS.FuncDecl srcSpan (HS.DeclIdent srcSpan' ident') args rhs')
