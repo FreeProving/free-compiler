@@ -107,7 +107,7 @@ addTypeAppExprsToFuncDecls' funcDecls = localEnv $ do
   funcDecls''      <- mapM (applySubst mgu) funcDecls'
   let typeArgs           = map typeVars typeExprs
       additionalTypeArgs = map typeVars funcDecls''
-      allTypeArgs        = zipWith (nub .: (++)) additionalTypeArgs typeArgs
+      allTypeArgs        = zipWith (nub .: (++)) typeArgs additionalTypeArgs
   (typeSchemas, substs) <-
     unzip <$> zipWithM abstractTypeSchema' allTypeArgs typeExprs
   funcDecls''' <- zipWithM applySubst substs funcDecls''

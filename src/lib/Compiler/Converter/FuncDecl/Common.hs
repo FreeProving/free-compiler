@@ -53,8 +53,7 @@ inferAndInsertTypeSigs funcDecls = do
 insertTypeSig :: HS.FuncDecl -> HS.TypeSchema -> Converter ()
 insertTypeSig funcDecl typeSchema = do
   let name = HS.UnQual (HS.Ident (HS.fromDeclIdent (HS.getDeclIdent funcDecl)))
-  whenM (inEnv $ not . hasTypeSig name) $ do
-    modifyEnv $ defineTypeSig name typeSchema
+  modifyEnv $ defineTypeSig name typeSchema
 
 -- | Splits the annotated type of a Haskell function with the given arguments
 --   into its argument and return types.
