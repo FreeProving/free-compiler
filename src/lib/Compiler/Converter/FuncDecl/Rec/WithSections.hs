@@ -572,7 +572,7 @@ removeConstTypeArgsFromExpr constTypeVars rootExpr = do
     (expr', indicies) <- removeConstTypeArgsFromExpr' expr
     let indicies' = map (subtract 1) (filter (> 0) indicies)
     if 0 `elem` indicies
-      then return (expr, indicies')
+      then return (expr', indicies')
       else return (HS.TypeAppExpr srcSpan expr' typeExpr, indicies')
 
   -- Remove constant type arguments recursively.
