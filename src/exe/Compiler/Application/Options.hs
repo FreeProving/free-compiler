@@ -11,10 +11,7 @@ module Compiler.Application.Options
 where
 
 import           System.Console.GetOpt
-import           System.Environment             ( bar
-                                                , baz
-                                                , foo
-                                                , getArgs
+import           System.Environment             ( getArgs
                                                 , getProgName
                                                 )
 
