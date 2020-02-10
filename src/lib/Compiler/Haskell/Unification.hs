@@ -39,8 +39,8 @@ unify' :: HS.Type -> HS.Type -> Converter (Subst HS.Type)
 unify' t s = case disagreementSet t s of
   Nothing -> return identitySubst
   Just (u@(HS.TypeVar _ x), v@(HS.TypeVar _ y))
-    | HS.isInternalIdent y -> step y u
     | HS.isInternalIdent x -> step x v
+    | HS.isInternalIdent y -> step y u
   Just (HS.TypeVar _ x, v             ) -> step x v
   Just (u             , HS.TypeVar _ y) -> step y u
   Just (u, v) ->
