@@ -1,0 +1,146 @@
+module Compiler.Haskell.UnificationTests where
+
+import           Test.Hspec
+import           Test.QuickCheck
+
+import           Compiler.Environment.Fresh
+import qualified Compiler.Haskell.AST          as HS
+import           Compiler.Haskell.Subst
+import           Compiler.Haskell.Unification
+import           Compiler.Monad.Converter
+import           Compiler.Pretty
+
+import           Compiler.Util.Test
+
+testUnification :: Spec
+testUnification = describe "Compiler.Haskell.Unification.unify" $ do
+  context "type variables" $ do
+    it "maps variables on the left to variables on the right"
+      $ shouldSucceed
+      $ fromConverter
+      $ do
+          a <- parseTestType "a"
+          b <- parseTestType "b"
+          (a, b) `shouldUnifyTo` b
+    it "maps internal variables on the right to variables on the left"
+      $ shouldSucceed
+      $ fromConverter
+      $ do
+          a <- parseTestType "a"
+          f <- freshTypeVar
+          (a, f) `shouldUnifyTo` a
+    it "maps internal variables on the left to variables on the right"
+      $ shouldSucceed
+      $ fromConverter
+      $ do
+          f <- freshTypeVar
+          b <- parseTestType "b"
+          (f, b) `shouldUnifyTo` b
+    it "maps internal variables on the left to internal variables on the right"
+      $ shouldSucceed
+      $ fromConverter
+      $ do
+          f1 <- freshTypeVar
+          f2 <- freshTypeVar
+          (f1, f2) `shouldUnifyTo` f2
+    it "cannot match variable with type containing the variable (occurs check)"
+      $ shouldReportFatal
+      $ fromConverter
+      $ do
+          t <- parseTestType "a"
+          s <- parseTestType "a -> a"
+          showPretty <$> unify t s
+  context "type constructors" $ do
+    it "constructors match the same constructor"
+      $ shouldSucceed
+      $ fromConverter
+      $ do
+          t <- parseTestType "()"
+          (t, t) `shouldUnifyTo` t
+    it "arguments of constructors are matched recursively"
+      $ shouldSucceed
+      $ fromConverter
+      $ do
+          t <- parseTestType "(a, b)"
+          s <- parseTestType "(b, c)"
+          (t, s) `shouldUnifyTo` "(c, c)"
+    it "constructors do not match other constructors"
+      $ shouldReportFatal
+      $ fromConverter
+      $ do
+          t <- parseTestType "()"
+          s <- parseTestType "Integer"
+          showPretty <$> unify t s
+    it "maps variables on the left to constructors on the right"
+      $ shouldSucceed
+      $ fromConverter
+      $ do
+          t <- parseTestType "a"
+          s <- parseTestType "()"
+          (t, s) `shouldUnifyTo` s
+    it "maps variables on the right to constructors on the left"
+      $ shouldSucceed
+      $ fromConverter
+      $ do
+          t <- parseTestType "()"
+          s <- parseTestType "a"
+          (t, s) `shouldUnifyTo` t
+  context "type synonyms" $ do
+    it "expands nullary type synonyms when necessary"
+      $ shouldSucceed
+      $ fromConverter
+      $ do
+          _ <- defineTestTypeCon "Char" 0
+          _ <- defineTestTypeSyn "String" [] "[Char]"
+          t <- parseTestType "[a]"
+          s <- parseTestType "String"
+          (t, s) `shouldUnifyTo'` ("[Char]", "String")
+    it "expands type synonyms with arguments when necessary"
+      $ shouldSucceed
+      $ fromConverter
+      $ do
+          _ <- defineTestTypeSyn "Predicate" ["a"] "a -> Bool"
+          t <- parseTestType "Predicate b"
+          s <- parseTestType "Integer -> c"
+          (t, s) `shouldUnifyTo'` ("Predicate Integer", "Integer -> Bool")
+    it "can unify two type synonyms with different arity"
+      $ shouldSucceed
+      $ fromConverter
+      $ do
+          _ <- defineTestTypeSyn "Foo" ["a"] "a -> Integer"
+          _ <- defineTestTypeSyn "Bar" ["a", "b"] "a -> b"
+          t <- parseTestType "Foo a"
+          s <- parseTestType "Bar b c"
+          (t, s) `shouldUnifyTo'` ("Foo b", "Bar b Integer")
+  context "QuickCheck" $ do
+    it "self-unification yields the identity substitution"
+      $ property
+      $ \typeExpr -> shouldSucceedProperty $ fromConverter $ do
+          mgu       <- unify typeExpr typeExpr
+          typeExpr' <- applySubst mgu typeExpr
+          return (typeExpr' == typeExpr)
+
+
+-------------------------------------------------------------------------------
+-- Utility functions                                                         --
+-------------------------------------------------------------------------------
+
+-- | Unifies the given type expressions and sets the expectation that the
+--   both are equal after applying the computed unificator.
+shouldUnifyTo :: Pretty a => (HS.Type, HS.Type) -> a -> Converter Expectation
+shouldUnifyTo (t, s) expectedOutput =
+  shouldUnifyTo' (t, s) (expectedOutput, expectedOutput)
+
+-- | Like 'shouldUnifyTo'' but there are two different expected outputs.
+--
+--   There can be different outputs for the two type expressions if they
+--   contain type synonyms.
+shouldUnifyTo'
+  :: Pretty a => (HS.Type, HS.Type) -> (a, a) -> Converter Expectation
+shouldUnifyTo' (t, s) (ot, os) = do
+  mgu <- unify t s
+  t'  <- applySubst mgu t
+  s'  <- applySubst mgu s
+  return $ do
+    t' `prettyShouldBe` ot
+    s' `prettyShouldBe` os

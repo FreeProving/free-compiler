@@ -164,6 +164,7 @@ test-suite unit-tests
                     , Compiler.Environment.RenamerTests
                     , Compiler.Haskell.SubstTests
                     , Compiler.Haskell.SubtermTests
+                    , Compiler.Haskell.UnificationTests
                     , Compiler.Monad.ReporterTests
                     , Compiler.Util.Test
   build-depends:      haskell-to-coq-internal
