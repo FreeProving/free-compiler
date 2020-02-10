@@ -1,5 +1,5 @@
 -- | This module contains data types and function for working with subterms
---   of Haskell expressions.
+--   of Haskell expressions and type expressions.
 
 module Compiler.Haskell.Subterm
   ( -- * Positions
@@ -36,51 +36,96 @@ import           Compiler.Haskell.AST          as HS
 import           Compiler.Pretty
 
 -------------------------------------------------------------------------------
+-- Utility functions                                                         --
+-------------------------------------------------------------------------------
+
+-- | Runs the given function on if the given list has the specified number of
+--   arguments.
+--
+--   Returns the function's result of @Nothing@ if the list has the wrong
+--   number of elements.
+checkArity :: Int -> ([a] -> b) -> [a] -> Maybe b
+checkArity n f xs | length xs == n = Just (f xs)
+                  | otherwise      = Nothing
+
+-- | Like 'checkArity' for functions that do no expect any arguments.
+nullary :: b -> [a] -> Maybe b
+nullary y xs | null xs   = Just y
+             | otherwise = Nothing
+
+-------------------------------------------------------------------------------
 -- Direct children                                                           --
 -------------------------------------------------------------------------------
 
--- | Gets the direct child expression nodes of the given expression.
-childExprs :: HS.Expr -> [HS.Expr]
-childExprs (HS.App         _ e1   e2  ) = [e1, e2]
-childExprs (HS.TypeAppExpr _ expr _   ) = [expr]
-childExprs (HS.If _ e1 e2 e3          ) = [e1, e2, e3]
-childExprs (HS.Case        _ expr alts) = expr : map altChildExpr alts
-childExprs (HS.Lambda      _ _    expr) = [expr]
-childExprs (HS.ExprTypeSig _ expr _   ) = [expr]
-childExprs (HS.Con _ _                ) = []
-childExprs (HS.Var _ _                ) = []
-childExprs (HS.Undefined _            ) = []
-childExprs (HS.ErrorExpr  _ _         ) = []
-childExprs (HS.IntLiteral _ _         ) = []
+-- | Type class for AST nodes with child nodes of the same type.
+class Subterm a where
+  -- | Gets the child nodes of the given AST node.
+  childTerms :: a -> [a]
+
+  -- | Replaces the child nodes of the given AST node.
+  replaceChildTerms :: a -> [a] -> Maybe a
+
+-- | Expressions have subterms.
+instance Subterm HS.Expr where
+  -- | Gets the direct child expression nodes of the given expression.
+  childTerms (HS.App         _ e1   e2  ) = [e1, e2]
+  childTerms (HS.TypeAppExpr _ expr _   ) = [expr]
+  childTerms (HS.If _ e1 e2 e3          ) = [e1, e2, e3]
+  childTerms (HS.Case        _ expr alts) = expr : map altChildExpr alts
+  childTerms (HS.Lambda      _ _    expr) = [expr]
+  childTerms (HS.ExprTypeSig _ expr _   ) = [expr]
+  childTerms (HS.Con _ _                ) = []
+  childTerms (HS.Var _ _                ) = []
+  childTerms (HS.Undefined _            ) = []
+  childTerms (HS.ErrorExpr  _ _         ) = []
+  childTerms (HS.IntLiteral _ _         ) = []
+
+  -- | Replaces all direct child expression nodes of the given expression.
+  replaceChildTerms (HS.App srcSpan _ _) =
+    checkArity 2 $ \[e1', e2'] -> HS.App srcSpan e1' e2'
+  replaceChildTerms (HS.TypeAppExpr srcSpan _ typeExpr) =
+    checkArity 1 $ \[expr'] -> HS.TypeAppExpr srcSpan expr' typeExpr
+  replaceChildTerms (HS.If srcSpan _ _ _) =
+    checkArity 3 $ \[e1', e2', e3'] -> HS.If srcSpan e1' e2' e3'
+  replaceChildTerms (HS.Case srcSpan _ alts) =
+    checkArity (length alts + 1) $ \(expr' : altChildren') ->
+      HS.Case srcSpan expr' (zipWith replaceAltChildExpr alts altChildren')
+  replaceChildTerms (HS.Lambda srcSpan args _) =
+    checkArity 1 $ \[expr'] -> HS.Lambda srcSpan args expr'
+  replaceChildTerms expr@(HS.Con _ _       ) = nullary expr
+  replaceChildTerms expr@(HS.Var _ _       ) = nullary expr
+  replaceChildTerms expr@(HS.Undefined _   ) = nullary expr
+  replaceChildTerms expr@(HS.ErrorExpr  _ _) = nullary expr
+  replaceChildTerms expr@(HS.IntLiteral _ _) = nullary expr
 
 -- | Gets the expression on the right hand side of the given @case@-expression
 --   alternative.
 altChildExpr :: HS.Alt -> HS.Expr
 altChildExpr (HS.Alt _ _ _ expr) = expr
 
--- | Replaces all direct child expression nodes of the given expression.
-replaceChildExprs :: HS.Expr -> [HS.Expr] -> Maybe HS.Expr
-replaceChildExprs (HS.App srcSpan _ _) [e1', e2'] =
-  Just (HS.App srcSpan e1' e2')
-replaceChildExprs (HS.If srcSpan _ _ _) [e1', e2', e3'] =
-  Just (HS.If srcSpan e1' e2' e3')
-replaceChildExprs (HS.Case srcSpan _ alts) (expr' : altChildren')
-  | length alts == length altChildren' = Just
-    (HS.Case srcSpan expr' (zipWith replaceAltChildExpr alts altChildren'))
-replaceChildExprs (HS.Lambda srcSpan args _) [expr'] =
-  Just (HS.Lambda srcSpan args expr')
-replaceChildExprs expr@(HS.Con _ _       ) [] = Just expr
-replaceChildExprs expr@(HS.Var _ _       ) [] = Just expr
-replaceChildExprs expr@(HS.Undefined _   ) [] = Just expr
-replaceChildExprs expr@(HS.ErrorExpr  _ _) [] = Just expr
-replaceChildExprs expr@(HS.IntLiteral _ _) [] = Just expr
-replaceChildExprs _                        _  = Nothing
-
 -- | Replaces the expression on the right hand side of the given
 --   @case@-expression alternative.
 replaceAltChildExpr :: HS.Alt -> HS.Expr -> HS.Alt
 replaceAltChildExpr (HS.Alt srcSpan varPat conPat _) expr' =
   HS.Alt srcSpan varPat conPat expr'
+
+-- | Type expressions have subterms.
+instance Subterm HS.Type where
+  -- | Gets the direct child type expression nodes of the given type
+  --   expression.
+  childTerms (TypeVar _ _) = []
+  childTerms (TypeCon _ _ ) = []
+  childTerms (TypeApp _ t1 t2   ) = [t1, t2]
+  childTerms (TypeFunc _ t1 t2  ) = [t1, t2]
+
+  -- | Replaces all direct child type expression nodes of the given type
+  --   expression.
+  replaceChildTerms typeExpr@(TypeVar _ _) = nullary typeExpr
+  replaceChildTerms typeExpr@(TypeCon _ _) = nullary typeExpr
+  replaceChildTerms (TypeApp srcSpan _ _) =
+    checkArity 2 $ \[t1', t2'] -> TypeApp srcSpan t1' t2'
+  replaceChildTerms (TypeFunc srcSpan _ _) =
+    checkArity 2 $ \[t1', t2'] -> TypeFunc srcSpan t1' t2'
 
 -------------------------------------------------------------------------------
 -- Positions                                                                 --
@@ -100,16 +145,13 @@ rootPos :: Pos
 rootPos = Pos []
 
 -- | Gets all valid positions of subterms within the given Haskell expression.
-pos :: HS.Expr -> [Pos]
-pos expr = rootPos
-  : concat (zipWith (map . consPos) [1 .. length children] (map pos children))
- where
-  children :: [HS.Expr]
-  children = childExprs expr
-
-  -- | Adds the given element to the front of a position.
-  consPos :: Int -> Pos -> Pos
-  consPos x (Pos xs) = Pos (x : xs)
+pos :: Subterm a => a -> [Pos]
+pos term =
+  rootPos
+    : [ Pos (p : ps)
+      | (p, child) <- zip [1 ..] (childTerms term)
+      , Pos ps     <- pos child
+      ]
 
 -- Tests whether a position is above another one.
 above :: Pos -> Pos -> Bool
@@ -139,43 +181,44 @@ rightOf = flip leftOf
 -- | Selects a subterm of the given expression at the specified position.
 --
 --   Returns @Nothing@ if there is no such subterm.
-selectSubterm :: HS.Expr -> Pos -> Maybe HS.Expr
-selectSubterm expr (Pos []) = Just expr
-selectSubterm expr (Pos (p : ps))
+selectSubterm :: Subterm a => a -> Pos -> Maybe a
+selectSubterm term (Pos []) = Just term
+selectSubterm term (Pos (p : ps))
   | p <= 0 || p > length children = Nothing
   | otherwise                     = selectSubterm (children !! (p - 1)) (Pos ps)
- where
-  children :: [HS.Expr]
-  children = childExprs expr
+  where
+  -- children :: [a]
+        children = childTerms term
 
--- | Replaces a subterm of the given expression at the specified position
---   with another expression.
+-- | Replaces a subterm of the given expression or type expression at the
+--   specified position with another expression.
 --
 --   Returns @Nothing@ if there is no such subterm.
 replaceSubterm
-  :: HS.Expr -- ^ The expression whose subterm to replace.
+  :: Subterm a
+  => a       -- ^ The (type) expression whose subterm to replace.
   -> Pos     -- ^ The position of the subterm.
-  -> HS.Expr -- ^ The expression to replace the subterm with.
-  -> Maybe HS.Expr
-replaceSubterm _ (Pos []) expr' = Just expr'
-replaceSubterm expr (Pos (p : ps)) expr'
+  -> a       -- ^ The (type) expression to replace the subterm with.
+  -> Maybe a
+replaceSubterm _ (Pos []) term' = Just term'
+replaceSubterm term (Pos (p : ps)) term'
   | p <= 0 || p > length children = Nothing
   | otherwise = do
     let (before, child : after) = splitAt (p - 1) children
-    child' <- replaceSubterm child (Pos ps) expr'
-    replaceChildExprs expr (before ++ child' : after)
- where
-  children :: [HS.Expr]
-  children = childExprs expr
+    child' <- replaceSubterm child (Pos ps) term'
+    replaceChildTerms term (before ++ child' : after)
+  where
+  -- children :: [a]
+        children = childTerms term
 
--- | Replaces all subterms at the given positions with other expressions.
+-- | Replaces all subterms at the given positions with other (type) expressions.
 --
 --   Returns @Nothing@ if any of the subterms could not be replaced
-replaceSubterms :: HS.Expr -> [(Pos, HS.Expr)] -> Maybe HS.Expr
-replaceSubterms expr []             = return expr
-replaceSubterms expr ((p, e) : pes) = do
-  expr' <- replaceSubterm expr p e
-  replaceSubterms expr' pes
+replaceSubterms :: Subterm a => a -> [(Pos, a)] -> Maybe a
+replaceSubterms term []             = return term
+replaceSubterms term ((p, e) : pes) = do
+  term' <- replaceSubterm term p e
+  replaceSubterms term' pes
 
 -------------------------------------------------------------------------------
 -- Searching for subterms                                                    --
@@ -183,15 +226,15 @@ replaceSubterms expr ((p, e) : pes) = do
 
 -- | Gets a list of positions for subterms of the given expression that
 --   satisfy the provided predicate.
-findSubtermPos :: (HS.Expr -> Bool) -> HS.Expr -> [Pos]
-findSubtermPos predicate expr =
-  filter (predicate . fromJust . selectSubterm expr) (pos expr)
+findSubtermPos :: Subterm a => (a -> Bool) -> a -> [Pos]
+findSubtermPos predicate term =
+  filter (predicate . fromJust . selectSubterm term) (pos term)
 
 -- | Gets a list of subterms of the given expression that satisfy the
 --   provided predicate.
-findSubterms :: (HS.Expr -> Bool) -> HS.Expr -> [HS.Expr]
-findSubterms predicate expr =
-  filter predicate (map (fromJust . selectSubterm expr) (pos expr))
+findSubterms :: Subterm a => (a -> Bool) -> a -> [a]
+findSubterms predicate term =
+  filter predicate (map (fromJust . selectSubterm term) (pos term))
 
 -------------------------------------------------------------------------------
 -- Bound variables                                                           --
