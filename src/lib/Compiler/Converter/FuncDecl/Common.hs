@@ -12,9 +12,7 @@ module Compiler.Converter.FuncDecl.Common
   )
 where
 
-import           Control.Monad.Extra            ( whenM
-                                                , zipWithM_
-                                                )
+import           Control.Monad.Extra            ( zipWithM_ )
 
 import           Compiler.Analysis.PartialityAnalysis
 import           Compiler.Analysis.TypeInference

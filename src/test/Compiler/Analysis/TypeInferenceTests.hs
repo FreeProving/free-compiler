@@ -5,6 +5,7 @@ import           Test.Hspec
 import           Control.Monad.Extra            ( zipWithM_ )
 
 import           Compiler.Analysis.TypeInference
+import           Compiler.Environment.Resolver
 import           Compiler.Converter.Module      ( defineTypeSigDecl )
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Monad.Converter
@@ -163,7 +164,7 @@ testInferExprType =
                           "forall t0 t1. t0 -> (t0, t1 -> t1)"
     it "can match types with type synonyms" $ shouldSucceed $ fromConverter $ do
       "Foo" <- defineTestTypeSyn "Foo" [] "[Integer]"
-      "[] :: Foo" `shouldInferType` "[Prelude.Integer]"
+      "[] :: Foo" `shouldInferType` "Foo"
     it "expands type synonyms when necessary"
       $ shouldSucceed
       $ fromConverter
@@ -256,8 +257,9 @@ inferTestType input = do
 --   expectation that the give type is inferred.
 shouldInferType :: String -> String -> Converter Expectation
 shouldInferType input expectedType = do
-  inferredType <- inferTestType input
-  return (inferredType `prettyShouldBe` expectedType)
+  inferredType  <- inferTestType input
+  inferredType' <- resolveTypes inferredType
+  return (inferredType' `prettyShouldBe` expectedType)
 
 -- | Parses the given declarations, adds the type signatures to the environment
 --   and infers the types of the function declarations.
@@ -278,7 +280,8 @@ inferTestFuncDeclTypes input = localEnv $ do
 shouldInferFuncDeclTypes :: [String] -> [String] -> Converter Expectation
 shouldInferFuncDeclTypes input expectedTypes = do
   inferredTypes <- inferTestFuncDeclTypes input
-  return (zipWithM_ prettyShouldBe inferredTypes expectedTypes)
+  inferredTypes' <- mapM resolveTypes inferredTypes
+  return (zipWithM_ prettyShouldBe inferredTypes' expectedTypes)
 
 -- | Parses the given expression and adds 'HS.TypeAppExpr' nodes to all
 --   function and constructor applications for the type arguments of the
@@ -293,4 +296,5 @@ addTypeAppTestExprs input = do
 shouldAddTypeAppExprs :: String -> String -> Converter Expectation
 shouldAddTypeAppExprs input expectedOutput = do
   output <- addTypeAppTestExprs input
-  return (output `prettyShouldBe` expectedOutput)
+  output' <- resolveTypes output
+  return (output' `prettyShouldBe` expectedOutput)

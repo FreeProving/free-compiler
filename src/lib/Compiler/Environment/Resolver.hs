@@ -30,9 +30,9 @@ import           Compiler.Monad.Converter
 resolveReferences :: EnvEntry -> Converter EnvEntry
 resolveReferences = resolveReferencesWithM lookupOriginalName
 
--- | Resolves all type names referenced by the given type expression
---   to their original name.
-resolveTypes :: HS.Type -> Converter HS.Type
+-- | Resolves all type constructor names referenced by the given expression,
+--   type expression or type schema to their original name.
+resolveTypes :: ResolveTypes a => a -> Converter a
 resolveTypes = resolveTypesWithM lookupOriginalName
 
 -- | Looks up the original name of the entry with the given name.
@@ -78,19 +78,76 @@ applyToTypes f entry
     return entry { entryArgTypes = argTypes, entryReturnType = returnType }
   | otherwise = return entry
 
--- | Replaces all constructor names in the given type expression
---   by the name returned by the given function.
-resolveTypesWithM
-  :: Monad m => (SrcSpan -> HS.QName -> m HS.QName) -> HS.Type -> m HS.Type
-resolveTypesWithM _ var@(HS.TypeVar _       _   ) = return var
-resolveTypesWithM f (    HS.TypeCon srcSpan name) = do
-  name' <- f srcSpan name
-  return (HS.TypeCon srcSpan name')
-resolveTypesWithM f (HS.TypeApp srcSpan t1 t2) = do
-  t1' <- resolveTypesWithM f t1
-  t2' <- resolveTypesWithM f t2
-  return (HS.TypeApp srcSpan t1' t2')
-resolveTypesWithM f (HS.TypeFunc srcSpan t1 t2) = do
-  t1' <- resolveTypesWithM f t1
-  t2' <- resolveTypesWithM f t2
-  return (HS.TypeFunc srcSpan t1' t2')
+-- | Type class for AST nodes which contain type constructor references that
+--   can be resolved to their original name.
+class ResolveTypes a where
+  resolveTypesWithM
+    :: Monad m => (SrcSpan -> HS.QName -> m HS.QName) -> a -> m a
+
+-- | Type constructors in type expressions can be resolved.
+instance ResolveTypes HS.Type where
+  -- | Replaces all constructor names in the given type expression
+  --   by the name returned by the given function.
+  resolveTypesWithM _ var@(HS.TypeVar _       _   ) = return var
+  resolveTypesWithM f (    HS.TypeCon srcSpan name) = do
+    name' <- f srcSpan name
+    return (HS.TypeCon srcSpan name')
+  resolveTypesWithM f (HS.TypeApp srcSpan t1 t2) = do
+    t1' <- resolveTypesWithM f t1
+    t2' <- resolveTypesWithM f t2
+    return (HS.TypeApp srcSpan t1' t2')
+  resolveTypesWithM f (HS.TypeFunc srcSpan t1 t2) = do
+    t1' <- resolveTypesWithM f t1
+    t2' <- resolveTypesWithM f t2
+    return (HS.TypeFunc srcSpan t1' t2')
+
+-- | Type constructors in type schemas can be resolved.
+instance ResolveTypes HS.TypeSchema where
+  resolveTypesWithM f (HS.TypeSchema srcSpan typeArgs typeExpr) = do
+    typeExpr' <- resolveTypesWithM f typeExpr
+    return (HS.TypeSchema srcSpan typeArgs typeExpr')
+
+-- | Type constructors in type signatures and visible type applications
+--   can be resolved.
+instance ResolveTypes HS.Expr where
+  -- Resolve types in type or type schema.
+  resolveTypesWithM f (HS.TypeAppExpr srcSpan expr typeExpr) = do
+    expr'     <- resolveTypesWithM f expr
+    typeExpr' <- resolveTypesWithM f typeExpr
+    return (HS.TypeAppExpr srcSpan expr' typeExpr')
+  resolveTypesWithM f (HS.ExprTypeSig srcSpan expr typeSchema) = do
+    expr'       <- resolveTypesWithM f expr
+    typeSchema' <- resolveTypesWithM f typeSchema
+    return (HS.ExprTypeSig srcSpan expr' typeSchema')
+
+  -- Resolve types recursively.
+  resolveTypesWithM f (HS.App srcSpan e1 e2) = do
+    e1' <- resolveTypesWithM f e1
+    e2' <- resolveTypesWithM f e2
+    return (HS.App srcSpan e1' e2')
+  resolveTypesWithM f (HS.If srcSpan e1 e2 e3) = do
+    e1' <- resolveTypesWithM f e1
+    e2' <- resolveTypesWithM f e2
+    e3' <- resolveTypesWithM f e3
+    return (HS.If srcSpan e1' e2' e3')
+  resolveTypesWithM f (HS.Case srcSpan expr alts) = do
+    expr' <- resolveTypesWithM f expr
+    alts' <- mapM (resolveTypesWithM f) alts
+    return (HS.Case srcSpan expr' alts')
+  resolveTypesWithM f (HS.Lambda srcSpan args expr) = do
+    expr' <- resolveTypesWithM f expr
+    return (HS.Lambda srcSpan args expr')
+
+  -- All other expressions remain unchanged.
+  resolveTypesWithM _ expr@(HS.Con        _ _) = return expr
+  resolveTypesWithM _ expr@(HS.Var        _ _) = return expr
+  resolveTypesWithM _ expr@(HS.IntLiteral _ _) = return expr
+  resolveTypesWithM _ expr@(HS.Undefined _   ) = return expr
+  resolveTypesWithM _ expr@(HS.ErrorExpr _ _ ) = return expr
+
+-- | Type constructors in type signatures and visible type applications on
+--   the right-hand side of a @case@ expression alternative can be resolved.
+instance ResolveTypes HS.Alt where
+  resolveTypesWithM f (HS.Alt srcSpan conPat varPats expr) = do
+    expr' <- resolveTypesWithM f expr
+    return (HS.Alt srcSpan conPat varPats expr')
