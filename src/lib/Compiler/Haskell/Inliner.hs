@@ -17,6 +17,7 @@ module Compiler.Haskell.Inliner where
 
 import           Control.Applicative            ( (<|>) )
 import           Control.Monad                  ( when )
+import           Control.Monad.Trans.Maybe      ( MaybeT(..) )
 import           Data.Map.Strict                ( Map )
 import qualified Data.Map.Strict               as Map
 import           Data.Maybe                     ( fromMaybe )
@@ -26,6 +27,8 @@ import           Compiler.Environment.Scope
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Haskell.SrcSpan
 import           Compiler.Haskell.Subst
+import           Compiler.Haskell.Subterm
+import           Compiler.Monad.Class.Hoistable ( hoistMaybe )
 import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
 import           Compiler.Pretty
@@ -227,3 +230,24 @@ expandTypeSynonyms maxDepth t0
     return (Just (HS.TypeFunc srcSpan t1' t2'))
 
   expandTypeSynonyms' (HS.TypeVar _ _) _ = return Nothing
+
+-- | Applies 'expandTypeSynonym' to the subterm at the given position.
+--
+--   If there are type constructor applications in parent positions, the
+--   type arguments from the parent positions are used to expand the type
+--   synonym as well.
+expandTypeSynonymAt :: Pos -> HS.Type -> Converter HS.Type
+expandTypeSynonymAt pos typeExpr = do
+  case parentPos pos of
+    Just pos' | fromMaybe False (isTypeApp <$> selectSubterm typeExpr pos') ->
+      expandTypeSynonymAt pos' typeExpr
+    _ -> fmap (fromMaybe typeExpr) $ runMaybeT $ do
+      subterm  <- hoistMaybe $ selectSubterm typeExpr pos
+      subterm' <- lift $ expandTypeSynonym subterm
+      hoistMaybe $ replaceSubterm typeExpr pos subterm'
+ where
+  -- | Tests whether the given type expression is a type constructor
+  --   application.
+  isTypeApp :: HS.Type -> Bool
+  isTypeApp (HS.TypeApp _ _ _) = True
+  isTypeApp _                  = False

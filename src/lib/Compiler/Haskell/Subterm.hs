@@ -5,6 +5,8 @@ module Compiler.Haskell.Subterm
   ( -- * Positions
     Pos(..)
   , rootPos
+  , consPos
+  , parentPos
   , allPos
   , above
   , below
@@ -92,6 +94,8 @@ instance Subterm HS.Expr where
       HS.Case srcSpan expr' (zipWith replaceAltChildExpr alts altChildren')
   replaceChildTerms (HS.Lambda srcSpan args _) =
     checkArity 1 $ \[expr'] -> HS.Lambda srcSpan args expr'
+  replaceChildTerms (HS.ExprTypeSig srcSpan _ typeExpr) =
+    checkArity 1 $ \[expr'] -> HS.ExprTypeSig srcSpan expr' typeExpr
   replaceChildTerms expr@(HS.Con _ _       ) = nullary expr
   replaceChildTerms expr@(HS.Var _ _       ) = nullary expr
   replaceChildTerms expr@(HS.Undefined _   ) = nullary expr
@@ -144,11 +148,26 @@ instance Pretty Pos where
 rootPos :: Pos
 rootPos = Pos []
 
+-- | Extends an position inside of a child node to a position inside of a
+--   parent node.
+--
+--   If @pos@ is the position of a subterm @s@ of an expression or
+--   type expression @tᵢ@, then @consPos i pos@ is the position of
+--   the subterm @s@ of a term @C t₁ ... tᵢ ... tₙ@.
+consPos :: Int -> Pos -> Pos
+consPos p (Pos ps) = Pos (p : ps)
+
+-- | Gets the parent position or @Nothing@ if the given position is the
+--   root position.
+parentPos :: Pos -> Maybe Pos
+parentPos (Pos ps) | null ps   = Nothing
+                   | otherwise = Just (Pos (init ps))
+
 -- | Gets all valid positions of subterms within the given Haskell expression.
 allPos :: Subterm a => a -> [Pos]
 allPos term =
   rootPos
-    : [ Pos (p : ps)
+    : [ consPos p childPos
       | (p, child) <- zip [1 ..] (childTerms term)
       , childPos   <- allPos child
       ]
