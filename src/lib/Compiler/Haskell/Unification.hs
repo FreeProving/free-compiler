@@ -39,10 +39,10 @@ unify t s = do
     Just (_  , HS.TypeVar _ x, v             ) -> x `mapsTo` v
     Just (_  , u             , HS.TypeVar _ y) -> y `mapsTo` u
     Just (pos, u             , v             ) -> do
-      u' <- expandTypeSynonymAt pos u
-      v' <- expandTypeSynonymAt pos v
-      if u /= u' || v /= v'
-        then unify u' v'
+      t' <- expandTypeSynonymAt pos t
+      s' <- expandTypeSynonymAt pos s
+      if t /= t' || s /= s'
+        then unify t' s'
         else
           reportFatal
           $  Message (HS.getSrcSpan u) Error
