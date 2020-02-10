@@ -18,13 +18,13 @@ import           Compiler.Util.Test
 
 -- | Creates a generator for valid test positions for the given expression.
 validTestPos :: HS.Expr -> Gen Pos
-validTestPos expr = oneof (map return (pos expr))
+validTestPos expr = oneof (map return (allPos expr))
 
 -- | Creates a generator for invalid test positions for the given expression
 --   (i.e. positions that do not identify a subterm of the given expression).
 invalidTestPos :: HS.Expr -> Gen Pos
 invalidTestPos expr =
-  (arbitrary >>= return . Pos) `suchThat` (not . (`elem` (pos expr)))
+  (arbitrary >>= return . Pos) `suchThat` (not . (`elem` (allPos expr)))
 
 -- | Creates a generator for test positions for the given expression.
 --

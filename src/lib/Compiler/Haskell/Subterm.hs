@@ -5,7 +5,7 @@ module Compiler.Haskell.Subterm
   ( -- * Positions
     Pos(..)
   , rootPos
-  , pos
+  , allPos
   , above
   , below
   , leftOf
@@ -145,12 +145,12 @@ rootPos :: Pos
 rootPos = Pos []
 
 -- | Gets all valid positions of subterms within the given Haskell expression.
-pos :: Subterm a => a -> [Pos]
-pos term =
+allPos :: Subterm a => a -> [Pos]
+allPos term =
   rootPos
     : [ Pos (p : ps)
       | (p, child) <- zip [1 ..] (childTerms term)
-      , Pos ps     <- pos child
+      , childPos   <- allPos child
       ]
 
 -- Tests whether a position is above another one.
@@ -228,13 +228,13 @@ replaceSubterms term ((p, e) : pes) = do
 --   satisfy the provided predicate.
 findSubtermPos :: Subterm a => (a -> Bool) -> a -> [Pos]
 findSubtermPos predicate term =
-  filter (predicate . fromJust . selectSubterm term) (pos term)
+  filter (predicate . fromJust . selectSubterm term) (allPos term)
 
 -- | Gets a list of subterms of the given expression that satisfy the
 --   provided predicate.
 findSubterms :: Subterm a => (a -> Bool) -> a -> [a]
 findSubterms predicate term =
-  filter predicate (map (fromJust . selectSubterm term) (pos term))
+  filter predicate (map (fromJust . selectSubterm term) (allPos term))
 
 -------------------------------------------------------------------------------
 -- Bound variables                                                           --
