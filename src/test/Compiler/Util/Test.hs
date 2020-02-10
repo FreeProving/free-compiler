@@ -3,8 +3,10 @@
 module Compiler.Util.Test where
 
 import           Test.Hspec
+import           Test.QuickCheck
 
 import           Control.Exception
+import           Control.Monad                  ( replicateM )
 import           Data.Maybe                     ( catMaybes
                                                 , fromJust
                                                 )
@@ -27,6 +29,36 @@ import           Compiler.Haskell.SrcSpan
 import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
 import           Compiler.Pretty
+
+-------------------------------------------------------------------------------
+-- Arbitrary instances                                                       --
+-------------------------------------------------------------------------------
+
+-- | Generates an arbitrary type expression.
+instance Arbitrary HS.Type where
+  arbitrary = oneof
+    [arbitraryTypeVar, arbitraryTypeConApp, arbitraryFuncType]
+   where
+    arbitraryTypeVar :: Gen HS.Type
+    arbitraryTypeVar = do
+      ident <- oneof $ map return ["a", "b", "c", "d"]
+      return (HS.TypeVar NoSrcSpan ident)
+
+    arbitraryTypeConApp :: Gen HS.Type
+    arbitraryTypeConApp = do
+      (name, arity) <- oneof $ map
+        return
+        [ (HS.boolTypeConName   , 0)
+        , (HS.integerTypeConName, 0)
+        , (HS.unitTypeConName   , 0)
+        , (HS.listTypeConName   , 1)
+        , (HS.tupleTypeConName 2, 2)
+        ]
+      args <- replicateM arity arbitrary
+      return (HS.typeConApp NoSrcSpan name args)
+
+    arbitraryFuncType :: Gen HS.Type
+    arbitraryFuncType = HS.TypeFunc NoSrcSpan <$> arbitrary <*> arbitrary
 
 -------------------------------------------------------------------------------
 -- Evaluation of converters and reporters                                    --
@@ -100,6 +132,26 @@ shouldReportFatal reporter = do
         ++ show x
         ++ "\n\nThe following messages were reported:"
         ++ showPretty ms
+
+-------------------------------------------------------------------------------
+-- QuickCheck properties for converters                                      --
+-------------------------------------------------------------------------------
+
+-- | Converts the given reporter to a QuickCheck property that is fullfilled
+--   if and only if the given reporter does not report a fatal error and
+--   the returned testable property is satisfied.
+shouldSucceedProperty :: Testable prop => ReporterIO prop -> Property
+shouldSucceedProperty reporter = idempotentIOProperty $ do
+  result <- runReporterT reporter
+  case result of
+    (Nothing, ms) -> return $ counterexample
+      (  "The following "
+      ++ show (length ms)
+      ++ " messages were reported:\n"
+      ++ showPretty ms
+      )
+      (property Discard)
+    (Just prop, _) -> return (property prop)
 
 -------------------------------------------------------------------------------
 -- Parsing and simplification utility functions                              --
@@ -323,9 +375,9 @@ shouldTranslateModuleTo input expectedOutputLines = do
 --   equals the given string.
 --
 --   Whitespace is ignored (see 'discardWhitespace').
-prettyShouldBe :: Pretty a => a -> String -> Expectation
+prettyShouldBe :: (Pretty a, Pretty b) => a -> b -> Expectation
 prettyShouldBe input expectedOutput = discardWhitespace (showPretty input)
-  `shouldBe` discardWhitespace expectedOutput
+  `shouldBe` discardWhitespace (showPretty expectedOutput)
 
 -- | Replaces all whitespace in the given string by a single space.
 discardWhitespace :: String -> String
