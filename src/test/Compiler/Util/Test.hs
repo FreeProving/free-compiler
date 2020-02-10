@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -Wno-orphans #-}
+
 -- | This module contains utility functions for testing the compiler.
 
 module Compiler.Util.Test where
@@ -7,9 +9,15 @@ import           Test.QuickCheck
 
 import           Control.Exception
 import           Control.Monad                  ( replicateM )
+import           Data.IORef                     ( IORef
+                                                , newIORef
+                                                , readIORef
+                                                , writeIORef
+                                                )
 import           Data.Maybe                     ( catMaybes
                                                 , fromJust
                                                 )
+import           System.IO.Unsafe               ( unsafePerformIO )
 
 import           Compiler.Analysis.DependencyExtraction
                                                 ( typeVars )
@@ -79,9 +87,24 @@ fromConverter converter = fromModuleConverter $ do
 --   given converter.
 fromModuleConverter :: Converter a -> ReporterIO a
 fromModuleConverter converter = flip evalConverterT emptyEnv $ do
-  preludeIface <- lift' $ loadModuleInterface "./base/Prelude.toml"
+  preludeIface <- lift' loadPreludeModuleInterface
   modifyEnv $ makeModuleAvailable preludeIface
   hoist converter
+ where
+  loadPreludeModuleInterface :: ReporterIO ModuleInterface
+  loadPreludeModuleInterface = do
+    maybePreludeIface <- lift $ readIORef preludeModuleInterfaceBuffer
+    case maybePreludeIface of
+      Nothing -> do
+        preludeIface <- loadModuleInterface "./base/Prelude.toml"
+        lift $ writeIORef preludeModuleInterfaceBuffer (Just preludeIface)
+        return preludeIface
+      Just preludeIface -> return preludeIface
+
+-- | A global variable that buffers the module interface of the @Prelude@
+--   module such that it does not have to be loaded in every test case.
+preludeModuleInterfaceBuffer :: IORef (Maybe ModuleInterface)
+preludeModuleInterfaceBuffer = unsafePerformIO $ newIORef Nothing
 
 -- | Evaluates the given reporter and throws an IO exception when a fatal
 --   error message is reported.
