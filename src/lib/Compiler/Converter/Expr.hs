@@ -22,6 +22,7 @@ import           Compiler.Environment.Renamer
 import           Compiler.Environment.Scope
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Haskell.SrcSpan
+import           Compiler.Haskell.Subst
 import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
 import           Compiler.Pretty
@@ -158,8 +159,12 @@ convertExpr' (HS.Var srcSpan name) typeArgs args = do
           -- unwrapped first.
           let (before, decArg : after) = splitAt index args'
           -- Add type annotation for decreasing argument.
-          Just argTypes <- inEnv $ lookupArgTypes ValueScope name
-          decArgType'   <- mapM convertType' (argTypes !! index)
+          Just typeArgIdents <- inEnv $ lookupTypeArgs ValueScope name
+          Just argTypes      <- inEnv $ lookupArgTypes ValueScope name
+          let typeArgNames = map (HS.UnQual . HS.Ident) typeArgIdents
+              subst = composeSubsts (zipWith singleSubst typeArgNames typeArgs)
+          decArgType  <- mapM (applySubst subst) (argTypes !! index)
+          decArgType' <- mapM convertType' decArgType
           generateBind decArg freshArgPrefix decArgType' $ \decArg' ->
             generateApplyN arity callee (before ++ decArg' : after)
     else do

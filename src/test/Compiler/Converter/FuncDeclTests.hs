@@ -409,7 +409,7 @@ testConvertRecFuncDeclsWithHelpers =
             ++ " := xs >>= (fun (xs_0 : List Shape Pos a) =>"
             ++ "    @length_0 Shape Pos a xs_0)."
 
-    it "does not pass shaodwed arguments of main function to helper functions"
+    it "does not pass shadowed arguments of main function to helper functions"
       $ shouldSucceed
       $ fromConverter
       $ do
@@ -437,6 +437,36 @@ testConvertRecFuncDeclsWithHelpers =
             ++ " : Free Shape Pos (List Shape Pos a)"
             ++ " := (fun n0 => xs >>= (fun (xs_0 : List Shape Pos a) =>"
             ++ "       @take_0 Shape Pos a n0 xs_0)) n."
+
+    it "translates polymorphically recursive functions correctly"
+      $ shouldSucceed
+      $ fromConverter
+      $ do
+          "Tree"           <- defineTestTypeCon "Tree" 1
+          ("leaf", "Leaf") <- defineTestCon "Leaf" 1 "a -> Tree a"
+          ("fork", "Fork") <- defineTestCon "Fork" 1 "Tree (a, a) -> Tree a"
+          shouldTranslateDeclsTo
+              [ "height :: Tree a -> Integer"
+              , "height t = case t of {"
+              ++ "    Leaf x -> 1;"
+              ++ "    Fork t' -> 1 + height t';"
+              ++ "  }"
+              ]
+            $ "(* Helper functions for height *) "
+            ++ "Fixpoint height_0 (Shape : Type) (Pos : Shape -> Type)"
+            ++ "  {a : Type} (t : Tree Shape Pos a) {struct t}"
+            ++ " := match t with"
+            ++ "     | leaf x => pure 1%Z"
+            ++ "     | fork t' => addInteger Shape Pos (pure 1%Z)"
+            ++ "         (t' >>="
+            ++ "           (fun (t'_0 : Tree Shape Pos (Pair Shape Pos a a)) =>"
+            ++ "              @height_0 Shape Pos (Pair Shape Pos a a) t'_0))"
+            ++ "     end. "
+            ++ "Definition height (Shape : Type) (Pos : Shape -> Type)"
+            ++ "  {a : Type} (t : Free Shape Pos (Tree Shape Pos a))"
+            ++ "  : Free Shape Pos (Integer Shape Pos)"
+            ++ " := t >>= (fun (t_0 : Tree Shape Pos a) =>"
+            ++ "      @height_0 Shape Pos a t_0)."
 
 -------------------------------------------------------------------------------
 -- Recursive function declarations with constant arguments                   --
