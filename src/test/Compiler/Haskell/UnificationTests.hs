@@ -3,6 +3,8 @@ module Compiler.Haskell.UnificationTests where
 import           Test.Hspec
 import           Test.QuickCheck
 
+import           Control.Monad.Trans.Except     ( runExceptT )
+
 import           Compiler.Environment.Fresh
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Haskell.Subst
@@ -44,12 +46,12 @@ testUnification = describe "Compiler.Haskell.Unification.unify" $ do
           f2 <- freshTypeVar
           (f1, f2) `shouldUnifyTo` f2
     it "cannot match variable with type containing the variable (occurs check)"
-      $ shouldReportFatal
+      $ shouldSucceed
       $ fromConverter
       $ do
           t <- parseTestType "a"
           s <- parseTestType "a -> a"
-          showPretty <$> unify t s
+          shouldFailOccursCheck t s
   context "type constructors" $ do
     it "constructors match the same constructor"
       $ shouldSucceed
@@ -65,12 +67,12 @@ testUnification = describe "Compiler.Haskell.Unification.unify" $ do
           s <- parseTestType "(b, c)"
           (t, s) `shouldUnifyTo` "(c, c)"
     it "constructors do not match other constructors"
-      $ shouldReportFatal
+      $ shouldSucceed
       $ fromConverter
       $ do
           t <- parseTestType "()"
           s <- parseTestType "Integer"
-          showPretty <$> unify t s
+          shouldFailUnification t s
     it "maps variables on the left to constructors on the right"
       $ shouldSucceed
       $ fromConverter
@@ -116,7 +118,7 @@ testUnification = describe "Compiler.Haskell.Unification.unify" $ do
     it "self-unification yields the identity substitution"
       $ property
       $ \typeExpr -> shouldSucceedProperty $ fromConverter $ do
-          mgu       <- unify typeExpr typeExpr
+          mgu       <- unifyOrFail (HS.getSrcSpan typeExpr) typeExpr typeExpr
           typeExpr' <- applySubst mgu typeExpr
           return (typeExpr' == typeExpr)
 
@@ -138,9 +140,61 @@ shouldUnifyTo (t, s) expectedOutput =
 shouldUnifyTo'
   :: Pretty a => (HS.Type, HS.Type) -> (a, a) -> Converter Expectation
 shouldUnifyTo' (t, s) (ot, os) = do
-  mgu <- unify t s
+  mgu <- unifyOrFail (HS.getSrcSpan t) t s
   t'  <- applySubst mgu t
   s'  <- applySubst mgu s
   return $ do
     t' `prettyShouldBe` ot
     s' `prettyShouldBe` os
+
+-- | Unifies the given type expressions and sets the expectation that the
+--   unification fails.
+shouldFailUnification :: HS.Type -> HS.Type -> Converter Expectation
+shouldFailUnification t s = do
+  res <- runExceptT $ unify t s
+  case res of
+    Left (UnificationError _ _) -> return (return ())
+    Left (OccursCheckFailure _ _) ->
+      return
+        $  expectationFailure
+        $  "Expected unification error, but occurs check failed for `"
+        ++ showPretty t
+        ++ "` and `"
+        ++ showPretty s
+        ++ "`."
+    Right mgu ->
+      return
+        $  expectationFailure
+        $  "Expected unification error, but found unificator "
+        ++ showPretty mgu
+        ++ " for `"
+        ++ showPretty t
+        ++ "` and `"
+        ++ showPretty s
+        ++ "`."
+
+-- | Unifies the given type expressions and sets the expectation that the
+--   occurs check fails.
+shouldFailOccursCheck :: HS.Type -> HS.Type -> Converter Expectation
+shouldFailOccursCheck t s = do
+  res <- runExceptT $ unify t s
+  case res of
+    Left (OccursCheckFailure _ _) -> return (return ())
+    Left (UnificationError _ _) ->
+      return
+        $  expectationFailure
+        $  "Expected occurs check to fail, but got unification error for `"
+        ++ showPretty t
+        ++ "` and `"
+        ++ showPretty s
+        ++ "`."
+    Right mgu ->
+      return
+        $  expectationFailure
+        $  "Expected occurs check to fail, but found unificator "
+        ++ showPretty mgu
+        ++ " for `"
+        ++ showPretty t
+        ++ "` and `"
+        ++ showPretty s
+        ++ "`."

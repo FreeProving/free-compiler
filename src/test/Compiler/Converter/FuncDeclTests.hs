@@ -452,7 +452,7 @@ testConvertRecFuncDeclsWithHelpers =
               ++ "    Fork t' -> 1 + height t';"
               ++ "  }"
               ]
-            $ "(* Helper functions for height *) "
+            $  "(* Helper functions for height *) "
             ++ "Fixpoint height_0 (Shape : Type) (Pos : Shape -> Type)"
             ++ "  {a : Type} (t : Tree Shape Pos a) {struct t}"
             ++ " := match t with"

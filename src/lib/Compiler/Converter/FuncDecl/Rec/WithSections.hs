@@ -279,12 +279,13 @@ lookupConstArgType
   -> ConstArg
   -> Converter (HS.Type, Subst HS.Type)
 lookupConstArgType argTypeMap constArg = do
-  let idents = Map.assocs (constArgIdents constArg)
-      types  = catMaybes $ map (flip Map.lookup argTypeMap) idents
+  let idents  = Map.assocs (constArgIdents constArg)
+      types   = catMaybes $ map (flip Map.lookup argTypeMap) idents
+      srcSpan = HS.getSrcSpan (head types)
   -- Unify all annotated types of the constant argument.
   expandedTypes <- mapM expandAllTypeSynonyms types
   resolvedTypes <- mapM resolveTypes expandedTypes
-  mgu           <- unifyAll resolvedTypes
+  mgu           <- unifyAllOrFail srcSpan resolvedTypes
   constArgType  <- applySubst mgu (head resolvedTypes)
   return (constArgType, mgu)
 

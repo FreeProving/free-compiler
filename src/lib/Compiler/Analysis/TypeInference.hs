@@ -89,8 +89,11 @@ addTypeSigEquation funcDecl funcType = do
   let funcIdent = HS.fromDeclIdent (HS.getDeclIdent funcDecl)
       funcName  = HS.UnQual (HS.Ident funcIdent)
   maybeTypeSig <- lift $ inEnv $ lookupTypeSig funcName
-  mapM_ (\(HS.TypeSchema _ _ typeSig) -> addTypeEquation typeSig funcType)
-        maybeTypeSig
+  mapM_
+    (\(HS.TypeSchema srcSpan _ typeSig) ->
+      addTypeEquation srcSpan typeSig funcType
+    )
+    maybeTypeSig
 
 -- | Infers the types of type arguments to functions and constructors
 --   used by the right-hand side of the given function declaration.
@@ -240,11 +243,13 @@ addTypeAppVarsToFuncDecl (HS.FuncDecl srcSpan declIdent args rhs) =
 -- Simplification of expression/type pairs                                   --
 -------------------------------------------------------------------------------
 
--- | A pair of a variable name and it's type.
-type TypedVar = (HS.VarName, HS.Type)
+-- | A pair of a variable name and its expected type type and location in the
+--   source code.
+type TypedVar = (HS.VarName, (SrcSpan, HS.Type))
 
--- | A type equation.
-type TypeEquation = (HS.Type, HS.Type)
+-- | A type equation and the location in the source that caused the creation
+--   of this type variable.
+type TypeEquation = (SrcSpan, HS.Type, HS.Type)
 
 -- | A writer monad that allows 'simplifyTypedExpr' to generate 'TypedVar's
 --   and 'TypeEquation's implicitly.
@@ -265,12 +270,12 @@ execTypedExprSimplifier :: TypedExprSimplifier a -> Converter [TypeEquation]
 execTypedExprSimplifier = fmap snd . runTypedExprSimplifier
 
 -- | Adds a 'TypedVar' entry to a 'TypedExprSimplifier'.
-addVarType :: HS.QName -> HS.Type -> TypedExprSimplifier ()
-addVarType v t = tell ([(v, t)], [])
+addVarType :: SrcSpan -> HS.QName -> HS.Type -> TypedExprSimplifier ()
+addVarType srcSpan v t = tell ([(v, (srcSpan, t))], [])
 
 -- | Adds a 'TypeEquation' entry to a 'TypedExprSimplifier'.
-addTypeEquation :: HS.Type -> HS.Type -> TypedExprSimplifier ()
-addTypeEquation t t' = tell ([], [(t, t')])
+addTypeEquation :: SrcSpan -> HS.Type -> HS.Type -> TypedExprSimplifier ()
+addTypeEquation srcSpan t t' = tell ([], [(srcSpan, t, t')])
 
 -- | Instantiates the type schema of the function or constructor with the
 --   given name and adds a 'TypeEquation' for the resulting type and the
@@ -287,7 +292,7 @@ addTypeEquationFor
 addTypeEquationFor srcSpan name resType = do
   typeSchema           <- lift $ lookupTypeSchemaOrTypeSig srcSpan name
   (funcType, typeArgs) <- lift $ instantiateTypeSchema' typeSchema
-  addTypeEquation funcType resType
+  addTypeEquation srcSpan funcType resType
   return typeArgs
 
 -- | Looks up the type schema of a predefined function or constructor or
@@ -327,7 +332,7 @@ simplifyTypedExpr (HS.Con srcSpan conName) resType =
 simplifyTypedExpr (HS.Var srcSpan varName) resType = ifM
   (lift $ inEnv (isFunction varName .||. hasTypeSig varName))
   (addTypeEquationFor srcSpan varName resType)
-  (addVarType varName resType >> return [])
+  (addVarType srcSpan varName resType >> return [])
 
 -- If @(e₁ e₂) :: τ@, then @e₁ :: α -> τ@ and @e₂ :: α@ where @α@ is a new
 -- type variable.
@@ -351,7 +356,7 @@ simplifyTypedExpr (HS.TypeAppExpr srcSpan expr typeExpr) resType = do
         $  "Every visible type application must have a corresponding "
         ++ "type argument."
     (typeArg : typeArgs') -> do
-      addTypeEquation typeArg typeExpr
+      addTypeEquation srcSpan typeArg typeExpr
       return typeArgs'
 
 -- If @if e₁ then e₂ else e₃ :: τ@, then @e₁ :: Bool@ and @e₂, e₃ :: τ@.
@@ -371,33 +376,33 @@ simplifyTypedExpr (HS.Case _ expr alts) resType = do
   return []
 
 -- Error terms are always typed correctly.
-simplifyTypedExpr (HS.Undefined _   ) resType = return [resType]
-simplifyTypedExpr (HS.ErrorExpr  _ _) resType = return [resType]
+simplifyTypedExpr (HS.Undefined _         ) resType = return [resType]
+simplifyTypedExpr (HS.ErrorExpr  _       _) resType = return [resType]
 
 -- If @n :: τ@ for some integer literal @n@, then @τ = Integer@.
-simplifyTypedExpr (HS.IntLiteral _ _) resType = do
-  addTypeEquation resType (HS.TypeCon NoSrcSpan HS.integerTypeConName)
+simplifyTypedExpr (HS.IntLiteral srcSpan _) resType = do
+  addTypeEquation srcSpan (HS.TypeCon NoSrcSpan HS.integerTypeConName) resType
   return []
 
 -- If @\x₀ … xₙ -> e :: τ@, then @x₀ :: α₀, … xₙ :: αₙ@ and @x :: β@ for new
 -- type variables @α₀ … αₙ@ and @α₀ -> … -> αₙ -> β = τ@.
-simplifyTypedExpr (HS.Lambda _ args expr) resType = do
+simplifyTypedExpr (HS.Lambda srcSpan args expr) resType = do
   (args', expr') <- lift $ renameArgs args expr
   argTypes       <- replicateM (length args') (lift freshTypeVar)
   returnType     <- lift freshTypeVar
   zipWithM_ simplifyTypedExpr (map HS.varPatToExpr args') argTypes
   simplifyTypedExpr' expr' returnType
   let funcType = HS.funcType NoSrcSpan argTypes returnType
-  addTypeEquation funcType resType
+  addTypeEquation srcSpan funcType resType
   return []
 
 -- If @(e :: forall α₀, …, αₙ. τ) :: τ'@, then @e :: σ(τ)@ and @σ(τ) = τ'@
 -- where @σ = { α₀ ↦ β₀, …, αₙ ↦ βₙ }@ maps the quantified type variables
 -- of @τ@ to new type variables @β₀, …, βₙ@.
-simplifyTypedExpr (HS.ExprTypeSig _ expr typeSchema) resType = do
+simplifyTypedExpr (HS.ExprTypeSig srcSpan expr typeSchema) resType = do
   exprType <- lift $ instantiateTypeSchema typeSchema
   simplifyTypedExpr' expr exprType
-  addTypeEquation exprType resType
+  addTypeEquation srcSpan exprType resType
   return []
 
 -- | Applies 'simplifyTypedExpr' to the pattern and right-hand side of a
@@ -443,10 +448,10 @@ simplifyTypedPat conPat varPats patType = do
 -- | Converts @n@ 'TypedVar' entries for the same variable to @n-1@
 --   type equations.
 makeTypeEquations :: [TypedVar] -> [TypeEquation]
-makeTypeEquations []                     = []
-makeTypeEquations ((var, typeExpr) : ps) = case lookup var ps of
-  Nothing        -> makeTypeEquations ps
-  Just typeExpr' -> (typeExpr, typeExpr') : makeTypeEquations ps
+makeTypeEquations [] = []
+makeTypeEquations ((var, (srcSpan, typeExpr)) : ps) = case lookup var ps of
+  Nothing             -> makeTypeEquations ps
+  Just (_, typeExpr') -> (srcSpan, typeExpr, typeExpr') : makeTypeEquations ps
 
 -- | Finds the most general unificator that satisfies all given type equations.
 unifyEquations :: [TypeEquation] -> Converter (Subst HS.Type)
@@ -455,10 +460,10 @@ unifyEquations = unifyEquations' identitySubst
   unifyEquations'
     :: Subst HS.Type -> [TypeEquation] -> Converter (Subst HS.Type)
   unifyEquations' subst []                = return subst
-  unifyEquations' subst ((t1, t2) : eqns) = do
+  unifyEquations' subst ((srcSpan, t1, t2) : eqns) = do
     t1' <- applySubst subst t1
     t2' <- applySubst subst t2
-    mgu <- unify t1' t2'
+    mgu <- unifyOrFail srcSpan t1' t2'
     let subst' = composeSubst mgu subst
     unifyEquations' subst' eqns
 

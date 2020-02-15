@@ -2,21 +2,87 @@
 --   unificator (mgu) for Haskell type expressions.
 
 module Compiler.Haskell.Unification
-  ( unify
+  ( -- * Error reporting
+    UnificationError(..)
+  , reportUnificationError
+  , unifyOrFail
+  , unifyAllOrFail
+    -- * Unification
+  , unify
   , unifyAll
   )
 where
+
+import           Control.Monad.Trans.Except     ( ExceptT
+                                                , runExceptT
+                                                , throwE
+                                                )
+import           Data.Composition               ( (.:) )
 
 import           Compiler.Environment.Entry
 import           Compiler.Environment.LookupOrFail
 import           Compiler.Environment.Scope
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Haskell.Inliner
+import           Compiler.Haskell.SrcSpan
 import           Compiler.Haskell.Subst
 import           Compiler.Haskell.Subterm
 import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
 import           Compiler.Pretty                ( showPretty )
+
+-------------------------------------------------------------------------------
+-- Error reporting                                                           --
+-------------------------------------------------------------------------------
+
+-- | An error that can occur during the unification of two types.
+data UnificationError
+  = UnificationError HS.Type HS.Type
+  | OccursCheckFailure HS.TypeVarIdent HS.Type
+
+-- | Reports the given 'UnificationError'.
+reportUnificationError :: MonadReporter m => SrcSpan -> UnificationError -> m a
+reportUnificationError srcSpan err = case err of
+  UnificationError actualType expectedType -> do
+    reportFatal
+      $  Message srcSpan Error
+      $  "Could not match expected type `"
+      ++ showPretty expectedType
+      ++ "` with actual type `"
+      ++ showPretty actualType
+      ++ "`."
+  OccursCheckFailure x u ->
+    reportFatal
+      $  Message srcSpan Error
+      $  "Occurs check: Could not construct infinite type `"
+      ++ showPretty x
+      ++ "` ~ `"
+      ++ showPretty u
+      ++ "`."
+
+-- | Runs the given converter an reports unification errors using
+--   'reportUnificationError'.
+runOrFail :: SrcSpan -> ExceptT UnificationError Converter a -> Converter a
+runOrFail srcSpan mx =
+  runExceptT mx >>= either (reportUnificationError srcSpan) return
+
+-- | Like 'unify' but reports a fatal error message if the types cannot be
+--   unified.
+--
+--   The error message uses the given location information.
+unifyOrFail :: SrcSpan -> HS.Type -> HS.Type -> Converter (Subst HS.Type)
+unifyOrFail srcSpan = runOrFail srcSpan .: unify
+
+-- | Like 'unifyAll' but reports a fatal error message if the types cannot be
+--   unified.
+--
+--   The error message uses the given location information.
+unifyAllOrFail :: SrcSpan -> [HS.Type] -> Converter (Subst HS.Type)
+unifyAllOrFail srcSpan = runOrFail srcSpan . unifyAll
+
+-------------------------------------------------------------------------------
+-- Unification                                                               --
+-------------------------------------------------------------------------------
 
 -- | Calculates the mgu of the given type expressions.
 --
@@ -26,11 +92,10 @@ import           Compiler.Pretty                ( showPretty )
 --   preferably mapped to variables in the second argument.
 --
 --   Type synonyms are expanded only when necessary.
---
---   Reports a fatal error if the types cannot be unified.
-unify :: HS.Type -> HS.Type -> Converter (Subst HS.Type)
+unify
+  :: HS.Type -> HS.Type -> ExceptT UnificationError Converter (Subst HS.Type)
 unify t s = do
-  ds <- disagreementSet t s
+  ds <- lift $ disagreementSet t s
   case ds of
     Nothing -> return identitySubst
     Just (_, u@(HS.TypeVar _ x), v@(HS.TypeVar _ y))
@@ -39,63 +104,47 @@ unify t s = do
     Just (_  , HS.TypeVar _ x, v             ) -> x `mapsTo` v
     Just (_  , u             , HS.TypeVar _ y) -> y `mapsTo` u
     Just (pos, u             , v             ) -> do
-      t' <- expandTypeSynonymAt pos t
-      s' <- expandTypeSynonymAt pos s
-      if t /= t' || s /= s'
-        then unify t' s'
-        else
-          reportFatal
-          $  Message (HS.getSrcSpan u) Error
-          $  "Could not match `"
-          ++ showPretty u
-          ++ "` with `"
-          ++ showPretty v
-          ++ "` in unification of `"
-          ++ showPretty t
-          ++ "` with `"
-          ++ showPretty s
-          ++ "` at position "
-          ++ showPretty pos
-          ++ "."
+      t' <- lift $ expandTypeSynonymAt pos t
+      s' <- lift $ expandTypeSynonymAt pos s
+      if t /= t' || s /= s' then unify t' s' else throwE $ UnificationError u v
  where
   -- | Maps the given variable to the given type expression and continues
   --   with the next iteration of the unification algorithm.
-  mapsTo :: HS.TypeVarIdent -> HS.Type -> Converter (Subst HS.Type)
+  mapsTo
+    :: HS.TypeVarIdent
+    -> HS.Type
+    -> ExceptT UnificationError Converter (Subst HS.Type)
   x `mapsTo` u = do
-    occursCheck x u
+    occursCheck u
     let subst = singleSubst (HS.UnQual (HS.Ident x)) u
-    t'  <- applySubst subst t
-    s'  <- applySubst subst s
+    t'  <- lift $ applySubst subst t
+    s'  <- lift $ applySubst subst s
     mgu <- unify t' s'
     return (composeSubst mgu subst)
-
-  -- | Tests whether the given variable occurs in the given type expression.
-  --
-  --   Reports a fatal error if the variable is found.
-  occursCheck :: HS.TypeVarIdent -> HS.Type -> Converter ()
-  occursCheck x (HS.TypeVar srcSpan y)
-    | x == y
-    = reportFatal
-      $  Message srcSpan Error
-      $  "Occurs check: Could not unify "
-      ++ showPretty t
-      ++ " with "
-      ++ showPretty s
-    | otherwise
-    = return ()
-  occursCheck _ (HS.TypeCon _ _     ) = return ()
-  occursCheck x (HS.TypeApp  _ t1 t2) = occursCheck x t1 >> occursCheck x t2
-  occursCheck x (HS.TypeFunc _ t1 t2) = occursCheck x t1 >> occursCheck x t2
+   where
+    -- | Tests whether the type variable occurs in the given type expression.
+    --
+    --   Reports a fatal error if the variable is found.
+    occursCheck :: HS.Type -> ExceptT UnificationError Converter ()
+    occursCheck (HS.TypeVar _ y) | x == y    = throwE $ OccursCheckFailure x u
+                                 | otherwise = return ()
+    occursCheck (HS.TypeCon _ _     ) = return ()
+    occursCheck (HS.TypeApp  _ t1 t2) = occursCheck t1 >> occursCheck t2
+    occursCheck (HS.TypeFunc _ t1 t2) = occursCheck t1 >> occursCheck t2
 
 -- | Computes the most general unificator for all given type expressions.
-unifyAll :: [HS.Type] -> Converter (Subst HS.Type)
+unifyAll :: [HS.Type] -> ExceptT UnificationError Converter (Subst HS.Type)
 unifyAll []             = return identitySubst
 unifyAll [_           ] = return identitySubst
 unifyAll (t0 : t1 : ts) = do
   mgu  <- unify t0 t1
-  t1'  <- applySubst mgu t1
+  t1'  <- lift $ applySubst mgu t1
   mgu' <- unifyAll (t1' : ts)
   return (composeSubst mgu mgu')
+
+-------------------------------------------------------------------------------
+-- Disagreement set                                                          --
+-------------------------------------------------------------------------------
 
 -- | Type synonym for a disagreement set.
 type DisagreementSet = Maybe (Pos, HS.Type, HS.Type)
