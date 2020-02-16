@@ -39,30 +39,34 @@ jobs:
         ghc-version: '8.6.5'
         cabal-version: '2.4'
     - name: Update Cabal Package List
-      run: cabal new-update
+      id: cabal-update
+      run: |
+        cabal new-update
+        echo "::set-output name=cabal-hash::$(cat cabal.project haskellToCoqCompiler.cabal | sha256sum | awk '{ print $1 }')"
+        echo "::set-output name=cabal-index-hash::$(cat ~/.cabal/packages/**/01-index.cache | sha256sum -b | awk '{ print $1 }')"
     - name: Cache ~/.cabal/packages
       uses: actions/cache@v1
       with:
         path: ~/.cabal/packages
-        key: cabal-packages-${{ hashFiles('*cabal*') }}-${{ hashFiles('~/.cabal/packages/**/01-index.cache') }}
+        key: cabal-packages-${{ steps.cabal-update.outputs.cabal-hash }}-${{ steps.cabal-update.outputs.cabal-index-hash }}
         restore-keys: |
-          cabal-packages-${{ hashFiles('*cabal*') }}-
+          cabal-packages-${{ steps.cabal-update.outputs.cabal-hash }}-
           cabal-packages-
     - name: Cache ~/.cabal/store
       uses: actions/cache@v1
       with:
         path: ~/.cabal/store
-        key: cabal-store-${{ hashFiles('*cabal*') }}-${{ hashFiles('~/.cabal/packages/**/01-index.cache') }}
+        key: cabal-store-${{ steps.cabal-update.outputs.cabal-hash }}-${{ steps.cabal-update.outputs.cabal-index-hash }}
         restore-keys: |
-          cabal-store-${{ hashFiles('*cabal*') }}-
+          cabal-store-${{ steps.cabal-update.outputs.cabal-hash }}-
           cabal-store-
     - name: Cache dist-newstyle
       uses: actions/cache@v1
       with:
         path: dist-newstyle
-        key: dist-newstyle-${{ hashFiles('*cabal*') }}-${{ hashFiles('~/.cabal/packages/**/01-index.cache') }}
+        key: dist-newstyle-${{ steps.cabal-update.outputs.cabal-hash }}-${{ steps.cabal-update.outputs.cabal-index-hash }}
         restore-keys: |
-          dist-newstyle-${{ hashFiles('*cabal*') }}-
+          dist-newstyle-${{ steps.cabal-update.outputs.cabal-hash }}-
           dist-newstyle-
     - name: Install dependencies
       run: |
@@ -86,30 +90,34 @@ jobs:
         ghc-version: '8.6.5'
         cabal-version: '2.4'
     - name: Update Cabal Package List
-      run: cabal new-update
+      id: cabal-update
+      run: |
+        cabal new-update
+        echo "::set-output name=cabal-hash::$(cat cabal.project haskellToCoqCompiler.cabal | sha256sum | awk '{ print $1 }')"
+        echo "::set-output name=cabal-index-hash::$(cat ~/.cabal/packages/**/01-index.cache | sha256sum -b | awk '{ print $1 }')"
     - name: Cache ~/.cabal/packages
       uses: actions/cache@v1
       with:
         path: ~/.cabal/packages
-        key: cabal-packages-${{ hashFiles('*cabal*') }}-${{ hashFiles('~/.cabal/packages/**/01-index.cache') }}
+        key: cabal-packages-${{ steps.cabal-update.outputs.cabal-hash }}-${{ steps.cabal-update.outputs.cabal-index-hash }}
         restore-keys: |
-          cabal-packages-${{ hashFiles('*cabal*') }}-
+          cabal-packages-${{ steps.cabal-update.outputs.cabal-hash }}-
           cabal-packages-
     - name: Cache ~/.cabal/store
       uses: actions/cache@v1
       with:
         path: ~/.cabal/store
-        key: cabal-store-${{ hashFiles('*cabal*') }}-${{ hashFiles('~/.cabal/packages/**/01-index.cache') }}
+        key: cabal-store-${{ steps.cabal-update.outputs.cabal-hash }}-${{ steps.cabal-update.outputs.cabal-index-hash }}
         restore-keys: |
-          cabal-store-${{ hashFiles('*cabal*') }}-
+          cabal-store-${{ steps.cabal-update.outputs.cabal-hash }}-
           cabal-store-
     - name: Cache dist-newstyle
       uses: actions/cache@v1
       with:
         path: dist-newstyle
-        key: dist-newstyle-${{ hashFiles('*cabal*') }}-${{ hashFiles('~/.cabal/packages/**/01-index.cache') }}
+        key: dist-newstyle-${{ steps.cabal-update.outputs.cabal-hash }}-${{ steps.cabal-update.outputs.cabal-index-hash }}
         restore-keys: |
-          dist-newstyle-${{ hashFiles('*cabal*') }}-
+          dist-newstyle-${{ steps.cabal-update.outputs.cabal-hash }}-
           dist-newstyle-
     - name: Install dependencies
       run: |
@@ -137,30 +145,34 @@ jobs:
         ghc-version: '8.6.5'
         cabal-version: '2.4'
     - name: Update Cabal Package List
-      run: cabal new-update
+      id: cabal-update
+      run: |
+        cabal new-update
+        echo "::set-output name=cabal-hash::$(cat cabal.project haskellToCoqCompiler.cabal | sha256sum | awk '{ print $1 }')"
+        echo "::set-output name=cabal-index-hash::$(cat ~/.cabal/packages/**/01-index.cache | sha256sum -b | awk '{ print $1 }')"
     - name: Cache ~/.cabal/packages
       uses: actions/cache@v1
       with:
         path: ~/.cabal/packages
-        key: cabal-packages-${{ hashFiles('*cabal*') }}-${{ hashFiles('~/.cabal/packages/**/01-index.cache') }}
+        key: cabal-packages-${{ steps.cabal-update.outputs.cabal-hash }}-${{ steps.cabal-update.outputs.cabal-index-hash }}
         restore-keys: |
-          cabal-packages-${{ hashFiles('*cabal*') }}-
+          cabal-packages-${{ steps.cabal-update.outputs.cabal-hash }}-
           cabal-packages-
     - name: Cache ~/.cabal/store
       uses: actions/cache@v1
       with:
         path: ~/.cabal/store
-        key: cabal-store-${{ hashFiles('*cabal*') }}-${{ hashFiles('~/.cabal/packages/**/01-index.cache') }}
+        key: cabal-store-${{ steps.cabal-update.outputs.cabal-hash }}-${{ steps.cabal-update.outputs.cabal-index-hash }}
         restore-keys: |
-          cabal-store-${{ hashFiles('*cabal*') }}-
+          cabal-store-${{ steps.cabal-update.outputs.cabal-hash }}-
           cabal-store-
     - name: Cache dist-newstyle
       uses: actions/cache@v1
       with:
         path: dist-newstyle
-        key: dist-newstyle-${{ hashFiles('*cabal*') }}-${{ hashFiles('~/.cabal/packages/**/01-index.cache') }}
+        key: dist-newstyle-${{ steps.cabal-update.outputs.cabal-hash }}-${{ steps.cabal-update.outputs.cabal-index-hash }}
         restore-keys: |
-          dist-newstyle-${{ hashFiles('*cabal*') }}-
+          dist-newstyle-${{ steps.cabal-update.outputs.cabal-hash }}-
           dist-newstyle-
     - name: Install dependencies
       run: |
@@ -196,30 +208,34 @@ jobs:
         ghc-version: '8.6.5'
         cabal-version: '2.4'
     - name: Update Cabal Package List
-      run: cabal new-update
+      id: cabal-update
+      run: |
+        cabal new-update
+        echo "::set-output name=cabal-hash::$(cat cabal.project haskellToCoqCompiler.cabal | sha256sum | awk '{ print $1 }')"
+        echo "::set-output name=cabal-index-hash::$(cat ~/.cabal/packages/**/01-index.cache | sha256sum -b | awk '{ print $1 }')"
     - name: Cache ~/.cabal/packages
       uses: actions/cache@v1
       with:
         path: ~/.cabal/packages
-        key: cabal-packages-${{ hashFiles('*cabal*') }}-${{ hashFiles('~/.cabal/packages/**/01-index.cache') }}
+        key: cabal-packages-${{ steps.cabal-update.outputs.cabal-hash }}-${{ steps.cabal-update.outputs.cabal-index-hash }}
         restore-keys: |
-          cabal-packages-${{ hashFiles('*cabal*') }}-
+          cabal-packages-${{ steps.cabal-update.outputs.cabal-hash }}-
           cabal-packages-
     - name: Cache ~/.cabal/store
       uses: actions/cache@v1
       with:
         path: ~/.cabal/store
-        key: cabal-store-${{ hashFiles('*cabal*') }}-${{ hashFiles('~/.cabal/packages/**/01-index.cache') }}
+        key: cabal-store-${{ steps.cabal-update.outputs.cabal-hash }}-${{ steps.cabal-update.outputs.cabal-index-hash }}
         restore-keys: |
-          cabal-store-${{ hashFiles('*cabal*') }}-
+          cabal-store-${{ steps.cabal-update.outputs.cabal-hash }}-
           cabal-store-
     - name: Cache dist-newstyle
       uses: actions/cache@v1
       with:
         path: dist-newstyle
-        key: dist-newstyle-${{ hashFiles('*cabal*') }}-${{ hashFiles('~/.cabal/packages/**/01-index.cache') }}
+        key: dist-newstyle-${{ steps.cabal-update.outputs.cabal-hash }}-${{ steps.cabal-update.outputs.cabal-index-hash }}
         restore-keys: |
-          dist-newstyle-${{ hashFiles('*cabal*') }}-
+          dist-newstyle-${{ steps.cabal-update.outputs.cabal-hash }}-
           dist-newstyle-
     - name: Install dependencies
       run: |
