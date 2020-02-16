@@ -9,10 +9,8 @@ import           QueuePM.Util
 invariant :: QueueI a -> Bool
 invariant (f, b) = null b || not (null f)
 
--- When translating this property to Coq, we need to manually fix a type error
--- since Coq cannot infer the type of invariant and emptyI.
---     prop_inv_empty :: Bool
---     prop_inv_empty = invariant emptyI
+prop_inv_empty :: Bool
+prop_inv_empty = invariant emptyI
 
 prop_inv_add :: a -> QueueI a -> Property
 prop_inv_add x q = invariant q ==> invariant (addI x q)
