@@ -65,18 +65,20 @@ exported-values = [
   arity          = 0
 
 [[functions]]
-  haskell-type = "Prelude.Bool -> Prelude.Bool -> Prelude.Bool"
-  haskell-name = "Prelude.(&&)"
-  coq-name     = "andBool"
-  arity        = 2
-  partial      = false
+  haskell-type    = "Prelude.Bool -> Prelude.Bool -> Prelude.Bool"
+  haskell-name    = "Prelude.(&&)"
+  coq-name        = "andBool"
+  arity           = 2
+  partial         = false
+  needs-free-args = true
 
 [[functions]]
-  haskell-type = "Prelude.Bool -> Prelude.Bool -> Prelude.Bool"
-  haskell-name = "Prelude.(||)"
-  coq-name     = "orBool"
-  arity        = 2
-  partial      = false
+  haskell-type    = "Prelude.Bool -> Prelude.Bool -> Prelude.Bool"
+  haskell-name    = "Prelude.(||)"
+  coq-name        = "orBool"
+  arity           = 2
+  partial         = false
+  needs-free-args = true
 
 ##############################################################################
 # Integer                                                                    #
@@ -88,81 +90,92 @@ exported-values = [
   arity        = 0
 
 [[functions]]
-  haskell-type = "Prelude.Integer -> Prelude.Integer -> Prelude.Integer"
-  haskell-name = "Prelude.(+)"
-  coq-name     = "addInteger"
-  arity        = 2
-  partial      = false
+  haskell-type    = "Prelude.Integer -> Prelude.Integer -> Prelude.Integer"
+  haskell-name    = "Prelude.(+)"
+  coq-name        = "addInteger"
+  arity           = 2
+  partial         = false
+  needs-free-args = true
 
 [[functions]]
-  haskell-type = "Prelude.Integer -> Prelude.Integer -> Prelude.Integer"
-  haskell-name = "Prelude.(-)"
-  coq-name     = "subInteger"
-  arity        = 2
-  partial      = false
+  haskell-type    = "Prelude.Integer -> Prelude.Integer -> Prelude.Integer"
+  haskell-name    = "Prelude.(-)"
+  coq-name        = "subInteger"
+  arity           = 2
+  partial         = false
+  needs-free-args = true
 
 [[functions]]
-  haskell-type = "Prelude.Integer -> Prelude.Integer -> Prelude.Integer"
-  haskell-name = "Prelude.(*)"
-  coq-name     = "mulInteger"
-  arity        = 2
-  partial      = false
+  haskell-type    = "Prelude.Integer -> Prelude.Integer -> Prelude.Integer"
+  haskell-name    = "Prelude.(*)"
+  coq-name        = "mulInteger"
+  arity           = 2
+  partial         = false
+  needs-free-args = true
 
 [[functions]]
-  haskell-type = "Prelude.Integer -> Prelude.Integer -> Prelude.Integer"
-  haskell-name = "Prelude.(^)"
-  coq-name     = "powInteger"
-  arity        = 2
-  partial      = false
+  haskell-type    = "Prelude.Integer -> Prelude.Integer -> Prelude.Integer"
+  haskell-name    = "Prelude.(^)"
+  coq-name        = "powInteger"
+  arity           = 2
+  partial         = false
+  needs-free-args = true
 
 [[functions]]
-  haskell-type = "Prelude.Integer -> Prelude.Integer -> Prelude.Bool"
-  haskell-name = "Prelude.(<=)"
-  coq-name     = "leInteger"
-  arity        = 2
-  partial      = false
+  haskell-type    = "Prelude.Integer -> Prelude.Integer -> Prelude.Bool"
+  haskell-name    = "Prelude.(<=)"
+  coq-name        = "leInteger"
+  arity           = 2
+  partial         = false
+  needs-free-args = true
 
 [[functions]]
-  haskell-type = "Prelude.Integer -> Prelude.Integer -> Prelude.Bool"
-  haskell-name = "Prelude.(<)"
-  coq-name     = "ltInteger"
-  arity        = 2
-  partial      = false
+  haskell-type    = "Prelude.Integer -> Prelude.Integer -> Prelude.Bool"
+  haskell-name    = "Prelude.(<)"
+  coq-name        = "ltInteger"
+  arity           = 2
+  partial         = false
+  needs-free-args = true
 
 [[functions]]
-  haskell-type = "Prelude.Integer -> Prelude.Integer -> Prelude.Bool"
-  haskell-name = "Prelude.(==)"
-  coq-name     = "eqInteger"
-  arity        = 2
-  partial      = false
+  haskell-type    = "Prelude.Integer -> Prelude.Integer -> Prelude.Bool"
+  haskell-name    = "Prelude.(==)"
+  coq-name        = "eqInteger"
+  arity           = 2
+  partial         = false
+  needs-free-args = true
 
 [[functions]]
-  haskell-type = "Prelude.Integer -> Prelude.Integer -> Prelude.Bool"
-  haskell-name = "Prelude.(/=)"
-  coq-name     = "neqInteger"
-  arity        = 2
-  partial      = false
+  haskell-type    = "Prelude.Integer -> Prelude.Integer -> Prelude.Bool"
+  haskell-name    = "Prelude.(/=)"
+  coq-name        = "neqInteger"
+  arity           = 2
+  partial         = false
+  needs-free-args = true
 
 [[functions]]
-  haskell-type = "Prelude.Integer -> Prelude.Integer -> Prelude.Bool"
-  haskell-name = "Prelude.(>=)"
-  coq-name     = "geInteger"
-  arity        = 2
-  partial      = false
+  haskell-type    = "Prelude.Integer -> Prelude.Integer -> Prelude.Bool"
+  haskell-name    = "Prelude.(>=)"
+  coq-name        = "geInteger"
+  arity           = 2
+  partial         = false
+  needs-free-args = true
 
 [[functions]]
-  haskell-type = "Prelude.Integer -> Prelude.Integer -> Prelude.Bool"
-  haskell-name = "Prelude.(>)"
-  coq-name     = "gtInteger"
-  arity        = 2
-  partial      = false
+  haskell-type    = "Prelude.Integer -> Prelude.Integer -> Prelude.Bool"
+  haskell-name    = "Prelude.(>)"
+  coq-name        = "gtInteger"
+  arity           = 2
+  partial         = false
+  needs-free-args = true
 
 [[functions]]
-  haskell-type = "Prelude.Integer -> Prelude.Integer -> Prelude.Integer"
-  haskell-name = "Prelude.negate"
-  coq-name     = "negate"
-  arity        = 1
-  partial      = false
+  haskell-type    = "Prelude.Integer -> Prelude.Integer -> Prelude.Integer"
+  haskell-name    = "Prelude.negate"
+  coq-name        = "negate"
+  arity           = 1
+  partial         = false
+  needs-free-args = true
 
 ##############################################################################
 # Lists                                                                      #

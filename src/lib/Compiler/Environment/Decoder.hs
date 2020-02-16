@@ -89,6 +89,8 @@
 --     * @arity@ (@Integer@) the number of arguments expected by the function.
 --     * @partial@ (@Boolean@) whether the function is partial (i.e., requires
 --       an instance of the @Partial@ type class).
+--     * @needs-free-args@ (@Boolean@) whether the arguments of the @Free@
+--       monad need to be passed to the function.
 
 module Compiler.Environment.Decoder
   ( loadModuleInterface
@@ -135,7 +137,7 @@ instance Aeson.FromJSON HS.QName where
       m -> Aeson.parserThrowError [] ("Invalid Haskell name " ++ str ++ " " ++ show m)
    where
     parseName :: String -> HS.Name
-    parseName ('(':sym) = HS.Symbol (take (length sym - 1) sym)
+    parseName ('(':sym) = HS.Symbol (init sym)
     parseName ident     = HS.Ident ident
 
 -- | Restores a Coq identifier from the interface file.
@@ -233,11 +235,12 @@ instance Aeson.FromJSON ModuleInterface where
 
     parseConfigFunc :: Aeson.Value -> Aeson.Parser EnvEntry
     parseConfigFunc = Aeson.withObject "Function" $ \obj -> do
-      arity       <- obj .: "arity"
-      haskellName <- obj .: "haskell-name"
-      haskellType <- obj .: "haskell-type"
-      partial     <- obj .: "partial"
-      coqName     <- obj .: "coq-name"
+      arity          <- obj .: "arity"
+      haskellName    <- obj .: "haskell-name"
+      haskellType    <- obj .: "haskell-type"
+      partial        <- obj .: "partial"
+      freeArgsNeeded <- obj .: "needs-free-args"
+      coqName        <- obj .: "coq-name"
       let (argTypes, returnType) = HS.splitType haskellType arity
           typeArgs = catMaybes $ map HS.identFromQName $ typeVars haskellType
       return FuncEntry
@@ -246,7 +249,7 @@ instance Aeson.FromJSON ModuleInterface where
         , entryTypeArgs      = typeArgs
         , entryArgTypes      = argTypes
         , entryReturnType    = returnType
-        , entryNeedsFreeArgs = True
+        , entryNeedsFreeArgs = freeArgsNeeded
         , entryIsPartial     = partial
         , entryIdent         = coqName
         , entryName          = haskellName
