@@ -81,6 +81,9 @@ import           Compiler.Util.Predicate
 data ModuleInterface = ModuleInterface
   { interfaceModName :: HS.ModName
     -- ^ The name of the module.
+  , interfaceLibName :: G.ModuleIdent
+    -- ^ The name of the Coq library that contains this module (e.g. @"Base"@
+    --   for the @Prelude@ module).
   , interfaceExports :: Set ScopedName
     -- ^ The names (qualified with their original module name) that are
     --   exported by the module.

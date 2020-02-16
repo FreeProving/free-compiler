@@ -43,6 +43,7 @@ instance Aeson.ToJSON G.Qualid where
 instance Aeson.ToJSON ModuleInterface where
   toJSON iface = Aeson.object
     [ "module-name" .= Aeson.toJSON (interfaceModName iface)
+    , "library-name" .= Aeson.toJSON (interfaceLibName iface)
     , "exported-types" .= Aeson.toJSON
       (map
         snd
@@ -98,6 +99,7 @@ encodeEntry entry
       , "coq-name" .= coqName
       , "arity" .= arity
       , "partial" .= partial
+      , "needs-free-args" .= freeArgsNeeded
       ]
   | otherwise = error "encodeEntry: Cannot serialize (type) variable entry."
  where
@@ -113,6 +115,9 @@ encodeEntry entry
 
   partial :: Aeson.Value
   partial = Aeson.toJSON (entryIsPartial entry)
+
+  freeArgsNeeded :: Aeson.Value
+  freeArgsNeeded = Aeson.toJSON (entryNeedsFreeArgs entry)
 
   maybeHaskellType :: Maybe Aeson.Value
   maybeHaskellType = do

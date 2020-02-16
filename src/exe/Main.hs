@@ -22,6 +22,7 @@ import           Compiler.Application.Options
 import           Compiler.Converter             ( convertModule )
 import           Compiler.Converter.QuickCheck
 import qualified Compiler.Coq.AST              as G
+import qualified Compiler.Coq.Base             as CoqBase
 import           Compiler.Coq.Pretty
 import           Compiler.Environment
 import           Compiler.Environment.Decoder
@@ -297,4 +298,7 @@ createCoqProject =
     absBaseDir     <- liftIO $ makeAbsolute baseDir
     absOutputDir   <- liftIO $ makeAbsolute outputDir
     let relBaseDir = makeRelative absOutputDir absBaseDir
-    return ("-R " ++ relBaseDir ++ " Base\n")
+    return $ unlines
+      [ "-R " ++ relBaseDir ++ " " ++ showPretty CoqBase.baseLibName
+      , "-R . " ++ showPretty CoqBase.generatedLibName
+      ]

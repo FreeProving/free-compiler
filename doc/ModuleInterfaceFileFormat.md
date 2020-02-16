@@ -27,6 +27,8 @@ The top-level table must contain the following key/value pairs:
 
  * `module-name` (`String`) the name of the module that is described by
    the module interface file.
+ * `library-name` (`String`) the name of the Coq library that contains
+   the module.
  * `exported-types` (`Array` of `String`) the qualified Haskell names
     (`haskell-name`) of the type-level entries exported by the module. All
     other entries in the `types` and `type-synonyms` tables are "hidden" (i.e.

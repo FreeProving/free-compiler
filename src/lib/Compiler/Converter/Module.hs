@@ -164,7 +164,7 @@ convertImportDecls imports = do
       Just preludeIface <- inEnv $ lookupAvailableModule HS.preludeModuleName
       modifyEnv $ importInterface preludeIface
       modifyEnv $ importInterfaceAs HS.preludeModuleName preludeIface
-      generateImport HS.preludeModuleName
+      generateImport (interfaceLibName preludeIface) HS.preludeModuleName
 
 -- | Convert a import declaration.
 --
@@ -180,21 +180,28 @@ convertImportDecl (HS.ImportDecl srcSpan modName) = do
     Just iface -> do
       modifyEnv $ importInterface iface
       modifyEnv $ importInterfaceAs modName iface
+      generateImport (interfaceLibName iface) modName
     Nothing ->
       reportFatal
         $  Message srcSpan Error
         $  "Could not find module '"
         ++ modName
         ++ "'"
-  generateImport modName
 
--- | Generates a Coq import sentence for the module with the given name.
-generateImport :: HS.ModName -> Converter (Maybe G.Sentence)
-generateImport modName
-  | modName == HS.preludeModuleName = return
-  $ Just (G.requireImportFrom CoqBase.baseLibName [G.ident "Prelude"])
-  | modName == quickCheckModuleName = return Nothing
-  | otherwise = return $ Just (G.requireImport [G.ident (showPretty modName)])
+-- | Generates a Coq import sentence for the module with the given name
+--   from the given library.
+--
+--   Modules from the base library are imported via @From Base Require Import@
+--   sentences and all other modules are also exported.
+generateImport :: G.ModuleIdent -> HS.ModName -> Converter (Maybe G.Sentence)
+generateImport libName modName = return
+  $ Just (mkRequireSentence libName [G.ident (showPretty modName)])
+ where
+  -- | Makes a @From ... Require Import ...@ or  @From ... Require Export ...@.
+  mkRequireSentence :: G.ModuleIdent -> [G.ModuleIdent] -> G.Sentence
+  mkRequireSentence | libName == CoqBase.baseLibName = G.requireImportFrom
+                    | otherwise                      = G.requireExportFrom
+
 
 -------------------------------------------------------------------------------
 -- Exports                                                                   --
@@ -231,6 +238,7 @@ exportInterface = do
   entries' <- mapM resolveReferences entries
   return ModuleInterface
     { interfaceModName = modName
+    , interfaceLibName = CoqBase.generatedLibName
     , interfaceExports = exports
     , interfaceEntries = Set.fromList entries'
     }

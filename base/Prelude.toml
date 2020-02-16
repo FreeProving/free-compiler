@@ -7,6 +7,7 @@
 ##############################################################################
 
 module-name = 'Prelude'
+library-name = 'Base'
 exported-types = [
     'Prelude.Bool',
     'Prelude.Integer',

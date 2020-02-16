@@ -17,6 +17,10 @@ imports = G.requireImportFrom baseLibName [G.ident "Free"]
 baseLibName :: G.ModuleIdent
 baseLibName = G.ident "Base"
 
+-- | The name of the Coq library where generated Coq files are placed.
+generatedLibName :: G.ModuleIdent
+generatedLibName = G.ident "Generated"
+
 -------------------------------------------------------------------------------
 -- Free monad                                                                --
 -------------------------------------------------------------------------------

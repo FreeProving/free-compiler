@@ -25,6 +25,8 @@
 --
 --     * @module-name@ (@String@) the name of the module that is described by
 --       the module interface file.
+--     * @library-name@ (@String@) the name of the Coq library that contains
+--       the module.
 --     * @exported-types@ (@Array@ of @String@) the names (@haskell-name@) of
 --       the type-level entries exported by the module. All other entries in
 --       the @types@ and @type-synonyms@ tables are "hidden" (i.e. cannot be
@@ -160,6 +162,7 @@ instance Aeson.FromJSON HS.Type where
 instance Aeson.FromJSON ModuleInterface where
   parseJSON = Aeson.withObject "ModuleInterface" $ \env -> do
     modName <- env .: "module-name"
+    libName <- env .: "library-name"
     exportedTypes <- env .: "exported-types"
     exportedValues <- env .: "exported-values"
     types <- env .:? "types" .!= Aeson.Array Vector.empty
@@ -172,6 +175,7 @@ instance Aeson.FromJSON ModuleInterface where
       >>= Aeson.withArray "Functions" (mapM parseConfigFunc)
     return ModuleInterface
       { interfaceModName = modName
+      , interfaceLibName = libName
       , interfaceExports = Set.fromList
         (  map ((,) TypeScope)  exportedTypes
         ++ map ((,) ValueScope) exportedValues

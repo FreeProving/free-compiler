@@ -7,6 +7,7 @@
 ##############################################################################
 
 module-name = 'Test.QuickCheck'
+library-name = 'Base'
 exported-types = [
     'Test.QuickCheck.Property'
   ]
