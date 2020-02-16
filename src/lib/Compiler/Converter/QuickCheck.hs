@@ -74,15 +74,11 @@ filterQuickCheckProperties
   :: [DependencyComponent HS.FuncDecl]
   -> Converter ([HS.FuncDecl], [DependencyComponent HS.FuncDecl])
 filterQuickCheckProperties components = do
-  quickCheckIsEnabled <- inEnv isQuickCheckEnabled
-  if not quickCheckIsEnabled
-    then return ([], components)
-    else do
-      (quickCheckComponents, otherComponents) <- partitionM
-        containsQuickCheckProperty
-        components
-      quickCheckProperties <- mapM fromNonRecursive quickCheckComponents
-      return (quickCheckProperties, otherComponents)
+  (quickCheckComponents, otherComponents) <- partitionM
+    containsQuickCheckProperty
+    components
+  quickCheckProperties <- mapM fromNonRecursive quickCheckComponents
+  return (quickCheckProperties, otherComponents)
  where
   -- | Extracts the only (non-recursive) QuickCheck property in the given
   --   strongly connected component.
@@ -106,16 +102,7 @@ filterQuickCheckProperties components = do
 -- | Converts the given QuickCheck property to a Coq @Theorem@ with an
 --   empty @Proof@.
 convertQuickCheckProperty :: HS.FuncDecl -> Converter [G.Sentence]
-convertQuickCheckProperty decl = do
-  [decl'] <- inferAndInsertTypeSigs [decl]
-  defineFuncDecl decl'
-  convertQuickCheckProperty' decl'
-
--- | Implementation of 'convertQuickCheckProperty' that assumes that the
---   type of the given QuickCheck property has been inferred and an entry
---   has been inserted into the environemt.
-convertQuickCheckProperty' :: HS.FuncDecl -> Converter [G.Sentence]
-convertQuickCheckProperty' (HS.FuncDecl _ declIdent args expr) = localEnv $ do
+convertQuickCheckProperty (HS.FuncDecl _ declIdent args expr) = localEnv $ do
   let name = HS.UnQual (HS.Ident (HS.fromDeclIdent declIdent))
   (qualid, binders, _) <- convertFuncHead name args
   expr'                <- convertExpr expr

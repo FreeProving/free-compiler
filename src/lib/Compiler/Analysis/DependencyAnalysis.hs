@@ -32,8 +32,8 @@ import qualified Compiler.Haskell.AST          as HS
 --   The only difference to @'SCC' decl@ is that the constructors
 --   have been renamed to be more explainatory in the context of dependency
 --   analysis.
-data DependencyComponent decl =
-  NonRecursive decl   -- ^ A single non-recursive declaration.
+data DependencyComponent decl
+  = NonRecursive decl -- ^ A single non-recursive declaration.
   | Recursive [decl]  -- ^ A list of mutually recursive declarations.
 
 -- | Converts a strongly connected component from @Data.Graph@ to a

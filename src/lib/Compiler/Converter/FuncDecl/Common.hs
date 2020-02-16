@@ -14,6 +14,7 @@ where
 
 import           Control.Monad.Extra            ( zipWithM_ )
 
+import           Compiler.Analysis.DependencyAnalysis
 import           Compiler.Analysis.PartialityAnalysis
 import           Compiler.Analysis.TypeInference
 import           Compiler.Converter.Arg
@@ -35,13 +36,24 @@ import           Compiler.Pretty
 -- Type inference                                                            --
 -------------------------------------------------------------------------------
 
--- | Infers the types of the given function declarations and inserts type
---   signatures into the environment.
+-- | Infers the types of the function declarations in the given strongly
+--   connected component and inserts type signatures into the environment.
 --
 --   Returns the function declarations where the type arguments of all function
 --   and constructor applications on the right-hand side are applied visibly.
-inferAndInsertTypeSigs :: [HS.FuncDecl] -> Converter [HS.FuncDecl]
-inferAndInsertTypeSigs funcDecls = do
+inferAndInsertTypeSigs
+  :: DependencyComponent HS.FuncDecl
+  -> Converter (DependencyComponent HS.FuncDecl)
+inferAndInsertTypeSigs (NonRecursive decl) = do
+  [decl'] <- inferAndInsertTypeSigs' [decl]
+  return (NonRecursive decl')
+inferAndInsertTypeSigs (Recursive decls) = do
+  decls' <- inferAndInsertTypeSigs' decls
+  return (Recursive decls')
+
+-- | Like
+inferAndInsertTypeSigs' :: [HS.FuncDecl] -> Converter [HS.FuncDecl]
+inferAndInsertTypeSigs' funcDecls = do
   (funcDecls', typeSchemas) <- addTypeAppExprsToFuncDecls' funcDecls
   zipWithM_ insertTypeSig funcDecls' typeSchemas
   return funcDecls'

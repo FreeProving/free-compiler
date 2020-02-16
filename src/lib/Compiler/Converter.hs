@@ -25,13 +25,14 @@ module Compiler.Converter
 where
 
 import           Compiler.Converter.Expr        ( convertExpr )
-import           Compiler.Converter.FuncDecl    ( convertFuncComponent )
+import           Compiler.Converter.FuncDecl    ( convertFuncDecls
+                                                , convertFuncComponent
+                                                )
 import           Compiler.Converter.FuncDecl.NonRec
                                                 ( convertNonRecFuncDecl )
 import           Compiler.Converter.FuncDecl.Rec
                                                 ( convertRecFuncDecls )
 import           Compiler.Converter.Module      ( convertDecls
-                                                , convertFuncDecls
                                                 , convertModule
                                                 , convertTypeDecls
                                                 )

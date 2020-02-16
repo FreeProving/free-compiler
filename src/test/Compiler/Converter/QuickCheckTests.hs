@@ -9,13 +9,12 @@ import           Compiler.Monad.Converter
 import           Compiler.Util.Test
 
 -- | Utility function that imports the environment of the @Test.QuickCheck@
---   module and enables support for the translation of QuickCheck properties.
-importAndEnableQuickCheck :: Converter ()
-importAndEnableQuickCheck = do
+--   module.
+importQuickCheck :: Converter ()
+importQuickCheck = do
   Just quickCheckInterface <- inEnv $ lookupAvailableModule quickCheckModuleName
   modifyEnv $ importInterface quickCheckInterface
   modifyEnv $ importInterfaceAs quickCheckModuleName quickCheckInterface
-  modifyEnv $ enableQuickCheck
 
 -- | Test group for 'convertQuickCheckProperty' tests.
 testConvertQuickCheckProperty :: Spec
@@ -41,7 +40,7 @@ testConvertQuickCheckProperty =
       $ shouldSucceed
       $ fromConverter
       $ do
-          importAndEnableQuickCheck
+          importQuickCheck
           shouldTranslateDeclsTo
               [ "prop_add_comm :: Integer -> Integer -> Property"
               , "prop_add_comm n m = property (n + m == m + n)"
@@ -59,7 +58,7 @@ testConvertQuickCheckProperty =
             ++ "Proof. (* FILL IN HERE *) Admitted."
 
     it "translates implications correctly" $ shouldSucceed $ fromConverter $ do
-      importAndEnableQuickCheck
+      importQuickCheck
       "odd"  <- defineTestFunc "odd" 1 "Integer -> Bool"
       "even" <- defineTestFunc "even" 1 "Integer -> Bool"
       shouldTranslateDeclsTo
@@ -81,7 +80,7 @@ testConvertQuickCheckProperty =
       $ shouldSucceed
       $ fromConverter
       $ do
-          importAndEnableQuickCheck
+          importQuickCheck
           "head" <- definePartialTestFunc "head" 1 "[a] -> a"
           shouldTranslateDeclsTo
               [ "prop_head :: a -> [a] -> Property"
@@ -104,7 +103,7 @@ testConvertQuickCheckProperty =
       $ shouldSucceed
       $ fromConverter
       $ do
-          importAndEnableQuickCheck
+          importQuickCheck
           "map" <- defineTestFunc "map" 2 "(a -> b) -> [a] -> [b]"
           "id"  <- defineTestFunc "id" 1 "a -> a"
           shouldTranslateDeclsTo

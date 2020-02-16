@@ -2,19 +2,17 @@
 
 module Compiler.Converter.Module where
 
-import           Control.Monad                  ( when )
 import           Control.Monad.Extra            ( concatMapM )
 import           Data.List                      ( find
                                                 , findIndex
                                                 )
 import qualified Data.Map                      as Map
-import           Data.Maybe                     ( catMaybes )
+import           Data.Maybe                     ( maybeToList )
 import qualified Data.Set                      as Set
 
 import           Compiler.Analysis.DependencyAnalysis
 import           Compiler.Analysis.DependencyGraph
 import           Compiler.Converter.FuncDecl
-import           Compiler.Converter.QuickCheck
 import           Compiler.Converter.TypeDecl
 import qualified Compiler.Coq.AST              as G
 import qualified Compiler.Coq.Base             as CoqBase
@@ -122,25 +120,6 @@ convertTypeDecls typeDecls = do
       components      = groupDependencies dependencyGraph
   concatMapM convertTypeComponent components
 
--- | Converts the given function declarations.
-convertFuncDecls :: [HS.FuncDecl] -> Converter [G.Sentence]
-convertFuncDecls funcDecls = do
-  modName <- inEnv $ envModName
-  let dependencyGraph = funcDependencyGraph modName funcDecls
-      components      = groupDependencies dependencyGraph
-
-  -- Filter QuickCheck properties.
-  (properties, funcComponents) <- filterQuickCheckProperties components
-
-  -- Convert function declarations and QuickCheck properties.
-  funcDecls' <- concatMapM convertFuncComponent funcComponents
-  properties' <- concatMapM convertQuickCheckProperty properties
-  return
-    (  funcDecls'
-    ++ [ G.comment "QuickCheck properties" | not (null properties') ]
-    ++ properties'
-    )
-
 -------------------------------------------------------------------------------
 -- Import declarations                                                       --
 -------------------------------------------------------------------------------
@@ -150,7 +129,7 @@ convertImportDecls :: [HS.ImportDecl] -> Converter [G.Sentence]
 convertImportDecls imports = do
   preludeImport <- generatePreludeImport
   imports'      <- mapM convertImportDecl imports
-  return (CoqBase.imports : catMaybes (preludeImport : imports'))
+  return (CoqBase.imports : maybeToList preludeImport ++ imports')
  where
   -- | Tests whether there is an explicit import for the @Prelude@ module.
   importsPrelude :: Bool
@@ -164,16 +143,12 @@ convertImportDecls imports = do
       Just preludeIface <- inEnv $ lookupAvailableModule HS.preludeModuleName
       modifyEnv $ importInterface preludeIface
       modifyEnv $ importInterfaceAs HS.preludeModuleName preludeIface
-      generateImport (interfaceLibName preludeIface) HS.preludeModuleName
+      Just
+        <$> generateImport (interfaceLibName preludeIface) HS.preludeModuleName
 
 -- | Convert a import declaration.
---
---   Returns @Nothing@ if no Coq import sentence is needed (e.g., in case of
---   special imports like @Test.QuickCheck@).
-convertImportDecl :: HS.ImportDecl -> Converter (Maybe G.Sentence)
+convertImportDecl :: HS.ImportDecl -> Converter G.Sentence
 convertImportDecl (HS.ImportDecl srcSpan modName) = do
-  -- Enable QuickCheck.
-  when (modName == quickCheckModuleName) $ modifyEnv enableQuickCheck
   -- Lookup and import module environment.
   maybeIface <- inEnv $ lookupAvailableModule modName
   case maybeIface of
@@ -193,9 +168,9 @@ convertImportDecl (HS.ImportDecl srcSpan modName) = do
 --
 --   Modules from the base library are imported via @From Base Require Import@
 --   sentences and all other modules are also exported.
-generateImport :: G.ModuleIdent -> HS.ModName -> Converter (Maybe G.Sentence)
+generateImport :: G.ModuleIdent -> HS.ModName -> Converter G.Sentence
 generateImport libName modName = return
-  $ Just (mkRequireSentence libName [G.ident (showPretty modName)])
+  (mkRequireSentence libName [G.ident (showPretty modName)])
  where
   -- | Makes a @From ... Require Import ...@ or  @From ... Require Export ...@.
   mkRequireSentence :: G.ModuleIdent -> [G.ModuleIdent] -> G.Sentence

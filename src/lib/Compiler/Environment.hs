@@ -45,9 +45,6 @@ module Compiler.Environment
   , lookupDecArg
   , lookupDecArgIndex
   , lookupDecArgIdent
-  -- * QuickCheck support
-  , enableQuickCheck
-  , isQuickCheckEnabled
   )
 where
 
@@ -126,10 +123,6 @@ data Environment = Environment
   , envFreshIdentCount   :: Map String Int
     -- ^ The number of fresh identifiers that were used in the environment
     --   with a certain prefix.
-
-  , envQuickCheckEnabled :: Bool
-    -- ^ Whether the translation of QuickCheck properties is enabled in the
-    --   current environment (i.e. the module imports @Test.QuickCheck@).
   }
  deriving Show
 
@@ -147,8 +140,6 @@ emptyEnv = Environment
   , envTypeSigs          = Map.empty
   , envDecArgs           = Map.empty
   , envFreshIdentCount   = Map.empty
-    -- QuickCheck
-  , envQuickCheckEnabled = False
   }
 
 -- | Creates a child environment of the given environment.
@@ -416,19 +407,3 @@ lookupDecArgIndex = fmap fst .: lookupDecArg
 -- | Like 'lookupDecArg' but returns the decreasing argument's name only.
 lookupDecArgIdent :: HS.QName -> Environment -> Maybe String
 lookupDecArgIdent = fmap snd .: lookupDecArg
-
--------------------------------------------------------------------------------
--- QuickCheck support                                                        --
--------------------------------------------------------------------------------
-
--- | Enables the translation of QuickCheck properties.
-enableQuickCheck :: Environment -> Environment
-enableQuickCheck env = env { envQuickCheckEnabled = True }
-
--- | Tests whether the translation of QuickCheck properties is enabled
---   in the given environment.
---
---   This flag is usually set to @True@ if there is a @import Test.QuickCheck@
---   declaration.
-isQuickCheckEnabled :: Environment -> Bool
-isQuickCheckEnabled = envQuickCheckEnabled
