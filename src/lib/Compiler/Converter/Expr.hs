@@ -40,7 +40,7 @@ import           Compiler.Pretty
 --
 --   No eta-conversions are applied to nested expressions.
 etaConvert :: HS.Expr -> Converter HS.Expr
-etaConvert rootExpr = arityOf rootExpr >>= etaAbstractN rootExpr
+etaConvert rootExpr = localEnv $ arityOf rootExpr >>= etaAbstractN rootExpr
  where
   -- | Determines the number of arguments expected to be passed to the given
   --   expression.
