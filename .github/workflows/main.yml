@@ -7,6 +7,26 @@ jobs:
   # Dependencies                                                              #
   #############################################################################
 
+  # Installs Cabal dependencies and caches the directories where cabal
+  # installs the dependencies. Unfortunatly, the entire code of this job
+  # needs to be replicated to retore the caches in jobs that use Cabal.
+  #
+  # We cache `~/.cabal/packages`, `~/.cabal/store` and `dist-newstyle`
+  # separatly. The cache keys contain the hash of the `.cabal` and
+  # `cabal.project` file as well as the hash of the `01-index.cache` file
+  # from `~/.cabal/packages`.
+  #
+  #   * If the Cabal files in this repository change, a previous version
+  #     of the cache is restored and the updated dependencies are installed.
+  #     We assume this to happen only infrequently.
+  #
+  #   * Before the caches are populated, the latest Cabal package list is
+  #     downloaded. Therefore, a change of `01-index.cache` occurs frequently.
+  #     Whenever the package list is updated, a lot of dependencies have
+  #     to be rebuild. If the hash of the index wouldn't be part of the
+  #     cache keys, the rebuild would be triggered on every push until the
+  #     Cabal files are changed. By including the indexes hash, the rebuilt
+  #     dependencies are cached until the next change of the package list.
   install-dependencies:
     name: Install dependencies
     runs-on: ubuntu-latest
@@ -18,30 +38,34 @@ jobs:
       with:
         ghc-version: '8.6.5'
         cabal-version: '2.4'
+    - name: Update Cabal Package List
+      run: cabal new-update
     - name: Cache ~/.cabal/packages
       uses: actions/cache@v1
       with:
         path: ~/.cabal/packages
-        key: cabal-packages-${{ hashFiles('*cabal*') }}
+        key: cabal-packages-${{ hashFiles('*cabal*') }}-${{ hashFiles('~/.cabal/packages/**/01-index.cache') }}
         restore-keys: |
+          cabal-packages-${{ hashFiles('*cabal*') }}-
           cabal-packages-
     - name: Cache ~/.cabal/store
       uses: actions/cache@v1
       with:
         path: ~/.cabal/store
-        key: cabal-store-${{ hashFiles('*cabal*') }}
+        key: cabal-store-${{ hashFiles('*cabal*') }}-${{ hashFiles('~/.cabal/packages/**/01-index.cache') }}
         restore-keys: |
+          cabal-store-${{ hashFiles('*cabal*') }}-
           cabal-store-
     - name: Cache dist-newstyle
       uses: actions/cache@v1
       with:
         path: dist-newstyle
-        key: dist-newstyle-${{ hashFiles('*cabal*') }}
+        key: dist-newstyle-${{ hashFiles('*cabal*') }}-${{ hashFiles('~/.cabal/packages/**/01-index.cache') }}
         restore-keys: |
+          dist-newstyle-${{ hashFiles('*cabal*') }}-
           dist-newstyle-
     - name: Install dependencies
       run: |
-        cabal new-update
         cabal new-build unit-tests --only-dependencies
         cabal new-build haskell-to-coq-compiler --only-dependencies
 
@@ -61,30 +85,34 @@ jobs:
       with:
         ghc-version: '8.6.5'
         cabal-version: '2.4'
+    - name: Update Cabal Package List
+      run: cabal new-update
     - name: Cache ~/.cabal/packages
       uses: actions/cache@v1
       with:
         path: ~/.cabal/packages
-        key: cabal-packages-${{ hashFiles('*cabal*') }}
+        key: cabal-packages-${{ hashFiles('*cabal*') }}-${{ hashFiles('~/.cabal/packages/**/01-index.cache') }}
         restore-keys: |
+          cabal-packages-${{ hashFiles('*cabal*') }}-
           cabal-packages-
     - name: Cache ~/.cabal/store
       uses: actions/cache@v1
       with:
         path: ~/.cabal/store
-        key: cabal-store-${{ hashFiles('*cabal*') }}
+        key: cabal-store-${{ hashFiles('*cabal*') }}-${{ hashFiles('~/.cabal/packages/**/01-index.cache') }}
         restore-keys: |
+          cabal-store-${{ hashFiles('*cabal*') }}-
           cabal-store-
     - name: Cache dist-newstyle
       uses: actions/cache@v1
       with:
         path: dist-newstyle
-        key: dist-newstyle-${{ hashFiles('*cabal*') }}
+        key: dist-newstyle-${{ hashFiles('*cabal*') }}-${{ hashFiles('~/.cabal/packages/**/01-index.cache') }}
         restore-keys: |
+          dist-newstyle-${{ hashFiles('*cabal*') }}-
           dist-newstyle-
     - name: Install dependencies
       run: |
-        cabal new-update
         cabal new-build unit-tests --only-dependencies
         cabal new-build haskell-to-coq-compiler --only-dependencies
     - name: Build unit tests
@@ -108,30 +136,34 @@ jobs:
       with:
         ghc-version: '8.6.5'
         cabal-version: '2.4'
+    - name: Update Cabal Package List
+      run: cabal new-update
     - name: Cache ~/.cabal/packages
       uses: actions/cache@v1
       with:
         path: ~/.cabal/packages
-        key: cabal-packages-${{ hashFiles('*cabal*') }}
+        key: cabal-packages-${{ hashFiles('*cabal*') }}-${{ hashFiles('~/.cabal/packages/**/01-index.cache') }}
         restore-keys: |
+          cabal-packages-${{ hashFiles('*cabal*') }}-
           cabal-packages-
     - name: Cache ~/.cabal/store
       uses: actions/cache@v1
       with:
         path: ~/.cabal/store
-        key: cabal-store-${{ hashFiles('*cabal*') }}
+        key: cabal-store-${{ hashFiles('*cabal*') }}-${{ hashFiles('~/.cabal/packages/**/01-index.cache') }}
         restore-keys: |
+          cabal-store-${{ hashFiles('*cabal*') }}-
           cabal-store-
     - name: Cache dist-newstyle
       uses: actions/cache@v1
       with:
         path: dist-newstyle
-        key: dist-newstyle-${{ hashFiles('*cabal*') }}
+        key: dist-newstyle-${{ hashFiles('*cabal*') }}-${{ hashFiles('~/.cabal/packages/**/01-index.cache') }}
         restore-keys: |
+          dist-newstyle-${{ hashFiles('*cabal*') }}-
           dist-newstyle-
     - name: Install dependencies
       run: |
-        cabal new-update
         cabal new-build unit-tests --only-dependencies
         cabal new-build haskell-to-coq-compiler --only-dependencies
     - name: Build compiler
@@ -163,30 +195,34 @@ jobs:
       with:
         ghc-version: '8.6.5'
         cabal-version: '2.4'
+    - name: Update Cabal Package List
+      run: cabal new-update
     - name: Cache ~/.cabal/packages
       uses: actions/cache@v1
       with:
         path: ~/.cabal/packages
-        key: cabal-packages-${{ hashFiles('*cabal*') }}
+        key: cabal-packages-${{ hashFiles('*cabal*') }}-${{ hashFiles('~/.cabal/packages/**/01-index.cache') }}
         restore-keys: |
+          cabal-packages-${{ hashFiles('*cabal*') }}-
           cabal-packages-
     - name: Cache ~/.cabal/store
       uses: actions/cache@v1
       with:
         path: ~/.cabal/store
-        key: cabal-store-${{ hashFiles('*cabal*') }}
+        key: cabal-store-${{ hashFiles('*cabal*') }}-${{ hashFiles('~/.cabal/packages/**/01-index.cache') }}
         restore-keys: |
+          cabal-store-${{ hashFiles('*cabal*') }}-
           cabal-store-
     - name: Cache dist-newstyle
       uses: actions/cache@v1
       with:
         path: dist-newstyle
-        key: dist-newstyle-${{ hashFiles('*cabal*') }}
+        key: dist-newstyle-${{ hashFiles('*cabal*') }}-${{ hashFiles('~/.cabal/packages/**/01-index.cache') }}
         restore-keys: |
+          dist-newstyle-${{ hashFiles('*cabal*') }}-
           dist-newstyle-
     - name: Install dependencies
       run: |
-        cabal new-update
         cabal new-build unit-tests --only-dependencies
         cabal new-build haskell-to-coq-compiler --only-dependencies
     - name: Run Haddock
