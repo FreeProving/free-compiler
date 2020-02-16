@@ -50,9 +50,9 @@ foo = -- ...
 has the following top-level entries.
 
 ```toml
-module-name     = "Test"
-exported-types  = ["Test.Foo"]
-exported-values = ["Test.Bar", "Test.Baz", "Test.foo"]
+module-name     = 'Test'
+exported-types  = ['Test.Foo']
+exported-values = ['Test.Bar', 'Test.Baz', 'Test.foo']
 ```
 
 ### Data types
@@ -70,8 +70,8 @@ For example, the following entry defines the `Maybe` data type.
 
 ```toml
 [[types]]
-  haskell-name = "Prelude.Maybe"
-  coq-name     = "Maybe"
+  haskell-name = 'Prelude.Maybe'
+  coq-name     = 'Maybe'
   arity        = 1
 ```
 
@@ -94,11 +94,11 @@ For example, the following entry defines the `ReadS` type synonym.
 
 ```toml
 [[type-synonyms]]
-  haskell-name   = "Prelude.ReadS"
-  coq-name       = "ReadS"
+  haskell-name   = 'Prelude.ReadS'
+  coq-name       = 'ReadS'
   arity          = 1
-  haskell-type   = "String -> [(a, String)]"
-  type-arguments = ["a"]
+  haskell-type   = 'String -> [(a, String)]'
+  type-arguments = ['a']
 ```
 
 ### Constructors
@@ -121,17 +121,17 @@ For example, the following entries define the constructors
 
 ```toml
 [[constructors]]
-  haskell-type   = "a -> Prelude.Maybe a"
-  haskell-name   = "Prelude.Just"
-  coq-name       = "just"
-  coq-smart-name = "Just"
+  haskell-type   = 'a -> Prelude.Maybe a'
+  haskell-name   = 'Prelude.Just'
+  coq-name       = 'just'
+  coq-smart-name = 'Just'
   arity          = 1
 
 [[constructors]]
-  haskell-type   = "Prelude.Maybe a"
-  haskell-name   = "Prelude.Nothing"
-  coq-name       = "nothing"
-  coq-smart-name = "Nothing"
+  haskell-type   = 'Prelude.Maybe a'
+  haskell-name   = 'Prelude.Nothing'
+  coq-name       = 'nothing'
+  coq-smart-name = 'Nothing'
   arity          = 0
 ```
 
@@ -147,22 +147,26 @@ key/value pairs:
  * `arity` (`Integer`) the number of arguments expected by the function.
  * `partial` (`Boolean`) whether the function is partial (i.e., requires
    an instance of the `Partial` type class).
+ * `needs-free-args` (`Boolean`) whether the arguments of the `Free` monad
+   need to be passed to the function.
 
 For example, the following entry defines the total function `(++)` ("append")
 and the partial function `head`.
 
 ```toml
 [[function]]
-  haskell-type = "[a] -> [a] -> [a]"
-  haskell-name = "Prelude.(++)"
-  coq-name     = "append"
-  arity        = 2
-  partial      = false
+  haskell-type    = '[a] -> [a] -> [a]'
+  haskell-name    = 'Prelude.(++)'
+  coq-name        = 'append'
+  arity           = 2
+  partial         = false
+  needs-free-args = true
 
 [[function]]
-  haskell-type = "[a] -> a"
-  haskell-name = "Prelude.head"
-  coq-name     = "head"
-  arity        = 1
-  partial      = true
+  haskell-type    = '[a] -> a'
+  haskell-name    = 'Prelude.head'
+  coq-name        = 'head'
+  arity           = 1
+  partial         = true
+  needs-free-args = true
 ```
