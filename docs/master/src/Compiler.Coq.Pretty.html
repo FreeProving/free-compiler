@@ -1,30 +1,25 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE FlexibleInstances    #-}</span><span>
-</span><a name="line-2"></a><span class="hs-pragma">{-# LANGUAGE UndecidableInstances #-}</span><span>
-</span><a name="line-3"></a><span class="hs-pragma">{-# OPTIONS_GHC -Wno-orphans #-}</span><span>
-</span><a name="line-4"></a><span>
-</span><a name="line-5"></a><span class="hs-comment">-- | This module contains a 'Pretty' instance for nodes of the Coq AST.</span><span>
-</span><a name="line-6"></a><span class="hs-comment">--</span><span>
-</span><a name="line-7"></a><span class="hs-comment">--   We need the language extensions @FlexibleInstances@ and</span><span>
-</span><a name="line-8"></a><span class="hs-comment">--   @UndecidableInstances@ because we want to declare the 'Pretty' instance</span><span>
-</span><a name="line-9"></a><span class="hs-comment">--   for all pretty printable components of the Coq AST (instances of</span><span>
-</span><a name="line-10"></a><span class="hs-comment">--   'Gallina') and not just specific types of nodes.</span><span>
-</span><a name="line-11"></a><span class="hs-comment">--</span><span>
-</span><a name="line-12"></a><span class="hs-comment">--   Because the 'Pretty' and 'Gallina' type class are both declared in</span><span>
-</span><a name="line-13"></a><span class="hs-comment">--   external modules, we have to disable orphan instance error messages</span><span>
-</span><a name="line-14"></a><span class="hs-comment">--   with the compiler flag @-Wno-orphans@ for this module.</span><span>
-</span><a name="line-15"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Compiler.Coq.Pretty</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-16"></a><span>
-</span><a name="line-17"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Language.Coq.Pretty</span><span>            </span><span class="hs-special">(</span><span> </span><span class="hs-identifier hs-type">Gallina</span><span>
-</span><a name="line-18"></a><span>                                                </span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-var">renderGallina</span><span>
-</span><a name="line-19"></a><span>                                                </span><span class="hs-special">)</span><span>
-</span><a name="line-20"></a><span>
-</span><a name="line-21"></a><span class="hs-keyword">import</span><span>           </span><a href="Compiler.Pretty.html"><span class="hs-identifier">Compiler.Pretty</span></a><span>
-</span><a name="line-22"></a><span>
-</span><a name="line-23"></a><span class="hs-comment">-- | Pretty instance for nodes of the Coq AST.</span><span>
-</span><a name="line-24"></a><span class="hs-comment">--</span><span>
-</span><a name="line-25"></a><span class="hs-comment">--   When pretty printing a list of nodes, the individual documents are</span><span>
-</span><a name="line-26"></a><span class="hs-comment">--   concatenated with newlines.</span><span>
-</span><a name="line-27"></a><span class="hs-keyword">instance</span><span> </span><span class="hs-pragma">{-# OVERLAPPABLE</span><span> </span><span class="hs-pragma">#-}</span><span> </span><span class="hs-identifier hs-type">Gallina</span><span> </span><a href="#local-6989586621679171750"><span class="hs-identifier hs-type">a</span></a><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-identifier hs-type">Pretty</span><span> </span><a href="#local-6989586621679171750"><span class="hs-identifier hs-type">a</span></a><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-28"></a><span>  </span><a name="local-8214565720323836253"><span class="hs-identifier">pretty</span></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">renderGallina</span><span>
-</span><a name="line-29"></a><span>  </span><a name="local-8214565720323836254"><span class="hs-identifier">prettyList</span></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Compiler.Pretty.html#prettySeparated"><span class="hs-identifier hs-var">prettySeparated</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">line</span><span> </span><span class="hs-operator hs-var">&lt;&gt;</span><span> </span><span class="hs-identifier hs-var">line</span><span class="hs-special">)</span><span>
-</span><a name="line-30"></a></pre></body></html>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-comment">-- | This module contains a 'Pretty' instance for nodes of the Coq AST.</span><span>
+</span><a name="line-2"></a><span class="hs-comment">--</span><span>
+</span><a name="line-3"></a><span class="hs-comment">--   Since we want to have a pretty instance for all 'Gallina' instances</span><span>
+</span><a name="line-4"></a><span class="hs-comment">--   but want to avoid overlapping instances, there is a wrapper type</span><span>
+</span><a name="line-5"></a><span class="hs-comment">--   'PrettyCoq'. To pretty print a node @x@ of the Coq AST writer</span><span>
+</span><a name="line-6"></a><span class="hs-comment">--   @pretty (PrettyCoq x)@.</span><span>
+</span><a name="line-7"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Compiler.Coq.Pretty</span><span> </span><span class="hs-keyword">where</span><span>
+</span><a name="line-8"></a><span>
+</span><a name="line-9"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Language.Coq.Pretty</span><span>            </span><span class="hs-special">(</span><span> </span><span class="hs-identifier hs-type">Gallina</span><span>
+</span><a name="line-10"></a><span>                                                </span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-var">renderGallina</span><span>
+</span><a name="line-11"></a><span>                                                </span><span class="hs-special">)</span><span>
+</span><a name="line-12"></a><span>
+</span><a name="line-13"></a><span class="hs-keyword">import</span><span>           </span><a href="Compiler.Pretty.html"><span class="hs-identifier">Compiler.Pretty</span></a><span>
+</span><a name="line-14"></a><span>
+</span><a name="line-15"></a><span class="hs-comment">-- | Wrapper data type that makes a Coq AST node of type @a@ pretty printable.</span><span>
+</span><a name="line-16"></a><span class="hs-keyword">newtype</span><span> </span><a name="PrettyCoq"><a href="Compiler.Coq.Pretty.html#PrettyCoq"><span class="hs-identifier">PrettyCoq</span></a></a><span> </span><a name="local-6989586621679178371"><a href="#local-6989586621679178371"><span class="hs-identifier">a</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a name="PrettyCoq"><a href="Compiler.Coq.Pretty.html#PrettyCoq"><span class="hs-identifier">PrettyCoq</span></a></a><span> </span><span class="hs-special">{</span><span> </span><a name="unwrapPrettyCoq"><a href="Compiler.Coq.Pretty.html#unwrapPrettyCoq"><span class="hs-identifier">unwrapPrettyCoq</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><a href="#local-6989586621679178371"><span class="hs-identifier hs-type">a</span></a><span> </span><span class="hs-special">}</span><span>
+</span><a name="line-17"></a><span>
+</span><a name="line-18"></a><span class="hs-comment">-- | Pretty instance for nodes of the Coq AST.</span><span>
+</span><a name="line-19"></a><span class="hs-comment">--</span><span>
+</span><a name="line-20"></a><span class="hs-comment">--   When pretty printing a list of nodes, the individual documents are</span><span>
+</span><a name="line-21"></a><span class="hs-comment">--   concatenated with newlines.</span><span>
+</span><a name="line-22"></a><span class="hs-keyword">instance</span><span> </span><span class="hs-identifier hs-type">Gallina</span><span> </span><a href="#local-6989586621679178372"><span class="hs-identifier hs-type">a</span></a><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-identifier hs-type">Pretty</span><span> </span><span class="hs-special">(</span><a href="Compiler.Coq.Pretty.html#PrettyCoq"><span class="hs-identifier hs-type">PrettyCoq</span></a><span> </span><a href="#local-6989586621679178372"><span class="hs-identifier hs-type">a</span></a><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><a name="line-23"></a><span>  </span><a name="local-8214565720323837114"><span class="hs-identifier">pretty</span></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">renderGallina</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier">unwrapPrettyCoq</span><span>
+</span><a name="line-24"></a><span>  </span><a name="local-8214565720323837115"><span class="hs-identifier">prettyList</span></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Compiler.Pretty.html#prettySeparated"><span class="hs-identifier hs-var">prettySeparated</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">line</span><span> </span><span class="hs-operator hs-var">&lt;&gt;</span><span> </span><span class="hs-identifier hs-var">line</span><span class="hs-special">)</span><span>
+</span><a name="line-25"></a></pre></body></html>
