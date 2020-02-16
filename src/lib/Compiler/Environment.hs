@@ -23,6 +23,7 @@ module Compiler.Environment
   , lookupEntries
   , lookupEntry
   , existsLocalEntry
+  , refersTo
   , isFunction
   , isVariable
   , hasTypeSig
@@ -249,6 +250,11 @@ existsLocalEntry :: Scope -> HS.QName -> Environment -> Bool
 existsLocalEntry scope name =
   uncurry (==)
     . (Just . envDepth &&& fmap snd . Map.lookup (scope, name) . envEntries)
+
+-- | Tests whether the given name (third argument) refers to an entry with
+--   the given original name (first argument).
+refersTo :: HS.QName -> Scope -> HS.QName -> Environment -> Bool
+refersTo name = maybe False ((== name) . entryName) .:. lookupEntry
 
 -- | Tests whether the given name identifies a function in the given
 --   environment.

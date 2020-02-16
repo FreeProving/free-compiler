@@ -87,24 +87,37 @@ fromConverter converter = fromModuleConverter $ do
 --   given converter.
 fromModuleConverter :: Converter a -> ReporterIO a
 fromModuleConverter converter = flip evalConverterT emptyEnv $ do
-  preludeIface <- lift' loadPreludeModuleInterface
-  modifyEnv $ makeModuleAvailable preludeIface
+  makeTestModuleAvailable "./base/Prelude.toml"
+  makeTestModuleAvailable "./base/Test/QuickCheck.toml"
   hoist converter
- where
-  loadPreludeModuleInterface :: ReporterIO ModuleInterface
-  loadPreludeModuleInterface = do
-    maybePreludeIface <- lift $ readIORef preludeModuleInterfaceBuffer
-    case maybePreludeIface of
-      Nothing -> do
-        preludeIface <- loadModuleInterface "./base/Prelude.toml"
-        lift $ writeIORef preludeModuleInterfaceBuffer (Just preludeIface)
-        return preludeIface
-      Just preludeIface -> return preludeIface
 
--- | A global variable that buffers the module interface of the @Prelude@
+-- | A global variable that caches the module interface of the @Prelude@
 --   module such that it does not have to be loaded in every test case.
-preludeModuleInterfaceBuffer :: IORef (Maybe ModuleInterface)
-preludeModuleInterfaceBuffer = unsafePerformIO $ newIORef Nothing
+moduleInterfaceCache :: IORef [(HS.ModName, ModuleInterface)]
+moduleInterfaceCache = unsafePerformIO $ newIORef []
+
+-- | Loads the module interface file for the module with the given name from
+--   the base library.
+--
+--   If the module interface has been loaded before, the previously loaded
+--   interface file is restored from 'moduleInterfaceCache'.
+loadTestModuleInterface :: FilePath -> ReporterIO ModuleInterface
+loadTestModuleInterface ifaceFile = do
+  cache <- lift $ readIORef moduleInterfaceCache
+  case lookup ifaceFile cache of
+    Nothing -> do
+      iface <- loadModuleInterface ifaceFile
+      let cache' = (ifaceFile, iface) : cache
+      lift $ writeIORef moduleInterfaceCache cache'
+      return iface
+    Just iface -> return iface
+
+-- | Loads the given module interface filw using 'loadTestModuleInterface'
+--   and adds it to the environment.
+makeTestModuleAvailable :: FilePath -> ConverterIO ()
+makeTestModuleAvailable ifaceFile = do
+  iface <- lift' $ loadTestModuleInterface ifaceFile
+  modifyEnv $ makeModuleAvailable iface
 
 -- | Evaluates the given reporter and throws an IO exception when a fatal
 --   error message is reported.

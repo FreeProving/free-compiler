@@ -16,7 +16,7 @@ invariant qi = case qi of
 --     prop_inv_empty = invariant emptyI
 
 prop_inv_add :: a -> QueueI a -> Property
-prop_inv_add x q = invariant q ==> invariant (addI x q)
+prop_inv_add x q = invariant q ==> property (invariant (addI x q))
 
 -------------------------------------------------------------------------------
 

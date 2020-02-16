@@ -178,7 +178,8 @@ generateImport :: HS.ModName -> Converter (Maybe G.Sentence)
 generateImport modName
   | modName == HS.preludeModuleName = return
   $ Just (G.requireImportFrom CoqBase.baseLibName [G.ident "Prelude"])
-  | modName == quickCheckModuleName = return Nothing
+  | modName == quickCheckModuleName = return
+  $ Just (G.requireImportFrom CoqBase.baseLibName [G.ident "Test.QuickCheck"])
   | otherwise = return $ Just (G.requireImport [G.ident (showPretty modName)])
 
 -------------------------------------------------------------------------------

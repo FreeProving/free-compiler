@@ -6,6 +6,7 @@ import           Control.Monad.Extra            ( ifM
                                                 )
 import           Control.Monad.IO.Class
 import           Data.List                      ( intercalate )
+import           Data.List.Extra                ( splitOn )
 import           Data.Maybe                     ( isJust )
 import qualified Language.Haskell.Exts.Syntax  as H
 import           System.Directory               ( createDirectoryIfMissing
@@ -230,20 +231,24 @@ loadModule srcSpan modName = do
 -------------------------------------------------------------------------------
 
 -- | Loads the @Prelude@ module from the base library.
---
---   If the `--base-library` option is omited, this function looks for the
---   base library in the `data-files` field of the `.cabal` file.
 loadPrelude :: Application ()
-loadPrelude = do
-  baseLibDir <- inOpts optBaseLibDir
-  let preludeIfaceFile = baseLibDir </> "Prelude.toml"
-  preludeIface <- liftReporterIO $ loadModuleInterface preludeIfaceFile
-  liftConverter $ modifyEnv $ makeModuleAvailable preludeIface
+loadPrelude = loadModuleFromBaseLib HS.preludeModuleName
 
 -- | Loads the @Test.QuickCheck@ module.
 loadQuickCheck :: Application ()
-loadQuickCheck =
-  liftConverter $ modifyEnv $ makeModuleAvailable quickCheckInterface
+loadQuickCheck = loadModuleFromBaseLib quickCheckModuleName
+
+-- | Loads the module with the given name from the base library.
+--
+--   If the `--base-library` option is omited, this function looks for the
+--   base library in the `data-files` field of the `.cabal` file.
+loadModuleFromBaseLib :: HS.ModName -> Application ()
+loadModuleFromBaseLib modName = do
+  baseLibDir <- inOpts optBaseLibDir
+  let modPath   = joinPath $ splitOn "." modName
+      ifaceFile = baseLibDir </> modPath <.> "toml"
+  ifrace <- liftReporterIO $ loadModuleInterface ifaceFile
+  liftConverter $ modifyEnv $ makeModuleAvailable ifrace
 
 -- | Creates a @_CoqProject@ file (if enabled) that maps the physical directory
 --   of the Base library.
