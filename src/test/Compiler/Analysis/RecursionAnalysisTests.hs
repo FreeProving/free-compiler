@@ -33,13 +33,31 @@ testIdentifyDecArgs = do
           ]
         identifyDecArgs funcDecls
 
-  it "allows the decreasing argument to be annotated using pragmas"
+  it "allows the decreasing argument's name to be annotated using pragmas"
     $ shouldSucceed
     $ fromConverter
     $ do
         ast <- parseTestModule
           [ "data Rose a = Rose [Rose a] a"
           , "{-# HASKELL_TO_COQ mapRose DECREASES ON r #-}"
+          , "mapRose :: (a -> b) -> Rose a -> Rose b"
+          , "mapRose f r ="
+          , "  case r of"
+          , "    (Rose rs x) -> Rose (map (mapRose f) rs) (f x)"
+          ]
+        let funcDecls = HS.modFuncDecls ast
+            pragmas   = HS.modPragmas ast
+        mapM_ (addDecArgPragma funcDecls) pragmas
+        _ <- identifyDecArgs funcDecls
+        return (return ())
+
+  it "allows the decreasing argument's index to be annotated using pragmas"
+    $ shouldSucceed
+    $ fromConverter
+    $ do
+        ast <- parseTestModule
+          [ "data Rose a = Rose [Rose a] a"
+          , "{-# HASKELL_TO_COQ mapRose DECREASES ON ARGUMENT 2 #-}"
           , "mapRose :: (a -> b) -> Rose a -> Rose b"
           , "mapRose f r ="
           , "  case r of"

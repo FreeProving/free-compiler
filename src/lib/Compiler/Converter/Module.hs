@@ -61,21 +61,36 @@ convertModule haskellAst = moduleEnv $ do
 --
 --   All other pragmas are ignored.
 addDecArgPragma :: [HS.FuncDecl] -> HS.Pragma -> Converter ()
-addDecArgPragma funcDecls (HS.DecArgPragma srcSpan funcIdent decArgIdent) = do
+addDecArgPragma funcDecls (HS.DecArgPragma srcSpan funcIdent decArg) = do
+  let funName = HS.UnQual (HS.Ident funcIdent)
   case find ((== funcIdent) . HS.fromDeclIdent . HS.getDeclIdent) funcDecls of
-    Just (HS.FuncDecl _ _ args _) -> do
-      case findIndex ((== decArgIdent) . HS.fromVarPat) args of
-        Just decArgIndex -> do
-          let name = HS.UnQual (HS.Ident funcIdent)
-          modifyEnv $ defineDecArg name decArgIndex decArgIdent
-        Nothing -> do
-          reportFatal
-            $  Message srcSpan Error
-            $  "The function "
-            ++ funcIdent
-            ++ " does not have an argument pattern "
-            ++ decArgIdent
-            ++ "."
+    Just (HS.FuncDecl _ _ args _) -> case decArg of
+      Left decArgIdent ->
+        case findIndex ((== decArgIdent) . HS.fromVarPat) args of
+          Just decArgIndex ->
+            modifyEnv $ defineDecArg funName decArgIndex decArgIdent
+          Nothing ->
+            reportFatal
+              $  Message srcSpan Error
+              $  "The function "
+              ++ funcIdent
+              ++ " does not have an argument pattern "
+              ++ decArgIdent
+              ++ "."
+      Right decArgPosition
+        | decArgPosition > 0 && decArgPosition <= length args
+        -> do
+          let decArgIndex = decArgPosition - 1
+              decArgIdent = HS.fromVarPat (args !! decArgIndex)
+          modifyEnv $ defineDecArg funName decArgIndex decArgIdent
+        | otherwise
+        -> reportFatal
+          $  Message srcSpan Error
+          $  "The function "
+          ++ funcIdent
+          ++ " does not have an argument at index "
+          ++ show decArgPosition
+          ++ "."
     Nothing -> do
       modName <- inEnv envModName
       reportFatal
@@ -178,8 +193,7 @@ generateImport :: HS.ModName -> Converter (Maybe G.Sentence)
 generateImport modName
   | modName == HS.preludeModuleName = return
   $ Just (G.requireImportFrom CoqBase.baseLibName [G.ident "Prelude"])
-  | modName == quickCheckModuleName = return
-  $ Just (G.requireImportFrom CoqBase.baseLibName [G.ident "Test.QuickCheck"])
+  | modName == quickCheckModuleName = return Nothing
   | otherwise = return $ Just (G.requireImport [G.ident (showPretty modName)])
 
 -------------------------------------------------------------------------------
@@ -230,9 +244,9 @@ exportInterface = do
 --   TODO error if there are multiple type signatures for the same function.
 --   TODO warn if there are unused type signatures.
 defineTypeSigDecl :: HS.TypeSig -> Converter ()
-defineTypeSigDecl (HS.TypeSig _ idents typeSchema) = mapM_
+defineTypeSigDecl (HS.TypeSig _ idents typeExpr) = mapM_
   ( modifyEnv
-  . flip defineTypeSig typeSchema
+  . flip defineTypeSig typeExpr
   . HS.UnQual
   . HS.Ident
   . HS.fromDeclIdent

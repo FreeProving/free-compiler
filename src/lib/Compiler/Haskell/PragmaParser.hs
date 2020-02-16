@@ -14,6 +14,7 @@ module Compiler.Haskell.PragmaParser
   )
 where
 
+import           Control.Applicative            ( (<|>) )
 import           Control.Monad                  ( msum )
 import           Data.Maybe                     ( catMaybes )
 import           Text.RegexPR
@@ -45,15 +46,16 @@ customPragmas = [(decArgPattern, parseDecArgPragma)]
 
 -- | A regular expression for a decreasing argument pragma.
 decArgPattern :: String
-decArgPattern = "^(\\S+)\\s+DECREASES\\s+ON\\s+(\\S+)$"
+decArgPattern = "^(\\S+)\\s+DECREASES\\s+ON\\s+((\\S+)|ARGUMENT\\s+(\\d+))$"
 
 -- | Creates a decreasing argument pragma from the given capturing
 --   groups for 'decArgPattern'.
 parseDecArgPragma :: CustomPragmaBuilder
 parseDecArgPragma srcSpan groups = do
-  let Just funcIdent   = lookup 1 groups
-      Just decArgIdent = lookup 2 groups
-  return (HS.DecArgPragma srcSpan funcIdent decArgIdent)
+  let Just funcIdent = lookup 1 groups
+      Just decArg =
+        (Left <$> lookup 3 groups) <|> (Right <$> read <$> lookup 4 groups)
+  return (HS.DecArgPragma srcSpan funcIdent decArg)
 
 ------------------------------------------------------------------------------
 -- Parser                                                                   --

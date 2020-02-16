@@ -39,6 +39,8 @@ sub-terms of `rs` which is a sub-term of `r`.
 
 ## Solution
 
+### Named decreasing arguments
+
 As it is infeasible to reimplement Coq's entire termination checker, the user
 has to provide information about the decreasing arguments in those cases
 manually. For this purpose, we provide a custom pragma with the following
@@ -49,10 +51,35 @@ format.
 ```
 
 For instance, the user can tell our compiler that `mapRose` decreases on `r` by
-adding the following line the example above.
+adding the following line to the example above.
 
 ```
 {-# HASKELL_TO_COQ mapRose DECREASES ON r #-}
 ```
 
 The function compiles successfully now.
+
+### Unnamed decreasing arguments
+
+When using pattern matching on the left-hand side of the function declaration,
+the name of the decreasing argument may not be known.
+
+```haskell
+mapRose' :: (a -> b) -> Rose a -> Rose b
+mapRose' f (Rose x rs) = Rose (f x) (map (mapRose' f) rs)
+```
+
+For this reason, the decreasing argument can also be specified by its index
+using a pragma of the following format.
+
+```
+{-# HASKELL_TO_COQ <function> DECREASES ON ARGUMENT <index> #-}
+```
+
+Where `<index>` is the position of the decreasing argument in the parameter
+list. Counting starts at `1`, i.e. the function has index `1` and the tree
+has index `2` in the example above.
+
+```
+{-# HASKELL_TO_COQ mapRose' DECREASES ON ARGUMENT 2 #-}
+```
