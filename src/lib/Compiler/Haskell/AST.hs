@@ -177,12 +177,23 @@ customPragmaPrefix = "HASKELL_TO_COQ"
 
 -- | Data type for custom @{-# HASKELL_TO_COQ ... #-}@ pragmas.
 data Pragma
-  = DecArgPragma SrcSpan String String
-    -- ^ A @{-# HASKELL_TO_COQ <function> DECREASES ON <argument> #-}@ pragma.
+  = DecArgPragma SrcSpan String (Either String Int)
+    -- ^ A @{-# HASKELL_TO_COQ <function> DECREASES ON <argument> #-}@ or
+    --   @{-# HASKELL_TO_COQ <function> DECREASES ON ARGUMENT <index> #-}@
+    --   pragma.
  deriving (Eq, Show)
 
 instance Pretty Pragma where
-  pretty (DecArgPragma _ funName argName) = prettyPragma (prettyString funName <+> prettyString "DECREASES ON" <+> prettyString argName)
+  pretty (DecArgPragma _ funName (Left argName)) = prettyPragma
+    (   prettyString funName
+    <+> prettyString "DECREASES ON"
+    <+> prettyString argName
+    )
+  pretty (DecArgPragma _ funName (Right argIndex)) = prettyPragma
+    (   prettyString funName
+    <+> prettyString "DECREASES ON ARGUMENT"
+    <+> pretty argIndex
+    )
 
 -- | Pretty prints a custom @{-# HASKELL_TO_COQ ... #-}@ pragma with the given
 --   contents.
