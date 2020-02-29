@@ -73,7 +73,7 @@ inlineExpr decls = inlineAndBind
     if null remainingArgs
       then return expr'
       else do
-        let remainingArgPats = map (HS.VarPat NoSrcSpan) remainingArgs
+        let remainingArgPats = map HS.toVarPat remainingArgs
         return (HS.Lambda NoSrcSpan remainingArgPats expr')
 
   -- | Applies 'inlineExpr'' on the given expression and reports an

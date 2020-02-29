@@ -76,7 +76,7 @@ etaConvert rootExpr = localEnv $ arityOf rootExpr >>= etaAbstractN rootExpr
     expr' <- etaAbstractN
       (HS.app NoSrcSpan expr [HS.Var NoSrcSpan (HS.UnQual (HS.Ident x))])
       (n - 1)
-    return (HS.Lambda NoSrcSpan [HS.VarPat NoSrcSpan x] expr')
+    return (HS.Lambda NoSrcSpan [HS.toVarPat x] expr')
 
 -------------------------------------------------------------------------------
 -- Expressions                                                               --
@@ -304,7 +304,9 @@ convertConPat (HS.ConPat srcSpan ident) varPats = do
   return (G.ArgsPat qualid varPats')
 
 -- | Converts a Haskell variable pattern to a Coq variable pattern.
+--
+--   The types of variable patterns are not annotated in Coq.
 convertVarPat :: HS.VarPat -> Converter G.Pattern
-convertVarPat (HS.VarPat srcSpan ident) = do
+convertVarPat (HS.VarPat srcSpan ident _) = do
   ident' <- renameAndDefineVar srcSpan False ident
   return (G.QualidPat ident')

@@ -435,18 +435,22 @@ conPatToExpr (ConPat srcSpan conName) = Con srcSpan conName
 -- | A variable pattern used as an argument to a function, lambda abstraction
 --   or constructor pattern.
 --
---   The only purpose of this data type is to add location information to
---   the identifer for a variable.
-data VarPat = VarPat SrcSpan String
+--   The variable pattern can optionally have a type signature.
+data VarPat = VarPat SrcSpan String (Maybe Type)
   deriving (Eq, Show)
 
 -- | Converts a variable pattern to a variable expression.
 varPatToExpr :: VarPat -> Expr
-varPatToExpr (VarPat srcSpan varName) = Var srcSpan (UnQual (Ident varName))
+varPatToExpr (VarPat srcSpan varName _) = Var srcSpan (UnQual (Ident varName))
+
+-- | Converts the given identifier to a variable pattern without type
+--   annotation.
+toVarPat :: String -> VarPat
+toVarPat ident = VarPat NoSrcSpan ident Nothing
 
 -- | Extracts the actual identifier from a variable pattern.
 fromVarPat :: VarPat -> String
-fromVarPat (VarPat _ ident) = ident
+fromVarPat (VarPat _ ident _) = ident
 
 -------------------------------------------------------------------------------
 -- Pretty printing expressions                                               --
@@ -521,7 +525,9 @@ instance Pretty ConPat where
 
 -- | Pretty instance for variable patterns.
 instance Pretty VarPat where
-  pretty (VarPat _ varName) = pretty varName
+  pretty (VarPat _ varName Nothing) = pretty varName
+  pretty (VarPat _ varName (Just varType)) =
+    parens (pretty varName <+> colon <> colon <+> pretty varType)
 
 -------------------------------------------------------------------------------
 -- Getters                                                                   --
@@ -597,7 +603,7 @@ instance GetSrcSpan DeclIdent where
 
 -- | 'GetSrcSpan' instance for variable patterns.
 instance GetSrcSpan VarPat where
-  getSrcSpan (VarPat srcSpan _) = srcSpan
+  getSrcSpan (VarPat srcSpan _ _) = srcSpan
 
 -- | 'GetSrcSpan' instance for constructor patterns.
 instance GetSrcSpan ConPat where

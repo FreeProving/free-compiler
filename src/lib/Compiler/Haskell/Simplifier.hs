@@ -641,7 +641,7 @@ simplifyExpr (H.RightSection srcSpan op e2) = do
   return
     (HS.Lambda
       srcSpan
-      [HS.VarPat srcSpan x]
+      [HS.VarPat srcSpan x Nothing]
       (HS.app srcSpan op' [HS.Var srcSpan (HS.UnQual (HS.Ident x)), e2'])
     )
 
@@ -805,7 +805,7 @@ simplifyConName name@(H.Special _ (H.ExprHole _)) =
 --  Parenthesis are ignored.
 simplifyVarPat :: H.Pat SrcSpan -> Simplifier HS.VarPat
 simplifyVarPat (H.PVar srcSpan (H.Ident _ ident)) =
-  return (HS.VarPat srcSpan ident)
+  return (HS.VarPat srcSpan ident Nothing)
 simplifyVarPat pat = expected "variable pattern" pat
 
 -- Simplifies a constructor pattern.

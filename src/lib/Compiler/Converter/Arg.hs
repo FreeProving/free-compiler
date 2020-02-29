@@ -128,7 +128,8 @@ convertPureArg = convertArg' True
 --   has been lifted to the free monad or not (@True@ for pure values and
 --   @False@ for lifted values).
 convertArg' :: Bool -> HS.VarPat -> Maybe G.Term -> Converter G.Binder
-convertArg' isPure (HS.VarPat srcSpan ident) mArgType' = do
+-- TODO use annotated variable type?
+convertArg' isPure (HS.VarPat srcSpan ident _) mArgType' = do
   ident' <- renameAndDefineVar srcSpan isPure ident
   generateArgBinder ident' mArgType'
 

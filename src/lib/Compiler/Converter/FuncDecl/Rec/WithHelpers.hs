@@ -143,7 +143,7 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent args expr) decArgIndex = do
       usedVars       = usedVarsAt expr caseExprPos
       helperArgNames = Set.toList (usedVars `Set.intersection` boundVars)
       helperArgs =
-        map (HS.VarPat NoSrcSpan . fromJust . HS.identFromQName) helperArgNames
+        map (HS.toVarPat . fromJust . HS.identFromQName) helperArgNames
 
     -- Register the helper function to the environment.
     -- The types of the original parameters are known, but we neither know the

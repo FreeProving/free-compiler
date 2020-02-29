@@ -178,7 +178,7 @@ instance ApplySubst HS.Type HS.Expr where
       e2' <- applySubst' e2
       return (HS.App srcSpan e1' e2')
     applySubst' (HS.TypeAppExpr srcSpan expr typeExpr) = do
-      expr' <- applySubst' expr
+      expr'     <- applySubst' expr
       typeExpr' <- applySubst subst typeExpr
       return (HS.TypeAppExpr srcSpan expr' typeExpr')
     applySubst' (HS.If srcSpan e1 e2 e3) = do
@@ -191,15 +191,16 @@ instance ApplySubst HS.Type HS.Expr where
       alts' <- mapM (applySubst subst) alts
       return (HS.Case srcSpan expr' alts')
     applySubst' (HS.Lambda srcSpan args expr) = do
+      args' <- mapM (applySubst subst) args
       expr' <- applySubst' expr
-      return (HS.Lambda srcSpan args expr')
+      return (HS.Lambda srcSpan args' expr')
     applySubst' (HS.ExprTypeSig srcSpan expr typeSchema) = do
-      expr' <- applySubst' expr
+      expr'       <- applySubst' expr
       typeSchema' <- applySubst subst typeSchema
       return (HS.ExprTypeSig srcSpan expr' typeSchema')
 
     -- All other expressions remain unchanged.
-    applySubst' expr@(HS.Var _ _) = return expr
+    applySubst' expr@(HS.Var _ _       ) = return expr
     applySubst' expr@(HS.Con _ _       ) = return expr
     applySubst' expr@(HS.Undefined _   ) = return expr
     applySubst' expr@(HS.ErrorExpr  _ _) = return expr
@@ -209,8 +210,16 @@ instance ApplySubst HS.Type HS.Expr where
 --   given @case@-expression alterntaive.
 instance ApplySubst HS.Type HS.Alt where
   applySubst subst (HS.Alt srcSpan conPat varPats expr) = do
-    expr' <- applySubst subst expr
-    return (HS.Alt srcSpan conPat varPats expr')
+    varPats' <- mapM (applySubst subst) varPats
+    expr'    <- applySubst subst expr
+    return (HS.Alt srcSpan conPat varPats' expr')
+
+-- | Applies the given type substitution to the type annotation of the given
+--   variable pattern.
+instance ApplySubst HS.Type HS.VarPat where
+  applySubst subst (HS.VarPat srcSpan varIdent maybeVarType) = do
+    maybeVarType' <- mapM (applySubst subst) maybeVarType
+    return (HS.VarPat srcSpan varIdent maybeVarType')
 
 -------------------------------------------------------------------------------
 -- Application to function declarations.                                     --
@@ -228,8 +237,9 @@ instance ApplySubst HS.Expr HS.FuncDecl where
 --   function declaration.
 instance ApplySubst HS.Type HS.FuncDecl where
   applySubst subst (HS.FuncDecl srcSpan declIdent args rhs) = do
-    rhs' <- applySubst subst rhs
-    return (HS.FuncDecl srcSpan declIdent args rhs')
+    args' <- mapM (applySubst subst) args
+    rhs'  <- applySubst subst rhs
+    return (HS.FuncDecl srcSpan declIdent args' rhs')
 
 -------------------------------------------------------------------------------
 -- Application to type expressions                                           --
@@ -314,9 +324,9 @@ renameArgsSubst args = do
   --   a variable pattern that preserves the source span of the original
   --   pattern.
   freshVarPat :: HS.VarPat -> Converter HS.VarPat
-  freshVarPat (HS.VarPat srcSpan ident) = do
-    ident' <- freshHaskellIdent ident
-    return (HS.VarPat srcSpan ident')
+  freshVarPat (HS.VarPat srcSpan varIdent maybeVarType) = do
+    varIdent' <- freshHaskellIdent varIdent
+    return (HS.VarPat srcSpan varIdent' maybeVarType)
 
 -- | Renames the arguments bound by the given variable patterns in the given
 --   expression to fresh variables.

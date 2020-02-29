@@ -209,7 +209,7 @@ sectionEnv converter = localEnv' $ do
 shadowVarPats :: Monad m => [HS.VarPat] -> ConverterT m a -> ConverterT m a
 shadowVarPats varPats converter = do
   oldEntries <- inEnv envEntries
-  flip mapM_ varPats $ \(HS.VarPat srcSpan varIdent) -> do
+  flip mapM_ varPats $ \(HS.VarPat srcSpan varIdent _) -> do
     let varName = HS.UnQual (HS.Ident varIdent)
     modifyEnv $ addEntry varName VarEntry
       { entrySrcSpan = srcSpan
