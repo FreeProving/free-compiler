@@ -135,8 +135,9 @@ instance ResolveTypes HS.Expr where
     alts' <- mapM (resolveTypesWithM f) alts
     return (HS.Case srcSpan expr' alts')
   resolveTypesWithM f (HS.Lambda srcSpan args expr) = do
+    args' <- mapM (resolveTypesWithM f) args
     expr' <- resolveTypesWithM f expr
-    return (HS.Lambda srcSpan args expr')
+    return (HS.Lambda srcSpan args' expr')
 
   -- All other expressions remain unchanged.
   resolveTypesWithM _ expr@(HS.Con        _ _) = return expr
@@ -149,5 +150,21 @@ instance ResolveTypes HS.Expr where
 --   the right-hand side of a @case@ expression alternative can be resolved.
 instance ResolveTypes HS.Alt where
   resolveTypesWithM f (HS.Alt srcSpan conPat varPats expr) = do
-    expr' <- resolveTypesWithM f expr
-    return (HS.Alt srcSpan conPat varPats expr')
+    varPats' <- mapM (resolveTypesWithM f) varPats
+    expr'    <- resolveTypesWithM f expr
+    return (HS.Alt srcSpan conPat varPats' expr')
+
+-- | Type constructors in the type signatures of variable patterns in function
+--   declarations and on the right-hand side can be resolved.
+instance ResolveTypes HS.FuncDecl where
+  resolveTypesWithM f (HS.FuncDecl srcSpan declIdent args rhs) = do
+    args' <- mapM (resolveTypesWithM f) args
+    rhs'  <- resolveTypesWithM f rhs
+    return (HS.FuncDecl srcSpan declIdent args' rhs')
+
+-- | If a variable pattern has a type signature, type constructors in the
+--   annotated type can be resolved.
+instance ResolveTypes HS.VarPat where
+  resolveTypesWithM f (HS.VarPat srcSpan ident maybeVarType) = do
+    maybeVarType' <- mapM (resolveTypesWithM f) maybeVarType
+    return (HS.VarPat srcSpan ident maybeVarType')

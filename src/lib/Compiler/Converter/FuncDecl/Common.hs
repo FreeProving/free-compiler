@@ -54,7 +54,7 @@ inferAndInsertTypeSigs (Recursive decls) = do
 -- | Like
 inferAndInsertTypeSigs' :: [HS.FuncDecl] -> Converter [HS.FuncDecl]
 inferAndInsertTypeSigs' funcDecls = do
-  (funcDecls', typeSchemas) <- addTypeAppExprsToFuncDecls' funcDecls
+  (funcDecls', typeSchemas) <- annotateFuncDeclTypes' funcDecls
   zipWithM_ insertTypeSig funcDecls' typeSchemas
   return funcDecls'
 

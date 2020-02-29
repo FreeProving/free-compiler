@@ -18,7 +18,6 @@ main = hspec $ do
   testPartialityAnalysis
   testRecursionAnalysis
   testTypeInference
-  testAddTypeAppExprs
   testConverter
   testRenamer
   testExprSubst

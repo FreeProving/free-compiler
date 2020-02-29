@@ -16,12 +16,15 @@ import           Compiler.Util.Test
 testTypeInference :: Spec
 testTypeInference = do
   testInferExprType
+  testAnnotateExprTypes
   testInferFuncDeclTypes
+  testAnnotateFuncDeclTypes
 
 -------------------------------------------------------------------------------
 -- Function declarations                                                     --
 -------------------------------------------------------------------------------
 
+-- | Test group for type 'inferFuncDeclTypes' tests.
 testInferFuncDeclTypes :: Spec
 testInferFuncDeclTypes =
   describe "Compiler.Analysis.TypeInference.inferFuncDeclTypes" $ do
@@ -91,6 +94,65 @@ testInferFuncDeclTypes =
             ++ "  }"
             ]
             ["[Prelude.Integer] -> Prelude.Integer"]
+
+-- | Test group for type 'annotateFuncDeclTypes' tests.
+testAnnotateFuncDeclTypes :: Spec
+testAnnotateFuncDeclTypes =
+  describe "Compiler.Analysis.TypeInference.annotateFuncDeclTypes" $ do
+    it "annotates the types of simple functions correctly"
+      $ shouldSucceed
+      $ fromConverter
+      $ do
+          shouldAnnotateFuncDeclTypes
+            ["null xs = case xs of { [] -> True; x : xs' -> False }"]
+            [ "null (xs :: [t0]) = case xs of {"
+              ++ "    Prelude.([]) -> True;"
+              ++ "    Prelude.(:) (x :: t0) (xs' :: [t0]) -> False"
+              ++ "  }"
+            ]
+    it "annotates the types of recursive functions correctly"
+      $ shouldSucceed
+      $ fromConverter
+      $ do
+          shouldAnnotateFuncDeclTypes
+            ["length xs = case xs of { [] -> 0; x : xs' -> 1 + length xs' }"]
+            [ "length (xs :: [t0]) = case xs of {"
+              ++ "    Prelude.([]) -> 0;"
+              ++ "    Prelude.(:) (x :: t0) (xs' :: [t0])"
+              ++ "      -> (+) 1 (length @t0 xs')"
+              ++ "  }"
+            ]
+    it "handels qualified identifiers correctly"
+      $ shouldSucceed
+      $ fromConverter
+      $ do
+          _ <- defineTestTypeCon "Tree" 1
+          _ <- defineTestCon "Leaf" 1 "a -> Tree a"
+          _ <- defineTestCon "Fork" 2 "Tree a -> Tree a -> Tree a"
+          enterTestModule "M"
+          shouldAnnotateFuncDeclTypes
+            [ "size t = case t of {"
+              ++ "    Leaf x -> 1;"
+              ++ "    Fork l r -> size l + M.size r"
+              ++ "  }"
+            ]
+            [ "size (t :: Tree t0) = case t of {"
+              ++ "    Leaf (x :: t0) -> 1;"
+              ++ "    Fork (l :: Tree t0) (r :: Tree t0)"
+              ++ "      -> (+) (size @t0 l) (M.size @t0 r)"
+              ++ "  }"
+            ]
+    it "annotates the types of partial functions correctly"
+      $ shouldSucceed
+      $ fromConverter
+      $ do
+          shouldAnnotateFuncDeclTypes
+            ["head xs = case xs of { [] -> undefined; x : xs' -> x }"]
+            [ "head (xs :: [t0]) = case xs of {"
+              ++ "    Prelude.([]) -> undefined @t0;"
+              ++ "    Prelude.(:) (x :: t0) (xs' :: [t0]) -> x"
+              ++ "  }"
+            ]
 
 -------------------------------------------------------------------------------
 -- Expressions                                                               --
@@ -178,70 +240,75 @@ testInferExprType =
       $ do
           inferTestType "[42, True]"
 
--- | Test group for type 'addTypeAppExprs' tests.
-testAddTypeAppExprs :: Spec
-testAddTypeAppExprs =
-  describe "Compiler.Analysis.TypeInference.addTypeAppExprs" $ do
+-- | Test group for type 'annotateExprTypes' tests.
+testAnnotateExprTypes :: Spec
+testAnnotateExprTypes =
+  describe "Compiler.Analysis.TypeInference.annotateExprTypes" $ do
     it "type arguments of constructors are applied visibly"
       $ shouldSucceed
       $ fromConverter
       $ do
-          shouldAddTypeAppExprs "(42, True)"
+          shouldAnnotateExprTypes "(42, True)"
             $ "Prelude.(,) @Prelude.Integer @Prelude.Bool 42 True"
     it "type arguments of functions are applied visibly"
       $ shouldSucceed
       $ fromConverter
       $ do
           "head" <- defineTestFunc "head" 1 "[a] -> a"
-          shouldAddTypeAppExprs "head [1]"
+          shouldAnnotateExprTypes "head [1]"
             $  "head @Prelude.Integer (Prelude.(:) @Prelude.Integer 1 "
             ++ "(Prelude.([]) @Prelude.Integer))"
     it "type arguments of 'undefined' are applied visibly"
       $ shouldSucceed
       $ fromConverter
       $ do
-          shouldAddTypeAppExprs "True || undefined"
+          shouldAnnotateExprTypes "True || undefined"
             $ "(||) True (undefined @Prelude.Bool)"
     it "type arguments of 'error \"...\"' are applied visibly"
       $ shouldSucceed
       $ fromConverter
       $ do
-          shouldAddTypeAppExprs "False && error \"...\""
+          shouldAnnotateExprTypes "False && error \"...\""
             $ "(&&) False (error @Prelude.Bool \"...\")"
     it "type arguments of constructor patterns are not applied visibly"
       $ shouldSucceed
       $ fromConverter
       $ do
           "f" <- defineTestFunc "f" 1 "a -> [a]"
-          shouldAddTypeAppExprs "case f 42 of { [] -> (); (x : xs) -> () }"
+          shouldAnnotateExprTypes "case f 42 of { [] -> (); (x : xs) -> () }"
             $  "case f @Prelude.Integer 42 of {"
             ++ "    Prelude.([]) -> Prelude.();"
-            ++ "    Prelude.(:) x xs -> Prelude.()"
+            ++ "    Prelude.(:) (x :: Prelude.Integer)"
+            ++ "                (xs :: [Prelude.Integer])"
+            ++ "      -> Prelude.()"
             ++ "  }"
     it "does not apply functions shadowed by lambda visibly"
       $ shouldSucceed
       $ fromConverter
       $ do
           "f" <- defineTestFunc "f" 1 "a -> a"
-          "\\f x -> f x" `shouldAddTypeAppExprs` "\\f x -> f x"
+          shouldAnnotateExprTypes "\\f x -> f x"
+                                  "\\(f :: t0 -> t1) (x :: t0) -> f x"
     it "does not apply functions shadowed by case visibly"
       $ shouldSucceed
       $ fromConverter
       $ do
           "f" <- defineTestFunc "f" 1 "a -> a"
-          shouldAddTypeAppExprs "case (f, 42) of (f, x) -> f x"
+          shouldAnnotateExprTypes "case (f, 42) of (f, x) -> f x"
             $  "case Prelude.(,) @(Prelude.Integer -> Prelude.Integer) "
             ++ "                 @Prelude.Integer (f @Prelude.Integer) 42 of {"
-            ++ "    Prelude.(,) f x -> f x"
+            ++ "    Prelude.(,) (f :: Prelude.Integer -> Prelude.Integer)"
+            ++ "                (x :: Prelude.Integer) -> f x"
             ++ "  }"
     it "generates distinct fresh type variables in different scopes"
       $ shouldSucceed
       $ fromConverter
       $ do
           "f" <- defineTestFunc "f" 1 "a -> a"
-          shouldAddTypeAppExprs "(\\x -> f x, \\x -> f x)"
+          shouldAnnotateExprTypes "(\\x -> f x, \\x -> f x)"
             $  "Prelude.(,) @(t0 -> t0) @(t1 -> t1)"
-            ++ "            (\\x -> f @t0 x) (\\x -> f @t1 x)"
+            ++ "            (\\(x :: t0) -> f @t0 x)"
+            ++ "            (\\(x :: t1) -> f @t1 x)"
 
 -------------------------------------------------------------------------------
 -- Utility functions                                                         --
@@ -279,22 +346,36 @@ inferTestFuncDeclTypes input = localEnv $ do
 --   the expectation that the given type schemas are inferred.
 shouldInferFuncDeclTypes :: [String] -> [String] -> Converter Expectation
 shouldInferFuncDeclTypes input expectedTypes = do
-  inferredTypes <- inferTestFuncDeclTypes input
+  inferredTypes  <- inferTestFuncDeclTypes input
   inferredTypes' <- mapM resolveTypes inferredTypes
   return (zipWithM_ prettyShouldBe inferredTypes' expectedTypes)
 
--- | Parses the given expression and adds 'HS.TypeAppExpr' nodes to all
---   function and constructor applications for the type arguments of the
---   invoked function or constructor.
-addTypeAppTestExprs :: String -> Converter HS.Expr
-addTypeAppTestExprs input = do
+-- | Parses the given expression and applies 'annotateExprTypes'.
+annotateTestExprTypes :: String -> Converter HS.Expr
+annotateTestExprTypes input = do
   expr <- parseTestExpr input
-  addTypeAppExprs expr
+  annotateExprTypes expr
 
--- | Parses the given expression, adds 'HS.TypeAppExpr' nodes and sets the
---   expectation that the given expression is obtained.
-shouldAddTypeAppExprs :: String -> String -> Converter Expectation
-shouldAddTypeAppExprs input expectedOutput = do
-  output <- addTypeAppTestExprs input
+-- | Parses the given expression, applies 'annotateExprTypes' nodes and
+--   sets the expectation that the given expression is obtained.
+shouldAnnotateExprTypes :: String -> String -> Converter Expectation
+shouldAnnotateExprTypes input expectedOutput = do
+  output  <- annotateTestExprTypes input
   output' <- resolveTypes output
   return (output' `prettyShouldBe` expectedOutput)
+
+-- | Parses the given function declarations and applies
+--   'annotateFuncDeclTypes'.
+annotateTestFuncDeclTypes :: [String] -> Converter [HS.FuncDecl]
+annotateTestFuncDeclTypes input = do
+  ([], typeSigs, funcDecls) <- parseTestDecls input
+  mapM_ defineTypeSigDecl typeSigs
+  annotateFuncDeclTypes funcDecls
+
+-- | Parses the given expression, applies 'annotateFuncDeclTypes' nodes and
+--   sets the expectation that the given function declarations are obtained.
+shouldAnnotateFuncDeclTypes :: [String] -> [String] -> Converter Expectation
+shouldAnnotateFuncDeclTypes input expectedOutput = do
+  output  <- annotateTestFuncDeclTypes input
+  output' <- mapM resolveTypes output
+  return (zipWithM_ prettyShouldBe output' expectedOutput)
