@@ -203,7 +203,7 @@ convertExpr' (HS.Undefined srcSpan) typeArgs [] = do
   when (length typeArgs /= 1)
     $  reportFatal
     $  Message srcSpan Internal
-    $  "The error term 'undefined' is applied to the wrong number of"
+    $  "The error term 'undefined' is applied to the wrong number of "
     ++ "type arguments.\n"
     ++ "Expected 1 type arguments, got "
     ++ show (length typeArgs)
@@ -218,8 +218,7 @@ convertExpr' (HS.ErrorExpr srcSpan msg) typeArgs [] = do
     $  Message srcSpan Internal
     $  "The error term 'error "
     ++ show msg
-    ++ "' is applied to the wrong number of"
-    ++ "type arguments.\n"
+    ++ "' is applied to the wrong number of type arguments.\n"
     ++ "Expected 1 type arguments, got "
     ++ show (length typeArgs)
     ++ "."
@@ -245,9 +244,8 @@ convertExpr' (HS.ExprTypeSig _ expr typeSchema) [] [] = do
   return (G.HasType expr' typeSchema')
 
 -- Visible type application of an expression other than a function or
--- constructor. We use an as-pattern for @typeArgs@ such that we get a compile
--- time warning when a node is added to the AST that we do not conver above.
-convertExpr' expr (_ : _) _ = do
+-- constructor.
+convertExpr' expr                      (_ : _) _  = do
   let srcSpan = HS.getSrcSpan expr
   reportFatal
     $  Message srcSpan Internal
