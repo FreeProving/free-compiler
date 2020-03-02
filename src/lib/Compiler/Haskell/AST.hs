@@ -402,7 +402,7 @@ data Expr
   | IntLiteral SrcSpan Integer    -- ^ An integer literal.
   | Lambda SrcSpan [VarPat] Expr  -- ^ A lambda abstraction.
 
-  | ExprTypeSig SrcSpan Expr TypeSchema -- ^ A type annotation.semi
+  | ExprTypeSig SrcSpan Expr TypeSchema -- ^ A type annotation.
   deriving (Eq, Show)
 
 -- | One alternative of a case expression.
@@ -470,8 +470,8 @@ instance Pretty Expr where
 --    * @2@ - Parenthesis are also needed around function applications.
 prettyExprPred :: Int -> Expr -> Doc
 
--- Parenthesis can be omitted around @if@, @case@ and lambda expressions
--- at top-level only.
+-- Parenthesis can be omitted around @if@, @case@, lambda abstractions
+-- and type signatures at top-level only.
 prettyExprPred 0 (If _ e1 e2 e3) =
   prettyString "if"
     <+> prettyExprPred 1 e1
@@ -487,6 +487,14 @@ prettyExprPred 0 (Lambda _ args expr) =
     <>  hsep (map pretty args)
     <+> prettyString "->"
     <+> prettyExprPred 0 expr
+prettyExprPred 0 (ExprTypeSig _ expr typeSchema) =
+  pretty expr <+> colon <> colon <+> pretty typeSchema
+
+-- At all other levels, the parenthesis cannot be omitted.
+prettyExprPred _ expr@(If _ _ _ _       ) = parens (pretty expr)
+prettyExprPred _ expr@(Case        _ _ _) = parens (pretty expr)
+prettyExprPred _ expr@(Lambda      _ _ _) = parens (pretty expr)
+prettyExprPred _ expr@(ExprTypeSig _ _ _) = parens (pretty expr)
 
 -- Fix placement of visible type arguments in for error terms.
 prettyExprPred n (TypeAppExpr _ (ErrorExpr _ msg) t) | n <= 1 =
@@ -494,12 +502,15 @@ prettyExprPred n (TypeAppExpr _ (ErrorExpr _ msg) t) | n <= 1 =
     (show msg)
 
 -- Function application is left-associative.
-prettyExprPred n (App _ e1 e2) | n <= 1 =
-  prettyExprPred 1 e1 <+> prettyExprPred 2 e2
-prettyExprPred n (TypeAppExpr _ e t) | n <= 1 =
-  prettyExprPred 1 e <+> char '@' <> prettyTypePred 2 t
-prettyExprPred n (ErrorExpr _ msg) | n <= 1 =
-  prettyString "error" <+> prettyString (show msg)
+prettyExprPred n expr@(App _ e1 e2)
+  | n <= 1    = prettyExprPred 1 e1 <+> prettyExprPred 2 e2
+  | otherwise = parens (pretty expr)
+prettyExprPred n expr@(TypeAppExpr _ e t)
+  | n <= 1    = prettyExprPred 1 e <+> char '@' <> prettyTypePred 2 t
+  | otherwise = parens (pretty expr)
+prettyExprPred n expr@(ErrorExpr _ msg)
+  | n <= 1    = prettyString "error" <+> prettyString (show msg)
+  | otherwise = parens (pretty expr)
 
 -- No parenthesis are needed around variable and constructor names and
 -- integer literals.
@@ -507,9 +518,6 @@ prettyExprPred _ (Con        _ name) = pretty name
 prettyExprPred _ (Var        _ name) = pretty name
 prettyExprPred _ (IntLiteral _ i   ) = integer i
 prettyExprPred _ (Undefined _      ) = prettyString "undefined"
-
--- Otherwise, there must be parenthesis.
-prettyExprPred _ e                   = parens (pretty e)
 
 -- | Pretty instance for @case@ expression alternatives.
 instance Pretty Alt where
