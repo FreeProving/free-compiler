@@ -25,7 +25,11 @@ import           Data.List                      ( (\\)
                                                 , nub
                                                 , partition
                                                 )
-import           Data.Maybe                     ( fromJust )
+import           Data.Map.Strict                ( Map )
+import qualified Data.Map.Strict               as Map
+import           Data.Maybe                     ( fromJust
+                                                , maybeToList
+                                                )
 
 import           Compiler.Analysis.DependencyExtraction
                                                 ( typeVars )
@@ -39,9 +43,42 @@ import           Compiler.Haskell.Unification
 import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
 import           Compiler.Pretty
-import           Compiler.Util.Predicate        ( (.||.)
-                                                , (.&&.)
-                                                )
+import           Compiler.Util.Predicate        ( (.||.) )
+
+-- | Maps the names of defined functions and constructors to their type schema.
+type TypeAssumption = Map HS.QName HS.TypeSchema
+
+-- | Creates a 'TypeAssumption' for all funtions and constructors defined
+--   in the given environment.
+makeTypeAssumtion :: Environment -> TypeAssumption
+makeTypeAssumtion env = entryTypeAssumtion `Map.union` typeSigTypeAssumtion
+ where
+  entryTypeAssumtion, typeSigTypeAssumtion :: TypeAssumption
+  entryTypeAssumtion = Map.fromList
+    [ (name, typeSchema)
+    | (scope, name) <- Map.keys (envEntries env)
+    , scope == ValueScope
+    , typeSchema <- maybeToList (lookupTypeSchema scope name env)
+    ]
+  typeSigTypeAssumtion = envTypeSigs env
+
+-- | Remoes all variables bound by the given variable patterns from the given
+--   type assumption.
+removeVarPatsFromTypeAssumption
+  :: [HS.VarPat] -> TypeAssumption -> TypeAssumption
+removeVarPatsFromTypeAssumption = flip (foldr removeVarPatFromTypeAssumption)
+
+-- | Removes the variable bound by the given variable pattern from the given
+--   type assumption.
+removeVarPatFromTypeAssumption :: HS.VarPat -> TypeAssumption -> TypeAssumption
+removeVarPatFromTypeAssumption (HS.VarPat _ ident _) ta =
+  let name = HS.UnQual (HS.Ident ident) in Map.delete name ta
+
+-- | Adds the type schemas for the given function and constructor names to
+--   the given type assumption.
+extendTypeAssumption
+  :: [(HS.QName, HS.TypeSchema)] -> TypeAssumption -> TypeAssumption
+extendTypeAssumption ps ta = Map.fromList ps `Map.union` ta
 
 -------------------------------------------------------------------------------
 -- Function declarations                                                     --
@@ -125,7 +162,15 @@ annotateFuncDeclTypes' funcDecls = localEnv $ do
     unzip <$> zipWithM abstractTypeSchema' allTypeArgs typeExprs
   abstractedFuncDecls <- zipWithM applySubst substs typedFuncDecls
   -- Add visible type applications.
-  funcDecls'          <- mapM addTypeAppExprsToFuncDecl abstractedFuncDecls
+  modName             <- inEnv envModName
+  ta                  <- inEnv makeTypeAssumtion
+  let funcIdents      = map (HS.fromDeclIdent . HS.getDeclIdent) funcDecls
+      funcUnqualNames = map (HS.UnQual . HS.Ident) funcIdents
+      funcQualNames   = map (HS.Qual modName . HS.Ident) funcIdents
+      ta'             = extendTypeAssumption
+        (zip funcUnqualNames typeSchemas ++ zip funcQualNames typeSchemas)
+        ta
+  funcDecls' <- mapM (addTypeAppExprsToFuncDecl ta') abstractedFuncDecls
   return (funcDecls', typeSchemas)
 
 -------------------------------------------------------------------------------
@@ -168,7 +213,8 @@ annotateExprTypes' expr = localEnv $ do
   (typeSchema, subst) <- abstractTypeSchema' typeArgs typeExpr
   abstractedExpr      <- applySubst subst typedExpr
   -- Add visible type applications.
-  expr'               <- addTypeAppExprs abstractedExpr
+  ta                  <- inEnv makeTypeAssumtion
+  expr'               <- addTypeAppExprs ta abstractedExpr
   return (expr', typeSchema)
 
 -------------------------------------------------------------------------------
@@ -258,86 +304,79 @@ annotateFuncDecl (HS.FuncDecl srcSpan declIdent args rhs) = do
 
 -- | Replaces the type signatures added by 'annotateExpr' by visible type
 --   application expressions.
-addTypeAppExprs :: HS.Expr -> Converter HS.Expr
+addTypeAppExprs :: TypeAssumption -> HS.Expr -> Converter HS.Expr
 
 -- Add visible type applications to functions and constructors.
-addTypeAppExprs (HS.ExprTypeSig srcSpan expr@(HS.Con _ conName) (HS.TypeSchema _ [] typeExpr))
+addTypeAppExprs ta (HS.ExprTypeSig srcSpan expr@(HS.Con _ conName) (HS.TypeSchema _ [] typeExpr))
   = do
-    Just typeSchema       <- inEnv $ lookupTypeSchema ValueScope conName
+    let Just typeSchema = Map.lookup conName ta
     (typeExpr', typeArgs) <- instantiateTypeSchema' typeSchema
     mgu                   <- unifyOrFail srcSpan typeExpr typeExpr'
     typeArgs'             <- mapM (applySubst mgu) typeArgs
     return (HS.visibleTypeApp srcSpan expr typeArgs')
-addTypeAppExprs (HS.ExprTypeSig srcSpan expr@(HS.Var _ varName) (HS.TypeSchema _ [] typeExpr))
-  = do
-    ifM
-      (inEnv
-        (    isFunction varName
-        .||. hasTypeSig varName
-        .&&. (not . isVariable varName)
-        )
-      )
-      (do
-        typeSchema            <- lookupTypeSchemaOrTypeSig srcSpan varName
-        (typeExpr', typeArgs) <- instantiateTypeSchema' typeSchema
-        mgu                   <- unifyOrFail srcSpan typeExpr typeExpr'
-        typeArgs'             <- mapM (applySubst mgu) typeArgs
-        return (HS.visibleTypeApp srcSpan expr typeArgs')
-      )
-      (return expr)
+addTypeAppExprs ta (HS.ExprTypeSig srcSpan expr@(HS.Var _ varName) (HS.TypeSchema _ [] typeExpr))
+  = case Map.lookup varName ta of
+    Nothing         -> return expr
+    Just typeSchema -> do
+      (typeExpr', typeArgs) <- instantiateTypeSchema' typeSchema
+      mgu                   <- unifyOrFail srcSpan typeExpr typeExpr'
+      typeArgs'             <- mapM (applySubst mgu) typeArgs
+      return (HS.visibleTypeApp srcSpan expr typeArgs')
 
 -- Add visible type applications to error terms.
-addTypeAppExprs (HS.ExprTypeSig srcSpan expr@(HS.Undefined _) (HS.TypeSchema _ [] typeExpr))
+addTypeAppExprs _ (HS.ExprTypeSig srcSpan expr@(HS.Undefined _) (HS.TypeSchema _ [] typeExpr))
   = return (HS.TypeAppExpr srcSpan expr typeExpr)
-addTypeAppExprs (HS.ExprTypeSig srcSpan expr@(HS.ErrorExpr _ _) (HS.TypeSchema _ [] typeExpr))
+addTypeAppExprs _ (HS.ExprTypeSig srcSpan expr@(HS.ErrorExpr _ _) (HS.TypeSchema _ [] typeExpr))
   = return (HS.TypeAppExpr srcSpan expr typeExpr)
 
 -- There should be no visible type applications prior to type inference.
-addTypeAppExprs (HS.TypeAppExpr srcSpan _ _) = unexpectedTypeAppExpr srcSpan
+addTypeAppExprs _ (HS.TypeAppExpr srcSpan _ _) = unexpectedTypeAppExpr srcSpan
 
 -- Recursively add visible type applications.
-addTypeAppExprs (HS.ExprTypeSig srcSpan expr typeSchema) = do
-  expr' <- addTypeAppExprs expr
+addTypeAppExprs ta (HS.ExprTypeSig srcSpan expr typeSchema) = do
+  expr' <- addTypeAppExprs ta expr
   return (HS.ExprTypeSig srcSpan expr' typeSchema)
-addTypeAppExprs (HS.App srcSpan e1 e2) = do
-  e1' <- addTypeAppExprs e1
-  e2' <- addTypeAppExprs e2
+addTypeAppExprs ta (HS.App srcSpan e1 e2) = do
+  e1' <- addTypeAppExprs ta e1
+  e2' <- addTypeAppExprs ta e2
   return (HS.App srcSpan e1' e2')
-addTypeAppExprs (HS.If srcSpan e1 e2 e3) = do
-  e1' <- addTypeAppExprs e1
-  e2' <- addTypeAppExprs e2
-  e3' <- addTypeAppExprs e3
+addTypeAppExprs ta (HS.If srcSpan e1 e2 e3) = do
+  e1' <- addTypeAppExprs ta e1
+  e2' <- addTypeAppExprs ta e2
+  e3' <- addTypeAppExprs ta e3
   return (HS.If srcSpan e1' e2' e3')
-addTypeAppExprs (HS.Case srcSpan expr alts) = do
-  expr' <- addTypeAppExprs expr
-  alts' <- mapM addTypeAppExprsToAlt alts
+addTypeAppExprs ta (HS.Case srcSpan expr alts) = do
+  expr' <- addTypeAppExprs ta expr
+  alts' <- mapM (addTypeAppExprsToAlt ta) alts
   return (HS.Case srcSpan expr' alts')
-addTypeAppExprs (HS.Lambda srcSpan args expr) = shadowVarPats args $ do
-  expr' <- addTypeAppExprs expr
+addTypeAppExprs ta (HS.Lambda srcSpan args expr) = do
+  let ta' = removeVarPatsFromTypeAssumption args ta
+  expr' <- addTypeAppExprs ta' expr
   return (HS.Lambda srcSpan args expr')
 
 -- Leave all other expressions unchanged.
-addTypeAppExprs expr@(HS.Con _ _       ) = return expr
-addTypeAppExprs expr@(HS.Var _ _       ) = return expr
-addTypeAppExprs expr@(HS.Undefined _   ) = return expr
-addTypeAppExprs expr@(HS.ErrorExpr  _ _) = return expr
-addTypeAppExprs expr@(HS.IntLiteral _ _) = return expr
+addTypeAppExprs _ expr@(HS.Con _ _       ) = return expr
+addTypeAppExprs _ expr@(HS.Var _ _       ) = return expr
+addTypeAppExprs _ expr@(HS.Undefined _   ) = return expr
+addTypeAppExprs _ expr@(HS.ErrorExpr  _ _) = return expr
+addTypeAppExprs _ expr@(HS.IntLiteral _ _) = return expr
 
 -- | Applies 'addTypeAppExprs' to the right-hand side of the given @case@-
 --   expression alternative.
-addTypeAppExprsToAlt :: HS.Alt -> Converter HS.Alt
-addTypeAppExprsToAlt (HS.Alt srcSpan conPat varPats expr) =
-  shadowVarPats varPats $ do
-    expr' <- addTypeAppExprs expr
-    return (HS.Alt srcSpan conPat varPats expr')
+addTypeAppExprsToAlt :: TypeAssumption -> HS.Alt -> Converter HS.Alt
+addTypeAppExprsToAlt ta (HS.Alt srcSpan conPat varPats expr) = do
+  let ta' = removeVarPatsFromTypeAssumption varPats ta
+  expr' <- addTypeAppExprs ta' expr
+  return (HS.Alt srcSpan conPat varPats expr')
 
 -- | Applies ' addTypeAppExprs' to the right-hand side of the given function
 --   declaration.
-addTypeAppExprsToFuncDecl :: HS.FuncDecl -> Converter HS.FuncDecl
-addTypeAppExprsToFuncDecl (HS.FuncDecl srcSpan declIdent args rhs) =
-  shadowVarPats args $ do
-    rhs' <- addTypeAppExprs rhs
-    return (HS.FuncDecl srcSpan declIdent args rhs')
+addTypeAppExprsToFuncDecl
+  :: TypeAssumption -> HS.FuncDecl -> Converter HS.FuncDecl
+addTypeAppExprsToFuncDecl ta (HS.FuncDecl srcSpan declIdent args rhs) = do
+  let ta' = removeVarPatsFromTypeAssumption args ta
+  rhs' <- addTypeAppExprs ta' rhs
+  return (HS.FuncDecl srcSpan declIdent args rhs')
 
 -------------------------------------------------------------------------------
 -- Simplification of expression/type pairs                                   --
