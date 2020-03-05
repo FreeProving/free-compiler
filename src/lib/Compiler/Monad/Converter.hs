@@ -1,6 +1,6 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
--- | This module a state monad which allows the compiler's state (see
+-- | This module defines a state monad which allows the compiler's state (see
 --   "Comiler.Environment") to be passed implicitly throught the converter.
 --
 --   There are also utility functions to modify the state and retreive
@@ -23,6 +23,7 @@ module Compiler.Monad.Converter
     -- * Using IO actions in converters
   , ConverterIO
     -- * Modifying environments
+  , MonadConverter(..)
   , getEnv
   , inEnv
   , putEnv
@@ -143,26 +144,33 @@ instance MonadIO m => MonadIO (ConverterT m) where
 -- Modifying environments                                                    --
 -------------------------------------------------------------------------------
 
+class Monad m => MonadConverter m where
+  liftConverter :: Converter a -> m a
+
+instance Monad m => MonadConverter (ConverterT m) where
+  liftConverter = hoist
+
 -- | Gets the current environment.
-getEnv :: Monad m => ConverterT m Environment
-getEnv = get
+getEnv :: MonadConverter m => m Environment
+getEnv = liftConverter get
 
 -- | Gets a specific component of the current environment using the given
 --   function to extract the value from the environment.
-inEnv :: Monad m => (Environment -> a) -> ConverterT m a
-inEnv = gets
+inEnv :: MonadConverter m => (Environment -> a) -> m a
+inEnv = liftConverter . gets
 
 -- | Sets the current environment.
-putEnv :: Monad m => Environment -> ConverterT m ()
-putEnv = put
+putEnv :: MonadConverter m => Environment -> m ()
+putEnv = liftConverter . put
 
 -- | Applies the given function to the environment.
-modifyEnv :: Monad m => (Environment -> Environment) -> ConverterT m ()
-modifyEnv = modify
+modifyEnv :: MonadConverter m => (Environment -> Environment) -> m ()
+modifyEnv = liftConverter . modify
 
 -- | Gets a specific component and modifies the environment.
-modifyEnv' :: Monad m => (Environment -> (a, Environment)) -> ConverterT m a
-modifyEnv' = state
+modifyEnv'
+  :: MonadConverter m => (Environment -> (a, Environment)) -> m a
+modifyEnv' = liftConverter . state
 
 -------------------------------------------------------------------------------
 -- Encapsulating environments                                                --
@@ -170,12 +178,12 @@ modifyEnv' = state
 
 -- | Runs the given converter and returns its result but discards all
 --   modifications to the environment.
-localEnv :: Monad m => ConverterT m a -> ConverterT m a
+localEnv :: MonadConverter m => m a -> m a
 localEnv converter = localEnv' $ getEnv >>= putEnv . childEnv >> converter
 
 -- | Like 'localEnv', but the local environment remains at top level (i.e.,
 --   the 'envDepth' is not increased).
-localEnv' :: Monad m => ConverterT m a -> ConverterT m a
+localEnv' :: MonadConverter m => m a -> m a
 localEnv' converter = do
   env <- getEnv
   x   <- converter
@@ -186,14 +194,14 @@ localEnv' converter = do
 --
 --   Like 'localEnv', the modifications to the environment are discared but
 --   the returned 'ModuleInterface' is inserted into the environment.
-moduleEnv :: Monad m => ConverterT m (a, ModuleInterface) -> ConverterT m a
+moduleEnv :: MonadConverter m => m (a, ModuleInterface) -> m a
 moduleEnv converter = do
   (x, interface) <- localEnv' converter
   modifyEnv $ makeModuleAvailable interface
   return x
 
 -- | Runs the given converter with 'envInSection' set to @True@.
-sectionEnv :: Monad m => ConverterT m a -> ConverterT m a
+sectionEnv :: MonadConverter m => m a -> m a
 sectionEnv converter = localEnv' $ do
   ifM (inEnv envInSection) converter $ do
     modifyEnv $ \env -> env { envInSection = True }
@@ -206,17 +214,19 @@ sectionEnv converter = localEnv' $ do
 --
 --   Unlike 'localEnv', all modifications to the environment are keept
 --   (except for added entries), except for the definition of the variables.
-shadowVarPats :: Monad m => [HS.VarPat] -> ConverterT m a -> ConverterT m a
+shadowVarPats :: MonadConverter m => [HS.VarPat] -> m a -> m a
 shadowVarPats varPats converter = do
   oldEntries <- inEnv envEntries
   flip mapM_ varPats $ \(HS.VarPat srcSpan varIdent _) -> do
     let varName = HS.UnQual (HS.Ident varIdent)
-    modifyEnv $ addEntry varName VarEntry
-      { entrySrcSpan = srcSpan
-      , entryIsPure  = False
-      , entryIdent   = undefined
-      , entryName    = varName
-      }
+    modifyEnv $ addEntry
+      varName
+      VarEntry
+        { entrySrcSpan = srcSpan
+        , entryIsPure  = False
+        , entryIdent   = undefined
+        , entryName    = varName
+        }
   x <- converter
   modifyEnv $ \env -> env { envEntries = oldEntries }
   return x
