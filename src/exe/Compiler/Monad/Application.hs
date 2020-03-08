@@ -126,8 +126,8 @@ liftReporterIO = liftConverterIO . lift'
 
 -- | Promotes a 'Converter' to an application that produces the same result
 --   and ignores the application's options.
-liftConverter :: Converter a -> Application a
-liftConverter = liftConverterIO . hoist
+instance MonadConverter Application where
+  liftConverter = liftConverterIO . hoist
 
 -- | Promotes a 'ConverterIO' to an application that produces the same result
 --   and ignores the application's options.
