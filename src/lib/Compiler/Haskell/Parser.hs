@@ -3,23 +3,34 @@
 
 module Compiler.Haskell.Parser
   ( parseHaskell
+    -- * Modules
   , parseModule
   , parseModuleWithComments
   , parseModuleFile
   , parseModuleFileWithComments
+    -- * Declarations
   , parseDecl
+    -- * Types
   , parseType
+  , parseTypeSchema
+    -- * Expressions
   , parseExpr
+    -- * Identifiers
   , parseQName
   )
 where
 
-import           Data.Composition               ( (.:) )
+import           Data.Composition               ( (.:)
+                                                , (.:.)
+                                                )
 
 import qualified Language.Haskell.Exts.Comments
                                                as H
 import           Language.Haskell.Exts.Extension
-                                                ( Language(..) )
+                                                ( Language(..)
+                                                , Extension(..)
+                                                , KnownExtension(..)
+                                                )
 import           Language.Haskell.Exts.Fixity   ( Fixity
                                                 , infix_
                                                 , infixl_
@@ -38,12 +49,13 @@ import           Compiler.Monad.Reporter
 
 -- | Custom parameters for parsing a Haskell source file with the given name.
 --
---   All language extensions are disabled and cannot be enabled using pragmas.
-parseMode :: String -> ParseMode
-parseMode filename = ParseMode
+--   Only the given language extensions are enabled and no additional
+--   language extensions can be enabled using pragmas.
+makeParseMode :: [KnownExtension] -> String -> ParseMode
+makeParseMode enabledExts filename = ParseMode
   { parseFilename         = filename
   , baseLanguage          = Haskell2010
-  , extensions            = []
+  , extensions            = map EnableExtension enabledExts
   , ignoreLanguagePragmas = True
   , ignoreLinePragmas     = True
     -- If this is set to @Nothing@, user defined fixities are ignored while
@@ -77,14 +89,33 @@ parseHaskell
   -> Reporter (ast SrcSpan)
 parseHaskell = fmap fst .: parseHaskellWithComments
 
+-- | Like 'parseHaskell' but allows language extensions to be enabled.
+parseHaskellWithExts
+  :: (Functor ast, Parseable (ast SrcSpanInfo))
+  => [KnownExtension] -- ^ The extensions to enable.
+  -> String           -- ^ The name of the Haskell source file.
+  -> String           -- ^ The Haskell source code.
+  -> Reporter (ast SrcSpan)
+parseHaskellWithExts = fmap fst .:. parseHaskellWithCommentsAndExts
+
 -- | Like 'parseHaskell' but returns comments in addition to the AST.
 parseHaskellWithComments
   :: (Functor ast, Parseable (ast SrcSpanInfo))
   => String -- ^ The name of the Haskell source file.
   -> String -- ^ The Haskell source code.
   -> Reporter (ast SrcSpan, [HS.Comment])
-parseHaskellWithComments filename contents =
-  case parseWithComments (parseMode filename) contents of
+parseHaskellWithComments = parseHaskellWithCommentsAndExts []
+
+-- | Like 'parseHaskellWithComments' but allows language extensions to be
+--   enabled.
+parseHaskellWithCommentsAndExts
+  :: (Functor ast, Parseable (ast SrcSpanInfo))
+  => [KnownExtension] -- ^ The extensions to enable.
+  -> String           -- ^ The name of the Haskell source file.
+  -> String           -- ^ The Haskell source code.
+  -> Reporter (ast SrcSpan, [HS.Comment])
+parseHaskellWithCommentsAndExts enabledExts filename contents =
+  case parseWithComments parseMode contents of
     ParseOk (node, comments) -> return
       ( fmap (toMessageSrcSpan :: SrcSpanInfo -> SrcSpan) node
       , map convertComment comments
@@ -92,6 +123,10 @@ parseHaskellWithComments filename contents =
     ParseFailed loc msg -> do
       reportFatal $ Message (toMessageSrcSpan loc) Error msg
  where
+  -- | Configuration of the Haskell parser.
+  parseMode :: ParseMode
+  parseMode = makeParseMode enabledExts filename
+
   -- | A map that maps the name of the Haskell source file to the lines of
   --   source code.
   codeByFilename :: [(String, [String])]
@@ -169,6 +204,16 @@ parseType
   -> String -- ^ The Haskell source code.
   -> Reporter (H.Type SrcSpan)
 parseType = parseHaskell
+
+-- | Parses a Haskell type schema.
+--
+--   A type schema is a type with an optional explicit @forall@ quantifier.
+--   This requires the @ExplicitForAll@ language extension to be enabled.
+parseTypeSchema
+  :: String -- ^ The name of the Haskell source file.
+  -> String -- ^ The Haskell source code.
+  -> Reporter (H.Type SrcSpan)
+parseTypeSchema = parseHaskellWithExts [ExplicitForAll]
 
 -------------------------------------------------------------------------------
 -- Expressions                                                               --

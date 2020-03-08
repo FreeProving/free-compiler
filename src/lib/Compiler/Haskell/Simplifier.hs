@@ -17,6 +17,7 @@ module Compiler.Haskell.Simplifier
   , extractModName
   , simplifyDecls
   , simplifyType
+  , simplifyTypeSchema
   , simplifyExpr
   )
 where
@@ -469,7 +470,19 @@ unlambda expr = ([], expr)
 -------------------------------------------------------------------------------
 
 -- | Simplifies the given type expression and abstracts it to a type schema.
+--
+--   If there is no explicit @forall@, all type variables that occur in the
+--   type expression are abstracted aw. Otherwise, only the specified type
+--   arguments are abstracted.
 simplifyTypeSchema :: H.Type SrcSpan -> Simplifier HS.TypeSchema
+
+-- With explicit @forall@.
+simplifyTypeSchema (H.TyForall srcSpan (Just binds) Nothing typeExpr) = do
+  typeArgs <- mapM simplifyTypeVarBind binds
+  typeExpr' <- simplifyType typeExpr
+  return (HS.TypeSchema srcSpan typeArgs typeExpr')
+
+-- Without explicit @forall@.
 simplifyTypeSchema typeExpr = do
   typeExpr' <- simplifyType typeExpr
   let srcSpan  = HS.getSrcSpan typeExpr'

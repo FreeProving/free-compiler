@@ -198,6 +198,15 @@ parseTestType :: String -> Simplifier HS.Type
 parseTestType input =
   liftReporter (parseType "<test-input>" input) >>= simplifyType
 
+-- | Parses and simplifies a Haskell type and abstracts it into a type schema
+--   for testing purposes.
+--
+--   If there is a @forall@ quantifier, only the specified type arguments
+--   are abstracted away.
+parseTestTypeSchema :: String -> Simplifier HS.TypeSchema
+parseTestTypeSchema input =
+  liftReporter (parseTypeSchema "<test-input>" input) >>= simplifyTypeSchema
+
 -- | Parses and simplifies a Haskell type for testing purposes.
 parseTestExpr :: String -> Simplifier HS.Expr
 parseTestExpr input =
@@ -312,18 +321,20 @@ defineTestVar ident = renameAndAddTestEntry VarEntry
 --   The argument and return types are parsed from the given string.
 --   Returns the Coq identifier assigned to the function.
 defineTestFunc :: String -> Int -> String -> Converter String
-defineTestFunc = defineTestFunc' False
+defineTestFunc =
+  defineTestFunc' False
 
 -- | Like 'defineTestFunc' but the first argument controls whether the
 --   defined function is partial or not.
-defineTestFunc' :: Bool -> String -> Int -> String -> Converter String
+defineTestFunc'
+  :: Bool -> String -> Int -> String -> Converter String
 defineTestFunc' partial ident arity typeStr = do
-  typeExpr <- parseTestType typeStr
+  HS.TypeSchema _ typeArgs typeExpr <- parseTestTypeSchema typeStr
   let (argTypes, returnType) = HS.splitType typeExpr arity
   renameAndAddTestEntry FuncEntry
     { entrySrcSpan       = NoSrcSpan
     , entryArity         = arity
-    , entryTypeArgs      = catMaybes $ map HS.identFromQName $ typeVars typeExpr
+    , entryTypeArgs      = map HS.fromDeclIdent typeArgs
     , entryArgTypes      = argTypes
     , entryReturnType    = returnType
     , entryNeedsFreeArgs = True
@@ -336,7 +347,8 @@ defineTestFunc' partial ident arity typeStr = do
 --
 --   Returns the Coq identifier assigned to the function.
 definePartialTestFunc :: String -> Int -> String -> Converter String
-definePartialTestFunc = defineTestFunc' True
+definePartialTestFunc =
+  defineTestFunc' True
 
 -------------------------------------------------------------------------------
 -- Conversion utility functions                                              --
