@@ -50,6 +50,26 @@ testInferFuncDeclTypes =
               ++ "  }"
             ]
             ["forall t0. [t0] -> Prelude.Integer"]
+    it "infers the type of functions with vanishing type arguments correctly"
+      $ shouldSucceed
+      $ fromConverter
+      $ do
+          _ <- defineTestFunc "eq" 2 "a -> a -> Bool"
+          shouldInferFuncDeclTypes
+            [ "length xs = case xs of {"
+              ++ "    []      -> if [] `eq` [] then 0 else 1;"
+              ++ "    x : xs' -> 1 + length xs'"
+              ++ "  }"
+            ]
+            ["forall t0 t1. [t0] -> Prelude.Integer"]
+    it
+        "infers the type of functions that depend on functions with vanishing type arguments correctly"
+      $ shouldSucceed
+      $ fromConverter
+      $ do
+          _ <- defineTestFunc "true" 0 "forall a. Bool"
+          shouldInferFuncDeclTypes ["zero = if true && true then 0 else 1"]
+                                   ["forall t0 t1. Prelude.Integer"]
     it "infers the type of partial functions correctly"
       $ shouldSucceed
       $ fromConverter
@@ -118,9 +138,70 @@ testAnnotateFuncDeclTypes =
             ["length xs = case xs of { [] -> 0; x : xs' -> 1 + length xs' }"]
             [ "length (xs :: [t0]) = case xs of {"
               ++ "    Prelude.([]) -> 0;"
-              ++ "    Prelude.(:) (x :: t0) (xs' :: [t0])"
-              ++ "      -> (+) 1 (length @t0 xs')"
+              ++ "    Prelude.(:) (x :: t0) (xs' :: [t0]) ->"
+              ++ "      (+) 1 (length @t0 xs')"
               ++ "  }"
+            ]
+    it "annotates vanishing type arguments correctly in non-recursive functions"
+      $ shouldSucceed
+      $ fromConverter
+      $ do
+          _ <- defineTestFunc "true" 0 "forall a. Bool"
+          shouldAnnotateFuncDeclTypes
+            ["zero = if true && true then 0 else 1"]
+            ["zero = if (&&) (true @t0) (true @t1) then 0 else 1"]
+    it "annotates vanishing type arguments correctly in recursive functions"
+      $ shouldSucceed
+      $ fromConverter
+      $ do
+          _ <- defineTestFunc "eq" 2 "a -> a -> Bool"
+          shouldAnnotateFuncDeclTypes
+            [ "length xs = case xs of {"
+              ++ "    []      -> if [] `eq` [] then 0 else 1;"
+              ++ "    x : xs' -> 1 + length xs'"
+              ++ "  }"
+            ]
+            [ "length (xs :: [t0]) = case xs of {"
+              ++ "    Prelude.([]) ->"
+              ++ "      if eq @[t1] (Prelude.([]) @t1) (Prelude.([]) @t1)"
+              ++ "        then 0"
+              ++ "        else 1;"
+              ++ "    Prelude.(:) (x :: t0) (xs' :: [t0]) ->"
+              ++ "      (+) 1 (length @t0 @t1 xs')"
+              ++ "  }"
+            ]
+    it
+        "annotates vanishing type arguments correctly in mutually recursive functions"
+      $ shouldSucceed
+      $ fromConverter
+      $ do
+          _ <- defineTestFunc "eq" 2 "a -> a -> Bool"
+          shouldAnnotateFuncDeclTypes
+            [ "length xs = case xs of {"
+            ++ "    []      -> if [] `eq` [] then 0 else 1;"
+            ++ "    x : xs' -> 1 + length' xs'"
+            ++ "  }"
+            , "length' xs = case xs of {"
+            ++ "    []      -> if [] `eq` [] then 0 else 1;"
+            ++ "    x : xs' -> 1 + length xs'"
+            ++ "  }"
+            ]
+            [ "length (xs :: [t0]) = case xs of {"
+            ++ "    Prelude.([]) ->"
+            ++ "      if eq @[t1] (Prelude.([]) @t1) (Prelude.([]) @t1)"
+            ++ "        then 0"
+            ++ "        else 1;"
+            ++ "    Prelude.(:) (x :: t0) (xs' :: [t0]) ->"
+            ++ "      (+) 1 (length' @t0 @t1 @t2 xs')"
+            ++ "  }"
+            , "length' (xs :: [t0]) = case xs of {"
+            ++ "    Prelude.([]) ->"
+            ++ "      if eq @[t2] (Prelude.([]) @t2) (Prelude.([]) @t2)"
+            ++ "        then 0"
+            ++ "        else 1;"
+            ++ "    Prelude.(:) (x :: t0) (xs' :: [t0]) ->"
+            ++ "      (+) 1 (length @t0 @t1 @t2 xs')"
+            ++ "  }"
             ]
     it "handels qualified identifiers correctly"
       $ shouldSucceed

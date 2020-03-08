@@ -27,11 +27,11 @@ import           Control.Monad.State            ( MonadState
                                                 , gets
                                                 , modify
                                                 )
-import           Data.Composition               ( (.:) )
 import           Data.List                      ( (\\)
                                                 , nub
                                                 , partition
                                                 )
+import           Data.List.Extra                ( dropEnd )
 import           Data.Map.Strict                ( Map )
 import qualified Data.Map.Strict               as Map
 import           Data.Maybe                     ( fromJust
@@ -74,6 +74,10 @@ data TypeInferenceState = TypeInferenceState
     -- ^ The type equations that have to be unified.
   , typeAssumption :: TypeAssumption
     -- ^ The known type schemas of predefined functions and constructors.
+  , fixedTypeArgs :: Map HS.QName [HS.Type]
+    -- ^ Maps function names to the types to instantiate their last type
+    --   arguments with. This is used to instantiate additional type arguments
+    --   in recursive functions correctly.
   }
 
 -- | An empty 'TypeInferenceState'.
@@ -82,6 +86,7 @@ emptyTypeInferenceState = TypeInferenceState
   { varTypes       = []
   , typeEquations  = []
   , typeAssumption = Map.empty
+  , fixedTypeArgs  = Map.empty
   }
 
 -- | Creates a 'TypeAssumption' for all funtions and constructors defined
@@ -135,9 +140,12 @@ getAllTypeEquations =
 -- | Looks up the type schema of the function or constructor with the given
 --   name in the current type assumption.
 lookupTypeAssumption :: HS.QName -> TypeInference (Maybe HS.TypeSchema)
-lookupTypeAssumption name = do
-  ta <- gets typeAssumption
-  return (Map.lookup name ta)
+lookupTypeAssumption name = Map.lookup name <$> gets typeAssumption
+
+-- | Looks up the types to instantiate the additional type arguments
+--   of the function with the given name with.
+lookupFixedTypeArgs :: HS.QName -> TypeInference [HS.Type]
+lookupFixedTypeArgs name = Map.findWithDefault [] name <$> gets fixedTypeArgs
 
 -------------------------------------------------------------------------------
 -- Type inference state manipulation                                         --
@@ -203,6 +211,21 @@ removeVarPatFromTypeAssumption (HS.VarPat _ ident _) mx = do
   x <- mx
   modify $ \s -> s { typeAssumption = ta }
   return x
+
+-- | Sets the types to instantiate additional type arguments of the function
+--   with the given name with.
+--
+--   Adds an entry for both the unqualified and the qualified name.
+fixTypeArgs :: HS.Name -> [HS.Type] -> TypeInference ()
+fixTypeArgs name subst = do
+  modName <- inEnv envModName
+  fixTypeArgs' (HS.UnQual name)       subst
+  fixTypeArgs' (HS.Qual modName name) subst
+
+-- | Like 'fixTypeArgs' but does not qualify the name automatically.
+fixTypeArgs' :: HS.QName -> [HS.Type] -> TypeInference ()
+fixTypeArgs' name subst =
+  modify $ \s -> s { fixedTypeArgs = Map.insert name subst (fixedTypeArgs s) }
 
 -------------------------------------------------------------------------------
 -- Function declarations                                                     --
@@ -283,21 +306,34 @@ annotateFuncDeclTypes' funcDecls = localEnv $ do
     (typeExprs, mgu) <- inferFuncDeclTypes' annotatedFuncDecls
     typedFuncDecls <- liftConverter $ mapM (applySubst mgu) annotatedFuncDecls
     -- Abstract inferred type schema.
-    let typeArgs           = map typeVars typeExprs
-        additionalTypeArgs = map typeVars typedFuncDecls
-        allTypeArgs        = zipWith (nub .: (++)) typeArgs additionalTypeArgs
+    let typeArgs = map typeVars typeExprs
+        additionalTypeArgs =
+          nub (concatMap typeVars typedFuncDecls) \\ concat typeArgs
+        allTypeArgs = map (++ additionalTypeArgs) typeArgs
     (typeSchemas, substs) <-
       liftConverter
       $   unzip
       <$> zipWithM abstractTypeSchema' allTypeArgs typeExprs
     abstractedFuncDecls <- liftConverter
       $ zipWithM applySubst substs typedFuncDecls
-    -- Add visible type applications.
+    -- The additional type arguments must not change.
+    additionalTypeArgs' <- liftConverter $ mapM
+      (\subst -> mapM
+        (applySubst subst . HS.TypeVar NoSrcSpan . fromJust . HS.identFromQName)
+        additionalTypeArgs
+      )
+      substs
     let funcNames =
           map (HS.Ident . HS.fromDeclIdent . HS.getDeclIdent) funcDecls
+    zipWithM_ fixTypeArgs          funcNames additionalTypeArgs'
+    -- Add visible type applications.
     zipWithM_ extendTypeAssumption funcNames typeSchemas
-    funcDecls' <- mapM addTypeAppExprsToFuncDecl abstractedFuncDecls
-    return (funcDecls', typeSchemas)
+    visiblyAppliedFuncDecls <- mapM addTypeAppExprsToFuncDecl
+                                    abstractedFuncDecls
+    -- Abstract vanishing type arguments.
+    liftConverter
+      $   unzip
+      <$> zipWithM abstractVanishingTypeArgs visiblyAppliedFuncDecls typeSchemas
 
 -------------------------------------------------------------------------------
 -- Expressions                                                               --
@@ -442,8 +478,10 @@ addTypeAppExprsFor name expr typeExpr = do
       let srcSpan = HS.getSrcSpan expr
       (typeExpr', typeArgs) <- liftConverter $ instantiateTypeSchema' typeSchema
       mgu <- liftConverter $ unifyOrFail srcSpan typeExpr typeExpr'
-      typeArgs' <- liftConverter $ mapM (applySubst mgu) typeArgs
-      return (HS.visibleTypeApp srcSpan expr typeArgs')
+      fixed                 <- lookupFixedTypeArgs name
+      typeArgs'             <- liftConverter
+        $ mapM (applySubst mgu) (dropEnd (length fixed) typeArgs)
+      return (HS.visibleTypeApp srcSpan expr (typeArgs' ++ fixed))
 
 -- | Replaces the type signatures added by 'annotateExpr' by visible type
 --   application expressions.
@@ -508,6 +546,25 @@ addTypeAppExprsToFuncDecl (HS.FuncDecl srcSpan declIdent args rhs) =
   removeVarPatsFromTypeAssumption args $ do
     rhs' <- addTypeAppExprs rhs
     return (HS.FuncDecl srcSpan declIdent args rhs')
+
+-------------------------------------------------------------------------------
+-- Abstracting type arguments                                                --
+-------------------------------------------------------------------------------
+
+-- | Abstracts the remaining internal type variables that occur within
+--   the given function declaration by renaming them to non-internal
+--   type variables and adding them to the @forall@ quantifier of the
+--   given type schema.
+abstractVanishingTypeArgs
+  :: HS.FuncDecl -> HS.TypeSchema -> Converter (HS.FuncDecl, HS.TypeSchema)
+abstractVanishingTypeArgs funcDecl (HS.TypeSchema _ typeArgs typeExpr) = do
+  let typeArgNames = map (HS.UnQual . HS.Ident . HS.fromDeclIdent) typeArgs
+      internalTypeArgNames = filter HS.isInternalQName (typeVars funcDecl)
+  (typeSchema', subst) <- abstractTypeSchema'
+    (typeArgNames ++ internalTypeArgNames)
+    typeExpr
+  funcDecl' <- applySubst subst funcDecl
+  return (funcDecl', typeSchema')
 
 -------------------------------------------------------------------------------
 -- Simplification of expression/type pairs                                   --
@@ -673,11 +730,9 @@ instantiateTypeSchema' (HS.TypeSchema _ typeArgs typeExpr) = do
 --   Fresh type variables used by the given type are replaced by regular type
 --   varibales with the prefix 'freshTypeArgPrefix'. All other type variables
 --   are not renamed.
-abstractTypeSchema :: [HS.QName] -> HS.Type -> Converter HS.TypeSchema
-abstractTypeSchema = fmap fst .: abstractTypeSchema'
-
--- | Like 'abstractTypeSchema' but also returns the substitution that
---   was applied to replace the type variables.
+--
+--   Returns the resulting type schema and the substitution that replaces the
+--   abstracted type variables by their name in the type schema.
 abstractTypeSchema'
   :: [HS.QName] -> HS.Type -> Converter (HS.TypeSchema, Subst HS.Type)
 abstractTypeSchema' ns t = do
