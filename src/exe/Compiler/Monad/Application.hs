@@ -65,11 +65,11 @@ runApp app = do
 reportApp :: Application a -> Application a
 reportApp app = do
   opts <- getOpts
-  env  <- liftConverter getEnv
+  env  <- getEnv
   let converter = runStateT (unwrapApplication app) opts
       reporter  = runConverterT converter env
   ((x, opts'), env') <- liftIO (reportToOrExit stderr (reportIOErrors reporter))
-  liftConverter $ putEnv env'
+  putEnv env'
   putOpts opts'
   return x
 

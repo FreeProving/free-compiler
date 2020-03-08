@@ -174,7 +174,7 @@ outputCoqModule modName coqAst = do
       let outputPath = map (\c -> if c == '.' then '/' else c) modName
           outputFile = outputDir </> outputPath <.> "v"
           ifaceFile  = outputDir </> outputPath <.> "json"
-      Just iface <- liftConverter $ inEnv $ lookupAvailableModule modName
+      Just iface <- inEnv $ lookupAvailableModule modName
       liftIO $ createDirectoryIfMissing True (takeDirectory outputFile)
       liftReporterIO $ writeModuleInterface ifaceFile iface
       liftIO $ writePrettyFile outputFile (map PrettyCoq coqAst)
@@ -206,7 +206,7 @@ loadModule srcSpan modName = do
   importDirs <- inOpts optImportDirs
   ifaceFile  <- findIfaceFile importDirs
   iface      <- liftReporterIO $ loadModuleInterface ifaceFile
-  liftConverter $ modifyEnv $ makeModuleAvailable iface
+  modifyEnv $ makeModuleAvailable iface
  where
   -- | The name of the module's interface file relative to the import
   --   directories.
@@ -249,7 +249,7 @@ loadModuleFromBaseLib modName = do
   let modPath   = joinPath $ splitOn "." modName
       ifaceFile = baseLibDir </> modPath <.> "toml"
   ifrace <- liftReporterIO $ loadModuleInterface ifaceFile
-  liftConverter $ modifyEnv $ makeModuleAvailable ifrace
+  modifyEnv $ makeModuleAvailable ifrace
 
 -- | Creates a @_CoqProject@ file (if enabled) that maps the physical directory
 --   of the Base library.
