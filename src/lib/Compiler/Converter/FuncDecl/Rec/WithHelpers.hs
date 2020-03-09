@@ -75,7 +75,7 @@ convertRecFuncDeclsWithHelpers' decls = do
 --   main function.
 transformRecFuncDecl
   :: HS.FuncDecl -> DecArgIndex -> Converter ([HS.FuncDecl], HS.FuncDecl)
-transformRecFuncDecl (HS.FuncDecl srcSpan declIdent args expr maybeRetType) decArgIndex
+transformRecFuncDecl (HS.FuncDecl srcSpan declIdent typeArgs args expr maybeRetType) decArgIndex
   = do
   -- Generate a helper function declaration and application for each case
   -- expression of the decreasing argument.
@@ -85,7 +85,8 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent args expr maybeRetType) decA
     -- is constructed by replacing all case expressions of the decreasing
     -- argument by an invocation of the corresponding recursive helper function.
     let (Just mainExpr) = replaceSubterms expr (zip caseExprsPos helperApps)
-        mainDecl = HS.FuncDecl srcSpan declIdent args mainExpr maybeRetType
+        mainDecl =
+          HS.FuncDecl srcSpan declIdent typeArgs args mainExpr maybeRetType
 
     -- If the user specified the decreasing argument of the function to
     -- transform, that information needs to be removed since the main function
@@ -136,6 +137,9 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent args expr maybeRetType) decA
     let helperName      = HS.UnQual (HS.Ident helperIdent)
         helperDeclIdent = HS.DeclIdent (HS.getSrcSpan declIdent) helperIdent
 
+    -- Pass all type arguments to helper function.
+    let helperTypeArgs = typeArgs
+
     -- Pass used variables as additional arguments to the helper function
     -- but don't pass shadowed arguments to helper function.
     let
@@ -152,8 +156,8 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent args expr maybeRetType) decA
     -- function.
     -- If the original function was partial, the helper function is partial as
     -- well.
-    (HS.TypeSchema _ typeArgs funcType) <- lookupTypeSigOrFail srcSpan name
-    (argTypes, _)                       <- splitFuncType name args funcType
+    (HS.TypeSchema _ funcTypeArgs funcType) <- lookupTypeSigOrFail srcSpan name
+    (argTypes, _)                           <- splitFuncType name args funcType
     let argTypeMap = foldr Map.delete
                            (Map.fromList (zip argNames argTypes))
                            (Set.toList nonArgVars)
@@ -163,7 +167,7 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent args expr maybeRetType) decA
     _              <- renameAndAddEntry $ FuncEntry
       { entrySrcSpan       = NoSrcSpan
       , entryArity         = length argTypes'
-      , entryTypeArgs      = map HS.fromDeclIdent typeArgs
+      , entryTypeArgs      = map HS.fromDeclIdent funcTypeArgs
       , entryArgTypes      = argTypes'
       , entryReturnType    = Nothing
       , entryNeedsFreeArgs = freeArgsNeeded
@@ -180,13 +184,18 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent args expr maybeRetType) decA
 
     -- Build helper function declaration and application.
     let
-      typeArgs'       = map HS.typeVarDeclToType typeArgs
+      funcTypeArgs'   = map HS.typeVarDeclToType funcTypeArgs
       (Just caseExpr) = selectSubterm expr caseExprPos
-      helperDecl =
-        HS.FuncDecl srcSpan helperDeclIdent helperArgs caseExpr Nothing
+      helperDecl      = HS.FuncDecl srcSpan
+                                    helperDeclIdent
+                                    helperTypeArgs
+                                    helperArgs
+                                    caseExpr
+                                    Nothing
       helperApp = HS.app
         NoSrcSpan
-        (HS.visibleTypeApp NoSrcSpan (HS.Var NoSrcSpan helperName) typeArgs')
+        (HS.visibleTypeApp NoSrcSpan (HS.Var NoSrcSpan helperName) funcTypeArgs'
+        )
         (map (HS.Var NoSrcSpan) helperArgNames)
 
     return (helperDecl, helperApp)
@@ -194,9 +203,10 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent args expr maybeRetType) decA
 -- | Converts a recursive helper function to the body of a Coq @Fixpoint@
 --   sentence.
 convertRecHelperFuncDecl :: HS.FuncDecl -> Converter G.FixBody
-convertRecHelperFuncDecl (HS.FuncDecl _ declIdent args expr _) = localEnv $ do
+convertRecHelperFuncDecl (HS.FuncDecl _ declIdent _ args expr _) = localEnv $ do
   let helperName = HS.UnQual (HS.Ident (HS.fromDeclIdent declIdent))
       argNames   = map (HS.UnQual . HS.Ident . HS.fromVarPat) args
+  -- TODO convert type arguments and return type from AST
   (qualid, binders, returnType') <- convertFuncHead helperName args
   expr'                          <- convertExpr expr
   Just decArgIndex               <- inEnv $ lookupDecArgIndex helperName

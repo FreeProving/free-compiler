@@ -166,9 +166,9 @@ funcDeclEntry
   :: HS.ModName  -- ^ The name of the module that contains the declaration.
   -> HS.FuncDecl -- ^ The declaration to create an entry for.
   -> DGEntry HS.FuncDecl
-funcDeclEntry modName decl@(HS.FuncDecl _ (HS.DeclIdent _ ident) _ _ _) =
+funcDeclEntry modName decl =
   ( decl
-  , HS.UnQual (HS.Ident ident)
+  , HS.UnQual (HS.Ident (HS.fromDeclIdent (HS.funcDeclIdent decl)))
   , Set.toList $ Set.map (unqualify modName) (funcDeclDependencySet decl)
   )
 

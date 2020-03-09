@@ -253,8 +253,9 @@ inferFuncDeclTypes' funcDecls = do
 --   for the given function declaration @f x1 ... xn = e@ and returns the
 --   expression/type pairs as well as the type of the function.
 makeTypedExprs :: HS.FuncDecl -> Converter ([(HS.Expr, HS.Type)], HS.Type)
-makeTypedExprs (HS.FuncDecl _ (HS.DeclIdent srcSpan ident) args rhs maybeRetType)
+makeTypedExprs (HS.FuncDecl _ (HS.DeclIdent srcSpan ident) _ args rhs maybeRetType)
   = do
+    -- TODO instantiate argument and return types with fresh type arguments.
     (args', rhs') <- renameArgs args rhs
     argTypes      <- mapM makeArgType args
     retType       <- makeRetType
@@ -468,11 +469,11 @@ annotateAlt (HS.Alt srcSpan conPat varPats expr) = do
 --
 --   Existing annotations of the argument and return types are discarded.
 annotateFuncDecl :: HS.FuncDecl -> Converter HS.FuncDecl
-annotateFuncDecl (HS.FuncDecl srcSpan declIdent args rhs _) = do
+annotateFuncDecl (HS.FuncDecl srcSpan declIdent _ args rhs _) = do
   args'   <- mapM annotateVarPat args
   rhs'    <- annotateExpr rhs
   retType <- freshTypeVar
-  return (HS.FuncDecl srcSpan declIdent args' rhs' (Just retType))
+  return (HS.FuncDecl srcSpan declIdent [] args' rhs' (Just retType))
 
 -------------------------------------------------------------------------------
 -- Visible type application                                                  --
@@ -724,15 +725,14 @@ unifyEquations = unifyEquations' identitySubst
 instantiateTypeSchema :: HS.TypeSchema -> Converter HS.Type
 instantiateTypeSchema = fmap fst . instantiateTypeSchema'
 
--- | Like 'instantiateTypeSchema'' but also returns the fresh type variables,
+-- | Like 'instantiateTypeSchema' but also returns the fresh type variables,
 --   the type schema has been instantiated with.
 instantiateTypeSchema' :: HS.TypeSchema -> Converter (HS.Type, [HS.Type])
 instantiateTypeSchema' (HS.TypeSchema _ typeArgs typeExpr) = do
-  let typeArgIdents = map HS.fromDeclIdent typeArgs
-  (typeArgIdents', subst) <- renameTypeArgsSubst typeArgIdents
-  typeExpr'               <- applySubst subst typeExpr
-  let typeArgs' = map (HS.TypeVar NoSrcSpan) typeArgIdents'
-  return (typeExpr', typeArgs')
+  (typeArgs', subst) <- renameTypeArgsSubst typeArgs
+  typeExpr'          <- applySubst subst typeExpr
+  let typeVars' = map (HS.TypeVar NoSrcSpan . HS.fromDeclIdent) typeArgs'
+  return (typeExpr', typeVars')
 
 -- | Normalizes the names of type variables in the given type and returns
 --   it as a type schema.

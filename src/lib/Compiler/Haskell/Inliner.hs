@@ -60,7 +60,7 @@ inlineExpr decls = inlineAndBind
     :: HS.FuncDecl                         -- ^ The declaration to insert.
     -> Map HS.QName ([HS.VarPat], HS.Expr) -- ^ The map to insert into.
     -> Map HS.QName ([HS.VarPat], HS.Expr)
-  insertFuncDecl (HS.FuncDecl _ (HS.DeclIdent _ ident) args expr _) =
+  insertFuncDecl (HS.FuncDecl _ (HS.DeclIdent _ ident) _ args expr _) =
     Map.insert (HS.UnQual (HS.Ident ident)) (args, expr)
 
   -- | Applies 'inlineExpr'' on the given expression and wraps the result with
@@ -105,10 +105,10 @@ inlineExpr decls = inlineAndBind
   inlineExpr' var@(HS.Var _ name) = case Map.lookup name declMap of
     Nothing          -> return ([], [], var)
     Just (args, rhs) -> do
-      Just typeArgs      <- inEnv $ lookupTypeArgs ValueScope name
-      (typeArgs', rhs' ) <- renameTypeArgs typeArgs rhs
+      Just typeArgIdents <- inEnv $ lookupTypeArgs ValueScope name
+      (typeArgIdents', rhs' ) <- renameTypeArgIdents typeArgIdents rhs
       (args'    , rhs'') <- renameArgs args rhs'
-      return (typeArgs', map HS.fromVarPat args', rhs'')
+      return (typeArgIdents', map HS.fromVarPat args', rhs'')
 
   -- Substitute argument of inlined function and inline recursively in
   -- function arguments.

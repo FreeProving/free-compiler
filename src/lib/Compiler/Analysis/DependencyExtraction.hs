@@ -296,7 +296,7 @@ funcDeclDependencySet = Set.map unwrap . OSet.toSet . funcDeclDependencySet'
 --   constructors and other functions and remembers for every name whether it
 --   is the name of a function or constructor.
 funcDeclDependencySet' :: HS.FuncDecl -> OSet DependencyName
-funcDeclDependencySet' (HS.FuncDecl _ _ args expr _) =
+funcDeclDependencySet' (HS.FuncDecl _ _ _ args expr _) =
   withoutArgs args (exprDependencies' expr)
 
 -- | Removes the names for the given variable patterns from a set of

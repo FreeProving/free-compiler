@@ -252,7 +252,7 @@ simplifyDecl (H.PatBind srcSpan (H.PVar _ declName) (H.UnGuardedRhs _ expr) Noth
   = do
     declIdent      <- simplifyFuncDeclName declName
     (args', expr') <- simplifyExpr expr >>= return . unlambda
-    return ([], [], [HS.FuncDecl srcSpan declIdent args' expr' Nothing])
+    return ([], [], [HS.FuncDecl srcSpan declIdent [] args' expr' Nothing])
 
 -- The pattern-binding for a 0-ary function must not use guards or have a
 -- where block.
@@ -428,7 +428,7 @@ simplifyFuncDecl (H.Match srcSpan declName args (H.UnGuardedRhs _ expr) Nothing)
     declIdent       <- simplifyFuncDeclName declName
     args'           <- mapM simplifyVarPat args
     (args'', expr') <- simplifyExpr expr >>= return . unlambda
-    return (HS.FuncDecl srcSpan declIdent (args' ++ args'') expr' Nothing)
+    return (HS.FuncDecl srcSpan declIdent [] (args' ++ args'') expr' Nothing)
 
 -- Function declarations with guards and where blocks are not supported.
 simplifyFuncDecl (H.Match _ _ _ rhss@(H.GuardedRhss _ _) _) =

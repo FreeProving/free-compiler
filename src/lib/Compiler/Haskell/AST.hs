@@ -250,8 +250,10 @@ data FuncDecl = FuncDecl
     -- ^ A source span that spans the entire function declaration.
   , funcDeclIdent      :: DeclIdent
     -- ^ The name of the function.
+  , funcDeclTypeArgs   :: [TypeVarDecl]
+    -- ^ The type arguments of the function.
   , funcDeclArgs       :: [VarPat]
-    -- ^ The function argument patterns.
+    -- ^ The function's argument patterns.
   , funcDeclRhs        :: Expr
     -- ^ The right-hand side of the function declaration.
   , funcDeclReturnType :: Maybe Type
@@ -306,7 +308,7 @@ instance Pretty TypeSig where
 
 -- | Pretty instance for function declarations.
 instance Pretty FuncDecl where
-  pretty (FuncDecl _ declIdent args rhs maybeReturnType) =
+  pretty (FuncDecl _ declIdent typeArgs args rhs maybeReturnType) =
     case maybeReturnType of
       Nothing -> prettyFuncHead <+> equals <+> pretty rhs
       Just returnType ->
@@ -319,7 +321,10 @@ instance Pretty FuncDecl where
    where
     -- | The left-hand side of the function declaration.
     prettyFuncHead :: Doc
-    prettyFuncHead = pretty declIdent <+> hsep (map pretty args)
+    prettyFuncHead =
+      pretty declIdent
+        <+> hsep (map ((char '@' <>) . pretty) typeArgs)
+        <+> hsep (map pretty args)
 
 -- | Pretty instance for data constructor declarations.
 instance Pretty ConDecl where

@@ -19,6 +19,7 @@ module Compiler.Haskell.Subst
     -- * Rename arguments
   , renameTypeArgsSubst
   , renameTypeArgs
+  , renameTypeArgIdents
   , renameArgsSubst
   , renameArgs
   )
@@ -228,19 +229,19 @@ instance ApplySubst HS.Type HS.VarPat where
 -- | Applies the given expression substitution to the right-hand side of a
 --   function declaration.
 instance ApplySubst HS.Expr HS.FuncDecl where
-  applySubst subst (HS.FuncDecl srcSpan declIdent args rhs maybeRetType) = do
+  applySubst subst (HS.FuncDecl srcSpan declIdent typeArgs args rhs maybeRetType) = do
     (args', argSubst) <- renameArgsSubst args
     rhs'              <- applySubst (composeSubst subst argSubst) rhs
-    return (HS.FuncDecl srcSpan declIdent args' rhs' maybeRetType)
+    return (HS.FuncDecl srcSpan declIdent typeArgs args' rhs' maybeRetType)
 
 -- | Applies the given type substitution to the right-hand side of a
 --   function declaration.
 instance ApplySubst HS.Type HS.FuncDecl where
-  applySubst subst (HS.FuncDecl srcSpan declIdent args rhs maybeRetType) = do
+  applySubst subst (HS.FuncDecl srcSpan declIdent typeArgs args rhs maybeRetType) = do
     args' <- mapM (applySubst subst) args
     rhs'  <- applySubst subst rhs
     maybeRetType' <- mapM (applySubst subst) maybeRetType
-    return (HS.FuncDecl srcSpan declIdent args' rhs' maybeRetType')
+    return (HS.FuncDecl srcSpan declIdent typeArgs args' rhs' maybeRetType')
 
 -------------------------------------------------------------------------------
 -- Application to type expressions                                           --
@@ -272,11 +273,8 @@ instance ApplySubst HS.Type HS.Type where
 -- | Applies the given type substitution to a type schema.
 instance ApplySubst HS.Type HS.TypeSchema where
   applySubst subst (HS.TypeSchema srcSpan typeArgs typeExpr) = do
-    let typeArgIdents     = map HS.fromDeclIdent typeArgs
-        declIdentSrcSpans = map HS.getSrcSpan typeArgs
-    (typeArgsIdents', typeArgSubst) <- renameTypeArgsSubst typeArgIdents
-    let subst'    = composeSubst subst typeArgSubst
-        typeArgs' = zipWith HS.DeclIdent declIdentSrcSpans typeArgsIdents'
+    (typeArgs', typeArgSubst) <- renameTypeArgsSubst typeArgs
+    let subst' = composeSubst subst typeArgSubst
     typeExpr' <- applySubst subst' typeExpr
     return (HS.TypeSchema srcSpan typeArgs' typeExpr')
 
@@ -289,25 +287,45 @@ instance ApplySubst HS.Type HS.TypeSchema where
 --
 --   Returns the new names for the type variables and the substitution.
 renameTypeArgsSubst
-  :: [HS.TypeVarIdent] -> Converter ([HS.TypeVarIdent], Subst HS.Type)
-renameTypeArgsSubst typeArgIdents = do
-  typeArgIdents' <- mapM freshHaskellIdent typeArgIdents
-  let typeArgs'    = map (HS.TypeVar NoSrcSpan) typeArgIdents'
-      typeArgNames = map (HS.UnQual . HS.Ident) typeArgIdents
-      subst        = composeSubsts (zipWith singleSubst typeArgNames typeArgs')
-  return (typeArgIdents', subst)
+  :: [HS.TypeVarDecl] -> Converter ([HS.TypeVarDecl], Subst HS.Type)
+renameTypeArgsSubst typeArgDecls = do
+  typeArgDecls' <- mapM freshTypeArgDecl typeArgDecls
+  let typeArgNames = map (HS.UnQual . HS.Ident . HS.fromDeclIdent) typeArgDecls
+      typeArgs'    = map (flip HS.TypeVar . HS.fromDeclIdent) typeArgDecls'
+      subst        = composeSubsts (zipWith singleSubst' typeArgNames typeArgs')
+  return (typeArgDecls', subst)
+ where
+  -- | Generates a fresh identifier for the given type argument and returns
+  --   a type argument that preserves the source span of the original
+  --   declaration.
+  freshTypeArgDecl :: HS.DeclIdent -> Converter HS.DeclIdent
+  freshTypeArgDecl (HS.DeclIdent srcSpan ident) = do
+    ident' <- freshHaskellIdent ident
+    return (HS.DeclIdent srcSpan ident')
 
 -- | Renames the given type variables in the given expression or type
 --   to fresh type variables.
 renameTypeArgs
   :: ApplySubst HS.Type a
+  => [HS.TypeVarDecl]
+  -> a
+  -> Converter ([HS.TypeVarDecl], a)
+renameTypeArgs typeArgDecls x = do
+  (typeArgDecls', subst) <- renameTypeArgsSubst typeArgDecls
+  x'                     <- applySubst subst x
+  return (typeArgDecls', x')
+
+-- | Like 'renameTypeArgs' but works on type variable names instead of
+--   declarations.
+renameTypeArgIdents
+  :: ApplySubst HS.Type a
   => [HS.TypeVarIdent]
   -> a
   -> Converter ([HS.TypeVarIdent], a)
-renameTypeArgs typeArgIdents x = do
-  (typeArgIdents', subst) <- renameTypeArgsSubst typeArgIdents
-  x'                      <- applySubst subst x
-  return (typeArgIdents', x')
+renameTypeArgIdents typeArgIdents x = do
+  let typeArgDecls = map (HS.DeclIdent NoSrcSpan) typeArgIdents
+  (typeArgDecls', x') <- renameTypeArgs typeArgDecls x
+  return (map HS.fromDeclIdent typeArgDecls', x')
 
 -- | Creates a substitution that renames the arguments bound by the given
 --   variable patterns to fresh variables.
@@ -333,8 +351,9 @@ renameArgsSubst args = do
 --   expression to fresh variables.
 --
 --   Returns the new names for the variables and the resulting expression.
-renameArgs :: [HS.VarPat] -> HS.Expr -> Converter ([HS.VarPat], HS.Expr)
-renameArgs args expr = do
+renameArgs
+  :: ApplySubst HS.Expr a => [HS.VarPat] -> a -> Converter ([HS.VarPat], a)
+renameArgs args x = do
   (args', subst) <- renameArgsSubst args
-  expr'          <- applySubst subst expr
-  return (args', expr')
+  x'             <- applySubst subst x
+  return (args', x')

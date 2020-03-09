@@ -104,7 +104,7 @@ checkDecArgs decls knownDecArgIndecies decArgIndecies = all
   --   by the user or @Nothing@ if there is no such annotation.
   checkDecArg :: Maybe DecArgIndex -> DecArgIndex -> HS.FuncDecl -> Bool
   checkDecArg (Just _) _ _ = True
-  checkDecArg _ decArgIndex (HS.FuncDecl _ _ args expr _) =
+  checkDecArg _ decArgIndex (HS.FuncDecl _ _ _ args expr _) =
     let decArg = HS.UnQual (HS.Ident (HS.fromVarPat (args !! decArgIndex)))
     in  checkExpr decArg Set.empty expr []
 
@@ -377,7 +377,7 @@ makeConstArgGraph modName decls = do
   -- | There is one node for each argument of every function declaration.
   nodes :: [(CGNode, Int, HS.Expr)]
   nodes = do
-    HS.FuncDecl _ declIdent args rhs _ <- decls
+    HS.FuncDecl _ declIdent _ args rhs _ <- decls
     let funName = HS.fromDeclIdent declIdent
     (argName, argIndex) <- zip (map HS.fromVarPat args) [0 ..]
     return ((funName, argName), argIndex, rhs)
@@ -406,7 +406,7 @@ identifyConstArgs decls = do
   argNamesMap =
     Map.fromList
       $ [ (HS.fromDeclIdent declIdent, map HS.fromVarPat args)
-        | (HS.FuncDecl _ declIdent args _ _) <- decls
+        | (HS.FuncDecl _ declIdent _ args _ _) <- decls
         ]
 
   -- | Looks up the index of the argument with the given name of the function
