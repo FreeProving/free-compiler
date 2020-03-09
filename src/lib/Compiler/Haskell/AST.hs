@@ -488,7 +488,7 @@ prettyExprPred 0 (Lambda _ args expr) =
     <+> prettyString "->"
     <+> prettyExprPred 0 expr
 prettyExprPred 0 (ExprTypeSig _ expr typeSchema) =
-  pretty expr <+> colon <> colon <+> pretty typeSchema
+  prettyExprPred 1 expr <+> colon <> colon <+> pretty typeSchema
 
 -- At all other levels, the parenthesis cannot be omitted.
 prettyExprPred _ expr@(If _ _ _ _       ) = parens (pretty expr)
