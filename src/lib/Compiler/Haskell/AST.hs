@@ -245,8 +245,19 @@ data TypeSig = TypeSig SrcSpan [DeclIdent] TypeSchema
 --   @
 --     infixr 5 \`append\`
 --   @
-data FuncDecl = FuncDecl SrcSpan DeclIdent [VarPat] Expr
-  deriving (Eq, Show)
+data FuncDecl = FuncDecl
+  { funcDeclSrcSpan    :: SrcSpan
+    -- ^ A source span that spans the entire function declaration.
+  , funcDeclIdent      :: DeclIdent
+    -- ^ The name of the function.
+  , funcDeclArgs       :: [VarPat]
+    -- ^ The function argument patterns.
+  , funcDeclRhs        :: Expr
+    -- ^ The right-hand side of the function declaration.
+  , funcDeclReturnType :: Maybe Type
+    -- ^ The return type of the function.
+  }
+ deriving (Eq, Show)
 
 -- | A constructor declaration.
 --
@@ -295,8 +306,20 @@ instance Pretty TypeSig where
 
 -- | Pretty instance for function declarations.
 instance Pretty FuncDecl where
-  pretty (FuncDecl _ declIdent args rhs) =
-    pretty declIdent <+> hsep (map pretty args) <+> equals <+> pretty rhs
+  pretty (FuncDecl _ declIdent args rhs maybeReturnType) =
+    case maybeReturnType of
+      Nothing -> prettyFuncHead <+> equals <+> pretty rhs
+      Just returnType ->
+        prettyFuncHead
+          <+> equals
+          <+> prettyExprPred 1 rhs
+          <+> colon
+          <>  colon
+          <+> pretty returnType
+   where
+    -- | The left-hand side of the function declaration.
+    prettyFuncHead :: Doc
+    prettyFuncHead = pretty declIdent <+> hsep (map pretty args)
 
 -- | Pretty instance for data constructor declarations.
 instance Pretty ConDecl where
@@ -588,7 +611,7 @@ instance GetDeclIdent TypeDecl where
 
 -- | 'GetDeclIdent' instance for function declarations.
 instance GetDeclIdent FuncDecl where
-  getDeclIdent (FuncDecl _ declIdent _ _) = declIdent
+  getDeclIdent = funcDeclIdent
 
 -- | Gets the names of the given declarations and concatenates them with
 --   commas.
@@ -630,7 +653,7 @@ instance GetSrcSpan TypeDecl where
   getSrcSpan (TypeSynDecl srcSpan _ _ _) = srcSpan
 
 instance GetSrcSpan FuncDecl where
-  getSrcSpan (FuncDecl srcSpan _ _ _) = srcSpan
+  getSrcSpan = funcDeclSrcSpan
 
 instance GetSrcSpan TypeSig where
   getSrcSpan (TypeSig srcSpan _ _  ) = srcSpan

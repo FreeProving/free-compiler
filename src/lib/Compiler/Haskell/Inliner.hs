@@ -40,9 +40,10 @@ import           Compiler.Pretty
 -- | Inlines the right hand sides of the given function declarations into
 --   the right hand sides of other function declarations.
 inlineFuncDecls :: [HS.FuncDecl] -> HS.FuncDecl -> Converter HS.FuncDecl
-inlineFuncDecls decls (HS.FuncDecl srcSpan declIdent args expr) = do
-  expr' <- inlineExpr decls expr
-  return (HS.FuncDecl srcSpan declIdent args expr')
+inlineFuncDecls decls decl = do
+  let rhs = HS.funcDeclRhs decl
+  rhs' <- inlineExpr decls rhs
+  return decl { HS.funcDeclRhs = rhs' }
 
 -- | Inlines the right hand sides of the given function declarations into an
 --   expression.
@@ -59,7 +60,7 @@ inlineExpr decls = inlineAndBind
     :: HS.FuncDecl                         -- ^ The declaration to insert.
     -> Map HS.QName ([HS.VarPat], HS.Expr) -- ^ The map to insert into.
     -> Map HS.QName ([HS.VarPat], HS.Expr)
-  insertFuncDecl (HS.FuncDecl _ (HS.DeclIdent _ ident) args expr) =
+  insertFuncDecl (HS.FuncDecl _ (HS.DeclIdent _ ident) args expr _) =
     Map.insert (HS.UnQual (HS.Ident ident)) (args, expr)
 
   -- | Applies 'inlineExpr'' on the given expression and wraps the result with

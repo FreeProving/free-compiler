@@ -157,10 +157,11 @@ instance ResolveTypes HS.Alt where
 -- | Type constructors in the type signatures of variable patterns in function
 --   declarations and on the right-hand side can be resolved.
 instance ResolveTypes HS.FuncDecl where
-  resolveTypesWithM f (HS.FuncDecl srcSpan declIdent args rhs) = do
+  resolveTypesWithM f (HS.FuncDecl srcSpan declIdent args rhs maybeRetType) = do
     args' <- mapM (resolveTypesWithM f) args
     rhs'  <- resolveTypesWithM f rhs
-    return (HS.FuncDecl srcSpan declIdent args' rhs')
+    maybeRetType' <- mapM (resolveTypesWithM f) maybeRetType
+    return (HS.FuncDecl srcSpan declIdent args' rhs' maybeRetType')
 
 -- | If a variable pattern has a type signature, type constructors in the
 --   annotated type can be resolved.

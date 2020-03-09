@@ -228,18 +228,19 @@ instance ApplySubst HS.Type HS.VarPat where
 -- | Applies the given expression substitution to the right-hand side of a
 --   function declaration.
 instance ApplySubst HS.Expr HS.FuncDecl where
-  applySubst subst (HS.FuncDecl srcSpan declIdent args rhs) = do
+  applySubst subst (HS.FuncDecl srcSpan declIdent args rhs maybeRetType) = do
     (args', argSubst) <- renameArgsSubst args
     rhs'              <- applySubst (composeSubst subst argSubst) rhs
-    return (HS.FuncDecl srcSpan declIdent args' rhs')
+    return (HS.FuncDecl srcSpan declIdent args' rhs' maybeRetType)
 
 -- | Applies the given type substitution to the right-hand side of a
 --   function declaration.
 instance ApplySubst HS.Type HS.FuncDecl where
-  applySubst subst (HS.FuncDecl srcSpan declIdent args rhs) = do
+  applySubst subst (HS.FuncDecl srcSpan declIdent args rhs maybeRetType) = do
     args' <- mapM (applySubst subst) args
     rhs'  <- applySubst subst rhs
-    return (HS.FuncDecl srcSpan declIdent args' rhs')
+    maybeRetType' <- mapM (applySubst subst) maybeRetType
+    return (HS.FuncDecl srcSpan declIdent args' rhs' maybeRetType')
 
 -------------------------------------------------------------------------------
 -- Application to type expressions                                           --

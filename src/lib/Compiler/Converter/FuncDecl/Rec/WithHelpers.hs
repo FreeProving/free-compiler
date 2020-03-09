@@ -75,23 +75,24 @@ convertRecFuncDeclsWithHelpers' decls = do
 --   main function.
 transformRecFuncDecl
   :: HS.FuncDecl -> DecArgIndex -> Converter ([HS.FuncDecl], HS.FuncDecl)
-transformRecFuncDecl (HS.FuncDecl srcSpan declIdent args expr) decArgIndex = do
+transformRecFuncDecl (HS.FuncDecl srcSpan declIdent args expr maybeRetType) decArgIndex
+  = do
   -- Generate a helper function declaration and application for each case
   -- expression of the decreasing argument.
-  (helperDecls, helperApps) <- mapAndUnzipM generateHelperDecl caseExprsPos
+    (helperDecls, helperApps) <- mapAndUnzipM generateHelperDecl caseExprsPos
 
-  -- Generate main function declaration. The main function's right hand side
-  -- is constructed by replacing all case expressions of the decreasing
-  -- argument by an invocation of the corresponding recursive helper function.
-  let (Just mainExpr) = replaceSubterms expr (zip caseExprsPos helperApps)
-      mainDecl        = HS.FuncDecl srcSpan declIdent args mainExpr
+    -- Generate main function declaration. The main function's right hand side
+    -- is constructed by replacing all case expressions of the decreasing
+    -- argument by an invocation of the corresponding recursive helper function.
+    let (Just mainExpr) = replaceSubterms expr (zip caseExprsPos helperApps)
+        mainDecl = HS.FuncDecl srcSpan declIdent args mainExpr maybeRetType
 
-  -- If the user specified the decreasing argument of the function to
-  -- transform, that information needs to be removed since the main function
-  -- is not recursive anymore.
-  modifyEnv $ removeDecArg name
+    -- If the user specified the decreasing argument of the function to
+    -- transform, that information needs to be removed since the main function
+    -- is not recursive anymore.
+    modifyEnv $ removeDecArg name
 
-  return (helperDecls, mainDecl)
+    return (helperDecls, mainDecl)
  where
   -- | The name of the function to transform.
   name :: HS.QName
@@ -181,8 +182,9 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent args expr) decArgIndex = do
     let
       typeArgs'       = map HS.typeVarDeclToType typeArgs
       (Just caseExpr) = selectSubterm expr caseExprPos
-      helperDecl      = HS.FuncDecl srcSpan helperDeclIdent helperArgs caseExpr
-      helperApp       = HS.app
+      helperDecl =
+        HS.FuncDecl srcSpan helperDeclIdent helperArgs caseExpr Nothing
+      helperApp = HS.app
         NoSrcSpan
         (HS.visibleTypeApp NoSrcSpan (HS.Var NoSrcSpan helperName) typeArgs')
         (map (HS.Var NoSrcSpan) helperArgNames)
@@ -192,7 +194,7 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent args expr) decArgIndex = do
 -- | Converts a recursive helper function to the body of a Coq @Fixpoint@
 --   sentence.
 convertRecHelperFuncDecl :: HS.FuncDecl -> Converter G.FixBody
-convertRecHelperFuncDecl (HS.FuncDecl _ declIdent args expr) = localEnv $ do
+convertRecHelperFuncDecl (HS.FuncDecl _ declIdent args expr _) = localEnv $ do
   let helperName = HS.UnQual (HS.Ident (HS.fromDeclIdent declIdent))
       argNames   = map (HS.UnQual . HS.Ident . HS.fromVarPat) args
   (qualid, binders, returnType') <- convertFuncHead helperName args

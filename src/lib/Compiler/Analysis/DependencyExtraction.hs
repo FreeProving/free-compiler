@@ -152,7 +152,7 @@ instance TypeDependencies HS.Alt where
 -- | A function declaration depends on the types it's right-hand side
 --   depends on.
 instance TypeDependencies HS.FuncDecl where
-  typeDependencies' (HS.FuncDecl _ _ _ rhs) = typeDependencies' rhs
+  typeDependencies' = typeDependencies' . HS.funcDeclRhs
 
 -- | Extracts the names of all type variables and type constructors used in
 --   the given type expression.
@@ -296,7 +296,7 @@ funcDeclDependencySet = Set.map unwrap . OSet.toSet . funcDeclDependencySet'
 --   constructors and other functions and remembers for every name whether it
 --   is the name of a function or constructor.
 funcDeclDependencySet' :: HS.FuncDecl -> OSet DependencyName
-funcDeclDependencySet' (HS.FuncDecl _ _ args expr) =
+funcDeclDependencySet' (HS.FuncDecl _ _ args expr _) =
   withoutArgs args (exprDependencies' expr)
 
 -- | Removes the names for the given variable patterns from a set of

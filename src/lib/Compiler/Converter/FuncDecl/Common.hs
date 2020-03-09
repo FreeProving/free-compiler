@@ -100,7 +100,8 @@ splitFuncType name = splitFuncType'
 
 -- | Inserts the given function declaration into the current environment.
 defineFuncDecl :: HS.FuncDecl -> Converter ()
-defineFuncDecl decl@(HS.FuncDecl srcSpan (HS.DeclIdent _ ident) args _) = do
+defineFuncDecl decl@(HS.FuncDecl srcSpan (HS.DeclIdent _ ident) args _ _) = do
+  -- TODO use type information from AST
   let name = HS.UnQual (HS.Ident ident)
   (HS.TypeSchema _ typeArgs funcType) <- lookupTypeSigOrFail srcSpan name
   (argTypes, returnType)              <- splitFuncType name args funcType

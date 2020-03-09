@@ -60,11 +60,11 @@ guessDecArgs _           [] = return []
 guessDecArgs (_ : decls) (Just decArgIndex : knownDecArgIndecies) = do
   decArgIndecies <- guessDecArgs decls knownDecArgIndecies
   return (decArgIndex : decArgIndecies)
-guessDecArgs (HS.FuncDecl _ _ args _ : decls) (Nothing : knownDecArgIndecies) =
-  do
-    decArgIndecies <- guessDecArgs decls knownDecArgIndecies
-    decArgIndex    <- [0 .. length args - 1]
-    return (decArgIndex : decArgIndecies)
+guessDecArgs (decl : decls) (Nothing : knownDecArgIndecies) = do
+  let arity = length (HS.funcDeclArgs decl)
+  decArgIndecies <- guessDecArgs decls knownDecArgIndecies
+  decArgIndex    <- [0 .. arity - 1]
+  return (decArgIndex : decArgIndecies)
 
 -- | Tests whether the given combination of choices for the decreasing
 --   arguments of function declarations in a strongly connected component
@@ -93,8 +93,9 @@ checkDecArgs decls knownDecArgIndecies decArgIndecies = all
     -> DecArgIndex
     -> Map HS.QName DecArgIndex
     -> Map HS.QName DecArgIndex
-  insertFuncDecl (HS.FuncDecl _ (HS.DeclIdent _ ident) _ _) decArg =
-    Map.insert (HS.UnQual (HS.Ident ident)) decArg
+  insertFuncDecl funcDecl decArg =
+    let ident = HS.fromDeclIdent (HS.funcDeclIdent funcDecl)
+    in  Map.insert (HS.UnQual (HS.Ident ident)) decArg
 
   -- | Tests whether the given function declaration actually decreases on the
   --   argument with the given index.
@@ -103,7 +104,7 @@ checkDecArgs decls knownDecArgIndecies decArgIndecies = all
   --   by the user or @Nothing@ if there is no such annotation.
   checkDecArg :: Maybe DecArgIndex -> DecArgIndex -> HS.FuncDecl -> Bool
   checkDecArg (Just _) _ _ = True
-  checkDecArg _ decArgIndex (HS.FuncDecl _ _ args expr) =
+  checkDecArg _ decArgIndex (HS.FuncDecl _ _ args expr _) =
     let decArg = HS.UnQual (HS.Ident (HS.fromVarPat (args !! decArgIndex)))
     in  checkExpr decArg Set.empty expr []
 
@@ -373,9 +374,10 @@ makeConstArgGraph modName decls = do
       return (g, y)
   return (node, node, adjacent)
  where
+  -- | There is one node for each argument of every function declaration.
   nodes :: [(CGNode, Int, HS.Expr)]
   nodes = do
-    (HS.FuncDecl _ declIdent args rhs) <- decls
+    HS.FuncDecl _ declIdent args rhs _ <- decls
     let funName = HS.fromDeclIdent declIdent
     (argName, argIndex) <- zip (map HS.fromVarPat args) [0 ..]
     return ((funName, argName), argIndex, rhs)
@@ -404,7 +406,7 @@ identifyConstArgs decls = do
   argNamesMap =
     Map.fromList
       $ [ (HS.fromDeclIdent declIdent, map HS.fromVarPat args)
-        | (HS.FuncDecl _ declIdent args _) <- decls
+        | (HS.FuncDecl _ declIdent args _ _) <- decls
         ]
 
   -- | Looks up the index of the argument with the given name of the function

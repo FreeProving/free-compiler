@@ -192,53 +192,60 @@ renameFuncDecls decls = do
   -- and copy type signature and entry of original function.
   decls' <-
     flip mapM decls
-      $ \(HS.FuncDecl srcSpan (HS.DeclIdent srcSpan' ident) args rhs) -> do
-          let Just ident' = lookup ident identMap
-              name        = HS.UnQual (HS.Ident ident)
-              name'       = HS.UnQual (HS.Ident ident')
-          -- Lookup type signature and environment entry.
-          (HS.TypeSchema _ typeArgDecls funcType) <- lookupTypeSigOrFail
-            srcSpan'
-            name
-          entry <- lookupEntryOrFail srcSpan' ValueScope name
-          -- Generate fresh identifiers for type variables.
-          let typeArgs   = map HS.fromDeclIdent typeArgDecls
-              argTypes   = entryArgTypes entry
-              returnType = entryReturnType entry
-          typeArgs' <- mapM freshHaskellIdent typeArgs
-          let typeArgDecls' =
-                zipWith (HS.DeclIdent . HS.getSrcSpan) typeArgDecls typeArgs'
-              typeVarSubst = composeSubsts
-                (zipWith singleSubst'
-                         (map (HS.UnQual . HS.Ident) typeArgs)
-                         (map (flip HS.TypeVar) typeArgs')
-                )
-          funcType'   <- applySubst typeVarSubst funcType
-          argTypes'   <- mapM (mapM (applySubst typeVarSubst)) argTypes
-          returnType' <- mapM (applySubst typeVarSubst) returnType
+      $ \(HS.FuncDecl srcSpan (HS.DeclIdent srcSpan' ident) args rhs maybeRetType) ->
+          do
+            let Just ident' = lookup ident identMap
+                name        = HS.UnQual (HS.Ident ident)
+                name'       = HS.UnQual (HS.Ident ident')
+            -- Lookup type signature and environment entry.
+            (HS.TypeSchema _ typeArgDecls funcType) <- lookupTypeSigOrFail
+              srcSpan'
+              name
+            entry <- lookupEntryOrFail srcSpan' ValueScope name
+            -- Generate fresh identifiers for type variables.
+            let typeArgs   = map HS.fromDeclIdent typeArgDecls
+                argTypes   = entryArgTypes entry
+                returnType = entryReturnType entry
+            typeArgs' <- mapM freshHaskellIdent typeArgs
+            let typeArgDecls' =
+                  zipWith (HS.DeclIdent . HS.getSrcSpan) typeArgDecls typeArgs'
+                typeVarSubst = composeSubsts
+                  (zipWith singleSubst'
+                           (map (HS.UnQual . HS.Ident) typeArgs)
+                           (map (flip HS.TypeVar) typeArgs')
+                  )
+            funcType'   <- applySubst typeVarSubst funcType
+            argTypes'   <- mapM (mapM (applySubst typeVarSubst)) argTypes
+            returnType' <- mapM (applySubst typeVarSubst) returnType
 
-          -- Set type signature and environment entry for renamed function.
-          let typeSchema' = HS.TypeSchema NoSrcSpan typeArgDecls' funcType'
-          modifyEnv $ defineTypeSig name' typeSchema'
-          _ <- renameAndAddEntry entry { entryName       = name'
-                                       , entryTypeArgs   = typeArgs'
-                                       , entryArgTypes   = argTypes'
-                                       , entryReturnType = returnType'
-                                       }
+            -- Set type signature and environment entry for renamed function.
+            let typeSchema' = HS.TypeSchema NoSrcSpan typeArgDecls' funcType'
+            modifyEnv $ defineTypeSig name' typeSchema'
+            _ <- renameAndAddEntry entry { entryName       = name'
+                                         , entryTypeArgs   = typeArgs'
+                                         , entryArgTypes   = argTypes'
+                                         , entryReturnType = returnType'
+                                         }
 
-          -- If the decreasing argument of the original function has been
-          -- annotated, copy that annotation.
-          maybeDecArg <- inEnv $ lookupDecArg name
-          case maybeDecArg of
-            Just (decArgIndex, decArgIdent) ->
-              modifyEnv $ defineDecArg name' decArgIndex decArgIdent
-            Nothing -> return ()
+            -- If the decreasing argument of the original function has been
+            -- annotated, copy that annotation.
+            maybeDecArg <- inEnv $ lookupDecArg name
+            case maybeDecArg of
+              Just (decArgIndex, decArgIdent) ->
+                modifyEnv $ defineDecArg name' decArgIndex decArgIdent
+              Nothing -> return ()
 
-          -- Rename function references and type variables on right-hand side.
-          rhs' <- applySubst subst rhs >>= applySubst typeVarSubst
+            -- Rename function references and type variables on right-hand side.
+            rhs' <- applySubst subst rhs >>= applySubst typeVarSubst
 
-          -- Rename function declaration.
-          return (HS.FuncDecl srcSpan (HS.DeclIdent srcSpan' ident') args rhs')
+            -- Rename function declaration.
+            return
+              (HS.FuncDecl srcSpan
+                           (HS.DeclIdent srcSpan' ident')
+                           args
+                           rhs'
+                           maybeRetType
+              )
   return (decls', Map.fromList identMap)
 
 -- | Replaces the function names in the given 'ConstArg' using the given map.
@@ -262,7 +269,8 @@ renameConstArg identMap constArg = constArg
 --   return types.
 argAndReturnTypeMaps
   :: HS.FuncDecl -> Converter (Map (String, String) HS.Type, Map String HS.Type)
-argAndReturnTypeMaps (HS.FuncDecl srcSpan (HS.DeclIdent _ ident) args _) = do
+argAndReturnTypeMaps (HS.FuncDecl srcSpan (HS.DeclIdent _ ident) args _ _) = do
+  -- TODO use type information from AST.
   let name    = HS.UnQual (HS.Ident ident)
       funArgs = map (const ident &&& HS.fromVarPat) args
   (HS.TypeSchema _ _ funcType) <- lookupTypeSigOrFail srcSpan name
@@ -296,8 +304,9 @@ lookupConstArgType argTypeMap constArg = do
 -- | Tests whether the given (renamed) function declaration uses the constant
 --   argument.
 isConstArgUsedBy :: ConstArg -> HS.FuncDecl -> Bool
-isConstArgUsedBy constArg (HS.FuncDecl _ _ _ rhs) =
-  HS.UnQual (HS.Ident (constArgFreshIdent constArg)) `Set.member` varSet rhs
+isConstArgUsedBy constArg funcDecl =
+  HS.UnQual (HS.Ident (constArgFreshIdent constArg))
+    `Set.member` varSet (HS.funcDeclRhs funcDecl)
 
 -- | Generates the @Variable@ sentence for the type variables in the given
 --   types of the constant arguments.
@@ -331,7 +340,7 @@ generateConstArgVariable constArg constArgType = do
 --   that share the constant argument.
 removeConstArgsFromFuncDecl
   :: [ConstArg] -> HS.FuncDecl -> Converter HS.FuncDecl
-removeConstArgsFromFuncDecl constArgs (HS.FuncDecl srcSpan declIdent args rhs)
+removeConstArgsFromFuncDecl constArgs (HS.FuncDecl srcSpan declIdent args rhs maybeRetType)
   = do
     let ident = HS.fromDeclIdent declIdent
         removedArgs =
@@ -348,7 +357,7 @@ removeConstArgsFromFuncDecl constArgs (HS.FuncDecl srcSpan declIdent args rhs)
           | (removedArg, freshArg) <- zip removedArgs freshArgs
           ]
     rhs' <- applySubst subst rhs >>= removeConstArgsFromExpr constArgs
-    return (HS.FuncDecl srcSpan declIdent args' rhs')
+    return (HS.FuncDecl srcSpan declIdent args' rhs' maybeRetType)
 
 -- | Removes constant arguments from the applications in the given expressions.
 removeConstArgsFromExpr :: [ConstArg] -> HS.Expr -> Converter HS.Expr
@@ -467,8 +476,9 @@ updateTypeSig
   -> HS.FuncDecl
     -- ^ The function declaration whose type signature to update.
   -> Converter (String, [Int])
-updateTypeSig mgu constTypeVars argTypeMap returnTypeMap (HS.FuncDecl _ declIdent args _)
+updateTypeSig mgu constTypeVars argTypeMap returnTypeMap (HS.FuncDecl _ declIdent args _ _)
   = do
+    -- TODO do we have to update type annotations in the AST?
     -- Lookup entry.
     let ident = HS.fromDeclIdent declIdent
         name  = HS.UnQual (HS.Ident ident)
@@ -520,10 +530,10 @@ updateTypeSig mgu constTypeVars argTypeMap returnTypeMap (HS.FuncDecl _ declIden
 --   on the right-hand side of the given function declaration.
 removeConstTypeArgsFromFuncDecl
   :: [(String, [Int])] -> HS.FuncDecl -> Converter HS.FuncDecl
-removeConstTypeArgsFromFuncDecl constTypeVars (HS.FuncDecl srcSpan declIdent args rhs)
-  = do
-    rhs' <- removeConstTypeArgsFromExpr constTypeVars rhs
-    return (HS.FuncDecl srcSpan declIdent args rhs')
+removeConstTypeArgsFromFuncDecl constTypeVars funcDecl = do
+  let rhs = HS.funcDeclRhs funcDecl
+  rhs' <- removeConstTypeArgsFromExpr constTypeVars rhs
+  return funcDecl { HS.funcDeclRhs = rhs' }
 
 -- | Removes the type arguments that have been removed from the type
 --   signature of function declarations from visible type applications
@@ -635,7 +645,7 @@ generateInterfaceDecl
   -> HS.FuncDecl
      -- ^ The original function declaration.
   -> Converter G.Sentence
-generateInterfaceDecl constArgs isConstArgUsed identMap mgu sectionTypeArgs renamedTypeArgs (HS.FuncDecl srcSpan (HS.DeclIdent _ ident) args _)
+generateInterfaceDecl constArgs isConstArgUsed identMap mgu sectionTypeArgs renamedTypeArgs (HS.FuncDecl srcSpan (HS.DeclIdent _ ident) args _ _)
   = localEnv $ do
     let
       name          = HS.UnQual (HS.Ident ident)
@@ -652,6 +662,7 @@ generateInterfaceDecl constArgs isConstArgUsed identMap mgu sectionTypeArgs rena
     modifyEnv $ removeDecArg name
 
     -- Generate the head of the interface function definition.
+      -- TODO Use type information from AST.
     (qualid, binders, returnType') <- convertFuncHead name args
 
     -- Lookup the name of the main function.

@@ -62,7 +62,7 @@ addDecArgPragma :: [HS.FuncDecl] -> HS.Pragma -> Converter ()
 addDecArgPragma funcDecls (HS.DecArgPragma srcSpan funcIdent decArg) = do
   let funName = HS.UnQual (HS.Ident funcIdent)
   case find ((== funcIdent) . HS.fromDeclIdent . HS.getDeclIdent) funcDecls of
-    Just (HS.FuncDecl _ _ args _) -> case decArg of
+    Just (HS.FuncDecl { HS.funcDeclArgs = args }) -> case decArg of
       Left decArgIdent ->
         case findIndex ((== decArgIdent) . HS.fromVarPat) args of
           Just decArgIndex ->

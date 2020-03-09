@@ -46,7 +46,9 @@ quickCheckPropertyName = HS.Qual quickCheckModuleName (HS.Ident "Property")
 --   QuickCheck properties are functions with the prefix `prop_` or which
 --   return a value of type `Property`.
 isQuickCheckProperty :: HS.FuncDecl -> Converter Bool
-isQuickCheckProperty (HS.FuncDecl srcSpan (HS.DeclIdent _ ident) args _) = do
+isQuickCheckProperty (HS.FuncDecl srcSpan (HS.DeclIdent _ ident) args _ _) = do
+  -- TODO use type information from AST to determine whether the function is a
+  --      QuickCheck property.
   let name = HS.UnQual (HS.Ident ident)
   (HS.TypeSchema _ _ funcType) <- lookupTypeSigOrFail srcSpan name
   (_, returnType)              <- splitFuncType name args funcType
@@ -102,7 +104,7 @@ filterQuickCheckProperties components = do
 -- | Converts the given QuickCheck property to a Coq @Theorem@ with an
 --   empty @Proof@.
 convertQuickCheckProperty :: HS.FuncDecl -> Converter [G.Sentence]
-convertQuickCheckProperty (HS.FuncDecl _ declIdent args expr) = localEnv $ do
+convertQuickCheckProperty (HS.FuncDecl _ declIdent args expr _) = localEnv $ do
   let name = HS.UnQual (HS.Ident (HS.fromDeclIdent declIdent))
   (qualid, binders, _) <- convertFuncHead name args
   expr'                <- convertExpr expr
