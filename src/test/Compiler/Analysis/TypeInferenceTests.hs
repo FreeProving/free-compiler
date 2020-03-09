@@ -125,7 +125,7 @@ testAnnotateFuncDeclTypes =
       $ do
           shouldAnnotateFuncDeclTypes
             ["null xs = case xs of { [] -> True; x : xs' -> False }"]
-            [ "null (xs :: [t0]) = (case xs of {"
+            [ "null @t0 (xs :: [t0]) = (case xs of {"
               ++ "    Prelude.([]) -> True;"
               ++ "    Prelude.(:) (x :: t0) (xs' :: [t0]) -> False"
               ++ "  }) :: Prelude.Bool"
@@ -136,7 +136,7 @@ testAnnotateFuncDeclTypes =
       $ do
           shouldAnnotateFuncDeclTypes
             ["length xs = case xs of { [] -> 0; x : xs' -> 1 + length xs' }"]
-            [ "length (xs :: [t0]) = (case xs of {"
+            [ "length @t0 (xs :: [t0]) = (case xs of {"
               ++ "    Prelude.([]) -> 0;"
               ++ "    Prelude.(:) (x :: t0) (xs' :: [t0]) ->"
               ++ "      (+) 1 (length @t0 xs')"
@@ -149,7 +149,7 @@ testAnnotateFuncDeclTypes =
           _ <- defineTestFunc "true" 0 "forall a. Bool"
           shouldAnnotateFuncDeclTypes
             ["zero = if true && true then 0 else 1"]
-            [ "zero = (if (&&) (true @t0) (true @t1) then 0 else 1)"
+            [ "zero @t0 @t1 = (if (&&) (true @t0) (true @t1) then 0 else 1)"
                 ++ "  :: Prelude.Integer"
             ]
     it "annotates vanishing type arguments correctly in recursive functions"
@@ -163,7 +163,7 @@ testAnnotateFuncDeclTypes =
               ++ "    x : xs' -> 1 + length xs'"
               ++ "  }"
             ]
-            [ "length (xs :: [t0]) = (case xs of {"
+            [ "length @t0 @t1 (xs :: [t0]) = (case xs of {"
               ++ "    Prelude.([]) ->"
               ++ "      if eq @[t1] (Prelude.([]) @t1) (Prelude.([]) @t1)"
               ++ "        then 0"
@@ -188,7 +188,7 @@ testAnnotateFuncDeclTypes =
             ++ "    x : xs' -> 1 + length xs'"
             ++ "  }"
             ]
-            [ "length (xs :: [t0]) = (case xs of {"
+            [ "length @t0 @t1 @t2 (xs :: [t0]) = (case xs of {"
             ++ "    Prelude.([]) ->"
             ++ "      if eq @[t1] (Prelude.([]) @t1) (Prelude.([]) @t1)"
             ++ "        then 0"
@@ -196,7 +196,7 @@ testAnnotateFuncDeclTypes =
             ++ "    Prelude.(:) (x :: t0) (xs' :: [t0]) ->"
             ++ "      (+) 1 (length' @t0 @t1 @t2 xs')"
             ++ "  }) :: Prelude.Integer"
-            , "length' (xs :: [t0]) = (case xs of {"
+            , "length' @t0 @t1 @t2 (xs :: [t0]) = (case xs of {"
             ++ "    Prelude.([]) ->"
             ++ "      if eq @[t2] (Prelude.([]) @t2) (Prelude.([]) @t2)"
             ++ "        then 0"
@@ -219,7 +219,7 @@ testAnnotateFuncDeclTypes =
               ++ "    Fork l r -> size l + M.size r"
               ++ "  }"
             ]
-            [ "size (t :: Tree t0) = (case t of {"
+            [ "size @t0 (t :: Tree t0) = (case t of {"
               ++ "    Leaf (x :: t0) -> 1;"
               ++ "    Fork (l :: Tree t0) (r :: Tree t0)"
               ++ "      -> (+) (size @t0 l) (M.size @t0 r)"
@@ -231,7 +231,7 @@ testAnnotateFuncDeclTypes =
       $ do
           shouldAnnotateFuncDeclTypes
             ["head xs = case xs of { [] -> undefined; x : xs' -> x }"]
-            [ "head (xs :: [t0]) = (case xs of {"
+            [ "head @t0 (xs :: [t0]) = (case xs of {"
               ++ "    Prelude.([]) -> undefined @t0;"
               ++ "    Prelude.(:) (x :: t0) (xs' :: [t0]) -> x"
               ++ "  }) :: t0"

@@ -341,9 +341,14 @@ annotateFuncDeclTypes' funcDecls = localEnv $ do
     visiblyAppliedFuncDecls <- mapM addTypeAppExprsToFuncDecl
                                     abstractedFuncDecls
     -- Abstract vanishing type arguments.
-    liftConverter
+    (funcDecls', typeSchemas') <-
+      liftConverter
       $   unzip
       <$> zipWithM abstractVanishingTypeArgs visiblyAppliedFuncDecls typeSchemas
+    -- Add type arguments to function declaration.
+    let addTypeArgs funcDecl typeSchema@(HS.TypeSchema _ typeArgs' _) =
+          (funcDecl { HS.funcDeclTypeArgs = typeArgs' }, typeSchema)
+    return $ unzip $ zipWith addTypeArgs funcDecls' typeSchemas'
 
 -------------------------------------------------------------------------------
 -- Expressions                                                               --
