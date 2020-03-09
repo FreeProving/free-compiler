@@ -356,19 +356,12 @@ annotateFuncDeclTypes' funcDecls = localEnv $ do
 
 -- | Tries to infer the type of the given expression from the current context
 --   and abstracts it's type to a type schema.
+--
+--   The type of an expression @e@ is the same type inferred by
+--   'inferFuncDeclTypes' for a function @f@ defined by @f = e@
+--   where @f@ does not occur free in @e@.
 inferExprType :: HS.Expr -> Converter HS.TypeSchema
 inferExprType = fmap snd . annotateExprTypes'
-
--- | Like 'inferExprType' but does not abstract the type to a type schema and
---   also returns the substitution.
-inferExprType' :: HS.Expr -> TypeInference (HS.Type, Subst HS.Type)
-inferExprType' expr = do
-  typeVar <- liftConverter freshTypeVar
-  simplifyTypedExpr expr typeVar
-  eqns     <- getAllTypeEquations
-  mgu      <- liftConverter $ unifyEquations eqns
-  exprType <- liftConverter $ applySubst mgu typeVar
-  return (exprType, mgu)
 
 -- | Infers the types of type arguments to functions and constructors
 --   used by the given expression.
@@ -381,20 +374,17 @@ annotateExprTypes = fmap fst . annotateExprTypes'
 -- | Like 'annotateExprTypes' but also returns the type of the expression.
 annotateExprTypes' :: HS.Expr -> Converter (HS.Expr, HS.TypeSchema)
 annotateExprTypes' expr = localEnv $ do
-  ta <- inEnv makeTypeAssumtion
-  runTypeInference ta $ do
-      -- Add type annotations.
-    annotatedExpr   <- liftConverter $ annotateExpr expr
-    -- Infer type.
-    (typeExpr, mgu) <- inferExprType' annotatedExpr
-    typedExpr       <- liftConverter $ applySubst mgu annotatedExpr
-    -- Abstract inferred type schema.
-    let typeArgs = nub (typeVars typedExpr ++ typeVars typeExpr)
-    (typeSchema, subst) <- liftConverter $ abstractTypeSchema' typeArgs typeExpr
-    abstractedExpr      <- liftConverter $ applySubst subst typedExpr
-    -- Add visible type applications.
-    expr'               <- addTypeAppExprs abstractedExpr
-    return (expr', typeSchema)
+  funcIdent <- freshHaskellIdent freshFuncPrefix
+  let funcDecl = HS.FuncDecl
+        { HS.funcDeclSrcSpan    = NoSrcSpan
+        , HS.funcDeclIdent      = HS.DeclIdent NoSrcSpan funcIdent
+        , HS.funcDeclTypeArgs   = []
+        , HS.funcDeclArgs       = []
+        , HS.funcDeclRhs        = expr
+        , HS.funcDeclReturnType = Nothing
+        }
+  ([funcDecl'], [typeSchema]) <- annotateFuncDeclTypes' [funcDecl]
+  return (HS.funcDeclRhs funcDecl', typeSchema)
 
 -------------------------------------------------------------------------------
 -- Type annotations                                                          --
