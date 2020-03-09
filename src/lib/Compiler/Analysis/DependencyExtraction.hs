@@ -109,6 +109,14 @@ class TypeDependencies a where
   --   the name of a type variable or type constructor.
   typeDependencies' :: a -> OSet DependencyName
 
+-- | Utility instance to get the type dependencies of an optional value.
+instance TypeDependencies a => TypeDependencies (Maybe a) where
+  typeDependencies' = maybe OSet.empty typeDependencies'
+
+-- | Utility instance to get the type dependencies of all elements in a list.
+instance TypeDependencies a => TypeDependencies [a] where
+  typeDependencies' = unions . map typeDependencies'
+
 -- | Type expressions can depend on types.
 instance TypeDependencies HS.Type where
   typeDependencies' (HS.TypeVar _ ident) = varName (HS.UnQual (HS.Ident ident))
@@ -136,23 +144,35 @@ instance TypeDependencies HS.Expr where
   typeDependencies' (HS.If _ e1 e2 e3) =
     unions (map typeDependencies' [e1, e2, e3])
   typeDependencies' (HS.Case _ expr alts) =
-    unions (typeDependencies' expr : map typeDependencies' alts)
+    typeDependencies' expr `union` typeDependencies' alts
   typeDependencies' (HS.Undefined _    ) = OSet.empty
   typeDependencies' (HS.ErrorExpr  _ _ ) = OSet.empty
   typeDependencies' (HS.IntLiteral _ _ ) = OSet.empty
-  typeDependencies' (HS.Lambda _ _ expr) = typeDependencies' expr
+  typeDependencies' (HS.Lambda _ args expr) =
+    typeDependencies' args `union` typeDependencies' expr
   typeDependencies' (HS.ExprTypeSig _ expr typeSchema) =
     typeDependencies' expr `union` typeDependencies' typeSchema
 
 -- | An alternative of a @case@ expression depends on the types it's
 --   right-hand side depends on.
 instance TypeDependencies HS.Alt where
-  typeDependencies' (HS.Alt _ _ _ expr) = typeDependencies' expr
+  typeDependencies' (HS.Alt _ _ varPats expr) =
+    typeDependencies' varPats `union` typeDependencies' expr
 
 -- | A function declaration depends on the types it's right-hand side
 --   depends on.
 instance TypeDependencies HS.FuncDecl where
-  typeDependencies' = typeDependencies' . HS.funcDeclRhs
+  typeDependencies' (HS.FuncDecl _ _ typeArgs args rhs maybeRetType) =
+    withoutTypeArgs typeArgs
+      $       typeDependencies' args
+      `union` typeDependencies' args
+      `union` typeDependencies' rhs
+      `union` typeDependencies' maybeRetType
+
+-- | A variable pattern depends on the types it's annotated type depends on.
+instance TypeDependencies HS.VarPat where
+  typeDependencies' (HS.VarPat _ _ maybeVarType) =
+    typeDependencies' maybeVarType
 
 -- | Extracts the names of all type variables and type constructors used in
 --   the given type expression.
