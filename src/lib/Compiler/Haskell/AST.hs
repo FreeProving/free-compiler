@@ -261,6 +261,10 @@ data FuncDecl = FuncDecl
   }
  deriving (Eq, Show)
 
+-- | Gets the unqualified name of the given function declaration.
+funcDeclName :: FuncDecl -> Name
+funcDeclName = Ident . fromDeclIdent . funcDeclIdent
+
 -- | A constructor declaration.
 --
 --  Even though there is not a dedicated constructor, the constructor is
@@ -464,8 +468,12 @@ conPatToExpr (ConPat srcSpan conName) = Con srcSpan conName
 --   or constructor pattern.
 --
 --   The variable pattern can optionally have a type signature.
-data VarPat = VarPat SrcSpan String (Maybe Type)
-  deriving (Eq, Show)
+data VarPat = VarPat
+  { varPatSrcSpan :: SrcSpan
+  , varPatIdent   :: String
+  , varPatType    :: (Maybe Type)
+  }
+ deriving (Eq, Show)
 
 -- | Converts a variable pattern to a variable expression.
 varPatToExpr :: VarPat -> Expr
@@ -478,7 +486,7 @@ toVarPat ident = VarPat NoSrcSpan ident Nothing
 
 -- | Extracts the actual identifier from a variable pattern.
 fromVarPat :: VarPat -> String
-fromVarPat (VarPat _ ident _) = ident
+fromVarPat = varPatIdent
 
 -------------------------------------------------------------------------------
 -- Pretty printing expressions                                               --

@@ -92,16 +92,12 @@ emptyTypeInferenceState = TypeInferenceState
 -- | Creates a 'TypeAssumption' for all funtions and constructors defined
 --   in the given environment.
 makeTypeAssumtion :: Environment -> TypeAssumption
-makeTypeAssumtion env = entryTypeAssumtion `Map.union` typeSigTypeAssumtion
- where
-  entryTypeAssumtion, typeSigTypeAssumtion :: TypeAssumption
-  entryTypeAssumtion = Map.fromList
-    [ (name, typeSchema)
-    | (scope, name) <- Map.keys (envEntries env)
-    , scope == ValueScope
-    , typeSchema <- maybeToList (lookupTypeSchema scope name env)
-    ]
-  typeSigTypeAssumtion = envTypeSigs env
+makeTypeAssumtion env = Map.fromList
+  [ (name, typeSchema)
+  | (scope, name) <- Map.keys (envEntries env)
+  , scope == ValueScope
+  , typeSchema <- maybeToList (lookupTypeSchema scope name env)
+  ]
 
 -- | The state monad used throughout this module.
 newtype TypeInference a = TypeInference

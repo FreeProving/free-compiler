@@ -18,7 +18,6 @@ module Compiler.Environment
   , addEntry'
   , defineDecArg
   , removeDecArg
-  , defineTypeSig
   -- * Looking up entries from the environment
   , lookupEntries
   , lookupEntry
@@ -26,7 +25,6 @@ module Compiler.Environment
   , refersTo
   , isFunction
   , isVariable
-  , hasTypeSig
   , isPureVar
   , lookupIdent
   , lookupSmartIdent
@@ -39,7 +37,6 @@ module Compiler.Environment
   , lookupTypeSchema
   , lookupArity
   , lookupTypeSynonym
-  , lookupTypeSig
   , needsFreeArgs
   , isPartial
   , lookupDecArg
@@ -114,8 +111,6 @@ data Environment = Environment
     --   recorded.
     --   There can be multiple entries with the same name as long as they are
     --   not referenced. Entries are identified by their original name.
-  , envTypeSigs          :: Map HS.QName HS.TypeSchema
-    -- ^ Maps names of Haskell functions to their annotated types.
   , envDecArgs           :: Map HS.QName (Int, String)
     -- ^ Maps Haskell function names to the index and name of their decreasing
     --   argument. Contains no entry for non-recursive functions, but there are
@@ -137,7 +132,6 @@ emptyEnv = Environment
   , envInSection         = False
     -- Entries
   , envEntries           = Map.empty
-  , envTypeSigs          = Map.empty
   , envDecArgs           = Map.empty
   , envFreshIdentCount   = Map.empty
   }
@@ -201,11 +195,6 @@ addEntry' name entry depth env = env
     | newDepth == oldDepth = (newEntries `Set.union` oldEntries, newDepth)
     | otherwise            = (newEntries, newDepth)
 
--- | Inserts the given type signature into the environment.
-defineTypeSig :: HS.QName -> HS.TypeSchema -> Environment -> Environment
-defineTypeSig name typeSchema env =
-  env { envTypeSigs = Map.insert name typeSchema (envTypeSigs env) }
-
 -- | Stores the index of the decreasing argument of a recursive function
 --   in the environment.
 defineDecArg :: HS.QName -> Int -> String -> Environment -> Environment
@@ -263,10 +252,6 @@ isFunction = maybe False isFuncEntry .: lookupEntry ValueScope
 --   Returns @False@ if there is no such variable.
 isVariable :: HS.QName -> Environment -> Bool
 isVariable = maybe False isVarEntry .: lookupEntry ValueScope
-
--- | Tests whether there is a type signature for the given identifier.
-hasTypeSig :: HS.QName -> Environment -> Bool
-hasTypeSig name = Map.member name . envTypeSigs
 
 -- | Test whether the variable with the given name is not monadic.
 isPureVar :: HS.QName -> Environment -> Bool
@@ -369,14 +354,6 @@ lookupTypeSynonym =
   fmap (entryTypeArgs &&& entryTypeSyn)
     .  find isTypeSynEntry
     .: lookupEntry TypeScope
-
--- | Looks up the annotated type of a user defined Haskell function with the
---   given name.
---
---   Returns @Nothing@, if there is no such type signature or the entry has
---   been replaced already.
-lookupTypeSig :: HS.QName -> Environment -> Maybe HS.TypeSchema
-lookupTypeSig name = Map.lookup name . envTypeSigs
 
 -- | Tests whether the function with the given name needs the arguments
 --   of the @Free@ monad.

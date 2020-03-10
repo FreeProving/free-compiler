@@ -19,7 +19,6 @@ import           Compiler.Converter.Expr
 import           Compiler.Converter.FuncDecl.Common
 import qualified Compiler.Coq.AST              as G
 import           Compiler.Environment
-import           Compiler.Environment.LookupOrFail
 import           Compiler.Environment.Scope
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Monad.Converter
@@ -43,19 +42,12 @@ quickCheckPropertyName = HS.Qual quickCheckModuleName (HS.Ident "Property")
 
 -- | Tests whether the given declaration is a QuickCheck property.
 --
---   QuickCheck properties are functions with the prefix `prop_` or which
---   return a value of type `Property`.
+--   QuickCheck properties are functions with return a value
+--   of type @Property@.
 isQuickCheckProperty :: HS.FuncDecl -> Converter Bool
-isQuickCheckProperty (HS.FuncDecl srcSpan (HS.DeclIdent _ ident) _ args _ _) =
-  do
-  -- TODO use type information from AST to determine whether the function is a
-  --      QuickCheck property.
-    let name = HS.UnQual (HS.Ident ident)
-    (HS.TypeSchema _ _ funcType) <- lookupTypeSigOrFail srcSpan name
-    (_, returnType)              <- splitFuncType name args funcType
-    isProperty returnType
+isQuickCheckProperty = maybe (return False) isProperty . HS.funcDeclReturnType
  where
-  -- | Tests whether the given type is the `Property`
+  -- | Tests whether the given type is @Property@.
   isProperty :: HS.Type -> Converter Bool
   isProperty (HS.TypeCon _ name) =
     inEnv $ refersTo quickCheckPropertyName TypeScope name

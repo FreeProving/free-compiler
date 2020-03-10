@@ -59,18 +59,3 @@ lookupSmartIdentOrFail
 lookupSmartIdentOrFail srcSpan name = do
   entry <- lookupEntryOrFail srcSpan ValueScope name
   return (entrySmartIdent entry)
-
--- | Looks up the annoated type of a user defined function with the given name
---   and reports a fatal error message if there is no such type signature.
---
---   If an error is encountered, the reported message points to the given
---   source span.
-lookupTypeSigOrFail :: SrcSpan -> HS.QName -> Converter HS.TypeSchema
-lookupTypeSigOrFail srcSpan ident = do
-  mTypeSchema <- inEnv $ lookupTypeSig ident
-  case mTypeSchema of
-    Just typeSchema -> return typeSchema
-    Nothing ->
-      reportFatal
-        $ Message srcSpan Error
-        $ ("Missing type signature for '" ++ showPretty ident ++ "'")

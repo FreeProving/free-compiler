@@ -371,8 +371,9 @@ convertTestDecl = convertTestDecls . return
 --   purposes.
 convertTestDecls :: [String] -> Converter [G.Sentence]
 convertTestDecls input = do
-  (typeDecls, typeSigs, funcDecls) <- parseTestDecls input
-  convertDecls typeDecls typeSigs funcDecls
+  (typeDecls, _, funcDecls) <- parseTestDecls input
+  -- TODO handle type signatures
+  convertDecls typeDecls funcDecls
 
 -- | Parses, simplifies and converts a Haskell module for testing purposes.
 convertTestModule :: [String] -> Converter [G.Sentence]

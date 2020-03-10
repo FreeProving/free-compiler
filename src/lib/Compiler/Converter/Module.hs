@@ -40,7 +40,6 @@ convertModule haskellAst = moduleEnv $ do
   mapM_ (addDecArgPragma (HS.modFuncDecls haskellAst))
         (HS.modPragmas haskellAst)
   decls' <- convertDecls (HS.modTypeDecls haskellAst)
-                         (HS.modTypeSigs haskellAst)
                          (HS.modFuncDecls haskellAst)
   -- Export module interface.
   let coqAst = G.comment ("module " ++ modName) : imports' ++ decls'
@@ -104,11 +103,9 @@ addDecArgPragma funcDecls (HS.DecArgPragma srcSpan funcIdent decArg) = do
 -------------------------------------------------------------------------------
 
 -- | Converts the given declarations of a Haskell module.
-convertDecls
-  :: [HS.TypeDecl] -> [HS.TypeSig] -> [HS.FuncDecl] -> Converter [G.Sentence]
-convertDecls typeDecls typeSigs funcDecls = do
+convertDecls :: [HS.TypeDecl] -> [HS.FuncDecl] -> Converter [G.Sentence]
+convertDecls typeDecls funcDecls = do
   typeDecls' <- convertTypeDecls typeDecls
-  mapM_ defineTypeSigDecl typeSigs
   funcDecls' <- convertFuncDecls funcDecls
   return (typeDecls' ++ funcDecls')
 
@@ -217,21 +214,3 @@ exportInterface = do
     , interfaceExports = exports
     , interfaceEntries = Set.fromList entries'
     }
-
--------------------------------------------------------------------------------
--- Type signatures                                                           --
--------------------------------------------------------------------------------
-
--- | Inserts the given type signature into the current environment.
---
---   TODO error if there are multiple type signatures for the same function.
---   TODO warn if there are unused type signatures.
-defineTypeSigDecl :: HS.TypeSig -> Converter ()
-defineTypeSigDecl (HS.TypeSig _ idents typeExpr) = mapM_
-  ( modifyEnv
-  . flip defineTypeSig typeExpr
-  . HS.UnQual
-  . HS.Ident
-  . HS.fromDeclIdent
-  )
-  idents

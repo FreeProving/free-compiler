@@ -7,6 +7,7 @@ import           Control.Monad.Extra            ( concatMapM )
 
 import           Compiler.Analysis.DependencyAnalysis
 import           Compiler.Analysis.DependencyGraph
+import           Compiler.Analysis.TypeInference
 import           Compiler.Converter.FuncDecl.Common
 import           Compiler.Converter.FuncDecl.NonRec
 import           Compiler.Converter.FuncDecl.Rec
@@ -24,12 +25,8 @@ convertFuncDecls funcDecls = do
       components      = groupDependencies dependencyGraph
 
   -- Infer types.
-  components' <- flip mapM components $ \component -> do
-    component' <- inferAndInsertTypeSigs component
-    case component' of
-      NonRecursive decl -> defineFuncDecl decl
-      Recursive decls -> mapM_ defineFuncDecl decls
-    return component'
+  components' <- mapM (mapComponentM annotateFuncDeclTypes) components
+  mapM_ (mapComponentM (mapM defineFuncDecl)) components'
 
   -- Filter QuickCheck properties.
   (properties, funcComponents) <- filterQuickCheckProperties components'

@@ -15,7 +15,9 @@ import           Data.List                      ( delete
                                                 )
 import qualified Data.List.NonEmpty            as NonEmpty
 import qualified Data.Map.Strict               as Map
-import           Data.Maybe                     ( fromJust )
+import           Data.Maybe                     ( fromJust
+                                                , maybeToList
+                                                )
 import qualified Data.Set                      as Set
 
 import           Compiler.Analysis.RecursionAnalysis
@@ -26,7 +28,6 @@ import qualified Compiler.Coq.AST              as G
 import           Compiler.Environment
 import           Compiler.Environment.Entry
 import           Compiler.Environment.Fresh
-import           Compiler.Environment.LookupOrFail
 import           Compiler.Environment.Renamer
 import           Compiler.Environment.Scope
 import qualified Compiler.Haskell.AST          as HS
@@ -156,19 +157,23 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent typeArgs args expr maybeRetT
     -- function.
     -- If the original function was partial, the helper function is partial as
     -- well.
-    (HS.TypeSchema _ funcTypeArgs funcType) <- lookupTypeSigOrFail srcSpan name
-    (argTypes, _)                           <- splitFuncType name args funcType
-    let argTypeMap = foldr Map.delete
-                           (Map.fromList (zip argNames argTypes))
-                           (Set.toList nonArgVars)
-        argTypes' = map (`Map.lookup` argTypeMap) helperArgNames
+    -- TODO should we just infer the type of the helper functions?
+    let maybeArgTypes = map HS.varPatType args
+        argTypeMap    = Map.fromList
+          [ (argName, argType)
+          | argName <- argNames
+          , argName `Set.notMember` nonArgVars
+          , maybeArgType <- maybeArgTypes
+          , argType      <- maybeToList maybeArgType
+          ]
+        helperArgTypes = map (`Map.lookup` argTypeMap) helperArgNames
     freeArgsNeeded <- inEnv $ needsFreeArgs name
     partial        <- inEnv $ isPartial name
     _              <- renameAndAddEntry $ FuncEntry
       { entrySrcSpan       = NoSrcSpan
-      , entryArity         = length argTypes'
-      , entryTypeArgs      = map HS.fromDeclIdent funcTypeArgs
-      , entryArgTypes      = argTypes'
+      , entryArity         = length helperArgTypes
+      , entryTypeArgs      = map HS.fromDeclIdent helperTypeArgs
+      , entryArgTypes      = helperArgTypes
       , entryReturnType    = Nothing
       , entryNeedsFreeArgs = freeArgsNeeded
       , entryIsPartial     = partial
@@ -184,7 +189,7 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent typeArgs args expr maybeRetT
 
     -- Build helper function declaration and application.
     let
-      funcTypeArgs'   = map HS.typeVarDeclToType funcTypeArgs
+      helperTypeArgs' = map HS.typeVarDeclToType helperTypeArgs
       (Just caseExpr) = selectSubterm expr caseExprPos
       helperDecl      = HS.FuncDecl srcSpan
                                     helperDeclIdent
@@ -194,7 +199,9 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent typeArgs args expr maybeRetT
                                     Nothing
       helperApp = HS.app
         NoSrcSpan
-        (HS.visibleTypeApp NoSrcSpan (HS.Var NoSrcSpan helperName) funcTypeArgs'
+        (HS.visibleTypeApp NoSrcSpan
+                           (HS.Var NoSrcSpan helperName)
+                           helperTypeArgs'
         )
         (map (HS.Var NoSrcSpan) helperArgNames)
 
@@ -203,18 +210,19 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent typeArgs args expr maybeRetT
 -- | Converts a recursive helper function to the body of a Coq @Fixpoint@
 --   sentence.
 convertRecHelperFuncDecl :: HS.FuncDecl -> Converter G.FixBody
-convertRecHelperFuncDecl (HS.FuncDecl _ declIdent _ args expr _) = localEnv $ do
-  let helperName = HS.UnQual (HS.Ident (HS.fromDeclIdent declIdent))
-      argNames   = map (HS.UnQual . HS.Ident . HS.fromVarPat) args
-  -- TODO convert type arguments and return type from AST
-  (qualid, binders, returnType') <- convertFuncHead helperName args
-  expr'                          <- convertExpr expr
-  Just decArgIndex               <- inEnv $ lookupDecArgIndex helperName
-  Just decArg' <- inEnv $ lookupIdent ValueScope (argNames !! decArgIndex)
-  return
-    (G.FixBody qualid
-               (NonEmpty.fromList binders)
-               (Just (G.StructOrder decArg'))
-               returnType'
-               expr'
-    )
+convertRecHelperFuncDecl (HS.FuncDecl _ declIdent _ args expr _) =
+  localEnv $ do
+    let helperName = HS.UnQual (HS.Ident (HS.fromDeclIdent declIdent))
+        argNames   = map (HS.UnQual . HS.Ident . HS.fromVarPat) args
+    -- TODO convert type arguments and return type from AST
+    (qualid, binders, returnType') <- convertFuncHead helperName args
+    expr'                          <- convertExpr expr
+    Just decArgIndex               <- inEnv $ lookupDecArgIndex helperName
+    Just decArg' <- inEnv $ lookupIdent ValueScope (argNames !! decArgIndex)
+    return
+      (G.FixBody qualid
+                 (NonEmpty.fromList binders)
+                 (Just (G.StructOrder decArg'))
+                 returnType'
+                 expr'
+      )

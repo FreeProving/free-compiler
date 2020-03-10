@@ -3,8 +3,7 @@
 
 module Compiler.Converter.FuncDecl.Common
   ( -- * Type inference
-    inferAndInsertTypeSigs
-  , splitFuncType
+    splitFuncType
     -- * Function environment entries
   , defineFuncDecl
     -- * Code generation
@@ -12,18 +11,13 @@ module Compiler.Converter.FuncDecl.Common
   )
 where
 
-import           Control.Monad.Extra            ( zipWithM_ )
-
-import           Compiler.Analysis.DependencyAnalysis
 import           Compiler.Analysis.PartialityAnalysis
-import           Compiler.Analysis.TypeInference
 import           Compiler.Converter.Arg
 import           Compiler.Converter.Free
 import           Compiler.Converter.Type
 import qualified Compiler.Coq.AST              as G
 import           Compiler.Environment
 import           Compiler.Environment.Entry
-import           Compiler.Environment.LookupOrFail
 import           Compiler.Environment.Renamer
 import           Compiler.Environment.Scope
 import qualified Compiler.Haskell.AST          as HS
@@ -35,35 +29,6 @@ import           Compiler.Pretty
 -------------------------------------------------------------------------------
 -- Type inference                                                            --
 -------------------------------------------------------------------------------
-
--- | Infers the types of the function declarations in the given strongly
---   connected component and inserts type signatures into the environment.
---
---   Returns the function declarations where the type arguments of all function
---   and constructor applications on the right-hand side are applied visibly.
-inferAndInsertTypeSigs
-  :: DependencyComponent HS.FuncDecl
-  -> Converter (DependencyComponent HS.FuncDecl)
-inferAndInsertTypeSigs (NonRecursive decl) = do
-  [decl'] <- inferAndInsertTypeSigs' [decl]
-  return (NonRecursive decl')
-inferAndInsertTypeSigs (Recursive decls) = do
-  decls' <- inferAndInsertTypeSigs' decls
-  return (Recursive decls')
-
--- | Like
-inferAndInsertTypeSigs' :: [HS.FuncDecl] -> Converter [HS.FuncDecl]
-inferAndInsertTypeSigs' funcDecls = do
-  (funcDecls', typeSchemas) <- annotateFuncDeclTypes' funcDecls
-  zipWithM_ insertTypeSig funcDecls' typeSchemas
-  return funcDecls'
-
--- Inserts a type signature for a function declaration of the given type into
--- the environment.
-insertTypeSig :: HS.FuncDecl -> HS.TypeSchema -> Converter ()
-insertTypeSig funcDecl typeSchema = do
-  let name = HS.UnQual (HS.Ident (HS.fromDeclIdent (HS.getDeclIdent funcDecl)))
-  modifyEnv $ defineTypeSig name typeSchema
 
 -- | Splits the annotated type of a Haskell function with the given arguments
 --   into its argument and return types.
@@ -100,21 +65,17 @@ splitFuncType name = splitFuncType'
 
 -- | Inserts the given function declaration into the current environment.
 defineFuncDecl :: HS.FuncDecl -> Converter ()
-defineFuncDecl decl@(HS.FuncDecl srcSpan (HS.DeclIdent _ ident) _ args _ _) = do
-  -- TODO use type information from AST
-  let name = HS.UnQual (HS.Ident ident)
-  (HS.TypeSchema _ typeArgs funcType) <- lookupTypeSigOrFail srcSpan name
-  (argTypes, returnType)              <- splitFuncType name args funcType
-  partial                             <- isPartialFuncDecl decl
-  _                                   <- renameAndAddEntry FuncEntry
-    { entrySrcSpan       = srcSpan
-    , entryArity         = length argTypes
-    , entryTypeArgs      = map HS.fromDeclIdent typeArgs
-    , entryArgTypes      = map Just argTypes
-    , entryReturnType    = Just returnType
+defineFuncDecl decl = do
+  partial <- isPartialFuncDecl decl
+  _       <- renameAndAddEntry FuncEntry
+    { entrySrcSpan       = HS.funcDeclSrcSpan decl
+    , entryArity         = length (HS.funcDeclArgs decl)
+    , entryTypeArgs      = map HS.fromDeclIdent (HS.funcDeclTypeArgs decl)
+    , entryArgTypes      = map HS.varPatType (HS.funcDeclArgs decl)
+    , entryReturnType    = HS.funcDeclReturnType decl
     , entryNeedsFreeArgs = True
     , entryIsPartial     = partial
-    , entryName          = HS.UnQual (HS.Ident ident)
+    , entryName          = HS.UnQual (HS.funcDeclName decl)
     , entryIdent         = undefined -- filled by renamer
     }
   return ()

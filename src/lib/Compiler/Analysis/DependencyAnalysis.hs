@@ -11,6 +11,8 @@
 
 module Compiler.Analysis.DependencyAnalysis
   ( DependencyComponent(..)
+  , mapComponent
+  , mapComponentM
   , groupDependencies
   , groupTypeDecls
   , groupFuncDecls
@@ -18,6 +20,7 @@ module Compiler.Analysis.DependencyAnalysis
   )
 where
 
+import           Control.Monad.Fail             ( MonadFail )
 import           Data.Composition               ( (.:) )
 import           Data.Graph
 
@@ -35,6 +38,31 @@ import qualified Compiler.Haskell.AST          as HS
 data DependencyComponent decl
   = NonRecursive decl -- ^ A single non-recursive declaration.
   | Recursive [decl]  -- ^ A list of mutually recursive declarations.
+
+-- | Applies the given function to the declarations in the given strongly
+--   connected component of the dependency graph.
+--
+--   In case of a 'NonRecursive' component, the function is given a singleton
+--   list. The given must not change the number of declarations in the
+--   component.
+mapComponent
+  :: ([decl] -> [decl'])
+  -> DependencyComponent decl
+  -> DependencyComponent decl'
+mapComponent f (NonRecursive decl) =
+  let [decl'] = f [decl] in NonRecursive decl'
+mapComponent f (Recursive decls) = Recursive (f decls)
+
+-- | Monadic version of 'mapComponent'.
+mapComponentM
+  :: MonadFail m
+  => ([decl] -> m [decl'])
+  -> DependencyComponent decl
+  -> m (DependencyComponent decl')
+mapComponentM f (NonRecursive decl) = do
+  [decl'] <- f [decl]
+  return (NonRecursive decl')
+mapComponentM f (Recursive decls) = Recursive <$> f decls
 
 -- | Converts a strongly connected component from @Data.Graph@ to a
 --   'DependencyComponent'.

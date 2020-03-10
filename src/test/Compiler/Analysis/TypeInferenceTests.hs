@@ -6,7 +6,6 @@ import           Control.Monad.Extra            ( zipWithM_ )
 
 import           Compiler.Analysis.TypeInference
 import           Compiler.Environment.Resolver
-import           Compiler.Converter.Module      ( defineTypeSigDecl )
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Monad.Converter
 
@@ -421,8 +420,8 @@ shouldInferType input expectedType = do
 --   declaration.
 inferTestFuncDeclTypes :: [String] -> Converter [HS.TypeSchema]
 inferTestFuncDeclTypes input = localEnv $ do
-  ([], typeSigs, funcDecls) <- parseTestDecls input
-  mapM_ defineTypeSigDecl typeSigs
+  ([], _, funcDecls) <- parseTestDecls input
+  -- TODO handle type signatures
   inferFuncDeclTypes funcDecls
 
 -- | Parses the given function declarations, infers its type schema and sets
@@ -451,8 +450,8 @@ shouldAnnotateExprTypes input expectedOutput = do
 --   'annotateFuncDeclTypes'.
 annotateTestFuncDeclTypes :: [String] -> Converter [HS.FuncDecl]
 annotateTestFuncDeclTypes input = do
-  ([], typeSigs, funcDecls) <- parseTestDecls input
-  mapM_ defineTypeSigDecl typeSigs
+  ([], _, funcDecls) <- parseTestDecls input
+  -- TODO handle type signatures
   annotateFuncDeclTypes funcDecls
 
 -- | Parses the given expression, applies 'annotateFuncDeclTypes' nodes and
