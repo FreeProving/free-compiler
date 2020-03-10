@@ -321,13 +321,11 @@ defineTestVar ident = renameAndAddTestEntry VarEntry
 --   The argument and return types are parsed from the given string.
 --   Returns the Coq identifier assigned to the function.
 defineTestFunc :: String -> Int -> String -> Converter String
-defineTestFunc =
-  defineTestFunc' False
+defineTestFunc = defineTestFunc' False
 
 -- | Like 'defineTestFunc' but the first argument controls whether the
 --   defined function is partial or not.
-defineTestFunc'
-  :: Bool -> String -> Int -> String -> Converter String
+defineTestFunc' :: Bool -> String -> Int -> String -> Converter String
 defineTestFunc' partial ident arity typeStr = do
   HS.TypeSchema _ typeArgs typeExpr <- parseTestTypeSchema typeStr
   let (argTypes, returnType) = HS.splitType typeExpr arity
@@ -347,8 +345,7 @@ defineTestFunc' partial ident arity typeStr = do
 --
 --   Returns the Coq identifier assigned to the function.
 definePartialTestFunc :: String -> Int -> String -> Converter String
-definePartialTestFunc =
-  defineTestFunc' True
+definePartialTestFunc = defineTestFunc' True
 
 -------------------------------------------------------------------------------
 -- Conversion utility functions                                              --
@@ -361,7 +358,7 @@ convertTestType input = parseTestType input >>= convertType
 -- | Parses, simplifies and converts a Haskell expression for testing purposes.
 convertTestExpr :: String -> Converter G.Term
 convertTestExpr input =
-  parseTestExpr input >>= annotateExprTypes >>= convertExpr
+  parseTestExpr input >>= inferExprType >>= convertExpr . fst
 
 -- | Parses, simplifies and converts a Haskell declaration for testing purposes.
 convertTestDecl :: String -> Converter [G.Sentence]

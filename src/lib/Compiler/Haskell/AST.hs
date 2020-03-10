@@ -265,6 +265,16 @@ data FuncDecl = FuncDecl
 funcDeclName :: FuncDecl -> Name
 funcDeclName = Ident . fromDeclIdent . funcDeclIdent
 
+-- | Gets the type schema of the given function declaration or @Nothing@
+--   if at least one of the argument or the return type is not annoated.
+funcDeclTypeSchema :: FuncDecl -> Maybe TypeSchema
+funcDeclTypeSchema funcDecl = do
+  argTypes   <- mapM varPatType (funcDeclArgs funcDecl)
+  returnType <- funcDeclReturnType funcDecl
+  let typeArgs = funcDeclTypeArgs funcDecl
+      typeExpr = funcType NoSrcSpan argTypes returnType
+  return (TypeSchema NoSrcSpan typeArgs typeExpr)
+
 -- | A constructor declaration.
 --
 --  Even though there is not a dedicated constructor, the constructor is

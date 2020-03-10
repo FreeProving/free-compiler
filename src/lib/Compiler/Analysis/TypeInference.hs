@@ -5,14 +5,8 @@
 --   of variable patterns and adding visible applications for type arguments.
 
 module Compiler.Analysis.TypeInference
-  ( -- * Function declarations
-    inferFuncDeclTypes
-  , annotateFuncDeclTypes
-  , annotateFuncDeclTypes'
-    -- * Expressions
+  ( inferFuncDeclTypes
   , inferExprType
-  , annotateExprTypes
-  , annotateExprTypes'
   )
 where
 
@@ -228,82 +222,12 @@ fixTypeArgs' name subst =
 -------------------------------------------------------------------------------
 
 -- | Tries to infer the types of (mutually recursive) function declarations.
-inferFuncDeclTypes :: [HS.FuncDecl] -> Converter [HS.TypeSchema]
-inferFuncDeclTypes = fmap snd . annotateFuncDeclTypes'
-
--- | Like 'inferFuncDeclTypes' but does not abstract the type to a type
---   schema and returns the substitution.
-inferFuncDeclTypes' :: [HS.FuncDecl] -> TypeInference ([HS.Type], Subst HS.Type)
-inferFuncDeclTypes' funcDecls = do
-  (typedExprs, funcTypes) <- liftConverter
-    $ mapAndUnzipM makeTypedExprs funcDecls
-  zipWithM_ addTypeSigEquation funcDecls funcTypes
-  mapM_ (uncurry simplifyTypedExpr) (concat typedExprs)
-  eqns       <- getAllTypeEquations
-  mgu        <- liftConverter $ unifyEquations eqns
-  funcTypes' <- liftConverter $ mapM (applySubst mgu) funcTypes
-  return (funcTypes', mgu)
-
--- | Creates fresh type variables @a@ and @a1 ... an@ and the expression/type
---   pairs @f :: a1 -> ... -> an -> a, x1 :: a1, ..., xn :: an@ and @e :: a@
---   for the given function declaration @f x1 ... xn = e@ and returns the
---   expression/type pairs as well as the type of the function.
-makeTypedExprs :: HS.FuncDecl -> Converter ([(HS.Expr, HS.Type)], HS.Type)
-makeTypedExprs (HS.FuncDecl _ (HS.DeclIdent srcSpan ident) _ args rhs maybeRetType)
-  = do
-    -- TODO instantiate argument and return types with fresh type arguments.
-    (args', rhs') <- renameArgs args rhs
-    argTypes      <- mapM makeArgType args
-    retType       <- makeRetType
-    let
-      funcName = HS.UnQual (HS.Ident ident)
-      funcExpr = HS.Var srcSpan funcName
-      funcType = HS.funcType NoSrcSpan argTypes retType
-      argExprs = map HS.varPatToExpr args'
-      typedExprs =
-        (funcExpr, funcType) : (rhs', retType) : zip argExprs argTypes
-    return (typedExprs, funcType)
- where
-  -- | Generates a fresh type variable for the given variable pattern or
-  --   returns the annotated type variable.
-  makeArgType :: HS.VarPat -> Converter HS.Type
-  makeArgType (HS.VarPat _ _ Nothing       ) = freshTypeVar
-  makeArgType (HS.VarPat _ _ (Just varType)) = return varType
-
-  -- | Generates a fresh type variable for the function declaration's return
-  --   type or returns the annotated type variable.
-  makeRetType :: Converter HS.Type
-  makeRetType = case maybeRetType of
-    Nothing      -> freshTypeVar
-    Just retType -> return retType
-
--- If the given function has a type signature @f :: τ@ and 'makeTypedExprs'
--- added the expression type pair @f :: τ'@, the type equation @τ = τ'@ is
--- added without instantiating the type variables in the type signature with
--- fresh identifiers such that the inferred type uses the same type variable
--- names as specified by the user.
-addTypeSigEquation :: HS.FuncDecl -> HS.Type -> TypeInference ()
-addTypeSigEquation funcDecl funcType = do
-  let funcIdent = HS.fromDeclIdent (HS.getDeclIdent funcDecl)
-      funcName  = HS.UnQual (HS.Ident funcIdent)
-  maybeTypeSchema <- lookupTypeAssumption funcName
-  case maybeTypeSchema of
-    Nothing -> return ()
-    Just (HS.TypeSchema srcSpan _ typeSig) ->
-      -- TODO if we do not instantiate the type schema this may cause name
-      --      conflicts.
-      addTypeEquation srcSpan typeSig funcType
-
--- | Infers the types of type arguments to functions and constructors
---   used by the right-hand side of the given function declaration.
-annotateFuncDeclTypes :: [HS.FuncDecl] -> Converter [HS.FuncDecl]
-annotateFuncDeclTypes = fmap fst . annotateFuncDeclTypes'
-
--- | Like 'annotateFuncDeclTypes' but also returns the type of the
---   function declaration.
-annotateFuncDeclTypes'
-  :: [HS.FuncDecl] -> Converter ([HS.FuncDecl], [HS.TypeSchema])
-annotateFuncDeclTypes' funcDecls = localEnv $ do
+--
+--   Returns the function declarations where the argument and return types
+--   as well as the types of variable patterns on the right-hand side and
+--   visible type arguments have been annotated with their inferred type.
+inferFuncDeclTypes :: [HS.FuncDecl] -> Converter [HS.FuncDecl]
+inferFuncDeclTypes funcDecls = localEnv $ do
   ta <- inEnv makeTypeAssumtion
   runTypeInference ta $ do
       -- Add type annotations.
@@ -342,9 +266,69 @@ annotateFuncDeclTypes' funcDecls = localEnv $ do
       $   unzip
       <$> zipWithM abstractVanishingTypeArgs visiblyAppliedFuncDecls typeSchemas
     -- Add type arguments to function declaration.
-    let addTypeArgs funcDecl typeSchema@(HS.TypeSchema _ typeArgs' _) =
-          (funcDecl { HS.funcDeclTypeArgs = typeArgs' }, typeSchema)
-    return $ unzip $ zipWith addTypeArgs funcDecls' typeSchemas'
+    let addTypeArgs funcDecl (HS.TypeSchema _ typeArgs' _) =
+          funcDecl { HS.funcDeclTypeArgs = typeArgs' }
+    return $ zipWith addTypeArgs funcDecls' typeSchemas'
+
+-- | Like 'inferFuncDeclTypes' but does not abstract the type to a type
+--   schema and returns the substitution.
+inferFuncDeclTypes' :: [HS.FuncDecl] -> TypeInference ([HS.Type], Subst HS.Type)
+inferFuncDeclTypes' funcDecls = do
+  (typedExprs, funcTypes) <- liftConverter
+    $ mapAndUnzipM makeTypedExprs funcDecls
+  zipWithM_ addTypeSigEquation funcDecls funcTypes
+  mapM_ (uncurry simplifyTypedExpr) (concat typedExprs)
+  eqns       <- getAllTypeEquations
+  mgu        <- liftConverter $ unifyEquations eqns
+  funcTypes' <- liftConverter $ mapM (applySubst mgu) funcTypes
+  return (funcTypes', mgu)
+
+-- | Creates fresh type variables @a@ and @a1 ... an@ and the expression/type
+--   pairs @f :: a1 -> ... -> an -> a, x1 :: a1, ..., xn :: an@ and @e :: a@
+--   for the given function declaration @f x1 ... xn = e@ and returns the
+--   expression/type pairs as well as the type of the function.
+makeTypedExprs :: HS.FuncDecl -> Converter ([(HS.Expr, HS.Type)], HS.Type)
+makeTypedExprs (HS.FuncDecl _ (HS.DeclIdent srcSpan ident) _ args rhs maybeRetType)
+  = do
+    -- TODO instantiate argument and return types with fresh type arguments.
+    (args', rhs') <- renameArgs args rhs
+    argTypes      <- mapM makeArgType args
+    retType       <- makeRetType
+    let
+      funcName = HS.UnQual (HS.Ident ident)
+      funcExpr = HS.Var srcSpan funcName
+      funcType = HS.funcType NoSrcSpan argTypes retType
+      argExprs = map HS.varPatToExpr args'
+      typedExprs =
+        (funcExpr, funcType) : (rhs', retType) : zip argExprs argTypes
+    return (typedExprs, funcType)
+ where
+  -- | Generates a fresh type variable for the given variable pattern or
+  --   returns the annotated type variable.
+  makeArgType :: HS.VarPat -> Converter HS.Type
+  makeArgType = maybe freshTypeVar return . HS.varPatType
+
+  -- | Generates a fresh type variable for the function declaration's return
+  --   type or returns the annotated type variable.
+  makeRetType :: Converter HS.Type
+  makeRetType = maybe freshTypeVar return maybeRetType
+
+-- If the given function has a type signature @f :: τ@ and 'makeTypedExprs'
+-- added the expression type pair @f :: τ'@, the type equation @τ = τ'@ is
+-- added without instantiating the type variables in the type signature with
+-- fresh identifiers such that the inferred type uses the same type variable
+-- names as specified by the user.
+addTypeSigEquation :: HS.FuncDecl -> HS.Type -> TypeInference ()
+addTypeSigEquation funcDecl funcType = do
+  let funcIdent = HS.fromDeclIdent (HS.getDeclIdent funcDecl)
+      funcName  = HS.UnQual (HS.Ident funcIdent)
+  maybeTypeSchema <- lookupTypeAssumption funcName
+  case maybeTypeSchema of
+    Nothing -> return ()
+    Just (HS.TypeSchema srcSpan _ typeSig) ->
+      -- TODO if we do not instantiate the type schema this may cause name
+      --      conflicts.
+      addTypeEquation srcSpan typeSig funcType
 
 -------------------------------------------------------------------------------
 -- Expressions                                                               --
@@ -356,20 +340,12 @@ annotateFuncDeclTypes' funcDecls = localEnv $ do
 --   The type of an expression @e@ is the same type inferred by
 --   'inferFuncDeclTypes' for a function @f@ defined by @f = e@
 --   where @f@ does not occur free in @e@.
-inferExprType :: HS.Expr -> Converter HS.TypeSchema
-inferExprType = fmap snd . annotateExprTypes'
-
--- | Infers the types of type arguments to functions and constructors
---   used by the given expression.
 --
---   Returns an expression where the type arguments of functions and
---   constructors are applied explicitly.
-annotateExprTypes :: HS.Expr -> Converter HS.Expr
-annotateExprTypes = fmap fst . annotateExprTypes'
-
--- | Like 'annotateExprTypes' but also returns the type of the expression.
-annotateExprTypes' :: HS.Expr -> Converter (HS.Expr, HS.TypeSchema)
-annotateExprTypes' expr = localEnv $ do
+--   Returns the inferred type schema and the expression where the
+--   types of variable patterns and visible type applications have
+--   been annotated.
+inferExprType :: HS.Expr -> Converter (HS.Expr, HS.TypeSchema)
+inferExprType expr = localEnv $ do
   funcIdent <- freshHaskellIdent freshFuncPrefix
   let funcDecl = HS.FuncDecl
         { HS.funcDeclSrcSpan    = NoSrcSpan
@@ -379,8 +355,8 @@ annotateExprTypes' expr = localEnv $ do
         , HS.funcDeclRhs        = expr
         , HS.funcDeclReturnType = Nothing
         }
-  ([funcDecl'], [typeSchema]) <- annotateFuncDeclTypes' [funcDecl]
-  return (HS.funcDeclRhs funcDecl', typeSchema)
+  [funcDecl'] <- inferFuncDeclTypes [funcDecl]
+  return (HS.funcDeclRhs funcDecl', fromJust (HS.funcDeclTypeSchema funcDecl'))
 
 -------------------------------------------------------------------------------
 -- Type annotations                                                          --
