@@ -25,7 +25,9 @@ import           Data.List                      ( (\\)
                                                 , nub
                                                 , partition
                                                 )
-import           Data.List.Extra                ( dropEnd )
+import           Data.List.Extra                ( dropEnd
+                                                , takeEnd
+                                                )
 import           Data.Map.Strict                ( Map )
 import qualified Data.Map.Strict               as Map
 import           Data.Maybe                     ( fromJust
@@ -230,45 +232,80 @@ inferFuncDeclTypes :: [HS.FuncDecl] -> Converter [HS.FuncDecl]
 inferFuncDeclTypes funcDecls = localEnv $ do
   ta <- inEnv makeTypeAssumtion
   runTypeInference ta $ do
-      -- Add type annotations.
+    -- Add type annotations.
+    --
+    -- First we annotate all variable patterns, constructor and function
+    -- applications as well as the return type of the function declarations
+    -- with fresh type variables. The type variables act as placeholders for
+    -- the actual types inferred below.
     annotatedFuncDecls <- liftConverter $ mapM annotateFuncDecl funcDecls
+
     -- Infer function types.
+    --
+    -- In addition to the actual type, we need the substitution computed
+    -- during type inference. The substitution is applied to the function
+    -- declarations in order to replace the fresh type variable placeholders
+    -- added in the step above.
     (typeExprs, mgu) <- inferFuncDeclTypes' annotatedFuncDecls
     typedFuncDecls <- liftConverter $ mapM (applySubst mgu) annotatedFuncDecls
-    -- Abstract inferred type schema.
+
+    -- Abstract inferred type to type schema.
+    --
+    -- The function takes one type argument for each type variable in the
+    -- inferred type expression. Additional type arguments that occur in
+    -- type signatures and visible type applications on the right-hand side
+    -- of the function but not in the inferred type (also known as "vanishing
+    -- type  arguments") are added as well. The order of the type arguments
+    -- depends on their order in the (type) expression (from left to right).
     let typeArgs = map typeVars typeExprs
         additionalTypeArgs =
           nub (concatMap typeVars typedFuncDecls) \\ concat typeArgs
         allTypeArgs = map (++ additionalTypeArgs) typeArgs
-    (typeSchemas, substs) <-
-      liftConverter
-      $   unzip
-      <$> zipWithM abstractTypeSchema' allTypeArgs typeExprs
     abstractedFuncDecls <- liftConverter
-      $ zipWithM applySubst substs typedFuncDecls
-    -- The additional type arguments must not change.
-    additionalTypeArgs' <- liftConverter $ mapM
-      (\subst -> mapM
-        (applySubst subst . HS.TypeVar NoSrcSpan . fromJust . HS.identFromQName)
-        additionalTypeArgs
-      )
-      substs
-    let funcNames =
-          map (HS.Ident . HS.fromDeclIdent . HS.getDeclIdent) funcDecls
-    zipWithM_ fixTypeArgs          funcNames additionalTypeArgs'
+      $ zipWithM abstractTypeArgs allTypeArgs typedFuncDecls
+
+    -- Fix instantiation of additional type arguments.
+    --
+    -- The additional type arguments must be passed unchanged in recursive
+    -- calls (otherwise there would have to be an infinite number of type
+    -- arguments). However, 'applyFuncDeclVisibly' would instantiate them
+    -- with fresh type variables since they do not occur in the inferred
+    -- type the application has been annotated with. Thus, we have to
+    -- remember for each function in the strongly connected component,
+    -- the type to instantiate the remaining type arguments with. The
+    -- fixed type arguments will be taken into account by 'applyVisibly'.
+    let funcNames           = map HS.funcDeclName abstractedFuncDecls
+        additionalTypeArgs' = map
+          ( map HS.typeVarDeclToType
+          . takeEnd (length additionalTypeArgs)
+          . HS.funcDeclTypeArgs
+          )
+          abstractedFuncDecls
+    zipWithM_ fixTypeArgs funcNames additionalTypeArgs'
+
     -- Add visible type applications.
+    --
+    -- Now that we also know the type arguments of the functions in then
+    -- strongly connected component, we can replace the type annotations
+    -- for function and constructor applications added by 'annotateFuncDecl'
+    -- by visible type applications.
+    let typeSchemas =
+          map (fromJust . HS.funcDeclTypeSchema) abstractedFuncDecls
     zipWithM_ extendTypeAssumption funcNames typeSchemas
-    visiblyAppliedFuncDecls <- mapM addTypeAppExprsToFuncDecl
-                                    abstractedFuncDecls
-    -- Abstract vanishing type arguments.
-    (funcDecls', typeSchemas') <-
-      liftConverter
-      $   unzip
-      <$> zipWithM abstractVanishingTypeArgs visiblyAppliedFuncDecls typeSchemas
-    -- Add type arguments to function declaration.
-    let addTypeArgs funcDecl (HS.TypeSchema _ typeArgs' _) =
-          funcDecl { HS.funcDeclTypeArgs = typeArgs' }
-    return $ zipWith addTypeArgs funcDecls' typeSchemas'
+    visiblyAppliedFuncDecls <- mapM applyFuncDeclVisibly abstractedFuncDecls
+
+    -- Abstract new vanishing type arguments.
+    --
+    -- The instatiation of type schemas by 'applyFuncDeclVisibly' might
+    -- have introduced new vanishing type arguments if a function with
+    -- vanishing type arguments is applied that does not occur in the
+    -- strongly connected component. Those additional type arguments
+    -- need to be abstracted as well.
+    -- TODO test this with (mutually) recursive functions that use functions
+    --      with vanishing type arguments. Don't the newly abstracted type
+    --      arguments have to be added to all function declarations and
+    --      their visible type applications?
+    liftConverter $ mapM abstractVanishingTypeArgs visiblyAppliedFuncDecls
 
 -- | Like 'inferFuncDeclTypes' but does not abstract the type to a type
 --   schema and returns the substitution.
@@ -449,8 +486,8 @@ annotateFuncDecl (HS.FuncDecl srcSpan declIdent _ args rhs _) = do
 -- | Replaces a type signature added by 'annotateExpr' for a variable or
 --   constructor with the given name by a visible type application of that
 --   function or constructor.
-addTypeAppExprsFor :: HS.QName -> HS.Expr -> HS.Type -> TypeInference HS.Expr
-addTypeAppExprsFor name expr typeExpr = do
+applyVisibly :: HS.QName -> HS.Expr -> HS.Type -> TypeInference HS.Expr
+applyVisibly name expr typeExpr = do
   maybeTypeSchema <- lookupTypeAssumption name
   case maybeTypeSchema of
     Nothing         -> return expr
@@ -465,88 +502,102 @@ addTypeAppExprsFor name expr typeExpr = do
 
 -- | Replaces the type signatures added by 'annotateExpr' by visible type
 --   application expressions.
-addTypeAppExprs :: HS.Expr -> TypeInference HS.Expr
+applyExprVisibly :: HS.Expr -> TypeInference HS.Expr
 
--- Add visible type applications to functions and constructors.
-addTypeAppExprs (HS.ExprTypeSig _ expr@(HS.Con _ conName) (HS.TypeSchema _ [] typeExpr))
-  = addTypeAppExprsFor conName expr typeExpr
-addTypeAppExprs (HS.ExprTypeSig _ expr@(HS.Var _ varName) (HS.TypeSchema _ [] typeExpr))
-  = addTypeAppExprsFor varName expr typeExpr
-
--- Add visible type applications to error terms.
-addTypeAppExprs (HS.ExprTypeSig srcSpan expr@(HS.Undefined _) (HS.TypeSchema _ [] typeExpr))
-  = return (HS.TypeAppExpr srcSpan expr typeExpr)
-addTypeAppExprs (HS.ExprTypeSig srcSpan expr@(HS.ErrorExpr _ _) (HS.TypeSchema _ [] typeExpr))
-  = return (HS.TypeAppExpr srcSpan expr typeExpr)
+-- Add visible type applications to functions, constructors and error terms
+-- with type annotation.
+applyExprVisibly (HS.ExprTypeSig srcSpan expr (HS.TypeSchema _ [] typeExpr))
+  | HS.Con _ conName <- expr = applyVisibly conName expr typeExpr
+  | HS.Var _ varName <- expr = applyVisibly varName expr typeExpr
+  | HS.Undefined _ <- expr   = return (HS.TypeAppExpr srcSpan expr typeExpr)
+  | HS.ErrorExpr _ _ <- expr = return (HS.TypeAppExpr srcSpan expr typeExpr)
 
 -- There should be no visible type applications prior to type inference.
-addTypeAppExprs (HS.TypeAppExpr srcSpan _ _) = unexpectedTypeAppExpr srcSpan
+applyExprVisibly (HS.TypeAppExpr srcSpan _ _) = unexpectedTypeAppExpr srcSpan
 
 -- Recursively add visible type applications.
-addTypeAppExprs (HS.ExprTypeSig srcSpan expr typeSchema) = do
-  expr' <- addTypeAppExprs expr
+applyExprVisibly (HS.ExprTypeSig srcSpan expr typeSchema) = do
+  expr' <- applyExprVisibly expr
   return (HS.ExprTypeSig srcSpan expr' typeSchema)
-addTypeAppExprs (HS.App srcSpan e1 e2) = do
-  e1' <- addTypeAppExprs e1
-  e2' <- addTypeAppExprs e2
+applyExprVisibly (HS.App srcSpan e1 e2) = do
+  e1' <- applyExprVisibly e1
+  e2' <- applyExprVisibly e2
   return (HS.App srcSpan e1' e2')
-addTypeAppExprs (HS.If srcSpan e1 e2 e3) = do
-  e1' <- addTypeAppExprs e1
-  e2' <- addTypeAppExprs e2
-  e3' <- addTypeAppExprs e3
+applyExprVisibly (HS.If srcSpan e1 e2 e3) = do
+  e1' <- applyExprVisibly e1
+  e2' <- applyExprVisibly e2
+  e3' <- applyExprVisibly e3
   return (HS.If srcSpan e1' e2' e3')
-addTypeAppExprs (HS.Case srcSpan expr alts) = do
-  expr' <- addTypeAppExprs expr
-  alts' <- mapM addTypeAppExprsToAlt alts
+applyExprVisibly (HS.Case srcSpan expr alts) = do
+  expr' <- applyExprVisibly expr
+  alts' <- mapM applyAltVisibly alts
   return (HS.Case srcSpan expr' alts')
-addTypeAppExprs (HS.Lambda srcSpan args expr) =
+applyExprVisibly (HS.Lambda srcSpan args expr) =
   removeVarPatsFromTypeAssumption args $ do
-    expr' <- addTypeAppExprs expr
+    expr' <- applyExprVisibly expr
     return (HS.Lambda srcSpan args expr')
 
 -- Leave all other expressions unchanged.
-addTypeAppExprs expr@(HS.Con _ _       ) = return expr
-addTypeAppExprs expr@(HS.Var _ _       ) = return expr
-addTypeAppExprs expr@(HS.Undefined _   ) = return expr
-addTypeAppExprs expr@(HS.ErrorExpr  _ _) = return expr
-addTypeAppExprs expr@(HS.IntLiteral _ _) = return expr
+applyExprVisibly expr@(HS.Con _ _       ) = return expr
+applyExprVisibly expr@(HS.Var _ _       ) = return expr
+applyExprVisibly expr@(HS.Undefined _   ) = return expr
+applyExprVisibly expr@(HS.ErrorExpr  _ _) = return expr
+applyExprVisibly expr@(HS.IntLiteral _ _) = return expr
 
--- | Applies 'addTypeAppExprs' to the right-hand side of the given @case@-
+-- | Applies 'applyExprVisibly' to the right-hand side of the given @case@-
 --   expression alternative.
-addTypeAppExprsToAlt :: HS.Alt -> TypeInference HS.Alt
-addTypeAppExprsToAlt (HS.Alt srcSpan conPat varPats expr) =
+applyAltVisibly :: HS.Alt -> TypeInference HS.Alt
+applyAltVisibly (HS.Alt srcSpan conPat varPats expr) =
   removeVarPatsFromTypeAssumption varPats $ do
-    expr' <- addTypeAppExprs expr
+    expr' <- applyExprVisibly expr
     return (HS.Alt srcSpan conPat varPats expr')
 
--- | Applies ' addTypeAppExprs' to the right-hand side of the given function
+-- | Applies ' applyExprVisibly' to the right-hand side of the given function
 --   declaration.
-addTypeAppExprsToFuncDecl :: HS.FuncDecl -> TypeInference HS.FuncDecl
-addTypeAppExprsToFuncDecl funcDecl = do
+applyFuncDeclVisibly :: HS.FuncDecl -> TypeInference HS.FuncDecl
+applyFuncDeclVisibly funcDecl = do
   let args = HS.funcDeclArgs funcDecl
       rhs  = HS.funcDeclRhs funcDecl
   removeVarPatsFromTypeAssumption args $ do
-    rhs' <- addTypeAppExprs rhs
+    rhs' <- applyExprVisibly rhs
     return funcDecl { HS.funcDeclRhs = rhs' }
 
 -------------------------------------------------------------------------------
 -- Abstracting type arguments                                                --
 -------------------------------------------------------------------------------
 
+-- | Normalizes the names of the given type variables and adds them as type
+--   arguments to the function declaration.
+--
+--   The first argument contains the names of type variables that should be
+--   bound by type arguments. Usually these are the type variables that
+--   occur in the function declaration's type and on its right-hand side.
+--
+--   Fresh type variables used by the given type are replaced by regular type
+--   varibales with the prefix 'freshTypeArgPrefix'. All other type variables
+--   are not renamed.
+abstractTypeArgs :: [HS.QName] -> HS.FuncDecl -> Converter HS.FuncDecl
+abstractTypeArgs typeArgs funcDecl = do
+  let HS.TypeSchema _ _ typeExpr = fromJust (HS.funcDeclTypeSchema funcDecl)
+  (HS.TypeSchema _ typeArgs' _, subst) <- abstractTypeSchema' typeArgs typeExpr
+  funcDecl'                            <- applySubst subst funcDecl
+  return funcDecl' { HS.funcDeclTypeArgs = typeArgs' }
+
 -- | Abstracts the remaining internal type variables that occur within
 --   the given function declaration by renaming them to non-internal
 --   type variables and adding them to the @forall@ quantifier of the
 --   given type schema.
-abstractVanishingTypeArgs
-  :: HS.FuncDecl -> HS.TypeSchema -> Converter (HS.FuncDecl, HS.TypeSchema)
-abstractVanishingTypeArgs funcDecl (HS.TypeSchema _ typeArgs typeExpr) = do
-  let typeArgNames = map (HS.UnQual . HS.Ident . HS.fromDeclIdent) typeArgs
+abstractVanishingTypeArgs :: HS.FuncDecl -> Converter HS.FuncDecl
+abstractVanishingTypeArgs funcDecl = do
+  let HS.TypeSchema _ typeArgs typeExpr =
+        fromJust (HS.funcDeclTypeSchema funcDecl)
+      typeArgNames = map (HS.UnQual . HS.Ident . HS.fromDeclIdent) typeArgs
       internalTypeArgNames = filter HS.isInternalQName (typeVars funcDecl)
-  (typeSchema', subst) <- abstractTypeSchema'
+  (HS.TypeSchema _ typeArgs' _, subst) <- abstractTypeSchema'
     (typeArgNames ++ internalTypeArgNames)
     typeExpr
   funcDecl' <- applySubst subst funcDecl
-  return (funcDecl', typeSchema')
+  return funcDecl' { HS.funcDeclTypeArgs = typeArgs' }
 
 -------------------------------------------------------------------------------
 -- Simplification of expression/type pairs                                   --
