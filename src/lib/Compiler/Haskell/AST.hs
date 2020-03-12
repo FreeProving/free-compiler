@@ -485,6 +485,14 @@ data VarPat = VarPat
   }
  deriving (Eq, Show)
 
+-- | Gets the name of the given variable pattern.
+varPatName :: VarPat -> Name
+varPatName = Ident . varPatIdent
+
+-- | Gets the qualified name of the given variable pattern.
+varPatQName :: VarPat -> QName
+varPatQName = UnQual . varPatName
+
 -- | Converts a variable pattern to a variable expression.
 varPatToExpr :: VarPat -> Expr
 varPatToExpr (VarPat srcSpan varName _) = Var srcSpan (UnQual (Ident varName))

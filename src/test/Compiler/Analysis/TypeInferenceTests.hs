@@ -79,6 +79,25 @@ testInferFuncDeclTypes =
               ++ "  }) :: Prelude.Integer"
             ]
     it
+        "infers vanishing type arguments correctly in recursive functions that use functions with vanishing type arguments"
+      $ shouldSucceed
+      $ fromConverter
+      $ do
+          _ <- defineTestFunc "true" 0 "forall a. Bool"
+          shouldInferFuncDeclTypes
+            [ "length xs = case xs of {"
+              ++ "    []      -> if true then 0 else 1;"
+              ++ "    x : xs' -> 1 + length xs'"
+              ++ "  }"
+            ]
+            [ "length @t0 @t1 (xs :: [t0]) = (case xs of {"
+              ++ "    Prelude.([]) ->"
+              ++ "      if true @t1 then 0 else 1;"
+              ++ "    Prelude.(:) (x :: t0) (xs' :: [t0]) ->"
+              ++ "      (+) 1 (length @t0 @t1 xs')"
+              ++ "  }) :: Prelude.Integer"
+            ]
+    it
         "infers vanishing type arguments correctly in mutually recursive functions"
       $ shouldSucceed
       $ fromConverter
@@ -107,6 +126,35 @@ testInferFuncDeclTypes =
             ++ "      if eq @[t2] (Prelude.([]) @t2) (Prelude.([]) @t2)"
             ++ "        then 0"
             ++ "        else 1;"
+            ++ "    Prelude.(:) (x :: t0) (xs' :: [t0]) ->"
+            ++ "      (+) 1 (length @t0 @t1 @t2 xs')"
+            ++ "  }) :: Prelude.Integer"
+            ]
+    it
+        "infers vanishing type arguments correctly in mutually recursive functions that use functions with vanishing type arguments"
+      $ shouldSucceed
+      $ fromConverter
+      $ do
+          _ <- defineTestFunc "true" 0 "forall a. Bool"
+          shouldInferFuncDeclTypes
+            [ "length xs = case xs of {"
+            ++ "    []      -> if true then 0 else 1;"
+            ++ "    x : xs' -> 1 + length' xs'"
+            ++ "  }"
+            , "length' xs = case xs of {"
+            ++ "    []      -> if true then 0 else 1;"
+            ++ "    x : xs' -> 1 + length xs'"
+            ++ "  }"
+            ]
+            [ "length @t0 @t1 @t2 (xs :: [t0]) = (case xs of {"
+            ++ "    Prelude.([]) ->"
+            ++ "      if true @t1 then 0 else 1;"
+            ++ "    Prelude.(:) (x :: t0) (xs' :: [t0]) ->"
+            ++ "      (+) 1 (length' @t0 @t1 @t2 xs')"
+            ++ "  }) :: Prelude.Integer"
+            , "length' @t0 @t1 @t2 (xs :: [t0]) = (case xs of {"
+            ++ "    Prelude.([]) ->"
+            ++ "      if true @t2 then 0 else 1;"
             ++ "    Prelude.(:) (x :: t0) (xs' :: [t0]) ->"
             ++ "      (+) 1 (length @t0 @t1 @t2 xs')"
             ++ "  }) :: Prelude.Integer"

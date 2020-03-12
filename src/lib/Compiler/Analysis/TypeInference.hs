@@ -22,6 +22,7 @@ import           Control.Monad.State            ( MonadState
                                                 , gets
                                                 , modify
                                                 )
+import           Data.Composition               ( (.:) )
 import           Data.List                      ( (\\)
                                                 , intercalate
                                                 , nub
@@ -235,7 +236,7 @@ fixTypeArgs' name subst =
   modify $ \s -> s { fixedTypeArgs = Map.insert name subst (fixedTypeArgs s) }
 
 -------------------------------------------------------------------------------
--- Function declarations                                                     --
+-- Type signatures                                                           --
 -------------------------------------------------------------------------------
 
 -- | Annotates the given function declarations with the type from the
@@ -339,6 +340,10 @@ splitFuncType name = splitFuncType'
         ++ showPretty name
         ++ "'."
 
+-------------------------------------------------------------------------------
+-- Function declarations                                                     --
+-------------------------------------------------------------------------------
+
 -- | Tries to infer the types of (mutually recursive) function declarations.
 --
 --   Returns the function declarations where the argument and return types
@@ -421,11 +426,7 @@ inferFuncDeclTypes funcDecls = localEnv $ do
     -- vanishing type arguments is applied that does not occur in the
     -- strongly connected component. Those additional type arguments
     -- need to be abstracted as well.
-    -- TODO test this with (mutually) recursive functions that use functions
-    --      with vanishing type arguments. Don't the newly abstracted type
-    --      arguments have to be added to all function declarations and
-    --      their visible type applications?
-    liftConverter $ mapM abstractVanishingTypeArgs visiblyAppliedFuncDecls
+    liftConverter $ abstractVanishingTypeArgs visiblyAppliedFuncDecls
 
 -- | Like 'inferFuncDeclTypes' but does not abstract the type to a type
 --   schema and returns the substitution.
@@ -682,20 +683,108 @@ abstractTypeArgs typeArgs funcDecl = do
   return funcDecl' { HS.funcDeclTypeArgs = typeArgs' }
 
 -- | Abstracts the remaining internal type variables that occur within
---   the given function declaration by renaming them to non-internal
---   type variables and adding them to the @forall@ quantifier of the
---   given type schema.
-abstractVanishingTypeArgs :: HS.FuncDecl -> Converter HS.FuncDecl
-abstractVanishingTypeArgs funcDecl = do
-  let HS.TypeSchema _ typeArgs typeExpr =
-        fromJust (HS.funcDeclTypeSchema funcDecl)
-      typeArgNames = map (HS.UnQual . HS.Ident . HS.fromDeclIdent) typeArgs
-      internalTypeArgNames = filter HS.isInternalQName (typeVars funcDecl)
-  (HS.TypeSchema _ typeArgs' _, subst) <- abstractTypeSchema'
-    (typeArgNames ++ internalTypeArgNames)
-    typeExpr
-  funcDecl' <- applySubst subst funcDecl
-  return funcDecl' { HS.funcDeclTypeArgs = typeArgs' }
+--   the given function declarations by renaming them to non-internal
+--   type variables and adding them as type arguments to the function
+--   declarations.
+--
+--   The added type arguments are also added as visible type applications
+--   to recursive calls to the function declarations.
+abstractVanishingTypeArgs :: [HS.FuncDecl] -> Converter [HS.FuncDecl]
+abstractVanishingTypeArgs funcDecls = do
+  funcDecls' <- mapM addInternalTypeArgs funcDecls
+  mapM abstractVanishingTypeArgs' funcDecls'
+ where
+  -- | The names of the type variables to abstract.
+  internalTypeArgNames :: [HS.QName]
+  internalTypeArgNames = filter HS.isInternalQName (typeVars funcDecls)
+
+  -- | Type variables for 'internalTypeArgNames'.
+  internalTypeArgs :: [HS.Type]
+  internalTypeArgs = map
+    (HS.TypeVar NoSrcSpan . fromJust . HS.identFromQName)
+    internalTypeArgNames
+
+  -- | Renames 'internalTypeArgNames' and adds them as type arguments
+  --   to the given function declaration.
+  abstractVanishingTypeArgs' :: HS.FuncDecl -> Converter HS.FuncDecl
+  abstractVanishingTypeArgs' funcDecl = do
+    let typeArgNames = map (HS.UnQual . HS.Ident . HS.fromDeclIdent)
+                           (HS.funcDeclTypeArgs funcDecl)
+    abstractTypeArgs (typeArgNames ++ internalTypeArgNames) funcDecl
+
+  -- | Adds visible type applications for 'internalTypeArgs' to recursive
+  --   calls on the right-hand side of the given function declaration.
+  addInternalTypeArgs :: HS.FuncDecl -> Converter HS.FuncDecl
+  addInternalTypeArgs funcDecl = do
+    modName <- inEnv envModName
+    let funcNames    = map HS.funcDeclName funcDecls
+        funcQNames = map HS.UnQual funcNames ++ map (HS.Qual modName) funcNames
+        funcNameSet  = Set.fromList funcQNames
+        funcNameSet' = withoutArgs (HS.funcDeclArgs funcDecl) funcNameSet
+        rhs          = HS.funcDeclRhs funcDecl
+        rhs'         = addInternalTypeArgsToExpr funcNameSet' rhs
+    return funcDecl { HS.funcDeclRhs = rhs' }
+
+  -- | Adds visible type applications for 'internalTypeArgs' to recursive
+  --   calls in the given expression.
+  addInternalTypeArgsToExpr :: Set HS.QName -> HS.Expr -> HS.Expr
+  addInternalTypeArgsToExpr =
+    uncurry (HS.visibleTypeApp NoSrcSpan) .: addInternalTypeArgsToExpr'
+
+  -- | Like 'addInternalTypeArgs' but returns the visible type
+  --   arguments that still need to be added.
+  addInternalTypeArgsToExpr' :: Set HS.QName -> HS.Expr -> (HS.Expr, [HS.Type])
+
+  -- If this is a recursive call the internal type arguments need to be
+  -- applied visibly.
+  addInternalTypeArgsToExpr' funcNames expr@(HS.Var _ varName)
+    | varName `Set.member` funcNames = (expr, internalTypeArgs)
+    | otherwise                      = (expr, [])
+
+  -- Add new type arguments after exisiting visible type applications.
+  addInternalTypeArgsToExpr' funcNames (HS.TypeAppExpr srcSpan expr typeExpr) =
+    let (expr', typeArgs) = addInternalTypeArgsToExpr' funcNames expr
+    in  (HS.TypeAppExpr srcSpan expr' typeExpr, typeArgs)
+
+  -- Recursively add the internal type arguments.
+  addInternalTypeArgsToExpr' funcNames (HS.App srcSpan e1 e2) =
+    let e1' = addInternalTypeArgsToExpr funcNames e1
+        e2' = addInternalTypeArgsToExpr funcNames e2
+    in  (HS.App srcSpan e1' e2', [])
+  addInternalTypeArgsToExpr' funcNames (HS.If srcSpan e1 e2 e3) =
+    let e1' = addInternalTypeArgsToExpr funcNames e1
+        e2' = addInternalTypeArgsToExpr funcNames e2
+        e3' = addInternalTypeArgsToExpr funcNames e3
+    in  (HS.If srcSpan e1' e2' e3', [])
+  addInternalTypeArgsToExpr' funcNames (HS.Case srcSpan expr alts) =
+    let expr' = addInternalTypeArgsToExpr funcNames expr
+        alts' = map (addInternalTypeArgsToAlt funcNames) alts
+    in  (HS.Case srcSpan expr' alts', [])
+  addInternalTypeArgsToExpr' funcNames (HS.Lambda srcSpan args expr) =
+    let funcNames' = withoutArgs args funcNames
+        expr'      = addInternalTypeArgsToExpr funcNames' expr
+    in  (HS.Lambda srcSpan args expr', [])
+  addInternalTypeArgsToExpr' funcNames (HS.ExprTypeSig srcSpan expr typeSchema)
+    = let expr' = addInternalTypeArgsToExpr funcNames expr
+      in  (HS.ExprTypeSig srcSpan expr' typeSchema, [])
+
+  -- Leave all other expressions unchnaged.
+  addInternalTypeArgsToExpr' _ expr@(HS.Con        _ _) = (expr, [])
+  addInternalTypeArgsToExpr' _ expr@(HS.IntLiteral _ _) = (expr, [])
+  addInternalTypeArgsToExpr' _ expr@(HS.Undefined _   ) = (expr, [])
+  addInternalTypeArgsToExpr' _ expr@(HS.ErrorExpr _ _ ) = (expr, [])
+
+  -- | Applies 'addInternalTypeArgsToExpr' to the right-hand side of
+  --   the given @case@ expression alternative.
+  addInternalTypeArgsToAlt :: Set HS.QName -> HS.Alt -> HS.Alt
+  addInternalTypeArgsToAlt funcNames (HS.Alt srcSpan conPat varPats expr) =
+    let funcNames' = withoutArgs varPats funcNames
+        expr'      = addInternalTypeArgsToExpr funcNames' expr
+    in  HS.Alt srcSpan conPat varPats expr'
+
+  -- | Removes the names of the given variable patterns from the given set.
+  withoutArgs :: [HS.VarPat] -> Set HS.QName -> Set HS.QName
+  withoutArgs = flip (Set.\\) . Set.fromList . map HS.varPatQName
 
 -------------------------------------------------------------------------------
 -- Simplification of expression/type pairs                                   --
