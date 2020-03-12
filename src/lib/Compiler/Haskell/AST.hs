@@ -667,6 +667,7 @@ instance GetSrcSpan ConPat where
 instance GetSrcSpan Module where
   getSrcSpan = modSrcSpan
 
+-- | 'GetSrcSpan' instance for custom pragmas.
 instance GetSrcSpan Pragma where
   getSrcSpan (DecArgPragma srcSpan _ _) = srcSpan
 
@@ -675,12 +676,15 @@ instance GetSrcSpan TypeDecl where
   getSrcSpan (DataDecl srcSpan _ _ _)    = srcSpan
   getSrcSpan (TypeSynDecl srcSpan _ _ _) = srcSpan
 
+-- | 'GetSrcSpan' instance for function declarations.
 instance GetSrcSpan FuncDecl where
   getSrcSpan = funcDeclSrcSpan
 
+-- | 'GetSrcSpan' instance for type signatures.
 instance GetSrcSpan TypeSig where
   getSrcSpan (TypeSig srcSpan _ _  ) = srcSpan
 
+-- | 'GetSrcSpan' instance for import declarations.
 instance GetSrcSpan ImportDecl where
   getSrcSpan (ImportDecl srcSpan _) = srcSpan
 
@@ -694,6 +698,10 @@ instance GetSrcSpan Type where
   getSrcSpan (TypeCon  srcSpan _  ) = srcSpan
   getSrcSpan (TypeApp  srcSpan _ _) = srcSpan
   getSrcSpan (TypeFunc srcSpan _ _) = srcSpan
+
+-- | 'GetSrcSpan' instance for type schemas.
+instance GetSrcSpan TypeSchema where
+  getSrcSpan (TypeSchema srcSpan _ _) = srcSpan
 
 -- | 'GetSrcSpan' instance for expressions.
 instance GetSrcSpan Expr where

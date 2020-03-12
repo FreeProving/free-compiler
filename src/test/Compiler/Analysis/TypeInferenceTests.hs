@@ -183,11 +183,12 @@ testInferFuncDeclTypes =
             ++ "    x : xs' -> x"
             ++ "  }"
             ]
-            [ "intHead (xs :: [Prelude.Integer]) = case xs of {"
-              ++ "    Prelude.([]) -> error \"intHead: empty list\";"
+            [ "intHead (xs :: [Prelude.Integer]) = (case xs of {"
+              ++ "    Prelude.([]) ->"
+              ++ "        error @Prelude.Integer \"intHead: empty list\";"
               ++ "    Prelude.(:) (x :: Prelude.Integer)"
-              ++ "                (xs' :: Prelude.Integer) -> x"
-              ++ "  }"
+              ++ "                (xs' :: [Prelude.Integer]) -> x"
+              ++ "  }) :: Prelude.Integer"
             ]
 
 -------------------------------------------------------------------------------
@@ -410,9 +411,9 @@ shouldInferType input (expectedExpr, expectedType) = do
 --   declaration.
 inferTestFuncDeclTypes :: [String] -> Converter [HS.FuncDecl]
 inferTestFuncDeclTypes input = localEnv $ do
-  ([], _, funcDecls) <- parseTestDecls input
-  -- TODO handle type signatures
-  inferFuncDeclTypes funcDecls
+  ([], typeSigs, funcDecls) <- parseTestDecls input
+  funcDecls'                <- addTypeSigsToFuncDecls typeSigs funcDecls
+  inferFuncDeclTypes funcDecls'
 
 -- | Parses the given function declarations, infers its type schema and sets
 --   the expectation that the given type schemas are inferred.

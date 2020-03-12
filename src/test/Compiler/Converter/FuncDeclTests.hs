@@ -123,6 +123,18 @@ testConvertNonRecFuncDecl =
             ++ "  : Free Shape Pos t0"
             ++ " := x."
 
+    it "does not allow duplicate type signatures"
+      $ shouldReportFatal
+      $ fromConverter
+      $ do
+          convertTestDecls ["foo :: ()", "foo :: Integer", "foo = undefined"]
+
+    it "does not allow type signatures without function declaration"
+      $ shouldReportFatal
+      $ fromConverter
+      $ do
+          convertTestDecls ["foo :: ()", "foo :: Integer", "foo = undefined"]
+
 -------------------------------------------------------------------------------
 -- Recursive function declarations                                           --
 -------------------------------------------------------------------------------

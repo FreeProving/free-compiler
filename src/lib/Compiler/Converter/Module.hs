@@ -12,6 +12,7 @@ import qualified Data.Set                      as Set
 
 import           Compiler.Analysis.DependencyAnalysis
 import           Compiler.Analysis.DependencyGraph
+import           Compiler.Analysis.TypeInference
 import           Compiler.Converter.FuncDecl
 import           Compiler.Converter.TypeDecl
 import qualified Compiler.Coq.AST              as G
@@ -40,6 +41,7 @@ convertModule haskellAst = moduleEnv $ do
   mapM_ (addDecArgPragma (HS.modFuncDecls haskellAst))
         (HS.modPragmas haskellAst)
   decls' <- convertDecls (HS.modTypeDecls haskellAst)
+                         (HS.modTypeSigs haskellAst)
                          (HS.modFuncDecls haskellAst)
   -- Export module interface.
   let coqAst = G.comment ("module " ++ modName) : imports' ++ decls'
@@ -103,10 +105,11 @@ addDecArgPragma funcDecls (HS.DecArgPragma srcSpan funcIdent decArg) = do
 -------------------------------------------------------------------------------
 
 -- | Converts the given declarations of a Haskell module.
-convertDecls :: [HS.TypeDecl] -> [HS.FuncDecl] -> Converter [G.Sentence]
-convertDecls typeDecls funcDecls = do
+convertDecls
+  :: [HS.TypeDecl] -> [HS.TypeSig] -> [HS.FuncDecl] -> Converter [G.Sentence]
+convertDecls typeDecls typeSigs funcDecls = do
   typeDecls' <- convertTypeDecls typeDecls
-  funcDecls' <- convertFuncDecls funcDecls
+  funcDecls' <- addTypeSigsToFuncDecls typeSigs funcDecls >>= convertFuncDecls
   return (typeDecls' ++ funcDecls')
 
 -- | Converts the given data type or type synonym declarations.

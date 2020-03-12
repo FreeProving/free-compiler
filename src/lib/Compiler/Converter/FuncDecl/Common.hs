@@ -2,10 +2,8 @@
 --   recursive and non-recursive Haskell functions to Coq.
 
 module Compiler.Converter.FuncDecl.Common
-  ( -- * Type inference
-    splitFuncType
-    -- * Function environment entries
-  , defineFuncDecl
+  ( -- * Function environment entries
+    defineFuncDecl
     -- * Code generation
   , convertFuncHead
   )
@@ -21,43 +19,9 @@ import           Compiler.Environment.Entry
 import           Compiler.Environment.Renamer
 import           Compiler.Environment.Scope
 import qualified Compiler.Haskell.AST          as HS
-import           Compiler.Haskell.Inliner
 import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
 import           Compiler.Pretty
-
--------------------------------------------------------------------------------
--- Type inference                                                            --
--------------------------------------------------------------------------------
-
--- | Splits the annotated type of a Haskell function with the given arguments
---   into its argument and return types.
---
---   Type synonyms are expanded if neccessary.
-splitFuncType
-  :: HS.QName    -- ^ The name of the function to display in error messages.
-  -> [HS.VarPat] -- ^ The argument variable patterns whose types to split of.
-  -> HS.Type     -- ^ The type to split.
-  -> Converter ([HS.Type], HS.Type)
-splitFuncType name = splitFuncType'
- where
-  splitFuncType' :: [HS.VarPat] -> HS.Type -> Converter ([HS.Type], HS.Type)
-  splitFuncType' []         typeExpr              = return ([], typeExpr)
-  splitFuncType' (_ : args) (HS.TypeFunc _ t1 t2) = do
-    (argTypes, returnType) <- splitFuncType' args t2
-    return (t1 : argTypes, returnType)
-  splitFuncType' args@(arg : _) typeExpr = do
-    typeExpr' <- expandTypeSynonym typeExpr
-    if typeExpr /= typeExpr'
-      then splitFuncType' args typeExpr'
-      else
-        reportFatal
-        $  Message (HS.getSrcSpan arg) Error
-        $  "Could not determine type of argument '"
-        ++ HS.fromVarPat arg
-        ++ "' for function '"
-        ++ showPretty name
-        ++ "'."
 
 -------------------------------------------------------------------------------
 -- Function environment entries                                              --
