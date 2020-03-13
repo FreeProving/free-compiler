@@ -138,18 +138,29 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent typeArgs args expr maybeRetT
     let helperName      = HS.UnQual (HS.Ident helperIdent)
         helperDeclIdent = HS.DeclIdent (HS.getSrcSpan declIdent) helperIdent
 
-    -- Pass all type arguments to helper function.
+    -- Pass all type arguments to the helper function.
     let helperTypeArgs = typeArgs
 
     -- Pass used variables as additional arguments to the helper function
-    -- but don't pass shadowed arguments to helper function.
-    let
-      nonArgVars     = boundVarsAt expr caseExprPos
-      boundVars      = nonArgVars `Set.union` Set.fromList argNames
-      usedVars       = usedVarsAt expr caseExprPos
-      helperArgNames = Set.toList (usedVars `Set.intersection` boundVars)
-      helperArgs =
-        map (HS.toVarPat . fromJust . HS.identFromQName) helperArgNames
+    -- but don't pass shadowed arguments to helper functions.
+    let nonArgVars     = boundVarsAt expr caseExprPos
+        boundVars      = nonArgVars `Set.union` Set.fromList argNames
+        usedVars       = usedVarsAt expr caseExprPos
+        helperArgNames = Set.toList (usedVars `Set.intersection` boundVars)
+
+    -- Determine the type of helper arguments.
+    let maybeArgTypes = map HS.varPatType args
+        argTypeMap    = Map.fromList
+          [ (argName, argType)
+          | (argName, maybeArgType) <- zip argNames maybeArgTypes
+          , argName `Set.notMember` nonArgVars
+          , argType <- maybeToList maybeArgType
+          ]
+        helperArgTypes = map (`Map.lookup` argTypeMap) helperArgNames
+        helperArgs     = zipWith
+          (HS.VarPat NoSrcSpan . fromJust . HS.identFromQName)
+          helperArgNames
+          helperArgTypes
 
     -- Register the helper function to the environment.
     -- The types of the original parameters are known, but we neither know the
@@ -157,16 +168,6 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent typeArgs args expr maybeRetT
     -- function.
     -- If the original function was partial, the helper function is partial as
     -- well.
-    -- TODO should we just infer the type of the helper functions?
-    let maybeArgTypes = map HS.varPatType args
-        argTypeMap    = Map.fromList
-          [ (argName, argType)
-          | argName <- argNames
-          , argName `Set.notMember` nonArgVars
-          , maybeArgType <- maybeArgTypes
-          , argType      <- maybeToList maybeArgType
-          ]
-        helperArgTypes = map (`Map.lookup` argTypeMap) helperArgNames
     freeArgsNeeded <- inEnv $ needsFreeArgs name
     partial        <- inEnv $ isPartial name
     _              <- renameAndAddEntry $ FuncEntry
@@ -217,8 +218,8 @@ convertRecHelperFuncDecl helperDecl = localEnv $ do
   -- Lookup name of decreasing argument.
   let helperName = HS.UnQual (HS.funcDeclName helperDecl)
       argNames   = map HS.varPatQName (HS.funcDeclArgs helperDecl)
-  Just decArgIndex               <- inEnv $ lookupDecArgIndex helperName
-  Just decArg' <- inEnv $ lookupIdent ValueScope (argNames !! decArgIndex)
+  Just decArgIndex <- inEnv $ lookupDecArgIndex helperName
+  Just decArg'     <- inEnv $ lookupIdent ValueScope (argNames !! decArgIndex)
   -- Generate body of @Fixpoint@ sentence.
   return
     (G.FixBody qualid
