@@ -217,32 +217,42 @@ testConvertFuncApp = context "function applications" $ do
 -- | Test group for translation of infix expressions.
 testConvertInfix :: Spec
 testConvertInfix = context "infix expressions" $ do
-  it "converts infix expressions correctly" $ shouldSucceed $ fromConverter $ do
-    "f"  <- defineTestFunc "f" 2 "a -> b -> c"
-    "e1" <- defineTestVar "e1" -- :: t1
-    "e2" <- defineTestVar "e2" -- :: t2
-    "t0" <- defineTestTypeVar "t0"
-    "t1" <- defineTestTypeVar "t1"
-    "t2" <- defineTestTypeVar "t2"
-    "e1 `f` e2" `shouldTranslateExprTo` "@f Shape Pos t1 t2 t0 e1 e2"
+  it "converts infix expressions correctly"
+    $ shouldSucceed
+    $ fromConverter
+    $ do
+        "f"  <- defineTestFunc "f" 2 "a -> b -> c"
+        "e1" <- defineTestVar "e1" -- :: t1
+        "e2" <- defineTestVar "e2" -- :: t2
+        "t0" <- defineTestTypeVar "t0"
+        "t1" <- defineTestTypeVar "t1"
+        "t2" <- defineTestTypeVar "t2"
+        "e1 `f` e2" `shouldTranslateExprTo` "@f Shape Pos t1 t2 t0 e1 e2"
 
-  it "converts left sections correctly" $ shouldSucceed $ fromConverter $ do
-    "f"  <- defineTestFunc "f" 2 "a -> b -> c"
-    "e1" <- defineTestVar "e1" -- :: t2
-    "t0" <- defineTestTypeVar "t0"
-    "t1" <- defineTestTypeVar "t1"
-    "t2" <- defineTestTypeVar "t2"
-    shouldTranslateExprTo "(e1 `f`)"
-                          "pure (fun x_0 => @f Shape Pos t2 t0 t1 e1 x_0)"
+  it "converts left sections correctly"
+    $ shouldSucceed
+    $ fromConverter
+    $ do
+        "f"  <- defineTestFunc "f" 2 "a -> b -> c"
+        "e1" <- defineTestVar "e1" -- :: t2
+        "t0" <- defineTestTypeVar "t0"
+        "t1" <- defineTestTypeVar "t1"
+        "t2" <- defineTestTypeVar "t2"
+        shouldTranslateExprTo "(e1 `f`)"
+                              "pure (fun x_0 => @f Shape Pos t2 t0 t1 e1 x_0)"
 
-  it "converts right sections correctly" $ shouldSucceed $ fromConverter $ do
-    "f"  <- defineTestFunc "f" 2 "a -> b -> c"
-    "e2" <- defineTestVar "e2" -- :: t2
-    "t0" <- defineTestTypeVar "t0"
-    "t1" <- defineTestTypeVar "t1"
-    "t2" <- defineTestTypeVar "t2"
-    shouldTranslateExprTo "(`f` e2)"
-                          "pure (fun x_0 => @f Shape Pos t0 t2 t1 x_0 e2)"
+  it "converts right sections correctly"
+    $ shouldSucceed
+    $ fromConverter
+    $ do
+        "f"  <- defineTestFunc "f" 2 "a -> b -> c"
+        "e2" <- defineTestVar "e2" -- :: t2
+        "t0" <- defineTestTypeVar "t0"
+        "t1" <- defineTestTypeVar "t1"
+        "t2" <- defineTestTypeVar "t2"
+        shouldTranslateExprTo
+          "(`f` e2)"
+          "pure (fun (x_0 : Free Shape Pos t0) => @f Shape Pos t0 t2 t1 x_0 e2)"
 
 -------------------------------------------------------------------------------
 -- If-expressions                                                            --
@@ -337,22 +347,30 @@ testConvertLambda = context "lambda abstractions" $ do
     $ shouldSucceed
     $ fromConverter
     $ do
-        "e" <- defineTestVar "e"
-        "\\x -> e" `shouldTranslateExprTo` "pure (fun x => e)"
+        "t0" <- defineTestTypeVar "t0"
+        "e"  <- defineTestVar "e"
+        shouldTranslateExprTo "\\x -> e"
+                              "pure (fun (x : Free Shape Pos t0) => e)"
 
   it "translates multi argument lambda abstractions correctly"
     $ shouldSucceed
     $ fromConverter
     $ do
-        "e" <- defineTestVar "e"
-        shouldTranslateExprTo "\\x y -> e" "pure (fun x => pure (fun y => e))"
+        "t0" <- defineTestTypeVar "t0"
+        "t1" <- defineTestTypeVar "t1"
+        "e"  <- defineTestVar "e"
+        shouldTranslateExprTo "\\x y -> e"
+          $  "pure (fun (x : Free Shape Pos t0) =>"
+          ++ "  pure (fun (y : Free Shape Pos t1) => e))"
 
   it "allows lambda abstractions to shadow local variables"
     $ shouldSucceed
     $ fromConverter
     $ do
-        "x" <- defineTestVar "x"
-        shouldTranslateExprTo "\\x -> x" "pure (fun x0 => x0)"
+        "t0" <- defineTestTypeVar "t0"
+        "x"  <- defineTestVar "x"
+        shouldTranslateExprTo "\\x -> x"
+                              "pure (fun (x0 : Free Shape Pos t0) => x0)"
 
 -------------------------------------------------------------------------------
 -- Type signatures                                                           --

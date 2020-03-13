@@ -3,14 +3,11 @@
 
 module Compiler.Converter.Arg where
 
-import           Control.Monad                  ( zipWithM )
-
 import           Compiler.Converter.Type
 import qualified Compiler.Coq.AST              as G
 import           Compiler.Environment.Fresh
 import           Compiler.Environment.Renamer
 import qualified Compiler.Haskell.AST          as HS
-import           Compiler.Haskell.SrcSpan
 import           Compiler.Monad.Converter
 
 -------------------------------------------------------------------------------
@@ -33,105 +30,64 @@ convertTypeVarDecls
   :: G.Explicitness   -- ^ Whether to generate an explicit or implit binder.
   -> [HS.TypeVarDecl] -- ^ The type variable declarations.
   -> Converter [G.Binder]
-convertTypeVarDecls explicitness typeVarDecls = generateTypeVarDecls'
-  explicitness
-  (map HS.getSrcSpan typeVarDecls)
-  (map HS.fromDeclIdent typeVarDecls)
-
--- | Generates explicit or implicit Coq binders for the type variables with
---   the given names that are either declared in the head of a data type or
---   type synonym declaration or occur in the type signature of a function.
---
---   The first argument controlls whether the generated binders are explicit
---   (e.g. @(a : Type)@) or implicit (e.g. @{a : Type}@).
-generateTypeVarDecls
-  :: G.Explicitness    -- ^ Whether to generate an explicit or implit binder.
-  -> [HS.TypeVarIdent] -- ^ The names of the type variables to declare.
-  -> Converter [G.Binder]
-generateTypeVarDecls = flip generateTypeVarDecls' (repeat NoSrcSpan)
-
--- | Like 'generateTypeVarDecls' but also accepts the location of the
---   type variables (for error reporting purposes).
-generateTypeVarDecls'
-  :: G.Explicitness    -- ^ Whether to generate an explicit or implit binder.
-  -> [SrcSpan]         -- ^ The location of the type variable declarations.
-  -> [HS.TypeVarIdent] -- ^ The names of the type variables to declare.
-  -> Converter [G.Binder]
-generateTypeVarDecls' explicitness srcSpans idents
-  | null idents = return []
+convertTypeVarDecls explicitness typeVarDecls
+  | null typeVarDecls = return []
   | otherwise = do
-    idents' <- zipWithM renameAndDefineTypeVar srcSpans idents
+    idents' <- mapM convertTypeVarDecl typeVarDecls
     return [G.typedBinder explicitness idents' G.sortType]
+ where
+  -- |
+  convertTypeVarDecl :: HS.TypeVarDecl -> Converter G.Qualid
+  convertTypeVarDecl (HS.DeclIdent srcSpan ident) =
+    renameAndDefineTypeVar srcSpan ident
 
 -------------------------------------------------------------------------------
 -- Function arguments                                                        --
 -------------------------------------------------------------------------------
 
--- | Converts the arguments (variable patterns) of a potentially recursive
---   function with the given types to explicit Coq binders.
+-- | Converts the given arguments of a function declaration or lambda
+--   abstraction to Coq binders.
 --
---   If the type of an argument is not known, it's type will be inferred by
---   Coq.
+--   If the type of an argument is not annotated, it's type will be inferred
+--   by Coq.
 --
---   If the function is recursive, its decreasing argument (given index),
---   is not lifted.
+--   If the function is recursive (i.e., the second argument is not @Nothing@),
+--   its decreasing argument (given index) is not lifted.
 convertArgs
   :: [HS.VarPat]     -- ^ The function arguments.
-  -> [Maybe HS.Type] -- ^ The types of the function arguments.
-  -> Maybe Int       -- ^ The position of the decreasing argument.
+  -> Maybe Int       -- ^ The position of the decreasing argument or @Nothing@
+                     --   if the function does not decrease on any of its
+                     --   arguments.
   -> Converter [G.Binder]
-convertArgs args argTypes Nothing = do
-  argTypes' <- mapM (mapM convertType) argTypes
-  zipWithM convertArg args argTypes'
-convertArgs args argTypes (Just index) = do
-  bindersBefore <- convertArgs argsBefore argTypesBefore Nothing
-  decArgBinder  <- convertDecArg decArg decArgType
-  bindersAfter  <- convertArgs argsAfter argTypesAfter Nothing
+convertArgs args Nothing      = mapM convertArg args
+convertArgs args (Just index) = do
+  let (argsBefore, decArg : argsAfter) = splitAt index args
+  bindersBefore <- convertArgs argsBefore Nothing
+  decArgBinder  <- convertPureArg decArg
+  bindersAfter  <- convertArgs argsAfter Nothing
   return (bindersBefore ++ decArgBinder : bindersAfter)
- where
-  (argsBefore    , decArg : argsAfter        ) = splitAt index args
-  (argTypesBefore, decArgType : argTypesAfter) = splitAt index argTypes
-
--- | Converts the argument of a function (a variable pattern) to an explicit
---   Coq binder whose type is inferred by Coq.
-convertInferredArg :: HS.VarPat -> Converter G.Binder
-convertInferredArg = flip convertArg Nothing
-
--- | Converts the argument of a function (a variable pattern) with the given
---   type to an explicit Coq binder.
-convertTypedArg :: HS.VarPat -> HS.Type -> Converter G.Binder
-convertTypedArg arg argType = do
-  argType' <- convertType argType
-  convertArg arg (Just argType')
-
--- | Convert the decreasing argument (variable pattern) if a recursive function
---   with the given type to an explicit Coq binder.
---
---   In contrast to a regular typed argument (see 'convertTypedArg'), the
---   decreasing argument is not lifted to the @Free@ monad.
---   It is also registered as a non-monadic value.
-convertDecArg :: HS.VarPat -> Maybe HS.Type -> Converter G.Binder
-convertDecArg arg argType = do
-  argType' <- mapM convertType' argType
-  convertPureArg arg argType'
 
 -- | Converts the argument of a function (a variable pattern) to an explicit
 --   Coq binder.
-convertArg :: HS.VarPat -> Maybe G.Term -> Converter G.Binder
-convertArg = convertArg' False
+--
+--   If the variable pattern has a type annotation, the generated binder is
+--   annotated with the converted type.
+convertArg :: HS.VarPat -> Converter G.Binder
+convertArg (HS.VarPat srcSpan ident maybeArgType) = do
+  ident'        <- renameAndDefineVar srcSpan False ident
+  maybeArgType' <- mapM convertType maybeArgType
+  generateArgBinder ident' maybeArgType'
 
 -- | Like 'convertArg' but marks the variable as non-monadic.
-convertPureArg :: HS.VarPat -> Maybe G.Term -> Converter G.Binder
-convertPureArg = convertArg' True
-
--- | Like 'convertArg' but the first argument indicates whether the varibale
---   has been lifted to the free monad or not (@True@ for pure values and
---   @False@ for lifted values).
-convertArg' :: Bool -> HS.VarPat -> Maybe G.Term -> Converter G.Binder
--- TODO use annotated variable type?
-convertArg' isPure (HS.VarPat srcSpan ident _) mArgType' = do
-  ident' <- renameAndDefineVar srcSpan isPure ident
-  generateArgBinder ident' mArgType'
+--
+--   If the variable pattern has a type annotation, the generated binder is
+--   annotated with the converted type but the type is not lifted to the
+--   @Maybe@ monad.
+convertPureArg :: HS.VarPat -> Converter G.Binder
+convertPureArg (HS.VarPat srcSpan ident maybeArgType) = do
+  ident'        <- renameAndDefineVar srcSpan True ident
+  maybeArgType' <- mapM convertType' maybeArgType
+  generateArgBinder ident' maybeArgType'
 
 -- | Generates an explicit Coq binder for a function argument with the given
 --   name and optional Coq type.

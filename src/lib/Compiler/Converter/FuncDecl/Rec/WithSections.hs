@@ -648,12 +648,12 @@ generateInterfaceDecl
   -> HS.FuncDecl
      -- ^ The original function declaration.
   -> Converter G.Sentence
-generateInterfaceDecl constArgs isConstArgUsed identMap mgu sectionTypeArgs renamedTypeArgs (HS.FuncDecl srcSpan (HS.DeclIdent _ ident) _ args _ _)
+generateInterfaceDecl constArgs isConstArgUsed identMap mgu sectionTypeArgs renamedTypeArgs funcDecl
   = localEnv $ do
     let
+      ident         = HS.fromDeclIdent (HS.funcDeclIdent funcDecl)
+      args          = HS.funcDeclArgs funcDecl
       name          = HS.UnQual (HS.Ident ident)
-      name'         = HS.UnQual (HS.Ident ident')
-      Just ident'   = Map.lookup ident identMap
       constArgNames = map (HS.UnQual . HS.Ident) $ catMaybes $ map
         (Map.lookup ident . constArgIdents)
         constArgs
@@ -661,21 +661,21 @@ generateInterfaceDecl constArgs isConstArgUsed identMap mgu sectionTypeArgs rena
         map fst $ filter snd $ zip constArgNames isConstArgUsed
 
     -- The interface function is not recursive. Thus, we have to remove the
-    -- decreasing argument, if ne has been specified by the user
+    -- decreasing argument, if one has been specified by the user.
     modifyEnv $ removeDecArg name
 
-    -- Generate the head of the interface function definition.
-      -- TODO Use type information from AST.
-    (qualid, binders, returnType') <- convertFuncHead name args
+    -- Generate the left-hand side of the interface function definition.
+    (qualid, binders, returnType') <- convertFuncHead funcDecl
 
     -- Lookup the name of the main function.
-    Just qualid'                   <- inEnv $ lookupIdent ValueScope name'
+    let Just name' = HS.UnQual <$> HS.Ident <$> Map.lookup ident identMap
+    Just qualid' <- inEnv $ lookupIdent ValueScope name'
 
     -- Lookup the names of type arguments that have to be passed to the
     -- main function.
-    Just typeArgs                  <- inEnv $ lookupTypeArgs ValueScope name
-    typeArgNames                   <- mapM
-      (lookupTypeArgName typeArgs (zip renamedTypeArgs [0 ..]))
+    let typeArgIdents = map HS.fromDeclIdent (HS.funcDeclTypeArgs funcDecl)
+    typeArgNames <- mapM
+      (lookupTypeArgName typeArgIdents (zip renamedTypeArgs [0 ..]))
       sectionTypeArgs
     typeArgNames' <-
       catMaybes <$> mapM (inEnv . lookupIdent TypeScope) typeArgNames
@@ -716,11 +716,11 @@ generateInterfaceDecl constArgs isConstArgUsed identMap mgu sectionTypeArgs rena
     -> Converter HS.QName
   lookupTypeArgName _ [] u =
     reportFatal
-      $  Message srcSpan Error
+      $  Message (HS.funcDeclSrcSpan funcDecl) Error
       $  "Cannot find name of section type argument "
       ++ u
       ++ " for "
-      ++ ident
+      ++ HS.fromDeclIdent (HS.funcDeclIdent funcDecl)
   lookupTypeArgName ws ((v, i) : vs) u = do
     (HS.TypeVar _ v') <- applySubst mgu (HS.TypeVar NoSrcSpan v)
     if v' == u

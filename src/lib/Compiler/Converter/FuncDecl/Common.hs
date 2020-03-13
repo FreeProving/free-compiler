@@ -53,27 +53,22 @@ defineFuncDecl decl = do
 --   This code is shared between the conversion functions for recursive and
 --   no recursive functions (see 'convertNonRecFuncDecl' and
 --   'convertRecFuncDecls').
-convertFuncHead
-  :: HS.QName    -- ^ The name of the function.
-  -> [HS.VarPat] -- ^ The function argument patterns.
-  -> Converter (G.Qualid, [G.Binder], Maybe G.Term)
-convertFuncHead name args = do
+convertFuncHead :: HS.FuncDecl -> Converter (G.Qualid, [G.Binder], Maybe G.Term)
+convertFuncHead (HS.FuncDecl _ declIdent typeArgs args _ maybeRetType) = do
+  let name = HS.UnQual (HS.Ident (HS.fromDeclIdent declIdent))
   -- Lookup the Coq name of the function.
   Just qualid   <- inEnv $ lookupIdent ValueScope name
   -- Generate arguments for free monad if they are not in scope.
   freeArgDecls  <- generateGenericArgDecls G.Explicit
-  -- Lookup type signature and partiality.
+  -- Lookup partiality and position of decreasing argument.
   partial       <- inEnv $ isPartial name
-  Just typeArgs <- inEnv $ lookupTypeArgs ValueScope name
-  Just argTypes <- inEnv $ lookupArgTypes ValueScope name
-  returnType    <- inEnv $ lookupReturnType ValueScope name
-  -- Convert arguments and return type.
-  typeArgs'     <- generateTypeVarDecls G.Implicit typeArgs
   decArgIndex   <- inEnv $ lookupDecArgIndex name
-  args'         <- convertArgs args argTypes decArgIndex
-  returnType'   <- mapM convertType returnType
+  -- Convert arguments and return types.
+  typeArgs'     <- convertTypeVarDecls G.Implicit typeArgs
+  args'         <- convertArgs args decArgIndex
+  maybeRetType' <- mapM convertType maybeRetType
   return
     ( qualid
     , (freeArgDecls ++ [ partialArgDecl | partial ] ++ typeArgs' ++ args')
-    , returnType'
+    , maybeRetType'
     )

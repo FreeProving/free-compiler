@@ -233,7 +233,7 @@ convertExpr' (HS.IntLiteral _ value) [] [] =
 
 -- Lambda abstractions.
 convertExpr' (HS.Lambda _ args expr) [] [] = localEnv $ do
-  args' <- mapM convertInferredArg args
+  args' <- mapM convertArg args
   expr' <- convertExpr expr
   foldrM (generatePure .: G.Fun . return) expr' args'
 

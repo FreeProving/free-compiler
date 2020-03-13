@@ -97,18 +97,15 @@ filterQuickCheckProperties components = do
 -- | Converts the given QuickCheck property to a Coq @Theorem@ with an
 --   empty @Proof@.
 convertQuickCheckProperty :: HS.FuncDecl -> Converter [G.Sentence]
-convertQuickCheckProperty (HS.FuncDecl _ declIdent _ args expr _) =
-  localEnv $ do
-    let name = HS.UnQual (HS.Ident (HS.fromDeclIdent declIdent))
-    -- TODO convert type arguments from AST
-    (qualid, binders, _) <- convertFuncHead name args
-    expr'                <- convertExpr expr
-    return
-      [ G.AssertionSentence
-          (G.Assertion G.Theorem
-                       qualid
-                       []
-                       (G.Forall (NonEmpty.fromList binders) expr')
-          )
-          G.blankProof
-      ]
+convertQuickCheckProperty funcDecl = localEnv $ do
+  (qualid, binders, _) <- convertFuncHead funcDecl
+  rhs'                 <- convertExpr (HS.funcDeclRhs funcDecl)
+  return
+    [ G.AssertionSentence
+        (G.Assertion G.Theorem
+                     qualid
+                     []
+                     (G.Forall (NonEmpty.fromList binders) rhs')
+        )
+        G.blankProof
+    ]

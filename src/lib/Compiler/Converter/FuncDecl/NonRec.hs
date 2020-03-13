@@ -15,10 +15,7 @@ import           Compiler.Monad.Converter
 -- | Converts a non-recursive Haskell function declaration to a Coq
 --   @Definition@ sentence.
 convertNonRecFuncDecl :: HS.FuncDecl -> Converter G.Sentence
-convertNonRecFuncDecl (HS.FuncDecl _ (HS.DeclIdent _ ident) _ args expr _) =
-  localEnv $ do
-    -- TODO convert type arguments and return type from AST
-    let name = HS.UnQual (HS.Ident ident)
-    (qualid, binders, returnType') <- convertFuncHead name args
-    expr'                          <- convertExpr expr
-    return (G.definitionSentence qualid binders returnType' expr')
+convertNonRecFuncDecl funcDecl = localEnv $ do
+  (qualid, binders, returnType') <- convertFuncHead funcDecl
+  rhs'                           <- convertExpr (HS.funcDeclRhs funcDecl)
+  return (G.definitionSentence qualid binders returnType' rhs')

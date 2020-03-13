@@ -182,7 +182,7 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent typeArgs args expr maybeRetT
       }
 
     -- Additionally we need to remember the index of the decreasing argument
-    -- (see 'convertDecArg').
+    -- (see 'convertArgs').
     let Just decArgIndex' = elemIndex decArg helperArgNames
         Just decArgIdent  = HS.identFromQName decArg
     modifyEnv $ defineDecArg helperName decArgIndex' decArgIdent
@@ -210,19 +210,20 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent typeArgs args expr maybeRetT
 -- | Converts a recursive helper function to the body of a Coq @Fixpoint@
 --   sentence.
 convertRecHelperFuncDecl :: HS.FuncDecl -> Converter G.FixBody
-convertRecHelperFuncDecl (HS.FuncDecl _ declIdent _ args expr _) =
-  localEnv $ do
-    let helperName = HS.UnQual (HS.Ident (HS.fromDeclIdent declIdent))
-        argNames   = map (HS.UnQual . HS.Ident . HS.fromVarPat) args
-    -- TODO convert type arguments and return type from AST
-    (qualid, binders, returnType') <- convertFuncHead helperName args
-    expr'                          <- convertExpr expr
-    Just decArgIndex               <- inEnv $ lookupDecArgIndex helperName
-    Just decArg' <- inEnv $ lookupIdent ValueScope (argNames !! decArgIndex)
-    return
-      (G.FixBody qualid
-                 (NonEmpty.fromList binders)
-                 (Just (G.StructOrder decArg'))
-                 returnType'
-                 expr'
-      )
+convertRecHelperFuncDecl helperDecl = localEnv $ do
+  -- Convert left- and right-hand side of helper function.
+  (qualid, binders, returnType') <- convertFuncHead helperDecl
+  rhs'                           <- convertExpr (HS.funcDeclRhs helperDecl)
+  -- Lookup name of decreasing argument.
+  let helperName = HS.UnQual (HS.funcDeclName helperDecl)
+      argNames   = map HS.varPatQName (HS.funcDeclArgs helperDecl)
+  Just decArgIndex               <- inEnv $ lookupDecArgIndex helperName
+  Just decArg' <- inEnv $ lookupIdent ValueScope (argNames !! decArgIndex)
+  -- Generate body of @Fixpoint@ sentence.
+  return
+    (G.FixBody qualid
+               (NonEmpty.fromList binders)
+               (Just (G.StructOrder decArg'))
+               returnType'
+               rhs'
+    )
