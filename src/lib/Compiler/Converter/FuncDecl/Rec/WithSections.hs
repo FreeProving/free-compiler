@@ -63,16 +63,8 @@ convertRecFuncDeclsWithSection constArgs decls = do
   -- Rename the function declarations in the section.
   (renamedDecls, identMap) <- renameFuncDecls decls
   let renamedConstArgs = map (renameConstArg identMap) constArgs
-  renamedTypeArgs <- mapM
-    ( fmap fromJust
-    . inEnv
-    . lookupTypeArgs ValueScope
-    . HS.UnQual
-    . HS.Ident
-    . HS.fromDeclIdent
-    . HS.getDeclIdent
-    )
-    renamedDecls
+      renamedTypeArgs =
+        map (map HS.fromDeclIdent . HS.funcDeclTypeArgs) renamedDecls
 
   -- Lookup the argument and return types of all function declarations.
   (argTypeMaps, returnTypeMaps) <- mapAndUnzipM argAndReturnTypeMaps

@@ -19,7 +19,6 @@ module Compiler.Haskell.Subst
     -- * Rename arguments
   , renameTypeArgsSubst
   , renameTypeArgs
-  , renameTypeArgIdents
   , renameArgsSubst
   , renameArgs
   )
@@ -314,18 +313,6 @@ renameTypeArgs typeArgDecls x = do
   (typeArgDecls', subst) <- renameTypeArgsSubst typeArgDecls
   x'                     <- applySubst subst x
   return (typeArgDecls', x')
-
--- | Like 'renameTypeArgs' but works on type variable names instead of
---   declarations.
-renameTypeArgIdents
-  :: ApplySubst HS.Type a
-  => [HS.TypeVarIdent]
-  -> a
-  -> Converter ([HS.TypeVarIdent], a)
-renameTypeArgIdents typeArgIdents x = do
-  let typeArgDecls = map (HS.DeclIdent NoSrcSpan) typeArgIdents
-  (typeArgDecls', x') <- renameTypeArgs typeArgDecls x
-  return (map HS.fromDeclIdent typeArgDecls', x')
 
 -- | Creates a substitution that renames the arguments bound by the given
 --   variable patterns to fresh variables.

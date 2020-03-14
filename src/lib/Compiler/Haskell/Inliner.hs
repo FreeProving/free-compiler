@@ -23,7 +23,6 @@ import qualified Data.Map.Strict               as Map
 import           Data.Maybe                     ( fromMaybe )
 
 import           Compiler.Environment
-import           Compiler.Environment.Scope
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Haskell.SrcSpan
 import           Compiler.Haskell.Subst
@@ -52,16 +51,16 @@ inlineExpr decls = inlineAndBind
  where
   -- | Maps the names of function declarations in 'decls' to the arguments
   --   and right hand sides of the functions.
-  declMap :: Map HS.QName ([HS.VarPat], HS.Expr)
+  declMap :: Map HS.QName ([HS.TypeVarDecl], [HS.VarPat], HS.Expr)
   declMap = foldr insertFuncDecl Map.empty decls
 
   -- | Inserts a function declaration into 'declMap'.
   insertFuncDecl
-    :: HS.FuncDecl                         -- ^ The declaration to insert.
-    -> Map HS.QName ([HS.VarPat], HS.Expr) -- ^ The map to insert into.
-    -> Map HS.QName ([HS.VarPat], HS.Expr)
-  insertFuncDecl (HS.FuncDecl _ (HS.DeclIdent _ ident) _ args expr _) =
-    Map.insert (HS.UnQual (HS.Ident ident)) (args, expr)
+    :: HS.FuncDecl
+    -> Map HS.QName ([HS.TypeVarDecl], [HS.VarPat], HS.Expr)
+    -> Map HS.QName ([HS.TypeVarDecl], [HS.VarPat], HS.Expr)
+  insertFuncDecl (HS.FuncDecl _ (HS.DeclIdent _ ident) typeArgs args expr _) =
+    Map.insert (HS.UnQual (HS.Ident ident)) (typeArgs, args, expr)
 
   -- | Applies 'inlineExpr'' on the given expression and wraps the result with
   --   lambda abstractions for the remaining arguments.
@@ -103,12 +102,11 @@ inlineExpr decls = inlineAndBind
   --   the passed value.
   inlineExpr' :: HS.Expr -> Converter ([String], [String], HS.Expr)
   inlineExpr' var@(HS.Var _ name) = case Map.lookup name declMap of
-    Nothing          -> return ([], [], var)
-    Just (args, rhs) -> do
-      Just typeArgIdents <- inEnv $ lookupTypeArgs ValueScope name
-      (typeArgIdents', rhs' ) <- renameTypeArgIdents typeArgIdents rhs
+    Nothing                    -> return ([], [], var)
+    Just (typeArgs, args, rhs) -> do
+      (typeArgs', rhs' ) <- renameTypeArgs typeArgs rhs
       (args'    , rhs'') <- renameArgs args rhs'
-      return (typeArgIdents', map HS.fromVarPat args', rhs'')
+      return (map HS.fromDeclIdent typeArgs', map HS.fromVarPat args', rhs'')
 
   -- Substitute argument of inlined function and inline recursively in
   -- function arguments.
