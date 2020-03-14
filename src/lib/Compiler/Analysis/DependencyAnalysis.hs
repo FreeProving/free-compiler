@@ -13,6 +13,7 @@ module Compiler.Analysis.DependencyAnalysis
   ( DependencyComponent(..)
   , mapComponent
   , mapComponentM
+  , mapComponentM_
   , groupDependencies
   , groupTypeDecls
   , groupFuncDecls
@@ -63,6 +64,12 @@ mapComponentM f (NonRecursive decl) = do
   [decl'] <- f [decl]
   return (NonRecursive decl')
 mapComponentM f (Recursive decls) = Recursive <$> f decls
+
+-- | Like 'mapComponentM' but discards the result.
+mapComponentM_
+  :: MonadFail m => ([decl] -> m a) -> DependencyComponent decl -> m ()
+mapComponentM_ f (NonRecursive decl ) = f [decl] >> return ()
+mapComponentM_ f (Recursive    decls) = f decls >> return ()
 
 -- | Converts a strongly connected component from @Data.Graph@ to a
 --   'DependencyComponent'.

@@ -25,7 +25,7 @@ convertFuncDecls funcDecls = do
       components      = groupDependencies dependencyGraph
 
   -- Infer types.
-  components' <- mapM (mapComponentM inferFuncDeclTypes) components
+  components' <- inferFuncDeclComponentTypes components
   mapM_ (mapComponentM (mapM defineFuncDecl)) components'
 
   -- Filter QuickCheck properties.

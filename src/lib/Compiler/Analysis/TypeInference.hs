@@ -6,17 +6,19 @@
 
 module Compiler.Analysis.TypeInference
   ( addTypeSigsToFuncDecls
+  , inferFuncDeclComponentTypes
   , inferFuncDeclTypes
   , inferExprType
   )
 where
 
+import           Control.Monad.Fail             ( MonadFail )
 import           Control.Monad.Extra            ( mapAndUnzipM
                                                 , replicateM
                                                 , zipWithM
                                                 , zipWithM_
                                                 )
-import           Control.Monad.State            ( MonadState
+import           Control.Monad.State            ( MonadState(..)
                                                 , StateT(..)
                                                 , evalStateT
                                                 , gets
@@ -39,6 +41,7 @@ import           Data.Maybe                     ( fromJust
 import           Data.Set                       ( Set )
 import qualified Data.Set                      as Set
 
+import           Compiler.Analysis.DependencyAnalysis
 import           Compiler.Analysis.DependencyExtraction
                                                 ( typeVars )
 import           Compiler.Environment
@@ -94,8 +97,8 @@ emptyTypeInferenceState = TypeInferenceState
 
 -- | Creates a 'TypeAssumption' for all funtions and constructors defined
 --   in the given environment.
-makeTypeAssumtion :: Environment -> TypeAssumption
-makeTypeAssumtion env = Map.fromList
+makeTypeAssumption :: Environment -> TypeAssumption
+makeTypeAssumption env = Map.fromList
   [ (name, typeSchema)
   | (scope, name) <- Map.keys (envEntries env)
   , scope == ValueScope
@@ -106,7 +109,7 @@ makeTypeAssumtion env = Map.fromList
 newtype TypeInference a = TypeInference
   { unwrapTypeInference :: StateT TypeInferenceState Converter a }
  deriving
-  (Functor, Applicative, Monad, MonadState TypeInferenceState)
+  (Functor, Applicative, Monad, MonadState TypeInferenceState, MonadFail)
 
 -- | Messages can be reported during type inference.
 instance MonadReporter TypeInference where
@@ -201,24 +204,13 @@ extendTypeAssumptionFor funcDecl = do
     Nothing         -> return ()
     Just typeSchema -> extendTypeAssumption funcName typeSchema
 
--- | Remoes all variables bound by the given variable patterns from the
---   type assumption while running the given type inference.
-removeVarPatsFromTypeAssumption
-  :: [HS.VarPat] -> TypeInference a -> TypeInference a
-removeVarPatsFromTypeAssumption = flip (foldr removeVarPatFromTypeAssumption)
-
 -- | Removes the variable bound by the given variable pattern from the
 --   type assumption while runnign the given type inference.
-removeVarPatFromTypeAssumption
-  :: HS.VarPat -> TypeInference a -> TypeInference a
-removeVarPatFromTypeAssumption (HS.VarPat _ ident _) mx = do
-  ta <- gets typeAssumption
-  let name = HS.UnQual (HS.Ident ident)
-      ta'  = Map.delete name ta
-  modify $ \s -> s { typeAssumption = ta' }
-  x <- mx
-  modify $ \s -> s { typeAssumption = ta }
-  return x
+removeVarPatFromTypeAssumption :: HS.VarPat -> TypeInference ()
+removeVarPatFromTypeAssumption varPat = do
+  modify $ \s -> s
+    { typeAssumption = Map.delete (HS.varPatQName varPat) (typeAssumption s)
+    }
 
 -- | Sets the types to instantiate additional type arguments of the function
 --   with the given name with.
@@ -234,6 +226,26 @@ fixTypeArgs name subst = do
 fixTypeArgs' :: HS.QName -> [HS.Type] -> TypeInference ()
 fixTypeArgs' name subst =
   modify $ \s -> s { fixedTypeArgs = Map.insert name subst (fixedTypeArgs s) }
+
+-------------------------------------------------------------------------------
+-- Scoping                                                                   --
+-------------------------------------------------------------------------------
+
+withLocalState :: TypeInference a -> TypeInference a
+withLocalState mx = do
+  oldState <- get
+  x        <- mx
+  put oldState
+  return x
+
+-- | Runs the given type inference and discards all modifications of the
+--   type assumption afterwards.
+withLocalTypeAssumption :: TypeInference a -> TypeInference a
+withLocalTypeAssumption mx = do
+  oldTypeAssumption <- gets typeAssumption
+  x                 <- mx
+  modify $ \s -> s { typeAssumption = oldTypeAssumption }
+  return x
 
 -------------------------------------------------------------------------------
 -- Type signatures                                                           --
@@ -341,6 +353,31 @@ splitFuncType name = splitFuncType'
         ++ "'."
 
 -------------------------------------------------------------------------------
+-- Strongly connected components                                             --
+-------------------------------------------------------------------------------
+
+-- | Applies 'inferFuncDeclTypes' to the function declarations in the given
+--   strongly connected components.
+--
+--   The given list of strongly connected components must be in recerse
+--   topological order.
+inferFuncDeclComponentTypes
+  :: [DependencyComponent HS.FuncDecl]
+  -> Converter [DependencyComponent HS.FuncDecl]
+inferFuncDeclComponentTypes components = localEnv $ do
+  ta <- inEnv makeTypeAssumption
+  runTypeInference ta $ mapM inferFuncDeclComponentTypes' components
+
+-- | Version of 'inferFuncDeclTypes' in the 'TypeInference' monad.
+inferFuncDeclComponentTypes'
+  :: DependencyComponent HS.FuncDecl
+  -> TypeInference (DependencyComponent HS.FuncDecl)
+inferFuncDeclComponentTypes' component = do
+  component' <- mapComponentM inferFuncDeclTypes' component
+  mapComponentM_ (mapM_ extendTypeAssumptionFor) component'
+  return component'
+
+-------------------------------------------------------------------------------
 -- Function declarations                                                     --
 -------------------------------------------------------------------------------
 
@@ -351,87 +388,92 @@ splitFuncType name = splitFuncType'
 --   visible type arguments have been annotated with their inferred type.
 inferFuncDeclTypes :: [HS.FuncDecl] -> Converter [HS.FuncDecl]
 inferFuncDeclTypes funcDecls = localEnv $ do
-  ta <- inEnv makeTypeAssumtion
-  runTypeInference ta $ do
+  ta <- inEnv makeTypeAssumption
+  runTypeInference ta $ inferFuncDeclTypes' funcDecls
+
+-- | Version of 'inferFuncDeclTypes' in the 'TypeInference' monad.
+inferFuncDeclTypes' :: [HS.FuncDecl] -> TypeInference [HS.FuncDecl]
+inferFuncDeclTypes' funcDecls = withLocalState $ do
     -- Add type assumption for functions with type signatures.
     --
     -- This required such that polymorphically recursive functions don't
     -- cause a type error.
-    mapM_ extendTypeAssumptionFor funcDecls
+  mapM_ extendTypeAssumptionFor funcDecls
 
-    -- Add type annotations.
-    --
-    -- First we annotate all variable patterns, constructor and function
-    -- applications as well as the return type of the function declarations
-    -- with fresh type variables. The type variables act as placeholders for
-    -- the actual types inferred below.
-    annotatedFuncDecls <- liftConverter $ mapM annotateFuncDecl funcDecls
+  -- Add type annotations.
+  --
+  -- First we annotate all variable patterns, constructor and function
+  -- applications as well as the return type of the function declarations
+  -- with fresh type variables. The type variables act as placeholders for
+  -- the actual types inferred below.
+  annotatedFuncDecls <- liftConverter $ mapM annotateFuncDecl funcDecls
 
-    -- Infer function types.
-    --
-    -- In addition to the actual type, we need the substitution computed
-    -- during type inference. The substitution is applied to the function
-    -- declarations in order to replace the fresh type variable placeholders
-    -- added in the step above.
-    (typeExprs, mgu) <- inferFuncDeclTypes' annotatedFuncDecls
-    typedFuncDecls <- liftConverter $ mapM (applySubst mgu) annotatedFuncDecls
+  -- Infer function types.
+  --
+  -- In addition to the actual type, we need the substitution computed
+  -- during type inference. The substitution is applied to the function
+  -- declarations in order to replace the fresh type variable placeholders
+  -- added in the step above.
+  (typeExprs, mgu)   <- inferFuncDeclTypes'' annotatedFuncDecls
+  typedFuncDecls     <- liftConverter $ mapM (applySubst mgu) annotatedFuncDecls
 
-    -- Abstract inferred type to type schema.
-    --
-    -- The function takes one type argument for each type variable in the
-    -- inferred type expression. Additional type arguments that occur in
-    -- type signatures and visible type applications on the right-hand side
-    -- of the function but not in the inferred type (also known as "vanishing
-    -- type  arguments") are added as well. The order of the type arguments
-    -- depends on their order in the (type) expression (from left to right).
-    let typeArgs = map typeVars typeExprs
-        additionalTypeArgs =
-          nub (concatMap typeVars typedFuncDecls) \\ concat typeArgs
-        allTypeArgs = map (++ additionalTypeArgs) typeArgs
-    abstractedFuncDecls <- liftConverter
-      $ zipWithM abstractTypeArgs allTypeArgs typedFuncDecls
+  -- Abstract inferred type to type schema.
+  --
+  -- The function takes one type argument for each type variable in the
+  -- inferred type expression. Additional type arguments that occur in
+  -- type signatures and visible type applications on the right-hand side
+  -- of the function but not in the inferred type (also known as "vanishing
+  -- type  arguments") are added as well. The order of the type arguments
+  -- depends on their order in the (type) expression (from left to right).
+  let typeArgs = map typeVars typeExprs
+      additionalTypeArgs =
+        nub (concatMap typeVars typedFuncDecls) \\ concat typeArgs
+      allTypeArgs = map (++ additionalTypeArgs) typeArgs
+  abstractedFuncDecls <- liftConverter
+    $ zipWithM abstractTypeArgs allTypeArgs typedFuncDecls
 
-    -- Fix instantiation of additional type arguments.
-    --
-    -- The additional type arguments must be passed unchanged in recursive
-    -- calls (otherwise there would have to be an infinite number of type
-    -- arguments). However, 'applyFuncDeclVisibly' would instantiate them
-    -- with fresh type variables since they do not occur in the inferred
-    -- type the application has been annotated with. Thus, we have to
-    -- remember for each function in the strongly connected component,
-    -- the type to instantiate the remaining type arguments with. The
-    -- fixed type arguments will be taken into account by 'applyVisibly'.
-    let funcNames           = map HS.funcDeclName abstractedFuncDecls
-        additionalTypeArgs' = map
-          ( map HS.typeVarDeclToType
-          . takeEnd (length additionalTypeArgs)
-          . HS.funcDeclTypeArgs
-          )
-          abstractedFuncDecls
-    zipWithM_ fixTypeArgs funcNames additionalTypeArgs'
+  -- Fix instantiation of additional type arguments.
+  --
+  -- The additional type arguments must be passed unchanged in recursive
+  -- calls (otherwise there would have to be an infinite number of type
+  -- arguments). However, 'applyFuncDeclVisibly' would instantiate them
+  -- with fresh type variables since they do not occur in the inferred
+  -- type the application has been annotated with. Thus, we have to
+  -- remember for each function in the strongly connected component,
+  -- the type to instantiate the remaining type arguments with. The
+  -- fixed type arguments will be taken into account by 'applyVisibly'.
+  let funcNames           = map HS.funcDeclName abstractedFuncDecls
+      additionalTypeArgs' = map
+        ( map HS.typeVarDeclToType
+        . takeEnd (length additionalTypeArgs)
+        . HS.funcDeclTypeArgs
+        )
+        abstractedFuncDecls
+  zipWithM_ fixTypeArgs funcNames additionalTypeArgs'
 
-    -- Add visible type applications.
-    --
-    -- Now that we also know the type arguments of the functions in then
-    -- strongly connected component, we can replace the type annotations
-    -- for function and constructor applications added by 'annotateFuncDecl'
-    -- by visible type applications.
-    mapM_ extendTypeAssumptionFor abstractedFuncDecls
-    visiblyAppliedFuncDecls <- mapM applyFuncDeclVisibly abstractedFuncDecls
+  -- Add visible type applications.
+  --
+  -- Now that we also know the type arguments of the functions in then
+  -- strongly connected component, we can replace the type annotations
+  -- for function and constructor applications added by 'annotateFuncDecl'
+  -- by visible type applications.
+  mapM_ extendTypeAssumptionFor abstractedFuncDecls
+  visiblyAppliedFuncDecls <- mapM applyFuncDeclVisibly abstractedFuncDecls
 
-    -- Abstract new vanishing type arguments.
-    --
-    -- The instatiation of type schemas by 'applyFuncDeclVisibly' might
-    -- have introduced new vanishing type arguments if a function with
-    -- vanishing type arguments is applied that does not occur in the
-    -- strongly connected component. Those additional type arguments
-    -- need to be abstracted as well.
-    liftConverter $ abstractVanishingTypeArgs visiblyAppliedFuncDecls
+  -- Abstract new vanishing type arguments.
+  --
+  -- The instatiation of type schemas by 'applyFuncDeclVisibly' might
+  -- have introduced new vanishing type arguments if a function with
+  -- vanishing type arguments is applied that does not occur in the
+  -- strongly connected component. Those additional type arguments
+  -- need to be abstracted as well.
+  liftConverter $ abstractVanishingTypeArgs visiblyAppliedFuncDecls
 
--- | Like 'inferFuncDeclTypes' but does not abstract the type to a type
+-- | Like 'inferFuncDeclTypes'' but does not abstract the type to a type
 --   schema and returns the substitution.
-inferFuncDeclTypes' :: [HS.FuncDecl] -> TypeInference ([HS.Type], Subst HS.Type)
-inferFuncDeclTypes' funcDecls = do
+inferFuncDeclTypes''
+  :: [HS.FuncDecl] -> TypeInference ([HS.Type], Subst HS.Type)
+inferFuncDeclTypes'' funcDecls = do
   (typedExprs, funcTypes) <- liftConverter
     $ mapAndUnzipM makeTypedExprs funcDecls
   mapM_ (uncurry simplifyTypedExpr) (concat typedExprs)
@@ -631,10 +673,10 @@ applyExprVisibly (HS.Case srcSpan expr alts) = do
   expr' <- applyExprVisibly expr
   alts' <- mapM applyAltVisibly alts
   return (HS.Case srcSpan expr' alts')
-applyExprVisibly (HS.Lambda srcSpan args expr) =
-  removeVarPatsFromTypeAssumption args $ do
-    expr' <- applyExprVisibly expr
-    return (HS.Lambda srcSpan args expr')
+applyExprVisibly (HS.Lambda srcSpan args expr) = withLocalTypeAssumption $ do
+  mapM_ removeVarPatFromTypeAssumption args
+  expr' <- applyExprVisibly expr
+  return (HS.Lambda srcSpan args expr')
 
 -- Leave all other expressions unchanged.
 applyExprVisibly expr@(HS.Con _ _       ) = return expr
@@ -647,19 +689,20 @@ applyExprVisibly expr@(HS.IntLiteral _ _) = return expr
 --   expression alternative.
 applyAltVisibly :: HS.Alt -> TypeInference HS.Alt
 applyAltVisibly (HS.Alt srcSpan conPat varPats expr) =
-  removeVarPatsFromTypeAssumption varPats $ do
+  withLocalTypeAssumption $ do
+    mapM_ removeVarPatFromTypeAssumption varPats
     expr' <- applyExprVisibly expr
     return (HS.Alt srcSpan conPat varPats expr')
 
 -- | Applies ' applyExprVisibly' to the right-hand side of the given function
 --   declaration.
 applyFuncDeclVisibly :: HS.FuncDecl -> TypeInference HS.FuncDecl
-applyFuncDeclVisibly funcDecl = do
+applyFuncDeclVisibly funcDecl = withLocalTypeAssumption $ do
   let args = HS.funcDeclArgs funcDecl
       rhs  = HS.funcDeclRhs funcDecl
-  removeVarPatsFromTypeAssumption args $ do
-    rhs' <- applyExprVisibly rhs
-    return funcDecl { HS.funcDeclRhs = rhs' }
+  mapM_ removeVarPatFromTypeAssumption args
+  rhs' <- applyExprVisibly rhs
+  return funcDecl { HS.funcDeclRhs = rhs' }
 
 -------------------------------------------------------------------------------
 -- Abstracting type arguments                                                --
