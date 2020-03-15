@@ -20,8 +20,6 @@ import           Compiler.Environment.Renamer
 import           Compiler.Environment.Scope
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Monad.Converter
-import           Compiler.Monad.Reporter
-import           Compiler.Pretty
 
 -------------------------------------------------------------------------------
 -- Function environment entries                                              --
