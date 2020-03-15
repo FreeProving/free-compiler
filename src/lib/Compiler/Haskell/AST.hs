@@ -253,6 +253,16 @@ type TypeVarDecl = DeclIdent
 typeVarDeclToType :: TypeVarDecl -> Type
 typeVarDeclToType (DeclIdent srcSpan ident) = TypeVar srcSpan ident
 
+-- | Gets the name of the type variable declared by the given type variable
+--   declaration.
+typeVarDeclName :: TypeVarDecl -> Name
+typeVarDeclName = Ident . fromDeclIdent
+
+-- | Gets the unqualified name of the type variable declared by the given
+--   type variable declaration.
+typeVarDeclQName :: TypeVarDecl -> QName
+typeVarDeclQName = UnQual . typeVarDeclName
+
 -------------------------------------------------------------------------------
 -- Type declarations                                                         --
 -------------------------------------------------------------------------------
@@ -276,6 +286,14 @@ data TypeDecl
     , typeSynDeclRhs :: Type
     }
  deriving (Eq, Show)
+
+-- | Gets the name of the given type declaration.
+typeDeclName :: TypeDecl -> Name
+typeDeclName = Ident . fromDeclIdent . typeDeclIdent
+
+-- | Gets the unqualified name of the given type declaration.
+typeDeclQName :: TypeDecl -> QName
+typeDeclQName = UnQual . typeDeclName
 
 -- | Pretty instance for type declarations.
 instance Pretty TypeDecl where
