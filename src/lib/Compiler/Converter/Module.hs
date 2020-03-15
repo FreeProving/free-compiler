@@ -61,13 +61,13 @@ convertModule haskellAst = moduleEnv $ do
 --   All other pragmas are ignored.
 addDecArgPragma :: [HS.FuncDecl] -> HS.Pragma -> Converter ()
 addDecArgPragma funcDecls (HS.DecArgPragma srcSpan funcIdent decArg) = do
-  let funName = HS.UnQual (HS.Ident funcIdent)
-  case find ((== funcIdent) . HS.fromDeclIdent . HS.getDeclIdent) funcDecls of
+  let funcName = HS.UnQual (HS.Ident funcIdent)
+  case find ((== funcName) . HS.funcDeclQName) funcDecls of
     Just (HS.FuncDecl { HS.funcDeclArgs = args }) -> case decArg of
       Left decArgIdent ->
-        case findIndex ((== decArgIdent) . HS.fromVarPat) args of
+        case findIndex ((== decArgIdent) . HS.varPatIdent) args of
           Just decArgIndex ->
-            modifyEnv $ defineDecArg funName decArgIndex decArgIdent
+            modifyEnv $ defineDecArg funcName decArgIndex decArgIdent
           Nothing ->
             reportFatal
               $  Message srcSpan Error
@@ -80,8 +80,8 @@ addDecArgPragma funcDecls (HS.DecArgPragma srcSpan funcIdent decArg) = do
         | decArgPosition > 0 && decArgPosition <= length args
         -> do
           let decArgIndex = decArgPosition - 1
-              decArgIdent = HS.fromVarPat (args !! decArgIndex)
-          modifyEnv $ defineDecArg funName decArgIndex decArgIdent
+              decArgIdent = HS.varPatIdent (args !! decArgIndex)
+          modifyEnv $ defineDecArg funcName decArgIndex decArgIdent
         | otherwise
         -> reportFatal
           $  Message srcSpan Error

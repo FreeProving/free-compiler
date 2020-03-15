@@ -39,6 +39,7 @@ import           Compiler.Environment.Fresh
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
+import           Compiler.Pretty
 
 -------------------------------------------------------------------------------
 -- Decreaasing arguments                                                     --
@@ -93,9 +94,7 @@ checkDecArgs decls knownDecArgIndecies decArgIndecies = all
     -> DecArgIndex
     -> Map HS.QName DecArgIndex
     -> Map HS.QName DecArgIndex
-  insertFuncDecl funcDecl decArg =
-    let ident = HS.fromDeclIdent (HS.funcDeclIdent funcDecl)
-    in  Map.insert (HS.UnQual (HS.Ident ident)) decArg
+  insertFuncDecl = Map.insert . HS.funcDeclQName
 
   -- | Tests whether the given function declaration actually decreases on the
   --   argument with the given index.
@@ -105,7 +104,7 @@ checkDecArgs decls knownDecArgIndecies decArgIndecies = all
   checkDecArg :: Maybe DecArgIndex -> DecArgIndex -> HS.FuncDecl -> Bool
   checkDecArg (Just _) _ _ = True
   checkDecArg _ decArgIndex (HS.FuncDecl _ _ _ args expr _) =
-    let decArg = HS.UnQual (HS.Ident (HS.fromVarPat (args !! decArgIndex)))
+    let decArg = HS.varPatQName (args !! decArgIndex)
     in  checkExpr decArg Set.empty expr []
 
   -- | Tests whether there is a variable that is structurally smaller than the
@@ -186,16 +185,13 @@ checkDecArgs decls knownDecArgIndecies decArgIndecies = all
 
     -- | Adds the given variables to the set of structurally smaller variables.
     withArgs :: [HS.VarPat] -> Set HS.QName -> Set HS.QName
-    withArgs args set =
-      set `Set.union` Set.fromList
-        (map (HS.UnQual . HS.Ident . HS.fromVarPat) args)
+    withArgs args set = set `Set.union` Set.fromList (map HS.varPatQName args)
 
     -- | Removes the given variables to the set of structurally smaller
     --   variables (because they are shadowed by an argument from a lambda
     --   abstraction or @case@-alternative).
     withoutArgs :: [HS.VarPat] -> Set HS.QName -> Set HS.QName
-    withoutArgs args set =
-      set \\ Set.fromList (map (HS.UnQual . HS.Ident . HS.fromVarPat) args)
+    withoutArgs args set = set \\ Set.fromList (map HS.varPatQName args)
 
 -- | Identifies the decreasing arguments of the given mutually recursive
 --   function declarations.
@@ -222,22 +218,16 @@ identifyDecArgs decls = do
  where
   -- | Looks up the index of an annotated decreasing argument.
   lookupDecArgIndexOfDecl :: HS.FuncDecl -> Converter (Maybe Int)
-  lookupDecArgIndexOfDecl =
-    inEnv
-      . lookupDecArgIndex
-      . HS.UnQual
-      . HS.Ident
-      . HS.fromDeclIdent
-      . HS.getDeclIdent
+  lookupDecArgIndexOfDecl = inEnv . lookupDecArgIndex . HS.funcDeclQName
 
   -- | Prints an error message if the decreasing arguments could not
   --   be identified.
   decArgError :: Converter a
   decArgError =
     reportFatal
-      $  Message (HS.getSrcSpan (head decls)) Error
+      $  Message (HS.funcDeclSrcSpan (head decls)) Error
       $  "Could not identify decreasing arguments of "
-      ++ HS.prettyDeclIdents decls
+      ++ showPretty (map HS.funcDeclIdent decls)
       ++ ".\n"
       ++ "Consider adding a "
       ++ "{-# HASKELL_TO_COQ <function> DECREASES ON <argument> #-} "
@@ -368,7 +358,7 @@ makeConstArgGraph modName decls = do
         -- | Tests whethe the given variable is shadowed by the given
         --   variale patterns.
         shadowedBy :: String -> [HS.VarPat] -> Bool
-        shadowedBy = flip (flip elem . map HS.fromVarPat)
+        shadowedBy = flip (flip elem . map HS.varPatIdent)
       guard (checkExpr rhs [])
       -- Add edge if the test was successful.
       return (g, y)
@@ -379,7 +369,7 @@ makeConstArgGraph modName decls = do
   nodes = do
     HS.FuncDecl _ declIdent _ args rhs _ <- decls
     let funName = HS.fromDeclIdent declIdent
-    (argName, argIndex) <- zip (map HS.fromVarPat args) [0 ..]
+    (argName, argIndex) <- zip (map HS.varPatIdent args) [0 ..]
     return ((funName, argName), argIndex, rhs)
 
 -- | Identifies function arguments that can be moved to a @Section@
@@ -405,7 +395,7 @@ identifyConstArgs decls = do
   argNamesMap :: Map String [String]
   argNamesMap =
     Map.fromList
-      $ [ (HS.fromDeclIdent declIdent, map HS.fromVarPat args)
+      $ [ (HS.fromDeclIdent declIdent, map HS.varPatIdent args)
         | (HS.FuncDecl _ declIdent _ args _ _) <- decls
         ]
 
@@ -464,7 +454,7 @@ identifyConstArgs' modName decls =
 
   -- | The names of all given function declarations.
   funcNames :: [String]
-  funcNames = map (HS.fromDeclIdent . HS.getDeclIdent) decls
+  funcNames = map (HS.fromDeclIdent . HS.funcDeclIdent) decls
 
   -- | Tests whether the given list of nodes contains one node for every
   --   function declaration.

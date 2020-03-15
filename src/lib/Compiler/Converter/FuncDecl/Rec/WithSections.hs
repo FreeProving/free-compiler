@@ -121,7 +121,7 @@ convertRecFuncDeclsWithSection constArgs decls = do
 
     -- Generate a section identifier from the names of the original functions
     -- and convert the renamed functions as usual.
-    let funcNames = map (HS.fromDeclIdent . HS.getDeclIdent) decls
+    let funcNames = map (HS.fromDeclIdent . HS.funcDeclIdent) decls
     sectionIdent <- freshCoqIdent (intercalate "_" ("section" : funcNames))
     (helperDecls', mainDecls') <- sectionEnv
       $ convertRecFuncDeclsWithHelpers' sectionDecls'
@@ -171,7 +171,7 @@ renameFuncDecls :: [HS.FuncDecl] -> Converter ([HS.FuncDecl], Map String String)
 renameFuncDecls decls = do
   -- Create a substitution from old identifiers to fresh identifiers.
   modName <- inEnv envModName
-  let idents = map (HS.fromDeclIdent . HS.getDeclIdent) decls
+  let idents = map (HS.fromDeclIdent . HS.funcDeclIdent) decls
   idents' <- mapM freshHaskellIdent idents
   let identMap = zip idents idents'
       subst    = composeSubsts $ do
@@ -192,8 +192,9 @@ renameFuncDecls decls = do
             -- Generate fresh identifiers for type variables.
             let typeArgIdents = map HS.fromDeclIdent typeArgs
             typeArgIdents' <- mapM freshHaskellIdent typeArgIdents
-            let typeArgs' =
-                  zipWith (HS.DeclIdent . HS.getSrcSpan) typeArgs typeArgIdents'
+            let typeArgs' = zipWith (HS.DeclIdent . HS.declIdentSrcSpan)
+                                    typeArgs
+                                    typeArgIdents'
                 typeVarSubst = composeSubsts
                   (zipWith singleSubst'
                            (map (HS.UnQual . HS.Ident) typeArgIdents)
@@ -277,7 +278,7 @@ lookupConstArgType
 lookupConstArgType argTypeMap constArg = do
   let idents  = Map.assocs (constArgIdents constArg)
       types   = catMaybes $ map (flip Map.lookup argTypeMap) idents
-      srcSpan = HS.getSrcSpan (head types)
+      srcSpan = HS.typeSrcSpan (head types)
   -- Unify all annotated types of the constant argument.
   expandedTypes <- mapM expandAllTypeSynonyms types
   resolvedTypes <- mapM resolveTypes expandedTypes
@@ -338,7 +339,7 @@ removeConstArgsFromFuncDecl constArgs (HS.FuncDecl srcSpan declIdent typeArgs ar
             $ map (Map.map return)
             $ map constArgIdents constArgs
         freshArgs = map constArgFreshIdent constArgs
-        args' = [ arg | arg <- args, HS.fromVarPat arg `notElem` removedArgs ]
+        args' = [ arg | arg <- args, HS.varPatIdent arg `notElem` removedArgs ]
         subst = composeSubsts
           [ singleSubst' (HS.UnQual (HS.Ident removedArg))
                          (flip HS.Var (HS.UnQual (HS.Ident freshArg)))
@@ -474,14 +475,14 @@ updateTypeSig mgu constTypeVars argTypeMap returnTypeMap (HS.FuncDecl _ declIden
     -- Modify entry.
     -- Since the arguments of the @Free@ monad have been defined in the
     -- section already, 'entryNeedsFreeArgs' can be set to @False@.
-    let argIdents = map HS.fromVarPat args
+    let argIdents = map HS.varPatIdent args
         funArgs   = zip (repeat ident) argIdents
     typeArgVars <- mapM (applySubst mgu . HS.TypeVar NoSrcSpan)
                         (entryTypeArgs entry)
     argTypes <- mapM (applySubst mgu)
                      (catMaybes (map (flip Map.lookup argTypeMap) funArgs))
     returnType <- applySubst mgu (fromJust (Map.lookup ident returnTypeMap))
-    let allTypeArgs = map (fromJust . HS.typeVarIdent) typeArgVars
+    let allTypeArgs = map HS.typeVarIdent typeArgVars
         entry'      = entry { entryArity         = length args
                             , entryTypeArgs      = allTypeArgs \\ constTypeVars
                             , entryArgTypes      = map Just argTypes
@@ -683,8 +684,7 @@ generateInterfaceDecl constArgs isConstArgUsed identMap mgu sectionTypeArgs rena
                       (return [])
 
     -- Lookup the names of all other arguments to pass to the main function.
-    let nonConstArgNames =
-          map (HS.UnQual . HS.Ident . HS.fromVarPat) args \\ constArgNames
+    let nonConstArgNames = map HS.varPatQName args \\ constArgNames
     nonConstArgNames' <-
       catMaybes <$> mapM (inEnv . lookupIdent ValueScope) nonConstArgNames
 

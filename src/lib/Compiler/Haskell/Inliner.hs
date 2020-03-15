@@ -84,7 +84,7 @@ inlineExpr decls = inlineAndBind
     (remainingTypeArgs, remainingArgs, e') <- inlineExpr' e
     when (not (null remainingTypeArgs))
       $  reportFatal
-      $  Message (HS.getSrcSpan e) Internal
+      $  Message (HS.exprSrcSpan e) Internal
       $  "Missing visible application of "
       ++ show (length remainingTypeArgs)
       ++ " type arguments in an application of '"
@@ -106,7 +106,7 @@ inlineExpr decls = inlineAndBind
     Just (typeArgs, args, rhs) -> do
       (typeArgs', rhs' ) <- renameTypeArgs typeArgs rhs
       (args'    , rhs'') <- renameArgs args rhs'
-      return (map HS.fromDeclIdent typeArgs', map HS.fromVarPat args', rhs'')
+      return (map HS.fromDeclIdent typeArgs', map HS.varPatIdent args', rhs'')
 
   -- Substitute argument of inlined function and inline recursively in
   -- function arguments.
@@ -223,10 +223,10 @@ expandTypeSynonyms maxDepth t0
     t1' <- expandTypeSynonyms' t1 args'
     return (t1' <|> Just (HS.typeApp srcSpan t1 args'))
 
-  expandTypeSynonyms' (HS.TypeFunc srcSpan t1 t2) _ = do
+  expandTypeSynonyms' (HS.FuncType srcSpan t1 t2) _ = do
     t1' <- expandTypeSynonyms (maxDepth - 1) t1
     t2' <- expandTypeSynonyms (maxDepth - 1) t2
-    return (Just (HS.TypeFunc srcSpan t1' t2'))
+    return (Just (HS.FuncType srcSpan t1' t2'))
 
   expandTypeSynonyms' (HS.TypeVar _ _) _ = return Nothing
 

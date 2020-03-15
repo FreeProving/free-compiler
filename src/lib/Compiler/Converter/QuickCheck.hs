@@ -23,6 +23,7 @@ import           Compiler.Environment.Scope
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
+import           Compiler.Pretty
 
 -------------------------------------------------------------------------------
 -- QuickCheck import                                                         --
@@ -85,10 +86,10 @@ filterQuickCheckProperties components = do
   fromNonRecursive (Recursive    decls) = do
     Just property <- findM isQuickCheckProperty decls
     reportFatal
-      $  Message (HS.getSrcSpan property) Error
+      $  Message (HS.funcDeclSrcSpan property) Error
       $  "QuickCheck properties must not be recursive. "
       ++ "Found (mutually) recursive function declarations: "
-      ++ HS.prettyDeclIdents decls
+      ++ showPretty (map HS.funcDeclIdent decls)
 
 -------------------------------------------------------------------------------
 -- Convert QuickCheck property declarations                                  --

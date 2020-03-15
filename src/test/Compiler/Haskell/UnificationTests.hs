@@ -118,7 +118,7 @@ testUnification = describe "Compiler.Haskell.Unification.unify" $ do
     it "self-unification yields the identity substitution"
       $ property
       $ \typeExpr -> shouldSucceedProperty $ fromConverter $ do
-          mgu       <- unifyOrFail (HS.getSrcSpan typeExpr) typeExpr typeExpr
+          mgu       <- unifyOrFail (HS.typeSrcSpan typeExpr) typeExpr typeExpr
           typeExpr' <- applySubst mgu typeExpr
           return (typeExpr' == typeExpr)
 
@@ -140,7 +140,7 @@ shouldUnifyTo (t, s) expectedOutput =
 shouldUnifyTo'
   :: Pretty a => (HS.Type, HS.Type) -> (a, a) -> Converter Expectation
 shouldUnifyTo' (t, s) (ot, os) = do
-  mgu <- unifyOrFail (HS.getSrcSpan t) t s
+  mgu <- unifyOrFail (HS.typeSrcSpan t) t s
   t'  <- applySubst mgu t
   s'  <- applySubst mgu s
   return $ do

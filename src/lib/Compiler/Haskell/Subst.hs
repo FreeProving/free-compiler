@@ -260,10 +260,10 @@ instance ApplySubst HS.Type HS.Type where
       t1' <- applySubst' t1
       t2' <- applySubst' t2
       return (HS.TypeApp srcSpan t1' t2')
-    applySubst' (HS.TypeFunc srcSpan t1 t2) = do
+    applySubst' (HS.FuncType srcSpan t1 t2) = do
       t1' <- applySubst' t1
       t2' <- applySubst' t2
-      return (HS.TypeFunc srcSpan t1' t2')
+      return (HS.FuncType srcSpan t1' t2')
 
 -------------------------------------------------------------------------------
 -- Application to type schemas                                           --
@@ -321,8 +321,8 @@ renameTypeArgs typeArgDecls x = do
 renameArgsSubst :: [HS.VarPat] -> Converter ([HS.VarPat], Subst HS.Expr)
 renameArgsSubst args = do
   args' <- mapM freshVarPat args
-  let argNames = map (HS.UnQual . HS.Ident . HS.fromVarPat) args
-      argVars' = map (flip HS.Var . HS.UnQual . HS.Ident . HS.fromVarPat) args'
+  let argNames = map HS.varPatQName args
+      argVars' = map (flip HS.Var . HS.varPatQName) args'
       argSubst = composeSubsts (zipWith singleSubst' argNames argVars')
   return (args', argSubst)
  where

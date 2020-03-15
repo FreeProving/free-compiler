@@ -130,7 +130,7 @@ unify t s = do
                                  | otherwise = return ()
     occursCheck (HS.TypeCon _ _     ) = return ()
     occursCheck (HS.TypeApp  _ t1 t2) = occursCheck t1 >> occursCheck t2
-    occursCheck (HS.TypeFunc _ t1 t2) = occursCheck t1 >> occursCheck t2
+    occursCheck (HS.FuncType _ t1 t2) = occursCheck t1 >> occursCheck t2
 
 -- | Computes the most general unificator for all given type expressions.
 unifyAll :: [HS.Type] -> ExceptT UnificationError Converter (Subst HS.Type)
@@ -166,8 +166,8 @@ disagreementSet (HS.TypeVar _ x) (HS.TypeVar _ y) | x == y = return Nothing
 disagreementSet t@(HS.TypeCon _ c) s@(HS.TypeCon _ d)
   | c == d = return Nothing
   | otherwise = do
-    e <- lookupEntryOrFail (HS.getSrcSpan t) TypeScope c
-    f <- lookupEntryOrFail (HS.getSrcSpan t) TypeScope d
+    e <- lookupEntryOrFail (HS.typeSrcSpan t) TypeScope c
+    f <- lookupEntryOrFail (HS.typeSrcSpan s) TypeScope d
     let n = entryName e
         m = entryName f
     if n == m then return Nothing else return (Just (rootPos, t, s))
@@ -175,7 +175,7 @@ disagreementSet t@(HS.TypeCon _ c) s@(HS.TypeCon _ d)
 -- Compute disagreement set recursively.
 disagreementSet (HS.TypeApp _ t1 t2) (HS.TypeApp _ s1 s2) =
   disagreementSet' 1 [t1, t2] [s1, s2]
-disagreementSet (HS.TypeFunc _ t1 t2) (HS.TypeFunc _ s1 s2) =
+disagreementSet (HS.FuncType _ t1 t2) (HS.FuncType _ s1 s2) =
   disagreementSet' 1 [t1, t2] [s1, s2]
 
 -- If the two types have a different constructor, they disagree.

@@ -96,10 +96,10 @@ instance ResolveTypes HS.Type where
     t1' <- resolveTypesWithM f t1
     t2' <- resolveTypesWithM f t2
     return (HS.TypeApp srcSpan t1' t2')
-  resolveTypesWithM f (HS.TypeFunc srcSpan t1 t2) = do
+  resolveTypesWithM f (HS.FuncType srcSpan t1 t2) = do
     t1' <- resolveTypesWithM f t1
     t2' <- resolveTypesWithM f t2
-    return (HS.TypeFunc srcSpan t1' t2')
+    return (HS.FuncType srcSpan t1' t2')
 
 -- | Type constructors in type schemas can be resolved.
 instance ResolveTypes HS.TypeSchema where

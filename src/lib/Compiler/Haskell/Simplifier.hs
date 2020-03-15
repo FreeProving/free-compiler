@@ -485,7 +485,7 @@ simplifyTypeSchema (H.TyForall srcSpan (Just binds) Nothing typeExpr) = do
 -- Without explicit @forall@.
 simplifyTypeSchema typeExpr = do
   typeExpr' <- simplifyType typeExpr
-  let srcSpan  = HS.getSrcSpan typeExpr'
+  let srcSpan  = HS.typeSrcSpan typeExpr'
       typeArgs = map (HS.DeclIdent NoSrcSpan . fromJust . HS.identFromQName)
                      (typeVars typeExpr')
   return (HS.TypeSchema srcSpan typeArgs typeExpr')
@@ -497,7 +497,7 @@ simplifyType :: H.Type SrcSpan -> Simplifier HS.Type
 simplifyType (H.TyFun srcSpan t1 t2) = do
   t1' <- simplifyType t1
   t2' <- simplifyType t2
-  return (HS.TypeFunc srcSpan t1' t2')
+  return (HS.FuncType srcSpan t1' t2')
 
 -- Tuple type @('t1', ..., 'tn')@.
 simplifyType (H.TyTuple srcSpan H.Boxed ts) = do

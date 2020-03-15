@@ -53,7 +53,7 @@ convertType' (HS.TypeApp _ t1 t2) = do
   t1' <- convertType' t1
   t2' <- convertType' t2
   return (G.app t1' [t2'])
-convertType' (HS.TypeFunc _ t1 t2) = do
+convertType' (HS.FuncType _ t1 t2) = do
   t1' <- convertType t1
   t2' <- convertType t2
   return (G.Arrow t1' t2')

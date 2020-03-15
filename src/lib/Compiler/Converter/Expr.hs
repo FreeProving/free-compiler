@@ -245,10 +245,9 @@ convertExpr' (HS.ExprTypeSig _ expr typeSchema) [] [] = do
 
 -- Visible type application of an expression other than a function or
 -- constructor.
-convertExpr' expr                      (_ : _) _  = do
-  let srcSpan = HS.getSrcSpan expr
+convertExpr' expr (_ : _) _ =
   reportFatal
-    $  Message srcSpan Internal
+    $  Message (HS.exprSrcSpan expr) Internal
     $  "Only type arguments of functions and constructors can be "
     ++ "applied visibly."
 

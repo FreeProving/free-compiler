@@ -123,7 +123,7 @@ instance TypeDependencies HS.Type where
   typeDependencies' (HS.TypeCon _ name ) = conName name
   typeDependencies' (HS.TypeApp _ t1 t2) =
     typeDependencies' t1 `union` typeDependencies' t2
-  typeDependencies' (HS.TypeFunc _ t1 t2) =
+  typeDependencies' (HS.FuncType _ t1 t2) =
     typeDependencies' t1 `union` typeDependencies' t2
 
 -- | A type schema depends on the types it's type expression depends on
@@ -322,8 +322,8 @@ funcDeclDependencySet' (HS.FuncDecl _ _ _ args expr _) =
 -- | Removes the names for the given variable patterns from a set of
 --   dependencies.
 withoutArgs :: [HS.VarPat] -> OSet DependencyName -> OSet DependencyName
-withoutArgs args set = set
-  \\ OSet.fromList (map (VarName . HS.UnQual . HS.Ident . HS.fromVarPat) args)
+withoutArgs args set =
+  set \\ OSet.fromList (map (VarName . HS.varPatQName) args)
 
 -------------------------------------------------------------------------------
 -- Modules                                                                   --

@@ -35,6 +35,7 @@ import           Compiler.Haskell.Inliner
 import           Compiler.Haskell.SrcSpan
 import           Compiler.Haskell.Subterm
 import           Compiler.Monad.Converter
+import           Compiler.Pretty
 
 -- | Converts recursive function declarations into recursive helper and
 --   non-recursive main functions.
@@ -42,7 +43,8 @@ convertRecFuncDeclsWithHelpers :: [HS.FuncDecl] -> Converter [G.Sentence]
 convertRecFuncDeclsWithHelpers decls = do
   (helperDecls', mainDecls') <- convertRecFuncDeclsWithHelpers' decls
   return
-    (  G.comment ("Helper functions for " ++ HS.prettyDeclIdents decls)
+    (  G.comment
+        ("Helper functions for " ++ showPretty (map HS.funcDeclIdent decls))
     :  helperDecls'
     ++ mainDecls'
     )
@@ -102,7 +104,7 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent typeArgs args expr maybeRetT
 
   -- | The names of the function's arguments.
   argNames :: [HS.QName]
-  argNames = map (HS.UnQual . HS.Ident . HS.fromVarPat) args
+  argNames = map HS.varPatQName args
 
   -- | The name of the decreasing argument.
   decArg :: HS.QName
@@ -136,7 +138,7 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent typeArgs args expr maybeRetT
     -- Generate a fresh name for the helper function.
     helperIdent <- freshHaskellIdent (HS.fromDeclIdent declIdent)
     let helperName      = HS.UnQual (HS.Ident helperIdent)
-        helperDeclIdent = HS.DeclIdent (HS.getSrcSpan declIdent) helperIdent
+        helperDeclIdent = declIdent { HS.fromDeclIdent = helperIdent }
 
     -- Pass all type arguments to the helper function.
     let helperTypeArgs = typeArgs
@@ -215,7 +217,7 @@ convertRecHelperFuncDecl helperDecl = localEnv $ do
   (qualid, binders, returnType') <- convertFuncHead helperDecl
   rhs'                           <- convertExpr (HS.funcDeclRhs helperDecl)
   -- Lookup name of decreasing argument.
-  let helperName = HS.UnQual (HS.funcDeclName helperDecl)
+  let helperName = HS.funcDeclQName helperDecl
       argNames   = map HS.varPatQName (HS.funcDeclArgs helperDecl)
   Just decArgIndex <- inEnv $ lookupDecArgIndex helperName
   Just decArg'     <- inEnv $ lookupIdent ValueScope (argNames !! decArgIndex)

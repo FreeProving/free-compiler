@@ -9,17 +9,12 @@
 --   package). For testing purposes instances may be created directly.
 module Compiler.Haskell.AST where
 
-import           Data.List                      ( intercalate )
-
 import           Compiler.Haskell.SrcSpan
 import           Compiler.Pretty
 
 -------------------------------------------------------------------------------
--- Identifiers                                                               --
+-- Names                                                                     --
 -------------------------------------------------------------------------------
-
--- | The name of a type variable.
-type TypeVarIdent = String
 
 -- | An identifier or a symbolic name.
 --
@@ -29,13 +24,13 @@ type TypeVarIdent = String
 data Name
   = Ident String     -- ^ An identifier, e.g. @Ident \"f\"@ for a function @f@.
   | Symbol String    -- ^ A symbolic name, e.g. @Symbol \"+\"@ for @(+)@.
-  deriving (Eq, Ord, Show)
+ deriving (Eq, Ord, Show)
 
--- | A potentially qualified 'Name'.
-data QName
-  = Qual ModName Name -- ^ A qualified 'Name'.
-  | UnQual Name       -- ^ An unqualified 'Name'.
-  deriving (Eq, Ord, Show)
+-- | Extracts an identifier from a Haskell name. Returns @Nothing@ if the
+--   given name is a symbol and not an identifier.
+identFromName :: Name -> Maybe String
+identFromName (Ident  ident) = Just ident
+identFromName (Symbol _    ) = Nothing
 
 -- | Haskell identifiers and symbols can be pretty printed because they are
 --   often used in error messages.
@@ -43,12 +38,37 @@ instance Pretty Name where
   pretty (Ident ident)   = prettyString ident
   pretty (Symbol symbol) = parens (prettyString symbol)
 
+-------------------------------------------------------------------------------
+-- Qualified names                                                           --
+-------------------------------------------------------------------------------
+
+-- | A potentially qualified 'Name'.
+data QName
+  = Qual ModName Name -- ^ A qualified 'Name'.
+  | UnQual Name       -- ^ An unqualified 'Name'.
+ deriving (Eq, Ord, Show)
+
+-- | Extracts an identifier from an unqualified Haskell name.
+--
+--   Returns @Nothing@ if the given name is qualified or a symbol and not an
+--   identifier.
+identFromQName :: QName -> Maybe String
+identFromQName (UnQual name) = identFromName name
+identFromQName (Qual _ _   ) = Nothing
+
 -- | Pretty instance for qualifed Haskell identifiers and symbols.
 instance Pretty QName where
   pretty (Qual modid name)
     | null modid = pretty name
     | otherwise = prettyString modid <> dot <> pretty name
   pretty (UnQual name) = pretty name
+
+-------------------------------------------------------------------------------
+-- Aliasses for name types                                                   --
+-------------------------------------------------------------------------------
+
+-- | The name of a type variable.
+type TypeVarIdent = String
 
 -- | The name of a module.
 type ModName = String
@@ -63,25 +83,25 @@ type ConName = QName
 -- | The name of a type or type constructor, e.g. @Integer@ or @[] a@
 type TypeConName = QName
 
+-------------------------------------------------------------------------------
+-- Internal identifiers                                                      --
+-------------------------------------------------------------------------------
+
 -- | The name of a function, data type, type synonym or constructor defined
 --   by the user including location information.
 --
 --   Because the user cannot declare symbols at the moment, the constructor
 --   of this data type takes a 'String' and not a 'Name'.
-data DeclIdent = DeclIdent SrcSpan String
-  deriving (Eq, Show)
-
--- | The name of a type variable declaration in the head of a data type or
---   type synonym declaration including location information.
-type TypeVarDecl = DeclIdent
-
--- | Converts the declaration of a type variable to a type.
-typeVarDeclToType :: TypeVarDecl -> Type
-typeVarDeclToType (DeclIdent srcSpan ident) = TypeVar srcSpan ident
+data DeclIdent = DeclIdent
+  { declIdentSrcSpan :: SrcSpan
+  , fromDeclIdent :: String
+  }
+ deriving (Eq, Show)
 
 -- | Pretty instance for identifiers in declarations.
 instance Pretty DeclIdent where
   pretty = prettyString . fromDeclIdent
+  prettyList = prettySeparated (comma <> space) . map pretty
 
 -------------------------------------------------------------------------------
 -- Internal identifiers                                                      --
@@ -129,11 +149,7 @@ data Module = Module
   , modPragmas   :: [Pragma]
   , modFuncDecls :: [FuncDecl]
   }
-  deriving (Eq, Show)
-
--------------------------------------------------------------------------------
--- Pretty printing modules                                                   --
--------------------------------------------------------------------------------
+ deriving (Eq, Show)
 
 -- | Pretty instance for modules.
 instance Pretty Module where
@@ -148,7 +164,7 @@ instance Pretty Module where
       <$$> vcat (map pretty (modFuncDecls ast))
 
 -------------------------------------------------------------------------------
--- Comments and pragmas                                                      --
+-- Comments                                                                  --
 -------------------------------------------------------------------------------
 
 -- | A comment.
@@ -157,10 +173,21 @@ instance Pretty Module where
 --   contains no comments. Pragmas (see 'DecArgPragma') are extracted
 --   from comments during simplification.
 data Comment
-  = BlockComment SrcSpan String
+  = BlockComment { commentSrcSpan :: SrcSpan, commentText :: String }
     -- ^ A multi-line comment (i.e., @{- ... -}@).
-  | LineComment SrcSpan String
+  | LineComment { commentSrcSpan :: SrcSpan, commentText :: String }
     -- ^ A single-line comment (i.e., @-- ...@).
+
+-- | Pretty instance for comments.
+instance Pretty Comment where
+  pretty (BlockComment _ text) =
+    prettyString "{-" <> prettyString text <> prettyString "-}"
+  pretty (LineComment _ text) =
+    prettyString "--" <> prettyString text
+
+-------------------------------------------------------------------------------
+-- Pragmas                                                                   --
+-------------------------------------------------------------------------------
 
 -- | All custom pragmas of the compiler start with @HASKELL_TO_COQ@.
 customPragmaPrefix :: String
@@ -168,21 +195,24 @@ customPragmaPrefix = "HASKELL_TO_COQ"
 
 -- | Data type for custom @{-# HASKELL_TO_COQ ... #-}@ pragmas.
 data Pragma
-  = DecArgPragma SrcSpan String (Either String Int)
-    -- ^ A @{-# HASKELL_TO_COQ <function> DECREASES ON <argument> #-}@ or
-    --   @{-# HASKELL_TO_COQ <function> DECREASES ON ARGUMENT <index> #-}@
-    --   pragma.
+  -- | A @{-# HASKELL_TO_COQ <function> DECREASES ON <argument> #-}@ or
+  --   @{-# HASKELL_TO_COQ <function> DECREASES ON ARGUMENT <index> #-}@
+  --   pragma.
+  = DecArgPragma { pragmaSrcSpan :: SrcSpan
+                 , decArgPragmaFuncName :: String
+                 , decArgPragmaArg :: (Either String Int)
+                 }
  deriving (Eq, Show)
 
 -- | Pretty instance for custom @{-# HASKELL_TO_COQ ... #-}@ pragmas.
 instance Pretty Pragma where
-  pretty (DecArgPragma _ funName (Left argName)) = prettyPragma
-    (   prettyString funName
+  pretty (DecArgPragma _ funcName (Left argName)) = prettyPragma
+    (   prettyString funcName
     <+> prettyString "DECREASES ON"
     <+> prettyString argName
     )
-  pretty (DecArgPragma _ funName (Right argIndex)) = prettyPragma
-    (   prettyString funName
+  pretty (DecArgPragma _ funcName (Right argIndex)) = prettyPragma
+    (   prettyString funcName
     <+> prettyString "DECREASES ON ARGUMENT"
     <+> pretty argIndex
     )
@@ -197,7 +227,7 @@ prettyPragma contents =
     <+> prettyString "#-}"
 
 -------------------------------------------------------------------------------
--- Declarations                                                              --
+-- Imports                                                                   --
 -------------------------------------------------------------------------------
 
 -- | An import declaration.
@@ -205,7 +235,27 @@ data ImportDecl = ImportDecl
   { importSrcSpan :: SrcSpan
   , importName    :: ModName
   }
-  deriving (Eq, Show)
+ deriving (Eq, Show)
+
+-- | Pretty instance for import declarations.
+instance Pretty ImportDecl where
+  pretty decl = prettyString "import" <+> prettyString (importName decl)
+
+-------------------------------------------------------------------------------
+-- Type arguments                                                            --
+-------------------------------------------------------------------------------
+
+-- | The name of a type variable declaration in the head of a data type or
+--   type synonym declaration including location information.
+type TypeVarDecl = DeclIdent
+
+-- | Converts the declaration of a type variable to a type.
+typeVarDeclToType :: TypeVarDecl -> Type
+typeVarDeclToType (DeclIdent srcSpan ident) = TypeVar srcSpan ident
+
+-------------------------------------------------------------------------------
+-- Type declarations                                                         --
+-------------------------------------------------------------------------------
 
 -- | A data type or type synonym declaration.
 --
@@ -213,13 +263,82 @@ data ImportDecl = ImportDecl
 --   and type synonym declarations must not be in infix notation. This is
 --   because the @TypeOperators@ language extension is not supported.
 data TypeDecl
-  = DataDecl SrcSpan DeclIdent [TypeVarDecl] [ConDecl]
-  | TypeSynDecl SrcSpan DeclIdent [TypeVarDecl] Type
-  deriving (Eq, Show)
+  = DataDecl
+    { typeDeclSrcSpan :: SrcSpan
+    , typeDeclIdent :: DeclIdent
+    , typeDeclArgs :: [TypeVarDecl]
+    , dataDeclCons :: [ConDecl]
+    }
+  | TypeSynDecl
+    { typeDeclSrcSpan :: SrcSpan
+    , typeDeclIdent :: DeclIdent
+    , typeDeclArgs :: [TypeVarDecl]
+    , typeSynDeclRhs :: Type
+    }
+ deriving (Eq, Show)
+
+-- | Pretty instance for type declarations.
+instance Pretty TypeDecl where
+  pretty (DataDecl _ declIdent typeVarDecls conDecls) =
+    prettyString "data"
+      <+> pretty declIdent
+      <+> hsep (map pretty typeVarDecls)
+      <+> align (vcat (zipWith prettyConDecl [0..] conDecls))
+   where
+    prettyConDecl :: Int -> ConDecl -> Doc
+    prettyConDecl i conDecl | i == 0    = equals <+> pretty conDecl
+                            | otherwise = char '|' <+> pretty conDecl
+  pretty (TypeSynDecl _ declIdent typeVarDecls typeExpr) =
+    prettyString "type"
+      <+> pretty declIdent
+      <+> hsep (map pretty typeVarDecls)
+      <+> equals
+      <+> pretty typeExpr
+
+-------------------------------------------------------------------------------
+-- Constructor declarations                                                  --
+-------------------------------------------------------------------------------
+
+-- | A constructor declaration.
+--
+--  Even though there is not a dedicated constructor, the constructor is
+--  allowed to be in infix notation, but the name of the constructor must
+--  not be a symbol.
+data ConDecl = ConDecl
+  { conDeclSrcSpan :: SrcSpan
+  , conDeclIdent :: DeclIdent
+  , conDeclFields :: [Type]
+  }
+ deriving (Eq, Show)
+
+-- | Pretty instance for data constructor declarations.
+instance Pretty ConDecl where
+  pretty (ConDecl _ declIdent types) =
+    pretty declIdent <+> hsep (map pretty types)
+
+-------------------------------------------------------------------------------
+-- Type signatures                                                           --
+-------------------------------------------------------------------------------
 
 -- | A type signature of one or more function declarations.
-data TypeSig = TypeSig SrcSpan [DeclIdent] TypeSchema
-  deriving (Eq, Show)
+data TypeSig = TypeSig
+  { typeSigSrcSpan :: SrcSpan
+  , typeSigDeclIdents :: [DeclIdent]
+  , typeSigTypeSchema :: TypeSchema
+  }
+ deriving (Eq, Show)
+
+-- | Pretty instance for type signatures.
+instance Pretty TypeSig where
+  pretty (TypeSig _ declIdents typeSchema) =
+    prettySeparated (comma <> space) (map pretty declIdents)
+      <+> colon
+      <>  colon
+      <+> pretty typeSchema
+
+-------------------------------------------------------------------------------
+-- Function declarations                                                     --
+-------------------------------------------------------------------------------
 
 -- | A function declaration.
 --
@@ -261,9 +380,13 @@ data FuncDecl = FuncDecl
   }
  deriving (Eq, Show)
 
--- | Gets the unqualified name of the given function declaration.
+-- | Gets the name of the given function declaration.
 funcDeclName :: FuncDecl -> Name
 funcDeclName = Ident . fromDeclIdent . funcDeclIdent
+
+-- | Gets the unqualified name of the given function declaration.
+funcDeclQName :: FuncDecl -> QName
+funcDeclQName = UnQual . funcDeclName
 
 -- | Gets the type schema of the given function declaration or @Nothing@
 --   if at least one of the argument or the return type is not annoated.
@@ -274,51 +397,6 @@ funcDeclTypeSchema funcDecl = do
   let typeArgs = funcDeclTypeArgs funcDecl
       typeExpr = funcType NoSrcSpan argTypes returnType
   return (TypeSchema NoSrcSpan typeArgs typeExpr)
-
--- | A constructor declaration.
---
---  Even though there is not a dedicated constructor, the constructor is
---  allowed to be in infix notation, but the name of the constructor must
---  not be a symbol.
-data ConDecl = ConDecl
-  SrcSpan   -- ^ A source span that spans the entire constructor declaration.
-  DeclIdent -- ^ The name of the constructor.
-  [Type]    -- ^ The types of the constructor arguments.
-  deriving (Eq, Show)
-
--------------------------------------------------------------------------------
--- Pretty printing declarations                                              --
--------------------------------------------------------------------------------
-
--- | Pretty instance for import declarations.
-instance Pretty ImportDecl where
-  pretty decl = prettyString "import" <+> prettyString (importName decl)
-
--- | Pretty instance for type declarations.
-instance Pretty TypeDecl where
-  pretty (DataDecl _ declIdent typeVarDecls conDecls) =
-    prettyString "data"
-      <+> pretty declIdent
-      <+> hsep (map pretty typeVarDecls)
-      <+> align (vcat (zipWith prettyConDecl [0..] conDecls))
-   where
-    prettyConDecl :: Int -> ConDecl -> Doc
-    prettyConDecl i conDecl | i == 0    = equals <+> pretty conDecl
-                            | otherwise = char '|' <+> pretty conDecl
-  pretty (TypeSynDecl _ declIdent typeVarDecls typeExpr) =
-    prettyString "type"
-      <+> pretty declIdent
-      <+> hsep (map pretty typeVarDecls)
-      <+> equals
-      <+> pretty typeExpr
-
--- | Pretty instance for type signatures.
-instance Pretty TypeSig where
-  pretty (TypeSig _ declIdents typeSchema) =
-    prettySeparated (comma <> space) (map pretty declIdents)
-      <+> colon
-      <>  colon
-      <+> pretty typeSchema
 
 -- | Pretty instance for function declarations.
 instance Pretty FuncDecl where
@@ -340,38 +418,17 @@ instance Pretty FuncDecl where
         <+> hsep (map ((char '@' <>) . pretty) typeArgs)
         <+> hsep (map pretty args)
 
--- | Pretty instance for data constructor declarations.
-instance Pretty ConDecl where
-  pretty (ConDecl _ declIdent types) =
-    pretty declIdent <+> hsep (map pretty types)
-
 -------------------------------------------------------------------------------
--- Type expressions                                                          --
+-- Type schemas                                                          --
 -------------------------------------------------------------------------------
 
 -- | A Haskell type expression with explicitly introduced type variables.
-data TypeSchema = TypeSchema SrcSpan [TypeVarDecl] Type
+data TypeSchema = TypeSchema
+  { typeSchemaSrcSpan :: SrcSpan
+  , typeSchemaArgs :: [TypeVarDecl]
+  , typeSchemaType :: Type
+  }
  deriving (Eq, Show)
-
--- | A Haskell type expression.
---
---  Build-in types are represented by applications of their type constructors.
---  E.g. the type @[a]@ is represented as
---  @'TypeApp' ('TypeCon' "[]") ('TypeVar' "a")@.
---  The only exception to this rule is the function type @a -> b@. It is
---  represented directly as @'TypeFunc' ('TypeVar' "a") ('TypeVar' "b")@.
---  The syntax @(->) a b@ is not supported at the moment. This is due to the
---  special role of functions during the translation to Coq.
-data Type
-  = TypeVar SrcSpan TypeVarIdent -- ^ A type variable.
-  | TypeCon SrcSpan TypeConName  -- ^ A type constructor.
-  | TypeApp SrcSpan Type Type    -- ^ A type constructor application.
-  | TypeFunc SrcSpan Type Type   -- ^ A function type.
-  deriving (Eq, Show)
-
--------------------------------------------------------------------------------
--- Pretty printing type expressions                                          --
--------------------------------------------------------------------------------
 
 -- | Pretty instance for type schemas.
 instance Pretty TypeSchema where
@@ -381,6 +438,81 @@ instance Pretty TypeSchema where
       <+> hsep (map pretty typeArgs)
       <>  dot
       <+> pretty typeExpr
+
+-------------------------------------------------------------------------------
+-- Type expressions                                                          --
+-------------------------------------------------------------------------------
+
+-- | A Haskell type expression.
+--
+--  Build-in types are represented by applications of their type constructors.
+--  E.g. the type @[a]@ is represented as
+--  @'TypeApp' ('TypeCon' "[]") ('TypeVar' "a")@.
+--  The only exception to this rule is the function type @a -> b@. It is
+--  represented directly as @'FuncType' ('TypeVar' "a") ('TypeVar' "b")@.
+--  The syntax @(->) a b@ is not supported at the moment. This is due to the
+--  special role of functions during the translation to Coq.
+data Type
+  = -- | A type variable.
+    TypeVar
+      { typeSrcSpan :: SrcSpan
+      , typeVarIdent :: TypeVarIdent
+      }
+  | -- | A type constructor.
+    TypeCon
+      { typeSrcSpan :: SrcSpan
+      , typeConName :: TypeConName
+      }
+  | -- | A type constructor application.
+    TypeApp
+      { typeSrcSpan :: SrcSpan
+      , typeAppLhs :: Type
+      , typeAppRhs :: Type
+      }
+  | -- | A function type.
+    FuncType
+      { typeSrcSpan :: SrcSpan
+      , funcTypeArg :: Type
+      , funcTypeRes :: Type
+      }
+ deriving (Eq, Show)
+
+-- | Creates a type constructor application type.
+--
+--   The given source span is inserted into the generated type constructor
+--   and every generated type constructor application.
+typeApp
+  :: SrcSpan     -- ^ The source span to insert into generated nodes.
+  -> Type        -- ^ The partially applied type constructor.
+  -> [Type]      -- ^ The type arguments to pass to the type constructor.
+  -> Type
+typeApp srcSpan = foldl (TypeApp srcSpan)
+
+-- | Creates a type constructor application type for the constructor with
+--   the given name.
+--
+--   The given source span is inserted into the generated type constructor
+--   and every generated type constructor application.
+typeConApp
+  :: SrcSpan     -- ^ The source span to insert into generated nodes.
+  -> TypeConName -- ^ The name of the type constructor to apply.
+  -> [Type]      -- ^ The type arguments to pass to the type constructor.
+  -> Type
+typeConApp srcSpan = typeApp srcSpan . TypeCon srcSpan
+
+-- | Creates a function type with the given argument and return types.
+funcType :: SrcSpan -> [Type] -> Type -> Type
+funcType srcSpan = flip (foldr (FuncType srcSpan))
+
+-- | Splits the type of a function or constructor with the given arity
+--   into the argument and return types.
+--
+--   This is basically the inverse of 'funcType'.
+splitFuncType :: Type -> Int -> ([Type], Type)
+splitFuncType (FuncType _ t1 t2) arity | arity > 0 =
+  let (argTypes, returnType) = splitFuncType t2 (arity - 1)
+  in  (t1 : argTypes, returnType)
+splitFuncType returnType _ = ([], returnType)
 
 -- | Haskell type expressions can be pretty printed because they have to
 --   be serialized when the environment is saved to a @.json@ file.
@@ -415,7 +547,7 @@ prettyTypePred _ (TypeCon _ name )                          = pretty name
 -- There may be parentheses around type appications and function types.
 prettyTypePred n (TypeApp _ t1 t2) | n <= 1 =
   prettyTypePred 1 t1 <+> prettyTypePred 2 t2
-prettyTypePred 0 (TypeFunc _ t1 t2) =
+prettyTypePred 0 (FuncType _ t1 t2) =
   prettyTypePred 1 t1 <+> prettyString "->" <+> pretty t2
 prettyTypePred _ t = parens (pretty t)
 
@@ -430,85 +562,105 @@ prettyTypePred _ t = parens (pretty t)
 --  supported. This kind of syntactic sugar is removed during simplification
 --  (see "Compiler.Haskell.Simplifier").
 data Expr
-  = Con SrcSpan ConName           -- ^ A constructor.
-  | Var SrcSpan VarName           -- ^ A function or local variable.
-  | App SrcSpan Expr Expr         -- ^ Function or constructor application.
-  | TypeAppExpr SrcSpan Expr Type -- ^ Visible type application.
+  = -- | A constructor.
+    Con { exprSrcSpan :: SrcSpan
+        , exprConName :: ConName
+        }
 
-  | If SrcSpan Expr Expr Expr     -- ^ @if@ expression.
-  | Case SrcSpan Expr [Alt]       -- ^ @case@ expression.
+  | -- | A function or local variable.
+    Var { exprSrcSpan :: SrcSpan
+        , exprVarName :: VarName
+        }
 
-  | Undefined SrcSpan             -- ^ Error term @undefined@.
-  | ErrorExpr SrcSpan String      -- ^ Error term @error "<message>"@.
+  | -- | Function or constructor application.
+    App { exprSrcSpan :: SrcSpan
+        , exprAppLhr :: Expr
+        , exprAppRhs :: Expr
+        }
 
-  | IntLiteral SrcSpan Integer    -- ^ An integer literal.
-  | Lambda SrcSpan [VarPat] Expr  -- ^ A lambda abstraction.
+  | -- | Visible type application.
+    TypeAppExpr { exprSrcSpan :: SrcSpan
+                , exprTypeAppLhs :: Expr
+                , exprTypeAppRhs :: Type
+                }
 
-  | ExprTypeSig SrcSpan Expr TypeSchema -- ^ A type annotation.
-  deriving (Eq, Show)
+  | -- | @if@ expression.
+    If { exprSrcSpan :: SrcSpan
+       , ifExprCond :: Expr
+       , ifExprThen :: Expr
+       , ifExprElse :: Expr
+       }
 
--- | One alternative of a case expression.
---
---   Every alternative of a case expression matches a constructor of the
---   matched expression's data type. All arguments of the constructor pattern
---   are variable patterns.
-data Alt = Alt
-  SrcSpan      -- ^ A source span that spans the entire alternative.
-  ConPat       -- ^ The name of the constructor matched by this alternative.
-  [VarPat]     -- ^ Variable patterns for the arguments of the constructor.
-  Expr         -- ^ The right hand side of this alternative.
-  deriving (Eq, Show)
+  | -- | @case@ expression.
+    Case { exprSrcSpan :: SrcSpan
+         , caseExprScrutinee :: Expr
+         , caseExprAlts :: [Alt]
+         }
 
--------------------------------------------------------------------------------
--- Patterns                                                                  --
--------------------------------------------------------------------------------
+  | -- | Error term @undefined@.
+    Undefined { exprSrcSpan :: SrcSpan }
 
--- | A constructor pattern used in an alternative of a @case@ expression.
---
---   The only purpose of this data type is to add location information
---   to a 'ConName'.
-data ConPat = ConPat SrcSpan ConName
-  deriving (Eq, Show)
+  | -- | Error term @error "<message>"@.
+    ErrorExpr { exprSrcSpan :: SrcSpan
+              , errorExprMsg :: String
+              }
 
--- | Converts a constructor pattern to a constructor expression.
-conPatToExpr :: ConPat -> Expr
-conPatToExpr (ConPat srcSpan conName) = Con srcSpan conName
+  | -- | An integer literal.
+    IntLiteral { exprSrcSpan :: SrcSpan
+               , intLiteralValue :: Integer
+               }
 
--- | A variable pattern used as an argument to a function, lambda abstraction
---   or constructor pattern.
---
---   The variable pattern can optionally have a type signature.
-data VarPat = VarPat
-  { varPatSrcSpan :: SrcSpan
-  , varPatIdent   :: String
-  , varPatType    :: (Maybe Type)
-  }
+  | -- | A lambda abstraction.
+    Lambda { exprSrcSpan :: SrcSpan
+           , lambdaExprArgs :: [VarPat]
+           , lambdaEprRhs :: Expr
+           }
+
+  | -- | A type annotation.
+    ExprTypeSig
+      { exprSrcSpan :: SrcSpan
+      , exprTypeSigExpr :: Expr
+      , exprTypeSigTypeSchema :: TypeSchema
+      }
  deriving (Eq, Show)
 
--- | Gets the name of the given variable pattern.
-varPatName :: VarPat -> Name
-varPatName = Ident . varPatIdent
+-- | Creates an expression for applying the given expression to the provided
+--   arguments.
+--
+--   The given source span is inserted into the generated function application
+--   expressions.
+app :: SrcSpan -> Expr -> [Expr] -> Expr
+app = foldl . App
 
--- | Gets the qualified name of the given variable pattern.
-varPatQName :: VarPat -> QName
-varPatQName = UnQual . varPatName
+-- | Creates an expression for applying the function with the given name.
+--
+--   The given source span is inserted into the generated function reference
+--   and every generated function application.
+varApp
+  :: SrcSpan -- ^ The source span to insert into generated nodes.
+  -> VarName -- ^ The name of the function to apply.
+  -> [Expr]  -- ^ The arguments to pass to the function.
+  -> Expr
+varApp srcSpan = app srcSpan . Var srcSpan
 
--- | Converts a variable pattern to a variable expression.
-varPatToExpr :: VarPat -> Expr
-varPatToExpr (VarPat srcSpan varName _) = Var srcSpan (UnQual (Ident varName))
+-- | Creates a data constructor application expression.
+--
+--   The given source span is inserted into the generated constructor reference
+--   and every generated constructor application.
+conApp
+  :: SrcSpan -- ^ The source span to insert into generated nodes.
+  -> ConName -- ^ The name of the constructor to apply.
+  -> [Expr]  -- ^ The arguments to pass to the constructor.
+  -> Expr
+conApp srcSpan = app srcSpan . Con srcSpan
 
--- | Converts the given identifier to a variable pattern without type
---   annotation.
-toVarPat :: String -> VarPat
-toVarPat ident = VarPat NoSrcSpan ident Nothing
-
--- | Extracts the actual identifier from a variable pattern.
-fromVarPat :: VarPat -> String
-fromVarPat = varPatIdent
-
--------------------------------------------------------------------------------
--- Pretty printing expressions                                               --
--------------------------------------------------------------------------------
+-- | Creates an expression for passing the type arguments of a function or
+--   constructor explicitly.
+--
+--   The given source span is inserted into every generated visible type
+--   application node.
+visibleTypeApp :: SrcSpan -> Expr -> [Type] -> Expr
+visibleTypeApp = foldl . TypeAppExpr
 
 -- | Pretty instance for expressions.
 instance Pretty Expr where
@@ -573,6 +725,23 @@ prettyExprPred _ (Var        _ name) = pretty name
 prettyExprPred _ (IntLiteral _ i   ) = integer i
 prettyExprPred _ (Undefined _      ) = prettyString "undefined"
 
+-------------------------------------------------------------------------------
+-- @case@ expression alternatives                                            --
+-------------------------------------------------------------------------------
+
+-- | One alternative of a case expression.
+--
+--   Every alternative of a case expression matches a constructor of the
+--   matched expression's data type. All arguments of the constructor pattern
+--   are variable patterns.
+data Alt = Alt
+  { altSrcSpan :: SrcSpan
+  , altConPat :: ConPat
+  , altVarPats :: [VarPat]
+  , altRhs :: Expr
+  }
+ deriving (Eq, Show)
+
 -- | Pretty instance for @case@ expression alternatives.
 instance Pretty Alt where
   pretty (Alt _ conPat varPats expr) =
@@ -581,222 +750,65 @@ instance Pretty Alt where
     <+> prettyString "->"
     <+> pretty expr
 
+-------------------------------------------------------------------------------
+-- Constructor patterns                                                      --
+-------------------------------------------------------------------------------
+
+-- | A constructor pattern used in an alternative of a @case@ expression.
+--
+--   The main purpose of this data type is to add location information
+--   to a 'ConName'.
+data ConPat = ConPat
+  { conPatSrcSpan :: SrcSpan
+  , conPatName    :: ConName
+  }
+ deriving (Eq, Show)
+
+-- | Converts a constructor pattern to a constructor expression.
+conPatToExpr :: ConPat -> Expr
+conPatToExpr (ConPat srcSpan conName) = Con srcSpan conName
+
 -- | Pretty instance for constructor patterns.
 instance Pretty ConPat where
   pretty (ConPat _ conName) = pretty conName
+
+-------------------------------------------------------------------------------
+-- Variable patterns                                                         --
+-------------------------------------------------------------------------------
+
+-- | A variable pattern used as an argument to a function, lambda abstraction
+--   or constructor pattern.
+--
+--   The variable pattern can optionally have a type signature.
+data VarPat = VarPat
+  { varPatSrcSpan :: SrcSpan
+  , varPatIdent   :: String
+  , varPatType    :: (Maybe Type)
+  }
+ deriving (Eq, Show)
+
+-- | Gets the name of the given variable pattern.
+varPatName :: VarPat -> Name
+varPatName = Ident . varPatIdent
+
+-- | Gets the qualified name of the given variable pattern.
+varPatQName :: VarPat -> QName
+varPatQName = UnQual . varPatName
+
+-- | Converts a variable pattern to a variable expression.
+varPatToExpr :: VarPat -> Expr
+varPatToExpr (VarPat srcSpan varName _) = Var srcSpan (UnQual (Ident varName))
+
+-- | Converts the given identifier to a variable pattern without type
+--   annotation.
+toVarPat :: String -> VarPat
+toVarPat ident = VarPat NoSrcSpan ident Nothing
 
 -- | Pretty instance for variable patterns.
 instance Pretty VarPat where
   pretty (VarPat _ varName Nothing) = pretty varName
   pretty (VarPat _ varName (Just varType)) =
     parens (pretty varName <+> colon <> colon <+> pretty varType)
-
--------------------------------------------------------------------------------
--- Getters                                                                   --
--------------------------------------------------------------------------------
-
--- | Extracts the actual identifier from an identifier in a declaration.
-fromDeclIdent :: DeclIdent -> String
-fromDeclIdent (DeclIdent _ ident) = ident
-
--- | Extracts an identifier from a Haskell name. Returns @Nothing@ if the
---   given name is a symbol and not an identifier.
-identFromName :: Name -> Maybe String
-identFromName (Ident  ident) = Just ident
-identFromName (Symbol _    ) = Nothing
-
--- | Extracts an identifier from an unqualified Haskell name.
---
---   Returns @Nothing@ if the given name is qualified or a symbol and not an
---   identifier.
-identFromQName :: QName -> Maybe String
-identFromQName (UnQual name) = identFromName name
-identFromQName (Qual _ _   ) = Nothing
-
--- | Extracts the name of the given type variable.
-typeVarIdent :: Type -> Maybe TypeVarIdent
-typeVarIdent (TypeVar _ ident) = Just ident
-typeVarIdent _                 = Nothing
-
--- | Splits the type of a function or constructor with the given arity
---   into the argument and return types.
-splitType :: Type -> Int -> ([Maybe Type], Maybe Type)
-splitType (TypeFunc _ t1 t2) arity | arity > 0 =
-  let (argTypes, returnType) = splitType t2 (arity - 1)
-  in  (Just t1 : argTypes, returnType)
-splitType returnType _ = ([], Just returnType)
-
--------------------------------------------------------------------------------
--- Declaration identifier getters                                            --
--------------------------------------------------------------------------------
-
--- | This type class provides a getter for the name of declarations of
---   type @decl@.
-class GetDeclIdent decl where
-  getDeclIdent :: decl -> DeclIdent
-
--- | 'GetDeclIdent' instance for data type and type synonym declarations.
-instance GetDeclIdent TypeDecl where
-  getDeclIdent (DataDecl    _ declIdent _ _) = declIdent
-  getDeclIdent (TypeSynDecl _ declIdent _ _) = declIdent
-
--- | 'GetDeclIdent' instance for function declarations.
-instance GetDeclIdent FuncDecl where
-  getDeclIdent = funcDeclIdent
-
--- | Gets the names of the given declarations and concatenates them with
---   commas.
-prettyDeclIdents :: GetDeclIdent decl => [decl] -> String
-prettyDeclIdents = intercalate ", " . map fromDeclIdent . map getDeclIdent
-
--------------------------------------------------------------------------------
--- Source span getters                                                       --
--------------------------------------------------------------------------------
-
--- | This type class provides a getter for the source span of an AST node of
---   type @a@.
-class GetSrcSpan a where
-  -- | Gets the source span of the given AST node.
-  getSrcSpan :: a -> SrcSpan
-
--- | 'GetSrcSpan' instance for names of declarations.
-instance GetSrcSpan DeclIdent where
-  getSrcSpan (DeclIdent srcSpan _) = srcSpan
-
--- | 'GetSrcSpan' instance for variable patterns.
-instance GetSrcSpan VarPat where
-  getSrcSpan (VarPat srcSpan _ _) = srcSpan
-
--- | 'GetSrcSpan' instance for constructor patterns.
-instance GetSrcSpan ConPat where
-  getSrcSpan (ConPat srcSpan _) = srcSpan
-
--- | 'GetSrcSpan' instance for modules.
-instance GetSrcSpan Module where
-  getSrcSpan = modSrcSpan
-
--- | 'GetSrcSpan' instance for custom pragmas.
-instance GetSrcSpan Pragma where
-  getSrcSpan (DecArgPragma srcSpan _ _) = srcSpan
-
--- | 'GetSrcSpan' instance for data type and type synonym declarations.
-instance GetSrcSpan TypeDecl where
-  getSrcSpan (DataDecl srcSpan _ _ _)    = srcSpan
-  getSrcSpan (TypeSynDecl srcSpan _ _ _) = srcSpan
-
--- | 'GetSrcSpan' instance for function declarations.
-instance GetSrcSpan FuncDecl where
-  getSrcSpan = funcDeclSrcSpan
-
--- | 'GetSrcSpan' instance for type signatures.
-instance GetSrcSpan TypeSig where
-  getSrcSpan (TypeSig srcSpan _ _  ) = srcSpan
-
--- | 'GetSrcSpan' instance for import declarations.
-instance GetSrcSpan ImportDecl where
-  getSrcSpan (ImportDecl srcSpan _) = srcSpan
-
--- | 'GetSrcSpan' instance for constructor declarations.
-instance GetSrcSpan ConDecl where
-  getSrcSpan (ConDecl srcSpan _ _) = srcSpan
-
--- | 'GetSrcSpan' instance for type expressions.
-instance GetSrcSpan Type where
-  getSrcSpan (TypeVar  srcSpan _  ) = srcSpan
-  getSrcSpan (TypeCon  srcSpan _  ) = srcSpan
-  getSrcSpan (TypeApp  srcSpan _ _) = srcSpan
-  getSrcSpan (TypeFunc srcSpan _ _) = srcSpan
-
--- | 'GetSrcSpan' instance for type schemas.
-instance GetSrcSpan TypeSchema where
-  getSrcSpan (TypeSchema srcSpan _ _) = srcSpan
-
--- | 'GetSrcSpan' instance for expressions.
-instance GetSrcSpan Expr where
-  getSrcSpan (Con         srcSpan _    ) = srcSpan
-  getSrcSpan (Var         srcSpan _    ) = srcSpan
-  getSrcSpan (App         srcSpan _ _  ) = srcSpan
-  getSrcSpan (TypeAppExpr srcSpan _ _  ) = srcSpan
-  getSrcSpan (If          srcSpan _ _ _) = srcSpan
-  getSrcSpan (Case        srcSpan _ _  ) = srcSpan
-  getSrcSpan (Undefined   srcSpan      ) = srcSpan
-  getSrcSpan (ErrorExpr   srcSpan _    ) = srcSpan
-  getSrcSpan (IntLiteral  srcSpan _    ) = srcSpan
-  getSrcSpan (Lambda      srcSpan _ _  ) = srcSpan
-  getSrcSpan (ExprTypeSig srcSpan _ _  ) = srcSpan
-
--- | 'GetSrcSpan' instance for @case@-expression alternatives.
-instance GetSrcSpan Alt where
-  getSrcSpan (Alt srcSpan _ _ _) = srcSpan
-
--------------------------------------------------------------------------------
--- Smart constructors                                                        --
--------------------------------------------------------------------------------
-
--- | Creates a function type with the given argument and return types.
-funcType :: SrcSpan -> [Type] -> Type -> Type
-funcType srcSpan = flip (foldr (TypeFunc srcSpan))
-
--- | Creates a type constructor application type.
---
---   The given source span is inserted into the generated type constructor
---   and every generated type constructor application.
-typeApp
-  :: SrcSpan     -- ^ The source span to insert into generated nodes.
-  -> Type        -- ^ The partially applied type constructor.
-  -> [Type]      -- ^ The type arguments to pass to the type constructor.
-  -> Type
-typeApp srcSpan = foldl (TypeApp srcSpan)
-
--- | Creates a type constructor application type for the constructor with
---   the given name.
---
---   The given source span is inserted into the generated type constructor
---   and every generated type constructor application.
-typeConApp
-  :: SrcSpan     -- ^ The source span to insert into generated nodes.
-  -> TypeConName -- ^ The name of the type constructor to apply.
-  -> [Type]      -- ^ The type arguments to pass to the type constructor.
-  -> Type
-typeConApp srcSpan = typeApp srcSpan . TypeCon srcSpan
-
--- | Creates an expression for applying the given expression to the provided
---   arguments.
---
---   The given source span is inserted into the generated function application
---   expressions.
-app :: SrcSpan -> Expr -> [Expr] -> Expr
-app = foldl . App
-
--- | Creates an expression for applying the function with the given name.
---
---   The given source span is inserted into the generated function reference
---   and every generated function application.
-varApp
-  :: SrcSpan -- ^ The source span to insert into generated nodes.
-  -> VarName -- ^ The name of the function to apply.
-  -> [Expr]  -- ^ The arguments to pass to the function.
-  -> Expr
-varApp srcSpan = app srcSpan . Var srcSpan
-
--- | Creates a data constructor application expression.
---
---   The given source span is inserted into the generated constructor reference
---   and every generated constructor application.
-conApp
-  :: SrcSpan -- ^ The source span to insert into generated nodes.
-  -> ConName -- ^ The name of the constructor to apply.
-  -> [Expr]  -- ^ The arguments to pass to the constructor.
-  -> Expr
-conApp srcSpan = app srcSpan . Con srcSpan
-
--- | Creates an expression for passing the type arguments of a function or
---   constructor explicitly.
---
---   The given source span is inserted into every generated visible type
---   application node.
-visibleTypeApp :: SrcSpan -> Expr -> [Type] -> Expr
-visibleTypeApp = foldl . TypeAppExpr
 
 -------------------------------------------------------------------------------
 -- Names of predefined modules                                               --
@@ -854,23 +866,12 @@ integerTypeConName :: TypeConName
 integerTypeConName = Qual preludeModuleName (Ident "Integer")
 
 -- | When translating @if@ expressions, we annotate the type of the condition
---   with @Bool@. Because we do not support qualified identifiers we
---   need to use this special symbol to prevent the user from shadowing
---   @Bool@ accidentaly with a custom function or local variable.
+--   with @Bool@.
 boolTypeConName :: TypeConName
 boolTypeConName = Qual preludeModuleName (Ident "Bool")
 
--- | When translating boolean expressions in QuickCheck properties, we have to
---   generate a check whether the result is @True@. Because we do not support
---   qualified identifiers we need to use this special symbol to prevent the
---   user from shadowing @True@ accidentaly with a custom constructor.
-trueConName :: ConName
-trueConName = Qual preludeModuleName (Ident "True")
-
 -- | The unary prefix operator @-@ is translated to the application of the
---   @negate@ function. Because we do not support qualified identifiers we
---   need to use this special symbol to prevent the user from shadowing
---   @negate@ accidentaly with a custom function or local variable.
+--   @negate@ function.
 negateOpName :: VarName
 negateOpName = Qual preludeModuleName (Ident "negate")
 

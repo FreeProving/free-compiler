@@ -223,18 +223,17 @@ instance Aeson.FromJSON ModuleInterface where
       haskellType  <- obj .: "haskell-type"
       coqName      <- obj .: "coq-name"
       coqSmartName <- obj .: "coq-smart-name"
-      let (argTypes, returnType) = HS.splitType haskellType arity
+      let (argTypes, returnType) = HS.splitFuncType haskellType arity
       return ConEntry
         { entrySrcSpan    = NoSrcSpan
         , entryArity      = arity
-        , entryTypeArgs   = maybe []
-                                  (catMaybes . map HS.identFromQName . typeVars)
-                                  returnType
-        , entryArgTypes   = argTypes
-        , entryReturnType = returnType
+        , entryTypeArgs   = catMaybes
+          (map HS.identFromQName (typeVars returnType))
+        , entryArgTypes   = map Just argTypes
+        , entryReturnType = Just returnType
         , entryIdent      = coqName
         , entrySmartIdent = coqSmartName
-        , entryName = haskellName
+        , entryName       = haskellName
         }
 
     parseConfigFunc :: Aeson.Value -> Aeson.Parser EnvEntry
@@ -245,14 +244,14 @@ instance Aeson.FromJSON ModuleInterface where
       partial        <- obj .: "partial"
       freeArgsNeeded <- obj .: "needs-free-args"
       coqName        <- obj .: "coq-name"
-      let (argTypes, returnType) = HS.splitType haskellType arity
+      let (argTypes, returnType) = HS.splitFuncType haskellType arity
           typeArgs = catMaybes $ map HS.identFromQName $ typeVars haskellType
       return FuncEntry
         { entrySrcSpan       = NoSrcSpan
         , entryArity         = arity
         , entryTypeArgs      = typeArgs
-        , entryArgTypes      = argTypes
-        , entryReturnType    = returnType
+        , entryArgTypes      = map Just argTypes
+        , entryReturnType    = Just returnType
         , entryNeedsFreeArgs = freeArgsNeeded
         , entryIsPartial     = partial
         , entryIdent         = coqName

@@ -168,7 +168,7 @@ funcDeclEntry
   -> DGEntry HS.FuncDecl
 funcDeclEntry modName decl =
   ( decl
-  , HS.UnQual (HS.Ident (HS.fromDeclIdent (HS.funcDeclIdent decl)))
+  , HS.funcDeclQName decl
   , Set.toList $ Set.map (unqualify modName) (funcDeclDependencySet decl)
   )
 

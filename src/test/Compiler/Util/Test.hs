@@ -66,7 +66,7 @@ instance Arbitrary HS.Type where
       return (HS.typeConApp NoSrcSpan name args)
 
     arbitraryFuncType :: Gen HS.Type
-    arbitraryFuncType = HS.TypeFunc NoSrcSpan <$> arbitrary <*> arbitrary
+    arbitraryFuncType = HS.FuncType NoSrcSpan <$> arbitrary <*> arbitrary
 
 -------------------------------------------------------------------------------
 -- Evaluation of converters and reporters                                    --
@@ -288,15 +288,13 @@ defineTestTypeVar ident = renameAndAddTestEntry TypeVarEntry
 defineTestCon :: String -> Int -> String -> Converter (String, String)
 defineTestCon ident arity typeStr = do
   typeExpr <- parseTestType typeStr
-  let (argTypes, returnType) = HS.splitType typeExpr arity
+  let (argTypes, returnType) = HS.splitFuncType typeExpr arity
   entry <- renameAndAddEntry ConEntry
     { entrySrcSpan    = NoSrcSpan
     , entryArity      = arity
-    , entryTypeArgs   = maybe []
-                              (catMaybes . map HS.identFromQName . typeVars)
-                              returnType
-    , entryArgTypes   = argTypes
-    , entryReturnType = returnType
+    , entryTypeArgs   = catMaybes (map HS.identFromQName (typeVars returnType))
+    , entryArgTypes   = map Just argTypes
+    , entryReturnType = Just returnType
     , entryName       = HS.UnQual (HS.Ident ident)
     , entryIdent      = undefined -- filled by renamer
     , entrySmartIdent = undefined -- filled by renamer
@@ -328,13 +326,13 @@ defineTestFunc = defineTestFunc' False
 defineTestFunc' :: Bool -> String -> Int -> String -> Converter String
 defineTestFunc' partial ident arity typeStr = do
   HS.TypeSchema _ typeArgs typeExpr <- parseTestTypeSchema typeStr
-  let (argTypes, returnType) = HS.splitType typeExpr arity
+  let (argTypes, returnType) = HS.splitFuncType typeExpr arity
   renameAndAddTestEntry FuncEntry
     { entrySrcSpan       = NoSrcSpan
     , entryArity         = arity
     , entryTypeArgs      = map HS.fromDeclIdent typeArgs
-    , entryArgTypes      = argTypes
-    , entryReturnType    = returnType
+    , entryArgTypes      = map Just argTypes
+    , entryReturnType    = Just returnType
     , entryNeedsFreeArgs = True
     , entryIsPartial     = partial
     , entryName          = HS.UnQual (HS.Ident ident)

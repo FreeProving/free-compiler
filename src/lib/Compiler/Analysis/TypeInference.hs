@@ -301,7 +301,7 @@ addTypeSigsToFuncDecls typeSigs funcDecls = do
   addTypeSigToFuncDecl :: HS.FuncDecl -> Converter HS.FuncDecl
   addTypeSigToFuncDecl funcDecl = do
     let ident = HS.fromDeclIdent (HS.funcDeclIdent funcDecl)
-        name  = HS.UnQual (HS.funcDeclName funcDecl)
+        name  = HS.funcDeclQName funcDecl
         args  = HS.funcDeclArgs funcDecl
     case Map.lookup ident typeSigMap of
       Nothing -> return funcDecl
@@ -321,7 +321,8 @@ addTypeSigsToFuncDecls typeSigs funcDecls = do
           $  "Duplicate type signatures for '"
           ++ ident
           ++ "' at "
-          ++ intercalate ", " (map (showPretty . HS.getSrcSpan) typeSchemas)
+          ++ intercalate ", "
+                         (map (showPretty . HS.typeSchemaSrcSpan) typeSchemas)
 
 -- | Splits the annotated type of a Haskell function with the given arguments
 --   into its argument and return types.
@@ -336,7 +337,7 @@ splitFuncType name = splitFuncType'
  where
   splitFuncType' :: [HS.VarPat] -> HS.Type -> Converter ([HS.Type], HS.Type)
   splitFuncType' []         typeExpr              = return ([], typeExpr)
-  splitFuncType' (_ : args) (HS.TypeFunc _ t1 t2) = do
+  splitFuncType' (_ : args) (HS.FuncType _ t1 t2) = do
     (argTypes, returnType) <- splitFuncType' args t2
     return (t1 : argTypes, returnType)
   splitFuncType' args@(arg : _) typeExpr = do
@@ -345,9 +346,9 @@ splitFuncType name = splitFuncType'
       then splitFuncType' args typeExpr'
       else
         reportFatal
-        $  Message (HS.getSrcSpan arg) Error
+        $  Message (HS.varPatSrcSpan arg) Error
         $  "Could not determine type of argument '"
-        ++ HS.fromVarPat arg
+        ++ HS.varPatIdent arg
         ++ "' for function '"
         ++ showPretty name
         ++ "'."
@@ -556,7 +557,7 @@ annotateVarPat (HS.VarPat srcSpan ident maybeVarType) = do
 annotateWithTypeSig :: HS.Expr -> Converter HS.Expr
 annotateWithTypeSig expr = do
   typeVar <- freshTypeVar
-  let srcSpan = HS.getSrcSpan expr
+  let srcSpan = HS.exprSrcSpan expr
   return (HS.ExprTypeSig srcSpan expr (HS.TypeSchema srcSpan [] typeVar))
 
 -- | Adds fresh type variables to variable patterns in the given expression
@@ -633,7 +634,7 @@ applyVisibly name expr typeExpr = do
   case maybeTypeSchema of
     Nothing         -> return expr
     Just typeSchema -> do
-      let srcSpan = HS.getSrcSpan expr
+      let srcSpan = HS.exprSrcSpan expr
       (typeExpr', typeArgs) <- liftConverter $ instantiateTypeSchema' typeSchema
       mgu <- liftConverter $ unifyOrFail srcSpan typeExpr typeExpr'
       fixed                 <- lookupFixedTypeArgs name
@@ -855,7 +856,7 @@ simplifyTypedExpr (HS.Var srcSpan varName) resType =
 -- type variable.
 simplifyTypedExpr (HS.App _ e1 e2) resType = do
   argType <- liftConverter freshTypeVar
-  simplifyTypedExpr e1 (HS.TypeFunc NoSrcSpan argType resType)
+  simplifyTypedExpr e1 (HS.FuncType NoSrcSpan argType resType)
   simplifyTypedExpr e2 argType
 
 -- There should be no visible type applications prior to type inference.

@@ -123,7 +123,7 @@ encodeEntry entry
   maybeHaskellType = do
     returnType <- entryReturnType entry
     argTypes   <- mapM id (entryArgTypes entry)
-    let funcType = foldr (HS.TypeFunc NoSrcSpan) returnType argTypes
+    let funcType = foldr (HS.FuncType NoSrcSpan) returnType argTypes
     return (Aeson.toJSON funcType)
 
   typeSyn :: Aeson.Value

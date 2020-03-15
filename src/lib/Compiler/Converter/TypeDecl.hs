@@ -23,6 +23,7 @@ import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Haskell.Inliner
 import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
+import           Compiler.Pretty
 
 -------------------------------------------------------------------------------
 -- Strongly connected components                                             --
@@ -66,9 +67,9 @@ fromNonRecursive :: DependencyComponent HS.TypeDecl -> Converter HS.TypeDecl
 fromNonRecursive (NonRecursive decl) = return decl
 fromNonRecursive (Recursive decls) =
   reportFatal
-    $  Message (HS.getSrcSpan (head decls)) Error
+    $  Message (HS.typeDeclSrcSpan (head decls)) Error
     $  "Type synonym declarations form a cycle: "
-    ++ HS.prettyDeclIdents decls
+    ++ showPretty (map HS.typeDeclIdent decls)
 
 -------------------------------------------------------------------------------
 -- Type declarations                                                         --
@@ -175,7 +176,10 @@ convertDataDecls dataDecls = do
   mapM_ defineTypeDecl dataDecls
   (indBodies, extraSentences) <- mapAndUnzipM convertDataDecl dataDecls
   return
-    ( G.comment ("Data type declarations for " ++ HS.prettyDeclIdents dataDecls)
+    ( G.comment
+        (  "Data type declarations for "
+        ++ showPretty (map HS.typeDeclIdent dataDecls)
+        )
     : G.InductiveSentence (G.Inductive (NonEmpty.fromList indBodies) [])
     : concat extraSentences
     )

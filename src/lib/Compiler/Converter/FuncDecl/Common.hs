@@ -37,7 +37,7 @@ defineFuncDecl decl = do
     , entryReturnType    = HS.funcDeclReturnType decl
     , entryNeedsFreeArgs = True
     , entryIsPartial     = partial
-    , entryName          = HS.UnQual (HS.funcDeclName decl)
+    , entryName          = HS.funcDeclQName decl
     , entryIdent         = undefined -- filled by renamer
     }
   return ()

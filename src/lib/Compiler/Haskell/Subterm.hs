@@ -124,7 +124,7 @@ instance Subterm HS.Type where
   childTerms (TypeVar _ _) = []
   childTerms (TypeCon _ _ ) = []
   childTerms (TypeApp _ t1 t2   ) = [t1, t2]
-  childTerms (TypeFunc _ t1 t2  ) = [t1, t2]
+  childTerms (FuncType _ t1 t2  ) = [t1, t2]
 
   -- | Replaces all direct child type expression nodes of the given type
   --   expression.
@@ -132,8 +132,8 @@ instance Subterm HS.Type where
   replaceChildTerms typeExpr@(TypeCon _ _) = nullary typeExpr
   replaceChildTerms (TypeApp srcSpan _ _) =
     checkArity 2 $ \[t1', t2'] -> TypeApp srcSpan t1' t2'
-  replaceChildTerms (TypeFunc srcSpan _ _) =
-    checkArity 2 $ \[t1', t2'] -> TypeFunc srcSpan t1' t2'
+  replaceChildTerms (FuncType srcSpan _ _) =
+    checkArity 2 $ \[t1', t2'] -> FuncType srcSpan t1' t2'
 
 -------------------------------------------------------------------------------
 -- Positions                                                                 --
