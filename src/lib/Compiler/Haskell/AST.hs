@@ -180,10 +180,10 @@ data Comment
 
 -- | Pretty instance for comments.
 instance Pretty Comment where
-  pretty (BlockComment _ text) =
-    prettyString "{-" <> prettyString text <> prettyString "-}"
-  pretty (LineComment _ text) =
-    prettyString "--" <> prettyString text
+  pretty (BlockComment _ str) =
+    prettyString "{-" <> prettyString str <> prettyString "-}"
+  pretty (LineComment _ str) =
+    prettyString "--" <> prettyString str
 
 -------------------------------------------------------------------------------
 -- Pragmas                                                                   --
