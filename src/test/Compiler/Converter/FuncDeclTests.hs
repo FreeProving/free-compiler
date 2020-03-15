@@ -346,7 +346,8 @@ testConvertRecFuncDeclsWithHelpers =
               ]
             $  "(* Helper functions for foo *) "
             ++ "Fixpoint foo_0 (Shape : Type) (Pos : Shape -> Type) {a : Type}"
-            ++ "  (xs : List Shape Pos a) y {struct xs}"
+            ++ "  (xs : List Shape Pos a)"
+            ++ "  (y : Free Shape Pos a) {struct xs}"
             ++ " := match xs with"
             ++ "    | nil => @Nil Shape Pos a"
             ++ "    | cons x xs' => @Cons Shape Pos a y (@bar Shape Pos a"
@@ -433,7 +434,9 @@ testConvertRecFuncDeclsWithHelpers =
               ]
             $  "(* Helper functions for take *) "
             ++ "Fixpoint take_0 (Shape : Type) (Pos : Shape -> Type)"
-            ++ "  {a : Type} n (xs : List Shape Pos a) {struct xs}"
+            ++ "  {a : Type}"
+            ++ "  (n : Free Shape Pos (Integer Shape Pos))"
+            ++ "  (xs : List Shape Pos a) {struct xs}"
             ++ " := match xs with"
             ++ "    | nil => @Nil Shape Pos a"
             ++ "    | cons x xs' =>"

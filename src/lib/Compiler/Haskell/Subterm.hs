@@ -21,6 +21,7 @@ module Compiler.Haskell.Subterm
   , findSubterms
     -- * Bound variables
   , boundVarsAt
+  , boundVarsWithTypeAt
   , usedVarsAt
   )
 where
@@ -30,8 +31,11 @@ import           Data.List                      ( intersperse
                                                 , isPrefixOf
                                                 )
 import           Data.Maybe                     ( fromJust )
+import           Data.Map.Strict                ( Map )
+import qualified Data.Map.Strict               as Map
 import           Data.Set                       ( Set )
 import qualified Data.Set                      as Set
+import           Data.Tuple.Extra               ( (&&&) )
 
 import           Compiler.Analysis.DependencyExtraction
 import           Compiler.Haskell.AST          as HS
@@ -265,29 +269,38 @@ findSubterms predicate term =
 --
 --   Returns the empty set if the position is invalid.
 boundVarsAt :: HS.Expr -> Pos -> Set HS.QName
-boundVarsAt = maybe Set.empty id .: boundVarsAt'
+boundVarsAt = Map.keysSet .: boundVarsWithTypeAt
+
+-- | Like 'boundVarsAt' but also returns the annotated type of then
+--   variable pattern.
+--
+--   Returns an empty map if the position is invalid.
+boundVarsWithTypeAt :: HS.Expr -> Pos -> Map HS.QName (Maybe HS.Type)
+boundVarsWithTypeAt = maybe Map.empty id .: boundVarsWithTypeAt'
  where
-  boundVarsAt' :: HS.Expr -> Pos -> Maybe (Set HS.QName)
-  boundVarsAt' _    (Pos []      ) = return Set.empty
-  boundVarsAt' expr (Pos (p : ps)) = do
+  -- | Like 'boundVarsWithTypeAt' but returns @Nothing@ if the given position
+  --   is invalid.
+  boundVarsWithTypeAt' :: HS.Expr -> Pos -> Maybe (Map HS.QName (Maybe HS.Type))
+  boundVarsWithTypeAt' _    (Pos []      ) = return Map.empty
+  boundVarsWithTypeAt' expr (Pos (p : ps)) = do
     child <- selectSubterm expr (Pos [p])
-    bvars <- boundVarsAt' child (Pos ps)
+    bvars <- boundVarsWithTypeAt' child (Pos ps)
     case expr of
       (HS.Case _ _ alts) | p > 1 -> do
-        let altVars = altBoundVars (alts !! (p - 2))
-        return (bvars `Set.union` altVars)
-      (HS.Lambda _ args _) -> return (bvars `Set.union` fromVarPats args)
+        let altVars = altBoundVarsWithType (alts !! (p - 2))
+        return (bvars `Map.union` altVars)
+      (HS.Lambda _ args _) -> return (bvars `Map.union` fromVarPats args)
       _                    -> return bvars
 
   -- | Gets the names of variables bound by the variable patterns of the given
   --   @case@-expression alternative.
-  altBoundVars :: HS.Alt -> Set HS.QName
-  altBoundVars (HS.Alt _ _ varPats _) = fromVarPats varPats
+  altBoundVarsWithType :: HS.Alt -> Map HS.QName (Maybe HS.Type)
+  altBoundVarsWithType (HS.Alt _ _ varPats _) = fromVarPats varPats
 
   -- | Converts a list of variable patterns to a set of variable names bound
   --   by these patterns.
-  fromVarPats :: [HS.VarPat] -> Set HS.QName
-  fromVarPats = Set.fromList . map (HS.UnQual . HS.Ident . HS.fromVarPat)
+  fromVarPats :: [HS.VarPat] -> Map HS.QName (Maybe HS.Type)
+  fromVarPats = Map.fromList . map (HS.varPatQName &&& HS.varPatType)
 
 -- | Gets the names of variables that are used by the subterm t the given
 --   position.

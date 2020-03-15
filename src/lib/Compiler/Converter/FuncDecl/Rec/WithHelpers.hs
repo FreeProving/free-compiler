@@ -9,15 +9,15 @@ module Compiler.Converter.FuncDecl.Rec.WithHelpers
   )
 where
 
-import           Control.Monad                  ( mapAndUnzipM )
+import           Control.Monad                  ( mapAndUnzipM
+                                                , join
+                                                )
 import           Data.List                      ( delete
                                                 , elemIndex
                                                 )
 import qualified Data.List.NonEmpty            as NonEmpty
 import qualified Data.Map.Strict               as Map
-import           Data.Maybe                     ( fromJust
-                                                , maybeToList
-                                                )
+import           Data.Maybe                     ( fromJust )
 import qualified Data.Set                      as Set
 
 import           Compiler.Analysis.RecursionAnalysis
@@ -143,29 +143,28 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent typeArgs args expr maybeRetT
 
     -- Pass used variables as additional arguments to the helper function
     -- but don't pass shadowed arguments to helper functions.
-    let nonArgVars     = boundVarsAt expr caseExprPos
-        boundVars      = nonArgVars `Set.union` Set.fromList argNames
+    let boundVarTypeMap = boundVarsWithTypeAt expr caseExprPos
+        boundVars =
+          Map.keysSet boundVarTypeMap `Set.union` Set.fromList argNames
         usedVars       = usedVarsAt expr caseExprPos
         helperArgNames = Set.toList (usedVars `Set.intersection` boundVars)
 
     -- Determine the type of helper arguments.
-    let maybeArgTypes = map HS.varPatType args
-        argTypeMap    = Map.fromList
-          [ (argName, argType)
-          | (argName, maybeArgType) <- zip argNames maybeArgTypes
-          , argName `Set.notMember` nonArgVars
-          , argType <- maybeToList maybeArgType
-          ]
-        helperArgTypes = map (`Map.lookup` argTypeMap) helperArgNames
-        helperArgs     = zipWith
-          (HS.VarPat NoSrcSpan . fromJust . HS.identFromQName)
-          helperArgNames
-          helperArgTypes
+    let
+      argTypes         = map HS.varPatType args
+      argTypeMap       = Map.fromList (zip argNames argTypes)
+      helperArgTypeMap = boundVarTypeMap `Map.union` argTypeMap
+      helperArgTypes =
+        map (join . (`Map.lookup` helperArgTypeMap)) helperArgNames
+      helperArgs = zipWith
+        (HS.VarPat NoSrcSpan . fromJust . HS.identFromQName)
+        helperArgNames
+        helperArgTypes
 
     -- Register the helper function to the environment.
-    -- The types of the original parameters are known, but we neither know the
-    -- type of the additional parameters nor the return type of the helper
-    -- function.
+    -- Even though we know the type of the original and additional arguments
+    -- the return type is unknown since @case@ the right-hand side of @case@
+    -- expressions is not annotated.
     -- If the original function was partial, the helper function is partial as
     -- well.
     freeArgsNeeded <- inEnv $ needsFreeArgs name
