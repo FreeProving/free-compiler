@@ -565,62 +565,74 @@ data Expr
   = -- | A constructor.
     Con { exprSrcSpan :: SrcSpan
         , exprConName :: ConName
+        , exprType    :: Maybe Type
         }
 
   | -- | A function or local variable.
     Var { exprSrcSpan :: SrcSpan
         , exprVarName :: VarName
+        , exprType    :: Maybe Type
         }
 
   | -- | Function or constructor application.
     App { exprSrcSpan :: SrcSpan
-        , exprAppLhr :: Expr
-        , exprAppRhs :: Expr
+        , exprAppLhr  :: Expr
+        , exprAppRhs  :: Expr
+        , exprType    :: Maybe Type
         }
 
   | -- | Visible type application.
-    TypeAppExpr { exprSrcSpan :: SrcSpan
+    TypeAppExpr { exprSrcSpan    :: SrcSpan
                 , exprTypeAppLhs :: Expr
                 , exprTypeAppRhs :: Type
+                , exprType       :: Maybe Type
                 }
 
   | -- | @if@ expression.
     If { exprSrcSpan :: SrcSpan
-       , ifExprCond :: Expr
-       , ifExprThen :: Expr
-       , ifExprElse :: Expr
+       , ifExprCond  :: Expr
+       , ifExprThen  :: Expr
+       , ifExprElse  :: Expr
+       , exprType    :: Maybe Type
        }
 
   | -- | @case@ expression.
-    Case { exprSrcSpan :: SrcSpan
+    Case { exprSrcSpan       :: SrcSpan
          , caseExprScrutinee :: Expr
-         , caseExprAlts :: [Alt]
+         , caseExprAlts      :: [Alt]
+         , exprType          :: Maybe Type
          }
 
   | -- | Error term @undefined@.
-    Undefined { exprSrcSpan :: SrcSpan }
+    Undefined { exprSrcSpan :: SrcSpan
+              , exprType    :: Maybe Type
+              }
 
   | -- | Error term @error "<message>"@.
-    ErrorExpr { exprSrcSpan :: SrcSpan
+    ErrorExpr { exprSrcSpan  :: SrcSpan
               , errorExprMsg :: String
+              , exprType     :: Maybe Type
               }
 
   | -- | An integer literal.
-    IntLiteral { exprSrcSpan :: SrcSpan
+    IntLiteral { exprSrcSpan     :: SrcSpan
                , intLiteralValue :: Integer
+               , exprType        :: Maybe Type
                }
 
   | -- | A lambda abstraction.
-    Lambda { exprSrcSpan :: SrcSpan
+    Lambda { exprSrcSpan    :: SrcSpan
            , lambdaExprArgs :: [VarPat]
-           , lambdaEprRhs :: Expr
+           , lambdaEprRhs   :: Expr
+           , exprType       :: Maybe Type
            }
 
   | -- | A type annotation.
     ExprTypeSig
-      { exprSrcSpan :: SrcSpan
-      , exprTypeSigExpr :: Expr
+      { exprSrcSpan           :: SrcSpan
+      , exprTypeSigExpr       :: Expr
       , exprTypeSigTypeSchema :: TypeSchema
+      , exprType              :: Maybe Type
       }
  deriving (Eq, Show)
 
