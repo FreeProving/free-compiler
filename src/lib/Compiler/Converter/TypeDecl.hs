@@ -103,10 +103,9 @@ defineTypeDecl (HS.DataDecl srcSpan declIdent typeVarDecls conDecls) = do
 
   -- | The type produced by all constructors of the data type.
   returnType :: HS.Type
-  returnType = HS.typeConApp
-    srcSpan
-    (HS.UnQual (HS.Ident ident))
-    (map (HS.TypeVar srcSpan . HS.fromDeclIdent) typeVarDecls)
+  returnType = HS.typeConApp srcSpan
+                             (HS.UnQual (HS.Ident ident))
+                             (map HS.typeVarDeclToType typeVarDecls)
 
   -- | Inserts the given data constructor declaration and its smart constructor
   --   into the current environment.
@@ -135,11 +134,10 @@ isTypeSynDecl (HS.DataDecl    _ _ _ _) = False
 
 -- | Converts a Haskell type synonym declaration to Coq.
 convertTypeSynDecl :: HS.TypeDecl -> Converter [G.Sentence]
-convertTypeSynDecl decl@(HS.TypeSynDecl _ declIdent typeVarDecls typeExpr) = do
+convertTypeSynDecl decl@(HS.TypeSynDecl _ _ typeVarDecls typeExpr) = do
   defineTypeDecl decl
   localEnv $ do
-    let ident = HS.fromDeclIdent declIdent
-        name  = HS.UnQual (HS.Ident ident)
+    let name = HS.typeDeclQName decl
     Just qualid   <- inEnv $ lookupIdent TypeScope name
     typeVarDecls' <- convertTypeVarDecls G.Explicit typeVarDecls
     typeExpr'     <- convertType' typeExpr

@@ -77,7 +77,7 @@ instance Subterm HS.Expr where
   childTerms (HS.App         _ e1   e2  ) = [e1, e2]
   childTerms (HS.TypeAppExpr _ expr _   ) = [expr]
   childTerms (HS.If _ e1 e2 e3          ) = [e1, e2, e3]
-  childTerms (HS.Case        _ expr alts) = expr : map altChildExpr alts
+  childTerms (HS.Case        _ expr alts) = expr : map HS.altRhs alts
   childTerms (HS.Lambda      _ _    expr) = [expr]
   childTerms (HS.ExprTypeSig _ expr _   ) = [expr]
   childTerms (HS.Con _ _                ) = []
@@ -89,33 +89,33 @@ instance Subterm HS.Expr where
   -- | Replaces all direct child expression nodes of the given expression.
   replaceChildTerms (HS.App srcSpan _ _) =
     checkArity 2 $ \[e1', e2'] -> HS.App srcSpan e1' e2'
+
   replaceChildTerms (HS.TypeAppExpr srcSpan _ typeExpr) =
     checkArity 1 $ \[expr'] -> HS.TypeAppExpr srcSpan expr' typeExpr
+
   replaceChildTerms (HS.If srcSpan _ _ _) =
     checkArity 3 $ \[e1', e2', e3'] -> HS.If srcSpan e1' e2' e3'
+
   replaceChildTerms (HS.Case srcSpan _ alts) =
     checkArity (length alts + 1) $ \(expr' : altChildren') ->
       HS.Case srcSpan expr' (zipWith replaceAltChildExpr alts altChildren')
+   where
+     -- | Replaces the expression on the right hand side of the given
+     --   @case@-expression alternative.
+     replaceAltChildExpr :: HS.Alt -> HS.Expr -> HS.Alt
+     replaceAltChildExpr alt rhs' = alt { HS.altRhs = rhs' }
+
   replaceChildTerms (HS.Lambda srcSpan args _) =
     checkArity 1 $ \[expr'] -> HS.Lambda srcSpan args expr'
+
   replaceChildTerms (HS.ExprTypeSig srcSpan _ typeExpr) =
     checkArity 1 $ \[expr'] -> HS.ExprTypeSig srcSpan expr' typeExpr
+
   replaceChildTerms expr@(HS.Con _ _       ) = nullary expr
   replaceChildTerms expr@(HS.Var _ _       ) = nullary expr
   replaceChildTerms expr@(HS.Undefined _   ) = nullary expr
   replaceChildTerms expr@(HS.ErrorExpr  _ _) = nullary expr
   replaceChildTerms expr@(HS.IntLiteral _ _) = nullary expr
-
--- | Gets the expression on the right hand side of the given @case@-expression
---   alternative.
-altChildExpr :: HS.Alt -> HS.Expr
-altChildExpr (HS.Alt _ _ _ expr) = expr
-
--- | Replaces the expression on the right hand side of the given
---   @case@-expression alternative.
-replaceAltChildExpr :: HS.Alt -> HS.Expr -> HS.Alt
-replaceAltChildExpr (HS.Alt srcSpan varPat conPat _) expr' =
-  HS.Alt srcSpan varPat conPat expr'
 
 -- | Type expressions have subterms.
 instance Subterm HS.Type where

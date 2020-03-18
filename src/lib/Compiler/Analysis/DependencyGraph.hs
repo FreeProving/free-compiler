@@ -135,14 +135,9 @@ typeDeclEntry
   :: HS.ModName  -- ^ The name of the module that contains the declaration.
   -> HS.TypeDecl -- ^ The declaration to create an entry for.
   -> DGEntry HS.TypeDecl
-typeDeclEntry modName decl@(HS.TypeSynDecl _ (HS.DeclIdent _ ident) _ _) =
+typeDeclEntry modName decl =
   ( decl
-  , HS.UnQual (HS.Ident ident)
-  , Set.toList $ Set.map (unqualify modName) (typeDeclDependencySet decl)
-  )
-typeDeclEntry modName decl@(HS.DataDecl _ (HS.DeclIdent _ ident) _ _) =
-  ( decl
-  , HS.UnQual (HS.Ident ident)
+  , HS.typeDeclQName decl
   , Set.toList $ Set.map (unqualify modName) (typeDeclDependencySet decl)
   )
 

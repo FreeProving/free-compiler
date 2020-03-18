@@ -292,8 +292,8 @@ conDeclDependencies (HS.ConDecl _ _ types) =
 --   of dependency names.
 withoutTypeArgs
   :: [HS.TypeVarDecl] -> OSet DependencyName -> OSet DependencyName
-withoutTypeArgs args set = set \\ OSet.fromList
-  (map (VarName . HS.UnQual . HS.Ident . HS.fromDeclIdent) args)
+withoutTypeArgs args set =
+  set \\ OSet.fromList (map (VarName . HS.typeVarDeclQName) args)
 
 -------------------------------------------------------------------------------
 -- Function declarations                                                     --
