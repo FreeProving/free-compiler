@@ -654,6 +654,27 @@ data Expr
       }
  deriving (Eq, Show)
 
+-- | Smart constructor for 'Con' without the last argument.
+untypedCon :: SrcSpan -> ConName -> Expr
+untypedCon srcSpan conName = Con srcSpan conName Nothing
+
+-- | Smart constructor for 'Var' without the last argument.
+untypedVar :: SrcSpan -> ConName -> Expr
+untypedVar srcSpan varName = Var srcSpan varName Nothing
+
+-- | Smart constructor for 'app' without the last argument.
+--
+--   The type annotation is inferred from the callee's type annotation.
+--   If it is annotated with a function type, the  created expression
+--   is annotated with the function type's result type.
+untypedApp :: SrcSpan -> Expr -> Expr -> Expr
+untypedApp srcSpan e1 e2 = App srcSpan e1 e2 (exprType e1 >>= maybeFuncResType)
+ where
+  maybeFuncResType :: Type -> Maybe Type
+  maybeFuncResType (FuncType _ _ resType) = Just resType
+  maybeFuncResType _                      = Nothing
+
+
 -- | Creates an expression for applying the given expression to the provided
 --   arguments.
 --
@@ -665,12 +686,7 @@ data Expr
 --   types. If no more argument types can be split off, the types of the
 --   remaining arguments are not annotated.
 app :: SrcSpan -> Expr -> [Expr] -> Expr
-app srcSpan = foldl
-  (\e1 e2 -> App srcSpan e1 e2 (exprType e1 >>= maybeFuncResType))
- where
-  maybeFuncResType :: Type -> Maybe Type
-  maybeFuncResType (FuncType _ _ resType) = Just resType
-  maybeFuncResType _                      = Nothing
+app = foldl . untypedApp
 
 -- | Creates an expression for applying the function with the given name.
 --
@@ -684,7 +700,7 @@ varApp
   -> VarName -- ^ The name of the function to apply.
   -> [Expr]  -- ^ The arguments to pass to the function.
   -> Expr
-varApp srcSpan varName = app srcSpan (Var srcSpan varName Nothing)
+varApp srcSpan = app srcSpan . untypedVar srcSpan
 
 -- | Creates a data constructor application expression.
 --
@@ -698,7 +714,7 @@ conApp
   -> ConName -- ^ The name of the constructor to apply.
   -> [Expr]  -- ^ The arguments to pass to the constructor.
   -> Expr
-conApp srcSpan conName = app srcSpan (Con srcSpan conName Nothing)
+conApp srcSpan = app srcSpan . untypedCon srcSpan
 
 -- | Creates an expression for passing the type arguments of a function or
 --   constructor explicitly.

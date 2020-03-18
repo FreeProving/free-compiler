@@ -135,23 +135,32 @@ instance TypeDependencies HS.TypeSchema where
 -- | An expression depends on the types used in explicit type applications
 --   and type signatures.
 instance TypeDependencies HS.Expr where
-  typeDependencies' (HS.Con _ _) = OSet.empty
-  typeDependencies' (HS.Var _ _) = OSet.empty
-  typeDependencies' (HS.App _ e1 e2) =
-    typeDependencies' e1 `union` typeDependencies' e2
-  typeDependencies' (HS.TypeAppExpr _ expr typeExpr) =
-    typeDependencies' expr `union` typeDependencies' typeExpr
-  typeDependencies' (HS.If _ e1 e2 e3) =
-    unions (map typeDependencies' [e1, e2, e3])
-  typeDependencies' (HS.Case _ expr alts) =
-    typeDependencies' expr `union` typeDependencies' alts
-  typeDependencies' (HS.Undefined _    ) = OSet.empty
-  typeDependencies' (HS.ErrorExpr  _ _ ) = OSet.empty
-  typeDependencies' (HS.IntLiteral _ _ ) = OSet.empty
-  typeDependencies' (HS.Lambda _ args expr) =
-    typeDependencies' args `union` typeDependencies' expr
-  typeDependencies' (HS.ExprTypeSig _ expr typeSchema) =
-    typeDependencies' expr `union` typeDependencies' typeSchema
+  typeDependencies' (HS.Con _ _ exprType) = typeDependencies' exprType
+  typeDependencies' (HS.Var _ _ exprType) = typeDependencies' exprType
+  typeDependencies' (HS.App _ e1 e2 exprType) =
+    typeDependencies' [e1, e2] `union` typeDependencies' exprType
+  typeDependencies' (HS.TypeAppExpr _ expr typeExpr exprType) =
+    typeDependencies' expr
+      `union` typeDependencies' typeExpr
+      `union` typeDependencies' exprType
+  typeDependencies' (HS.If _ e1 e2 e3 exprType) =
+    typeDependencies' [e1, e2, e3]
+      `union` typeDependencies' exprType
+  typeDependencies' (HS.Case _ expr alts exprType) =
+    typeDependencies' expr
+      `union` typeDependencies' alts
+      `union` typeDependencies' exprType
+  typeDependencies' (HS.Undefined _ exprType   ) = typeDependencies' exprType
+  typeDependencies' (HS.ErrorExpr  _ _ exprType) = typeDependencies' exprType
+  typeDependencies' (HS.IntLiteral _ _ exprType) = typeDependencies' exprType
+  typeDependencies' (HS.Lambda _ args expr exprType) =
+    typeDependencies' args
+      `union` typeDependencies' expr
+      `union` typeDependencies' exprType
+  typeDependencies' (HS.ExprTypeSig _ expr typeSchema exprType) =
+    typeDependencies' expr
+      `union` typeDependencies' typeSchema
+      `union` typeDependencies' exprType
 
 -- | An alternative of a @case@ expression depends on the types it's
 --   right-hand side depends on.
@@ -232,21 +241,21 @@ cons = unwrapSet . OSet.filter isConName . exprDependencies'
 --   the given expression and remembers for every name whether it is the name
 --   of a variable (or function) or constructor.
 exprDependencies' :: HS.Expr -> OSet DependencyName
-exprDependencies' (HS.Var _ name) = varName name
-exprDependencies' (HS.Con _ name) = conName name
-exprDependencies' (HS.App _ e1 e2) =
+exprDependencies' (HS.Var _ name _) = varName name
+exprDependencies' (HS.Con _ name _) = conName name
+exprDependencies' (HS.App _ e1 e2 _) =
   exprDependencies' e1 `union` exprDependencies' e2
-exprDependencies' (HS.TypeAppExpr _ expr _) = exprDependencies' expr
-exprDependencies' (HS.If _ e1 e2 e3) =
+exprDependencies' (HS.TypeAppExpr _ expr _ _) = exprDependencies' expr
+exprDependencies' (HS.If _ e1 e2 e3 _) =
   unions (map exprDependencies' [e1, e2, e3])
-exprDependencies' (HS.Case _ expr alts) =
+exprDependencies' (HS.Case _ expr alts _) =
   unions (exprDependencies' expr : map altDependencies alts)
-exprDependencies' (HS.Undefined _   ) = varName HS.undefinedFuncName
-exprDependencies' (HS.ErrorExpr  _ _) = conName HS.errorFuncName
-exprDependencies' (HS.IntLiteral _ _) = OSet.empty
-exprDependencies' (HS.Lambda _ args expr) =
+exprDependencies' (HS.Undefined _ _   ) = varName HS.undefinedFuncName
+exprDependencies' (HS.ErrorExpr  _ _ _) = conName HS.errorFuncName
+exprDependencies' (HS.IntLiteral _ _ _) = OSet.empty
+exprDependencies' (HS.Lambda _ args expr _) =
   withoutArgs args (exprDependencies' expr)
-exprDependencies' (HS.ExprTypeSig _ expr _) = exprDependencies' expr
+exprDependencies' (HS.ExprTypeSig _ expr _ _) = exprDependencies' expr
 
 -- | Extracts the names of all variables, functions and constructors used in
 --   the given alternative of a @case@-expression.

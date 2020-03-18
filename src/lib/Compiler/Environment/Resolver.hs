@@ -107,44 +107,65 @@ instance ResolveTypes HS.TypeSchema where
     typeExpr' <- resolveTypesWithM f typeExpr
     return (HS.TypeSchema srcSpan typeArgs typeExpr')
 
--- | Type constructors in type signatures and visible type applications
+-- | Type constructors in type annotations and visible type applications
 --   can be resolved.
 instance ResolveTypes HS.Expr where
-  -- Resolve types in type or type schema.
-  resolveTypesWithM f (HS.TypeAppExpr srcSpan expr typeExpr) = do
+  resolveTypesWithM f (HS.Con srcSpan conName exprType) = do
+    exprType' <- mapM (resolveTypesWithM f) exprType
+    return (HS.Con srcSpan conName exprType')
+
+  resolveTypesWithM f (HS.Var srcSpan varName exprType) = do
+    exprType' <- mapM (resolveTypesWithM f) exprType
+    return (HS.Var srcSpan varName exprType')
+
+  resolveTypesWithM f (HS.App srcSpan e1 e2 exprType) = do
+    e1'       <- resolveTypesWithM f e1
+    e2'       <- resolveTypesWithM f e2
+    exprType' <- mapM (resolveTypesWithM f) exprType
+    return (HS.App srcSpan e1' e2' exprType')
+
+  resolveTypesWithM f (HS.TypeAppExpr srcSpan expr typeExpr exprType) = do
     expr'     <- resolveTypesWithM f expr
     typeExpr' <- resolveTypesWithM f typeExpr
-    return (HS.TypeAppExpr srcSpan expr' typeExpr')
-  resolveTypesWithM f (HS.ExprTypeSig srcSpan expr typeSchema) = do
+    exprType' <- mapM (resolveTypesWithM f) exprType
+    return (HS.TypeAppExpr srcSpan expr' typeExpr' exprType')
+
+  resolveTypesWithM f (HS.If srcSpan e1 e2 e3 exprType) = do
+    e1'       <- resolveTypesWithM f e1
+    e2'       <- resolveTypesWithM f e2
+    e3'       <- resolveTypesWithM f e3
+    exprType' <- mapM (resolveTypesWithM f) exprType
+    return (HS.If srcSpan e1' e2' e3' exprType')
+
+  resolveTypesWithM f (HS.Case srcSpan expr alts exprType) = do
+    expr'     <- resolveTypesWithM f expr
+    alts'     <- mapM (resolveTypesWithM f) alts
+    exprType' <- mapM (resolveTypesWithM f) exprType
+    return (HS.Case srcSpan expr' alts' exprType')
+
+  resolveTypesWithM f (HS.Undefined srcSpan exprType) = do
+    exprType' <- mapM (resolveTypesWithM f) exprType
+    return (HS.Undefined srcSpan exprType')
+
+  resolveTypesWithM f (HS.ErrorExpr srcSpan msg exprType) = do
+    exprType' <- mapM (resolveTypesWithM f) exprType
+    return (HS.ErrorExpr srcSpan msg exprType')
+
+  resolveTypesWithM f (HS.IntLiteral srcSpan value exprType) = do
+    exprType' <- mapM (resolveTypesWithM f) exprType
+    return (HS.IntLiteral srcSpan value exprType')
+
+  resolveTypesWithM f (HS.Lambda srcSpan args expr exprType) = do
+    args'     <- mapM (resolveTypesWithM f) args
+    expr'     <- resolveTypesWithM f expr
+    exprType' <- mapM (resolveTypesWithM f) exprType
+    return (HS.Lambda srcSpan args' expr' exprType')
+
+  resolveTypesWithM f (HS.ExprTypeSig srcSpan expr typeSchema exprType) = do
     expr'       <- resolveTypesWithM f expr
     typeSchema' <- resolveTypesWithM f typeSchema
-    return (HS.ExprTypeSig srcSpan expr' typeSchema')
-
-  -- Resolve types recursively.
-  resolveTypesWithM f (HS.App srcSpan e1 e2) = do
-    e1' <- resolveTypesWithM f e1
-    e2' <- resolveTypesWithM f e2
-    return (HS.App srcSpan e1' e2')
-  resolveTypesWithM f (HS.If srcSpan e1 e2 e3) = do
-    e1' <- resolveTypesWithM f e1
-    e2' <- resolveTypesWithM f e2
-    e3' <- resolveTypesWithM f e3
-    return (HS.If srcSpan e1' e2' e3')
-  resolveTypesWithM f (HS.Case srcSpan expr alts) = do
-    expr' <- resolveTypesWithM f expr
-    alts' <- mapM (resolveTypesWithM f) alts
-    return (HS.Case srcSpan expr' alts')
-  resolveTypesWithM f (HS.Lambda srcSpan args expr) = do
-    args' <- mapM (resolveTypesWithM f) args
-    expr' <- resolveTypesWithM f expr
-    return (HS.Lambda srcSpan args' expr')
-
-  -- All other expressions remain unchanged.
-  resolveTypesWithM _ expr@(HS.Con        _ _) = return expr
-  resolveTypesWithM _ expr@(HS.Var        _ _) = return expr
-  resolveTypesWithM _ expr@(HS.IntLiteral _ _) = return expr
-  resolveTypesWithM _ expr@(HS.Undefined _   ) = return expr
-  resolveTypesWithM _ expr@(HS.ErrorExpr _ _ ) = return expr
+    exprType'   <- mapM (resolveTypesWithM f) exprType
+    return (HS.ExprTypeSig srcSpan expr' typeSchema' exprType')
 
 -- | Type constructors in type signatures and visible type applications on
 --   the right-hand side of a @case@ expression alternative can be resolved.

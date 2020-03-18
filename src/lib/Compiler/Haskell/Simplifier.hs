@@ -461,7 +461,7 @@ simplifyFuncDeclName sym@(H.Symbol _ _) =
 --   function declaration. This simplification step is not necessary but leads
 --   to the generation of more readable code.
 unlambda :: HS.Expr -> ([HS.VarPat], HS.Expr)
-unlambda (HS.Lambda _ args expr) = (args ++ args', expr')
+unlambda (HS.Lambda _ args expr _) = (args ++ args', expr')
   where (args', expr') = unlambda expr
 unlambda expr = ([], expr)
 
@@ -478,7 +478,7 @@ simplifyTypeSchema :: H.Type SrcSpan -> Simplifier HS.TypeSchema
 
 -- With explicit @forall@.
 simplifyTypeSchema (H.TyForall srcSpan (Just binds) Nothing typeExpr) = do
-  typeArgs <- mapM simplifyTypeVarBind binds
+  typeArgs  <- mapM simplifyTypeVarBind binds
   typeExpr' <- simplifyType typeExpr
   return (HS.TypeSchema srcSpan typeArgs typeExpr')
 
@@ -588,10 +588,10 @@ simplifyExpr :: H.Exp SrcSpan -> Simplifier HS.Expr
 
 -- Error terms are regular functions but need to be handled differently.
 simplifyExpr (H.Var srcSpan (H.UnQual _ (H.Ident _ "undefined"))) =
-  return (HS.Undefined srcSpan)
+  return (HS.Undefined srcSpan Nothing)
 simplifyExpr (H.App srcSpan (H.Var _ (H.UnQual _ (H.Ident _ "error"))) arg) =
   case arg of
-    (H.Lit _ (H.String _ msg _)) -> return (HS.ErrorExpr srcSpan msg)
+    (H.Lit _ (H.String _ msg _)) -> return (HS.ErrorExpr srcSpan msg Nothing)
     _ -> notSupported "Non-literal error messages" arg
 simplifyExpr expr@(H.Var _ (H.UnQual _ (H.Ident _ "error"))) =
   usageError "The function 'error' must be applied immediately." expr
@@ -602,16 +602,16 @@ simplifyExpr (H.Paren _       expr) = simplifyExpr expr
 -- Variables.
 simplifyExpr (H.Var   srcSpan name) = do
   name' <- simplifyVarName name
-  return (HS.Var srcSpan name')
+  return (HS.Var srcSpan name' Nothing)
 
 -- Constructors.
 simplifyExpr (H.Con srcSpan name) = do
   name' <- simplifyConName name
-  return (HS.Con srcSpan name')
+  return (HS.Con srcSpan name' Nothing)
 
 -- Integer literals.
 simplifyExpr (H.Lit srcSpan (H.Int _ value _)) =
-  return (HS.IntLiteral srcSpan value)
+  return (HS.IntLiteral srcSpan value Nothing)
 
 -- Tuples.
 simplifyExpr (H.Tuple srcSpan H.Boxed es) = do
@@ -623,16 +623,16 @@ simplifyExpr (H.Tuple srcSpan H.Boxed es) = do
 -- with a trailing 'HS.nilConName'. All generated constructors refer to
 -- the same source span of the original list literal.
 simplifyExpr (H.List srcSpan exprs) = do
-  let nil  = HS.Con srcSpan HS.nilConName
-      cons = HS.Con srcSpan HS.consConName
+  let nil  = HS.Con srcSpan HS.nilConName Nothing
+      cons = HS.Con srcSpan HS.consConName Nothing
   exprs' <- mapM simplifyExpr exprs
-  return (foldr (HS.App srcSpan . HS.App srcSpan cons) nil exprs')
+  return (foldr (HS.untypedApp srcSpan . HS.untypedApp srcSpan cons) nil exprs')
 
 -- Function applications.
 simplifyExpr (H.App srcSpan e1 e2) = do
   e1' <- simplifyExpr e1
   e2' <- simplifyExpr e2
-  return (HS.App srcSpan e1' e2')
+  return (HS.App srcSpan e1' e2' Nothing)
 
 -- Infix operator, function or constructor applications.
 simplifyExpr (H.InfixApp srcSpan e1 op e2) = do
@@ -646,47 +646,44 @@ simplifyExpr (H.InfixApp srcSpan e1 op e2) = do
 simplifyExpr (H.LeftSection srcSpan e1 op) = do
   e1' <- simplifyExpr e1
   op' <- simplifyOp op
-  return (HS.App srcSpan op' e1')
+  return (HS.App srcSpan op' e1' Nothing)
 simplifyExpr (H.RightSection srcSpan op e2) = do
   x   <- freshHaskellIdent freshArgPrefix
   op' <- simplifyOp op
   e2' <- simplifyExpr e2
-  return
-    (HS.Lambda
-      srcSpan
-      [HS.VarPat srcSpan x Nothing]
-      (HS.app srcSpan op' [HS.Var srcSpan (HS.UnQual (HS.Ident x)), e2'])
-    )
+  let x'  = HS.VarPat srcSpan x Nothing
+      e1' = HS.Var srcSpan (HS.UnQual (HS.Ident x)) Nothing
+  return (HS.Lambda srcSpan [x'] (HS.app srcSpan op' [e1', e2']) Nothing)
 
 -- Negation.
 simplifyExpr (H.NegApp srcSpan expr) = do
   expr' <- simplifyExpr expr
-  return (HS.App srcSpan (HS.Var srcSpan (HS.negateOpName)) expr')
+  return (HS.varApp srcSpan HS.negateOpName [expr'])
 
 -- Lambda abstractions.
 simplifyExpr (H.Lambda srcSpan args expr) = do
   args' <- mapM simplifyVarPat args
   expr' <- simplifyExpr expr
-  return (HS.Lambda srcSpan args' expr')
+  return (HS.Lambda srcSpan args' expr' Nothing)
 
 -- Conditional expressions.
 simplifyExpr (H.If srcSpan e1 e2 e3) = do
   e1' <- simplifyExpr e1
   e2' <- simplifyExpr e2
   e3' <- simplifyExpr e3
-  return (HS.If srcSpan e1' e2' e3')
+  return (HS.If srcSpan e1' e2' e3' Nothing)
 
 -- Case expressions.
 simplifyExpr (H.Case srcSpan expr alts) = do
   expr' <- simplifyExpr expr
   alts' <- mapM simplifyAlt alts
-  return (HS.Case srcSpan expr' alts')
+  return (HS.Case srcSpan expr' alts' Nothing)
 
 -- Type signatures.
 simplifyExpr (H.ExpTypeSig srcSpan expr typeExpr) = do
   expr'       <- simplifyExpr expr
   typeSchema' <- simplifyTypeSchema typeExpr
-  return (HS.ExprTypeSig srcSpan expr' typeSchema')
+  return (HS.ExprTypeSig srcSpan expr' typeSchema' Nothing)
 
 -- Skip pragmas.
 simplifyExpr pragma@(H.CorePragma _ _ expr) = do
@@ -773,9 +770,9 @@ simplifyExpr expr@(H.Lit _ (H.PrimString _ _ _)) =
 -- | Simplifies an infix operator.
 simplifyOp :: H.QOp SrcSpan -> Simplifier HS.Expr
 simplifyOp (H.QVarOp srcSpan name) =
-  simplifyVarName name >>= return . HS.Var srcSpan
+  simplifyVarName name >>= return . HS.untypedVar srcSpan
 simplifyOp (H.QConOp srcSpan name) =
-  simplifyConName name >>= return . HS.Con srcSpan
+  simplifyConName name >>= return . HS.untypedCon srcSpan
 
 -- | Simplifies an unqualified name.
 simplifyName :: H.Name SrcSpan -> Simplifier HS.Name

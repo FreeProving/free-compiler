@@ -120,7 +120,7 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent typeArgs args expr maybeRetT
   -- | Tests whether the given expression is a @case@-expression for the
   --   the decreasing argument.
   isCaseExpr :: HS.Expr -> Bool
-  isCaseExpr (HS.Case _ (HS.Var _ varName) _) = varName == decArg
+  isCaseExpr (HS.Case _ (HS.Var _ varName _) _ _) = varName == decArg
   isCaseExpr _ = False
 
   -- | Ensures that the decreasing argument is not shadowed by the binding
@@ -202,10 +202,10 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent typeArgs args expr maybeRetT
       helperApp = HS.app
         NoSrcSpan
         (HS.visibleTypeApp NoSrcSpan
-                           (HS.Var NoSrcSpan helperName)
+                           (HS.Var NoSrcSpan helperName Nothing)
                            helperTypeArgs'
         )
-        (map (HS.Var NoSrcSpan) helperArgNames)
+        (map (HS.varPatToExpr) helperArgs)
 
     return (helperDecl, helperApp)
 

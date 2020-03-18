@@ -45,38 +45,38 @@ etaConvert rootExpr = localEnv $ arityOf rootExpr >>= etaAbstractN rootExpr
   -- | Determines the number of arguments expected to be passed to the given
   --   expression.
   arityOf :: HS.Expr -> Converter Int
-  arityOf (HS.Con _ name) = do
+  arityOf (HS.Con _ name _) = do
     arity <- inEnv $ lookupArity ValueScope name
     return (maybe 0 id arity)
-  arityOf (HS.Var _ name) = do
+  arityOf (HS.Var _ name _) = do
     arity <- inEnv $ lookupArity ValueScope name
     return (maybe 0 id arity)
-  arityOf (HS.App _ e1 _) = do
+  arityOf (HS.App _ e1 _ _) = do
     arity <- arityOf e1
     return (max 0 (arity - 1))
 
   -- Visible type applications and type signatures do not affect the
   -- function's arity.
-  arityOf (HS.TypeAppExpr _ e _) = arityOf e
-  arityOf (HS.ExprTypeSig _ e _) = arityOf e
+  arityOf (HS.TypeAppExpr _ e _ _) = arityOf e
+  arityOf (HS.ExprTypeSig _ e _ _) = arityOf e
 
   -- All other expressions do not expect any arguments.
-  arityOf (HS.If _ _ _ _       ) = return 0
-  arityOf (HS.Case _ _ _       ) = return 0
-  arityOf (HS.Undefined _      ) = return 0
-  arityOf (HS.ErrorExpr  _ _   ) = return 0
-  arityOf (HS.IntLiteral _ _   ) = return 0
-  arityOf (HS.Lambda _ _ _     ) = return 0
+  arityOf (HS.If _ _ _ _ _       ) = return 0
+  arityOf (HS.Case _ _ _ _       ) = return 0
+  arityOf (HS.Undefined _ _      ) = return 0
+  arityOf (HS.ErrorExpr  _ _ _   ) = return 0
+  arityOf (HS.IntLiteral _ _ _   ) = return 0
+  arityOf (HS.Lambda _ _ _ _     ) = return 0
 
   -- | Applies the given number of eta-abstractions to an expression.
   etaAbstractN :: HS.Expr -> Int -> Converter HS.Expr
   etaAbstractN expr 0 = return expr
   etaAbstractN expr n = do
-    x     <- freshHaskellIdent freshArgPrefix
-    expr' <- etaAbstractN
-      (HS.app NoSrcSpan expr [HS.Var NoSrcSpan (HS.UnQual (HS.Ident x))])
-      (n - 1)
-    return (HS.Lambda NoSrcSpan [HS.toVarPat x] expr')
+    x <- freshHaskellIdent freshArgPrefix
+    let argPat  = HS.toVarPat x
+        argExpr = HS.Var NoSrcSpan (HS.UnQual (HS.Ident x)) Nothing
+    expr' <- etaAbstractN (HS.App NoSrcSpan expr argExpr Nothing) (n - 1)
+    return (HS.Lambda NoSrcSpan [argPat] expr' Nothing)
 
 -------------------------------------------------------------------------------
 -- Expressions                                                               --
@@ -96,7 +96,7 @@ convertExpr expr = do
 convertExpr' :: HS.Expr -> [HS.Type] -> [HS.Expr] -> Converter G.Term
 
 -- Constructors.
-convertExpr' (HS.Con srcSpan name) typeArgs args = do
+convertExpr' (HS.Con srcSpan name _) typeArgs args = do
   qualid     <- lookupSmartIdentOrFail srcSpan name
   typeArgs'  <- mapM convertType' typeArgs
   args'      <- mapM convertExpr args
@@ -104,7 +104,7 @@ convertExpr' (HS.Con srcSpan name) typeArgs args = do
   generateApplyN arity (genericApply qualid [] typeArgs' []) args'
 
 -- Functions and variables.
-convertExpr' (HS.Var srcSpan name) typeArgs args = do
+convertExpr' (HS.Var srcSpan name _) typeArgs args = do
   qualid    <- lookupIdentOrFail srcSpan ValueScope name
   typeArgs' <- mapM convertType' typeArgs
   args'     <- mapM convertExpr args
@@ -176,14 +176,14 @@ convertExpr' (HS.Var srcSpan name) typeArgs args = do
         else generateApply (G.Qualid qualid) args'
 
 -- Pass argument from applications to converter for callee.
-convertExpr' (HS.App _ e1 e2) [] args = convertExpr' e1 [] (e2 : args)
+convertExpr' (HS.App _ e1 e2 _) [] args = convertExpr' e1 [] (e2 : args)
 
 -- Pass type argument from visible type application to converter for callee.
-convertExpr' (HS.TypeAppExpr _ e t) typeArgs args =
+convertExpr' (HS.TypeAppExpr _ e t _) typeArgs args =
   convertExpr' e (t : typeArgs) args
 
 -- @if@-expressions.
-convertExpr' (HS.If _ e1 e2 e3) [] [] = do
+convertExpr' (HS.If _ e1 e2 e3 _) [] [] = do
   e1'   <- convertExpr e1
   bool' <- convertType' (HS.TypeCon NoSrcSpan HS.boolTypeConName)
   generateBind e1' freshBoolPrefix (Just bool') $ \cond -> do
@@ -192,14 +192,14 @@ convertExpr' (HS.If _ e1 e2 e3) [] [] = do
     return (G.If G.SymmetricIf cond Nothing e2' e3')
 
 -- @case@-expressions.
-convertExpr' (HS.Case _ expr alts) [] [] = do
+convertExpr' (HS.Case _ expr alts _) [] [] = do
   expr' <- convertExpr expr
   generateBind expr' freshArgPrefix Nothing $ \value -> do
     alts' <- mapM convertAlt alts
     return (G.match value alts')
 
 -- Error terms.
-convertExpr' (HS.Undefined srcSpan) typeArgs [] = do
+convertExpr' (HS.Undefined srcSpan _) typeArgs [] = do
   when (length typeArgs /= 1)
     $  reportFatal
     $  Message srcSpan Internal
@@ -212,7 +212,7 @@ convertExpr' (HS.Undefined srcSpan) typeArgs [] = do
   typeArgs' <- mapM convertType' typeArgs
   return (genericApply CoqBase.partialUndefined [partialArg] typeArgs' [])
 
-convertExpr' (HS.ErrorExpr srcSpan msg) typeArgs [] = do
+convertExpr' (HS.ErrorExpr srcSpan msg _) typeArgs [] = do
   when (length typeArgs /= 1)
     $  reportFatal
     $  Message srcSpan Internal
@@ -228,17 +228,17 @@ convertExpr' (HS.ErrorExpr srcSpan msg) typeArgs [] = do
     (genericApply CoqBase.partialError [partialArg] typeArgs' [G.string msg])
 
 -- Integer literals.
-convertExpr' (HS.IntLiteral _ value) [] [] =
+convertExpr' (HS.IntLiteral _ value _) [] [] =
   generatePure (G.InScope (G.Num (fromInteger value)) (G.ident "Z"))
 
 -- Lambda abstractions.
-convertExpr' (HS.Lambda _ args expr) [] [] = localEnv $ do
+convertExpr' (HS.Lambda _ args expr _) [] [] = localEnv $ do
   args' <- mapM convertArg args
   expr' <- convertExpr expr
   foldrM (generatePure .: G.Fun . return) expr' args'
 
 -- Type signatures.
-convertExpr' (HS.ExprTypeSig _ expr typeSchema) [] [] = do
+convertExpr' (HS.ExprTypeSig _ expr typeSchema _) [] [] = do
   expr'       <- convertExpr expr
   typeSchema' <- convertTypeSchema typeSchema
   return (G.HasType expr' typeSchema')

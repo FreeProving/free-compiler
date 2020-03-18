@@ -126,39 +126,39 @@ instance ApplySubst HS.Expr HS.Expr where
   applySubst subst@(Subst substMap) = applySubst'
    where
     applySubst' :: HS.Expr -> Converter HS.Expr
-    applySubst' var@(HS.Var srcSpan name) =
+    applySubst' var@(HS.Var srcSpan name _) =
       maybe (return var) ($ srcSpan) (Map.lookup name substMap)
 
     -- Substitute recursively.
-    applySubst' (HS.App srcSpan e1 e2) = do
+    applySubst' (HS.App srcSpan e1 e2 exprType) = do
       e1' <- applySubst' e1
       e2' <- applySubst' e2
-      return (HS.App srcSpan e1' e2')
-    applySubst' (HS.TypeAppExpr srcSpan expr typeExpr) = do
+      return (HS.App srcSpan e1' e2' exprType)
+    applySubst' (HS.TypeAppExpr srcSpan expr typeExpr exprType) = do
       expr' <- applySubst' expr
-      return (HS.TypeAppExpr srcSpan expr' typeExpr)
-    applySubst' (HS.If srcSpan e1 e2 e3) = do
+      return (HS.TypeAppExpr srcSpan expr' typeExpr exprType)
+    applySubst' (HS.If srcSpan e1 e2 e3 exprType) = do
       e1' <- applySubst' e1
       e2' <- applySubst' e2
       e3' <- applySubst' e3
-      return (HS.If srcSpan e1' e2' e3')
-    applySubst' (HS.Case srcSpan expr alts) = do
+      return (HS.If srcSpan e1' e2' e3' exprType)
+    applySubst' (HS.Case srcSpan expr alts exprType) = do
       expr' <- applySubst' expr
       alts' <- mapM (applySubst subst) alts
-      return (HS.Case srcSpan expr' alts')
-    applySubst' (HS.Lambda srcSpan args expr) = do
+      return (HS.Case srcSpan expr' alts' exprType)
+    applySubst' (HS.Lambda srcSpan args expr exprType) = do
       (args', argSubst) <- renameArgsSubst args
       expr'             <- applySubst (composeSubst subst argSubst) expr
-      return (HS.Lambda srcSpan args' expr')
-    applySubst' (HS.ExprTypeSig srcSpan expr typeSchema) = do
+      return (HS.Lambda srcSpan args' expr' exprType)
+    applySubst' (HS.ExprTypeSig srcSpan expr typeSchema exprType) = do
       expr' <- applySubst' expr
-      return (HS.ExprTypeSig srcSpan expr' typeSchema)
+      return (HS.ExprTypeSig srcSpan expr' typeSchema exprType)
 
     -- All other expressions remain unchanged.
-    applySubst' expr@(HS.Con _ _       ) = return expr
-    applySubst' expr@(HS.Undefined _   ) = return expr
-    applySubst' expr@(HS.ErrorExpr  _ _) = return expr
-    applySubst' expr@(HS.IntLiteral _ _) = return expr
+    applySubst' expr@(HS.Con _ _ _       ) = return expr
+    applySubst' expr@(HS.Undefined _ _   ) = return expr
+    applySubst' expr@(HS.ErrorExpr  _ _ _) = return expr
+    applySubst' expr@(HS.IntLiteral _ _ _) = return expr
 
 -- | Applies the given expression substitution to the right-hand side of the
 --   given @case@-expression alterntaive.
@@ -173,38 +173,63 @@ instance ApplySubst HS.Type HS.Expr where
   applySubst subst = applySubst'
    where
     applySubst' :: HS.Expr -> Converter HS.Expr
-    applySubst' (HS.App srcSpan e1 e2) = do
+
+    applySubst' (HS.Con srcSpan conName exprType) = do
+      exprType' <- mapM (applySubst subst) exprType
+      return (HS.Con srcSpan conName exprType')
+
+    applySubst' (HS.Var srcSpan varName exprType) = do
+      exprType' <- mapM (applySubst subst) exprType
+      return (HS.Var srcSpan varName exprType')
+
+    applySubst' (HS.App srcSpan e1 e2 exprType) = do
       e1' <- applySubst' e1
       e2' <- applySubst' e2
-      return (HS.App srcSpan e1' e2')
-    applySubst' (HS.TypeAppExpr srcSpan expr typeExpr) = do
+      exprType' <- mapM (applySubst subst) exprType
+      return (HS.App srcSpan e1' e2' exprType')
+
+    applySubst' (HS.TypeAppExpr srcSpan expr typeExpr exprType) = do
       expr'     <- applySubst' expr
       typeExpr' <- applySubst subst typeExpr
-      return (HS.TypeAppExpr srcSpan expr' typeExpr')
-    applySubst' (HS.If srcSpan e1 e2 e3) = do
+      exprType' <- mapM (applySubst subst) exprType
+      return (HS.TypeAppExpr srcSpan expr' typeExpr' exprType')
+
+    applySubst' (HS.If srcSpan e1 e2 e3 exprType) = do
       e1' <- applySubst' e1
       e2' <- applySubst' e2
       e3' <- applySubst' e3
-      return (HS.If srcSpan e1' e2' e3')
-    applySubst' (HS.Case srcSpan expr alts) = do
+      exprType' <- mapM (applySubst subst) exprType
+      return (HS.If srcSpan e1' e2' e3' exprType')
+
+    applySubst' (HS.Case srcSpan expr alts exprType) = do
       expr' <- applySubst' expr
       alts' <- mapM (applySubst subst) alts
-      return (HS.Case srcSpan expr' alts')
-    applySubst' (HS.Lambda srcSpan args expr) = do
+      exprType' <- mapM (applySubst subst) exprType
+      return (HS.Case srcSpan expr' alts' exprType')
+
+    applySubst' (HS.Undefined srcSpan  exprType ) = do
+      exprType' <- mapM (applySubst subst) exprType
+      return (HS.Undefined srcSpan exprType')
+
+    applySubst' (HS.ErrorExpr srcSpan msg exprType) = do
+      exprType' <- mapM (applySubst subst) exprType
+      return (HS.ErrorExpr  srcSpan msg exprType')
+
+    applySubst' (HS.IntLiteral srcSpan value exprType) = do
+      exprType' <- mapM (applySubst subst) exprType
+      return (HS.IntLiteral srcSpan value exprType')
+
+    applySubst' (HS.Lambda srcSpan args expr exprType) = do
       args' <- mapM (applySubst subst) args
       expr' <- applySubst' expr
-      return (HS.Lambda srcSpan args' expr')
-    applySubst' (HS.ExprTypeSig srcSpan expr typeSchema) = do
+      exprType' <- mapM (applySubst subst) exprType
+      return (HS.Lambda srcSpan args' expr' exprType')
+
+    applySubst' (HS.ExprTypeSig srcSpan expr typeSchema exprType) = do
       expr'       <- applySubst' expr
       typeSchema' <- applySubst subst typeSchema
-      return (HS.ExprTypeSig srcSpan expr' typeSchema')
-
-    -- All other expressions remain unchanged.
-    applySubst' expr@(HS.Var _ _       ) = return expr
-    applySubst' expr@(HS.Con _ _       ) = return expr
-    applySubst' expr@(HS.Undefined _   ) = return expr
-    applySubst' expr@(HS.ErrorExpr  _ _) = return expr
-    applySubst' expr@(HS.IntLiteral _ _) = return expr
+      exprType' <- mapM (applySubst subst) exprType
+      return (HS.ExprTypeSig srcSpan expr' typeSchema' exprType')
 
 -- | Applies the given type substitution to the right-hand side of the
 --   given @case@-expression alterntaive.
@@ -322,7 +347,7 @@ renameArgsSubst :: [HS.VarPat] -> Converter ([HS.VarPat], Subst HS.Expr)
 renameArgsSubst args = do
   args' <- mapM freshVarPat args
   let argNames = map HS.varPatQName args
-      argVars' = map (flip HS.Var . HS.varPatQName) args'
+      argVars' = map (flip HS.untypedVar . HS.varPatQName) args'
       argSubst = composeSubsts (zipWith singleSubst' argNames argVars')
   return (args', argSubst)
  where

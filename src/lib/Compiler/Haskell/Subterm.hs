@@ -38,7 +38,7 @@ import qualified Data.Set                      as Set
 import           Data.Tuple.Extra               ( (&&&) )
 
 import           Compiler.Analysis.DependencyExtraction
-import           Compiler.Haskell.AST          as HS
+import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Pretty
 
 -------------------------------------------------------------------------------
@@ -74,66 +74,69 @@ class Subterm a where
 -- | Expressions have subterms.
 instance Subterm HS.Expr where
   -- | Gets the direct child expression nodes of the given expression.
-  childTerms (HS.App         _ e1   e2  ) = [e1, e2]
-  childTerms (HS.TypeAppExpr _ expr _   ) = [expr]
-  childTerms (HS.If _ e1 e2 e3          ) = [e1, e2, e3]
-  childTerms (HS.Case        _ expr alts) = expr : map HS.altRhs alts
-  childTerms (HS.Lambda      _ _    expr) = [expr]
-  childTerms (HS.ExprTypeSig _ expr _   ) = [expr]
-  childTerms (HS.Con _ _                ) = []
-  childTerms (HS.Var _ _                ) = []
-  childTerms (HS.Undefined _            ) = []
-  childTerms (HS.ErrorExpr  _ _         ) = []
-  childTerms (HS.IntLiteral _ _         ) = []
+  childTerms (HS.App         _ e1   e2   _) = [e1, e2]
+  childTerms (HS.TypeAppExpr _ expr _    _) = [expr]
+  childTerms (HS.If _ e1 e2 e3           _) = [e1, e2, e3]
+  childTerms (HS.Case        _ expr alts _) = expr : map HS.altRhs alts
+  childTerms (HS.Lambda      _ _    expr _) = [expr]
+  childTerms (HS.ExprTypeSig _ expr _    _) = [expr]
+  childTerms (HS.Con _ _                 _) = []
+  childTerms (HS.Var _ _                 _) = []
+  childTerms (HS.Undefined _             _) = []
+  childTerms (HS.ErrorExpr  _ _          _) = []
+  childTerms (HS.IntLiteral _ _          _) = []
 
   -- | Replaces all direct child expression nodes of the given expression.
-  replaceChildTerms (HS.App srcSpan _ _) =
-    checkArity 2 $ \[e1', e2'] -> HS.App srcSpan e1' e2'
+  replaceChildTerms (HS.App srcSpan _ _ exprType) =
+    checkArity 2 $ \[e1', e2'] -> HS.App srcSpan e1' e2' exprType
 
-  replaceChildTerms (HS.TypeAppExpr srcSpan _ typeExpr) =
-    checkArity 1 $ \[expr'] -> HS.TypeAppExpr srcSpan expr' typeExpr
+  replaceChildTerms (HS.TypeAppExpr srcSpan _ typeExpr exprType) =
+    checkArity 1 $ \[expr'] -> HS.TypeAppExpr srcSpan expr' typeExpr exprType
 
-  replaceChildTerms (HS.If srcSpan _ _ _) =
-    checkArity 3 $ \[e1', e2', e3'] -> HS.If srcSpan e1' e2' e3'
+  replaceChildTerms (HS.If srcSpan _ _ _ exprType) =
+    checkArity 3 $ \[e1', e2', e3'] -> HS.If srcSpan e1' e2' e3' exprType
 
-  replaceChildTerms (HS.Case srcSpan _ alts) =
-    checkArity (length alts + 1) $ \(expr' : altChildren') ->
-      HS.Case srcSpan expr' (zipWith replaceAltChildExpr alts altChildren')
+  replaceChildTerms (HS.Case srcSpan _ alts exprType) =
+    checkArity (length alts + 1) $ \(expr' : altChildren') -> HS.Case
+      srcSpan
+      expr'
+      (zipWith replaceAltChildExpr alts altChildren')
+      exprType
    where
      -- | Replaces the expression on the right hand side of the given
      --   @case@-expression alternative.
-     replaceAltChildExpr :: HS.Alt -> HS.Expr -> HS.Alt
-     replaceAltChildExpr alt rhs' = alt { HS.altRhs = rhs' }
+    replaceAltChildExpr :: HS.Alt -> HS.Expr -> HS.Alt
+    replaceAltChildExpr alt rhs' = alt { HS.altRhs = rhs' }
 
-  replaceChildTerms (HS.Lambda srcSpan args _) =
-    checkArity 1 $ \[expr'] -> HS.Lambda srcSpan args expr'
+  replaceChildTerms (HS.Lambda srcSpan args _ exprType) =
+    checkArity 1 $ \[expr'] -> HS.Lambda srcSpan args expr' exprType
 
-  replaceChildTerms (HS.ExprTypeSig srcSpan _ typeExpr) =
-    checkArity 1 $ \[expr'] -> HS.ExprTypeSig srcSpan expr' typeExpr
+  replaceChildTerms (HS.ExprTypeSig srcSpan _ typeExpr exprType) =
+    checkArity 1 $ \[expr'] -> HS.ExprTypeSig srcSpan expr' typeExpr exprType
 
-  replaceChildTerms expr@(HS.Con _ _       ) = nullary expr
-  replaceChildTerms expr@(HS.Var _ _       ) = nullary expr
-  replaceChildTerms expr@(HS.Undefined _   ) = nullary expr
-  replaceChildTerms expr@(HS.ErrorExpr  _ _) = nullary expr
-  replaceChildTerms expr@(HS.IntLiteral _ _) = nullary expr
+  replaceChildTerms expr@(HS.Con _ _ _       ) = nullary expr
+  replaceChildTerms expr@(HS.Var _ _ _       ) = nullary expr
+  replaceChildTerms expr@(HS.Undefined _ _   ) = nullary expr
+  replaceChildTerms expr@(HS.ErrorExpr  _ _ _) = nullary expr
+  replaceChildTerms expr@(HS.IntLiteral _ _ _) = nullary expr
 
 -- | Type expressions have subterms.
 instance Subterm HS.Type where
   -- | Gets the direct child type expression nodes of the given type
   --   expression.
-  childTerms (TypeVar _ _) = []
-  childTerms (TypeCon _ _ ) = []
-  childTerms (TypeApp _ t1 t2   ) = [t1, t2]
-  childTerms (FuncType _ t1 t2  ) = [t1, t2]
+  childTerms (HS.TypeVar _ _) = []
+  childTerms (HS.TypeCon _ _ ) = []
+  childTerms (HS.TypeApp _ t1 t2   ) = [t1, t2]
+  childTerms (HS.FuncType _ t1 t2  ) = [t1, t2]
 
   -- | Replaces all direct child type expression nodes of the given type
   --   expression.
-  replaceChildTerms typeExpr@(TypeVar _ _) = nullary typeExpr
-  replaceChildTerms typeExpr@(TypeCon _ _) = nullary typeExpr
-  replaceChildTerms (TypeApp srcSpan _ _) =
-    checkArity 2 $ \[t1', t2'] -> TypeApp srcSpan t1' t2'
-  replaceChildTerms (FuncType srcSpan _ _) =
-    checkArity 2 $ \[t1', t2'] -> FuncType srcSpan t1' t2'
+  replaceChildTerms typeExpr@(HS.TypeVar _ _) = nullary typeExpr
+  replaceChildTerms typeExpr@(HS.TypeCon _ _) = nullary typeExpr
+  replaceChildTerms (HS.TypeApp srcSpan _ _) =
+    checkArity 2 $ \[t1', t2'] -> HS.TypeApp srcSpan t1' t2'
+  replaceChildTerms (HS.FuncType srcSpan _ _) =
+    checkArity 2 $ \[t1', t2'] -> HS.FuncType srcSpan t1' t2'
 
 -------------------------------------------------------------------------------
 -- Positions                                                                 --
@@ -286,11 +289,11 @@ boundVarsWithTypeAt = maybe Map.empty id .: boundVarsWithTypeAt'
     child <- selectSubterm expr (Pos [p])
     bvars <- boundVarsWithTypeAt' child (Pos ps)
     case expr of
-      (HS.Case _ _ alts) | p > 1 -> do
+      (HS.Case _ _ alts _) | p > 1 -> do
         let altVars = altBoundVarsWithType (alts !! (p - 2))
         return (bvars `Map.union` altVars)
-      (HS.Lambda _ args _) -> return (bvars `Map.union` fromVarPats args)
-      _                    -> return bvars
+      (HS.Lambda _ args _ _) -> return (bvars `Map.union` fromVarPats args)
+      _                      -> return bvars
 
   -- | Gets the names of variables bound by the variable patterns of the given
   --   @case@-expression alternative.

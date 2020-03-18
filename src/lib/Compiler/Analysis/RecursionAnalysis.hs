@@ -40,6 +40,7 @@ import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
 import           Compiler.Pretty
+import           Compiler.Util.Predicate        ( (.||.) )
 
 -------------------------------------------------------------------------------
 -- Decreaasing arguments                                                     --
@@ -120,48 +121,59 @@ checkDecArgs decls knownDecArgIndecies decArgIndecies = all
   checkExpr :: HS.QName -> Set HS.QName -> HS.Expr -> [HS.Expr] -> Bool
   checkExpr decArg smaller = checkExpr'
    where
+    -- | Tests whether the given expression is the decreasing argument.
+    isDecArg :: HS.Expr -> Bool
+    isDecArg (HS.Var _ varName _) = varName == decArg
+    isDecArg _                    = False
+
+    -- | Tests whether the given expression is a structurally smaller
+    --   variable than the decreasing argument.
+    isSmaller :: HS.Expr -> Bool
+    isSmaller (HS.Var _ varName _) = varName `elem` smaller
+    isSmaller _                    = False
+
+    -- | Tests whether the given expression matches 'isDecArg' or 'isSmaller'.
+    isDecArgOrSmaller :: HS.Expr -> Bool
+    isDecArgOrSmaller = isDecArg .||. isSmaller
+
     -- If one of the recursive functions is applied, there must be a
     -- structurally smaller variable in the decreasing position.
-    checkExpr' (HS.Var _ name) args = case Map.lookup name decArgMap of
+    checkExpr' (HS.Var _ name _) args = case Map.lookup name decArgMap of
       Nothing -> True
-      Just decArgIndex
-        | decArgIndex >= length args -> False
-        | otherwise -> case args !! decArgIndex of
-          (HS.Var _ argName) -> argName `elem` smaller
-          _                  -> False
+      Just decArgIndex | decArgIndex >= length args -> False
+                       | otherwise -> isSmaller (args !! decArgIndex)
 
     -- Function applications and @if@-expressions need to be checked
     -- recursively. In case of applications we also remember the
     -- arguments such that the case above can inspect the actual arguments.
-    checkExpr' (HS.App _ e1 e2) args =
+    checkExpr' (HS.App _ e1 e2 _) args =
       checkExpr' e1 (e2 : args) && checkExpr' e2 []
-    checkExpr' (HS.If _ e1 e2 e3) _ =
+    checkExpr' (HS.If _ e1 e2 e3 _) _ =
       checkExpr' e1 [] && checkExpr' e2 [] && checkExpr' e3 []
 
     -- @case@-expressions that match the decreasing argument or a variable
     -- that is structurally smaller than the decreasing argument, introduce
     -- new structurally smaller variables.
-    checkExpr' (HS.Case _ expr alts) _ = case expr of
-      (HS.Var _ varName) | varName == decArg || varName `Set.member` smaller ->
-        all checkSmallerAlt alts
-      _ -> all checkAlt alts
+    checkExpr' (HS.Case _ expr alts _) _
+      | isDecArgOrSmaller expr = all checkSmallerAlt alts
+      | otherwise              = all checkAlt alts
 
     -- The arguments of lambda expressions shadow existing (structurally
-    -- smaller) variables
-    checkExpr' (HS.Lambda _ args expr) _ =
+    -- smaller) variables.
+    checkExpr' (HS.Lambda _ args expr _) _ =
       let smaller' = withoutArgs args smaller
       in  checkExpr decArg smaller' expr []
 
     -- Recursively check expression with type signature and visible type
     -- applications.
-    checkExpr' (HS.ExprTypeSig _ expr _) args = checkExpr' expr args
-    checkExpr' (HS.TypeAppExpr _ expr _) args = checkExpr' expr args
+    checkExpr' (HS.ExprTypeSig _ expr _ _) args = checkExpr' expr args
+    checkExpr' (HS.TypeAppExpr _ expr _ _) args = checkExpr' expr args
 
-    -- Base expressions are
-    checkExpr' (HS.Con _ _             ) _    = True
-    checkExpr' (HS.Undefined _         ) _    = True
-    checkExpr' (HS.ErrorExpr  _ _      ) _    = True
-    checkExpr' (HS.IntLiteral _ _      ) _    = True
+    -- Base expressions don't contain recursive calls.
+    checkExpr' (HS.Con _ _ _             ) _    = True
+    checkExpr' (HS.Undefined _ _         ) _    = True
+    checkExpr' (HS.ErrorExpr  _ _ _      ) _    = True
+    checkExpr' (HS.IntLiteral _ _ _      ) _    = True
 
     -- | Applies 'checkExpr' on the right hand side of an alternative of a
     --   @case@ expression.
@@ -300,7 +312,7 @@ makeConstArgGraph modName decls = do
         -- | Tests whether the given expression (a value passed as the @j@-th
         --   argument to a call to @g@) is the argument @x_i@.
         checkArg :: HS.Expr -> Bool
-        checkArg (HS.Var _ (HS.UnQual (HS.Ident name))) = name == x
+        checkArg (HS.Var _ (HS.UnQual (HS.Ident ident)) _) = ident == x
         checkArg _ = False
 
         -- | Tests whether @x_j@ is passed unchanged as the @j@-th argument
@@ -311,41 +323,41 @@ makeConstArgGraph modName decls = do
         checkExpr :: HS.Expr -> [HS.Expr] -> Bool
 
         -- If this is a call to @g@, check the @j@-th argument.
-        checkExpr (HS.Var _ name) args
+        checkExpr (HS.Var _ name _) args
           | isG name  = j < length args && checkArg (args !! j)
           | otherwise = True
 
         -- If this is an application, check for calls to @g@ in the callee
         -- and argument.
-        checkExpr (HS.App _ e1 e2) args =
+        checkExpr (HS.App _ e1 e2 _) args =
           checkExpr e1 (e2 : args) && checkExpr e2 []
 
         -- The arguments are not distributed among the branches of @if@
         -- and @case@ expressions.
-        checkExpr (HS.If _ e1 e2 e3) _ =
+        checkExpr (HS.If _ e1 e2 e3 _) _ =
           checkExpr e1 [] && checkExpr e2 [] && checkExpr e3 []
-        checkExpr (HS.Case _ expr alts) _ =
+        checkExpr (HS.Case _ expr alts _) _ =
           checkExpr expr [] && all (flip checkAlt []) alts
 
         -- No beta reduction is applied when a lambda expression is
         -- encountered, but the right-hand side still needs to be checked.
         -- If an argument shadows @x_i@ and there are calls to @g@ on the
         -- right hand side, @x_i@ is not left unchanged.
-        checkExpr (HS.Lambda _ args expr) _
+        checkExpr (HS.Lambda _ args expr _) _
           | x `shadowedBy` args = not (callsG expr)
           | otherwise           = checkExpr expr []
 
         -- Check expression with type signature and visible type applications
         -- recursively.
-        checkExpr (HS.ExprTypeSig _ expr _) args = checkExpr expr args
-        checkExpr (HS.TypeAppExpr _ expr _) args = checkExpr expr args
+        checkExpr (HS.ExprTypeSig _ expr _ _) args = checkExpr expr args
+        checkExpr (HS.TypeAppExpr _ expr _ _) args = checkExpr expr args
 
         -- Constructors, literals and error terms cannot contain further
         -- calls to @g@.
-        checkExpr (HS.Con        _ _      ) _    = True
-        checkExpr (HS.IntLiteral _ _      ) _    = True
-        checkExpr (HS.Undefined _         ) _    = True
-        checkExpr (HS.ErrorExpr _ _       ) _    = True
+        checkExpr (HS.Con        _ _ _      ) _    = True
+        checkExpr (HS.IntLiteral _ _ _      ) _    = True
+        checkExpr (HS.Undefined _ _         ) _    = True
+        checkExpr (HS.ErrorExpr _ _ _       ) _    = True
 
         -- | Applies 'checkExpr' to the alternative of a @case@ expression.
         --

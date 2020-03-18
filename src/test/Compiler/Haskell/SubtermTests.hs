@@ -60,11 +60,11 @@ testSubterm = describe "Compiler.Haskell.Subterm" $ do
             property $ forAll (testPos testExpr) $ \(p, valid) ->
               isJust (selectSubterm testExpr p) == valid
 
-          it "replaces valid positions successfully"
-            $ \testExpr ->
-                property $ forAll (testPos testExpr) $ \(p, valid) ->
-                  let testExpr' = HS.Var NoSrcSpan (HS.UnQual (HS.Ident "x"))
-                  in  isJust (replaceSubterm testExpr p testExpr') == valid
+          it "replaces valid positions successfully" $ \testExpr ->
+            property $ forAll (testPos testExpr) $ \(p, valid) ->
+              let testExpr' =
+                    HS.Var NoSrcSpan (HS.UnQual (HS.Ident "x")) Nothing
+              in  isJust (replaceSubterm testExpr p testExpr') == valid
 
           it "produces the input when replacing a subterm with itself"
             $ \testExpr -> property $ forAll (validTestPos testExpr) $ \p ->
@@ -73,20 +73,21 @@ testSubterm = describe "Compiler.Haskell.Subterm" $ do
 
           it "replaces the entire term when replacing at the root position"
             $ \testExpr -> do
-                let testExpr' = (HS.Var NoSrcSpan (HS.UnQual (HS.Ident "x")))
+                let testExpr' =
+                      HS.Var NoSrcSpan (HS.UnQual (HS.Ident "x")) Nothing
                 replaceSubterm testExpr rootPos testExpr'
                   `shouldBe` Just testExpr'
 
         context "searching subterms" $ do
           it "finds subterm positions" $ \testExpr -> do
-            let isCase (HS.Case _ _ _) = True
-                isCase _               = False
+            let isCase (HS.Case _ _ _ _) = True
+                isCase _                 = False
             findSubtermPos isCase testExpr `shouldBe` [Pos [1, 3, 3]]
 
           it "finds subterms" $ \testExpr -> do
-            let isVar (HS.Var _ _) = True
-                isVar _            = False
-            map (\(HS.Var _ name) -> name) (findSubterms isVar testExpr)
+            let isVar (HS.Var _ _ _) = True
+                isVar _              = False
+            map HS.exprVarName (findSubterms isVar testExpr)
               `shouldBe` [ HS.UnQual (HS.Symbol "<")
                          , HS.UnQual (HS.Ident "n")
                          , HS.UnQual (HS.Symbol "==")

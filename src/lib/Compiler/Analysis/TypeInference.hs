@@ -496,7 +496,7 @@ makeTypedExprs (HS.FuncDecl _ (HS.DeclIdent srcSpan ident) _ args rhs maybeRetTy
     retType       <- makeRetType
     let
       funcName = HS.UnQual (HS.Ident ident)
-      funcExpr = HS.Var srcSpan funcName
+      funcExpr = HS.Var srcSpan funcName Nothing
       funcType = HS.funcType NoSrcSpan argTypes retType
       argExprs = map HS.varPatToExpr args'
       typedExprs =
@@ -558,7 +558,8 @@ annotateWithTypeSig :: HS.Expr -> Converter HS.Expr
 annotateWithTypeSig expr = do
   typeVar <- freshTypeVar
   let srcSpan = HS.exprSrcSpan expr
-  return (HS.ExprTypeSig srcSpan expr (HS.TypeSchema srcSpan [] typeVar))
+  return
+    (HS.ExprTypeSig srcSpan expr (HS.TypeSchema srcSpan [] typeVar) Nothing)
 
 -- | Adds fresh type variables to variable patterns in the given expression
 --   and adds type signatures to constructor and function invocations as well
@@ -569,38 +570,38 @@ annotateWithTypeSig expr = do
 annotateExpr :: HS.Expr -> Converter HS.Expr
 
 -- Add type annotation to constructor and function invocations.
-annotateExpr expr@(HS.Con _ _                  ) = annotateWithTypeSig expr
-annotateExpr expr@(HS.Var _ _                  ) = annotateWithTypeSig expr
+annotateExpr expr@(HS.Con _ _ _) = annotateWithTypeSig expr
+annotateExpr expr@(HS.Var _ _ _) = annotateWithTypeSig expr
 
 -- Add type annotation to error terms.
-annotateExpr expr@(HS.Undefined _              ) = annotateWithTypeSig expr
-annotateExpr expr@(HS.ErrorExpr _ _            ) = annotateWithTypeSig expr
+annotateExpr expr@(HS.Undefined _ _) = annotateWithTypeSig expr
+annotateExpr expr@(HS.ErrorExpr _ _ _) = annotateWithTypeSig expr
 
 -- There should be no visible type applications prior to type inference.
-annotateExpr (     HS.TypeAppExpr srcSpan _  _ ) = unexpectedTypeAppExpr srcSpan
+annotateExpr (HS.TypeAppExpr srcSpan _ _ _) = unexpectedTypeAppExpr srcSpan
 
 -- Add visible type applications recursively.
-annotateExpr (     HS.App         srcSpan e1 e2) = do
+annotateExpr (HS.App srcSpan e1 e2 exprType) = do
   e1' <- annotateExpr e1
   e2' <- annotateExpr e2
-  return (HS.App srcSpan e1' e2')
-annotateExpr (HS.If srcSpan e1 e2 e3) = do
+  return (HS.App srcSpan e1' e2' exprType)
+annotateExpr (HS.If srcSpan e1 e2 e3 exprType) = do
   e1' <- annotateExpr e1
   e2' <- annotateExpr e2
   e3' <- annotateExpr e3
-  return (HS.If srcSpan e1' e2' e3')
-annotateExpr (HS.Case srcSpan expr alts) = do
+  return (HS.If srcSpan e1' e2' e3' exprType)
+annotateExpr (HS.Case srcSpan expr alts exprType) = do
   expr' <- annotateExpr expr
   alts' <- mapM annotateAlt alts
-  return (HS.Case srcSpan expr' alts')
-annotateExpr (HS.Lambda srcSpan varPats expr) = do
+  return (HS.Case srcSpan expr' alts' exprType)
+annotateExpr (HS.Lambda srcSpan varPats expr exprType) = do
   varPats' <- mapM annotateVarPat varPats
   expr'    <- annotateExpr expr
-  return (HS.Lambda srcSpan varPats' expr')
-annotateExpr (HS.ExprTypeSig srcSpan expr typeSchema) = do
+  return (HS.Lambda srcSpan varPats' expr' exprType)
+annotateExpr (HS.ExprTypeSig srcSpan expr typeSchema exprType) = do
   expr' <- annotateExpr expr
-  return (HS.ExprTypeSig srcSpan expr' typeSchema)
-annotateExpr expr@(HS.IntLiteral _ _) = return expr
+  return (HS.ExprTypeSig srcSpan expr' typeSchema exprType)
+annotateExpr expr@(HS.IntLiteral _ _ _) = return expr
 
 -- | Applies 'annotateExpr' to the right-hand side of an alternative
 --   of  a @case@-expression and annotates the variable patterns with
@@ -648,43 +649,46 @@ applyExprVisibly :: HS.Expr -> TypeInference HS.Expr
 
 -- Add visible type applications to functions, constructors and error terms
 -- with type annotation.
-applyExprVisibly (HS.ExprTypeSig srcSpan expr (HS.TypeSchema _ [] typeExpr))
-  | HS.Con _ conName <- expr = applyVisibly conName expr typeExpr
-  | HS.Var _ varName <- expr = applyVisibly varName expr typeExpr
-  | HS.Undefined _ <- expr   = return (HS.TypeAppExpr srcSpan expr typeExpr)
-  | HS.ErrorExpr _ _ <- expr = return (HS.TypeAppExpr srcSpan expr typeExpr)
+applyExprVisibly (HS.ExprTypeSig srcSpan expr (HS.TypeSchema _ [] typeExpr) _)
+  | HS.Con _ conName _ <- expr = applyVisibly conName expr typeExpr
+  | HS.Var _ varName _ <- expr = applyVisibly varName expr typeExpr
+  | HS.Undefined _ _ <- expr = return
+    (HS.TypeAppExpr srcSpan expr typeExpr Nothing)
+  | HS.ErrorExpr _ _ _ <- expr = return
+    (HS.TypeAppExpr srcSpan expr typeExpr Nothing)
 
 -- There should be no visible type applications prior to type inference.
-applyExprVisibly (HS.TypeAppExpr srcSpan _ _) = unexpectedTypeAppExpr srcSpan
+applyExprVisibly (HS.TypeAppExpr srcSpan _ _ _) = unexpectedTypeAppExpr srcSpan
 
 -- Recursively add visible type applications.
-applyExprVisibly (HS.ExprTypeSig srcSpan expr typeSchema) = do
+applyExprVisibly (HS.ExprTypeSig srcSpan expr typeSchema exprType) = do
   expr' <- applyExprVisibly expr
-  return (HS.ExprTypeSig srcSpan expr' typeSchema)
-applyExprVisibly (HS.App srcSpan e1 e2) = do
+  return (HS.ExprTypeSig srcSpan expr' typeSchema exprType)
+applyExprVisibly (HS.App srcSpan e1 e2 exprType) = do
   e1' <- applyExprVisibly e1
   e2' <- applyExprVisibly e2
-  return (HS.App srcSpan e1' e2')
-applyExprVisibly (HS.If srcSpan e1 e2 e3) = do
+  return (HS.App srcSpan e1' e2' exprType)
+applyExprVisibly (HS.If srcSpan e1 e2 e3 exprType) = do
   e1' <- applyExprVisibly e1
   e2' <- applyExprVisibly e2
   e3' <- applyExprVisibly e3
-  return (HS.If srcSpan e1' e2' e3')
-applyExprVisibly (HS.Case srcSpan expr alts) = do
+  return (HS.If srcSpan e1' e2' e3' exprType)
+applyExprVisibly (HS.Case srcSpan expr alts exprType) = do
   expr' <- applyExprVisibly expr
   alts' <- mapM applyAltVisibly alts
-  return (HS.Case srcSpan expr' alts')
-applyExprVisibly (HS.Lambda srcSpan args expr) = withLocalTypeAssumption $ do
-  mapM_ removeVarPatFromTypeAssumption args
-  expr' <- applyExprVisibly expr
-  return (HS.Lambda srcSpan args expr')
+  return (HS.Case srcSpan expr' alts' exprType)
+applyExprVisibly (HS.Lambda srcSpan args expr exprType) =
+  withLocalTypeAssumption $ do
+    mapM_ removeVarPatFromTypeAssumption args
+    expr' <- applyExprVisibly expr
+    return (HS.Lambda srcSpan args expr' exprType)
 
 -- Leave all other expressions unchanged.
-applyExprVisibly expr@(HS.Con _ _       ) = return expr
-applyExprVisibly expr@(HS.Var _ _       ) = return expr
-applyExprVisibly expr@(HS.Undefined _   ) = return expr
-applyExprVisibly expr@(HS.ErrorExpr  _ _) = return expr
-applyExprVisibly expr@(HS.IntLiteral _ _) = return expr
+applyExprVisibly expr@(HS.Con _ _ _       ) = return expr
+applyExprVisibly expr@(HS.Var _ _ _       ) = return expr
+applyExprVisibly expr@(HS.Undefined _ _   ) = return expr
+applyExprVisibly expr@(HS.ErrorExpr  _ _ _) = return expr
+applyExprVisibly expr@(HS.IntLiteral _ _ _) = return expr
 
 -- | Applies 'applyExprVisibly' to the right-hand side of the given @case@-
 --   expression alternative.
@@ -781,42 +785,42 @@ abstractVanishingTypeArgs funcDecls = do
 
   -- If this is a recursive call the internal type arguments need to be
   -- applied visibly.
-  addInternalTypeArgsToExpr' funcNames expr@(HS.Var _ varName)
+  addInternalTypeArgsToExpr' funcNames expr@(HS.Var _ varName _)
     | varName `Set.member` funcNames = (expr, internalTypeArgs)
     | otherwise                      = (expr, [])
 
   -- Add new type arguments after exisiting visible type applications.
-  addInternalTypeArgsToExpr' funcNames (HS.TypeAppExpr srcSpan expr typeExpr) =
-    let (expr', typeArgs) = addInternalTypeArgsToExpr' funcNames expr
-    in  (HS.TypeAppExpr srcSpan expr' typeExpr, typeArgs)
+  addInternalTypeArgsToExpr' funcNames (HS.TypeAppExpr srcSpan expr typeExpr exprType)
+    = let (expr', typeArgs) = addInternalTypeArgsToExpr' funcNames expr
+      in  (HS.TypeAppExpr srcSpan expr' typeExpr exprType, typeArgs)
 
   -- Recursively add the internal type arguments.
-  addInternalTypeArgsToExpr' funcNames (HS.App srcSpan e1 e2) =
+  addInternalTypeArgsToExpr' funcNames (HS.App srcSpan e1 e2 exprType) =
     let e1' = addInternalTypeArgsToExpr funcNames e1
         e2' = addInternalTypeArgsToExpr funcNames e2
-    in  (HS.App srcSpan e1' e2', [])
-  addInternalTypeArgsToExpr' funcNames (HS.If srcSpan e1 e2 e3) =
+    in  (HS.App srcSpan e1' e2' exprType, [])
+  addInternalTypeArgsToExpr' funcNames (HS.If srcSpan e1 e2 e3 exprType) =
     let e1' = addInternalTypeArgsToExpr funcNames e1
         e2' = addInternalTypeArgsToExpr funcNames e2
         e3' = addInternalTypeArgsToExpr funcNames e3
-    in  (HS.If srcSpan e1' e2' e3', [])
-  addInternalTypeArgsToExpr' funcNames (HS.Case srcSpan expr alts) =
+    in  (HS.If srcSpan e1' e2' e3' exprType, [])
+  addInternalTypeArgsToExpr' funcNames (HS.Case srcSpan expr alts exprType) =
     let expr' = addInternalTypeArgsToExpr funcNames expr
         alts' = map (addInternalTypeArgsToAlt funcNames) alts
-    in  (HS.Case srcSpan expr' alts', [])
-  addInternalTypeArgsToExpr' funcNames (HS.Lambda srcSpan args expr) =
+    in  (HS.Case srcSpan expr' alts' exprType, [])
+  addInternalTypeArgsToExpr' funcNames (HS.Lambda srcSpan args expr exprType) =
     let funcNames' = withoutArgs args funcNames
         expr'      = addInternalTypeArgsToExpr funcNames' expr
-    in  (HS.Lambda srcSpan args expr', [])
-  addInternalTypeArgsToExpr' funcNames (HS.ExprTypeSig srcSpan expr typeSchema)
+    in  (HS.Lambda srcSpan args expr' exprType, [])
+  addInternalTypeArgsToExpr' funcNames (HS.ExprTypeSig srcSpan expr typeSchema exprType)
     = let expr' = addInternalTypeArgsToExpr funcNames expr
-      in  (HS.ExprTypeSig srcSpan expr' typeSchema, [])
+      in  (HS.ExprTypeSig srcSpan expr' typeSchema exprType, [])
 
   -- Leave all other expressions unchnaged.
-  addInternalTypeArgsToExpr' _ expr@(HS.Con        _ _) = (expr, [])
-  addInternalTypeArgsToExpr' _ expr@(HS.IntLiteral _ _) = (expr, [])
-  addInternalTypeArgsToExpr' _ expr@(HS.Undefined _   ) = (expr, [])
-  addInternalTypeArgsToExpr' _ expr@(HS.ErrorExpr _ _ ) = (expr, [])
+  addInternalTypeArgsToExpr' _ expr@(HS.Con        _ _ _) = (expr, [])
+  addInternalTypeArgsToExpr' _ expr@(HS.IntLiteral _ _ _) = (expr, [])
+  addInternalTypeArgsToExpr' _ expr@(HS.Undefined _ _   ) = (expr, [])
+  addInternalTypeArgsToExpr' _ expr@(HS.ErrorExpr _ _ _ ) = (expr, [])
 
   -- | Applies 'addInternalTypeArgsToExpr' to the right-hand side of
   --   the given @case@ expression alternative.
@@ -841,7 +845,7 @@ simplifyTypedExpr :: HS.Expr -> HS.Type -> TypeInference ()
 -- | If @C :: τ@ is a predefined constructor with @C :: forall α₀ … αₙ. τ'@,
 --   then @τ = σ(τ')@ with @σ = { α₀ ↦ β₀, …, αₙ ↦ βₙ }@ where @β₀, …, βₙ@ are
 --   new type variables.
-simplifyTypedExpr (HS.Con srcSpan conName) resType =
+simplifyTypedExpr (HS.Con srcSpan conName _) resType =
   addTypeEquationOrVarTypeFor srcSpan conName resType
 
 -- | If @f :: τ@ is a predefined function with @f :: forall α₀ … αₙ. τ'@, then
@@ -849,22 +853,22 @@ simplifyTypedExpr (HS.Con srcSpan conName) resType =
 --   type variables.
 --   If @x :: τ@ is not a predefined function (i.e., a local variable or a
 --   function whose type to infer), just remember that @x@ is of type @τ@.
-simplifyTypedExpr (HS.Var srcSpan varName) resType =
+simplifyTypedExpr (HS.Var srcSpan varName _) resType =
   addTypeEquationOrVarTypeFor srcSpan varName resType
 
 -- If @(e₁ e₂) :: τ@, then @e₁ :: α -> τ@ and @e₂ :: α@ where @α@ is a new
 -- type variable.
-simplifyTypedExpr (HS.App _ e1 e2) resType = do
+simplifyTypedExpr (HS.App _ e1 e2 _) resType = do
   argType <- liftConverter freshTypeVar
   simplifyTypedExpr e1 (HS.FuncType NoSrcSpan argType resType)
   simplifyTypedExpr e2 argType
 
 -- There should be no visible type applications prior to type inference.
-simplifyTypedExpr (HS.TypeAppExpr srcSpan _ _) _ =
+simplifyTypedExpr (HS.TypeAppExpr srcSpan _ _ _) _ =
   liftConverter $ unexpectedTypeAppExpr srcSpan
 
 -- If @if e₁ then e₂ else e₃ :: τ@, then @e₁ :: Bool@ and @e₂, e₃ :: τ@.
-simplifyTypedExpr (HS.If _ e1 e2 e3) resType = do
+simplifyTypedExpr (HS.If _ e1 e2 e3 _) resType = do
   let condType = HS.TypeCon NoSrcSpan HS.boolTypeConName
   simplifyTypedExpr e1 condType
   simplifyTypedExpr e2 resType
@@ -872,22 +876,22 @@ simplifyTypedExpr (HS.If _ e1 e2 e3) resType = do
 
 -- If @case e of {p₀ -> e₀; …; pₙ -> eₙ} :: τ@, then @e₀, …, eₙ :: τ@ and
 -- @e :: α@ and @p₀, …, pₙ :: α@ where @α@ is a new type variable.
-simplifyTypedExpr (HS.Case _ expr alts) resType = do
+simplifyTypedExpr (HS.Case _ expr alts _) resType = do
   exprType <- liftConverter freshTypeVar
   simplifyTypedExpr expr exprType
   mapM_ (\alt -> simplifyTypedAlt alt exprType resType) alts
 
 -- Error terms are always typed correctly.
-simplifyTypedExpr (HS.Undefined _  ) _ = return ()
-simplifyTypedExpr (HS.ErrorExpr _ _) _ = return ()
+simplifyTypedExpr (HS.Undefined _ _  ) _ = return ()
+simplifyTypedExpr (HS.ErrorExpr _ _ _) _ = return ()
 
 -- If @n :: τ@ for some integer literal @n@, then @τ = Integer@.
-simplifyTypedExpr (HS.IntLiteral srcSpan _) resType =
+simplifyTypedExpr (HS.IntLiteral srcSpan _ _) resType =
   addTypeEquation srcSpan (HS.TypeCon NoSrcSpan HS.integerTypeConName) resType
 
 -- If @\x₀ … xₙ -> e :: τ@, then @x₀ :: α₀, … xₙ :: αₙ@ and @x :: β@ for new
 -- type variables @α₀ … αₙ@ and @α₀ -> … -> αₙ -> β = τ@.
-simplifyTypedExpr (HS.Lambda srcSpan args expr) resType = do
+simplifyTypedExpr (HS.Lambda srcSpan args expr _) resType = do
   (args', expr') <- liftConverter $ renameArgs args expr
   argTypes       <- replicateM (length args') (liftConverter freshTypeVar)
   returnType     <- liftConverter freshTypeVar
@@ -899,7 +903,7 @@ simplifyTypedExpr (HS.Lambda srcSpan args expr) resType = do
 -- If @(e :: forall α₀, …, αₙ. τ) :: τ'@, then @e :: σ(τ)@ and @σ(τ) = τ'@
 -- where @σ = { α₀ ↦ β₀, …, αₙ ↦ βₙ }@ maps the quantified type variables
 -- of @τ@ to new type variables @β₀, …, βₙ@.
-simplifyTypedExpr (HS.ExprTypeSig srcSpan expr typeSchema) resType = do
+simplifyTypedExpr (HS.ExprTypeSig srcSpan expr typeSchema _) resType = do
   exprType <- liftConverter $ instantiateTypeSchema typeSchema
   simplifyTypedExpr expr exprType
   addTypeEquation srcSpan exprType resType
