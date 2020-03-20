@@ -20,6 +20,8 @@ import qualified Data.Map.Strict               as Map
 import           Data.Maybe                     ( fromJust )
 import qualified Data.Set                      as Set
 
+import           Compiler.Analysis.DependencyExtraction
+                                                ( varSet )
 import           Compiler.Analysis.RecursionAnalysis
 import           Compiler.Converter.Expr
 import           Compiler.Converter.FuncDecl.Common
@@ -148,10 +150,11 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent typeArgs args expr maybeRetT
     let boundVarTypeMap = boundVarsWithTypeAt expr caseExprPos
         boundVars =
           Map.keysSet boundVarTypeMap `Set.union` Set.fromList argNames
-        usedVars       = usedVarsAt expr caseExprPos
+        Just caseExpr  = selectSubterm expr caseExprPos
+        usedVars       = varSet caseExpr
         helperArgNames = Set.toList (usedVars `Set.intersection` boundVars)
 
-    -- Determine the type of helper arguments.
+    -- Determine the type of helper function's arguments and its return type.
     let
       argTypes         = map HS.varPatType args
       argTypeMap       = Map.fromList (zip argNames argTypes)
@@ -162,6 +165,11 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent typeArgs args expr maybeRetT
         (HS.VarPat NoSrcSpan . fromJust . HS.identFromQName)
         helperArgNames
         helperArgTypes
+      helperReturnType = HS.exprType caseExpr
+      helperType       = do
+        helperArgTypes' <- mapM id helperArgTypes
+        helperReturnType'  <- helperReturnType
+        return (HS.funcType NoSrcSpan helperArgTypes' helperReturnType')
 
     -- Register the helper function to the environment.
     -- Even though we know the type of the original and additional arguments
@@ -176,7 +184,7 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent typeArgs args expr maybeRetT
       , entryArity         = length helperArgTypes
       , entryTypeArgs      = map HS.fromDeclIdent helperTypeArgs
       , entryArgTypes      = helperArgTypes
-      , entryReturnType    = Nothing
+      , entryReturnType    = helperReturnType
       , entryNeedsFreeArgs = freeArgsNeeded
       , entryIsPartial     = partial
       , entryName          = HS.UnQual (HS.Ident helperIdent)
@@ -190,22 +198,20 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent typeArgs args expr maybeRetT
     modifyEnv $ defineDecArg helperName decArgIndex' decArgIdent
 
     -- Build helper function declaration and application.
-    let
-      helperTypeArgs' = map HS.typeVarDeclToType helperTypeArgs
-      (Just caseExpr) = selectSubterm expr caseExprPos
-      helperDecl      = HS.FuncDecl srcSpan
-                                    helperDeclIdent
-                                    helperTypeArgs
-                                    helperArgs
-                                    caseExpr
-                                    Nothing
-      helperApp = HS.app
-        NoSrcSpan
-        (HS.visibleTypeApp NoSrcSpan
-                           (HS.Var NoSrcSpan helperName Nothing)
-                           helperTypeArgs'
-        )
-        (map (HS.varPatToExpr) helperArgs)
+    let helperTypeArgs' = map HS.typeVarDeclToType helperTypeArgs
+        helperDecl      = HS.FuncDecl srcSpan
+                                      helperDeclIdent
+                                      helperTypeArgs
+                                      helperArgs
+                                      caseExpr
+                                      helperReturnType
+        helperApp = HS.app
+          NoSrcSpan
+          (HS.visibleTypeApp NoSrcSpan
+                             (HS.Var NoSrcSpan helperName helperType)
+                             helperTypeArgs'
+          )
+          (map (HS.varPatToExpr) helperArgs)
 
     return (helperDecl, helperApp)
 
