@@ -13,8 +13,7 @@ module Compiler.Analysis.TypeInference
 where
 
 import           Control.Monad.Fail             ( MonadFail )
-import           Control.Monad.Extra            ( replicateM
-                                                , zipWithM
+import           Control.Monad.Extra            ( zipWithM
                                                 , zipWithM_
                                                 )
 import           Control.Monad.State            ( MonadState(..)
@@ -59,10 +58,6 @@ import           Compiler.Pretty
 -- Type inference state monad                                                --
 -------------------------------------------------------------------------------
 
--- | A pair of a variable name and its expected type type and location in the
---   source code.
-type TypedVar = (HS.VarName, (SrcSpan, HS.Type))
-
 -- | A type equation and the location in the source that caused the creation
 --   of this type variable.
 type TypeEquation = (SrcSpan, HS.Type, HS.Type)
@@ -72,10 +67,7 @@ type TypeAssumption = Map HS.QName HS.TypeSchema
 
 -- | The state that is passed implicitly between the modules of this module.
 data TypeInferenceState = TypeInferenceState
-  { varTypes :: [TypedVar]
-    -- ^ The constraints for types of variables added during the simplification
-    --   of expression/type pairs.
-  , typeEquations :: [TypeEquation]
+  { typeEquations :: [TypeEquation]
     -- ^ The type equations that have to be unified.
   , typeAssumption :: TypeAssumption
     -- ^ The known type schemas of predefined functions and constructors.
@@ -88,8 +80,7 @@ data TypeInferenceState = TypeInferenceState
 -- | An empty 'TypeInferenceState'.
 emptyTypeInferenceState :: TypeInferenceState
 emptyTypeInferenceState = TypeInferenceState
-  { varTypes       = []
-  , typeEquations  = []
+  { typeEquations  = []
   , typeAssumption = Map.empty
   , fixedTypeArgs  = Map.empty
   }
@@ -131,13 +122,6 @@ runTypeInference initialTypeAssumption =
 -- Type inference state inspection                                           --
 -------------------------------------------------------------------------------
 
--- | Gets the 'TypeEquation' entries from the current state and
---   constructors 'TypeEquation' entries from the 'TypedVar' entries
---   using 'makeTypeEquations'.
-getAllTypeEquations :: TypeInference [TypeEquation]
-getAllTypeEquations =
-  (++) <$> (makeTypeEquations <$> gets varTypes) <*> gets typeEquations
-
 -- | Looks up the type schema of the function or constructor with the given
 --   name in the current type assumption.
 lookupTypeAssumption :: HS.QName -> TypeInference (Maybe HS.TypeSchema)
@@ -152,25 +136,6 @@ lookupFixedTypeArgs name = Map.findWithDefault [] name <$> gets fixedTypeArgs
 -- Type inference state manipulation                                         --
 -------------------------------------------------------------------------------
 
--- | Adds a 'TypedVar' entry to the current state.
-addVarType :: SrcSpan -> HS.QName -> HS.Type -> TypeInference ()
-addVarType srcSpan v t =
-  modify $ \s -> s { varTypes = (v, (srcSpan, t)) : varTypes s }
-
--- | Applies 'addVarType' to the function declared by the given function
---   declaration.
-addFuncDeclType :: HS.FuncDecl -> TypeInference ()
-addFuncDeclType funcDecl = mapM_
-  (addVarType (HS.funcDeclSrcSpan funcDecl) (HS.funcDeclQName funcDecl))
-  (HS.funcDeclType funcDecl)
-
--- | Applies 'addVarType' to the variable declared by the given variable
---   pattern.
-addVarPatType :: HS.VarPat -> TypeInference ()
-addVarPatType arg = mapM_
-  (addVarType (HS.varPatSrcSpan arg) (HS.varPatQName arg))
-  (HS.varPatType arg)
-
 -- | Adds a 'TypeEquation' entry the current state.
 addTypeEquation :: SrcSpan -> HS.Type -> HS.Type -> TypeInference ()
 addTypeEquation srcSpan t t' =
@@ -182,15 +147,18 @@ addTypeEquation srcSpan t t' =
 --
 --   If there is no entry for the given name, a fatal error is reported.
 --   The error message refers to the given source location information.
-addTypeEquationOrVarTypeFor
-  :: SrcSpan -> HS.QName -> HS.Type -> TypeInference ()
-addTypeEquationOrVarTypeFor srcSpan name resType = do
+addTypeEquationFor :: SrcSpan -> HS.QName -> HS.Type -> TypeInference ()
+addTypeEquationFor srcSpan name resType = do
   maybeTypeSchema <- lookupTypeAssumption name
   case maybeTypeSchema of
-    Nothing         -> addVarType srcSpan name resType
+    Nothing ->
+      reportFatal
+        $  Message NoSrcSpan Error
+        $  "Identifier not in scope "
+        ++ showPretty name
     Just typeSchema -> do
-      funcType <- liftConverter $ instantiateTypeSchema typeSchema
-      addTypeEquation srcSpan funcType resType
+      typeExpr <- liftConverter $ instantiateTypeSchema typeSchema
+      addTypeEquation srcSpan typeExpr resType
 
 -- | Extends the type assumption with the type schema for the function or
 --   constructor with the given name.
@@ -210,12 +178,21 @@ extendTypeAssumption' name typeSchema = do
 
 -- | Extends the type assumption with the type schema for the given function
 --   declaration if all of its argument and return types are annotated.
-extendTypeAssumptionFor :: HS.FuncDecl -> TypeInference ()
-extendTypeAssumptionFor funcDecl = do
+extendTypeAssumptionWithFuncDecl :: HS.FuncDecl -> TypeInference ()
+extendTypeAssumptionWithFuncDecl funcDecl = do
   let funcName = HS.funcDeclName funcDecl
   case HS.funcDeclTypeSchema funcDecl of
     Nothing         -> return ()
     Just typeSchema -> extendTypeAssumption funcName typeSchema
+
+-- | Extends the type assumption with the unabstracted type the given
+--   variable pattern has been annotated with.
+extendTypeAssumptionWithVarPat :: HS.VarPat -> TypeInference ()
+extendTypeAssumptionWithVarPat varPat = case HS.varPatType varPat of
+  Nothing         -> return ()
+  Just varPatType -> extendTypeAssumption'
+    (HS.varPatQName varPat)
+    (HS.TypeSchema NoSrcSpan [] varPatType)
 
 -- | Removes the variable bound by the given variable pattern from the
 --   type assumption while runnign the given type inference.
@@ -244,6 +221,8 @@ fixTypeArgs' name subst =
 -- Scoping                                                                   --
 -------------------------------------------------------------------------------
 
+-- | Runs the given type inference and discards all modifications o fthe
+--   state afterwards.
 withLocalState :: TypeInference a -> TypeInference a
 withLocalState mx = do
   oldState <- get
@@ -388,7 +367,7 @@ inferFuncDeclComponentTypes'
   -> TypeInference (DependencyComponent HS.FuncDecl)
 inferFuncDeclComponentTypes' component = do
   component' <- mapComponentM inferFuncDeclTypes' component
-  mapComponentM_ (mapM_ extendTypeAssumptionFor) component'
+  mapComponentM_ (mapM_ extendTypeAssumptionWithFuncDecl) component'
   return component'
 
 -------------------------------------------------------------------------------
@@ -410,25 +389,22 @@ inferFuncDeclTypes' :: [HS.FuncDecl] -> TypeInference [HS.FuncDecl]
 inferFuncDeclTypes' funcDecls = withLocalState $ do
     -- Add type assumption for functions with type signatures.
     --
-    -- This required such that polymorphically recursive functions don't
+    -- This is required such that polymorphically recursive functions don't
     -- cause a type error.
-  mapM_ extendTypeAssumptionFor funcDecls
+  mapM_ extendTypeAssumptionWithFuncDecl funcDecls
 
   -- Add type annotations.
   --
-  -- First we annotate all variable patterns, constructor and function
-  -- applications as well as the return type of the function declarations
-  -- with fresh type variables. The type variables act as placeholders for
-  -- the actual types inferred below.
-  annotatedFuncDecls <- liftConverter $ mapM annotateFuncDecl funcDecls
+  -- TODO
+  annotatedFuncDecls <- annotateFuncDecls funcDecls
 
-  -- Infer function types.
+  -- Unify type equations.
   --
-  -- In addition to the actual type, we need the substitution computed
-  -- during type inference. The substitution is applied to the function
-  -- declarations in order to replace the fresh type variable placeholders
-  -- added in the step above.
-  (typeExprs, mgu)   <- inferFuncDeclTypes'' annotatedFuncDecls
+  -- During the annotation of the function declaration type equations were
+  -- added. The system of type equations is solved by computing the most
+  -- general unificator (mgu).
+  eqns               <- gets typeEquations
+  mgu                <- liftConverter $ unifyEquations eqns
   typedFuncDecls     <- liftConverter $ mapM (applySubst mgu) annotatedFuncDecls
 
   -- Abstract inferred type to type schema.
@@ -439,10 +415,12 @@ inferFuncDeclTypes' funcDecls = withLocalState $ do
   -- of the function but not in the inferred type (also known as "vanishing
   -- type  arguments") are added as well. The order of the type arguments
   -- depends on their order in the (type) expression (from left to right).
-  let typeArgs = map typeVars typeExprs
-      additionalTypeArgs =
-        nub (concatMap typeVars typedFuncDecls) \\ concat typeArgs
-      allTypeArgs = map (++ additionalTypeArgs) typeArgs
+  let
+    typeExprs = map (fromJust . HS.funcDeclType) typedFuncDecls
+    typeArgs  = map typeVars typeExprs
+    additionalTypeArgs =
+      nub (concatMap typeVars typedFuncDecls) \\ concat typeArgs
+    allTypeArgs = map (++ additionalTypeArgs) typeArgs
   abstractedFuncDecls <- liftConverter
     $ zipWithM abstractTypeArgs allTypeArgs typedFuncDecls
 
@@ -471,7 +449,7 @@ inferFuncDeclTypes' funcDecls = withLocalState $ do
   -- strongly connected component, we can replace the type annotations
   -- for function and constructor applications added by 'annotateFuncDecl'
   -- by visible type applications.
-  mapM_ extendTypeAssumptionFor abstractedFuncDecls
+  mapM_ extendTypeAssumptionWithFuncDecl abstractedFuncDecls
   visiblyAppliedFuncDecls <- mapM applyFuncDeclVisibly abstractedFuncDecls
 
   -- Abstract new vanishing type arguments.
@@ -482,37 +460,6 @@ inferFuncDeclTypes' funcDecls = withLocalState $ do
   -- strongly connected component. Those additional type arguments
   -- need to be abstracted as well.
   liftConverter $ abstractVanishingTypeArgs visiblyAppliedFuncDecls
-
--- | Like 'inferFuncDeclTypes'' but does not abstract the type to a type
---   schema and returns the substitution.
-inferFuncDeclTypes''
-  :: [HS.FuncDecl] -> TypeInference ([HS.Type], Subst HS.Type)
-inferFuncDeclTypes'' funcDecls = do
-  funcDecls' <- liftConverter $ mapM renameFuncDeclArgs funcDecls
-  let funcTypes = map (fromJust . HS.funcDeclType) funcDecls'
-  mapM_ simplifyTypedFuncDecl funcDecls'
-  eqns       <- getAllTypeEquations
-  mgu        <- liftConverter $ unifyEquations eqns
-  funcTypes' <- liftConverter $ mapM (applySubst mgu) funcTypes
-  return (funcTypes', mgu)
-
--- | Renames the arguments of the given function declaration using fresh
---   identifiers.
-renameFuncDeclArgs :: HS.FuncDecl -> Converter HS.FuncDecl
-renameFuncDeclArgs funcDecl = do
-  let args = HS.funcDeclArgs funcDecl
-      rhs  = HS.funcDeclRhs funcDecl
-  (args', rhs') <- renameArgs args rhs
-  return funcDecl { HS.funcDeclArgs = args', HS.funcDeclRhs = rhs' }
-
--- | Applies 'simplifyTypedExpr' to the right hand side of the given function
---   declaration and adds 'VarType' entries for the function and its arguments.
-simplifyTypedFuncDecl :: HS.FuncDecl -> TypeInference ()
-simplifyTypedFuncDecl funcDecl = do
-  addFuncDeclType funcDecl
-  mapM_ addVarPatType (HS.funcDeclArgs funcDecl)
-  simplifyTypedExpr (HS.funcDeclRhs funcDecl)
-                    (fromJust (HS.funcDeclReturnType funcDecl))
 
 -------------------------------------------------------------------------------
 -- Expressions                                                               --
@@ -546,82 +493,158 @@ inferExprType expr = localEnv $ do
 -- Type annotations                                                          --
 -------------------------------------------------------------------------------
 
+-- | Generates a fresh type variable if the given type is @Nothing@
+--   and returns the given type otherwise.
+maybeFreshTypeVar :: Maybe HS.Type -> TypeInference HS.Type
+maybeFreshTypeVar = liftConverter . maybe freshTypeVar return
+
 -- | Annotates the type of the given variable pattern using a fresh type
---   variable if there is no type annotation already.
-annotateVarPat :: HS.VarPat -> Converter HS.VarPat
-annotateVarPat (HS.VarPat srcSpan ident maybeVarType) = do
-  typeVar <- maybe freshTypeVar return maybeVarType
-  return (HS.VarPat srcSpan ident (Just typeVar))
+--   variable if there is no type annotation already and extends the type
+--   assumption by the (unabstracted) type for the declared variable.
+annotateVarPat :: HS.VarPat -> TypeInference HS.VarPat
+annotateVarPat varPat = do
+  varPatType' <- maybeFreshTypeVar (HS.varPatType varPat)
+  let varPat' = varPat { HS.varPatType = Just varPatType' }
+  extendTypeAssumptionWithVarPat varPat'
+  return varPat'
 
--- | Annotates the given expression (a constructor or function application
---   or an error term) using a type signature and fresh type variable.
-annotateWithTypeSig :: HS.Expr -> Converter HS.Expr
-annotateWithTypeSig expr = do
-  typeVar <- freshTypeVar
-  let srcSpan = HS.exprSrcSpan expr
-  return
-    (HS.ExprTypeSig srcSpan expr (HS.TypeSchema srcSpan [] typeVar) Nothing)
-
--- | Adds fresh type variables to variable patterns in the given expression
---   and adds type signatures to constructor and function invocations as well
---   as error terms.
+-- | Annotates the given expression with the given type if it does not have
+--   a type annotation already and annotates the expression recursively.
 --
---   The fresh type variables are later replaced by the actual type
---   using the substitution computed during type inference.
-annotateExpr :: HS.Expr -> Converter HS.Expr
+--   If the type (or the general structure of the type) of the given expression
+--   is known, type equations are added. For example, if a function is
+--   predefined, it is known that its type must be an instance of its type
+--   schema. Thus, the type schema is instantiated with fresh type variables
+--   and a type equation is added that unifies the expected type with the given
+--   type.
+--
+--   If there are variable patterns, they are annotated with fresh type
+--   variables and inserted (unabstracted) into the local type assumption.
+--   Thus, all references to local variables are annotated with the same type
+--   as the variable pattern they are bound by and there are type equations
+--   that unify the annotated type with the given type.
+annotateExprWith :: HS.Expr -> HS.Type -> TypeInference HS.Expr
 
--- Add type annotation to constructor and function invocations.
-annotateExpr expr@(HS.Con _ _ _) = annotateWithTypeSig expr
-annotateExpr expr@(HS.Var _ _ _) = annotateWithTypeSig expr
+-- If @C :: τ@ is a predefined constructor with @C :: forall α₀ … αₙ. τ'@,
+-- then add a type equation @τ = σ(τ')@ where @σ = { α₀ ↦ β₀, …, αₙ ↦ βₙ }@
+-- and @β₀, …, βₙ@ are fresh type variables.
+annotateExprWith (HS.Con srcSpan conName _) resType = do
+  addTypeEquationFor srcSpan conName resType
+  return (HS.Con srcSpan conName (Just resType))
 
--- Add type annotation to error terms.
-annotateExpr expr@(HS.Undefined _ _) = annotateWithTypeSig expr
-annotateExpr expr@(HS.ErrorExpr _ _ _) = annotateWithTypeSig expr
+-- If @x :: τ@ is in scope with @x :: forall α₀ … αₙ. τ'@, then add a type
+-- equation @τ = σ(τ')@ where @σ = { α₀ ↦ β₀, …, αₙ ↦ βₙ }@ and @β₀, …, βₙ@
+-- are fresh type variables.
+-- In case of local variables or functions whose types are currently inferred,
+-- the type assumption of @x@ is not abstracted (i.e., @n = 0@).
+-- Therfore a type equation that unifies the type the binder of @x@ has been
+-- annotated with and the given type @τ@ is simply added in this case.
+annotateExprWith (HS.Var srcSpan varName _) resType = do
+  addTypeEquationFor srcSpan varName resType
+  return (HS.Var srcSpan varName (Just resType))
+
+-- If @(e₁ e₂) :: τ@, then @e₁ :: α -> τ@ and @e₂ :: α@ where @α@ is a fresh
+-- type variable.
+annotateExprWith (HS.App srcSpan e1 e2 _) resType = do
+  argType <- liftConverter freshTypeVar
+  e1'     <- annotateExprWith e1 (HS.FuncType NoSrcSpan argType resType)
+  e2'     <- annotateExprWith e2 argType
+  return (HS.App srcSpan e1' e2' (Just resType))
 
 -- There should be no visible type applications prior to type inference.
-annotateExpr (HS.TypeAppExpr srcSpan _ _ _) = unexpectedTypeAppExpr srcSpan
+annotateExprWith (HS.TypeAppExpr srcSpan _ _ _) _ =
+  unexpectedTypeAppExpr srcSpan
 
--- Add visible type applications recursively.
-annotateExpr (HS.App srcSpan e1 e2 exprType) = do
-  e1' <- annotateExpr e1
-  e2' <- annotateExpr e2
-  return (HS.App srcSpan e1' e2' exprType)
-annotateExpr (HS.If srcSpan e1 e2 e3 exprType) = do
-  e1' <- annotateExpr e1
-  e2' <- annotateExpr e2
-  e3' <- annotateExpr e3
-  return (HS.If srcSpan e1' e2' e3' exprType)
-annotateExpr (HS.Case srcSpan expr alts exprType) = do
-  expr' <- annotateExpr expr
-  alts' <- mapM annotateAlt alts
-  return (HS.Case srcSpan expr' alts' exprType)
-annotateExpr (HS.Lambda srcSpan varPats expr exprType) = do
-  varPats' <- mapM annotateVarPat varPats
-  expr'    <- annotateExpr expr
-  return (HS.Lambda srcSpan varPats' expr' exprType)
-annotateExpr (HS.ExprTypeSig srcSpan expr typeSchema exprType) = do
-  expr' <- annotateExpr expr
-  return (HS.ExprTypeSig srcSpan expr' typeSchema exprType)
-annotateExpr expr@(HS.IntLiteral _ _ _) = return expr
+-- If @if e₁ then e₂ else e₃ :: τ@, then @e₁ :: Bool@ and @e₂, e₃ :: τ@.
+annotateExprWith (HS.If srcSpan e1 e2 e3 _) resType = do
+  let condType = HS.TypeCon NoSrcSpan HS.boolTypeConName
+  e1' <- annotateExprWith e1 condType
+  e2' <- annotateExprWith e2 resType
+  e3' <- annotateExprWith e3 resType
+  return (HS.If srcSpan e1' e2' e3' (Just resType))
 
--- | Applies 'annotateExpr' to the right-hand side of an alternative
---   of  a @case@-expression and annotates the variable patterns with
---   fresh type variable.
-annotateAlt :: HS.Alt -> Converter HS.Alt
-annotateAlt (HS.Alt srcSpan conPat varPats expr) = do
-  varPats' <- mapM annotateVarPat varPats
-  expr'    <- annotateExpr expr
-  return (HS.Alt srcSpan conPat varPats' expr')
+-- If @case e of {p₀ -> e₀; …; pₙ -> eₙ} :: τ@, then @e₀, …, eₙ :: τ@ and
+-- @e :: α@ and @p₀, …, pₙ :: α@ where @α@ is a fresh type variable.
+annotateExprWith (HS.Case srcSpan scrutinee alts _) resType = do
+  scrutineeType <- liftConverter freshTypeVar
+  scrutinee'    <- annotateExprWith scrutinee scrutineeType
+  alts'         <- mapM (flip annotateAlt scrutineeType) alts
+  return (HS.Case srcSpan scrutinee' alts' (Just resType))
+ where
+  -- | Annotates the pattern of the given alternative with the given type
+  --   and its right-hand side with the @case@ expressions result type.
+  annotateAlt :: HS.Alt -> HS.Type -> TypeInference HS.Alt
+  annotateAlt (HS.Alt altSrcSpan conPat varPats rhs) patType =
+    withLocalTypeAssumption $ do
+      varPats' <- mapM annotateVarPat varPats
+      let varPatTypes = map (fromJust . HS.varPatType) varPats'
+          conPatType  = HS.funcType NoSrcSpan varPatTypes patType
+      addTypeEquationFor altSrcSpan (HS.conPatName conPat) conPatType
+      rhs' <- annotateExprWith rhs resType
+      return (HS.Alt altSrcSpan conPat varPats' rhs')
 
--- | Applies 'annotateExpr' to the right-hand side of a function
---   declaration and annotates the function arguments and return type
+-- Error terms are predefined polymorphic funtions. They can be annoated
+-- with the given result type directly.
+annotateExprWith (HS.Undefined srcSpan _) resType =
+  return (HS.Undefined srcSpan (Just resType))
+annotateExprWith (HS.ErrorExpr srcSpan msg _) resType =
+  return (HS.ErrorExpr srcSpan msg (Just resType))
+
+-- If @n :: τ@ for some integer literal @n@, then add the type equation
+-- @τ = Integer@.
+annotateExprWith (HS.IntLiteral srcSpan value _) resType = do
+  let intType = HS.TypeCon NoSrcSpan HS.integerTypeConName
+  addTypeEquation srcSpan intType resType
+  return (HS.IntLiteral srcSpan value (Just resType))
+
+-- If @\x₀ … xₙ -> e :: τ@, then @x₀ :: α₀, …, xₙ :: αₙ@ and @x :: β@ for
+-- fresh type variables @α₀, …, αₙ@ and @β@ and add the a type equation
+-- @α₀ -> … -> αₙ -> β = τ@.
+annotateExprWith (HS.Lambda srcSpan args expr _) resType =
+  withLocalTypeAssumption $ do
+    args'   <- mapM annotateVarPat args
+    retType <- liftConverter freshTypeVar
+    expr'   <- annotateExprWith expr retType
+    let argTypes = map (fromJust . HS.varPatType) args'
+        funcType = HS.funcType NoSrcSpan argTypes retType
+    addTypeEquation srcSpan funcType resType
+    return (HS.Lambda srcSpan args' expr' (Just resType))
+
+-- If @(e :: forall α₀, …, αₙ. τ) :: τ'@, then @e :: σ(τ)@ and @σ(τ) = τ'@
+-- where @σ = { α₀ ↦ β₀, …, αₙ ↦ βₙ }@ maps the quantified type variables
+-- of @τ@ to fresh type variables @β₀, …, βₙ@.
+annotateExprWith (HS.ExprTypeSig srcSpan expr typeSchema _) resType = do
+  exprType <- liftConverter $ instantiateTypeSchema typeSchema
+  expr'    <- annotateExprWith expr exprType
+  addTypeEquation srcSpan exprType resType
+  return (HS.ExprTypeSig srcSpan expr' typeSchema (Just resType))
+
+-- | Applies 'annotateExpr' to the right-hand side of the given function
+--   declarations and annotates the function arguments and return types
 --   with fresh type variables if they are not annotated already.
-annotateFuncDecl :: HS.FuncDecl -> Converter HS.FuncDecl
-annotateFuncDecl (HS.FuncDecl srcSpan declIdent _ args rhs maybeRetType) = do
-  args'   <- mapM annotateVarPat args
-  rhs'    <- annotateExpr rhs
-  retType <- maybe freshTypeVar return maybeRetType
-  return (HS.FuncDecl srcSpan declIdent [] args' rhs' (Just retType))
+annotateFuncDecls :: [HS.FuncDecl] -> TypeInference [HS.FuncDecl]
+annotateFuncDecls funcDecls = withLocalTypeAssumption $ do
+  funcDecls' <- mapM annotateFuncDeclLhs funcDecls
+  mapM_ extendTypeAssumptionWithFuncDecl funcDecls'
+  mapM annotateFuncDeclRhs funcDecls'
+ where
+  -- | Annotates the argument and return types of the given function
+  --   declaration.
+  annotateFuncDeclLhs :: HS.FuncDecl -> TypeInference HS.FuncDecl
+  annotateFuncDeclLhs funcDecl = withLocalTypeAssumption $ do
+    args'   <- mapM annotateVarPat (HS.funcDeclArgs funcDecl)
+    retType <- maybeFreshTypeVar (HS.funcDeclReturnType funcDecl)
+    return funcDecl { HS.funcDeclArgs       = args'
+                    , HS.funcDeclReturnType = Just retType
+                    }
+
+  -- | Annotates the right-hand side of the given function declaration.
+  annotateFuncDeclRhs :: HS.FuncDecl -> TypeInference HS.FuncDecl
+  annotateFuncDeclRhs funcDecl = withLocalTypeAssumption $ do
+    let Just retType = HS.funcDeclReturnType funcDecl
+    mapM_ extendTypeAssumptionWithVarPat (HS.funcDeclArgs funcDecl)
+    rhs' <- annotateExprWith (HS.funcDeclRhs funcDecl) retType
+    return funcDecl { HS.funcDeclRhs = rhs' }
 
 -------------------------------------------------------------------------------
 -- Visible type application                                                  --
@@ -650,13 +673,14 @@ applyExprVisibly :: HS.Expr -> TypeInference HS.Expr
 
 -- Add visible type applications to functions, constructors and error terms
 -- with type annotation.
-applyExprVisibly (HS.ExprTypeSig srcSpan expr (HS.TypeSchema _ [] typeExpr) _)
-  | HS.Con _ conName _ <- expr = applyVisibly conName expr typeExpr
-  | HS.Var _ varName _ <- expr = applyVisibly varName expr typeExpr
-  | HS.Undefined _ _ <- expr = return
-    (HS.TypeAppExpr srcSpan expr typeExpr Nothing)
-  | HS.ErrorExpr _ _ _ <- expr = return
-    (HS.TypeAppExpr srcSpan expr typeExpr Nothing)
+applyExprVisibly expr@(HS.Con _ conName (Just exprType)) =
+  applyVisibly conName expr exprType
+applyExprVisibly expr@(HS.Var _ varName (Just exprType)) =
+  applyVisibly varName expr exprType
+applyExprVisibly expr@(HS.Undefined srcSpan (Just exprType)) =
+  return (HS.TypeAppExpr srcSpan expr exprType (Just exprType))
+applyExprVisibly expr@(HS.ErrorExpr srcSpan _ (Just exprType)) =
+  return (HS.TypeAppExpr srcSpan expr exprType (Just exprType))
 
 -- There should be no visible type applications prior to type inference.
 applyExprVisibly (HS.TypeAppExpr srcSpan _ _ _) = unexpectedTypeAppExpr srcSpan
@@ -836,125 +860,8 @@ abstractVanishingTypeArgs funcDecls = do
   withoutArgs = flip (Set.\\) . Set.fromList . map HS.varPatQName
 
 -------------------------------------------------------------------------------
--- Simplification of expression/type pairs                                   --
--------------------------------------------------------------------------------
-
--- | Simplifies expression/type pairs to variables/type pairs and type
---   equations.
-simplifyTypedExpr :: HS.Expr -> HS.Type -> TypeInference ()
-
--- | If @C :: τ@ is a predefined constructor with @C :: forall α₀ … αₙ. τ'@,
---   then @τ = σ(τ')@ with @σ = { α₀ ↦ β₀, …, αₙ ↦ βₙ }@ where @β₀, …, βₙ@ are
---   new type variables.
-simplifyTypedExpr (HS.Con srcSpan conName _) resType =
-  addTypeEquationOrVarTypeFor srcSpan conName resType
-
--- | If @f :: τ@ is a predefined function with @f :: forall α₀ … αₙ. τ'@, then
---   @τ = σ(τ')@ with @σ = { α₀ ↦ β₀, …, αₙ ↦ βₙ }@ where @β₀, …, βₙ@ are new
---   type variables.
---   If @x :: τ@ is not a predefined function (i.e., a local variable or a
---   function whose type to infer), just remember that @x@ is of type @τ@.
-simplifyTypedExpr (HS.Var srcSpan varName _) resType =
-  addTypeEquationOrVarTypeFor srcSpan varName resType
-
--- If @(e₁ e₂) :: τ@, then @e₁ :: α -> τ@ and @e₂ :: α@ where @α@ is a new
--- type variable.
-simplifyTypedExpr (HS.App _ e1 e2 _) resType = do
-  argType <- liftConverter freshTypeVar
-  simplifyTypedExpr e1 (HS.FuncType NoSrcSpan argType resType)
-  simplifyTypedExpr e2 argType
-
--- There should be no visible type applications prior to type inference.
-simplifyTypedExpr (HS.TypeAppExpr srcSpan _ _ _) _ =
-  liftConverter $ unexpectedTypeAppExpr srcSpan
-
--- If @if e₁ then e₂ else e₃ :: τ@, then @e₁ :: Bool@ and @e₂, e₃ :: τ@.
-simplifyTypedExpr (HS.If _ e1 e2 e3 _) resType = do
-  let condType = HS.TypeCon NoSrcSpan HS.boolTypeConName
-  simplifyTypedExpr e1 condType
-  simplifyTypedExpr e2 resType
-  simplifyTypedExpr e3 resType
-
--- If @case e of {p₀ -> e₀; …; pₙ -> eₙ} :: τ@, then @e₀, …, eₙ :: τ@ and
--- @e :: α@ and @p₀, …, pₙ :: α@ where @α@ is a new type variable.
-simplifyTypedExpr (HS.Case _ expr alts _) resType = do
-  exprType <- liftConverter freshTypeVar
-  simplifyTypedExpr expr exprType
-  mapM_ (\alt -> simplifyTypedAlt alt exprType resType) alts
-
--- Error terms are always typed correctly.
-simplifyTypedExpr (HS.Undefined _ _  ) _ = return ()
-simplifyTypedExpr (HS.ErrorExpr _ _ _) _ = return ()
-
--- If @n :: τ@ for some integer literal @n@, then @τ = Integer@.
-simplifyTypedExpr (HS.IntLiteral srcSpan _ _) resType =
-  addTypeEquation srcSpan (HS.TypeCon NoSrcSpan HS.integerTypeConName) resType
-
--- If @\x₀ … xₙ -> e :: τ@, then @x₀ :: α₀, … xₙ :: αₙ@ and @x :: β@ for new
--- type variables @α₀ … αₙ@ and @α₀ -> … -> αₙ -> β = τ@.
-simplifyTypedExpr (HS.Lambda srcSpan args expr _) resType = do
-  (args', expr') <- liftConverter $ renameArgs args expr
-  argTypes       <- replicateM (length args') (liftConverter freshTypeVar)
-  returnType     <- liftConverter freshTypeVar
-  zipWithM_ simplifyTypedVarPat args' argTypes
-  simplifyTypedExpr expr' returnType
-  let funcType = HS.funcType NoSrcSpan argTypes returnType
-  addTypeEquation srcSpan funcType resType
-
--- If @(e :: forall α₀, …, αₙ. τ) :: τ'@, then @e :: σ(τ)@ and @σ(τ) = τ'@
--- where @σ = { α₀ ↦ β₀, …, αₙ ↦ βₙ }@ maps the quantified type variables
--- of @τ@ to new type variables @β₀, …, βₙ@.
-simplifyTypedExpr (HS.ExprTypeSig srcSpan expr typeSchema _) resType = do
-  exprType <- liftConverter $ instantiateTypeSchema typeSchema
-  simplifyTypedExpr expr exprType
-  addTypeEquation srcSpan exprType resType
-
--- | Applies 'simplifyTypedExpr' to the pattern and right-hand side of a
---   @case@-expression alternative.
-simplifyTypedAlt
-  :: HS.Alt  -- ^ The @case@-expression alternative.
-  -> HS.Type -- ^ The type of the pattern.
-  -> HS.Type -- ^ The type of the right-hand side.
-  -> TypeInference ()
-simplifyTypedAlt (HS.Alt _ conPat varPats expr) patType exprType = do
-  (varPats', expr') <- liftConverter $ renameArgs varPats expr
-  simplifyTypedPat conPat varPats' patType
-  simplifyTypedExpr expr' exprType
-
--- | Applies 'simplifyTypedConPat' to the given constructor pattern and
---   'simplifyTypedVarPat' to the given variable patterns.
-simplifyTypedPat :: HS.ConPat -> [HS.VarPat] -> HS.Type -> TypeInference ()
-simplifyTypedPat conPat varPats patType = do
-  varPatTypes <- liftConverter $ replicateM (length varPats) freshTypeVar
-  let conPatType = HS.funcType NoSrcSpan varPatTypes patType
-  simplifyTypedConPat conPat conPatType
-  zipWithM_ simplifyTypedVarPat varPats varPatTypes
-
--- | Adds a type equation for the given constructor pattern that unifies the
---   given type with an instance of the constructor's type schema.
-simplifyTypedConPat :: HS.ConPat -> HS.Type -> TypeInference ()
-simplifyTypedConPat (HS.ConPat srcSpan conName) conPatType =
-  addTypeEquationOrVarTypeFor srcSpan conName conPatType
-
--- | Adds two 'TypedVar' entries for the given variable pattern. One for
---   the given and one for the annotated type.
-simplifyTypedVarPat :: HS.VarPat -> HS.Type -> TypeInference ()
-simplifyTypedVarPat (HS.VarPat srcSpan varIdent maybeVarType) varPatType = do
-  let varName = HS.UnQual (HS.Ident varIdent)
-  addVarType srcSpan varName varPatType
-  mapM_ (addVarType srcSpan varName) maybeVarType
-
--------------------------------------------------------------------------------
 -- Solving type equations                                                    --
 -------------------------------------------------------------------------------
-
--- | Converts @n@ 'TypedVar' entries for the same variable to @n-1@
---   type equations.
-makeTypeEquations :: [TypedVar] -> [TypeEquation]
-makeTypeEquations [] = []
-makeTypeEquations ((var, (srcSpan, typeExpr)) : ps) = case lookup var ps of
-  Nothing             -> makeTypeEquations ps
-  Just (_, typeExpr') -> (srcSpan, typeExpr, typeExpr') : makeTypeEquations ps
 
 -- | Finds the most general unificator that satisfies all given type equations.
 unifyEquations :: [TypeEquation] -> Converter (Subst HS.Type)
