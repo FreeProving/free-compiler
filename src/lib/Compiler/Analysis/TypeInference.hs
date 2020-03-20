@@ -13,8 +13,7 @@ module Compiler.Analysis.TypeInference
 where
 
 import           Control.Monad.Fail             ( MonadFail )
-import           Control.Monad.Extra            ( mapAndUnzipM
-                                                , replicateM
+import           Control.Monad.Extra            ( replicateM
                                                 , zipWithM
                                                 , zipWithM_
                                                 )
@@ -157,6 +156,20 @@ lookupFixedTypeArgs name = Map.findWithDefault [] name <$> gets fixedTypeArgs
 addVarType :: SrcSpan -> HS.QName -> HS.Type -> TypeInference ()
 addVarType srcSpan v t =
   modify $ \s -> s { varTypes = (v, (srcSpan, t)) : varTypes s }
+
+-- | Applies 'addVarType' to the function declared by the given function
+--   declaration.
+addFuncDeclType :: HS.FuncDecl -> TypeInference ()
+addFuncDeclType funcDecl = mapM_
+  (addVarType (HS.funcDeclSrcSpan funcDecl) (HS.funcDeclQName funcDecl))
+  (HS.funcDeclType funcDecl)
+
+-- | Applies 'addVarType' to the variable declared by the given variable
+--   pattern.
+addVarPatType :: HS.VarPat -> TypeInference ()
+addVarPatType arg = mapM_
+  (addVarType (HS.varPatSrcSpan arg) (HS.varPatQName arg))
+  (HS.varPatType arg)
 
 -- | Adds a 'TypeEquation' entry the current state.
 addTypeEquation :: SrcSpan -> HS.Type -> HS.Type -> TypeInference ()
@@ -475,43 +488,31 @@ inferFuncDeclTypes' funcDecls = withLocalState $ do
 inferFuncDeclTypes''
   :: [HS.FuncDecl] -> TypeInference ([HS.Type], Subst HS.Type)
 inferFuncDeclTypes'' funcDecls = do
-  (typedExprs, funcTypes) <- liftConverter
-    $ mapAndUnzipM makeTypedExprs funcDecls
-  mapM_ (uncurry simplifyTypedExpr) (concat typedExprs)
+  funcDecls' <- liftConverter $ mapM renameFuncDeclArgs funcDecls
+  let funcTypes = map (fromJust . HS.funcDeclType) funcDecls'
+  mapM_ simplifyTypedFuncDecl funcDecls'
   eqns       <- getAllTypeEquations
   mgu        <- liftConverter $ unifyEquations eqns
   funcTypes' <- liftConverter $ mapM (applySubst mgu) funcTypes
   return (funcTypes', mgu)
 
--- | Creates fresh type variables @a@ and @a1 ... an@ and the expression/type
---   pairs @f :: a1 -> ... -> an -> a, x1 :: a1, ..., xn :: an@ and @e :: a@
---   for the given function declaration @f x1 ... xn = e@ and returns the
---   expression/type pairs as well as the type of the function.
-makeTypedExprs :: HS.FuncDecl -> Converter ([(HS.Expr, HS.Type)], HS.Type)
-makeTypedExprs (HS.FuncDecl _ (HS.DeclIdent srcSpan ident) _ args rhs maybeRetType)
-  = do
-    -- TODO instantiate argument and return types with fresh type arguments.
-    (args', rhs') <- renameArgs args rhs
-    argTypes      <- mapM makeArgType args
-    retType       <- makeRetType
-    let
-      funcName = HS.UnQual (HS.Ident ident)
-      funcExpr = HS.Var srcSpan funcName Nothing
-      funcType = HS.funcType NoSrcSpan argTypes retType
-      argExprs = map HS.varPatToExpr args'
-      typedExprs =
-        (funcExpr, funcType) : (rhs', retType) : zip argExprs argTypes
-    return (typedExprs, funcType)
- where
-  -- | Generates a fresh type variable for the given variable pattern or
-  --   returns the annotated type variable.
-  makeArgType :: HS.VarPat -> Converter HS.Type
-  makeArgType = maybe freshTypeVar return . HS.varPatType
+-- | Renames the arguments of the given function declaration using fresh
+--   identifiers.
+renameFuncDeclArgs :: HS.FuncDecl -> Converter HS.FuncDecl
+renameFuncDeclArgs funcDecl = do
+  let args = HS.funcDeclArgs funcDecl
+      rhs  = HS.funcDeclRhs funcDecl
+  (args', rhs') <- renameArgs args rhs
+  return funcDecl { HS.funcDeclArgs = args', HS.funcDeclRhs = rhs' }
 
-  -- | Generates a fresh type variable for the function declaration's return
-  --   type or returns the annotated type variable.
-  makeRetType :: Converter HS.Type
-  makeRetType = maybe freshTypeVar return maybeRetType
+-- | Applies 'simplifyTypedExpr' to the right hand side of the given function
+--   declaration and adds 'VarType' entries for the function and its arguments.
+simplifyTypedFuncDecl :: HS.FuncDecl -> TypeInference ()
+simplifyTypedFuncDecl funcDecl = do
+  addFuncDeclType funcDecl
+  mapM_ addVarPatType (HS.funcDeclArgs funcDecl)
+  simplifyTypedExpr (HS.funcDeclRhs funcDecl)
+                    (fromJust (HS.funcDeclReturnType funcDecl))
 
 -------------------------------------------------------------------------------
 -- Expressions                                                               --
