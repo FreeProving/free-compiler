@@ -28,6 +28,7 @@ import           Compiler.Coq.Pretty
 import           Compiler.Environment
 import           Compiler.Environment.Decoder
 import           Compiler.Environment.Entry
+import           Compiler.Environment.Fresh
 import           Compiler.Environment.Importer
 import           Compiler.Environment.Renamer
 import qualified Compiler.Haskell.AST          as HS
@@ -307,12 +308,15 @@ defineTestCon ident arity typeStr = do
 
 --   Returns the Coq identifier assigned to the function.
 defineTestVar :: String -> Converter String
-defineTestVar ident = renameAndAddTestEntry VarEntry
-  { entrySrcSpan = NoSrcSpan
-  , entryIsPure  = False
-  , entryName    = HS.UnQual (HS.Ident ident)
-  , entryIdent   = undefined -- filled by renamer
-  }
+defineTestVar ident = do
+  varType <- freshTypeVar
+  renameAndAddTestEntry VarEntry
+    { entrySrcSpan = NoSrcSpan
+    , entryIsPure  = False
+    , entryName    = HS.UnQual (HS.Ident ident)
+    , entryIdent   = undefined -- filled by renamer
+    , entryType    = Just varType
+    }
 
 -- | Adds an entry for a function declaration for testing purposes.
 --

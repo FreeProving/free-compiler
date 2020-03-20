@@ -74,7 +74,7 @@ convertArgs args (Just index) = do
 --   annotated with the converted type.
 convertArg :: HS.VarPat -> Converter G.Binder
 convertArg (HS.VarPat srcSpan ident maybeArgType) = do
-  ident'        <- renameAndDefineVar srcSpan False ident
+  ident'        <- renameAndDefineVar srcSpan False ident maybeArgType
   maybeArgType' <- mapM convertType maybeArgType
   generateArgBinder ident' maybeArgType'
 
@@ -85,7 +85,7 @@ convertArg (HS.VarPat srcSpan ident maybeArgType) = do
 --   @Maybe@ monad.
 convertPureArg :: HS.VarPat -> Converter G.Binder
 convertPureArg (HS.VarPat srcSpan ident maybeArgType) = do
-  ident'        <- renameAndDefineVar srcSpan True ident
+  ident'        <- renameAndDefineVar srcSpan True ident maybeArgType
   maybeArgType' <- mapM convertType' maybeArgType
   generateArgBinder ident' maybeArgType'
 

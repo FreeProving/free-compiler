@@ -105,6 +105,8 @@ data EnvEntry
       -- ^ The name of the variable in Coq.
     , entryName    :: HS.QName
       -- ^ The name of the variable (must be unqualified).
+    , entryType    :: Maybe HS.Type
+      -- ^ The type of the variable (if known).
     }
  deriving Show
 

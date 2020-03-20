@@ -168,8 +168,7 @@ modifyEnv :: MonadConverter m => (Environment -> Environment) -> m ()
 modifyEnv = liftConverter . modify
 
 -- | Gets a specific component and modifies the environment.
-modifyEnv'
-  :: MonadConverter m => (Environment -> (a, Environment)) -> m a
+modifyEnv' :: MonadConverter m => (Environment -> (a, Environment)) -> m a
 modifyEnv' = liftConverter . state
 
 -------------------------------------------------------------------------------
@@ -226,6 +225,7 @@ shadowVarPats varPats converter = do
         , entryIsPure  = False
         , entryIdent   = undefined
         , entryName    = varName
+        , entryType    = HS.varPatType varPat
         }
   x <- converter
   modifyEnv $ \env -> env { envEntries = oldEntries }

@@ -227,8 +227,7 @@ renameAndAddEntry entry = do
   -- Associate the entry with its unqualified name.
   -- Top-level entries are also associated with their qualified name.
   modifyEnv $ addEntry unqualName entry'
-  when (isTopLevelEntry entry')
-    $ modifyEnv (addEntry qualName entry')
+  when (isTopLevelEntry entry') $ modifyEnv (addEntry qualName entry')
   return entry'
 
 -- | Associates the identifier of a user defined Haskell type variable with an
@@ -254,16 +253,19 @@ renameAndDefineTypeVar srcSpan ident = do
 --
 --   Returns the generated identifier.
 renameAndDefineVar
-  :: SrcSpan -- ^ The location of the variable declaration.
-  -> Bool    -- ^ Whether the variable has not been lifted to the free monad.
-  -> String  -- ^ The name of the variable.
+  :: SrcSpan       -- ^ The location of the variable declaration.
+  -> Bool          -- ^ Whether the variable has not been lifted to the
+                   --   free monad.
+  -> String        -- ^ The name of the variable.
+  -> Maybe HS.Type -- ^ The type of the variable if it is known.
   -> Converter G.Qualid
-renameAndDefineVar srcSpan isPure ident = do
+renameAndDefineVar srcSpan isPure ident maybeVarType = do
   entry <- renameAndAddEntry VarEntry
     { entrySrcSpan = srcSpan
     , entryIsPure  = isPure
     , entryName    = HS.UnQual (HS.Ident ident)
     , entryIdent   = undefined -- filled by renamer
+    , entryType    = maybeVarType
     }
   return (entryIdent entry)
 

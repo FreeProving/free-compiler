@@ -314,7 +314,7 @@ generateConstArgVariable :: ConstArg -> HS.Type -> Converter G.Sentence
 generateConstArgVariable constArg constArgType = do
   let ident = constArgFreshIdent constArg
   constArgType' <- convertType constArgType
-  ident'        <- renameAndDefineVar NoSrcSpan False ident
+  ident'        <- renameAndDefineVar NoSrcSpan False ident (Just constArgType)
   return (G.variable [ident'] constArgType')
 
 -------------------------------------------------------------------------------

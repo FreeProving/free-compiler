@@ -125,15 +125,15 @@ data Environment = Environment
 --   functions.
 emptyEnv :: Environment
 emptyEnv = Environment
-  { envDepth             = 0
+  { envDepth            = 0
     -- Modules and sections
-  , envModName           = ""
-  , envAvailableModules  = Map.empty
-  , envInSection         = False
+  , envModName          = ""
+  , envAvailableModules = Map.empty
+  , envInSection        = False
     -- Entries
-  , envEntries           = Map.empty
-  , envDecArgs           = Map.empty
-  , envFreshIdentCount   = Map.empty
+  , envEntries          = Map.empty
+  , envDecArgs          = Map.empty
+  , envFreshIdentCount  = Map.empty
   }
 
 -- | Creates a child environment of the given environment.
@@ -326,13 +326,17 @@ lookupReturnType =
 -- | Gets the type schema of the variable, function or constructor with the
 --   given name.
 lookupTypeSchema :: Scope -> HS.QName -> Environment -> Maybe HS.TypeSchema
-lookupTypeSchema scope name env = do
-  typeArgs   <- lookupTypeArgs scope name env
-  argTypes   <- lookupArgTypes scope name env
-  returnType <- lookupReturnType scope name env
-  let typeArgDecls = map (HS.DeclIdent NoSrcSpan) typeArgs
-      funcType     = HS.funcType NoSrcSpan (catMaybes argTypes) returnType
-  return (HS.TypeSchema NoSrcSpan typeArgDecls funcType)
+lookupTypeSchema scope name env
+  | scope == ValueScope && isVariable name env = do
+    typeExpr <- lookupEntry scope name env >>= entryType
+    return (HS.TypeSchema NoSrcSpan [] typeExpr)
+  | otherwise = do
+    typeArgs   <- lookupTypeArgs scope name env
+    argTypes   <- lookupArgTypes scope name env
+    returnType <- lookupReturnType scope name env
+    let typeArgDecls = map (HS.DeclIdent NoSrcSpan) typeArgs
+        funcType     = HS.funcType NoSrcSpan (catMaybes argTypes) returnType
+    return (HS.TypeSchema NoSrcSpan typeArgDecls funcType)
 
 -- | Looks up the number of arguments expected by the Haskell function
 --   or smart constructor with the given name.
