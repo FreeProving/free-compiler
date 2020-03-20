@@ -144,9 +144,6 @@ inlineExpr decls = inlineAndBind
     shadowVarPats varPats $ do
       expr' <- inlineAndBind expr
       return ([], [], HS.Lambda srcSpan varPats expr' exprType)
-  inlineExpr' (HS.ExprTypeSig srcSpan expr typeExpr exprType) = do
-    expr' <- inlineAndBind expr
-    return ([], [], HS.ExprTypeSig srcSpan expr' typeExpr exprType)
 
   -- All other expressions remain unchanged.
   inlineExpr' expr@(HS.Con _ _ _       ) = return ([], [], expr)

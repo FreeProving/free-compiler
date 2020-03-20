@@ -383,18 +383,13 @@ testConvertExprTypeSigs = context "type signatures" $ do
     $ shouldSucceed
     $ fromConverter
     $ do
-        shouldTranslateExprTo
-          "42 :: Integer"
-          ("pure 42%Z : Free Shape Pos (Integer Shape Pos)")
+        "42 :: Integer" `shouldTranslateExprTo` "pure 42%Z"
   it "type signatures make type arguments more specific"
     $ shouldSucceed
     $ fromConverter
     $ do
-        shouldTranslateExprTo
-          "[] :: [Integer]"
-          (  "@Nil Shape Pos (Integer Shape Pos)"
-          ++ "  : Free Shape Pos (List Shape Pos (Integer Shape Pos))"
-          )
+        shouldTranslateExprTo "[] :: [Integer]"
+                              "@Nil Shape Pos (Integer Shape Pos)"
 
 -------------------------------------------------------------------------------
 -- Integer expressions                                                       --

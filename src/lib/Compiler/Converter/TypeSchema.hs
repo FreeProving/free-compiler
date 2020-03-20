@@ -1,33 +1,78 @@
--- | This module contains a function for converting type schemas from Haskell
---   to Coq.
+-- | This module contains functions for converting between type expressions
+--   and type schemas.
 
 module Compiler.Converter.TypeSchema
-  ( convertTypeSchema
+  (
+    -- * Instantiating type schemas
+    instantiateTypeSchema
+  , instantiateTypeSchema'
+    -- * Abstracting type expressions
+  , abstractTypeSchema
+  , abstractTypeSchema'
   )
 where
 
-import           Compiler.Converter.Type
-import qualified Compiler.Coq.AST              as G
-import           Compiler.Environment
-import           Compiler.Environment.Entry
+import           Data.Composition               ( (.:) )
+import           Data.List                      ( (\\)
+                                                , partition
+                                                )
+import           Data.Maybe                     ( fromJust )
+
+import           Compiler.Environment.Fresh
 import qualified Compiler.Haskell.AST          as HS
+import           Compiler.Haskell.SrcSpan
+import           Compiler.Haskell.Subst
 import           Compiler.Monad.Converter
 
--- | Converts a Haskell type schema to Coq.
-convertTypeSchema :: HS.TypeSchema -> Converter G.Term
-convertTypeSchema (HS.TypeSchema _ typeVars typeExpr) = localEnv $ do
-  mapM_ makeTypeVarImplicit typeVars
-  convertType typeExpr
+-------------------------------------------------------------------------------
+-- Instantiating type schemas                                                --
+-------------------------------------------------------------------------------
 
--- | Adds the given type variable to the environment and assigns the
---   Coq name @_@ to it.
-makeTypeVarImplicit :: HS.TypeVarDecl -> Converter ()
-makeTypeVarImplicit (HS.DeclIdent srcSpan ident) = do
-  let name = HS.UnQual (HS.Ident ident)
-  modifyEnv $ addEntry
-    name
-    TypeVarEntry
-      { entrySrcSpan = srcSpan
-      , entryName    = name
-      , entryIdent   = G.bare "_"
-      }
+-- | Replaces the type variables in the given type schema by fresh type
+--   variables.
+instantiateTypeSchema :: HS.TypeSchema -> Converter HS.Type
+instantiateTypeSchema = fmap fst . instantiateTypeSchema'
+
+-- | Like 'instantiateTypeSchema' but also returns the fresh type variables,
+--   the type schema has been instantiated with.
+instantiateTypeSchema' :: HS.TypeSchema -> Converter (HS.Type, [HS.Type])
+instantiateTypeSchema' (HS.TypeSchema _ typeArgs typeExpr) = do
+  (typeArgs', subst) <- renameTypeArgsSubst typeArgs
+  typeExpr'          <- applySubst subst typeExpr
+  let typeVars' = map (HS.TypeVar NoSrcSpan . HS.fromDeclIdent) typeArgs'
+  return (typeExpr', typeVars')
+
+-------------------------------------------------------------------------------
+-- Abstracting type expressions                                              --
+-------------------------------------------------------------------------------
+
+-- | Normalizes the names of type variables in the given type and returns
+--   it as a type schema.
+--
+--   The first argument contains the names of type variables that should be
+--   bound by the type schema. Usually these are the type variables that
+--   occur in the given type (see 'typeVars').
+--
+--   Fresh type variables used by the given type are replaced by regular type
+--   varibales with the prefix 'freshTypeArgPrefix'. All other type variables
+--   are not renamed.
+abstractTypeSchema :: [HS.QName] -> HS.Type -> Converter HS.TypeSchema
+abstractTypeSchema = fmap fst .: abstractTypeSchema'
+
+-- | Like 'abstractTypeSchema' but returns the resulting type schema and the
+--   substitution that replaces the abstracted type variables by their name in
+--   the type schema.
+abstractTypeSchema'
+  :: [HS.QName] -> HS.Type -> Converter (HS.TypeSchema, Subst HS.Type)
+abstractTypeSchema' ns t = do
+  let vs         = map (fromJust . HS.identFromQName) ns
+      (ivs, uvs) = partition HS.isInternalIdent vs
+      vs'        = uvs ++ take (length ivs) (map makeTypeArg [0 ..] \\ uvs)
+      ns'        = map (HS.UnQual . HS.Ident) (uvs ++ ivs)
+      ts         = map (HS.TypeVar NoSrcSpan) vs'
+      subst      = composeSubsts (zipWith singleSubst ns' ts)
+  t' <- applySubst subst t
+  return (HS.TypeSchema NoSrcSpan (map (HS.DeclIdent NoSrcSpan) vs') t', subst)
+ where
+  makeTypeArg :: Int -> HS.TypeVarIdent
+  makeTypeArg = (freshTypeArgPrefix ++) . show

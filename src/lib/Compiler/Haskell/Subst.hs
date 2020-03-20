@@ -150,9 +150,6 @@ instance ApplySubst HS.Expr HS.Expr where
       (args', argSubst) <- renameArgsSubst args
       expr'             <- applySubst (composeSubst subst argSubst) expr
       return (HS.Lambda srcSpan args' expr' exprType)
-    applySubst' (HS.ExprTypeSig srcSpan expr typeSchema exprType) = do
-      expr' <- applySubst' expr
-      return (HS.ExprTypeSig srcSpan expr' typeSchema exprType)
 
     -- All other expressions remain unchanged.
     applySubst' expr@(HS.Con _ _ _       ) = return expr
@@ -224,12 +221,6 @@ instance ApplySubst HS.Type HS.Expr where
       expr' <- applySubst' expr
       exprType' <- mapM (applySubst subst) exprType
       return (HS.Lambda srcSpan args' expr' exprType')
-
-    applySubst' (HS.ExprTypeSig srcSpan expr typeSchema exprType) = do
-      expr'       <- applySubst' expr
-      typeSchema' <- applySubst subst typeSchema
-      exprType' <- mapM (applySubst subst) exprType
-      return (HS.ExprTypeSig srcSpan expr' typeSchema' exprType')
 
 -- | Applies the given type substitution to the right-hand side of the
 --   given @case@-expression alterntaive.

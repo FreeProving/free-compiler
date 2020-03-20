@@ -320,9 +320,7 @@ testInferExprType =
       $ do
           shouldInferType
             "[] :: [Integer]"
-            ( "Prelude.([]) @Prelude.Integer :: [Prelude.Integer]"
-            , "[Prelude.Integer]"
-            )
+            ("Prelude.([]) @Prelude.Integer", "[Prelude.Integer]")
     it "infers the type of the error term 'undefined' correctly"
       $ shouldSucceed
       $ fromConverter
@@ -342,13 +340,24 @@ testInferExprType =
             ( "\\(x :: t0) -> Prelude.(,) @t0 @(t1 -> t1) x (\\(x :: t1) -> x)"
             , "forall t0 t1. t0 -> (t0, t1 -> t1)"
             )
+    it "instantiates type variables in expression type signatures"
+      $ shouldSucceed
+      $ fromConverter
+      $ do
+          shouldInferType
+            "[undefined :: (a, b), undefined :: (b, a)] :: [(Integer, Bool)]"
+            ( "Prelude.(:) @(Prelude.Integer, Prelude.Bool)"
+            ++ "  (undefined @(Prelude.Integer, Prelude.Bool))"
+            ++ "  (Prelude.(:) @(Prelude.Integer, Prelude.Bool)"
+            ++ "  (undefined @(Prelude.Integer, Prelude.Bool))"
+            ++ "  (Prelude.([]) @(Prelude.Integer, Prelude.Bool)))"
+            , "[(Prelude.Integer, Prelude.Bool)]")
     it "can match types that contain type synonyms"
       $ shouldSucceed
       $ fromConverter
       $ do
           "Foo" <- defineTestTypeSyn "Foo" [] "[Integer]"
-          shouldInferType "[] :: Foo"
-                          ("Prelude.([]) @Prelude.Integer :: Foo", "Foo")
+          shouldInferType "[] :: Foo" ("Prelude.([]) @Prelude.Integer", "Foo")
     it "expands type synonyms when necessary"
       $ shouldSucceed
       $ fromConverter
@@ -357,7 +366,7 @@ testInferExprType =
           "head" <- defineTestFunc "head" 1 "[a] -> a"
           shouldInferType
             "head ([] :: Foo)"
-            ( "head @Prelude.Integer (Prelude.([]) @Prelude.Integer :: Foo)"
+            ( "head @Prelude.Integer (Prelude.([]) @Prelude.Integer)"
             , "Prelude.Integer"
             )
     it "rejects lists with heterogeneous element types"

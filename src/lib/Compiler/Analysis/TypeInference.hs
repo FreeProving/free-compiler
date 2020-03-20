@@ -26,7 +26,6 @@ import           Data.Composition               ( (.:) )
 import           Data.List                      ( (\\)
                                                 , intercalate
                                                 , nub
-                                                , partition
                                                 )
 import           Data.List.Extra                ( dropEnd
                                                 , takeEnd
@@ -42,6 +41,7 @@ import qualified Data.Set                      as Set
 import           Compiler.Analysis.DependencyAnalysis
 import           Compiler.Analysis.DependencyExtraction
                                                 ( typeVars )
+import           Compiler.Converter.TypeSchema
 import           Compiler.Environment
 import           Compiler.Environment.Fresh
 import           Compiler.Environment.Scope
@@ -523,12 +523,26 @@ annotateVarPat varPat = do
 --   Thus, all references to local variables are annotated with the same type
 --   as the variable pattern they are bound by and there are type equations
 --   that unify the annotated type with the given type.
+--
+--   If the type of the expression is annotated already (e.g., through an
+--   expression type signature), a type equation is added that unifies the
+--   annotated type with the given type. The annotated expression keeps its
+--   original annotation.
 annotateExprWith :: HS.Expr -> HS.Type -> TypeInference HS.Expr
+annotateExprWith expr resType =
+  case HS.exprType expr of
+  Nothing -> annotateExprWith' expr resType
+  Just exprType -> do
+    addTypeEquation (HS.exprSrcSpan expr) exprType resType
+    annotateExprWith' expr exprType
+
+-- | Version of 'annotateExprWith' that ignores exisiting type annotations.
+annotateExprWith' :: HS.Expr -> HS.Type -> TypeInference HS.Expr
 
 -- If @C :: τ@ is a predefined constructor with @C :: forall α₀ … αₙ. τ'@,
 -- then add a type equation @τ = σ(τ')@ where @σ = { α₀ ↦ β₀, …, αₙ ↦ βₙ }@
 -- and @β₀, …, βₙ@ are fresh type variables.
-annotateExprWith (HS.Con srcSpan conName _) resType = do
+annotateExprWith' (HS.Con srcSpan conName _) resType = do
   addTypeEquationFor srcSpan conName resType
   return (HS.Con srcSpan conName (Just resType))
 
@@ -539,24 +553,24 @@ annotateExprWith (HS.Con srcSpan conName _) resType = do
 -- the type assumption of @x@ is not abstracted (i.e., @n = 0@).
 -- Therfore a type equation that unifies the type the binder of @x@ has been
 -- annotated with and the given type @τ@ is simply added in this case.
-annotateExprWith (HS.Var srcSpan varName _) resType = do
+annotateExprWith' (HS.Var srcSpan varName _) resType = do
   addTypeEquationFor srcSpan varName resType
   return (HS.Var srcSpan varName (Just resType))
 
 -- If @(e₁ e₂) :: τ@, then @e₁ :: α -> τ@ and @e₂ :: α@ where @α@ is a fresh
 -- type variable.
-annotateExprWith (HS.App srcSpan e1 e2 _) resType = do
+annotateExprWith' (HS.App srcSpan e1 e2 _) resType = do
   argType <- liftConverter freshTypeVar
   e1'     <- annotateExprWith e1 (HS.FuncType NoSrcSpan argType resType)
   e2'     <- annotateExprWith e2 argType
   return (HS.App srcSpan e1' e2' (Just resType))
 
 -- There should be no visible type applications prior to type inference.
-annotateExprWith (HS.TypeAppExpr srcSpan _ _ _) _ =
+annotateExprWith' (HS.TypeAppExpr srcSpan _ _ _) _ =
   unexpectedTypeAppExpr srcSpan
 
 -- If @if e₁ then e₂ else e₃ :: τ@, then @e₁ :: Bool@ and @e₂, e₃ :: τ@.
-annotateExprWith (HS.If srcSpan e1 e2 e3 _) resType = do
+annotateExprWith' (HS.If srcSpan e1 e2 e3 _) resType = do
   let condType = HS.TypeCon NoSrcSpan HS.boolTypeConName
   e1' <- annotateExprWith e1 condType
   e2' <- annotateExprWith e2 resType
@@ -565,7 +579,7 @@ annotateExprWith (HS.If srcSpan e1 e2 e3 _) resType = do
 
 -- If @case e of {p₀ -> e₀; …; pₙ -> eₙ} :: τ@, then @e₀, …, eₙ :: τ@ and
 -- @e :: α@ and @p₀, …, pₙ :: α@ where @α@ is a fresh type variable.
-annotateExprWith (HS.Case srcSpan scrutinee alts _) resType = do
+annotateExprWith' (HS.Case srcSpan scrutinee alts _) resType = do
   scrutineeType <- liftConverter freshTypeVar
   scrutinee'    <- annotateExprWith scrutinee scrutineeType
   alts'         <- mapM (flip annotateAlt scrutineeType) alts
@@ -585,14 +599,14 @@ annotateExprWith (HS.Case srcSpan scrutinee alts _) resType = do
 
 -- Error terms are predefined polymorphic funtions. They can be annoated
 -- with the given result type directly.
-annotateExprWith (HS.Undefined srcSpan _) resType =
+annotateExprWith' (HS.Undefined srcSpan _) resType =
   return (HS.Undefined srcSpan (Just resType))
-annotateExprWith (HS.ErrorExpr srcSpan msg _) resType =
+annotateExprWith' (HS.ErrorExpr srcSpan msg _) resType =
   return (HS.ErrorExpr srcSpan msg (Just resType))
 
 -- If @n :: τ@ for some integer literal @n@, then add the type equation
 -- @τ = Integer@.
-annotateExprWith (HS.IntLiteral srcSpan value _) resType = do
+annotateExprWith' (HS.IntLiteral srcSpan value _) resType = do
   let intType = HS.TypeCon NoSrcSpan HS.integerTypeConName
   addTypeEquation srcSpan intType resType
   return (HS.IntLiteral srcSpan value (Just resType))
@@ -600,7 +614,7 @@ annotateExprWith (HS.IntLiteral srcSpan value _) resType = do
 -- If @\x₀ … xₙ -> e :: τ@, then @x₀ :: α₀, …, xₙ :: αₙ@ and @x :: β@ for
 -- fresh type variables @α₀, …, αₙ@ and @β@ and add the a type equation
 -- @α₀ -> … -> αₙ -> β = τ@.
-annotateExprWith (HS.Lambda srcSpan args expr _) resType =
+annotateExprWith' (HS.Lambda srcSpan args expr _) resType =
   withLocalTypeAssumption $ do
     args'   <- mapM annotateVarPat args
     retType <- liftConverter freshTypeVar
@@ -609,15 +623,6 @@ annotateExprWith (HS.Lambda srcSpan args expr _) resType =
         funcType = HS.funcType NoSrcSpan argTypes retType
     addTypeEquation srcSpan funcType resType
     return (HS.Lambda srcSpan args' expr' (Just resType))
-
--- If @(e :: forall α₀, …, αₙ. τ) :: τ'@, then @e :: σ(τ)@ and @σ(τ) = τ'@
--- where @σ = { α₀ ↦ β₀, …, αₙ ↦ βₙ }@ maps the quantified type variables
--- of @τ@ to fresh type variables @β₀, …, βₙ@.
-annotateExprWith (HS.ExprTypeSig srcSpan expr typeSchema _) resType = do
-  exprType <- liftConverter $ instantiateTypeSchema typeSchema
-  expr'    <- annotateExprWith expr exprType
-  addTypeEquation srcSpan exprType resType
-  return (HS.ExprTypeSig srcSpan expr' typeSchema (Just resType))
 
 -- | Applies 'annotateExpr' to the right-hand side of the given function
 --   declarations and annotates the function arguments and return types
@@ -686,9 +691,6 @@ applyExprVisibly expr@(HS.ErrorExpr srcSpan _ (Just exprType)) =
 applyExprVisibly (HS.TypeAppExpr srcSpan _ _ _) = unexpectedTypeAppExpr srcSpan
 
 -- Recursively add visible type applications.
-applyExprVisibly (HS.ExprTypeSig srcSpan expr typeSchema exprType) = do
-  expr' <- applyExprVisibly expr
-  return (HS.ExprTypeSig srcSpan expr' typeSchema exprType)
 applyExprVisibly (HS.App srcSpan e1 e2 exprType) = do
   e1' <- applyExprVisibly e1
   e2' <- applyExprVisibly e2
@@ -837,9 +839,6 @@ abstractVanishingTypeArgs funcDecls = do
     let funcNames' = withoutArgs args funcNames
         expr'      = addInternalTypeArgsToExpr funcNames' expr
     in  (HS.Lambda srcSpan args expr' exprType, [])
-  addInternalTypeArgsToExpr' funcNames (HS.ExprTypeSig srcSpan expr typeSchema exprType)
-    = let expr' = addInternalTypeArgsToExpr funcNames expr
-      in  (HS.ExprTypeSig srcSpan expr' typeSchema exprType, [])
 
   -- Leave all other expressions unchnaged.
   addInternalTypeArgsToExpr' _ expr@(HS.Con        _ _ _) = (expr, [])
@@ -876,52 +875,6 @@ unifyEquations = unifyEquations' identitySubst
     mgu <- unifyOrFail srcSpan t1' t2'
     let subst' = composeSubst mgu subst
     unifyEquations' subst' eqns
-
--------------------------------------------------------------------------------
--- Type schemas                                                              --
--------------------------------------------------------------------------------
-
--- | Replaces the type variables in the given type schema by fresh type
---   variables.
-instantiateTypeSchema :: HS.TypeSchema -> Converter HS.Type
-instantiateTypeSchema = fmap fst . instantiateTypeSchema'
-
--- | Like 'instantiateTypeSchema' but also returns the fresh type variables,
---   the type schema has been instantiated with.
-instantiateTypeSchema' :: HS.TypeSchema -> Converter (HS.Type, [HS.Type])
-instantiateTypeSchema' (HS.TypeSchema _ typeArgs typeExpr) = do
-  (typeArgs', subst) <- renameTypeArgsSubst typeArgs
-  typeExpr'          <- applySubst subst typeExpr
-  let typeVars' = map (HS.TypeVar NoSrcSpan . HS.fromDeclIdent) typeArgs'
-  return (typeExpr', typeVars')
-
--- | Normalizes the names of type variables in the given type and returns
---   it as a type schema.
---
---   The first argument contains the names of type variables that should be
---   bound by the type schema. Usually these are the type variables that
---   occur in the given type (see 'typeVars').
---
---   Fresh type variables used by the given type are replaced by regular type
---   varibales with the prefix 'freshTypeArgPrefix'. All other type variables
---   are not renamed.
---
---   Returns the resulting type schema and the substitution that replaces the
---   abstracted type variables by their name in the type schema.
-abstractTypeSchema'
-  :: [HS.QName] -> HS.Type -> Converter (HS.TypeSchema, Subst HS.Type)
-abstractTypeSchema' ns t = do
-  let vs         = map (fromJust . HS.identFromQName) ns
-      (ivs, uvs) = partition HS.isInternalIdent vs
-      vs'        = uvs ++ take (length ivs) (map makeTypeArg [0 ..] \\ uvs)
-      ns'        = map (HS.UnQual . HS.Ident) (uvs ++ ivs)
-      ts         = map (HS.TypeVar NoSrcSpan) vs'
-      subst      = composeSubsts (zipWith singleSubst ns' ts)
-  t' <- applySubst subst t
-  return (HS.TypeSchema NoSrcSpan (map (HS.DeclIdent NoSrcSpan) vs') t', subst)
- where
-  makeTypeArg :: Int -> HS.TypeVarIdent
-  makeTypeArg = (freshTypeArgPrefix ++) . show
 
 -------------------------------------------------------------------------------
 -- Error reporting                                                           --

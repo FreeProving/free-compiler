@@ -409,10 +409,6 @@ removeConstArgsFromExpr constArgs rootExpr = do
 
   -- Remove constant arguments recursively and pass through the indicies of
   -- arguments that still have to be removed.
-  removeConstArgsFromExpr' (HS.ExprTypeSig srcSpan expr typeSchema exprType) =
-    do
-      (expr', indicies) <- removeConstArgsFromExpr' expr
-      return (HS.ExprTypeSig srcSpan expr' typeSchema exprType, indicies)
   removeConstArgsFromExpr' (HS.TypeAppExpr srcSpan expr typeExpr exprType) = do
     (expr', indicies) <- removeConstArgsFromExpr' expr
     return (HS.TypeAppExpr srcSpan expr' typeExpr exprType, indicies)
@@ -603,10 +599,7 @@ removeConstTypeArgsFromExpr constTypeVars rootExpr = do
     shadowVarPats args $ do
       (expr', []) <- removeConstTypeArgsFromExpr' expr
       return (HS.Lambda srcSpan args expr' exprType, [])
-  removeConstTypeArgsFromExpr' (HS.ExprTypeSig srcSpan expr typeSchema exprType)
-    = do
-      (expr', []) <- removeConstTypeArgsFromExpr' expr
-      return (HS.ExprTypeSig srcSpan expr' typeSchema exprType, [])
+
   -- Leave all other nodes unchanged.
   removeConstTypeArgsFromExpr' expr@(HS.Con _ _ _       ) = return (expr, [])
   removeConstTypeArgsFromExpr' expr@(HS.Undefined _ _   ) = return (expr, [])

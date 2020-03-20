@@ -157,10 +157,6 @@ instance TypeDependencies HS.Expr where
     typeDependencies' args
       `union` typeDependencies' expr
       `union` typeDependencies' exprType
-  typeDependencies' (HS.ExprTypeSig _ expr typeSchema exprType) =
-    typeDependencies' expr
-      `union` typeDependencies' typeSchema
-      `union` typeDependencies' exprType
 
 -- | An alternative of a @case@ expression depends on the types it's
 --   right-hand side depends on.
@@ -255,7 +251,6 @@ exprDependencies' (HS.ErrorExpr  _ _ _) = conName HS.errorFuncName
 exprDependencies' (HS.IntLiteral _ _ _) = OSet.empty
 exprDependencies' (HS.Lambda _ args expr _) =
   withoutArgs args (exprDependencies' expr)
-exprDependencies' (HS.ExprTypeSig _ expr _ _) = exprDependencies' expr
 
 -- | Extracts the names of all variables, functions and constructors used in
 --   the given alternative of a @case@-expression.

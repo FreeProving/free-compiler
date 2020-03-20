@@ -651,14 +651,6 @@ data Expr
            , lambdaEprRhs   :: Expr
            , exprType       :: Maybe Type
            }
-
-  | -- | A type annotation.
-    ExprTypeSig
-      { exprSrcSpan           :: SrcSpan
-      , exprTypeSigExpr       :: Expr
-      , exprTypeSigTypeSchema :: TypeSchema
-      , exprType              :: Maybe Type
-      }
  deriving (Eq, Show)
 
 -- | Smart constructor for 'Con' without the last argument.
@@ -735,6 +727,9 @@ visibleTypeApp :: SrcSpan -> Expr -> [Type] -> Expr
 visibleTypeApp srcSpan = foldl (\e t -> TypeAppExpr srcSpan e t (exprType e))
 
 -- | Pretty instance for expressions.
+--
+--   To improve the readability of the pretty printed expressions, type
+--   annotations are not printed.
 instance Pretty Expr where
   pretty = prettyExprPred 0
 
@@ -748,8 +743,7 @@ instance Pretty Expr where
 --    * @2@ - Parenthesis are also needed around function applications.
 prettyExprPred :: Int -> Expr -> Doc
 
--- Parenthesis can be omitted around @if@, @case@, lambda abstractions
--- and type signatures at top-level only.
+-- Parenthesis can be omitted around @if@, @case@, lambda abstractions only.
 prettyExprPred 0 (If _ e1 e2 e3 _) =
   prettyString "if"
     <+> prettyExprPred 1 e1
@@ -765,14 +759,11 @@ prettyExprPred 0 (Lambda _ args expr _) =
     <>  hsep (map pretty args)
     <+> prettyString "->"
     <+> prettyExprPred 0 expr
-prettyExprPred 0 (ExprTypeSig _ expr typeSchema _) =
-  prettyExprPred 1 expr <+> colon <> colon <+> pretty typeSchema
 
 -- At all other levels, the parenthesis cannot be omitted.
 prettyExprPred _ expr@(If _ _ _ _ _       ) = parens (pretty expr)
 prettyExprPred _ expr@(Case        _ _ _ _) = parens (pretty expr)
 prettyExprPred _ expr@(Lambda      _ _ _ _) = parens (pretty expr)
-prettyExprPred _ expr@(ExprTypeSig _ _ _ _) = parens (pretty expr)
 
 -- Fix placement of visible type arguments in for error terms.
 prettyExprPred n (TypeAppExpr _ (ErrorExpr _ msg _) t _) | n <= 1 =

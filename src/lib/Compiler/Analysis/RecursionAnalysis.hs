@@ -164,9 +164,7 @@ checkDecArgs decls knownDecArgIndecies decArgIndecies = all
       let smaller' = withoutArgs args smaller
       in  checkExpr decArg smaller' expr []
 
-    -- Recursively check expression with type signature and visible type
-    -- applications.
-    checkExpr' (HS.ExprTypeSig _ expr _ _) args = checkExpr' expr args
+    -- Recursively check visibly applied expressions.
     checkExpr' (HS.TypeAppExpr _ expr _ _) args = checkExpr' expr args
 
     -- Base expressions don't contain recursive calls.
@@ -347,9 +345,7 @@ makeConstArgGraph modName decls = do
           | x `shadowedBy` args = not (callsG expr)
           | otherwise           = checkExpr expr []
 
-        -- Check expression with type signature and visible type applications
-        -- recursively.
-        checkExpr (HS.ExprTypeSig _ expr _ _) args = checkExpr expr args
+        -- Check visibly applied expression recursively.
         checkExpr (HS.TypeAppExpr _ expr _ _) args = checkExpr expr args
 
         -- Constructors, literals and error terms cannot contain further

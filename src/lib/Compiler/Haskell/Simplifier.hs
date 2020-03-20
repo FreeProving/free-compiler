@@ -33,6 +33,7 @@ import qualified Language.Haskell.Exts.Syntax  as H
 
 import           Compiler.Analysis.DependencyExtraction
                                                 ( typeVars )
+import           Compiler.Converter.TypeSchema  ( instantiateTypeSchema )
 import           Compiler.Environment.Fresh
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Haskell.PragmaParser
@@ -143,15 +144,14 @@ simplifyModuleWithComments ast@(H.Module srcSpan _ pragmas imports decls) commen
     custumPragmas <- liftReporter $ parseCustomPragmas comments
     (typeDecls', typeSigs', funcDecls') <- simplifyDecls decls
     return
-      (HS.Module
-        { HS.modSrcSpan   = srcSpan
-        , HS.modName      = modName
-        , HS.modImports   = imports'
-        , HS.modTypeDecls = typeDecls'
-        , HS.modTypeSigs  = typeSigs'
-        , HS.modPragmas   = custumPragmas
-        , HS.modFuncDecls = funcDecls'
-        }
+      (HS.Module { HS.modSrcSpan   = srcSpan
+                 , HS.modName      = modName
+                 , HS.modImports   = imports'
+                 , HS.modTypeDecls = typeDecls'
+                 , HS.modTypeSigs  = typeSigs'
+                 , HS.modPragmas   = custumPragmas
+                 , HS.modFuncDecls = funcDecls'
+                 }
       )
 simplifyModuleWithComments modDecl _ = notSupported "XML modules" modDecl
 
@@ -681,9 +681,17 @@ simplifyExpr (H.Case srcSpan expr alts) = do
 
 -- Type signatures.
 simplifyExpr (H.ExpTypeSig srcSpan expr typeExpr) = do
-  expr'       <- simplifyExpr expr
-  typeSchema' <- simplifyTypeSchema typeExpr
-  return (HS.ExprTypeSig srcSpan expr' typeSchema' Nothing)
+  expr' <- simplifyExpr expr
+  case HS.exprType expr' of
+    Nothing -> do
+      typeSchema <- simplifyTypeSchema typeExpr
+      typeExpr'  <- instantiateTypeSchema typeSchema
+      return expr' { HS.exprType = Just typeExpr' }
+    Just _ -> do
+      report
+        $ Message srcSpan Warning
+        $ "Type signature is redundant and will be ignored."
+      return expr'
 
 -- Skip pragmas.
 simplifyExpr pragma@(H.CorePragma _ _ expr) = do

@@ -161,12 +161,6 @@ instance ResolveTypes HS.Expr where
     exprType' <- mapM (resolveTypesWithM f) exprType
     return (HS.Lambda srcSpan args' expr' exprType')
 
-  resolveTypesWithM f (HS.ExprTypeSig srcSpan expr typeSchema exprType) = do
-    expr'       <- resolveTypesWithM f expr
-    typeSchema' <- resolveTypesWithM f typeSchema
-    exprType'   <- mapM (resolveTypesWithM f) exprType
-    return (HS.ExprTypeSig srcSpan expr' typeSchema' exprType')
-
 -- | Type constructors in type signatures and visible type applications on
 --   the right-hand side of a @case@ expression alternative can be resolved.
 instance ResolveTypes HS.Alt where

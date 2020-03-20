@@ -12,7 +12,6 @@ import           Data.Maybe                     ( maybe )
 import           Compiler.Converter.Arg
 import           Compiler.Converter.Free
 import           Compiler.Converter.Type
-import           Compiler.Converter.TypeSchema
 import qualified Compiler.Coq.AST              as G
 import qualified Compiler.Coq.Base             as CoqBase
 import           Compiler.Environment
@@ -55,10 +54,8 @@ etaConvert rootExpr = localEnv $ arityOf rootExpr >>= etaAbstractN rootExpr
     arity <- arityOf e1
     return (max 0 (arity - 1))
 
-  -- Visible type applications and type signatures do not affect the
-  -- function's arity.
+  -- Visible type applications do not affect the function's arity.
   arityOf (HS.TypeAppExpr _ e _ _) = arityOf e
-  arityOf (HS.ExprTypeSig _ e _ _) = arityOf e
 
   -- All other expressions do not expect any arguments.
   arityOf (HS.If _ _ _ _ _       ) = return 0
@@ -236,12 +233,6 @@ convertExpr' (HS.Lambda _ args expr _) [] [] = localEnv $ do
   args' <- mapM convertArg args
   expr' <- convertExpr expr
   foldrM (generatePure .: G.Fun . return) expr' args'
-
--- Type signatures.
-convertExpr' (HS.ExprTypeSig _ expr typeSchema _) [] [] = do
-  expr'       <- convertExpr expr
-  typeSchema' <- convertTypeSchema typeSchema
-  return (G.HasType expr' typeSchema')
 
 -- Visible type application of an expression other than a function or
 -- constructor.

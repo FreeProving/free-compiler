@@ -79,7 +79,6 @@ instance Subterm HS.Expr where
   childTerms (HS.If _ e1 e2 e3           _) = [e1, e2, e3]
   childTerms (HS.Case        _ expr alts _) = expr : map HS.altRhs alts
   childTerms (HS.Lambda      _ _    expr _) = [expr]
-  childTerms (HS.ExprTypeSig _ expr _    _) = [expr]
   childTerms (HS.Con _ _                 _) = []
   childTerms (HS.Var _ _                 _) = []
   childTerms (HS.Undefined _             _) = []
@@ -110,9 +109,6 @@ instance Subterm HS.Expr where
 
   replaceChildTerms (HS.Lambda srcSpan args _ exprType) =
     checkArity 1 $ \[expr'] -> HS.Lambda srcSpan args expr' exprType
-
-  replaceChildTerms (HS.ExprTypeSig srcSpan _ typeExpr exprType) =
-    checkArity 1 $ \[expr'] -> HS.ExprTypeSig srcSpan expr' typeExpr exprType
 
   replaceChildTerms expr@(HS.Con _ _ _       ) = nullary expr
   replaceChildTerms expr@(HS.Var _ _ _       ) = nullary expr
