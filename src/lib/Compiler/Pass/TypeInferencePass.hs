@@ -11,19 +11,11 @@ module Compiler.Pass.TypeInferencePass
 where
 
 import           Compiler.Analysis.DependencyAnalysis
-import           Compiler.Analysis.DependencyGraph
 import           Compiler.Analysis.TypeInference
 import qualified Compiler.Haskell.AST          as HS
-import           Compiler.Monad.Converter
-import           Compiler.Pass
+import           Compiler.Pass.DependencyAnalysisPass
 
 -- | Applies 'inferFuncDeclComponentTypes' to all strongly connected components
 --   of the function dependency graph of the given module.
-typeInferencePass :: Pass HS.Module
-typeInferencePass ast = do
-  let modName         = HS.modName ast
-      funcDecls       = HS.modFuncDecls ast
-      dependencyGraph = funcDependencyGraph modName funcDecls
-      components      = groupDependencies dependencyGraph
-  components' <- inferFuncDeclComponentTypes components
-  return ast { HS.modFuncDecls = concatMap unwrapComponent components' }
+typeInferencePass :: DependencyAwarePass HS.FuncDecl
+typeInferencePass = mapComponentM inferFuncDeclTypes

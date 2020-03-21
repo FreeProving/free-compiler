@@ -7,7 +7,6 @@ import           Control.Monad.Extra            ( concatMapM )
 
 import           Compiler.Analysis.DependencyAnalysis
 import           Compiler.Analysis.DependencyGraph
-import           Compiler.Converter.FuncDecl.Common
 import           Compiler.Converter.FuncDecl.NonRec
 import           Compiler.Converter.FuncDecl.Rec
 import           Compiler.Converter.QuickCheck
@@ -22,9 +21,6 @@ convertFuncDecls funcDecls = do
   modName <- inEnv envModName
   let dependencyGraph = funcDependencyGraph modName funcDecls
       components      = groupDependencies dependencyGraph
-
-  -- Insert functions into environment.
-  mapM_ defineFuncDecl funcDecls
 
   -- Filter QuickCheck properties.
   (properties, funcComponents) <- filterQuickCheckProperties components

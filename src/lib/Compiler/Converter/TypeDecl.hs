@@ -8,6 +8,7 @@ import           Control.Monad.Extra            ( concatMapM )
 import           Data.List                      ( partition )
 import qualified Data.List.NonEmpty            as NonEmpty
 import           Data.Maybe                     ( catMaybes )
+import qualified Data.Set                      as Set
 
 import           Compiler.Analysis.DependencyAnalysis
 import           Compiler.Converter.Arg
@@ -16,8 +17,6 @@ import           Compiler.Converter.Type
 import qualified Compiler.Coq.AST              as G
 import qualified Compiler.Coq.Base             as CoqBase
 import           Compiler.Environment
-import           Compiler.Environment.Entry
-import           Compiler.Environment.Renamer
 import           Compiler.Environment.Scope
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Haskell.Inliner
@@ -36,12 +35,17 @@ convertTypeComponent (NonRecursive decl)
   | isTypeSynDecl decl = convertTypeSynDecl decl
   | otherwise          = convertDataDecls [decl]
 convertTypeComponent (Recursive decls) = do
+  modName <- inEnv envModName
   let (typeSynDecls, dataDecls) = partition isTypeSynDecl decls
+      typeSynDeclNames          = map HS.typeDeclName typeSynDecls
+      typeSynDeclQNames =
+        Set.fromList
+          $  map HS.UnQual         typeSynDeclNames
+          ++ map (HS.Qual modName) typeSynDeclNames
   sortedTypeSynDecls <- sortTypeSynDecls typeSynDecls
-  expandedDataDecls  <- localEnv $ do
-    putEnv emptyEnv
-    mapM_ defineTypeDecl sortedTypeSynDecls
-    mapM expandAllTypeSynonymsInDecl dataDecls
+  expandedDataDecls  <- mapM
+    (expandAllTypeSynonymsInDeclWhere (`Set.member` typeSynDeclQNames))
+    dataDecls
   dataDecls'    <- convertDataDecls expandedDataDecls
   typeSynDecls' <- concatMapM convertTypeSynDecl sortedTypeSynDecls
   return (dataDecls' ++ typeSynDecls')
@@ -72,57 +76,6 @@ fromNonRecursive (Recursive decls) =
     ++ showPretty (map HS.typeDeclIdent decls)
 
 -------------------------------------------------------------------------------
--- Type declarations                                                         --
--------------------------------------------------------------------------------
-
--- | Inserts the given data type (including its constructors) or type synonym
---   declaration into the current environment.
-defineTypeDecl :: HS.TypeDecl -> Converter ()
-defineTypeDecl (HS.TypeSynDecl srcSpan declIdent typeVarDecls typeExpr) = do
-  _ <- renameAndAddEntry TypeSynEntry
-    { entrySrcSpan  = srcSpan
-    , entryArity    = length typeVarDecls
-    , entryTypeArgs = map HS.fromDeclIdent typeVarDecls
-    , entryTypeSyn  = typeExpr
-    , entryName     = HS.UnQual (HS.Ident (HS.fromDeclIdent declIdent))
-    , entryIdent    = undefined -- filled by renamer
-    }
-  return ()
-defineTypeDecl (HS.DataDecl srcSpan declIdent typeVarDecls conDecls) = do
-  _ <- renameAndAddEntry DataEntry { entrySrcSpan = srcSpan
-                                   , entryArity   = length typeVarDecls
-                                   , entryName    = HS.UnQual (HS.Ident ident)
-                                   , entryIdent   = undefined -- filled by renamer
-                                   }
-  mapM_ defineConDecl conDecls
- where
-  -- | The name of the data type.
-  ident :: String
-  ident = HS.fromDeclIdent declIdent
-
-  -- | The type produced by all constructors of the data type.
-  returnType :: HS.Type
-  returnType = HS.typeConApp srcSpan
-                             (HS.UnQual (HS.Ident ident))
-                             (map HS.typeVarDeclToType typeVarDecls)
-
-  -- | Inserts the given data constructor declaration and its smart constructor
-  --   into the current environment.
-  defineConDecl :: HS.ConDecl -> Converter ()
-  defineConDecl (HS.ConDecl _ (HS.DeclIdent conSrcSpan conIdent) argTypes) = do
-    _ <- renameAndAddEntry ConEntry
-      { entrySrcSpan    = conSrcSpan
-      , entryArity      = length argTypes
-      , entryTypeArgs   = map HS.fromDeclIdent typeVarDecls
-      , entryArgTypes   = map Just argTypes
-      , entryReturnType = Just returnType
-      , entryName       = HS.UnQual (HS.Ident conIdent)
-      , entryIdent      = undefined -- filled by renamer
-      , entrySmartIdent = undefined -- filled by renamer
-      }
-    return ()
-
--------------------------------------------------------------------------------
 -- Type synonym declarations                                                 --
 -------------------------------------------------------------------------------
 
@@ -133,8 +86,7 @@ isTypeSynDecl (HS.DataDecl    _ _ _ _) = False
 
 -- | Converts a Haskell type synonym declaration to Coq.
 convertTypeSynDecl :: HS.TypeDecl -> Converter [G.Sentence]
-convertTypeSynDecl decl@(HS.TypeSynDecl _ _ typeVarDecls typeExpr) = do
-  defineTypeDecl decl
+convertTypeSynDecl decl@(HS.TypeSynDecl _ _ typeVarDecls typeExpr) =
   localEnv $ do
     let name = HS.typeDeclQName decl
     Just qualid   <- inEnv $ lookupIdent TypeScope name
@@ -170,7 +122,6 @@ convertTypeSynDecl (HS.DataDecl _ _ _ _) =
 --   each constructor declaration of the given data types.
 convertDataDecls :: [HS.TypeDecl] -> Converter [G.Sentence]
 convertDataDecls dataDecls = do
-  mapM_ defineTypeDecl dataDecls
   (indBodies, extraSentences) <- mapAndUnzipM convertDataDecl dataDecls
   return
     ( G.comment
@@ -185,8 +136,6 @@ convertDataDecls dataDecls = do
 --   sentence, the @Arguments@ sentences for it's constructors and the smart
 --   constructor declarations.
 --
---   This function assumes, that the identifiers for the declared data type
---   and it's (smart) constructors are defined already (see 'defineTypeDecl').
 --   Type variables declared by the data type or the smart constructors are
 --   not visible outside of this function.
 convertDataDecl :: HS.TypeDecl -> Converter (G.IndBody, [G.Sentence])

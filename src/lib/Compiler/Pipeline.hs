@@ -8,6 +8,8 @@
 module Compiler.Pipeline where
 
 import           Compiler.Pass
+import           Compiler.Pass.DefineDeclPass
+import           Compiler.Pass.DependencyAnalysisPass
 import           Compiler.Pass.ImportPass
 import           Compiler.Pass.TypeSignaturePass
 import           Compiler.Pass.TypeInferencePass
@@ -16,7 +18,12 @@ import           Compiler.Monad.Converter
 
 -- | The passes of the compiler pipeline.
 pipeline :: [Pass HS.Module]
-pipeline = [importPass, typeSignaturePass, typeInferencePass]
+pipeline =
+  [ importPass
+  , dependencyAnalysisPass [defineTypeDeclsPass]
+  , typeSignaturePass
+  , dependencyAnalysisPass [typeInferencePass, defineFuncDeclsPass]
+  ]
 
 -- | Runs the compiler pipeline on the given module.
 runPipeline :: HS.Module -> Converter HS.Module

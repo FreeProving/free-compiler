@@ -33,7 +33,7 @@ testConvertImports = do
         _ <- convertTestModule ["module A where", "data A = A"]
         _ <- convertTestModule ["module B where", "import A", "type B = A"]
         return (return ())
-  it "allows ambigious imports of names that are not referenced"
+  it "allows ambiguous imports of names that are not referenced"
     $ shouldSucceed
     $ fromModuleConverter
     $ do
@@ -41,7 +41,7 @@ testConvertImports = do
         _ <- convertTestModule ["module B where", "foo :: ()", "foo = ()"]
         _ <- convertTestModule ["module C where", "import A", "import B"]
         return (return ())
-  it "does not allow ambigious imports of names that are referenced"
+  it "does not allow ambiguous imports of names that are referenced"
     $ shouldReportFatal
     $ fromModuleConverter
     $ do

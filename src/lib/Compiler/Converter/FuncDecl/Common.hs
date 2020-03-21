@@ -2,45 +2,19 @@
 --   recursive and non-recursive Haskell functions to Coq.
 
 module Compiler.Converter.FuncDecl.Common
-  ( -- * Function environment entries
-    defineFuncDecl
-    -- * Code generation
-  , convertFuncHead
+  ( -- * Code generation
+    convertFuncHead
   )
 where
 
-import           Compiler.Analysis.PartialityAnalysis
 import           Compiler.Converter.Arg
 import           Compiler.Converter.Free
 import           Compiler.Converter.Type
 import qualified Compiler.Coq.AST              as G
 import           Compiler.Environment
-import           Compiler.Environment.Entry
-import           Compiler.Environment.Renamer
 import           Compiler.Environment.Scope
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Monad.Converter
-
--------------------------------------------------------------------------------
--- Function environment entries                                              --
--------------------------------------------------------------------------------
-
--- | Inserts the given function declaration into the current environment.
-defineFuncDecl :: HS.FuncDecl -> Converter ()
-defineFuncDecl decl = do
-  partial <- isPartialFuncDecl decl
-  _       <- renameAndAddEntry FuncEntry
-    { entrySrcSpan       = HS.funcDeclSrcSpan decl
-    , entryArity         = length (HS.funcDeclArgs decl)
-    , entryTypeArgs      = map HS.fromDeclIdent (HS.funcDeclTypeArgs decl)
-    , entryArgTypes      = map HS.varPatType (HS.funcDeclArgs decl)
-    , entryReturnType    = HS.funcDeclReturnType decl
-    , entryNeedsFreeArgs = True
-    , entryIsPartial     = partial
-    , entryName          = HS.funcDeclQName decl
-    , entryIdent         = undefined -- filled by renamer
-    }
-  return ()
 
 -------------------------------------------------------------------------------
 -- Code generation                                                           --
