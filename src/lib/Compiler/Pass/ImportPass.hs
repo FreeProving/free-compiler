@@ -72,9 +72,10 @@ import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Haskell.SrcSpan
 import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
+import           Compiler.Pass
 
 -- | Brings the entries imported by the given module into scope.
-importPass :: HS.Module -> Converter HS.Module
+importPass :: Pass HS.Module
 importPass ast = do
   let imports' = addImplicitPreludeImport (HS.modImports ast)
   mapM_ importModule imports'

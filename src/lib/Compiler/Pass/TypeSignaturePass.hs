@@ -114,11 +114,12 @@ import           Compiler.Haskell.Inliner
 import           Compiler.Haskell.SrcSpan
 import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
+import           Compiler.Pass
 import           Compiler.Pretty
 
 -- | Associates top-level type signatures with the corresponding function
 --   declarations in the given module.
-typeSignaturePass :: HS.Module -> Converter HS.Module
+typeSignaturePass :: Pass HS.Module
 typeSignaturePass ast = do
   let typeSigs  = HS.modTypeSigs ast
       funcDecls = HS.modFuncDecls ast

@@ -15,10 +15,11 @@ import           Compiler.Analysis.DependencyGraph
 import           Compiler.Analysis.TypeInference
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Monad.Converter
+import           Compiler.Pass
 
 -- | Applies 'inferFuncDeclComponentTypes' to all strongly connected components
 --   of the function dependency graph of the given module.
-typeInferencePass :: HS.Module -> Converter HS.Module
+typeInferencePass :: Pass HS.Module
 typeInferencePass ast = do
   let modName         = HS.modName ast
       funcDecls       = HS.modFuncDecls ast

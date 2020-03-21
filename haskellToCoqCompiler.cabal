@@ -131,6 +131,8 @@ library haskell-to-coq-internal
                       , Compiler.Haskell.Subterm
                       , Compiler.Haskell.Subst
                       , Compiler.Haskell.Unification
+                      , Compiler.Pass
+                      , Compiler.Pass.DependencyAnalysisPass
                       , Compiler.Pass.ImportPass
                       , Compiler.Pass.TypeInferencePass
                       , Compiler.Pass.TypeSignaturePass
