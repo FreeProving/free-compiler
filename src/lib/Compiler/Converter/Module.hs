@@ -8,7 +8,6 @@ import           Data.List                      ( find
                                                 , findIndex
                                                 )
 import qualified Data.Map                      as Map
-import           Data.Maybe                     ( maybeToList )
 import qualified Data.Set                      as Set
 
 import           Compiler.Analysis.DependencyAnalysis
@@ -19,7 +18,6 @@ import qualified Compiler.Coq.AST              as G
 import qualified Compiler.Coq.Base             as CoqBase
 import           Compiler.Environment
 import           Compiler.Environment.Entry
-import           Compiler.Environment.Importer
 import           Compiler.Environment.Resolver
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Monad.Converter
@@ -33,11 +31,11 @@ import           Compiler.Pretty
 
 -- | Converts a Haskell module to a Gallina sentences.
 convertModule :: HS.Module -> Converter [G.Sentence]
-convertModule = runPipeline >=> convertModule'
+convertModule = moduleEnv . (runPipeline >=> convertModule')
 
 -- | Like 'convertModule'' but does not apply any compiler passes beforehand.
-convertModule' :: HS.Module -> Converter [G.Sentence]
-convertModule' haskellAst = moduleEnv $ do
+convertModule' :: HS.Module -> Converter ([G.Sentence], ModuleInterface)
+convertModule' haskellAst = do
   -- Remember name of converted module.
   let modName = HS.modName haskellAst
   modifyEnv $ \env -> env { envModName = modName }
@@ -127,44 +125,17 @@ convertTypeDecls typeDecls = do
 -- Import declarations                                                       --
 -------------------------------------------------------------------------------
 
--- | Converts the given
+-- | Converts the given import declarations to Coq.
 convertImportDecls :: [HS.ImportDecl] -> Converter [G.Sentence]
 convertImportDecls imports = do
-  preludeImport <- generatePreludeImport
   imports'      <- mapM convertImportDecl imports
-  return (CoqBase.imports : maybeToList preludeImport ++ imports')
- where
-  -- | Tests whether there is an explicit import for the @Prelude@ module.
-  importsPrelude :: Bool
-  importsPrelude = elem HS.preludeModuleName (map HS.importName imports)
-
-  -- | Imports the @Prelude@ module implicitly.
-  generatePreludeImport :: Converter (Maybe G.Sentence)
-  generatePreludeImport
-    | importsPrelude = return Nothing
-    | otherwise = do
-      Just preludeIface <- inEnv $ lookupAvailableModule HS.preludeModuleName
-      modifyEnv $ importInterface preludeIface
-      modifyEnv $ importInterfaceAs HS.preludeModuleName preludeIface
-      Just
-        <$> generateImport (interfaceLibName preludeIface) HS.preludeModuleName
+  return (CoqBase.imports : imports')
 
 -- | Convert a import declaration.
 convertImportDecl :: HS.ImportDecl -> Converter G.Sentence
-convertImportDecl (HS.ImportDecl srcSpan modName) = do
-  -- Lookup and import module environment.
-  maybeIface <- inEnv $ lookupAvailableModule modName
-  case maybeIface of
-    Just iface -> do
-      modifyEnv $ importInterface iface
-      modifyEnv $ importInterfaceAs modName iface
-      generateImport (interfaceLibName iface) modName
-    Nothing ->
-      reportFatal
-        $  Message srcSpan Error
-        $  "Could not find module '"
-        ++ modName
-        ++ "'"
+convertImportDecl (HS.ImportDecl _ modName) = do
+  Just iface <- inEnv $ lookupAvailableModule modName
+  generateImport (interfaceLibName iface) modName
 
 -- | Generates a Coq import sentence for the module with the given name
 --   from the given library.
@@ -179,7 +150,6 @@ generateImport libName modName = return
   mkRequireSentence :: G.ModuleIdent -> [G.ModuleIdent] -> G.Sentence
   mkRequireSentence | libName == CoqBase.baseLibName = G.requireImportFrom
                     | otherwise                      = G.requireExportFrom
-
 
 -------------------------------------------------------------------------------
 -- Exports                                                                   --

@@ -5,7 +5,10 @@
 --
 --   TODO write documentation and examples
 
-module Compiler.Pass.TypeInferencePass where
+module Compiler.Pass.TypeInferencePass
+  ( typeInferencePass
+  )
+where
 
 import           Compiler.Analysis.DependencyAnalysis
 import           Compiler.Analysis.DependencyGraph
