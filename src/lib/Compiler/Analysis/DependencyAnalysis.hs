@@ -10,10 +10,13 @@
 --   identifiers. This is done by the converter.
 
 module Compiler.Analysis.DependencyAnalysis
-  ( DependencyComponent(..)
+  ( -- * Strongly connected components
+    DependencyComponent(..)
+  , unwrapComponent
   , mapComponent
   , mapComponentM
   , mapComponentM_
+    -- * Grouping dependencies
   , groupDependencies
   , groupTypeDecls
   , groupFuncDecls
@@ -28,6 +31,10 @@ import           Data.Graph
 import           Compiler.Analysis.DependencyGraph
 import qualified Compiler.Haskell.AST          as HS
 
+-------------------------------------------------------------------------------
+-- Strongly connected components                                             --
+-------------------------------------------------------------------------------
+
 -- | A strongly connected component of the dependency graph.
 --
 --   All declarations that mutually depend on each other are in the same
@@ -39,6 +46,11 @@ import qualified Compiler.Haskell.AST          as HS
 data DependencyComponent decl
   = NonRecursive decl -- ^ A single non-recursive declaration.
   | Recursive [decl]  -- ^ A list of mutually recursive declarations.
+
+-- | Gets the declarations wrapped by the given strongly connected component.
+unwrapComponent :: DependencyComponent decl -> [decl]
+unwrapComponent (NonRecursive decl ) = [decl]
+unwrapComponent (Recursive    decls) = decls
 
 -- | Applies the given function to the declarations in the given strongly
 --   connected component of the dependency graph.
@@ -76,6 +88,10 @@ mapComponentM_ f (Recursive    decls) = f decls >> return ()
 convertSCC :: SCC decl -> DependencyComponent decl
 convertSCC (AcyclicSCC decl ) = NonRecursive decl
 convertSCC (CyclicSCC  decls) = Recursive decls
+
+-------------------------------------------------------------------------------
+-- Grouping dependencies                                                     --
+-------------------------------------------------------------------------------
 
 -- | Computes the strongly connected components of the given dependency graph.
 --

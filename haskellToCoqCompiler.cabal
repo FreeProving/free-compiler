@@ -132,6 +132,7 @@ library haskell-to-coq-internal
                       , Compiler.Haskell.Subst
                       , Compiler.Haskell.Unification
                       , Compiler.Pass.TypeInferencePass
+                      , Compiler.Pass.TypeSignaturePass
                       , Compiler.Pipeline
                       , Compiler.Pretty
                       , Compiler.Util.Predicate

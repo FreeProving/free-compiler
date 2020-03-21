@@ -10,6 +10,7 @@ module Compiler.Pipeline where
 import           Control.Monad                  ( (>=>) )
 
 import           Compiler.Pass.TypeSignaturePass
+import           Compiler.Pass.TypeInferencePass
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Monad.Converter
 
@@ -18,7 +19,7 @@ type CompilerPass = HS.Module -> Converter HS.Module
 
 -- | The passes of the compiler pipeline.
 pipeline :: [CompilerPass]
-pipeline = [typeSignaturePass]
+pipeline = [typeSignaturePass, typeInferencePass]
 
 -- | Runs the compiler pipeline on the given module.
 runPipeline :: HS.Module -> Converter HS.Module
