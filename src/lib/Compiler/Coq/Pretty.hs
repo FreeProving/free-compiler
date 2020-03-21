@@ -20,5 +20,5 @@ newtype PrettyCoq a = PrettyCoq { unwrapPrettyCoq :: a }
 --   When pretty printing a list of nodes, the individual documents are
 --   concatenated with newlines.
 instance Gallina a => Pretty (PrettyCoq a) where
-  pretty = renderGallina . unwrapPrettyCoq
+  pretty     = renderGallina . unwrapPrettyCoq
   prettyList = prettySeparated (line <> line)

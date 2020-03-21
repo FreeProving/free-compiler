@@ -208,47 +208,45 @@ instance Pretty (DependencyGraph node) where
     digraph
       <+> braces (line <> indent 2 (vcat (nodeDocs ++ edgesDocs)) <> line)
       <>  line
-    where
+   where
      -- | A document for the DOT digraph keyword.
-     digraph :: Doc
-     digraph = prettyString "digraph"
+    digraph :: Doc
+    digraph = prettyString "digraph"
 
-     -- | A document for the DOT label attribute.
-     label :: Doc
-     label = prettyString "label"
+    -- | A document for the DOT label attribute.
+    label :: Doc
+    label = prettyString "label"
 
-     -- | A document for the DOT arrow symbol.
-     arrow :: Doc
-     arrow = prettyString "->"
+    -- | A document for the DOT arrow symbol.
+    arrow :: Doc
+    arrow = prettyString "->"
 
-     -- | Pretty printed DOT nodes for the dependency graph.
-     nodeDocs :: [Doc]
-     nodeDocs = map prettyNode (vertices graph)
+    -- | Pretty printed DOT nodes for the dependency graph.
+    nodeDocs :: [Doc]
+    nodeDocs = map prettyNode (vertices graph)
 
-     -- | Pretty prints the given vertex as a DOT command. The key of the node
-     --   is used a the label.
-     prettyNode :: Vertex -> Doc
-     prettyNode v =
-       let (_, key, _) = getEntry v
-       in  int v
-           <+> brackets (label <> equals <> dquotes (pretty key))
-           <>  semi
+    -- | Pretty prints the given vertex as a DOT command. The key of the node
+    --   is used a the label.
+    prettyNode :: Vertex -> Doc
+    prettyNode v =
+      let (_, key, _) = getEntry v
+      in  int v <+> brackets (label <> equals <> dquotes (pretty key)) <> semi
 
-     -- | Pretty printed DOT edges for the dependency graph.
-     edgesDocs :: [Doc]
-     edgesDocs = catMaybes (map prettyEdges (vertices graph))
+    -- | Pretty printed DOT edges for the dependency graph.
+    edgesDocs :: [Doc]
+    edgesDocs = catMaybes (map prettyEdges (vertices graph))
 
-     -- | Pretty prints all outgoing edges of the given vertex as a single
-     --   DOT command. Returns `Nothing` if the vertex is not incident to
-     --   any edge.
-     prettyEdges :: Vertex -> Maybe Doc
-     prettyEdges v =
-       let (_, _, neighbors) = getEntry v
-       in  case catMaybes (map getVertex neighbors) of
-             [] -> Nothing
-             vs ->
-               Just
-                 $   int v
-                 <+> arrow
-                 <+> braces (cat (punctuate comma (map int vs)))
-                 <>  semi
+    -- | Pretty prints all outgoing edges of the given vertex as a single
+    --   DOT command. Returns `Nothing` if the vertex is not incident to
+    --   any edge.
+    prettyEdges :: Vertex -> Maybe Doc
+    prettyEdges v =
+      let (_, _, neighbors) = getEntry v
+      in  case catMaybes (map getVertex neighbors) of
+            [] -> Nothing
+            vs ->
+              Just
+                $   int v
+                <+> arrow
+                <+> braces (cat (punctuate comma (map int vs)))
+                <>  semi

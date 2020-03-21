@@ -351,7 +351,8 @@ testInferExprType =
             ++ "  (Prelude.(:) @(Prelude.Integer, Prelude.Bool)"
             ++ "  (undefined @(Prelude.Integer, Prelude.Bool))"
             ++ "  (Prelude.([]) @(Prelude.Integer, Prelude.Bool)))"
-            , "[(Prelude.Integer, Prelude.Bool)]")
+            , "[(Prelude.Integer, Prelude.Bool)]"
+            )
     it "can match types that contain type synonyms"
       $ shouldSucceed
       $ fromConverter

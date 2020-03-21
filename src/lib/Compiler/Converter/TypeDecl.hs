@@ -89,12 +89,11 @@ defineTypeDecl (HS.TypeSynDecl srcSpan declIdent typeVarDecls typeExpr) = do
     }
   return ()
 defineTypeDecl (HS.DataDecl srcSpan declIdent typeVarDecls conDecls) = do
-  _ <- renameAndAddEntry DataEntry
-    { entrySrcSpan = srcSpan
-    , entryArity   = length typeVarDecls
-    , entryName    = HS.UnQual (HS.Ident ident)
-    , entryIdent   = undefined -- filled by renamer
-    }
+  _ <- renameAndAddEntry DataEntry { entrySrcSpan = srcSpan
+                                   , entryArity   = length typeVarDecls
+                                   , entryName    = HS.UnQual (HS.Ident ident)
+                                   , entryIdent   = undefined -- filled by renamer
+                                   }
   mapM_ defineConDecl conDecls
  where
   -- | The name of the data type.

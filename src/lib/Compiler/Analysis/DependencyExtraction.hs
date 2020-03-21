@@ -144,8 +144,7 @@ instance TypeDependencies HS.Expr where
       `union` typeDependencies' typeExpr
       `union` typeDependencies' exprType
   typeDependencies' (HS.If _ e1 e2 e3 exprType) =
-    typeDependencies' [e1, e2, e3]
-      `union` typeDependencies' exprType
+    typeDependencies' [e1, e2, e3] `union` typeDependencies' exprType
   typeDependencies' (HS.Case _ expr alts exprType) =
     typeDependencies' expr
       `union` typeDependencies' alts

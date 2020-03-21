@@ -217,42 +217,33 @@ testConvertFuncApp = context "function applications" $ do
 -- | Test group for translation of infix expressions.
 testConvertInfix :: Spec
 testConvertInfix = context "infix expressions" $ do
-  it "converts infix expressions correctly"
-    $ shouldSucceed
-    $ fromConverter
-    $ do
-        "f"  <- defineTestFunc "f" 2 "a -> b -> c"
-        "e1" <- defineTestVar "e1" -- :: t1
-        "e2" <- defineTestVar "e2" -- :: t2
-        "t0" <- defineTestTypeVar "t0"
-        "t1" <- defineTestTypeVar "t1"
-        "t2" <- defineTestTypeVar "t2"
-        "e1 `f` e2" `shouldTranslateExprTo` "@f Shape Pos t1 t2 t0 e1 e2"
+  it "converts infix expressions correctly" $ shouldSucceed $ fromConverter $ do
+    "f"  <- defineTestFunc "f" 2 "a -> b -> c"
+    "e1" <- defineTestVar "e1" -- :: t1
+    "e2" <- defineTestVar "e2" -- :: t2
+    "t0" <- defineTestTypeVar "t0"
+    "t1" <- defineTestTypeVar "t1"
+    "t2" <- defineTestTypeVar "t2"
+    "e1 `f` e2" `shouldTranslateExprTo` "@f Shape Pos t1 t2 t0 e1 e2"
 
-  it "converts left sections correctly"
-    $ shouldSucceed
-    $ fromConverter
-    $ do
-        "f"  <- defineTestFunc "f" 2 "a -> b -> c"
-        "e1" <- defineTestVar "e1" -- :: t2
-        "t0" <- defineTestTypeVar "t0"
-        "t1" <- defineTestTypeVar "t1"
-        "t2" <- defineTestTypeVar "t2"
-        shouldTranslateExprTo "(e1 `f`)"
-                              "pure (fun x_0 => @f Shape Pos t2 t0 t1 e1 x_0)"
+  it "converts left sections correctly" $ shouldSucceed $ fromConverter $ do
+    "f"  <- defineTestFunc "f" 2 "a -> b -> c"
+    "e1" <- defineTestVar "e1" -- :: t2
+    "t0" <- defineTestTypeVar "t0"
+    "t1" <- defineTestTypeVar "t1"
+    "t2" <- defineTestTypeVar "t2"
+    shouldTranslateExprTo "(e1 `f`)"
+                          "pure (fun x_0 => @f Shape Pos t2 t0 t1 e1 x_0)"
 
-  it "converts right sections correctly"
-    $ shouldSucceed
-    $ fromConverter
-    $ do
-        "f"  <- defineTestFunc "f" 2 "a -> b -> c"
-        "e2" <- defineTestVar "e2" -- :: t2
-        "t0" <- defineTestTypeVar "t0"
-        "t1" <- defineTestTypeVar "t1"
-        "t2" <- defineTestTypeVar "t2"
-        shouldTranslateExprTo
-          "(`f` e2)"
-          "pure (fun (x_0 : Free Shape Pos t0) => @f Shape Pos t0 t2 t1 x_0 e2)"
+  it "converts right sections correctly" $ shouldSucceed $ fromConverter $ do
+    "f"  <- defineTestFunc "f" 2 "a -> b -> c"
+    "e2" <- defineTestVar "e2" -- :: t2
+    "t0" <- defineTestTypeVar "t0"
+    "t1" <- defineTestTypeVar "t1"
+    "t2" <- defineTestTypeVar "t2"
+    shouldTranslateExprTo
+      "(`f` e2)"
+      "pure (fun (x_0 : Free Shape Pos t0) => @f Shape Pos t0 t2 t1 x_0 e2)"
 
 -------------------------------------------------------------------------------
 -- If-expressions                                                            --

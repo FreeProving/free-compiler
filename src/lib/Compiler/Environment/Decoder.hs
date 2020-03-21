@@ -134,13 +134,15 @@ instance Aeson.FromJSON HS.QName where
     case matchRegexPR regex str of
       Just (_, ms) -> do
         let Just modName = lookup 1 ms
-            Just name = lookup 3 ms
+            Just name    = lookup 3 ms
         return (HS.Qual modName (parseName name))
-      m -> Aeson.parserThrowError [] ("Invalid Haskell name " ++ str ++ " " ++ show m)
+      m -> Aeson.parserThrowError
+        []
+        ("Invalid Haskell name " ++ str ++ " " ++ show m)
    where
     parseName :: String -> HS.Name
-    parseName ('(':sym) = HS.Symbol (init sym)
-    parseName ident     = HS.Ident ident
+    parseName ('(' : sym) = HS.Symbol (init sym)
+    parseName ident       = HS.Ident ident
 
 -- | Restores a Coq identifier from the interface file.
 instance Aeson.FromJSON G.Qualid where
@@ -161,31 +163,38 @@ instance Aeson.FromJSON HS.Type where
 -- | Restores an 'Environment' from the configuration file.
 instance Aeson.FromJSON ModuleInterface where
   parseJSON = Aeson.withObject "ModuleInterface" $ \env -> do
-    modName <- env .: "module-name"
-    libName <- env .: "library-name"
-    exportedTypes <- env .: "exported-types"
+    modName        <- env .: "module-name"
+    libName        <- env .: "library-name"
+    exportedTypes  <- env .: "exported-types"
     exportedValues <- env .: "exported-values"
-    types <- env .:? "types" .!= Aeson.Array Vector.empty
-      >>= Aeson.withArray "Data types" (mapM parseConfigType)
-    typeSyns <- env .:? "type-synonyms" .!= Aeson.Array Vector.empty
-      >>= Aeson.withArray "Type Synonyms" (mapM parseConfigTypeSyn)
-    cons  <- env .:? "constructors" .!= Aeson.Array Vector.empty
-      >>= Aeson.withArray "Constructors" (mapM parseConfigCon)
-    funcs <- env .:? "functions" .!= Aeson.Array Vector.empty
-      >>= Aeson.withArray "Functions" (mapM parseConfigFunc)
+    types <- env .:? "types" .!= Aeson.Array Vector.empty >>= Aeson.withArray
+      "Data types"
+      (mapM parseConfigType)
+    typeSyns <-
+      env .:? "type-synonyms" .!= Aeson.Array Vector.empty >>= Aeson.withArray
+        "Type Synonyms"
+        (mapM parseConfigTypeSyn)
+    cons <-
+      env .:? "constructors" .!= Aeson.Array Vector.empty >>= Aeson.withArray
+        "Constructors"
+        (mapM parseConfigCon)
+    funcs <-
+      env .:? "functions" .!= Aeson.Array Vector.empty >>= Aeson.withArray
+        "Functions"
+        (mapM parseConfigFunc)
     return ModuleInterface
       { interfaceModName = modName
       , interfaceLibName = libName
       , interfaceExports = Set.fromList
-        (  map ((,) TypeScope)  exportedTypes
-        ++ map ((,) ValueScope) exportedValues
-        )
+                             (  map ((,) TypeScope)  exportedTypes
+                             ++ map ((,) ValueScope) exportedValues
+                             )
       , interfaceEntries = Set.fromList
-        (  Vector.toList types
-        ++ Vector.toList typeSyns
-        ++ Vector.toList cons
-        ++ Vector.toList funcs
-        )
+                             (  Vector.toList types
+                             ++ Vector.toList typeSyns
+                             ++ Vector.toList cons
+                             ++ Vector.toList funcs
+                             )
       }
    where
     parseConfigType :: Aeson.Value -> Aeson.Parser EnvEntry
@@ -193,12 +202,11 @@ instance Aeson.FromJSON ModuleInterface where
       arity       <- obj .: "arity"
       haskellName <- obj .: "haskell-name"
       coqName     <- obj .: "coq-name"
-      return DataEntry
-        { entrySrcSpan = NoSrcSpan
-        , entryArity   = arity
-        , entryIdent   = coqName
-        , entryName    = haskellName
-        }
+      return DataEntry { entrySrcSpan = NoSrcSpan
+                       , entryArity   = arity
+                       , entryIdent   = coqName
+                       , entryName    = haskellName
+                       }
 
     parseConfigTypeSyn :: Aeson.Value -> Aeson.Parser EnvEntry
     parseConfigTypeSyn = Aeson.withObject "Type synonym" $ \obj -> do
@@ -207,14 +215,13 @@ instance Aeson.FromJSON ModuleInterface where
       typeArgs    <- obj .: "type-arguments"
       haskellName <- obj .: "haskell-name"
       coqName     <- obj .: "coq-name"
-      return TypeSynEntry
-        { entrySrcSpan  = NoSrcSpan
-        , entryArity    = arity
-        , entryTypeArgs = typeArgs
-        , entryTypeSyn  = typeSyn
-        , entryIdent    = coqName
-        , entryName     = haskellName
-        }
+      return TypeSynEntry { entrySrcSpan  = NoSrcSpan
+                          , entryArity    = arity
+                          , entryTypeArgs = typeArgs
+                          , entryTypeSyn  = typeSyn
+                          , entryIdent    = coqName
+                          , entryName     = haskellName
+                          }
 
     parseConfigCon :: Aeson.Value -> Aeson.Parser EnvEntry
     parseConfigCon = Aeson.withObject "Constructor" $ \obj -> do
@@ -228,7 +235,7 @@ instance Aeson.FromJSON ModuleInterface where
         { entrySrcSpan    = NoSrcSpan
         , entryArity      = arity
         , entryTypeArgs   = catMaybes
-          (map HS.identFromQName (typeVars returnType))
+                              (map HS.identFromQName (typeVars returnType))
         , entryArgTypes   = map Just argTypes
         , entryReturnType = Just returnType
         , entryIdent      = coqName
@@ -246,17 +253,16 @@ instance Aeson.FromJSON ModuleInterface where
       coqName        <- obj .: "coq-name"
       let (argTypes, returnType) = HS.splitFuncType haskellType arity
           typeArgs = catMaybes $ map HS.identFromQName $ typeVars haskellType
-      return FuncEntry
-        { entrySrcSpan       = NoSrcSpan
-        , entryArity         = arity
-        , entryTypeArgs      = typeArgs
-        , entryArgTypes      = map Just argTypes
-        , entryReturnType    = Just returnType
-        , entryNeedsFreeArgs = freeArgsNeeded
-        , entryIsPartial     = partial
-        , entryIdent         = coqName
-        , entryName          = haskellName
-        }
+      return FuncEntry { entrySrcSpan       = NoSrcSpan
+                       , entryArity         = arity
+                       , entryTypeArgs      = typeArgs
+                       , entryArgTypes      = map Just argTypes
+                       , entryReturnType    = Just returnType
+                       , entryNeedsFreeArgs = freeArgsNeeded
+                       , entryIsPartial     = partial
+                       , entryIdent         = coqName
+                       , entryName          = haskellName
+                       }
 
 -- | Loads an module interface file from a @.toml@ or @.json@ file.
 loadModuleInterface :: FilePath -> ReporterIO ModuleInterface

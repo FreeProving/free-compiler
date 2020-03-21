@@ -35,7 +35,7 @@ identFromName (Symbol _    ) = Nothing
 -- | Haskell identifiers and symbols can be pretty printed because they are
 --   often used in error messages.
 instance Pretty Name where
-  pretty (Ident ident)   = prettyString ident
+  pretty (Ident  ident ) = prettyString ident
   pretty (Symbol symbol) = parens (prettyString symbol)
 
 -------------------------------------------------------------------------------
@@ -60,7 +60,7 @@ identFromQName (Qual _ _   ) = Nothing
 instance Pretty QName where
   pretty (Qual modid name)
     | null modid = pretty name
-    | otherwise = prettyString modid <> dot <> pretty name
+    | otherwise  = prettyString modid <> dot <> pretty name
   pretty (UnQual name) = pretty name
 
 -------------------------------------------------------------------------------
@@ -100,7 +100,7 @@ data DeclIdent = DeclIdent
 
 -- | Pretty instance for identifiers in declarations.
 instance Pretty DeclIdent where
-  pretty = prettyString . fromDeclIdent
+  pretty     = prettyString . fromDeclIdent
   prettyList = prettySeparated (comma <> space) . map pretty
 
 -------------------------------------------------------------------------------
@@ -182,8 +182,7 @@ data Comment
 instance Pretty Comment where
   pretty (BlockComment _ str) =
     prettyString "{-" <> prettyString str <> prettyString "-}"
-  pretty (LineComment _ str) =
-    prettyString "--" <> prettyString str
+  pretty (LineComment _ str) = prettyString "--" <> prettyString str
 
 -------------------------------------------------------------------------------
 -- Pragmas                                                                   --
@@ -301,7 +300,7 @@ instance Pretty TypeDecl where
     prettyString "data"
       <+> pretty declIdent
       <+> hsep (map pretty typeVarDecls)
-      <+> align (vcat (zipWith prettyConDecl [0..] conDecls))
+      <+> align (vcat (zipWith prettyConDecl [0 ..] conDecls))
    where
     prettyConDecl :: Int -> ConDecl -> Doc
     prettyConDecl i conDecl | i == 0    = equals <+> pretty conDecl
@@ -439,9 +438,8 @@ instance Pretty FuncDecl where
     -- | The left-hand side of the function declaration.
     prettyFuncHead :: Doc
     prettyFuncHead =
-      pretty declIdent
-        <+> hsep (map ((char '@' <>) . pretty) typeArgs)
-        <+> hsep (map pretty args)
+      pretty declIdent <+> hsep (map ((char '@' <>) . pretty) typeArgs) <+> hsep
+        (map pretty args)
 
 -------------------------------------------------------------------------------
 -- Type schemas                                                          --
@@ -761,9 +759,9 @@ prettyExprPred 0 (Lambda _ args expr _) =
     <+> prettyExprPred 0 expr
 
 -- At all other levels, the parenthesis cannot be omitted.
-prettyExprPred _ expr@(If _ _ _ _ _       ) = parens (pretty expr)
-prettyExprPred _ expr@(Case        _ _ _ _) = parens (pretty expr)
-prettyExprPred _ expr@(Lambda      _ _ _ _) = parens (pretty expr)
+prettyExprPred _ expr@(If _ _ _ _ _  ) = parens (pretty expr)
+prettyExprPred _ expr@(Case   _ _ _ _) = parens (pretty expr)
+prettyExprPred _ expr@(Lambda _ _ _ _) = parens (pretty expr)
 
 -- Fix placement of visible type arguments in for error terms.
 prettyExprPred n (TypeAppExpr _ (ErrorExpr _ msg _) t _) | n <= 1 =
@@ -808,10 +806,10 @@ data Alt = Alt
 -- | Pretty instance for @case@ expression alternatives.
 instance Pretty Alt where
   pretty (Alt _ conPat varPats expr) =
-        pretty conPat
-    <+> hsep (map pretty varPats)
-    <+> prettyString "->"
-    <+> pretty expr
+    pretty conPat
+      <+> hsep (map pretty varPats)
+      <+> prettyString "->"
+      <+> pretty expr
 
 -------------------------------------------------------------------------------
 -- Constructor patterns                                                      --

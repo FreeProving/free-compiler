@@ -100,7 +100,7 @@ app func args = G.App func (NonEmpty.fromList (map G.PosArg args))
 --
 --   If there are no type arguments, no 'G.ExplicitApp' will be created.
 explicitApp :: G.Qualid -> [G.Term] -> G.Term
-explicitApp qualid [] = G.Qualid qualid
+explicitApp qualid []       = G.Qualid qualid
 explicitApp qualid typeArgs = G.ExplicitApp qualid typeArgs
 
 -- | Smart constructor for a Coq function type.

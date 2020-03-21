@@ -63,7 +63,7 @@ testSubterm = describe "Compiler.Haskell.Subterm" $ do
           it "replaces valid positions successfully" $ \testExpr ->
             property $ forAll (testPos testExpr) $ \(p, valid) ->
               let testExpr' =
-                    HS.Var NoSrcSpan (HS.UnQual (HS.Ident "x")) Nothing
+                      HS.Var NoSrcSpan (HS.UnQual (HS.Ident "x")) Nothing
               in  isJust (replaceSubterm testExpr p testExpr') == valid
 
           it "produces the input when replacing a subterm with itself"

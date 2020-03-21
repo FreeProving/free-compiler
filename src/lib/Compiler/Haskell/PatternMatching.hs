@@ -37,14 +37,13 @@ initialState = do
   let entries  = Set.toList (interfaceEntries preludeIface)
       entries' = catMaybes (map makeConsMapEntry entries)
       consMap  = Map.fromListWith (++) entries'
-  return PMState
-    { nextId      = 0
-    , constrMap   = Map.assocs consMap
-    , matchedPat  = []
-    , trivialCC   = False
-    , opt         = True
-    , debugOutput = ""
-    }
+  return PMState { nextId      = 0
+                 , constrMap   = Map.assocs consMap
+                 , matchedPat  = []
+                 , trivialCC   = False
+                 , opt         = True
+                 , debugOutput = ""
+                 }
 
 -- | Converts an entry of the 'Environment' to an entry of the constructor map
 --   for the 'initialState'.

@@ -13,5 +13,5 @@ import           Compiler.Pretty
 
 -- | Pretty instance for module nodes of Haskell Source Extensions AST.
 instance Pretty (H.Module l) where
-  pretty = prettyString . H.prettyPrint
+  pretty     = prettyString . H.prettyPrint
   prettyList = prettySeparated (line <> line)

@@ -162,7 +162,7 @@ instance ApplySubst HS.Expr HS.Expr where
 instance ApplySubst HS.Expr HS.Alt where
   applySubst subst (HS.Alt srcSpan conPat varPats expr) = do
     (varPats', varPatSubst) <- renameArgsSubst varPats
-    expr' <- applySubst (composeSubst subst varPatSubst) expr
+    expr'                   <- applySubst (composeSubst subst varPatSubst) expr
     return (HS.Alt srcSpan conPat varPats' expr')
 
 -- | Applies the given type substitution to an expression.
@@ -180,8 +180,8 @@ instance ApplySubst HS.Type HS.Expr where
       return (HS.Var srcSpan varName exprType')
 
     applySubst' (HS.App srcSpan e1 e2 exprType) = do
-      e1' <- applySubst' e1
-      e2' <- applySubst' e2
+      e1'       <- applySubst' e1
+      e2'       <- applySubst' e2
       exprType' <- mapM (applySubst subst) exprType
       return (HS.App srcSpan e1' e2' exprType')
 
@@ -192,33 +192,33 @@ instance ApplySubst HS.Type HS.Expr where
       return (HS.TypeAppExpr srcSpan expr' typeExpr' exprType')
 
     applySubst' (HS.If srcSpan e1 e2 e3 exprType) = do
-      e1' <- applySubst' e1
-      e2' <- applySubst' e2
-      e3' <- applySubst' e3
+      e1'       <- applySubst' e1
+      e2'       <- applySubst' e2
+      e3'       <- applySubst' e3
       exprType' <- mapM (applySubst subst) exprType
       return (HS.If srcSpan e1' e2' e3' exprType')
 
     applySubst' (HS.Case srcSpan expr alts exprType) = do
-      expr' <- applySubst' expr
-      alts' <- mapM (applySubst subst) alts
+      expr'     <- applySubst' expr
+      alts'     <- mapM (applySubst subst) alts
       exprType' <- mapM (applySubst subst) exprType
       return (HS.Case srcSpan expr' alts' exprType')
 
-    applySubst' (HS.Undefined srcSpan  exprType ) = do
+    applySubst' (HS.Undefined srcSpan exprType) = do
       exprType' <- mapM (applySubst subst) exprType
       return (HS.Undefined srcSpan exprType')
 
     applySubst' (HS.ErrorExpr srcSpan msg exprType) = do
       exprType' <- mapM (applySubst subst) exprType
-      return (HS.ErrorExpr  srcSpan msg exprType')
+      return (HS.ErrorExpr srcSpan msg exprType')
 
     applySubst' (HS.IntLiteral srcSpan value exprType) = do
       exprType' <- mapM (applySubst subst) exprType
       return (HS.IntLiteral srcSpan value exprType')
 
     applySubst' (HS.Lambda srcSpan args expr exprType) = do
-      args' <- mapM (applySubst subst) args
-      expr' <- applySubst' expr
+      args'     <- mapM (applySubst subst) args
+      expr'     <- applySubst' expr
       exprType' <- mapM (applySubst subst) exprType
       return (HS.Lambda srcSpan args' expr' exprType')
 
@@ -244,19 +244,21 @@ instance ApplySubst HS.Type HS.VarPat where
 -- | Applies the given expression substitution to the right-hand side of a
 --   function declaration.
 instance ApplySubst HS.Expr HS.FuncDecl where
-  applySubst subst (HS.FuncDecl srcSpan declIdent typeArgs args rhs maybeRetType) = do
-    (args', argSubst) <- renameArgsSubst args
-    rhs'              <- applySubst (composeSubst subst argSubst) rhs
-    return (HS.FuncDecl srcSpan declIdent typeArgs args' rhs' maybeRetType)
+  applySubst subst (HS.FuncDecl srcSpan declIdent typeArgs args rhs maybeRetType)
+    = do
+      (args', argSubst) <- renameArgsSubst args
+      rhs'              <- applySubst (composeSubst subst argSubst) rhs
+      return (HS.FuncDecl srcSpan declIdent typeArgs args' rhs' maybeRetType)
 
 -- | Applies the given type substitution to the right-hand side of a
 --   function declaration.
 instance ApplySubst HS.Type HS.FuncDecl where
-  applySubst subst (HS.FuncDecl srcSpan declIdent typeArgs args rhs maybeRetType) = do
-    args' <- mapM (applySubst subst) args
-    rhs'  <- applySubst subst rhs
-    maybeRetType' <- mapM (applySubst subst) maybeRetType
-    return (HS.FuncDecl srcSpan declIdent typeArgs args' rhs' maybeRetType')
+  applySubst subst (HS.FuncDecl srcSpan declIdent typeArgs args rhs maybeRetType)
+    = do
+      args'         <- mapM (applySubst subst) args
+      rhs'          <- applySubst subst rhs
+      maybeRetType' <- mapM (applySubst subst) maybeRetType
+      return (HS.FuncDecl srcSpan declIdent typeArgs args' rhs' maybeRetType')
 
 -------------------------------------------------------------------------------
 -- Application to type expressions                                           --
@@ -267,7 +269,7 @@ instance ApplySubst HS.Type HS.Type where
   applySubst (Subst substMap) = applySubst'
    where
     applySubst' :: HS.Type -> Converter HS.Type
-    applySubst' typeCon@(HS.TypeCon _ _) = return typeCon
+    applySubst' typeCon@(HS.TypeCon _       _    ) = return typeCon
     applySubst' typeVar@(HS.TypeVar srcSpan ident) = maybe
       (return typeVar)
       ($ srcSpan)

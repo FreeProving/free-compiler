@@ -331,21 +331,20 @@ removeConstArgsFromFuncDecl
   :: [ConstArg] -> HS.FuncDecl -> Converter HS.FuncDecl
 removeConstArgsFromFuncDecl constArgs (HS.FuncDecl srcSpan declIdent typeArgs args rhs maybeRetType)
   = do
-    let
-      ident = HS.fromDeclIdent declIdent
-      removedArgs =
-        fromJust
-          $ Map.lookup ident
-          $ Map.unionsWith (++)
-          $ map (Map.map return)
-          $ map constArgIdents constArgs
-      freshArgs = map constArgFreshIdent constArgs
-      args' = [ arg | arg <- args, HS.varPatIdent arg `notElem` removedArgs ]
-      subst = composeSubsts
-        [ singleSubst' (HS.UnQual (HS.Ident removedArg))
-                       (flip HS.untypedVar (HS.UnQual (HS.Ident freshArg)))
-        | (removedArg, freshArg) <- zip removedArgs freshArgs
-        ]
+    let ident = HS.fromDeclIdent declIdent
+        removedArgs =
+          fromJust
+            $ Map.lookup ident
+            $ Map.unionsWith (++)
+            $ map (Map.map return)
+            $ map constArgIdents constArgs
+        freshArgs = map constArgFreshIdent constArgs
+        args' = [ arg | arg <- args, HS.varPatIdent arg `notElem` removedArgs ]
+        subst = composeSubsts
+          [ singleSubst' (HS.UnQual (HS.Ident removedArg))
+                         (flip HS.untypedVar (HS.UnQual (HS.Ident freshArg)))
+          | (removedArg, freshArg) <- zip removedArgs freshArgs
+          ]
     rhs' <- applySubst subst rhs >>= removeConstArgsFromExpr constArgs
     return (HS.FuncDecl srcSpan declIdent typeArgs args' rhs' maybeRetType)
 

@@ -74,16 +74,16 @@ class Subterm a where
 -- | Expressions have subterms.
 instance Subterm HS.Expr where
   -- | Gets the direct child expression nodes of the given expression.
-  childTerms (HS.App         _ e1   e2   _) = [e1, e2]
-  childTerms (HS.TypeAppExpr _ expr _    _) = [expr]
-  childTerms (HS.If _ e1 e2 e3           _) = [e1, e2, e3]
-  childTerms (HS.Case        _ expr alts _) = expr : map HS.altRhs alts
-  childTerms (HS.Lambda      _ _    expr _) = [expr]
-  childTerms (HS.Con _ _                 _) = []
-  childTerms (HS.Var _ _                 _) = []
-  childTerms (HS.Undefined _             _) = []
-  childTerms (HS.ErrorExpr  _ _          _) = []
-  childTerms (HS.IntLiteral _ _          _) = []
+  childTerms (HS.App         _ e1   e2 _) = [e1, e2]
+  childTerms (HS.TypeAppExpr _ expr _  _) = [expr]
+  childTerms (HS.If _ e1 e2 e3 _        ) = [e1, e2, e3]
+  childTerms (HS.Case   _ expr alts _   ) = expr : map HS.altRhs alts
+  childTerms (HS.Lambda _ _    expr _   ) = [expr]
+  childTerms (HS.Con _ _ _              ) = []
+  childTerms (HS.Var _ _ _              ) = []
+  childTerms (HS.Undefined _ _          ) = []
+  childTerms (HS.ErrorExpr  _ _ _       ) = []
+  childTerms (HS.IntLiteral _ _ _       ) = []
 
   -- | Replaces all direct child expression nodes of the given expression.
   replaceChildTerms (HS.App srcSpan _ _ exprType) =
@@ -120,10 +120,10 @@ instance Subterm HS.Expr where
 instance Subterm HS.Type where
   -- | Gets the direct child type expression nodes of the given type
   --   expression.
-  childTerms (HS.TypeVar _ _) = []
-  childTerms (HS.TypeCon _ _ ) = []
-  childTerms (HS.TypeApp _ t1 t2   ) = [t1, t2]
-  childTerms (HS.FuncType _ t1 t2  ) = [t1, t2]
+  childTerms (HS.TypeVar _ _     ) = []
+  childTerms (HS.TypeCon _ _     ) = []
+  childTerms (HS.TypeApp  _ t1 t2) = [t1, t2]
+  childTerms (HS.FuncType _ t1 t2) = [t1, t2]
 
   -- | Replaces all direct child type expression nodes of the given type
   --   expression.

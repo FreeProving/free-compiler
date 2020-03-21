@@ -392,11 +392,10 @@ identifyConstArgs decls = do
     let idents = nub (Map.elems identMap)
         prefix = intercalate "_" idents
     freshIdent <- freshHaskellIdent prefix
-    return ConstArg
-      { constArgIdents     = identMap
-      , constArgIndicies   = Map.mapWithKey lookupArgIndex identMap
-      , constArgFreshIdent = freshIdent
-      }
+    return ConstArg { constArgIdents = identMap
+                    , constArgIndicies = Map.mapWithKey lookupArgIndex identMap
+                    , constArgFreshIdent = freshIdent
+                    }
  where
   -- | Maps the names of the function declarations to the names of their
   --   arguments.

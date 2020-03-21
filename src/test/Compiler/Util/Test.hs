@@ -45,8 +45,7 @@ import           Compiler.Pretty
 
 -- | Generates an arbitrary type expression.
 instance Arbitrary HS.Type where
-  arbitrary = oneof
-    [arbitraryTypeVar, arbitraryTypeConApp, arbitraryFuncType]
+  arbitrary = oneof [arbitraryTypeVar, arbitraryTypeConApp, arbitraryFuncType]
    where
     arbitraryTypeVar :: Gen HS.Type
     arbitraryTypeVar = do
@@ -263,14 +262,13 @@ defineTestTypeCon ident arity = renameAndAddTestEntry DataEntry
 defineTestTypeSyn :: String -> [String] -> String -> Converter String
 defineTestTypeSyn ident typeArgs typeStr = do
   typeExpr <- parseTestType typeStr
-  renameAndAddTestEntry TypeSynEntry
-    { entrySrcSpan  = NoSrcSpan
-    , entryArity    = length typeArgs
-    , entryTypeArgs = typeArgs
-    , entryTypeSyn  = typeExpr
-    , entryName     = HS.UnQual (HS.Ident ident)
-    , entryIdent    = undefined -- filled by renamer
-    }
+  renameAndAddTestEntry TypeSynEntry { entrySrcSpan  = NoSrcSpan
+                                     , entryArity    = length typeArgs
+                                     , entryTypeArgs = typeArgs
+                                     , entryTypeSyn  = typeExpr
+                                     , entryName = HS.UnQual (HS.Ident ident)
+                                     , entryIdent    = undefined -- filled by renamer
+                                     }
 
 -- | Defines a type variable 'renameAndDefineTypeVar' for testing purposes.
 --
@@ -310,13 +308,12 @@ defineTestCon ident arity typeStr = do
 defineTestVar :: String -> Converter String
 defineTestVar ident = do
   varType <- freshTypeVar
-  renameAndAddTestEntry VarEntry
-    { entrySrcSpan = NoSrcSpan
-    , entryIsPure  = False
-    , entryName    = HS.UnQual (HS.Ident ident)
-    , entryIdent   = undefined -- filled by renamer
-    , entryType    = Just varType
-    }
+  renameAndAddTestEntry VarEntry { entrySrcSpan = NoSrcSpan
+                                 , entryIsPure  = False
+                                 , entryName    = HS.UnQual (HS.Ident ident)
+                                 , entryIdent   = undefined -- filled by renamer
+                                 , entryType    = Just varType
+                                 }
 
 -- | Adds an entry for a function declaration for testing purposes.
 --

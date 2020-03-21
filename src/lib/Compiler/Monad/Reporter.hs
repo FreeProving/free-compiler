@@ -133,16 +133,16 @@ instance Monad m => Functor (ReporterT m) where
 -- | The @Applicative@ instance for 'ReporterT' is needed to define the @Monad@
 --   instance.
 instance Monad m => Applicative (ReporterT m) where
-  pure = return
+  pure  = return
   (<*>) = ap
 
 -- | The @Monad@ instance for @ReporterT@.
 instance Monad m => Monad (ReporterT m) where
   return = ReporterT . return . return
   (>>=) rt f = ReporterT $ do
-     (mx, ms) <- runReporterT rt
-     (mx', ms') <- maybe (return (Nothing, [])) (runReporterT . f) mx
-     return (MaybeT (writer (mx', ms ++ ms')))
+    (mx , ms ) <- runReporterT rt
+    (mx', ms') <- maybe (return (Nothing, [])) (runReporterT . f) mx
+    return (MaybeT (writer (mx', ms ++ ms')))
 
 -- | @MonadTrans@ instance for 'ReporterT'.
 instance MonadTrans ReporterT where

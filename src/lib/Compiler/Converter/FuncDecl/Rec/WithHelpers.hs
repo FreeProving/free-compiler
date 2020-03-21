@@ -167,8 +167,8 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent typeArgs args expr maybeRetT
         helperArgTypes
       helperReturnType = HS.exprType caseExpr
       helperType       = do
-        helperArgTypes' <- mapM id helperArgTypes
-        helperReturnType'  <- helperReturnType
+        helperArgTypes'   <- mapM id helperArgTypes
+        helperReturnType' <- helperReturnType
         return (HS.funcType NoSrcSpan helperArgTypes' helperReturnType')
 
     -- Register the helper function to the environment.

@@ -211,9 +211,8 @@ exportInterface = do
     . Map.elems
     . envEntries
   entries' <- mapM resolveReferences entries
-  return ModuleInterface
-    { interfaceModName = modName
-    , interfaceLibName = CoqBase.generatedLibName
-    , interfaceExports = exports
-    , interfaceEntries = Set.fromList entries'
-    }
+  return ModuleInterface { interfaceModName = modName
+                         , interfaceLibName = CoqBase.generatedLibName
+                         , interfaceExports = exports
+                         , interfaceEntries = Set.fromList entries'
+                         }

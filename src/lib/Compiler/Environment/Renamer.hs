@@ -260,13 +260,12 @@ renameAndDefineVar
   -> Maybe HS.Type -- ^ The type of the variable if it is known.
   -> Converter G.Qualid
 renameAndDefineVar srcSpan isPure ident maybeVarType = do
-  entry <- renameAndAddEntry VarEntry
-    { entrySrcSpan = srcSpan
-    , entryIsPure  = isPure
-    , entryName    = HS.UnQual (HS.Ident ident)
-    , entryIdent   = undefined -- filled by renamer
-    , entryType    = maybeVarType
-    }
+  entry <- renameAndAddEntry VarEntry { entrySrcSpan = srcSpan
+                                      , entryIsPure  = isPure
+                                      , entryName = HS.UnQual (HS.Ident ident)
+                                      , entryIdent   = undefined -- filled by renamer
+                                      , entryType    = maybeVarType
+                                      }
   return (entryIdent entry)
 
 -------------------------------------------------------------------------------

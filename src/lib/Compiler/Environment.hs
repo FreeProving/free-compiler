@@ -124,17 +124,16 @@ data Environment = Environment
 -- | An environment that does not even contain any predefined types and
 --   functions.
 emptyEnv :: Environment
-emptyEnv = Environment
-  { envDepth            = 0
+emptyEnv = Environment { envDepth            = 0
     -- Modules and sections
-  , envModName          = ""
-  , envAvailableModules = Map.empty
-  , envInSection        = False
+                       , envModName          = ""
+                       , envAvailableModules = Map.empty
+                       , envInSection        = False
     -- Entries
-  , envEntries          = Map.empty
-  , envDecArgs          = Map.empty
-  , envFreshIdentCount  = Map.empty
-  }
+                       , envEntries          = Map.empty
+                       , envDecArgs          = Map.empty
+                       , envFreshIdentCount  = Map.empty
+                       }
 
 -- | Creates a child environment of the given environment.
 childEnv :: Environment -> Environment

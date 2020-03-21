@@ -70,7 +70,7 @@ instance SrcSpanConverter H.SrcSpan where
     , srcSpanStartColumn = H.srcSpanStartColumn srcSpan
     , srcSpanEndLine     = H.srcSpanEndLine srcSpan
     , srcSpanEndColumn   = H.srcSpanEndColumn srcSpan
-    , srcSpanCodeLines    =
+    , srcSpanCodeLines   =
       take (H.srcSpanEndLine srcSpan - H.srcSpanStartLine srcSpan + 1)
       $ drop (H.srcSpanStartLine srcSpan - 1)
       $ maybe [] id
@@ -85,7 +85,8 @@ instance SrcSpanConverter H.SrcSpanInfo where
 -- | Converts a 'H.SrcLoc' by creating a zero width source span and applying
 --   the conversion for 'H.SrcSpan's.
 instance SrcSpanConverter H.SrcLoc where
-  convertSrcSpan codeByFilename = convertSrcSpan codeByFilename . join H.mkSrcSpan
+  convertSrcSpan codeByFilename =
+    convertSrcSpan codeByFilename . join H.mkSrcSpan
 
 -- | Converts a Parsec 'SourcePos' to a 'SrcSpan'.
 instance SrcSpanConverter Parsec.SourcePos where
@@ -95,11 +96,10 @@ instance SrcSpanConverter Parsec.SourcePos where
     , srcSpanStartColumn = Parsec.sourceColumn srcPos
     , srcSpanEndLine     = Parsec.sourceLine srcPos
     , srcSpanEndColumn   = Parsec.sourceColumn srcPos
-    , srcSpanCodeLines   =
-      return
-      $ (!! Parsec.sourceLine srcPos)
-      $ maybe [] id
-      $ lookup (Parsec.sourceName srcPos) codeByFilename
+    , srcSpanCodeLines   = return
+                           $ (!! Parsec.sourceLine srcPos)
+                           $ maybe [] id
+                           $ lookup (Parsec.sourceName srcPos) codeByFilename
     }
 
 -------------------------------------------------------------------------------
@@ -133,7 +133,7 @@ spansMultipleLines srcSpan = srcSpanStartLine srcSpan /= srcSpanEndLine srcSpan
 --
 --   If the source span spans only a single line, the end position is omitted.
 instance Pretty SrcSpan where
-  pretty NoSrcSpan = prettyString "<no location info>"
+  pretty NoSrcSpan           = prettyString "<no location info>"
   pretty (FileSpan filename) = prettyString filename
   pretty srcSpan
     | spansMultipleLines srcSpan

@@ -220,13 +220,12 @@ shadowVarPats varPats converter = do
     let varName = HS.varPatQName varPat
     modifyEnv $ addEntry
       varName
-      VarEntry
-        { entrySrcSpan = HS.varPatSrcSpan varPat
-        , entryIsPure  = False
-        , entryIdent   = undefined
-        , entryName    = varName
-        , entryType    = HS.varPatType varPat
-        }
+      VarEntry { entrySrcSpan = HS.varPatSrcSpan varPat
+               , entryIsPure  = False
+               , entryIdent   = undefined
+               , entryName    = varName
+               , entryType    = HS.varPatType varPat
+               }
   x <- converter
   modifyEnv $ \env -> env { envEntries = oldEntries }
   return x

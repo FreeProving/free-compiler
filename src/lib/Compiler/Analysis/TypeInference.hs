@@ -79,11 +79,10 @@ data TypeInferenceState = TypeInferenceState
 
 -- | An empty 'TypeInferenceState'.
 emptyTypeInferenceState :: TypeInferenceState
-emptyTypeInferenceState = TypeInferenceState
-  { typeEquations  = []
-  , typeAssumption = Map.empty
-  , fixedTypeArgs  = Map.empty
-  }
+emptyTypeInferenceState = TypeInferenceState { typeEquations  = []
+                                             , typeAssumption = Map.empty
+                                             , fixedTypeArgs  = Map.empty
+                                             }
 
 -- | Creates a 'TypeAssumption' for all funtions and constructors defined
 --   in the given environment.
@@ -529,9 +528,8 @@ annotateVarPat varPat = do
 --   annotated type with the given type. The annotated expression keeps its
 --   original annotation.
 annotateExprWith :: HS.Expr -> HS.Type -> TypeInference HS.Expr
-annotateExprWith expr resType =
-  case HS.exprType expr of
-  Nothing -> annotateExprWith' expr resType
+annotateExprWith expr resType = case HS.exprType expr of
+  Nothing       -> annotateExprWith' expr resType
   Just exprType -> do
     addTypeEquation (HS.exprSrcSpan expr) exprType resType
     annotateExprWith' expr exprType
