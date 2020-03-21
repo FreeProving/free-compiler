@@ -37,6 +37,7 @@ import           Compiler.Haskell.Simplifier
 import           Compiler.Haskell.SrcSpan
 import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
+import           Compiler.Pipeline
 import           Compiler.Pretty
 
 -------------------------------------------------------------------------------
@@ -367,8 +368,9 @@ convertTestDecl = convertTestDecls . return
 --   purposes.
 convertTestDecls :: [String] -> Converter [G.Sentence]
 convertTestDecls input = do
-  (typeDecls, typeSigs, funcDecls) <- parseTestDecls input
-  convertDecls typeDecls typeSigs funcDecls
+  haskellAst <- parseTestModule input
+  haskellAst' <- runPipeline haskellAst
+  convertDecls (HS.modTypeDecls haskellAst') (HS.modFuncDecls haskellAst')
 
 -- | Parses, simplifies and converts a Haskell module for testing purposes.
 convertTestModule :: [String] -> Converter [G.Sentence]

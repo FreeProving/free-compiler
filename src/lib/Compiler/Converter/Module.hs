@@ -2,6 +2,7 @@
 
 module Compiler.Converter.Module where
 
+import           Control.Monad                  ( (>=>) )
 import           Control.Monad.Extra            ( concatMapM )
 import           Data.List                      ( find
                                                 , findIndex
@@ -12,7 +13,6 @@ import qualified Data.Set                      as Set
 
 import           Compiler.Analysis.DependencyAnalysis
 import           Compiler.Analysis.DependencyGraph
-import           Compiler.Analysis.TypeInference
 import           Compiler.Converter.FuncDecl
 import           Compiler.Converter.TypeDecl
 import qualified Compiler.Coq.AST              as G
@@ -24,6 +24,7 @@ import           Compiler.Environment.Resolver
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
+import           Compiler.Pipeline
 import           Compiler.Pretty
 
 -------------------------------------------------------------------------------
@@ -32,7 +33,11 @@ import           Compiler.Pretty
 
 -- | Converts a Haskell module to a Gallina sentences.
 convertModule :: HS.Module -> Converter [G.Sentence]
-convertModule haskellAst = moduleEnv $ do
+convertModule = runPipeline >=> convertModule'
+
+-- | Like 'convertModule'' but does not apply any compiler passes beforehand.
+convertModule' :: HS.Module -> Converter [G.Sentence]
+convertModule' haskellAst = moduleEnv $ do
   -- Remember name of converted module.
   let modName = HS.modName haskellAst
   modifyEnv $ \env -> env { envModName = modName }
@@ -41,7 +46,6 @@ convertModule haskellAst = moduleEnv $ do
   mapM_ (addDecArgPragma (HS.modFuncDecls haskellAst))
         (HS.modPragmas haskellAst)
   decls' <- convertDecls (HS.modTypeDecls haskellAst)
-                         (HS.modTypeSigs haskellAst)
                          (HS.modFuncDecls haskellAst)
   -- Export module interface.
   let coqAst = G.comment ("module " ++ modName) : imports' ++ decls'
@@ -105,11 +109,10 @@ addDecArgPragma funcDecls (HS.DecArgPragma srcSpan funcIdent decArg) = do
 -------------------------------------------------------------------------------
 
 -- | Converts the given declarations of a Haskell module.
-convertDecls
-  :: [HS.TypeDecl] -> [HS.TypeSig] -> [HS.FuncDecl] -> Converter [G.Sentence]
-convertDecls typeDecls typeSigs funcDecls = do
+convertDecls :: [HS.TypeDecl] -> [HS.FuncDecl] -> Converter [G.Sentence]
+convertDecls typeDecls funcDecls = do
   typeDecls' <- convertTypeDecls typeDecls
-  funcDecls' <- addTypeSigsToFuncDecls typeSigs funcDecls >>= convertFuncDecls
+  funcDecls' <- convertFuncDecls funcDecls
   return (typeDecls' ++ funcDecls')
 
 -- | Converts the given data type or type synonym declarations.

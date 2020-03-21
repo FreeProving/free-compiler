@@ -5,8 +5,7 @@
 --   of variable patterns and adding visible applications for type arguments.
 
 module Compiler.Analysis.TypeInference
-  ( addTypeSigsToFuncDecls
-  , inferFuncDeclComponentTypes
+  ( inferFuncDeclComponentTypes
   , inferFuncDeclTypes
   , inferExprType
   )
@@ -24,7 +23,6 @@ import           Control.Monad.State            ( MonadState(..)
                                                 )
 import           Data.Composition               ( (.:) )
 import           Data.List                      ( (\\)
-                                                , intercalate
                                                 , nub
                                                 )
 import           Data.List.Extra                ( dropEnd
@@ -49,7 +47,6 @@ import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Haskell.SrcSpan
 import           Compiler.Haskell.Subst
 import           Compiler.Haskell.Unification
-import           Compiler.Haskell.Inliner
 import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
 import           Compiler.Pretty
@@ -237,112 +234,6 @@ withLocalTypeAssumption mx = do
   x                 <- mx
   modify $ \s -> s { typeAssumption = oldTypeAssumption }
   return x
-
--------------------------------------------------------------------------------
--- Type signatures                                                           --
--------------------------------------------------------------------------------
-
--- | Annotates the given function declarations with the type from the
---   corresponding type signature.
---
---   Repots a fatal error if the type of an argument cannot be inferred from
---   the type signature (see 'splitFuncType').
---
---   Reports a fatal error if there are multiple type signatures for the same
---   function or a type signature lacks a corresponding function declaration.
-addTypeSigsToFuncDecls
-  :: [HS.TypeSig] -> [HS.FuncDecl] -> Converter [HS.FuncDecl]
-addTypeSigsToFuncDecls typeSigs funcDecls = do
-  mapM_ checkHasBinding typeSigs
-  mapM addTypeSigToFuncDecl funcDecls
- where
-  -- | Maps the names of functions to their annotated type.
-  typeSigMap :: Map String [HS.TypeSchema]
-  typeSigMap = Map.fromListWith
-    (++)
-    [ (ident, [typeSchema])
-    | HS.TypeSig _ declIdents typeSchema <- typeSigs
-    , HS.DeclIdent _ ident               <- declIdents
-    ]
-
-  -- | The names of all declared functions.
-  funcDeclIdents :: Set String
-  funcDeclIdents =
-    Set.fromList $ map (HS.fromDeclIdent . HS.funcDeclIdent) funcDecls
-
-  -- | Checks whether there is a function declaration for all functions
-  --   annotated by the given type signature.
-  checkHasBinding :: HS.TypeSig -> Converter ()
-  checkHasBinding (HS.TypeSig _ declIdents _) =
-    mapM_ checkHasBinding' declIdents
-
-  -- | Checks whether there is a function declaration for the function
-  --   with the given name.
-  checkHasBinding' :: HS.DeclIdent -> Converter ()
-  checkHasBinding' (HS.DeclIdent srcSpan ident)
-    | ident `Set.member` funcDeclIdents
-    = return ()
-    | otherwise
-    = report
-      $  Message srcSpan Warning
-      $  "The type signature for '"
-      ++ ident
-      ++ "' lacks an accompanying binding."
-
-  addTypeSigToFuncDecl :: HS.FuncDecl -> Converter HS.FuncDecl
-  addTypeSigToFuncDecl funcDecl = do
-    let ident = HS.fromDeclIdent (HS.funcDeclIdent funcDecl)
-        name  = HS.funcDeclQName funcDecl
-        args  = HS.funcDeclArgs funcDecl
-    case Map.lookup ident typeSigMap of
-      Nothing -> return funcDecl
-      Just [HS.TypeSchema _ typeArgs typeExpr] -> do
-        (argTypes, retType) <- splitFuncType name args typeExpr
-        let args' = zipWith
-              (\arg argType -> arg { HS.varPatType = Just argType })
-              args
-              argTypes
-        return funcDecl { HS.funcDeclTypeArgs   = typeArgs
-                        , HS.funcDeclArgs       = args'
-                        , HS.funcDeclReturnType = Just retType
-                        }
-      Just typeSchemas ->
-        reportFatal
-          $  Message (HS.funcDeclSrcSpan funcDecl) Error
-          $  "Duplicate type signatures for '"
-          ++ ident
-          ++ "' at "
-          ++ intercalate ", "
-                         (map (showPretty . HS.typeSchemaSrcSpan) typeSchemas)
-
--- | Splits the annotated type of a Haskell function with the given arguments
---   into its argument and return types.
---
---   Type synonyms are expanded if neccessary.
-splitFuncType
-  :: HS.QName    -- ^ The name of the function to display in error messages.
-  -> [HS.VarPat] -- ^ The argument variable patterns whose types to split of.
-  -> HS.Type     -- ^ The type to split.
-  -> Converter ([HS.Type], HS.Type)
-splitFuncType name = splitFuncType'
- where
-  splitFuncType' :: [HS.VarPat] -> HS.Type -> Converter ([HS.Type], HS.Type)
-  splitFuncType' []         typeExpr              = return ([], typeExpr)
-  splitFuncType' (_ : args) (HS.FuncType _ t1 t2) = do
-    (argTypes, returnType) <- splitFuncType' args t2
-    return (t1 : argTypes, returnType)
-  splitFuncType' args@(arg : _) typeExpr = do
-    typeExpr' <- expandTypeSynonym typeExpr
-    if typeExpr /= typeExpr'
-      then splitFuncType' args typeExpr'
-      else
-        reportFatal
-        $  Message (HS.varPatSrcSpan arg) Error
-        $  "Could not determine type of argument '"
-        ++ HS.varPatIdent arg
-        ++ "' for function '"
-        ++ showPretty name
-        ++ "'."
 
 -------------------------------------------------------------------------------
 -- Strongly connected components                                             --

@@ -7,6 +7,7 @@ import           Control.Monad.Extra            ( zipWithM_ )
 import           Compiler.Analysis.TypeInference
 import           Compiler.Environment.Resolver
 import qualified Compiler.Haskell.AST          as HS
+import           Compiler.Pass.TypeSignaturePass
 import           Compiler.Monad.Converter
 
 import           Compiler.Util.Test
@@ -469,9 +470,9 @@ shouldInferType input (expectedExpr, expectedType) = do
 --   declaration.
 inferTestFuncDeclTypes :: [String] -> Converter [HS.FuncDecl]
 inferTestFuncDeclTypes input = localEnv $ do
-  ([], typeSigs, funcDecls) <- parseTestDecls input
-  funcDecls'                <- addTypeSigsToFuncDecls typeSigs funcDecls
-  inferFuncDeclTypes funcDecls'
+  haskellAst  <- parseTestModule input
+  haskellAst' <- typeSignaturePass haskellAst
+  inferFuncDeclTypes (HS.modFuncDecls haskellAst')
 
 -- | Parses the given function declarations, infers its type schema and sets
 --   the expectation that the given type schemas are inferred.
