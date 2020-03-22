@@ -7,7 +7,6 @@ import           Control.Monad.Extra            ( ifM
                                                 )
 import           Data.Composition
 import           Data.Foldable                  ( foldrM )
-import           Data.Maybe                     ( maybe )
 
 import           Compiler.Converter.Arg
 import           Compiler.Converter.Free
@@ -27,69 +26,15 @@ import           Compiler.Monad.Reporter
 import           Compiler.Pretty
 
 -------------------------------------------------------------------------------
--- Eta-Conversion                                                            --
--------------------------------------------------------------------------------
-
--- | Applies eta-abstractions to a function or constructor application util the
---   function or constructor is fully applied.
---
---   E.g. an application @f x@ of a binary function @f@ will be converted
---   to @\y -> f x y@ where @y@ is a fresh variable. This function does not
---   apply the eta-conversion recursively.
---
---   No eta-conversions are applied to nested expressions.
-etaConvert :: HS.Expr -> Converter HS.Expr
-etaConvert rootExpr = localEnv $ arityOf rootExpr >>= etaAbstractN rootExpr
- where
-  -- | Determines the number of arguments expected to be passed to the given
-  --   expression.
-  arityOf :: HS.Expr -> Converter Int
-  arityOf (HS.Con _ name _) = do
-    arity <- inEnv $ lookupArity ValueScope name
-    return (maybe 0 id arity)
-  arityOf (HS.Var _ name _) = do
-    arity <- inEnv $ lookupArity ValueScope name
-    return (maybe 0 id arity)
-  arityOf (HS.App _ e1 _ _) = do
-    arity <- arityOf e1
-    return (max 0 (arity - 1))
-
-  -- Visible type applications do not affect the function's arity.
-  arityOf (HS.TypeAppExpr _ e _ _) = arityOf e
-
-  -- All other expressions do not expect any arguments.
-  arityOf (HS.If _ _ _ _ _       ) = return 0
-  arityOf (HS.Case _ _ _ _       ) = return 0
-  arityOf (HS.Undefined _ _      ) = return 0
-  arityOf (HS.ErrorExpr  _ _ _   ) = return 0
-  arityOf (HS.IntLiteral _ _ _   ) = return 0
-  arityOf (HS.Lambda _ _ _ _     ) = return 0
-
-  -- | Applies the given number of eta-abstractions to an expression.
-  etaAbstractN :: HS.Expr -> Int -> Converter HS.Expr
-  etaAbstractN expr 0 = return expr
-  etaAbstractN expr n = do
-    x <- freshHaskellIdent freshArgPrefix
-    let argPat  = HS.toVarPat x
-        argExpr = HS.Var NoSrcSpan (HS.UnQual (HS.Ident x)) Nothing
-    expr' <- etaAbstractN (HS.App NoSrcSpan expr argExpr Nothing) (n - 1)
-    return (HS.Lambda NoSrcSpan [argPat] expr' Nothing)
-
--------------------------------------------------------------------------------
 -- Expressions                                                               --
 -------------------------------------------------------------------------------
 
 -- | Converts a Haskell expression to Coq.
 convertExpr :: HS.Expr -> Converter G.Term
-convertExpr expr = do
-  expr' <- etaConvert expr
-  convertExpr' expr' [] []
+convertExpr expr = convertExpr' expr [] []
 
 -- | Converts the application of a Haskell expression to the given arguments
 --   and visibly applied type arguments to Coq.
---
---   This function assumes the outer most expression to be fully applied
---   by the given arguments (see also 'etaConvert').
 convertExpr' :: HS.Expr -> [HS.Type] -> [HS.Expr] -> Converter G.Term
 
 -- Constructors.

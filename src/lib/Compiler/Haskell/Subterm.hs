@@ -2,8 +2,11 @@
 --   of Haskell expressions and type expressions.
 
 module Compiler.Haskell.Subterm
-  ( -- * Positions
-    Pos(..)
+  ( -- * Direct children
+    childTerms
+  , replaceChildTerms
+    -- * Positions
+  , Pos(..)
   , rootPos
   , consPos
   , parentPos

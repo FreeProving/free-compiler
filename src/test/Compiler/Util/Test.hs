@@ -21,7 +21,6 @@ import           System.IO.Unsafe               ( unsafePerformIO )
 
 import           Compiler.Analysis.DependencyExtraction
                                                 ( typeVars )
-import           Compiler.Analysis.TypeInference
 import           Compiler.Converter
 import qualified Compiler.Coq.AST              as G
 import           Compiler.Coq.Pretty
@@ -357,8 +356,27 @@ convertTestType input = parseTestType input >>= convertType
 
 -- | Parses, simplifies and converts a Haskell expression for testing purposes.
 convertTestExpr :: String -> Converter G.Term
-convertTestExpr input =
-  parseTestExpr input >>= inferExprType >>= convertExpr . fst
+convertTestExpr input = do
+  expr <- parseTestExpr input
+  let funcDecl = HS.FuncDecl
+        { HS.funcDeclSrcSpan    = NoSrcSpan
+        , HS.funcDeclIdent      = HS.DeclIdent NoSrcSpan "<test-expression>"
+        , HS.funcDeclTypeArgs   = []
+        , HS.funcDeclArgs       = []
+        , HS.funcDeclRhs        = expr
+        , HS.funcDeclReturnType = Nothing
+        }
+      haskellAst = HS.Module { HS.modSrcSpan   = NoSrcSpan
+                             , HS.modName      = "<test-expression-module>"
+                             , HS.modImports   = []
+                             , HS.modTypeDecls = []
+                             , HS.modTypeSigs  = []
+                             , HS.modPragmas   = []
+                             , HS.modFuncDecls = [funcDecl]
+                             }
+  haskellAst' <- runPipeline haskellAst
+  let expr' = HS.funcDeclRhs (head (HS.modFuncDecls haskellAst'))
+  convertExpr expr'
 
 -- | Parses, simplifies and converts a Haskell declaration for testing purposes.
 convertTestDecl :: String -> Converter [G.Sentence]
@@ -368,7 +386,7 @@ convertTestDecl = convertTestDecls . return
 --   purposes.
 convertTestDecls :: [String] -> Converter [G.Sentence]
 convertTestDecls input = do
-  haskellAst <- parseTestModule input
+  haskellAst  <- parseTestModule input
   haskellAst' <- runPipeline haskellAst
   convertDecls (HS.modTypeDecls haskellAst') (HS.modFuncDecls haskellAst')
 
