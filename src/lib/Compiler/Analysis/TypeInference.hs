@@ -156,37 +156,28 @@ addTypeEquationFor srcSpan name resType = do
       typeExpr <- liftConverter $ instantiateTypeSchema typeSchema
       addTypeEquation srcSpan typeExpr resType
 
--- | Extends the type assumption with the type schema for the function or
---   constructor with the given name.
---
---   Adds an entry for both the unqualified and the qualified name.
-extendTypeAssumption :: HS.Name -> HS.TypeSchema -> TypeInference ()
+-- | Extends the type assumption with the type schema for the function,
+--   constructor or local variable with the given name.
+extendTypeAssumption :: HS.QName -> HS.TypeSchema -> TypeInference ()
 extendTypeAssumption name typeSchema = do
-  modName <- inEnv envModName
-  extendTypeAssumption' (HS.UnQual name)       typeSchema
-  extendTypeAssumption' (HS.Qual modName name) typeSchema
-
--- | Like 'extendTypeAssumption' but does not qualify the name automatically.
-extendTypeAssumption' :: HS.QName -> HS.TypeSchema -> TypeInference ()
-extendTypeAssumption' name typeSchema = do
   modify $ \s ->
     s { typeAssumption = Map.insert name typeSchema (typeAssumption s) }
 
 -- | Extends the type assumption with the type schema for the given function
 --   declaration if all of its argument and return types are annotated.
 extendTypeAssumptionWithFuncDecl :: HS.FuncDecl -> TypeInference ()
-extendTypeAssumptionWithFuncDecl funcDecl = do
-  let funcName = HS.funcDeclName funcDecl
+extendTypeAssumptionWithFuncDecl funcDecl =
   case HS.funcDeclTypeSchema funcDecl of
-    Nothing         -> return ()
-    Just typeSchema -> extendTypeAssumption funcName typeSchema
+    Nothing -> return ()
+    Just typeSchema ->
+      extendTypeAssumption (HS.funcDeclQName funcDecl) typeSchema
 
 -- | Extends the type assumption with the unabstracted type the given
 --   variable pattern has been annotated with.
 extendTypeAssumptionWithVarPat :: HS.VarPat -> TypeInference ()
 extendTypeAssumptionWithVarPat varPat = case HS.varPatType varPat of
   Nothing         -> return ()
-  Just varPatType -> extendTypeAssumption'
+  Just varPatType -> extendTypeAssumption
     (HS.varPatQName varPat)
     (HS.TypeSchema NoSrcSpan [] varPatType)
 
@@ -200,17 +191,8 @@ removeVarPatFromTypeAssumption varPat = do
 
 -- | Sets the types to instantiate additional type arguments of the function
 --   with the given name with.
---
---   Adds an entry for both the unqualified and the qualified name.
-fixTypeArgs :: HS.Name -> [HS.Type] -> TypeInference ()
-fixTypeArgs name subst = do
-  modName <- inEnv envModName
-  fixTypeArgs' (HS.UnQual name)       subst
-  fixTypeArgs' (HS.Qual modName name) subst
-
--- | Like 'fixTypeArgs' but does not qualify the name automatically.
-fixTypeArgs' :: HS.QName -> [HS.Type] -> TypeInference ()
-fixTypeArgs' name subst =
+fixTypeArgs :: HS.QName -> [HS.Type] -> TypeInference ()
+fixTypeArgs name subst =
   modify $ \s -> s { fixedTypeArgs = Map.insert name subst (fixedTypeArgs s) }
 
 -------------------------------------------------------------------------------
@@ -324,7 +306,7 @@ inferFuncDeclTypes' funcDecls = withLocalState $ do
   -- remember for each function in the strongly connected component,
   -- the type to instantiate the remaining type arguments with. The
   -- fixed type arguments will be taken into account by 'applyVisibly'.
-  let funcNames           = map HS.funcDeclName abstractedFuncDecls
+  let funcNames           = map HS.funcDeclQName abstractedFuncDecls
       additionalTypeArgs' = map
         ( map HS.typeVarDeclToType
         . takeEnd (length additionalTypeArgs)
@@ -370,7 +352,8 @@ inferExprType expr = localEnv $ do
   funcIdent <- freshHaskellIdent freshFuncPrefix
   let funcDecl = HS.FuncDecl
         { HS.funcDeclSrcSpan    = NoSrcSpan
-        , HS.funcDeclIdent      = HS.DeclIdent NoSrcSpan funcIdent
+        , HS.funcDeclIdent      = HS.DeclIdent NoSrcSpan
+                                               (HS.UnQual (HS.Ident funcIdent))
         , HS.funcDeclTypeArgs   = []
         , HS.funcDeclArgs       = []
         , HS.funcDeclRhs        = expr
@@ -672,21 +655,19 @@ abstractVanishingTypeArgs funcDecls = do
   --   to the given function declaration.
   abstractVanishingTypeArgs' :: HS.FuncDecl -> Converter HS.FuncDecl
   abstractVanishingTypeArgs' funcDecl = do
-    let typeArgNames = map (HS.UnQual . HS.Ident . HS.fromDeclIdent)
-                           (HS.funcDeclTypeArgs funcDecl)
+    let typeArgNames = map HS.typeVarDeclQName (HS.funcDeclTypeArgs funcDecl)
     abstractTypeArgs (typeArgNames ++ internalTypeArgNames) funcDecl
 
   -- | Adds visible type applications for 'internalTypeArgs' to recursive
   --   calls on the right-hand side of the given function declaration.
+  --
+  --   TODO move out of @Converter@ monad.
   addInternalTypeArgs :: HS.FuncDecl -> Converter HS.FuncDecl
   addInternalTypeArgs funcDecl = do
-    modName <- inEnv envModName
-    let funcNames    = map HS.funcDeclName funcDecls
-        funcQNames = map HS.UnQual funcNames ++ map (HS.Qual modName) funcNames
-        funcNameSet  = Set.fromList funcQNames
-        funcNameSet' = withoutArgs (HS.funcDeclArgs funcDecl) funcNameSet
-        rhs          = HS.funcDeclRhs funcDecl
-        rhs'         = addInternalTypeArgsToExpr funcNameSet' rhs
+    let funcNames  = Set.fromList (map HS.funcDeclQName funcDecls)
+        funcNames' = withoutArgs (HS.funcDeclArgs funcDecl) funcNames
+        rhs        = HS.funcDeclRhs funcDecl
+        rhs'       = addInternalTypeArgsToExpr funcNames' rhs
     return funcDecl { HS.funcDeclRhs = rhs' }
 
   -- | Adds visible type applications for 'internalTypeArgs' to recursive

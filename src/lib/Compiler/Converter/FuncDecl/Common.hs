@@ -27,7 +27,7 @@ import           Compiler.Monad.Converter
 --   'convertRecFuncDecls').
 convertFuncHead :: HS.FuncDecl -> Converter (G.Qualid, [G.Binder], Maybe G.Term)
 convertFuncHead (HS.FuncDecl _ declIdent typeArgs args _ maybeRetType) = do
-  let name = HS.UnQual (HS.Ident (HS.fromDeclIdent declIdent))
+  let name = HS.declIdentName declIdent
   -- Lookup the Coq name of the function.
   Just qualid   <- inEnv $ lookupIdent ValueScope name
   -- Generate arguments for free monad if they are not in scope.

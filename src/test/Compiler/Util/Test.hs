@@ -331,7 +331,7 @@ defineTestFunc' partial ident arity typeStr = do
   renameAndAddTestEntry FuncEntry
     { entrySrcSpan       = NoSrcSpan
     , entryArity         = arity
-    , entryTypeArgs      = map HS.fromDeclIdent typeArgs
+    , entryTypeArgs      = map HS.typeVarDeclIdent typeArgs
     , entryArgTypes      = map Just argTypes
     , entryReturnType    = Just returnType
     , entryNeedsFreeArgs = True
@@ -360,14 +360,17 @@ convertTestExpr input = do
   expr <- parseTestExpr input
   let funcDecl = HS.FuncDecl
         { HS.funcDeclSrcSpan    = NoSrcSpan
-        , HS.funcDeclIdent      = HS.DeclIdent NoSrcSpan "<test-expression>"
+        , HS.funcDeclIdent      = HS.DeclIdent
+          { HS.declIdentSrcSpan = NoSrcSpan
+          , HS.declIdentName    = HS.UnQual (HS.Ident "test_expression")
+          }
         , HS.funcDeclTypeArgs   = []
         , HS.funcDeclArgs       = []
         , HS.funcDeclRhs        = expr
         , HS.funcDeclReturnType = Nothing
         }
       haskellAst = HS.Module { HS.modSrcSpan   = NoSrcSpan
-                             , HS.modName      = "<test-expression-module>"
+                             , HS.modName      = "Test.Expression"
                              , HS.modImports   = []
                              , HS.modTypeDecls = []
                              , HS.modTypeSigs  = []

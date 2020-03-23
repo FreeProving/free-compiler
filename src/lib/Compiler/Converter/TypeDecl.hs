@@ -35,13 +35,8 @@ convertTypeComponent (NonRecursive decl)
   | isTypeSynDecl decl = convertTypeSynDecl decl
   | otherwise          = convertDataDecls [decl]
 convertTypeComponent (Recursive decls) = do
-  modName <- inEnv envModName
   let (typeSynDecls, dataDecls) = partition isTypeSynDecl decls
-      typeSynDeclNames          = map HS.typeDeclName typeSynDecls
-      typeSynDeclQNames =
-        Set.fromList
-          $  map HS.UnQual         typeSynDeclNames
-          ++ map (HS.Qual modName) typeSynDeclNames
+      typeSynDeclQNames = Set.fromList (map HS.typeDeclQName typeSynDecls)
   sortedTypeSynDecls <- sortTypeSynDecls typeSynDecls
   expandedDataDecls  <- mapM
     (expandAllTypeSynonymsInDeclWhere (`Set.member` typeSynDeclQNames))
@@ -139,15 +134,15 @@ convertDataDecls dataDecls = do
 --   Type variables declared by the data type or the smart constructors are
 --   not visible outside of this function.
 convertDataDecl :: HS.TypeDecl -> Converter (G.IndBody, [G.Sentence])
-convertDataDecl (HS.DataDecl _ (HS.DeclIdent _ ident) typeVarDecls conDecls) =
+convertDataDecl (HS.DataDecl _ (HS.DeclIdent _ name) typeVarDecls conDecls) =
   do
     (body, argumentsSentences) <- generateBodyAndArguments
     smartConDecls              <- mapM generateSmartConDecl conDecls
     return
       ( body
-      , G.comment ("Arguments sentences for " ++ ident)
+      , G.comment ("Arguments sentences for " ++ showPretty name)
       :  argumentsSentences
-      ++ G.comment ("Smart constructors for " ++ ident)
+      ++ G.comment ("Smart constructors for " ++ showPretty name)
       :  smartConDecls
       )
  where
@@ -162,7 +157,7 @@ convertDataDecl (HS.DataDecl _ (HS.DeclIdent _ ident) typeVarDecls conDecls) =
   --   'generateSmartConDecl').
   generateBodyAndArguments :: Converter (G.IndBody, [G.Sentence])
   generateBodyAndArguments = localEnv $ do
-    Just qualid <- inEnv $ lookupIdent TypeScope (HS.UnQual (HS.Ident ident))
+    Just qualid        <- inEnv $ lookupIdent TypeScope name
     typeVarDecls'      <- convertTypeVarDecls G.Explicit typeVarDecls
     conDecls'          <- mapM convertConDecl conDecls
     argumentsSentences <- mapM generateArgumentsSentence conDecls
@@ -176,8 +171,7 @@ convertDataDecl (HS.DataDecl _ (HS.DeclIdent _ ident) typeVarDecls conDecls) =
 
   -- | Converts a constructor of the data type.
   convertConDecl :: HS.ConDecl -> Converter (G.Qualid, [G.Binder], Maybe G.Term)
-  convertConDecl (HS.ConDecl _ (HS.DeclIdent _ conIdent) args) = do
-    let conName = HS.UnQual (HS.Ident conIdent)
+  convertConDecl (HS.ConDecl _ (HS.DeclIdent _ conName) args) = do
     Just conQualid  <- inEnv $ lookupIdent ValueScope conName
     Just returnType <- inEnv $ lookupReturnType ValueScope conName
     args'           <- mapM convertType args
@@ -186,12 +180,10 @@ convertDataDecl (HS.DataDecl _ (HS.DeclIdent _ ident) typeVarDecls conDecls) =
 
   -- | Generates the @Arguments@ sentence for the given constructor declaration.
   generateArgumentsSentence :: HS.ConDecl -> Converter G.Sentence
-  generateArgumentsSentence (HS.ConDecl _ (HS.DeclIdent _ conIdent) _) = do
-    Just qualid <- inEnv
-      $ lookupIdent ValueScope (HS.UnQual (HS.Ident conIdent))
-    let typeVarIdents =
-          map (HS.UnQual . HS.Ident . HS.fromDeclIdent) typeVarDecls
-    typeVarQualids <- mapM (inEnv . lookupIdent TypeScope) typeVarIdents
+  generateArgumentsSentence (HS.ConDecl _ (HS.DeclIdent _ conName) _) = do
+    Just qualid <- inEnv $ lookupIdent ValueScope conName
+    let typeVarNames = map HS.typeVarDeclQName typeVarDecls
+    typeVarQualids <- mapM (inEnv . lookupIdent TypeScope) typeVarNames
     return
       (G.ArgumentsSentence
         (G.Arguments
@@ -208,7 +200,7 @@ convertDataDecl (HS.DataDecl _ (HS.DeclIdent _ ident) typeVarDecls conDecls) =
   --   declaration.
   generateSmartConDecl :: HS.ConDecl -> Converter G.Sentence
   generateSmartConDecl (HS.ConDecl _ declIdent argTypes) = localEnv $ do
-    let conName = HS.UnQual (HS.Ident (HS.fromDeclIdent declIdent))
+    let conName = HS.declIdentName declIdent
     Just qualid             <- inEnv $ lookupIdent ValueScope conName
     Just smartQualid        <- inEnv $ lookupSmartIdent conName
     Just returnType         <- inEnv $ lookupReturnType ValueScope conName

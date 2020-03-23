@@ -150,7 +150,7 @@ testIdentifyConstArgs = do
           ]
         identMaps <- map (Map.assocs . constArgIdents)
           <$> identifyConstArgs funcDecls
-        return (identMaps `shouldBe` [[("map", "f")]])
+        return (identMaps `shouldBe` [[(HS.UnQual (HS.Ident "map"), "f")]])
   it "identifies constant arguments of mutually recursive functions"
     $ shouldSucceed
     $ fromConverter
@@ -173,8 +173,12 @@ testIdentifyConstArgs = do
           <$> identifyConstArgs funcDecls
         return
           (          identMaps
-          `shouldBe` [ [("mapAlt", "g"), ("mapAlt'", "g")]
-                     , [("mapAlt", "f"), ("mapAlt'", "f")]
+          `shouldBe` [ [ (HS.UnQual (HS.Ident "mapAlt") , "g")
+                       , (HS.UnQual (HS.Ident "mapAlt'"), "g")
+                       ]
+                     , [ (HS.UnQual (HS.Ident "mapAlt") , "f")
+                       , (HS.UnQual (HS.Ident "mapAlt'"), "f")
+                       ]
                      ]
           )
   it "does not identify swapped arguments as constant"
@@ -219,7 +223,13 @@ testIdentifyConstArgs = do
         identMaps <- map (Map.assocs . constArgIdents)
           <$> identifyConstArgs funcDecls
         return
-          (identMaps `shouldBe` [[("bar", "n"), ("baz", "n"), ("foo", "n")]])
+          (          identMaps
+          `shouldBe` [ [ (HS.UnQual (HS.Ident "bar"), "n")
+                       , (HS.UnQual (HS.Ident "baz"), "n")
+                       , (HS.UnQual (HS.Ident "foo"), "n")
+                       ]
+                     ]
+          )
   it "does not identify argument as constant if it is modified in one call"
     $ shouldSucceed
     $ fromConverter

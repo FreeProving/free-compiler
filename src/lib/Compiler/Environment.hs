@@ -333,7 +333,7 @@ lookupTypeSchema scope name env
     typeArgs   <- lookupTypeArgs scope name env
     argTypes   <- lookupArgTypes scope name env
     returnType <- lookupReturnType scope name env
-    let typeArgDecls = map (HS.DeclIdent NoSrcSpan) typeArgs
+    let typeArgDecls = map (HS.TypeVarDecl NoSrcSpan) typeArgs
         funcType     = HS.funcType NoSrcSpan (catMaybes argTypes) returnType
     return (HS.TypeSchema NoSrcSpan typeArgDecls funcType)
 

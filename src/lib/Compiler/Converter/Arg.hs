@@ -36,9 +36,9 @@ convertTypeVarDecls explicitness typeVarDecls
     idents' <- mapM convertTypeVarDecl typeVarDecls
     return [G.typedBinder explicitness idents' G.sortType]
  where
-  -- |
+  -- | TODO
   convertTypeVarDecl :: HS.TypeVarDecl -> Converter G.Qualid
-  convertTypeVarDecl (HS.DeclIdent srcSpan ident) =
+  convertTypeVarDecl (HS.TypeVarDecl srcSpan ident) =
     renameAndDefineTypeVar srcSpan ident
 
 -------------------------------------------------------------------------------

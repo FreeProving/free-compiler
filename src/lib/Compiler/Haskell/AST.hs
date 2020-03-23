@@ -89,18 +89,15 @@ type TypeConName = QName
 
 -- | The name of a function, data type, type synonym or constructor defined
 --   by the user including location information.
---
---   Because the user cannot declare symbols at the moment, the constructor
---   of this data type takes a 'String' and not a 'Name'.
 data DeclIdent = DeclIdent
   { declIdentSrcSpan :: SrcSpan
-  , fromDeclIdent :: String
+  , declIdentName    :: QName
   }
  deriving (Eq, Show)
 
 -- | Pretty instance for identifiers in declarations.
 instance Pretty DeclIdent where
-  pretty     = prettyString . fromDeclIdent
+  pretty     = pretty . declIdentName
   prettyList = prettySeparated (comma <> space) . map pretty
 
 -------------------------------------------------------------------------------
@@ -246,21 +243,29 @@ instance Pretty ImportDecl where
 
 -- | The name of a type variable declaration in the head of a data type or
 --   type synonym declaration including location information.
-type TypeVarDecl = DeclIdent
+data TypeVarDecl = TypeVarDecl
+  { typeVarDeclSrcSpan :: SrcSpan
+  , typeVarDeclIdent   :: String
+  }
+ deriving (Eq, Show)
 
 -- | Converts the declaration of a type variable to a type.
 typeVarDeclToType :: TypeVarDecl -> Type
-typeVarDeclToType (DeclIdent srcSpan ident) = TypeVar srcSpan ident
+typeVarDeclToType (TypeVarDecl srcSpan ident) = TypeVar srcSpan ident
 
 -- | Gets the name of the type variable declared by the given type variable
 --   declaration.
 typeVarDeclName :: TypeVarDecl -> Name
-typeVarDeclName = Ident . fromDeclIdent
+typeVarDeclName = Ident . typeVarDeclIdent
 
 -- | Gets the unqualified name of the type variable declared by the given
 --   type variable declaration.
 typeVarDeclQName :: TypeVarDecl -> QName
 typeVarDeclQName = UnQual . typeVarDeclName
+
+-- | Pretty instance for type variable declaration.
+instance Pretty TypeVarDecl where
+  pretty = pretty . typeVarDeclIdent
 
 -------------------------------------------------------------------------------
 -- Type declarations                                                         --
@@ -286,13 +291,9 @@ data TypeDecl
     }
  deriving (Eq, Show)
 
--- | Gets the name of the given type declaration.
-typeDeclName :: TypeDecl -> Name
-typeDeclName = Ident . fromDeclIdent . typeDeclIdent
-
 -- | Gets the unqualified name of the given type declaration.
 typeDeclQName :: TypeDecl -> QName
-typeDeclQName = UnQual . typeDeclName
+typeDeclQName = declIdentName . typeDeclIdent
 
 -- | Pretty instance for type declarations.
 instance Pretty TypeDecl where
@@ -397,13 +398,9 @@ data FuncDecl = FuncDecl
   }
  deriving (Eq, Show)
 
--- | Gets the name of the given function declaration.
-funcDeclName :: FuncDecl -> Name
-funcDeclName = Ident . fromDeclIdent . funcDeclIdent
-
 -- | Gets the unqualified name of the given function declaration.
 funcDeclQName :: FuncDecl -> QName
-funcDeclQName = UnQual . funcDeclName
+funcDeclQName = declIdentName . funcDeclIdent
 
 -- | Gets the type of the given function declaration or @Nothing@ if at
 --   least one of the argument or return type is not annotated.

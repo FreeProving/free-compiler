@@ -103,6 +103,7 @@ module Compiler.Pass.TypeSignaturePass
   )
 where
 
+import           Control.Monad                  ( when )
 import           Data.List                      ( intercalate )
 import           Data.Map.Strict                ( Map )
 import qualified Data.Map.Strict               as Map
@@ -140,16 +141,15 @@ checkHasBinding :: [HS.FuncDecl] -> HS.TypeSig -> Converter ()
 checkHasBinding funcDecls = mapM_ checkHasBinding' . HS.typeSigDeclIdents
  where
   -- | The names of all declared functions.
-  funcDeclIdents :: Set String
-  funcDeclIdents =
-    Set.fromList $ map (HS.fromDeclIdent . HS.funcDeclIdent) funcDecls
+  funcDeclNames :: Set HS.QName
+  funcDeclNames = Set.fromList $ map HS.funcDeclQName funcDecls
 
   -- | Checks whether there is a function declaration for the function
   --   with the given name.
   checkHasBinding' :: HS.DeclIdent -> Converter ()
-  checkHasBinding' (HS.DeclIdent srcSpan ident)
-    | ident `Set.member` funcDeclIdents = return ()
-    | otherwise                         = reportMissingBinding srcSpan ident
+  checkHasBinding' (HS.DeclIdent srcSpan name) =
+    when (name `Set.notMember` funcDeclNames)
+      $ reportMissingBinding srcSpan name
 
 -------------------------------------------------------------------------------
 -- Translation                                                               --
@@ -166,12 +166,12 @@ addTypeSigsToFuncDecls
 addTypeSigsToFuncDecls typeSigs funcDecls = mapM addTypeSigToFuncDecl funcDecls
  where
   -- | Maps the names of functions to their annotated type.
-  typeSigMap :: Map String [HS.TypeSchema]
+  typeSigMap :: Map HS.QName [HS.TypeSchema]
   typeSigMap = Map.fromListWith
     (++)
-    [ (ident, [typeSchema])
+    [ (name, [typeSchema])
     | HS.TypeSig _ declIdents typeSchema <- typeSigs
-    , HS.DeclIdent _ ident               <- declIdents
+    , HS.DeclIdent _ name                <- declIdents
     ]
 
   -- | Sets the type annotation of the given variable pattern.
@@ -182,10 +182,9 @@ addTypeSigsToFuncDecls typeSigs funcDecls = mapM addTypeSigToFuncDecl funcDecls
   --   corresponding type signature.
   addTypeSigToFuncDecl :: HS.FuncDecl -> Converter HS.FuncDecl
   addTypeSigToFuncDecl funcDecl = do
-    let ident = HS.fromDeclIdent (HS.funcDeclIdent funcDecl)
-        name  = HS.funcDeclQName funcDecl
-        args  = HS.funcDeclArgs funcDecl
-    case Map.lookup ident typeSigMap of
+    let name = HS.funcDeclQName funcDecl
+        args = HS.funcDeclArgs funcDecl
+    case Map.lookup name typeSigMap of
       Nothing -> return funcDecl
       Just [HS.TypeSchema _ typeArgs typeExpr] -> do
         (argTypes, retType) <- splitFuncType name args typeExpr
@@ -229,14 +228,14 @@ splitFuncType name = splitFuncType'
 --   signature of the function with the given name.
 reportMissingBinding
   :: MonadReporter r
-  => SrcSpan -- ^ The location of the type signature.
-  -> String  -- ^ The name of the function.
+  => SrcSpan  -- ^ The location of the type signature.
+  -> HS.QName -- ^ The name of the function.
   -> r ()
-reportMissingBinding srcSpan ident =
+reportMissingBinding srcSpan name =
   report
     $  Message srcSpan Warning
     $  "The type signature for '"
-    ++ ident
+    ++ showPretty name
     ++ "' lacks an accompanying binding."
 
 -- | Reports a fatal error if there are multiple type signatures for the

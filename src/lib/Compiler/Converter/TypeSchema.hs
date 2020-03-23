@@ -39,7 +39,7 @@ instantiateTypeSchema' :: HS.TypeSchema -> Converter (HS.Type, [HS.Type])
 instantiateTypeSchema' (HS.TypeSchema _ typeArgs typeExpr) = do
   (typeArgs', subst) <- renameTypeArgsSubst typeArgs
   typeExpr'          <- applySubst subst typeExpr
-  let typeVars' = map (HS.TypeVar NoSrcSpan . HS.fromDeclIdent) typeArgs'
+  let typeVars' = map HS.typeVarDeclToType typeArgs'
   return (typeExpr', typeVars')
 
 -------------------------------------------------------------------------------
@@ -72,7 +72,8 @@ abstractTypeSchema' ns t = do
       ts         = map (HS.TypeVar NoSrcSpan) vs'
       subst      = composeSubsts (zipWith singleSubst ns' ts)
   t' <- applySubst subst t
-  return (HS.TypeSchema NoSrcSpan (map (HS.DeclIdent NoSrcSpan) vs') t', subst)
+  return
+    (HS.TypeSchema NoSrcSpan (map (HS.TypeVarDecl NoSrcSpan) vs') t', subst)
  where
   makeTypeArg :: Int -> HS.TypeVarIdent
   makeTypeArg = (freshTypeArgPrefix ++) . show

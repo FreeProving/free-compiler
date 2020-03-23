@@ -59,8 +59,12 @@ inlineExpr decls = inlineAndBind
     :: HS.FuncDecl
     -> Map HS.QName ([HS.TypeVarDecl], [HS.VarPat], HS.Expr)
     -> Map HS.QName ([HS.TypeVarDecl], [HS.VarPat], HS.Expr)
-  insertFuncDecl (HS.FuncDecl _ (HS.DeclIdent _ ident) typeArgs args expr _) =
-    Map.insert (HS.UnQual (HS.Ident ident)) (typeArgs, args, expr)
+  insertFuncDecl funcDecl = Map.insert
+    (HS.funcDeclQName funcDecl)
+    ( HS.funcDeclTypeArgs funcDecl
+    , HS.funcDeclArgs funcDecl
+    , HS.funcDeclRhs funcDecl
+    )
 
   -- | Applies 'inlineExpr'' on the given expression and wraps the result with
   --   lambda abstractions for the remaining arguments.
@@ -106,7 +110,8 @@ inlineExpr decls = inlineAndBind
     Just (typeArgs, args, rhs) -> do
       (typeArgs', rhs' ) <- renameTypeArgs typeArgs rhs
       (args'    , rhs'') <- renameArgs args rhs'
-      return (map HS.fromDeclIdent typeArgs', map HS.varPatIdent args', rhs'')
+      return
+        (map HS.typeVarDeclIdent typeArgs', map HS.varPatIdent args', rhs'')
 
   -- Substitute argument of inlined function and inline recursively in
   -- function arguments.

@@ -361,7 +361,8 @@ simplifyDeclHead declHead@(H.DHInfix _ _ _) =
 --   The name of the declaration must not be a symbol because type operators
 --   are not supported.
 simplifyDeclName :: H.Name SrcSpan -> Simplifier HS.DeclIdent
-simplifyDeclName (H.Ident srcSpan ident) = return (HS.DeclIdent srcSpan ident)
+simplifyDeclName (H.Ident srcSpan ident) =
+  return (HS.DeclIdent srcSpan (HS.UnQual (HS.Ident ident)))
 simplifyDeclName sym@(H.Symbol _ _) = notSupported "Type operators" sym
 
 -- | Gets the name of the type variable bound by the given binder.
@@ -370,7 +371,7 @@ simplifyDeclName sym@(H.Symbol _ _) = notSupported "Type operators" sym
 --   an explicit kind annotation.
 simplifyTypeVarBind :: H.TyVarBind SrcSpan -> Simplifier HS.TypeVarDecl
 simplifyTypeVarBind (H.UnkindedVar srcSpan (H.Ident _ ident)) =
-  return (HS.DeclIdent srcSpan ident)
+  return (HS.TypeVarDecl srcSpan ident)
 simplifyTypeVarBind typeVarBind@(H.UnkindedVar _ (H.Symbol _ _)) =
   notSupported "Type operators" typeVarBind
 simplifyTypeVarBind typeVarBind@(H.KindedVar _ _ _) =
@@ -413,7 +414,7 @@ simplifyConDecl' conDecl@(H.RecDecl _ _ _) =
 --   constructor operators are not supported.
 simplifyConDeclName :: H.Name SrcSpan -> Simplifier HS.DeclIdent
 simplifyConDeclName (H.Ident srcSpan ident) =
-  return (HS.DeclIdent srcSpan ident)
+  return (HS.DeclIdent srcSpan (HS.UnQual (HS.Ident ident)))
 simplifyConDeclName sym@(H.Symbol _ _) =
   notSupported "Constructor operator declarations" sym
 
@@ -449,7 +450,7 @@ simplifyFuncDecl (H.InfixMatch pos arg declName args rhs binds) =
 --   declarations are not supported.
 simplifyFuncDeclName :: H.Name SrcSpan -> Simplifier HS.DeclIdent
 simplifyFuncDeclName (H.Ident srcSpan ident) =
-  return (HS.DeclIdent srcSpan ident)
+  return (HS.DeclIdent srcSpan (HS.UnQual (HS.Ident ident)))
 simplifyFuncDeclName sym@(H.Symbol _ _) =
   notSupported "Operator declarations" sym
 
@@ -486,7 +487,7 @@ simplifyTypeSchema (H.TyForall srcSpan (Just binds) Nothing typeExpr) = do
 simplifyTypeSchema typeExpr = do
   typeExpr' <- simplifyType typeExpr
   let srcSpan  = HS.typeSrcSpan typeExpr'
-      typeArgs = map (HS.DeclIdent NoSrcSpan . fromJust . HS.identFromQName)
+      typeArgs = map (HS.TypeVarDecl NoSrcSpan . fromJust . HS.identFromQName)
                      (typeVars typeExpr')
   return (HS.TypeSchema srcSpan typeArgs typeExpr')
 

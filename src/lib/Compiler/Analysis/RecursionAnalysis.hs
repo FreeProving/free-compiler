@@ -254,10 +254,10 @@ identifyDecArgs decls = do
 --   function declarations and a fresh identifier for the @Variable@ sentence
 --   that replaces the constant argument.
 data ConstArg = ConstArg
-  { constArgIdents     :: Map String String
+  { constArgIdents     :: Map HS.QName String
     -- ^ Maps the names of functions that share the constant argument to the
     --   names of the corresponding function arguments.
-  , constArgIndicies   :: Map String Int
+  , constArgIndicies   :: Map HS.QName Int
     -- ^ Maps the names of functions that share the constant argument to the
     --   index of the corresponding function argument.
   , constArgFreshIdent :: String
@@ -267,7 +267,7 @@ data ConstArg = ConstArg
 
 -- | Nodes of the the constant argument graph (see 'makeConstArgGraph') are
 --   pairs of function and argument names.
-type CGNode = (String, String)
+type CGNode = (HS.QName, String)
 
 -- | The nodes of the the constant argument graph (see 'makeConstArgGraph')
 --   are identified by themselves.
@@ -287,8 +287,8 @@ type CGEntry = (CGNode, CGNode, [CGNode])
 --      in @e@ has the form @g e_0 ... e_{j-1} x_i e_{j+1} ... e_m@
 --      (i.e., the argument @x_i@ is passed unchanged to the @j@-th
 --      argument @g@).
-makeConstArgGraph :: HS.ModName -> [HS.FuncDecl] -> [CGEntry]
-makeConstArgGraph modName decls = do
+makeConstArgGraph :: [HS.FuncDecl] -> [CGEntry]
+makeConstArgGraph decls = do
   -- Create one node @(f,x_i)@ for every argument @x_i@ of every function @f@.
   (node@(_f, x), _i, rhs) <- nodes
   -- Generate outgoing edges of @(f,x_i)@.
@@ -297,12 +297,8 @@ makeConstArgGraph modName decls = do
       -- Consider every node @(g,y_j)@.
       ((g, y), j, _) <- nodes
       -- Test whether there is any call to @g@ on the right-hand side of @f@.
-      -- @g@ could be called qualified or unqualified.
-      let isG :: HS.QName -> Bool
-          isG = (`elem` [HS.UnQual (HS.Ident g), HS.Qual modName (HS.Ident g)])
-
-          callsG :: HS.Expr -> Bool
-          callsG = any isG . varSet
+      let callsG :: HS.Expr -> Bool
+          callsG = any (== g) . varSet
       guard (callsG rhs)
       -- Test whether @x_i@ is passed unchanged to @y_j@ in every call
       -- to @g@ in the right-hand side of @f@.
@@ -322,7 +318,7 @@ makeConstArgGraph modName decls = do
 
         -- If this is a call to @g@, check the @j@-th argument.
         checkExpr (HS.Var _ name _) args
-          | isG name  = j < length args && checkArg (args !! j)
+          | name == g = j < length args && checkArg (args !! j)
           | otherwise = True
 
         -- If this is an application, check for calls to @g@ in the callee
@@ -375,10 +371,12 @@ makeConstArgGraph modName decls = do
   -- | There is one node for each argument of every function declaration.
   nodes :: [(CGNode, Int, HS.Expr)]
   nodes = do
-    HS.FuncDecl _ declIdent _ args rhs _ <- decls
-    let funName = HS.fromDeclIdent declIdent
+    decl <- decls
+    let funcName = HS.funcDeclQName decl
+        args     = HS.funcDeclArgs decl
+        rhs      = HS.funcDeclRhs decl
     (argName, argIndex) <- zip (map HS.varPatIdent args) [0 ..]
-    return ((funName, argName), argIndex, rhs)
+    return ((funcName, argName), argIndex, rhs)
 
 -- | Identifies function arguments that can be moved to a @Section@
 --   sentence in Coq.
@@ -399,18 +397,18 @@ identifyConstArgs decls = do
  where
   -- | Maps the names of the function declarations to the names of their
   --   arguments.
-  argNamesMap :: Map String [String]
+  argNamesMap :: Map HS.QName [String]
   argNamesMap =
     Map.fromList
-      $ [ (HS.fromDeclIdent declIdent, map HS.varPatIdent args)
-        | (HS.FuncDecl _ declIdent _ args _ _) <- decls
+      $ [ (HS.funcDeclQName decl, map HS.varPatIdent (HS.funcDeclArgs decl))
+        | decl <- decls
         ]
 
   -- | Looks up the index of the argument with the given name of the function
   --   with the given name.
   lookupArgIndex
-    :: String -- ^ The name of the function.
-    -> String -- ^ The name of the argument.
+    :: HS.QName -- ^ The name of the function.
+    -> String   -- ^ The name of the argument.
     -> Int
   lookupArgIndex funcName argName = fromJust $ do
     argNames <- Map.lookup funcName argNamesMap
@@ -418,7 +416,7 @@ identifyConstArgs decls = do
 
 -- | Like 'identifyConstArgs' but takes the name of the currently translated
 --   module as an argument.
-identifyConstArgs' :: HS.ModName -> [HS.FuncDecl] -> [Map String String]
+identifyConstArgs' :: HS.ModName -> [HS.FuncDecl] -> [Map HS.QName String]
 identifyConstArgs' modName decls =
   map Map.fromList
     $ filter checkSCC
@@ -428,7 +426,7 @@ identifyConstArgs' modName decls =
  where
   -- | The constant argument graph.
   constArgGraph :: [CGEntry]
-  constArgGraph = makeConstArgGraph modName decls
+  constArgGraph = makeConstArgGraph decls
 
   -- | Maps the keys of the 'constArgGraph' to the adjacency lists.
   constArgMap :: Map CGNode [CGNode]
@@ -451,17 +449,15 @@ identifyConstArgs' modName decls =
     | otherwise = and $ do
       (f, x) <- nodes
       (g, y) <- nodes
-      let f' = HS.UnQual (HS.Ident f)
-          g' = HS.UnQual (HS.Ident g)
       -- If there is an edge from @f@ to @g@ in the call graph, ...
-      guard (dependsDirectlyOn callGraph f' g')
+      guard (dependsDirectlyOn callGraph f g)
       -- ... there must also be an edge in the constant argument graph.
       adjacent <- maybeToList (Map.lookup (f, x) constArgMap)
       return ((g, y) `elem` adjacent)
 
   -- | The names of all given function declarations.
-  funcNames :: [String]
-  funcNames = map (HS.fromDeclIdent . HS.funcDeclIdent) decls
+  funcNames :: [HS.QName]
+  funcNames = map HS.funcDeclQName decls
 
   -- | Tests whether the given list of nodes contains one node for every
   --   function declaration.

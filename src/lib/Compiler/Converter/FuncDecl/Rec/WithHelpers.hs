@@ -102,7 +102,7 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent typeArgs args expr maybeRetT
  where
   -- | The name of the function to transform.
   name :: HS.QName
-  name = HS.UnQual (HS.Ident (HS.fromDeclIdent declIdent))
+  name = HS.declIdentName declIdent
 
   -- | The names of the function's arguments.
   argNames :: [HS.QName]
@@ -138,12 +138,11 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent typeArgs args expr maybeRetT
   generateHelperDecl :: Pos -> Converter (HS.FuncDecl, HS.Expr)
   generateHelperDecl caseExprPos = do
     -- Generate a fresh name for the helper function.
-    helperIdent <- freshHaskellIdent (HS.fromDeclIdent declIdent)
-    let helperName      = HS.UnQual (HS.Ident helperIdent)
-        helperDeclIdent = declIdent { HS.fromDeclIdent = helperIdent }
+    helperName <- freshHaskellQName (HS.declIdentName declIdent)
+    let helperDeclIdent = declIdent { HS.declIdentName = helperName }
 
     -- Pass all type arguments to the helper function.
-    let helperTypeArgs = typeArgs
+    let helperTypeArgs  = typeArgs
 
     -- Pass used variables as additional arguments to the helper function
     -- but don't pass shadowed arguments to helper functions.
@@ -182,12 +181,12 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent typeArgs args expr maybeRetT
     _              <- renameAndAddEntry $ FuncEntry
       { entrySrcSpan       = NoSrcSpan
       , entryArity         = length helperArgTypes
-      , entryTypeArgs      = map HS.fromDeclIdent helperTypeArgs
+      , entryTypeArgs      = map HS.typeVarDeclIdent helperTypeArgs
       , entryArgTypes      = helperArgTypes
       , entryReturnType    = helperReturnType
       , entryNeedsFreeArgs = freeArgsNeeded
       , entryIsPartial     = partial
-      , entryName          = HS.UnQual (HS.Ident helperIdent)
+      , entryName          = helperName
       , entryIdent         = undefined -- filled by renamer
       }
 

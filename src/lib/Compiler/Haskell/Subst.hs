@@ -307,18 +307,18 @@ renameTypeArgsSubst
   :: [HS.TypeVarDecl] -> Converter ([HS.TypeVarDecl], Subst HS.Type)
 renameTypeArgsSubst typeArgDecls = do
   typeArgDecls' <- mapM freshTypeArgDecl typeArgDecls
-  let typeArgNames = map (HS.UnQual . HS.Ident . HS.fromDeclIdent) typeArgDecls
-      typeArgs'    = map (flip HS.TypeVar . HS.fromDeclIdent) typeArgDecls'
+  let typeArgNames = map HS.typeVarDeclQName typeArgDecls
+      typeArgs'    = map (flip HS.TypeVar . HS.typeVarDeclIdent) typeArgDecls'
       subst        = composeSubsts (zipWith singleSubst' typeArgNames typeArgs')
   return (typeArgDecls', subst)
  where
   -- | Generates a fresh identifier for the given type argument and returns
   --   a type argument that preserves the source span of the original
   --   declaration.
-  freshTypeArgDecl :: HS.DeclIdent -> Converter HS.DeclIdent
-  freshTypeArgDecl (HS.DeclIdent srcSpan ident) = do
+  freshTypeArgDecl :: HS.TypeVarDecl -> Converter HS.TypeVarDecl
+  freshTypeArgDecl (HS.TypeVarDecl srcSpan ident) = do
     ident' <- freshHaskellIdent ident
-    return (HS.DeclIdent srcSpan ident')
+    return (HS.TypeVarDecl srcSpan ident')
 
 -- | Renames the given type variables in the given expression or type
 --   to fresh type variables.

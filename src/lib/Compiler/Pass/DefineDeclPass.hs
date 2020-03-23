@@ -71,40 +71,37 @@ defineTypeDecl (HS.TypeSynDecl srcSpan declIdent typeArgs typeExpr) = do
   _ <- renameAndAddEntry TypeSynEntry
     { entrySrcSpan  = srcSpan
     , entryArity    = length typeArgs
-    , entryTypeArgs = map HS.fromDeclIdent typeArgs
+    , entryTypeArgs = map HS.typeVarDeclIdent typeArgs
     , entryTypeSyn  = typeExpr
-    , entryName     = HS.UnQual (HS.Ident (HS.fromDeclIdent declIdent))
+    , entryName     = HS.declIdentName declIdent
     , entryIdent    = undefined -- filled by renamer
     }
   return ()
-defineTypeDecl (HS.DataDecl _ (HS.DeclIdent srcSpan ident) typeArgs conDecls) =
-  do
-    _ <- renameAndAddEntry DataEntry { entrySrcSpan = srcSpan
-                                     , entryArity   = length typeArgs
-                                     , entryName    = name
-                                     , entryIdent   = undefined -- filled by renamer
-                                     }
-    mapM_ defineConDecl conDecls
+defineTypeDecl (HS.DataDecl srcSpan declIdent typeArgs conDecls) = do
+  _ <- renameAndAddEntry DataEntry { entrySrcSpan = srcSpan
+                                   , entryArity   = length typeArgs
+                                   , entryName    = HS.declIdentName declIdent
+                                   , entryIdent   = undefined -- filled by renamer
+                                   }
+  mapM_ defineConDecl conDecls
  where
-  -- | The name of the data type.
-  name :: HS.QName
-  name = HS.UnQual (HS.Ident ident)
-
   -- | The type produced by all constructors of the data type.
   returnType :: HS.Type
-  returnType = HS.typeConApp srcSpan name (map HS.typeVarDeclToType typeArgs)
+  returnType = HS.typeConApp srcSpan
+                             (HS.declIdentName declIdent)
+                             (map HS.typeVarDeclToType typeArgs)
 
   -- | Inserts the given data constructor declaration and its smart constructor
   --   into the current environment.
   defineConDecl :: HS.ConDecl -> Converter ()
-  defineConDecl (HS.ConDecl _ (HS.DeclIdent conSrcSpan conIdent) argTypes) = do
+  defineConDecl (HS.ConDecl conSrcSpan conDeclIdent argTypes) = do
     _ <- renameAndAddEntry ConEntry
       { entrySrcSpan    = conSrcSpan
       , entryArity      = length argTypes
-      , entryTypeArgs   = map HS.fromDeclIdent typeArgs
+      , entryTypeArgs   = map HS.typeVarDeclIdent typeArgs
       , entryArgTypes   = map Just argTypes
       , entryReturnType = Just returnType
-      , entryName       = HS.UnQual (HS.Ident conIdent)
+      , entryName       = HS.declIdentName conDeclIdent
       , entryIdent      = undefined -- filled by renamer
       , entrySmartIdent = undefined -- filled by renamer
       }
@@ -122,7 +119,7 @@ defineFuncDecl partial funcDecl = do
   _ <- renameAndAddEntry FuncEntry
     { entrySrcSpan       = HS.funcDeclSrcSpan funcDecl
     , entryArity         = length (HS.funcDeclArgs funcDecl)
-    , entryTypeArgs      = map HS.fromDeclIdent (HS.funcDeclTypeArgs funcDecl)
+    , entryTypeArgs = map HS.typeVarDeclIdent (HS.funcDeclTypeArgs funcDecl)
     , entryArgTypes      = map HS.varPatType (HS.funcDeclArgs funcDecl)
     , entryReturnType    = HS.funcDeclReturnType funcDecl
     , entryNeedsFreeArgs = True

@@ -74,6 +74,20 @@ freshHaskellIdent prefix = case elemIndex HS.internalIdentChar prefix of
       )
     return (prefix ++ HS.internalIdentChar : show count)
 
+-- | Applies 'freshHaskellIdent' to the given name.
+--
+--   Fails if the given name is a symbol.
+freshHaskellName :: HS.Name -> Converter HS.Name
+freshHaskellName (HS.Ident ident) = HS.Ident <$> freshHaskellIdent ident
+freshHaskellName (HS.Symbol _) =
+  fail "freshHaskellName: expected identifier, got symbol"
+
+-- | Like 'freshHaskellName' but preserves the module name of qualified names.
+freshHaskellQName :: HS.QName -> Converter HS.QName
+freshHaskellQName (HS.UnQual name) = HS.UnQual <$> freshHaskellName name
+freshHaskellQName (HS.Qual modName name) =
+  HS.Qual modName <$> freshHaskellName name
+
 -- | Generates a fresh Haskell type variable.
 freshTypeVar :: Converter HS.Type
 freshTypeVar = do
