@@ -138,6 +138,7 @@ library haskell-to-coq-internal
                       , Compiler.Pass.ImportPass
                       , Compiler.Pass.TypeInferencePass
                       , Compiler.Pass.TypeSignaturePass
+                      , Compiler.Pass.QualifierPass
                       , Compiler.Pipeline
                       , Compiler.Pretty
                       , Compiler.Util.Predicate

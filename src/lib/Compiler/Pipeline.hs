@@ -14,6 +14,7 @@ import           Compiler.Pass.EtaConversionPass
 import           Compiler.Pass.ImportPass
 import           Compiler.Pass.TypeSignaturePass
 import           Compiler.Pass.TypeInferencePass
+import           Compiler.Pass.QualifierPass
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Monad.Converter
 
@@ -21,6 +22,7 @@ import           Compiler.Monad.Converter
 pipeline :: [Pass HS.Module]
 pipeline =
   [ importPass
+  , qualifierPass
   , dependencyAnalysisPass [defineTypeDeclsPass]
   , typeSignaturePass
   , dependencyAnalysisPass [typeInferencePass, defineFuncDeclsPass]
