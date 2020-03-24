@@ -48,13 +48,23 @@ data QName
   | UnQual Name       -- ^ An unqualified 'Name'.
  deriving (Eq, Ord, Show)
 
--- | Extracts an identifier from an unqualified Haskell name.
---
---   Returns @Nothing@ if the given name is qualified or a symbol and not an
---   identifier.
+-- | Extracts the name of a potentially qualified name.
+nameFromQName :: QName -> Name
+nameFromQName (UnQual name) = name
+nameFromQName (Qual _ name) = name
+
+-- | Converts a potentially qualified name to a name that is qualified with
+--   the given module name.
+toQual :: ModName -> QName -> QName
+toQual modName' = Qual modName' . nameFromQName
+
+-- | Converts a potentially qualified name to an unqualified name.
+toUnQual :: QName -> QName
+toUnQual = UnQual . nameFromQName
+
+-- | Extracts an identifier from a potentially qualified name.
 identFromQName :: QName -> Maybe String
-identFromQName (UnQual name) = identFromName name
-identFromQName (Qual _ _   ) = Nothing
+identFromQName = identFromName . nameFromQName
 
 -- | Pretty instance for qualifed Haskell identifiers and symbols.
 instance Pretty QName where
@@ -291,7 +301,7 @@ data TypeDecl
     }
  deriving (Eq, Show)
 
--- | Gets the unqualified name of the given type declaration.
+-- | Gets the qualified name of the given type declaration.
 typeDeclQName :: TypeDecl -> QName
 typeDeclQName = declIdentName . typeDeclIdent
 
@@ -328,6 +338,10 @@ data ConDecl = ConDecl
   , conDeclFields :: [Type]
   }
  deriving (Eq, Show)
+
+-- | Gets the qualified name of the given constructor declaration.
+conDeclQName :: ConDecl -> QName
+conDeclQName = declIdentName . conDeclIdent
 
 -- | Pretty instance for data constructor declarations.
 instance Pretty ConDecl where
@@ -398,7 +412,7 @@ data FuncDecl = FuncDecl
   }
  deriving (Eq, Show)
 
--- | Gets the unqualified name of the given function declaration.
+-- | Gets the qualified name of the given function declaration.
 funcDeclQName :: FuncDecl -> QName
 funcDeclQName = declIdentName . funcDeclIdent
 

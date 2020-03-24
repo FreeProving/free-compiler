@@ -186,28 +186,24 @@ renameEntry entry env
   | isConEntry entry = entry
     { entryIdent      = renameQualid (toCamel (fromHumps ident)) env
     , entrySmartIdent = renameQualid ident env
-    , entryName       = qualName
     }
   | isVarEntry entry || isTypeVarEntry entry = entry
     { entryIdent = renameQualid ident env
     }
-  | otherwise = entry { entryIdent = renameQualid ident env
-                      , entryName  = qualName
-                      }
+  | otherwise = entry { entryIdent = renameQualid ident env }
  where
-  unQualName :: HS.Name
-  HS.UnQual (unQualName@(HS.Ident ident)) = entryName entry
-
-  qualName :: HS.QName
-  qualName = HS.Qual (envModName env) unQualName
+  ident :: String
+  Just ident = HS.identFromQName (entryName entry)
 
 -- | Renames the identifier of the given entry such that it does not cause
 --   any name conflict in the current environment and inserts it into the
 --   environment.
 --
 --   The 'entryIdent' and 'entrySmartIdent' fields are filled automatically.
---   The 'entryName' field should contain the unqualified Haskell name.
---   It is used to generate the Coq names.
+--   The 'entryName' field is used to generate the Coq name.
+--
+--   If it contains a qualified name, the entry is added to the scope both
+--   qualified and unqualified.
 --
 --   When the entry is a top-level entry (i.e., not a variable or type
 --   variable) the qualified name is also added to the environment.
@@ -215,19 +211,16 @@ renameEntry entry env
 --   Returns the renamed entry.
 renameAndAddEntry :: EnvEntry -> Converter EnvEntry
 renameAndAddEntry entry = do
-  -- Generate the qualified and unqualified Haskell name.
-  modName <- inEnv $ envModName
-  let unqualName@(HS.UnQual name) = entryName entry
-      qualName                    = HS.Qual modName name
   -- Generate new Coq identifier.
   entry' <- inEnv $ renameEntry entry
   -- Error handling and notifications.
-  checkRedefinition unqualName entry'
+  checkRedefinition entry'
   informIfRenamed entry entry'
-  -- Associate the entry with its unqualified name.
-  -- Top-level entries are also associated with their qualified name.
-  modifyEnv $ addEntry unqualName entry'
-  when (isTopLevelEntry entry') $ modifyEnv (addEntry qualName entry')
+  -- Associate the entry with its qualified and unqualified name.
+  let qualName   = entryName entry
+      unqualName = HS.UnQual (HS.nameFromQName qualName)
+  modifyEnv (addEntry qualName entry')
+  modifyEnv (addEntry unqualName entry')
   return entry'
 
 -- | Associates the identifier of a user defined Haskell type variable with an
@@ -274,9 +267,10 @@ renameAndDefineVar srcSpan isPure ident maybeVarType = do
 
 -- | Tests whether there is an entry with the same name in the current
 --   scope (not a parent scope) already.
-checkRedefinition :: HS.QName -> EnvEntry -> Converter ()
-checkRedefinition name entry = do
-  let scope = entryScope entry
+checkRedefinition :: EnvEntry -> Converter ()
+checkRedefinition entry = do
+  let name  = entryName entry
+      scope = entryScope entry
   localEntry <- inEnv $ existsLocalEntry scope name
   when localEntry $ do
     maybeEntry' <- inEnv $ lookupEntry scope name
@@ -311,7 +305,7 @@ informIfRenamed entry entry' = do
     ++ "'."
  where
   ident, ident' :: String
-  HS.UnQual (HS.Ident ident) = entryName entry
+  Just ident = HS.identFromQName (entryName entry)
   Just ident'
     | entryHasSmartIdent entry = G.unpackQualid (entrySmartIdent entry')
     | otherwise                = G.unpackQualid (entryIdent entry')
