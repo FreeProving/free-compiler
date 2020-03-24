@@ -384,9 +384,16 @@ makeConstArgGraph decls = do
 --   The call graph of the given function declarations should be strongly
 --   connected.
 identifyConstArgs :: [HS.FuncDecl] -> Converter [ConstArg]
-identifyConstArgs decls = do
-  modName <- inEnv envModName
-  flip mapM (identifyConstArgs' modName decls) $ \identMap -> do
+identifyConstArgs decls = mapM makeConstArg constArgNameMaps
+ where
+  -- | Maps for each set of constant arguments the names of the functions to
+  --   the name the constant argument has in that function.
+  constArgNameMaps :: [Map HS.QName String]
+  constArgNameMaps = identifyConstArgs' decls
+
+  -- Creates 'ConstArg's from the 'constArgNameMaps'.
+  makeConstArg :: Map HS.QName String -> Converter ConstArg
+  makeConstArg identMap = do
     let idents = nub (Map.elems identMap)
         prefix = intercalate "_" idents
     freshIdent <- freshHaskellIdent prefix
@@ -394,7 +401,7 @@ identifyConstArgs decls = do
                     , constArgIndicies = Map.mapWithKey lookupArgIndex identMap
                     , constArgFreshIdent = freshIdent
                     }
- where
+
   -- | Maps the names of the function declarations to the names of their
   --   arguments.
   argNamesMap :: Map HS.QName [String]
@@ -414,10 +421,10 @@ identifyConstArgs decls = do
     argNames <- Map.lookup funcName argNamesMap
     elemIndex argName argNames
 
--- | Like 'identifyConstArgs' but takes the name of the currently translated
---   module as an argument.
-identifyConstArgs' :: HS.ModName -> [HS.FuncDecl] -> [Map HS.QName String]
-identifyConstArgs' modName decls =
+-- | Like 'identifyConstArgs' but returns a map from function to argument names
+--   for each constant argument instead of a 'ConstArg'.
+identifyConstArgs' :: [HS.FuncDecl] -> [Map HS.QName String]
+identifyConstArgs' decls =
   map Map.fromList
     $ filter checkSCC
     $ catMaybes
@@ -434,7 +441,7 @@ identifyConstArgs' modName decls =
 
   -- | The dependency graph of the function declarations.
   callGraph :: DependencyGraph HS.FuncDecl
-  callGraph = funcDependencyGraph modName decls
+  callGraph = funcDependencyGraph decls
 
   -- | Tests whether the given strongly connected component describes a
   --   valid set of constant arguments.

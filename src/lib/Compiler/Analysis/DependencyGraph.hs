@@ -1,23 +1,23 @@
 -- | This module contains functions to construct dependency graphs of
 --   Haskell declarations and modules. A dependency graph is a directed
---   graph whose nodes are labelled with declarations. There is an edge
+--   graph whose nodes are labeled with declarations. There is an edge
 --   from node @A@ to @B@ if the declaration of @A@ depends on the declaration
 --   of @B@ (i.e. in Coq @B@ has to be defined before @A@ or both have to be
 --   declared in the same sentence). The module dependency graph contains an
 --   edge from node @A@ to @B@ if the module of @A@ contains an @import@
 --   declaration for the module of @B@.
-
---   The dependency graph does only contain global, user defined declarations
+--
+--   The dependency graph does only contain defined top-level declarations
 --   (i.e. there are no nodes for build-in data types or operations and there
 --   are no nodes for local variables such as function parameters or variable
 --   patterns). However the entries of the dependency graph contain keys
---   for predefined functions (but not local vaiables) and the special
+--   for predefined functions (but not local variables) and the special
 --   functions `error` and `undefined` that are used in error terms.
 --
 --   We distinguish between the type and function dependency graph.
 --   This is because in Haskell function declarations and type declarations
 --   live in separate scopes and we want to avoid name conflicts.
---   Because we assume all type declarations to preceed function declarations
+--   Because we assume all type declarations to precede function declarations
 --   in the generated Coq code, this should not be a problem. For the same
 --   reason the function dependency graph does not include nodes for
 --   constructors (as always, the keys of used constructors are still present).
@@ -44,12 +44,10 @@ module Compiler.Analysis.DependencyGraph
   )
 where
 
-import           Data.Composition               ( (.:) )
 import           Data.Graph
 import           Data.Maybe                     ( catMaybes
                                                 , fromMaybe
                                                 )
-import qualified Data.Set                      as Set
 import           Data.Tuple.Extra
 
 import           Compiler.Analysis.DependencyExtraction
@@ -120,52 +118,28 @@ dependsDirectlyOn (DependencyGraph graph _ getVertex) k1 k2 =
 
 -- | Creates the dependency graph for a list of data type or type synonym
 --   declarations.
---
---   If the given list contains other kinds of declarations, they are ignored.
-typeDependencyGraph
-  :: HS.ModName    -- ^ The name of the module that contains the declarations.
-  -> [HS.TypeDecl] -- ^ The declarations to create the dependency graph for.
-  -> DependencyGraph HS.TypeDecl
+typeDependencyGraph :: [HS.TypeDecl] -> DependencyGraph HS.TypeDecl
 typeDependencyGraph =
-  uncurry3 DependencyGraph . graphFromEdges .: map . typeDeclEntry
+  uncurry3 DependencyGraph . graphFromEdges . map typeDeclEntry
 
 -- | Creates an entry of the dependency graph for the given data type or type
 --   synonym declaration.
-typeDeclEntry
-  :: HS.ModName  -- ^ The name of the module that contains the declaration.
-  -> HS.TypeDecl -- ^ The declaration to create an entry for.
-  -> DGEntry HS.TypeDecl
-typeDeclEntry modName decl =
-  ( decl
-  , HS.typeDeclQName decl
-  , Set.toList $ Set.map (unqualify modName) (typeDeclDependencySet decl)
-  )
+typeDeclEntry :: HS.TypeDecl -> DGEntry HS.TypeDecl
+typeDeclEntry decl = (decl, HS.typeDeclQName decl, typeDeclDependencies decl)
 
 -------------------------------------------------------------------------------
 -- Function dependencies                                                     --
 -------------------------------------------------------------------------------
 
 -- | Creates the dependency graph for a list of function declarations.
---
---   If the given list contains other kinds of declarations, they are ignored.
-funcDependencyGraph
-  :: HS.ModName    -- ^ The name of the module that contains the declarations.
-  -> [HS.FuncDecl] -- ^ The declarations to create the dependency graph for.
-  -> DependencyGraph HS.FuncDecl
+funcDependencyGraph :: [HS.FuncDecl] -> DependencyGraph HS.FuncDecl
 funcDependencyGraph =
-  uncurry3 DependencyGraph . graphFromEdges .: map . funcDeclEntry
+  uncurry3 DependencyGraph . graphFromEdges . map funcDeclEntry
 
 -- | Creates an entry of the dependency graph for the given function
 --   declaration or pattern binding.
-funcDeclEntry
-  :: HS.ModName  -- ^ The name of the module that contains the declaration.
-  -> HS.FuncDecl -- ^ The declaration to create an entry for.
-  -> DGEntry HS.FuncDecl
-funcDeclEntry modName decl =
-  ( decl
-  , HS.funcDeclQName decl
-  , Set.toList $ Set.map (unqualify modName) (funcDeclDependencySet decl)
-  )
+funcDeclEntry :: HS.FuncDecl -> DGEntry HS.FuncDecl
+funcDeclEntry decl = (decl, HS.funcDeclQName decl, funcDeclDependencies decl)
 
 -------------------------------------------------------------------------------
 -- Module dependencies                                                       --
@@ -187,16 +161,6 @@ moduleEntries decl =
   , HS.UnQual (HS.Ident (HS.modName decl))
   , map (HS.UnQual . HS.Ident) (moduleDependencies decl)
   )
-
--------------------------------------------------------------------------------
--- Utility functions                                                         --
--------------------------------------------------------------------------------
-
--- | Converts names that are qualified with the given module name to an
---   unqualified name and leaves all other names unchanged.
-unqualify :: HS.ModName -> HS.QName -> HS.QName
-unqualify modName (HS.Qual modName' name) | modName == modName' = HS.UnQual name
-unqualify _ name = name
 
 -------------------------------------------------------------------------------
 -- Pretty print dependency graph                                             --

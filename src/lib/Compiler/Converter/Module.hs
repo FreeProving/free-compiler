@@ -116,8 +116,7 @@ convertDecls typeDecls funcDecls = do
 -- | Converts the given data type or type synonym declarations.
 convertTypeDecls :: [HS.TypeDecl] -> Converter [G.Sentence]
 convertTypeDecls typeDecls = do
-  modName <- inEnv $ envModName
-  let dependencyGraph = typeDependencyGraph modName typeDecls
+  let dependencyGraph = typeDependencyGraph typeDecls
       components      = groupDependencies dependencyGraph
   concatMapM convertTypeComponent components
 

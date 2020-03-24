@@ -10,7 +10,6 @@ import           Compiler.Analysis.DependencyGraph
 import           Compiler.Converter.FuncDecl.NonRec
 import           Compiler.Converter.FuncDecl.Rec
 import           Compiler.Converter.QuickCheck
-import           Compiler.Environment
 import qualified Compiler.Coq.AST              as G
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Monad.Converter
@@ -18,8 +17,7 @@ import           Compiler.Monad.Converter
 -- | Converts the given function declarations.
 convertFuncDecls :: [HS.FuncDecl] -> Converter [G.Sentence]
 convertFuncDecls funcDecls = do
-  modName <- inEnv envModName
-  let dependencyGraph = funcDependencyGraph modName funcDecls
+  let dependencyGraph = funcDependencyGraph funcDecls
       components      = groupDependencies dependencyGraph
 
   -- Filter QuickCheck properties.

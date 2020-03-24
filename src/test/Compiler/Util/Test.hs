@@ -234,7 +234,7 @@ enterTestModule :: String -> Converter ()
 enterTestModule modName = modifyEnv $ \env -> env { envModName = modName }
 
 -------------------------------------------------------------------------------
--- Defining test idenifiers                                                  --
+-- Defining test identifiers                                                 --
 -------------------------------------------------------------------------------
 
 -- | Adds the given entry to the current environment and renames it such that

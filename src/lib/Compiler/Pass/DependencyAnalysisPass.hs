@@ -56,9 +56,8 @@ type DependencyAwarePass decl = Pass (DependencyComponent decl)
 
 -- | Type class for declaration AST nodes whose dependencies can be analyzed.
 class DependencyAnalysisPass decl where
-  -- | Constructs the dependency graph for the given nodes that are declared
-  --   in the module with the given name.
-  dependencyGraph :: HS.ModName -> [decl] -> DependencyGraph decl
+  -- | Constructs the dependency graph for the given nodes.
+  dependencyGraph :: [decl] -> DependencyGraph decl
 
   -- | Gets the declarations of the node type from the given module.
   getDecls :: HS.Module -> [decl]
@@ -89,7 +88,7 @@ dependencyAnalysisPass
 dependencyAnalysisPass childPasses ast = do
   let modName    = HS.modName ast
       decls      = getDecls ast
-      graph      = dependencyGraph modName decls
+      graph      = dependencyGraph decls
       components = groupDependencies graph
   modifyEnv $ \env -> env { envModName = modName }
   components' <- mapM (runPasses childPasses) components

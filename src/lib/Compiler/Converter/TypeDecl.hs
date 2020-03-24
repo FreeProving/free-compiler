@@ -47,15 +47,13 @@ convertTypeComponent (Recursive decls) = do
 
 -- | Sorts type synonym declarations topologically.
 --
---   After filtering type synonym declaratios from the a strongly connected
---   component, they are not mutually dependen on each other anymore (expect
+--   After filtering type synonym declarations from the a strongly connected
+--   component, they are not mutually dependent on each other anymore (expect
 --   if they form a cycle). However, type synonyms may still depend on other
 --   type synonyms from the same strongly connected component. Therefore we
 --   have to sort the declarations in reverse topological order.
 sortTypeSynDecls :: [HS.TypeDecl] -> Converter [HS.TypeDecl]
-sortTypeSynDecls typeDecls = do
-  modName <- inEnv $ envModName
-  mapM fromNonRecursive (groupTypeDecls modName typeDecls)
+sortTypeSynDecls = mapM fromNonRecursive . groupTypeDecls
 
 -- | Extracts the single type synonym declaration from a strongly connected
 --   component of the type dependency graph.
@@ -106,9 +104,9 @@ convertTypeSynDecl (HS.DataDecl _ _ _ _) =
 --   declarations.
 --
 --   Before the declarations are actually translated, their identifiers are
---   inserted into the current environement. Otherwise the data types would
+--   inserted into the current environment. Otherwise the data types would
 --   not be able to depend on each other. The identifiers for the constructors
---   are inserted into the current environmen as well. This makes the
+--   are inserted into the current environment as well. This makes the
 --   constructors more likely to keep their original name if there is a type
 --   variable with the same (lowercase) name.
 --
