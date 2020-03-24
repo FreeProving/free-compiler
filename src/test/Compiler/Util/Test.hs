@@ -225,15 +225,6 @@ parseTestModule input =
     >>= uncurry simplifyModuleWithComments
 
 -------------------------------------------------------------------------------
--- Configuring the environment                                               --
--------------------------------------------------------------------------------
-
--- | Setup the environment as if a module with the given name is being
---   translated.
-enterTestModule :: String -> Converter ()
-enterTestModule modName = modifyEnv $ \env -> env { envModName = modName }
-
--------------------------------------------------------------------------------
 -- Defining test identifiers                                                 --
 -------------------------------------------------------------------------------
 

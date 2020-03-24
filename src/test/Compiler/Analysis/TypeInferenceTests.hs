@@ -7,8 +7,8 @@ import           Control.Monad.Extra            ( zipWithM_ )
 import           Compiler.Analysis.TypeInference
 import           Compiler.Environment.Resolver
 import qualified Compiler.Haskell.AST          as HS
-import           Compiler.Pass.TypeSignaturePass
 import           Compiler.Monad.Converter
+import           Compiler.Pipeline
 
 import           Compiler.Util.Test
 
@@ -32,9 +32,9 @@ testInferFuncDeclTypes =
       $ do
           shouldInferFuncDeclTypes
             ["null xs = case xs of { [] -> True; x : xs' -> False }"]
-            [ "null @t0 (xs :: [t0]) = (case xs of {"
-              ++ "    Prelude.([]) -> True;"
-              ++ "    Prelude.(:) (x :: t0) (xs' :: [t0]) -> False"
+            [ "Main.null @t0 (xs :: [t0]) = (case xs of {"
+              ++ "    Prelude.([]) -> Prelude.True;"
+              ++ "    Prelude.(:) (x :: t0) (xs' :: [t0]) -> Prelude.False"
               ++ "  }) :: Prelude.Bool"
             ]
     it "infers the types of recursive functions correctly"
@@ -43,10 +43,10 @@ testInferFuncDeclTypes =
       $ do
           shouldInferFuncDeclTypes
             ["length xs = case xs of { [] -> 0; x : xs' -> 1 + length xs' }"]
-            [ "length @t0 (xs :: [t0]) = (case xs of {"
+            [ "Main.length @t0 (xs :: [t0]) = (case xs of {"
               ++ "    Prelude.([]) -> 0;"
               ++ "    Prelude.(:) (x :: t0) (xs' :: [t0]) ->"
-              ++ "      (+) 1 (length @t0 xs')"
+              ++ "      Prelude.(+) 1 (Main.length @t0 xs')"
               ++ "  }) :: Prelude.Integer"
             ]
     it "infers vanishing type arguments correctly in non-recursive functions"
@@ -56,8 +56,9 @@ testInferFuncDeclTypes =
           _ <- defineTestFunc "true" 0 "forall a. Bool"
           shouldInferFuncDeclTypes
             ["zero = if true && true then 0 else 1"]
-            [ "zero @t0 @t1 = (if (&&) (true @t0) (true @t1) then 0 else 1)"
-                ++ "  :: Prelude.Integer"
+            [ "Main.zero @t0 @t1 ="
+              ++ "  (if Prelude.(&&) (true @t0) (true @t1) then 0 else 1)"
+              ++ "  :: Prelude.Integer"
             ]
     it "infers vanishing type arguments correctly in recursive functions"
       $ shouldSucceed
@@ -70,13 +71,13 @@ testInferFuncDeclTypes =
               ++ "    x : xs' -> 1 + length xs'"
               ++ "  }"
             ]
-            [ "length @t0 @t1 (xs :: [t0]) = (case xs of {"
+            [ "Main.length @t0 @t1 (xs :: [t0]) = (case xs of {"
               ++ "    Prelude.([]) ->"
               ++ "      if eq @[t1] (Prelude.([]) @t1) (Prelude.([]) @t1)"
               ++ "        then 0"
               ++ "        else 1;"
               ++ "    Prelude.(:) (x :: t0) (xs' :: [t0]) ->"
-              ++ "      (+) 1 (length @t0 @t1 xs')"
+              ++ "      Prelude.(+) 1 (Main.length @t0 @t1 xs')"
               ++ "  }) :: Prelude.Integer"
             ]
     it
@@ -91,11 +92,11 @@ testInferFuncDeclTypes =
               ++ "    x : xs' -> 1 + length xs'"
               ++ "  }"
             ]
-            [ "length @t0 @t1 (xs :: [t0]) = (case xs of {"
+            [ "Main.length @t0 @t1 (xs :: [t0]) = (case xs of {"
               ++ "    Prelude.([]) ->"
               ++ "      if true @t1 then 0 else 1;"
               ++ "    Prelude.(:) (x :: t0) (xs' :: [t0]) ->"
-              ++ "      (+) 1 (length @t0 @t1 xs')"
+              ++ "      Prelude.(+) 1 (Main.length @t0 @t1 xs')"
               ++ "  }) :: Prelude.Integer"
             ]
     it
@@ -114,21 +115,21 @@ testInferFuncDeclTypes =
             ++ "    x : xs' -> 1 + length xs'"
             ++ "  }"
             ]
-            [ "length @t0 @t1 @t2 (xs :: [t0]) = (case xs of {"
+            [ "Main.length @t0 @t1 @t2 (xs :: [t0]) = (case xs of {"
             ++ "    Prelude.([]) ->"
             ++ "      if eq @[t1] (Prelude.([]) @t1) (Prelude.([]) @t1)"
             ++ "        then 0"
             ++ "        else 1;"
             ++ "    Prelude.(:) (x :: t0) (xs' :: [t0]) ->"
-            ++ "      (+) 1 (length' @t0 @t1 @t2 xs')"
+            ++ "      Prelude.(+) 1 (Main.length' @t0 @t1 @t2 xs')"
             ++ "  }) :: Prelude.Integer"
-            , "length' @t0 @t1 @t2 (xs :: [t0]) = (case xs of {"
+            , "Main.length' @t0 @t1 @t2 (xs :: [t0]) = (case xs of {"
             ++ "    Prelude.([]) ->"
             ++ "      if eq @[t2] (Prelude.([]) @t2) (Prelude.([]) @t2)"
             ++ "        then 0"
             ++ "        else 1;"
             ++ "    Prelude.(:) (x :: t0) (xs' :: [t0]) ->"
-            ++ "      (+) 1 (length @t0 @t1 @t2 xs')"
+            ++ "      Prelude.(+) 1 (Main.length @t0 @t1 @t2 xs')"
             ++ "  }) :: Prelude.Integer"
             ]
     it
@@ -147,17 +148,17 @@ testInferFuncDeclTypes =
             ++ "    x : xs' -> 1 + length xs'"
             ++ "  }"
             ]
-            [ "length @t0 @t1 @t2 (xs :: [t0]) = (case xs of {"
+            [ "Main.length @t0 @t1 @t2 (xs :: [t0]) = (case xs of {"
             ++ "    Prelude.([]) ->"
             ++ "      if true @t1 then 0 else 1;"
             ++ "    Prelude.(:) (x :: t0) (xs' :: [t0]) ->"
-            ++ "      (+) 1 (length' @t0 @t1 @t2 xs')"
+            ++ "      Prelude.(+) 1 (Main.length' @t0 @t1 @t2 xs')"
             ++ "  }) :: Prelude.Integer"
-            , "length' @t0 @t1 @t2 (xs :: [t0]) = (case xs of {"
+            , "Main.length' @t0 @t1 @t2 (xs :: [t0]) = (case xs of {"
             ++ "    Prelude.([]) ->"
             ++ "      if true @t2 then 0 else 1;"
             ++ "    Prelude.(:) (x :: t0) (xs' :: [t0]) ->"
-            ++ "      (+) 1 (length @t0 @t1 @t2 xs')"
+            ++ "      Prelude.(+) 1 (Main.length @t0 @t1 @t2 xs')"
             ++ "  }) :: Prelude.Integer"
             ]
     it "handels qualified identifiers correctly"
@@ -167,17 +168,16 @@ testInferFuncDeclTypes =
           _ <- defineTestTypeCon "Tree" 1
           _ <- defineTestCon "Leaf" 1 "a -> Tree a"
           _ <- defineTestCon "Fork" 2 "Tree a -> Tree a -> Tree a"
-          enterTestModule "M"
           shouldInferFuncDeclTypes
             [ "size t = case t of {"
               ++ "    Leaf x -> 1;"
-              ++ "    Fork l r -> size l + M.size r"
+              ++ "    Fork l r -> size l + Main.size r"
               ++ "  }"
             ]
-            [ "size @t0 (t :: Tree t0) = (case t of {"
+            [ "Main.size @t0 (t :: Tree t0) = (case t of {"
               ++ "    Leaf (x :: t0) -> 1;"
               ++ "    Fork (l :: Tree t0) (r :: Tree t0)"
-              ++ "      -> (+) (size @t0 l) (M.size @t0 r)"
+              ++ "      -> Prelude.(+) (Main.size @t0 l) (Main.size @t0 r)"
               ++ "  }) :: Prelude.Integer"
             ]
     it "infers the types of partial functions correctly"
@@ -186,7 +186,7 @@ testInferFuncDeclTypes =
       $ do
           shouldInferFuncDeclTypes
             ["head xs = case xs of { [] -> undefined; x : xs' -> x }"]
-            [ "head @t0 (xs :: [t0]) = (case xs of {"
+            [ "Main.head @t0 (xs :: [t0]) = (case xs of {"
               ++ "    Prelude.([]) -> undefined @t0;"
               ++ "    Prelude.(:) (x :: t0) (xs' :: [t0]) -> x"
               ++ "  }) :: t0"
@@ -202,11 +202,11 @@ testInferFuncDeclTypes =
             ++ "    x : xs' -> f x (foldr f e xs')"
             ++ "  }"
             ]
-            [ "foldr @a @b (f :: a -> b -> b) (e :: b) (xs :: [a]) ="
+            [ "Main.foldr @a @b (f :: a -> b -> b) (e :: b) (xs :: [a]) ="
               ++ "  (case xs of {"
               ++ "      Prelude.([]) -> e;"
               ++ "      Prelude.(:) (x :: a) (xs' :: [a]) ->"
-              ++ "          f x (foldr @a @b f e xs')"
+              ++ "          f x (Main.foldr @a @b f e xs')"
               ++ "    }) :: b"
             ]
     it "abstracted type variable names don't conflict with user defined names"
@@ -217,7 +217,7 @@ testInferFuncDeclTypes =
           "append" <- defineTestFunc "append" 2 "[a] -> [a] -> [a]"
           shouldInferFuncDeclTypes
             ["constTrue :: t0 -> Bool", "constTrue x = null ([] `append` [])"]
-            [ "constTrue @t0 @t1 (x :: t0) ="
+            [ "Main.constTrue @t0 @t1 (x :: t0) ="
               ++ "  null @t1 (append @t1 (Prelude.([]) @t1) (Prelude.([]) @t1))"
               ++ "  :: Prelude.Bool"
             ]
@@ -232,7 +232,7 @@ testInferFuncDeclTypes =
             ++ "    x : xs' -> x"
             ++ "  }"
             ]
-            [ "intHead (xs :: [Prelude.Integer]) = (case xs of {"
+            [ "Main.intHead (xs :: [Prelude.Integer]) = (case xs of {"
               ++ "    Prelude.([]) ->"
               ++ "        error @Prelude.Integer \"intHead: empty list\";"
               ++ "    Prelude.(:) (x :: Prelude.Integer)"
@@ -471,8 +471,8 @@ shouldInferType input (expectedExpr, expectedType) = do
 inferTestFuncDeclTypes :: [String] -> Converter [HS.FuncDecl]
 inferTestFuncDeclTypes input = localEnv $ do
   haskellAst  <- parseTestModule input
-  haskellAst' <- typeSignaturePass haskellAst
-  inferFuncDeclTypes (HS.modFuncDecls haskellAst')
+  haskellAst' <- runPipeline haskellAst
+  return (HS.modFuncDecls haskellAst')
 
 -- | Parses the given function declarations, infers its type schema and sets
 --   the expectation that the given type schemas are inferred.

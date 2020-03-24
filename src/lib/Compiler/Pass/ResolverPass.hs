@@ -209,6 +209,7 @@ import qualified Data.Set                      as Set
 import           Data.Tuple.Extra               ( (&&&) )
 
 import           Compiler.Environment
+import           Compiler.Environment.Entry
 import           Compiler.Environment.Scope
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Haskell.SrcSpan
@@ -221,8 +222,32 @@ import           Compiler.Pretty         hiding ( group )
 --   entries they refer to.
 resolverPass :: Pass HS.Module
 resolverPass ast = do
-  env <- resolverEnvFromModule ast
-  liftReporter $ runResolver env (resolve ast)
+  env     <- resolverEnvFromModule ast
+  testEnv <- resolverEnvFromConverter
+  liftReporter $ runResolver (testEnv `mergeResolverEnv` env) (resolve ast)
+
+-- | Adds entries to to the environment that are already in the environment
+--   of the converter.
+--
+--   This is needed as a workaround at the moment since the existing unit
+--   tests set up the environment with dummy entries. In production, this
+--   should never add entries to the environment since the resolver is one
+--   of the first passes.
+--   TODO remove me once the tests are updated
+resolverEnvFromConverter :: Converter ResolverEnv
+resolverEnvFromConverter = do
+  entries <- inEnv $ Set.unions . map fst . Map.elems . envEntries
+  let entries'  = map resolverEntryFromEnvEntry (Set.toList entries)
+      qualEnv   = resolverEnvFromEntries entries'
+      unQualEnv = resolverEnvFromUnQualEntries entries'
+  return (qualEnv `mergeResolverEnv` unQualEnv)
+ where
+  resolverEntryFromEnvEntry :: EnvEntry -> ResolverEntry
+  resolverEntryFromEnvEntry entry = LocalEntry
+    { resolverEntrySrcSpan      = NoSrcSpan
+    , resolverEntryScope        = entryScope entry
+    , resolverEntryOriginalName = entryName entry
+    }
 
 -------------------------------------------------------------------------------
 -- Environment entries                                                       --
