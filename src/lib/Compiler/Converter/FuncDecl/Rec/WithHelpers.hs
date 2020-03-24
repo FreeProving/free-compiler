@@ -46,7 +46,7 @@ convertRecFuncDeclsWithHelpers decls = do
   (helperDecls', mainDecls') <- convertRecFuncDeclsWithHelpers' decls
   return
     (  G.comment
-        ("Helper functions for " ++ showPretty (map HS.funcDeclIdent decls))
+        ("Helper functions for " ++ showPretty (map HS.funcDeclName decls))
     :  helperDecls'
     ++ mainDecls'
     )

@@ -119,7 +119,7 @@ convertDataDecls dataDecls = do
   return
     ( G.comment
         (  "Data type declarations for "
-        ++ showPretty (map HS.typeDeclIdent dataDecls)
+        ++ showPretty (map HS.typeDeclName dataDecls)
         )
     : G.InductiveSentence (G.Inductive (NonEmpty.fromList indBodies) [])
     : concat extraSentences
@@ -138,9 +138,9 @@ convertDataDecl (HS.DataDecl _ (HS.DeclIdent _ name) typeVarDecls conDecls) =
     smartConDecls              <- mapM generateSmartConDecl conDecls
     return
       ( body
-      , G.comment ("Arguments sentences for " ++ showPretty name)
+      , G.comment ("Arguments sentences for " ++ showPretty (HS.toUnQual name))
       :  argumentsSentences
-      ++ G.comment ("Smart constructors for " ++ showPretty name)
+      ++ G.comment ("Smart constructors for " ++ showPretty (HS.toUnQual name))
       :  smartConDecls
       )
  where

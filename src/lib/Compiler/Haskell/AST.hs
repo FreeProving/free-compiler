@@ -37,6 +37,7 @@ identFromName (Symbol _    ) = Nothing
 instance Pretty Name where
   pretty (Ident  ident ) = prettyString ident
   pretty (Symbol symbol) = parens (prettyString symbol)
+  prettyList = prettySeparated (comma <> space) . map pretty
 
 -------------------------------------------------------------------------------
 -- Qualified names                                                           --
@@ -72,6 +73,7 @@ instance Pretty QName where
     | null modid = pretty name
     | otherwise  = prettyString modid <> dot <> pretty name
   pretty (UnQual name) = pretty name
+  prettyList = prettySeparated (comma <> space) . map pretty
 
 -------------------------------------------------------------------------------
 -- Aliasses for name types                                                   --
@@ -305,6 +307,10 @@ data TypeDecl
 typeDeclQName :: TypeDecl -> QName
 typeDeclQName = declIdentName . typeDeclIdent
 
+-- | Gets the unqualified name of the given type declaration.
+typeDeclName :: TypeDecl -> Name
+typeDeclName = nameFromQName . typeDeclQName
+
 -- | Pretty instance for type declarations.
 instance Pretty TypeDecl where
   pretty (DataDecl _ declIdent typeVarDecls conDecls) =
@@ -342,6 +348,10 @@ data ConDecl = ConDecl
 -- | Gets the qualified name of the given constructor declaration.
 conDeclQName :: ConDecl -> QName
 conDeclQName = declIdentName . conDeclIdent
+
+-- | Gets the unqualified name of the given constructor declaration.
+conDeclName :: ConDecl -> Name
+conDeclName = nameFromQName . conDeclQName
 
 -- | Pretty instance for data constructor declarations.
 instance Pretty ConDecl where
@@ -415,6 +425,10 @@ data FuncDecl = FuncDecl
 -- | Gets the qualified name of the given function declaration.
 funcDeclQName :: FuncDecl -> QName
 funcDeclQName = declIdentName . funcDeclIdent
+
+-- | Gets the unqualified name of the given function declaration.
+funcDeclName :: FuncDecl -> Name
+funcDeclName = nameFromQName . funcDeclQName
 
 -- | Gets the type of the given function declaration or @Nothing@ if at
 --   least one of the argument or return type is not annotated.
