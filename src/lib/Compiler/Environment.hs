@@ -8,7 +8,6 @@ module Compiler.Environment
     -- * Environment
   , Environment(..)
   , emptyEnv
-  , childEnv
   -- * Module information
   , makeModuleAvailable
   , isModuleAvailable
@@ -88,10 +87,7 @@ data ModuleInterface = ModuleInterface
 
 -- | Data type that encapsulates the state of the converter.
 data Environment = Environment
-  { envDepth             :: Int
-    -- ^ The number of parent environments.
-
-  , envAvailableModules  :: Map HS.ModName ModuleInterface
+  { envAvailableModules  :: Map HS.ModName ModuleInterface
     -- ^ Maps names of modules that can be imported to their interface.
   , envInSection         :: Bool
     -- ^ Whether the currently converted node is inside of a @Section@
@@ -112,19 +108,14 @@ data Environment = Environment
 -- | An environment that does not even contain any predefined types and
 --   functions.
 emptyEnv :: Environment
-emptyEnv = Environment { envDepth            = 0
-                         -- Modules and sections
-                       , envAvailableModules = Map.empty
+emptyEnv = Environment { -- Modules and sections
+                         envAvailableModules = Map.empty
                        , envInSection        = False
                          -- Entries
                        , envEntries          = Map.empty
                        , envDecArgs          = Map.empty
                        , envFreshIdentCount  = Map.empty
                        }
-
--- | Creates a child environment of the given environment.
-childEnv :: Environment -> Environment
-childEnv env = env { envDepth = envDepth env + 1 }
 
 -------------------------------------------------------------------------------
 -- Modules                                                                   --

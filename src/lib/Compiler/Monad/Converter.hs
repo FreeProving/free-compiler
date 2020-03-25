@@ -95,7 +95,7 @@ execConverter = execConverterT
 -- State monad transformer                                                   --
 -------------------------------------------------------------------------------
 
--- | A state monad used by the converter parametrerized by the inner monad @m@.
+-- | A state monad used by the converter parameterized by the inner monad @m@.
 newtype ConverterT m a
   = ConverterT { unwrapConverterT :: StateT Environment (ReporterT m) a }
   deriving (Functor, Applicative, Monad, MonadState Environment)
@@ -178,12 +178,7 @@ modifyEnv' = liftConverter . state
 -- | Runs the given converter and returns its result but discards all
 --   modifications to the environment.
 localEnv :: MonadConverter m => m a -> m a
-localEnv converter = localEnv' $ getEnv >>= putEnv . childEnv >> converter
-
--- | Like 'localEnv', but the local environment remains at top level (i.e.,
---   the 'envDepth' is not increased).
-localEnv' :: MonadConverter m => m a -> m a
-localEnv' converter = do
+localEnv converter = do
   env <- getEnv
   x   <- converter
   putEnv env
@@ -191,17 +186,17 @@ localEnv' converter = do
 
 -- | Runs the given converter and returns its result.
 --
---   Like 'localEnv', the modifications to the environment are discared but
+--   Like 'localEnv', the modifications to the environment are discarded but
 --   the returned 'ModuleInterface' is inserted into the environment.
 moduleEnv :: MonadConverter m => m (a, ModuleInterface) -> m a
 moduleEnv converter = do
-  (x, interface) <- localEnv' converter
+  (x, interface) <- localEnv converter
   modifyEnv $ makeModuleAvailable interface
   return x
 
 -- | Runs the given converter with 'envInSection' set to @True@.
 sectionEnv :: MonadConverter m => m a -> m a
-sectionEnv converter = localEnv' $ do
+sectionEnv converter = localEnv $ do
   ifM (inEnv envInSection) converter $ do
     modifyEnv $ \env -> env { envInSection = True }
     x <- converter
@@ -211,7 +206,7 @@ sectionEnv converter = localEnv' $ do
 -- | Adds entries for variable patterns during the execution of the given
 --   converter.
 --
---   Unlike 'localEnv', all modifications to the environment are keept
+--   Unlike 'localEnv', all modifications to the environment are kept
 --   (except for added entries), except for the definition of the variables.
 shadowVarPats :: MonadConverter m => [HS.VarPat] -> m a -> m a
 shadowVarPats varPats converter = do
