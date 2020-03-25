@@ -52,10 +52,10 @@ decArgPattern = "^(\\S+)\\s+DECREASES\\s+ON\\s+((\\S+)|ARGUMENT\\s+(\\d+))$"
 --   groups for 'decArgPattern'.
 parseDecArgPragma :: CustomPragmaBuilder
 parseDecArgPragma srcSpan groups = do
-  let Just funcIdent = lookup 1 groups
+  let Just funcName = HS.UnQual <$> HS.Ident <$> lookup 1 groups
       Just decArg =
         (Left <$> lookup 3 groups) <|> (Right <$> read <$> lookup 4 groups)
-  return (HS.DecArgPragma srcSpan funcIdent decArg)
+  return (HS.DecArgPragma srcSpan funcName decArg)
 
 ------------------------------------------------------------------------------
 -- Parser                                                                   --

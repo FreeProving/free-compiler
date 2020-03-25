@@ -62,8 +62,7 @@ convertModule' haskellAst = do
 --
 --   All other pragmas are ignored.
 addDecArgPragma :: [HS.FuncDecl] -> HS.Pragma -> Converter ()
-addDecArgPragma funcDecls (HS.DecArgPragma srcSpan funcIdent decArg) = do
-  let funcName = HS.UnQual (HS.Ident funcIdent)
+addDecArgPragma funcDecls (HS.DecArgPragma srcSpan funcName decArg) = do
   case find ((== funcName) . HS.funcDeclQName) funcDecls of
     Just (HS.FuncDecl { HS.funcDeclArgs = args }) -> case decArg of
       Left decArgIdent ->
@@ -73,11 +72,11 @@ addDecArgPragma funcDecls (HS.DecArgPragma srcSpan funcIdent decArg) = do
           Nothing ->
             reportFatal
               $  Message srcSpan Error
-              $  "The function "
-              ++ funcIdent
-              ++ " does not have an argument pattern "
+              $  "The function '"
+              ++ showPretty funcName
+              ++ "' does not have an argument pattern '"
               ++ decArgIdent
-              ++ "."
+              ++ "'."
       Right decArgPosition
         | decArgPosition > 0 && decArgPosition <= length args
         -> do
@@ -87,20 +86,17 @@ addDecArgPragma funcDecls (HS.DecArgPragma srcSpan funcIdent decArg) = do
         | otherwise
         -> reportFatal
           $  Message srcSpan Error
-          $  "The function "
-          ++ funcIdent
-          ++ " does not have an argument at index "
+          $  "The function '"
+          ++ showPretty funcName
+          ++ "' does not have an argument at index "
           ++ show decArgPosition
           ++ "."
-    Nothing -> do
-      modName <- inEnv envModName
+    Nothing ->
       reportFatal
         $  Message srcSpan Error
-        $  "The module "
-        ++ modName
-        ++ " does not declare a function "
-        ++ funcIdent
-        ++ "."
+        $  "The module does not declare a function '"
+        ++ showPretty funcName
+        ++ "'."
 
 -------------------------------------------------------------------------------
 -- Declarations                                                              --
@@ -127,7 +123,7 @@ convertTypeDecls typeDecls = do
 -- | Converts the given import declarations to Coq.
 convertImportDecls :: [HS.ImportDecl] -> Converter [G.Sentence]
 convertImportDecls imports = do
-  imports'      <- mapM convertImportDecl imports
+  imports' <- mapM convertImportDecl imports
   return (CoqBase.imports : imports')
 
 -- | Convert a import declaration.

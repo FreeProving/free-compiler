@@ -47,12 +47,13 @@
 --
 --   == Translation
 --
---   In a module @M@ all declarations and type signatures of the forms
+--   In a module @M@ all declarations, type signatures and pragmas of the forms
 --
 --   * @type T α₁ … αₘ = τ@
 --   * @data D α₁ … αₘ = C₁ τ₍₁,₁₎ … τ₍₁,ₖ₁₎ | … | Cₙ τ₍ₙ,₁₎ … τ₍ₙ,ₖₙ₎@
 --   * @f₁, …, fₙ :: τ@
 --   * @f x₁ … xₙ = e@
+--   * @{-# HASKELL_TO_COQ f DECREASES ON x #-}@
 --
 --   are translated to
 --
@@ -60,6 +61,7 @@
 --   * @data M.D α₁ … αₘ = M.C₁ τ₍₁,₁₎ … τ₍₁,ₖ₁₎ | … | M.Cₙ τ₍ₙ,₁₎ … τ₍ₙ,ₖₙ₎@
 --   * @M.f₁, …, M.fₙ :: τ@
 --   * @M.f x₁ … xₙ = e@
+--   * @{-# HASKELL_TO_COQ M.f DECREASES ON x #-}@
 --
 --   If an identifier is qualified already, it keeps its original qualifier.
 --
@@ -83,6 +85,7 @@ qualifyDecls :: HS.Module -> HS.Module
 qualifyDecls ast = ast
   { HS.modTypeDecls = map qualifyTypeDecl (HS.modTypeDecls ast)
   , HS.modTypeSigs  = map qualifyTypeSig (HS.modTypeSigs ast)
+  , HS.modPragmas   = map qualifyPragma (HS.modPragmas ast)
   , HS.modFuncDecls = map qualifyFuncDecl (HS.modFuncDecls ast)
   }
  where
@@ -125,6 +128,11 @@ qualifyDecls ast = ast
   qualifyTypeSig typeSig = typeSig
     { HS.typeSigDeclIdents = map qualifyDeclIdent (HS.typeSigDeclIdents typeSig)
     }
+
+  -- | Qualifies function names annotated by the given pragmas with 'modName'.
+  qualifyPragma :: HS.Pragma -> HS.Pragma
+  qualifyPragma (HS.DecArgPragma srcSpan funcName decArg) =
+    HS.DecArgPragma srcSpan (qualify funcName) decArg
 
   -- | Qualifies the name of the given function declaration with 'modName'.
   qualifyFuncDecl :: HS.FuncDecl -> HS.FuncDecl

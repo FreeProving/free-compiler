@@ -207,7 +207,7 @@ data Pragma
   --   @{-# HASKELL_TO_COQ <function> DECREASES ON ARGUMENT <index> #-}@
   --   pragma.
   = DecArgPragma { pragmaSrcSpan :: SrcSpan
-                 , decArgPragmaFuncName :: String
+                 , decArgPragmaFuncName :: QName
                  , decArgPragmaArg :: (Either String Int)
                  }
  deriving (Eq, Show)
@@ -215,12 +215,9 @@ data Pragma
 -- | Pretty instance for custom @{-# HASKELL_TO_COQ ... #-}@ pragmas.
 instance Pretty Pragma where
   pretty (DecArgPragma _ funcName (Left argName)) = prettyPragma
-    (   prettyString funcName
-    <+> prettyString "DECREASES ON"
-    <+> prettyString argName
-    )
+    (pretty funcName <+> prettyString "DECREASES ON" <+> prettyString argName)
   pretty (DecArgPragma _ funcName (Right argIndex)) = prettyPragma
-    (   prettyString funcName
+    (   pretty funcName
     <+> prettyString "DECREASES ON ARGUMENT"
     <+> pretty argIndex
     )
