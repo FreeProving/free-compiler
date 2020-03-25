@@ -89,9 +89,6 @@ data ModuleInterface = ModuleInterface
 data Environment = Environment
   { envAvailableModules  :: Map HS.ModName ModuleInterface
     -- ^ Maps names of modules that can be imported to their interface.
-  , envInSection         :: Bool
-    -- ^ Whether the currently converted node is inside of a @Section@
-    --   sentence.
 
   , envEntries           :: Map ScopedName EnvEntry
     -- ^ Maps original names of entries for declarations to the entries.
@@ -108,9 +105,8 @@ data Environment = Environment
 -- | An environment that does not even contain any predefined types and
 --   functions.
 emptyEnv :: Environment
-emptyEnv = Environment { -- Modules and sections
+emptyEnv = Environment { -- Modules
                          envAvailableModules = Map.empty
-                       , envInSection        = False
                          -- Entries
                        , envEntries          = Map.empty
                        , envDecArgs          = Map.empty

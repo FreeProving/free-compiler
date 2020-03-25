@@ -123,8 +123,7 @@ convertRecFuncDeclsWithSection constArgs decls = do
     let funcNames  = map HS.funcDeclQName decls
         funcIdents = catMaybes (map HS.identFromQName funcNames)
     sectionIdent <- freshCoqIdent (intercalate "_" ("section" : funcIdents))
-    (helperDecls', mainDecls') <- sectionEnv
-      $ convertRecFuncDeclsWithHelpers' sectionDecls'
+    (helperDecls', mainDecls') <- convertRecFuncDeclsWithHelpers' sectionDecls'
     return
       (G.SectionSentence
         (G.Section
@@ -279,8 +278,8 @@ lookupConstArgType argTypeMap constArg = do
       srcSpan = HS.typeSrcSpan (head types)
   -- Unify all annotated types of the constant argument.
   -- TODO expansion should not be necessary anymore
-  mgu           <- unifyAllOrFail srcSpan types
-  constArgType  <- applySubst mgu (head types)
+  mgu          <- unifyAllOrFail srcSpan types
+  constArgType <- applySubst mgu (head types)
   return (constArgType, mgu)
 
 -------------------------------------------------------------------------------
@@ -497,9 +496,9 @@ updateTypeSig mgu constTypeVars argTypeMap returnTypeMap funcDecl = do
 removeConstTypeArgsFromFuncDecl
   :: [(HS.QName, [Int])] -> HS.FuncDecl -> Converter HS.FuncDecl
 removeConstTypeArgsFromFuncDecl constTypeVars funcDecl = do
-  let rhs           = HS.funcDeclRhs funcDecl
+  let rhs          = HS.funcDeclRhs funcDecl
       Just indices = lookup (HS.funcDeclQName funcDecl) constTypeVars
-      typeArgs'     = removeIndicies indices (HS.funcDeclTypeArgs funcDecl)
+      typeArgs'    = removeIndicies indices (HS.funcDeclTypeArgs funcDecl)
   rhs' <- removeConstTypeArgsFromExpr constTypeVars rhs
   return funcDecl { HS.funcDeclTypeArgs = typeArgs', HS.funcDeclRhs = rhs' }
 
@@ -507,10 +506,10 @@ removeConstTypeArgsFromFuncDecl constTypeVars funcDecl = do
 removeIndicies :: [Int] -> [a] -> [a]
 removeIndicies _ [] = []
 removeIndicies indices (x : xs) | 0 `elem` indices = xs'
-                                 | otherwise         = x : xs'
+                                | otherwise        = x : xs'
  where
   indices' = map (subtract 1) (filter (> 0) indices)
-  xs'       = removeIndicies indices' xs
+  xs'      = removeIndicies indices' xs
 
 -- | Removes the type arguments that have been removed from the type
 --   signature of function declarations from visible type applications

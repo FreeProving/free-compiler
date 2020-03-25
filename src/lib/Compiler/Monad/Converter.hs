@@ -32,14 +32,12 @@ module Compiler.Monad.Converter
     -- * Encapsulating environments
   , localEnv
   , moduleEnv
-  , sectionEnv
   , shadowVarPats
   )
 where
 
 import           Prelude                 hiding ( fail )
 
-import           Control.Monad.Extra            ( ifM )
 import           Control.Monad.Fail             ( MonadFail(..) )
 import           Control.Monad.Identity         ( Identity(..) )
 import           Control.Monad.State            ( StateT(..)
@@ -193,15 +191,6 @@ moduleEnv converter = do
   (x, interface) <- localEnv converter
   modifyEnv $ makeModuleAvailable interface
   return x
-
--- | Runs the given converter with 'envInSection' set to @True@.
-sectionEnv :: MonadConverter m => m a -> m a
-sectionEnv converter = localEnv $ do
-  ifM (inEnv envInSection) converter $ do
-    modifyEnv $ \env -> env { envInSection = True }
-    x <- converter
-    modifyEnv $ \env -> env { envInSection = False }
-    return x
 
 -- | Adds entries for variable patterns during the execution of the given
 --   converter.

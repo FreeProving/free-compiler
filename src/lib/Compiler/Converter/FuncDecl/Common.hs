@@ -29,9 +29,11 @@ convertFuncHead :: HS.FuncDecl -> Converter (G.Qualid, [G.Binder], Maybe G.Term)
 convertFuncHead (HS.FuncDecl _ declIdent typeArgs args _ maybeRetType) = do
   let name = HS.declIdentName declIdent
   -- Lookup the Coq name of the function.
-  Just qualid   <- inEnv $ lookupIdent ValueScope name
+  Just qualid    <- inEnv $ lookupIdent ValueScope name
   -- Generate arguments for free monad if they are not in scope.
-  freeArgDecls  <- generateGenericArgDecls G.Explicit
+  freeArgsNeeded <- inEnv $ needsFreeArgs name
+  let freeArgDecls | freeArgsNeeded = genericArgDecls G.Explicit
+                   | otherwise      = []
   -- Lookup partiality and position of decreasing argument.
   partial       <- inEnv $ isPartial name
   decArgIndex   <- inEnv $ lookupDecArgIndex name

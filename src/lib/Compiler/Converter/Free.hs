@@ -3,26 +3,18 @@
 
 module Compiler.Converter.Free where
 
-import           Control.Monad.Extra            ( ifM )
 import           Data.List                      ( elemIndex )
 import           Data.List.NonEmpty             ( NonEmpty(..) )
 import           Data.Maybe                     ( maybe )
 
 import qualified Compiler.Coq.AST              as G
 import qualified Compiler.Coq.Base             as CoqBase
-import           Compiler.Environment
 import           Compiler.Environment.Fresh
 import           Compiler.Monad.Converter
 
 -------------------------------------------------------------------------------
 -- Generic arguments for free monad                                          --
 -------------------------------------------------------------------------------
-
--- | Returns 'genericArgDecls' if "CoqBase.freeArgs" are not defined
---   in the current scope.
-generateGenericArgDecls :: G.Explicitness -> Converter [G.Binder]
-generateGenericArgDecls explicitness =
-  ifM (inEnv envInSection) (return []) (return (genericArgDecls explicitness))
 
 -- | The declarations of type parameters for the @Free@ monad.
 --
