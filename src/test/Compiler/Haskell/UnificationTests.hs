@@ -104,7 +104,10 @@ testUnification = describe "Compiler.Haskell.Unification.unify" $ do
           _ <- defineTestTypeSyn "Predicate" ["a"] "a -> Bool"
           t <- parseTestType "Predicate b"
           s <- parseTestType "Integer -> c"
-          (t, s) `shouldUnifyTo'` ("Predicate Integer", "Integer -> Bool")
+          (t, s)
+            `shouldUnifyTo'` ( "Predicate Prelude.Integer"
+                             , "Prelude.Integer -> Prelude.Bool"
+                             )
     it "can unify two type synonyms with different arity"
       $ shouldSucceed
       $ fromConverter
@@ -113,7 +116,7 @@ testUnification = describe "Compiler.Haskell.Unification.unify" $ do
           _ <- defineTestTypeSyn "Bar" ["a", "b"] "a -> b"
           t <- parseTestType "Foo a"
           s <- parseTestType "Bar b c"
-          (t, s) `shouldUnifyTo'` ("Foo b", "Bar b Integer")
+          (t, s) `shouldUnifyTo'` ("Foo b", "Bar b Prelude.Integer")
   context "QuickCheck" $ do
     it "self-unification yields the identity substitution"
       $ property
@@ -140,18 +143,22 @@ shouldUnifyTo (t, s) expectedOutput =
 shouldUnifyTo'
   :: Pretty a => (HS.Type, HS.Type) -> (a, a) -> Converter Expectation
 shouldUnifyTo' (t, s) (ot, os) = do
-  mgu <- unifyOrFail (HS.typeSrcSpan t) t s
-  t'  <- applySubst mgu t
-  s'  <- applySubst mgu s
+  t'  <- runPipelineOnType t
+  s'  <- runPipelineOnType s
+  mgu <- unifyOrFail (HS.typeSrcSpan t') t' s'
+  at' <- applySubst mgu t'
+  as' <- applySubst mgu s'
   return $ do
-    t' `prettyShouldBe` ot
-    s' `prettyShouldBe` os
+    at' `prettyShouldBe` ot
+    as' `prettyShouldBe` os
 
 -- | Unifies the given type expressions and sets the expectation that the
 --   unification fails.
 shouldFailUnification :: HS.Type -> HS.Type -> Converter Expectation
 shouldFailUnification t s = do
-  res <- runExceptT $ unify t s
+  t'  <- runPipelineOnType t
+  s'  <- runPipelineOnType s
+  res <- runExceptT $ unify t' s'
   case res of
     Left (UnificationError _ _) -> return (return ())
     Left (OccursCheckFailure _ _) ->

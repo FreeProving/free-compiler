@@ -251,11 +251,12 @@ defineTestTypeCon ident arity = renameAndAddTestEntry DataEntry
 --   Returns the Coq identifier assigned to the type synonym.
 defineTestTypeSyn :: String -> [String] -> String -> Converter String
 defineTestTypeSyn ident typeArgs typeStr = do
-  typeExpr <- parseTestType typeStr
+  typeExpr  <- parseTestType typeStr
+  typeExpr' <- runPipelineOnType typeExpr
   renameAndAddTestEntry TypeSynEntry { entrySrcSpan  = NoSrcSpan
                                      , entryArity    = length typeArgs
                                      , entryTypeArgs = typeArgs
-                                     , entryTypeSyn  = typeExpr
+                                     , entryTypeSyn  = typeExpr'
                                      , entryName = HS.UnQual (HS.Ident ident)
                                      , entryIdent    = undefined -- filled by renamer
                                      }
@@ -276,8 +277,9 @@ defineTestTypeVar ident = renameAndAddTestEntry TypeVarEntry
 --   Returns the Coq identifier assigned to the data constructor.
 defineTestCon :: String -> Int -> String -> Converter (String, String)
 defineTestCon ident arity typeStr = do
-  typeExpr <- parseTestType typeStr
-  let (argTypes, returnType) = HS.splitFuncType typeExpr arity
+  typeExpr  <- parseTestType typeStr
+  typeExpr' <- runPipelineOnType typeExpr
+  let (argTypes, returnType) = HS.splitFuncType typeExpr' arity
   entry <- renameAndAddEntry ConEntry
     { entrySrcSpan    = NoSrcSpan
     , entryArity      = arity
@@ -317,7 +319,8 @@ defineTestFunc = defineTestFunc' False
 defineTestFunc' :: Bool -> String -> Int -> String -> Converter String
 defineTestFunc' partial ident arity typeStr = do
   HS.TypeSchema _ typeArgs typeExpr <- parseTestTypeSchema typeStr
-  let (argTypes, returnType) = HS.splitFuncType typeExpr arity
+  typeExpr'                         <- runPipelineOnType typeExpr
+  let (argTypes, returnType) = HS.splitFuncType typeExpr' arity
   renameAndAddTestEntry FuncEntry
     { entrySrcSpan       = NoSrcSpan
     , entryArity         = arity
@@ -337,17 +340,63 @@ definePartialTestFunc :: String -> Int -> String -> Converter String
 definePartialTestFunc = defineTestFunc' True
 
 -------------------------------------------------------------------------------
--- Conversion utility functions                                              --
+-- Pipeline utility functions                                                --
 -------------------------------------------------------------------------------
 
--- | Parses, simplifies and converts a Haskell type for testing purposes.
-convertTestType :: String -> Converter G.Term
-convertTestType input = parseTestType input >>= convertType
+-- | Runs the compiler pipeline on a dummy module that contains the given
+--   declarations.
+runPipelineOnDecls
+  :: [HS.TypeDecl]
+  -> [HS.TypeSig]
+  -> [HS.FuncDecl]
+  -> Converter ([HS.TypeDecl], [HS.TypeSig], [HS.FuncDecl])
+runPipelineOnDecls typeDecls typeSigs funcDecls = do
+  let haskellAst = HS.Module { HS.modSrcSpan   = NoSrcSpan
+                             , HS.modName      = "Main"
+                             , HS.modImports   = []
+                             , HS.modTypeDecls = typeDecls
+                             , HS.modTypeSigs  = typeSigs
+                             , HS.modPragmas   = []
+                             , HS.modFuncDecls = funcDecls
+                             }
+  haskellAst' <- runPipeline haskellAst
+  return
+    ( HS.modTypeDecls haskellAst'
+    , HS.modTypeSigs haskellAst'
+    , HS.modFuncDecls haskellAst'
+    )
 
--- | Parses, simplifies and converts a Haskell expression for testing purposes.
-convertTestExpr :: String -> Converter G.Term
-convertTestExpr input = do
-  expr <- parseTestExpr input
+-- | Runs the compiler pipeline on a dummy module that contains only a type
+--   synonym declaration for the given type expression.
+runPipelineOnType :: HS.Type -> Converter HS.Type
+runPipelineOnType typeExpr = do
+  let typeSynDecl = HS.TypeSynDecl
+        { HS.typeDeclSrcSpan = NoSrcSpan
+        , HS.typeDeclIdent   = HS.DeclIdent
+                                 { HS.declIdentSrcSpan = NoSrcSpan
+                                 , HS.declIdentName    = HS.UnQual
+                                                           (HS.Ident "TestType")
+                                 }
+        , HS.typeDeclArgs    = map
+                                 ( HS.TypeVarDecl NoSrcSpan
+                                 . fromJust
+                                 . HS.identFromQName
+                                 )
+                                 (typeVars typeExpr)
+        , HS.typeSynDeclRhs  = typeExpr
+        }
+  ([typeSynDecl'], [], []) <- runPipelineOnDecls [typeSynDecl] [] []
+  return (HS.typeSynDeclRhs typeSynDecl')
+
+-- | Runs the compiler pipeline on a dummy module that contains only a nullary
+--   function with the given expression on its right-hand side.
+runPipelineOnExpr :: HS.Expr -> Converter HS.Expr
+runPipelineOnExpr = fmap fst . runPipelineOnExprWithType
+
+-- | Like 'runPipelineOnExpr' but also returns the type schema that was
+--   inferred for the dummy function.
+runPipelineOnExprWithType :: HS.Expr -> Converter (HS.Expr, HS.TypeSchema)
+runPipelineOnExprWithType expr = do
   let funcDecl = HS.FuncDecl
         { HS.funcDeclSrcSpan    = NoSrcSpan
         , HS.funcDeclIdent      = HS.DeclIdent
@@ -359,16 +408,25 @@ convertTestExpr input = do
         , HS.funcDeclRhs        = expr
         , HS.funcDeclReturnType = Nothing
         }
-      haskellAst = HS.Module { HS.modSrcSpan   = NoSrcSpan
-                             , HS.modName      = "Test.Expression"
-                             , HS.modImports   = []
-                             , HS.modTypeDecls = []
-                             , HS.modTypeSigs  = []
-                             , HS.modPragmas   = []
-                             , HS.modFuncDecls = [funcDecl]
-                             }
-  haskellAst' <- runPipeline haskellAst
-  let expr' = HS.funcDeclRhs (head (HS.modFuncDecls haskellAst'))
+  ([], [], [funcDecl']) <- runPipelineOnDecls [] [] [funcDecl]
+  return (HS.funcDeclRhs funcDecl', fromJust (HS.funcDeclTypeSchema funcDecl'))
+
+-------------------------------------------------------------------------------
+-- Conversion utility functions                                              --
+-------------------------------------------------------------------------------
+
+-- | Parses, simplifies and converts a Haskell type for testing purposes.
+convertTestType :: String -> Converter G.Term
+convertTestType input = do
+  typeExpr  <- parseTestType input
+  typeExpr' <- runPipelineOnType typeExpr
+  convertType typeExpr'
+
+-- | Parses, simplifies and converts a Haskell expression for testing purposes.
+convertTestExpr :: String -> Converter G.Term
+convertTestExpr input = do
+  expr  <- parseTestExpr input
+  expr' <- runPipelineOnExpr expr
   convertExpr expr'
 
 -- | Parses, simplifies and converts a Haskell declaration for testing purposes.
@@ -379,14 +437,14 @@ convertTestDecl = convertTestDecls . return
 --   purposes.
 convertTestDecls :: [String] -> Converter [G.Sentence]
 convertTestDecls input = do
-  haskellAst  <- parseTestModule input
-  haskellAst' <- runPipeline haskellAst
-  convertDecls (HS.modTypeDecls haskellAst') (HS.modFuncDecls haskellAst')
+  (typeDecls, typeSigs, funcDecls) <- parseTestDecls input
+  (typeDecls', _, funcDecls') <- runPipelineOnDecls typeDecls typeSigs funcDecls
+  convertDecls typeDecls' funcDecls'
 
 -- | Parses, simplifies and converts a Haskell module for testing purposes.
 convertTestModule :: [String] -> Converter [G.Sentence]
 convertTestModule input = do
-  haskellAst <- parseTestModule input
+  haskellAst  <- parseTestModule input
   convertModule haskellAst
 
 -------------------------------------------------------------------------------

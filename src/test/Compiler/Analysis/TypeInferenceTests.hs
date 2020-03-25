@@ -4,11 +4,9 @@ import           Test.Hspec
 
 import           Control.Monad.Extra            ( zipWithM_ )
 
-import           Compiler.Analysis.TypeInference
 import           Compiler.Environment.Resolver
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Monad.Converter
-import           Compiler.Pipeline
 
 import           Compiler.Util.Test
 
@@ -257,14 +255,14 @@ testInferExprType =
       $ shouldSucceed
       $ fromConverter
       $ do
-          "True" `shouldInferType` ("True", "Prelude.Bool")
+          "True" `shouldInferType` ("Prelude.True", "Prelude.Bool")
     it "infers the type of predefined constructors correctly"
       $ shouldSucceed
       $ fromConverter
       $ do
           shouldInferType
             "(42, True)"
-            ( "Prelude.(,) @Prelude.Integer @Prelude.Bool 42 True"
+            ( "Prelude.(,) @Prelude.Integer @Prelude.Bool 42 Prelude.True"
             , "(Prelude.Integer, Prelude.Bool)"
             )
     it "infers the type of conditions in if-expressions correctly"
@@ -282,13 +280,18 @@ testInferExprType =
       $ do
           shouldInferType
             "(+)"
-            ("(+)", "Prelude.Integer -> Prelude.Integer -> Prelude.Integer")
+            ( "\\x@0 x@1 -> Prelude.(+) x@0 x@1"
+            , "Prelude.Integer -> Prelude.Integer -> Prelude.Integer"
+            )
     it "infers the type of partially applied predefined operations correctly"
       $ shouldSucceed
       $ fromConverter
       $ do
-          shouldInferType "(+) 42"
-                          ("(+) 42", "Prelude.Integer -> Prelude.Integer")
+          shouldInferType
+            "(+) 42"
+            ( "\\x@0 -> Prelude.(+) 42 x@0"
+            , "Prelude.Integer -> Prelude.Integer"
+            )
     it "infers the type of polymorphic functions correctly"
       $ shouldSucceed
       $ fromConverter
@@ -297,7 +300,7 @@ testInferExprType =
           shouldInferType
             "\\xs ys -> length xs + length ys"
             ( "\\(xs :: [t0]) (ys :: [t1]) ->"
-              ++ "  (+) (length @t0 xs) (length @t1 ys)"
+              ++ "  Prelude.(+) (length @t0 xs) (length @t1 ys)"
             , "forall t0 t1. [t0] -> [t1] -> Prelude.Integer"
             )
     it "can match hidden and non-hidden types"
@@ -308,10 +311,10 @@ testInferExprType =
             "\\x -> if x then [x, True] else [x, False]"
             ( "\\(x :: Prelude.Bool) -> if x"
             ++ "  then Prelude.(:) @Prelude.Bool x"
-            ++ "       (Prelude.(:) @Prelude.Bool True"
+            ++ "       (Prelude.(:) @Prelude.Bool Prelude.True"
             ++ "        (Prelude.([]) @Prelude.Bool))"
             ++ "  else Prelude.(:) @Prelude.Bool x"
-            ++ "       (Prelude.(:) @Prelude.Bool False"
+            ++ "       (Prelude.(:) @Prelude.Bool Prelude.False"
             ++ "        (Prelude.([]) @Prelude.Bool))"
             , "Prelude.Bool -> [Prelude.Bool]"
             )
@@ -420,7 +423,8 @@ testInferExprType =
           shouldInferType
             "case (f, 42) of (f, x) -> f x"
             ( "case Prelude.(,) @(Prelude.Integer -> Prelude.Integer) "
-            ++ "                @Prelude.Integer (f @Prelude.Integer) 42 of {"
+            ++ "                @Prelude.Integer"
+            ++ "                (\\x@0 -> f @Prelude.Integer x@0) 42 of {"
             ++ "    Prelude.(,) (f :: Prelude.Integer -> Prelude.Integer)"
             ++ "                (x :: Prelude.Integer) -> f x"
             ++ "  }"
@@ -447,7 +451,7 @@ testInferExprType =
 inferTestType :: String -> Converter (HS.Expr, HS.TypeSchema)
 inferTestType input = do
   expr <- parseTestExpr input
-  inferExprType expr
+  runPipelineOnExprWithType expr
 
 -- | Parses and infers the type of the given expression and sets the
 --   expectation that the give type is inferred.
@@ -470,9 +474,9 @@ shouldInferType input (expectedExpr, expectedType) = do
 --   declaration.
 inferTestFuncDeclTypes :: [String] -> Converter [HS.FuncDecl]
 inferTestFuncDeclTypes input = localEnv $ do
-  haskellAst  <- parseTestModule input
-  haskellAst' <- runPipeline haskellAst
-  return (HS.modFuncDecls haskellAst')
+  ([], typeSigs, funcDecls ) <- parseTestDecls input
+  ([], _       , funcDecls') <- runPipelineOnDecls [] typeSigs funcDecls
+  return funcDecls'
 
 -- | Parses the given function declarations, infers its type schema and sets
 --   the expectation that the given type schemas are inferred.
