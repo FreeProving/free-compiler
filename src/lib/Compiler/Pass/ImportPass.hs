@@ -1,37 +1,44 @@
--- | This module contains a compiler pass that brings the entries of
---   exported by imported modules into scope. The @Prelude@ is imported
---   implicitly.
+-- | This module contains a compiler pass that adds all entries from imported
+--   modules to the environment.
 --
 --   = Example
 --
---   If a module does not have an explicit import of the @Prelude@ module
+--   When a module @A@ that exports a data type @Foo@
 --
 --   @
---   module Queue where
---
---   import Test.QuickCheck
---
---   type Queue a = ([a], [a])
---   {- ... -}
+--   module A where
+--   data Foo = Foo
 --   @
 --
---   it is added to the import list
+--   is imported by a module @B@
 --
 --   @
---   module Queue where
---
---   import Prelude
---   import Test.QuickCheck
---
---   type Queue a = ([a], [a])
---   {- ... -}
+--   module B where
+--   import A
+--   type Bar a = Foo -> a
 --   @
 --
---   In the example above all functions, data types and constructors
---   exported by the @Prelude@ and @Test.QuickCheck@ modules are added
---   to the environment by their qualified and unqualified name. For
---   instance, the function @negate@ from the @Prelude@ module is in
---   scope as @negate@ and @Prelude.negate@ after this pass.
+--   then an entry for @Foo@ is added to the environment under its original
+--   name @A.Foo@. The resolver pass will make sure that the reference to @Foo@
+--   in the declaration of @Bar@ is resolved to @A.Foo@. Thus, the entry for
+--   @Foo@ can be looked up in the translation of @B@.
+--
+--   When a module @C@ imports @B@
+--
+--   @
+--   module C where
+--   import B
+--   baz :: Bar ()
+--   baz x = ()
+--   @
+--
+--   both @A.Foo@ and @B.Bar@ are added to the environment of @C@ since all
+--   entries imported by @B@ are part of the @B@'s module interface.
+--   In the example above this is needed among others during type inference.
+--   To infer the type of @x@ the type synonym @Bar@ needs to be expanded.
+--   The type of @x@ is @A.Foo@. Thus, the corresponding entry must be visible.
+--   The resolver pass will make sure that @C@ does not directly refer to the
+--   hidden entries of @B@'s module interface.
 --
 --   = Specification
 --
@@ -41,20 +48,14 @@
 --
 --   == Translation
 --
---   If the module does not contain an import of the form @import Prelude@
---   it is added to the top of the import list.
---
---   For each import of the form @import M@ where @M@ is the name of an
---   module for which a 'ModuleInterface' is available, all entries from
---   the module interface are added to the environment. The entries are
---   associated with both their unqualified and qualified names, i.e.,
---   if the module exports an entry @x@, then both @x@ and @M.x@ are in
---   scope.
+--   No modifications are made to the AST. All entries from module interfaces
+--   of imported modules are added to the environment. This includes entries
+--   that are not exported by the imported module.
 --
 --   == Postconditions
 --
---   All entries exported by the imported modules are in scope and there
---   is an explicit import for the @Prelude@ module.
+--   All external entries that could be referenced (directly or indirectly)
+--   by the module are in the environment.
 --
 --   == Error cases
 --
@@ -69,31 +70,16 @@ where
 import           Compiler.Environment
 import           Compiler.Environment.Importer
 import qualified Compiler.Haskell.AST          as HS
-import           Compiler.Haskell.SrcSpan
 import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
 import           Compiler.Pass
 
--- | Brings the entries imported by the given module into scope.
+-- | Compiler pass that adds entries imported by the given module to the
+--   environment.
 importPass :: Pass HS.Module
 importPass ast = do
-  let imports' = addImplicitPreludeImport (HS.modImports ast)
-  mapM_ importModule imports'
-  return ast { HS.modImports = imports' }
-
--- | Adds an import for the @Prelude@ module to the given list of imports if
---   there is no explicit import for the @Prelude@ already.
-addImplicitPreludeImport :: [HS.ImportDecl] -> [HS.ImportDecl]
-addImplicitPreludeImport imports | importsPrelude = imports
-                                 | otherwise      = preludeImport : imports
- where
-  -- | Whether there is an explicit import for the @Prelude@ module.
-  importsPrelude :: Bool
-  importsPrelude = HS.preludeModuleName `elem` map HS.importName imports
-
-  -- | An explicit import for the @Prelude@ module.
-  preludeImport :: HS.ImportDecl
-  preludeImport = HS.ImportDecl NoSrcSpan HS.preludeModuleName
+  mapM_ importModule (HS.modImports ast)
+  return ast
 
 -- | Adds the entries of the module interface imported by the given import
 --   declaration to the environment.

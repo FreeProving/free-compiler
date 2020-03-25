@@ -11,6 +11,7 @@ import           Compiler.Pass
 import           Compiler.Pass.DefineDeclPass
 import           Compiler.Pass.DependencyAnalysisPass
 import           Compiler.Pass.EtaConversionPass
+import           Compiler.Pass.ImplicitPreludePass
 import           Compiler.Pass.ImportPass
 import           Compiler.Pass.TypeSignaturePass
 import           Compiler.Pass.TypeInferencePass
@@ -22,9 +23,10 @@ import           Compiler.Monad.Converter
 -- | The passes of the compiler pipeline.
 pipeline :: [Pass HS.Module]
 pipeline =
-  [ importPass
+  [ implicitPreludePass
   , qualifierPass
   , resolverPass
+  , importPass
   , dependencyAnalysisPass [defineTypeDeclsPass]
   , typeSignaturePass
   , dependencyAnalysisPass [typeInferencePass, defineFuncDeclsPass]
