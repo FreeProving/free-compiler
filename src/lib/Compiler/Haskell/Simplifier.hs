@@ -249,9 +249,9 @@ simplifyDecl decl@(H.FunBind _ _) =
 -- Pattern-bindings for 0-ary functions.
 simplifyDecl (H.PatBind srcSpan (H.PVar _ declName) (H.UnGuardedRhs _ expr) Nothing)
   = do
-    declIdent      <- simplifyFuncDeclName declName
-    (args', expr') <- simplifyExpr expr >>= return . unlambda
-    return ([], [], [HS.FuncDecl srcSpan declIdent [] args' expr' Nothing])
+    declIdent <- simplifyFuncDeclName declName
+    expr'     <- simplifyExpr expr
+    return ([], [], [HS.FuncDecl srcSpan declIdent [] [] expr' Nothing])
 
 -- The pattern-binding for a 0-ary function must not use guards or have a
 -- where block.
@@ -425,10 +425,10 @@ simplifyConDeclName sym@(H.Symbol _ _) =
 simplifyFuncDecl :: H.Match SrcSpan -> Simplifier HS.FuncDecl
 simplifyFuncDecl (H.Match srcSpan declName args (H.UnGuardedRhs _ expr) Nothing)
   = do
-    declIdent       <- simplifyFuncDeclName declName
-    args'           <- mapM simplifyVarPat args
-    (args'', expr') <- simplifyExpr expr >>= return . unlambda
-    return (HS.FuncDecl srcSpan declIdent [] (args' ++ args'') expr' Nothing)
+    declIdent <- simplifyFuncDeclName declName
+    args'     <- mapM simplifyVarPat args
+    expr'     <- simplifyExpr expr
+    return (HS.FuncDecl srcSpan declIdent [] args' expr' Nothing)
 
 -- Function declarations with guards and where blocks are not supported.
 simplifyFuncDecl (H.Match _ _ _ rhss@(H.GuardedRhss _ _) _) =
@@ -452,18 +452,6 @@ simplifyFuncDeclName (H.Ident srcSpan ident) =
   return (HS.DeclIdent srcSpan (HS.UnQual (HS.Ident ident)))
 simplifyFuncDeclName sym@(H.Symbol _ _) =
   notSupported "Operator declarations" sym
-
--- | Splits lambda abstractions into the argument variable patterns and
---   expressions.
---
---   This function is used to convert a \(n\)-ary function declaration with a
---   lambda abstraction @\x -> e@ on the right hand side, to a \(n + 1\)-ary
---   function declaration. This simplification step is not necessary but leads
---   to the generation of more readable code.
-unlambda :: HS.Expr -> ([HS.VarPat], HS.Expr)
-unlambda (HS.Lambda _ args expr _) = (args ++ args', expr')
-  where (args', expr') = unlambda expr
-unlambda expr = ([], expr)
 
 -------------------------------------------------------------------------------
 -- Types                                                                     --
