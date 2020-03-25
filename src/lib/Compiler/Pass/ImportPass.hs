@@ -103,9 +103,7 @@ importModule :: HS.ImportDecl -> Converter ()
 importModule (HS.ImportDecl srcSpan modName) = do
   maybeIface <- inEnv $ lookupAvailableModule modName
   case maybeIface of
-    Just iface -> do
-      modifyEnv $ importInterface iface
-      modifyEnv $ importInterfaceAs modName iface
+    Just iface -> modifyEnv $ importInterface iface
     Nothing ->
       reportFatal
         $  Message srcSpan Error

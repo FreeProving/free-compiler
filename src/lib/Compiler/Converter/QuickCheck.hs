@@ -18,8 +18,6 @@ import           Compiler.Analysis.DependencyAnalysis
 import           Compiler.Converter.Expr
 import           Compiler.Converter.FuncDecl.Common
 import qualified Compiler.Coq.AST              as G
-import           Compiler.Environment
-import           Compiler.Environment.Scope
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
@@ -46,13 +44,12 @@ quickCheckPropertyName = HS.Qual quickCheckModuleName (HS.Ident "Property")
 --   QuickCheck properties are functions with return a value
 --   of type @Property@.
 isQuickCheckProperty :: HS.FuncDecl -> Converter Bool
-isQuickCheckProperty = maybe (return False) isProperty . HS.funcDeclReturnType
+isQuickCheckProperty = return . maybe False isProperty . HS.funcDeclReturnType
  where
   -- | Tests whether the given type is @Property@.
-  isProperty :: HS.Type -> Converter Bool
-  isProperty (HS.TypeCon _ name) =
-    inEnv $ refersTo quickCheckPropertyName TypeScope name
-  isProperty _ = return False
+  isProperty :: HS.Type -> Bool
+  isProperty (HS.TypeCon _ name) = name == quickCheckPropertyName
+  isProperty _                   = False
 
 -- | Tests whether the given strongly connected component of the function
 --   dependency graph contains a QuickCheck property.

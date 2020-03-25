@@ -14,7 +14,6 @@ importQuickCheck :: Converter ()
 importQuickCheck = do
   Just quickCheckInterface <- inEnv $ lookupAvailableModule quickCheckModuleName
   modifyEnv $ importInterface quickCheckInterface
-  modifyEnv $ importInterfaceAs quickCheckModuleName quickCheckInterface
 
 -- | Test group for 'convertQuickCheckProperty' tests.
 testConvertQuickCheckProperty :: Spec

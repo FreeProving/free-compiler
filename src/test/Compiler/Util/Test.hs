@@ -79,7 +79,6 @@ fromConverter :: Converter a -> ReporterIO a
 fromConverter converter = fromModuleConverter $ do
   Just preludeIface <- inEnv $ lookupAvailableModule HS.preludeModuleName
   modifyEnv $ importInterface preludeIface
-  modifyEnv $ importInterfaceAs HS.preludeModuleName preludeIface
   converter
 
 -- | Like 'fromConverter' but the @Prelude@ module is not imported

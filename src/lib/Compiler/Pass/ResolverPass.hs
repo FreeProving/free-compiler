@@ -236,8 +236,8 @@ resolverPass ast = do
 --   TODO remove me once the tests are updated
 resolverEnvFromConverter :: Converter ResolverEnv
 resolverEnvFromConverter = do
-  entries <- inEnv $ Set.unions . map fst . Map.elems . envEntries
-  let entries'  = map resolverEntryFromEnvEntry (Set.toList entries)
+  entries <- inEnv $ Map.elems . envEntries
+  let entries'  = map resolverEntryFromEnvEntry entries
       qualEnv   = resolverEnvFromEntries entries'
       unQualEnv = resolverEnvFromUnQualEntries entries'
   return (qualEnv `mergeResolverEnv` unQualEnv)

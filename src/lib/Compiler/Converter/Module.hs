@@ -43,7 +43,8 @@ convertModule' haskellAst = do
   decls' <- convertDecls (HS.modTypeDecls haskellAst)
                          (HS.modFuncDecls haskellAst)
   -- Export module interface.
-  let coqAst = G.comment ("module " ++ HS.modName haskellAst) : imports' ++ decls'
+  let coqAst =
+        G.comment ("module " ++ HS.modName haskellAst) : imports' ++ decls'
   interface <- exportInterface (HS.modName haskellAst)
   return (coqAst, interface)
 
@@ -160,23 +161,27 @@ exportInterface :: HS.ModName -> Converter ModuleInterface
 exportInterface modName = do
   exports <-
     inEnv
-    $ Set.filter (not . HS.isInternalQName . snd)
-    . Set.unions
-    . map (Set.map entryScopedName . fst)
-    . filter ((== 0) . snd)
+    $ filter (isExported . snd)
+    . map entryScopedName
     . Map.elems
     . envEntries
   entries <-
     inEnv
     $ filter (not . HS.isInternalQName . entryName)
-    . Set.toList
-    . Set.unions
-    . map fst
     . Map.elems
     . envEntries
   entries' <- mapM resolveReferences entries
   return ModuleInterface { interfaceModName = modName
                          , interfaceLibName = CoqBase.generatedLibName
-                         , interfaceExports = exports
+                         , interfaceExports = Set.fromList exports
                          , interfaceEntries = Set.fromList entries'
                          }
+ where
+   -- Tests whether to export the entry with the given name.
+   --
+   -- Only non-internal entries that are defined at top-level of the exported
+   -- module are exported.
+  isExported :: HS.QName -> Bool
+  isExported (HS.Qual modName' name) =
+    modName' == modName && not (HS.isInternalName name)
+  isExported (HS.UnQual _) = False

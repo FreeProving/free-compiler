@@ -15,14 +15,10 @@ module Compiler.Environment
   , lookupAvailableModule
   -- * Inserting entries into the environment
   , addEntry
-  , addEntry'
   , defineDecArg
   , removeDecArg
   -- * Looking up entries from the environment
-  , lookupEntries
   , lookupEntry
-  , existsLocalEntry
-  , refersTo
   , isFunction
   , isVariable
   , isPureVar
@@ -56,7 +52,6 @@ import           Data.Maybe                     ( catMaybes
                                                 , isJust
                                                 )
 import           Data.Set                       ( Set )
-import qualified Data.Set                      as Set
 import           Data.Tuple.Extra               ( (&&&) )
 
 import qualified Compiler.Coq.AST              as G
@@ -102,12 +97,8 @@ data Environment = Environment
     -- ^ Whether the currently converted node is inside of a @Section@
     --   sentence.
 
-  , envEntries           :: Map ScopedName (Set EnvEntry, Int)
-    -- ^ Maps Haskell names to entries for declarations.
-    --   In addition to the entry, the 'envDepth' of the environment is
-    --   recorded.
-    --   There can be multiple entries with the same name as long as they are
-    --   not referenced. Entries are identified by their original name.
+  , envEntries           :: Map ScopedName EnvEntry
+    -- ^ Maps original names of entries for declarations to the entries.
   , envDecArgs           :: Map HS.QName (Int, String)
     -- ^ Maps Haskell function names to the index and name of their decreasing
     --   argument. Contains no entry for non-recursive functions, but there are
@@ -161,34 +152,10 @@ lookupAvailableModule modName = Map.lookup modName . envAvailableModules
 -------------------------------------------------------------------------------
 
 -- | Inserts an entry into the given environment and associates it with
---   the given name.
-addEntry :: HS.QName -> EnvEntry -> Environment -> Environment
-addEntry name entry env = addEntry' name entry (envDepth env) env
-
--- | Like 'addEntry' but has an additional parameter for the 'envDepth' value
---   to record.
-addEntry' :: HS.QName -> EnvEntry -> Int -> Environment -> Environment
-addEntry' name entry depth env = env
-  { envEntries = Map.insertWith mergeEntries
-                                (entryScope entry   , name)
-                                (Set.singleton entry, depth)
-                                (envEntries env)
-  }
- where
-  -- | Adds the given set of entries to an existing set of entries.
-  --
-  --   If the new entries are declared deeper, they shadow the existing
-  --   entries, i.e., the resulting set contains the new entries only.
-  --   If the new entries are declared at the same depth, they are added
-  --   to the existing entries. Both the existing and the new entries
-  --   remain visible.
-  mergeEntries
-    :: (Set EnvEntry, Int) -- ^ The new entries.
-    -> (Set EnvEntry, Int) -- ^ The old entries.
-    -> (Set EnvEntry, Int)
-  mergeEntries (newEntries, newDepth) (oldEntries, oldDepth)
-    | newDepth == oldDepth = (newEntries `Set.union` oldEntries, newDepth)
-    | otherwise            = (newEntries, newDepth)
+--   its original name.
+addEntry :: EnvEntry -> Environment -> Environment
+addEntry entry env =
+  env { envEntries = Map.insert (entryScopedName entry) entry (envEntries env) }
 
 -- | Stores the index of the decreasing argument of a recursive function
 --   in the environment.
@@ -208,31 +175,10 @@ removeDecArg funcName env =
 -- Looking up entries from the environment                                   --
 -------------------------------------------------------------------------------
 
--- | Looks up the entries that have been associated with the given name in
---   the specified scope of the given environment.
-lookupEntries :: Scope -> HS.QName -> Environment -> [EnvEntry]
-lookupEntries scope name =
-  maybe [] (Set.toList . fst) . Map.lookup (scope, name) . envEntries
-
--- Like 'lookupEntries' but returns @Nothing@ if the given name is ambigous.
+-- | Looks up the entry with the given original name in the given scope of
+--   the given environment.
 lookupEntry :: Scope -> HS.QName -> Environment -> Maybe EnvEntry
-lookupEntry = maybeFromSingleton .:. lookupEntries
- where
-  maybeFromSingleton :: [a] -> Maybe a
-  maybeFromSingleton [x] = Just x
-  maybeFromSingleton _   = Nothing
-
--- | Tests whether there is an entry with the given name in the current
---   environment that was not inherited from a parent environment.
-existsLocalEntry :: Scope -> HS.QName -> Environment -> Bool
-existsLocalEntry scope name =
-  uncurry (==)
-    . (Just . envDepth &&& fmap snd . Map.lookup (scope, name) . envEntries)
-
--- | Tests whether the given name (third argument) refers to an entry with
---   the given original name (first argument).
-refersTo :: HS.QName -> Scope -> HS.QName -> Environment -> Bool
-refersTo name = maybe False ((== name) . entryName) .:. lookupEntry
+lookupEntry scope name = Map.lookup (scope, name) . envEntries
 
 -- | Tests whether the given name identifies a function in the given
 --   environment.
@@ -271,7 +217,7 @@ lookupSmartIdent =
 -- | Gets a list of Coq identifiers for functions, (type/smart) constructors,
 --   (type/fresh) variables that were used in the given environment already.
 usedIdents :: Environment -> [G.Qualid]
-usedIdents = concatMap (concatMap entryIdents . fst) . Map.elems . envEntries
+usedIdents = concatMap entryIdents . Map.elems . envEntries
  where
   entryIdents :: EnvEntry -> [G.Qualid]
   entryIdents entry

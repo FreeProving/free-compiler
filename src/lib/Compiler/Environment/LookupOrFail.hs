@@ -1,5 +1,5 @@
 -- | This module contains functions to lookup entries of the 'Environment'
---   that (in constrast to the functions defined in "Compiler.Environment")
+--   that (in contrast to the functions defined in "Compiler.Environment")
 --   report a fatal error message when there is no such entry.
 
 module Compiler.Environment.LookupOrFail where
@@ -21,17 +21,13 @@ import           Compiler.Pretty
 --   If an error is reported, it points to the given source span.
 lookupEntryOrFail :: SrcSpan -> Scope -> HS.QName -> Converter EnvEntry
 lookupEntryOrFail srcSpan scope name = do
-  entries <- inEnv $ lookupEntries scope name
-  case entries of
-    [entry] -> return entry
-    [] ->
+  maybeEntry <- inEnv $ lookupEntry scope name
+  case maybeEntry of
+    Just entry -> return entry
+    Nothing ->
       reportFatal
         $ Message srcSpan Error
         $ ("Identifier not in scope '" ++ showPretty name ++ "'")
-    _ ->
-      reportFatal
-        $ Message srcSpan Error
-        $ ("Ambiguous occurrence '" ++ showPretty name ++ "'")
 
 -- | Looks up the Coq identifier for a Haskell function, (type)
 --   constructor or (type) variable with the given name or reports a fatal

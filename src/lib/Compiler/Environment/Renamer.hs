@@ -39,7 +39,6 @@ import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Haskell.SrcSpan
 import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
-import           Compiler.Pretty
 
 -------------------------------------------------------------------------------
 -- Predicates                                                                --
@@ -213,14 +212,10 @@ renameAndAddEntry :: EnvEntry -> Converter EnvEntry
 renameAndAddEntry entry = do
   -- Generate new Coq identifier.
   entry' <- inEnv $ renameEntry entry
-  -- Error handling and notifications.
-  checkRedefinition entry'
+  -- Notify user if the entry was renamed.
   informIfRenamed entry entry'
-  -- Associate the entry with its qualified and unqualified name.
-  let qualName   = entryName entry
-      unqualName = HS.UnQual (HS.nameFromQName qualName)
-  modifyEnv (addEntry qualName entry')
-  modifyEnv (addEntry unqualName entry')
+  -- Associate the entry with its original name.
+  modifyEnv (addEntry entry')
   return entry'
 
 -- | Associates the identifier of a user defined Haskell type variable with an
@@ -264,30 +259,6 @@ renameAndDefineVar srcSpan isPure ident maybeVarType = do
 -------------------------------------------------------------------------------
 -- Error reporting                                                           --
 -------------------------------------------------------------------------------
-
--- | Tests whether there is an entry with the same name in the current
---   scope (not a parent scope) already.
-checkRedefinition :: EnvEntry -> Converter ()
-checkRedefinition entry = do
-  let name  = entryName entry
-      scope = entryScope entry
-  localEntry <- inEnv $ existsLocalEntry scope name
-  when localEntry $ do
-    maybeEntry' <- inEnv $ lookupEntry scope name
-    case maybeEntry' of
-      Nothing -> return ()
-      Just entry' ->
-        reportFatal
-          $  Message (entrySrcSpan entry) Error
-          $  "Multiple declarations of "
-          ++ prettyEntryType entry
-          ++ " '"
-          ++ showPretty name
-          ++ "'. Declared at "
-          ++ showPretty (entrySrcSpan entry)
-          ++ " and "
-          ++ showPretty (entrySrcSpan entry')
-          ++ "."
 
 -- | Reports a message if the given entry has been renamed.
 informIfRenamed :: EnvEntry -> EnvEntry -> Converter ()

@@ -476,8 +476,7 @@ updateTypeSig mgu constTypeVars argTypeMap returnTypeMap funcDecl = do
                           , entryReturnType    = Just returnType
                           , entryNeedsFreeArgs = False
                           }
-  modifyEnv $ addEntry name entry'
-  modifyEnv $ addEntry (entryName entry) entry'
+  modifyEnv $ addEntry entry'
   -- Update the index of the decreasing argument if it has been
   -- specified by the user.
   maybeDecArgIdent <- inEnv $ lookupDecArgIdent name

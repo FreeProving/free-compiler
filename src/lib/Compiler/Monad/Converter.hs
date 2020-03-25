@@ -216,16 +216,13 @@ sectionEnv converter = localEnv' $ do
 shadowVarPats :: MonadConverter m => [HS.VarPat] -> m a -> m a
 shadowVarPats varPats converter = do
   oldEntries <- inEnv envEntries
-  flip mapM_ varPats $ \varPat -> do
-    let varName = HS.varPatQName varPat
-    modifyEnv $ addEntry
-      varName
-      VarEntry { entrySrcSpan = HS.varPatSrcSpan varPat
-               , entryIsPure  = False
-               , entryIdent   = undefined
-               , entryName    = varName
-               , entryType    = HS.varPatType varPat
-               }
+  flip mapM_ varPats $ \varPat -> modifyEnv $ addEntry VarEntry
+    { entrySrcSpan = HS.varPatSrcSpan varPat
+    , entryIsPure  = False
+    , entryIdent   = undefined
+    , entryName    = HS.varPatQName varPat
+    , entryType    = HS.varPatType varPat
+    }
   x <- converter
   modifyEnv $ \env -> env { envEntries = oldEntries }
   return x
