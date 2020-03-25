@@ -4,7 +4,6 @@ import           Test.Hspec
 
 import           Control.Monad.Extra            ( zipWithM_ )
 
-import           Compiler.Environment.Resolver
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Monad.Converter
 
@@ -458,11 +457,9 @@ inferTestType input = do
 shouldInferType :: String -> (String, String) -> Converter Expectation
 shouldInferType input (expectedExpr, expectedType) = do
   (annoatedExpr, inferredType) <- inferTestType input
-  annoatedExpr'                <- resolveTypes annoatedExpr
-  inferredType'                <- resolveTypes inferredType
   return $ do
-    annoatedExpr' `prettyShouldBe` expectedExpr
-    inferredType' `prettyShouldBe` expectedType
+    annoatedExpr `prettyShouldBe` expectedExpr
+    inferredType `prettyShouldBe` expectedType
 
 -- | Parses the given declarations, adds the type signatures to the environment
 --   and infers the types of the function declarations.
@@ -483,5 +480,4 @@ inferTestFuncDeclTypes input = localEnv $ do
 shouldInferFuncDeclTypes :: [String] -> [String] -> Converter Expectation
 shouldInferFuncDeclTypes input expectedOutput = do
   output  <- inferTestFuncDeclTypes input
-  output' <- mapM resolveTypes output
-  return (zipWithM_ prettyShouldBe output' expectedOutput)
+  return (zipWithM_ prettyShouldBe output expectedOutput)

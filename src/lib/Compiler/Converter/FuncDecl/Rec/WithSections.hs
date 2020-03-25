@@ -45,10 +45,8 @@ import           Compiler.Environment.Entry
 import           Compiler.Environment.Fresh
 import           Compiler.Environment.LookupOrFail
 import           Compiler.Environment.Renamer
-import           Compiler.Environment.Resolver
 import           Compiler.Environment.Scope
 import qualified Compiler.Haskell.AST          as HS
-import           Compiler.Haskell.Inliner
 import           Compiler.Haskell.SrcSpan
 import           Compiler.Haskell.Subst
 import           Compiler.Haskell.Unification
@@ -280,11 +278,9 @@ lookupConstArgType argTypeMap constArg = do
       types   = catMaybes $ map (flip Map.lookup argTypeMap) idents
       srcSpan = HS.typeSrcSpan (head types)
   -- Unify all annotated types of the constant argument.
-  -- TODO expansion and resolving should not be necessary anymore
-  expandedTypes <- mapM expandAllTypeSynonyms types
-  resolvedTypes <- mapM resolveTypes expandedTypes
-  mgu           <- unifyAllOrFail srcSpan resolvedTypes
-  constArgType  <- applySubst mgu (head resolvedTypes)
+  -- TODO expansion should not be necessary anymore
+  mgu           <- unifyAllOrFail srcSpan types
+  constArgType  <- applySubst mgu (head types)
   return (constArgType, mgu)
 
 -------------------------------------------------------------------------------

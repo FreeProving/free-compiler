@@ -18,7 +18,6 @@ import qualified Compiler.Coq.AST              as G
 import qualified Compiler.Coq.Base             as CoqBase
 import           Compiler.Environment
 import           Compiler.Environment.Entry
-import           Compiler.Environment.Resolver
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
@@ -170,11 +169,10 @@ exportInterface modName = do
     $ filter (not . HS.isInternalQName . entryName)
     . Map.elems
     . envEntries
-  entries' <- mapM resolveReferences entries
   return ModuleInterface { interfaceModName = modName
                          , interfaceLibName = CoqBase.generatedLibName
                          , interfaceExports = Set.fromList exports
-                         , interfaceEntries = Set.fromList entries'
+                         , interfaceEntries = Set.fromList entries
                          }
  where
    -- Tests whether to export the entry with the given name.
