@@ -9,6 +9,8 @@
 --   package). For testing purposes instances may be created directly.
 module Compiler.Haskell.AST where
 
+import           Control.Monad                  ( (>=>) )
+
 import           Compiler.Haskell.SrcSpan
 import           Compiler.Pretty
 
@@ -608,70 +610,79 @@ prettyTypePred _ t = parens (pretty t)
 --  (see "Compiler.Haskell.Simplifier").
 data Expr
   = -- | A constructor.
-    Con { exprSrcSpan :: SrcSpan
-        , exprConName :: ConName
-        , exprType    :: Maybe Type
+    Con { exprSrcSpan    :: SrcSpan
+        , exprConName    :: ConName
+        , exprTypeSchema :: Maybe TypeSchema
         }
 
   | -- | A function or local variable.
-    Var { exprSrcSpan :: SrcSpan
-        , exprVarName :: VarName
-        , exprType    :: Maybe Type
+    Var { exprSrcSpan    :: SrcSpan
+        , exprVarName    :: VarName
+        , exprTypeSchema :: Maybe TypeSchema
         }
 
   | -- | Function or constructor application.
-    App { exprSrcSpan :: SrcSpan
-        , exprAppLhr  :: Expr
-        , exprAppRhs  :: Expr
-        , exprType    :: Maybe Type
+    App { exprSrcSpan    :: SrcSpan
+        , exprAppLhr     :: Expr
+        , exprAppRhs     :: Expr
+        , exprTypeSchema :: Maybe TypeSchema
         }
 
   | -- | Visible type application.
     TypeAppExpr { exprSrcSpan    :: SrcSpan
                 , exprTypeAppLhs :: Expr
                 , exprTypeAppRhs :: Type
-                , exprType       :: Maybe Type
+                , exprTypeSchema :: Maybe TypeSchema
                 }
 
   | -- | @if@ expression.
-    If { exprSrcSpan :: SrcSpan
-       , ifExprCond  :: Expr
-       , ifExprThen  :: Expr
-       , ifExprElse  :: Expr
-       , exprType    :: Maybe Type
+    If { exprSrcSpan    :: SrcSpan
+       , ifExprCond     :: Expr
+       , ifExprThen     :: Expr
+       , ifExprElse     :: Expr
+       , exprTypeSchema :: Maybe TypeSchema
        }
 
   | -- | @case@ expression.
     Case { exprSrcSpan       :: SrcSpan
          , caseExprScrutinee :: Expr
          , caseExprAlts      :: [Alt]
-         , exprType          :: Maybe Type
+         , exprTypeSchema    :: Maybe TypeSchema
          }
 
   | -- | Error term @undefined@.
     Undefined { exprSrcSpan :: SrcSpan
-              , exprType    :: Maybe Type
+              , exprTypeSchema :: Maybe TypeSchema
               }
 
   | -- | Error term @error "<message>"@.
-    ErrorExpr { exprSrcSpan  :: SrcSpan
-              , errorExprMsg :: String
-              , exprType     :: Maybe Type
+    ErrorExpr { exprSrcSpan    :: SrcSpan
+              , errorExprMsg   :: String
+              , exprTypeSchema :: Maybe TypeSchema
               }
 
   | -- | An integer literal.
     IntLiteral { exprSrcSpan     :: SrcSpan
                , intLiteralValue :: Integer
-               , exprType        :: Maybe Type
+               , exprTypeSchema  :: Maybe TypeSchema
                }
 
   | -- | A lambda abstraction.
     Lambda { exprSrcSpan    :: SrcSpan
            , lambdaExprArgs :: [VarPat]
            , lambdaEprRhs   :: Expr
-           , exprType       :: Maybe Type
+           , exprTypeSchema :: Maybe TypeSchema
            }
  deriving (Eq, Show)
+
+-- | Gets the type annotation of the given expression but discards the @forall@.
+--
+--   Type annotations quantify their type variables usually only if they are
+--   as expression type signatures. The type annotations generated during
+--   type inference never quantify their type arguments.
+exprType :: Expr -> Maybe Type
+exprType = exprTypeSchema >=> \(TypeSchema _ typeArgs typeExpr) ->
+  if null typeArgs then Just typeExpr else Nothing
 
 -- | Smart constructor for 'Con' without the last argument.
 untypedCon :: SrcSpan -> ConName -> Expr
@@ -687,8 +698,15 @@ untypedVar srcSpan varName = Var srcSpan varName Nothing
 --   If it is annotated with a function type, the  created expression
 --   is annotated with the function type's result type.
 untypedApp :: SrcSpan -> Expr -> Expr -> Expr
-untypedApp srcSpan e1 e2 = App srcSpan e1 e2 (exprType e1 >>= maybeFuncResType)
+untypedApp srcSpan e1 e2 = App srcSpan e1 e2 appType
  where
+  appType :: Maybe TypeSchema
+  appType = exprTypeSchema e1 >>= maybeFuncResTypeSchema
+
+  maybeFuncResTypeSchema :: TypeSchema -> Maybe TypeSchema
+  maybeFuncResTypeSchema (TypeSchema srcSpan' typeArgs typeExpr) =
+    TypeSchema srcSpan' typeArgs <$> maybeFuncResType typeExpr
+
   maybeFuncResType :: Type -> Maybe Type
   maybeFuncResType (FuncType _ _ resType) = Just resType
   maybeFuncResType _                      = Nothing
@@ -744,7 +762,8 @@ conApp srcSpan = app srcSpan . untypedCon srcSpan
 --   If the given expression's type is annotated, all generated visible
 --   type application nodes are annotated with the same type.
 visibleTypeApp :: SrcSpan -> Expr -> [Type] -> Expr
-visibleTypeApp srcSpan = foldl (\e t -> TypeAppExpr srcSpan e t (exprType e))
+visibleTypeApp srcSpan =
+  foldl (\e t -> TypeAppExpr srcSpan e t (exprTypeSchema e))
 
 -- | Pretty instance for expressions.
 --

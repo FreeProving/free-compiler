@@ -402,13 +402,14 @@ annotateVarPat varPat = do
 --   annotated type with the given type. The annotated expression keeps its
 --   original annotation.
 annotateExprWith :: HS.Expr -> HS.Type -> TypeInference HS.Expr
-annotateExprWith expr resType = case HS.exprType expr of
-  Nothing       -> annotateExprWith' expr resType
-  Just exprType -> do
+annotateExprWith expr resType = case HS.exprTypeSchema expr of
+  Nothing         -> annotateExprWith' expr resType
+  Just typeSchema -> do
+    exprType <- liftConverter $ instantiateTypeSchema typeSchema
     addTypeEquation (HS.exprSrcSpan expr) exprType resType
     annotateExprWith' expr exprType
 
--- | Version of 'annotateExprWith' that ignores exisiting type annotations.
+-- | Version of 'annotateExprWith' that ignores existing type annotations.
 annotateExprWith' :: HS.Expr -> HS.Type -> TypeInference HS.Expr
 
 -- If @C :: τ@ is a predefined constructor with @C :: forall α₀ … αₙ. τ'@,
@@ -416,7 +417,7 @@ annotateExprWith' :: HS.Expr -> HS.Type -> TypeInference HS.Expr
 -- and @β₀, …, βₙ@ are fresh type variables.
 annotateExprWith' (HS.Con srcSpan conName _) resType = do
   addTypeEquationFor srcSpan conName resType
-  return (HS.Con srcSpan conName (Just resType))
+  return (HS.Con srcSpan conName (makeExprType resType))
 
 -- If @x :: τ@ is in scope with @x :: forall α₀ … αₙ. τ'@, then add a type
 -- equation @τ = σ(τ')@ where @σ = { α₀ ↦ β₀, …, αₙ ↦ βₙ }@ and @β₀, …, βₙ@
@@ -427,7 +428,7 @@ annotateExprWith' (HS.Con srcSpan conName _) resType = do
 -- annotated with and the given type @τ@ is simply added in this case.
 annotateExprWith' (HS.Var srcSpan varName _) resType = do
   addTypeEquationFor srcSpan varName resType
-  return (HS.Var srcSpan varName (Just resType))
+  return (HS.Var srcSpan varName (makeExprType resType))
 
 -- If @(e₁ e₂) :: τ@, then @e₁ :: α -> τ@ and @e₂ :: α@ where @α@ is a fresh
 -- type variable.
@@ -435,7 +436,7 @@ annotateExprWith' (HS.App srcSpan e1 e2 _) resType = do
   argType <- liftConverter freshTypeVar
   e1'     <- annotateExprWith e1 (HS.FuncType NoSrcSpan argType resType)
   e2'     <- annotateExprWith e2 argType
-  return (HS.App srcSpan e1' e2' (Just resType))
+  return (HS.App srcSpan e1' e2' (makeExprType resType))
 
 -- There should be no visible type applications prior to type inference.
 annotateExprWith' (HS.TypeAppExpr srcSpan _ _ _) _ =
@@ -447,7 +448,7 @@ annotateExprWith' (HS.If srcSpan e1 e2 e3 _) resType = do
   e1' <- annotateExprWith e1 condType
   e2' <- annotateExprWith e2 resType
   e3' <- annotateExprWith e3 resType
-  return (HS.If srcSpan e1' e2' e3' (Just resType))
+  return (HS.If srcSpan e1' e2' e3' (makeExprType resType))
 
 -- If @case e of {p₀ -> e₀; …; pₙ -> eₙ} :: τ@, then @e₀, …, eₙ :: τ@ and
 -- @e :: α@ and @p₀, …, pₙ :: α@ where @α@ is a fresh type variable.
@@ -455,7 +456,7 @@ annotateExprWith' (HS.Case srcSpan scrutinee alts _) resType = do
   scrutineeType <- liftConverter freshTypeVar
   scrutinee'    <- annotateExprWith scrutinee scrutineeType
   alts'         <- mapM (flip annotateAlt scrutineeType) alts
-  return (HS.Case srcSpan scrutinee' alts' (Just resType))
+  return (HS.Case srcSpan scrutinee' alts' (makeExprType resType))
  where
   -- | Annotates the pattern of the given alternative with the given type
   --   and its right-hand side with the @case@ expressions result type.
@@ -472,16 +473,16 @@ annotateExprWith' (HS.Case srcSpan scrutinee alts _) resType = do
 -- Error terms are predefined polymorphic funtions. They can be annoated
 -- with the given result type directly.
 annotateExprWith' (HS.Undefined srcSpan _) resType =
-  return (HS.Undefined srcSpan (Just resType))
+  return (HS.Undefined srcSpan (makeExprType resType))
 annotateExprWith' (HS.ErrorExpr srcSpan msg _) resType =
-  return (HS.ErrorExpr srcSpan msg (Just resType))
+  return (HS.ErrorExpr srcSpan msg (makeExprType resType))
 
 -- If @n :: τ@ for some integer literal @n@, then add the type equation
 -- @τ = Integer@.
 annotateExprWith' (HS.IntLiteral srcSpan value _) resType = do
   let intType = HS.TypeCon NoSrcSpan HS.integerTypeConName
   addTypeEquation srcSpan intType resType
-  return (HS.IntLiteral srcSpan value (Just resType))
+  return (HS.IntLiteral srcSpan value (makeExprType resType))
 
 -- If @\x₀ … xₙ -> e :: τ@, then @x₀ :: α₀, …, xₙ :: αₙ@ and @x :: β@ for
 -- fresh type variables @α₀, …, αₙ@ and @β@ and add the a type equation
@@ -494,7 +495,17 @@ annotateExprWith' (HS.Lambda srcSpan args expr _) resType =
     let argTypes = map (fromJust . HS.varPatType) args'
         funcType = HS.funcType NoSrcSpan argTypes retType
     addTypeEquation srcSpan funcType resType
-    return (HS.Lambda srcSpan args' expr' (Just resType))
+    return (HS.Lambda srcSpan args' expr' (makeExprType resType))
+
+-- | Utility function used by 'annotateExprWith' to construct the
+--   'HS.exprTypeSchema' field.
+--
+--   Never returns @Nothing@ since all expressions must be annotated by
+--   'annotateExprWith'. The type schema does not quantify any variables.
+--   Type variables will be bound by the function declaration that contains
+--   the expression.
+makeExprType :: HS.Type -> Maybe HS.TypeSchema
+makeExprType = Just . HS.TypeSchema NoSrcSpan []
 
 -- | Applies 'annotateExpr' to the right-hand side of the given function
 --   declarations and annotates the function arguments and return types
@@ -530,17 +541,23 @@ annotateFuncDecls funcDecls = withLocalTypeAssumption $ do
 -- | Replaces a type signature added by 'annotateExpr' for a variable or
 --   constructor with the given name by a visible type application of that
 --   function or constructor.
-applyVisibly :: HS.QName -> HS.Expr -> HS.Type -> TypeInference HS.Expr
-applyVisibly name expr typeExpr = do
-  maybeTypeSchema <- lookupTypeAssumption name
-  case maybeTypeSchema of
-    Nothing         -> return expr
-    Just typeSchema -> do
-      let srcSpan = HS.exprSrcSpan expr
-      (typeExpr', typeArgs) <- liftConverter $ instantiateTypeSchema' typeSchema
-      mgu <- liftConverter $ unifyOrFail srcSpan typeExpr typeExpr'
-      fixed                 <- lookupFixedTypeArgs name
-      typeArgs'             <- liftConverter
+--
+--   This function assumes that the expression has a type annotation without
+--   quantified type variables, i.e., 'HS.exprTypeSchema' was set beforehand
+--   using 'annotateExprWith'.
+applyVisibly :: HS.QName -> HS.Expr -> TypeInference HS.Expr
+applyVisibly name expr = do
+  let srcSpan = HS.exprSrcSpan expr
+      Just annotatedType = HS.exprType expr
+  maybeAssumedTypeSchema <- lookupTypeAssumption name
+  case maybeAssumedTypeSchema of
+    Nothing                -> return expr
+    Just assumedTypeSchema -> do
+      (assumedType, typeArgs) <- liftConverter
+        $ instantiateTypeSchema' assumedTypeSchema
+      mgu       <- liftConverter $ unifyOrFail srcSpan annotatedType assumedType
+      fixed     <- lookupFixedTypeArgs name
+      typeArgs' <- liftConverter
         $ mapM (applySubst mgu) (dropEnd (length fixed) typeArgs)
       return (HS.visibleTypeApp srcSpan expr (typeArgs' ++ fixed))
 
@@ -548,16 +565,17 @@ applyVisibly name expr typeExpr = do
 --   application expressions.
 applyExprVisibly :: HS.Expr -> TypeInference HS.Expr
 
--- Add visible type applications to functions, constructors and error terms
--- with type annotation.
-applyExprVisibly expr@(HS.Con _ conName (Just exprType)) =
-  applyVisibly conName expr exprType
-applyExprVisibly expr@(HS.Var _ varName (Just exprType)) =
-  applyVisibly varName expr exprType
-applyExprVisibly expr@(HS.Undefined srcSpan (Just exprType)) =
-  return (HS.TypeAppExpr srcSpan expr exprType (Just exprType))
-applyExprVisibly expr@(HS.ErrorExpr srcSpan _ (Just exprType)) =
-  return (HS.TypeAppExpr srcSpan expr exprType (Just exprType))
+-- Add visible type applications to functions, constructors and error terms.
+-- We can assume that the expression has a type annotation without quantified
+-- type variables since 'annotateExprWith' was applied before.
+applyExprVisibly expr@(HS.Con _ conName _) = applyVisibly conName expr
+applyExprVisibly expr@(HS.Var _ varName _) = applyVisibly varName expr
+applyExprVisibly expr@(HS.Undefined srcSpan exprType) = do
+  let Just (HS.TypeSchema _ [] typeArg) = exprType
+  return (HS.TypeAppExpr srcSpan expr typeArg exprType)
+applyExprVisibly expr@(HS.ErrorExpr srcSpan _ exprType) = do
+  let Just (HS.TypeSchema _ [] typeArg) = exprType
+  return (HS.TypeAppExpr srcSpan expr typeArg exprType)
 
 -- There should be no visible type applications prior to type inference.
 applyExprVisibly (HS.TypeAppExpr srcSpan _ _ _) = unexpectedTypeAppExpr srcSpan
@@ -582,11 +600,7 @@ applyExprVisibly (HS.Lambda srcSpan args expr exprType) =
     expr' <- applyExprVisibly expr
     return (HS.Lambda srcSpan args expr' exprType)
 
--- Leave all other expressions unchanged.
-applyExprVisibly expr@(HS.Con _ _ _       ) = return expr
-applyExprVisibly expr@(HS.Var _ _ _       ) = return expr
-applyExprVisibly expr@(HS.Undefined _ _   ) = return expr
-applyExprVisibly expr@(HS.ErrorExpr  _ _ _) = return expr
+-- Leave all literals unchanged.
 applyExprVisibly expr@(HS.IntLiteral _ _ _) = return expr
 
 -- | Applies 'applyExprVisibly' to the right-hand side of the given @case@-

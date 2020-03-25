@@ -166,7 +166,7 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent typeArgs args expr maybeRetT
         helperArgTypes
       helperReturnType = HS.exprType caseExpr
       helperType       = do
-        helperArgTypes'   <- mapM id helperArgTypes
+        helperArgTypes'   <- sequence helperArgTypes
         helperReturnType' <- helperReturnType
         return (HS.funcType NoSrcSpan helperArgTypes' helperReturnType')
 
@@ -198,6 +198,7 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent typeArgs args expr maybeRetT
 
     -- Build helper function declaration and application.
     let helperTypeArgs' = map HS.typeVarDeclToType helperTypeArgs
+        helperAppType   = HS.TypeSchema NoSrcSpan [] <$> helperType
         helperDecl      = HS.FuncDecl srcSpan
                                       helperDeclIdent
                                       helperTypeArgs
@@ -207,7 +208,7 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent typeArgs args expr maybeRetT
         helperApp = HS.app
           NoSrcSpan
           (HS.visibleTypeApp NoSrcSpan
-                             (HS.Var NoSrcSpan helperName helperType)
+                             (HS.Var NoSrcSpan helperName helperAppType)
                              helperTypeArgs'
           )
           (map (HS.varPatToExpr) helperArgs)

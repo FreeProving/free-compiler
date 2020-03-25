@@ -33,7 +33,6 @@ import qualified Language.Haskell.Exts.Syntax  as H
 
 import           Compiler.Analysis.DependencyExtraction
                                                 ( typeVars )
-import           Compiler.Converter.TypeSchema  ( instantiateTypeSchema )
 import           Compiler.Environment.Fresh
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Haskell.PragmaParser
@@ -487,8 +486,9 @@ simplifyTypeSchema (H.TyForall srcSpan (Just binds) Nothing typeExpr) = do
 simplifyTypeSchema typeExpr = do
   typeExpr' <- simplifyType typeExpr
   let srcSpan  = HS.typeSrcSpan typeExpr'
-      typeArgs = map (HS.TypeVarDecl NoSrcSpan . fromJust . HS.identFromQName)
-                     (typeVars typeExpr')
+      typeArgs = map
+        (HS.TypeVarDecl NoSrcSpan . fromJust . HS.identFromQName)
+        (typeVars typeExpr')
   return (HS.TypeSchema srcSpan typeArgs typeExpr')
 
 -- | Simplifies the a type expression.
@@ -683,11 +683,10 @@ simplifyExpr (H.Case srcSpan expr alts) = do
 -- Type signatures.
 simplifyExpr (H.ExpTypeSig srcSpan expr typeExpr) = do
   expr' <- simplifyExpr expr
-  case HS.exprType expr' of
+  case HS.exprTypeSchema expr' of
     Nothing -> do
       typeSchema <- simplifyTypeSchema typeExpr
-      typeExpr'  <- instantiateTypeSchema typeSchema
-      return expr' { HS.exprType = Just typeExpr' }
+      return expr' { HS.exprTypeSchema = Just typeSchema }
     Just _ -> do
       report
         $ Message srcSpan Warning
