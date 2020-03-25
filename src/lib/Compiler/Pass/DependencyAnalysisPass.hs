@@ -44,7 +44,6 @@ where
 
 import           Compiler.Analysis.DependencyAnalysis
 import           Compiler.Analysis.DependencyGraph
-import           Compiler.Environment
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Monad.Converter
 import           Compiler.Pass
@@ -86,11 +85,9 @@ dependencyAnalysisPass
   -> HS.Module
   -> Converter HS.Module
 dependencyAnalysisPass childPasses ast = do
-  let modName    = HS.modName ast
-      decls      = getDecls ast
+  let decls      = getDecls ast
       graph      = dependencyGraph decls
       components = groupDependencies graph
-  modifyEnv $ \env -> env { envModName = modName }
   components' <- mapM (runPasses childPasses) components
   let decls' = concatMap unwrapComponent components'
   return (setDecls ast decls')

@@ -36,9 +36,6 @@ convertModule = moduleEnv . (runPipeline >=> convertModule')
 -- | Like 'convertModule'' but does not apply any compiler passes beforehand.
 convertModule' :: HS.Module -> Converter ([G.Sentence], ModuleInterface)
 convertModule' haskellAst = do
-  -- Remember name of converted module.
-  let modName = HS.modName haskellAst
-  modifyEnv $ \env -> env { envModName = modName }
   -- Convert module contents.
   imports' <- convertImportDecls (HS.modImports haskellAst)
   mapM_ (addDecArgPragma (HS.modFuncDecls haskellAst))
@@ -46,8 +43,8 @@ convertModule' haskellAst = do
   decls' <- convertDecls (HS.modTypeDecls haskellAst)
                          (HS.modFuncDecls haskellAst)
   -- Export module interface.
-  let coqAst = G.comment ("module " ++ modName) : imports' ++ decls'
-  interface <- exportInterface
+  let coqAst = G.comment ("module " ++ HS.modName haskellAst) : imports' ++ decls'
+  interface <- exportInterface (HS.modName haskellAst)
   return (coqAst, interface)
 
 -------------------------------------------------------------------------------
@@ -159,9 +156,8 @@ generateImport libName modName = return
 --   are self contained and type synonyms can be expanded properly.
 --   All references in the entries are converted to fully qualified
 --   identifiers before they are exported.
-exportInterface :: Converter ModuleInterface
-exportInterface = do
-  modName <- inEnv envModName
+exportInterface :: HS.ModName -> Converter ModuleInterface
+exportInterface modName = do
   exports <-
     inEnv
     $ Set.filter (not . HS.isInternalQName . snd)

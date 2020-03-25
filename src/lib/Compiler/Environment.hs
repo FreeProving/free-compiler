@@ -96,9 +96,6 @@ data Environment = Environment
   { envDepth             :: Int
     -- ^ The number of parent environments.
 
-  , envModName           :: HS.ModName
-    -- ^ The name of the currently translated module.
-    --   Defaults to the empty string.
   , envAvailableModules  :: Map HS.ModName ModuleInterface
     -- ^ Maps names of modules that can be imported to their interface.
   , envInSection         :: Bool
@@ -125,11 +122,10 @@ data Environment = Environment
 --   functions.
 emptyEnv :: Environment
 emptyEnv = Environment { envDepth            = 0
-    -- Modules and sections
-                       , envModName          = ""
+                         -- Modules and sections
                        , envAvailableModules = Map.empty
                        , envInSection        = False
-    -- Entries
+                         -- Entries
                        , envEntries          = Map.empty
                        , envDecArgs          = Map.empty
                        , envFreshIdentCount  = Map.empty
