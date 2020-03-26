@@ -86,7 +86,6 @@ library haskell-to-coq-internal
                       , Compiler.Analysis.DependencyGraph
                       , Compiler.Analysis.PartialityAnalysis
                       , Compiler.Analysis.RecursionAnalysis
-                      , Compiler.Analysis.TypeInference
                       , Compiler.Config
                       , Compiler.Converter
                       , Compiler.Converter.Arg
