@@ -17,6 +17,7 @@ import           Data.IORef                     ( IORef
 import           Data.Maybe                     ( catMaybes
                                                 , fromJust
                                                 )
+import qualified Data.Set                      as Set
 import           System.IO.Unsafe               ( unsafePerformIO )
 
 import           Compiler.Analysis.DependencyExtraction
@@ -72,6 +73,11 @@ instance Arbitrary HS.Type where
 -- Evaluation of converters and reporters                                    --
 -------------------------------------------------------------------------------
 
+-- | The name of the module whose interface contains test entries added with
+--   'renameAndAddTestEntry'.
+testEntryModuleName :: HS.ModName
+testEntryModuleName = "Test.Entries"
+
 -- | Evaluates the given converter in the default environment.
 --
 --   The @Prelude@ module is imported first.
@@ -88,6 +94,12 @@ fromModuleConverter :: Converter a -> ReporterIO a
 fromModuleConverter converter = flip evalConverterT emptyEnv $ do
   makeTestModuleAvailable "./base/Prelude.toml"
   makeTestModuleAvailable "./base/Test/QuickCheck.toml"
+  modifyEnv $ makeModuleAvailable ModuleInterface
+    { interfaceModName = testEntryModuleName
+    , interfaceLibName = G.ident "Tests"
+    , interfaceExports = Set.empty
+    , interfaceEntries = Set.empty
+    }
   hoist converter
 
 -- | A global variable that caches the module interface of the @Prelude@
@@ -227,13 +239,31 @@ parseTestModule input =
 -- Defining test identifiers                                                 --
 -------------------------------------------------------------------------------
 
--- | Adds the given entry to the current environment and renames it such that
---   no name conflict occurs.
+-- | Adds the given entry to the module interface for the module with the
+--   name 'testEntryModuleName'.
+--
+--   The test module is imported by every dummy module created by the
+--   @runPipelineOn*@ functions. This effectively makes the entry available
+--   in the test cases.
 --
 --   Returns the Coq identifier assigned to the entry by the renamer.
 renameAndAddTestEntry :: EnvEntry -> Converter String
-renameAndAddTestEntry =
-  fmap (fromJust . G.unpackQualid . entryIdent) . renameAndAddEntry
+renameAndAddTestEntry entry = do
+  entry' <- renameAndAddTestEntry' entry
+  return (fromJust (G.unpackQualid (entryIdent entry')))
+
+-- | Like 'renameAndAddTestEntry' but returns the renamed entry.
+renameAndAddTestEntry' :: EnvEntry -> Converter EnvEntry
+renameAndAddTestEntry' entry = do
+  entry'     <- inEnv $ renameEntry entry
+  Just iface <- inEnv $ lookupAvailableModule testEntryModuleName
+  let iface' = iface
+        { interfaceExports = Set.insert (entryScopedName entry')
+                                        (interfaceExports iface)
+        , interfaceEntries = Set.insert entry' (interfaceEntries iface)
+        }
+  modifyEnv $ makeModuleAvailable iface'
+  return entry'
 
 -- | Defines a type constructor for testing purposes.
 --
@@ -280,7 +310,7 @@ defineTestCon ident arity typeStr = do
   typeExpr  <- parseTestType typeStr
   typeExpr' <- runPipelineOnType typeExpr
   let (argTypes, returnType) = HS.splitFuncType typeExpr' arity
-  entry <- renameAndAddEntry ConEntry
+  entry <- renameAndAddTestEntry' ConEntry
     { entrySrcSpan    = NoSrcSpan
     , entryArity      = arity
     , entryTypeArgs   = catMaybes (map HS.identFromQName (typeVars returnType))
@@ -340,6 +370,19 @@ definePartialTestFunc :: String -> Int -> String -> Converter String
 definePartialTestFunc = defineTestFunc' True
 
 -------------------------------------------------------------------------------
+-- Importing test modules                                                    --
+-------------------------------------------------------------------------------
+
+importTestModule :: HS.ModName -> Converter ()
+importTestModule modName = do
+  Just iface     <- inEnv $ lookupAvailableModule modName
+  Just testIface <- inEnv $ lookupAvailableModule testEntryModuleName
+  modifyEnv $ makeModuleAvailable testIface
+    { interfaceExports = Set.unions (map interfaceExports [iface, testIface])
+    , interfaceEntries = Set.unions (map interfaceEntries [iface, testIface])
+    }
+
+-------------------------------------------------------------------------------
 -- Pipeline utility functions                                                --
 -------------------------------------------------------------------------------
 
@@ -351,14 +394,15 @@ runPipelineOnDecls
   -> [HS.FuncDecl]
   -> Converter ([HS.TypeDecl], [HS.TypeSig], [HS.FuncDecl])
 runPipelineOnDecls typeDecls typeSigs funcDecls = do
-  let haskellAst = HS.Module { HS.modSrcSpan   = NoSrcSpan
-                             , HS.modName      = "Main"
-                             , HS.modImports   = []
-                             , HS.modTypeDecls = typeDecls
-                             , HS.modTypeSigs  = typeSigs
-                             , HS.modPragmas   = []
-                             , HS.modFuncDecls = funcDecls
-                             }
+  let haskellAst = HS.Module
+        { HS.modSrcSpan   = NoSrcSpan
+        , HS.modName      = "Main"
+        , HS.modImports   = [HS.ImportDecl NoSrcSpan testEntryModuleName]
+        , HS.modTypeDecls = typeDecls
+        , HS.modTypeSigs  = typeSigs
+        , HS.modPragmas   = []
+        , HS.modFuncDecls = funcDecls
+        }
   haskellAst' <- runPipeline haskellAst
   return
     ( HS.modTypeDecls haskellAst'
@@ -444,7 +488,7 @@ convertTestDecls input = do
 -- | Parses, simplifies and converts a Haskell module for testing purposes.
 convertTestModule :: [String] -> Converter [G.Sentence]
 convertTestModule input = do
-  haskellAst  <- parseTestModule input
+  haskellAst <- parseTestModule input
   convertModule haskellAst
 
 -------------------------------------------------------------------------------

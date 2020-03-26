@@ -3,17 +3,13 @@ module Compiler.Converter.QuickCheckTests where
 import           Test.Hspec
 
 import           Compiler.Converter.QuickCheck
-import           Compiler.Environment
-import           Compiler.Environment.Importer
 import           Compiler.Monad.Converter
 import           Compiler.Util.Test
 
--- | Utility function that imports the environment of the @Test.QuickCheck@
---   module.
+-- | Utility function that makes the test entry module 'testEntryModuleName'
+--   reexport all entries from the @Test.QuickCheck@ module.
 importQuickCheck :: Converter ()
-importQuickCheck = do
-  Just quickCheckInterface <- inEnv $ lookupAvailableModule quickCheckModuleName
-  modifyEnv $ importInterface quickCheckInterface
+importQuickCheck = importTestModule quickCheckModuleName
 
 -- | Test group for 'convertQuickCheckProperty' tests.
 testConvertQuickCheckProperty :: Spec
