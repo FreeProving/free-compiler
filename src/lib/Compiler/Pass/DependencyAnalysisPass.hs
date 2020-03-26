@@ -84,10 +84,7 @@ dependencyAnalysisPass
   => [DependencyAwarePass decl]
   -> HS.Module
   -> Converter HS.Module
-dependencyAnalysisPass childPasses ast = do
-  let decls      = getDecls ast
-      graph      = dependencyGraph decls
-      components = groupDependencies graph
-  components' <- mapM (runPasses childPasses) components
-  let decls' = concatMap unwrapComponent components'
-  return (setDecls ast decls')
+dependencyAnalysisPass = subPipelinePass getComponents setComponents
+ where
+  getComponents = groupDependencies . dependencyGraph . getDecls
+  setComponents ast = setDecls ast . concatMap unwrapComponent
