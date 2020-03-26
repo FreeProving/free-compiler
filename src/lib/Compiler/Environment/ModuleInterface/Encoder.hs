@@ -4,12 +4,14 @@
 -- | This module contains functions for encoding 'ModuleInterface's in JSON
 --   and writing them to @.json@ files.
 --
---   See "Compiler.Environemt.Decoder" for the interface file format.
 --   Encoding module interfaces as TOML files is not supported, since TOML is
 --   intended for human maintained configuration files (e.g., the module
 --   interface of the @Prelude@) only.
+--
+--   See "Compiler.Environment.ModuleInterface.Decoder" for more information on
+--   the interface file format.
 
-module Compiler.Environment.Encoder
+module Compiler.Environment.ModuleInterface.Encoder
   ( writeModuleInterface
   )
 where
@@ -22,8 +24,8 @@ import qualified Data.Set                      as Set
 import           Compiler.Config
 import qualified Compiler.Coq.AST              as G
 import           Compiler.Coq.Pretty
-import           Compiler.Environment
 import           Compiler.Environment.Entry
+import           Compiler.Environment.ModuleInterface
 import           Compiler.Environment.Scope
 import qualified Compiler.IR.Syntax            as HS
 import           Compiler.Haskell.SrcSpan

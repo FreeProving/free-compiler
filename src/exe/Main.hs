@@ -25,8 +25,8 @@ import qualified Compiler.Coq.AST              as G
 import qualified Compiler.Coq.Base             as CoqBase
 import           Compiler.Coq.Pretty
 import           Compiler.Environment
-import           Compiler.Environment.Decoder
-import           Compiler.Environment.Encoder
+import           Compiler.Environment.ModuleInterface.Decoder
+import           Compiler.Environment.ModuleInterface.Encoder
 import           Compiler.Frontent.Haskell.Parser
                                                 ( parseModuleFile
                                                 , parseModuleFileWithComments

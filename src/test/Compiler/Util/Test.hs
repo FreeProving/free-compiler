@@ -26,10 +26,11 @@ import           Compiler.Converter
 import qualified Compiler.Coq.AST              as G
 import           Compiler.Coq.Pretty
 import           Compiler.Environment
-import           Compiler.Environment.Decoder
 import           Compiler.Environment.Entry
 import           Compiler.Environment.Fresh
 import           Compiler.Environment.Importer
+import           Compiler.Environment.ModuleInterface
+import           Compiler.Environment.ModuleInterface.Decoder
 import           Compiler.Environment.Renamer
 import           Compiler.Frontend.Haskell.Parser
 import           Compiler.Frontend.Haskell.Simplifier

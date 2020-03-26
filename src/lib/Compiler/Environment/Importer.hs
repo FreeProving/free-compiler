@@ -9,6 +9,7 @@ where
 
 import qualified Data.Set                      as Set
 import           Compiler.Environment
+import           Compiler.Environment.ModuleInterface
 import           Compiler.Environment.Entry
 
 -- | Inserts multiple entries into the given environment and associates them

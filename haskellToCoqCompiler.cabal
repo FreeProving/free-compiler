@@ -107,12 +107,13 @@ library haskell-to-coq-internal
                       , Compiler.Coq.Keywords
                       , Compiler.Coq.Pretty
                       , Compiler.Environment
-                      , Compiler.Environment.Decoder
-                      , Compiler.Environment.Encoder
                       , Compiler.Environment.Entry
                       , Compiler.Environment.Fresh
                       , Compiler.Environment.Importer
                       , Compiler.Environment.LookupOrFail
+                      , Compiler.Environment.ModuleInterface
+                      , Compiler.Environment.ModuleInterface.Decoder
+                      , Compiler.Environment.ModuleInterface.Encoder
                       , Compiler.Environment.Renamer
                       , Compiler.Environment.Scope
                       , Compiler.Frontend.Haskell.Parser

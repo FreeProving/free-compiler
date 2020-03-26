@@ -15,6 +15,7 @@ import           Compiler.Converter.TypeDecl
 import qualified Compiler.Coq.AST              as G
 import qualified Compiler.Coq.Base             as CoqBase
 import           Compiler.Environment
+import           Compiler.Environment.ModuleInterface
 import qualified Compiler.IR.Syntax            as HS
 import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter

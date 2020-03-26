@@ -94,7 +94,7 @@
 --     * @needs-free-args@ (@Boolean@) whether the arguments of the @Free@
 --       monad need to be passed to the function.
 
-module Compiler.Environment.Decoder
+module Compiler.Environment.ModuleInterface.Decoder
   ( loadModuleInterface
   )
 where
@@ -116,6 +116,7 @@ import           Compiler.Analysis.DependencyExtraction
 import           Compiler.Config
 import qualified Compiler.Coq.AST              as G
 import           Compiler.Environment
+import           Compiler.Environment.ModuleInterface
 import           Compiler.Environment.Entry
 import           Compiler.Environment.Scope
 import           Compiler.Frontend.Haskell.Parser

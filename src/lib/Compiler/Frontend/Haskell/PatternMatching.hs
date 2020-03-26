@@ -19,6 +19,7 @@ import           FreshVars
 import qualified Language.Haskell.Exts.Syntax  as H
 
 import           Compiler.Environment
+import           Compiler.Environment.ModuleInterface
 import           Compiler.Environment.Entry
 import           Compiler.Frontend.Haskell.Parser
 import qualified Compiler.IR.Syntax            as HS

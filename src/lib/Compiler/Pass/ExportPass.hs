@@ -63,6 +63,7 @@ import qualified Data.Set                      as Set
 
 import qualified Compiler.Coq.Base             as CoqBase
 import           Compiler.Environment
+import           Compiler.Environment.ModuleInterface
 import           Compiler.Environment.Entry
 import qualified Compiler.IR.Syntax            as HS
 import           Compiler.Monad.Converter

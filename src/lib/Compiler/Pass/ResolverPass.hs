@@ -209,6 +209,7 @@ import qualified Data.Set                      as Set
 import           Data.Tuple.Extra               ( (&&&) )
 
 import           Compiler.Environment
+import           Compiler.Environment.ModuleInterface
 import           Compiler.Environment.Scope
 import qualified Compiler.IR.Syntax            as HS
 import           Compiler.Haskell.SrcSpan

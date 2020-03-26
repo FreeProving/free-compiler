@@ -3,10 +3,8 @@
 --   retreive information stored in the state.
 
 module Compiler.Environment
-  ( -- * Module interface
-    ModuleInterface(..)
-    -- * Environment
-  , Environment(..)
+  ( -- * Environment
+    Environment(..)
   , emptyEnv
   -- * Module information
   , makeModuleAvailable
@@ -50,36 +48,15 @@ import qualified Data.Map.Strict               as Map
 import           Data.Maybe                     ( catMaybes
                                                 , isJust
                                                 )
-import           Data.Set                       ( Set )
 import           Data.Tuple.Extra               ( (&&&) )
 
 import qualified Compiler.Coq.AST              as G
 import           Compiler.Environment.Entry
+import           Compiler.Environment.ModuleInterface
 import           Compiler.Environment.Scope
 import qualified Compiler.IR.Syntax            as HS
 import           Compiler.Haskell.SrcSpan
 import           Compiler.Util.Predicate
-
--------------------------------------------------------------------------------
--- Module interface                                                          --
--------------------------------------------------------------------------------
-
--- | Data type that contains the information of a module environment that
---   is exported and imported.
-data ModuleInterface = ModuleInterface
-  { interfaceModName :: HS.ModName
-    -- ^ The name of the module.
-  , interfaceLibName :: G.ModuleIdent
-    -- ^ The name of the Coq library that contains this module (e.g. @"Base"@
-    --   for the @Prelude@ module).
-  , interfaceExports :: Set ScopedName
-    -- ^ The names (qualified with their original module name) that are
-    --   exported by the module.
-  , interfaceEntries :: Set EnvEntry
-    -- ^ The entries (including hidden entries) defined in or imported
-    --   by the module.
-  }
- deriving Show
 
 -------------------------------------------------------------------------------
 -- Environment                                                               --
