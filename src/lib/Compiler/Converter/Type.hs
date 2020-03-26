@@ -7,7 +7,7 @@ import qualified Compiler.Coq.AST              as G
 import qualified Compiler.Coq.Base             as CoqBase
 import           Compiler.Environment.LookupOrFail
 import           Compiler.Environment.Scope
-import qualified Compiler.Haskell.AST          as HS
+import qualified Compiler.IR.Syntax            as HS
 import           Compiler.Monad.Converter
 
 -- | Converts a Haskell type to Coq, lifting it into the @Free@ monad.

@@ -69,7 +69,7 @@ where
 
 import           Compiler.Environment
 import           Compiler.Environment.Importer
-import qualified Compiler.Haskell.AST          as HS
+import qualified Compiler.IR.Syntax            as HS
 import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
 import           Compiler.Pass

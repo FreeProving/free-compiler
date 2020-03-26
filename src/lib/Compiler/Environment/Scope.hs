@@ -2,7 +2,7 @@
 
 module Compiler.Environment.Scope where
 
-import qualified Compiler.Haskell.AST          as HS
+import qualified Compiler.IR.Syntax            as HS
 
 -- | In Haskell type and function names live in separate scopes. Therefore we
 --   need to qualify each name stored in the "Compiler.Environment.Environment"

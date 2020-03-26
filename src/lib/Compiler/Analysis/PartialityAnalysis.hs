@@ -11,7 +11,7 @@ import           Control.Monad.Extra            ( anyM )
 
 import           Compiler.Analysis.DependencyExtraction
 import           Compiler.Environment
-import qualified Compiler.Haskell.AST          as HS
+import qualified Compiler.IR.Syntax            as HS
 import           Compiler.Monad.Converter
 
 -- | Tests whether the given function uses a partial function on its

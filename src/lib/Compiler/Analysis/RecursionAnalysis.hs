@@ -36,7 +36,7 @@ import           Compiler.Analysis.DependencyExtraction
 import           Compiler.Analysis.DependencyGraph
 import           Compiler.Environment
 import           Compiler.Environment.Fresh
-import qualified Compiler.Haskell.AST          as HS
+import qualified Compiler.IR.Syntax            as HS
 import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
 import           Compiler.Pretty

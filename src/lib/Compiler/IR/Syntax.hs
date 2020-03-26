@@ -1,13 +1,23 @@
--- | An alternative AST that represents the subset of Haskell modules that
---   comply with our restrictions on the accepted input format.
+-- | This module contains the abstract syntax tree (AST) for the intermediate
+--   representation (IR) of the compiler.
 --
---   The aim of this module is to make the conversion functions easier to
---   comprehend and reduce coupling with the @haskell-src-ext@ package.
+--   The intermediate language is very similar to the subset of Haskell
+--   supported by the compiler. The main goal is to make the transformations
+--   on the AST and code generation functions easier to comprehend. The IR does
+--   have fewer syntactic constructs than  Haskell AST that fewer cases need to
+--   be distinguished. For example, there is no explicit representation of
+--   infix function applications and no list literals. These kinds of syntactic
+--   sugar must be removed by the front end.
 --
---   This AST cannot be parsed directly. Instances of the AST are usually
---   created by converting an existing AST (e.g. from the @haskell-src-ext@
---   package). For testing purposes instances may be created directly.
-module Compiler.Haskell.AST where
+--   An additional goal of this AST is to reduce coupling with the parsing
+--   library and source language. Ideally the compiler works with any language
+--   whose AST can be transformed into this intermediate representation.
+--
+--   At the moment there is no parser for this AST. Instances of the AST are
+---  usually created by converting an existing AST (e.g. a Haskell AST from
+--   the @haskell-src-ext@ package). However, the AST can be pretty printed.
+--   It's syntax is based on Haskell's syntax.
+module Compiler.IR.Syntax where
 
 import           Control.Monad                  ( (>=>) )
 
@@ -28,14 +38,13 @@ data Name
   | Symbol String    -- ^ A symbolic name, e.g. @Symbol \"+\"@ for @(+)@.
  deriving (Eq, Ord, Show)
 
--- | Extracts an identifier from a Haskell name. Returns @Nothing@ if the
+-- | Extracts an identifier from a name. Returns @Nothing@ if the
 --   given name is a symbol and not an identifier.
 identFromName :: Name -> Maybe String
 identFromName (Ident  ident) = Just ident
 identFromName (Symbol _    ) = Nothing
 
--- | Haskell identifiers and symbols can be pretty printed because they are
---   often used in error messages.
+-- | Pretty instance for identifiers and symbols.
 instance Pretty Name where
   pretty (Ident  ident ) = prettyString ident
   pretty (Symbol symbol) = parens (prettyString symbol)
@@ -45,31 +54,31 @@ instance Pretty Name where
 -- Qualified names                                                           --
 -------------------------------------------------------------------------------
 
--- | A potentially qualified 'Name'.
+-- | A qualifiable 'Name'.
 data QName
   = Qual ModName Name -- ^ A qualified 'Name'.
   | UnQual Name       -- ^ An unqualified 'Name'.
  deriving (Eq, Ord, Show)
 
--- | Extracts the name of a potentially qualified name.
+-- | Extracts the name of a qualifiable name.
 nameFromQName :: QName -> Name
 nameFromQName (UnQual name) = name
 nameFromQName (Qual _ name) = name
 
--- | Converts a potentially qualified name to a name that is qualified with
+-- | Extracts an identifier from a qualifiable name.
+identFromQName :: QName -> Maybe String
+identFromQName = identFromName . nameFromQName
+
+-- | Converts a qualifiable name to a name that is qualified with
 --   the given module name.
 toQual :: ModName -> QName -> QName
 toQual modName' = Qual modName' . nameFromQName
 
--- | Converts a potentially qualified name to an unqualified name.
+-- | Converts a qualifiable name to an unqualified name.
 toUnQual :: QName -> QName
 toUnQual = UnQual . nameFromQName
 
--- | Extracts an identifier from a potentially qualified name.
-identFromQName :: QName -> Maybe String
-identFromQName = identFromName . nameFromQName
-
--- | Pretty instance for qualifed Haskell identifiers and symbols.
+-- | Pretty instance for qualifiable identifiers and symbols.
 instance Pretty QName where
   pretty (Qual modid name)
     | null modid = pretty name
@@ -78,7 +87,7 @@ instance Pretty QName where
   prettyList = prettySeparated (comma <> space) . map pretty
 
 -------------------------------------------------------------------------------
--- Aliasses for name types                                                   --
+-- Aliases for name types                                                    --
 -------------------------------------------------------------------------------
 
 -- | The name of a type variable.
@@ -98,18 +107,17 @@ type ConName = QName
 type TypeConName = QName
 
 -------------------------------------------------------------------------------
--- Internal identifiers                                                      --
+-- Names of top-level declarations                                           --
 -------------------------------------------------------------------------------
 
--- | The name of a function, data type, type synonym or constructor defined
---   by the user including location information.
+-- | The name of a top-level declaration including location information.
 data DeclIdent = DeclIdent
   { declIdentSrcSpan :: SrcSpan
   , declIdentName    :: QName
   }
  deriving (Eq, Show)
 
--- | Pretty instance for identifiers in declarations.
+-- | Pretty instance for names of declarations.
 instance Pretty DeclIdent where
   pretty     = pretty . declIdentName
   prettyList = prettySeparated (comma <> space) . map pretty
@@ -120,37 +128,33 @@ instance Pretty DeclIdent where
 
 -- | The character that is used to mark internal identifiers.
 --
---   This is used for example to generate fresh identifiers that don't conflict
---   with actual Haskell identifiers or to hide entries in module interfaces.
+--   This is used to generate fresh identifiers that don't conflict with user
+--   defined identifiers.
 internalIdentChar :: Char
 internalIdentChar = '@'
 
--- | Tests whether the given Haskell identifier was generated for internal
---   use only (i.e., contains 'internalIdentChar').
+-- | Tests whether the given identifier was generated for internal use only
+--   (i.e., contains 'internalIdentChar').
 isInternalIdent :: String -> Bool
 isInternalIdent ident = elem internalIdentChar ident
 
--- | Tests whether the given Haskell name was generated for interal use
---   only (i.e., it is an identifier that matches 'isInternalIdent').
+-- | Tests whether the given name was generated for internal use only (i.e.,
+--   it is an identifier that matches 'isInternalIdent').
 isInternalName :: Name -> Bool
 isInternalName (Ident  ident) = isInternalIdent ident
 isInternalName (Symbol _    ) = False
 
--- | Tests whether the given qualified Hasell name was generted for internal
---   use only (i.e., the name or module name are internal according to
---   'isInternalIdent' and 'isInternalName', respectively).
+-- | Tests whether the given qualifiable name was generated for internal use
+--   only (i.e., the qualified name is internal according to 'isInternalName').
 isInternalQName :: QName -> Bool
 isInternalQName (UnQual name) = isInternalName name
-isInternalQName (Qual modIdent name) =
-  isInternalIdent modIdent || isInternalName name
+isInternalQName (Qual _ name) = isInternalName name
 
 -------------------------------------------------------------------------------
 -- Modules                                                                   --
 -------------------------------------------------------------------------------
 
 -- | A module declaration.
---
---   If the module has no module header, the module name defauts to @'Main'@.
 data Module = Module
   { modSrcSpan   :: SrcSpan
   , modName      :: ModName
@@ -182,7 +186,7 @@ instance Pretty Module where
 --
 --   Comments are collected during parsing. However, the final AST
 --   contains no comments. Pragmas (see 'DecArgPragma') are extracted
---   from comments during simplification.
+--   from comments by the front end.
 data Comment
   = BlockComment { commentSrcSpan :: SrcSpan, commentText :: String }
     -- ^ A multi-line comment (i.e., @{- ... -}@).
@@ -283,22 +287,18 @@ instance Pretty TypeVarDecl where
 -------------------------------------------------------------------------------
 
 -- | A data type or type synonym declaration.
---
---   While it is allowed to define constructors in infix notation, data type
---   and type synonym declarations must not be in infix notation. This is
---   because the @TypeOperators@ language extension is not supported.
 data TypeDecl
   = DataDecl
     { typeDeclSrcSpan :: SrcSpan
-    , typeDeclIdent :: DeclIdent
-    , typeDeclArgs :: [TypeVarDecl]
-    , dataDeclCons :: [ConDecl]
+    , typeDeclIdent   :: DeclIdent
+    , typeDeclArgs    :: [TypeVarDecl]
+    , dataDeclCons    :: [ConDecl]
     }
   | TypeSynDecl
     { typeDeclSrcSpan :: SrcSpan
-    , typeDeclIdent :: DeclIdent
-    , typeDeclArgs :: [TypeVarDecl]
-    , typeSynDeclRhs :: Type
+    , typeDeclIdent   :: DeclIdent
+    , typeDeclArgs    :: [TypeVarDecl]
+    , typeSynDeclRhs  :: Type
     }
  deriving (Eq, Show)
 
@@ -333,14 +333,10 @@ instance Pretty TypeDecl where
 -------------------------------------------------------------------------------
 
 -- | A constructor declaration.
---
---  Even though there is not a dedicated constructor, the constructor is
---  allowed to be in infix notation, but the name of the constructor must
---  not be a symbol.
 data ConDecl = ConDecl
   { conDeclSrcSpan :: SrcSpan
-  , conDeclIdent :: DeclIdent
-  , conDeclFields :: [Type]
+  , conDeclIdent   :: DeclIdent
+  , conDeclFields  :: [Type]
   }
  deriving (Eq, Show)
 
@@ -363,7 +359,7 @@ instance Pretty ConDecl where
 
 -- | A type signature of one or more function declarations.
 data TypeSig = TypeSig
-  { typeSigSrcSpan :: SrcSpan
+  { typeSigSrcSpan    :: SrcSpan
   , typeSigDeclIdents :: [DeclIdent]
   , typeSigTypeSchema :: TypeSchema
   }
@@ -382,29 +378,6 @@ instance Pretty TypeSig where
 -------------------------------------------------------------------------------
 
 -- | A function declaration.
---
---   Even though there is not a separate constructor, it is allowed to define
---   functions in infix notation e.g.:
---
---   @
---     append :: [a] -> [a] -> [a]
---     xs \`append\` ys = ...
---   @
---
---   But it is currently not supported to use symbolic names for such
---   definitions. Thus the following is not allowed:
---
---   @
---     (++) :: [a] -> [a] -> [a]
---     xs ++ ys = ...
---   @
---
---   The precedence and associativity (fixity) of infix declarations can be
---   specified as well.
---
---   @
---     infixr 5 \`append\`
---   @
 data FuncDecl = FuncDecl
   { funcDeclSrcSpan    :: SrcSpan
     -- ^ A source span that spans the entire function declaration.
@@ -441,7 +414,7 @@ funcDeclType funcDecl = do
   return (funcType NoSrcSpan argTypes retType)
 
 -- | Gets the type schema of the given function declaration or @Nothing@
---   if at least one of the argument or the return type is not annoated.
+--   if at least one of the argument or the return type is not annotated.
 funcDeclTypeSchema :: FuncDecl -> Maybe TypeSchema
 funcDeclTypeSchema funcDecl =
   TypeSchema NoSrcSpan (funcDeclTypeArgs funcDecl) <$> funcDeclType funcDecl
@@ -469,7 +442,7 @@ instance Pretty FuncDecl where
 -- Type schemas                                                          --
 -------------------------------------------------------------------------------
 
--- | A Haskell type expression with explicitly introduced type variables.
+-- | A type expression with explicitly introduced type variables.
 data TypeSchema = TypeSchema
   { typeSchemaSrcSpan :: SrcSpan
   , typeSchemaArgs :: [TypeVarDecl]
@@ -490,15 +463,15 @@ instance Pretty TypeSchema where
 -- Type expressions                                                          --
 -------------------------------------------------------------------------------
 
--- | A Haskell type expression.
+-- | A type expression.
 --
---  Build-in types are represented by applications of their type constructors.
---  E.g. the type @[a]@ is represented as
---  @'TypeApp' ('TypeCon' "[]") ('TypeVar' "a")@.
---  The only exception to this rule is the function type @a -> b@. It is
---  represented directly as @'FuncType' ('TypeVar' "a") ('TypeVar' "b")@.
---  The syntax @(->) a b@ is not supported at the moment. This is due to the
---  special role of functions during the translation to Coq.
+--   Build-in types are represented by applications of their type constructors.
+--   E.g. the type @[a]@ is represented as
+--   @'TypeApp' ('TypeCon' "[]") ('TypeVar' "a")@.
+--   The only exception to this rule is the function type @a -> b@. It is
+--   represented directly as @'FuncType' ('TypeVar' "a") ('TypeVar' "b")@.
+--   The syntax @(->) a b@ is not supported at the moment. This is due to the
+--   special role of functions during the translation to Coq.
 data Type
   = -- | A type variable.
     TypeVar
@@ -529,9 +502,9 @@ data Type
 --   The given source span is inserted into the generated type constructor
 --   and every generated type constructor application.
 typeApp
-  :: SrcSpan     -- ^ The source span to insert into generated nodes.
-  -> Type        -- ^ The partially applied type constructor.
-  -> [Type]      -- ^ The type arguments to pass to the type constructor.
+  :: SrcSpan -- ^ The source span to insert into generated nodes.
+  -> Type    -- ^ The partially applied type constructor.
+  -> [Type]  -- ^ The type arguments to pass to the type constructor.
   -> Type
 typeApp srcSpan = foldl (TypeApp srcSpan)
 
@@ -561,8 +534,7 @@ splitFuncType (FuncType _ t1 t2) arity | arity > 0 =
   in  (t1 : argTypes, returnType)
 splitFuncType returnType _ = ([], returnType)
 
--- | Haskell type expressions can be pretty printed because they have to
---   be serialized when the environment is saved to a @.json@ file.
+-- | Pretty instance for type expressions.
 instance Pretty Type where
   pretty = prettyTypePred 0
 
@@ -602,12 +574,7 @@ prettyTypePred _ t = parens (pretty t)
 -- Expressions                                                               --
 -------------------------------------------------------------------------------
 
--- | A Haskell expression.
---
---  Even though there are no dedicated constructors, the infix applications of
---  functions and constructors (including left and right sections) are
---  supported. This kind of syntactic sugar is removed during simplification
---  (see "Compiler.Haskell.Simplifier").
+-- | An expression.
 data Expr
   = -- | A constructor.
     Con { exprSrcSpan    :: SrcSpan
@@ -700,17 +667,21 @@ untypedVar srcSpan varName = Var srcSpan varName Nothing
 untypedApp :: SrcSpan -> Expr -> Expr -> Expr
 untypedApp srcSpan e1 e2 = App srcSpan e1 e2 appType
  where
+  -- | The type to annotate the application with.
   appType :: Maybe TypeSchema
   appType = exprTypeSchema e1 >>= maybeFuncResTypeSchema
 
+  -- | If the given type schema has the form @forall α₁ … αₙ. τ -> τ'@, the
+  --   result has the form @forall α₁ … αₙ. τ'@. Returns @Nothing@ otherwise.
   maybeFuncResTypeSchema :: TypeSchema -> Maybe TypeSchema
   maybeFuncResTypeSchema (TypeSchema srcSpan' typeArgs typeExpr) =
     TypeSchema srcSpan' typeArgs <$> maybeFuncResType typeExpr
 
+  -- | If the given type schema has the form @τ -> τ'@, the result has the
+  --   form @τ'@. Returns @Nothing@ otherwise.
   maybeFuncResType :: Type -> Maybe Type
   maybeFuncResType (FuncType _ _ resType) = Just resType
   maybeFuncResType _                      = Nothing
-
 
 -- | Creates an expression for applying the given expression to the provided
 --   arguments.
@@ -768,15 +739,16 @@ visibleTypeApp srcSpan =
 -- | Pretty instance for expressions.
 --
 --   To improve the readability of the pretty printed expressions, type
---   annotations are not printed.
+--   annotations are not printed except for type annotations of variable
+--   patterns. Visible type applications are printed.
 instance Pretty Expr where
   pretty = prettyExprPred 0
 
 -- | Pretty prints an expression and adds parenthesis if necessary.
 --
---   The first argument indicates the precedence of the sourrounding
+--   The first argument indicates the precedence of the surrounding
 --   context.
---    * @0@ - Top level. No parenthesis are neccessary.
+--    * @0@ - Top level. No parenthesis are necessary.
 --    * @1@ - Parenthesis are needed around @if@, @case@ and lambda
 --            expressions.
 --    * @2@ - Parenthesis are also needed around function applications.
@@ -831,16 +803,12 @@ prettyExprPred _ (Undefined _ _      ) = prettyString "undefined"
 -- @case@ expression alternatives                                            --
 -------------------------------------------------------------------------------
 
--- | One alternative of a case expression.
---
---   Every alternative of a case expression matches a constructor of the
---   matched expression's data type. All arguments of the constructor pattern
---   are variable patterns.
+-- | One alternative of a @case@ expression.
 data Alt = Alt
   { altSrcSpan :: SrcSpan
-  , altConPat :: ConPat
+  , altConPat  :: ConPat
   , altVarPats :: [VarPat]
-  , altRhs :: Expr
+  , altRhs     :: Expr
   }
  deriving (Eq, Show)
 
@@ -885,7 +853,7 @@ instance Pretty ConPat where
 data VarPat = VarPat
   { varPatSrcSpan :: SrcSpan
   , varPatIdent   :: String
-  , varPatType    :: (Maybe Type)
+  , varPatType    :: Maybe Type
   }
  deriving (Eq, Show)
 

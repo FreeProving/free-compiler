@@ -8,7 +8,7 @@ where
 
 import           Compiler.Analysis.RecursionAnalysis
 import qualified Compiler.Coq.AST              as G
-import qualified Compiler.Haskell.AST          as HS
+import qualified Compiler.IR.Syntax            as HS
 import           Compiler.Monad.Converter
 
 import           Compiler.Converter.FuncDecl.Rec.WithHelpers

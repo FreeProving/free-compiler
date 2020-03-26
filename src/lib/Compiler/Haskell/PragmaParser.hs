@@ -19,7 +19,7 @@ import           Control.Monad                  ( msum )
 import           Data.Maybe                     ( catMaybes )
 import           Text.RegexPR
 
-import qualified Compiler.Haskell.AST          as HS
+import qualified Compiler.IR.Syntax            as HS
 import           Compiler.Haskell.SrcSpan
 import           Compiler.Monad.Reporter
 

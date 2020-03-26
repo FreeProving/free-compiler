@@ -4,7 +4,7 @@ import           Test.Hspec
 
 import           Control.Monad.Extra            ( zipWithM_ )
 
-import qualified Compiler.Haskell.AST          as HS
+import qualified Compiler.IR.Syntax            as HS
 import           Compiler.Monad.Converter
 
 import           Compiler.Util.Test

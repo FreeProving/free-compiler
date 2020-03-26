@@ -2,7 +2,7 @@ module Compiler.Haskell.SubstTests where
 
 import           Test.Hspec
 
-import qualified Compiler.Haskell.AST          as HS
+import qualified Compiler.IR.Syntax            as HS
 import           Compiler.Haskell.Subst
 import           Compiler.Util.Test
 

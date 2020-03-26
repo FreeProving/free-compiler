@@ -19,7 +19,7 @@ import           Data.List                      ( (\\)
 import           Data.Maybe                     ( fromJust )
 
 import           Compiler.Environment.Fresh
-import qualified Compiler.Haskell.AST          as HS
+import qualified Compiler.IR.Syntax            as HS
 import           Compiler.Haskell.SrcSpan
 import           Compiler.Haskell.Subst
 import           Compiler.Monad.Converter

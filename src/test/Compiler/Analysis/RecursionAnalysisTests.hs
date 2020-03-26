@@ -5,7 +5,7 @@ import           Test.Hspec
 
 import           Compiler.Analysis.RecursionAnalysis
 import           Compiler.Converter.Module      ( addDecArgPragma )
-import           Compiler.Haskell.AST          as HS
+import           Compiler.IR.Syntax            as HS
 
 import           Compiler.Util.Test
 

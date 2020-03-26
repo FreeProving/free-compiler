@@ -11,7 +11,7 @@ import           Compiler.Coq.Keywords
 import           Compiler.Environment
 import           Compiler.Environment.Entry
 import           Compiler.Environment.Renamer
-import qualified Compiler.Haskell.AST          as HS
+import qualified Compiler.IR.Syntax            as HS
 import           Compiler.Haskell.SrcSpan
 import           Compiler.Util.Test
 

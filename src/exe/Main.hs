@@ -27,7 +27,7 @@ import           Compiler.Coq.Pretty
 import           Compiler.Environment
 import           Compiler.Environment.Decoder
 import           Compiler.Environment.Encoder
-import qualified Compiler.Haskell.AST          as HS
+import qualified Compiler.IR.Syntax            as HS
 import           Compiler.Haskell.Parser        ( parseModuleFile
                                                 , parseModuleFileWithComments
                                                 )

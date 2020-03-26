@@ -9,7 +9,7 @@ where
 import           Compiler.Converter.Expr
 import           Compiler.Converter.FuncDecl.Common
 import qualified Compiler.Coq.AST              as G
-import qualified Compiler.Haskell.AST          as HS
+import qualified Compiler.IR.Syntax            as HS
 import           Compiler.Monad.Converter
 
 -- | Converts a non-recursive Haskell function declaration to a Coq

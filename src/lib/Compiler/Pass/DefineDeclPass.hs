@@ -38,7 +38,7 @@ import           Compiler.Analysis.DependencyAnalysis
 import           Compiler.Analysis.PartialityAnalysis
 import           Compiler.Environment.Entry
 import           Compiler.Environment.Renamer
-import qualified Compiler.Haskell.AST          as HS
+import qualified Compiler.IR.Syntax            as HS
 import           Compiler.Monad.Converter
 import           Compiler.Pass.DependencyAnalysisPass
 

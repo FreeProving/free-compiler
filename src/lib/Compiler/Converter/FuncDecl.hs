@@ -11,7 +11,7 @@ import           Compiler.Converter.FuncDecl.NonRec
 import           Compiler.Converter.FuncDecl.Rec
 import           Compiler.Converter.QuickCheck
 import qualified Compiler.Coq.AST              as G
-import qualified Compiler.Haskell.AST          as HS
+import qualified Compiler.IR.Syntax            as HS
 import           Compiler.Monad.Converter
 
 -- | Converts the given function declarations.

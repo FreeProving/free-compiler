@@ -3,7 +3,7 @@ module Compiler.Analysis.DependencyExtractionTests where
 import           Test.Hspec
 
 import           Compiler.Analysis.DependencyExtraction
-import qualified Compiler.Haskell.AST          as HS
+import qualified Compiler.IR.Syntax            as HS
 
 import           Compiler.Util.Test
 

@@ -39,7 +39,7 @@ import           Data.Set.Ordered               ( OSet
                                                 )
 import qualified Data.Set.Ordered              as OSet
 
-import qualified Compiler.Haskell.AST          as HS
+import qualified Compiler.IR.Syntax            as HS
 
 
 -------------------------------------------------------------------------------

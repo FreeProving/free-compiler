@@ -41,7 +41,7 @@ import qualified Data.Set                      as Set
 import           Data.Tuple.Extra               ( (&&&) )
 
 import           Compiler.Analysis.DependencyExtraction
-import qualified Compiler.Haskell.AST          as HS
+import qualified Compiler.IR.Syntax            as HS
 import           Compiler.Pretty
 
 -------------------------------------------------------------------------------

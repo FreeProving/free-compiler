@@ -71,7 +71,7 @@
 
 module Compiler.Pass.QualifierPass where
 
-import qualified Compiler.Haskell.AST          as HS
+import qualified Compiler.IR.Syntax            as HS
 import           Compiler.Pass
 
 -- | Compiler pass that qualifies the names of all declarations in the module

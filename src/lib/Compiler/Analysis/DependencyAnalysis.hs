@@ -28,7 +28,7 @@ import           Control.Monad.Fail             ( MonadFail )
 import           Data.Graph
 
 import           Compiler.Analysis.DependencyGraph
-import qualified Compiler.Haskell.AST          as HS
+import qualified Compiler.IR.Syntax          as HS
 
 -------------------------------------------------------------------------------
 -- Strongly connected components                                             --

@@ -12,7 +12,7 @@ import qualified Data.Map.Strict               as Map
 import qualified Compiler.Coq.AST              as G
 import           Compiler.Environment
 import           Compiler.Environment.Renamer
-import qualified Compiler.Haskell.AST          as HS
+import qualified Compiler.IR.Syntax            as HS
 import           Compiler.Haskell.SrcSpan
 import           Compiler.Monad.Converter
 

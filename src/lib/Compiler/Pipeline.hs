@@ -18,7 +18,7 @@ import           Compiler.Pass.TypeSignaturePass
 import           Compiler.Pass.TypeInferencePass
 import           Compiler.Pass.QualifierPass
 import           Compiler.Pass.ResolverPass
-import qualified Compiler.Haskell.AST          as HS
+import qualified Compiler.IR.Syntax            as HS
 import           Compiler.Monad.Converter
 
 -- | The passes of the compiler pipeline.

@@ -115,10 +115,10 @@ library haskell-to-coq-internal
                       , Compiler.Environment.LookupOrFail
                       , Compiler.Environment.Renamer
                       , Compiler.Environment.Scope
+                      , Compiler.IR.Syntax
                       , Compiler.Monad.Converter
                       , Compiler.Monad.Class.Hoistable
                       , Compiler.Monad.Reporter
-                      , Compiler.Haskell.AST
                       , Compiler.Haskell.Inliner
                       , Compiler.Haskell.Parser
                       , Compiler.Haskell.PatternMatching

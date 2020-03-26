@@ -6,7 +6,7 @@ import           Test.QuickCheck
 import           Data.Maybe                     ( isJust )
 import qualified Data.Set                      as Set
 
-import           Compiler.Haskell.AST          as HS
+import           Compiler.IR.Syntax            as HS
 import           Compiler.Haskell.SrcSpan
 import           Compiler.Haskell.Subterm
 

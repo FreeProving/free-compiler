@@ -7,7 +7,7 @@ import           Compiler.Converter.Type
 import qualified Compiler.Coq.AST              as G
 import           Compiler.Environment.Fresh
 import           Compiler.Environment.Renamer
-import qualified Compiler.Haskell.AST          as HS
+import qualified Compiler.IR.Syntax            as HS
 import           Compiler.Monad.Converter
 
 -------------------------------------------------------------------------------

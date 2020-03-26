@@ -43,7 +43,7 @@ import           Language.Haskell.Exts.Parser   ( ParseMode(..)
 import           Language.Haskell.Exts.SrcLoc   ( SrcSpanInfo )
 import qualified Language.Haskell.Exts.Syntax  as H
 
-import           Compiler.Haskell.AST          as HS
+import           Compiler.IR.Syntax            as HS
 import           Compiler.Haskell.SrcSpan
 import           Compiler.Monad.Reporter
 

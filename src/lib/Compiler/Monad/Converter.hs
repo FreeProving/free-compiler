@@ -56,7 +56,7 @@ import           Data.Composition               ( (.:) )
 
 import           Compiler.Environment
 import           Compiler.Environment.Entry
-import qualified Compiler.Haskell.AST          as HS
+import qualified Compiler.IR.Syntax            as HS
 import           Compiler.Monad.Class.Hoistable
 import           Compiler.Monad.Reporter
 

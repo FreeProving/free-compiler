@@ -20,7 +20,7 @@ import qualified Language.Haskell.Exts.Syntax  as H
 
 import           Compiler.Environment
 import           Compiler.Environment.Entry
-import qualified Compiler.Haskell.AST          as HS
+import qualified Compiler.IR.Syntax            as HS
 import           Compiler.Haskell.Parser
 import           Compiler.Haskell.SrcSpan
 import           Compiler.Monad.Converter
