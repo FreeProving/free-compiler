@@ -1,7 +1,11 @@
 -- | This module contains functions for parsing Haskell modules and other
 --   nodes of the Haskell AST.
+--
+--   We are using the @haskell-src-ext@ package for parsing. This module just
+--   provides an interface for the actual parser and configures the parser
+--   appropriately.
 
-module Compiler.Haskell.Parser
+module Compiler.Frontend.Haskell.Parser
   ( parseHaskell
     -- * Modules
   , parseModule

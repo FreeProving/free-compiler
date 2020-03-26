@@ -1,17 +1,18 @@
 -- | This module contains a converter from the @haskell-src-exts@ AST to
---   the simplified AST used by the compiler.
+--   the intermediate representation used by the compiler.
 --
---   The simplifier checks whether a given module complies with our assumtions
+--   The simplifier checks whether a given module complies with our assumptions
 --   about the input file format and generates a fatal error message if
---   any Hasell feature is used that is not supported by the compiler.
+--   any Haskell feature is used that is not supported by the compiler.
 --
---   In some places the simplifier also performs desugaring to reduce the
---   number of constructors in the simple AST.
+--   In some places the simplifier also performs desugaring. For example,
+--   infix operators are translated to regular function applications and
+--   list literals to the application of the list constructors. 
 --
 --  TODO warn user if reserved names like `error` or `undefined` are used
 --       in declarations or as (type-) variable names.
 
-module Compiler.Haskell.Simplifier
+module Compiler.Frontend.Haskell.Simplifier
   ( Simplifier
   , simplifyModuleWithComments
   , extractModName

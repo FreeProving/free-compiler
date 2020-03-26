@@ -4,7 +4,11 @@
 
 -- | This module contains a 'Pretty' instance for module nodes of the Haskell
 --   Source Extensions AST.
-module Compiler.Haskell.Pretty where
+--
+--   The pretty instance is used to dump the output of the pattern matching
+--   compiler library (See "Compiler.Frontent.Haskell.PatternMatching").
+
+module Compiler.Frontend.Haskell.Pretty where
 
 import qualified Language.Haskell.Exts.Pretty  as H
 import qualified Language.Haskell.Exts.Syntax  as H

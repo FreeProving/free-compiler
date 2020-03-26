@@ -27,14 +27,16 @@ import           Compiler.Coq.Pretty
 import           Compiler.Environment
 import           Compiler.Environment.Decoder
 import           Compiler.Environment.Encoder
-import qualified Compiler.IR.Syntax            as HS
-import           Compiler.Haskell.Parser        ( parseModuleFile
+import           Compiler.Frontent.Haskell.Parser
+                                                ( parseModuleFile
                                                 , parseModuleFileWithComments
                                                 )
-import           Compiler.Haskell.PatternMatching
+import           Compiler.Frontent.Haskell.PatternMatching
                                                 ( transformPatternMatching )
-import           Compiler.Haskell.Pretty        ( )
-import           Compiler.Haskell.Simplifier
+import           Compiler.Frontent.Haskell.Pretty
+                                                ( )
+import           Compiler.Frontent.Haskell.Simplifier
+import qualified Compiler.IR.Syntax            as HS
 import           Compiler.Haskell.SrcSpan
 import           Compiler.Monad.Application
 import           Compiler.Monad.Converter

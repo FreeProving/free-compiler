@@ -31,9 +31,9 @@ import           Compiler.Environment.Entry
 import           Compiler.Environment.Fresh
 import           Compiler.Environment.Importer
 import           Compiler.Environment.Renamer
+import           Compiler.Frontend.Haskell.Parser
+import           Compiler.Frontend.Haskell.Simplifier
 import qualified Compiler.IR.Syntax            as HS
-import           Compiler.Haskell.Parser
-import           Compiler.Haskell.Simplifier
 import           Compiler.Haskell.SrcSpan
 import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter

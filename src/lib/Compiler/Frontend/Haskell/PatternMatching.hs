@@ -4,7 +4,7 @@
 --   We are using a slightly adapted version of the library located at
 --   <https://github.com/FreeProving/haskell-src-transformations>.
 
-module Compiler.Haskell.PatternMatching
+module Compiler.Frontend.Haskell.PatternMatching
   ( transformPatternMatching
   )
 where
@@ -20,8 +20,8 @@ import qualified Language.Haskell.Exts.Syntax  as H
 
 import           Compiler.Environment
 import           Compiler.Environment.Entry
+import           Compiler.Frontend.Haskell.Parser
 import qualified Compiler.IR.Syntax            as HS
-import           Compiler.Haskell.Parser
 import           Compiler.Haskell.SrcSpan
 import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
