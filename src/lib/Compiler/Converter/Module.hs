@@ -7,8 +7,6 @@ import           Control.Monad.Extra            ( concatMapM )
 import           Data.List                      ( find
                                                 , findIndex
                                                 )
-import qualified Data.Map                      as Map
-import qualified Data.Set                      as Set
 
 import           Compiler.Analysis.DependencyAnalysis
 import           Compiler.Analysis.DependencyGraph
@@ -17,7 +15,6 @@ import           Compiler.Converter.TypeDecl
 import qualified Compiler.Coq.AST              as G
 import qualified Compiler.Coq.Base             as CoqBase
 import           Compiler.Environment
-import           Compiler.Environment.Entry
 import qualified Compiler.Haskell.AST          as HS
 import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
@@ -33,19 +30,14 @@ convertModule :: HS.Module -> Converter [G.Sentence]
 convertModule = moduleEnv . (runPipeline >=> convertModule')
 
 -- | Like 'convertModule'' but does not apply any compiler passes beforehand.
-convertModule' :: HS.Module -> Converter ([G.Sentence], ModuleInterface)
+convertModule' :: HS.Module -> Converter [G.Sentence]
 convertModule' haskellAst = do
-  -- Convert module contents.
   imports' <- convertImportDecls (HS.modImports haskellAst)
   mapM_ (addDecArgPragma (HS.modFuncDecls haskellAst))
         (HS.modPragmas haskellAst)
   decls' <- convertDecls (HS.modTypeDecls haskellAst)
                          (HS.modFuncDecls haskellAst)
-  -- Export module interface.
-  let coqAst =
-        G.comment ("module " ++ HS.modName haskellAst) : imports' ++ decls'
-  interface <- exportInterface (HS.modName haskellAst)
-  return (coqAst, interface)
+  return (G.comment ("module " ++ HS.modName haskellAst) : imports' ++ decls')
 
 -------------------------------------------------------------------------------
 -- Pragmas                                                                   --
@@ -142,44 +134,3 @@ generateImport libName modName = return
   mkRequireSentence :: G.ModuleIdent -> [G.ModuleIdent] -> G.Sentence
   mkRequireSentence | libName == CoqBase.baseLibName = G.requireImportFrom
                     | otherwise                      = G.requireExportFrom
-
--------------------------------------------------------------------------------
--- Exports                                                                   --
--------------------------------------------------------------------------------
-
--- | Generates the module interface exported by the currently translated module.
---
---   The interface contains all (non-internal) top-level entries that are
---   currently in the environment. Only entries that are defined in the
---   currently translated module are listed as exported. All other entries
---   are "hidden". Hidden entries are included such that module interfaces
---   are self contained and type synonyms can be expanded properly.
---   All references in the entries are converted to fully qualified
---   identifiers before they are exported.
-exportInterface :: HS.ModName -> Converter ModuleInterface
-exportInterface modName = do
-  exports <-
-    inEnv
-    $ filter (isExported . snd)
-    . map entryScopedName
-    . Map.elems
-    . envEntries
-  entries <-
-    inEnv
-    $ filter (not . HS.isInternalQName . entryName)
-    . Map.elems
-    . envEntries
-  return ModuleInterface { interfaceModName = modName
-                         , interfaceLibName = CoqBase.generatedLibName
-                         , interfaceExports = Set.fromList exports
-                         , interfaceEntries = Set.fromList entries
-                         }
- where
-   -- Tests whether to export the entry with the given name.
-   --
-   -- Only non-internal entries that are defined at top-level of the exported
-   -- module are exported.
-  isExported :: HS.QName -> Bool
-  isExported (HS.Qual modName' name) =
-    modName' == modName && not (HS.isInternalName name)
-  isExported (HS.UnQual _) = False

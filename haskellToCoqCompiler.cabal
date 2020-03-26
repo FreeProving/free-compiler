@@ -134,6 +134,7 @@ library haskell-to-coq-internal
                       , Compiler.Pass.DefineDeclPass
                       , Compiler.Pass.DependencyAnalysisPass
                       , Compiler.Pass.EtaConversionPass
+                      , Compiler.Pass.ExportPass
                       , Compiler.Pass.ImplicitPreludePass
                       , Compiler.Pass.ImportPass
                       , Compiler.Pass.TypeInferencePass

@@ -11,6 +11,7 @@ import           Compiler.Pass
 import           Compiler.Pass.DefineDeclPass
 import           Compiler.Pass.DependencyAnalysisPass
 import           Compiler.Pass.EtaConversionPass
+import           Compiler.Pass.ExportPass
 import           Compiler.Pass.ImplicitPreludePass
 import           Compiler.Pass.ImportPass
 import           Compiler.Pass.TypeSignaturePass
@@ -31,6 +32,7 @@ pipeline =
   , typeSignaturePass
   , dependencyAnalysisPass [typeInferencePass, defineFuncDeclsPass]
   , etaConversionPass
+  , exportPass
   ]
 
 -- | Runs the compiler pipeline on the given module.

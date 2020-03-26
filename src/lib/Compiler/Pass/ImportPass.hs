@@ -44,7 +44,7 @@
 --
 --   == Preconditions
 --
---   There are no special requirements.
+--   Module interfaces for all imported modules must be available.
 --
 --   == Translation
 --

@@ -182,14 +182,14 @@ localEnv converter = do
   putEnv env
   return x
 
--- | Runs the given converter and returns its result.
---
---   Like 'localEnv', the modifications to the environment are discarded but
---   the returned 'ModuleInterface' is inserted into the environment.
-moduleEnv :: MonadConverter m => m (a, ModuleInterface) -> m a
+-- | Like 'localEnv' but modules that are added to the environment are still
+--   available afterwards.
+moduleEnv :: MonadConverter m => m a -> m a
 moduleEnv converter = do
-  (x, interface) <- localEnv converter
-  modifyEnv $ makeModuleAvailable interface
+  env <- getEnv
+  x   <- converter
+  ms  <- inEnv envAvailableModules
+  putEnv env { envAvailableModules = ms }
   return x
 
 -- | Adds entries for variable patterns during the execution of the given
