@@ -1,7 +1,7 @@
 -- | This module contains functions for calculating the most general
---   unificator (mgu) for Haskell type expressions.
+--   unificator (mgu) of two type expressions.
 
-module Compiler.Haskell.Unification
+module Compiler.IR.Unification
   ( -- * Error reporting
     UnificationError(..)
   , reportUnificationError
@@ -22,11 +22,11 @@ import           Data.Composition               ( (.:) )
 import           Compiler.Environment.Entry
 import           Compiler.Environment.LookupOrFail
 import           Compiler.Environment.Scope
-import qualified Compiler.IR.Syntax            as HS
-import           Compiler.Haskell.Inliner
 import           Compiler.Haskell.SrcSpan
-import           Compiler.Haskell.Subst
-import           Compiler.Haskell.Subterm
+import qualified Compiler.IR.Syntax            as HS
+import           Compiler.IR.TypeSynExpansion
+import           Compiler.IR.Subst
+import           Compiler.IR.Subterm
 import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
 import           Compiler.Pretty                ( showPretty )

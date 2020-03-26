@@ -1,4 +1,4 @@
-module Compiler.Haskell.SubtermTests where
+module Compiler.IR.SubtermTests where
 
 import           Test.Hspec
 import           Test.QuickCheck
@@ -6,9 +6,9 @@ import           Test.QuickCheck
 import           Data.Maybe                     ( isJust )
 import qualified Data.Set                      as Set
 
-import           Compiler.IR.Syntax            as HS
 import           Compiler.Haskell.SrcSpan
-import           Compiler.Haskell.Subterm
+import           Compiler.IR.Syntax            as HS
+import           Compiler.IR.Subterm
 
 import           Compiler.Util.Test
 
@@ -39,9 +39,9 @@ testPos expr = do
 -- Subterm tests                                                             --
 -------------------------------------------------------------------------------
 
--- | Test group for "Compiler.Haskell.Subterm" tests.
+-- | Test group for "Compiler.IR.Subterm" tests.
 testSubterm :: Spec
-testSubterm = describe "Compiler.Haskell.Subterm" $ do
+testSubterm = describe "Compiler.IR.Subterm" $ do
   beforeAll
       (fromReporter $ fromConverter $ parseTestExpr $ unlines
         [ "\\n xs ->"

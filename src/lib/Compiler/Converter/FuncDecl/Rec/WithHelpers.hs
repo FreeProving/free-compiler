@@ -32,10 +32,10 @@ import           Compiler.Environment.Entry
 import           Compiler.Environment.Fresh
 import           Compiler.Environment.Renamer
 import           Compiler.Environment.Scope
-import qualified Compiler.IR.Syntax            as HS
-import           Compiler.Haskell.Inliner
 import           Compiler.Haskell.SrcSpan
-import           Compiler.Haskell.Subterm
+import qualified Compiler.IR.Syntax            as HS
+import           Compiler.IR.Inlining
+import           Compiler.IR.Subterm
 import           Compiler.Monad.Converter
 import           Compiler.Pretty
 

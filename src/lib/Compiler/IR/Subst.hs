@@ -1,12 +1,9 @@
 {-# LANGUAGE MultiParamTypeClasses, FlexibleContexts #-}
 
--- | This module contains a definition of substitutions for Haskell
---   expressions.
---
---   Substitutions are used by "Compiler.Haskell.Inliner" to replace
---   parameters of inlined functions with their actual arguments.
+-- | This module contains a definition of substitutions for expressions and
+--   type expressions.
 
-module Compiler.Haskell.Subst
+module Compiler.IR.Subst
   ( Subst
     -- * Construction
   , identitySubst

@@ -1,7 +1,7 @@
 -- | This module contains data types and function for working with subterms
---   of Haskell expressions and type expressions.
+--   of expressions and type expressions.
 
-module Compiler.Haskell.Subterm
+module Compiler.IR.Subterm
   ( -- * Direct children
     childTerms
   , replaceChildTerms

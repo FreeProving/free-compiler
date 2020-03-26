@@ -110,9 +110,9 @@ import qualified Data.Map.Strict               as Map
 import           Data.Set                       ( Set )
 import qualified Data.Set                      as Set
 
-import qualified Compiler.IR.Syntax            as HS
-import           Compiler.Haskell.Inliner
 import           Compiler.Haskell.SrcSpan
+import qualified Compiler.IR.Syntax            as HS
+import           Compiler.IR.TypeSynExpansion
 import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
 import           Compiler.Pass

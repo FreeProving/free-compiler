@@ -115,20 +115,21 @@ library haskell-to-coq-internal
                       , Compiler.Environment.LookupOrFail
                       , Compiler.Environment.Renamer
                       , Compiler.Environment.Scope
-                      , Compiler.IR.Syntax
                       , Compiler.Monad.Converter
                       , Compiler.Monad.Class.Hoistable
                       , Compiler.Monad.Reporter
-                      , Compiler.Haskell.Inliner
                       , Compiler.Haskell.Parser
                       , Compiler.Haskell.PatternMatching
                       , Compiler.Haskell.PragmaParser
                       , Compiler.Haskell.Pretty
                       , Compiler.Haskell.Simplifier
                       , Compiler.Haskell.SrcSpan
-                      , Compiler.Haskell.Subterm
-                      , Compiler.Haskell.Subst
-                      , Compiler.Haskell.Unification
+                      , Compiler.IR.Inlining
+                      , Compiler.IR.Subst
+                      , Compiler.IR.Subterm
+                      , Compiler.IR.Syntax
+                      , Compiler.IR.TypeSynExpansion
+                      , Compiler.IR.Unification
                       , Compiler.Pass
                       , Compiler.Pass.DefineDeclPass
                       , Compiler.Pass.DependencyAnalysisPass
@@ -172,9 +173,9 @@ test-suite unit-tests
                     , Compiler.Converter.TypeDeclTests
                     , Compiler.Converter.TypeTests
                     , Compiler.Environment.RenamerTests
-                    , Compiler.Haskell.SubstTests
-                    , Compiler.Haskell.SubtermTests
-                    , Compiler.Haskell.UnificationTests
+                    , Compiler.IR.SubstTests
+                    , Compiler.IR.SubtermTests
+                    , Compiler.IR.UnificationTests
                     , Compiler.Monad.ReporterTests
                     , Compiler.Util.Test
   build-depends:      haskell-to-coq-internal

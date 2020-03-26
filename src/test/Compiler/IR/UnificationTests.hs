@@ -1,4 +1,4 @@
-module Compiler.Haskell.UnificationTests where
+module Compiler.IR.UnificationTests where
 
 import           Test.Hspec
 import           Test.QuickCheck
@@ -7,15 +7,16 @@ import           Control.Monad.Trans.Except     ( runExceptT )
 
 import           Compiler.Environment.Fresh
 import qualified Compiler.IR.Syntax            as HS
-import           Compiler.Haskell.Subst
-import           Compiler.Haskell.Unification
+import           Compiler.IR.Subst
+import           Compiler.IR.Unification
 import           Compiler.Monad.Converter
 import           Compiler.Pretty
 
 import           Compiler.Util.Test
 
+-- | Test group for "Compiler.IR.Unification" tests.
 testUnification :: Spec
-testUnification = describe "Compiler.Haskell.Unification.unify" $ do
+testUnification = describe "Compiler.IR.Unification.unify" $ do
   context "type variables" $ do
     it "maps variables on the left to variables on the right"
       $ shouldSucceed

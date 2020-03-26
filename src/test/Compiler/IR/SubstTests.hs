@@ -1,16 +1,16 @@
-module Compiler.Haskell.SubstTests where
+module Compiler.IR.SubstTests where
 
 import           Test.Hspec
 
 import qualified Compiler.IR.Syntax            as HS
-import           Compiler.Haskell.Subst
+import           Compiler.IR.Subst
 import           Compiler.Util.Test
 
 -- | Test group for the "Compiler.Hsakell.Subst.ApplySubst" instance for
 --   expressions.
 testExprSubst :: Spec
 testExprSubst = do
-  describe "Compiler.Haskell.Subst.composeSubst" $ do
+  describe "Compiler.IR.Subst.composeSubst" $ do
     it "applies the second substitution first"
       $ shouldSucceed
       $ fromConverter
@@ -35,7 +35,7 @@ testExprSubst = do
           e  <- parseTestExpr "x y z"
           e' <- applySubst subst e
           return (e' `prettyShouldBe` "z z z")
-  describe "Compiler.Haskell.Subst.applySubst" $ do
+  describe "Compiler.IR.Subst.applySubst" $ do
     it "cannot substitute variables bound by lambda"
       $ shouldSucceed
       $ fromConverter

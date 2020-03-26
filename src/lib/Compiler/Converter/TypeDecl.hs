@@ -19,7 +19,7 @@ import qualified Compiler.Coq.Base             as CoqBase
 import           Compiler.Environment
 import           Compiler.Environment.Scope
 import qualified Compiler.IR.Syntax            as HS
-import           Compiler.Haskell.Inliner
+import           Compiler.IR.TypeSynExpansion
 import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
 import           Compiler.Pretty
