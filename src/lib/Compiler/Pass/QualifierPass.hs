@@ -67,7 +67,8 @@
 --
 --   == Postcondition
 --
---   All 'DeclIdent's in the module contain qualified identifiers ('HS.Qual').
+--   All 'HS.DeclIdent's in the module contain qualified identifiers
+--   (i.e., 'HS.Qual's).
 
 module Compiler.Pass.QualifierPass
   ( qualifierPass

@@ -932,7 +932,7 @@ tupleConName n = Qual preludeModuleName (Symbol (replicate (n - 1) ','))
 -- Names of special predefined types and operators                           --
 -------------------------------------------------------------------------------
 
--- | When inferring the type of 'IntegerLiteral's this is the type to infer.
+-- | When inferring the type of 'IntLiteral's this is the type to infer.
 integerTypeConName :: TypeConName
 integerTypeConName = Qual preludeModuleName (Ident "Integer")
 

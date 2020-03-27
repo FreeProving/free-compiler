@@ -461,9 +461,10 @@ annotateExprWith' (HS.Lambda srcSpan args expr _) resType =
 makeExprType :: HS.Type -> Maybe HS.TypeSchema
 makeExprType = Just . HS.TypeSchema NoSrcSpan []
 
--- | Applies 'annotateExpr' to the right-hand side of the given function
---   declarations and annotates the function arguments and return types
---   with fresh type variables if they are not annotated already.
+-- | Annotates the function arguments and return types with fresh type
+--   variables if they are not annotated already and applies 'annotateExprWith'
+--   to the right-hand side of the given function declaration with the
+--   return type of the function.
 annotateFuncDecls :: [HS.FuncDecl] -> TypeInference [HS.FuncDecl]
 annotateFuncDecls funcDecls = withLocalTypeAssumption $ do
   funcDecls' <- mapM annotateFuncDeclLhs funcDecls
@@ -492,13 +493,18 @@ annotateFuncDecls funcDecls = withLocalTypeAssumption $ do
 -- Visible type application                                                  --
 -------------------------------------------------------------------------------
 
--- | Replaces a type signature added by 'annotateExpr' for a variable or
---   constructor with the given name by a visible type application of that
---   function or constructor.
+-- | Adds visible type application expressions to a function or constructor
+--   with the given name.
 --
---   This function assumes that the expression has a type annotation without
---   quantified type variables, i.e., 'HS.exprTypeSchema' was set beforehand
---   using 'annotateExprWith'.
+--   Unifies the type annotations added by 'annotateExprWith' and the assumed
+--   type schema for the function or constructor to infer the type arguments.
+--   If the function or constructor has vanishing type arguments, this function
+--   introduces new vanishing type variables to the expression that have to be
+--   abstracted later (See 'abstractVanishingTypeArgs').
+--
+--   Since the expression has been annotated with 'annotateExprWith', we
+--   can safely assume, that 'HS.exprTypeSchema' does not quantify any type
+--   variables itself.
 applyVisibly :: HS.QName -> HS.Expr -> TypeInference HS.Expr
 applyVisibly name expr = do
   let srcSpan = HS.exprSrcSpan expr
@@ -515,8 +521,8 @@ applyVisibly name expr = do
         $ mapM (applySubst mgu) (dropEnd (length fixed) typeArgs)
       return (HS.visibleTypeApp srcSpan expr (typeArgs' ++ fixed))
 
--- | Replaces the type signatures added by 'annotateExpr' by visible type
---   application expressions.
+-- | Adds visible type application expressions to function and constructor
+--   applications in the given expression.
 applyExprVisibly :: HS.Expr -> TypeInference HS.Expr
 
 -- Add visible type applications to functions, constructors and error terms.

@@ -51,10 +51,11 @@ instantiateTypeSchema' (HS.TypeSchema _ typeArgs typeExpr) = do
 --
 --   The first argument contains the names of type variables that should be
 --   bound by the type schema. Usually these are the type variables that
---   occur in the given type (see 'typeVars').
+--   occur in the given type
+--   (see 'Compiler.Analysis.DependencyExtraction.typeVars').
 --
 --   Fresh type variables used by the given type are replaced by regular type
---   varibales with the prefix 'freshTypeArgPrefix'. All other type variables
+--   variables with the prefix 'freshTypeArgPrefix'. All other type variables
 --   are not renamed.
 abstractTypeSchema :: [HS.QName] -> HS.Type -> Converter HS.TypeSchema
 abstractTypeSchema = fmap fst .: abstractTypeSchema'

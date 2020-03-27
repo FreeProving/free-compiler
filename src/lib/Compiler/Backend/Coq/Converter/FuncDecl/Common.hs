@@ -1,4 +1,4 @@
--- | This function contains auxilary functions that are used both to translate
+-- | This function contains auxiliary functions that are used both to translate
 --   recursive and non-recursive Haskell functions to Coq.
 
 module Compiler.Backend.Coq.Converter.FuncDecl.Common
@@ -23,8 +23,9 @@ import           Compiler.Monad.Converter
 -- | Converts the name, arguments and return type of a function to Coq.
 --
 --   This code is shared between the conversion functions for recursive and
---   no recursive functions (see 'convertNonRecFuncDecl' and
---   'convertRecFuncDecls').
+--   no recursive functions
+--   (see 'Haskell.Backend.Coq.Converter.FuncDecl.NonRec.convertNonRecFuncDecl'
+--    and 'Haskell.Backend.Coq.Converter.FuncDecl.Rec.convertRecFuncDecls').
 convertFuncHead :: HS.FuncDecl -> Converter (G.Qualid, [G.Binder], Maybe G.Term)
 convertFuncHead (HS.FuncDecl _ declIdent typeArgs args _ maybeRetType) = do
   let name = HS.declIdentName declIdent

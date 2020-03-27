@@ -142,9 +142,13 @@ instance MonadIO m => MonadIO (ConverterT m) where
 -- Modifying environments                                                    --
 -------------------------------------------------------------------------------
 
+-- | Type class for monad a converter can be lifted to. Inside such monads,
+--   the functions for modifying the converters environment can be called
+--   without lifting them explicitly.
 class Monad m => MonadConverter m where
   liftConverter :: Converter a -> m a
 
+-- | Converters can be lifted to arbitrary converter transformers.
 instance Monad m => MonadConverter (ConverterT m) where
   liftConverter = hoist
 

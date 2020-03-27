@@ -178,15 +178,15 @@ allPos term =
       , childPos   <- allPos child
       ]
 
--- Tests whether a position is above another one.
+-- | Tests whether a position is above another one.
 above :: Pos -> Pos -> Bool
 above (Pos ps1) (Pos ps2) = ps1 `isPrefixOf` ps2
 
--- Tests whether a position is below another one.
+-- | Tests whether a position is below another one.
 below :: Pos -> Pos -> Bool
 below = flip above
 
--- Tests whether a position is left of another one.
+-- | Tests whether a position is left of another one.
 leftOf :: Pos -> Pos -> Bool
 leftOf (Pos [])         _                = False
 leftOf _                (Pos []        ) = False
@@ -195,7 +195,7 @@ leftOf (Pos (p1 : ps1)) (Pos (p2 : ps2)) = case compare p1 p2 of
   EQ -> leftOf (Pos ps1) (Pos ps2)
   GT -> False
 
--- Tests whether a position is right of another one.
+-- | Tests whether a position is right of another one.
 rightOf :: Pos -> Pos -> Bool
 rightOf = flip leftOf
 
