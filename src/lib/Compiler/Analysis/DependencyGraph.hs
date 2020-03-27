@@ -173,7 +173,7 @@ instance Pretty (DependencyGraph node) where
       <+> braces (line <> indent 2 (vcat (nodeDocs ++ edgesDocs)) <> line)
       <>  line
    where
-     -- | A document for the DOT digraph keyword.
+    -- | A document for the DOT digraph keyword.
     digraph :: Doc
     digraph = prettyString "digraph"
 

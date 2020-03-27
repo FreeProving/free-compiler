@@ -89,7 +89,7 @@ qualifyDecls ast = ast
   , HS.modFuncDecls = map qualifyFuncDecl (HS.modFuncDecls ast)
   }
  where
-   -- | The name of the module to qualify the names of all declarations with.
+  -- | The name of the module to qualify the names of all declarations with.
   modName :: HS.ModName
   modName = HS.modName ast
 
