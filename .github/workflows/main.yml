@@ -8,11 +8,11 @@ jobs:
   #############################################################################
 
   # Installs Cabal dependencies and caches the directories where cabal
-  # installs the dependencies. Unfortunatly, the entire code of this job
+  # installs the dependencies. Unfortunately, the entire code of this job
   # needs to be replicated to retore the caches in jobs that use Cabal.
   #
   # We cache `~/.cabal/packages`, `~/.cabal/store` and `dist-newstyle`
-  # separatly. The cache keys contain the hash of the `.cabal` and
+  # separately. The cache keys contain the hash of the `.cabal` and
   # `cabal.project` file as well as the hash of the `01-index.cache` file
   # from `~/.cabal/packages`.
   #
@@ -242,7 +242,7 @@ jobs:
         cabal new-build unit-tests --only-dependencies
         cabal new-build haskell-to-coq-compiler --only-dependencies
     - name: Run Haddock
-      run: ./tool/make-docs.hs
+      run: ./tool/make-docs.sh
     - name: Copy documentation to build directory
       run: |
         mkdir -p ./build/docs
