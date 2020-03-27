@@ -9,7 +9,7 @@
 --       annotates the decreasing argument of a function declared in
 --       the current module.
 
-module Compiler.Haskell.PragmaParser
+module Compiler.Frontend.PragmaParser
   ( parseCustomPragmas
   )
 where

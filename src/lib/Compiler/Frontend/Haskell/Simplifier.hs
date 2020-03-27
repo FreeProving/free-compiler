@@ -35,9 +35,9 @@ import qualified Language.Haskell.Exts.Syntax  as H
 import           Compiler.Analysis.DependencyExtraction
                                                 ( typeVars )
 import           Compiler.Environment.Fresh
+import           Compiler.Frontend.PragmaParser
 import           Compiler.IR.SrcSpan
 import qualified Compiler.IR.Syntax            as HS
-import           Compiler.Haskell.PragmaParser
 import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
 
