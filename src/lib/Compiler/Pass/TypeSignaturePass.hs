@@ -91,10 +91,8 @@
 --
 --   * A fatal error is reported if the type of an argument cannot be
 --     determined because a type synonym could not be expanded.
---
 --   * A fatal error is reported if there are multiple type signatures for the
 --     same function declaration.
---
 --   * A warning is reported if there is a type signature without accompanying
 --     function declaration.
 

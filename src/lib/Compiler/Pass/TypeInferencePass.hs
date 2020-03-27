@@ -438,7 +438,7 @@ annotateExprWith' (HS.IntLiteral srcSpan value _) resType = do
   addTypeEquation srcSpan intType resType
   return (HS.IntLiteral srcSpan value (makeExprType resType))
 
--- If @\x₀ … xₙ -> e :: τ@, then @x₀ :: α₀, …, xₙ :: αₙ@ and @x :: β@ for
+-- If @\\x₀ … xₙ -> e :: τ@, then @x₀ :: α₀, …, xₙ :: αₙ@ and @x :: β@ for
 -- fresh type variables @α₀, …, αₙ@ and @β@ and add the a type equation
 -- @α₀ -> … -> αₙ -> β = τ@.
 annotateExprWith' (HS.Lambda srcSpan args expr _) resType =

@@ -21,9 +21,6 @@
 --
 --   = Error cases
 --
---   * A fatal error is reported if there are two declarations for the
---     same name at the same level.
---
 --   * The user is informed if a different name is assigned to an entry.
 
 module Compiler.Pass.DefineDeclPass

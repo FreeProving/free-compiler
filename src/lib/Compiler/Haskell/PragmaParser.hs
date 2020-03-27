@@ -1,11 +1,11 @@
 -- | This module contains the parser for custom pragmas.
 --
---   All custom pragmas have the format @{-# HASKELL_TO_COQ ... #-}@ (see
+--   All custom pragmas have the format @{-\# HASKELL_TO_COQ ... \#-}@ (see
 --   'customPragmaPattern').
 --
 --   The following custom pragmas are supported:
 --
---     * @{-# HASKELL_TO_COQ <function> DECREASES ON <argument> #-}@
+--     * @{-\# HASKELL_TO_COQ <function> DECREASES ON <argument> \#-}@
 --       annotates the decreasing argument of a function declared in
 --       the current module.
 

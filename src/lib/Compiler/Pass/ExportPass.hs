@@ -15,6 +15,7 @@
 --
 --   @
 --   module A where
+--
 --   data Foo = Bar
 --   @
 --
@@ -29,7 +30,9 @@
 --
 --   @
 --   module B where
+--
 --   import A
+--
 --   foo :: a -> Foo
 --   foo x = Bar
 --   @
@@ -56,7 +59,10 @@
 --   == Postcondition
 --
 --   The environment contains a module interface for the translated module.
-module Compiler.Pass.ExportPass where
+module Compiler.Pass.ExportPass
+  ( exportPass
+  )
+where
 
 import qualified Data.Map.Strict               as Map
 import qualified Data.Set                      as Set

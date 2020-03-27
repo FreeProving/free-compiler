@@ -3,7 +3,7 @@
 --   fully applied.
 --
 --   An η-conversion is the conversion of a partially applied function
---   expression @f@ to a lambda expression @\x -> f x@ that explicitly
+--   expression @f@ to a lambda expression @\\x -> f x@ that explicitly
 --   applies the missing argument.
 --
 --  = Motivation
@@ -42,7 +42,7 @@
 --   and @m < n@ is replaced by a lambda abstraction
 --
 --   @
---   \x₍ₘ₊₁₎ … xₙ -> f @α₁ … @αₚ e₁ … eₘ x₍ₘ₊₁₎ … xₙ
+--   \\x₍ₘ₊₁₎ … xₙ -> f @α₁ … @αₚ e₁ … eₘ x₍ₘ₊₁₎ … xₙ
 --   @
 --
 --   where @x₍ₘ₊₁₎ … xₙ@ are @n-m@ fresh variables.
@@ -52,7 +52,10 @@
 --   All applications of @n@-ary functions or constructors have at least @n@
 --   arguments.
 
-module Compiler.Pass.EtaConversionPass where
+module Compiler.Pass.EtaConversionPass
+  ( etaConversionPass
+  )
+where
 
 import           Control.Monad                  ( replicateM )
 

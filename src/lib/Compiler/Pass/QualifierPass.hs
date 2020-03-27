@@ -53,7 +53,7 @@
 --   * @data D α₁ … αₘ = C₁ τ₍₁,₁₎ … τ₍₁,ₖ₁₎ | … | Cₙ τ₍ₙ,₁₎ … τ₍ₙ,ₖₙ₎@
 --   * @f₁, …, fₙ :: τ@
 --   * @f x₁ … xₙ = e@
---   * @{-# HASKELL_TO_COQ f DECREASES ON x #-}@
+--   * @{-\# HASKELL_TO_COQ f DECREASES ON x \#-}@
 --
 --   are translated to
 --
@@ -61,7 +61,7 @@
 --   * @data M.D α₁ … αₘ = M.C₁ τ₍₁,₁₎ … τ₍₁,ₖ₁₎ | … | M.Cₙ τ₍ₙ,₁₎ … τ₍ₙ,ₖₙ₎@
 --   * @M.f₁, …, M.fₙ :: τ@
 --   * @M.f x₁ … xₙ = e@
---   * @{-# HASKELL_TO_COQ M.f DECREASES ON x #-}@
+--   * @{-\# HASKELL_TO_COQ M.f DECREASES ON x \#-}@
 --
 --   If an identifier is qualified already, it keeps its original qualifier.
 --
@@ -69,7 +69,10 @@
 --
 --   All 'DeclIdent's in the module contain qualified identifiers ('HS.Qual').
 
-module Compiler.Pass.QualifierPass where
+module Compiler.Pass.QualifierPass
+  ( qualifierPass
+  )
+where
 
 import qualified Compiler.IR.Syntax            as HS
 import           Compiler.Pass

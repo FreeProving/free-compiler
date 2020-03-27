@@ -5,7 +5,7 @@ module Compiler.Coq.AST
   ( module Language.Coq.Gallina
     -- * Comments
   , comment
-    -- * Proofs.
+    -- * Proofs
   , blankProof
     -- * Identifiers
   , ident

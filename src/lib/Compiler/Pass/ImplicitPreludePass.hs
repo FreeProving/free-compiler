@@ -12,6 +12,7 @@
 --   import Test.QuickCheck
 --
 --   type Queue a = ([a], [a])
+--
 --   {- ... -}
 --   @
 --
@@ -24,6 +25,7 @@
 --   import Test.QuickCheck
 --
 --   type Queue a = ([a], [a])
+--
 --   {- ... -}
 --   @
 --

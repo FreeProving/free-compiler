@@ -7,6 +7,7 @@
 --
 --   @
 --   module A where
+--
 --   data Foo = Foo
 --   @
 --
@@ -14,7 +15,9 @@
 --
 --   @
 --   module B where
+--
 --   import A
+--
 --   type Bar a = Foo -> a
 --   @
 --
@@ -27,7 +30,9 @@
 --
 --   @
 --   module C where
+--
 --   import B
+--
 --   baz :: Bar ()
 --   baz x = ()
 --   @
