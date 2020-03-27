@@ -15,9 +15,9 @@ import           Control.Monad.Extra            ( anyM
 import qualified Data.List.NonEmpty            as NonEmpty
 
 import           Compiler.Analysis.DependencyAnalysis
+import qualified Compiler.Backend.Coq.Syntax   as G
 import           Compiler.Converter.Expr
 import           Compiler.Converter.FuncDecl.Common
-import qualified Compiler.Coq.AST              as G
 import qualified Compiler.IR.Syntax            as HS
 import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter

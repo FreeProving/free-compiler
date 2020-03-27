@@ -2,9 +2,9 @@ module Compiler.Environment.ModuleInterface where
 
 import           Data.Set                       ( Set )
 
+import qualified Compiler.Backend.Coq.Syntax   as G
 import           Compiler.Environment.Entry
 import           Compiler.Environment.Scope
-import qualified Compiler.Coq.AST              as G
 import qualified Compiler.IR.Syntax            as HS
 
 -- | Data type that contains the information of a module environment that

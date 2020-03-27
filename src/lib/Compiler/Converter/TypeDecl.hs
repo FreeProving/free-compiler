@@ -11,11 +11,11 @@ import           Data.Maybe                     ( catMaybes )
 import qualified Data.Set                      as Set
 
 import           Compiler.Analysis.DependencyAnalysis
+import qualified Compiler.Backend.Coq.Syntax   as G
+import qualified Compiler.Backend.Coq.Base     as CoqBase
 import           Compiler.Converter.Arg
 import           Compiler.Converter.Free
 import           Compiler.Converter.Type
-import qualified Compiler.Coq.AST              as G
-import qualified Compiler.Coq.Base             as CoqBase
 import           Compiler.Environment
 import           Compiler.Environment.Scope
 import qualified Compiler.IR.Syntax            as HS

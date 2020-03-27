@@ -30,9 +30,9 @@ import           Data.Maybe                     ( catMaybes )
 import           Text.Casing
 import           Text.RegexPR
 
-import qualified Compiler.Coq.AST              as G
-import qualified Compiler.Coq.Base             as CoqBase
-import           Compiler.Coq.Keywords
+import qualified Compiler.Backend.Coq.Base     as CoqBase
+import           Compiler.Backend.Coq.Keywords
+import qualified Compiler.Backend.Coq.Syntax   as G
 import           Compiler.Environment
 import           Compiler.Environment.Entry
 import qualified Compiler.IR.Syntax            as HS

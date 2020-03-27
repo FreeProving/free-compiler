@@ -9,7 +9,7 @@ module Compiler.Environment.Fresh where
 import           Data.List                      ( elemIndex )
 import qualified Data.Map.Strict               as Map
 
-import qualified Compiler.Coq.AST              as G
+import qualified Compiler.Backend.Coq.Syntax   as G
 import           Compiler.Environment
 import           Compiler.Environment.Renamer
 import qualified Compiler.IR.Syntax            as HS

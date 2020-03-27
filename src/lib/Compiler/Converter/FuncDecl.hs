@@ -7,10 +7,10 @@ import           Control.Monad.Extra            ( concatMapM )
 
 import           Compiler.Analysis.DependencyAnalysis
 import           Compiler.Analysis.DependencyGraph
+import qualified Compiler.Backend.Coq.Syntax   as G
 import           Compiler.Converter.FuncDecl.NonRec
 import           Compiler.Converter.FuncDecl.Rec
 import           Compiler.Converter.QuickCheck
-import qualified Compiler.Coq.AST              as G
 import qualified Compiler.IR.Syntax            as HS
 import           Compiler.Monad.Converter
 

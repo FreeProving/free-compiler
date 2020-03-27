@@ -86,6 +86,10 @@ library haskell-to-coq-internal
                       , Compiler.Analysis.DependencyGraph
                       , Compiler.Analysis.PartialityAnalysis
                       , Compiler.Analysis.RecursionAnalysis
+                      , Compiler.Backend.Coq.Base
+                      , Compiler.Backend.Coq.Keywords
+                      , Compiler.Backend.Coq.Pretty
+                      , Compiler.Backend.Coq.Syntax
                       , Compiler.Config
                       , Compiler.Converter
                       , Compiler.Converter.Arg
@@ -102,10 +106,6 @@ library haskell-to-coq-internal
                       , Compiler.Converter.Type
                       , Compiler.Converter.TypeDecl
                       , Compiler.Converter.TypeSchema
-                      , Compiler.Coq.AST
-                      , Compiler.Coq.Base
-                      , Compiler.Coq.Keywords
-                      , Compiler.Coq.Pretty
                       , Compiler.Environment
                       , Compiler.Environment.Entry
                       , Compiler.Environment.Fresh

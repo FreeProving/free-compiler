@@ -67,7 +67,7 @@ where
 import qualified Data.Map.Strict               as Map
 import qualified Data.Set                      as Set
 
-import qualified Compiler.Coq.Base             as CoqBase
+import qualified Compiler.Backend.Coq.Base     as CoqBase
 import           Compiler.Environment
 import           Compiler.Environment.ModuleInterface
 import           Compiler.Environment.Entry

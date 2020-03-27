@@ -6,9 +6,9 @@ module Compiler.Converter.FuncDecl.NonRec
   )
 where
 
+import qualified Compiler.Backend.Coq.Syntax   as G
 import           Compiler.Converter.Expr
 import           Compiler.Converter.FuncDecl.Common
-import qualified Compiler.Coq.AST              as G
 import qualified Compiler.IR.Syntax            as HS
 import           Compiler.Monad.Converter
 

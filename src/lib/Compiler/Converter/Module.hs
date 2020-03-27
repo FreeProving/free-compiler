@@ -10,10 +10,10 @@ import           Data.List                      ( find
 
 import           Compiler.Analysis.DependencyAnalysis
 import           Compiler.Analysis.DependencyGraph
+import qualified Compiler.Backend.Coq.Base     as CoqBase
+import qualified Compiler.Backend.Coq.Syntax   as G
 import           Compiler.Converter.FuncDecl
 import           Compiler.Converter.TypeDecl
-import qualified Compiler.Coq.AST              as G
-import qualified Compiler.Coq.Base             as CoqBase
 import           Compiler.Environment
 import           Compiler.Environment.ModuleInterface
 import qualified Compiler.IR.Syntax            as HS

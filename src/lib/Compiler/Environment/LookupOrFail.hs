@@ -4,7 +4,7 @@
 
 module Compiler.Environment.LookupOrFail where
 
-import qualified Compiler.Coq.AST              as G
+import qualified Compiler.Backend.Coq.Syntax              as G
 import           Compiler.Environment
 import           Compiler.Environment.Entry
 import           Compiler.Environment.Scope

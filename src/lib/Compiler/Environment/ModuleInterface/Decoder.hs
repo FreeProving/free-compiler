@@ -113,8 +113,8 @@ import           Text.RegexPR
 
 import           Compiler.Analysis.DependencyExtraction
                                                 ( typeVars )
+import qualified Compiler.Backend.Coq.Syntax   as G
 import           Compiler.Config
-import qualified Compiler.Coq.AST              as G
 import           Compiler.Environment
 import           Compiler.Environment.ModuleInterface
 import           Compiler.Environment.Entry

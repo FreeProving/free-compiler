@@ -4,7 +4,7 @@
 --   but want to avoid overlapping instances, there is a wrapper type
 --   'PrettyCoq'. To pretty print a node @x@ of the Coq AST writer
 --   @pretty (PrettyCoq x)@.
-module Compiler.Coq.Pretty where
+module Compiler.Backend.Coq.Pretty where
 
 import           Language.Coq.Pretty            ( Gallina
                                                 , renderGallina

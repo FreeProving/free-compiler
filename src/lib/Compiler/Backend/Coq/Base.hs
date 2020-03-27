@@ -1,9 +1,9 @@
 -- | This module contains the Coq identifiers of types, constructors and
 --   functions defined in the Base library that accompanies the compiler.
 
-module Compiler.Coq.Base where
+module Compiler.Backend.Coq.Base where
 
-import qualified Compiler.Coq.AST              as G
+import qualified Compiler.Backend.Coq.Syntax   as G
 
 -------------------------------------------------------------------------------
 -- Base library import                                                       --

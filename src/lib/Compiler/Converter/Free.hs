@@ -7,8 +7,8 @@ import           Data.List                      ( elemIndex )
 import           Data.List.NonEmpty             ( NonEmpty(..) )
 import           Data.Maybe                     ( maybe )
 
-import qualified Compiler.Coq.AST              as G
-import qualified Compiler.Coq.Base             as CoqBase
+import qualified Compiler.Backend.Coq.Base     as CoqBase
+import qualified Compiler.Backend.Coq.Syntax   as G
 import           Compiler.Environment.Fresh
 import           Compiler.Monad.Converter
 

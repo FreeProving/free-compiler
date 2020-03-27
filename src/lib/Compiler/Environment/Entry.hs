@@ -7,7 +7,7 @@ module Compiler.Environment.Entry where
 import           Data.Function                  ( on )
 import           Data.Tuple.Extra               ( (&&&) )
 
-import qualified Compiler.Coq.AST              as G
+import qualified Compiler.Backend.Coq.Syntax   as G
 import           Compiler.Environment.Scope
 import qualified Compiler.IR.Syntax            as HS
 import           Compiler.Haskell.SrcSpan

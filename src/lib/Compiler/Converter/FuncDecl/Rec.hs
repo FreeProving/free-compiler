@@ -6,8 +6,8 @@ module Compiler.Converter.FuncDecl.Rec
   )
 where
 
+import qualified Compiler.Backend.Coq.Syntax   as G
 import           Compiler.Analysis.RecursionAnalysis
-import qualified Compiler.Coq.AST              as G
 import qualified Compiler.IR.Syntax            as HS
 import           Compiler.Monad.Converter
 

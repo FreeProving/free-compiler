@@ -22,9 +22,9 @@ import           System.IO.Unsafe               ( unsafePerformIO )
 
 import           Compiler.Analysis.DependencyExtraction
                                                 ( typeVars )
+import           Compiler.Backend.Coq.Pretty
+import qualified Compiler.Backend.Coq.Syntax   as G
 import           Compiler.Converter
-import qualified Compiler.Coq.AST              as G
-import           Compiler.Coq.Pretty
 import           Compiler.Environment
 import           Compiler.Environment.Entry
 import           Compiler.Environment.Fresh

@@ -7,10 +7,10 @@ module Compiler.Converter.FuncDecl.Common
   )
 where
 
+import qualified Compiler.Backend.Coq.Syntax   as G
 import           Compiler.Converter.Arg
 import           Compiler.Converter.Free
 import           Compiler.Converter.Type
-import qualified Compiler.Coq.AST              as G
 import           Compiler.Environment
 import           Compiler.Environment.Scope
 import qualified Compiler.IR.Syntax            as HS

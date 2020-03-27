@@ -4,7 +4,7 @@
 module Compiler.Converter.Arg where
 
 import           Compiler.Converter.Type
-import qualified Compiler.Coq.AST              as G
+import qualified Compiler.Backend.Coq.Syntax   as G
 import           Compiler.Environment.Fresh
 import           Compiler.Environment.Renamer
 import qualified Compiler.IR.Syntax            as HS

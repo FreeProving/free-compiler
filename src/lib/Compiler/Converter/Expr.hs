@@ -8,11 +8,11 @@ import           Control.Monad.Extra            ( ifM
 import           Data.Composition
 import           Data.Foldable                  ( foldrM )
 
+import qualified Compiler.Backend.Coq.Base     as CoqBase
+import qualified Compiler.Backend.Coq.Syntax   as G
 import           Compiler.Converter.Arg
 import           Compiler.Converter.Free
 import           Compiler.Converter.Type
-import qualified Compiler.Coq.AST              as G
-import qualified Compiler.Coq.Base             as CoqBase
 import           Compiler.Environment
 import           Compiler.Environment.Fresh
 import           Compiler.Environment.LookupOrFail

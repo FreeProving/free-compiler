@@ -1,7 +1,7 @@
 -- | This module exports lists for keywords of the Gallina specification
 --   langauge and Vernacular commands.
 
-module Compiler.Coq.Keywords where
+module Compiler.Backend.Coq.Keywords where
 
 -- | Keywords of the Gallina specification language.
 --

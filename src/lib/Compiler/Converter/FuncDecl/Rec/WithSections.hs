@@ -34,12 +34,12 @@ import           Compiler.Analysis.DependencyExtraction
                                                 , varSet
                                                 )
 import           Compiler.Analysis.RecursionAnalysis
+import qualified Compiler.Backend.Coq.Base     as CoqBase
+import qualified Compiler.Backend.Coq.Syntax   as G
 import           Compiler.Converter.Free
 import           Compiler.Converter.FuncDecl.Common
 import           Compiler.Converter.FuncDecl.Rec.WithHelpers
 import           Compiler.Converter.Type
-import qualified Compiler.Coq.AST              as G
-import qualified Compiler.Coq.Base             as CoqBase
 import           Compiler.Environment
 import           Compiler.Environment.Entry
 import           Compiler.Environment.Fresh

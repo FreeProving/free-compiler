@@ -2,9 +2,9 @@
 
 module Compiler.Converter.Type where
 
+import qualified Compiler.Backend.Coq.Base     as CoqBase
+import qualified Compiler.Backend.Coq.Syntax   as G
 import           Compiler.Converter.Free
-import qualified Compiler.Coq.AST              as G
-import qualified Compiler.Coq.Base             as CoqBase
 import           Compiler.Environment.LookupOrFail
 import           Compiler.Environment.Scope
 import qualified Compiler.IR.Syntax            as HS

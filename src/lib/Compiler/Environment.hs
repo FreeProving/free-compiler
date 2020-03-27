@@ -50,7 +50,7 @@ import           Data.Maybe                     ( catMaybes
                                                 )
 import           Data.Tuple.Extra               ( (&&&) )
 
-import qualified Compiler.Coq.AST              as G
+import qualified Compiler.Backend.Coq.Syntax   as G
 import           Compiler.Environment.Entry
 import           Compiler.Environment.ModuleInterface
 import           Compiler.Environment.Scope

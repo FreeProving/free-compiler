@@ -1,7 +1,7 @@
 -- | This module contains smart constructors for nodes of the Coq AST.
 --   For convenience the original Coq AST is exported as well.
 
-module Compiler.Coq.AST
+module Compiler.Backend.Coq.Syntax
   ( module Language.Coq.Gallina
     -- * Comments
   , comment

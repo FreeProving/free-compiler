@@ -23,10 +23,10 @@ import qualified Data.Set                      as Set
 import           Compiler.Analysis.DependencyExtraction
                                                 ( varSet )
 import           Compiler.Analysis.RecursionAnalysis
+import qualified Compiler.Backend.Coq.Syntax   as G
 import           Compiler.Converter.Expr
 import           Compiler.Converter.FuncDecl.Common
 import           Compiler.Converter.FuncDecl.NonRec
-import qualified Compiler.Coq.AST              as G
 import           Compiler.Environment
 import           Compiler.Environment.Entry
 import           Compiler.Environment.Fresh
