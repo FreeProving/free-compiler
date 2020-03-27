@@ -51,10 +51,10 @@ where
 import           Control.Monad                  ( when )
 import           Control.Monad.Extra            ( anyM )
 
-import           Compiler.Analysis.DependencyAnalysis
 import           Compiler.Environment
 import           Compiler.Environment.Entry
 import           Compiler.Environment.Scope
+import           Compiler.IR.DependencyGraph    ( unwrapComponent )
 import           Compiler.IR.Reference          ( valueRefs )
 import qualified Compiler.IR.Syntax            as HS
 import           Compiler.Monad.Converter

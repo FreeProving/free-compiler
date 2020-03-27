@@ -31,9 +31,9 @@ import           Data.Set                       ( Set
 import qualified Data.Set                      as Set
 import           Data.Tuple.Extra               ( uncurry3 )
 
-import           Compiler.Analysis.DependencyGraph
 import           Compiler.Environment
 import           Compiler.Environment.Fresh
+import           Compiler.IR.DependencyGraph
 import           Compiler.IR.Reference          ( freeVarSet )
 import qualified Compiler.IR.Syntax            as HS
 import           Compiler.Monad.Converter

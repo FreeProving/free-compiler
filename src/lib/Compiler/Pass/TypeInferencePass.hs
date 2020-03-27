@@ -37,11 +37,11 @@ import           Data.Maybe                     ( fromJust
 import           Data.Set                       ( Set )
 import qualified Data.Set                      as Set
 
-import           Compiler.Analysis.DependencyAnalysis
 import           Compiler.Backend.Coq.Converter.TypeSchema
 import           Compiler.Environment
 import           Compiler.Environment.Fresh
 import           Compiler.Environment.Scope
+import           Compiler.IR.DependencyGraph    ( mapComponentM )
 import           Compiler.IR.Reference          ( freeTypeVars )
 import           Compiler.IR.SrcSpan
 import           Compiler.IR.Subst
@@ -269,12 +269,11 @@ inferFuncDeclTypes' funcDecls = withLocalState $ do
   -- of the function but not in the inferred type (also known as "vanishing
   -- type  arguments") are added as well. The order of the type arguments
   -- depends on their order in the (type) expression (from left to right).
-  let
-    typeExprs = map (fromJust . HS.funcDeclType) typedFuncDecls
-    typeArgs  = map freeTypeVars typeExprs
-    additionalTypeArgs =
-      nub (concatMap freeTypeVars typedFuncDecls) \\ concat typeArgs
-    allTypeArgs = map (++ additionalTypeArgs) typeArgs
+  let typeExprs = map (fromJust . HS.funcDeclType) typedFuncDecls
+      typeArgs  = map freeTypeVars typeExprs
+      additionalTypeArgs =
+        nub (concatMap freeTypeVars typedFuncDecls) \\ concat typeArgs
+      allTypeArgs = map (++ additionalTypeArgs) typeArgs
   abstractedFuncDecls <- liftConverter
     $ zipWithM abstractTypeArgs allTypeArgs typedFuncDecls
 

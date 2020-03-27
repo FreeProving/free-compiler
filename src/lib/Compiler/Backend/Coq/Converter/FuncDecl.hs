@@ -5,22 +5,19 @@ module Compiler.Backend.Coq.Converter.FuncDecl where
 
 import           Control.Monad.Extra            ( concatMapM )
 
-import           Compiler.Analysis.DependencyAnalysis
-import           Compiler.Analysis.DependencyGraph
 import           Compiler.Backend.Coq.Converter.FuncDecl.NonRec
 import           Compiler.Backend.Coq.Converter.FuncDecl.Rec
 import           Compiler.Backend.Coq.Converter.QuickCheck
 import qualified Compiler.Backend.Coq.Syntax   as G
+import           Compiler.IR.DependencyGraph
 import qualified Compiler.IR.Syntax            as HS
 import           Compiler.Monad.Converter
 
 -- | Converts the given function declarations.
 convertFuncDecls :: [HS.FuncDecl] -> Converter [G.Sentence]
 convertFuncDecls funcDecls = do
-  let dependencyGraph = funcDependencyGraph funcDecls
-      components      = groupDependencies dependencyGraph
-
   -- Filter QuickCheck properties.
+  let components = groupFuncDecls funcDecls
   (properties, funcComponents) <- filterQuickCheckProperties components
 
   -- Convert function declarations and QuickCheck properties.

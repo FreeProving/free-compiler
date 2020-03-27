@@ -16,7 +16,6 @@ import           System.Directory               ( createDirectoryIfMissing
 import           System.Exit                    ( exitSuccess )
 import           System.FilePath
 
-import           Compiler.Analysis.DependencyAnalysis
 import           Compiler.Application.Debug
 import           Compiler.Application.Options
 import qualified Compiler.Backend.Coq.Base     as CoqBase
@@ -36,6 +35,7 @@ import           Compiler.Frontend.Haskell.PatternMatching
 import           Compiler.Frontend.Haskell.Pretty
                                                 ( )
 import           Compiler.Frontend.Haskell.Simplifier
+import           Compiler.IR.DependencyGraph
 import           Compiler.IR.SrcSpan
 import qualified Compiler.IR.Syntax            as HS
 import           Compiler.Monad.Application

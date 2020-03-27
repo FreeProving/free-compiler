@@ -81,9 +81,7 @@ common deps
 library haskell-to-coq-internal
   import:             deps
   hs-source-dirs:     src/lib
-  exposed-modules:      Compiler.Analysis.DependencyAnalysis
-                      , Compiler.Analysis.DependencyGraph
-                      , Compiler.Analysis.RecursionAnalysis
+  exposed-modules:      Compiler.Analysis.RecursionAnalysis
                       , Compiler.Backend.Coq.Base
                       , Compiler.Backend.Coq.Converter
                       , Compiler.Backend.Coq.Converter.Arg
@@ -123,6 +121,7 @@ library haskell-to-coq-internal
                       , Compiler.Monad.Converter
                       , Compiler.Monad.Class.Hoistable
                       , Compiler.Monad.Reporter
+                      , Compiler.IR.DependencyGraph
                       , Compiler.IR.Inlining
                       , Compiler.IR.Reference
                       , Compiler.IR.SrcSpan

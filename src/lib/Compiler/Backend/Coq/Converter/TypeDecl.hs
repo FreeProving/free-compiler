@@ -10,7 +10,6 @@ import qualified Data.List.NonEmpty            as NonEmpty
 import           Data.Maybe                     ( catMaybes )
 import qualified Data.Set                      as Set
 
-import           Compiler.Analysis.DependencyAnalysis
 import qualified Compiler.Backend.Coq.Syntax   as G
 import           Compiler.Backend.Coq.Converter.Arg
 import           Compiler.Backend.Coq.Converter.Free
@@ -18,6 +17,7 @@ import           Compiler.Backend.Coq.Converter.Type
 import qualified Compiler.Backend.Coq.Base     as CoqBase
 import           Compiler.Environment
 import           Compiler.Environment.Scope
+import           Compiler.IR.DependencyGraph
 import qualified Compiler.IR.Syntax            as HS
 import           Compiler.IR.TypeSynExpansion
 import           Compiler.Monad.Converter

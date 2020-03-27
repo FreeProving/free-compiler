@@ -8,14 +8,13 @@ import           Data.List                      ( find
                                                 , findIndex
                                                 )
 
-import           Compiler.Analysis.DependencyAnalysis
-import           Compiler.Analysis.DependencyGraph
 import qualified Compiler.Backend.Coq.Base     as CoqBase
 import           Compiler.Backend.Coq.Converter.FuncDecl
 import           Compiler.Backend.Coq.Converter.TypeDecl
 import qualified Compiler.Backend.Coq.Syntax   as G
 import           Compiler.Environment
 import           Compiler.Environment.ModuleInterface
+import           Compiler.IR.DependencyGraph
 import qualified Compiler.IR.Syntax            as HS
 import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
@@ -102,8 +101,7 @@ convertDecls typeDecls funcDecls = do
 -- | Converts the given data type or type synonym declarations.
 convertTypeDecls :: [HS.TypeDecl] -> Converter [G.Sentence]
 convertTypeDecls typeDecls = do
-  let dependencyGraph = typeDependencyGraph typeDecls
-      components      = groupDependencies dependencyGraph
+  let components = groupTypeDecls typeDecls
   concatMapM convertTypeComponent components
 
 -------------------------------------------------------------------------------

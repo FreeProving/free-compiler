@@ -42,8 +42,7 @@ module Compiler.Pass.DependencyAnalysisPass
   )
 where
 
-import           Compiler.Analysis.DependencyAnalysis
-import           Compiler.Analysis.DependencyGraph
+import           Compiler.IR.DependencyGraph
 import qualified Compiler.IR.Syntax            as HS
 import           Compiler.Monad.Converter
 import           Compiler.Pass
@@ -56,7 +55,7 @@ type DependencyAwarePass decl = Pass (DependencyComponent decl)
 -- | Type class for declaration AST nodes whose dependencies can be analyzed.
 class DependencyAnalysisPass decl where
   -- | Constructs the dependency graph for the given nodes.
-  dependencyGraph :: [decl] -> DependencyGraph decl
+  groupDecls :: [decl] -> [DependencyComponent decl]
 
   -- | Gets the declarations of the node type from the given module.
   getDecls :: HS.Module -> [decl]
@@ -66,14 +65,14 @@ class DependencyAnalysisPass decl where
 
 -- | The dependencies of type declarations can be analyzed.
 instance DependencyAnalysisPass HS.TypeDecl where
-  dependencyGraph = typeDependencyGraph
-  getDecls        = HS.modTypeDecls
+  groupDecls = groupTypeDecls
+  getDecls   = HS.modTypeDecls
   setDecls ast decls = ast { HS.modTypeDecls = decls }
 
 -- | The dependencies of function declarations can be analyzed.
 instance DependencyAnalysisPass HS.FuncDecl where
-  dependencyGraph = funcDependencyGraph
-  getDecls        = HS.modFuncDecls
+  groupDecls = groupFuncDecls
+  getDecls   = HS.modFuncDecls
   setDecls ast decls = ast { HS.modFuncDecls = decls }
 
 -- | Applies the given child passes to the strongly connected components
@@ -86,5 +85,5 @@ dependencyAnalysisPass
   -> Converter HS.Module
 dependencyAnalysisPass = subPipelinePass getComponents setComponents
  where
-  getComponents = groupDependencies . dependencyGraph . getDecls
+  getComponents = groupDecls . getDecls
   setComponents ast = setDecls ast . concatMap unwrapComponent
