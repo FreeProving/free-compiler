@@ -242,7 +242,7 @@ jobs:
         cabal new-build unit-tests --only-dependencies
         cabal new-build haskell-to-coq-compiler --only-dependencies
     - name: Run Haddock
-      run: cabal new-haddock --haddock-hyperlink-source
+      run: ./tool/make-docs.hs
     - name: Copy documentation to build directory
       run: |
         mkdir -p ./build/docs
