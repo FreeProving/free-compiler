@@ -19,8 +19,8 @@ import           Control.Monad                  ( msum )
 import           Data.Maybe                     ( catMaybes )
 import           Text.RegexPR
 
+import           Compiler.IR.SrcSpan
 import qualified Compiler.IR.Syntax            as HS
-import           Compiler.Haskell.SrcSpan
 import           Compiler.Monad.Reporter
 
 -- | Type alias for a function that creates a pragma AST node

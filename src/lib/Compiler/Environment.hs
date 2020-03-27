@@ -55,7 +55,7 @@ import           Compiler.Environment.Entry
 import           Compiler.Environment.ModuleInterface
 import           Compiler.Environment.Scope
 import qualified Compiler.IR.Syntax            as HS
-import           Compiler.Haskell.SrcSpan
+import           Compiler.IR.SrcSpan
 import           Compiler.Util.Predicate
 
 -------------------------------------------------------------------------------

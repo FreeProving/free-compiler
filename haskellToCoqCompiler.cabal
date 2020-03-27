@@ -120,12 +120,13 @@ library haskell-to-coq-internal
                       , Compiler.Frontend.Haskell.PatternMatching
                       , Compiler.Frontend.Haskell.Pretty
                       , Compiler.Frontend.Haskell.Simplifier
+                      , Compiler.Frontend.Haskell.SrcSpanConverter
                       , Compiler.Monad.Converter
                       , Compiler.Monad.Class.Hoistable
                       , Compiler.Monad.Reporter
                       , Compiler.Haskell.PragmaParser
-                      , Compiler.Haskell.SrcSpan
                       , Compiler.IR.Inlining
+                      , Compiler.IR.SrcSpan
                       , Compiler.IR.Subst
                       , Compiler.IR.Subterm
                       , Compiler.IR.Syntax

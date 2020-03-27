@@ -27,8 +27,8 @@ import           Compiler.Config
 import           Compiler.Environment.Entry
 import           Compiler.Environment.ModuleInterface
 import           Compiler.Environment.Scope
+import           Compiler.IR.SrcSpan
 import qualified Compiler.IR.Syntax            as HS
-import           Compiler.Haskell.SrcSpan
 import           Compiler.Monad.Reporter
 import           Compiler.Pretty
 

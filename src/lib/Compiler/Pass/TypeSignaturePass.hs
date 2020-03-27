@@ -108,7 +108,7 @@ import qualified Data.Map.Strict               as Map
 import           Data.Set                       ( Set )
 import qualified Data.Set                      as Set
 
-import           Compiler.Haskell.SrcSpan
+import           Compiler.IR.SrcSpan
 import qualified Compiler.IR.Syntax            as HS
 import           Compiler.IR.TypeSynExpansion
 import           Compiler.Monad.Converter

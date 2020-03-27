@@ -8,8 +8,8 @@ import qualified Compiler.Backend.Coq.Syntax              as G
 import           Compiler.Environment
 import           Compiler.Environment.Entry
 import           Compiler.Environment.Scope
+import           Compiler.IR.SrcSpan
 import qualified Compiler.IR.Syntax            as HS
-import           Compiler.Haskell.SrcSpan
 import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
 import           Compiler.Pretty

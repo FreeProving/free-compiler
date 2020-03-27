@@ -22,8 +22,8 @@ import           Compiler.Environment
 import           Compiler.Environment.ModuleInterface
 import           Compiler.Environment.Entry
 import           Compiler.Frontend.Haskell.Parser
+import           Compiler.IR.SrcSpan
 import qualified Compiler.IR.Syntax            as HS
-import           Compiler.Haskell.SrcSpan
 import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
 import           Compiler.Pretty

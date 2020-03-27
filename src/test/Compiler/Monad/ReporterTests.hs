@@ -9,7 +9,7 @@ import           System.IO.Error                ( ioError
 
 import           Test.Hspec
 
-import           Compiler.Haskell.SrcSpan
+import           Compiler.IR.SrcSpan
 import           Compiler.Monad.Reporter
 
 -- | Test group for all "Compiler.Monad.Reporter" tests.

@@ -68,7 +68,7 @@ import           System.IO.Error                ( catchIOError
                                                 , ioeGetFileName
                                                 )
 
-import           Compiler.Haskell.SrcSpan
+import           Compiler.IR.SrcSpan
 import           Compiler.Monad.Class.Hoistable
 import           Compiler.Pretty
 

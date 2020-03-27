@@ -7,7 +7,7 @@
 --
 --   In some places the simplifier also performs desugaring. For example,
 --   infix operators are translated to regular function applications and
---   list literals to the application of the list constructors. 
+--   list literals to the application of the list constructors.
 --
 --  TODO warn user if reserved names like `error` or `undefined` are used
 --       in declarations or as (type-) variable names.
@@ -35,9 +35,9 @@ import qualified Language.Haskell.Exts.Syntax  as H
 import           Compiler.Analysis.DependencyExtraction
                                                 ( typeVars )
 import           Compiler.Environment.Fresh
+import           Compiler.IR.SrcSpan
 import qualified Compiler.IR.Syntax            as HS
 import           Compiler.Haskell.PragmaParser
-import           Compiler.Haskell.SrcSpan
 import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
 

@@ -21,7 +21,7 @@ module Compiler.IR.Syntax where
 
 import           Control.Monad                  ( (>=>) )
 
-import           Compiler.Haskell.SrcSpan
+import           Compiler.IR.SrcSpan
 import           Compiler.Pretty
 
 -------------------------------------------------------------------------------

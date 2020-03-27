@@ -12,8 +12,8 @@ import qualified Data.Map.Strict               as Map
 import qualified Compiler.Backend.Coq.Syntax   as G
 import           Compiler.Environment
 import           Compiler.Environment.Renamer
+import           Compiler.IR.SrcSpan
 import qualified Compiler.IR.Syntax            as HS
-import           Compiler.Haskell.SrcSpan
 import           Compiler.Monad.Converter
 
 -------------------------------------------------------------------------------

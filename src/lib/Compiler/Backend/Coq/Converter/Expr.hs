@@ -18,9 +18,9 @@ import           Compiler.Environment.Fresh
 import           Compiler.Environment.LookupOrFail
 import           Compiler.Environment.Renamer
 import           Compiler.Environment.Scope
-import           Compiler.Haskell.SrcSpan
-import qualified Compiler.IR.Syntax            as HS
+import           Compiler.IR.SrcSpan
 import           Compiler.IR.Subst
+import qualified Compiler.IR.Syntax            as HS
 import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
 import           Compiler.Pretty

@@ -6,9 +6,9 @@ import           Test.QuickCheck
 import           Data.Maybe                     ( isJust )
 import qualified Data.Set                      as Set
 
-import           Compiler.Haskell.SrcSpan
-import           Compiler.IR.Syntax            as HS
+import           Compiler.IR.SrcSpan
 import           Compiler.IR.Subterm
+import           Compiler.IR.Syntax            as HS
 
 import           Compiler.Util.Test
 

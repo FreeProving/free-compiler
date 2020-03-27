@@ -47,8 +47,9 @@ import           Language.Haskell.Exts.Parser   ( ParseMode(..)
 import           Language.Haskell.Exts.SrcLoc   ( SrcSpanInfo )
 import qualified Language.Haskell.Exts.Syntax  as H
 
+import           Compiler.Frontend.Haskell.SrcSpanConverter
+import           Compiler.IR.SrcSpan
 import           Compiler.IR.Syntax            as HS
-import           Compiler.Haskell.SrcSpan
 import           Compiler.Monad.Reporter
 
 -- | Custom parameters for parsing a Haskell source file with the given name.
@@ -141,7 +142,7 @@ parseHaskellWithCommentsAndExts enabledExts filename contents =
   --
   --   The 'codeByFilename' is needed because when pretty printing a message,
   --   an excerpt of the code that caused the message to be reported is shown.
-  toMessageSrcSpan :: SrcSpanConverter l => l -> SrcSpan
+  toMessageSrcSpan :: ConvertableSrcSpan l => l -> SrcSpan
   toMessageSrcSpan = convertSrcSpan codeByFilename
 
   -- | Unlike all other AST nodes of @haskell-src-exts@, the

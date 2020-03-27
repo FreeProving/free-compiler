@@ -48,8 +48,8 @@ module Compiler.Pass.ImplicitPreludePass
   )
 where
 
+import           Compiler.IR.SrcSpan
 import qualified Compiler.IR.Syntax            as HS
-import           Compiler.Haskell.SrcSpan
 import           Compiler.Pass
 
 -- | A compiler pass that adds an import declaration for the @Prelude@ module

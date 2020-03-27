@@ -1,28 +1,19 @@
--- | This module contains the defition of a source span data type that is used
---   by the simplified Haskell AST to store for every node the corresponding
---   portion of the source code.
+-- | This module contains the definition of a source span data type that is
+--   used by the AST of the intermediate language to store for every node the
+--   corresponding portion of the source code.
 --
 --   Source spans can be pretty printed and are used by the error reporting
 --   engine of the compiler to point the user to the relevant piece of code
 --   when an error occurs.
---
---   This module also contains utility functions to work with source spans.
---   Amongst others there are functions to convert other source spans from the
---   @haskell-src-exts@ package to the data type defined in this module.
 
-module Compiler.Haskell.SrcSpan
+module Compiler.IR.SrcSpan
   ( SrcSpan(..)
-  , SrcSpanConverter(..)
+    -- * Predicates
   , hasSrcSpanFilename
   , hasSourceCode
   , spansMultipleLines
   )
 where
-
-import           Control.Monad                  ( join )
-import           Text.Parsec.Pos               as Parsec
-
-import qualified Language.Haskell.Exts.SrcLoc  as H
 
 import           Compiler.Pretty
 
@@ -48,62 +39,7 @@ data SrcSpan =
   deriving (Eq, Show)
 
 -------------------------------------------------------------------------------
--- Source span conversion                                                    --
--------------------------------------------------------------------------------
-
--- | Type class for @haskell-src-exts@ source spans that can be converted
---   to 'SrcSpan's for pretty printing of messages.
-class SrcSpanConverter ss where
-  -- | Converts a @haskell-src-exts@ source span to a 'SrcSpan' by
-  --   attaching the corresponding line of source code.
-  convertSrcSpan ::
-    [(String, [String])] -- ^ A map of file names to lines of source code.
-    -> ss                -- ^ The original source span to convert.
-    -> SrcSpan
-
--- | Directly converts a 'H.SrcSpan' to a 'SrcSpan' by looking up
---   the corresponding line of code in the provided map.
-instance SrcSpanConverter H.SrcSpan where
-  convertSrcSpan codeByFilename srcSpan = SrcSpan
-    { srcSpanFilename    = H.srcSpanFilename srcSpan
-    , srcSpanStartLine   = H.srcSpanStartLine srcSpan
-    , srcSpanStartColumn = H.srcSpanStartColumn srcSpan
-    , srcSpanEndLine     = H.srcSpanEndLine srcSpan
-    , srcSpanEndColumn   = H.srcSpanEndColumn srcSpan
-    , srcSpanCodeLines   =
-      take (H.srcSpanEndLine srcSpan - H.srcSpanStartLine srcSpan + 1)
-      $ drop (H.srcSpanStartLine srcSpan - 1)
-      $ maybe [] id
-      $ lookup (H.srcSpanFilename srcSpan) codeByFilename
-    }
-
--- | Converts a 'H.SrcSpanInfo' by removing additional information and applying
---   the conversion for 'H.SrcSpan's.
-instance SrcSpanConverter H.SrcSpanInfo where
-  convertSrcSpan codeByFilename = convertSrcSpan codeByFilename . H.srcInfoSpan
-
--- | Converts a 'H.SrcLoc' by creating a zero width source span and applying
---   the conversion for 'H.SrcSpan's.
-instance SrcSpanConverter H.SrcLoc where
-  convertSrcSpan codeByFilename =
-    convertSrcSpan codeByFilename . join H.mkSrcSpan
-
--- | Converts a Parsec 'SourcePos' to a 'SrcSpan'.
-instance SrcSpanConverter Parsec.SourcePos where
-  convertSrcSpan codeByFilename srcPos = SrcSpan
-    { srcSpanFilename    = Parsec.sourceName srcPos
-    , srcSpanStartLine   = Parsec.sourceLine srcPos
-    , srcSpanStartColumn = Parsec.sourceColumn srcPos
-    , srcSpanEndLine     = Parsec.sourceLine srcPos
-    , srcSpanEndColumn   = Parsec.sourceColumn srcPos
-    , srcSpanCodeLines   = return
-                           $ (!! Parsec.sourceLine srcPos)
-                           $ maybe [] id
-                           $ lookup (Parsec.sourceName srcPos) codeByFilename
-    }
-
--------------------------------------------------------------------------------
--- Utility functions                                                         --
+-- Predicates                                                                --
 -------------------------------------------------------------------------------
 
 -- | Tests whether the given 'SrcSpan' contains filename information (i.e.,

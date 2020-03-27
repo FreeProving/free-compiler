@@ -11,9 +11,9 @@ import           Control.Monad                  ( when )
 import           Data.Map.Strict                ( Map )
 import qualified Data.Map.Strict               as Map
 
-import           Compiler.Haskell.SrcSpan
-import qualified Compiler.IR.Syntax            as HS
+import           Compiler.IR.SrcSpan
 import           Compiler.IR.Subst
+import qualified Compiler.IR.Syntax            as HS
 import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
 import           Compiler.Pretty

@@ -62,9 +62,9 @@ import           Control.Monad                  ( replicateM )
 import           Compiler.Environment
 import           Compiler.Environment.Fresh
 import           Compiler.Environment.Scope
-import           Compiler.Haskell.SrcSpan
-import qualified Compiler.IR.Syntax            as HS
+import           Compiler.IR.SrcSpan
 import           Compiler.IR.Subterm
+import qualified Compiler.IR.Syntax            as HS
 import           Compiler.Monad.Converter
 import           Compiler.Pass
 

@@ -36,8 +36,8 @@ import           Compiler.Frontend.Haskell.PatternMatching
 import           Compiler.Frontend.Haskell.Pretty
                                                 ( )
 import           Compiler.Frontend.Haskell.Simplifier
+import           Compiler.IR.SrcSpan
 import qualified Compiler.IR.Syntax            as HS
-import           Compiler.Haskell.SrcSpan
 import           Compiler.Monad.Application
 import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter

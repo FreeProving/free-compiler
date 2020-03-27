@@ -14,10 +14,11 @@ import           Data.String                    ( fromString )
 import qualified Data.Text                     as T
 import           System.FilePath
 import qualified Text.Parsec.Error             as Parsec
+import qualified Text.Parsec.Pos               as Parsec
 import           Text.Toml                      ( parseTomlDoc )
 import qualified Text.Toml.Types               as Toml
 
-import           Compiler.Haskell.SrcSpan
+import           Compiler.IR.SrcSpan
 import           Compiler.Monad.Reporter
 
 -- | Loads a @.json@ or @.toml@ file and decodes its contents using
@@ -46,7 +47,9 @@ decodeTomlConfig filename contents =
   case parseTomlDoc filename (T.pack contents) of
     Right document   -> decodeTomlDocument document
     Left  parseError -> reportFatal $ Message
-      (convertSrcSpan [(filename, lines contents)] (Parsec.errorPos parseError))
+      (convertParsecSrcSpan [(filename, lines contents)]
+                            (Parsec.errorPos parseError)
+      )
       Error
       ("Failed to parse config file: " ++ Parsec.showErrorMessages
         msgOr
@@ -86,3 +89,20 @@ decodeJsonConfig filename contents =
 saveConfig :: Aeson.ToJSON a => FilePath -> a -> ReporterIO ()
 saveConfig filename =
   reportIOErrors . lift . B.writeFile filename . AesonPretty.encodePretty
+
+-- | Converts a Parsec 'Parsec.SourcePos' to a 'SrcSpan'.
+convertParsecSrcSpan ::
+  [(String, [String])] -- ^ A map of file names to lines of source code.
+  -> Parsec.SourcePos  -- ^ The original source span to convert.
+  -> SrcSpan
+convertParsecSrcSpan codeByFilename srcPos = SrcSpan
+  { srcSpanFilename    = Parsec.sourceName srcPos
+  , srcSpanStartLine   = Parsec.sourceLine srcPos
+  , srcSpanStartColumn = Parsec.sourceColumn srcPos
+  , srcSpanEndLine     = Parsec.sourceLine srcPos
+  , srcSpanEndColumn   = Parsec.sourceColumn srcPos
+  , srcSpanCodeLines   = return
+                         $ (!! Parsec.sourceLine srcPos)
+                         $ maybe [] id
+                         $ lookup (Parsec.sourceName srcPos) codeByFilename
+  }
