@@ -51,8 +51,7 @@ instantiateTypeSchema' (HS.TypeSchema _ typeArgs typeExpr) = do
 --
 --   The first argument contains the names of type variables that should be
 --   bound by the type schema. Usually these are the type variables that
---   occur in the given type
---   (see 'Compiler.Analysis.DependencyExtraction.typeVars').
+--   occur in the given type (see 'Compiler.IR.Reference.freeTypeVars').
 --
 --   Fresh type variables used by the given type are replaced by regular type
 --   variables with the prefix 'freshTypeArgPrefix'. All other type variables

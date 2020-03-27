@@ -111,8 +111,6 @@ import qualified Data.Text                     as T
 import qualified Data.Vector                   as Vector
 import           Text.RegexPR
 
-import           Compiler.Analysis.DependencyExtraction
-                                                ( typeVars )
 import qualified Compiler.Backend.Coq.Syntax   as G
 import           Compiler.Config
 import           Compiler.Environment
@@ -121,6 +119,7 @@ import           Compiler.Environment.Entry
 import           Compiler.Environment.Scope
 import           Compiler.Frontend.Haskell.Parser
 import           Compiler.Frontend.Haskell.Simplifier
+import           Compiler.IR.Reference          ( freeTypeVars )
 import           Compiler.IR.SrcSpan
 import qualified Compiler.IR.Syntax            as HS
 import           Compiler.Monad.Converter
@@ -236,7 +235,7 @@ instance Aeson.FromJSON ModuleInterface where
         { entrySrcSpan    = NoSrcSpan
         , entryArity      = arity
         , entryTypeArgs   = catMaybes
-                              (map HS.identFromQName (typeVars returnType))
+                              (map HS.identFromQName (freeTypeVars returnType))
         , entryArgTypes   = map Just argTypes
         , entryReturnType = Just returnType
         , entryIdent      = coqName
@@ -252,8 +251,10 @@ instance Aeson.FromJSON ModuleInterface where
       partial        <- obj .: "partial"
       freeArgsNeeded <- obj .: "needs-free-args"
       coqName        <- obj .: "coq-name"
+      -- TODO this does not work with vanishing type arguments.
       let (argTypes, returnType) = HS.splitFuncType haskellType arity
-          typeArgs = catMaybes $ map HS.identFromQName $ typeVars haskellType
+          typeArgs =
+            catMaybes $ map HS.identFromQName $ freeTypeVars haskellType
       return FuncEntry { entrySrcSpan       = NoSrcSpan
                        , entryArity         = arity
                        , entryTypeArgs      = typeArgs
@@ -265,6 +266,6 @@ instance Aeson.FromJSON ModuleInterface where
                        , entryName          = haskellName
                        }
 
--- | Loads an module interface file from a @.toml@ or @.json@ file.
+-- | Loads a module interface file from a @.toml@ or @.json@ file.
 loadModuleInterface :: FilePath -> ReporterIO ModuleInterface
 loadModuleInterface = loadConfig

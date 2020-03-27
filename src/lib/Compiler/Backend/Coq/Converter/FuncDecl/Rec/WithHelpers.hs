@@ -20,8 +20,6 @@ import qualified Data.Map.Strict               as Map
 import           Data.Maybe                     ( fromJust )
 import qualified Data.Set                      as Set
 
-import           Compiler.Analysis.DependencyExtraction
-                                                ( varSet )
 import           Compiler.Analysis.RecursionAnalysis
 import           Compiler.Backend.Coq.Converter.Expr
 import           Compiler.Backend.Coq.Converter.FuncDecl.Common
@@ -33,6 +31,7 @@ import           Compiler.Environment.Fresh
 import           Compiler.Environment.Renamer
 import           Compiler.Environment.Scope
 import           Compiler.IR.Inlining
+import           Compiler.IR.Reference          ( freeVarSet )
 import           Compiler.IR.SrcSpan
 import qualified Compiler.IR.Syntax            as HS
 import           Compiler.IR.Subterm
@@ -150,7 +149,7 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent typeArgs args expr maybeRetT
         boundVars =
           Map.keysSet boundVarTypeMap `Set.union` Set.fromList argNames
         Just caseExpr  = selectSubterm expr caseExprPos
-        usedVars       = varSet caseExpr
+        usedVars       = freeVarSet caseExpr
         helperArgNames = Set.toList (usedVars `Set.intersection` boundVars)
 
     -- Determine the type of helper function's arguments and its return type.

@@ -119,15 +119,3 @@ testSubterm = describe "Compiler.IR.Subterm" $ do
               , HS.UnQual (HS.Ident "x")
               , HS.UnQual (HS.Ident "xs'")
               ]
-
-          it "filters unused variables" $ \testExpr -> do
-            usedVarsAt testExpr (Pos [1, 3, 3, 1])
-              `shouldBe` Set.fromList [HS.UnQual (HS.Ident "xs")]
-            usedVarsAt testExpr (Pos [1, 3, 3, 2]) `shouldBe` Set.empty
-            usedVarsAt testExpr (Pos [1, 3, 3, 3]) `shouldBe` Set.fromList
-              [ HS.UnQual (HS.Ident "n")
-              , HS.UnQual (HS.Ident "x")
-              , HS.UnQual (HS.Ident "xs'")
-              , HS.UnQual (HS.Ident "take")
-              , HS.UnQual (HS.Symbol "-")
-              ]

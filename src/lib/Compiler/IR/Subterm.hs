@@ -1,5 +1,8 @@
 -- | This module contains data types and function for working with subterms
 --   of expressions and type expressions.
+--
+--   There are also functions for finding the names and types of variables that
+--   are bound at a given position in an expression.
 
 module Compiler.IR.Subterm
   ( -- * Direct children
@@ -25,7 +28,6 @@ module Compiler.IR.Subterm
     -- * Bound variables
   , boundVarsAt
   , boundVarsWithTypeAt
-  , usedVarsAt
   )
 where
 
@@ -37,10 +39,8 @@ import           Data.Maybe                     ( fromJust )
 import           Data.Map.Strict                ( Map )
 import qualified Data.Map.Strict               as Map
 import           Data.Set                       ( Set )
-import qualified Data.Set                      as Set
 import           Data.Tuple.Extra               ( (&&&) )
 
-import           Compiler.Analysis.DependencyExtraction
 import qualified Compiler.IR.Syntax            as HS
 import           Compiler.Pretty
 
@@ -303,19 +303,3 @@ boundVarsWithTypeAt = maybe Map.empty id .: boundVarsWithTypeAt'
   --   by these patterns.
   fromVarPats :: [HS.VarPat] -> Map HS.QName (Maybe HS.Type)
   fromVarPats = Map.fromList . map (HS.varPatQName &&& HS.varPatType)
-
--- | Gets the names of variables that are used by the subterm t the given
---   position.
---
---   The returned set also contains function and argument names.
---   To get a set of variable names only, intersect the result with
---   'boundVarsAt'.
---
---   Returns the empty set if the position is invalid.
-usedVarsAt :: HS.Expr -> Pos -> Set HS.QName
-usedVarsAt = maybe Set.empty id .: usedVarsAt'
- where
-  usedVarsAt' :: HS.Expr -> Pos -> Maybe (Set HS.QName)
-  usedVarsAt' expr p = do
-    subterm <- selectSubterm expr p
-    return (varSet subterm)

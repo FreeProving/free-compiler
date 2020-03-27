@@ -31,11 +31,10 @@ import           Data.Set                       ( Set
 import qualified Data.Set                      as Set
 import           Data.Tuple.Extra               ( uncurry3 )
 
-import           Compiler.Analysis.DependencyExtraction
-                                                ( varSet )
 import           Compiler.Analysis.DependencyGraph
 import           Compiler.Environment
 import           Compiler.Environment.Fresh
+import           Compiler.IR.Reference          ( freeVarSet )
 import qualified Compiler.IR.Syntax            as HS
 import           Compiler.Monad.Converter
 import           Compiler.Monad.Reporter
@@ -43,7 +42,7 @@ import           Compiler.Pretty
 import           Compiler.Util.Predicate        ( (.||.) )
 
 -------------------------------------------------------------------------------
--- Decreaasing arguments                                                     --
+-- Decreasing arguments                                                      --
 -------------------------------------------------------------------------------
 
 -- | Type for the index of a decreasing argument.
@@ -298,7 +297,7 @@ makeConstArgGraph decls = do
       ((g, y), j, _) <- nodes
       -- Test whether there is any call to @g@ on the right-hand side of @f@.
       let callsG :: HS.Expr -> Bool
-          callsG = any (== g) . varSet
+          callsG = any (== g) . freeVarSet
       guard (callsG rhs)
       -- Test whether @x_i@ is passed unchanged to @y_j@ in every call
       -- to @g@ in the right-hand side of @f@.

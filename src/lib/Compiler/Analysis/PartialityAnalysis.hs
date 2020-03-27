@@ -9,15 +9,15 @@ where
 
 import           Control.Monad.Extra            ( anyM )
 
-import           Compiler.Analysis.DependencyExtraction
 import           Compiler.Environment
+import           Compiler.IR.Reference          ( valueRefs )
 import qualified Compiler.IR.Syntax            as HS
 import           Compiler.Monad.Converter
 
 -- | Tests whether the given function uses a partial function on its
 --   right-hand side.
 isPartialFuncDecl :: HS.FuncDecl -> Converter Bool
-isPartialFuncDecl decl = anyM isPartialFuncName (funcDeclDependencies decl)
+isPartialFuncDecl decl = anyM isPartialFuncName (valueRefs decl)
  where
   -- | Tests whether the function with the given name is partial.
   isPartialFuncName :: HS.QName -> Converter Bool

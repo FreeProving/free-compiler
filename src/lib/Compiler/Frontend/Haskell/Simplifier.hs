@@ -32,10 +32,9 @@ import           Data.Maybe                     ( fromJust
 
 import qualified Language.Haskell.Exts.Syntax  as H
 
-import           Compiler.Analysis.DependencyExtraction
-                                                ( typeVars )
 import           Compiler.Environment.Fresh
 import           Compiler.Frontend.PragmaParser
+import           Compiler.IR.Reference          ( freeTypeVars )
 import           Compiler.IR.SrcSpan
 import qualified Compiler.IR.Syntax            as HS
 import           Compiler.Monad.Converter
@@ -477,7 +476,7 @@ simplifyTypeSchema typeExpr = do
   let srcSpan  = HS.typeSrcSpan typeExpr'
       typeArgs = map
         (HS.TypeVarDecl NoSrcSpan . fromJust . HS.identFromQName)
-        (typeVars typeExpr')
+        (freeTypeVars typeExpr')
   return (HS.TypeSchema srcSpan typeArgs typeExpr')
 
 -- | Simplifies the a type expression.

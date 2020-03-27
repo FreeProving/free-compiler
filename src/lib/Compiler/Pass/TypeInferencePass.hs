@@ -38,12 +38,11 @@ import           Data.Set                       ( Set )
 import qualified Data.Set                      as Set
 
 import           Compiler.Analysis.DependencyAnalysis
-import           Compiler.Analysis.DependencyExtraction
-                                                ( typeVars )
 import           Compiler.Backend.Coq.Converter.TypeSchema
 import           Compiler.Environment
 import           Compiler.Environment.Fresh
 import           Compiler.Environment.Scope
+import           Compiler.IR.Reference          ( freeTypeVars )
 import           Compiler.IR.SrcSpan
 import           Compiler.IR.Subst
 import qualified Compiler.IR.Syntax            as HS
@@ -272,9 +271,9 @@ inferFuncDeclTypes' funcDecls = withLocalState $ do
   -- depends on their order in the (type) expression (from left to right).
   let
     typeExprs = map (fromJust . HS.funcDeclType) typedFuncDecls
-    typeArgs  = map typeVars typeExprs
+    typeArgs  = map freeTypeVars typeExprs
     additionalTypeArgs =
-      nub (concatMap typeVars typedFuncDecls) \\ concat typeArgs
+      nub (concatMap freeTypeVars typedFuncDecls) \\ concat typeArgs
     allTypeArgs = map (++ additionalTypeArgs) typeArgs
   abstractedFuncDecls <- liftConverter
     $ zipWithM abstractTypeArgs allTypeArgs typedFuncDecls
@@ -507,7 +506,7 @@ annotateFuncDecls funcDecls = withLocalTypeAssumption $ do
 --   variables itself.
 applyVisibly :: HS.QName -> HS.Expr -> TypeInference HS.Expr
 applyVisibly name expr = do
-  let srcSpan = HS.exprSrcSpan expr
+  let srcSpan            = HS.exprSrcSpan expr
       Just annotatedType = HS.exprType expr
   maybeAssumedTypeSchema <- lookupTypeAssumption name
   case maybeAssumedTypeSchema of
@@ -617,7 +616,7 @@ abstractVanishingTypeArgs funcDecls = do
  where
   -- | The names of the type variables to abstract.
   internalTypeArgNames :: [HS.QName]
-  internalTypeArgNames = filter HS.isInternalQName (typeVars funcDecls)
+  internalTypeArgNames = filter HS.isInternalQName (freeTypeVars funcDecls)
 
   -- | Type variables for 'internalTypeArgNames'.
   internalTypeArgs :: [HS.Type]

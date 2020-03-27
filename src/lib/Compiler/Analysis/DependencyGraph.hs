@@ -50,7 +50,9 @@ import           Data.Maybe                     ( catMaybes
                                                 )
 import           Data.Tuple.Extra
 
-import           Compiler.Analysis.DependencyExtraction
+import           Compiler.IR.Reference          ( typeRefs
+                                                , valueRefs
+                                                )
 import qualified Compiler.IR.Syntax            as HS
 import           Compiler.Pretty
 
@@ -125,7 +127,7 @@ typeDependencyGraph =
 -- | Creates an entry of the dependency graph for the given data type or type
 --   synonym declaration.
 typeDeclEntry :: HS.TypeDecl -> DGEntry HS.TypeDecl
-typeDeclEntry decl = (decl, HS.typeDeclQName decl, typeDeclDependencies decl)
+typeDeclEntry decl = (decl, HS.typeDeclQName decl, typeRefs decl)
 
 -------------------------------------------------------------------------------
 -- Function dependencies                                                     --
@@ -139,7 +141,7 @@ funcDependencyGraph =
 -- | Creates an entry of the dependency graph for the given function
 --   declaration or pattern binding.
 funcDeclEntry :: HS.FuncDecl -> DGEntry HS.FuncDecl
-funcDeclEntry decl = (decl, HS.funcDeclQName decl, funcDeclDependencies decl)
+funcDeclEntry decl = (decl, HS.funcDeclQName decl, valueRefs decl)
 
 -------------------------------------------------------------------------------
 -- Module dependencies                                                       --
@@ -159,7 +161,7 @@ moduleEntries :: HS.Module -> DGEntry HS.Module
 moduleEntries decl =
   ( decl
   , HS.UnQual (HS.Ident (HS.modName decl))
-  , map (HS.UnQual . HS.Ident) (moduleDependencies decl)
+  , map (HS.UnQual . HS.Ident . HS.importName) (HS.modImports decl)
   )
 
 -------------------------------------------------------------------------------

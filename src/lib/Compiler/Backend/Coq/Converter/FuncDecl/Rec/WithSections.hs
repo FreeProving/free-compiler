@@ -29,10 +29,6 @@ import           Data.Maybe                     ( catMaybes
                                                 )
 import qualified Data.Set                      as Set
 
-import           Compiler.Analysis.DependencyExtraction
-                                                ( typeVarSet
-                                                , varSet
-                                                )
 import           Compiler.Analysis.RecursionAnalysis
 import qualified Compiler.Backend.Coq.Base     as CoqBase
 import           Compiler.Backend.Coq.Converter.Free
@@ -46,6 +42,9 @@ import           Compiler.Environment.Fresh
 import           Compiler.Environment.LookupOrFail
 import           Compiler.Environment.Renamer
 import           Compiler.Environment.Scope
+import           Compiler.IR.Reference          ( freeTypeVarSet
+                                                , freeVarSet
+                                                )
 import           Compiler.IR.SrcSpan
 import           Compiler.IR.Subst
 import qualified Compiler.IR.Syntax            as HS
@@ -76,7 +75,7 @@ convertRecFuncDeclsWithSection constArgs decls = do
   (constArgTypes, mgus) <- mapAndUnzipM (lookupConstArgType argTypeMap)
                                         renamedConstArgs
   let mgu           = composeSubsts mgus
-      typeArgNames  = Set.toList (Set.unions (map typeVarSet constArgTypes))
+      typeArgNames  = Set.toList (Set.unions (map freeTypeVarSet constArgTypes))
       typeArgIdents = map (fromJust . HS.identFromQName) typeArgNames
 
   -- Apply unificator to rename the type arguments on the right-hand side.
@@ -89,12 +88,13 @@ convertRecFuncDeclsWithSection constArgs decls = do
   -- Test which of the constant arguments is actually used by any function
   -- in the section and which of the type arguments is needed by the types
   -- of used arguments.
-  let isConstArgUsed = map (flip any sectionDecls . isConstArgUsedBy) constArgs
-      usedConstArgTypes =
-        map snd $ filter fst $ zip isConstArgUsed constArgTypes
-      isTypeArgUsed v =
-        any (Set.member (HS.UnQual (HS.Ident v)) . typeVarSet) usedConstArgTypes
-      usedTypeArgIdents = filter isTypeArgUsed typeArgIdents
+  let
+    isConstArgUsed    = map (flip any sectionDecls . isConstArgUsedBy) constArgs
+    usedConstArgTypes = map snd $ filter fst $ zip isConstArgUsed constArgTypes
+    isTypeArgUsed v = any
+      (Set.member (HS.UnQual (HS.Ident v)) . freeTypeVarSet)
+      usedConstArgTypes
+    usedTypeArgIdents = filter isTypeArgUsed typeArgIdents
 
     -- Remove constant arguments from the type signatures of the renamed
     -- function declarations.
@@ -291,7 +291,7 @@ lookupConstArgType argTypeMap constArg = do
 isConstArgUsedBy :: ConstArg -> HS.FuncDecl -> Bool
 isConstArgUsedBy constArg funcDecl =
   HS.UnQual (HS.Ident (constArgFreshIdent constArg))
-    `Set.member` varSet (HS.funcDeclRhs funcDecl)
+    `Set.member` freeVarSet (HS.funcDeclRhs funcDecl)
 
 -- | Generates the @Variable@ sentence for the type variables in the given
 --   types of the constant arguments.

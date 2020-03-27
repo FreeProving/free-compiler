@@ -20,8 +20,6 @@ import           Data.Maybe                     ( catMaybes
 import qualified Data.Set                      as Set
 import           System.IO.Unsafe               ( unsafePerformIO )
 
-import           Compiler.Analysis.DependencyExtraction
-                                                ( typeVars )
 import           Compiler.Backend.Coq.Converter
 import           Compiler.Backend.Coq.Pretty
 import qualified Compiler.Backend.Coq.Syntax   as G
@@ -34,6 +32,7 @@ import           Compiler.Environment.ModuleInterface.Decoder
 import           Compiler.Environment.Renamer
 import           Compiler.Frontend.Haskell.Parser
 import           Compiler.Frontend.Haskell.Simplifier
+import           Compiler.IR.Reference          ( freeTypeVars )
 import           Compiler.IR.SrcSpan
 import qualified Compiler.IR.Syntax            as HS
 import           Compiler.Monad.Converter
@@ -314,7 +313,8 @@ defineTestCon ident arity typeStr = do
   entry <- renameAndAddTestEntry' ConEntry
     { entrySrcSpan    = NoSrcSpan
     , entryArity      = arity
-    , entryTypeArgs   = catMaybes (map HS.identFromQName (typeVars returnType))
+    , entryTypeArgs   = catMaybes
+                          (map HS.identFromQName (freeTypeVars returnType))
     , entryArgTypes   = map Just argTypes
     , entryReturnType = Just returnType
     , entryName       = HS.UnQual (HS.Ident ident)
@@ -427,7 +427,7 @@ runPipelineOnType typeExpr = do
                                  . fromJust
                                  . HS.identFromQName
                                  )
-                                 (typeVars typeExpr)
+                                 (freeTypeVars typeExpr)
         , HS.typeSynDeclRhs  = typeExpr
         }
   ([typeSynDecl'], [], []) <- runPipelineOnDecls [typeSynDecl] [] []
