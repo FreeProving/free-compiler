@@ -83,7 +83,6 @@ library haskell-to-coq-internal
   hs-source-dirs:     src/lib
   exposed-modules:      Compiler.Analysis.DependencyAnalysis
                       , Compiler.Analysis.DependencyGraph
-                      , Compiler.Analysis.PartialityAnalysis
                       , Compiler.Analysis.RecursionAnalysis
                       , Compiler.Backend.Coq.Base
                       , Compiler.Backend.Coq.Converter
@@ -139,6 +138,7 @@ library haskell-to-coq-internal
                       , Compiler.Pass.ExportPass
                       , Compiler.Pass.ImplicitPreludePass
                       , Compiler.Pass.ImportPass
+                      , Compiler.Pass.PartialityAnalysisPass
                       , Compiler.Pass.TypeInferencePass
                       , Compiler.Pass.TypeSignaturePass
                       , Compiler.Pass.QualifierPass
@@ -163,7 +163,6 @@ test-suite unit-tests
   hs-source-dirs:     src/test
   main-is:            Spec.hs
   other-modules:      Paths_haskellToCoqCompiler
-                    , Compiler.Analysis.PartialityAnalysisTests
                     , Compiler.Analysis.RecursionAnalysisTests
                     , Compiler.Analysis.TypeInferenceTests
                     , Compiler.Backend.Coq.ConverterTests
@@ -179,6 +178,7 @@ test-suite unit-tests
                     , Compiler.IR.SubtermTests
                     , Compiler.IR.UnificationTests
                     , Compiler.Monad.ReporterTests
+                    , Compiler.Pass.PartialityAnalysisPassTests
                     , Compiler.Util.Test
   build-depends:      haskell-to-coq-internal
                       -- Test frameworks:

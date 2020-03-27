@@ -1,8 +1,10 @@
 -- | This module contains passes for inserting data type, constructor and
 --   type synonym declarations as well as function declarations into the
---   environment. Additionally, this pass analyses whether functions are
---   partial or not (since this information is needed for function entries
---   but not encoded into the AST).
+--   environment.
+--
+--   Subsequent passes can still modify entries added by this pass.
+--   For example, whether functions are partial or not is determined after
+--   this pass (See "Compiler.Pass.PartialityAnalysisPass").
 --
 --   = Specification
 --
@@ -29,10 +31,7 @@ module Compiler.Pass.DefineDeclPass
   )
 where
 
-import           Control.Monad.Extra            ( anyM )
-
 import           Compiler.Analysis.DependencyAnalysis
-import           Compiler.Analysis.PartialityAnalysis
 import           Compiler.Environment.Entry
 import           Compiler.Environment.Renamer
 import qualified Compiler.IR.Syntax            as HS
@@ -53,8 +52,7 @@ defineTypeDeclsPass component = do
 --   functions in the component are marked as partial.
 defineFuncDeclsPass :: DependencyAwarePass HS.FuncDecl
 defineFuncDeclsPass component = do
-  anyPartial <- anyM isPartialFuncDecl (unwrapComponent component)
-  mapComponentM_ (mapM (defineFuncDecl anyPartial)) component
+  mapComponentM_ (mapM defineFuncDecl) component
   return component
 
 -------------------------------------------------------------------------------
@@ -109,10 +107,8 @@ defineTypeDecl (HS.DataDecl srcSpan declIdent typeArgs conDecls) = do
 -------------------------------------------------------------------------------
 
 -- | Inserts the given function declaration into the current environment.
---
---   The first argument indicates whether the function is partial or not.
-defineFuncDecl :: Bool -> HS.FuncDecl -> Converter ()
-defineFuncDecl partial funcDecl = do
+defineFuncDecl :: HS.FuncDecl -> Converter ()
+defineFuncDecl funcDecl = do
   _ <- renameAndAddEntry FuncEntry
     { entrySrcSpan       = HS.funcDeclSrcSpan funcDecl
     , entryArity         = length (HS.funcDeclArgs funcDecl)
@@ -120,7 +116,7 @@ defineFuncDecl partial funcDecl = do
     , entryArgTypes      = map HS.varPatType (HS.funcDeclArgs funcDecl)
     , entryReturnType    = HS.funcDeclReturnType funcDecl
     , entryNeedsFreeArgs = True
-    , entryIsPartial     = partial
+    , entryIsPartial     = False -- may be updated by partiality analysis pass
     , entryName          = HS.funcDeclQName funcDecl
     , entryIdent         = undefined -- filled by renamer
     }

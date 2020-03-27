@@ -14,6 +14,7 @@ import           Compiler.Pass.EtaConversionPass
 import           Compiler.Pass.ExportPass
 import           Compiler.Pass.ImplicitPreludePass
 import           Compiler.Pass.ImportPass
+import           Compiler.Pass.PartialityAnalysisPass
 import           Compiler.Pass.TypeSignaturePass
 import           Compiler.Pass.TypeInferencePass
 import           Compiler.Pass.QualifierPass
@@ -30,7 +31,8 @@ pipeline =
   , importPass
   , dependencyAnalysisPass [defineTypeDeclsPass]
   , typeSignaturePass
-  , dependencyAnalysisPass [typeInferencePass, defineFuncDeclsPass]
+  , dependencyAnalysisPass
+    [typeInferencePass, defineFuncDeclsPass, partialityAnalysisPass]
   , etaConversionPass
   , exportPass
   ]
