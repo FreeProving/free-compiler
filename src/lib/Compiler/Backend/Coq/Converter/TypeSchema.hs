@@ -1,7 +1,7 @@
 -- | This module contains functions for converting between type expressions
 --   and type schemas.
 
-module Compiler.Converter.TypeSchema
+module Compiler.Backend.Coq.Converter.TypeSchema
   (
     -- * Instantiating type schemas
     instantiateTypeSchema

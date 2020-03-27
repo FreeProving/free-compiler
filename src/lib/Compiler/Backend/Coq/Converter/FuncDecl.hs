@@ -1,16 +1,16 @@
 -- | This module contains functions for converting function declarations from
 --   Haskell to Coq.
 
-module Compiler.Converter.FuncDecl where
+module Compiler.Backend.Coq.Converter.FuncDecl where
 
 import           Control.Monad.Extra            ( concatMapM )
 
 import           Compiler.Analysis.DependencyAnalysis
 import           Compiler.Analysis.DependencyGraph
+import           Compiler.Backend.Coq.Converter.FuncDecl.NonRec
+import           Compiler.Backend.Coq.Converter.FuncDecl.Rec
+import           Compiler.Backend.Coq.Converter.QuickCheck
 import qualified Compiler.Backend.Coq.Syntax   as G
-import           Compiler.Converter.FuncDecl.NonRec
-import           Compiler.Converter.FuncDecl.Rec
-import           Compiler.Converter.QuickCheck
 import qualified Compiler.IR.Syntax            as HS
 import           Compiler.Monad.Converter
 

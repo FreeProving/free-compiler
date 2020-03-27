@@ -1,16 +1,16 @@
 -- | This function contains auxilary functions that are used both to translate
 --   recursive and non-recursive Haskell functions to Coq.
 
-module Compiler.Converter.FuncDecl.Common
+module Compiler.Backend.Coq.Converter.FuncDecl.Common
   ( -- * Code generation
     convertFuncHead
   )
 where
 
+import           Compiler.Backend.Coq.Converter.Arg
+import           Compiler.Backend.Coq.Converter.Free
+import           Compiler.Backend.Coq.Converter.Type
 import qualified Compiler.Backend.Coq.Syntax   as G
-import           Compiler.Converter.Arg
-import           Compiler.Converter.Free
-import           Compiler.Converter.Type
 import           Compiler.Environment
 import           Compiler.Environment.Scope
 import qualified Compiler.IR.Syntax            as HS

@@ -1,7 +1,7 @@
 -- | This module contains functions for converting type synonym and data type
 --   declarations and their constructors.
 
-module Compiler.Converter.TypeDecl where
+module Compiler.Backend.Coq.Converter.TypeDecl where
 
 import           Control.Monad                  ( mapAndUnzipM )
 import           Control.Monad.Extra            ( concatMapM )
@@ -12,10 +12,10 @@ import qualified Data.Set                      as Set
 
 import           Compiler.Analysis.DependencyAnalysis
 import qualified Compiler.Backend.Coq.Syntax   as G
+import           Compiler.Backend.Coq.Converter.Arg
+import           Compiler.Backend.Coq.Converter.Free
+import           Compiler.Backend.Coq.Converter.Type
 import qualified Compiler.Backend.Coq.Base     as CoqBase
-import           Compiler.Converter.Arg
-import           Compiler.Converter.Free
-import           Compiler.Converter.Type
 import           Compiler.Environment
 import           Compiler.Environment.Scope
 import qualified Compiler.IR.Syntax            as HS

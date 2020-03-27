@@ -1,10 +1,10 @@
 -- | This module contains functions for converting Haskell types to Coq.
 
-module Compiler.Converter.Type where
+module Compiler.Backend.Coq.Converter.Type where
 
 import qualified Compiler.Backend.Coq.Base     as CoqBase
+import           Compiler.Backend.Coq.Converter.Free
 import qualified Compiler.Backend.Coq.Syntax   as G
-import           Compiler.Converter.Free
 import           Compiler.Environment.LookupOrFail
 import           Compiler.Environment.Scope
 import qualified Compiler.IR.Syntax            as HS

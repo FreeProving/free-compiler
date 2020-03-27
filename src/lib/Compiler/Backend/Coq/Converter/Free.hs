@@ -1,7 +1,7 @@
 -- | This module contains auxilary functions that help to generate Coq code
 --   that uses the @Free@ monad.
 
-module Compiler.Converter.Free where
+module Compiler.Backend.Coq.Converter.Free where
 
 import           Data.List                      ( elemIndex )
 import           Data.List.NonEmpty             ( NonEmpty(..) )

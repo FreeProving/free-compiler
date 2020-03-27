@@ -1,14 +1,14 @@
 -- | This module contains a function for converting non-recursive
 --   Haskell functions to Coq.
 
-module Compiler.Converter.FuncDecl.NonRec
+module Compiler.Backend.Coq.Converter.FuncDecl.NonRec
   ( convertNonRecFuncDecl
   )
 where
 
+import           Compiler.Backend.Coq.Converter.Expr
+import           Compiler.Backend.Coq.Converter.FuncDecl.Common
 import qualified Compiler.Backend.Coq.Syntax   as G
-import           Compiler.Converter.Expr
-import           Compiler.Converter.FuncDecl.Common
 import qualified Compiler.IR.Syntax            as HS
 import           Compiler.Monad.Converter
 

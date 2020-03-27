@@ -1,6 +1,6 @@
 -- | This module contains functions for converting Haskell expressions to Coq.
 
-module Compiler.Converter.Expr where
+module Compiler.Backend.Coq.Converter.Expr where
 
 import           Control.Monad.Extra            ( ifM
                                                 , when
@@ -9,10 +9,10 @@ import           Data.Composition
 import           Data.Foldable                  ( foldrM )
 
 import qualified Compiler.Backend.Coq.Base     as CoqBase
+import           Compiler.Backend.Coq.Converter.Arg
+import           Compiler.Backend.Coq.Converter.Free
+import           Compiler.Backend.Coq.Converter.Type
 import qualified Compiler.Backend.Coq.Syntax   as G
-import           Compiler.Converter.Arg
-import           Compiler.Converter.Free
-import           Compiler.Converter.Type
 import           Compiler.Environment
 import           Compiler.Environment.Fresh
 import           Compiler.Environment.LookupOrFail

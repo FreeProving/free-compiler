@@ -1,18 +1,17 @@
 -- | This module contains a function for converting mutually recursive
 --   Haskell functions to Coq.
 
-module Compiler.Converter.FuncDecl.Rec
+module Compiler.Backend.Coq.Converter.FuncDecl.Rec
   ( convertRecFuncDecls
   )
 where
 
 import qualified Compiler.Backend.Coq.Syntax   as G
+import           Compiler.Backend.Coq.Converter.FuncDecl.Rec.WithHelpers
+import           Compiler.Backend.Coq.Converter.FuncDecl.Rec.WithSections
 import           Compiler.Analysis.RecursionAnalysis
 import qualified Compiler.IR.Syntax            as HS
 import           Compiler.Monad.Converter
-
-import           Compiler.Converter.FuncDecl.Rec.WithHelpers
-import           Compiler.Converter.FuncDecl.Rec.WithSections
 
 -- | Converts (mutually) recursive Haskell function declarations to Coq.
 --

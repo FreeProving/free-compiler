@@ -20,10 +20,10 @@ import           Compiler.Analysis.DependencyAnalysis
 import           Compiler.Application.Debug
 import           Compiler.Application.Options
 import qualified Compiler.Backend.Coq.Base     as CoqBase
+import           Compiler.Backend.Coq.Converter ( convertModule )
+import           Compiler.Backend.Coq.Converter.QuickCheck
 import           Compiler.Backend.Coq.Pretty
 import qualified Compiler.Backend.Coq.Syntax   as G
-import           Compiler.Converter             ( convertModule )
-import           Compiler.Converter.QuickCheck
 import           Compiler.Environment
 import           Compiler.Environment.ModuleInterface.Decoder
 import           Compiler.Environment.ModuleInterface.Encoder

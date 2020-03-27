@@ -1,4 +1,4 @@
-module Compiler.Converter.TypeDeclTests where
+module Compiler.Backend.Coq.Converter.TypeDeclTests where
 
 import           Test.Hspec
 
@@ -11,7 +11,7 @@ import           Compiler.Util.Test
 -- | Test group for 'convertTypeDecl' tests.
 testConvertTypeDecl :: Spec
 testConvertTypeDecl =
-  describe "Compiler.Converter.TypeDecl.convertTypeDecl" $ do
+  describe "Compiler.Backend.Coq.Converter.TypeDecl.convertTypeDecl" $ do
     it "translates non-polymorphic type synonyms correctly"
       $ shouldSucceed
       $ fromConverter
@@ -122,7 +122,7 @@ testConvertTypeDecl =
 -- | Test group for 'convertDataDecls' tests.
 testConvertDataDecls :: Spec
 testConvertDataDecls =
-  describe "Compiler.Converter.TypeDecl.convertDataDecls" $ do
+  describe "Compiler.Backend.Coq.Converter.TypeDecl.convertDataDecls" $ do
     it "translates non-polymorphic data types correctly"
       $ shouldSucceed
       $ fromConverter

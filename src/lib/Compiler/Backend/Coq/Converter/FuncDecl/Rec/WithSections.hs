@@ -7,7 +7,7 @@
 --   determine that functions using higher order functions terminate in
 --   some cases.
 
-module Compiler.Converter.FuncDecl.Rec.WithSections
+module Compiler.Backend.Coq.Converter.FuncDecl.Rec.WithSections
   ( convertRecFuncDeclsWithSection
   )
 where
@@ -35,11 +35,11 @@ import           Compiler.Analysis.DependencyExtraction
                                                 )
 import           Compiler.Analysis.RecursionAnalysis
 import qualified Compiler.Backend.Coq.Base     as CoqBase
+import           Compiler.Backend.Coq.Converter.Free
+import           Compiler.Backend.Coq.Converter.FuncDecl.Common
+import           Compiler.Backend.Coq.Converter.FuncDecl.Rec.WithHelpers
+import           Compiler.Backend.Coq.Converter.Type
 import qualified Compiler.Backend.Coq.Syntax   as G
-import           Compiler.Converter.Free
-import           Compiler.Converter.FuncDecl.Common
-import           Compiler.Converter.FuncDecl.Rec.WithHelpers
-import           Compiler.Converter.Type
 import           Compiler.Environment
 import           Compiler.Environment.Entry
 import           Compiler.Environment.Fresh

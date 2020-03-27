@@ -87,25 +87,25 @@ library haskell-to-coq-internal
                       , Compiler.Analysis.PartialityAnalysis
                       , Compiler.Analysis.RecursionAnalysis
                       , Compiler.Backend.Coq.Base
+                      , Compiler.Backend.Coq.Converter
+                      , Compiler.Backend.Coq.Converter.Arg
+                      , Compiler.Backend.Coq.Converter.Expr
+                      , Compiler.Backend.Coq.Converter.Free
+                      , Compiler.Backend.Coq.Converter.FuncDecl
+                      , Compiler.Backend.Coq.Converter.FuncDecl.Common
+                      , Compiler.Backend.Coq.Converter.FuncDecl.NonRec
+                      , Compiler.Backend.Coq.Converter.FuncDecl.Rec
+                      , Compiler.Backend.Coq.Converter.FuncDecl.Rec.WithHelpers
+                      , Compiler.Backend.Coq.Converter.FuncDecl.Rec.WithSections
+                      , Compiler.Backend.Coq.Converter.Module
+                      , Compiler.Backend.Coq.Converter.QuickCheck
+                      , Compiler.Backend.Coq.Converter.Type
+                      , Compiler.Backend.Coq.Converter.TypeDecl
+                      , Compiler.Backend.Coq.Converter.TypeSchema
                       , Compiler.Backend.Coq.Keywords
                       , Compiler.Backend.Coq.Pretty
                       , Compiler.Backend.Coq.Syntax
                       , Compiler.Config
-                      , Compiler.Converter
-                      , Compiler.Converter.Arg
-                      , Compiler.Converter.Expr
-                      , Compiler.Converter.Free
-                      , Compiler.Converter.FuncDecl
-                      , Compiler.Converter.FuncDecl.Common
-                      , Compiler.Converter.FuncDecl.NonRec
-                      , Compiler.Converter.FuncDecl.Rec
-                      , Compiler.Converter.FuncDecl.Rec.WithHelpers
-                      , Compiler.Converter.FuncDecl.Rec.WithSections
-                      , Compiler.Converter.Module
-                      , Compiler.Converter.QuickCheck
-                      , Compiler.Converter.Type
-                      , Compiler.Converter.TypeDecl
-                      , Compiler.Converter.TypeSchema
                       , Compiler.Environment
                       , Compiler.Environment.Entry
                       , Compiler.Environment.Fresh
@@ -166,13 +166,13 @@ test-suite unit-tests
                     , Compiler.Analysis.PartialityAnalysisTests
                     , Compiler.Analysis.RecursionAnalysisTests
                     , Compiler.Analysis.TypeInferenceTests
-                    , Compiler.ConverterTests
-                    , Compiler.Converter.ExprTests
-                    , Compiler.Converter.FuncDeclTests
-                    , Compiler.Converter.ModuleTests
-                    , Compiler.Converter.QuickCheckTests
-                    , Compiler.Converter.TypeDeclTests
-                    , Compiler.Converter.TypeTests
+                    , Compiler.Backend.Coq.ConverterTests
+                    , Compiler.Backend.Coq.Converter.ExprTests
+                    , Compiler.Backend.Coq.Converter.FuncDeclTests
+                    , Compiler.Backend.Coq.Converter.ModuleTests
+                    , Compiler.Backend.Coq.Converter.QuickCheckTests
+                    , Compiler.Backend.Coq.Converter.TypeDeclTests
+                    , Compiler.Backend.Coq.Converter.TypeTests
                     , Compiler.Environment.RenamerTests
                     , Compiler.IR.SubstTests
                     , Compiler.IR.SubtermTests

@@ -1,4 +1,4 @@
-module Compiler.Converter.ExprTests where
+module Compiler.Backend.Coq.Converter.ExprTests where
 
 import           Test.Hspec
 
@@ -10,7 +10,7 @@ import           Compiler.Util.Test
 
 -- | Test group for 'convertExpr' tests.
 testConvertExpr :: Spec
-testConvertExpr = describe "Compiler.Converter.Expr.convertExpr" $ do
+testConvertExpr = describe "Compiler.Backend.Coq.Converter.Expr.convertExpr" $ do
   testConvertUnknownIdents
   testConvertConApp
   testConvertFuncApp

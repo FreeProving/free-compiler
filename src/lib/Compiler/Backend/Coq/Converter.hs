@@ -1,7 +1,7 @@
 -- | This module exports functions for converting Haskell to Coq using the
 --   @Free@ monad.
 
-module Compiler.Converter
+module Compiler.Backend.Coq.Converter
   ( -- * Modules
     convertModule
   , convertDecls
@@ -23,22 +23,27 @@ module Compiler.Converter
   )
 where
 
-import           Compiler.Converter.Expr        ( convertExpr )
-import           Compiler.Converter.FuncDecl    ( convertFuncDecls
+import           Compiler.Backend.Coq.Converter.Expr
+                                                ( convertExpr )
+import           Compiler.Backend.Coq.Converter.FuncDecl
+                                                ( convertFuncDecls
                                                 , convertFuncComponent
                                                 )
-import           Compiler.Converter.FuncDecl.NonRec
+import           Compiler.Backend.Coq.Converter.FuncDecl.NonRec
                                                 ( convertNonRecFuncDecl )
-import           Compiler.Converter.FuncDecl.Rec
+import           Compiler.Backend.Coq.Converter.FuncDecl.Rec
                                                 ( convertRecFuncDecls )
-import           Compiler.Converter.Module      ( convertDecls
+import           Compiler.Backend.Coq.Converter.Module
+                                                ( convertDecls
                                                 , convertModule
                                                 , convertTypeDecls
                                                 )
-import           Compiler.Converter.Type        ( convertType
+import           Compiler.Backend.Coq.Converter.Type
+                                                ( convertType
                                                 , convertType'
                                                 )
-import           Compiler.Converter.TypeDecl    ( convertDataDecl
+import           Compiler.Backend.Coq.Converter.TypeDecl
+                                                ( convertDataDecl
                                                 , convertDataDecls
                                                 , convertTypeComponent
                                                 )

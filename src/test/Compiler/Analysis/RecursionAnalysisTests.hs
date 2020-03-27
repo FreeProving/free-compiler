@@ -4,7 +4,8 @@ import qualified Data.Map.Strict               as Map
 import           Test.Hspec
 
 import           Compiler.Analysis.RecursionAnalysis
-import           Compiler.Converter.Module      ( addDecArgPragma )
+import           Compiler.Backend.Coq.Converter.Module
+                                                ( addDecArgPragma )
 import           Compiler.IR.Syntax            as HS
 
 import           Compiler.Util.Test

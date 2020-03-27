@@ -1,9 +1,9 @@
 -- | This module contains functions for converting function, constructor and
 --   type arguments from Haskell to Coq.
 
-module Compiler.Converter.Arg where
+module Compiler.Backend.Coq.Converter.Arg where
 
-import           Compiler.Converter.Type
+import           Compiler.Backend.Coq.Converter.Type
 import qualified Compiler.Backend.Coq.Syntax   as G
 import           Compiler.Environment.Fresh
 import           Compiler.Environment.Renamer

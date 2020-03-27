@@ -40,7 +40,7 @@ import qualified Data.Set                      as Set
 import           Compiler.Analysis.DependencyAnalysis
 import           Compiler.Analysis.DependencyExtraction
                                                 ( typeVars )
-import           Compiler.Converter.TypeSchema
+import           Compiler.Backend.Coq.Converter.TypeSchema
 import           Compiler.Environment
 import           Compiler.Environment.Fresh
 import           Compiler.Environment.Scope

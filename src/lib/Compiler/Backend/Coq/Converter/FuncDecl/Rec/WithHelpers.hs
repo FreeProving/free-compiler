@@ -3,7 +3,7 @@
 --   function whose decreasing argument is not lifted to the @Free@ monad and
 --   a non-recursive main function.
 
-module Compiler.Converter.FuncDecl.Rec.WithHelpers
+module Compiler.Backend.Coq.Converter.FuncDecl.Rec.WithHelpers
   ( convertRecFuncDeclsWithHelpers
   , convertRecFuncDeclsWithHelpers'
   )
@@ -23,10 +23,10 @@ import qualified Data.Set                      as Set
 import           Compiler.Analysis.DependencyExtraction
                                                 ( varSet )
 import           Compiler.Analysis.RecursionAnalysis
+import           Compiler.Backend.Coq.Converter.Expr
+import           Compiler.Backend.Coq.Converter.FuncDecl.Common
+import           Compiler.Backend.Coq.Converter.FuncDecl.NonRec
 import qualified Compiler.Backend.Coq.Syntax   as G
-import           Compiler.Converter.Expr
-import           Compiler.Converter.FuncDecl.Common
-import           Compiler.Converter.FuncDecl.NonRec
 import           Compiler.Environment
 import           Compiler.Environment.Entry
 import           Compiler.Environment.Fresh

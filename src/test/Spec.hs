@@ -4,7 +4,7 @@ import           Compiler.Analysis.DependencyExtractionTests
 import           Compiler.Analysis.PartialityAnalysisTests
 import           Compiler.Analysis.RecursionAnalysisTests
 import           Compiler.Analysis.TypeInferenceTests
-import           Compiler.ConverterTests
+import           Compiler.Backend.Coq.ConverterTests
 import           Compiler.Environment.RenamerTests
 import           Compiler.IR.SubstTests
 import           Compiler.IR.SubtermTests

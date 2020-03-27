@@ -1,6 +1,6 @@
 -- | This module contains functions for converting Haskell modules to Coq.
 
-module Compiler.Converter.Module where
+module Compiler.Backend.Coq.Converter.Module where
 
 import           Control.Monad                  ( (>=>) )
 import           Control.Monad.Extra            ( concatMapM )
@@ -11,9 +11,9 @@ import           Data.List                      ( find
 import           Compiler.Analysis.DependencyAnalysis
 import           Compiler.Analysis.DependencyGraph
 import qualified Compiler.Backend.Coq.Base     as CoqBase
+import           Compiler.Backend.Coq.Converter.FuncDecl
+import           Compiler.Backend.Coq.Converter.TypeDecl
 import qualified Compiler.Backend.Coq.Syntax   as G
-import           Compiler.Converter.FuncDecl
-import           Compiler.Converter.TypeDecl
 import           Compiler.Environment
 import           Compiler.Environment.ModuleInterface
 import qualified Compiler.IR.Syntax            as HS

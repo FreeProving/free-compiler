@@ -1,4 +1,4 @@
-module Compiler.Converter.ModuleTests where
+module Compiler.Backend.Coq.Converter.ModuleTests where
 
 import           Test.Hspec
 
@@ -10,9 +10,10 @@ import           Compiler.Util.Test
 
 -- | Test group for 'convertModule' tests.
 testConvertModule :: Spec
-testConvertModule = describe "Compiler.Converter.Module.convertModule" $ do
-  testConvertImports
-  testQualifiedNames
+testConvertModule =
+  describe "Compiler.Backend.Coq.Converter.Module.convertModule" $ do
+    testConvertImports
+    testQualifiedNames
 
 -------------------------------------------------------------------------------
 -- Imports                                                                   --
