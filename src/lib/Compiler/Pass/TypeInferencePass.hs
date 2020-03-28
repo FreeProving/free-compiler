@@ -13,8 +13,7 @@ module Compiler.Pass.TypeInferencePass
 where
 
 import           Control.Monad.Fail             ( MonadFail )
-import           Control.Monad.Extra            ( zipWithM
-                                                , zipWithM_
+import           Control.Monad.Extra            ( zipWithM_
                                                 )
 import           Control.Monad.State            ( MonadState(..)
                                                 , StateT(..)
@@ -273,9 +272,8 @@ inferFuncDeclTypes' funcDecls = withLocalState $ do
       typeArgs  = map freeTypeVars typeExprs
       additionalTypeArgs =
         nub (concatMap freeTypeVars typedFuncDecls) \\ concat typeArgs
-      allTypeArgs = map (++ additionalTypeArgs) typeArgs
-  abstractedFuncDecls <- liftConverter
-    $ zipWithM abstractTypeArgs allTypeArgs typedFuncDecls
+      allTypeArgs         = map (++ additionalTypeArgs) typeArgs
+      abstractedFuncDecls = zipWith abstractTypeArgs allTypeArgs typedFuncDecls
 
   -- Fix instantiation of additional type arguments.
   --
@@ -312,7 +310,7 @@ inferFuncDeclTypes' funcDecls = withLocalState $ do
   -- vanishing type arguments is applied that does not occur in the
   -- strongly connected component. Those additional type arguments
   -- need to be abstracted as well.
-  liftConverter $ abstractVanishingTypeArgs visiblyAppliedFuncDecls
+  return (abstractVanishingTypeArgs visiblyAppliedFuncDecls)
 
 -------------------------------------------------------------------------------
 -- Type annotations                                                          --
@@ -593,12 +591,13 @@ applyFuncDeclVisibly funcDecl = withLocalTypeAssumption $ do
 --   Fresh type variables used by the given type are replaced by regular type
 --   varibales with the prefix 'freshTypeArgPrefix'. All other type variables
 --   are not renamed.
-abstractTypeArgs :: [HS.QName] -> HS.FuncDecl -> Converter HS.FuncDecl
-abstractTypeArgs typeArgs funcDecl = do
+abstractTypeArgs :: [HS.QName] -> HS.FuncDecl -> HS.FuncDecl
+abstractTypeArgs typeArgs funcDecl =
   let HS.TypeSchema _ _ typeExpr = fromJust (HS.funcDeclTypeSchema funcDecl)
-  (HS.TypeSchema _ typeArgs' _, subst) <- abstractTypeSchema' typeArgs typeExpr
-  let funcDecl' = applySubst subst funcDecl
-  return funcDecl' { HS.funcDeclTypeArgs = typeArgs' }
+      (HS.TypeSchema _ typeArgs' _, subst) =
+          abstractTypeSchema' typeArgs typeExpr
+      funcDecl' = applySubst subst funcDecl
+  in  funcDecl' { HS.funcDeclTypeArgs = typeArgs' }
 
 -- | Abstracts the remaining internal type variables that occur within
 --   the given function declarations by renaming them to non-internal
@@ -607,10 +606,10 @@ abstractTypeArgs typeArgs funcDecl = do
 --
 --   The added type arguments are also added as visible type applications
 --   to recursive calls to the function declarations.
-abstractVanishingTypeArgs :: [HS.FuncDecl] -> Converter [HS.FuncDecl]
-abstractVanishingTypeArgs funcDecls = do
-  funcDecls' <- mapM addInternalTypeArgs funcDecls
-  mapM abstractVanishingTypeArgs' funcDecls'
+abstractVanishingTypeArgs :: [HS.FuncDecl] -> [HS.FuncDecl]
+abstractVanishingTypeArgs funcDecls =
+  let funcDecls' = map addInternalTypeArgs funcDecls
+  in  map abstractVanishingTypeArgs' funcDecls'
  where
   -- | The names of the type variables to abstract.
   internalTypeArgNames :: [HS.QName]
@@ -624,22 +623,20 @@ abstractVanishingTypeArgs funcDecls = do
 
   -- | Renames 'internalTypeArgNames' and adds them as type arguments
   --   to the given function declaration.
-  abstractVanishingTypeArgs' :: HS.FuncDecl -> Converter HS.FuncDecl
-  abstractVanishingTypeArgs' funcDecl = do
+  abstractVanishingTypeArgs' :: HS.FuncDecl -> HS.FuncDecl
+  abstractVanishingTypeArgs' funcDecl =
     let typeArgNames = map HS.typeVarDeclQName (HS.funcDeclTypeArgs funcDecl)
-    abstractTypeArgs (typeArgNames ++ internalTypeArgNames) funcDecl
+    in  abstractTypeArgs (typeArgNames ++ internalTypeArgNames) funcDecl
 
   -- | Adds visible type applications for 'internalTypeArgs' to recursive
   --   calls on the right-hand side of the given function declaration.
-  --
-  --   TODO move out of @Converter@ monad.
-  addInternalTypeArgs :: HS.FuncDecl -> Converter HS.FuncDecl
-  addInternalTypeArgs funcDecl = do
+  addInternalTypeArgs :: HS.FuncDecl -> HS.FuncDecl
+  addInternalTypeArgs funcDecl =
     let funcNames  = Set.fromList (map HS.funcDeclQName funcDecls)
         funcNames' = withoutArgs (HS.funcDeclArgs funcDecl) funcNames
         rhs        = HS.funcDeclRhs funcDecl
         rhs'       = addInternalTypeArgsToExpr funcNames' rhs
-    return funcDecl { HS.funcDeclRhs = rhs' }
+    in  funcDecl { HS.funcDeclRhs = rhs' }
 
   -- | Adds visible type applications for 'internalTypeArgs' to recursive
   --   calls in the given expression.

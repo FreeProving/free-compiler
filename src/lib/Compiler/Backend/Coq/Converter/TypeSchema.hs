@@ -56,17 +56,14 @@ instantiateTypeSchema' (HS.TypeSchema _ typeArgs typeExpr) = do
 --   Fresh type variables used by the given type are replaced by regular type
 --   variables with the prefix 'freshTypeArgPrefix'. All other type variables
 --   are not renamed.
---
---   TODO move out of Converter monad.
-abstractTypeSchema :: [HS.QName] -> HS.Type -> Converter HS.TypeSchema
-abstractTypeSchema = fmap fst .: abstractTypeSchema'
+abstractTypeSchema :: [HS.QName] -> HS.Type -> HS.TypeSchema
+abstractTypeSchema = fst .: abstractTypeSchema'
 
 -- | Like 'abstractTypeSchema' but returns the resulting type schema and the
 --   substitution that replaces the abstracted type variables by their name in
 --   the type schema.
-abstractTypeSchema'
-  :: [HS.QName] -> HS.Type -> Converter (HS.TypeSchema, Subst HS.Type)
-abstractTypeSchema' ns t = do
+abstractTypeSchema' :: [HS.QName] -> HS.Type -> (HS.TypeSchema, Subst HS.Type)
+abstractTypeSchema' ns t =
   let vs         = map (fromJust . HS.identFromQName) ns
       (ivs, uvs) = partition HS.isInternalIdent vs
       vs'        = uvs ++ take (length ivs) (map makeTypeArg [0 ..] \\ uvs)
@@ -74,8 +71,7 @@ abstractTypeSchema' ns t = do
       ts         = map (HS.TypeVar NoSrcSpan) vs'
       subst      = composeSubsts (zipWith singleSubst ns' ts)
       t'         = applySubst subst t
-  return
-    (HS.TypeSchema NoSrcSpan (map (HS.TypeVarDecl NoSrcSpan) vs') t', subst)
+  in  (HS.TypeSchema NoSrcSpan (map (HS.TypeVarDecl NoSrcSpan) vs') t', subst)
  where
   makeTypeArg :: Int -> HS.TypeVarIdent
   makeTypeArg = (freshTypeArgPrefix ++) . show
