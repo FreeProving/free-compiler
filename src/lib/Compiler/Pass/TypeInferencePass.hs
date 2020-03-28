@@ -5,7 +5,205 @@
 --   their right-hand sides and type arguments to pass to used functions and
 --   constructors.
 --
---   TODO write documentation and examples
+--   = Examples
+--
+--   == Example 1: Type inference
+--
+--   The type of a function declaration that does not have a type signature
+--
+--   @
+--   double x = x + x
+--   @
+--
+--   can be inferred from the types of the functions it is using on it's
+--   right-hand side. Instead of just inferring the type of the declared
+--   function, the types of all argument patterns and the return type of
+--   the function are annotated by this pass.
+--
+--   @
+--   double (x :: Integer) = x + x :: Integer
+--   @
+--
+--   == Example 2: Polymorphic functions
+--
+--   When a function is polymorphic
+--
+--   @
+--   null xs = case xs of {
+--       []      -> False;
+--       x : xs' -> True
+--     }
+--   @
+--
+--   its type variables will be specified explicitly on the left-hand
+--   side of the function declaration. Their order depends on the order
+--   in which they appear in the inferred type of the function. Type
+--   arguments are listed from left to right.
+--
+--   @
+--   null @t0 (xs :: [t0]) = (case xs of {
+--       []                        -> False;
+--       (x :: t0) : (xs' :: [t0]) -> True
+--     }) :: Bool
+--   @
+--
+--   When such a polymorphic function is called
+--
+--   @
+--   null [1, 2, 3]
+--   @
+--
+--   the type inference pass figures out the types the type arguments of
+--   a function need to be instantiated with and inserts corresponding
+--   visible type applications.
+--
+--   @
+--   null @Integer [1, 2, 3]
+--   @
+--
+--   == Example 3: Vanishing type arguments
+--
+--   When type arguments are applied visibly, there are some cases where the
+--   visible type application contains type variables that are not related to
+--   the functions type (also called "vanishing type arguments"). The function
+--   below has type @Bool@ for example, but the list it is using is polymorphic.
+--
+--   @
+--   myTrue = null []
+--   @
+--
+--   Thus, the list contains elements of some type @t0@ which needs to be
+--   added as a type argument to the list constructor @[]@ and @null@.
+--
+--   @
+--   myTrue @t0 = null @t0 ([] @t0) :: Bool
+--   @
+--
+--   While Haskell would tolerate the definition of @myTrue@ without type
+--   arguments, Coq does not accept an equivalent definition.
+--
+--   @
+--   Definition null {a : Type} (xs : list a) : bool
+--     := match xs with
+--        | nil      => true
+--        | cons _ _ => false
+--        end.
+--
+--   Fail Definition myTrue := null nil.
+--   @
+--
+--   @
+--   The command has indeed failed with message:
+--   Cannot infer the implicit parameter a of null whose type is "Type".
+--   @
+--
+--   In order to fix this error, we have to do exactly what we did above, i.e.,
+--   introduce a new type argument for @myTrue@ and pass that type argument
+--   to either @null@, @nil@ or both.
+--
+--   @
+--   Definition myTrue (t0 : Type) := @null t0 (@nil t0).
+--   @
+--
+--   We choose to pass all type arguments throughout the entire program
+--   explicitly such that we can be sure, that Coq always agrees with the
+--   types we have inferred.
+--
+--   == Example 4: Vanishing type arguments in recursive functions
+--
+--   When a recursive function contains vanishing type arguments (for
+--   example, because it calls a function such as @true@ which introduces
+--   a vanishing type argument),
+--
+--   @
+--   length xs = case xs of {
+--       []      -> if true then 0 else 1
+--       x : xs' -> 1 + length xs
+--     }
+--   @
+--
+--   the vanishing type arguments are passed unchanged to recursive calls
+--   while regular type arguments (e.g., @t0@ below) could change in case
+--   of polymorphic recursion.
+--
+--   @
+--   length @t0 @t1 (xs :: [t0]) = case xs of {
+--       []                        -> if true @t1 then 0 else 1
+--       (x :: t0) : (xs' :: [t0]) -> 1 + length @t0 @t1 xs
+--     }
+--   @
+--
+--   If there are multiple sub-expressions that introduce vanishing type
+--   arguments,
+--
+--   @
+--   if true && true then 0 else 1
+--   @
+--
+--   the type arguments they introduce are distinct.
+--
+--   @
+--   if true @t1 && true @t2 then 0 else 1
+--   @
+--
+--   Thus, @length@ would have two additional type arguments in this case.
+--
+--   @
+--   length @t0 @t1 @t2 (xs :: [t0]) = {- ... -}
+--   @
+--
+--   Note that vanishing type arguments are always listed after regular
+--   type arguments and sorted by the order they occur on the right-hand
+--   side from left to right.
+--
+--   == Example 5: Expression type annotations
+--
+--   In the examples above we've omitted type annotations of expressions
+--   for better readability. However, in addition to variable patterns and
+--   return types of functions, this pass also annotates all sub-expressions
+--   on the right-hand side with the type that was inferred for them.
+--
+--   The type of an expression is stored in 'HS.exprTypeSchema' in the
+--   form @'HS.TypeSchema' NoSrcSpan [] τ@ and can safely be accessed
+--   via 'HS.exprType' after this pass. The field contains a type schema
+--   rather than a type because it is also used to store expression type
+--   signatures of the user and type variables in type signatures need
+--   to be universally quantified in Haskell.
+--
+--   = Specification
+--
+--   == Preconditions
+--
+--   * There are environment entries for all functions and constructors that
+--     are used by functions in the strongly connected component (except
+--     for the functions whose type to infer themselves).
+--   * Type signatures have already been associated with the corresponding
+--     function declarations (See "Compiler.Pass.TypeSignaturePass").
+--
+--   == Translation
+--
+--   The type inference algorithm implemented by the pass is based on the
+--   algorithm by Damas and Milner (1982).
+--
+--   @
+--   [Damas & Milner, 1982]:
+--     L. Damas and R. Milner. Principal type-schemes for functional programs.
+--     In Proc. 9th Annual Symposium on Principles of Programming Languages,
+--     pp. 207–212, 1982.
+--   @
+--
+--   We are extending this algorithm to apply type arguments visibly and
+--   make vanishing type arguments explicit.
+--
+--   See the comments in the definition of 'inferFuncDeclTypes'' for more
+--   information on the actual implementation of type inference.
+--
+--   == Postconditions
+--
+--   * The types of all variable patterns, function return types and the types
+--     of all expressions are explicitly annotated.
+--   * All type arguments of all polymorphic functions and constructors are
+--     applied visibly including vanishing type arguments.
 
 module Compiler.Pass.TypeInferencePass
   ( typeInferencePass
@@ -248,7 +446,13 @@ inferFuncDeclTypes' funcDecls = withLocalState $ do
 
   -- Add type annotations.
   --
-  -- TODO
+  -- In this step all variable patterns, return types and sub-expressions
+  -- are annotated using fresh type variables. The type annotations resemble
+  -- the structure of the actual type after this step already. For example,
+  -- if @e₁ e₂@ is annotated with a type @τ@, then @e₂@ is annotated with
+  -- a fresh type variable @α@ and @e₂@ is annotated with @α -> τ@.
+  -- Furthermore, this step introduces type equations, for example if
+  -- predefined functions and constructor are used.
   annotatedFuncDecls <- annotateFuncDecls funcDecls
 
   -- Unify type equations.
@@ -256,6 +460,13 @@ inferFuncDeclTypes' funcDecls = withLocalState $ do
   -- During the annotation of the function declaration type equations were
   -- added. The system of type equations is solved by computing the most
   -- general unificator (mgu).
+  -- The mgu is then applied to the annotated function declarations to
+  -- replace the type variables (that act as place holders) by their
+  -- actual type. In the example of @e₁ e₂@ above for example, the type
+  -- equation @α = Integer@ would have been added if @e₂@ was an integer
+  -- literal. Thus, the mgu would map the type variable @α@ to @Integer@.
+  -- By applying the mgu, the type annotation of @e₁ e₂@ is corrected to
+  -- @Integer -> mgu(τ)@
   eqns               <- gets typeEquations
   mgu                <- liftConverter $ unifyEquations eqns
   let typedFuncDecls = applySubst mgu annotatedFuncDecls
