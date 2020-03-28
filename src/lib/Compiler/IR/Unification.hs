@@ -117,8 +117,8 @@ unify t s = do
   x `mapsTo` u = do
     occursCheck u
     let subst = singleSubst (HS.UnQual (HS.Ident x)) u
-    t'  <- lift $ applySubst subst t
-    s'  <- lift $ applySubst subst s
+        t'    = applySubst subst t
+        s'    = applySubst subst s
     mgu <- unify t' s'
     return (composeSubst mgu subst)
    where
@@ -137,8 +137,8 @@ unifyAll :: [HS.Type] -> ExceptT UnificationError Converter (Subst HS.Type)
 unifyAll []             = return identitySubst
 unifyAll [_           ] = return identitySubst
 unifyAll (t0 : t1 : ts) = do
-  mgu  <- unify t0 t1
-  t1'  <- lift $ applySubst mgu t1
+  mgu <- unify t0 t1
+  let t1' = applySubst mgu t1
   mgu' <- unifyAll (t1' : ts)
   return (composeSubst mgu mgu')
 

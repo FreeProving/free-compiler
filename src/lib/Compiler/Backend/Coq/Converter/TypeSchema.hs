@@ -38,8 +38,8 @@ instantiateTypeSchema = fmap fst . instantiateTypeSchema'
 instantiateTypeSchema' :: HS.TypeSchema -> Converter (HS.Type, [HS.Type])
 instantiateTypeSchema' (HS.TypeSchema _ typeArgs typeExpr) = do
   (typeArgs', subst) <- renameTypeArgsSubst typeArgs
-  typeExpr'          <- applySubst subst typeExpr
-  let typeVars' = map HS.typeVarDeclToType typeArgs'
+  let typeExpr' = applySubst subst typeExpr
+      typeVars' = map HS.typeVarDeclToType typeArgs'
   return (typeExpr', typeVars')
 
 -------------------------------------------------------------------------------
@@ -56,6 +56,8 @@ instantiateTypeSchema' (HS.TypeSchema _ typeArgs typeExpr) = do
 --   Fresh type variables used by the given type are replaced by regular type
 --   variables with the prefix 'freshTypeArgPrefix'. All other type variables
 --   are not renamed.
+--
+--   TODO move out of Converter monad.
 abstractTypeSchema :: [HS.QName] -> HS.Type -> Converter HS.TypeSchema
 abstractTypeSchema = fmap fst .: abstractTypeSchema'
 
@@ -71,7 +73,7 @@ abstractTypeSchema' ns t = do
       ns'        = map (HS.UnQual . HS.Ident) (uvs ++ ivs)
       ts         = map (HS.TypeVar NoSrcSpan) vs'
       subst      = composeSubsts (zipWith singleSubst ns' ts)
-  t' <- applySubst subst t
+      t'         = applySubst subst t
   return
     (HS.TypeSchema NoSrcSpan (map (HS.TypeVarDecl NoSrcSpan) vs') t', subst)
  where

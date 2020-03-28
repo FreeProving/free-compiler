@@ -122,8 +122,8 @@ testUnification = describe "Compiler.IR.Unification.unify" $ do
     it "self-unification yields the identity substitution"
       $ property
       $ \typeExpr -> shouldSucceedProperty $ fromConverter $ do
-          mgu       <- unifyOrFail (HS.typeSrcSpan typeExpr) typeExpr typeExpr
-          typeExpr' <- applySubst mgu typeExpr
+          mgu <- unifyOrFail (HS.typeSrcSpan typeExpr) typeExpr typeExpr
+          let typeExpr' = applySubst mgu typeExpr
           return (typeExpr' == typeExpr)
 
 
@@ -147,11 +147,9 @@ shouldUnifyTo' (t, s) (ot, os) = do
   t'  <- runPipelineOnType t
   s'  <- runPipelineOnType s
   mgu <- unifyOrFail (HS.typeSrcSpan t') t' s'
-  at' <- applySubst mgu t'
-  as' <- applySubst mgu s'
   return $ do
-    at' `prettyShouldBe` ot
-    as' `prettyShouldBe` os
+    applySubst mgu t' `prettyShouldBe` ot
+    applySubst mgu s' `prettyShouldBe` os
 
 -- | Unifies the given type expressions and sets the expectation that the
 --   unification fails.

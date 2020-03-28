@@ -96,7 +96,7 @@ expandTypeSynonymsWhere maxDepth predicate t0
       Just (typeVars, typeExpr) | predicate typeConName -> do
         let subst = composeSubsts
               (zipWith (singleSubst . HS.UnQual . HS.Ident) typeVars args)
-        typeExpr' <- applySubst subst typeExpr
+            typeExpr' = applySubst subst typeExpr
         Just <$> expandTypeSynonymsWhere (maxDepth - 1) predicate typeExpr'
       _ -> return Nothing
 

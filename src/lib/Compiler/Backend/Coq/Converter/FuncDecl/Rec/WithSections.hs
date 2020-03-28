@@ -79,11 +79,11 @@ convertRecFuncDeclsWithSection constArgs decls = do
       typeArgIdents = map (fromJust . HS.identFromQName) typeArgNames
 
   -- Apply unificator to rename the type arguments on the right-hand side.
-  renamedDecls' <- mapM (applySubst mgu) renamedDecls
+  let renamedDecls' = applySubst mgu renamedDecls
 
   -- Remove constant arguments from the renamed function declarations.
-  sectionDecls  <- mapM (removeConstArgsFromFuncDecl renamedConstArgs)
-                        renamedDecls'
+  sectionDecls <- mapM (removeConstArgsFromFuncDecl renamedConstArgs)
+                       renamedDecls'
 
   -- Test which of the constant arguments is actually used by any function
   -- in the section and which of the type arguments is needed by the types
@@ -196,12 +196,12 @@ renameFuncDecls decls = do
                            (map (HS.UnQual . HS.Ident) typeArgIdents)
                            (map (flip HS.TypeVar) typeArgIdents')
                   )
-            args'         <- mapM (applySubst typeVarSubst) args
-            maybeRetType' <- mapM (applySubst typeVarSubst) maybeRetType
+                args'         = applySubst typeVarSubst args
+                maybeRetType' = applySubst typeVarSubst maybeRetType
 
             -- Set environment entry for renamed function.
-            entry         <- lookupEntryOrFail srcSpan' ValueScope name
-            _             <- renameAndAddEntry entry
+            entry <- lookupEntryOrFail srcSpan' ValueScope name
+            _     <- renameAndAddEntry entry
               { entryName       = name'
               , entryTypeArgs   = typeArgIdents'
               , entryArgTypes   = map HS.varPatType args'
@@ -217,7 +217,7 @@ renameFuncDecls decls = do
               Nothing -> return ()
 
             -- Rename function references and type variables on right-hand side.
-            rhs' <- applySubst subst rhs >>= applySubst typeVarSubst
+            let rhs' = applySubst typeVarSubst (applySubst subst rhs)
 
             -- Rename function declaration.
             return
@@ -277,9 +277,8 @@ lookupConstArgType argTypeMap constArg = do
       types   = catMaybes $ map (flip Map.lookup argTypeMap) idents
       srcSpan = HS.typeSrcSpan (head types)
   -- Unify all annotated types of the constant argument.
-  -- TODO expansion should not be necessary anymore
-  mgu          <- unifyAllOrFail srcSpan types
-  constArgType <- applySubst mgu (head types)
+  mgu <- unifyAllOrFail srcSpan types
+  let constArgType = applySubst mgu (head types)
   return (constArgType, mgu)
 
 -------------------------------------------------------------------------------
@@ -341,7 +340,7 @@ removeConstArgsFromFuncDecl constArgs (HS.FuncDecl srcSpan declIdent typeArgs ar
                          (flip HS.untypedVar (HS.UnQual (HS.Ident freshArg)))
           | (removedArg, freshArg) <- zip removedArgs freshArgs
           ]
-    rhs' <- applySubst subst rhs >>= removeConstArgsFromExpr constArgs
+    rhs' <- removeConstArgsFromExpr constArgs (applySubst subst rhs)
     return (HS.FuncDecl srcSpan declIdent typeArgs args' rhs' maybeRetType)
 
 -- | Removes constant arguments from the applications in the given expressions.
@@ -457,18 +456,18 @@ updateTypeSig mgu constTypeVars argTypeMap returnTypeMap funcDecl = do
   -- Modify entry.
   -- Since the arguments of the @Free@ monad have been defined in the
   -- section already, 'entryNeedsFreeArgs' can be set to @False@.
-  let argIdents = map HS.varPatIdent args
-      funcArgs  = zip (repeat name) argIdents
-  typeArgVars <- mapM (applySubst mgu . HS.TypeVar NoSrcSpan)
-                      (entryTypeArgs entry)
-  argTypes <- mapM (applySubst mgu)
-                   (catMaybes (map (flip Map.lookup argTypeMap) funcArgs))
-  returnType <- applySubst mgu (fromJust (Map.lookup name returnTypeMap))
+  let
+    argIdents = map HS.varPatIdent args
+    funcArgs  = zip (repeat name) argIdents
+    typeArgVars =
+      applySubst mgu (map (HS.TypeVar NoSrcSpan) (entryTypeArgs entry))
+    argTypes   = applySubst mgu (map (flip Map.lookup argTypeMap) funcArgs)
+    returnType = applySubst mgu (Map.lookup name returnTypeMap)
   let allTypeArgs = map HS.typeVarIdent typeArgVars
       entry'      = entry { entryArity         = length args
                           , entryTypeArgs      = allTypeArgs \\ constTypeVars
-                          , entryArgTypes      = map Just argTypes
-                          , entryReturnType    = Just returnType
+                          , entryArgTypes      = argTypes
+                          , entryReturnType    = returnType
                           , entryNeedsFreeArgs = False
                           }
   modifyEnv $ addEntry entry'
@@ -683,7 +682,7 @@ generateInterfaceDecl constArgs isConstArgUsed nameMap mgu sectionTypeArgs renam
       ++ " for "
       ++ showPretty (HS.funcDeclQName funcDecl)
   lookupTypeArgName ws ((v, i) : vs) u = do
-    (HS.TypeVar _ v') <- applySubst mgu (HS.TypeVar NoSrcSpan v)
+    let HS.TypeVar _ v' = applySubst mgu (HS.TypeVar NoSrcSpan v)
     if v' == u
       then do
         let w = ws !! i

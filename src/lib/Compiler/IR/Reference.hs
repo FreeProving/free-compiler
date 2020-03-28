@@ -8,6 +8,8 @@
 module Compiler.IR.Reference
   ( -- * References
     Ref(..)
+  , refScope
+  , refName
   , isVarRef
   , isConRef
   , isTypeRef

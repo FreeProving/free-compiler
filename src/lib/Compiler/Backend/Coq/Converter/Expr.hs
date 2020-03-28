@@ -105,7 +105,7 @@ convertExpr' (HS.Var srcSpan name _) typeArgs args = do
           Just argTypes      <- inEnv $ lookupArgTypes ValueScope name
           let typeArgNames = map (HS.UnQual . HS.Ident) typeArgIdents
               subst = composeSubsts (zipWith singleSubst typeArgNames typeArgs)
-          decArgType  <- mapM (applySubst subst) (argTypes !! index)
+              decArgType = applySubst subst (argTypes !! index)
           decArgType' <- mapM convertType' decArgType
           generateBind decArg freshArgPrefix decArgType' $ \decArg' ->
             generateApplyN arity callee (before ++ decArg' : after)

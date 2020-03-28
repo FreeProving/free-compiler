@@ -104,7 +104,7 @@ inlineExpr decls = inlineAndBind
       []                     -> return ([], [], HS.App srcSpan e1' e2' exprType)
       (arg : remainingArgs') -> do
         let subst = singleSubst (HS.UnQual (HS.Ident arg)) e2'
-        e1'' <- applySubst subst e1'
+            e1''  = applySubst subst e1'
         return ([], remainingArgs', e1'')
 
   -- Substitute type arguments of inlined function.
@@ -114,7 +114,7 @@ inlineExpr decls = inlineAndBind
       [] -> return ([], remainingArgs, HS.TypeAppExpr srcSpan e' t exprType)
       (typeArg : remainingTypeArgs') -> do
         let subst = singleSubst (HS.UnQual (HS.Ident typeArg)) t
-        e'' <- applySubst subst e'
+            e''   = applySubst subst e'
         return (remainingTypeArgs', remainingArgs, e'')
 
   -- Inline recursively.

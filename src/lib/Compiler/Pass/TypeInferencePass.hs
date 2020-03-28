@@ -259,7 +259,7 @@ inferFuncDeclTypes' funcDecls = withLocalState $ do
   -- general unificator (mgu).
   eqns               <- gets typeEquations
   mgu                <- liftConverter $ unifyEquations eqns
-  typedFuncDecls     <- liftConverter $ mapM (applySubst mgu) annotatedFuncDecls
+  let typedFuncDecls = applySubst mgu annotatedFuncDecls
 
   -- Abstract inferred type to type schema.
   --
@@ -513,10 +513,9 @@ applyVisibly name expr = do
     Just assumedTypeSchema -> do
       (assumedType, typeArgs) <- liftConverter
         $ instantiateTypeSchema' assumedTypeSchema
-      mgu       <- liftConverter $ unifyOrFail srcSpan annotatedType assumedType
-      fixed     <- lookupFixedTypeArgs name
-      typeArgs' <- liftConverter
-        $ mapM (applySubst mgu) (dropEnd (length fixed) typeArgs)
+      mgu   <- liftConverter $ unifyOrFail srcSpan annotatedType assumedType
+      fixed <- lookupFixedTypeArgs name
+      let typeArgs' = applySubst mgu (dropEnd (length fixed) typeArgs)
       return (HS.visibleTypeApp srcSpan expr (typeArgs' ++ fixed))
 
 -- | Adds visible type application expressions to function and constructor
@@ -598,7 +597,7 @@ abstractTypeArgs :: [HS.QName] -> HS.FuncDecl -> Converter HS.FuncDecl
 abstractTypeArgs typeArgs funcDecl = do
   let HS.TypeSchema _ _ typeExpr = fromJust (HS.funcDeclTypeSchema funcDecl)
   (HS.TypeSchema _ typeArgs' _, subst) <- abstractTypeSchema' typeArgs typeExpr
-  funcDecl'                            <- applySubst subst funcDecl
+  let funcDecl' = applySubst subst funcDecl
   return funcDecl' { HS.funcDeclTypeArgs = typeArgs' }
 
 -- | Abstracts the remaining internal type variables that occur within
@@ -712,8 +711,8 @@ unifyEquations = unifyEquations' identitySubst
     :: Subst HS.Type -> [TypeEquation] -> Converter (Subst HS.Type)
   unifyEquations' subst []                         = return subst
   unifyEquations' subst ((srcSpan, t1, t2) : eqns) = do
-    t1' <- applySubst subst t1
-    t2' <- applySubst subst t2
+    let t1' = applySubst subst t1
+        t2' = applySubst subst t2
     mgu <- unifyOrFail srcSpan t1' t2'
     let subst' = composeSubst mgu subst
     unifyEquations' subst' eqns

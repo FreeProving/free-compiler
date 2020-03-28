@@ -17,11 +17,11 @@ testExprSubst = do
       $ do
           y <- parseTestExpr "y"
           z <- parseTestExpr "z"
+          e <- parseTestExpr "x y z"
           let s1    = singleSubst (HS.UnQual (HS.Ident "x")) z
               s2    = singleSubst (HS.UnQual (HS.Ident "x")) y
               subst = s1 `composeSubst` s2
-          e  <- parseTestExpr "x y z"
-          e' <- applySubst subst e
+              e'    = applySubst subst e
           return (e' `prettyShouldBe` "y y z")
     it "applies the second substitution to the first"
       $ shouldSucceed
@@ -29,11 +29,11 @@ testExprSubst = do
       $ do
           y <- parseTestExpr "y"
           z <- parseTestExpr "z"
+          e <- parseTestExpr "x y z"
           let s1    = singleSubst (HS.UnQual (HS.Ident "y")) z
               s2    = singleSubst (HS.UnQual (HS.Ident "x")) y
               subst = s1 `composeSubst` s2
-          e  <- parseTestExpr "x y z"
-          e' <- applySubst subst e
+              e'    = applySubst subst e
           return (e' `prettyShouldBe` "z z z")
   describe "Compiler.IR.Subst.applySubst" $ do
     it "cannot substitute variables bound by lambda"
@@ -41,22 +41,22 @@ testExprSubst = do
       $ fromConverter
       $ do
           val <- parseTestExpr "42"
+          e   <- parseTestExpr "(\\x -> x) x"
           let subst = singleSubst (HS.UnQual (HS.Ident "x")) val
-          e  <- parseTestExpr "(\\x -> x) x"
-          e' <- applySubst subst e
-          return (e' `prettyShouldBe` "(\\x@0 -> x@0) 42")
+              e'    = applySubst subst e
+          return (e' `prettyShouldBe` "(\\x -> x) 42")
     it "cannot substitute variables bound by a case alternative"
       $ shouldSucceed
       $ fromConverter
       $ do
           val <- parseTestExpr "(42, True)"
+          e   <- parseTestExpr "case x of { (x, y) -> x }"
           let subst = singleSubst (HS.UnQual (HS.Ident "x")) val
-          e  <- parseTestExpr "case x of { (x, y) -> x }"
-          e' <- applySubst subst e
+              e'    = applySubst subst e
           return
             (                e'
             `prettyShouldBe` (  "case Prelude.(,) 42 True of {"
-                             ++ "   Prelude.(,) x@0 y@0 -> x@0"
+                             ++ "   Prelude.(,) x y -> x"
                              ++ " }"
                              )
             )
