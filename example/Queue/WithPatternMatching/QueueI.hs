@@ -1,6 +1,6 @@
-module QueuePM.QueueI where
+module Queue.WithPatternMatching.QueueI where
 
-import           QueuePM.Util
+import           Queue.WithPatternMatching.Util
 
 type QueueI a = ([a],[a])
 

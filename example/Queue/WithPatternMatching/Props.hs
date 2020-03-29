@@ -1,10 +1,10 @@
-module QueuePM.Props where
+module Queue.WithPatternMatching.Props where
 
 import           Test.QuickCheck
 
-import           QueuePM.Queue
-import           QueuePM.QueueI
-import           QueuePM.Util
+import           Queue.WithPatternMatching.Queue
+import           Queue.WithPatternMatching.QueueI
+import           Queue.WithPatternMatching.Util
 
 invariant :: QueueI a -> Bool
 invariant (f, b) = null b || not (null f)

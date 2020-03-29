@@ -1,4 +1,4 @@
-module Queue.Util where
+module Queue.WithoutPatternMatching.Util where
 
 null :: [a] -> Bool
 null xs = case xs of

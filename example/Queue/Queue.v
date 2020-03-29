@@ -1,12 +1,23 @@
+(* This example contains the code for the case study from the bachelor's
+   thesis https://freeproving.github.io/free-compiler/thesis/Andresen2019.pdf
+   In the thesis we've looked at the definition of queues that does not use
+   pattern matching on the left-hand sides of function declarations.
+   Since then experimental support for pattern matching compilation has
+   been added to the compiler.
+   Replace the imports of `Queue.WithoutPatternMatching` by
+   `Queue.WithPatternMatching` to try out the version that uses pattern
+   matching compilation.
+*)
+
 From Base Require Import Free Prelude.
 
 Require Import Coq.Logic.FunctionalExtensionality.
 Require Import Coq.Program.Equality.
 
-From Generated Require Import Queue.Props.
-From Generated Require Import Queue.Queue.
-From Generated Require Import Queue.QueueI.
-From Generated Require Import Queue.Util.
+From Generated Require Import Queue.WithoutPatternMatching.Props.
+From Generated Require Import Queue.WithoutPatternMatching.Queue.
+From Generated Require Import Queue.WithoutPatternMatching.QueueI.
+From Generated Require Import Queue.WithoutPatternMatching.Util.
 
 (* TODO: Can we generate generate total_* properties? *)
 

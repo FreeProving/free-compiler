@@ -1,4 +1,4 @@
-module QueuePM.Util where
+module Queue.WithPatternMatching.Util where
 
 null :: [a] -> Bool
 null [] = True

@@ -1,6 +1,6 @@
-module Queue.Queue where
+module Queue.WithPatternMatching.Queue where
 
-import           Queue.Util
+import           Queue.WithPatternMatching.Util
 
 type Queue a = [a]
 
@@ -11,9 +11,7 @@ isEmpty :: Queue a -> Bool
 isEmpty q = null q
 
 front :: Queue a -> a
-front q = case q of
-  []     -> error "front: empty queue"
-  x : q' -> x
+front (x : q) = x
 
 add :: a -> Queue a -> Queue a
 add x q = q `append` [x]
