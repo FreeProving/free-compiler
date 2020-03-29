@@ -23,7 +23,8 @@ copyright:           (c) 2018, Flensburg University of Applied Sciences
                      (c) 2019, Kiel University
 category:            Language
 build-type:          Simple
-data-files:          base/Prelude.toml
+data-files:        base/Prelude.toml
+                   , base/Test/QuickCheck.toml
                      -- Due to a Bug in Cabal version 2.4, we cannot make
                      -- use of `**` wildcard patterns here. Otherwise, the
                      -- `new-install` command fails.
@@ -35,6 +36,7 @@ data-files:          base/Prelude.toml
                    , base/Free/Instance/*.v
                    , base/Free/Tactic/*.v
                    , base/Free/Util/*.v
+                   , base/Test/*.v
                      -- base/**/*.vo
                    , base/Prelude.vo
                    , base/Prelude/*.vo
@@ -43,6 +45,7 @@ data-files:          base/Prelude.toml
                    , base/Free/Instance/*.vo
                    , base/Free/Tactic/*.vo
                    , base/Free/Util/*.vo
+                   , base/Test/*.vo
 
 common deps
   build-depends:     base                        ==4.12.*
