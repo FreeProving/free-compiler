@@ -1,7 +1,7 @@
 -- This example contains definitions for commonly used list functions from
 -- the @Data.List@ module.
 
-module List where
+module Data.List where
 
 -------------------------------------------------------------------------------
 -- Basic functions                                                           --
@@ -11,6 +11,8 @@ append :: [a] -> [a] -> [a]
 append xs ys = case xs of
   []      -> ys
   x : xs' -> x : append xs' ys
+
+infixr 5 `append`
 
 -- | Extract the first element of a list, which must be non-empty.
 head :: [a] -> a
