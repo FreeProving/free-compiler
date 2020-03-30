@@ -384,13 +384,13 @@ step "Running unit tests"     \
      "All unit tests passed"  \
      "Some unit tests failed" \
      "Canceled unit-tests"    \
-     "./tool/test.sh"
+     "cabal new-run unit-tests"
 
 step "Compiling examples"               \
      "Compiled examples successfully"   \
      "Failed to compile examples"       \
      "Canceled compilation of examples" \
-     "./tool/run.sh                                          \\
+     "cabal new-run haskell-to-coq-compiler --         \\
         --transform-pattern-matching                   \\
         --dump-transformed-modules example/transformed \\
         -b ./base                                      \\
