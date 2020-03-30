@@ -38,7 +38,6 @@ module Compiler.Environment
   )
 where
 
-import           Control.Monad                  ( join )
 import           Data.Composition               ( (.:)
                                                 , (.:.)
                                                 )

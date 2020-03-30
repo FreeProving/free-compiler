@@ -21,8 +21,7 @@ import           Data.List                      ( elemIndex
                                                 )
 import           Data.Map.Strict                ( Map )
 import qualified Data.Map.Strict               as Map
-import           Data.Maybe                     ( catMaybes
-                                                , fromJust
+import           Data.Maybe                     ( fromJust
                                                 , mapMaybe
                                                 , maybeToList
                                                 )
