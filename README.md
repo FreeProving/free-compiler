@@ -4,10 +4,11 @@
 <img src="https://raw.githubusercontent.com/FreeProving/free-compiler/master/img/logo.png" width="350" style="max-width: 100%" align="right" />
 
 <!-- Badges -->
-![CI Pipeline status][badge/ci-pipeline-pipeline]
+![CI Pipeline](https://github.com/FreeProving/free-compiler/workflows/CI%20Pipeline/badge.svg)
 
 <!-- Short description -->
 A compiler for the monadic translation of Haskell programs to Coq that uses the `Free` monad as presented by [Dylus et al.][paper/DylusEtAl2018] to model partiality and other ambient effects.
+
 
 ## Table of Contents
 
@@ -306,8 +307,6 @@ Similar to how we discourage using `cabal new-run` during development to run the
 
 The Free Compiler is licensed under The 3-Clause BSD License.  
 See the LICENSE file for details.
-
-[badge/ci-pipeline]: https://github.com/FreeProving/free-compiler/workflows/CI%20Pipeline/badge.svg
 
 [doc]: https://github.com/FreeProving/free-compiler/tree/master/doc
 [doc/ModuleInterfaceFileFormat.md]: https://github.com/FreeProving/free-compiler/blob/master/doc/ModuleInterfaceFileFormat.md
