@@ -130,12 +130,12 @@ import           Compiler.Pretty
 instance Aeson.FromJSON HS.QName where
   parseJSON = Aeson.withText "HS.QName" $ \txt -> do
     let str   = T.unpack txt
-        regex = "^(\\w+(\\.\\w+)*)\\.(\\w+|\\([^\\(\\)]*\\))$"
+        regex = "^((\\w(\\w|')*\\.)*)(\\w(\\w|')*|\\([^\\(\\)]*\\))$"
     case matchRegexPR regex str of
       Just (_, ms) -> do
-        let Just modName = lookup 1 ms
-            Just name    = lookup 3 ms
-        return (HS.Qual modName (parseName name))
+        let Just modName = init <$> lookup 1 ms
+            Just name    = parseName <$> lookup 4 ms
+        return (HS.Qual modName name)
       m -> Aeson.parserThrowError
         []
         ("Invalid Haskell name " ++ str ++ " " ++ show m)
