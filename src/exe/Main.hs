@@ -213,7 +213,7 @@ loadModule srcSpan modName = do
   -- | The name of the module's interface file relative to the import
   --   directories.
   filename :: FilePath
-  filename = (map (\c -> if c == '.' then '/' else c) modName) <.> "json"
+  filename = map (\c -> if c == '.' then '/' else c) modName <.> "json"
 
   -- | Looks for the module's interface file in the import directories.
   --
@@ -258,8 +258,8 @@ loadModuleFromBaseLib modName = do
 --
 --   The path to the Base library will be relative to the output directory.
 createCoqProject :: Application ()
-createCoqProject =
-  whenM coqProjectEnabled $ unlessM coqProjectExists $ writeCoqProject
+createCoqProject = whenM coqProjectEnabled
+  $ unlessM coqProjectExists writeCoqProject
  where
   -- | Tests whether the generation of a @_CoqProject@ file is enabled.
   --
