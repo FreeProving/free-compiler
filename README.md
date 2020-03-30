@@ -207,8 +207,6 @@ The compiler will not overwrite your changes since the `_CoqProject` file is onl
 If you don't want the `_CoqProject` file to be generated at all, you can add the `--no-coq-project` flag.
 However, note that you may not be able to compile the generated Coq code if the `_CoqProject` file is missing.
 
-Use the `--help` (or `-h`) option for more details on supported command line options.
-
 ## Experimental Features
 
 ### Pattern-Matching Compilation
