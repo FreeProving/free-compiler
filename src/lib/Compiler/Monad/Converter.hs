@@ -38,6 +38,7 @@ where
 
 import           Prelude                 hiding ( fail )
 
+import           Control.Monad                  ( forM_ )
 import           Control.Monad.Fail             ( MonadFail(..) )
 import           Control.Monad.Identity         ( Identity(..) )
 import           Control.Monad.State            ( StateT(..)
@@ -204,7 +205,7 @@ moduleEnv converter = do
 shadowVarPats :: MonadConverter m => [HS.VarPat] -> m a -> m a
 shadowVarPats varPats converter = do
   oldEntries <- inEnv envEntries
-  flip mapM_ varPats $ \varPat -> modifyEnv $ addEntry VarEntry
+  forM_ varPats $ \varPat -> modifyEnv $ addEntry VarEntry
     { entrySrcSpan = HS.varPatSrcSpan varPat
     , entryIsPure  = False
     , entryIdent   = undefined

@@ -44,6 +44,6 @@ convertFuncHead (HS.FuncDecl _ declIdent typeArgs args _ maybeRetType) = do
   maybeRetType' <- mapM convertType maybeRetType
   return
     ( qualid
-    , (freeArgDecls ++ [ partialArgDecl | partial ] ++ typeArgs' ++ args')
+    , freeArgDecls ++ [ partialArgDecl | partial ] ++ typeArgs' ++ args'
     , maybeRetType'
     )

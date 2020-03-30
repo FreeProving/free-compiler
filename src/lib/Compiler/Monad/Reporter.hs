@@ -123,7 +123,7 @@ newtype ReporterT m a = ReporterT { unwrapReporterT :: m (UnwrappedReporter a) }
 --   reported messages. If a fatal message has been reported the produced
 --   value is @Nothing@. The result is wrapped in the inner monad.
 runReporterT :: Monad m => ReporterT m a -> m (Maybe a, [Message])
-runReporterT rmx = unwrapReporterT rmx >>= (return . runWriter . runMaybeT)
+runReporterT rmx = runWriter . runMaybeT <$> unwrapReporterT rmx
 
 -- | The @Functor@ instance for 'ReporterT' is needed to define the @Monad@
 --   instance.
@@ -146,7 +146,7 @@ instance Monad m => Monad (ReporterT m) where
 
 -- | @MonadTrans@ instance for 'ReporterT'.
 instance MonadTrans ReporterT where
-  lift mx = ReporterT (mx >>= return . return)
+  lift mx = ReporterT (return <$> mx)
 
 -- | The reporter monad can be lifted to any reporter transformer.
 instance Hoistable ReporterT where
@@ -154,7 +154,7 @@ instance Hoistable ReporterT where
 
 -- | @hoist@ can be undone for reporters.
 instance UnHoistable ReporterT where
-  unhoist = (fmap (ReporterT . Identity)) . unwrapReporterT
+  unhoist = fmap (ReporterT . Identity) . unwrapReporterT
 
 -------------------------------------------------------------------------------
 -- Reporting messages                                                        --
@@ -289,7 +289,7 @@ instance Pretty Message where
   pretty (Message srcSpan severity msg) =
     (pretty srcSpan <> colon)
       <+>  (pretty severity <> colon)
-      <$$> (indent 4 $ prettyLines msg)
+      <$$> indent 4 (prettyLines msg)
       <>   line
       <>   prettyCodeBlock srcSpan
   prettyList = prettySeparated line

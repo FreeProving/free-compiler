@@ -30,7 +30,7 @@ where
 import           Data.Composition               ( (.:) )
 import           Data.Map.Strict                ( Map )
 import qualified Data.Map.Strict               as Map
-import           Data.Maybe                     ( catMaybes )
+import           Data.Maybe                     ( mapMaybe )
 import           Data.Set                       ( Set )
 import qualified Data.Set                      as Set
 
@@ -400,8 +400,7 @@ newRenameArgs' subst (arg : args) = (arg' :) <$> newRenameArgs' subst' args
 freeSubstIdents :: HasRefs a => Scope -> Subst a -> Set String
 freeSubstIdents scope (Subst substMap) =
   Set.fromList
-    $ catMaybes
-    $ map (HS.identFromQName . refName)
+    $ mapMaybe (HS.identFromQName . refName)
     $ filter ((== scope) . refScope)
     $ concatMap (refs . ($ NoSrcSpan))
     $ Map.elems substMap

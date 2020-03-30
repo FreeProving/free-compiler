@@ -58,7 +58,7 @@ prettyString = text . TL.pack
 -- | Pretty prints a string such that long lines that don't fit the page
 --   are automatically broken between two words.
 prettyText :: String -> Doc
-prettyText = foldr (</>) empty . map prettyString . words
+prettyText = foldr ((</>) . prettyString) empty . words
 
 -- | Pretty prints each line of the given string using 'prettyText' and
 --   concatenates the resulting documents vertically.
@@ -70,7 +70,7 @@ prettyLines = vcat . map prettyText . lines
 -------------------------------------------------------------------------------
 
 -- | A pretty printable value with a trailing newline.
-data TrailingLine a = TrailingLine a
+newtype TrailingLine a = TrailingLine a
 
 -- | Pretty prints the wrapped value of a 'TrailingLine' and adds the trailing
 --   newline to the resulting document.

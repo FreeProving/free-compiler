@@ -223,8 +223,7 @@ lookupArgTypes =
 --   with the given name or the return type is not known.
 lookupReturnType :: Scope -> HS.QName -> Environment -> Maybe HS.Type
 lookupReturnType =
-  join
-    .   fmap entryReturnType
+  (entryReturnType =<<)
     .   find (isConEntry .||. isFuncEntry)
     .:. lookupEntry
 

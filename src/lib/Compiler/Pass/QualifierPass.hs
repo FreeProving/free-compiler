@@ -114,9 +114,9 @@ qualifyDecls ast = ast
   --   If the declaration is a data type declaration, the names of its
   --   constructors are also qualified.
   qualifyTypeDecl :: HS.TypeDecl -> HS.TypeDecl
-  qualifyTypeDecl decl@(HS.TypeSynDecl{}) =
+  qualifyTypeDecl decl@HS.TypeSynDecl{} =
     decl { HS.typeDeclIdent = qualifyDeclIdent (HS.typeDeclIdent decl) }
-  qualifyTypeDecl decl@(HS.DataDecl{}) = decl
+  qualifyTypeDecl decl@HS.DataDecl{} = decl
     { HS.typeDeclIdent = qualifyDeclIdent (HS.typeDeclIdent decl)
     , HS.dataDeclCons  = map qualifyConDecl (HS.dataDeclCons decl)
     }

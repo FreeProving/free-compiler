@@ -9,9 +9,10 @@ module Compiler.Frontend.Haskell.PatternMatching
   )
 where
 
+import           Control.Monad                  ( void )
 import           Control.Monad.State
 import qualified Data.Map.Strict               as Map
-import           Data.Maybe                     ( catMaybes )
+import           Data.Maybe                     ( mapMaybe )
 import qualified Data.Set                      as Set
 
 import           Application
@@ -36,7 +37,7 @@ initialState :: Converter PMState
 initialState = do
   Just preludeIface <- inEnv $ lookupAvailableModule HS.preludeModuleName
   let entries  = Set.toList (interfaceEntries preludeIface)
-      entries' = catMaybes (map makeConsMapEntry entries)
+      entries' = mapMaybe makeConsMapEntry entries
       consMap  = Map.fromListWith (++) entries'
   return PMState { nextId      = 0
                  , constrMap   = Map.assocs consMap
@@ -71,13 +72,8 @@ makeConsMapEntry entry
   -- | Generates the AST node for the name of the constructor by parsing the
   --   constructor name.
   mConQName :: Maybe (H.QName ())
-  mConQName =
-    fmap (fmap (const ()))
-      $ evalReporter
-      $ parseQName
-      $ showPretty
-      $ unqualify
-      $ entryName entry
+  mConQName = void
+    <$> evalReporter (parseQName (showPretty (unqualify (entryName entry))))
 
   -- | The number of arguments expected by the constructor.
   arity :: Int
@@ -103,12 +99,12 @@ makeConsMapEntry entry
 --   spans, location information is removed during the transformation.
 transformPatternMatching :: H.Module SrcSpan -> Converter (H.Module SrcSpan)
 transformPatternMatching haskellAst =
-  initialState >>= return . transformPatternMatching' haskellAst
+  transformPatternMatching' haskellAst <$> initialState
 
 -- | Removes the source spans of the given Haskell AST and applies the pattern
 --   matching compilation.
 transformPatternMatching' :: H.Module SrcSpan -> PMState -> H.Module SrcSpan
 transformPatternMatching' haskellAst = evalState $ do
-  let haskellAst' = (fmap (const ()) haskellAst)
+  let haskellAst' = void haskellAst
   haskellAst'' <- processModule haskellAst'
   return (fmap (const NoSrcSpan) haskellAst'')

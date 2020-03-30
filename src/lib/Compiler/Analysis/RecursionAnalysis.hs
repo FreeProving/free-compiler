@@ -23,6 +23,7 @@ import           Data.Map.Strict                ( Map )
 import qualified Data.Map.Strict               as Map
 import           Data.Maybe                     ( catMaybes
                                                 , fromJust
+                                                , mapMaybe
                                                 , maybeToList
                                                 )
 import           Data.Set                       ( Set
@@ -297,7 +298,7 @@ makeConstArgGraph decls = do
       ((g, y), j, _) <- nodes
       -- Test whether there is any call to @g@ on the right-hand side of @f@.
       let callsG :: HS.Expr -> Bool
-          callsG = any (== g) . freeVarSet
+          callsG = elem g . freeVarSet
       guard (callsG rhs)
       -- Test whether @x_i@ is passed unchanged to @y_j@ in every call
       -- to @g@ in the right-hand side of @f@.
@@ -404,11 +405,10 @@ identifyConstArgs decls = mapM makeConstArg constArgNameMaps
   -- | Maps the names of the function declarations to the names of their
   --   arguments.
   argNamesMap :: Map HS.QName [String]
-  argNamesMap =
-    Map.fromList
-      $ [ (HS.funcDeclQName decl, map HS.varPatIdent (HS.funcDeclArgs decl))
-        | decl <- decls
-        ]
+  argNamesMap = Map.fromList
+    [ (HS.funcDeclQName decl, map HS.varPatIdent (HS.funcDeclArgs decl))
+    | decl <- decls
+    ]
 
   -- | Looks up the index of the argument with the given name of the function
   --   with the given name.
@@ -424,11 +424,8 @@ identifyConstArgs decls = mapM makeConstArg constArgNameMaps
 --   for each constant argument instead of a 'ConstArg'.
 identifyConstArgs' :: [HS.FuncDecl] -> [Map HS.QName String]
 identifyConstArgs' decls =
-  map Map.fromList
-    $ filter checkSCC
-    $ catMaybes
-    $ map fromCyclicSCC
-    $ stronglyConnComp constArgGraph
+  map Map.fromList $ filter checkSCC $ mapMaybe fromCyclicSCC $ stronglyConnComp
+    constArgGraph
  where
   -- | The constant argument graph.
   constArgGraph :: [CGEntry]
@@ -469,7 +466,7 @@ identifyConstArgs' decls =
   --   function declaration.
   containsAllFunctions :: [CGNode] -> Bool
   containsAllFunctions nodes =
-    length nodes == length decls && all (`elem` (map fst nodes)) funcNames
+    length nodes == length decls && all (`elem` map fst nodes) funcNames
 
   -- | Gets the nodes of a cyclic strongly connected component.
   fromCyclicSCC :: SCC CGNode -> Maybe [CGNode]

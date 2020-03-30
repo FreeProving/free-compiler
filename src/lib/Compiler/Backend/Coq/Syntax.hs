@@ -116,13 +116,13 @@ arrows args returnType = foldr G.Arrow returnType args
 --   The second argument contains the types of the arguments are inferred
 --   by Coq.
 fun :: [G.Qualid] -> [Maybe G.Term] -> G.Term -> G.Term
-fun args argTypes expr = G.Fun (NonEmpty.fromList binders) expr
+fun args argTypes = G.Fun (NonEmpty.fromList binders)
  where
   argNames :: [G.Name]
   argNames = map G.Ident args
 
   binders :: [G.Binder]
-  binders = zipWith makeBinder argTypes (argNames)
+  binders = zipWith makeBinder argTypes argNames
 
   makeBinder :: Maybe G.Term -> G.Name -> G.Binder
   makeBinder Nothing  = G.Inferred G.Explicit
@@ -166,9 +166,7 @@ definitionSentence
   -> G.Term       -- ^ The right hand side of the definition.
   -> G.Sentence
 definitionSentence qualid binders returnType term =
-  (G.DefinitionSentence
-    (G.DefinitionDef G.Global qualid binders returnType term)
-  )
+  G.DefinitionSentence (G.DefinitionDef G.Global qualid binders returnType term)
 
 -------------------------------------------------------------------------------
 -- Types                                                                     --
@@ -192,7 +190,7 @@ equation = G.Equation . return . G.MultPattern . return
 
 -- | Smart constructor for a Coq @match@ expression.
 match :: G.Term -> [G.Equation] -> G.Term
-match value eqns = G.Match (return item) Nothing eqns
+match value = G.Match (return item) Nothing
  where
   item :: G.MatchItem
   item = G.MatchItem value Nothing Nothing

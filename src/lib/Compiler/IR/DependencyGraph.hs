@@ -63,10 +63,11 @@ module Compiler.IR.DependencyGraph
   )
 where
 
+import           Control.Monad                  ( void )
 import           Control.Monad.Fail             ( MonadFail )
 import           Data.Graph
-import           Data.Maybe                     ( catMaybes
-                                                , fromMaybe
+import           Data.Maybe                     ( fromMaybe
+                                                , mapMaybe
                                                 )
 import           Data.Tuple.Extra
 
@@ -132,7 +133,7 @@ dependsDirectlyOn (DependencyGraph graph _ getVertex) k1 k2 =
   fromMaybe False $ do
     v1 <- getVertex k1
     v2 <- getVertex k2
-    return ((v1, v2) `elem` (edges graph))
+    return ((v1, v2) `elem` edges graph)
 
 -------------------------------------------------------------------------------
 -- Type dependencies                                                         --
@@ -216,7 +217,7 @@ instance Pretty (DependencyGraph node) where
 
     -- | Pretty printed DOT edges for the dependency graph.
     edgesDocs :: [Doc]
-    edgesDocs = catMaybes (map prettyEdges (vertices graph))
+    edgesDocs = mapMaybe prettyEdges (vertices graph)
 
     -- | Pretty prints all outgoing edges of the given vertex as a single
     --   DOT command. Returns `Nothing` if the vertex is not incident to
@@ -224,7 +225,7 @@ instance Pretty (DependencyGraph node) where
     prettyEdges :: Vertex -> Maybe Doc
     prettyEdges v =
       let (_, _, neighbors) = getEntry v
-      in  case catMaybes (map getVertex neighbors) of
+      in  case mapMaybe getVertex neighbors of
             [] -> Nothing
             vs ->
               Just
@@ -337,5 +338,5 @@ mapComponentM f (Recursive decls) = Recursive <$> f decls
 -- | Like 'mapComponentM' but discards the result.
 mapComponentM_
   :: MonadFail m => ([decl] -> m a) -> DependencyComponent decl -> m ()
-mapComponentM_ f (NonRecursive decl ) = f [decl] >> return ()
-mapComponentM_ f (Recursive    decls) = f decls >> return ()
+mapComponentM_ f (NonRecursive decl ) = void (f [decl])
+mapComponentM_ f (Recursive    decls) = void (f decls)

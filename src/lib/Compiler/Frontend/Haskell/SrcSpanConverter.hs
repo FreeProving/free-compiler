@@ -8,6 +8,7 @@ module Compiler.Frontend.Haskell.SrcSpanConverter
 where
 
 import           Control.Monad                  ( join )
+import           Data.Maybe                     ( fromMaybe )
 
 import qualified Language.Haskell.Exts.SrcLoc  as H
 
@@ -35,7 +36,7 @@ instance ConvertableSrcSpan H.SrcSpan where
     , srcSpanCodeLines   =
       take (H.srcSpanEndLine srcSpan - H.srcSpanStartLine srcSpan + 1)
       $ drop (H.srcSpanStartLine srcSpan - 1)
-      $ maybe [] id
+      $ fromMaybe []
       $ lookup (H.srcSpanFilename srcSpan) codeByFilename
     }
 

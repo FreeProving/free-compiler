@@ -12,7 +12,8 @@ module Compiler.Backend.Coq.Converter.FuncDecl.Rec.WithSections
   )
 where
 
-import           Control.Monad                  ( mapAndUnzipM
+import           Control.Monad                  ( forM
+                                                , mapAndUnzipM
                                                 , zipWithM
                                                 )
 import           Control.Monad.Extra            ( ifM )
@@ -25,6 +26,7 @@ import qualified Data.Map.Strict               as Map
 import           Data.Maybe                     ( catMaybes
                                                 , fromJust
                                                 , fromMaybe
+                                                , mapMaybe
                                                 , maybeToList
                                                 )
 import qualified Data.Set                      as Set
@@ -121,7 +123,7 @@ convertRecFuncDeclsWithSection constArgs decls = do
     -- Generate a section identifier from the names of the original functions
     -- and convert the renamed functions as usual.
     let funcNames  = map HS.funcDeclQName decls
-        funcIdents = catMaybes (map HS.identFromQName funcNames)
+        funcIdents = mapMaybe HS.identFromQName funcNames
     sectionIdent <- freshCoqIdent (intercalate "_" ("section" : funcIdents))
     (helperDecls', mainDecls') <- convertRecFuncDeclsWithHelpers' sectionDecls'
     return
@@ -180,7 +182,7 @@ renameFuncDecls decls = do
   -- Rename function declarations, apply substituion to right-hand side
   -- and copy type signature and entry of original function.
   decls' <-
-    flip mapM decls
+    forM decls
       $ \(HS.FuncDecl srcSpan (HS.DeclIdent srcSpan' name) typeArgs args rhs maybeRetType) ->
           do
             let Just name'    = lookup name nameMap
@@ -274,7 +276,7 @@ lookupConstArgType
   -> Converter (HS.Type, Subst HS.Type)
 lookupConstArgType argTypeMap constArg = do
   let idents  = Map.assocs (constArgIdents constArg)
-      types   = catMaybes $ map (flip Map.lookup argTypeMap) idents
+      types   = mapMaybe (flip Map.lookup argTypeMap) idents
       srcSpan = HS.typeSrcSpan (head types)
   -- Unify all annotated types of the constant argument.
   mgu <- unifyAllOrFail srcSpan types
@@ -326,13 +328,10 @@ removeConstArgsFromFuncDecl
   :: [ConstArg] -> HS.FuncDecl -> Converter HS.FuncDecl
 removeConstArgsFromFuncDecl constArgs (HS.FuncDecl srcSpan declIdent typeArgs args rhs maybeRetType)
   = do
-    let name = HS.declIdentName declIdent
-        removedArgs =
-          fromJust
-            $ Map.lookup name
-            $ Map.unionsWith (++)
-            $ map (Map.map return)
-            $ map constArgIdents constArgs
+    let name        = HS.declIdentName declIdent
+        removedArgs = fromJust $ Map.lookup name $ Map.unionsWith (++) $ map
+          (Map.map return . constArgIdents)
+          constArgs
         freshArgs = map constArgFreshIdent constArgs
         args' = [ arg | arg <- args, HS.varPatIdent arg `notElem` removedArgs ]
         subst = composeSubsts
@@ -353,7 +352,7 @@ removeConstArgsFromExpr constArgs rootExpr = do
   --   the indices of their corresponding argument.
   constArgIndicesMap :: Map HS.QName [Int]
   constArgIndicesMap =
-    Map.unionsWith (++) $ map (Map.map return) $ map constArgIndicies constArgs
+    Map.unionsWith (++) $ map (Map.map return . constArgIndicies) constArgs
 
   -- | Looks up the indices of arguments that can be removed from the
   --   application of a function with the given name.
@@ -480,8 +479,7 @@ updateTypeSig mgu constTypeVars argTypeMap returnTypeMap funcDecl = do
       modifyEnv $ defineDecArg name decArgIndex decArgIdent
     Nothing -> return ()
   -- Return the indices of removed type arguments.
-  let removedTypeArgIndices =
-        catMaybes $ map (`elemIndex` allTypeArgs) constTypeVars
+  let removedTypeArgIndices = mapMaybe (`elemIndex` allTypeArgs) constTypeVars
   return (name, removedTypeArgIndices)
 
 -------------------------------------------------------------------------------
@@ -615,9 +613,8 @@ generateInterfaceDecl constArgs isConstArgUsed nameMap mgu sectionTypeArgs renam
     let
       args          = HS.funcDeclArgs funcDecl
       name          = HS.funcDeclQName funcDecl
-      constArgNames = map (HS.UnQual . HS.Ident) $ catMaybes $ map
-        (Map.lookup name . constArgIdents)
-        constArgs
+      constArgNames = map (HS.UnQual . HS.Ident)
+        $ mapMaybe (Map.lookup name . constArgIdents) constArgs
       usedConstArgNames =
         map fst $ filter snd $ zip constArgNames isConstArgUsed
 

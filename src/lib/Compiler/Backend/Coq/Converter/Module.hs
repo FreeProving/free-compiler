@@ -51,9 +51,9 @@ convertModule' haskellAst = do
 --
 --   All other pragmas are ignored.
 addDecArgPragma :: [HS.FuncDecl] -> HS.Pragma -> Converter ()
-addDecArgPragma funcDecls (HS.DecArgPragma srcSpan funcName decArg) = do
+addDecArgPragma funcDecls (HS.DecArgPragma srcSpan funcName decArg) =
   case find ((== funcName) . HS.funcDeclQName) funcDecls of
-    Just (HS.FuncDecl { HS.funcDeclArgs = args }) -> case decArg of
+    Just HS.FuncDecl { HS.funcDeclArgs = args } -> case decArg of
       Left decArgIdent ->
         case findIndex ((== decArgIdent) . HS.varPatIdent) args of
           Just decArgIndex ->

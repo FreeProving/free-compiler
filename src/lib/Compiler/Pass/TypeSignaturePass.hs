@@ -161,7 +161,7 @@ checkHasBinding funcDecls = mapM_ checkHasBinding' . HS.typeSigDeclIdents
 --   signatures for the same function.
 addTypeSigsToFuncDecls
   :: [HS.TypeSig] -> [HS.FuncDecl] -> Converter [HS.FuncDecl]
-addTypeSigsToFuncDecls typeSigs funcDecls = mapM addTypeSigToFuncDecl funcDecls
+addTypeSigsToFuncDecls typeSigs = mapM addTypeSigToFuncDecl
  where
   -- | Maps the names of functions to their annotated type.
   typeSigMap :: Map HS.QName [HS.TypeSchema]

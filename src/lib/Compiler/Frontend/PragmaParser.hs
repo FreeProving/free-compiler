@@ -77,14 +77,14 @@ parseCustomPragmas = fmap catMaybes . mapM parseCustomPragma
     case matchRegexPR customPragmaPattern text of
       Nothing          -> return Nothing
       Just (_, groups) -> do
+        let Just text' = lookup 1 groups
         -- Try to match the contents of the pragma with the pattern
         -- of each custom pragma and return the result of the builder
-        -- asociated with the first matching pattern.
-        let Just text' = lookup 1 groups
+        -- associated with the first matching pattern.
         fmap msum $ flip mapM customPragmas $ \(pattern, action) ->
           case matchRegexPR pattern text' of
             Nothing -> do
-              report $ Message srcSpan Warning $ "Unrecognised pragma"
+              report $ Message srcSpan Warning $ "Unrecognized pragma"
               return Nothing
             Just (_, groups') -> do
               pragma <- action srcSpan groups'

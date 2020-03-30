@@ -26,7 +26,7 @@ where
 import           Control.Monad                  ( when )
 import           Data.Char
 import           Data.Composition               ( (.:) )
-import           Data.Maybe                     ( catMaybes )
+import           Data.Maybe                     ( mapMaybe )
 import           Text.Casing
 import           Text.RegexPR
 
@@ -85,7 +85,7 @@ isReservedIdent = flip elem CoqBase.reservedIdents . G.bare
 --   environment to define a type, constructor, function or variable
 --   already.
 isUsedIdent :: Environment -> String -> Bool
-isUsedIdent = flip elem . catMaybes . map G.unpackQualid . usedIdents
+isUsedIdent = flip elem . mapMaybe G.unpackQualid . usedIdents
 
 -- | Tests whether the given Coq identifier must be renamed because it would
 --   otherwise conflict with a keyword, reserved or user defined
@@ -166,7 +166,7 @@ renameIdent' ident n env
   | otherwise                  = identN
  where
   identN :: String
-  identN = ident ++ (show n)
+  identN = ident ++ show n
 
 -- | Like 'renameIdent' but the Coq identifier is wrapped in a "G.Qualid".
 renameQualid :: String -> Environment -> G.Qualid

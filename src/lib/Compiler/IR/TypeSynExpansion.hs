@@ -119,14 +119,13 @@ expandTypeSynonymsWhere maxDepth predicate t0
 --   type arguments from the parent positions are used to expand the type
 --   synonym as well.
 expandTypeSynonymAt :: Pos -> HS.Type -> Converter HS.Type
-expandTypeSynonymAt pos typeExpr = do
-  case parentPos pos of
-    Just pos' | fromMaybe False (isTypeApp <$> selectSubterm typeExpr pos') ->
-      expandTypeSynonymAt pos' typeExpr
-    _ -> fmap (fromMaybe typeExpr) $ runMaybeT $ do
-      subterm  <- hoistMaybe $ selectSubterm typeExpr pos
-      subterm' <- lift $ expandTypeSynonym subterm
-      hoistMaybe $ replaceSubterm typeExpr pos subterm'
+expandTypeSynonymAt pos typeExpr = case parentPos pos of
+  Just pos' | maybe False isTypeApp (selectSubterm typeExpr pos') ->
+    expandTypeSynonymAt pos' typeExpr
+  _ -> fmap (fromMaybe typeExpr) $ runMaybeT $ do
+    subterm  <- hoistMaybe $ selectSubterm typeExpr pos
+    subterm' <- lift $ expandTypeSynonym subterm
+    hoistMaybe $ replaceSubterm typeExpr pos subterm'
  where
   -- | Tests whether the given type expression is a type constructor
   --   application.

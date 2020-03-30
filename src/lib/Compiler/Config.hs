@@ -10,6 +10,7 @@ where
 import qualified Data.Aeson                    as Aeson
 import qualified Data.Aeson.Encode.Pretty      as AesonPretty
 import qualified Data.ByteString.Lazy          as B
+import           Data.Maybe                     ( fromMaybe )
 import           Data.String                    ( fromString )
 import qualified Data.Text                     as T
 import           System.FilePath
@@ -91,8 +92,8 @@ saveConfig filename =
   reportIOErrors . lift . B.writeFile filename . AesonPretty.encodePretty
 
 -- | Converts a Parsec 'Parsec.SourcePos' to a 'SrcSpan'.
-convertParsecSrcSpan ::
-  [(String, [String])] -- ^ A map of file names to lines of source code.
+convertParsecSrcSpan
+  :: [(String, [String])] -- ^ A map of file names to lines of source code.
   -> Parsec.SourcePos  -- ^ The original source span to convert.
   -> SrcSpan
 convertParsecSrcSpan codeByFilename srcPos = SrcSpan
@@ -103,6 +104,6 @@ convertParsecSrcSpan codeByFilename srcPos = SrcSpan
   , srcSpanEndColumn   = Parsec.sourceColumn srcPos
   , srcSpanCodeLines   = return
                          $ (!! Parsec.sourceLine srcPos)
-                         $ maybe [] id
+                         $ fromMaybe []
                          $ lookup (Parsec.sourceName srcPos) codeByFilename
   }

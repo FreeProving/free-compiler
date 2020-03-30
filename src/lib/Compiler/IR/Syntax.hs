@@ -136,7 +136,7 @@ internalIdentChar = '@'
 -- | Tests whether the given identifier was generated for internal use only
 --   (i.e., contains 'internalIdentChar').
 isInternalIdent :: String -> Bool
-isInternalIdent ident = elem internalIdentChar ident
+isInternalIdent = elem internalIdentChar
 
 -- | Tests whether the given name was generated for internal use only (i.e.,
 --   it is an identifier that matches 'isInternalIdent').
@@ -212,9 +212,9 @@ data Pragma
   -- | A @{-\# HASKELL_TO_COQ <function> DECREASES ON <argument> \#-}@ or
   --   @{-\# HASKELL_TO_COQ <function> DECREASES ON ARGUMENT <index> \#-}@
   --   pragma.
-  = DecArgPragma { pragmaSrcSpan :: SrcSpan
+  = DecArgPragma { pragmaSrcSpan        :: SrcSpan
                  , decArgPragmaFuncName :: QName
-                 , decArgPragmaArg :: (Either String Int)
+                 , decArgPragmaArg      :: Either String Int
                  }
  deriving (Eq, Show)
 
@@ -557,7 +557,7 @@ prettyTypePred _ (TypeApp _ (TypeApp _ (TypeCon _ name) t1) t2)
   | name == tupleTypeConName 2 = parens (pretty t1 <> comma <+> pretty t2)
 
 -- Syntactic sugar for unit.
-prettyTypePred _ (TypeCon _ name) | name == unitTypeConName = parens (empty)
+prettyTypePred _ (TypeCon _ name) | name == unitTypeConName = parens empty
 
 -- There are never parentheses around type variables or constructors.
 prettyTypePred _ (TypeVar _ ident)                          = prettyString ident

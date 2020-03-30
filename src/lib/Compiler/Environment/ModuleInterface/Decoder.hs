@@ -105,7 +105,7 @@ import           Data.Aeson                     ( (.!=)
                                                 )
 import qualified Data.Aeson                    as Aeson
 import qualified Data.Aeson.Types              as Aeson
-import           Data.Maybe                     ( catMaybes )
+import           Data.Maybe                     ( mapMaybe )
 import qualified Data.Set                      as Set
 import qualified Data.Text                     as T
 import qualified Data.Vector                   as Vector
@@ -234,8 +234,7 @@ instance Aeson.FromJSON ModuleInterface where
       return ConEntry
         { entrySrcSpan    = NoSrcSpan
         , entryArity      = arity
-        , entryTypeArgs   = catMaybes
-                              (map HS.identFromQName (freeTypeVars returnType))
+        , entryTypeArgs   = mapMaybe HS.identFromQName (freeTypeVars returnType)
         , entryArgTypes   = map Just argTypes
         , entryReturnType = Just returnType
         , entryIdent      = coqName
@@ -253,8 +252,7 @@ instance Aeson.FromJSON ModuleInterface where
       coqName        <- obj .: "coq-name"
       -- TODO this does not work with vanishing type arguments.
       let (argTypes, returnType) = HS.splitFuncType haskellType arity
-          typeArgs =
-            catMaybes $ map HS.identFromQName $ freeTypeVars haskellType
+          typeArgs = mapMaybe HS.identFromQName (freeTypeVars haskellType)
       return FuncEntry { entrySrcSpan       = NoSrcSpan
                        , entryArity         = arity
                        , entryTypeArgs      = typeArgs

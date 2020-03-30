@@ -6,7 +6,9 @@ import           Control.Monad.Extra            ( ifM
                                                 , when
                                                 )
 import           Data.Composition
-import           Data.Foldable                  ( foldrM )
+import           Data.Foldable                  ( foldlM
+                                                , foldrM
+                                                )
 
 import qualified Compiler.Backend.Coq.Base     as CoqBase
 import           Compiler.Backend.Coq.Converter.Arg
@@ -201,11 +203,8 @@ convertExpr' expr [] args@(_ : _) = do
 
 -- | Generates a Coq term for applying a monadic term to the given arguments.
 generateApply :: G.Term -> [G.Term] -> Converter G.Term
-generateApply term []           = return term
-generateApply term (arg : args) = do
-  term' <- generateBind term freshFuncPrefix Nothing
-    $ \f -> return (G.app f [arg])
-  generateApply term' args
+generateApply = foldlM $ \term arg ->
+  generateBind term freshFuncPrefix Nothing (\f -> return (G.app f [arg]))
 
 -- | Generates a Coq term for applying a function with the given arity to
 --   the given arguments.

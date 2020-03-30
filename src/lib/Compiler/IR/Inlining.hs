@@ -7,7 +7,7 @@
 
 module Compiler.IR.Inlining where
 
-import           Control.Monad                  ( when )
+import           Control.Monad                  ( unless )
 import           Data.Map.Strict                ( Map )
 import qualified Data.Map.Strict               as Map
 
@@ -68,7 +68,7 @@ inlineExpr decls = inlineAndBind
   inlineVisiblyApplied :: HS.Expr -> Converter ([String], HS.Expr)
   inlineVisiblyApplied e = do
     (remainingTypeArgs, remainingArgs, e') <- inlineExpr' e
-    when (not (null remainingTypeArgs))
+    unless (null remainingTypeArgs)
       $  reportFatal
       $  Message (HS.exprSrcSpan e) Internal
       $  "Missing visible application of "

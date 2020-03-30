@@ -18,7 +18,7 @@ where
 
 import           Data.Aeson                     ( (.=) )
 import qualified Data.Aeson                    as Aeson
-import           Data.Maybe                     ( catMaybes )
+import           Data.Maybe                     ( mapMaybe )
 import qualified Data.Set                      as Set
 
 import           Compiler.Backend.Coq.Pretty
@@ -66,8 +66,7 @@ instance Aeson.ToJSON ModuleInterface where
     encodeEntriesWhere :: (EnvEntry -> Bool) -> Aeson.Value
     encodeEntriesWhere p =
       Aeson.toJSON
-        $ catMaybes
-        $ map encodeEntry
+        $ mapMaybe encodeEntry
         $ Set.toList
         $ Set.filter p
         $ interfaceEntries iface
@@ -124,7 +123,7 @@ encodeEntry entry
   maybeHaskellType :: Maybe Aeson.Value
   maybeHaskellType = do
     returnType <- entryReturnType entry
-    argTypes   <- mapM id (entryArgTypes entry)
+    argTypes   <- sequence (entryArgTypes entry)
     let funcType = foldr (HS.FuncType NoSrcSpan) returnType argTypes
     return (Aeson.toJSON funcType)
 

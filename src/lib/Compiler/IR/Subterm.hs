@@ -35,7 +35,9 @@ import           Data.Composition               ( (.:) )
 import           Data.List                      ( intersperse
                                                 , isPrefixOf
                                                 )
-import           Data.Maybe                     ( fromJust )
+import           Data.Maybe                     ( fromJust
+                                                , fromMaybe
+                                                )
 import           Data.Map.Strict                ( Map )
 import qualified Data.Map.Strict               as Map
 import           Data.Set                       ( Set )
@@ -142,7 +144,7 @@ instance Subterm HS.Type where
 -------------------------------------------------------------------------------
 
 -- | Describes a position of a subterm within a Haskell expression.
-data Pos = Pos [Int]
+newtype Pos = Pos [Int]
   deriving (Eq, Show)
 
 -- | Pretty prints a position.
@@ -278,7 +280,7 @@ boundVarsAt = Map.keysSet .: boundVarsWithTypeAt
 --
 --   Returns an empty map if the position is invalid.
 boundVarsWithTypeAt :: HS.Expr -> Pos -> Map HS.QName (Maybe HS.Type)
-boundVarsWithTypeAt = maybe Map.empty id .: boundVarsWithTypeAt'
+boundVarsWithTypeAt = fromMaybe Map.empty .: boundVarsWithTypeAt'
  where
   -- | Like 'boundVarsWithTypeAt' but returns @Nothing@ if the given position
   --   is invalid.

@@ -9,7 +9,8 @@ module Compiler.Backend.Coq.Converter.FuncDecl.Rec.WithHelpers
   )
 where
 
-import           Control.Monad                  ( mapAndUnzipM
+import           Control.Monad                  ( forM
+                                                , mapAndUnzipM
                                                 , join
                                                 )
 import           Data.List                      ( delete
@@ -63,7 +64,7 @@ convertRecFuncDeclsWithHelpers' decls = do
   -- The right hand side of the main functions are inlined into helper the
   -- functions. Because inlining can produce fesh identifiers, we need to
   -- perform inlining and conversion of helper functions in a local environment.
-  helperDecls' <- flip mapM (concat helperDecls) $ \helperDecl -> localEnv $ do
+  helperDecls' <- forM (concat helperDecls) $ \helperDecl -> localEnv $ do
     inlinedHelperDecl <- inlineFuncDecls mainDecls helperDecl
     convertRecHelperFuncDecl inlinedHelperDecl
   mainDecls' <- mapM convertNonRecFuncDecl mainDecls
@@ -164,10 +165,8 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent typeArgs args expr maybeRetT
         helperArgNames
         helperArgTypes
       helperReturnType = HS.exprType caseExpr
-      helperType       = do
-        helperArgTypes'   <- sequence helperArgTypes
-        helperReturnType' <- helperReturnType
-        return (HS.funcType NoSrcSpan helperArgTypes' helperReturnType')
+      helperType =
+        HS.funcType NoSrcSpan <$> sequence helperArgTypes <*> helperReturnType
 
     -- Register the helper function to the environment.
     -- Even though we know the type of the original and additional arguments
@@ -210,7 +209,7 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent typeArgs args expr maybeRetT
                              (HS.Var NoSrcSpan helperName helperAppType)
                              helperTypeArgs'
           )
-          (map (HS.varPatToExpr) helperArgs)
+          (map HS.varPatToExpr helperArgs)
 
     return (helperDecl, helperApp)
 

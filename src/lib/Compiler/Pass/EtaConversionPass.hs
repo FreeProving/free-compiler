@@ -58,6 +58,7 @@ module Compiler.Pass.EtaConversionPass
 where
 
 import           Control.Monad                  ( replicateM )
+import           Data.Maybe                     ( fromMaybe )
 
 import           Compiler.Environment
 import           Compiler.Environment.Fresh
@@ -153,10 +154,10 @@ etaConvertSubExprs' expr = do
 arityOf :: HS.Expr -> Converter Int
 arityOf (HS.Con _ name _) = do
   arity <- inEnv $ lookupArity ValueScope name
-  return (maybe 0 id arity)
+  return (fromMaybe 0 arity)
 arityOf (HS.Var _ name _) = do
   arity <- inEnv $ lookupArity ValueScope name
-  return (maybe 0 id arity)
+  return (fromMaybe 0 arity)
 arityOf (HS.App _ e1 _ _) = do
   arity <- arityOf e1
   return (max 0 (arity - 1))

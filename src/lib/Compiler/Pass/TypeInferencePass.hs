@@ -211,8 +211,7 @@ module Compiler.Pass.TypeInferencePass
 where
 
 import           Control.Monad.Fail             ( MonadFail )
-import           Control.Monad.Extra            ( zipWithM_
-                                                )
+import           Control.Monad.Extra            ( zipWithM_ )
 import           Control.Monad.State            ( MonadState(..)
                                                 , StateT(..)
                                                 , evalStateT
@@ -363,35 +362,28 @@ addTypeEquationFor srcSpan name resType = do
 -- | Extends the type assumption with the type schema for the function,
 --   constructor or local variable with the given name.
 extendTypeAssumption :: HS.QName -> HS.TypeSchema -> TypeInference ()
-extendTypeAssumption name typeSchema = do
-  modify $ \s ->
-    s { typeAssumption = Map.insert name typeSchema (typeAssumption s) }
+extendTypeAssumption name typeSchema = modify
+  $ \s -> s { typeAssumption = Map.insert name typeSchema (typeAssumption s) }
 
 -- | Extends the type assumption with the type schema for the given function
 --   declaration if all of its argument and return types are annotated.
 extendTypeAssumptionWithFuncDecl :: HS.FuncDecl -> TypeInference ()
-extendTypeAssumptionWithFuncDecl funcDecl =
-  case HS.funcDeclTypeSchema funcDecl of
-    Nothing -> return ()
-    Just typeSchema ->
-      extendTypeAssumption (HS.funcDeclQName funcDecl) typeSchema
+extendTypeAssumptionWithFuncDecl funcDecl = mapM_
+  (extendTypeAssumption (HS.funcDeclQName funcDecl))
+  (HS.funcDeclTypeSchema funcDecl)
 
 -- | Extends the type assumption with the unabstracted type the given
 --   variable pattern has been annotated with.
 extendTypeAssumptionWithVarPat :: HS.VarPat -> TypeInference ()
-extendTypeAssumptionWithVarPat varPat = case HS.varPatType varPat of
-  Nothing         -> return ()
-  Just varPatType -> extendTypeAssumption
-    (HS.varPatQName varPat)
-    (HS.TypeSchema NoSrcSpan [] varPatType)
+extendTypeAssumptionWithVarPat varPat = mapM_
+  (extendTypeAssumption (HS.varPatQName varPat) . HS.TypeSchema NoSrcSpan [])
+  (HS.varPatType varPat)
 
 -- | Removes the variable bound by the given variable pattern from the
 --   type assumption while runnign the given type inference.
 removeVarPatFromTypeAssumption :: HS.VarPat -> TypeInference ()
-removeVarPatFromTypeAssumption varPat = do
-  modify $ \s -> s
-    { typeAssumption = Map.delete (HS.varPatQName varPat) (typeAssumption s)
-    }
+removeVarPatFromTypeAssumption varPat = modify $ \s ->
+  s { typeAssumption = Map.delete (HS.varPatQName varPat) (typeAssumption s) }
 
 -- | Sets the types to instantiate additional type arguments of the function
 --   with the given name with.

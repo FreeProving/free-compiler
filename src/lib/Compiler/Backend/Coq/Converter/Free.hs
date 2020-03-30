@@ -81,7 +81,7 @@ generateBind
                    -- ^ Converter for the right hand side of the generated
                    --   function. The first argument is the fresh variable.
   -> Converter G.Term
-generateBind (G.App (G.Qualid con) ((G.PosArg arg) :| [])) _ _ generateRHS
+generateBind (G.App (G.Qualid con) (G.PosArg arg :| [])) _ _ generateRHS
   | con == CoqBase.freePureCon = generateRHS arg
 generateBind expr' defaultPrefix argType' generateRHS = localEnv $ do
   x   <- freshCoqQualid (suggestPrefixFor expr')

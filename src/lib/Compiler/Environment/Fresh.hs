@@ -105,14 +105,12 @@ freshTypeVar = do
 --   i.e. it can still be used to create a declaration.
 freshCoqIdent :: String -> Converter String
 freshCoqIdent prefix = do
-  ident  <- freshHaskellIdent prefix
-  ident' <- inEnv $ renameIdent ident
-  return ident'
+  ident <- freshHaskellIdent prefix
+  inEnv $ renameIdent ident
 
 -- | Like 'freshCoqIdent' but the resulting Coq identifier is wrapped in a
 --   "G.Qualid".
 freshCoqQualid :: String -> Converter G.Qualid
 freshCoqQualid prefix = do
-  ident  <- freshHaskellIdent prefix
-  ident' <- inEnv $ renameQualid ident
-  return ident'
+  ident <- freshHaskellIdent prefix
+  inEnv $ renameQualid ident

@@ -23,7 +23,9 @@ module Compiler.Frontend.Haskell.Simplifier
   )
 where
 
-import           Control.Monad                  ( when )
+import           Control.Monad                  ( unless
+                                                , when
+                                                )
 import           Data.List.Extra                ( concatUnzip3 )
 import           Data.Maybe                     ( fromJust
                                                 , fromMaybe
@@ -137,7 +139,7 @@ simplifyModuleWithComments
   :: H.Module SrcSpan -> [HS.Comment] -> Simplifier HS.Module
 simplifyModuleWithComments ast@(H.Module srcSpan _ pragmas imports decls) comments
   = do
-    when (not (null pragmas)) $ skipNotSupported "Module pragmas" (head pragmas)
+    unless (null pragmas) $ skipNotSupported "Module pragmas" (head pragmas)
     modName                             <- extractModName ast
     imports'                            <- mapM simplifyImport imports
     custumPragmas <- liftReporter $ parseCustomPragmas comments
@@ -255,9 +257,9 @@ simplifyDecl (H.PatBind srcSpan (H.PVar _ declName) (H.UnGuardedRhs _ expr) Noth
 
 -- The pattern-binding for a 0-ary function must not use guards or have a
 -- where block.
-simplifyDecl (H.PatBind _ (H.PVar _ _) rhss@(H.GuardedRhss _ _) _) = do
+simplifyDecl (H.PatBind _ (H.PVar _ _) rhss@(H.GuardedRhss _ _) _) =
   experimentallySupported "Guards" rhss
-simplifyDecl (H.PatBind _ (H.PVar _ _) _ (Just binds)) = do
+simplifyDecl (H.PatBind _ (H.PVar _ _) _ (Just binds)) =
   notSupported "Local declarations" binds
 
 -- All other pattern-bindings are not supported.
@@ -524,7 +526,7 @@ simplifyType (H.TyForall _ Nothing (Just context) t) = do
 
 -- Not supported types.
 simplifyType ty@(H.TyForall _ _ _ _) =
-  notSupported ("Explicit type variable quantifications") ty
+  notSupported "Explicit type variable quantifications" ty
 simplifyType ty@(H.TyTuple _ H.Unboxed _) = notSupported "Unboxed tuples" ty
 simplifyType ty@(H.TyUnboxedSum _ _     ) = notSupported "Unboxed sums" ty
 simplifyType ty@(H.TyParArray   _ _     ) = notSupported "Parallel arrays" ty
@@ -766,9 +768,9 @@ simplifyExpr expr@(H.Lit _ (H.PrimString _ _ _)) =
 -- | Simplifies an infix operator.
 simplifyOp :: H.QOp SrcSpan -> Simplifier HS.Expr
 simplifyOp (H.QVarOp srcSpan name) =
-  simplifyVarName name >>= return . HS.untypedVar srcSpan
+  HS.untypedVar srcSpan <$> simplifyVarName name
 simplifyOp (H.QConOp srcSpan name) =
-  simplifyConName name >>= return . HS.untypedCon srcSpan
+  HS.untypedCon srcSpan <$> simplifyConName name
 
 -- | Simplifies an unqualified name.
 simplifyName :: H.Name SrcSpan -> Simplifier HS.Name
