@@ -307,6 +307,7 @@ function step() {
 
   # Stop progress indicator.
   kill $progress_indicator_pid
+  wait $progress_indicator_pid >/dev/null 2>&1
 
   # Add exit code to error log.
   echo >>$error_log
