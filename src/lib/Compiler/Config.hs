@@ -8,11 +8,11 @@ module Compiler.Config
 where
 
 import qualified Data.Aeson                    as Aeson
-import qualified Data.Aeson.Encode.Pretty      as AesonPretty
-import qualified Data.ByteString.Lazy          as B
+import qualified Data.Aeson.Encode.Pretty      as Aeson
+import qualified Data.ByteString.Lazy          as LazyByteString
 import           Data.Maybe                     ( fromMaybe )
 import           Data.String                    ( fromString )
-import qualified Data.Text                     as T
+import qualified Data.Text                     as Text
 import           System.FilePath
 import qualified Text.Parsec.Error             as Parsec
 import qualified Text.Parsec.Pos               as Parsec
@@ -45,7 +45,7 @@ loadConfig filename = reportIOErrors $ do
 -- | Parses a @.toml@ configuration file with the given contents.
 decodeTomlConfig :: Aeson.FromJSON a => FilePath -> String -> Reporter a
 decodeTomlConfig filename contents =
-  case parseTomlDoc filename (T.pack contents) of
+  case parseTomlDoc filename (Text.pack contents) of
     Right document   -> decodeTomlDocument document
     Left  parseError -> reportFatal $ Message
       (convertParsecSrcSpan [(filename, lines contents)]
@@ -71,7 +71,7 @@ decodeTomlConfig filename contents =
   -- | Decodes a TOML document using the "Aeson" interace.
   decodeTomlDocument :: Aeson.FromJSON a => Toml.Table -> Reporter a
   decodeTomlDocument document = case Aeson.fromJSON (Aeson.toJSON document) of
-    Aeson.Error msg -> do
+    Aeson.Error msg ->
       reportFatal
         $  Message (FileSpan filename) Error
         $  "Invalid configuration file format: "
@@ -89,7 +89,7 @@ decodeJsonConfig filename contents =
 --   the encoded value as @.json@ file.
 saveConfig :: Aeson.ToJSON a => FilePath -> a -> ReporterIO ()
 saveConfig filename =
-  reportIOErrors . lift . B.writeFile filename . AesonPretty.encodePretty
+  reportIOErrors . lift . LazyByteString.writeFile filename . Aeson.encodePretty
 
 -- | Converts a Parsec 'Parsec.SourcePos' to a 'SrcSpan'.
 convertParsecSrcSpan

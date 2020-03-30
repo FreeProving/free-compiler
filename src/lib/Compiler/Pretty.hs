@@ -28,7 +28,7 @@ where
 import           Data.List                      ( intersperse )
 import           System.IO
 
-import qualified Data.Text.Lazy                as TL
+import qualified Data.Text.Lazy                as LazyText
 import           Text.PrettyPrint.Leijen.Text
                                          hiding ( (<$>) )
 
@@ -53,7 +53,7 @@ prettyMaybe _ (Just x) = pretty x
 -- | Pretty prints a string without automatic newlines if the string does not
 --   fit onto the page.
 prettyString :: String -> Doc
-prettyString = text . TL.pack
+prettyString = text . LazyText.pack
 
 -- | Pretty prints a string such that long lines that don't fit the page
 --   are automatically broken between two words.
@@ -125,4 +125,4 @@ writePrettyFile filename = withFile filename WriteMode . flip hPutPrettyLn
 
 -- | Convers a pretty printable value to a string.
 showPretty :: Pretty a => a -> String
-showPretty = TL.unpack . displayT . renderPretty'
+showPretty = LazyText.unpack . displayT . renderPretty'

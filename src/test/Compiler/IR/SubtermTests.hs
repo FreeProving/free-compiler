@@ -24,7 +24,7 @@ validTestPos expr = oneof (map return (allPos expr))
 --   (i.e. positions that do not identify a subterm of the given expression).
 invalidTestPos :: HS.Expr -> Gen Pos
 invalidTestPos expr =
-  (arbitrary >>= return . Pos) `suchThat` (not . (`elem` (allPos expr)))
+  (Pos <$> arbitrary) `suchThat` (not . (`elem` allPos expr))
 
 -- | Creates a generator for test positions for the given expression.
 --

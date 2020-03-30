@@ -43,7 +43,7 @@ data UnificationError
 -- | Reports the given 'UnificationError'.
 reportUnificationError :: MonadReporter m => SrcSpan -> UnificationError -> m a
 reportUnificationError srcSpan err = case err of
-  UnificationError actualType expectedType -> do
+  UnificationError actualType expectedType ->
     reportFatal
       $  Message srcSpan Error
       $  "Could not match expected type `"

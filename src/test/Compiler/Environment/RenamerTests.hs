@@ -3,7 +3,7 @@ module Compiler.Environment.RenamerTests where
 import           Test.Hspec
 import           Test.QuickCheck
 
-import           Data.Maybe                     ( catMaybes )
+import           Data.Maybe                     ( mapMaybe )
 
 import qualified Compiler.Backend.Coq.Base     as CoqBase
 import           Compiler.Backend.Coq.Keywords
@@ -36,7 +36,7 @@ genIdent = do
     , (1, genReservedIdent)
     ]
   num <- choose (0, 42) :: Gen Int
-  oneof $ map return [ident, (ident ++ show num)]
+  oneof $ map return [ident, ident ++ show num]
 
 -- | Generator for arbitrary user defined identifiers.
 genRegularIdent :: Gen String
@@ -45,7 +45,7 @@ genRegularIdent = oneof $ map return ["x", "y", "z"]
 -- | Generator for arbitrary identifiers reserved by the Coq Base library.
 genReservedIdent :: Gen String
 genReservedIdent =
-  oneof $ map return $ catMaybes $ map (G.unpackQualid) CoqBase.reservedIdents
+  oneof $ map return $ mapMaybe G.unpackQualid CoqBase.reservedIdents
 
 -- | Generator for arbitrary Coq keywords.
 genKeyword :: Gen String

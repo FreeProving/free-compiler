@@ -107,7 +107,7 @@ import qualified Data.Aeson                    as Aeson
 import qualified Data.Aeson.Types              as Aeson
 import           Data.Maybe                     ( mapMaybe )
 import qualified Data.Set                      as Set
-import qualified Data.Text                     as T
+import qualified Data.Text                     as Text
 import qualified Data.Vector                   as Vector
 import           Text.RegexPR
 
@@ -129,7 +129,7 @@ import           Compiler.Pretty
 -- | All Haskell names in the interface file are qualified.
 instance Aeson.FromJSON HS.QName where
   parseJSON = Aeson.withText "HS.QName" $ \txt -> do
-    let str   = T.unpack txt
+    let str   = Text.unpack txt
         regex = "^((\\w(\\w|')*\\.)*)(\\w(\\w|')*|\\([^\\(\\)]*\\))$"
     case matchRegexPR regex str of
       Just (_, ms) -> do
@@ -146,7 +146,7 @@ instance Aeson.FromJSON HS.QName where
 
 -- | Restores a Coq identifier from the interface file.
 instance Aeson.FromJSON G.Qualid where
-  parseJSON = Aeson.withText "G.Qualid" $ return . G.bare . T.unpack
+  parseJSON = Aeson.withText "G.Qualid" $ return . G.bare . Text.unpack
 
 -- | Restores a Haskell type from the interface file.
 instance Aeson.FromJSON HS.Type where
@@ -154,7 +154,7 @@ instance Aeson.FromJSON HS.Type where
     let (res, ms) =
           runReporter
             $   flip evalConverter emptyEnv
-            $   liftReporter (parseType "<config-input>" (T.unpack txt))
+            $   liftReporter (parseType "<config-input>" (Text.unpack txt))
             >>= simplifyType
     case res of
       Nothing -> Aeson.parserThrowError [] (showPretty ms)

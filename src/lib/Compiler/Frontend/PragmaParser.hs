@@ -15,8 +15,10 @@ module Compiler.Frontend.PragmaParser
 where
 
 import           Control.Applicative            ( (<|>) )
-import           Control.Monad                  ( msum )
-import           Data.Maybe                     ( catMaybes )
+import           Control.Monad                  ( forM
+                                                , msum
+                                                )
+import           Control.Monad.Extra            ( mapMaybeM )
 import           Text.RegexPR
 
 import           Compiler.IR.SrcSpan
@@ -52,9 +54,9 @@ decArgPattern = "^(\\S+)\\s+DECREASES\\s+ON\\s+((\\S+)|ARGUMENT\\s+(\\d+))$"
 --   groups for 'decArgPattern'.
 parseDecArgPragma :: CustomPragmaBuilder
 parseDecArgPragma srcSpan groups = do
-  let Just funcName = HS.UnQual <$> HS.Ident <$> lookup 1 groups
+  let Just funcName = HS.UnQual . HS.Ident <$> lookup 1 groups
       Just decArg =
-        (Left <$> lookup 3 groups) <|> (Right <$> read <$> lookup 4 groups)
+        (Left <$> lookup 3 groups) <|> (Right . read <$> lookup 4 groups)
   return (HS.DecArgPragma srcSpan funcName decArg)
 
 ------------------------------------------------------------------------------
@@ -64,28 +66,28 @@ parseDecArgPragma srcSpan groups = do
 -- | Parses custom pragmas (i.e., 'HS.DecArgPragma') from the comments of a
 --   module.
 parseCustomPragmas :: [HS.Comment] -> Reporter [HS.Pragma]
-parseCustomPragmas = fmap catMaybes . mapM parseCustomPragma
- where
-  -- | Parses a pragma from the given comment.
-  --
-  --   Returns @Nothing@ if the given comment is not a pragma or an
-  --   unrecognised pragma.
-  parseCustomPragma :: HS.Comment -> Reporter (Maybe HS.Pragma)
-  parseCustomPragma (HS.LineComment _ _) = return Nothing
-  parseCustomPragma (HS.BlockComment srcSpan text) =
-    -- Test whether this comment is a custom pragma.
-    case matchRegexPR customPragmaPattern text of
-      Nothing          -> return Nothing
-      Just (_, groups) -> do
-        let Just text' = lookup 1 groups
-        -- Try to match the contents of the pragma with the pattern
-        -- of each custom pragma and return the result of the builder
-        -- associated with the first matching pattern.
-        fmap msum $ flip mapM customPragmas $ \(pattern, action) ->
-          case matchRegexPR pattern text' of
-            Nothing -> do
-              report $ Message srcSpan Warning $ "Unrecognized pragma"
-              return Nothing
-            Just (_, groups') -> do
-              pragma <- action srcSpan groups'
-              return (Just pragma)
+parseCustomPragmas = mapMaybeM parseCustomPragma
+
+-- | Parses a pragma from the given comment.
+--
+--   Returns @Nothing@ if the given comment is not a pragma or an
+--   unrecognised pragma.
+parseCustomPragma :: HS.Comment -> Reporter (Maybe HS.Pragma)
+parseCustomPragma (HS.LineComment _ _) = return Nothing
+parseCustomPragma (HS.BlockComment srcSpan text) =
+  -- Test whether this comment is a custom pragma.
+  case matchRegexPR customPragmaPattern text of
+    Nothing          -> return Nothing
+    Just (_, groups) -> do
+      let Just text' = lookup 1 groups
+      -- Try to match the contents of the pragma with the pattern
+      -- of each custom pragma and return the result of the builder
+      -- associated with the first matching pattern.
+      fmap msum $ forM customPragmas $ \(regex, action) ->
+        case matchRegexPR regex text' of
+          Nothing -> do
+            report $ Message srcSpan Warning $ "Unrecognized pragma"
+            return Nothing
+          Just (_, groups') -> do
+            pragma <- action srcSpan groups'
+            return (Just pragma)

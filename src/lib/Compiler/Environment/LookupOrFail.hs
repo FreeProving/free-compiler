@@ -4,7 +4,7 @@
 
 module Compiler.Environment.LookupOrFail where
 
-import qualified Compiler.Backend.Coq.Syntax              as G
+import qualified Compiler.Backend.Coq.Syntax   as G
 import           Compiler.Environment
 import           Compiler.Environment.Entry
 import           Compiler.Environment.Scope
@@ -26,8 +26,10 @@ lookupEntryOrFail srcSpan scope name = do
     Just entry -> return entry
     Nothing ->
       reportFatal
-        $ Message srcSpan Error
-        $ ("Identifier not in scope '" ++ showPretty name ++ "'")
+        $  Message srcSpan Error
+        $  "Identifier not in scope '"
+        ++ showPretty name
+        ++ "'"
 
 -- | Looks up the Coq identifier for a Haskell function, (type)
 --   constructor or (type) variable with the given name or reports a fatal

@@ -1,0 +1,35 @@
+# HLint configuration file
+# https://github.com/ndmitchell/hlint
+##########################
+
+# Record patterns and sections don't improve the readability of the code
+# necessarily.
+- ignore: {name: "Use record patterns"}
+- ignore: {name: "Use section"}
+
+# HLint's suggestions for reducing code duplication turn out not be be very
+# useful.
+- ignore: {name: "Reduce duplication"}
+
+# When reporting errors and in the test suite we are using `$` and `do`
+# format code correctly.
+- ignore: {name: "Redundant $"}
+- ignore: {name: "Redundant do"}
+
+# Aliases for qualified imports.
+- modules:
+  - {name: [Compiler.Backend.Coq.Base], as: CoqBase}
+  - {name: [Compiler.Backend.Coq.Syntax], as: G}
+  - {name: [Compiler.IR.Syntax], as: HS}
+  - {name: [Data.Aeson], as: Aeson}
+  - {name: [Data.ByteString.Lazy], as: LazyByteString}
+  - {name: [Data.List.NonEmpty], as: NonEmpty}
+  - {name: [Data.Map.Strict], as: Map}
+  - {name: [Data.Set], as: Set}
+  - {name: [Data.Set.Ordered], as: OSet}
+  - {name: [Data.Text], as: Text}
+  - {name: [Data.Text.Lazy], as: LazyText}
+  - {name: [Data.Vector], as: Vector}
+  - {name: [Language.Haskell.Exts.Syntax], as: H}
+  - {name: [Text.Parsec.Error, Text.Parsec.Pos], as: Parsec}
+  - {name: [Text.Toml.Types], as: Toml}

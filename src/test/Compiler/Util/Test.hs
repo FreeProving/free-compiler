@@ -14,8 +14,8 @@ import           Data.IORef                     ( IORef
                                                 , readIORef
                                                 , writeIORef
                                                 )
-import           Data.Maybe                     ( catMaybes
-                                                , fromJust
+import           Data.Maybe                     ( fromJust
+                                                , mapMaybe
                                                 )
 import qualified Data.Set                      as Set
 import           System.IO.Unsafe               ( unsafePerformIO )
@@ -104,6 +104,7 @@ fromModuleConverter converter = flip evalConverterT emptyEnv $ do
 
 -- | A global variable that caches the module interface of the @Prelude@
 --   module such that it does not have to be loaded in every test case.
+{-# NOINLINE moduleInterfaceCache #-}
 moduleInterfaceCache :: IORef [(HS.ModName, ModuleInterface)]
 moduleInterfaceCache = unsafePerformIO $ newIORef []
 
@@ -313,8 +314,7 @@ defineTestCon ident arity typeStr = do
   entry <- renameAndAddTestEntry' ConEntry
     { entrySrcSpan    = NoSrcSpan
     , entryArity      = arity
-    , entryTypeArgs   = catMaybes
-                          (map HS.identFromQName (freeTypeVars returnType))
+    , entryTypeArgs   = mapMaybe HS.identFromQName (freeTypeVars returnType)
     , entryArgTypes   = map Just argTypes
     , entryReturnType = Just returnType
     , entryName       = HS.UnQual (HS.Ident ident)

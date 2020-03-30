@@ -42,7 +42,7 @@ where
 
 import           Data.Composition               ( (.:) )
 import qualified Data.List.NonEmpty            as NonEmpty
-import qualified Data.Text                     as T
+import qualified Data.Text                     as Text
 import           Language.Coq.Gallina
 import qualified Language.Coq.Gallina          as G
 
@@ -52,7 +52,7 @@ import qualified Language.Coq.Gallina          as G
 
 -- | Smart constructor for Coq comments.
 comment :: String -> G.Sentence
-comment = G.CommentSentence . G.Comment . T.pack
+comment = G.CommentSentence . G.Comment . Text.pack
 
 -------------------------------------------------------------------------------
 -- Proofs                                                                    --
@@ -60,7 +60,7 @@ comment = G.CommentSentence . G.Comment . T.pack
 
 -- | An admitted proof that contains only a placeholder text.
 blankProof :: G.Proof
-blankProof = G.ProofAdmitted (T.pack "  (* FILL IN HERE *)")
+blankProof = G.ProofAdmitted (Text.pack "  (* FILL IN HERE *)")
 
 -------------------------------------------------------------------------------
 -- Identifiers                                                               --
@@ -68,7 +68,7 @@ blankProof = G.ProofAdmitted (T.pack "  (* FILL IN HERE *)")
 
 -- | Smart constructor for unqualified Coq identifiers.
 ident :: String -> G.Ident
-ident = T.pack
+ident = Text.pack
 
 -- | Smart constructor for Coq identifiers.
 bare :: String -> G.Qualid
@@ -77,7 +77,7 @@ bare = G.Bare . ident
 -- | Gets the identifier for the given unqualified Coq identifier. Returns
 --   @Nothing@ if the given identifier is qualified.
 unpackQualid :: G.Qualid -> Maybe String
-unpackQualid (G.Bare text    ) = Just (T.unpack text)
+unpackQualid (G.Bare text    ) = Just (Text.unpack text)
 unpackQualid (G.Qualified _ _) = Nothing
 
 -------------------------------------------------------------------------------
@@ -182,7 +182,7 @@ sortType = G.Sort G.Type
 
 -- | Smart constructor for Coq string literals.
 string :: String -> G.Term
-string = G.String . T.pack
+string = G.String . Text.pack
 
 -- | Smart constructor for Coq equations for @match@ expressions.
 equation :: G.Pattern -> G.Term -> G.Equation

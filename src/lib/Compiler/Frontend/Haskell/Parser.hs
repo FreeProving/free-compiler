@@ -251,5 +251,6 @@ parseQName input = parseHaskell "<parseQName>" input >>= qNameFromPat
   qNameFromPat (H.PParen _ pat) = qNameFromPat pat
   qNameFromPat _ =
     reportFatal
-      $ Message NoSrcSpan Error
-      $ ("Expected symbol or identifier, got " ++ input)
+      $  Message NoSrcSpan Error
+      $  "Expected symbol or identifier, got "
+      ++ input

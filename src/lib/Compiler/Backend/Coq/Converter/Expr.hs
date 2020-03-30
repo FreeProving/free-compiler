@@ -59,8 +59,9 @@ convertExpr' (HS.Var srcSpan name _) typeArgs args = do
   let typeArgCount = length typeArgs
   maybeTypeArgArity <- inEnv $ lookupTypeArgArity ValueScope name
   case maybeTypeArgArity of
-    Just typeArgArity -> when (typeArgCount /= typeArgArity) $ do
-      reportFatal
+    Just typeArgArity ->
+      when (typeArgCount /= typeArgArity)
+        $  reportFatal
         $  Message srcSpan Internal
         $  "The function '"
         ++ showPretty name
@@ -70,8 +71,9 @@ convertExpr' (HS.Var srcSpan name _) typeArgs args = do
         ++ " type arguments, got "
         ++ show typeArgCount
         ++ "."
-    Nothing -> when (typeArgCount /= 0) $ do
-      reportFatal
+    Nothing ->
+      when (typeArgCount /= 0)
+        $  reportFatal
         $  Message srcSpan Internal
         $  "The variable '"
         ++ showPretty name
