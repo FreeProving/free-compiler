@@ -19,7 +19,16 @@ script_dir=$(dirname "$script")
 root_dir=$(dirname "$script_dir")
 cd "$root_dir"
 
+# The file to write failure reports to.
+# We pass the `--failure-report` option by default such that the user can
+# add the `--rerun` option easily.
+failure_report_file=".hspec-failure-report"
+
 # Run tests with cabal.
 # We use `new-run` instead of `new-test`, because Cabal 2.4 does not
 # support `--test-options` to be passed to the test.
-cabal new-run unit-tests --ghc-option -Wwarn -- "$@"
+cabal new-run unit-tests                  \
+  --ghc-option -Wwarn --                  \
+  --failure-report="$failure_report_file" \
+  --rerun-all-on-success                  \
+  "$@"

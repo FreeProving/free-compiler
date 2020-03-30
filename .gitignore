@@ -12,6 +12,7 @@ cabal.sandbox.config
 .stack-work/
 cabal.project.local
 .ghc.environment.*
+.hspec-failure-report
 
 ### Curry ###
 Curry_Main_Goal.curry
