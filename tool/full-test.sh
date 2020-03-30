@@ -354,30 +354,33 @@ step "Installing dependencies"               \
      "Installed dependencies"                \
      "Failed to install dependencies"        \
      "Canceled installation of dependencies" \
-     "cabal new-build unit-tests --only-dependencies &&
-      cabal new-build haskell-to-coq-compiler --only-dependencies"
+     "cabal new-build freec-unit-tests --only-dependencies &&
+      cabal new-build freec --only-dependencies"
 
 # We don't want to rebuild dependencies every time but the modules in this
 # repository should be recompiled. Otherwise, Cabal does not realize, that the
 # previously compiled modules may have been compiled using `-Wwarn`.
-step "Removing cached builds"          \
-     "Removed cached builds"           \
-     "Failed remove cached builds"     \
-     "Canceled removing cached builds" \
-     "rm -r $(find dist-newstyle/ -type d -name "haskellToCoqCompiler-*")"
+cached_cabal_builds=$(find dist-newstyle/ -type d -name "freec-*" | head -n 1)
+if [ -d "$cached_cabal_builds" ]; then
+  step "Removing cached builds"          \
+       "Removed cached builds"           \
+       "Failed remove cached builds"     \
+       "Canceled removing cached builds" \
+       "rm -r '$cached_cabal_builds'"
+fi
 
 # Build everything.
 step "Building the compiler"        \
      "Built compiler successfully"  \
      "Failed to build the compiler" \
      "Canceled compiler build"      \
-     "cabal new-build haskell-to-coq-compiler"
+     "cabal new-build freec"
 
 step "Building the test suite"        \
      "Built test suite successfully"  \
      "Failed to build the test suite" \
      "Canceled test suite build"      \
-     "cabal new-build unit-tests"
+     "cabal new-build freec-unit-tests"
 
 step "Building the base library"        \
      "Built base library successfully"  \
@@ -395,14 +398,14 @@ step "Building the documentation"        \
 step "Running unit tests"     \
      "All unit tests passed"  \
      "Some unit tests failed" \
-     "Canceled unit-tests"    \
-     "cabal new-run unit-tests"
+     "Canceled unit tests"    \
+     "cabal new-run freec-unit-tests"
 
 step "Compiling examples"               \
      "Compiled examples successfully"   \
      "Failed to compile examples"       \
      "Canceled compilation of examples" \
-     "cabal new-run haskell-to-coq-compiler --         \\
+     "cabal new-run freec --                           \\
         --transform-pattern-matching                   \\
         --dump-transformed-modules example/transformed \\
         -b ./base                                      \\

@@ -1,5 +1,5 @@
--- | This module contains functions for converting function, constructor and
---   type arguments from Haskell to Coq.
+-- | This module contains functions for generating Coq function, constructor
+--   and type arguments from our intermediate representation.
 
 module Compiler.Backend.Coq.Converter.Arg where
 

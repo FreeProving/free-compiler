@@ -1,5 +1,6 @@
--- | This module contains functions for converting function declarations from
---   Haskell to Coq.
+-- | This module contains functions for generating Coq function declarations
+--   (in the form of @Definition@, @Fixpoint@ and @Section@ sentences) from
+--   our intermediate representation.
 
 module Compiler.Backend.Coq.Converter.FuncDecl where
 

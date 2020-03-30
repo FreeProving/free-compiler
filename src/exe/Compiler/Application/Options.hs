@@ -18,7 +18,7 @@ import           System.Environment             ( getArgs
 import           Compiler.IR.SrcSpan
 import           Compiler.Monad.Reporter
 
-import           Paths_haskellToCoqCompiler     ( getDataFileName )
+import           Paths_free_compiler            ( getDataFileName )
 
 -------------------------------------------------------------------------------
 -- Command line option data type                                             --

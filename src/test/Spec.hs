@@ -11,7 +11,7 @@ import           Compiler.IR.UnificationTests
 import           Compiler.Monad.ReporterTests
 import           Compiler.Pass.PartialityAnalysisPassTests
 
--- | Runs all unit tests for the Haskell to Coq compiler.
+-- | Runs all unit tests for the Free Compiler.
 main :: IO ()
 main = hspec $ do
   testReference

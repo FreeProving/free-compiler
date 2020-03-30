@@ -1,6 +1,6 @@
 # This configuration file contains the names of predefined types and operators
-# from the QuickCheck extension of the Haskell to Coq Compiler which allows
-# the generation of `Theorem` sentences from QuickCheck properties.
+# from the QuickCheck extension of the Free Compiler which allows for the 
+# generation of `Theorem` sentences from QuickCheck properties.
 
 ##############################################################################
 # Metadata                                                                   #

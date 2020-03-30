@@ -1,4 +1,4 @@
-name: Haskell To Coq Compiler CI
+name: CI Pipeline
 
 on: [push]
 
@@ -9,7 +9,7 @@ jobs:
 
   # Installs Cabal dependencies and caches the directories where cabal
   # installs the dependencies. Unfortunately, the entire code of this job
-  # needs to be replicated to retore the caches in jobs that use Cabal.
+  # needs to be replicated to restore the caches in jobs that use Cabal.
   #
   # We cache `~/.cabal/packages`, `~/.cabal/store` and `dist-newstyle`
   # separately. The cache keys contain the hash of the `.cabal` and
@@ -42,7 +42,7 @@ jobs:
       id: cabal-update
       run: |
         cabal new-update
-        echo "::set-output name=cabal-hash::$(cat cabal.project haskellToCoqCompiler.cabal | sha256sum | awk '{ print $1 }')"
+        echo "::set-output name=cabal-hash::$(cat cabal.project free-compiler.cabal | sha256sum | awk '{ print $1 }')"
         echo "::set-output name=cabal-index-hash::$(cat ~/.cabal/packages/**/01-index.cache | sha256sum -b | awk '{ print $1 }')"
     - name: Cache ~/.cabal/packages
       uses: actions/cache@v1
@@ -70,8 +70,8 @@ jobs:
           dist-newstyle-
     - name: Install dependencies
       run: |
-        cabal new-build unit-tests --only-dependencies
-        cabal new-build haskell-to-coq-compiler --only-dependencies
+        cabal new-build freec-unit-tests --only-dependencies
+        cabal new-build freec --only-dependencies
 
   #############################################################################
   # Unit tests                                                                #
@@ -93,7 +93,7 @@ jobs:
       id: cabal-update
       run: |
         cabal new-update
-        echo "::set-output name=cabal-hash::$(cat cabal.project haskellToCoqCompiler.cabal | sha256sum | awk '{ print $1 }')"
+        echo "::set-output name=cabal-hash::$(cat cabal.project free-compiler.cabal | sha256sum | awk '{ print $1 }')"
         echo "::set-output name=cabal-index-hash::$(cat ~/.cabal/packages/**/01-index.cache | sha256sum -b | awk '{ print $1 }')"
     - name: Cache ~/.cabal/packages
       uses: actions/cache@v1
@@ -121,12 +121,12 @@ jobs:
           dist-newstyle-
     - name: Install dependencies
       run: |
-        cabal new-build unit-tests --only-dependencies
-        cabal new-build haskell-to-coq-compiler --only-dependencies
+        cabal new-build freec-unit-tests --only-dependencies
+        cabal new-build freec --only-dependencies
     - name: Build unit tests
-      run: cabal new-build unit-tests
+      run: cabal new-build freec-unit-tests
     - name: Run unit tests
-      run: cabal new-run unit-tests
+      run: cabal new-run freec-unit-tests
 
   #############################################################################
   # Executable                                                                #
@@ -148,7 +148,7 @@ jobs:
       id: cabal-update
       run: |
         cabal new-update
-        echo "::set-output name=cabal-hash::$(cat cabal.project haskellToCoqCompiler.cabal | sha256sum | awk '{ print $1 }')"
+        echo "::set-output name=cabal-hash::$(cat cabal.project free-compiler.cabal | sha256sum | awk '{ print $1 }')"
         echo "::set-output name=cabal-index-hash::$(cat ~/.cabal/packages/**/01-index.cache | sha256sum -b | awk '{ print $1 }')"
     - name: Cache ~/.cabal/packages
       uses: actions/cache@v1
@@ -176,20 +176,19 @@ jobs:
           dist-newstyle-
     - name: Install dependencies
       run: |
-        cabal new-build unit-tests --only-dependencies
-        cabal new-build haskell-to-coq-compiler --only-dependencies
+        cabal new-build freec-unit-tests --only-dependencies
+        cabal new-build freec --only-dependencies
     - name: Build compiler
-      run: cabal new-build haskell-to-coq-compiler
+      run: cabal new-build freec
     - name: Copy executable to build directory
       run: |
         mkdir -p ./build/bin
-        cp $(find dist-newstyle -name haskell-to-coq-compiler -type f)\
-           ./build/bin/haskell-to-coq-compiler
+        cp $(find dist-newstyle -name freec -type f) ./build/bin/freec
     - name: Upload executable
       uses: actions/upload-artifact@v1
       with:
         name: compiler
-        path: ./build/bin/haskell-to-coq-compiler
+        path: ./build/bin/freec
 
   #############################################################################
   # Documentation                                                             #
@@ -211,7 +210,7 @@ jobs:
       id: cabal-update
       run: |
         cabal new-update
-        echo "::set-output name=cabal-hash::$(cat cabal.project haskellToCoqCompiler.cabal | sha256sum | awk '{ print $1 }')"
+        echo "::set-output name=cabal-hash::$(cat cabal.project free-compiler.cabal | sha256sum | awk '{ print $1 }')"
         echo "::set-output name=cabal-index-hash::$(cat ~/.cabal/packages/**/01-index.cache | sha256sum -b | awk '{ print $1 }')"
     - name: Cache ~/.cabal/packages
       uses: actions/cache@v1
@@ -239,8 +238,8 @@ jobs:
           dist-newstyle-
     - name: Install dependencies
       run: |
-        cabal new-build unit-tests --only-dependencies
-        cabal new-build haskell-to-coq-compiler --only-dependencies
+        cabal new-build freec-unit-tests --only-dependencies
+        cabal new-build freec --only-dependencies
     - name: Run Haddock
       run: ./tool/make-docs.sh
     - name: Copy documentation to build directory
@@ -343,10 +342,10 @@ jobs:
         name: coq-base-library
         path: ./base
     - name: Mark compiler as executable
-      run: chmod +x haskell-to-coq-compiler
+      run: chmod +x freec
     - name: Compile examples
       run: |
-        ./haskell-to-coq-compiler                        \
+        ./freec                                          \
           --transform-pattern-matching                   \
           --dump-transformed-modules example/transformed \
           -b ./base                                      \

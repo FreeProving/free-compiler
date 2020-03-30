@@ -1,5 +1,5 @@
--- | This module exports functions for converting Haskell to Coq using the
---   @Free@ monad.
+-- | This module exports functions for generating Coq that uses the @Free@
+--   monad from out intermediate representation.
 
 module Compiler.Backend.Coq.Converter
   ( -- * Modules

@@ -17,4 +17,4 @@ root_dir=$(dirname "$script_dir")
 cd "$root_dir"
 
 # Disable fatal warnings and forward arguments to compiler.
-cabal new-run haskell-to-coq-compiler --ghc-option -Wwarn -- "$@"
+cabal new-run freec --ghc-option -Wwarn -- "$@"
