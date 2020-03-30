@@ -84,79 +84,79 @@ common deps
 library freec-internal
   import:             deps
   hs-source-dirs:     src/lib
-  exposed-modules:      Compiler.Analysis.RecursionAnalysis
-                      , Compiler.Backend.Coq.Base
-                      , Compiler.Backend.Coq.Converter
-                      , Compiler.Backend.Coq.Converter.Arg
-                      , Compiler.Backend.Coq.Converter.Expr
-                      , Compiler.Backend.Coq.Converter.Free
-                      , Compiler.Backend.Coq.Converter.FuncDecl
-                      , Compiler.Backend.Coq.Converter.FuncDecl.Common
-                      , Compiler.Backend.Coq.Converter.FuncDecl.NonRec
-                      , Compiler.Backend.Coq.Converter.FuncDecl.Rec
-                      , Compiler.Backend.Coq.Converter.FuncDecl.Rec.WithHelpers
-                      , Compiler.Backend.Coq.Converter.FuncDecl.Rec.WithSections
-                      , Compiler.Backend.Coq.Converter.Module
-                      , Compiler.Backend.Coq.Converter.QuickCheck
-                      , Compiler.Backend.Coq.Converter.Type
-                      , Compiler.Backend.Coq.Converter.TypeDecl
-                      , Compiler.Backend.Coq.Converter.TypeSchema
-                      , Compiler.Backend.Coq.Keywords
-                      , Compiler.Backend.Coq.Pretty
-                      , Compiler.Backend.Coq.Syntax
-                      , Compiler.Config
-                      , Compiler.Environment
-                      , Compiler.Environment.Entry
-                      , Compiler.Environment.Fresh
-                      , Compiler.Environment.Importer
-                      , Compiler.Environment.LookupOrFail
-                      , Compiler.Environment.ModuleInterface
-                      , Compiler.Environment.ModuleInterface.Decoder
-                      , Compiler.Environment.ModuleInterface.Encoder
-                      , Compiler.Environment.Renamer
-                      , Compiler.Environment.Scope
-                      , Compiler.Frontend.Haskell.Parser
-                      , Compiler.Frontend.Haskell.PatternMatching
-                      , Compiler.Frontend.Haskell.Pretty
-                      , Compiler.Frontend.Haskell.Simplifier
-                      , Compiler.Frontend.Haskell.SrcSpanConverter
-                      , Compiler.Frontend.PragmaParser
-                      , Compiler.Monad.Converter
-                      , Compiler.Monad.Class.Hoistable
-                      , Compiler.Monad.Reporter
-                      , Compiler.IR.DependencyGraph
-                      , Compiler.IR.Inlining
-                      , Compiler.IR.Reference
-                      , Compiler.IR.SrcSpan
-                      , Compiler.IR.Subst
-                      , Compiler.IR.Subterm
-                      , Compiler.IR.Syntax
-                      , Compiler.IR.TypeSynExpansion
-                      , Compiler.IR.Unification
-                      , Compiler.Pass
-                      , Compiler.Pass.DefineDeclPass
-                      , Compiler.Pass.DependencyAnalysisPass
-                      , Compiler.Pass.EtaConversionPass
-                      , Compiler.Pass.ExportPass
-                      , Compiler.Pass.ImplicitPreludePass
-                      , Compiler.Pass.ImportPass
-                      , Compiler.Pass.PartialityAnalysisPass
-                      , Compiler.Pass.TypeInferencePass
-                      , Compiler.Pass.TypeSignaturePass
-                      , Compiler.Pass.QualifierPass
-                      , Compiler.Pass.ResolverPass
-                      , Compiler.Pipeline
-                      , Compiler.Pretty
-                      , Compiler.Util.Predicate
+  exposed-modules:      FreeC.Analysis.RecursionAnalysis
+                      , FreeC.Backend.Coq.Base
+                      , FreeC.Backend.Coq.Converter
+                      , FreeC.Backend.Coq.Converter.Arg
+                      , FreeC.Backend.Coq.Converter.Expr
+                      , FreeC.Backend.Coq.Converter.Free
+                      , FreeC.Backend.Coq.Converter.FuncDecl
+                      , FreeC.Backend.Coq.Converter.FuncDecl.Common
+                      , FreeC.Backend.Coq.Converter.FuncDecl.NonRec
+                      , FreeC.Backend.Coq.Converter.FuncDecl.Rec
+                      , FreeC.Backend.Coq.Converter.FuncDecl.Rec.WithHelpers
+                      , FreeC.Backend.Coq.Converter.FuncDecl.Rec.WithSections
+                      , FreeC.Backend.Coq.Converter.Module
+                      , FreeC.Backend.Coq.Converter.QuickCheck
+                      , FreeC.Backend.Coq.Converter.Type
+                      , FreeC.Backend.Coq.Converter.TypeDecl
+                      , FreeC.Backend.Coq.Converter.TypeSchema
+                      , FreeC.Backend.Coq.Keywords
+                      , FreeC.Backend.Coq.Pretty
+                      , FreeC.Backend.Coq.Syntax
+                      , FreeC.Config
+                      , FreeC.Environment
+                      , FreeC.Environment.Entry
+                      , FreeC.Environment.Fresh
+                      , FreeC.Environment.Importer
+                      , FreeC.Environment.LookupOrFail
+                      , FreeC.Environment.ModuleInterface
+                      , FreeC.Environment.ModuleInterface.Decoder
+                      , FreeC.Environment.ModuleInterface.Encoder
+                      , FreeC.Environment.Renamer
+                      , FreeC.Environment.Scope
+                      , FreeC.Frontend.Haskell.Parser
+                      , FreeC.Frontend.Haskell.PatternMatching
+                      , FreeC.Frontend.Haskell.Pretty
+                      , FreeC.Frontend.Haskell.Simplifier
+                      , FreeC.Frontend.Haskell.SrcSpanConverter
+                      , FreeC.Frontend.PragmaParser
+                      , FreeC.Monad.Converter
+                      , FreeC.Monad.Class.Hoistable
+                      , FreeC.Monad.Reporter
+                      , FreeC.IR.DependencyGraph
+                      , FreeC.IR.Inlining
+                      , FreeC.IR.Reference
+                      , FreeC.IR.SrcSpan
+                      , FreeC.IR.Subst
+                      , FreeC.IR.Subterm
+                      , FreeC.IR.Syntax
+                      , FreeC.IR.TypeSynExpansion
+                      , FreeC.IR.Unification
+                      , FreeC.Pass
+                      , FreeC.Pass.DefineDeclPass
+                      , FreeC.Pass.DependencyAnalysisPass
+                      , FreeC.Pass.EtaConversionPass
+                      , FreeC.Pass.ExportPass
+                      , FreeC.Pass.ImplicitPreludePass
+                      , FreeC.Pass.ImportPass
+                      , FreeC.Pass.PartialityAnalysisPass
+                      , FreeC.Pass.TypeInferencePass
+                      , FreeC.Pass.TypeSignaturePass
+                      , FreeC.Pass.QualifierPass
+                      , FreeC.Pass.ResolverPass
+                      , FreeC.Pipeline
+                      , FreeC.Pretty
+                      , FreeC.Util.Predicate
 
 executable freec
   import:             deps
   hs-source-dirs:     src/exe
   main-is:            Main.hs
   other-modules:      Paths_free_compiler
-                    , Compiler.Application.Debug
-                    , Compiler.Application.Options
-                    , Compiler.Monad.Application
+                    , FreeC.Application.Debug
+                    , FreeC.Application.Options
+                    , FreeC.Monad.Application
   build-depends:      freec-internal
 
 test-suite freec-unit-tests
@@ -165,23 +165,23 @@ test-suite freec-unit-tests
   hs-source-dirs:     src/test
   main-is:            Spec.hs
   other-modules:      Paths_free_compiler
-                    , Compiler.Analysis.RecursionAnalysisTests
-                    , Compiler.Analysis.TypeInferenceTests
-                    , Compiler.Backend.Coq.ConverterTests
-                    , Compiler.Backend.Coq.Converter.ExprTests
-                    , Compiler.Backend.Coq.Converter.FuncDeclTests
-                    , Compiler.Backend.Coq.Converter.ModuleTests
-                    , Compiler.Backend.Coq.Converter.QuickCheckTests
-                    , Compiler.Backend.Coq.Converter.TypeDeclTests
-                    , Compiler.Backend.Coq.Converter.TypeTests
-                    , Compiler.Environment.RenamerTests
-                    , Compiler.IR.ReferenceTests
-                    , Compiler.IR.SubstTests
-                    , Compiler.IR.SubtermTests
-                    , Compiler.IR.UnificationTests
-                    , Compiler.Monad.ReporterTests
-                    , Compiler.Pass.PartialityAnalysisPassTests
-                    , Compiler.Util.Test
+                    , FreeC.Analysis.RecursionAnalysisTests
+                    , FreeC.Analysis.TypeInferenceTests
+                    , FreeC.Backend.Coq.ConverterTests
+                    , FreeC.Backend.Coq.Converter.ExprTests
+                    , FreeC.Backend.Coq.Converter.FuncDeclTests
+                    , FreeC.Backend.Coq.Converter.ModuleTests
+                    , FreeC.Backend.Coq.Converter.QuickCheckTests
+                    , FreeC.Backend.Coq.Converter.TypeDeclTests
+                    , FreeC.Backend.Coq.Converter.TypeTests
+                    , FreeC.Environment.RenamerTests
+                    , FreeC.IR.ReferenceTests
+                    , FreeC.IR.SubstTests
+                    , FreeC.IR.SubtermTests
+                    , FreeC.IR.UnificationTests
+                    , FreeC.Monad.ReporterTests
+                    , FreeC.Pass.PartialityAnalysisPassTests
+                    , FreeC.Util.Test
   build-depends:      freec-internal
                       -- Test frameworks:
                     , hspec

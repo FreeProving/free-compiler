@@ -18,9 +18,9 @@
 
 # Aliases for qualified imports.
 - modules:
-  - {name: [Compiler.Backend.Coq.Base], as: CoqBase}
-  - {name: [Compiler.Backend.Coq.Syntax], as: G}
-  - {name: [Compiler.IR.Syntax], as: HS}
+  - {name: [FreeC.Backend.Coq.Base], as: CoqBase}
+  - {name: [FreeC.Backend.Coq.Syntax], as: G}
+  - {name: [FreeC.IR.Syntax], as: HS}
   - {name: [Data.Aeson], as: Aeson}
   - {name: [Data.ByteString.Lazy], as: LazyByteString}
   - {name: [Data.List.NonEmpty], as: NonEmpty}

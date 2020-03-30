@@ -1,15 +1,15 @@
 import           Test.Hspec
 
-import           Compiler.Analysis.RecursionAnalysisTests
-import           Compiler.Analysis.TypeInferenceTests
-import           Compiler.Backend.Coq.ConverterTests
-import           Compiler.Environment.RenamerTests
-import           Compiler.IR.ReferenceTests
-import           Compiler.IR.SubstTests
-import           Compiler.IR.SubtermTests
-import           Compiler.IR.UnificationTests
-import           Compiler.Monad.ReporterTests
-import           Compiler.Pass.PartialityAnalysisPassTests
+import           FreeC.Analysis.RecursionAnalysisTests
+import           FreeC.Analysis.TypeInferenceTests
+import           FreeC.Backend.Coq.ConverterTests
+import           FreeC.Environment.RenamerTests
+import           FreeC.IR.ReferenceTests
+import           FreeC.IR.SubstTests
+import           FreeC.IR.SubtermTests
+import           FreeC.IR.UnificationTests
+import           FreeC.Monad.ReporterTests
+import           FreeC.Pass.PartialityAnalysisPassTests
 
 -- | Runs all unit tests for the Free Compiler.
 main :: IO ()

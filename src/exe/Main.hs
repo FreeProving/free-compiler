@@ -16,32 +16,30 @@ import           System.Directory               ( createDirectoryIfMissing
 import           System.Exit                    ( exitSuccess )
 import           System.FilePath
 
-import           Compiler.Application.Debug
-import           Compiler.Application.Options
-import qualified Compiler.Backend.Coq.Base     as CoqBase
-import           Compiler.Backend.Coq.Converter ( convertModule )
-import           Compiler.Backend.Coq.Converter.QuickCheck
-import           Compiler.Backend.Coq.Pretty
-import qualified Compiler.Backend.Coq.Syntax   as G
-import           Compiler.Environment
-import           Compiler.Environment.ModuleInterface.Decoder
-import           Compiler.Environment.ModuleInterface.Encoder
-import           Compiler.Frontend.Haskell.Parser
-                                                ( parseModuleFile
+import           FreeC.Application.Debug
+import           FreeC.Application.Options
+import qualified FreeC.Backend.Coq.Base        as CoqBase
+import           FreeC.Backend.Coq.Converter    ( convertModule )
+import           FreeC.Backend.Coq.Converter.QuickCheck
+import           FreeC.Backend.Coq.Pretty
+import qualified FreeC.Backend.Coq.Syntax      as G
+import           FreeC.Environment
+import           FreeC.Environment.ModuleInterface.Decoder
+import           FreeC.Environment.ModuleInterface.Encoder
+import           FreeC.Frontend.Haskell.Parser  ( parseModuleFile
                                                 , parseModuleFileWithComments
                                                 )
-import           Compiler.Frontend.Haskell.PatternMatching
+import           FreeC.Frontend.Haskell.PatternMatching
                                                 ( transformPatternMatching )
-import           Compiler.Frontend.Haskell.Pretty
-                                                ( )
-import           Compiler.Frontend.Haskell.Simplifier
-import           Compiler.IR.DependencyGraph
-import           Compiler.IR.SrcSpan
-import qualified Compiler.IR.Syntax            as HS
-import           Compiler.Monad.Application
-import           Compiler.Monad.Converter
-import           Compiler.Monad.Reporter
-import           Compiler.Pretty                ( putPrettyLn
+import           FreeC.Frontend.Haskell.Pretty  ( )
+import           FreeC.Frontend.Haskell.Simplifier
+import           FreeC.IR.DependencyGraph
+import           FreeC.IR.SrcSpan
+import qualified FreeC.IR.Syntax               as HS
+import           FreeC.Monad.Application
+import           FreeC.Monad.Converter
+import           FreeC.Monad.Reporter
+import           FreeC.Pretty                   ( putPrettyLn
                                                 , showPretty
                                                 , writePrettyFile
                                                 )
