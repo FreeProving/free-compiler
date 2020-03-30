@@ -340,9 +340,10 @@ script_dir=$(dirname "$script")
 root_dir=$(dirname "$script_dir")
 cd "$root_dir"
 
-# Test CI pipeline locally.
+# Make sure that the required software is installed.
 check_required_software
 
+# Make sure that we are working with the latest version of all dependencies.
 step "Downloading latest package list"          \
      "Downloaded latest package list"           \
      "Failed to download latest package list"   \
@@ -356,6 +357,16 @@ step "Installing dependencies"               \
      "cabal new-build unit-tests --only-dependencies &&
       cabal new-build haskell-to-coq-compiler --only-dependencies"
 
+# We don't want to rebuild dependencies every time but the modules in this
+# repository should be recompiled. Otherwise, Cabal does not realize, that the
+# previously compiled modules may have been compiled using `-Wwarn`.
+step "Removing cached builds"          \
+     "Removed cached builds"           \
+     "Failed remove cached builds"     \
+     "Canceled removing cached builds" \
+     "rm -r $(find dist-newstyle/ -type d -name "haskellToCoqCompiler-*")"
+
+# Build everything.
 step "Building the compiler"        \
      "Built compiler successfully"  \
      "Failed to build the compiler" \
@@ -380,6 +391,7 @@ step "Building the documentation"        \
      "Canceled documentation build"      \
      "./tool/make-docs.sh"
 
+# Run tests.
 step "Running unit tests"     \
      "All unit tests passed"  \
      "Some unit tests failed" \
