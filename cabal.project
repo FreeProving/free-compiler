@@ -7,3 +7,6 @@ source-repository-package
   location: git://github.com/FreeProving/haskell-src-transformations.git
 
 packages: ./haskellToCoqCompiler.cabal
+
+package haskellToCoqCompiler
+  ghc-options: -Werror
