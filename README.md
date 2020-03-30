@@ -1,14 +1,13 @@
-# Free Compile
+# Free Compiler
 
 <!-- Logo -->
-<img src="https://raw.githubusercontent.com/FreeProving/free-compiler/master/img/logo.png" width="350" style="max-width: 100%" align="right" />
+<img src="https://raw.githubusercontent.com/FreeProving/free-compiler/master/img/logo.png" width="350" style="max-width: 100%" align="right" alt="Logo" />
 
 <!-- Badges -->
 ![CI Pipeline](https://github.com/FreeProving/free-compiler/workflows/CI%20Pipeline/badge.svg)
 
 <!-- Short description -->
 A compiler for the monadic translation of Haskell programs to Coq that uses the `Free` monad as presented by [Dylus et al.][paper/DylusEtAl2018] to model partiality and other ambient effects.
-
 
 ## Table of Contents
 
