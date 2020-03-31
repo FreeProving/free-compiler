@@ -97,7 +97,6 @@ library freec-internal
                       , FreeC.Backend.Coq.Converter.FuncDecl.Rec.WithHelpers
                       , FreeC.Backend.Coq.Converter.FuncDecl.Rec.WithSections
                       , FreeC.Backend.Coq.Converter.Module
-                      , FreeC.Backend.Coq.Converter.QuickCheck
                       , FreeC.Backend.Coq.Converter.Type
                       , FreeC.Backend.Coq.Converter.TypeDecl
                       , FreeC.Backend.Coq.Converter.TypeSchema
@@ -171,7 +170,6 @@ test-suite freec-unit-tests
                     , FreeC.Backend.Coq.Converter.ExprTests
                     , FreeC.Backend.Coq.Converter.FuncDeclTests
                     , FreeC.Backend.Coq.Converter.ModuleTests
-                    , FreeC.Backend.Coq.Converter.QuickCheckTests
                     , FreeC.Backend.Coq.Converter.TypeDeclTests
                     , FreeC.Backend.Coq.Converter.TypeTests
                     , FreeC.Environment.RenamerTests
