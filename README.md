@@ -218,42 +218,14 @@ However, note that you may not be able to compile the generated Coq code if the 
 
 By default the compiler does support a limited subset of the Haskell programming language only.
 There is experimental support to relax some of those restrictions.
-Add the `--transform-pattern-matching` command line option to enable the translation of function declarations with multiple rules and guards.
-We are using a [pattern matching compiler][package/haskell-src-transformations] library for [`haskell-src-exts`][package/haskell-src-exts] to transform modules such that all pattern matching is performed explicitly using `case` expressions.
-Note that if pattern matching compilation is enabled, error messages will not contain any location information and local variables may be renamed.
-It is also known that the pattern matching compiler is currently integrated in such a way, that it may not work in conjunction with module imports.
-
+Add the `--transform-pattern-matching` command line option to automatically transform the input modules using a [pattern matching compiler library][package/haskell-src-transformations] for [`haskell-src-exts`][package/haskell-src-exts] before they are translated by our compiler.
 For example, the `PatternMatching` example can be translated as follows.
 
 ```bash
 freec --transform-pattern-matching ./example/PatternMatching.hs
 ```
 
-If we uncomment the unsupported declarations at the end of the file, the following error will be reported.
-
-```
-<no location info>: error:
-    Local declarations are not supported!
-```
-
-Since the original module does not contain any local declarations (i.e., `let` expressions or `where` clauses), the pattern matching compiler must have introduced such declarations.
-We can inspect the code that has been generated using the `--dump-transformed-modules` command line option and specifying a directory where the transformed Haskell modules should be placed.
-
-```bash
-freec --transform-pattern-matching                     \
-      --dump-transformed-modules ./example/transformed \
-      ./example/PatternMatching.hs
-```
-
-Now, the compiler is also able to provide location information.
-
-```
-./example/transformed/PatternMatching.hs:30:5-35:12: error:
-    Local declarations are not supported!
-    |
- 30 |   = let a3 = undefined
-    |     ^^^^^^^^^^^^^^^^^^...
-```
+Consult [`doc/ExperimentalFeatures/PatternMatchingCompilation.md`][doc/ExperimentalFeatures/PatternMatchingCompilation.md] for more details and examples.
 
 ## Testing
 
@@ -309,6 +281,7 @@ See the LICENSE file for details.
 
 [doc]: https://github.com/FreeProving/free-compiler/tree/master/doc
 [doc/ModuleInterfaceFileFormat.md]: https://github.com/FreeProving/free-compiler/blob/master/doc/ModuleInterfaceFileFormat.md
+[doc/ExperimentalFeatures/PatternMatchingCompilation.md]: https://github.com/FreeProving/free-compiler/blob/master/doc/ExperimentalFeatures/PatternMatchingCompilation.md
 
 [gh-pages/haddock]: https://freeproving.github.io/free-compiler/docs/master
 
