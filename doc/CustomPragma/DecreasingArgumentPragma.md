@@ -51,7 +51,7 @@ The function compiles successfully now.
 
 ### Unnamed decreasing arguments
 
-When using pattern matching on the left-hand side of the function declaration, the name of the decreasing argument may not be known.
+When using pattern matching on the left-hand side of the function declaration (see [`doc/ExperimentalFeatures/PatternMatchingCompilation.md`][]), the name of the decreasing argument may not be known.
 
 ```haskell
 mapRose' :: (a -> b) -> Rose a -> Rose b
@@ -71,4 +71,5 @@ Counting starts at `1`, i.e. the function has index `1` and the tree has index `
 {-# HASKELL_TO_COQ mapRose' DECREASES ON ARGUMENT 2 #-}
 ```
 
+[`doc/ExperimentalFeatures/PatternMatchingCompilation.md`]: https://github.com/FreeProving/free-compiler/blob/master/doc/ExperimentalFeatures/PatternMatchingCompilation.md
 [`example/DecreasingArgumentPragma.hs`]: https://github.com/FreeProving/free-compiler/blob/master/example/DecreasingArgumentPragma.hs
