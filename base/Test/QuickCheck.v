@@ -83,7 +83,7 @@ Section SecQuickCheck.
   (* [(==>) :: Bool -> Property -> Property] *)
   Definition preProp (b : Free' Bool') (p : Free' Property')
     : Free' Property'
-   := pure (b = True_ Shape Pos -> property' p).
+   := pure (property' b -> property' p).
 
   (* [(===) :: a -> a -> Property] *)
   Definition eqProp (A : Type) (x : Free' A) (y : Free' A)
@@ -96,13 +96,27 @@ Section SecQuickCheck.
    := pure (x <> y).
 
   (* [(.&&.) :: Property -> Property -> Property] *)
-  Definition conjProp (A : Type) (p1 : Free' Property') (p2 : Free' Property')
+  Definition conjProp (p1 : Free' Property') (p2 : Free' Property')
     : Free' Property'
    := pure (property' p1 /\ property' p2).
 
   (* [(.||.) :: Property -> Property -> Property] *)
-  Definition disjProp (A : Type) (p1 : Free' Property') (p2 : Free' Property')
+  Definition disjProp (p1 : Free' Property') (p2 : Free' Property')
     : Free' Property'
    := pure (property' p1 \/ property' p2).
 
 End SecQuickCheck.
+
+(* Helper lemma to avoid the [match] expression introduced by [property']. *)
+Lemma pure_bool_property :
+  forall (Shape : Type)
+         (Pos : Shape -> Type)
+         (fb : Free Shape Pos (Bool Shape Pos)),
+  property' fb <-> fb = True_ Shape Pos.
+Proof.
+  simpl. intros Shape Pos fb. split; intros H.
+  - (* -> *) destruct fb as [b |].
+    + (* fb = pure b *) rewrite H. reflexivity.
+    + (* fb = impure _ _ *) contradiction H.
+  - (* <- *) rewrite H. reflexivity.
+Qed.
