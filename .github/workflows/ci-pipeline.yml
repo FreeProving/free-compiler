@@ -1,6 +1,16 @@
 name: CI Pipeline
 
-on: [push]
+# The CI pipeline runs on every push that modifies Cabal configuration, source
+# or example files. If just the README or documentation changes, the pipeline
+# does not have to run.
+on:
+  push:
+    paths:
+    - 'cabal.project'
+    - 'free-compiler.cabal'
+    - 'base/**'
+    - 'example/**'
+    - 'src/**'
 
 jobs:
   #############################################################################
