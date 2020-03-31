@@ -4,42 +4,6 @@ From Base Require Import Prelude.
 (* QuickCheck properties are implemented as Coq propositions. *)
 Definition Property (Shape : Type) (Pos : Shape -> Type) := Prop.
 
-Section SecQuickCheck.
-  Variable Shape : Type.
-  Variable Pos : Shape -> Type.
-  Notation "'Free''" := (Free Shape Pos).
-  Notation "'Property''" := (Property Shape Pos).
-  Notation "'Bool''" := (Bool Shape Pos).
-
-  (* * Constructing QuickCheck Properties *)
-
-  (* [(==>) :: Bool -> Property -> Property] *)
-  Definition preProp (b : Free' Bool') (p : Free' Property')
-    : Free' Property'
-   := b >>= (fun b' => p >>= (fun p' => pure (b' = true -> p'))).
-
-  (* [(===) :: a -> a -> Property] *)
-  Definition eqProp (A : Type) (x : Free' A) (y : Free' A)
-    : Free' Property'
-   := pure (x = y).
-
-  (* [(=/=) :: a -> a -> Property] *)
-  Definition neqProp (A : Type) (x : Free' A) (y : Free' A)
-    : Free' Property'
-   := pure (x <> y).
-
-  (* [(.&&.) :: Property -> Property -> Property] *)
-  Definition conjProp (A : Type) (p1 : Free' Property') (p2 : Free' Property')
-    : Free' Property'
-   := p1 >>= (fun p1' => p2 >>= (fun p2' => pure (p1' /\ p2'))).
-
-  (* [(.||.) :: Property -> Property -> Property] *)
-  Definition disjProp (A : Type) (p1 : Free' Property') (p2 : Free' Property')
-    : Free' Property'
-   := p1 >>= (fun p1' => p2 >>= (fun p2' => pure (p1' \/ p2'))).
-
-End SecQuickCheck.
-
 (* * [Testable] type class *)
 
 (* [class Testable prop where property :: prop -> Property] *)
@@ -107,3 +71,38 @@ Definition property (Shape : Type) (Pos : Shape -> Type)
    property to a Coq property that can actually be proven. *)
 Definition quickCheck {A : Type} {T_A : Testable A} (x : A) : Prop
  := property' x.
+
+(* * Constructing QuickCheck Properties *)
+Section SecQuickCheck.
+  Variable Shape : Type.
+  Variable Pos : Shape -> Type.
+  Notation "'Free''" := (Free Shape Pos).
+  Notation "'Property''" := (Property Shape Pos).
+  Notation "'Bool''" := (Bool Shape Pos).
+
+  (* [(==>) :: Bool -> Property -> Property] *)
+  Definition preProp (b : Free' Bool') (p : Free' Property')
+    : Free' Property'
+   := pure (b = True_ Shape Pos -> property' p).
+
+  (* [(===) :: a -> a -> Property] *)
+  Definition eqProp (A : Type) (x : Free' A) (y : Free' A)
+    : Free' Property'
+   := pure (x = y).
+
+  (* [(=/=) :: a -> a -> Property] *)
+  Definition neqProp (A : Type) (x : Free' A) (y : Free' A)
+    : Free' Property'
+   := pure (x <> y).
+
+  (* [(.&&.) :: Property -> Property -> Property] *)
+  Definition conjProp (A : Type) (p1 : Free' Property') (p2 : Free' Property')
+    : Free' Property'
+   := pure (property' p1 /\ property' p2).
+
+  (* [(.||.) :: Property -> Property -> Property] *)
+  Definition disjProp (A : Type) (p1 : Free' Property') (p2 : Free' Property')
+    : Free' Property'
+   := pure (property' p1 \/ property' p2).
+
+End SecQuickCheck.
