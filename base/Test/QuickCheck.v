@@ -4,29 +4,106 @@ From Base Require Import Prelude.
 (* QuickCheck properties are implemented as Coq propositions. *)
 Definition Property (Shape : Type) (Pos : Shape -> Type) := Prop.
 
-(* Utility function to convert a boolean value to a proposition. *)
-Definition isPureTrue (Shape : Type) (Pos : Shape -> Type)
-                      (b : Free Shape Pos (Bool Shape Pos))
-  : Prop
- := b = True_ Shape Pos.
+Section SecQuickCheck.
+  Variable Shape : Type.
+  Variable Pos : Shape -> Type.
+  Notation "'Free''" := (Free Shape Pos).
+  Notation "'Property''" := (Property Shape Pos).
+  Notation "'Bool''" := (Bool Shape Pos).
 
-(* Since the left hand side of QuickCheck's [==>] operator must be a
-   boolean, we need this helper function to convert it to a proposition. *)
-Definition precondition (Shape : Type) (Pos : Shape -> Type)
-                        (b : Free Shape Pos (Bool Shape Pos))
-                        (p : Prop)
-  : Prop
- := isPureTrue Shape Pos b -> p.
+  (* * Constructing QuickCheck Properties *)
 
-(* Coq cannot infer the type of the operands of [=] and [<>] in some cases.
-  Thus, we have to add this helper function which constrains the
-  type as well as the [Shape] and [Pos] arguments. *)
-Definition eqProp (Shape : Type) (Pos : Shape -> Type) {a : Type}
-                  (x : Free Shape Pos a) (y : Free Shape Pos a)
-  : Prop
- := x = y.
+  (* [(==>) :: Bool -> Property -> Property] *)
+  Definition preProp (b : Free' Bool') (p : Free' Property')
+    : Free' Property'
+   := b >>= (fun b' => p >>= (fun p' => pure (b' = true -> p'))).
 
-Definition neqProp (Shape : Type) (Pos : Shape -> Type) {a : Type}
-                   (x : Free Shape Pos a) (y : Free Shape Pos a)
-  : Prop
- := x <> y.
+  (* [(===) :: a -> a -> Property] *)
+  Definition eqProp (A : Type) (x : Free' A) (y : Free' A)
+    : Free' Property'
+   := pure (x = y).
+
+  (* [(=/=) :: a -> a -> Property] *)
+  Definition neqProp (A : Type) (x : Free' A) (y : Free' A)
+    : Free' Property'
+   := pure (x <> y).
+
+  (* [(.&&.) :: Property -> Property -> Property] *)
+  Definition conjProp (A : Type) (p1 : Free' Property') (p2 : Free' Property')
+    : Free' Property'
+   := p1 >>= (fun p1' => p2 >>= (fun p2' => pure (p1' /\ p2'))).
+
+  (* [(.||.) :: Property -> Property -> Property] *)
+  Definition disjProp (A : Type) (p1 : Free' Property') (p2 : Free' Property')
+    : Free' Property'
+   := p1 >>= (fun p1' => p2 >>= (fun p2' => pure (p1' \/ p2'))).
+
+End SecQuickCheck.
+
+(* * [Testable] type class *)
+
+(* [class Testable prop where property :: prop -> Property] *)
+Class Testable (prop : Type) := { property' : prop -> Prop }.
+
+(* [instance Testable Property] *)
+Instance TestableProperty
+  : Testable Prop
+ := { property' p := p }.
+
+(* [instance Testable Bool] *)
+Instance TestableBool
+  : Testable bool
+ := { property' b := b = true }.
+
+(* [instance Testable b => Testable (a -> b)] *)
+Instance TestableFunction (A : Type) (B : Type) (T_B : Testable B)
+  : Testable (A -> B)
+ := { property' f := forall x, property' (f x) }.
+
+(* Helper instance for dependent types.
+   This allows us to use [quickCheck] both for proving properties for specific
+   and for arbitrary effects by providing a default strategy for how the
+   binders for [Shape] and [Pos] can be converted to properties. *)
+Instance TestableForall
+  (A : Type) (B : A -> Type) (T_Bx : forall x, Testable (B x))
+  : Testable (forall x, B x)
+ := { property' f := forall x, property' (f x) }.
+
+(* Helper instance for monadically lifted values.
+
+   This instance defines the strategy for how to handle the computation of
+   a Coq property by a QuickCheck property defined in Haskell.
+   Here we say that a property must produce a [pure] value, otherwise it does
+   not hold. In case of the effect of partiality, this means that the
+   QuickCheck property [prop_undefined = undefined] is not satisfied.
+   (Note that due to the non-strict definition of [(===)] the property
+   [prop_undefined_eq = undefined === undefined] would still be true)
+
+   Whether this strategy makes sense in case of other effects such as
+   non-determinism still has to be investigated. For example, does the
+   property [prop_true_or_false = True ? False] hold or not? With the
+   current implementation it does not hold since the choice operator
+   produces an [impure] value.
+   *)
+Instance TestableFree (Shape : Type) (Pos : Shape -> Type)
+                      (A : Type) (T_A : Testable A)
+  : Testable (Free Shape Pos A)
+ := { property' fp := match fp with
+                      | pure p     => property' p
+                      | impure _ _ => False
+                      end }.
+
+(* [property :: Bool -> Property]
+   Since we do not support type classes is Haskell, only the [Testable] type
+   class instance for [Bool] is accessable from Haskell. *)
+Definition property (Shape : Type) (Pos : Shape -> Type)
+                    (fb : Free Shape Pos (Bool Shape Pos))
+  : Free Shape Pos (Property Shape Pos)
+ := pure (property' fb).
+
+(* [quickCheck :: Testable a => a -> IO ()]
+   In Haskell this function is used to test a QuickCheck property.
+   We are reusing the name to convert the computation of a quickCheck
+   property to a Coq property that can actually be proven. *)
+Definition quickCheck {A : Type} {T_A : Testable A} (x : A) : Prop
+ := property' x.

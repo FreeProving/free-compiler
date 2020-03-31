@@ -6,11 +6,9 @@ From Base Require Import Free.
 From Base Require Import Free.Util.Void.
 
 Module Maybe.
-  (* Container instance for a functor with exactly one element. *)
-  Module Import One.
-    Definition Shape : Type := unit.
-    Definition Pos (s : Shape) : Type := Void.
-  End One.
+  (* Container instance for a functor [One] with exactly one element. *)
+  Definition Shape : Type := unit.
+  Definition Pos (s : Shape) : Type := Void.
 
   (* Type synonym and smart constructors for the maybe monad. *)
   Module Import Monad.

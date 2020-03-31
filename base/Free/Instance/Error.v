@@ -4,11 +4,10 @@ From Base Require Import Free.
 
 Module Error.
   (* TODO Container instance that corresponds to [Const]. *)
-  Module Import Const.
+  (* Definition Shape : Type := (* ... *). *)
+  (* Definition Pos (s : Shape) : Type := (* ... *). *)
 
-  End Const.
-
-  (* TODO Type synonym and smart constructors for the identity monad. *)
+  (* TODO Type synonym and smart constructors for the error monad. *)
   Module Import Monad.
 
   End Monad.

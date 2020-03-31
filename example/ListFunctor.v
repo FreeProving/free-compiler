@@ -1,19 +1,31 @@
 From Base Require Import Free Prelude Test.QuickCheck.
+From Base Require Import Free.Instance.Identity.
+From Base Require Import Free.Instance.Maybe.
 From Generated Require Import ListFunctor.
 
 Require Import Coq.Logic.FunctionalExtensionality.
 
-Theorem prop_map_id : forall (Shape : Type) (Pos : Shape -> Type) {t0 : Type},
-  @eqProp Shape Pos (Free Shape Pos (List Shape Pos t0) -> Free Shape Pos (List Shape Pos t0)) 
-  (pure (fun x_0 => @map Shape Pos t0 t0 (pure (fun x_1 => @id Shape Pos t0 x_1)) x_0)) 
-  (pure (fun x_0 => @id Shape Pos (List Shape Pos t0) x_0)).
+(* If you want to proof a QuickCheck property for every effect,
+   just apply [quickCheck] *)
+Theorem prop_map_id_theorem : quickCheck prop_map_id.
 Proof.
-  intros Shape Pos t0. unfold eqProp. unfold id.
+  simpl. intros Shape Pos t0. unfold id.
   apply f_equal. extensionality fxs.
-  induction fxs using FreeList_ind 
+  induction fxs using FreeList_ind
     with (P := fun xs => map_1 Shape Pos t0 t0 (pure (fun x_1 : Free Shape Pos t0 => x_1)) xs = pure xs).
   - (* fxs = pure nil *)              simpl. reflexivity.
   - (* fxs = pure (cons fxs1 fxs2) *) simpl. unfold Cons. do 2 apply f_equal. apply IHfxs1.
   - (* fxs = pure xs *)               simpl. apply IHfxs.
   - (* fxs = impure s pf *)           simpl. apply f_equal. extensionality p. apply H.
 Qed.
+
+(* If you want to proof the QuickCheck property for specific effetcs, simply
+   pass [Shape] and [Pos] explicitly to the QuickCheck property and apply
+   [quickCheck] as usual.
+   In this case we can reuse the proof from above, because the functor law
+   holds for lists regardless of the effect. *)
+Theorem prop_map_id_total : quickCheck (@prop_map_id Identity.Shape Identity.Pos).
+Proof. apply prop_map_id_theorem. Qed.
+
+Theorem prop_map_id_partial : quickCheck (@prop_map_id Maybe.Shape Maybe.Pos).
+Proof. apply prop_map_id_theorem. Qed.
