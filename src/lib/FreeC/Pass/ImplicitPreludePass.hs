@@ -48,6 +48,7 @@ module FreeC.Pass.ImplicitPreludePass
   )
 where
 
+import qualified FreeC.IR.Base.Prelude         as HS.Prelude
 import           FreeC.IR.SrcSpan
 import qualified FreeC.IR.Syntax               as HS
 import           FreeC.Pass
@@ -66,8 +67,8 @@ addImplicitPreludeImport imports | importsPrelude = imports
  where
   -- | Whether there is an explicit import for the @Prelude@ module.
   importsPrelude :: Bool
-  importsPrelude = HS.preludeModuleName `elem` map HS.importName imports
+  importsPrelude = HS.Prelude.modName `elem` map HS.importName imports
 
   -- | An explicit import for the @Prelude@ module.
   preludeImport :: HS.ImportDecl
-  preludeImport = HS.ImportDecl NoSrcSpan HS.preludeModuleName
+  preludeImport = HS.ImportDecl NoSrcSpan HS.Prelude.modName

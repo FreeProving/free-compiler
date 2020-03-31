@@ -123,6 +123,8 @@ library freec-internal
                       , FreeC.Monad.Converter
                       , FreeC.Monad.Class.Hoistable
                       , FreeC.Monad.Reporter
+                      , FreeC.IR.Base.Prelude
+                      , FreeC.IR.Base.Test.QuickCheck
                       , FreeC.IR.DependencyGraph
                       , FreeC.IR.Inlining
                       , FreeC.IR.Reference
@@ -130,6 +132,15 @@ library freec-internal
                       , FreeC.IR.Subst
                       , FreeC.IR.Subterm
                       , FreeC.IR.Syntax
+                      , FreeC.IR.Syntax.Expr
+                      , FreeC.IR.Syntax.FuncDecl
+                      , FreeC.IR.Syntax.Module
+                      , FreeC.IR.Syntax.Name
+                      , FreeC.IR.Syntax.Pragma
+                      , FreeC.IR.Syntax.Type
+                      , FreeC.IR.Syntax.TypeDecl
+                      , FreeC.IR.Syntax.TypeSchema
+                      , FreeC.IR.Syntax.TypeVarDecl
                       , FreeC.IR.TypeSynExpansion
                       , FreeC.IR.Unification
                       , FreeC.Pass
