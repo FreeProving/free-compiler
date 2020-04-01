@@ -72,11 +72,11 @@ Qed.
 Use your favorite editor with Coq integration to carry out the proof.
 See [`example/Proofs/AppendAssocProofs.v`][] where we have carried out the proof for `append_assocs`.
 Proving the associativity of `append` requires some auxiliary lemmas.
-A simpler [example][`example/Proofs/ListFunctor.hs`] for proving a QuickCheck property can be found in [`example/Proofs/ListFunctorProofs.v`][] where we proved that list's satisfy the functor law.
+A simpler [example][`example/Proofs/ListFunctor.hs`] for proving a QuickCheck property can be found in [`example/Proofs/ListFunctorProofs.v`][] where we proved that lists satisfy the functor law.
 
 ## Non-Effect Generic Proofs
 
-The proves above have in common that they state a property that holds regardless of the effect.
+The proofs above have in common that they state a property that holds regardless of the effect.
 This is not always the case, though.
 
 Consider the `reverse` function which reverses a list for example.
