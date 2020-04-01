@@ -131,9 +131,9 @@ Qed.
 
 As usual the full proofs can be found in [`example/Proofs/ReverseInvolutiveProofs.v`][].
 
-[`example/Proofs/AppendAssoc.hs`]: https://github.com/FreeProving/free-compiler/blob/master/example/Proofs/AppendAssoc.hs
-[`example/Proofs/AppendAssocProofs.v`]: https://github.com/FreeProving/free-compiler/blob/master/example/Proofs/AppendAssocProofs.v
-[`example/Proofs/ListFunctor.hs`]: https://github.com/FreeProving/free-compiler/blob/master/example/Proofs/ListFunctor.hs
-[`example/Proofs/ListFunctorProofs.v`]: https://github.com/FreeProving/free-compiler/blob/master/example/Proofs/ListFunctorProofs.v
-[`example/Proofs/ReverseInvolutive.hs`]: https://github.com/FreeProving/free-compiler/blob/master/example/Proofs/ReverseInvolutive.hs
-[`example/Proofs/ReverseInvolutiveProofs.v`]: https://github.com/FreeProving/free-compiler/blob/master/example/Proofs/ReverseInvolutiveProofs.v
+[`example/Proofs/AppendAssoc.hs`]: ../example/Proofs/AppendAssoc.hs
+[`example/Proofs/AppendAssocProofs.v`]: ../example/Proofs/AppendAssocProofs.v
+[`example/Proofs/ListFunctor.hs`]: ../example/Proofs/ListFunctor.hs
+[`example/Proofs/ListFunctorProofs.v`]: ../example/Proofs/ListFunctorProofs.v
+[`example/Proofs/ReverseInvolutive.hs`]: ../example/Proofs/ReverseInvolutive.hs
+[`example/Proofs/ReverseInvolutiveProofs.v`]: ../example/Proofs/ReverseInvolutiveProofs.v
