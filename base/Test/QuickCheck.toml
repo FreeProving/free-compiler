@@ -37,7 +37,7 @@ exported-values = [
 [[functions]]
   haskell-type    = 'Prelude.Bool -> Test.QuickCheck.Property'
   haskell-name    = 'Test.QuickCheck.property'
-  coq-name        = 'property'
+  coq-name        = 'boolProp'
   arity           = 1
   partial         = false
   needs-free-args = true

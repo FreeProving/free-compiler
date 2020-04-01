@@ -7,22 +7,22 @@ Definition Property (Shape : Type) (Pos : Shape -> Type) := Prop.
 (* * [Testable] type class *)
 
 (* [class Testable prop where property :: prop -> Property] *)
-Class Testable (prop : Type) := { property' : prop -> Prop }.
+Class Testable (prop : Type) := { property : prop -> Prop }.
 
 (* [instance Testable Property] *)
 Instance TestableProperty
   : Testable Prop
- := { property' p := p }.
+ := { property p := p }.
 
 (* [instance Testable Bool] *)
 Instance TestableBool
   : Testable bool
- := { property' b := b = true }.
+ := { property b := b = true }.
 
 (* [instance Testable b => Testable (a -> b)] *)
 Instance TestableFunction (A : Type) (B : Type) (T_B : Testable B)
   : Testable (A -> B)
- := { property' f := forall x, property' (f x) }.
+ := { property f := forall x, property (f x) }.
 
 (* Helper instance for dependent types.
    This allows us to use [quickCheck] both for proving properties for specific
@@ -31,7 +31,7 @@ Instance TestableFunction (A : Type) (B : Type) (T_B : Testable B)
 Instance TestableForall
   (A : Type) (B : A -> Type) (T_Bx : forall x, Testable (B x))
   : Testable (forall x, B x)
- := { property' f := forall x, property' (f x) }.
+ := { property f := forall x, property (f x) }.
 
 (* Helper instance for monadically lifted values.
 
@@ -52,25 +52,17 @@ Instance TestableForall
 Instance TestableFree (Shape : Type) (Pos : Shape -> Type)
                       (A : Type) (T_A : Testable A)
   : Testable (Free Shape Pos A)
- := { property' fp := match fp with
-                      | pure p     => property' p
+ := { property fp := match fp with
+                      | pure p     => property p
                       | impure _ _ => False
                       end }.
-
-(* [property :: Bool -> Property]
-   Since we do not support type classes is Haskell, only the [Testable] type
-   class instance for [Bool] is accessable from Haskell. *)
-Definition property (Shape : Type) (Pos : Shape -> Type)
-                    (fb : Free Shape Pos (Bool Shape Pos))
-  : Free Shape Pos (Property Shape Pos)
- := pure (property' fb).
 
 (* [quickCheck :: Testable a => a -> IO ()]
    In Haskell this function is used to test a QuickCheck property.
    We are reusing the name to convert the computation of a quickCheck
    property to a Coq property that can actually be proven. *)
 Definition quickCheck {A : Type} {T_A : Testable A} (x : A) : Prop
- := property' x.
+ := property x.
 
 (* * Constructing QuickCheck Properties *)
 Section SecQuickCheck.
@@ -80,39 +72,46 @@ Section SecQuickCheck.
   Notation "'Property''" := (Property Shape Pos).
   Notation "'Bool''" := (Bool Shape Pos).
 
-  (* [(==>) :: Bool -> Property -> Property] *)
-  Definition preProp (b : Free' Bool') (p : Free' Property')
+  (* [property :: Bool -> Property]
+     Since we do not support type classes is Haskell, only the [Testable] type
+     class instance for [Bool] is accessable from Haskell. *)
+  Definition boolProp (fb : Free' Bool')
     : Free' Property'
-   := pure (property' b -> property' p).
+   := pure (property fb).
+
+  (* [(==>) :: Bool -> Property -> Property] *)
+  Definition preProp (fb : Free' Bool') (p : Free' Property')
+    : Free' Property'
+   := pure (property fb -> property p).
 
   (* [(===) :: a -> a -> Property] *)
-  Definition eqProp (A : Type) (x : Free' A) (y : Free' A)
+  Definition eqProp (A : Type) (fx : Free' A) (fy : Free' A)
     : Free' Property'
-   := pure (x = y).
+   := pure (fx = fy).
 
   (* [(=/=) :: a -> a -> Property] *)
-  Definition neqProp (A : Type) (x : Free' A) (y : Free' A)
+  Definition neqProp (A : Type) (fx : Free' A) (fy : Free' A)
     : Free' Property'
-   := pure (x <> y).
+   := pure (fx <> fy).
 
   (* [(.&&.) :: Property -> Property -> Property] *)
-  Definition conjProp (p1 : Free' Property') (p2 : Free' Property')
+  Definition conjProp (fp1 : Free' Property') (fp2 : Free' Property')
     : Free' Property'
-   := pure (property' p1 /\ property' p2).
+   := pure (property fp1 /\ property fp2).
 
   (* [(.||.) :: Property -> Property -> Property] *)
-  Definition disjProp (p1 : Free' Property') (p2 : Free' Property')
+  Definition disjProp (fp1 : Free' Property') (fp2 : Free' Property')
     : Free' Property'
-   := pure (property' p1 \/ property' p2).
+   := pure (property fp1 \/ property fp2).
 
 End SecQuickCheck.
 
-(* Helper lemma to avoid the [match] expression introduced by [property']. *)
+(* Helper lemma to avoid the [match] expression introduced by [property]. *)
 Lemma pure_bool_property :
   forall (Shape : Type)
          (Pos : Shape -> Type)
          (fb : Free Shape Pos (Bool Shape Pos)),
-  property' fb <-> fb = True_ Shape Pos.
+  property fb <-> fb = True_ Shape Pos.
 Proof.
   simpl. intros Shape Pos fb. split; intros H.
   - (* -> *) destruct fb as [b |].
