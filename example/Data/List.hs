@@ -7,6 +7,12 @@ module Data.List where
 -- Basic functions                                                           --
 -------------------------------------------------------------------------------
 
+-- | Append two lists, i.e.,
+--
+--   @
+--   [x1, ..., xm] ++ [y1, ..., yn] == [x1, ..., xm, y1, ..., yn]
+--   [x1, ..., xm] ++ [y1, ...] == [x1, ..., xm, y1, ...]
+--   @
 append :: [a] -> [a] -> [a]
 append xs ys = case xs of
   []      -> ys

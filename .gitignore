@@ -25,6 +25,7 @@ Makefile.conf
 *.vo
 *.aux
 *.d
+\#*#
 
 ### LaTeX ###
 

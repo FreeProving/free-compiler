@@ -1,7 +1,8 @@
 From Base Require Import Free Prelude Test.QuickCheck.
 From Base Require Import Free.Instance.Identity.
 From Base Require Import Free.Instance.Maybe.
-From Generated Require Import ListFunctor.
+
+From Generated Require Import Proofs.ListFunctor.
 
 Require Import Coq.Logic.FunctionalExtensionality.
 
@@ -12,7 +13,7 @@ Proof.
   simpl. intros Shape Pos t0. unfold id.
   apply f_equal. extensionality fxs.
   induction fxs using FreeList_ind
-    with (P := fun xs => map_1 Shape Pos t0 t0 (pure (fun x_1 : Free Shape Pos t0 => x_1)) xs = pure xs).
+    with (P := fun xs => map Shape Pos (pure (fun x => x)) (pure xs) = pure xs).
   - (* fxs = pure nil *)              simpl. reflexivity.
   - (* fxs = pure (cons fxs1 fxs2) *) simpl. unfold Cons. do 2 apply f_equal. apply IHfxs1.
   - (* fxs = pure xs *)               simpl. apply IHfxs.
