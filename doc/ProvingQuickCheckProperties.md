@@ -8,9 +8,50 @@ Due to the overhead involved with our translation, stating propositions in Coq d
 Therefore, we provide a mechanism for deriving Coq properties from QuickCheck properties.
 This allows us to state the proposition in Haskell instead of Coq.
 
+## Writing QuickCheck Properties
+
+The functions from the `Test.QuickCheck` module listed below are supported by our compiler and can be used to construct properties.
+In QuickCheck there is the `Testable` type class.
+Since our compiler does not support type classes, the types of `Testable` arguments are instantiated with `Property`.
+In order to pass boolean values to such arguments (`Bool` has a `Testable` instance), the `property` function from `Testable` is exposed for `Bool`.
+
+ - `property :: Bool -> Property`  
+   Converts a boolean value to a property that is satisfied if and only if the value is `True` and does not have an effect.
+   `property b` is corresponds to `b = True_ Shape Pos` in Coq.
+
+ - `(==>) :: Bool -> Property -> Property`  
+   Creates an implication in Coq (i.e., `->`).
+   The premise of the implication is that the boolean value is `True` and does not have an effect (like `property`).
+   The conclusion is that the second argument is an pure (i.e., effect free) computation of a property that holds.
+
+ - `(===) :: a -> a -> Property`  
+   Creates a property that tests whether the given arguments are structurally equal (i.e., `=` in Coq).
+   If the arguments have effects, they must have the same effect.
+   Since we do not require an `Eq` instance, you can even compare functions.
+
+ - `(=/=) :: a -> a -> Property`  
+   The negation of `(===)` (i.e., `<>` in Coq).
+
+ - `(.&&.) :: Property -> Property -> Property`  
+   Creates the conjunction of the given properties (i.e., `/\` in Coq).
+   Both arguments must be pure computations of properties.
+
+ - `(.||.) :: Property -> Property -> Property`  
+   Creates the disjunction of the given properties (i.e., `\/` in Coq).
+   Both arguments must be pure computations of properties.
+
+Furthermore, there is the function `quickCheck` in our Coq version of the `Test.QuickCheck` module.
+In Haskell `quickCheck` is used to test whether a QuickCheck property holds and has the type `Testable prop => prop -> IO ()`.
+In Coq we are using it to convert a QuickCheck property to a Coq property (i.e., a `Prop`) that can be used in `Theorem` sentences.
+The argument does not have to be a `Property` since we have recreated the `Testable` type class in Coq.
+If the argument of `quickCheck` is a monadic value, it must not have an effect and is converted recursively.
+If the argument is a function, the function arguments are universally quantified and the result is converted recursively.
+
+How QuickCheck properties can be proven in Coq is demonstrated below.
+
 ## Effect Generic Proofs
 
-For example, suppose we want to prove that list concatenation is associative.
+Suppose we want to prove that list concatenation is associative.
 First we have to define list concatenation since `(++)` is not yet part of the version of the `Prelude` that is included with the compiler.
 
 ```haskell
@@ -70,7 +111,7 @@ Qed.
 ```
 
 Use your favorite editor with Coq integration to carry out the proof.
-See [`example/Proofs/AppendAssocProofs.v`][] where we have carried out the proof for `append_assocs`.
+See [`example/Proofs/AppendAssocProofs.v`][] where we have carried out the proof for `append_assocs` already.
 Proving the associativity of `append` requires some auxiliary lemmas.
 A simpler [example][`example/Proofs/ListFunctor.hs`] for proving a QuickCheck property can be found in [`example/Proofs/ListFunctorProofs.v`][] where we proved that lists satisfy the functor law.
 
@@ -81,7 +122,7 @@ This is not always the case, though.
 
 Consider the `reverse` function which reverses a list for example.
 One would expect that reversing a list twice yields the original list, i.e., that `reverse` is its own inverse.
-However, this is true in a total setting only.
+However, while this is true in a total setting, it is not if we consider partiality.
 We can use the same approach discussed above to proof this fact.
 
 Again we start by defining `reverse` and stating our proposition in Haskell (See [`Proofs.ReverseInvolutive`][`example/Proofs/ReverseInvolutive.hs`] for details).
@@ -104,7 +145,7 @@ ghci ./example/Proofs/ReverseInvolutive.hs
 +++ OK, passed 100 tests.
 ```
 
-This happens since the `Arbitrary` instance for lists considers total values only and never yields list of the form `x : ⊥`.
+This happens since the `Arbitrary` instance for lists considers total values only and never yields lists of the form `x : ⊥`.
 We can proof that reverse is not involutive in a partial setting by instantiating `prop_reverse_involutive` with the `Maybe` monad and negating the property returned by `quickCheck`.
 
 ```coq
