@@ -272,7 +272,7 @@ Similar to how we discourage using `cabal new-run` during development to run the
    ```
 
    The script simulates the CI pipeline locally but runs much faster since there is no overhead for creating test environments, uploading and downloading artifacts, initializing the cache etc.
-   If the script succeeds, it is not guaranteed that the CI pipeline will defiantly pass, but it should catch the most common mistakes.
+   If the script succeeds, it is not guaranteed that the CI pipeline will definitely pass, but it should catch the most common mistakes.
 
 ## License
 
