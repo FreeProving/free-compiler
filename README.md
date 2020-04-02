@@ -279,22 +279,48 @@ Similar to how we discourage using `cabal new-run` during development to run the
 The Free Compiler is licensed under The 3-Clause BSD License.  
 See the LICENSE file for details.
 
-[doc]: https://github.com/FreeProving/free-compiler/tree/master/doc
-[doc/ModuleInterfaceFileFormat.md]: https://github.com/FreeProving/free-compiler/blob/master/doc/ModuleInterfaceFileFormat.md
-[doc/ExperimentalFeatures/PatternMatchingCompilation.md]: https://github.com/FreeProving/free-compiler/blob/master/doc/ExperimentalFeatures/PatternMatchingCompilation.md
+[doc]:
+  https://github.com/FreeProving/free-compiler/tree/master/doc
+  "Free Compiler Documentation"
+[doc/ModuleInterfaceFileFormat.md]:
+  https://github.com/FreeProving/free-compiler/blob/master/doc/ModuleInterfaceFileFormat.md
+  "Free Compiler Documentation — Module Interface File Format"
+[doc/ExperimentalFeatures/PatternMatchingCompilation.md]:
+  https://github.com/FreeProving/free-compiler/blob/master/doc/ExperimentalFeatures/PatternMatchingCompilation.md
+  "Free Compiler Documentation — Pattern Matching Compilation"
 
-[gh-pages/haddock]: https://freeproving.github.io/free-compiler/docs/master
+[gh-pages/haddock]:
+  https://freeproving.github.io/free-compiler/docs/master
+  "Free Compiler Haddock Documentation"
 
-[package/haskell-src-transformations]: https://github.com/FreeProving/haskell-src-transformations
-[package/haskell-src-exts]: https://hackage.haskell.org/package/haskell-src-exts
+[package/haskell-src-transformations]:
+  https://github.com/FreeProving/haskell-src-transformations
+  "haskell-src-transformations"
+[package/haskell-src-exts]:
+  https://hackage.haskell.org/package/haskell-src-exts
+  "haskell-src-exts"
 
-[paper/DylusEtAl2018]: https://arxiv.org/abs/1805.08059
+[paper/DylusEtAl2018]:
+  https://arxiv.org/abs/1805.08059
+  "One Monad to Prove Them All"
 
-[software/haddock]: https://www.haskell.org/haddock/
-[software/ghc]: https://www.haskell.org/ghc/
-[software/cabal]: https://www.haskell.org/cabal/
-[software/coq]: https://coq.inria.fr/download
+[software/haddock]:
+  https://www.haskell.org/haddock/
+  "Haddock"
+[software/ghc]:     
+  https://www.haskell.org/ghc/
+  "The Glasgow Haskell Compiler"
+[software/cabal]:
+  https://www.haskell.org/cabal/
+  "Common Architecture for Building Applications and Libraries"
+[software/coq]:
+  https://coq.inria.fr/download
+  "The Coq Proof Assistant"
 
-[tag/v0.1.0.0]: https://github.com/FreeProving/free-compiler/tree/v0.1.0.0
+[tag/v0.1.0.0]:
+  https://github.com/FreeProving/free-compiler/tree/v0.1.0.0
+  "Free Compiler v0.1.0.0"
 
-[thesis/Andresen2019]: https://freeproving.github.io/free-compiler/thesis/Andresen2019.pdf
+[thesis/Andresen2019]:
+  https://freeproving.github.io/free-compiler/thesis/Andresen2019.pdf
+  "Implementation of a Monadic Translation of Haskell Code to Coq"
