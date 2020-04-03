@@ -140,8 +140,8 @@ data Token
 --   token is returned instead.
 mkIdentToken :: String -> Token
 mkIdentToken ident = case lookup ident keywords of
-  Nothing | isUpper (head (ident)) -> ConIdent ident
-          | otherwise              -> VarIdent ident
+  Nothing | isUpper (head ident) -> ConIdent ident
+          | otherwise            -> VarIdent ident
   Just keyword -> Keyword keyword
 
 -- | Constructs a 'ConSymbol' or 'VarSymbol' for the given symbolic name.

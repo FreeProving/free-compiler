@@ -16,6 +16,10 @@
 - ignore: {name: "Redundant $"}
 - ignore: {name: "Redundant do"}
 
+# We don't use the `LambdaCase` language extension as it does not work with
+# out code formatter at the moment.
+- ignore: {name: "Use lambda-case"}
+
 # Aliases for qualified imports.
 - modules:
   - {name: [FreeC.Backend.Coq.Base], as: CoqBase}

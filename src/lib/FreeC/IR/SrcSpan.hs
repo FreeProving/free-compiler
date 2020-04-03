@@ -123,7 +123,7 @@ convertSrcSpanWithCode srcFiles = addSourceCode srcFiles . convertSrcSpan
 -- | Adds source code to the given source span if it does not have source code
 --   already.
 addSourceCode :: SrcFileMap -> SrcSpan -> SrcSpan
-addSourceCode srcFiles srcSpan@(SrcSpan { srcSpanCodeLines = [] }) = srcSpan
+addSourceCode srcFiles srcSpan@SrcSpan { srcSpanCodeLines = [] } = srcSpan
   { srcSpanCodeLines =
     take (srcSpanEndLine srcSpan - srcSpanStartLine srcSpan + 1)
     $ drop (srcSpanStartLine srcSpan - 1)
