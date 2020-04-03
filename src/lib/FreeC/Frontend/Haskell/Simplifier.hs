@@ -35,7 +35,7 @@ import           Data.Maybe                     ( fromJust
 import qualified Language.Haskell.Exts.Syntax  as H
 
 import           FreeC.Environment.Fresh
-import           FreeC.Frontend.PragmaParser
+import           FreeC.Frontend.IR.PragmaParser
 import           FreeC.IR.Reference             ( freeTypeVars )
 import           FreeC.IR.SrcSpan
 import qualified FreeC.IR.Syntax               as HS

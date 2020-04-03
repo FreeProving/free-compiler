@@ -1,15 +1,15 @@
 -- | This module contains the parser for custom pragmas.
 --
---   All custom pragmas have the format @{-\# HASKELL_TO_COQ ... \#-}@ (see
+--   All custom pragmas have the format @{-\# FreeC ... \#-}@ (see
 --   'customPragmaPattern').
 --
 --   The following custom pragmas are supported:
 --
---     * @{-\# HASKELL_TO_COQ <function> DECREASES ON <argument> \#-}@
+--     * @{-\# FreeC <function> DECREASES ON <argument> \#-}@
 --       annotates the decreasing argument of a function declared in
 --       the current module.
 
-module FreeC.Frontend.PragmaParser
+module FreeC.Frontend.IR.PragmaParser
   ( parseCustomPragmas
   )
 where

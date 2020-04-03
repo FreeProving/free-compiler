@@ -14,8 +14,8 @@
 --   Furthermore, the intermediate language does not implement Haskell's
 --   layout rule.
 --
---   The parser does not support sorce spans at the moment, all generated nodes
---   are annotated with 'NoSrcSpan'.
+--   The parser does not support source spans at the moment, all generated
+--   nodes are annotated with 'NoSrcSpan'.
 
 module FreeC.Frontend.IR.Parser
   ( Parseable(..)
@@ -325,13 +325,6 @@ topLevelDeclParser = Parsec.choice
 -- | Modules can be parsed.
 instance Parseable HS.Module where
   parseIR' = moduleParser
-
--------------------------------------------------------------------------------
--- Pragmas                                                                   --
--------------------------------------------------------------------------------
-
--- TODO implement pragma parser here instead of in
---      "FreeC.Frontend.PragmaParser".
 
 -------------------------------------------------------------------------------
 -- Imports                                                                   --

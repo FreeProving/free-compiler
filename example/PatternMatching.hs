@@ -38,7 +38,7 @@ zip (a : as) (b : bs) = (a, b) : zip as bs
 -- third rule is expanded to @y : ys@ on the right-hand side. The
 -- result of this substitution is that @intercalate@ does not decrease
 -- on its second argument anymore.
--- Even if we add {-# HASKELL_TO_COQ intercalate DECREASES ON ARGUMENT 2 #-}
+-- Even if we add {-# FreeC intercalate DECREASES ON ARGUMENT 2 #-}
 -- to bypass out termination checker, Coq's termination checker rejects the
 -- generated code.
 

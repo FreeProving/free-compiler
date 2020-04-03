@@ -40,7 +40,7 @@ testIdentifyDecArgs = do
     $ do
         ast <- parseTestModule
           [ "data Rose a = Rose [Rose a] a"
-          , "{-# HASKELL_TO_COQ mapRose DECREASES ON r #-}"
+          , "{-# FreeC mapRose DECREASES ON r #-}"
           , "mapRose :: (a -> b) -> Rose a -> Rose b"
           , "mapRose f r ="
           , "  case r of"
@@ -58,7 +58,7 @@ testIdentifyDecArgs = do
     $ do
         ast <- parseTestModule
           [ "data Rose a = Rose [Rose a] a"
-          , "{-# HASKELL_TO_COQ mapRose DECREASES ON ARGUMENT 2 #-}"
+          , "{-# FreeC mapRose DECREASES ON ARGUMENT 2 #-}"
           , "mapRose :: (a -> b) -> Rose a -> Rose b"
           , "mapRose f r ="
           , "  case r of"

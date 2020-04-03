@@ -239,7 +239,7 @@ identifyDecArgs decls = do
       ++ showPretty (map HS.funcDeclIdent decls)
       ++ ".\n"
       ++ "Consider adding a "
-      ++ "{-# HASKELL_TO_COQ <function> DECREASES ON <argument> #-} "
+      ++ "{-# FreeC <function> DECREASES ON <argument> #-} "
       ++ "annotation."
 
 -------------------------------------------------------------------------------

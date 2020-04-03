@@ -38,13 +38,13 @@ As it is infeasible to reimplement Coq's entire termination checker, the user ha
 For this purpose, we provide a custom pragma with the following format.
 
 ```
-{-# HASKELL_TO_COQ <function> DECREASES ON <argument> #-}
+{-# FreeC <function> DECREASES ON <argument> #-}
 ```
 
 For instance, the user can tell our compiler that `mapRose` decreases on `r` by adding the following line to the example above.
 
 ```
-{-# HASKELL_TO_COQ mapRose DECREASES ON r #-}
+{-# FreeC mapRose DECREASES ON r #-}
 ```
 
 The function compiles successfully now.
@@ -61,14 +61,14 @@ mapRose' f (Rose x rs) = Rose (f x) (map (mapRose' f) rs)
 For this reason, the decreasing argument can also be specified by its index using a pragma of the following format.
 
 ```
-{-# HASKELL_TO_COQ <function> DECREASES ON ARGUMENT <index> #-}
+{-# FreeC <function> DECREASES ON ARGUMENT <index> #-}
 ```
 
 Where `<index>` is the position of the decreasing argument in the parameter list.
 Counting starts at `1`, i.e. the function has index `1` and the tree has index `2` in the example above.
 
 ```
-{-# HASKELL_TO_COQ mapRose' DECREASES ON ARGUMENT 2 #-}
+{-# FreeC mapRose' DECREASES ON ARGUMENT 2 #-}
 ```
 
 [`doc/ExperimentalFeatures/PatternMatchingCompilation.md`]: https://github.com/FreeProving/free-compiler/blob/master/doc/ExperimentalFeatures/PatternMatchingCompilation.md

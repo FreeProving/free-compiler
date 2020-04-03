@@ -203,14 +203,14 @@ instance Pretty Comment where
 -- Pragmas                                                                   --
 -------------------------------------------------------------------------------
 
--- | All custom pragmas of the compiler start with @HASKELL_TO_COQ@.
+-- | All custom pragmas of the compiler start with @FreeC@.
 customPragmaPrefix :: String
-customPragmaPrefix = "HASKELL_TO_COQ"
+customPragmaPrefix = "FreeC"
 
--- | Data type for custom @{-\# HASKELL_TO_COQ ... \#-}@ pragmas.
+-- | Data type for custom @{-\# FreeC ... \#-}@ pragmas.
 data Pragma
-  -- | A @{-\# HASKELL_TO_COQ <function> DECREASES ON <argument> \#-}@ or
-  --   @{-\# HASKELL_TO_COQ <function> DECREASES ON ARGUMENT <index> \#-}@
+  -- | A @{-\# FreeC <function> DECREASES ON <argument> \#-}@ or
+  --   @{-\# FreeC <function> DECREASES ON ARGUMENT <index> \#-}@
   --   pragma.
   = DecArgPragma { pragmaSrcSpan        :: SrcSpan
                  , decArgPragmaFuncName :: QName
@@ -218,7 +218,7 @@ data Pragma
                  }
  deriving (Eq, Show)
 
--- | Pretty instance for custom @{-\# HASKELL_TO_COQ ... \#-}@ pragmas.
+-- | Pretty instance for custom @{-\# FreeC ... \#-}@ pragmas.
 instance Pretty Pragma where
   pretty (DecArgPragma _ funcName (Left argName)) = prettyPragma
     (pretty funcName <+> prettyString "DECREASES ON" <+> prettyString argName)
@@ -228,7 +228,7 @@ instance Pretty Pragma where
     <+> pretty argIndex
     )
 
--- | Pretty prints a custom @{-\# HASKELL_TO_COQ ... \#-}@ pragma with the given
+-- | Pretty prints a custom @{-\# FreeC ... \#-}@ pragma with the given
 --   contents.
 prettyPragma :: Doc -> Doc
 prettyPragma contents =

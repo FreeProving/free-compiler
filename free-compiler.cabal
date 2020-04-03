@@ -122,9 +122,9 @@ library freec-internal
                       , FreeC.Frontend.Haskell.Simplifier
                       , FreeC.Frontend.Haskell.SrcSpanConverter
                       , FreeC.Frontend.IR.Parser
+                      , FreeC.Frontend.IR.PragmaParser
                       , FreeC.Frontend.IR.Scanner
                       , FreeC.Frontend.IR.Token
-                      , FreeC.Frontend.PragmaParser
                       , FreeC.Monad.Converter
                       , FreeC.Monad.Class.Hoistable
                       , FreeC.Monad.Reporter

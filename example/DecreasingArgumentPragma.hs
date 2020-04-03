@@ -12,11 +12,11 @@ map f xs = case xs of
 
 data Rose a = Rose a [Rose a]
 
-{-# HASKELL_TO_COQ mapRose DECREASES ON r #-}
+{-# FreeC mapRose DECREASES ON r #-}
 mapRose :: (a -> b) -> Rose a -> Rose b
 mapRose f r = case r of
   (Rose x rs) -> Rose (f x) (map (mapRose f) rs)
 
-{-# HASKELL_TO_COQ mapRose' DECREASES ON ARGUMENT 2 #-}
+{-# FreeC mapRose' DECREASES ON ARGUMENT 2 #-}
 mapRose' :: (a -> b) -> Rose a -> Rose b
 mapRose' f (Rose x rs) = Rose (f x) (map (mapRose' f) rs)
