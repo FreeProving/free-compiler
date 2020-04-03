@@ -4,6 +4,8 @@ import           FreeC.Analysis.RecursionAnalysisTests
 import           FreeC.Analysis.TypeInferenceTests
 import           FreeC.Backend.Coq.ConverterTests
 import           FreeC.Environment.RenamerTests
+import           FreeC.Frontend.IR.ParserTests
+import           FreeC.Frontend.IR.ScannerTests
 import           FreeC.IR.ReferenceTests
 import           FreeC.IR.SubstTests
 import           FreeC.IR.SubtermTests
@@ -14,6 +16,8 @@ import           FreeC.Pass.PartialityAnalysisPassTests
 -- | Runs all unit tests for the Free Compiler.
 main :: IO ()
 main = hspec $ do
+  testIRScanner
+  testIRParser
   testReference
   testPartialityAnalysisPass
   testRecursionAnalysis

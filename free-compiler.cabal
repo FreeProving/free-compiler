@@ -59,6 +59,8 @@ common deps
                      -- Pretty printing:
                    , text                        ==1.2.*
                    , wl-pprint-text              ==1.2.*
+                     -- Parsing:
+                   , parsec                      ==3.1.*
                      -- Utilities:
                    , bytestring                  ==0.10.*
                    , casing                      ==0.1.*
@@ -68,15 +70,14 @@ common deps
                      -- IO:
                    , filepath                    ==1.4.*
                    , directory                   ==1.3.*
-                     -- Configuration.
+                     -- Configuration:
                    , aeson                       ==1.4.*
                    , aeson-pretty                ==0.8.*
                    , htoml                       ==1.0.*
-                   , parsec                      ==3.1.*
                      -- ASTs:
                    , haskell-src-exts            ==1.23.*
                    , language-coq                ==0.0.*
-                   -- Pattrn matching compiler.
+                   -- Pattrn matching compiler:
                    , haskell-src-transformations ==0.1.*
   default-language:  Haskell2010
   ghc-options:       -Wall
@@ -120,6 +121,9 @@ library freec-internal
                       , FreeC.Frontend.Haskell.Pretty
                       , FreeC.Frontend.Haskell.Simplifier
                       , FreeC.Frontend.Haskell.SrcSpanConverter
+                      , FreeC.Frontend.IR.Parser
+                      , FreeC.Frontend.IR.Scanner
+                      , FreeC.Frontend.IR.Token
                       , FreeC.Frontend.PragmaParser
                       , FreeC.Monad.Converter
                       , FreeC.Monad.Class.Hoistable
@@ -147,6 +151,7 @@ library freec-internal
                       , FreeC.Pass.ResolverPass
                       , FreeC.Pipeline
                       , FreeC.Pretty
+                      , FreeC.Util.Parsec
                       , FreeC.Util.Predicate
 
 executable freec
@@ -175,6 +180,8 @@ test-suite freec-unit-tests
                     , FreeC.Backend.Coq.Converter.TypeDeclTests
                     , FreeC.Backend.Coq.Converter.TypeTests
                     , FreeC.Environment.RenamerTests
+                    , FreeC.Frontend.IR.ParserTests
+                    , FreeC.Frontend.IR.ScannerTests
                     , FreeC.IR.ReferenceTests
                     , FreeC.IR.SubstTests
                     , FreeC.IR.SubtermTests

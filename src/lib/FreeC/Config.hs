@@ -10,17 +10,15 @@ where
 import qualified Data.Aeson                    as Aeson
 import qualified Data.Aeson.Encode.Pretty      as Aeson
 import qualified Data.ByteString.Lazy          as LazyByteString
-import           Data.Maybe                     ( fromMaybe )
 import           Data.String                    ( fromString )
 import qualified Data.Text                     as Text
 import           System.FilePath
-import qualified Text.Parsec.Error             as Parsec
-import qualified Text.Parsec.Pos               as Parsec
 import           Text.Toml                      ( parseTomlDoc )
 import qualified Text.Toml.Types               as Toml
 
 import           FreeC.IR.SrcSpan
 import           FreeC.Monad.Reporter
+import           FreeC.Util.Parsec
 
 -- | Loads a @.json@ or @.toml@ file and decodes its contents using
 --   the "Aeson" interface.
@@ -44,30 +42,11 @@ loadConfig filename = reportIOErrors $ do
 
 -- | Parses a @.toml@ configuration file with the given contents.
 decodeTomlConfig :: Aeson.FromJSON a => FilePath -> String -> Reporter a
-decodeTomlConfig filename contents =
-  case parseTomlDoc filename (Text.pack contents) of
-    Right document   -> decodeTomlDocument document
-    Left  parseError -> reportFatal $ Message
-      (convertParsecSrcSpan [(filename, lines contents)]
-                            (Parsec.errorPos parseError)
-      )
-      Error
-      ("Failed to parse config file: " ++ Parsec.showErrorMessages
-        msgOr
-        msgUnknown
-        msgExpecting
-        msgUnExpected
-        msgEndOfInput
-        (Parsec.errorMessages parseError)
-      )
+decodeTomlConfig filename contents = either
+  (reportParsecError (mkSrcFileMap [mkSrcFile filename contents]))
+  decodeTomlDocument
+  (parseTomlDoc filename (Text.pack contents))
  where
-  msgOr, msgUnknown, msgExpecting, msgUnExpected, msgEndOfInput :: String
-  msgOr         = "or"
-  msgUnknown    = "unknown parse error"
-  msgExpecting  = "expecting"
-  msgUnExpected = "unexpected"
-  msgEndOfInput = "end of input"
-
   -- | Decodes a TOML document using the "Aeson" interace.
   decodeTomlDocument :: Aeson.FromJSON a => Toml.Table -> Reporter a
   decodeTomlDocument document = case Aeson.fromJSON (Aeson.toJSON document) of
@@ -90,20 +69,3 @@ decodeJsonConfig filename contents =
 saveConfig :: Aeson.ToJSON a => FilePath -> a -> ReporterIO ()
 saveConfig filename =
   reportIOErrors . lift . LazyByteString.writeFile filename . Aeson.encodePretty
-
--- | Converts a Parsec 'Parsec.SourcePos' to a 'SrcSpan'.
-convertParsecSrcSpan
-  :: [(String, [String])] -- ^ A map of file names to lines of source code.
-  -> Parsec.SourcePos  -- ^ The original source span to convert.
-  -> SrcSpan
-convertParsecSrcSpan codeByFilename srcPos = SrcSpan
-  { srcSpanFilename    = Parsec.sourceName srcPos
-  , srcSpanStartLine   = Parsec.sourceLine srcPos
-  , srcSpanStartColumn = Parsec.sourceColumn srcPos
-  , srcSpanEndLine     = Parsec.sourceLine srcPos
-  , srcSpanEndColumn   = Parsec.sourceColumn srcPos
-  , srcSpanCodeLines   = return
-                         $ (!! Parsec.sourceLine srcPos)
-                         $ fromMaybe []
-                         $ lookup (Parsec.sourceName srcPos) codeByFilename
-  }

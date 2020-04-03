@@ -13,10 +13,10 @@
 --   library and source language. Ideally the compiler works with any language
 --   whose AST can be transformed into this intermediate representation.
 --
---   At the moment there is no parser for this AST. Instances of the AST are
----  usually created by converting an existing AST (e.g. a Haskell AST from
---   the @haskell-src-ext@ package). However, the AST can be pretty printed.
---   It's syntax is based on Haskell's syntax.
+--   A parser for the intermediate language and a description of its syntax
+--   can be found in "FreeC.Frontend.IR.Parser". While the intermediate
+--   language can be parsed, IR nodes are usually created by parsing another
+--   language and converting their AST to the IR AST.
 module FreeC.IR.Syntax where
 
 import           Control.Monad                  ( (>=>) )
@@ -659,7 +659,7 @@ untypedCon srcSpan conName = Con srcSpan conName Nothing
 untypedVar :: SrcSpan -> ConName -> Expr
 untypedVar srcSpan varName = Var srcSpan varName Nothing
 
--- | Smart constructor for 'app' without the last argument.
+-- | Smart constructor for 'App' without the last argument.
 --
 --   The type annotation is inferred from the callee's type annotation.
 --   If it is annotated with a function type, the  created expression
@@ -682,6 +682,14 @@ untypedApp srcSpan e1 e2 = App srcSpan e1 e2 appType
   maybeFuncResType :: Type -> Maybe Type
   maybeFuncResType (FuncType _ _ resType) = Just resType
   maybeFuncResType _                      = Nothing
+
+-- | Smart constructor for 'TypeAppExpr' without the last argument.
+--
+--   The type annotation from the expression which is visibly applied is
+--   used to annotate the type of this expression.
+untypedTypeAppExpr :: SrcSpan -> Expr -> Type -> Expr
+untypedTypeAppExpr srcSpan expr typeExpr =
+  TypeAppExpr srcSpan expr typeExpr (exprTypeSchema expr)
 
 -- | Creates an expression for applying the given expression to the provided
 --   arguments.
@@ -733,8 +741,7 @@ conApp srcSpan = app srcSpan . untypedCon srcSpan
 --   If the given expression's type is annotated, all generated visible
 --   type application nodes are annotated with the same type.
 visibleTypeApp :: SrcSpan -> Expr -> [Type] -> Expr
-visibleTypeApp srcSpan =
-  foldl (\e t -> TypeAppExpr srcSpan e t (exprTypeSchema e))
+visibleTypeApp = foldl . untypedTypeAppExpr
 
 -- | Pretty instance for expressions.
 --

@@ -7,15 +7,60 @@
 --   when an error occurs.
 
 module FreeC.IR.SrcSpan
-  ( SrcSpan(..)
+  ( -- * Source Files
+    SrcFile(..)
+  , SrcFileMap
+  , mkSrcFile
+  , mkSrcFileMap
+    -- * Source Spans
+  , SrcSpan(..)
     -- * Predicates
   , hasSrcSpanFilename
   , hasSourceCode
   , spansMultipleLines
+    -- * Conversion
+  , ConvertableSrcSpan(..)
+  , convertSrcSpanWithCode
+  , addSourceCode
   )
 where
 
+import           Data.Tuple.Extra               ( (&&&) )
+
 import           FreeC.Pretty
+
+-- | Data type that contains the name and contents of source files.
+--
+--   The contents of the source file are stored as a string for parsing
+--   and as a list of lines for error messages (i.e., to construct 'SrcSpan's).
+data SrcFile = SrcFile
+  { srcFileName      :: FilePath -- ^ The name of the file.
+  , srcFileContents  :: String   -- ^ The contents of the file.
+  , srcFileLines     :: [String] -- ^ The lines of 'srcFileContents'.
+  }
+
+-- | Type for a map that associates source files with their filename.
+type SrcFileMap = [(FilePath, SrcFile)]
+
+-- | Smart constructor for 'SrcFile' that automatically splits the file
+--   contents into lines.
+mkSrcFile :: FilePath -> String -> SrcFile
+mkSrcFile filename contents = SrcFile { srcFileName     = filename
+                                      , srcFileContents = contents
+                                      , srcFileLines    = lines contents
+                                      }
+
+-- | Smart constructor for 'SrcFileMap' for the given 'SrcFile's.
+mkSrcFileMap :: [SrcFile] -> SrcFileMap
+mkSrcFileMap = map (srcFileName &&& id)
+
+-- | Looks up a 'SrcFile' in a 'SrcFileMap'.
+lookupSrcFile :: FilePath -> SrcFileMap -> Maybe SrcFile
+lookupSrcFile = lookup
+
+-------------------------------------------------------------------------------
+-- Source Spans                                                              --
+-------------------------------------------------------------------------------
 
 -- | Describes the portion of the source code that caused a message to be
 --   reported.
@@ -59,6 +104,33 @@ spansMultipleLines :: SrcSpan -> Bool
 spansMultipleLines NoSrcSpan = False
 spansMultipleLines (FileSpan _) = False
 spansMultipleLines srcSpan = srcSpanStartLine srcSpan /= srcSpanEndLine srcSpan
+
+-------------------------------------------------------------------------------
+-- Conversion                                                                --
+-------------------------------------------------------------------------------
+
+-- | Type class for source spans from other packages that can be converted
+--   to 'SrcSpan's for pretty printing of messages.
+class ConvertableSrcSpan ss where
+  -- | Converts the given third party source span to a 'SrcSpan' by attaching
+  --   the corresponding line of source code.
+  convertSrcSpan :: ss -> SrcSpan
+
+-- | Like 'convertSrcSpan' but also adds source code using 'addSourceCode'.
+convertSrcSpanWithCode :: ConvertableSrcSpan ss => SrcFileMap -> ss -> SrcSpan
+convertSrcSpanWithCode srcFiles = addSourceCode srcFiles . convertSrcSpan
+
+-- | Adds source code to the given source span if it does not have source code
+--   already.
+addSourceCode :: SrcFileMap -> SrcSpan -> SrcSpan
+addSourceCode srcFiles srcSpan@(SrcSpan { srcSpanCodeLines = [] }) = srcSpan
+  { srcSpanCodeLines =
+    take (srcSpanEndLine srcSpan - srcSpanStartLine srcSpan + 1)
+    $ drop (srcSpanStartLine srcSpan - 1)
+    $ maybe [] srcFileLines
+    $ lookupSrcFile (srcSpanFilename srcSpan) srcFiles
+  }
+addSourceCode _ srcSpan = srcSpan
 
 -------------------------------------------------------------------------------
 -- Pretty printing source spans                                              --
