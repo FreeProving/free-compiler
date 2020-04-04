@@ -4,11 +4,9 @@ From Base Require Import Free.
 From Base Require Import Free.Util.Void.
 
 Module Identity.
-  (* Container instance for a functor with no elements. *)
-  Module Import Zero.
-    Definition Shape : Type := Void.
-    Definition Pos (s : Shape) : Type := Void.
-  End Zero.
+  (* Container instance for a functor [Zero] with no elements. *)
+  Definition Shape : Type := Void.
+  Definition Pos (s : Shape) : Type := Void.
 
   (* Type synonym and smart constructors for the identity monad. *)
   Module Import Monad.

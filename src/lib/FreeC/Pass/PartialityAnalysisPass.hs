@@ -54,6 +54,7 @@ import           Control.Monad.Extra            ( anyM )
 import           FreeC.Environment
 import           FreeC.Environment.Entry
 import           FreeC.Environment.Scope
+import qualified FreeC.IR.Base.Prelude         as HS.Prelude
 import           FreeC.IR.DependencyGraph       ( unwrapComponent )
 import           FreeC.IR.Reference             ( valueRefs )
 import qualified FreeC.IR.Syntax               as HS
@@ -80,9 +81,9 @@ isPartialFuncDecl decl = anyM isPartialFuncName (valueRefs decl)
 --   The special functions 'HS.undefinedFuncName' and 'HS.errorFuncName'
 --   are also partial.
 isPartialFuncName :: HS.QName -> Converter Bool
-isPartialFuncName name | name == HS.undefinedFuncName = return True
-                       | name == HS.errorFuncName     = return True
-                       | otherwise                    = inEnv $ isPartial name
+isPartialFuncName name | name == HS.Prelude.undefinedFuncName = return True
+                       | name == HS.Prelude.errorFuncName = return True
+                       | otherwise = inEnv $ isPartial name
 
 -- | Sets the 'entryIsPartial' flag of the environment entry for the given
 --   function delcaration to @True@.

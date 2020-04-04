@@ -9,11 +9,12 @@
    matching compilation.
 *)
 
-From Base Require Import Free Prelude.
+From Base Require Import Free Prelude Test.QuickCheck.
 
 Require Import Coq.Logic.FunctionalExtensionality.
 Require Import Coq.Program.Equality.
 
+From Generated Require Import Queue.WithoutPatternMatching.Lemmas.
 From Generated Require Import Queue.WithoutPatternMatching.Props.
 From Generated Require Import Queue.WithoutPatternMatching.Queue.
 From Generated Require Import Queue.WithoutPatternMatching.QueueI.
@@ -49,43 +50,27 @@ Definition total_queue (Shape : Type) (Pos : Shape -> Type) {a : Type}
 
 (* Lemmas *)
 
-Lemma is_pure_true_or :
-  forall (Shape : Type)
-         (Pos : Shape -> Type)
-         (fb1 fb2 : Free Shape Pos (Bool Shape Pos)),
-  orBool Shape Pos fb1 fb2 = True_ Shape Pos
-  -> fb1 = True_ Shape Pos \/ fb2 = True_ Shape Pos.
+Lemma is_pure_true_or : quickCheck prop_is_pure_true_or.
 Proof.
   intros Shape Pos fb1 fb2 Hpure.
   destruct fb1 as [ b1 |], fb2 as [ b2 |]; simpl in *.
   - (* fb1 = pure b1,    fb2 = pure b2 *)    destruct b1; auto.
   - (* fb1 = pure b1,    fb2 = impure _ _ *) destruct b1; auto.
-  - (* fb1 = impure _ _, fb2 = pure b2 *)    discriminate Hpure.
-  - (* fb1 = impure _ _, fb2 = impure _ _ *) discriminate Hpure.
+  - (* fb1 = impure _ _, fb2 = pure b2 *)    contradiction Hpure.
+  - (* fb1 = impure _ _, fb2 = impure _ _ *) contradiction Hpure.
 Qed.
 
-Lemma is_pure_true_and :
-  forall (Shape : Type)
-         (Pos : Shape -> Type)
-         (fb1 fb2 : Free Shape Pos (Bool Shape Pos)),
-   andBool Shape Pos fb1 fb2 = True_ Shape Pos
-   -> fb1 = True_ Shape Pos /\ fb2 = True_ Shape Pos.
+Lemma is_pure_true_and : quickCheck prop_is_pure_true_and.
 Proof.
   intros Shape Pos fb1 fb2 Hpure.
   destruct fb1 as [ b1 |], fb2 as [ b2 |] ; simpl in *.
   - (* fb1 = pure b1,    fb2 = pure b2 *)    destruct b1, b2; auto.
-  - (* fb1 = pure b1,    fb2 = impure _ _ *) destruct b1; discriminate Hpure.
-  - (* fb1 = impure _ _, fb2 = pure b2 *)    discriminate Hpure.
-  - (* fb1 = impure _ _, fb2 = impure _ _ *) discriminate Hpure.
+  - (* fb1 = pure b1,    fb2 = impure _ _ *) destruct b1; auto. discriminate Hpure.
+  - (* fb1 = impure _ _, fb2 = pure b2 *)    contradiction Hpure.
+  - (* fb1 = impure _ _, fb2 = impure _ _ *) contradiction Hpure.
 Qed.
 
-Lemma null_rev :
-  forall (Shape : Type)
-    (Pos : Shape -> Type)
-    {a : Type}
-    (fxs : Free Shape Pos (List Shape Pos a)),
-    null Shape Pos fxs = True_ Shape Pos
-    -> null Shape Pos (reverse Shape Pos fxs) = True_ Shape Pos.
+Lemma null_rev : quickCheck prop_null_rev.
 Proof.
   intros Shape Pos a fxs Hnull.
   destruct fxs as [ xs |  ].
@@ -94,15 +79,10 @@ Proof.
     + (* xs = nil *) trivial.
     + (* xs = cons _ _ *) discriminate Hnull.
   - (* fxs = impure _ _ *)
-    discriminate Hnull.
+    contradiction Hnull.
 Qed.
 
-Lemma append_nil:
-  forall (Shape : Type)
-         (Pos : Shape -> Type)
-         (a : Type)
-         (fxs : Free Shape Pos (List Shape Pos a)),
-  append Shape Pos fxs (pure nil) = fxs.
+Lemma append_nil : quickCheck prop_append_nil.
 Proof.
   intros Shape Pos a fxs.
   induction fxs using FreeList_ind with (P := fun xs => append_1 Shape Pos a (pure nil) xs = pure xs); simpl.
@@ -112,7 +92,7 @@ Proof.
   - repeat apply f_equal. extensionality p. apply H.
 Qed.
 
-Lemma append_0_assoc :
+Lemma append_1_assoc :
   forall (Shape : Type)
          (Pos : Shape -> Type)
          {a : Type}
@@ -131,17 +111,11 @@ Proof.
       simplify H as IH. apply IH.
 Qed.
 
-Lemma append_assoc :
-  forall (Shape : Type)
-         (Pos : Shape -> Type)
-         {a : Type}
-         (fxs fys fzs : Free Shape Pos (List Shape Pos a)),
-    append Shape Pos fxs (append Shape Pos fys fzs)
-    = append Shape Pos (append Shape Pos fxs fys) fzs.
+Lemma append_assoc : quickCheck prop_append_assoc.
 Proof.
   intros Shape Pos a fxs fys fzs.
   induction fxs as [ | s pf IH ] using Free_Ind.
-  - simpl. apply append_0_assoc.
+  - simpl. apply append_1_assoc.
   - (*Inductive case: [fxs = impure s pf] with induction hypothesis [IH] *)
     simpl. apply f_equal. extensionality p.
     apply IH.
@@ -155,13 +129,11 @@ Definition singleton (Shape : Type)
   := Cons Shape Pos fx (Nil Shape Pos).
 
 (* QuickCheck properties *)
-Theorem prop_isEmpty : forall (Shape : Type)
+Theorem prop_isEmpty_theorem : forall (Shape : Type)
   (Pos : Shape -> Type)
   {a : Type} (total_a : Free Shape Pos a -> Prop)
   (qi : Free Shape Pos (QueueI Shape Pos a)),
-  total_queue Shape Pos total_a qi ->
-  (invariant Shape Pos qi = True_ Shape Pos) ->
-  (isEmptyI Shape Pos qi = isEmpty Shape Pos (toQueue Shape Pos qi)).
+  total_queue Shape Pos total_a qi -> quickCheck (@prop_isEmpty Shape Pos a qi).
 Proof.
   intros Shape Pos a total_a fqi Htotal Hinv.
   destruct fqi as [qi | ].
@@ -175,7 +147,7 @@ Proof.
         destruct Hinv as [Hnull | Hcontra].
         -- (* null Shape Pos fys *)
            apply null_rev in Hnull.
-           symmetry. unfold isEmpty. apply Hnull.
+           symmetry. unfold isEmpty. apply pure_bool_property in Hnull. apply Hnull.
         -- (* False_ Shape Pos *)
            discriminate Hcontra.
       * (* xs = Cons fx fxs' *)
@@ -187,12 +159,7 @@ Proof.
 Qed.
 
 (* In fact we do not need the totality constraint in this case. *)
-Theorem prop_isEmpty' : forall (Shape : Type)
-  (Pos : Shape -> Type)
-  {a : Type}
-  (qi : Free Shape Pos (QueueI Shape Pos a)),
-  (invariant Shape Pos qi = True_ Shape Pos) ->
-  (isEmptyI Shape Pos qi = isEmpty Shape Pos (toQueue Shape Pos qi)).
+Theorem prop_isEmpty_theorem' : quickCheck prop_isEmpty.
 Proof.
   intros Shape Pos a fqi Hinv.
   destruct fqi as [qi | ].
@@ -206,7 +173,7 @@ Proof.
         destruct Hinv as [Hnull | Hcontra].
         -- (* null Shape Pos fys *)
            apply null_rev in Hnull.
-           symmetry. unfold isEmpty. apply Hnull.
+           symmetry. unfold isEmpty. apply pure_bool_property. apply Hnull.
         -- (* False_ Shape Pos *)
            discriminate Hcontra.
       * (* xs = Cons fx fxs' *)
@@ -223,35 +190,28 @@ Proof.
          ++ (* reverse Shape Pos fys = Cons Shape Pos y ys' *)
             simpl in Hnull. discriminate Hnull.
          ++ (* reverse Shape Pos fys = impure _ _*)
-            simpl in Hnull. discriminate Hnull.
+            simpl in Hnull. contradiction Hnull.
       -- (* impure _ _ = True_ Shape Pos *)
-         discriminate Hcontra.
+         contradiction Hcontra.
   - (* fqi = impure _ _ *)
-    simpl in Hinv. discriminate Hinv.
+    simpl in Hinv. contradiction Hinv.
 Qed.
 
-Theorem prop_add :
-  forall
-    (Shape : Type)
-    (Pos : Shape -> Type)
-    {a : Type}
-    (x : Free Shape Pos a)
-    (qi : Free Shape Pos (QueueI Shape Pos a)),
-  toQueue Shape Pos (addI Shape Pos x qi)
-  = add Shape Pos x (toQueue Shape Pos qi).
+(* In order to prove [prop_add] no totality constraint is necessary. *)
+Theorem prop_add_theorem : quickCheck prop_add.
 Proof.
   intros Shape Pos a fx fqi.
   induction fqi as [ [f1 f2] | eq ] using Free_Ind; simpl.
   - destruct f1 as [l | s pf]; simpl.
     + destruct l as [ | fy fys]; simpl.
       * rewrite append_nil. reflexivity.
-      * apply (append_assoc Shape Pos (pure (cons fy fys)) (reverse Shape Pos f2) (singleton Shape Pos fx)).
+      * apply (append_assoc Shape Pos _ (pure (cons fy fys)) (reverse Shape Pos f2) (singleton Shape Pos fx)).
     + repeat apply f_equal. extensionality p.
       induction (pf p) as [fys |] using Free_Ind; simpl.
       * destruct fys; simpl.
         -- rewrite append_nil.
            reflexivity.
-        -- apply f_equal. apply (append_assoc Shape Pos f0 (reverse Shape Pos f2) (singleton Shape Pos fx)).
+        -- apply f_equal. apply (append_assoc Shape Pos _ f0 (reverse Shape Pos f2) (singleton Shape Pos fx)).
       * repeat apply f_equal.
         extensionality p1.
         apply H.
@@ -260,52 +220,9 @@ Proof.
     apply H.
 Qed.
 
-(* Version of prop_add if we would generate totality constraints automatically. *)
-Theorem prop_add' :
-  forall
-    (Shape : Type)
-    (Pos : Shape -> Type)
-    {a : Type} (total_a : Free Shape Pos a -> Prop)
-    (x : Free Shape Pos a)
-    (qi : Free Shape Pos (QueueI Shape Pos a)),
-  total_a x
-  -> total_queue Shape Pos total_a qi
-  -> toQueue Shape Pos (addI Shape Pos x qi)
-     = add Shape Pos x (toQueue Shape Pos qi).
-Proof.
-  intros Shape Pos a total_a fx fqi HtotalX HtotalQ.
-  induction fqi as [ [f1 f2] | eq ] using Free_Ind; simpl.
-  - destruct f1 as [l | s pf]; simpl.
-    + destruct l as [ | fy fys]; simpl.
-      * rewrite append_nil. reflexivity.
-      * apply (append_assoc Shape Pos (pure (cons fy fys)) (reverse Shape Pos f2) (singleton Shape Pos fx)).
-    + repeat apply f_equal. extensionality p.
-      induction (pf p) as [fys |] using Free_Ind; simpl.
-      * destruct fys; simpl.
-        -- rewrite append_nil.
-           reflexivity.
-        -- apply f_equal. apply (append_assoc Shape Pos f0 (reverse Shape Pos f2) (singleton Shape Pos fx)).
-      * repeat apply f_equal.
-        extensionality p1.
-        apply H.
-  - repeat apply f_equal.
-    extensionality p.
-    apply H.
-    inversion HtotalQ.
-Qed.
-
-Theorem prop_front :
-  forall (Shape : Type)
-         (Pos : Shape -> Type)
-         (P : Partial Shape Pos)
-         {a : Type} (total_a : Free Shape Pos a -> Prop)
-         (qi : Free Shape Pos (QueueI Shape Pos a)),
-  total_queue Shape Pos total_a qi
-  -> (andBool Shape Pos
-        (invariant Shape Pos qi)
-        (not Shape Pos (isEmptyI Shape Pos qi))
-      = True_ Shape Pos)
-  -> (frontI Shape Pos P qi = front Shape Pos P (toQueue Shape Pos qi)).
+(* We have to add a totality constraint to [prop_front]. *)
+Theorem prop_front_theorem : forall Shape Pos P a total_a qi,
+  total_queue Shape Pos total_a qi -> quickCheck (@prop_front Shape Pos P a qi).
 Proof.
   intros Shape Pos P a total_a fqi Htotal HinvNempty.
   apply is_pure_true_and in HinvNempty.
@@ -319,29 +236,16 @@ Proof.
     + inversion Htotal1.
 Qed.
 
-Fail Theorem prop_inv_empty : forall (Shape : Type) (Pos : Shape -> Type),
-  invariant Shape Pos (emptyI Shape Pos) = True_ Shape Pos.
-(*
-  The command has indeed failed with message:
-  Cannot infer the implicit parameter a of invariant whose type is "Type" in environment:
-  Shape : Type
-  Pos : Shape -> Type
-*)
-
-Theorem prop_inv_empty : forall (Shape : Type) (Pos : Shape -> Type) (a : Type),
-  invariant Shape Pos (@emptyI Shape Pos a) = True_ Shape Pos.
+(* Since the compiler is now adding vanishing type arguments automatically,
+   the [prop_inv_empty] can be proven without a problem. *)
+Theorem prop_inv_empty_theorem : quickCheck prop_inv_empty.
 Proof.
-  intros Shape Pos a.
-  simpl. reflexivity.
+  intros Shape Pos t0. simpl. reflexivity.
 Qed.
 
-Theorem prop_inv_add : forall (Shape : Type)
-  (Pos : Shape -> Type)
-  {a : Type}
-  (x : Free Shape Pos a)
-  (q : Free Shape Pos (QueueI Shape Pos a)),
-  (invariant Shape Pos q = True_ Shape Pos) ->
-  (invariant Shape Pos (addI Shape Pos x q) = True_ Shape Pos).
+(* Proving [prop_inv_add] requires a totality constraint.
+   Otherwise we get stuck in the case admitted below. *)
+Theorem prop_inv_add_theorem : quickCheck prop_inv_add.
 Proof.
   intros Shape Pos a fx fq H. destruct fq as [[ff fb] |].
   - (* fq = Pair_ Shape Pos ff fb *)
@@ -349,27 +253,23 @@ Proof.
     + (* ff = pure f; fb = pure b *)
       destruct f; reflexivity.
     + (* ff = pure f; fb = impure _ _ *)
-      discriminate H.
+      contradiction H.
     + (* ff = impure _ _; fb = pure b *)
       destruct b.
       * (* b = nil *)
         admit.
       * (* b = cons _ _ *)
-        discriminate H.
+        contradiction H.
     + (* ff = impure _ _; fb = impure _ _ *)
-      discriminate H.
+      contradiction H.
   - (* fq = impure _ _ *)
-    discriminate H.
+    contradiction H.
 Abort.
 
-Theorem prop_inv_add : forall (Shape : Type)
-  (Pos : Shape -> Type)
-  {a : Type} (total_a : Free Shape Pos a -> Prop)
-  (x : Free Shape Pos a)
-  (q : Free Shape Pos (QueueI Shape Pos a)),
-  total_queue Shape Pos total_a q ->
-  (invariant Shape Pos q = True_ Shape Pos) ->
-  (invariant Shape Pos (addI Shape Pos x q) = True_ Shape Pos).
+(* To add the totality constraint we have to introduce all arguments of [prop_inv_add]
+   first. However, we do not have to repeat the type annotations here. *)
+Theorem prop_inv_add_theorem : forall Shape Pos a total_a x q,
+  total_queue Shape Pos total_a q -> quickCheck (@prop_inv_add Shape Pos a x q).
 Proof.
   intros Shape Pos a total_a fx fq Htotal H.
   destruct Htotal as [ff fb HtotalF HtotalB]. (* fq = Pair_ ff fb *)

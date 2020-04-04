@@ -20,6 +20,7 @@ import           FreeC.Environment.Fresh
 import           FreeC.Environment.LookupOrFail
 import           FreeC.Environment.Renamer
 import           FreeC.Environment.Scope
+import qualified FreeC.IR.Base.Prelude         as HS.Prelude
 import           FreeC.IR.SrcSpan
 import           FreeC.IR.Subst
 import qualified FreeC.IR.Syntax               as HS
@@ -131,7 +132,7 @@ convertExpr' (HS.TypeAppExpr _ e t _) typeArgs args =
 -- @if@-expressions.
 convertExpr' (HS.If _ e1 e2 e3 _) [] [] = do
   e1'   <- convertExpr e1
-  bool' <- convertType' (HS.TypeCon NoSrcSpan HS.boolTypeConName)
+  bool' <- convertType' (HS.TypeCon NoSrcSpan HS.Prelude.boolTypeConName)
   generateBind e1' freshBoolPrefix (Just bool') $ \cond -> do
     e2' <- convertExpr e2
     e3' <- convertExpr e3

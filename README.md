@@ -23,6 +23,7 @@ A compiler for the monadic translation of Haskell programs to Coq that uses the 
       + [`--import=DIR`, `-i DIR`](#--importdir--i-dir)
       + [`--base-library=DIR`, `-b DIR`](#--base-librarydir--b-dir)
       + [`--no-coq-project`](#--no-coq-project)
+    - [Proving properties](#proving-properties)
 7. [Experimental Features](#experimental-features)
     - [Pattern-Matching Compilation](#pattern-matching-compilation)
 8. [Testing](#testing)
@@ -212,6 +213,16 @@ The compiler will not overwrite your changes since the `_CoqProject` file is onl
 If you don't want the `_CoqProject` file to be generated at all, you can add the `--no-coq-project` flag.
 However, note that you may not be able to compile the generated Coq code if the `_CoqProject` file is missing.
 
+### Proving properties
+
+The main goal for the translation of Haskell code to Coq is to prove properties of the Haskell program in Coq.
+In order to do so, we have to formulate the properties to prove first.
+Due to the overhead involved with our translation, stating propositions in Coq directly is very tedious.
+Therefore, we provide a mechanism for deriving Coq properties from QuickCheck properties.
+This allows us to state the proposition in Haskell instead of Coq.
+
+Consult [`doc/ProvingQuickCheckProperties.md`][doc/ProvingQuickCheckProperties.md] for more details and examples.
+
 ## Experimental Features
 
 ### Pattern-Matching Compilation
@@ -288,6 +299,9 @@ See the LICENSE file for details.
 [doc/ExperimentalFeatures/PatternMatchingCompilation.md]:
   https://github.com/FreeProving/free-compiler/blob/master/doc/ExperimentalFeatures/PatternMatchingCompilation.md
   "Free Compiler Documentation — Pattern Matching Compilation"
+[doc/ProvingQuickCheckProperties.md]:
+  https://github.com/FreeProving/free-compiler/blob/master/doc/ProvingQuickCheckProperties.md
+  "Free Compiler Documentation — Proving QuickCheck Properties"
 
 [gh-pages/haddock]:
   https://freeproving.github.io/free-compiler/docs/master

@@ -39,6 +39,7 @@ import           Data.Set.Ordered               ( OSet
 import qualified Data.Set.Ordered              as OSet
 
 import           FreeC.Environment.Scope
+import qualified FreeC.IR.Base.Prelude         as HS.Prelude
 import qualified FreeC.IR.Syntax               as HS
 import           FreeC.Util.Predicate           ( (.&&.) )
 
@@ -195,7 +196,7 @@ instance HasRefs HS.TypeSchema where
 --   types used in type signatures and visible type applications.
 --
 --   The error terms @undefined@ and @error "<msg>"@ refer to the functions
---   'HS.undefinedFuncName' and 'HS.errorFuncName' respectively.
+--   'HS.Prelude.undefinedFuncName' and 'HS.Prelude.errorFuncName' respectively.
 instance HasRefs HS.Expr where
   refSet (HS.Var _ varName exprType) =
     varRef ValueScope varName `insertBefore` refSet exprType
@@ -209,9 +210,10 @@ instance HasRefs HS.Expr where
   refSet (HS.Case _ scrutinee alts exprType) =
     unions [refSet scrutinee, refSet alts, refSet exprType]
   refSet (HS.Undefined _ exprType) =
-    varRef ValueScope HS.undefinedFuncName `insertBefore` refSet exprType
+    varRef ValueScope HS.Prelude.undefinedFuncName
+      `insertBefore` refSet exprType
   refSet (HS.ErrorExpr _ _ exprType) =
-    varRef ValueScope HS.errorFuncName `insertBefore` refSet exprType
+    varRef ValueScope HS.Prelude.errorFuncName `insertBefore` refSet exprType
   refSet (HS.IntLiteral _ _ exprType) = refSet exprType
   refSet (HS.Lambda _ args expr exprType) =
     unions [refSet args, withoutArgs args (refSet expr), refSet exprType]

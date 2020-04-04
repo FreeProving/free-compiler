@@ -32,6 +32,7 @@ import           FreeC.Environment.ModuleInterface.Decoder
 import           FreeC.Environment.Renamer
 import           FreeC.Frontend.Haskell.Parser
 import           FreeC.Frontend.Haskell.Simplifier
+import qualified FreeC.IR.Base.Prelude         as HS.Prelude
 import           FreeC.IR.Reference             ( freeTypeVars )
 import           FreeC.IR.SrcSpan
 import qualified FreeC.IR.Syntax               as HS
@@ -57,11 +58,11 @@ instance Arbitrary HS.Type where
     arbitraryTypeConApp = do
       (name, arity) <- oneof $ map
         return
-        [ (HS.boolTypeConName   , 0)
-        , (HS.integerTypeConName, 0)
-        , (HS.unitTypeConName   , 0)
-        , (HS.listTypeConName   , 1)
-        , (HS.tupleTypeConName 2, 2)
+        [ (HS.Prelude.boolTypeConName   , 0)
+        , (HS.Prelude.integerTypeConName, 0)
+        , (HS.Prelude.unitTypeConName   , 0)
+        , (HS.Prelude.listTypeConName   , 1)
+        , (HS.Prelude.tupleTypeConName 2, 2)
         ]
       args <- replicateM arity arbitrary
       return (HS.typeConApp NoSrcSpan name args)
@@ -83,7 +84,7 @@ testEntryModuleName = "Test.Entries"
 --   The @Prelude@ module is imported first.
 fromConverter :: Converter a -> ReporterIO a
 fromConverter converter = fromModuleConverter $ do
-  Just preludeIface <- inEnv $ lookupAvailableModule HS.preludeModuleName
+  Just preludeIface <- inEnv $ lookupAvailableModule HS.Prelude.modName
   modifyEnv $ importInterface preludeIface
   converter
 

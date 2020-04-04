@@ -36,6 +36,7 @@ import qualified Language.Haskell.Exts.Syntax  as H
 
 import           FreeC.Environment.Fresh
 import           FreeC.Frontend.PragmaParser
+import qualified FreeC.IR.Base.Prelude         as HS.Prelude
 import           FreeC.IR.Reference             ( freeTypeVars )
 import           FreeC.IR.SrcSpan
 import qualified FreeC.IR.Syntax               as HS
@@ -494,12 +495,12 @@ simplifyType (H.TyFun srcSpan t1 t2) = do
 simplifyType (H.TyTuple srcSpan H.Boxed ts) = do
   let n = length ts
   ts' <- mapM simplifyType ts
-  return (HS.typeConApp srcSpan (HS.tupleTypeConName n) ts')
+  return (HS.typeConApp srcSpan (HS.Prelude.tupleTypeConName n) ts')
 
 -- List type @['t']@.
 simplifyType (H.TyList srcSpan t) = do
   t' <- simplifyType t
-  return (HS.typeConApp srcSpan HS.listTypeConName [t'])
+  return (HS.typeConApp srcSpan HS.Prelude.listTypeConName [t'])
 
 -- Type constructor application @'t1' 't2'@.
 simplifyType (H.TyApp srcSpan t1 t2) = do
@@ -548,10 +549,10 @@ simplifyTypeConName (H.UnQual _ (H.Ident _ ident)) =
   return (HS.UnQual (HS.Ident ident))
 simplifyTypeConName (H.Qual _ (H.ModuleName _ modName) (H.Ident _ ident)) =
   return (HS.Qual modName (HS.Ident ident))
-simplifyTypeConName (H.Special _ (H.UnitCon _)) = return HS.unitTypeConName
-simplifyTypeConName (H.Special _ (H.ListCon _)) = return HS.listTypeConName
+simplifyTypeConName (H.Special _ (H.UnitCon _)) = return HS.Prelude.unitTypeConName
+simplifyTypeConName (H.Special _ (H.ListCon _)) = return HS.Prelude.listTypeConName
 simplifyTypeConName (H.Special _ (H.TupleCon _ H.Boxed n)) =
-  return (HS.tupleTypeConName n)
+  return (HS.Prelude.tupleTypeConName n)
 
 -- Not supported type constructor names.
 simplifyTypeConName name@(H.UnQual _ (H.Symbol _ _)) =
@@ -608,14 +609,14 @@ simplifyExpr (H.Lit srcSpan (H.Int _ value _)) =
 simplifyExpr (H.Tuple srcSpan H.Boxed es) = do
   let n = length es
   es' <- mapM simplifyExpr es
-  return (HS.conApp srcSpan (HS.tupleConName n) es')
+  return (HS.conApp srcSpan (HS.Prelude.tupleConName n) es')
 
--- List literals are converted to a chain of 'HS.consConName' applications
--- with a trailing 'HS.nilConName'. All generated constructors refer to
--- the same source span of the original list literal.
+-- List literals are converted to a chain of 'HS.Prelude.consConName'
+-- applications with a trailing 'HS.Prelude.nilConName'. All generated
+-- constructors refer to the same source span of the original list literal.
 simplifyExpr (H.List srcSpan exprs) = do
-  let nil  = HS.Con srcSpan HS.nilConName Nothing
-      cons = HS.Con srcSpan HS.consConName Nothing
+  let nil  = HS.Con srcSpan HS.Prelude.nilConName Nothing
+      cons = HS.Con srcSpan HS.Prelude.consConName Nothing
   exprs' <- mapM simplifyExpr exprs
   return (foldr (HS.untypedApp srcSpan . HS.untypedApp srcSpan cons) nil exprs')
 
@@ -649,7 +650,7 @@ simplifyExpr (H.RightSection srcSpan op e2) = do
 -- Negation.
 simplifyExpr (H.NegApp srcSpan expr) = do
   expr' <- simplifyExpr expr
-  return (HS.varApp srcSpan HS.negateOpName [expr'])
+  return (HS.varApp srcSpan HS.Prelude.negateOpName [expr'])
 
 -- Lambda abstractions.
 simplifyExpr (H.Lambda srcSpan args expr) = do
@@ -791,11 +792,11 @@ simplifyConName :: H.QName SrcSpan -> Simplifier HS.ConName
 simplifyConName (H.UnQual _ name) = HS.UnQual <$> simplifyName name
 simplifyConName (H.Qual _ (H.ModuleName _ modName) name) =
   HS.Qual modName <$> simplifyName name
-simplifyConName (H.Special _ (H.UnitCon _)) = return HS.unitConName
-simplifyConName (H.Special _ (H.ListCon _)) = return HS.nilConName
-simplifyConName (H.Special _ (H.Cons    _)) = return HS.consConName
+simplifyConName (H.Special _ (H.UnitCon _)) = return HS.Prelude.unitConName
+simplifyConName (H.Special _ (H.ListCon _)) = return HS.Prelude.nilConName
+simplifyConName (H.Special _ (H.Cons    _)) = return HS.Prelude.consConName
 simplifyConName (H.Special _ (H.TupleCon _ H.Boxed n)) =
-  return (HS.tupleConName n)
+  return (HS.Prelude.tupleConName n)
 
 -- Not supported constructor names.
 simplifyConName name@(H.Special _ (H.FunCon _)) =
@@ -847,7 +848,7 @@ simplifyConPat (H.PInfixApp _ p1 name p2) = do
 simplifyConPat (H.PTuple srcSpan H.Boxed ps) = do
   let n = length ps
   vs <- mapM simplifyVarPat ps
-  return (HS.ConPat srcSpan (HS.tupleConName n), vs)
+  return (HS.ConPat srcSpan (HS.Prelude.tupleConName n), vs)
 
 -- Other tuple constructor patterns are not supported.
 simplifyConPat pat@(H.PTuple _ H.Unboxed _) = notSupported "Unboxed tuples" pat
@@ -857,7 +858,7 @@ simplifyConPat pat@(H.PTuple _ H.Unboxed _) = notSupported "Unboxed tuples" pat
 -- name and variable patterns).
 -- But we allow the empty list pattern @[]@.
 simplifyConPat (H.PList srcSpan []) =
-  return (HS.ConPat srcSpan HS.nilConName, [])
+  return (HS.ConPat srcSpan HS.Prelude.nilConName, [])
 simplifyConPat pat@(H.PList _ _) =
   experimentallySupported "List notation patterns" pat
 
