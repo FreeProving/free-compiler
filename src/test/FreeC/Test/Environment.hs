@@ -42,11 +42,12 @@ renameAndAddTestEntry' = renameAndAddEntry
 --
 --   Returns the Coq identifier assigned to the type variable.
 defineTestTypeVar :: String -> Converter String
-defineTestTypeVar ident = renameAndAddTestEntry TypeVarEntry
-  { entrySrcSpan = NoSrcSpan
-  , entryName    = HS.UnQual (HS.Ident ident)
-  , entryIdent   = undefined -- filled by renamer
-  }
+defineTestTypeVar nameStr = do
+  name <- parseTestQName nameStr
+  renameAndAddTestEntry TypeVarEntry { entrySrcSpan = NoSrcSpan
+                                     , entryName    = name
+                                     , entryIdent   = undefined -- filled by renamer
+                                     }
 
 -------------------------------------------------------------------------------
 -- Type synonym entries                                                      --
@@ -57,13 +58,14 @@ defineTestTypeVar ident = renameAndAddTestEntry TypeVarEntry
 --
 --   Returns the Coq identifier assigned to the type synonym.
 defineTestTypeSyn :: String -> [String] -> String -> Converter String
-defineTestTypeSyn ident typeArgs typeStr = do
+defineTestTypeSyn nameStr typeArgs typeStr = do
+  name     <- parseTestQName nameStr
   typeExpr <- parseTestType typeStr
   renameAndAddTestEntry TypeSynEntry { entrySrcSpan  = NoSrcSpan
                                      , entryArity    = length typeArgs
                                      , entryTypeArgs = typeArgs
                                      , entryTypeSyn  = typeExpr
-                                     , entryName = HS.UnQual (HS.Ident ident)
+                                     , entryName     = name
                                      , entryIdent    = undefined -- filled by renamer
                                      }
 
@@ -76,12 +78,13 @@ defineTestTypeSyn ident typeArgs typeStr = do
 --
 --   Returns the Coq identifier assigned to the type constructor.
 defineTestTypeCon :: String -> Int -> Converter String
-defineTestTypeCon ident arity = renameAndAddTestEntry DataEntry
-  { entrySrcSpan = NoSrcSpan
-  , entryArity   = arity
-  , entryName    = HS.UnQual (HS.Ident ident)
-  , entryIdent   = undefined -- filled by renamer
-  }
+defineTestTypeCon nameStr arity = do
+  name <- parseTestQName nameStr
+  renameAndAddTestEntry DataEntry { entrySrcSpan = NoSrcSpan
+                                  , entryArity   = arity
+                                  , entryName    = name
+                                  , entryIdent   = undefined -- filled by renamer
+                                  }
 
 -------------------------------------------------------------------------------
 -- Constructor entries                                                       --
@@ -93,7 +96,8 @@ defineTestTypeCon ident arity = renameAndAddTestEntry DataEntry
 --   The argument and return types are parsed from the given string.
 --   Returns the Coq identifier assigned to the data constructor.
 defineTestCon :: String -> Int -> String -> Converter (String, String)
-defineTestCon ident arity typeStr = do
+defineTestCon nameStr arity typeStr = do
+  name     <- parseTestQName nameStr
   typeExpr <- parseTestType typeStr
   let (argTypes, returnType) = HS.splitFuncType typeExpr arity
   entry <- renameAndAddTestEntry' ConEntry
@@ -102,7 +106,7 @@ defineTestCon ident arity typeStr = do
     , entryTypeArgs   = mapMaybe HS.identFromQName (freeTypeVars returnType)
     , entryArgTypes   = map Just argTypes
     , entryReturnType = Just returnType
-    , entryName       = HS.UnQual (HS.Ident ident)
+    , entryName       = name
     , entryIdent      = undefined -- filled by renamer
     , entrySmartIdent = undefined -- filled by renamer
     }
@@ -119,13 +123,14 @@ defineTestCon ident arity typeStr = do
 
 --   Returns the Coq identifier assigned to the variable.
 defineTestVar :: String -> Converter String
-defineTestVar ident = renameAndAddTestEntry VarEntry
-  { entrySrcSpan = NoSrcSpan
-  , entryIsPure  = False
-  , entryName    = HS.UnQual (HS.Ident ident)
-  , entryIdent   = undefined -- filled by renamer
-  , entryType    = Nothing
-  }
+defineTestVar nameStr = do
+  name <- parseTestQName nameStr
+  renameAndAddTestEntry VarEntry { entrySrcSpan = NoSrcSpan
+                                 , entryIsPure  = False
+                                 , entryName    = name
+                                 , entryIdent   = undefined -- filled by renamer
+                                 , entryType    = Nothing
+                                 }
 
 -------------------------------------------------------------------------------
 -- Function entries                                                          --
@@ -142,7 +147,8 @@ defineTestFunc = defineTestFunc' False
 -- | Like 'defineTestFunc' but the first argument controls whether the
 --   defined function is partial or not.
 defineTestFunc' :: Bool -> String -> Int -> String -> Converter String
-defineTestFunc' partial ident arity typeStr = do
+defineTestFunc' partial nameStr arity typeStr = do
+  name                              <- parseTestQName nameStr
   HS.TypeSchema _ typeArgs typeExpr <- parseTestTypeSchema typeStr
   let (argTypes, returnType) = HS.splitFuncType typeExpr arity
   renameAndAddTestEntry FuncEntry
@@ -153,7 +159,7 @@ defineTestFunc' partial ident arity typeStr = do
     , entryReturnType    = Just returnType
     , entryNeedsFreeArgs = True
     , entryIsPartial     = partial
-    , entryName          = HS.UnQual (HS.Ident ident)
+    , entryName          = name
     , entryIdent         = undefined -- filled by renamer
     }
 
