@@ -33,7 +33,7 @@ module FreeC.Monad.Reporter
   , reportFatal
     -- * Reporting IO errors
   , ReporterIO
-  , reportIOErrors
+  , liftIO
   , reportIOError
     -- * Handling messages and reporter results
   , isFatal
@@ -191,21 +191,25 @@ instance Monad m => MonadFail (ReporterT m) where
 type ReporterIO = ReporterT IO
 
 -- | IO actions can be embedded into reporters.
-instance MonadIO m => MonadIO (ReporterT m) where
-  liftIO = lift . liftIO
-
--- | Creates an IO action for a reporter that reports all IO errors that
---   that occur during the given IO action.
 --
---   All IO errors are considered fatal and have no location information.
-reportIOErrors :: ReporterIO a -> ReporterIO a
-reportIOErrors =
-  ReporterT
-    . flip catchIOError (return . unwrapReporter . reportIOError)
-    . unwrapReporterT
+--   If an IO error occurs, a fatal error is reported by the reporter instead.
+--   IO errors do not have location information (see also 'reportIOError').
+instance MonadIO m => MonadIO (ReporterT m) where
+  liftIO = (>>= handleIOErrors) . lift . liftIO . wrapIOErrors
+   where
+    -- | Catches IO errors thrown by the given IO action and returns either
+    --   the caught error or the returned value.
+    wrapIOErrors :: IO a -> IO (Either IOError a)
+    wrapIOErrors = flip catchIOError (return . Left) . fmap Right
+
+    -- Handles IO errors thrown by the original IO action (which have been
+    -- wrapped by 'wrapIOErrors') by reporting a fatal error.
+    handleIOErrors :: MonadReporter r => Either IOError a -> r a
+    handleIOErrors (Left  err) = reportIOError err
+    handleIOErrors (Right x  ) = return x
 
 -- | Reports the given IO error as a fatal error with no location information.
-reportIOError :: IOError -> Reporter a
+reportIOError :: MonadReporter r => IOError -> r a
 reportIOError = reportFatal . Message NoSrcSpan Error . ioErrorMessageText
  where
   ioErrorMessageText :: IOError -> String

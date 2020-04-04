@@ -59,7 +59,7 @@ runApp app = do
   defaultOptions <- makeDefaultOptions
   let converter = evalStateT (unwrapApplication app) defaultOptions
       reporter  = evalConverterT converter emptyEnv
-  reportToOrExit stderr (reportIOErrors reporter)
+  reportToOrExit stderr reporter
 
 -- | Runs the given application and prints the reported messages.
 reportApp :: Application a -> Application a
@@ -68,7 +68,7 @@ reportApp app = do
   env  <- getEnv
   let converter = runStateT (unwrapApplication app) opts
       reporter  = runConverterT converter env
-  ((x, opts'), env') <- liftIO (reportToOrExit stderr (reportIOErrors reporter))
+  ((x, opts'), env') <- liftIO (reportToOrExit stderr reporter)
   putEnv env'
   putOpts opts'
   return x

@@ -24,6 +24,7 @@ module FreeC.Frontend.Haskell.Parser
   )
 where
 
+import           Control.Monad.IO.Class         ( MonadIO(..) )
 import           Data.Composition               ( (.:)
                                                 , (.:.)
                                                 )
@@ -88,37 +89,37 @@ predefinedFixities = concat
 
 -- | Parses a node of the Haskell AST.
 parseHaskell
-  :: (Functor ast, Parseable (ast SrcSpanInfo))
+  :: (Functor ast, Parseable (ast SrcSpanInfo), MonadReporter r)
   => String -- ^ The name of the Haskell source file.
   -> String -- ^ The Haskell source code.
-  -> Reporter (ast SrcSpan)
+  -> r (ast SrcSpan)
 parseHaskell = fmap fst .: parseHaskellWithComments
 
 -- | Like 'parseHaskell' but allows language extensions to be enabled.
 parseHaskellWithExts
-  :: (Functor ast, Parseable (ast SrcSpanInfo))
+  :: (Functor ast, Parseable (ast SrcSpanInfo), MonadReporter r)
   => [KnownExtension] -- ^ The extensions to enable.
   -> String           -- ^ The name of the Haskell source file.
   -> String           -- ^ The Haskell source code.
-  -> Reporter (ast SrcSpan)
+  -> r (ast SrcSpan)
 parseHaskellWithExts = fmap fst .:. parseHaskellWithCommentsAndExts
 
 -- | Like 'parseHaskell' but returns comments in addition to the AST.
 parseHaskellWithComments
-  :: (Functor ast, Parseable (ast SrcSpanInfo))
+  :: (Functor ast, Parseable (ast SrcSpanInfo), MonadReporter r)
   => String -- ^ The name of the Haskell source file.
   -> String -- ^ The Haskell source code.
-  -> Reporter (ast SrcSpan, [HS.Comment])
+  -> r (ast SrcSpan, [HS.Comment])
 parseHaskellWithComments = parseHaskellWithCommentsAndExts []
 
 -- | Like 'parseHaskellWithComments' but allows language extensions to be
 --   enabled.
 parseHaskellWithCommentsAndExts
-  :: (Functor ast, Parseable (ast SrcSpanInfo))
+  :: (Functor ast, Parseable (ast SrcSpanInfo), MonadReporter r)
   => [KnownExtension] -- ^ The extensions to enable.
   -> String           -- ^ The name of the Haskell source file.
   -> String           -- ^ The Haskell source code.
-  -> Reporter (ast SrcSpan, [HS.Comment])
+  -> r (ast SrcSpan, [HS.Comment])
 parseHaskellWithCommentsAndExts enabledExts filename contents =
   case parseWithComments parseMode contents of
     ParseOk (node, comments) -> return
@@ -162,31 +163,35 @@ parseHaskellWithCommentsAndExts enabledExts filename contents =
 --
 --   Syntax errors cause a fatal error message to be reported.
 parseModule
-  :: String  -- ^ The name of the Haskell source file.
+  :: MonadReporter r
+  => String  -- ^ The name of the Haskell source file.
   -> String  -- ^ The Haskell source code.
-  -> Reporter (H.Module SrcSpan)
+  -> r (H.Module SrcSpan)
 parseModule = parseHaskell
 
 -- | Like 'parseModule' but returns the comments in addtion to the AST.
 parseModuleWithComments
-  :: String  -- ^ The name of the Haskell source file.
+  :: MonadReporter r
+  => String  -- ^ The name of the Haskell source file.
   -> String  -- ^ The Haskell source code.
-  -> Reporter (H.Module SrcSpan, [HS.Comment])
+  -> r (H.Module SrcSpan, [HS.Comment])
 parseModuleWithComments = parseHaskellWithComments
 
 -- | Loads and parses a Haskell module from the file with the given name.
 parseModuleFile
-  :: String -- ^ The name of the Haskell source file.
-  -> ReporterIO (H.Module SrcSpan)
+  :: (MonadIO r, MonadReporter r)
+  => String -- ^ The name of the Haskell source file.
+  -> r (H.Module SrcSpan)
 parseModuleFile = fmap fst . parseModuleFileWithComments
 
 -- | Like 'parseModuleFile' but returns the comments in addtion to the AST.
 parseModuleFileWithComments
-  :: String -- ^ The name of the Haskell source file.
-  -> ReporterIO (H.Module SrcSpan, [HS.Comment])
-parseModuleFileWithComments filename = reportIOErrors $ do
-  contents <- lift $ readFile filename
-  hoist $ parseModuleWithComments filename contents
+  :: (MonadIO r, MonadReporter r)
+  => String -- ^ The name of the Haskell source file.
+  -> r (H.Module SrcSpan, [HS.Comment])
+parseModuleFileWithComments filename = do
+  contents <- liftIO $ readFile filename
+  parseModuleWithComments filename contents
 
 -------------------------------------------------------------------------------
 -- Declarations                                                              --
@@ -194,9 +199,10 @@ parseModuleFileWithComments filename = reportIOErrors $ do
 
 -- | Parses a Haskell type.
 parseDecl
-  :: String -- ^ The name of the Haskell source file.
+  :: MonadReporter r
+  => String -- ^ The name of the Haskell source file.
   -> String -- ^ The Haskell source code.
-  -> Reporter (H.Decl SrcSpan)
+  -> r (H.Decl SrcSpan)
 parseDecl = parseHaskell
 
 -------------------------------------------------------------------------------
@@ -205,9 +211,10 @@ parseDecl = parseHaskell
 
 -- | Parses a Haskell type.
 parseType
-  :: String -- ^ The name of the Haskell source file.
+  :: MonadReporter r
+  => String -- ^ The name of the Haskell source file.
   -> String -- ^ The Haskell source code.
-  -> Reporter (H.Type SrcSpan)
+  -> r (H.Type SrcSpan)
 parseType = parseHaskell
 
 -- | Parses a Haskell type schema.
@@ -215,9 +222,10 @@ parseType = parseHaskell
 --   A type schema is a type with an optional explicit @forall@ quantifier.
 --   This requires the @ExplicitForAll@ language extension to be enabled.
 parseTypeSchema
-  :: String -- ^ The name of the Haskell source file.
+  :: MonadReporter r
+  => String -- ^ The name of the Haskell source file.
   -> String -- ^ The Haskell source code.
-  -> Reporter (H.Type SrcSpan)
+  -> r (H.Type SrcSpan)
 parseTypeSchema = parseHaskellWithExts [ExplicitForAll]
 
 -------------------------------------------------------------------------------
@@ -226,9 +234,10 @@ parseTypeSchema = parseHaskellWithExts [ExplicitForAll]
 
 -- | Parses a Haskell expression.
 parseExpr
-  :: String -- ^ The name of the Haskell source file.
+  :: MonadReporter r
+  => String -- ^ The name of the Haskell source file.
   -> String -- ^ The Haskell source code.
-  -> Reporter (H.Exp SrcSpan)
+  -> r (H.Exp SrcSpan)
 parseExpr = parseHaskell
 
 -------------------------------------------------------------------------------
@@ -241,10 +250,12 @@ parseExpr = parseHaskell
 --   Since there is no 'Parseable' instance for 'H.QName', the given string
 --   is parsed as a pattern instead. The name of the constructor is extracted
 --   from the pattern.
-parseQName :: String -> Reporter (H.QName SrcSpan)
+--
+--   TODO now that we have an IR parser, we probably don't need this anymore.
+parseQName :: MonadReporter r => String -> r (H.QName SrcSpan)
 parseQName input = parseHaskell "<parseQName>" input >>= qNameFromPat
  where
-  qNameFromPat :: H.Pat SrcSpan -> Reporter (H.QName SrcSpan)
+  qNameFromPat :: MonadReporter r => H.Pat SrcSpan -> r (H.QName SrcSpan)
   qNameFromPat (H.PApp _ qname []) = return qname
   qNameFromPat (H.PList srcSpan []) =
     return (H.Special srcSpan (H.ListCon srcSpan))

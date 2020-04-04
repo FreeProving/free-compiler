@@ -7,6 +7,7 @@ module FreeC.Config
   )
 where
 
+import           Control.Monad.IO.Class         ( MonadIO(..) )
 import qualified Data.Aeson                    as Aeson
 import qualified Data.Aeson.Encode.Pretty      as Aeson
 import qualified Data.ByteString.Lazy          as LazyByteString
@@ -24,12 +25,13 @@ import           FreeC.Util.Parsec
 --   the "Aeson" interface.
 --
 --   The configuration file type is inferred from the file extension.
-loadConfig :: Aeson.FromJSON a => FilePath -> ReporterIO a
-loadConfig filename = reportIOErrors $ do
-  contents <- lift $ readFile filename
+loadConfig
+  :: (MonadIO r, MonadReporter r) => Aeson.FromJSON a => FilePath -> r a
+loadConfig filename = do
+  contents <- liftIO $ readFile filename
   case takeExtension filename of
-    ".toml" -> hoist $ decodeTomlConfig filename contents
-    ".json" -> hoist $ decodeJsonConfig filename contents
+    ".toml" -> decodeTomlConfig filename contents
+    ".json" -> decodeJsonConfig filename contents
     '.' : format ->
       reportFatal
         $  Message (FileSpan filename) Error
@@ -41,14 +43,15 @@ loadConfig filename = reportIOErrors $ do
         $ "Missing extension. Cannot determine configuration file format."
 
 -- | Parses a @.toml@ configuration file with the given contents.
-decodeTomlConfig :: Aeson.FromJSON a => FilePath -> String -> Reporter a
+decodeTomlConfig
+  :: MonadReporter r => Aeson.FromJSON a => FilePath -> String -> r a
 decodeTomlConfig filename contents = either
   (reportParsecError (mkSrcFileMap [mkSrcFile filename contents]))
   decodeTomlDocument
   (parseTomlDoc filename (Text.pack contents))
  where
   -- | Decodes a TOML document using the "Aeson" interace.
-  decodeTomlDocument :: Aeson.FromJSON a => Toml.Table -> Reporter a
+  decodeTomlDocument :: MonadReporter r => Aeson.FromJSON a => Toml.Table -> r a
   decodeTomlDocument document = case Aeson.fromJSON (Aeson.toJSON document) of
     Aeson.Error msg ->
       reportFatal
@@ -58,7 +61,8 @@ decodeTomlConfig filename contents = either
     Aeson.Success result -> return result
 
 -- | Parses a @.json@ file with the given contents.
-decodeJsonConfig :: Aeson.FromJSON a => FilePath -> String -> Reporter a
+decodeJsonConfig
+  :: MonadReporter r => Aeson.FromJSON a => FilePath -> String -> r a
 decodeJsonConfig filename contents =
   case Aeson.eitherDecode (fromString contents) of
     Right result   -> return result
@@ -66,6 +70,7 @@ decodeJsonConfig filename contents =
 
 -- | Encodes the given value using its "Aeson" interface and saves
 --   the encoded value as @.json@ file.
-saveConfig :: Aeson.ToJSON a => FilePath -> a -> ReporterIO ()
+saveConfig
+  :: (MonadIO r, MonadReporter r) => Aeson.ToJSON a => FilePath -> a -> r ()
 saveConfig filename =
-  reportIOErrors . lift . LazyByteString.writeFile filename . Aeson.encodePretty
+  liftIO . LazyByteString.writeFile filename . Aeson.encodePretty

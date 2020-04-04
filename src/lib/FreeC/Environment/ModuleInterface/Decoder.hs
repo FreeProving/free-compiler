@@ -99,6 +99,7 @@ module FreeC.Environment.ModuleInterface.Decoder
   )
 where
 
+import           Control.Monad.IO.Class         ( MonadIO )
 import           Data.Aeson                     ( (.!=)
                                                 , (.:)
                                                 , (.:?)
@@ -265,5 +266,6 @@ instance Aeson.FromJSON ModuleInterface where
                        }
 
 -- | Loads a module interface file from a @.toml@ or @.json@ file.
-loadModuleInterface :: FilePath -> ReporterIO ModuleInterface
+loadModuleInterface
+  :: (MonadIO r, MonadReporter r) => FilePath -> r ModuleInterface
 loadModuleInterface = loadConfig

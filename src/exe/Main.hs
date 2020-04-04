@@ -92,6 +92,7 @@ compiler = do
 parseInputFile :: FilePath -> Application HS.Module
 parseInputFile inputFile = reportApp $ do
   -- Parse and simplify input file.
+  putDebug $ "Loading " ++ inputFile
   (haskellAst, comments) <- liftReporterIO
     $ parseModuleFileWithComments inputFile
   haskellAst' <- transformInputModule haskellAst
@@ -177,7 +178,7 @@ outputCoqModule modName coqAst = do
           ifaceFile  = outputDir </> outputPath <.> "json"
       Just iface <- inEnv $ lookupAvailableModule modName
       liftIO $ createDirectoryIfMissing True (takeDirectory outputFile)
-      liftReporterIO $ writeModuleInterface ifaceFile iface
+      writeModuleInterface ifaceFile iface
       liftIO $ writePrettyFile outputFile (map PrettyCoq coqAst)
 
 -------------------------------------------------------------------------------
@@ -206,7 +207,7 @@ loadModule :: SrcSpan -> HS.ModName -> Application ()
 loadModule srcSpan modName = do
   importDirs <- inOpts optImportDirs
   ifaceFile  <- findIfaceFile importDirs
-  iface      <- liftReporterIO $ loadModuleInterface ifaceFile
+  iface      <- loadModuleInterface ifaceFile
   modifyEnv $ makeModuleAvailable iface
  where
   -- | The name of the module's interface file relative to the import
@@ -249,7 +250,7 @@ loadModuleFromBaseLib modName = do
   baseLibDir <- inOpts optBaseLibDir
   let modPath   = joinPath $ splitOn "." modName
       ifaceFile = baseLibDir </> modPath <.> "toml"
-  ifrace <- liftReporterIO $ loadModuleInterface ifaceFile
+  ifrace <- loadModuleInterface ifaceFile
   modifyEnv $ makeModuleAvailable ifrace
 
 -- | Creates a @_CoqProject@ file (if enabled) that maps the physical directory

@@ -16,6 +16,7 @@ module FreeC.Environment.ModuleInterface.Encoder
   )
 where
 
+import           Control.Monad.IO.Class         ( MonadIO )
 import           Data.Aeson                     ( (.=) )
 import qualified Data.Aeson                    as Aeson
 import           Data.Maybe                     ( mapMaybe )
@@ -134,5 +135,6 @@ encodeEntry entry
   typeArgs = Aeson.toJSON (entryTypeArgs entry)
 
 -- | Serializes a module interface and writes it to a @.json@ file.
-writeModuleInterface :: FilePath -> ModuleInterface -> ReporterIO ()
+writeModuleInterface
+  :: (MonadIO r, MonadReporter r) => FilePath -> ModuleInterface -> r ()
 writeModuleInterface = saveConfig

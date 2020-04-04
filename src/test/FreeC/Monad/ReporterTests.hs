@@ -18,7 +18,7 @@ testReporter = describe "FreeC.Monad.Reporter" $ do
   testRunReporter
   testIsFatal
   testMessages
-  testReportIOErrors
+  testLiftIO
 
 -------------------------------------------------------------------------------
 -- Tests for @runReporter@                                                  --
@@ -89,17 +89,17 @@ testMessages = describe "messages" $ do
     messages reporter `shouldBe` [testMessage1, testMessage2]
 
 -------------------------------------------------------------------------------
--- Tests for @reportIOErrors@                                                --
+-- Tests for @liftIO@                                                        --
 -------------------------------------------------------------------------------
 
--- | Test group for 'reportIOErrors' tests.
-testReportIOErrors :: Spec
-testReportIOErrors = describe "reportIOErrors" $ do
+-- | Test group for 'liftIO' tests.
+testLiftIO :: Spec
+testLiftIO = describe "liftIO reports IO errors" $ do
   it "catches IO errors" $ do
-    reporter <- unhoist $ reportIOErrors (lift $ ioError (userError "catch me"))
+    reporter <- unhoist $ liftIO $ ioError (userError "catch me")
     isFatal reporter `shouldBe` True
     length (messages reporter) `shouldBe` 1
-  it "forwards reported messages" $ do
-    reporter <- unhoist $ reportIOErrors (hoist (report testMessage1))
+  it "forwards result" $ do
+    reporter <- unhoist $ liftIO (return ())
     isFatal reporter `shouldBe` False
-    length (messages reporter) `shouldBe` 1
+    length (messages reporter) `shouldBe` 0
