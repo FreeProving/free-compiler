@@ -9,8 +9,7 @@ import qualified Data.Set                      as Set
 import           FreeC.IR.SrcSpan
 import           FreeC.IR.Subterm
 import           FreeC.IR.Syntax               as HS
-
-import           FreeC.Util.Test
+import           FreeC.Test.Parser
 
 -------------------------------------------------------------------------------
 -- Test data                                                                 --
@@ -43,15 +42,16 @@ testPos expr = do
 testSubterm :: Spec
 testSubterm = describe "FreeC.IR.Subterm" $ do
   beforeAll
-      (fromReporter $ fromConverter $ parseTestExpr $ unlines
+      (expectParseTestExpr $ unlines
         [ "\\n xs ->"
-        , "  if n < 0"
+        , "  if (<) n 0"
         , "    then undefined"
-        , "    else if n == 0"
-        , "      then []"
-        , "      else case xs of"
-        , "        []      -> []"
-        , "        x : xs' -> x : take (n - 1) xs'"
+        , "    else if (==) n 0"
+        , "      then ([])"
+        , "      else case xs of {"
+        , "          ([])      -> ([]);"
+        , "          (:) x xs' -> (:) x (take ((-) n 1) xs')"
+        , "        }"
         ]
       )
     $ do
