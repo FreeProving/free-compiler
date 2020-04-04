@@ -14,6 +14,8 @@ module FreeC.Monad.Class.Testable
     -- * Expecting failures
   , shouldFail
   , shouldFailWith
+    -- * QuickCheck
+  , shouldReturnProperty
   )
 where
 
@@ -31,6 +33,7 @@ import           System.IO.Error                ( catchIOError
 import           System.IO.Unsafe               ( unsafePerformIO )
 import           Test.Hspec              hiding ( shouldReturn )
 import           Test.HUnit.Base                ( assertFailure )
+import           Test.QuickCheck
 
 import           Data.Functor.Identity          ( Identity(..) )
 
@@ -48,15 +51,15 @@ class Monad m => MonadTestable m err | m -> err where
   shouldReturnWith'
     :: (a -> String)      -- ^ Function to use to print unexpected values.
     -> m a                -- ^ The computation to set the expectation for.
-    -> (a -> Expectation) -- ^ Sets the expectation for a value.
-    -> Expectation
+    -> (a -> IO b)        -- ^ Sets the expectation for a value.
+    -> IO b
 
   -- | Like 'shouldFailWith' but uses the first argument for pretty printing.
   shouldFailWith'
     :: (a -> String)        -- ^ Function to use to print unexpected values.
     -> m a                  -- ^ The computation to set the expectation for.
-    -> (err -> Expectation) -- ^ Sets the expectation for the produced error.
-    -> Expectation
+    -> (err -> IO b)        -- ^ Sets the expectation for the produced error.
+    -> IO b
 
 -- | Sets the expectation returned by the given function for the value
 --   returned by the given computation.
@@ -97,17 +100,17 @@ shouldFailWith = shouldFailWith' show
 instance MonadTestable Identity () where
   shouldReturnWith' _ = flip ($) . runIdentity
   shouldFailWith' _ _ _ =
-    expectationFailure "Expected failure, but the Identity monad cannot fail."
+    assertFailure "Expected failure, but the Identity monad cannot fail."
 
 -- | A computation in the @Maybe@ monad fails if the result is @Nothing@ and
 --   succeeds if the result is @Just@ a value.
 instance MonadTestable Maybe () where
   shouldReturnWith' _ (Just x) f = f x
   shouldReturnWith' _ Nothing _ =
-    expectationFailure "Unexpected failure in Maybe monad."
+    assertFailure "Unexpected failure in Maybe monad."
   shouldFailWith' _ Nothing f = f ()
   shouldFailWith' showValue (Just x) _ =
-    expectationFailure
+    assertFailure
       $  "Expected failure in Maybe monad, "
       ++ "but the following value was produced: "
       ++ showValue x
@@ -117,10 +120,10 @@ instance MonadTestable Maybe () where
 instance Show err => MonadTestable (Either err) err where
   shouldReturnWith' _ (Right x) f = f x
   shouldReturnWith' _ (Left err) _ =
-    expectationFailure $ "Unexpected failure in Either monad, got " ++ show err
+    assertFailure $ "Unexpected failure in Either monad, got " ++ show err
   shouldFailWith' _ (Left err) f = f err
   shouldFailWith' showValue (Right x) _ =
-    expectationFailure
+    assertFailure
       $  "Expected failure in Either monad, "
       ++ "but the following value was produced: "
       ++ showValue x
@@ -132,13 +135,13 @@ instance Show err => MonadTestable (Either err) err where
 -- | An impure computation in the @IO@ monad fails if an @IO@ error is thrown.
 instance MonadTestable IO IOError where
   shouldReturnWith' _ mx f = catchIOError (mx >>= f) $ \err ->
-    expectationFailure
-      $  "Unexpected IO error: "
-      ++ ioeGetErrorString err
-      ++ maybe "" (": " ++) (ioeGetFileName err)
+    assertFailure $ "Unexpected IO error: " ++ ioeGetErrorString err ++ maybe
+      ""
+      (": " ++)
+      (ioeGetFileName err)
   shouldFailWith' showValue mx f = flip catchIOError f $ do
     x <- mx
-    expectationFailure
+    assertFailure
       $  "Expected IO error, but the following value was produced: "
       ++ showValue x
 
@@ -187,7 +190,7 @@ instance MonadTestable m err => MonadTestable (ReporterT m) [Message] where
       $ \result -> case result of
           (Just x, _) -> setExpectation x
           (Nothing, ms) ->
-            expectationFailure
+            assertFailure
               $  "Unexpected fatal message.\n"
               ++ showReportedMessages ms
   shouldFailWith' showValue reporter setExpectation =
@@ -196,11 +199,11 @@ instance MonadTestable m err => MonadTestable (ReporterT m) [Message] where
           (Nothing, ms) -> setExpectation ms
           (Just x, ms)
             | null ms
-            -> expectationFailure
+            -> assertFailure
               $  "Expected a fatal message, but no messages were reported.\n"
               ++ showReportedValue showValue (Just x)
             | otherwise
-            -> expectationFailure
+            -> assertFailure
               $  "Expected a fatal message to be reported, but got none.\n"
               ++ showReportedValue showValue (Just x)
               ++ showReportedMessages ms
@@ -259,3 +262,15 @@ instance MonadTestable m err => MonadTestable (ConverterT m) [Message] where
   shouldFailWith' showValue converter setExpectation = do
     env <- initTestEnvironment
     shouldFailWith' showValue (evalConverterT converter env) setExpectation
+
+-------------------------------------------------------------------------------
+-- QuickCheck                                                                --
+-------------------------------------------------------------------------------
+
+-- | Sets the expectation that the given computation returns a testable
+--   QuickCheck property and returns a property that is satisfied if and
+--   only if.
+shouldReturnProperty
+  :: (MonadTestable m err, Testable prop) => m prop -> Property
+shouldReturnProperty mp =
+  idempotentIOProperty $ shouldReturnWith' (const "<property>") mp return
