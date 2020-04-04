@@ -17,15 +17,27 @@ module FreeC.Monad.Class.Testable
   )
 where
 
-import           Data.List                      ( intersperse )
+import           Control.Monad.IO.Class         ( MonadIO )
+import           Data.List                      ( intercalate )
+import           Data.IORef                     ( IORef
+                                                , newIORef
+                                                , readIORef
+                                                , writeIORef
+                                                )
 import           System.IO.Error                ( catchIOError
                                                 , ioeGetErrorString
                                                 , ioeGetFileName
                                                 )
+import           System.IO.Unsafe               ( unsafePerformIO )
 import           Test.Hspec              hiding ( shouldReturn )
 
 import           Data.Functor.Identity          ( Identity(..) )
 
+import           FreeC.Environment
+import           FreeC.Environment.ModuleInterface
+import           FreeC.Environment.ModuleInterface.Decoder
+import qualified FreeC.IR.Syntax               as HS
+import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
 import           FreeC.Pretty
 
@@ -136,7 +148,7 @@ instance MonadTestable IO IOError where
 -- | Utility function that print the given message like an item of an
 --   unordered Markdown list.
 showListItem :: String -> String
-showListItem = (++ "\n") . (" * " ++) . unlines . intersperse "   " . lines
+showListItem = (++ "\n") . (" * " ++) . intercalate "\n   " . lines
 
 -- | Converts the pretty printing function for the result of a reporter to
 --   a pretty printing function for the result of 'runReporterT'.
@@ -175,7 +187,7 @@ instance MonadTestable m err => MonadTestable (ReporterT m) [Message] where
           (Just x, _) -> setExpectation x
           (Nothing, ms) ->
             expectationFailure
-              $  "Unexpected fatal message."
+              $  "Unexpected fatal message.\n"
               ++ showReportedMessages ms
   shouldFailWith' showValue reporter setExpectation =
     shouldReturnWith' (showReporterValue showValue) (runReporterT reporter)
@@ -191,3 +203,49 @@ instance MonadTestable m err => MonadTestable (ReporterT m) [Message] where
               $  "Expected a fatal message to be reported, but got none.\n"
               ++ showReportedValue showValue (Just x)
               ++ showReportedMessages ms
+
+-------------------------------------------------------------------------------
+-- Instance for the converter monad                                          --
+-------------------------------------------------------------------------------
+
+-- | Initializes the test environment for the converter monad.
+initTestEnvironment :: IO Environment
+initTestEnvironment = do
+  preludeIface    <- loadTestModuleInterface "./base/Prelude.toml"
+  quickCheckIface <- loadTestModuleInterface "./base/Test/QuickCheck.toml"
+  return $ foldr makeModuleAvailable emptyEnv $ [preludeIface, quickCheckIface]
+
+-- | A global variable that caches the module interfaces that are part of
+--   the initial test environment (see 'initTestEnvironment') such that
+--   they do not have to be loaded in every test case.
+{-# NOINLINE moduleInterfaceCache #-}
+moduleInterfaceCache :: IORef [(HS.ModName, ModuleInterface)]
+moduleInterfaceCache = unsafePerformIO $ newIORef []
+
+-- | Loads the module interface file for the module with the given name from
+--   the base library.
+--
+--   If the module interface has been loaded before, the previously loaded
+--   interface file is restored from 'moduleInterfaceCache'.
+loadTestModuleInterface
+  :: (MonadIO r, MonadReporter r) => FilePath -> r ModuleInterface
+loadTestModuleInterface ifaceFile = do
+  cache <- liftIO $ readIORef moduleInterfaceCache
+  case lookup ifaceFile cache of
+    Nothing -> do
+      iface <- loadModuleInterface ifaceFile
+      let cache' = (ifaceFile, iface) : cache
+      liftIO $ writeIORef moduleInterfaceCache cache'
+      return iface
+    Just iface -> return iface
+
+-- | A converter is evaluated within the test environment created by
+--   'initTestEnvironment' and the resulting reporter is handled by
+--   the 'MonadTestable' instance for 'ReporterT'.
+instance MonadTestable m err => MonadTestable (ConverterT m) [Message] where
+  shouldReturnWith' showValue converter setExpectation = do
+    env <- initTestEnvironment
+    shouldReturnWith' showValue (evalConverterT converter env) setExpectation
+  shouldFailWith' showValue converter setExpectation = do
+    env <- initTestEnvironment
+    shouldFailWith' showValue (evalConverterT converter env) setExpectation
