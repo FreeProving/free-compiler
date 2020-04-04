@@ -186,6 +186,7 @@ test-suite freec-unit-tests
                     , FreeC.IR.SubstTests
                     , FreeC.IR.SubtermTests
                     , FreeC.IR.UnificationTests
+                    , FreeC.Monad.Class.Testable
                     , FreeC.Monad.ReporterTests
                     , FreeC.Pass.PartialityAnalysisPassTests
                     , FreeC.Util.Test
