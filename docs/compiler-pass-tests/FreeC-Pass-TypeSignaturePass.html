@@ -1,0 +1,35 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><title>FreeC.Pass.TypeSignaturePass</title><link href="ocean.css" rel="stylesheet" type="text/css" title="Ocean" /><link rel="stylesheet" type="text/css" href="quick-jump.css" /><script src="haddock-bundle.min.js" async="async" type="text/javascript"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML" type="text/javascript"></script></head><body><div id="package-header"><ul class="links" id="page-menu"><li><a href="src/FreeC.Pass.TypeSignaturePass.html">Source</a></li><li><a href="index.html">Contents</a></li><li><a href="doc-index.html">Index</a></li></ul><p class="caption">free-compiler-0.1.0.0: A Haskell to Coq compiler.</p></div><div id="content"><div id="module-header"><table class="info"><tr><th>Safe Haskell</th><td>None</td></tr><tr><th>Language</th><td>Haskell2010</td></tr></table><p class="caption">FreeC.Pass.TypeSignaturePass</p></div><div id="description"><p class="caption">Description</p><div class="doc"><p>This module contains a compiler pass that associates top-level type
+   signatures with the corresponding function declarations.</p><h1>Examples</h1><h2>Example 1</h2><p>For example, the following module that declares an unary function <code>null</code>
+   with a type signature</p><pre>  null :: forall a. [a] -&gt; Bool
+  null xs = case xs of { [] -&gt; True; x : xs' -&gt; False }
+  </pre><p>will be be converted to a module that still contains the type signature
+   but the types of the argument <code>xs</code> and the return type of <code>head</code> are
+   also annotated explicitly in the function declaration itself.
+   In addition, the type arguments of the type schema are copied from the type
+   signature to the function declaration's type argument list.</p><pre>  null :: forall a. [a] -&gt; Bool
+  null @a (xs :: [a]) = (case xs of { [] -&gt; True; x : xs' -&gt; False }) :: Bool
+  </pre><h2>Example 2</h2><p>The type signature of an <code>n</code>-ary function declaration must not necessarily
+   be a function type with <code>n-1</code> arrows. For example, the type signature
+   could contain type synonyms.</p><pre>  type Subst = String -&gt; Expr
+
+  identity :: Subst
+  identity x = Var x
+  </pre><p>In this case, the type synonym needs to be expanded in order to determine
+   the type of the argument <code>x</code> and the return type of <code>identity</code>.</p><pre>  type Subst = String -&gt; Expr
+
+  identity :: Subst
+  identity (x :: String) = Var x :: Expr
+  </pre><p>The original type signature is left unchanged (not expanded) and type
+   synonyms are only expanded when necessary.</p><h1>Specification</h1><h2>Preconditions</h2><p>The environment contains entries for all type synonyms.
+   Otherwise this pass fails if a type synonym needs to be expanded to
+   determine the type of an argument.</p><h2>Translation</h2><p>The declaration of every <code>n</code>-ary function <code>f</code></p><pre>  f x&#8321; &#8230; x&#8345; = e
+  </pre><p>for which there exists a top-level type signature</p><pre>  &#8230;, f, &#8230; :: forall &#945;&#8321; &#8230; &#945;&#8344;. &#964;
+  </pre><p>will be converted into a function declaration with explicit type
+   annotations and type arguments</p><pre>  f <code>&#945;&#8321; &#8230; </code>&#945;&#8344; (x&#8321; :: &#964;&#8321;) &#8230; (x&#8345; :: &#964;&#8345;) = e :: &#964;'
+  </pre><p>where <code>&#964;&#8321; -&gt; &#8230; -&gt; &#964;&#8345; -&gt; &#964;</code> is the smallest type that can be derived
+   from <code>&#964;</code> by expanding type synonyms.</p><h2>Postconditions</h2><p>The argument and return types of every function declaration that has a
+   top-level type signature are annotated explicitly.</p><h2>Error cases</h2><ul><li>A fatal error is reported if the type of an argument cannot be
+     determined because a type synonym could not be expanded.</li><li>A fatal error is reported if there are multiple type signatures for the
+     same function declaration.</li><li>A warning is reported if there is a type signature without accompanying
+     function declaration.</li></ul></div></div><div id="synopsis"><details id="syn"><summary>Synopsis</summary><ul class="details-toggle" data-details-id="syn"><li class="src short"><a href="#v:typeSignaturePass">typeSignaturePass</a> :: <a href="FreeC-Pass.html#t:Pass" title="FreeC.Pass">Pass</a> <a href="FreeC-IR-Syntax.html#t:Module" title="FreeC.IR.Syntax">Module</a></li></ul></details></div><div id="interface"><h1>Documentation</h1><div class="top"><p class="src"><a id="v:typeSignaturePass" class="def">typeSignaturePass</a> :: <a href="FreeC-Pass.html#t:Pass" title="FreeC.Pass">Pass</a> <a href="FreeC-IR-Syntax.html#t:Module" title="FreeC.IR.Syntax">Module</a> <a href="src/FreeC.Pass.TypeSignaturePass.html#typeSignaturePass" class="link">Source</a> <a href="#v:typeSignaturePass" class="selflink">#</a></p><div class="doc"><p>Associates top-level type signatures with the corresponding function
+   declarations in the given module.</p></div></div></div></div><div id="footer"><p>Produced by <a href="http://www.haskell.org/haddock/">Haddock</a> version 2.22.0</p></div></body></html>

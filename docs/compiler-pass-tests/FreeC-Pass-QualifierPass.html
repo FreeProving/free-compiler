@@ -1,0 +1,28 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><title>FreeC.Pass.QualifierPass</title><link href="ocean.css" rel="stylesheet" type="text/css" title="Ocean" /><link rel="stylesheet" type="text/css" href="quick-jump.css" /><script src="haddock-bundle.min.js" async="async" type="text/javascript"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML" type="text/javascript"></script></head><body><div id="package-header"><ul class="links" id="page-menu"><li><a href="src/FreeC.Pass.QualifierPass.html">Source</a></li><li><a href="index.html">Contents</a></li><li><a href="doc-index.html">Index</a></li></ul><p class="caption">free-compiler-0.1.0.0: A Haskell to Coq compiler.</p></div><div id="content"><div id="module-header"><table class="info"><tr><th>Safe Haskell</th><td>None</td></tr><tr><th>Language</th><td>Haskell2010</td></tr></table><p class="caption">FreeC.Pass.QualifierPass</p></div><div id="description"><p class="caption">Description</p><div class="doc"><p>This module contains a compiler pass that qualifies the names of all
+   top-level declarations of the converted module with the name of that
+   module.</p><h1>Example</h1><p>Consider the following module.</p><pre>  module Data.Tree where
+
+  data Tree a = Leaf a | Branch (Tree a) (Tree a)
+
+  mapTree :: (a -&gt; b) -&gt; Tree a -&gt; Tree b
+  mapTree f t = case t of
+    Leaf x     -&gt; Leaf (f x)
+    Branch l r -&gt; Branch (mapTree f l) (mapTree f r)
+  </pre><p>After this pass the declarations of <code>Tree</code> and <code>mapTree</code> as well
+   as the type signature for <code>mapTree</code> and the constructors <code>Leaf</code>
+   and <code>Branch</code> are qualified.</p><pre>  module Data.Tree where
+
+  data Data.Tree.Tree a
+    = Data.Tree.Leaf a
+    | Data.Tree.Branch (Tree a) (Tree a)
+
+  Data.Tree.mapTree :: (a -&gt; b) -&gt; Tree a -&gt; Tree b
+  Data.Tree.mapTree f t = case t of
+    Leaf x     -&gt; Leaf (f x)
+    Branch l r -&gt; Branch (mapTree f l) (mapTree f r)
+  </pre><p>However, references to <code>Tree</code>, <code>Leaf</code>, <code>Branch</code> and <code>mapTree</code>
+   in the fields of the constructor declarations and on the right-hand
+   side of the function's type signature and declaration remain unqualified.
+   Also (type) arguments and local variable are not affected.</p><h1>Specification</h1><h2>Precondition</h2><p>There are no special requirements.</p><h2>Translation</h2><p>In a module <code>M</code> all declarations, type signatures and pragmas of the forms</p><ul><li><pre>type T &#945;&#8321; &#8230; &#945;&#8344; = &#964;</pre></li><li><pre>data D &#945;&#8321; &#8230; &#945;&#8344; = C&#8321; &#964;&#8333;&#8321;,&#8321;&#8334; &#8230; &#964;&#8333;&#8321;,&#8342;&#8321;&#8334; | &#8230; | C&#8345; &#964;&#8333;&#8345;,&#8321;&#8334; &#8230; &#964;&#8333;&#8345;,&#8342;&#8345;&#8334;</pre></li><li><pre>f&#8321;, &#8230;, f&#8345; :: &#964;</pre></li><li><pre>f x&#8321; &#8230; x&#8345; = e</pre></li><li><pre>{-# FreeC f DECREASES ON x #-}</pre></li></ul><p>are translated to</p><ul><li><pre>type M.T &#945;&#8321; &#8230; &#945;&#8344; = &#964;</pre></li><li><pre>data M.D &#945;&#8321; &#8230; &#945;&#8344; = M.C&#8321; &#964;&#8333;&#8321;,&#8321;&#8334; &#8230; &#964;&#8333;&#8321;,&#8342;&#8321;&#8334; | &#8230; | M.C&#8345; &#964;&#8333;&#8345;,&#8321;&#8334; &#8230; &#964;&#8333;&#8345;,&#8342;&#8345;&#8334;</pre></li><li><pre>M.f&#8321;, &#8230;, M.f&#8345; :: &#964;</pre></li><li><pre>M.f x&#8321; &#8230; x&#8345; = e</pre></li><li><pre>{-# FreeC M.f DECREASES ON x #-}</pre></li></ul><p>If an identifier is qualified already, it keeps its original qualifier.</p><h2>Postcondition</h2><p>All <code><a href="FreeC-IR-Syntax.html#t:DeclIdent" title="FreeC.IR.Syntax">DeclIdent</a></code>s in the module contain qualified identifiers
+   (i.e., <code><a href="FreeC-IR-Syntax.html#v:Qual" title="FreeC.IR.Syntax">Qual</a></code>s).</p></div></div><div id="synopsis"><details id="syn"><summary>Synopsis</summary><ul class="details-toggle" data-details-id="syn"><li class="src short"><a href="#v:qualifierPass">qualifierPass</a> :: <a href="FreeC-Pass.html#t:Pass" title="FreeC.Pass">Pass</a> <a href="FreeC-IR-Syntax.html#t:Module" title="FreeC.IR.Syntax">Module</a></li></ul></details></div><div id="interface"><h1>Documentation</h1><div class="top"><p class="src"><a id="v:qualifierPass" class="def">qualifierPass</a> :: <a href="FreeC-Pass.html#t:Pass" title="FreeC.Pass">Pass</a> <a href="FreeC-IR-Syntax.html#t:Module" title="FreeC.IR.Syntax">Module</a> <a href="src/FreeC.Pass.QualifierPass.html#qualifierPass" class="link">Source</a> <a href="#v:qualifierPass" class="selflink">#</a></p><div class="doc"><p>Compiler pass that qualifies the names of all declarations in the module
+   with the name of the module.</p></div></div></div></div><div id="footer"><p>Produced by <a href="http://www.haskell.org/haddock/">Haddock</a> version 2.22.0</p></div></body></html>
