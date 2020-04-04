@@ -4,29 +4,118 @@ From Base Require Import Prelude.
 (* QuickCheck properties are implemented as Coq propositions. *)
 Definition Property (Shape : Type) (Pos : Shape -> Type) := Prop.
 
-(* Utility function to convert a boolean value to a proposition. *)
-Definition isPureTrue (Shape : Type) (Pos : Shape -> Type)
-                      (b : Free Shape Pos (Bool Shape Pos))
-  : Prop
- := b = True_ Shape Pos.
+(* * [Testable] type class *)
 
-(* Since the left hand side of QuickCheck's [==>] operator must be a
-   boolean, we need this helper function to convert it to a proposition. *)
-Definition precondition (Shape : Type) (Pos : Shape -> Type)
-                        (b : Free Shape Pos (Bool Shape Pos))
-                        (p : Prop)
-  : Prop
- := isPureTrue Shape Pos b -> p.
+(* [class Testable prop where property :: prop -> Property] *)
+Class Testable (prop : Type) := { property : prop -> Prop }.
 
-(* Coq cannot infer the type of the operands of [=] and [<>] in some cases.
-  Thus, we have to add this helper function which constrains the
-  type as well as the [Shape] and [Pos] arguments. *)
-Definition eqProp (Shape : Type) (Pos : Shape -> Type) {a : Type}
-                  (x : Free Shape Pos a) (y : Free Shape Pos a)
-  : Prop
- := x = y.
+(* [instance Testable Property] *)
+Instance TestableProperty
+  : Testable Prop
+ := { property p := p }.
 
-Definition neqProp (Shape : Type) (Pos : Shape -> Type) {a : Type}
-                   (x : Free Shape Pos a) (y : Free Shape Pos a)
-  : Prop
- := x <> y.
+(* [instance Testable Bool] *)
+Instance TestableBool
+  : Testable bool
+ := { property b := b = true }.
+
+(* [instance Testable b => Testable (a -> b)] *)
+Instance TestableFunction (A : Type) (B : Type) (T_B : Testable B)
+  : Testable (A -> B)
+ := { property f := forall x, property (f x) }.
+
+(* Helper instance for dependent types.
+   This allows us to use [quickCheck] both for proving properties for specific
+   and for arbitrary effects by providing a default strategy for how the
+   binders for [Shape] and [Pos] can be converted to properties. *)
+Instance TestableForall
+  (A : Type) (B : A -> Type) (T_Bx : forall x, Testable (B x))
+  : Testable (forall x, B x)
+ := { property f := forall x, property (f x) }.
+
+(* Helper instance for monadically lifted values.
+
+   This instance defines the strategy for how to handle the computation of
+   a Coq property by a QuickCheck property defined in Haskell.
+   Here we say that a property must produce a [pure] value, otherwise it does
+   not hold. In case of the effect of partiality, this means that the
+   QuickCheck property [prop_undefined = undefined] is not satisfied.
+   (Note that due to the non-strict definition of [(===)] the property
+   [prop_undefined_eq = undefined === undefined] would still be true)
+
+   Whether this strategy makes sense in case of other effects such as
+   non-determinism still has to be investigated. For example, does the
+   property [prop_true_or_false = True ? False] hold or not? With the
+   current implementation it does not hold since the choice operator
+   produces an [impure] value.
+   *)
+Instance TestableFree (Shape : Type) (Pos : Shape -> Type)
+                      (A : Type) (T_A : Testable A)
+  : Testable (Free Shape Pos A)
+ := { property fp := match fp with
+                      | pure p     => property p
+                      | impure _ _ => False
+                      end }.
+
+(* [quickCheck :: Testable a => a -> IO ()]
+   In Haskell this function is used to test a QuickCheck property.
+   We are reusing the name to convert the computation of a quickCheck
+   property to a Coq property that can actually be proven. *)
+Definition quickCheck {A : Type} {T_A : Testable A} (x : A) : Prop
+ := property x.
+
+(* * Constructing QuickCheck Properties *)
+Section SecQuickCheck.
+  Variable Shape : Type.
+  Variable Pos : Shape -> Type.
+  Notation "'Free''" := (Free Shape Pos).
+  Notation "'Property''" := (Property Shape Pos).
+  Notation "'Bool''" := (Bool Shape Pos).
+
+  (* [property :: Bool -> Property]
+     Since we do not support type classes is Haskell, only the [Testable] type
+     class instance for [Bool] is accessable from Haskell. *)
+  Definition boolProp (fb : Free' Bool')
+    : Free' Property'
+   := pure (property fb).
+
+  (* [(==>) :: Bool -> Property -> Property] *)
+  Definition preProp (fb : Free' Bool') (p : Free' Property')
+    : Free' Property'
+   := pure (property fb -> property p).
+
+  (* [(===) :: a -> a -> Property] *)
+  Definition eqProp (A : Type) (fx : Free' A) (fy : Free' A)
+    : Free' Property'
+   := pure (fx = fy).
+
+  (* [(=/=) :: a -> a -> Property] *)
+  Definition neqProp (A : Type) (fx : Free' A) (fy : Free' A)
+    : Free' Property'
+   := pure (fx <> fy).
+
+  (* [(.&&.) :: Property -> Property -> Property] *)
+  Definition conjProp (fp1 : Free' Property') (fp2 : Free' Property')
+    : Free' Property'
+   := pure (property fp1 /\ property fp2).
+
+  (* [(.||.) :: Property -> Property -> Property] *)
+  Definition disjProp (fp1 : Free' Property') (fp2 : Free' Property')
+    : Free' Property'
+   := pure (property fp1 \/ property fp2).
+
+End SecQuickCheck.
+
+(* Helper lemma to avoid the [match] expression introduced by [property]. *)
+Lemma pure_bool_property :
+  forall (Shape : Type)
+         (Pos : Shape -> Type)
+         (fb : Free Shape Pos (Bool Shape Pos)),
+  property fb <-> fb = True_ Shape Pos.
+Proof.
+  simpl. intros Shape Pos fb. split; intros H.
+  - (* -> *) destruct fb as [b |].
+    + (* fb = pure b *) rewrite H. reflexivity.
+    + (* fb = impure _ _ *) contradiction H.
+  - (* <- *) rewrite H. reflexivity.
+Qed.

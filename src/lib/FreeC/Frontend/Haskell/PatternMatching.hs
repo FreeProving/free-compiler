@@ -23,6 +23,7 @@ import           FreeC.Environment
 import           FreeC.Environment.ModuleInterface
 import           FreeC.Environment.Entry
 import           FreeC.Frontend.Haskell.Parser
+import qualified FreeC.IR.Base.Prelude         as HS.Prelude
 import           FreeC.IR.SrcSpan
 import qualified FreeC.IR.Syntax               as HS
 import           FreeC.Monad.Converter
@@ -35,7 +36,7 @@ import           FreeC.Pretty
 --   module.
 initialState :: Converter PMState
 initialState = do
-  Just preludeIface <- inEnv $ lookupAvailableModule HS.preludeModuleName
+  Just preludeIface <- inEnv $ lookupAvailableModule HS.Prelude.modName
   let entries  = Set.toList (interfaceEntries preludeIface)
       entries' = mapMaybe makeConsMapEntry entries
       consMap  = Map.fromListWith (++) entries'

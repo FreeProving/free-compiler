@@ -237,6 +237,7 @@ import           FreeC.Backend.Coq.Converter.TypeSchema
 import           FreeC.Environment
 import           FreeC.Environment.Fresh
 import           FreeC.Environment.Scope
+import qualified FreeC.IR.Base.Prelude         as HS.Prelude
 import           FreeC.IR.DependencyGraph       ( mapComponentM )
 import           FreeC.IR.Reference             ( freeTypeVars )
 import           FreeC.IR.SrcSpan
@@ -597,7 +598,7 @@ annotateExprWith' (HS.TypeAppExpr srcSpan _ _ _) _ =
 
 -- If @if e₁ then e₂ else e₃ :: τ@, then @e₁ :: Bool@ and @e₂, e₃ :: τ@.
 annotateExprWith' (HS.If srcSpan e1 e2 e3 _) resType = do
-  let condType = HS.TypeCon NoSrcSpan HS.boolTypeConName
+  let condType = HS.TypeCon NoSrcSpan HS.Prelude.boolTypeConName
   e1' <- annotateExprWith e1 condType
   e2' <- annotateExprWith e2 resType
   e3' <- annotateExprWith e3 resType
@@ -633,7 +634,7 @@ annotateExprWith' (HS.ErrorExpr srcSpan msg _) resType =
 -- If @n :: τ@ for some integer literal @n@, then add the type equation
 -- @τ = Integer@.
 annotateExprWith' (HS.IntLiteral srcSpan value _) resType = do
-  let intType = HS.TypeCon NoSrcSpan HS.integerTypeConName
+  let intType = HS.TypeCon NoSrcSpan HS.Prelude.integerTypeConName
   addTypeEquation srcSpan intType resType
   return (HS.IntLiteral srcSpan value (makeExprType resType))
 

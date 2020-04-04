@@ -5,7 +5,6 @@ import           Test.Hspec
 import           FreeC.Backend.Coq.Converter.ExprTests
 import           FreeC.Backend.Coq.Converter.FuncDeclTests
 import           FreeC.Backend.Coq.Converter.ModuleTests
-import           FreeC.Backend.Coq.Converter.QuickCheckTests
 import           FreeC.Backend.Coq.Converter.TypeDeclTests
 import           FreeC.Backend.Coq.Converter.TypeTests
 
@@ -19,5 +18,4 @@ testConverter = do
   testConvertNonRecFuncDecl
   testConvertRecFuncDeclsWithHelpers
   testConvertRecFuncDeclsWithSections
-  testConvertQuickCheckProperty
   testConvertModule

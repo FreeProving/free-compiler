@@ -71,5 +71,5 @@ Counting starts at `1`, i.e. the function has index `1` and the tree has index `
 {-# FreeC mapRose' DECREASES ON ARGUMENT 2 #-}
 ```
 
-[`doc/ExperimentalFeatures/PatternMatchingCompilation.md`]: https://github.com/FreeProving/free-compiler/blob/master/doc/ExperimentalFeatures/PatternMatchingCompilation.md
-[`example/DecreasingArgumentPragma.hs`]: https://github.com/FreeProving/free-compiler/blob/master/example/DecreasingArgumentPragma.hs
+[`doc/ExperimentalFeatures/PatternMatchingCompilation.md`]: ../ExperimentalFeatures/PatternMatchingCompilation.md
+[`example/DecreasingArgumentPragma.hs`]: ../../example/DecreasingArgumentPragma.hs

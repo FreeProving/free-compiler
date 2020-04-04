@@ -25,6 +25,8 @@
   - {name: [FreeC.Backend.Coq.Base], as: CoqBase}
   - {name: [FreeC.Backend.Coq.Syntax], as: G}
   - {name: [FreeC.IR.Syntax], as: HS}
+  - {name: [FreeC.IR.Base.Prelude], as: HS.Prelude}
+  - {name: [FreeC.IR.Base.Test.QuickCheck], as: HS.Test.QuickCheck}
   - {name: [Data.Aeson], as: Aeson}
   - {name: [Data.ByteString.Lazy], as: LazyByteString}
   - {name: [Data.List.NonEmpty], as: NonEmpty}

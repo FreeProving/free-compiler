@@ -20,7 +20,6 @@ import           FreeC.Application.Debug
 import           FreeC.Application.Options
 import qualified FreeC.Backend.Coq.Base        as CoqBase
 import           FreeC.Backend.Coq.Converter    ( convertModule )
-import           FreeC.Backend.Coq.Converter.QuickCheck
 import           FreeC.Backend.Coq.Pretty
 import qualified FreeC.Backend.Coq.Syntax      as G
 import           FreeC.Environment
@@ -34,6 +33,8 @@ import           FreeC.Frontend.Haskell.PatternMatching
 import           FreeC.Frontend.Haskell.Pretty  ( )
 import           FreeC.Frontend.Haskell.Simplifier
 import           FreeC.IR.DependencyGraph
+import qualified FreeC.IR.Base.Prelude         as HS.Prelude
+import qualified FreeC.IR.Base.Test.QuickCheck as HS.Test.QuickCheck
 import           FreeC.IR.SrcSpan
 import qualified FreeC.IR.Syntax               as HS
 import           FreeC.Monad.Application
@@ -233,11 +234,11 @@ loadModule srcSpan modName = do
 
 -- | Loads the @Prelude@ module from the base library.
 loadPrelude :: Application ()
-loadPrelude = loadModuleFromBaseLib HS.preludeModuleName
+loadPrelude = loadModuleFromBaseLib HS.Prelude.modName
 
 -- | Loads the @Test.QuickCheck@ module.
 loadQuickCheck :: Application ()
-loadQuickCheck = loadModuleFromBaseLib quickCheckModuleName
+loadQuickCheck = loadModuleFromBaseLib HS.Test.QuickCheck.modName
 
 -- | Loads the module with the given name from the base library.
 --
