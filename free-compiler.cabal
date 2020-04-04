@@ -189,6 +189,7 @@ test-suite freec-unit-tests
                     , FreeC.Monad.Class.Testable
                     , FreeC.Monad.ReporterTests
                     , FreeC.Pass.PartialityAnalysisPassTests
+                    , FreeC.Test.Parser
                     , FreeC.Util.Test
   build-depends:      freec-internal
                       -- Test frameworks:

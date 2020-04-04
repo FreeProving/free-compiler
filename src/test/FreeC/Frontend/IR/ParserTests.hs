@@ -1,23 +1,23 @@
 module FreeC.Frontend.IR.ParserTests where
 
-import           Test.Hspec
+import           Test.Hspec              hiding ( shouldReturn )
 
 import           FreeC.Frontend.IR.Parser
 import           FreeC.IR.SrcSpan
 import qualified FreeC.IR.Syntax               as HS
+import           FreeC.Monad.Class.Testable
 import           FreeC.Monad.Reporter
-import           FreeC.Util.Test
+import           FreeC.Test.Parser
 
--- | Parses an IR node for testing purposes.
-parseTest :: (MonadReporter r, Parseable a) => String -> r a
-parseTest = parseIR . mkSrcFile "<test-input>"
+-------------------------------------------------------------------------------
+-- Expectation setters                                                       --
+-------------------------------------------------------------------------------
 
 -- | Sets the expectation that the 'Parseable' instance can accepts the given
 --   input and produces the given output.
 shouldParse :: (Eq a, Parseable a, Show a) => String -> a -> Expectation
-shouldParse input expectedOutput = shouldSucceed $ do
-  output <- parseTest input
-  return (output `shouldBe` expectedOutput)
+shouldParse input expectedOutput =
+  (parseTestIR input :: Parseable a => Reporter a) `shouldReturn` expectedOutput
 
 -- | Like 'shouldParse' for modules.
 --
@@ -26,14 +26,12 @@ shouldParseModule :: [String] -> HS.Module -> Expectation
 shouldParseModule = shouldParse . unlines
 
 -- | Sets the expectation that the given parser reports a fatal message.
-shouldBeParseError :: (Parseable a, Show a) => ReporterIO a -> Expectation
-shouldBeParseError = shouldReportFatal
+shouldBeParseError :: (Parseable a, Show a) => Reporter a -> Expectation
+shouldBeParseError = shouldFail
 
--- | Sets the expectation that the parser reports a fatal message for the
---   given lines of the input module.
-shouldBeModuleParseError :: [String] -> Expectation
-shouldBeModuleParseError =
-  shouldBeParseError . (parseTest :: String -> ReporterIO HS.Module) . unlines
+-------------------------------------------------------------------------------
+-- Tests                                                                     --
+-------------------------------------------------------------------------------
 
 -- | Test group for "FreeC.Frontend.IR.Parser" tests.
 testIRParser :: Spec
@@ -49,6 +47,10 @@ testIRParser = describe "FreeC.Frontend.IR.Parser" $ do
   testFuncDeclParser
   testImportDeclParser
   testModuleParser
+
+-------------------------------------------------------------------------------
+-- Names                                                                     --
+-------------------------------------------------------------------------------
 
 -- | Test group for 'Parseable' instance of 'HS.Name'.
 testNameParser :: Spec
@@ -77,9 +79,9 @@ testNameParser = context "names" $ do
     "(:|)" `shouldParse` HS.Symbol ":|"
     "(:.:)" `shouldParse` HS.Symbol ":.:"
   it "rejects identifiers starting with an apostrophe" $ do
-    shouldBeParseError (parseTest "'bar'" :: ReporterIO HS.Name)
+    shouldBeParseError (parseTestName "'bar'")
   it "rejects identifiers starting with a digit" $ do
-    shouldBeParseError (parseTest "2qux" :: ReporterIO HS.Name)
+    shouldBeParseError (parseTestName "2qux")
 
 -- | Test group for 'Parseable' instance of 'HS.QName'.
 testQNameParser :: Spec
@@ -105,6 +107,10 @@ testQNameParser = context "qualifiable names" $ do
     "M1. M2.foo3" `shouldParse` HS.Qual "M1.M2" (HS.Ident "foo3")
     "M1 .M2.foo4" `shouldParse` HS.Qual "M1.M2" (HS.Ident "foo4")
 
+-------------------------------------------------------------------------------
+-- Types                                                                     --
+-------------------------------------------------------------------------------
+
 -- | Test group for 'Parseable' instance of 'HS.Type'.
 testTypeParser :: Spec
 testTypeParser = context "type expressions" $ do
@@ -116,7 +122,7 @@ testTypeParser = context "type expressions" $ do
   it "accepts unqualified type variables" $ do
     "a" `shouldParse` a
   it "rejects qualified type variables" $ do
-    shouldBeParseError (parseTest "M.a" :: ReporterIO HS.Type)
+    shouldBeParseError (parseTestType "M.a")
   it "accepts type constructors" $ do
     "A" `shouldParse` a'
   it "accepts function types" $ do
@@ -149,6 +155,10 @@ testTypeSchemaParser = context "type schemas" $ do
   it "accepts type schemas with explicit non-empty forall" $ do
     "forall a. a -> b" `shouldParse` HS.TypeSchema NoSrcSpan [a] t
     "forall a b. a -> b" `shouldParse` HS.TypeSchema NoSrcSpan [a, b] t
+
+-------------------------------------------------------------------------------
+-- Type declarations                                                         --
+-------------------------------------------------------------------------------
 
 -- | Test group for 'Parseable' instance of type synonym declarations.
 testSynTypeDeclParser :: Spec
@@ -216,6 +226,9 @@ testDataDeclParser = context "data type declarations" $ do
       $ HS.DataDecl NoSrcSpan foo []
       $ [HS.ConDecl NoSrcSpan bar' [], HS.ConDecl NoSrcSpan baz' []]
 
+-------------------------------------------------------------------------------
+-- Type signatures                                                           --
+-------------------------------------------------------------------------------
 
 -- | Test group for 'Parseable' instance of 'HS.TypeSig'.
 testTypeSigParser :: Spec
@@ -237,6 +250,10 @@ testTypeSigParser = context "type signatures" $ do
     "f, g :: a -> b" `shouldParse` HS.TypeSig NoSrcSpan [f, g] t
   it "accepts type signatures for qualified names" $ do
     "M.f :: a -> b" `shouldParse` HS.TypeSig NoSrcSpan [f'] t
+
+-------------------------------------------------------------------------------
+-- Expressions                                                               --
+-------------------------------------------------------------------------------
 
 -- | Test group for 'Parseable' instance of 'HS.Expr'.
 testExprParser :: Spec
@@ -326,7 +343,7 @@ testLambdaExprParser = context "lambda abstractions" $ do
   it "accepts lambda abstractions with type annotation" $ do
     "(\\x -> x) :: a" `shouldParse` HS.Lambda NoSrcSpan [xPat] x (Just a)
   it "rejects lambda abstractions without arguments" $ do
-    shouldBeParseError (parseTest "\\ -> x" :: ReporterIO HS.Expr)
+    shouldBeParseError (parseTestExpr "\\ -> x")
 
 -- | Test group for 'Parseable' instance of @if@ expressions.
 testIfExprParser :: Spec
@@ -406,11 +423,11 @@ testErrorTermParser = context "error terms" $ do
   it "accepts 'error' with type annotation" $ do
     "error \"...\" :: a" `shouldParse` HS.ErrorExpr NoSrcSpan "..." (Just a)
   it "rejects unapplied 'error'" $ do
-    shouldBeParseError (parseTest "error" :: ReporterIO HS.Expr)
+    shouldBeParseError (parseTestExpr "error")
   it "rejects standalone string literal" $ do
-    shouldBeParseError (parseTest "\"...\"" :: ReporterIO HS.Expr)
+    shouldBeParseError (parseTestExpr "\"...\"")
   it "requires parenthesis around 'error' in application" $ do
-    shouldBeParseError (parseTest "f error \"...\"" :: ReporterIO HS.Expr)
+    shouldBeParseError (parseTestExpr "f error \"...\"")
 
 -- | Test group for 'Parseable' instance of visible type applications.
 testTypeAppExprParser :: Spec
@@ -434,11 +451,11 @@ testTypeAppExprParser = context "visible type applications" $ do
                                    a
                                    Nothing
   it "requires parenthesis around visible type application in application" $ do
-    shouldBeParseError (parseTest "f g @a" :: ReporterIO HS.Expr)
+    shouldBeParseError (parseTestExpr "f g @a")
   it "rejects visible type application of literals" $ do
-    shouldBeParseError (parseTest "42 @a" :: ReporterIO HS.Expr)
+    shouldBeParseError (parseTestExpr "42 @a")
   it "rejects visible type application of parenthesized expressions" $ do
-    shouldBeParseError (parseTest "(f x) @a" :: ReporterIO HS.Expr)
+    shouldBeParseError (parseTestExpr "(f x) @a")
 
 -- | Test group for 'Parseable' instance of integer literal expressions.
 testIntLiteralParser :: Spec
@@ -474,6 +491,10 @@ testIntLiteralParser = context "integer literals" $ do
     "+0xCAFEBABE" `shouldParse` HS.IntLiteral NoSrcSpan 0xCAFEBABE Nothing
     "-0xCAFEBABE" `shouldParse` HS.IntLiteral NoSrcSpan (-0xCAFEBABE) Nothing
 
+-------------------------------------------------------------------------------
+-- Function declarations                                                     --
+-------------------------------------------------------------------------------
+
 -- | Test group for 'Parseable' instance of function declarations.
 testFuncDeclParser :: Spec
 testFuncDeclParser = context "function declarations" $ do
@@ -501,6 +522,10 @@ testFuncDeclParser = context "function declarations" $ do
     "f @a x = x" `shouldParse` HS.FuncDecl NoSrcSpan f [aDecl] [xPat] x Nothing
   it "accepts function declarations with qualified names" $ do
     "M.f = x" `shouldParse` HS.FuncDecl NoSrcSpan f' [] [] x Nothing
+
+-------------------------------------------------------------------------------
+-- Modules                                                                   --
+-------------------------------------------------------------------------------
 
 -- | Test group for 'Parseable' instance of 'HS.ImportDecl'.
 testImportDeclParser :: Spec
