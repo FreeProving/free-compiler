@@ -391,6 +391,15 @@ testCaseExprParser = context "case expressions" $ do
                       , HS.Alt NoSrcSpan barPat [] y
                       ]
                       Nothing
+  it "accepts case expressions with trailing semicolon" $ do
+    "case s of { Foo -> x; Bar -> y; }"
+      `shouldParse` HS.Case
+                      NoSrcSpan
+                      s
+                      [ HS.Alt NoSrcSpan fooPat [] x
+                      , HS.Alt NoSrcSpan barPat [] y
+                      ]
+                      Nothing
   it "accepts case expressions with variable patterns" $ do
     "case s of { Foo x y -> x }"
       `shouldParse` HS.Case NoSrcSpan

@@ -696,7 +696,7 @@ instance Parseable HS.Expr where
 --   alts ::= "{" alt { ";" alt } "}"
 --   @
 altsParser :: Parser [HS.Alt]
-altsParser = bracesParser (altParser `Parsec.sepBy` token Semi)
+altsParser = bracesParser (altParser `Parsec.sepEndBy` token Semi)
 
 -- | Parser for IR @case@ expression alternatives.
 --
