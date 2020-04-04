@@ -48,8 +48,8 @@ parseTestExpr :: MonadReporter r => String -> r HS.Expr
 parseTestExpr = parseTestIR
 
 -- | Parses an IR function declaration for testing purposes.
-parseTestFuncDeclParser :: MonadReporter r => String -> r HS.FuncDecl
-parseTestFuncDeclParser = parseTestIR
+parseTestFuncDecl :: MonadReporter r => String -> r HS.FuncDecl
+parseTestFuncDecl = parseTestIR
 
 -- | Parses an IR import declaration for testing purposes.
 parseTestImportDecl :: MonadReporter r => String -> r HS.ImportDecl
