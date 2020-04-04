@@ -26,7 +26,9 @@ where
 import           Control.Monad                  ( when )
 import           Data.Char
 import           Data.Composition               ( (.:) )
-import           Data.Maybe                     ( mapMaybe )
+import           Data.Maybe                     ( fromMaybe
+                                                , mapMaybe
+                                                )
 import           Text.Casing
 import           Text.RegexPR
 
@@ -192,7 +194,7 @@ renameEntry entry env
   | otherwise = entry { entryIdent = renameQualid ident env }
  where
   ident :: String
-  Just ident = HS.identFromQName (entryName entry)
+  ident = fromMaybe "op" $ HS.identFromQName (entryName entry)
 
 -- | Renames the identifier of the given entry such that it does not cause
 --   any name conflict in the current environment and inserts it into the
@@ -276,7 +278,7 @@ informIfRenamed entry entry' = do
     ++ "'."
  where
   ident, ident' :: String
-  Just ident = HS.identFromQName (entryName entry)
+  ident = fromMaybe "op" $ HS.identFromQName (entryName entry)
   Just ident'
     | entryHasSmartIdent entry = G.unpackQualid (entrySmartIdent entry')
     | otherwise                = G.unpackQualid (entryIdent entry')
