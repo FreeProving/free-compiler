@@ -62,9 +62,7 @@ import           Data.Maybe                     ( isNothing
                                                 , maybe
                                                 )
 import           System.Exit                    ( exitFailure )
-import           System.IO                      ( Handle
-                                                , stderr
-                                                )
+import           System.IO                      ( Handle )
 import           System.IO.Error                ( catchIOError
                                                 , ioeGetErrorString
                                                 , ioeGetFileName
@@ -209,13 +207,6 @@ instance MonadIO m => MonadIO (ReporterT m) where
     handleIOErrors :: MonadReporter r => Either IOError a -> r a
     handleIOErrors (Left  err) = reportIOError err
     handleIOErrors (Right x  ) = return x
-
--- | The IO monad can also be used to report errors.
---
---   'report' just prints an error message to @stderr@ and 'reportFatal'
---   prints the error message to @stderr@ and exits.
-instance MonadReporter IO where
-  liftReporter = reportToOrExit stderr . hoist
 
 -- | Reports the given IO error as a fatal error with no location information.
 reportIOError :: MonadReporter r => IOError -> r a

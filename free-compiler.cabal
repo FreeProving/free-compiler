@@ -204,4 +204,5 @@ test-suite freec-unit-tests
   build-depends:      freec-internal
                       -- Test frameworks:
                     , hspec
+                    , HUnit
                     , QuickCheck

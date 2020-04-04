@@ -30,6 +30,7 @@ import           System.IO.Error                ( catchIOError
                                                 )
 import           System.IO.Unsafe               ( unsafePerformIO )
 import           Test.Hspec              hiding ( shouldReturn )
+import           Test.HUnit.Base                ( assertFailure )
 
 import           Data.Functor.Identity          ( Identity(..) )
 
@@ -211,9 +212,18 @@ instance MonadTestable m err => MonadTestable (ReporterT m) [Message] where
 -- | Initializes the test environment for the converter monad.
 initTestEnvironment :: IO Environment
 initTestEnvironment = do
-  preludeIface    <- loadTestModuleInterface "./base/Prelude.toml"
-  quickCheckIface <- loadTestModuleInterface "./base/Test/QuickCheck.toml"
-  return $ foldr makeModuleAvailable emptyEnv $ [preludeIface, quickCheckIface]
+  (maybeEnv, ms) <- runReporterT $ do
+    preludeIface    <- loadTestModuleInterface "./base/Prelude.toml"
+    quickCheckIface <- loadTestModuleInterface "./base/Test/QuickCheck.toml"
+    return
+      $ foldr makeModuleAvailable emptyEnv
+      $ [preludeIface, quickCheckIface]
+  case maybeEnv of
+    Just env -> return env
+    Nothing ->
+      assertFailure
+        $  "Could not initialize test environment.\n"
+        ++ showReportedMessages ms
 
 -- | A global variable that caches the module interfaces that are part of
 --   the initial test environment (see 'initTestEnvironment') such that
