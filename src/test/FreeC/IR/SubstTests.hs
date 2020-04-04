@@ -1,62 +1,49 @@
+-- | This module contains tests for "FreeC.IR.Subst".
+
 module FreeC.IR.SubstTests where
 
 import           Test.Hspec
 
 import qualified FreeC.IR.Syntax               as HS
 import           FreeC.IR.Subst
-import           FreeC.Util.Test
+import           FreeC.Test.Parser
 
--- | Test group for the "FreeC.Hsakell.Subst.ApplySubst" instance for
---   expressions.
+-- | Test group for the 'FreeC.IR.Subst.ApplySubst' instance for expressions.
 testExprSubst :: Spec
 testExprSubst = do
   describe "FreeC.IR.Subst.composeSubst" $ do
-    it "applies the second substitution first"
-      $ shouldSucceed
-      $ fromConverter
-      $ do
-          y <- parseTestExpr "y"
-          z <- parseTestExpr "z"
-          e <- parseTestExpr "x y z"
-          let s1    = singleSubst (HS.UnQual (HS.Ident "x")) z
-              s2    = singleSubst (HS.UnQual (HS.Ident "x")) y
-              subst = s1 `composeSubst` s2
-              e'    = applySubst subst e
-          return (e' `prettyShouldBe` "y y z")
-    it "applies the second substitution to the first"
-      $ shouldSucceed
-      $ fromConverter
-      $ do
-          y <- parseTestExpr "y"
-          z <- parseTestExpr "z"
-          e <- parseTestExpr "x y z"
-          let s1    = singleSubst (HS.UnQual (HS.Ident "y")) z
-              s2    = singleSubst (HS.UnQual (HS.Ident "x")) y
-              subst = s1 `composeSubst` s2
-              e'    = applySubst subst e
-          return (e' `prettyShouldBe` "z z z")
+    it "applies the second substitution first" $ do
+      y <- expectParseTestExpr "y"
+      z <- expectParseTestExpr "z"
+      e <- expectParseTestExpr "x y z"
+      let s1    = singleSubst (HS.UnQual (HS.Ident "x")) z
+          s2    = singleSubst (HS.UnQual (HS.Ident "x")) y
+          subst = s1 `composeSubst` s2
+          e'    = applySubst subst e
+      expected <- expectParseTestExpr "y y z"
+      e' `shouldBe` expected
+    it "applies the second substitution to the first" $ do
+      y <- expectParseTestExpr "y"
+      z <- expectParseTestExpr "z"
+      e <- expectParseTestExpr "x y z"
+      let s1    = singleSubst (HS.UnQual (HS.Ident "y")) z
+          s2    = singleSubst (HS.UnQual (HS.Ident "x")) y
+          subst = s1 `composeSubst` s2
+          e'    = applySubst subst e
+      expected <- expectParseTestExpr "z z z"
+      e' `shouldBe` expected
   describe "FreeC.IR.Subst.applySubst" $ do
-    it "cannot substitute variables bound by lambda"
-      $ shouldSucceed
-      $ fromConverter
-      $ do
-          val <- parseTestExpr "42"
-          e   <- parseTestExpr "(\\x -> x) x"
-          let subst = singleSubst (HS.UnQual (HS.Ident "x")) val
-              e'    = applySubst subst e
-          return (e' `prettyShouldBe` "(\\x -> x) 42")
-    it "cannot substitute variables bound by a case alternative"
-      $ shouldSucceed
-      $ fromConverter
-      $ do
-          val <- parseTestExpr "(42, True)"
-          e   <- parseTestExpr "case x of { (x, y) -> x }"
-          let subst = singleSubst (HS.UnQual (HS.Ident "x")) val
-              e'    = applySubst subst e
-          return
-            (                e'
-            `prettyShouldBe` (  "case Prelude.(,) 42 True of {"
-                             ++ "   Prelude.(,) x y -> x"
-                             ++ " }"
-                             )
-            )
+    it "cannot substitute variables bound by lambda" $ do
+      val <- expectParseTestExpr "42"
+      e   <- expectParseTestExpr "(\\x -> x) x"
+      let subst = singleSubst (HS.UnQual (HS.Ident "x")) val
+          e'    = applySubst subst e
+      expected <- expectParseTestExpr "(\\x -> x) 42"
+      e' `shouldBe` expected
+    it "cannot substitute variables bound by a case alternative" $ do
+      val <- expectParseTestExpr "(,) 42 True"
+      e   <- expectParseTestExpr "case x of { (,) x y -> x }"
+      let subst = singleSubst (HS.UnQual (HS.Ident "x")) val
+          e'    = applySubst subst e
+      expected <- expectParseTestExpr "case (,) 42 True of { (,) x y -> x }"
+      e' `shouldBe` expected
