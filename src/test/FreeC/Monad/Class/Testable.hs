@@ -4,12 +4,20 @@
 -- | This module contains a type class for monads that can be used in tests.
 
 module FreeC.Monad.Class.Testable
-  ( MonadTestable(..)
+  ( MonadTestable
+    -- * Expecting values
   , shouldReturn
+  , shouldReturnWith
+    -- * Expecting success
+  , shouldSucceed
+  , shouldSucceedWith
+    -- * Expecting failures
   , shouldFail
+  , shouldFailWith
   )
 where
 
+import           Data.List                      ( intersperse )
 import           System.IO.Error                ( catchIOError
                                                 , ioeGetErrorString
                                                 , ioeGetFileName
@@ -23,23 +31,50 @@ import           FreeC.Pretty
 
 -- | Type class for monads which can be used in tests.
 class Monad m => MonadTestable m err | m -> err where
-  -- | Sets the expectation returned by the given function for the value
-  --   returned by the given computation.
-  shouldReturnWith :: Show a => m a -> (a -> Expectation) -> Expectation
+  -- | Like 'shouldReturnWith' but uses the first argument for pretty printing.
+  shouldReturnWith'
+    :: (a -> String)      -- ^ Function to use to print unexpected values.
+    -> m a                -- ^ The computation to set the expectation for.
+    -> (a -> Expectation) -- ^ Sets the expectation for a value.
+    -> Expectation
 
-  -- | Sets the expectation returned by the given function for the error
-  --   that was produced by the given computation instead of a value.
-  shouldFailWith :: Show a => m a -> (err -> Expectation) -> Expectation
+  -- | Like 'shouldFailWith' but uses the first argument for pretty printing.
+  shouldFailWith'
+    :: (a -> String)        -- ^ Function to use to print unexpected values.
+    -> m a                  -- ^ The computation to set the expectation for.
+    -> (err -> Expectation) -- ^ Sets the expectation for the produced error.
+    -> Expectation
+
+-- | Sets the expectation returned by the given function for the value
+--   returned by the given computation.
+shouldReturnWith
+  :: (Show a, MonadTestable m err) => m a -> (a -> Expectation) -> Expectation
+shouldReturnWith = shouldReturnWith' show
 
 -- | Sets the expectation that the given computation successfully returns
 --   the given value.
 shouldReturn :: (Eq a, Show a, MonadTestable m err) => m a -> a -> Expectation
 shouldReturn mx y = shouldReturnWith mx (`shouldBe` y)
 
+-- | Sets the expectation that the given computation does not fail.
+shouldSucceed :: (Show a, MonadTestable m err) => m a -> Expectation
+shouldSucceed mx = shouldSucceedWith (return () <$ mx)
+
+-- | Sets the expectation that the given computation successfully produces
+--   an expectation and that expectation holds.
+shouldSucceedWith :: (MonadTestable m err) => m Expectation -> Expectation
+shouldSucceedWith = flip (shouldReturnWith' (const "<expectation>")) id
+
 -- | Sets the expectation that the given computation fails without returning
 --   a value.
 shouldFail :: (Show a, MonadTestable m err) => m a -> Expectation
 shouldFail = flip shouldFailWith (const (return ()))
+
+-- | Sets the expectation returned by the given function for the error
+--   that was produced by the given computation instead of a value.
+shouldFailWith
+  :: (Show a, MonadTestable m err) => m a -> (err -> Expectation) -> Expectation
+shouldFailWith = shouldFailWith' show
 
 -------------------------------------------------------------------------------
 -- Instances for common pure monads                                          --
@@ -47,35 +82,35 @@ shouldFail = flip shouldFailWith (const (return ()))
 
 -- | A computation in the @Identity@ monad can return a result but never fails.
 instance MonadTestable Identity () where
-  shouldReturnWith = flip ($) . runIdentity
-  shouldFailWith _ _ =
+  shouldReturnWith' _ = flip ($) . runIdentity
+  shouldFailWith' _ _ _ =
     expectationFailure "Expected failure, but the Identity monad cannot fail."
 
 -- | A computation in the @Maybe@ monad fails if the result is @Nothing@ and
 --   succeeds if the result is @Just@ a value.
 instance MonadTestable Maybe () where
-  shouldReturnWith (Just x) f = f x
-  shouldReturnWith Nothing _ =
+  shouldReturnWith' _ (Just x) f = f x
+  shouldReturnWith' _ Nothing _ =
     expectationFailure "Unexpected failure in Maybe monad."
-  shouldFailWith Nothing f = f ()
-  shouldFailWith (Just x) _ =
+  shouldFailWith' _ Nothing f = f ()
+  shouldFailWith' showValue (Just x) _ =
     expectationFailure
       $  "Expected failure in Maybe monad, "
       ++ "but the following value was produced: "
-      ++ show x
+      ++ showValue x
 
 -- | A computation in the @Either@ monad fails if the result is @Left@ and
 --   succeeds if the result is @Right@.
 instance Show err => MonadTestable (Either err) err where
-  shouldReturnWith (Right x) f = f x
-  shouldReturnWith (Left err) _ =
+  shouldReturnWith' _ (Right x) f = f x
+  shouldReturnWith' _ (Left err) _ =
     expectationFailure $ "Unexpected failure in Either monad, got " ++ show err
-  shouldFailWith (Left err) f = f err
-  shouldFailWith (Right x) _ =
+  shouldFailWith' _ (Left err) f = f err
+  shouldFailWith' showValue (Right x) _ =
     expectationFailure
       $  "Expected failure in Either monad, "
       ++ "but the following value was produced: "
-      ++ show x
+      ++ showValue x
 
 -------------------------------------------------------------------------------
 -- Instance for the IO monad                                                 --
@@ -83,49 +118,76 @@ instance Show err => MonadTestable (Either err) err where
 
 -- | An impure computation in the @IO@ monad fails if an @IO@ error is thrown.
 instance MonadTestable IO IOError where
-  shouldReturnWith mx f = catchIOError (mx >>= f) $ \err ->
+  shouldReturnWith' _ mx f = catchIOError (mx >>= f) $ \err ->
     expectationFailure
       $  "Unexpected IO error: "
       ++ ioeGetErrorString err
       ++ maybe "" (": " ++) (ioeGetFileName err)
-  shouldFailWith mx f = flip catchIOError f $ do
+  shouldFailWith' showValue mx f = flip catchIOError f $ do
     x <- mx
     expectationFailure
       $  "Expected IO error, but the following value was produced: "
-      ++ show x
+      ++ showValue x
 
 -------------------------------------------------------------------------------
 -- Instance for the reporter monad                                           --
 -------------------------------------------------------------------------------
 
+-- | Utility function that print the given message like an item of an
+--   unordered Markdown list.
+showListItem :: String -> String
+showListItem = (++ "\n") . (" * " ++) . unlines . intersperse "   " . lines
+
+-- | Converts the pretty printing function for the result of a reporter to
+--   a pretty printing function for the result of 'runReporterT'.
+showReporterValue :: (a -> String) -> (Maybe a, [Message]) -> String
+showReporterValue showValue (mx, ms) =
+  "Reporter result where:\n"
+    ++ showReportedValue showValue mx
+    ++ showReportedMessages ms
+
+-- | Converts the pretty printing function for the result of a reporter to
+--   a pretty printing function for the value in an error message in an
+--   exception.
+showReportedValue :: (a -> String) -> Maybe a -> String
+showReportedValue _ Nothing = "No value was produced."
+showReportedValue showValue (Just x) =
+  showListItem $ "The following value was produced: " ++ showValue x
+
+-- | Pretty prints the messages that were reported by a reporter for an
+--   error message in an expectation.
+showReportedMessages :: [Message] -> String
+showReportedMessages [] = showListItem $ "No messages were reported."
+showReportedMessages [m] =
+  showListItem $ "The following message was reported:\n" ++ showPretty m
+showReportedMessages ms =
+  showListItem
+    $  "The following "
+    ++ show (length ms)
+    ++ " messages were reported:\n"
+    ++ showPretty ms
+
 -- | A reporter fails when a fatal message is reported.
 instance MonadTestable m err => MonadTestable (ReporterT m) [Message] where
-  shouldReturnWith reporter setExpectation =
-    shouldReturnWith (runReporterT reporter) $ \result -> case result of
-      (Just x, _) -> setExpectation x
-      (Nothing, ms) ->
-        expectationFailure
-          $  "Unexpected fatal message was reported."
-          ++ "\n\nThe following "
-          ++ show (length ms)
-          ++ " messages were reported:\n"
-          ++ showPretty ms
-  shouldFailWith reporter setExpectation =
-    shouldReturnWith (runReporterT reporter) $ \result -> case result of
-      (Nothing, ms) -> setExpectation ms
-      (Just x, ms)
-        | null ms
-        -> expectationFailure
-          $  "Expected a fatal message to be reported. "
-          ++ "But no messages were reported."
-          ++ "\n\nThe following value was produced: "
-          ++ show x
-        | otherwise
-        -> expectationFailure
-          $  "Expected a fatal message to be reported. Got "
-          ++ show (length ms)
-          ++ " messages, none of which is fatal."
-          ++ "\n\nThe following value was produced: "
-          ++ show x
-          ++ "\n\nThe following messages were reported:\n"
-          ++ showPretty ms
+  shouldReturnWith' showValue reporter setExpectation =
+    shouldReturnWith' (showReporterValue showValue) (runReporterT reporter)
+      $ \result -> case result of
+          (Just x, _) -> setExpectation x
+          (Nothing, ms) ->
+            expectationFailure
+              $  "Unexpected fatal message."
+              ++ showReportedMessages ms
+  shouldFailWith' showValue reporter setExpectation =
+    shouldReturnWith' (showReporterValue showValue) (runReporterT reporter)
+      $ \result -> case result of
+          (Nothing, ms) -> setExpectation ms
+          (Just x, ms)
+            | null ms
+            -> expectationFailure
+              $  "Expected a fatal message, but no messages were reported.\n"
+              ++ showReportedValue showValue (Just x)
+            | otherwise
+            -> expectationFailure
+              $  "Expected a fatal message to be reported, but got none.\n"
+              ++ showReportedValue showValue (Just x)
+              ++ showReportedMessages ms
