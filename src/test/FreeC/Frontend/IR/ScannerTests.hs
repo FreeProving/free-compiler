@@ -1,18 +1,20 @@
 module FreeC.Frontend.IR.ScannerTests where
 
-import           Test.Hspec
+import           Test.Hspec              hiding ( shouldReturn )
 
 import           FreeC.Frontend.IR.Scanner
 import           FreeC.Frontend.IR.Token
 import           FreeC.IR.SrcSpan
-import           FreeC.Util.Test
+import           FreeC.Monad.Class.Testable
+import           FreeC.Monad.Reporter
+
+scanTest :: String -> Reporter [Token]
+scanTest = fmap (map getToken) . scan . mkSrcFile "<test-input>"
 
 -- | Sets the expectation that 'scan' produces the given token stream for
 --   the given input.
 shouldScan :: String -> [Token] -> Expectation
-shouldScan input expectedTokens = shouldSucceed $ do
-  tokens <- scan (mkSrcFile "test-input" input)
-  return (map getToken tokens `shouldBe` expectedTokens)
+shouldScan input expectedTokens = scanTest input `shouldReturn` expectedTokens
 
 -- | Test group for "FreeC.Frontend.IR.Scanner" tests.
 testIRScanner :: Spec
