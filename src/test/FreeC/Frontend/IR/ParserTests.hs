@@ -62,6 +62,7 @@ testNameParser = context "names" $ do
     "fizzBuzz" `shouldParse` HS.Ident "fizzBuzz"
     "fizz_buzz" `shouldParse` HS.Ident "fizz_buzz"
     "qux2" `shouldParse` HS.Ident "qux2"
+    "qux₂" `shouldParse` HS.Ident "qux₂"
   it "accepts constructor identifiers" $ do
     "X" `shouldParse` HS.Ident "X"
     "Foo" `shouldParse` HS.Ident "Foo"

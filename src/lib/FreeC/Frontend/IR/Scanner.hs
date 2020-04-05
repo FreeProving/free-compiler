@@ -11,7 +11,8 @@ module FreeC.Frontend.IR.Scanner
   )
 where
 
-import           Data.Char                      ( isPunctuation
+import           Data.Char                      ( isNumber
+                                                , isPunctuation
                                                 , isSymbol
                                                 )
 import           Text.Parsec                    ( Parsec
@@ -53,6 +54,34 @@ tokenWithPos :: Scanner Token -> Scanner TokenWithPos
 tokenWithPos scanner = TokenWithPos <$> Parsec.getPosition <*> scanner
 
 ------------------------------------------------------------------------------
+-- Character classes                                                        --
+------------------------------------------------------------------------------
+
+-- | Scanner for a lowercase character.
+--
+--   @
+--   <lower> ::= "a" | … | "z" | <any lowercase Unicode letter>
+--   @
+lowerScanner :: Scanner Char
+lowerScanner = Parsec.lower
+
+-- | Scanner for an uppercase character.
+--
+--   @
+--   <upper> ::= "A" | … | "Z" | <any upper- or titlecase Unicode letter>
+--   @
+upperScanner :: Scanner Char
+upperScanner = Parsec.upper
+
+-- | Scanner for an Unicode numeric character.
+--
+--   @
+--   <numeric> ::= <digit> | <any Unicode numeric character>
+--   @
+numericScanner :: Scanner Char
+numericScanner = Parsec.satisfy isNumber
+
+------------------------------------------------------------------------------
 -- Language Definition                                                      --
 ------------------------------------------------------------------------------
 
@@ -77,18 +106,18 @@ lineCommentStart = "-- "
 -- | Valid start characters of variable identifiers
 --   (see 'VarIdent' for the definition of @<varid>@).
 --
---   It matches the start of the identifier only, i.e., @lower | "_"@.
+--   It matches the start of the identifier only, i.e., @<lower> | "_"@.
 --   The remaining characters are scanned by 'identLetter'.
 varIdentStart :: Scanner Char
-varIdentStart = Parsec.lower <|> Parsec.char '_'
+varIdentStart = lowerScanner <|> Parsec.char '_'
 
 -- | Valid start characters of constructor identifiers
 --   (see 'ConIdent' for the definition of @<conid>@).
 --
---   It matches the start of the identifier only, i.e., @upper@.
+--   It matches the start of the identifier only, i.e., @<upper>@.
 --   The remaining characters are scanned by 'identLetter'.
 conIdentStart :: Scanner Char
-conIdentStart = Parsec.upper
+conIdentStart = upperScanner
 
 -- | Valid non-start characters of identifiers.
 --
@@ -96,11 +125,12 @@ conIdentStart = Parsec.upper
 --   (see 'VarIdent' and 'ConIdent' respectively).
 --
 --   It matches only one character at a time and only the characters after
---   the first letter, i.e., @lower | upper | digit | "_" | "'"@.
+--   the first letter, i.e., @<lower> | <upper> | <numeric> | "_" | "'"@.
 --   The start of identifiers is scanned by 'varIdentStart' and 'conIdentStart'
 --   respectively.
 identLetter :: Scanner Char
-identLetter = Parsec.letter <|> Parsec.digit <|> Parsec.oneOf "_'"
+identLetter =
+  lowerScanner <|> upperScanner <|> numericScanner <|> Parsec.oneOf "_'"
 
 -- | Valid characters in symbolic names (i.e., in @<varsym>@ and @<consym>@,
 --   see also VarIdent and 'ConIdent').

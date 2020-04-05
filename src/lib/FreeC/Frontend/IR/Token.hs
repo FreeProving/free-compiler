@@ -31,12 +31,13 @@ import           FreeC.Pretty
 --   <lower>   ::= "a" | … | "z" | <any lowercase Unicode letter>
 --   <upper>   ::= "A" | … | "Z" | <any upper- or titlecase Unicode letter>
 --
---   <digit>   ::= "0" | … | "9" | <any Unicode decimal digit>
+--   <numeric> ::= <digit> | <any Unicode numeric character>
+--   <digit>   ::= "0" | … | "9"
 --   <octit>   ::= "0" | … | "7"
 --   <hexit>   ::= "0" | … | "9" | "a" | … | "f" | "A" | … | "F"
 --
 --   <symbol>  ::= <any Unicode symbol or punctuation>
---   <graphic> ::= <lower> | <upper> | <symbol> | <digit>
+--   <graphic> ::= <lower> | <upper> | <symbol> | <numeric>
 --   <space>   ::= " "
 --   @
 --
@@ -48,8 +49,8 @@ import           FreeC.Pretty
 --   identify constructors.
 --
 --   @
---   <varid>  ::= (<lower> | "_") { <lower> | <upper> | <digit> | "_" | "'" }
---   <conid>  ::= <upper> { <lower> | <upper> | <digit> | "_" | "'" }
+--   <varid>  ::= (<lower> | "_") { <lower> | <upper> | <numeric> | "_" | "'" }
+--   <conid>  ::= <upper> { <lower> | <upper> | <numeric> | "_" | "'" }
 --   @
 --
 --   == Symbolic names
