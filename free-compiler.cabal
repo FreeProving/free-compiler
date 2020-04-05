@@ -132,6 +132,7 @@ library freec-internal
                       , FreeC.IR.DependencyGraph
                       , FreeC.IR.Inlining
                       , FreeC.IR.Reference
+                      , FreeC.IR.Similar
                       , FreeC.IR.SrcSpan
                       , FreeC.IR.Subst
                       , FreeC.IR.Subterm
@@ -192,6 +193,7 @@ test-suite freec-unit-tests
                     , FreeC.Frontend.IR.ParserTests
                     , FreeC.Frontend.IR.ScannerTests
                     , FreeC.IR.ReferenceTests
+                    , FreeC.IR.SimilarTests
                     , FreeC.IR.SubstTests
                     , FreeC.IR.SubtermTests
                     , FreeC.IR.UnificationTests
@@ -200,6 +202,7 @@ test-suite freec-unit-tests
                     , FreeC.Pass.PartialityAnalysisPassTests
                     , FreeC.Test.Arbitrary
                     , FreeC.Test.Environment
+                    , FreeC.Test.Expectations
                     , FreeC.Test.Parser
                     , FreeC.Util.Test
   build-depends:      freec-internal

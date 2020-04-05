@@ -7,6 +7,7 @@ import           FreeC.Environment.RenamerTests
 import           FreeC.Frontend.IR.ParserTests
 import           FreeC.Frontend.IR.ScannerTests
 import           FreeC.IR.ReferenceTests
+import           FreeC.IR.SimilarTests
 import           FreeC.IR.SubstTests
 import           FreeC.IR.SubtermTests
 import           FreeC.IR.UnificationTests
@@ -25,6 +26,7 @@ main = hspec $ do
   testConverter
   testRenamer
   testExprSubst
+  testSimilar
   testSubterm
   testUnification
   testReporter
