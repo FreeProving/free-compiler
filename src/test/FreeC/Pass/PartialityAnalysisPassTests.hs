@@ -55,7 +55,7 @@ shouldBePartialWith setExpectation inputs = do
   component <- parseTestComponent inputs
   _         <- partialityAnalysisPass component
   let funcNames = map HS.funcDeclQName (unwrapComponent component)
-  partials  <- mapM (inEnv . isPartial) funcNames
+  partials <- mapM (inEnv . isPartial) funcNames
   return (zipWithM_ setExpectation funcNames partials)
 
 -------------------------------------------------------------------------------
@@ -68,7 +68,7 @@ testPartialityAnalysisPass = describe "FreeC.Pass.PartialityAnalysisPass" $ do
   it "does not classify non-partial functions as partial"
     $ shouldSucceedWith
     $ do
-        _ <- defineTestFunc "maybeHead" 1 "([]) a -> Maybe a"
+        _ <- defineTestFunc "maybeHead" 1 "forall a. ([]) a -> Maybe a"
         shouldNotBePartial
           $  NonRecursive
           $  "maybeHead xs = case xs of {"
@@ -80,7 +80,7 @@ testPartialityAnalysisPass = describe "FreeC.Pass.PartialityAnalysisPass" $ do
   it "recognizes directly partial functions using 'undefined'"
     $ shouldSucceedWith
     $ do
-        _ <- defineTestFunc "head" 1 "([]) a -> a"
+        _ <- defineTestFunc "head" 1 "forall a. ([]) a -> a"
         shouldBePartial
           $  NonRecursive
           $  "head xs = case xs of {"
@@ -91,7 +91,7 @@ testPartialityAnalysisPass = describe "FreeC.Pass.PartialityAnalysisPass" $ do
   it "recognizes directly partial functions using 'error'"
     $ shouldSucceedWith
     $ do
-        _ <- defineTestFunc "head" 1 "([]) a -> a"
+        _ <- defineTestFunc "head" 1 "forall a. ([]) a -> a"
         shouldBePartial
           $  NonRecursive
           $  "head xs = case xs of {"
@@ -100,16 +100,16 @@ testPartialityAnalysisPass = describe "FreeC.Pass.PartialityAnalysisPass" $ do
           ++ "}"
 
   it "recognizes indirectly partial functions" $ shouldSucceedWith $ do
-    _ <- defineTestFunc "map" 2 "(a -> b) -> ([]) a -> ([]) b"
-    _ <- definePartialTestFunc "head" 1 "([]) a -> a"
-    _ <- definePartialTestFunc "heads" 1 "([]) a -> ([]) a"
+    _ <- defineTestFunc "map" 2 "forall a b. (a -> b) -> ([]) a -> ([]) b"
+    _ <- definePartialTestFunc "head" 1 "forall a. ([]) a -> a"
+    _ <- defineTestFunc "heads" 1 "forall a. ([]) a -> ([]) a"
     shouldBePartial $ NonRecursive "heads = map head"
 
   it "recognizes mutually recursive partial functions" $ shouldSucceedWith $ do
-    _ <- defineTestFunc "map" 2 "(a -> b) -> ([]) a -> ([]) b"
-    _ <- definePartialTestFunc "head" 1 "([]) a -> a"
-    _ <- definePartialTestFunc "pairs" 1 "([]) a -> ([]) ((,) a)"
-    _ <- definePartialTestFunc "pairs'" 1 "a -> ([]) a -> ([]) ((,) a)"
+    _ <- defineTestFunc "map" 2 "forall a b. (a -> b) -> ([]) a -> ([]) b"
+    _ <- definePartialTestFunc "head" 1 "forall a. ([]) a -> a"
+    _ <- defineTestFunc "pairs" 1 "forall a. ([]) a -> ([]) ((,) a)"
+    _ <- defineTestFunc "pairs'" 1 "forall a. a -> ([]) a -> ([]) ((,) a)"
     shouldBePartial $ Recursive
       [ "pairs xys = case xys of {"
       ++ "    ([])     -> ([]);"

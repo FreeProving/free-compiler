@@ -3,9 +3,7 @@
 
 module FreeC.Test.Environment where
 
-import           Data.Maybe                     ( fromJust
-                                                , mapMaybe
-                                                )
+import           Data.Maybe                     ( fromJust )
 
 import qualified FreeC.Backend.Coq.Syntax      as G
 import           FreeC.Environment.Entry
@@ -14,6 +12,7 @@ import           FreeC.IR.Reference
 import qualified FreeC.IR.Syntax               as HS
 import           FreeC.IR.SrcSpan
 import           FreeC.Monad.Converter
+import           FreeC.Monad.Reporter
 import           FreeC.Test.Parser
 
 -------------------------------------------------------------------------------
@@ -97,13 +96,13 @@ defineTestTypeCon nameStr arity = do
 --   Returns the Coq identifier assigned to the data constructor.
 defineTestCon :: String -> Int -> String -> Converter (String, String)
 defineTestCon nameStr arity typeStr = do
-  name     <- parseTestQName nameStr
-  typeExpr <- parseTestType typeStr
+  name                              <- parseTestQName nameStr
+  HS.TypeSchema _ typeArgs typeExpr <- parseExplicitTestTypeSchema typeStr
   let (argTypes, returnType) = HS.splitFuncType typeExpr arity
   entry <- renameAndAddTestEntry' ConEntry
     { entrySrcSpan    = NoSrcSpan
     , entryArity      = arity
-    , entryTypeArgs   = mapMaybe HS.identFromQName (freeTypeVars returnType)
+    , entryTypeArgs   = map HS.typeVarDeclIdent typeArgs
     , entryArgTypes   = map Just argTypes
     , entryReturnType = Just returnType
     , entryName       = name
@@ -149,7 +148,7 @@ defineTestFunc = defineTestFunc' False
 defineTestFunc' :: Bool -> String -> Int -> String -> Converter String
 defineTestFunc' partial nameStr arity typeStr = do
   name                              <- parseTestQName nameStr
-  HS.TypeSchema _ typeArgs typeExpr <- parseTestTypeSchema typeStr
+  HS.TypeSchema _ typeArgs typeExpr <- parseExplicitTestTypeSchema typeStr
   let (argTypes, returnType) = HS.splitFuncType typeExpr arity
   renameAndAddTestEntry FuncEntry
     { entrySrcSpan       = NoSrcSpan
@@ -168,3 +167,26 @@ defineTestFunc' partial nameStr arity typeStr = do
 --   Returns the Coq identifier assigned to the function.
 definePartialTestFunc :: String -> Int -> String -> Converter String
 definePartialTestFunc = defineTestFunc' True
+
+-------------------------------------------------------------------------------
+-- Utility functions                                                         --
+-------------------------------------------------------------------------------
+
+-- | Like 'parseTestTypeSchema' but makes sure that all type variables have
+--   been introduced explicitly. A common error when writing tests is that the
+--   tester forgets that in contrast to Haskell type variables must
+--   be introduced explicitly.
+parseExplicitTestTypeSchema :: String -> Converter HS.TypeSchema
+parseExplicitTestTypeSchema input = do
+  typeSchema <- parseTestTypeSchema input
+  if not (null (freeTypeVars typeSchema)) && take 7 input /= "forall."
+    then
+      reportFatal
+      $  Message NoSrcSpan Internal
+      $  "Type signatures in environment entries should not contain any free"
+      ++ "type variables, but got `"
+      ++ input
+      ++ "`. Write `forall. "
+      ++ input
+      ++ "` if you really intended to do this."
+    else return typeSchema
