@@ -12,7 +12,7 @@ import           FreeC.IR.SubstTests
 import           FreeC.IR.SubtermTests
 import           FreeC.IR.UnificationTests
 import           FreeC.Monad.ReporterTests
-import           FreeC.Pass.PartialityAnalysisPassTests
+import           FreeC.PipelineTests
 
 -- | Runs all unit tests for the Free Compiler.
 main :: IO ()
@@ -20,7 +20,7 @@ main = hspec $ do
   testIRScanner
   testIRParser
   testReference
-  testPartialityAnalysisPass
+  testPipeline
   testRecursionAnalysis
   testTypeInference
   testConverter

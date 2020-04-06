@@ -199,7 +199,9 @@ test-suite freec-unit-tests
                     , FreeC.IR.UnificationTests
                     , FreeC.Monad.Class.Testable
                     , FreeC.Monad.ReporterTests
+                    , FreeC.Pass.EtaConversionPassTests
                     , FreeC.Pass.PartialityAnalysisPassTests
+                    , FreeC.PipelineTests
                     , FreeC.Test.Arbitrary
                     , FreeC.Test.Environment
                     , FreeC.Test.Expectations

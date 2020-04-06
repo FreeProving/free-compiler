@@ -54,6 +54,8 @@
 
 module FreeC.Pass.EtaConversionPass
   ( etaConversionPass
+    -- * Testing interface
+  , etaConvertExpr
   )
 where
 
