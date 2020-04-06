@@ -26,8 +26,10 @@
 module FreeC.Test.Parser where
 
 import           Control.Monad.IO.Class         ( MonadIO(..) )
+import           Control.Monad.Fail             ( MonadFail )
 import           Test.HUnit.Base                ( assertFailure )
 
+import           FreeC.IR.DependencyGraph
 import           FreeC.IR.SrcSpan
 import           FreeC.Frontend.IR.Parser
 import qualified FreeC.IR.Syntax               as HS
@@ -154,3 +156,23 @@ expectParseTestImportDecl = expectParseTestIR "import"
 --   expectation that parsing is successful.
 expectParseTestModule :: MonadIO m => [String] -> m HS.Module
 expectParseTestModule = expectParseTestIR "module" . unlines
+
+-------------------------------------------------------------------------------
+-- Parsing dependency components                                             --
+-------------------------------------------------------------------------------
+
+-- | Parses the declarations in the given dependency component.
+parseTestComponent
+  :: (MonadFail r, MonadReporter r, Parseable decl)
+  => DependencyComponent String
+  -> r (DependencyComponent decl)
+parseTestComponent = mapComponentM (mapM parseTestIR)
+
+-- | Parses the declarations in the given dependency component and sets the
+--   expectation that parsing is successul.
+expectParseTestComponent
+  :: (MonadFail m, MonadIO m, Parseable decl)
+  => DependencyComponent String
+  -> m (DependencyComponent decl)
+expectParseTestComponent =
+  mapComponentM (mapM (expectParseTestIR "dependency component"))

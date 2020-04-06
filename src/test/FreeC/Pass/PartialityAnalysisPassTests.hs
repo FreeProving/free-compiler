@@ -5,6 +5,7 @@ module FreeC.Pass.PartialityAnalysisPassTests
   )
 where
 
+import           Control.Monad.Extra            ( zipWithM_ )
 import           Test.Hspec
 
 import           FreeC.Environment
@@ -21,16 +22,11 @@ import           FreeC.Pretty
 -- Expectation setters                                                       --
 -------------------------------------------------------------------------------
 
--- | Parses the given function declarations, runs the 'defineFuncDeclsPass' and
---   'partialityAnalysisPass' after each other and sets the expectation that
---   there is an environment entry for each function that marks it as partial.
---
---   The first argument determines whether the function declarations are
---   mutually 'recursive' or there is only a single 'nonRecursive' function.
-shouldBePartial
-  :: ([HS.FuncDecl] -> DependencyComponent HS.FuncDecl)
-  -> [String]
-  -> Converter Expectation
+-- | Parses the function declarations in the given dependency component, runs
+--   the 'defineFuncDeclsPass' and 'partialityAnalysisPass' after each other
+--   and sets the expectation that there is an environment entry for each
+--   function that marks it as partial.
+shouldBePartial :: DependencyComponent String -> Converter Expectation
 shouldBePartial = shouldBePartialWith $ \funcName partial -> if partial
   then return ()
   else
@@ -41,10 +37,7 @@ shouldBePartial = shouldBePartialWith $ \funcName partial -> if partial
 
 -- | Like 'shouldBePartial' but sets the expectation that none of the
 --   functions are partial.
-shouldNotBePartial
-  :: ([HS.FuncDecl] -> DependencyComponent HS.FuncDecl)
-  -> [String]
-  -> Converter Expectation
+shouldNotBePartial :: DependencyComponent String -> Converter Expectation
 shouldNotBePartial = shouldBePartialWith $ \funcName partial -> if not partial
   then return ()
   else
@@ -56,25 +49,14 @@ shouldNotBePartial = shouldBePartialWith $ \funcName partial -> if not partial
 -- | Common implementation of 'shouldBePartial' and 'shouldNotBePartial'.
 shouldBePartialWith
   :: (HS.QName -> Bool -> Expectation)
-  -> ([HS.FuncDecl] -> DependencyComponent HS.FuncDecl)
-  -> [String]
+  -> DependencyComponent String
   -> Converter Expectation
-shouldBePartialWith setExpectation mkComponent inputs = do
-  funcDecls <- mapM parseTestFuncDecl inputs
-  let funcNames = map HS.funcDeclQName funcDecls
-      component = mkComponent funcDecls
-  _        <- partialityAnalysisPass component
-  partials <- mapM (inEnv . isPartial) funcNames
-  let expectations = zipWith setExpectation funcNames partials
-  return (sequence_ expectations)
-
--- | Smart constructor for 'NonRecursive' that takes an one elementary list.
-nonRecursive :: [HS.FuncDecl] -> DependencyComponent HS.FuncDecl
-nonRecursive = NonRecursive . head
-
--- | Alias for 'Recursive' for consistency with 'nonRecursive'.
-recursive :: [HS.FuncDecl] -> DependencyComponent HS.FuncDecl
-recursive = Recursive
+shouldBePartialWith setExpectation inputs = do
+  component <- parseTestComponent inputs
+  _         <- partialityAnalysisPass component
+  let funcNames = map HS.funcDeclQName (unwrapComponent component)
+  partials  <- mapM (inEnv . isPartial) funcNames
+  return (zipWithM_ setExpectation funcNames partials)
 
 -------------------------------------------------------------------------------
 -- Tests                                                                     --
@@ -88,50 +70,47 @@ testPartialityAnalysisPass = describe "FreeC.Pass.PartialityAnalysisPass" $ do
     $ do
         _ <- defineTestFunc "maybeHead" 1 "([]) a -> Maybe a"
         shouldNotBePartial
-          nonRecursive
-          [ "maybeHead xs = case xs of {"
-            ++ "  ([])      -> Nothing;"
-            ++ "  (:) x xs' -> Just x"
-            ++ "}"
-          ]
+          $  NonRecursive
+          $  "maybeHead xs = case xs of {"
+          ++ "  ([])      -> Nothing;"
+          ++ "  (:) x xs' -> Just x"
+          ++ "}"
+
 
   it "recognizes directly partial functions using 'undefined'"
     $ shouldSucceedWith
     $ do
         _ <- defineTestFunc "head" 1 "([]) a -> a"
         shouldBePartial
-          nonRecursive
-          [ "head xs = case xs of {"
-            ++ "  ([])      -> undefined;"
-            ++ "  (:) x xs' -> x"
-            ++ "}"
-          ]
+          $  NonRecursive
+          $  "head xs = case xs of {"
+          ++ "  ([])      -> undefined;"
+          ++ "  (:) x xs' -> x"
+          ++ "}"
 
   it "recognizes directly partial functions using 'error'"
     $ shouldSucceedWith
     $ do
         _ <- defineTestFunc "head" 1 "([]) a -> a"
         shouldBePartial
-          nonRecursive
-          [ "head xs = case xs of {"
-            ++ "  ([])      -> error \"head: empty list\";"
-            ++ "  (:) x xs' -> x"
-            ++ "}"
-          ]
+          $  NonRecursive
+          $  "head xs = case xs of {"
+          ++ "  ([])      -> error \"head: empty list\";"
+          ++ "  (:) x xs' -> x"
+          ++ "}"
 
   it "recognizes indirectly partial functions" $ shouldSucceedWith $ do
     _ <- defineTestFunc "map" 2 "(a -> b) -> ([]) a -> ([]) b"
     _ <- definePartialTestFunc "head" 1 "([]) a -> a"
     _ <- definePartialTestFunc "heads" 1 "([]) a -> ([]) a"
-    shouldBePartial nonRecursive ["heads = map head"]
+    shouldBePartial $ NonRecursive "heads = map head"
 
   it "recognizes mutually recursive partial functions" $ shouldSucceedWith $ do
     _ <- defineTestFunc "map" 2 "(a -> b) -> ([]) a -> ([]) b"
     _ <- definePartialTestFunc "head" 1 "([]) a -> a"
     _ <- definePartialTestFunc "pairs" 1 "([]) a -> ([]) ((,) a)"
     _ <- definePartialTestFunc "pairs'" 1 "a -> ([]) a -> ([]) ((,) a)"
-    shouldBePartial
-      recursive
+    shouldBePartial $ Recursive
       [ "pairs xys = case xys of {"
       ++ "    ([])     -> ([]);"
       ++ "    (:) x ys -> pairs' x ys"
