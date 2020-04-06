@@ -1,63 +1,78 @@
+-- | This module contains tests for "FreeC.Backend.Coq.Converter.TypeDecl".
+
 module FreeC.Backend.Coq.Converter.TypeDeclTests where
 
 import           Test.Hspec
 
-import           FreeC.Util.Test
+import           FreeC.Backend.Coq.Converter.TypeDecl
+import           FreeC.Backend.Coq.Pretty       ( )
+import           FreeC.IR.DependencyGraph
+import           FreeC.Monad.Class.Testable
+import           FreeC.Monad.Converter
+import           FreeC.Test.Parser
+import           FreeC.Test.Environment
+import           FreeC.Test.Expectations
 
 -------------------------------------------------------------------------------
--- Type synonym declarations                                                 --
+-- Expectation setters                                                       --
+-------------------------------------------------------------------------------
+
+-- | Parses the given type-level IR declarations, converts them to Coq using
+--   'convertTypeComponent' and sets the expectation that the resulting AST
+--   is equal to the given output when pretty printed modulo white
+--   space.
+shouldConvertTypeDeclsTo
+  :: DependencyComponent String -> String -> Converter Expectation
+shouldConvertTypeDeclsTo inputStrs expectedOutputStr = do
+  input  <- parseTestComponent inputStrs
+  output <- convertTypeComponent input
+  return (output `prettyShouldBe` expectedOutputStr)
+
+-------------------------------------------------------------------------------
+-- Tests for Type Synonym Declarations                                       --
 -------------------------------------------------------------------------------
 
 -- | Test group for 'convertTypeDecl' tests.
 testConvertTypeDecl :: Spec
 testConvertTypeDecl =
-  describe "FreeC.Backend.Coq.Converter.TypeDecl.convertTypeDecl" $ do
+  describe "FreeC.Backend.Coq.Converter.TypeDecl.convertTypeSynDecl" $ do
     it "translates non-polymorphic type synonyms correctly"
-      $ shouldSucceed
-      $ fromConverter
+      $ shouldSucceedWith
       $ do
-          shouldTranslateDeclsTo ["type TermPos = [Integer]"]
+          "Integer" <- defineTestTypeCon "Integer" 0
+          "List"    <- defineTestTypeCon "List" 1
+          "TermPos" <- defineTestTypeSyn "TermPos" [] "List Integer"
+          shouldConvertTypeDeclsTo (NonRecursive "type TermPos = List Integer")
             $  "Definition TermPos (Shape : Type) (Pos : Shape -> Type)"
             ++ "  : Type"
             ++ " := List Shape Pos (Integer Shape Pos)."
 
-    it "translates polymorphic type synonyms correctly"
-      $ shouldSucceed
-      $ fromConverter
-      $ do
-          shouldTranslateDeclsTo ["type Queue a = ([a], [a])"]
-            $  "Definition Queue (Shape : Type) (Pos : Shape -> Type)"
-            ++ "  (a : Type) : Type"
-            ++ " := Pair Shape Pos (List Shape Pos a) (List Shape Pos a)."
-
-    it "expands function type synonyms correctly"
-      $ shouldSucceed
-      $ fromConverter
-      $ do
-          "String"       <- defineTestTypeCon "String" 0
-          "Expr"         <- defineTestTypeCon "Expr" 0
-          ("var", "Var") <- defineTestCon "Var" 1 "String -> Expr"
-          shouldTranslateDeclsTo
-              [ "type Subst = String -> Expr"
-              , "identity :: Subst"
-              , "identity s = Var s"
-              ]
-            $  "Definition Subst (Shape : Type) (Pos : Shape -> Type) : Type"
-            ++ " := Free Shape Pos (String Shape Pos)"
-            ++ "    -> Free Shape Pos (Expr Shape Pos). "
-            ++ "Definition identity (Shape : Type) (Pos : Shape -> Type)"
-            ++ "  (s : Free Shape Pos (String Shape Pos))"
-            ++ " : Free Shape Pos (Expr Shape Pos)"
-            ++ " := Var Shape Pos s."
+    it "translates polymorphic type synonyms correctly" $ shouldSucceedWith $ do
+      "List"  <- defineTestTypeCon "List" 1
+      "Pair"  <- defineTestTypeCon "Pair" 2
+      "Queue" <- defineTestTypeSyn "Queue" ["a"] "Pair (List a) (List a)"
+      shouldConvertTypeDeclsTo
+          (NonRecursive "type Queue a = Pair (List a) (List a)")
+        $  "Definition Queue (Shape : Type) (Pos : Shape -> Type)"
+        ++ "  (a : Type) : Type"
+        ++ " := Pair Shape Pos (List Shape Pos a) (List Shape Pos a)."
 
     it "expands type synonyms in mutually recursive data type declarations"
-      $ shouldSucceed
-      $ fromConverter
+      $ shouldSucceedWith
       $ do
-          shouldTranslateDeclsTo
-              [ "type Forest a = [Tree a]"
-              , "data Tree a = Leaf a | Branch (Forest a)"
-              ]
+          "List"               <- defineTestTypeCon "List" 1
+          "Forest" <- defineTestTypeSyn "Forest" ["a"] "List (Tree a)"
+          "Tree"               <- defineTestTypeCon "Tree" 1
+          ("leaf"  , "Leaf"  ) <- defineTestCon "Leaf" 1 "forall a. a -> Tree a"
+          ("branch", "Branch") <- defineTestCon "Branch"
+                                                1
+                                                "forall a. Forest a -> Tree a"
+          shouldConvertTypeDeclsTo
+              (Recursive
+                [ "type Forest a = List (Tree a)"
+                , "data Tree a = Leaf a | Branch (Forest a)"
+                ]
+              )
             $  "(* Data type declarations for Tree *) "
             ++ "Inductive Tree (Shape : Type) (Pos : Shape -> Type) (a : Type)"
             ++ " : Type"
@@ -81,39 +96,43 @@ testConvertTypeDecl =
             ++ " : Type"
             ++ " := List Shape Pos (Tree Shape Pos a)."
 
-    it "sorts type synonym declarations topologically"
-      $ shouldSucceed
-      $ fromConverter
-      $ do
-          shouldTranslateDeclsTo
-              ["type Bar = Baz", "type Baz = Foo", "data Foo = Foo Bar Baz"]
-            $  "(* Data type declarations for Foo *) "
-            ++ "Inductive Foo (Shape : Type) (Pos : Shape -> Type)"
-            ++ " : Type"
-            ++ " := foo : Free Shape Pos (Foo Shape Pos)"
-            ++ "          -> Free Shape Pos (Foo Shape Pos)"
-            ++ "          -> Foo Shape Pos. "
-            ++ "(* Arguments sentences for Foo *) "
-            ++ "Arguments foo {Shape} {Pos}. "
-            ++ "(* Smart constructors for Foo *) "
-            ++ "Definition Foo0 (Shape : Type) (Pos : Shape -> Type)"
-            ++ "  (x_0 : Free Shape Pos (Foo Shape Pos))"
-            ++ "  (x_1 : Free Shape Pos (Foo Shape Pos))"
-            ++ " : Free Shape Pos (Foo Shape Pos)"
-            ++ " := pure (foo x_0 x_1). "
-            ++ "Definition Baz (Shape : Type) (Pos : Shape -> Type)"
-            ++ " : Type"
-            ++ " := Foo Shape Pos. "
-            ++ "Definition Bar (Shape : Type) (Pos : Shape -> Type)"
-            ++ " : Type"
-            ++ " := Baz Shape Pos."
+    it "sorts type synonym declarations topologically" $ shouldSucceedWith $ do
+      "Bar"           <- defineTestTypeSyn "Bar" [] "Baz"
+      "Baz"           <- defineTestTypeSyn "Baz" [] "Foo"
+      "Foo"           <- defineTestTypeCon "Foo" 1
+      ("foo", "Foo0") <- defineTestCon "Foo" 2 "Bar -> Baz -> Foo"
+      shouldConvertTypeDeclsTo
+          (Recursive
+            ["type Bar = Baz", "type Baz = Foo", "data Foo = Foo Bar Baz"]
+          )
+        $  "(* Data type declarations for Foo *) "
+        ++ "Inductive Foo (Shape : Type) (Pos : Shape -> Type)"
+        ++ " : Type"
+        ++ " := foo : Free Shape Pos (Foo Shape Pos)"
+        ++ "          -> Free Shape Pos (Foo Shape Pos)"
+        ++ "          -> Foo Shape Pos. "
+        ++ "(* Arguments sentences for Foo *) "
+        ++ "Arguments foo {Shape} {Pos}. "
+        ++ "(* Smart constructors for Foo *) "
+        ++ "Definition Foo0 (Shape : Type) (Pos : Shape -> Type)"
+        ++ "  (x_0 : Free Shape Pos (Foo Shape Pos))"
+        ++ "  (x_1 : Free Shape Pos (Foo Shape Pos))"
+        ++ " : Free Shape Pos (Foo Shape Pos)"
+        ++ " := pure (foo x_0 x_1). "
+        ++ "Definition Baz (Shape : Type) (Pos : Shape -> Type)"
+        ++ " : Type"
+        ++ " := Foo Shape Pos. "
+        ++ "Definition Bar (Shape : Type) (Pos : Shape -> Type)"
+        ++ " : Type"
+        ++ " := Baz Shape Pos."
 
-    it "fails if type synonyms form a cycle"
-      $ shouldReportFatal
-      $ fromConverter
-      $ convertTestDecls ["type Foo = Bar", "type Bar = Baz"]
-
-
+    it "fails if type synonyms form a cycle" $ do
+      input <- expectParseTestComponent
+        (Recursive ["type Foo = Bar", "type Bar = Foo"])
+      shouldFail $ do
+        "Foo" <- defineTestTypeSyn "Foo" [] "Bar"
+        "Bar" <- defineTestTypeSyn "Bar" [] "Foo"
+        convertTypeComponent input
 
 -------------------------------------------------------------------------------
 -- Data type declarations                                                    --
@@ -124,10 +143,12 @@ testConvertDataDecls :: Spec
 testConvertDataDecls =
   describe "FreeC.Backend.Coq.Converter.TypeDecl.convertDataDecls" $ do
     it "translates non-polymorphic data types correctly"
-      $ shouldSucceed
-      $ fromConverter
+      $ shouldSucceedWith
       $ do
-          shouldTranslateDeclsTo ["data Foo = Bar | Baz"]
+          "Foo"          <- defineTestTypeCon "Foo" 0
+          ("bar", "Bar") <- defineTestCon "Bar" 0 "Foo"
+          ("baz", "Baz") <- defineTestCon "Baz" 0 "Foo"
+          shouldConvertTypeDeclsTo (NonRecursive "data Foo = Bar | Baz")
             $  "(* Data type declarations for Foo *) "
             ++ "Inductive Foo (Shape : Type) (Pos : Shape -> Type) : Type "
             ++ " := bar : Foo Shape Pos "
@@ -141,32 +162,33 @@ testConvertDataDecls =
             ++ "Definition Baz (Shape : Type) (Pos : Shape -> Type) "
             ++ " : Free Shape Pos (Foo Shape Pos) := pure baz."
 
-    it "translates polymorphic data types correctly"
-      $ shouldSucceed
-      $ fromConverter
-      $ do
-          shouldTranslateDeclsTo ["data Foo a b = Bar a | Baz b"]
-            $  "(* Data type declarations for Foo *) "
-            ++ "Inductive Foo (Shape : Type) (Pos : Shape -> Type) "
-            ++ " (a b : Type) : Type "
-            ++ " := bar : Free Shape Pos a -> Foo Shape Pos a b "
-            ++ " |  baz : Free Shape Pos b -> Foo Shape Pos a b. "
-            ++ "(* Arguments sentences for Foo *) "
-            ++ "Arguments bar {Shape} {Pos} {a} {b}. "
-            ++ "Arguments baz {Shape} {Pos} {a} {b}. "
-            ++ "(* Smart constructors for Foo *) "
-            ++ "Definition Bar (Shape : Type) (Pos : Shape -> Type) "
-            ++ " {a b : Type} (x_0 : Free Shape Pos a) "
-            ++ " : Free Shape Pos (Foo Shape Pos a b) := pure (bar x_0). "
-            ++ "Definition Baz (Shape : Type) (Pos : Shape -> Type) "
-            ++ " {a b : Type} (x_0 : Free Shape Pos b) "
-            ++ " : Free Shape Pos (Foo Shape Pos a b) := pure (baz x_0)."
+    it "translates polymorphic data types correctly" $ shouldSucceedWith $ do
+      "Foo"          <- defineTestTypeCon "Foo" 2
+      ("bar", "Bar") <- defineTestCon "Bar" 1 "forall a b. a -> Foo a b"
+      ("baz", "Baz") <- defineTestCon "Baz" 1 "forall a b. b -> Foo a b"
+      shouldConvertTypeDeclsTo (NonRecursive "data Foo a b = Bar a | Baz b")
+        $  "(* Data type declarations for Foo *) "
+        ++ "Inductive Foo (Shape : Type) (Pos : Shape -> Type) "
+        ++ " (a b : Type) : Type "
+        ++ " := bar : Free Shape Pos a -> Foo Shape Pos a b "
+        ++ " |  baz : Free Shape Pos b -> Foo Shape Pos a b. "
+        ++ "(* Arguments sentences for Foo *) "
+        ++ "Arguments bar {Shape} {Pos} {a} {b}. "
+        ++ "Arguments baz {Shape} {Pos} {a} {b}. "
+        ++ "(* Smart constructors for Foo *) "
+        ++ "Definition Bar (Shape : Type) (Pos : Shape -> Type) "
+        ++ " {a b : Type} (x_0 : Free Shape Pos a) "
+        ++ " : Free Shape Pos (Foo Shape Pos a b) := pure (bar x_0). "
+        ++ "Definition Baz (Shape : Type) (Pos : Shape -> Type) "
+        ++ " {a b : Type} (x_0 : Free Shape Pos b) "
+        ++ " : Free Shape Pos (Foo Shape Pos a b) := pure (baz x_0)."
 
     it "renames constructors with same name as their data type"
-      $ shouldSucceed
-      $ fromConverter
+      $ shouldSucceedWith
       $ do
-          shouldTranslateDeclsTo ["data Foo = Foo"]
+          "Foo"           <- defineTestTypeCon "Foo" 0
+          ("foo", "Foo0") <- defineTestCon "Foo" 0 "Foo"
+          shouldConvertTypeDeclsTo (NonRecursive "data Foo = Foo")
             $  "(* Data type declarations for Foo *) "
             ++ "Inductive Foo (Shape : Type) (Pos : Shape -> Type) : Type "
             ++ " := foo : Foo Shape Pos. "
@@ -176,11 +198,12 @@ testConvertDataDecls =
             ++ "Definition Foo0 (Shape : Type) (Pos : Shape -> Type) "
             ++ " : Free Shape Pos (Foo Shape Pos) := pure foo."
 
-    it "renames type variables with same name as constructors"
-      $ shouldSucceed
-      $ fromConverter
+    it "renames type variables with same name as generated constructors"
+      $ shouldSucceedWith
       $ do
-          shouldTranslateDeclsTo ["data Foo a = A a"]
+          "Foo"      <- defineTestTypeCon "Foo" 0
+          ("a", "A") <- defineTestCon "A" 1 "forall a. a -> Foo a"
+          shouldConvertTypeDeclsTo (NonRecursive "data Foo a = A a")
             $  "(* Data type declarations for Foo *) "
             ++ "Inductive Foo (Shape : Type) (Pos : Shape -> Type) "
             ++ " (a0 : Type) : Type "
@@ -193,26 +216,30 @@ testConvertDataDecls =
             ++ " : Free Shape Pos (Foo Shape Pos a0) := pure (a x_0)."
 
     it "translates mutually recursive data types correctly"
-      $ shouldSucceed
-      $ fromConverter
+      $ shouldSucceedWith
       $ do
-          shouldTranslateDeclsTo ["data Foo = Foo Bar", "data Bar = Bar Foo"]
-            $  "(* Data type declarations for Bar, Foo *) "
-            ++ "Inductive Bar (Shape : Type) (Pos : Shape -> Type) : Type"
-            ++ "  := bar : Free Shape Pos (Foo Shape Pos) -> Bar Shape Pos "
-            ++ "with Foo (Shape : Type) (Pos : Shape -> Type) : Type"
-            ++ "  := foo : Free Shape Pos (Bar Shape Pos) -> Foo Shape Pos. "
-            ++ "(* Arguments sentences for Bar *) "
-            ++ "Arguments bar {Shape} {Pos}. "
-            ++ "(* Smart constructors for Bar *) "
-            ++ "Definition Bar0 (Shape : Type) (Pos : Shape -> Type)"
-            ++ "  (x_0 : Free Shape Pos (Foo Shape Pos))"
-            ++ "  : Free Shape Pos (Bar Shape Pos)"
-            ++ "  := pure (bar x_0). "
+          "Foo"           <- defineTestTypeCon "Foo" 0
+          ("foo", "Foo0") <- defineTestCon "Foo" 1 "Bar -> Foo"
+          "Bar"           <- defineTestTypeCon "Bar" 0
+          ("bar", "Bar0") <- defineTestCon "Bar" 1 "Foo -> Bar"
+          shouldConvertTypeDeclsTo
+              (Recursive ["data Foo = Foo Bar", "data Bar = Bar Foo"])
+            $  "(* Data type declarations for Foo, Bar *) "
+            ++ "Inductive Foo (Shape : Type) (Pos : Shape -> Type) : Type"
+            ++ "  := foo : Free Shape Pos (Bar Shape Pos) -> Foo Shape Pos "
+            ++ "with Bar (Shape : Type) (Pos : Shape -> Type) : Type"
+            ++ "  := bar : Free Shape Pos (Foo Shape Pos) -> Bar Shape Pos. "
             ++ "(* Arguments sentences for Foo *) "
             ++ "Arguments foo {Shape} {Pos}. "
             ++ "(* Smart constructors for Foo *) "
             ++ "Definition Foo0 (Shape : Type) (Pos : Shape -> Type)"
             ++ "  (x_0 : Free Shape Pos (Bar Shape Pos))"
             ++ "  : Free Shape Pos (Foo Shape Pos)"
-            ++ "  := pure (foo x_0)."
+            ++ "  := pure (foo x_0). "
+            ++ "(* Arguments sentences for Bar *) "
+            ++ "Arguments bar {Shape} {Pos}. "
+            ++ "(* Smart constructors for Bar *) "
+            ++ "Definition Bar0 (Shape : Type) (Pos : Shape -> Type)"
+            ++ "  (x_0 : Free Shape Pos (Foo Shape Pos))"
+            ++ "  : Free Shape Pos (Bar Shape Pos)"
+            ++ "  := pure (bar x_0)."

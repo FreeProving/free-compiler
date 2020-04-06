@@ -32,3 +32,10 @@ instance Gallina a => Pretty (PrettyCoq a) where
 -- | Terms often need to be pretty printed in the tests.
 instance Pretty G.Term where
   pretty = pretty . PrettyCoq
+  prettyList = prettyList . map PrettyCoq
+
+-- | Sentences often need to be pretty printed in the tests and when writing
+--   the generated Coq code to the console or a file.
+instance Pretty G.Sentence where
+  pretty = pretty . PrettyCoq
+  prettyList = prettyList . map PrettyCoq

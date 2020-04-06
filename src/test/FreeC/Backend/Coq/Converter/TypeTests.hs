@@ -7,7 +7,7 @@ where
 
 import           Test.Hspec
 
-import           FreeC.Backend.Coq.Converter
+import           FreeC.Backend.Coq.Converter.Type
 import           FreeC.Backend.Coq.Pretty       ( )
 import           FreeC.Monad.Class.Testable
 import           FreeC.Monad.Converter
@@ -19,7 +19,10 @@ import           FreeC.Test.Expectations
 -- Expectation setters                                                       --
 -------------------------------------------------------------------------------
 
--- | Parses the given IR type expression, pretty prints the resulting
+-- | Parses the given IR type expression, converts it to Coq using
+--   'convertType' and sets the expectation that the resulting AST
+--   is equal to the given output when pretty printed modulo white
+--   space.
 shouldConvertTypeTo :: String -> String -> Converter Expectation
 shouldConvertTypeTo inputStr expectedOutputStr = do
   input  <- parseTestType inputStr
