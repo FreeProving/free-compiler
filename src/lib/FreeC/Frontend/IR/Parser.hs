@@ -450,11 +450,6 @@ instance Parseable HS.TypeSig where
 --   @
 --   funcDecl ::= varQName { "@" typeVarDecl } { varPat } [ "::" type ] "=" expr
 --   @
---
---   TODO the pretty printer places the return type annotation
---        behind the right-hand side. Both the AST and the
---        pretty printer should be updated such that they
---        conform with this definition.
 funcDeclParser :: Parser HS.FuncDecl
 funcDeclParser =
   flip
@@ -522,10 +517,6 @@ bTypeParser = HS.typeApp NoSrcSpan <$> aTypeParser <*> Parsec.many aTypeParser
 --           | conName                      (type constructor)
 --           | "(" type ")"                 (parenthesized type)
 --   @
---
---   TODO the pretty printer currently supports syntactic sugar for list
---        and tuple types. They should be removed from the pretty printer
---        such to conform with this definition.
 aTypeParser :: Parser HS.Type
 aTypeParser = typeVarParser <|> typeConParser <|> parensParser typeParser
  where

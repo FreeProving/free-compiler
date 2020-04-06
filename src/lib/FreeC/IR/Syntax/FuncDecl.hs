@@ -84,11 +84,9 @@ instance Pretty FuncDecl where
       Nothing -> prettyFuncHead <+> equals <+> pretty rhs
       Just returnType ->
         prettyFuncHead
+          <+> colon <> colon <+> pretty returnType
           <+> equals
-          <+> prettyExprPred 1 rhs
-          <+> colon
-          <>  colon
-          <+> pretty returnType
+          <+> pretty rhs
    where
     -- | The left-hand side of the function declaration.
     prettyFuncHead :: Doc

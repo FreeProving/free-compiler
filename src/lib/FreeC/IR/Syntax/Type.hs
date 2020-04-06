@@ -3,7 +3,6 @@
 
 module FreeC.IR.Syntax.Type where
 
-import           FreeC.IR.Base.Prelude as HS.Prelude
 import           FreeC.IR.SrcSpan
 import           FreeC.IR.Syntax.Name
 import           FreeC.Pretty
@@ -89,30 +88,18 @@ instance Pretty Type where
 
 -- | Pretty prints a type and adds parenthesis if necessary.
 --
---   The first argument indicates the precedence of the sourrounding
+--   The first argument indicates the precedence of the surrounding
 --   context.
---    * @0@ - Top level. No parenthesis are neccessary.
---    * @1@ - Parenthesis are needed arround function types.
---    * @2@ - Parenthesis are also needed arround type constructor
+--    * @0@ - Top level. No parenthesis are necessary.
+--    * @1@ - Parenthesis are needed around function types.
+--    * @2@ - Parenthesis are also needed around type constructor
 --            applications.
 prettyTypePred :: Int -> Type -> Doc
--- Syntactic sugar for lists.
-prettyTypePred _ (TypeApp _ (TypeCon _ name) t) | name == listTypeConName =
-  brackets (pretty t)
-
--- Syntactic sugar for pairs.
--- TODO pretty print arbitrary tuple types.
-prettyTypePred _ (TypeApp _ (TypeApp _ (TypeCon _ name) t1) t2)
-  | name == tupleTypeConName 2 = parens (pretty t1 <> comma <+> pretty t2)
-
--- Syntactic sugar for unit.
-prettyTypePred _ (TypeCon _ name) | name == unitTypeConName = parens empty
-
 -- There are never parentheses around type variables or constructors.
 prettyTypePred _ (TypeVar _ ident)                          = prettyString ident
 prettyTypePred _ (TypeCon _ name )                          = pretty name
 
--- There may be parentheses around type appications and function types.
+-- There may be parentheses around type applications and function types.
 prettyTypePred n (TypeApp _ t1 t2) | n <= 1 =
   prettyTypePred 1 t1 <+> prettyTypePred 2 t2
 prettyTypePred 0 (FuncType _ t1 t2) =
