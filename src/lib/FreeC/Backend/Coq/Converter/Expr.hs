@@ -42,10 +42,23 @@ convertExpr' :: HS.Expr -> [HS.Type] -> [HS.Expr] -> Converter G.Term
 
 -- Constructors.
 convertExpr' (HS.Con srcSpan name _) typeArgs args = do
-  qualid     <- lookupSmartIdentOrFail srcSpan name
-  typeArgs'  <- mapM convertType' typeArgs
-  args'      <- mapM convertExpr args
-  Just arity <- inEnv $ lookupArity ValueScope name
+  qualid            <- lookupSmartIdentOrFail srcSpan name
+  typeArgs'         <- mapM convertType' typeArgs
+  args'             <- mapM convertExpr args
+  Just arity        <- inEnv $ lookupArity ValueScope name
+  Just typeArgArity <- inEnv $ lookupTypeArgArity ValueScope name
+  let typeArgCount = length typeArgs'
+  when (typeArgCount /= typeArgArity)
+    $  reportFatal
+    $  Message srcSpan Internal
+    $  "The constructor '"
+    ++ showPretty name
+    ++ "' is applied to the wrong number of type arguments.\n"
+    ++ "Expected "
+    ++ show typeArgArity
+    ++ " type arguments, got "
+    ++ show typeArgCount
+    ++ "."
   generateApplyN arity (genericApply qualid [] typeArgs' []) args'
 
 -- Functions and variables.
