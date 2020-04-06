@@ -12,11 +12,11 @@ A compiler for the monadic translation of Haskell programs to Coq that uses the 
 ## Table of Contents
 
 1. [Documentation](#documentation)
-2. [Installation](#installation)
+2. [Getting Started](#getting-started)
     - [Required Software](#required-software)
     - [Base Library](#base-library)
-    - [Building](#building)
-5. [Running without Installation](#running-without-installation)
+    - [Installation](#installation)
+    - [Running without Installation](#running-without-installation)
 6. [Usage](#usage)
     - [Command line options](#command-line-options)
       + [`--output=DIR`, `-o DIR`](#--outputdir--o-dir)
@@ -24,8 +24,8 @@ A compiler for the monadic translation of Haskell programs to Coq that uses the 
       + [`--base-library=DIR`, `-b DIR`](#--base-librarydir--b-dir)
       + [`--no-coq-project`](#--no-coq-project)
     - [Proving properties](#proving-properties)
-7. [Experimental Features](#experimental-features)
-    - [Pattern-Matching Compilation](#pattern-matching-compilation)
+    - [Experimental Features](#experimental-features)
+      + [Pattern-Matching Compilation](#pattern-matching-compilation)
 8. [Testing](#testing)
 9. [License](#license)
 
@@ -39,7 +39,7 @@ The documentation is automatically build by our CI pipeline and published [here]
 
 Additional documentation can be found in the [`doc/`][doc] directory.
 
-## Installation
+## Getting Started
 
 ### Required Software
 
@@ -70,7 +70,7 @@ To compile the base library with that shell script, run the following command in
 > ./tool/compile-coq.sh --recompile base
 > ```
 
-### Building
+### Installation
 
 First, make sure that the Cabal package lists are up to date  by running the following command.
 
@@ -92,7 +92,7 @@ To test whether the installation was successful, make sure that `~/.cabal/bin` i
 freec --help
 ```
 
-## Running without Installation
+### Running without Installation
 
 If you want to run the compiler without installing it on your machine (i.e., for debugging purposes), execute the following command in the root directory of the compiler instead of the `freec` command.
 
@@ -223,9 +223,9 @@ This allows us to state the proposition in Haskell instead of Coq.
 
 Consult [`doc/ProvingQuickCheckProperties.md`][doc/ProvingQuickCheckProperties.md] for more details and examples.
 
-## Experimental Features
+### Experimental Features
 
-### Pattern-Matching Compilation
+#### Pattern-Matching Compilation
 
 By default the compiler does support a limited subset of the Haskell programming language only.
 There is experimental support to relax some of those restrictions.
