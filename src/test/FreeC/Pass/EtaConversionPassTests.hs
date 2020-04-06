@@ -15,9 +15,9 @@ import           FreeC.Test.Expectations
 -- Expectation setters                                                       --
 -------------------------------------------------------------------------------
 
--- | Parses the given expressions, applies the eta conversion pass and
---   sets the expectation that the resulting expression is equal to the
---   expected output module renaming of bound variables.
+-- | Parses the given expressions, applies the eta conversion
+--   pass and sets the expectation that the resulting expression
+--   is 'FreeC.IR.Similar.similar' to the expected output.
 shouldEtaConvert :: String -> String -> Converter Expectation
 shouldEtaConvert inputStr expectedOutputStr = do
   input          <- parseTestExpr inputStr

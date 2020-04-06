@@ -183,7 +183,6 @@ test-suite freec-unit-tests
   main-is:            Spec.hs
   other-modules:      Paths_free_compiler
                     , FreeC.Analysis.RecursionAnalysisTests
-                    , FreeC.Analysis.TypeInferenceTests
                     , FreeC.Backend.Coq.ConverterTests
                     , FreeC.Backend.Coq.Converter.ExprTests
                     , FreeC.Backend.Coq.Converter.FuncDeclTests
@@ -204,6 +203,7 @@ test-suite freec-unit-tests
                     , FreeC.Monad.ReporterTests
                     , FreeC.Pass.EtaConversionPassTests
                     , FreeC.Pass.PartialityAnalysisPassTests
+                    , FreeC.Pass.TypeInferencePassTests
                     , FreeC.PipelineTests
                     , FreeC.Test.Arbitrary
                     , FreeC.Test.Environment

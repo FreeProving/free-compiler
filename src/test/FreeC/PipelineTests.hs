@@ -10,9 +10,11 @@ import           Test.Hspec
 
 import           FreeC.Pass.EtaConversionPassTests
 import           FreeC.Pass.PartialityAnalysisPassTests
+import           FreeC.Pass.TypeInferencePassTests
 
 -- | Test group for 'FreeC.Pipeline.runPipeline' tests.
 testPipeline :: Spec
 testPipeline = do
   testPartialityAnalysisPass
   testEtaConversionPass
+  testTypeInferencePass

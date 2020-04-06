@@ -1,7 +1,6 @@
 import           Test.Hspec
 
 import           FreeC.Analysis.RecursionAnalysisTests
-import           FreeC.Analysis.TypeInferenceTests
 import           FreeC.Backend.Coq.ConverterTests
 import           FreeC.Environment.RenamerTests
 import           FreeC.Frontend.IR.Tests
@@ -16,7 +15,6 @@ main = hspec $ do
   testIRFrontend
 
   testPipeline
-  testTypeInference
   testRenamer
 
   testConverter
