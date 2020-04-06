@@ -422,8 +422,20 @@ instance Similar HS.VarPat where
 --    Γ ⊢ g @α₁ … @αₘ p₁ … pₙ = e ≈ g @β₁ … @βₘ q₁ … qₙ = f
 --   @
 --
+--   where @xᵢ@ and @yᵢ@ denote the names of the variables bound by the
+--   patterns @pᵢ@ and @qᵢ@ respectively.
+--
 --   If the function has an explicit return type annotation, the annotated
 --   return typed must be similar as well.
+--
+--   @
+--    Γ ∪ { α₁ ↦ β₁, …, αₘ ↦ βₘ, x₁ ↦ y₁, …, xₙ ↦ yₙ } ⊢ e ≈ f
+--    Γ ∪ { α₁ ↦ β₁, …, αₘ ↦ βₘ } ⊢ p₁ ≈ q₁, …,
+--    Γ ∪ { α₁ ↦ β₁, …, αₘ ↦ βₘ } ⊢ pₙ ≈ qₙ,
+--    Γ ∪ { α₁ ↦ β₁, …, αₘ ↦ βₘ } ⊢ τ ≈ τ',
+--   ——————————————————————————————————————————————————————————
+--    Γ ⊢ g @α₁ … @αₘ p₁ … pₙ :: τ = e ≈ g @β₁ … @βₘ q₁ … qₙ :: τ' = f
+--   @
 instance Similar HS.FuncDecl where
   similar' (HS.FuncDecl _ g as xs e s) (HS.FuncDecl _ h bs ys f t)
     | HS.declIdentName g == HS.declIdentName h && length as == length bs
