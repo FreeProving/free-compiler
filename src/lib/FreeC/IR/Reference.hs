@@ -259,11 +259,11 @@ instance HasRefs HS.ConDecl where
 --   annotations refer to as well as the references of their right-hand side
 --   except for the (type) variables bound by the function's (type) arguments.
 instance HasRefs HS.FuncDecl where
-  refSet (HS.FuncDecl _ _ typeArgs args rhs retType) =
+  refSet (HS.FuncDecl _ _ typeArgs args retType rhs) =
     withoutTypeArgs typeArgs
       $       refSet args
-      `union` withoutArgs args (refSet rhs)
       `union` refSet retType
+      `union` withoutArgs args (refSet rhs)
 
 -------------------------------------------------------------------------------
 -- Removing bound (type) variables                                           --

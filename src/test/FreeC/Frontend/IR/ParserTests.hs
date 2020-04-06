@@ -517,21 +517,21 @@ testFuncDeclParser = context "function declarations" $ do
       yPat  = HS.VarPat NoSrcSpan "y" Nothing
       x     = HS.Var NoSrcSpan (HS.UnQual (HS.Ident "x")) Nothing
   it "accepts function declarations without arguments" $ do
-    "f = x" `shouldParse` HS.FuncDecl NoSrcSpan f [] [] x Nothing
+    "f = x" `shouldParse` HS.FuncDecl NoSrcSpan f [] [] Nothing x
   it "accepts function declarations with a single argument" $ do
-    "f x = x" `shouldParse` HS.FuncDecl NoSrcSpan f [] [xPat] x Nothing
+    "f x = x" `shouldParse` HS.FuncDecl NoSrcSpan f [] [xPat] Nothing x
   it "accepts function declarations with a multiple arguments" $ do
-    "f x y = x" `shouldParse` HS.FuncDecl NoSrcSpan f [] [xPat, yPat] x Nothing
+    "f x y = x" `shouldParse` HS.FuncDecl NoSrcSpan f [] [xPat, yPat] Nothing x
   it "accepts function declarations with a type annotated arguments" $ do
-    "f (x :: a) = x" `shouldParse` HS.FuncDecl NoSrcSpan f [] [xPat'] x Nothing
+    "f (x :: a) = x" `shouldParse` HS.FuncDecl NoSrcSpan f [] [xPat'] Nothing x
   it "accepts function declarations with annotated return type" $ do
-    "f x :: a = x" `shouldParse` HS.FuncDecl NoSrcSpan f [] [xPat] x (Just a)
+    "f x :: a = x" `shouldParse` HS.FuncDecl NoSrcSpan f [] [xPat] (Just a) x
   it "accepts function declarations with type arguments" $ do
-    "f @a = x" `shouldParse` HS.FuncDecl NoSrcSpan f [aDecl] [] x Nothing
+    "f @a = x" `shouldParse` HS.FuncDecl NoSrcSpan f [aDecl] [] Nothing x
   it "accepts function declarations with arguments and type arguments" $ do
-    "f @a x = x" `shouldParse` HS.FuncDecl NoSrcSpan f [aDecl] [xPat] x Nothing
+    "f @a x = x" `shouldParse` HS.FuncDecl NoSrcSpan f [aDecl] [xPat] Nothing x
   it "accepts function declarations with qualified names" $ do
-    "M.f = x" `shouldParse` HS.FuncDecl NoSrcSpan f' [] [] x Nothing
+    "M.f = x" `shouldParse` HS.FuncDecl NoSrcSpan f' [] [] Nothing x
 
 -------------------------------------------------------------------------------
 -- Modules                                                                   --
@@ -604,7 +604,7 @@ testModuleParser = context "modules" $ do
       ["module M where", "foo x = x"]
       emptyModule
         { HS.modName      = "M"
-        , HS.modFuncDecls = [HS.FuncDecl NoSrcSpan funFoo [] [xPat] x Nothing]
+        , HS.modFuncDecls = [HS.FuncDecl NoSrcSpan funFoo [] [xPat] Nothing x]
         }
   it "accepts modules with top-level declarations separated by semicolon" $ do
     shouldParseModule

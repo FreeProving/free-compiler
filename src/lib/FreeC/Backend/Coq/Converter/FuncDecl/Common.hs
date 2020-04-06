@@ -27,7 +27,7 @@ import           FreeC.Monad.Converter
 --   (see 'Haskell.Backend.Coq.Converter.FuncDecl.NonRec.convertNonRecFuncDecl'
 --    and 'Haskell.Backend.Coq.Converter.FuncDecl.Rec.convertRecFuncDecls').
 convertFuncHead :: HS.FuncDecl -> Converter (G.Qualid, [G.Binder], Maybe G.Term)
-convertFuncHead (HS.FuncDecl _ declIdent typeArgs args _ maybeRetType) = do
+convertFuncHead (HS.FuncDecl _ declIdent typeArgs args maybeRetType _) = do
   let name = HS.declIdentName declIdent
   -- Lookup the Coq name of the function.
   Just qualid    <- inEnv $ lookupIdent ValueScope name

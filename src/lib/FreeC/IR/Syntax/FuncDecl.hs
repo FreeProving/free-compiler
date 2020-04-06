@@ -45,10 +45,10 @@ data FuncDecl = FuncDecl
     -- ^ The type arguments of the function.
   , funcDeclArgs       :: [VarPat]
     -- ^ The function's argument patterns.
-  , funcDeclRhs        :: Expr
-    -- ^ The right-hand side of the function declaration.
   , funcDeclReturnType :: Maybe Type
     -- ^ The return type of the function.
+  , funcDeclRhs        :: Expr
+    -- ^ The right-hand side of the function declaration.
   }
  deriving (Eq, Show)
 
@@ -79,7 +79,7 @@ funcDeclTypeSchema funcDecl =
 
 -- | Pretty instance for function declarations.
 instance Pretty FuncDecl where
-  pretty (FuncDecl _ declIdent typeArgs args rhs maybeReturnType) =
+  pretty (FuncDecl _ declIdent typeArgs args maybeReturnType rhs) =
     case maybeReturnType of
       Nothing -> prettyFuncHead <+> equals <+> pretty rhs
       Just returnType ->

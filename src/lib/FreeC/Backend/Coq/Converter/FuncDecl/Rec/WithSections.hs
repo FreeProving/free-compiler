@@ -183,7 +183,7 @@ renameFuncDecls decls = do
   -- and copy type signature and entry of original function.
   decls' <-
     forM decls
-      $ \(HS.FuncDecl srcSpan (HS.DeclIdent srcSpan' name) typeArgs args rhs maybeRetType) ->
+      $ \(HS.FuncDecl srcSpan (HS.DeclIdent srcSpan' name) typeArgs args maybeRetType rhs) ->
           do
             let Just name'    = lookup name nameMap
 
@@ -227,8 +227,8 @@ renameFuncDecls decls = do
                            (HS.DeclIdent srcSpan' name')
                            typeArgs'
                            args'
-                           rhs'
                            maybeRetType'
+                           rhs'
               )
   return (decls', Map.fromList nameMap)
 
@@ -254,7 +254,7 @@ renameConstArg nameMap constArg = constArg
 argAndReturnTypeMaps
   :: HS.FuncDecl
   -> Converter (Map (HS.QName, String) HS.Type, Map HS.QName HS.Type)
-argAndReturnTypeMaps (HS.FuncDecl _ (HS.DeclIdent _ name) _ args _ maybeRetType)
+argAndReturnTypeMaps (HS.FuncDecl _ (HS.DeclIdent _ name) _ args maybeRetType _)
   = return (argTypeMap, returnTypeMap)
  where
   argTypeMap = Map.fromList
@@ -326,7 +326,7 @@ generateConstArgVariable constArg constArgType = do
 --   that share the constant argument.
 removeConstArgsFromFuncDecl
   :: [ConstArg] -> HS.FuncDecl -> Converter HS.FuncDecl
-removeConstArgsFromFuncDecl constArgs (HS.FuncDecl srcSpan declIdent typeArgs args rhs maybeRetType)
+removeConstArgsFromFuncDecl constArgs (HS.FuncDecl srcSpan declIdent typeArgs args maybeRetType rhs)
   = do
     let name        = HS.declIdentName declIdent
         removedArgs = fromJust $ Map.lookup name $ Map.unionsWith (++) $ map
@@ -340,7 +340,7 @@ removeConstArgsFromFuncDecl constArgs (HS.FuncDecl srcSpan declIdent typeArgs ar
           | (removedArg, freshArg) <- zip removedArgs freshArgs
           ]
     rhs' <- removeConstArgsFromExpr constArgs (applySubst subst rhs)
-    return (HS.FuncDecl srcSpan declIdent typeArgs args' rhs' maybeRetType)
+    return (HS.FuncDecl srcSpan declIdent typeArgs args' maybeRetType rhs')
 
 -- | Removes constant arguments from the applications in the given expressions.
 removeConstArgsFromExpr :: [ConstArg] -> HS.Expr -> Converter HS.Expr

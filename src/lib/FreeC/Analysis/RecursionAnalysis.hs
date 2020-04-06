@@ -103,9 +103,9 @@ checkDecArgs decls knownDecArgIndecies decArgIndecies = all
   --   by the user or @Nothing@ if there is no such annotation.
   checkDecArg :: Maybe DecArgIndex -> DecArgIndex -> HS.FuncDecl -> Bool
   checkDecArg (Just _) _ _ = True
-  checkDecArg _ decArgIndex (HS.FuncDecl _ _ _ args expr _) =
+  checkDecArg _ decArgIndex (HS.FuncDecl _ _ _ args _ rhs) =
     let decArg = HS.varPatQName (args !! decArgIndex)
-    in  checkExpr decArg Set.empty expr []
+    in  checkExpr decArg Set.empty rhs []
 
   -- | Tests whether there is a variable that is structurally smaller than the
   --   argument with the given name in the position of decreasing arguments of

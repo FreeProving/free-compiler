@@ -250,11 +250,11 @@ simplifyDecl decl@(H.FunBind _ _) =
   experimentallySupported "Function declarations with more than one rule" decl
 
 -- Pattern-bindings for 0-ary functions.
-simplifyDecl (H.PatBind srcSpan (H.PVar _ declName) (H.UnGuardedRhs _ expr) Nothing)
+simplifyDecl (H.PatBind srcSpan (H.PVar _ declName) (H.UnGuardedRhs _ rhs) Nothing)
   = do
     declIdent <- simplifyFuncDeclName declName
-    expr'     <- simplifyExpr expr
-    return ([], [], [HS.FuncDecl srcSpan declIdent [] [] expr' Nothing])
+    rhs'     <- simplifyExpr rhs
+    return ([], [], [HS.FuncDecl srcSpan declIdent [] [] Nothing rhs'])
 
 -- The pattern-binding for a 0-ary function must not use guards or have a
 -- where block.
@@ -426,12 +426,12 @@ simplifyConDeclName sym@(H.Symbol _ _) =
 
 -- | Simplifies the single rule of a function declaration.
 simplifyFuncDecl :: H.Match SrcSpan -> Simplifier HS.FuncDecl
-simplifyFuncDecl (H.Match srcSpan declName args (H.UnGuardedRhs _ expr) Nothing)
+simplifyFuncDecl (H.Match srcSpan declName args (H.UnGuardedRhs _ rhs) Nothing)
   = do
     declIdent <- simplifyFuncDeclName declName
     args'     <- mapM simplifyVarPat args
-    expr'     <- simplifyExpr expr
-    return (HS.FuncDecl srcSpan declIdent [] args' expr' Nothing)
+    rhs'     <- simplifyExpr rhs
+    return (HS.FuncDecl srcSpan declIdent [] args' Nothing rhs')
 
 -- Function declarations with guards and where blocks are not supported.
 simplifyFuncDecl (H.Match _ _ _ rhss@(H.GuardedRhss _ _) _) =

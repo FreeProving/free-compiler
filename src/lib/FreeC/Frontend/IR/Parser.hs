@@ -452,12 +452,10 @@ instance Parseable HS.TypeSig where
 --   @
 funcDeclParser :: Parser HS.FuncDecl
 funcDeclParser =
-  flip
-    <$> (   HS.FuncDecl NoSrcSpan
-        <$> (HS.DeclIdent NoSrcSpan <$> varQNameParser)
-        <*> Parsec.many (token At *> typeVarDeclParser)
-        <*> Parsec.many varPatParser
-        )
+  HS.FuncDecl NoSrcSpan
+    <$> (HS.DeclIdent NoSrcSpan <$> varQNameParser)
+    <*> Parsec.many (token At *> typeVarDeclParser)
+    <*> Parsec.many varPatParser
     <*> Parsec.optionMaybe (token DoubleColon *> typeParser)
     <*  token Equals
     <*> exprParser

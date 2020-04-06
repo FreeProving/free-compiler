@@ -259,19 +259,19 @@ instance ApplySubst HS.Type HS.VarPat where
 -- | Applies the given expression substitution to the right-hand side of a
 --   function declaration.
 instance ApplySubst HS.Expr HS.FuncDecl where
-  applySubst subst (HS.FuncDecl srcSpan declIdent typeArgs args rhs maybeRetType)
+  applySubst subst (HS.FuncDecl srcSpan declIdent typeArgs args maybeRetType rhs)
     = let (subst', args') = newRenameArgs subst args
           rhs'            = applySubst subst' rhs
-      in  HS.FuncDecl srcSpan declIdent typeArgs args' rhs' maybeRetType
+      in  HS.FuncDecl srcSpan declIdent typeArgs args' maybeRetType rhs'
 
 -- | Applies the given type substitution to the right-hand side of a
 --   function declaration.
 instance ApplySubst HS.Type HS.FuncDecl where
-  applySubst subst (HS.FuncDecl srcSpan declIdent typeArgs args rhs maybeRetType)
+  applySubst subst (HS.FuncDecl srcSpan declIdent typeArgs args maybeRetType rhs)
     = let args'         = applySubst subst args
           rhs'          = applySubst subst rhs
           maybeRetType' = applySubst subst maybeRetType
-      in  HS.FuncDecl srcSpan declIdent typeArgs args' rhs' maybeRetType'
+      in  HS.FuncDecl srcSpan declIdent typeArgs args' maybeRetType' rhs'
 
 -------------------------------------------------------------------------------
 -- Application to type expressions                                           --

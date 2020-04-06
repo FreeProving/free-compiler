@@ -80,7 +80,7 @@ convertRecFuncDeclsWithHelpers' decls = do
 --   main function.
 transformRecFuncDecl
   :: HS.FuncDecl -> DecArgIndex -> Converter ([HS.FuncDecl], HS.FuncDecl)
-transformRecFuncDecl (HS.FuncDecl srcSpan declIdent typeArgs args expr maybeRetType) decArgIndex
+transformRecFuncDecl (HS.FuncDecl srcSpan declIdent typeArgs args maybeRetType expr) decArgIndex
   = do
   -- Generate a helper function declaration and application for each case
   -- expression of the decreasing argument.
@@ -91,7 +91,7 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent typeArgs args expr maybeRetT
     -- argument by an invocation of the corresponding recursive helper function.
     let (Just mainExpr) = replaceSubterms expr (zip caseExprsPos helperApps)
         mainDecl =
-          HS.FuncDecl srcSpan declIdent typeArgs args mainExpr maybeRetType
+          HS.FuncDecl srcSpan declIdent typeArgs args maybeRetType mainExpr
 
     -- If the user specified the decreasing argument of the function to
     -- transform, that information needs to be removed since the main function
@@ -201,8 +201,8 @@ transformRecFuncDecl (HS.FuncDecl srcSpan declIdent typeArgs args expr maybeRetT
                                       helperDeclIdent
                                       helperTypeArgs
                                       helperArgs
-                                      caseExpr
                                       helperReturnType
+                                      caseExpr
         helperApp = HS.app
           NoSrcSpan
           (HS.visibleTypeApp NoSrcSpan

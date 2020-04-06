@@ -437,7 +437,7 @@ instance Similar HS.VarPat where
 --    Γ ⊢ g @α₁ … @αₘ p₁ … pₙ :: τ = e ≈ g @β₁ … @βₘ q₁ … qₙ :: τ' = f
 --   @
 instance Similar HS.FuncDecl where
-  similar' (HS.FuncDecl _ g as xs e s) (HS.FuncDecl _ h bs ys f t)
+  similar' (HS.FuncDecl _ g as xs s e) (HS.FuncDecl _ h bs ys t f)
     | HS.declIdentName g == HS.declIdentName h && length as == length bs
     = let as' = map HS.typeVarDeclQName as
           bs' = map HS.typeVarDeclQName bs
