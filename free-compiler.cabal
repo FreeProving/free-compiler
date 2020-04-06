@@ -134,6 +134,7 @@ library freec-internal
                       , FreeC.IR.Reference
                       , FreeC.IR.Similar
                       , FreeC.IR.SrcSpan
+                      , FreeC.IR.Strip
                       , FreeC.IR.Subst
                       , FreeC.IR.Subterm
                       , FreeC.IR.Syntax
