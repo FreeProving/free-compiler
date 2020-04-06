@@ -41,6 +41,7 @@ import           FreeC.IR.SrcSpan
 import qualified FreeC.IR.Syntax               as HS
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
+import           FreeC.Pretty
 
 -------------------------------------------------------------------------------
 -- Predicates                                                                --
@@ -272,7 +273,7 @@ informIfRenamed entry entry' = do
     $  "Renamed "
     ++ prettyEntryType entry
     ++ " '"
-    ++ ident
+    ++ showPretty (entryName entry)
     ++ "' to '"
     ++ ident'
     ++ "'."

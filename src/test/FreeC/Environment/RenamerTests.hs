@@ -13,14 +13,12 @@ import           FreeC.Environment.Entry
 import           FreeC.Environment.Renamer
 import           FreeC.IR.SrcSpan
 import qualified FreeC.IR.Syntax               as HS
-import           FreeC.Util.Test
 
 -- | Test group for all @FreeC.Environment.Renamer@ tests.
 testRenamer :: Spec
 testRenamer = describe "FreeC.Environment.Renamer" $ do
   testMustRenameIdent
   testRenameIdent
-  testDefineLocally
 
 -------------------------------------------------------------------------------
 -- Test identifiers                                                          --
@@ -91,61 +89,3 @@ testRenameIdent = describe "renameIdent" $ do
     property $ forAll genIdent $ \ident ->
       let ident' = renameIdent ident emptyEnv
       in  renameIdent ident' emptyEnv == ident'
-
--------------------------------------------------------------------------------
--- Tests for @defineLocally@                                                 --
--------------------------------------------------------------------------------
-
--- | Test group for 'defineLocally' tests.
-testDefineLocally :: Spec
-testDefineLocally = describe "defineLocally" $ do
-  it "detects redefinitions of data type declarations"
-    $ shouldReportFatal
-    $ fromConverter
-    $ convertTestDecls ["data Foo = Foo", "data Foo = Bar"]
-
-  it "detects redefinitions of type synonym declarations"
-    $ shouldReportFatal
-    $ fromConverter
-    $ convertTestDecls ["type Foo = Integer", "type Foo a = [a]"]
-
-  it "detects redefinitions of constructor declarations"
-    $ shouldReportFatal
-    $ fromConverter
-    $ convertTestDecls ["data Foo = Foo | Foo"]
-
-  it "detects redefinitions of constructor declarations"
-    $ shouldReportFatal
-    $ fromConverter
-    $ convertTestDecls ["data Foo = Foo", "data Bar = Foo"]
-
-  it "detects redefinitions of type variables"
-    $ shouldReportFatal
-    $ fromConverter
-    $ convertTestDecls ["data Foo a a = Foo a"]
-
-  it "detects redefinitions of variables"
-    $ shouldReportFatal
-    $ fromConverter
-    $ convertTestDecls ["data Foo a a = Foo a"]
-
-  it "detects redefinitions of function declarations"
-    $ shouldReportFatal
-    $ fromConverter
-    $ convertTestDecls ["foo = 42", "foo :: Integer", "foo = 1337"]
-
-  it "detects redefinitions of function arguments"
-    $ shouldReportFatal
-    $ fromConverter
-    $ convertTestDecls
-        ["add :: Integer -> Integer -> Integer", "add x x = x + x"]
-
-  it "detects redefinitions of constructor pattern arguments"
-    $ shouldReportFatal
-    $ fromConverter
-    $ convertTestDecls ["head xs = case xs of {[] -> undefined; x:x -> x}"]
-
-  it "allows to shadow variables " $ shouldSucceed $ fromConverter $ do
-    _ <- convertTestDecls
-      ["head :: [a] -> a", "head xs = case xs of {[] -> undefined; x:xs -> x}"]
-    return (return ())

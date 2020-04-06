@@ -203,6 +203,7 @@ test-suite freec-unit-tests
                     , FreeC.Monad.ReporterTests
                     , FreeC.Pass.EtaConversionPassTests
                     , FreeC.Pass.PartialityAnalysisPassTests
+                    , FreeC.Pass.ResolverPassTests
                     , FreeC.Pass.TypeInferencePassTests
                     , FreeC.PipelineTests
                     , FreeC.Test.Arbitrary
