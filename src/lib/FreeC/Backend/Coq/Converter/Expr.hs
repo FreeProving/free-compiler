@@ -175,8 +175,11 @@ convertExpr' (HS.ErrorExpr srcSpan msg _) typeArgs [] = do
     (genericApply CoqBase.partialError [partialArg] typeArgs' [G.string msg])
 
 -- Integer literals.
-convertExpr' (HS.IntLiteral _ value _) [] [] =
-  generatePure (G.InScope (G.Num (fromInteger value)) (G.ident "Z"))
+convertExpr' (HS.IntLiteral _ value _) [] [] = do
+  let natValue = G.Num (fromInteger (abs value))
+      value' | value < 0 = G.app (G.Qualid (G.bare "-")) [natValue]
+             | otherwise = natValue
+  generatePure (G.InScope value' (G.ident "Z"))
 
 -- Lambda abstractions.
 convertExpr' (HS.Lambda _ args expr _) [] [] = localEnv $ do
