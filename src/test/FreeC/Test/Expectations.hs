@@ -1,10 +1,14 @@
 -- | This module contains commonly used expectation setters for the
 --   comparison of IR AST nodes.
+--
+--   TODO should we maybe re-export "FreeC.Monad.Class.Testable"?
 
 module FreeC.Test.Expectations
   ( -- * Similarity test
     shouldBeSimilarTo
   , shouldNotBeSimilarTo
+    -- * Pretty printing comparision
+  , prettyShouldBe
   )
 where
 
@@ -14,7 +18,7 @@ import           FreeC.IR.Similar
 import           FreeC.Pretty
 
 -------------------------------------------------------------------------------
--- Similarity                                                                --
+-- Similarity test                                                           --
 -------------------------------------------------------------------------------
 
 -- | Sets the expectation that the given AST nodes are 'similar'.
@@ -50,3 +54,16 @@ shouldNotBeSimilarTo n m
     <$$> line
     <>   indent 2 (pretty m)
     <>   line
+
+-------------------------------------------------------------------------------
+-- Pretty printing comparison                                                --
+-------------------------------------------------------------------------------
+
+-- | Pretty prints both values and tests whether the resulting strings are
+--   equal modulo white space.
+prettyShouldBe :: (Pretty a, Pretty b) => a -> b -> Expectation
+prettyShouldBe x y =
+  let discardWhiteSpace = unwords . words
+      prettyX           = discardWhiteSpace (showPretty x)
+      prettyY           = discardWhiteSpace (showPretty y)
+  in  prettyX `shouldBe` prettyY

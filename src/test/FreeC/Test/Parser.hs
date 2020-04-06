@@ -23,7 +23,36 @@
 --     foo expr `shouldReturn` something
 --   @
 
-module FreeC.Test.Parser where
+module FreeC.Test.Parser
+  ( -- * Within Reporters
+    parseTestIR
+  , parseTestName
+  , parseTestQName
+  , parseTestType
+  , parseTestTypeSchema
+  , parseTestTypeDecl
+  , parseTestTypeSig
+  , parseTestExpr
+  , parseTestFuncDecl
+  , parseTestImportDecl
+  , parseTestModule
+    -- * Within Expectations
+  , expectParseTestIR
+  , expectParseTestName
+  , expectParseTestQName
+  , expectParseTestType
+  , expectParseTestTypeSchema
+  , expectParseTestTypeDecl
+  , expectParseTestTypeSig
+  , expectParseTestExpr
+  , expectParseTestFuncDecl
+  , expectParseTestImportDecl
+  , expectParseTestModule
+    -- * Parsing Dependency Components
+  , parseTestComponent
+  , expectParseTestComponent
+  )
+where
 
 import           Control.Monad.IO.Class         ( MonadIO(..) )
 import           Control.Monad.Fail             ( MonadFail )
@@ -158,7 +187,7 @@ expectParseTestModule :: MonadIO m => [String] -> m HS.Module
 expectParseTestModule = expectParseTestIR "module" . unlines
 
 -------------------------------------------------------------------------------
--- Parsing dependency components                                             --
+-- Parsing Dependency Components                                             --
 -------------------------------------------------------------------------------
 
 -- | Parses the declarations in the given dependency component.

@@ -1,7 +1,17 @@
 -- | This module contains utility functions for tests that have to setup
 --   the environment of the converter monad.
 
-module FreeC.Test.Environment where
+module FreeC.Test.Environment
+  ( renameAndAddTestEntry
+  , defineTestTypeVar
+  , defineTestTypeSyn
+  , defineTestTypeCon
+  , defineTestCon
+  , defineTestVar
+  , defineTestFunc
+  , definePartialTestFunc
+  )
+where
 
 import           Data.Maybe                     ( fromJust )
 
