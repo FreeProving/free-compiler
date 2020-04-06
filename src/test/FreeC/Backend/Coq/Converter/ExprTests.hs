@@ -1,8 +1,30 @@
-module FreeC.Backend.Coq.Converter.ExprTests where
+module FreeC.Backend.Coq.Converter.ExprTests
+  ( testConvertExpr
+  )
+where
 
 import           Test.Hspec
 
-import           FreeC.Util.Test
+import           FreeC.Backend.Coq.Converter.Expr
+import           FreeC.Backend.Coq.Pretty       ( )
+import           FreeC.Monad.Class.Testable
+import           FreeC.Monad.Converter
+import           FreeC.Test.Parser
+import           FreeC.Test.Environment
+import           FreeC.Test.Expectations
+
+-------------------------------------------------------------------------------
+-- Expectation setters                                                       --
+-------------------------------------------------------------------------------
+
+-- | Parses the given IR expression, converts it to Coq using 'convertExpr'
+--   and sets the expectation that the resulting AST is equal to the given
+--   output when pretty printed modulo white space.
+shouldConvertExprTo :: String -> String -> Converter Expectation
+shouldConvertExprTo inputStr expectedOutputStr = do
+  input  <- parseTestExpr inputStr
+  output <- convertExpr input
+  return (output `prettyShouldBe` expectedOutputStr)
 
 -------------------------------------------------------------------------------
 -- Expressions                                                               --
@@ -11,35 +33,14 @@ import           FreeC.Util.Test
 -- | Test group for 'convertExpr' tests.
 testConvertExpr :: Spec
 testConvertExpr = describe "FreeC.Backend.Coq.Converter.Expr.convertExpr" $ do
-  testConvertUnknownIdents
   testConvertConApp
   testConvertFuncApp
-  testConvertInfix
   testConvertIf
   testConvertCase
   testConvertLambda
-  testConvertExprTypeSigs
+  testConvertExprTypeAnnotations
+  testConvertTypeAppExprs
   testConvertInteger
-  testConvertBool
-  testConvertLists
-  testConvertTuples
-
--------------------------------------------------------------------------------
--- Identifiers                                                               --
--------------------------------------------------------------------------------
-
--- | Test group for error reporting during conversion of expressions.
-testConvertUnknownIdents :: Spec
-testConvertUnknownIdents = context "unknown identifiers are reported" $ do
-  it "fails to translate unknown constructors"
-    $ shouldReportFatal
-    $ fromConverter
-    $ convertTestExpr "C"
-
-  it "fails to translate unknown variables or functions"
-    $ shouldReportFatal
-    $ fromConverter
-    $ convertTestExpr "x"
 
 -------------------------------------------------------------------------------
 -- Constructor applications                                                  --
@@ -49,63 +50,52 @@ testConvertUnknownIdents = context "unknown identifiers are reported" $ do
 testConvertConApp :: Spec
 testConvertConApp = context "constructor applications" $ do
   it "converts 0-ary constructor applications correctly"
-    $ shouldSucceed
-    $ fromConverter
+    $ shouldSucceedWith
     $ do
         "D"        <- defineTestTypeCon "D" 0
         ("c", "C") <- defineTestCon "C" 0 "D"
-        "C" `shouldTranslateExprTo` "C Shape Pos"
+        "C" `shouldConvertExprTo` "C Shape Pos"
 
-  it "converts complete constructor applications correctly"
-    $ shouldSucceed
-    $ fromConverter
+  it "converts polymorphic 0-ary constructor applications correctly"
+    $ shouldSucceedWith
     $ do
-        "D"        <- defineTestTypeCon "D" 0
-        ("c", "C") <- defineTestCon "C" 3 "a -> b -> c -> D"
-        "x"        <- defineTestVar "x"
-        "y"        <- defineTestVar "y"
-        "z"        <- defineTestVar "z"
-        "C x y z" `shouldTranslateExprTo` "C Shape Pos x y z"
+        "D"        <- defineTestTypeCon "D" 1
+        ("c", "C") <- defineTestCon "C" 0 "forall a. D a"
+        "a"        <- defineTestTypeVar "a"
+        "C @a" `shouldConvertExprTo` "@C Shape Pos a"
+
+  it "converts constructor applications correctly" $ shouldSucceedWith $ do
+    "D"      <- defineTestTypeCon "D" 0
+    (_, "C") <- defineTestCon "C" 3 "forall a b. a -> b -> D"
+    "a"      <- defineTestTypeVar "a"
+    "b"      <- defineTestTypeVar "b"
+    "x"      <- defineTestVar "x"
+    "y"      <- defineTestVar "y"
+    "C @a @b x y" `shouldConvertExprTo` "@C Shape Pos a b x y"
 
   it "converts partial constructor applications correctly"
-    $ shouldSucceed
-    $ fromConverter
+    $ shouldSucceedWith
     $ do
-        "D"        <- defineTestTypeCon "D" 0
-        ("c", "C") <- defineTestCon "C" 3 "a -> b -> c -> D"
-        "x"        <- defineTestVar "x"
-        "y"        <- defineTestVar "y"
-        shouldTranslateExprTo "C x y" $ "pure (fun x_0 => C Shape Pos x y x_0)"
+        "D"      <- defineTestTypeCon "D" 0
+        (_, "C") <- defineTestCon "C" 3 "forall a b. a -> b -> D"
+        "a"      <- defineTestTypeVar "a"
+        "b"      <- defineTestTypeVar "b"
+        "x"      <- defineTestVar "x"
+        "C @a @b x" `shouldConvertExprTo` "@C Shape Pos a b x"
 
-  it "converts multiply partial constructor applications correctly"
-    $ shouldSucceed
-    $ fromConverter
-    $ do
-        "D"        <- defineTestTypeCon "D" 0
-        ("c", "C") <- defineTestCon "C" 3 "a -> b -> c -> D"
-        "x"        <- defineTestVar "x"
-        shouldTranslateExprTo "C x"
-          $ "pure (fun x_0 => pure (fun x_1 => C Shape Pos x x_0 x_1))"
+  it "converts unapplied constructors correctly" $ shouldSucceedWith $ do
+    "D"      <- defineTestTypeCon "D" 0
+    (_, "C") <- defineTestCon "C" 3 "forall a b. a -> b -> D"
+    "a"      <- defineTestTypeVar "a"
+    "b"      <- defineTestTypeVar "b"
+    "C @a @b" `shouldConvertExprTo` "@C Shape Pos a b"
 
-  it "converts unapplied constructors correctly"
-    $ shouldSucceed
-    $ fromConverter
-    $ do
-        "D"        <- defineTestTypeCon "D" 0
-        ("c", "C") <- defineTestCon "C" 3 "a -> b -> c -> D"
-        shouldTranslateExprTo "C"
-          $  "pure (fun x_0 => pure (fun x_1 => pure (fun x_2 =>"
-          ++ "  C Shape Pos x_0 x_1 x_2"
-          ++ ")))"
-
-  it "converts infix constructor applications correctly"
-    $ shouldSucceed
-    $ fromConverter
-    $ do
-        "x"  <- defineTestVar "x"
-        "xs" <- defineTestVar "xs"
-        "t0" <- defineTestTypeVar "t0"
-        "x : xs" `shouldTranslateExprTo` "@Cons Shape Pos t0 x xs"
+  it "requires visible type applications of constructors" $ do
+    input <- expectParseTestExpr "C"
+    shouldFail $ do
+      "D"      <- defineTestTypeCon "D" 0
+      (_, "C") <- defineTestCon "C" 3 "forall a. a -> D"
+      convertExpr input
 
 -------------------------------------------------------------------------------
 -- Function applications                                                     --
@@ -115,135 +105,62 @@ testConvertConApp = context "constructor applications" $ do
 testConvertFuncApp :: Spec
 testConvertFuncApp = context "function applications" $ do
   it "converts 0-ary function (pattern-binding) applications correctly"
-    $ shouldSucceed
-    $ fromConverter
+    $ shouldSucceedWith
     $ do
-        "f"  <- defineTestFunc "f" 0 "a"
-        "t0" <- defineTestTypeVar "t0"
-        "f" `shouldTranslateExprTo` "@f Shape Pos t0"
+        "f" <- defineTestFunc "f" 0 "forall a. a"
+        "a" <- defineTestTypeVar "a"
+        "f @a" `shouldConvertExprTo` "@f Shape Pos a"
 
   it "converts complete function applications correctly"
-    $ shouldSucceed
-    $ fromConverter
+    $ shouldSucceedWith
     $ do
-        "f"  <- defineTestFunc "f" 3 "a -> b -> c -> d"
-        "x"  <- defineTestVar "x" -- :: t1
-        "y"  <- defineTestVar "y" -- :: t2
-        "z"  <- defineTestVar "z" -- :: t3
-        "t0" <- defineTestTypeVar "t0"
-        "t1" <- defineTestTypeVar "t1"
-        "t2" <- defineTestTypeVar "t2"
-        "t3" <- defineTestTypeVar "t3"
-        "f x y z" `shouldTranslateExprTo` "@f Shape Pos t1 t2 t3 t0 x y z"
+        "f" <- defineTestFunc "f" 3 "forall a. a -> a -> a"
+        "a" <- defineTestTypeVar "a"
+        "x" <- defineTestVar "x"
+        "y" <- defineTestVar "y"
+        "f @a x y" `shouldConvertExprTo` "@f Shape Pos a x y"
 
-  it "converts partial function applications correctly"
-    $ shouldSucceed
-    $ fromConverter
-    $ do
-        "f"  <- defineTestFunc "f" 3 "a -> b -> c -> d"
-        "x"  <- defineTestVar "x" -- :: t2
-        "y"  <- defineTestVar "y" -- :: t3
-        "t0" <- defineTestTypeVar "t0"
-        "t1" <- defineTestTypeVar "t1"
-        "t2" <- defineTestTypeVar "t2"
-        "t3" <- defineTestTypeVar "t3"
-        shouldTranslateExprTo "f x y"
-          $ "pure (fun x_0 => @f Shape Pos t2 t3 t0 t1 x y x_0)"
+  it "converts partial function applications correctly" $ shouldSucceedWith $ do
+    "f" <- defineTestFunc "f" 3 "forall a. a -> a -> a"
+    "a" <- defineTestTypeVar "a"
+    "x" <- defineTestVar "x"
+    "f @a x" `shouldConvertExprTo` "@f Shape Pos a x"
 
-  it "converts multiply partial function applications correctly"
-    $ shouldSucceed
-    $ fromConverter
-    $ do
-        "f"  <- defineTestFunc "f" 3 "a -> b -> c -> d"
-        "x"  <- defineTestVar "x" -- :: t3
-        "t0" <- defineTestTypeVar "t0"
-        "t1" <- defineTestTypeVar "t1"
-        "t2" <- defineTestTypeVar "t2"
-        "t3" <- defineTestTypeVar "t3"
-        shouldTranslateExprTo "f x"
-          $  "pure (fun x_0 => pure (fun x_1 =>"
-          ++ "  @f Shape Pos t3 t0 t1 t2 x x_0 x_1))"
-
-  it "converts unapplied functions correctly"
-    $ shouldSucceed
-    $ fromConverter
-    $ do
-        "f"  <- defineTestFunc "f" 3 "a -> b -> c -> d"
-        "t0" <- defineTestTypeVar "t0"
-        "t1" <- defineTestTypeVar "t1"
-        "t2" <- defineTestTypeVar "t2"
-        "t3" <- defineTestTypeVar "t3"
-        shouldTranslateExprTo "f"
-          $  "pure (fun x_0 => pure (fun x_1 => pure (fun x_2 =>"
-          ++ "  @f Shape Pos t0 t1 t2 t3 x_0 x_1 x_2"
-          ++ ")))"
+  it "converts unapplied functions correctly" $ shouldSucceedWith $ do
+    "f" <- defineTestFunc "f" 3 "forall a. a -> a -> a"
+    "a" <- defineTestTypeVar "a"
+    "f @a" `shouldConvertExprTo` "@f Shape Pos a"
 
   it "converts applications of partial functions correctly"
-    $ shouldSucceed
-    $ fromConverter
+    $ shouldSucceedWith
     $ do
-        "f"  <- definePartialTestFunc "f" 1 "a -> b -> c"
-        "x"  <- defineTestVar "x" -- :: t2
-        "t0" <- defineTestTypeVar "t0"
-        "t1" <- defineTestTypeVar "t1"
-        "t2" <- defineTestTypeVar "t2"
-        "f x" `shouldTranslateExprTo` "@f Shape Pos P t2 t0 t1 x"
+        "f" <- definePartialTestFunc "f" 1 "forall a b. a -> b"
+        "a" <- defineTestTypeVar "a"
+        "b" <- defineTestTypeVar "b"
+        "x" <- defineTestVar "x"
+        "f @a @b x" `shouldConvertExprTo` "@f Shape Pos P a b x"
 
-  it "converts applications of functions correctly"
-    $ shouldSucceed
-    $ fromConverter
+  it "converts applications of function expressions correctly"
+    $ shouldSucceedWith
     $ do
         "e1" <- defineTestVar "e1"
         "e2" <- defineTestVar "e2"
-        "e1 e2" `shouldTranslateExprTo` "e1 >>= (fun e1_0 => e1_0 e2)"
+        "e1 e2" `shouldConvertExprTo` "e1 >>= (fun e1_0 => e1_0 e2)"
 
   it "converts applications of functions that return functions correctly"
-    $ shouldSucceed
-    $ fromConverter
+    $ shouldSucceedWith
     $ do
-        "f"  <- defineTestFunc "f" 1 "a -> b -> c"
-        "x"  <- defineTestVar "x" -- :: t1
-        "y"  <- defineTestVar "y" -- :: t2
-        "t0" <- defineTestTypeVar "t0"
-        "t1" <- defineTestTypeVar "t1"
-        "t2" <- defineTestTypeVar "t2"
-        shouldTranslateExprTo "f x y"
-                              "@f Shape Pos t1 t2 t0 x >>= (fun f_0 => f_0 y)"
+        "f" <- defineTestFunc "f" 1 "forall a. a -> a -> a"
+        "a" <- defineTestTypeVar "a"
+        "x" <- defineTestVar "x"
+        "y" <- defineTestVar "y"
+        shouldConvertExprTo "f @a x y" "@f Shape Pos a x >>= (fun f_0 => f_0 y)"
 
--------------------------------------------------------------------------------
--- Infix expressions                                                         --
--------------------------------------------------------------------------------
-
--- | Test group for translation of infix expressions.
-testConvertInfix :: Spec
-testConvertInfix = context "infix expressions" $ do
-  it "converts infix expressions correctly" $ shouldSucceed $ fromConverter $ do
-    "f"  <- defineTestFunc "f" 2 "a -> b -> c"
-    "e1" <- defineTestVar "e1" -- :: t1
-    "e2" <- defineTestVar "e2" -- :: t2
-    "t0" <- defineTestTypeVar "t0"
-    "t1" <- defineTestTypeVar "t1"
-    "t2" <- defineTestTypeVar "t2"
-    "e1 `f` e2" `shouldTranslateExprTo` "@f Shape Pos t1 t2 t0 e1 e2"
-
-  it "converts left sections correctly" $ shouldSucceed $ fromConverter $ do
-    "f"  <- defineTestFunc "f" 2 "a -> b -> c"
-    "e1" <- defineTestVar "e1" -- :: t2
-    "t0" <- defineTestTypeVar "t0"
-    "t1" <- defineTestTypeVar "t1"
-    "t2" <- defineTestTypeVar "t2"
-    shouldTranslateExprTo "(e1 `f`)"
-                          "pure (fun x_0 => @f Shape Pos t2 t0 t1 e1 x_0)"
-
-  it "converts right sections correctly" $ shouldSucceed $ fromConverter $ do
-    "f"  <- defineTestFunc "f" 2 "a -> b -> c"
-    "e2" <- defineTestVar "e2" -- :: t2
-    "t0" <- defineTestTypeVar "t0"
-    "t1" <- defineTestTypeVar "t1"
-    "t2" <- defineTestTypeVar "t2"
-    shouldTranslateExprTo
-      "(`f` e2)"
-      "pure (fun (x_0 : Free Shape Pos t0) => @f Shape Pos t0 t2 t1 x_0 e2)"
+  it "requires visible type applications of functions" $ do
+    input <- expectParseTestExpr "f"
+    shouldFail $ do
+      "f" <- defineTestFunc "f" 0 "forall a. a"
+      convertExpr input
 
 -------------------------------------------------------------------------------
 -- If-expressions                                                            --
@@ -252,23 +169,23 @@ testConvertInfix = context "infix expressions" $ do
 -- | Test group for translation of @if@-expressions.
 testConvertIf :: Spec
 testConvertIf = context "if expressions" $ do
-  it "converts if expressions correctly" $ shouldSucceed $ fromConverter $ do
-    "e1" <- defineTestVar "e1"
-    "e2" <- defineTestVar "e2"
-    "e3" <- defineTestVar "e3"
-    shouldTranslateExprTo "if e1 then e2 else e3"
+  it "converts if expressions correctly" $ shouldSucceedWith $ do
+    "Bool" <- defineTestTypeCon "Prelude.Bool" 0
+    "e1"   <- defineTestVar "e1"
+    "e2"   <- defineTestVar "e2"
+    "e3"   <- defineTestVar "e3"
+    shouldConvertExprTo "if e1 then e2 else e3"
       $ "e1 >>= (fun (e1_0 : Bool Shape Pos) => if e1_0 then e2 else e3)"
 
-  it "there is no name conflict with custom `Bool`"
-    $ shouldSucceed
-    $ fromConverter
-    $ do
-        "Bool0" <- defineTestTypeCon "Bool" 0
-        "e1"    <- defineTestVar "e1"
-        "e2"    <- defineTestVar "e2"
-        "e3"    <- defineTestVar "e3"
-        shouldTranslateExprTo "if e1 then e2 else e3"
-          $ "e1 >>= (fun (e1_0 : Bool Shape Pos) => if e1_0 then e2 else e3)"
+  it "there is no name conflict with custom `Bool`" $ shouldSucceedWith $ do
+    "Bool"  <- defineTestTypeCon "M1.Bool" 0
+    "Bool0" <- defineTestTypeCon "Prelude.Bool" 0
+    "Bool1" <- defineTestTypeCon "M2.Bool" 0
+    "e1"    <- defineTestVar "e1"
+    "e2"    <- defineTestVar "e2"
+    "e3"    <- defineTestVar "e3"
+    shouldConvertExprTo "if e1 then e2 else e3"
+      $ "e1 >>= (fun (e1_0 : Bool0 Shape Pos) => if e1_0 then e2 else e3)"
 
 -------------------------------------------------------------------------------
 -- Case-expressions                                                          --
@@ -278,49 +195,37 @@ testConvertIf = context "if expressions" $ do
 testConvertCase :: Spec
 testConvertCase = context "case expressions" $ do
   it "simplifies matches with only one alternative (during pretty printing)"
-    $ shouldSucceed
-    $ fromConverter
+    $ shouldSucceedWith
     $ do
-        "e"        <- defineTestVar "e"
-        "e'"       <- defineTestVar "e'"
-        "D"        <- defineTestTypeCon "D" 0
-        ("c", "C") <- defineTestCon "C" 0 "D"
-        "case e of { C -> e' }" `shouldTranslateExprTo` "e >>= (fun '(c) => e')"
+        "e"      <- defineTestVar "e"
+        "e'"     <- defineTestVar "e'"
+        "D"      <- defineTestTypeCon "D" 0
+        ("c", _) <- defineTestCon "C" 0 "D"
+        "case e of { C -> e' }" `shouldConvertExprTo` "e >>= (fun '(c) => e')"
 
-  it "uses data (not smart) constructors" $ shouldSucceed $ fromConverter $ do
-    "e"          <- defineTestVar "e"
-    "e1"         <- defineTestVar "e1"
-    "e2"         <- defineTestVar "e2"
-    "D"          <- defineTestTypeCon "D" 0
-    ("c1", "C1") <- defineTestCon "C1" 0 "D"
-    ("c2", "C2") <- defineTestCon "C2" 0 "D"
-    shouldTranslateExprTo "case e of { C1 -> e1;  C2 -> e2 }"
+  it "uses data (not smart) constructors" $ shouldSucceedWith $ do
+    "e"       <- defineTestVar "e"
+    "e1"      <- defineTestVar "e1"
+    "e2"      <- defineTestVar "e2"
+    "D"       <- defineTestTypeCon "D" 0
+    ("c1", _) <- defineTestCon "C1" 0 "D"
+    ("c2", _) <- defineTestCon "C2" 0 "D"
+    shouldConvertExprTo "case e of { C1 -> e1;  C2 -> e2 }"
       $  "e >>= (fun e_0 =>"
       ++ "  match e_0 with"
       ++ "  | c1 => e1"
       ++ "  | c2 => e2"
       ++ "  end)"
 
-  it "can convert matches of list constructors"
-    $ shouldSucceed
-    $ fromConverter
-    $ do
-        "xs" <- defineTestVar "xs"
-        "t0" <- defineTestTypeVar "t0"
-        shouldTranslateExprTo "case xs of { [] -> undefined; y : ys -> y }"
-          $  "xs >>= (fun xs_0 =>"
-          ++ "  match xs_0 with"
-          ++ "  | nil => @undefined Shape Pos P t0"
-          ++ "  | cons y ys => y"
-          ++ "  end)"
-
   it "allows case expressions to shadow local variables"
-    $ shouldSucceed
-    $ fromConverter
+    $ shouldSucceedWith
     $ do
-        "e" <- defineTestVar "e"
-        "x" <- defineTestVar "x"
-        shouldTranslateExprTo "case e of { [] -> x; x : xs -> x }"
+        "List"      <- defineTestTypeCon "List" 1
+        ("nil" , _) <- defineTestCon "Nil" 0 "forall a. List a"
+        ("cons", _) <- defineTestCon "Cons" 0 "forall a. a -> List a -> List a"
+        "e"         <- defineTestVar "e"
+        "x"         <- defineTestVar "x"
+        shouldConvertExprTo "case e of { Nil -> x; Cons x xs -> x }"
           $  "e >>= (fun e_0 =>"
           ++ "  match e_0 with"
           ++ "  | nil => x"
@@ -335,52 +240,51 @@ testConvertCase = context "case expressions" $ do
 testConvertLambda :: Spec
 testConvertLambda = context "lambda abstractions" $ do
   it "translates single argument lambda abstractions correctly"
-    $ shouldSucceed
-    $ fromConverter
+    $ shouldSucceedWith
     $ do
-        "t0" <- defineTestTypeVar "t0"
-        "e"  <- defineTestVar "e"
-        shouldTranslateExprTo "\\x -> e"
-                              "pure (fun (x : Free Shape Pos t0) => e)"
+        "e" <- defineTestVar "e"
+        "\\x -> e" `shouldConvertExprTo` "pure (fun x => e)"
+
+  it "translates lambda abstractions with type annotated arguments correctly"
+    $ shouldSucceedWith
+    $ do
+        "t" <- defineTestTypeVar "t"
+        "e" <- defineTestVar "e"
+        shouldConvertExprTo "\\(x :: t) -> e"
+                            "pure (fun (x : Free Shape Pos t) => e)"
 
   it "translates multi argument lambda abstractions correctly"
-    $ shouldSucceed
-    $ fromConverter
+    $ shouldSucceedWith
     $ do
-        "t0" <- defineTestTypeVar "t0"
-        "t1" <- defineTestTypeVar "t1"
-        "e"  <- defineTestVar "e"
-        shouldTranslateExprTo "\\x y -> e"
-          $  "pure (fun (x : Free Shape Pos t0) =>"
-          ++ "  pure (fun (y : Free Shape Pos t1) => e))"
+        "e" <- defineTestVar "e"
+        "\\x y -> e" `shouldConvertExprTo` "pure (fun x => pure (fun y => e))"
 
   it "allows lambda abstractions to shadow local variables"
-    $ shouldSucceed
-    $ fromConverter
+    $ shouldSucceedWith
     $ do
-        "t0" <- defineTestTypeVar "t0"
-        "x"  <- defineTestVar "x"
-        shouldTranslateExprTo "\\x -> x"
-                              "pure (fun (x0 : Free Shape Pos t0) => x0)"
+        "x" <- defineTestVar "x"
+        "\\x -> x" `shouldConvertExprTo` "pure (fun x0 => x0)"
 
 -------------------------------------------------------------------------------
 -- Type signatures                                                           --
 -------------------------------------------------------------------------------
 
--- | Test group for translation of expressions with type signatures.
-testConvertExprTypeSigs :: Spec
-testConvertExprTypeSigs = context "type signatures" $ do
-  it "translates expressions with type signatures correctly"
-    $ shouldSucceed
-    $ fromConverter
+-- | Test group for translation of expressions with type annotations.
+testConvertExprTypeAnnotations :: Spec
+testConvertExprTypeAnnotations = context "type annotations" $ do
+  it "ignores expression type annotations" $ shouldSucceedWith $ do
+    "42 :: Integer" `shouldConvertExprTo` "pure 42%Z"
+
+-- | Test group for translation of visibly applied expressions.
+testConvertTypeAppExprs :: Spec
+testConvertTypeAppExprs = context "visible type applications" $ do
+  it "translates visible type applications to explicit applications in Coq"
+    $ shouldSucceedWith
     $ do
-        "42 :: Integer" `shouldTranslateExprTo` "pure 42%Z"
-  it "type signatures make type arguments more specific"
-    $ shouldSucceed
-    $ fromConverter
-    $ do
-        shouldTranslateExprTo "[] :: [Integer]"
-                              "@Nil Shape Pos (Integer Shape Pos)"
+        "Bool"     <- defineTestTypeCon "Bool" 0
+        "List"     <- defineTestTypeCon "List" 1
+        (_, "Nil") <- defineTestCon "Nil" 0 "forall a. List a"
+        "Nil @Bool" `shouldConvertExprTo` "@Nil Shape Pos (Bool Shape Pos)"
 
 -------------------------------------------------------------------------------
 -- Integer expressions                                                       --
@@ -389,130 +293,22 @@ testConvertExprTypeSigs = context "type signatures" $ do
 -- | Test group for translation of integer expressions.
 testConvertInteger :: Spec
 testConvertInteger = context "integer expressions" $ do
-  it "translates zero correctly"
-    $ shouldSucceed
-    $ fromConverter
-    $ shouldTranslateExprTo "0" "pure 0%Z"
+  it "translates zero correctly" $ shouldSucceedWith $ shouldConvertExprTo
+    "0"
+    "pure 0%Z"
 
   it "translates positive decimal integer literals correctly"
-    $ shouldSucceed
-    $ fromConverter
-    $ shouldTranslateExprTo "42" "pure 42%Z"
+    $ shouldSucceedWith
+    $ shouldConvertExprTo "42" "pure 42%Z"
 
   it "translates hexadecimal integer literals correctly"
-    $ shouldSucceed
-    $ fromConverter
-    $ shouldTranslateExprTo "0xA2" "pure 162%Z"
+    $ shouldSucceedWith
+    $ shouldConvertExprTo "0xA2" "pure 162%Z"
 
   it "translates octal integer literals correctly"
-    $ shouldSucceed
-    $ fromConverter
-    $ shouldTranslateExprTo "0o755" "pure 493%Z"
+    $ shouldSucceedWith
+    $ shouldConvertExprTo "0o755" "pure 493%Z"
 
   it "translates negative decimal integer literals correctly"
-    $ shouldSucceed
-    $ fromConverter
-    $ shouldTranslateExprTo "-42" "negate Shape Pos (pure 42%Z)"
-
-  it "cannot shadow negate" $ shouldSucceed $ fromConverter $ do
-    "negate0" <- defineTestFunc "negate" 1 "Integer -> Integer"
-    shouldTranslateExprTo "-42" "negate Shape Pos (pure 42%Z)"
-
-  it "translates arithmetic expressions correctly"
-    $ shouldSucceed
-    $ fromConverter
-    $ do
-        "a" <- defineTestVar "a"
-        "b" <- defineTestVar "b"
-        "c" <- defineTestVar "c"
-        "x" <- defineTestVar "x"
-        shouldTranslateExprTo "a * x^2 + b * x + c"
-          $  "addInteger Shape Pos"
-          ++ "  (addInteger Shape Pos"
-          ++ "    (mulInteger Shape Pos a (powInteger Shape Pos x (pure 2%Z)))"
-          ++ "    (mulInteger Shape Pos b x))"
-          ++ "  c"
-
--------------------------------------------------------------------------------
--- Boolean expressions                                                       --
--------------------------------------------------------------------------------
-
--- | Test group for translation of boolean expressions.
-testConvertBool :: Spec
-testConvertBool = context "boolean expressions" $ do
-  it "translates 'True' correctly" $ shouldSucceed $ fromConverter $ do
-    "True" `shouldTranslateExprTo` "True_ Shape Pos"
-
-  it "translates 'False' correctly" $ shouldSucceed $ fromConverter $ do
-    "False" `shouldTranslateExprTo` "False_ Shape Pos"
-
-  it "translates conjunction correctly" $ shouldSucceed $ fromConverter $ do
-    "x" <- defineTestVar "x"
-    "y" <- defineTestVar "y"
-    "x && y" `shouldTranslateExprTo` "andBool Shape Pos x y"
-
-  it "translates disjunction correctly" $ shouldSucceed $ fromConverter $ do
-    "x" <- defineTestVar "x"
-    "y" <- defineTestVar "y"
-    "x || y" `shouldTranslateExprTo` "orBool Shape Pos x y"
-
--------------------------------------------------------------------------------
--- Lists                                                                     --
--------------------------------------------------------------------------------
-
--- | Test group for translation of list expressions.
-testConvertLists :: Spec
-testConvertLists = context "list expressions" $ do
-  it "translates empty list constructor correctly"
-    $ shouldSucceed
-    $ fromConverter
-    $ do
-        "t0" <- defineTestTypeVar "t0"
-        shouldTranslateExprTo "[]" "@Nil Shape Pos t0"
-
-  it "translates non-empty list constructor correctly"
-    $ shouldSucceed
-    $ fromConverter
-    $ do
-        "x"  <- defineTestVar "x"
-        "xs" <- defineTestVar "xs"
-        "t0" <- defineTestTypeVar "t0"
-        "x : xs" `shouldTranslateExprTo` "@Cons Shape Pos t0 x xs"
-
-  it "translates list literal correctly" $ shouldSucceed $ fromConverter $ do
-    "x1" <- defineTestVar "x1"
-    "x2" <- defineTestVar "x2"
-    "x3" <- defineTestVar "x3"
-    "t0" <- defineTestTypeVar "t0"
-    shouldTranslateExprTo "[x1, x2, x3]"
-      $  "@Cons Shape Pos t0 x1 ("
-      ++ "@Cons Shape Pos t0 x2 ("
-      ++ "@Cons Shape Pos t0 x3 ("
-      ++ "@Nil Shape Pos t0)))"
-
--------------------------------------------------------------------------------
--- Tuples                                                                    --
--------------------------------------------------------------------------------
-
--- | Test group for translation of tuple expressions.
-testConvertTuples :: Spec
-testConvertTuples = context "tuple expressions" $ do
-  it "translates unit literals correctly" $ shouldSucceed $ fromConverter $ do
-    "()" `shouldTranslateExprTo` "Tt Shape Pos"
-
-  it "translates pair literals correctly" $ shouldSucceed $ fromConverter $ do
-    "x"  <- defineTestVar "x"
-    "y"  <- defineTestVar "y"
-    "t0" <- defineTestTypeVar "t0"
-    "t1" <- defineTestTypeVar "t1"
-    "(x, y)" `shouldTranslateExprTo` "@Pair_ Shape Pos t0 t1 x y"
-
-  it "translates pair constructor correctly"
-    $ shouldSucceed
-    $ fromConverter
-    $ do
-        "x"  <- defineTestVar "x"
-        "y"  <- defineTestVar "y"
-        "t0" <- defineTestTypeVar "t0"
-        "t1" <- defineTestTypeVar "t1"
-        "(,) x y" `shouldTranslateExprTo` "@Pair_ Shape Pos t0 t1 x y"
+    $ shouldSucceedWith
+    $ shouldConvertExprTo "-42" "pure (- 42)%Z"

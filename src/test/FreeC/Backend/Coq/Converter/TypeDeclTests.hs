@@ -1,6 +1,10 @@
 -- | This module contains tests for "FreeC.Backend.Coq.Converter.TypeDecl".
 
-module FreeC.Backend.Coq.Converter.TypeDeclTests where
+module FreeC.Backend.Coq.Converter.TypeDeclTests
+  ( testConvertTypeDecl
+  , testConvertDataDecls
+  )
+where
 
 import           Test.Hspec
 
