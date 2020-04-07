@@ -19,6 +19,8 @@ testRecursionAnalysis = describe "FreeC.Analysis.RecursionAnalysis" $ do
 -- | Test group for 'identifyDecArgs' tests.
 testIdentifyDecArgs :: Spec
 testIdentifyDecArgs = do
+  -- TODO test no arguments
+
   it "cannot guess decreasing argument of partially applied functions"
     $ shouldReportFatal
     $ fromConverter

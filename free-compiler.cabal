@@ -186,6 +186,10 @@ test-suite freec-unit-tests
                     , FreeC.Backend.Coq.ConverterTests
                     , FreeC.Backend.Coq.Converter.ExprTests
                     , FreeC.Backend.Coq.Converter.FuncDeclTests
+                    , FreeC.Backend.Coq.Converter.FuncDecl.NonRecTests
+                    , FreeC.Backend.Coq.Converter.FuncDecl.RecTests
+                    , FreeC.Backend.Coq.Converter.FuncDecl.Rec.WithHelpersTests
+                    , FreeC.Backend.Coq.Converter.FuncDecl.Rec.WithSectionsTests
                     , FreeC.Backend.Coq.Converter.ModuleTests
                     , FreeC.Backend.Coq.Converter.TypeDeclTests
                     , FreeC.Backend.Coq.Converter.TypeTests
