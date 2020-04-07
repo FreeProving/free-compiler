@@ -64,25 +64,14 @@
 --   argument as a decreasing argument.
 
 module FreeC.Backend.Coq.Analysis.DecreasingArguments
-  ( -- * Decreasing arguments
-    DecArgIndex
+  ( DecArgIndex
   , identifyDecArgs
   )
 where
 
-import           Control.Monad                  ( guard )
-import           Data.Graph
-import           Data.List                      ( elemIndex
-                                                , find
-                                                , intercalate
-                                                , nub
-                                                )
+import           Data.List                      ( find )
 import           Data.Map.Strict                ( Map )
 import qualified Data.Map.Strict               as Map
-import           Data.Maybe                     ( fromJust
-                                                , mapMaybe
-                                                , maybeToList
-                                                )
 import           Data.Set                       ( Set
                                                 , (\\)
                                                 )
@@ -90,9 +79,6 @@ import qualified Data.Set                      as Set
 import           Data.Tuple.Extra               ( uncurry3 )
 
 import           FreeC.Environment
-import           FreeC.Environment.Fresh
-import           FreeC.IR.DependencyGraph
-import           FreeC.IR.Reference             ( freeVarSet )
 import qualified FreeC.IR.Syntax               as HS
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter

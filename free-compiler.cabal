@@ -183,7 +183,8 @@ test-suite freec-unit-tests
   hs-source-dirs:     src/test
   main-is:            Spec.hs
   other-modules:      Paths_free_compiler
-                    , FreeC.Analysis.RecursionAnalysisTests
+                    , FreeC.Backend.Coq.Analysis.ConstantArgumentsTests
+                    , FreeC.Backend.Coq.Analysis.DecreasingArgumentsTests
                     , FreeC.Backend.Coq.ConverterTests
                     , FreeC.Backend.Coq.Converter.ExprTests
                     , FreeC.Backend.Coq.Converter.FuncDeclTests
@@ -194,6 +195,7 @@ test-suite freec-unit-tests
                     , FreeC.Backend.Coq.Converter.ModuleTests
                     , FreeC.Backend.Coq.Converter.TypeDeclTests
                     , FreeC.Backend.Coq.Converter.TypeTests
+                    , FreeC.Backend.Coq.Tests
                     , FreeC.Environment.RenamerTests
                     , FreeC.Frontend.IR.ParserTests
                     , FreeC.Frontend.IR.ScannerTests

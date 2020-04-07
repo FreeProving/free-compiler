@@ -1,8 +1,11 @@
 -- | Test group for tests of modules below "FreeC.Frontend.IR".
 
-module FreeC.Frontend.IR.Tests where
+module FreeC.Frontend.IR.Tests
+  ( testIRFrontend
+  )
+where
 
-import Test.Hspec
+import           Test.Hspec
 
 import           FreeC.Frontend.IR.ParserTests
 import           FreeC.Frontend.IR.ScannerTests

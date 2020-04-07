@@ -1,8 +1,11 @@
 -- | This module contains tests for modules that are defined below "FreeC.IR".
 
-module FreeC.IR.Tests where
+module FreeC.IR.Tests
+  ( testIR
+  )
+where
 
-import Test.Hspec
+import           Test.Hspec
 
 import           FreeC.IR.ReferenceTests
 import           FreeC.IR.SimilarTests

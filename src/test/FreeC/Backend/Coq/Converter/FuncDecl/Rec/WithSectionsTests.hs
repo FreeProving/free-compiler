@@ -8,7 +8,7 @@ where
 
 import           Test.Hspec
 
-import           FreeC.Analysis.RecursionAnalysis
+import           FreeC.Backend.Coq.Analysis.ConstantArguments
 import           FreeC.Backend.Coq.Converter.FuncDecl.Rec.WithSections
 import           FreeC.Backend.Coq.Pretty       ( )
 import           FreeC.Monad.Class.Testable

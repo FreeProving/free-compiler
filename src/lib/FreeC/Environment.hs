@@ -120,8 +120,8 @@ addEntry :: EnvEntry -> Environment -> Environment
 addEntry entry env =
   env { envEntries = Map.insert (entryScopedName entry) entry (envEntries env) }
 
--- | Stores the index of the decreasing argument of a recursive function
---   in the environment.
+-- | Stores the index and name of the decreasing argument of a recursive
+--   function in the environment.
 defineDecArg :: HS.QName -> Int -> String -> Environment -> Environment
 defineDecArg funcName decArgIndex decArgIdent env = env
   { envDecArgs = Map.insert funcName (decArgIndex, decArgIdent) (envDecArgs env)

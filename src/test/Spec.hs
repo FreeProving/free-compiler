@@ -1,7 +1,6 @@
 import           Test.Hspec
 
-import           FreeC.Analysis.RecursionAnalysisTests
-import           FreeC.Backend.Coq.ConverterTests
+import           FreeC.Backend.Coq.Tests
 import           FreeC.Environment.RenamerTests
 import           FreeC.Frontend.IR.Tests
 import           FreeC.IR.Tests
@@ -13,11 +12,9 @@ main :: IO ()
 main = hspec $ do
   testIR
   testIRFrontend
+  testCoqBackend
 
   testPipeline
   testRenamer
-
-  testConverter
-  testRecursionAnalysis
 
   testReporter
