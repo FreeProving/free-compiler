@@ -212,7 +212,7 @@ testTypeInferencePass = describe "FreeC.Analysis.TypeInference" $ do
             _ <- defineTestCon "False" 0 "Bool"
             _ <- defineTestTypeCon "List" 1
             _ <- defineTestCon "Nil" 0 "forall a. List a"
-            _ <- defineTestCon "Cons" 1 "forall a. a -> List a -> List a"
+            _ <- defineTestCon "Cons" 2 "forall a. a -> List a -> List a"
             shouldInferType
               (NonRecursive
                 "null xs = case xs of { Nil -> True; Cons x xs' -> False }"
@@ -253,7 +253,7 @@ testTypeInferencePass = describe "FreeC.Analysis.TypeInference" $ do
             _ <- defineTestFunc "succ" 1 "Prelude.Integer -> Prelude.Integer"
             _ <- defineTestTypeCon "List" 1
             _ <- defineTestCon "Nil" 0 "forall a. List a"
-            _ <- defineTestCon "Cons" 1 "forall a. a -> List a -> List a"
+            _ <- defineTestCon "Cons" 2 "forall a. a -> List a -> List a"
             shouldInferType
               (Recursive
                 [ "length xs = case xs of {"
@@ -275,7 +275,7 @@ testTypeInferencePass = describe "FreeC.Analysis.TypeInference" $ do
             _ <- defineTestFunc "eq" 0 "forall a. a -> a -> Prelude.Bool"
             _ <- defineTestTypeCon "List" 1
             _ <- defineTestCon "Nil" 0 "forall a. List a"
-            _ <- defineTestCon "Cons" 1 "forall a. a -> List a -> List a"
+            _ <- defineTestCon "Cons" 2 "forall a. a -> List a -> List a"
             shouldInferType
               (Recursive
                 [ "length xs = case xs of {"
@@ -299,7 +299,7 @@ testTypeInferencePass = describe "FreeC.Analysis.TypeInference" $ do
             _ <- defineTestFunc "true" 0 "forall a. Prelude.Bool"
             _ <- defineTestTypeCon "List" 1
             _ <- defineTestCon "Nil" 0 "forall a. List a"
-            _ <- defineTestCon "Cons" 1 "forall a. a -> List a -> List a"
+            _ <- defineTestCon "Cons" 2 "forall a. a -> List a -> List a"
             shouldInferType
               (Recursive
                 [ "length xs = case xs of {"
@@ -323,7 +323,7 @@ testTypeInferencePass = describe "FreeC.Analysis.TypeInference" $ do
             _ <- defineTestFunc "succ" 1 "Prelude.Integer -> Prelude.Integer"
             _ <- defineTestTypeCon "List" 1
             _ <- defineTestCon "Nil" 0 "forall a. List a"
-            _ <- defineTestCon "Cons" 1 "forall a. a -> List a -> List a"
+            _ <- defineTestCon "Cons" 2 "forall a. a -> List a -> List a"
             shouldInferType
               (Recursive
                 [ "length xs = case xs of {"
@@ -354,7 +354,7 @@ testTypeInferencePass = describe "FreeC.Analysis.TypeInference" $ do
             _ <- defineTestFunc "eq" 0 "forall a. a -> a -> Prelude.Bool"
             _ <- defineTestTypeCon "List" 1
             _ <- defineTestCon "Nil" 0 "forall a. List a"
-            _ <- defineTestCon "Cons" 1 "forall a. a -> List a -> List a"
+            _ <- defineTestCon "Cons" 2 "forall a. a -> List a -> List a"
             shouldInferType
               (Recursive
                 [ "length xs = case xs of {"
@@ -387,7 +387,7 @@ testTypeInferencePass = describe "FreeC.Analysis.TypeInference" $ do
             _ <- defineTestFunc "true" 0 "forall a. Prelude.Bool"
             _ <- defineTestTypeCon "List" 1
             _ <- defineTestCon "Nil" 0 "forall a. List a"
-            _ <- defineTestCon "Cons" 1 "forall a. a -> List a -> List a"
+            _ <- defineTestCon "Cons" 2 "forall a. a -> List a -> List a"
             shouldInferType
               (Recursive
                 [ "length xs = case xs of {"

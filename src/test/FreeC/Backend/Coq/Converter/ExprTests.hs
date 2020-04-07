@@ -222,7 +222,7 @@ testConvertCase = context "case expressions" $ do
     $ do
         "List"      <- defineTestTypeCon "List" 1
         ("nil" , _) <- defineTestCon "Nil" 0 "forall a. List a"
-        ("cons", _) <- defineTestCon "Cons" 0 "forall a. a -> List a -> List a"
+        ("cons", _) <- defineTestCon "Cons" 2 "forall a. a -> List a -> List a"
         "e"         <- defineTestVar "e"
         "x"         <- defineTestVar "x"
         shouldConvertExprTo "case e of { Nil -> x; Cons x xs -> x }"
