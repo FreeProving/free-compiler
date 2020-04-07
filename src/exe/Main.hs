@@ -8,7 +8,7 @@ import           Control.Monad.IO.Class
 import           Data.List                      ( intercalate )
 import           Data.List.Extra                ( splitOn )
 import           Data.Maybe                     ( isJust )
-import qualified Language.Haskell.Exts.Syntax  as H
+import qualified Language.Haskell.Exts.Syntax  as HSE
 import           System.Directory               ( createDirectoryIfMissing
                                                 , doesFileExist
                                                 , makeAbsolute
@@ -138,12 +138,12 @@ convertInputModule haskellAst = do
 -------------------------------------------------------------------------------
 
 -- | Applies Haskell source code transformations if they are enabled.
-transformInputModule :: H.Module SrcSpan -> Application (H.Module SrcSpan)
+transformInputModule :: HSE.Module SrcSpan -> Application (HSE.Module SrcSpan)
 transformInputModule haskellAst = ifM (inOpts optTransformPatternMatching)
                                       transformPatternMatching'
                                       (return haskellAst)
  where
-  transformPatternMatching' :: Application (H.Module SrcSpan)
+  transformPatternMatching' :: Application (HSE.Module SrcSpan)
   transformPatternMatching' = do
     haskellAst'  <- liftConverter (transformPatternMatching haskellAst)
     maybeDumpDir <- inOpts optDumpTransformedModulesDir

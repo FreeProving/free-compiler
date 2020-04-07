@@ -22,20 +22,23 @@
 
 # Aliases for qualified imports.
 - modules:
-  - {name: [FreeC.Backend.Coq.Base], as: CoqBase}
-  - {name: [FreeC.Backend.Coq.Syntax], as: G}
-  - {name: [FreeC.IR.Syntax], as: IR}
-  - {name: [FreeC.IR.Base.Prelude], as: IR.Prelude}
-  - {name: [FreeC.IR.Base.Test.QuickCheck], as: IR.Test.QuickCheck}
-  - {name: [Data.Aeson], as: Aeson}
-  - {name: [Data.ByteString.Lazy], as: LazyByteString}
-  - {name: [Data.List.NonEmpty], as: NonEmpty}
-  - {name: [Data.Map.Strict], as: Map}
-  - {name: [Data.Set], as: Set}
-  - {name: [Data.Set.Ordered], as: OSet}
-  - {name: [Data.Text], as: Text}
-  - {name: [Data.Text.Lazy], as: LazyText}
-  - {name: [Data.Vector], as: Vector}
-  - {name: [Language.Haskell.Exts.Syntax], as: H}
-  - {name: [Text.Parsec.Error, Text.Parsec.Pos], as: Parsec}
-  - {name: [Text.Toml.Types], as: Toml}
+  - {name: [ FreeC.Backend.Coq.Base ], as: CoqBase}
+  - {name: [ FreeC.Backend.Coq.Syntax ], as: G}
+  - {name: [ FreeC.IR.Syntax ], as: IR}
+  - {name: [ FreeC.IR.Base.Prelude ], as: IR.Prelude}
+  - {name: [ FreeC.IR.Base.Test.QuickCheck], as:  IR.Test.QuickCheck}
+  - {name: [ Data.Aeson ], as: Aeson}
+  - {name: [ Data.ByteString.Lazy ], as: LazyByteString}
+  - {name: [ Data.List.NonEmpty ], as: NonEmpty}
+  - {name: [ Data.Map.Strict ], as: Map}
+  - {name: [ Data.Set ], as: Set}
+  - {name: [ Data.Set.Ordered ], as: OSet}
+  - {name: [ Data.Text ], as: Text}
+  - {name: [ Data.Text.Lazy ], as: LazyText}
+  - {name: [ Data.Vector ], as: Vector}
+  - {name: [ Language.Haskell.Exts.Syntax
+           , Language.Haskell.Exts.Pretty
+           , Language.Haskell.Exts.SrcLoc ], as: HSE}
+  - {name: [ Text.Parsec.Error
+           , Text.Parsec.Pos ], as: Parsec}
+  - {name: [ Text.Toml.Types ], as: Toml}

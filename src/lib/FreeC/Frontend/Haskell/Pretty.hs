@@ -10,12 +10,12 @@
 
 module FreeC.Frontend.Haskell.Pretty where
 
-import qualified Language.Haskell.Exts.Pretty  as H
-import qualified Language.Haskell.Exts.Syntax  as H
+import qualified Language.Haskell.Exts.Pretty  as HSE
+import qualified Language.Haskell.Exts.Syntax  as HSE
 
 import           FreeC.Pretty
 
 -- | Pretty instance for module nodes of Haskell Source Extensions AST.
-instance Pretty (H.Module l) where
-  pretty     = prettyString . H.prettyPrint
+instance Pretty (HSE.Module l) where
+  pretty     = prettyString . HSE.prettyPrint
   prettyList = prettySeparated (line <> line)

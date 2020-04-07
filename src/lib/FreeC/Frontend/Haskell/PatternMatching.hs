@@ -17,7 +17,7 @@ import qualified Data.Set                      as Set
 
 import           Application
 import           FreshVars
-import qualified Language.Haskell.Exts.Syntax  as H
+import qualified Language.Haskell.Exts.Syntax  as HSE
 
 import           FreeC.Environment
 import           FreeC.Environment.ModuleInterface
@@ -50,7 +50,7 @@ initialState = do
 
 -- | Converts an entry of the 'Environment' to an entry of the constructor map
 --   for the 'initialState'.
-makeConsMapEntry :: EnvEntry -> Maybe (String, [(H.QName (), Int, Bool)])
+makeConsMapEntry :: EnvEntry -> Maybe (String, [(HSE.QName (), Int, Bool)])
 makeConsMapEntry entry
   | not (isConEntry entry) = Nothing
   | otherwise = do
@@ -72,7 +72,7 @@ makeConsMapEntry entry
 
   -- | Generates the AST node for the name of the constructor by parsing the
   --   constructor name.
-  mConQName :: Maybe (H.QName ())
+  mConQName :: Maybe (HSE.QName ())
   mConQName = void
     <$> evalReporter (parseQName (showPretty (unqualify (entryName entry))))
 
@@ -98,13 +98,13 @@ makeConsMapEntry entry
 --
 --   Since the pattern matching compiler library does not support source
 --   spans, location information is removed during the transformation.
-transformPatternMatching :: H.Module SrcSpan -> Converter (H.Module SrcSpan)
+transformPatternMatching :: HSE.Module SrcSpan -> Converter (HSE.Module SrcSpan)
 transformPatternMatching haskellAst =
   transformPatternMatching' haskellAst <$> initialState
 
 -- | Removes the source spans of the given Haskell AST and applies the pattern
 --   matching compilation.
-transformPatternMatching' :: H.Module SrcSpan -> PMState -> H.Module SrcSpan
+transformPatternMatching' :: HSE.Module SrcSpan -> PMState -> HSE.Module SrcSpan
 transformPatternMatching' haskellAst = evalState $ do
   let haskellAst' = void haskellAst
   haskellAst'' <- processModule haskellAst'

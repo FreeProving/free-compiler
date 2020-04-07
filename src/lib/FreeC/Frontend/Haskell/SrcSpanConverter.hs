@@ -11,28 +11,28 @@ where
 
 import           Control.Monad                  ( join )
 
-import qualified Language.Haskell.Exts.SrcLoc  as H
+import qualified Language.Haskell.Exts.SrcLoc  as HSE
 
 import           FreeC.IR.SrcSpan
 
--- | Directly converts a 'H.SrcSpan' to a 'SrcSpan' by looking up
+-- | Directly converts a 'HSE.SrcSpan' to a 'SrcSpan' by looking up
 --   the corresponding line of code in the provided map.
-instance ConvertableSrcSpan H.SrcSpan where
+instance ConvertableSrcSpan HSE.SrcSpan where
   convertSrcSpan srcSpan = SrcSpan
-    { srcSpanFilename    = H.srcSpanFilename srcSpan
-    , srcSpanStartLine   = H.srcSpanStartLine srcSpan
-    , srcSpanStartColumn = H.srcSpanStartColumn srcSpan
-    , srcSpanEndLine     = H.srcSpanEndLine srcSpan
-    , srcSpanEndColumn   = H.srcSpanEndColumn srcSpan
+    { srcSpanFilename    = HSE.srcSpanFilename srcSpan
+    , srcSpanStartLine   = HSE.srcSpanStartLine srcSpan
+    , srcSpanStartColumn = HSE.srcSpanStartColumn srcSpan
+    , srcSpanEndLine     = HSE.srcSpanEndLine srcSpan
+    , srcSpanEndColumn   = HSE.srcSpanEndColumn srcSpan
     , srcSpanCodeLines   = []
     }
 
--- | Converts a 'H.SrcSpanInfo' by removing additional information and applying
---   the conversion for 'H.SrcSpan's.
-instance ConvertableSrcSpan H.SrcSpanInfo where
-  convertSrcSpan = convertSrcSpan . H.srcInfoSpan
+-- | Converts a 'HSE.SrcSpanInfo' by removing additional information and applying
+--   the conversion for 'HSE.SrcSpan's.
+instance ConvertableSrcSpan HSE.SrcSpanInfo where
+  convertSrcSpan = convertSrcSpan . HSE.srcInfoSpan
 
--- | Converts a 'H.SrcLoc' by creating a zero width source span and applying
---   the conversion for 'H.SrcSpan's.
-instance ConvertableSrcSpan H.SrcLoc where
-  convertSrcSpan = convertSrcSpan . join H.mkSrcSpan
+-- | Converts a 'HSE.SrcLoc' by creating a zero width source span and applying
+--   the conversion for 'HSE.SrcSpan's.
+instance ConvertableSrcSpan HSE.SrcLoc where
+  convertSrcSpan = convertSrcSpan . join HSE.mkSrcSpan
