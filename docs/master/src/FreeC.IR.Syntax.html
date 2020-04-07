@@ -13,10 +13,10 @@
 </span><a name="line-13"></a><span class="hs-comment">--   library and source language. Ideally the compiler works with any language</span><span>
 </span><a name="line-14"></a><span class="hs-comment">--   whose AST can be transformed into this intermediate representation.</span><span>
 </span><a name="line-15"></a><span class="hs-comment">--</span><span>
-</span><a name="line-16"></a><span class="hs-comment">--   At the moment there is no parser for this AST. Instances of the AST are</span><span>
-</span><a name="line-17"></a><span class="hs-comment">---  usually created by converting an existing AST (e.g. a Haskell AST from</span><span>
-</span><a name="line-18"></a><span class="hs-comment">--   the @haskell-src-ext@ package). However, the AST can be pretty printed.</span><span>
-</span><a name="line-19"></a><span class="hs-comment">--   It's syntax is based on Haskell's syntax.</span><span>
+</span><a name="line-16"></a><span class="hs-comment">--   A parser for the intermediate language and a description of its syntax</span><span>
+</span><a name="line-17"></a><span class="hs-comment">--   can be found in &quot;FreeC.Frontend.IR.Parser&quot;. While the intermediate</span><span>
+</span><a name="line-18"></a><span class="hs-comment">--   language can be parsed, IR nodes are usually created by parsing another</span><span>
+</span><a name="line-19"></a><span class="hs-comment">--   language and converting their AST to the IR AST.</span><span>
 </span><a name="line-20"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">FreeC.IR.Syntax</span><span>
 </span><a name="line-21"></a><span>  </span><span class="hs-special">(</span><span> </span><span class="hs-keyword">module</span><span> </span><a href="FreeC.IR.Syntax.Expr.html"><span class="hs-identifier">FreeC.IR.Syntax.Expr</span></a><span>
 </span><a name="line-22"></a><span>  </span><span class="hs-special">,</span><span> </span><span class="hs-keyword">module</span><span> </span><a href="FreeC.IR.Syntax.FuncDecl.html"><span class="hs-identifier">FreeC.IR.Syntax.FuncDecl</span></a><span>
