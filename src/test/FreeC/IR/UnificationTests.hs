@@ -6,7 +6,7 @@ import           Test.QuickCheck
 import           Control.Monad.Trans.Except     ( runExceptT )
 
 import           FreeC.Environment.Fresh
-import qualified FreeC.IR.Syntax               as HS
+import qualified FreeC.IR.Syntax               as IR
 import           FreeC.IR.Subst
 import           FreeC.IR.Unification
 import           FreeC.Monad.Class.Testable
@@ -118,7 +118,7 @@ testUnification = describe "FreeC.IR.Unification.unify" $ do
     it "self-unification yields the identity substitution"
       $ property
       $ \typeExpr -> shouldReturnProperty $ do
-          mgu <- unifyOrFail (HS.typeSrcSpan typeExpr) typeExpr typeExpr
+          mgu <- unifyOrFail (IR.typeSrcSpan typeExpr) typeExpr typeExpr
           let typeExpr' = applySubst mgu typeExpr
           return (typeExpr' == typeExpr)
 
@@ -128,7 +128,7 @@ testUnification = describe "FreeC.IR.Unification.unify" $ do
 
 -- | Unifies the given type expressions and sets the expectation that the
 --   both are equal after applying the computed unificator.
-shouldUnifyTo :: (HS.Type, HS.Type) -> HS.Type -> Converter Expectation
+shouldUnifyTo :: (IR.Type, IR.Type) -> IR.Type -> Converter Expectation
 shouldUnifyTo (t, s) expectedOutput =
   (t, s) `shouldUnifyTo'` (expectedOutput, expectedOutput)
 
@@ -137,16 +137,16 @@ shouldUnifyTo (t, s) expectedOutput =
 --   There can be different outputs for the two type expressions if they
 --   contain type synonyms.
 shouldUnifyTo'
-  :: (HS.Type, HS.Type) -> (HS.Type, HS.Type) -> Converter Expectation
+  :: (IR.Type, IR.Type) -> (IR.Type, IR.Type) -> Converter Expectation
 shouldUnifyTo' (t, s) (t', s') = do
-  mgu <- unifyOrFail (HS.typeSrcSpan t) t s
+  mgu <- unifyOrFail (IR.typeSrcSpan t) t s
   return $ do
     applySubst mgu t' `shouldBe` t'
     applySubst mgu s' `shouldBe` s'
 
 -- | Unifies the given type expressions and sets the expectation that the
 --   unification fails.
-shouldFailUnification :: HS.Type -> HS.Type -> Converter Expectation
+shouldFailUnification :: IR.Type -> IR.Type -> Converter Expectation
 shouldFailUnification t s = do
   res <- runExceptT $ unify t s
   case res of
@@ -172,7 +172,7 @@ shouldFailUnification t s = do
 
 -- | Unifies the given type expressions and sets the expectation that the
 --   occurs check fails.
-shouldFailOccursCheck :: HS.Type -> HS.Type -> Converter Expectation
+shouldFailOccursCheck :: IR.Type -> IR.Type -> Converter Expectation
 shouldFailOccursCheck t s = do
   res <- runExceptT $ unify t s
   case res of

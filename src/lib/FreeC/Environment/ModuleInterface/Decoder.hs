@@ -122,36 +122,36 @@ import           FreeC.Frontend.Haskell.Parser
 import           FreeC.Frontend.Haskell.Simplifier
 import           FreeC.IR.Reference             ( freeTypeVars )
 import           FreeC.IR.SrcSpan
-import qualified FreeC.IR.Syntax               as HS
+import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
 import           FreeC.Pretty
 
 -- | All Haskell names in the interface file are qualified.
-instance Aeson.FromJSON HS.QName where
-  parseJSON = Aeson.withText "HS.QName" $ \txt -> do
+instance Aeson.FromJSON IR.QName where
+  parseJSON = Aeson.withText "IR.QName" $ \txt -> do
     let str   = Text.unpack txt
         regex = "^((\\w(\\w|')*\\.)*)(\\w(\\w|')*|\\([^\\(\\)]*\\))$"
     case matchRegexPR regex str of
       Just (_, ms) -> do
         let Just modName = init <$> lookup 1 ms
             Just name    = parseName <$> lookup 4 ms
-        return (HS.Qual modName name)
+        return (IR.Qual modName name)
       m -> Aeson.parserThrowError
         []
         ("Invalid Haskell name " ++ str ++ " " ++ show m)
    where
-    parseName :: String -> HS.Name
-    parseName ('(' : sym) = HS.Symbol (init sym)
-    parseName ident       = HS.Ident ident
+    parseName :: String -> IR.Name
+    parseName ('(' : sym) = IR.Symbol (init sym)
+    parseName ident       = IR.Ident ident
 
 -- | Restores a Coq identifier from the interface file.
 instance Aeson.FromJSON G.Qualid where
   parseJSON = Aeson.withText "G.Qualid" $ return . G.bare . Text.unpack
 
 -- | Restores a Haskell type from the interface file.
-instance Aeson.FromJSON HS.Type where
-  parseJSON = Aeson.withText "HS.Type" $ \txt -> do
+instance Aeson.FromJSON IR.Type where
+  parseJSON = Aeson.withText "IR.Type" $ \txt -> do
     let (res, ms) =
           runReporter
             $   flip evalConverter emptyEnv
@@ -231,11 +231,11 @@ instance Aeson.FromJSON ModuleInterface where
       haskellType  <- obj .: "haskell-type"
       coqName      <- obj .: "coq-name"
       coqSmartName <- obj .: "coq-smart-name"
-      let (argTypes, returnType) = HS.splitFuncType haskellType arity
+      let (argTypes, returnType) = IR.splitFuncType haskellType arity
       return ConEntry
         { entrySrcSpan    = NoSrcSpan
         , entryArity      = arity
-        , entryTypeArgs   = mapMaybe HS.identFromQName (freeTypeVars returnType)
+        , entryTypeArgs   = mapMaybe IR.identFromQName (freeTypeVars returnType)
         , entryArgTypes   = map Just argTypes
         , entryReturnType = Just returnType
         , entryIdent      = coqName
@@ -252,8 +252,8 @@ instance Aeson.FromJSON ModuleInterface where
       freeArgsNeeded <- obj .: "needs-free-args"
       coqName        <- obj .: "coq-name"
       -- TODO this does not work with vanishing type arguments.
-      let (argTypes, returnType) = HS.splitFuncType haskellType arity
-          typeArgs = mapMaybe HS.identFromQName (freeTypeVars haskellType)
+      let (argTypes, returnType) = IR.splitFuncType haskellType arity
+          typeArgs = mapMaybe IR.identFromQName (freeTypeVars haskellType)
       return FuncEntry { entrySrcSpan       = NoSrcSpan
                        , entryArity         = arity
                        , entryTypeArgs      = typeArgs

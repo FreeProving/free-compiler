@@ -19,11 +19,11 @@ import           FreeC.Pass.TypeSignaturePass
 import           FreeC.Pass.TypeInferencePass
 import           FreeC.Pass.QualifierPass
 import           FreeC.Pass.ResolverPass
-import qualified FreeC.IR.Syntax               as HS
+import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Converter
 
 -- | The passes of the compiler pipeline.
-pipeline :: [Pass HS.Module]
+pipeline :: [Pass IR.Module]
 pipeline =
   [ implicitPreludePass
   , qualifierPass
@@ -38,5 +38,5 @@ pipeline =
   ]
 
 -- | Runs the compiler pipeline on the given module.
-runPipeline :: HS.Module -> Converter HS.Module
+runPipeline :: IR.Module -> Converter IR.Module
 runPipeline = runPasses pipeline

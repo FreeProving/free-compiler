@@ -163,9 +163,9 @@
 --   return types of functions, this pass also annotates all sub-expressions
 --   on the right-hand side with the type that was inferred for them.
 --
---   The type of an expression is stored in 'HS.exprTypeSchema' in the
---   form @'HS.TypeSchema' NoSrcSpan [] τ@ and can safely be accessed
---   via 'HS.exprType' after this pass. The field contains a type schema
+--   The type of an expression is stored in 'IR.exprTypeSchema' in the
+--   form @'IR.TypeSchema' NoSrcSpan [] τ@ and can safely be accessed
+--   via 'IR.exprType' after this pass. The field contains a type schema
 --   rather than a type because it is also used to store expression type
 --   signatures of the user and type variables in type signatures need
 --   to be universally quantified in Haskell.
@@ -237,12 +237,12 @@ import           FreeC.Backend.Coq.Converter.TypeSchema
 import           FreeC.Environment
 import           FreeC.Environment.Fresh
 import           FreeC.Environment.Scope
-import qualified FreeC.IR.Base.Prelude         as HS.Prelude
+import qualified FreeC.IR.Base.Prelude         as IR.Prelude
 import           FreeC.IR.DependencyGraph       ( mapComponentM )
 import           FreeC.IR.Reference             ( freeTypeVars )
 import           FreeC.IR.SrcSpan
 import           FreeC.IR.Subst
-import qualified FreeC.IR.Syntax               as HS
+import qualified FreeC.IR.Syntax               as IR
 import           FreeC.IR.Unification
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
@@ -252,7 +252,7 @@ import           FreeC.Pretty
 -- | A compiler pass that infers the types of (mutually recursive) function
 --   declarations in the given strongly connected component of the function
 --   dependency graph.
-typeInferencePass :: DependencyAwarePass HS.FuncDecl
+typeInferencePass :: DependencyAwarePass IR.FuncDecl
 typeInferencePass = mapComponentM inferFuncDeclTypes
 
 -------------------------------------------------------------------------------
@@ -261,10 +261,10 @@ typeInferencePass = mapComponentM inferFuncDeclTypes
 
 -- | A type equation and the location in the source that caused the creation
 --   of this type variable.
-type TypeEquation = (SrcSpan, HS.Type, HS.Type)
+type TypeEquation = (SrcSpan, IR.Type, IR.Type)
 
 -- | Maps the names of defined functions and constructors to their type schema.
-type TypeAssumption = Map HS.QName HS.TypeSchema
+type TypeAssumption = Map IR.QName IR.TypeSchema
 
 -- | The state that is passed implicitly between the modules of this module.
 data TypeInferenceState = TypeInferenceState
@@ -272,7 +272,7 @@ data TypeInferenceState = TypeInferenceState
     -- ^ The type equations that have to be unified.
   , typeAssumption :: TypeAssumption
     -- ^ The known type schemas of predefined functions and constructors.
-  , fixedTypeArgs :: Map HS.QName [HS.Type]
+  , fixedTypeArgs :: Map IR.QName [IR.Type]
     -- ^ Maps function names to the types to instantiate their last type
     --   arguments with. This is used to instantiate additional type arguments
     --   in recursive functions correctly.
@@ -324,12 +324,12 @@ runTypeInference initialTypeAssumption =
 
 -- | Looks up the type schema of the function or constructor with the given
 --   name in the current type assumption.
-lookupTypeAssumption :: HS.QName -> TypeInference (Maybe HS.TypeSchema)
+lookupTypeAssumption :: IR.QName -> TypeInference (Maybe IR.TypeSchema)
 lookupTypeAssumption name = Map.lookup name <$> gets typeAssumption
 
 -- | Looks up the types to instantiate the additional type arguments
 --   of the function with the given name with.
-lookupFixedTypeArgs :: HS.QName -> TypeInference [HS.Type]
+lookupFixedTypeArgs :: IR.QName -> TypeInference [IR.Type]
 lookupFixedTypeArgs name = Map.findWithDefault [] name <$> gets fixedTypeArgs
 
 -------------------------------------------------------------------------------
@@ -337,7 +337,7 @@ lookupFixedTypeArgs name = Map.findWithDefault [] name <$> gets fixedTypeArgs
 -------------------------------------------------------------------------------
 
 -- | Adds a 'TypeEquation' entry the current state.
-addTypeEquation :: SrcSpan -> HS.Type -> HS.Type -> TypeInference ()
+addTypeEquation :: SrcSpan -> IR.Type -> IR.Type -> TypeInference ()
 addTypeEquation srcSpan t t' =
   modify $ \s -> s { typeEquations = (srcSpan, t, t') : typeEquations s }
 
@@ -347,7 +347,7 @@ addTypeEquation srcSpan t t' =
 --
 --   If there is no entry for the given name, a fatal error is reported.
 --   The error message refers to the given source location information.
-addTypeEquationFor :: SrcSpan -> HS.QName -> HS.Type -> TypeInference ()
+addTypeEquationFor :: SrcSpan -> IR.QName -> IR.Type -> TypeInference ()
 addTypeEquationFor srcSpan name resType = do
   maybeTypeSchema <- lookupTypeAssumption name
   case maybeTypeSchema of
@@ -362,33 +362,33 @@ addTypeEquationFor srcSpan name resType = do
 
 -- | Extends the type assumption with the type schema for the function,
 --   constructor or local variable with the given name.
-extendTypeAssumption :: HS.QName -> HS.TypeSchema -> TypeInference ()
+extendTypeAssumption :: IR.QName -> IR.TypeSchema -> TypeInference ()
 extendTypeAssumption name typeSchema = modify
   $ \s -> s { typeAssumption = Map.insert name typeSchema (typeAssumption s) }
 
 -- | Extends the type assumption with the type schema for the given function
 --   declaration if all of its argument and return types are annotated.
-extendTypeAssumptionWithFuncDecl :: HS.FuncDecl -> TypeInference ()
+extendTypeAssumptionWithFuncDecl :: IR.FuncDecl -> TypeInference ()
 extendTypeAssumptionWithFuncDecl funcDecl = mapM_
-  (extendTypeAssumption (HS.funcDeclQName funcDecl))
-  (HS.funcDeclTypeSchema funcDecl)
+  (extendTypeAssumption (IR.funcDeclQName funcDecl))
+  (IR.funcDeclTypeSchema funcDecl)
 
 -- | Extends the type assumption with the unabstracted type the given
 --   variable pattern has been annotated with.
-extendTypeAssumptionWithVarPat :: HS.VarPat -> TypeInference ()
+extendTypeAssumptionWithVarPat :: IR.VarPat -> TypeInference ()
 extendTypeAssumptionWithVarPat varPat = mapM_
-  (extendTypeAssumption (HS.varPatQName varPat) . HS.TypeSchema NoSrcSpan [])
-  (HS.varPatType varPat)
+  (extendTypeAssumption (IR.varPatQName varPat) . IR.TypeSchema NoSrcSpan [])
+  (IR.varPatType varPat)
 
 -- | Removes the variable bound by the given variable pattern from the
 --   type assumption while runnign the given type inference.
-removeVarPatFromTypeAssumption :: HS.VarPat -> TypeInference ()
+removeVarPatFromTypeAssumption :: IR.VarPat -> TypeInference ()
 removeVarPatFromTypeAssumption varPat = modify $ \s ->
-  s { typeAssumption = Map.delete (HS.varPatQName varPat) (typeAssumption s) }
+  s { typeAssumption = Map.delete (IR.varPatQName varPat) (typeAssumption s) }
 
 -- | Sets the types to instantiate additional type arguments of the function
 --   with the given name with.
-fixTypeArgs :: HS.QName -> [HS.Type] -> TypeInference ()
+fixTypeArgs :: IR.QName -> [IR.Type] -> TypeInference ()
 fixTypeArgs name subst =
   modify $ \s -> s { fixedTypeArgs = Map.insert name subst (fixedTypeArgs s) }
 
@@ -423,13 +423,13 @@ withLocalTypeAssumption mx = do
 --   Returns the function declarations where the argument and return types
 --   as well as the types of variable patterns on the right-hand side and
 --   visible type arguments have been annotated with their inferred type.
-inferFuncDeclTypes :: [HS.FuncDecl] -> Converter [HS.FuncDecl]
+inferFuncDeclTypes :: [IR.FuncDecl] -> Converter [IR.FuncDecl]
 inferFuncDeclTypes funcDecls = localEnv $ do
   ta <- inEnv makeTypeAssumption
   runTypeInference ta $ inferFuncDeclTypes' funcDecls
 
 -- | Version of 'inferFuncDeclTypes' in the 'TypeInference' monad.
-inferFuncDeclTypes' :: [HS.FuncDecl] -> TypeInference [HS.FuncDecl]
+inferFuncDeclTypes' :: [IR.FuncDecl] -> TypeInference [IR.FuncDecl]
 inferFuncDeclTypes' funcDecls = withLocalState $ do
     -- Add type assumption for functions with type signatures.
     --
@@ -472,7 +472,7 @@ inferFuncDeclTypes' funcDecls = withLocalState $ do
   -- of the function but not in the inferred type (also known as "vanishing
   -- type  arguments") are added as well. The order of the type arguments
   -- depends on their order in the (type) expression (from left to right).
-  let typeExprs = map (fromJust . HS.funcDeclType) typedFuncDecls
+  let typeExprs = map (fromJust . IR.funcDeclType) typedFuncDecls
       typeArgs  = map freeTypeVars typeExprs
       additionalTypeArgs =
         nub (concatMap freeTypeVars typedFuncDecls) \\ concat typeArgs
@@ -489,11 +489,11 @@ inferFuncDeclTypes' funcDecls = withLocalState $ do
   -- remember for each function in the strongly connected component,
   -- the type to instantiate the remaining type arguments with. The
   -- fixed type arguments will be taken into account by 'applyVisibly'.
-  let funcNames           = map HS.funcDeclQName abstractedFuncDecls
+  let funcNames           = map IR.funcDeclQName abstractedFuncDecls
       additionalTypeArgs' = map
-        ( map HS.typeVarDeclToType
+        ( map IR.typeVarDeclToType
         . takeEnd (length additionalTypeArgs)
-        . HS.funcDeclTypeArgs
+        . IR.funcDeclTypeArgs
         )
         abstractedFuncDecls
   zipWithM_ fixTypeArgs funcNames additionalTypeArgs'
@@ -522,16 +522,16 @@ inferFuncDeclTypes' funcDecls = withLocalState $ do
 
 -- | Generates a fresh type variable if the given type is @Nothing@
 --   and returns the given type otherwise.
-maybeFreshTypeVar :: Maybe HS.Type -> TypeInference HS.Type
+maybeFreshTypeVar :: Maybe IR.Type -> TypeInference IR.Type
 maybeFreshTypeVar = liftConverter . maybe freshTypeVar return
 
 -- | Annotates the type of the given variable pattern using a fresh type
 --   variable if there is no type annotation already and extends the type
 --   assumption by the (unabstracted) type for the declared variable.
-annotateVarPat :: HS.VarPat -> TypeInference HS.VarPat
+annotateVarPat :: IR.VarPat -> TypeInference IR.VarPat
 annotateVarPat varPat = do
-  varPatType' <- maybeFreshTypeVar (HS.varPatType varPat)
-  let varPat' = varPat { HS.varPatType = Just varPatType' }
+  varPatType' <- maybeFreshTypeVar (IR.varPatType varPat)
+  let varPat' = varPat { IR.varPatType = Just varPatType' }
   extendTypeAssumptionWithVarPat varPat'
   return varPat'
 
@@ -555,23 +555,23 @@ annotateVarPat varPat = do
 --   expression type signature), a type equation is added that unifies the
 --   annotated type with the given type. The annotated expression keeps its
 --   original annotation.
-annotateExprWith :: HS.Expr -> HS.Type -> TypeInference HS.Expr
-annotateExprWith expr resType = case HS.exprTypeSchema expr of
+annotateExprWith :: IR.Expr -> IR.Type -> TypeInference IR.Expr
+annotateExprWith expr resType = case IR.exprTypeSchema expr of
   Nothing         -> annotateExprWith' expr resType
   Just typeSchema -> do
     exprType <- liftConverter $ instantiateTypeSchema typeSchema
-    addTypeEquation (HS.exprSrcSpan expr) exprType resType
+    addTypeEquation (IR.exprSrcSpan expr) exprType resType
     annotateExprWith' expr exprType
 
 -- | Version of 'annotateExprWith' that ignores existing type annotations.
-annotateExprWith' :: HS.Expr -> HS.Type -> TypeInference HS.Expr
+annotateExprWith' :: IR.Expr -> IR.Type -> TypeInference IR.Expr
 
 -- If @C :: τ@ is a predefined constructor with @C :: forall α₀ … αₙ. τ'@,
 -- then add a type equation @τ = σ(τ')@ where @σ = { α₀ ↦ β₀, …, αₙ ↦ βₙ }@
 -- and @β₀, …, βₙ@ are fresh type variables.
-annotateExprWith' (HS.Con srcSpan conName _) resType = do
+annotateExprWith' (IR.Con srcSpan conName _) resType = do
   addTypeEquationFor srcSpan conName resType
-  return (HS.Con srcSpan conName (makeExprType resType))
+  return (IR.Con srcSpan conName (makeExprType resType))
 
 -- If @x :: τ@ is in scope with @x :: forall α₀ … αₙ. τ'@, then add a type
 -- equation @τ = σ(τ')@ where @σ = { α₀ ↦ β₀, …, αₙ ↦ βₙ }@ and @β₀, …, βₙ@
@@ -580,92 +580,92 @@ annotateExprWith' (HS.Con srcSpan conName _) resType = do
 -- the type assumption of @x@ is not abstracted (i.e., @n = 0@).
 -- Therfore a type equation that unifies the type the binder of @x@ has been
 -- annotated with and the given type @τ@ is simply added in this case.
-annotateExprWith' (HS.Var srcSpan varName _) resType = do
+annotateExprWith' (IR.Var srcSpan varName _) resType = do
   addTypeEquationFor srcSpan varName resType
-  return (HS.Var srcSpan varName (makeExprType resType))
+  return (IR.Var srcSpan varName (makeExprType resType))
 
 -- If @(e₁ e₂) :: τ@, then @e₁ :: α -> τ@ and @e₂ :: α@ where @α@ is a fresh
 -- type variable.
-annotateExprWith' (HS.App srcSpan e1 e2 _) resType = do
+annotateExprWith' (IR.App srcSpan e1 e2 _) resType = do
   argType <- liftConverter freshTypeVar
-  e1'     <- annotateExprWith e1 (HS.FuncType NoSrcSpan argType resType)
+  e1'     <- annotateExprWith e1 (IR.FuncType NoSrcSpan argType resType)
   e2'     <- annotateExprWith e2 argType
-  return (HS.App srcSpan e1' e2' (makeExprType resType))
+  return (IR.App srcSpan e1' e2' (makeExprType resType))
 
 -- There should be no visible type applications prior to type inference.
-annotateExprWith' (HS.TypeAppExpr srcSpan _ _ _) _ =
+annotateExprWith' (IR.TypeAppExpr srcSpan _ _ _) _ =
   unexpectedTypeAppExpr srcSpan
 
 -- If @if e₁ then e₂ else e₃ :: τ@, then @e₁ :: Bool@ and @e₂, e₃ :: τ@.
-annotateExprWith' (HS.If srcSpan e1 e2 e3 _) resType = do
-  let condType = HS.TypeCon NoSrcSpan HS.Prelude.boolTypeConName
+annotateExprWith' (IR.If srcSpan e1 e2 e3 _) resType = do
+  let condType = IR.TypeCon NoSrcSpan IR.Prelude.boolTypeConName
   e1' <- annotateExprWith e1 condType
   e2' <- annotateExprWith e2 resType
   e3' <- annotateExprWith e3 resType
-  return (HS.If srcSpan e1' e2' e3' (makeExprType resType))
+  return (IR.If srcSpan e1' e2' e3' (makeExprType resType))
 
 -- If @case e of {p₀ -> e₀; …; pₙ -> eₙ} :: τ@, then @e₀, …, eₙ :: τ@ and
 -- @e :: α@ and @p₀, …, pₙ :: α@ where @α@ is a fresh type variable.
-annotateExprWith' (HS.Case srcSpan scrutinee alts _) resType = do
+annotateExprWith' (IR.Case srcSpan scrutinee alts _) resType = do
   scrutineeType <- liftConverter freshTypeVar
   scrutinee'    <- annotateExprWith scrutinee scrutineeType
   alts'         <- mapM (flip annotateAlt scrutineeType) alts
-  return (HS.Case srcSpan scrutinee' alts' (makeExprType resType))
+  return (IR.Case srcSpan scrutinee' alts' (makeExprType resType))
  where
   -- | Annotates the pattern of the given alternative with the given type
   --   and its right-hand side with the @case@ expressions result type.
-  annotateAlt :: HS.Alt -> HS.Type -> TypeInference HS.Alt
-  annotateAlt (HS.Alt altSrcSpan conPat varPats rhs) patType =
+  annotateAlt :: IR.Alt -> IR.Type -> TypeInference IR.Alt
+  annotateAlt (IR.Alt altSrcSpan conPat varPats rhs) patType =
     withLocalTypeAssumption $ do
       varPats' <- mapM annotateVarPat varPats
-      let varPatTypes = map (fromJust . HS.varPatType) varPats'
-          conPatType  = HS.funcType NoSrcSpan varPatTypes patType
-      addTypeEquationFor altSrcSpan (HS.conPatName conPat) conPatType
+      let varPatTypes = map (fromJust . IR.varPatType) varPats'
+          conPatType  = IR.funcType NoSrcSpan varPatTypes patType
+      addTypeEquationFor altSrcSpan (IR.conPatName conPat) conPatType
       rhs' <- annotateExprWith rhs resType
-      return (HS.Alt altSrcSpan conPat varPats' rhs')
+      return (IR.Alt altSrcSpan conPat varPats' rhs')
 
 -- Error terms are predefined polymorphic funtions. They can be annoated
 -- with the given result type directly.
-annotateExprWith' (HS.Undefined srcSpan _) resType =
-  return (HS.Undefined srcSpan (makeExprType resType))
-annotateExprWith' (HS.ErrorExpr srcSpan msg _) resType =
-  return (HS.ErrorExpr srcSpan msg (makeExprType resType))
+annotateExprWith' (IR.Undefined srcSpan _) resType =
+  return (IR.Undefined srcSpan (makeExprType resType))
+annotateExprWith' (IR.ErrorExpr srcSpan msg _) resType =
+  return (IR.ErrorExpr srcSpan msg (makeExprType resType))
 
 -- If @n :: τ@ for some integer literal @n@, then add the type equation
 -- @τ = Integer@.
-annotateExprWith' (HS.IntLiteral srcSpan value _) resType = do
-  let intType = HS.TypeCon NoSrcSpan HS.Prelude.integerTypeConName
+annotateExprWith' (IR.IntLiteral srcSpan value _) resType = do
+  let intType = IR.TypeCon NoSrcSpan IR.Prelude.integerTypeConName
   addTypeEquation srcSpan intType resType
-  return (HS.IntLiteral srcSpan value (makeExprType resType))
+  return (IR.IntLiteral srcSpan value (makeExprType resType))
 
 -- If @\\x₀ … xₙ -> e :: τ@, then @x₀ :: α₀, …, xₙ :: αₙ@ and @x :: β@ for
 -- fresh type variables @α₀, …, αₙ@ and @β@ and add the a type equation
 -- @α₀ -> … -> αₙ -> β = τ@.
-annotateExprWith' (HS.Lambda srcSpan args expr _) resType =
+annotateExprWith' (IR.Lambda srcSpan args expr _) resType =
   withLocalTypeAssumption $ do
     args'   <- mapM annotateVarPat args
     retType <- liftConverter freshTypeVar
     expr'   <- annotateExprWith expr retType
-    let argTypes = map (fromJust . HS.varPatType) args'
-        funcType = HS.funcType NoSrcSpan argTypes retType
+    let argTypes = map (fromJust . IR.varPatType) args'
+        funcType = IR.funcType NoSrcSpan argTypes retType
     addTypeEquation srcSpan funcType resType
-    return (HS.Lambda srcSpan args' expr' (makeExprType resType))
+    return (IR.Lambda srcSpan args' expr' (makeExprType resType))
 
 -- | Utility function used by 'annotateExprWith' to construct the
---   'HS.exprTypeSchema' field.
+--   'IR.exprTypeSchema' field.
 --
 --   Never returns @Nothing@ since all expressions must be annotated by
 --   'annotateExprWith'. The type schema does not quantify any variables.
 --   Type variables will be bound by the function declaration that contains
 --   the expression.
-makeExprType :: HS.Type -> Maybe HS.TypeSchema
-makeExprType = Just . HS.TypeSchema NoSrcSpan []
+makeExprType :: IR.Type -> Maybe IR.TypeSchema
+makeExprType = Just . IR.TypeSchema NoSrcSpan []
 
 -- | Annotates the function arguments and return types with fresh type
 --   variables if they are not annotated already and applies 'annotateExprWith'
 --   to the right-hand side of the given function declaration with the
 --   return type of the function.
-annotateFuncDecls :: [HS.FuncDecl] -> TypeInference [HS.FuncDecl]
+annotateFuncDecls :: [IR.FuncDecl] -> TypeInference [IR.FuncDecl]
 annotateFuncDecls funcDecls = withLocalTypeAssumption $ do
   funcDecls' <- mapM annotateFuncDeclLhs funcDecls
   mapM_ extendTypeAssumptionWithFuncDecl funcDecls'
@@ -673,21 +673,21 @@ annotateFuncDecls funcDecls = withLocalTypeAssumption $ do
  where
   -- | Annotates the argument and return types of the given function
   --   declaration.
-  annotateFuncDeclLhs :: HS.FuncDecl -> TypeInference HS.FuncDecl
+  annotateFuncDeclLhs :: IR.FuncDecl -> TypeInference IR.FuncDecl
   annotateFuncDeclLhs funcDecl = withLocalTypeAssumption $ do
-    args'   <- mapM annotateVarPat (HS.funcDeclArgs funcDecl)
-    retType <- maybeFreshTypeVar (HS.funcDeclReturnType funcDecl)
-    return funcDecl { HS.funcDeclArgs       = args'
-                    , HS.funcDeclReturnType = Just retType
+    args'   <- mapM annotateVarPat (IR.funcDeclArgs funcDecl)
+    retType <- maybeFreshTypeVar (IR.funcDeclReturnType funcDecl)
+    return funcDecl { IR.funcDeclArgs       = args'
+                    , IR.funcDeclReturnType = Just retType
                     }
 
   -- | Annotates the right-hand side of the given function declaration.
-  annotateFuncDeclRhs :: HS.FuncDecl -> TypeInference HS.FuncDecl
+  annotateFuncDeclRhs :: IR.FuncDecl -> TypeInference IR.FuncDecl
   annotateFuncDeclRhs funcDecl = withLocalTypeAssumption $ do
-    let Just retType = HS.funcDeclReturnType funcDecl
-    mapM_ extendTypeAssumptionWithVarPat (HS.funcDeclArgs funcDecl)
-    rhs' <- annotateExprWith (HS.funcDeclRhs funcDecl) retType
-    return funcDecl { HS.funcDeclRhs = rhs' }
+    let Just retType = IR.funcDeclReturnType funcDecl
+    mapM_ extendTypeAssumptionWithVarPat (IR.funcDeclArgs funcDecl)
+    rhs' <- annotateExprWith (IR.funcDeclRhs funcDecl) retType
+    return funcDecl { IR.funcDeclRhs = rhs' }
 
 -------------------------------------------------------------------------------
 -- Visible type application                                                  --
@@ -703,12 +703,12 @@ annotateFuncDecls funcDecls = withLocalTypeAssumption $ do
 --   abstracted later (See 'abstractVanishingTypeArgs').
 --
 --   Since the expression has been annotated with 'annotateExprWith', we
---   can safely assume, that 'HS.exprTypeSchema' does not quantify any type
+--   can safely assume, that 'IR.exprTypeSchema' does not quantify any type
 --   variables itself.
-applyVisibly :: HS.QName -> HS.Expr -> TypeInference HS.Expr
+applyVisibly :: IR.QName -> IR.Expr -> TypeInference IR.Expr
 applyVisibly name expr = do
-  let srcSpan            = HS.exprSrcSpan expr
-      Just annotatedType = HS.exprType expr
+  let srcSpan            = IR.exprSrcSpan expr
+      Just annotatedType = IR.exprType expr
   maybeAssumedTypeSchema <- lookupTypeAssumption name
   case maybeAssumedTypeSchema of
     Nothing                -> return expr
@@ -718,68 +718,68 @@ applyVisibly name expr = do
       mgu   <- liftConverter $ unifyOrFail srcSpan annotatedType assumedType
       fixed <- lookupFixedTypeArgs name
       let typeArgs' = applySubst mgu (dropEnd (length fixed) typeArgs)
-      return (HS.visibleTypeApp srcSpan expr (typeArgs' ++ fixed))
+      return (IR.visibleTypeApp srcSpan expr (typeArgs' ++ fixed))
 
 -- | Adds visible type application expressions to function and constructor
 --   applications in the given expression.
-applyExprVisibly :: HS.Expr -> TypeInference HS.Expr
+applyExprVisibly :: IR.Expr -> TypeInference IR.Expr
 
 -- Add visible type applications to functions, constructors and error terms.
 -- We can assume that the expression has a type annotation without quantified
 -- type variables since 'annotateExprWith' was applied before.
-applyExprVisibly expr@(HS.Con _ conName _) = applyVisibly conName expr
-applyExprVisibly expr@(HS.Var _ varName _) = applyVisibly varName expr
-applyExprVisibly expr@(HS.Undefined srcSpan exprType) = do
-  let Just (HS.TypeSchema _ [] typeArg) = exprType
-  return (HS.TypeAppExpr srcSpan expr typeArg exprType)
-applyExprVisibly expr@(HS.ErrorExpr srcSpan _ exprType) = do
-  let Just (HS.TypeSchema _ [] typeArg) = exprType
-  return (HS.TypeAppExpr srcSpan expr typeArg exprType)
+applyExprVisibly expr@(IR.Con _ conName _) = applyVisibly conName expr
+applyExprVisibly expr@(IR.Var _ varName _) = applyVisibly varName expr
+applyExprVisibly expr@(IR.Undefined srcSpan exprType) = do
+  let Just (IR.TypeSchema _ [] typeArg) = exprType
+  return (IR.TypeAppExpr srcSpan expr typeArg exprType)
+applyExprVisibly expr@(IR.ErrorExpr srcSpan _ exprType) = do
+  let Just (IR.TypeSchema _ [] typeArg) = exprType
+  return (IR.TypeAppExpr srcSpan expr typeArg exprType)
 
 -- There should be no visible type applications prior to type inference.
-applyExprVisibly (HS.TypeAppExpr srcSpan _ _ _) = unexpectedTypeAppExpr srcSpan
+applyExprVisibly (IR.TypeAppExpr srcSpan _ _ _) = unexpectedTypeAppExpr srcSpan
 
 -- Recursively add visible type applications.
-applyExprVisibly (HS.App srcSpan e1 e2 exprType) = do
+applyExprVisibly (IR.App srcSpan e1 e2 exprType) = do
   e1' <- applyExprVisibly e1
   e2' <- applyExprVisibly e2
-  return (HS.App srcSpan e1' e2' exprType)
-applyExprVisibly (HS.If srcSpan e1 e2 e3 exprType) = do
+  return (IR.App srcSpan e1' e2' exprType)
+applyExprVisibly (IR.If srcSpan e1 e2 e3 exprType) = do
   e1' <- applyExprVisibly e1
   e2' <- applyExprVisibly e2
   e3' <- applyExprVisibly e3
-  return (HS.If srcSpan e1' e2' e3' exprType)
-applyExprVisibly (HS.Case srcSpan expr alts exprType) = do
+  return (IR.If srcSpan e1' e2' e3' exprType)
+applyExprVisibly (IR.Case srcSpan expr alts exprType) = do
   expr' <- applyExprVisibly expr
   alts' <- mapM applyAltVisibly alts
-  return (HS.Case srcSpan expr' alts' exprType)
-applyExprVisibly (HS.Lambda srcSpan args expr exprType) =
+  return (IR.Case srcSpan expr' alts' exprType)
+applyExprVisibly (IR.Lambda srcSpan args expr exprType) =
   withLocalTypeAssumption $ do
     mapM_ removeVarPatFromTypeAssumption args
     expr' <- applyExprVisibly expr
-    return (HS.Lambda srcSpan args expr' exprType)
+    return (IR.Lambda srcSpan args expr' exprType)
 
 -- Leave all literals unchanged.
-applyExprVisibly expr@(HS.IntLiteral _ _ _) = return expr
+applyExprVisibly expr@(IR.IntLiteral _ _ _) = return expr
 
 -- | Applies 'applyExprVisibly' to the right-hand side of the given @case@-
 --   expression alternative.
-applyAltVisibly :: HS.Alt -> TypeInference HS.Alt
-applyAltVisibly (HS.Alt srcSpan conPat varPats expr) =
+applyAltVisibly :: IR.Alt -> TypeInference IR.Alt
+applyAltVisibly (IR.Alt srcSpan conPat varPats expr) =
   withLocalTypeAssumption $ do
     mapM_ removeVarPatFromTypeAssumption varPats
     expr' <- applyExprVisibly expr
-    return (HS.Alt srcSpan conPat varPats expr')
+    return (IR.Alt srcSpan conPat varPats expr')
 
 -- | Applies ' applyExprVisibly' to the right-hand side of the given function
 --   declaration.
-applyFuncDeclVisibly :: HS.FuncDecl -> TypeInference HS.FuncDecl
+applyFuncDeclVisibly :: IR.FuncDecl -> TypeInference IR.FuncDecl
 applyFuncDeclVisibly funcDecl = withLocalTypeAssumption $ do
-  let args = HS.funcDeclArgs funcDecl
-      rhs  = HS.funcDeclRhs funcDecl
+  let args = IR.funcDeclArgs funcDecl
+      rhs  = IR.funcDeclRhs funcDecl
   mapM_ removeVarPatFromTypeAssumption args
   rhs' <- applyExprVisibly rhs
-  return funcDecl { HS.funcDeclRhs = rhs' }
+  return funcDecl { IR.funcDeclRhs = rhs' }
 
 -------------------------------------------------------------------------------
 -- Abstracting type arguments                                                --
@@ -795,13 +795,13 @@ applyFuncDeclVisibly funcDecl = withLocalTypeAssumption $ do
 --   Fresh type variables used by the given type are replaced by regular type
 --   varibales with the prefix 'freshTypeArgPrefix'. All other type variables
 --   are not renamed.
-abstractTypeArgs :: [HS.QName] -> HS.FuncDecl -> HS.FuncDecl
+abstractTypeArgs :: [IR.QName] -> IR.FuncDecl -> IR.FuncDecl
 abstractTypeArgs typeArgs funcDecl =
-  let HS.TypeSchema _ _ typeExpr = fromJust (HS.funcDeclTypeSchema funcDecl)
-      (HS.TypeSchema _ typeArgs' _, subst) =
+  let IR.TypeSchema _ _ typeExpr = fromJust (IR.funcDeclTypeSchema funcDecl)
+      (IR.TypeSchema _ typeArgs' _, subst) =
           abstractTypeSchema' typeArgs typeExpr
       funcDecl' = applySubst subst funcDecl
-  in  funcDecl' { HS.funcDeclTypeArgs = typeArgs' }
+  in  funcDecl' { IR.funcDeclTypeArgs = typeArgs' }
 
 -- | Abstracts the remaining internal type variables that occur within
 --   the given function declarations by renaming them to non-internal
@@ -810,106 +810,106 @@ abstractTypeArgs typeArgs funcDecl =
 --
 --   The added type arguments are also added as visible type applications
 --   to recursive calls to the function declarations.
-abstractVanishingTypeArgs :: [HS.FuncDecl] -> [HS.FuncDecl]
+abstractVanishingTypeArgs :: [IR.FuncDecl] -> [IR.FuncDecl]
 abstractVanishingTypeArgs funcDecls =
   let funcDecls' = map addInternalTypeArgs funcDecls
   in  map abstractVanishingTypeArgs' funcDecls'
  where
   -- | The names of the type variables to abstract.
-  internalTypeArgNames :: [HS.QName]
-  internalTypeArgNames = filter HS.isInternalQName (freeTypeVars funcDecls)
+  internalTypeArgNames :: [IR.QName]
+  internalTypeArgNames = filter IR.isInternalQName (freeTypeVars funcDecls)
 
   -- | Type variables for 'internalTypeArgNames'.
-  internalTypeArgs :: [HS.Type]
+  internalTypeArgs :: [IR.Type]
   internalTypeArgs = map
-    (HS.TypeVar NoSrcSpan . fromJust . HS.identFromQName)
+    (IR.TypeVar NoSrcSpan . fromJust . IR.identFromQName)
     internalTypeArgNames
 
   -- | Renames 'internalTypeArgNames' and adds them as type arguments
   --   to the given function declaration.
-  abstractVanishingTypeArgs' :: HS.FuncDecl -> HS.FuncDecl
+  abstractVanishingTypeArgs' :: IR.FuncDecl -> IR.FuncDecl
   abstractVanishingTypeArgs' funcDecl =
-    let typeArgNames = map HS.typeVarDeclQName (HS.funcDeclTypeArgs funcDecl)
+    let typeArgNames = map IR.typeVarDeclQName (IR.funcDeclTypeArgs funcDecl)
     in  abstractTypeArgs (typeArgNames ++ internalTypeArgNames) funcDecl
 
   -- | Adds visible type applications for 'internalTypeArgs' to recursive
   --   calls on the right-hand side of the given function declaration.
-  addInternalTypeArgs :: HS.FuncDecl -> HS.FuncDecl
+  addInternalTypeArgs :: IR.FuncDecl -> IR.FuncDecl
   addInternalTypeArgs funcDecl =
-    let funcNames  = Set.fromList (map HS.funcDeclQName funcDecls)
-        funcNames' = withoutArgs (HS.funcDeclArgs funcDecl) funcNames
-        rhs        = HS.funcDeclRhs funcDecl
+    let funcNames  = Set.fromList (map IR.funcDeclQName funcDecls)
+        funcNames' = withoutArgs (IR.funcDeclArgs funcDecl) funcNames
+        rhs        = IR.funcDeclRhs funcDecl
         rhs'       = addInternalTypeArgsToExpr funcNames' rhs
-    in  funcDecl { HS.funcDeclRhs = rhs' }
+    in  funcDecl { IR.funcDeclRhs = rhs' }
 
   -- | Adds visible type applications for 'internalTypeArgs' to recursive
   --   calls in the given expression.
-  addInternalTypeArgsToExpr :: Set HS.QName -> HS.Expr -> HS.Expr
+  addInternalTypeArgsToExpr :: Set IR.QName -> IR.Expr -> IR.Expr
   addInternalTypeArgsToExpr =
-    uncurry (HS.visibleTypeApp NoSrcSpan) .: addInternalTypeArgsToExpr'
+    uncurry (IR.visibleTypeApp NoSrcSpan) .: addInternalTypeArgsToExpr'
 
   -- | Like 'addInternalTypeArgs' but returns the visible type
   --   arguments that still need to be added.
-  addInternalTypeArgsToExpr' :: Set HS.QName -> HS.Expr -> (HS.Expr, [HS.Type])
+  addInternalTypeArgsToExpr' :: Set IR.QName -> IR.Expr -> (IR.Expr, [IR.Type])
 
   -- If this is a recursive call the internal type arguments need to be
   -- applied visibly.
-  addInternalTypeArgsToExpr' funcNames expr@(HS.Var _ varName _)
+  addInternalTypeArgsToExpr' funcNames expr@(IR.Var _ varName _)
     | varName `Set.member` funcNames = (expr, internalTypeArgs)
     | otherwise                      = (expr, [])
 
   -- Add new type arguments after exisiting visible type applications.
-  addInternalTypeArgsToExpr' funcNames (HS.TypeAppExpr srcSpan expr typeExpr exprType)
+  addInternalTypeArgsToExpr' funcNames (IR.TypeAppExpr srcSpan expr typeExpr exprType)
     = let (expr', typeArgs) = addInternalTypeArgsToExpr' funcNames expr
-      in  (HS.TypeAppExpr srcSpan expr' typeExpr exprType, typeArgs)
+      in  (IR.TypeAppExpr srcSpan expr' typeExpr exprType, typeArgs)
 
   -- Recursively add the internal type arguments.
-  addInternalTypeArgsToExpr' funcNames (HS.App srcSpan e1 e2 exprType) =
+  addInternalTypeArgsToExpr' funcNames (IR.App srcSpan e1 e2 exprType) =
     let e1' = addInternalTypeArgsToExpr funcNames e1
         e2' = addInternalTypeArgsToExpr funcNames e2
-    in  (HS.App srcSpan e1' e2' exprType, [])
-  addInternalTypeArgsToExpr' funcNames (HS.If srcSpan e1 e2 e3 exprType) =
+    in  (IR.App srcSpan e1' e2' exprType, [])
+  addInternalTypeArgsToExpr' funcNames (IR.If srcSpan e1 e2 e3 exprType) =
     let e1' = addInternalTypeArgsToExpr funcNames e1
         e2' = addInternalTypeArgsToExpr funcNames e2
         e3' = addInternalTypeArgsToExpr funcNames e3
-    in  (HS.If srcSpan e1' e2' e3' exprType, [])
-  addInternalTypeArgsToExpr' funcNames (HS.Case srcSpan expr alts exprType) =
+    in  (IR.If srcSpan e1' e2' e3' exprType, [])
+  addInternalTypeArgsToExpr' funcNames (IR.Case srcSpan expr alts exprType) =
     let expr' = addInternalTypeArgsToExpr funcNames expr
         alts' = map (addInternalTypeArgsToAlt funcNames) alts
-    in  (HS.Case srcSpan expr' alts' exprType, [])
-  addInternalTypeArgsToExpr' funcNames (HS.Lambda srcSpan args expr exprType) =
+    in  (IR.Case srcSpan expr' alts' exprType, [])
+  addInternalTypeArgsToExpr' funcNames (IR.Lambda srcSpan args expr exprType) =
     let funcNames' = withoutArgs args funcNames
         expr'      = addInternalTypeArgsToExpr funcNames' expr
-    in  (HS.Lambda srcSpan args expr' exprType, [])
+    in  (IR.Lambda srcSpan args expr' exprType, [])
 
   -- Leave all other expressions unchnaged.
-  addInternalTypeArgsToExpr' _ expr@(HS.Con        _ _ _) = (expr, [])
-  addInternalTypeArgsToExpr' _ expr@(HS.IntLiteral _ _ _) = (expr, [])
-  addInternalTypeArgsToExpr' _ expr@(HS.Undefined _ _   ) = (expr, [])
-  addInternalTypeArgsToExpr' _ expr@(HS.ErrorExpr _ _ _ ) = (expr, [])
+  addInternalTypeArgsToExpr' _ expr@(IR.Con        _ _ _) = (expr, [])
+  addInternalTypeArgsToExpr' _ expr@(IR.IntLiteral _ _ _) = (expr, [])
+  addInternalTypeArgsToExpr' _ expr@(IR.Undefined _ _   ) = (expr, [])
+  addInternalTypeArgsToExpr' _ expr@(IR.ErrorExpr _ _ _ ) = (expr, [])
 
   -- | Applies 'addInternalTypeArgsToExpr' to the right-hand side of
   --   the given @case@ expression alternative.
-  addInternalTypeArgsToAlt :: Set HS.QName -> HS.Alt -> HS.Alt
-  addInternalTypeArgsToAlt funcNames (HS.Alt srcSpan conPat varPats expr) =
+  addInternalTypeArgsToAlt :: Set IR.QName -> IR.Alt -> IR.Alt
+  addInternalTypeArgsToAlt funcNames (IR.Alt srcSpan conPat varPats expr) =
     let funcNames' = withoutArgs varPats funcNames
         expr'      = addInternalTypeArgsToExpr funcNames' expr
-    in  HS.Alt srcSpan conPat varPats expr'
+    in  IR.Alt srcSpan conPat varPats expr'
 
   -- | Removes the names of the given variable patterns from the given set.
-  withoutArgs :: [HS.VarPat] -> Set HS.QName -> Set HS.QName
-  withoutArgs = flip (Set.\\) . Set.fromList . map HS.varPatQName
+  withoutArgs :: [IR.VarPat] -> Set IR.QName -> Set IR.QName
+  withoutArgs = flip (Set.\\) . Set.fromList . map IR.varPatQName
 
 -------------------------------------------------------------------------------
 -- Solving type equations                                                    --
 -------------------------------------------------------------------------------
 
 -- | Finds the most general unificator that satisfies all given type equations.
-unifyEquations :: [TypeEquation] -> Converter (Subst HS.Type)
+unifyEquations :: [TypeEquation] -> Converter (Subst IR.Type)
 unifyEquations = unifyEquations' identitySubst
  where
   unifyEquations'
-    :: Subst HS.Type -> [TypeEquation] -> Converter (Subst HS.Type)
+    :: Subst IR.Type -> [TypeEquation] -> Converter (Subst IR.Type)
   unifyEquations' subst []                         = return subst
   unifyEquations' subst ((srcSpan, t1, t2) : eqns) = do
     let t1' = applySubst subst t1

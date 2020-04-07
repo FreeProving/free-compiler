@@ -14,7 +14,7 @@
 
 module FreeC.IR.Base.Prelude where
 
-import qualified FreeC.IR.Syntax.Name          as HS
+import qualified FreeC.IR.Syntax.Name          as IR
 
 -------------------------------------------------------------------------------
 -- Names of predefined modules                                               --
@@ -24,7 +24,7 @@ import qualified FreeC.IR.Syntax.Name          as HS
 --
 --   TODO once @import ... as ...@ is supported, the @Prelude@ could be
 --        renamed by the user.
-modName :: HS.ModName
+modName :: IR.ModName
 modName = "Prelude"
 
 -------------------------------------------------------------------------------
@@ -32,63 +32,63 @@ modName = "Prelude"
 -------------------------------------------------------------------------------
 
 -- | The name of the unit type constructor.
-unitTypeConName :: HS.TypeConName
-unitTypeConName = HS.Qual modName (HS.Symbol "")
+unitTypeConName :: IR.TypeConName
+unitTypeConName = IR.Qual modName (IR.Symbol "")
 
 -- | The name of the @n@-ary tuple type constructor.
-tupleTypeConName :: Int -> HS.TypeConName
-tupleTypeConName n = HS.Qual modName (HS.Symbol (replicate (n - 1) ','))
+tupleTypeConName :: Int -> IR.TypeConName
+tupleTypeConName n = IR.Qual modName (IR.Symbol (replicate (n - 1) ','))
 
 -- | The name of the list type constructor.
-listTypeConName :: HS.TypeConName
-listTypeConName = HS.Qual modName (HS.Symbol "[]")
+listTypeConName :: IR.TypeConName
+listTypeConName = IR.Qual modName (IR.Symbol "[]")
 
 -------------------------------------------------------------------------------
 -- Names of predefined data constructors                                     --
 -------------------------------------------------------------------------------
 
 -- | Name of the unit data constructor.
-unitConName :: HS.ConName
-unitConName = HS.Qual modName (HS.Symbol "")
+unitConName :: IR.ConName
+unitConName = IR.Qual modName (IR.Symbol "")
 
 -- | The name of the empty list data constructor.
-nilConName :: HS.ConName
-nilConName = HS.Qual modName (HS.Symbol "[]")
+nilConName :: IR.ConName
+nilConName = IR.Qual modName (IR.Symbol "[]")
 
 -- | The name of the non empty list data constructor.
-consConName :: HS.ConName
-consConName = HS.Qual modName (HS.Symbol ":")
+consConName :: IR.ConName
+consConName = IR.Qual modName (IR.Symbol ":")
 
 -- | The name of the @n@-ary tuple data constructor.
-tupleConName :: Int -> HS.ConName
-tupleConName n = HS.Qual modName (HS.Symbol (replicate (n - 1) ','))
+tupleConName :: Int -> IR.ConName
+tupleConName n = IR.Qual modName (IR.Symbol (replicate (n - 1) ','))
 
 -------------------------------------------------------------------------------
 -- Names of special predefined types and operators                           --
 -------------------------------------------------------------------------------
 
 -- | When inferring the type of integer literals this is the type to infer.
-integerTypeConName :: HS.TypeConName
-integerTypeConName = HS.Qual modName (HS.Ident "Integer")
+integerTypeConName :: IR.TypeConName
+integerTypeConName = IR.Qual modName (IR.Ident "Integer")
 
 -- | When inferring the type of @if@ expressions this is the type to infer
 --   for the condition.
-boolTypeConName :: HS.TypeConName
-boolTypeConName = HS.Qual modName (HS.Ident "Bool")
+boolTypeConName :: IR.TypeConName
+boolTypeConName = IR.Qual modName (IR.Ident "Bool")
 
 -- | The unary prefix operator @-@ is translated to the application of the
 --   @negate@ function.
-negateOpName :: HS.VarName
-negateOpName = HS.Qual modName (HS.Ident "negate")
+negateOpName :: IR.VarName
+negateOpName = IR.Qual modName (IR.Ident "negate")
 
 -------------------------------------------------------------------------------
 -- Names of error terms                                                      --
 -------------------------------------------------------------------------------
 
 -- | The name of the @error@ function.
-errorFuncName :: HS.VarName
-errorFuncName = HS.Qual modName (HS.Ident "error")
+errorFuncName :: IR.VarName
+errorFuncName = IR.Qual modName (IR.Ident "error")
 
 -- | The name of the @undefined@ function.
-undefinedFuncName :: HS.VarName
-undefinedFuncName = HS.Qual modName (HS.Ident "undefined")
+undefinedFuncName :: IR.VarName
+undefinedFuncName = IR.Qual modName (IR.Ident "undefined")

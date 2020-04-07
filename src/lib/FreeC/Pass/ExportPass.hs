@@ -71,22 +71,22 @@ import qualified FreeC.Backend.Coq.Base        as CoqBase
 import           FreeC.Environment
 import           FreeC.Environment.ModuleInterface
 import           FreeC.Environment.Entry
-import qualified FreeC.IR.Syntax               as HS
+import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Converter
 import           FreeC.Pass
 
 -- | A compiler pass that constructs a module interface from the current
 --   environment for the given module and inserts it into the environment.
-exportPass :: Pass HS.Module
+exportPass :: Pass IR.Module
 exportPass ast = do
-  iface <- exportInterface (HS.modName ast)
+  iface <- exportInterface (IR.modName ast)
   modifyEnv $ makeModuleAvailable iface
   return ast
 
 -- | Generates a module interface that contains all entries from the
 --   environment and exports all top-level declarations that are declared in
 --   the module with the given name.
-exportInterface :: HS.ModName -> Converter ModuleInterface
+exportInterface :: IR.ModName -> Converter ModuleInterface
 exportInterface modName = do
   entries <- inEnv $ Map.elems . envEntries
   let exports = map entryScopedName $ filter isExported entries
@@ -105,5 +105,5 @@ exportInterface modName = do
    -- with the module name.
   isExported :: EnvEntry -> Bool
   isExported entry = case entryName entry of
-    HS.Qual modName' _ -> modName' == modName
-    HS.UnQual _        -> False
+    IR.Qual modName' _ -> modName' == modName
+    IR.UnQual _        -> False

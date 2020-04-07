@@ -74,7 +74,7 @@ import           Data.Tuple.Extra
 import           FreeC.IR.Reference             ( typeRefs
                                                 , valueRefs
                                                 )
-import qualified FreeC.IR.Syntax               as HS
+import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Pretty
 
 -------------------------------------------------------------------------------
@@ -83,7 +83,7 @@ import           FreeC.Pretty
 
 -- | Every node of the dependency graph is uniquely identified by a key.
 --   We use their qualified original name to identify declarations.
-type DGKey = HS.QName
+type DGKey = IR.QName
 
 -- | Every node (i.e., declaration) in a dependency graph is associated with a
 --   unique key (its qualified original name) and a list of keys that identify
@@ -91,7 +91,7 @@ type DGKey = HS.QName
 type DGEntry node = (node, DGKey, [DGKey])
 
 -- | A dependency graph is a directed graph whose nodes are declarations
---   (Usually 'HS.TypeDecl' or 'HS.FuncDecl'). There is an edge from node
+--   (Usually 'IR.TypeDecl' or 'IR.FuncDecl'). There is an edge from node
 --   @A@ to node @B@ if the declaration of @A@ depends on @B@.
 --
 --   Nodes are identified by their qualified original name (See 'DGKey').
@@ -141,44 +141,44 @@ dependsDirectlyOn (DependencyGraph graph _ getVertex) k1 k2 =
 
 -- | Creates the dependency graph for a list of data type or type synonym
 --   declarations.
-typeDependencyGraph :: [HS.TypeDecl] -> DependencyGraph HS.TypeDecl
+typeDependencyGraph :: [IR.TypeDecl] -> DependencyGraph IR.TypeDecl
 typeDependencyGraph =
   uncurry3 DependencyGraph . graphFromEdges . map typeDeclEntry
 
 -- | Creates an entry of the dependency graph for the given data type or type
 --   synonym declaration.
-typeDeclEntry :: HS.TypeDecl -> DGEntry HS.TypeDecl
-typeDeclEntry decl = (decl, HS.typeDeclQName decl, typeRefs decl)
+typeDeclEntry :: IR.TypeDecl -> DGEntry IR.TypeDecl
+typeDeclEntry decl = (decl, IR.typeDeclQName decl, typeRefs decl)
 
 -------------------------------------------------------------------------------
 -- Function dependencies                                                     --
 -------------------------------------------------------------------------------
 
 -- | Creates the dependency graph for a list of function declarations.
-funcDependencyGraph :: [HS.FuncDecl] -> DependencyGraph HS.FuncDecl
+funcDependencyGraph :: [IR.FuncDecl] -> DependencyGraph IR.FuncDecl
 funcDependencyGraph =
   uncurry3 DependencyGraph . graphFromEdges . map funcDeclEntry
 
 -- | Creates an entry of the dependency graph for the given function
 --   declaration or pattern binding.
-funcDeclEntry :: HS.FuncDecl -> DGEntry HS.FuncDecl
-funcDeclEntry decl = (decl, HS.funcDeclQName decl, valueRefs decl)
+funcDeclEntry :: IR.FuncDecl -> DGEntry IR.FuncDecl
+funcDeclEntry decl = (decl, IR.funcDeclQName decl, valueRefs decl)
 
 -------------------------------------------------------------------------------
 -- Module dependencies                                                       --
 -------------------------------------------------------------------------------
 
 -- | Creates the dependency graph for the given modules.
-moduleDependencyGraph :: [HS.Module] -> DependencyGraph HS.Module
+moduleDependencyGraph :: [IR.Module] -> DependencyGraph IR.Module
 moduleDependencyGraph =
   uncurry3 DependencyGraph . graphFromEdges . map moduleEntries
 
 -- | Creates an entry of the dependency graph for the given module.
-moduleEntries :: HS.Module -> DGEntry HS.Module
+moduleEntries :: IR.Module -> DGEntry IR.Module
 moduleEntries decl =
   ( decl
-  , HS.UnQual (HS.Ident (HS.modName decl))
-  , map (HS.UnQual . HS.Ident . HS.importName) (HS.modImports decl)
+  , IR.UnQual (IR.Ident (IR.modName decl))
+  , map (IR.UnQual . IR.Ident . IR.importName) (IR.modImports decl)
   )
 
 -------------------------------------------------------------------------------
@@ -283,13 +283,13 @@ dependencyComponents =
 -- | Combines the construction of the dependency graphs for the given
 --   type declarations (See 'typeDependencyGraph') with the computation of
 --   strongly connected components.
-groupTypeDecls :: [HS.TypeDecl] -> [DependencyComponent HS.TypeDecl]
+groupTypeDecls :: [IR.TypeDecl] -> [DependencyComponent IR.TypeDecl]
 groupTypeDecls = dependencyComponents . typeDependencyGraph
 
 -- | Combines the construction of the dependency graphs for the given
 --   function declarations (See 'funcDependencyGraph') with the computation
 --   of strongly connected components.
-groupFuncDecls :: [HS.FuncDecl] -> [DependencyComponent HS.FuncDecl]
+groupFuncDecls :: [IR.FuncDecl] -> [DependencyComponent IR.FuncDecl]
 groupFuncDecls = dependencyComponents . funcDependencyGraph
 
 -- | Combines the construction of the dependency graph for the given
@@ -299,7 +299,7 @@ groupFuncDecls = dependencyComponents . funcDependencyGraph
 --   Since cyclic module dependencies are not allowed, all
 --   'DependencyComponent's in the returned list should be 'NonRecursive'.
 --   Otherwise there is a module dependency error.
-groupModules :: [HS.Module] -> [DependencyComponent HS.Module]
+groupModules :: [IR.Module] -> [DependencyComponent IR.Module]
 groupModules = dependencyComponents . moduleDependencyGraph
 
 -------------------------------------------------------------------------------

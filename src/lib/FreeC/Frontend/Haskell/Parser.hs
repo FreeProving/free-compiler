@@ -50,7 +50,7 @@ import qualified Language.Haskell.Exts.Syntax  as H
 
 import           FreeC.Frontend.Haskell.SrcSpanConverter
 import           FreeC.IR.SrcSpan
-import           FreeC.IR.Syntax               as HS
+import           FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Reporter
 
 -- | Custom parameters for parsing a Haskell source file with the given name.
@@ -109,7 +109,7 @@ parseHaskellWithComments
   :: (Functor ast, Parseable (ast SrcSpanInfo), MonadReporter r)
   => String -- ^ The name of the Haskell source file.
   -> String -- ^ The Haskell source code.
-  -> r (ast SrcSpan, [HS.Comment])
+  -> r (ast SrcSpan, [IR.Comment])
 parseHaskellWithComments = parseHaskellWithCommentsAndExts []
 
 -- | Like 'parseHaskellWithComments' but allows language extensions to be
@@ -119,7 +119,7 @@ parseHaskellWithCommentsAndExts
   => [KnownExtension] -- ^ The extensions to enable.
   -> String           -- ^ The name of the Haskell source file.
   -> String           -- ^ The Haskell source code.
-  -> r (ast SrcSpan, [HS.Comment])
+  -> r (ast SrcSpan, [IR.Comment])
 parseHaskellWithCommentsAndExts enabledExts filename contents =
   case parseWithComments parseMode contents of
     ParseOk (node, comments) -> return
@@ -150,10 +150,10 @@ parseHaskellWithCommentsAndExts enabledExts filename contents =
   --   'Language.Haskell.Exts.Comments.Comment' data type does
   --   not have a type parameter for the source span information.
   --   Therefore, we have to convert comments in this phase already.
-  convertComment :: H.Comment -> HS.Comment
+  convertComment :: H.Comment -> IR.Comment
   convertComment (H.Comment isBlockComment srcSpan text)
-    | isBlockComment = HS.BlockComment (toMessageSrcSpan srcSpan) text
-    | otherwise      = HS.LineComment (toMessageSrcSpan srcSpan) text
+    | isBlockComment = IR.BlockComment (toMessageSrcSpan srcSpan) text
+    | otherwise      = IR.LineComment (toMessageSrcSpan srcSpan) text
 
 -------------------------------------------------------------------------------
 -- Modules                                                                   --
@@ -174,7 +174,7 @@ parseModuleWithComments
   :: MonadReporter r
   => String  -- ^ The name of the Haskell source file.
   -> String  -- ^ The Haskell source code.
-  -> r (H.Module SrcSpan, [HS.Comment])
+  -> r (H.Module SrcSpan, [IR.Comment])
 parseModuleWithComments = parseHaskellWithComments
 
 -- | Loads and parses a Haskell module from the file with the given name.
@@ -188,7 +188,7 @@ parseModuleFile = fmap fst . parseModuleFileWithComments
 parseModuleFileWithComments
   :: (MonadIO r, MonadReporter r)
   => String -- ^ The name of the Haskell source file.
-  -> r (H.Module SrcSpan, [HS.Comment])
+  -> r (H.Module SrcSpan, [IR.Comment])
 parseModuleFileWithComments filename = do
   contents <- liftIO $ readFile filename
   parseModuleWithComments filename contents

@@ -23,9 +23,9 @@ import           FreeC.Environment
 import           FreeC.Environment.ModuleInterface
 import           FreeC.Environment.Entry
 import           FreeC.Frontend.Haskell.Parser
-import qualified FreeC.IR.Base.Prelude         as HS.Prelude
+import qualified FreeC.IR.Base.Prelude         as IR.Prelude
 import           FreeC.IR.SrcSpan
-import qualified FreeC.IR.Syntax               as HS
+import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
 import           FreeC.Pretty
@@ -36,7 +36,7 @@ import           FreeC.Pretty
 --   module.
 initialState :: Converter PMState
 initialState = do
-  Just preludeIface <- inEnv $ lookupAvailableModule HS.Prelude.modName
+  Just preludeIface <- inEnv $ lookupAvailableModule IR.Prelude.modName
   let entries  = Set.toList (interfaceEntries preludeIface)
       entries' = mapMaybe makeConsMapEntry entries
       consMap  = Map.fromListWith (++) entries'
@@ -60,15 +60,15 @@ makeConsMapEntry entry
     return (typeConIdent, [(conQName, arity, isInfix)])
  where
   -- | Gets the name of the data type from the return type of the constructor.
-  extractTypeConIdent :: HS.Type -> Maybe String
-  extractTypeConIdent (HS.TypeCon _ (HS.UnQual name)) = extractIdent name
-  extractTypeConIdent (HS.TypeCon _ (HS.Qual _ name)) = extractIdent name
-  extractTypeConIdent (HS.TypeApp _ t1 _            ) = extractTypeConIdent t1
+  extractTypeConIdent :: IR.Type -> Maybe String
+  extractTypeConIdent (IR.TypeCon _ (IR.UnQual name)) = extractIdent name
+  extractTypeConIdent (IR.TypeCon _ (IR.Qual _ name)) = extractIdent name
+  extractTypeConIdent (IR.TypeApp _ t1 _            ) = extractTypeConIdent t1
   extractTypeConIdent _                               = Nothing
 
-  extractIdent :: HS.Name -> Maybe String
-  extractIdent (HS.Ident  ident) = Just ident
-  extractIdent (HS.Symbol sym  ) = Just sym
+  extractIdent :: IR.Name -> Maybe String
+  extractIdent (IR.Ident  ident) = Just ident
+  extractIdent (IR.Symbol sym  ) = Just sym
 
   -- | Generates the AST node for the name of the constructor by parsing the
   --   constructor name.
@@ -83,15 +83,15 @@ makeConsMapEntry entry
   -- | In Haskell infix operators start with a colon.
   isInfix :: Bool
   isInfix = case entryName entry of
-    HS.Qual _ (HS.Symbol (':' : _)) -> True
-    HS.UnQual (HS.Symbol (':' : _)) -> True
+    IR.Qual _ (IR.Symbol (':' : _)) -> True
+    IR.UnQual (IR.Symbol (':' : _)) -> True
     _                               -> False
 
   -- | Converts a qualified identifier (e.g., the original entry name) to
   --   an unqualified identifier.
-  unqualify :: HS.QName -> HS.QName
-  unqualify (HS.Qual _ name) = HS.UnQual name
-  unqualify (HS.UnQual name) = HS.UnQual name
+  unqualify :: IR.QName -> IR.QName
+  unqualify (IR.Qual _ name) = IR.UnQual name
+  unqualify (IR.UnQual name) = IR.UnQual name
 
 -- | Applies the pattern matching transformation, guard elimination and case
 --   completion.

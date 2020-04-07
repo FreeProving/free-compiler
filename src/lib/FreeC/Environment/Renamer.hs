@@ -38,7 +38,7 @@ import qualified FreeC.Backend.Coq.Syntax      as G
 import           FreeC.Environment
 import           FreeC.Environment.Entry
 import           FreeC.IR.SrcSpan
-import qualified FreeC.IR.Syntax               as HS
+import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
 import           FreeC.Pretty
@@ -195,7 +195,7 @@ renameEntry entry env
   | otherwise = entry { entryIdent = renameQualid ident env }
  where
   ident :: String
-  ident = fromMaybe "op" $ HS.identFromQName (entryName entry)
+  ident = fromMaybe "op" $ IR.identFromQName (entryName entry)
 
 -- | Renames the identifier of the given entry such that it does not cause
 --   any name conflict in the current environment and inserts it into the
@@ -233,7 +233,7 @@ renameAndDefineTypeVar
 renameAndDefineTypeVar srcSpan ident = do
   entry <- renameAndAddEntry TypeVarEntry
     { entrySrcSpan = srcSpan
-    , entryName    = HS.UnQual (HS.Ident ident)
+    , entryName    = IR.UnQual (IR.Ident ident)
     , entryIdent   = undefined -- filled by renamer
     }
   return (entryIdent entry)
@@ -248,12 +248,12 @@ renameAndDefineVar
   -> Bool          -- ^ Whether the variable has not been lifted to the
                    --   free monad.
   -> String        -- ^ The name of the variable.
-  -> Maybe HS.Type -- ^ The type of the variable if it is known.
+  -> Maybe IR.Type -- ^ The type of the variable if it is known.
   -> Converter G.Qualid
 renameAndDefineVar srcSpan isPure ident maybeVarType = do
   entry <- renameAndAddEntry VarEntry { entrySrcSpan = srcSpan
                                       , entryIsPure  = isPure
-                                      , entryName = HS.UnQual (HS.Ident ident)
+                                      , entryName = IR.UnQual (IR.Ident ident)
                                       , entryIdent   = undefined -- filled by renamer
                                       , entryType    = maybeVarType
                                       }
@@ -267,7 +267,7 @@ renameAndDefineVar srcSpan isPure ident maybeVarType = do
 informIfRenamed :: EnvEntry -> EnvEntry -> Converter ()
 informIfRenamed entry entry' = do
   let topLevel = isTopLevelEntry entry
-  when (topLevel && not (HS.isInternalIdent ident) && ident /= ident')
+  when (topLevel && not (IR.isInternalIdent ident) && ident /= ident')
     $  report
     $  Message (entrySrcSpan entry) Info
     $  "Renamed "
@@ -279,7 +279,7 @@ informIfRenamed entry entry' = do
     ++ "'."
  where
   ident, ident' :: String
-  ident = fromMaybe "op" $ HS.identFromQName (entryName entry)
+  ident = fromMaybe "op" $ IR.identFromQName (entryName entry)
   Just ident'
     | entryHasSmartIdent entry = G.unpackQualid (entrySmartIdent entry')
     | otherwise                = G.unpackQualid (entryIdent entry')

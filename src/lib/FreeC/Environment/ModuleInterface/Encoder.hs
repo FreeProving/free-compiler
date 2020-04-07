@@ -29,14 +29,14 @@ import           FreeC.Environment.Entry
 import           FreeC.Environment.ModuleInterface
 import           FreeC.Environment.Scope
 import           FreeC.IR.SrcSpan
-import qualified FreeC.IR.Syntax               as HS
+import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Reporter
 import           FreeC.Pretty
 
-instance Aeson.ToJSON HS.QName where
+instance Aeson.ToJSON IR.QName where
   toJSON = Aeson.toJSON . showPretty
 
-instance Aeson.ToJSON HS.Type where
+instance Aeson.ToJSON IR.Type where
   toJSON = Aeson.toJSON . showPretty
 
 instance Aeson.ToJSON G.Qualid where
@@ -125,7 +125,7 @@ encodeEntry entry
   maybeHaskellType = do
     returnType <- entryReturnType entry
     argTypes   <- sequence (entryArgTypes entry)
-    let funcType = foldr (HS.FuncType NoSrcSpan) returnType argTypes
+    let funcType = foldr (IR.FuncType NoSrcSpan) returnType argTypes
     return (Aeson.toJSON funcType)
 
   typeSyn :: Aeson.Value

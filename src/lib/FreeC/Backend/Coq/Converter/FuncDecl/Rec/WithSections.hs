@@ -49,7 +49,7 @@ import           FreeC.IR.Reference             ( freeTypeVarSet
                                                 )
 import           FreeC.IR.SrcSpan
 import           FreeC.IR.Subst
-import qualified FreeC.IR.Syntax               as HS
+import qualified FreeC.IR.Syntax               as IR
 import           FreeC.IR.Unification
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
@@ -58,13 +58,13 @@ import           FreeC.Pretty
 -- | Converts recursive function declarations and adds a @Section@ sentence
 --   for the given constant arguments.
 convertRecFuncDeclsWithSection
-  :: [ConstArg] -> [HS.FuncDecl] -> Converter [G.Sentence]
+  :: [ConstArg] -> [IR.FuncDecl] -> Converter [G.Sentence]
 convertRecFuncDeclsWithSection constArgs decls = do
   -- Rename the function declarations in the section.
   (renamedDecls, nameMap) <- renameFuncDecls decls
   let renamedConstArgs = map (renameConstArg nameMap) constArgs
       renamedTypeArgs =
-        map (map HS.typeVarDeclIdent . HS.funcDeclTypeArgs) renamedDecls
+        map (map IR.typeVarDeclIdent . IR.funcDeclTypeArgs) renamedDecls
 
   -- Lookup the argument and return types of all function declarations.
   (argTypeMaps, returnTypeMaps) <- mapAndUnzipM argAndReturnTypeMaps
@@ -78,7 +78,7 @@ convertRecFuncDeclsWithSection constArgs decls = do
                                         renamedConstArgs
   let mgu           = composeSubsts mgus
       typeArgNames  = Set.toList (Set.unions (map freeTypeVarSet constArgTypes))
-      typeArgIdents = map (fromJust . HS.identFromQName) typeArgNames
+      typeArgIdents = map (fromJust . IR.identFromQName) typeArgNames
 
   -- Apply unificator to rename the type arguments on the right-hand side.
   let renamedDecls' = applySubst mgu renamedDecls
@@ -94,7 +94,7 @@ convertRecFuncDeclsWithSection constArgs decls = do
     isConstArgUsed    = map (flip any sectionDecls . isConstArgUsedBy) constArgs
     usedConstArgTypes = map snd $ filter fst $ zip isConstArgUsed constArgTypes
     isTypeArgUsed v = any
-      (Set.member (HS.UnQual (HS.Ident v)) . freeTypeVarSet)
+      (Set.member (IR.UnQual (IR.Ident v)) . freeTypeVarSet)
       usedConstArgTypes
     usedTypeArgIdents = filter isTypeArgUsed typeArgIdents
 
@@ -122,8 +122,8 @@ convertRecFuncDeclsWithSection constArgs decls = do
 
     -- Generate a section identifier from the names of the original functions
     -- and convert the renamed functions as usual.
-    let funcNames  = map HS.funcDeclQName decls
-        funcIdents = mapMaybe HS.identFromQName funcNames
+    let funcNames  = map IR.funcDeclQName decls
+        funcIdents = mapMaybe IR.identFromQName funcNames
     sectionIdent <- freshCoqIdent (intercalate "_" ("section" : funcIdents))
     (helperDecls', mainDecls') <- convertRecFuncDeclsWithHelpers' sectionDecls'
     return
@@ -170,33 +170,33 @@ convertRecFuncDeclsWithSection constArgs decls = do
 --   Returns the renamed function declarations and a map from old names
 --   to new names.
 renameFuncDecls
-  :: [HS.FuncDecl] -> Converter ([HS.FuncDecl], Map HS.QName HS.QName)
+  :: [IR.FuncDecl] -> Converter ([IR.FuncDecl], Map IR.QName IR.QName)
 renameFuncDecls decls = do
   -- Create a substitution from old identifiers to fresh identifiers.
-  let names = map HS.funcDeclQName decls
+  let names = map IR.funcDeclQName decls
   names' <- mapM freshHaskellQName names
   let nameMap = zip names names'
       subst   = composeSubsts $ do
         (name, name') <- nameMap
-        return (singleSubst' name (flip HS.untypedVar name'))
+        return (singleSubst' name (flip IR.untypedVar name'))
   -- Rename function declarations, apply substituion to right-hand side
   -- and copy type signature and entry of original function.
   decls' <-
     forM decls
-      $ \(HS.FuncDecl srcSpan (HS.DeclIdent srcSpan' name) typeArgs args maybeRetType rhs) ->
+      $ \(IR.FuncDecl srcSpan (IR.DeclIdent srcSpan' name) typeArgs args maybeRetType rhs) ->
           do
             let Just name'    = lookup name nameMap
 
             -- Generate fresh identifiers for type variables.
-            let typeArgIdents = map HS.typeVarDeclIdent typeArgs
+            let typeArgIdents = map IR.typeVarDeclIdent typeArgs
             typeArgIdents' <- mapM freshHaskellIdent typeArgIdents
-            let typeArgs' = zipWith HS.TypeVarDecl
-                                    (map HS.typeVarDeclSrcSpan typeArgs)
+            let typeArgs' = zipWith IR.TypeVarDecl
+                                    (map IR.typeVarDeclSrcSpan typeArgs)
                                     typeArgIdents'
                 typeVarSubst = composeSubsts
                   (zipWith singleSubst'
-                           (map (HS.UnQual . HS.Ident) typeArgIdents)
-                           (map (flip HS.TypeVar) typeArgIdents')
+                           (map (IR.UnQual . IR.Ident) typeArgIdents)
+                           (map (flip IR.TypeVar) typeArgIdents')
                   )
                 args'         = applySubst typeVarSubst args
                 maybeRetType' = applySubst typeVarSubst maybeRetType
@@ -206,7 +206,7 @@ renameFuncDecls decls = do
             _     <- renameAndAddEntry entry
               { entryName       = name'
               , entryTypeArgs   = typeArgIdents'
-              , entryArgTypes   = map HS.varPatType args'
+              , entryArgTypes   = map IR.varPatType args'
               , entryReturnType = maybeRetType'
               }
 
@@ -223,8 +223,8 @@ renameFuncDecls decls = do
 
             -- Rename function declaration.
             return
-              (HS.FuncDecl srcSpan
-                           (HS.DeclIdent srcSpan' name')
+              (IR.FuncDecl srcSpan
+                           (IR.DeclIdent srcSpan' name')
                            typeArgs'
                            args'
                            maybeRetType'
@@ -233,14 +233,14 @@ renameFuncDecls decls = do
   return (decls', Map.fromList nameMap)
 
 -- | Replaces the function names in the given 'ConstArg' using the given map.
-renameConstArg :: Map HS.QName HS.QName -> ConstArg -> ConstArg
+renameConstArg :: Map IR.QName IR.QName -> ConstArg -> ConstArg
 renameConstArg nameMap constArg = constArg
   { constArgIdents   = renameKeys (constArgIdents constArg)
   , constArgIndicies = renameKeys (constArgIndicies constArg)
   }
  where
   -- | Replaces the keys of the given map using 'nameMap'.
-  renameKeys :: Map HS.QName v -> Map HS.QName v
+  renameKeys :: Map IR.QName v -> Map IR.QName v
   renameKeys = Map.mapKeys (fromJust . flip Map.lookup nameMap)
 
 -------------------------------------------------------------------------------
@@ -252,15 +252,15 @@ renameConstArg nameMap constArg = constArg
 --   type and a second map that maps the function names to their annotated
 --   return types.
 argAndReturnTypeMaps
-  :: HS.FuncDecl
-  -> Converter (Map (HS.QName, String) HS.Type, Map HS.QName HS.Type)
-argAndReturnTypeMaps (HS.FuncDecl _ (HS.DeclIdent _ name) _ args maybeRetType _)
+  :: IR.FuncDecl
+  -> Converter (Map (IR.QName, String) IR.Type, Map IR.QName IR.Type)
+argAndReturnTypeMaps (IR.FuncDecl _ (IR.DeclIdent _ name) _ args maybeRetType _)
   = return (argTypeMap, returnTypeMap)
  where
   argTypeMap = Map.fromList
-    [ ((name, HS.varPatIdent arg), argType)
+    [ ((name, IR.varPatIdent arg), argType)
     | arg     <- args
-    , argType <- maybeToList (HS.varPatType arg)
+    , argType <- maybeToList (IR.varPatType arg)
     ]
   returnTypeMap =
     Map.fromList [ (name, retType) | retType <- maybeToList maybeRetType ]
@@ -271,13 +271,13 @@ argAndReturnTypeMaps (HS.FuncDecl _ (HS.DeclIdent _ name) _ args maybeRetType _)
 --   Does not check whether all arguments have the same type but returns the
 --   first matching type.
 lookupConstArgType
-  :: Map (HS.QName, String) HS.Type
+  :: Map (IR.QName, String) IR.Type
   -> ConstArg
-  -> Converter (HS.Type, Subst HS.Type)
+  -> Converter (IR.Type, Subst IR.Type)
 lookupConstArgType argTypeMap constArg = do
   let idents  = Map.assocs (constArgIdents constArg)
       types   = mapMaybe (flip Map.lookup argTypeMap) idents
-      srcSpan = HS.typeSrcSpan (head types)
+      srcSpan = IR.typeSrcSpan (head types)
   -- Unify all annotated types of the constant argument.
   mgu <- unifyAllOrFail srcSpan types
   let constArgType = applySubst mgu (head types)
@@ -289,15 +289,15 @@ lookupConstArgType argTypeMap constArg = do
 
 -- | Tests whether the given (renamed) function declaration uses the constant
 --   argument.
-isConstArgUsedBy :: ConstArg -> HS.FuncDecl -> Bool
+isConstArgUsedBy :: ConstArg -> IR.FuncDecl -> Bool
 isConstArgUsedBy constArg funcDecl =
-  HS.UnQual (HS.Ident (constArgFreshIdent constArg))
-    `Set.member` freeVarSet (HS.funcDeclRhs funcDecl)
+  IR.UnQual (IR.Ident (constArgFreshIdent constArg))
+    `Set.member` freeVarSet (IR.funcDeclRhs funcDecl)
 
 -- | Generates the @Variable@ sentence for the type variables in the given
 --   types of the constant arguments.
 generateConstTypeArgSentence
-  :: [HS.TypeVarIdent] -> Converter (Maybe G.Sentence)
+  :: [IR.TypeVarIdent] -> Converter (Maybe G.Sentence)
 generateConstTypeArgSentence typeVarIdents
   | null typeVarIdents = return Nothing
   | otherwise = do
@@ -307,7 +307,7 @@ generateConstTypeArgSentence typeVarIdents
 
 -- | Generates a @Variable@ sentence for a constant argument with the
 --   given type.
-generateConstArgVariable :: ConstArg -> HS.Type -> Converter G.Sentence
+generateConstArgVariable :: ConstArg -> IR.Type -> Converter G.Sentence
 generateConstArgVariable constArg constArgType = do
   let ident = constArgFreshIdent constArg
   constArgType' <- convertType constArgType
@@ -325,105 +325,105 @@ generateConstArgVariable constArg constArgType = do
 --   The constant arguments are also removed from calls to functions
 --   that share the constant argument.
 removeConstArgsFromFuncDecl
-  :: [ConstArg] -> HS.FuncDecl -> Converter HS.FuncDecl
-removeConstArgsFromFuncDecl constArgs (HS.FuncDecl srcSpan declIdent typeArgs args maybeRetType rhs)
+  :: [ConstArg] -> IR.FuncDecl -> Converter IR.FuncDecl
+removeConstArgsFromFuncDecl constArgs (IR.FuncDecl srcSpan declIdent typeArgs args maybeRetType rhs)
   = do
-    let name        = HS.declIdentName declIdent
+    let name        = IR.declIdentName declIdent
         removedArgs = fromJust $ Map.lookup name $ Map.unionsWith (++) $ map
           (Map.map return . constArgIdents)
           constArgs
         freshArgs = map constArgFreshIdent constArgs
-        args' = [ arg | arg <- args, HS.varPatIdent arg `notElem` removedArgs ]
+        args' = [ arg | arg <- args, IR.varPatIdent arg `notElem` removedArgs ]
         subst = composeSubsts
-          [ singleSubst' (HS.UnQual (HS.Ident removedArg))
-                         (flip HS.untypedVar (HS.UnQual (HS.Ident freshArg)))
+          [ singleSubst' (IR.UnQual (IR.Ident removedArg))
+                         (flip IR.untypedVar (IR.UnQual (IR.Ident freshArg)))
           | (removedArg, freshArg) <- zip removedArgs freshArgs
           ]
     rhs' <- removeConstArgsFromExpr constArgs (applySubst subst rhs)
-    return (HS.FuncDecl srcSpan declIdent typeArgs args' maybeRetType rhs')
+    return (IR.FuncDecl srcSpan declIdent typeArgs args' maybeRetType rhs')
 
 -- | Removes constant arguments from the applications in the given expressions.
-removeConstArgsFromExpr :: [ConstArg] -> HS.Expr -> Converter HS.Expr
+removeConstArgsFromExpr :: [ConstArg] -> IR.Expr -> Converter IR.Expr
 removeConstArgsFromExpr constArgs rootExpr = do
   (rootExpr', []) <- removeConstArgsFromExpr' rootExpr
   return rootExpr'
  where
   -- | Maps the name of functions that share the constant arguments to
   --   the indices of their corresponding argument.
-  constArgIndicesMap :: Map HS.QName [Int]
+  constArgIndicesMap :: Map IR.QName [Int]
   constArgIndicesMap =
     Map.unionsWith (++) $ map (Map.map return . constArgIndicies) constArgs
 
   -- | Looks up the indices of arguments that can be removed from the
   --   application of a function with the given name.
-  lookupConstArgIndicies :: HS.QName -> Converter [Int]
+  lookupConstArgIndicies :: IR.QName -> Converter [Int]
   lookupConstArgIndicies name = do
     function <- inEnv $ isFunction name
     return (if function then lookupConstArgIndicies' name else [])
 
   -- | Like 'lookupConstArgIndicies' but assumes the function not to be
   --   shadowed by local varibales.
-  lookupConstArgIndicies' :: HS.QName -> [Int]
+  lookupConstArgIndicies' :: IR.QName -> [Int]
   lookupConstArgIndicies' = fromMaybe [] . flip Map.lookup constArgIndicesMap
 
   -- | Implementation of 'removeConstArgsFromExpr' that returns the indices
   --   of the arguments that still need to be removed.
   removeConstArgsFromExpr'
-    :: HS.Expr    -- ^ The expression to remove the constant arguments from.
-    -> Converter (HS.Expr, [Int])
+    :: IR.Expr    -- ^ The expression to remove the constant arguments from.
+    -> Converter (IR.Expr, [Int])
 
   -- If a variable is applied, lookup the indices of the arguments that
   -- can be removed.
-  removeConstArgsFromExpr' expr@(HS.Var _ name _) = do
+  removeConstArgsFromExpr' expr@(IR.Var _ name _) = do
     indices <- lookupConstArgIndicies name
     return (expr, indices)
 
   -- Remove constant arguments from the applied expression. If the current
   -- argument (index @0@) needs to be removed, remove it. Otherwise remove
   -- constant arguments from the argument recursively.
-  removeConstArgsFromExpr' (HS.App srcSpan e1 e2 exprType) = do
+  removeConstArgsFromExpr' (IR.App srcSpan e1 e2 exprType) = do
     (e1', indices) <- removeConstArgsFromExpr' e1
     let indices' = map (subtract 1) (filter (> 0) indices)
     if 0 `elem` indices
       then return (e1', indices')
       else do
         (e2', []) <- removeConstArgsFromExpr' e2
-        return (HS.App srcSpan e1' e2' exprType, indices')
+        return (IR.App srcSpan e1' e2' exprType, indices')
 
   -- Remove constant arguments recursively and pass through the indices of
   -- arguments that still have to be removed.
-  removeConstArgsFromExpr' (HS.TypeAppExpr srcSpan expr typeExpr exprType) = do
+  removeConstArgsFromExpr' (IR.TypeAppExpr srcSpan expr typeExpr exprType) = do
     (expr', indices) <- removeConstArgsFromExpr' expr
-    return (HS.TypeAppExpr srcSpan expr' typeExpr exprType, indices)
+    return (IR.TypeAppExpr srcSpan expr' typeExpr exprType, indices)
 
   -- Remove constant arguments recursively.
-  removeConstArgsFromExpr' (HS.Lambda srcSpan varPats expr exprType) =
+  removeConstArgsFromExpr' (IR.Lambda srcSpan varPats expr exprType) =
     shadowVarPats varPats $ do
       (expr', []) <- removeConstArgsFromExpr' expr
-      return (HS.Lambda srcSpan varPats expr' exprType, [])
-  removeConstArgsFromExpr' (HS.If srcSpan e1 e2 e3 exprType) = do
+      return (IR.Lambda srcSpan varPats expr' exprType, [])
+  removeConstArgsFromExpr' (IR.If srcSpan e1 e2 e3 exprType) = do
     (e1', []) <- removeConstArgsFromExpr' e1
     (e2', []) <- removeConstArgsFromExpr' e2
     (e3', []) <- removeConstArgsFromExpr' e3
-    return (HS.If srcSpan e1' e2' e3' exprType, [])
-  removeConstArgsFromExpr' (HS.Case srcSpan expr alts exprType) = do
+    return (IR.If srcSpan e1' e2' e3' exprType, [])
+  removeConstArgsFromExpr' (IR.Case srcSpan expr alts exprType) = do
     (expr', []) <- removeConstArgsFromExpr' expr
     alts'       <- mapM removeConstArgsFromAlt alts
-    return (HS.Case srcSpan expr' alts' exprType, [])
+    return (IR.Case srcSpan expr' alts' exprType, [])
 
   -- Leave all other expressions unchanged.
-  removeConstArgsFromExpr' expr@(HS.Con _ _ _       ) = return (expr, [])
-  removeConstArgsFromExpr' expr@(HS.Undefined _ _   ) = return (expr, [])
-  removeConstArgsFromExpr' expr@(HS.ErrorExpr  _ _ _) = return (expr, [])
-  removeConstArgsFromExpr' expr@(HS.IntLiteral _ _ _) = return (expr, [])
+  removeConstArgsFromExpr' expr@(IR.Con _ _ _       ) = return (expr, [])
+  removeConstArgsFromExpr' expr@(IR.Undefined _ _   ) = return (expr, [])
+  removeConstArgsFromExpr' expr@(IR.ErrorExpr  _ _ _) = return (expr, [])
+  removeConstArgsFromExpr' expr@(IR.IntLiteral _ _ _) = return (expr, [])
 
   -- | Applies 'removeConstArgsFromExpr'' to the right-hand side of the
   --   given @case@ expression alternative.
-  removeConstArgsFromAlt :: HS.Alt -> Converter HS.Alt
-  removeConstArgsFromAlt (HS.Alt srcSpan conPat varPats expr) =
+  removeConstArgsFromAlt :: IR.Alt -> Converter IR.Alt
+  removeConstArgsFromAlt (IR.Alt srcSpan conPat varPats expr) =
     shadowVarPats varPats $ do
       (expr', []) <- removeConstArgsFromExpr' expr
-      return (HS.Alt srcSpan conPat varPats expr')
+      return (IR.Alt srcSpan conPat varPats expr')
 
 -------------------------------------------------------------------------------
 -- Updating the environment                                                  --
@@ -435,34 +435,34 @@ removeConstArgsFromExpr constArgs rootExpr = do
 --   Returns the name of the function declaration and a list of type
 --   argument indices that have been removed.
 updateTypeSig
-  :: Subst HS.Type
+  :: Subst IR.Type
      -- ^ The most general unificator for the constant argument types.
-  -> [HS.TypeVarIdent]
+  -> [IR.TypeVarIdent]
      -- ^ The type arguments declared in the section already.
-  -> Map (HS.QName, String) HS.Type
+  -> Map (IR.QName, String) IR.Type
      -- ^ The types of the arguments by function and argument name.
-  -> Map HS.QName HS.Type
+  -> Map IR.QName IR.Type
      -- ^ The return types by function name.
-  -> HS.FuncDecl
+  -> IR.FuncDecl
     -- ^ The function declaration whose type signature to update.
-  -> Converter (HS.QName, [Int])
+  -> Converter (IR.QName, [Int])
 updateTypeSig mgu constTypeVars argTypeMap returnTypeMap funcDecl = do
     -- TODO do we have to update type annotations in the AST?
     -- Lookup entry.
-  let name = HS.funcDeclQName funcDecl
-      args = HS.funcDeclArgs funcDecl
+  let name = IR.funcDeclQName funcDecl
+      args = IR.funcDeclArgs funcDecl
   Just entry <- inEnv $ lookupEntry ValueScope name
   -- Modify entry.
   -- Since the arguments of the @Free@ monad have been defined in the
   -- section already, 'entryNeedsFreeArgs' can be set to @False@.
   let
-    argIdents = map HS.varPatIdent args
+    argIdents = map IR.varPatIdent args
     funcArgs  = zip (repeat name) argIdents
     typeArgVars =
-      applySubst mgu (map (HS.TypeVar NoSrcSpan) (entryTypeArgs entry))
+      applySubst mgu (map (IR.TypeVar NoSrcSpan) (entryTypeArgs entry))
     argTypes   = applySubst mgu (map (flip Map.lookup argTypeMap) funcArgs)
     returnType = applySubst mgu (Map.lookup name returnTypeMap)
-  let allTypeArgs = map HS.typeVarIdent typeArgVars
+  let allTypeArgs = map IR.typeVarIdent typeArgVars
       entry'      = entry { entryArity         = length args
                           , entryTypeArgs      = allTypeArgs \\ constTypeVars
                           , entryArgTypes      = argTypes
@@ -491,13 +491,13 @@ updateTypeSig mgu constTypeVars argTypeMap returnTypeMap funcDecl = do
 --   given function declaration and from visible type applications on its
 --   right-hand side.
 removeConstTypeArgsFromFuncDecl
-  :: [(HS.QName, [Int])] -> HS.FuncDecl -> Converter HS.FuncDecl
+  :: [(IR.QName, [Int])] -> IR.FuncDecl -> Converter IR.FuncDecl
 removeConstTypeArgsFromFuncDecl constTypeVars funcDecl = do
-  let rhs          = HS.funcDeclRhs funcDecl
-      Just indices = lookup (HS.funcDeclQName funcDecl) constTypeVars
-      typeArgs'    = removeIndicies indices (HS.funcDeclTypeArgs funcDecl)
+  let rhs          = IR.funcDeclRhs funcDecl
+      Just indices = lookup (IR.funcDeclQName funcDecl) constTypeVars
+      typeArgs'    = removeIndicies indices (IR.funcDeclTypeArgs funcDecl)
   rhs' <- removeConstTypeArgsFromExpr constTypeVars rhs
-  return funcDecl { HS.funcDeclTypeArgs = typeArgs', HS.funcDeclRhs = rhs' }
+  return funcDecl { IR.funcDeclTypeArgs = typeArgs', IR.funcDeclRhs = rhs' }
 
 -- | Removes the elements with the given indices from the given list.
 removeIndicies :: [Int] -> [a] -> [a]
@@ -512,77 +512,77 @@ removeIndicies indices (x : xs) | 0 `elem` indices = xs'
 --   signature of function declarations from visible type applications
 --   in the given expression.
 removeConstTypeArgsFromExpr
-  :: [(HS.QName, [Int])] -> HS.Expr -> Converter HS.Expr
+  :: [(IR.QName, [Int])] -> IR.Expr -> Converter IR.Expr
 removeConstTypeArgsFromExpr constTypeVars rootExpr = do
   (rootExpr', []) <- removeConstTypeArgsFromExpr' rootExpr
   return rootExpr'
  where
   -- | Maps names of functions that share constant arguments to the indices
   --   of their constant type arguments.
-  constTypeVarMap :: Map HS.QName [Int]
+  constTypeVarMap :: Map IR.QName [Int]
   constTypeVarMap = Map.fromList constTypeVars
 
   -- | Looks up the indices of the constant arguments that can be removed
   --   from a call to the function with the given name.
-  lookupConstTypeArgIndicies :: HS.QName -> Converter [Int]
+  lookupConstTypeArgIndicies :: IR.QName -> Converter [Int]
   lookupConstTypeArgIndicies name = do
     function <- inEnv $ isFunction name
     return (if function then lookupConstTypeArgIndicies' name else [])
 
   -- | Like 'lookupConstTypeArgIndicies' but assumes the function not to be
   --   shadowed by local varibales.
-  lookupConstTypeArgIndicies' :: HS.QName -> [Int]
+  lookupConstTypeArgIndicies' :: IR.QName -> [Int]
   lookupConstTypeArgIndicies' = fromMaybe [] . flip Map.lookup constTypeVarMap
 
   -- | Removes the type arguments recursively.
-  removeConstTypeArgsFromExpr' :: HS.Expr -> Converter (HS.Expr, [Int])
+  removeConstTypeArgsFromExpr' :: IR.Expr -> Converter (IR.Expr, [Int])
 
   -- Lookup the indices of the type arguments that need to be removed.
-  removeConstTypeArgsFromExpr' expr@(HS.Var _ varName _) = do
+  removeConstTypeArgsFromExpr' expr@(IR.Var _ varName _) = do
     indices <- lookupConstTypeArgIndicies varName
     return (expr, indices)
 
   -- Remove the current type argument (with index 0) or keep it.
-  removeConstTypeArgsFromExpr' (HS.TypeAppExpr srcSpan expr typeExpr exprType)
+  removeConstTypeArgsFromExpr' (IR.TypeAppExpr srcSpan expr typeExpr exprType)
     = do
       (expr', indices) <- removeConstTypeArgsFromExpr' expr
       let indices' = map (subtract 1) (filter (> 0) indices)
       if 0 `elem` indices
         then return (expr', indices')
-        else return (HS.TypeAppExpr srcSpan expr' typeExpr exprType, indices')
+        else return (IR.TypeAppExpr srcSpan expr' typeExpr exprType, indices')
 
   -- Remove constant type arguments recursively.
-  removeConstTypeArgsFromExpr' (HS.App srcSpan e1 e2 exprType) = do
+  removeConstTypeArgsFromExpr' (IR.App srcSpan e1 e2 exprType) = do
     (e1', []) <- removeConstTypeArgsFromExpr' e1
     (e2', []) <- removeConstTypeArgsFromExpr' e2
-    return (HS.App srcSpan e1' e2' exprType, [])
-  removeConstTypeArgsFromExpr' (HS.If srcSpan e1 e2 e3 exprType) = do
+    return (IR.App srcSpan e1' e2' exprType, [])
+  removeConstTypeArgsFromExpr' (IR.If srcSpan e1 e2 e3 exprType) = do
     (e1', []) <- removeConstTypeArgsFromExpr' e1
     (e2', []) <- removeConstTypeArgsFromExpr' e2
     (e3', []) <- removeConstTypeArgsFromExpr' e3
-    return (HS.If srcSpan e1' e2' e3' exprType, [])
-  removeConstTypeArgsFromExpr' (HS.Case srcSpan expr alts exprType) = do
+    return (IR.If srcSpan e1' e2' e3' exprType, [])
+  removeConstTypeArgsFromExpr' (IR.Case srcSpan expr alts exprType) = do
     (expr', []) <- removeConstTypeArgsFromExpr' expr
     alts'       <- mapM removeConstTypeArgsFromAlt alts
-    return (HS.Case srcSpan expr' alts' exprType, [])
-  removeConstTypeArgsFromExpr' (HS.Lambda srcSpan args expr exprType) =
+    return (IR.Case srcSpan expr' alts' exprType, [])
+  removeConstTypeArgsFromExpr' (IR.Lambda srcSpan args expr exprType) =
     shadowVarPats args $ do
       (expr', []) <- removeConstTypeArgsFromExpr' expr
-      return (HS.Lambda srcSpan args expr' exprType, [])
+      return (IR.Lambda srcSpan args expr' exprType, [])
 
   -- Leave all other nodes unchanged.
-  removeConstTypeArgsFromExpr' expr@(HS.Con _ _ _       ) = return (expr, [])
-  removeConstTypeArgsFromExpr' expr@(HS.Undefined _ _   ) = return (expr, [])
-  removeConstTypeArgsFromExpr' expr@(HS.ErrorExpr  _ _ _) = return (expr, [])
-  removeConstTypeArgsFromExpr' expr@(HS.IntLiteral _ _ _) = return (expr, [])
+  removeConstTypeArgsFromExpr' expr@(IR.Con _ _ _       ) = return (expr, [])
+  removeConstTypeArgsFromExpr' expr@(IR.Undefined _ _   ) = return (expr, [])
+  removeConstTypeArgsFromExpr' expr@(IR.ErrorExpr  _ _ _) = return (expr, [])
+  removeConstTypeArgsFromExpr' expr@(IR.IntLiteral _ _ _) = return (expr, [])
 
   -- | Applies 'removeConstTypeArgsFromExpr'' to the right-hand side of the
   --   given @case@ expression alternative.
-  removeConstTypeArgsFromAlt :: HS.Alt -> Converter HS.Alt
-  removeConstTypeArgsFromAlt (HS.Alt srcSpan conPat varPats expr) =
+  removeConstTypeArgsFromAlt :: IR.Alt -> Converter IR.Alt
+  removeConstTypeArgsFromAlt (IR.Alt srcSpan conPat varPats expr) =
     shadowVarPats varPats $ do
       (expr', []) <- removeConstTypeArgsFromExpr' expr
-      return (HS.Alt srcSpan conPat varPats expr')
+      return (IR.Alt srcSpan conPat varPats expr')
 
 -------------------------------------------------------------------------------
 -- Interface functions                                                       --
@@ -596,24 +596,24 @@ generateInterfaceDecl
      -- ^ The constant arguments of the function.
   -> [Bool]
      -- ^ Whether the constant argument is used by any function.
-  -> Map HS.QName HS.QName
+  -> Map IR.QName IR.QName
      -- ^ Maps the names of the original functions to renamed/main functions.
-  -> Subst HS.Type
+  -> Subst IR.Type
      -- ^ The substitution of type variables of the function to type
      --   variables in the @Section@.
-  -> [HS.TypeVarIdent]
+  -> [IR.TypeVarIdent]
      -- ^ The names of the @Section@'s type variables.
-  -> [HS.TypeVarIdent]
+  -> [IR.TypeVarIdent]
      -- ^ The names of the renamed function's type variables.
-  -> HS.FuncDecl
+  -> IR.FuncDecl
      -- ^ The original function declaration.
   -> Converter G.Sentence
 generateInterfaceDecl constArgs isConstArgUsed nameMap mgu sectionTypeArgs renamedTypeArgs funcDecl
   = localEnv $ do
     let
-      args          = HS.funcDeclArgs funcDecl
-      name          = HS.funcDeclQName funcDecl
-      constArgNames = map (HS.UnQual . HS.Ident)
+      args          = IR.funcDeclArgs funcDecl
+      name          = IR.funcDeclQName funcDecl
+      constArgNames = map (IR.UnQual . IR.Ident)
         $ mapMaybe (Map.lookup name . constArgIdents) constArgs
       usedConstArgNames =
         map fst $ filter snd $ zip constArgNames isConstArgUsed
@@ -631,7 +631,7 @@ generateInterfaceDecl constArgs isConstArgUsed nameMap mgu sectionTypeArgs renam
 
     -- Lookup the names of type arguments that have to be passed to the
     -- main function.
-    let typeArgIdents = map HS.typeVarDeclIdent (HS.funcDeclTypeArgs funcDecl)
+    let typeArgIdents = map IR.typeVarDeclIdent (IR.funcDeclTypeArgs funcDecl)
     typeArgNames <- mapM
       (lookupTypeArgName typeArgIdents (zip renamedTypeArgs [0 ..]))
       sectionTypeArgs
@@ -649,7 +649,7 @@ generateInterfaceDecl constArgs isConstArgUsed nameMap mgu sectionTypeArgs renam
                       (return [])
 
     -- Lookup the names of all other arguments to pass to the main function.
-    let nonConstArgNames = map HS.varPatQName args \\ constArgNames
+    let nonConstArgNames = map IR.varPatQName args \\ constArgNames
     nonConstArgNames' <-
       catMaybes <$> mapM (inEnv . lookupIdent ValueScope) nonConstArgNames
 
@@ -664,24 +664,24 @@ generateInterfaceDecl constArgs isConstArgUsed nameMap mgu sectionTypeArgs renam
   -- | Looks up the name of the function's type argument that corresponds to
   --   the given type argument of the @Section@.
   lookupTypeArgName
-    :: [HS.TypeVarIdent]
+    :: [IR.TypeVarIdent]
        -- ^ The type arguments of the function.
-    -> [(HS.TypeVarIdent, Int)]
+    -> [(IR.TypeVarIdent, Int)]
        -- ^ The renamed type arguments of the function and their index.
-    -> HS.TypeVarIdent
+    -> IR.TypeVarIdent
        -- ^ The type argument of the section.
-    -> Converter HS.QName
+    -> Converter IR.QName
   lookupTypeArgName _ [] u =
     reportFatal
-      $  Message (HS.funcDeclSrcSpan funcDecl) Error
+      $  Message (IR.funcDeclSrcSpan funcDecl) Error
       $  "Cannot find name of section type argument "
       ++ u
       ++ " for "
-      ++ showPretty (HS.funcDeclQName funcDecl)
+      ++ showPretty (IR.funcDeclQName funcDecl)
   lookupTypeArgName ws ((v, i) : vs) u = do
-    let HS.TypeVar _ v' = applySubst mgu (HS.TypeVar NoSrcSpan v)
+    let IR.TypeVar _ v' = applySubst mgu (IR.TypeVar NoSrcSpan v)
     if v' == u
       then do
         let w = ws !! i
-        return (HS.UnQual (HS.Ident w))
+        return (IR.UnQual (IR.Ident w))
       else lookupTypeArgName ws vs u

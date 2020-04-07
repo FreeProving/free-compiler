@@ -54,16 +54,16 @@ import           Control.Monad.Extra            ( anyM )
 import           FreeC.Environment
 import           FreeC.Environment.Entry
 import           FreeC.Environment.Scope
-import qualified FreeC.IR.Base.Prelude         as HS.Prelude
+import qualified FreeC.IR.Base.Prelude         as IR.Prelude
 import           FreeC.IR.DependencyGraph       ( unwrapComponent )
 import           FreeC.IR.Reference             ( valueRefs )
-import qualified FreeC.IR.Syntax               as HS
+import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Converter
 import           FreeC.Pass.DependencyAnalysisPass
 
 -- | A compiler pass that updates the partiality information of function
 --   declaration environment entries.
-partialityAnalysisPass :: DependencyAwarePass HS.FuncDecl
+partialityAnalysisPass :: DependencyAwarePass IR.FuncDecl
 partialityAnalysisPass component = do
   let funcDecls = unwrapComponent component
   anyPartial <- anyM isPartialFuncDecl funcDecls
@@ -72,22 +72,22 @@ partialityAnalysisPass component = do
 
 -- | Tests whether the given function uses a function that has already been
 --   marked as partial on its right-hand side.
-isPartialFuncDecl :: HS.FuncDecl -> Converter Bool
+isPartialFuncDecl :: IR.FuncDecl -> Converter Bool
 isPartialFuncDecl decl = anyM isPartialFuncName (valueRefs decl)
 
 -- | Tests whether the function with the given name has been marked as
 --   partial.
 --
---   The special functions 'HS.undefinedFuncName' and 'HS.errorFuncName'
+--   The special functions 'IR.undefinedFuncName' and 'IR.errorFuncName'
 --   are also partial.
-isPartialFuncName :: HS.QName -> Converter Bool
-isPartialFuncName name | name == HS.Prelude.undefinedFuncName = return True
-                       | name == HS.Prelude.errorFuncName = return True
+isPartialFuncName :: IR.QName -> Converter Bool
+isPartialFuncName name | name == IR.Prelude.undefinedFuncName = return True
+                       | name == IR.Prelude.errorFuncName = return True
                        | otherwise = inEnv $ isPartial name
 
 -- | Sets the 'entryIsPartial' flag of the environment entry for the given
 --   function delcaration to @True@.
-markPartial :: HS.FuncDecl -> Converter ()
+markPartial :: IR.FuncDecl -> Converter ()
 markPartial decl = do
-  Just entry <- inEnv $ lookupEntry ValueScope (HS.funcDeclQName decl)
+  Just entry <- inEnv $ lookupEntry ValueScope (IR.funcDeclQName decl)
   modifyEnv $ addEntry entry { entryIsPartial = True }

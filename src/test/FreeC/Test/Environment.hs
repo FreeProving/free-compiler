@@ -19,7 +19,7 @@ import qualified FreeC.Backend.Coq.Syntax      as G
 import           FreeC.Environment.Entry
 import           FreeC.Environment.Renamer
 import           FreeC.IR.Reference
-import qualified FreeC.IR.Syntax               as HS
+import qualified FreeC.IR.Syntax               as IR
 import           FreeC.IR.SrcSpan
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
@@ -107,12 +107,12 @@ defineTestTypeCon nameStr arity = do
 defineTestCon :: String -> Int -> String -> Converter (String, String)
 defineTestCon nameStr arity typeStr = do
   name                              <- parseTestQName nameStr
-  HS.TypeSchema _ typeArgs typeExpr <- parseExplicitTestTypeSchema typeStr
-  let (argTypes, returnType) = HS.splitFuncType typeExpr arity
+  IR.TypeSchema _ typeArgs typeExpr <- parseExplicitTestTypeSchema typeStr
+  let (argTypes, returnType) = IR.splitFuncType typeExpr arity
   entry <- renameAndAddTestEntry' ConEntry
     { entrySrcSpan    = NoSrcSpan
     , entryArity      = arity
-    , entryTypeArgs   = map HS.typeVarDeclIdent typeArgs
+    , entryTypeArgs   = map IR.typeVarDeclIdent typeArgs
     , entryArgTypes   = map Just argTypes
     , entryReturnType = Just returnType
     , entryName       = name
@@ -158,12 +158,12 @@ defineTestFunc = defineTestFunc' False
 defineTestFunc' :: Bool -> String -> Int -> String -> Converter String
 defineTestFunc' partial nameStr arity typeStr = do
   name                              <- parseTestQName nameStr
-  HS.TypeSchema _ typeArgs typeExpr <- parseExplicitTestTypeSchema typeStr
-  let (argTypes, returnType) = HS.splitFuncType typeExpr arity
+  IR.TypeSchema _ typeArgs typeExpr <- parseExplicitTestTypeSchema typeStr
+  let (argTypes, returnType) = IR.splitFuncType typeExpr arity
   renameAndAddTestEntry FuncEntry
     { entrySrcSpan       = NoSrcSpan
     , entryArity         = arity
-    , entryTypeArgs      = map HS.typeVarDeclIdent typeArgs
+    , entryTypeArgs      = map IR.typeVarDeclIdent typeArgs
     , entryArgTypes      = map Just argTypes
     , entryReturnType    = Just returnType
     , entryNeedsFreeArgs = True
@@ -186,7 +186,7 @@ definePartialTestFunc = defineTestFunc' True
 --   been introduced explicitly. A common error when writing tests is that the
 --   tester forgets that in contrast to Haskell type variables must
 --   be introduced explicitly.
-parseExplicitTestTypeSchema :: String -> Converter HS.TypeSchema
+parseExplicitTestTypeSchema :: String -> Converter IR.TypeSchema
 parseExplicitTestTypeSchema input = do
   typeSchema <- parseTestTypeSchema input
   if not (null (freeTypeVars typeSchema)) && take 7 input /= "forall."

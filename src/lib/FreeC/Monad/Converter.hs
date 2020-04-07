@@ -57,7 +57,7 @@ import           Data.Composition               ( (.:) )
 
 import           FreeC.Environment
 import           FreeC.Environment.Entry
-import qualified FreeC.IR.Syntax               as HS
+import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Class.Hoistable
 import           FreeC.Monad.Reporter
 
@@ -202,15 +202,15 @@ moduleEnv converter = do
 --
 --   Unlike 'localEnv', all modifications to the environment are kept
 --   (except for added entries), except for the definition of the variables.
-shadowVarPats :: MonadConverter m => [HS.VarPat] -> m a -> m a
+shadowVarPats :: MonadConverter m => [IR.VarPat] -> m a -> m a
 shadowVarPats varPats converter = do
   oldEntries <- inEnv envEntries
   forM_ varPats $ \varPat -> modifyEnv $ addEntry VarEntry
-    { entrySrcSpan = HS.varPatSrcSpan varPat
+    { entrySrcSpan = IR.varPatSrcSpan varPat
     , entryIsPure  = False
     , entryIdent   = undefined
-    , entryName    = HS.varPatQName varPat
-    , entryType    = HS.varPatType varPat
+    , entryName    = IR.varPatQName varPat
+    , entryType    = IR.varPatType varPat
     }
   x <- converter
   modifyEnv $ \env -> env { envEntries = oldEntries }

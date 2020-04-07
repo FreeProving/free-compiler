@@ -43,7 +43,7 @@ module FreeC.Pass.DependencyAnalysisPass
 where
 
 import           FreeC.IR.DependencyGraph
-import qualified FreeC.IR.Syntax               as HS
+import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Converter
 import           FreeC.Pass
 
@@ -58,22 +58,22 @@ class DependencyAnalysisPass decl where
   groupDecls :: [decl] -> [DependencyComponent decl]
 
   -- | Gets the declarations of the node type from the given module.
-  getDecls :: HS.Module -> [decl]
+  getDecls :: IR.Module -> [decl]
 
   -- | Replaces the declarations of the node type in the given module.
-  setDecls :: HS.Module -> [decl] -> HS.Module
+  setDecls :: IR.Module -> [decl] -> IR.Module
 
 -- | The dependencies of type declarations can be analyzed.
-instance DependencyAnalysisPass HS.TypeDecl where
+instance DependencyAnalysisPass IR.TypeDecl where
   groupDecls = groupTypeDecls
-  getDecls   = HS.modTypeDecls
-  setDecls ast decls = ast { HS.modTypeDecls = decls }
+  getDecls   = IR.modTypeDecls
+  setDecls ast decls = ast { IR.modTypeDecls = decls }
 
 -- | The dependencies of function declarations can be analyzed.
-instance DependencyAnalysisPass HS.FuncDecl where
+instance DependencyAnalysisPass IR.FuncDecl where
   groupDecls = groupFuncDecls
-  getDecls   = HS.modFuncDecls
-  setDecls ast decls = ast { HS.modFuncDecls = decls }
+  getDecls   = IR.modFuncDecls
+  setDecls ast decls = ast { IR.modFuncDecls = decls }
 
 -- | Applies the given child passes to the strongly connected components
 --   of the dependency graph for declarations of type @decl@ of the given
@@ -81,8 +81,8 @@ instance DependencyAnalysisPass HS.FuncDecl where
 dependencyAnalysisPass
   :: DependencyAnalysisPass decl
   => [DependencyAwarePass decl]
-  -> HS.Module
-  -> Converter HS.Module
+  -> IR.Module
+  -> Converter IR.Module
 dependencyAnalysisPass = subPipelinePass getComponents setComponents
  where
   getComponents = groupDecls . getDecls

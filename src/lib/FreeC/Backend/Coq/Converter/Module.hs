@@ -15,7 +15,7 @@ import qualified FreeC.Backend.Coq.Syntax      as G
 import           FreeC.Environment
 import           FreeC.Environment.ModuleInterface
 import           FreeC.IR.DependencyGraph
-import qualified FreeC.IR.Syntax               as HS
+import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
 import           FreeC.Pipeline
@@ -26,18 +26,18 @@ import           FreeC.Pretty
 -------------------------------------------------------------------------------
 
 -- | Converts a Haskell module to a Gallina sentences.
-convertModule :: HS.Module -> Converter [G.Sentence]
+convertModule :: IR.Module -> Converter [G.Sentence]
 convertModule = moduleEnv . (runPipeline >=> convertModule')
 
 -- | Like 'convertModule'' but does not apply any compiler passes beforehand.
-convertModule' :: HS.Module -> Converter [G.Sentence]
+convertModule' :: IR.Module -> Converter [G.Sentence]
 convertModule' haskellAst = do
-  imports' <- convertImportDecls (HS.modImports haskellAst)
-  mapM_ (addDecArgPragma (HS.modFuncDecls haskellAst))
-        (HS.modPragmas haskellAst)
-  decls' <- convertDecls (HS.modTypeDecls haskellAst)
-                         (HS.modFuncDecls haskellAst)
-  return (G.comment ("module " ++ HS.modName haskellAst) : imports' ++ decls')
+  imports' <- convertImportDecls (IR.modImports haskellAst)
+  mapM_ (addDecArgPragma (IR.modFuncDecls haskellAst))
+        (IR.modPragmas haskellAst)
+  decls' <- convertDecls (IR.modTypeDecls haskellAst)
+                         (IR.modFuncDecls haskellAst)
+  return (G.comment ("module " ++ IR.modName haskellAst) : imports' ++ decls')
 
 -------------------------------------------------------------------------------
 -- Pragmas                                                                   --
@@ -50,12 +50,12 @@ convertModule' haskellAst = do
 --   in the current module (first argument).
 --
 --   All other pragmas are ignored.
-addDecArgPragma :: [HS.FuncDecl] -> HS.Pragma -> Converter ()
-addDecArgPragma funcDecls (HS.DecArgPragma srcSpan funcName decArg) =
-  case find ((== funcName) . HS.funcDeclQName) funcDecls of
-    Just HS.FuncDecl { HS.funcDeclArgs = args } -> case decArg of
+addDecArgPragma :: [IR.FuncDecl] -> IR.Pragma -> Converter ()
+addDecArgPragma funcDecls (IR.DecArgPragma srcSpan funcName decArg) =
+  case find ((== funcName) . IR.funcDeclQName) funcDecls of
+    Just IR.FuncDecl { IR.funcDeclArgs = args } -> case decArg of
       Left decArgIdent ->
-        case findIndex ((== decArgIdent) . HS.varPatIdent) args of
+        case findIndex ((== decArgIdent) . IR.varPatIdent) args of
           Just decArgIndex ->
             modifyEnv $ defineDecArg funcName decArgIndex decArgIdent
           Nothing ->
@@ -70,7 +70,7 @@ addDecArgPragma funcDecls (HS.DecArgPragma srcSpan funcName decArg) =
         | decArgPosition > 0 && decArgPosition <= length args
         -> do
           let decArgIndex = decArgPosition - 1
-              decArgIdent = HS.varPatIdent (args !! decArgIndex)
+              decArgIdent = IR.varPatIdent (args !! decArgIndex)
           modifyEnv $ defineDecArg funcName decArgIndex decArgIdent
         | otherwise
         -> reportFatal
@@ -92,14 +92,14 @@ addDecArgPragma funcDecls (HS.DecArgPragma srcSpan funcName decArg) =
 -------------------------------------------------------------------------------
 
 -- | Converts the given declarations of a Haskell module.
-convertDecls :: [HS.TypeDecl] -> [HS.FuncDecl] -> Converter [G.Sentence]
+convertDecls :: [IR.TypeDecl] -> [IR.FuncDecl] -> Converter [G.Sentence]
 convertDecls typeDecls funcDecls = do
   typeDecls' <- convertTypeDecls typeDecls
   funcDecls' <- convertFuncDecls funcDecls
   return (typeDecls' ++ funcDecls')
 
 -- | Converts the given data type or type synonym declarations.
-convertTypeDecls :: [HS.TypeDecl] -> Converter [G.Sentence]
+convertTypeDecls :: [IR.TypeDecl] -> Converter [G.Sentence]
 convertTypeDecls typeDecls = do
   let components = groupTypeDecls typeDecls
   concatMapM convertTypeComponent components
@@ -109,14 +109,14 @@ convertTypeDecls typeDecls = do
 -------------------------------------------------------------------------------
 
 -- | Converts the given import declarations to Coq.
-convertImportDecls :: [HS.ImportDecl] -> Converter [G.Sentence]
+convertImportDecls :: [IR.ImportDecl] -> Converter [G.Sentence]
 convertImportDecls imports = do
   imports' <- mapM convertImportDecl imports
   return (CoqBase.imports : imports')
 
 -- | Convert a import declaration.
-convertImportDecl :: HS.ImportDecl -> Converter G.Sentence
-convertImportDecl (HS.ImportDecl _ modName) = do
+convertImportDecl :: IR.ImportDecl -> Converter G.Sentence
+convertImportDecl (IR.ImportDecl _ modName) = do
   Just iface <- inEnv $ lookupAvailableModule modName
   generateImport (interfaceLibName iface) modName
 
@@ -125,7 +125,7 @@ convertImportDecl (HS.ImportDecl _ modName) = do
 --
 --   Modules from the base library are imported via @From Base Require Import@
 --   sentences and all other modules are also exported.
-generateImport :: G.ModuleIdent -> HS.ModName -> Converter G.Sentence
+generateImport :: G.ModuleIdent -> IR.ModName -> Converter G.Sentence
 generateImport libName modName = return
   (mkRequireSentence libName [G.ident (showPretty modName)])
  where

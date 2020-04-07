@@ -48,27 +48,27 @@ module FreeC.Pass.ImplicitPreludePass
   )
 where
 
-import qualified FreeC.IR.Base.Prelude         as HS.Prelude
+import qualified FreeC.IR.Base.Prelude         as IR.Prelude
 import           FreeC.IR.SrcSpan
-import qualified FreeC.IR.Syntax               as HS
+import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Pass
 
 -- | A compiler pass that adds an import declaration for the @Prelude@ module
 --   if there is no such import.
-implicitPreludePass :: Pass HS.Module
+implicitPreludePass :: Pass IR.Module
 implicitPreludePass ast =
-  return ast { HS.modImports = addImplicitPreludeImport (HS.modImports ast) }
+  return ast { IR.modImports = addImplicitPreludeImport (IR.modImports ast) }
 
 -- | Adds an import for the @Prelude@ module to the given list of imports if
 --   there is no explicit import for the @Prelude@ already.
-addImplicitPreludeImport :: [HS.ImportDecl] -> [HS.ImportDecl]
+addImplicitPreludeImport :: [IR.ImportDecl] -> [IR.ImportDecl]
 addImplicitPreludeImport imports | importsPrelude = imports
                                  | otherwise      = preludeImport : imports
  where
   -- | Whether there is an explicit import for the @Prelude@ module.
   importsPrelude :: Bool
-  importsPrelude = HS.Prelude.modName `elem` map HS.importName imports
+  importsPrelude = IR.Prelude.modName `elem` map IR.importName imports
 
   -- | An explicit import for the @Prelude@ module.
-  preludeImport :: HS.ImportDecl
-  preludeImport = HS.ImportDecl NoSrcSpan HS.Prelude.modName
+  preludeImport :: IR.ImportDecl
+  preludeImport = IR.ImportDecl NoSrcSpan IR.Prelude.modName

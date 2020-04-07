@@ -20,12 +20,12 @@ import           Data.Set                       ( Set )
 import qualified FreeC.Backend.Coq.Syntax      as G
 import           FreeC.Environment.Entry
 import           FreeC.Environment.Scope
-import qualified FreeC.IR.Syntax               as HS
+import qualified FreeC.IR.Syntax               as IR
 
 -- | Data type that contains the information of a module environment that
 --   is exported and imported.
 data ModuleInterface = ModuleInterface
-  { interfaceModName :: HS.ModName
+  { interfaceModName :: IR.ModName
     -- ^ The name of the module.
   , interfaceLibName :: G.ModuleIdent
     -- ^ The name of the Coq library that contains this module (e.g. @"Base"@

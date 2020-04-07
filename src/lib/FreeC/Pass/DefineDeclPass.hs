@@ -34,13 +34,13 @@ where
 import           FreeC.Environment.Entry
 import           FreeC.Environment.Renamer
 import           FreeC.IR.DependencyGraph
-import qualified FreeC.IR.Syntax               as HS
+import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Converter
 import           FreeC.Pass.DependencyAnalysisPass
 
 -- | Inserts all data type declarations and type synonyms in the given strongly
 --   connected component into the environment.
-defineTypeDeclsPass :: DependencyAwarePass HS.TypeDecl
+defineTypeDeclsPass :: DependencyAwarePass IR.TypeDecl
 defineTypeDeclsPass component = do
   mapComponentM_ (mapM defineTypeDecl) component
   return component
@@ -50,7 +50,7 @@ defineTypeDeclsPass component = do
 --
 --   If any function in the component uses a partial function, all of the
 --   functions in the component are marked as partial.
-defineFuncDeclsPass :: DependencyAwarePass HS.FuncDecl
+defineFuncDeclsPass :: DependencyAwarePass IR.FuncDecl
 defineFuncDeclsPass component = do
   mapComponentM_ (mapM defineFuncDecl) component
   return component
@@ -61,42 +61,42 @@ defineFuncDeclsPass component = do
 
 -- | Inserts the given data type (including its constructors) or type synonym
 --   declaration into the current environment.
-defineTypeDecl :: HS.TypeDecl -> Converter ()
-defineTypeDecl (HS.TypeSynDecl srcSpan declIdent typeArgs typeExpr) = do
+defineTypeDecl :: IR.TypeDecl -> Converter ()
+defineTypeDecl (IR.TypeSynDecl srcSpan declIdent typeArgs typeExpr) = do
   _ <- renameAndAddEntry TypeSynEntry
     { entrySrcSpan  = srcSpan
     , entryArity    = length typeArgs
-    , entryTypeArgs = map HS.typeVarDeclIdent typeArgs
+    , entryTypeArgs = map IR.typeVarDeclIdent typeArgs
     , entryTypeSyn  = typeExpr
-    , entryName     = HS.declIdentName declIdent
+    , entryName     = IR.declIdentName declIdent
     , entryIdent    = undefined -- filled by renamer
     }
   return ()
-defineTypeDecl (HS.DataDecl srcSpan declIdent typeArgs conDecls) = do
+defineTypeDecl (IR.DataDecl srcSpan declIdent typeArgs conDecls) = do
   _ <- renameAndAddEntry DataEntry { entrySrcSpan = srcSpan
                                    , entryArity   = length typeArgs
-                                   , entryName    = HS.declIdentName declIdent
+                                   , entryName    = IR.declIdentName declIdent
                                    , entryIdent   = undefined -- filled by renamer
                                    }
   mapM_ defineConDecl conDecls
  where
   -- | The type produced by all constructors of the data type.
-  returnType :: HS.Type
-  returnType = HS.typeConApp srcSpan
-                             (HS.declIdentName declIdent)
-                             (map HS.typeVarDeclToType typeArgs)
+  returnType :: IR.Type
+  returnType = IR.typeConApp srcSpan
+                             (IR.declIdentName declIdent)
+                             (map IR.typeVarDeclToType typeArgs)
 
   -- | Inserts the given data constructor declaration and its smart constructor
   --   into the current environment.
-  defineConDecl :: HS.ConDecl -> Converter ()
-  defineConDecl (HS.ConDecl conSrcSpan conDeclIdent argTypes) = do
+  defineConDecl :: IR.ConDecl -> Converter ()
+  defineConDecl (IR.ConDecl conSrcSpan conDeclIdent argTypes) = do
     _ <- renameAndAddEntry ConEntry
       { entrySrcSpan    = conSrcSpan
       , entryArity      = length argTypes
-      , entryTypeArgs   = map HS.typeVarDeclIdent typeArgs
+      , entryTypeArgs   = map IR.typeVarDeclIdent typeArgs
       , entryArgTypes   = map Just argTypes
       , entryReturnType = Just returnType
-      , entryName       = HS.declIdentName conDeclIdent
+      , entryName       = IR.declIdentName conDeclIdent
       , entryIdent      = undefined -- filled by renamer
       , entrySmartIdent = undefined -- filled by renamer
       }
@@ -107,17 +107,17 @@ defineTypeDecl (HS.DataDecl srcSpan declIdent typeArgs conDecls) = do
 -------------------------------------------------------------------------------
 
 -- | Inserts the given function declaration into the current environment.
-defineFuncDecl :: HS.FuncDecl -> Converter ()
+defineFuncDecl :: IR.FuncDecl -> Converter ()
 defineFuncDecl funcDecl = do
   _ <- renameAndAddEntry FuncEntry
-    { entrySrcSpan       = HS.funcDeclSrcSpan funcDecl
-    , entryArity         = length (HS.funcDeclArgs funcDecl)
-    , entryTypeArgs = map HS.typeVarDeclIdent (HS.funcDeclTypeArgs funcDecl)
-    , entryArgTypes      = map HS.varPatType (HS.funcDeclArgs funcDecl)
-    , entryReturnType    = HS.funcDeclReturnType funcDecl
+    { entrySrcSpan       = IR.funcDeclSrcSpan funcDecl
+    , entryArity         = length (IR.funcDeclArgs funcDecl)
+    , entryTypeArgs = map IR.typeVarDeclIdent (IR.funcDeclTypeArgs funcDecl)
+    , entryArgTypes      = map IR.varPatType (IR.funcDeclArgs funcDecl)
+    , entryReturnType    = IR.funcDeclReturnType funcDecl
     , entryNeedsFreeArgs = True
     , entryIsPartial     = False -- may be updated by partiality analysis pass
-    , entryName          = HS.funcDeclQName funcDecl
+    , entryName          = IR.funcDeclQName funcDecl
     , entryIdent         = undefined -- filled by renamer
     }
   return ()

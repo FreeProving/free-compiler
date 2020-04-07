@@ -13,7 +13,7 @@ import           FreeC.Backend.Coq.Converter.Type
 import qualified FreeC.Backend.Coq.Syntax      as G
 import           FreeC.Environment
 import           FreeC.Environment.Scope
-import qualified FreeC.IR.Syntax               as HS
+import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Converter
 
 -------------------------------------------------------------------------------
@@ -26,9 +26,9 @@ import           FreeC.Monad.Converter
 --   no recursive functions
 --   (see 'Haskell.Backend.Coq.Converter.FuncDecl.NonRec.convertNonRecFuncDecl'
 --    and 'Haskell.Backend.Coq.Converter.FuncDecl.Rec.convertRecFuncDecls').
-convertFuncHead :: HS.FuncDecl -> Converter (G.Qualid, [G.Binder], Maybe G.Term)
-convertFuncHead (HS.FuncDecl _ declIdent typeArgs args maybeRetType _) = do
-  let name = HS.declIdentName declIdent
+convertFuncHead :: IR.FuncDecl -> Converter (G.Qualid, [G.Binder], Maybe G.Term)
+convertFuncHead (IR.FuncDecl _ declIdent typeArgs args maybeRetType _) = do
+  let name = IR.declIdentName declIdent
   -- Lookup the Coq name of the function.
   Just qualid    <- inEnv $ lookupIdent ValueScope name
   -- Generate arguments for free monad if they are not in scope.

@@ -12,7 +12,7 @@ where
 
 import           Data.Maybe                     ( fromJust )
 
-import qualified FreeC.IR.Syntax               as HS
+import qualified FreeC.IR.Syntax               as IR
 import           FreeC.IR.Subterm
 
 -------------------------------------------------------------------------------
@@ -25,14 +25,14 @@ class StripExprType node where
   stripExprType :: node -> node
 
 -- | Strips the expression type annotations from function declarations.
-instance StripExprType HS.FuncDecl where
+instance StripExprType IR.FuncDecl where
   stripExprType funcDecl =
-    funcDecl { HS.funcDeclRhs = stripExprType (HS.funcDeclRhs funcDecl) }
+    funcDecl { IR.funcDeclRhs = stripExprType (IR.funcDeclRhs funcDecl) }
 
 -- | Strips the type annotation of the given expression and of its
 --   sub-expressions recursively.
-instance StripExprType HS.Expr where
+instance StripExprType IR.Expr where
   stripExprType expr = fromJust
-    (replaceChildTerms expr { HS.exprTypeSchema = Nothing }
+    (replaceChildTerms expr { IR.exprTypeSchema = Nothing }
                        (map stripExprType (childTerms expr))
     )

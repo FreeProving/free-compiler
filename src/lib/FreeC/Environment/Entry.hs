@@ -10,7 +10,7 @@ import           Data.Tuple.Extra               ( (&&&) )
 import qualified FreeC.Backend.Coq.Syntax      as G
 import           FreeC.Environment.Scope
 import           FreeC.IR.SrcSpan
-import qualified FreeC.IR.Syntax               as HS
+import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Util.Predicate
 
 -- | Entry of the environment.
@@ -23,7 +23,7 @@ data EnvEntry
       -- ^ The number of type arguments expected by the type constructor.
     , entryIdent   :: G.Qualid
       -- ^ The name of the data type in Coq.
-    , entryName    :: HS.QName
+    , entryName    :: IR.QName
       -- ^ The name of the data type in the module it has been defined in.
     }
   | -- | Entry for a type synonym declaration.
@@ -32,13 +32,13 @@ data EnvEntry
       -- ^ The source code location where the type synonym was declared.
     , entryArity    :: Int
       -- ^ The number of type arguments expected by the type constructor.
-    , entryTypeArgs :: [HS.TypeVarIdent]
+    , entryTypeArgs :: [IR.TypeVarIdent]
       -- ^ The names of the type arguments.
-    , entryTypeSyn  :: HS.Type
+    , entryTypeSyn  :: IR.Type
       -- ^ The type that is abbreviated by this type synonym.
     , entryIdent    :: G.Qualid
       -- ^ The name of the type synonym in Coq.
-    , entryName     :: HS.QName
+    , entryName     :: IR.QName
       -- ^ The name of the type synonym in the module it has been defined in.
     }
   | -- | Entry for a type variable.
@@ -47,7 +47,7 @@ data EnvEntry
       -- ^ The source code location where the type variable was declared.
     , entryIdent   :: G.Qualid
       -- ^ The name of the type variable in Coq.
-    , entryName    :: HS.QName
+    , entryName    :: IR.QName
       -- ^ The name of the type variable (must be unqualified).
     }
   | -- | Entry for a data constructor.
@@ -56,18 +56,18 @@ data EnvEntry
       -- ^ The source code location where the data constructor was declared.
     , entryArity      :: Int
       -- ^ The number of arguments expected by the data constructor.
-    , entryTypeArgs   :: [HS.TypeVarIdent]
+    , entryTypeArgs   :: [IR.TypeVarIdent]
       -- ^ The names of the type arguments.
-    , entryArgTypes   :: [Maybe HS.Type]
+    , entryArgTypes   :: [Maybe IR.Type]
       -- ^ The types of the constructor's arguments (if known).
       --   Contains exactly 'entryArity' elements.
-    , entryReturnType :: Maybe HS.Type
+    , entryReturnType :: Maybe IR.Type
       -- ^ The return type of the data constructor (if known).
     , entryIdent      :: G.Qualid
       -- ^ The name of the regular data constructor in Coq.
     , entrySmartIdent :: G.Qualid
       -- ^ The name of the corresponding smart constructor in Coq.
-    , entryName       :: HS.QName
+    , entryName       :: IR.QName
       -- ^ The name of the data constructor in the module it has been
       --   defined in.
     }
@@ -77,12 +77,12 @@ data EnvEntry
       -- ^ The source code location where the function was declared.
     , entryArity         :: Int
       -- ^ The number of arguments expected by the function.
-    , entryTypeArgs      :: [HS.TypeVarIdent]
+    , entryTypeArgs      :: [IR.TypeVarIdent]
       -- ^ The names of the type arguments.
-    , entryArgTypes      :: [Maybe HS.Type]
+    , entryArgTypes      :: [Maybe IR.Type]
       -- ^ The types of the function arguments (if known).
       --   Contains exactly 'entryArity' elements.
-    , entryReturnType    :: Maybe HS.Type
+    , entryReturnType    :: Maybe IR.Type
       -- ^ The return type of the function (if known).
     , entryNeedsFreeArgs :: Bool
       -- ^ Whether the arguments of the @Free@ monad need to be
@@ -92,7 +92,7 @@ data EnvEntry
       --   the @Partial@ type class when translated to Coq.
     , entryIdent         :: G.Qualid
       -- ^ The name of the function in Coq.
-    , entryName          :: HS.QName
+    , entryName          :: IR.QName
       -- ^ The name of the function in the module it has been defined in.
     }
   | -- | Entry for a variable.
@@ -103,9 +103,9 @@ data EnvEntry
       -- ^ Whether the variable has not been lifted to the free monad.
     , entryIdent   :: G.Qualid
       -- ^ The name of the variable in Coq.
-    , entryName    :: HS.QName
+    , entryName    :: IR.QName
       -- ^ The name of the variable (must be unqualified).
-    , entryType    :: Maybe HS.Type
+    , entryType    :: Maybe IR.Type
       -- ^ The type of the variable (if known).
     }
  deriving Show

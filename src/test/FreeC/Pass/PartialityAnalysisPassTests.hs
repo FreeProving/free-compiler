@@ -10,7 +10,7 @@ import           Test.Hspec
 
 import           FreeC.Environment
 import           FreeC.IR.DependencyGraph
-import qualified FreeC.IR.Syntax               as HS
+import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Class.Testable
 import           FreeC.Monad.Converter
 import           FreeC.Pass.PartialityAnalysisPass
@@ -48,13 +48,13 @@ shouldNotBePartial = shouldBePartialWith $ \funcName partial -> if not partial
 
 -- | Common implementation of 'shouldBePartial' and 'shouldNotBePartial'.
 shouldBePartialWith
-  :: (HS.QName -> Bool -> Expectation)
+  :: (IR.QName -> Bool -> Expectation)
   -> DependencyComponent String
   -> Converter Expectation
 shouldBePartialWith setExpectation inputs = do
   component <- parseTestComponent inputs
   _         <- partialityAnalysisPass component
-  let funcNames = map HS.funcDeclQName (unwrapComponent component)
+  let funcNames = map IR.funcDeclQName (unwrapComponent component)
   partials <- mapM (inEnv . isPartial) funcNames
   return (zipWithM_ setExpectation funcNames partials)
 

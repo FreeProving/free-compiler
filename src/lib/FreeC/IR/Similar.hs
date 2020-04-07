@@ -38,7 +38,7 @@ import           Data.Set                       ( Set )
 import qualified Data.Set                      as Set
 
 import           FreeC.Environment.Scope
-import qualified FreeC.IR.Syntax               as HS
+import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Util.Predicate           ( (.&&.) )
 
 -------------------------------------------------------------------------------
@@ -56,7 +56,7 @@ import           FreeC.Util.Predicate           ( (.&&.) )
 --   in the right AST. The variables bound in the left AST can already
 --   be looked up in the 'renameMap'.
 data Renaming = Renaming
-  { renameMap     :: Map ScopedName HS.QName
+  { renameMap     :: Map ScopedName IR.QName
     -- ^ Maps variables bound in the left AST to variables
     --   bound in the right AST.
   , rightBoundSet :: Set ScopedName
@@ -82,7 +82,7 @@ rightFree name renaming = name `Set.notMember` rightBoundSet renaming
 -- | Tests whether two variables in the given scope are similar, i.e.,
 --   they are either free in their ASTs and equal or they are mapped
 --   to each other (and therefore both not free).
-similarVars :: Scope -> HS.QName -> HS.QName -> Renaming -> Bool
+similarVars :: Scope -> IR.QName -> IR.QName -> Renaming -> Bool
 similarVars scope x y renaming
   | leftFree x' renaming && rightFree y' renaming = x == y
   | otherwise = Map.lookup x' (renameMap renaming) == Just y
@@ -93,7 +93,7 @@ similarVars scope x y renaming
 
 -- | Extends a renaming by the corresponding pairs of variable names from the
 --   two given lists.
-extendRenaming :: Scope -> [HS.QName] -> [HS.QName] -> Renaming -> Renaming
+extendRenaming :: Scope -> [IR.QName] -> [IR.QName] -> Renaming -> Renaming
 extendRenaming scope xs ys renaming = Renaming
   { renameMap     = Map.fromList (zip xs' ys) `Map.union` renameMap renaming
   , rightBoundSet = Set.fromList ys' `Set.union` rightBoundSet renaming
@@ -200,20 +200,20 @@ instance Similar node => Similar [node] where
 --        —————————————————————————————
 --          Γ ⊢ τ₁ -> τ₂ ≈ τ'₁ -> τ'₂
 --        @
-instance Similar HS.Type where
-  similar' (HS.TypeCon _ c1) (HS.TypeCon _ c2) = const (c1 == c2)
-  similar' (HS.TypeVar _ v1) (HS.TypeVar _ v2) =
-    similarVars TypeScope (HS.UnQual (HS.Ident v1)) (HS.UnQual (HS.Ident v2))
-  similar' (HS.TypeApp _ s1 s2) (HS.TypeApp _ t1 t2) =
+instance Similar IR.Type where
+  similar' (IR.TypeCon _ c1) (IR.TypeCon _ c2) = const (c1 == c2)
+  similar' (IR.TypeVar _ v1) (IR.TypeVar _ v2) =
+    similarVars TypeScope (IR.UnQual (IR.Ident v1)) (IR.UnQual (IR.Ident v2))
+  similar' (IR.TypeApp _ s1 s2) (IR.TypeApp _ t1 t2) =
     similar' s1 t1 .&&. similar' s2 t2
-  similar' (HS.FuncType _ s1 s2) (HS.FuncType _ t1 t2) =
+  similar' (IR.FuncType _ s1 s2) (IR.FuncType _ t1 t2) =
     similar' s1 t1 .&&. similar' s2 t2
 
   -- Combinations of different constructors are not similar.
-  similar' (HS.TypeCon _ _   ) _ = const False
-  similar' (HS.TypeVar _ _   ) _ = const False
-  similar' (HS.TypeApp  _ _ _) _ = const False
-  similar' (HS.FuncType _ _ _) _ = const False
+  similar' (IR.TypeCon _ _   ) _ = const False
+  similar' (IR.TypeVar _ _   ) _ = const False
+  similar' (IR.TypeApp  _ _ _) _ = const False
+  similar' (IR.FuncType _ _ _) _ = const False
 
 -- | Two type schemas are similar if their abstracted types are similar
 --   under an extend 'Renaming' that maps the corresponding type arguments
@@ -224,10 +224,10 @@ instance Similar HS.Type where
 --   ————————————————————————————————————————————
 --    Γ ⊢ forall α₁ … αₙ. τ ≈ forall β₁ … βₙ. τ'
 --   @
-instance Similar HS.TypeSchema where
-  similar' (HS.TypeSchema _ as t1) (HS.TypeSchema _ bs t2) =
-    let ns = map HS.typeVarDeclQName as
-        ms = map HS.typeVarDeclQName bs
+instance Similar IR.TypeSchema where
+  similar' (IR.TypeSchema _ as t1) (IR.TypeSchema _ bs t2) =
+    let ns = map IR.typeVarDeclQName as
+        ms = map IR.typeVarDeclQName bs
     in  similar' t1 t2 . extendRenaming TypeScope ns ms
 
 -------------------------------------------------------------------------------
@@ -325,49 +325,49 @@ instance Similar HS.TypeSchema where
 --
 --        Where @C@ is a constructor or integer literal and @msg@ is an
 --        arbitrary error message.
-instance Similar HS.Expr where
+instance Similar IR.Expr where
   similar' e1 e2 = similarExpr e1 e2
-    .&&. similar' (HS.exprTypeSchema e1) (HS.exprTypeSchema e2)
+    .&&. similar' (IR.exprTypeSchema e1) (IR.exprTypeSchema e2)
 
 -- | Like 'similar'' for expressions but ignores optional type annotations.
-similarExpr :: HS.Expr -> HS.Expr -> Renaming -> Bool
+similarExpr :: IR.Expr -> IR.Expr -> Renaming -> Bool
 -- Compare variables.
-similarExpr (HS.Var _ v1 _) (HS.Var _ v2 _) = similarVars ValueScope v1 v2
+similarExpr (IR.Var _ v1 _) (IR.Var _ v2 _) = similarVars ValueScope v1 v2
 
 -- Bind variables in lambda abstractions.
-similarExpr (HS.Lambda _ xs e _) (HS.Lambda _ ys f _) =
-  let ns = map HS.varPatQName xs
-      ms = map HS.varPatQName ys
+similarExpr (IR.Lambda _ xs e _) (IR.Lambda _ ys f _) =
+  let ns = map IR.varPatQName xs
+      ms = map IR.varPatQName ys
   in  similar' e f . extendRenaming ValueScope ns ms .&&. similar' xs ys
 
 -- Recursively compare, applications, visible type applications and @case@ and
 -- @if@ expressions.
-similarExpr (HS.App _ e1 e2 _) (HS.App _ f1 f2 _) =
+similarExpr (IR.App _ e1 e2 _) (IR.App _ f1 f2 _) =
   similar' e1 f1 .&&. similar' e2 f2
-similarExpr (HS.TypeAppExpr _ e s _) (HS.TypeAppExpr _ f t _) =
+similarExpr (IR.TypeAppExpr _ e s _) (IR.TypeAppExpr _ f t _) =
   similar' e f .&&. similar' s t
-similarExpr (HS.Case _ e as _) (HS.Case _ f bs _) =
+similarExpr (IR.Case _ e as _) (IR.Case _ f bs _) =
   similar' e f .&&. similar' as bs
-similarExpr (HS.If _ e1 e2 e3 _) (HS.If _ f1 f2 f3 _) =
+similarExpr (IR.If _ e1 e2 e3 _) (IR.If _ f1 f2 f3 _) =
   similar' e1 f1 .&&. similar' e2 f2 .&&. similar' e3 f3
 
 -- Expressions without variables are only similar to themselves.
-similarExpr (HS.Con _ n1 _         ) (HS.Con _ n2 _       ) = const (n1 == n2)
-similarExpr (HS.Undefined _ _      ) (HS.Undefined _ _    ) = const True
-similarExpr (HS.ErrorExpr  _ m1 _  ) (HS.ErrorExpr  _ m2 _) = const (m1 == m2)
-similarExpr (HS.IntLiteral _ i1 _  ) (HS.IntLiteral _ i2 _) = const (i1 == i2)
+similarExpr (IR.Con _ n1 _         ) (IR.Con _ n2 _       ) = const (n1 == n2)
+similarExpr (IR.Undefined _ _      ) (IR.Undefined _ _    ) = const True
+similarExpr (IR.ErrorExpr  _ m1 _  ) (IR.ErrorExpr  _ m2 _) = const (m1 == m2)
+similarExpr (IR.IntLiteral _ i1 _  ) (IR.IntLiteral _ i2 _) = const (i1 == i2)
 
 -- Combinations of different constructors are not similar.
-similarExpr (HS.Var        _ _  _  ) _                      = const False
-similarExpr (HS.Lambda      _ _ _ _) _                      = const False
-similarExpr (HS.App         _ _ _ _) _                      = const False
-similarExpr (HS.TypeAppExpr _ _ _ _) _                      = const False
-similarExpr (HS.Case        _ _ _ _) _                      = const False
-similarExpr (HS.If _ _ _ _ _       ) _                      = const False
-similarExpr (HS.Con _ _ _          ) _                      = const False
-similarExpr (HS.Undefined _ _      ) _                      = const False
-similarExpr (HS.ErrorExpr  _ _ _   ) _                      = const False
-similarExpr (HS.IntLiteral _ _ _   ) _                      = const False
+similarExpr (IR.Var        _ _  _  ) _                      = const False
+similarExpr (IR.Lambda      _ _ _ _) _                      = const False
+similarExpr (IR.App         _ _ _ _) _                      = const False
+similarExpr (IR.TypeAppExpr _ _ _ _) _                      = const False
+similarExpr (IR.Case        _ _ _ _) _                      = const False
+similarExpr (IR.If _ _ _ _ _       ) _                      = const False
+similarExpr (IR.Con _ _ _          ) _                      = const False
+similarExpr (IR.Undefined _ _      ) _                      = const False
+similarExpr (IR.ErrorExpr  _ _ _   ) _                      = const False
+similarExpr (IR.IntLiteral _ _ _   ) _                      = const False
 
 -- | Two alternatives that match the same constructor @C@ are similar
 --   if their right-hand sides are similar under an extended 'Renaming'
@@ -384,11 +384,11 @@ similarExpr (HS.IntLiteral _ _ _   ) _                      = const False
 --
 --   where @xᵢ@ and @yᵢ@ denote the names of the variables bound by the
 --   patterns @pᵢ@ and @qᵢ@ respectively.
-instance Similar HS.Alt where
-  similar' (HS.Alt _ c xs e) (HS.Alt _ d ys f)
+instance Similar IR.Alt where
+  similar' (IR.Alt _ c xs e) (IR.Alt _ d ys f)
     | c == d
-    = let ns = map HS.varPatQName xs
-          ms = map HS.varPatQName ys
+    = let ns = map IR.varPatQName xs
+          ms = map IR.varPatQName ys
       in  similar' e f . extendRenaming ValueScope ns ms .&&. similar' xs ys
     | otherwise
     = const False
@@ -401,8 +401,8 @@ instance Similar HS.Alt where
 --   ———————————  ——————————————————————————
 --    Γ ⊢ x ≈ y    Γ ⊢ (x :: τ) ≈ (y :: τ')
 --   @
-instance Similar HS.VarPat where
-  similar' (HS.VarPat _ _ t1) (HS.VarPat _ _ t2) = similar' t1 t2
+instance Similar IR.VarPat where
+  similar' (IR.VarPat _ _ t1) (IR.VarPat _ _ t2) = similar' t1 t2
 
 -------------------------------------------------------------------------------
 -- Similarity test for declarations                                          --
@@ -436,13 +436,13 @@ instance Similar HS.VarPat where
 --   ——————————————————————————————————————————————————————————
 --    Γ ⊢ g @α₁ … @αₘ p₁ … pₙ :: τ = e ≈ g @β₁ … @βₘ q₁ … qₙ :: τ' = f
 --   @
-instance Similar HS.FuncDecl where
-  similar' (HS.FuncDecl _ g as xs s e) (HS.FuncDecl _ h bs ys t f)
-    | HS.declIdentName g == HS.declIdentName h && length as == length bs
-    = let as' = map HS.typeVarDeclQName as
-          bs' = map HS.typeVarDeclQName bs
-          xs' = map HS.varPatQName xs
-          ys' = map HS.varPatQName ys
+instance Similar IR.FuncDecl where
+  similar' (IR.FuncDecl _ g as xs s e) (IR.FuncDecl _ h bs ys t f)
+    | IR.declIdentName g == IR.declIdentName h && length as == length bs
+    = let as' = map IR.typeVarDeclQName as
+          bs' = map IR.typeVarDeclQName bs
+          xs' = map IR.varPatQName xs
+          ys' = map IR.varPatQName ys
       in  (    similar' e f
           .    extendRenaming ValueScope xs' ys'
           .&&. similar' xs ys
@@ -473,26 +473,26 @@ instance Similar HS.FuncDecl where
 --   ———————————————————————————————————————————————————————————————————————————
 --    Γ ⊢ data D α₁ … αₙ = con₁ | … | conₘ ≈ data D β₁ … βₙ = con'₁ | … | con'ₘ
 --   @
-instance Similar HS.TypeDecl where
-  similar' (HS.TypeSynDecl _ d1 as t1) (HS.TypeSynDecl _ d2 bs t2)
-    | HS.declIdentName d1 == HS.declIdentName d2 && length as == length bs
-    = let as' = map HS.typeVarDeclQName as
-          bs' = map HS.typeVarDeclQName bs
+instance Similar IR.TypeDecl where
+  similar' (IR.TypeSynDecl _ d1 as t1) (IR.TypeSynDecl _ d2 bs t2)
+    | IR.declIdentName d1 == IR.declIdentName d2 && length as == length bs
+    = let as' = map IR.typeVarDeclQName as
+          bs' = map IR.typeVarDeclQName bs
       in  similar' t1 t2 . extendRenaming TypeScope as' bs'
     | otherwise
     = const False
 
-  similar' (HS.DataDecl _ d1 as cs1) (HS.DataDecl _ d2 bs cs2)
-    | HS.declIdentName d1 == HS.declIdentName d2 && length as == length bs
-    = let as' = map HS.typeVarDeclQName as
-          bs' = map HS.typeVarDeclQName bs
+  similar' (IR.DataDecl _ d1 as cs1) (IR.DataDecl _ d2 bs cs2)
+    | IR.declIdentName d1 == IR.declIdentName d2 && length as == length bs
+    = let as' = map IR.typeVarDeclQName as
+          bs' = map IR.typeVarDeclQName bs
       in  similar' cs1 cs2 . extendRenaming TypeScope as' bs'
     | otherwise
     = const False
 
   -- Combinations of different constructors are not similar.
-  similar' (HS.TypeSynDecl _ _ _ _) _ = const False
-  similar' (HS.DataDecl    _ _ _ _) _ = const False
+  similar' (IR.TypeSynDecl _ _ _ _) _ = const False
+  similar' (IR.DataDecl    _ _ _ _) _ = const False
 
 -- | Two constructor declarations are similar if their field types are similar.
 --
@@ -501,7 +501,7 @@ instance Similar HS.TypeDecl where
 --   ———————————————————————————————
 --     Γ ⊢ C τ₁ … τₙ ≈ C τ'₁ … τ'ₙ
 --   @
-instance Similar HS.ConDecl where
-  similar' (HS.ConDecl _ c1 ts1) (HS.ConDecl _ c2 ts2)
-    | HS.declIdentName c1 == HS.declIdentName c2 = similar' ts1 ts2
+instance Similar IR.ConDecl where
+  similar' (IR.ConDecl _ c1 ts1) (IR.ConDecl _ c2 ts2)
+    | IR.declIdentName c1 == IR.declIdentName c2 = similar' ts1 ts2
     | otherwise = const False

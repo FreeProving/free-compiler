@@ -13,7 +13,7 @@ import qualified FreeC.Backend.Coq.Syntax      as G
 import           FreeC.Environment
 import           FreeC.Environment.Renamer
 import           FreeC.IR.SrcSpan
-import qualified FreeC.IR.Syntax               as HS
+import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Converter
 
 -------------------------------------------------------------------------------
@@ -47,7 +47,7 @@ freshTypeArgPrefix = "t"
 
 -- | Gets the next fresh Haskell identifier from the current environment.
 --
---   All fresh identifiers contain an at-sign (See 'HS.internalIdentChar').
+--   All fresh identifiers contain an at-sign (See 'IR.internalIdentChar').
 --   This ensures that they cannot be confused with actual Haskell identifiers.
 --   The corresponding Coq identifier contains an underscore instead (see
 --   "FreeC.Environment.Renamer"). The at-sign (or underscore) is preceded
@@ -60,7 +60,7 @@ freshTypeArgPrefix = "t"
 --   The freshly generated identifier is not inserted into the environment,
 --   i.e. it can still be used to create a declaration.
 freshHaskellIdent :: String -> Converter String
-freshHaskellIdent prefix = case elemIndex HS.internalIdentChar prefix of
+freshHaskellIdent prefix = case elemIndex IR.internalIdentChar prefix of
   Just atIndex -> freshHaskellIdent (take atIndex prefix)
   Nothing      -> do
     env <- getEnv
@@ -72,27 +72,27 @@ freshHaskellIdent prefix = case elemIndex HS.internalIdentChar prefix of
                                           (envFreshIdentCount env)
         }
       )
-    return (prefix ++ HS.internalIdentChar : show count)
+    return (prefix ++ IR.internalIdentChar : show count)
 
 -- | Applies 'freshHaskellIdent' to the given name.
 --
 --   Fails if the given name is a symbol.
-freshHaskellName :: HS.Name -> Converter HS.Name
-freshHaskellName (HS.Ident ident) = HS.Ident <$> freshHaskellIdent ident
-freshHaskellName (HS.Symbol _) =
+freshHaskellName :: IR.Name -> Converter IR.Name
+freshHaskellName (IR.Ident ident) = IR.Ident <$> freshHaskellIdent ident
+freshHaskellName (IR.Symbol _) =
   fail "freshHaskellName: expected identifier, got symbol"
 
 -- | Like 'freshHaskellName' but preserves the module name of qualified names.
-freshHaskellQName :: HS.QName -> Converter HS.QName
-freshHaskellQName (HS.UnQual name) = HS.UnQual <$> freshHaskellName name
-freshHaskellQName (HS.Qual modName name) =
-  HS.Qual modName <$> freshHaskellName name
+freshHaskellQName :: IR.QName -> Converter IR.QName
+freshHaskellQName (IR.UnQual name) = IR.UnQual <$> freshHaskellName name
+freshHaskellQName (IR.Qual modName name) =
+  IR.Qual modName <$> freshHaskellName name
 
 -- | Generates a fresh Haskell type variable.
-freshTypeVar :: Converter HS.Type
+freshTypeVar :: Converter IR.Type
 freshTypeVar = do
   ident <- freshHaskellIdent freshTypeVarPrefix
-  return (HS.TypeVar NoSrcSpan ident)
+  return (IR.TypeVar NoSrcSpan ident)
 
 -------------------------------------------------------------------------------
 -- Generating fresh Coq identifiers                                          --

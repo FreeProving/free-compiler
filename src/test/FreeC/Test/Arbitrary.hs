@@ -7,35 +7,35 @@ module FreeC.Test.Arbitrary where
 import           Control.Monad                  ( replicateM )
 import           Test.QuickCheck
 
-import qualified FreeC.IR.Base.Prelude         as HS.Prelude
+import qualified FreeC.IR.Base.Prelude         as IR.Prelude
 import           FreeC.IR.SrcSpan
-import qualified FreeC.IR.Syntax               as HS
+import qualified FreeC.IR.Syntax               as IR
 
 -------------------------------------------------------------------------------
 -- Types                                                                     --
 -------------------------------------------------------------------------------
 
 -- | Generates an arbitrary type expression.
-instance Arbitrary HS.Type where
+instance Arbitrary IR.Type where
   arbitrary = oneof [arbitraryTypeVar, arbitraryTypeConApp, arbitraryFuncType]
    where
-    arbitraryTypeVar :: Gen HS.Type
+    arbitraryTypeVar :: Gen IR.Type
     arbitraryTypeVar = do
       ident <- oneof $ map return ["a", "b", "c", "d"]
-      return (HS.TypeVar NoSrcSpan ident)
+      return (IR.TypeVar NoSrcSpan ident)
 
-    arbitraryTypeConApp :: Gen HS.Type
+    arbitraryTypeConApp :: Gen IR.Type
     arbitraryTypeConApp = do
       (name, arity) <- oneof $ map
         return
-        [ (HS.Prelude.boolTypeConName   , 0)
-        , (HS.Prelude.integerTypeConName, 0)
-        , (HS.Prelude.unitTypeConName   , 0)
-        , (HS.Prelude.listTypeConName   , 1)
-        , (HS.Prelude.tupleTypeConName 2, 2)
+        [ (IR.Prelude.boolTypeConName   , 0)
+        , (IR.Prelude.integerTypeConName, 0)
+        , (IR.Prelude.unitTypeConName   , 0)
+        , (IR.Prelude.listTypeConName   , 1)
+        , (IR.Prelude.tupleTypeConName 2, 2)
         ]
       args <- replicateM arity arbitrary
-      return (HS.typeConApp NoSrcSpan name args)
+      return (IR.typeConApp NoSrcSpan name args)
 
-    arbitraryFuncType :: Gen HS.Type
-    arbitraryFuncType = HS.FuncType NoSrcSpan <$> arbitrary <*> arbitrary
+    arbitraryFuncType :: Gen IR.Type
+    arbitraryFuncType = IR.FuncType NoSrcSpan <$> arbitrary <*> arbitrary

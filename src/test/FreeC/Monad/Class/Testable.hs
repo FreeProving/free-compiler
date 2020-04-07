@@ -40,7 +40,7 @@ import           Data.Functor.Identity          ( Identity(..) )
 import           FreeC.Environment
 import           FreeC.Environment.ModuleInterface
 import           FreeC.Environment.ModuleInterface.Decoder
-import qualified FreeC.IR.Syntax               as HS
+import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
 import           FreeC.Pretty
@@ -232,7 +232,7 @@ initTestEnvironment = do
 --   the initial test environment (see 'initTestEnvironment') such that
 --   they do not have to be loaded in every test case.
 {-# NOINLINE moduleInterfaceCache #-}
-moduleInterfaceCache :: IORef [(HS.ModName, ModuleInterface)]
+moduleInterfaceCache :: IORef [(IR.ModName, ModuleInterface)]
 moduleInterfaceCache = unsafePerformIO $ newIORef []
 
 -- | Loads the module interface file for the module with the given name from

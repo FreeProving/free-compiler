@@ -12,7 +12,7 @@ import           FreeC.Environment
 import           FreeC.Environment.Entry
 import           FreeC.Environment.Renamer
 import           FreeC.IR.SrcSpan
-import qualified FreeC.IR.Syntax               as HS
+import qualified FreeC.IR.Syntax               as IR
 
 -- | Test group for all @FreeC.Environment.Renamer@ tests.
 testRenamer :: Spec
@@ -68,7 +68,7 @@ testMustRenameIdent = describe "mustRenameIdent" $ do
     property $ forAll genIdent $ \ident ->
       let env = addEntry
             TypeVarEntry { entrySrcSpan = NoSrcSpan
-                         , entryName    = HS.UnQual (HS.Ident ident)
+                         , entryName    = IR.UnQual (IR.Ident ident)
                          , entryIdent   = G.bare ident
                          }
             emptyEnv

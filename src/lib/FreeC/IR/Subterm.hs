@@ -43,7 +43,7 @@ import qualified Data.Map.Strict               as Map
 import           Data.Set                       ( Set )
 import           Data.Tuple.Extra               ( (&&&) )
 
-import qualified FreeC.IR.Syntax               as HS
+import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Pretty
 
 -------------------------------------------------------------------------------
@@ -77,31 +77,31 @@ class Subterm a where
   replaceChildTerms :: a -> [a] -> Maybe a
 
 -- | Expressions have subterms.
-instance Subterm HS.Expr where
+instance Subterm IR.Expr where
   -- | Gets the direct child expression nodes of the given expression.
-  childTerms (HS.App         _ e1   e2 _) = [e1, e2]
-  childTerms (HS.TypeAppExpr _ expr _  _) = [expr]
-  childTerms (HS.If _ e1 e2 e3 _        ) = [e1, e2, e3]
-  childTerms (HS.Case   _ expr alts _   ) = expr : map HS.altRhs alts
-  childTerms (HS.Lambda _ _    expr _   ) = [expr]
-  childTerms (HS.Con _ _ _              ) = []
-  childTerms (HS.Var _ _ _              ) = []
-  childTerms (HS.Undefined _ _          ) = []
-  childTerms (HS.ErrorExpr  _ _ _       ) = []
-  childTerms (HS.IntLiteral _ _ _       ) = []
+  childTerms (IR.App         _ e1   e2 _) = [e1, e2]
+  childTerms (IR.TypeAppExpr _ expr _  _) = [expr]
+  childTerms (IR.If _ e1 e2 e3 _        ) = [e1, e2, e3]
+  childTerms (IR.Case   _ expr alts _   ) = expr : map IR.altRhs alts
+  childTerms (IR.Lambda _ _    expr _   ) = [expr]
+  childTerms (IR.Con _ _ _              ) = []
+  childTerms (IR.Var _ _ _              ) = []
+  childTerms (IR.Undefined _ _          ) = []
+  childTerms (IR.ErrorExpr  _ _ _       ) = []
+  childTerms (IR.IntLiteral _ _ _       ) = []
 
   -- | Replaces all direct child expression nodes of the given expression.
-  replaceChildTerms (HS.App srcSpan _ _ exprType) =
-    checkArity 2 $ \[e1', e2'] -> HS.App srcSpan e1' e2' exprType
+  replaceChildTerms (IR.App srcSpan _ _ exprType) =
+    checkArity 2 $ \[e1', e2'] -> IR.App srcSpan e1' e2' exprType
 
-  replaceChildTerms (HS.TypeAppExpr srcSpan _ typeExpr exprType) =
-    checkArity 1 $ \[expr'] -> HS.TypeAppExpr srcSpan expr' typeExpr exprType
+  replaceChildTerms (IR.TypeAppExpr srcSpan _ typeExpr exprType) =
+    checkArity 1 $ \[expr'] -> IR.TypeAppExpr srcSpan expr' typeExpr exprType
 
-  replaceChildTerms (HS.If srcSpan _ _ _ exprType) =
-    checkArity 3 $ \[e1', e2', e3'] -> HS.If srcSpan e1' e2' e3' exprType
+  replaceChildTerms (IR.If srcSpan _ _ _ exprType) =
+    checkArity 3 $ \[e1', e2', e3'] -> IR.If srcSpan e1' e2' e3' exprType
 
-  replaceChildTerms (HS.Case srcSpan _ alts exprType) =
-    checkArity (length alts + 1) $ \(expr' : altChildren') -> HS.Case
+  replaceChildTerms (IR.Case srcSpan _ alts exprType) =
+    checkArity (length alts + 1) $ \(expr' : altChildren') -> IR.Case
       srcSpan
       expr'
       (zipWith replaceAltChildExpr alts altChildren')
@@ -109,35 +109,35 @@ instance Subterm HS.Expr where
    where
     -- | Replaces the expression on the right hand side of the given
     --   @case@-expression alternative.
-    replaceAltChildExpr :: HS.Alt -> HS.Expr -> HS.Alt
-    replaceAltChildExpr alt rhs' = alt { HS.altRhs = rhs' }
+    replaceAltChildExpr :: IR.Alt -> IR.Expr -> IR.Alt
+    replaceAltChildExpr alt rhs' = alt { IR.altRhs = rhs' }
 
-  replaceChildTerms (HS.Lambda srcSpan args _ exprType) =
-    checkArity 1 $ \[expr'] -> HS.Lambda srcSpan args expr' exprType
+  replaceChildTerms (IR.Lambda srcSpan args _ exprType) =
+    checkArity 1 $ \[expr'] -> IR.Lambda srcSpan args expr' exprType
 
-  replaceChildTerms expr@(HS.Con _ _ _       ) = nullary expr
-  replaceChildTerms expr@(HS.Var _ _ _       ) = nullary expr
-  replaceChildTerms expr@(HS.Undefined _ _   ) = nullary expr
-  replaceChildTerms expr@(HS.ErrorExpr  _ _ _) = nullary expr
-  replaceChildTerms expr@(HS.IntLiteral _ _ _) = nullary expr
+  replaceChildTerms expr@(IR.Con _ _ _       ) = nullary expr
+  replaceChildTerms expr@(IR.Var _ _ _       ) = nullary expr
+  replaceChildTerms expr@(IR.Undefined _ _   ) = nullary expr
+  replaceChildTerms expr@(IR.ErrorExpr  _ _ _) = nullary expr
+  replaceChildTerms expr@(IR.IntLiteral _ _ _) = nullary expr
 
 -- | Type expressions have subterms.
-instance Subterm HS.Type where
+instance Subterm IR.Type where
   -- | Gets the direct child type expression nodes of the given type
   --   expression.
-  childTerms (HS.TypeVar _ _     ) = []
-  childTerms (HS.TypeCon _ _     ) = []
-  childTerms (HS.TypeApp  _ t1 t2) = [t1, t2]
-  childTerms (HS.FuncType _ t1 t2) = [t1, t2]
+  childTerms (IR.TypeVar _ _     ) = []
+  childTerms (IR.TypeCon _ _     ) = []
+  childTerms (IR.TypeApp  _ t1 t2) = [t1, t2]
+  childTerms (IR.FuncType _ t1 t2) = [t1, t2]
 
   -- | Replaces all direct child type expression nodes of the given type
   --   expression.
-  replaceChildTerms typeExpr@(HS.TypeVar _ _) = nullary typeExpr
-  replaceChildTerms typeExpr@(HS.TypeCon _ _) = nullary typeExpr
-  replaceChildTerms (HS.TypeApp srcSpan _ _) =
-    checkArity 2 $ \[t1', t2'] -> HS.TypeApp srcSpan t1' t2'
-  replaceChildTerms (HS.FuncType srcSpan _ _) =
-    checkArity 2 $ \[t1', t2'] -> HS.FuncType srcSpan t1' t2'
+  replaceChildTerms typeExpr@(IR.TypeVar _ _) = nullary typeExpr
+  replaceChildTerms typeExpr@(IR.TypeCon _ _) = nullary typeExpr
+  replaceChildTerms (IR.TypeApp srcSpan _ _) =
+    checkArity 2 $ \[t1', t2'] -> IR.TypeApp srcSpan t1' t2'
+  replaceChildTerms (IR.FuncType srcSpan _ _) =
+    checkArity 2 $ \[t1', t2'] -> IR.FuncType srcSpan t1' t2'
 
 -------------------------------------------------------------------------------
 -- Positions                                                                 --
@@ -272,36 +272,36 @@ findSubterms predicate term =
 --   expression.
 --
 --   Returns the empty set if the position is invalid.
-boundVarsAt :: HS.Expr -> Pos -> Set HS.QName
+boundVarsAt :: IR.Expr -> Pos -> Set IR.QName
 boundVarsAt = Map.keysSet .: boundVarsWithTypeAt
 
 -- | Like 'boundVarsAt' but also returns the annotated type of then
 --   variable pattern.
 --
 --   Returns an empty map if the position is invalid.
-boundVarsWithTypeAt :: HS.Expr -> Pos -> Map HS.QName (Maybe HS.Type)
+boundVarsWithTypeAt :: IR.Expr -> Pos -> Map IR.QName (Maybe IR.Type)
 boundVarsWithTypeAt = fromMaybe Map.empty .: boundVarsWithTypeAt'
  where
   -- | Like 'boundVarsWithTypeAt' but returns @Nothing@ if the given position
   --   is invalid.
-  boundVarsWithTypeAt' :: HS.Expr -> Pos -> Maybe (Map HS.QName (Maybe HS.Type))
+  boundVarsWithTypeAt' :: IR.Expr -> Pos -> Maybe (Map IR.QName (Maybe IR.Type))
   boundVarsWithTypeAt' _    (Pos []      ) = return Map.empty
   boundVarsWithTypeAt' expr (Pos (p : ps)) = do
     child <- selectSubterm expr (Pos [p])
     bvars <- boundVarsWithTypeAt' child (Pos ps)
     case expr of
-      (HS.Case _ _ alts _) | p > 1 -> do
+      (IR.Case _ _ alts _) | p > 1 -> do
         let altVars = altBoundVarsWithType (alts !! (p - 2))
         return (bvars `Map.union` altVars)
-      (HS.Lambda _ args _ _) -> return (bvars `Map.union` fromVarPats args)
+      (IR.Lambda _ args _ _) -> return (bvars `Map.union` fromVarPats args)
       _                      -> return bvars
 
   -- | Gets the names of variables bound by the variable patterns of the given
   --   @case@-expression alternative.
-  altBoundVarsWithType :: HS.Alt -> Map HS.QName (Maybe HS.Type)
-  altBoundVarsWithType (HS.Alt _ _ varPats _) = fromVarPats varPats
+  altBoundVarsWithType :: IR.Alt -> Map IR.QName (Maybe IR.Type)
+  altBoundVarsWithType (IR.Alt _ _ varPats _) = fromVarPats varPats
 
   -- | Converts a list of variable patterns to a set of variable names bound
   --   by these patterns.
-  fromVarPats :: [HS.VarPat] -> Map HS.QName (Maybe HS.Type)
-  fromVarPats = Map.fromList . map (HS.varPatQName &&& HS.varPatType)
+  fromVarPats :: [IR.VarPat] -> Map IR.QName (Maybe IR.Type)
+  fromVarPats = Map.fromList . map (IR.varPatQName &&& IR.varPatType)

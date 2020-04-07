@@ -7,7 +7,7 @@ import           FreeC.Backend.Coq.Converter.Type
 import qualified FreeC.Backend.Coq.Syntax      as G
 import           FreeC.Environment.Fresh
 import           FreeC.Environment.Renamer
-import qualified FreeC.IR.Syntax               as HS
+import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Converter
 
 -------------------------------------------------------------------------------
@@ -28,7 +28,7 @@ import           FreeC.Monad.Converter
 --   (e.g. @(a : Type)@) or implicit (e.g. @{a : Type}@).
 convertTypeVarDecls
   :: G.Explicitness   -- ^ Whether to generate an explicit or implit binder.
-  -> [HS.TypeVarDecl] -- ^ The type variable declarations.
+  -> [IR.TypeVarDecl] -- ^ The type variable declarations.
   -> Converter [G.Binder]
 convertTypeVarDecls explicitness typeVarDecls
   | null typeVarDecls = return []
@@ -37,8 +37,8 @@ convertTypeVarDecls explicitness typeVarDecls
     return [G.typedBinder explicitness idents' G.sortType]
  where
   -- | TODO
-  convertTypeVarDecl :: HS.TypeVarDecl -> Converter G.Qualid
-  convertTypeVarDecl (HS.TypeVarDecl srcSpan ident) =
+  convertTypeVarDecl :: IR.TypeVarDecl -> Converter G.Qualid
+  convertTypeVarDecl (IR.TypeVarDecl srcSpan ident) =
     renameAndDefineTypeVar srcSpan ident
 
 -------------------------------------------------------------------------------
@@ -54,7 +54,7 @@ convertTypeVarDecls explicitness typeVarDecls
 --   If the function is recursive (i.e., the second argument is not @Nothing@),
 --   its decreasing argument (given index) is not lifted.
 convertArgs
-  :: [HS.VarPat]     -- ^ The function arguments.
+  :: [IR.VarPat]     -- ^ The function arguments.
   -> Maybe Int       -- ^ The position of the decreasing argument or @Nothing@
                      --   if the function does not decrease on any of its
                      --   arguments.
@@ -72,8 +72,8 @@ convertArgs args (Just index) = do
 --
 --   If the variable pattern has a type annotation, the generated binder is
 --   annotated with the converted type.
-convertArg :: HS.VarPat -> Converter G.Binder
-convertArg (HS.VarPat srcSpan ident maybeArgType) = do
+convertArg :: IR.VarPat -> Converter G.Binder
+convertArg (IR.VarPat srcSpan ident maybeArgType) = do
   ident'        <- renameAndDefineVar srcSpan False ident maybeArgType
   maybeArgType' <- mapM convertType maybeArgType
   generateArgBinder ident' maybeArgType'
@@ -83,8 +83,8 @@ convertArg (HS.VarPat srcSpan ident maybeArgType) = do
 --   If the variable pattern has a type annotation, the generated binder is
 --   annotated with the converted type but the type is not lifted to the
 --   @Maybe@ monad.
-convertPureArg :: HS.VarPat -> Converter G.Binder
-convertPureArg (HS.VarPat srcSpan ident maybeArgType) = do
+convertPureArg :: IR.VarPat -> Converter G.Binder
+convertPureArg (IR.VarPat srcSpan ident maybeArgType) = do
   ident'        <- renameAndDefineVar srcSpan True ident maybeArgType
   maybeArgType' <- mapM convertType' maybeArgType
   generateArgBinder ident' maybeArgType'
@@ -102,7 +102,7 @@ generateArgBinder ident' (Just argType') =
 -- | Converts the argument of an artifically generated function to an explicit
 --   Coq binder. A fresh Coq identifier is selected for the argument
 --   and returned together with the binder.
-convertAnonymousArg :: Maybe HS.Type -> Converter (G.Qualid, G.Binder)
+convertAnonymousArg :: Maybe IR.Type -> Converter (G.Qualid, G.Binder)
 convertAnonymousArg mArgType = do
   ident'    <- freshCoqQualid freshArgPrefix
   mArgType' <- mapM convertType mArgType

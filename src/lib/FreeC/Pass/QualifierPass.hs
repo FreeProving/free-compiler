@@ -67,78 +67,78 @@
 --
 --   == Postcondition
 --
---   All 'HS.DeclIdent's in the module contain qualified identifiers
---   (i.e., 'HS.Qual's).
+--   All 'IR.DeclIdent's in the module contain qualified identifiers
+--   (i.e., 'IR.Qual's).
 
 module FreeC.Pass.QualifierPass
   ( qualifierPass
   )
 where
 
-import qualified FreeC.IR.Syntax               as HS
+import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Pass
 
 -- | Compiler pass that qualifies the names of all declarations in the module
 --   with the name of the module.
-qualifierPass :: Pass HS.Module
+qualifierPass :: Pass IR.Module
 qualifierPass = return . qualifyDecls
 
 -- | Qualifies the names of declarations in the given module with the name
 --   of the module.
-qualifyDecls :: HS.Module -> HS.Module
+qualifyDecls :: IR.Module -> IR.Module
 qualifyDecls ast = ast
-  { HS.modTypeDecls = map qualifyTypeDecl (HS.modTypeDecls ast)
-  , HS.modTypeSigs  = map qualifyTypeSig (HS.modTypeSigs ast)
-  , HS.modPragmas   = map qualifyPragma (HS.modPragmas ast)
-  , HS.modFuncDecls = map qualifyFuncDecl (HS.modFuncDecls ast)
+  { IR.modTypeDecls = map qualifyTypeDecl (IR.modTypeDecls ast)
+  , IR.modTypeSigs  = map qualifyTypeSig (IR.modTypeSigs ast)
+  , IR.modPragmas   = map qualifyPragma (IR.modPragmas ast)
+  , IR.modFuncDecls = map qualifyFuncDecl (IR.modFuncDecls ast)
   }
  where
   -- | The name of the module to qualify the names of all declarations with.
-  modName :: HS.ModName
-  modName = HS.modName ast
+  modName :: IR.ModName
+  modName = IR.modName ast
 
   -- | Qualifies unqualified names with 'modName'.
   --
   --   If the name is qualified already, it remains unchanged.
-  qualify :: HS.QName -> HS.QName
-  qualify (     HS.UnQual name) = HS.Qual modName name
-  qualify name@(HS.Qual _ _   ) = name
+  qualify :: IR.QName -> IR.QName
+  qualify (     IR.UnQual name) = IR.Qual modName name
+  qualify name@(IR.Qual _ _   ) = name
 
   -- | Qualifies the name of a declaration with 'modName'.
-  qualifyDeclIdent :: HS.DeclIdent -> HS.DeclIdent
+  qualifyDeclIdent :: IR.DeclIdent -> IR.DeclIdent
   qualifyDeclIdent declIdent =
-    declIdent { HS.declIdentName = qualify (HS.declIdentName declIdent) }
+    declIdent { IR.declIdentName = qualify (IR.declIdentName declIdent) }
 
   -- | Qualifies the name of the given type declaration with 'modName'.
   --
   --   If the declaration is a data type declaration, the names of its
   --   constructors are also qualified.
-  qualifyTypeDecl :: HS.TypeDecl -> HS.TypeDecl
-  qualifyTypeDecl decl@HS.TypeSynDecl{} =
-    decl { HS.typeDeclIdent = qualifyDeclIdent (HS.typeDeclIdent decl) }
-  qualifyTypeDecl decl@HS.DataDecl{} = decl
-    { HS.typeDeclIdent = qualifyDeclIdent (HS.typeDeclIdent decl)
-    , HS.dataDeclCons  = map qualifyConDecl (HS.dataDeclCons decl)
+  qualifyTypeDecl :: IR.TypeDecl -> IR.TypeDecl
+  qualifyTypeDecl decl@IR.TypeSynDecl{} =
+    decl { IR.typeDeclIdent = qualifyDeclIdent (IR.typeDeclIdent decl) }
+  qualifyTypeDecl decl@IR.DataDecl{} = decl
+    { IR.typeDeclIdent = qualifyDeclIdent (IR.typeDeclIdent decl)
+    , IR.dataDeclCons  = map qualifyConDecl (IR.dataDeclCons decl)
     }
 
   -- | Qualifies the name of the given constructor declaration with 'modName'.
-  qualifyConDecl :: HS.ConDecl -> HS.ConDecl
+  qualifyConDecl :: IR.ConDecl -> IR.ConDecl
   qualifyConDecl decl =
-    decl { HS.conDeclIdent = qualifyDeclIdent (HS.conDeclIdent decl) }
+    decl { IR.conDeclIdent = qualifyDeclIdent (IR.conDeclIdent decl) }
 
   -- | Qualifies the function names annotated by the given type signature
   --   with 'modName'.
-  qualifyTypeSig :: HS.TypeSig -> HS.TypeSig
+  qualifyTypeSig :: IR.TypeSig -> IR.TypeSig
   qualifyTypeSig typeSig = typeSig
-    { HS.typeSigDeclIdents = map qualifyDeclIdent (HS.typeSigDeclIdents typeSig)
+    { IR.typeSigDeclIdents = map qualifyDeclIdent (IR.typeSigDeclIdents typeSig)
     }
 
   -- | Qualifies function names annotated by the given pragmas with 'modName'.
-  qualifyPragma :: HS.Pragma -> HS.Pragma
-  qualifyPragma (HS.DecArgPragma srcSpan funcName decArg) =
-    HS.DecArgPragma srcSpan (qualify funcName) decArg
+  qualifyPragma :: IR.Pragma -> IR.Pragma
+  qualifyPragma (IR.DecArgPragma srcSpan funcName decArg) =
+    IR.DecArgPragma srcSpan (qualify funcName) decArg
 
   -- | Qualifies the name of the given function declaration with 'modName'.
-  qualifyFuncDecl :: HS.FuncDecl -> HS.FuncDecl
+  qualifyFuncDecl :: IR.FuncDecl -> IR.FuncDecl
   qualifyFuncDecl decl =
-    decl { HS.funcDeclIdent = qualifyDeclIdent (HS.funcDeclIdent decl) }
+    decl { IR.funcDeclIdent = qualifyDeclIdent (IR.funcDeclIdent decl) }

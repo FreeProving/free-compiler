@@ -216,7 +216,7 @@ import           FreeC.Environment
 import           FreeC.Environment.ModuleInterface
 import           FreeC.Environment.Scope
 import           FreeC.IR.SrcSpan
-import qualified FreeC.IR.Syntax               as HS
+import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
 import           FreeC.Pass
@@ -224,7 +224,7 @@ import           FreeC.Pretty            hiding ( group )
 
 -- | Compiler pass that replaces all references by the original names of the
 --   entries they refer to.
-resolverPass :: Pass HS.Module
+resolverPass :: Pass IR.Module
 resolverPass ast = do
   env <- resolverEnvFromModule ast
   liftReporter $ runResolver env (resolve ast)
@@ -243,13 +243,13 @@ data ResolverEntry
     ImportedEntry
       { resolverEntrySrcSpan :: SrcSpan
         -- ^ The location of the @import@ that brought the entry into scope.
-      , resolverEntryImportName :: HS.ModName
+      , resolverEntryImportName :: IR.ModName
         -- ^ The name of the module the entry was imported from.
       , resolverEntryScope :: Scope
         -- ^ The scope the entry is defined in.
-      , resolverEntryLocalName :: HS.QName
+      , resolverEntryLocalName :: IR.QName
         -- ^ The qualified name of the entry in the current module.
-      , resolverEntryOriginalName :: HS.QName
+      , resolverEntryOriginalName :: IR.QName
         -- ^ The name of the entry in the module it was originally defined in.
       }
   | -- | Environment entry for a locally defined name (for example, a top-level
@@ -259,7 +259,7 @@ data ResolverEntry
         -- ^ The location of the declaration.
       , resolverEntryScope :: Scope
         -- ^ The scope of the declaration.
-      , resolverEntryOriginalName :: HS.QName
+      , resolverEntryOriginalName :: IR.QName
         -- ^ The name of the declaration.
       }
 
@@ -292,7 +292,7 @@ instance Pretty ResolverEntry where
    where
     prettyOriginal :: Doc
     prettyOriginal
-      | HS.Qual modName _ <- originalName
+      | IR.Qual modName _ <- originalName
       = parens
         (prettyString "and originally defined in" <+> squotes (pretty modName))
       | otherwise
@@ -329,11 +329,11 @@ resolverEnvFromEntries =
 --   This is used for unqualified imports.
 resolverEnvFromUnQualEntries :: [ResolverEntry] -> ResolverEnv
 resolverEnvFromUnQualEntries = resolverEnvFromNamedEntries
-  . map (HS.toUnQual . resolverEntryOriginalName &&& id)
+  . map (IR.toUnQual . resolverEntryOriginalName &&& id)
 
 -- | Creates an environment that associates the given names with the given
 --   entries.
-resolverEnvFromNamedEntries :: [(HS.QName, ResolverEntry)] -> ResolverEnv
+resolverEnvFromNamedEntries :: [(IR.QName, ResolverEntry)] -> ResolverEnv
 resolverEnvFromNamedEntries = ResolverEnv . Map.fromListWith Set.union . map
   (\(name, entry) -> ((resolverEntryScope entry, name), Set.singleton entry))
 
@@ -361,7 +361,7 @@ shadowResolverEnv e1 e2 =
 
 -- | Looks up the resolver entries that have been associated with the given
 --   name in the given scope.
-lookupResolverEntries :: Scope -> HS.QName -> ResolverEnv -> Set ResolverEntry
+lookupResolverEntries :: Scope -> IR.QName -> ResolverEnv -> Set ResolverEntry
 lookupResolverEntries scope name env =
   Map.findWithDefault Set.empty (scope, name) (unwrapResolverEnv env)
 
@@ -378,9 +378,9 @@ lookupResolverEntries scope name env =
 --   If there is a declaration with a name that is also imported, no error
 --   is reported unless there is an actual reference (i.e., when the name is
 --   looked up in the returned environment using 'lookupResolverEntryOrFail').
-resolverEnvFromModule :: HS.Module -> Converter ResolverEnv
+resolverEnvFromModule :: IR.Module -> Converter ResolverEnv
 resolverEnvFromModule ast = do
-  importEnv   <- resolverEnvFromImports (HS.modImports ast)
+  importEnv   <- resolverEnvFromImports (IR.modImports ast)
   topLevelEnv <- resolverEnvFromTopLevel ast
   return (importEnv `mergeResolverEnv` topLevelEnv)
 
@@ -395,7 +395,7 @@ resolverEnvFromModule ast = do
 --   scope, both are entered into the environment. That the name is ambiguous
 --   is reported only if there is an actual reference (i.e., when the name is
 --   looked up in the returned environment using 'lookupResolverEntryOrFail').
-resolverEnvFromImports :: [HS.ImportDecl] -> Converter ResolverEnv
+resolverEnvFromImports :: [IR.ImportDecl] -> Converter ResolverEnv
 resolverEnvFromImports = fmap mergeResolverEnvs . mapM resolverEnvFromImport
 
 -- | Creates an environment that contains entries for the names exported by
@@ -404,13 +404,13 @@ resolverEnvFromImports = fmap mergeResolverEnvs . mapM resolverEnvFromImport
 --   The entries are brought into the environment both with their unqualified
 --   name and qualified with the name of the module they are imported from
 --   (not the name of the module they were originally defined in).
-resolverEnvFromImport :: HS.ImportDecl -> Converter ResolverEnv
-resolverEnvFromImport (HS.ImportDecl srcSpan modName) = do
+resolverEnvFromImport :: IR.ImportDecl -> Converter ResolverEnv
+resolverEnvFromImport (IR.ImportDecl srcSpan modName) = do
   Just iface <- inEnv $ lookupAvailableModule modName
   let exports     = interfaceExports iface
       entries     = map makeImportedEntry (Set.toList exports)
       qualNames   = map resolverEntryLocalName entries
-      unQualNames = map HS.toUnQual qualNames
+      unQualNames = map IR.toUnQual qualNames
   return $ resolverEnvFromNamedEntries
     (zip unQualNames entries ++ zip qualNames entries)
  where
@@ -421,7 +421,7 @@ resolverEnvFromImport (HS.ImportDecl srcSpan modName) = do
     { resolverEntrySrcSpan      = srcSpan
     , resolverEntryImportName   = modName
     , resolverEntryScope        = scope
-    , resolverEntryLocalName    = HS.toQual modName originalName
+    , resolverEntryLocalName    = IR.toQual modName originalName
     , resolverEntryOriginalName = originalName
     }
 
@@ -436,38 +436,38 @@ class TopLevelDeclaration node where
 
 -- | A module declares all of the contained type synonym, data type and
 --   function declarations at top-level.
-instance TopLevelDeclaration HS.Module where
+instance TopLevelDeclaration IR.Module where
   topLevelEntries ast =
-    concatMap topLevelEntries (HS.modTypeDecls ast)
-      ++ concatMap topLevelEntries (HS.modFuncDecls ast)
+    concatMap topLevelEntries (IR.modTypeDecls ast)
+      ++ concatMap topLevelEntries (IR.modFuncDecls ast)
 
 -- | Type synonym declarations declare a type constructor at top-level and
 --   data type declarations declare a type constructor and their data
 --   constructors at top-level.
-instance TopLevelDeclaration HS.TypeDecl where
-  topLevelEntries typeSynDecl@HS.TypeSynDecl{} =
-    [makeTopLevelEntry TypeScope (HS.typeDeclIdent typeSynDecl)]
-  topLevelEntries dataDecl@HS.DataDecl{} =
-    makeTopLevelEntry TypeScope (HS.typeDeclIdent dataDecl)
-      : concatMap topLevelEntries (HS.dataDeclCons dataDecl)
+instance TopLevelDeclaration IR.TypeDecl where
+  topLevelEntries typeSynDecl@IR.TypeSynDecl{} =
+    [makeTopLevelEntry TypeScope (IR.typeDeclIdent typeSynDecl)]
+  topLevelEntries dataDecl@IR.DataDecl{} =
+    makeTopLevelEntry TypeScope (IR.typeDeclIdent dataDecl)
+      : concatMap topLevelEntries (IR.dataDeclCons dataDecl)
 
 -- | Constructors of data type declarations are declared at top-level.
-instance TopLevelDeclaration HS.ConDecl where
+instance TopLevelDeclaration IR.ConDecl where
   topLevelEntries conDecl =
-    [makeTopLevelEntry ValueScope (HS.conDeclIdent conDecl)]
+    [makeTopLevelEntry ValueScope (IR.conDeclIdent conDecl)]
 
 -- | Function declarations are declared at top-level.
-instance TopLevelDeclaration HS.FuncDecl where
+instance TopLevelDeclaration IR.FuncDecl where
   topLevelEntries funcDecl =
-    [makeTopLevelEntry ValueScope (HS.funcDeclIdent funcDecl)]
+    [makeTopLevelEntry ValueScope (IR.funcDeclIdent funcDecl)]
 
 -- | Creates the entry for a top-level declaration with the given name
 --   in the given scope.
-makeTopLevelEntry :: Scope -> HS.DeclIdent -> ResolverEntry
+makeTopLevelEntry :: Scope -> IR.DeclIdent -> ResolverEntry
 makeTopLevelEntry scope declIdent = LocalEntry
-  { resolverEntrySrcSpan      = HS.declIdentSrcSpan declIdent
+  { resolverEntrySrcSpan      = IR.declIdentSrcSpan declIdent
   , resolverEntryScope        = scope
-  , resolverEntryOriginalName = HS.declIdentName declIdent
+  , resolverEntryOriginalName = IR.declIdentName declIdent
   }
 
 -- | Creates an environment that contains entries for top-level declarations.
@@ -493,16 +493,16 @@ resolverEnvFromTopLevel node = do
 --
 --   Reports a fatal error if there are multiple declarations for the same
 --   type variable in the given list. Existing type variables can be shadowed.
-defineTypeVars :: [HS.TypeVarDecl] -> Resolver ()
+defineTypeVars :: [IR.TypeVarDecl] -> Resolver ()
 defineTypeVars typeVarDecls = do
   entries <- checkSingleDeclarations (map makeTypeVarEntry typeVarDecls)
   modify $ shadowResolverEnv (resolverEnvFromEntries entries)
  where
-  makeTypeVarEntry :: HS.TypeVarDecl -> ResolverEntry
+  makeTypeVarEntry :: IR.TypeVarDecl -> ResolverEntry
   makeTypeVarEntry typeVarDecl = LocalEntry
-    { resolverEntrySrcSpan      = HS.typeVarDeclSrcSpan typeVarDecl
+    { resolverEntrySrcSpan      = IR.typeVarDeclSrcSpan typeVarDecl
     , resolverEntryScope        = TypeScope
-    , resolverEntryOriginalName = HS.typeVarDeclQName typeVarDecl
+    , resolverEntryOriginalName = IR.typeVarDeclQName typeVarDecl
     }
 
 -- | Extends the environment with entries for variables bound by the given
@@ -510,16 +510,16 @@ defineTypeVars typeVarDecls = do
 --
 --   Reports a fatal error if there are multiple patterns for the same variable
 --   in the given list. However, existing variables can be shadowed.
-defineVarPats :: [HS.VarPat] -> Resolver ()
+defineVarPats :: [IR.VarPat] -> Resolver ()
 defineVarPats varPats = do
   entries <- checkSingleDeclarations (map makeVarPatEntry varPats)
   modify $ shadowResolverEnv (resolverEnvFromEntries entries)
  where
-  makeVarPatEntry :: HS.VarPat -> ResolverEntry
+  makeVarPatEntry :: IR.VarPat -> ResolverEntry
   makeVarPatEntry varPat = LocalEntry
-    { resolverEntrySrcSpan      = HS.varPatSrcSpan varPat
+    { resolverEntrySrcSpan      = IR.varPatSrcSpan varPat
     , resolverEntryScope        = ValueScope
-    , resolverEntryOriginalName = HS.varPatQName varPat
+    , resolverEntryOriginalName = IR.varPatQName varPat
     }
 
 -------------------------------------------------------------------------------
@@ -541,7 +541,7 @@ checkSingleDeclaration :: MonadReporter r => [ResolverEntry] -> r ResolverEntry
 checkSingleDeclaration [entry] = return entry
 checkSingleDeclaration entries = do
   let srcSpan = resolverEntrySrcSpan (last entries)
-      name    = HS.toUnQual (resolverEntryOriginalName (head entries))
+      name    = IR.toUnQual (resolverEntryOriginalName (head entries))
   reportFatal
     $  Message srcSpan Error
     $  "Multiple declarations of '"
@@ -583,7 +583,7 @@ withLocalResolverEnv mx = do
 --   If there is no such entry or the reference is ambiguous because multiple
 --   entries are associated with the name, a fatal error is reported.
 lookupResolverEntryOrFail
-  :: SrcSpan -> Scope -> HS.QName -> Resolver ResolverEntry
+  :: SrcSpan -> Scope -> IR.QName -> Resolver ResolverEntry
 lookupResolverEntryOrFail srcSpan scope name = do
   entrySet <- gets $ lookupResolverEntries scope name
   case Set.toList entrySet of
@@ -616,7 +616,7 @@ lookupResolverEntryOrFail srcSpan scope name = do
 --
 --   If there is no such entry or the reference is ambiguous because multiple
 --   entries are associated with the name, a fatal error is reported.
-lookupOriginalNameOrFail :: SrcSpan -> Scope -> HS.QName -> Resolver HS.QName
+lookupOriginalNameOrFail :: SrcSpan -> Scope -> IR.QName -> Resolver IR.QName
 lookupOriginalNameOrFail =
   fmap resolverEntryOriginalName .:. lookupResolverEntryOrFail
 
@@ -625,7 +625,7 @@ lookupOriginalNameOrFail =
 --
 --   If there is no such entry or the reference is ambiguous because multiple
 --   entries are associated with the name, a fatal error is reported.
-checkIsDefined :: SrcSpan -> Scope -> HS.QName -> Resolver ()
+checkIsDefined :: SrcSpan -> Scope -> IR.QName -> Resolver ()
 checkIsDefined srcSpan scope name = do
   _ <- lookupResolverEntryOrFail srcSpan scope name
   return ()
@@ -640,14 +640,14 @@ class Resolvable node where
 
 -- | References in top-level declarations and type signatures can be
 --   resolved.
-instance Resolvable HS.Module where
+instance Resolvable IR.Module where
   resolve ast = do
-    typeDecls' <- mapM resolve (HS.modTypeDecls ast)
-    typeSigs'  <- mapM resolve (HS.modTypeSigs ast)
-    funcDecls' <- mapM resolve (HS.modFuncDecls ast)
-    return ast { HS.modTypeDecls = typeDecls'
-               , HS.modTypeSigs  = typeSigs'
-               , HS.modFuncDecls = funcDecls'
+    typeDecls' <- mapM resolve (IR.modTypeDecls ast)
+    typeSigs'  <- mapM resolve (IR.modTypeSigs ast)
+    funcDecls' <- mapM resolve (IR.modFuncDecls ast)
+    return ast { IR.modTypeDecls = typeDecls'
+               , IR.modTypeSigs  = typeSigs'
+               , IR.modFuncDecls = funcDecls'
                }
 
 -- | References to other types can be resolved in type synonyms and the fields
@@ -655,59 +655,59 @@ instance Resolvable HS.Module where
 --
 --   On the right-hand sides of type declarations the type variables introduced
 --   by the left-hand side can be referenced.
-instance Resolvable HS.TypeDecl where
-  resolve typeSynDecl@HS.TypeSynDecl{} = withLocalResolverEnv $ do
-    defineTypeVars (HS.typeDeclArgs typeSynDecl)
-    rhs' <- resolve (HS.typeSynDeclRhs typeSynDecl)
-    return typeSynDecl { HS.typeSynDeclRhs = rhs' }
-  resolve dataDecl@HS.DataDecl{} = withLocalResolverEnv $ do
-    defineTypeVars (HS.typeDeclArgs dataDecl)
-    cons' <- mapM resolve (HS.dataDeclCons dataDecl)
-    return dataDecl { HS.dataDeclCons = cons' }
+instance Resolvable IR.TypeDecl where
+  resolve typeSynDecl@IR.TypeSynDecl{} = withLocalResolverEnv $ do
+    defineTypeVars (IR.typeDeclArgs typeSynDecl)
+    rhs' <- resolve (IR.typeSynDeclRhs typeSynDecl)
+    return typeSynDecl { IR.typeSynDeclRhs = rhs' }
+  resolve dataDecl@IR.DataDecl{} = withLocalResolverEnv $ do
+    defineTypeVars (IR.typeDeclArgs dataDecl)
+    cons' <- mapM resolve (IR.dataDeclCons dataDecl)
+    return dataDecl { IR.dataDeclCons = cons' }
 
 -- | References can be resolved in the field types of constructor declarations.
-instance Resolvable HS.ConDecl where
+instance Resolvable IR.ConDecl where
   resolve conDecl = do
-    fields' <- mapM resolve (HS.conDeclFields conDecl)
-    return conDecl { HS.conDeclFields = fields' }
+    fields' <- mapM resolve (IR.conDeclFields conDecl)
+    return conDecl { IR.conDeclFields = fields' }
 
 -- | References to types in type signatures can be resolved.
-instance Resolvable HS.TypeSig where
+instance Resolvable IR.TypeSig where
   resolve typeSig = do
-    typeSchema' <- resolve (HS.typeSigTypeSchema typeSig)
-    return typeSig { HS.typeSigTypeSchema = typeSchema' }
+    typeSchema' <- resolve (IR.typeSigTypeSchema typeSig)
+    return typeSig { IR.typeSigTypeSchema = typeSchema' }
 
 -- | The type variables quantified by the @forall@ of a type schema can be
 --   referenced by its type expression.
-instance Resolvable HS.TypeSchema where
-  resolve (HS.TypeSchema srcSpan args typeExpr) = withLocalResolverEnv $ do
+instance Resolvable IR.TypeSchema where
+  resolve (IR.TypeSchema srcSpan args typeExpr) = withLocalResolverEnv $ do
     defineTypeVars args
     typeExpr' <- resolve typeExpr
-    return (HS.TypeSchema srcSpan args typeExpr')
+    return (IR.TypeSchema srcSpan args typeExpr')
 
 -- | References to type constructors can be resolved in type expressions and
 --   all type variables that occur in the type expression must be declared.
-instance Resolvable HS.Type where
+instance Resolvable IR.Type where
   -- Type variables will always resolve to themselves, however we should still
   -- perform a lookup to make sure the type variable has been defined.
-  resolve (HS.TypeVar srcSpan ident) = do
-    checkIsDefined srcSpan TypeScope (HS.UnQual (HS.Ident ident))
-    return (HS.TypeVar srcSpan ident)
+  resolve (IR.TypeVar srcSpan ident) = do
+    checkIsDefined srcSpan TypeScope (IR.UnQual (IR.Ident ident))
+    return (IR.TypeVar srcSpan ident)
 
   -- Lookup the original name
-  resolve (HS.TypeCon srcSpan name) = do
+  resolve (IR.TypeCon srcSpan name) = do
     originalName <- lookupOriginalNameOrFail srcSpan TypeScope name
-    return (HS.TypeCon srcSpan originalName)
+    return (IR.TypeCon srcSpan originalName)
 
   -- Resolve recursively.
-  resolve (HS.TypeApp srcSpan t1 t2) = do
+  resolve (IR.TypeApp srcSpan t1 t2) = do
     t1' <- resolve t1
     t2' <- resolve t2
-    return (HS.TypeApp srcSpan t1' t2')
-  resolve (HS.FuncType srcSpan t1 t2) = do
+    return (IR.TypeApp srcSpan t1' t2')
+  resolve (IR.FuncType srcSpan t1 t2) = do
     t1' <- resolve t1
     t2' <- resolve t2
-    return (HS.FuncType srcSpan t1' t2')
+    return (IR.FuncType srcSpan t1' t2')
 
 -- | Types that are used in the type annotations of a function declaration
 --   and functions and constructors that are used on the right-hand side
@@ -717,16 +717,16 @@ instance Resolvable HS.Type where
 --   variables introduced on the left-hand side of the function declaration.
 --   The variables bound by the arguments can be referenced on the right-hand
 --   side of the function declaration.
-instance Resolvable HS.FuncDecl where
+instance Resolvable IR.FuncDecl where
   resolve funcDecl = withLocalResolverEnv $ do
-    defineTypeVars (HS.funcDeclTypeArgs funcDecl)
-    defineVarPats (HS.funcDeclArgs funcDecl)
-    args'    <- mapM resolve (HS.funcDeclArgs funcDecl)
-    rhs'     <- resolve (HS.funcDeclRhs funcDecl)
-    retType' <- mapM resolve (HS.funcDeclReturnType funcDecl)
-    return funcDecl { HS.funcDeclArgs       = args'
-                    , HS.funcDeclRhs        = rhs'
-                    , HS.funcDeclReturnType = retType'
+    defineTypeVars (IR.funcDeclTypeArgs funcDecl)
+    defineVarPats (IR.funcDeclArgs funcDecl)
+    args'    <- mapM resolve (IR.funcDeclArgs funcDecl)
+    rhs'     <- resolve (IR.funcDeclRhs funcDecl)
+    retType' <- mapM resolve (IR.funcDeclReturnType funcDecl)
+    return funcDecl { IR.funcDeclArgs       = args'
+                    , IR.funcDeclRhs        = rhs'
+                    , IR.funcDeclReturnType = retType'
                     }
 
 -- | References to constructors and variables (including functions) can be
@@ -736,58 +736,58 @@ instance Resolvable HS.FuncDecl where
 --   Variables introduced by variable patterns in lambda abstractions and
 --   @case@ expression alternatives can be referenced on their right-hand
 --   sides.
-instance Resolvable HS.Expr where
+instance Resolvable IR.Expr where
   -- Lookup the original name of constructors and functions.
-  resolve (HS.Con srcSpan conName exprType) = do
+  resolve (IR.Con srcSpan conName exprType) = do
     originalName <- lookupOriginalNameOrFail srcSpan ValueScope conName
     exprType'    <- mapM resolve exprType
-    return (HS.Con srcSpan originalName exprType')
-  resolve (HS.Var srcSpan varName exprType) = do
+    return (IR.Con srcSpan originalName exprType')
+  resolve (IR.Var srcSpan varName exprType) = do
     originalName <- lookupOriginalNameOrFail srcSpan ValueScope varName
     exprType'    <- mapM resolve exprType
-    return (HS.Var srcSpan originalName exprType')
+    return (IR.Var srcSpan originalName exprType')
 
   -- Shadow lambda arguments and resolve recursively.
-  resolve (HS.Lambda srcSpan args rhs exprType) = withLocalResolverEnv $ do
+  resolve (IR.Lambda srcSpan args rhs exprType) = withLocalResolverEnv $ do
     defineVarPats args
     args'     <- mapM resolve args
     rhs'      <- resolve rhs
     exprType' <- mapM resolve exprType
-    return (HS.Lambda srcSpan args' rhs' exprType')
+    return (IR.Lambda srcSpan args' rhs' exprType')
 
   -- Resolve references recursively.
-  resolve (HS.App srcSpan e1 e2 exprType) = do
+  resolve (IR.App srcSpan e1 e2 exprType) = do
     e1'       <- resolve e1
     e2'       <- resolve e2
     exprType' <- mapM resolve exprType
-    return (HS.App srcSpan e1' e2' exprType')
-  resolve (HS.TypeAppExpr srcSpan expr typeExpr exprType) = do
+    return (IR.App srcSpan e1' e2' exprType')
+  resolve (IR.TypeAppExpr srcSpan expr typeExpr exprType) = do
     expr'     <- resolve expr
     typeExpr' <- resolve typeExpr
     exprType' <- mapM resolve exprType
-    return (HS.TypeAppExpr srcSpan expr' typeExpr' exprType')
-  resolve (HS.If srcSpan e1 e2 e3 exprType) = do
+    return (IR.TypeAppExpr srcSpan expr' typeExpr' exprType')
+  resolve (IR.If srcSpan e1 e2 e3 exprType) = do
     e1'       <- resolve e1
     e2'       <- resolve e2
     e3'       <- resolve e3
     exprType' <- mapM resolve exprType
-    return (HS.If srcSpan e1' e2' e3' exprType')
-  resolve (HS.Case srcSpan scrutinee alts exprType) = do
+    return (IR.If srcSpan e1' e2' e3' exprType')
+  resolve (IR.Case srcSpan scrutinee alts exprType) = do
     scrutinee' <- resolve scrutinee
     alts'      <- mapM resolve alts
     exprType'  <- mapM resolve exprType
-    return (HS.Case srcSpan scrutinee' alts' exprType')
+    return (IR.Case srcSpan scrutinee' alts' exprType')
 
   -- Only resolve in type annotation of other expressions.
-  resolve (HS.Undefined srcSpan exprType) = do
+  resolve (IR.Undefined srcSpan exprType) = do
     exprType' <- mapM resolve exprType
-    return (HS.Undefined srcSpan exprType')
-  resolve (HS.ErrorExpr srcSpan msg exprType) = do
+    return (IR.Undefined srcSpan exprType')
+  resolve (IR.ErrorExpr srcSpan msg exprType) = do
     exprType' <- mapM resolve exprType
-    return (HS.ErrorExpr srcSpan msg exprType')
-  resolve (HS.IntLiteral srcSpan value exprType) = do
+    return (IR.ErrorExpr srcSpan msg exprType')
+  resolve (IR.IntLiteral srcSpan value exprType) = do
     exprType' <- mapM resolve exprType
-    return (HS.IntLiteral srcSpan value exprType')
+    return (IR.IntLiteral srcSpan value exprType')
 
 -- | The reference to the constructor in the constructor pattern of a
 --   @case@-expression alternative as well as references to types in the
@@ -795,24 +795,24 @@ instance Resolvable HS.Expr where
 --
 --   References on the right-hand side are resolved recursively. The right-hand
 --   can reference the variable patterns.
-instance Resolvable HS.Alt where
-  resolve (HS.Alt srcSpan conPat varPats rhs) = withLocalResolverEnv $ do
+instance Resolvable IR.Alt where
+  resolve (IR.Alt srcSpan conPat varPats rhs) = withLocalResolverEnv $ do
     defineVarPats varPats
     conPat'  <- resolve conPat
     varPats' <- mapM resolve varPats
     rhs'     <- resolve rhs
-    return (HS.Alt srcSpan conPat' varPats' rhs')
+    return (IR.Alt srcSpan conPat' varPats' rhs')
 
 -- | The name of the constructor matched by the a constructor pattern can be
 --   resolved to its original name.
-instance Resolvable HS.ConPat where
-  resolve (HS.ConPat srcSpan conName) = do
+instance Resolvable IR.ConPat where
+  resolve (IR.ConPat srcSpan conName) = do
     originalName <- lookupOriginalNameOrFail srcSpan ValueScope conName
-    return (HS.ConPat srcSpan originalName)
+    return (IR.ConPat srcSpan originalName)
 
 -- | The types referenced by the type annotation of a variable pattern can
 --   be resolved.
-instance Resolvable HS.VarPat where
+instance Resolvable IR.VarPat where
   resolve varPat = do
-    varType' <- mapM resolve (HS.varPatType varPat)
-    return varPat { HS.varPatType = varType' }
+    varType' <- mapM resolve (IR.varPatType varPat)
+    return varPat { IR.varPatType = varType' }

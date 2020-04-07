@@ -4,7 +4,7 @@ module FreeC.IR.SubstTests where
 
 import           Test.Hspec
 
-import qualified FreeC.IR.Syntax               as HS
+import qualified FreeC.IR.Syntax               as IR
 import           FreeC.IR.Subst
 import           FreeC.Test.Parser
 
@@ -16,8 +16,8 @@ testExprSubst = do
       y <- expectParseTestExpr "y"
       z <- expectParseTestExpr "z"
       e <- expectParseTestExpr "x y z"
-      let s1    = singleSubst (HS.UnQual (HS.Ident "x")) z
-          s2    = singleSubst (HS.UnQual (HS.Ident "x")) y
+      let s1    = singleSubst (IR.UnQual (IR.Ident "x")) z
+          s2    = singleSubst (IR.UnQual (IR.Ident "x")) y
           subst = s1 `composeSubst` s2
           e'    = applySubst subst e
       expected <- expectParseTestExpr "y y z"
@@ -26,8 +26,8 @@ testExprSubst = do
       y <- expectParseTestExpr "y"
       z <- expectParseTestExpr "z"
       e <- expectParseTestExpr "x y z"
-      let s1    = singleSubst (HS.UnQual (HS.Ident "y")) z
-          s2    = singleSubst (HS.UnQual (HS.Ident "x")) y
+      let s1    = singleSubst (IR.UnQual (IR.Ident "y")) z
+          s2    = singleSubst (IR.UnQual (IR.Ident "x")) y
           subst = s1 `composeSubst` s2
           e'    = applySubst subst e
       expected <- expectParseTestExpr "z z z"
@@ -36,14 +36,14 @@ testExprSubst = do
     it "cannot substitute variables bound by lambda" $ do
       val <- expectParseTestExpr "42"
       e   <- expectParseTestExpr "(\\x -> x) x"
-      let subst = singleSubst (HS.UnQual (HS.Ident "x")) val
+      let subst = singleSubst (IR.UnQual (IR.Ident "x")) val
           e'    = applySubst subst e
       expected <- expectParseTestExpr "(\\x -> x) 42"
       e' `shouldBe` expected
     it "cannot substitute variables bound by a case alternative" $ do
       val <- expectParseTestExpr "(,) 42 True"
       e   <- expectParseTestExpr "case x of { (,) x y -> x }"
-      let subst = singleSubst (HS.UnQual (HS.Ident "x")) val
+      let subst = singleSubst (IR.UnQual (IR.Ident "x")) val
           e'    = applySubst subst e
       expected <- expectParseTestExpr "case (,) 42 True of { (,) x y -> x }"
       e' `shouldBe` expected

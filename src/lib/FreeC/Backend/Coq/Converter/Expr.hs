@@ -20,10 +20,10 @@ import           FreeC.Environment.Fresh
 import           FreeC.Environment.LookupOrFail
 import           FreeC.Environment.Renamer
 import           FreeC.Environment.Scope
-import qualified FreeC.IR.Base.Prelude         as HS.Prelude
+import qualified FreeC.IR.Base.Prelude         as IR.Prelude
 import           FreeC.IR.SrcSpan
 import           FreeC.IR.Subst
-import qualified FreeC.IR.Syntax               as HS
+import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
 import           FreeC.Pretty
@@ -33,15 +33,15 @@ import           FreeC.Pretty
 -------------------------------------------------------------------------------
 
 -- | Converts a Haskell expression to Coq.
-convertExpr :: HS.Expr -> Converter G.Term
+convertExpr :: IR.Expr -> Converter G.Term
 convertExpr expr = convertExpr' expr [] []
 
 -- | Converts the application of a Haskell expression to the given arguments
 --   and visibly applied type arguments to Coq.
-convertExpr' :: HS.Expr -> [HS.Type] -> [HS.Expr] -> Converter G.Term
+convertExpr' :: IR.Expr -> [IR.Type] -> [IR.Expr] -> Converter G.Term
 
 -- Constructors.
-convertExpr' (HS.Con srcSpan name _) typeArgs args = do
+convertExpr' (IR.Con srcSpan name _) typeArgs args = do
   qualid            <- lookupSmartIdentOrFail srcSpan name
   typeArgs'         <- mapM convertType' typeArgs
   args'             <- mapM convertExpr args
@@ -62,7 +62,7 @@ convertExpr' (HS.Con srcSpan name _) typeArgs args = do
   generateApplyN arity (genericApply qualid [] typeArgs' []) args'
 
 -- Functions and variables.
-convertExpr' (HS.Var srcSpan name _) typeArgs args = do
+convertExpr' (IR.Var srcSpan name _) typeArgs args = do
   qualid    <- lookupIdentOrFail srcSpan ValueScope name
   typeArgs' <- mapM convertType' typeArgs
   args'     <- mapM convertExpr args
@@ -121,7 +121,7 @@ convertExpr' (HS.Var srcSpan name _) typeArgs args = do
           -- Add type annotation for decreasing argument.
           Just typeArgIdents <- inEnv $ lookupTypeArgs ValueScope name
           Just argTypes      <- inEnv $ lookupArgTypes ValueScope name
-          let typeArgNames = map (HS.UnQual . HS.Ident) typeArgIdents
+          let typeArgNames = map (IR.UnQual . IR.Ident) typeArgIdents
               subst = composeSubsts (zipWith singleSubst typeArgNames typeArgs)
               decArgType = applySubst subst (argTypes !! index)
           decArgType' <- mapM convertType' decArgType
@@ -136,30 +136,30 @@ convertExpr' (HS.Var srcSpan name _) typeArgs args = do
         else generateApply (G.Qualid qualid) args'
 
 -- Pass argument from applications to converter for callee.
-convertExpr' (HS.App _ e1 e2 _) [] args = convertExpr' e1 [] (e2 : args)
+convertExpr' (IR.App _ e1 e2 _) [] args = convertExpr' e1 [] (e2 : args)
 
 -- Pass type argument from visible type application to converter for callee.
-convertExpr' (HS.TypeAppExpr _ e t _) typeArgs args =
+convertExpr' (IR.TypeAppExpr _ e t _) typeArgs args =
   convertExpr' e (t : typeArgs) args
 
 -- @if@-expressions.
-convertExpr' (HS.If _ e1 e2 e3 _) [] [] = do
+convertExpr' (IR.If _ e1 e2 e3 _) [] [] = do
   e1'   <- convertExpr e1
-  bool' <- convertType' (HS.TypeCon NoSrcSpan HS.Prelude.boolTypeConName)
+  bool' <- convertType' (IR.TypeCon NoSrcSpan IR.Prelude.boolTypeConName)
   generateBind e1' freshBoolPrefix (Just bool') $ \cond -> do
     e2' <- convertExpr e2
     e3' <- convertExpr e3
     return (G.If G.SymmetricIf cond Nothing e2' e3')
 
 -- @case@-expressions.
-convertExpr' (HS.Case _ expr alts _) [] [] = do
+convertExpr' (IR.Case _ expr alts _) [] [] = do
   expr' <- convertExpr expr
   generateBind expr' freshArgPrefix Nothing $ \value -> do
     alts' <- mapM convertAlt alts
     return (G.match value alts')
 
 -- Error terms.
-convertExpr' (HS.Undefined srcSpan _) typeArgs [] = do
+convertExpr' (IR.Undefined srcSpan _) typeArgs [] = do
   when (length typeArgs /= 1)
     $  reportFatal
     $  Message srcSpan Internal
@@ -172,7 +172,7 @@ convertExpr' (HS.Undefined srcSpan _) typeArgs [] = do
   typeArgs' <- mapM convertType' typeArgs
   return (genericApply CoqBase.partialUndefined [partialArg] typeArgs' [])
 
-convertExpr' (HS.ErrorExpr srcSpan msg _) typeArgs [] = do
+convertExpr' (IR.ErrorExpr srcSpan msg _) typeArgs [] = do
   when (length typeArgs /= 1)
     $  reportFatal
     $  Message srcSpan Internal
@@ -188,14 +188,14 @@ convertExpr' (HS.ErrorExpr srcSpan msg _) typeArgs [] = do
     (genericApply CoqBase.partialError [partialArg] typeArgs' [G.string msg])
 
 -- Integer literals.
-convertExpr' (HS.IntLiteral _ value _) [] [] = do
+convertExpr' (IR.IntLiteral _ value _) [] [] = do
   let natValue = G.Num (fromInteger (abs value))
       value' | value < 0 = G.app (G.Qualid (G.bare "-")) [natValue]
              | otherwise = natValue
   generatePure (G.InScope value' (G.ident "Z"))
 
 -- Lambda abstractions.
-convertExpr' (HS.Lambda _ args expr _) [] [] = localEnv $ do
+convertExpr' (IR.Lambda _ args expr _) [] [] = localEnv $ do
   args' <- mapM convertArg args
   expr' <- convertExpr expr
   foldrM (generatePure .: G.Fun . return) expr' args'
@@ -204,7 +204,7 @@ convertExpr' (HS.Lambda _ args expr _) [] [] = localEnv $ do
 -- constructor.
 convertExpr' expr (_ : _) _ =
   reportFatal
-    $  Message (HS.exprSrcSpan expr) Internal
+    $  Message (IR.exprSrcSpan expr) Internal
     $  "Only type arguments of functions and constructors can be "
     ++ "applied visibly."
 
@@ -240,16 +240,16 @@ generateApplyN arity term args =
 -------------------------------------------------------------------------------
 
 -- | Converts an alternative of a Haskell @case@-expressions to Coq.
-convertAlt :: HS.Alt -> Converter G.Equation
-convertAlt (HS.Alt _ conPat varPats expr) = localEnv $ do
+convertAlt :: IR.Alt -> Converter G.Equation
+convertAlt (IR.Alt _ conPat varPats expr) = localEnv $ do
   conPat' <- convertConPat conPat varPats
   expr'   <- convertExpr expr
   return (G.equation conPat' expr')
 
 -- | Converts a Haskell constructor pattern with the given variable pattern
 --   arguments to a Coq pattern.
-convertConPat :: HS.ConPat -> [HS.VarPat] -> Converter G.Pattern
-convertConPat (HS.ConPat srcSpan ident) varPats = do
+convertConPat :: IR.ConPat -> [IR.VarPat] -> Converter G.Pattern
+convertConPat (IR.ConPat srcSpan ident) varPats = do
   qualid   <- lookupIdentOrFail srcSpan ValueScope ident
   varPats' <- mapM convertVarPat varPats
   return (G.ArgsPat qualid varPats')
@@ -257,7 +257,7 @@ convertConPat (HS.ConPat srcSpan ident) varPats = do
 -- | Converts a Haskell variable pattern to a Coq variable pattern.
 --
 --   The types of variable patterns are not annotated in Coq.
-convertVarPat :: HS.VarPat -> Converter G.Pattern
-convertVarPat (HS.VarPat srcSpan ident maybeVarType) = do
+convertVarPat :: IR.VarPat -> Converter G.Pattern
+convertVarPat (IR.VarPat srcSpan ident maybeVarType) = do
   ident' <- renameAndDefineVar srcSpan False ident maybeVarType
   return (G.QualidPat ident')

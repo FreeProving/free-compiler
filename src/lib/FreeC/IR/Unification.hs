@@ -25,7 +25,7 @@ import           FreeC.Environment.Scope
 import           FreeC.IR.SrcSpan
 import           FreeC.IR.Subst
 import           FreeC.IR.Subterm
-import qualified FreeC.IR.Syntax               as HS
+import qualified FreeC.IR.Syntax               as IR
 import           FreeC.IR.TypeSynExpansion
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
@@ -37,8 +37,8 @@ import           FreeC.Pretty                   ( showPretty )
 
 -- | An error that can occur during the unification of two types.
 data UnificationError
-  = UnificationError HS.Type HS.Type
-  | OccursCheckFailure HS.TypeVarIdent HS.Type
+  = UnificationError IR.Type IR.Type
+  | OccursCheckFailure IR.TypeVarIdent IR.Type
 
 -- | Reports the given 'UnificationError'.
 reportUnificationError :: MonadReporter m => SrcSpan -> UnificationError -> m a
@@ -70,14 +70,14 @@ runOrFail srcSpan mx =
 --   unified.
 --
 --   The error message uses the given location information.
-unifyOrFail :: SrcSpan -> HS.Type -> HS.Type -> Converter (Subst HS.Type)
+unifyOrFail :: SrcSpan -> IR.Type -> IR.Type -> Converter (Subst IR.Type)
 unifyOrFail srcSpan = runOrFail srcSpan .: unify
 
 -- | Like 'unifyAll' but reports a fatal error message if the types cannot be
 --   unified.
 --
 --   The error message uses the given location information.
-unifyAllOrFail :: SrcSpan -> [HS.Type] -> Converter (Subst HS.Type)
+unifyAllOrFail :: SrcSpan -> [IR.Type] -> Converter (Subst IR.Type)
 unifyAllOrFail srcSpan = runOrFail srcSpan . unifyAll
 
 -------------------------------------------------------------------------------
@@ -93,16 +93,16 @@ unifyAllOrFail srcSpan = runOrFail srcSpan . unifyAll
 --
 --   Type synonyms are expanded only when necessary.
 unify
-  :: HS.Type -> HS.Type -> ExceptT UnificationError Converter (Subst HS.Type)
+  :: IR.Type -> IR.Type -> ExceptT UnificationError Converter (Subst IR.Type)
 unify t s = do
   ds <- lift $ disagreementSet t s
   case ds of
     Nothing -> return identitySubst
-    Just (_, u@(HS.TypeVar _ x), v@(HS.TypeVar _ y))
-      | HS.isInternalIdent x -> x `mapsTo` v
-      | HS.isInternalIdent y -> y `mapsTo` u
-    Just (_  , HS.TypeVar _ x, v             ) -> x `mapsTo` v
-    Just (_  , u             , HS.TypeVar _ y) -> y `mapsTo` u
+    Just (_, u@(IR.TypeVar _ x), v@(IR.TypeVar _ y))
+      | IR.isInternalIdent x -> x `mapsTo` v
+      | IR.isInternalIdent y -> y `mapsTo` u
+    Just (_  , IR.TypeVar _ x, v             ) -> x `mapsTo` v
+    Just (_  , u             , IR.TypeVar _ y) -> y `mapsTo` u
     Just (pos, u             , v             ) -> do
       t' <- lift $ expandTypeSynonymAt pos t
       s' <- lift $ expandTypeSynonymAt pos s
@@ -111,12 +111,12 @@ unify t s = do
   -- | Maps the given variable to the given type expression and continues
   --   with the next iteration of the unification algorithm.
   mapsTo
-    :: HS.TypeVarIdent
-    -> HS.Type
-    -> ExceptT UnificationError Converter (Subst HS.Type)
+    :: IR.TypeVarIdent
+    -> IR.Type
+    -> ExceptT UnificationError Converter (Subst IR.Type)
   x `mapsTo` u = do
     occursCheck u
-    let subst = singleSubst (HS.UnQual (HS.Ident x)) u
+    let subst = singleSubst (IR.UnQual (IR.Ident x)) u
         t'    = applySubst subst t
         s'    = applySubst subst s
     mgu <- unify t' s'
@@ -125,15 +125,15 @@ unify t s = do
     -- | Tests whether the type variable occurs in the given type expression.
     --
     --   Reports a fatal error if the variable is found.
-    occursCheck :: HS.Type -> ExceptT UnificationError Converter ()
-    occursCheck (HS.TypeVar _ y) | x == y    = throwE $ OccursCheckFailure x u
+    occursCheck :: IR.Type -> ExceptT UnificationError Converter ()
+    occursCheck (IR.TypeVar _ y) | x == y    = throwE $ OccursCheckFailure x u
                                  | otherwise = return ()
-    occursCheck (HS.TypeCon _ _     ) = return ()
-    occursCheck (HS.TypeApp  _ t1 t2) = occursCheck t1 >> occursCheck t2
-    occursCheck (HS.FuncType _ t1 t2) = occursCheck t1 >> occursCheck t2
+    occursCheck (IR.TypeCon _ _     ) = return ()
+    occursCheck (IR.TypeApp  _ t1 t2) = occursCheck t1 >> occursCheck t2
+    occursCheck (IR.FuncType _ t1 t2) = occursCheck t1 >> occursCheck t2
 
 -- | Computes the most general unificator for all given type expressions.
-unifyAll :: [HS.Type] -> ExceptT UnificationError Converter (Subst HS.Type)
+unifyAll :: [IR.Type] -> ExceptT UnificationError Converter (Subst IR.Type)
 unifyAll []             = return identitySubst
 unifyAll [_           ] = return identitySubst
 unifyAll (t0 : t1 : ts) = do
@@ -147,35 +147,35 @@ unifyAll (t0 : t1 : ts) = do
 -------------------------------------------------------------------------------
 
 -- | Type synonym for a disagreement set.
-type DisagreementSet = Maybe (Pos, HS.Type, HS.Type)
+type DisagreementSet = Maybe (Pos, IR.Type, IR.Type)
 
 -- | Gets subterms at the left-most inner-most position where the
 --   two given types differ.
 --
 --   Returns the subterms and the position of those subterms or @Nothing@
 --   if both terms are equal.
-disagreementSet :: HS.Type -> HS.Type -> Converter DisagreementSet
+disagreementSet :: IR.Type -> IR.Type -> Converter DisagreementSet
 
 -- Two variables disagree if they are not the same variable.
-disagreementSet (HS.TypeVar _ x) (HS.TypeVar _ y) | x == y = return Nothing
+disagreementSet (IR.TypeVar _ x) (IR.TypeVar _ y) | x == y = return Nothing
 
 -- Two constructors disagree if they do not refer to the same environment
 -- entries (i.e. the entries have different names).
 -- If both constructors have the same name already, we do not have to
 -- look them up in the environment first.
-disagreementSet t@(HS.TypeCon _ c) s@(HS.TypeCon _ d)
+disagreementSet t@(IR.TypeCon _ c) s@(IR.TypeCon _ d)
   | c == d = return Nothing
   | otherwise = do
-    e <- lookupEntryOrFail (HS.typeSrcSpan t) TypeScope c
-    f <- lookupEntryOrFail (HS.typeSrcSpan s) TypeScope d
+    e <- lookupEntryOrFail (IR.typeSrcSpan t) TypeScope c
+    f <- lookupEntryOrFail (IR.typeSrcSpan s) TypeScope d
     let n = entryName e
         m = entryName f
     if n == m then return Nothing else return (Just (rootPos, t, s))
 
 -- Compute disagreement set recursively.
-disagreementSet (HS.TypeApp _ t1 t2) (HS.TypeApp _ s1 s2) =
+disagreementSet (IR.TypeApp _ t1 t2) (IR.TypeApp _ s1 s2) =
   disagreementSet' 1 [t1, t2] [s1, s2]
-disagreementSet (HS.FuncType _ t1 t2) (HS.FuncType _ s1 s2) =
+disagreementSet (IR.FuncType _ t1 t2) (IR.FuncType _ s1 s2) =
   disagreementSet' 1 [t1, t2] [s1, s2]
 
 -- If the two types have a different constructor, they disagree.
@@ -187,7 +187,7 @@ disagreementSet t s = return (Just (rootPos, t, s))
 --
 --   The first parameter is the child position of the first element in the
 --   list.
-disagreementSet' :: Int -> [HS.Type] -> [HS.Type] -> Converter DisagreementSet
+disagreementSet' :: Int -> [IR.Type] -> [IR.Type] -> Converter DisagreementSet
 disagreementSet' i (t : ts) (s : ss) = do
   ds <- disagreementSet t s
   case ds of

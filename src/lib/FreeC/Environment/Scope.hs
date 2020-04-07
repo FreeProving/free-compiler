@@ -4,7 +4,7 @@
 
 module FreeC.Environment.Scope where
 
-import qualified FreeC.IR.Syntax               as HS
+import qualified FreeC.IR.Syntax               as IR
 
 -- | In Haskell type and function names live in separate scopes. Therefore we
 --   need to qualify each name stored in the 'FreeC.Environment.Environment'
@@ -14,4 +14,4 @@ data Scope = TypeScope | ValueScope
 
 -- | Type that is used by maps in the 'FreeC.Environment.Environment' to
 --   qualify Haskell names with the scopes they are defined in.
-type ScopedName = (Scope, HS.QName)
+type ScopedName = (Scope, IR.QName)

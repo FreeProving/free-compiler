@@ -9,8 +9,8 @@
 
 module FreeC.IR.Base.Test.QuickCheck where
 
-import qualified FreeC.IR.Syntax.Name          as HS
+import qualified FreeC.IR.Syntax.Name          as IR
 
 -- | The name of the @Test.QuickCheck@ module.
-modName :: HS.ModName
+modName :: IR.ModName
 modName = "Test.QuickCheck"

@@ -22,7 +22,7 @@ import           Control.Monad.Extra            ( mapMaybeM )
 import           Text.RegexPR
 
 import           FreeC.IR.SrcSpan
-import qualified FreeC.IR.Syntax               as HS
+import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Reporter
 
 -- | Type alias for a function that creates a pragma AST node
@@ -30,12 +30,12 @@ import           FreeC.Monad.Reporter
 --
 --   The given source span is the source span of the comment that
 --   declares the pragma.
-type CustomPragmaBuilder = SrcSpan -> [(Int, String)] -> Reporter HS.Pragma
+type CustomPragmaBuilder = SrcSpan -> [(Int, String)] -> Reporter IR.Pragma
 
 -- | A regular expression for custom pragmas.
 customPragmaPattern :: String
 customPragmaPattern =
-  "^#\\s*" ++ HS.customPragmaPrefix ++ "\\s+((\\S+(\\s*\\S)?)*)\\s*#$"
+  "^#\\s*" ++ IR.customPragmaPrefix ++ "\\s+((\\S+(\\s*\\S)?)*)\\s*#$"
 
 -- | Regular expressions and functions that create the pragma AST node
 --   from the capturing groups of the match.
@@ -54,27 +54,27 @@ decArgPattern = "^(\\S+)\\s+DECREASES\\s+ON\\s+((\\S+)|ARGUMENT\\s+(\\d+))$"
 --   groups for 'decArgPattern'.
 parseDecArgPragma :: CustomPragmaBuilder
 parseDecArgPragma srcSpan groups = do
-  let Just funcName = HS.UnQual . HS.Ident <$> lookup 1 groups
+  let Just funcName = IR.UnQual . IR.Ident <$> lookup 1 groups
       Just decArg =
         (Left <$> lookup 3 groups) <|> (Right . read <$> lookup 4 groups)
-  return (HS.DecArgPragma srcSpan funcName decArg)
+  return (IR.DecArgPragma srcSpan funcName decArg)
 
 ------------------------------------------------------------------------------
 -- Parser                                                                   --
 ------------------------------------------------------------------------------
 
--- | Parses custom pragmas (i.e., 'HS.DecArgPragma') from the comments of a
+-- | Parses custom pragmas (i.e., 'IR.DecArgPragma') from the comments of a
 --   module.
-parseCustomPragmas :: [HS.Comment] -> Reporter [HS.Pragma]
+parseCustomPragmas :: [IR.Comment] -> Reporter [IR.Pragma]
 parseCustomPragmas = mapMaybeM parseCustomPragma
 
 -- | Parses a pragma from the given comment.
 --
 --   Returns @Nothing@ if the given comment is not a pragma or an
 --   unrecognised pragma.
-parseCustomPragma :: HS.Comment -> Reporter (Maybe HS.Pragma)
-parseCustomPragma (HS.LineComment _ _) = return Nothing
-parseCustomPragma (HS.BlockComment srcSpan text) =
+parseCustomPragma :: IR.Comment -> Reporter (Maybe IR.Pragma)
+parseCustomPragma (IR.LineComment _ _) = return Nothing
+parseCustomPragma (IR.BlockComment srcSpan text) =
   -- Test whether this comment is a custom pragma.
   case matchRegexPR customPragmaPattern text of
     Nothing          -> return Nothing

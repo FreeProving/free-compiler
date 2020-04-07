@@ -39,8 +39,8 @@ import           Data.Set.Ordered               ( OSet
 import qualified Data.Set.Ordered              as OSet
 
 import           FreeC.Environment.Scope
-import qualified FreeC.IR.Base.Prelude         as HS.Prelude
-import qualified FreeC.IR.Syntax               as HS
+import qualified FreeC.IR.Base.Prelude         as IR.Prelude
+import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Util.Predicate           ( (.&&.) )
 
 -------------------------------------------------------------------------------
@@ -58,12 +58,12 @@ data Ref = VarRef { unwrapRef :: ScopedName }
 
 -- | Smart constructor for a reference to a variable or type variable
 --   with the given name.
-varRef :: Scope -> HS.QName -> Ref
+varRef :: Scope -> IR.QName -> Ref
 varRef = VarRef .: (,)
 
 -- | Smart constructor for a reference to a constructor or type constructor
 --   with the given name.
-conRef :: Scope -> HS.QName -> Ref
+conRef :: Scope -> IR.QName -> Ref
 conRef = ConRef .: (,)
 
 -- | Tests whether the given reference refers to a variable or type variable.
@@ -90,7 +90,7 @@ refScope :: Ref -> Scope
 refScope = fst . unwrapRef
 
 -- | Unwraps the given reference and discards the scope information.
-refName :: Ref -> HS.QName
+refName :: Ref -> IR.QName
 refName = snd . unwrapRef
 
 -------------------------------------------------------------------------------
@@ -110,12 +110,12 @@ empty = OSet.empty
 
 -- | Smart constructor for a set that contains a single reference to a
 --   variable or type variable.
-varRefSet :: Scope -> HS.QName -> RefSet
+varRefSet :: Scope -> IR.QName -> RefSet
 varRefSet = OSet.singleton . VarRef .: (,)
 
 -- | Smart constructor for a set that contains a single reference to a
 --   constructor or type constructor.
-conRefSet :: Scope -> HS.QName -> RefSet
+conRefSet :: Scope -> IR.QName -> RefSet
 conRefSet = OSet.singleton . ConRef .: (,)
 
 -- | Inserts a reference before all elements in the given set.
@@ -163,11 +163,11 @@ refs = OSet.toList . refSet
 
 -- | Gets the names of all type variables and type constructors the given
 --   node refers to.
-typeRefs :: HasRefs a => a -> [HS.QName]
+typeRefs :: HasRefs a => a -> [IR.QName]
 typeRefs = map refName . filter isTypeRef . refs
 
 -- | gets the names of all variable and constructors the given node refers to.
-valueRefs :: HasRefs a => a -> [HS.QName]
+valueRefs :: HasRefs a => a -> [IR.QName]
 valueRefs = map refName . filter isValueRef . refs
 
 -------------------------------------------------------------------------------
@@ -175,17 +175,17 @@ valueRefs = map refName . filter isValueRef . refs
 -------------------------------------------------------------------------------
 
 -- | Type expressions refer to the used type variables and type constructors.
-instance HasRefs HS.Type where
-  refSet (HS.TypeVar _ ident) =
-    varRefSet TypeScope (HS.UnQual (HS.Ident ident))
-  refSet (HS.TypeCon _ conName) = conRefSet TypeScope conName
-  refSet (HS.TypeApp  _ t1 t2 ) = refSet t1 `union` refSet t2
-  refSet (HS.FuncType _ t1 t2 ) = refSet t1 `union` refSet t2
+instance HasRefs IR.Type where
+  refSet (IR.TypeVar _ ident) =
+    varRefSet TypeScope (IR.UnQual (IR.Ident ident))
+  refSet (IR.TypeCon _ conName) = conRefSet TypeScope conName
+  refSet (IR.TypeApp  _ t1 t2 ) = refSet t1 `union` refSet t2
+  refSet (IR.FuncType _ t1 t2 ) = refSet t1 `union` refSet t2
 
 -- | Type schemas refer to the types it's type expression refers to but
 --   not to the type variables that are bound by the type schema.
-instance HasRefs HS.TypeSchema where
-  refSet (HS.TypeSchema _ typeArgs typeExpr) =
+instance HasRefs IR.TypeSchema where
+  refSet (IR.TypeSchema _ typeArgs typeExpr) =
     withoutTypeArgs typeArgs (refSet typeExpr)
 
 -------------------------------------------------------------------------------
@@ -196,42 +196,42 @@ instance HasRefs HS.TypeSchema where
 --   types used in type signatures and visible type applications.
 --
 --   The error terms @undefined@ and @error "<msg>"@ refer to the functions
---   'HS.Prelude.undefinedFuncName' and 'HS.Prelude.errorFuncName' respectively.
-instance HasRefs HS.Expr where
-  refSet (HS.Var _ varName exprType) =
+--   'IR.Prelude.undefinedFuncName' and 'IR.Prelude.errorFuncName' respectively.
+instance HasRefs IR.Expr where
+  refSet (IR.Var _ varName exprType) =
     varRef ValueScope varName `insertBefore` refSet exprType
-  refSet (HS.Con _ conName exprType) =
+  refSet (IR.Con _ conName exprType) =
     conRef ValueScope conName `insertBefore` refSet exprType
-  refSet (HS.App _ e1 e2 exprType) = refSet [e1, e2] `union` refSet exprType
-  refSet (HS.TypeAppExpr _ expr typeExpr exprType) =
+  refSet (IR.App _ e1 e2 exprType) = refSet [e1, e2] `union` refSet exprType
+  refSet (IR.TypeAppExpr _ expr typeExpr exprType) =
     unions [refSet expr, refSet typeExpr, refSet exprType]
-  refSet (HS.If _ e1 e2 e3 exprType) =
+  refSet (IR.If _ e1 e2 e3 exprType) =
     refSet [e1, e2, e3] `union` refSet exprType
-  refSet (HS.Case _ scrutinee alts exprType) =
+  refSet (IR.Case _ scrutinee alts exprType) =
     unions [refSet scrutinee, refSet alts, refSet exprType]
-  refSet (HS.Undefined _ exprType) =
-    varRef ValueScope HS.Prelude.undefinedFuncName
+  refSet (IR.Undefined _ exprType) =
+    varRef ValueScope IR.Prelude.undefinedFuncName
       `insertBefore` refSet exprType
-  refSet (HS.ErrorExpr _ _ exprType) =
-    varRef ValueScope HS.Prelude.errorFuncName `insertBefore` refSet exprType
-  refSet (HS.IntLiteral _ _ exprType) = refSet exprType
-  refSet (HS.Lambda _ args expr exprType) =
+  refSet (IR.ErrorExpr _ _ exprType) =
+    varRef ValueScope IR.Prelude.errorFuncName `insertBefore` refSet exprType
+  refSet (IR.IntLiteral _ _ exprType) = refSet exprType
+  refSet (IR.Lambda _ args expr exprType) =
     unions [refSet args, withoutArgs args (refSet expr), refSet exprType]
 
 -- | @case@ expression alternatives refer to the matched constructor, the types
 --   the type annotations of the variable patterns refer to and the references
 --   of the right-hand side that are not bound by the variable patterns.
-instance HasRefs HS.Alt where
-  refSet (HS.Alt _ conPat varPats rhs) =
+instance HasRefs IR.Alt where
+  refSet (IR.Alt _ conPat varPats rhs) =
     unions [refSet conPat, refSet varPats, withoutArgs varPats (refSet rhs)]
 
 -- | Constructor patterns refer to the matched constructor.
-instance HasRefs HS.ConPat where
-  refSet = conRefSet ValueScope . HS.conPatName
+instance HasRefs IR.ConPat where
+  refSet = conRefSet ValueScope . IR.conPatName
 
 -- | Variable patterns refer to the types used in their type annotation.
-instance HasRefs HS.VarPat where
-  refSet = refSet . HS.varPatType
+instance HasRefs IR.VarPat where
+  refSet = refSet . IR.varPatType
 
 -------------------------------------------------------------------------------
 -- Type declarations                                                         --
@@ -241,15 +241,15 @@ instance HasRefs HS.VarPat where
 --   type synonym declarations refer to the types it's right hand side refers
 --   to. Both don't refer to type variables that are bound by their type
 --   arguments.
-instance HasRefs HS.TypeDecl where
-  refSet (HS.DataDecl _ _ typeArgs cons) =
+instance HasRefs IR.TypeDecl where
+  refSet (IR.DataDecl _ _ typeArgs cons) =
     withoutTypeArgs typeArgs (refSet cons)
-  refSet (HS.TypeSynDecl _ _ typeArgs typeSyn) =
+  refSet (IR.TypeSynDecl _ _ typeArgs typeSyn) =
     withoutTypeArgs typeArgs (refSet typeSyn)
 
 -- | Constructor declarations refer to the types their field types refer to.
-instance HasRefs HS.ConDecl where
-  refSet = refSet . HS.conDeclFields
+instance HasRefs IR.ConDecl where
+  refSet = refSet . IR.conDeclFields
 
 -------------------------------------------------------------------------------
 -- Function declarations                                                     --
@@ -258,8 +258,8 @@ instance HasRefs HS.ConDecl where
 -- | Function declarations refer to the types their argument and return type
 --   annotations refer to as well as the references of their right-hand side
 --   except for the (type) variables bound by the function's (type) arguments.
-instance HasRefs HS.FuncDecl where
-  refSet (HS.FuncDecl _ _ typeArgs args retType rhs) =
+instance HasRefs IR.FuncDecl where
+  refSet (IR.FuncDecl _ _ typeArgs args retType rhs) =
     withoutTypeArgs typeArgs
       $       refSet args
       `union` refSet retType
@@ -271,26 +271,26 @@ instance HasRefs HS.FuncDecl where
 
 -- | Removes the references to type variables that are bound by the given
 --   type variable declarations from the given set.
-withoutTypeArgs :: [HS.TypeVarDecl] -> RefSet -> RefSet
+withoutTypeArgs :: [IR.TypeVarDecl] -> RefSet -> RefSet
 withoutTypeArgs typeArgs set =
-  set \\ OSet.fromList (map (varRef TypeScope . HS.typeVarDeclQName) typeArgs)
+  set \\ OSet.fromList (map (varRef TypeScope . IR.typeVarDeclQName) typeArgs)
 
 -- | Removes the references to variables that are bound by the given variable
 --   patterns from the given set.
-withoutArgs :: [HS.VarPat] -> RefSet -> RefSet
+withoutArgs :: [IR.VarPat] -> RefSet -> RefSet
 withoutArgs args set =
-  set \\ OSet.fromList (map (varRef ValueScope . HS.varPatQName) args)
+  set \\ OSet.fromList (map (varRef ValueScope . IR.varPatQName) args)
 
 -------------------------------------------------------------------------------
 -- Free type variables                                                       --
 -------------------------------------------------------------------------------
 
 -- | The type variables that occur freely in the given node from left to right.
-freeTypeVars :: HasRefs a => a -> [HS.QName]
+freeTypeVars :: HasRefs a => a -> [IR.QName]
 freeTypeVars = map refName . filter (isVarRef .&&. isTypeRef) . refs
 
 -- | The type variables that occur freely in the given node.
-freeTypeVarSet :: HasRefs a => a -> Set HS.QName
+freeTypeVarSet :: HasRefs a => a -> Set IR.QName
 freeTypeVarSet =
   Set.map refName . Set.filter (isVarRef .&&. isTypeRef) . OSet.toSet . refSet
 
@@ -299,10 +299,10 @@ freeTypeVarSet =
 -------------------------------------------------------------------------------
 
 -- | The variables that occur freely in the given node from left to right.
-freeVars :: HasRefs a => a -> [HS.QName]
+freeVars :: HasRefs a => a -> [IR.QName]
 freeVars = map refName . filter (isVarRef .&&. isValueRef) . refs
 
 -- | The variables that occur freely in the given node.
-freeVarSet :: HasRefs a => a -> Set HS.QName
+freeVarSet :: HasRefs a => a -> Set IR.QName
 freeVarSet =
   Set.map refName . Set.filter (isVarRef .&&. isValueRef) . OSet.toSet . refSet

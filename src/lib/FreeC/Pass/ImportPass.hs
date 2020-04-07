@@ -74,24 +74,24 @@ where
 
 import           FreeC.Environment
 import           FreeC.Environment.Importer
-import qualified FreeC.IR.Syntax               as HS
+import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
 import           FreeC.Pass
 
 -- | Compiler pass that adds entries imported by the given module to the
 --   environment.
-importPass :: Pass HS.Module
+importPass :: Pass IR.Module
 importPass ast = do
-  mapM_ importModule (HS.modImports ast)
+  mapM_ importModule (IR.modImports ast)
   return ast
 
 -- | Adds the entries of the module interface imported by the given import
 --   declaration to the environment.
 --
 --   Reports a fatal error when there is no such module.
-importModule :: HS.ImportDecl -> Converter ()
-importModule (HS.ImportDecl srcSpan modName) = do
+importModule :: IR.ImportDecl -> Converter ()
+importModule (IR.ImportDecl srcSpan modName) = do
   maybeIface <- inEnv $ lookupAvailableModule modName
   case maybeIface of
     Just iface -> modifyEnv $ importInterface iface

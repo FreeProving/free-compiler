@@ -10,7 +10,7 @@ import qualified Data.Map                      as Map
 import           Test.Hspec              hiding ( shouldReturn )
 
 import           FreeC.Backend.Coq.Analysis.ConstantArguments
-import qualified FreeC.IR.Syntax               as HS
+import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Class.Testable
 import           FreeC.Monad.Converter
 import           FreeC.Test.Parser
@@ -21,7 +21,7 @@ import           FreeC.Test.Parser
 
 -- | Like 'identifyConstArgs' but returns just the 'constArgIdents' as a list
 --   for each constant argument.
-identifyConstArgIdents :: [HS.FuncDecl] -> Converter [[(HS.QName, String)]]
+identifyConstArgIdents :: [IR.FuncDecl] -> Converter [[(IR.QName, String)]]
 identifyConstArgIdents =
   fmap (map (Map.assocs . constArgIdents)) . identifyConstArgs
 
@@ -41,7 +41,7 @@ testConstantArguments =
         ++ "    Cons x xs' -> Cons (f x) (map f xs')"
         ++ "  }"
       identifyConstArgIdents [funcDecl]
-        `shouldReturn` [[(HS.UnQual (HS.Ident "map"), "f")]]
+        `shouldReturn` [[(IR.UnQual (IR.Ident "map"), "f")]]
 
     it "identifies constant arguments of mutually recursive functions" $ do
       funcDecls <- mapM
@@ -56,11 +56,11 @@ testConstantArguments =
         ++ "  }"
         ]
       identifyConstArgIdents funcDecls
-        `shouldReturn` [ [ (HS.UnQual (HS.Ident "mapAlt") , "g")
-                         , (HS.UnQual (HS.Ident "mapAlt'"), "g")
+        `shouldReturn` [ [ (IR.UnQual (IR.Ident "mapAlt") , "g")
+                         , (IR.UnQual (IR.Ident "mapAlt'"), "g")
                          ]
-                       , [ (HS.UnQual (HS.Ident "mapAlt") , "f")
-                         , (HS.UnQual (HS.Ident "mapAlt'"), "f")
+                       , [ (IR.UnQual (IR.Ident "mapAlt") , "f")
+                         , (IR.UnQual (IR.Ident "mapAlt'"), "f")
                          ]
                        ]
 
@@ -90,9 +90,9 @@ testConstantArguments =
         ++ "  }"
         ]
       identifyConstArgIdents funcDecls
-        `shouldReturn` [ [ (HS.UnQual (HS.Ident "bar"), "n")
-                         , (HS.UnQual (HS.Ident "baz"), "n")
-                         , (HS.UnQual (HS.Ident "foo"), "n")
+        `shouldReturn` [ [ (IR.UnQual (IR.Ident "bar"), "n")
+                         , (IR.UnQual (IR.Ident "baz"), "n")
+                         , (IR.UnQual (IR.Ident "foo"), "n")
                          ]
                        ]
 

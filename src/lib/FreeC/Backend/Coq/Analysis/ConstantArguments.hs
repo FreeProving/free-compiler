@@ -51,7 +51,7 @@ import           Data.Maybe                     ( fromJust
 import           FreeC.Environment.Fresh
 import           FreeC.IR.DependencyGraph
 import           FreeC.IR.Reference             ( freeVarSet )
-import qualified FreeC.IR.Syntax               as HS
+import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Converter
 
 -------------------------------------------------------------------------------
@@ -65,10 +65,10 @@ import           FreeC.Monad.Converter
 --   function declarations and a fresh identifier for the @Variable@ sentence
 --   that replaces the constant argument.
 data ConstArg = ConstArg
-  { constArgIdents     :: Map HS.QName String
+  { constArgIdents     :: Map IR.QName String
     -- ^ Maps the names of functions that share the constant argument to the
     --   names of the corresponding function arguments.
-  , constArgIndicies   :: Map HS.QName Int
+  , constArgIndicies   :: Map IR.QName Int
     -- ^ Maps the names of functions that share the constant argument to the
     --   index of the corresponding function argument.
   , constArgFreshIdent :: String
@@ -82,7 +82,7 @@ data ConstArg = ConstArg
 
 -- | Nodes of the the constant argument graph (see 'makeConstArgGraph') are
 --   pairs of function and argument names.
-type CGNode = (HS.QName, String)
+type CGNode = (IR.QName, String)
 
 -- | The nodes of the the constant argument graph (see 'makeConstArgGraph')
 --   are identified by themselves.
@@ -102,7 +102,7 @@ type CGEntry = (CGNode, CGNode, [CGNode])
 --      in @e@ has the form @g e_0 ... e_{j-1} x_i e_{j+1} ... e_m@
 --      (i.e., the argument @x_i@ is passed unchanged to the @j@-th
 --      argument @g@).
-makeConstArgGraph :: [HS.FuncDecl] -> [CGEntry]
+makeConstArgGraph :: [IR.FuncDecl] -> [CGEntry]
 makeConstArgGraph decls = do
   -- Create one node @(f,x_i)@ for every argument @x_i@ of every function @f@.
   (node@(_f, x), _i, rhs) <- nodes
@@ -112,7 +112,7 @@ makeConstArgGraph decls = do
       -- Consider every node @(g,y_j)@.
       ((g, y), j, _) <- nodes
       -- Test whether there is any call to @g@ on the right-hand side of @f@.
-      let callsG :: HS.Expr -> Bool
+      let callsG :: IR.Expr -> Bool
           callsG = elem g . freeVarSet
       guard (callsG rhs)
       -- Test whether @x_i@ is passed unchanged to @y_j@ in every call
@@ -120,8 +120,8 @@ makeConstArgGraph decls = do
       let
         -- | Tests whether the given expression (a value passed as the @j@-th
         --   argument to a call to @g@) is the argument @x_i@.
-        checkArg :: HS.Expr -> Bool
-        checkArg (HS.Var _ (HS.UnQual (HS.Ident ident)) _) = ident == x
+        checkArg :: IR.Expr -> Bool
+        checkArg (IR.Var _ (IR.UnQual (IR.Ident ident)) _) = ident == x
         checkArg _ = False
 
         -- | Tests whether @x_j@ is passed unchanged as the @j@-th argument
@@ -129,68 +129,68 @@ makeConstArgGraph decls = do
         --
         --   The second argument contains the arguments that are passed to
         --   the current expression.
-        checkExpr :: HS.Expr -> [HS.Expr] -> Bool
+        checkExpr :: IR.Expr -> [IR.Expr] -> Bool
 
         -- If this is a call to @g@, check the @j@-th argument.
-        checkExpr (HS.Var _ name _) args
+        checkExpr (IR.Var _ name _) args
           | name == g = j < length args && checkArg (args !! j)
           | otherwise = True
 
         -- If this is an application, check for calls to @g@ in the callee
         -- and argument.
-        checkExpr (HS.App _ e1 e2 _) args =
+        checkExpr (IR.App _ e1 e2 _) args =
           checkExpr e1 (e2 : args) && checkExpr e2 []
 
         -- The arguments are not distributed among the branches of @if@
         -- and @case@ expressions.
-        checkExpr (HS.If _ e1 e2 e3 _) _ =
+        checkExpr (IR.If _ e1 e2 e3 _) _ =
           checkExpr e1 [] && checkExpr e2 [] && checkExpr e3 []
-        checkExpr (HS.Case _ expr alts _) _ =
+        checkExpr (IR.Case _ expr alts _) _ =
           checkExpr expr [] && all (flip checkAlt []) alts
 
         -- No beta reduction is applied when a lambda expression is
         -- encountered, but the right-hand side still needs to be checked.
         -- If an argument shadows @x_i@ and there are calls to @g@ on the
         -- right hand side, @x_i@ is not left unchanged.
-        checkExpr (HS.Lambda _ args expr _) _
+        checkExpr (IR.Lambda _ args expr _) _
           | x `shadowedBy` args = not (callsG expr)
           | otherwise           = checkExpr expr []
 
         -- Check visibly applied expression recursively.
-        checkExpr (HS.TypeAppExpr _ expr _ _) args = checkExpr expr args
+        checkExpr (IR.TypeAppExpr _ expr _ _) args = checkExpr expr args
 
         -- Constructors, literals and error terms cannot contain further
         -- calls to @g@.
-        checkExpr (HS.Con        _ _ _      ) _    = True
-        checkExpr (HS.IntLiteral _ _ _      ) _    = True
-        checkExpr (HS.Undefined _ _         ) _    = True
-        checkExpr (HS.ErrorExpr _ _ _       ) _    = True
+        checkExpr (IR.Con        _ _ _      ) _    = True
+        checkExpr (IR.IntLiteral _ _ _      ) _    = True
+        checkExpr (IR.Undefined _ _         ) _    = True
+        checkExpr (IR.ErrorExpr _ _ _       ) _    = True
 
         -- | Applies 'checkExpr' to the alternative of a @case@ expression.
         --
         --   If a variable pattern shadows @x_i@, @x_i@ is not unchanged.
-        checkAlt :: HS.Alt -> [HS.Expr] -> Bool
-        checkAlt (HS.Alt _ _ varPats expr) args
+        checkAlt :: IR.Alt -> [IR.Expr] -> Bool
+        checkAlt (IR.Alt _ _ varPats expr) args
           | x `shadowedBy` varPats = not (callsG expr)
           | otherwise              = checkExpr expr args
 
         -- | Tests whethe the given variable is shadowed by the given
         --   variale patterns.
-        shadowedBy :: String -> [HS.VarPat] -> Bool
-        shadowedBy = flip (flip elem . map HS.varPatIdent)
+        shadowedBy :: String -> [IR.VarPat] -> Bool
+        shadowedBy = flip (flip elem . map IR.varPatIdent)
       guard (checkExpr rhs [])
       -- Add edge if the test was successful.
       return (g, y)
   return (node, node, adjacent)
  where
   -- | There is one node for each argument of every function declaration.
-  nodes :: [(CGNode, Int, HS.Expr)]
+  nodes :: [(CGNode, Int, IR.Expr)]
   nodes = do
     decl <- decls
-    let funcName = HS.funcDeclQName decl
-        args     = HS.funcDeclArgs decl
-        rhs      = HS.funcDeclRhs decl
-    (argName, argIndex) <- zip (map HS.varPatIdent args) [0 ..]
+    let funcName = IR.funcDeclQName decl
+        args     = IR.funcDeclArgs decl
+        rhs      = IR.funcDeclRhs decl
+    (argName, argIndex) <- zip (map IR.varPatIdent args) [0 ..]
     return ((funcName, argName), argIndex, rhs)
 
 -------------------------------------------------------------------------------
@@ -202,16 +202,16 @@ makeConstArgGraph decls = do
 --
 --   The call graph of the given function declarations should be strongly
 --   connected.
-identifyConstArgs :: [HS.FuncDecl] -> Converter [ConstArg]
+identifyConstArgs :: [IR.FuncDecl] -> Converter [ConstArg]
 identifyConstArgs decls = mapM makeConstArg constArgNameMaps
  where
   -- | Maps for each set of constant arguments the names of the functions to
   --   the name the constant argument has in that function.
-  constArgNameMaps :: [Map HS.QName String]
+  constArgNameMaps :: [Map IR.QName String]
   constArgNameMaps = identifyConstArgs' decls
 
   -- Creates 'ConstArg's from the 'constArgNameMaps'.
-  makeConstArg :: Map HS.QName String -> Converter ConstArg
+  makeConstArg :: Map IR.QName String -> Converter ConstArg
   makeConstArg identMap = do
     let idents = nub (Map.elems identMap)
         prefix = intercalate "_" idents
@@ -223,16 +223,16 @@ identifyConstArgs decls = mapM makeConstArg constArgNameMaps
 
   -- | Maps the names of the function declarations to the names of their
   --   arguments.
-  argNamesMap :: Map HS.QName [String]
+  argNamesMap :: Map IR.QName [String]
   argNamesMap = Map.fromList
-    [ (HS.funcDeclQName decl, map HS.varPatIdent (HS.funcDeclArgs decl))
+    [ (IR.funcDeclQName decl, map IR.varPatIdent (IR.funcDeclArgs decl))
     | decl <- decls
     ]
 
   -- | Looks up the index of the argument with the given name of the function
   --   with the given name.
   lookupArgIndex
-    :: HS.QName -- ^ The name of the function.
+    :: IR.QName -- ^ The name of the function.
     -> String   -- ^ The name of the argument.
     -> Int
   lookupArgIndex funcName argName = fromJust $ do
@@ -241,7 +241,7 @@ identifyConstArgs decls = mapM makeConstArg constArgNameMaps
 
 -- | Like 'identifyConstArgs' but returns a map from function to argument names
 --   for each constant argument instead of a 'ConstArg'.
-identifyConstArgs' :: [HS.FuncDecl] -> [Map HS.QName String]
+identifyConstArgs' :: [IR.FuncDecl] -> [Map IR.QName String]
 identifyConstArgs' decls =
   map Map.fromList $ filter checkSCC $ mapMaybe fromCyclicSCC $ stronglyConnComp
     constArgGraph
@@ -255,7 +255,7 @@ identifyConstArgs' decls =
   constArgMap = Map.fromList [ (k, ks) | (_, k, ks) <- constArgGraph ]
 
   -- | The dependency graph of the function declarations.
-  callGraph :: DependencyGraph HS.FuncDecl
+  callGraph :: DependencyGraph IR.FuncDecl
   callGraph = funcDependencyGraph decls
 
   -- | Tests whether the given strongly connected component describes a
@@ -278,8 +278,8 @@ identifyConstArgs' decls =
       return ((g, y) `elem` adjacent)
 
   -- | The names of all given function declarations.
-  funcNames :: [HS.QName]
-  funcNames = map HS.funcDeclQName decls
+  funcNames :: [IR.QName]
+  funcNames = map IR.funcDeclQName decls
 
   -- | Tests whether the given list of nodes contains one node for every
   --   function declaration.

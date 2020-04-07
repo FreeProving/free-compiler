@@ -13,39 +13,39 @@ import qualified Data.Map.Strict               as Map
 
 import           FreeC.IR.SrcSpan
 import           FreeC.IR.Subst
-import qualified FreeC.IR.Syntax               as HS
+import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
 import           FreeC.Pretty
 
 -- | Inlines the right hand sides of the given function declarations into
 --   the right hand sides of other function declarations.
-inlineFuncDecls :: [HS.FuncDecl] -> HS.FuncDecl -> Converter HS.FuncDecl
+inlineFuncDecls :: [IR.FuncDecl] -> IR.FuncDecl -> Converter IR.FuncDecl
 inlineFuncDecls decls decl = do
-  let rhs = HS.funcDeclRhs decl
+  let rhs = IR.funcDeclRhs decl
   rhs' <- inlineExpr decls rhs
-  return decl { HS.funcDeclRhs = rhs' }
+  return decl { IR.funcDeclRhs = rhs' }
 
 -- | Inlines the right hand sides of the given function declarations into an
 --   expression.
-inlineExpr :: [HS.FuncDecl] -> HS.Expr -> Converter HS.Expr
+inlineExpr :: [IR.FuncDecl] -> IR.Expr -> Converter IR.Expr
 inlineExpr decls = inlineAndBind
  where
   -- | Maps the names of function declarations in 'decls' to the arguments
   --   and right hand sides of the functions.
-  declMap :: Map HS.QName ([HS.TypeVarDecl], [HS.VarPat], HS.Expr)
+  declMap :: Map IR.QName ([IR.TypeVarDecl], [IR.VarPat], IR.Expr)
   declMap = foldr insertFuncDecl Map.empty decls
 
   -- | Inserts a function declaration into 'declMap'.
   insertFuncDecl
-    :: HS.FuncDecl
-    -> Map HS.QName ([HS.TypeVarDecl], [HS.VarPat], HS.Expr)
-    -> Map HS.QName ([HS.TypeVarDecl], [HS.VarPat], HS.Expr)
+    :: IR.FuncDecl
+    -> Map IR.QName ([IR.TypeVarDecl], [IR.VarPat], IR.Expr)
+    -> Map IR.QName ([IR.TypeVarDecl], [IR.VarPat], IR.Expr)
   insertFuncDecl funcDecl = Map.insert
-    (HS.funcDeclQName funcDecl)
-    ( HS.funcDeclTypeArgs funcDecl
-    , HS.funcDeclArgs funcDecl
-    , HS.funcDeclRhs funcDecl
+    (IR.funcDeclQName funcDecl)
+    ( IR.funcDeclTypeArgs funcDecl
+    , IR.funcDeclArgs funcDecl
+    , IR.funcDeclRhs funcDecl
     )
 
   -- | Applies 'inlineExpr'' on the given expression and wraps the result with
@@ -53,24 +53,24 @@ inlineExpr decls = inlineAndBind
   --
   --   It is an error if not all type arguments of an inlined function are
   --   bound by visible type application expressions.
-  inlineAndBind :: HS.Expr -> Converter HS.Expr
+  inlineAndBind :: IR.Expr -> Converter IR.Expr
   inlineAndBind expr = do
     (remainingArgs, expr') <- inlineVisiblyApplied expr
     if null remainingArgs
       then return expr'
       else do
-        let remainingArgPats = map HS.toVarPat remainingArgs
-        return (HS.Lambda NoSrcSpan remainingArgPats expr' Nothing)
+        let remainingArgPats = map IR.toVarPat remainingArgs
+        return (IR.Lambda NoSrcSpan remainingArgPats expr' Nothing)
 
   -- | Applies 'inlineExpr'' on the given expression and reports an
   --   internal fatal error if not all type arguments have been
   --   applied visibly.
-  inlineVisiblyApplied :: HS.Expr -> Converter ([String], HS.Expr)
+  inlineVisiblyApplied :: IR.Expr -> Converter ([String], IR.Expr)
   inlineVisiblyApplied e = do
     (remainingTypeArgs, remainingArgs, e') <- inlineExpr' e
     unless (null remainingTypeArgs)
       $  reportFatal
-      $  Message (HS.exprSrcSpan e) Internal
+      $  Message (IR.exprSrcSpan e) Internal
       $  "Missing visible application of "
       ++ show (length remainingTypeArgs)
       ++ " type arguments in an application of '"
@@ -86,61 +86,61 @@ inlineExpr decls = inlineAndBind
   --   to be bound. Function application and visible type application
   --   expressions automatically substitute the corresponding argument for
   --   the passed value.
-  inlineExpr' :: HS.Expr -> Converter ([String], [String], HS.Expr)
-  inlineExpr' var@(HS.Var _ name _) = case Map.lookup name declMap of
+  inlineExpr' :: IR.Expr -> Converter ([String], [String], IR.Expr)
+  inlineExpr' var@(IR.Var _ name _) = case Map.lookup name declMap of
     Nothing                    -> return ([], [], var)
     Just (typeArgs, args, rhs) -> do
       (typeArgs', rhs' ) <- renameTypeArgs typeArgs rhs
       (args'    , rhs'') <- renameArgs args rhs'
       return
-        (map HS.typeVarDeclIdent typeArgs', map HS.varPatIdent args', rhs'')
+        (map IR.typeVarDeclIdent typeArgs', map IR.varPatIdent args', rhs'')
 
   -- Substitute argument of inlined function and inline recursively in
   -- function arguments.
-  inlineExpr' (HS.App srcSpan e1 e2 exprType) = do
+  inlineExpr' (IR.App srcSpan e1 e2 exprType) = do
     (remainingArgs, e1') <- inlineVisiblyApplied e1
     e2'                  <- inlineAndBind e2
     case remainingArgs of
-      []                     -> return ([], [], HS.App srcSpan e1' e2' exprType)
+      []                     -> return ([], [], IR.App srcSpan e1' e2' exprType)
       (arg : remainingArgs') -> do
-        let subst = singleSubst (HS.UnQual (HS.Ident arg)) e2'
+        let subst = singleSubst (IR.UnQual (IR.Ident arg)) e2'
             e1''  = applySubst subst e1'
         return ([], remainingArgs', e1'')
 
   -- Substitute type arguments of inlined function.
-  inlineExpr' (HS.TypeAppExpr srcSpan e t exprType) = do
+  inlineExpr' (IR.TypeAppExpr srcSpan e t exprType) = do
     (remainingTypeArgs, remainingArgs, e') <- inlineExpr' e
     case remainingTypeArgs of
-      [] -> return ([], remainingArgs, HS.TypeAppExpr srcSpan e' t exprType)
+      [] -> return ([], remainingArgs, IR.TypeAppExpr srcSpan e' t exprType)
       (typeArg : remainingTypeArgs') -> do
-        let subst = singleSubst (HS.UnQual (HS.Ident typeArg)) t
+        let subst = singleSubst (IR.UnQual (IR.Ident typeArg)) t
             e''   = applySubst subst e'
         return (remainingTypeArgs', remainingArgs, e'')
 
   -- Inline recursively.
-  inlineExpr' (HS.If srcSpan e1 e2 e3 exprType) = do
+  inlineExpr' (IR.If srcSpan e1 e2 e3 exprType) = do
     e1' <- inlineAndBind e1
     e2' <- inlineAndBind e2
     e3' <- inlineAndBind e3
-    return ([], [], HS.If srcSpan e1' e2' e3' exprType)
-  inlineExpr' (HS.Case srcSpan expr alts exprType) = do
+    return ([], [], IR.If srcSpan e1' e2' e3' exprType)
+  inlineExpr' (IR.Case srcSpan expr alts exprType) = do
     expr' <- inlineAndBind expr
     alts' <- mapM inlineAlt alts
-    return ([], [], HS.Case srcSpan expr' alts' exprType)
-  inlineExpr' (HS.Lambda srcSpan varPats expr exprType) =
+    return ([], [], IR.Case srcSpan expr' alts' exprType)
+  inlineExpr' (IR.Lambda srcSpan varPats expr exprType) =
     shadowVarPats varPats $ do
       expr' <- inlineAndBind expr
-      return ([], [], HS.Lambda srcSpan varPats expr' exprType)
+      return ([], [], IR.Lambda srcSpan varPats expr' exprType)
 
   -- All other expressions remain unchanged.
-  inlineExpr' expr@(HS.Con _ _ _       ) = return ([], [], expr)
-  inlineExpr' expr@(HS.Undefined _ _   ) = return ([], [], expr)
-  inlineExpr' expr@(HS.ErrorExpr  _ _ _) = return ([], [], expr)
-  inlineExpr' expr@(HS.IntLiteral _ _ _) = return ([], [], expr)
+  inlineExpr' expr@(IR.Con _ _ _       ) = return ([], [], expr)
+  inlineExpr' expr@(IR.Undefined _ _   ) = return ([], [], expr)
+  inlineExpr' expr@(IR.ErrorExpr  _ _ _) = return ([], [], expr)
+  inlineExpr' expr@(IR.IntLiteral _ _ _) = return ([], [], expr)
 
   -- | Performs inlining on the right hand side of the given @case@-expression
   --   alternative.
-  inlineAlt :: HS.Alt -> Converter HS.Alt
-  inlineAlt (HS.Alt srcSpan conPat varPats expr) = shadowVarPats varPats $ do
+  inlineAlt :: IR.Alt -> Converter IR.Alt
+  inlineAlt (IR.Alt srcSpan conPat varPats expr) = shadowVarPats varPats $ do
     expr' <- inlineAndBind expr
-    return (HS.Alt srcSpan conPat varPats expr')
+    return (IR.Alt srcSpan conPat varPats expr')

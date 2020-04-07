@@ -53,7 +53,7 @@ import qualified FreeC.Backend.Coq.Syntax      as G
 import           FreeC.Environment.Entry
 import           FreeC.Environment.ModuleInterface
 import           FreeC.Environment.Scope
-import qualified FreeC.IR.Syntax               as HS
+import qualified FreeC.IR.Syntax               as IR
 import           FreeC.IR.SrcSpan
 import           FreeC.Util.Predicate
 
@@ -63,12 +63,12 @@ import           FreeC.Util.Predicate
 
 -- | Data type that encapsulates the state of the converter.
 data Environment = Environment
-  { envAvailableModules  :: Map HS.ModName ModuleInterface
+  { envAvailableModules  :: Map IR.ModName ModuleInterface
     -- ^ Maps names of modules that can be imported to their interface.
 
   , envEntries           :: Map ScopedName EnvEntry
     -- ^ Maps original names of entries for declarations to the entries.
-  , envDecArgs           :: Map HS.QName (Int, String)
+  , envDecArgs           :: Map IR.QName (Int, String)
     -- ^ Maps Haskell function names to the index and name of their decreasing
     --   argument. Contains no entry for non-recursive functions, but there are
     --   also entries for functions that are shadowed by local variables.
@@ -103,11 +103,11 @@ makeModuleAvailable iface env = env
   }
 
 -- | Tests whether the module with the given name can be imported.
-isModuleAvailable :: HS.ModName -> Environment -> Bool
+isModuleAvailable :: IR.ModName -> Environment -> Bool
 isModuleAvailable = isJust .: lookupAvailableModule
 
 -- | Looks up the environment of another module that can be imported.
-lookupAvailableModule :: HS.ModName -> Environment -> Maybe ModuleInterface
+lookupAvailableModule :: IR.ModName -> Environment -> Maybe ModuleInterface
 lookupAvailableModule modName = Map.lookup modName . envAvailableModules
 
 -------------------------------------------------------------------------------
@@ -122,7 +122,7 @@ addEntry entry env =
 
 -- | Stores the index and name of the decreasing argument of a recursive
 --   function in the environment.
-defineDecArg :: HS.QName -> Int -> String -> Environment -> Environment
+defineDecArg :: IR.QName -> Int -> String -> Environment -> Environment
 defineDecArg funcName decArgIndex decArgIdent env = env
   { envDecArgs = Map.insert funcName (decArgIndex, decArgIdent) (envDecArgs env)
   }
@@ -130,7 +130,7 @@ defineDecArg funcName decArgIndex decArgIdent env = env
 -- | Removes the index of the decreasing argument of a recursive function
 --   from the environment (e.g., because the function has been transformed
 --   into a non-recursive function).
-removeDecArg :: HS.QName -> Environment -> Environment
+removeDecArg :: IR.QName -> Environment -> Environment
 removeDecArg funcName env =
   env { envDecArgs = Map.delete funcName (envDecArgs env) }
 
@@ -140,25 +140,25 @@ removeDecArg funcName env =
 
 -- | Looks up the entry with the given original name in the given scope of
 --   the given environment.
-lookupEntry :: Scope -> HS.QName -> Environment -> Maybe EnvEntry
+lookupEntry :: Scope -> IR.QName -> Environment -> Maybe EnvEntry
 lookupEntry scope name = Map.lookup (scope, name) . envEntries
 
 -- | Tests whether the given name identifies a function in the given
 --   environment.
 --
 --   Returns @False@ if there is no such function.
-isFunction :: HS.QName -> Environment -> Bool
+isFunction :: IR.QName -> Environment -> Bool
 isFunction = maybe False isFuncEntry .: lookupEntry ValueScope
 
 -- | Tests whether the given name identifies a local variable in the given
 --   environment.
 --
 --   Returns @False@ if there is no such variable.
-isVariable :: HS.QName -> Environment -> Bool
+isVariable :: IR.QName -> Environment -> Bool
 isVariable = maybe False isVarEntry .: lookupEntry ValueScope
 
 -- | Test whether the variable with the given name is not monadic.
-isPureVar :: HS.QName -> Environment -> Bool
+isPureVar :: IR.QName -> Environment -> Bool
 isPureVar = maybe False (isVarEntry .&&. entryIsPure) .: lookupEntry ValueScope
 
 -- | Looks up the Coq identifier for a Haskell function, (type)
@@ -166,14 +166,14 @@ isPureVar = maybe False (isVarEntry .&&. entryIsPure) .: lookupEntry ValueScope
 --
 --   Returns @Nothing@ if there is no such function, (type/smart) constructor,
 --   constructor or (type) variable with the given name.
-lookupIdent :: Scope -> HS.QName -> Environment -> Maybe G.Qualid
+lookupIdent :: Scope -> IR.QName -> Environment -> Maybe G.Qualid
 lookupIdent = fmap entryIdent .:. lookupEntry
 
 -- | Looks up the Coq identifier for the smart constructor of the Haskell
 --   constructor with the given name.
 --
 --   Returns @Nothing@ if there is no such constructor.
-lookupSmartIdent :: HS.QName -> Environment -> Maybe G.Qualid
+lookupSmartIdent :: IR.QName -> Environment -> Maybe G.Qualid
 lookupSmartIdent =
   fmap entrySmartIdent . find isConEntry .: lookupEntry ValueScope
 
@@ -188,7 +188,7 @@ usedIdents = concatMap entryIdents . Map.elems . envEntries
     | otherwise        = [entryIdent entry]
 
 -- | Looks up the location of the declaration with the given name.
-lookupSrcSpan :: Scope -> HS.QName -> Environment -> Maybe SrcSpan
+lookupSrcSpan :: Scope -> IR.QName -> Environment -> Maybe SrcSpan
 lookupSrcSpan = fmap entrySrcSpan .:. lookupEntry
 
 -- | Looks up the type variables used by the type synonym, (smart)
@@ -196,14 +196,14 @@ lookupSrcSpan = fmap entrySrcSpan .:. lookupEntry
 --
 --   Returns @Nothing@ if there is no such type synonym, function or (smart)
 --   constructor with the given name.
-lookupTypeArgs :: Scope -> HS.QName -> Environment -> Maybe [HS.TypeVarIdent]
+lookupTypeArgs :: Scope -> IR.QName -> Environment -> Maybe [IR.TypeVarIdent]
 lookupTypeArgs =
   fmap entryTypeArgs
     .   find (isTypeSynEntry .||. isConEntry .||. isFuncEntry)
     .:. lookupEntry
 
 -- | Returns the length of the list returned by @lookupTypeArgs@.
-lookupTypeArgArity :: Scope -> HS.QName -> Environment -> Maybe Int
+lookupTypeArgArity :: Scope -> IR.QName -> Environment -> Maybe Int
 lookupTypeArgArity = fmap length .:. lookupTypeArgs
 
 -- | Looks up the argument and return types of the function or (smart)
@@ -211,7 +211,7 @@ lookupTypeArgArity = fmap length .:. lookupTypeArgs
 --
 --   Returns @Nothing@ if there is no such function or (smart) constructor
 --   with the given name.
-lookupArgTypes :: Scope -> HS.QName -> Environment -> Maybe [Maybe HS.Type]
+lookupArgTypes :: Scope -> IR.QName -> Environment -> Maybe [Maybe IR.Type]
 lookupArgTypes =
   fmap entryArgTypes . find (isConEntry .||. isFuncEntry) .:. lookupEntry
 
@@ -220,31 +220,31 @@ lookupArgTypes =
 --
 --   Returns @Nothing@ if there is no such function or (smart) constructor
 --   with the given name or the return type is not known.
-lookupReturnType :: Scope -> HS.QName -> Environment -> Maybe HS.Type
+lookupReturnType :: Scope -> IR.QName -> Environment -> Maybe IR.Type
 lookupReturnType =
   (entryReturnType =<<) . find (isConEntry .||. isFuncEntry) .:. lookupEntry
 
 -- | Gets the type schema of the variable, function or constructor with the
 --   given name.
-lookupTypeSchema :: Scope -> HS.QName -> Environment -> Maybe HS.TypeSchema
+lookupTypeSchema :: Scope -> IR.QName -> Environment -> Maybe IR.TypeSchema
 lookupTypeSchema scope name env
   | scope == ValueScope && isVariable name env = do
     typeExpr <- lookupEntry scope name env >>= entryType
-    return (HS.TypeSchema NoSrcSpan [] typeExpr)
+    return (IR.TypeSchema NoSrcSpan [] typeExpr)
   | otherwise = do
     typeArgs   <- lookupTypeArgs scope name env
     argTypes   <- lookupArgTypes scope name env
     returnType <- lookupReturnType scope name env
-    let typeArgDecls = map (HS.TypeVarDecl NoSrcSpan) typeArgs
-        funcType     = HS.funcType NoSrcSpan (catMaybes argTypes) returnType
-    return (HS.TypeSchema NoSrcSpan typeArgDecls funcType)
+    let typeArgDecls = map (IR.TypeVarDecl NoSrcSpan) typeArgs
+        funcType     = IR.funcType NoSrcSpan (catMaybes argTypes) returnType
+    return (IR.TypeSchema NoSrcSpan typeArgDecls funcType)
 
 -- | Looks up the number of arguments expected by the Haskell function
 --   or smart constructor with the given name.
 --
 --   Returns @Nothing@ if there is no such function or (smart) constructor
 --   with the given name.
-lookupArity :: Scope -> HS.QName -> Environment -> Maybe Int
+lookupArity :: Scope -> IR.QName -> Environment -> Maybe Int
 lookupArity =
   fmap entryArity
     .   find (not . (isVarEntry .||. isTypeVarEntry))
@@ -254,7 +254,7 @@ lookupArity =
 --
 --   Returns @Nothing@ if there is no such type synonym.
 lookupTypeSynonym
-  :: HS.QName -> Environment -> Maybe ([HS.TypeVarIdent], HS.Type)
+  :: IR.QName -> Environment -> Maybe ([IR.TypeVarIdent], IR.Type)
 lookupTypeSynonym =
   fmap (entryTypeArgs &&& entryTypeSyn)
     .  find isTypeSynEntry
@@ -264,14 +264,14 @@ lookupTypeSynonym =
 --   of the @Free@ monad.
 --
 --   Returns @False@ if there is no such function.
-needsFreeArgs :: HS.QName -> Environment -> Bool
+needsFreeArgs :: IR.QName -> Environment -> Bool
 needsFreeArgs =
   maybe False (isFuncEntry .&&. entryNeedsFreeArgs) .: lookupEntry ValueScope
 
 -- | Tests whether the function with the given name is partial.
 --
 --   Returns @False@ if there is no such function.
-isPartial :: HS.QName -> Environment -> Bool
+isPartial :: IR.QName -> Environment -> Bool
 isPartial =
   maybe False (isFuncEntry .&&. entryIsPartial) .: lookupEntry ValueScope
 
@@ -279,13 +279,13 @@ isPartial =
 --   function with the given name.
 --
 --   Returns @Nothing@ if there is no such recursive function.
-lookupDecArg :: HS.QName -> Environment -> Maybe (Int, String)
+lookupDecArg :: IR.QName -> Environment -> Maybe (Int, String)
 lookupDecArg name = Map.lookup name . envDecArgs
 
 -- | Like 'lookupDecArg' but returns the decreasing argument's index only.
-lookupDecArgIndex :: HS.QName -> Environment -> Maybe Int
+lookupDecArgIndex :: IR.QName -> Environment -> Maybe Int
 lookupDecArgIndex = fmap fst .: lookupDecArg
 
 -- | Like 'lookupDecArg' but returns the decreasing argument's name only.
-lookupDecArgIdent :: HS.QName -> Environment -> Maybe String
+lookupDecArgIdent :: IR.QName -> Environment -> Maybe String
 lookupDecArgIdent = fmap snd .: lookupDecArg

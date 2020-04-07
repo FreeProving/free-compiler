@@ -80,7 +80,7 @@ import           Test.HUnit.Base                ( assertFailure )
 import           FreeC.IR.DependencyGraph
 import           FreeC.IR.SrcSpan
 import           FreeC.Frontend.IR.Parser
-import qualified FreeC.IR.Syntax               as HS
+import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Reporter
 import           FreeC.Pretty
 
@@ -93,43 +93,43 @@ parseTestIR :: (MonadReporter r, Parseable a) => String -> r a
 parseTestIR = parseIR . mkSrcFile "<test-input>"
 
 -- | Parses an IR name for testing purposes.
-parseTestName :: MonadReporter r => String -> r HS.Name
+parseTestName :: MonadReporter r => String -> r IR.Name
 parseTestName = parseTestIR
 
 -- | Parses a qualifiable IR name for testing purposes.
-parseTestQName :: MonadReporter r => String -> r HS.QName
+parseTestQName :: MonadReporter r => String -> r IR.QName
 parseTestQName = parseTestIR
 
 -- | Parses an IR type expression for testing purposes.
-parseTestType :: MonadReporter r => String -> r HS.Type
+parseTestType :: MonadReporter r => String -> r IR.Type
 parseTestType = parseTestIR
 
 -- | Parses an IR type schema for testing purposes.
-parseTestTypeSchema :: MonadReporter r => String -> r HS.TypeSchema
+parseTestTypeSchema :: MonadReporter r => String -> r IR.TypeSchema
 parseTestTypeSchema = parseTestIR
 
 -- | Parses an IR type declaration for testing purposes.
-parseTestTypeDecl :: MonadReporter r => String -> r HS.TypeDecl
+parseTestTypeDecl :: MonadReporter r => String -> r IR.TypeDecl
 parseTestTypeDecl = parseTestIR
 
 -- | Parses an IR type declaration for testing purposes.
-parseTestTypeSig :: MonadReporter r => String -> r HS.TypeSig
+parseTestTypeSig :: MonadReporter r => String -> r IR.TypeSig
 parseTestTypeSig = parseTestIR
 
 -- | Parses an IR expression for testing purposes.
-parseTestExpr :: MonadReporter r => String -> r HS.Expr
+parseTestExpr :: MonadReporter r => String -> r IR.Expr
 parseTestExpr = parseTestIR
 
 -- | Parses an IR function declaration for testing purposes.
-parseTestFuncDecl :: MonadReporter r => String -> r HS.FuncDecl
+parseTestFuncDecl :: MonadReporter r => String -> r IR.FuncDecl
 parseTestFuncDecl = parseTestIR
 
 -- | Parses an IR import declaration for testing purposes.
-parseTestImportDecl :: MonadReporter r => String -> r HS.ImportDecl
+parseTestImportDecl :: MonadReporter r => String -> r IR.ImportDecl
 parseTestImportDecl = parseTestIR
 
 -- | Parses an IR module for testing purposes.
-parseTestModule :: MonadReporter r => [String] -> r HS.Module
+parseTestModule :: MonadReporter r => [String] -> r IR.Module
 parseTestModule = parseTestIR . unlines
 
 -------------------------------------------------------------------------------
@@ -157,52 +157,52 @@ expectParseTestIR nodeType input = do
 
 -- | Parses an IR name for testing purposes and sets the
 --   expectation that parsing is successful.
-expectParseTestName :: MonadIO m => String -> m HS.Name
+expectParseTestName :: MonadIO m => String -> m IR.Name
 expectParseTestName = expectParseTestIR "name"
 
 -- | Parses a qualifiable IR name for testing purposes and sets the
 --   expectation that parsing is successful.
-expectParseTestQName :: MonadIO m => String -> m HS.QName
+expectParseTestQName :: MonadIO m => String -> m IR.QName
 expectParseTestQName = expectParseTestIR "qualifiable name"
 
 -- | Parses an IR type expression for testing purposes and sets the
 --   expectation that parsing is successful.
-expectParseTestType :: MonadIO m => String -> m HS.Type
+expectParseTestType :: MonadIO m => String -> m IR.Type
 expectParseTestType = expectParseTestIR "type expression"
 
 -- | Parses an IR type schema for testing purposes and sets the
 --   expectation that parsing is successful.
-expectParseTestTypeSchema :: MonadIO m => String -> m HS.TypeSchema
+expectParseTestTypeSchema :: MonadIO m => String -> m IR.TypeSchema
 expectParseTestTypeSchema = expectParseTestIR "type schema"
 
 -- | Parses an IR type declaration for testing purposes and sets the
 --   expectation that parsing is successful.
-expectParseTestTypeDecl :: MonadIO m => String -> m HS.TypeDecl
+expectParseTestTypeDecl :: MonadIO m => String -> m IR.TypeDecl
 expectParseTestTypeDecl = expectParseTestIR "type declaration"
 
 -- | Parses an IR type declaration for testing purposes and sets the
 --   expectation that parsing is successful.
-expectParseTestTypeSig :: MonadIO m => String -> m HS.TypeSig
+expectParseTestTypeSig :: MonadIO m => String -> m IR.TypeSig
 expectParseTestTypeSig = expectParseTestIR "type signature"
 
 -- | Parses an IR expression for testing purposes and sets the
 --   expectation that parsing is successful.
-expectParseTestExpr :: MonadIO m => String -> m HS.Expr
+expectParseTestExpr :: MonadIO m => String -> m IR.Expr
 expectParseTestExpr = expectParseTestIR "expression"
 
 -- | Parses an IR function declaration for testing purposes and sets the
 --   expectation that parsing is successful.
-expectParseTestFuncDecl :: MonadIO m => String -> m HS.FuncDecl
+expectParseTestFuncDecl :: MonadIO m => String -> m IR.FuncDecl
 expectParseTestFuncDecl = expectParseTestIR "function declaration"
 
 -- | Parses an IR import declaration for testing purposes and sets the
 --   expectation that parsing is successful.
-expectParseTestImportDecl :: MonadIO m => String -> m HS.ImportDecl
+expectParseTestImportDecl :: MonadIO m => String -> m IR.ImportDecl
 expectParseTestImportDecl = expectParseTestIR "import"
 
 -- | Parses an IR module for testing purposes and sets the
 --   expectation that parsing is successful.
-expectParseTestModule :: MonadIO m => [String] -> m HS.Module
+expectParseTestModule :: MonadIO m => [String] -> m IR.Module
 expectParseTestModule = expectParseTestIR "module" . unlines
 
 -------------------------------------------------------------------------------

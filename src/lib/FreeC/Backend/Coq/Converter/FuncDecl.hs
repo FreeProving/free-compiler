@@ -10,18 +10,18 @@ import           FreeC.Backend.Coq.Converter.FuncDecl.NonRec
 import           FreeC.Backend.Coq.Converter.FuncDecl.Rec
 import qualified FreeC.Backend.Coq.Syntax      as G
 import           FreeC.IR.DependencyGraph
-import qualified FreeC.IR.Syntax               as HS
+import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Converter
 
 -- | Converts the given function declarations.
-convertFuncDecls :: [HS.FuncDecl] -> Converter [G.Sentence]
+convertFuncDecls :: [IR.FuncDecl] -> Converter [G.Sentence]
 convertFuncDecls funcDecls = do
   let components = groupFuncDecls funcDecls
   concatMapM convertFuncComponent components
 
 -- | Converts a strongly connected component of the function dependency graph.
 convertFuncComponent
-  :: DependencyComponent HS.FuncDecl -> Converter [G.Sentence]
+  :: DependencyComponent IR.FuncDecl -> Converter [G.Sentence]
 convertFuncComponent (NonRecursive decl) =
   return <$> convertNonRecFuncDecl decl
 convertFuncComponent (Recursive decls) = convertRecFuncDecls decls

@@ -16,7 +16,7 @@ import           Control.Monad.Trans.Maybe      ( MaybeT(..) )
 import           Data.Maybe                     ( fromMaybe )
 
 import           FreeC.Environment
-import qualified FreeC.IR.Syntax               as HS
+import qualified FreeC.IR.Syntax               as IR
 import           FreeC.IR.Subst
 import           FreeC.IR.Subterm
 import           FreeC.Monad.Class.Hoistable    ( hoistMaybe )
@@ -24,49 +24,49 @@ import           FreeC.Monad.Converter
 
 -- | Expands all type synonyms in all types in the given data type or type
 --   synonym declaration.
-expandAllTypeSynonymsInDecl :: HS.TypeDecl -> Converter HS.TypeDecl
+expandAllTypeSynonymsInDecl :: IR.TypeDecl -> Converter IR.TypeDecl
 expandAllTypeSynonymsInDecl = expandAllTypeSynonymsInDeclWhere (const True)
 
 -- | Like 'expandAllTypeSynonymsInDecl' but expands only type synonyms whose
 --   name matches the given predicate.
 expandAllTypeSynonymsInDeclWhere
-  :: (HS.QName -> Bool) -> HS.TypeDecl -> Converter HS.TypeDecl
-expandAllTypeSynonymsInDeclWhere predicate (HS.TypeSynDecl srcSpan declIdent typeVarDecls typeExpr)
+  :: (IR.QName -> Bool) -> IR.TypeDecl -> Converter IR.TypeDecl
+expandAllTypeSynonymsInDeclWhere predicate (IR.TypeSynDecl srcSpan declIdent typeVarDecls typeExpr)
   = do
     typeExpr' <- expandAllTypeSynonymsWhere predicate typeExpr
-    return (HS.TypeSynDecl srcSpan declIdent typeVarDecls typeExpr')
-expandAllTypeSynonymsInDeclWhere predicate (HS.DataDecl srcSpan declIdent typeVarDecls conDecls)
+    return (IR.TypeSynDecl srcSpan declIdent typeVarDecls typeExpr')
+expandAllTypeSynonymsInDeclWhere predicate (IR.DataDecl srcSpan declIdent typeVarDecls conDecls)
   = do
     conDecls' <- mapM (expandAllTypeSynonymsInConDeclWhere predicate) conDecls
-    return (HS.DataDecl srcSpan declIdent typeVarDecls conDecls')
+    return (IR.DataDecl srcSpan declIdent typeVarDecls conDecls')
 
 -- | Expands all type synonyms in all types in the given constructor
 --   declaration.
-expandAllTypeSynonymsInConDecl :: HS.ConDecl -> Converter HS.ConDecl
+expandAllTypeSynonymsInConDecl :: IR.ConDecl -> Converter IR.ConDecl
 expandAllTypeSynonymsInConDecl =
   expandAllTypeSynonymsInConDeclWhere (const True)
 
 -- | Like 'expandAllTypeSynonymsInConDecl' but expands only type synonyms whose
 --   name matches the given predicate.
 expandAllTypeSynonymsInConDeclWhere
-  :: (HS.QName -> Bool) -> HS.ConDecl -> Converter HS.ConDecl
-expandAllTypeSynonymsInConDeclWhere predicate (HS.ConDecl srcSpan declIdent argTypes)
+  :: (IR.QName -> Bool) -> IR.ConDecl -> Converter IR.ConDecl
+expandAllTypeSynonymsInConDeclWhere predicate (IR.ConDecl srcSpan declIdent argTypes)
   = do
     argTypes' <- mapM (expandAllTypeSynonymsWhere predicate) argTypes
-    return (HS.ConDecl srcSpan declIdent argTypes')
+    return (IR.ConDecl srcSpan declIdent argTypes')
 
 -- | Expands the outermost type synonym in the given type expression.
-expandTypeSynonym :: HS.Type -> Converter HS.Type
+expandTypeSynonym :: IR.Type -> Converter IR.Type
 expandTypeSynonym = expandTypeSynonyms 1
 
 -- | Expands all type synonyms used in the given type expression by the type
 --   they are associated with in the current environment.
-expandAllTypeSynonyms :: HS.Type -> Converter HS.Type
+expandAllTypeSynonyms :: IR.Type -> Converter IR.Type
 expandAllTypeSynonyms = expandAllTypeSynonymsWhere (const True)
 
 -- | Like 'expandAllTypeSynonyms' but expands only type synonyms whose name
 --   matches the given predicate.
-expandAllTypeSynonymsWhere :: (HS.QName -> Bool) -> HS.Type -> Converter HS.Type
+expandAllTypeSynonymsWhere :: (IR.QName -> Bool) -> IR.Type -> Converter IR.Type
 expandAllTypeSynonymsWhere = expandTypeSynonymsWhere (-1)
 
 -- | Like 'expandAllTypeSynonyms' but accepts an additional argument for the
@@ -76,49 +76,49 @@ expandAllTypeSynonymsWhere = expandTypeSynonymsWhere (-1)
 --   If it is @1@ only the outermost type synonym will be expanded.
 --   If it is negative, all type synonyms will be expanded (see also
 --   'expandAllTypeSynonyms').
-expandTypeSynonyms :: Int -> HS.Type -> Converter HS.Type
+expandTypeSynonyms :: Int -> IR.Type -> Converter IR.Type
 expandTypeSynonyms = flip expandTypeSynonymsWhere (const True)
 
 -- | Like 'expandTypeSynonyms' but expands only type synonyms whose name
 --   matches the given predicate.
 expandTypeSynonymsWhere
-  :: Int -> (HS.QName -> Bool) -> HS.Type -> Converter HS.Type
+  :: Int -> (IR.QName -> Bool) -> IR.Type -> Converter IR.Type
 expandTypeSynonymsWhere maxDepth predicate t0
   | maxDepth == 0 = return t0
   | otherwise = do
     t0' <- expandTypeSynonyms' t0 []
     return (fromMaybe t0 t0')
  where
-  expandTypeSynonyms' :: HS.Type -> [HS.Type] -> Converter (Maybe HS.Type)
-  expandTypeSynonyms' (HS.TypeCon _ typeConName) args = do
+  expandTypeSynonyms' :: IR.Type -> [IR.Type] -> Converter (Maybe IR.Type)
+  expandTypeSynonyms' (IR.TypeCon _ typeConName) args = do
     mTypeSynonym <- inEnv $ lookupTypeSynonym typeConName
     case mTypeSynonym of
       Just (typeVars, typeExpr) | predicate typeConName -> do
         let subst = composeSubsts
-              (zipWith (singleSubst . HS.UnQual . HS.Ident) typeVars args)
+              (zipWith (singleSubst . IR.UnQual . IR.Ident) typeVars args)
             typeExpr' = applySubst subst typeExpr
         Just <$> expandTypeSynonymsWhere (maxDepth - 1) predicate typeExpr'
       _ -> return Nothing
 
-  expandTypeSynonyms' (HS.TypeApp srcSpan t1 t2) args = do
+  expandTypeSynonyms' (IR.TypeApp srcSpan t1 t2) args = do
     t2' <- expandTypeSynonymsWhere (maxDepth - 1) predicate t2
     let args' = t2' : args
     t1' <- expandTypeSynonyms' t1 args'
-    return (t1' <|> Just (HS.typeApp srcSpan t1 args'))
+    return (t1' <|> Just (IR.typeApp srcSpan t1 args'))
 
-  expandTypeSynonyms' (HS.FuncType srcSpan t1 t2) _ = do
+  expandTypeSynonyms' (IR.FuncType srcSpan t1 t2) _ = do
     t1' <- expandTypeSynonymsWhere (maxDepth - 1) predicate t1
     t2' <- expandTypeSynonymsWhere (maxDepth - 1) predicate t2
-    return (Just (HS.FuncType srcSpan t1' t2'))
+    return (Just (IR.FuncType srcSpan t1' t2'))
 
-  expandTypeSynonyms' (HS.TypeVar _ _) _ = return Nothing
+  expandTypeSynonyms' (IR.TypeVar _ _) _ = return Nothing
 
 -- | Applies 'expandTypeSynonym' to the subterm at the given position.
 --
 --   If there are type constructor applications in parent positions, the
 --   type arguments from the parent positions are used to expand the type
 --   synonym as well.
-expandTypeSynonymAt :: Pos -> HS.Type -> Converter HS.Type
+expandTypeSynonymAt :: Pos -> IR.Type -> Converter IR.Type
 expandTypeSynonymAt pos typeExpr = case parentPos pos of
   Just pos' | maybe False isTypeApp (selectSubterm typeExpr pos') ->
     expandTypeSynonymAt pos' typeExpr
@@ -129,6 +129,6 @@ expandTypeSynonymAt pos typeExpr = case parentPos pos of
  where
   -- | Tests whether the given type expression is a type constructor
   --   application.
-  isTypeApp :: HS.Type -> Bool
-  isTypeApp (HS.TypeApp _ _ _) = True
+  isTypeApp :: IR.Type -> Bool
+  isTypeApp (IR.TypeApp _ _ _) = True
   isTypeApp _                  = False

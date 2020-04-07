@@ -9,7 +9,7 @@ import           FreeC.Environment
 import           FreeC.Environment.Entry
 import           FreeC.Environment.Scope
 import           FreeC.IR.SrcSpan
-import qualified FreeC.IR.Syntax               as HS
+import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
 import           FreeC.Pretty
@@ -19,7 +19,7 @@ import           FreeC.Pretty
 --   name is ambigious.
 --
 --   If an error is reported, it points to the given source span.
-lookupEntryOrFail :: SrcSpan -> Scope -> HS.QName -> Converter EnvEntry
+lookupEntryOrFail :: SrcSpan -> Scope -> IR.QName -> Converter EnvEntry
 lookupEntryOrFail srcSpan scope name = do
   maybeEntry <- inEnv $ lookupEntry scope name
   case maybeEntry of
@@ -39,7 +39,7 @@ lookupEntryOrFail srcSpan scope name = do
 lookupIdentOrFail
   :: SrcSpan  -- ^ The source location where the identifier is requested.
   -> Scope    -- ^ The scope to look the identifier up in.
-  -> HS.QName -- ^ The Haskell identifier to look up.
+  -> IR.QName -- ^ The Haskell identifier to look up.
   -> Converter G.Qualid
 lookupIdentOrFail srcSpan scope name = do
   entry <- lookupEntryOrFail srcSpan scope name
@@ -52,7 +52,7 @@ lookupIdentOrFail srcSpan scope name = do
 --   If an error is reported, it points to the given source span.
 lookupSmartIdentOrFail
   :: SrcSpan  -- ^ The source location where the identifier is requested.
-  -> HS.QName -- ^ The Haskell identifier to look up.
+  -> IR.QName -- ^ The Haskell identifier to look up.
   -> Converter G.Qualid
 lookupSmartIdentOrFail srcSpan name = do
   entry <- lookupEntryOrFail srcSpan ValueScope name

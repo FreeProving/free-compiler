@@ -33,10 +33,10 @@ import           FreeC.Frontend.Haskell.PatternMatching
 import           FreeC.Frontend.Haskell.Pretty  ( )
 import           FreeC.Frontend.Haskell.Simplifier
 import           FreeC.IR.DependencyGraph
-import qualified FreeC.IR.Base.Prelude         as HS.Prelude
-import qualified FreeC.IR.Base.Test.QuickCheck as HS.Test.QuickCheck
+import qualified FreeC.IR.Base.Prelude         as IR.Prelude
+import qualified FreeC.IR.Base.Test.QuickCheck as IR.Test.QuickCheck
 import           FreeC.IR.SrcSpan
-import qualified FreeC.IR.Syntax               as HS
+import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Application
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
@@ -89,7 +89,7 @@ compiler = do
 -------------------------------------------------------------------------------
 
 -- | Parses and simplifies the given input file.
-parseInputFile :: FilePath -> Application HS.Module
+parseInputFile :: FilePath -> Application IR.Module
 parseInputFile inputFile = reportApp $ do
   -- Parse and simplify input file.
   putDebug $ "Loading " ++ inputFile
@@ -101,24 +101,24 @@ parseInputFile inputFile = reportApp $ do
 -- | Sorts the given modules based on their dependencies.
 --
 --   If the module dependencies form a cycle, a fatal error is reported.
-sortInputModules :: [HS.Module] -> Application [HS.Module]
+sortInputModules :: [IR.Module] -> Application [IR.Module]
 sortInputModules = mapM checkForCycle . groupModules
  where
-  checkForCycle :: DependencyComponent HS.Module -> Application HS.Module
+  checkForCycle :: DependencyComponent IR.Module -> Application IR.Module
   checkForCycle (NonRecursive m) = return m
   checkForCycle (Recursive ms) =
     reportFatal
       $  Message NoSrcSpan Error
       $  "Module imports form a cycle: "
-      ++ intercalate ", " (map (showPretty . HS.modName) ms)
+      ++ intercalate ", " (map (showPretty . IR.modName) ms)
 
 -- | Converts the given Haskell module to Coq.
 --
 --   The resulting Coq AST is written to the console or output file.
-convertInputModule :: HS.Module -> Application (HS.ModName, [G.Sentence])
+convertInputModule :: IR.Module -> Application (IR.ModName, [G.Sentence])
 convertInputModule haskellAst = do
-  let modName = HS.modName haskellAst
-      srcSpan = HS.modSrcSpan haskellAst
+  let modName = IR.modName haskellAst
+      srcSpan = IR.modSrcSpan haskellAst
   if hasSrcSpanFilename srcSpan
     then
       putDebug
@@ -167,7 +167,7 @@ transformInputModule haskellAst = ifM (inOpts optTransformPatternMatching)
 
 -- | Output a Coq module that has been generated from a Haskell module
 --   with the given name.
-outputCoqModule :: HS.ModName -> [G.Sentence] -> Application ()
+outputCoqModule :: IR.ModName -> [G.Sentence] -> Application ()
 outputCoqModule modName coqAst = do
   maybeOutputDir <- inOpts optOutputDir
   case maybeOutputDir of
@@ -187,14 +187,14 @@ outputCoqModule modName coqAst = do
 
 -- | Loads the environments of modules imported by the given modules from
 --   their environment file.
-loadRequiredModules :: HS.Module -> Application ()
-loadRequiredModules = mapM_ loadImport . HS.modImports
+loadRequiredModules :: IR.Module -> Application ()
+loadRequiredModules = mapM_ loadImport . IR.modImports
 
 -- | Loads the environment of the module imported by the given declaration.
-loadImport :: HS.ImportDecl -> Application ()
+loadImport :: IR.ImportDecl -> Application ()
 loadImport decl = do
-  let srcSpan = HS.importSrcSpan decl
-      modName = HS.importName decl
+  let srcSpan = IR.importSrcSpan decl
+      modName = IR.importName decl
   unlessM (liftConverter (inEnv (isModuleAvailable modName)))
     $ loadModule srcSpan modName
 
@@ -203,7 +203,7 @@ loadImport decl = do
 --
 --   The given source span is used in error messages if the module could
 --   not be found.
-loadModule :: SrcSpan -> HS.ModName -> Application ()
+loadModule :: SrcSpan -> IR.ModName -> Application ()
 loadModule srcSpan modName = do
   importDirs <- inOpts optImportDirs
   ifaceFile  <- findIfaceFile importDirs
@@ -235,17 +235,17 @@ loadModule srcSpan modName = do
 
 -- | Loads the @Prelude@ module from the base library.
 loadPrelude :: Application ()
-loadPrelude = loadModuleFromBaseLib HS.Prelude.modName
+loadPrelude = loadModuleFromBaseLib IR.Prelude.modName
 
 -- | Loads the @Test.QuickCheck@ module.
 loadQuickCheck :: Application ()
-loadQuickCheck = loadModuleFromBaseLib HS.Test.QuickCheck.modName
+loadQuickCheck = loadModuleFromBaseLib IR.Test.QuickCheck.modName
 
 -- | Loads the module with the given name from the base library.
 --
 --   If the `--base-library` option is omited, this function looks for the
 --   base library in the `data-files` field of the `.cabal` file.
-loadModuleFromBaseLib :: HS.ModName -> Application ()
+loadModuleFromBaseLib :: IR.ModName -> Application ()
 loadModuleFromBaseLib modName = do
   baseLibDir <- inOpts optBaseLibDir
   let modPath   = joinPath $ splitOn "." modName

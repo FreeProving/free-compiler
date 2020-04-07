@@ -18,7 +18,7 @@ import qualified FreeC.Backend.Coq.Base        as CoqBase
 import           FreeC.Environment
 import           FreeC.Environment.Scope
 import           FreeC.IR.DependencyGraph
-import qualified FreeC.IR.Syntax               as HS
+import qualified FreeC.IR.Syntax               as IR
 import           FreeC.IR.TypeSynExpansion
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
@@ -30,13 +30,13 @@ import           FreeC.Pretty
 
 -- | Converts a strongly connected component of the type dependency graph.
 convertTypeComponent
-  :: DependencyComponent HS.TypeDecl -> Converter [G.Sentence]
+  :: DependencyComponent IR.TypeDecl -> Converter [G.Sentence]
 convertTypeComponent (NonRecursive decl)
   | isTypeSynDecl decl = convertTypeSynDecl decl
   | otherwise          = convertDataDecls [decl]
 convertTypeComponent (Recursive decls) = do
   let (typeSynDecls, dataDecls) = partition isTypeSynDecl decls
-      typeSynDeclQNames = Set.fromList (map HS.typeDeclQName typeSynDecls)
+      typeSynDeclQNames = Set.fromList (map IR.typeDeclQName typeSynDecls)
   sortedTypeSynDecls <- sortTypeSynDecls typeSynDecls
   expandedDataDecls  <- mapM
     (expandAllTypeSynonymsInDeclWhere (`Set.member` typeSynDeclQNames))
@@ -52,7 +52,7 @@ convertTypeComponent (Recursive decls) = do
 --   if they form a cycle). However, type synonyms may still depend on other
 --   type synonyms from the same strongly connected component. Therefore we
 --   have to sort the declarations in reverse topological order.
-sortTypeSynDecls :: [HS.TypeDecl] -> Converter [HS.TypeDecl]
+sortTypeSynDecls :: [IR.TypeDecl] -> Converter [IR.TypeDecl]
 sortTypeSynDecls = mapM fromNonRecursive . groupTypeDecls
 
 -- | Extracts the single type synonym declaration from a strongly connected
@@ -60,28 +60,28 @@ sortTypeSynDecls = mapM fromNonRecursive . groupTypeDecls
 --
 --   Reports a fatal error if the component contains mutually recursive
 --   declarations (i.e. type synonyms form a cycle).
-fromNonRecursive :: DependencyComponent HS.TypeDecl -> Converter HS.TypeDecl
+fromNonRecursive :: DependencyComponent IR.TypeDecl -> Converter IR.TypeDecl
 fromNonRecursive (NonRecursive decl) = return decl
 fromNonRecursive (Recursive decls) =
   reportFatal
-    $  Message (HS.typeDeclSrcSpan (head decls)) Error
+    $  Message (IR.typeDeclSrcSpan (head decls)) Error
     $  "Type synonym declarations form a cycle: "
-    ++ showPretty (map HS.typeDeclIdent decls)
+    ++ showPretty (map IR.typeDeclIdent decls)
 
 -------------------------------------------------------------------------------
 -- Type synonym declarations                                                 --
 -------------------------------------------------------------------------------
 
 -- | Tests whether the given declaration is a type synonym declaration.
-isTypeSynDecl :: HS.TypeDecl -> Bool
-isTypeSynDecl (HS.TypeSynDecl _ _ _ _) = True
-isTypeSynDecl (HS.DataDecl    _ _ _ _) = False
+isTypeSynDecl :: IR.TypeDecl -> Bool
+isTypeSynDecl (IR.TypeSynDecl _ _ _ _) = True
+isTypeSynDecl (IR.DataDecl    _ _ _ _) = False
 
 -- | Converts a Haskell type synonym declaration to Coq.
-convertTypeSynDecl :: HS.TypeDecl -> Converter [G.Sentence]
-convertTypeSynDecl decl@(HS.TypeSynDecl _ _ typeVarDecls typeExpr) =
+convertTypeSynDecl :: IR.TypeDecl -> Converter [G.Sentence]
+convertTypeSynDecl decl@(IR.TypeSynDecl _ _ typeVarDecls typeExpr) =
   localEnv $ do
-    let name = HS.typeDeclQName decl
+    let name = IR.typeDeclQName decl
     Just qualid   <- inEnv $ lookupIdent TypeScope name
     typeVarDecls' <- convertTypeVarDecls G.Explicit typeVarDecls
     typeExpr'     <- convertType' typeExpr
@@ -93,7 +93,7 @@ convertTypeSynDecl decl@(HS.TypeSynDecl _ _ typeVarDecls typeExpr) =
       ]
 
 -- Data type declarations are not allowed in this function.
-convertTypeSynDecl (HS.DataDecl _ _ _ _) =
+convertTypeSynDecl (IR.DataDecl _ _ _ _) =
   error "convertTypeSynDecl: Data type declaration not allowed."
 
 -------------------------------------------------------------------------------
@@ -113,13 +113,13 @@ convertTypeSynDecl (HS.DataDecl _ _ _ _) =
 --   After the @Inductive@ sentences for the data type declarations there
 --   is one @Arguments@ sentence and one smart constructor declaration for
 --   each constructor declaration of the given data types.
-convertDataDecls :: [HS.TypeDecl] -> Converter [G.Sentence]
+convertDataDecls :: [IR.TypeDecl] -> Converter [G.Sentence]
 convertDataDecls dataDecls = do
   (indBodies, extraSentences) <- mapAndUnzipM convertDataDecl dataDecls
   return
     ( G.comment
         (  "Data type declarations for "
-        ++ showPretty (map HS.typeDeclName dataDecls)
+        ++ showPretty (map IR.typeDeclName dataDecls)
         )
     : G.InductiveSentence (G.Inductive (NonEmpty.fromList indBodies) [])
     : concat extraSentences
@@ -131,16 +131,16 @@ convertDataDecls dataDecls = do
 --
 --   Type variables declared by the data type or the smart constructors are
 --   not visible outside of this function.
-convertDataDecl :: HS.TypeDecl -> Converter (G.IndBody, [G.Sentence])
-convertDataDecl (HS.DataDecl _ (HS.DeclIdent _ name) typeVarDecls conDecls) =
+convertDataDecl :: IR.TypeDecl -> Converter (G.IndBody, [G.Sentence])
+convertDataDecl (IR.DataDecl _ (IR.DeclIdent _ name) typeVarDecls conDecls) =
   do
     (body, argumentsSentences) <- generateBodyAndArguments
     smartConDecls              <- mapM generateSmartConDecl conDecls
     return
       ( body
-      , G.comment ("Arguments sentences for " ++ showPretty (HS.toUnQual name))
+      , G.comment ("Arguments sentences for " ++ showPretty (IR.toUnQual name))
       :  argumentsSentences
-      ++ G.comment ("Smart constructors for " ++ showPretty (HS.toUnQual name))
+      ++ G.comment ("Smart constructors for " ++ showPretty (IR.toUnQual name))
       :  smartConDecls
       )
  where
@@ -168,8 +168,8 @@ convertDataDecl (HS.DataDecl _ (HS.DeclIdent _ name) typeVarDecls conDecls) =
       )
 
   -- | Converts a constructor of the data type.
-  convertConDecl :: HS.ConDecl -> Converter (G.Qualid, [G.Binder], Maybe G.Term)
-  convertConDecl (HS.ConDecl _ (HS.DeclIdent _ conName) args) = do
+  convertConDecl :: IR.ConDecl -> Converter (G.Qualid, [G.Binder], Maybe G.Term)
+  convertConDecl (IR.ConDecl _ (IR.DeclIdent _ conName) args) = do
     Just conQualid  <- inEnv $ lookupIdent ValueScope conName
     Just returnType <- inEnv $ lookupReturnType ValueScope conName
     args'           <- mapM convertType args
@@ -177,10 +177,10 @@ convertDataDecl (HS.DataDecl _ (HS.DeclIdent _ name) typeVarDecls conDecls) =
     return (conQualid, [], Just (args' `G.arrows` returnType'))
 
   -- | Generates the @Arguments@ sentence for the given constructor declaration.
-  generateArgumentsSentence :: HS.ConDecl -> Converter G.Sentence
-  generateArgumentsSentence (HS.ConDecl _ (HS.DeclIdent _ conName) _) = do
+  generateArgumentsSentence :: IR.ConDecl -> Converter G.Sentence
+  generateArgumentsSentence (IR.ConDecl _ (IR.DeclIdent _ conName) _) = do
     Just qualid <- inEnv $ lookupIdent ValueScope conName
-    let typeVarNames = map HS.typeVarDeclQName typeVarDecls
+    let typeVarNames = map IR.typeVarDeclQName typeVarDecls
     typeVarQualids <- mapM (inEnv . lookupIdent TypeScope) typeVarNames
     return
       (G.ArgumentsSentence
@@ -196,9 +196,9 @@ convertDataDecl (HS.DataDecl _ (HS.DeclIdent _ name) typeVarDecls conDecls) =
 
   -- | Generates the smart constructor declaration for the given constructor
   --   declaration.
-  generateSmartConDecl :: HS.ConDecl -> Converter G.Sentence
-  generateSmartConDecl (HS.ConDecl _ declIdent argTypes) = localEnv $ do
-    let conName = HS.declIdentName declIdent
+  generateSmartConDecl :: IR.ConDecl -> Converter G.Sentence
+  generateSmartConDecl (IR.ConDecl _ declIdent argTypes) = localEnv $ do
+    let conName = IR.declIdentName declIdent
     Just qualid             <- inEnv $ lookupIdent ValueScope conName
     Just smartQualid        <- inEnv $ lookupSmartIdent conName
     Just returnType         <- inEnv $ lookupReturnType ValueScope conName
@@ -216,5 +216,5 @@ convertDataDecl (HS.DataDecl _ (HS.DeclIdent _ name) typeVarDecls conDecls) =
       )
 
 -- Type synonyms are not allowed in this function.
-convertDataDecl (HS.TypeSynDecl _ _ _ _) =
+convertDataDecl (IR.TypeSynDecl _ _ _ _) =
   error "convertDataDecl: Type synonym not allowed."

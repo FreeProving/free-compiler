@@ -67,17 +67,17 @@ import           FreeC.Environment.Fresh
 import           FreeC.Environment.Scope
 import           FreeC.IR.SrcSpan
 import           FreeC.IR.Subterm
-import qualified FreeC.IR.Syntax               as HS
+import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Converter
 import           FreeC.Pass
 
 -- | Applies η-conversions to the right-hand sides of all function declarations
 --   in the given module until all function and constructor applications are
 --   fully applied.
-etaConversionPass :: Pass HS.Module
+etaConversionPass :: Pass IR.Module
 etaConversionPass ast = do
-  funcDecls' <- mapM etaConvertFuncDecl (HS.modFuncDecls ast)
-  return ast { HS.modFuncDecls = funcDecls' }
+  funcDecls' <- mapM etaConvertFuncDecl (IR.modFuncDecls ast)
+  return ast { IR.modFuncDecls = funcDecls' }
 
 -------------------------------------------------------------------------------
 -- Function declarations                                                     --
@@ -85,10 +85,10 @@ etaConversionPass ast = do
 
 -- | Applies 'etaConvertExpr' to the right-hand side of the given function
 --   declaration.
-etaConvertFuncDecl :: HS.FuncDecl -> Converter HS.FuncDecl
+etaConvertFuncDecl :: IR.FuncDecl -> Converter IR.FuncDecl
 etaConvertFuncDecl funcDecl = do
-  rhs' <- etaConvertExpr (HS.funcDeclRhs funcDecl)
-  return funcDecl { HS.funcDeclRhs = rhs' }
+  rhs' <- etaConvertExpr (IR.funcDeclRhs funcDecl)
+  return funcDecl { IR.funcDeclRhs = rhs' }
 
 -------------------------------------------------------------------------------
 -- Expressions                                                               --
@@ -96,7 +96,7 @@ etaConvertFuncDecl funcDecl = do
 
 -- | Applies η-conversions to the given expression and it's sub-expressions
 --   until all function and constructor applications are fully applied.
-etaConvertExpr :: HS.Expr -> Converter HS.Expr
+etaConvertExpr :: IR.Expr -> Converter IR.Expr
 etaConvertExpr expr = localEnv $ do
   arity <- arityOf expr
   xs    <- replicateM arity $ freshHaskellIdent freshArgPrefix
@@ -105,13 +105,13 @@ etaConvertExpr expr = localEnv $ do
 
 -- | Creates a lambda abstraction with the given arguments that immediatly
 --   applies the given expression to the arguments.
-etaAbstractWith :: [String] -> HS.Expr -> HS.Expr
+etaAbstractWith :: [String] -> IR.Expr -> IR.Expr
 etaAbstractWith xs expr | null xs   = expr
-                        | otherwise = HS.Lambda NoSrcSpan argPats expr' Nothing
+                        | otherwise = IR.Lambda NoSrcSpan argPats expr' Nothing
  where
-  argPats  = map HS.toVarPat xs
-  argExprs = map HS.varPatToExpr argPats
-  expr'    = HS.app NoSrcSpan expr argExprs
+  argPats  = map IR.toVarPat xs
+  argExprs = map IR.varPatToExpr argPats
+  expr'    = IR.app NoSrcSpan expr argExprs
 
 -------------------------------------------------------------------------------
 -- Sub-expressions                                                           --
@@ -119,28 +119,28 @@ etaAbstractWith xs expr | null xs   = expr
 
 -- | Applies 'etaConvertExpr' to all sub-expressions of the given expression
 --   except for the left-hand side of function applications.
-etaConvertSubExprs :: HS.Expr -> Converter HS.Expr
+etaConvertSubExprs :: IR.Expr -> Converter IR.Expr
 -- If the expression is applied, it expects one argument less.
-etaConvertSubExprs (HS.App srcSpan e1 e2 exprType) = do
+etaConvertSubExprs (IR.App srcSpan e1 e2 exprType) = do
   e1' <- etaConvertSubExprs e1
   e2' <- etaConvertExpr e2
-  return (HS.App srcSpan e1' e2' exprType)
+  return (IR.App srcSpan e1' e2' exprType)
 
 -- Apply η-conversion recursively.
-etaConvertSubExprs expr@(HS.If _ _ _ _ _       ) = etaConvertSubExprs' expr
-etaConvertSubExprs expr@(HS.Case   _ _ _ _     ) = etaConvertSubExprs' expr
-etaConvertSubExprs expr@(HS.Lambda _ _ _ _     ) = etaConvertSubExprs' expr
+etaConvertSubExprs expr@(IR.If _ _ _ _ _       ) = etaConvertSubExprs' expr
+etaConvertSubExprs expr@(IR.Case   _ _ _ _     ) = etaConvertSubExprs' expr
+etaConvertSubExprs expr@(IR.Lambda _ _ _ _     ) = etaConvertSubExprs' expr
 
 -- Leave all other expressions unchanged.
-etaConvertSubExprs expr@(HS.Con _ _ _          ) = return expr
-etaConvertSubExprs expr@(HS.Var _ _ _          ) = return expr
-etaConvertSubExprs expr@(HS.TypeAppExpr _ _ _ _) = return expr
-etaConvertSubExprs expr@(HS.Undefined _ _      ) = return expr
-etaConvertSubExprs expr@(HS.ErrorExpr  _ _ _   ) = return expr
-etaConvertSubExprs expr@(HS.IntLiteral _ _ _   ) = return expr
+etaConvertSubExprs expr@(IR.Con _ _ _          ) = return expr
+etaConvertSubExprs expr@(IR.Var _ _ _          ) = return expr
+etaConvertSubExprs expr@(IR.TypeAppExpr _ _ _ _) = return expr
+etaConvertSubExprs expr@(IR.Undefined _ _      ) = return expr
+etaConvertSubExprs expr@(IR.ErrorExpr  _ _ _   ) = return expr
+etaConvertSubExprs expr@(IR.IntLiteral _ _ _   ) = return expr
 
 -- | Applies 'etaConvertExpr' to all sub-expressions of the given expression.
-etaConvertSubExprs' :: HS.Expr -> Converter HS.Expr
+etaConvertSubExprs' :: IR.Expr -> Converter IR.Expr
 etaConvertSubExprs' expr = do
   let children = childTerms expr
   children' <- mapM etaConvertExpr children
@@ -153,24 +153,24 @@ etaConvertSubExprs' expr = do
 
 -- | Determines the number of arguments expected to be passed to the given
 --   expression.
-arityOf :: HS.Expr -> Converter Int
-arityOf (HS.Con _ name _) = do
+arityOf :: IR.Expr -> Converter Int
+arityOf (IR.Con _ name _) = do
   arity <- inEnv $ lookupArity ValueScope name
   return (fromMaybe 0 arity)
-arityOf (HS.Var _ name _) = do
+arityOf (IR.Var _ name _) = do
   arity <- inEnv $ lookupArity ValueScope name
   return (fromMaybe 0 arity)
-arityOf (HS.App _ e1 _ _) = do
+arityOf (IR.App _ e1 _ _) = do
   arity <- arityOf e1
   return (max 0 (arity - 1))
 
 -- Visible type applications do not affect the function's arity.
-arityOf (HS.TypeAppExpr _ e _ _) = arityOf e
+arityOf (IR.TypeAppExpr _ e _ _) = arityOf e
 
 -- All other expressions do not expect any arguments.
-arityOf (HS.If _ _ _ _ _       ) = return 0
-arityOf (HS.Case _ _ _ _       ) = return 0
-arityOf (HS.Undefined _ _      ) = return 0
-arityOf (HS.ErrorExpr  _ _ _   ) = return 0
-arityOf (HS.IntLiteral _ _ _   ) = return 0
-arityOf (HS.Lambda _ _ _ _     ) = return 0
+arityOf (IR.If _ _ _ _ _       ) = return 0
+arityOf (IR.Case _ _ _ _       ) = return 0
+arityOf (IR.Undefined _ _      ) = return 0
+arityOf (IR.ErrorExpr  _ _ _   ) = return 0
+arityOf (IR.IntLiteral _ _ _   ) = return 0
+arityOf (IR.Lambda _ _ _ _     ) = return 0
