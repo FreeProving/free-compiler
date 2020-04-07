@@ -31,7 +31,7 @@ import           Data.Maybe                     ( catMaybes
                                                 )
 import qualified Data.Set                      as Set
 
-import           FreeC.Analysis.RecursionAnalysis
+import           FreeC.Backend.Coq.Analysis.ConstantArguments
 import qualified FreeC.Backend.Coq.Base        as CoqBase
 import           FreeC.Backend.Coq.Converter.Free
 import           FreeC.Backend.Coq.Converter.FuncDecl.Common
@@ -55,7 +55,7 @@ import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
 import           FreeC.Pretty
 
--- | Converts recursive function decarations and adds a @Section@ sentence
+-- | Converts recursive function declarations and adds a @Section@ sentence
 --   for the given constant arguments.
 convertRecFuncDeclsWithSection
   :: [ConstArg] -> [HS.FuncDecl] -> Converter [G.Sentence]
@@ -161,7 +161,7 @@ convertRecFuncDeclsWithSection constArgs decls = do
 
 -- | Renames the given function declarations using fresh identifiers.
 --
---   The type signatues and environment entries are copied from the
+--   The type signatures and environment entries are copied from the
 --   original function.
 --
 --   Fresh identifiers are also generated for type variables in the type

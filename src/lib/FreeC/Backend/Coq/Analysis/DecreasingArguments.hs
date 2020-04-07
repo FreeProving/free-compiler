@@ -1,14 +1,72 @@
--- | This module contains functions for analysising recursive function, e.g. to
---   finding the decreasing argument of a recursive function and to find
---   constant arguments of recursive functions.
+-- | This module contains the termination checker for the intermediate
+--   language. The goal is to to find one argument for every recursive
+--   function whose size is reduced in every recursive call. If such
+--   arguments exist we know that the function will terminate and can
+--   be translated to Coq. The termination checker defined in this
+--   module is very limited compared to Coq's termination checker.
+--   Even if we don't recognize the decreasing arguments, Coq might
+--   still be able to tell that the function is decreasing on one of
+--   its arguments. However, we cannot rely on Coq's termination
+--   entirely, since we need to know the decreasing arguments for
+--   the transformation of recursive functions into a recursive
+--   helper function and a non-recursive main function (see also
+--   "FreeC.Backend.Coq.Converter.FuncDecl.Rec.WithHelpers")
+--
+--   == Guessing Decreasing Arguments
+--
+--   Given set of mutually recursive function declarations @F@, the
+--   termination checker tries to find a combination of arguments such
+--   that each function in the set decreases on the corresponding argument.
+--   Since we have to know the decreasing argument of all functions in the
+--   set in order to test whether a function decreases on one of its argument,
+--   we first enumerate (or /guess/) all possible combinations and then check
+--   whether the combination of decreasing arguments is valid.
+--
+--   == Checking Decreasing Arguments
+--
+--   A function @f ∈ F@ declared by
+--
+--   @
+--   f x₁ … xᵢ … xₙ = e
+--   @
+--
+--   decreases on its @i@-th argument if for every recursive call to
+--   functions @g ∈ F@ on the right-hand side @e@ of @f@
+--
+--   @
+---  g e₁ … eⱼ … eₘ
+--   @
+--
+--   where @j@ is the decreasing argument guessed for @g@ the expression
+--   @eⱼ@ is recognizes as structurally smaller than @xᵢ@.
+--
+--   == Checking for Structurally Smaller Expressions
+--
+--   Within a function for whose decreasing argument we've guessed @xᵢ@ a
+--   variable @x@ is structurally smaller than @xᵢ@ if one of the following
+--   two conditions is met.
+--
+--   1. @x@ is bound by a variable pattern in a @case@ expression whose
+--      scrutinee is the decreasing argument @xᵢ@.
+--
+--   2. @x@ is bound by a variable pattern in a @case@ expression whose
+--      scrutinee is structurally smaller that @xᵢ@ itself.
+--
+--   == Bypassing the termination checker
+--
+--   Cop's termination checker uses the same idea as described above but
+--   is much more sophisticated. If the user knows that their function
+--   declaration is decreasing on one of its arguments, they can annotate
+--   the decreasing argument using a custom pragma (see also
+--   'FreeC.IR.Syntax.Pragma.DecArgPragma'). If there is such an annotation
+--   'guessDecArgs' will not consider any other argument for the annotated
+--   function declaration and 'checkDecArgs' always accepts the guessed
+--   argument as a decreasing argument.
 
-module FreeC.Analysis.RecursionAnalysis
+module FreeC.Backend.Coq.Analysis.DecreasingArguments
   ( -- * Decreasing arguments
     DecArgIndex
   , identifyDecArgs
-    -- * Constant arguments
-  , ConstArg(..)
-  , identifyConstArgs
   )
 where
 
@@ -42,7 +100,7 @@ import           FreeC.Pretty
 import           FreeC.Util.Predicate           ( (.||.) )
 
 -------------------------------------------------------------------------------
--- Decreasing arguments                                                      --
+-- Guessing Decreasing Arguments                                             --
 -------------------------------------------------------------------------------
 
 -- | Type for the index of a decreasing argument.
@@ -66,6 +124,10 @@ guessDecArgs (decl : decls) (Nothing : knownDecArgIndecies) = do
   decArgIndecies <- guessDecArgs decls knownDecArgIndecies
   decArgIndex    <- [0 .. arity - 1]
   return (decArgIndex : decArgIndecies)
+
+-------------------------------------------------------------------------------
+-- Checking Decreasing Arguments                                             --
+-------------------------------------------------------------------------------
 
 -- | Tests whether the given combination of choices for the decreasing
 --   arguments of function declarations in a strongly connected component
@@ -202,6 +264,10 @@ checkDecArgs decls knownDecArgIndecies decArgIndecies = all
     withoutArgs :: [HS.VarPat] -> Set HS.QName -> Set HS.QName
     withoutArgs args set = set \\ Set.fromList (map HS.varPatQName args)
 
+-------------------------------------------------------------------------------
+-- Identifying Decreasing Arguments                                          --
+-------------------------------------------------------------------------------
+
 -- | Identifies the decreasing arguments of the given mutually recursive
 --   function declarations.
 --
@@ -241,233 +307,3 @@ identifyDecArgs decls = do
       ++ "Consider adding a "
       ++ "{-# FreeC <function> DECREASES ON <argument> #-} "
       ++ "annotation."
-
--------------------------------------------------------------------------------
--- Constant arguments                                                        --
--------------------------------------------------------------------------------
-
--- | Data type that represents a constant argument shared by multiple
---   mutually recusive functions.
---
---   Contains the names and indicies of the corrsponding arguments of the
---   function declarations and a fresh identifier for the @Variable@ sentence
---   that replaces the constant argument.
-data ConstArg = ConstArg
-  { constArgIdents     :: Map HS.QName String
-    -- ^ Maps the names of functions that share the constant argument to the
-    --   names of the corresponding function arguments.
-  , constArgIndicies   :: Map HS.QName Int
-    -- ^ Maps the names of functions that share the constant argument to the
-    --   index of the corresponding function argument.
-  , constArgFreshIdent :: String
-    -- ^ A fresh identifier for the constant argument.
-  }
- deriving Show
-
--- | Nodes of the the constant argument graph (see 'makeConstArgGraph') are
---   pairs of function and argument names.
-type CGNode = (HS.QName, String)
-
--- | The nodes of the the constant argument graph (see 'makeConstArgGraph')
---   are identified by themselves.
-type CGEntry = (CGNode, CGNode, [CGNode])
-
--- | Constructs a graph that is used to identify contant arguments, i.e.,
---   arguments that are passed unchanged between the given function
---   declarations.
---
---   The graph is constructed as follows:
---
---    * Create one node @(f, x_i)@ for each function declarations
---      @f x_0 ... x_n = e@ and argument @x_i ∊ {x_0, ..., x_n}@.
---    * For each pair of function declarations @f x_0 ... x_n = e@
---      and @g y_0 ... y_m = e'@ draw an edge from @(f,x_i)@ and
---      @(g,y_j)@ if and only if every application @g e_0 ... e_m@
---      in @e@ has the form @g e_0 ... e_{j-1} x_i e_{j+1} ... e_m@
---      (i.e., the argument @x_i@ is passed unchanged to the @j@-th
---      argument @g@).
-makeConstArgGraph :: [HS.FuncDecl] -> [CGEntry]
-makeConstArgGraph decls = do
-  -- Create one node @(f,x_i)@ for every argument @x_i@ of every function @f@.
-  (node@(_f, x), _i, rhs) <- nodes
-  -- Generate outgoing edges of @(f,x_i)@.
-  let
-    adjacent = do
-      -- Consider every node @(g,y_j)@.
-      ((g, y), j, _) <- nodes
-      -- Test whether there is any call to @g@ on the right-hand side of @f@.
-      let callsG :: HS.Expr -> Bool
-          callsG = elem g . freeVarSet
-      guard (callsG rhs)
-      -- Test whether @x_i@ is passed unchanged to @y_j@ in every call
-      -- to @g@ in the right-hand side of @f@.
-      let
-        -- | Tests whether the given expression (a value passed as the @j@-th
-        --   argument to a call to @g@) is the argument @x_i@.
-        checkArg :: HS.Expr -> Bool
-        checkArg (HS.Var _ (HS.UnQual (HS.Ident ident)) _) = ident == x
-        checkArg _ = False
-
-        -- | Tests whether @x_j@ is passed unchanged as the @j@-th argument
-        --   to every call to @g@ in the given expression.
-        --
-        --   The second argument contains the arguments that are passed to
-        --   the current expression.
-        checkExpr :: HS.Expr -> [HS.Expr] -> Bool
-
-        -- If this is a call to @g@, check the @j@-th argument.
-        checkExpr (HS.Var _ name _) args
-          | name == g = j < length args && checkArg (args !! j)
-          | otherwise = True
-
-        -- If this is an application, check for calls to @g@ in the callee
-        -- and argument.
-        checkExpr (HS.App _ e1 e2 _) args =
-          checkExpr e1 (e2 : args) && checkExpr e2 []
-
-        -- The arguments are not distributed among the branches of @if@
-        -- and @case@ expressions.
-        checkExpr (HS.If _ e1 e2 e3 _) _ =
-          checkExpr e1 [] && checkExpr e2 [] && checkExpr e3 []
-        checkExpr (HS.Case _ expr alts _) _ =
-          checkExpr expr [] && all (flip checkAlt []) alts
-
-        -- No beta reduction is applied when a lambda expression is
-        -- encountered, but the right-hand side still needs to be checked.
-        -- If an argument shadows @x_i@ and there are calls to @g@ on the
-        -- right hand side, @x_i@ is not left unchanged.
-        checkExpr (HS.Lambda _ args expr _) _
-          | x `shadowedBy` args = not (callsG expr)
-          | otherwise           = checkExpr expr []
-
-        -- Check visibly applied expression recursively.
-        checkExpr (HS.TypeAppExpr _ expr _ _) args = checkExpr expr args
-
-        -- Constructors, literals and error terms cannot contain further
-        -- calls to @g@.
-        checkExpr (HS.Con        _ _ _      ) _    = True
-        checkExpr (HS.IntLiteral _ _ _      ) _    = True
-        checkExpr (HS.Undefined _ _         ) _    = True
-        checkExpr (HS.ErrorExpr _ _ _       ) _    = True
-
-        -- | Applies 'checkExpr' to the alternative of a @case@ expression.
-        --
-        --   If a variable pattern shadows @x_i@, @x_i@ is not unchanged.
-        checkAlt :: HS.Alt -> [HS.Expr] -> Bool
-        checkAlt (HS.Alt _ _ varPats expr) args
-          | x `shadowedBy` varPats = not (callsG expr)
-          | otherwise              = checkExpr expr args
-
-        -- | Tests whethe the given variable is shadowed by the given
-        --   variale patterns.
-        shadowedBy :: String -> [HS.VarPat] -> Bool
-        shadowedBy = flip (flip elem . map HS.varPatIdent)
-      guard (checkExpr rhs [])
-      -- Add edge if the test was successful.
-      return (g, y)
-  return (node, node, adjacent)
- where
-  -- | There is one node for each argument of every function declaration.
-  nodes :: [(CGNode, Int, HS.Expr)]
-  nodes = do
-    decl <- decls
-    let funcName = HS.funcDeclQName decl
-        args     = HS.funcDeclArgs decl
-        rhs      = HS.funcDeclRhs decl
-    (argName, argIndex) <- zip (map HS.varPatIdent args) [0 ..]
-    return ((funcName, argName), argIndex, rhs)
-
--- | Identifies function arguments that can be moved to a @Section@
---   sentence in Coq.
---
---   The call graph of the given function declarations should be strongly
---   connected.
-identifyConstArgs :: [HS.FuncDecl] -> Converter [ConstArg]
-identifyConstArgs decls = mapM makeConstArg constArgNameMaps
- where
-  -- | Maps for each set of constant arguments the names of the functions to
-  --   the name the constant argument has in that function.
-  constArgNameMaps :: [Map HS.QName String]
-  constArgNameMaps = identifyConstArgs' decls
-
-  -- Creates 'ConstArg's from the 'constArgNameMaps'.
-  makeConstArg :: Map HS.QName String -> Converter ConstArg
-  makeConstArg identMap = do
-    let idents = nub (Map.elems identMap)
-        prefix = intercalate "_" idents
-    freshIdent <- freshHaskellIdent prefix
-    return ConstArg { constArgIdents = identMap
-                    , constArgIndicies = Map.mapWithKey lookupArgIndex identMap
-                    , constArgFreshIdent = freshIdent
-                    }
-
-  -- | Maps the names of the function declarations to the names of their
-  --   arguments.
-  argNamesMap :: Map HS.QName [String]
-  argNamesMap = Map.fromList
-    [ (HS.funcDeclQName decl, map HS.varPatIdent (HS.funcDeclArgs decl))
-    | decl <- decls
-    ]
-
-  -- | Looks up the index of the argument with the given name of the function
-  --   with the given name.
-  lookupArgIndex
-    :: HS.QName -- ^ The name of the function.
-    -> String   -- ^ The name of the argument.
-    -> Int
-  lookupArgIndex funcName argName = fromJust $ do
-    argNames <- Map.lookup funcName argNamesMap
-    elemIndex argName argNames
-
--- | Like 'identifyConstArgs' but returns a map from function to argument names
---   for each constant argument instead of a 'ConstArg'.
-identifyConstArgs' :: [HS.FuncDecl] -> [Map HS.QName String]
-identifyConstArgs' decls =
-  map Map.fromList $ filter checkSCC $ mapMaybe fromCyclicSCC $ stronglyConnComp
-    constArgGraph
- where
-  -- | The constant argument graph.
-  constArgGraph :: [CGEntry]
-  constArgGraph = makeConstArgGraph decls
-
-  -- | Maps the keys of the 'constArgGraph' to the adjacency lists.
-  constArgMap :: Map CGNode [CGNode]
-  constArgMap = Map.fromList [ (k, ks) | (_, k, ks) <- constArgGraph ]
-
-  -- | The dependency graph of the function declarations.
-  callGraph :: DependencyGraph HS.FuncDecl
-  callGraph = funcDependencyGraph decls
-
-  -- | Tests whether the given strongly connected component describes a
-  --   valid set of constant arguments.
-  --
-  --   The strongly connected component must contain every function
-  --   exactly once (see 'containsAllFunctions') and if there is an edge
-  --   between two functions in the 'callGraph', there must also be an
-  --   edge between the corresponding nodes of the 'constArgGraph'.
-  checkSCC :: [CGNode] -> Bool
-  checkSCC nodes
-    | not (containsAllFunctions nodes) = False
-    | otherwise = and $ do
-      (f, x) <- nodes
-      (g, y) <- nodes
-      -- If there is an edge from @f@ to @g@ in the call graph, ...
-      guard (dependsDirectlyOn callGraph f g)
-      -- ... there must also be an edge in the constant argument graph.
-      adjacent <- maybeToList (Map.lookup (f, x) constArgMap)
-      return ((g, y) `elem` adjacent)
-
-  -- | The names of all given function declarations.
-  funcNames :: [HS.QName]
-  funcNames = map HS.funcDeclQName decls
-
-  -- | Tests whether the given list of nodes contains one node for every
-  --   function declaration.
-  containsAllFunctions :: [CGNode] -> Bool
-  containsAllFunctions nodes =
-    length nodes == length decls && all (`elem` map fst nodes) funcNames
-
-  -- | Gets the nodes of a cyclic strongly connected component.
-  fromCyclicSCC :: SCC CGNode -> Maybe [CGNode]
-  fromCyclicSCC (AcyclicSCC _    ) = Nothing
-  fromCyclicSCC (CyclicSCC  nodes) = Just nodes

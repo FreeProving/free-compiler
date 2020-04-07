@@ -21,7 +21,7 @@ import qualified Data.Map.Strict               as Map
 import           Data.Maybe                     ( fromJust )
 import qualified Data.Set                      as Set
 
-import           FreeC.Analysis.RecursionAnalysis
+import           FreeC.Backend.Coq.Analysis.DecreasingArguments
 import           FreeC.Backend.Coq.Converter.Expr
 import           FreeC.Backend.Coq.Converter.FuncDecl.Common
 import           FreeC.Backend.Coq.Converter.FuncDecl.NonRec

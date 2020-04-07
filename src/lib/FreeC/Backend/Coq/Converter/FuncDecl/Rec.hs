@@ -6,10 +6,10 @@ module FreeC.Backend.Coq.Converter.FuncDecl.Rec
   )
 where
 
+import           FreeC.Backend.Coq.Analysis.ConstArguments
 import qualified FreeC.Backend.Coq.Syntax      as G
 import           FreeC.Backend.Coq.Converter.FuncDecl.Rec.WithHelpers
 import           FreeC.Backend.Coq.Converter.FuncDecl.Rec.WithSections
-import           FreeC.Analysis.RecursionAnalysis
 import qualified FreeC.IR.Syntax               as HS
 import           FreeC.Monad.Converter
 

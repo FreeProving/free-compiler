@@ -85,7 +85,8 @@ common deps
 library freec-internal
   import:             deps
   hs-source-dirs:     src/lib
-  exposed-modules:      FreeC.Analysis.RecursionAnalysis
+  exposed-modules:      FreeC.Backend.Coq.Analysis.ConstantArguments
+                      , FreeC.Backend.Coq.Analysis.DecreasingArguments
                       , FreeC.Backend.Coq.Base
                       , FreeC.Backend.Coq.Converter
                       , FreeC.Backend.Coq.Converter.Arg
