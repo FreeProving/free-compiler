@@ -1,5 +1,5 @@
 -- | This example demonstrates the experimental pattern matching compiler
---   integration. Compile the module with the `--transform-pattern-matching`
+--   integration. Compile the module with the @--transform-pattern-matching@
 --   command line option.
 --
 --   Without this option pattern matching on the left-hand side of function
