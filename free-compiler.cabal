@@ -216,7 +216,6 @@ test-suite freec-unit-tests
                     , FreeC.Test.Environment
                     , FreeC.Test.Expectations
                     , FreeC.Test.Parser
-                    , FreeC.Util.Test
   build-depends:      freec-internal
                       -- Test frameworks:
                     , hspec
