@@ -3,51 +3,53 @@
 
 module FreeC.Backend.Coq.Base where
 
-import qualified FreeC.Backend.Coq.Syntax      as G
+import qualified FreeC.Backend.Coq.Syntax      as Coq
 
 -------------------------------------------------------------------------------
 -- Base library import                                                       --
 -------------------------------------------------------------------------------
 
 -- | Import sentence for the @Free@ module from the Base Coq library.
-imports :: G.Sentence
-imports = G.requireImportFrom baseLibName [G.ident "Free"]
+imports :: Coq.Sentence
+imports = Coq.requireImportFrom baseLibName [Coq.ident "Free"]
 
 -- | The name of the Base Coq library.
-baseLibName :: G.ModuleIdent
-baseLibName = G.ident "Base"
+baseLibName :: Coq.ModuleIdent
+baseLibName = Coq.ident "Base"
 
 -- | The name of the Coq library where generated Coq files are placed.
-generatedLibName :: G.ModuleIdent
-generatedLibName = G.ident "Generated"
+generatedLibName :: Coq.ModuleIdent
+generatedLibName = Coq.ident "Generated"
 
 -------------------------------------------------------------------------------
 -- Free monad                                                                --
 -------------------------------------------------------------------------------
 
 -- | The Coq identifier for the @Free@ monad.
-free :: G.Qualid
-free = G.bare "Free"
+free :: Coq.Qualid
+free = Coq.bare "Free"
 
 -- | The Coq identifier for the @pure@ constructor of the @Free@ monad.
-freePureCon :: G.Qualid
-freePureCon = G.bare "pure"
+freePureCon :: Coq.Qualid
+freePureCon = Coq.bare "pure"
 
 -- | The Coq identifier for the @impure@ constructor of the @Free@ monad.
-freeImpureCon :: G.Qualid
-freeImpureCon = G.bare "impure"
+freeImpureCon :: Coq.Qualid
+freeImpureCon = Coq.bare "impure"
 
 -- | The Coq identifier for the @>>=@ operator of the @Free@ monad.
-freeBind :: G.Qualid
-freeBind = G.bare "op_>>=__"
+freeBind :: Coq.Qualid
+freeBind = Coq.bare "op_>>=__"
 
 -- | The names and types of the parameters that must be passed to the @Free@
 --   monad. These parameters are added automatically to every defined type and
 --   function.
-freeArgs :: [(G.Qualid, G.Term)]
+freeArgs :: [(Coq.Qualid, Coq.Term)]
 freeArgs =
-  [ (G.bare "Shape", G.Sort G.Type)
-  , (G.bare "Pos", G.Arrow (G.Qualid (G.bare "Shape")) (G.Sort G.Type))
+  [ (Coq.bare "Shape", Coq.Sort Coq.Type)
+  , ( Coq.bare "Pos"
+    , Coq.Arrow (Coq.Qualid (Coq.bare "Shape")) (Coq.Sort Coq.Type)
+    )
   ]
 
 -------------------------------------------------------------------------------
@@ -56,20 +58,20 @@ freeArgs =
 
 -- | The name and type of the @Partial@ instance that must be passed to
 --   partial functions.
-partialArg :: (G.Qualid, G.Term)
+partialArg :: (Coq.Qualid, Coq.Term)
 partialArg =
-  ( G.bare "P"
-  , G.app (G.Qualid (G.bare "Partial"))
-          [G.Qualid (G.bare "Shape"), G.Qualid (G.bare "Pos")]
+  ( Coq.bare "P"
+  , Coq.app (Coq.Qualid (Coq.bare "Partial"))
+            [Coq.Qualid (Coq.bare "Shape"), Coq.Qualid (Coq.bare "Pos")]
   )
 
 -- | The identifier for the error term @undefined@.
-partialUndefined :: G.Qualid
-partialUndefined = G.bare "undefined"
+partialUndefined :: Coq.Qualid
+partialUndefined = Coq.bare "undefined"
 
 -- | The identifier for the error term @error@.
-partialError :: G.Qualid
-partialError = G.bare "error"
+partialError :: Coq.Qualid
+partialError = Coq.bare "error"
 
 -------------------------------------------------------------------------------
 -- Reserved identifiers                                                      --
@@ -78,7 +80,7 @@ partialError = G.bare "error"
 -- | All Coq identifiers that are reserved for the Base library.
 --
 --   This does only include identifiers without corresponding Haskell name.
-reservedIdents :: [G.Qualid]
+reservedIdents :: [Coq.Qualid]
 reservedIdents =
   [ -- Free monad
     free

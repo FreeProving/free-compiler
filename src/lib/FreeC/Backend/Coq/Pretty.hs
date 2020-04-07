@@ -11,7 +11,7 @@
 --   of nodes.
 module FreeC.Backend.Coq.Pretty where
 
-import qualified Language.Coq.Gallina          as G
+import qualified Language.Coq.Gallina          as Coq
 import           Language.Coq.Pretty            ( Gallina
                                                 , renderGallina
                                                 )
@@ -30,12 +30,12 @@ instance Gallina a => Pretty (PrettyCoq a) where
   prettyList = prettySeparated (line <> line)
 
 -- | Terms often need to be pretty printed in the tests.
-instance Pretty G.Term where
-  pretty = pretty . PrettyCoq
+instance Pretty Coq.Term where
+  pretty     = pretty . PrettyCoq
   prettyList = prettyList . map PrettyCoq
 
 -- | Sentences often need to be pretty printed in the tests and when writing
 --   the generated Coq code to the console or a file.
-instance Pretty G.Sentence where
-  pretty = pretty . PrettyCoq
+instance Pretty Coq.Sentence where
+  pretty     = pretty . PrettyCoq
   prettyList = prettyList . map PrettyCoq

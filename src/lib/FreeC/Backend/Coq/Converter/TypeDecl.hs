@@ -10,11 +10,11 @@ import qualified Data.List.NonEmpty            as NonEmpty
 import           Data.Maybe                     ( catMaybes )
 import qualified Data.Set                      as Set
 
-import qualified FreeC.Backend.Coq.Syntax      as G
+import qualified FreeC.Backend.Coq.Syntax      as Coq
 import           FreeC.Backend.Coq.Converter.Arg
 import           FreeC.Backend.Coq.Converter.Free
 import           FreeC.Backend.Coq.Converter.Type
-import qualified FreeC.Backend.Coq.Base        as CoqBase
+import qualified FreeC.Backend.Coq.Base        as Coq.Base
 import           FreeC.Environment
 import           FreeC.Environment.Scope
 import           FreeC.IR.DependencyGraph
@@ -30,7 +30,7 @@ import           FreeC.Pretty
 
 -- | Converts a strongly connected component of the type dependency graph.
 convertTypeComponent
-  :: DependencyComponent IR.TypeDecl -> Converter [G.Sentence]
+  :: DependencyComponent IR.TypeDecl -> Converter [Coq.Sentence]
 convertTypeComponent (NonRecursive decl)
   | isTypeSynDecl decl = convertTypeSynDecl decl
   | otherwise          = convertDataDecls [decl]
@@ -78,18 +78,18 @@ isTypeSynDecl (IR.TypeSynDecl _ _ _ _) = True
 isTypeSynDecl (IR.DataDecl    _ _ _ _) = False
 
 -- | Converts a Haskell type synonym declaration to Coq.
-convertTypeSynDecl :: IR.TypeDecl -> Converter [G.Sentence]
+convertTypeSynDecl :: IR.TypeDecl -> Converter [Coq.Sentence]
 convertTypeSynDecl decl@(IR.TypeSynDecl _ _ typeVarDecls typeExpr) =
   localEnv $ do
     let name = IR.typeDeclQName decl
     Just qualid   <- inEnv $ lookupIdent TypeScope name
-    typeVarDecls' <- convertTypeVarDecls G.Explicit typeVarDecls
+    typeVarDecls' <- convertTypeVarDecls Coq.Explicit typeVarDecls
     typeExpr'     <- convertType' typeExpr
     return
-      [ G.definitionSentence qualid
-                             (genericArgDecls G.Explicit ++ typeVarDecls')
-                             (Just G.sortType)
-                             typeExpr'
+      [ Coq.definitionSentence qualid
+                               (genericArgDecls Coq.Explicit ++ typeVarDecls')
+                               (Just Coq.sortType)
+                               typeExpr'
       ]
 
 -- Data type declarations are not allowed in this function.
@@ -113,15 +113,15 @@ convertTypeSynDecl (IR.DataDecl _ _ _ _) =
 --   After the @Inductive@ sentences for the data type declarations there
 --   is one @Arguments@ sentence and one smart constructor declaration for
 --   each constructor declaration of the given data types.
-convertDataDecls :: [IR.TypeDecl] -> Converter [G.Sentence]
+convertDataDecls :: [IR.TypeDecl] -> Converter [Coq.Sentence]
 convertDataDecls dataDecls = do
   (indBodies, extraSentences) <- mapAndUnzipM convertDataDecl dataDecls
   return
-    ( G.comment
+    ( Coq.comment
         (  "Data type declarations for "
         ++ showPretty (map IR.typeDeclName dataDecls)
         )
-    : G.InductiveSentence (G.Inductive (NonEmpty.fromList indBodies) [])
+    : Coq.InductiveSentence (Coq.Inductive (NonEmpty.fromList indBodies) [])
     : concat extraSentences
     )
 
@@ -131,16 +131,18 @@ convertDataDecls dataDecls = do
 --
 --   Type variables declared by the data type or the smart constructors are
 --   not visible outside of this function.
-convertDataDecl :: IR.TypeDecl -> Converter (G.IndBody, [G.Sentence])
+convertDataDecl :: IR.TypeDecl -> Converter (Coq.IndBody, [Coq.Sentence])
 convertDataDecl (IR.DataDecl _ (IR.DeclIdent _ name) typeVarDecls conDecls) =
   do
     (body, argumentsSentences) <- generateBodyAndArguments
     smartConDecls              <- mapM generateSmartConDecl conDecls
     return
       ( body
-      , G.comment ("Arguments sentences for " ++ showPretty (IR.toUnQual name))
+      , Coq.comment
+        ("Arguments sentences for " ++ showPretty (IR.toUnQual name))
       :  argumentsSentences
-      ++ G.comment ("Smart constructors for " ++ showPretty (IR.toUnQual name))
+      ++ Coq.comment
+           ("Smart constructors for " ++ showPretty (IR.toUnQual name))
       :  smartConDecls
       )
  where
@@ -153,42 +155,43 @@ convertDataDecl (IR.DataDecl _ (IR.DeclIdent _ name) typeVarDecls conDecls) =
   --   function, but not outside this function. This allows the smart
   --   constructors to reuse the identifiers for their type arguments (see
   --   'generateSmartConDecl').
-  generateBodyAndArguments :: Converter (G.IndBody, [G.Sentence])
+  generateBodyAndArguments :: Converter (Coq.IndBody, [Coq.Sentence])
   generateBodyAndArguments = localEnv $ do
     Just qualid        <- inEnv $ lookupIdent TypeScope name
-    typeVarDecls'      <- convertTypeVarDecls G.Explicit typeVarDecls
+    typeVarDecls'      <- convertTypeVarDecls Coq.Explicit typeVarDecls
     conDecls'          <- mapM convertConDecl conDecls
     argumentsSentences <- mapM generateArgumentsSentence conDecls
     return
-      ( G.IndBody qualid
-                  (genericArgDecls G.Explicit ++ typeVarDecls')
-                  G.sortType
-                  conDecls'
+      ( Coq.IndBody qualid
+                    (genericArgDecls Coq.Explicit ++ typeVarDecls')
+                    Coq.sortType
+                    conDecls'
       , argumentsSentences
       )
 
   -- | Converts a constructor of the data type.
-  convertConDecl :: IR.ConDecl -> Converter (G.Qualid, [G.Binder], Maybe G.Term)
+  convertConDecl
+    :: IR.ConDecl -> Converter (Coq.Qualid, [Coq.Binder], Maybe Coq.Term)
   convertConDecl (IR.ConDecl _ (IR.DeclIdent _ conName) args) = do
     Just conQualid  <- inEnv $ lookupIdent ValueScope conName
     Just returnType <- inEnv $ lookupReturnType ValueScope conName
     args'           <- mapM convertType args
     returnType'     <- convertType' returnType
-    return (conQualid, [], Just (args' `G.arrows` returnType'))
+    return (conQualid, [], Just (args' `Coq.arrows` returnType'))
 
   -- | Generates the @Arguments@ sentence for the given constructor declaration.
-  generateArgumentsSentence :: IR.ConDecl -> Converter G.Sentence
+  generateArgumentsSentence :: IR.ConDecl -> Converter Coq.Sentence
   generateArgumentsSentence (IR.ConDecl _ (IR.DeclIdent _ conName) _) = do
     Just qualid <- inEnv $ lookupIdent ValueScope conName
     let typeVarNames = map IR.typeVarDeclQName typeVarDecls
     typeVarQualids <- mapM (inEnv . lookupIdent TypeScope) typeVarNames
     return
-      (G.ArgumentsSentence
-        (G.Arguments
+      (Coq.ArgumentsSentence
+        (Coq.Arguments
           Nothing
           qualid
-          [ G.ArgumentSpec G.ArgMaximal (G.Ident typeVarQualid) Nothing
-          | typeVarQualid <- map fst CoqBase.freeArgs
+          [ Coq.ArgumentSpec Coq.ArgMaximal (Coq.Ident typeVarQualid) Nothing
+          | typeVarQualid <- map fst Coq.Base.freeArgs
             ++ catMaybes typeVarQualids
           ]
         )
@@ -196,21 +199,22 @@ convertDataDecl (IR.DataDecl _ (IR.DeclIdent _ name) typeVarDecls conDecls) =
 
   -- | Generates the smart constructor declaration for the given constructor
   --   declaration.
-  generateSmartConDecl :: IR.ConDecl -> Converter G.Sentence
+  generateSmartConDecl :: IR.ConDecl -> Converter Coq.Sentence
   generateSmartConDecl (IR.ConDecl _ declIdent argTypes) = localEnv $ do
     let conName = IR.declIdentName declIdent
     Just qualid             <- inEnv $ lookupIdent ValueScope conName
     Just smartQualid        <- inEnv $ lookupSmartIdent conName
     Just returnType         <- inEnv $ lookupReturnType ValueScope conName
-    typeVarDecls'           <- convertTypeVarDecls G.Implicit typeVarDecls
+    typeVarDecls'           <- convertTypeVarDecls Coq.Implicit typeVarDecls
     (argIdents', argDecls') <- mapAndUnzipM convertAnonymousArg
                                             (map Just argTypes)
     returnType' <- convertType returnType
-    rhs <- generatePure (G.app (G.Qualid qualid) (map G.Qualid argIdents'))
+    rhs         <- generatePure
+      (Coq.app (Coq.Qualid qualid) (map Coq.Qualid argIdents'))
     return
-      (G.definitionSentence
+      (Coq.definitionSentence
         smartQualid
-        (genericArgDecls G.Explicit ++ typeVarDecls' ++ argDecls')
+        (genericArgDecls Coq.Explicit ++ typeVarDecls' ++ argDecls')
         (Just returnType')
         rhs
       )

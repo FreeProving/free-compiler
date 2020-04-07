@@ -25,7 +25,7 @@ import           FreeC.Backend.Coq.Analysis.DecreasingArguments
 import           FreeC.Backend.Coq.Converter.Expr
 import           FreeC.Backend.Coq.Converter.FuncDecl.Common
 import           FreeC.Backend.Coq.Converter.FuncDecl.NonRec
-import qualified FreeC.Backend.Coq.Syntax      as G
+import qualified FreeC.Backend.Coq.Syntax      as Coq
 import           FreeC.Environment
 import           FreeC.Environment.Entry
 import           FreeC.Environment.Fresh
@@ -41,11 +41,11 @@ import           FreeC.Pretty
 
 -- | Converts recursive function declarations into recursive helper and
 --   non-recursive main functions.
-convertRecFuncDeclsWithHelpers :: [IR.FuncDecl] -> Converter [G.Sentence]
+convertRecFuncDeclsWithHelpers :: [IR.FuncDecl] -> Converter [Coq.Sentence]
 convertRecFuncDeclsWithHelpers decls = do
   (helperDecls', mainDecls') <- convertRecFuncDeclsWithHelpers' decls
   return
-    (  G.comment
+    (  Coq.comment
         ("Helper functions for " ++ showPretty (map IR.funcDeclName decls))
     :  helperDecls'
     ++ mainDecls'
@@ -54,7 +54,7 @@ convertRecFuncDeclsWithHelpers decls = do
 -- | Like 'convertRecFuncDeclsWithHelpers' but does return the helper and
 --   main functions separtly.
 convertRecFuncDeclsWithHelpers'
-  :: [IR.FuncDecl] -> Converter ([G.Sentence], [G.Sentence])
+  :: [IR.FuncDecl] -> Converter ([Coq.Sentence], [Coq.Sentence])
 convertRecFuncDeclsWithHelpers' decls = do
   -- Split into helper and main functions.
   decArgs                  <- identifyDecArgs decls
@@ -71,7 +71,7 @@ convertRecFuncDeclsWithHelpers' decls = do
 
   -- Create common fixpoint sentence for all helper functions.
   return
-    ( [G.FixpointSentence (G.Fixpoint (NonEmpty.fromList helperDecls') [])]
+    ( [Coq.FixpointSentence (Coq.Fixpoint (NonEmpty.fromList helperDecls') [])]
     , mainDecls'
     )
 
@@ -215,7 +215,7 @@ transformRecFuncDecl (IR.FuncDecl srcSpan declIdent typeArgs args maybeRetType e
 
 -- | Converts a recursive helper function to the body of a Coq @Fixpoint@
 --   sentence.
-convertRecHelperFuncDecl :: IR.FuncDecl -> Converter G.FixBody
+convertRecHelperFuncDecl :: IR.FuncDecl -> Converter Coq.FixBody
 convertRecHelperFuncDecl helperDecl = localEnv $ do
   -- Convert left- and right-hand side of helper function.
   (qualid, binders, returnType') <- convertFuncHead helperDecl
@@ -227,9 +227,9 @@ convertRecHelperFuncDecl helperDecl = localEnv $ do
   Just decArg'     <- inEnv $ lookupIdent ValueScope (argNames !! decArgIndex)
   -- Generate body of @Fixpoint@ sentence.
   return
-    (G.FixBody qualid
-               (NonEmpty.fromList binders)
-               (Just (G.StructOrder decArg'))
-               returnType'
-               rhs'
+    (Coq.FixBody qualid
+                 (NonEmpty.fromList binders)
+                 (Just (Coq.StructOrder decArg'))
+                 returnType'
+                 rhs'
     )

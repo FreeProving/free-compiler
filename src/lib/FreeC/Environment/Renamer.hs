@@ -32,9 +32,9 @@ import           Data.Maybe                     ( fromMaybe
 import           Text.Casing
 import           Text.RegexPR
 
-import qualified FreeC.Backend.Coq.Base        as CoqBase
+import qualified FreeC.Backend.Coq.Base        as Coq.Base
 import           FreeC.Backend.Coq.Keywords
-import qualified FreeC.Backend.Coq.Syntax      as G
+import qualified FreeC.Backend.Coq.Syntax      as Coq
 import           FreeC.Environment
 import           FreeC.Environment.Entry
 import           FreeC.IR.SrcSpan
@@ -82,13 +82,13 @@ isVernacularCommand = flip elem vernacularCommands
 --   types and functions with Haskell equivalent. However, in these cases the
 --   identifiers are listed in the 'Environment' already.
 isReservedIdent :: String -> Bool
-isReservedIdent = flip elem CoqBase.reservedIdents . G.bare
+isReservedIdent = flip elem Coq.Base.reservedIdents . Coq.bare
 
 -- | Tests whether the given Coq identifier has been used in the current
 --   environment to define a type, constructor, function or variable
 --   already.
 isUsedIdent :: Environment -> String -> Bool
-isUsedIdent = flip elem . mapMaybe G.unpackQualid . usedIdents
+isUsedIdent = flip elem . mapMaybe Coq.unpackQualid . usedIdents
 
 -- | Tests whether the given Coq identifier must be renamed because it would
 --   otherwise conflict with a keyword, reserved or user defined
@@ -171,9 +171,9 @@ renameIdent' ident n env
   identN :: String
   identN = ident ++ show n
 
--- | Like 'renameIdent' but the Coq identifier is wrapped in a "G.Qualid".
-renameQualid :: String -> Environment -> G.Qualid
-renameQualid = G.bare .: renameIdent
+-- | Like 'renameIdent' but the Coq identifier is wrapped in a "Coq.Qualid".
+renameQualid :: String -> Environment -> Coq.Qualid
+renameQualid = Coq.bare .: renameIdent
 
 -------------------------------------------------------------------------------
 -- Define and automatically rename identifiers                               --
@@ -229,7 +229,7 @@ renameAndAddEntry entry = do
 renameAndDefineTypeVar
   :: SrcSpan -- ^ The location of the type variable declaration.
   -> String  -- ^ The name of the type variable.
-  -> Converter G.Qualid
+  -> Converter Coq.Qualid
 renameAndDefineTypeVar srcSpan ident = do
   entry <- renameAndAddEntry TypeVarEntry
     { entrySrcSpan = srcSpan
@@ -249,7 +249,7 @@ renameAndDefineVar
                    --   free monad.
   -> String        -- ^ The name of the variable.
   -> Maybe IR.Type -- ^ The type of the variable if it is known.
-  -> Converter G.Qualid
+  -> Converter Coq.Qualid
 renameAndDefineVar srcSpan isPure ident maybeVarType = do
   entry <- renameAndAddEntry VarEntry { entrySrcSpan = srcSpan
                                       , entryIsPure  = isPure
@@ -281,5 +281,5 @@ informIfRenamed entry entry' = do
   ident, ident' :: String
   ident = fromMaybe "op" $ IR.identFromQName (entryName entry)
   Just ident'
-    | entryHasSmartIdent entry = G.unpackQualid (entrySmartIdent entry')
-    | otherwise                = G.unpackQualid (entryIdent entry')
+    | entryHasSmartIdent entry = Coq.unpackQualid (entrySmartIdent entry')
+    | otherwise                = Coq.unpackQualid (entryIdent entry')

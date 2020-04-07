@@ -23,7 +23,7 @@ import           Data.Maybe                     ( mapMaybe )
 import qualified Data.Set                      as Set
 
 import           FreeC.Backend.Coq.Pretty
-import qualified FreeC.Backend.Coq.Syntax      as G
+import qualified FreeC.Backend.Coq.Syntax      as Coq
 import           FreeC.Config
 import           FreeC.Environment.Entry
 import           FreeC.Environment.ModuleInterface
@@ -39,7 +39,7 @@ instance Aeson.ToJSON IR.QName where
 instance Aeson.ToJSON IR.Type where
   toJSON = Aeson.toJSON . showPretty
 
-instance Aeson.ToJSON G.Qualid where
+instance Aeson.ToJSON Coq.Qualid where
   toJSON = Aeson.toJSON . showPretty . PrettyCoq
 
 -- | Serializes a 'ModuleInterface'.

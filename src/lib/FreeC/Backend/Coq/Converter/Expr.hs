@@ -10,11 +10,11 @@ import           Data.Foldable                  ( foldlM
                                                 , foldrM
                                                 )
 
-import qualified FreeC.Backend.Coq.Base        as CoqBase
+import qualified FreeC.Backend.Coq.Base        as Coq.Base
 import           FreeC.Backend.Coq.Converter.Arg
 import           FreeC.Backend.Coq.Converter.Free
 import           FreeC.Backend.Coq.Converter.Type
-import qualified FreeC.Backend.Coq.Syntax      as G
+import qualified FreeC.Backend.Coq.Syntax      as Coq
 import           FreeC.Environment
 import           FreeC.Environment.Fresh
 import           FreeC.Environment.LookupOrFail
@@ -33,12 +33,12 @@ import           FreeC.Pretty
 -------------------------------------------------------------------------------
 
 -- | Converts a Haskell expression to Coq.
-convertExpr :: IR.Expr -> Converter G.Term
+convertExpr :: IR.Expr -> Converter Coq.Term
 convertExpr expr = convertExpr' expr [] []
 
 -- | Converts the application of a Haskell expression to the given arguments
 --   and visibly applied type arguments to Coq.
-convertExpr' :: IR.Expr -> [IR.Type] -> [IR.Expr] -> Converter G.Term
+convertExpr' :: IR.Expr -> [IR.Type] -> [IR.Expr] -> Converter Coq.Term
 
 -- Constructors.
 convertExpr' (IR.Con srcSpan name _) typeArgs args = do
@@ -102,11 +102,11 @@ convertExpr' (IR.Var srcSpan name _) typeArgs args = do
       -- Add the arguments of the @Free@ monad if necessary. If the function
       -- is partial, we need to add the @Partial@ instance as well.
       partialArg <- ifM (inEnv $ isPartial name)
-                        (return [G.Qualid (fst CoqBase.partialArg)])
+                        (return [Coq.Qualid (fst Coq.Base.partialArg)])
                         (return [])
       callee <- ifM (inEnv $ needsFreeArgs name)
                     (return (genericApply qualid partialArg typeArgs' []))
-                    (return (G.app (G.Qualid qualid) partialArg))
+                    (return (Coq.app (Coq.Qualid qualid) partialArg))
       -- Is this a recursive helper function?
       Just arity   <- inEnv $ lookupArity ValueScope name
       mDecArgIndex <- inEnv $ lookupDecArgIndex name
@@ -132,8 +132,8 @@ convertExpr' (IR.Var srcSpan name _) typeArgs args = do
       -- it must be lifted into the @Free@ monad.
       pureArg <- inEnv $ isPureVar name
       if pureArg
-        then generatePure (G.Qualid qualid) >>= flip generateApply args'
-        else generateApply (G.Qualid qualid) args'
+        then generatePure (Coq.Qualid qualid) >>= flip generateApply args'
+        else generateApply (Coq.Qualid qualid) args'
 
 -- Pass argument from applications to converter for callee.
 convertExpr' (IR.App _ e1 e2 _) [] args = convertExpr' e1 [] (e2 : args)
@@ -149,14 +149,14 @@ convertExpr' (IR.If _ e1 e2 e3 _) [] [] = do
   generateBind e1' freshBoolPrefix (Just bool') $ \cond -> do
     e2' <- convertExpr e2
     e3' <- convertExpr e3
-    return (G.If G.SymmetricIf cond Nothing e2' e3')
+    return (Coq.If Coq.SymmetricIf cond Nothing e2' e3')
 
 -- @case@-expressions.
 convertExpr' (IR.Case _ expr alts _) [] [] = do
   expr' <- convertExpr expr
   generateBind expr' freshArgPrefix Nothing $ \value -> do
     alts' <- mapM convertAlt alts
-    return (G.match value alts')
+    return (Coq.match value alts')
 
 -- Error terms.
 convertExpr' (IR.Undefined srcSpan _) typeArgs [] = do
@@ -168,9 +168,9 @@ convertExpr' (IR.Undefined srcSpan _) typeArgs [] = do
     ++ "Expected 1 type arguments, got "
     ++ show (length typeArgs)
     ++ "."
-  let partialArg = G.Qualid (fst CoqBase.partialArg)
+  let partialArg = Coq.Qualid (fst Coq.Base.partialArg)
   typeArgs' <- mapM convertType' typeArgs
-  return (genericApply CoqBase.partialUndefined [partialArg] typeArgs' [])
+  return (genericApply Coq.Base.partialUndefined [partialArg] typeArgs' [])
 
 convertExpr' (IR.ErrorExpr srcSpan msg _) typeArgs [] = do
   when (length typeArgs /= 1)
@@ -182,23 +182,23 @@ convertExpr' (IR.ErrorExpr srcSpan msg _) typeArgs [] = do
     ++ "Expected 1 type arguments, got "
     ++ show (length typeArgs)
     ++ "."
-  let partialArg = G.Qualid (fst CoqBase.partialArg)
+  let partialArg = Coq.Qualid (fst Coq.Base.partialArg)
   typeArgs' <- mapM convertType' typeArgs
   return
-    (genericApply CoqBase.partialError [partialArg] typeArgs' [G.string msg])
+    (genericApply Coq.Base.partialError [partialArg] typeArgs' [Coq.string msg])
 
 -- Integer literals.
 convertExpr' (IR.IntLiteral _ value _) [] [] = do
-  let natValue = G.Num (fromInteger (abs value))
-      value' | value < 0 = G.app (G.Qualid (G.bare "-")) [natValue]
+  let natValue = Coq.Num (fromInteger (abs value))
+      value' | value < 0 = Coq.app (Coq.Qualid (Coq.bare "-")) [natValue]
              | otherwise = natValue
-  generatePure (G.InScope value' (G.ident "Z"))
+  generatePure (Coq.InScope value' (Coq.ident "Z"))
 
 -- Lambda abstractions.
 convertExpr' (IR.Lambda _ args expr _) [] [] = localEnv $ do
   args' <- mapM convertArg args
   expr' <- convertExpr expr
-  foldrM (generatePure .: G.Fun . return) expr' args'
+  foldrM (generatePure .: Coq.Fun . return) expr' args'
 
 -- Visible type application of an expression other than a function or
 -- constructor.
@@ -221,9 +221,9 @@ convertExpr' expr [] args@(_ : _) = do
 -------------------------------------------------------------------------------
 
 -- | Generates a Coq term for applying a monadic term to the given arguments.
-generateApply :: G.Term -> [G.Term] -> Converter G.Term
+generateApply :: Coq.Term -> [Coq.Term] -> Converter Coq.Term
 generateApply = foldlM $ \term arg ->
-  generateBind term freshFuncPrefix Nothing (\f -> return (G.app f [arg]))
+  generateBind term freshFuncPrefix Nothing (\f -> return (Coq.app f [arg]))
 
 -- | Generates a Coq term for applying a function with the given arity to
 --   the given arguments.
@@ -231,33 +231,33 @@ generateApply = foldlM $ \term arg ->
 --   If there are too many arguments, the remaining arguments are applied
 --   using 'generateApply'. There should not be too few arguments (i.e. the
 --   function should be fully applied).
-generateApplyN :: Int -> G.Term -> [G.Term] -> Converter G.Term
+generateApplyN :: Int -> Coq.Term -> [Coq.Term] -> Converter Coq.Term
 generateApplyN arity term args =
-  generateApply (G.app term (take arity args)) (drop arity args)
+  generateApply (Coq.app term (take arity args)) (drop arity args)
 
 -------------------------------------------------------------------------------
 -- Case-expression helpers                                                   --
 -------------------------------------------------------------------------------
 
 -- | Converts an alternative of a Haskell @case@-expressions to Coq.
-convertAlt :: IR.Alt -> Converter G.Equation
+convertAlt :: IR.Alt -> Converter Coq.Equation
 convertAlt (IR.Alt _ conPat varPats expr) = localEnv $ do
   conPat' <- convertConPat conPat varPats
   expr'   <- convertExpr expr
-  return (G.equation conPat' expr')
+  return (Coq.equation conPat' expr')
 
 -- | Converts a Haskell constructor pattern with the given variable pattern
 --   arguments to a Coq pattern.
-convertConPat :: IR.ConPat -> [IR.VarPat] -> Converter G.Pattern
+convertConPat :: IR.ConPat -> [IR.VarPat] -> Converter Coq.Pattern
 convertConPat (IR.ConPat srcSpan ident) varPats = do
   qualid   <- lookupIdentOrFail srcSpan ValueScope ident
   varPats' <- mapM convertVarPat varPats
-  return (G.ArgsPat qualid varPats')
+  return (Coq.ArgsPat qualid varPats')
 
 -- | Converts a Haskell variable pattern to a Coq variable pattern.
 --
 --   The types of variable patterns are not annotated in Coq.
-convertVarPat :: IR.VarPat -> Converter G.Pattern
+convertVarPat :: IR.VarPat -> Converter Coq.Pattern
 convertVarPat (IR.VarPat srcSpan ident maybeVarType) = do
   ident' <- renameAndDefineVar srcSpan False ident maybeVarType
-  return (G.QualidPat ident')
+  return (Coq.QualidPat ident')

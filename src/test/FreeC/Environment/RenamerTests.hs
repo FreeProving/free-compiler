@@ -5,9 +5,9 @@ import           Test.QuickCheck
 
 import           Data.Maybe                     ( mapMaybe )
 
-import qualified FreeC.Backend.Coq.Base        as CoqBase
+import qualified FreeC.Backend.Coq.Base        as Coq.Base
 import           FreeC.Backend.Coq.Keywords
-import qualified FreeC.Backend.Coq.Syntax      as G
+import qualified FreeC.Backend.Coq.Syntax      as Coq
 import           FreeC.Environment
 import           FreeC.Environment.Entry
 import           FreeC.Environment.Renamer
@@ -43,7 +43,7 @@ genRegularIdent = oneof $ map return ["x", "y", "z"]
 -- | Generator for arbitrary identifiers reserved by the Coq Base library.
 genReservedIdent :: Gen String
 genReservedIdent =
-  oneof $ map return $ mapMaybe G.unpackQualid CoqBase.reservedIdents
+  oneof $ map return $ mapMaybe Coq.unpackQualid Coq.Base.reservedIdents
 
 -- | Generator for arbitrary Coq keywords.
 genKeyword :: Gen String
@@ -69,7 +69,7 @@ testMustRenameIdent = describe "mustRenameIdent" $ do
       let env = addEntry
             TypeVarEntry { entrySrcSpan = NoSrcSpan
                          , entryName    = IR.UnQual (IR.Ident ident)
-                         , entryIdent   = G.bare ident
+                         , entryIdent   = Coq.bare ident
                          }
             emptyEnv
       in  mustRenameIdent ident env

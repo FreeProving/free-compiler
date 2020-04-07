@@ -22,11 +22,11 @@
 
 # Aliases for qualified imports.
 - modules:
-  - {name: [ FreeC.Backend.Coq.Base ], as: CoqBase}
-  - {name: [ FreeC.Backend.Coq.Syntax ], as: G}
+  - {name: [ FreeC.Backend.Coq.Base ], as: Coq.Base}
+  - {name: [ FreeC.Backend.Coq.Syntax ], as: Coq}
   - {name: [ FreeC.IR.Syntax ], as: IR}
   - {name: [ FreeC.IR.Base.Prelude ], as: IR.Prelude}
-  - {name: [ FreeC.IR.Base.Test.QuickCheck], as:  IR.Test.QuickCheck}
+  - {name: [ FreeC.IR.Base.Test.QuickCheck], as: IR.Test.QuickCheck}
   - {name: [ Data.Aeson ], as: Aeson}
   - {name: [ Data.ByteString.Lazy ], as: LazyByteString}
   - {name: [ Data.List.NonEmpty ], as: NonEmpty}

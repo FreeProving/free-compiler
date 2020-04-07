@@ -7,7 +7,7 @@ module FreeC.Backend.Coq.Converter.FuncDecl.Rec
 where
 
 import           FreeC.Backend.Coq.Analysis.ConstantArguments
-import qualified FreeC.Backend.Coq.Syntax      as G
+import qualified FreeC.Backend.Coq.Syntax      as Coq
 import           FreeC.Backend.Coq.Converter.FuncDecl.Rec.WithHelpers
 import           FreeC.Backend.Coq.Converter.FuncDecl.Rec.WithSections
 import qualified FreeC.IR.Syntax               as IR
@@ -20,7 +20,7 @@ import           FreeC.Monad.Converter
 --   calls), they are converted using a @Section@ sentence (see
 --   'convertRecFuncDeclsWithHelpers'). Otherwise they are converted into
 --   helper and main functions (see 'convertRecFuncDeclsWithSection').
-convertRecFuncDecls :: [IR.FuncDecl] -> Converter [G.Sentence]
+convertRecFuncDecls :: [IR.FuncDecl] -> Converter [Coq.Sentence]
 convertRecFuncDecls decls = localEnv $ do
   -- If there are constant arguments, move them to a section.
   constArgs <- identifyConstArgs decls

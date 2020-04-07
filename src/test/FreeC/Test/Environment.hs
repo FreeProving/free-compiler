@@ -15,7 +15,7 @@ where
 
 import           Data.Maybe                     ( fromJust )
 
-import qualified FreeC.Backend.Coq.Syntax      as G
+import qualified FreeC.Backend.Coq.Syntax      as Coq
 import           FreeC.Environment.Entry
 import           FreeC.Environment.Renamer
 import           FreeC.IR.Reference
@@ -35,7 +35,7 @@ import           FreeC.Test.Parser
 renameAndAddTestEntry :: EnvEntry -> Converter String
 renameAndAddTestEntry entry = do
   entry' <- renameAndAddTestEntry' entry
-  return (fromJust (G.unpackQualid (entryIdent entry')))
+  return (fromJust (Coq.unpackQualid (entryIdent entry')))
 
 -- | Like 'renameAndAddTestEntry' but does return the renamed entry instead of
 --   just its Coq identifier.
@@ -119,8 +119,8 @@ defineTestCon nameStr arity typeStr = do
     , entryIdent      = undefined -- filled by renamer
     , entrySmartIdent = undefined -- filled by renamer
     }
-  let (Just ident'     ) = G.unpackQualid (entryIdent entry)
-      (Just smartIdent') = G.unpackQualid (entrySmartIdent entry)
+  let (Just ident'     ) = Coq.unpackQualid (entryIdent entry)
+      (Just smartIdent') = Coq.unpackQualid (entrySmartIdent entry)
   return (ident', smartIdent')
 
 -------------------------------------------------------------------------------

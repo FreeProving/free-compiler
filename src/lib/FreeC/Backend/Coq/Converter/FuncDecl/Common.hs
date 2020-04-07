@@ -10,7 +10,7 @@ where
 import           FreeC.Backend.Coq.Converter.Arg
 import           FreeC.Backend.Coq.Converter.Free
 import           FreeC.Backend.Coq.Converter.Type
-import qualified FreeC.Backend.Coq.Syntax      as G
+import qualified FreeC.Backend.Coq.Syntax      as Coq
 import           FreeC.Environment
 import           FreeC.Environment.Scope
 import qualified FreeC.IR.Syntax               as IR
@@ -26,20 +26,21 @@ import           FreeC.Monad.Converter
 --   no recursive functions
 --   (see 'Haskell.Backend.Coq.Converter.FuncDecl.NonRec.convertNonRecFuncDecl'
 --    and 'Haskell.Backend.Coq.Converter.FuncDecl.Rec.convertRecFuncDecls').
-convertFuncHead :: IR.FuncDecl -> Converter (G.Qualid, [G.Binder], Maybe G.Term)
+convertFuncHead
+  :: IR.FuncDecl -> Converter (Coq.Qualid, [Coq.Binder], Maybe Coq.Term)
 convertFuncHead (IR.FuncDecl _ declIdent typeArgs args maybeRetType _) = do
   let name = IR.declIdentName declIdent
   -- Lookup the Coq name of the function.
   Just qualid    <- inEnv $ lookupIdent ValueScope name
   -- Generate arguments for free monad if they are not in scope.
   freeArgsNeeded <- inEnv $ needsFreeArgs name
-  let freeArgDecls | freeArgsNeeded = genericArgDecls G.Explicit
+  let freeArgDecls | freeArgsNeeded = genericArgDecls Coq.Explicit
                    | otherwise      = []
   -- Lookup partiality and position of decreasing argument.
   partial       <- inEnv $ isPartial name
   decArgIndex   <- inEnv $ lookupDecArgIndex name
   -- Convert arguments and return types.
-  typeArgs'     <- convertTypeVarDecls G.Implicit typeArgs
+  typeArgs'     <- convertTypeVarDecls Coq.Implicit typeArgs
   args'         <- convertArgs args decArgIndex
   maybeRetType' <- mapM convertType maybeRetType
   return

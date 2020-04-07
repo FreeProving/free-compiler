@@ -4,7 +4,7 @@
 
 module FreeC.Environment.LookupOrFail where
 
-import qualified FreeC.Backend.Coq.Syntax      as G
+import qualified FreeC.Backend.Coq.Syntax      as Coq
 import           FreeC.Environment
 import           FreeC.Environment.Entry
 import           FreeC.Environment.Scope
@@ -40,7 +40,7 @@ lookupIdentOrFail
   :: SrcSpan  -- ^ The source location where the identifier is requested.
   -> Scope    -- ^ The scope to look the identifier up in.
   -> IR.QName -- ^ The Haskell identifier to look up.
-  -> Converter G.Qualid
+  -> Converter Coq.Qualid
 lookupIdentOrFail srcSpan scope name = do
   entry <- lookupEntryOrFail srcSpan scope name
   return (entryIdent entry)
@@ -53,7 +53,7 @@ lookupIdentOrFail srcSpan scope name = do
 lookupSmartIdentOrFail
   :: SrcSpan  -- ^ The source location where the identifier is requested.
   -> IR.QName -- ^ The Haskell identifier to look up.
-  -> Converter G.Qualid
+  -> Converter Coq.Qualid
 lookupSmartIdentOrFail srcSpan name = do
   entry <- lookupEntryOrFail srcSpan ValueScope name
   return (entrySmartIdent entry)

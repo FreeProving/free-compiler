@@ -9,7 +9,7 @@ module FreeC.Environment.Fresh where
 import           Data.List                      ( elemIndex )
 import qualified Data.Map.Strict               as Map
 
-import qualified FreeC.Backend.Coq.Syntax      as G
+import qualified FreeC.Backend.Coq.Syntax      as Coq
 import           FreeC.Environment
 import           FreeC.Environment.Renamer
 import           FreeC.IR.SrcSpan
@@ -109,8 +109,8 @@ freshCoqIdent prefix = do
   inEnv $ renameIdent ident
 
 -- | Like 'freshCoqIdent' but the resulting Coq identifier is wrapped in a
---   "G.Qualid".
-freshCoqQualid :: String -> Converter G.Qualid
+--   'Coq.Qualid'.
+freshCoqQualid :: String -> Converter Coq.Qualid
 freshCoqQualid prefix = do
   ident <- freshHaskellIdent prefix
   inEnv $ renameQualid ident

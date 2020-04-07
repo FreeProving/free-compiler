@@ -7,7 +7,7 @@ module FreeC.Environment.Entry where
 import           Data.Function                  ( on )
 import           Data.Tuple.Extra               ( (&&&) )
 
-import qualified FreeC.Backend.Coq.Syntax      as G
+import qualified FreeC.Backend.Coq.Syntax      as Coq
 import           FreeC.Environment.Scope
 import           FreeC.IR.SrcSpan
 import qualified FreeC.IR.Syntax               as IR
@@ -21,7 +21,7 @@ data EnvEntry
       -- ^ The source code location where the data type was declared.
     , entryArity   :: Int
       -- ^ The number of type arguments expected by the type constructor.
-    , entryIdent   :: G.Qualid
+    , entryIdent   :: Coq.Qualid
       -- ^ The name of the data type in Coq.
     , entryName    :: IR.QName
       -- ^ The name of the data type in the module it has been defined in.
@@ -36,7 +36,7 @@ data EnvEntry
       -- ^ The names of the type arguments.
     , entryTypeSyn  :: IR.Type
       -- ^ The type that is abbreviated by this type synonym.
-    , entryIdent    :: G.Qualid
+    , entryIdent    :: Coq.Qualid
       -- ^ The name of the type synonym in Coq.
     , entryName     :: IR.QName
       -- ^ The name of the type synonym in the module it has been defined in.
@@ -45,7 +45,7 @@ data EnvEntry
     TypeVarEntry
     { entrySrcSpan :: SrcSpan
       -- ^ The source code location where the type variable was declared.
-    , entryIdent   :: G.Qualid
+    , entryIdent   :: Coq.Qualid
       -- ^ The name of the type variable in Coq.
     , entryName    :: IR.QName
       -- ^ The name of the type variable (must be unqualified).
@@ -63,9 +63,9 @@ data EnvEntry
       --   Contains exactly 'entryArity' elements.
     , entryReturnType :: Maybe IR.Type
       -- ^ The return type of the data constructor (if known).
-    , entryIdent      :: G.Qualid
+    , entryIdent      :: Coq.Qualid
       -- ^ The name of the regular data constructor in Coq.
-    , entrySmartIdent :: G.Qualid
+    , entrySmartIdent :: Coq.Qualid
       -- ^ The name of the corresponding smart constructor in Coq.
     , entryName       :: IR.QName
       -- ^ The name of the data constructor in the module it has been
@@ -90,7 +90,7 @@ data EnvEntry
     , entryIsPartial     :: Bool
       -- ^ Whether the function is partial, i.e., requires an instance of
       --   the @Partial@ type class when translated to Coq.
-    , entryIdent         :: G.Qualid
+    , entryIdent         :: Coq.Qualid
       -- ^ The name of the function in Coq.
     , entryName          :: IR.QName
       -- ^ The name of the function in the module it has been defined in.
@@ -101,7 +101,7 @@ data EnvEntry
       -- ^ The source code location where the variable was declared.
     , entryIsPure  :: Bool
       -- ^ Whether the variable has not been lifted to the free monad.
-    , entryIdent   :: G.Qualid
+    , entryIdent   :: Coq.Qualid
       -- ^ The name of the variable in Coq.
     , entryName    :: IR.QName
       -- ^ The name of the variable (must be unqualified).

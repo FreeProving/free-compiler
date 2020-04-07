@@ -17,7 +17,7 @@ module FreeC.Environment.ModuleInterface where
 
 import           Data.Set                       ( Set )
 
-import qualified FreeC.Backend.Coq.Syntax      as G
+import qualified FreeC.Backend.Coq.Syntax      as Coq
 import           FreeC.Environment.Entry
 import           FreeC.Environment.Scope
 import qualified FreeC.IR.Syntax               as IR
@@ -27,7 +27,7 @@ import qualified FreeC.IR.Syntax               as IR
 data ModuleInterface = ModuleInterface
   { interfaceModName :: IR.ModName
     -- ^ The name of the module.
-  , interfaceLibName :: G.ModuleIdent
+  , interfaceLibName :: Coq.ModuleIdent
     -- ^ The name of the Coq library that contains this module (e.g. @"Base"@
     --   for the @Prelude@ module).
   , interfaceExports :: Set ScopedName

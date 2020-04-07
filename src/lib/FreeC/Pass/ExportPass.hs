@@ -67,7 +67,7 @@ where
 import qualified Data.Map.Strict               as Map
 import qualified Data.Set                      as Set
 
-import qualified FreeC.Backend.Coq.Base        as CoqBase
+import qualified FreeC.Backend.Coq.Base        as Coq.Base
 import           FreeC.Environment
 import           FreeC.Environment.ModuleInterface
 import           FreeC.Environment.Entry
@@ -91,7 +91,7 @@ exportInterface modName = do
   entries <- inEnv $ Map.elems . envEntries
   let exports = map entryScopedName $ filter isExported entries
   return ModuleInterface { interfaceModName = modName
-                         , interfaceLibName = CoqBase.generatedLibName
+                         , interfaceLibName = Coq.Base.generatedLibName
                          , interfaceExports = Set.fromList exports
                          , interfaceEntries = Set.fromList entries
                          }

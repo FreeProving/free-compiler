@@ -8,10 +8,10 @@ import           Data.List                      ( find
                                                 , findIndex
                                                 )
 
-import qualified FreeC.Backend.Coq.Base        as CoqBase
+import qualified FreeC.Backend.Coq.Base        as Coq.Base
 import           FreeC.Backend.Coq.Converter.FuncDecl
 import           FreeC.Backend.Coq.Converter.TypeDecl
-import qualified FreeC.Backend.Coq.Syntax      as G
+import qualified FreeC.Backend.Coq.Syntax      as Coq
 import           FreeC.Environment
 import           FreeC.Environment.ModuleInterface
 import           FreeC.IR.DependencyGraph
@@ -26,18 +26,18 @@ import           FreeC.Pretty
 -------------------------------------------------------------------------------
 
 -- | Converts a Haskell module to a Gallina sentences.
-convertModule :: IR.Module -> Converter [G.Sentence]
+convertModule :: IR.Module -> Converter [Coq.Sentence]
 convertModule = moduleEnv . (runPipeline >=> convertModule')
 
 -- | Like 'convertModule'' but does not apply any compiler passes beforehand.
-convertModule' :: IR.Module -> Converter [G.Sentence]
+convertModule' :: IR.Module -> Converter [Coq.Sentence]
 convertModule' haskellAst = do
   imports' <- convertImportDecls (IR.modImports haskellAst)
   mapM_ (addDecArgPragma (IR.modFuncDecls haskellAst))
         (IR.modPragmas haskellAst)
   decls' <- convertDecls (IR.modTypeDecls haskellAst)
                          (IR.modFuncDecls haskellAst)
-  return (G.comment ("module " ++ IR.modName haskellAst) : imports' ++ decls')
+  return (Coq.comment ("module " ++ IR.modName haskellAst) : imports' ++ decls')
 
 -------------------------------------------------------------------------------
 -- Pragmas                                                                   --
@@ -92,14 +92,14 @@ addDecArgPragma funcDecls (IR.DecArgPragma srcSpan funcName decArg) =
 -------------------------------------------------------------------------------
 
 -- | Converts the given declarations of a Haskell module.
-convertDecls :: [IR.TypeDecl] -> [IR.FuncDecl] -> Converter [G.Sentence]
+convertDecls :: [IR.TypeDecl] -> [IR.FuncDecl] -> Converter [Coq.Sentence]
 convertDecls typeDecls funcDecls = do
   typeDecls' <- convertTypeDecls typeDecls
   funcDecls' <- convertFuncDecls funcDecls
   return (typeDecls' ++ funcDecls')
 
 -- | Converts the given data type or type synonym declarations.
-convertTypeDecls :: [IR.TypeDecl] -> Converter [G.Sentence]
+convertTypeDecls :: [IR.TypeDecl] -> Converter [Coq.Sentence]
 convertTypeDecls typeDecls = do
   let components = groupTypeDecls typeDecls
   concatMapM convertTypeComponent components
@@ -109,13 +109,13 @@ convertTypeDecls typeDecls = do
 -------------------------------------------------------------------------------
 
 -- | Converts the given import declarations to Coq.
-convertImportDecls :: [IR.ImportDecl] -> Converter [G.Sentence]
+convertImportDecls :: [IR.ImportDecl] -> Converter [Coq.Sentence]
 convertImportDecls imports = do
   imports' <- mapM convertImportDecl imports
-  return (CoqBase.imports : imports')
+  return (Coq.Base.imports : imports')
 
 -- | Convert a import declaration.
-convertImportDecl :: IR.ImportDecl -> Converter G.Sentence
+convertImportDecl :: IR.ImportDecl -> Converter Coq.Sentence
 convertImportDecl (IR.ImportDecl _ modName) = do
   Just iface <- inEnv $ lookupAvailableModule modName
   generateImport (interfaceLibName iface) modName
@@ -125,11 +125,11 @@ convertImportDecl (IR.ImportDecl _ modName) = do
 --
 --   Modules from the base library are imported via @From Base Require Import@
 --   sentences and all other modules are also exported.
-generateImport :: G.ModuleIdent -> IR.ModName -> Converter G.Sentence
+generateImport :: Coq.ModuleIdent -> IR.ModName -> Converter Coq.Sentence
 generateImport libName modName = return
-  (mkRequireSentence libName [G.ident (showPretty modName)])
+  (mkRequireSentence libName [Coq.ident (showPretty modName)])
  where
   -- | Makes a @From ... Require Import ...@ or  @From ... Require Export ...@.
-  mkRequireSentence :: G.ModuleIdent -> [G.ModuleIdent] -> G.Sentence
-  mkRequireSentence | libName == CoqBase.baseLibName = G.requireImportFrom
-                    | otherwise                      = G.requireExportFrom
+  mkRequireSentence :: Coq.ModuleIdent -> [Coq.ModuleIdent] -> Coq.Sentence
+  mkRequireSentence | libName == Coq.Base.baseLibName = Coq.requireImportFrom
+                    | otherwise                       = Coq.requireExportFrom

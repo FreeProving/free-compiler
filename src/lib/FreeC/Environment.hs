@@ -49,7 +49,7 @@ import           Data.Maybe                     ( catMaybes
                                                 )
 import           Data.Tuple.Extra               ( (&&&) )
 
-import qualified FreeC.Backend.Coq.Syntax      as G
+import qualified FreeC.Backend.Coq.Syntax      as Coq
 import           FreeC.Environment.Entry
 import           FreeC.Environment.ModuleInterface
 import           FreeC.Environment.Scope
@@ -166,23 +166,23 @@ isPureVar = maybe False (isVarEntry .&&. entryIsPure) .: lookupEntry ValueScope
 --
 --   Returns @Nothing@ if there is no such function, (type/smart) constructor,
 --   constructor or (type) variable with the given name.
-lookupIdent :: Scope -> IR.QName -> Environment -> Maybe G.Qualid
+lookupIdent :: Scope -> IR.QName -> Environment -> Maybe Coq.Qualid
 lookupIdent = fmap entryIdent .:. lookupEntry
 
 -- | Looks up the Coq identifier for the smart constructor of the Haskell
 --   constructor with the given name.
 --
 --   Returns @Nothing@ if there is no such constructor.
-lookupSmartIdent :: IR.QName -> Environment -> Maybe G.Qualid
+lookupSmartIdent :: IR.QName -> Environment -> Maybe Coq.Qualid
 lookupSmartIdent =
   fmap entrySmartIdent . find isConEntry .: lookupEntry ValueScope
 
 -- | Gets a list of Coq identifiers for functions, (type/smart) constructors,
 --   (type/fresh) variables that were used in the given environment already.
-usedIdents :: Environment -> [G.Qualid]
+usedIdents :: Environment -> [Coq.Qualid]
 usedIdents = concatMap entryIdents . Map.elems . envEntries
  where
-  entryIdents :: EnvEntry -> [G.Qualid]
+  entryIdents :: EnvEntry -> [Coq.Qualid]
   entryIdents entry
     | isConEntry entry = [entryIdent entry, entrySmartIdent entry]
     | otherwise        = [entryIdent entry]

@@ -112,7 +112,7 @@ import qualified Data.Text                     as Text
 import qualified Data.Vector                   as Vector
 import           Text.RegexPR
 
-import qualified FreeC.Backend.Coq.Syntax      as G
+import qualified FreeC.Backend.Coq.Syntax      as Coq
 import           FreeC.Config
 import           FreeC.Environment
 import           FreeC.Environment.ModuleInterface
@@ -146,8 +146,8 @@ instance Aeson.FromJSON IR.QName where
     parseName ident       = IR.Ident ident
 
 -- | Restores a Coq identifier from the interface file.
-instance Aeson.FromJSON G.Qualid where
-  parseJSON = Aeson.withText "G.Qualid" $ return . G.bare . Text.unpack
+instance Aeson.FromJSON Coq.Qualid where
+  parseJSON = Aeson.withText "Coq.Qualid" $ return . Coq.bare . Text.unpack
 
 -- | Restores a Haskell type from the interface file.
 instance Aeson.FromJSON IR.Type where

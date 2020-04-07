@@ -18,10 +18,10 @@ import           System.FilePath
 
 import           FreeC.Application.Debug
 import           FreeC.Application.Options
-import qualified FreeC.Backend.Coq.Base        as CoqBase
+import qualified FreeC.Backend.Coq.Base        as Coq.Base
 import           FreeC.Backend.Coq.Converter    ( convertModule )
 import           FreeC.Backend.Coq.Pretty
-import qualified FreeC.Backend.Coq.Syntax      as G
+import qualified FreeC.Backend.Coq.Syntax      as Coq
 import           FreeC.Environment
 import           FreeC.Environment.ModuleInterface.Decoder
 import           FreeC.Environment.ModuleInterface.Encoder
@@ -115,7 +115,7 @@ sortInputModules = mapM checkForCycle . groupModules
 -- | Converts the given Haskell module to Coq.
 --
 --   The resulting Coq AST is written to the console or output file.
-convertInputModule :: IR.Module -> Application (IR.ModName, [G.Sentence])
+convertInputModule :: IR.Module -> Application (IR.ModName, [Coq.Sentence])
 convertInputModule haskellAst = do
   let modName = IR.modName haskellAst
       srcSpan = IR.modSrcSpan haskellAst
@@ -167,7 +167,7 @@ transformInputModule haskellAst = ifM (inOpts optTransformPatternMatching)
 
 -- | Output a Coq module that has been generated from a Haskell module
 --   with the given name.
-outputCoqModule :: IR.ModName -> [G.Sentence] -> Application ()
+outputCoqModule :: IR.ModName -> [Coq.Sentence] -> Application ()
 outputCoqModule modName coqAst = do
   maybeOutputDir <- inOpts optOutputDir
   case maybeOutputDir of
@@ -301,6 +301,6 @@ createCoqProject = whenM coqProjectEnabled
     absOutputDir   <- liftIO $ makeAbsolute outputDir
     let relBaseDir = makeRelative absOutputDir absBaseDir
     return $ unlines
-      [ "-R " ++ relBaseDir ++ " " ++ showPretty CoqBase.baseLibName
-      , "-R . " ++ showPretty CoqBase.generatedLibName
+      [ "-R " ++ relBaseDir ++ " " ++ showPretty Coq.Base.baseLibName
+      , "-R . " ++ showPretty Coq.Base.generatedLibName
       ]

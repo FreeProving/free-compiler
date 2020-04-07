@@ -32,12 +32,12 @@ import           Data.Maybe                     ( catMaybes
 import qualified Data.Set                      as Set
 
 import           FreeC.Backend.Coq.Analysis.ConstantArguments
-import qualified FreeC.Backend.Coq.Base        as CoqBase
+import qualified FreeC.Backend.Coq.Base        as Coq.Base
 import           FreeC.Backend.Coq.Converter.Free
 import           FreeC.Backend.Coq.Converter.FuncDecl.Common
 import           FreeC.Backend.Coq.Converter.FuncDecl.Rec.WithHelpers
 import           FreeC.Backend.Coq.Converter.Type
-import qualified FreeC.Backend.Coq.Syntax      as G
+import qualified FreeC.Backend.Coq.Syntax      as Coq
 import           FreeC.Environment
 import           FreeC.Environment.Entry
 import           FreeC.Environment.Fresh
@@ -58,7 +58,7 @@ import           FreeC.Pretty
 -- | Converts recursive function declarations and adds a @Section@ sentence
 --   for the given constant arguments.
 convertRecFuncDeclsWithSection
-  :: [ConstArg] -> [IR.FuncDecl] -> Converter [G.Sentence]
+  :: [ConstArg] -> [IR.FuncDecl] -> Converter [Coq.Sentence]
 convertRecFuncDeclsWithSection constArgs decls = do
   -- Rename the function declarations in the section.
   (renamedDecls, nameMap) <- renameFuncDecls decls
@@ -127,17 +127,19 @@ convertRecFuncDeclsWithSection constArgs decls = do
     sectionIdent <- freshCoqIdent (intercalate "_" ("section" : funcIdents))
     (helperDecls', mainDecls') <- convertRecFuncDeclsWithHelpers' sectionDecls'
     return
-      (G.SectionSentence
-        (G.Section
-          (G.ident sectionIdent)
-          (G.comment ("Constant arguments for " ++ intercalate ", " funcIdents)
+      (Coq.SectionSentence
+        (Coq.Section
+          (Coq.ident sectionIdent)
+          (  Coq.comment
+              ("Constant arguments for " ++ intercalate ", " funcIdents)
           :  genericArgVariables
           ++ maybeToList maybeTypeArgSentence
           ++ varSentences
-          ++ G.comment
+          ++ Coq.comment
                ("Helper functions for " ++ intercalate ", " funcIdents)
           :  helperDecls'
-          ++ G.comment ("Main functions for " ++ intercalate ", " funcIdents)
+          ++ Coq.comment
+               ("Main functions for " ++ intercalate ", " funcIdents)
           :  mainDecls'
           )
         )
@@ -297,22 +299,22 @@ isConstArgUsedBy constArg funcDecl =
 -- | Generates the @Variable@ sentence for the type variables in the given
 --   types of the constant arguments.
 generateConstTypeArgSentence
-  :: [IR.TypeVarIdent] -> Converter (Maybe G.Sentence)
+  :: [IR.TypeVarIdent] -> Converter (Maybe Coq.Sentence)
 generateConstTypeArgSentence typeVarIdents
   | null typeVarIdents = return Nothing
   | otherwise = do
     let srcSpans = repeat NoSrcSpan
     typeVarIdents' <- zipWithM renameAndDefineTypeVar srcSpans typeVarIdents
-    return (Just (G.variable typeVarIdents' G.sortType))
+    return (Just (Coq.variable typeVarIdents' Coq.sortType))
 
 -- | Generates a @Variable@ sentence for a constant argument with the
 --   given type.
-generateConstArgVariable :: ConstArg -> IR.Type -> Converter G.Sentence
+generateConstArgVariable :: ConstArg -> IR.Type -> Converter Coq.Sentence
 generateConstArgVariable constArg constArgType = do
   let ident = constArgFreshIdent constArg
   constArgType' <- convertType constArgType
   ident'        <- renameAndDefineVar NoSrcSpan False ident (Just constArgType)
-  return (G.variable [ident'] constArgType')
+  return (Coq.variable [ident'] constArgType')
 
 -------------------------------------------------------------------------------
 -- Removing constant arguments                                               --
@@ -607,7 +609,7 @@ generateInterfaceDecl
      -- ^ The names of the renamed function's type variables.
   -> IR.FuncDecl
      -- ^ The original function declaration.
-  -> Converter G.Sentence
+  -> Converter Coq.Sentence
 generateInterfaceDecl constArgs isConstArgUsed nameMap mgu sectionTypeArgs renamedTypeArgs funcDecl
   = localEnv $ do
     let
@@ -645,7 +647,7 @@ generateInterfaceDecl constArgs isConstArgUsed nameMap mgu sectionTypeArgs renam
     -- If the function is partial, the @Partial@ instance needs to be passed
     -- to the main function.
     partialArg <- ifM (inEnv $ isPartial name)
-                      (return [fst CoqBase.partialArg])
+                      (return [fst Coq.Base.partialArg])
                       (return [])
 
     -- Lookup the names of all other arguments to pass to the main function.
@@ -658,8 +660,8 @@ generateInterfaceDecl constArgs isConstArgUsed nameMap mgu sectionTypeArgs renam
     --      function as well (using explicit type arguments)?
     let argNames' =
           typeArgNames' ++ constArgNames' ++ partialArg ++ nonConstArgNames'
-        rhs' = genericApply qualid' [] [] (map G.Qualid argNames')
-    return (G.definitionSentence qualid binders returnType' rhs')
+        rhs' = genericApply qualid' [] [] (map Coq.Qualid argNames')
+    return (Coq.definitionSentence qualid binders returnType' rhs')
  where
   -- | Looks up the name of the function's type argument that corresponds to
   --   the given type argument of the @Section@.

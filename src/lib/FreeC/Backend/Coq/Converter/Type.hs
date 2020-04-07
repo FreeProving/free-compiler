@@ -2,9 +2,9 @@
 
 module FreeC.Backend.Coq.Converter.Type where
 
-import qualified FreeC.Backend.Coq.Base        as CoqBase
+import qualified FreeC.Backend.Coq.Base        as Coq.Base
 import           FreeC.Backend.Coq.Converter.Free
-import qualified FreeC.Backend.Coq.Syntax      as G
+import qualified FreeC.Backend.Coq.Syntax      as Coq
 import           FreeC.Environment.LookupOrFail
 import           FreeC.Environment.Scope
 import qualified FreeC.IR.Syntax               as IR
@@ -16,10 +16,10 @@ import           FreeC.Monad.Converter
 --     A type \(\tau\) is converted by lifting it into the @Free@ monad and
 --     recursivly converting the argument and return types of functions
 --     using 'convertType''.
-convertType :: IR.Type -> Converter G.Term
+convertType :: IR.Type -> Converter Coq.Term
 convertType t = do
   t' <- convertType' t
-  return (genericApply CoqBase.free [] [] [t'])
+  return (genericApply Coq.Base.free [] [] [t'])
 
 -- | Converts a Haskell type to Coq.
 --
@@ -42,18 +42,18 @@ convertType t = do
 --   [\((\tau_1 \rightarrow \tau_2)^* = \tau_1^\dagger \rightarrow \tau_2^\dagger\)]
 --     Type constructor applications are translated recursively but
 --     remain unchanged otherwise.
-convertType' :: IR.Type -> Converter G.Term
+convertType' :: IR.Type -> Converter Coq.Term
 convertType' (IR.TypeVar srcSpan ident) = do
   qualid <- lookupIdentOrFail srcSpan TypeScope (IR.UnQual (IR.Ident ident))
-  return (G.Qualid qualid)
+  return (Coq.Qualid qualid)
 convertType' (IR.TypeCon srcSpan name) = do
   qualid <- lookupIdentOrFail srcSpan TypeScope name
   return (genericApply qualid [] [] [])
 convertType' (IR.TypeApp _ t1 t2) = do
   t1' <- convertType' t1
   t2' <- convertType' t2
-  return (G.app t1' [t2'])
+  return (Coq.app t1' [t2'])
 convertType' (IR.FuncType _ t1 t2) = do
   t1' <- convertType t1
   t2' <- convertType t2
-  return (G.Arrow t1' t2')
+  return (Coq.Arrow t1' t2')
