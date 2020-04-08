@@ -16,9 +16,10 @@
 - ignore: {name: "Redundant $"}
 - ignore: {name: "Redundant do"}
 
-# We don't use the `LambdaCase` language extension as it does not work with
-# out code formatter at the moment.
+# We don't use the `LambdaCase` and `TupleSections` language extensions as they
+# do not work with our code formatter at the moment.
 - ignore: {name: "Use lambda-case"}
+- ignore: {name: "Use tuple-section"}
 
 # Aliases for qualified imports.
 - modules:
