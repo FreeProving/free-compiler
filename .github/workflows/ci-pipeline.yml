@@ -310,7 +310,10 @@ jobs:
   build-base-library:
     name: Build Coq base library
     runs-on: ubuntu-latest
-    container: coqorg/coq:8.11.0
+    container: coqorg/coq:${{ matrix.coq }}
+    strategy:
+      matrix:
+        coq: ["8.8.2", "8.11.0"]
     steps:
     - name: Checkout
       uses: actions/checkout@v1
@@ -324,10 +327,10 @@ jobs:
       run: |
         mkdir -p ./build/base
         cp --parents $(find base -name "*.vo" -or -name "*.glob") ./build
-    - name: Upload compiled base library
+    - name: Upload compiled base library for Coq ${{ matrix.coq }}
       uses: actions/upload-artifact@v1
       with:
-        name: coq-base-library
+        name: coq-${{ matrix.coq }}-base-library
         path: ./build/base
 
   #############################################################################
@@ -336,7 +339,7 @@ jobs:
 
   test-examples:
     name: Test examples
-    needs: [build-compiler, build-base-library]
+    needs: [build-compiler]
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
@@ -346,11 +349,6 @@ jobs:
       with:
         name: compiler
         path: ./
-    - name: Download base library
-      uses: actions/download-artifact@v1
-      with:
-        name: coq-base-library
-        path: ./base
     - name: Mark compiler as executable
       run: chmod +x freec
     - name: Compile examples
@@ -376,14 +374,17 @@ jobs:
     name: Test generated Coq code
     needs: [test-examples]
     runs-on: ubuntu-latest
-    container: coqorg/coq:8.11.0
+    container: coqorg/coq:${{ matrix.coq }}
+    strategy:
+      matrix:
+        coq: ["8.8.2", "8.11.0"]
     steps:
     - name: Checkout
       uses: actions/checkout@v1
-    - name: Download base library
+    - name: Download base library for Coq ${{ matrix.coq }}
       uses: actions/download-artifact@v1
       with:
-        name: coq-base-library
+        name: coq-${{ matrix.coq }}-base-library
         path: ./base
     - name: Download compiled examples
       uses: actions/download-artifact@v1
