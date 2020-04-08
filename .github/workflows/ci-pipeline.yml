@@ -1,9 +1,10 @@
 name: CI Pipeline
 
-# The CI pipeline runs on every push that modifies Cabal configuration, source
-# or example files. If just the README or documentation changes, the pipeline
-# does not have to run. It also runs when the Workflow configuration changed
-# itself.
+# The CI pipeline runs under the following criteria.
+#   - On every push that modifies Cabal configuration, source or example files.
+#     If just the README or documentation changes, the pipeline does not have
+#     to run. It also runs when the Workflow configuration changed itself.
+#   - On every pull request regardless of which files have been changed.
 on:
   push:
     paths:
@@ -13,6 +14,7 @@ on:
     - 'example/**'
     - 'src/**'
     - '.github/workflows/ci-pipeline.yml'
+  pull_request: {}
 
 jobs:
   #############################################################################
@@ -39,9 +41,16 @@ jobs:
   #     cache keys, the rebuild would be triggered on every push until the
   #     Cabal files are changed. By including the indexes hash, the rebuilt
   #     dependencies are cached until the next change of the package list.
+  #
+  # We install dependencies on all supported platforms separately. The
+  # operating system is part of the cache key. Caches are never restored
+  # from other platforms.
   install-dependencies:
     name: Install dependencies
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: ["ubuntu-latest"] # "macos-latest", "windows-latest"
     steps:
     - name: Checkout
       uses: actions/checkout@v1
@@ -60,26 +69,26 @@ jobs:
       uses: actions/cache@v1
       with:
         path: ~/.cabal/packages
-        key: cabal-packages-${{ steps.cabal-update.outputs.cabal-hash }}-${{ steps.cabal-update.outputs.cabal-index-hash }}
+        key: ${{ matrix.os }}-cabal-packages-${{ steps.cabal-update.outputs.cabal-hash }}-${{ steps.cabal-update.outputs.cabal-index-hash }}
         restore-keys: |
-          cabal-packages-${{ steps.cabal-update.outputs.cabal-hash }}-
-          cabal-packages-
+          ${{ matrix.os }}-cabal-packages-${{ steps.cabal-update.outputs.cabal-hash }}-
+          ${{ matrix.os }}-cabal-packages-
     - name: Cache ~/.cabal/store
       uses: actions/cache@v1
       with:
         path: ~/.cabal/store
-        key: cabal-store-${{ steps.cabal-update.outputs.cabal-hash }}-${{ steps.cabal-update.outputs.cabal-index-hash }}
+        key: ${{ matrix.os }}-cabal-store-${{ steps.cabal-update.outputs.cabal-hash }}-${{ steps.cabal-update.outputs.cabal-index-hash }}
         restore-keys: |
-          cabal-store-${{ steps.cabal-update.outputs.cabal-hash }}-
-          cabal-store-
+          ${{ matrix.os }}-cabal-store-${{ steps.cabal-update.outputs.cabal-hash }}-
+          ${{ matrix.os }}-cabal-store-
     - name: Cache dist-newstyle
       uses: actions/cache@v1
       with:
         path: dist-newstyle
-        key: dist-newstyle-${{ steps.cabal-update.outputs.cabal-hash }}-${{ steps.cabal-update.outputs.cabal-index-hash }}
+        key: ${{ matrix.os }}-dist-newstyle-${{ steps.cabal-update.outputs.cabal-hash }}-${{ steps.cabal-update.outputs.cabal-index-hash }}
         restore-keys: |
-          dist-newstyle-${{ steps.cabal-update.outputs.cabal-hash }}-
-          dist-newstyle-
+          ${{ matrix.os }}-dist-newstyle-${{ steps.cabal-update.outputs.cabal-hash }}-
+          ${{ matrix.os }}-dist-newstyle-
     - name: Install dependencies
       run: |
         cabal new-build freec-unit-tests --only-dependencies
@@ -89,10 +98,14 @@ jobs:
   # Unit tests                                                                #
   #############################################################################
 
+  # Run the unit tests against all supported platforms.
   unit-tests:
     name: Unit tests
     needs: [install-dependencies]
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: ["ubuntu-latest"] # "macos-latest", "windows-latest"
     steps:
     - name: Checkout
       uses: actions/checkout@v1
@@ -111,26 +124,26 @@ jobs:
       uses: actions/cache@v1
       with:
         path: ~/.cabal/packages
-        key: cabal-packages-${{ steps.cabal-update.outputs.cabal-hash }}-${{ steps.cabal-update.outputs.cabal-index-hash }}
+        key: ${{ matrix.os }}-cabal-packages-${{ steps.cabal-update.outputs.cabal-hash }}-${{ steps.cabal-update.outputs.cabal-index-hash }}
         restore-keys: |
-          cabal-packages-${{ steps.cabal-update.outputs.cabal-hash }}-
-          cabal-packages-
+          ${{ matrix.os }}-cabal-packages-${{ steps.cabal-update.outputs.cabal-hash }}-
+          ${{ matrix.os }}-cabal-packages
     - name: Cache ~/.cabal/store
       uses: actions/cache@v1
       with:
         path: ~/.cabal/store
-        key: cabal-store-${{ steps.cabal-update.outputs.cabal-hash }}-${{ steps.cabal-update.outputs.cabal-index-hash }}
+        key: ${{ matrix.os }}-cabal-store-${{ steps.cabal-update.outputs.cabal-hash }}-${{ steps.cabal-update.outputs.cabal-index-hash }}
         restore-keys: |
-          cabal-store-${{ steps.cabal-update.outputs.cabal-hash }}-
-          cabal-store-
+          ${{ matrix.os }}-cabal-store-${{ steps.cabal-update.outputs.cabal-hash }}-
+          ${{ matrix.os }}-cabal-store-
     - name: Cache dist-newstyle
       uses: actions/cache@v1
       with:
         path: dist-newstyle
-        key: dist-newstyle-${{ steps.cabal-update.outputs.cabal-hash }}-${{ steps.cabal-update.outputs.cabal-index-hash }}
+        key: ${{ matrix.os }}-dist-newstyle-${{ steps.cabal-update.outputs.cabal-hash }}-${{ steps.cabal-update.outputs.cabal-index-hash }}
         restore-keys: |
-          dist-newstyle-${{ steps.cabal-update.outputs.cabal-hash }}-
-          dist-newstyle-
+          ${{ matrix.os }}-dist-newstyle-${{ steps.cabal-update.outputs.cabal-hash }}-
+          ${{ matrix.os }}-dist-newstyle-
     - name: Install dependencies
       run: |
         cabal new-build freec-unit-tests --only-dependencies
@@ -144,10 +157,14 @@ jobs:
   # Executable                                                                #
   #############################################################################
 
+  # Builds the compiler executable on all supported platforms.
   build-compiler:
     name: Build compiler
     needs: [install-dependencies]
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: ["ubuntu-latest"] # "macos-latest", "windows-latest"
     steps:
     - name: Checkout
       uses: actions/checkout@v1
@@ -199,17 +216,23 @@ jobs:
     - name: Upload executable
       uses: actions/upload-artifact@v1
       with:
-        name: compiler
+        name: compiler-${{ matrix.os }}
         path: ./build/bin/freec
 
   #############################################################################
   # Documentation                                                             #
   #############################################################################
 
+  # We build the documentation on Ubuntu only. Haddock should generate
+  # the same documentation on all platforms and we need just one version
+  # of the documentation for deployment in `deploy-docs`.
   build-docs:
     name: Build Haddock documentation
     needs: [install-dependencies]
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: ["ubuntu-latest"]
     steps:
     - name: Checkout
       uses: actions/checkout@v1
@@ -228,26 +251,26 @@ jobs:
       uses: actions/cache@v1
       with:
         path: ~/.cabal/packages
-        key: cabal-packages-${{ steps.cabal-update.outputs.cabal-hash }}-${{ steps.cabal-update.outputs.cabal-index-hash }}
+        key: ${{ matrix.os }}-cabal-packages-${{ steps.cabal-update.outputs.cabal-hash }}-${{ steps.cabal-update.outputs.cabal-index-hash }}
         restore-keys: |
-          cabal-packages-${{ steps.cabal-update.outputs.cabal-hash }}-
-          cabal-packages-
+          ${{ matrix.os }}-cabal-packages-${{ steps.cabal-update.outputs.cabal-hash }}-
+          ${{ matrix.os }}-cabal-packages-
     - name: Cache ~/.cabal/store
       uses: actions/cache@v1
       with:
         path: ~/.cabal/store
-        key: cabal-store-${{ steps.cabal-update.outputs.cabal-hash }}-${{ steps.cabal-update.outputs.cabal-index-hash }}
+        key: ${{ matrix.os }}-cabal-store-${{ steps.cabal-update.outputs.cabal-hash }}-${{ steps.cabal-update.outputs.cabal-index-hash }}
         restore-keys: |
-          cabal-store-${{ steps.cabal-update.outputs.cabal-hash }}-
-          cabal-store-
+          ${{ matrix.os }}-cabal-store-${{ steps.cabal-update.outputs.cabal-hash }}-
+          ${{ matrix.os }}-cabal-store-
     - name: Cache dist-newstyle
       uses: actions/cache@v1
       with:
         path: dist-newstyle
-        key: dist-newstyle-${{ steps.cabal-update.outputs.cabal-hash }}-${{ steps.cabal-update.outputs.cabal-index-hash }}
+        key: ${{ matrix.os }}-dist-newstyle-${{ steps.cabal-update.outputs.cabal-hash }}-${{ steps.cabal-update.outputs.cabal-index-hash }}
         restore-keys: |
-          dist-newstyle-${{ steps.cabal-update.outputs.cabal-hash }}-
-          dist-newstyle-
+          ${{ matrix.os }}-dist-newstyle-${{ steps.cabal-update.outputs.cabal-hash }}-
+          ${{ matrix.os }}-dist-newstyle-
     - name: Install dependencies
       run: |
         cabal new-build freec-unit-tests --only-dependencies
@@ -257,7 +280,7 @@ jobs:
     - name: Copy documentation to build directory
       run: |
         mkdir -p ./build/docs
-        cp -r $(find dist-newstyle -path "*doc/html/free-compiler") ./build/docs
+        cp -R $(find dist-newstyle -path "*doc/html/free-compiler") ./build/docs
     - name: Upload documentation
       uses: actions/upload-artifact@v1
       with:
@@ -278,26 +301,39 @@ jobs:
   #  - The **private key** must be added as a repository secret `DEPLOY_KEY` to
   #    the menu under `Settings > Secrets`.
   #
+  # This job will be skipped if the `DEPLOY_KEY` secret is missing.
+  # Therefore, it is not necessary to setup deployment to GitHub pages
+  # when forking the repository.
+  #
   # **NEVER** commit the contents of the private key!
   deploy-docs:
     name: Deploy Haddock documentation to GitHub pages
     needs: [build-docs]
     runs-on: ubuntu-latest
+    env:
+      # We cannot access `secrets` in `jobs.<job_id>.steps.if` directly and
+      # `env` is not allowed on `jobs.<job_id>.if`.
+      HAS_DEPLOY_KEY: ${{ secrets.DEPLOY_KEY != '' }}
     steps:
-    - name: Checkout
+    - if: ${{ env.HAS_DEPLOY_KEY == 1 }}
+      name: Checkout
       uses: actions/checkout@v1
-    - name: Install SSH Client
+    - if:   ${{ env.HAS_DEPLOY_KEY == 1 }}
+      name: Install SSH Client
       uses: webfactory/ssh-agent@v0.2.0
       with:
         ssh-private-key: ${{ secrets.DEPLOY_KEY }}
-    - name: Slug GitHub variables
+    - if:   ${{ env.HAS_DEPLOY_KEY == 1 }}
+      name: Slug GitHub variables
       uses: rlespinasse/github-slug-action@master
-    - name: Download documentation
+    - if:   ${{ env.HAS_DEPLOY_KEY == 1 }}
+      name: Download documentation
       uses: actions/download-artifact@v1
       with:
         name: documentation
         path: ./build/docs
-    - name: Deploy to GitHub pages
+    - if:   ${{ env.HAS_DEPLOY_KEY == 1 }}
+      name: Deploy to GitHub pages
       uses: JamesIves/github-pages-deploy-action@releases/v3
       with:
         SSH: true
@@ -309,6 +345,8 @@ jobs:
   # Base library                                                              #
   #############################################################################
 
+  # Build the base library of the compiler with all supported Coq versions.
+  # We are using Ubuntu and a Debian based Coq docker image in this Job.
   build-base-library:
     name: Build Coq base library
     runs-on: ubuntu-latest
@@ -339,17 +377,22 @@ jobs:
   # Examples                                                                  #
   #############################################################################
 
+  # Uses the compiler build by `build-compiler` to compile example Haskell
+  # programs located in the `./example` directory.
   test-examples:
     name: Test examples
     needs: [build-compiler]
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: ["ubuntu-latest"] # "macos-latest", "windows-latest"
     steps:
     - name: Checkout
       uses: actions/checkout@v1
     - name: Download compiler
       uses: actions/download-artifact@v1
       with:
-        name: compiler
+        name: compiler-${{ matrix.os }}
         path: ./
     - name: Mark compiler as executable
       run: chmod +x freec
@@ -364,17 +407,20 @@ jobs:
     - name: Copy compiled examples to build directory
       run: |
         mkdir -p ./build/examples
-        cp -r ./example/generated ./build/examples
-        cp -r ./example/transformed ./build/examples
+        cp -R ./example/generated ./build/examples
+        cp -R ./example/transformed ./build/examples
     - name: Upload compiled examples
       uses: actions/upload-artifact@v1
       with:
         name: examples
         path: ./build/examples
 
+  # Tests whether Coq accepts the code generated by the compiler for the
+  # examples in `test-examples`.
+  # We are using Ubuntu and a Debian based Coq docker image in this Job.
   test-generated-code:
     name: Test generated Coq code
-    needs: [test-examples]
+    needs: [test-examples, build-base-library]
     runs-on: ubuntu-latest
     container: coqorg/coq:${{ matrix.coq }}
     strategy:
