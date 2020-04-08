@@ -247,6 +247,10 @@ function check_required_software() {
       opam repo add coq-released https://coq.inria.fr/opam/released
       opam update
       opam install coq.8.11.0'
+  check_version "HLint" hlint '2.2.*' '
+      cabal new-install hlint'
+  check_version "Brittany" brittany '0.12.*' '
+      cabal new-install brittany'
   update_status "$green" "$gray" "$check_mark" "Found required software"
 }
 
@@ -417,6 +421,19 @@ step "Testing generated Coq code"               \
      "Generated Coq code does not compile"      \
      "Canceled test of generated Coq code"      \
      "./tool/compile-coq.sh --recompile example"
+
+# Check code style.
+step "Checking code with HLint"          \
+     "HLint had no suggestions"          \
+     "HLint suggested changes"           \
+     "Canceled checking code with HLint" \
+     "hlint src"
+
+step "Checking code style with Brittany"            \
+     "All Haskell files have been formatted"        \
+     "There are Haskell files that need formatting" \
+     "Canceled checking code style with Brittany"   \
+     "./tool/check-formatting.sh"
 
 # Test whether the user canceled any of the steps above using CTRL + C.
 if [ "$canceled_any" == "0" ]; then

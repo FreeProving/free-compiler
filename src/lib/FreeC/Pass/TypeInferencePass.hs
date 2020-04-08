@@ -11,55 +11,43 @@
 --
 --   The type of a function declaration that does not have a type signature
 --
---   @
---   double x = x + x
---   @
+--   > double x = x + x
 --
 --   can be inferred from the types of the functions it is using on it's
 --   right-hand side. Instead of just inferring the type of the declared
 --   function, the types of all argument patterns and the return type of
 --   the function are annotated by this pass.
 --
---   @
---   double (x :: Integer) = x + x :: Integer
---   @
+--   > double (x :: Integer) = x + x :: Integer
 --
 --   == Example 2: Polymorphic functions
 --
 --   When a function is polymorphic
 --
---   @
---   null xs = case xs of {
---       []      -> False;
---       x : xs' -> True
---     }
---   @
+--   > null xs = case xs of {
+--   >     []      -> False;
+--   >     x : xs' -> True
+--   >   }
 --
 --   its type variables will be specified explicitly on the left-hand
 --   side of the function declaration. Their order depends on the order
 --   in which they appear in the inferred type of the function. Type
 --   arguments are listed from left to right.
 --
---   @
---   null @t0 (xs :: [t0]) = (case xs of {
---       []                        -> False;
---       (x :: t0) : (xs' :: [t0]) -> True
---     }) :: Bool
---   @
+--   > null @t0 (xs :: [t0]) = (case xs of {
+--   >     []                        -> False;
+--   >     (x :: t0) : (xs' :: [t0]) -> True
+--   >   }) :: Bool
 --
 --   When such a polymorphic function is called
 --
---   @
---   null [1, 2, 3]
---   @
+--   > null [1, 2, 3]
 --
 --   the type inference pass figures out the types the type arguments of
 --   a function need to be instantiated with and inserts corresponding
 --   visible type applications.
 --
---   @
---   null @Integer [1, 2, 3]
---   @
+--   > null @Integer [1, 2, 3]
 --
 --   == Example 3: Vanishing type arguments
 --
@@ -68,42 +56,32 @@
 --   the functions type (also called "vanishing type arguments"). The function
 --   below has type @Bool@ for example, but the list it is using is polymorphic.
 --
---   @
---   myTrue = null []
---   @
+--   > myTrue = null []
 --
 --   Thus, the list contains elements of some type @t0@ which needs to be
 --   added as a type argument to the list constructor @[]@ and @null@.
 --
---   @
---   myTrue @t0 = null @t0 ([] @t0) :: Bool
---   @
+--   > myTrue @t0 = null @t0 ([] @t0) :: Bool
 --
 --   While Haskell would tolerate the definition of @myTrue@ without type
 --   arguments, Coq does not accept an equivalent definition.
 --
---   @
---   Definition null {a : Type} (xs : list a) : bool
---     := match xs with
---        | nil      => true
---        | cons _ _ => false
---        end.
+--   > Definition null {a : Type} (xs : list a) : bool
+--   >   := match xs with
+--   >      | nil      => true
+--   >      | cons _ _ => false
+--   >      end.
+--   >
+--   > Fail Definition myTrue := null nil.
 --
---   Fail Definition myTrue := null nil.
---   @
---
---   @
---   The command has indeed failed with message:
---   Cannot infer the implicit parameter a of null whose type is "Type".
---   @
+--   > The command has indeed failed with message:
+--   > Cannot infer the implicit parameter a of null whose type is "Type".
 --
 --   In order to fix this error, we have to do exactly what we did above, i.e.,
 --   introduce a new type argument for @myTrue@ and pass that type argument
 --   to either @null@, @nil@ or both.
 --
---   @
---   Definition myTrue (t0 : Type) := @null t0 (@nil t0).
---   @
+--   > Definition myTrue (t0 : Type) := @null t0 (@nil t0).
 --
 --   We choose to pass all type arguments throughout the entire program
 --   explicitly such that we can be sure, that Coq always agrees with the
@@ -115,42 +93,32 @@
 --   example, because it calls a function such as @true@ which introduces
 --   a vanishing type argument),
 --
---   @
---   length xs = case xs of {
---       []      -> if true then 0 else 1
---       x : xs' -> 1 + length xs
---     }
---   @
+--   > length xs = case xs of {
+--   >     []      -> if true then 0 else 1
+--   >     x : xs' -> 1 + length xs
+--   >   }
 --
 --   the vanishing type arguments are passed unchanged to recursive calls
 --   while regular type arguments (e.g., @t0@ below) could change in case
 --   of polymorphic recursion.
 --
---   @
---   length @t0 @t1 (xs :: [t0]) = case xs of {
---       []                        -> if true @t1 then 0 else 1
---       (x :: t0) : (xs' :: [t0]) -> 1 + length @t0 @t1 xs
---     }
---   @
+--   > length @t0 @t1 (xs :: [t0]) = case xs of {
+--   >     []                        -> if true @t1 then 0 else 1
+--   >     (x :: t0) : (xs' :: [t0]) -> 1 + length @t0 @t1 xs
+--   >   }
 --
 --   If there are multiple sub-expressions that introduce vanishing type
 --   arguments,
 --
---   @
---   if true && true then 0 else 1
---   @
+--   > if true && true then 0 else 1
 --
 --   the type arguments they introduce are distinct.
 --
---   @
---   if true @t1 && true @t2 then 0 else 1
---   @
+--   > if true @t1 && true @t2 then 0 else 1
 --
 --   Thus, @length@ would have two additional type arguments in this case.
 --
---   @
---   length @t0 @t1 @t2 (xs :: [t0]) = {- ... -}
---   @
+--   > length @t0 @t1 @t2 (xs :: [t0]) = {- ... -}
 --
 --   Note that vanishing type arguments are always listed after regular
 --   type arguments and sorted by the order they occur on the right-hand
@@ -185,12 +153,10 @@
 --   The type inference algorithm implemented by the pass is based on the
 --   algorithm by Damas and Milner (1982).
 --
---   @
---   [Damas & Milner, 1982]:
---     L. Damas and R. Milner. Principal type-schemes for functional programs.
---     In Proc. 9th Annual Symposium on Principles of Programming Languages,
---     pp. 207–212, 1982.
---   @
+--   > [Damas & Milner, 1982]:
+--   >   L. Damas and R. Milner. Principal type-schemes for functional programs.
+--   >   In Proc. 9th Annual Symposium on Principles of Programming Languages,
+--   >   pp. 207–212, 1982.
 --
 --   We are extending this algorithm to apply type arguments visibly and
 --   make vanishing type arguments explicit.

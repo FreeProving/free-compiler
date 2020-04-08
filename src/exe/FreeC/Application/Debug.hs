@@ -1,3 +1,6 @@
+-- | This module contains utility functions for debugging the compiler's
+--   command line interface.
+
 module FreeC.Application.Debug where
 
 import           Control.Monad.IO.Class

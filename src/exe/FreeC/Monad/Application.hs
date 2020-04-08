@@ -1,5 +1,8 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
+-- | This module contains the state monad used by the compiler's command
+--   line interface to pass command line options around implicitly.
+
 module FreeC.Monad.Application
   ( -- * State monad
     Application

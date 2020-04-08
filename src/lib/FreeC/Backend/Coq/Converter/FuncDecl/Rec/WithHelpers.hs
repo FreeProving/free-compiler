@@ -114,7 +114,7 @@ transformRecFuncDecl (IR.FuncDecl srcSpan declIdent typeArgs args maybeRetType e
 
   -- | The positions of @case@-expressions for the decreasing argument.
   caseExprsPos :: [Pos]
-  caseExprsPos = [ p | p <- ps, all (not . below p) (delete p ps) ]
+  caseExprsPos = [ p | p <- ps, not (any (below p) (delete p ps)) ]
    where
     ps :: [Pos]
     ps = filter decArgNotShadowed (findSubtermPos isCaseExpr expr)

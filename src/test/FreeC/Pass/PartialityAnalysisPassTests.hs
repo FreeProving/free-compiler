@@ -22,10 +22,9 @@ import           FreeC.Pretty
 -- Expectation setters                                                       --
 -------------------------------------------------------------------------------
 
--- | Parses the function declarations in the given dependency component, runs
---   the 'defineFuncDeclsPass' and 'partialityAnalysisPass' after each other
---   and sets the expectation that there is an environment entry for each
---   function that marks it as partial.
+-- | Parses the function declarations in the given dependency component,
+--   runs the 'partialityAnalysisPass'and sets the expectation that there
+--   is an environment entry for each function that marks it as partial.
 shouldBePartial :: DependencyComponent String -> Converter Expectation
 shouldBePartial = shouldBePartialWith $ \funcName partial -> if partial
   then return ()

@@ -1,3 +1,5 @@
+-- | This module contains tests for "FreeC.Backend.Coq.Converter.Expr".
+
 module FreeC.Backend.Coq.Converter.ExprTests
   ( testConvertExpr
   )

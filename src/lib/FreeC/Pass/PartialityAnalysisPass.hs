@@ -7,12 +7,10 @@
 --   'entryIsPartial' flag is set to @False@ for the following function
 --   declaration.
 --
---   @
---   head :: [a] -> a
---   head xs = case xs of
---     []      -> undefined
---     x : xs' -> x
---   @
+--   > head :: [a] -> a
+--   > head xs = case xs of
+--   >   []      -> undefined
+--   >   x : xs' -> x
 --
 --   This pass recognizes that the right-hand side of the function declaration
 --   for @head@ refers to the built-in function @undefined@. Since @undefined@

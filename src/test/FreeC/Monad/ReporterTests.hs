@@ -1,3 +1,5 @@
+-- | This module contains tests for the 'Reporter' monad.
+
 module FreeC.Monad.ReporterTests
   ( testReporter
   )

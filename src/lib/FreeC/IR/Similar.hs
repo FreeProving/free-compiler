@@ -129,11 +129,9 @@ notSimilar = not .: similar
 -- | Two optional nodes are similar when they are either both not present
 --   or both are present and similar.
 --
---   @
---                                  Γ ⊢ x ≈ y
---   ———————————————————————  —————————————————————
---    Γ ⊢ Nothing ≈ Nothing    Γ ⊢ Just x ≈ Just y
---   @
+--   >                                Γ ⊢ x ≈ y
+--   > ———————————————————————  —————————————————————
+--   >  Γ ⊢ Nothing ≈ Nothing    Γ ⊢ Just x ≈ Just y
 instance Similar node => Similar (Maybe node) where
   similar' Nothing  Nothing  = const True
   similar' (Just n) (Just m) = similar' n m
@@ -143,11 +141,9 @@ instance Similar node => Similar (Maybe node) where
 --   and each element has a corresponding element (i.e., the lists are of the
 --   same length).
 --
---   @
---     Γ ⊢ x₁ ≈ y₁, …, Γ ⊢ xₙ ≈ yₙ
---   ———————————————————————————————
---    Γ ⊢ [x₁, …, xₙ] ≈ [y₁, …, yₙ]
---   @
+--   >   Γ ⊢ x₁ ≈ y₁, …, Γ ⊢ xₙ ≈ yₙ
+--   > ———————————————————————————————
+--   >  Γ ⊢ [x₁, …, xₙ] ≈ [y₁, …, yₙ]
 instance Similar node => Similar [node] where
   similar' ms ns | length ms == length ns = andM (zipWith similar' ms ns)
                  | otherwise              = const False
@@ -161,45 +157,35 @@ instance Similar node => Similar [node] where
 --
 --   * Type constructors are only similar to themselves.
 --
---       @
---       ———————————
---        Γ ⊢ T ≈ T
---       @
+--       > ———————————
+--       >  Γ ⊢ T ≈ T
 --
 --   * A free type variable @α@ is similar to itself.
 --
---        @
---         α ∈ free(Γ)
---        —————————————
---         Γ ⊢ α ≈ α
---        @
+--        >  α ∈ free(Γ)
+--        > —————————————
+--        >  Γ ⊢ α ≈ α
 --
 --   * Two type variables @α@ and @β@ are similar under a renaming @Γ@ if they
 --     are mapped to each other by @Γ@.
 --
---        @
---         α ↦ β ∈ Γ
---        ———————————
---         Γ ⊢ α ≈ β
---        @
+--        >  α ↦ β ∈ Γ
+--        > ———————————
+--        >  Γ ⊢ α ≈ β
 --
 --   * Two type applications are similar if the type constructor and type
 --     argument are similar.
 --
---        @
---         Γ ⊢ τ₁ ≈ τ'₁ , Γ ⊢ τ₂ ≈ τ'₂
---        —————————————————————————————
---             Γ ⊢ τ₁ τ₂ ≈ τ'₁ τ'₂
---        @
+--        >  Γ ⊢ τ₁ ≈ τ'₁ , Γ ⊢ τ₂ ≈ τ'₂
+--        > —————————————————————————————
+--        >      Γ ⊢ τ₁ τ₂ ≈ τ'₁ τ'₂
 --
 --   * Two function types are similar if their argument and return types
 --     are similar.
 --
---        @
---         Γ ⊢ τ₁ ≈ τ'₁ , Γ ⊢ τ₂ ≈ τ'₂
---        —————————————————————————————
---          Γ ⊢ τ₁ -> τ₂ ≈ τ'₁ -> τ'₂
---        @
+--        >  Γ ⊢ τ₁ ≈ τ'₁ , Γ ⊢ τ₂ ≈ τ'₂
+--        > —————————————————————————————
+--        >   Γ ⊢ τ₁ -> τ₂ ≈ τ'₁ -> τ'₂
 instance Similar IR.Type where
   similar' (IR.TypeCon _ c1) (IR.TypeCon _ c2) = const (c1 == c2)
   similar' (IR.TypeVar _ v1) (IR.TypeVar _ v2) =
@@ -219,11 +205,9 @@ instance Similar IR.Type where
 --   under an extend 'Renaming' that maps the corresponding type arguments
 --   to each other.
 --
---   @
---       Γ ∪ { α₁ ↦ β₁, …, αₙ ↦ βₙ } ⊢ τ ≈ τ'
---   ————————————————————————————————————————————
---    Γ ⊢ forall α₁ … αₙ. τ ≈ forall β₁ … βₙ. τ'
---   @
+--   >     Γ ∪ { α₁ ↦ β₁, …, αₙ ↦ βₙ } ⊢ τ ≈ τ'
+--   > ————————————————————————————————————————————
+--   >  Γ ⊢ forall α₁ … αₙ. τ ≈ forall β₁ … βₙ. τ'
 instance Similar IR.TypeSchema where
   similar' (IR.TypeSchema _ as t1) (IR.TypeSchema _ bs t2) =
     let ns = map IR.typeVarDeclQName as
@@ -240,28 +224,22 @@ instance Similar IR.TypeSchema where
 --    * Expressions with type annotations are similar if the annotated
 --      expressions are similar and their annotations are similar.
 --
---        @
---         Γ ⊢ τ ≈ τ', Γ ⊢ e ≈ f
---        ———————————————————————
---         Γ ⊢ e :: τ ≈ f :: τ'
---        @
+--        >  Γ ⊢ τ ≈ τ', Γ ⊢ e ≈ f
+--        > ———————————————————————
+--        >  Γ ⊢ e :: τ ≈ f :: τ'
 --
 --    * For all variables @x@ and @y@, @x@ and @y@ are similar under a
 --      renaming @Γ@ if they are mapped to each other by @Γ@.
 --
---        @
---         x ↦ y ∈ Γ
---        ———————————
---         Γ ⊢ x ≈ y
---        @
+--        >  x ↦ y ∈ Γ
+--        > ———————————
+--        >  Γ ⊢ x ≈ y
 --
 --    * A free variable @x@ is similar to itself.
 --
---        @
---         x ∈ free(Γ)
---        —————————————
---         Γ ⊢ x ≈ x
---        @
+--        >  x ∈ free(Γ)
+--        > —————————————
+--        >  Γ ⊢ x ≈ x
 --
 --    * Two lambda abstractions are similar if their right-hand sides are
 --      similar under an extended 'Renaming' that maps the variable patterns
@@ -269,11 +247,9 @@ instance Similar IR.TypeSchema where
 --      Furthermore, the types the lambda abstraction's arguments have been
 --      annotated with must be similar (if there are any).
 --
---        @
---         Γ ∪ { x₁ ↦ y₁, …, xₙ ↦ yₙ } ⊢ e ≈ f, Γ ⊢ p₁ ≈ q₁, …, Γ ⊢ pₙ ≈ qₙ
---        ——————————————————————————————————————————————————————————————————
---                        Γ ⊢ \\p₁ … pₙ -> e ≈ \\q₁ … qₙ -> f
---        @
+--        >  Γ ∪ { x₁ ↦ y₁, …, xₙ ↦ yₙ } ⊢ e ≈ f, Γ ⊢ p₁ ≈ q₁, …, Γ ⊢ pₙ ≈ qₙ
+--        > ——————————————————————————————————————————————————————————————————
+--        >                 Γ ⊢ \\p₁ … pₙ -> e ≈ \\q₁ … qₙ -> f
 --
 --        where @xᵢ@ and @yᵢ@ denote the names of the variables bound by the
 --        patterns @pᵢ@ and @qᵢ@ respectively.
@@ -281,49 +257,39 @@ instance Similar IR.TypeSchema where
 --    * Two application expressions are similar if the callees and the
 --      arguments are similar.
 --
---        @
---         Γ ⊢ e₁ ≈ f₁, Γ ⊢ e₂ ≈ f₂
---        ——————————————————————————
---            Γ ⊢ e₁ e₂ ≈ f₁ f₂
---        @
+--        >  Γ ⊢ e₁ ≈ f₁, Γ ⊢ e₂ ≈ f₂
+--        > ——————————————————————————
+--        >     Γ ⊢ e₁ e₂ ≈ f₁ f₂
 --
 --    * Two visible type application expressions are similar if the visibly
 --      applied expressions and the type arguments are similar.
 --
---        @
---         Γ ⊢ e ≈ f, Γ ⊢ τ ≈ τ'
---        ———————————————————————
---            Γ ⊢ e @τ ≈ f @τ'
---        @
+--        >  Γ ⊢ e ≈ f, Γ ⊢ τ ≈ τ'
+--        > ———————————————————————
+--        >     Γ ⊢ e @τ ≈ f @τ'
 --
 --    * Two @case@ expressions are similar if the expressions they match are
 --      similar and their alternatives are pairwise similar. Note that the
 --      order of the alternatives is important.
 --
---        @
---         Γ ⊢ e ≈ f,      Γ ⊢ alt₁ ≈ alt'₁,      …,      Γ ⊢ altₙ ≈ alt'ₙ
---        —————————————————————————————————————————————————————————————————
---         Γ ⊢ case e of { alt₁; …; altₙ } ≈ case f of { alt'₁; …; alt'ₙ }
---        @
+--        >  Γ ⊢ e ≈ f,      Γ ⊢ alt₁ ≈ alt'₁,      …,      Γ ⊢ altₙ ≈ alt'ₙ
+--        > —————————————————————————————————————————————————————————————————
+--        >  Γ ⊢ case e of { alt₁; …; altₙ } ≈ case f of { alt'₁; …; alt'ₙ }
 --
 --    * Two @if@ expressions are similar if their conditions and branches
 --      are similar.
 --
---        @
---         Γ ⊢ e₁ ≈ f₁,       Γ ⊢ e₂ ≈ f₂,       Γ ⊢ e₃ ≈ f₃
---        ———————————————————————————————————————————————————
---         Γ ⊢ if e₁ then e₂ else e₃ ≈ if f₁ then f₂ else f₃
---        @
+--        >  Γ ⊢ e₁ ≈ f₁,       Γ ⊢ e₂ ≈ f₂,       Γ ⊢ e₃ ≈ f₃
+--        > ———————————————————————————————————————————————————
+--        >  Γ ⊢ if e₁ then e₂ else e₃ ≈ if f₁ then f₂ else f₃
 --
 --    * All AST nodes which do not contain any variables are similar to
 --      themselves under every 'Renaming' @Γ@.
 --
---        @
---        ———————————  ———————————————————————————  ———————————————————————————
---         Γ ⊢ C ≈ C    Γ ⊢ undefined ≈ undefined    Γ ⊢ error msg ≈ error msg
---        @
+--        > ———————————  ———————————————————————————  ———————————————————————
+--        >  Γ ⊢ C ≈ C    Γ ⊢ undefined ≈ undefined    Γ ⊢ error s ≈ error s
 --
---        Where @C@ is a constructor or integer literal and @msg@ is an
+--        Where @C@ is a constructor or integer literal and @s@ is an
 --        arbitrary error message.
 instance Similar IR.Expr where
   similar' e1 e2 = similarExpr e1 e2
@@ -376,11 +342,9 @@ similarExpr (IR.IntLiteral _ _ _   ) _                      = const False
 --   Additionally, the type annotations of their variable patterns must be
 --   similar (if there are any).
 --
---   @
---    Γ ∪ { x₁ ↦ y₁, …, xₙ ↦ yₙ } ⊢ e ≈ f, Γ ⊢ p₁ ≈ q₁, …, Γ ⊢ pₙ ≈ qₙ
---   ——————————————————————————————————————————————————————————————————
---               Γ ⊢ C p₁ … pₙ -> e ≈ C q₁ … qₙ -> f
---   @
+--   >  Γ ∪ { x₁ ↦ y₁, …, xₙ ↦ yₙ } ⊢ e ≈ f, Γ ⊢ p₁ ≈ q₁, …, Γ ⊢ pₙ ≈ qₙ
+--   > ——————————————————————————————————————————————————————————————————
+--   >             Γ ⊢ C p₁ … pₙ -> e ≈ C q₁ … qₙ -> f
 --
 --   where @xᵢ@ and @yᵢ@ denote the names of the variables bound by the
 --   patterns @pᵢ@ and @qᵢ@ respectively.
@@ -396,11 +360,9 @@ instance Similar IR.Alt where
 -- | Two variable patterns are similar if they either both don't have a type
 --   annotation or are annotated with similar types.
 --
---   @
---                        Γ ⊢ τ ≈ τ'
---   ———————————  ——————————————————————————
---    Γ ⊢ x ≈ y    Γ ⊢ (x :: τ) ≈ (y :: τ')
---   @
+--   >                      Γ ⊢ τ ≈ τ'
+--   > ———————————  ——————————————————————————
+--   >  Γ ⊢ x ≈ y    Γ ⊢ (x :: τ) ≈ (y :: τ')
 instance Similar IR.VarPat where
   similar' (IR.VarPat _ _ t1) (IR.VarPat _ _ t2) = similar' t1 t2
 
@@ -414,13 +376,11 @@ instance Similar IR.VarPat where
 --   their type annotations must be similar under an extended 'Renaming'
 --   that maps the corresponding type arguments to each other.
 --
---   @
---    Γ ∪ { α₁ ↦ β₁, …, αₘ ↦ βₘ, x₁ ↦ y₁, …, xₙ ↦ yₙ } ⊢ e ≈ f
---    Γ ∪ { α₁ ↦ β₁, …, αₘ ↦ βₘ } ⊢ p₁ ≈ q₁, …,
---    Γ ∪ { α₁ ↦ β₁, …, αₘ ↦ βₘ } ⊢ pₙ ≈ qₙ
---   ——————————————————————————————————————————————————————————
---    Γ ⊢ g @α₁ … @αₘ p₁ … pₙ = e ≈ g @β₁ … @βₘ q₁ … qₙ = f
---   @
+--   >  Γ ∪ { α₁ ↦ β₁, …, αₘ ↦ βₘ, x₁ ↦ y₁, …, xₙ ↦ yₙ } ⊢ e ≈ f
+--   >  Γ ∪ { α₁ ↦ β₁, …, αₘ ↦ βₘ } ⊢ p₁ ≈ q₁, …,
+--   >  Γ ∪ { α₁ ↦ β₁, …, αₘ ↦ βₘ } ⊢ pₙ ≈ qₙ
+--   > ——————————————————————————————————————————————————————————
+--   >  Γ ⊢ g @α₁ … @αₘ p₁ … pₙ = e ≈ g @β₁ … @βₘ q₁ … qₙ = f
 --
 --   where @xᵢ@ and @yᵢ@ denote the names of the variables bound by the
 --   patterns @pᵢ@ and @qᵢ@ respectively.
@@ -428,14 +388,12 @@ instance Similar IR.VarPat where
 --   If the function has an explicit return type annotation, the annotated
 --   return typed must be similar as well.
 --
---   @
---    Γ ∪ { α₁ ↦ β₁, …, αₘ ↦ βₘ, x₁ ↦ y₁, …, xₙ ↦ yₙ } ⊢ e ≈ f
---    Γ ∪ { α₁ ↦ β₁, …, αₘ ↦ βₘ } ⊢ p₁ ≈ q₁, …,
---    Γ ∪ { α₁ ↦ β₁, …, αₘ ↦ βₘ } ⊢ pₙ ≈ qₙ,
---    Γ ∪ { α₁ ↦ β₁, …, αₘ ↦ βₘ } ⊢ τ ≈ τ',
---   ——————————————————————————————————————————————————————————
---    Γ ⊢ g @α₁ … @αₘ p₁ … pₙ :: τ = e ≈ g @β₁ … @βₘ q₁ … qₙ :: τ' = f
---   @
+--   >  Γ ∪ { α₁ ↦ β₁, …, αₘ ↦ βₘ, x₁ ↦ y₁, …, xₙ ↦ yₙ } ⊢ e ≈ f
+--   >  Γ ∪ { α₁ ↦ β₁, …, αₘ ↦ βₘ } ⊢ p₁ ≈ q₁, …,
+--   >  Γ ∪ { α₁ ↦ β₁, …, αₘ ↦ βₘ } ⊢ pₙ ≈ qₙ,
+--   >  Γ ∪ { α₁ ↦ β₁, …, αₘ ↦ βₘ } ⊢ τ ≈ τ',
+--   > ——————————————————————————————————————————————————————————
+--   >  Γ ⊢ g @α₁ … @αₘ p₁ … pₙ :: τ = e ≈ g @β₁ … @βₘ q₁ … qₙ :: τ' = f
 instance Similar IR.FuncDecl where
   similar' (IR.FuncDecl _ g as xs s e) (IR.FuncDecl _ h bs ys t f)
     | IR.declIdentName g == IR.declIdentName h && length as == length bs
@@ -456,23 +414,19 @@ instance Similar IR.FuncDecl where
 --   similar under an extended 'Renaming' that maps the corresponding type
 --   arguments to each other.
 --
---   @
---        Γ ∪ { α₁ ↦ β₁, …, αₙ ↦ βₙ } ⊢ τ ≈ τ'
---   ——————————————————————————————————————————————
---    Γ ⊢ type T α₁ … αₙ = τ ≈ type T β₁ … βₙ = τ'
---   @
+--   >      Γ ∪ { α₁ ↦ β₁, …, αₙ ↦ βₙ } ⊢ τ ≈ τ'
+--   > ——————————————————————————————————————————————
+--   >  Γ ⊢ type T α₁ … αₙ = τ ≈ type T β₁ … βₙ = τ'
 --
 --   Two data type declarations are similar if their constructors are pairwise
 --   similar under an extended 'Renaming' that maps the corresponding type
 --   arguments to each other. Note that the order of the constructors in
 --   important.
 --
---   @
---    Γ ∪ { α₁ ↦ β₁, …, αₙ ↦ βₙ } ⊢ con₁ ≈ con'₁, …,
---    Γ ∪ { α₁ ↦ β₁, …, αₙ ↦ βₙ } ⊢ conₘ ≈ con'ₘ
---   ———————————————————————————————————————————————————————————————————————————
---    Γ ⊢ data D α₁ … αₙ = con₁ | … | conₘ ≈ data D β₁ … βₙ = con'₁ | … | con'ₘ
---   @
+--   >  Γ ∪ { α₁ ↦ β₁, …, αₙ ↦ βₙ } ⊢ con₁ ≈ con'₁, …,
+--   >  Γ ∪ { α₁ ↦ β₁, …, αₙ ↦ βₙ } ⊢ conₘ ≈ con'ₘ
+--   > ———————————————————————————————————————————————————————————————————————————
+--   >  Γ ⊢ data D α₁ … αₙ = con₁ | … | conₘ ≈ data D β₁ … βₙ = con'₁ | … | con'ₘ
 instance Similar IR.TypeDecl where
   similar' (IR.TypeSynDecl _ d1 as t1) (IR.TypeSynDecl _ d2 bs t2)
     | IR.declIdentName d1 == IR.declIdentName d2 && length as == length bs
@@ -496,11 +450,9 @@ instance Similar IR.TypeDecl where
 
 -- | Two constructor declarations are similar if their field types are similar.
 --
---   @
---    Γ ⊢ τ₁ ≈ τ'₁, …, Γ ⊢ τₙ ≈ τ'ₙ
---   ———————————————————————————————
---     Γ ⊢ C τ₁ … τₙ ≈ C τ'₁ … τ'ₙ
---   @
+--   >  Γ ⊢ τ₁ ≈ τ'₁, …, Γ ⊢ τₙ ≈ τ'ₙ
+--   > ———————————————————————————————
+--   >   Γ ⊢ C τ₁ … τₙ ≈ C τ'₁ … τ'ₙ
 instance Similar IR.ConDecl where
   similar' (IR.ConDecl _ c1 ts1) (IR.ConDecl _ c2 ts2)
     | IR.declIdentName c1 == IR.declIdentName c2 = similar' ts1 ts2

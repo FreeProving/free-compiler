@@ -26,16 +26,12 @@
 --
 --   A function @f ∈ F@ declared by
 --
---   @
---   f x₁ … xᵢ … xₙ = e
---   @
+--   > f x₁ … xᵢ … xₙ = e
 --
 --   decreases on its @i@-th argument if for every recursive call to
 --   functions @g ∈ F@ on the right-hand side @e@ of @f@
 --
---   @
----  g e₁ … eⱼ … eₘ
---   @
+---  > g e₁ … eⱼ … eₘ
 --
 --   where @j@ is the decreasing argument guessed for @g@ the expression
 --   @eⱼ@ is recognizes as structurally smaller than @xᵢ@.

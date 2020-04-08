@@ -2,7 +2,7 @@ module Queue.WithPatternMatching.QueueI where
 
 import           Queue.WithPatternMatching.Util
 
-type QueueI a = ([a],[a])
+type QueueI a = ([a], [a])
 
 emptyI :: QueueI a
 emptyI = ([], [])

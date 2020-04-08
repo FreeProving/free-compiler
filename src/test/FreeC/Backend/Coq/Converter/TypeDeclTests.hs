@@ -36,7 +36,7 @@ shouldConvertTypeDeclsTo inputStrs expectedOutputStr = do
 -- Tests for Type Synonym Declarations                                       --
 -------------------------------------------------------------------------------
 
--- | Test group for 'convertTypeDecl' tests.
+-- | Test group for 'convertTypeSynDecl' tests.
 testConvertTypeDecl :: Spec
 testConvertTypeDecl =
   describe "FreeC.Backend.Coq.Converter.TypeDecl.convertTypeSynDecl" $ do

@@ -1,3 +1,5 @@
+-- | This module contains tests for "FreeC.IR.Unification".
+
 module FreeC.IR.UnificationTests where
 
 import           Test.Hspec
@@ -16,7 +18,7 @@ import           FreeC.Test.Environment
 import           FreeC.Test.Parser
 import           FreeC.Test.Arbitrary           ( )
 
--- | Test group for "FreeC.IR.Unification" tests.
+-- | Test group for 'unify' tests.
 testUnification :: Spec
 testUnification = describe "FreeC.IR.Unification.unify" $ do
   context "type variables" $ do

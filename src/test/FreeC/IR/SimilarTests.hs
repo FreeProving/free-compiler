@@ -10,7 +10,7 @@ import           Test.Hspec
 import           FreeC.Test.Expectations
 import           FreeC.Test.Parser
 
--- | Test group for 'similar' tests.
+-- | Test group for 'FreeC.IR.Similar.similar' tests.
 testSimilar :: Spec
 testSimilar = describe "FreeC.IR.Similar" $ do
   testSimilarTypes
@@ -18,7 +18,8 @@ testSimilar = describe "FreeC.IR.Similar" $ do
   testSimilarFuncDecls
   testSimilarTypeDecls
 
--- | Test group for 'Similar' instance of type schemas and type expressions.
+-- | Test group for 'FreeC.IR.Similar.Similar' instance of type schemas and
+--   type expressions.
 testSimilarTypes :: Spec
 testSimilarTypes = context "types" $ do
   it "type constructors are similar to themselves" $ do
@@ -85,7 +86,7 @@ testSimilarTypes = context "types" $ do
     g <- expectParseTestTypeSchema "forall a. Bar -> a"
     f `shouldNotBeSimilarTo` g
 
--- | Test group for 'Similar' instance of expressions.
+-- | Test group for 'FreeC.IR.Similar.Similar' instance of expressions.
 testSimilarExprs :: Spec
 testSimilarExprs = context "expressions" $ do
   it "constructors are similar to themselves" $ do
@@ -239,7 +240,8 @@ testSimilarExprs = context "expressions" $ do
         e2 <- expectParseTestExpr "case xy of { (,) (x :: Bar) y -> x }"
         e1 `shouldNotBeSimilarTo` e2
 
--- | Test group for 'Similar' instance of function declarations.
+-- | Test group for 'FreeC.IR.Similar.Similar' instance of function
+--   declarations.
 testSimilarFuncDecls :: Spec
 testSimilarFuncDecls = context "function declarations" $ do
   it "nullary functions are similar" $ do
@@ -291,7 +293,8 @@ testSimilarFuncDecls = context "function declarations" $ do
     fb <- expectParseTestFuncDecl "f @a = undefined"
     fa `shouldNotBeSimilarTo` fb
 
--- | Test group for 'Similar' instance of type-level declarations.
+-- | Test group for 'FreeC.IR.Similar.Similar' instance of type-level
+--   declarations.
 testSimilarTypeDecls :: Spec
 testSimilarTypeDecls = do
   context "type synonym declarations" $ do

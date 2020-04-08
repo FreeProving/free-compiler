@@ -280,7 +280,7 @@ jobs:
     - name: Copy documentation to build directory
       run: |
         mkdir -p ./build/docs
-        cp -R $(dirname $(find dist-newstyle -name "index.html"))/. ./build/docs
+        cp -R $(find dist-newstyle -path "*doc/html/free-compiler") ./build/docs
     - name: Upload documentation
       uses: actions/upload-artifact@v1
       with:
@@ -445,3 +445,31 @@ jobs:
       run: echo "::add-path::/home/coq/.opam/$COMPILER/bin"
     - name: Compile (generated) Coq code
       run: ./tool/compile-coq.sh ./example
+
+  #############################################################################
+  # Code style                                                                #
+  #############################################################################
+
+  # All HLint suggestions should be followed or explicitly ignored
+  # in `.hlint.yaml`.
+  hlint:
+    name: Run HLint
+    runs-on: ubuntu-latest
+    env:
+      HLINT_URL: https://raw.github.com/ndmitchell/hlint/v2.2.11/misc/run.sh
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v1
+    - name: Check code style using HLint
+      run: curl -sSL "$HLINT_URL" | sh -s src
+
+  # All Haskell source files should be formatted using Brittany.
+  brittany:
+    name: Run Brittany
+    runs-on: ubuntu-latest
+    container: just95/brittany:0.12.1.1
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v1
+    - name: Check code style using Brittany
+      run: ./tool/check-formatting.sh
