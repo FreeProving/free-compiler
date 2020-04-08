@@ -257,7 +257,7 @@ jobs:
     - name: Copy documentation to build directory
       run: |
         mkdir -p ./build/docs
-        cp -r $(dirname $(find dist-newstyle -name "index.html"))/. ./build/docs
+        cp -r $(find dist-newstyle -path "*doc/html/free-compiler") ./build/docs
     - name: Upload documentation
       uses: actions/upload-artifact@v1
       with:
