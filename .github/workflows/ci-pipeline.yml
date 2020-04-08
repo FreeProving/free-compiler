@@ -56,7 +56,7 @@ jobs:
       uses: haskell-CI/setup@c4e863e92fcd479e2fcec8fe81921baa76000fca
       with:
         ghc-version: '8.6.5'
-        cabal-version: '2.4'
+        cabal-version: '2.4.1.0'
     - name: Update Cabal Package List
       id: cabal-update
       run: |
@@ -111,7 +111,7 @@ jobs:
       uses: haskell-CI/setup@c4e863e92fcd479e2fcec8fe81921baa76000fca
       with:
         ghc-version: '8.6.5'
-        cabal-version: '2.4'
+        cabal-version: '2.4.1.0'
     - name: Update Cabal Package List
       id: cabal-update
       run: |
@@ -170,7 +170,7 @@ jobs:
       uses: haskell-CI/setup@c4e863e92fcd479e2fcec8fe81921baa76000fca
       with:
         ghc-version: '8.6.5'
-        cabal-version: '2.4'
+        cabal-version: '2.4.1.0'
     - name: Update Cabal Package List
       id: cabal-update
       run: |
@@ -238,7 +238,7 @@ jobs:
       uses: haskell-CI/setup@c4e863e92fcd479e2fcec8fe81921baa76000fca
       with:
         ghc-version: '8.6.5'
-        cabal-version: '2.4'
+        cabal-version: '2.4.1.0'
     - name: Update Cabal Package List
       id: cabal-update
       run: |
