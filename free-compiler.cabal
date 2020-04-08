@@ -182,6 +182,7 @@ test-suite freec-unit-tests
   type:               exitcode-stdio-1.0
   hs-source-dirs:     src/test
   main-is:            Spec.hs
+  ghc-options:        -main-is Spec
   other-modules:      Paths_free_compiler
                     , FreeC.Backend.Coq.Analysis.ConstantArgumentsTests
                     , FreeC.Backend.Coq.Analysis.DecreasingArgumentsTests

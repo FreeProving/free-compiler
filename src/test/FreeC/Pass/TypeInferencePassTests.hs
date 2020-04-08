@@ -16,11 +16,9 @@ import           FreeC.Test.Parser
 import           FreeC.Test.Expectations
 import           FreeC.Test.Environment
 
--- | Parses the given function declarations as a 'DependencyComponent' which
---   is either 'recursive' or 'nonRecursive' (based on the first argument),
---   runs the 'typeInferencePass' and sets the expectation that the resulting
---   type annotated function declarations are 'FreeC.IR.Similar.similar' to
---   the expected output.
+-- | Parses the given function declarations runs the 'typeInferencePass'
+--   and sets the expectation that the resulting type annotated function
+--   declarations are 'FreeC.IR.Similar.similar' to the expected output.
 shouldInferType
   :: DependencyComponent String -> [String] -> Converter Expectation
 shouldInferType inputStrs expectedOutputStrs = do

@@ -10,35 +10,29 @@
 --   If a module @B@ imports a module @A@ and @A@ exports a function @f@
 --   (whose name has already been qualified to @A.f@)
 --
---   @
---   module A where
+--   > module A where
+--   >
+--   > A.f = 42
+--   > A.g = f
 --
---   A.f = 42
---   A.g = f
---   @
---   @
---   module B where
---
---   import A
---
---   B.h = f
---   @
+--   > module B where
+--   >
+--   > import A
+--   >
+--   > B.h = f
 --
 --   all references to @f@ in both @A@ and @B@ are resolved to @A.f@.
 --
---   @
---   module A where
+--   > module A where
+--   >
+--   > A.f = 42
+--   > A.g = A.f
 --
---   A.f = 42
---   A.g = A.f
---   @
---   @
---   module B where
---
---   import A
---
---   B.h = A.f
---   @
+--   > module B where
+--   >
+--   > import A
+--   >
+--   > B.h = A.f
 --
 --   = Specification
 --
@@ -58,103 +52,77 @@
 --
 --   * For each import declaration of the form
 --
---       @
---       import M
---       @
+--       > import M
 --
 --       the environments contain the exported names unqualified and
 --       qualified with the name of the module @M@ (but not qualified with the
 --       name of the module @N@ where they have been defined in originally).
 --
---       @
---       N.t ∈ Mᵀ ⇒ N.t ∈ Eᵀ(t) ∧ N.t ∈ Eᵀ(M.t)
---       N.v ∈ Mⱽ ⇒ N.v ∈ Eⱽ(v) ∧ N.v ∈ Eⱽ(M.v)
---       @
+--       > N.t ∈ Mᵀ ⇒ N.t ∈ Eᵀ(t) ∧ N.t ∈ Eᵀ(M.t)
+--       > N.v ∈ Mⱽ ⇒ N.v ∈ Eⱽ(v) ∧ N.v ∈ Eⱽ(M.v)
 --
 --       where @Mᵀ@ and @Mⱽ@ denote the sets of original names of the entries
 --       exported by the module @M@ at type- and value-level respectively.
 --
 --   * For each type synonym declaration of the form
 --
---       @
---       type M.T α₁ … αₘ = τ
---       @
+--       > type M.T α₁ … αₘ = τ
 --
 --       the type-level environment contains the qualified and unqualified
 --       names of the type synonym.
 --
---       @
---       M.T ∈ Eᵀ(T)
---       M.T ∈ Eᵀ(M.T)
---       @
+--       > M.T ∈ Eᵀ(T)
+--       > M.T ∈ Eᵀ(M.T)
 --
 --       Within the right-hand side @τ@, the type-level environment is extended
 --       by the type arguments of the type-synonym.
 --
---       @
---       ∀ 1 ≤ i ≤ m. αᵢ ∈ Eᵀ(αᵢ)
---       @
+--       > ∀ 1 ≤ i ≤ m. αᵢ ∈ Eᵀ(αᵢ)
 --
 --   * For each data type declaration of the form
 --
---       @
---       data D α₁ … αₘ = C₁ τ₍₁,₁₎ … τ₍₁,ₖ₁₎ | … | Cₙ τ₍ₙ,₁₎ … τ₍ₙ,ₖₙ₎
---       @
+--       > data D α₁ … αₘ = C₁ τ₍₁,₁₎ … τ₍₁,ₖ₁₎ | … | Cₙ τ₍ₙ,₁₎ … τ₍ₙ,ₖₙ₎
 --
 --       the type-level environment contains the qualified and unqualified
 --       names of the data type and the value-level environment contains
 --       the names of the constructors qualified and unqualified.
 --
---       @
---       M.D ∈ Eᵀ(D) ∧ M.D ∈ Eᵀ(M.D)
---       ∀ 1 ≤ i ≤ n. M.Cᵢ ∈ Eⱽ(Cᵢ) ∧ M.Cᵢ ∈ Eⱽ(M.Cᵢ)
---       @
+--       > M.D ∈ Eᵀ(D) ∧ M.D ∈ Eᵀ(M.D)
+--       > ∀ 1 ≤ i ≤ n. M.Cᵢ ∈ Eⱽ(Cᵢ) ∧ M.Cᵢ ∈ Eⱽ(M.Cᵢ)
 --
 --       Within the fields @τ₍ᵢ,ⱼ₎@ of the constructors, the type-level
 --       environment is extended by the type arguments of the data type.
 --
---       @
---       ∀ 1 ≤ i ≤ m. αᵢ ∈ Eᵀ(αᵢ)
---       @
+--       > ∀ 1 ≤ i ≤ m. αᵢ ∈ Eᵀ(αᵢ)
 --
 --   * For each function declaration of the form
 --
---       @
---       M.f @α₁ … @αₘ (x₁ :: τ₁) … (xₙ :: τₙ) = e
---       @
+--       > M.f @α₁ … @αₘ (x₁ :: τ₁) … (xₙ :: τₙ) = e
 --
 --       the value-level environment contains the name of the function qualified
 --       and unqualified.
 --
---       @
---       M.f ∈ Eⱽ(f)
---       M.f ∈ Eⱽ(M.f)
---       @
+--       > M.f ∈ Eⱽ(f)
+--       > M.f ∈ Eⱽ(M.f)
 --
 --       Within the right-hand side @e@ and the type annotations @τᵢ@ of the
 --       function's arguments, the type-level environment is extended by the
 --       type arguments of the function and the value-level environment by the
 --       regular arguments.
 --
---       @
---       ∀ 1 ≤ i ≤ m. αᵢ ∈ Eᵀ(αᵢ)
---       ∀ 1 ≤ i ≤ n. xᵢ ∈ Eⱽ(xᵢ)
---       @
+--       > ∀ 1 ≤ i ≤ m. αᵢ ∈ Eᵀ(αᵢ)
+--       > ∀ 1 ≤ i ≤ n. xᵢ ∈ Eⱽ(xᵢ)
 --
 --   * Within lambda abstraction expressions and @case@ expression
 --     alternatives of the form
 --
---       @
---       \(x₁ :: τ₁) … (xₙ :: τₙ) -> e
---       case s of { …; C (x₁ :: τ₁) … (xₙ :: τₙ) -> e ; … }
---       @
+--       > \(x₁ :: τ₁) … (xₙ :: τₙ) -> e
+--       > case s of { …; C (x₁ :: τ₁) … (xₙ :: τₙ) -> e ; … }
 --
 --       the value-level environment is extended by the arguments of the lambda
 --       abstraction and the variable patterns, respectively.
 --
---       @
---       ∀ 1 ≤ i ≤ n. xᵢ ∈ Eⱽ(xᵢ)
---       @
+--       > ∀ 1 ≤ i ≤ n. xᵢ ∈ Eⱽ(xᵢ)
 --
 --   The environments are then used to recursively resolve references in all
 --   types and expression in the module. Local modifications that are performed

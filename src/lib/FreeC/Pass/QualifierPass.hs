@@ -6,33 +6,29 @@
 --
 --   Consider the following module.
 --
---   @
---   module Data.Tree where
---
---   data Tree a = Leaf a | Branch (Tree a) (Tree a)
---
---   mapTree :: (a -> b) -> Tree a -> Tree b
---   mapTree f t = case t of
---     Leaf x     -> Leaf (f x)
---     Branch l r -> Branch (mapTree f l) (mapTree f r)
---   @
+--   > module Data.Tree where
+--   >
+--   > data Tree a = Leaf a | Branch (Tree a) (Tree a)
+--   >
+--   > mapTree :: (a -> b) -> Tree a -> Tree b
+--   > mapTree f t = case t of
+--   >   Leaf x     -> Leaf (f x)
+--   >   Branch l r -> Branch (mapTree f l) (mapTree f r)
 --
 --   After this pass the declarations of @Tree@ and @mapTree@ as well
 --   as the type signature for @mapTree@ and the constructors @Leaf@
 --   and @Branch@ are qualified.
 --
---   @
---   module Data.Tree where
---
---   data Data.Tree.Tree a
---     = Data.Tree.Leaf a
---     | Data.Tree.Branch (Tree a) (Tree a)
---
---   Data.Tree.mapTree :: (a -> b) -> Tree a -> Tree b
---   Data.Tree.mapTree f t = case t of
---     Leaf x     -> Leaf (f x)
---     Branch l r -> Branch (mapTree f l) (mapTree f r)
---   @
+--   > module Data.Tree where
+--   >
+--   > data Data.Tree.Tree a
+--   >   = Data.Tree.Leaf a
+--   >   | Data.Tree.Branch (Tree a) (Tree a)
+--   >
+--   > Data.Tree.mapTree :: (a -> b) -> Tree a -> Tree b
+--   > Data.Tree.mapTree f t = case t of
+--   >   Leaf x     -> Leaf (f x)
+--   >   Branch l r -> Branch (mapTree f l) (mapTree f r)
 --
 --   However, references to @Tree@, @Leaf@, @Branch@ and @mapTree@
 --   in the fields of the constructor declarations and on the right-hand

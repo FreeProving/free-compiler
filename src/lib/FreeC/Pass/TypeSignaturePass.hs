@@ -8,10 +8,8 @@
 --   For example, the following module that declares an unary function @null@
 --   with a type signature
 --
---   @
---   null :: forall a. [a] -> Bool
---   null xs = case xs of { [] -> True; x : xs' -> False }
---   @
+--   > null :: forall a. [a] -> Bool
+--   > null xs = case xs of { [] -> True; x : xs' -> False }
 --
 --   will be be converted to a module that still contains the type signature
 --   but the types of the argument @xs@ and the return type of @head@ are
@@ -19,10 +17,11 @@
 --   In addition, the type arguments of the type schema are copied from the type
 --   signature to the function declaration's type argument list.
 --
---   @
---   null :: forall a. [a] -> Bool
---   null @a (xs :: [a]) = (case xs of { [] -> True; x : xs' -> False }) :: Bool
---   @
+--   > null :: forall a. [a] -> Bool
+--   > null @a (xs :: [a]) = (case xs of {
+--   >                          []      -> True;
+--   >                          x : xs' -> False
+--   >                        }) :: Bool
 --
 --   == Example 2
 --
@@ -30,22 +29,18 @@
 --   be a function type with @n-1@ arrows. For example, the type signature
 --   could contain type synonyms.
 --
---   @
---   type Subst = String -> Expr
---
---   identity :: Subst
---   identity x = Var x
---   @
+--   > type Subst = String -> Expr
+--   >
+--   > identity :: Subst
+--   > identity x = Var x
 --
 --   In this case, the type synonym needs to be expanded in order to determine
 --   the type of the argument @x@ and the return type of @identity@.
 --
---   @
---   type Subst = String -> Expr
---
---   identity :: Subst
---   identity (x :: String) = Var x :: Expr
---   @
+--   > type Subst = String -> Expr
+--   >
+--   > identity :: Subst
+--   > identity (x :: String) = Var x :: Expr
 --
 --   The original type signature is left unchanged (not expanded) and type
 --   synonyms are only expanded when necessary.
@@ -62,22 +57,16 @@
 --
 --   The declaration of every @n@-ary function @f@
 --
---   @
---   f x₁ … xₙ = e
---   @
+--   > f x₁ … xₙ = e
 --
 --   for which there exists a top-level type signature
 --
---   @
---   …, f, … :: forall α₁ … αₘ. τ
---   @
+--   > …, f, … :: forall α₁ … αₘ. τ
 --
 --   will be converted into a function declaration with explicit type
 --   annotations and type arguments
 --
---   @
---   f @α₁ … @αₘ (x₁ :: τ₁) … (xₙ :: τₙ) = e :: τ'
---   @
+--   > f @α₁ … @αₘ (x₁ :: τ₁) … (xₙ :: τₙ) = e :: τ'
 --
 --   where @τ₁ -> … -> τₙ -> τ@ is the smallest type that can be derived
 --   from @τ@ by expanding type synonyms.

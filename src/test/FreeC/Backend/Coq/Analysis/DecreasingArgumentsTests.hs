@@ -14,7 +14,7 @@ import           FreeC.Monad.Class.Testable
 import           FreeC.Monad.Converter
 import           FreeC.Test.Parser
 
--- | Test group for 'maybeIdentifyDecArgs' tests.
+-- | Test group for 'identifyDecArgs' tests.
 testDecreasingArguments :: Spec
 testDecreasingArguments =
   describe "FreeC.Backend.Coq.Analysis.DecreasingArguments" $ do

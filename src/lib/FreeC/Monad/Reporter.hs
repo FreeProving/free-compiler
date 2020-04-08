@@ -276,13 +276,11 @@ instance Pretty Severity where
 --
 --   The format of the messages is based on the format used by GHC:
 --
---   @
---   [file]:[line]:[column]: [severity]:
---       [message-contents]
---          |
---   [line] | [line of code ... culprit  ... ]
---          |                   ^^^^^^^
---   @
+--   > [file]:[line]:[column]: [severity]:
+--   >     [message-contents]
+--   >        |
+--   > [line] | [line of code ... culprit  ... ]
+--   >        |                   ^^^^^^^
 --
 --   If no location information is attached to the message, a place holder is
 --   text displayed instead of the filename, and start position and no

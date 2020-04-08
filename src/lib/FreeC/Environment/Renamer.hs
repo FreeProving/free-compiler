@@ -60,15 +60,11 @@ isCoqKeyword = flip elem coqKeywords
 --   If the identifier conflicts with a command, it should be renamed to avoid
 --   naming conflicts, e.g. the following Haskell data type
 --
---   @
---     data Definition = {- ... -}
---   @
+--   > data Definition = {- ... -}
 --
 --   would result in a Coq @Inductive@ sentence like
 --
---   @
---     Inductive Definition : Type := (* ... *).
---   @
+--   > Inductive Definition : Type := (* ... *).
 --
 --   which is not valid.
 isVernacularCommand :: String -> Bool

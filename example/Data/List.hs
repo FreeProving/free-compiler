@@ -9,10 +9,8 @@ module Data.List where
 
 -- | Append two lists, i.e.,
 --
---   @
---   [x1, ..., xm] ++ [y1, ..., yn] == [x1, ..., xm, y1, ..., yn]
---   [x1, ..., xm] ++ [y1, ...] == [x1, ..., xm, y1, ...]
---   @
+--   > [x1, ..., xm] ++ [y1, ..., yn] == [x1, ..., xm, y1, ..., yn]
+--   > [x1, ..., xm] ++ [y1, ...] == [x1, ..., xm, y1, ...]
 append :: [a] -> [a] -> [a]
 append xs ys = case xs of
   []      -> ys
@@ -50,9 +48,8 @@ length xs = case xs of
 
 -- | @'map' f xs@ is the list obtained by applying @f@ to each
 --   element of @xs@, i.e.,
---   @
---   map f [x1, x2, ..., xn] == [f x1, f x2, ..., f xn]
---   @
+--
+--   > map f [x1, x2, ..., xn] == [f x1, f x2, ..., f xn]
 map :: (a -> b) -> [a] -> [b]
 map f xs = case xs of
   []      -> []
@@ -72,10 +69,8 @@ reverse' acc xs = case xs of
 --   intersperses that element between the elements of the list.
 --   For example,
 --
---   @
 --   >>> intersperse ',' "abcde"
 --   "a,b,c,d,e"
---   @
 intersperse :: a -> [a] -> [a]
 intersperse sep xs = case xs of
   []     -> []
@@ -93,9 +88,7 @@ intersperse sep xs = case xs of
 --   starting value (typically the left-identity of the operator), and a
 --   list, reduces the list using the binary operator, from left to right:
 --
---   @
---   foldl f z [x1, x2, ..., xn] == (...((z `f` x1) `f` x2) `f`...) `f` xn
---   @
+--   > foldl f z [x1, x2, ..., xn] == (...((z `f` x1) `f` x2) `f`...) `f` xn
 foldl :: (b -> a -> b) -> b -> [a] -> b
 foldl f e xs = case xs of
   []      -> e
@@ -107,9 +100,7 @@ foldl f e xs = case xs of
 --   starting value (typically the right-identity of the operator), and a
 --   list, reduces the list using the binary operator, from right to left:
 --
---   @
---   foldr f z [x1, x2, ..., xn] == x1 `f` (x2 `f` ... (xn `f` z)...)
---   @
+--   > foldr f z [x1, x2, ..., xn] == x1 `f` (x2 `f` ... (xn `f` z)...)
 foldr :: (a -> b -> b) -> b -> [a] -> b
 foldr f e xs = case xs of
   []      -> e
@@ -160,17 +151,13 @@ minimum = foldr1 (\a b -> if a <= b then a else b)
 
 -- | 'zip' takes two lists and returns a list of corresponding pairs.
 --
---   @
---   zip [1, 2] ['a', 'b'] = [(1, 'a'), (2, 'b')]
---   @
+--   > zip [1, 2] ['a', 'b'] = [(1, 'a'), (2, 'b')]
 --
 --   If one input list is short, excess elements of the longer list are
 --   discarded:
 --
---   @
---   zip [1] ['a', 'b'] = [(1, 'a')]
---   zip [1, 2] ['a'] = [(1, 'a')]
---   @
+--   > zip [1] ['a', 'b'] = [(1, 'a')]
+--   > zip [1, 2] ['a'] = [(1, 'a')]
 zip :: [a] -> [b] -> [(a, b)]
 zip xs ys = case xs of
   []      -> []

@@ -17,29 +17,23 @@
 --   used for setup actions. The example below illustrates how to use
 --   these functions.
 --
---   @
---   it "..." $ do
---     expr <- expectParseTestExpr "..."
---     foo expr `shouldReturn` something
---   @
+--   > it "..." $ do
+--   >   expr <- expectParseTestExpr "..."
+--   >   foo expr `shouldReturn` something
 --
 --   This pattern is especially important when testing for failures. In the
 --   following example we cannot distinguish whether @foo@ failed or we have
 --   a typo in out test expression.
 --
---   @
---   it "..." $ shouldFail $ do
---     expr <- parseTestExpr "..."
---     foo expr
---   @
+--   > it "..." $ shouldFail $ do
+--   >   expr <- parseTestExpr "..."
+--   >   foo expr
 --
 --   Thus, we should rewrite such tests as follows (if possible).
 --
---   @
---   it "..." $ do
---     expr <- expectParseTestExpr "..."
---     shouldFail (foo expr)
---   @
+--   > it "..." $ do
+--   >   expr <- expectParseTestExpr "..."
+--   >   shouldFail (foo expr)
 
 
 module FreeC.Test.Parser

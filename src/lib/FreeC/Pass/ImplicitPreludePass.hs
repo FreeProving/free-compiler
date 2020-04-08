@@ -6,28 +6,24 @@
 --
 --   If a module does not have an explicit import of the @Prelude@ module
 --
---   @
---   module Queue where
---
---   import Test.QuickCheck
---
---   type Queue a = ([a], [a])
---
---   {- ... -}
---   @
+--   > module Queue where
+--   >
+--   > import Test.QuickCheck
+--   >
+--   > type Queue a = ([a], [a])
+--   >
+--   > {- ... -}
 --
 --   an import for the @Prelude@ module is added to the import list
 --
---   @
---   module Queue where
---
---   import Prelude
---   import Test.QuickCheck
---
---   type Queue a = ([a], [a])
---
---   {- ... -}
---   @
+--   > module Queue where
+--   > 
+--   > import Prelude
+--   > import Test.QuickCheck
+--   > 
+--   > type Queue a = ([a], [a])
+--   > 
+--   > {- ... -}
 --
 --   = Specification
 --

@@ -5,21 +5,17 @@
 --
 --   When a module @A@ that exports a data type @Foo@
 --
---   @
---   module A where
---
---   data Foo = Foo
---   @
+--   > module A where
+--   >
+--   > data Foo = Foo
 --
 --   is imported by a module @B@
 --
---   @
---   module B where
---
---   import A
---
---   type Bar a = Foo -> a
---   @
+--   > module B where
+--   >
+--   > import A
+--   >
+--   > type Bar a = Foo -> a
 --
 --   then an entry for @Foo@ is added to the environment under its original
 --   name @A.Foo@. The resolver pass will make sure that the reference to @Foo@
@@ -28,14 +24,12 @@
 --
 --   When a module @C@ imports @B@
 --
---   @
---   module C where
---
---   import B
---
---   baz :: Bar ()
---   baz x = ()
---   @
+--   > module C where
+--   >
+--   > import B
+--   >
+--   > baz :: Bar ()
+--   > baz x = ()
 --
 --   both @A.Foo@ and @B.Bar@ are added to the environment of @C@ since all
 --   entries imported by @B@ are part of the @B@'s module interface.

@@ -13,11 +13,9 @@
 --
 --   The module interface for the following module
 --
---   @
---   module A where
---
---   data Foo = Bar
---   @
+--   > module A where
+--   >
+--   > data Foo = Bar
 --
 --   contains 'interfaceEntries' for all entries from the implicitly imported
 --   @Prelude@ module and an entry for the type @A.Foo@ and constructor @A.Bar@.
@@ -28,14 +26,12 @@
 --
 --   When a module imports the module @A@ from the example above,
 --
---   @
---   module B where
---
---   import A
---
---   foo :: a -> Foo
---   foo x = Bar
---   @
+--   > module B where
+--   >
+--   > import A
+--   >
+--   > foo :: a -> Foo
+--   > foo x = Bar
 --
 --   its interface contains again all entries from the implicitly imported
 --   @Prelude@ module, the entries from @A@'s module interface and the entry

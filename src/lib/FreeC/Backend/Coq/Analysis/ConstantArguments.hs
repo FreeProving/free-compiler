@@ -3,9 +3,7 @@
 --   that are never changed throughout the computation. One example for such
 --   a "constant argument" is the function passed to @map@.
 --
---   @
---   map f xs = case xs of { [] -> []; (:) x xs' -> (:) (f x) (map f xs') }
---   @
+--   > map f xs = case xs of { [] -> []; (:) x xs' -> (:) (f x) (map f xs') }
 --
 --   The argument @f@ is passed unchanged to @map@ in every recursive call.
 --
@@ -14,14 +12,12 @@
 --   declaration of @map@
 --   (see also "FreeC.Backend.Coq.Converter.FuncDecl.Rec.WithSections").
 --
---   @
---   Section map_section.
-  --    ⋮
-  --   Variable f : (* … *).
-  --    ⋮
-  --   Definition map (xs : …) := (* … *).
---   End map_section.
---   @
+--   > Section map_section.
+--   >    ⋮
+--   >   Variable f : (* … *).
+--   >    ⋮
+--   >   Definition map (xs : …) := (* … *).
+--   > End map_section.
 --
 --   Within the section, @map@ has only one argument @xs@ but can use @f@
 --   normally. Outside the section it appears as if @map@ has an additional

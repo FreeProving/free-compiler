@@ -59,25 +59,19 @@ tokenWithPos scanner = TokenWithPos <$> Parsec.getPosition <*> scanner
 
 -- | Scanner for a lowercase character.
 --
---   @
---   <lower> ::= "a" | … | "z" | <any lowercase Unicode letter>
---   @
+--   > <lower> ::= "a" | … | "z" | <any lowercase Unicode letter>
 lowerScanner :: Scanner Char
 lowerScanner = Parsec.lower
 
 -- | Scanner for an uppercase character.
 --
---   @
---   <upper> ::= "A" | … | "Z" | <any upper- or titlecase Unicode letter>
---   @
+--   > <upper> ::= "A" | … | "Z" | <any upper- or titlecase Unicode letter>
 upperScanner :: Scanner Char
 upperScanner = Parsec.upper
 
 -- | Scanner for an Unicode numeric character.
 --
---   @
---   <numeric> ::= <digit> | <any Unicode numeric character>
---   @
+--   > <numeric> ::= <digit> | <any Unicode numeric character>
 numericScanner :: Scanner Char
 numericScanner = Parsec.satisfy isNumber
 
@@ -125,7 +119,10 @@ conIdentStart = upperScanner
 --   (see 'VarIdent' and 'ConIdent' respectively).
 --
 --   It matches only one character at a time and only the characters after
---   the first letter, i.e., @<lower> | <upper> | <numeric> | "_" | "'"@.
+--   the first letter.
+--
+--   > <identletter> ::= <lower> | <upper> | <numeric> | "_" | "'"
+--
 --   The start of identifiers is scanned by 'varIdentStart' and 'conIdentStart'
 --   respectively.
 identLetter :: Scanner Char
@@ -139,10 +136,8 @@ identLetter =
 --   are allowed in symbolic names. Parenthesis are not allowed since the
 --   symbolic names are wrapped in parenthesis themselves.
 --
---   @
---   <symbol>     ::= <any Unicode symbol or punctuation>
---   <namesymbol> ::= <symbol> \ ( "(" | ")" )
---   @
+--   > <symbol>     ::= <any Unicode symbol or punctuation>
+--   > <namesymbol> ::= <symbol> \ ( "(" | ")" )
 nameSymbolChar :: Scanner Char
 nameSymbolChar =
   Parsec.satisfy ((isSymbol .||. isPunctuation) .&&. (`notElem` ['(', ')']))

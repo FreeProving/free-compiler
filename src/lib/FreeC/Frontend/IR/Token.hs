@@ -27,19 +27,17 @@ import           FreeC.Pretty
 --   In the description of the grammar for the token classes below, we are
 --   using the following character classes.
 --
---   @
---   <lower>   ::= "a" | … | "z" | <any lowercase Unicode letter>
---   <upper>   ::= "A" | … | "Z" | <any upper- or titlecase Unicode letter>
---
---   <numeric> ::= <digit> | <any Unicode numeric character>
---   <digit>   ::= "0" | … | "9"
---   <octit>   ::= "0" | … | "7"
---   <hexit>   ::= "0" | … | "9" | "a" | … | "f" | "A" | … | "F"
---
---   <symbol>  ::= <any Unicode symbol or punctuation>
---   <graphic> ::= <lower> | <upper> | <symbol> | <numeric>
---   <space>   ::= " "
---   @
+--   > <lower>   ::= "a" | … | "z" | <any lowercase Unicode letter>
+--   > <upper>   ::= "A" | … | "Z" | <any upper- or titlecase Unicode letter>
+--   >
+--   > <numeric> ::= <digit> | <any Unicode numeric character>
+--   > <digit>   ::= "0" | … | "9"
+--   > <octit>   ::= "0" | … | "7"
+--   > <hexit>   ::= "0" | … | "9" | "a" | … | "f" | "A" | … | "F"
+--   >
+--   > <symbol>  ::= <any Unicode symbol or punctuation>
+--   > <graphic> ::= <lower> | <upper> | <symbol> | <numeric>
+--   > <space>   ::= " "
 --
 --   == Identifiers
 --
@@ -48,10 +46,9 @@ import           FreeC.Pretty
 --   digit or apostrophe. Identifiers starting with an uppercase letter
 --   identify constructors.
 --
---   @
---   <varid>  ::= (<lower> | "_") { <lower> | <upper> | <numeric> | "_" | "'" }
---   <conid>  ::= <upper> { <lower> | <upper> | <numeric> | "_" | "'" }
---   @
+--   > <identletter> ::= <lower> | <upper> | <numeric> | "_" | "'"
+--   > <varid>  ::= (<lower> | "_") { <identletter> }
+--   > <conid>  ::= <upper> { <identletter> }
 --
 --   == Symbolic names
 --
@@ -65,13 +62,11 @@ import           FreeC.Pretty
 --   such that the empty list constructor and tuple constructors are recognized
 --   correctly.
 --
---   @
---   <namesymbol>  ::= <symbol> \ ( "(" | ")" )
---   <consymstart> ::= "[" | ":" | ","
---
---   <varsym> ::= "(" (<namesymbol> \ <consymstart>) { <namesymbol> } ")"
---   <consym> ::= "(" [ <consymstart> { <namesymbol> } ] ")"
---   @
+--   > <namesymbol>  ::= <symbol> \ ( "(" | ")" )
+--   > <consymstart> ::= "[" | ":" | ","
+--   >
+--   > <varsym> ::= "(" (<namesymbol> \ <consymstart>) { <namesymbol> } ")"
+--   > <consym> ::= "(" [ <consymstart> { <namesymbol> } ] ")"
 --
 --   == Integers
 --
@@ -80,16 +75,14 @@ import           FreeC.Pretty
 --   as well as the digits (or "hexits") of hexadecimal integers are case
 --   insensitive.
 --
---   @
---   <decimal>     ::= <digit> { <digit> }
---   <octal>       ::= <octit> { <octit> }
---   <hexadecimal> ::= <hexit> { <hexit> }
---
---   <integer>   ::= [ "+" | "-" ] <natural>
---   <natural>   ::= <decimal>
---                 | "0o" <octal>       | "0O" <octal>
---                 | "0x" <hexadecimal> | "0X" <hexadecimal>
---   @
+--   > <decimal>     ::= <digit> { <digit> }
+--   > <octal>       ::= <octit> { <octit> }
+--   > <hexadecimal> ::= <hexit> { <hexit> }
+--   >
+--   > <integer>   ::= [ "+" | "-" ] <natural>
+--   > <natural>   ::= <decimal>
+--   >               | "0o" <octal>       | "0O" <octal>
+--   >               | "0x" <hexadecimal> | "0X" <hexadecimal>
 --
 --   == Strings
 --
@@ -97,16 +90,14 @@ import           FreeC.Pretty
 --   letters, digits, symbols and punctuation characters as well as spaces
 --   and escape sequences.
 --
---   @
---   <escape> ::= <any Haskell escape sequence>
---   <gap>    ::= "\\" { <arbitrary Unicode whitespace> } "\\"
---
---   <string> ::= '"' { <graphic> \ ( '"' | '\\' )
---                    | <space>
---                    | <escape>
---                    | <gap>
---                    } '"'
---   @
+--   > <escape> ::= <any Haskell escape sequence>
+--   > <gap>    ::= "\\" { <arbitrary Unicode whitespace> } "\\"
+--   >
+--   > <string> ::= '"' { <graphic> \ ( '"' | '\\' )
+--   >                  | <space>
+--   >                  | <escape>
+--   >                  | <gap>
+--   >                  } '"'
 data Token
   = ConIdent String  -- ^ @<conid>@ a constructor identifier.
   | ConSymbol String -- ^ @<consym>@ a constructor symbol.
@@ -149,8 +140,8 @@ mkIdentToken ident = case lookup ident keywords of
 --
 --   The given string should not include the parenthesis around symbols.
 --
---   Constructor symbols must be empty or start with one of @'['@, @':'@ or
---   @','@.
+--   Constructor symbols must be empty or start with one of @"["@, @":"@ or
+--   @","@.
 mkSymbolToken :: String -> Token
 mkSymbolToken ""  = ConSymbol ""
 mkSymbolToken sym@(first : _) | first `elem` ['[', ':', ','] = ConSymbol sym
