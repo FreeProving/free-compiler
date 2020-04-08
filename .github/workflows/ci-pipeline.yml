@@ -2,7 +2,8 @@ name: CI Pipeline
 
 # The CI pipeline runs on every push that modifies Cabal configuration, source
 # or example files. If just the README or documentation changes, the pipeline
-# does not have to run.
+# does not have to run. It also runs when the Workflow configuration changed
+# itself.
 on:
   push:
     paths:
@@ -11,6 +12,7 @@ on:
     - 'base/**'
     - 'example/**'
     - 'src/**'
+    - '.github/workflows/ci-pipeline.yml'
 
 jobs:
   #############################################################################
