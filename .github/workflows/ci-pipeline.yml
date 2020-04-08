@@ -50,15 +50,15 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: ["macos-latest", "ubuntu-latest"]
+        os: ["ubuntu-latest"] # "macos-latest", "windows-latest"
     steps:
     - name: Checkout
       uses: actions/checkout@v1
     - name: Setup Haskell
-      uses: haskell-CI/setup@c4e863e92fcd479e2fcec8fe81921baa76000fca
+      uses: actions/setup-haskell@v1
       with:
         ghc-version: '8.6.5'
-        cabal-version: '2.4.1.0'
+        cabal-version: '2.4'
     - name: Update Cabal Package List
       id: cabal-update
       run: |
@@ -105,15 +105,15 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: ["macos-latest", "ubuntu-latest"]
+        os: ["ubuntu-latest"] # "macos-latest", "windows-latest"
     steps:
     - name: Checkout
       uses: actions/checkout@v1
     - name: Setup Haskell
-      uses: haskell-CI/setup@c4e863e92fcd479e2fcec8fe81921baa76000fca
+      uses: actions/setup-haskell@v1
       with:
         ghc-version: '8.6.5'
-        cabal-version: '2.4.1.0'
+        cabal-version: '2.4'
     - name: Update Cabal Package List
       id: cabal-update
       run: |
@@ -164,15 +164,15 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: ["macos-latest", "ubuntu-latest"]
+        os: ["ubuntu-latest"] # "macos-latest", "windows-latest"
     steps:
     - name: Checkout
       uses: actions/checkout@v1
     - name: Setup Haskell
-      uses: haskell-CI/setup@c4e863e92fcd479e2fcec8fe81921baa76000fca
+      uses: actions/setup-haskell@v1
       with:
         ghc-version: '8.6.5'
-        cabal-version: '2.4.1.0'
+        cabal-version: '2.4'
     - name: Update Cabal Package List
       id: cabal-update
       run: |
@@ -237,10 +237,10 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v1
     - name: Setup Haskell
-      uses: haskell-CI/setup@c4e863e92fcd479e2fcec8fe81921baa76000fca
+      uses: actions/setup-haskell@v1
       with:
         ghc-version: '8.6.5'
-        cabal-version: '2.4.1.0'
+        cabal-version: '2.4'
     - name: Update Cabal Package List
       id: cabal-update
       run: |
@@ -385,7 +385,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: ["macos-latest", "ubuntu-latest"]
+        os: ["ubuntu-latest"] # "macos-latest", "windows-latest"
     steps:
     - name: Checkout
       uses: actions/checkout@v1
