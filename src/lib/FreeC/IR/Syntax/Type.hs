@@ -96,8 +96,8 @@ instance Pretty Type where
 --            applications.
 prettyTypePred :: Int -> Type -> Doc
 -- There are never parentheses around type variables or constructors.
-prettyTypePred _ (TypeVar _ ident)                          = prettyString ident
-prettyTypePred _ (TypeCon _ name )                          = pretty name
+prettyTypePred _ (TypeVar _ ident) = prettyString ident
+prettyTypePred _ (TypeCon _ name ) = pretty name
 
 -- There may be parentheses around type applications and function types.
 prettyTypePred n (TypeApp _ t1 t2) | n <= 1 =

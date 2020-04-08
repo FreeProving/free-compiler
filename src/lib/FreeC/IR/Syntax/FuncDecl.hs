@@ -84,7 +84,9 @@ instance Pretty FuncDecl where
       Nothing -> prettyFuncHead <+> equals <+> pretty rhs
       Just returnType ->
         prettyFuncHead
-          <+> colon <> colon <+> pretty returnType
+          <+> colon
+          <>  colon
+          <+> pretty returnType
           <+> equals
           <+> pretty rhs
    where
