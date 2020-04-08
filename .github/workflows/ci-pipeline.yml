@@ -53,7 +53,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v1
     - name: Setup Haskell
-      uses: actions/setup-haskell@v1
+      uses: haskell-CI/setup@c4e863e92fcd479e2fcec8fe81921baa76000fca
       with:
         ghc-version: '8.6.5'
         cabal-version: '2.4'
@@ -108,7 +108,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v1
     - name: Setup Haskell
-      uses: actions/setup-haskell@v1
+      uses: haskell-CI/setup@c4e863e92fcd479e2fcec8fe81921baa76000fca
       with:
         ghc-version: '8.6.5'
         cabal-version: '2.4'
@@ -167,7 +167,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v1
     - name: Setup Haskell
-      uses: actions/setup-haskell@v1
+      uses: haskell-CI/setup@c4e863e92fcd479e2fcec8fe81921baa76000fca
       with:
         ghc-version: '8.6.5'
         cabal-version: '2.4'
@@ -235,7 +235,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v1
     - name: Setup Haskell
-      uses: actions/setup-haskell@v1
+      uses: haskell-CI/setup@c4e863e92fcd479e2fcec8fe81921baa76000fca
       with:
         ghc-version: '8.6.5'
         cabal-version: '2.4'
