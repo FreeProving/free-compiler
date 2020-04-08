@@ -28,16 +28,19 @@ if ! which brittany; then
   exit 1
 fi
 
-# Format all Haskell files using Brittany and compare the output with the
-# original file.
+# Format all Haskell files in the `src` and `example` directories that are
+# tracked by `git` using `brittany` and compare the output with the original
+# file. Count the number of files that need formatting.
 counter=0
 for file in $(find src example -name '*.hs' -type f); do
-  echo -n "Checking ${bold}$file${reset} ... "
-  if brittany "$file" | cmp -s "$file"; then
-    echo "${green}${bold}OK${reset}"
-  else
-    echo "${red}${bold}NEEDS FORMATTING${reset}"
-    counter=$(expr $counter + 1)
+  if git ls-files --error-unmatch "$file" >/dev/null 2>&1; then
+    echo -n "Checking ${bold}$file${reset} ... "
+    if brittany "$file" | cmp -s "$file"; then
+      echo "${green}${bold}OK${reset}"
+    else
+      echo "${red}${bold}NEEDS FORMATTING${reset}"
+      counter=$(expr $counter + 1)
+    fi
   fi
 done
 

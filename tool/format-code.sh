@@ -27,19 +27,22 @@ if ! which brittany; then
   exit 1
 fi
 
-# Format all Haskell files using Brittany.
+# Format all Haskell files in the `src` and `example` directories that are
+# tracked by `git` using `brittany`.
 for file in $(find src example -name '*.hs' -type f); do
-  echo -n "Formatting ${bold}$file${reset} ... "
-  hash_before=$(sha256sum "$file")
-  brittany --write-mode=inplace "$file"
-  if [ "$?" == "0" ]; then
-    hash_after=$(sha256sum "$file")
-    if [ "$hash_before" == "$hash_after" ]; then
-      echo "${bold}UNCHANGED${reset}"
+  if git ls-files --error-unmatch "$file" >/dev/null 2>&1; then
+    echo -n "Formatting ${bold}$file${reset} ... "
+    hash_before=$(sha256sum "$file")
+    brittany --write-mode=inplace "$file"
+    if [ "$?" == "0" ]; then
+      hash_after=$(sha256sum "$file")
+      if [ "$hash_before" == "$hash_after" ]; then
+        echo "${bold}UNCHANGED${reset}"
+      else
+        echo "${green}${bold}DONE${reset}"
+      fi
     else
-      echo "${green}${bold}DONE${reset}"
+      echo "${red}${bold}ERROR${reset}"
     fi
-  else
-    echo "${red}${bold}ERROR${reset}"
   fi
 done
