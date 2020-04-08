@@ -28,7 +28,7 @@ if ! which brittany; then
 fi
 
 # Format all Haskell files using Brittany.
-for file in $(find src -name '*.hs' -type f); do
+for file in $(find src example -name '*.hs' -type f); do
   echo -n "Formatting ${bold}$file${reset} ... "
   hash_before=$(sha256sum "$file")
   brittany --write-mode=inplace "$file"

@@ -31,7 +31,7 @@ fi
 # Format all Haskell files using Brittany and compare the output with the
 # original file.
 counter=0
-for file in $(find src -name '*.hs' -type f); do
+for file in $(find src example -name '*.hs' -type f); do
   echo -n "Checking ${bold}$file${reset} ... "
   if brittany "$file" | cmp -s "$file"; then
     echo "${green}${bold}OK${reset}"
