@@ -407,23 +407,23 @@ jobs:
   # All HLint suggestions should be followed or explicitly ignored
   # in `.hlint.yaml`.
   hlint:
-    name: Check code style using HLint
+    name: Run HLint
     runs-on: ubuntu-latest
     env:
       HLINT_URL: https://raw.github.com/ndmitchell/hlint/v2.2.11/misc/run.sh
     steps:
     - name: Checkout
       uses: actions/checkout@v1
-    - name: Checking code with HLint
+    - name: Check code style using HLint
       run: curl -sSL "$HLINT_URL" | sh -s src
 
   # All Haskell source files should be formatted using Brittany.
   brittany:
-    name: Check code style using Brittany
+    name: Run Brittany
     runs-on: ubuntu-latest
     container: just95/brittany:0.12.1.1
     steps:
     - name: Checkout
       uses: actions/checkout@v1
-    - name: Checking code with HLint
+    - name: Check code style using Brittany
       run: ./tool/check-formatting.sh
