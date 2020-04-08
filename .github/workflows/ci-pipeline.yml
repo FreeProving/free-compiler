@@ -315,24 +315,24 @@ jobs:
       # `env` is not allowed on `jobs.<job_id>.if`.
       HAS_DEPLOY_KEY: ${{ secrets.DEPLOY_KEY != '' }}
     steps:
-    - if: ${{ env.HAS_DEPLOY_KEY }}
+    - if: ${{ env.HAS_DEPLOY_KEY == 1 }}
       name: Checkout
       uses: actions/checkout@v1
-    - if:   ${{ env.HAS_DEPLOY_KEY }}
+    - if:   ${{ env.HAS_DEPLOY_KEY == 1 }}
       name: Install SSH Client
       uses: webfactory/ssh-agent@v0.2.0
       with:
         ssh-private-key: ${{ secrets.DEPLOY_KEY }}
-    - if:   ${{ env.HAS_DEPLOY_KEY }}
+    - if:   ${{ env.HAS_DEPLOY_KEY == 1 }}
       name: Slug GitHub variables
       uses: rlespinasse/github-slug-action@master
-    - if:   ${{ env.HAS_DEPLOY_KEY }}
+    - if:   ${{ env.HAS_DEPLOY_KEY == 1 }}
       name: Download documentation
       uses: actions/download-artifact@v1
       with:
         name: documentation
         path: ./build/docs
-    - if:   ${{ env.HAS_DEPLOY_KEY }}
+    - if:   ${{ env.HAS_DEPLOY_KEY == 1 }}
       name: Deploy to GitHub pages
       uses: JamesIves/github-pages-deploy-action@releases/v3
       with:
