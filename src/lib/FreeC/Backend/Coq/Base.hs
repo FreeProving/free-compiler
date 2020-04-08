@@ -74,6 +74,18 @@ partialError :: Coq.Qualid
 partialError = Coq.bare "error"
 
 -------------------------------------------------------------------------------
+-- Literal scopes                                                            --
+-------------------------------------------------------------------------------
+
+-- | The scope of integer literals.
+integerScope :: Coq.Ident
+integerScope = Coq.ident "Z"
+
+-- | The scope of string literals used in @error@ terms.
+stringScope :: Coq.Ident
+stringScope = Coq.ident "string"
+
+-------------------------------------------------------------------------------
 -- Reserved identifiers                                                      --
 -------------------------------------------------------------------------------
 

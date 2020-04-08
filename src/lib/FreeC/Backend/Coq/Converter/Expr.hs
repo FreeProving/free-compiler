@@ -185,14 +185,18 @@ convertExpr' (IR.ErrorExpr srcSpan msg _) typeArgs [] = do
   let partialArg = Coq.Qualid (fst Coq.Base.partialArg)
   typeArgs' <- mapM convertType' typeArgs
   return
-    (genericApply Coq.Base.partialError [partialArg] typeArgs' [Coq.string msg])
+    (genericApply Coq.Base.partialError
+                  [partialArg]
+                  typeArgs'
+                  [Coq.InScope (Coq.string msg) Coq.Base.stringScope]
+    )
 
 -- Integer literals.
 convertExpr' (IR.IntLiteral _ value _) [] [] = do
   let natValue = Coq.Num (fromInteger (abs value))
       value' | value < 0 = Coq.app (Coq.Qualid (Coq.bare "-")) [natValue]
              | otherwise = natValue
-  generatePure (Coq.InScope value' (Coq.ident "Z"))
+  generatePure (Coq.InScope value' Coq.Base.integerScope)
 
 -- Lambda abstractions.
 convertExpr' (IR.Lambda _ args expr _) [] [] = localEnv $ do

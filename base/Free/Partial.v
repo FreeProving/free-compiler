@@ -1,6 +1,6 @@
 From Base Require Import Free.Monad.
 
-Require Import Coq.Strings.String.
+Require Export Coq.Strings.String.
 
 Class Partial (Shape : Type) (Pos : Shape -> Type) :=
   {

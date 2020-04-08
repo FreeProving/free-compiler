@@ -240,13 +240,13 @@ function check_required_software() {
       sudo add-apt-repository ppa:hvr/ghc
       sudo apt update
       sudo apt install cabal-2.4'
-  check_version "Coq" coqc '8.8.*' '
+  check_version "Coq" coqc '8.11.*' '
       sudo apt install opam
       opam init
       eval `opam config env`
       opam repo add coq-released https://coq.inria.fr/opam/released
       opam update
-      opam install coq.8.8.2'
+      opam install coq.8.11.0'
   update_status "$green" "$gray" "$check_mark" "Found required software"
 }
 

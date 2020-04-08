@@ -310,7 +310,7 @@ jobs:
   build-base-library:
     name: Build Coq base library
     runs-on: ubuntu-latest
-    container: coqorg/coq:8.8.2
+    container: coqorg/coq:8.11.0
     steps:
     - name: Checkout
       uses: actions/checkout@v1
@@ -376,7 +376,7 @@ jobs:
     name: Test generated Coq code
     needs: [test-examples]
     runs-on: ubuntu-latest
-    container: coqorg/coq:8.8.2
+    container: coqorg/coq:8.11.0
     steps:
     - name: Checkout
       uses: actions/checkout@v1

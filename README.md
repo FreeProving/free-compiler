@@ -50,7 +50,7 @@ The compiler has been tested with the following software versions on a Debian ba
 
  - [GHC][software/ghc], version 8.6.5
  - [Cabal][software/cabal], version 2.4
- - [Coq][software/coq], version 8.8.2
+ - [Coq][software/coq], version 8.11.0
 
 ### Base Library
 
