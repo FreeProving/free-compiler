@@ -399,3 +399,20 @@ jobs:
       run: echo "::add-path::/home/coq/.opam/$COMPILER/bin"
     - name: Compile (generated) Coq code
       run: ./tool/compile-coq.sh ./example
+
+  #############################################################################
+  # Code style                                                                #
+  #############################################################################
+
+  # All HLint suggestions should be followed or explicitly ignored
+  # in `.hlint.yaml`.
+  hlint:
+    name: HLint
+    runs-on: ubuntu-latest
+    env:
+      HLINT_URL: https://raw.github.com/ndmitchell/hlint/v2.2.11/misc/run.sh
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v1
+    - name: Checking code with HLint
+      run: curl -sSL "$HLINT_URL" | sh -s src
