@@ -26,7 +26,10 @@ A compiler for the monadic translation of Haskell programs to Coq that uses the 
     - [Proving properties](#proving-properties)
     - [Experimental Features](#experimental-features)
       + [Pattern-Matching Compilation](#pattern-matching-compilation)
-8. [Testing](#testing)
+8. [Development](#development)
+    - [Additional Software](#additional-software)
+    - [Code Style](#code-style)
+    - [Testing](#testing)
 9. [License](#license)
 
 ## Documentation
@@ -238,7 +241,73 @@ freec --transform-pattern-matching ./example/PatternMatching.hs
 
 Consult [`doc/ExperimentalFeatures/PatternMatchingCompilation.md`][doc/ExperimentalFeatures/PatternMatchingCompilation.md] for more details and examples.
 
-## Testing
+## Development
+
+### Additional Software
+
+We recommend using the following additional software during development.
+Both of these tools are used to make sure that we are using a consistent code style throughout the project and are described in more detail in the next section below.
+
+ - [Brittany][software/brittany], 0.12.1.1
+ - [HLint][software/hlint], version 2.2.11
+
+The versions mentioned above are the versions used by our CI pipeline.
+
+### Code Style
+
+#### Brittany
+
+[Brittany][software/brittany] is a code formatter for Haskell.
+It can be installed via Cabal as follows.
+
+```haskell
+cabal new-install brittant
+```
+
+The CI pipeline runs `brittany` on all Haskell source files in the `src` and `example` directories and compares its output with the committed files.
+If there are Haskell source files that have not been formatted using `brittany`, the CI pipeline fails.
+The same check is performed by the `./tool/check-formatting.sh` and `./tool/full-test.sh` scripts.
+
+There is Brittany support for various editors (see also [Editor Integration][software/brittany#editor-integration]).
+If your editor is not supported, we are also use the following shell script that we provide.
+
+```haskell
+./tool/format-code.sh [files...]
+```
+
+If no files are specified all Haskell source files in the `src` and `example` directory are formatted by default.
+Note that the script overwrites the formatted files.
+Thus, you should create a backup beforehand by `git add`ing your changes, for example.
+
+Of course Brittany is not perfect.
+Among others, data type declarations are not formatted at the moment.
+So don't rely entirely on the output of our automatic tests and manually check your code nonetheless.
+
+#### HLint
+
+[HLint][software/hlint] is a tool that gives suggestions on how to improve Haskell source code.
+It can be installed via Cabal as follows.
+
+```haskell
+cabal new-install hlint
+```
+
+The CI pipeline runs `hlint` on all Haskell source files in the `src` directory.
+If HLint has suggestions for how the code can be improved, the CI pipeline fails.
+The same check is performed by the `./tool/full-test.sh` script.
+
+There are HLint plugnis for many editors.
+If there is no such plugin for your editor, you can run the following command instead.
+
+```haskell
+hlint src
+```
+
+Remember, that HLint only makes suggestions and you don't have to follow these suggestions.
+However, since the CI pipeline fails if HLint finds possible improvements, suggestions have to be ignored explicitly.
+Edit the `.hlint.yaml` file for this purpose and leave a comment why you had to ignore that suggestion.
+
+### Testing
 
 To test whether the compiler is working correctly, you can run the included unit tests using via one of the following Cabal commands.
 
@@ -318,9 +387,18 @@ See the LICENSE file for details.
   https://arxiv.org/abs/1805.08059
   "One Monad to Prove Them All"
 
+[software/brittany]:
+  https://github.com/lspitzner/brittany/
+  "Brittany"
+[software/brittany#editor-integration]:
+  https://github.com/lspitzner/brittany/#editor-integration
+  "Brittany — Editor Integration"
 [software/haddock]:
   https://www.haskell.org/haddock/
   "Haddock"
+[software/hlint]:
+  https://github.com/ndmitchell/hlint
+  "HLint"
 [software/ghc]:     
   https://www.haskell.org/ghc/
   "The Glasgow Haskell Compiler"
