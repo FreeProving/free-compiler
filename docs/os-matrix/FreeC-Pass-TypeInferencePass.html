@@ -1,0 +1,85 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><title>FreeC.Pass.TypeInferencePass</title><link href="ocean.css" rel="stylesheet" type="text/css" title="Ocean" /><link rel="stylesheet" type="text/css" href="quick-jump.css" /><script src="haddock-bundle.min.js" async="async" type="text/javascript"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML" type="text/javascript"></script></head><body><div id="package-header"><ul class="links" id="page-menu"><li><a href="src/FreeC.Pass.TypeInferencePass.html">Source</a></li><li><a href="index.html">Contents</a></li><li><a href="doc-index.html">Index</a></li></ul><p class="caption">free-compiler-0.1.0.0: A Haskell to Coq compiler.</p></div><div id="content"><div id="module-header"><table class="info"><tr><th>Safe Haskell</th><td>None</td></tr><tr><th>Language</th><td>Haskell2010</td></tr></table><p class="caption">FreeC.Pass.TypeInferencePass</p></div><div id="description"><p class="caption">Description</p><div class="doc"><p>This module contains a compiler pass that infers the types of all
+   function declarations including the types of the sub-expressions of
+   their right-hand sides and type arguments to pass to used functions and
+   constructors.</p><h1>Examples</h1><h2>Example 1: Type inference</h2><p>The type of a function declaration that does not have a type signature</p><pre>  double x = x + x
+  </pre><p>can be inferred from the types of the functions it is using on it's
+   right-hand side. Instead of just inferring the type of the declared
+   function, the types of all argument patterns and the return type of
+   the function are annotated by this pass.</p><pre>  double (x :: Integer) = x + x :: Integer
+  </pre><h2>Example 2: Polymorphic functions</h2><p>When a function is polymorphic</p><pre>  null xs = case xs of {
+      []      -&gt; False;
+      x : xs' -&gt; True
+    }
+  </pre><p>its type variables will be specified explicitly on the left-hand
+   side of the function declaration. Their order depends on the order
+   in which they appear in the inferred type of the function. Type
+   arguments are listed from left to right.</p><pre>  null @t0 (xs :: [t0]) = (case xs of {
+      []                        -&gt; False;
+      (x :: t0) : (xs' :: [t0]) -&gt; True
+    }) :: Bool
+  </pre><p>When such a polymorphic function is called</p><pre>  null [1, 2, 3]
+  </pre><p>the type inference pass figures out the types the type arguments of
+   a function need to be instantiated with and inserts corresponding
+   visible type applications.</p><pre>  null @Integer [1, 2, 3]
+  </pre><h2>Example 3: Vanishing type arguments</h2><p>When type arguments are applied visibly, there are some cases where the
+   visible type application contains type variables that are not related to
+   the functions type (also called &quot;vanishing type arguments&quot;). The function
+   below has type <code>Bool</code> for example, but the list it is using is polymorphic.</p><pre>  myTrue = null []
+  </pre><p>Thus, the list contains elements of some type <code>t0</code> which needs to be
+   added as a type argument to the list constructor <code>[]</code> and <code>null</code>.</p><pre>  myTrue <code>t0 = null </code>t0 ([] @t0) :: Bool
+  </pre><p>While Haskell would tolerate the definition of <code>myTrue</code> without type
+   arguments, Coq does not accept an equivalent definition.</p><pre>  Definition null {a : Type} (xs : list a) : bool
+    := match xs with
+       | nil      =&gt; true
+       | cons _ _ =&gt; false
+       end.
+
+  Fail Definition myTrue := null nil.
+  </pre><pre>  The command has indeed failed with message:
+  Cannot infer the implicit parameter a of null whose type is <a href="file:///opt/ghc/8.6.5/share/doc/ghc-8.6.5/html/libraries/ghc-8.6.5/Type.html">Type</a>.
+  </pre><p>In order to fix this error, we have to do exactly what we did above, i.e.,
+   introduce a new type argument for <code>myTrue</code> and pass that type argument
+   to either <code>null</code>, <code>nil</code> or both.</p><pre>  Definition myTrue (t0 : Type) := <code>null t0 (</code>nil t0).
+  </pre><p>We choose to pass all type arguments throughout the entire program
+   explicitly such that we can be sure, that Coq always agrees with the
+   types we have inferred.</p><h2>Example 4: Vanishing type arguments in recursive functions</h2><p>When a recursive function contains vanishing type arguments (for
+   example, because it calls a function such as <code>true</code> which introduces
+   a vanishing type argument),</p><pre>  length xs = case xs of {
+      []      -&gt; if true then 0 else 1
+      x : xs' -&gt; 1 + length xs
+    }
+  </pre><p>the vanishing type arguments are passed unchanged to recursive calls
+   while regular type arguments (e.g., <code>t0</code> below) could change in case
+   of polymorphic recursion.</p><pre>  length <code>t0 </code>t1 (xs :: [t0]) = case xs of {
+      []                        -&gt; if true <code>t1 then 0 else 1
+      (x :: t0) : (xs' :: [t0]) -&gt; 1 + length </code>t0 @t1 xs
+    }
+  </pre><p>If there are multiple sub-expressions that introduce vanishing type
+   arguments,</p><pre>  if true &amp;&amp; true then 0 else 1
+  </pre><p>the type arguments they introduce are distinct.</p><pre>  if true <code>t1 &amp;&amp; true </code>t2 then 0 else 1
+  </pre><p>Thus, <code>length</code> would have two additional type arguments in this case.</p><pre>  length <code>t0 </code>t1 @t2 (xs :: [t0]) = {- ... -}
+  </pre><p>Note that vanishing type arguments are always listed after regular
+   type arguments and sorted by the order they occur on the right-hand
+   side from left to right.</p><h2>Example 5: Expression type annotations</h2><p>In the examples above we've omitted type annotations of expressions
+   for better readability. However, in addition to variable patterns and
+   return types of functions, this pass also annotates all sub-expressions
+   on the right-hand side with the type that was inferred for them.</p><p>The type of an expression is stored in <code><a href="FreeC-IR-Syntax-Expr.html#v:exprTypeSchema" title="FreeC.IR.Syntax.Expr">exprTypeSchema</a></code> in the
+   form <code><code><a href="FreeC-IR-Syntax-TypeSchema.html#t:TypeSchema" title="FreeC.IR.Syntax.TypeSchema">TypeSchema</a></code> NoSrcSpan [] &#964;</code> and can safely be accessed
+   via <code><a href="FreeC-IR-Syntax-Expr.html#v:exprType" title="FreeC.IR.Syntax.Expr">exprType</a></code> after this pass. The field contains a type schema
+   rather than a type because it is also used to store expression type
+   signatures of the user and type variables in type signatures need
+   to be universally quantified in Haskell.</p><h1>Specification</h1><h2>Preconditions</h2><ul><li>There are environment entries for all functions and constructors that
+     are used by functions in the strongly connected component (except
+     for the functions whose type to infer themselves).</li><li>Type signatures have already been associated with the corresponding
+     function declarations (See <a href="FreeC-Pass-TypeSignaturePass.html">FreeC.Pass.TypeSignaturePass</a>).</li></ul><h2>Translation</h2><p>The type inference algorithm implemented by the pass is based on the
+   algorithm by Damas and Milner (1982).</p><pre>  [Damas &amp; Milner, 1982]:
+    L. Damas and R. Milner. Principal type-schemes for functional programs.
+    In Proc. 9th Annual Symposium on Principles of Programming Languages,
+    pp. 207&#8211;212, 1982.
+  </pre><p>We are extending this algorithm to apply type arguments visibly and
+   make vanishing type arguments explicit.</p><p>See the comments in the definition of <code>inferFuncDeclTypes'</code> for more
+   information on the actual implementation of type inference.</p><h2>Postconditions</h2><ul><li>The types of all variable patterns, function return types and the types
+     of all expressions are explicitly annotated.</li><li>All type arguments of all polymorphic functions and constructors are
+     applied visibly including vanishing type arguments.</li></ul></div></div><div id="synopsis"><details id="syn"><summary>Synopsis</summary><ul class="details-toggle" data-details-id="syn"><li class="src short"><a href="#v:typeInferencePass">typeInferencePass</a> :: <a href="FreeC-Pass-DependencyAnalysisPass.html#t:DependencyAwarePass" title="FreeC.Pass.DependencyAnalysisPass">DependencyAwarePass</a> <a href="FreeC-IR-Syntax-FuncDecl.html#t:FuncDecl" title="FreeC.IR.Syntax.FuncDecl">FuncDecl</a></li></ul></details></div><div id="interface"><h1>Documentation</h1><div class="top"><p class="src"><a id="v:typeInferencePass" class="def">typeInferencePass</a> :: <a href="FreeC-Pass-DependencyAnalysisPass.html#t:DependencyAwarePass" title="FreeC.Pass.DependencyAnalysisPass">DependencyAwarePass</a> <a href="FreeC-IR-Syntax-FuncDecl.html#t:FuncDecl" title="FreeC.IR.Syntax.FuncDecl">FuncDecl</a> <a href="src/FreeC.Pass.TypeInferencePass.html#typeInferencePass" class="link">Source</a> <a href="#v:typeInferencePass" class="selflink">#</a></p><div class="doc"><p>A compiler pass that infers the types of (mutually recursive) function
+   declarations in the given strongly connected component of the function
+   dependency graph.</p></div></div></div></div><div id="footer"><p>Produced by <a href="http://www.haskell.org/haddock/">Haddock</a> version 2.22.0</p></div></body></html>

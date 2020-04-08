@@ -1,0 +1,41 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-comment">-- | This module contains the data type that is used to represent module</span><span>
+</span><a name="line-2"></a><span class="hs-comment">--   interfaces.</span><span>
+</span><a name="line-3"></a><span class="hs-comment">--</span><span>
+</span><a name="line-4"></a><span class="hs-comment">--   A module interface contains all environment entries that are defined in</span><span>
+</span><a name="line-5"></a><span class="hs-comment">--   the module and all entries of the interfaces of imported modules.</span><span>
+</span><a name="line-6"></a><span class="hs-comment">--   The entries which are actually exported by the module (and thus visible</span><span>
+</span><a name="line-7"></a><span class="hs-comment">--   to modules that import it) are also recorded in the module interface.</span><span>
+</span><a name="line-8"></a><span class="hs-comment">--   Entries which are part of the module interface but not actually exported</span><span>
+</span><a name="line-9"></a><span class="hs-comment">--   by the module are called hidden entries.</span><span>
+</span><a name="line-10"></a><span class="hs-comment">--</span><span>
+</span><a name="line-11"></a><span class="hs-comment">--   The module interface must contain hidden entries such that type synonyms</span><span>
+</span><a name="line-12"></a><span class="hs-comment">--   can be expanded properly. The entry of a type synonym can contain type</span><span>
+</span><a name="line-13"></a><span class="hs-comment">--   constructors which were in scope when the type synonym was declared but</span><span>
+</span><a name="line-14"></a><span class="hs-comment">--   don't have to be in scope when the imported type synonym is used.</span><span>
+</span><a name="line-15"></a><span>
+</span><a name="line-16"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">FreeC.Environment.ModuleInterface</span><span> </span><span class="hs-keyword">where</span><span>
+</span><a name="line-17"></a><span>
+</span><a name="line-18"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data.Set</span><span>                       </span><span class="hs-special">(</span><span> </span><span class="hs-identifier hs-type">Set</span><span> </span><span class="hs-special">)</span><span>
+</span><a name="line-19"></a><span>
+</span><a name="line-20"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><a href="FreeC.Backend.Coq.Syntax.html"><span class="hs-identifier">FreeC.Backend.Coq.Syntax</span></a><span>      </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">Coq</span><span>
+</span><a name="line-21"></a><span class="hs-keyword">import</span><span>           </span><a href="FreeC.Environment.Entry.html"><span class="hs-identifier">FreeC.Environment.Entry</span></a><span>
+</span><a name="line-22"></a><span class="hs-keyword">import</span><span>           </span><a href="FreeC.Environment.Scope.html"><span class="hs-identifier">FreeC.Environment.Scope</span></a><span>
+</span><a name="line-23"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><a href="FreeC.IR.Syntax.html"><span class="hs-identifier">FreeC.IR.Syntax</span></a><span>               </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">IR</span><span>
+</span><a name="line-24"></a><span>
+</span><a name="line-25"></a><span class="hs-comment">-- | Data type that contains the information of a module environment that</span><span>
+</span><a name="line-26"></a><span class="hs-comment">--   is exported and imported.</span><span>
+</span><a name="line-27"></a><span class="hs-keyword">data</span><span> </span><a name="ModuleInterface"><a href="FreeC.Environment.ModuleInterface.html#ModuleInterface"><span class="hs-identifier">ModuleInterface</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a name="ModuleInterface"><a href="FreeC.Environment.ModuleInterface.html#ModuleInterface"><span class="hs-identifier">ModuleInterface</span></a></a><span>
+</span><a name="line-28"></a><span>  </span><span class="hs-special">{</span><span> </span><a name="interfaceModName"><a href="FreeC.Environment.ModuleInterface.html#interfaceModName"><span class="hs-identifier">interfaceModName</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><a href="FreeC.IR.Syntax.Name.html#ModName"><span class="hs-identifier hs-type">IR.ModName</span></a><span>
+</span><a name="line-29"></a><span>    </span><span class="hs-comment">-- ^ The name of the module.</span><span>
+</span><a name="line-30"></a><span>  </span><span class="hs-special">,</span><span> </span><a name="interfaceLibName"><a href="FreeC.Environment.ModuleInterface.html#interfaceLibName"><span class="hs-identifier">interfaceLibName</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Coq.ModuleIdent</span><span>
+</span><a name="line-31"></a><span>    </span><span class="hs-comment">-- ^ The name of the Coq library that contains this module (e.g. @&quot;Base&quot;@</span><span>
+</span><a name="line-32"></a><span>    </span><span class="hs-comment">--   for the @Prelude@ module).</span><span>
+</span><a name="line-33"></a><span>  </span><span class="hs-special">,</span><span> </span><a name="interfaceExports"><a href="FreeC.Environment.ModuleInterface.html#interfaceExports"><span class="hs-identifier">interfaceExports</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Set</span><span> </span><a href="FreeC.Environment.Scope.html#ScopedName"><span class="hs-identifier hs-type">ScopedName</span></a><span>
+</span><a name="line-34"></a><span>    </span><span class="hs-comment">-- ^ The names (qualified with their original module name) that are</span><span>
+</span><a name="line-35"></a><span>    </span><span class="hs-comment">--   exported by the module.</span><span>
+</span><a name="line-36"></a><span>  </span><span class="hs-special">,</span><span> </span><a name="interfaceEntries"><a href="FreeC.Environment.ModuleInterface.html#interfaceEntries"><span class="hs-identifier">interfaceEntries</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Set</span><span> </span><a href="FreeC.Environment.Entry.html#EnvEntry"><span class="hs-identifier hs-type">EnvEntry</span></a><span>
+</span><a name="line-37"></a><span>    </span><span class="hs-comment">-- ^ The entries (including hidden entries) defined in or imported</span><span>
+</span><a name="line-38"></a><span>    </span><span class="hs-comment">--   by the module.</span><span>
+</span><a name="line-39"></a><span>  </span><span class="hs-special">}</span><span>
+</span><a name="line-40"></a><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-identifier hs-type">Show</span><span>
+</span><a name="line-41"></a></pre></body></html>
