@@ -299,26 +299,39 @@ jobs:
   #  - The **private key** must be added as a repository secret `DEPLOY_KEY` to
   #    the menu under `Settings > Secrets`.
   #
+  # This job will be skipped if the `DEPLOY_KEY` secret is missing.
+  # Therefore, it is not necessary to setup deployment to GitHub pages
+  # when forking the repository.
+  #
   # **NEVER** commit the contents of the private key!
   deploy-docs:
     name: Deploy Haddock documentation to GitHub pages
     needs: [build-docs]
     runs-on: ubuntu-latest
+    env:
+      # We cannot access `secrets` in `jobs.<job_id>.steps.if` directly and
+      # `env` is not allowed on `jobs.<job_id>.if`.
+      HAS_DEPLOY_KEY: ${{ secrets.DEPLOY_KEY != '' }}
     steps:
-    - name: Checkout
+    - if: ${{ env.HAS_DEPLOY_KEY }}
+      name: Checkout
       uses: actions/checkout@v1
-    - name: Install SSH Client
+    - if:   ${{ env.HAS_DEPLOY_KEY }}
+      name: Install SSH Client
       uses: webfactory/ssh-agent@v0.2.0
       with:
         ssh-private-key: ${{ secrets.DEPLOY_KEY }}
-    - name: Slug GitHub variables
+    - if:   ${{ env.HAS_DEPLOY_KEY }}
+      name: Slug GitHub variables
       uses: rlespinasse/github-slug-action@master
-    - name: Download documentation
+    - if:   ${{ env.HAS_DEPLOY_KEY }}
+      name: Download documentation
       uses: actions/download-artifact@v1
       with:
         name: documentation
         path: ./build/docs
-    - name: Deploy to GitHub pages
+    - if:   ${{ env.HAS_DEPLOY_KEY }}
+      name: Deploy to GitHub pages
       uses: JamesIves/github-pages-deploy-action@releases/v3
       with:
         SSH: true
