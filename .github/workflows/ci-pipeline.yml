@@ -364,17 +364,13 @@ jobs:
 
   # Uses the compiler build by `build-compiler` to compile example Haskell
   # programs located in the `./example` directory.
-  #
-  # Currently we are running this job on Ubuntu only, since we need
-  # to run shell commands before running the compiler and I don't know
-  # whether they are available on the other platforms as well.
   test-examples:
     name: Test examples
     needs: [build-compiler]
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: ["ubuntu-latest"]
+        os: ["macos-latest", "ubuntu-latest"]
     steps:
     - name: Checkout
       uses: actions/checkout@v1
