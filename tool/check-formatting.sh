@@ -18,7 +18,7 @@ bold=$(tput bold)
 reset=$(tput sgr0)
 
 # Check whether brittany is installed.
-if ! which brittany; then
+if ! which brittany >/dev/null 2>&1; then
   echo "${red}${bold}Error:${reset}" \
        "${bold}Could not find Brittany.${reset}"
   echo " |"
@@ -28,11 +28,19 @@ if ! which brittany; then
   exit 1
 fi
 
-# Format all Haskell files in the `src` and `example` directories that are
-# tracked by `git` using `brittany` and compare the output with the original
-# file. Count the number of files that need formatting.
+# The user can optionally specify files and directories to check.
+# By default all Haskell files in the `src` and `example` directories are
+# checked.
+files=("$@")
+if [ "${#files[@]}" == "0" ]; then
+  files=(src example)
+fi
+
+# Format all given Haskell files that are tracked by `git` using `brittany`
+# and compare the output with the original file. Count the number of files
+# that need formatting.
 counter=0
-for file in $(find src example -name '*.hs' -type f); do
+for file in $(find "${files[@]}" -name '*.hs' -type f); do
   if git ls-files --error-unmatch "$file" >/dev/null 2>&1; then
     echo -n "Checking ${bold}$file${reset} ... "
     if brittany "$file" | cmp -s "$file"; then
