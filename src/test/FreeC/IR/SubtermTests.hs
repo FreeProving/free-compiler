@@ -1,3 +1,5 @@
+-- | This module contains tests for "FreeC.IR.Subterm".
+
 module FreeC.IR.SubtermTests where
 
 import           Test.Hspec

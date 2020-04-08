@@ -1,3 +1,5 @@
+-- | This is the main module for the compiler's command line interface.
+
 module Main where
 
 import           Control.Monad.Extra            ( ifM

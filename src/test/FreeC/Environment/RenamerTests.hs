@@ -1,3 +1,5 @@
+-- | This module contains tests for "FreeC.Environment.Renamer".
+
 module FreeC.Environment.RenamerTests where
 
 import           Test.Hspec

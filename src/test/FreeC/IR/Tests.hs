@@ -1,4 +1,4 @@
--- | This module contains tests for modules that are defined below "FreeC.IR".
+-- | This module contains tests for modules that are defined below @FreeC.IR@.
 
 module FreeC.IR.Tests
   ( testIR
@@ -13,7 +13,7 @@ import           FreeC.IR.SubstTests
 import           FreeC.IR.SubtermTests
 import           FreeC.IR.UnificationTests
 
--- | Test group for tests of modules below "FreeC.IR".
+-- | Test group for tests of modules below @FreeC.IR@.
 testIR :: Spec
 testIR = do
   testReference

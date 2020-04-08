@@ -1,3 +1,5 @@
+-- | This module contains tests for "FreeC.IR.Reference".
+
 module FreeC.IR.ReferenceTests where
 
 import           Test.Hspec
@@ -6,7 +8,7 @@ import           FreeC.IR.Reference
 import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Test.Parser
 
--- | Test group for dependency extraction tests.
+-- | Test group for "FreeC.IR.Reference" tests.
 testReference :: Spec
 testReference = describe "FreeC.IR.Reference" $ do
   testTypeVars

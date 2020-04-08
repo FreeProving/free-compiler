@@ -1,3 +1,5 @@
+-- | This is the main module of the compiler's test suite.
+
 import           Test.Hspec
 
 import           FreeC.Backend.Coq.Tests

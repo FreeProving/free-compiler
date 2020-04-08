@@ -1,3 +1,5 @@
+-- | This module contains tests for "FreeC.Frontend.IR.Scanner".
+
 module FreeC.Frontend.IR.ScannerTests where
 
 import           Test.Hspec              hiding ( shouldReturn )
@@ -8,6 +10,7 @@ import           FreeC.IR.SrcSpan
 import           FreeC.Monad.Class.Testable
 import           FreeC.Monad.Reporter
 
+-- | Tokenizes a string for testing purposes.
 scanTest :: String -> Reporter [Token]
 scanTest = fmap (map getToken) . scan . mkSrcFile "<test-input>"
 
