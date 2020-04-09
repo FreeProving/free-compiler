@@ -309,7 +309,7 @@ Edit the `.hlint.yaml` file for this purpose and leave a comment why you had to 
 
 ### Testing
 
-To test whether the compiler is working correctly, you can run the included unit tests using via one of the following Cabal commands.
+To test whether the compiler is working correctly, you can run the included unit tests via one of the following Cabal commands.
 
 ```bash
 cabal new-test
@@ -351,7 +351,7 @@ Similar to how we discourage using `cabal new-run` during development to run the
    ./tool/full-test.sh
    ```
 
-   The script simulates the CI pipeline locally but runs much faster since there is no overhead for creating test environments, uploading and downloading artifacts, initializing the cache etc.
+   The script simulates the CI pipeline locally but runs much faster since there is no overhead for creating test environments, uploading and downloading artifacts, initializing caches etc.
    If the script succeeds, it is not guaranteed that the CI pipeline will definitely pass, but it should catch the most common mistakes.
 
 ## License
