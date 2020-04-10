@@ -188,32 +188,58 @@ When writing Git Commit Messages, try to follow the following recommendations on
 
  - **Separate subject from body with a blank line**
 
+   The commit message should start with a subject line that is separated from the rest of the commit message by a blank line.
+   The subject line briefly summaries the changes in preferably 50 to at most 72 characters or less.
+
+   ```
+   Summarize changes using Markdown for formatting
+
+   Give a more detailed explanation of the changes made by this commit in the
+   body of the commit message. This explanation can span multiple lines or even
+   paragraphs. This text is formatted using Markdown as well.
+   ```
+
  - **Capitalize the subject line**
 
  - **Do not end the subject line with a period**
 
  - **Use the present tense and imperative mood in the subject line**
 
+   You should be able to read a Git commit message as "If applied, this commit will [subject]".
+
+    + **DON'T:** `Added feature XYZ` or `Fixes #123`
+
+    + **DO** `Add feature XYZ` or `Fix #123`
+
  - **Wrap lines at 72 characters**
 
-   One exception to this rule are links.
-   Never wrap long links but consider placing them on a line by themselves.
-   This way, the links can be copied easily and are recognized by some terminals as clickable.
+    + One exception to this rule are links.
+     Never wrap long links.
+     Instead consider placing them on a line by themselves.
+     This way, the links can be copied easily and can be recognized by terminals as clickable if such a feature is supported.
 
-   It is highly encouraged to keep the subject line below 50 characters.
-   However, the 72 characters should be considered a hard limit for the subject line.
+    + The subject line should be kept even shorter at below 50 characters if possible.
+      You can exceed this limit if needed.
+      However, the 72 characters should be considered a hard limit for the subject line.
 
- - **Explain *what* and *why* something has been done as opposed to *how***
+ - **Explain *what* and *why* something has been done and not *how***
 
  - **Reference issues and pull requests**
 
-The language of Git commits is English.
+   If you are currently working on an issue or pull request, reference the number of the issue or pull request directly after the subject line.
 
-If you want to format your commit messages use Markdown (for example, use [code spans][Markdown/code-spans] to format identifiers).
-The [Markdown Styleguide](#markdown-styleguide) applies but the rules above take precedence.
-For example, lines in Git commit messages are wrapped at 72 characters while they are not wrapped in Markdown documents.
-Also: just paste links into the commit message's body.
-There is no need for link reference definitions or links with text in commit messages.
+    + `Add feature XYZ #42`
+    + `Fix #42`
+
+ - **The language of Git commits is English**
+
+ - **Use Markdown to format your commit messages**
+
+   If you want to format your commit messages use Markdown (for example, use [code spans][Markdown/code-spans] to format identifiers).
+   The [Markdown Styleguide](#markdown-styleguide) applies but the rules above take precedence.
+   For example, lines in Git commit messages are wrapped at 72 characters while they are not wrapped in Markdown documents.
+   Also: just paste links into the commit message's body.
+   There is no need for link reference definitions or links with text in commit messages.
 
 ### Haskell Styleguide
 
