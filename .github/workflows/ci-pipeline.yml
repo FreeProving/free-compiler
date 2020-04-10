@@ -1,12 +1,12 @@
 name: CI Pipeline
 
-# The CI pipeline runs under the following criteria.
-#   - On every push that modifies Cabal configuration, source or example files.
-#     If just the README or documentation changes, the pipeline does not have
-#     to run. It also runs when the Workflow configuration changed itself.
-#   - On every pull request regardless of which files have been changed.
+# The CI pipeline runs whenever a pull request that modifies the compiler's
+# build configuration, source or example files is opened, synchronized (i.e.,
+# updated due to a new push to the branch that is tracked by the pull request)
+# or reopened. If just the README or documentation changes, the pipeline does
+# not have to run. It also runs when the Workflow configuration changed itself.
 on:
-  push:
+  pull_request:
     paths:
     - 'cabal.project'
     - 'free-compiler.cabal'
@@ -14,7 +14,6 @@ on:
     - 'example/**'
     - 'src/**'
     - '.github/workflows/ci-pipeline.yml'
-  pull_request: {}
 
 jobs:
   #############################################################################
