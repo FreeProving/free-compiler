@@ -36,7 +36,6 @@ jobs:
   build-docs:
     if: github.event_name == 'push' || github.event.pull_request.merged
     name: Build Haddock documentation
-    needs: [install-dependencies]
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
