@@ -125,6 +125,9 @@ jobs:
       # `env` is not allowed on `jobs.<job_id>.if`.
       HAS_DEPLOY_KEY: ${{ secrets.DEPLOY_KEY != '' }}
     steps:
+    - # The checkout is required by the deployment action below.
+      name: Checkout
+      uses: actions/checkout@v1
     - if:   ${{ env.HAS_DEPLOY_KEY == 'true' }}
       name: Install SSH Client
       uses: webfactory/ssh-agent@v0.2.0
