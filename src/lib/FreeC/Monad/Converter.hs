@@ -1,7 +1,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 -- | This module defines a state monad which allows the compiler's state (see
---   "FreeC.Environment") to be passed implicitly throught the converter.
+--   "FreeC.Environment") to be passed implicitly through the converter.
 --
 --   There are also utility functions to modify the state and retrieve
 --   information stored in the state.
@@ -124,7 +124,7 @@ instance MonadTrans ConverterT where
 lift' :: Monad m => ReporterT m a -> ConverterT m a
 lift' mx = ConverterT $ StateT $ (mx >>=) . (return .: flip (,))
 
--- | The converter monad can be lifted to any convrter transformer.
+-- | The converter monad can be lifted to any converter transformer.
 instance Hoistable ConverterT where
   hoist = ConverterT . StateT . (hoist .) . runConverter
 

@@ -4,9 +4,26 @@ name: CI Pipeline
 # build configuration, source or example files is opened, synchronized (i.e.,
 # updated due to a new push to the branch that is tracked by the pull request)
 # or reopened. If just the README or documentation changes, the pipeline does
-# not have to run. It also runs when the Workflow configuration changed itself.
+# not have to run. It also runs when the workflow configuration changed itself.
+#
+# When such a pull request is merged the resulting `push` event on the master
+# branch triggers another run of the CI pipeline. This is necessary because
+# there could be changes to the master branch that are not compatible with the
+# pull request but don't prevent fast-forward merging.
+# Furthermore, the documentation is deployed to GitHub pages during the second
+# run of the CI pipeline.
 on:
   pull_request:
+    paths:
+    - 'cabal.project'
+    - 'free-compiler.cabal'
+    - 'base/**'
+    - 'example/**'
+    - 'src/**'
+    - '.github/workflows/ci-pipeline.yml'
+  push:
+    branches:
+    - 'master'
     paths:
     - 'cabal.project'
     - 'free-compiler.cabal'
@@ -222,9 +239,9 @@ jobs:
   # Documentation                                                             #
   #############################################################################
 
-  # We build the documentation on Ubuntu only. Haddock should generate
-  # the same documentation on all platforms and we need just one version
-  # of the documentation for deployment in `deploy-docs`.
+  # We build the documentation on Ubuntu only. The goal of this job is not to
+  # generate documentation for deployment but to test whether everything is
+  # documented and the documentation can be built without a problem.
   build-docs:
     name: Build Haddock documentation
     needs: [install-dependencies]
@@ -304,17 +321,23 @@ jobs:
   # Therefore, it is not necessary to setup deployment to GitHub pages
   # when forking the repository.
   #
+  # This job only runs on `push` events and not on `pull_request` events.
+  # This limits the deployment effectively to the master branch (and maybe
+  # tags in the future).
+  #
   # **NEVER** commit the contents of the private key!
   deploy-docs:
     name: Deploy Haddock documentation to GitHub pages
     needs: [build-docs]
     runs-on: ubuntu-latest
+    if: github.event_name == 'push'
     env:
       # We cannot access `secrets` in `jobs.<job_id>.steps.if` directly and
       # `env` is not allowed on `jobs.<job_id>.if`.
       HAS_DEPLOY_KEY: ${{ secrets.DEPLOY_KEY != '' }}
     steps:
-    - if: ${{ env.HAS_DEPLOY_KEY == 'true' }}
+    - # The checkout is required by the deployment action below.
+      if:   ${{ env.HAS_DEPLOY_KEY == 'true' }}
       name: Checkout
       uses: actions/checkout@v1
     - if:   ${{ env.HAS_DEPLOY_KEY == 'true' }}
@@ -336,6 +359,7 @@ jobs:
       uses: JamesIves/github-pages-deploy-action@releases/v3
       with:
         SSH: true
+        CLEAN: true
         BRANCH: gh-pages
         FOLDER: build/docs
         TARGET_FOLDER: docs/${{ env.GITHUB_REF_SLUG }}
