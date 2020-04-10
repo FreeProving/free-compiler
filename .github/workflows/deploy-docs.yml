@@ -15,7 +15,7 @@ on:
     - 'free-compiler.cabal'
     - 'src/**'
     - '.github/workflows/deploy-docs.yml'
-  pull_requests:
+  pull_request:
     branches:
     - master
     types:
