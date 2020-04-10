@@ -14,14 +14,16 @@ If you have questions or want to propose changes to this document, feel free to 
  1. [How Can I Contribute?](#how-can-i-contribute)
     - [Reporting Bugs](#reporting-bugs)
     - [Submitting Pull Requests](#submitting-pull-requests)
- 2. [Styleguides](#styleguides)
+ 2. [Directory Structure](#directory-structure)
+ 3. [Testing](#testing)
+ 4. [Styleguides](#styleguides)
     - [Languages without Styleguide](#languages-without-styleguide)
     - [General Guidelines](#general-guidelines)
     - [Git Commit Messages](#git-commit-messages)
     - [Haskell Styleguide](#haskell-styleguide)
     - [Haddock Styleguide](#haddock-styleguide)
     - [Markdown Styleguide](#markdown-styleguide)
- 3. [Legal Information](#leagal-information)
+ 5. [Legal Information](#leagal-information)
     - [Privacy](#privacy)
     - [License](#license)
 
@@ -32,6 +34,92 @@ If you have questions or want to propose changes to this document, feel free to 
 TODO
 
 ### Submitting Pull Requests
+
+TODO
+
+## Directory Structure
+
+In this section, we would like to give you a quick overview over what files are part of this repository, where they can be found and what's their purpose.
+
+ - `./`
+
+   The root directory of this repository is home to important Markdown documents and central configuration files (e.g., Cabal configuration files).
+
+ - `./.github`
+
+   This directory contains GitHub related files such as issue and pull request templates as well as the configuration of the [CI pipeline](#the-ci-pipeline).
+
+ - `./base`
+
+   This directory contains the Coq base library of the compiler.
+   The Coq base library is a collection of Coq files that are required by the generated code.
+   This includes the definition of the `Free` monad as well as the `Prelude` and `Test.QuickCheck` implementation.
+
+ - `./doc`
+
+   This directory contains Markdown documentation of the compiler.
+   The documentation in this directory is mainly intended for users and not so much for developers of the compiler.
+
+ - `./example`
+
+   This directory contains examples for Haskell modules that can (or cannot) be compiled with the Free Compiler.
+   There are also two `.gitignore`d subdirectories `./example/transformed` and `./example/generated`.
+
+    + `./example/generated` is intended to be used as the `--output` directory of the compiler when testing the compiler.
+    + `./example/transformed` is used to dump the output of the [pattern matching compiler][doc/ExperimentalFeatures/PatternMatchingCompilation.md].
+
+   There are also Coq files (`.v` files) for proofs about translated examples.
+   In contrast to the Coq files placed by the compiler into `./example/generated`, they are not `.gitignore`d.
+   The `./example/_CoqProject` file, configures Coq such that the versioned Coq files can discover the generated Coq code and the base library.
+
+ - `./img`
+
+   This directory contains images that are embedded into the README or other Markdown files.
+
+ - `./src`
+
+   This directory contains the Haskell source code of the compiler.
+   There are three subdirectories.
+
+    + `./src/exe` contains the code for the command line interface.
+    + `./src/lib` contains the code for the actual compiler.
+    + `./src/test` contains test cases for the modules located in `./src/lib`.
+       * By convention modules containing test cases have the same name as the module they are testing, but the name `Tests` is appended.
+         For example, the module `FreeC.Pass.TypeInferencePassTests` contains test cases for the `FreeC.Pass.TypeInferencePass` module.
+       * For tests of modules with a common prefix, there is often a `Tests.hs` file that simply invokes all tests of all modules with that prefix.
+         For example, there is no `FreeC.IR` module but a `FreeC.IR.Tests` module that runs all tests for modules starting the the `FreeC.IR` prefix (e.g., `FreeC.IR.ReferenceTests`, `FreeC.IR.SubstTests`, etc.)
+       * The `Spec` module serves as an entry point or "main module" for the unit tests.
+         It invokes the unit tests in the other test modules.
+
+ - `./tool`
+
+   This directory contains Bash scripts for common actions that need to be performed during development.
+   The scripts are intended to be executed from the root directory of this repository.
+
+   ```bash
+   ./tool/run.sh --help
+   ```
+
+   However, most scripts will make sure that they change into the correct working directory beforehand.
+   For example, the compiler runs in `/path/to/free-compiler` when invoked using the following command.
+
+   ```bash
+   /path/to/free-compiler/tool/run.sh ./example/Data/List.hs
+   ```
+
+   As a consequence `./example/Data/List.hs` refers to `/path/to/free-compiler/example/Data/List.hs` and not to `$(pwd)/example/Data/List.hs` in the example above.
+
+   If there are other directories named `tool` in this repository, the contained scripts are interned to to be executed from the directory containing the `tool` directory as well.
+
+## Testing
+
+TODO
+
+### Running Tests Locally
+
+TODO
+
+### The CI Pipeline
 
 TODO
 
@@ -116,6 +204,8 @@ When writing Git Commit Messages, try to follow the following recommendations on
    However, the 72 characters should be considered a hard limit for the subject line.
 
  - **Explain *what* and *why* something has been done as opposed to *how***
+
+ - **Reference issues and pull requests**
 
 The language of Git commits is English.
 
@@ -339,6 +429,11 @@ This includes that your contributions can be
 
 by anyone provided that the requirements of the license regarding the attribution of the copyright holders are met.  
 See the [LICENSE][] file for details.
+
+
+[doc/ExperimentalFeatures/PatternMatchingCompilation.md]:
+  https://github.com/FreeProving/free-compiler/blob/master/doc/ExperimentalFeatures/PatternMatchingCompilation.md
+  "Free Compiler Documentation — Pattern Matching Compilation"
 
 [freec/issues]:
   https://github.com/FreeProving/free-compiler/issues
