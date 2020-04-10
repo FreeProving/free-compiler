@@ -5,7 +5,7 @@ Whether it is a feature request, enhancement proposal, bug report or pull reques
 
 We want to make the process of contributing to this project as easy and transparent as possible.
 Thus, please take the time to read this document carefully if this is your first time contributing.
-Note that the following is a set of guidelines.
+Note that the following is a set of guidelines and recommendations.
 They are not rules and they are certainly not complete.
 If you have questions or want to propose changes to this document, feel free to open an [issue][freec/issues] or [pull request][freec/pull-requests].
 
@@ -16,6 +16,10 @@ If you have questions or want to propose changes to this document, feel free to 
     - [Submitting Pull Requests](#submitting-pull-requests)
  2. [Directory Structure](#directory-structure)
  3. [Testing](#testing)
+    - [Running Unit Tests](#running-unit-tests)
+    - [Writing Unit Tests](#writing-unit-tests)
+    - [The CI Pipeline](#the-ci-pipeline)
+    - [Running The Pipeline Locally](#running-the-pipeline-locally)
  4. [Styleguides](#styleguides)
     - [Languages without Styleguide](#languages-without-styleguide)
     - [General Guidelines](#general-guidelines)
@@ -44,10 +48,14 @@ In this section, we would like to give you a quick overview over what files are 
  - `./`
 
    The root directory of this repository is home to important Markdown documents and central configuration files (e.g., Cabal configuration files).
+   Avoid adding new files directly to the root directory if possible.
+   Instead, select an appropriate subdirectory from the list below or create a new subdirectory if the file really does not fit any of the existing categories.
 
  - `./.github`
 
    This directory contains GitHub related files such as issue and pull request templates as well as the configuration of the [CI pipeline](#the-ci-pipeline).
+   Usually only project maintainers have to edit files in this directory.
+   You can safely ignore it.
 
  - `./base`
 
@@ -59,11 +67,15 @@ In this section, we would like to give you a quick overview over what files are 
 
    This directory contains Markdown documentation of the compiler.
    The documentation in this directory is mainly intended for users and not so much for developers of the compiler.
+   Documentation for more technical aspects such as *module interfaces* and the *intermediate representation* also belongs here.
+   Nevertheless, avoid providing implementation details and don't require knowledge about internal workings of the compiler in these documents.
 
  - `./example`
 
    This directory contains examples for Haskell modules that can (or cannot) be compiled with the Free Compiler.
-   There are also two `.gitignore`d subdirectories `./example/transformed` and `./example/generated`.
+   Examples that don't compile should be commented out.
+   If multiple examples belong together, they should be placed in a common subdirectory.
+   There are two `.gitignore`d subdirectories `./example/transformed` and `./example/generated`.
 
     + `./example/generated` is intended to be used as the `--output` directory of the compiler when testing the compiler.
     + `./example/transformed` is used to dump the output of the [pattern matching compiler][doc/ExperimentalFeatures/PatternMatchingCompilation.md].
@@ -74,7 +86,9 @@ In this section, we would like to give you a quick overview over what files are 
 
  - `./img`
 
-   This directory contains images that are embedded into the README or other Markdown files.
+   This directory contains images that are embedded into the README or other Markdown documents.
+   Usually you should avoid adding large binary files to Git repositories.
+   Frequent changes to files in this directory should be avoided and new files should only be added if necessary.
 
  - `./src`
 
@@ -84,12 +98,14 @@ In this section, we would like to give you a quick overview over what files are 
     + `./src/exe` contains the code for the command line interface.
     + `./src/lib` contains the code for the actual compiler.
     + `./src/test` contains test cases for the modules located in `./src/lib`.
-       * By convention modules containing test cases have the same name as the module they are testing, but the name `Tests` is appended.
+       * By convention modules containing test cases have the same name as the module they are testing but the name `Tests` is appended.
          For example, the module `FreeC.Pass.TypeInferencePassTests` contains test cases for the `FreeC.Pass.TypeInferencePass` module.
        * For tests of modules with a common prefix, there is often a `Tests.hs` file that simply invokes all tests of all modules with that prefix.
          For example, there is no `FreeC.IR` module but a `FreeC.IR.Tests` module that runs all tests for modules starting the the `FreeC.IR` prefix (e.g., `FreeC.IR.ReferenceTests`, `FreeC.IR.SubstTests`, etc.)
        * The `Spec` module serves as an entry point or "main module" for the unit tests.
          It invokes the unit tests in the other test modules.
+
+   Except for the main modules `Main` and `Spec`, the names of all modules that belong to the Free Compiler should start with the `FreeC` prefix.
 
  - `./tool`
 
@@ -109,19 +125,93 @@ In this section, we would like to give you a quick overview over what files are 
 
    As a consequence `./example/Data/List.hs` refers to `/path/to/free-compiler/example/Data/List.hs` and not to `$(pwd)/example/Data/List.hs` in the example above.
 
-   If there are other directories named `tool` in this repository, the contained scripts are interned to to be executed from the directory containing the `tool` directory as well.
+   If there are other directories named `tool` in this repository, the contained scripts are interned to to be executed from the directory containing the `tool` directory by convention.
 
 ## Testing
 
-TODO
+Automated tests occupy a central role in our development and review process.
+In this section we provide a quick overview over the general testing infrastructure, explain how you can run tests and give recommendations on how to write your own unit tests.
 
-### Running Tests Locally
+### Running Unit Tests
+
+If you make changes to the code, you should run the unit tests to make sure that everything still works.
+One option is to run the unit tests directly using Cabal via the following command.
+
+```bash
+cabal new-run freec-unit-tests -- [options...]
+```
+
+However, we recommend using the `./tool/test.sh` script for running unit tests during development instead which passes some handy default arguments to Cabal and the test suite.
+
+```bash
+./tool/test.sh [options...]
+```
+
+The most important difference is that the script overwrites GHC's `-Werror` flag with `-Wwarn`.
+This allows the unit tests to run even if GHC reports warnings.
+Doing so improves the development workflow.
+Still remember to fix the warnings before creating a pull request since the [Ci pipeline](#the-ci-pipeline) fails otherwise.
+
+Furthermore, the script configures HSpec (the library that we are using for testing) to create a failure report.
+The failure report allows you to add the `--rerun` command line option to run test that failed in the previous run only.
+
+```bash
+./tool/test.sh --rerun
+```
+
+This allows you to focus on the failed test cases during debugging.
+Once all tests are fixed, all tests are executed again.
+
+More command line options are available.
+Use the `--help` option for more information.
+
+```bash
+./tool/test.sh --help
+```
+
+### Writing Unit Tests
+
+In addition to testing whether your changes do not break existing unit tests, we recommend writing your own test cases for every feature added.
 
 TODO
 
 ### The CI Pipeline
 
-TODO
+Whenever a pull request is opened, reopened or if you push to the branch that is tracked by an open pull request, a run of the continuous integration pipeline (CI pipeline) is triggered.
+We are using [GitHub Actions][GitHub/Actions] for the CI pipeline.
+You can find the corresponding workflow configuration file in `.github/workflows/ci-pipeline.yml`.
+
+The CI pipeline checks whether
+
+ - the code has been formatted with Brittany
+ - HLint prints no suggestion that is not explicitly ignored in `.hlint.yaml`
+ - the `freec` executable and the unit tests compile without warnings,
+ - all unit tests pass,
+ - all examples in the `./example` directory compile using `freec --transform-pattern-matching` without errors,
+ - Coq compiles the generated code as well as the example proofs without errors,
+ - Haddock generates the documentation without errors and there
+   are no out of scope references in the documentation.
+
+If any check fails, the entire pipeline fails.
+You will receive an email notification in this case.
+A pull request cannot be merged unless the pipeline passed.
+
+If a pull request does not modify the source code, examples, Cabal configuration or CI pipeline workflow file, the CI pipeline is not triggered.
+This is for example the case when only Markdown documents have been edited.
+The pull request can be merged as soon as all other requirements are met in this case.
+
+### Running The Pipeline Locally
+
+Since a full run of the CI pipeline can take a while, you should make sure that all checks that are performed by the CI pipeline pass on your machine before you push your changes.
+Luckily, you do not have to perform these checks manually, we provide a Bash script for that purpose.
+Run the following command to simulate a run of the pipeline locally.
+
+```bash
+./tool/full-test.sh
+```
+
+The script usually runs much faster since there is no overhead for creating test environments, uploading and downloading artifacts, initializing caches etc.
+If the script succeeds, it is not guaranteed that the CI pipeline will definitely pass, but it should catch the most common mistakes.
 
 ## Styleguides
 
@@ -168,6 +258,19 @@ The following general guidelines apply in every language if not noted otherwise 
    The display width of a tab character varies from editor to editor and from configuration to configuration.
    As a result, you can never be sure that everybody sees all files the same way when tabs are used in a collaborative project.
    When using spaces, it is guaranteed that the code lines up as the original author intended everywhere.
+
+   If not specified otherwise, we are using two spaces for indentation.
+   If you prefer using the tab key of your keyboard, consider configuring your editor accordingly.
+
+ - **Use Unix line endings**
+
+  On Unix-like operating systems a line feed character (LF) is used to encode the end of a line while Microsoft Windows uses a carriage return followed by a line feed (CRLF) for line endings.
+  When code is committed to this repository, it should use Unix line endings.
+  If you are on a Windows machine, you can configure configure Git to automatically convert LF to CRLF when you check out code and back when you commit using the [following command][Git/Config/autocrlf].
+
+  ```bash
+  git config --global core.autocrlf true
+  ```
 
  - **Comment your code**
 
@@ -467,10 +570,17 @@ See the [LICENSE][] file for details.
 [freec/pull-requests]:
   https://github.com/FreeProving/free-compiler/pulls
   "Free Compiler ­— Pull Requests"
+[freec/haddock]:
+  https://freeproving.github.io/free-compiler/docs/master
+  "Free Compiler — Haddock Documentation"
 
 [GDPR/Art9]:
   https://gdpr-info.eu/art-9-gdpr/
   "Art. 9 ­GDPR — Processing of special categories of personal data"
+
+[Git/Config/autocrlf]:
+  https://git-scm.com/book/en/v2/Customizing-Git-Git-Configuration#_code_core_autocrlf_code
+  "core.autocrlf — Git Configuration"
 
 [GitCommit]:
   https://chris.beams.io/posts/git-commit/
@@ -479,6 +589,9 @@ See the [LICENSE][] file for details.
 [GitHub]:
   https://github.com/FreeProving/free-compiler
   "Free Compiler on GitHub"
+[GitHub/Actions]:
+  https://github.com/features/actions
+  "GitHub Actions"
 [GitHub/Privacy]:
   https://help.github.com/en/github/site-policy/github-privacy-statement
   "GitHub Privacy Statement"

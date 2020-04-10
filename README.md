@@ -29,7 +29,6 @@ A compiler for the monadic translation of Haskell programs to Coq that uses the 
 8. [Development](#development)
     - [Additional Software](#additional-software)
     - [Code Style](#code-style)
-    - [Testing](#testing)
 9. [License](#license)
 
 ## Documentation
@@ -306,53 +305,6 @@ hlint src
 Remember, that HLint only makes suggestions and you don't have to follow these suggestions.
 However, since the CI pipeline fails if HLint finds possible improvements, suggestions have to be ignored explicitly.
 Edit the `.hlint.yaml` file for this purpose and leave a comment why you had to ignore that suggestion.
-
-### Testing
-
-To test whether the compiler is working correctly, you can run the included unit tests via one of the following Cabal commands.
-
-```bash
-cabal new-test
-cabal new-run freec-unit-tests -- [options...]
-```
-
-Similar to how we discourage using `cabal new-run` during development to run the compiler, we recommend using our `./tool/test.sh` script to execute unit tests instead.
-
-```bash
-./tool/test.sh [options...]
-```
-
- - Firstly it allows command line options such as `--match` to be passed to the test suite more easily.
-   The `--match` command line option can be used to run specific unit tests instead of the full test suite.
-   For more details on supported command line options use the following command
-
-   ```bash
-   ./tool/test.sh --help
-   ```
-
- - Secondly the script configures HSpec (the library that we are using for testing) to create a failure report.
-   The failure report allows you to add the `--rerun` command line option to run test that failed in the previous run only.
-
-   ```bash
-   ./tool/test.sh --rerun
-   ```
-
-   This allows you to focus on the failed test cases during debugging.
-   Once all tests are fixed, all tests are executed again.
-
- - Finally the script overwrites GHC's `-Werror` flag that is set by default for our compiler with `-Wwarn`.
-   Doing so improves the development workflow.
-   However, in production, the compiler must compile without any warnings.
-   Thus, the CI pipeline will reject any commits that contain unhandled warnings.
-   To make sure that your local changes do not cause warnings to be reported,
-   run the `full-test.sh` script before pushing.
-
-   ```bash
-   ./tool/full-test.sh
-   ```
-
-   The script simulates the CI pipeline locally but runs much faster since there is no overhead for creating test environments, uploading and downloading artifacts, initializing caches etc.
-   If the script succeeds, it is not guaranteed that the CI pipeline will definitely pass, but it should catch the most common mistakes.
 
 ## License
 
