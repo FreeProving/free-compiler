@@ -3,9 +3,6 @@ name: Deploy Haddock Documentation
 # The Haddock Documentation is built and deployed on every push to the master
 # that modifies Cabal configuration or Haskell source files. It also runs when
 # the workflow configuration changed itself.
-# When a pull request is closed that makes the same changes, the workflow runs
-# as well. We check below whether the pull request was merged. If it was merged,
-# the Haddock documentation is built and deployed for the updated master branch.
 on:
   push:
     branches:
@@ -15,26 +12,12 @@ on:
     - 'free-compiler.cabal'
     - 'src/**'
     - '.github/workflows/deploy-docs.yml'
-  pull_request:
-    branches:
-    - master
-    types:
-    - closed
-    paths:
-    - 'cabal.project'
-    - 'free-compiler.cabal'
-    - 'src/**'
-    - '.github/workflows/deploy-docs.yml'
 
-# All of the jobs below must make sure that if the workflow was triggered by a
-# closed pull request, the pull request was merged.
 jobs:
   # This is the same job for building the Haddock documentation that is
-  # executed by the CI pipeline. But while the CI pipeline is run against
-  # the branch tracked by the pull requests that triggered the pipeline,
-  # this job always builds the documentation from the master branch.
+  # executed by the CI pipeline but there is no dependency on the job
+  # `install-dependencies` since there is no such job in this workflow.
   build-docs:
-    if: github.event_name == 'push' || github.event.pull_request.merged
     name: Build Haddock documentation
     runs-on: ${{ matrix.os }}
     strategy:
@@ -43,8 +26,6 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v1
-      with:
-        ref: master
     - name: Setup Haskell
       uses: actions/setup-haskell@v1
       with:
@@ -116,7 +97,6 @@ jobs:
   #
   # **NEVER** commit the contents of the private key!
   deploy-docs:
-    if: github.event_name == 'push' || github.event.pull_request.merged
     name: Deploy Haddock documentation to GitHub pages
     needs: [build-docs]
     runs-on: ubuntu-latest
@@ -133,6 +113,9 @@ jobs:
       uses: webfactory/ssh-agent@v0.2.0
       with:
         ssh-private-key: ${{ secrets.DEPLOY_KEY }}
+    - if: ${{ env.HAS_DEPLOY_KEY == 'true' }}
+      name: Slug branch name
+      run: ./.github/scripts/slug.sh "$GITHUB_REF" "GITHUB_REF_SLUG"
     - if:   ${{ env.HAS_DEPLOY_KEY == 'true' }}
       name: Download documentation
       uses: actions/download-artifact@v1
@@ -146,4 +129,4 @@ jobs:
         SSH: true
         BRANCH: gh-pages
         FOLDER: build/docs
-        TARGET_FOLDER: docs/master
+        TARGET_FOLDER: docs/${{ env.GITHUB_REF_SLUG }}
