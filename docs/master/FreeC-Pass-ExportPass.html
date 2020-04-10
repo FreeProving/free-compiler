@@ -3,19 +3,17 @@
    environment. Only entries that are defined in the translated module
    are listed as exported. All other entries are &quot;hidden&quot;. Hidden entries are
    included such that module interfaces are self contained and type synonyms
-   can be expanded properly.</p><h1>Examples</h1><h2>Example 1</h2><p>The module interface for the following module</p><pre>  module A where
+   can be expanded properly.</p><h1>Examples</h1><h2>Example 1</h2><p>The module interface for the following module</p><pre>module A where
 
-  data Foo = Bar
-  </pre><p>contains <code><a href="FreeC-Environment-ModuleInterface.html#v:interfaceEntries" title="FreeC.Environment.ModuleInterface">interfaceEntries</a></code> for all entries from the implicitly imported
+data Foo = Bar</pre><p>contains <code><a href="FreeC-Environment-ModuleInterface.html#v:interfaceEntries" title="FreeC.Environment.ModuleInterface">interfaceEntries</a></code> for all entries from the implicitly imported
    <code>Prelude</code> module and an entry for the type <code>A.Foo</code> and constructor <code>A.Bar</code>.
    However, only <code>A.Foo</code> and <code>A.Bar</code> are are exported by the module and
-   therefore listed in <code><a href="FreeC-Environment-ModuleInterface.html#v:interfaceExports" title="FreeC.Environment.ModuleInterface">interfaceExports</a></code>.</p><h2>Example 2</h2><p>When a module imports the module <code>A</code> from the example above,</p><pre>  module B where
+   therefore listed in <code><a href="FreeC-Environment-ModuleInterface.html#v:interfaceExports" title="FreeC.Environment.ModuleInterface">interfaceExports</a></code>.</p><h2>Example 2</h2><p>When a module imports the module <code>A</code> from the example above,</p><pre>module B where
 
-  import A
+import A
 
-  foo :: a -&gt; Foo
-  foo x = Bar
-  </pre><p>its interface contains again all entries from the implicitly imported
+foo :: a -&gt; Foo
+foo x = Bar</pre><p>its interface contains again all entries from the implicitly imported
    <code>Prelude</code> module, the entries from <code>A</code>'s module interface and the entry
    for the top-level function <code>B.foo</code>. Entries for local variables such as
    <code>x</code> are not part of <code>B</code>'s interface. Since <code><a href="FreeC-Environment-ModuleInterface.html#v:interfaceEntries" title="FreeC.Environment.ModuleInterface">interfaceEntries</a></code> is a set,

@@ -1,62 +1,45 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><title>FreeC.Pass.ResolverPass</title><link href="ocean.css" rel="stylesheet" type="text/css" title="Ocean" /><link rel="stylesheet" type="text/css" href="quick-jump.css" /><script src="haddock-bundle.min.js" async="async" type="text/javascript"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML" type="text/javascript"></script></head><body><div id="package-header"><ul class="links" id="page-menu"><li><a href="src/FreeC.Pass.ResolverPass.html">Source</a></li><li><a href="index.html">Contents</a></li><li><a href="doc-index.html">Index</a></li></ul><p class="caption">free-compiler-0.1.0.0: A Haskell to Coq compiler.</p></div><div id="content"><div id="module-header"><table class="info"><tr><th>Safe Haskell</th><td>None</td></tr><tr><th>Language</th><td>Haskell2010</td></tr></table><p class="caption">FreeC.Pass.ResolverPass</p></div><div id="description"><p class="caption">Description</p><div class="doc"><p>This module contains a compiler pass that resolves all references in a
    module to the original names of their declaration.</p><h1>Examples</h1><h2>Example 1</h2><p>If a module <code>B</code> imports a module <code>A</code> and <code>A</code> exports a function <code>f</code>
-   (whose name has already been qualified to <code>A.f</code>)</p><pre>  module A where
+   (whose name has already been qualified to <code>A.f</code>)</p><pre>module A where
 
-  A.f = 42
-  A.g = f
-  </pre><pre>  module B where
+A.f = 42
+A.g = f</pre><pre>module B where
 
-  import A
+import A
 
-  B.h = f
-  </pre><p>all references to <code>f</code> in both <code>A</code> and <code>B</code> are resolved to <code>A.f</code>.</p><pre>  module A where
+B.h = f</pre><p>all references to <code>f</code> in both <code>A</code> and <code>B</code> are resolved to <code>A.f</code>.</p><pre>module A where
 
-  A.f = 42
-  A.g = A.f
-  </pre><pre>  module B where
+A.f = 42
+A.g = A.f</pre><pre>module B where
 
-  import A
+import A
 
-  B.h = A.f
-  </pre><h1>Specification</h1><h2>Preconditions</h2><ul><li>Module interfaces for all imported modules should be available.</li><li>The names of all declarations in the module should have been qualified
+B.h = A.f</pre><h1>Specification</h1><h2>Preconditions</h2><ul><li>Module interfaces for all imported modules should be available.</li><li>The names of all declarations in the module should have been qualified
      with the name of the module.</li></ul><h2>Translation</h2><p>First two environments <code>E&#7488;</code> and <code>E&#11389;</code> are constructed. <code>E&#7488;</code> denotes the
    type-level environment and <code>E&#11389;</code> denotes the value-level environment. The
    environments map names in the module to sets of original names of the
    entries the name could refer to. The environments are constructed as
-   follows.</p><ul><li><p>For each import declaration of the form</p><pre>import M
-</pre><p>the environments contain the exported names unqualified and
+   follows.</p><ul><li><p>For each import declaration of the form</p><pre>import M</pre><p>the environments contain the exported names unqualified and
 qualified with the name of the module <code>M</code> (but not qualified with the
 name of the module <code>N</code> where they have been defined in originally).</p><pre>N.t &#8712; M&#7488; &#8658; N.t &#8712; E&#7488;(t) &#8743; N.t &#8712; E&#7488;(M.t)
-N.v &#8712; M&#11389; &#8658; N.v &#8712; E&#11389;(v) &#8743; N.v &#8712; E&#11389;(M.v)
-</pre><p>where <code>M&#7488;</code> and <code>M&#11389;</code> denote the sets of original names of the entries
-exported by the module <code>M</code> at type- and value-level respectively.</p></li><li><p>For each type synonym declaration of the form</p><pre>type M.T &#945;&#8321; &#8230; &#945;&#8344; = &#964;
-</pre><p>the type-level environment contains the qualified and unqualified
+N.v &#8712; M&#11389; &#8658; N.v &#8712; E&#11389;(v) &#8743; N.v &#8712; E&#11389;(M.v)</pre><p>where <code>M&#7488;</code> and <code>M&#11389;</code> denote the sets of original names of the entries
+exported by the module <code>M</code> at type- and value-level respectively.</p></li><li><p>For each type synonym declaration of the form</p><pre>type M.T &#945;&#8321; &#8230; &#945;&#8344; = &#964;</pre><p>the type-level environment contains the qualified and unqualified
 names of the type synonym.</p><pre>M.T &#8712; E&#7488;(T)
-M.T &#8712; E&#7488;(M.T)
-</pre><p>Within the right-hand side <code>&#964;</code>, the type-level environment is extended
-by the type arguments of the type-synonym.</p><pre>&#8704; 1 &#8804; i &#8804; m. &#945;&#7522; &#8712; E&#7488;(&#945;&#7522;)
-</pre></li><li><p>For each data type declaration of the form</p><pre>data D &#945;&#8321; &#8230; &#945;&#8344; = C&#8321; &#964;&#8333;&#8321;,&#8321;&#8334; &#8230; &#964;&#8333;&#8321;,&#8342;&#8321;&#8334; | &#8230; | C&#8345; &#964;&#8333;&#8345;,&#8321;&#8334; &#8230; &#964;&#8333;&#8345;,&#8342;&#8345;&#8334;
-</pre><p>the type-level environment contains the qualified and unqualified
+M.T &#8712; E&#7488;(M.T)</pre><p>Within the right-hand side <code>&#964;</code>, the type-level environment is extended
+by the type arguments of the type-synonym.</p><pre>&#8704; 1 &#8804; i &#8804; m. &#945;&#7522; &#8712; E&#7488;(&#945;&#7522;)</pre></li><li><p>For each data type declaration of the form</p><pre>data D &#945;&#8321; &#8230; &#945;&#8344; = C&#8321; &#964;&#8333;&#8321;,&#8321;&#8334; &#8230; &#964;&#8333;&#8321;,&#8342;&#8321;&#8334; | &#8230; | C&#8345; &#964;&#8333;&#8345;,&#8321;&#8334; &#8230; &#964;&#8333;&#8345;,&#8342;&#8345;&#8334;</pre><p>the type-level environment contains the qualified and unqualified
 names of the data type and the value-level environment contains
 the names of the constructors qualified and unqualified.</p><pre>M.D &#8712; E&#7488;(D) &#8743; M.D &#8712; E&#7488;(M.D)
-&#8704; 1 &#8804; i &#8804; n. M.C&#7522; &#8712; E&#11389;(C&#7522;) &#8743; M.C&#7522; &#8712; E&#11389;(M.C&#7522;)
-</pre><p>Within the fields <code>&#964;&#8333;&#7522;,&#11388;&#8334;</code> of the constructors, the type-level
-environment is extended by the type arguments of the data type.</p><pre>&#8704; 1 &#8804; i &#8804; m. &#945;&#7522; &#8712; E&#7488;(&#945;&#7522;)
-</pre></li><li><p>For each function declaration of the form</p><pre>M.f <code>&#945;&#8321; &#8230; </code>&#945;&#8344; (x&#8321; :: &#964;&#8321;) &#8230; (x&#8345; :: &#964;&#8345;) = e
-</pre><p>the value-level environment contains the name of the function qualified
+&#8704; 1 &#8804; i &#8804; n. M.C&#7522; &#8712; E&#11389;(C&#7522;) &#8743; M.C&#7522; &#8712; E&#11389;(M.C&#7522;)</pre><p>Within the fields <code>&#964;&#8333;&#7522;,&#11388;&#8334;</code> of the constructors, the type-level
+environment is extended by the type arguments of the data type.</p><pre>&#8704; 1 &#8804; i &#8804; m. &#945;&#7522; &#8712; E&#7488;(&#945;&#7522;)</pre></li><li><p>For each function declaration of the form</p><pre>M.f @&#945;&#8321; &#8230; @&#945;&#8344; (x&#8321; :: &#964;&#8321;) &#8230; (x&#8345; :: &#964;&#8345;) = e</pre><p>the value-level environment contains the name of the function qualified
 and unqualified.</p><pre>M.f &#8712; E&#11389;(f)
-M.f &#8712; E&#11389;(M.f)
-</pre><p>Within the right-hand side <code>e</code> and the type annotations <code>&#964;&#7522;</code> of the
+M.f &#8712; E&#11389;(M.f)</pre><p>Within the right-hand side <code>e</code> and the type annotations <code>&#964;&#7522;</code> of the
 function's arguments, the type-level environment is extended by the
 type arguments of the function and the value-level environment by the
 regular arguments.</p><pre>&#8704; 1 &#8804; i &#8804; m. &#945;&#7522; &#8712; E&#7488;(&#945;&#7522;)
-&#8704; 1 &#8804; i &#8804; n. x&#7522; &#8712; E&#11389;(x&#7522;)
-</pre></li><li><p>Within lambda abstraction expressions and <code>case</code> expression
-     alternatives of the form</p><pre>(x&#8321; :: &#964;&#8321;) &#8230; (x&#8345; :: &#964;&#8345;) -&gt; e
-case s of { &#8230;; C (x&#8321; :: &#964;&#8321;) &#8230; (x&#8345; :: &#964;&#8345;) -&gt; e ; &#8230; }
-</pre><p>the value-level environment is extended by the arguments of the lambda
-abstraction and the variable patterns, respectively.</p><pre>&#8704; 1 &#8804; i &#8804; n. x&#7522; &#8712; E&#11389;(x&#7522;)
-</pre></li></ul><p>The environments are then used to recursively resolve references in all
+&#8704; 1 &#8804; i &#8804; n. x&#7522; &#8712; E&#11389;(x&#7522;)</pre></li><li><p>Within lambda abstraction expressions and <code>case</code> expression
+     alternatives of the form</p><pre>\(x&#8321; :: &#964;&#8321;) &#8230; (x&#8345; :: &#964;&#8345;) -&gt; e
+case s of { &#8230;; C (x&#8321; :: &#964;&#8321;) &#8230; (x&#8345; :: &#964;&#8345;) -&gt; e ; &#8230; }</pre><p>the value-level environment is extended by the arguments of the lambda
+abstraction and the variable patterns, respectively.</p><pre>&#8704; 1 &#8804; i &#8804; n. x&#7522; &#8712; E&#11389;(x&#7522;)</pre></li></ul><p>The environments are then used to recursively resolve references in all
    types and expression in the module. Local modifications that are performed
    while descending into the AST are outlined above already.</p><ul><li><p>For each variable or constructor (including constructor patterns) <code>x</code>,
      the name <code>x</code> is looked up in the current value-level environment.</p><ul><li>If <code>E&#11389;(x) = &#8709;</code>, <code>x</code> is not defined and a fatal error is reported.</li><li>If <code>E&#11389;(x) = { x' }</code>, <code>x</code> is defined and refers to the entry with
