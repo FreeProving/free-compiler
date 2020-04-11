@@ -27,7 +27,7 @@ import           FreeC.Monad.Converter
 --   The first argument controlls whether the generated binders are explicit
 --   (e.g. @(a : Type)@) or implicit (e.g. @{a : Type}@).
 convertTypeVarDecls
-  :: Coq.Explicitness   -- ^ Whether to generate an explicit or implit binder.
+  :: Coq.Explicitness -- ^ Whether to generate an explicit or implit binder.
   -> [IR.TypeVarDecl] -- ^ The type variable declarations.
   -> Converter [Coq.Binder]
 convertTypeVarDecls explicitness typeVarDecls
@@ -54,10 +54,10 @@ convertTypeVarDecls explicitness typeVarDecls
 --   If the function is recursive (i.e., the second argument is not @Nothing@),
 --   its decreasing argument (given index) is not lifted.
 convertArgs
-  :: [IR.VarPat]     -- ^ The function arguments.
-  -> Maybe Int       -- ^ The position of the decreasing argument or @Nothing@
-                     --   if the function does not decrease on any of its
-                     --   arguments.
+  :: [IR.VarPat] -- ^ The function arguments.
+  -> Maybe Int   -- ^ The position of the decreasing argument or @Nothing@
+                 --   if the function does not decrease on any of its
+                 --   arguments.
   -> Converter [Coq.Binder]
 convertArgs args Nothing      = mapM convertArg args
 convertArgs args (Just index) = do

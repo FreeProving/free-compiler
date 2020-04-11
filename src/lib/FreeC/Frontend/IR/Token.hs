@@ -103,10 +103,10 @@ data Token
   | ConSymbol String -- ^ @<consym>@ a constructor symbol.
   | VarIdent String  -- ^ @<varid>@ a variable identifier.
   | VarSymbol String -- ^ @<varsym>@ a variable symbol.
-  | Keyword Keyword  -- ^ A 'Keyword'.
+  | Keyword Keyword  -- ^ A t'Keyword'.
   | IntToken Integer -- ^ @<integer>@ an integer literal.
   | StrToken String  -- ^ @<string>@ a string literal.
-  | At               -- ^ @"@"@
+  | At               -- ^ @"\@"@
   | Comma            -- ^ @","@
   | Dot              -- ^ @"."@
   | DoubleColon      -- ^ @"::"@

@@ -23,7 +23,7 @@
 --   normally. Outside the section it appears as if @map@ has an additional
 --   argument @f@. The section aids Coq's to recognize whether recursive
 --   functions that use @map@ and have recursive calls in @f@ terminate.
---   See @doc/CustomPragmas/DecreasingArgumentPragma.md@ for details and
+--   See @doc\/CustomPragmas\/DecreasingArgumentPragma.md@ for details and
 --   examples.
 module FreeC.Backend.Coq.Analysis.ConstantArguments
   ( ConstArg(..)

@@ -1,7 +1,7 @@
 -- This example demonstrates the usage of the decreasing argument pragma
 -- to annotate the decreasing argument of a function that cannot be identified
 -- by our termination checker automatically.
--- See @doc/CustomPragmas/DecreasingArgumentPragma.md@ for details.
+-- See @doc\/CustomPragmas\/DecreasingArgumentPragma.md@ for details.
 
 module DecreasingArgumentsPragma where
 
