@@ -279,27 +279,27 @@ The following general guidelines apply in every language if not noted otherwise 
 
  - **Use Unix line endings**
 
-  On Unix-like operating systems a line feed character (LF) is used to encode the end of a line while Microsoft Windows uses a carriage return followed by a line feed (CRLF) for line endings.
-  When code is committed to this repository, it should use Unix line endings.
-  If you are on a Windows machine, you can configure configure Git to automatically convert LF to CRLF when you check out code and back when you commit using the [following command][Git/Config/autocrlf].
+   On Unix-like operating systems a line feed character (LF) is used to encode the end of a line while Microsoft Windows uses a carriage return followed by a line feed (CRLF) for line endings.
+   When code is committed to this repository, it should use Unix line endings.
+   If you are on a Windows machine, you can configure configure Git to automatically convert LF to CRLF when you check out code and back when you commit using the [following command][Git/Config/autocrlf].
 
-  ```bash
-  git config --global core.autocrlf true
-  ```
+   ```bash
+   git config --global core.autocrlf true
+   ```
 
  - **Wrap lines after 80 characters**
 
-  Long lines of text and source code are difficult to scan for the human eye and thus should be avoided.
-  In case of [Markdown](#markdown-styleguide) documents, we do not have to deal with this problem since text can usually be soft wrapped without changing its meaning.
-  In case of structured text such as source code, automatic line wrapping is not a good strategy for dealing with long lines.
-  Thus, long lines should be hard wrapped such that structure, indentation and alignment are preserved with respect to syntax and semantics of the source code.
-  The goal is to enhance readability, avoid horizontal scrolling and eliminate the need for resizing editor windows.
+   Long lines of text and source code are difficult to scan for the human eye and thus should be avoided.
+   In case of [Markdown](#markdown-styleguide) documents, we do not have to deal with this problem since text can usually be soft wrapped without changing its meaning.
+   In case of structured text such as source code, automatic line wrapping is not a good strategy for dealing with long lines.
+   Thus, long lines should be hard wrapped such that structure, indentation and alignment are preserved with respect to syntax and semantics of the source code.
+   The goal is to enhance readability, avoid horizontal scrolling and eliminate the need for resizing editor windows.
 
-  One exception to this rule are links.
-  If an URL does not fit into the current line, consider placing it on a line by itself but never insert a line break into the URL.
-  It should be easy for the URL to be copied to the clipboard or automatically recognized by software.
+   One exception to this rule are links.
+   If an URL does not fit into the current line, consider placing it on a line by itself but never insert a line break into the URL.
+   It should be easy for the URL to be copied to the clipboard or automatically recognized by software.
 
-  Line ending characters do not count towards the line length limit.
+   Line ending characters do not count towards the line length limit.
 
  - **Comment your code**
 
