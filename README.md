@@ -33,6 +33,7 @@ A compiler for the monadic translation of Haskell programs to Coq that uses the 
 
 This compiler was originally developed as part of a [bachelor's thesis][thesis/Andresen2019].
 The compiler has been extended with additional features and its architecture changed compared to the [version presented in the thesis][tag/v0.1.0.0] but the explanation of the monadic translation in the thesis is still up to date.
+Read the [changelog][freec/CHANGELOG] for more information on what has changed since the initial release.
 
 The compiler's source code is documented using [Haddock][software/haddock].
 The documentation is automatically build by our CI pipeline and published [here][gh-pages/haddock].
@@ -261,6 +262,9 @@ See the [LICENSE][freec/LICENSE] file for details.
   https://github.com/FreeProving/free-compiler/blob/master/doc/ProvingQuickCheckProperties.md
   "Free Compiler Documentation — Proving QuickCheck Properties"
 
+[freec/CHANGELOG]:
+  https://github.com/FreeProving/free-compiler/blob/master/CHANGELOG.md
+  "Free Compiler — Changelog"
 [freec/CONTRIBUTING]:
   https://github.com/FreeProving/free-compiler/blob/master/CONTRIBUTING.md
   "Free Compiler — Contribution Guidelines"
