@@ -106,6 +106,21 @@ In this section, we would like to give you a quick overview over what files are 
          It invokes the unit tests in the other test modules.
 
    Except for the main modules `Main` and `Spec`, the names of all modules that belong to the Free Compiler should start with the `FreeC` prefix.
+   Modules are organized hierarchically based on their function.
+   Common prefixes are listed below.
+
+    + `FreeC.Backend` contains modules that are concerned with the translation from the intermediate representation to a target language.
+    + `FreeC.Frontend` contains modules that are concerned with the traslation of an input language to the intermediate representation.
+      This includes a front end for the intermediate representation itself.
+    + `FreeC.IR` contains modules that define data types and operations for the intermediate representation such as the AST or commonly used operations on the AST.
+    + `FreeC.Monad` contains modules that define monads that are used throughout the compiler (e.g., for error reporting, or stateful operations).
+    + `FreeC.Monad.Class` contains type classes for monads.
+    + `FreeC.Pass` contains one module for each *compiler pass*.
+      A compiler pass is a transformation on the intermediate representation and environment.
+    + `FreeC.Test` contains modules for writing unit tests.
+    + `FreeC.Util` contains modules for utility functions.
+
+   Additionally, if there is a module `FreeC.X`, the prefix `FreeC.X` contains related modules.
 
  - `./tool`
 
@@ -272,6 +287,20 @@ The following general guidelines apply in every language if not noted otherwise 
   git config --global core.autocrlf true
   ```
 
+ - **Wrap lines after 80 characters**
+
+  Long lines of text and source code are difficult to scan for the human eye and thus should be avoided.
+  In case of [Markdown](#markdown-styleguide) documents, we do not have to deal with this problem since text can usually be soft wrapped without changing its meaning.
+  In case of structured text such as source code, automatic line wrapping is not a good strategy for dealing with long lines.
+  Thus, long lines should be hard wrapped such that structure, indentation and alignment are preserved with respect to syntax and semantics of the source code.
+  The goal is to enhance readability, avoid horizontal scrolling and eliminate the need for resizing editor windows.
+
+  One exception to this rule are links.
+  If an URL does not fit into the current line, consider placing it on a line by itself but never insert a line break into the URL.
+  It should be easy for the URL to be copied to the clipboard or automatically recognized by software.
+
+  Line ending characters do not count towards the line length limit.
+
  - **Comment your code**
 
    Good comments describe *what* your code does and *why* it does so.
@@ -304,7 +333,11 @@ When writing Git Commit Messages, try to follow the following recommendations on
 
  - **Capitalize the subject line**
 
+   The first word of the subject line should be capitalized (e.g. `Add feature XYZ` instead of `add feature XYZ`).
+
  - **Do not end the subject line with a period**
+
+   Even though subject lines should form a sentence, trailing punctuation does not add any information and costs precious space.
 
  - **Use the present tense and imperative mood in the subject line**
 
@@ -371,9 +404,9 @@ When writing markdown documents adhere to the following style considerations.
    There are two ways of writing headings in Markdown: ATX and Setext headings.
 
    ```markdown
-   # This is an ATX heading
+   # This is an ATX Heading
 
-   This is a Setext heading
+   This is a Setext Heading
    ========================
    ```
 
@@ -387,7 +420,8 @@ When writing markdown documents adhere to the following style considerations.
     + Avoid having a single subsection for a section (except if you have plans to add further items down the line).
     + Avoid two consecutive headings.
       Consider writing a short introduction to the section in this case.
-    + Capitalize the first letter of every word except for prepositions in a heading (e.g. "How Can I Contribute?" instead of "How can I contribute?" but "Haskell to Coq" instance of "Haskell To Coq").
+    + Capitalize the first word of the heading (e.g. "The CI Pipeline" instead of "the CI Pipeline").
+    + Capitalize all other words except for articles, conjunctions and prepositions (e.g. "How Can I Contribute?" instead of "How can I contribute?" but "Haskell to Coq" instead of "Haskell To Coq").
 
    ```markdown
    # Document Title
