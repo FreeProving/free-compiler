@@ -68,8 +68,8 @@ lookupSrcFile = lookup
 --   In contrast to the source spans provided by the @haskell-src-exts@ package
 --   this source span provides access to the lines of code that contain the
 --   source span.
-data SrcSpan =
-  SrcSpan
+data SrcSpan
+  = SrcSpan
     { srcSpanFilename    :: String   -- ^ The name of the file.
     , srcSpanStartLine   :: Int      -- ^ The number of the first spanned line.
     , srcSpanStartColumn :: Int      -- ^ The offset within the first line.

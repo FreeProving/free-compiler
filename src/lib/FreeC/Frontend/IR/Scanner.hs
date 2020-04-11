@@ -40,7 +40,7 @@ type Scanner a = Parsec String () a
 -- | A 'Token' and its position in the source code.
 data TokenWithPos = TokenWithPos
   { getTokenPos :: Parsec.SourcePos
-  , getToken :: Token
+  , getToken    :: Token
   }
 
 -- | We need a show instance for tokens with positions such that the parser

@@ -52,8 +52,9 @@ import           FreeC.Util.Predicate           ( (.&&.) )
 --
 --   The wrapped names are 'ScopedName's such that we can use the same function
 --   to collect the type- and value-level references.
-data Ref = VarRef { unwrapRef :: ScopedName }
-         | ConRef { unwrapRef :: ScopedName }
+data Ref
+  = VarRef { unwrapRef :: ScopedName }
+  | ConRef { unwrapRef :: ScopedName }
  deriving (Eq, Ord, Show)
 
 -- | Smart constructor for a reference to a variable or type variable

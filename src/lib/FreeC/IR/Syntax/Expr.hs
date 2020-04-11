@@ -59,7 +59,7 @@ data Expr
          }
 
   | -- | Error term @undefined@.
-    Undefined { exprSrcSpan :: SrcSpan
+    Undefined { exprSrcSpan    :: SrcSpan
               , exprTypeSchema :: Maybe TypeSchema
               }
 
