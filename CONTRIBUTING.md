@@ -14,20 +14,21 @@ If you have questions or want to propose changes to this document, feel free to 
  1. [How Can I Contribute?](#how-can-i-contribute)
     - [Reporting Bugs](#reporting-bugs)
     - [Submitting Pull Requests](#submitting-pull-requests)
- 2. [Directory Structure](#directory-structure)
- 3. [Testing](#testing)
+ 2. [Additional Software](#additional-software)
+ 3. [Directory Structure](#directory-structure)
+ 4. [Testing](#testing)
     - [Running Unit Tests](#running-unit-tests)
     - [Writing Unit Tests](#writing-unit-tests)
     - [The CI Pipeline](#the-ci-pipeline)
     - [Running The Pipeline Locally](#running-the-pipeline-locally)
- 4. [Styleguides](#styleguides)
+ 5. [Styleguides](#styleguides)
     - [Languages without Styleguide](#languages-without-styleguide)
     - [General Guidelines](#general-guidelines)
     - [Git Commit Messages](#git-commit-messages)
     - [Haskell Styleguide](#haskell-styleguide)
     - [Haddock Styleguide](#haddock-styleguide)
     - [Markdown Styleguide](#markdown-styleguide)
- 5. [Legal Information](#leagal-information)
+ 6. [Legal Information](#leagal-information)
     - [Privacy](#privacy)
     - [License](#license)
 
@@ -43,11 +44,22 @@ TODO
 
 ## Additional Software
 
-In addition to the required software listed in the [README][freec/README], we recommend using the following additional software during development.
+In addition to the required software listed in the [README][freec/README#required-software], you will need the following software to contribute code or documentation in the form of pull requests.
+
+### Git
+
+[Git][] is the version control system that we are using to manage code and documentation in this repository.
+While simple changes (such as fixing typos in the documentation) can be performed directly via the [GitHub][] website, you have to [install Git][Git/Downloads] for anything more complex.
+Git is mainly a command line tool, but graphical user interfaces are available, too.
+An introduction to Git's command line interface can be found [here][Git/Tutorial].
+
+### Tools for Haskell Development
+
+We recommend installing the following tools if you want to contribute Haskell code.
 Both of these tools are used to make sure that we are using a consistent code style throughout the project and are described in more detail in the [Haskell Styleguide](#haskell-styleguide) below.
 
- - [Brittany][software/brittany], 0.12.1.1
- - [HLint][software/hlint], version 2.2.11
+ - [Brittany][software/Brittany], 0.12.1.1
+ - [HLint][software/HLint], version 2.2.11
 
 The versions mentioned above are the versions used by our [CI pipeline](#the-ci-pipeline).
 Both tools must be installed in order to [run the CI pipeline locally](#running-the-pipeline-locally).
@@ -56,6 +68,7 @@ If you are not planning to make changes that involve the CI pipeline (i.e., modi
 ## Directory Structure
 
 In this section, we would like to give you a quick overview over what files are part of this repository, where they can be found and what's their purpose.
+This information should help you to quickly find files you are looking for and confidently decide where to place files you want to add.
 
  - `./`
 
@@ -177,9 +190,9 @@ However, we recommend using the `./tool/test.sh` script for running unit tests d
 The most important difference is that the script overwrites GHC's `-Werror` flag with `-Wwarn`.
 This allows the unit tests to run even if GHC reports warnings.
 Doing so improves the development workflow.
-Still remember to fix the warnings before creating a pull request since the [Ci pipeline](#the-ci-pipeline) fails otherwise.
+Still remember to fix the warnings before creating a pull request since the [CI pipeline](#the-ci-pipeline) fails otherwise.
 
-Furthermore, the script configures HSpec (the library that we are using for testing) to create a failure report.
+Furthermore, the script configures [Hspec][software/Hspec] (the library that we are using for testing) to create a failure report.
 The failure report allows you to add the `--rerun` command line option to run test that failed in the previous run only.
 
 ```bash
@@ -210,8 +223,8 @@ You can find the corresponding workflow configuration file in `.github/workflows
 
 The CI pipeline checks whether
 
- - the code has been formatted with [Brittany][software/brittany]
- - [HLint][software/hlint] prints no suggestion that is not explicitly ignored in `.hlint.yaml`
+ - the code has been formatted with [Brittany][software/Brittany]
+ - [HLint][software/HLint] prints no hint that is not explicitly ignored in `.hlint.yaml`
  - the `freec` executable and the unit tests compile without warnings,
  - all unit tests pass,
  - all examples in the `./example` directory compile using `freec --transform-pattern-matching` without errors,
@@ -315,20 +328,28 @@ The following general guidelines apply in every language if not noted otherwise 
 
  - **Comment your code**
 
-   Good comments describe *what* your code does and *why* it does so.
-   Avoid comments that simply reiterate *how* your code works.
-   If the reader is interested in implementation details, they can refer to the code itself.
-   However, the code will not teach them anything about your though process, theoretical understanding or hidden assumptions.
+   + Good comments describe *what* your code does and *why* it does so.
+     Avoid comments that simply reiterate *how* your code works.
+     If the reader is interested in implementation details, they can refer to the code itself.
+     However, the code will not teach them anything about your though process, theoretical understanding or hidden assumptions.
 
    + Every source file should start with a comment that states the purpose and contents of the file and how to use it.
+
    + At the very least every function and data type that is part of your code's public interface should be documented.
      However, also internal functions and data types should to be documented.
+
    + Inside functions you do not have to comment individual lines of code.
      It is usually best practice to split the code into small chunks with a well defined purpose and summarize what the code does and why it is necessary.
 
+   + Use [Markdown](#markdown-styleguide) to format your comments if not specified otherwise.
+
+   + Write in proper sentences.
+     The first word in every comment should be capitalized.
+     The comment should end with a period or other punctuation mark.
+
 ### Git Commit Messages
 
-When writing Git Commit Messages, try to follow the following recommendations on [How to Write a Git Commit Message][GitCommit].
+When writing Git commit messages, try to follow the following recommendations on [How to Write a Git Commit Message][GitCommit].
 
  - **Separate subject from body with a blank line**
 
@@ -397,24 +418,127 @@ When writing Git Commit Messages, try to follow the following recommendations on
 
 ### Haskell Styleguide
 
-TODO
+The vast majority of the code in this repository is written in Haskell.
+We are using automatic code formatters and linters to enforce a consistent code style across the code base.
+The tools we are using are covered by the subsections below.
+The following is a list of additional guidelines that are not yet covered by the tools.
 
-We are using the following two tools to enforce the Haskell styleguide.
+ - **Separate imports of internal and external modules**
+
+   The import declarations for modules from other packages should precede all imports of modules from this repository.
+   The two blocks of import declarations are separated by a blank line.
+
+   ```haskell
+   import Control.Monad
+   import Data.List
+
+   import FreeC.IR
+   ```
+
+ - **Sort imports alphabetically**
+
+   Within the individual blocks of import declarations, the imports are sorted alphabetically by the name of the imported module.
+
+   ```haskell
+   import Control.Monad
+   import Data.List
+   ```
+
+   If a module is imported qualified and unqualified, the unqualified import goes first.
+
+   ```haskell
+   import           Data.Set                       ( Set )
+   import qualified Data.Set                      as Set
+   ```
+
+ - **Use qualified imports**
+
+   The `.hlint.yaml` file lists common aliases for modules.
+   All of these modules should be imported `qualified` and `as` the corresponding alias.
+
+   For example, the module `Data.Set` should always be imported as follows.
+   Do not chose a different alias or omit the alias.
+
+   ```haskell
+   import qualified Data.Set                      as Set      -- DO
+   import qualified Data.Set                      as S        -- DON'T
+   import           Data.Set                                  -- DON'T
+   ```
+
+   It is allowed to import selected data types and operations explicitly from such modules.
+
+   ```haskell
+   import           Data.Set                       ( Set
+                                                   , (\\)
+                                                   )          -- OKAY
+   ```
+
+
+ - **Align constructors of data type declarations**
+
+   If the constructors of a data type declaration do not fit on one line, align them as follows.
+
+   ```haskell
+   data Tree a
+     = Leaf a
+     | Branch (Tree a) (Tree a)
+    deriving (Eq, Show)
+   ```
+
+   The constructors are indented by two spaces and the `deriving` clause is indented by a single space.
+
+ - **Align fields of record constructors**
+
+   In record constructors, each field is listed on it's own line.
+   The type signatures are aligned.
+
+   ```haskell
+   data Person = Person
+     { firstName :: String
+     , lastName  :: String
+     , age       :: Int
+     }
+    deriving (Eq, Show)
+   ```
+
+   If there is just a single field (e.g. in a `newtype` declaration) you can write the entire data type on one line if it fits.
+
+   ```haskell
+   newtype State s a = State { runState :: s -> (a, s) }
+   ```
+
+   The `deriving` clause still belongs on its own line and is indented by a single space.
+
+ - **Add type signatures for all function declarations**
+
+   Function declarations at top-level and in `where` clauses should have a type signature.
+   The type signature should precede the function declaration immediately.
+   No type signatures are needed in `let` bindings.
+
+   If you cannot specify the type of a locally defined function due to type variable scoping rules, write the type in a block comment.
+   The usage of block comments helps to distinguish type signature comments from Haddock comments.
+
+   ```haskell
+   foo :: a -> ((a, a), (a, a))
+   foo x = (xx, xx)
+     where {- xx :: (a, a) -}
+           xx = (x, x)
+   ```
 
 #### Brittany
 
-[Brittany][software/brittany] is a code formatter for Haskell.
+[Brittany][software/Brittany] is a code formatter for Haskell.
 It can be installed via Cabal as follows.
 
 ```haskell
 cabal new-install brittant
 ```
 
-The CI pipeline runs `brittany` on all Haskell source files in the `src` and `example` directories and compares its output with the committed files.
+The [CI pipeline](#the-ci-pipeline) runs `brittany` on all Haskell source files in the `src` and `example` directories and compares its output with the committed files.
 If there are Haskell source files that have not been formatted using `brittany`, the CI pipeline fails.
 The same check is performed by the `./tool/check-formatting.sh` and `./tool/full-test.sh` scripts.
 
-There is Brittany support for various editors (see also [Editor Integration][software/brittany#editor-integration]).
+There is Brittany support for various editors (see also [Editor Integration][software/Brittany#editor-integration]).
 If your editor is not supported, you can use the following shell script that we provide.
 
 ```haskell
@@ -431,14 +555,14 @@ So don't rely entirely on the output of our automatic tests and manually check y
 
 #### HLint
 
-[HLint][software/hlint] is a tool that gives suggestions on how to improve Haskell source code.
+[HLint][software/HLint] is a tool that gives suggestions on how to improve Haskell source code.
 It can be installed via Cabal as follows.
 
 ```haskell
 cabal new-install hlint
 ```
 
-The CI pipeline runs `hlint` on all Haskell source files in the `src` directory.
+The [CI pipeline](#the-ci-pipeline) runs `hlint` on all Haskell source files in the `src` directory.
 If HLint has suggestions for how the code can be improved, the CI pipeline fails.
 The same check is performed by the `./tool/full-test.sh` script.
 
@@ -450,13 +574,135 @@ hlint src
 ```
 
 Remember, that HLint only makes suggestions and you don't have to follow these suggestions.
-However, since the CI pipeline fails if HLint finds possible improvements, suggestions have to be ignored explicitly.
-Edit the `.hlint.yaml` file for this purpose and leave a comment why you had to ignore that suggestion.
-Try to be as specific as possible when ignoring suggestions.
+However, since the CI pipeline fails if HLint finds possible improvements, hints have to be ignored explicitly.
+Edit the `.hlint.yaml` file for this purpose and leave a comment why you had to ignore that hint.
+Try to be as specific as possible when ignoring hints.
 
 ### Haddock Styleguide
 
-TODO
+Documentation for the Haskell code in this repository is written in [Haddock][software/Haddock] notation.
+
+ - **Use Haddock for all Haskell comments**
+
+   Even if a function is not exported by a module, it should have a comment in Haddock notation.
+
+   ```haskell
+   -- | The documentation for the module is written using Haddock.
+   module Foo
+     ( foo
+     )
+   where
+
+   -- | 'foo' is exported and documented using Haddock.
+   foo :: …
+   foo = …
+    where
+     -- | 'bar' is defined locally but documented using Haddock anyway.
+     bar :: …
+     bar = …
+
+   -- | 'baz' is not exported but documentation is written using Haddock
+   --   nevertheless.
+   baz :: …
+   baz = …
+   ```
+
+   In non-documentation comments, Haddock markup should be used as well.
+   For example, the following is not a Haddock comment, but `'name'` is used to refer to the variable `name`.
+
+   ```haskell
+   greet = do
+     name <- getLine
+     -- Print greeting for the 'name' entered by the user.
+     putStrLn ("Hello, " ++ name ++ "!")
+   ```
+
+ - **Don't use block comments for Haddock**
+
+   Always use line comments for documentation comments.
+
+   ```haskell
+   {-| DON'T DO THIS!
+
+       Even though this syntax is more convenient sometimes,
+       Haddock comments should never be written in Haskell's
+       nested-comment style.
+    -}
+   ```
+
+   Block comments should only be used to comment otherwise valid Haskell code out.
+
+ - **Start Haddock comments with a single-sentence summary**
+
+   The first paragraph of a Haddock comment should contain a single sentence that summarizes what the documented module, function, data type, type class etc. does or is intended for.
+   The following paragraphs provide more detail.
+
+   ```haskell
+   -- | Concatenates the given lists.
+   --
+   --   The returned list contains all elements of the first list followed
+   --   by all elements of the second list.
+   append :: [a] -> [a] -> [a]
+   append xs ys = …
+   ```
+
+ - **Start function comments with a third-person verb**
+
+   The comment of a function declaration should answer the question "What does this function do?" by completing the sentence "This function ...".
+
+   ```haskell
+   -- | Tests whether all elements in the given list satisfy the
+   --   given predicate.
+   all :: [a -> Bool] -> [a] -> Bool
+   all p xs = …
+   ```
+
+ - **Start variable binding and data type comments with a noun phrase**
+
+   The comment of a variable binding or data type declaration should answer the question "What is this variable/data type?" by completing the sentence "This variable/data type is ...".
+
+   ```haskell
+   -- | The data type used to represent identifiers.
+   type Identifier = String
+
+   -- | The prefix names of QuickCheck properties start with by
+   --   convention.
+   prefix :: Identifier
+   prefix = "prop_"
+   ```
+
+ - **Align text with the comment's first character**
+
+   ```haskell
+   -- | If a comment spans multiple lines
+   --   all following lines should be aligned
+   --   with the first character of the comment.
+   --
+   --   Additional paragraphs are also aligned
+   --   with the first character of the comment.
+   ```
+
+ - **Use "bird tracks" for code snippets**
+
+   In Haddock there are two ways of writing code blocks: by surrounding a paragraph with `@...@` or by preceding each line of a paragraph with `>` ("bird tracks")
+
+   ```haskell
+   -- | @
+   --   show Foo = "Foo"
+   --   @
+   --
+   --   and
+   --
+   --   > show Foo = "Foo"
+   ```
+
+   The important difference is that in the `@...@` form, markup is interpreted as usual inside the code block while the text after `>` is interpreted literally.
+   In the example with `@...@` above, `"Foo"` is a link to the module `Foo` whereas it is just the text `"Foo"` in the example with `>`.
+   As this behavior is not expected (and it is too easy to forget to escape some characters), you should always use the `>` notation.
+
+   Unfortunately, there is no inline equivalent for `>`.
+   Thus, we have to use `@...@` for inline code.
+   Remember to escape all characters that have a special meaning in Haddock markup.
 
 ### Markdown Styleguide
 
@@ -677,6 +923,9 @@ See the [LICENSE][] file for details.
 [freec/issues]:
   https://github.com/FreeProving/free-compiler/issues
   "Free Compiler ­— Issues"
+[freec/README#required-software]:
+  https://github.com/FreeProving/free-compiler#required-software
+  "Free Compiler — Required Software"
 [freec/pull-requests]:
   https://github.com/FreeProving/free-compiler/pulls
   "Free Compiler ­— Pull Requests"
@@ -685,9 +934,18 @@ See the [LICENSE][] file for details.
   https://gdpr-info.eu/art-9-gdpr/
   "Art. 9 ­GDPR — Processing of special categories of personal data"
 
+[Git]:
+  https://git-scm.com/
+  "Git"
+[Git/Downloads]:
+  https://git-scm.com/downloads
+  "Git — Downloads"
 [Git/Config/autocrlf]:
   https://git-scm.com/book/en/v2/Customizing-Git-Git-Configuration#_code_core_autocrlf_code
   "core.autocrlf — Git Configuration"
+[Git/Tutorial]:
+  https://git-scm.com/
+  "Git — Tutorial"
 
 [GitCommit]:
   https://chris.beams.io/posts/git-commit/
@@ -726,12 +984,18 @@ See the [LICENSE][] file for details.
   https://github.github.com/gfm/#link-reference-definition
   "GitHub Flavored Markdown Spec — Link reference definitions"
 
-[software/brittany]:
+[software/Brittany]:
   https://github.com/lspitzner/brittany/
   "Brittany"
-[software/brittany#editor-integration]:
+[software/Brittany#editor-integration]:
   https://github.com/lspitzner/brittany/#editor-integration
   "Brittany — Editor Integration"
-[software/hlint]:
+[software/Haddock]:
+  https://www.haskell.org/haddock/
+  "Haddock"
+[software/HLint]:
   https://github.com/ndmitchell/hlint
   "HLint"
+[software/Hspec]:
+  https://hspec.github.io/
+  "Hspec: A Testing Framework for Haskell"
