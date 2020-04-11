@@ -41,6 +41,18 @@ TODO
 
 TODO
 
+## Additional Software
+
+In addition to the required software listed in the [README][freec/README], we recommend using the following additional software during development.
+Both of these tools are used to make sure that we are using a consistent code style throughout the project and are described in more detail in the [Haskell Styleguide](#haskell-styleguide) below.
+
+ - [Brittany][software/brittany], 0.12.1.1
+ - [HLint][software/hlint], version 2.2.11
+
+The versions mentioned above are the versions used by our [CI pipeline](#the-ci-pipeline).
+Both tools must be installed in order to [run the CI pipeline locally](#running-the-pipeline-locally).
+If you are not planning to make changes that involve the CI pipeline (i.e., modify Markdown documentation only), you do not have to install these tools.
+
 ## Directory Structure
 
 In this section, we would like to give you a quick overview over what files are part of this repository, where they can be found and what's their purpose.
@@ -198,8 +210,8 @@ You can find the corresponding workflow configuration file in `.github/workflows
 
 The CI pipeline checks whether
 
- - the code has been formatted with Brittany
- - HLint prints no suggestion that is not explicitly ignored in `.hlint.yaml`
+ - the code has been formatted with [Brittany][software/brittany]
+ - [HLint][software/hlint] prints no suggestion that is not explicitly ignored in `.hlint.yaml`
  - the `freec` executable and the unit tests compile without warnings,
  - all unit tests pass,
  - all examples in the `./example` directory compile using `freec --transform-pattern-matching` without errors,
@@ -358,8 +370,6 @@ When writing Git Commit Messages, try to follow the following recommendations on
       You can exceed this limit if needed.
       However, the 72 characters should be considered a hard limit for the subject line.
 
- - **Explain *what* and *why* something has been done and not *how***
-
  - **Reference issues and pull requests**
 
    If you are currently working on an issue or pull request, reference the number of the issue or pull request directly after the subject line.
@@ -367,7 +377,11 @@ When writing Git Commit Messages, try to follow the following recommendations on
     + `Add feature XYZ #42`
     + `Fix #42`
 
- - **The language of Git commits is English**
+   If your change is related to multiple issues or pull requests, mention all of them.
+   References to issues and pull requests don't count towards the line length limit.
+
+    + `Add feature XYZ #42 #95`
+    + `Fix #42 #95`
 
  - **Use Markdown to format your commit messages**
 
@@ -377,9 +391,68 @@ When writing Git Commit Messages, try to follow the following recommendations on
    Also: just paste links into the commit message's body.
    There is no need for link reference definitions or links with text in commit messages.
 
+- **Explain *what* and *why* something has been done and not *how***
+
+- **The language of Git commit messages is English**
+
 ### Haskell Styleguide
 
 TODO
+
+We are using the following two tools to enforce the Haskell styleguide.
+
+#### Brittany
+
+[Brittany][software/brittany] is a code formatter for Haskell.
+It can be installed via Cabal as follows.
+
+```haskell
+cabal new-install brittant
+```
+
+The CI pipeline runs `brittany` on all Haskell source files in the `src` and `example` directories and compares its output with the committed files.
+If there are Haskell source files that have not been formatted using `brittany`, the CI pipeline fails.
+The same check is performed by the `./tool/check-formatting.sh` and `./tool/full-test.sh` scripts.
+
+There is Brittany support for various editors (see also [Editor Integration][software/brittany#editor-integration]).
+If your editor is not supported, you can use the following shell script that we provide.
+
+```haskell
+./tool/format-code.sh [files...]
+```
+
+If no files are specified, all Haskell source files in the `src` and `example` directory are formatted by default.
+Note that the script overwrites the formatted files.
+Thus, you should create a backup beforehand by `git add`ing your changes, for example.
+
+Of course Brittany is not perfect.
+Among others, data type declarations are not formatted at the moment.
+So don't rely entirely on the output of our automatic tests and manually check your code nonetheless according to the rules outlined above.
+
+#### HLint
+
+[HLint][software/hlint] is a tool that gives suggestions on how to improve Haskell source code.
+It can be installed via Cabal as follows.
+
+```haskell
+cabal new-install hlint
+```
+
+The CI pipeline runs `hlint` on all Haskell source files in the `src` directory.
+If HLint has suggestions for how the code can be improved, the CI pipeline fails.
+The same check is performed by the `./tool/full-test.sh` script.
+
+There are HLint plugnis for many editors.
+If there is no such plugin for your editor, you can run the following command instead.
+
+```haskell
+hlint src
+```
+
+Remember, that HLint only makes suggestions and you don't have to follow these suggestions.
+However, since the CI pipeline fails if HLint finds possible improvements, suggestions have to be ignored explicitly.
+Edit the `.hlint.yaml` file for this purpose and leave a comment why you had to ignore that suggestion.
+Try to be as specific as possible when ignoring suggestions.
 
 ### Haddock Styleguide
 
@@ -540,11 +613,11 @@ When writing markdown documents adhere to the following style considerations.
 
  - **Use block quotes to highlight important paragraphs**
 
-   If you want to draw the users attention to an important paragraph (e.g., a notice or warning), this paragph should be wrapped in a [block quote][Markdown/block-quotes].
+   If you want to draw the users attention to an important paragraph (e.g., a notice or warning), this paragraph should be wrapped in a [block quote][Markdown/block-quotes].
 
     + The paragraph should start with a word like "Warning", "Note" or similar followed by a colon.
       The word and colon should be bold text.
-    + Each line of the praragraph starts with a block quote marker (`>`).
+    + Each line of the paragraph starts with a block quote marker (`>`).
 
    ```markdown
 
@@ -598,15 +671,15 @@ See the [LICENSE][] file for details.
   https://github.com/FreeProving/free-compiler/blob/master/doc/ExperimentalFeatures/PatternMatchingCompilation.md
   "Free Compiler Documentation — Pattern Matching Compilation"
 
+[freec/haddock]:
+  https://freeproving.github.io/free-compiler/docs/master
+  "Free Compiler — Haddock Documentation"
 [freec/issues]:
   https://github.com/FreeProving/free-compiler/issues
   "Free Compiler ­— Issues"
 [freec/pull-requests]:
   https://github.com/FreeProving/free-compiler/pulls
   "Free Compiler ­— Pull Requests"
-[freec/haddock]:
-  https://freeproving.github.io/free-compiler/docs/master
-  "Free Compiler — Haddock Documentation"
 
 [GDPR/Art9]:
   https://gdpr-info.eu/art-9-gdpr/
@@ -652,3 +725,13 @@ See the [LICENSE][] file for details.
 [Markdown/link-reference-definition]:
   https://github.github.com/gfm/#link-reference-definition
   "GitHub Flavored Markdown Spec — Link reference definitions"
+
+[software/brittany]:
+  https://github.com/lspitzner/brittany/
+  "Brittany"
+[software/brittany#editor-integration]:
+  https://github.com/lspitzner/brittany/#editor-integration
+  "Brittany — Editor Integration"
+[software/hlint]:
+  https://github.com/ndmitchell/hlint
+  "HLint"
