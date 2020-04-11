@@ -15,8 +15,8 @@ import           FreeC.Pretty
 -- | A type expression with explicitly introduced type variables.
 data TypeSchema = TypeSchema
   { typeSchemaSrcSpan :: SrcSpan
-  , typeSchemaArgs :: [TypeVarDecl]
-  , typeSchemaType :: Type
+  , typeSchemaArgs    :: [TypeVarDecl]
+  , typeSchemaType    :: Type
   }
  deriving (Eq, Show)
 

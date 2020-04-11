@@ -23,7 +23,7 @@ import           FreeC.Pretty
 data Type
   = -- | A type variable.
     TypeVar
-      { typeSrcSpan :: SrcSpan
+      { typeSrcSpan  :: SrcSpan
       , typeVarIdent :: TypeVarIdent
       }
   | -- | A type constructor.
@@ -34,8 +34,8 @@ data Type
   | -- | A type constructor application.
     TypeApp
       { typeSrcSpan :: SrcSpan
-      , typeAppLhs :: Type
-      , typeAppRhs :: Type
+      , typeAppLhs  :: Type
+      , typeAppRhs  :: Type
       }
   | -- | A function type.
     FuncType

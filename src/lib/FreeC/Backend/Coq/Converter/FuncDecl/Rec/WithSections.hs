@@ -446,7 +446,7 @@ updateTypeSig
   -> Map IR.QName IR.Type
      -- ^ The return types by function name.
   -> IR.FuncDecl
-    -- ^ The function declaration whose type signature to update.
+     -- ^ The function declaration whose type signature to update.
   -> Converter (IR.QName, [Int])
 updateTypeSig mgu constTypeVars argTypeMap returnTypeMap funcDecl = do
     -- TODO do we have to update type annotations in the AST?

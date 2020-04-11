@@ -213,8 +213,7 @@ selectSubterm term (Pos []) = Just term
 selectSubterm term (Pos (p : ps))
   | p <= 0 || p > length children = Nothing
   | otherwise                     = selectSubterm (children !! (p - 1)) (Pos ps)
-  where
-  -- children :: [a]
+  where {- children :: [a] -}
         children = childTerms term
 
 -- | Replaces a subterm of the given expression or type expression at the
@@ -234,8 +233,7 @@ replaceSubterm term (Pos (p : ps)) term'
     let (before, child : after) = splitAt (p - 1) children
     child' <- replaceSubterm child (Pos ps) term'
     replaceChildTerms term (before ++ child' : after)
-  where
-  -- children :: [a]
+  where {- children :: [a] -}
         children = childTerms term
 
 -- | Replaces all subterms at the given positions with other (type) expressions.
