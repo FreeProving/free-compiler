@@ -76,6 +76,9 @@ This information should help you to quickly find files you are looking for and c
    Avoid adding new files directly to the root directory if possible.
    Instead, select an appropriate subdirectory from the list below or create a new subdirectory if the file really does not fit any of the existing categories.
 
+   If you create a new subdirectory, prefer singular (e.g., `example` not `examples`), lowercase (e.g., `example` not `Example`) and avoid abbreviations unless they are well known (e.g., `src` is a well known abbreviation of `source`).
+   When in doubt, fully spell out the name.
+
  - `./.github`
 
    This directory contains GitHub related files such as issue and pull request templates as well as the configuration of the [CI pipeline](#the-ci-pipeline).
@@ -94,6 +97,8 @@ This information should help you to quickly find files you are looking for and c
    The documentation in this directory is mainly intended for users and not so much for developers of the compiler.
    Documentation for more technical aspects such as *module interfaces* and the *intermediate representation* also belongs here.
    Nevertheless, avoid providing implementation details and don't require knowledge about internal workings of the compiler in these documents.
+
+   Documents in this directory are named `[Title].md` where `[Title]` is the title of the Markdown document without spaces.
 
  - `./example`
 
@@ -524,6 +529,23 @@ The following is a list of additional guidelines that are not yet covered by the
      where {- xx :: (a, a) -}
            xx = (x, x)
    ```
+
+ - **Naming conventions**
+
+   + Use *lowerCamelCase* for function and variable names
+
+   + Use *UpperCamelCase* for data type, constructor and class names
+
+   + Don't define symbolic infix identifiers
+
+     You shouldn't add functions or constructors with symbolic names such as `(|>)` or `(:<)`.
+     A regular identifier are more descriptive.
+     You can still use infix notation for custom functions and operators that are defined in external libraries.
+
+     ```haskell
+     x `foo` y  -- Custom function 'foo' in infix notation.
+     xs :+: ys  -- Third-party operator ':+:' in infix notation.
+     ```
 
 #### Brittany
 
