@@ -180,7 +180,7 @@ executable freec
                     , FreeC.Application.Options.Parser
                     , FreeC.Monad.Application
   build-depends:      freec-internal
-                    , githash
+                    , githash                     >=0.1.4.0
 
 test-suite freec-unit-tests
   import:             deps

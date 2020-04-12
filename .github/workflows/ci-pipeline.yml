@@ -199,26 +199,26 @@ jobs:
       uses: actions/cache@v1
       with:
         path: ~/.cabal/packages
-        key: cabal-packages-${{ steps.cabal-update.outputs.cabal-hash }}-${{ steps.cabal-update.outputs.cabal-index-hash }}
+        key: ${{ matrix.os }}-cabal-packages-${{ steps.cabal-update.outputs.cabal-hash }}-${{ steps.cabal-update.outputs.cabal-index-hash }}
         restore-keys: |
-          cabal-packages-${{ steps.cabal-update.outputs.cabal-hash }}-
-          cabal-packages-
+          ${{ matrix.os }}-cabal-packages-${{ steps.cabal-update.outputs.cabal-hash }}-
+          ${{ matrix.os }}-cabal-packages-
     - name: Cache ~/.cabal/store
       uses: actions/cache@v1
       with:
         path: ~/.cabal/store
-        key: cabal-store-${{ steps.cabal-update.outputs.cabal-hash }}-${{ steps.cabal-update.outputs.cabal-index-hash }}
+        key: ${{ matrix.os }}-cabal-store-${{ steps.cabal-update.outputs.cabal-hash }}-${{ steps.cabal-update.outputs.cabal-index-hash }}
         restore-keys: |
-          cabal-store-${{ steps.cabal-update.outputs.cabal-hash }}-
-          cabal-store-
+          ${{ matrix.os }}-cabal-store-${{ steps.cabal-update.outputs.cabal-hash }}-
+          ${{ matrix.os }}-cabal-store-
     - name: Cache dist-newstyle
       uses: actions/cache@v1
       with:
         path: dist-newstyle
-        key: dist-newstyle-${{ steps.cabal-update.outputs.cabal-hash }}-${{ steps.cabal-update.outputs.cabal-index-hash }}
+        key: ${{ matrix.os }}-dist-newstyle-${{ steps.cabal-update.outputs.cabal-hash }}-${{ steps.cabal-update.outputs.cabal-index-hash }}
         restore-keys: |
-          dist-newstyle-${{ steps.cabal-update.outputs.cabal-hash }}-
-          dist-newstyle-
+          ${{ matrix.os }}-dist-newstyle-${{ steps.cabal-update.outputs.cabal-hash }}-
+          ${{ matrix.os }}-dist-newstyle-
     - name: Install dependencies
       run: |
         cabal new-build freec-unit-tests --only-dependencies
