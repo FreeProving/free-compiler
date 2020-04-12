@@ -19,7 +19,10 @@ import           System.Exit                    ( exitSuccess )
 import           System.FilePath
 
 import           FreeC.Application.Debug
+import           FreeC.Application.Option.Help
+import           FreeC.Application.Option.Version
 import           FreeC.Application.Options
+import           FreeC.Application.Options.Parser
 import qualified FreeC.Backend.Coq.Base        as Coq.Base
 import           FreeC.Backend.Coq.Converter    ( convertModule )
 import           FreeC.Backend.Coq.Pretty
@@ -69,10 +72,15 @@ compiler :: Application ()
 compiler = do
   -- Parse command line arguments.
   getOpts >>= liftReporterIO . getAndParseArgs >>= putOpts
-  -- Show help message.
+  -- Show help message if the user specified the @--help@ option.
   whenM (inOpts optShowHelp) $ liftIO $ do
     putUsageInfo
     exitSuccess
+  -- Print version information if the user specified the @--version@ option.
+  whenM (inOpts optShowVersion) $ liftIO $ do
+    putVersionInfo
+    exitSuccess
+  -- Show usage information if there are no input files.
   whenM (inOpts (null . optInputFiles)) $ liftIO $ do
     putDebug "No input file.\n"
     putUsageInfo
