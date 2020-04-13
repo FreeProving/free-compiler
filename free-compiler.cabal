@@ -124,7 +124,6 @@ library freec-internal
                       , FreeC.Environment
                       , FreeC.Environment.Entry
                       , FreeC.Environment.Fresh
-                      , FreeC.Environment.Importer
                       , FreeC.Environment.LookupOrFail
                       , FreeC.Environment.ModuleInterface
                       , FreeC.Environment.ModuleInterface.Decoder

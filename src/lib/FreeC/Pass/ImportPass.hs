@@ -67,7 +67,6 @@ module FreeC.Pass.ImportPass
 where
 
 import           FreeC.Environment
-import           FreeC.Environment.Importer
 import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
@@ -79,6 +78,20 @@ importPass :: Pass IR.Module
 importPass ast = do
   mapM_ importModule (IR.modImports ast)
   return ast
+
+-- | Inserts multiple entries into the given environment and associates them
+--   with their original names.
+importEntries :: [EnvEntry] -> Environment -> Environment
+importEntries = flip (foldr addEntry)
+
+-- | Imports all entries from the given module interface into the given
+--   interface.
+--
+--   This function imports entries that are not exported by the given
+--   interface as well.
+importInterface :: ModuleInterface -> Environment -> Environment
+importInterface = importEntries . Set.toList . interfaceEntries
+
 
 -- | Adds the entries of the module interface imported by the given import
 --   declaration to the environment.
