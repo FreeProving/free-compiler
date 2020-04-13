@@ -19,6 +19,9 @@ In addition, the module interface file contains meta information in the top-leve
 
 The top-level table must contain the following key/value pairs:
 
+ * `version` (`Integer`) the version of the configuration file format.
+   The current version is `1`. If there is a breaking change in the future, the module interface file format version is updated.
+   The parser accepts module interface files that use the most recent version only.
  * `module-name` (`String`) the name of the module that is described by the module interface file.
  * `library-name` (`String`) the name of the Coq library that contains the module.
  * `exported-types` (`Array` of `String`) the qualified Haskell names (`haskell-name`) of the type-level entries exported by the module.

@@ -6,6 +6,7 @@
 # Metadata                                                                   #
 ##############################################################################
 
+version = 1
 module-name = 'Prelude'
 library-name = 'Base'
 exported-types = [
