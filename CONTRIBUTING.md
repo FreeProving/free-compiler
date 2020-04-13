@@ -199,7 +199,7 @@ The following instructions guide you through the creation of a pull request and 
     If your branch has diverged far from the master branch, they may ask you to pull in the master branch and resolve potential merge conflicts.
     If they do not have any comments, they merge the pull request.
 
-    After merging the pull request, the CI pipeline runs again. 
+    After merging the pull request, the CI pipeline runs again.
     However this time the checks are performed against the master branch.
     It is not your responsibility anymore to make all checks pass in this final run of the CI pipeline.
     The maintainers are expected to take immediate action if the CI pipeline fails on the master branch.
@@ -921,6 +921,11 @@ Documentation for the Haskell code in this repository is written in [Haddock][so
    Unfortunately, there is no inline equivalent for `>`.
    Thus, we have to use `@...@` for inline code.
    Remember to escape all characters that have a special meaning in Haddock markup.
+
+ - **Prefer Unicode over LaTeX**
+
+   If you have to use mathematical symbols (e.g. Greek letters or subscripts) in your comments, try to use Unicode characters (e.g., `α` or `xₙ`) instead of embedding LaTeX code into the documentation (e.g. `\(\alpha\)` or `\(x_n\)`).
+   While LaTeX produces more readable formulas in the generated HTML version of the documentation, the excessive use of LaTeX reduces the readability of the comments in the source code itself.
 
 ### Markdown Styleguide
 
