@@ -202,7 +202,6 @@ import qualified Data.Set                      as Set
 import           FreeC.Backend.Coq.Converter.TypeSchema
 import           FreeC.Environment
 import           FreeC.Environment.Fresh
-import           FreeC.Environment.Scope
 import qualified FreeC.IR.Base.Prelude         as IR.Prelude
 import           FreeC.IR.DependencyGraph       ( mapComponentM )
 import           FreeC.IR.Reference             ( freeTypeVars )
@@ -257,7 +256,7 @@ makeTypeAssumption :: Environment -> TypeAssumption
 makeTypeAssumption env = Map.fromList
   [ (name, typeSchema)
   | (scope, name) <- Map.keys (envEntries env)
-  , scope == ValueScope
+  , scope == IR.ValueScope
   , typeSchema <- maybeToList (lookupTypeSchema scope name env)
   ]
 

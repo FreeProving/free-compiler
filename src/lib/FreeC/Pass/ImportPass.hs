@@ -66,7 +66,11 @@ module FreeC.Pass.ImportPass
   )
 where
 
+import qualified Data.Set                      as Set
+
 import           FreeC.Environment
+import           FreeC.Environment.Entry
+import           FreeC.Environment.ModuleInterface
 import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter

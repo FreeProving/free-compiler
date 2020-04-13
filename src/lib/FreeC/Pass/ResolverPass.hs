@@ -182,7 +182,6 @@ import           Data.Tuple.Extra               ( (&&&) )
 
 import           FreeC.Environment
 import           FreeC.Environment.ModuleInterface
-import           FreeC.Environment.Scope
 import           FreeC.IR.SrcSpan
 import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Converter
@@ -213,7 +212,7 @@ data ResolverEntry
         -- ^ The location of the @import@ that brought the entry into scope.
       , resolverEntryImportName :: IR.ModName
         -- ^ The name of the module the entry was imported from.
-      , resolverEntryScope :: Scope
+      , resolverEntryScope :: IR.Scope
         -- ^ The scope the entry is defined in.
       , resolverEntryLocalName :: IR.QName
         -- ^ The qualified name of the entry in the current module.
@@ -225,14 +224,14 @@ data ResolverEntry
     LocalEntry
       { resolverEntrySrcSpan :: SrcSpan
         -- ^ The location of the declaration.
-      , resolverEntryScope :: Scope
+      , resolverEntryScope :: IR.Scope
         -- ^ The scope of the declaration.
       , resolverEntryOriginalName :: IR.QName
         -- ^ The name of the declaration.
       }
 
 -- | Gets the scope and name of the given entry.
-resolverEntryScopedName :: ResolverEntry -> ScopedName
+resolverEntryScopedName :: ResolverEntry -> IR.ScopedName
 resolverEntryScopedName = resolverEntryScope &&& resolverEntryOriginalName
 
 -- | Entries are identified by their original name.
@@ -281,7 +280,7 @@ instance Pretty ResolverEntry where
 --   Each name can be associated with multiple entries as long as there is
 --   no such reference.
 newtype ResolverEnv = ResolverEnv
-  { unwrapResolverEnv :: Map ScopedName (Set ResolverEntry)
+  { unwrapResolverEnv :: Map IR.ScopedName (Set ResolverEntry)
   }
 
 -- | Creates an environment that contains the given entries.
@@ -329,7 +328,8 @@ shadowResolverEnv e1 e2 =
 
 -- | Looks up the resolver entries that have been associated with the given
 --   name in the given scope.
-lookupResolverEntries :: Scope -> IR.QName -> ResolverEnv -> Set ResolverEntry
+lookupResolverEntries
+  :: IR.Scope -> IR.QName -> ResolverEnv -> Set ResolverEntry
 lookupResolverEntries scope name env =
   Map.findWithDefault Set.empty (scope, name) (unwrapResolverEnv env)
 
@@ -384,7 +384,7 @@ resolverEnvFromImport (IR.ImportDecl srcSpan modName) = do
  where
   -- | Creates an entry for the import of the given name by the current
   --   import declaration.
-  makeImportedEntry :: ScopedName -> ResolverEntry
+  makeImportedEntry :: IR.ScopedName -> ResolverEntry
   makeImportedEntry (scope, originalName) = ImportedEntry
     { resolverEntrySrcSpan      = srcSpan
     , resolverEntryImportName   = modName
@@ -414,24 +414,24 @@ instance TopLevelDeclaration IR.Module where
 --   constructors at top-level.
 instance TopLevelDeclaration IR.TypeDecl where
   topLevelEntries typeSynDecl@IR.TypeSynDecl{} =
-    [makeTopLevelEntry TypeScope (IR.typeDeclIdent typeSynDecl)]
+    [makeTopLevelEntry IR.TypeScope (IR.typeDeclIdent typeSynDecl)]
   topLevelEntries dataDecl@IR.DataDecl{} =
-    makeTopLevelEntry TypeScope (IR.typeDeclIdent dataDecl)
+    makeTopLevelEntry IR.TypeScope (IR.typeDeclIdent dataDecl)
       : concatMap topLevelEntries (IR.dataDeclCons dataDecl)
 
 -- | Constructors of data type declarations are declared at top-level.
 instance TopLevelDeclaration IR.ConDecl where
   topLevelEntries conDecl =
-    [makeTopLevelEntry ValueScope (IR.conDeclIdent conDecl)]
+    [makeTopLevelEntry IR.ValueScope (IR.conDeclIdent conDecl)]
 
 -- | Function declarations are declared at top-level.
 instance TopLevelDeclaration IR.FuncDecl where
   topLevelEntries funcDecl =
-    [makeTopLevelEntry ValueScope (IR.funcDeclIdent funcDecl)]
+    [makeTopLevelEntry IR.ValueScope (IR.funcDeclIdent funcDecl)]
 
 -- | Creates the entry for a top-level declaration with the given name
 --   in the given scope.
-makeTopLevelEntry :: Scope -> IR.DeclIdent -> ResolverEntry
+makeTopLevelEntry :: IR.Scope -> IR.DeclIdent -> ResolverEntry
 makeTopLevelEntry scope declIdent = LocalEntry
   { resolverEntrySrcSpan      = IR.declIdentSrcSpan declIdent
   , resolverEntryScope        = scope
@@ -469,7 +469,7 @@ defineTypeVars typeVarDecls = do
   makeTypeVarEntry :: IR.TypeVarDecl -> ResolverEntry
   makeTypeVarEntry typeVarDecl = LocalEntry
     { resolverEntrySrcSpan      = IR.typeVarDeclSrcSpan typeVarDecl
-    , resolverEntryScope        = TypeScope
+    , resolverEntryScope        = IR.TypeScope
     , resolverEntryOriginalName = IR.typeVarDeclQName typeVarDecl
     }
 
@@ -486,7 +486,7 @@ defineVarPats varPats = do
   makeVarPatEntry :: IR.VarPat -> ResolverEntry
   makeVarPatEntry varPat = LocalEntry
     { resolverEntrySrcSpan      = IR.varPatSrcSpan varPat
-    , resolverEntryScope        = ValueScope
+    , resolverEntryScope        = IR.ValueScope
     , resolverEntryOriginalName = IR.varPatQName varPat
     }
 
@@ -551,7 +551,7 @@ withLocalResolverEnv mx = do
 --   If there is no such entry or the reference is ambiguous because multiple
 --   entries are associated with the name, a fatal error is reported.
 lookupResolverEntryOrFail
-  :: SrcSpan -> Scope -> IR.QName -> Resolver ResolverEntry
+  :: SrcSpan -> IR.Scope -> IR.QName -> Resolver ResolverEntry
 lookupResolverEntryOrFail srcSpan scope name = do
   entrySet <- gets $ lookupResolverEntries scope name
   case Set.toList entrySet of
@@ -575,16 +575,16 @@ lookupResolverEntryOrFail srcSpan scope name = do
         ++ intercalate " or " (map showPretty entries)
  where
   -- | Pretty prints the capitalized and the lower case name of the scopes.
-  showPrettyScope :: Scope -> (String, String)
-  showPrettyScope TypeScope  = ("Type", "type")
-  showPrettyScope ValueScope = ("Value", "value")
+  showPrettyScope :: IR.Scope -> (String, String)
+  showPrettyScope IR.TypeScope  = ("Type", "type")
+  showPrettyScope IR.ValueScope = ("Value", "value")
 
 -- | Looks up the original name of the entry associated with the given name
 --   in the given scope.
 --
 --   If there is no such entry or the reference is ambiguous because multiple
 --   entries are associated with the name, a fatal error is reported.
-lookupOriginalNameOrFail :: SrcSpan -> Scope -> IR.QName -> Resolver IR.QName
+lookupOriginalNameOrFail :: SrcSpan -> IR.Scope -> IR.QName -> Resolver IR.QName
 lookupOriginalNameOrFail =
   fmap resolverEntryOriginalName .:. lookupResolverEntryOrFail
 
@@ -593,7 +593,7 @@ lookupOriginalNameOrFail =
 --
 --   If there is no such entry or the reference is ambiguous because multiple
 --   entries are associated with the name, a fatal error is reported.
-checkIsDefined :: SrcSpan -> Scope -> IR.QName -> Resolver ()
+checkIsDefined :: SrcSpan -> IR.Scope -> IR.QName -> Resolver ()
 checkIsDefined srcSpan scope name = do
   _ <- lookupResolverEntryOrFail srcSpan scope name
   return ()
@@ -659,12 +659,12 @@ instance Resolvable IR.Type where
   -- Type variables will always resolve to themselves, however we should still
   -- perform a lookup to make sure the type variable has been defined.
   resolve (IR.TypeVar srcSpan ident) = do
-    checkIsDefined srcSpan TypeScope (IR.UnQual (IR.Ident ident))
+    checkIsDefined srcSpan IR.TypeScope (IR.UnQual (IR.Ident ident))
     return (IR.TypeVar srcSpan ident)
 
   -- Lookup the original name
   resolve (IR.TypeCon srcSpan name) = do
-    originalName <- lookupOriginalNameOrFail srcSpan TypeScope name
+    originalName <- lookupOriginalNameOrFail srcSpan IR.TypeScope name
     return (IR.TypeCon srcSpan originalName)
 
   -- Resolve recursively.
@@ -707,11 +707,11 @@ instance Resolvable IR.FuncDecl where
 instance Resolvable IR.Expr where
   -- Lookup the original name of constructors and functions.
   resolve (IR.Con srcSpan conName exprType) = do
-    originalName <- lookupOriginalNameOrFail srcSpan ValueScope conName
+    originalName <- lookupOriginalNameOrFail srcSpan IR.ValueScope conName
     exprType'    <- mapM resolve exprType
     return (IR.Con srcSpan originalName exprType')
   resolve (IR.Var srcSpan varName exprType) = do
-    originalName <- lookupOriginalNameOrFail srcSpan ValueScope varName
+    originalName <- lookupOriginalNameOrFail srcSpan IR.ValueScope varName
     exprType'    <- mapM resolve exprType
     return (IR.Var srcSpan originalName exprType')
 
@@ -775,7 +775,7 @@ instance Resolvable IR.Alt where
 --   resolved to its original name.
 instance Resolvable IR.ConPat where
   resolve (IR.ConPat srcSpan conName) = do
-    originalName <- lookupOriginalNameOrFail srcSpan ValueScope conName
+    originalName <- lookupOriginalNameOrFail srcSpan IR.ValueScope conName
     return (IR.ConPat srcSpan originalName)
 
 -- | The types referenced by the type annotation of a variable pattern can

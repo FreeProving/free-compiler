@@ -122,7 +122,6 @@ import qualified FreeC.Backend.Coq.Syntax      as Coq
 import           FreeC.Environment
 import           FreeC.Environment.ModuleInterface
 import           FreeC.Environment.Entry
-import           FreeC.Environment.Scope
 import           FreeC.Frontend.Haskell.Parser
 import           FreeC.Frontend.Haskell.Simplifier
 import           FreeC.IR.Reference             ( freeTypeVars )
@@ -214,8 +213,8 @@ instance Aeson.FromJSON ModuleInterface where
       { interfaceModName = modName
       , interfaceLibName = libName
       , interfaceExports = Set.fromList
-                             (  map ((,) TypeScope)  exportedTypes
-                             ++ map ((,) ValueScope) exportedValues
+                             (  map ((,) IR.TypeScope)  exportedTypes
+                             ++ map ((,) IR.ValueScope) exportedValues
                              )
       , interfaceEntries = Set.fromList
                              (  Vector.toList types

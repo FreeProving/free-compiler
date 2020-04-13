@@ -12,7 +12,6 @@ import           FreeC.Backend.Coq.Converter.Free
 import           FreeC.Backend.Coq.Converter.Type
 import qualified FreeC.Backend.Coq.Syntax      as Coq
 import           FreeC.Environment
-import           FreeC.Environment.Scope
 import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Converter
 
@@ -31,7 +30,7 @@ convertFuncHead
 convertFuncHead (IR.FuncDecl _ declIdent typeArgs args maybeRetType _) = do
   let name = IR.declIdentName declIdent
   -- Lookup the Coq name of the function.
-  Just qualid    <- inEnv $ lookupIdent ValueScope name
+  Just qualid    <- inEnv $ lookupIdent IR.ValueScope name
   -- Generate arguments for free monad if they are not in scope.
   freeArgsNeeded <- inEnv $ needsFreeArgs name
   let freeArgDecls | freeArgsNeeded = genericArgDecls Coq.Explicit

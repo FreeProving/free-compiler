@@ -19,7 +19,6 @@ import           Data.Set                       ( Set )
 
 import qualified FreeC.Backend.Coq.Syntax      as Coq
 import           FreeC.Environment.Entry
-import           FreeC.Environment.Scope
 import qualified FreeC.IR.Syntax               as IR
 
 -- | Data type that contains the information of a module environment that
@@ -30,7 +29,7 @@ data ModuleInterface = ModuleInterface
   , interfaceLibName :: Coq.ModuleIdent
     -- ^ The name of the Coq library that contains this module (e.g. @"Base"@
     --   for the @Prelude@ module).
-  , interfaceExports :: Set ScopedName
+  , interfaceExports :: Set IR.ScopedName
     -- ^ The names (qualified with their original module name) that are
     --   exported by the module.
   , interfaceEntries :: Set EnvEntry

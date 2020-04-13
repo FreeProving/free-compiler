@@ -6,7 +6,6 @@ import qualified FreeC.Backend.Coq.Base        as Coq.Base
 import           FreeC.Backend.Coq.Converter.Free
 import qualified FreeC.Backend.Coq.Syntax      as Coq
 import           FreeC.Environment.LookupOrFail
-import           FreeC.Environment.Scope
 import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Converter
 
@@ -44,10 +43,10 @@ convertType t = do
 --     remain unchanged otherwise.
 convertType' :: IR.Type -> Converter Coq.Term
 convertType' (IR.TypeVar srcSpan ident) = do
-  qualid <- lookupIdentOrFail srcSpan TypeScope (IR.UnQual (IR.Ident ident))
+  qualid <- lookupIdentOrFail srcSpan IR.TypeScope (IR.UnQual (IR.Ident ident))
   return (Coq.Qualid qualid)
 convertType' (IR.TypeCon srcSpan name) = do
-  qualid <- lookupIdentOrFail srcSpan TypeScope name
+  qualid <- lookupIdentOrFail srcSpan IR.TypeScope name
   return (genericApply qualid [] [] [])
 convertType' (IR.TypeApp _ t1 t2) = do
   t1' <- convertType' t1

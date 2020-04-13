@@ -51,7 +51,6 @@ import           Control.Monad.Extra            ( anyM )
 
 import           FreeC.Environment
 import           FreeC.Environment.Entry
-import           FreeC.Environment.Scope
 import qualified FreeC.IR.Base.Prelude         as IR.Prelude
 import           FreeC.IR.DependencyGraph       ( unwrapComponent )
 import           FreeC.IR.Reference             ( valueRefs )
@@ -87,5 +86,5 @@ isPartialFuncName name | name == IR.Prelude.undefinedFuncName = return True
 --   function delcaration to @True@.
 markPartial :: IR.FuncDecl -> Converter ()
 markPartial decl = do
-  Just entry <- inEnv $ lookupEntry ValueScope (IR.funcDeclQName decl)
+  Just entry <- inEnv $ lookupEntry IR.ValueScope (IR.funcDeclQName decl)
   modifyEnv $ addEntry entry { entryIsPartial = True }

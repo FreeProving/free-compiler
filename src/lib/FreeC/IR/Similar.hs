@@ -37,7 +37,6 @@ import qualified Data.Map.Strict               as Map
 import           Data.Set                       ( Set )
 import qualified Data.Set                      as Set
 
-import           FreeC.Environment.Scope
 import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Util.Predicate           ( (.&&.) )
 
@@ -49,17 +48,17 @@ import           FreeC.Util.Predicate           ( (.&&.) )
 --   corresponding names in the second AST.
 --
 --   Since expressions and types can be mixed, we have to keep track of the
---   scopes the variables have been bound in (i.e., use 'ScopedName's).
+--   scopes the variables have been bound in (i.e., use 'IR.IR.ScopedName's).
 --
 --   Since we have to perform lookups both in the domain and the image of
 --   the mapping, we explicitly keep track of the variables bound in the
 --   in the right AST. The variables bound in the left AST can already
 --   be looked up in the 'renameMap'.
 data Renaming = Renaming
-  { renameMap     :: Map ScopedName IR.QName
+  { renameMap     :: Map IR.ScopedName IR.QName
     -- ^ Maps variables bound in the left AST to variables
     --   bound in the right AST.
-  , rightBoundSet :: Set ScopedName
+  , rightBoundSet :: Set IR.ScopedName
     -- ^ The variables bound in the right AST.
   }
 
@@ -68,38 +67,38 @@ emptyRenaming :: Renaming
 emptyRenaming = Renaming { renameMap = Map.empty, rightBoundSet = Set.empty }
 
 -- | The variables bound by the left AST.
-leftBoundSet :: Renaming -> Set ScopedName
+leftBoundSet :: Renaming -> Set IR.ScopedName
 leftBoundSet = Map.keysSet . renameMap
 
 -- | Tests whether the given variable is free in the left AST.
-leftFree :: ScopedName -> Renaming -> Bool
+leftFree :: IR.ScopedName -> Renaming -> Bool
 leftFree name renaming = name `Set.notMember` leftBoundSet renaming
 
 -- | Tests whether the given variable is free in the right AST.
-rightFree :: ScopedName -> Renaming -> Bool
+rightFree :: IR.ScopedName -> Renaming -> Bool
 rightFree name renaming = name `Set.notMember` rightBoundSet renaming
 
 -- | Tests whether two variables in the given scope are similar, i.e.,
 --   they are either free in their ASTs and equal or they are mapped
 --   to each other (and therefore both not free).
-similarVars :: Scope -> IR.QName -> IR.QName -> Renaming -> Bool
+similarVars :: IR.Scope -> IR.QName -> IR.QName -> Renaming -> Bool
 similarVars scope x y renaming
   | leftFree x' renaming && rightFree y' renaming = x == y
   | otherwise = Map.lookup x' (renameMap renaming) == Just y
  where
-  x', y' :: ScopedName
+  x', y' :: IR.ScopedName
   x' = (scope, x)
   y' = (scope, y)
 
 -- | Extends a renaming by the corresponding pairs of variable names from the
 --   two given lists.
-extendRenaming :: Scope -> [IR.QName] -> [IR.QName] -> Renaming -> Renaming
+extendRenaming :: IR.Scope -> [IR.QName] -> [IR.QName] -> Renaming -> Renaming
 extendRenaming scope xs ys renaming = Renaming
   { renameMap     = Map.fromList (zip xs' ys) `Map.union` renameMap renaming
   , rightBoundSet = Set.fromList ys' `Set.union` rightBoundSet renaming
   }
  where
-  xs', ys' :: [ScopedName]
+  xs', ys' :: [IR.ScopedName]
   xs' = map ((,) scope) xs
   ys' = map ((,) scope) ys
 
@@ -189,7 +188,7 @@ instance Similar node => Similar [node] where
 instance Similar IR.Type where
   similar' (IR.TypeCon _ c1) (IR.TypeCon _ c2) = const (c1 == c2)
   similar' (IR.TypeVar _ v1) (IR.TypeVar _ v2) =
-    similarVars TypeScope (IR.UnQual (IR.Ident v1)) (IR.UnQual (IR.Ident v2))
+    similarVars IR.TypeScope (IR.UnQual (IR.Ident v1)) (IR.UnQual (IR.Ident v2))
   similar' (IR.TypeApp _ s1 s2) (IR.TypeApp _ t1 t2) =
     similar' s1 t1 .&&. similar' s2 t2
   similar' (IR.FuncType _ s1 s2) (IR.FuncType _ t1 t2) =
@@ -212,7 +211,7 @@ instance Similar IR.TypeSchema where
   similar' (IR.TypeSchema _ as t1) (IR.TypeSchema _ bs t2) =
     let ns = map IR.typeVarDeclQName as
         ms = map IR.typeVarDeclQName bs
-    in  similar' t1 t2 . extendRenaming TypeScope ns ms
+    in  similar' t1 t2 . extendRenaming IR.TypeScope ns ms
 
 -------------------------------------------------------------------------------
 -- Similarity test for expressions                                           --
@@ -298,13 +297,13 @@ instance Similar IR.Expr where
 -- | Like 'similar'' for expressions but ignores optional type annotations.
 similarExpr :: IR.Expr -> IR.Expr -> Renaming -> Bool
 -- Compare variables.
-similarExpr (IR.Var _ v1 _) (IR.Var _ v2 _) = similarVars ValueScope v1 v2
+similarExpr (IR.Var _ v1 _) (IR.Var _ v2 _) = similarVars IR.ValueScope v1 v2
 
 -- Bind variables in lambda abstractions.
 similarExpr (IR.Lambda _ xs e _) (IR.Lambda _ ys f _) =
   let ns = map IR.varPatQName xs
       ms = map IR.varPatQName ys
-  in  similar' e f . extendRenaming ValueScope ns ms .&&. similar' xs ys
+  in  similar' e f . extendRenaming IR.ValueScope ns ms .&&. similar' xs ys
 
 -- Recursively compare, applications, visible type applications and @case@ and
 -- @if@ expressions.
@@ -353,7 +352,7 @@ instance Similar IR.Alt where
     | c == d
     = let ns = map IR.varPatQName xs
           ms = map IR.varPatQName ys
-      in  similar' e f . extendRenaming ValueScope ns ms .&&. similar' xs ys
+      in  similar' e f . extendRenaming IR.ValueScope ns ms .&&. similar' xs ys
     | otherwise
     = const False
 
@@ -402,11 +401,11 @@ instance Similar IR.FuncDecl where
           xs' = map IR.varPatQName xs
           ys' = map IR.varPatQName ys
       in  (    similar' e f
-          .    extendRenaming ValueScope xs' ys'
+          .    extendRenaming IR.ValueScope xs' ys'
           .&&. similar' xs ys
           .&&. similar' s  t
           )
-            . extendRenaming TypeScope as' bs'
+            . extendRenaming IR.TypeScope as' bs'
     | otherwise
     = const False
 
@@ -432,7 +431,7 @@ instance Similar IR.TypeDecl where
     | IR.declIdentName d1 == IR.declIdentName d2 && length as == length bs
     = let as' = map IR.typeVarDeclQName as
           bs' = map IR.typeVarDeclQName bs
-      in  similar' t1 t2 . extendRenaming TypeScope as' bs'
+      in  similar' t1 t2 . extendRenaming IR.TypeScope as' bs'
     | otherwise
     = const False
 
@@ -440,7 +439,7 @@ instance Similar IR.TypeDecl where
     | IR.declIdentName d1 == IR.declIdentName d2 && length as == length bs
     = let as' = map IR.typeVarDeclQName as
           bs' = map IR.typeVarDeclQName bs
-      in  similar' cs1 cs2 . extendRenaming TypeScope as' bs'
+      in  similar' cs1 cs2 . extendRenaming IR.TypeScope as' bs'
     | otherwise
     = const False
 

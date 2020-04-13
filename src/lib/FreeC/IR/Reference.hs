@@ -38,7 +38,6 @@ import           Data.Set.Ordered               ( OSet
                                                 )
 import qualified Data.Set.Ordered              as OSet
 
-import           FreeC.Environment.Scope
 import qualified FreeC.IR.Base.Prelude         as IR.Prelude
 import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Util.Predicate           ( (.&&.) )
@@ -50,21 +49,21 @@ import           FreeC.Util.Predicate           ( (.&&.) )
 -- | Wrapper that is used to remember whether a name refers to a variable or
 --   constructor.
 --
---   The wrapped names are 'ScopedName's such that we can use the same function
---   to collect the type- and value-level references.
+--   The wrapped names are 'IR.ScopedName's such that we can use the same
+--   function to collect the type- and value-level references.
 data Ref
-  = VarRef { unwrapRef :: ScopedName }
-  | ConRef { unwrapRef :: ScopedName }
+  = VarRef { unwrapRef :: IR.ScopedName }
+  | ConRef { unwrapRef :: IR.ScopedName }
  deriving (Eq, Ord, Show)
 
 -- | Smart constructor for a reference to a variable or type variable
 --   with the given name.
-varRef :: Scope -> IR.QName -> Ref
+varRef :: IR.Scope -> IR.QName -> Ref
 varRef = VarRef .: (,)
 
 -- | Smart constructor for a reference to a constructor or type constructor
 --   with the given name.
-conRef :: Scope -> IR.QName -> Ref
+conRef :: IR.Scope -> IR.QName -> Ref
 conRef = ConRef .: (,)
 
 -- | Tests whether the given reference refers to a variable or type variable.
@@ -80,14 +79,14 @@ isConRef (ConRef _) = True
 
 -- | Tests whether the given reference refers to a type-level entry.
 isTypeRef :: Ref -> Bool
-isTypeRef = (== TypeScope) . refScope
+isTypeRef = (== IR.TypeScope) . refScope
 
 -- | Tests whether the given reference refers to a value-level entry.
 isValueRef :: Ref -> Bool
-isValueRef = (== ValueScope) . refScope
+isValueRef = (== IR.ValueScope) . refScope
 
 -- | Unwraps the given reference and discards the name.
-refScope :: Ref -> Scope
+refScope :: Ref -> IR.Scope
 refScope = fst . unwrapRef
 
 -- | Unwraps the given reference and discards the scope information.
@@ -111,12 +110,12 @@ empty = OSet.empty
 
 -- | Smart constructor for a set that contains a single reference to a
 --   variable or type variable.
-varRefSet :: Scope -> IR.QName -> RefSet
+varRefSet :: IR.Scope -> IR.QName -> RefSet
 varRefSet = OSet.singleton . VarRef .: (,)
 
 -- | Smart constructor for a set that contains a single reference to a
 --   constructor or type constructor.
-conRefSet :: Scope -> IR.QName -> RefSet
+conRefSet :: IR.Scope -> IR.QName -> RefSet
 conRefSet = OSet.singleton . ConRef .: (,)
 
 -- | Inserts a reference before all elements in the given set.
@@ -178,8 +177,8 @@ valueRefs = map refName . filter isValueRef . refs
 -- | Type expressions refer to the used type variables and type constructors.
 instance HasRefs IR.Type where
   refSet (IR.TypeVar _ ident) =
-    varRefSet TypeScope (IR.UnQual (IR.Ident ident))
-  refSet (IR.TypeCon _ conName) = conRefSet TypeScope conName
+    varRefSet IR.TypeScope (IR.UnQual (IR.Ident ident))
+  refSet (IR.TypeCon _ conName) = conRefSet IR.TypeScope conName
   refSet (IR.TypeApp  _ t1 t2 ) = refSet t1 `union` refSet t2
   refSet (IR.FuncType _ t1 t2 ) = refSet t1 `union` refSet t2
 
@@ -200,9 +199,9 @@ instance HasRefs IR.TypeSchema where
 --   'IR.Prelude.undefinedFuncName' and 'IR.Prelude.errorFuncName' respectively.
 instance HasRefs IR.Expr where
   refSet (IR.Var _ varName exprType) =
-    varRef ValueScope varName `insertBefore` refSet exprType
+    varRef IR.ValueScope varName `insertBefore` refSet exprType
   refSet (IR.Con _ conName exprType) =
-    conRef ValueScope conName `insertBefore` refSet exprType
+    conRef IR.ValueScope conName `insertBefore` refSet exprType
   refSet (IR.App _ e1 e2 exprType) = refSet [e1, e2] `union` refSet exprType
   refSet (IR.TypeAppExpr _ expr typeExpr exprType) =
     unions [refSet expr, refSet typeExpr, refSet exprType]
@@ -211,10 +210,10 @@ instance HasRefs IR.Expr where
   refSet (IR.Case _ scrutinee alts exprType) =
     unions [refSet scrutinee, refSet alts, refSet exprType]
   refSet (IR.Undefined _ exprType) =
-    varRef ValueScope IR.Prelude.undefinedFuncName
+    varRef IR.ValueScope IR.Prelude.undefinedFuncName
       `insertBefore` refSet exprType
   refSet (IR.ErrorExpr _ _ exprType) =
-    varRef ValueScope IR.Prelude.errorFuncName `insertBefore` refSet exprType
+    varRef IR.ValueScope IR.Prelude.errorFuncName `insertBefore` refSet exprType
   refSet (IR.IntLiteral _ _ exprType) = refSet exprType
   refSet (IR.Lambda _ args expr exprType) =
     unions [refSet args, withoutArgs args (refSet expr), refSet exprType]
@@ -228,7 +227,7 @@ instance HasRefs IR.Alt where
 
 -- | Constructor patterns refer to the matched constructor.
 instance HasRefs IR.ConPat where
-  refSet = conRefSet ValueScope . IR.conPatName
+  refSet = conRefSet IR.ValueScope . IR.conPatName
 
 -- | Variable patterns refer to the types used in their type annotation.
 instance HasRefs IR.VarPat where
@@ -273,14 +272,14 @@ instance HasRefs IR.FuncDecl where
 -- | Removes the references to type variables that are bound by the given
 --   type variable declarations from the given set.
 withoutTypeArgs :: [IR.TypeVarDecl] -> RefSet -> RefSet
-withoutTypeArgs typeArgs set =
-  set \\ OSet.fromList (map (varRef TypeScope . IR.typeVarDeclQName) typeArgs)
+withoutTypeArgs typeArgs set = set
+  \\ OSet.fromList (map (varRef IR.TypeScope . IR.typeVarDeclQName) typeArgs)
 
 -- | Removes the references to variables that are bound by the given variable
 --   patterns from the given set.
 withoutArgs :: [IR.VarPat] -> RefSet -> RefSet
 withoutArgs args set =
-  set \\ OSet.fromList (map (varRef ValueScope . IR.varPatQName) args)
+  set \\ OSet.fromList (map (varRef IR.ValueScope . IR.varPatQName) args)
 
 -------------------------------------------------------------------------------
 -- Free type variables                                                       --

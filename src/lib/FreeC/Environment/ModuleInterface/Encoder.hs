@@ -26,7 +26,6 @@ import           FreeC.Backend.Coq.Pretty
 import qualified FreeC.Backend.Coq.Syntax      as Coq
 import           FreeC.Environment.Entry
 import           FreeC.Environment.ModuleInterface
-import           FreeC.Environment.Scope
 import           FreeC.IR.SrcSpan
 import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Reporter
@@ -63,12 +62,13 @@ instance Aeson.ToJSON ModuleInterface where
     , "exported-types" .= Aeson.toJSON
       (map
         snd
-        (filter ((== TypeScope) . fst) (Set.toList (interfaceExports iface)))
+        (filter ((== IR.TypeScope) . fst) (Set.toList (interfaceExports iface)))
       )
     , "exported-values" .= Aeson.toJSON
       (map
         snd
-        (filter ((== ValueScope) . fst) (Set.toList (interfaceExports iface)))
+        (filter ((== IR.ValueScope) . fst) (Set.toList (interfaceExports iface))
+        )
       )
     , "types" .= encodeEntriesWhere isDataEntry
     , "type-synonyms" .= encodeEntriesWhere isTypeSynEntry

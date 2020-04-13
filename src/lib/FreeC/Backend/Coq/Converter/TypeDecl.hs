@@ -16,7 +16,6 @@ import           FreeC.Backend.Coq.Converter.Free
 import           FreeC.Backend.Coq.Converter.Type
 import qualified FreeC.Backend.Coq.Base        as Coq.Base
 import           FreeC.Environment
-import           FreeC.Environment.Scope
 import           FreeC.IR.DependencyGraph
 import qualified FreeC.IR.Syntax               as IR
 import           FreeC.IR.TypeSynExpansion
@@ -82,7 +81,7 @@ convertTypeSynDecl :: IR.TypeDecl -> Converter [Coq.Sentence]
 convertTypeSynDecl decl@(IR.TypeSynDecl _ _ typeVarDecls typeExpr) =
   localEnv $ do
     let name = IR.typeDeclQName decl
-    Just qualid   <- inEnv $ lookupIdent TypeScope name
+    Just qualid   <- inEnv $ lookupIdent IR.TypeScope name
     typeVarDecls' <- convertTypeVarDecls Coq.Explicit typeVarDecls
     typeExpr'     <- convertType' typeExpr
     return
@@ -157,7 +156,7 @@ convertDataDecl (IR.DataDecl _ (IR.DeclIdent _ name) typeVarDecls conDecls) =
   --   'generateSmartConDecl').
   generateBodyAndArguments :: Converter (Coq.IndBody, [Coq.Sentence])
   generateBodyAndArguments = localEnv $ do
-    Just qualid        <- inEnv $ lookupIdent TypeScope name
+    Just qualid        <- inEnv $ lookupIdent IR.TypeScope name
     typeVarDecls'      <- convertTypeVarDecls Coq.Explicit typeVarDecls
     conDecls'          <- mapM convertConDecl conDecls
     argumentsSentences <- mapM generateArgumentsSentence conDecls
@@ -173,8 +172,8 @@ convertDataDecl (IR.DataDecl _ (IR.DeclIdent _ name) typeVarDecls conDecls) =
   convertConDecl
     :: IR.ConDecl -> Converter (Coq.Qualid, [Coq.Binder], Maybe Coq.Term)
   convertConDecl (IR.ConDecl _ (IR.DeclIdent _ conName) args) = do
-    Just conQualid  <- inEnv $ lookupIdent ValueScope conName
-    Just returnType <- inEnv $ lookupReturnType ValueScope conName
+    Just conQualid  <- inEnv $ lookupIdent IR.ValueScope conName
+    Just returnType <- inEnv $ lookupReturnType IR.ValueScope conName
     args'           <- mapM convertType args
     returnType'     <- convertType' returnType
     return (conQualid, [], Just (args' `Coq.arrows` returnType'))
@@ -182,9 +181,9 @@ convertDataDecl (IR.DataDecl _ (IR.DeclIdent _ name) typeVarDecls conDecls) =
   -- | Generates the @Arguments@ sentence for the given constructor declaration.
   generateArgumentsSentence :: IR.ConDecl -> Converter Coq.Sentence
   generateArgumentsSentence (IR.ConDecl _ (IR.DeclIdent _ conName) _) = do
-    Just qualid <- inEnv $ lookupIdent ValueScope conName
+    Just qualid <- inEnv $ lookupIdent IR.ValueScope conName
     let typeVarNames = map IR.typeVarDeclQName typeVarDecls
-    typeVarQualids <- mapM (inEnv . lookupIdent TypeScope) typeVarNames
+    typeVarQualids <- mapM (inEnv . lookupIdent IR.TypeScope) typeVarNames
     return
       (Coq.ArgumentsSentence
         (Coq.Arguments
@@ -202,9 +201,9 @@ convertDataDecl (IR.DataDecl _ (IR.DeclIdent _ name) typeVarDecls conDecls) =
   generateSmartConDecl :: IR.ConDecl -> Converter Coq.Sentence
   generateSmartConDecl (IR.ConDecl _ declIdent argTypes) = localEnv $ do
     let conName = IR.declIdentName declIdent
-    Just qualid             <- inEnv $ lookupIdent ValueScope conName
+    Just qualid             <- inEnv $ lookupIdent IR.ValueScope conName
     Just smartQualid        <- inEnv $ lookupSmartIdent conName
-    Just returnType         <- inEnv $ lookupReturnType ValueScope conName
+    Just returnType         <- inEnv $ lookupReturnType IR.ValueScope conName
     typeVarDecls'           <- convertTypeVarDecls Coq.Implicit typeVarDecls
     (argIdents', argDecls') <- mapAndUnzipM convertAnonymousArg
                                             (map Just argTypes)

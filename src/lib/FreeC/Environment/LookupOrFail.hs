@@ -7,7 +7,6 @@ module FreeC.Environment.LookupOrFail where
 import qualified FreeC.Backend.Coq.Syntax      as Coq
 import           FreeC.Environment
 import           FreeC.Environment.Entry
-import           FreeC.Environment.Scope
 import           FreeC.IR.SrcSpan
 import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Converter
@@ -19,7 +18,7 @@ import           FreeC.Pretty
 --   name is ambigious.
 --
 --   If an error is reported, it points to the given source span.
-lookupEntryOrFail :: SrcSpan -> Scope -> IR.QName -> Converter EnvEntry
+lookupEntryOrFail :: SrcSpan -> IR.Scope -> IR.QName -> Converter EnvEntry
 lookupEntryOrFail srcSpan scope name = do
   maybeEntry <- inEnv $ lookupEntry scope name
   case maybeEntry of
@@ -38,7 +37,7 @@ lookupEntryOrFail srcSpan scope name = do
 --   If an error is reported, it points to the given source span.
 lookupIdentOrFail
   :: SrcSpan  -- ^ The source location where the identifier is requested.
-  -> Scope    -- ^ The scope to look the identifier up in.
+  -> IR.Scope    -- ^ The scope to look the identifier up in.
   -> IR.QName -- ^ The Haskell identifier to look up.
   -> Converter Coq.Qualid
 lookupIdentOrFail srcSpan scope name = do
@@ -55,5 +54,5 @@ lookupSmartIdentOrFail
   -> IR.QName -- ^ The Haskell identifier to look up.
   -> Converter Coq.Qualid
 lookupSmartIdentOrFail srcSpan name = do
-  entry <- lookupEntryOrFail srcSpan ValueScope name
+  entry <- lookupEntryOrFail srcSpan IR.ValueScope name
   return (entrySmartIdent entry)
