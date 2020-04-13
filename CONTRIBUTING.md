@@ -13,7 +13,7 @@ If you have questions or want to propose changes to this document, feel free to 
 
  1. [How Can I Contribute?](#how-can-i-contribute)
     - [Reporting Bugs](#reporting-bugs)
-    - [Submitting Pull Requests](#submitting-pull-requests)
+    - [Contributing Code](#contributing-code)
  2. [Additional Software](#additional-software)
  3. [Directory Structure](#directory-structure)
  4. [Testing](#testing)
@@ -38,7 +38,7 @@ If you have questions or want to propose changes to this document, feel free to 
 
 Bugs are tracked as [issues on GitHub][freec/issues].
 If you found a bug, first **make sure that the bug hasn't been reported yet** and that you can reproduce the bug in the latest version of the compiler.
-If the problem persists in the latest version and you cannot find a related bug report, create a new issue and provide as much of the following information as possible.
+If the problem persists in the latest version and you cannot find a related bug report, create a new issue and provide as much of the following information as possible by filling out the bug report template.
 
  - Explain the problem and include additional details to help maintainers and members of the FreeProving project to reproduce the problem.
 
@@ -62,9 +62,121 @@ If the problem persists in the latest version and you cannot find a related bug 
     + **If the problem regards the generated Coq code,** what version of Coq are you using and how does your `_CoqProject` file look like (if any)?
     + **Have you made any modifications** to the Compiler's source code, build configuration or the code of the included Coq Base library?
 
-### Submitting Pull Requests
+ - Assign the <kbd>[bug][freec/labels/bug]</kbd> label to the issue.
+   If you do not have the permission to add labels, a member of the FreeProving project will assign this label when reviewing the bug report.
 
-TODO
+### Contributing Code
+
+In order to contribute code to the FreeProvig project, you have to submit a [pull request][freec/pull-requests].
+The following instructions guide you through the creation of a pull request and our quality assurance process.
+
+ 1. **Pick an issue to work on**
+
+    - It is usually best to work on one issue at the time.
+    - If you want to implement a feature but there is no issue yet, create a new issue first and consider discussing the change with other members of the FreeProving project first.
+    - As a member of the free proving project, assign yourself to the issue you are currently working on to let others know that somebody is working on the issue already.
+    - Take a look at the list of [good first issues][freec/labels/good-first-issue] if you want to help but don't know where to start.
+
+ 2. **Create a fork or feature branch**
+
+     - If you are not a member of the FreeProving project and want to contribute code, you have to fork the repository you want to contribute to on GitHub.
+       Once you have created a fork, you can clone your fork and start making changes.
+
+       ```
+       git clone git@github.com:YOUR_USER_NAME/free-compiler.git
+       ```
+
+       In a forked repository, you can push to the master branch directly.
+       Consider enabling GitHub actions on the Actions tab of your fork of the repository to run the CI pipeline before you create a pull request.
+
+     - Members of the FreeProving project do don't have to fork repositories they want to contribute to.
+       In the main repository pushing to the master branch is prohibited.
+       All development takes place in so called *feature branches*.
+       If you are working on a specific issue `#N`, create a branch `issue-N` for all changes related to that issue.
+
+       Run the following command to create and checkout a feature branch from the currently checked out branch.
+
+       ```bash
+       git checkout -b issue-N
+       ```
+
+ 3. **Make changes**
+
+    Make changes to the code in your fork or feature branch and commit the changes using [Git](#git).
+    Prefer to make a lot of small changes and commit often instead of implementing the entire feature in one gigantic commit.
+    Reference the issue you are working on in each commit message (see also the [styleguide for Git commit messages](#git-commit-messages)).
+
+    Also consider the following when making changes.
+
+    - Follow the applicable [styleguide](#styleguides).
+
+    - Ensure that your changes work correctly and do not break other parts of the compiler by running [unit tests and other checks](#testing) frequently.
+      You should also [write your own unit tests](#writing-unit-tests).
+
+    - Pull in the master branch regularly to avoid merge conflicts later down the line.
+
+      In a feature branch run the following command to merge the latest changes to the master branch on GitHub with your local (currently checked out) feature branch.
+
+      ```bash
+      git pull origin master
+      ```
+
+      If you are working on a fork, you have to add the original repository as a remote first.
+
+      ```
+      git remote add upstream git@github.com:FreeProving/free-compiler.git
+      ```
+
+      Now you can run the following command to merge the latest changes to the master branch of the original repository on GitHub with the local clone of your fork.
+
+      ```bash
+      git pull upstream master
+      ```
+
+    - When making user-facing or other notable changes, add a short entry to the "unreleased" section of the `CHANGELOG.md`.
+      Explain the change briefly and in terms that a user can understand.
+
+ 4. **Create a pull request**
+
+    Once you have implemented all changes and convinced yourself that everything is working as intend, you are ready to [submit a pull request][freec/pull-requests].
+    If you are not fully done yet but want feedback on what you have done so far or need help for how to continue, you can also draft a pull request before.
+
+    Provide the following information when submitting a pull request.
+
+     - **Use a clear and descriptive title** for the pull request to summarize the changes.
+     - **Describe *what* you have changed and *why* you had to change it.**
+     - **Point out alternatives to your solution and potential drawbacks of your approach.**
+
+ 5. **Wait for all checks of the CI pipeline to run through**
+
+    Whenever you open or reopen a pull request or push to the branch that is tracked by the pull request, a run of the [CI pipeline](#the-ci-pipeline) is triggered.
+    A pull request must pass all checks in order to be accepted.
+    If a check fails, try to identify and fix the problem.
+    Once you push your fix, another run of the pipeline is triggered.
+    Repeat this process until all checks pass.
+    If you believe that the checks are failing due to an error in the CI pipeline configuration, leave a comment under your pull request asking a maintainer for help.
+    A good first contact in those situations is @just95.
+
+ 6. **Wait for the pull request to be reviewed**
+
+    A pull request must be reviewed by at least two members in order to be accepted.
+    Reviewers may ask you to make additional changes, add test cases, update documentation or suggest improvements to your code before your pull request can be ultimately accepted.
+    Implement the suggested changes, make sure the pipeline still passes and request another review when you are done and everything seems to work.
+    Repeat this process until consent is met.
+
+ 7. **Wait for a maintainer to merge the pull request**
+
+    Once consent is met and both reviewers approved the pull request, a project maintainer can merge the pull request.
+    Ping a maintainer in a comment below your pull request, informing them that your pull request can be merged now.
+
+    Like reviewers, a project maintainer may still request additional changes.
+    If your branch has diverged far from the master branch, they may ask you to pull in the master branch and resolve potential merge conflicts.
+    If they do not have any comments, they merge the pull request.
+
+    Upon merging the pull request the CI pipeline runs again, however this time the checks are performed against the master branch.
+    It is not your responsibility anymore to make all checks pass in this final run of the CI pipeline.
+    The maintainers are expected to take immediate action if the CI pipeline fails on the master branch.
+    As a last resort, they may decide to revert the previously merged pull request.
 
 ## Additional Software
 
@@ -969,6 +1081,12 @@ See the [LICENSE][] file for details.
 [freec/issues]:
   https://github.com/FreeProving/free-compiler/issues
   "Free Compiler ­— Issues"
+[freec/labels/bug]:
+  https://github.com/FreeProving/free-compiler/labels/bug
+  "Free Compiler ­— Issues — Bugs"
+[freec/labels/good-first-issue]:
+  https://github.com/FreeProving/free-compiler/labels/good%20first%20issue
+  "Free Compiler ­— Issues — Good First Issue"
 [freec/README#required-software]:
   https://github.com/FreeProving/free-compiler#required-software
   "Free Compiler — Required Software"
