@@ -11,26 +11,33 @@ If you have questions or want to propose changes to this document, feel free to 
 
 ## Table of Contents
 
- 1. [How Can I Contribute?](#how-can-i-contribute)
+ 1. [Code of Conduct](#code-of-conduct)
+ 2. [How Can I Contribute?](#how-can-i-contribute)
     - [Reporting Bugs](#reporting-bugs)
     - [Contributing Code](#contributing-code)
- 2. [Additional Software](#additional-software)
- 3. [Directory Structure](#directory-structure)
- 4. [Testing](#testing)
+ 3. [Additional Software](#additional-software)
+ 4. [Directory Structure](#directory-structure)
+ 5. [Testing](#testing)
     - [Running Unit Tests](#running-unit-tests)
     - [Writing Unit Tests](#writing-unit-tests)
     - [The CI Pipeline](#the-ci-pipeline)
     - [Running The Pipeline Locally](#running-the-pipeline-locally)
- 5. [Styleguides](#styleguides)
+ 6. [Styleguides](#styleguides)
     - [Languages without Styleguide](#languages-without-styleguide)
     - [General Guidelines](#general-guidelines)
     - [Git Commit Messages](#git-commit-messages)
     - [Haskell Styleguide](#haskell-styleguide)
     - [Haddock Styleguide](#haddock-styleguide)
     - [Markdown Styleguide](#markdown-styleguide)
- 6. [Legal Information](#leagal-information)
+ 7. [Legal Information](#leagal-information)
     - [Privacy](#privacy)
     - [License](#license)
+
+## Code of Conduct
+
+The Free Proving project and everyone participating in it is governed by our [Code of Conduct][freec/CODE_OF_CONDUCT].
+By participating, you are expected to uphold this code.
+Please report unacceptable behavior to the project maintainers responsible for enforcement at [INSERT CONTACT METHOD](mailto:INSERT_MAIL_ADDRESS@example.com).
 
 ## How Can I Contribute?
 
@@ -1085,9 +1092,8 @@ We do not require you to provide any personal information.
 If you chose to disclose personal information about your own person through your contributions nonetheless, you are doing so completely voluntarily and at your own risk.
 
 Please respect the privacy of other project members and contributors.
-This includes that you do not disclose their personal information (neither directly nor indirectly) unless they have deliberately done so in the past themselves.
-This is especially true for but not limited to [sensitive personal information][GDPR/Art9] such as racial or ethnic origin, political opinions, religious or philosophical beliefs, health or sexual orientation.
 If you have to mention another person, best practice is to use their GitHub user name instead of their real name even if you know them in person or their real name is publicly visible on their GitHub profile page.
+See our [Code of Conduct][freec/CODE_OF_CONDUCT] for more information.
 
 ### License
 
@@ -1101,13 +1107,15 @@ This includes that your contributions can be
  - used royalty free for private or commercial purposes
 
 by anyone provided that the requirements of the license regarding the attribution of the copyright holders are met.  
-See the [LICENSE][] file for details.
-
+See the [LICENSE][freec/LICENSE] file for details.
 
 [doc/ExperimentalFeatures/PatternMatchingCompilation.md]:
   https://github.com/FreeProving/free-compiler/blob/master/doc/ExperimentalFeatures/PatternMatchingCompilation.md
   "Free Compiler Documentation — Pattern Matching Compilation"
 
+[freec/CODE_OF_CONDUCT]:
+  https://github.com/FreeProving/free-compiler/blob/master/CODE_OF_CONDUCT.md
+  "Free Compiler — Code of Conduct"
 [freec/haddock]:
   https://freeproving.github.io/free-compiler/docs/master
   "Free Compiler — Haddock Documentation"
@@ -1123,16 +1131,15 @@ See the [LICENSE][] file for details.
 [freec/labels/good-first-issue]:
   https://github.com/FreeProving/free-compiler/labels/good%20first%20issue
   "Free Compiler — Issues — Good First Issue"
+[freec/LICENSE]:
+  https://github.com/FreeProving/free-compiler/blob/master/LICENSE
+  "Free Compiler — License"
 [freec/README#required-software]:
   https://github.com/FreeProving/free-compiler#required-software
   "Free Compiler — Required Software"
 [freec/pull-requests]:
   https://github.com/FreeProving/free-compiler/pulls
   "Free Compiler — Pull Requests"
-
-[GDPR/Art9]:
-  https://gdpr-info.eu/art-9-gdpr/
-  "Art. 9 GDPR — Processing of special categories of personal data"
 
 [Git]:
   https://git-scm.com/
@@ -1163,10 +1170,6 @@ See the [LICENSE][] file for details.
 [GitHub/Terms]:
   https://help.github.com/en/github/site-policy/github-terms-of-service
   "GitHub Terms of Service"
-
-[LICENSE]:
-  https://github.com/FreeProving/free-compiler/blob/master/LICENSE
-  "Free Compiler — License"
 
 [Markdown]:
   https://github.github.com/gfm/
