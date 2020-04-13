@@ -199,7 +199,8 @@ The following instructions guide you through the creation of a pull request and 
     If your branch has diverged far from the master branch, they may ask you to pull in the master branch and resolve potential merge conflicts.
     If they do not have any comments, they merge the pull request.
 
-    Upon merging the pull request the CI pipeline runs again, however this time the checks are performed against the master branch.
+    After merging the pull request, the CI pipeline runs again. 
+    However this time the checks are performed against the master branch.
     It is not your responsibility anymore to make all checks pass in this final run of the CI pipeline.
     The maintainers are expected to take immediate action if the CI pipeline fails on the master branch.
     As a last resort, they may decide to revert the previously merged pull request.
@@ -629,10 +630,10 @@ The following is a list of additional guidelines that are not yet covered by the
    The two blocks of import declarations are separated by a blank line.
 
    ```haskell
-   import Control.Monad
-   import Data.List
+   import           Control.Monad
+   import           Data.List
 
-   import FreeC.IR
+   import           FreeC.Environment
    ```
 
  - **Sort imports alphabetically**
@@ -640,8 +641,8 @@ The following is a list of additional guidelines that are not yet covered by the
    Within the individual blocks of import declarations, the imports are sorted alphabetically by the name of the imported module.
 
    ```haskell
-   import Control.Monad
-   import Data.List
+   import           Control.Monad
+   import           Data.List
    ```
 
    If a module is imported qualified and unqualified, the unqualified import goes first.
