@@ -1,7 +1,7 @@
 -- | This module contains functions for converting between type expressions
 --   and type schemas.
 
-module FreeC.Backend.Coq.Converter.TypeSchema
+module FreeC.IR.TypeSchema
   (
     -- * Instantiating type schemas
     instantiateTypeSchema
