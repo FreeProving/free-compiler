@@ -181,7 +181,7 @@ The following instructions guide you through the creation of a pull request and 
     Once you push your fix, another run of the pipeline is triggered.
     Repeat this process until all checks pass.
     If you believe that the checks are failing due to an error in the CI pipeline configuration, leave a comment under your pull request asking a maintainer for help.
-    A good first contact in those situations is @just95.
+    A good first contact in those situations is [@just95](freec/Maintainers/just95).
 
  6. **Wait for the pull request to be reviewed**
 
@@ -1156,6 +1156,9 @@ See the [LICENSE][freec/LICENSE] file for details.
 [freec/LICENSE]:
   https://github.com/FreeProving/free-compiler/blob/master/LICENSE
   "Free Compiler — License"
+[freec/Maintainers/just95]:
+  https://github.com/just95
+  "Free Compiler — Issues"
 [freec/README#required-software]:
   https://github.com/FreeProving/free-compiler#required-software
   "Free Compiler — Required Software"
