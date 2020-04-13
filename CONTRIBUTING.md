@@ -352,9 +352,42 @@ Use the `--help` option for more information.
 
 ### Writing Unit Tests
 
-In addition to testing whether your changes do not break existing unit tests, we recommend writing your own test cases for every feature added.
+In addition to testing whether your changes do not break existing unit tests, we recommend writing your own test cases for every feature added or changed.
 
-TODO
+We are using the [Hspec][software/Hspec] testing framework for writing unit tests in Haskell.
+For a module `FreeC.Foo` in `./src/lib` the module `FreeC.FooTests` in `./src/test/` contains the corresponding test cases.
+Each test module should export one [`Spec`][software/Hspec/Spec] that [`describe`][software/Hspec/describe]s the tested module.
+In tests of large modules, consider structuring your test cases by providing more [`context`][software/Hspec/context].
+
+```haskell
+-- | This module contains tests for "FreeC.Foo".
+
+module FreeC.FooTests
+  ( testFoo
+  )
+where
+
+import           Test.Hspec
+
+import           FreeC.Foo
+
+-- | Test group for "FreeC.Foo" tests.
+testFoo :: Spec
+testFoo = describe "FreeC.Foo" $ do
+  {- Write test cases here. -}
+```
+
+The exported `Spec` must be invoked by `./src/test/Spec.hs` or a `Tests.hs` module.
+
+For every test case, the expected behavior is specified in a short sentence that usually starts with a verb in third-person.
+
+```haskell
+it "behaves as expected" $ do
+  {- Implement test case here. -}
+```
+
+Test cases should be self contained and have as little dependencies on other components of the compiler as possible.
+The modules starting with the [`FreeC.Test`][freec/haddock/tests] prefix provide common utility functions for writing test cases more compactly.
 
 ### The CI Pipeline
 
@@ -1078,6 +1111,9 @@ See the [LICENSE][] file for details.
 [freec/haddock]:
   https://freeproving.github.io/free-compiler/docs/master
   "Free Compiler — Haddock Documentation"
+[freec/haddock/tests]:
+  https://freeproving.github.io/free-compiler/docs/master/free-compiler/freec-unit-tests/
+  "Free Compiler Test Suite — Haddock Documentation"
 [freec/issues]:
   https://github.com/FreeProving/free-compiler/issues
   "Free Compiler — Issues"
@@ -1163,3 +1199,12 @@ See the [LICENSE][] file for details.
 [software/Hspec]:
   https://hspec.github.io/
   "Hspec: A Testing Framework for Haskell"
+[software/Hspec/context]:
+  https://hackage.haskell.org/package/hspec-2.7.1/docs/Test-Hspec.html#v:context
+  "Test.Hspec — context"
+[software/Hspec/describe]:
+  https://hackage.haskell.org/package/hspec-2.7.1/docs/Test-Hspec.html#v:describe
+  "Test.Hspec — describe"
+[software/Hspec/Spec]:
+  https://hackage.haskell.org/package/hspec-2.7.1/docs/Test-Hspec.html#t:Spec
+  "Test.Hspec — type Spec"
