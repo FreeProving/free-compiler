@@ -14,6 +14,7 @@ If you have questions or want to propose changes to this document, feel free to 
  1. [Code of Conduct](#code-of-conduct)
  2. [How Can I Contribute?](#how-can-i-contribute)
     - [Reporting Bugs](#reporting-bugs)
+    - [Suggesting Enhancements](#suggesting-enhancements)
     - [Contributing Code](#contributing-code)
  3. [Additional Software](#additional-software)
  4. [Directory Structure](#directory-structure)
@@ -44,13 +45,13 @@ Please report unacceptable behavior to the project maintainers responsible for e
 ### Reporting Bugs
 
 Bugs are tracked as [issues on GitHub][freec/issues].
-If you found a bug, first **make sure that the bug hasn't been reported yet** and that you can reproduce the bug in the latest version of the compiler.
-If the problem persists in the latest version and you cannot find a related bug report, create a new issue and provide as much of the following information as possible by filling out the bug report template.
+If you found a bug, first **make sure that the bug hasn't been reported yet** (see [Bugs][freec/labels/bug]) and that you can reproduce the bug in the latest version of the compiler.
+If the problem persists in the latest version and you cannot find a related bug report, create a new issue and provide as much of the following information as possible by filling out the *bug report* template.
 
  - Explain the problem and include additional details to help maintainers and members of the FreeProving project to reproduce the problem.
 
     + **Use a clear and descriptive title** for the issue to identify the problem.
-    + **Describe the exact steps to reproduce the problem** in as many detail as possible.
+    + **Describe the exact steps to reproduce the problem** in as much detail as possible.
       When listing steps, don't just say what you did, but explain how you did it.
     + **Provide specific examples to demonstrate the steps.**
       Try to find a minimal example that still shows the problematic behavior.
@@ -71,6 +72,24 @@ If the problem persists in the latest version and you cannot find a related bug 
 
  - Assign the <kbd>[bug][freec/labels/bug]</kbd> label to the issue.
    If you do not have the permission to add labels, a member of the FreeProving project will assign this label when reviewing the bug report.
+
+### Suggesting Enhancements
+
+Enhancement proposals are tracked as [issues on GitHub][freec/issues].
+If you want to propose an enhancement, first **make sure that there is no similar proposal already** (see [Enhancement Proposals][freec/labels/enhancement]).
+Consider leaving a comment or :+1: if you want to support an existing enhancement proposal.
+If no such proposal has been made in the past, create a new issue and provide as much of the following information as possible by filling out the *feature request* template.
+
+ - Explain the requested feature and include as much detail as possible to help maintainers and members of the FreeProving project understand your proposal.
+
+    + **Use a clear and descriptive title** for the issue to identify the suggestion.
+    + **Describe the current behavior** and **explain which behavior you would like to see instead** and why.
+    + **Provide specific examples** to demonstrate both the current and wanted behavior.
+    + **Explain why the enhancement is useful** to more users of the Free Compiler.
+    + **List alternatives you have considered** and what's their drawback compared to your suggestion.
+
+ - Assign the <kbd>[enhancement][freec/labels/enhancement]</kbd> label to the issue.
+   If you do not have the permission to add labels, a member of the FreeProving project will assign this label when reviewing the enhancement proposal.
 
 ### Contributing Code
 
@@ -1128,6 +1147,9 @@ See the [LICENSE][freec/LICENSE] file for details.
 [freec/labels/bug]:
   https://github.com/FreeProving/free-compiler/labels/bug
   "Free Compiler — Issues — Bugs"
+[freec/labels/enhancement]:
+  https://github.com/FreeProving/free-compiler/labels/enhancement
+  "Free Compiler — Issues — Enhancements"
 [freec/labels/good-first-issue]:
   https://github.com/FreeProving/free-compiler/labels/good%20first%20issue
   "Free Compiler — Issues — Good First Issue"
