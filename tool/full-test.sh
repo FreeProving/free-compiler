@@ -354,13 +354,6 @@ step "Downloading latest package list"          \
      "Canceled download of latest package list" \
      "cabal new-update"
 
-step "Installing dependencies"               \
-     "Installed dependencies"                \
-     "Failed to install dependencies"        \
-     "Canceled installation of dependencies" \
-     "cabal new-build freec-unit-tests --only-dependencies &&
-      cabal new-build freec --only-dependencies"
-
 # We don't want to rebuild dependencies every time but the modules in this
 # repository should be recompiled. Otherwise, Cabal does not realize, that the
 # previously compiled modules may have been compiled using `-Wwarn`.
@@ -373,29 +366,54 @@ if [ -d "$cached_cabal_builds" ]; then
        "rm -r '$cached_cabal_builds'"
 fi
 
-# Build everything.
-step "Building the compiler"        \
-     "Built compiler successfully"  \
-     "Failed to build the compiler" \
-     "Canceled compiler build"      \
-     "cabal new-build freec"
+# Build the internal compiler library and its dependencies.
+step "Installing compiler library dependencies"               \
+     "Installed compiler library dependencies"                \
+     "Failed to install compiler library dependencies"        \
+     "Canceled installation of compiler library dependencies" \
+     "cabal new-build freec-internal --only-dependencies"
+step "Building the compiler library"        \
+     "Built compiler library successfully"  \
+     "Failed to build the compiler library" \
+     "Canceled compiler library build"      \
+     "cabal new-build freec-internal"
 
+# Build the unit tests and their dependencies.
+step "Installing test suite dependencies"               \
+     "Installed test suite dependencies"                \
+     "Failed to install test suite dependencies"        \
+     "Canceled installation of test suite dependencies" \
+     "cabal new-build freec-unit-tests --only-dependencies"
 step "Building the test suite"        \
      "Built test suite successfully"  \
      "Failed to build the test suite" \
      "Canceled test suite build"      \
      "cabal new-build freec-unit-tests"
 
+# Build the command line interface and its dependencies.
+step "Installing command line interface dependencies"               \
+     "Installed command line interface dependencies"                \
+     "Failed to install command line interface dependencies"        \
+     "Canceled installation of command line interface dependencies" \
+     "cabal new-build freec --only-dependencies"
+step "Building the command line interface"        \
+     "Built command line interface successfully"  \
+     "Failed to build the command line interface" \
+     "Canceled command line interface build"      \
+     "cabal new-build freec"
+
+# Build the base library.
 step "Building the base library"        \
      "Built base library successfully"  \
      "Failed to build the base library" \
      "Canceled base library build"      \
      "./tool/compile-coq.sh --recompile base"
 
-step "Building the documentation"        \
-     "Built documentation successfully"  \
-     "Failed to build the documentation" \
-     "Canceled documentation build"      \
+# Generate Haddock documentation.
+step "Generating Haddock documentation"              \
+     "Generated Haddock documentation successfully"  \
+     "Failed to generate Haddock documentation"      \
+     "Canceled Haddock documentation generation"     \
      "./tool/make-docs.sh"
 
 # Run tests.

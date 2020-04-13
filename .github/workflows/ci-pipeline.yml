@@ -34,12 +34,14 @@ on:
 
 jobs:
   #############################################################################
-  # Dependencies                                                              #
+  # Compilation                                                               #
   #############################################################################
 
-  # Installs Cabal dependencies and caches the directories where cabal
-  # installs the dependencies. Unfortunately, the entire code of this job
-  # needs to be replicated to restore the caches in jobs that use Cabal.
+  # Builds the compiler, unit tests and dependencies using Cabal.
+  #
+  # Compiled modules are cached for subsequent jobs or pipeline runs.
+  # Unfortunately, the entire code of this job needs to be replicated to
+  # restore the caches in jobs that use Cabal.
   #
   # We cache `~/.cabal/packages`, `~/.cabal/store` and `dist-newstyle`
   # separately. The cache keys contain the hash of the `.cabal` and
@@ -65,13 +67,14 @@ jobs:
   # We install dependencies on all supported platforms separately. The
   # operating system is part of the cache key. Caches are never restored
   # from other platforms.
-  install-dependencies:
-    name: Install dependencies
+  cabal-build:
+    name: Cabal Build
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: ["ubuntu-latest"] # "macos-latest", "windows-latest"
     steps:
+    ### SETUP CACHE ###########################################################
     - name: Checkout
       uses: actions/checkout@v1
     - name: Setup Haskell
@@ -111,10 +114,19 @@ jobs:
           ${{ matrix.os }}-dist-newstyle-${{ steps.cabal-update.outputs.cabal-hash }}-${{ steps.cabal-update.outputs.cabal-index-hash }}-
           ${{ matrix.os }}-dist-newstyle-${{ steps.cabal-update.outputs.cabal-hash }}-
           ${{ matrix.os }}-dist-newstyle-
-    - name: Install dependencies
-      run: |
-        cabal new-build freec-unit-tests --only-dependencies
-        cabal new-build freec --only-dependencies
+    ### END SETUP CACHE #######################################################
+    - name: Build compiler library dependencies
+      run: cabal new-build freec-internal --dependencies-only
+    - name: Build compiler library
+      run: cabal new-build freec-internal
+    - name: Build unit tests dependencies
+      run: cabal new-build freec-unit-tests --dependencies-only
+    - name: Build unit tests
+      run: cabal new-build freec-unit-tests
+    - name: Build command line interface dependencies
+      run: cabal new-build freec --dependencies-only
+    - name: Build command line interface
+      run: cabal new-build freec
 
   #############################################################################
   # Unit tests                                                                #
@@ -123,13 +135,13 @@ jobs:
   # Run the unit tests against all supported platforms.
   unit-tests:
     name: Unit tests
-    needs: [install-dependencies]
+    needs: [cabal-build]
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: ["ubuntu-latest"] # "macos-latest", "windows-latest"
     steps:
-    ### COPIED FROM `install-dependencies` ####################################
+    ### SETUP CACHE ###########################################################
     - name: Checkout
       uses: actions/checkout@v1
     - name: Setup Haskell
@@ -169,11 +181,7 @@ jobs:
           ${{ matrix.os }}-dist-newstyle-${{ steps.cabal-update.outputs.cabal-hash }}-${{ steps.cabal-update.outputs.cabal-index-hash }}-
           ${{ matrix.os }}-dist-newstyle-${{ steps.cabal-update.outputs.cabal-hash }}-
           ${{ matrix.os }}-dist-newstyle-
-    - name: Install dependencies
-      run: |
-        cabal new-build freec-unit-tests --only-dependencies
-        cabal new-build freec --only-dependencies
-    ### END OF `install-dependencies` #########################################
+    ### END SETUP CACHE #######################################################
     - name: Build unit tests
       run: cabal new-build freec-unit-tests
     - name: Run unit tests
@@ -186,13 +194,13 @@ jobs:
   # Builds the compiler executable on all supported platforms.
   build-compiler:
     name: Build compiler
-    needs: [install-dependencies]
+    needs: [cabal-build]
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: ["ubuntu-latest"] # "macos-latest", "windows-latest"
     steps:
-    ### COPIED FROM `install-dependencies` ####################################
+    ### SETUP CACHE ###########################################################
     - name: Checkout
       uses: actions/checkout@v1
     - name: Setup Haskell
@@ -232,12 +240,8 @@ jobs:
           ${{ matrix.os }}-dist-newstyle-${{ steps.cabal-update.outputs.cabal-hash }}-${{ steps.cabal-update.outputs.cabal-index-hash }}-
           ${{ matrix.os }}-dist-newstyle-${{ steps.cabal-update.outputs.cabal-hash }}-
           ${{ matrix.os }}-dist-newstyle-
-    - name: Install dependencies
-      run: |
-        cabal new-build freec-unit-tests --only-dependencies
-        cabal new-build freec --only-dependencies
-    ### END OF `install-dependencies` #########################################
-    - name: Build compiler
+    ### END SETUP CACHE #######################################################
+    - name: Build command line interface
       run: cabal new-build freec
     - name: Copy executable to build directory
       run: |
@@ -258,13 +262,13 @@ jobs:
   # documented and the documentation can be built without a problem.
   build-docs:
     name: Build Haddock documentation
-    needs: [install-dependencies]
+    needs: [cabal-build]
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: ["ubuntu-latest"]
     steps:
-    ### COPIED FROM `install-dependencies` ####################################
+    ### SETUP CACHE ###########################################################
     - name: Checkout
       uses: actions/checkout@v1
     - name: Setup Haskell
@@ -304,11 +308,7 @@ jobs:
           ${{ matrix.os }}-dist-newstyle-${{ steps.cabal-update.outputs.cabal-hash }}-${{ steps.cabal-update.outputs.cabal-index-hash }}-
           ${{ matrix.os }}-dist-newstyle-${{ steps.cabal-update.outputs.cabal-hash }}-
           ${{ matrix.os }}-dist-newstyle-
-    - name: Install dependencies
-      run: |
-        cabal new-build freec-unit-tests --only-dependencies
-        cabal new-build freec --only-dependencies
-    ### END OF `install-dependencies` #########################################
+    ### END SETUP CACHE #######################################################
     - name: Run Haddock
       run: ./tool/make-docs.sh
     - name: Copy documentation to build directory
