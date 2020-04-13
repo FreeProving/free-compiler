@@ -173,9 +173,14 @@ executable freec
   main-is:            Main.hs
   other-modules:      Paths_free_compiler
                     , FreeC.Application.Debug
+                    , FreeC.Application.Option.Help
+                    , FreeC.Application.Option.Version
                     , FreeC.Application.Options
+                    , FreeC.Application.Options.Descriptors
+                    , FreeC.Application.Options.Parser
                     , FreeC.Monad.Application
   build-depends:      freec-internal
+                    , githash                     >=0.1.4.0
 
 test-suite freec-unit-tests
   import:             deps
