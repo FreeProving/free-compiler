@@ -1,7 +1,7 @@
 -- | This module contains utility functions for working with TOML
 --   configuration files and JSON data.
 
-module FreeC.Config
+module FreeC.Util.Config
   ( loadConfig
   , saveConfig
   )

@@ -24,7 +24,6 @@ import qualified Data.Set                      as Set
 
 import           FreeC.Backend.Coq.Pretty
 import qualified FreeC.Backend.Coq.Syntax      as Coq
-import           FreeC.Config
 import           FreeC.Environment.Entry
 import           FreeC.Environment.ModuleInterface
 import           FreeC.Environment.Scope
@@ -32,6 +31,7 @@ import           FreeC.IR.SrcSpan
 import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Reporter
 import           FreeC.Pretty
+import           FreeC.Util.Config
 
 instance Aeson.ToJSON IR.QName where
   toJSON = Aeson.toJSON . showPretty

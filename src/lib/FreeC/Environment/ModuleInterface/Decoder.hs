@@ -113,7 +113,6 @@ import qualified Data.Vector                   as Vector
 import           Text.RegexPR
 
 import qualified FreeC.Backend.Coq.Syntax      as Coq
-import           FreeC.Config
 import           FreeC.Environment
 import           FreeC.Environment.ModuleInterface
 import           FreeC.Environment.Entry
@@ -126,6 +125,7 @@ import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
 import           FreeC.Pretty
+import           FreeC.Util.Config
 
 -- | All Haskell names in the interface file are qualified.
 instance Aeson.FromJSON IR.QName where

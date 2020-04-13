@@ -121,7 +121,6 @@ library freec-internal
                       , FreeC.Backend.Coq.Keywords
                       , FreeC.Backend.Coq.Pretty
                       , FreeC.Backend.Coq.Syntax
-                      , FreeC.Config
                       , FreeC.Environment
                       , FreeC.Environment.Entry
                       , FreeC.Environment.Fresh
@@ -180,6 +179,7 @@ library freec-internal
                       , FreeC.Pass.ResolverPass
                       , FreeC.Pipeline
                       , FreeC.Pretty
+                      , FreeC.Util.Config
                       , FreeC.Util.Parsec
                       , FreeC.Util.Predicate
 
