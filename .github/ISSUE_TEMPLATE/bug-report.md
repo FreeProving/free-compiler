@@ -4,9 +4,14 @@ about: Create a report to help us improve
 
 ---
 
+<!-- Have you read our Code of Conduct?
+     By filing an issue, you are expected to comply with it, including treating everyone with respect:
+     https://github.com/FreeProving/free-compiler/blob/master/CODE_OF_CONDUCT.md
+-->
+
 ### Description
 
-<!-- Description of the issue. -->
+<!-- A brief description of the issue. -->
 
 ### Steps to Reproduce
 
