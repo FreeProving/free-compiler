@@ -958,7 +958,7 @@ When writing markdown documents adhere to the following style considerations.
    ```markdown
     [doc/ModuleInterfaceFileFormat.md]:
       https://github.com/FreeProving/free-compiler/blob/master/doc/ModuleInterfaceFileFormat.md
-      "Module Interface File Format — ­Free Compiler Documentation"
+      "Module Interface File Format — Free Compiler Documentation"
 
     [wiki/ANSI]:
       https://en.wikipedia.org/wiki/ANSI_escape_code
@@ -1080,23 +1080,23 @@ See the [LICENSE][] file for details.
   "Free Compiler — Haddock Documentation"
 [freec/issues]:
   https://github.com/FreeProving/free-compiler/issues
-  "Free Compiler ­— Issues"
+  "Free Compiler — Issues"
 [freec/labels/bug]:
   https://github.com/FreeProving/free-compiler/labels/bug
-  "Free Compiler ­— Issues — Bugs"
+  "Free Compiler — Issues — Bugs"
 [freec/labels/good-first-issue]:
   https://github.com/FreeProving/free-compiler/labels/good%20first%20issue
-  "Free Compiler ­— Issues — Good First Issue"
+  "Free Compiler — Issues — Good First Issue"
 [freec/README#required-software]:
   https://github.com/FreeProving/free-compiler#required-software
   "Free Compiler — Required Software"
 [freec/pull-requests]:
   https://github.com/FreeProving/free-compiler/pulls
-  "Free Compiler ­— Pull Requests"
+  "Free Compiler — Pull Requests"
 
 [GDPR/Art9]:
   https://gdpr-info.eu/art-9-gdpr/
-  "Art. 9 ­GDPR — Processing of special categories of personal data"
+  "Art. 9 GDPR — Processing of special categories of personal data"
 
 [Git]:
   https://git-scm.com/
