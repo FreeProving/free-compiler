@@ -36,7 +36,31 @@ If you have questions or want to propose changes to this document, feel free to 
 
 ### Reporting Bugs
 
-TODO
+Bugs are tracked as [issues on GitHub][freec/issues].
+If you found a bug, first **make sure that the bug hasn't been reported yet** and that you can reproduce the bug in the latest version of the compiler.
+If the problem persists in the latest version and you cannot find a related bug report, create a new issue and provide as much of the following information as possible.
+
+ - Explain the problem and include additional details to help maintainers and members of the FreeProving project to reproduce the problem.
+
+    + **Use a clear and descriptive title** for the issue to identify the problem.
+    + **Describe the exact steps to reproduce the problem** in as many detail as possible.
+      When listing steps, don't just say what you did, but explain how you did it.
+    + **Provide specific examples to demonstrate the steps.**
+      Try to find a minimal example that still shows the problematic behavior.
+    + **Describe the behavior you observed after following the steps.**
+    + **Explain which behavior you expected to see instead and why.**
+    + **Include error messages and crash reports** reported by the compiler or operating system.
+
+ - Include information about your configuration and environment.
+
+    + **Which version of the Free Compiler are you using?**
+      You can get the exact version by running `freec --version` in your terminal.
+    + **What's the name and version of the operating system you are using?**
+    + **What versions of GHC and Cabal are you using?**
+    + **How are you running the Free Compiler?** Have you installed the compiler as described in the README, are you running it using Cabal or do you use one of our Bash scripts?
+       What command line arguments have you passed?
+    + **If the problem regards the generated Coq code,** what version of Coq are you using and how does your `_CoqProject` file look like (if any)?
+    + **Have you made any modifications** to the Compiler's source code, build configuration or the code of the included Coq Base library?
 
 ### Submitting Pull Requests
 
