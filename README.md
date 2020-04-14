@@ -23,6 +23,8 @@ A compiler for the monadic translation of Haskell programs to Coq that uses the 
       + [`--import=DIR`, `-i DIR`](#--importdir--i-dir)
       + [`--base-library=DIR`, `-b DIR`](#--base-librarydir--b-dir)
       + [`--no-coq-project`](#--no-coq-project)
+      + [`--version`, `-v`](#--version--v)
+      + [`--help`, `-h`](#--help--h)
     - [Proving properties](#proving-properties)
     - [Experimental Features](#experimental-features)
       + [Pattern-Matching Compilation](#pattern-matching-compilation)
@@ -73,7 +75,7 @@ To compile the base library with that shell script, run the following command in
 
 ### Installation
 
-First, make sure that the Cabal package lists are up to date  by running the following command.
+First, make sure that the Cabal package lists are up to date by running the following command.
 
 ```bash
 cabal new-update
@@ -90,7 +92,7 @@ The command above copies the base library and the compiler’s executable to Cab
 To test whether the installation was successful, make sure that `~/.cabal/bin` is in your `PATH` environment variable and run the following command.
 
 ```bash
-freec --help
+freec --version
 ```
 
 ### Running without Installation
@@ -213,6 +215,22 @@ The compiler will not overwrite your changes since the `_CoqProject` file is onl
 
 If you don't want the `_CoqProject` file to be generated at all, you can add the `--no-coq-project` flag.
 However, note that you may not be able to compile the generated Coq code if the `_CoqProject` file is missing.
+
+#### `--version`, `-v`
+
+To check which version of the Free Compiler is currently installed on you system, run the following command.
+
+```bash
+freec --version
+```
+
+#### `--help`, `-h`
+
+To see a list of all available command line options, use the following command.
+
+```bash
+freec --help
+```
 
 ### Proving properties
 
