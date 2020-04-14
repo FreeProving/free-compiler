@@ -21,7 +21,6 @@ import           Data.Composition               ( (.:) )
 
 import           FreeC.Environment.Entry
 import           FreeC.Environment.LookupOrFail
-import           FreeC.Environment.Scope
 import           FreeC.IR.SrcSpan
 import           FreeC.IR.Subst
 import           FreeC.IR.Subterm
@@ -166,8 +165,8 @@ disagreementSet (IR.TypeVar _ x) (IR.TypeVar _ y) | x == y = return Nothing
 disagreementSet t@(IR.TypeCon _ c) s@(IR.TypeCon _ d)
   | c == d = return Nothing
   | otherwise = do
-    e <- lookupEntryOrFail (IR.typeSrcSpan t) TypeScope c
-    f <- lookupEntryOrFail (IR.typeSrcSpan s) TypeScope d
+    e <- lookupEntryOrFail (IR.typeSrcSpan t) IR.TypeScope c
+    f <- lookupEntryOrFail (IR.typeSrcSpan s) IR.TypeScope d
     let n = entryName e
         m = entryName f
     if n == m then return Nothing else return (Just (rootPos, t, s))

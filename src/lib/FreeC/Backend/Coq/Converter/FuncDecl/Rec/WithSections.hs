@@ -43,7 +43,6 @@ import           FreeC.Environment.Entry
 import           FreeC.Environment.Fresh
 import           FreeC.Environment.LookupOrFail
 import           FreeC.Environment.Renamer
-import           FreeC.Environment.Scope
 import           FreeC.IR.Reference             ( freeTypeVarSet
                                                 , freeVarSet
                                                 )
@@ -204,7 +203,7 @@ renameFuncDecls decls = do
                 maybeRetType' = applySubst typeVarSubst maybeRetType
 
             -- Set environment entry for renamed function.
-            entry <- lookupEntryOrFail srcSpan' ValueScope name
+            entry <- lookupEntryOrFail srcSpan' IR.ValueScope name
             _     <- renameAndAddEntry entry
               { entryName       = name'
               , entryTypeArgs   = typeArgIdents'
@@ -453,7 +452,7 @@ updateTypeSig mgu constTypeVars argTypeMap returnTypeMap funcDecl = do
     -- Lookup entry.
   let name = IR.funcDeclQName funcDecl
       args = IR.funcDeclArgs funcDecl
-  Just entry <- inEnv $ lookupEntry ValueScope name
+  Just entry <- inEnv $ lookupEntry IR.ValueScope name
   -- Modify entry.
   -- Since the arguments of the @Free@ monad have been defined in the
   -- section already, 'entryNeedsFreeArgs' can be set to @False@.
@@ -629,7 +628,7 @@ generateInterfaceDecl constArgs isConstArgUsed nameMap mgu sectionTypeArgs renam
 
     -- Lookup the name of the main function.
     let Just name' = Map.lookup name nameMap
-    Just qualid' <- inEnv $ lookupIdent ValueScope name'
+    Just qualid' <- inEnv $ lookupIdent IR.ValueScope name'
 
     -- Lookup the names of type arguments that have to be passed to the
     -- main function.
@@ -638,11 +637,11 @@ generateInterfaceDecl constArgs isConstArgUsed nameMap mgu sectionTypeArgs renam
       (lookupTypeArgName typeArgIdents (zip renamedTypeArgs [0 ..]))
       sectionTypeArgs
     typeArgNames' <-
-      catMaybes <$> mapM (inEnv . lookupIdent TypeScope) typeArgNames
+      catMaybes <$> mapM (inEnv . lookupIdent IR.TypeScope) typeArgNames
 
     -- Lookup the names of the constant arguments to pass to the main function.
     constArgNames' <-
-      catMaybes <$> mapM (inEnv . lookupIdent ValueScope) usedConstArgNames
+      catMaybes <$> mapM (inEnv . lookupIdent IR.ValueScope) usedConstArgNames
 
     -- If the function is partial, the @Partial@ instance needs to be passed
     -- to the main function.
@@ -653,7 +652,7 @@ generateInterfaceDecl constArgs isConstArgUsed nameMap mgu sectionTypeArgs renam
     -- Lookup the names of all other arguments to pass to the main function.
     let nonConstArgNames = map IR.varPatQName args \\ constArgNames
     nonConstArgNames' <-
-      catMaybes <$> mapM (inEnv . lookupIdent ValueScope) nonConstArgNames
+      catMaybes <$> mapM (inEnv . lookupIdent IR.ValueScope) nonConstArgNames
 
     -- Generate invocation of the main function.
     -- TODO do we have to pass the remaining type arguments to the main

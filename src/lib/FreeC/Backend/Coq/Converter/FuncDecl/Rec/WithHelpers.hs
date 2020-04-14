@@ -30,7 +30,6 @@ import           FreeC.Environment
 import           FreeC.Environment.Entry
 import           FreeC.Environment.Fresh
 import           FreeC.Environment.Renamer
-import           FreeC.Environment.Scope
 import           FreeC.IR.Inlining
 import           FreeC.IR.Reference             ( freeVarSet )
 import           FreeC.IR.SrcSpan
@@ -224,7 +223,7 @@ convertRecHelperFuncDecl helperDecl = localEnv $ do
   let helperName = IR.funcDeclQName helperDecl
       argNames   = map IR.varPatQName (IR.funcDeclArgs helperDecl)
   Just decArgIndex <- inEnv $ lookupDecArgIndex helperName
-  Just decArg'     <- inEnv $ lookupIdent ValueScope (argNames !! decArgIndex)
+  Just decArg' <- inEnv $ lookupIdent IR.ValueScope (argNames !! decArgIndex)
   -- Generate body of @Fixpoint@ sentence.
   return
     (Coq.FixBody qualid

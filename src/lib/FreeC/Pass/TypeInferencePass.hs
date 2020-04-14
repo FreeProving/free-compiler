@@ -199,16 +199,15 @@ import           Data.Maybe                     ( fromJust
 import           Data.Set                       ( Set )
 import qualified Data.Set                      as Set
 
-import           FreeC.Backend.Coq.Converter.TypeSchema
 import           FreeC.Environment
 import           FreeC.Environment.Fresh
-import           FreeC.Environment.Scope
 import qualified FreeC.IR.Base.Prelude         as IR.Prelude
 import           FreeC.IR.DependencyGraph       ( mapComponentM )
 import           FreeC.IR.Reference             ( freeTypeVars )
 import           FreeC.IR.SrcSpan
 import           FreeC.IR.Subst
 import qualified FreeC.IR.Syntax               as IR
+import           FreeC.IR.TypeSchema
 import           FreeC.IR.Unification
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
@@ -257,7 +256,7 @@ makeTypeAssumption :: Environment -> TypeAssumption
 makeTypeAssumption env = Map.fromList
   [ (name, typeSchema)
   | (scope, name) <- Map.keys (envEntries env)
-  , scope == ValueScope
+  , scope == IR.ValueScope
   , typeSchema <- maybeToList (lookupTypeSchema scope name env)
   ]
 

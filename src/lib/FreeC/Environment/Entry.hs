@@ -8,7 +8,6 @@ import           Data.Function                  ( on )
 import           Data.Tuple.Extra               ( (&&&) )
 
 import qualified FreeC.Backend.Coq.Syntax      as Coq
-import           FreeC.Environment.Scope
 import           FreeC.IR.SrcSpan
 import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Util.Predicate
@@ -127,16 +126,16 @@ instance Ord EnvEntry where
 -------------------------------------------------------------------------------
 
 -- | Gets the scope an entry needs to be defined in.
-entryScope :: EnvEntry -> Scope
-entryScope DataEntry{}    = TypeScope
-entryScope TypeSynEntry{} = TypeScope
-entryScope TypeVarEntry{} = TypeScope
-entryScope ConEntry{}     = ValueScope
-entryScope FuncEntry{}    = ValueScope
-entryScope VarEntry{}     = ValueScope
+entryScope :: EnvEntry -> IR.Scope
+entryScope DataEntry{}    = IR.TypeScope
+entryScope TypeSynEntry{} = IR.TypeScope
+entryScope TypeVarEntry{} = IR.TypeScope
+entryScope ConEntry{}     = IR.ValueScope
+entryScope FuncEntry{}    = IR.ValueScope
+entryScope VarEntry{}     = IR.ValueScope
 
 -- | Gets the scope and name of the given entry.
-entryScopedName :: EnvEntry -> ScopedName
+entryScopedName :: EnvEntry -> IR.ScopedName
 entryScopedName = entryScope &&& entryName
 
 -------------------------------------------------------------------------------

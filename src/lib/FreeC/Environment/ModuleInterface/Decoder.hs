@@ -23,6 +23,11 @@
 --
 --   The top-level table must contain the following key/value pairs:
 --
+--     * @version@ (@Integer@) the version of the configuration file format.
+--       The current version is 'moduleInterfaceFileFormatVersion'.
+--       If there is a breaking change in the future, the module interface file
+--       format version should be updated. The parser accepts module interface
+--       files that use the most recent version only.
 --     * @module-name@ (@String@) the name of the module that is described by
 --       the module interface file.
 --     * @library-name@ (@String@) the name of the Coq library that contains
@@ -99,6 +104,7 @@ module FreeC.Environment.ModuleInterface.Decoder
   )
 where
 
+import           Control.Monad                  ( when )
 import           Control.Monad.IO.Class         ( MonadIO )
 import           Data.Aeson                     ( (.!=)
                                                 , (.:)
@@ -113,11 +119,9 @@ import qualified Data.Vector                   as Vector
 import           Text.RegexPR
 
 import qualified FreeC.Backend.Coq.Syntax      as Coq
-import           FreeC.Config
 import           FreeC.Environment
 import           FreeC.Environment.ModuleInterface
 import           FreeC.Environment.Entry
-import           FreeC.Environment.Scope
 import           FreeC.Frontend.Haskell.Parser
 import           FreeC.Frontend.Haskell.Simplifier
 import           FreeC.IR.Reference             ( freeTypeVars )
@@ -126,6 +130,19 @@ import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
 import           FreeC.Pretty
+import           FreeC.Util.Config
+
+-- | The version number of the module interface file format.
+--
+--   Remember to keep this in sync with the version number specified in
+--   "FreeC.Environment.ModuleInterface.Encoder".
+--
+--   We specify the version number at two different places such that if
+--   a breaking change is made to the encoder or decoder, it is less likely
+--   that the implementation of the corresponding change in the other module
+--   is forgotten.
+moduleInterfaceFileFormatVersion :: Integer
+moduleInterfaceFileFormatVersion = 1
 
 -- | All Haskell names in the interface file are qualified.
 instance Aeson.FromJSON IR.QName where
@@ -164,6 +181,15 @@ instance Aeson.FromJSON IR.Type where
 -- | Restores an 'Environment' from the configuration file.
 instance Aeson.FromJSON ModuleInterface where
   parseJSON = Aeson.withObject "ModuleInterface" $ \env -> do
+    version <- env .: "version"
+    when (version /= moduleInterfaceFileFormatVersion)
+      $  Aeson.parseFail
+      $  "Expected version "
+      ++ show moduleInterfaceFileFormatVersion
+      ++ ", got version "
+      ++ show version
+      ++ ".\n"
+      ++ "Try to recompile the module."
     modName        <- env .: "module-name"
     libName        <- env .: "library-name"
     exportedTypes  <- env .: "exported-types"
@@ -187,8 +213,8 @@ instance Aeson.FromJSON ModuleInterface where
       { interfaceModName = modName
       , interfaceLibName = libName
       , interfaceExports = Set.fromList
-                             (  map ((,) TypeScope)  exportedTypes
-                             ++ map ((,) ValueScope) exportedValues
+                             (  map ((,) IR.TypeScope)  exportedTypes
+                             ++ map ((,) IR.ValueScope) exportedValues
                              )
       , interfaceEntries = Set.fromList
                              (  Vector.toList types

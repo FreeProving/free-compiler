@@ -35,7 +35,6 @@ import           Data.Set                       ( Set )
 import qualified Data.Set                      as Set
 
 import           FreeC.Environment.Fresh
-import           FreeC.Environment.Scope
 import           FreeC.IR.Reference
 import           FreeC.IR.SrcSpan
 import qualified FreeC.IR.Syntax               as IR
@@ -321,7 +320,7 @@ class Renamable arg expr | arg -> expr, expr -> arg where
   setIdent :: arg -> String -> arg
 
   -- | Gets the scope the given argument declares an identifier in.
-  getScope :: arg -> Scope
+  getScope :: arg -> IR.Scope
 
   -- | Converts the given argument to an expression that refers to
   --   the argument.
@@ -332,14 +331,14 @@ class Renamable arg expr | arg -> expr, expr -> arg where
 instance Renamable IR.TypeVarDecl IR.Type where
   getIdent = IR.typeVarDeclIdent
   setIdent typeArg ident' = typeArg { IR.typeVarDeclIdent = ident' }
-  getScope = const TypeScope
+  getScope = const IR.TypeScope
   toExpr   = flip IR.TypeVar . getIdent
 
 -- | Variable patterns bind variables in expressions and can be renamed.
 instance Renamable IR.VarPat IR.Expr where
   getIdent = IR.varPatIdent
   setIdent varPat ident' = varPat { IR.varPatIdent = ident' }
-  getScope = const ValueScope
+  getScope = const IR.ValueScope
   toExpr   = flip IR.untypedVar . IR.UnQual . IR.Ident . getIdent
 
 -- | Renames the given (type) arguments such that there are no name conflicts
@@ -397,7 +396,7 @@ newRenameArgs' subst (arg : args) = (arg' :) <$> newRenameArgs' subst' args
 
 -- | Gets the identifiers that occur freely on in the specified scope of the
 --   given substitution.
-freeSubstIdents :: HasRefs a => Scope -> Subst a -> Set String
+freeSubstIdents :: HasRefs a => IR.Scope -> Subst a -> Set String
 freeSubstIdents scope (Subst substMap) =
   Set.fromList
     $ mapMaybe (IR.identFromQName . refName)

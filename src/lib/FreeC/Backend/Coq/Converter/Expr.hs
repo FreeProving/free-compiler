@@ -19,7 +19,6 @@ import           FreeC.Environment
 import           FreeC.Environment.Fresh
 import           FreeC.Environment.LookupOrFail
 import           FreeC.Environment.Renamer
-import           FreeC.Environment.Scope
 import qualified FreeC.IR.Base.Prelude         as IR.Prelude
 import           FreeC.IR.SrcSpan
 import           FreeC.IR.Subst
@@ -45,8 +44,8 @@ convertExpr' (IR.Con srcSpan name _) typeArgs args = do
   qualid            <- lookupSmartIdentOrFail srcSpan name
   typeArgs'         <- mapM convertType' typeArgs
   args'             <- mapM convertExpr args
-  Just arity        <- inEnv $ lookupArity ValueScope name
-  Just typeArgArity <- inEnv $ lookupTypeArgArity ValueScope name
+  Just arity        <- inEnv $ lookupArity IR.ValueScope name
+  Just typeArgArity <- inEnv $ lookupTypeArgArity IR.ValueScope name
   let typeArgCount = length typeArgs'
   when (typeArgCount /= typeArgArity)
     $  reportFatal
@@ -63,7 +62,7 @@ convertExpr' (IR.Con srcSpan name _) typeArgs args = do
 
 -- Functions and variables.
 convertExpr' (IR.Var srcSpan name _) typeArgs args = do
-  qualid    <- lookupIdentOrFail srcSpan ValueScope name
+  qualid    <- lookupIdentOrFail srcSpan IR.ValueScope name
   typeArgs' <- mapM convertType' typeArgs
   args'     <- mapM convertExpr args
   -- The number of type arguments must match the number of type parameters.
@@ -71,7 +70,7 @@ convertExpr' (IR.Var srcSpan name _) typeArgs args = do
   -- Since, the user cannot create visible type applications, it is an
   -- internal error if the number of type arguments does not match.
   let typeArgCount = length typeArgs
-  maybeTypeArgArity <- inEnv $ lookupTypeArgArity ValueScope name
+  maybeTypeArgArity <- inEnv $ lookupTypeArgArity IR.ValueScope name
   case maybeTypeArgArity of
     Just typeArgArity ->
       when (typeArgCount /= typeArgArity)
@@ -108,7 +107,7 @@ convertExpr' (IR.Var srcSpan name _) typeArgs args = do
                     (return (genericApply qualid partialArg typeArgs' []))
                     (return (Coq.app (Coq.Qualid qualid) partialArg))
       -- Is this a recursive helper function?
-      Just arity   <- inEnv $ lookupArity ValueScope name
+      Just arity   <- inEnv $ lookupArity IR.ValueScope name
       mDecArgIndex <- inEnv $ lookupDecArgIndex name
       case mDecArgIndex of
         Nothing ->
@@ -119,8 +118,8 @@ convertExpr' (IR.Var srcSpan name _) typeArgs args = do
           -- unwrapped first.
           let (before, decArg : after) = splitAt index args'
           -- Add type annotation for decreasing argument.
-          Just typeArgIdents <- inEnv $ lookupTypeArgs ValueScope name
-          Just argTypes      <- inEnv $ lookupArgTypes ValueScope name
+          Just typeArgIdents <- inEnv $ lookupTypeArgs IR.ValueScope name
+          Just argTypes      <- inEnv $ lookupArgTypes IR.ValueScope name
           let typeArgNames = map (IR.UnQual . IR.Ident) typeArgIdents
               subst = composeSubsts (zipWith singleSubst typeArgNames typeArgs)
               decArgType = applySubst subst (argTypes !! index)
@@ -254,7 +253,7 @@ convertAlt (IR.Alt _ conPat varPats expr) = localEnv $ do
 --   arguments to a Coq pattern.
 convertConPat :: IR.ConPat -> [IR.VarPat] -> Converter Coq.Pattern
 convertConPat (IR.ConPat srcSpan ident) varPats = do
-  qualid   <- lookupIdentOrFail srcSpan ValueScope ident
+  qualid   <- lookupIdentOrFail srcSpan IR.ValueScope ident
   varPats' <- mapM convertVarPat varPats
   return (Coq.ArgsPat qualid varPats')
 

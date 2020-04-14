@@ -24,14 +24,25 @@ import qualified Data.Set                      as Set
 
 import           FreeC.Backend.Coq.Pretty
 import qualified FreeC.Backend.Coq.Syntax      as Coq
-import           FreeC.Config
 import           FreeC.Environment.Entry
 import           FreeC.Environment.ModuleInterface
-import           FreeC.Environment.Scope
 import           FreeC.IR.SrcSpan
 import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Reporter
 import           FreeC.Pretty
+import           FreeC.Util.Config
+
+-- | The version number of the module interface file format.
+--
+--   Remember to keep this in sync with the version number specified in
+--   "FreeC.Environment.ModuleInterface.Decoder".
+--
+--   We specify the version number at two different places such that if
+--   a breaking change is made to the encoder or decoder, it is less likely
+--   that the implementation of the corresponding change in the other module
+--   is forgotten.
+moduleInterfaceFileFormatVersion :: Integer
+moduleInterfaceFileFormatVersion = 1
 
 instance Aeson.ToJSON IR.QName where
   toJSON = Aeson.toJSON . showPretty
@@ -45,17 +56,19 @@ instance Aeson.ToJSON Coq.Qualid where
 -- | Serializes a 'ModuleInterface'.
 instance Aeson.ToJSON ModuleInterface where
   toJSON iface = Aeson.object
-    [ "module-name" .= Aeson.toJSON (interfaceModName iface)
+    [ "version" .= moduleInterfaceFileFormatVersion
+    , "module-name" .= Aeson.toJSON (interfaceModName iface)
     , "library-name" .= Aeson.toJSON (interfaceLibName iface)
     , "exported-types" .= Aeson.toJSON
       (map
         snd
-        (filter ((== TypeScope) . fst) (Set.toList (interfaceExports iface)))
+        (filter ((== IR.TypeScope) . fst) (Set.toList (interfaceExports iface)))
       )
     , "exported-values" .= Aeson.toJSON
       (map
         snd
-        (filter ((== ValueScope) . fst) (Set.toList (interfaceExports iface)))
+        (filter ((== IR.ValueScope) . fst) (Set.toList (interfaceExports iface))
+        )
       )
     , "types" .= encodeEntriesWhere isDataEntry
     , "type-synonyms" .= encodeEntriesWhere isTypeSynEntry

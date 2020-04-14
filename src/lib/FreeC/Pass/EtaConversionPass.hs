@@ -60,7 +60,6 @@ import           Data.Maybe                     ( fromMaybe )
 
 import           FreeC.Environment
 import           FreeC.Environment.Fresh
-import           FreeC.Environment.Scope
 import           FreeC.IR.SrcSpan
 import           FreeC.IR.Subterm
 import qualified FreeC.IR.Syntax               as IR
@@ -151,10 +150,10 @@ etaConvertSubExprs' expr = do
 --   expression.
 arityOf :: IR.Expr -> Converter Int
 arityOf (IR.Con _ name _) = do
-  arity <- inEnv $ lookupArity ValueScope name
+  arity <- inEnv $ lookupArity IR.ValueScope name
   return (fromMaybe 0 arity)
 arityOf (IR.Var _ name _) = do
-  arity <- inEnv $ lookupArity ValueScope name
+  arity <- inEnv $ lookupArity IR.ValueScope name
   return (fromMaybe 0 arity)
 arityOf (IR.App _ e1 _ _) = do
   arity <- arityOf e1

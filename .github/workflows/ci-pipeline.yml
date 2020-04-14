@@ -34,12 +34,15 @@ on:
 
 jobs:
   #############################################################################
-  # Dependencies                                                              #
+  # Compilation                                                               #
   #############################################################################
 
-  # Installs Cabal dependencies and caches the directories where cabal
-  # installs the dependencies. Unfortunately, the entire code of this job
-  # needs to be replicated to restore the caches in jobs that use Cabal.
+  # Builds the compiler, unit tests and dependencies using Cabal.
+  #
+  # Compiled modules are cached for subsequent jobs or pipeline runs.
+  # Unfortunately, the entire code of this job that handled the setup of
+  # the cache (steps between `SETUP CACHE` and `END SETUP CACHE`) needs to
+  # be replicated to restore the caches in all jobs that use Cabal.
   #
   # We cache `~/.cabal/packages`, `~/.cabal/store` and `dist-newstyle`
   # separately. The cache keys contain the hash of the `.cabal` and
@@ -58,16 +61,21 @@ jobs:
   #     Cabal files are changed. By including the indexes hash, the rebuilt
   #     dependencies are cached until the next change of the package list.
   #
+  # The cache key for `dist-newsyle` additionally contains the hash of all
+  # Haskell files in `src`. This avoids recompilation of modules defined in
+  # this repository.
+  #
   # We install dependencies on all supported platforms separately. The
   # operating system is part of the cache key. Caches are never restored
   # from other platforms.
-  install-dependencies:
-    name: Install dependencies
+  cabal-build:
+    name: Cabal Build
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: ["ubuntu-latest"] # "macos-latest", "windows-latest"
     steps:
+    ### SETUP CACHE ###########################################################
     - name: Checkout
       uses: actions/checkout@v1
     - name: Setup Haskell
@@ -81,6 +89,7 @@ jobs:
         cabal new-update
         echo "::set-output name=cabal-hash::$(cat cabal.project free-compiler.cabal | sha256sum | awk '{ print $1 }')"
         echo "::set-output name=cabal-index-hash::$(cat ~/.cabal/packages/**/01-index.cache | sha256sum -b | awk '{ print $1 }')"
+        echo "::set-output name=haskell-source-hash::$(cat $(find src -name '*.hs') | sha256sum | awk '{ print $1 }')"
     - name: Cache ~/.cabal/packages
       uses: actions/cache@v1
       with:
@@ -101,130 +110,28 @@ jobs:
       uses: actions/cache@v1
       with:
         path: dist-newstyle
-        key: ${{ matrix.os }}-dist-newstyle-${{ steps.cabal-update.outputs.cabal-hash }}-${{ steps.cabal-update.outputs.cabal-index-hash }}
+        key: ${{ matrix.os }}-dist-newstyle-${{ steps.cabal-update.outputs.cabal-hash }}-${{ steps.cabal-update.outputs.cabal-index-hash }}-${{ steps.cabal-update.outputs.haskell-source-hash }}
         restore-keys: |
+          ${{ matrix.os }}-dist-newstyle-${{ steps.cabal-update.outputs.cabal-hash }}-${{ steps.cabal-update.outputs.cabal-index-hash }}-
           ${{ matrix.os }}-dist-newstyle-${{ steps.cabal-update.outputs.cabal-hash }}-
           ${{ matrix.os }}-dist-newstyle-
-    - name: Install dependencies
-      run: |
-        cabal new-build freec-unit-tests --only-dependencies
-        cabal new-build freec --only-dependencies
+    ### END SETUP CACHE #######################################################
 
-  #############################################################################
-  # Unit tests                                                                #
-  #############################################################################
-
-  # Run the unit tests against all supported platforms.
-  unit-tests:
-    name: Unit tests
-    needs: [install-dependencies]
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: ["ubuntu-latest"] # "macos-latest", "windows-latest"
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v1
-    - name: Setup Haskell
-      uses: actions/setup-haskell@v1
-      with:
-        ghc-version: '8.6.5'
-        cabal-version: '2.4'
-    - name: Update Cabal Package List
-      id: cabal-update
-      run: |
-        cabal new-update
-        echo "::set-output name=cabal-hash::$(cat cabal.project free-compiler.cabal | sha256sum | awk '{ print $1 }')"
-        echo "::set-output name=cabal-index-hash::$(cat ~/.cabal/packages/**/01-index.cache | sha256sum -b | awk '{ print $1 }')"
-    - name: Cache ~/.cabal/packages
-      uses: actions/cache@v1
-      with:
-        path: ~/.cabal/packages
-        key: ${{ matrix.os }}-cabal-packages-${{ steps.cabal-update.outputs.cabal-hash }}-${{ steps.cabal-update.outputs.cabal-index-hash }}
-        restore-keys: |
-          ${{ matrix.os }}-cabal-packages-${{ steps.cabal-update.outputs.cabal-hash }}-
-          ${{ matrix.os }}-cabal-packages
-    - name: Cache ~/.cabal/store
-      uses: actions/cache@v1
-      with:
-        path: ~/.cabal/store
-        key: ${{ matrix.os }}-cabal-store-${{ steps.cabal-update.outputs.cabal-hash }}-${{ steps.cabal-update.outputs.cabal-index-hash }}
-        restore-keys: |
-          ${{ matrix.os }}-cabal-store-${{ steps.cabal-update.outputs.cabal-hash }}-
-          ${{ matrix.os }}-cabal-store-
-    - name: Cache dist-newstyle
-      uses: actions/cache@v1
-      with:
-        path: dist-newstyle
-        key: ${{ matrix.os }}-dist-newstyle-${{ steps.cabal-update.outputs.cabal-hash }}-${{ steps.cabal-update.outputs.cabal-index-hash }}
-        restore-keys: |
-          ${{ matrix.os }}-dist-newstyle-${{ steps.cabal-update.outputs.cabal-hash }}-
-          ${{ matrix.os }}-dist-newstyle-
-    - name: Install dependencies
-      run: |
-        cabal new-build freec-unit-tests --only-dependencies
-        cabal new-build freec --only-dependencies
+    # Build the package and dependencies.
+    - name: Build compiler library dependencies
+      run: cabal new-build freec-internal --dependencies-only
+    - name: Build compiler library
+      run: cabal new-build freec-internal
+    - name: Build unit tests dependencies
+      run: cabal new-build freec-unit-tests --dependencies-only
     - name: Build unit tests
       run: cabal new-build freec-unit-tests
-    - name: Run unit tests
-      run: cabal new-run freec-unit-tests
-
-  #############################################################################
-  # Executable                                                                #
-  #############################################################################
-
-  # Builds the compiler executable on all supported platforms.
-  build-compiler:
-    name: Build compiler
-    needs: [install-dependencies]
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: ["ubuntu-latest"] # "macos-latest", "windows-latest"
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v1
-    - name: Setup Haskell
-      uses: actions/setup-haskell@v1
-      with:
-        ghc-version: '8.6.5'
-        cabal-version: '2.4'
-    - name: Update Cabal Package List
-      id: cabal-update
-      run: |
-        cabal new-update
-        echo "::set-output name=cabal-hash::$(cat cabal.project free-compiler.cabal | sha256sum | awk '{ print $1 }')"
-        echo "::set-output name=cabal-index-hash::$(cat ~/.cabal/packages/**/01-index.cache | sha256sum -b | awk '{ print $1 }')"
-    - name: Cache ~/.cabal/packages
-      uses: actions/cache@v1
-      with:
-        path: ~/.cabal/packages
-        key: ${{ matrix.os }}-cabal-packages-${{ steps.cabal-update.outputs.cabal-hash }}-${{ steps.cabal-update.outputs.cabal-index-hash }}
-        restore-keys: |
-          ${{ matrix.os }}-cabal-packages-${{ steps.cabal-update.outputs.cabal-hash }}-
-          ${{ matrix.os }}-cabal-packages-
-    - name: Cache ~/.cabal/store
-      uses: actions/cache@v1
-      with:
-        path: ~/.cabal/store
-        key: ${{ matrix.os }}-cabal-store-${{ steps.cabal-update.outputs.cabal-hash }}-${{ steps.cabal-update.outputs.cabal-index-hash }}
-        restore-keys: |
-          ${{ matrix.os }}-cabal-store-${{ steps.cabal-update.outputs.cabal-hash }}-
-          ${{ matrix.os }}-cabal-store-
-    - name: Cache dist-newstyle
-      uses: actions/cache@v1
-      with:
-        path: dist-newstyle
-        key: ${{ matrix.os }}-dist-newstyle-${{ steps.cabal-update.outputs.cabal-hash }}-${{ steps.cabal-update.outputs.cabal-index-hash }}
-        restore-keys: |
-          ${{ matrix.os }}-dist-newstyle-${{ steps.cabal-update.outputs.cabal-hash }}-
-          ${{ matrix.os }}-dist-newstyle-
-    - name: Install dependencies
-      run: |
-        cabal new-build freec-unit-tests --only-dependencies
-        cabal new-build freec --only-dependencies
-    - name: Build compiler
+    - name: Build command line interface dependencies
+      run: cabal new-build freec --dependencies-only
+    - name: Build command line interface
       run: cabal new-build freec
+
+    # Upload the compiler executable artifact.
     - name: Copy executable to build directory
       run: |
         mkdir -p ./build/bin
@@ -236,20 +143,19 @@ jobs:
         path: ./build/bin/freec
 
   #############################################################################
-  # Documentation                                                             #
+  # Unit tests                                                                #
   #############################################################################
 
-  # We build the documentation on Ubuntu only. The goal of this job is not to
-  # generate documentation for deployment but to test whether everything is
-  # documented and the documentation can be built without a problem.
-  build-docs:
-    name: Build Haddock documentation
-    needs: [install-dependencies]
+  # Run the unit tests against all supported platforms.
+  unit-tests:
+    name: Unit tests
+    needs: [cabal-build]
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: ["ubuntu-latest"]
+        os: ["ubuntu-latest"] # "macos-latest", "windows-latest"
     steps:
+    ### SETUP CACHE ###########################################################
     - name: Checkout
       uses: actions/checkout@v1
     - name: Setup Haskell
@@ -263,6 +169,7 @@ jobs:
         cabal new-update
         echo "::set-output name=cabal-hash::$(cat cabal.project free-compiler.cabal | sha256sum | awk '{ print $1 }')"
         echo "::set-output name=cabal-index-hash::$(cat ~/.cabal/packages/**/01-index.cache | sha256sum -b | awk '{ print $1 }')"
+        echo "::set-output name=haskell-source-hash::$(cat $(find src -name '*.hs') | sha256sum | awk '{ print $1 }')"
     - name: Cache ~/.cabal/packages
       uses: actions/cache@v1
       with:
@@ -283,14 +190,73 @@ jobs:
       uses: actions/cache@v1
       with:
         path: dist-newstyle
-        key: ${{ matrix.os }}-dist-newstyle-${{ steps.cabal-update.outputs.cabal-hash }}-${{ steps.cabal-update.outputs.cabal-index-hash }}
+        key: ${{ matrix.os }}-dist-newstyle-${{ steps.cabal-update.outputs.cabal-hash }}-${{ steps.cabal-update.outputs.cabal-index-hash }}-${{ steps.cabal-update.outputs.haskell-source-hash }}
         restore-keys: |
+          ${{ matrix.os }}-dist-newstyle-${{ steps.cabal-update.outputs.cabal-hash }}-${{ steps.cabal-update.outputs.cabal-index-hash }}-
           ${{ matrix.os }}-dist-newstyle-${{ steps.cabal-update.outputs.cabal-hash }}-
           ${{ matrix.os }}-dist-newstyle-
-    - name: Install dependencies
+    ### END SETUP CACHE #######################################################
+    - name: Build unit tests
+      run: cabal new-build freec-unit-tests
+    - name: Run unit tests
+      run: cabal new-run freec-unit-tests
+
+  #############################################################################
+  # Documentation                                                             #
+  #############################################################################
+
+  # We build the documentation on Ubuntu only. The goal of this job is not to
+  # generate documentation for deployment but to test whether everything is
+  # documented and the documentation can be built without a problem.
+  build-docs:
+    name: Build Haddock documentation
+    needs: [cabal-build]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: ["ubuntu-latest"]
+    steps:
+    ### SETUP CACHE ###########################################################
+    - name: Checkout
+      uses: actions/checkout@v1
+    - name: Setup Haskell
+      uses: actions/setup-haskell@v1
+      with:
+        ghc-version: '8.6.5'
+        cabal-version: '2.4'
+    - name: Update Cabal Package List
+      id: cabal-update
       run: |
-        cabal new-build freec-unit-tests --only-dependencies
-        cabal new-build freec --only-dependencies
+        cabal new-update
+        echo "::set-output name=cabal-hash::$(cat cabal.project free-compiler.cabal | sha256sum | awk '{ print $1 }')"
+        echo "::set-output name=cabal-index-hash::$(cat ~/.cabal/packages/**/01-index.cache | sha256sum -b | awk '{ print $1 }')"
+        echo "::set-output name=haskell-source-hash::$(cat $(find src -name '*.hs') | sha256sum | awk '{ print $1 }')"
+    - name: Cache ~/.cabal/packages
+      uses: actions/cache@v1
+      with:
+        path: ~/.cabal/packages
+        key: ${{ matrix.os }}-cabal-packages-${{ steps.cabal-update.outputs.cabal-hash }}-${{ steps.cabal-update.outputs.cabal-index-hash }}
+        restore-keys: |
+          ${{ matrix.os }}-cabal-packages-${{ steps.cabal-update.outputs.cabal-hash }}-
+          ${{ matrix.os }}-cabal-packages-
+    - name: Cache ~/.cabal/store
+      uses: actions/cache@v1
+      with:
+        path: ~/.cabal/store
+        key: ${{ matrix.os }}-cabal-store-${{ steps.cabal-update.outputs.cabal-hash }}-${{ steps.cabal-update.outputs.cabal-index-hash }}
+        restore-keys: |
+          ${{ matrix.os }}-cabal-store-${{ steps.cabal-update.outputs.cabal-hash }}-
+          ${{ matrix.os }}-cabal-store-
+    - name: Cache dist-newstyle
+      uses: actions/cache@v1
+      with:
+        path: dist-newstyle
+        key: ${{ matrix.os }}-dist-newstyle-${{ steps.cabal-update.outputs.cabal-hash }}-${{ steps.cabal-update.outputs.cabal-index-hash }}-${{ steps.cabal-update.outputs.haskell-source-hash }}
+        restore-keys: |
+          ${{ matrix.os }}-dist-newstyle-${{ steps.cabal-update.outputs.cabal-hash }}-${{ steps.cabal-update.outputs.cabal-index-hash }}-
+          ${{ matrix.os }}-dist-newstyle-${{ steps.cabal-update.outputs.cabal-hash }}-
+          ${{ matrix.os }}-dist-newstyle-
+    ### END SETUP CACHE #######################################################
     - name: Run Haddock
       run: ./tool/make-docs.sh
     - name: Copy documentation to build directory
@@ -400,11 +366,11 @@ jobs:
   # Examples                                                                  #
   #############################################################################
 
-  # Uses the compiler build by `build-compiler` to compile example Haskell
+  # Uses the compiler build by `cabal-build` to compile example Haskell
   # programs located in the `./example` directory.
   test-examples:
     name: Test examples
-    needs: [build-compiler]
+    needs: [cabal-build]
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:

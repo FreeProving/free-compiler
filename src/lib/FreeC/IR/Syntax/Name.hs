@@ -68,6 +68,19 @@ instance Pretty QName where
   prettyList = prettySeparated (comma <> space) . map pretty
 
 -------------------------------------------------------------------------------
+-- Name spaces                                                               --
+-------------------------------------------------------------------------------
+
+-- | Data type for the two different name spaces.
+--
+--   Similar to Haskell, type and function names live in separate name spaces.
+data Scope = TypeScope | ValueScope
+  deriving (Eq, Ord, Show)
+
+-- | A 'QName' with additional information about it's name space.
+type ScopedName = (Scope, QName)
+
+-------------------------------------------------------------------------------
 -- Aliases for name types                                                    --
 -------------------------------------------------------------------------------
 
