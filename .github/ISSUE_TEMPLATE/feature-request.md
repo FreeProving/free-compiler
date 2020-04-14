@@ -5,9 +5,10 @@ about: Suggest an idea for this project
 
 ---
 
-<!-- Have you read our Code of Conduct?
-     By filing an issue, you are expected to comply with it, including treating everyone with respect:
-     https://github.com/FreeProving/free-compiler/blob/master/CODE_OF_CONDUCT.md
+<!--
+  Have you read our Code of Conduct?
+  By filing an issue, you are expected to comply with it, including treating everyone with respect:
+  https://github.com/FreeProving/free-compiler/blob/master/CODE_OF_CONDUCT.md
 -->
 
 ## Description
@@ -16,14 +17,18 @@ about: Suggest an idea for this project
 
 ## Motivation
 
-<!-- Why are we doing this?
-     What use cases does it support?
-     What is the expected outcome? -->
+<!--
+  Why are we doing this?
+  What use cases does it support?
+  What is the expected outcome?
+-->
 
 ## Alternatives
 
-<!-- What alternative solutions have you considered?
-     What are their drawbacks in comparison to your proposal? -->
+<!--
+  What alternative solutions have you considered?
+  What are their drawbacks in comparison to your proposal?
+-->
 
 ## Additional context
 

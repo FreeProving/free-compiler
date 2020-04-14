@@ -5,9 +5,10 @@ about: Create a report to help us improve
 
 ---
 
-<!-- Have you read our Code of Conduct?
-     By filing an issue, you are expected to comply with it, including treating everyone with respect:
-     https://github.com/FreeProving/free-compiler/blob/master/CODE_OF_CONDUCT.md
+<!--
+  Have you read our Code of Conduct?
+  By filing an issue, you are expected to comply with it, including treating everyone with respect:
+  https://github.com/FreeProving/free-compiler/blob/master/CODE_OF_CONDUCT.md
 -->
 
 ### Description
@@ -30,15 +31,17 @@ about: Create a report to help us improve
 
 ### Versions
 
-<!-- Please include the exact version of the Free Compiler you are using.
-     You can get this information from copy and pasting the output of `freec --version` from the command line.
-     Also, please include the versions of GHC, Cabal and Coq as well as the name and version of the operating system (OS) you are running.
+<!--
+  Please include the exact version of the Free Compiler you are using.
+  You can get this information from copy and pasting the output of `freec --version` from the command line.
+  Also, please include the versions of GHC, Cabal and Coq as well as the name and version of the operating system (OS) you are running.
 -->
- - <!-- Run `freec --version` and copy the full text here.  -->
- - GHC:   <!-- Run `ghc --version` and copy the version number only.  -->
- - Cabal: <!-- Run `cabal --version` and copy the version number only. -->
- - Coq:   <!-- Run `coqc --version` and copy the version number only. -->
- - OS:    <!-- Name and version of your operating system. -->
+
+ - `freec --version`: <!-- Copy and paste the full text. -->
+ - `ghc --version`: <!-- Copy and pate the version only. -->
+ - `cabal --version`: <!-- Copy and pate the version only. -->
+ - `coqc --version`: <!-- Copy and pate the version only. -->
+ - OS: <!-- Name and version of your operating system. -->
 
 ### Additional Information
 
