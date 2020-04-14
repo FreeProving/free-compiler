@@ -218,7 +218,7 @@ However, note that you may not be able to compile the generated Coq code if the 
 
 #### `--version`, `-v`
 
-To check which version of the Free Compiler is currently installed on you system, run the following command.
+To check which version of the Free Compiler is currently installed on your system, run the following command.
 
 ```bash
 freec --version
