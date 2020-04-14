@@ -38,7 +38,7 @@ Examples of representing our community include using an official e-mail address,
 ## Enforcement
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to the project maintainers responsible for enforcement at
-[INSERT CONTACT METHOD](mailto:INSERT_MAIL_ADDRESS@example.com).
+[sad@informatik.uni-kiel.de](mailto:sad@informatik.uni-kiel.de).
 All complaints will be reviewed and investigated promptly and fairly.
 
 All maintainers are obligated to respect the privacy and security of the reporter of any incident.

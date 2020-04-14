@@ -38,7 +38,7 @@ If you have questions or want to propose changes to this document, feel free to 
 
 The Free Proving project and everyone participating in it is governed by our [Code of Conduct][freec/CODE_OF_CONDUCT].
 By participating, you are expected to uphold this code.
-Please report unacceptable behavior to the project maintainers responsible for enforcement at [INSERT CONTACT METHOD](mailto:INSERT_MAIL_ADDRESS@example.com).
+Please report unacceptable behavior to the project maintainers responsible for enforcement at [sad@informatik.uni-kiel.de](mailto:sad@informatik.uni-kiel.de).
 
 ## How Can I Contribute?
 
