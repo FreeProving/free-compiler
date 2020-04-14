@@ -43,6 +43,13 @@ about: Create a report to help us improve
  - `coqc --version`: <!-- Copy and pate the version only. -->
  - OS: <!-- Name and version of your operating system. -->
 
+### Known workarounds
+
+<!--
+  Have you found a way to work around the problem?
+  This knowledge may help us to identify and fix the bug or others who have the same problem to avoid it until there is a fix.
+-->
+
 ### Additional Information
 
 <!-- Any additional information, configuration or data that might be necessary to reproduce the issue. -->
