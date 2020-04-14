@@ -346,6 +346,11 @@ When adding files remember the following additional guidelines.
    Once the commits are pushed the secret is publicly visible and compromised forever.
    Keys that are needed by the [CI pipeline](#the-ci-pipeline) (e.g., for deployment) are configured under `Settings > Secrets` on GitHub.
 
+ - **Avoid to commit debugging code** that is only used for local debugging.
+   Prefer to add real unit tests instead.
+   You can temporarily commit code to debug a problem that can be observed in the [CI pipeline](#the-ci-pipeline) but not locally.
+   However, you should make sure to remove such code once you are done debugging.
+
 ## Testing
 
 Automated tests occupy a central role in our development and review process.
