@@ -91,7 +91,7 @@ common deps
                    , bytestring                  ==0.10.*
                    , casing                      ==0.1.*
                    , composition                 ==1.0.*
-                   , extra                       ==1.6.*
+                   , extra                       ==1.7.*
   default-language:  Haskell2010
   ghc-options:       -Wall
 

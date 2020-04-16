@@ -3,6 +3,7 @@
 source-repository-package
   type: git
   location: git://github.com/FreeProving/language-coq.git
+  tag: 3e02705ebbd6f0f1361cd60ba115c03204de9034
 
 -- The `haskell-src-transformations` package is still in an early development
 -- state and thus not available on Hackage. The dependency is downloaded
@@ -10,6 +11,7 @@ source-repository-package
 source-repository-package
   type: git
   location: git://github.com/FreeProving/haskell-src-transformations.git
+  tag: c82d6dc14b02992b44a28d816454be0b24195276
 
 -- Cabal configuration file for this package.
 packages: ./free-compiler.cabal

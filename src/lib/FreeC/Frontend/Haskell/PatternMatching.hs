@@ -10,7 +10,6 @@ module FreeC.Frontend.Haskell.PatternMatching
 where
 
 import           Control.Monad                  ( void )
-import           Control.Monad.State
 import qualified Data.Map.Strict               as Map
 import           Data.Maybe                     ( mapMaybe )
 import qualified Data.Set                      as Set
@@ -105,7 +104,7 @@ transformPatternMatching haskellAst =
 -- | Removes the source spans of the given Haskell AST and applies the pattern
 --   matching compilation.
 transformPatternMatching' :: HSE.Module SrcSpan -> PMState -> HSE.Module SrcSpan
-transformPatternMatching' haskellAst = evalState $ do
+transformPatternMatching' haskellAst = evalPM $ do
   let haskellAst' = void haskellAst
   haskellAst'' <- processModule haskellAst'
   return (fmap (const NoSrcSpan) haskellAst'')
