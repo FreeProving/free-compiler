@@ -383,7 +383,7 @@ See the [LICENSE][freec/LICENSE] file for details.
   "Free Compiler — The 3-Clause BSD License"
 
 [guidelines/CONTRIBUTING]:
-  https://github.com/FreeProving/free-compiler/blob/master/CONTRIBUTING.md
+  https://github.com/FreeProving/guidelines/blob/master/CONTRIBUTING.md
   "Free Compiler — Contribution Guidelines"
 
 [gh-pages/haddock]:
