@@ -260,7 +260,7 @@ Consult [`doc/ExperimentalFeatures/PatternMatchingCompilation.md`][doc/Experimen
 ## Get Involved
 
 Feature requests, enhancement proposals, bug reports, pull requests and all other contributions are welcome!  
-Have a look at our [contribution guidelines][freec/CONTRIBUTING] for more information on how to contribute.
+Have a look at our [contribution guidelines][guidelines/CONTRIBUTING] for more information on how to contribute.
 
 ## License
 
@@ -283,12 +283,13 @@ See the [LICENSE][freec/LICENSE] file for details.
 [freec/CHANGELOG]:
   https://github.com/FreeProving/free-compiler/blob/master/CHANGELOG.md
   "Free Compiler — Changelog"
-[freec/CONTRIBUTING]:
-  https://github.com/FreeProving/free-compiler/blob/master/CONTRIBUTING.md
-  "Free Compiler — Contribution Guidelines"
 [freec/LICENSE]:
   https://github.com/FreeProving/free-compiler/blob/master/LICENSE
   "Free Compiler — The 3-Clause BSD License"
+
+[guidelines/CONTRIBUTING]:
+  https://github.com/FreeProving/free-compiler/blob/master/CONTRIBUTING.md
+  "Free Compiler — Contribution Guidelines"
 
 [gh-pages/haddock]:
   https://freeproving.github.io/free-compiler/docs/master

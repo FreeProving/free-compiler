@@ -123,9 +123,9 @@ jobs:
     - name: Build compiler library
       run: cabal new-build freec-internal
     - name: Build unit tests dependencies
-      run: cabal new-build freec-unit-tests --dependencies-only
+      run: cabal new-build unit-tests --dependencies-only
     - name: Build unit tests
-      run: cabal new-build freec-unit-tests
+      run: cabal new-build unit-tests
     - name: Build command line interface dependencies
       run: cabal new-build freec --dependencies-only
     - name: Build command line interface
@@ -197,16 +197,16 @@ jobs:
           ${{ matrix.os }}-dist-newstyle-
     ### END SETUP CACHE #######################################################
     - name: Build unit tests
-      run: cabal new-build freec-unit-tests
+      run: cabal new-build unit-tests
     - name: Run unit tests
-      run: cabal new-run freec-unit-tests
+      run: cabal new-run unit-tests
 
   #############################################################################
   # Documentation                                                             #
   #############################################################################
 
-  # We build the documentation on Ubuntu only. The goal of this job is not to
-  # generate documentation for deployment but to test whether everything is
+  # We build the documentation on Ubuntu only. The goal of this job besides the
+  # generation of documentation for deployment is to test whether everything is
   # documented and the documentation can be built without a problem.
   build-docs:
     name: Build Haddock documentation

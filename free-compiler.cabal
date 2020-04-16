@@ -201,7 +201,7 @@ executable freec
                     , githash                     >=0.1.4.0
 
 -- Build configuration for the unit tests of the compiler.
-test-suite freec-unit-tests
+test-suite unit-tests
   import:             deps
   type:               exitcode-stdio-1.0
   hs-source-dirs:     src/test
