@@ -12,12 +12,13 @@ A compiler for the monadic translation of Haskell programs to Coq that uses the 
 ## Table of Contents
 
 1. [Documentation](#documentation)
-2. [Getting Started](#getting-started)
+2. [Directory Structure](#directory-structure)
+3. [Getting Started](#getting-started)
     - [Required Software](#required-software)
     - [Base Library](#base-library)
     - [Installation](#installation)
     - [Running without Installation](#running-without-installation)
-3. [Usage](#usage)
+4. [Usage](#usage)
     - [Command line options](#command-line-options)
       + [`--output=DIR`, `-o DIR`](#--outputdir--o-dir)
       + [`--import=DIR`, `-i DIR`](#--importdir--i-dir)
@@ -28,8 +29,8 @@ A compiler for the monadic translation of Haskell programs to Coq that uses the 
     - [Proving properties](#proving-properties)
     - [Experimental Features](#experimental-features)
       + [Pattern-Matching Compilation](#pattern-matching-compilation)
-4. [Get Involved](#get-involved)
-5. [License](#license)
+5. [Get Involved](#get-involved)
+6. [License](#license)
 
 ## Documentation
 
@@ -41,6 +42,100 @@ The compiler's source code is documented using [Haddock][software/haddock].
 The documentation is automatically build by our CI pipeline and published [here][gh-pages/haddock].
 
 Additional documentation can be found in the [`doc/`][doc] directory.
+
+## Directory Structure
+
+This repository is structured as follows.
+
+ - `./`
+
+   The root directory of the Free Compiler is home to important Markdown documents and central configuration files (e.g., Cabal configuration files).
+
+ - `./.github`
+
+   This directory contains GitHub related files such as issue and pull request templates as well as the configuration of the [CI pipeline](#the-ci-pipeline).
+
+ - `./base`
+
+   This directory contains the Coq base library of the compiler.
+   The Coq base library is a collection of Coq files that are required by the generated code.
+   This includes the definition of the `Free` monad as well as the `Prelude` and `Test.QuickCheck` implementation.
+
+ - `./doc`
+
+   This directory contains Markdown documentation of the compiler.
+   The documentation in this directory is mainly intended for users and not so much for developers of the compiler.
+   Documentation for more technical aspects such as *module interfaces* and the *intermediate representation* can also be found here.
+
+ - `./example`
+
+   This directory contains examples for Haskell modules that can (or cannot) be compiled with the Free Compiler.
+   Examples that don't compile are commented out.
+   If multiple examples belong together, they are placed in a common subdirectory.
+   There are two `.gitignore`d subdirectories `./example/transformed` and `./example/generated`.
+
+    + `./example/generated` is intended to be used as the `--output` directory of the compiler when testing the compiler.
+    + `./example/transformed` is used to dump the output of the [pattern matching compiler][doc/ExperimentalFeatures/PatternMatchingCompilation.md].
+
+   There are also Coq files (`.v` files) for proofs about translated examples.
+   In contrast to the Coq files placed by the compiler into `./example/generated`, they are not `.gitignore`d.
+   The `./example/_CoqProject` file, configures Coq such that the versioned Coq files can discover the generated Coq code and the base library.
+
+ - `./img`
+
+   This directory contains images that are embedded into the README or other Markdown documents.
+
+ - `./src`
+
+   This directory contains the Haskell source code of the compiler.
+   There are three subdirectories.
+
+    + `./src/exe` contains the code for the command line interface.
+    + `./src/lib` contains the code for the actual compiler.
+    + `./src/test` contains test cases for the modules located in `./src/lib`.
+       * By convention modules containing test cases have the same name as the module they are testing but the name `Tests` is appended.
+         For example, the module `FreeC.Pass.TypeInferencePassTests` contains test cases for the `FreeC.Pass.TypeInferencePass` module.
+       * For tests of modules with a common prefix, there is often a `Tests.hs` file that simply invokes all tests of all modules with that prefix.
+         For example, there is no `FreeC.IR` module but a `FreeC.IR.Tests` module that runs all tests for modules starting the the `FreeC.IR` prefix (e.g., `FreeC.IR.ReferenceTests`, `FreeC.IR.SubstTests`, etc.)
+       * The `Spec` module serves as an entry point or "main module" for the unit tests.
+         It invokes the unit tests in the other test modules.
+
+   Except for the main modules `Main` and `Spec`, the names of all modules that belong to the Free Compiler start with the `FreeC` prefix.
+   Modules are organized hierarchically based on their function.
+   Common prefixes are listed below.
+
+    + `FreeC.Backend` contains modules that are concerned with the translation from the intermediate representation to a target language.
+    + `FreeC.Frontend` contains modules that are concerned with the traslation of an input language to the intermediate representation.
+      This includes a front end for the intermediate representation itself.
+    + `FreeC.IR` contains modules that define data types and operations for the intermediate representation such as the AST or commonly used operations on the AST.
+    + `FreeC.Monad` contains modules that define monads that are used throughout the compiler (e.g., for error reporting, or stateful operations).
+    + `FreeC.Monad.Class` contains type classes for monads.
+    + `FreeC.Pass` contains one module for each *compiler pass*.
+      A compiler pass is a transformation on the intermediate representation and environment.
+    + `FreeC.Test` contains modules for writing unit tests.
+    + `FreeC.Util` contains modules for utility functions.
+
+   Additionally, if there is a module `FreeC.X`, related modules start with the prefix `FreeC.X`.
+
+ - `./tool`
+
+   This directory contains Bash scripts for common actions that need to be performed during development.
+   The scripts are intended to be executed from the root directory of this repository.
+
+   ```bash
+   ./tool/run.sh --help
+   ```
+
+   However, most scripts will make sure that they change into the correct working directory beforehand.
+   For example, the compiler runs in `/path/to/free-compiler` when invoked using the following command.
+
+   ```bash
+   /path/to/free-compiler/tool/run.sh ./example/Data/List.hs
+   ```
+
+   As a consequence `./example/Data/List.hs` refers to `/path/to/free-compiler/example/Data/List.hs` and not to `$(pwd)/example/Data/List.hs` in the example above.
+
+   If there are other directories named `tool` in this repository, the contained scripts are interned to to be executed from the directory containing the `tool` directory by convention.
 
 ## Getting Started
 
@@ -260,7 +355,7 @@ Consult [`doc/ExperimentalFeatures/PatternMatchingCompilation.md`][doc/Experimen
 ## Get Involved
 
 Feature requests, enhancement proposals, bug reports, pull requests and all other contributions are welcome!  
-Have a look at our [contribution guidelines][guidelines/CONTRIBUTING] for more information on how to contribute.
+Have a look at our [contributing guidelines][guidelines/CONTRIBUTING] for more information on how to contribute.
 
 ## License
 
