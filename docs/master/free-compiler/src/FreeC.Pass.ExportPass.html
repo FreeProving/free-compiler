@@ -1,0 +1,106 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-comment">-- | This module contains a compiler pass that adds a module interface for the</span><span>
+</span><a name="line-2"></a><span class="hs-comment">--   translated module to the environment.</span><span>
+</span><a name="line-3"></a><span class="hs-comment">--</span><span>
+</span><a name="line-4"></a><span class="hs-comment">--   The interface contains all top-level entries that are currently in the</span><span>
+</span><a name="line-5"></a><span class="hs-comment">--   environment. Only entries that are defined in the translated module</span><span>
+</span><a name="line-6"></a><span class="hs-comment">--   are listed as exported. All other entries are &quot;hidden&quot;. Hidden entries are</span><span>
+</span><a name="line-7"></a><span class="hs-comment">--   included such that module interfaces are self contained and type synonyms</span><span>
+</span><a name="line-8"></a><span class="hs-comment">--   can be expanded properly.</span><span>
+</span><a name="line-9"></a><span class="hs-comment">--</span><span>
+</span><a name="line-10"></a><span class="hs-comment">--   = Examples</span><span>
+</span><a name="line-11"></a><span class="hs-comment">--</span><span>
+</span><a name="line-12"></a><span class="hs-comment">--   == Example 1</span><span>
+</span><a name="line-13"></a><span class="hs-comment">--</span><span>
+</span><a name="line-14"></a><span class="hs-comment">--   The module interface for the following module</span><span>
+</span><a name="line-15"></a><span class="hs-comment">--</span><span>
+</span><a name="line-16"></a><span class="hs-comment">--   &gt; module A where</span><span>
+</span><a name="line-17"></a><span class="hs-comment">--   &gt;</span><span>
+</span><a name="line-18"></a><span class="hs-comment">--   &gt; data Foo = Bar</span><span>
+</span><a name="line-19"></a><span class="hs-comment">--</span><span>
+</span><a name="line-20"></a><span class="hs-comment">--   contains 'interfaceEntries' for all entries from the implicitly imported</span><span>
+</span><a name="line-21"></a><span class="hs-comment">--   @Prelude@ module and an entry for the type @A.Foo@ and constructor @A.Bar@.</span><span>
+</span><a name="line-22"></a><span class="hs-comment">--   However, only @A.Foo@ and @A.Bar@ are are exported by the module and</span><span>
+</span><a name="line-23"></a><span class="hs-comment">--   therefore listed in 'interfaceExports'.</span><span>
+</span><a name="line-24"></a><span class="hs-comment">--</span><span>
+</span><a name="line-25"></a><span class="hs-comment">--   == Example 2</span><span>
+</span><a name="line-26"></a><span class="hs-comment">--</span><span>
+</span><a name="line-27"></a><span class="hs-comment">--   When a module imports the module @A@ from the example above,</span><span>
+</span><a name="line-28"></a><span class="hs-comment">--</span><span>
+</span><a name="line-29"></a><span class="hs-comment">--   &gt; module B where</span><span>
+</span><a name="line-30"></a><span class="hs-comment">--   &gt;</span><span>
+</span><a name="line-31"></a><span class="hs-comment">--   &gt; import A</span><span>
+</span><a name="line-32"></a><span class="hs-comment">--   &gt;</span><span>
+</span><a name="line-33"></a><span class="hs-comment">--   &gt; foo :: a -&gt; Foo</span><span>
+</span><a name="line-34"></a><span class="hs-comment">--   &gt; foo x = Bar</span><span>
+</span><a name="line-35"></a><span class="hs-comment">--</span><span>
+</span><a name="line-36"></a><span class="hs-comment">--   its interface contains again all entries from the implicitly imported</span><span>
+</span><a name="line-37"></a><span class="hs-comment">--   @Prelude@ module, the entries from @A@'s module interface and the entry</span><span>
+</span><a name="line-38"></a><span class="hs-comment">--   for the top-level function @B.foo@. Entries for local variables such as</span><span>
+</span><a name="line-39"></a><span class="hs-comment">--   @x@ are not part of @B@'s interface. Since 'interfaceEntries' is a set,</span><span>
+</span><a name="line-40"></a><span class="hs-comment">--   the @Prelude@ entries which are both implicitly imported by @B@ and part</span><span>
+</span><a name="line-41"></a><span class="hs-comment">--   of the imported interface from @A@ are not listed twice in @B@'s interface.</span><span>
+</span><a name="line-42"></a><span class="hs-comment">--</span><span>
+</span><a name="line-43"></a><span class="hs-comment">--   = Specification</span><span>
+</span><a name="line-44"></a><span class="hs-comment">--</span><span>
+</span><a name="line-45"></a><span class="hs-comment">--   == Preconditions</span><span>
+</span><a name="line-46"></a><span class="hs-comment">--</span><span>
+</span><a name="line-47"></a><span class="hs-comment">--   The environment must contain all entries for declarations that should</span><span>
+</span><a name="line-48"></a><span class="hs-comment">--   be exported.</span><span>
+</span><a name="line-49"></a><span class="hs-comment">--</span><span>
+</span><a name="line-50"></a><span class="hs-comment">--   ==  Translation</span><span>
+</span><a name="line-51"></a><span class="hs-comment">--</span><span>
+</span><a name="line-52"></a><span class="hs-comment">--   No modifications are made to the AST. A module interface is added to</span><span>
+</span><a name="line-53"></a><span class="hs-comment">--   the environment.</span><span>
+</span><a name="line-54"></a><span class="hs-comment">--</span><span>
+</span><a name="line-55"></a><span class="hs-comment">--   == Postcondition</span><span>
+</span><a name="line-56"></a><span class="hs-comment">--</span><span>
+</span><a name="line-57"></a><span class="hs-comment">--   The environment contains a module interface for the translated module.</span><span>
+</span><a name="line-58"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">FreeC.Pass.ExportPass</span><span>
+</span><a name="line-59"></a><span>  </span><span class="hs-special">(</span><span> </span><a href="FreeC.Pass.ExportPass.html#exportPass"><span class="hs-identifier hs-var">exportPass</span></a><span>
+</span><a name="line-60"></a><span>  </span><span class="hs-special">)</span><span>
+</span><a name="line-61"></a><span class="hs-keyword">where</span><span>
+</span><a name="line-62"></a><span>
+</span><a name="line-63"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data.Map.Strict</span><span>               </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">Map</span><span>
+</span><a name="line-64"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data.Set</span><span>                      </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">Set</span><span>
+</span><a name="line-65"></a><span>
+</span><a name="line-66"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><a href="FreeC.Backend.Coq.Base.html"><span class="hs-identifier">FreeC.Backend.Coq.Base</span></a><span>        </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">Coq.Base</span><span>
+</span><a name="line-67"></a><span class="hs-keyword">import</span><span>           </span><a href="FreeC.Environment.html"><span class="hs-identifier">FreeC.Environment</span></a><span>
+</span><a name="line-68"></a><span class="hs-keyword">import</span><span>           </span><a href="FreeC.Environment.ModuleInterface.html"><span class="hs-identifier">FreeC.Environment.ModuleInterface</span></a><span>
+</span><a name="line-69"></a><span class="hs-keyword">import</span><span>           </span><a href="FreeC.Environment.Entry.html"><span class="hs-identifier">FreeC.Environment.Entry</span></a><span>
+</span><a name="line-70"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><a href="FreeC.IR.Syntax.html"><span class="hs-identifier">FreeC.IR.Syntax</span></a><span>               </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">IR</span><span>
+</span><a name="line-71"></a><span class="hs-keyword">import</span><span>           </span><a href="FreeC.Monad.Converter.html"><span class="hs-identifier">FreeC.Monad.Converter</span></a><span>
+</span><a name="line-72"></a><span class="hs-keyword">import</span><span>           </span><a href="FreeC.Pass.html"><span class="hs-identifier">FreeC.Pass</span></a><span>
+</span><a name="line-73"></a><span>
+</span><a name="line-74"></a><span class="hs-comment">-- | A compiler pass that constructs a module interface from the current</span><span>
+</span><a name="line-75"></a><span class="hs-comment">--   environment for the given module and inserts it into the environment.</span><span>
+</span><a name="line-76"></a><span class="hs-identifier">exportPass</span><span> </span><span class="hs-glyph">::</span><span> </span><a href="FreeC.Pass.html#Pass"><span class="hs-identifier hs-type">Pass</span></a><span> </span><a href="FreeC.IR.Syntax.Module.html#Module"><span class="hs-identifier hs-type">IR.Module</span></a><span>
+</span><a name="line-77"></a><a name="exportPass"><a href="FreeC.Pass.ExportPass.html#exportPass"><span class="hs-identifier">exportPass</span></a></a><span> </span><a name="local-6989586621679196259"><a href="#local-6989586621679196259"><span class="hs-identifier">ast</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><a name="line-78"></a><span>  </span><a name="local-6989586621679196260"><a href="#local-6989586621679196260"><span class="hs-identifier">iface</span></a></a><span> </span><span class="hs-glyph">&lt;-</span><span> </span><a href="FreeC.Pass.ExportPass.html#exportInterface"><span class="hs-identifier hs-var">exportInterface</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier">IR.modName</span><span> </span><a href="#local-6989586621679196259"><span class="hs-identifier hs-var">ast</span></a><span class="hs-special">)</span><span>
+</span><a name="line-79"></a><span>  </span><a href="FreeC.Monad.Converter.html#modifyEnv"><span class="hs-identifier hs-var">modifyEnv</span></a><span> </span><span class="hs-operator hs-var">$</span><span> </span><a href="FreeC.Environment.html#makeModuleAvailable"><span class="hs-identifier hs-var">makeModuleAvailable</span></a><span> </span><a href="#local-6989586621679196260"><span class="hs-identifier hs-var">iface</span></a><span>
+</span><a name="line-80"></a><span>  </span><span class="hs-identifier hs-var">return</span><span> </span><a href="#local-6989586621679196259"><span class="hs-identifier hs-var">ast</span></a><span>
+</span><a name="line-81"></a><span>
+</span><a name="line-82"></a><span class="hs-comment">-- | Generates a module interface that contains all entries from the</span><span>
+</span><a name="line-83"></a><span class="hs-comment">--   environment and exports all top-level declarations that are declared in</span><span>
+</span><a name="line-84"></a><span class="hs-comment">--   the module with the given name.</span><span>
+</span><a name="line-85"></a><span class="hs-identifier">exportInterface</span><span> </span><span class="hs-glyph">::</span><span> </span><a href="FreeC.IR.Syntax.Name.html#ModName"><span class="hs-identifier hs-type">IR.ModName</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="FreeC.Monad.Converter.html#Converter"><span class="hs-identifier hs-type">Converter</span></a><span> </span><a href="FreeC.Environment.ModuleInterface.html#ModuleInterface"><span class="hs-identifier hs-type">ModuleInterface</span></a><span>
+</span><a name="line-86"></a><a name="exportInterface"><a href="FreeC.Pass.ExportPass.html#exportInterface"><span class="hs-identifier">exportInterface</span></a></a><span> </span><a name="local-6989586621679196261"><a href="#local-6989586621679196261"><span class="hs-identifier">modName</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><a name="line-87"></a><span>  </span><a name="local-6989586621679196265"><a href="#local-6989586621679196265"><span class="hs-identifier">entries</span></a></a><span> </span><span class="hs-glyph">&lt;-</span><span> </span><a href="FreeC.Monad.Converter.html#inEnv"><span class="hs-identifier hs-var">inEnv</span></a><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-identifier hs-var">Map.elems</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier">envEntries</span><span>
+</span><a name="line-88"></a><span>  </span><span class="hs-keyword">let</span><span> </span><a name="local-6989586621679196266"><a href="#local-6989586621679196266"><span class="hs-identifier">exports</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">map</span><span> </span><a href="FreeC.Environment.Entry.html#entryScopedName"><span class="hs-identifier hs-var">entryScopedName</span></a><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-identifier hs-var">filter</span><span> </span><a href="#local-6989586621679196262"><span class="hs-identifier hs-var">isExported</span></a><span> </span><a href="#local-6989586621679196265"><span class="hs-identifier hs-var">entries</span></a><span>
+</span><a name="line-89"></a><span>  </span><span class="hs-identifier hs-var">return</span><span> </span><a href="FreeC.Environment.ModuleInterface.html#ModuleInterface"><span class="hs-identifier hs-var">ModuleInterface</span></a><span> </span><span class="hs-special">{</span><span> </span><span class="hs-identifier">interfaceModName</span><span> </span><span class="hs-glyph">=</span><span> </span><a href="#local-6989586621679196261"><span class="hs-identifier hs-var">modName</span></a><span>
+</span><a name="line-90"></a><span>                         </span><span class="hs-special">,</span><span> </span><span class="hs-identifier">interfaceLibName</span><span> </span><span class="hs-glyph">=</span><span> </span><a href="FreeC.Backend.Coq.Base.html#generatedLibName"><span class="hs-identifier hs-var">Coq.Base.generatedLibName</span></a><span>
+</span><a name="line-91"></a><span>                         </span><span class="hs-special">,</span><span> </span><span class="hs-identifier">interfaceExports</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">Set.fromList</span><span> </span><a href="#local-6989586621679196266"><span class="hs-identifier hs-var">exports</span></a><span>
+</span><a name="line-92"></a><span>                         </span><span class="hs-special">,</span><span> </span><span class="hs-identifier">interfaceEntries</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">Set.fromList</span><span> </span><a href="#local-6989586621679196265"><span class="hs-identifier hs-var">entries</span></a><span>
+</span><a name="line-93"></a><span>                         </span><span class="hs-special">}</span><span>
+</span><a name="line-94"></a><span> </span><span class="hs-keyword">where</span><span>
+</span><a name="line-95"></a><span>   </span><span class="hs-comment">-- Tests whether to export the given entry.</span><span>
+</span><a name="line-96"></a><span>   </span><span class="hs-comment">--</span><span>
+</span><a name="line-97"></a><span>   </span><span class="hs-comment">-- Only top-level entries that are declared in the module are exported.</span><span>
+</span><a name="line-98"></a><span>   </span><span class="hs-comment">-- Since the original names of entries are qualified with the name of the</span><span>
+</span><a name="line-99"></a><span>   </span><span class="hs-comment">-- module they are declared in, we can tell whether an entry is declared</span><span>
+</span><a name="line-100"></a><span>   </span><span class="hs-comment">-- in the exported module by comparing the prefix of its original name</span><span>
+</span><a name="line-101"></a><span>   </span><span class="hs-comment">-- with the module name.</span><span>
+</span><a name="line-102"></a><span>  </span><span class="hs-identifier">isExported</span><span> </span><span class="hs-glyph">::</span><span> </span><a href="FreeC.Environment.Entry.html#EnvEntry"><span class="hs-identifier hs-type">EnvEntry</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Bool</span><span>
+</span><a name="line-103"></a><span>  </span><a name="local-6989586621679196262"><a href="#local-6989586621679196262"><span class="hs-identifier">isExported</span></a></a><span> </span><a name="local-6989586621679196263"><a href="#local-6989586621679196263"><span class="hs-identifier">entry</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="hs-identifier">entryName</span><span> </span><a href="#local-6989586621679196263"><span class="hs-identifier hs-var">entry</span></a><span> </span><span class="hs-keyword">of</span><span>
+</span><a name="line-104"></a><span>    </span><a href="FreeC.IR.Syntax.Name.html#Qual"><span class="hs-identifier hs-var">IR.Qual</span></a><span> </span><a name="local-6989586621679196264"><a href="#local-6989586621679196264"><span class="hs-identifier">modName'</span></a></a><span> </span><span class="hs-identifier">_</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-6989586621679196264"><span class="hs-identifier hs-var">modName'</span></a><span> </span><span class="hs-operator hs-var">==</span><span> </span><a href="#local-6989586621679196261"><span class="hs-identifier hs-var">modName</span></a><span>
+</span><a name="line-105"></a><span>    </span><a href="FreeC.IR.Syntax.Name.html#UnQual"><span class="hs-identifier hs-var">IR.UnQual</span></a><span> </span><span class="hs-identifier">_</span><span>        </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-var">False</span><span>
+</span><a name="line-106"></a></pre></body></html>
