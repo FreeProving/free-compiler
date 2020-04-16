@@ -1,3 +1,5 @@
+# Contributing
+
 See the [contributing guidelines][] of the FreeProving project.
 
 [contributing guidelines]:

@@ -1,3 +1,5 @@
+# Code of Conduct
+
 The Free Proving project and everyone participating in it is governed by our [Code of Conduct][CODE_OF_CONDUCT].
 By participating, you are expected to uphold this code.
 
