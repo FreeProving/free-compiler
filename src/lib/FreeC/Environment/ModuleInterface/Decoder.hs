@@ -4,7 +4,7 @@
 -- | This module contains functions for loading and decoding 'ModuleInterface's
 --   from TOML configuration files.
 --
---   The module interface file contains exported entries of the 'Environment'.
+--   The module interface file contains the entries of a 'ModuleInterface'.
 --   The file format is TOML (see <https://github.com/toml-lang/toml>).
 --   JSON files can be decoded as well. The TOML format is preferred for
 --   configuration files maintained by humans and JSON should be used to
@@ -119,15 +119,12 @@ import qualified Data.Vector                   as Vector
 import           Text.RegexPR
 
 import qualified FreeC.Backend.Coq.Syntax      as Coq
-import           FreeC.Environment
 import           FreeC.Environment.ModuleInterface
 import           FreeC.Environment.Entry
-import           FreeC.Frontend.Haskell.Parser
-import           FreeC.Frontend.Haskell.Simplifier
+import           FreeC.Frontend.IR.Parser
 import           FreeC.IR.Reference             ( freeTypeVars )
 import           FreeC.IR.SrcSpan
 import qualified FreeC.IR.Syntax               as IR
-import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
 import           FreeC.Pretty
 import           FreeC.Util.Config
@@ -170,15 +167,12 @@ instance Aeson.FromJSON Coq.Qualid where
 instance Aeson.FromJSON IR.Type where
   parseJSON = Aeson.withText "IR.Type" $ \txt -> do
     let (res, ms) =
-          runReporter
-            $   flip evalConverter emptyEnv
-            $   liftReporter (parseType "<config-input>" (Text.unpack txt))
-            >>= simplifyType
+          runReporter $ parseIR (mkSrcFile "<config-input>" (Text.unpack txt))
     case res of
       Nothing -> Aeson.parserThrowError [] (showPretty ms)
       Just t  -> return t
 
--- | Restores an 'Environment' from the configuration file.
+-- | Restores a 'ModuleInterface' from the configuration file.
 instance Aeson.FromJSON ModuleInterface where
   parseJSON = Aeson.withObject "ModuleInterface" $ \env -> do
     version <- env .: "version"
