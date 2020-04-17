@@ -114,9 +114,9 @@ import qualified Data.Aeson                    as Aeson
 import qualified Data.Aeson.Types              as Aeson
 import           Data.Maybe                     ( mapMaybe )
 import qualified Data.Set                      as Set
+import           Data.Text                      ( Text )
 import qualified Data.Text                     as Text
 import qualified Data.Vector                   as Vector
-import           Text.RegexPR
 
 import qualified FreeC.Backend.Coq.Syntax      as Coq
 import           FreeC.Environment.ModuleInterface
@@ -141,23 +141,18 @@ import           FreeC.Util.Config
 moduleInterfaceFileFormatVersion :: Integer
 moduleInterfaceFileFormatVersion = 1
 
+-- | Parses an IR AST node from an Aeson string.
+parseAesonIR :: Parseable a => Text -> Aeson.Parser a
+parseAesonIR input = do
+  let srcFile   = mkSrcFile "<config-input>" (Text.unpack input)
+      (res, ms) = runReporter (parseIR srcFile)
+  case res of
+    Nothing -> Aeson.parserThrowError [] (showPretty ms)
+    Just t  -> return t
+
 -- | All Haskell names in the interface file are qualified.
 instance Aeson.FromJSON IR.QName where
-  parseJSON = Aeson.withText "IR.QName" $ \txt -> do
-    let str   = Text.unpack txt
-        regex = "^((\\w(\\w|')*\\.)*)(\\w(\\w|')*|\\([^\\(\\)]*\\))$"
-    case matchRegexPR regex str of
-      Just (_, ms) -> do
-        let Just modName = init <$> lookup 1 ms
-            Just name    = parseName <$> lookup 4 ms
-        return (IR.Qual modName name)
-      m -> Aeson.parserThrowError
-        []
-        ("Invalid Haskell name " ++ str ++ " " ++ show m)
-   where
-    parseName :: String -> IR.Name
-    parseName ('(' : sym) = IR.Symbol (init sym)
-    parseName ident       = IR.Ident ident
+  parseJSON = Aeson.withText "IR.QName" parseAesonIR
 
 -- | Restores a Coq identifier from the interface file.
 instance Aeson.FromJSON Coq.Qualid where
@@ -165,12 +160,7 @@ instance Aeson.FromJSON Coq.Qualid where
 
 -- | Restores a Haskell type from the interface file.
 instance Aeson.FromJSON IR.Type where
-  parseJSON = Aeson.withText "IR.Type" $ \txt -> do
-    let (res, ms) =
-          runReporter $ parseIR (mkSrcFile "<config-input>" (Text.unpack txt))
-    case res of
-      Nothing -> Aeson.parserThrowError [] (showPretty ms)
-      Just t  -> return t
+  parseJSON = Aeson.withText "IR.Type" parseAesonIR
 
 -- | Restores a 'ModuleInterface' from the configuration file.
 instance Aeson.FromJSON ModuleInterface where
