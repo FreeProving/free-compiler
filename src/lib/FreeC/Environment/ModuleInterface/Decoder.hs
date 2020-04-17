@@ -139,7 +139,7 @@ import           FreeC.Util.Config
 --   that the implementation of the corresponding change in the other module
 --   is forgotten.
 moduleInterfaceFileFormatVersion :: Integer
-moduleInterfaceFileFormatVersion = 1
+moduleInterfaceFileFormatVersion = 2
 
 -- | Parses an IR AST node from an Aeson string.
 parseAesonIR :: Parseable a => Text -> Aeson.Parser a

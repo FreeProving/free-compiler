@@ -42,7 +42,7 @@ import           FreeC.Util.Config
 --   that the implementation of the corresponding change in the other module
 --   is forgotten.
 moduleInterfaceFileFormatVersion :: Integer
-moduleInterfaceFileFormatVersion = 1
+moduleInterfaceFileFormatVersion = 2
 
 instance Aeson.ToJSON IR.QName where
   toJSON = Aeson.toJSON . showPretty
