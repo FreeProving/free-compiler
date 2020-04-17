@@ -123,9 +123,9 @@ jobs:
     - name: Build compiler library
       run: cabal new-build freec-internal
     - name: Build unit tests dependencies
-      run: cabal new-build unit-tests --dependencies-only
+      run: cabal new-build freec-unit-tests --dependencies-only
     - name: Build unit tests
-      run: cabal new-build unit-tests
+      run: cabal new-build freec-unit-tests
     - name: Build command line interface dependencies
       run: cabal new-build freec --dependencies-only
     - name: Build command line interface
@@ -197,9 +197,9 @@ jobs:
           ${{ matrix.os }}-dist-newstyle-
     ### END SETUP CACHE #######################################################
     - name: Build unit tests
-      run: cabal new-build unit-tests
+      run: cabal new-build freec-unit-tests
     - name: Run unit tests
-      run: cabal new-run unit-tests
+      run: cabal new-run freec-unit-tests
 
   #############################################################################
   # Documentation                                                             #

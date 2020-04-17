@@ -383,12 +383,12 @@ step "Installing test suite dependencies"               \
      "Installed test suite dependencies"                \
      "Failed to install test suite dependencies"        \
      "Canceled installation of test suite dependencies" \
-     "cabal new-build unit-tests --only-dependencies"
+     "cabal new-build freec-unit-tests --only-dependencies"
 step "Building the test suite"        \
      "Built test suite successfully"  \
      "Failed to build the test suite" \
      "Canceled test suite build"      \
-     "cabal new-build unit-tests"
+     "cabal new-build freec-unit-tests"
 
 # Build the command line interface and its dependencies.
 step "Installing command line interface dependencies"               \
@@ -421,7 +421,7 @@ step "Running unit tests"     \
      "All unit tests passed"  \
      "Some unit tests failed" \
      "Canceled unit tests"    \
-     "cabal new-run unit-tests"
+     "cabal new-run freec-unit-tests"
 
 step "Compiling examples"               \
      "Compiled examples successfully"   \
