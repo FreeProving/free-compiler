@@ -19,14 +19,14 @@ In addition, the module interface file contains meta information in the top-leve
 
 The top-level table must contain the following key/value pairs:
 
- * `version` (`Integer`) the version of the configuration file format.
+ - `version` (`Integer`) the version of the configuration file format.
    The current version is `1`. If there is a breaking change in the future, the module interface file format version is updated.
    The parser accepts module interface files that use the most recent version only.
- * `module-name` (`String`) the name of the module that is described by the module interface file.
- * `library-name` (`String`) the name of the Coq library that contains the module.
- * `exported-types` (`Array` of `String`) the qualified Haskell names (`haskell-name`) of the type-level entries exported by the module.
+ - `module-name` (`String`) the name of the module that is described by the module interface file.
+ - `library-name` (`String`) the name of the Coq library that contains the module.
+ - `exported-types` (`Array` of `String`) the qualified Haskell names (`haskell-name`) of the type-level entries exported by the module.
     All other entries in the `types` and `type-synonyms` tables are "hidden" (i.e., cannot be used by an importing module directly).
- * `exported-values` (`Array` of `String`) the qualified Haskell names (`haskell-name`) of the value-level entries exported by the module.
+ - `exported-values` (`Array` of `String`) the qualified Haskell names (`haskell-name`) of the value-level entries exported by the module.
     All other entries in the `constructors` and `functions` tables are "hidden" (i.e., cannot be used by an importing module directly).
 
 For example, the interface file of the following Haskell Module
@@ -52,9 +52,9 @@ exported-values = ['Test.Bar', 'Test.Baz', 'Test.foo']
 
 The tables in the `types` array must contain the following key/value pairs:
 
- * `haskell-name` (`String`) the qualified Haskell name of the type constructor in the module it has been defined in.
- * `coq-name` (`String`) the identifier of the corresponding Coq type constructor.
- * `arity` (`Integer`) the number of type arguments expected by the type constructor.
+ - `haskell-name` (`String`) the qualified Haskell name of the type constructor in the module it has been defined in.
+ - `coq-name` (`String`) the identifier of the corresponding Coq type constructor.
+ - `arity` (`Integer`) the number of type arguments expected by the type constructor.
 
 For example, the following entry defines the `Maybe` data type.
 
@@ -69,11 +69,11 @@ For example, the following entry defines the `Maybe` data type.
 
 The tables in the `type-synonyms` array must contain the following key/value pairs:
 
- * `haskell-name` (`String`) the qualified Haskell name of the type synonym in the module it has been defined in.
- * `coq-name` (`String`) the identifier of the corresponding Coq definition.
- * `arity` (`Integer`) the number of type arguments expected by the type synonym.
- * `haskell-type` (`String`) the Haskell type that is abbreviated by the type synonym.
- * `type-arguments` (`Array` of `String`) the Haskell identifiers of the type arguments.
+ - `haskell-name` (`String`) the qualified Haskell name of the type synonym in the module it has been defined in.
+ - `coq-name` (`String`) the identifier of the corresponding Coq definition.
+ - `arity` (`Integer`) the number of type arguments expected by the type synonym.
+ - `haskell-type` (`String`) the Haskell type that is abbreviated by the type synonym.
+ - `type-arguments` (`Array` of `String`) the Haskell identifiers of the type arguments.
     Must be of length `arity`.
 
 For example, the following entry defines the `ReadS` type synonym.
@@ -91,11 +91,11 @@ For example, the following entry defines the `ReadS` type synonym.
 
 The tables in the `constructors` array must contain the following key/value pairs:
 
- * `haskell-type` (`String`) the Haskell type of the data constructor.
- * `haskell-name` (`String`) the qualified Haskell name of the data constructor in the module it has been defined in.
- * `coq-name` (`String`) the identifier of the corresponding Coq data constructor.
- * `coq-smart-name` (`String`) the identifier of the corresponding Coq smart constructor.
- * `arity` (`Integer`) the number of arguments expected by the data constructor.
+ - `haskell-type` (`String`) the Haskell type of the data constructor.
+ - `haskell-name` (`String`) the qualified Haskell name of the data constructor in the module it has been defined in.
+ - `coq-name` (`String`) the identifier of the corresponding Coq data constructor.
+ - `coq-smart-name` (`String`) the identifier of the corresponding Coq smart constructor.
+ - `arity` (`Integer`) the number of arguments expected by the data constructor.
 
 For example, the following entries define the constructors `Just` and `Nothing` of the `Maybe` data type.
 
@@ -119,12 +119,12 @@ For example, the following entries define the constructors `Just` and `Nothing` 
 
 The tables in the `functions` array must contain the following key/value pairs:
 
- * `haskell-type` (`String`) the Haskell type of the function.
- * `haskell-name` (`String`) the qualified Haskell name of the function in the module it has been defined in.
- * `coq-name` (`String`) the identifier of the corresponding Coq function.
- * `arity` (`Integer`) the number of arguments expected by the function.
- * `partial` (`Boolean`) whether the function is partial (i.e., requires an instance of the `Partial` type class).
- * `needs-free-args` (`Boolean`) whether the arguments of the `Free` monad need to be passed to the function.
+ - `haskell-type` (`String`) the Haskell type of the function.
+ - `haskell-name` (`String`) the qualified Haskell name of the function in the module it has been defined in.
+ - `coq-name` (`String`) the identifier of the corresponding Coq function.
+ - `arity` (`Integer`) the number of arguments expected by the function.
+ - `partial` (`Boolean`) whether the function is partial (i.e., requires an instance of the `Partial` type class).
+ - `needs-free-args` (`Boolean`) whether the arguments of the `Free` monad need to be passed to the function.
 
 For example, the following entry defines the total function `(++)` ("append") and the partial function `head`.
 

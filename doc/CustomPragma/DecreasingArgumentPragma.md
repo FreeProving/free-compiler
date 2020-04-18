@@ -37,13 +37,13 @@ Coq, on the other hand, is able to verify that `map` calls `mapRose f` only on s
 As it is infeasible to reimplement Coq's entire termination checker, the user has to provide information about the decreasing arguments in those cases manually.
 For this purpose, we provide a custom pragma with the following format.
 
-```
+```haskell
 {-# FreeC <function> DECREASES ON <argument> #-}
 ```
 
 For instance, the user can tell our compiler that `mapRose` decreases on `r` by adding the following line to the example above.
 
-```
+```haskell
 {-# FreeC mapRose DECREASES ON r #-}
 ```
 
@@ -60,16 +60,20 @@ mapRose' f (Rose x rs) = Rose (f x) (map (mapRose' f) rs)
 
 For this reason, the decreasing argument can also be specified by its index using a pragma of the following format.
 
-```
+```haskell
 {-# FreeC <function> DECREASES ON ARGUMENT <index> #-}
 ```
 
 Where `<index>` is the position of the decreasing argument in the parameter list.
 Counting starts at `1`, i.e. the function has index `1` and the tree has index `2` in the example above.
 
-```
+```haskell
 {-# FreeC mapRose' DECREASES ON ARGUMENT 2 #-}
 ```
 
-[`doc/ExperimentalFeatures/PatternMatchingCompilation.md`]: ../ExperimentalFeatures/PatternMatchingCompilation.md
-[`example/DecreasingArgumentPragma.hs`]: ../../example/DecreasingArgumentPragma.hs
+[`doc/ExperimentalFeatures/PatternMatchingCompilation.md`]:
+  ../ExperimentalFeatures/PatternMatchingCompilation.md
+  "Free Compiler Documentation — Experimental Features — Pattern Matching Compilation"
+[`example/DecreasingArgumentPragma.hs`]:
+  ../../example/DecreasingArgumentPragma.hs
+  "Free Compiler Examples — Decreasing Argument Pragma"

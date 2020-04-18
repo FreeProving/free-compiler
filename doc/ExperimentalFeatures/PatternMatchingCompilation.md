@@ -153,6 +153,10 @@ duplicateHead xs@(x : xs') = x : xs
 > **Warning:** Be aware that high memory consumption can impair system responsiveness and stability.
 > If you test the example above, keep an eye on your system memory and be prepared to cancel compilation.
 
-[`example/PatternMatching.hs`]: ../../example/PatternMatching.hs
+[`example/PatternMatching.hs`]:
+  ../../example/PatternMatching.hs
+  "Free Compiler Examples — Pattern Matching"
 
-[package/haskell-src-transformation]: https://github.com/FreeProving/haskell-src-transformations
+[package/haskell-src-transformation]:
+  https://github.com/FreeProving/haskell-src-transformations
+  "haskell-src-transformations on GitHub"

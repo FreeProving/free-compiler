@@ -172,9 +172,22 @@ Qed.
 
 As usual the full proofs can be found in [`example/Proofs/ReverseInvolutiveProofs.v`][].
 
-[`example/Proofs/AppendAssoc.hs`]: ../example/Proofs/AppendAssoc.hs
-[`example/Proofs/AppendAssocProofs.v`]: ../example/Proofs/AppendAssocProofs.v
-[`example/Proofs/ListFunctor.hs`]: ../example/Proofs/ListFunctor.hs
-[`example/Proofs/ListFunctorProofs.v`]: ../example/Proofs/ListFunctorProofs.v
-[`example/Proofs/ReverseInvolutive.hs`]: ../example/Proofs/ReverseInvolutive.hs
-[`example/Proofs/ReverseInvolutiveProofs.v`]: ../example/Proofs/ReverseInvolutiveProofs.v
+[`example/Proofs/AppendAssoc.hs`]:
+  ../example/Proofs/AppendAssoc.hs
+  "Free Compiler Examples — Associativity of Append"
+[`example/Proofs/AppendAssocProofs.v`]:
+  ../example/Proofs/AppendAssocProofs.v
+  "Free Compiler Examples — Associativity of Append — Proofs"
+
+[`example/Proofs/ListFunctor.hs`]:
+  ../example/Proofs/ListFunctor.hs
+  "Free Compiler Examples — List Functor Laws"
+[`example/Proofs/ListFunctorProofs.v`]:
+  ../example/Proofs/ListFunctorProofs.v
+  "Free Compiler Examples — List Functor Laws — Proofs"
+[`example/Proofs/ReverseInvolutive.hs`]:
+  ../example/Proofs/ReverseInvolutive.hs
+  "Free Compiler Examples — Reverse is (non-)Involutive"
+[`example/Proofs/ReverseInvolutiveProofs.v`]:
+  ../example/Proofs/ReverseInvolutiveProofs.v
+  "Free Compiler Examples — Reverse is (non-)Involutive — Proofs"
