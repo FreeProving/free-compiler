@@ -49,7 +49,7 @@ If the argument is a function, the function arguments are universally quantified
 
 How QuickCheck properties can be proven in Coq is demonstrated below.
 
-## Effect Generic Proofs
+## Effect-Generic Proofs
 
 Suppose we want to prove that list concatenation is associative.
 First we have to define list concatenation since `(++)` is not yet part of the version of the `Prelude` that is included with the compiler.
@@ -115,7 +115,7 @@ See [`example/Proofs/AppendAssocProofs.v`][] where we have carried out the proof
 Proving the associativity of `append` requires some auxiliary lemmas.
 A simpler [example][`example/Proofs/ListFunctor.hs`] for proving a QuickCheck property can be found in [`example/Proofs/ListFunctorProofs.v`][] where we proved that lists satisfy the functor law.
 
-## Non-Effect Generic Proofs
+## Non-Effect-Generic Proofs
 
 The proofs above have in common that they state a property that holds regardless of the effect.
 This is not always the case, though.

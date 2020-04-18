@@ -2,7 +2,7 @@
 --   properties to prove properties like that list concatenation is
 --   associative.
 --
---   This is an example for an effect generic proof that involves lemmas.
+--   This is an example for an effect-generic proof that involves lemmas.
 
 module Proofs.AppendAssoc where
 

@@ -2,7 +2,7 @@
 --   properties to prove properties like that lists fulfill the functor
 --   law.
 --
---   This is an example for a simple effect generic proof.
+--   This is an example for a simple effect-generic proof.
 
 module Proofs.ListFunctor where
 
