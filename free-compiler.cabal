@@ -187,6 +187,7 @@ executable freec
   import:             deps
   hs-source-dirs:     src/exe
   main-is:            Main.hs
+  autogen-modules:    Paths_free_compiler
   other-modules:      Paths_free_compiler
                     , FreeC.Application.Debug
                     , FreeC.Application.Option.Help
