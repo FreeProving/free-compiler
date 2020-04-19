@@ -122,20 +122,30 @@ jobs:
       run: cabal new-build freec-internal --dependencies-only
     - name: Build compiler library
       run: cabal new-build freec-internal
+
     - name: Build unit tests dependencies
       run: cabal new-build freec-unit-tests --dependencies-only
     - name: Build unit tests
       run: cabal new-build freec-unit-tests
+
     - name: Build command line interface dependencies
       run: cabal new-build freec --dependencies-only
     - name: Build command line interface
       run: cabal new-build freec
 
     # Upload the compiler executable artifact.
+    # If there are cached builds of previous versions, the `find` command
+    # without `-path` option would return all of the cached executables.
+    # We are only interested in the executable for the version specified
+    # the Cabal configuration file.
     - name: Copy executable to build directory
       run: |
+        pkg_name="free-compiler"
+        exe_name="freec"
+        pkg_version=$(cat "$pkg_name.cabal" | grep -P '^version:' | awk '{print $2}')
+        exe_path=$(find dist-newstyle -path "*/$pkg_name-$pkg_version/*" -name "$exe_name" -type f)
         mkdir -p ./build/bin
-        cp $(find dist-newstyle -name freec -type f) ./build/bin/freec
+        cp "$exe_path" "./build/bin/$exe_name"
     - name: Upload executable
       uses: actions/upload-artifact@v1
       with:
