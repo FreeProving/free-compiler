@@ -384,7 +384,7 @@ See the [LICENSE][freec/LICENSE] file for details.
 
 [guidelines/CONTRIBUTING]:
   https://github.com/FreeProving/guidelines/blob/master/CONTRIBUTING.md
-  "Free Compiler — Contribution Guidelines"
+  "Contributing Guidelines of the FreeProving project"
 
 [gh-pages/haddock]:
   https://freeproving.github.io/free-compiler/docs/master
