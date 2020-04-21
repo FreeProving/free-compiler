@@ -27,7 +27,7 @@ about: Create a report to help us improve
 
 #### Actual behavior
 
-<!-- What actually happens if you follows the steps above? -->
+<!-- What actually happens if you follow the steps above? -->
 
 ### Versions
 
