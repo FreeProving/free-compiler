@@ -150,9 +150,20 @@ The compiler has been tested with the following software versions on a Debian ba
  - [Cabal][software/cabal], version 2.4.1.0
  - [Coq][software/coq], versions 8.8 through 8.11
 
+### Download
+
+We do not provide pre-build binaries for the compiler.
+Instead, the compiler must be build from its source using GHC and Cabal as described below.
+First, you have to obtain a copy of the source code.
+You can either [download][freec/downloads] an archive containing the source code or clone the Git repository itself using the following command.
+
+```bash
+git clone https://github.com/FreeProving/free-compiler.git
+```
+
 ### Base Library
 
-In order to use the base library, the Coq files in the base library need to be compiled first.
+In order to use the generated Coq code, the Coq files in the base library need to be compiled first.
 Make sure to compile the base library **before installing** the compiler.
 We provide a shell script for the compilation of Coq files.
 To compile the base library with that shell script, run the following command in the root directory of the compiler.
@@ -179,7 +190,7 @@ cabal new-update
 To build and install the compiler and its dependencies, change into the compiler’s root directory and run the following command.
 
 ```bash
-cabal new-install freec
+./tool/install.sh
 ```
 
 The command above copies the base library and the compiler’s executable to Cabal’s installation directory and creates a symbolic link to the executable in
@@ -190,7 +201,44 @@ To test whether the installation was successful, make sure that `~/.cabal/bin` i
 freec --version
 ```
 
+#### Upgrading to a Newer Version
+
+If you have installed a previous version of the compiler and want to upgrade, [download][freec/downloads] a newer version of the compiler or run the following command if you are using Git.
+
+```
+git pull
+```
+
+Now follow the installation steps outlined above, i.e., recompile the Base library, make sure the Cabal package lists are up to date and run the installation script.
+Finally, run the following command to confirm that the compiler has successfully been upgraded to a newer version.
+
+```bash
+freec --version
+```
+
+#### Advanced Installation
+
+The `./tool/install.sh` command performs the following command internally.
+
+```
+cabal new-install --overwrite-policy=always freec
+```
+
+However, the compiler cannot be installed directly using Cabal, since additional steps are necessary before and after the installation.
+However, all command line options given to the installation script are forwarded to Cabal.
+So if you want to customize the installation process, you can run the installation script as follows.
+
+```bash
+./tool/install.sh [options...]
+```
+
 ### Running without Installation
+
+First, make sure that the Cabal package lists are up to date by running the following command.
+
+```bash
+cabal new-update
+```
 
 If you want to run the compiler without installing it on your machine (i.e., for debugging purposes), execute the following command in the root directory of the compiler instead of the `freec` command.
 
@@ -381,6 +429,9 @@ See the [LICENSE][freec/LICENSE] file for details.
 [freec/LICENSE]:
   https://github.com/FreeProving/free-compiler/blob/master/LICENSE
   "Free Compiler — The 3-Clause BSD License"
+[freec/downloads]:
+  https://github.com/FreeProving/free-compiler/releases
+  "Free Compiler — Downloads"
 
 [guidelines/CONTRIBUTING]:
   https://github.com/FreeProving/guidelines/blob/master/CONTRIBUTING.md
