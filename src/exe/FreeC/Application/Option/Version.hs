@@ -8,9 +8,12 @@
 module FreeC.Application.Option.Version where
 
 import           Data.List                      ( intercalate )
+import           Data.Maybe                     ( maybeToList )
 import           Data.Version
 import           GitHash
 import           System.Info
+
+import           FreeC.Application.Option.Version.VersionFile
 
 import           Paths_free_compiler
 
@@ -44,6 +47,7 @@ putVersionInfo = do
     ++ intercalate
          ", "
          (  either (const []) (return . giDescribeDirty) gitInfoOrError
+         ++ maybeToList versionFileContents
          ++ [compilerName ++ " " ++ showVersion compilerVersion, os, arch]
          )
     ++ ")"
@@ -58,3 +62,8 @@ putVersionInfo = do
   giDescribeDirty :: GitInfo -> String
   giDescribeDirty gitInfo | giDirty gitInfo = giDescribe gitInfo ++ "-dirty"
                           | otherwise       = giDescribe gitInfo
+
+  -- | The compile-time contents of the @VERSION@ file
+  --   (see 'tReadVersionFile').
+  versionFileContents :: Maybe String
+  versionFileContents = $$tReadVersionFile
