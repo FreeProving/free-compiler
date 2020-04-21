@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# This script install the compiler via the `cabal new-install` command.
+# This script installs the compiler via the `cabal new-install` command.
 # The Cabal command cannot be used directly since we have to perform some
 # setup actions even before the sdist tarball is created by Cabal.
 #
