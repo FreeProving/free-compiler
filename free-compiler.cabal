@@ -94,6 +94,11 @@ common deps
                    , extra                       ==1.7.*
   default-language:  Haskell2010
   ghc-options:       -Wall
+  -- This pre-processor constant is append to the output of the `--version`
+  -- command. For tagged versions, this should be changed to `-stable`.
+  -- During development `-dev` indicated, that the compiler was built from
+  cpp-options:       -D FREEC_VERSION_SUFFIX="-dev"
+  -- cpp-options:       -D FREEC_VERSION_SUFFIX="-stable"
 
 -- Build configuration for an internal library that contains the actual
 -- implementation of the compiler. The both the unit tests and the command
@@ -192,6 +197,7 @@ executable freec
                     , FreeC.Application.Debug
                     , FreeC.Application.Option.Help
                     , FreeC.Application.Option.Version
+                    , FreeC.Application.Option.Version.Suffix
                     , FreeC.Application.Options
                     , FreeC.Application.Options.Descriptors
                     , FreeC.Application.Options.Parser

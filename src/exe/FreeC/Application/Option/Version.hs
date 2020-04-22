@@ -12,6 +12,7 @@ import           Data.Version
 import           GitHash
 import           System.Info
 
+import           FreeC.Application.Option.Version.Suffix
 
 import           Paths_free_compiler
 
@@ -41,6 +42,7 @@ putVersionInfo = do
   putStrLn
     (  "The Free Compiler, version "
     ++ showVersion version
+    ++ versionSuffix
     ++ " ("
     ++ intercalate
          ", "
