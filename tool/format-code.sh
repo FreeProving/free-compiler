@@ -13,6 +13,7 @@ cd "$root_dir"
 # Colored output.
 red=$(tput setaf 1)
 green=$(tput setaf 2)
+yellow=$(tput setaf 3)
 bold=$(tput bold)
 reset=$(tput sgr0)
 
@@ -39,6 +40,10 @@ fi
 for file in $(find "${files[@]}" -name '*.hs' -type f); do
   if git ls-files --error-unmatch "$file" >/dev/null 2>&1; then
     echo -n "Formatting ${bold}$file${reset} ... "
+    if grep -q "{-# LANGUAGE CPP #-}" "$file"; then
+      echo "${yellow}${bold}SKIPPED${reset} (uses CPP language extension)"
+      continue
+    fi
     hash_before=$(sha256sum "$file")
     brittany --write-mode=inplace "$file"
     if [ "$?" == "0" ]; then
