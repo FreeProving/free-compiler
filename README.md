@@ -15,6 +15,7 @@ A compiler for the monadic translation of Haskell programs to Coq that uses the 
 2. [Directory Structure](#directory-structure)
 3. [Getting Started](#getting-started)
     - [Required Software](#required-software)
+    - [Download](#download)
     - [Base Library](#base-library)
     - [Installation](#installation)
     - [Running without Installation](#running-without-installation)
@@ -190,7 +191,7 @@ cabal new-update
 To build and install the compiler and its dependencies, change into the compiler’s root directory and run the following command.
 
 ```bash
-./tool/install.sh
+cabal new-install freec
 ```
 
 The command above copies the base library and the compiler’s executable to Cabal’s installation directory and creates a symbolic link to the executable in
@@ -205,31 +206,21 @@ freec --version
 
 If you have installed a previous version of the compiler and want to upgrade, [download][freec/downloads] a newer version of the compiler or run the following command if you are using Git.
 
-```
+```bash
 git pull
 ```
 
-Now follow the installation steps outlined above, i.e., recompile the Base library, make sure the Cabal package lists are up to date and run the installation script.
+Now follow the installation steps outlined above, i.e., recompile the Base library, make sure the Cabal package lists are up to date and run the installation command.
+You may have to add the following command line option to make allow Cabal to overwrite the existing installation.
+
+```bash
+cabal new-install --overwrite-policy=always freec
+```
+
 Finally, run the following command to confirm that the compiler has successfully been upgraded to a newer version.
 
 ```bash
 freec --version
-```
-
-#### Advanced Installation
-
-The `./tool/install.sh` command performs the following command internally.
-
-```
-cabal new-install --overwrite-policy=always freec
-```
-
-However, the compiler cannot be installed directly using Cabal, since additional steps are necessary before and after the installation.
-However, all command line options given to the installation script are forwarded to Cabal.
-So if you want to customize the installation process, you can run the installation script as follows.
-
-```bash
-./tool/install.sh [options...]
 ```
 
 ### Running without Installation
