@@ -34,6 +34,9 @@ about: Create a report to help us improve
 <!--
   Please include the exact version of the Free Compiler you are using.
   You can get this information from copy and pasting the output of `freec --version` from the command line.
+  Unless you are running a `-stable` version of the compiler, please include the Git hash of the commit from which you have built the compiler.
+  This information is included in the output of `./tool/run.sh --version`.
+  If you cannot even install or run the compiler, provide the output of `git describe --always --dirty` instead.
   Also, please include the versions of GHC, Cabal and Coq as well as the name and version of the operating system (OS) you are running.
 -->
 
