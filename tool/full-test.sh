@@ -227,7 +227,7 @@ function check_version() {
 
   # Check whether a supported version is installed.
   local version=$(version $program)
-  for supported_version in "$supported_versions"; do
+  for supported_version in "${supported_versions[@]}"; do
     if [[ "$version" == $supported_version ]]; then
       # The installed version is supported.
       return 0
