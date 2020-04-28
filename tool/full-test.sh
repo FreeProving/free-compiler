@@ -47,6 +47,7 @@ function bold() {
 # Unicode characters.
 check_mark="✓"
 cross_mark="✗"
+question_mark="?"
 
 # Selects a random emoji for error messages.
 function fail_emoji() {
@@ -192,16 +193,29 @@ function version() {
 function check_version() {
   local program_name=$1
   local program=$2
-  local expected_version=$3
+  local supported_versions=()
+  IFS='|' read -r -a supported_versions <<< "$3"
   local installation_command=$4
+
+  local supported_versions_text=""
+  for i in "${!supported_versions[@]}"; do
+    local supported_version="${supported_versions[$i]}"
+    if ! [ -z "$supported_versions_text" ]; then
+      if [ "$(expr "$i" + 1)" == "${#supported_versions[@]}" ]; then
+        supported_versions_text+=" or "
+      else
+        supported_versions_text+=", "
+      fi
+    fi
+    supported_versions_text+="$(bold "$supported_version")"
+  done
 
   # Check whether the program is installed.
   if ! which $program >/dev/null; then
     update_status "$red" "$gray" "$cross_mark" "Missing required software"
     print_message "$red" "Oops, something went wrong! $(fail_emoji)" "\
-      Expected $(bold "$program_name") in version $(bold "$expected_version") \
-      to be installed,
-      but the command $(bold "$program") could not be found.
+      Expected $(bold "$program_name") in version $supported_versions_text
+      to be installed, but the command $(bold "$program") could not be found.
 
       Try to install it by running the following command
 
@@ -211,47 +225,56 @@ function check_version() {
     exit 1
   fi
 
-  # Check whether the right version is installed.
+  # Check whether a supported version is installed.
   local version=$(version $program)
-  if ! [[ "$version" == $expected_version ]]; then
-    update_status "$red" "$gray" "$cross_mark" "Wrong software version"
-    print_message "$red" "Oops, something went wrong! $(fail_emoji)" "\
-      Expected $(bold "$program_name") in version $(bold "$expected_version") \
-      to be installed,
-      but found version $(bold "$version").
+  for supported_version in "$supported_versions"; do
+    if [[ "$version" == $supported_version ]]; then
+      # The installed version is supported.
+      return 0
+    fi
+  done
 
-      Try to reinstall it by running the following command
-
-      $(bold "$installation_command" | indent "    ")
-
-      Also make sure that your PATH variable is set correctly."
-    exit 1
-  fi
+  # The installed version is not supported.
+  echo \
+    "• Expected $(bold "$program_name") in version $supported_versions_text" \
+    "to be installed, but found version $(bold "$version")."
+  return 1
 }
 
 # Tests whether the required software versions are installed.
 function check_required_software() {
   status "$default" "$default" "*" "Checking required software..."
+  local temp_log=$(mktemp)
   check_version "GHC" ghc '8.6.5' '
       sudo add-apt-repository ppa:hvr/ghc
       sudo apt update
-      sudo apt install ghc-8.6.5'
-  check_version "Cabal" cabal '2.4.*' '
+      sudo apt install ghc-8.6.5' >> "$temp_log"
+  check_version "Cabal" cabal '2.4.1.*|3.*' '
       sudo add-apt-repository ppa:hvr/ghc
       sudo apt update
-      sudo apt install cabal-2.4'
-  check_version "Coq" coqc '8.11.*' '
+      sudo apt install cabal-2.4' >> "$temp_log"
+  check_version "Coq" coqc '8.8.*|8.9.*|8.10.*|8.11.*' '
       sudo apt install opam
       opam init
       eval `opam config env`
       opam repo add coq-released https://coq.inria.fr/opam/released
       opam update
-      opam install coq.8.11.0'
+      opam install coq.8.11.0' >> "$temp_log"
   check_version "HLint" hlint '2.2.*' '
-      cabal new-install hlint'
+      cabal new-install hlint' >> "$temp_log"
   check_version "Brittany" brittany '0.12.*' '
-      cabal new-install brittany'
-  update_status "$green" "$gray" "$check_mark" "Found required software"
+      cabal new-install brittany' >> "$temp_log"
+
+  # Print reported messages.
+  local log_text=$(cat "$temp_log")
+  rm "$temp_log"
+  if [ -z "$log_text" ]; then
+    update_status "$green" "$gray" "$check_mark" "Found required software"
+  else
+    update_status "$yellow" "$gray" "$question_mark" "Unsupported software versions"
+    print_message "$yellow" "Something may go wrong!" "$log_text"
+    echo
+  fi
 }
 
 ###############################################################################
@@ -296,7 +319,7 @@ function step() {
   # Handle CTRL + C.
   if [ "$canceled" == "0" ]; then
     trap - INT
-    update_status "$yellow" "$gray" "?" "$cancel_message"
+    update_status "$yellow" "$gray" "$question_mark" "$cancel_message"
 
     # Ask whether to continue with remaining tests or exit.
     while true; do
