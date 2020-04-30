@@ -271,8 +271,11 @@ jobs:
       run: ./tool/make-docs.sh
     - name: Copy documentation to build directory
       run: |
+        pkg_name="free-compiler"
+        pkg_version=$(cat "$pkg_name.cabal" | grep -P '^version:' | awk '{print $2}')
+        doc_path=$(find dist-newstyle -path "*/$pkg_name-$pkg_version/*doc/html/$pkg_name" | awk '{print $0"/."}')
         mkdir -p ./build/docs
-        cp -R $(find dist-newstyle -path "*doc/html/free-compiler")/. ./build/docs
+        cp -R $doc_path ./build/docs
     - name: Upload documentation
       uses: actions/upload-artifact@v1
       with:
