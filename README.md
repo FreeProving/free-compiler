@@ -53,7 +53,7 @@ This repository is structured as follows.
 
  - `./.github`
 
-   This directory contains GitHub related files such as issue and pull request templates as well as the configuration of the [CI pipeline](#the-ci-pipeline).
+   This directory contains GitHub related files such as issue and pull request templates as well as the configuration of the [CI pipeline][guidelines/CONTRIBUTING#the-ci-pipeline].
 
  - `./base`
 
@@ -385,6 +385,9 @@ See the [LICENSE][freec/LICENSE] file for details.
 [guidelines/CONTRIBUTING]:
   https://github.com/FreeProving/guidelines/blob/master/CONTRIBUTING.md
   "Contributing Guidelines of the FreeProving project"
+[guidelines/CONTRIBUTING#the-ci-pipeline]:
+  https://github.com/FreeProving/guidelines/blob/master/CONTRIBUTING.md#the-ci-pipeline
+  "Contributing Guidelines of the FreeProving project — The CI Pipeline"
 
 [gh-pages/haddock]:
   https://freeproving.github.io/free-compiler/docs/master
