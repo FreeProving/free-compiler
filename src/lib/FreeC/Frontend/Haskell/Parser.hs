@@ -12,13 +12,6 @@ module FreeC.Frontend.Haskell.Parser
   , parseModuleWithComments
   , parseModuleFile
   , parseModuleFileWithComments
-    -- * Declarations
-  , parseDecl
-    -- * Types
-  , parseType
-  , parseTypeSchema
-    -- * Expressions
-  , parseExpr
     -- * Identifiers
   , parseQName
   )
@@ -94,15 +87,6 @@ parseHaskell
   -> String -- ^ The Haskell source code.
   -> r (ast SrcSpan)
 parseHaskell = fmap fst .: parseHaskellWithComments
-
--- | Like 'parseHaskell' but allows language extensions to be enabled.
-parseHaskellWithExts
-  :: (Functor ast, Parseable (ast SrcSpanInfo), MonadReporter r)
-  => [KnownExtension] -- ^ The extensions to enable.
-  -> String           -- ^ The name of the Haskell source file.
-  -> String           -- ^ The Haskell source code.
-  -> r (ast SrcSpan)
-parseHaskellWithExts = fmap fst .:. parseHaskellWithCommentsAndExts
 
 -- | Like 'parseHaskell' but returns comments in addition to the AST.
 parseHaskellWithComments
@@ -192,53 +176,6 @@ parseModuleFileWithComments
 parseModuleFileWithComments filename = do
   contents <- liftIO $ readFile filename
   parseModuleWithComments filename contents
-
--------------------------------------------------------------------------------
--- Declarations                                                              --
--------------------------------------------------------------------------------
-
--- | Parses a Haskell type.
-parseDecl
-  :: MonadReporter r
-  => String -- ^ The name of the Haskell source file.
-  -> String -- ^ The Haskell source code.
-  -> r (HSE.Decl SrcSpan)
-parseDecl = parseHaskell
-
--------------------------------------------------------------------------------
--- Types                                                                   --
--------------------------------------------------------------------------------
-
--- | Parses a Haskell type.
-parseType
-  :: MonadReporter r
-  => String -- ^ The name of the Haskell source file.
-  -> String -- ^ The Haskell source code.
-  -> r (HSE.Type SrcSpan)
-parseType = parseHaskell
-
--- | Parses a Haskell type schema.
---
---   A type schema is a type with an optional explicit @forall@ quantifier.
---   This requires the @ExplicitForAll@ language extension to be enabled.
-parseTypeSchema
-  :: MonadReporter r
-  => String -- ^ The name of the Haskell source file.
-  -> String -- ^ The Haskell source code.
-  -> r (HSE.Type SrcSpan)
-parseTypeSchema = parseHaskellWithExts [ExplicitForAll]
-
--------------------------------------------------------------------------------
--- Expressions                                                               --
--------------------------------------------------------------------------------
-
--- | Parses a Haskell expression.
-parseExpr
-  :: MonadReporter r
-  => String -- ^ The name of the Haskell source file.
-  -> String -- ^ The Haskell source code.
-  -> r (HSE.Exp SrcSpan)
-parseExpr = parseHaskell
 
 -------------------------------------------------------------------------------
 -- Identifiers                                                               --
