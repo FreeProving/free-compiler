@@ -6,7 +6,7 @@
 # Metadata                                                                   #
 ##############################################################################
 
-version = 1
+version = 2
 module-name = 'Prelude'
 library-name = 'Base'
 exported-types = [
@@ -189,14 +189,14 @@ exported-values = [
   arity = 1
 
 [[constructors]]
-  haskell-type   = '[a]'
+  haskell-type   = 'Prelude.([]) a'
   haskell-name   = 'Prelude.([])'
   coq-name       = 'nil'
   coq-smart-name = 'Nil'
   arity          = 0
 
 [[constructors]]
-  haskell-type   = 'a -> [a] -> [a]'
+  haskell-type   = 'a -> Prelude.([]) a -> Prelude.([]) a'
   haskell-name   = 'Prelude.(:)'
   coq-name       = 'cons'
   coq-smart-name = 'Cons'
@@ -212,7 +212,7 @@ exported-values = [
   arity        = 2
 
 [[constructors]]
-  haskell-type   = 'a -> b -> (a, b)'
+  haskell-type   = 'a -> b -> Prelude.(,) a b'
   haskell-name   = 'Prelude.(,)'
   coq-name       = 'pair_'
   coq-smart-name = 'Pair_'
@@ -228,7 +228,7 @@ exported-values = [
   arity        = 0
 
 [[constructors]]
-  haskell-type   = '()'
+  haskell-type   = 'Prelude.()'
   haskell-name   = 'Prelude.()'
   coq-name       = 'tt'
   coq-smart-name = 'Tt'

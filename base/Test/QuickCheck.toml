@@ -7,7 +7,7 @@
 # Metadata                                                                   #
 ##############################################################################
 
-version = 1
+version = 2
 module-name = 'Test.QuickCheck'
 library-name = 'Base'
 exported-types = [
