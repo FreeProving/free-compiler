@@ -12,15 +12,11 @@ module FreeC.Frontend.Haskell.Parser
   , parseModuleWithComments
   , parseModuleFile
   , parseModuleFileWithComments
-    -- * Identifiers
-  , parseQName
   )
 where
 
 import           Control.Monad.IO.Class         ( MonadIO(..) )
-import           Data.Composition               ( (.:)
-                                                , (.:.)
-                                                )
+import           Data.Composition               ( (.:) )
 
 import qualified Language.Haskell.Exts.Comments
                                                as HSE
@@ -176,29 +172,3 @@ parseModuleFileWithComments
 parseModuleFileWithComments filename = do
   contents <- liftIO $ readFile filename
   parseModuleWithComments filename contents
-
--------------------------------------------------------------------------------
--- Identifiers                                                               --
--------------------------------------------------------------------------------
-
--- | Parses an optionally qualified Haskell identifier or symbol of a
---   constructor.
---
---   Since there is no 'Parseable' instance for 'HSE.QName', the given string
---   is parsed as a pattern instead. The name of the constructor is extracted
---   from the pattern.
---
---   TODO now that we have an IR parser, we probably don't need this anymore.
-parseQName :: MonadReporter r => String -> r (HSE.QName SrcSpan)
-parseQName input = parseHaskell "<parseQName>" input >>= qNameFromPat
- where
-  qNameFromPat :: MonadReporter r => HSE.Pat SrcSpan -> r (HSE.QName SrcSpan)
-  qNameFromPat (HSE.PApp _ qname []) = return qname
-  qNameFromPat (HSE.PList srcSpan []) =
-    return (HSE.Special srcSpan (HSE.ListCon srcSpan))
-  qNameFromPat (HSE.PParen _ pat) = qNameFromPat pat
-  qNameFromPat _ =
-    reportFatal
-      $  Message NoSrcSpan Error
-      $  "Expected symbol or identifier, got "
-      ++ input

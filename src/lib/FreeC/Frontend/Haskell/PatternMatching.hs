@@ -10,6 +10,7 @@ module FreeC.Frontend.Haskell.PatternMatching
 where
 
 import           Control.Monad                  ( void )
+import           Data.Map.Strict                ( Map )
 import qualified Data.Map.Strict               as Map
 import           Data.Maybe                     ( mapMaybe )
 import qualified Data.Set                      as Set
@@ -21,13 +22,10 @@ import qualified Language.Haskell.Exts.Syntax  as HSE
 import           FreeC.Environment
 import           FreeC.Environment.ModuleInterface
 import           FreeC.Environment.Entry
-import           FreeC.Frontend.Haskell.Parser
 import qualified FreeC.IR.Base.Prelude         as IR.Prelude
 import           FreeC.IR.SrcSpan
 import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Converter
-import           FreeC.Monad.Reporter
-import           FreeC.Pretty
 
 -- | Constructs the initial state of the pattern matching compiler library.
 --
@@ -55,7 +53,6 @@ makeConsMapEntry entry
   | otherwise = do
     returnType   <- entryReturnType entry
     typeConIdent <- extractTypeConIdent returnType
-    conQName     <- mConQName
     return (typeConIdent, [(conQName, arity, isInfix)])
  where
   -- | Gets the name of the data type from the return type of the constructor.
@@ -69,11 +66,9 @@ makeConsMapEntry entry
   extractIdent (IR.Ident  ident) = Just ident
   extractIdent (IR.Symbol sym  ) = Just sym
 
-  -- | Generates the AST node for the name of the constructor by parsing the
-  --   constructor name.
-  mConQName :: Maybe (HSE.QName ())
-  mConQName = void
-    <$> evalReporter (parseQName (showPretty (unqualify (entryName entry))))
+  -- | The @haskell-src-exts@ name of the constructor.
+  conQName :: HSE.QName ()
+  conQName = convertQName (entryName entry)
 
   -- | The number of arguments expected by the constructor.
   arity :: Int
@@ -86,11 +81,27 @@ makeConsMapEntry entry
     IR.UnQual (IR.Symbol (':' : _)) -> True
     _                               -> False
 
-  -- | Converts a qualified identifier (e.g., the original entry name) to
-  --   an unqualified identifier.
-  unqualify :: IR.QName -> IR.QName
-  unqualify (IR.Qual _ name) = IR.UnQual name
-  unqualify (IR.UnQual name) = IR.UnQual name
+  -- | Converts a qualifiable IR name to a Haskell name.
+  convertQName :: IR.QName -> HSE.QName ()
+  convertQName qName = case Map.lookup qName specialNames of
+    Just specialName -> HSE.Special () specialName
+    Nothing          -> case qName of
+      (IR.UnQual name) -> convertName name
+      (IR.Qual _ name) -> convertName name
+
+  -- | Converts an unqualified IR name to a Haskell name.
+  convertName :: IR.Name -> HSE.QName ()
+  convertName (IR.Ident  ident) = HSE.UnQual () (HSE.Ident () ident)
+  convertName (IR.Symbol sym  ) = HSE.UnQual () (HSE.Symbol () sym)
+
+  -- | Maps special IR constructor names to the corresponding Haskell name.
+  specialNames :: Map IR.QName (HSE.SpecialCon ())
+  specialNames = Map.fromList
+    [ (IR.Prelude.unitConName   , HSE.UnitCon ())
+    , (IR.Prelude.nilConName    , HSE.ListCon ())
+    , (IR.Prelude.consConName   , HSE.Cons ())
+    , (IR.Prelude.tupleConName 2, HSE.TupleCon () HSE.Boxed 2)
+    ]
 
 -- | Applies the pattern matching transformation, guard elimination and case
 --   completion.
