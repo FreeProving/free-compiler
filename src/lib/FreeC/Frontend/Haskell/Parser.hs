@@ -8,10 +8,10 @@
 module FreeC.Frontend.Haskell.Parser
   ( parseHaskell
     -- * Modules
-  , parseModule
-  , parseModuleWithComments
-  , parseModuleFile
-  , parseModuleFileWithComments
+  , parseHaskellModule
+  , parseHaskellModuleWithComments
+  , parseHaskellModuleFile
+  , parseHaskellModuleFileWithComments
   )
 where
 
@@ -142,33 +142,33 @@ parseHaskellWithCommentsAndExts enabledExts filename contents =
 -- | Parses a Haskell module.
 --
 --   Syntax errors cause a fatal error message to be reported.
-parseModule
+parseHaskellModule
   :: MonadReporter r
   => String  -- ^ The name of the Haskell source file.
   -> String  -- ^ The Haskell source code.
   -> r (HSE.Module SrcSpan)
-parseModule = parseHaskell
+parseHaskellModule = parseHaskell
 
--- | Like 'parseModule' but returns the comments in addtion to the AST.
-parseModuleWithComments
+-- | Like 'parseHaskellModule' but returns the comments in addtion to the AST.
+parseHaskellModuleWithComments
   :: MonadReporter r
   => String  -- ^ The name of the Haskell source file.
   -> String  -- ^ The Haskell source code.
   -> r (HSE.Module SrcSpan, [IR.Comment])
-parseModuleWithComments = parseHaskellWithComments
+parseHaskellModuleWithComments = parseHaskellWithComments
 
 -- | Loads and parses a Haskell module from the file with the given name.
-parseModuleFile
+parseHaskellModuleFile
   :: (MonadIO r, MonadReporter r)
   => String -- ^ The name of the Haskell source file.
   -> r (HSE.Module SrcSpan)
-parseModuleFile = fmap fst . parseModuleFileWithComments
+parseHaskellModuleFile = fmap fst . parseHaskellModuleFileWithComments
 
--- | Like 'parseModuleFile' but returns the comments in addtion to the AST.
-parseModuleFileWithComments
+-- | Like 'parseHaskellModuleFile' but returns the comments in addtion to the AST.
+parseHaskellModuleFileWithComments
   :: (MonadIO r, MonadReporter r)
   => String -- ^ The name of the Haskell source file.
   -> r (HSE.Module SrcSpan, [IR.Comment])
-parseModuleFileWithComments filename = do
+parseHaskellModuleFileWithComments filename = do
   contents <- liftIO $ readFile filename
-  parseModuleWithComments filename contents
+  parseHaskellModuleWithComments filename contents

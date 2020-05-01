@@ -30,8 +30,8 @@ import qualified FreeC.Backend.Coq.Syntax      as Coq
 import           FreeC.Environment
 import           FreeC.Environment.ModuleInterface.Decoder
 import           FreeC.Environment.ModuleInterface.Encoder
-import           FreeC.Frontend.Haskell.Parser  ( parseModuleFile
-                                                , parseModuleFileWithComments
+import           FreeC.Frontend.Haskell.Parser  ( parseHaskellModuleFile
+                                                , parseHaskellModuleFileWithComments
                                                 )
 import           FreeC.Frontend.Haskell.PatternMatching
                                                 ( transformPatternMatching )
@@ -104,7 +104,7 @@ parseInputFile inputFile = reportApp $ do
   -- Parse and simplify input file.
   putDebug $ "Loading " ++ inputFile
   (haskellAst, comments) <- liftReporterIO
-    $ parseModuleFileWithComments inputFile
+    $ parseHaskellModuleFileWithComments inputFile
   haskellAst' <- transformInputModule haskellAst
   liftConverter (simplifyModuleWithComments haskellAst' comments)
 
@@ -169,7 +169,7 @@ transformInputModule haskellAst = ifM (inOpts optTransformPatternMatching)
         liftIO $ writePrettyFile dumpFile haskellAst'
         -- Read the dumped module back in, such that source spans in
         -- error messages refer to the dumped file.
-        liftReporterIO $ parseModuleFile dumpFile
+        liftReporterIO $ parseHaskellModuleFile dumpFile
 
 -------------------------------------------------------------------------------
 -- Output                                                                    --
