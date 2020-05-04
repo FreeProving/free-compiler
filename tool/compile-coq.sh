@@ -43,7 +43,8 @@ if ! [ -f Makefile ]; then
     exit 1
   fi
   coq_files=$(find . -name "*.v")
-  coq_makefile -f _CoqProject $coq_files -o Makefile
+  coq_project=$(cat _CoqProject)
+  coq_makefile $coq_project $coq_files -o Makefile
 fi
 
 # Compile everything by default.
