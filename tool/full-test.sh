@@ -252,7 +252,7 @@ function check_required_software() {
   check_version "Cabal" cabal '2.4.1.*|3.*' '
       sudo add-apt-repository ppa:hvr/ghc
       sudo apt update
-      sudo apt install cabal-2.4' >> "$temp_log"
+      sudo apt install cabal-install-2.4' >> "$temp_log"
   check_version "Coq" coqc '8.8.*|8.9.*|8.10.*|8.11.*' '
       sudo apt install opam
       opam init
