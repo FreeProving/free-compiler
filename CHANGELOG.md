@@ -13,7 +13,7 @@
     + See [`doc/ExperimentalFeatures/PatternMatchingCompilation.hs`][] for details and current limitations.
  - **Added decreasing argument pragma**
     + Can be used to bypass our termination checker.
-    + See [`doc/CustomPragmas/DecreasingArgumentPragma.md`][] for details
+    + See [`doc/CustomPragma/DecreasingArgumentPragma.md`][] for details
  - **Skip some unsupported Haskell features**
     + When the following unsupported Haskell language constructs are encountered, a warning rather than a fatal error is reported.
       * Unrecognized or unsupported pragmas
@@ -25,6 +25,10 @@
 
  - **Initial version**
 
-[`doc/ExperimentalFeatures/PatternMatchingCompilation.hs`]: https://github.com/FreeProving/free-compiler/blob/master/doc/ExperimentalFeatures/PatternMatchingCompilation.hs
+[`doc/ExperimentalFeatures/PatternMatchingCompilation.md`]:
+  https://github.com/FreeProving/free-compiler/blob/master/doc/ExperimentalFeatures/PatternMatchingCompilation.md
+  "Free Compiler Documentation — Pattern Matching Compilation"
 
-[`doc/CustomPragmas/DecreasingArgumentPragma.md`]: https://github.com/FreeProving/free-compiler/blob/master/doc/CustomPragmas/DecreasingArgumentPragma.md
+[`doc/CustomPragma/DecreasingArgumentPragma.md`]:
+  https://github.com/FreeProving/free-compiler/blob/master/doc/CustomPragma/DecreasingArgumentPragma.md
+  "Free Compiler Documentation — Decreasing Argument Pragma"
