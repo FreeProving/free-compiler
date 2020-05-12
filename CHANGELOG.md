@@ -10,7 +10,7 @@
     + Type arguments are passed explicitly in the generated Coq code.
  - **Added experimental support for pattern matching compilation**
     + Can be enabled using the `--transform-pattern-matching` command line option.
-    + See [`doc/ExperimentalFeatures/PatternMatchingCompilation.hs`][] for details and current limitations.
+    + See [`doc/ExperimentalFeatures/PatternMatchingCompilation.md`][] for details and current limitations.
  - **Added decreasing argument pragma**
     + Can be used to bypass our termination checker.
     + See [`doc/CustomPragma/DecreasingArgumentPragma.md`][] for details
