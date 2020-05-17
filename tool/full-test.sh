@@ -260,7 +260,7 @@ function check_required_software() {
       opam repo add coq-released https://coq.inria.fr/opam/released
       opam update
       opam install coq.8.11.0' >> "$temp_log"
-  check_version "HLint" hlint '2.2.*' '
+  check_version "HLint" hlint '3.1.*' '
       cabal new-install hlint' >> "$temp_log"
   check_version "Brittany" brittany '0.12.*' '
       cabal new-install brittany' >> "$temp_log"
