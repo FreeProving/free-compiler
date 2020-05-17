@@ -99,7 +99,7 @@ identParser = varIdentToken <|> conIdentToken
 
 -- | Parser for IR variable identifier tokens (see 'VarIdent').
 --
---   > <varid> ::= (lower | "_") { lower | upper | digit | "_" | "'" }
+--   > <varid> ::= (<lower> | "_") { <identletter> }
 varIdentToken :: Parser String
 varIdentToken = tokenParser $ \t -> case t of
   VarIdent ident -> Just ident
@@ -107,7 +107,7 @@ varIdentToken = tokenParser $ \t -> case t of
 
 -- | Parser for IR constructor identifier tokens (see 'ConIdent').
 --
---   > <conid> ::= upper { lower | upper | digit | "_" | "'" }
+--   > <conid> ::= <upper> { <identletter> }
 conIdentToken :: Parser String
 conIdentToken = tokenParser $ \t -> case t of
   ConIdent ident -> Just ident
@@ -126,7 +126,7 @@ symbolParser = varSymbolToken <|> conSymbolToken
 
 -- | Parser for IR variable symbol tokens (see 'VarSymbol').
 --
---   > <varsym> ::= "(" { symbol \ ":" } ")"
+--   > <varsym> ::= "(" (<namesymbol> \ <consymstart>) { <namesymbol> } ")"
 varSymbolToken :: Parser String
 varSymbolToken = tokenParser $ \t -> case t of
   VarSymbol sym -> Just sym
@@ -134,7 +134,7 @@ varSymbolToken = tokenParser $ \t -> case t of
 
 -- | Parser for IR constructor symbol tokens (see 'ConSymbol').
 --
---   > <consym> ::= "(" ":" { symbol } ")"
+--   > <consym> ::= "(" [ <consymstart> { <namesymbol> } ] ")"
 conSymbolToken :: Parser String
 conSymbolToken = tokenParser $ \t -> case t of
   ConSymbol sym -> Just sym
@@ -168,8 +168,8 @@ modNameParser' =
 
 -- | Parser for IR names.
 --
---   > name ::= ident
---   >        | symbol
+--   > name ::= id
+--   >        | sym
 nameParser :: Parser IR.Name
 nameParser = IR.Ident <$> identParser <|> IR.Symbol <$> symbolParser
 
@@ -675,9 +675,9 @@ literalParser = IR.IntLiteral NoSrcSpan <$> integerToken <*> return Nothing
 -- | Parser for an integer literal token (see 'IntToken').
 --
 --   > <integer>   ::= [ "+" | "-" ] <natural>
---   > <natural>   ::= decimal
---   >               | "0o" octal       | "0O" octal
---   >               | "0x" hexadecimal | "0X" hexadecimal
+--   > <natural>   ::= <decimal>
+--   >               | "0o" <octal>       | "0O" <octal>
+--   >               | "0x" <hexadecimal> | "0X" <hexadecimal>
 integerToken :: Parser Integer
 integerToken = tokenParser $ \t -> case t of
   IntToken value -> Just value
