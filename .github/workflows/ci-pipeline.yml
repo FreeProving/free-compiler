@@ -457,13 +457,14 @@ jobs:
   hlint:
     name: Run HLint
     runs-on: ubuntu-latest
+    container: just95/hlint:3.1.1
     env:
-      HLINT_URL: https://raw.github.com/ndmitchell/hlint/v2.2.11/misc/run.sh
+      HLINT_URL: https://raw.github.com/ndmitchell/neil/v2.2.11/misc/run.sh
     steps:
     - name: Checkout
       uses: actions/checkout@v1
     - name: Check code style using HLint
-      run: curl -sSL "$HLINT_URL" | sh -s src
+      run: hlint src
 
   # All Haskell source files should be formatted using Brittany.
   brittany:
