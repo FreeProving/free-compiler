@@ -38,6 +38,7 @@ module FreeC.Environment
   )
 where
 
+import           Control.Monad                  ( (<=<) )
 import           Data.Composition               ( (.:)
                                                 , (.:.)
                                                 )
@@ -222,7 +223,7 @@ lookupArgTypes =
 --   with the given name or the return type is not known.
 lookupReturnType :: IR.Scope -> IR.QName -> Environment -> Maybe IR.Type
 lookupReturnType =
-  (entryReturnType =<<) . find (isConEntry .||. isFuncEntry) .:. lookupEntry
+  (entryReturnType <=< find (isConEntry .||. isFuncEntry)) .:. lookupEntry
 
 -- | Gets the type schema of the variable, function or constructor with the
 --   given name.

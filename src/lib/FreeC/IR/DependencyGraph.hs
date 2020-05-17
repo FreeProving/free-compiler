@@ -66,9 +66,7 @@ where
 import           Control.Monad                  ( void )
 import           Control.Monad.Fail             ( MonadFail )
 import           Data.Graph
-import           Data.Maybe                     ( fromMaybe
-                                                , mapMaybe
-                                                )
+import           Data.Maybe                     ( mapMaybe )
 import           Data.Tuple.Extra
 
 import           FreeC.IR.Reference             ( typeRefs
@@ -129,11 +127,10 @@ dependsDirectlyOn
   -> DGKey                -- ^ The key of the first node.
   -> DGKey                -- ^ The key of the second node.
   -> Bool
-dependsDirectlyOn (DependencyGraph graph _ getVertex) k1 k2 =
-  fromMaybe False $ do
-    v1 <- getVertex k1
-    v2 <- getVertex k2
-    return ((v1, v2) `elem` edges graph)
+dependsDirectlyOn (DependencyGraph graph _ getVertex) k1 k2 = Just True == do
+  v1 <- getVertex k1
+  v2 <- getVertex k2
+  return ((v1, v2) `elem` edges graph)
 
 -------------------------------------------------------------------------------
 -- Type dependencies                                                         --

@@ -290,12 +290,12 @@ runTypeInference initialTypeAssumption =
 -- | Looks up the type schema of the function or constructor with the given
 --   name in the current type assumption.
 lookupTypeAssumption :: IR.QName -> TypeInference (Maybe IR.TypeSchema)
-lookupTypeAssumption name = Map.lookup name <$> gets typeAssumption
+lookupTypeAssumption name = gets (Map.lookup name . typeAssumption)
 
 -- | Looks up the types to instantiate the additional type arguments
 --   of the function with the given name with.
 lookupFixedTypeArgs :: IR.QName -> TypeInference [IR.Type]
-lookupFixedTypeArgs name = Map.findWithDefault [] name <$> gets fixedTypeArgs
+lookupFixedTypeArgs name = gets (Map.findWithDefault [] name . fixedTypeArgs)
 
 -------------------------------------------------------------------------------
 -- Type inference state manipulation                                         --

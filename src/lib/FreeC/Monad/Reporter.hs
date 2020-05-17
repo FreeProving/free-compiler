@@ -44,7 +44,8 @@ module FreeC.Monad.Reporter
   )
 where
 
-import           Control.Monad                  ( ap
+import           Control.Monad                  ( (<=<)
+                                                , ap
                                                 , liftM
                                                 , mzero
                                                 )
@@ -195,7 +196,7 @@ type ReporterIO = ReporterT IO
 --   If an IO error occurs, a fatal error is reported by the reporter instead.
 --   IO errors do not have location information (see also 'reportIOError').
 instance MonadIO m => MonadIO (ReporterT m) where
-  liftIO = (>>= handleIOErrors) . lift . liftIO . wrapIOErrors
+  liftIO = handleIOErrors <=< (lift . liftIO . wrapIOErrors)
    where
     -- | Catches IO errors thrown by the given IO action and returns either
     --   the caught error or the returned value.
