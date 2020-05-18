@@ -39,7 +39,7 @@
 --   where @f@ is the name of an @n@-ary constructor or function declaration
 --   and @m < n@ is replaced by a lambda abstraction
 --
---   > \\x₍ₘ₊₁₎ … xₙ -> f @α₁ … @αₚ e₁ … eₘ x₍ₘ₊₁₎ … xₙ
+--   > \x₍ₘ₊₁₎ … xₙ -> f @α₁ … @αₚ e₁ … eₘ x₍ₘ₊₁₎ … xₙ
 --
 --   where @x₍ₘ₊₁₎ … xₙ@ are @n-m@ fresh variables.
 --

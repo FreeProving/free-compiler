@@ -18,10 +18,10 @@
 --   signature to the function declaration's type argument list.
 --
 --   > null :: forall a. [a] -> Bool
---   > null @a (xs :: [a]) = (case xs of {
---   >                          []      -> True;
---   >                          x : xs' -> False
---   >                        }) :: Bool
+--   > null @a (xs :: [a]) :: Bool = case xs of {
+--   >     []      -> True;
+--   >     x : xs' -> False
+--   >   }
 --
 --   == Example 2
 --
@@ -40,7 +40,7 @@
 --   > type Subst = String -> Expr
 --   >
 --   > identity :: Subst
---   > identity (x :: String) = Var x :: Expr
+--   > identity (x :: String) :: Expr = Var x
 --
 --   The original type signature is left unchanged (not expanded) and type
 --   synonyms are only expanded when necessary.
@@ -66,7 +66,7 @@
 --   will be converted into a function declaration with explicit type
 --   annotations and type arguments
 --
---   > f @α₁ … @αₘ (x₁ :: τ₁) … (xₙ :: τₙ) = e :: τ'
+--   > f @α₁ … @αₘ (x₁ :: τ₁) … (xₙ :: τₙ) :: τ' = e
 --
 --   where @τ₁ -> … -> τₙ -> τ@ is the smallest type that can be derived
 --   from @τ@ by expanding type synonyms.

@@ -491,7 +491,7 @@ exprParser = setExprType <$> lExprParser <*> Parsec.optionMaybe
 
 -- | Parser for IR expressions without type annotation.
 --
---   > lexpr ::= "\\" varPat { varPat } "->" expr      (lambda abstraction)
+--   > lexpr ::= "\" varPat { varPat } "->" expr       (lambda abstraction)
 --   >         | "if" expr "then" expr "else" expr     (conditional)
 --   >         | "case" expr "of" alts                 (case expression)
 --   >         | fexpr                                 (function application)

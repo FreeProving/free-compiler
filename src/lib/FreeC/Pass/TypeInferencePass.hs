@@ -34,10 +34,10 @@
 --   in which they appear in the inferred type of the function. Type
 --   arguments are listed from left to right.
 --
---   > null @t0 (xs :: [t0]) = (case xs of {
+--   > null @t0 (xs :: [t0]) :: Bool = case xs of {
 --   >     []                        -> False;
 --   >     (x :: t0) : (xs' :: [t0]) -> True
---   >   }) :: Bool
+--   >   }
 --
 --   When such a polymorphic function is called
 --
@@ -102,7 +102,7 @@
 --   while regular type arguments (e.g., @t0@ below) could change in case
 --   of polymorphic recursion.
 --
---   > length @t0 @t1 (xs :: [t0]) = case xs of {
+--   > length @t0 @t1 (xs :: [t0]) :: Integer = case xs of {
 --   >     []                        -> if true @t1 then 0 else 1
 --   >     (x :: t0) : (xs' :: [t0]) -> 1 + length @t0 @t1 xs
 --   >   }
@@ -118,7 +118,7 @@
 --
 --   Thus, @length@ would have two additional type arguments in this case.
 --
---   > length @t0 @t1 @t2 (xs :: [t0]) = {- ... -}
+--   > length @t0 @t1 @t2 (xs :: [t0]) :: Integer = {- ... -}
 --
 --   Note that vanishing type arguments are always listed after regular
 --   type arguments and sorted by the order they occur on the right-hand

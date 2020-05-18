@@ -248,7 +248,7 @@ instance Similar IR.TypeSchema where
 --
 --        >  Γ ∪ { x₁ ↦ y₁, …, xₙ ↦ yₙ } ⊢ e ≈ f, Γ ⊢ p₁ ≈ q₁, …, Γ ⊢ pₙ ≈ qₙ
 --        > ——————————————————————————————————————————————————————————————————
---        >                 Γ ⊢ \\p₁ … pₙ -> e ≈ \\q₁ … qₙ -> f
+--        >                 Γ ⊢ \p₁ … pₙ -> e ≈ \q₁ … qₙ -> f
 --
 --        where @xᵢ@ and @yᵢ@ denote the names of the variables bound by the
 --        patterns @pᵢ@ and @qᵢ@ respectively.

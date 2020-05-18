@@ -91,9 +91,9 @@ import           FreeC.Pretty
 --   and escape sequences.
 --
 --   > <escape> ::= <any Haskell escape sequence>
---   > <gap>    ::= "\\" { <arbitrary Unicode whitespace> } "\\"
+--   > <gap>    ::= "\" { <arbitrary Unicode whitespace> } "\"
 --   >
---   > <string> ::= '"' { <graphic> \ ( '"' | '\\' )
+--   > <string> ::= '"' { <graphic> \ ( '"' | "\" )
 --   >                  | <space>
 --   >                  | <escape>
 --   >                  | <gap>
