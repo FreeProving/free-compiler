@@ -10,10 +10,10 @@
   }</pre><p>its type variables will be specified explicitly on the left-hand
    side of the function declaration. Their order depends on the order
    in which they appear in the inferred type of the function. Type
-   arguments are listed from left to right.</p><pre>null @t0 (xs :: [t0]) = (case xs of {
+   arguments are listed from left to right.</p><pre>null @t0 (xs :: [t0]) :: Bool = case xs of {
     []                        -&gt; False;
     (x :: t0) : (xs' :: [t0]) -&gt; True
-  }) :: Bool</pre><p>When such a polymorphic function is called</p><pre>null [1, 2, 3]</pre><p>the type inference pass figures out the types the type arguments of
+  }</pre><p>When such a polymorphic function is called</p><pre>null [1, 2, 3]</pre><p>the type inference pass figures out the types the type arguments of
    a function need to be instantiated with and inserts corresponding
    visible type applications.</p><pre>null @Integer [1, 2, 3]</pre><h2>Example 3: Vanishing type arguments</h2><p>When type arguments are applied visibly, there are some cases where the
    visible type application contains type variables that are not related to
@@ -38,11 +38,11 @@ Cannot infer the implicit parameter a of null whose type is &quot;Type&quot;.</p
     x : xs' -&gt; 1 + length xs
   }</pre><p>the vanishing type arguments are passed unchanged to recursive calls
    while regular type arguments (e.g., <code>t0</code> below) could change in case
-   of polymorphic recursion.</p><pre>length @t0 @t1 (xs :: [t0]) = case xs of {
+   of polymorphic recursion.</p><pre>length @t0 @t1 (xs :: [t0]) :: Integer = case xs of {
     []                        -&gt; if true @t1 then 0 else 1
     (x :: t0) : (xs' :: [t0]) -&gt; 1 + length @t0 @t1 xs
   }</pre><p>If there are multiple sub-expressions that introduce vanishing type
-   arguments,</p><pre>if true &amp;&amp; true then 0 else 1</pre><p>the type arguments they introduce are distinct.</p><pre>if true @t1 &amp;&amp; true @t2 then 0 else 1</pre><p>Thus, <code>length</code> would have two additional type arguments in this case.</p><pre>length @t0 @t1 @t2 (xs :: [t0]) = {- ... -}</pre><p>Note that vanishing type arguments are always listed after regular
+   arguments,</p><pre>if true &amp;&amp; true then 0 else 1</pre><p>the type arguments they introduce are distinct.</p><pre>if true @t1 &amp;&amp; true @t2 then 0 else 1</pre><p>Thus, <code>length</code> would have two additional type arguments in this case.</p><pre>length @t0 @t1 @t2 (xs :: [t0]) :: Integer = {- ... -}</pre><p>Note that vanishing type arguments are always listed after regular
    type arguments and sorted by the order they occur on the right-hand
    side from left to right.</p><h2>Example 5: Expression type annotations</h2><p>In the examples above we've omitted type annotations of expressions
    for better readability. However, in addition to variable patterns and

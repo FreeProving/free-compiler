@@ -491,7 +491,7 @@
 </span><a name="line-491"></a><span>
 </span><a name="line-492"></a><span class="hs-comment">-- | Parser for IR expressions without type annotation.</span><span>
 </span><a name="line-493"></a><span class="hs-comment">--</span><span>
-</span><a name="line-494"></a><span class="hs-comment">--   &gt; lexpr ::= &quot;\\&quot; varPat { varPat } &quot;-&gt;&quot; expr      (lambda abstraction)</span><span>
+</span><a name="line-494"></a><span class="hs-comment">--   &gt; lexpr ::= &quot;\&quot; varPat { varPat } &quot;-&gt;&quot; expr       (lambda abstraction)</span><span>
 </span><a name="line-495"></a><span class="hs-comment">--   &gt;         | &quot;if&quot; expr &quot;then&quot; expr &quot;else&quot; expr     (conditional)</span><span>
 </span><a name="line-496"></a><span class="hs-comment">--   &gt;         | &quot;case&quot; expr &quot;of&quot; alts                 (case expression)</span><span>
 </span><a name="line-497"></a><span class="hs-comment">--   &gt;         | fexpr                                 (function application)</span><span>

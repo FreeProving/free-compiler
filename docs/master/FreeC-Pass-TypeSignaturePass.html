@@ -6,10 +6,10 @@ null xs = case xs of { [] -&gt; True; x : xs' -&gt; False }</pre><p>will be be c
    also annotated explicitly in the function declaration itself.
    In addition, the type arguments of the type schema are copied from the type
    signature to the function declaration's type argument list.</p><pre>null :: forall a. [a] -&gt; Bool
-null @a (xs :: [a]) = (case xs of {
-                         []      -&gt; True;
-                         x : xs' -&gt; False
-                       }) :: Bool</pre><h2>Example 2</h2><p>The type signature of an <code>n</code>-ary function declaration must not necessarily
+null @a (xs :: [a]) :: Bool = case xs of {
+    []      -&gt; True;
+    x : xs' -&gt; False
+  }</pre><h2>Example 2</h2><p>The type signature of an <code>n</code>-ary function declaration must not necessarily
    be a function type with <code>n-1</code> arrows. For example, the type signature
    could contain type synonyms.</p><pre>type Subst = String -&gt; Expr
 
@@ -18,11 +18,11 @@ identity x = Var x</pre><p>In this case, the type synonym needs to be expanded i
    the type of the argument <code>x</code> and the return type of <code>identity</code>.</p><pre>type Subst = String -&gt; Expr
 
 identity :: Subst
-identity (x :: String) = Var x :: Expr</pre><p>The original type signature is left unchanged (not expanded) and type
+identity (x :: String) :: Expr = Var x</pre><p>The original type signature is left unchanged (not expanded) and type
    synonyms are only expanded when necessary.</p><h1>Specification</h1><h2>Preconditions</h2><p>The environment contains entries for all type synonyms.
    Otherwise this pass fails if a type synonym needs to be expanded to
    determine the type of an argument.</p><h2>Translation</h2><p>The declaration of every <code>n</code>-ary function <code>f</code></p><pre>f x&#8321; &#8230; x&#8345; = e</pre><p>for which there exists a top-level type signature</p><pre>&#8230;, f, &#8230; :: forall &#945;&#8321; &#8230; &#945;&#8344;. &#964;</pre><p>will be converted into a function declaration with explicit type
-   annotations and type arguments</p><pre>f @&#945;&#8321; &#8230; @&#945;&#8344; (x&#8321; :: &#964;&#8321;) &#8230; (x&#8345; :: &#964;&#8345;) = e :: &#964;'</pre><p>where <code>&#964;&#8321; -&gt; &#8230; -&gt; &#964;&#8345; -&gt; &#964;</code> is the smallest type that can be derived
+   annotations and type arguments</p><pre>f @&#945;&#8321; &#8230; @&#945;&#8344; (x&#8321; :: &#964;&#8321;) &#8230; (x&#8345; :: &#964;&#8345;) :: &#964;' = e</pre><p>where <code>&#964;&#8321; -&gt; &#8230; -&gt; &#964;&#8345; -&gt; &#964;</code> is the smallest type that can be derived
    from <code>&#964;</code> by expanding type synonyms.</p><h2>Postconditions</h2><p>The argument and return types of every function declaration that has a
    top-level type signature are annotated explicitly.</p><h2>Error cases</h2><ul><li>A fatal error is reported if the type of an argument cannot be
      determined because a type synonym could not be expanded.</li><li>A fatal error is reported if there are multiple type signatures for the

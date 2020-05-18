@@ -37,9 +37,9 @@
               | &quot;0x&quot; &lt;hexadecimal&gt; | &quot;0X&quot; &lt;hexadecimal&gt;</pre><h2>Strings</h2><p>Strings are wrapped in double quotes. They can contain arbitrary Unicode
    letters, digits, symbols and punctuation characters as well as spaces
    and escape sequences.</p><pre>&lt;escape&gt; ::= &lt;any Haskell escape sequence&gt;
-&lt;gap&gt;    ::= &quot;\\&quot; { &lt;arbitrary Unicode whitespace&gt; } &quot;\\&quot;
+&lt;gap&gt;    ::= &quot;\&quot; { &lt;arbitrary Unicode whitespace&gt; } &quot;\&quot;
 
-&lt;string&gt; ::= '&quot;' { &lt;graphic&gt; \ ( '&quot;' | '\\' )
+&lt;string&gt; ::= '&quot;' { &lt;graphic&gt; \ ( '&quot;' | &quot;\&quot; )
                  | &lt;space&gt;
                  | &lt;escape&gt;
                  | &lt;gap&gt;
