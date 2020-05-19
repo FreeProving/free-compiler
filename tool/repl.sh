@@ -25,16 +25,19 @@ temp_dir=$(mktemp -d)
 paths_module=$(find dist-newstyle -name "Paths_free_compiler.hs" | head -n 1)
 cp "$paths_module" "$temp_dir"
 
-# Create GHCi setup script that loads all modules from the `src` directory
-# and makes `Main` the modules that is loaded by default.
+# Create GHCi setup script that loads all modules from the `src` directory.
+# The `Main` module must be the last module that is added such that it is
+# loaded by default. We cannot use `:m` for this purpose since GHCi would
+# reload the previous default module is not loaded again when the user
+# `:reload`s the modules.
 ghci_script="$temp_dir/.ghci"
-hs_files=$(find src -name "*.hs" | awk -v'' RS= -v OFS=' ' '{$1 = $1} 1')
-echo ":add $hs_files" > "$ghci_script"
-echo ":m" >> "$ghci_script"
-echo ":m Main" >> "$ghci_script"
+main_module="src/exe/Main.hs"
+hs_files=$(find src \( -name "*.hs" -and -not -path "$main_module" \) )
+hs_files_star=$(echo "$hs_files" | awk -v'' RS= -v OFS=' *' '{$1 = "*"$1} 1')
+echo ":add $hs_files_star *$main_module" > "$ghci_script"
 
 # Set environment variable to overwrite the Cabal data directory.
-export free_compiler_datadir=$(pwd)
+export free_compiler_datadir="$root_dir"
 
 # Start GHCi.
 cabal new-exec ghci -- -i"$temp_dir" -ghci-script"$ghci_script"

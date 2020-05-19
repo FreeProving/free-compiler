@@ -18,6 +18,7 @@ A compiler for the monadic translation of Haskell programs to Coq that uses the 
     2. [Base Library](#base-library)
     3. [Installation](#installation)
     4. [Running without Installation](#running-without-installation)
+    5. [Running with GHCi](#running-with-ghci)
 4. [Usage](#usage)
     1. [Command line options](#command-line-options)
         1. [`--output=DIR`, `-o DIR`](#--outputdir--o-dir)
@@ -211,6 +212,28 @@ The default configuration causes compilation to fail when there are unhandled wa
 As a result, the CI pipeline rejects commits that introduce such warnings.
 While it is important that no warnings are reported in a production setting, fatal warnings can be disrupting when debugging.
 Thus, we recommend using the `./tool/run.sh` script during development and running `./tool/full-test.sh` (which uses the default settings) once before pushing your local changes.
+
+### Running with GHCi
+
+During development you may want to test or debugg your code interactively.
+One option is to use one of the following Cabal commands to open a GHCi prompt.
+
+```bash
+cabal new-repl freec
+cabal new-repl freec-internal
+```
+
+Unfortunately, it is not possible to load both `freec` (i.e., all modules in `./src/exe`) and `freec-internal` (i.e., all modules in `./src/lib`) in interpreted mode at the same the same time.
+This restriction is sometimes inconvenient, since you would have to restart GHCi whenever you make changes to the `freec-internal` component when the `freec` component is loaded.
+Furthermore it is not possible to set a break point across component boundaries.
+Thus, we provide the following bash script to open a GHCi prompt.
+
+```bash
+./tool/repl.sh
+```
+
+The command invokes GHCi such that all modules from the `src` directory are loaded in interpreted mode and sets the context for expression evaluation to the `Main` module.
+Use the `:m` command to switch to another module.
 
 ## Usage
 
