@@ -33,7 +33,7 @@ cp "$paths_module" "$temp_dir"
 ghci_script="$temp_dir/.ghci"
 main_module="src/exe/Main.hs"
 hs_files=$(find src \( -name "*.hs" -and -not -path "$main_module" \) )
-hs_files_star=$(echo "$hs_files" | awk -v'' RS= -v OFS=' *' '{$1 = "*"$1} 1')
+hs_files_star=$(echo "$hs_files" | awk -v RS='' -v OFS=' *' '{$1 = "*"$1} 1')
 echo ":add $hs_files_star *$main_module" > "$ghci_script"
 
 # Set environment variable to overwrite the Cabal data directory.
