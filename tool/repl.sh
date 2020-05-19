@@ -33,7 +33,7 @@ echo ":m Main" >> "$ghci_script"
 export free_compiler_datadir=$(pwd)
 
 # Start GHCi.
-ghci -i"$temp_dir" -ghci-script"$ghci_script"
+cabal exec ghci -- -i"$temp_dir" -ghci-script"$ghci_script"
 
 # Clean up.
 rm -r "$temp_dir"
