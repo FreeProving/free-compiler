@@ -38,9 +38,9 @@ about: Create a report to help us improve
 -->
 
  - Git commit: <!-- Copy and paste the output of `git rev-parse HEAD`. -->
- - `ghc --version`: <!-- Copy and pate the version only. -->
- - `cabal --version`: <!-- Copy and pate the version only. -->
- - `coqc --version`: <!-- Copy and pate the version only. -->
+ - `ghc --version`: <!-- Copy and paste the version only. -->
+ - `cabal --version`: <!-- Copy and paste the version only. -->
+ - `coqc --version`: <!-- Copy and paste the version only. -->
  - OS: <!-- Name and version of your operating system. -->
 
 ### Known workarounds
