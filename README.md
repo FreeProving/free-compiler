@@ -430,7 +430,7 @@ See the [LICENSE][freec/LICENSE] file for details.
 [software/haddock]:
   https://www.haskell.org/haddock/
   "Haddock"
-[software/ghc]:     
+[software/ghc]:
   https://www.haskell.org/ghc/
   "The Glasgow Haskell Compiler"
 [software/cabal]:
