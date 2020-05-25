@@ -46,7 +46,7 @@ data-files:          base/coq/Prelude.toml
                    , base/coq/Free/Tactic/*.v
                    , base/coq/Free/Util/*.v
                    , base/coq/Test/*.v
-                     -- base/**/*.vo
+                     -- base/coq/**/*.vo
                    , base/coq/Prelude.vo
                    , base/coq/Prelude/*.vo
                    , base/coq/Free.vo
