@@ -41,9 +41,9 @@ convertExpr' :: IR.Expr -> [IR.Type] -> [IR.Expr] -> Converter Coq.Term
 
 -- Constructors.
 -- 
--- Partial applied constructors are not evaluated in Haskell and therefor 
--- cannot be ⊥. The translated type of a constructor C : τ₀ -> τ₁ -> … -> τₙ
--- is c : τ₀' -> τ₁' -> … -> τₙ* instead of m(τ₀' -> m(τ₁' -> m(… -> τₙ'))).
+-- Partial applied constructors are not evaluated in Haskell and therefor
+-- cannot be @⊥@. The translated type of a constructor @C : τ₀ -> … -> τₙ@ is
+-- @c : τ₀' -> … -> τₙ*@ instead of @m(τ₀' -> m(τ₁' -> m(… -> τₙ')))@.
 --
 -- Note that the return type is translated using * not ', because a constructor
 -- in Coq cannot return a wrapped value. A smart constructor @C@ is generated,
