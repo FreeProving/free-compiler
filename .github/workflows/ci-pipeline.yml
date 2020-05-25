@@ -368,13 +368,13 @@ jobs:
       run: ./tool/compile-coq.sh base/coq
     - name: Copy compiled base library to build directory
       run: |
-        mkdir -p ./build/base
-        cp --parents $(find base -name "*.vo" -or -name "*.glob") ./build
+        mkdir -p ./build/base/coq
+        cp --parents $(find base -name "*.vo" -or -name "*.glob") ./build/coq
     - name: Upload compiled base library for Coq ${{ matrix.coq }}
       uses: actions/upload-artifact@v1
       with:
         name: coq-${{ matrix.coq }}-base-library
-        path: ./build/base
+        path: ./build/base/coq
 
   #############################################################################
   # Examples                                                                  #
