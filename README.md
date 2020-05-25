@@ -166,7 +166,7 @@ To compile the base library with that shell script, run the following command in
 > For this purpose the script provides the command line option `--recompile`.
 >
 > ```bash
-> ./tool/compile-coq.sh --recompile base
+> ./tool/compile-coq.sh --recompile base/coq
 > ```
 
 ### Installation
