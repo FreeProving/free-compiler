@@ -41,7 +41,7 @@ convertExpr' :: IR.Expr -> [IR.Type] -> [IR.Expr] -> Converter Coq.Term
 
 -- Constructors.
 -- 
--- Partial applied constructors are not evaluated in Haskell and therefor
+-- Partially applied constructors are not evaluated in Haskell and therefor
 -- cannot be @⊥@. The translated type of a constructor @C : τ₀ -> … -> τₙ@ is
 -- @c : τ₀' -> … -> τₙ*@ instead of @m(τ₀' -> m(τ₁' -> m(… -> τₙ')))@.
 --
