@@ -47,7 +47,7 @@ convertExpr' :: IR.Expr -> [IR.Type] -> [IR.Expr] -> Converter Coq.Term
 --
 -- Note that the return type is translated using * not ', because a constructor
 -- in Coq cannot return a wrapped value. A smart constructor @C@ is generated,
--- which wrapps the value of @c@. Is therefor sufficient to just convert and
+-- which wrapps the value of @c@. Is is therefore sufficient to just convert and
 -- apply the arguments.
 convertExpr' (IR.Con srcSpan name _) typeArgs args = do
   qualid            <- lookupSmartIdentOrFail srcSpan name
