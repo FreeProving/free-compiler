@@ -2,7 +2,7 @@
 
 ## Unrealeased
 
-## [0.2.0.0][v0.2.0.0] / 2020-05-25
+## [0.2.0.0][tag/v0.2.0.0] / 2020-05-25
 
  - **Implemented module imports**
     + Imports of the form `import M` are now supported.
@@ -23,7 +23,7 @@
       * Type class contexts
       * Deriving clauses
 
-## [0.1.0.0][v0.1.0.0] / 2019-09-26
+## [0.1.0.0][tag/v0.1.0.0] / 2019-09-26
 
  - **Initial version**
 
