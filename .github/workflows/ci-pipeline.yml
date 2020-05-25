@@ -24,6 +24,7 @@ on:
   push:
     branches:
     - 'master'
+    - 'dev-agda'
     paths:
     - 'cabal.project'
     - 'free-compiler.cabal'
