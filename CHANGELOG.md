@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.0.0 / 2020-05-25
 
  - **Implemented module imports**
     + Imports of the form `import M` are now supported.
