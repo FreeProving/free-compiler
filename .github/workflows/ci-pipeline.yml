@@ -365,7 +365,7 @@ jobs:
     - name: Setup Coq
       run: echo "::add-path::/home/coq/.opam/$COMPILER/bin"
     - name: Build Coq base library
-      run: ./tool/compile-coq.sh base
+      run: ./tool/compile-coq.sh base/coq
     - name: Copy compiled base library to build directory
       run: |
         mkdir -p ./build/base
@@ -404,7 +404,7 @@ jobs:
         ./freec                                          \
           --transform-pattern-matching                   \
           --dump-transformed-modules example/transformed \
-          -b ./base                                      \
+          -b ./base/coq                                  \
           -o ./example/generated                         \
           $(find ./example -name "*.hs")
     - name: Copy compiled examples to build directory
@@ -436,7 +436,7 @@ jobs:
       uses: actions/download-artifact@v1
       with:
         name: coq-${{ matrix.coq }}-base-library
-        path: ./base
+        path: ./base/coq
     - name: Download compiled examples
       uses: actions/download-artifact@v1
       with:
