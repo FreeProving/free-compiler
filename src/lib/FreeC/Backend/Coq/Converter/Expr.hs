@@ -151,9 +151,9 @@ convertExpr' (IR.Var srcSpan name _) typeArgs args = do
 convertExpr' (IR.App _ e1 e2 _) [] args = convertExpr' e1 [] (e2 : args)
 
 -- Pass type argument from visible type application to converter for callee.
---                @
--- convertExpr'  / \   tArgs args = convertExpr' e (τ : tArgs) args
---              e   τ
+-- >                @
+-- > convertExpr'  / \   tArgs args = convertExpr' e (τ : tArgs) args
+-- >              e   τ
 convertExpr' (IR.TypeAppExpr _ e t _) typeArgs args =
   convertExpr' e (t : typeArgs) args
 
