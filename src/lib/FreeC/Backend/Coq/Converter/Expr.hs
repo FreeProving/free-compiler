@@ -40,15 +40,15 @@ convertExpr expr = convertExpr' expr [] []
 convertExpr' :: IR.Expr -> [IR.Type] -> [IR.Expr] -> Converter Coq.Term
 
 -- Constructors.
--- 
+--
 -- Partially applied constructors are not evaluated in Haskell and therefor
 -- cannot be @⊥@. The translated type of a constructor @C : τ₀ -> … -> τₙ@ is
 -- @c : τ₀' -> … -> τₙ*@ instead of @m(τ₀' -> m(τ₁' -> m(… -> τₙ')))@.
 --
 -- Note that the return type is translated using * not ', because a constructor
 -- in Coq cannot return a wrapped value. A smart constructor @C@ is generated,
--- which wrapps the value of @c@. Is is therefore sufficient to just convert and
--- apply the arguments.
+-- which wrapps the value of @c@. It is therefore sufficient to just convert
+-- and apply the arguments.
 convertExpr' (IR.Con srcSpan name _) typeArgs args = do
   qualid            <- lookupSmartIdentOrFail srcSpan name
   typeArgs'         <- mapM convertType' typeArgs
@@ -228,7 +228,7 @@ convertExpr' (IR.IntLiteral _ value _) [] [] = do
 
 -- Lambda abstractions.
 --
--- > ⎡     Γ,x:τ₀ ⊢ e:τ₁      ⎤'            Γ',x:τ₀' ⊢ e':τ₁' 
+-- > ⎡     Γ,x:τ₀ ⊢ e:τ₁      ⎤'            Γ',x:τ₀' ⊢ e':τ₁'
 -- > ⎢――――――――――――――――――――――――⎥ = ――――――――――――――――――――――――――――――――――――――
 -- > ⎣ Γ ⊢ λx:τ₀.e : τ₀ -> τ₁ ⎦    Γ' ⊢ pure(λx:τ₀'.e') : m(τ₀' -> τ₁')
 --
