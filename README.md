@@ -151,7 +151,7 @@ The compiler has been tested with the following software versions on a Debian ba
  - [Cabal][software/cabal], version 2.4.1.0
  - [Coq][software/coq], versions 8.8 through 8.11
 
-### Base Library
+### Coq Base Library
 
 In order to use the base library, the Coq files in the base library need to be compiled first.
 Make sure to compile the base library **before installing** the compiler.
@@ -159,10 +159,10 @@ We provide a shell script for the compilation of Coq files.
 To compile the base library with that shell script, run the following command in the root directory of the compiler.
 
 ```bash
-./tool/compile-coq.sh base
+./tool/compile-coq.sh base/coq
 ```
 
-> **Note:** If you add or remove files from the `base` library (or any other directory that contains Coq code that you wish to compile using the script above), the automatically generated Makefile needs to be updated.
+> **Note:** If you add or remove files from the `base/coq` library (or any other directory that contains Coq code that you wish to compile using the script above), the automatically generated Makefile needs to be updated.
 > For this purpose the script provides the command line option `--recompile`.
 >
 > ```bash
