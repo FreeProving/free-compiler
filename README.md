@@ -106,7 +106,7 @@ This repository is structured as follows.
    Common prefixes are listed below.
 
     + `FreeC.Backend` contains modules that are concerned with the translation from the intermediate representation to a target language.
-    + `FreeC.Frontend` contains modules that are concerned with the traslation of an input language to the intermediate representation.
+    + `FreeC.Frontend` contains modules that are concerned with the translation of an input language to the intermediate representation.
       This includes a front end for the intermediate representation itself.
     + `FreeC.IR` contains modules that define data types and operations for the intermediate representation such as the AST or commonly used operations on the AST.
     + `FreeC.Monad` contains modules that define monads that are used throughout the compiler (e.g., for error reporting, or stateful operations).
@@ -215,7 +215,7 @@ Thus, we recommend using the `./tool/run.sh` script during development and runni
 
 ### Running with GHCi
 
-During development you may want to test or debugg your code interactively.
+During development you may want to test or debug your code interactively.
 One option is to use one of the following Cabal commands to open a GHCi prompt.
 
 ```bash
@@ -238,7 +238,7 @@ Use the `:m` command to switch to another module.
 ## Usage
 
 To compile a Haskell module, pass the file name of the module to `freec`.
-For example, to compile the examples from the `Data.List` module run the the following command.
+For example, to compile the examples from the `Data.List` module, run the the following command.
 
 ```bash
 freec ./example/Data/List.hs
@@ -278,7 +278,7 @@ freec -o ./example/generated ./example/ListFunctor.hs
 #### `--import=DIR`, `-i DIR`
 
 The compiler searches for module interfaces in the output directory (see `--output` option) and the current working directory by default.
-If you want to compile modules that import files that have been written to a different output directory, you can use the `--import` command line option to specify additional paths to search for modules interfaces in.
+If you want to compile modules that import files that have been written to a different output directory, you can use the `--import` command line option to specify additional paths to search for module interfaces in.
 For example, if `Data.List` and `Data.Functor` have been translated already and their output has been written to `./examples/generated`, you can translate `ListFunctor` and print its output to the console as follows.
 
 ```bash
@@ -296,7 +296,7 @@ In the example above, the compiler would search for a module interface file firs
 
 #### `--base-library=DIR`, `-b DIR`
 
-Predefined data types and operations are not build directly into the compiler but part of the *base library* that accompanies the compiler.
+Predefined data types and operations are not build directly into the compiler but are part of the *base library* that accompanies the compiler.
 The compiler uses the same mechanism that is used to load module dependencies to load modules from the base library, i.e., module interface files.
 In contrast to automatically generated module interface files, the base library does not use the JSON file format but TOML since the module interfaces of the base library are maintained manually and TOML is a more user friendly format.
 The module interface file format is documented in [`doc/ModuleInterfaceFileFormat.md`][doc/ModuleInterfaceFileFormat.md].
