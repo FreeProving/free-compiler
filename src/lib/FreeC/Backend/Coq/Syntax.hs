@@ -224,7 +224,7 @@ requireImportFrom :: Coq.ModuleIdent -> [Coq.ModuleIdent] -> Coq.Sentence
 requireImportFrom library modules = Coq.ModuleSentence
   (Coq.Require (Just library) (Just Coq.Import) (NonEmpty.fromList modules))
 
--- | Creates a @From ... Require Import ...@ sentence.
+-- | Creates a @From ... Require Export ...@ sentence.
 requireExportFrom :: Coq.ModuleIdent -> [Coq.ModuleIdent] -> Coq.Sentence
 requireExportFrom library modules = Coq.ModuleSentence
   (Coq.Require (Just library) (Just Coq.Export) (NonEmpty.fromList modules))
