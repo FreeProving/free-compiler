@@ -140,7 +140,7 @@ max n m | n > m     = n
 ### Unsupported patterns
 
 The pattern matching compiler does not yet support all patterns.
-When pattern matching compilation is enabled make sure that your program uses supported patterns only.
+When pattern matching compilation is enabled, make sure that your program uses supported patterns only.
 Otherwise, there is the risk that the transformation does not terminate and consumes a lot of memory.
 For example, the following function uses as-patterns which are not supported.
 

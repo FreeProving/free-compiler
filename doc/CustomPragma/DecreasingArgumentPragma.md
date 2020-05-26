@@ -64,7 +64,7 @@ For this reason, the decreasing argument can also be specified by its index usin
 {-# FreeC <function> DECREASES ON ARGUMENT <index> #-}
 ```
 
-Where `<index>` is the position of the decreasing argument in the parameter list.
+Here `<index>` is the position of the decreasing argument in the parameter list.
 Counting starts at `1`, i.e. the function has index `1` and the tree has index `2` in the example above.
 
 ```haskell

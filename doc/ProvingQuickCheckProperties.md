@@ -123,7 +123,7 @@ This is not always the case, though.
 Consider the `reverse` function which reverses a list for example.
 One would expect that reversing a list twice yields the original list, i.e., that `reverse` is its own inverse.
 However, while this is true in a total setting, it is not if we consider partiality.
-We can use the same approach discussed above to proof this fact.
+We can use the same approach discussed above to prove this fact.
 
 Again we start by defining `reverse` and stating our proposition in Haskell (See [`Proofs.ReverseInvolutive`][`example/Proofs/ReverseInvolutive.hs`] for details).
 
@@ -146,7 +146,7 @@ ghci ./example/Proofs/ReverseInvolutive.hs
 ```
 
 This happens since the `Arbitrary` instance for lists considers total values only and never yields lists of the form `x : ⊥`.
-We can proof that reverse is not involutive in a partial setting by instantiating `prop_reverse_involutive` with the `Maybe` monad and negating the property returned by `quickCheck`.
+We can prove that `reverse` is not involutive in a partial setting by instantiating `prop_reverse_involutive` with the `Maybe` monad and negating the property returned by `quickCheck`.
 
 ```coq
 From Base Require Import Free.Instance.Maybe.
@@ -158,7 +158,7 @@ Proof.
 Qed.
 ```
 
-Similarly, we can proof that `reverse` is its own inverse in a total setting by instantiating `prop_reverse_involutive` with the `Identity` monad instead.
+Similarly, we can prove that `reverse` is its own inverse in a total setting by instantiating `prop_reverse_involutive` with the `Identity` monad instead.
 
 ```coq
 From Base Require Import Free.Instance.Identity.
