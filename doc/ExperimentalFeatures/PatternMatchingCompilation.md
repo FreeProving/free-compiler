@@ -115,7 +115,7 @@ flipQ q = case q of
     (:) x f' -> (x : f', b)
 ```
 
-This behavior is not a bug but an intentional approach which should prevent a loss of linearity.
+This behavior is not a bug but an intentional feature which should prevent a loss of linearity.
 However, this feature can be a problem when translating recursive functions.
 In the example below both our termination checker and Coq will reject the function because it does not decrease on one of its arguments after the transformation.
 The variable `xs` is substituted by `y : ys` in the third rule.
