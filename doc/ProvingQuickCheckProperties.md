@@ -17,12 +17,12 @@ In order to pass boolean values to such arguments (`Bool` has a `Testable` insta
 
  - `property :: Bool -> Property`  
    Converts a boolean value to a property that is satisfied if and only if the value is `True` and does not have an effect.
-   `property b` is corresponds to `b = True_ Shape Pos` in Coq.
+   `property b` corresponds to `b = True_ Shape Pos` in Coq.
 
  - `(==>) :: Bool -> Property -> Property`  
    Creates an implication in Coq (i.e., `->`).
    The premise of the implication is that the boolean value is `True` and does not have an effect (like `property`).
-   The conclusion is that the second argument is an pure (i.e., effect free) computation of a property that holds.
+   The conclusion is that the second argument is a pure (i.e., effect free) computation of a property that holds.
 
  - `(===) :: a -> a -> Property`  
    Creates a property that tests whether the given arguments are structurally equal (i.e., `=` in Coq).
@@ -158,7 +158,7 @@ Proof.
 Qed.
 ```
 
-Similarly we can proof that `reverse` is its own inverse in a total setting by instantiating `prop_reverse_involutive` with the `Identity` monad instead.
+Similarly, we can proof that `reverse` is its own inverse in a total setting by instantiating `prop_reverse_involutive` with the `Identity` monad instead.
 
 ```coq
 From Base Require Import Free.Instance.Identity.

@@ -13,7 +13,7 @@ mapRose f r = case r of
   (Rose x rs) -> Rose (f x) (map (mapRose f) rs)
 ```
 
-Since `mapRose` is recursive, it should decrease on one of it's arguments, but the following error message is reported.
+Since `mapRose` is recursive, it should decrease on one of its arguments, but the following error message is reported.
 
 ```
 example/Rose.hs:11:1-12:49: error:
@@ -26,7 +26,7 @@ example/Rose.hs:11:1-12:49: error:
 > **Note:** The error message refers to the internal identifier `mapRose@0` which is the function that results from moving the constant argument `f` into a `Section` sentence.
 > We can ignore this implementation detail for the time being.
 
-Obviously, `mapRose` decreases on it's second argument `r`, though.
+Obviously, `mapRose` decreases on its second argument `r`, though.
 However, since the partially applied recursive call `mapRose f` is η-expanded to `\r' -> mapRose f r'` by our compiler and `r'` is not a sub-term of `r`, our termination checker rejects the definition of `mapRose`.
 Coq, on the other hand, is able to verify that `map` calls `mapRose f` only on sub-terms of `rs` which is a sub-term of `r`.
 
