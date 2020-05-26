@@ -15,7 +15,7 @@ A compiler for the monadic translation of Haskell programs to Coq that uses the 
 2. [Directory Structure](#directory-structure)
 3. [Getting Started](#getting-started)
     1. [Required Software](#required-software)
-    2. [Base Library](#base-library)
+    2. [Coq Base Library](#coq-base-library)
     3. [Installation](#installation)
     4. [Running without Installation](#running-without-installation)
     5. [Running with GHCi](#running-with-ghci)
