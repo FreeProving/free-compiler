@@ -264,6 +264,8 @@ function check_required_software() {
       cabal new-install hlint' >> "$temp_log"
   check_version "Brittany" brittany '0.12.*' '
       cabal new-install brittany' >> "$temp_log"
+  check_version "Agda" agda '2.6.1' '
+      cabal new-install Agda' >> "$temp_log"
 
   # Print reported messages.
   local log_text=$(cat "$temp_log")
