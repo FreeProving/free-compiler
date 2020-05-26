@@ -30,6 +30,6 @@ if [ "$rebuild" = true ] ; then
 fi
 
 # check all agda files
-for f in $(find . -name "*.agda")
-  do agda "$f"
+for f in $(find . -name "*.agda"); do
+  agda "$f"
 done
