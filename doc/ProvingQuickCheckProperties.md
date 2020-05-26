@@ -26,7 +26,7 @@ In order to pass boolean values to such arguments (`Bool` has a `Testable` insta
 
  - `(===) :: a -> a -> Property`  
    Creates a property that tests whether the given arguments are structurally equal (i.e., `=` in Coq).
-   If the arguments have effects, they must have the same effect.
+   If the arguments have effects, it must be the same one.
    Since we do not require an `Eq` instance, you can even compare functions.
 
  - `(=/=) :: a -> a -> Property`  
@@ -41,8 +41,9 @@ In order to pass boolean values to such arguments (`Bool` has a `Testable` insta
    Both arguments must be pure computations of properties.
 
 Furthermore, there is the function `quickCheck` in our Coq version of the `Test.QuickCheck` module.
-In Haskell `quickCheck` is used to test whether a QuickCheck property holds and has the type `Testable prop => prop -> IO ()`.
-In Coq we are using it to convert a QuickCheck property to a Coq property (i.e., a `Prop`) that can be used in `Theorem` sentences.
+In Haskell `quickCheck` is used to test whether a QuickCheck property holds and has the type
+`Testable prop => prop -> IO ()`.
+In Coq we are using it to convert a QuickCheck property into a Coq property (i.e., a `Prop`) that can be used in `Theorem` sentences.
 The argument does not have to be a `Property` since we have recreated the `Testable` type class in Coq.
 If the argument of `quickCheck` is a monadic value, it must not have an effect and is converted recursively.
 If the argument is a function, the function arguments are universally quantified and the result is converted recursively.
@@ -145,7 +146,8 @@ ghci ./example/Proofs/ReverseInvolutive.hs
 +++ OK, passed 100 tests.
 ```
 
-This happens since the `Arbitrary` instance for lists considers total values only and never yields lists of the form `x : ⊥`.
+This happens since the `Arbitrary` instance for lists considers total values only and never yields lists of the form
+`x : ⊥`.
 We can prove that `reverse` is not involutive in a partial setting by instantiating `prop_reverse_involutive` with the `Maybe` monad and negating the property returned by `quickCheck`.
 
 ```coq
