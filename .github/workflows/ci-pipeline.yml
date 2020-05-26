@@ -449,7 +449,7 @@ jobs:
   # We are using Ubuntu and a Debian based Coq docker image in this Job.
   test-generated-code:
     name: Test generated Coq code
-    needs: [test-examples, build-base-library]
+    needs: [test-examples, build-coq-base-library]
     runs-on: ubuntu-latest
     container: coqorg/coq:${{ matrix.coq }}
     strategy:
