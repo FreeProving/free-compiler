@@ -425,12 +425,19 @@ step "Building the command line interface"        \
      "Canceled command line interface build"      \
      "cabal new-build freec"
 
-# Build the base library.
-step "Building the base library"        \
-     "Built base library successfully"  \
-     "Failed to build the base library" \
-     "Canceled base library build"      \
+# Build the Coq base library.
+step "Building the Coq base library"        \
+     "Built Coq base library successfully"  \
+     "Failed to build the Coq base library" \
+     "Canceled Coq base library build"      \
      "./tool/compile-coq.sh --recompile base/coq"
+
+# Build the Agda base library.
+step "Building the Agda base library"        \
+     "Built Agda base library successfully"  \
+     "Failed to build the Agda base library" \
+     "Canceled Agda base library build"      \
+     "./tool/check-agda-base-lib.sh -r"
 
 # Generate Haddock documentation.
 step "Generating Haddock documentation"              \
