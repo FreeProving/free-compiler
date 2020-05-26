@@ -47,7 +47,7 @@ data Options = Options
 
 -- | The default command line options.
 --
---   The base library directory defaults to the @base@ directory in the
+--   The base library directory defaults to the @base/coq@ directory in the
 --   cabal data directory.
 --
 --   By default output will be printed to the console.
@@ -55,7 +55,7 @@ data Options = Options
 --   the output directory (if one is specified).
 makeDefaultOptions :: IO Options
 makeDefaultOptions = do
-  defaultBaseLibDir <- getDataFileName "base"
+  defaultBaseLibDir <- getDataFileName "base/coq"
   return $ Options { optShowHelp                  = False
                    , optShowVersion               = False
                    , optInputFiles                = []

@@ -430,7 +430,7 @@ step "Building the base library"        \
      "Built base library successfully"  \
      "Failed to build the base library" \
      "Canceled base library build"      \
-     "./tool/compile-coq.sh --recompile base"
+     "./tool/compile-coq.sh --recompile base/coq"
 
 # Generate Haddock documentation.
 step "Generating Haddock documentation"              \
@@ -453,7 +453,7 @@ step "Compiling examples"               \
      "cabal new-run freec --                           \\
         --transform-pattern-matching                   \\
         --dump-transformed-modules example/transformed \\
-        -b ./base                                      \\
+        -b ./base/coq                                  \\
         -o ./example/generated                         \\
         \$(find ./example -path ./example/transformed -prune -o -name \"*.hs\" -print)"
 

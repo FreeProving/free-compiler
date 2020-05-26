@@ -15,7 +15,7 @@ A compiler for the monadic translation of Haskell programs to Coq that uses the 
 2. [Directory Structure](#directory-structure)
 3. [Getting Started](#getting-started)
     1. [Required Software](#required-software)
-    2. [Base Library](#base-library)
+    2. [Coq Base Library](#coq-base-library)
     3. [Installation](#installation)
     4. [Running without Installation](#running-without-installation)
     5. [Running with GHCi](#running-with-ghci)
@@ -56,7 +56,7 @@ This repository is structured as follows.
 
    This directory contains GitHub related files such as issue and pull request templates as well as the configuration of the [CI pipeline][guidelines/CONTRIBUTING#the-ci-pipeline].
 
- - `./base`
+ - `./base/coq`
 
    This directory contains the Coq base library of the compiler.
    The Coq base library is a collection of Coq files that are required by the generated code.
@@ -106,7 +106,7 @@ This repository is structured as follows.
    Common prefixes are listed below.
 
     + `FreeC.Backend` contains modules that are concerned with the translation from the intermediate representation to a target language.
-    + `FreeC.Frontend` contains modules that are concerned with the traslation of an input language to the intermediate representation.
+    + `FreeC.Frontend` contains modules that are concerned with the translation of an input language to the intermediate representation.
       This includes a front end for the intermediate representation itself.
     + `FreeC.IR` contains modules that define data types and operations for the intermediate representation such as the AST or commonly used operations on the AST.
     + `FreeC.Monad` contains modules that define monads that are used throughout the compiler (e.g., for error reporting, or stateful operations).
@@ -151,7 +151,7 @@ The compiler has been tested with the following software versions on a Debian ba
  - [Cabal][software/cabal], version 2.4.1.0
  - [Coq][software/coq], versions 8.8 through 8.11
 
-### Base Library
+### Coq Base Library
 
 In order to use the base library, the Coq files in the base library need to be compiled first.
 Make sure to compile the base library **before installing** the compiler.
@@ -159,14 +159,14 @@ We provide a shell script for the compilation of Coq files.
 To compile the base library with that shell script, run the following command in the root directory of the compiler.
 
 ```bash
-./tool/compile-coq.sh base
+./tool/compile-coq.sh base/coq
 ```
 
-> **Note:** If you add or remove files from the `base` library (or any other directory that contains Coq code that you wish to compile using the script above), the automatically generated Makefile needs to be updated.
+> **Note:** If you add or remove files from the `base/coq` library (or any other directory that contains Coq code that you wish to compile using the script above), the automatically generated Makefile needs to be updated.
 > For this purpose the script provides the command line option `--recompile`.
 >
 > ```bash
-> ./tool/compile-coq.sh --recompile base
+> ./tool/compile-coq.sh --recompile base/coq
 > ```
 
 ### Installation
@@ -215,7 +215,7 @@ Thus, we recommend using the `./tool/run.sh` script during development and runni
 
 ### Running with GHCi
 
-During development you may want to test or debugg your code interactively.
+During development you may want to test or debug your code interactively.
 One option is to use one of the following Cabal commands to open a GHCi prompt.
 
 ```bash
