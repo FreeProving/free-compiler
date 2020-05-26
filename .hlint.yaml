@@ -23,6 +23,7 @@
 
 # Aliases for qualified imports.
 - modules:
+  - {name: [ FreeC.Backend.Agda.Syntax ], as: Agda}
   - {name: [ FreeC.Backend.Coq.Base ], as: Coq.Base}
   - {name: [ FreeC.Backend.Coq.Syntax ], as: Coq}
   - {name: [ FreeC.IR.Syntax ], as: IR}
