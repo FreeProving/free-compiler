@@ -37,7 +37,7 @@ data-files:          base/coq/Prelude.toml
                      -- Due to a Bug in Cabal version 2.4, we cannot make
                      -- use of `**` wildcard patterns here. Otherwise, the
                      -- `new-install` command fails.
-                     -- base/**/*.v
+                     -- base/coq/**/*.v
                    , base/coq/Prelude.v
                    , base/coq/Prelude/*.v
                    , base/coq/Free.v
