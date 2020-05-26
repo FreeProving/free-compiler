@@ -18,7 +18,7 @@ while getopts "r" opt; do
   esac
 done
 
-# change into the directory containing the Agda modules
+# Change into the directory containing the Agda modules.
 ARG1=${@:$OPTIND:1}
 cd "$ARG1"
 echo "Building Agda files in $(pwd)"
