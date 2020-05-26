@@ -7,6 +7,7 @@ open import Free       using (Free; pure; impure)
 
 
 -- representation of the maybe monad using Free
+Shape : Set
 Shape = ⊤
 
 Position : Shape → Set
