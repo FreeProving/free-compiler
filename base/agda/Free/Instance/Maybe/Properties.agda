@@ -1,4 +1,3 @@
-
 module Free.Instance.Maybe.Properties where
 
 open import Relation.Binary.PropositionalEquality using (refl; cong)
