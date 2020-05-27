@@ -5,7 +5,7 @@ open import Data.Empty using (⊥)
 open import Free       using (Free)
 
 
--- representation of the identity monad using free
+-- Representation of the `Identity` monad using free.
 Shape : Set
 Shape = ⊥
 

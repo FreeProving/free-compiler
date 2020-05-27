@@ -10,7 +10,7 @@ open        _≃_
 open import Extensionality                        using (∀-extensionality)
 
 
--- the usual Maybe monad representation an the free version are isomorphic
+-- The usual `Maybe` monad representation an the free version are isomorphic.
 data Maybe (A : Set) : Set where
   just : A → Maybe A
   nothing : Maybe A

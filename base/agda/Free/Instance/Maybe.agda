@@ -6,7 +6,7 @@ open import Data.Empty using (⊥)
 open import Free       using (Free; pure; impure)
 
 
--- representation of the maybe monad using Free
+-- Representation of the `Maybe` monad using Free.
 Shape : Set
 Shape = ⊤
 

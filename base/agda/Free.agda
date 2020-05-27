@@ -1,6 +1,6 @@
 module Free where
 
--- free monad over shapes S and positions P
+-- The `Free` monad over a container with shapes `S` and postions `P`.
 data Free (S : Set) (P : S → Set) (A : Set) : Set where
   pure : A → Free S P A
 

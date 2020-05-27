@@ -10,7 +10,7 @@ open        _≃_
 open import Extensionality                        using (∀-extensionality)
 
 
--- the usual Identity monad representation an the free version are isomorphic
+-- The usual `Identity` monad representation an the free version are isomorphic.
 data Identity (A : Set) : Set where
   Ident : A → Identity A
 
