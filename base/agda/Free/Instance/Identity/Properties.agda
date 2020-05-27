@@ -1,9 +1,9 @@
-module Free.Identity.Properties where
+module Free.Instance.Identity.Properties where
 
 open import Relation.Binary.PropositionalEquality using (refl; cong)
 
 open import Free                                  using (Free; pure; impure)
-open import Free.Identity                                                    renaming (Identity to IdentityF)
+open import Free.Instance.Identity                                           renaming (Identity to IdentityF)
 
 open import Isomorphism                           using (_≃_)
 open        _≃_

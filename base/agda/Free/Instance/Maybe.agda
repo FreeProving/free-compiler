@@ -1,4 +1,4 @@
-module Free.Maybe where
+module Free.Instance.Maybe where
 
 open import Data.Unit  using (⊤; tt)
 open import Data.Empty using (⊥)

@@ -1,4 +1,4 @@
-module Free.Identity where
+module Free.Instance.Identity where
 
 open import Data.Empty using (⊥)
 

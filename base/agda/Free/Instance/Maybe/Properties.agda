@@ -1,10 +1,10 @@
 
-module Free.Maybe.Properties where
+module Free.Instance.Maybe.Properties where
 
 open import Relation.Binary.PropositionalEquality using (refl; cong)
 
 open import Free                                  using (Free; pure; impure)
-open import Free.Maybe                            using (Just; Nothing)      renaming (Maybe to MaybeF)
+open import Free.Instance.Maybe                   using (Just; Nothing)      renaming (Maybe to MaybeF)
 
 open import Isomorphism                           using (_≃_)
 open        _≃_
