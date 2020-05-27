@@ -439,7 +439,7 @@ step "Building the Agda base library"        \
      "Built Agda base library successfully"  \
      "Failed to build the Agda base library" \
      "Canceled Agda base library build"      \
-     "./tool/check-agda.sh -r base/agda"
+     "./tool/check-agda.sh --recompile base/agda"
 
 # Generate Haddock documentation.
 step "Generating Haddock documentation"              \
