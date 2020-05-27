@@ -17,16 +17,16 @@ In order to pass boolean values to such arguments (`Bool` has a `Testable` insta
 
  - `property :: Bool -> Property`  
    Converts a boolean value to a property that is satisfied if and only if the value is `True` and does not have an effect.
-   `property b` is corresponds to `b = True_ Shape Pos` in Coq.
+   `property b` corresponds to `b = True_ Shape Pos` in Coq.
 
  - `(==>) :: Bool -> Property -> Property`  
    Creates an implication in Coq (i.e., `->`).
    The premise of the implication is that the boolean value is `True` and does not have an effect (like `property`).
-   The conclusion is that the second argument is an pure (i.e., effect free) computation of a property that holds.
+   The conclusion is that the second argument is a pure (i.e., effect free) computation of a property that holds.
 
  - `(===) :: a -> a -> Property`  
    Creates a property that tests whether the given arguments are structurally equal (i.e., `=` in Coq).
-   If the arguments have effects, they must have the same effect.
+   If the arguments have effects, it must be the same one.
    Since we do not require an `Eq` instance, you can even compare functions.
 
  - `(=/=) :: a -> a -> Property`  
@@ -41,8 +41,9 @@ In order to pass boolean values to such arguments (`Bool` has a `Testable` insta
    Both arguments must be pure computations of properties.
 
 Furthermore, there is the function `quickCheck` in our Coq version of the `Test.QuickCheck` module.
-In Haskell `quickCheck` is used to test whether a QuickCheck property holds and has the type `Testable prop => prop -> IO ()`.
-In Coq we are using it to convert a QuickCheck property to a Coq property (i.e., a `Prop`) that can be used in `Theorem` sentences.
+In Haskell `quickCheck` is used to test whether a QuickCheck property holds and has the type
+`Testable prop => prop -> IO ()`.
+In Coq we are using it to convert a QuickCheck property into a Coq property (i.e., a `Prop`) that can be used in `Theorem` sentences.
 The argument does not have to be a `Property` since we have recreated the `Testable` type class in Coq.
 If the argument of `quickCheck` is a monadic value, it must not have an effect and is converted recursively.
 If the argument is a function, the function arguments are universally quantified and the result is converted recursively.
@@ -123,7 +124,7 @@ This is not always the case, though.
 Consider the `reverse` function which reverses a list for example.
 One would expect that reversing a list twice yields the original list, i.e., that `reverse` is its own inverse.
 However, while this is true in a total setting, it is not if we consider partiality.
-We can use the same approach discussed above to proof this fact.
+We can use the same approach discussed above to prove this fact.
 
 Again we start by defining `reverse` and stating our proposition in Haskell (See [`Proofs.ReverseInvolutive`][`example/Proofs/ReverseInvolutive.hs`] for details).
 
@@ -145,8 +146,9 @@ ghci ./example/Proofs/ReverseInvolutive.hs
 +++ OK, passed 100 tests.
 ```
 
-This happens since the `Arbitrary` instance for lists considers total values only and never yields lists of the form `x : ⊥`.
-We can proof that reverse is not involutive in a partial setting by instantiating `prop_reverse_involutive` with the `Maybe` monad and negating the property returned by `quickCheck`.
+This happens since the `Arbitrary` instance for lists considers total values only and never yields lists of the form
+`x : ⊥`.
+We can prove that `reverse` is not involutive in a partial setting by instantiating `prop_reverse_involutive` with the `Maybe` monad and negating the property returned by `quickCheck`.
 
 ```coq
 From Base Require Import Free.Instance.Maybe.
@@ -158,7 +160,7 @@ Proof.
 Qed.
 ```
 
-Similarly we can proof that `reverse` is its own inverse in a total setting by instantiating `prop_reverse_involutive` with the `Identity` monad instead.
+Similarly, we can prove that `reverse` is its own inverse in a total setting by instantiating `prop_reverse_involutive` with the `Identity` monad instead.
 
 ```coq
 From Base Require Import Free.Instance.Identity.

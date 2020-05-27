@@ -2,7 +2,7 @@
 
 In order to tell the compiler which functions and data types are defined in a module, every module has a configuration file that contains all information about the module's interface.
 The module interface file for the `Prelude` module can be found in `/base/Prelude.toml`.
-Since the module interface for predefined functions and data types needs to be maintained by a human, we are using [TOML](https://github.com/toml-lang/toml) as a configuration file format.
+Since the module interface for predefined functions and data types needs to be maintained manually, we are using [TOML](https://github.com/toml-lang/toml) as a configuration file format.
 If a Haskell module is translated by the compiler, a module interface file is saved alongside the `.v` file.
 Since generated module interfaces are not intended to be read by humans, they use the JSON file format instead.
 The contents of the TOML interface files is described below.
@@ -10,9 +10,9 @@ The JSON files contain the same information.
 
 ## File contents
 
-The TOML document is expected to contain four arrays of tables `types`, `type-synonyms`, `constructors` and `functions`.
+The TOML document is expected to contain four arrays of tables: `types`, `type-synonyms`, `constructors` and `functions`.
 Each table in these arrays defines a data type, type synonym, constructor or function respectively.
-The expected contents of each table is described below.
+The expected contents of each table are described below.
 In addition, the module interface file contains meta information in the top-level table.
 
 ### Top-Level
