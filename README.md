@@ -297,9 +297,7 @@ In the example above, the compiler would search for a module interface file firs
 #### `--base-library=DIR`, `-b DIR`
 
 Predefined data types and operations are not built directly into the compiler but are part of the *base library* that accompanies the compiler.
-
 To load module dependencies from the base library, the compiler uses the same mechanism, i.e. module interface files, that is used to load module dependencies.
-
 In contrast to automatically generated module interface files, the base library does not use the JSON file format. Since the module interfaces of the base library are maintained manually, the more user-friendly format TOML is used.
 
 The module interface file format is documented in [`doc/ModuleInterfaceFileFormat.md`][doc/ModuleInterfaceFileFormat.md].
