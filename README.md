@@ -94,7 +94,7 @@ This repository is structured as follows.
     + `./src/exe` contains the code for the command line interface.
     + `./src/lib` contains the code for the actual compiler.
     + `./src/test` contains test cases for the modules located in `./src/lib`.
-       * By convention modules containing test cases have the same name as the module they are testing but the string `Tests` is appended.
+       * By convention modules containing test cases have the same name as the module they are testing but `Tests` is appended to the module name.
          For example, the module `FreeC.Pass.TypeInferencePassTests` contains test cases for the `FreeC.Pass.TypeInferencePass` module.
        * For tests of modules with a common prefix, there is often a `Tests.hs` file that simply invokes all tests of all modules with that prefix.
          For example, there is no `FreeC.IR` module but a `FreeC.IR.Tests` module that runs all tests for modules starting with the `FreeC.IR` prefix (e.g., `FreeC.IR.ReferenceTests`, `FreeC.IR.SubstTests`, etc.)
