@@ -14,22 +14,23 @@ module FreeC.Backend.Agda.Pretty
   )
 where
 
--- We need just he pretty instances from 'Agda.Syntax.Concrete.Pretty'.
+-- We just need the pretty instances from 'Agda.Syntax.Concrete.Pretty'.
 import qualified Agda.Syntax.Concrete.Pretty    ( )
 import qualified Agda.Utils.Pretty             as Agda
 
 import qualified FreeC.Backend.Agda.Syntax     as Agda
 import           FreeC.Pretty
 
+
 -- | Wrapper data type that makes any 'Agda.Pretty' instance pretty printable.
 newtype PrettyAgda a = PrettyAgda { unPrettyAgda :: a }
 
--- | Pretty instance for all Agda internal pretty printable types.
+-- | Pretty instance for all Agda internal, pretty printable types.
 instance (Agda.Pretty a) => Pretty (PrettyAgda a) where
   pretty = prettyString . Agda.prettyShow . unPrettyAgda
 
 -- | Helper function for printing 'Agda.Pretty' printable types @a@ to a 'Doc'
---   used by our pretty printer.
+--   from the pretty printing library, which is used by the compiler.
 prettyAgda :: (Agda.Pretty a) => a -> Doc
 prettyAgda = pretty . PrettyAgda
 
@@ -37,6 +38,6 @@ prettyAgda = pretty . PrettyAgda
 instance Pretty Agda.Expr where
   pretty = prettyAgda
 
--- | 'Agda.Declaration's  are a common AST node.
+-- | 'Agda.Declaration's are a common AST node.
 instance Pretty Agda.Declaration where
   pretty = prettyAgda
