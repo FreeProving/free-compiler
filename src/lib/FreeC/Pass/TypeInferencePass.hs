@@ -178,7 +178,6 @@ where
 
 import           Control.Monad.Fail             ( MonadFail )
 import           Control.Monad.Extra            ( zipWithM_ )
-import           Control.Monad                  ( when )
 import           Control.Monad.State            ( MonadState(..)
                                                 , StateT(..)
                                                 , evalStateT
@@ -201,11 +200,11 @@ import           Data.Set                       ( Set )
 import qualified Data.Set                      as Set
 
 import           FreeC.Environment
+import           FreeC.Environment.Entry
 import           FreeC.Environment.Fresh
 import qualified FreeC.IR.Base.Prelude         as IR.Prelude
 import           FreeC.IR.DependencyGraph       ( mapComponentM )
 import           FreeC.IR.Reference             ( freeTypeVars )
-import           FreeC.IR.Similar
 import           FreeC.IR.SrcSpan
 import           FreeC.IR.Subst
 import qualified FreeC.IR.Syntax               as IR
@@ -404,6 +403,14 @@ inferFuncDeclTypes' funcDecls = withLocalState $ do
     -- cause a type error.
   mapM_ extendTypeAssumptionWithFuncDecl funcDecls
 
+  -- Bind type variables.
+  --
+  -- In order to avoid matching of rigid type variables that are bound by
+  -- type signatures, the unification algorithm checks whether there is an
+  -- environment entry for a matched type variable. Thus, we have to insert
+  -- such entries for the type variables bound by the function declarations.
+  mapM_ bindRigidTypeVars                funcDecls
+
   -- Add type annotations.
   --
   -- In this step all variable patterns, return types and sub-expressions
@@ -412,29 +419,25 @@ inferFuncDeclTypes' funcDecls = withLocalState $ do
   -- if @e₁ e₂@ is annotated with a type @τ@, then @e₂@ is annotated with
   -- a fresh type variable @α@ and @e₂@ is annotated with @α -> τ@.
   -- Furthermore, this step introduces type equations, for example if
-  -- predefined functions and constructor are used.
+  -- predefined functions and constructors are used.
   annotatedFuncDecls <- annotateFuncDecls funcDecls
 
   -- Unify type equations.
   --
-  -- During the annotation of the function declaration type equations were
+  -- During the annotation of the function declaration, type equations were
   -- added. The system of type equations is solved by computing the most
   -- general unificator (mgu).
+  --
   -- The mgu is then applied to the annotated function declarations to
   -- replace the type variables (that act as place holders) by their
   -- actual type. In the example of @e₁ e₂@ above for example, the type
   -- equation @α = Integer@ would have been added if @e₂@ was an integer
   -- literal. Thus, the mgu would map the type variable @α@ to @Integer@.
   -- By applying the mgu, the type annotation of @e₁ e₂@ is corrected to
-  -- @Integer -> mgu(τ)@
+  -- @Integer -> mgu(τ)@.
   eqns               <- gets typeEquations
   mgu                <- liftConverter $ unifyEquations eqns
   let typedFuncDecls = applySubst mgu annotatedFuncDecls
-
-  -- Check whether rigid type variables bound by the type signatures of the
-  -- functions haven't been unified in the step above.
-  let rigidTypeArgs  = concatMap IR.funcDeclTypeArgs funcDecls
-  mapM_ (checkRigidTypeVar mgu) rigidTypeArgs
 
   -- Abstract inferred type to type schema.
   --
@@ -891,26 +894,22 @@ unifyEquations = unifyEquations' identitySubst
     unifyEquations' subst' eqns
 
 -------------------------------------------------------------------------------
--- Rigid type variables                                                      --
+-- Solving type equations                                                    --
 -------------------------------------------------------------------------------
 
--- | Tests whether the type variable declared by the given type variable
---   declaration has been unified with another type.
---
---   This ensures that type inference does not infer a more specific type
---   than annotated by the user.
-checkRigidTypeVar :: MonadReporter m => Subst IR.Type -> IR.TypeVarDecl -> m ()
-checkRigidTypeVar mgu rigidTypeArg = do
-  let rigidTypeVar  = IR.typeVarDeclToType rigidTypeArg
-  let rigidTypeVar' = applySubst mgu rigidTypeVar
-  when (rigidTypeVar `notSimilar` rigidTypeVar')
-    $  reportFatal
-    $  Message (IR.typeVarDeclSrcSpan rigidTypeArg) Error
-    $  "Couldn't match rigid type variable '"
-    ++ IR.typeVarDeclIdent rigidTypeArg
-    ++ "' with '"
-    ++  showPretty rigidTypeVar'
-    ++  "'"
+-- | Invokes 'bindRigidTypeVar' for each type variable of the given function
+--   declaration.
+bindRigidTypeVars :: MonadConverter m => IR.FuncDecl -> m ()
+bindRigidTypeVars = mapM_ bindRigidTypeVar . IR.funcDeclTypeArgs
+
+-- | Adds an environment entry for the type variable that is bound by the
+--   given type variable declaration.
+bindRigidTypeVar :: MonadConverter m => IR.TypeVarDecl -> m ()
+bindRigidTypeVar typeVarDecl = modifyEnv $ addEntry $ TypeVarEntry
+  { entrySrcSpan = IR.typeVarDeclSrcSpan typeVarDecl
+  , entryName    = IR.UnQual (IR.Ident (IR.typeVarDeclIdent typeVarDecl))
+  , entryIdent   = undefined
+  }
 
 -------------------------------------------------------------------------------
 -- Error reporting                                                           --
