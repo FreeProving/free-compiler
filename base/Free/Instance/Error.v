@@ -1,11 +1,12 @@
 (** * Definition of the error monad in terms of the free monad. *)
 
 From Base Require Import Free.
+From Base Require Import Free.Util.Void.
 
 Module Error.
-  (* TODO Container instance that corresponds to [Const]. *)
-  (* Definition Shape : Type := (* ... *). *)
-  (* Definition Pos (s : Shape) : Type := (* ... *). *)
+  (* Container instance that corresponds to [Const]. *)
+  Definition Shape (E : Type) : Type := E.
+  Definition Pos {E : Type} (s : Shape E) : Type := Void.
 
   (* TODO Type synonym and smart constructors for the error monad. *)
   Module Import Monad.
