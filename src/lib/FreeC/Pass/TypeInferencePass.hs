@@ -772,13 +772,16 @@ applyFuncDeclVisibly funcDecl = withLocalTypeAssumption $ do
 --   Fresh type variables used by the given type are replaced by regular type
 --   varibales with the prefix 'freshTypeArgPrefix'. All other type variables
 --   are not renamed.
-abstractTypeArgs :: [IR.QName] -> IR.FuncDecl -> IR.FuncDecl
-abstractTypeArgs typeArgs funcDecl =
-  let IR.TypeSchema _ _ typeExpr = fromJust (IR.funcDeclTypeSchema funcDecl)
-      (IR.TypeSchema _ typeArgs' _, subst) =
-          abstractTypeSchema' typeArgs typeExpr
-      funcDecl' = applySubst subst funcDecl
-  in  funcDecl' { IR.funcDeclTypeArgs = typeArgs' }
+abstractTypeArgs :: [IR.TypeVarIdent] -> IR.FuncDecl -> IR.FuncDecl
+abstractTypeArgs typeArgIdents funcDecl =
+  let
+    typeArgs                   = map (IR.UnQual . IR.Ident) typeArgIdents
+    IR.TypeSchema _ _ typeExpr = fromJust (IR.funcDeclTypeSchema funcDecl)
+    (IR.TypeSchema _ typeArgs' _, subst) =
+      abstractTypeSchema' typeArgs typeExpr
+    funcDecl' = applySubst subst funcDecl
+  in
+    funcDecl' { IR.funcDeclTypeArgs = typeArgs' }
 
 -- | Abstracts the remaining internal type variables that occur within
 --   the given function declarations by renaming them to non-internal
@@ -793,21 +796,19 @@ abstractVanishingTypeArgs funcDecls =
   in  map abstractVanishingTypeArgs' funcDecls'
  where
   -- | The names of the type variables to abstract.
-  internalTypeArgNames :: [IR.QName]
-  internalTypeArgNames = filter IR.isInternalQName (freeTypeVars funcDecls)
+  internalTypeArgIdents :: [IR.TypeVarIdent]
+  internalTypeArgIdents = filter IR.isInternalIdent (freeTypeVars funcDecls)
 
   -- | Type variables for 'internalTypeArgNames'.
   internalTypeArgs :: [IR.Type]
-  internalTypeArgs = map
-    (IR.TypeVar NoSrcSpan . fromJust . IR.identFromQName)
-    internalTypeArgNames
+  internalTypeArgs = map (IR.TypeVar NoSrcSpan) internalTypeArgIdents
 
   -- | Renames 'internalTypeArgNames' and adds them as type arguments
   --   to the given function declaration.
   abstractVanishingTypeArgs' :: IR.FuncDecl -> IR.FuncDecl
   abstractVanishingTypeArgs' funcDecl =
-    let typeArgNames = map IR.typeVarDeclQName (IR.funcDeclTypeArgs funcDecl)
-    in  abstractTypeArgs (typeArgNames ++ internalTypeArgNames) funcDecl
+    let typeArgIdents = map IR.typeVarDeclIdent (IR.funcDeclTypeArgs funcDecl)
+    in  abstractTypeArgs (typeArgIdents ++ internalTypeArgIdents) funcDecl
 
   -- | Adds visible type applications for 'internalTypeArgs' to recursive
   --   calls on the right-hand side of the given function declaration.

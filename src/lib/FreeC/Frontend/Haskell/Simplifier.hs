@@ -481,9 +481,7 @@ simplifyTypeSchema (HSE.TyForall srcSpan (Just binds) Nothing typeExpr) = do
 simplifyTypeSchema typeExpr = do
   typeExpr' <- simplifyType typeExpr
   let srcSpan  = IR.typeSrcSpan typeExpr'
-      typeArgs = map
-        (IR.TypeVarDecl NoSrcSpan . fromJust . IR.identFromQName)
-        (freeTypeVars typeExpr')
+      typeArgs = map (IR.TypeVarDecl NoSrcSpan) (freeTypeVars typeExpr')
   return (IR.TypeSchema srcSpan typeArgs typeExpr')
 
 -- | Simplifies the a type expression.
