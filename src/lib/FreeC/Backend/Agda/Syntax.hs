@@ -17,30 +17,26 @@ module FreeC.Backend.Agda.Syntax
   )
 where
 
-import           Agda.Syntax.Concrete
-import           Agda.Syntax.Position
 import           Agda.Syntax.Common
-
-import qualified Agda.Syntax.Common            as Agda
-import qualified Agda.Syntax.Concrete          as Agda
-import qualified Agda.Syntax.Literal           as Agda
-import qualified Agda.Syntax.Position          as Agda
+import           Agda.Syntax.Concrete
+import           Agda.Syntax.Literal
+import           Agda.Syntax.Position
 
 -------------------------------------------------------------------------------
 -- Identifiers                                                               --
 -------------------------------------------------------------------------------
 
 -- | Creates a (not qualified) Agda variable name from a 'String'.
-name :: String -> Agda.Name
-name ident = Agda.Name Agda.NoRange Agda.InScope [Agda.Id ident]
+name :: String -> Name
+name ident = Name NoRange InScope [Id ident]
 
 -- | Create a qualified identifier given a local identifier as 'Name' and a
 --   list of module 'Name's.
-qname :: [Agda.Name] -> Agda.Name -> QName
-qname modules ident = foldr Agda.Qual (Agda.QName ident) modules
+qname :: [Name] -> Name -> QName
+qname modules ident = foldr Qual (QName ident) modules
 
 -- | Creates a qualified name using an empty list of module names.
-qname' :: Agda.Name -> Agda.QName
+qname' :: Name -> QName
 qname' = qname []
 
 -------------------------------------------------------------------------------
@@ -50,27 +46,25 @@ qname' = qname []
 -- | Creates an @open import@ declaration for the given qualified name.
 --
 --   @open import [modName]@
-simpleImport :: Agda.QName -> Agda.Declaration
-simpleImport modName = Agda.Import
-  Agda.NoRange
+simpleImport :: QName -> Declaration
+simpleImport modName = Import
+  NoRange
   modName
   Nothing
-  Agda.DoOpen
-  (Agda.ImportDirective Agda.NoRange Agda.UseEverything [] [] Nothing)
+  DoOpen
+  (ImportDirective NoRange UseEverything [] [] Nothing)
 
 -------------------------------------------------------------------------------
 -- Expressions                                                               --
 -------------------------------------------------------------------------------
 
 -- | Creates an integer literal.
-intLiteral :: Integer -> Agda.Expr
-intLiteral = Agda.Lit . Agda.LitNat Agda.NoRange
+intLiteral :: Integer -> Expr
+intLiteral = Lit . LitNat NoRange
 
 -- | Creates a lambda expression, binding the given names and abstracting the
 --   given expression.
 --
 --   @λ x y … → [expr] @
-lambda :: [Agda.Name] -> Agda.Expr -> Agda.Expr
-lambda args = Agda.Lam
-  Agda.NoRange
-  (Agda.DomainFree . Agda.defaultNamedArg . Agda.mkBinder_ <$> args)
+lambda :: [Name] -> Expr -> Expr
+lambda args = Lam NoRange (DomainFree . defaultNamedArg . mkBinder_ <$> args)
