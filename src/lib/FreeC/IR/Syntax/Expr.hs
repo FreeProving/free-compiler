@@ -321,11 +321,13 @@ instance Pretty ConPat where
 -- | A variable pattern used as an argument to a function, lambda abstraction
 --   or constructor pattern.
 --
---   The variable pattern can optionally have a type signature.
+--   The variable pattern can optionally have a type signature
+--   or can be annotated by a @!@.
 data VarPat = VarPat
   { varPatSrcSpan :: SrcSpan
   , varPatIdent   :: String
   , varPatType    :: Maybe Type
+  , varPatIsBang  :: Bool
   }
  deriving (Eq, Show)
 
@@ -339,16 +341,16 @@ varPatQName = UnQual . varPatName
 
 -- | Converts a variable pattern to a variable expression.
 varPatToExpr :: VarPat -> Expr
-varPatToExpr (VarPat srcSpan varName _) =
+varPatToExpr (VarPat srcSpan varName _ _) =
   Var srcSpan (UnQual (Ident varName)) Nothing
 
 -- | Converts the given identifier to a variable pattern without type
 --   annotation.
 toVarPat :: String -> VarPat
-toVarPat ident = VarPat NoSrcSpan ident Nothing
+toVarPat ident = VarPat NoSrcSpan ident Nothing False
 
 -- | Pretty instance for variable patterns.
 instance Pretty VarPat where
-  pretty (VarPat _ varName Nothing) = pretty varName
-  pretty (VarPat _ varName (Just varType)) =
+  pretty (VarPat _ varName Nothing _) = pretty varName
+  pretty (VarPat _ varName (Just varType) _) =
     parens (pretty varName <+> colon <> colon <+> pretty varType)

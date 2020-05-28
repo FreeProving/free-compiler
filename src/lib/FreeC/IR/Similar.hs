@@ -363,7 +363,7 @@ instance Similar IR.Alt where
 --   > ———————————  ——————————————————————————
 --   >  Γ ⊢ x ≈ y    Γ ⊢ (x :: τ) ≈ (y :: τ')
 instance Similar IR.VarPat where
-  similar' (IR.VarPat _ _ t1) (IR.VarPat _ _ t2) = similar' t1 t2
+  similar' (IR.VarPat _ _ t1 _) (IR.VarPat _ _ t2 _) = similar' t1 t2
 
 -------------------------------------------------------------------------------
 -- Similarity test for declarations                                          --

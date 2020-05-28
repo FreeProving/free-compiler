@@ -651,12 +651,13 @@ varPatParser = typedVarPatParser <|> untypedVarPatParser
     <$> varIdentToken
     <*  token DoubleColon
     <*> (Just <$> typeParser)
+    <*> return False
     )
 
   -- @varPat ::= <varid> | …@
   untypedVarPatParser :: Parser IR.VarPat
   untypedVarPatParser =
-    IR.VarPat NoSrcSpan <$> varIdentToken <*> return Nothing
+    IR.VarPat NoSrcSpan <$> varIdentToken <*> return Nothing <*> return False
 
 -------------------------------------------------------------------------------
 -- Literals                                                                  --

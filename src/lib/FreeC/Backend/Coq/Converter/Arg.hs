@@ -73,7 +73,7 @@ convertArgs args (Just index) = do
 --   If the variable pattern has a type annotation, the generated binder is
 --   annotated with the converted type.
 convertArg :: IR.VarPat -> Converter Coq.Binder
-convertArg (IR.VarPat srcSpan ident maybeArgType) = do
+convertArg (IR.VarPat srcSpan ident maybeArgType _) = do
   ident'        <- renameAndDefineVar srcSpan False ident maybeArgType
   maybeArgType' <- mapM convertType maybeArgType
   generateArgBinder ident' maybeArgType'
@@ -84,7 +84,7 @@ convertArg (IR.VarPat srcSpan ident maybeArgType) = do
 --   annotated with the converted type but the type is not lifted to the
 --   @Maybe@ monad.
 convertPureArg :: IR.VarPat -> Converter Coq.Binder
-convertPureArg (IR.VarPat srcSpan ident maybeArgType) = do
+convertPureArg (IR.VarPat srcSpan ident maybeArgType _) = do
   ident'        <- renameAndDefineVar srcSpan True ident maybeArgType
   maybeArgType' <- mapM convertType' maybeArgType
   generateArgBinder ident' maybeArgType'

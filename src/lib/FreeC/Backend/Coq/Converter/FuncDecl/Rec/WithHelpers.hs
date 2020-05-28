@@ -159,7 +159,7 @@ transformRecFuncDecl (IR.FuncDecl srcSpan declIdent typeArgs args maybeRetType e
       helperArgTypeMap = boundVarTypeMap `Map.union` argTypeMap
       helperArgTypes =
         map (join . (`Map.lookup` helperArgTypeMap)) helperArgNames
-      helperArgs = zipWith
+      helperArgs = map ($ False) $ zipWith
         (IR.VarPat NoSrcSpan . fromJust . IR.identFromQName)
         helperArgNames
         helperArgTypes

@@ -247,9 +247,9 @@ instance ApplySubst IR.Type IR.Alt where
 -- | Applies the given type substitution to the type annotation of the given
 --   variable pattern.
 instance ApplySubst IR.Type IR.VarPat where
-  applySubst subst (IR.VarPat srcSpan varIdent maybeVarType) =
+  applySubst subst (IR.VarPat srcSpan varIdent maybeVarType isBang) =
     let maybeVarType' = applySubst subst maybeVarType
-    in  IR.VarPat srcSpan varIdent maybeVarType'
+    in  IR.VarPat srcSpan varIdent maybeVarType' isBang
 
 -------------------------------------------------------------------------------
 -- Application to function declarations.                                     --
@@ -465,9 +465,9 @@ renameArgsSubst args = do
   --   a variable pattern that preserves the source span of the original
   --   pattern.
   freshVarPat :: IR.VarPat -> Converter IR.VarPat
-  freshVarPat (IR.VarPat srcSpan varIdent maybeVarType) = do
+  freshVarPat (IR.VarPat srcSpan varIdent maybeVarType isBang) = do
     varIdent' <- freshHaskellIdent varIdent
-    return (IR.VarPat srcSpan varIdent' maybeVarType)
+    return (IR.VarPat srcSpan varIdent' maybeVarType isBang)
 
 -- | Renames the arguments bound by the given variable patterns in the given
 --   expression to fresh variables.

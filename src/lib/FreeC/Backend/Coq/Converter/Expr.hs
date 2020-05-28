@@ -295,6 +295,6 @@ convertConPat (IR.ConPat srcSpan ident) varPats = do
 --
 --   The types of variable patterns are not annotated in Coq.
 convertVarPat :: IR.VarPat -> Converter Coq.Pattern
-convertVarPat (IR.VarPat srcSpan ident maybeVarType) = do
+convertVarPat (IR.VarPat srcSpan ident maybeVarType _) = do
   ident' <- renameAndDefineVar srcSpan False ident maybeVarType
   return (Coq.QualidPat ident')
