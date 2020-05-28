@@ -2,7 +2,7 @@
 
 -- | This module contains 'Pretty' instances for the Agda AST.
 --
---   The Agda has its own 'Agda.Pretty' class in 'Agda.Utils.Pretty'. Therefore
+--   The Agda library has its own 'Agda.Pretty' class in "Agda.Utils.Pretty". Therefore
 --   we cannot instance every @a@ with an @Agda.Pretty@ instance with our
 --   'Pretty' instance without generating overlapping instances for basic types
 --   (e.g. 'String').
