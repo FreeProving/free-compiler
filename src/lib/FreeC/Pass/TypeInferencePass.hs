@@ -435,6 +435,8 @@ inferFuncDeclTypes' funcDecls = withLocalState $ do
   -- literal. Thus, the mgu would map the type variable @α@ to @Integer@.
   -- By applying the mgu, the type annotation of @e₁ e₂@ is corrected to
   -- @Integer -> mgu(τ)@.
+  --
+  -- The type equations are unified in reverse order to improve error messages.
   eqns               <- gets typeEquations
   mgu                <- liftConverter $ unifyEquations eqns
   let typedFuncDecls = applySubst mgu annotatedFuncDecls
@@ -880,8 +882,13 @@ abstractVanishingTypeArgs funcDecls =
 -------------------------------------------------------------------------------
 
 -- | Finds the most general unificator that satisfies all given type equations.
+--
+--   The type equations are unified in reverse order in order to improve
+--   error messages. The list of type equations contains equations for
+--   parent expressions before sub-expressions. By reversing the order of
+--   equations, type errors in sub-expressions are reported first.
 unifyEquations :: [TypeEquation] -> Converter (Subst IR.Type)
-unifyEquations = unifyEquations' identitySubst
+unifyEquations = unifyEquations' identitySubst . reverse
  where
   unifyEquations'
     :: Subst IR.Type -> [TypeEquation] -> Converter (Subst IR.Type)
