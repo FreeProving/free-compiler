@@ -18,7 +18,7 @@
 --   function, the types of all argument patterns and the return type of
 --   the function are annotated by this pass.
 --
---   > double (x :: Integer) = x + x :: Integer
+--   > double (x :: Integer) :: Integer = x + x
 --
 --   == Example 2: Polymorphic functions
 --
@@ -61,7 +61,7 @@
 --   Thus, the list contains elements of some type @t0@ which needs to be
 --   added as a type argument to the list constructor @[]@ and @null@.
 --
---   > myTrue @t0 = null @t0 ([] @t0) :: Bool
+--   > myTrue @t0 :: Bool = null @t0 ([] @t0)
 --
 --   While Haskell would tolerate the definition of @myTrue@ without type
 --   arguments, Coq does not accept an equivalent definition.
