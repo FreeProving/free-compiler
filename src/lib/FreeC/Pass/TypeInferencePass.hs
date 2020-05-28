@@ -178,6 +178,7 @@ where
 
 import           Control.Monad.Fail             ( MonadFail )
 import           Control.Monad.Extra            ( zipWithM_ )
+import           Control.Monad                  ( when )
 import           Control.Monad.State            ( MonadState(..)
                                                 , StateT(..)
                                                 , evalStateT
@@ -204,6 +205,7 @@ import           FreeC.Environment.Fresh
 import qualified FreeC.IR.Base.Prelude         as IR.Prelude
 import           FreeC.IR.DependencyGraph       ( mapComponentM )
 import           FreeC.IR.Reference             ( freeTypeVars )
+import           FreeC.IR.Similar
 import           FreeC.IR.SrcSpan
 import           FreeC.IR.Subst
 import qualified FreeC.IR.Syntax               as IR
@@ -428,6 +430,11 @@ inferFuncDeclTypes' funcDecls = withLocalState $ do
   eqns               <- gets typeEquations
   mgu                <- liftConverter $ unifyEquations eqns
   let typedFuncDecls = applySubst mgu annotatedFuncDecls
+
+  -- Check whether rigid type variables bound by the type signatures of the
+  -- functions haven't been unified in the step above.
+  let rigidTypeArgs  = concatMap IR.funcDeclTypeArgs funcDecls
+  mapM_ (checkRigidTypeVar mgu) rigidTypeArgs
 
   -- Abstract inferred type to type schema.
   --
@@ -882,6 +889,28 @@ unifyEquations = unifyEquations' identitySubst
     mgu <- unifyOrFail srcSpan t1' t2'
     let subst' = composeSubst mgu subst
     unifyEquations' subst' eqns
+
+-------------------------------------------------------------------------------
+-- Rigid type variables                                                      --
+-------------------------------------------------------------------------------
+
+-- | Tests whether the type variable declared by the given type variable
+--   declaration has been unified with another type.
+--
+--   This ensures that type inference does not infer a more specific type
+--   than annotated by the user.
+checkRigidTypeVar :: MonadReporter m => Subst IR.Type -> IR.TypeVarDecl -> m ()
+checkRigidTypeVar mgu rigidTypeArg = do
+  let rigidTypeVar  = IR.typeVarDeclToType rigidTypeArg
+  let rigidTypeVar' = applySubst mgu rigidTypeVar
+  when (rigidTypeVar `notSimilar` rigidTypeVar')
+    $  reportFatal
+    $  Message (IR.typeVarDeclSrcSpan rigidTypeArg) Error
+    $  "Couldn't match rigid type variable '"
+    ++ IR.typeVarDeclIdent rigidTypeArg
+    ++ "' with '"
+    ++  showPretty rigidTypeVar'
+    ++  "'"
 
 -------------------------------------------------------------------------------
 -- Error reporting                                                           --
