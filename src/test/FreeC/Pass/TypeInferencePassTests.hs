@@ -231,7 +231,9 @@ testTypeInferencePass = describe "FreeC.Analysis.TypeInference" $ do
             (NonRecursive "true = eq Nil Nil")
             ["true @a :: Prelude.Bool = eq @(List a) (Nil @a) (Nil @a)"]
     it
-        "infers vanishing type arguments correctly in non-recursive functions that use functions with vanishing type arguments"
+        (  "infers vanishing type arguments correctly in non-recursive "
+        ++ "functions that use functions with vanishing type arguments"
+        )
       $ shouldSucceedWith
       $ do
           _ <- defineTestTypeCon "Prelude.Bool" 0
@@ -289,7 +291,9 @@ testTypeInferencePass = describe "FreeC.Analysis.TypeInference" $ do
               ++ "  }"
             ]
     it
-        "infers vanishing type arguments correctly in recursive functions that use functions with vanishing type arguments"
+        (  "infers vanishing type arguments correctly in recursive functions "
+        ++ "that use functions with vanishing type arguments"
+        )
       $ shouldSucceedWith
       $ do
           _ <- defineTestTypeCon "Prelude.Integer" 0
@@ -344,7 +348,9 @@ testTypeInferencePass = describe "FreeC.Analysis.TypeInference" $ do
             ++ "  }"
             ]
     it
-        "infers vanishing type arguments correctly in mutually recursive functions"
+        (  "infers vanishing type arguments correctly in mutually recursive "
+        ++ "functions"
+        )
       $ shouldSucceedWith
       $ do
           _ <- defineTestTypeCon "Prelude.Integer" 0
@@ -365,19 +371,23 @@ testTypeInferencePass = describe "FreeC.Analysis.TypeInference" $ do
               ++ "  }"
               ]
             )
-            [ "length @a @b @c (xs :: List a) :: Prelude.Integer = case xs of {"
-            ++ "    Nil -> if eq @(List b) (Nil @b) (Nil @b) then 0 else 1;"
-            ++ "    Cons (x :: a) (xs' :: List a) ->"
-            ++ "      succ (length' @a @b @c xs')"
-            ++ "  }"
-            , "length' @a @b @c (xs :: List a) :: Prelude.Integer = case xs of {"
-            ++ "    Nil -> if eq @(List c) (Nil @c) (Nil @c) then 0 else 1;"
-            ++ "    Cons (x :: a) (xs' :: List a) ->"
-            ++ "      succ (length @a @b @c xs')"
-            ++ "  }"
+            [ "length @a @b @c (xs :: List a) :: Prelude.Integer"
+            ++ "  = case xs of {"
+            ++ "      Nil -> if eq @(List b) (Nil @b) (Nil @b) then 0 else 1;"
+            ++ "      Cons (x :: a) (xs' :: List a) ->"
+            ++ "        succ (length' @a @b @c xs')"
+            ++ "    }"
+            , "length' @a @b @c (xs :: List a) :: Prelude.Integer"
+            ++ "  = case xs of {"
+            ++ "      Nil -> if eq @(List c) (Nil @c) (Nil @c) then 0 else 1;"
+            ++ "      Cons (x :: a) (xs' :: List a) ->"
+            ++ "        succ (length @a @b @c xs')"
+            ++ "    }"
             ]
     it
-        "infers vanishing type arguments correctly in mutually recursive functions that use functions with vanishing type arguments"
+        (  "infers vanishing type arguments correctly in mutually recursive "
+        ++ "functions that use functions with vanishing type arguments"
+        )
       $ shouldSucceedWith
       $ do
           _ <- defineTestTypeCon "Prelude.Integer" 0
@@ -398,16 +408,18 @@ testTypeInferencePass = describe "FreeC.Analysis.TypeInference" $ do
               ++ "  }"
               ]
             )
-            [ "length @a @b @c (xs :: List a) :: Prelude.Integer = case xs of {"
-            ++ "    Nil -> if true @b then 0 else 1;"
-            ++ "    Cons (x :: a) (xs' :: List a) ->"
-            ++ "      succ (length' @a @b @c xs')"
-            ++ "  }"
-            , "length' @a @b @c (xs :: List a) :: Prelude.Integer = case xs of {"
-            ++ "    Nil -> if true @c then 0 else 1;"
-            ++ "    Cons (x :: a) (xs' :: List a) ->"
-            ++ "      succ (length @a @b @c xs')"
-            ++ "  }"
+            [ "length @a @b @c (xs :: List a) :: Prelude.Integer"
+            ++ "  = case xs of {"
+            ++ "      Nil -> if true @b then 0 else 1;"
+            ++ "      Cons (x :: a) (xs' :: List a) ->"
+            ++ "        succ (length' @a @b @c xs')"
+            ++ "    }"
+            , "length' @a @b @c (xs :: List a) :: Prelude.Integer"
+            ++ "  = case xs of {"
+            ++ "      Nil -> if true @c then 0 else 1;"
+            ++ "      Cons (x :: a) (xs' :: List a) ->"
+            ++ "        succ (length @a @b @c xs')"
+            ++ "    }"
             ]
 
   context "functions type signatures" $ do
