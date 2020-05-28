@@ -3,8 +3,69 @@
 </span><a name="line-3"></a><span>
 </span><a name="line-4"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">FreeC.Backend.Agda.Syntax</span><span>
 </span><a name="line-5"></a><span>  </span><span class="hs-special">(</span><span> </span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Agda.Syntax.Concrete</span><span>
-</span><a name="line-6"></a><span>  </span><span class="hs-special">)</span><span>
-</span><a name="line-7"></a><span class="hs-keyword">where</span><span>
-</span><a name="line-8"></a><span>
-</span><a name="line-9"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Agda.Syntax.Concrete</span><span>
-</span><a name="line-10"></a></pre></body></html>
+</span><a name="line-6"></a><span>  </span><span class="hs-special">,</span><span> </span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Agda.Syntax.Common</span><span>
+</span><a name="line-7"></a><span>  </span><span class="hs-special">,</span><span> </span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Agda.Syntax.Position</span><span>
+</span><a name="line-8"></a><span>    </span><span class="hs-comment">-- * Identifiers</span><span>
+</span><a name="line-9"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="FreeC.Backend.Agda.Syntax.html#name"><span class="hs-identifier hs-var">name</span></a><span>
+</span><a name="line-10"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="FreeC.Backend.Agda.Syntax.html#qname"><span class="hs-identifier hs-var">qname</span></a><span>
+</span><a name="line-11"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="FreeC.Backend.Agda.Syntax.html#qname%27"><span class="hs-identifier hs-var">qname'</span></a><span>
+</span><a name="line-12"></a><span>    </span><span class="hs-comment">-- * Imports</span><span>
+</span><a name="line-13"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="FreeC.Backend.Agda.Syntax.html#simpleImport"><span class="hs-identifier hs-var">simpleImport</span></a><span>
+</span><a name="line-14"></a><span>    </span><span class="hs-comment">-- * Expressions</span><span>
+</span><a name="line-15"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="FreeC.Backend.Agda.Syntax.html#intLiteral"><span class="hs-identifier hs-var">intLiteral</span></a><span>
+</span><a name="line-16"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="FreeC.Backend.Agda.Syntax.html#lambda"><span class="hs-identifier hs-var">lambda</span></a><span>
+</span><a name="line-17"></a><span>  </span><span class="hs-special">)</span><span>
+</span><a name="line-18"></a><span class="hs-keyword">where</span><span>
+</span><a name="line-19"></a><span>
+</span><a name="line-20"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Agda.Syntax.Common</span><span>
+</span><a name="line-21"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Agda.Syntax.Concrete</span><span>
+</span><a name="line-22"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Agda.Syntax.Literal</span><span>
+</span><a name="line-23"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Agda.Syntax.Position</span><span>
+</span><a name="line-24"></a><span>
+</span><a name="line-25"></a><span class="hs-comment">-------------------------------------------------------------------------------</span><span>
+</span><a name="line-26"></a><span class="hs-comment">-- Identifiers                                                               --</span><span>
+</span><a name="line-27"></a><span class="hs-comment">-------------------------------------------------------------------------------</span><span>
+</span><a name="line-28"></a><span>
+</span><a name="line-29"></a><span class="hs-comment">-- | Creates a (not qualified) Agda variable name from a 'String'.</span><span>
+</span><a name="line-30"></a><span class="hs-identifier">name</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">String</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Name</span><span>
+</span><a name="line-31"></a><a name="name"><a href="FreeC.Backend.Agda.Syntax.html#name"><span class="hs-identifier">name</span></a></a><span> </span><a name="local-6989586621679072084"><a href="#local-6989586621679072084"><span class="hs-identifier">ident</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">Name</span><span> </span><span class="hs-identifier hs-var">NoRange</span><span> </span><span class="hs-identifier hs-var">InScope</span><span> </span><span class="hs-special">[</span><span class="hs-identifier hs-var">Id</span><span> </span><a href="#local-6989586621679072084"><span class="hs-identifier hs-var">ident</span></a><span class="hs-special">]</span><span>
+</span><a name="line-32"></a><span>
+</span><a name="line-33"></a><span class="hs-comment">-- | Create a qualified identifier given a local identifier as 'Name' and a</span><span>
+</span><a name="line-34"></a><span class="hs-comment">--   list of module 'Name's.</span><span>
+</span><a name="line-35"></a><span class="hs-identifier">qname</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="hs-identifier hs-type">Name</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Name</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">QName</span><span>
+</span><a name="line-36"></a><a name="qname"><a href="FreeC.Backend.Agda.Syntax.html#qname"><span class="hs-identifier">qname</span></a></a><span> </span><a name="local-6989586621679072085"><a href="#local-6989586621679072085"><span class="hs-identifier">modules</span></a></a><span> </span><a name="local-6989586621679072086"><a href="#local-6989586621679072086"><span class="hs-identifier">ident</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">foldr</span><span> </span><span class="hs-identifier hs-var">Qual</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">QName</span><span> </span><a href="#local-6989586621679072086"><span class="hs-identifier hs-var">ident</span></a><span class="hs-special">)</span><span> </span><a href="#local-6989586621679072085"><span class="hs-identifier hs-var">modules</span></a><span>
+</span><a name="line-37"></a><span>
+</span><a name="line-38"></a><span class="hs-comment">-- | Creates a qualified name using an empty list of module names.</span><span>
+</span><a name="line-39"></a><span class="hs-identifier">qname'</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Name</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">QName</span><span>
+</span><a name="line-40"></a><a name="qname%27"><a href="FreeC.Backend.Agda.Syntax.html#qname%27"><span class="hs-identifier">qname'</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="FreeC.Backend.Agda.Syntax.html#qname"><span class="hs-identifier hs-var">qname</span></a><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span>
+</span><a name="line-41"></a><span>
+</span><a name="line-42"></a><span class="hs-comment">-------------------------------------------------------------------------------</span><span>
+</span><a name="line-43"></a><span class="hs-comment">-- Imports                                                                   --</span><span>
+</span><a name="line-44"></a><span class="hs-comment">-------------------------------------------------------------------------------</span><span>
+</span><a name="line-45"></a><span>
+</span><a name="line-46"></a><span class="hs-comment">-- | Creates an @open import@ declaration for the given qualified name.</span><span>
+</span><a name="line-47"></a><span class="hs-comment">--</span><span>
+</span><a name="line-48"></a><span class="hs-comment">--   @open import [modName]@</span><span>
+</span><a name="line-49"></a><span class="hs-identifier">simpleImport</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">QName</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Declaration</span><span>
+</span><a name="line-50"></a><a name="simpleImport"><a href="FreeC.Backend.Agda.Syntax.html#simpleImport"><span class="hs-identifier">simpleImport</span></a></a><span> </span><a name="local-6989586621679073215"><a href="#local-6989586621679073215"><span class="hs-identifier">modName</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">Import</span><span>
+</span><a name="line-51"></a><span>  </span><span class="hs-identifier hs-var">NoRange</span><span>
+</span><a name="line-52"></a><span>  </span><a href="#local-6989586621679073215"><span class="hs-identifier hs-var">modName</span></a><span>
+</span><a name="line-53"></a><span>  </span><span class="hs-identifier hs-var">Nothing</span><span>
+</span><a name="line-54"></a><span>  </span><span class="hs-identifier hs-var">DoOpen</span><span>
+</span><a name="line-55"></a><span>  </span><span class="hs-special">(</span><span class="hs-identifier hs-var">ImportDirective</span><span> </span><span class="hs-identifier hs-var">NoRange</span><span> </span><span class="hs-identifier hs-var">UseEverything</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-identifier hs-var">Nothing</span><span class="hs-special">)</span><span>
+</span><a name="line-56"></a><span>
+</span><a name="line-57"></a><span class="hs-comment">-------------------------------------------------------------------------------</span><span>
+</span><a name="line-58"></a><span class="hs-comment">-- Expressions                                                               --</span><span>
+</span><a name="line-59"></a><span class="hs-comment">-------------------------------------------------------------------------------</span><span>
+</span><a name="line-60"></a><span>
+</span><a name="line-61"></a><span class="hs-comment">-- | Creates an integer literal.</span><span>
+</span><a name="line-62"></a><span class="hs-identifier">intLiteral</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Integer</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Expr</span><span>
+</span><a name="line-63"></a><a name="intLiteral"><a href="FreeC.Backend.Agda.Syntax.html#intLiteral"><span class="hs-identifier">intLiteral</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">Lit</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier hs-var">LitNat</span><span> </span><span class="hs-identifier hs-var">NoRange</span><span>
+</span><a name="line-64"></a><span>
+</span><a name="line-65"></a><span class="hs-comment">-- | Creates a lambda expression, binding the given names and abstracting the</span><span>
+</span><a name="line-66"></a><span class="hs-comment">--   given expression.</span><span>
+</span><a name="line-67"></a><span class="hs-comment">--</span><span>
+</span><a name="line-68"></a><span class="hs-comment">--   @&#955; x y &#8230; &#8594; [expr] @</span><span>
+</span><a name="line-69"></a><span class="hs-identifier">lambda</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="hs-identifier hs-type">Name</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Expr</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Expr</span><span>
+</span><a name="line-70"></a><a name="lambda"><a href="FreeC.Backend.Agda.Syntax.html#lambda"><span class="hs-identifier">lambda</span></a></a><span> </span><a name="local-6989586621679073267"><a href="#local-6989586621679073267"><span class="hs-identifier">args</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">Lam</span><span> </span><span class="hs-identifier hs-var">NoRange</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">DomainFree</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier hs-var">defaultNamedArg</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier hs-var">mkBinder_</span><span> </span><span class="hs-operator hs-var">&lt;$&gt;</span><span> </span><a href="#local-6989586621679073267"><span class="hs-identifier hs-var">args</span></a><span class="hs-special">)</span><span>
+</span><a name="line-71"></a></pre></body></html>
