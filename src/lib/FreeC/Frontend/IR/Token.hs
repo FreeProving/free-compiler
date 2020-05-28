@@ -119,6 +119,7 @@ data Token
   | RParen           -- ^ @")"@
   | RArrow           -- ^ @"->"@
   | Semi             -- ^ @";"@
+  | Bang             -- ^ @"!"@
  deriving (Eq, Show)
 
 -- | Constructs a 'ConIdent', 'VarIdent', 'Keyword' for the given identifier
@@ -171,6 +172,7 @@ instance Pretty Token where
   pretty RParen             = prettyString ")"
   pretty RArrow             = prettyString "->"
   pretty Semi               = prettyString ";"
+  pretty Bang               = prettyString "!"
 
 -------------------------------------------------------------------------------
 -- Special symbols                                                           --
@@ -198,6 +200,7 @@ specialSymbols = map
   , RParen
   , RArrow
   , Semi
+  , Bang
   ]
 
 -------------------------------------------------------------------------------

@@ -616,17 +616,20 @@ instance Parseable IR.Expr where
 altsParser :: Parser [IR.Alt]
 altsParser = bracesParser (altParser `Parsec.sepEndBy` token Semi)
 
--- | Parser for IR @case@ expression alternatives.
+-- | Parser for IR @case@ expression alternatives with optional @!@ annotation.
 --
---   > alt ::= conPat { varPat } "->" expr
+--   > alt ::= ["!"] conPat { varPat } "->" expr
 altParser :: Parser IR.Alt
-altParser =
-  IR.Alt NoSrcSpan
-    <$> conPatParser
-    <*> Parsec.many varPatParser
-    <*  token RArrow
-    <*> exprParser
-    <*> return False
+altParser = token Bang *> altParser' True <|> altParser' False
+ where
+  altParser' :: Bool -> Parser IR.Alt
+  altParser' isBang =
+    IR.Alt NoSrcSpan
+      <$> conPatParser
+      <*> Parsec.many varPatParser
+      <*  token RArrow
+      <*> exprParser
+      <*> return isBang
 
 -------------------------------------------------------------------------------
 -- Patterns                                                                  --
@@ -638,27 +641,31 @@ altParser =
 conPatParser :: Parser IR.ConPat
 conPatParser = IR.ConPat NoSrcSpan <$> conQNameParser
 
--- | Parser for IR variable patterns with optional type annotation.
+-- | Parser for IR variable patterns with optional type annotation and @!@.
 --
---   > varPat ::= "(" <varid> "::" type ")"
---   >          | <varid>
+--   > varPat ::= ["!"] "(" <varid> "::" type ")"
+--   >          | ["!"] <varid>
 varPatParser :: Parser IR.VarPat
-varPatParser = typedVarPatParser <|> untypedVarPatParser
+varPatParser =
+  token Bang
+    *>  (typedVarPatParser True <|> untypedVarPatParser True)
+    <|> typedVarPatParser False
+    <|> untypedVarPatParser False
  where
-  -- @varPat ::= "(" <varid> "::" type ")" | …@
-  typedVarPatParser :: Parser IR.VarPat
-  typedVarPatParser = parensParser
+  -- @varPat ::= ["!"] "(" <varid> "::" type ")" | …@
+  typedVarPatParser :: Bool -> Parser IR.VarPat
+  typedVarPatParser isBang = parensParser
     (   IR.VarPat NoSrcSpan
     <$> varIdentToken
     <*  token DoubleColon
     <*> (Just <$> typeParser)
-    <*> return False
+    <*> return isBang
     )
 
-  -- @varPat ::= <varid> | …@
-  untypedVarPatParser :: Parser IR.VarPat
-  untypedVarPatParser =
-    IR.VarPat NoSrcSpan <$> varIdentToken <*> return Nothing <*> return False
+  -- @varPat ::= ["!"] <varid> | …@
+  untypedVarPatParser :: Bool -> Parser IR.VarPat
+  untypedVarPatParser isBang =
+    IR.VarPat NoSrcSpan <$> varIdentToken <*> return Nothing <*> return isBang
 
 -------------------------------------------------------------------------------
 -- Literals                                                                  --
