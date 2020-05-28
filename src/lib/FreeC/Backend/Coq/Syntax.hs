@@ -44,41 +44,40 @@ import           Data.Composition               ( (.:) )
 import qualified Data.List.NonEmpty            as NonEmpty
 import qualified Data.Text                     as Text
 import           Language.Coq.Gallina
-import qualified Language.Coq.Gallina          as Coq
 
 -------------------------------------------------------------------------------
 -- Comments                                                                  --
 -------------------------------------------------------------------------------
 
 -- | Smart constructor for Coq comments.
-comment :: String -> Coq.Sentence
-comment = Coq.CommentSentence . Coq.Comment . Text.pack
+comment :: String -> Sentence
+comment = CommentSentence . Comment . Text.pack
 
 -------------------------------------------------------------------------------
 -- Proofs                                                                    --
 -------------------------------------------------------------------------------
 
 -- | An admitted proof that contains only a placeholder text.
-blankProof :: Coq.Proof
-blankProof = Coq.ProofAdmitted (Text.pack "  (* FILL IN HERE *)")
+blankProof :: Proof
+blankProof = ProofAdmitted (Text.pack "  (* FILL IN HERE *)")
 
 -------------------------------------------------------------------------------
 -- Identifiers                                                               --
 -------------------------------------------------------------------------------
 
 -- | Smart constructor for unqualified Coq identifiers.
-ident :: String -> Coq.Ident
+ident :: String -> Ident
 ident = Text.pack
 
 -- | Smart constructor for Coq identifiers.
-bare :: String -> Coq.Qualid
-bare = Coq.Bare . ident
+bare :: String -> Qualid
+bare = Bare . ident
 
 -- | Gets the identifier for the given unqualified Coq identifier. Returns
 --   @Nothing@ if the given identifier is qualified.
-unpackQualid :: Coq.Qualid -> Maybe String
-unpackQualid (Coq.Bare text    ) = Just (Text.unpack text)
-unpackQualid (Coq.Qualified _ _) = Nothing
+unpackQualid :: Qualid -> Maybe String
+unpackQualid (Bare text    ) = Just (Text.unpack text)
+unpackQualid (Qualified _ _) = Nothing
 
 -------------------------------------------------------------------------------
 -- Functions                                                                 --
@@ -89,48 +88,47 @@ unpackQualid (Coq.Qualified _ _) = Nothing
 --
 --   If the first argument is an application term, the arguments are added
 --   to that term. Otherwise a new application term is created.
-app :: Coq.Term -> [Coq.Term] -> Coq.Term
+app :: Term -> [Term] -> Term
 app func [] = func
-app (Coq.App func args) args' =
-  Coq.App func (args <> NonEmpty.fromList (map Coq.PosArg args'))
-app func args = Coq.App func (NonEmpty.fromList (map Coq.PosArg args))
+app (App func args) args' =
+  App func (args <> NonEmpty.fromList (map PosArg args'))
+app func args = App func (NonEmpty.fromList (map PosArg args))
 
 -- | Smart constructor for the explicit application of a Coq function or
 --   constructor to otherwise inferred type arguments.
 --
---   If there are no type arguments, no 'Coq.ExplicitApp' will be created.
-explicitApp :: Coq.Qualid -> [Coq.Term] -> Coq.Term
-explicitApp qualid []       = Coq.Qualid qualid
-explicitApp qualid typeArgs = Coq.ExplicitApp qualid typeArgs
+--   If there are no type arguments, no 'ExplicitApp' will be created.
+explicitApp :: Qualid -> [Term] -> Term
+explicitApp qualid []       = Qualid qualid
+explicitApp qualid typeArgs = ExplicitApp qualid typeArgs
 
 -- | Smart constructor for a Coq function type.
 arrows
-  :: [Coq.Term] -- ^ The types of the function arguments.
-  -> Coq.Term   -- ^ The return type of the function.
-  -> Coq.Term
-arrows args returnType = foldr Coq.Arrow returnType args
+  :: [Term] -- ^ The types of the function arguments.
+  -> Term   -- ^ The return type of the function.
+  -> Term
+arrows args returnType = foldr Arrow returnType args
 
 -- | Smart constructor for the construction of a Coq lambda expression with
 --   the given arguments and right hand side.
 --
 --   The second argument contains the types of the arguments are inferred
 --   by Coq.
-fun :: [Coq.Qualid] -> [Maybe Coq.Term] -> Coq.Term -> Coq.Term
-fun args argTypes = Coq.Fun (NonEmpty.fromList binders)
+fun :: [Qualid] -> [Maybe Term] -> Term -> Term
+fun args argTypes = Fun (NonEmpty.fromList binders)
  where
-  argNames :: [Coq.Name]
-  argNames = map Coq.Ident args
+  argNames :: [Name]
+  argNames = map Ident args
 
-  binders :: [Coq.Binder]
+  binders :: [Binder]
   binders = zipWith makeBinder argTypes argNames
 
-  makeBinder :: Maybe Coq.Term -> Coq.Name -> Coq.Binder
-  makeBinder Nothing = Coq.Inferred Coq.Explicit
-  makeBinder (Just t) =
-    flip (Coq.Typed Coq.Ungeneralizable Coq.Explicit) t . return
+  makeBinder :: Maybe Term -> Name -> Binder
+  makeBinder Nothing  = Inferred Explicit
+  makeBinder (Just t) = flip (Typed Ungeneralizable Explicit) t . return
 
 -- | Like 'fun', but all argument types are inferred.
-inferredFun :: [Coq.Qualid] -> Coq.Term -> Coq.Term
+inferredFun :: [Qualid] -> Term -> Term
 inferredFun = flip fun (repeat Nothing)
 
 -------------------------------------------------------------------------------
@@ -138,12 +136,12 @@ inferredFun = flip fun (repeat Nothing)
 -------------------------------------------------------------------------------
 
 -- | Smart constructor for an explicit or implicit typed Coq binder.
-typedBinder :: Coq.Explicitness -> [Coq.Qualid] -> Coq.Term -> Coq.Binder
+typedBinder :: Explicitness -> [Qualid] -> Term -> Binder
 typedBinder explicitness =
-  Coq.Typed Coq.Ungeneralizable explicitness . NonEmpty.fromList . map Coq.Ident
+  Typed Ungeneralizable explicitness . NonEmpty.fromList . map Ident
 
 -- | Like 'typedBinder' but for a single identifier.
-typedBinder' :: Coq.Explicitness -> Coq.Qualid -> Coq.Term -> Coq.Binder
+typedBinder' :: Explicitness -> Qualid -> Term -> Binder
 typedBinder' = flip (flip typedBinder . (: []))
 
 -------------------------------------------------------------------------------
@@ -151,12 +149,9 @@ typedBinder' = flip (flip typedBinder . (: []))
 -------------------------------------------------------------------------------
 
 -- | Generates a @Variable@ assumption sentence.
-variable :: [Coq.Qualid] -> Coq.Term -> Coq.Sentence
+variable :: [Qualid] -> Term -> Sentence
 variable =
-  Coq.AssumptionSentence
-    .  Coq.Assumption Coq.Variable
-    .: Coq.Assums
-    .  NonEmpty.fromList
+  AssumptionSentence . Assumption Variable .: Assums . NonEmpty.fromList
 
 -------------------------------------------------------------------------------
 -- Definition sentences                                                      --
@@ -164,67 +159,67 @@ variable =
 
 -- | Smart constructor for a Coq definition sentence.
 definitionSentence
-  :: Coq.Qualid     -- ^ The name of the definition.
-  -> [Coq.Binder]   -- ^ Binders for the parameters of the definition.
-  -> Maybe Coq.Term -- ^ The return type of the definition.
-  -> Coq.Term       -- ^ The right hand side of the definition.
-  -> Coq.Sentence
-definitionSentence qualid binders returnType term = Coq.DefinitionSentence
-  (Coq.DefinitionDef Coq.Global qualid binders returnType term)
+  :: Qualid     -- ^ The name of the definition.
+  -> [Binder]   -- ^ Binders for the parameters of the definition.
+  -> Maybe Term -- ^ The return type of the definition.
+  -> Term       -- ^ The right hand side of the definition.
+  -> Sentence
+definitionSentence qualid binders returnType term =
+  DefinitionSentence (DefinitionDef Global qualid binders returnType term)
 
 -------------------------------------------------------------------------------
 -- Types                                                                     --
 -------------------------------------------------------------------------------
 
 -- | The type of a type variable.
-sortType :: Coq.Term
-sortType = Coq.Sort Coq.Type
+sortType :: Term
+sortType = Sort Type
 
 -------------------------------------------------------------------------------
 -- Expressions                                                              --
 -------------------------------------------------------------------------------
 
 -- | Smart constructor for Coq string literals.
-string :: String -> Coq.Term
-string = Coq.String . Text.pack
+string :: String -> Term
+string = String . Text.pack
 
 -- | Smart constructor for Coq equations for @match@ expressions.
-equation :: Coq.Pattern -> Coq.Term -> Coq.Equation
-equation = Coq.Equation . return . Coq.MultPattern . return
+equation :: Pattern -> Term -> Equation
+equation = Equation . return . MultPattern . return
 
 -- | Smart constructor for a Coq @match@ expression.
-match :: Coq.Term -> [Coq.Equation] -> Coq.Term
-match value = Coq.Match (return item) Nothing
+match :: Term -> [Equation] -> Term
+match value = Match (return item) Nothing
  where
-  item :: Coq.MatchItem
-  item = Coq.MatchItem value Nothing Nothing
+  item :: MatchItem
+  item = MatchItem value Nothing Nothing
 
 -- | Smart constructor for reflexive equality in Coq.
-equals :: Coq.Term -> Coq.Term -> Coq.Term
-equals t1 t2 = app (Coq.Qualid (bare "op_=__")) [t1, t2]
+equals :: Term -> Term -> Term
+equals t1 t2 = app (Qualid (bare "op_=__")) [t1, t2]
 
 -- | Smart constructor for reflexive inequality in Coq.
-notEquals :: Coq.Term -> Coq.Term -> Coq.Term
-notEquals t1 t2 = app (Coq.Qualid (bare "op_<>__")) [t1, t2]
+notEquals :: Term -> Term -> Term
+notEquals t1 t2 = app (Qualid (bare "op_<>__")) [t1, t2]
 
 -- | Smart constructor for a conjunction in Coq.
-conj :: Coq.Term -> Coq.Term -> Coq.Term
-conj t1 t2 = app (Coq.Qualid (bare "op_/\\__")) [t1, t2]
+conj :: Term -> Term -> Term
+conj t1 t2 = app (Qualid (bare "op_/\\__")) [t1, t2]
 
 -- | Smart constructor for a disjunction in Coq.
-disj :: Coq.Term -> Coq.Term -> Coq.Term
-disj t1 t2 = app (Coq.Qualid (bare "op_\\/__")) [t1, t2]
+disj :: Term -> Term -> Term
+disj t1 t2 = app (Qualid (bare "op_\\/__")) [t1, t2]
 
 -------------------------------------------------------------------------------
 -- Imports                                                                   --
 -------------------------------------------------------------------------------
 
 -- | Creates a @From ... Require Import ...@ sentence.
-requireImportFrom :: Coq.ModuleIdent -> [Coq.ModuleIdent] -> Coq.Sentence
-requireImportFrom library modules = Coq.ModuleSentence
-  (Coq.Require (Just library) (Just Coq.Import) (NonEmpty.fromList modules))
+requireImportFrom :: ModuleIdent -> [ModuleIdent] -> Sentence
+requireImportFrom library modules = ModuleSentence
+  (Require (Just library) (Just Import) (NonEmpty.fromList modules))
 
--- | Creates a @From ... Require Import ...@ sentence.
-requireExportFrom :: Coq.ModuleIdent -> [Coq.ModuleIdent] -> Coq.Sentence
-requireExportFrom library modules = Coq.ModuleSentence
-  (Coq.Require (Just library) (Just Coq.Export) (NonEmpty.fromList modules))
+-- | Creates a @From ... Require Export ...@ sentence.
+requireExportFrom :: ModuleIdent -> [ModuleIdent] -> Sentence
+requireExportFrom library modules = ModuleSentence
+  (Require (Just library) (Just Export) (NonEmpty.fromList modules))

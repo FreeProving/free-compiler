@@ -33,14 +33,14 @@ about: Create a report to help us improve
 
 <!--
   Please include the exact version of the Free Compiler you are using.
-  You can get this information from copy and pasting the output of `freec --version` from the command line.
+  You can get this information from running `git rev-parse HEAD` on the command line.
   Also, please include the versions of GHC, Cabal and Coq as well as the name and version of the operating system (OS) you are running.
 -->
 
- - `freec --version`: <!-- Copy and paste the full text. -->
- - `ghc --version`: <!-- Copy and pate the version only. -->
- - `cabal --version`: <!-- Copy and pate the version only. -->
- - `coqc --version`: <!-- Copy and pate the version only. -->
+ - Git commit: <!-- Copy and paste the output of `git rev-parse HEAD`. -->
+ - `ghc --version`: <!-- Copy and paste the version only. -->
+ - `cabal --version`: <!-- Copy and paste the version only. -->
+ - `coqc --version`: <!-- Copy and paste the version only. -->
  - OS: <!-- Name and version of your operating system. -->
 
 ### Known workarounds

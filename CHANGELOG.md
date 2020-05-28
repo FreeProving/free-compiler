@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## Unrealeased
+
+## [0.2.0.0][tag/v0.2.0.0] / 2020-05-25
 
  - **Implemented module imports**
     + Imports of the form `import M` are now supported.
@@ -21,14 +23,20 @@
       * Type class contexts
       * Deriving clauses
 
-## 0.1.0.0 / 2019-09-26
+## [0.1.0.0][tag/v0.1.0.0] / 2019-09-26
 
  - **Initial version**
 
 [`doc/ExperimentalFeatures/PatternMatchingCompilation.md`]:
   https://github.com/FreeProving/free-compiler/blob/master/doc/ExperimentalFeatures/PatternMatchingCompilation.md
   "Free Compiler Documentation — Pattern Matching Compilation"
-
 [`doc/CustomPragma/DecreasingArgumentPragma.md`]:
   https://github.com/FreeProving/free-compiler/blob/master/doc/CustomPragma/DecreasingArgumentPragma.md
   "Free Compiler Documentation — Decreasing Argument Pragma"
+
+[tag/v0.1.0.0]:
+  https://github.com/FreeProving/free-compiler/tree/v0.1.0.0
+  "Free Compiler v0.1.0.0"
+[tag/v0.2.0.0]:
+  https://github.com/FreeProving/free-compiler/tree/v0.2.0.0
+  "Free Compiler v0.2.0.0"

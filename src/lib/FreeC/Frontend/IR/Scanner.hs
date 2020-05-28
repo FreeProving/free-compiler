@@ -30,9 +30,9 @@ import           FreeC.Monad.Reporter
 import           FreeC.Pretty
 import           FreeC.Util.Parsec
 
-------------------------------------------------------------------------------
--- Type synonyms                                                            --
-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+-- Type synonyms                                                             --
+-------------------------------------------------------------------------------
 
 -- | Type of parsers for IR lexeme of type @a@.
 type Scanner a = Parsec String () a
@@ -53,9 +53,9 @@ instance Show TokenWithPos where
 tokenWithPos :: Scanner Token -> Scanner TokenWithPos
 tokenWithPos scanner = TokenWithPos <$> Parsec.getPosition <*> scanner
 
-------------------------------------------------------------------------------
--- Character classes                                                        --
-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+-- Character classes                                                         --
+-------------------------------------------------------------------------------
 
 -- | Scanner for a lowercase character.
 --
@@ -75,9 +75,9 @@ upperScanner = Parsec.upper
 numericScanner :: Scanner Char
 numericScanner = Parsec.satisfy isNumber
 
-------------------------------------------------------------------------------
--- Language Definition                                                      --
-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+-- Language Definition                                                       --
+-------------------------------------------------------------------------------
 
 -- | Block comments start with @"{- "@ and can be nested.
 --
@@ -160,9 +160,9 @@ languageDef = Parsec.LanguageDef
   , Parsec.caseSensitive   = True
   }
 
-------------------------------------------------------------------------------
--- Generated lexical parsers                                                --
-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+-- Generated lexical parsers                                                 --
+-------------------------------------------------------------------------------
 
 -- | Contains lexical parsers for the intermediate language.
 tokenParser :: Parsec.TokenParser ()

@@ -5,7 +5,7 @@ cabal-version:       2.4
 
 -- Package name, version and description.
 name:                free-compiler
-version:             0.1.0.0
+version:             0.2.0.0
 category:            Language
 synopsis:            A Haskell to Coq compiler.
 description:

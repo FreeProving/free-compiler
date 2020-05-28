@@ -2,8 +2,8 @@
 
 ## Motivation
 
-By default the compiler makes very strong assumptions about pattern matching.
-For example, only function declarations with a single rule where pattern matching is performed explicitly on the right-hand side using `case` expressions are supported.
+By default, the compiler makes very strong assumptions about pattern matching.
+For example, only function declarations with a single rule are supported. Thus pattern matching must be performed explicitly on the right-hand side using `case` expressions.
 In consequence, the function `head` cannot be defined as it usually is
 
 ```haskell
@@ -30,14 +30,14 @@ Guards are not supported either.
 
 To relax the restrictions on pattern matching a [pattern matching compiler library][package/haskell-src-transformation] has been integrated into the compiler.
 Support for pattern matching compilation can be enabled using the `--transform-pattern-matching` command line flag.
-With pattern matching compilation enabled, the compiler accepts the first definition of `head` above.
-Further examples can be found in [`example/PatternMatching.hs`][].
+With pattern matching compilation enabled, the compiler does accept the first definition of `head` above.
+Further examples can be found in [`example/PatternMatching.hs`][] and can be compiled as shown below.
 
 ```bash
 freec --transform-pattern-matching ./example/PatternMatching.hs
 ```
 
-A drawback of enabling pattern matching compilation is that the compiler will not be able to provide source location information in error messages and local variables may be renamed.
+A drawback of enabling pattern matching compilation is that the compiler will not automatically be able to provide source location information in error messages and local variables may be renamed.
 For example, if you uncomment one of the unsupported declarations in `example/PatternMatching.hs`, the following error will be reported by the command above.
 
 ```
@@ -46,7 +46,7 @@ For example, if you uncomment one of the unsupported declarations in `example/Pa
 ```
 
 In order to inspect what went wrong you can write the transformed modules to a file.
-For this purpose, add the `--dump-transformed-modules` and specify a directory where the transformed Haskell modules should be placed.
+For this purpose, add the `--dump-transformed-modules` flag and specify a directory where the transformed Haskell modules should be placed.
 
 ```bash
 freec --transform-pattern-matching                     \
@@ -115,7 +115,7 @@ flipQ q = case q of
     (:) x f' -> (x : f', b)
 ```
 
-This behavior is not a bug, but an intentional which should prevent a loss of linearity.
+This behavior is not a bug but an intentional feature which should prevent a loss of linearity.
 However, this feature can be a problem when translating recursive functions.
 In the example below both our termination checker and Coq will reject the function because it does not decrease on one of its arguments after the transformation.
 The variable `xs` is substituted by `y : ys` in the third rule.
@@ -140,8 +140,8 @@ max n m | n > m     = n
 ### Unsupported patterns
 
 The pattern matching compiler does not yet support all patterns.
-When pattern matching compilation is enabled make sure that your program uses supported patterns only.
-Otherwise, there is the risk that the transformation does not terminate and consumes a lot of memory.
+When pattern matching compilation is enabled, make sure that your program uses supported patterns only.
+Otherwise, there is a risk that the transformation does not terminate and consumes a lot of memory.
 For example, the following function uses as-patterns which are not supported.
 
 ```haskell
