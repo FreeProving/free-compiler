@@ -289,9 +289,14 @@ data Alt = Alt
 
 -- | Pretty instance for @case@ expression alternatives.
 instance Pretty Alt where
-  pretty (Alt _ conPat varPats expr _) =
+  pretty (Alt _ conPat varPats expr False) =
     pretty conPat
       <+> hsep (map pretty varPats)
+      <+> prettyString "->"
+      <+> pretty expr
+  pretty (Alt _ conPat varPats expr True) =
+    char '!'
+      <>  parens (pretty conPat <+> hsep (map pretty varPats))
       <+> prettyString "->"
       <+> pretty expr
 
@@ -354,6 +359,9 @@ toVarPat ident = VarPat NoSrcSpan ident Nothing False
 
 -- | Pretty instance for variable patterns.
 instance Pretty VarPat where
-  pretty (VarPat _ varName Nothing _) = pretty varName
-  pretty (VarPat _ varName (Just varType) _) =
+  pretty (VarPat _ varName Nothing False) = pretty varName
+  pretty (VarPat _ varName Nothing True ) = char '!' <> pretty varName
+  pretty (VarPat _ varName (Just varType) False) =
     parens (pretty varName <+> colon <> colon <+> pretty varType)
+  pretty (VarPat _ varName (Just varType) True) =
+    char '!' <> parens (pretty varName <+> colon <> colon <+> pretty varType)
