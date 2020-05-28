@@ -435,8 +435,6 @@ inferFuncDeclTypes' funcDecls = withLocalState $ do
   -- literal. Thus, the mgu would map the type variable @α@ to @Integer@.
   -- By applying the mgu, the type annotation of @e₁ e₂@ is corrected to
   -- @Integer -> mgu(τ)@.
-  --
-  -- The type equations are unified in reverse order to improve error messages.
   eqns               <- gets typeEquations
   mgu                <- liftConverter $ unifyEquations eqns
   let typedFuncDecls = applySubst mgu annotatedFuncDecls
@@ -902,7 +900,7 @@ unifyEquations = unifyEquations' identitySubst . reverse
     unifyEquations' subst' eqns
 
 -------------------------------------------------------------------------------
--- Solving type equations                                                    --
+-- Rigid type variables                                                      --
 -------------------------------------------------------------------------------
 
 -- | Invokes 'bindRigidTypeVar' for each type variable of the given function
