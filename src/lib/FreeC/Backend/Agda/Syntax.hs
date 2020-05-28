@@ -36,12 +36,12 @@ name ident = Agda.Name Agda.NoRange Agda.InScope [Agda.Id ident]
 
 -- | Create a qualified name given a local variable 'Name' and a list of module
 --   'Name's.
-qname :: Agda.Name -> [Agda.Name] -> QName
-qname n = foldr Agda.Qual (Agda.QName n)
+qname :: [Agda.Name] -> Agda.Name -> QName
+qname ms n = foldr Agda.Qual (Agda.QName n) ms
 
 -- | Creates a qualified name using an empty list of module names.
 qname' :: Agda.Name -> Agda.QName
-qname' = flip qname []
+qname' = qname []
 
 -------------------------------------------------------------------------------
 -- Imports                                                                   --
