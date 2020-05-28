@@ -12,6 +12,7 @@ module FreeC.Monad.Class.Testable
   , shouldSucceedWith
     -- * Expecting failures
   , shouldFail
+  , shouldFailPretty
   , shouldFailWith
     -- * QuickCheck
   , shouldReturnProperty
@@ -83,13 +84,22 @@ shouldSucceedWith = flip (shouldReturnWith' (const "<expectation>")) id
 -- | Sets the expectation that the given computation fails without returning
 --   a value.
 shouldFail :: (Show a, MonadTestable m err) => m a -> Expectation
-shouldFail = flip shouldFailWith (const (return ()))
+shouldFail = flip shouldFailWith expectAnyError
+
+-- | Like 'shouldFail' but if the given computation does not fail, the
+--   produced value is printed using its 'Pretty' instance.
+shouldFailPretty :: (Pretty a, MonadTestable m err) => m a -> Expectation
+shouldFailPretty mx = shouldFailWith' showPretty mx expectAnyError
 
 -- | Sets the expectation returned by the given function for the error
 --   that was produced by the given computation instead of a value.
 shouldFailWith
   :: (Show a, MonadTestable m err) => m a -> (err -> Expectation) -> Expectation
 shouldFailWith = shouldFailWith' show
+
+-- | Auxillary function for 'shouldFailWith' that allows arbitrary errors.
+expectAnyError :: err -> Expectation
+expectAnyError = const (return ())
 
 -------------------------------------------------------------------------------
 -- Instances for common pure monads                                          --

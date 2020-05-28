@@ -423,3 +423,25 @@ testTypeInferencePass = describe "FreeC.Analysis.TypeInference" $ do
           _ <- defineTestTypeCon "Foo" 0
           shouldInferType (NonRecursive "fooId x :: Foo = x")
                           ["fooId (x :: Foo) :: Foo = x"]
+
+  context "rigid type variables" $ do
+    it "cannot match rigid type variable with type constructor" $ do
+      funcDecl <- expectParseTestFuncDecl "foo @a (x :: a) :: Foo = x"
+      shouldFailPretty $ do
+        _ <- defineTestTypeCon "Foo" 0
+        typeInferencePass (NonRecursive funcDecl)
+
+    it "cannot match type constructor with rigid type variable" $ do
+      funcDecl <- expectParseTestFuncDecl "foo @a (x :: a) :: a = Foo"
+      shouldFailPretty $ do
+        _ <- defineTestTypeCon "Foo" 0
+        _ <- defineTestCon "Foo" 0 "Foo"
+        typeInferencePass (NonRecursive funcDecl)
+
+    it "cannot match two rigid type variables" $ do
+      funcDecl <- expectParseTestFuncDecl
+        "foo @a @b (x :: a) (y :: b) :: Foo a a = Foo x y"
+      shouldFailPretty $ do
+        _ <- defineTestTypeCon "Foo" 2
+        _ <- defineTestCon "Foo" 2 "forall a b. a -> b -> Foo a b"
+        typeInferencePass (NonRecursive funcDecl)
