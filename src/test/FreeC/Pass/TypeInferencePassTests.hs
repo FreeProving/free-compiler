@@ -185,241 +185,241 @@ testTypeInferencePass = describe "FreeC.Analysis.TypeInference" $ do
               ++ "    else undefined @(Either c d)"
             ]
 
-    context "type synonyms" $ do
-      it "can match types that contain type synonyms" $ shouldSucceedWith $ do
-        _ <- defineTestTypeCon "Foo" 1
-        _ <- defineTestTypeCon "Bar" 0
-        _ <- defineTestTypeSyn "Baz" [] "Foo Bar"
-        _ <- defineTestCon "Foo" 1 "forall a. Foo a"
-        shouldInferType (NonRecursive "f = Foo :: Baz") ["f :: Baz = Foo @Bar"]
-      it "expands type synonyms when necessary" $ shouldSucceedWith $ do
-        _ <- defineTestTypeCon "Foo" 1
-        _ <- defineTestTypeCon "Bar" 0
-        _ <- defineTestTypeSyn "Baz" [] "Foo Bar"
-        _ <- defineTestFunc "unfoo" 1 "forall a. Foo a -> a"
-        _ <- defineTestCon "Foo" 1 "forall a. Foo a"
-        shouldInferType (NonRecursive "f = unfoo (Foo :: Baz)")
-                        ["f :: Bar = unfoo @Bar (Foo @Bar)"]
+  context "type synonyms" $ do
+    it "can match types that contain type synonyms" $ shouldSucceedWith $ do
+      _ <- defineTestTypeCon "Foo" 1
+      _ <- defineTestTypeCon "Bar" 0
+      _ <- defineTestTypeSyn "Baz" [] "Foo Bar"
+      _ <- defineTestCon "Foo" 1 "forall a. Foo a"
+      shouldInferType (NonRecursive "f = Foo :: Baz") ["f :: Baz = Foo @Bar"]
+    it "expands type synonyms when necessary" $ shouldSucceedWith $ do
+      _ <- defineTestTypeCon "Foo" 1
+      _ <- defineTestTypeCon "Bar" 0
+      _ <- defineTestTypeSyn "Baz" [] "Foo Bar"
+      _ <- defineTestFunc "unfoo" 1 "forall a. Foo a -> a"
+      _ <- defineTestCon "Foo" 1 "forall a. Foo a"
+      shouldInferType (NonRecursive "f = unfoo (Foo :: Baz)")
+                      ["f :: Bar = unfoo @Bar (Foo @Bar)"]
 
-    context "non-recursive functions" $ do
-      it "infers the types of simple simple non-recursive correctly"
-        $ shouldSucceedWith
-        $ do
-            _ <- defineTestTypeCon "Bool" 0
-            _ <- defineTestCon "True" 0 "Bool"
-            _ <- defineTestCon "False" 0 "Bool"
-            _ <- defineTestTypeCon "List" 1
-            _ <- defineTestCon "Nil" 0 "forall a. List a"
-            _ <- defineTestCon "Cons" 2 "forall a. a -> List a -> List a"
-            shouldInferType
-              (NonRecursive
-                "null xs = case xs of { Nil -> True; Cons x xs' -> False }"
-              )
-              [ "null @a (xs :: List a) :: Bool = case xs of {"
-                ++ "    Nil -> True;"
-                ++ "    Cons (x :: a) (xs' :: List a) -> False"
-                ++ "  }"
-              ]
-      it "infers vanishing type arguments correctly in non-recursive functions"
-        $ shouldSucceedWith
-        $ do
-            _ <- defineTestTypeCon "Prelude.Bool" 0
-            _ <- defineTestFunc "eq" 0 "forall a. a -> a -> Prelude.Bool"
-            _ <- defineTestTypeCon "List" 1
-            _ <- defineTestCon "Nil" 0 "forall a. List a"
-            shouldInferType
-              (NonRecursive "true = eq Nil Nil")
-              ["true @a :: Prelude.Bool = eq @(List a) (Nil @a) (Nil @a)"]
-      it
-          "infers vanishing type arguments correctly in non-recursive functions that use functions with vanishing type arguments"
-        $ shouldSucceedWith
-        $ do
-            _ <- defineTestTypeCon "Prelude.Bool" 0
-            _ <- defineTestFunc "true" 0 "forall a. Prelude.Bool"
-            shouldInferType
-              (NonRecursive "true' = if true then true else true")
-              [ "true' @a @b @c :: Prelude.Bool = if true @a"
-                ++ "  then true @b"
-                ++ "  else true @c"
-              ]
+  context "non-recursive functions" $ do
+    it "infers the types of simple simple non-recursive correctly"
+      $ shouldSucceedWith
+      $ do
+          _ <- defineTestTypeCon "Bool" 0
+          _ <- defineTestCon "True" 0 "Bool"
+          _ <- defineTestCon "False" 0 "Bool"
+          _ <- defineTestTypeCon "List" 1
+          _ <- defineTestCon "Nil" 0 "forall a. List a"
+          _ <- defineTestCon "Cons" 2 "forall a. a -> List a -> List a"
+          shouldInferType
+            (NonRecursive
+              "null xs = case xs of { Nil -> True; Cons x xs' -> False }"
+            )
+            [ "null @a (xs :: List a) :: Bool = case xs of {"
+              ++ "    Nil -> True;"
+              ++ "    Cons (x :: a) (xs' :: List a) -> False"
+              ++ "  }"
+            ]
+    it "infers vanishing type arguments correctly in non-recursive functions"
+      $ shouldSucceedWith
+      $ do
+          _ <- defineTestTypeCon "Prelude.Bool" 0
+          _ <- defineTestFunc "eq" 0 "forall a. a -> a -> Prelude.Bool"
+          _ <- defineTestTypeCon "List" 1
+          _ <- defineTestCon "Nil" 0 "forall a. List a"
+          shouldInferType
+            (NonRecursive "true = eq Nil Nil")
+            ["true @a :: Prelude.Bool = eq @(List a) (Nil @a) (Nil @a)"]
+    it
+        "infers vanishing type arguments correctly in non-recursive functions that use functions with vanishing type arguments"
+      $ shouldSucceedWith
+      $ do
+          _ <- defineTestTypeCon "Prelude.Bool" 0
+          _ <- defineTestFunc "true" 0 "forall a. Prelude.Bool"
+          shouldInferType
+            (NonRecursive "true' = if true then true else true")
+            [ "true' @a @b @c :: Prelude.Bool = if true @a"
+              ++ "  then true @b"
+              ++ "  else true @c"
+            ]
 
-    context "recursive functions" $ do
-      it "infers the types of recursive functions correctly"
-        $ shouldSucceedWith
-        $ do
-            _ <- defineTestTypeCon "Prelude.Integer" 0
-            _ <- defineTestFunc "succ" 1 "Prelude.Integer -> Prelude.Integer"
-            _ <- defineTestTypeCon "List" 1
-            _ <- defineTestCon "Nil" 0 "forall a. List a"
-            _ <- defineTestCon "Cons" 2 "forall a. a -> List a -> List a"
-            shouldInferType
-              (Recursive
-                [ "length xs = case xs of {"
-                  ++ "    Nil        -> 0;"
-                  ++ "    Cons x xs' -> succ (length xs')"
-                  ++ "  }"
-                ]
-              )
-              [ "length @a (xs :: List a) :: Prelude.Integer = case xs of {"
-                ++ "    Nil -> 0;"
-                ++ "    Cons (x :: a) (xs' :: List a) -> succ (length @a xs')"
-                ++ "  }"
-              ]
-      it "infers vanishing type arguments correctly in recursive functions"
-        $ shouldSucceedWith
-        $ do
-            _ <- defineTestTypeCon "Prelude.Integer" 0
-            _ <- defineTestFunc "succ" 1 "Prelude.Integer -> Prelude.Integer"
-            _ <- defineTestFunc "eq" 0 "forall a. a -> a -> Prelude.Bool"
-            _ <- defineTestTypeCon "List" 1
-            _ <- defineTestCon "Nil" 0 "forall a. List a"
-            _ <- defineTestCon "Cons" 2 "forall a. a -> List a -> List a"
-            shouldInferType
-              (Recursive
-                [ "length xs = case xs of {"
-                  ++ "    Nil        -> if eq Nil Nil then 0 else 1;"
-                  ++ "    Cons x xs' -> succ (length xs')"
-                  ++ "  }"
-                ]
-              )
-              [ "length @a @b (xs :: List a) :: Prelude.Integer = case xs of {"
-                ++ "    Nil -> if eq @(List b) (Nil @b) (Nil @b) then 0 else 1;"
-                ++ "    Cons (x :: a) (xs' :: List a) ->"
-                ++ "      succ (length @a @b xs')"
-                ++ "  }"
-              ]
-      it
-          "infers vanishing type arguments correctly in recursive functions that use functions with vanishing type arguments"
-        $ shouldSucceedWith
-        $ do
-            _ <- defineTestTypeCon "Prelude.Integer" 0
-            _ <- defineTestFunc "succ" 1 "Prelude.Integer -> Prelude.Integer"
-            _ <- defineTestFunc "true" 0 "forall a. Prelude.Bool"
-            _ <- defineTestTypeCon "List" 1
-            _ <- defineTestCon "Nil" 0 "forall a. List a"
-            _ <- defineTestCon "Cons" 2 "forall a. a -> List a -> List a"
-            shouldInferType
-              (Recursive
-                [ "length xs = case xs of {"
-                  ++ "    Nil        -> if true then 0 else 1;"
-                  ++ "    Cons x xs' -> succ (length xs')"
-                  ++ "  }"
-                ]
-              )
-              [ "length @a @b (xs :: List a) :: Prelude.Integer = case xs of {"
-                ++ "    Nil -> if true @b then 0 else 1;"
-                ++ "    Cons (x :: a) (xs' :: List a) ->"
-                ++ "      succ (length @a @b xs')"
-                ++ "  }"
-              ]
-
-    context "mutually recursive functions" $ do
-      it "infers the types of mutually recursive functions correctly"
-        $ shouldSucceedWith
-        $ do
-            _ <- defineTestTypeCon "Prelude.Integer" 0
-            _ <- defineTestFunc "succ" 1 "Prelude.Integer -> Prelude.Integer"
-            _ <- defineTestTypeCon "List" 1
-            _ <- defineTestCon "Nil" 0 "forall a. List a"
-            _ <- defineTestCon "Cons" 2 "forall a. a -> List a -> List a"
-            shouldInferType
-              (Recursive
-                [ "length xs = case xs of {"
-                ++ "    Nil        -> 0;"
-                ++ "    Cons x xs' -> succ (length' xs')"
-                ++ "  }"
-                , "length' xs = case xs of {"
+  context "recursive functions" $ do
+    it "infers the types of recursive functions correctly"
+      $ shouldSucceedWith
+      $ do
+          _ <- defineTestTypeCon "Prelude.Integer" 0
+          _ <- defineTestFunc "succ" 1 "Prelude.Integer -> Prelude.Integer"
+          _ <- defineTestTypeCon "List" 1
+          _ <- defineTestCon "Nil" 0 "forall a. List a"
+          _ <- defineTestCon "Cons" 2 "forall a. a -> List a -> List a"
+          shouldInferType
+            (Recursive
+              [ "length xs = case xs of {"
                 ++ "    Nil        -> 0;"
                 ++ "    Cons x xs' -> succ (length xs')"
                 ++ "  }"
-                ]
-              )
-              [ "length @a (xs :: List a) :: Prelude.Integer = case xs of {"
-              ++ "    Nil -> 0;"
-              ++ "    Cons (x :: a) (xs' :: List a) -> succ (length' @a xs')"
-              ++ "  }"
-              , "length' @a (xs :: List a) :: Prelude.Integer = case xs of {"
+              ]
+            )
+            [ "length @a (xs :: List a) :: Prelude.Integer = case xs of {"
               ++ "    Nil -> 0;"
               ++ "    Cons (x :: a) (xs' :: List a) -> succ (length @a xs')"
               ++ "  }"
-              ]
-      it
-          "infers vanishing type arguments correctly in mutually recursive functions"
-        $ shouldSucceedWith
-        $ do
-            _ <- defineTestTypeCon "Prelude.Integer" 0
-            _ <- defineTestFunc "succ" 1 "Prelude.Integer -> Prelude.Integer"
-            _ <- defineTestFunc "eq" 0 "forall a. a -> a -> Prelude.Bool"
-            _ <- defineTestTypeCon "List" 1
-            _ <- defineTestCon "Nil" 0 "forall a. List a"
-            _ <- defineTestCon "Cons" 2 "forall a. a -> List a -> List a"
-            shouldInferType
-              (Recursive
-                [ "length xs = case xs of {"
-                ++ "    Nil        -> if eq Nil Nil then 0 else 1;"
-                ++ "    Cons x xs' -> succ (length' xs')"
-                ++ "  }"
-                , "length' xs = case xs of {"
+            ]
+    it "infers vanishing type arguments correctly in recursive functions"
+      $ shouldSucceedWith
+      $ do
+          _ <- defineTestTypeCon "Prelude.Integer" 0
+          _ <- defineTestFunc "succ" 1 "Prelude.Integer -> Prelude.Integer"
+          _ <- defineTestFunc "eq" 0 "forall a. a -> a -> Prelude.Bool"
+          _ <- defineTestTypeCon "List" 1
+          _ <- defineTestCon "Nil" 0 "forall a. List a"
+          _ <- defineTestCon "Cons" 2 "forall a. a -> List a -> List a"
+          shouldInferType
+            (Recursive
+              [ "length xs = case xs of {"
                 ++ "    Nil        -> if eq Nil Nil then 0 else 1;"
                 ++ "    Cons x xs' -> succ (length xs')"
                 ++ "  }"
-                ]
-              )
-              [ "length @a @b @c (xs :: List a) :: Prelude.Integer = case xs of {"
+              ]
+            )
+            [ "length @a @b (xs :: List a) :: Prelude.Integer = case xs of {"
               ++ "    Nil -> if eq @(List b) (Nil @b) (Nil @b) then 0 else 1;"
               ++ "    Cons (x :: a) (xs' :: List a) ->"
-              ++ "      succ (length' @a @b @c xs')"
+              ++ "      succ (length @a @b xs')"
               ++ "  }"
-              , "length' @a @b @c (xs :: List a) :: Prelude.Integer = case xs of {"
-              ++ "    Nil -> if eq @(List c) (Nil @c) (Nil @c) then 0 else 1;"
-              ++ "    Cons (x :: a) (xs' :: List a) ->"
-              ++ "      succ (length @a @b @c xs')"
-              ++ "  }"
-              ]
-      it
-          "infers vanishing type arguments correctly in mutually recursive functions that use functions with vanishing type arguments"
-        $ shouldSucceedWith
-        $ do
-            _ <- defineTestTypeCon "Prelude.Integer" 0
-            _ <- defineTestFunc "succ" 1 "Prelude.Integer -> Prelude.Integer"
-            _ <- defineTestFunc "true" 0 "forall a. Prelude.Bool"
-            _ <- defineTestTypeCon "List" 1
-            _ <- defineTestCon "Nil" 0 "forall a. List a"
-            _ <- defineTestCon "Cons" 2 "forall a. a -> List a -> List a"
-            shouldInferType
-              (Recursive
-                [ "length xs = case xs of {"
-                ++ "    Nil        -> if true then 0 else 1;"
-                ++ "    Cons x xs' -> succ (length' xs')"
-                ++ "  }"
-                , "length' xs = case xs of {"
+            ]
+    it
+        "infers vanishing type arguments correctly in recursive functions that use functions with vanishing type arguments"
+      $ shouldSucceedWith
+      $ do
+          _ <- defineTestTypeCon "Prelude.Integer" 0
+          _ <- defineTestFunc "succ" 1 "Prelude.Integer -> Prelude.Integer"
+          _ <- defineTestFunc "true" 0 "forall a. Prelude.Bool"
+          _ <- defineTestTypeCon "List" 1
+          _ <- defineTestCon "Nil" 0 "forall a. List a"
+          _ <- defineTestCon "Cons" 2 "forall a. a -> List a -> List a"
+          shouldInferType
+            (Recursive
+              [ "length xs = case xs of {"
                 ++ "    Nil        -> if true then 0 else 1;"
                 ++ "    Cons x xs' -> succ (length xs')"
                 ++ "  }"
-                ]
-              )
-              [ "length @a @b @c (xs :: List a) :: Prelude.Integer = case xs of {"
+              ]
+            )
+            [ "length @a @b (xs :: List a) :: Prelude.Integer = case xs of {"
               ++ "    Nil -> if true @b then 0 else 1;"
               ++ "    Cons (x :: a) (xs' :: List a) ->"
-              ++ "      succ (length' @a @b @c xs')"
+              ++ "      succ (length @a @b xs')"
               ++ "  }"
-              , "length' @a @b @c (xs :: List a) :: Prelude.Integer = case xs of {"
-              ++ "    Nil -> if true @c then 0 else 1;"
-              ++ "    Cons (x :: a) (xs' :: List a) ->"
-              ++ "      succ (length @a @b @c xs')"
+            ]
+
+  context "mutually recursive functions" $ do
+    it "infers the types of mutually recursive functions correctly"
+      $ shouldSucceedWith
+      $ do
+          _ <- defineTestTypeCon "Prelude.Integer" 0
+          _ <- defineTestFunc "succ" 1 "Prelude.Integer -> Prelude.Integer"
+          _ <- defineTestTypeCon "List" 1
+          _ <- defineTestCon "Nil" 0 "forall a. List a"
+          _ <- defineTestCon "Cons" 2 "forall a. a -> List a -> List a"
+          shouldInferType
+            (Recursive
+              [ "length xs = case xs of {"
+              ++ "    Nil        -> 0;"
+              ++ "    Cons x xs' -> succ (length' xs')"
+              ++ "  }"
+              , "length' xs = case xs of {"
+              ++ "    Nil        -> 0;"
+              ++ "    Cons x xs' -> succ (length xs')"
               ++ "  }"
               ]
+            )
+            [ "length @a (xs :: List a) :: Prelude.Integer = case xs of {"
+            ++ "    Nil -> 0;"
+            ++ "    Cons (x :: a) (xs' :: List a) -> succ (length' @a xs')"
+            ++ "  }"
+            , "length' @a (xs :: List a) :: Prelude.Integer = case xs of {"
+            ++ "    Nil -> 0;"
+            ++ "    Cons (x :: a) (xs' :: List a) -> succ (length @a xs')"
+            ++ "  }"
+            ]
+    it
+        "infers vanishing type arguments correctly in mutually recursive functions"
+      $ shouldSucceedWith
+      $ do
+          _ <- defineTestTypeCon "Prelude.Integer" 0
+          _ <- defineTestFunc "succ" 1 "Prelude.Integer -> Prelude.Integer"
+          _ <- defineTestFunc "eq" 0 "forall a. a -> a -> Prelude.Bool"
+          _ <- defineTestTypeCon "List" 1
+          _ <- defineTestCon "Nil" 0 "forall a. List a"
+          _ <- defineTestCon "Cons" 2 "forall a. a -> List a -> List a"
+          shouldInferType
+            (Recursive
+              [ "length xs = case xs of {"
+              ++ "    Nil        -> if eq Nil Nil then 0 else 1;"
+              ++ "    Cons x xs' -> succ (length' xs')"
+              ++ "  }"
+              , "length' xs = case xs of {"
+              ++ "    Nil        -> if eq Nil Nil then 0 else 1;"
+              ++ "    Cons x xs' -> succ (length xs')"
+              ++ "  }"
+              ]
+            )
+            [ "length @a @b @c (xs :: List a) :: Prelude.Integer = case xs of {"
+            ++ "    Nil -> if eq @(List b) (Nil @b) (Nil @b) then 0 else 1;"
+            ++ "    Cons (x :: a) (xs' :: List a) ->"
+            ++ "      succ (length' @a @b @c xs')"
+            ++ "  }"
+            , "length' @a @b @c (xs :: List a) :: Prelude.Integer = case xs of {"
+            ++ "    Nil -> if eq @(List c) (Nil @c) (Nil @c) then 0 else 1;"
+            ++ "    Cons (x :: a) (xs' :: List a) ->"
+            ++ "      succ (length @a @b @c xs')"
+            ++ "  }"
+            ]
+    it
+        "infers vanishing type arguments correctly in mutually recursive functions that use functions with vanishing type arguments"
+      $ shouldSucceedWith
+      $ do
+          _ <- defineTestTypeCon "Prelude.Integer" 0
+          _ <- defineTestFunc "succ" 1 "Prelude.Integer -> Prelude.Integer"
+          _ <- defineTestFunc "true" 0 "forall a. Prelude.Bool"
+          _ <- defineTestTypeCon "List" 1
+          _ <- defineTestCon "Nil" 0 "forall a. List a"
+          _ <- defineTestCon "Cons" 2 "forall a. a -> List a -> List a"
+          shouldInferType
+            (Recursive
+              [ "length xs = case xs of {"
+              ++ "    Nil        -> if true then 0 else 1;"
+              ++ "    Cons x xs' -> succ (length' xs')"
+              ++ "  }"
+              , "length' xs = case xs of {"
+              ++ "    Nil        -> if true then 0 else 1;"
+              ++ "    Cons x xs' -> succ (length xs')"
+              ++ "  }"
+              ]
+            )
+            [ "length @a @b @c (xs :: List a) :: Prelude.Integer = case xs of {"
+            ++ "    Nil -> if true @b then 0 else 1;"
+            ++ "    Cons (x :: a) (xs' :: List a) ->"
+            ++ "      succ (length' @a @b @c xs')"
+            ++ "  }"
+            , "length' @a @b @c (xs :: List a) :: Prelude.Integer = case xs of {"
+            ++ "    Nil -> if true @c then 0 else 1;"
+            ++ "    Cons (x :: a) (xs' :: List a) ->"
+            ++ "      succ (length @a @b @c xs')"
+            ++ "  }"
+            ]
 
-    context "functions type signatures" $ do
-      it "allows argument type annotation to make type more specific"
-        $ shouldSucceedWith
-        $ do
-            _ <- defineTestTypeCon "Foo" 0
-            shouldInferType (NonRecursive "fooId (x :: Foo) = x")
-                            ["fooId (x :: Foo) :: Foo = x"]
-      it "allows return type annotation to make type more specific"
-        $ shouldSucceedWith
-        $ do
-            _ <- defineTestTypeCon "Foo" 0
-            shouldInferType (NonRecursive "fooId x :: Foo = x")
-                            ["fooId (x :: Foo) :: Foo = x"]
+  context "functions type signatures" $ do
+    it "allows argument type annotation to make type more specific"
+      $ shouldSucceedWith
+      $ do
+          _ <- defineTestTypeCon "Foo" 0
+          shouldInferType (NonRecursive "fooId (x :: Foo) = x")
+                          ["fooId (x :: Foo) :: Foo = x"]
+    it "allows return type annotation to make type more specific"
+      $ shouldSucceedWith
+      $ do
+          _ <- defineTestTypeCon "Foo" 0
+          shouldInferType (NonRecursive "fooId x :: Foo = x")
+                          ["fooId (x :: Foo) :: Foo = x"]
