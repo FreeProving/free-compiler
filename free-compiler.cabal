@@ -86,7 +86,6 @@ common deps
                      -- Pattern matching compiler:
                    , haskell-src-transformations ==0.1.*
                      -- Pretty printing:
-                   , pretty                      ==1.1.3.*
                    , text                        ==1.2.*
                    , wl-pprint-text              ==1.2.*
                      -- Utilities:
