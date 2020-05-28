@@ -7,7 +7,7 @@
 --   'Pretty' instance without generating overlapping instances for basic types
 --   (e.g. 'String').
 --   We introduce the wrapper datatype 'PrettyAgda' to avoid the overlapping
---   instances and explicitly declare 'Pretty' instances for for common AST
+--   instances and explicitly declare 'Pretty' instances for common AST
 --   nodes.
 module FreeC.Backend.Agda.Pretty
   ( prettyAgda
