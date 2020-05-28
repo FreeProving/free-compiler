@@ -34,10 +34,10 @@ import qualified Agda.Syntax.Position          as Agda
 name :: String -> Agda.Name
 name ident = Agda.Name Agda.NoRange Agda.InScope [Agda.Id ident]
 
--- | Create a qualified name given a local variable 'Name' and a list of module
---   'Name's.
+-- | Create a qualified identifier given a local identifier as 'Name' and a
+--   list of module 'Name's.
 qname :: [Agda.Name] -> Agda.Name -> QName
-qname ms n = foldr Agda.Qual (Agda.QName n) ms
+qname modules ident = foldr Agda.Qual (Agda.QName ident) modules
 
 -- | Creates a qualified name using an empty list of module names.
 qname' :: Agda.Name -> Agda.QName
