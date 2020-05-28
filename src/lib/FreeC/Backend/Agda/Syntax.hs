@@ -2,8 +2,8 @@
 --   Agda libraries.
 
 module FreeC.Backend.Agda.Syntax
-    ( module Agda.Syntax.Concrete
-    )
+  ( module Agda.Syntax.Concrete
+  )
 where
 
 import           Agda.Syntax.Concrete
