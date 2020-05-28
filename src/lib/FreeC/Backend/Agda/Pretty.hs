@@ -14,8 +14,6 @@ module FreeC.Backend.Agda.Pretty
   )
 where
 
--- import qualified Agda.Syntax.Concrete.Generic  as Agda
-
 -- We need just he pretty instances from 'Agda.Syntax.Concrete.Pretty'.
 import qualified Agda.Syntax.Concrete.Pretty    ( )
 import qualified Agda.Utils.Pretty             as Agda
