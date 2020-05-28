@@ -5,12 +5,15 @@ module FreeC.Backend.Agda.Syntax
   ( module Agda.Syntax.Concrete
   , module Agda.Syntax.Common
   , module Agda.Syntax.Position
+    -- * Identifiers
   , name
-  , intLiteral
-  , simpleImport
-  , lambda
   , qname
   , qname'
+    -- * Imports
+  , simpleImport
+    -- * Expressions
+  , intLiteral
+  , lambda
   )
 where
 
