@@ -8,9 +8,12 @@ Module Error.
   Definition Shape (E : Type) : Type := E.
   Definition Pos {E : Type} (s : Shape E) : Type := Void.
 
-  (* TODO Type synonym and smart constructors for the error monad. *)
+  (* Type synonym and smart constructors for the error monad. *)
   Module Import Monad.
-
+    Definition Error (E A : Type) := Free (Shape E) Pos A.
+    Definition NoError {E A : Type} (x : A) : Error E A := pure x.
+    Definition ThrowError {E A : Type} (msg : E) : Error E A :=
+      impure msg (fun (p : Pos msg) => match p with end).
   End Monad.
 
   (* TODO Partial instance for the error monad. *)
