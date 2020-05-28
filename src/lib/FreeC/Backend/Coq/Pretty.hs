@@ -9,7 +9,11 @@
 --
 --   There are instances for the actual node of commonly pretty printed types
 --   of nodes.
-module FreeC.Backend.Coq.Pretty where
+module FreeC.Backend.Coq.Pretty
+  ( PrettyCoq(..)
+  , prettyCoq
+  )
+where
 
 import qualified Language.Coq.Gallina          as Coq
 import           Language.Coq.Pretty            ( Gallina
@@ -19,23 +23,27 @@ import           Language.Coq.Pretty            ( Gallina
 import           FreeC.Pretty
 
 -- | Wrapper data type that makes a Coq AST node of type @a@ pretty printable.
-newtype PrettyCoq a = PrettyCoq { unwrapPrettyCoq :: a }
+newtype PrettyCoq a = PrettyCoq { unPrettyCoq :: a }
 
 -- | Pretty instance for nodes of the Coq AST.
 --
 --   When pretty printing a list of nodes, the individual documents are
 --   concatenated with newlines.
 instance Gallina a => Pretty (PrettyCoq a) where
-  pretty     = renderGallina . unwrapPrettyCoq
+  pretty     = renderGallina . unPrettyCoq
   prettyList = prettySeparated (line <> line)
+
+-- | Pretty prints the given Coq AST node.
+prettyCoq :: Gallina a => a -> Doc
+prettyCoq = pretty . PrettyCoq
 
 -- | Terms often need to be pretty printed in the tests.
 instance Pretty Coq.Term where
-  pretty     = pretty . PrettyCoq
+  pretty     = prettyCoq
   prettyList = prettyList . map PrettyCoq
 
 -- | Sentences often need to be pretty printed in the tests and when writing
 --   the generated Coq code to the console or a file.
 instance Pretty Coq.Sentence where
-  pretty     = pretty . PrettyCoq
+  pretty     = prettyCoq
   prettyList = prettyList . map PrettyCoq
