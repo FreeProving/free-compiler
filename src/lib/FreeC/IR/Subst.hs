@@ -170,10 +170,10 @@ instance ApplySubst IR.Expr IR.Expr where
 -- | Applies the given expression substitution to the right-hand side of the
 --   given @case@-expression alterntaive.
 instance ApplySubst IR.Expr IR.Alt where
-  applySubst subst (IR.Alt srcSpan conPat varPats expr) =
+  applySubst subst (IR.Alt srcSpan conPat varPats expr isBang) =
     let (subst', varPats') = newRenameArgs subst varPats
         expr'              = applySubst subst' expr
-    in  IR.Alt srcSpan conPat varPats' expr'
+    in  IR.Alt srcSpan conPat varPats' expr' isBang
 
 -------------------------------------------------------------------------------
 -- Application to types in expressions                                       --
@@ -239,10 +239,10 @@ instance ApplySubst IR.Type IR.Expr where
 -- | Applies the given type substitution to the right-hand side of the
 --   given @case@-expression alterntaive.
 instance ApplySubst IR.Type IR.Alt where
-  applySubst subst (IR.Alt srcSpan conPat varPats expr) =
+  applySubst subst (IR.Alt srcSpan conPat varPats expr isBang) =
     let varPats' = applySubst subst varPats
         expr'    = applySubst subst expr
-    in  IR.Alt srcSpan conPat varPats' expr'
+    in  IR.Alt srcSpan conPat varPats' expr' isBang
 
 -- | Applies the given type substitution to the type annotation of the given
 --   variable pattern.

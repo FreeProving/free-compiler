@@ -166,7 +166,7 @@ makeConstArgGraph decls = do
         --
         --   If a variable pattern shadows @x_i@, @x_i@ is not unchanged.
         checkAlt :: IR.Alt -> [IR.Expr] -> Bool
-        checkAlt (IR.Alt _ _ varPats expr) args
+        checkAlt (IR.Alt _ _ varPats expr _) args
           | x `shadowedBy` varPats = not (callsG expr)
           | otherwise              = checkExpr expr args
 

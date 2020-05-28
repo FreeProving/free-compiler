@@ -297,7 +297,7 @@ boundVarsWithTypeAt = fromMaybe Map.empty .: boundVarsWithTypeAt'
   -- | Gets the names of variables bound by the variable patterns of the given
   --   @case@-expression alternative.
   altBoundVarsWithType :: IR.Alt -> Map IR.QName (Maybe IR.Type)
-  altBoundVarsWithType (IR.Alt _ _ varPats _) = fromVarPats varPats
+  altBoundVarsWithType (IR.Alt _ _ varPats _ _) = fromVarPats varPats
 
   -- | Converts a list of variable patterns to a set of variable names bound
   --   by these patterns.

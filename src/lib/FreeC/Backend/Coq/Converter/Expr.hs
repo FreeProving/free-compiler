@@ -278,7 +278,7 @@ generateApplyN arity term args =
 
 -- | Converts an alternative of a Haskell @case@-expressions to Coq.
 convertAlt :: IR.Alt -> Converter Coq.Equation
-convertAlt (IR.Alt _ conPat varPats expr) = localEnv $ do
+convertAlt (IR.Alt _ conPat varPats expr _) = localEnv $ do
   conPat' <- convertConPat conPat varPats
   expr'   <- convertExpr expr
   return (Coq.equation conPat' expr')

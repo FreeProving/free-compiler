@@ -222,7 +222,7 @@ checkDecArgs decls knownDecArgIndecies decArgIndecies = all
     --   The variable patterns shadow existing (structurally smaller) variables
     --   with the same name.
     checkAlt :: IR.Alt -> Bool
-    checkAlt (IR.Alt _ _ varPats expr) =
+    checkAlt (IR.Alt _ _ varPats expr _) =
       let smaller' = withoutArgs varPats smaller
       in  checkExpr decArg smaller' expr []
 
@@ -232,7 +232,7 @@ checkDecArgs decls knownDecArgIndecies decArgIndecies = all
     --   All variable patterns are added to the set of structurally smaller
     --   variables.
     checkSmallerAlt :: IR.Alt -> Bool
-    checkSmallerAlt (IR.Alt _ _ varPats expr) =
+    checkSmallerAlt (IR.Alt _ _ varPats expr _) =
       let smaller' = withArgs varPats smaller
       in  checkExpr decArg smaller' expr []
 

@@ -348,7 +348,7 @@ similarExpr (IR.IntLiteral _ _ _   ) _                      = const False
 --   where @xᵢ@ and @yᵢ@ denote the names of the variables bound by the
 --   patterns @pᵢ@ and @qᵢ@ respectively.
 instance Similar IR.Alt where
-  similar' (IR.Alt _ c xs e) (IR.Alt _ d ys f)
+  similar' (IR.Alt _ c xs e _) (IR.Alt _ d ys f _)
     | c == d
     = let ns = map IR.varPatQName xs
           ms = map IR.varPatQName ys

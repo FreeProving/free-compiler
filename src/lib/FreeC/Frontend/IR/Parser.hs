@@ -626,6 +626,7 @@ altParser =
     <*> Parsec.many varPatParser
     <*  token RArrow
     <*> exprParser
+    <*> return False
 
 -------------------------------------------------------------------------------
 -- Patterns                                                                  --
