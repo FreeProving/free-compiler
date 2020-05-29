@@ -1,4 +1,4 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving, MultiParamTypeClasses #-}
 
 -- | This module contains a compiler pass that infers the types of all
 --   function declarations including the types of the sub-expressions of
@@ -222,12 +222,40 @@ typeInferencePass :: DependencyAwarePass IR.FuncDecl
 typeInferencePass = mapComponentM inferFuncDeclTypes
 
 -------------------------------------------------------------------------------
--- Type inference state monad                                                --
+-- Type equations                                                            --
 -------------------------------------------------------------------------------
 
 -- | A type equation and the location in the source that caused the creation
 --   of this type equation.
-type TypeEquation = (SrcSpan, IR.Type, IR.Type)
+data TypeEquation = TypeEquation
+  { eqnSrcSpan :: SrcSpan
+    -- ^ The location in the source code of the expression that caused the
+    --   creation of this type equation.
+  , eqnExpectedType :: IR.Type
+    -- ^ The left-hand side of the type equation.
+  , eqnActualType :: IR.Type
+    -- ^ The right-hand side of the type equation.
+  , eqnRigidTypeVars :: [IR.TypeVarDecl]
+    -- ^ Declarations of type variables that are bound by the type signature
+    --   of the function declaration that caused the creation of this type
+    --   equation. These type variable must not be matched by the unification
+    --   algorithm.
+  }
+
+-- | Type substitutions can be applied to the left- and right-hand sides of
+--   type equations.
+--
+--    Rigid type variables in type equations cannot be substituted.
+instance ApplySubst IR.Type TypeEquation where
+  applySubst subst eqn =
+    let subst'        = subst
+        actualType'   = applySubst subst' (eqnActualType eqn)
+        expectedType' = applySubst subst' (eqnExpectedType eqn)
+    in  eqn { eqnActualType = actualType', eqnExpectedType = expectedType' }
+
+-------------------------------------------------------------------------------
+-- Type inference state monad                                                --
+-------------------------------------------------------------------------------
 
 -- | Maps the names of defined functions and constructors to their type schema.
 type TypeAssumption = Map IR.QName IR.TypeSchema
@@ -236,6 +264,11 @@ type TypeAssumption = Map IR.QName IR.TypeSchema
 data TypeInferenceState = TypeInferenceState
   { typeEquations :: [TypeEquation]
     -- ^ The type equations that have to be unified.
+  , rigidTypeVars :: [IR.TypeVarDecl]
+    -- ^ Declarations of type variables that are bound in the current context.
+    --   This is used by 'annotateFuncDecls' to remember which type variables
+    --   have to be inserted into 'eqnRigidTypeVars' by
+    --   'addTypeEquation'.
   , typeAssumption :: TypeAssumption
     -- ^ The known type schemas of predefined functions and constructors.
   , fixedTypeArgs :: Map IR.QName [IR.Type]
@@ -247,6 +280,7 @@ data TypeInferenceState = TypeInferenceState
 -- | An empty 'TypeInferenceState'.
 emptyTypeInferenceState :: TypeInferenceState
 emptyTypeInferenceState = TypeInferenceState { typeEquations  = []
+                                             , rigidTypeVars  = []
                                              , typeAssumption = Map.empty
                                              , fixedTypeArgs  = Map.empty
                                              }
@@ -304,8 +338,13 @@ lookupFixedTypeArgs name = gets (Map.findWithDefault [] name . fixedTypeArgs)
 
 -- | Adds a 'TypeEquation' entry the current state.
 addTypeEquation :: SrcSpan -> IR.Type -> IR.Type -> TypeInference ()
-addTypeEquation srcSpan t t' =
-  modify $ \s -> s { typeEquations = (srcSpan, t, t') : typeEquations s }
+addTypeEquation srcSpan t t' = modify $ \s ->
+  let eqn = TypeEquation { eqnSrcSpan       = srcSpan
+                         , eqnExpectedType  = t
+                         , eqnActualType    = t'
+                         , eqnRigidTypeVars = rigidTypeVars s
+                         }
+  in  s { typeEquations = eqn : typeEquations s }
 
 -- | Instantiates the type schema of the function or constructor with the
 --   given name and adds a 'TypeEquation' for the resulting type and the
@@ -380,6 +419,15 @@ withLocalTypeAssumption mx = do
   modify $ \s -> s { typeAssumption = oldTypeAssumption }
   return x
 
+-- | Adds the given type variable declarations to the list of 'rigidTypeVars'
+--   during the given type inference computation.
+withRigidTypeVars :: [IR.TypeVarDecl] -> TypeInference a -> TypeInference a
+withRigidTypeVars vs mx = do
+  modify $ \s -> s { rigidTypeVars = vs ++ rigidTypeVars s }
+  x <- mx
+  modify $ \s -> s { rigidTypeVars = drop (length vs) (rigidTypeVars s) }
+  return x
+
 -------------------------------------------------------------------------------
 -- Function declarations                                                     --
 -------------------------------------------------------------------------------
@@ -402,14 +450,6 @@ inferFuncDeclTypes' funcDecls = withLocalState $ do
     -- This is required such that polymorphically recursive functions don't
     -- cause a type error.
   mapM_ extendTypeAssumptionWithFuncDecl funcDecls
-
-  -- Bind type variables.
-  --
-  -- In order to avoid matching of rigid type variables that are bound by
-  -- type signatures, the unification algorithm checks whether there is an
-  -- environment entry for a matched type variable. Thus, we have to insert
-  -- such entries for the type variables bound by the function declarations.
-  mapM_ bindRigidTypeVars                funcDecls
 
   -- Add type annotations.
   --
@@ -477,7 +517,7 @@ inferFuncDeclTypes' funcDecls = withLocalState $ do
   --
   -- Now that we also know the type arguments of the functions in then
   -- strongly connected component, we can replace the type annotations
-  -- for function and constructor applications added by 'annotateFuncDecl'
+  -- for function and constructor applications added by 'annotateFuncDecls'
   -- by visible type applications.
   mapM_ extendTypeAssumptionWithFuncDecl abstractedFuncDecls
   visiblyAppliedFuncDecls <- mapM applyFuncDeclVisibly abstractedFuncDecls
@@ -542,14 +582,14 @@ annotateExprWith expr resType = case IR.exprTypeSchema expr of
 annotateExprWith' :: IR.Expr -> IR.Type -> TypeInference IR.Expr
 
 -- If @C :: τ@ is a predefined constructor with @C :: forall α₀ … αₙ. τ'@,
--- then add a type equation @τ = σ(τ')@ where @σ = { α₀ ↦ β₀, …, αₙ ↦ βₙ }@
+-- then add a type equation @σ(τ') = τ@ where @σ = { α₀ ↦ β₀, …, αₙ ↦ βₙ }@
 -- and @β₀, …, βₙ@ are fresh type variables.
 annotateExprWith' (IR.Con srcSpan conName _) resType = do
   addTypeEquationFor srcSpan conName resType
   return (IR.Con srcSpan conName (makeExprType resType))
 
 -- If @x :: τ@ is in scope with @x :: forall α₀ … αₙ. τ'@, then add a type
--- equation @τ = σ(τ')@ where @σ = { α₀ ↦ β₀, …, αₙ ↦ βₙ }@ and @β₀, …, βₙ@
+-- equation @σ(τ') = τ@ where @σ = { α₀ ↦ β₀, …, αₙ ↦ βₙ }@ and @β₀, …, βₙ@
 -- are fresh type variables.
 -- In case of local variables or functions whose types are currently inferred,
 -- the type assumption of @x@ is not abstracted (i.e., @n = 0@).
@@ -607,7 +647,7 @@ annotateExprWith' (IR.ErrorExpr srcSpan msg _) resType =
   return (IR.ErrorExpr srcSpan msg (makeExprType resType))
 
 -- If @n :: τ@ for some integer literal @n@, then add the type equation
--- @τ = Integer@.
+-- @Integer = τ@.
 annotateExprWith' (IR.IntLiteral srcSpan value _) resType = do
   let intType = IR.TypeCon NoSrcSpan IR.Prelude.integerTypeConName
   addTypeEquation srcSpan intType resType
@@ -658,11 +698,14 @@ annotateFuncDecls funcDecls = withLocalTypeAssumption $ do
 
   -- | Annotates the right-hand side of the given function declaration.
   annotateFuncDeclRhs :: IR.FuncDecl -> TypeInference IR.FuncDecl
-  annotateFuncDeclRhs funcDecl = withLocalTypeAssumption $ do
-    let Just retType = IR.funcDeclReturnType funcDecl
-    mapM_ extendTypeAssumptionWithVarPat (IR.funcDeclArgs funcDecl)
-    rhs' <- annotateExprWith (IR.funcDeclRhs funcDecl) retType
-    return funcDecl { IR.funcDeclRhs = rhs' }
+  annotateFuncDeclRhs funcDecl =
+    withLocalTypeAssumption
+      $ withRigidTypeVars (IR.funcDeclTypeArgs funcDecl)
+      $ do
+          let Just retType = IR.funcDeclReturnType funcDecl
+          mapM_ extendTypeAssumptionWithVarPat (IR.funcDeclArgs funcDecl)
+          rhs' <- annotateExprWith (IR.funcDeclRhs funcDecl) retType
+          return funcDecl { IR.funcDeclRhs = rhs' }
 
 -------------------------------------------------------------------------------
 -- Visible type application                                                  --
@@ -891,22 +934,30 @@ unifyEquations = unifyEquations' identitySubst . reverse
  where
   unifyEquations'
     :: Subst IR.Type -> [TypeEquation] -> Converter (Subst IR.Type)
-  unifyEquations' subst []                         = return subst
-  unifyEquations' subst ((srcSpan, t1, t2) : eqns) = do
-    let t1' = applySubst subst t1
-        t2' = applySubst subst t2
-    mgu <- unifyOrFail srcSpan t1' t2'
+  unifyEquations' subst []           = return subst
+  unifyEquations' subst (eqn : eqns) = do
+    let eqn' = applySubst subst eqn
+    mgu <- unifyEquation eqn'
     let subst' = composeSubst mgu subst
     unifyEquations' subst' eqns
+
+-- | Unifies the left- and right-hand sides of the given type equation.
+--
+--   In order to avoid matching of rigid type variables that are bound by
+--   type signatures, the unification algorithm checks whether there is an
+--   environment entry for a matched type variable. Thus, we have to insert
+--   such entries for the type variables bound by the function declaration
+--   that created the given type equation before the actual unification.
+--   These entries are inserted only locally and not visible after this
+--   operation anymore.
+unifyEquation :: TypeEquation -> Converter (Subst IR.Type)
+unifyEquation eqn = localEnv $ do
+  mapM_ bindRigidTypeVar (eqnRigidTypeVars eqn)
+  unifyOrFail (eqnSrcSpan eqn) (eqnExpectedType eqn) (eqnActualType eqn)
 
 -------------------------------------------------------------------------------
 -- Rigid type variables                                                      --
 -------------------------------------------------------------------------------
-
--- | Invokes 'bindRigidTypeVar' for each type variable of the given function
---   declaration.
-bindRigidTypeVars :: MonadConverter m => IR.FuncDecl -> m ()
-bindRigidTypeVars = mapM_ bindRigidTypeVar . IR.funcDeclTypeArgs
 
 -- | Adds an environment entry for the type variable that is bound by the
 --   given type variable declaration.
