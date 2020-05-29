@@ -296,7 +296,8 @@ instance Pretty Alt where
       <+> pretty expr
   pretty (Alt _ conPat varPats expr True) =
     char '!'
-      <>  parens (pretty conPat <+> hsep (map pretty varPats))
+      <>  pretty conPat
+      <+> hsep (map pretty varPats)
       <+> prettyString "->"
       <+> pretty expr
 
