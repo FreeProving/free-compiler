@@ -580,14 +580,14 @@ annotateExprWith' (IR.Case srcSpan scrutinee alts _) resType = do
   -- | Annotates the pattern of the given alternative with the given type
   --   and its right-hand side with the @case@ expressions result type.
   annotateAlt :: IR.Alt -> IR.Type -> TypeInference IR.Alt
-  annotateAlt (IR.Alt altSrcSpan conPat varPats rhs isBang) patType =
+  annotateAlt (IR.Alt altSrcSpan conPat varPats rhs isStrict) patType =
     withLocalTypeAssumption $ do
       varPats' <- mapM annotateVarPat varPats
       let varPatTypes = map (fromJust . IR.varPatType) varPats'
           conPatType  = IR.funcType NoSrcSpan varPatTypes patType
       addTypeEquationFor altSrcSpan (IR.conPatName conPat) conPatType
       rhs' <- annotateExprWith rhs resType
-      return (IR.Alt altSrcSpan conPat varPats' rhs' isBang)
+      return (IR.Alt altSrcSpan conPat varPats' rhs' isStrict)
 
 -- Error terms are predefined polymorphic funtions. They can be annoated
 -- with the given result type directly.
@@ -730,11 +730,11 @@ applyExprVisibly expr@(IR.IntLiteral _ _ _) = return expr
 -- | Applies 'applyExprVisibly' to the right-hand side of the given @case@-
 --   expression alternative.
 applyAltVisibly :: IR.Alt -> TypeInference IR.Alt
-applyAltVisibly (IR.Alt srcSpan conPat varPats expr isBang) =
+applyAltVisibly (IR.Alt srcSpan conPat varPats expr isStrict) =
   withLocalTypeAssumption $ do
     mapM_ removeVarPatFromTypeAssumption varPats
     expr' <- applyExprVisibly expr
-    return (IR.Alt srcSpan conPat varPats expr' isBang)
+    return (IR.Alt srcSpan conPat varPats expr' isStrict)
 
 -- | Applies ' applyExprVisibly' to the right-hand side of the given function
 --   declaration.
@@ -856,10 +856,10 @@ abstractVanishingTypeArgs funcDecls =
   -- | Applies 'addInternalTypeArgsToExpr' to the right-hand side of
   --   the given @case@ expression alternative.
   addInternalTypeArgsToAlt :: Set IR.QName -> IR.Alt -> IR.Alt
-  addInternalTypeArgsToAlt funcNames (IR.Alt srcSpan conPat varPats expr isBang) =
+  addInternalTypeArgsToAlt funcNames (IR.Alt srcSpan conPat varPats expr isStrict) =
     let funcNames' = withoutArgs varPats funcNames
         expr'      = addInternalTypeArgsToExpr funcNames' expr
-    in  IR.Alt srcSpan conPat varPats expr' isBang
+    in  IR.Alt srcSpan conPat varPats expr' isStrict
 
   -- | Removes the names of the given variable patterns from the given set.
   withoutArgs :: [IR.VarPat] -> Set IR.QName -> Set IR.QName

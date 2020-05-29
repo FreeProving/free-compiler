@@ -283,7 +283,7 @@ data Alt = Alt
   , altConPat  :: ConPat
   , altVarPats :: [VarPat]
   , altRhs     :: Expr
-  , altIsBang  :: Bool
+  , altIsStrict  :: Bool
   }
  deriving (Eq, Show)
 
@@ -336,7 +336,7 @@ data VarPat = VarPat
   { varPatSrcSpan :: SrcSpan
   , varPatIdent   :: String
   , varPatType    :: Maybe Type
-  , varPatIsBang  :: Bool
+  , varPatIsStrict  :: Bool
   }
  deriving (Eq, Show)
 

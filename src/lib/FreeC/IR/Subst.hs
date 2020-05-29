@@ -170,10 +170,10 @@ instance ApplySubst IR.Expr IR.Expr where
 -- | Applies the given expression substitution to the right-hand side of the
 --   given @case@-expression alterntaive.
 instance ApplySubst IR.Expr IR.Alt where
-  applySubst subst (IR.Alt srcSpan conPat varPats expr isBang) =
+  applySubst subst (IR.Alt srcSpan conPat varPats expr isStrict) =
     let (subst', varPats') = newRenameArgs subst varPats
         expr'              = applySubst subst' expr
-    in  IR.Alt srcSpan conPat varPats' expr' isBang
+    in  IR.Alt srcSpan conPat varPats' expr' isStrict
 
 -------------------------------------------------------------------------------
 -- Application to types in expressions                                       --
@@ -239,17 +239,17 @@ instance ApplySubst IR.Type IR.Expr where
 -- | Applies the given type substitution to the right-hand side of the
 --   given @case@-expression alterntaive.
 instance ApplySubst IR.Type IR.Alt where
-  applySubst subst (IR.Alt srcSpan conPat varPats expr isBang) =
+  applySubst subst (IR.Alt srcSpan conPat varPats expr isStrict) =
     let varPats' = applySubst subst varPats
         expr'    = applySubst subst expr
-    in  IR.Alt srcSpan conPat varPats' expr' isBang
+    in  IR.Alt srcSpan conPat varPats' expr' isStrict
 
 -- | Applies the given type substitution to the type annotation of the given
 --   variable pattern.
 instance ApplySubst IR.Type IR.VarPat where
-  applySubst subst (IR.VarPat srcSpan varIdent maybeVarType isBang) =
+  applySubst subst (IR.VarPat srcSpan varIdent maybeVarType isStrict) =
     let maybeVarType' = applySubst subst maybeVarType
-    in  IR.VarPat srcSpan varIdent maybeVarType' isBang
+    in  IR.VarPat srcSpan varIdent maybeVarType' isStrict
 
 -------------------------------------------------------------------------------
 -- Application to function declarations.                                     --
@@ -465,9 +465,9 @@ renameArgsSubst args = do
   --   a variable pattern that preserves the source span of the original
   --   pattern.
   freshVarPat :: IR.VarPat -> Converter IR.VarPat
-  freshVarPat (IR.VarPat srcSpan varIdent maybeVarType isBang) = do
+  freshVarPat (IR.VarPat srcSpan varIdent maybeVarType isStrict) = do
     varIdent' <- freshHaskellIdent varIdent
-    return (IR.VarPat srcSpan varIdent' maybeVarType isBang)
+    return (IR.VarPat srcSpan varIdent' maybeVarType isStrict)
 
 -- | Renames the arguments bound by the given variable patterns in the given
 --   expression to fresh variables.

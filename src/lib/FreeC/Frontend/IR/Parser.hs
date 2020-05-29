@@ -623,13 +623,13 @@ altParser :: Parser IR.Alt
 altParser = token Bang *> altParser' True <|> altParser' False
  where
   altParser' :: Bool -> Parser IR.Alt
-  altParser' isBang =
+  altParser' isStrict =
     IR.Alt NoSrcSpan
       <$> conPatParser
       <*> Parsec.many varPatParser
       <*  token RArrow
       <*> exprParser
-      <*> return isBang
+      <*> return isStrict
 
 -------------------------------------------------------------------------------
 -- Patterns                                                                  --
@@ -654,18 +654,18 @@ varPatParser =
  where
   -- @varPat ::= ["!"] "(" <varid> "::" type ")" | …@
   typedVarPatParser :: Bool -> Parser IR.VarPat
-  typedVarPatParser isBang = parensParser
+  typedVarPatParser isStrict = parensParser
     (   IR.VarPat NoSrcSpan
     <$> varIdentToken
     <*  token DoubleColon
     <*> (Just <$> typeParser)
-    <*> return isBang
+    <*> return isStrict
     )
 
   -- @varPat ::= ["!"] <varid> | …@
   untypedVarPatParser :: Bool -> Parser IR.VarPat
-  untypedVarPatParser isBang =
-    IR.VarPat NoSrcSpan <$> varIdentToken <*> return Nothing <*> return isBang
+  untypedVarPatParser isStrict =
+    IR.VarPat NoSrcSpan <$> varIdentToken <*> return Nothing <*> return isStrict
 
 -------------------------------------------------------------------------------
 -- Literals                                                                  --

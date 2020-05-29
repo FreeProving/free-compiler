@@ -141,6 +141,6 @@ inlineExpr decls = inlineAndBind
   -- | Performs inlining on the right hand side of the given @case@-expression
   --   alternative.
   inlineAlt :: IR.Alt -> Converter IR.Alt
-  inlineAlt (IR.Alt srcSpan conPat varPats expr isBang) = shadowVarPats varPats $ do
+  inlineAlt (IR.Alt srcSpan conPat varPats expr isStrict) = shadowVarPats varPats $ do
     expr' <- inlineAndBind expr
-    return (IR.Alt srcSpan conPat varPats expr' isBang)
+    return (IR.Alt srcSpan conPat varPats expr' isStrict)

@@ -421,10 +421,10 @@ removeConstArgsFromExpr constArgs rootExpr = do
   -- | Applies 'removeConstArgsFromExpr'' to the right-hand side of the
   --   given @case@ expression alternative.
   removeConstArgsFromAlt :: IR.Alt -> Converter IR.Alt
-  removeConstArgsFromAlt (IR.Alt srcSpan conPat varPats expr isBang) =
+  removeConstArgsFromAlt (IR.Alt srcSpan conPat varPats expr isStrict) =
     shadowVarPats varPats $ do
       (expr', []) <- removeConstArgsFromExpr' expr
-      return (IR.Alt srcSpan conPat varPats expr' isBang)
+      return (IR.Alt srcSpan conPat varPats expr' isStrict)
 
 -------------------------------------------------------------------------------
 -- Updating the environment                                                  --
@@ -580,10 +580,10 @@ removeConstTypeArgsFromExpr constTypeVars rootExpr = do
   -- | Applies 'removeConstTypeArgsFromExpr'' to the right-hand side of the
   --   given @case@ expression alternative.
   removeConstTypeArgsFromAlt :: IR.Alt -> Converter IR.Alt
-  removeConstTypeArgsFromAlt (IR.Alt srcSpan conPat varPats expr isBang) =
+  removeConstTypeArgsFromAlt (IR.Alt srcSpan conPat varPats expr isStrict) =
     shadowVarPats varPats $ do
       (expr', []) <- removeConstTypeArgsFromExpr' expr
-      return (IR.Alt srcSpan conPat varPats expr' isBang)
+      return (IR.Alt srcSpan conPat varPats expr' isStrict)
 
 -------------------------------------------------------------------------------
 -- Interface functions                                                       --
