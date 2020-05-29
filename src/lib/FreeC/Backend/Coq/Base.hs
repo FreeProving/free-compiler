@@ -56,6 +56,10 @@ freeArgs =
 -- Partiality                                                                --
 -------------------------------------------------------------------------------
 
+-- | The name of the type class @Partial@
+partial :: Coq.Qualid
+partial = Coq.bare "Partial"
+
 -- | The name and type of the @Partial@ instance that must be passed to
 --   partial functions.
 partialArg :: (Coq.Qualid, Coq.Term)
@@ -99,6 +103,7 @@ reservedIdents =
     , freePureCon
     , freeImpureCon
     -- Partiality
+    , partial
     , partialUndefined
     , partialError
     ]
