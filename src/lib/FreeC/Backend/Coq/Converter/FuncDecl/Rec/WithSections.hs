@@ -207,8 +207,8 @@ renameFuncDecls decls = do
             _     <- renameAndAddEntry entry
               { entryName       = name'
               , entryTypeArgs   = typeArgIdents'
-              , entryArgTypes   = map IR.varPatType args'
-              , entryReturnType = maybeRetType'
+              , entryArgTypes   = map (fromJust . IR.varPatType) args'
+              , entryReturnType = fromJust maybeRetType'
               }
 
             -- If the decreasing argument of the original function has been
@@ -466,8 +466,8 @@ updateTypeSig mgu constTypeVars argTypeMap returnTypeMap funcDecl = do
   let allTypeArgs = map IR.typeVarIdent typeArgVars
       entry'      = entry { entryArity         = length args
                           , entryTypeArgs      = allTypeArgs \\ constTypeVars
-                          , entryArgTypes      = argTypes
-                          , entryReturnType    = returnType
+                          , entryArgTypes      = map fromJust argTypes
+                          , entryReturnType    = fromJust returnType
                           , entryNeedsFreeArgs = False
                           }
   modifyEnv $ addEntry entry'
