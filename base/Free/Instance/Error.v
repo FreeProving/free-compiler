@@ -20,7 +20,7 @@ Module Error.
 
   (* Partial instance for the error monad. *)
   Open Scope string_scope.
-  Instance Partial : Partial  (Shape string) Pos := {
+  Instance Partial : Partial (Shape string) Pos := {
     undefined := fun {A : Type}                => ThrowError "undefined";
     error     := fun {A : Type} (msg : string) => ThrowError msg
   }.
