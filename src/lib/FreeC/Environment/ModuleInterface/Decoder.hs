@@ -246,8 +246,8 @@ instance Aeson.FromJSON ModuleInterface where
         { entrySrcSpan    = NoSrcSpan
         , entryArity      = arity
         , entryTypeArgs   = mapMaybe IR.identFromQName (freeTypeVars returnType)
-        , entryArgTypes   = map Just argTypes
-        , entryReturnType = Just returnType
+        , entryArgTypes   = argTypes
+        , entryReturnType = returnType
         , entryIdent      = coqName
         , entrySmartIdent = coqSmartName
         , entryName       = haskellName
@@ -267,8 +267,8 @@ instance Aeson.FromJSON ModuleInterface where
       return FuncEntry { entrySrcSpan       = NoSrcSpan
                        , entryArity         = arity
                        , entryTypeArgs      = typeArgs
-                       , entryArgTypes      = map Just argTypes
-                       , entryReturnType    = Just returnType
+                       , entryArgTypes      = argTypes
+                       , entryReturnType    = returnType
                        , entryNeedsFreeArgs = freeArgsNeeded
                        , entryIsPartial     = partial
                        , entryIdent         = coqName
