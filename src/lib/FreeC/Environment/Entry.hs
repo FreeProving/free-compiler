@@ -58,10 +58,10 @@ data EnvEntry
     , entryTypeArgs   :: [IR.TypeVarIdent]
       -- ^ The names of the type arguments.
     , entryArgTypes   :: [IR.Type]
-      -- ^ The types of the constructor's arguments (if known).
+      -- ^ The types of the constructor's arguments.
       --   Contains exactly 'entryArity' elements.
     , entryReturnType :: IR.Type
-      -- ^ The return type of the data constructor (if known).
+      -- ^ The return type of the data constructor.
     , entryIdent      :: Coq.Qualid
       -- ^ The name of the regular data constructor in Coq.
     , entrySmartIdent :: Coq.Qualid
@@ -79,10 +79,10 @@ data EnvEntry
     , entryTypeArgs      :: [IR.TypeVarIdent]
       -- ^ The names of the type arguments.
     , entryArgTypes      :: [IR.Type]
-      -- ^ The types of the function arguments (if known).
+      -- ^ The types of the function arguments.
       --   Contains exactly 'entryArity' elements.
     , entryReturnType    :: IR.Type
-      -- ^ The return type of the function (if known).
+      -- ^ The return type of the function.
     , entryNeedsFreeArgs :: Bool
       -- ^ Whether the arguments of the @Free@ monad need to be
       --   passed to the function.
