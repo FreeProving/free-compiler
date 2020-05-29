@@ -132,7 +132,7 @@ convertExpr' (IR.Var srcSpan name _) typeArgs args = do
           let typeArgNames = map (IR.UnQual . IR.Ident) typeArgIdents
               subst = composeSubsts (zipWith singleSubst typeArgNames typeArgs)
               decArgType = applySubst subst (argTypes !! index)
-          decArgType' <- mapM convertType' decArgType
+          decArgType' <- mapM convertType' (Just decArgType)
           generateBind decArg freshArgPrefix decArgType' $ \decArg' ->
             generateApplyN arity callee (before ++ decArg' : after)
     else do
