@@ -226,7 +226,7 @@ typeInferencePass = mapComponentM inferFuncDeclTypes
 -------------------------------------------------------------------------------
 
 -- | A type equation and the location in the source that caused the creation
---   of this type variable.
+--   of this type equation.
 type TypeEquation = (SrcSpan, IR.Type, IR.Type)
 
 -- | Maps the names of defined functions and constructors to their type schema.
@@ -251,7 +251,7 @@ emptyTypeInferenceState = TypeInferenceState { typeEquations  = []
                                              , fixedTypeArgs  = Map.empty
                                              }
 
--- | Creates a 'TypeAssumption' for all funtions and constructors defined
+-- | Creates a 'TypeAssumption' for all functions and constructors defined
 --   in the given environment.
 makeTypeAssumption :: Environment -> TypeAssumption
 makeTypeAssumption env = Map.fromList
@@ -347,7 +347,7 @@ extendTypeAssumptionWithVarPat varPat = mapM_
   (IR.varPatType varPat)
 
 -- | Removes the variable bound by the given variable pattern from the
---   type assumption while runnign the given type inference.
+--   type assumption while running the given type inference.
 removeVarPatFromTypeAssumption :: IR.VarPat -> TypeInference ()
 removeVarPatFromTypeAssumption varPat = modify $ \s ->
   s { typeAssumption = Map.delete (IR.varPatQName varPat) (typeAssumption s) }
@@ -362,7 +362,7 @@ fixTypeArgs name subst =
 -- Scoping                                                                   --
 -------------------------------------------------------------------------------
 
--- | Runs the given type inference and discards all modifications o fthe
+-- | Runs the given type inference and discards all modifications of the
 --   state afterwards.
 withLocalState :: TypeInference a -> TypeInference a
 withLocalState mx = do
@@ -599,7 +599,7 @@ annotateExprWith' (IR.Case srcSpan scrutinee alts _) resType = do
       rhs' <- annotateExprWith rhs resType
       return (IR.Alt altSrcSpan conPat varPats' rhs')
 
--- Error terms are predefined polymorphic funtions. They can be annoated
+-- Error terms are predefined polymorphic funtions. They can be annotated
 -- with the given result type directly.
 annotateExprWith' (IR.Undefined srcSpan _) resType =
   return (IR.Undefined srcSpan (makeExprType resType))
@@ -768,7 +768,7 @@ applyFuncDeclVisibly funcDecl = withLocalTypeAssumption $ do
 --   occur in the function declaration's type and on its right-hand side.
 --
 --   Fresh type variables used by the given type are replaced by regular type
---   varibales with the prefix 'freshTypeArgPrefix'. All other type variables
+--   variables with the prefix 'freshTypeArgPrefix'. All other type variables
 --   are not renamed.
 abstractTypeArgs :: [IR.TypeVarIdent] -> IR.FuncDecl -> IR.FuncDecl
 abstractTypeArgs typeArgIdents funcDecl =
@@ -858,7 +858,7 @@ abstractVanishingTypeArgs funcDecls =
         expr'      = addInternalTypeArgsToExpr funcNames' expr
     in  (IR.Lambda srcSpan args expr' exprType, [])
 
-  -- Leave all other expressions unchnaged.
+  -- Leave all other expressions unchanged.
   addInternalTypeArgsToExpr' _ expr@(IR.Con        _ _ _) = (expr, [])
   addInternalTypeArgsToExpr' _ expr@(IR.IntLiteral _ _ _) = (expr, [])
   addInternalTypeArgsToExpr' _ expr@(IR.Undefined _ _   ) = (expr, [])
