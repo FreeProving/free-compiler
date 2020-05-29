@@ -165,6 +165,7 @@ defineTestFunc' partial nameStr arity typeStr = do
     , entryArity         = arity
     , entryTypeArgs      = map IR.typeVarDeclIdent typeArgs
     , entryArgTypes      = map Just argTypes
+    , entryStrictArgs    = replicate arity False
     , entryReturnType    = Just returnType
     , entryNeedsFreeArgs = True
     , entryIsPartial     = partial

@@ -81,6 +81,9 @@ data EnvEntry
     , entryArgTypes      :: [Maybe IR.Type]
       -- ^ The types of the function arguments (if known).
       --   Contains exactly 'entryArity' elements.
+    , entryStrictArgs    :: [Bool]
+      -- ^ Whether each argument is strict.
+      --   Contains exactly 'entryArity' elements.
     , entryReturnType    :: Maybe IR.Type
       -- ^ The return type of the function (if known).
     , entryNeedsFreeArgs :: Bool

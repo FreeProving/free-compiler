@@ -180,6 +180,7 @@ transformRecFuncDecl (IR.FuncDecl srcSpan declIdent typeArgs args maybeRetType e
       , entryArity         = length helperArgTypes
       , entryTypeArgs      = map IR.typeVarDeclIdent helperTypeArgs
       , entryArgTypes      = helperArgTypes
+      , entryStrictArgs    = map IR.varPatIsBang helperArgs 
       , entryReturnType    = helperReturnType
       , entryNeedsFreeArgs = freeArgsNeeded
       , entryIsPartial     = partial
