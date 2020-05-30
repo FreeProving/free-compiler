@@ -2,14 +2,16 @@
 --   throwing function to prove properties about this function and about the
 --   possible errors that can be thrown.
 --
---   This example uses an error throwing implementation of the @uncons@
---   function.
+--   This example uses a function @unconsE@ that is an error throwing version
+--   of the @uncons@ function.
 
 module Proofs.ConsUncons where
 
 import           Test.QuickCheck
 
--- First we have to define the @uncons@ function in an error throwing way.
+import           Data.List                      ( head )
+
+-- First we have to define the @unconsE@ function in an error throwing way.
 
 unconsE :: [a] -> (a, [a])
 unconsE ls = case ls of
@@ -21,3 +23,12 @@ unconsE ls = case ls of
 
 prop_cons_unconsE :: (Eq a, Show a) => a -> [a] -> Property
 prop_cons_unconsE x xs = unconsE (x : xs) === (x, xs)
+
+-- And we define a property thats validity depends on the model used in the proof.
+
+fst :: (a, b) -> a
+fst p = case p of
+  (x, y) -> x
+
+prop_unconsE_fst :: (Eq a, Show a) => [a] -> Property
+prop_unconsE_fst xs = fst (unconsE xs) === head xs
