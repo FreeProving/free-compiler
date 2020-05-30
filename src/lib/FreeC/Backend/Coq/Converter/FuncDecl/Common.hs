@@ -37,7 +37,7 @@ convertFuncHead (IR.FuncDecl _ declIdent typeArgs args maybeRetType _) = do
                    | otherwise      = []
   -- Lookup partiality and position of decreasing argument.
   partial       <- inEnv $ isPartial name
-  decArgIndex   <- inEnv $ lookupDecArgIndex name
+  decArgIndex   <- inEnv $ lookupFirstStrictArgIndex name
   -- Convert arguments and return types.
   typeArgs'     <- convertTypeVarDecls Coq.Implicit typeArgs
   args'         <- convertArgs args decArgIndex

@@ -26,6 +26,8 @@ module FreeC.Environment
   , lookupTypeArgs
   , lookupTypeArgArity
   , lookupArgTypes
+  , lookupStrictArgs
+  , lookupFirstStrictArgIndex
   , lookupReturnType
   , lookupTypeSchema
   , lookupArity
@@ -42,7 +44,9 @@ import           Control.Monad                  ( (<=<) )
 import           Data.Composition               ( (.:)
                                                 , (.:.)
                                                 )
-import           Data.List                      ( find )
+import           Data.List                      ( find
+                                                , elemIndex
+                                                )
 import           Data.Map.Strict                ( Map )
 import qualified Data.Map.Strict               as Map
 import           Data.Maybe                     ( catMaybes
@@ -215,6 +219,20 @@ lookupTypeArgArity = fmap length .:. lookupTypeArgs
 lookupArgTypes :: IR.Scope -> IR.QName -> Environment -> Maybe [Maybe IR.Type]
 lookupArgTypes =
   fmap entryArgTypes . find (isConEntry .||. isFuncEntry) .:. lookupEntry
+
+-- | Looks up the strict arguments of the function with the given name.
+--
+--   Returns @Nothing@ if there is no such function.
+lookupStrictArgs :: IR.QName -> Environment -> Maybe [Bool]
+lookupStrictArgs =
+  fmap entryStrictArgs . find isFuncEntry .: lookupEntry IR.ValueScope
+
+-- | Looks up the index of the first strict argument of the function
+--   with the given name.
+--
+--   Returns @Nothing@ if there is no such function.
+lookupFirstStrictArgIndex :: IR.QName -> Environment -> Maybe Int
+lookupFirstStrictArgIndex = (>>= elemIndex True) .: lookupStrictArgs
 
 -- | Looks up the return type of the function or (smart) constructor with the
 --   given name.

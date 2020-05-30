@@ -117,7 +117,7 @@ convertExpr' (IR.Var srcSpan name _) typeArgs args = do
                     (return (Coq.app (Coq.Qualid qualid) partialArg))
       -- Is this a recursive helper function?
       Just arity   <- inEnv $ lookupArity IR.ValueScope name
-      mDecArgIndex <- inEnv $ lookupDecArgIndex name
+      mDecArgIndex <- inEnv $ lookupFirstStrictArgIndex name
       case mDecArgIndex of
         Nothing ->
           -- Regular functions can be applied directly.

@@ -14,7 +14,7 @@ import           Control.Monad                  ( forM
                                                 , join
                                                 )
 import           Data.List                      ( delete
-                                                , elemIndex
+                                                , find
                                                 )
 import qualified Data.List.NonEmpty            as NonEmpty
 import qualified Data.Map.Strict               as Map
@@ -92,11 +92,6 @@ transformRecFuncDecl (IR.FuncDecl srcSpan declIdent typeArgs args maybeRetType e
         mainDecl =
           IR.FuncDecl srcSpan declIdent typeArgs args maybeRetType mainExpr
 
-    -- If the user specified the decreasing argument of the function to
-    -- transform, that information needs to be removed since the main function
-    -- is not recursive anymore.
-    modifyEnv $ removeDecArg name
-
     return (helperDecls, mainDecl)
  where
   -- | The name of the function to transform.
@@ -153,16 +148,18 @@ transformRecFuncDecl (IR.FuncDecl srcSpan declIdent typeArgs args maybeRetType e
         helperArgNames = Set.toList (usedVars `Set.intersection` boundVars)
 
     -- Determine the type of helper function's arguments and its return type.
+    -- Additionally the decreasing argument is marked as strict.
     let
       argTypes         = map IR.varPatType args
       argTypeMap       = Map.fromList (zip argNames argTypes)
       helperArgTypeMap = boundVarTypeMap `Map.union` argTypeMap
       helperArgTypes =
         map (join . (`Map.lookup` helperArgTypeMap)) helperArgNames
-      helperArgs = map ($ False) $ zipWith
+      helperArgs = zipWith3
         (IR.VarPat NoSrcSpan . fromJust . IR.identFromQName)
         helperArgNames
         helperArgTypes
+        (map (== decArg) helperArgNames)
       helperReturnType = IR.exprType caseExpr
       helperType =
         IR.funcType NoSrcSpan <$> sequence helperArgTypes <*> helperReturnType
@@ -187,12 +184,6 @@ transformRecFuncDecl (IR.FuncDecl srcSpan declIdent typeArgs args maybeRetType e
       , entryName          = helperName
       , entryIdent         = undefined -- filled by renamer
       }
-
-    -- Additionally we need to remember the index of the decreasing argument
-    -- (see 'convertArgs').
-    let Just decArgIndex' = elemIndex decArg helperArgNames
-        Just decArgIdent  = IR.identFromQName decArg
-    modifyEnv $ defineDecArg helperName decArgIndex' decArgIdent
 
     -- Build helper function declaration and application.
     let helperTypeArgs' = map IR.typeVarDeclToType helperTypeArgs
@@ -221,10 +212,12 @@ convertRecHelperFuncDecl helperDecl = localEnv $ do
   (qualid, binders, returnType') <- convertFuncHead helperDecl
   rhs'                           <- convertExpr (IR.funcDeclRhs helperDecl)
   -- Lookup name of decreasing argument.
-  let helperName = IR.funcDeclQName helperDecl
-      argNames   = map IR.varPatQName (IR.funcDeclArgs helperDecl)
-  Just decArgIndex <- inEnv $ lookupDecArgIndex helperName
-  Just decArg' <- inEnv $ lookupIdent IR.ValueScope (argNames !! decArgIndex)
+  Just decArg'                   <-
+    inEnv
+    $ lookupIdent IR.ValueScope
+    $ (IR.varPatQName . fromJust)
+    $ find IR.varPatIsStrict
+    $ IR.funcDeclArgs helperDecl
   -- Generate body of @Fixpoint@ sentence.
   return
     (Coq.FixBody qualid
