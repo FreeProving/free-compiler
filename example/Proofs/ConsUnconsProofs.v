@@ -47,7 +47,7 @@ Section ErrorMessages.
   (* Now we can define and prove the lemma that using [unconsE] with an empty
      list results in an [EmptyListError] *)
   Lemma nil_unconsE_empty_list_error : forall (A : Type),
-  @unconsE _ _ _ A (Nil _ _) = EmptyListError.
+    @unconsE _ _ _ A (Nil _ _) = EmptyListError.
   Proof.
     intro A.
     simpl.
