@@ -1,7 +1,5 @@
 (** * Definition of the error monad in terms of the free monad. *)
 
-Require Import Coq.Strings.String.
-
 From Base Require Import Free.
 From Base Require Import Free.Util.Void.
 
@@ -19,12 +17,10 @@ Module Error.
   End Monad.
 
   (* Partial instance for the error monad. *)
-  Open Scope string_scope.
   Instance Partial : Partial (Shape string) Pos := {
-    undefined := fun {A : Type}                => ThrowError "undefined";
+    undefined := fun {A : Type}                => ThrowError "undefined"%string;
     error     := fun {A : Type} (msg : string) => ThrowError msg
   }.
-  Close Scope string_scope.
 End Error.
 
 (* The type and smart constructor should be visible to other modules

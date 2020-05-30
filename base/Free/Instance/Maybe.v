@@ -1,7 +1,5 @@
 (** * Definition of the maybe monad in terms of the free monad. *)
 
-Require Import Coq.Strings.String.
-
 From Base Require Import Free.
 From Base Require Import Free.Util.Void.
 
