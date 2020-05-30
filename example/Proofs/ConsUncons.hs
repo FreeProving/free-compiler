@@ -15,7 +15,7 @@ import           Data.List                      ( head )
 
 unconsE :: [a] -> (a, [a])
 unconsE ls = case ls of
-  []       -> error "uncons: empty list"
+  []       -> error "unconsE: empty list"
   (x : xs) -> (x, xs)
 
 -- Next we can define a simple property about this function, e.g., its relation

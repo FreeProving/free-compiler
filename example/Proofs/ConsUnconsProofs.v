@@ -38,7 +38,7 @@ Section ErrorMessages.
 
   (* To prove facts about the error messages we can write an abbreviation for
      an [error] with a specific message. *)
-  Definition EmptyListError {A : Type} := @error _ _ _ A "uncons: empty list"%string.
+  Definition EmptyListError {A : Type} := @error _ _ _ A "unconsE: empty list"%string.
 
   (* If we weren't looking for an actual [error] but for an [undefined] in haskell
      we could use the following definition. *)
