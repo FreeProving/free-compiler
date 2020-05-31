@@ -856,10 +856,10 @@ abstractVanishingTypeArgs funcDecls =
   -- | Applies 'addInternalTypeArgsToExpr' to the right-hand side of
   --   the given @case@ expression alternative.
   addInternalTypeArgsToAlt :: Set IR.QName -> IR.Alt -> IR.Alt
-  addInternalTypeArgsToAlt funcNames (IR.Alt srcSpan conPat varPats expr isStrict) =
-    let funcNames' = withoutArgs varPats funcNames
-        expr'      = addInternalTypeArgsToExpr funcNames' expr
-    in  IR.Alt srcSpan conPat varPats expr' isStrict
+  addInternalTypeArgsToAlt funcNames (IR.Alt srcSpan conPat varPats expr isStrict)
+    = let funcNames' = withoutArgs varPats funcNames
+          expr'      = addInternalTypeArgsToExpr funcNames' expr
+      in  IR.Alt srcSpan conPat varPats expr' isStrict
 
   -- | Removes the names of the given variable patterns from the given set.
   withoutArgs :: [IR.VarPat] -> Set IR.QName -> Set IR.QName

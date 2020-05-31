@@ -579,11 +579,18 @@ testFuncDeclParser = context "function declarations" $ do
   it "accepts function declarations with multiple arguments" $ do
     "f x y = x" `shouldParse` IR.FuncDecl NoSrcSpan f [] [xPat, yPat] Nothing x
   it "accepts function declarations with multiple strict arguments" $ do
-    "f !x !y = x" `shouldParse` IR.FuncDecl NoSrcSpan f [] [xPatStrict, yPatStrict] Nothing x
+    "f !x !y = x"
+      `shouldParse` IR.FuncDecl NoSrcSpan
+                                f
+                                []
+                                [xPatStrict, yPatStrict]
+                                Nothing
+                                x
   it "accepts function declarations with a type annotated argument" $ do
     "f (x :: a) = x" `shouldParse` IR.FuncDecl NoSrcSpan f [] [xPat'] Nothing x
   it "accepts function declarations with a strict type annotated argument" $ do
-    "f !(x :: a) = x" `shouldParse` IR.FuncDecl NoSrcSpan f [] [xPatStrict'] Nothing x
+    "f !(x :: a) = x"
+      `shouldParse` IR.FuncDecl NoSrcSpan f [] [xPatStrict'] Nothing x
   it "accepts function declarations with annotated return type" $ do
     "f x :: a = x" `shouldParse` IR.FuncDecl NoSrcSpan f [] [xPat] (Just a) x
   it "accepts function declarations with type arguments" $ do
