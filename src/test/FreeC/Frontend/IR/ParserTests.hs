@@ -368,21 +368,33 @@ testIfExprParser = context "if expressions" $ do
 -- | Test group for 'Parseable' instance of @case@ expressions.
 testCaseExprParser :: Spec
 testCaseExprParser = context "case expressions" $ do
-  let a      = IR.TypeSchema NoSrcSpan [] a'
-      a'     = IR.TypeVar NoSrcSpan "a"
-      s      = IR.Var NoSrcSpan (IR.UnQual (IR.Ident "s")) Nothing
-      x      = IR.Var NoSrcSpan (IR.UnQual (IR.Ident "x")) Nothing
-      xPat   = IR.VarPat NoSrcSpan "x" Nothing False
-      xPat'  = IR.VarPat NoSrcSpan "x" (Just a') False
-      y      = IR.Var NoSrcSpan (IR.UnQual (IR.Ident "y")) Nothing
-      yPat   = IR.VarPat NoSrcSpan "y" Nothing False
-      fooPat = IR.ConPat NoSrcSpan (IR.UnQual (IR.Ident "Foo"))
-      barPat = IR.ConPat NoSrcSpan (IR.UnQual (IR.Ident "Bar"))
+  let a           = IR.TypeSchema NoSrcSpan [] a'
+      a'          = IR.TypeVar NoSrcSpan "a"
+      s           = IR.Var NoSrcSpan (IR.UnQual (IR.Ident "s")) Nothing
+      x           = IR.Var NoSrcSpan (IR.UnQual (IR.Ident "x")) Nothing
+      xPat        = IR.VarPat NoSrcSpan "x" Nothing False
+      xPatStrict  = IR.VarPat NoSrcSpan "x" Nothing True
+      xPat'       = IR.VarPat NoSrcSpan "x" (Just a') False
+      xPatStrict' = IR.VarPat NoSrcSpan "x" (Just a') True
+      y           = IR.Var NoSrcSpan (IR.UnQual (IR.Ident "y")) Nothing
+      yPat        = IR.VarPat NoSrcSpan "y" Nothing False
+      yPatStrict  = IR.VarPat NoSrcSpan "y" Nothing True
+      fooPat      = IR.ConPat NoSrcSpan (IR.UnQual (IR.Ident "Foo"))
+      barPat      = IR.ConPat NoSrcSpan (IR.UnQual (IR.Ident "Bar"))
   it "accepts empty case expressions" $ do
     "case s of {}" `shouldParse` IR.Case NoSrcSpan s [] Nothing
   it "accepts case expressions with a single alternative" $ do
     "case s of { Foo -> x }"
-      `shouldParse` IR.Case NoSrcSpan s [IR.Alt NoSrcSpan fooPat [] x False] Nothing
+      `shouldParse` IR.Case NoSrcSpan
+                            s
+                            [IR.Alt NoSrcSpan fooPat [] x False]
+                            Nothing
+  it "accepts case expressions with a single strict alternative" $ do
+    "case s of { !Foo -> x }"
+      `shouldParse` IR.Case NoSrcSpan
+                            s
+                            [IR.Alt NoSrcSpan fooPat [] x True]
+                            Nothing
   it "accepts case expressions with multiple alternatives" $ do
     "case s of { Foo -> x; Bar -> y }"
       `shouldParse` IR.Case
@@ -392,6 +404,16 @@ testCaseExprParser = context "case expressions" $ do
                       , IR.Alt NoSrcSpan barPat [] y False
                       ]
                       Nothing
+  it "accepts case expressions with one strict and one non strict alternative"
+    $ do
+        "case s of { Foo -> x; !Bar -> y }"
+          `shouldParse` IR.Case
+                          NoSrcSpan
+                          s
+                          [ IR.Alt NoSrcSpan fooPat [] x False
+                          , IR.Alt NoSrcSpan barPat [] y True
+                          ]
+                          Nothing
   it "accepts case expressions with trailing semicolon" $ do
     "case s of { Foo -> x; Bar -> y; }"
       `shouldParse` IR.Case
@@ -407,12 +429,41 @@ testCaseExprParser = context "case expressions" $ do
                             s
                             [IR.Alt NoSrcSpan fooPat [xPat, yPat] x False]
                             Nothing
+  it "accepts case expressions with strict variable patterns" $ do
+    "case s of { Foo !x !y -> x }"
+      `shouldParse` IR.Case
+                      NoSrcSpan
+                      s
+                      [IR.Alt NoSrcSpan fooPat [xPatStrict, yPatStrict] x False]
+                      Nothing
+  it
+      "accepts case expressions with strict variable patterns and strict alternative"
+    $ do
+        "case s of { !Foo !x !y -> x }"
+          `shouldParse` IR.Case
+                          NoSrcSpan
+                          s
+                          [ IR.Alt NoSrcSpan
+                                   fooPat
+                                   [xPatStrict, yPatStrict]
+                                   x
+                                   True
+                          ]
+                          Nothing
   it "accepts case expressions with type annotated variable patterns" $ do
     "case s of { Foo (x :: a) -> x }"
       `shouldParse` IR.Case NoSrcSpan
                             s
                             [IR.Alt NoSrcSpan fooPat [xPat'] x False]
                             Nothing
+  it "accepts case expressions with strict type annotated variable patterns"
+    $ do
+        "case s of { Foo !(x :: a) -> x }"
+          `shouldParse` IR.Case
+                          NoSrcSpan
+                          s
+                          [IR.Alt NoSrcSpan fooPat [xPatStrict'] x False]
+                          Nothing
   it "accepts case expressions with type annotations" $ do
     "case s of { Foo x -> x } :: a" `shouldParse` IR.Case
       NoSrcSpan
@@ -508,22 +559,31 @@ testIntLiteralParser = context "integer literals" $ do
 -- | Test group for 'Parseable' instance of function declarations.
 testFuncDeclParser :: Spec
 testFuncDeclParser = context "function declarations" $ do
-  let a     = IR.TypeVar NoSrcSpan "a"
-      aDecl = IR.TypeVarDecl NoSrcSpan "a"
-      f     = IR.DeclIdent NoSrcSpan (IR.UnQual (IR.Ident "f"))
-      f'    = IR.DeclIdent NoSrcSpan (IR.Qual "M" (IR.Ident "f"))
-      xPat  = IR.VarPat NoSrcSpan "x" Nothing False
-      xPat' = IR.VarPat NoSrcSpan "x" (Just a) False
-      yPat  = IR.VarPat NoSrcSpan "y" Nothing False
-      x     = IR.Var NoSrcSpan (IR.UnQual (IR.Ident "x")) Nothing
+  let a           = IR.TypeVar NoSrcSpan "a"
+      aDecl       = IR.TypeVarDecl NoSrcSpan "a"
+      f           = IR.DeclIdent NoSrcSpan (IR.UnQual (IR.Ident "f"))
+      f'          = IR.DeclIdent NoSrcSpan (IR.Qual "M" (IR.Ident "f"))
+      xPat        = IR.VarPat NoSrcSpan "x" Nothing False
+      xPatStrict  = IR.VarPat NoSrcSpan "x" Nothing True
+      xPat'       = IR.VarPat NoSrcSpan "x" (Just a) False
+      xPatStrict' = IR.VarPat NoSrcSpan "x" (Just a) True
+      yPat        = IR.VarPat NoSrcSpan "y" Nothing False
+      yPatStrict  = IR.VarPat NoSrcSpan "y" Nothing True
+      x           = IR.Var NoSrcSpan (IR.UnQual (IR.Ident "x")) Nothing
   it "accepts function declarations without arguments" $ do
     "f = x" `shouldParse` IR.FuncDecl NoSrcSpan f [] [] Nothing x
   it "accepts function declarations with a single argument" $ do
     "f x = x" `shouldParse` IR.FuncDecl NoSrcSpan f [] [xPat] Nothing x
-  it "accepts function declarations with a multiple arguments" $ do
+  it "accepts function declarations with a single strict argument" $ do
+    "f !x = x" `shouldParse` IR.FuncDecl NoSrcSpan f [] [xPatStrict] Nothing x
+  it "accepts function declarations with multiple arguments" $ do
     "f x y = x" `shouldParse` IR.FuncDecl NoSrcSpan f [] [xPat, yPat] Nothing x
-  it "accepts function declarations with a type annotated arguments" $ do
+  it "accepts function declarations with multiple strict arguments" $ do
+    "f !x !y = x" `shouldParse` IR.FuncDecl NoSrcSpan f [] [xPatStrict, yPatStrict] Nothing x
+  it "accepts function declarations with a type annotated argument" $ do
     "f (x :: a) = x" `shouldParse` IR.FuncDecl NoSrcSpan f [] [xPat'] Nothing x
+  it "accepts function declarations with a strict type annotated argument" $ do
+    "f !(x :: a) = x" `shouldParse` IR.FuncDecl NoSrcSpan f [] [xPatStrict'] Nothing x
   it "accepts function declarations with annotated return type" $ do
     "f x :: a = x" `shouldParse` IR.FuncDecl NoSrcSpan f [] [xPat] (Just a) x
   it "accepts function declarations with type arguments" $ do
