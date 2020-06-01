@@ -18,7 +18,9 @@ import           Data.List                      ( delete
                                                 )
 import qualified Data.List.NonEmpty            as NonEmpty
 import qualified Data.Map.Strict               as Map
-import           Data.Maybe                     ( fromJust )
+import           Data.Maybe                     ( fromJust
+                                                , fromMaybe
+                                                )
 import qualified Data.Set                      as Set
 
 import           FreeC.Backend.Coq.Analysis.DecreasingArguments
@@ -37,6 +39,7 @@ import qualified FreeC.IR.Syntax               as IR
 import           FreeC.IR.Subterm
 import           FreeC.Monad.Converter
 import           FreeC.Pretty
+import           FreeC.Util.Predicate
 
 -- | Converts recursive function declarations into recursive helper and
 --   non-recursive main functions.
@@ -155,11 +158,16 @@ transformRecFuncDecl (IR.FuncDecl srcSpan declIdent typeArgs args maybeRetType e
       helperArgTypeMap = boundVarTypeMap `Map.union` argTypeMap
       helperArgTypes =
         map (join . (`Map.lookup` helperArgTypeMap)) helperArgNames
+      argStrict       = map IR.varPatIsStrict args
+      argStrictMap    = Map.fromList (zip argNames argStrict)
+      helperArgStrict = map
+        ((== decArg) .||. (fromMaybe False . (`Map.lookup` argStrictMap)))
+        helperArgNames
       helperArgs = zipWith3
         (IR.VarPat NoSrcSpan . fromJust . IR.identFromQName)
         helperArgNames
         helperArgTypes
-        (map (== decArg) helperArgNames)
+        helperArgStrict
       helperReturnType = IR.exprType caseExpr
       helperType =
         IR.funcType NoSrcSpan <$> sequence helperArgTypes <*> helperReturnType
