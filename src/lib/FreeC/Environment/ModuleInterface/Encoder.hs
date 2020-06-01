@@ -1,15 +1,15 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
--- | This module contains functions for encoding 'ModuleInterface's in JSON
---   and writing them to @.json@ files.
---
---   Encoding module interfaces as TOML files is not supported, since TOML is
---   intended for human maintained configuration files (e.g., the module
---   interface of the @Prelude@) only.
---
---   See "FreeC.Environment.ModuleInterface.Decoder" for more information on
---   the interface file format.
+-- | This module contains functions for encoding 'ModuleInterface's in JSON
+--   and writing them to @.json@ files.
+--
+--   Encoding module interfaces as TOML files is not supported, since TOML is
+--   intended for human maintained configuration files (e.g., the module
+--   interface of the @Prelude@) only.
+--
+--   See "FreeC.Environment.ModuleInterface.Decoder" for more information on
+--   the interface file format.
 
 module FreeC.Environment.ModuleInterface.Encoder
   ( writeModuleInterface
@@ -32,17 +32,17 @@ import           FreeC.Monad.Reporter
 import           FreeC.Pretty
 import           FreeC.Util.Config
 
--- | The version number of the module interface file format.
---
---   Remember to keep this in sync with the version number specified in
---   "FreeC.Environment.ModuleInterface.Decoder".
---
---   We specify the version number at two different places such that if
---   a breaking change is made to the encoder or decoder, it is less likely
---   that the implementation of the corresponding change in the other module
---   is forgotten.
+-- | The version number of the module interface file format.
+--
+--   Remember to keep this in sync with the version number specified in
+--   "FreeC.Environment.ModuleInterface.Decoder".
+--
+--   We specify the version number at two different places such that if
+--   a breaking change is made to the encoder or decoder, it is less likely
+--   that the implementation of the corresponding change in the other module
+--   is forgotten.
 moduleInterfaceFileFormatVersion :: Integer
-moduleInterfaceFileFormatVersion = 2
+moduleInterfaceFileFormatVersion = 3
 
 instance Aeson.ToJSON IR.QName where
   toJSON = Aeson.toJSON . showPretty
@@ -53,7 +53,7 @@ instance Aeson.ToJSON IR.Type where
 instance Aeson.ToJSON Coq.Qualid where
   toJSON = Aeson.toJSON . showPretty . PrettyCoq
 
--- | Serializes a 'ModuleInterface'.
+-- | Serializes a 'ModuleInterface'.
 instance Aeson.ToJSON ModuleInterface where
   toJSON iface = Aeson.object
     [ "version" .= moduleInterfaceFileFormatVersion
@@ -76,7 +76,7 @@ instance Aeson.ToJSON ModuleInterface where
     , "functions" .= encodeEntriesWhere isFuncEntry
     ]
    where
-    -- | Encodes the entries of the environment that match the given predicate.
+    -- | Encodes the entries of the environment that match the given predicate.
     encodeEntriesWhere :: (EnvEntry -> Bool) -> Aeson.Value
     encodeEntriesWhere p =
       Aeson.toJSON
@@ -85,11 +85,15 @@ instance Aeson.ToJSON ModuleInterface where
         $ Set.filter p
         $ interfaceEntries iface
 
--- | Encodes an entry of the environment.
+-- | Encodes an entry of the environment.
 encodeEntry :: EnvEntry -> Maybe Aeson.Value
 encodeEntry entry
   | isDataEntry entry = return $ Aeson.object
-    ["haskell-name" .= haskellName, "coq-name" .= coqName, "arity" .= arity]
+    [ "haskell-name" .= haskellName
+    , "coq-name" .= coqName
+    , "arity" .= arity
+    , "cons-names" .= consNames
+    ]
   | isTypeSynEntry entry = return $ Aeson.object
     [ "haskell-name" .= haskellName
     , "coq-name" .= coqName
@@ -128,6 +132,9 @@ encodeEntry entry
   arity :: Aeson.Value
   arity = Aeson.toJSON (entryArity entry)
 
+  consNames :: Aeson.Value
+  consNames = Aeson.toJSON (entryConsNames entry)
+
   partial :: Aeson.Value
   partial = Aeson.toJSON (entryIsPartial entry)
 
@@ -147,7 +154,7 @@ encodeEntry entry
   typeArgs :: Aeson.Value
   typeArgs = Aeson.toJSON (entryTypeArgs entry)
 
--- | Serializes a module interface and writes it to a @.json@ file.
+-- | Serializes a module interface and writes it to a @.json@ file.
 writeModuleInterface
   :: (MonadIO r, MonadReporter r) => FilePath -> ModuleInterface -> r ()
 writeModuleInterface = saveConfig
