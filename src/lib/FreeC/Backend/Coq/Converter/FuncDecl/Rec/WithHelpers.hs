@@ -18,9 +18,7 @@ import           Data.List                      ( delete
                                                 )
 import qualified Data.List.NonEmpty            as NonEmpty
 import qualified Data.Map.Strict               as Map
-import           Data.Maybe                     ( fromJust
-                                                , fromMaybe
-                                                )
+import           Data.Maybe                     ( fromJust )
 import qualified Data.Set                      as Set
 
 import           FreeC.Backend.Coq.Analysis.DecreasingArguments
@@ -161,7 +159,7 @@ transformRecFuncDecl (IR.FuncDecl srcSpan declIdent typeArgs args maybeRetType e
       argStrict       = map IR.varPatIsStrict args
       argStrictMap    = Map.fromList (zip argNames argStrict)
       helperArgStrict = map
-        ((== decArg) .||. (fromMaybe False . (`Map.lookup` argStrictMap)))
+        ((== decArg) .||. ((Just True ==) . (`Map.lookup` argStrictMap)))
         helperArgNames
       helperArgs = zipWith3
         (IR.VarPat NoSrcSpan . fromJust . IR.identFromQName)
