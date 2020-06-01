@@ -1,6 +1,6 @@
--- | This module contains data types that are used to store information
---   about declared functions, (type) variables and (type) constructors
---   in the environment.
+-- | This module contains data types that are used to store information
+--   about declared functions, (type) variables and (type) constructors
+--   in the environment.
 
 module FreeC.Environment.Entry where
 
@@ -12,122 +12,122 @@ import           FreeC.IR.SrcSpan
 import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Util.Predicate
 
--- | Entry of the environment.
+-- | Entry of the environment.
 data EnvEntry
-  = -- | Entry for a data type declaration.
+  = -- | Entry for a data type declaration.
     DataEntry
     { entrySrcSpan :: SrcSpan
-      -- ^ The source code location where the data type was declared.
+      -- ^ The source code location where the data type was declared.
     , entryArity   :: Int
-      -- ^ The number of type arguments expected by the type constructor.
+      -- ^ The number of type arguments expected by the type constructor.
     , entryIdent   :: Coq.Qualid
-      -- ^ The name of the data type in Coq.
+      -- ^ The name of the data type in Coq.
     , entryName    :: IR.QName
-      -- ^ The name of the data type in the module it has been defined in.
+      -- ^ The name of the data type in the module it has been defined in.
     , entryConsNames :: [IR.QName]
-      -- ^ The names of the constructors of the data type.
+      -- ^ The names of the constructors of the data type.
     }
-  | -- | Entry for a type synonym declaration.
+  | -- | Entry for a type synonym declaration.
     TypeSynEntry
     { entrySrcSpan  :: SrcSpan
-      -- ^ The source code location where the type synonym was declared.
+      -- ^ The source code location where the type synonym was declared.
     , entryArity    :: Int
-      -- ^ The number of type arguments expected by the type constructor.
+      -- ^ The number of type arguments expected by the type constructor.
     , entryTypeArgs :: [IR.TypeVarIdent]
-      -- ^ The names of the type arguments.
+      -- ^ The names of the type arguments.
     , entryTypeSyn  :: IR.Type
-      -- ^ The type that is abbreviated by this type synonym.
+      -- ^ The type that is abbreviated by this type synonym.
     , entryIdent    :: Coq.Qualid
-      -- ^ The name of the type synonym in Coq.
+      -- ^ The name of the type synonym in Coq.
     , entryName     :: IR.QName
-      -- ^ The name of the type synonym in the module it has been defined in.
+      -- ^ The name of the type synonym in the module it has been defined in.
     }
-  | -- | Entry for a type variable.
+  | -- | Entry for a type variable.
     TypeVarEntry
     { entrySrcSpan :: SrcSpan
-      -- ^ The source code location where the type variable was declared.
+      -- ^ The source code location where the type variable was declared.
     , entryIdent   :: Coq.Qualid
-      -- ^ The name of the type variable in Coq.
+      -- ^ The name of the type variable in Coq.
     , entryName    :: IR.QName
-      -- ^ The name of the type variable (must be unqualified).
+      -- ^ The name of the type variable (must be unqualified).
     }
-  | -- | Entry for a data constructor.
+  | -- | Entry for a data constructor.
     ConEntry
     { entrySrcSpan    :: SrcSpan
-      -- ^ The source code location where the data constructor was declared.
+      -- ^ The source code location where the data constructor was declared.
     , entryArity      :: Int
-      -- ^ The number of arguments expected by the data constructor.
+      -- ^ The number of arguments expected by the data constructor.
     , entryTypeArgs   :: [IR.TypeVarIdent]
-      -- ^ The names of the type arguments.
+      -- ^ The names of the type arguments.
     , entryArgTypes   :: [Maybe IR.Type]
-      -- ^ The types of the constructor's arguments (if known).
-      --   Contains exactly 'entryArity' elements.
+      -- ^ The types of the constructor's arguments (if known).
+      --   Contains exactly 'entryArity' elements.
     , entryReturnType :: Maybe IR.Type
-      -- ^ The return type of the data constructor (if known).
+      -- ^ The return type of the data constructor (if known).
     , entryIdent      :: Coq.Qualid
-      -- ^ The name of the regular data constructor in Coq.
+      -- ^ The name of the regular data constructor in Coq.
     , entrySmartIdent :: Coq.Qualid
-      -- ^ The name of the corresponding smart constructor in Coq.
+      -- ^ The name of the corresponding smart constructor in Coq.
     , entryName       :: IR.QName
-      -- ^ The name of the data constructor in the module it has been
-      --   defined in.
+      -- ^ The name of the data constructor in the module it has been
+      --   defined in.
     }
-  | -- | Entry for a function declaration.
+  | -- | Entry for a function declaration.
     FuncEntry
     { entrySrcSpan       :: SrcSpan
-      -- ^ The source code location where the function was declared.
+      -- ^ The source code location where the function was declared.
     , entryArity         :: Int
-      -- ^ The number of arguments expected by the function.
+      -- ^ The number of arguments expected by the function.
     , entryTypeArgs      :: [IR.TypeVarIdent]
-      -- ^ The names of the type arguments.
+      -- ^ The names of the type arguments.
     , entryArgTypes      :: [Maybe IR.Type]
-      -- ^ The types of the function arguments (if known).
-      --   Contains exactly 'entryArity' elements.
+      -- ^ The types of the function arguments (if known).
+      --   Contains exactly 'entryArity' elements.
     , entryReturnType    :: Maybe IR.Type
-      -- ^ The return type of the function (if known).
+      -- ^ The return type of the function (if known).
     , entryNeedsFreeArgs :: Bool
-      -- ^ Whether the arguments of the @Free@ monad need to be
-      --   passed to the function.
+      -- ^ Whether the arguments of the @Free@ monad need to be
+      --   passed to the function.
     , entryIsPartial     :: Bool
-      -- ^ Whether the function is partial, i.e., requires an instance of
-      --   the @Partial@ type class when translated to Coq.
+      -- ^ Whether the function is partial, i.e., requires an instance of
+      --   the @Partial@ type class when translated to Coq.
     , entryIdent         :: Coq.Qualid
-      -- ^ The name of the function in Coq.
+      -- ^ The name of the function in Coq.
     , entryName          :: IR.QName
-      -- ^ The name of the function in the module it has been defined in.
+      -- ^ The name of the function in the module it has been defined in.
     }
-  | -- | Entry for a variable.
+  | -- | Entry for a variable.
     VarEntry
     { entrySrcSpan :: SrcSpan
-      -- ^ The source code location where the variable was declared.
+      -- ^ The source code location where the variable was declared.
     , entryIsPure  :: Bool
-      -- ^ Whether the variable has not been lifted to the free monad.
+      -- ^ Whether the variable has not been lifted to the free monad.
     , entryIdent   :: Coq.Qualid
-      -- ^ The name of the variable in Coq.
+      -- ^ The name of the variable in Coq.
     , entryName    :: IR.QName
-      -- ^ The name of the variable (must be unqualified).
+      -- ^ The name of the variable (must be unqualified).
     , entryType    :: Maybe IR.Type
-      -- ^ The type of the variable (if known).
+      -- ^ The type of the variable (if known).
     }
  deriving Show
 
--------------------------------------------------------------------------------
--- Comparision                                                               --
--------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+-- Comparision                                                               --
+-------------------------------------------------------------------------------
 
--- | Entries are identified by their original name.
+-- | Entries are identified by their original name.
 instance Eq EnvEntry where
   (==) = (==) `on` entryScopedName
 
--- | Entries are ordered by their original name.
+-- | Entries are ordered by their original name.
 instance Ord EnvEntry where
   compare = compare `on` entryScopedName
 
--------------------------------------------------------------------------------
--- Getters                                                                   --
--------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+-- Getters                                                                   --
+-------------------------------------------------------------------------------
 
--- | Gets the scope an entry needs to be defined in.
+-- | Gets the scope an entry needs to be defined in.
 entryScope :: EnvEntry -> IR.Scope
 entryScope DataEntry{}    = IR.TypeScope
 entryScope TypeSynEntry{} = IR.TypeScope
@@ -136,63 +136,63 @@ entryScope ConEntry{}     = IR.ValueScope
 entryScope FuncEntry{}    = IR.ValueScope
 entryScope VarEntry{}     = IR.ValueScope
 
--- | Gets the scope and name of the given entry.
+-- | Gets the scope and name of the given entry.
 entryScopedName :: EnvEntry -> IR.ScopedName
 entryScopedName = entryScope &&& entryName
 
--------------------------------------------------------------------------------
--- Predicates                                                                --
--------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+-- Predicates                                                                --
+-------------------------------------------------------------------------------
 
--- | Tests whether the given entry of the environment describes a data type.
+-- | Tests whether the given entry of the environment describes a data type.
 isDataEntry :: EnvEntry -> Bool
 isDataEntry DataEntry{} = True
 isDataEntry _           = False
 
--- | Tests whether the given entry of the environment describes a type synonym.
+-- | Tests whether the given entry of the environment describes a type synonym.
 isTypeSynEntry :: EnvEntry -> Bool
 isTypeSynEntry TypeSynEntry{} = True
 isTypeSynEntry _              = False
 
--- | Tests whether the given entry of the environment describes a type
---   variable.
+-- | Tests whether the given entry of the environment describes a type
+--   variable.
 isTypeVarEntry :: EnvEntry -> Bool
 isTypeVarEntry TypeVarEntry{} = True
 isTypeVarEntry _              = False
 
--- | Tests whether the given entry of the environment describes a data
---   constructor.
+-- | Tests whether the given entry of the environment describes a data
+--   constructor.
 isConEntry :: EnvEntry -> Bool
 isConEntry ConEntry{} = True
 isConEntry _          = False
 
--- | Tests whether the given entry of the environment describes a function.
+-- | Tests whether the given entry of the environment describes a function.
 isFuncEntry :: EnvEntry -> Bool
 isFuncEntry FuncEntry{} = True
 isFuncEntry _           = False
 
--- | Tests whether the given entry of the environment describes a variable.
+-- | Tests whether the given entry of the environment describes a variable.
 isVarEntry :: EnvEntry -> Bool
 isVarEntry VarEntry{} = True
 isVarEntry _          = False
 
--- | Tests whether the given entry of the environment describes a top-level
---   data type, type synonym, constructor or function.
---
---   Type variables and local variables are no top level entries.
+-- | Tests whether the given entry of the environment describes a top-level
+--   data type, type synonym, constructor or function.
+--
+--   Type variables and local variables are no top level entries.
 isTopLevelEntry :: EnvEntry -> Bool
 isTopLevelEntry = not . (isVarEntry .||. isTypeVarEntry)
 
--- | Tests whether the given entry distinguishes between a @entryIdent@ and
---   @entrySmartIdent@.
+-- | Tests whether the given entry distinguishes between a @entryIdent@ and
+--   @entrySmartIdent@.
 entryHasSmartIdent :: EnvEntry -> Bool
 entryHasSmartIdent = isConEntry
 
--------------------------------------------------------------------------------
--- Pretty printing                                                           --
--------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+-- Pretty printing                                                           --
+-------------------------------------------------------------------------------
 
--- | Gets a human readable description of the entry type.
+-- | Gets a human readable description of the entry type.
 prettyEntryType :: EnvEntry -> String
 prettyEntryType DataEntry{}    = "data type"
 prettyEntryType TypeSynEntry{} = "type synonym"
