@@ -63,7 +63,7 @@ convertArgs args Nothing      = mapM convertArg args
 convertArgs args (Just index) = do
   let (argsBefore, decArg : argsAfter) = splitAt index args
   bindersBefore <- convertArgs argsBefore Nothing
-  decArgBinder  <- convertPureArg decArg
+  decArgBinder  <- convertArg decArg
   bindersAfter  <- convertArgs argsAfter Nothing
   return (bindersBefore ++ decArgBinder : bindersAfter)
 
@@ -71,22 +71,14 @@ convertArgs args (Just index) = do
 --   Coq binder.
 --
 --   If the variable pattern has a type annotation, the generated binder is
---   annotated with the converted type.
+--   annotated with the converted type. If the variable pattern is strict, the
+--   variable is marked as non-monadic and the converted type is not
+--   lifted to the @Free@ monad.
 convertArg :: IR.VarPat -> Converter Coq.Binder
-convertArg (IR.VarPat srcSpan ident maybeArgType _) = do
-  ident'        <- renameAndDefineVar srcSpan False ident maybeArgType
-  maybeArgType' <- mapM convertType maybeArgType
-  generateArgBinder ident' maybeArgType'
-
--- | Like 'convertArg' but marks the variable as non-monadic.
---
---   If the variable pattern has a type annotation, the generated binder is
---   annotated with the converted type but the type is not lifted to the
---   @Maybe@ monad.
-convertPureArg :: IR.VarPat -> Converter Coq.Binder
-convertPureArg (IR.VarPat srcSpan ident maybeArgType _) = do
-  ident'        <- renameAndDefineVar srcSpan True ident maybeArgType
-  maybeArgType' <- mapM convertType' maybeArgType
+convertArg (IR.VarPat srcSpan ident maybeArgType isStrict) = do
+  ident'        <- renameAndDefineVar srcSpan isStrict ident maybeArgType
+  maybeArgType' <- mapM (if isStrict then convertType' else convertType)
+                        maybeArgType
   generateArgBinder ident' maybeArgType'
 
 -- | Generates an explicit Coq binder for a function argument with the given
