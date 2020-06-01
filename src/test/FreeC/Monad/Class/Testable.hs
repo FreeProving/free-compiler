@@ -97,7 +97,7 @@ shouldFailWith
   :: (Show a, MonadTestable m err) => m a -> (err -> Expectation) -> Expectation
 shouldFailWith = shouldFailWith' show
 
--- | Auxillary function for 'shouldFailWith' that allows arbitrary errors.
+-- | Auxiliary function for 'shouldFailWith' that allows arbitrary errors.
 expectAnyError :: err -> Expectation
 expectAnyError = const (return ())
 

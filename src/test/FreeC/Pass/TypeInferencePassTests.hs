@@ -202,7 +202,7 @@ testTypeInferencePass = describe "FreeC.Analysis.TypeInference" $ do
                       ["f :: Bar = unfoo @Bar (Foo @Bar)"]
 
   context "non-recursive functions" $ do
-    it "infers the types of simple simple non-recursive correctly"
+    it "infers the types of simple non-recursive functions correctly"
       $ shouldSucceedWith
       $ do
           _ <- defineTestTypeCon "Bool" 0
