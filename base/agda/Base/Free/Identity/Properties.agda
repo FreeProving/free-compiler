@@ -1,13 +1,13 @@
-module Free.Identity.Properties where
+module Base.Free.Identity.Properties where
 
 open import Relation.Binary.PropositionalEquality using (refl; cong)
 
-open import Free                                  using (Free; pure; impure)
-open import Free.Identity                                                    renaming (Identity to IdentityF)
+open import Base.Free                             using (Free; pure; impure)
+open import Base.Free.Identity                                                    renaming (Identity to IdentityF)
 
-open import Isomorphism                           using (_≃_)
+open import Base.Isomorphism                      using (_≃_)
 open        _≃_
-open import Extensionality                        using (∀-extensionality)
+open import Base.Extensionality                   using (∀-extensionality)
 
 
 -- the usual Identity monad representation an the free version are isomorphic

@@ -1,4 +1,4 @@
-module Free where
+module Base.Free where
 
 -- free monad over shapes S and positions P
 data Free (S : Set) (P : S → Set) (A : Set) : Set where

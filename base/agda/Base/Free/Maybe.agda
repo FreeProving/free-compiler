@@ -1,9 +1,9 @@
-module Free.Maybe where
+module Base.Free.Maybe where
 
 open import Data.Unit  using (⊤; tt)
 open import Data.Empty using (⊥)
 
-open import Free       using (Free; pure; impure)
+open import Base.Free  using (Free; pure; impure)
 
 
 -- representation of the maybe monad using Free

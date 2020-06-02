@@ -1,4 +1,4 @@
-module Isomorphism where
+module Base.Isomorphism where
 
 open import Relation.Binary.PropositionalEquality using (_≡_)
 

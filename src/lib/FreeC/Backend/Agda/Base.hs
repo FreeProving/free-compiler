@@ -13,9 +13,17 @@ import qualified FreeC.Backend.Agda.Syntax     as Agda
 -- Base library import                                                       --
 -------------------------------------------------------------------------------
 
+-- | The name of the Agda Base library.
+baseLibName :: Agda.Name
+baseLibName = Agda.name "Base"
+
+-- | The name of the Agda library where generated Agda files are placed.
+generatedLibName :: Agda.Name
+generatedLibName = Agda.name "Generated"
+
 -- | Import declaration for the @Free@ module from the Base Agda library.
 imports :: Agda.Declaration
-imports = Agda.simpleImport $ Agda.qname' $ Agda.name "Free"
+imports = Agda.simpleImport $ Agda.qname [baseLibName] $ Agda.name "Free"
 
 -------------------------------------------------------------------------------
 -- Free Monad                                                                --

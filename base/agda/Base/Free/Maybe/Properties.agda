@@ -1,14 +1,14 @@
 
-module Free.Maybe.Properties where
+module Base.Free.Maybe.Properties where
 
 open import Relation.Binary.PropositionalEquality using (refl; cong)
 
-open import Free                                  using (Free; pure; impure)
-open import Free.Maybe                            using (Just; Nothing)      renaming (Maybe to MaybeF)
+open import Base.Free                             using (Free; pure; impure)
+open import Base.Free.Maybe                       using (Just; Nothing)      renaming (Maybe to MaybeF)
 
-open import Isomorphism                           using (_≃_)
+open import Base.Isomorphism                      using (_≃_)
 open        _≃_
-open import Extensionality                        using (∀-extensionality)
+open import Base.Extensionality                   using (∀-extensionality)
 
 
 -- the usual Maybe monad representation an the free version are isomorphic
