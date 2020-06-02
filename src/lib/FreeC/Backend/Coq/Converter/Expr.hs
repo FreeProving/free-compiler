@@ -40,6 +40,15 @@ convertExpr expr = convertExpr' expr [] []
 convertExpr' :: IR.Expr -> [IR.Type] -> [IR.Expr] -> Converter Coq.Term
 
 -- Constructors.
+--
+-- Partially applied constructors are not evaluated in Haskell and therefor
+-- cannot be @⊥@. The translated type of a constructor @C : τ₀ -> … -> τₙ@ is
+-- @c : τ₀' -> … -> τₙ*@ instead of @m(τ₀' -> m(τ₁' -> m(… -> τₙ')))@.
+--
+-- Note that the return type is translated using * not ', because a constructor
+-- in Coq cannot return a wrapped value. A smart constructor @C@ is generated,
+-- which wrapps the value of @c@. It is therefore sufficient to just convert
+-- and apply the arguments.
 convertExpr' (IR.Con srcSpan name _) typeArgs args = do
   qualid            <- lookupSmartIdentOrFail srcSpan name
   typeArgs'         <- mapM convertType' typeArgs
@@ -134,14 +143,28 @@ convertExpr' (IR.Var srcSpan name _) typeArgs args = do
         then generatePure (Coq.Qualid qualid) >>= flip generateApply args'
         else generateApply (Coq.Qualid qualid) args'
 
--- Pass argument from applications to converter for callee.
+-- Pass argument from applications to converter for callee, allowing us to
+-- convert functions and constructors with full access to their parameters.
+-- >                $
+-- > convertExpr'  / \   [] args = convertExpr' e₁ [] (e₂ : args)
+-- >              e₁  e₂
 convertExpr' (IR.App _ e1 e2 _) [] args = convertExpr' e1 [] (e2 : args)
 
 -- Pass type argument from visible type application to converter for callee.
+-- >                @
+-- > convertExpr'  / \   tArgs args = convertExpr' e (τ : tArgs) args
+-- >              e   τ
 convertExpr' (IR.TypeAppExpr _ e t _) typeArgs args =
   convertExpr' e (t : typeArgs) args
 
 -- @if@-expressions.
+--
+-- > ⎡Γ ⊢ p:Bool  Γ ⊢ t:τ  Γ ⊢ f:τ⎤'     Γ' ⊢ p':Bool'  Γ' ⊢ t':τ'  Γ' ⊢ f':τ'
+-- > ⎢――――――――――――――――――――――――――――⎥ = ―――――――――――――――――――――――――――――――――――――――――――
+-- > ⎣ Γ ⊢ if p then t else f : τ ⎦   Γ' ⊢ p' >>= λx:𝔹'.if x then t' else f' : τ'
+--
+-- Note that the argument of the lambda is lifted, but its type is @Bool Shape Pos@,
+-- which is just an alias for @bool@, which ignores its arguments.
 convertExpr' (IR.If _ e1 e2 e3 _) [] [] = do
   e1'   <- convertExpr e1
   bool' <- convertType' (IR.TypeCon NoSrcSpan IR.Prelude.boolTypeConName)
@@ -151,6 +174,12 @@ convertExpr' (IR.If _ e1 e2 e3 _) [] [] = do
     return (Coq.If Coq.SymmetricIf cond Nothing e2' e3')
 
 -- @case@-expressions.
+--
+-- > ⎡Γ ⊢ e:τ₀   Γ ⊢ alts:τ₀ => τ⎤'     Γ' ⊢ e':τ₀'     Γ' ⊢ alts':τ₀* => τ'
+-- > ⎢―――――――――――――――――――――――――――⎥ = ――――――――――――――――――――――――――――――――――――――――――
+-- > ⎣  Γ ⊢ case e of alts : τ   ⎦   Γ' ⊢ e' >>= λx:τ₀*.match x with alts' : τ'
+--
+-- where @alts'@ are the lifted (not smart) constructors for τ₀.
 convertExpr' (IR.Case _ expr alts _) [] [] = do
   expr' <- convertExpr expr
   generateBind expr' freshArgPrefix Nothing $ \value -> do
@@ -198,6 +227,11 @@ convertExpr' (IR.IntLiteral _ value _) [] [] = do
   generatePure (Coq.InScope value' Coq.Base.integerScope)
 
 -- Lambda abstractions.
+--
+-- > ⎡     Γ,x:τ₀ ⊢ e:τ₁      ⎤'            Γ',x:τ₀' ⊢ e':τ₁'
+-- > ⎢――――――――――――――――――――――――⎥ = ――――――――――――――――――――――――――――――――――――――
+-- > ⎣ Γ ⊢ λx:τ₀.e : τ₀ -> τ₁ ⎦    Γ' ⊢ pure(λx:τ₀'.e') : m(τ₀' -> τ₁')
+--
 convertExpr' (IR.Lambda _ args expr _) [] [] = localEnv $ do
   args' <- mapM convertArg args
   expr' <- convertExpr expr

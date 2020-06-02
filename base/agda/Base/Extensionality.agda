@@ -3,7 +3,7 @@ module Base.Extensionality where
 open import Level                                 using (Level)
 open import Relation.Binary.PropositionalEquality using (_≡_)
 
--- postualting extensionality is consistent with agdas underlying theory
+-- Postualting extensionality is consistent with agdas underlying theory.
 postulate
   ∀-extensionality : ∀ {ℓ ℓ′ : Level} {A : Set ℓ} {B : A → Set ℓ′} {f g : (x : A) → B x}
     → (∀ (x : A) → f x ≡ g x)

@@ -42,9 +42,9 @@ customPragmaPattern =
 customPragmas :: [(String, CustomPragmaBuilder)]
 customPragmas = [(decArgPattern, parseDecArgPragma)]
 
-------------------------------------------------------------------------------
--- Decreasing arguments                                                     --
-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+-- Decreasing arguments                                                      --
+-------------------------------------------------------------------------------
 
 -- | A regular expression for a decreasing argument pragma.
 decArgPattern :: String
@@ -59,9 +59,9 @@ parseDecArgPragma srcSpan groups = do
         (Left <$> lookup 3 groups) <|> (Right . read <$> lookup 4 groups)
   return (IR.DecArgPragma srcSpan funcName decArg)
 
-------------------------------------------------------------------------------
--- Parser                                                                   --
-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+-- Parser                                                                    --
+-------------------------------------------------------------------------------
 
 -- | Parses custom pragmas (i.e., 'IR.DecArgPragma') from the comments of a
 --   module.

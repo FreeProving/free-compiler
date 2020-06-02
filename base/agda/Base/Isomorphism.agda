@@ -2,7 +2,7 @@ module Base.Isomorphism where
 
 open import Relation.Binary.PropositionalEquality using (_≡_)
 
--- The stdlib contains @Function.Inverse@, which seems to have a similar purpose, but is more complicated.
+-- The stdlib contains `Function.Inverse`, which seems to have a similar purpose, but is more complicated.
 
 infix 0 _≃_
 record _≃_ (A B : Set) : Set where

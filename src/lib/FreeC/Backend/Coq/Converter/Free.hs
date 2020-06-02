@@ -25,6 +25,8 @@ genericArgDecls explicitness =
   map (uncurry (Coq.typedBinder' explicitness)) Coq.Base.freeArgs
 
 -- | @Variable@ sentences for the parameters of the @Free@ monad.
+--   
+--   @Variable Shape : Type.@ and @Variable Pos : Shape -> Type.@
 genericArgVariables :: [Coq.Sentence]
 genericArgVariables = map (uncurry (Coq.variable . return)) Coq.Base.freeArgs
 

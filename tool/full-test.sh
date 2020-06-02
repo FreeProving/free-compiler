@@ -264,6 +264,8 @@ function check_required_software() {
       cabal new-install hlint' >> "$temp_log"
   check_version "Brittany" brittany '0.12.*' '
       cabal new-install brittany' >> "$temp_log"
+  check_version "Agda" agda '2.6.1' '
+      cabal new-install Agda' >> "$temp_log"
 
   # Print reported messages.
   local log_text=$(cat "$temp_log")
@@ -437,7 +439,7 @@ step "Building the Agda base library"        \
      "Built Agda base library successfully"  \
      "Failed to build the Agda base library" \
      "Canceled Agda base library build"      \
-     "./tool/check-agda.sh -r base/agda"
+     "./tool/check-agda.sh --recompile base/agda"
 
 # Generate Haddock documentation.
 step "Generating Haddock documentation"              \

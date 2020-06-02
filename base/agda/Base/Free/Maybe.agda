@@ -1,4 +1,8 @@
+<<<<<<< HEAD:base/agda/Base/Free/Maybe.agda
 module Base.Free.Maybe where
+=======
+module Free.Instance.Maybe where
+>>>>>>> dev-agda:base/agda/Free/Instance/Maybe.agda
 
 open import Data.Unit  using (⊤; tt)
 open import Data.Empty using (⊥)
@@ -6,7 +10,8 @@ open import Data.Empty using (⊥)
 open import Base.Free  using (Free; pure; impure)
 
 
--- representation of the maybe monad using Free
+-- Representation of the `Maybe` monad using Free.
+Shape : Set
 Shape = ⊤
 
 Position : Shape → Set

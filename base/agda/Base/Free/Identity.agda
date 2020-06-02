@@ -1,11 +1,15 @@
+<<<<<<< HEAD:base/agda/Base/Free/Identity.agda
 module Base.Free.Identity where
+=======
+module Free.Instance.Identity where
+>>>>>>> dev-agda:base/agda/Free/Instance/Identity.agda
 
 open import Data.Empty using (⊥)
 
 open import Base.Free  using (Free)
 
 
--- representation of the identity monad using free
+-- Representation of the `Identity` monad using free.
 Shape : Set
 Shape = ⊥
 
