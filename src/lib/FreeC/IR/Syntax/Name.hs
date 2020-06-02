@@ -109,7 +109,7 @@ data DeclIdent = DeclIdent
   { declIdentSrcSpan :: SrcSpan
   , declIdentName    :: QName
   }
- deriving (Eq, Show)
+  deriving (Eq, Show)
 
 -- | Pretty instance for names of declarations.
 instance Pretty DeclIdent where

@@ -41,11 +41,12 @@ data Pragma
   -- | A @{-\# FreeC <function> DECREASES ON <argument> \#-}@ or
   --   @{-\# FreeC <function> DECREASES ON ARGUMENT <index> \#-}@
   --   pragma.
-  = DecArgPragma { pragmaSrcSpan        :: SrcSpan
-                 , decArgPragmaFuncName :: QName
-                 , decArgPragmaArg      :: Either String Int
-                 }
- deriving (Eq, Show)
+            = DecArgPragma
+  { pragmaSrcSpan        :: SrcSpan
+  , decArgPragmaFuncName :: QName
+  , decArgPragmaArg      :: Either String Int
+  }
+  deriving (Eq, Show)
 
 -- | Pretty instance for custom @{-\# FreeC ... \#-}@ pragmas.
 instance Pretty Pragma where

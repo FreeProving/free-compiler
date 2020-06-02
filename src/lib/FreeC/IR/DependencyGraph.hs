@@ -98,11 +98,9 @@ type DGEntry node = (node, DGKey, [DGKey])
 --   In addition to the actual 'Graph' that stores the adjacency matrix
 --   of the internal identifiers, this data type contains functions to convert
 --   between the internal and high level representation.
-data DependencyGraph node =
-  DependencyGraph
-    Graph                    -- ^ The actual graph.
-    (Vertex -> DGEntry node) -- ^ Gets an entry for a vertex of the graph.
-    (DGKey -> Maybe Vertex)  -- ^ Gets the vertex of a node with the given key.
+data DependencyGraph node = DependencyGraph Graph                    -- ^ The actual graph.
+                                            (Vertex -> DGEntry node) -- ^ Gets an entry for a vertex of the graph.
+                                            (DGKey -> Maybe Vertex)  -- ^ Gets the vertex of a node with the given key.
 
 -------------------------------------------------------------------------------
 -- Getters                                                                   --

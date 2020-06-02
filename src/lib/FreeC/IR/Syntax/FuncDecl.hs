@@ -21,7 +21,7 @@ data TypeSig = TypeSig
   , typeSigDeclIdents :: [DeclIdent]
   , typeSigTypeSchema :: TypeSchema
   }
- deriving (Eq, Show)
+  deriving (Eq, Show)
 
 -- | Pretty instance for type signatures.
 instance Pretty TypeSig where
@@ -50,7 +50,7 @@ data FuncDecl = FuncDecl
   , funcDeclRhs        :: Expr
     -- ^ The right-hand side of the function declaration.
   }
- deriving (Eq, Show)
+  deriving (Eq, Show)
 
 -- | Gets the qualified name of the given function declaration.
 funcDeclQName :: FuncDecl -> QName

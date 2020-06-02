@@ -63,20 +63,19 @@ import           FreeC.Util.Predicate
 
 -- | Data type that encapsulates the state of the converter.
 data Environment = Environment
-  { envAvailableModules  :: Map IR.ModName ModuleInterface
+  { envAvailableModules :: Map IR.ModName ModuleInterface
     -- ^ Maps names of modules that can be imported to their interface.
-
-  , envEntries           :: Map IR.ScopedName EnvEntry
+  , envEntries          :: Map IR.ScopedName EnvEntry
     -- ^ Maps original names of entries for declarations to the entries.
-  , envDecArgs           :: Map IR.QName (Int, String)
+  , envDecArgs          :: Map IR.QName (Int, String)
     -- ^ Maps Haskell function names to the index and name of their decreasing
     --   argument. Contains no entry for non-recursive functions, but there are
     --   also entries for functions that are shadowed by local variables.
-  , envFreshIdentCount   :: Map String Int
+  , envFreshIdentCount  :: Map String Int
     -- ^ The number of fresh identifiers that were used in the environment
     --   with a certain prefix.
   }
- deriving Show
+  deriving Show
 
 -- | An environment that does not even contain any predefined types and
 --   functions.
@@ -197,7 +196,8 @@ lookupSrcSpan = fmap entrySrcSpan .:. lookupEntry
 --
 --   Returns @Nothing@ if there is no such type synonym, function or (smart)
 --   constructor with the given name.
-lookupTypeArgs :: IR.Scope -> IR.QName -> Environment -> Maybe [IR.TypeVarIdent]
+lookupTypeArgs
+  :: IR.Scope -> IR.QName -> Environment -> Maybe [IR.TypeVarIdent]
 lookupTypeArgs =
   fmap entryTypeArgs
     .   find (isTypeSynEntry .||. isConEntry .||. isFuncEntry)

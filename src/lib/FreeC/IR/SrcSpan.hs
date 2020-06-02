@@ -34,9 +34,9 @@ import           FreeC.Pretty
 --   The contents of the source file are stored as a string for parsing
 --   and as a list of lines for error messages (i.e., to construct 'SrcSpan's).
 data SrcFile = SrcFile
-  { srcFileName      :: FilePath -- ^ The name of the file.
-  , srcFileContents  :: String   -- ^ The contents of the file.
-  , srcFileLines     :: [String] -- ^ The lines of 'srcFileContents'.
+  { srcFileName     :: FilePath -- ^ The name of the file.
+  , srcFileContents :: String   -- ^ The contents of the file.
+  , srcFileLines    :: [String] -- ^ The lines of 'srcFileContents'.
   }
 
 -- | Type for a map that associates source files with their filename.

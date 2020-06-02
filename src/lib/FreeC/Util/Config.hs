@@ -51,7 +51,8 @@ decodeTomlConfig filename contents = either
   (parseTomlDoc filename (Text.pack contents))
  where
   -- | Decodes a TOML document using the "Aeson" interace.
-  decodeTomlDocument :: MonadReporter r => Aeson.FromJSON a => Toml.Table -> r a
+  decodeTomlDocument
+    :: MonadReporter r => Aeson.FromJSON a => Toml.Table -> r a
   decodeTomlDocument document = case Aeson.fromJSON (Aeson.toJSON document) of
     Aeson.Error msg ->
       reportFatal

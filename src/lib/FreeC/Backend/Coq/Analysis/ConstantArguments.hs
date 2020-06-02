@@ -70,7 +70,7 @@ data ConstArg = ConstArg
   , constArgFreshIdent :: String
     -- ^ A fresh identifier for the constant argument.
   }
- deriving Show
+  deriving Show
 
 -------------------------------------------------------------------------------
 -- Constant Argument Graph                                                   --

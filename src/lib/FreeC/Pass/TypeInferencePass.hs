@@ -233,11 +233,11 @@ type TypeAssumption = Map IR.QName IR.TypeSchema
 
 -- | The state that is passed implicitly between the modules of this module.
 data TypeInferenceState = TypeInferenceState
-  { typeEquations :: [TypeEquation]
+  { typeEquations  :: [TypeEquation]
     -- ^ The type equations that have to be unified.
   , typeAssumption :: TypeAssumption
     -- ^ The known type schemas of predefined functions and constructors.
-  , fixedTypeArgs :: Map IR.QName [IR.Type]
+  , fixedTypeArgs  :: Map IR.QName [IR.Type]
     -- ^ Maps function names to the types to instantiate their last type
     --   arguments with. This is used to instantiate additional type arguments
     --   in recursive functions correctly.
@@ -764,7 +764,7 @@ abstractTypeArgs :: [IR.QName] -> IR.FuncDecl -> IR.FuncDecl
 abstractTypeArgs typeArgs funcDecl =
   let IR.TypeSchema _ _ typeExpr = fromJust (IR.funcDeclTypeSchema funcDecl)
       (IR.TypeSchema _ typeArgs' _, subst) =
-          abstractTypeSchema' typeArgs typeExpr
+        abstractTypeSchema' typeArgs typeExpr
       funcDecl' = applySubst subst funcDecl
   in  funcDecl' { IR.funcDeclTypeArgs = typeArgs' }
 

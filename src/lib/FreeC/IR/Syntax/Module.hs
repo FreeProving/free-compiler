@@ -25,7 +25,7 @@ data Module = Module
   , modPragmas   :: [Pragma]
   , modFuncDecls :: [FuncDecl]
   }
- deriving (Eq, Show)
+  deriving (Eq, Show)
 
 -- | Pretty instance for modules.
 instance Pretty Module where
@@ -48,7 +48,7 @@ data ImportDecl = ImportDecl
   { importSrcSpan :: SrcSpan
   , importName    :: ModName
   }
- deriving (Eq, Show)
+  deriving (Eq, Show)
 
 -- | Pretty instance for import declarations.
 instance Pretty ImportDecl where
