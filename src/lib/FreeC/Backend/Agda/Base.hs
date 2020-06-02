@@ -1,7 +1,21 @@
 -- | This module contains the Agda identifiers of types, constructors and
 --   functions defined in the Base library that accompanies the compiler.
 
-module FreeC.Backend.Agda.Base where
+module FreeC.Backend.Agda.Base
+  ( -- * Library imports
+    baseLibName
+  , generatedLibName
+  , imports
+    -- * Free Monad
+  , free
+  , pure
+  , impure
+  , shape
+  , position
+    -- * reserved identifiers
+  , reservedIdents
+  )
+where
 
 -- We always import this module qualified, therefore clashing with the Prelude
 -- isn't a problem.
@@ -10,7 +24,7 @@ import           Prelude                 hiding ( pure )
 import qualified FreeC.Backend.Agda.Syntax     as Agda
 
 -------------------------------------------------------------------------------
--- Base library import                                                       --
+-- Library imports                                                           --
 -------------------------------------------------------------------------------
 
 -- | The name of the Agda Base library.
@@ -44,11 +58,11 @@ impureConName = Agda.name "impure"
 impure :: Agda.Expr -> Agda.Expr
 impure = Agda.app $ Agda.Ident $ Agda.qname [Agda.name "Free"] impureConName
 
-shapes :: Agda.Name
-shapes = Agda.name "S"
+shape :: Agda.Name
+shape = Agda.name "S"
 
-positions :: Agda.Name
-positions = Agda.name "P"
+position :: Agda.Name
+position = Agda.name "P"
 
 -------------------------------------------------------------------------------
 -- Reserved identifiers                                                      --
@@ -58,4 +72,4 @@ positions = Agda.name "P"
 --
 --   This does only include identifiers without corresponding Haskell name.
 reservedIdents :: [Agda.Name]
-reservedIdents = [free, pureConName, impureConName, shapes, positions]
+reservedIdents = [free, pureConName, impureConName, shape, position]
