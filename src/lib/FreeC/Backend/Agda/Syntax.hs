@@ -14,6 +14,7 @@ module FreeC.Backend.Agda.Syntax
     -- * Expressions
   , intLiteral
   , lambda
+  , app
   )
 where
 
@@ -65,6 +66,12 @@ intLiteral = Lit . LitNat NoRange
 -- | Creates a lambda expression, binding the given names and abstracting the
 --   given expression.
 --
---   @λ x y … → [expr] @
+--   @λ x y … → [expr]@
 lambda :: [Name] -> Expr -> Expr
 lambda args = Lam NoRange (DomainFree . defaultNamedArg . mkBinder_ <$> args)
+
+-- | Creates an application AST node.
+--
+--   @e a@
+app :: Expr -> Expr -> Expr
+app l r = App NoRange l $ defaultNamedArg r

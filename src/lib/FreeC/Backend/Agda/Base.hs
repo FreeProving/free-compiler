@@ -3,6 +3,10 @@
 
 module FreeC.Backend.Agda.Base where
 
+-- We always import this module qualified, therefore clashing with the Prelude
+-- isn't a problem.
+import           Prelude                 hiding ( pure )
+
 import qualified FreeC.Backend.Agda.Syntax     as Agda
 
 -------------------------------------------------------------------------------
@@ -13,4 +17,22 @@ import qualified FreeC.Backend.Agda.Syntax     as Agda
 imports :: Agda.Declaration
 imports = Agda.simpleImport $ Agda.qname' $ Agda.name "Free"
 
+-------------------------------------------------------------------------------
+-- Free Monad                                                                --
+-------------------------------------------------------------------------------
 
+free :: Agda.Name
+free = Agda.name "Free"
+
+pure :: Agda.Expr -> Agda.Expr
+pure = Agda.app $ Agda.Ident $ Agda.qname [Agda.name "Free"] $ Agda.name "pure"
+
+impure :: Agda.Expr -> Agda.Expr
+impure =
+  Agda.app $ Agda.Ident $ Agda.qname [Agda.name "Free"] $ Agda.name "impure"
+
+shapes :: Agda.Name
+shapes = Agda.name "S"
+
+positions :: Agda.Name
+positions = Agda.name "P"
