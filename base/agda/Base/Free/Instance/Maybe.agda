@@ -1,8 +1,4 @@
-<<<<<<< HEAD:base/agda/Base/Free/Maybe.agda
-module Base.Free.Maybe where
-=======
-module Free.Instance.Maybe where
->>>>>>> dev-agda:base/agda/Free/Instance/Maybe.agda
+module Base.Free.Instance.Maybe where
 
 open import Data.Unit  using (⊤; tt)
 open import Data.Empty using (⊥)

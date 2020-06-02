@@ -1,18 +1,9 @@
-<<<<<<< HEAD:base/agda/Base/Free/Identity/Properties.agda
-module Base.Free.Identity.Properties where
+module Base.Free.Instance.Identity.Properties where
 
 open import Relation.Binary.PropositionalEquality using (refl; cong)
 
 open import Base.Free                             using (Free; pure; impure)
-open import Base.Free.Identity                                                    renaming (Identity to IdentityF)
-=======
-module Free.Instance.Identity.Properties where
-
-open import Relation.Binary.PropositionalEquality using (refl; cong)
-
-open import Free                                  using (Free; pure; impure)
-open import Free.Instance.Identity                                           renaming (Identity to IdentityF)
->>>>>>> dev-agda:base/agda/Free/Instance/Identity/Properties.agda
+open import Base.Free.Instance.Identity                                      renaming (Identity to IdentityF)
 
 open import Base.Isomorphism                      using (_≃_)
 open        _≃_

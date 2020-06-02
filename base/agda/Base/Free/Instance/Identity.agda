@@ -1,8 +1,4 @@
-<<<<<<< HEAD:base/agda/Base/Free/Identity.agda
-module Base.Free.Identity where
-=======
-module Free.Instance.Identity where
->>>>>>> dev-agda:base/agda/Free/Instance/Identity.agda
+module Base.Free.Instance.Identity where
 
 open import Data.Empty using (⊥)
 
