@@ -32,15 +32,30 @@ imports = Agda.simpleImport $ Agda.qname [baseLibName] $ Agda.name "Free"
 free :: Agda.Name
 free = Agda.name "Free"
 
+pureConName :: Agda.Name
+pureConName = Agda.name "pure"
+
 pure :: Agda.Expr -> Agda.Expr
-pure = Agda.app $ Agda.Ident $ Agda.qname [Agda.name "Free"] $ Agda.name "pure"
+pure = Agda.app $ Agda.Ident $ Agda.qname [Agda.name "Free"] pureConName
+
+impureConName :: Agda.Name
+impureConName = Agda.name "impure"
 
 impure :: Agda.Expr -> Agda.Expr
-impure =
-  Agda.app $ Agda.Ident $ Agda.qname [Agda.name "Free"] $ Agda.name "impure"
+impure = Agda.app $ Agda.Ident $ Agda.qname [Agda.name "Free"] impureConName
 
 shapes :: Agda.Name
 shapes = Agda.name "S"
 
 positions :: Agda.Name
 positions = Agda.name "P"
+
+-------------------------------------------------------------------------------
+-- Reserved identifiers                                                      --
+-------------------------------------------------------------------------------
+
+-- | All Agda identifiers that are reserved for the Base library.
+--
+--   This does only include identifiers without corresponding Haskell name.
+reservedIdents :: [Agda.Name]
+reservedIdents = [free, pureConName, impureConName, shapes, positions]
