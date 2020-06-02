@@ -91,7 +91,6 @@ import           FreeC.IR.Subterm
 import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Converter
 import           FreeC.Pass
-import           FreeC.Pretty
 
 -- | Applies η-conversions to the right-hand sides of all function declarations
 --   in the given module until all function and constructor applications are
