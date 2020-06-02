@@ -22,6 +22,19 @@
 --   This optimization does not work when functions are applied only partially.
 --   Thus, we have to convert partial applications to full applications.
 --
+--   We differentiate between top-level partial applications (i.e. when a 
+--   function is defined as the partial application of another defined function 
+--   or constructor) and partial applications that occur in the arguments of 
+--   the function declaration's right-hand side. 
+-- 
+--   We perform regular η-conversions on partial applications in proper 
+--   subexpressions of a function declaration's right-hand side. 
+-- 
+--   However, on the top-level, we add the missing arguments to the left-hand and
+--   right-hand sides of the function rule explicitly, without a lambda abstraction. 
+--   This is an optimization that allows the compiler to avoid some unnecessary 
+--   monadic lifting.
+--
 --   = Specification
 --
 --   == Preconditions
@@ -31,17 +44,27 @@
 --
 --   == Translation
 --
---   On the right-hand sides of function declarations, all of the largest
---   sub-expressions of the form
+--   Assume that we have the following function declaration. 
 --
---   > f @α₁ … @αₚ e₁ … eₘ
+--   > f e₁ … eₖ = g @α₁ … @αₚ e₁ … eₘ
 --
---   where @f@ is the name of an @n@-ary constructor or function declaration
---   and @m < n@ is replaced by a lambda abstraction
+--   where @g@ is the name of an @n@-ary constructor or function declaration and 
+--   @m < n@. This declaration is then replaced by 
+--   > f e₁ … eₖ x₍ₘ₊₁₎ … xₙ = @α₁ … @αₚ g e₁ … eₘ x₍ₘ₊₁₎ … xₙ
+--   
+--   where x₍ₘ₊₁₎ … xₙ are @n-m@ fresh variables. 
 --
---   > \x₍ₘ₊₁₎ … xₙ -> f @α₁ … @αₚ e₁ … eₘ x₍ₘ₊₁₎ … xₙ
+--   Additionally, on the right-hand sides of function declarations, all of the largest
+--   proper sub-expressions of the form
 --
---   where @x₍ₘ₊₁₎ … xₙ@ are @n-m@ fresh variables.
+--   > h @α₁ … @αᵣ e₁ … eₗ
+--
+--   where @h@ is the name of an @p@-ary constructor or function declaration
+--   and @l < p@ are replaced by a lambda abstraction
+--
+--   > \y₍ₗ₊₁₎ … yₚ -> f @α₁ … @αᵣ e₁ … eₘ y₍ₗ₊₁₎ … yₚ
+--
+--   where @y₍ₗ₊₁₎ … yₚ@ are @p-l@ fresh variables.
 --
 --   == Postconditions
 --
@@ -56,15 +79,19 @@ module FreeC.Pass.EtaConversionPass
 where
 
 import           Control.Monad                  ( replicateM )
-import           Data.Maybe                     ( fromMaybe )
+import           Data.Maybe                     ( fromMaybe
+                                                , fromJust
+                                                )
 
 import           FreeC.Environment
 import           FreeC.Environment.Fresh
+import           FreeC.Environment.Entry
 import           FreeC.IR.SrcSpan
 import           FreeC.IR.Subterm
 import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Converter
 import           FreeC.Pass
+import           FreeC.Pretty
 
 -- | Applies η-conversions to the right-hand sides of all function declarations
 --   in the given module until all function and constructor applications are
@@ -78,27 +105,68 @@ etaConversionPass ast = do
 -- Function declarations                                                     --
 -------------------------------------------------------------------------------
 
--- | Applies 'etaConvertExpr' to the right-hand side of the given function
---   declaration.
+-- | Applies 'etaConvertTopLevelRhs' to the right-hand side of the given function
+--   declaration to ensure all functions and constructors on the right-hand side 
+--   are fully applied. 
+--   The missing top-level arguments are also added to the left-hand side of the 
+--   declaration and the function's type and the environment are updated accordingly. 
 etaConvertFuncDecl :: IR.FuncDecl -> Converter IR.FuncDecl
 etaConvertFuncDecl funcDecl = do
-  rhs' <- etaConvertExpr (IR.funcDeclRhs funcDecl)
-  return funcDecl { IR.funcDeclRhs = rhs' }
+  let rhs = IR.funcDeclRhs funcDecl
+  xs   <- generateFullArgumentList rhs
+  rhs' <- etaConvertTopLevelRhs xs rhs
+  -- compute the function's new (uncurried) type
+  let (args, returnType) = splitReturnType
+        (length xs)
+        (fromJust $ IR.funcDeclReturnType funcDecl)
+  -- compute the function's new argument list 
+  let vars' =
+        IR.funcDeclArgs funcDecl
+          ++ zipWith
+               (\t i -> IR.VarPat { IR.varPatSrcSpan = NoSrcSpan
+                                  , IR.varPatIdent   = i
+                                  , IR.varPatType    = Just t
+                                  }
+               )
+               args
+               xs
+  -- update the environment with the new type and arguments
+  Just entry <- inEnv $ lookupEntry IR.ValueScope (IR.funcDeclQName funcDecl)
+  modifyEnv $ addEntry entry { entryArity      = length vars'
+                             , entryArgTypes   = map IR.varPatType vars'
+                             , entryReturnType = Just returnType
+                             }
+  -- update the function declaration's attributes 
+  return funcDecl { IR.funcDeclArgs       = vars'
+                  , IR.funcDeclReturnType = Just returnType
+                  , IR.funcDeclRhs        = rhs'
+                  }
 
 -------------------------------------------------------------------------------
 -- Expressions                                                               --
 -------------------------------------------------------------------------------
 
--- | Applies η-conversions to the given expression and it's sub-expressions
+-- | Applies a function declaration's or constructor's right-hand side to its 
+--   missing arguments.
+--   Regular η-conversions are performed for the right-hand side's proper subexpressions 
+--   via 'etaConvertSubExprs'.
+etaConvertTopLevelRhs :: [String] -> IR.Expr -> Converter IR.Expr
+etaConvertTopLevelRhs xs expr = localEnv $ do
+  expr' <- etaConvertSubExprs expr
+  if null xs then return expr' else return (IR.app NoSrcSpan expr' argExprs) where
+  argPats  = map IR.toVarPat xs
+  argExprs = map IR.varPatToExpr argPats
+
+
+-- | Applies η-conversions to the given expression and its sub-expressions
 --   until all function and constructor applications are fully applied.
 etaConvertExpr :: IR.Expr -> Converter IR.Expr
 etaConvertExpr expr = localEnv $ do
-  arity <- arityOf expr
-  xs    <- replicateM arity $ freshHaskellIdent freshArgPrefix
+  xs    <- generateFullArgumentList expr
   expr' <- etaConvertSubExprs expr
   return (etaAbstractWith xs expr')
 
--- | Creates a lambda abstraction with the given arguments that immediatly
+-- | Creates a lambda abstraction with the given arguments that immediately
 --   applies the given expression to the arguments.
 etaAbstractWith :: [String] -> IR.Expr -> IR.Expr
 etaAbstractWith xs expr | null xs   = expr
@@ -142,6 +210,7 @@ etaConvertSubExprs' expr = do
   let Just expr' = replaceChildTerms expr children'
   return expr'
 
+
 -------------------------------------------------------------------------------
 -- Arity                                                                     --
 -------------------------------------------------------------------------------
@@ -169,3 +238,26 @@ arityOf (IR.Undefined _ _      ) = return 0
 arityOf (IR.ErrorExpr  _ _ _   ) = return 0
 arityOf (IR.IntLiteral _ _ _   ) = return 0
 arityOf (IR.Lambda _ _ _ _     ) = return 0
+
+-------------------------------------------------------------------------------
+-- Helper functions                                                                     --
+-------------------------------------------------------------------------------
+
+-- | 'splitReturnType n' uncurries the given function's type n times.
+--   It is assumed that the given type is of the form
+--   @τ₁ -> (… -> (τₙ -> τ))@, which is true for the return type of 
+--   a partially defined function with @n@ missing arguments.
+--   The function returns a tuple consisting of a list of the argument
+--   types @[τ₁, …, τₙ]@ and the return type @τ@. 
+splitReturnType :: Int -> IR.Type -> ([IR.Type], IR.Type)
+splitReturnType 0 t = ([], t)
+splitReturnType n t =
+  let (arg , r    ) = IR.splitFuncType t 1
+      (args, rType) = splitReturnType (n - 1) r
+  in  (arg ++ args, rType)
+
+-- | Generates fresh identifiers for all missing arguments of an expression. 
+generateFullArgumentList :: IR.Expr -> Converter [String]
+generateFullArgumentList expr = localEnv $ do
+  arity <- arityOf expr
+  replicateM arity $ freshHaskellIdent freshArgPrefix
