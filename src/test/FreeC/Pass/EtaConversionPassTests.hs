@@ -23,13 +23,14 @@ shouldEtaConvert inputStr expectedOutputStr = do
   input          <- parseTestFuncDecl inputStr
   expectedOutput <- parseTestFuncDecl expectedOutputStr
   output         <- etaConvertFuncDecl input
+  --error (show output)
   return (output `shouldBeSimilarTo` expectedOutput)
 
 -------------------------------------------------------------------------------
 -- Tests                                                                     --
 -------------------------------------------------------------------------------
 
--- | Test group for 'etaConversionPass' tests.  
+-- | Test group for 'etaConversionPass' tests.
 testEtaConversionPass :: Spec
 testEtaConversionPass = describe "FreeC.Pass.EtaConversionPass" $ do
   it
@@ -37,9 +38,9 @@ testEtaConversionPass = describe "FreeC.Pass.EtaConversionPass" $ do
     $ shouldSucceedWith
     $ do
         _ <- defineTestTypeCon "Foo" 0
-        _ <- defineTestFunc "f" 1 "Foo -> Foo -> Foo"
+        _ <- defineTestFunc "f" 0 "Foo -> Foo"
         _ <- defineTestFunc "g" 2 "Foo -> Foo -> Foo"
-        "f = g x" `shouldEtaConvert` "f (y :: Foo) :: Foo = g x y"
+        "f = g Foo" `shouldEtaConvert` "f (y :: Foo) :: Foo = g Foo y"
 
 -- These are the old tests, but since the testing interface has changed
 -- and we now test whole function declarations instead of right-hand sides,
