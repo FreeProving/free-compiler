@@ -276,27 +276,18 @@ prettyExprPred' _ (Undefined _ _      ) = prettyString "undefined"
 -------------------------------------------------------------------------------
 
 -- | One alternative of a @case@ expression.
---
---   The left hand side can be annotated by a @!@.
 data Alt = Alt
   { altSrcSpan :: SrcSpan
   , altConPat  :: ConPat
   , altVarPats :: [VarPat]
   , altRhs     :: Expr
-  , altIsStrict  :: Bool
   }
  deriving (Eq, Show)
 
 -- | Pretty instance for @case@ expression alternatives.
 instance Pretty Alt where
-  pretty (Alt _ conPat varPats expr False) =
+  pretty (Alt _ conPat varPats expr) =
     pretty conPat
-      <+> hsep (map pretty varPats)
-      <+> prettyString "->"
-      <+> pretty expr
-  pretty (Alt _ conPat varPats expr True) =
-    char '!'
-      <>  pretty conPat
       <+> hsep (map pretty varPats)
       <+> prettyString "->"
       <+> pretty expr

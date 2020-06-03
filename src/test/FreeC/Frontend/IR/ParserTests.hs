@@ -385,90 +385,56 @@ testCaseExprParser = context "case expressions" $ do
     "case s of {}" `shouldParse` IR.Case NoSrcSpan s [] Nothing
   it "accepts case expressions with a single alternative" $ do
     "case s of { Foo -> x }"
-      `shouldParse` IR.Case NoSrcSpan
-                            s
-                            [IR.Alt NoSrcSpan fooPat [] x False]
-                            Nothing
-  it "accepts case expressions with a single strict alternative" $ do
-    "case s of { !Foo -> x }"
-      `shouldParse` IR.Case NoSrcSpan
-                            s
-                            [IR.Alt NoSrcSpan fooPat [] x True]
-                            Nothing
+      `shouldParse` IR.Case NoSrcSpan s [IR.Alt NoSrcSpan fooPat [] x] Nothing
   it "accepts case expressions with multiple alternatives" $ do
     "case s of { Foo -> x; Bar -> y }"
       `shouldParse` IR.Case
                       NoSrcSpan
                       s
-                      [ IR.Alt NoSrcSpan fooPat [] x False
-                      , IR.Alt NoSrcSpan barPat [] y False
+                      [ IR.Alt NoSrcSpan fooPat [] x
+                      , IR.Alt NoSrcSpan barPat [] y
                       ]
                       Nothing
-  it "accepts case expressions with one strict and one non strict alternative"
-    $ do
-        "case s of { Foo -> x; !Bar -> y }"
-          `shouldParse` IR.Case
-                          NoSrcSpan
-                          s
-                          [ IR.Alt NoSrcSpan fooPat [] x False
-                          , IR.Alt NoSrcSpan barPat [] y True
-                          ]
-                          Nothing
   it "accepts case expressions with trailing semicolon" $ do
     "case s of { Foo -> x; Bar -> y; }"
       `shouldParse` IR.Case
                       NoSrcSpan
                       s
-                      [ IR.Alt NoSrcSpan fooPat [] x False
-                      , IR.Alt NoSrcSpan barPat [] y False
+                      [ IR.Alt NoSrcSpan fooPat [] x
+                      , IR.Alt NoSrcSpan barPat [] y
                       ]
                       Nothing
   it "accepts case expressions with variable patterns" $ do
     "case s of { Foo x y -> x }"
       `shouldParse` IR.Case NoSrcSpan
                             s
-                            [IR.Alt NoSrcSpan fooPat [xPat, yPat] x False]
+                            [IR.Alt NoSrcSpan fooPat [xPat, yPat] x]
                             Nothing
   it "accepts case expressions with strict variable patterns" $ do
     "case s of { Foo !x !y -> x }"
       `shouldParse` IR.Case
                       NoSrcSpan
                       s
-                      [IR.Alt NoSrcSpan fooPat [xPatStrict, yPatStrict] x False]
+                      [IR.Alt NoSrcSpan fooPat [xPatStrict, yPatStrict] x]
                       Nothing
-  it
-      "accepts case expressions with strict variable patterns and strict alternative"
-    $ do
-        "case s of { !Foo !x !y -> x }"
-          `shouldParse` IR.Case
-                          NoSrcSpan
-                          s
-                          [ IR.Alt NoSrcSpan
-                                   fooPat
-                                   [xPatStrict, yPatStrict]
-                                   x
-                                   True
-                          ]
-                          Nothing
   it "accepts case expressions with type annotated variable patterns" $ do
     "case s of { Foo (x :: a) -> x }"
       `shouldParse` IR.Case NoSrcSpan
                             s
-                            [IR.Alt NoSrcSpan fooPat [xPat'] x False]
+                            [IR.Alt NoSrcSpan fooPat [xPat'] x]
                             Nothing
   it "accepts case expressions with strict type annotated variable patterns"
     $ do
         "case s of { Foo !(x :: a) -> x }"
-          `shouldParse` IR.Case
-                          NoSrcSpan
-                          s
-                          [IR.Alt NoSrcSpan fooPat [xPatStrict'] x False]
-                          Nothing
+          `shouldParse` IR.Case NoSrcSpan
+                                s
+                                [IR.Alt NoSrcSpan fooPat [xPatStrict'] x]
+                                Nothing
   it "accepts case expressions with type annotations" $ do
     "case s of { Foo x -> x } :: a" `shouldParse` IR.Case
       NoSrcSpan
       s
-      [IR.Alt NoSrcSpan fooPat [xPat] x False]
+      [IR.Alt NoSrcSpan fooPat [xPat] x]
       (Just a)
 
 -- | Test group for 'Parseable' instance of error terms.

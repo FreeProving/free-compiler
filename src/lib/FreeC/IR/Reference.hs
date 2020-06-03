@@ -222,7 +222,7 @@ instance HasRefs IR.Expr where
 --   the type annotations of the variable patterns refer to and the references
 --   of the right-hand side that are not bound by the variable patterns.
 instance HasRefs IR.Alt where
-  refSet (IR.Alt _ conPat varPats rhs _) =
+  refSet (IR.Alt _ conPat varPats rhs) =
     unions [refSet conPat, refSet varPats, withoutArgs varPats (refSet rhs)]
 
 -- | Constructor patterns refer to the matched constructor.

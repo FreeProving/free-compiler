@@ -764,13 +764,12 @@ instance Resolvable IR.Expr where
 --   References on the right-hand side are resolved recursively. The right-hand
 --   can reference the variable patterns.
 instance Resolvable IR.Alt where
-  resolve (IR.Alt srcSpan conPat varPats rhs isStrict) =
-    withLocalResolverEnv $ do
-      defineVarPats varPats
-      conPat'  <- resolve conPat
-      varPats' <- mapM resolve varPats
-      rhs'     <- resolve rhs
-      return (IR.Alt srcSpan conPat' varPats' rhs' isStrict)
+  resolve (IR.Alt srcSpan conPat varPats rhs) = withLocalResolverEnv $ do
+    defineVarPats varPats
+    conPat'  <- resolve conPat
+    varPats' <- mapM resolve varPats
+    rhs'     <- resolve rhs
+    return (IR.Alt srcSpan conPat' varPats' rhs')
 
 -- | The name of the constructor matched by the a constructor pattern can be
 --   resolved to its original name.
