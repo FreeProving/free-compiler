@@ -282,8 +282,7 @@ boundVarsWithTypeAt = fromMaybe Map.empty .: boundVarsWithTypeAt'
  where
   -- | Like 'boundVarsWithTypeAt' but returns @Nothing@ if the given position
   --   is invalid.
-  boundVarsWithTypeAt'
-    :: IR.Expr -> Pos -> Maybe (Map IR.QName (Maybe IR.Type))
+  boundVarsWithTypeAt' :: IR.Expr -> Pos -> Maybe (Map IR.QName (Maybe IR.Type))
   boundVarsWithTypeAt' _    (Pos []      ) = return Map.empty
   boundVarsWithTypeAt' expr (Pos (p : ps)) = do
     child <- selectSubterm expr (Pos [p])

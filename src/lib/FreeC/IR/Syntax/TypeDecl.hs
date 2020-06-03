@@ -65,7 +65,7 @@ data ConDecl = ConDecl
   , conDeclIdent   :: DeclIdent
   , conDeclFields  :: [Type]
   }
-  deriving (Eq, Show)
+ deriving (Eq, Show)
 
 -- | Gets the qualified name of the given constructor declaration.
 conDeclQName :: ConDecl -> QName

@@ -36,4 +36,4 @@ data ModuleInterface = ModuleInterface
     -- ^ The entries (including hidden entries) defined in or imported
     --   by the module.
   }
-  deriving Show
+ deriving Show

@@ -18,7 +18,7 @@ data TypeSchema = TypeSchema
   , typeSchemaArgs    :: [TypeVarDecl]
   , typeSchemaType    :: Type
   }
-  deriving (Eq, Show)
+ deriving (Eq, Show)
 
 -- | Pretty instance for type schemas.
 instance Pretty TypeSchema where

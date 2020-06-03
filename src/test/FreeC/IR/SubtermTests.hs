@@ -65,7 +65,7 @@ testSubterm = describe "FreeC.IR.Subterm" $ do
           it "replaces valid positions successfully" $ \testExpr ->
             property $ forAll (testPos testExpr) $ \(p, valid) ->
               let testExpr' =
-                    IR.Var NoSrcSpan (IR.UnQual (IR.Ident "x")) Nothing
+                      IR.Var NoSrcSpan (IR.UnQual (IR.Ident "x")) Nothing
               in  isJust (replaceSubterm testExpr p testExpr') == valid
 
           it "produces the input when replacing a subterm with itself"

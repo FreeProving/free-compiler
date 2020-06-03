@@ -18,7 +18,7 @@ data TypeVarDecl = TypeVarDecl
   { typeVarDeclSrcSpan :: SrcSpan
   , typeVarDeclIdent   :: String
   }
-  deriving (Eq, Show)
+ deriving (Eq, Show)
 
 -- | Converts the declaration of a type variable to a type.
 typeVarDeclToType :: TypeVarDecl -> Type

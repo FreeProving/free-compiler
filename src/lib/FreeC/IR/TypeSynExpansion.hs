@@ -66,8 +66,7 @@ expandAllTypeSynonyms = expandAllTypeSynonymsWhere (const True)
 
 -- | Like 'expandAllTypeSynonyms' but expands only type synonyms whose name
 --   matches the given predicate.
-expandAllTypeSynonymsWhere
-  :: (IR.QName -> Bool) -> IR.Type -> Converter IR.Type
+expandAllTypeSynonymsWhere :: (IR.QName -> Bool) -> IR.Type -> Converter IR.Type
 expandAllTypeSynonymsWhere = expandTypeSynonymsWhere (-1)
 
 -- | Like 'expandAllTypeSynonyms' but accepts an additional argument for the

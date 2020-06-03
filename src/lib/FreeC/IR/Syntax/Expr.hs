@@ -282,7 +282,7 @@ data Alt = Alt
   , altVarPats :: [VarPat]
   , altRhs     :: Expr
   }
-  deriving (Eq, Show)
+ deriving (Eq, Show)
 
 -- | Pretty instance for @case@ expression alternatives.
 instance Pretty Alt where
@@ -304,7 +304,7 @@ data ConPat = ConPat
   { conPatSrcSpan :: SrcSpan
   , conPatName    :: ConName
   }
-  deriving (Eq, Show)
+ deriving (Eq, Show)
 
 -- | Converts a constructor pattern to a constructor expression.
 conPatToExpr :: ConPat -> Expr
@@ -327,7 +327,7 @@ data VarPat = VarPat
   , varPatIdent   :: String
   , varPatType    :: Maybe Type
   }
-  deriving (Eq, Show)
+ deriving (Eq, Show)
 
 -- | Gets the name of the given variable pattern.
 varPatName :: VarPat -> Name

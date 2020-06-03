@@ -108,15 +108,13 @@ makeConsMapEntry entry
 --
 --   Since the pattern matching compiler library does not support source
 --   spans, location information is removed during the transformation.
-transformPatternMatching
-  :: HSE.Module SrcSpan -> Converter (HSE.Module SrcSpan)
+transformPatternMatching :: HSE.Module SrcSpan -> Converter (HSE.Module SrcSpan)
 transformPatternMatching haskellAst =
   transformPatternMatching' haskellAst <$> initialState
 
 -- | Removes the source spans of the given Haskell AST and applies the pattern
 --   matching compilation.
-transformPatternMatching'
-  :: HSE.Module SrcSpan -> PMState -> HSE.Module SrcSpan
+transformPatternMatching' :: HSE.Module SrcSpan -> PMState -> HSE.Module SrcSpan
 transformPatternMatching' haskellAst = evalPM $ do
   let haskellAst' = void haskellAst
   haskellAst'' <- processModule haskellAst'
