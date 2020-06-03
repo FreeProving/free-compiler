@@ -36,11 +36,11 @@ A compiler for the monadic translation of Haskell programs to Coq that uses the 
 ## Documentation
 
 This compiler was originally developed as part of a [bachelor's thesis][thesis/Andresen2019].
-The compiler has been extended with additional features and its architecture changed compared to the [version presented in the thesis][tag/v0.1.0.0] but the explanation of the monadic translation in the thesis is still up to date.
+The compiler has been extended with additional features and its architecture changed compared to the [version presented in the thesis][tag/v0.1.0.0], but the explanation of the monadic translation in the thesis is still up to date.
 Read the [changelog][freec/CHANGELOG] for more information on what has changed since the initial release.
 
 The compiler's source code is documented using [Haddock][software/haddock].
-The documentation is automatically build by our CI pipeline and published [here][gh-pages/haddock].
+The documentation is automatically built by our CI pipeline and published [here][gh-pages/haddock].
 
 Additional documentation can be found in the [`doc/`][doc] directory.
 
@@ -54,7 +54,7 @@ This repository is structured as follows.
 
  - `./.github`
 
-   This directory contains GitHub related files such as issue and pull request templates as well as the configuration of the [CI pipeline][guidelines/CONTRIBUTING#the-ci-pipeline].
+   This directory contains GitHub-related files such as issue and pull request templates as well as the configuration of the [CI pipeline][guidelines/CONTRIBUTING#the-ci-pipeline].
 
  - `./base/coq`
 
@@ -73,14 +73,14 @@ This repository is structured as follows.
    This directory contains examples for Haskell modules that can (or cannot) be compiled with the Free Compiler.
    Examples that don't compile are commented out.
    If multiple examples belong together, they are placed in a common subdirectory.
-   There are two `.gitignore`d subdirectories `./example/transformed` and `./example/generated`.
+   There are two `.gitignore`d subdirectories, `./example/transformed` and `./example/generated`.
 
     + `./example/generated` is intended to be used as the `--output` directory of the compiler when testing the compiler.
     + `./example/transformed` is used to dump the output of the [pattern matching compiler][doc/ExperimentalFeatures/PatternMatchingCompilation.md].
 
    There are also Coq files (`.v` files) for proofs about translated examples.
    In contrast to the Coq files placed by the compiler into `./example/generated`, they are not `.gitignore`d.
-   The `./example/_CoqProject` file, configures Coq such that the versioned Coq files can discover the generated Coq code and the base library.
+   The `./example/_CoqProject` file configures Coq such that the versioned Coq files can discover the generated Coq code and the base library.
 
  - `./img`
 
@@ -94,10 +94,10 @@ This repository is structured as follows.
     + `./src/exe` contains the code for the command line interface.
     + `./src/lib` contains the code for the actual compiler.
     + `./src/test` contains test cases for the modules located in `./src/lib`.
-       * By convention modules containing test cases have the same name as the module they are testing but the name `Tests` is appended.
+       * By convention modules containing test cases have the same name as the module they are testing but `Tests` is appended to the module name.
          For example, the module `FreeC.Pass.TypeInferencePassTests` contains test cases for the `FreeC.Pass.TypeInferencePass` module.
        * For tests of modules with a common prefix, there is often a `Tests.hs` file that simply invokes all tests of all modules with that prefix.
-         For example, there is no `FreeC.IR` module but a `FreeC.IR.Tests` module that runs all tests for modules starting the the `FreeC.IR` prefix (e.g., `FreeC.IR.ReferenceTests`, `FreeC.IR.SubstTests`, etc.)
+         For example, there is no `FreeC.IR` module but a `FreeC.IR.Tests` module that runs all tests for modules starting with the `FreeC.IR` prefix (e.g., `FreeC.IR.ReferenceTests`, `FreeC.IR.SubstTests`, etc.)
        * The `Spec` module serves as an entry point or "main module" for the unit tests.
          It invokes the unit tests in the other test modules.
 
@@ -109,7 +109,7 @@ This repository is structured as follows.
     + `FreeC.Frontend` contains modules that are concerned with the translation of an input language to the intermediate representation.
       This includes a front end for the intermediate representation itself.
     + `FreeC.IR` contains modules that define data types and operations for the intermediate representation such as the AST or commonly used operations on the AST.
-    + `FreeC.Monad` contains modules that define monads that are used throughout the compiler (e.g., for error reporting, or stateful operations).
+    + `FreeC.Monad` contains modules that define monads that are used throughout the compiler (e.g., for error reporting or stateful operations).
     + `FreeC.Monad.Class` contains type classes for monads.
     + `FreeC.Pass` contains one module for each *compiler pass*.
       A compiler pass is a transformation on the intermediate representation and environment.
@@ -134,9 +134,9 @@ This repository is structured as follows.
    /path/to/free-compiler/tool/run.sh ./example/Data/List.hs
    ```
 
-   As a consequence `./example/Data/List.hs` refers to `/path/to/free-compiler/example/Data/List.hs` and not to `$(pwd)/example/Data/List.hs` in the example above.
+   As a consequence, `./example/Data/List.hs` refers to `/path/to/free-compiler/example/Data/List.hs` and not to `$(pwd)/example/Data/List.hs` in the example above.
 
-   If there are other directories named `tool` in this repository, the contained scripts are interned to to be executed from the directory containing the `tool` directory by convention.
+   If there are other directories named `tool` in this repository, the contained scripts are intended to be executed from the directory containing the `tool` directory by convention.
 
 ## Getting Started
 
@@ -193,7 +193,7 @@ freec --version
 
 ### Running without Installation
 
-If you want to run the compiler without installing it on your machine (i.e., for debugging purposes), execute the following command in the root directory of the compiler instead of the `freec` command.
+If you want to run the compiler without installing it on your machine (e.g., for debugging purposes), execute the following command in the root directory of the compiler instead of the `freec` command.
 
 ```bash
 cabal new-run freec -- [options...] <input-files...>
@@ -223,7 +223,7 @@ cabal new-repl freec
 cabal new-repl freec-internal
 ```
 
-Unfortunately, it is not possible to load both `freec` (i.e., all modules in `./src/exe`) and `freec-internal` (i.e., all modules in `./src/lib`) in interpreted mode at the same the same time.
+Unfortunately, it is not possible to load both `freec` (i.e., all modules in `./src/exe`) and `freec-internal` (i.e., all modules in `./src/lib`) in interpreted mode at the same time.
 This restriction is sometimes inconvenient, since you would have to restart GHCi whenever you make changes to the `freec-internal` component when the `freec` component is loaded.
 Furthermore it is not possible to set a break point across component boundaries.
 Thus, we provide the following bash script to open a GHCi prompt.
@@ -238,13 +238,13 @@ Use the `:m` command to switch to another module.
 ## Usage
 
 To compile a Haskell module, pass the file name of the module to `freec`.
-For example, to compile the examples from the `Data.List` module, run the the following command.
+For example, to compile the examples from the `Data.List` module, run the following command.
 
 ```bash
 freec ./example/Data/List.hs
 ```
 
-In order to compile multiple modules which `import` on each other, multiple file names can be passed as an argument.
+In order to compile multiple modules which `import` each other, multiple file names can be passed as an argument.
 
 ```bash
 freec ./example/Data/List.hs ./example/Data/Function.hs
@@ -257,7 +257,7 @@ See the `--output` option below for how to write the generated Coq code into fil
 
 #### `--output=DIR`, `-o DIR`
 
-By default generated Coq code is printed to the console.
+By default, generated Coq code is printed to the console.
 To write to a file instead, specify an output directory using the `--output` option.
 A file `X/Y/Z.v` is placed into the output directory for every module `X.Y.Z` that is compiled.
 For example, the following command creates the files `example/generated/Data/List.v` and `example/generated/Data/Function.v`
@@ -266,7 +266,7 @@ For example, the following command creates the files `example/generated/Data/Lis
 freec -o ./example/generated ./example/Data/*.hs
 ```
 
-In addition to the `.v` files `.json` files are generated as well.
+In addition to the `.v` files, `.json` files are generated as well.
 The JSON files contain the [module interfaces][doc/ModuleInterfaceFileFormat.md] for the translated modules.
 The module interface files can be used to import modules that have been translated already without specifying them on the command line.
 For example, if `Data.List` and `Data.Functor` have been translated already, the `ListFunctor` example can be compiled on its own since its imports can be served from the module interface files.
@@ -296,9 +296,10 @@ In the example above, the compiler would search for a module interface file firs
 
 #### `--base-library=DIR`, `-b DIR`
 
-Predefined data types and operations are not build directly into the compiler but are part of the *base library* that accompanies the compiler.
-The compiler uses the same mechanism that is used to load module dependencies to load modules from the base library, i.e., module interface files.
-In contrast to automatically generated module interface files, the base library does not use the JSON file format but TOML since the module interfaces of the base library are maintained manually and TOML is a more user friendly format.
+Predefined data types and operations are not built directly into the compiler but are part of the *base library* that accompanies the compiler.
+To load module dependencies from the base library, the compiler uses the same mechanism, i.e., module interface files, which is used to load module dependencies.
+In contrast to automatically generated module interface files, the base library does not use the JSON file format. Since the module interfaces of the base library are maintained manually, the more user-friendly format TOML is used.
+
 The module interface file format is documented in [`doc/ModuleInterfaceFileFormat.md`][doc/ModuleInterfaceFileFormat.md].
 
 In order for the compiler to locate the `Prelude.toml` module interface file, the location of the base library must be known.
