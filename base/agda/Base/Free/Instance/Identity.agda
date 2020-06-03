@@ -1,8 +1,8 @@
-module Free.Instance.Identity where
+module Base.Free.Instance.Identity where
 
 open import Data.Empty using (⊥)
 
-open import Free       using (Free)
+open import Base.Free  using (Free)
 
 
 -- Representation of the `Identity` monad using free.

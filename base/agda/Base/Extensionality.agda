@@ -1,4 +1,4 @@
-module Extensionality where
+module Base.Extensionality where
 
 open import Level                                 using (Level)
 open import Relation.Binary.PropositionalEquality using (_≡_)

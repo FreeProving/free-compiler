@@ -1,4 +1,4 @@
-module Free where
+module Base.Free where
 
 -- The `Free` monad over a container with shapes `S` and postions `P`.
 data Free (S : Set) (P : S → Set) (A : Set) : Set where

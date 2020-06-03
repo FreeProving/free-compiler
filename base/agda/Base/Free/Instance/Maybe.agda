@@ -1,9 +1,9 @@
-module Free.Instance.Maybe where
+module Base.Free.Instance.Maybe where
 
 open import Data.Unit  using (⊤; tt)
 open import Data.Empty using (⊥)
 
-open import Free       using (Free; pure; impure)
+open import Base.Free  using (Free; pure; impure)
 
 
 -- Representation of the `Maybe` monad using Free.
