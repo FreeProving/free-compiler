@@ -40,34 +40,29 @@ jobs:
   # Builds the compiler, unit tests and dependencies using Cabal.
   #
   # Compiled modules are cached for subsequent jobs or pipeline runs.
-  # Unfortunately, the entire code of this job that handled the setup of
+  # Unfortunately, the entire code of this job that handles the setup of
   # the cache (steps between `SETUP CACHE` and `END SETUP CACHE`) needs to
   # be replicated to restore the caches in all jobs that use Cabal.
   #
-  # We cache `~/.cabal/packages`, `~/.cabal/store` and `dist-newstyle`
-  # separately. The cache keys contain the hash of the `.cabal` and
-  # `cabal.project` file as well as the hash of the `01-index.cache` file
-  # from `~/.cabal/packages`.
+  # We cache `~/.cabal/packages`, `~/.cabal/store` and `dist-newstyle`.
+  # The cache keys have the following format
   #
-  #   * If the Cabal files in this repository change, a previous version
-  #     of the cache is restored and the updated dependencies are installed.
-  #     We assume this to happen only infrequently.
+  #     <os>-cabal-<branch>-<cabal-index-hash>-<cabal-hash>-<source-hash>
   #
-  #   * Before the caches are populated, the latest Cabal package list is
-  #     downloaded. Therefore, a change of `01-index.cache` occurs frequently.
-  #     Whenever the package list is updated, a lot of dependencies have
-  #     to be rebuild. If the hash of the index wouldn't be part of the
-  #     cache keys, the rebuild would be triggered on every push until the
-  #     Cabal files are changed. By including the indexes hash, the rebuilt
-  #     dependencies are cached until the next change of the package list.
+  # where
   #
-  # The cache key for `dist-newsyle` additionally contains the hash of all
-  # Haskell files in `src`. This avoids recompilation of modules defined in
-  # this repository.
+  #  * `<os>` is the name of the operating system.
+  #  * `<branch>` is the slug of the of the branch that was pushed to or the
+  #    base branch of the pull request that triggered the workflow.
+  #  * `cabal-hash` is the SHA-256 hash of the `cabal.project` and
+  #    `free-compiler.cabal` files.
+  #  * `cabal-index-hash` is the SHA-256 hash of the `01-index.cache` from
+  #    the `~/.cabal/packages` directory.
+  #  * `source-hash` is the SHA-256 hash of all Haskell source files in `src`.
   #
-  # We install dependencies on all supported platforms separately. The
-  # operating system is part of the cache key. Caches are never restored
-  # from other platforms.
+  # If there is no matching cache entry for the current key, the files are
+  # restored from the cache with the longest matching prefix.
+  # Caches from other operating systems are never restored.
   cabal-build:
     name: Cabal Build
     runs-on: ${{ matrix.os }}
@@ -85,36 +80,29 @@ jobs:
         cabal-version: '2.4'
     - name: Update Cabal Package List
       id: cabal-update
+      run: cabal new-update
+    - name: Prepare Cache Keys
+      id: cache-keys
+      env:
+        TARGET_REF: ${{ github.base_ref || github.ref }}
       run: |
-        cabal new-update
-        echo "::set-output name=cabal-hash::$(cat cabal.project free-compiler.cabal | sha256sum | awk '{ print $1 }')"
+        ./.github/scripts/slug.sh "$TARGET_REF" "TARGET_REF_SLUG"
         echo "::set-output name=cabal-index-hash::$(cat ~/.cabal/packages/**/01-index.cache | sha256sum -b | awk '{ print $1 }')"
+        echo "::set-output name=cabal-hash::$(cat cabal.project free-compiler.cabal | sha256sum | awk '{ print $1 }')"
         echo "::set-output name=haskell-source-hash::$(cat $(find src -name '*.hs') | sha256sum | awk '{ print $1 }')"
-    - name: Cache ~/.cabal/packages
-      uses: actions/cache@v1
+    - name: Cache Cabal directories
+      uses: actions/cache@v2
       with:
-        path: ~/.cabal/packages
-        key: ${{ matrix.os }}-cabal-packages-${{ steps.cabal-update.outputs.cabal-hash }}-${{ steps.cabal-update.outputs.cabal-index-hash }}
+        path: |
+          ~/.cabal/packages
+          ~/.cabal/store
+          dist-newstyle
+        key: ${{ matrix.os }}-cabal-${{ env.TARGET_REF_SLUG }}-${{ steps.cache-keys.outputs.cabal-index-hash }}-${{ steps.cache-keys.outputs.cabal-hash }}-${{ steps.cache-keys.outputs.haskell-source-hash }}
         restore-keys: |
-          ${{ matrix.os }}-cabal-packages-${{ steps.cabal-update.outputs.cabal-hash }}-
-          ${{ matrix.os }}-cabal-packages-
-    - name: Cache ~/.cabal/store
-      uses: actions/cache@v1
-      with:
-        path: ~/.cabal/store
-        key: ${{ matrix.os }}-cabal-store-${{ steps.cabal-update.outputs.cabal-hash }}-${{ steps.cabal-update.outputs.cabal-index-hash }}
-        restore-keys: |
-          ${{ matrix.os }}-cabal-store-${{ steps.cabal-update.outputs.cabal-hash }}-
-          ${{ matrix.os }}-cabal-store-
-    - name: Cache dist-newstyle
-      uses: actions/cache@v1
-      with:
-        path: dist-newstyle
-        key: ${{ matrix.os }}-dist-newstyle-${{ steps.cabal-update.outputs.cabal-hash }}-${{ steps.cabal-update.outputs.cabal-index-hash }}-${{ steps.cabal-update.outputs.haskell-source-hash }}
-        restore-keys: |
-          ${{ matrix.os }}-dist-newstyle-${{ steps.cabal-update.outputs.cabal-hash }}-${{ steps.cabal-update.outputs.cabal-index-hash }}-
-          ${{ matrix.os }}-dist-newstyle-${{ steps.cabal-update.outputs.cabal-hash }}-
-          ${{ matrix.os }}-dist-newstyle-
+          ${{ matrix.os }}-cabal-${{ env.TARGET_REF_SLUG }}-${{ steps.cache-keys.outputs.cabal-index-hash }}-${{ steps.cache-keys.outputs.cabal-hash }}-
+          ${{ matrix.os }}-cabal-${{ env.TARGET_REF_SLUG }}-${{ steps.cache-keys.outputs.cabal-index-hash }}-
+          ${{ matrix.os }}-cabal-${{ env.TARGET_REF_SLUG }}-
+          ${{ matrix.os }}-cabal-
     ### END SETUP CACHE #######################################################
 
     # Build the package and dependencies.
@@ -175,36 +163,29 @@ jobs:
         cabal-version: '2.4'
     - name: Update Cabal Package List
       id: cabal-update
+      run: cabal new-update
+    - name: Prepare Cache Keys
+      id: cache-keys
+      env:
+        TARGET_REF: ${{ github.base_ref || github.ref }}
       run: |
-        cabal new-update
-        echo "::set-output name=cabal-hash::$(cat cabal.project free-compiler.cabal | sha256sum | awk '{ print $1 }')"
+        ./.github/scripts/slug.sh "$TARGET_REF" "TARGET_REF_SLUG"
         echo "::set-output name=cabal-index-hash::$(cat ~/.cabal/packages/**/01-index.cache | sha256sum -b | awk '{ print $1 }')"
+        echo "::set-output name=cabal-hash::$(cat cabal.project free-compiler.cabal | sha256sum | awk '{ print $1 }')"
         echo "::set-output name=haskell-source-hash::$(cat $(find src -name '*.hs') | sha256sum | awk '{ print $1 }')"
-    - name: Cache ~/.cabal/packages
-      uses: actions/cache@v1
+    - name: Cache Cabal directories
+      uses: actions/cache@v2
       with:
-        path: ~/.cabal/packages
-        key: ${{ matrix.os }}-cabal-packages-${{ steps.cabal-update.outputs.cabal-hash }}-${{ steps.cabal-update.outputs.cabal-index-hash }}
+        path: |
+          ~/.cabal/packages
+          ~/.cabal/store
+          dist-newstyle
+        key: ${{ matrix.os }}-cabal-${{ env.TARGET_REF_SLUG }}-${{ steps.cache-keys.outputs.cabal-index-hash }}-${{ steps.cache-keys.outputs.cabal-hash }}-${{ steps.cache-keys.outputs.haskell-source-hash }}
         restore-keys: |
-          ${{ matrix.os }}-cabal-packages-${{ steps.cabal-update.outputs.cabal-hash }}-
-          ${{ matrix.os }}-cabal-packages-
-    - name: Cache ~/.cabal/store
-      uses: actions/cache@v1
-      with:
-        path: ~/.cabal/store
-        key: ${{ matrix.os }}-cabal-store-${{ steps.cabal-update.outputs.cabal-hash }}-${{ steps.cabal-update.outputs.cabal-index-hash }}
-        restore-keys: |
-          ${{ matrix.os }}-cabal-store-${{ steps.cabal-update.outputs.cabal-hash }}-
-          ${{ matrix.os }}-cabal-store-
-    - name: Cache dist-newstyle
-      uses: actions/cache@v1
-      with:
-        path: dist-newstyle
-        key: ${{ matrix.os }}-dist-newstyle-${{ steps.cabal-update.outputs.cabal-hash }}-${{ steps.cabal-update.outputs.cabal-index-hash }}-${{ steps.cabal-update.outputs.haskell-source-hash }}
-        restore-keys: |
-          ${{ matrix.os }}-dist-newstyle-${{ steps.cabal-update.outputs.cabal-hash }}-${{ steps.cabal-update.outputs.cabal-index-hash }}-
-          ${{ matrix.os }}-dist-newstyle-${{ steps.cabal-update.outputs.cabal-hash }}-
-          ${{ matrix.os }}-dist-newstyle-
+          ${{ matrix.os }}-cabal-${{ env.TARGET_REF_SLUG }}-${{ steps.cache-keys.outputs.cabal-index-hash }}-${{ steps.cache-keys.outputs.cabal-hash }}-
+          ${{ matrix.os }}-cabal-${{ env.TARGET_REF_SLUG }}-${{ steps.cache-keys.outputs.cabal-index-hash }}-
+          ${{ matrix.os }}-cabal-${{ env.TARGET_REF_SLUG }}-
+          ${{ matrix.os }}-cabal-
     ### END SETUP CACHE #######################################################
     - name: Build unit tests
       run: cabal new-build freec-unit-tests
@@ -236,36 +217,29 @@ jobs:
         cabal-version: '2.4'
     - name: Update Cabal Package List
       id: cabal-update
+      run: cabal new-update
+    - name: Prepare Cache Keys
+      id: cache-keys
+      env:
+        TARGET_REF: ${{ github.base_ref || github.ref }}
       run: |
-        cabal new-update
-        echo "::set-output name=cabal-hash::$(cat cabal.project free-compiler.cabal | sha256sum | awk '{ print $1 }')"
+        ./.github/scripts/slug.sh "$TARGET_REF" "TARGET_REF_SLUG"
         echo "::set-output name=cabal-index-hash::$(cat ~/.cabal/packages/**/01-index.cache | sha256sum -b | awk '{ print $1 }')"
+        echo "::set-output name=cabal-hash::$(cat cabal.project free-compiler.cabal | sha256sum | awk '{ print $1 }')"
         echo "::set-output name=haskell-source-hash::$(cat $(find src -name '*.hs') | sha256sum | awk '{ print $1 }')"
-    - name: Cache ~/.cabal/packages
-      uses: actions/cache@v1
+    - name: Cache Cabal directories
+      uses: actions/cache@v2
       with:
-        path: ~/.cabal/packages
-        key: ${{ matrix.os }}-cabal-packages-${{ steps.cabal-update.outputs.cabal-hash }}-${{ steps.cabal-update.outputs.cabal-index-hash }}
+        path: |
+          ~/.cabal/packages
+          ~/.cabal/store
+          dist-newstyle
+        key: ${{ matrix.os }}-cabal-${{ env.TARGET_REF_SLUG }}-${{ steps.cache-keys.outputs.cabal-index-hash }}-${{ steps.cache-keys.outputs.cabal-hash }}-${{ steps.cache-keys.outputs.haskell-source-hash }}
         restore-keys: |
-          ${{ matrix.os }}-cabal-packages-${{ steps.cabal-update.outputs.cabal-hash }}-
-          ${{ matrix.os }}-cabal-packages-
-    - name: Cache ~/.cabal/store
-      uses: actions/cache@v1
-      with:
-        path: ~/.cabal/store
-        key: ${{ matrix.os }}-cabal-store-${{ steps.cabal-update.outputs.cabal-hash }}-${{ steps.cabal-update.outputs.cabal-index-hash }}
-        restore-keys: |
-          ${{ matrix.os }}-cabal-store-${{ steps.cabal-update.outputs.cabal-hash }}-
-          ${{ matrix.os }}-cabal-store-
-    - name: Cache dist-newstyle
-      uses: actions/cache@v1
-      with:
-        path: dist-newstyle
-        key: ${{ matrix.os }}-dist-newstyle-${{ steps.cabal-update.outputs.cabal-hash }}-${{ steps.cabal-update.outputs.cabal-index-hash }}-${{ steps.cabal-update.outputs.haskell-source-hash }}
-        restore-keys: |
-          ${{ matrix.os }}-dist-newstyle-${{ steps.cabal-update.outputs.cabal-hash }}-${{ steps.cabal-update.outputs.cabal-index-hash }}-
-          ${{ matrix.os }}-dist-newstyle-${{ steps.cabal-update.outputs.cabal-hash }}-
-          ${{ matrix.os }}-dist-newstyle-
+          ${{ matrix.os }}-cabal-${{ env.TARGET_REF_SLUG }}-${{ steps.cache-keys.outputs.cabal-index-hash }}-${{ steps.cache-keys.outputs.cabal-hash }}-
+          ${{ matrix.os }}-cabal-${{ env.TARGET_REF_SLUG }}-${{ steps.cache-keys.outputs.cabal-index-hash }}-
+          ${{ matrix.os }}-cabal-${{ env.TARGET_REF_SLUG }}-
+          ${{ matrix.os }}-cabal-
     ### END SETUP CACHE #######################################################
     - name: Run Haddock
       run: ./tool/make-docs.sh
