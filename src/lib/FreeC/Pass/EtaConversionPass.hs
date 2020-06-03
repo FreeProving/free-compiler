@@ -115,9 +115,8 @@ etaConvertFuncDecl funcDecl = do
   xs   <- generateFullArgumentList rhs
   rhs' <- etaConvertTopLevelRhs xs rhs
   -- compute the function's new (uncurried) type
-  let (args, returnType) = splitReturnType
-        (length xs)
-        (fromJust $ IR.funcDeclReturnType funcDecl)
+  let (args, returnType) =
+        splitReturnType (length xs) (fromJust $ IR.funcDeclReturnType funcDecl)
   -- compute the function's new argument list 
   let vars' =
         IR.funcDeclArgs funcDecl
