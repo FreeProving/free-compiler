@@ -59,10 +59,10 @@ impure :: Agda.Expr -> Agda.Expr
 impure = Agda.app $ Agda.Ident $ Agda.qname [Agda.name "Free"] impureConName
 
 shape :: Agda.Name
-shape = Agda.name "S"
+shape = Agda.name "Shape"
 
 position :: Agda.Name
-position = Agda.name "P"
+position = Agda.name "Pos"
 
 -------------------------------------------------------------------------------
 -- Reserved identifiers                                                      --
