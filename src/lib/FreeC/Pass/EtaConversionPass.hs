@@ -74,7 +74,7 @@
 module FreeC.Pass.EtaConversionPass
   ( etaConversionPass
     -- * Testing interface
-  , etaConvertExpr
+  , etaConvertFuncDecl
   )
 where
 
@@ -112,22 +112,23 @@ etaConversionPass ast = do
 etaConvertFuncDecl :: IR.FuncDecl -> Converter IR.FuncDecl
 etaConvertFuncDecl funcDecl = do
   let rhs = IR.funcDeclRhs funcDecl
-  xs   <- generateFullArgumentList rhs
-  rhs' <- etaConvertTopLevelRhs xs rhs
-  -- compute the function's new (uncurried) type
-  let (args, returnType) =
-        splitReturnType (length xs) (fromJust $ IR.funcDeclReturnType funcDecl)
-  -- compute the function's new argument list 
-  let vars' =
-        IR.funcDeclArgs funcDecl
-          ++ zipWith
-               (\t i -> IR.VarPat { IR.varPatSrcSpan = NoSrcSpan
-                                  , IR.varPatIdent   = i
-                                  , IR.varPatType    = Just t
-                                  }
-               )
-               args
-               xs
+  xs          <- generateFullArgumentList rhs
+  returnType' <- inEnv
+    $ lookupReturnType IR.ValueScope (IR.funcDeclQName funcDecl)
+  -- compute the function's new (uncurried) type. Assumes that funcDecl's return type has already been inferred.
+  let (args, returnType) = splitReturnType (length xs) (fromJust returnType')
+  -- compute the function's new arguments and add them to the argument list 
+  let newArgs = zipWith
+        (\t i -> IR.VarPat { IR.varPatSrcSpan = NoSrcSpan
+                           , IR.varPatIdent   = i
+                           , IR.varPatType    = Just t
+                           }
+        )
+        args
+        xs
+  let vars' = IR.funcDeclArgs funcDecl ++ newArgs
+  -- compute the new right-hand side
+  rhs'       <- etaConvertTopLevelRhs newArgs rhs
   -- update the environment with the new type and arguments
   Just entry <- inEnv $ lookupEntry IR.ValueScope (IR.funcDeclQName funcDecl)
   modifyEnv $ addEntry entry { entryArity      = length vars'
@@ -148,12 +149,13 @@ etaConvertFuncDecl funcDecl = do
 --   missing arguments.
 --   Regular η-conversions are performed for the right-hand side's proper subexpressions 
 --   via 'etaConvertSubExprs'.
-etaConvertTopLevelRhs :: [String] -> IR.Expr -> Converter IR.Expr
-etaConvertTopLevelRhs xs expr = localEnv $ do
+etaConvertTopLevelRhs :: [IR.VarPat] -> IR.Expr -> Converter IR.Expr
+etaConvertTopLevelRhs argPats expr = localEnv $ do
   expr' <- etaConvertSubExprs expr
-  if null xs then return expr' else return (IR.app NoSrcSpan expr' argExprs) where
-  argPats  = map IR.toVarPat xs
-  argExprs = map IR.varPatToExpr argPats
+  if null argPats
+    then return expr'
+    else return (IR.app NoSrcSpan expr' argExprs)
+  where argExprs = map IR.varPatToExpr argPats
 
 
 -- | Applies η-conversions to the given expression and its sub-expressions
