@@ -20,18 +20,32 @@ import           FreeC.Test.Expectations
 --   is 'FreeC.IR.Similar.similar' to the expected output.
 shouldEtaConvert :: String -> String -> Converter Expectation
 shouldEtaConvert inputStr expectedOutputStr = do
-  input          <- parseTestExpr inputStr
-  expectedOutput <- parseTestExpr expectedOutputStr
-  output         <- etaConvertExpr input
+  input          <- parseTestFuncDecl inputStr
+  expectedOutput <- parseTestFuncDecl expectedOutputStr
+  output         <- etaConvertFuncDecl input
   return (output `shouldBeSimilarTo` expectedOutput)
 
 -------------------------------------------------------------------------------
 -- Tests                                                                     --
 -------------------------------------------------------------------------------
 
--- | Test group for 'etaConversionPass' tests.
+-- | Test group for 'etaConversionPass' tests.  
 testEtaConversionPass :: Spec
 testEtaConversionPass = describe "FreeC.Pass.EtaConversionPass" $ do
+  it
+      "applies functions under-applied on the top-level to their missing arguments"
+    $ shouldSucceedWith
+    $ do
+        _ <- defineTestTypeCon "Foo" 0
+        _ <- defineTestFunc "f" 1 "Foo -> Foo -> Foo"
+        _ <- defineTestFunc "g" 2 "Foo -> Foo -> Foo"
+        "f = g x" `shouldEtaConvert` "f (y :: Foo) :: Foo = g x y"
+
+-- These are the old tests, but since the testing interface has changed
+-- and we now test whole function declarations instead of right-hand sides,
+-- these tests don't work anymore.
+-- I'll leave them here for reference for now, but they should be removed later.
+{-
   it "leaves fully applied functions unchanged" $ shouldSucceedWith $ do
     _ <- defineTestTypeCon "Foo" 0
     _ <- defineTestFunc "f" 2 "Foo -> Foo -> Foo"
@@ -62,3 +76,4 @@ testEtaConversionPass = describe "FreeC.Pass.EtaConversionPass" $ do
     _ <- defineTestTypeCon "Bar" 0
     _ <- defineTestCon "Bar" 2 "Foo -> Foo -> Bar"
     "Bar x" `shouldEtaConvert` "\\y -> Bar x y"
+        -}
