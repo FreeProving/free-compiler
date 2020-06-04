@@ -1,7 +1,7 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-comment">-- | This module contains functions for generating frsh identifiers.</span><span>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-comment">-- | This module contains functions for generating fresh identifiers.</span><span>
 </span><a name="line-2"></a><span class="hs-comment">--</span><span>
-</span><a name="line-3"></a><span class="hs-comment">--   Fresh identifiers are identifiers that have been introduced aritifically</span><span>
-</span><a name="line-4"></a><span class="hs-comment">--   into the Haskell or Coq AST. They are guranteed not to conflict with any</span><span>
+</span><a name="line-3"></a><span class="hs-comment">--   Fresh identifiers are identifiers that have been introduced artificially</span><span>
+</span><a name="line-4"></a><span class="hs-comment">--   into the Haskell or Coq AST. They are guaranteed not to conflict with any</span><span>
 </span><a name="line-5"></a><span class="hs-comment">--   other valid identifier.</span><span>
 </span><a name="line-6"></a><span>
 </span><a name="line-7"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">FreeC.Environment.Fresh</span><span> </span><span class="hs-keyword">where</span><span>
@@ -36,7 +36,7 @@
 </span><a name="line-36"></a><span class="hs-identifier">freshTypeVarPrefix</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">String</span><span>
 </span><a name="line-37"></a><a name="freshTypeVarPrefix"><a href="FreeC.Environment.Fresh.html#freshTypeVarPrefix"><span class="hs-identifier">freshTypeVarPrefix</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-string">&quot;a&quot;</span><span>
 </span><a name="line-38"></a><span>
-</span><a name="line-39"></a><span class="hs-comment">-- | The prefix to use for aritifcially introduced type variables of kind @*@</span><span>
+</span><a name="line-39"></a><span class="hs-comment">-- | The prefix to use for artificially introduced type variables of kind @*@</span><span>
 </span><a name="line-40"></a><span class="hs-comment">--   that are passed as a type argument to a function.</span><span>
 </span><a name="line-41"></a><span class="hs-identifier">freshTypeArgPrefix</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">String</span><span>
 </span><a name="line-42"></a><a name="freshTypeArgPrefix"><a href="FreeC.Environment.Fresh.html#freshTypeArgPrefix"><span class="hs-identifier">freshTypeArgPrefix</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-string">&quot;t&quot;</span><span>
