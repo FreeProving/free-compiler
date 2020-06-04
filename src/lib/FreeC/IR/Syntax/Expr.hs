@@ -322,7 +322,7 @@ instance Pretty ConPat where
 --   or constructor pattern.
 --
 --   The variable pattern can optionally have a type signature
---   or can be annotated by a @!@.
+--   or be annotated by a @!@.
 data VarPat = VarPat
   { varPatSrcSpan :: SrcSpan
   , varPatIdent   :: String

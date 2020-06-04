@@ -423,7 +423,7 @@ testCaseExprParser = context "case expressions" $ do
                             s
                             [IR.Alt NoSrcSpan fooPat [xPat'] x]
                             Nothing
-  it "accepts case expressions with strict type annotated variable patterns"
+  it "accepts case expressions with strict type-annotated variable patterns"
     $ do
         "case s of { Foo !(x :: a) -> x }"
           `shouldParse` IR.Case NoSrcSpan
@@ -552,9 +552,9 @@ testFuncDeclParser = context "function declarations" $ do
                                 [xPatStrict, yPatStrict]
                                 Nothing
                                 x
-  it "accepts function declarations with a type annotated argument" $ do
+  it "accepts function declarations with a type-annotated argument" $ do
     "f (x :: a) = x" `shouldParse` IR.FuncDecl NoSrcSpan f [] [xPat'] Nothing x
-  it "accepts function declarations with a strict type annotated argument" $ do
+  it "accepts function declarations with a strict type-annotated argument" $ do
     "f !(x :: a) = x"
       `shouldParse` IR.FuncDecl NoSrcSpan f [] [xPatStrict'] Nothing x
   it "accepts function declarations with annotated return type" $ do

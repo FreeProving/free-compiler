@@ -149,7 +149,7 @@ transformRecFuncDecl (IR.FuncDecl srcSpan declIdent typeArgs args maybeRetType e
         helperArgNames = Set.toList (usedVars `Set.intersection` boundVars)
 
     -- Determine the type of helper function's arguments and its return type.
-    -- Additionally the decreasing argument is marked as strict.
+    -- Additionally, the decreasing argument is marked as strict.
     let
       argTypes         = map IR.varPatType args
       argTypeMap       = Map.fromList (zip argNames argTypes)

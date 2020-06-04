@@ -363,7 +363,7 @@ instance Similar IR.Alt where
 --   > ———————————  ——————————————————————————
 --   >  Γ ⊢ x ≈ y    Γ ⊢ (x :: τ) ≈ (y :: τ')
 --
---   If one of the patterns has a bang pattern the other one needs one aswell.
+--   If one of the patterns has a bang pattern, the other one needs one as well.
 --
 --   >                        Γ ⊢ τ ≈ τ'
 --   > —————————————  ————————————————————————————
