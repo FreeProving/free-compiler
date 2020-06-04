@@ -115,26 +115,18 @@ convertExpr' (IR.Var srcSpan name _) typeArgs args = do
       callee <- ifM (inEnv $ needsFreeArgs name)
                     (return (genericApply qualid partialArg typeArgs' []))
                     (return (Coq.app (Coq.Qualid qualid) partialArg))
-      -- Is this a recursive helper function?
-      Just arity   <- inEnv $ lookupArity IR.ValueScope name
-      mDecArgIndex <- inEnv $ lookupFirstStrictArgIndex name
-      case mDecArgIndex of
-        Nothing ->
-          -- Regular functions can be applied directly.
-          generateApplyN arity callee args'
-        Just index -> do
-          -- The decreasing argument of a recursive helper function must be
-          -- unwrapped first.
-          let (before, decArg : after) = splitAt index args'
-          -- Add type annotation for decreasing argument.
-          Just typeArgIdents <- inEnv $ lookupTypeArgs IR.ValueScope name
-          Just argTypes      <- inEnv $ lookupArgTypes IR.ValueScope name
-          let typeArgNames = map (IR.UnQual . IR.Ident) typeArgIdents
-              subst = composeSubsts (zipWith singleSubst typeArgNames typeArgs)
-              decArgType = applySubst subst (argTypes !! index)
-          decArgType' <- mapM convertType' decArgType
-          generateBind decArg freshArgPrefix decArgType' $ \decArg' ->
-            generateApplyN arity callee (before ++ decArg' : after)
+      Just arity         <- inEnv $ lookupArity IR.ValueScope name
+      Just strictArgs    <- inEnv $ lookupStrictArgs name
+      -- Add type annotations for strict arguments.
+      Just typeArgIdents <- inEnv $ lookupTypeArgs IR.ValueScope name
+      Just argTypes      <- inEnv $ lookupArgTypes IR.ValueScope name
+      let typeArgNames = map (IR.UnQual . IR.Ident) typeArgIdents
+          subst = composeSubsts (zipWith singleSubst typeArgNames typeArgs)
+          decArgTypes = map (applySubst subst) argTypes
+      decArgTypes' <- mapM (mapM convertType') decArgTypes
+      -- Generate a bind for each strict argument
+      generateBinds args' freshArgPrefix strictArgs decArgTypes'
+        $ \decArgs' -> generateApplyN arity callee decArgs'
     else do
       -- If this is the decreasing argument of a recursive helper function,
       -- it must be lifted into the @Free@ monad.

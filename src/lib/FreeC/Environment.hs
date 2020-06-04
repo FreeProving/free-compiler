@@ -27,7 +27,6 @@ module FreeC.Environment
   , lookupTypeArgArity
   , lookupArgTypes
   , lookupStrictArgs
-  , lookupFirstStrictArgIndex
   , lookupReturnType
   , lookupTypeSchema
   , lookupArity
@@ -226,13 +225,6 @@ lookupArgTypes =
 lookupStrictArgs :: IR.QName -> Environment -> Maybe [Bool]
 lookupStrictArgs =
   fmap entryStrictArgs . find isFuncEntry .: lookupEntry IR.ValueScope
-
--- | Looks up the index of the first strict argument of the function
---   with the given name.
---
---   Returns @Nothing@ if there is no such function.
-lookupFirstStrictArgIndex :: IR.QName -> Environment -> Maybe Int
-lookupFirstStrictArgIndex = (>>= elemIndex True) .: lookupStrictArgs
 
 -- | Looks up the return type of the function or (smart) constructor with the
 --   given name.
