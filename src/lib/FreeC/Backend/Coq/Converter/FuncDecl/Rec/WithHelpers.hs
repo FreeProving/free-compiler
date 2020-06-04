@@ -36,6 +36,7 @@ import           FreeC.IR.SrcSpan
 import qualified FreeC.IR.Syntax               as IR
 import           FreeC.IR.Subterm
 import           FreeC.Monad.Converter
+import           FreeC.Monad.Reporter
 import           FreeC.Pretty
 
 -- | Converts recursive function declarations into recursive helper and
@@ -175,7 +176,7 @@ transformRecFuncDecl (IR.FuncDecl srcSpan declIdent typeArgs args maybeRetType e
     -- well.
     freeArgsNeeded <- inEnv $ needsFreeArgs name
     partial        <- inEnv $ isPartial name
-    _              <- renameAndAddEntry $ FuncEntry
+    entry          <- renameAndAddEntry $ FuncEntry
       { entrySrcSpan       = NoSrcSpan
       , entryArity         = length helperArgTypes
       , entryTypeArgs      = map IR.typeVarDeclIdent helperTypeArgs
@@ -186,6 +187,11 @@ transformRecFuncDecl (IR.FuncDecl srcSpan declIdent typeArgs args maybeRetType e
       , entryName          = helperName
       , entryIdent         = undefined -- filled by renamer
       }
+    -- The test case with `append @a @b xs' ys y` is currently not failing
+    -- because the contents of the environment are not evaluated.
+    -- By printing the contents of `entryArgTypes`, we can force evaluation
+    -- which leads to an error to be thrown by `fromJust`.
+    {- reportFatal $ Message NoSrcSpan Info (show (entryArgTypes entry)) -}
 
     -- Additionally we need to remember the index of the decreasing argument
     -- (see 'convertArgs').
