@@ -50,7 +50,7 @@
 --
 --   where @g@ is the name of an @n@-ary constructor or function declaration and 
 --   @m < n@. This declaration is then replaced by 
---   > f e₁ … eₖ x₍ₘ₊₁₎ … xₙ = @α₁ … @αₚ g e₁ … eₘ x₍ₘ₊₁₎ … xₙ
+--   > f e₁ … eₖ x₍ₘ₊₁₎ … xₙ = g @α₁ … @αₚ e₁ … eₘ x₍ₘ₊₁₎ … xₙ
 --   
 --   where x₍ₘ₊₁₎ … xₙ are @n-m@ fresh variables. 
 --
