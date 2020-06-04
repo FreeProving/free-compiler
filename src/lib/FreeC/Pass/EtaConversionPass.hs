@@ -40,7 +40,8 @@
 --   == Preconditions
 --
 --   The arity of all constructors and functions must be known (i.e., there
---   must be corresponding environment entries).
+--   must be corresponding environment entries) and all function declarations 
+--   must be type annotated.
 --
 --   == Translation
 --
@@ -75,6 +76,7 @@ module FreeC.Pass.EtaConversionPass
   ( etaConversionPass
     -- * Testing interface
   , etaConvertFuncDecl
+  , etaConvertExpr
   )
 where
 
@@ -112,30 +114,24 @@ etaConversionPass ast = do
 etaConvertFuncDecl :: IR.FuncDecl -> Converter IR.FuncDecl
 etaConvertFuncDecl funcDecl = do
   let rhs = IR.funcDeclRhs funcDecl
-  xs          <- generateFullArgumentList rhs
-  returnType' <- inEnv
-    $ lookupReturnType IR.ValueScope (IR.funcDeclQName funcDecl)
-  -- compute the function's new (uncurried) type. Assumes that funcDecl's return type has already been inferred.
-  let (args, returnType) = splitReturnType (length xs) (fromJust returnType')
-  -- compute the function's new arguments and add them to the argument list 
-  let newArgs = zipWith
-        (\t i -> IR.VarPat { IR.varPatSrcSpan = NoSrcSpan
-                           , IR.varPatIdent   = i
-                           , IR.varPatType    = Just t
-                           }
-        )
-        args
-        xs
+  newArgIdents <- generateFullArgumentList rhs
+  -- Compute the function's new (uncurried) type. Assumes that funcDecl's return type has already been inferred.
+  let (newArgTypes, returnType) = IR.splitFuncType
+        (fromJust $ IR.funcDeclReturnType funcDecl)
+        (length newArgIdents)
+  -- Compute the function's new arguments and add them to the argument list.
+  let newArgs =
+        zipWith (IR.VarPat NoSrcSpan) newArgIdents ((map Just) newArgTypes)
   let vars' = IR.funcDeclArgs funcDecl ++ newArgs
-  -- compute the new right-hand side
+  -- Compute the new right-hand side.
   rhs'       <- etaConvertTopLevelRhs newArgs rhs
-  -- update the environment with the new type and arguments
+  -- Update the environment with the new type and arguments.
   Just entry <- inEnv $ lookupEntry IR.ValueScope (IR.funcDeclQName funcDecl)
   modifyEnv $ addEntry entry { entryArity      = length vars'
                              , entryArgTypes   = map IR.varPatType vars'
                              , entryReturnType = Just returnType
                              }
-  -- update the function declaration's attributes 
+  -- Update the function declaration's attributes.
   return funcDecl { IR.funcDeclArgs       = vars'
                   , IR.funcDeclReturnType = Just returnType
                   , IR.funcDeclRhs        = rhs'
@@ -152,10 +148,8 @@ etaConvertFuncDecl funcDecl = do
 etaConvertTopLevelRhs :: [IR.VarPat] -> IR.Expr -> Converter IR.Expr
 etaConvertTopLevelRhs argPats expr = localEnv $ do
   expr' <- etaConvertSubExprs expr
-  if null argPats
-    then return expr'
-    else return (IR.app NoSrcSpan expr' argExprs)
-  where argExprs = map IR.varPatToExpr argPats
+  let argExprs = map IR.varPatToExpr argPats
+  return $ IR.app NoSrcSpan expr' argExprs
 
 
 -- | Applies η-conversions to the given expression and its sub-expressions
@@ -242,19 +236,6 @@ arityOf (IR.Lambda _ _ _ _     ) = return 0
 -------------------------------------------------------------------------------
 -- Helper functions                                                                     --
 -------------------------------------------------------------------------------
-
--- | 'splitReturnType n' uncurries the given function's type n times.
---   It is assumed that the given type is of the form
---   @τ₁ -> (… -> (τₙ -> τ))@, which is true for the return type of 
---   a partially defined function with @n@ missing arguments.
---   The function returns a tuple consisting of a list of the argument
---   types @[τ₁, …, τₙ]@ and the return type @τ@. 
-splitReturnType :: Int -> IR.Type -> ([IR.Type], IR.Type)
-splitReturnType 0 t = ([], t)
-splitReturnType n t =
-  let (arg , r    ) = IR.splitFuncType t 1
-      (args, rType) = splitReturnType (n - 1) r
-  in  (arg ++ args, rType)
 
 -- | Generates fresh identifiers for all missing arguments of an expression. 
 generateFullArgumentList :: IR.Expr -> Converter [String]

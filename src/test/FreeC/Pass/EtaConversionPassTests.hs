@@ -18,13 +18,20 @@ import           FreeC.Test.Expectations
 -- | Parses the given expressions, applies the eta conversion
 --   pass and sets the expectation that the resulting expression
 --   is 'FreeC.IR.Similar.similar' to the expected output.
-shouldEtaConvert :: String -> String -> Converter Expectation
-shouldEtaConvert inputStr expectedOutputStr = do
+shouldEtaConvertTopLevel :: String -> String -> Converter Expectation
+shouldEtaConvertTopLevel inputStr expectedOutputStr = do
   input          <- parseTestFuncDecl inputStr
   expectedOutput <- parseTestFuncDecl expectedOutputStr
   output         <- etaConvertFuncDecl input
-  --error (show output)
   return (output `shouldBeSimilarTo` expectedOutput)
+
+shouldEtaConvert :: String -> String -> Converter Expectation
+shouldEtaConvert inputStr expectedOutputStr = do
+  input          <- parseTestExpr inputStr
+  expectedOutput <- parseTestExpr expectedOutputStr
+  output         <- etaConvertExpr input
+  return (output `shouldBeSimilarTo` expectedOutput)
+
 
 -------------------------------------------------------------------------------
 -- Tests                                                                     --
@@ -33,48 +40,48 @@ shouldEtaConvert inputStr expectedOutputStr = do
 -- | Test group for 'etaConversionPass' tests.
 testEtaConversionPass :: Spec
 testEtaConversionPass = describe "FreeC.Pass.EtaConversionPass" $ do
-  it
-      "applies functions under-applied on the top-level to their missing arguments"
-    $ shouldSucceedWith
-    $ do
-        _ <- defineTestTypeCon "Foo" 0
-        _ <- defineTestFunc "f" 0 "Foo -> Foo"
-        _ <- defineTestFunc "g" 2 "Foo -> Foo -> Foo"
-        "f = g Foo" `shouldEtaConvert` "f (y :: Foo) :: Foo = g Foo y"
+  context "Top-level eta conversions" $ do
+    it
+        "applies functions under-applied on the top level to their missing arguments"
+      $ shouldSucceedWith
+      $ do
+          _ <- defineTestTypeCon "Foo" 0
+          _ <- defineTestFunc "f" 0 "Foo -> Foo"
+          _ <- defineTestFunc "g" 2 "Foo -> Foo -> Foo"
+          "f :: Foo -> Foo = g Foo"
+            `shouldEtaConvertTopLevel` "f (y :: Foo) :: Foo = g Foo y"
 
--- These are the old tests, but since the testing interface has changed
--- and we now test whole function declarations instead of right-hand sides,
--- these tests don't work anymore.
--- I'll leave them here for reference for now, but they should be removed later.
-{-
-  it "leaves fully applied functions unchanged" $ shouldSucceedWith $ do
-    _ <- defineTestTypeCon "Foo" 0
-    _ <- defineTestFunc "f" 2 "Foo -> Foo -> Foo"
-    "f x y" `shouldEtaConvert` "f x y"
-  it "leaves over applied functions unchanged" $ shouldSucceedWith $ do
-    _ <- defineTestTypeCon "Foo" 0
-    _ <- defineTestFunc "f" 2 "Foo -> Foo -> Foo"
-    "f x y z" `shouldEtaConvert` "f x y z"
-  it "eta-converts under applied functions" $ shouldSucceedWith $ do
-    _ <- defineTestTypeCon "Foo" 0
-    _ <- defineTestFunc "f" 2 "Foo -> Foo -> Foo"
-    "f x" `shouldEtaConvert` "\\y -> f x y"
-  it "leaves application of local variables unchanged" $ shouldSucceedWith $ do
-    "\\(f :: a -> b -> c) x -> f x"
+  context "Lower-level eta conversion" $ do
+    it "leaves fully applied functions unchanged" $ shouldSucceedWith $ do
+      _ <- defineTestTypeCon "Foo" 0
+      _ <- defineTestFunc "f" 2 "Foo -> Foo -> Foo"
+      "f x y" `shouldEtaConvert` "f x y"
+    it "leaves over applied functions unchanged" $ shouldSucceedWith $ do
+      _ <- defineTestTypeCon "Foo" 0
+      _ <- defineTestFunc "f" 2 "Foo -> Foo -> Foo"
+      "f x y z" `shouldEtaConvert` "f x y z"
+    it "eta-converts under applied functions" $ shouldSucceedWith $ do
+      _ <- defineTestTypeCon "Foo" 0
+      _ <- defineTestFunc "f" 2 "Foo -> Foo -> Foo"
+      "f x" `shouldEtaConvert` "\\y -> f x y"
+    it "leaves application of local variables unchanged"
+      $                  shouldSucceedWith
+      $                  do
+                           "\\(f :: a -> b -> c) x -> f x"
       `shouldEtaConvert` "\\(f :: a -> b -> c) x -> f x"
-  it "leaves fully applied constructors unchanged" $ shouldSucceedWith $ do
-    _ <- defineTestTypeCon "Foo" 0
-    _ <- defineTestTypeCon "Bar" 0
-    _ <- defineTestCon "Bar" 2 "Foo -> Foo -> Bar"
-    "Bar x y" `shouldEtaConvert` "Bar x y"
-  it "leaves over applied functions unchanged" $ shouldSucceedWith $ do
-    _ <- defineTestTypeCon "Foo" 0
-    _ <- defineTestTypeCon "Bar" 0
-    _ <- defineTestCon "Bar" 2 "Foo -> Foo -> Bar"
-    "Bar x y z" `shouldEtaConvert` "Bar x y z"
-  it "eta-converts under applied functions" $ shouldSucceedWith $ do
-    _ <- defineTestTypeCon "Foo" 0
-    _ <- defineTestTypeCon "Bar" 0
-    _ <- defineTestCon "Bar" 2 "Foo -> Foo -> Bar"
-    "Bar x" `shouldEtaConvert` "\\y -> Bar x y"
-        -}
+    it "leaves fully applied constructors unchanged" $ shouldSucceedWith $ do
+      _ <- defineTestTypeCon "Foo" 0
+      _ <- defineTestTypeCon "Bar" 0
+      _ <- defineTestCon "Bar" 2 "Foo -> Foo -> Bar"
+      "Bar x y" `shouldEtaConvert` "Bar x y"
+    it "leaves over applied functions unchanged" $ shouldSucceedWith $ do
+      _ <- defineTestTypeCon "Foo" 0
+      _ <- defineTestTypeCon "Bar" 0
+      _ <- defineTestCon "Bar" 2 "Foo -> Foo -> Bar"
+      "Bar x y z" `shouldEtaConvert` "Bar x y z"
+    it "eta-converts under applied functions" $ shouldSucceedWith $ do
+      _ <- defineTestTypeCon "Foo" 0
+      _ <- defineTestTypeCon "Bar" 0
+      _ <- defineTestCon "Bar" 2 "Foo -> Foo -> Bar"
+      "Bar x" `shouldEtaConvert` "\\y -> Bar x y"
+
