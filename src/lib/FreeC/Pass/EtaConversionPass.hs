@@ -121,7 +121,7 @@ etaConvertFuncDecl funcDecl = do
         (length newArgIdents)
   -- Compute the function's new arguments and add them to the argument list.
   let newArgs =
-        zipWith (IR.VarPat NoSrcSpan) newArgIdents ((map Just) newArgTypes)
+        zipWith (IR.VarPat NoSrcSpan) newArgIdents (map Just newArgTypes)
   let vars' = IR.funcDeclArgs funcDecl ++ newArgs
   -- Compute the new right-hand side.
   rhs'       <- etaConvertTopLevelRhs newArgs rhs
