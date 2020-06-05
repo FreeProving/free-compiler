@@ -190,7 +190,7 @@ exported-values = [
   needs-free-args = true
 
 [[functions]]
-  haskell-type    = 'Prelude.Integer -> Prelude.Integer -> Prelude.Integer'
+  haskell-type    = 'Prelude.Integer -> Prelude.Integer'
   haskell-name    = 'Prelude.negate'
   coq-name        = 'negate'
   agda-name       = 'neg'
