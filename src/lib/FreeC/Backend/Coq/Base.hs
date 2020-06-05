@@ -56,7 +56,7 @@ freeArgs =
 -- Partiality                                                                --
 -------------------------------------------------------------------------------
 
--- | The name of the type class @Partial@
+-- | The Coq Identifier for the @Partial@ type class.
 partial :: Coq.Qualid
 partial = Coq.bare "Partial"
 
