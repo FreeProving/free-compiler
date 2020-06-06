@@ -10,11 +10,14 @@ import           Test.Hspec
 
 import           FreeC.Backend.Coq.Converter.FuncDecl.Rec.WithHelpers
 import           FreeC.Backend.Coq.Pretty       ( )
+import           FreeC.Environment              ( emptyEnv )
 import           FreeC.Monad.Class.Testable
 import           FreeC.Monad.Converter
+import           FreeC.Monad.Reporter           ( evalReporter )
 import           FreeC.Test.Environment
 import           FreeC.Test.Expectations
 import           FreeC.Test.Parser
+
 
 -------------------------------------------------------------------------------
 -- Expectation setters                                                       --
@@ -539,25 +542,32 @@ testConvertRecFuncDeclWithHelpers = context "with helper functions" $ do
           )
 
   it "fails when translating functions with arguments of unknown type"
-    $ shouldFail
-    $ do
-        "List"           <- defineTestTypeCon "List" 1
-        ("nil" , "Nil" ) <- defineTestCon "Nil" 0 "forall a. List a"
-        ("cons", "Cons") <- defineTestCon "Cons"
-                                          2
-                                          "forall a. a -> List a -> List a"
-        "const"  <- defineTestFunc "const" 2 "forall a b. a -> b -> a"
-        "append" <- defineTestFunc
-          "append"
-          3
-          "forall a b. List a -> List a -> b -> List a"
-        input <- mapM
-          parseTestFuncDecl
-          [ "append @a @b (xs :: List a) (ys :: List a) :: b -> List a ="
-            ++ "  \\y -> const @(List a) @b"
-            ++ "    (case xs of {"
-            ++ "      Nil      -> ys;"
-            ++ "      Cons x xs' -> Cons @a x (append @a @b xs' ys y)"
-            ++ "    } :: List a) y"
-          ]
-        convertRecFuncDeclsWithHelpers input
+    $ let
+        env = do
+          "List"           <- defineTestTypeCon "List" 1
+          ("nil" , "Nil" ) <- defineTestCon "Nil" 0 "forall a. List a"
+          ("cons", "Cons") <- defineTestCon "Cons"
+                                            2
+                                            "forall a. a -> List a -> List a"
+          "const"  <- defineTestFunc "const" 2 "forall a b. a -> b -> a"
+          "append" <- defineTestFunc
+            "append"
+            3
+            "forall a b. List a -> List a -> b -> List a"
+          input <- mapM
+            parseTestFuncDecl
+            [ "append @a @b (xs :: List a) (ys :: List a) :: b -> List a ="
+              ++ "  \\y -> const @(List a) @b"
+              ++ "    (case xs of {"
+              ++ "      Nil      -> ys;"
+              ++ "      Cons x xs' -> Cons @a x (append @a @b xs' ys y)"
+              ++ "    } :: List a) y"
+            ]
+          convertRecFuncDeclsWithHelpers input
+          getEnv
+        avoidLaziness :: Show a => Converter a -> IO ()
+        avoidLaziness x =
+          let str = show $ evalReporter $ evalConverter x emptyEnv
+          in  putStr (show $ drop (length str) str)
+      in
+        shouldThrow (avoidLaziness env) (errorCall "Maybe.fromJust: Nothing")
