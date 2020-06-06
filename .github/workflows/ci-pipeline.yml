@@ -313,7 +313,7 @@ jobs:
       uses: actions/checkout@v2
     - if:   ${{ env.HAS_DEPLOY_KEY == 'true' }}
       name: Install SSH Client
-      uses: webfactory/ssh-agent@v0.2.0
+      uses: webfactory/ssh-agent@v0.3.0
       with:
         ssh-private-key: ${{ secrets.DEPLOY_KEY }}
     - if: ${{ env.HAS_DEPLOY_KEY == 'true' }}
