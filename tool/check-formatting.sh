@@ -17,11 +17,12 @@ overwrite_mode="overwrite"
 
 # Set default values for command line options.
 help=false
-color=true
+enable_color=true
+enable_skip=true
 mode="$check_mode"
 
 # Parse command line options.
-options=$(getopt -o h --long help,no-color,overwrite -- "$@")
+options=$(getopt -o h --long help,no-color,no-skip,overwrite -- "$@")
 if [ $? -ne 0 ]; then
   echo
   echo "Type '$script --help' for more information."
@@ -31,7 +32,8 @@ eval set -- "$options"
 while true; do
   case "$1" in
   -h | --help) help=true; shift ;;
-  --no-color) color=false; shift ;;
+  --no-color) enable_color=false; shift ;;
+  --no-skip) enable_skip=false; shift ;;
   --overwrite) mode="$overwrite_mode"; shift ;;
   --) shift; break ;;
   *) break ;;
@@ -67,13 +69,13 @@ if [ "$help" = true ]; then
   echo "Command line options:"
   echo "  -h    --help         Display this message."
   echo "        --no-color     Disable colored output."
-  echo "        --overwrite    Enables overwrite mode"
-  echo "                       (see above for details)."
+  echo "        --no-skip      Disable skipping of untracked files."
+  echo "        --overwrite    Enable overwrite mode (see above for details)."
   exit 0
 fi
 
 # Enable/disable colored output.
-if [ "$color" = false ]; then
+if [ "$enable_color" = false ]; then
   function tput {
     echo ""
   }
@@ -136,8 +138,10 @@ format_counter=0
 # Process all given Haskell files that are tracked by `git` and count how
 # many files are not formatted or encoded correctly.
 for file in $(find "${files[@]}" -name '*.hs' -type f); do
-  # Skip files that are not tracked by git.
-  if git ls-files --error-unmatch "$file" >/dev/null 2>&1; then
+  # Skip files that are not tracked by Git unless the `--no-skip` command
+  # line flag has been specified.
+  if [ "$enable_skip" = false ] ||
+     git ls-files --error-unmatch "$file" >/dev/null 2>&1; then
     # Print which file is processed.
     echo -n "$(select_by_mode "Checking" "Formatting")" \
             "${bold}$file${reset} ... "
@@ -243,11 +247,8 @@ else
 
   # Print formatting error statistics.
   if [ "$format_counter" -ne 0 ]; then
-    if [ "$mode" = "$check_mode" ]; then
-      echo -n " "
-    fi
-    echo $(select_by_mode "${red}${bold}Error:${reset}" \
-                          "${bold}Info:${reset}")
+    echo $(select_by_mode "${red}${bold}Error:${reset}"                  \
+                          "${bold}Info:${reset}")                        \
          "There were ${bold}$format_counter${reset} files that were not" \
          "formatted correctly."
   fi
