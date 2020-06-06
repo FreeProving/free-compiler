@@ -352,10 +352,10 @@ jobs:
         coq: ["8.8", "8.9", "8.10", "8.11"]
     if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     steps:
-    - name: Checkout
-      uses: actions/checkout@v2
     - name: Fix file permissions
       run: sudo chown -R coq:coq .
+    - name: Checkout
+      uses: actions/checkout@v2
     - name: Setup Coq
       run: echo "::add-path::/home/coq/.opam/$COMPILER/bin"
     - name: Build Coq base library
@@ -430,6 +430,8 @@ jobs:
       matrix:
         coq: ["8.8", "8.9", "8.10", "8.11"]
     steps:
+    - name: Fix file permissions
+      run: sudo chown -R coq:coq .
     - name: Checkout
       uses: actions/checkout@v2
     - name: Download base library for Coq ${{ matrix.coq }}
@@ -442,8 +444,6 @@ jobs:
       with:
         name: examples
         path: ./example
-    - name: Fix file permissions
-      run: sudo chown -R coq:coq .
     - name: Setup Coq
       run: echo "::add-path::/home/coq/.opam/$COMPILER/bin"
     - name: Compile (generated) Coq code
