@@ -486,71 +486,78 @@ testConvertRecFuncDeclWithHelpers = context "with helper functions" $ do
           ++ " := t >>= (fun (t_0 : Tree Shape Pos a) =>"
           ++ "      @height_0 Shape Pos a t_0)."
 
-  it "translates recursive functions affected by the eta conversion pass correctly"
+  it
+      "translates recursive functions affected by the eta conversion pass correctly"
     $ shouldSucceedWith
     $ do
-      "List"           <- defineTestTypeCon "List" 1
-      ("nil" , "Nil" ) <- defineTestCon "Nil" 0 "forall a. List a"
-      ("cons", "Cons") <- defineTestCon "Cons" 2 "forall a. a -> List a -> List a"
-      "Unit"           <- defineTestTypeCon "Unit" 0
-      ("tt", "Tt")     <- defineTestCon "Tt" 0 "Unit"
-      "const"          <- defineTestFunc "const" 2 "forall a b. a -> b -> a"
-      "append" <- defineTestFunc "append"
-                                 3
-                                 "forall a b. List a -> List a -> b -> List a"
-      shouldConvertWithHelpersTo
-        [ "append @a @b (xs :: List a) (ys :: List a) :: b -> List a ="
-          ++ "  \\y -> const @(List a) @b"
-          ++ "    (case xs of {"
-          ++ "      Nil      -> ys;"
-          ++ "      Cons x xs' -> Cons @a x (append @a @Unit xs' ys Tt)"
-          ++ "    } :: List a) y"
-        ]
-        (  "(* Helper functions for append *)"
-        ++ " Fixpoint append_0"
-        ++ "   (Shape : Type) (Pos : Shape -> Type) {a b : Type}"
-        ++ "   (xs : List Shape Pos a) (ys : Free Shape Pos (List Shape Pos a))"
-        ++ "   {struct xs} : Free Shape Pos (List Shape Pos a)"
-        ++ "  := match xs with"
-        ++ "     | nil => ys"
-        ++ "     | cons x xs' =>"
-        ++ "         @Cons Shape Pos a x"
-        ++ "           ((fun y =>"
-        ++ "               @const Shape Pos (List Shape Pos a) (Unit Shape Pos)"
-        ++ "                 (xs' >>= (fun (xs'_0 : List Shape Pos a) =>"
-        ++ "                   @append_0 Shape Pos a (Unit Shape Pos) xs'_0 ys))"
-        ++ "                 y)"
-        ++ "            (Tt Shape Pos))"
-        ++ "     end."
-        ++ " Definition append"
-        ++ "   (Shape : Type) (Pos : Shape -> Type) {a b : Type}"
-        ++ "   (xs : Free Shape Pos (List Shape Pos a))"
-        ++ "   (ys : Free Shape Pos (List Shape Pos a))"
-        ++ "   : Free Shape Pos (Free Shape Pos b -> Free Shape Pos (List Shape Pos a))"
-        ++ "  := pure (fun y =>"
-        ++ "       @const Shape Pos (List Shape Pos a) b"
-        ++ "         (xs >>= (fun (xs_0 : List Shape Pos a) =>"
-        ++ "           @append_0 Shape Pos a b xs_0 ys))"
-        ++ "         y)."
-        )
+        "List"           <- defineTestTypeCon "List" 1
+        ("nil" , "Nil" ) <- defineTestCon "Nil" 0 "forall a. List a"
+        ("cons", "Cons") <- defineTestCon "Cons"
+                                          2
+                                          "forall a. a -> List a -> List a"
+        "Unit"       <- defineTestTypeCon "Unit" 0
+        ("tt", "Tt") <- defineTestCon "Tt" 0 "Unit"
+        "const"      <- defineTestFunc "const" 2 "forall a b. a -> b -> a"
+        "append"     <- defineTestFunc
+          "append"
+          3
+          "forall a b. List a -> List a -> b -> List a"
+        shouldConvertWithHelpersTo
+          [ "append @a @b (xs :: List a) (ys :: List a) :: b -> List a ="
+            ++ "  \\y -> const @(List a) @b"
+            ++ "    (case xs of {"
+            ++ "      Nil      -> ys;"
+            ++ "      Cons x xs' -> Cons @a x (append @a @Unit xs' ys Tt)"
+            ++ "    } :: List a) y"
+          ]
+          (  "(* Helper functions for append *)"
+          ++ " Fixpoint append_0"
+          ++ "   (Shape : Type) (Pos : Shape -> Type) {a b : Type}"
+          ++ "   (xs : List Shape Pos a) (ys : Free Shape Pos (List Shape Pos a))"
+          ++ "   {struct xs} : Free Shape Pos (List Shape Pos a)"
+          ++ "  := match xs with"
+          ++ "     | nil => ys"
+          ++ "     | cons x xs' =>"
+          ++ "         @Cons Shape Pos a x"
+          ++ "           ((fun y =>"
+          ++ "               @const Shape Pos (List Shape Pos a) (Unit Shape Pos)"
+          ++ "                 (xs' >>= (fun (xs'_0 : List Shape Pos a) =>"
+          ++ "                   @append_0 Shape Pos a (Unit Shape Pos) xs'_0 ys))"
+          ++ "                 y)"
+          ++ "            (Tt Shape Pos))"
+          ++ "     end."
+          ++ " Definition append"
+          ++ "   (Shape : Type) (Pos : Shape -> Type) {a b : Type}"
+          ++ "   (xs : Free Shape Pos (List Shape Pos a))"
+          ++ "   (ys : Free Shape Pos (List Shape Pos a))"
+          ++ "   : Free Shape Pos (Free Shape Pos b -> Free Shape Pos (List Shape Pos a))"
+          ++ "  := pure (fun y =>"
+          ++ "       @const Shape Pos (List Shape Pos a) b"
+          ++ "         (xs >>= (fun (xs_0 : List Shape Pos a) =>"
+          ++ "           @append_0 Shape Pos a b xs_0 ys))"
+          ++ "         y)."
+          )
 
   it "fails when translating functions with arguments of unknown type"
     $ shouldFail
     $ do
-      "List"           <- defineTestTypeCon "List" 1
-      ("nil" , "Nil" ) <- defineTestCon "Nil" 0 "forall a. List a"
-      ("cons", "Cons") <- defineTestCon "Cons" 2 "forall a. a -> List a -> List a"
-      "const"          <- defineTestFunc "const" 2 "forall a b. a -> b -> a"
-      "append" <- defineTestFunc "append"
-                                 3
-                                 "forall a b. List a -> List a -> b -> List a"
-      input  <- mapM parseTestFuncDecl 
-        [ "append @a @b (xs :: List a) (ys :: List a) :: b -> List a ="
-          ++ "  \\y -> const @(List a) @b"
-          ++ "    (case xs of {"
-          ++ "      Nil      -> ys;"
-          ++ "      Cons x xs' -> Cons @a x (append @a @b xs' ys y)"
-          ++ "    } :: List a) y"
-        ]
-      output <- convertRecFuncDeclsWithHelpers input
-      return output
+        "List"           <- defineTestTypeCon "List" 1
+        ("nil" , "Nil" ) <- defineTestCon "Nil" 0 "forall a. List a"
+        ("cons", "Cons") <- defineTestCon "Cons"
+                                          2
+                                          "forall a. a -> List a -> List a"
+        "const"  <- defineTestFunc "const" 2 "forall a b. a -> b -> a"
+        "append" <- defineTestFunc
+          "append"
+          3
+          "forall a b. List a -> List a -> b -> List a"
+        input <- mapM
+          parseTestFuncDecl
+          [ "append @a @b (xs :: List a) (ys :: List a) :: b -> List a ="
+            ++ "  \\y -> const @(List a) @b"
+            ++ "    (case xs of {"
+            ++ "      Nil      -> ys;"
+            ++ "      Cons x xs' -> Cons @a x (append @a @b xs' ys y)"
+            ++ "    } :: List a) y"
+          ]
+        convertRecFuncDeclsWithHelpers input
