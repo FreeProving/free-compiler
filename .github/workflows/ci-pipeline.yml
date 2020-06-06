@@ -321,7 +321,7 @@ jobs:
       run: ./.github/scripts/slug.sh "$GITHUB_REF" "GITHUB_REF_SLUG"
     - if:   ${{ env.HAS_DEPLOY_KEY == 'true' }}
       name: Download documentation
-      uses: actions/download-artifact@v1
+      uses: actions/download-artifact@v2
       with:
         name: documentation
         path: ./build/docs
@@ -390,7 +390,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
     - name: Download compiler
-      uses: actions/download-artifact@v1
+      uses: actions/download-artifact@v2
       with:
         name: compiler-${{ matrix.os }}
         path: ./
@@ -433,12 +433,12 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
     - name: Download base library for Coq ${{ matrix.coq }}
-      uses: actions/download-artifact@v1
+      uses: actions/download-artifact@v2
       with:
         name: coq-${{ matrix.coq }}-base-library
         path: ./base
     - name: Download compiled examples
-      uses: actions/download-artifact@v1
+      uses: actions/download-artifact@v2
       with:
         name: examples
         path: ./example
