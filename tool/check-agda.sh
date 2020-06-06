@@ -1,45 +1,57 @@
 #!/bin/bash
 
-# Change into the compiler's root directory.
-script=$(realpath "$0")
-script_dir=$(dirname "$script")
-root_dir=$(dirname "$script_dir")
-cd "$root_dir"
+# Get the name of this script.
+script="$0"
 
-# Call getopt to validate the provided input. 
-options=$(getopt -o r --long recompile -- "$@")
-[ $? -eq 0 ] || { 
-    echo "Incorrect options provided"
-    exit 1
-}
+# Set default values for command line options.
+help=false
+recompile=false
+
+# Parse command line options.
+options=$(getopt -o hr --long help,recompile -- "$@")
+if [ $? -ne 0 ]; then
+  echo
+  echo "Type '$script --help' for more information."
+  exit 1
+fi
 eval set -- "$options"
 while true; do
-    case "$1" in
-    -r)
-        ;& # Fallthrough
-    --recompile)
-        recompile=true
-        ;;
-    --)
-        shift
-        break
-        ;;
-    esac
-    shift
+  case "$1" in
+  -h | --help) help=true; shift ;;
+  -r | --recompile) recompile=true; shift ;;
+  --) shift; break ;;
+  *) break ;;
+  esac
 done
 
-# Change into the directory containing the Agda modules.
-ARG1=${@:$OPTIND:1}
-cd "$ARG1"
-echo "Building Agda files in $(pwd)"
-
-# Delete `_build` folder iff the user wants to rebuild everything
-if [ "$recompile" = true ] ; then
-    echo "Removing _build directory"
-    rm -r _build
+# Print usage information if the `--help` flag is set.
+if [ "$help" = true ]; then
+  echo "Usage: $script [options...] <agda-dir> -- [args]"
+  echo
+  echo "This script compiles all '.agda' files in the given directory."
+  echo "The trailing arguments are forwarded to the Agda compiler."
+  echo
+  echo "Command line options:"
+  echo "  -h    --help         Display this message."
+  echo "  -r    --recompile    Force recompilation of all Agda files"
+  echo "                       by removing the '_build' directory first."
+  exit 0
 fi
 
-# check all agda files
+# Change into the directory containing the Agda modules.
+agda_dir=$1
+cd "$agda_dir"
+shift
+echo "Compiling Agda files in $agda_dir ..."
+
+# Delete `_build` directory if the `--recompile` flag is set.
+if [ -f _build ] && [ "$recompile" = true ]; then
+  echo "Removing _build directory ..."
+  rm -r _build
+fi
+
+# Check all `.agda` files. All remaining command line options are forwarded
+# to the Agda compiler.
 for f in $(find . -name "*.agda"); do
-  agda "$f"
+  agda "$f" "$@"
 done
