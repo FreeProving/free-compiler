@@ -496,14 +496,14 @@ testConvertRecFuncDeclWithHelpers = context "with helper functions" $ do
       ("tt", "Tt")     <- defineTestCon "Tt" 0 "Unit"
       "const"          <- defineTestFunc "const" 2 "forall a b. a -> b -> a"
       "append" <- defineTestFunc "append"
-                                 2
+                                 3
                                  "forall a b. List a -> List a -> b -> List a"
       shouldConvertWithHelpersTo
         [ "append @a @b (xs :: List a) (ys :: List a) :: b -> List a ="
           ++ "  \\y -> const @(List a) @b"
           ++ "    (case xs of {"
           ++ "      Nil      -> ys;"
-          ++ "      Cons x xs' -> Cons @a x (append @a @b xs' ys Tt)"
+          ++ "      Cons x xs' -> Cons @a x (append @a @Unit xs' ys Tt)"
           ++ "    } :: List a) y"
         ]
         (  "(* Helper functions for append *)"
@@ -518,7 +518,7 @@ testConvertRecFuncDeclWithHelpers = context "with helper functions" $ do
         ++ "           ((fun y =>"
         ++ "               @const Shape Pos (List Shape Pos a) (Unit Shape Pos)"
         ++ "                 (xs' >>= (fun (xs'_0 : List Shape Pos a) =>"
-        ++ "                   @append_0 Shape Pos a b xs'_0 ys))"
+        ++ "                   @append_0 Shape Pos a (Unit Shape Pos) xs'_0 ys))"
         ++ "                 y)"
         ++ "            (Tt Shape Pos))"
         ++ "     end."
@@ -542,7 +542,7 @@ testConvertRecFuncDeclWithHelpers = context "with helper functions" $ do
       ("cons", "Cons") <- defineTestCon "Cons" 2 "forall a. a -> List a -> List a"
       "const"          <- defineTestFunc "const" 2 "forall a b. a -> b -> a"
       "append" <- defineTestFunc "append"
-                                 2
+                                 3
                                  "forall a b. List a -> List a -> b -> List a"
       input  <- mapM parseTestFuncDecl 
         [ "append @a @b (xs :: List a) (ys :: List a) :: b -> List a ="
