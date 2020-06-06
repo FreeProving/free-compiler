@@ -85,9 +85,9 @@ jobs:
     steps:
     ### SETUP CACHE ###########################################################
     - name: Checkout
-      uses: actions/checkout@v1
+      uses: actions/checkout@v2
     - name: Setup Haskell
-      uses: actions/setup-haskell@v1
+      uses: actions/setup-haskell@v1.1
       with:
         ghc-version: '8.6.5'
         cabal-version: '2.4'
@@ -148,7 +148,7 @@ jobs:
         mkdir -p ./build/bin
         cp "$exe_path" "./build/bin/$exe_name"
     - name: Upload executable
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v2
       with:
         name: compiler-${{ matrix.os }}
         path: ./build/bin/freec
@@ -171,9 +171,9 @@ jobs:
     steps:
     ### SETUP CACHE ###########################################################
     - name: Checkout
-      uses: actions/checkout@v1
+      uses: actions/checkout@v2
     - name: Setup Haskell
-      uses: actions/setup-haskell@v1
+      uses: actions/setup-haskell@v1.1
       with:
         ghc-version: '8.6.5'
         cabal-version: '2.4'
@@ -228,9 +228,9 @@ jobs:
     steps:
     ### SETUP CACHE ###########################################################
     - name: Checkout
-      uses: actions/checkout@v1
+      uses: actions/checkout@v2
     - name: Setup Haskell
-      uses: actions/setup-haskell@v1
+      uses: actions/setup-haskell@v1.1
       with:
         ghc-version: '8.6.5'
         cabal-version: '2.4'
@@ -270,7 +270,7 @@ jobs:
         mkdir -p ./build/docs
         cp -R $doc_path ./build/docs
     - name: Upload documentation
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v2
       with:
         name: documentation
         path: ./build/docs
@@ -311,10 +311,10 @@ jobs:
     - # The checkout is required by the deployment action below.
       if:   ${{ env.HAS_DEPLOY_KEY == 'true' }}
       name: Checkout
-      uses: actions/checkout@v1
+      uses: actions/checkout@v2
     - if:   ${{ env.HAS_DEPLOY_KEY == 'true' }}
       name: Install SSH Client
-      uses: webfactory/ssh-agent@v0.2.0
+      uses: webfactory/ssh-agent@v0.3.0
       with:
         ssh-private-key: ${{ secrets.DEPLOY_KEY }}
     - if: ${{ env.HAS_DEPLOY_KEY == 'true' }}
@@ -322,7 +322,7 @@ jobs:
       run: ./.github/scripts/slug.sh "$GITHUB_REF" "GITHUB_REF_SLUG"
     - if:   ${{ env.HAS_DEPLOY_KEY == 'true' }}
       name: Download documentation
-      uses: actions/download-artifact@v1
+      uses: actions/download-artifact@v2
       with:
         name: documentation
         path: ./build/docs
@@ -353,10 +353,10 @@ jobs:
         coq: ["8.8", "8.9", "8.10", "8.11"]
     if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     steps:
-    - name: Checkout
-      uses: actions/checkout@v1
     - name: Fix file permissions
       run: sudo chown -R coq:coq .
+    - name: Checkout
+      uses: actions/checkout@v2
     - name: Setup Coq
       run: echo "::add-path::/home/coq/.opam/$COMPILER/bin"
     - name: Build Coq base library
@@ -366,7 +366,7 @@ jobs:
         mkdir -p ./build/base/coq
         cp --parents $(find base/coq -name "*.vo" -or -name "*.glob") ./build
     - name: Upload compiled base library for Coq ${{ matrix.coq }}
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v2
       with:
         name: coq-${{ matrix.coq }}-base-library
         path: ./build/base/coq
@@ -415,9 +415,9 @@ jobs:
         os: ["ubuntu-latest"] # "macos-latest", "windows-latest"
     steps:
     - name: Checkout
-      uses: actions/checkout@v1
+      uses: actions/checkout@v2
     - name: Download compiler
-      uses: actions/download-artifact@v1
+      uses: actions/download-artifact@v2
       with:
         name: compiler-${{ matrix.os }}
         path: ./
@@ -437,7 +437,7 @@ jobs:
         cp -R ./example/generated ./build/examples
         cp -R ./example/transformed ./build/examples
     - name: Upload compiled examples
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v2
       with:
         name: examples
         path: ./build/examples
@@ -457,20 +457,20 @@ jobs:
       matrix:
         coq: ["8.8", "8.9", "8.10", "8.11"]
     steps:
+    - name: Fix file permissions
+      run: sudo chown -R coq:coq .
     - name: Checkout
-      uses: actions/checkout@v1
+      uses: actions/checkout@v2
     - name: Download base library for Coq ${{ matrix.coq }}
-      uses: actions/download-artifact@v1
+      uses: actions/download-artifact@v2
       with:
         name: coq-${{ matrix.coq }}-base-library
         path: ./base/coq
     - name: Download compiled examples
-      uses: actions/download-artifact@v1
+      uses: actions/download-artifact@v2
       with:
         name: examples
         path: ./example
-    - name: Fix file permissions
-      run: sudo chown -R coq:coq .
     - name: Setup Coq
       run: echo "::add-path::/home/coq/.opam/$COMPILER/bin"
     - name: Compile (generated) Coq code
@@ -491,7 +491,7 @@ jobs:
     container: just95/hlint:3.1.1
     steps:
     - name: Checkout
-      uses: actions/checkout@v1
+      uses: actions/checkout@v2
     - name: Check code style using HLint
       run: hlint src
 
@@ -505,6 +505,6 @@ jobs:
     container: just95/brittany:0.12.1.1
     steps:
     - name: Checkout
-      uses: actions/checkout@v1
+      uses: actions/checkout@v2
     - name: Check code style using Brittany
       run: ./tool/check-formatting.sh
