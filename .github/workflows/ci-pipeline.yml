@@ -86,7 +86,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
     - name: Setup Haskell
-      uses: actions/setup-haskell@v1
+      uses: actions/setup-haskell@v1.1
       with:
         ghc-version: '8.6.5'
         cabal-version: '2.4'
@@ -172,7 +172,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
     - name: Setup Haskell
-      uses: actions/setup-haskell@v1
+      uses: actions/setup-haskell@v1.1
       with:
         ghc-version: '8.6.5'
         cabal-version: '2.4'
@@ -229,7 +229,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
     - name: Setup Haskell
-      uses: actions/setup-haskell@v1
+      uses: actions/setup-haskell@v1.1
       with:
         ghc-version: '8.6.5'
         cabal-version: '2.4'
