@@ -84,7 +84,7 @@ jobs:
     steps:
     ### SETUP CACHE ###########################################################
     - name: Checkout
-      uses: actions/checkout@v1
+      uses: actions/checkout@v2
     - name: Setup Haskell
       uses: actions/setup-haskell@v1
       with:
@@ -170,7 +170,7 @@ jobs:
     steps:
     ### SETUP CACHE ###########################################################
     - name: Checkout
-      uses: actions/checkout@v1
+      uses: actions/checkout@v2
     - name: Setup Haskell
       uses: actions/setup-haskell@v1
       with:
@@ -227,7 +227,7 @@ jobs:
     steps:
     ### SETUP CACHE ###########################################################
     - name: Checkout
-      uses: actions/checkout@v1
+      uses: actions/checkout@v2
     - name: Setup Haskell
       uses: actions/setup-haskell@v1
       with:
@@ -310,7 +310,7 @@ jobs:
     - # The checkout is required by the deployment action below.
       if:   ${{ env.HAS_DEPLOY_KEY == 'true' }}
       name: Checkout
-      uses: actions/checkout@v1
+      uses: actions/checkout@v2
     - if:   ${{ env.HAS_DEPLOY_KEY == 'true' }}
       name: Install SSH Client
       uses: webfactory/ssh-agent@v0.2.0
@@ -353,7 +353,7 @@ jobs:
     if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     steps:
     - name: Checkout
-      uses: actions/checkout@v1
+      uses: actions/checkout@v2
     - name: Fix file permissions
       run: sudo chown -R coq:coq .
     - name: Setup Coq
@@ -388,7 +388,7 @@ jobs:
         os: ["ubuntu-latest"] # "macos-latest", "windows-latest"
     steps:
     - name: Checkout
-      uses: actions/checkout@v1
+      uses: actions/checkout@v2
     - name: Download compiler
       uses: actions/download-artifact@v1
       with:
@@ -431,7 +431,7 @@ jobs:
         coq: ["8.8", "8.9", "8.10", "8.11"]
     steps:
     - name: Checkout
-      uses: actions/checkout@v1
+      uses: actions/checkout@v2
     - name: Download base library for Coq ${{ matrix.coq }}
       uses: actions/download-artifact@v1
       with:
@@ -464,7 +464,7 @@ jobs:
     container: just95/hlint:3.1.1
     steps:
     - name: Checkout
-      uses: actions/checkout@v1
+      uses: actions/checkout@v2
     - name: Check code style using HLint
       run: hlint src
 
@@ -478,6 +478,6 @@ jobs:
     container: just95/brittany:0.12.1.1
     steps:
     - name: Checkout
-      uses: actions/checkout@v1
+      uses: actions/checkout@v2
     - name: Check code style using Brittany
       run: ./tool/check-formatting.sh
