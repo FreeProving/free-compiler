@@ -395,11 +395,8 @@ jobs:
 
     # Checks all *.agda files in `./base/agda`.
     - name: Check Agda Code
-      working-directory: ./base/agda
       run: |
-        for f in $(find . -name "*.agda"); do
-          agda --library-file /root/.agda/libraries "$f"
-        done
+        ./tool/check-agda.sh ./base/agda -- --library-file /root/.agda/libraries
 
   #############################################################################
   # Examples                                                                  #
