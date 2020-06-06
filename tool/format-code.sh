@@ -1,25 +1,67 @@
 #!/bin/bash
 
-# This script can be used to format Haskell source code files using `brittany`
-# automatically. The line endings of the source file are converted to
-# Unix line endings (LF). Note that this script overwrites source files.
-# It is strongly recommended to backup your files beforehand (e.g., by
-# `git add`ing them).
-
 # Change into the compiler's root directory.
 script=$(realpath "$0")
 script_dir=$(dirname "$script")
 root_dir=$(dirname "$script_dir")
 cd "$root_dir"
 
-# Colored output.
+# Set default values for command line options.
+help=false
+color=true
+
+# Parse command line options.
+options=$(getopt -o hc --long help,no-color -- "$@")
+if [ $? -ne 0 ]; then
+  echo
+  echo "Type '$script --help' for more information."
+  exit 1
+fi
+eval set -- "$options"
+while true; do
+  case "$1" in
+  -h | --help) help=true; shift ;;
+  --no-color) color=false; shift ;;
+  --) shift; break ;;
+  *) break ;;
+  esac
+done
+
+# Print usage information if the `--help` flag is set.
+if [ "$help" = true ]; then
+  script_dir_rel=$(realpath --relative-to . "$script_dir")
+  echo "Usage: $script [options...] <coq-dir> -- [args]"
+  echo
+  echo "This script can be used to format Haskell source files that using"
+  echo "the code formatter Brittany. Furthermore, the line endings of the"
+  echo "source file are converted to Unix line endings (LF)."
+  echo
+  echo "Note that this script overwrites source files. It is strongly"
+  echo "recommended to backup your files beforehand (e.g., by staging"
+  echo "them using the 'git add' command)."
+  echo
+  echo "Use '$script_dir_rel/check-formatting.sh' to perform a dry run"
+  echo "to see which files would be modified instead."
+  echo
+  echo "Command line options:"
+  echo "  -h    --help         Display this message."
+  echo "        --no-color     Disable colored output."
+  exit 0
+fi
+
+# Enable/disable colored output.
+if [ "$color" = false ]; then
+  function tput {
+    echo ""
+  }
+fi
 red=$(tput setaf 1)
 green=$(tput setaf 2)
 yellow=$(tput setaf 3)
 bold=$(tput bold)
 reset=$(tput sgr0)
 
-# Check whether brittany is installed.
+# Check whether Brittany is installed.
 if ! which brittany >/dev/null 2>&1; then
   echo "${red}${bold}Error:${reset}" \
        "${bold}Could not find Brittany.${reset}"

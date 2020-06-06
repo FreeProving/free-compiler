@@ -1,17 +1,57 @@
 #!/bin/bash
 
-# This script can be used to check whether there are Haskell source files that
-# have not been formatted using `brittany` or contains non-Unix line endings.
-# It is used by the CI pipeline and the `./tool/full-test.sh` script.
-# Use `./tool/format-code.sh` to format all source files automatically.
-
 # Change into the compiler's root directory.
 script=$(realpath "$0")
 script_dir=$(dirname "$script")
 root_dir=$(dirname "$script_dir")
 cd "$root_dir"
 
-# Colored output.
+# Set default values for command line options.
+help=false
+color=true
+
+# Parse command line options.
+options=$(getopt -o h --long help,no-color -- "$@")
+if [ $? -ne 0 ]; then
+  echo
+  echo "Type '$script --help' for more information."
+  exit 1
+fi
+eval set -- "$options"
+while true; do
+  case "$1" in
+  -h | --help) help=true; shift ;;
+  --no-color) color=false; shift ;;
+  --) shift; break ;;
+  *) break ;;
+  esac
+done
+
+# Print usage information if the `--help` flag is set.
+if [ "$help" = true ]; then
+  script_dir_rel=$(realpath --relative-to . "$script_dir")
+  echo "Usage: $script [options...] <coq-dir> -- [args]"
+  echo
+  echo "This script can be used to check whether there are Haskell source"
+  echo "files that have not been formatted using Brittany or that contain"
+  echo "non-Unix line endings. It is used by the CI pipeline and the"
+  echo "'$script_dir_rel/full-test.sh' scripts."
+  echo
+  echo "Use '$script_dir_rel/format-code.sh' to format all source files"
+  echo "automatically."
+  echo
+  echo "Command line options:"
+  echo "  -h    --help         Display this message."
+  echo "        --no-color     Disable colored output."
+  exit 0
+fi
+
+# Enable/disable colored output.
+if [ "$color" = false ]; then
+  function tput {
+    echo ""
+  }
+fi
 red=$(tput setaf 1)
 green=$(tput setaf 2)
 yellow=$(tput setaf 3)
