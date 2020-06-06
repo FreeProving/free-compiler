@@ -40,7 +40,11 @@ The compiler has been extended with additional features and its architecture cha
 Read the [changelog][freec/CHANGELOG] for more information on what has changed since the initial release.
 
 The compiler's source code is documented using [Haddock][software/haddock].
-The documentation is automatically built by our CI pipeline and published [here][gh-pages/haddock].
+The documentation of each component of the compiler is automatically built by our CI pipeline and deployed at the links below.
+
+ - [Documentation for modules in `src/exe`][gh-pages/haddock/exe]
+ - [Documentation for modules in `src/lib`][gh-pages/haddock/lib]
+ - [Documentation for modules in `src/test`][gh-pages/haddock/test]
 
 Additional documentation can be found in the [`doc/`][doc] directory.
 
@@ -413,9 +417,15 @@ See the [LICENSE][freec/LICENSE] file for details.
   https://github.com/FreeProving/guidelines/blob/master/CONTRIBUTING.md#the-ci-pipeline
   "Contributing Guidelines of the FreeProving project — The CI Pipeline"
 
-[gh-pages/haddock]:
+[gh-pages/haddock/exe]:
+  https://freeproving.github.io/free-compiler/docs/master/freec
+  "Free Compiler Command Line Interface Haddock Documentation"
+[gh-pages/haddock/lib]:
   https://freeproving.github.io/free-compiler/docs/master
   "Free Compiler Haddock Documentation"
+[gh-pages/haddock/test]:
+  https://freeproving.github.io/free-compiler/docs/master/freec-unit-tests
+  "Free Compiler Test Suite Haddock Documentation"
 
 [package/haskell-src-transformations]:
   https://github.com/FreeProving/haskell-src-transformations
