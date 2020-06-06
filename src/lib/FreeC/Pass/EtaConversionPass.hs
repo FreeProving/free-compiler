@@ -93,6 +93,8 @@ import           FreeC.IR.Subterm
 import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Converter
 import           FreeC.Pass
+-- temporary import; ideally, this pass should be moved before the TypeSignaturePass.
+import 		 FreeC.Pass.TypeSignaturePass ( splitFuncType )
 
 -- | Applies η-conversions to the right-hand sides of all function declarations
 --   in the given module until all function and constructor applications are
@@ -116,9 +118,10 @@ etaConvertFuncDecl funcDecl = do
   let rhs = IR.funcDeclRhs funcDecl
   newArgIdents <- generateFullArgumentList rhs
   -- Compute the function's new (uncurried) type. Assumes that funcDecl's return type has already been inferred.
-  let (newArgTypes, returnType) = IR.splitFuncType
+  (newArgTypes, returnType) <- splitFuncType
+	(IR.funcDeclQName funcDecl)
+	(map IR.toVarPat newArgIdents)
         (fromJust $ IR.funcDeclReturnType funcDecl)
-        (length newArgIdents)
   -- Compute the function's new arguments and add them to the argument list.
   let newArgs =
         zipWith (IR.VarPat NoSrcSpan) newArgIdents (map Just newArgTypes)
