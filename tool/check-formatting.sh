@@ -1,17 +1,85 @@
 #!/bin/bash
 
-# This script can be used to check whether there are Haskell source files that
-# have not been formatted using `brittany` or contains non-Unix line endings.
-# It is used by the CI pipeline and the `./tool/full-test.sh` script.
-# Use `./tool/format-code.sh` to format all source files automatically.
-
-# Change into the compiler's root directory.
-script=$(realpath "$0")
-script_dir=$(dirname "$script")
+# Get path to the compiler's root directory.
+script=$0
+script_abs=$(realpath "$script")
+script_dir=$(dirname "$script_abs")
+script_dir_rel=$(realpath --relative-to . "$script_dir")
 root_dir=$(dirname "$script_dir")
-cd "$root_dir"
+root_dir_rel=$(realpath --relative-to . "$root_dir")
 
-# Colored output.
+# By default files in the `src` and `example` directory are formatted.
+default_files=("$root_dir_rel/src" "$root_dir_rel/example")
+
+# Constants for the names of the two available modes of operation.
+check_mode="check"
+overwrite_mode="overwrite"
+
+# Set default values for command line options.
+help=false
+enable_color=true
+enable_skip=true
+mode="$check_mode"
+
+# Parse command line options.
+options=$(getopt -o h --long help,no-color,no-skip,overwrite -- "$@")
+if [ $? -ne 0 ]; then
+  echo
+  echo "Type '$script --help' for more information."
+  exit 1
+fi
+eval set -- "$options"
+while true; do
+  case "$1" in
+  -h | --help) help=true; shift ;;
+  --no-color) enable_color=false; shift ;;
+  --no-skip) enable_skip=false; shift ;;
+  --overwrite) mode="$overwrite_mode"; shift ;;
+  --) shift; break ;;
+  *) break ;;
+  esac
+done
+
+# Print usage information if the `--help` flag is set.
+if [ "$help" = true ]; then
+  echo "Usage: $script [options...] [input-files...]"
+  echo
+  echo "This script can be used to check whether there are Haskell source"
+  echo "files that have not been formatted using Brittany or that contain"
+  echo "non-Unix line endings. It is used by the CI pipeline and the"
+  echo "'$script_dir_rel/full-test.sh' scripts."
+  echo
+  echo "There are the following two modes of operation."
+  echo
+  echo " - In *check* mode, the formatted output is discarded. The script"
+  echo "   prints for each file whether would have been modified and a summary"
+  echo "   at the end. You have to apply the formatting manually or in a"
+  echo "   second run of the script using the '--overwrite' option."
+  echo "   Check mode is enabled by default."
+  echo
+  echo " - In *overwrite* mode, the input files are overwritten after"
+  echo "   formatting. If you enable this mode, there is a chance that"
+  echo "   uncommitted changes are lost. Thus, it is strongly recommended"
+  echo "   to backup your files beforehand (e.g., by staging them using the"
+  echo "   'git add' command)."
+  echo
+  echo "If no input files are specified, all source files in the following"
+  echo "directories are processed by default: ${default_files[@]}."
+  echo
+  echo "Command line options:"
+  echo "  -h    --help         Display this message."
+  echo "        --no-color     Disable colored output."
+  echo "        --no-skip      Disable skipping of untracked files."
+  echo "        --overwrite    Enable overwrite mode (see above for details)."
+  exit 0
+fi
+
+# Enable/disable colored output.
+if [ "$enable_color" = false ]; then
+  function tput {
+    echo ""
+  }
+fi
 red=$(tput setaf 1)
 green=$(tput setaf 2)
 yellow=$(tput setaf 3)
@@ -29,81 +97,164 @@ if ! which brittany >/dev/null 2>&1; then
   exit 1
 fi
 
-# The user can optionally specify files and directories to check.
+# The user can optionally specify files and directories to process.
 # By default all Haskell files in the `src` and `example` directories are
-# checked.
+# processed.
 files=("$@")
-if [ "${#files[@]}" == "0" ]; then
-  files=(src example)
+if [ "${#files[@]}" -eq 0 ]; then
+  files=("${default_files[@]}")
 fi
 
-# Check all given Haskell files that are tracked by `git` and count the number
-# of files that are not formatted or encoded correctly.
+# Utility function that returns either its first argument in check mode or
+# its second argument in overwrite mode.
+function select_by_mode() {
+  case "$mode" in
+    "$check_mode")     echo "$1" ;;
+    "$overwrite_mode") echo "$2" ;;
+  esac
+}
+
+# Utility function that writes its `stdin` to a temporary file and copies
+# the contents to the given file afterwards. This is intened to be used
+# instead of an redirect if the file to redirect to is also used by the
+# command whose output to redirect.
+function write_to_file() {
+  local file="$1"
+  local temp_file=$(mktemp)
+  cat - >"$temp_file"
+  mv "$temp_file" "$file"
+}
+
+# Counters for statistics.
+okay_counter=0
+error_counter=0
+skipped_counter=0
+processed_counter=0
+
+# Counters for error statistics.
+eol_counter=0
 format_counter=0
-line_ending_counter=0
+
+# Process all given Haskell files that are tracked by `git` and count how
+# many files are not formatted or encoded correctly.
 for file in $(find "${files[@]}" -name '*.hs' -type f); do
-  # Skip files that are not tracked by git..
-  if git ls-files --error-unmatch "$file" >/dev/null 2>&1; then
-    echo -n "Checking ${bold}$file${reset} ... "
-    is_okay=0
+  # Skip files that are not tracked by Git unless the `--no-skip` command
+  # line flag has been specified.
+  if [ "$enable_skip" = false ] ||
+     git ls-files --error-unmatch "$file" >/dev/null 2>&1; then
+    # Print which file is processed.
+    echo -n "$(select_by_mode "Checking" "Formatting")" \
+            "${bold}$file${reset} ... "
+    processed_counter=$(expr $processed_counter + 1)
+    is_okay=true
 
-    # Test whether the file uses Windows line endings (CRLF) or mixed line
-    # endings instead of Unix line endings (LF) by deleting all carriage
-    # return (CR) characters and comparing the output to the original file.
-    if ! tr -d '\r' <"$file" | cmp -s "$file"; then
-      echo -n "${yellow}${bold}HAS WRONG LINE ENDINGS${reset}"
-      line_ending_counter=$(expr $line_ending_counter + 1)
-      is_okay=1
-    fi
+    # Create temporary file for formatting.
+    temp_file=$(mktemp)
+    cp "$file" "$temp_file"
 
-    # Test whether the file is formatted by formatting it and comparing the
-    # output to the original file.
-    if ! brittany "$file" | cmp -s "$file"; then
-      if [ "$is_okay" -ne "0" ]; then
-        echo -n " and "
+    # Convert Windows line endings (CRLF) to Unix line endings (LF) by
+    # removing all carriage return (CR) bytes.
+    hash_before=$(sha256sum "$temp_file")
+    cat "$temp_file" | tr -d '\r' | write_to_file "$temp_file"
+    if [ "$?" -eq 0 ]; then
+      hash_after=$(sha256sum "$temp_file")
+      if [ "$hash_before" != "$hash_after" ]; then
+        echo -n "${yellow}${bold}"
+        echo -n $(select_by_mode "HAS WRONG LINE ENDINGS"    \
+                                 "NORMALIZED LINE ENDINGS")
+        echo -n "${reset}"
+        eol_counter=$(expr $eol_counter + 1)
+        is_okay=false
       fi
-      echo -n "${red}${bold}NEEDS FORMATTING${reset}"
-      format_counter=$(expr $format_counter + 1)
-      is_okay=1
+    else
+      echo "${red}${bold}ERROR${reset}"
+      error_counter=$(expr $error_counter + 1)
+      continue
     fi
 
-    if [ "$is_okay" -eq "0" ]; then
-      echo "${green}${bold}OK${reset}"
+    # Format code with Brittany.
+    hash_before=$(sha256sum "$temp_file")
+    brittany --write-mode=inplace "$temp_file"
+    if [ "$?" -eq 0 ]; then
+      hash_after=$(sha256sum "$temp_file")
+      if [ "$hash_before" != "$hash_after" ]; then
+        if [ "$is_okay" = false ]; then
+          echo -n " and "
+        fi
+        echo -n "$(select_by_mode "${red}${bold}NEEDS FORMATTING${reset}" \
+                                  "${green}${bold}HAS BEEN FORMATTED${reset}")"
+        format_counter=$(expr $format_counter + 1)
+        is_okay=false
+      fi
     else
-      echo ""
+      echo "${red}${bold}ERROR${reset}"
+      error_counter=$(expr $error_counter + 1)
+      continue
     fi
+
+    # Test whether all checks where successful.
+    if [ "$is_okay" = true ]; then
+      select_by_mode "${green}${bold}OK${reset}" \
+                     "${bold}UNCHANGED${reset}"
+      okay_counter=$(expr $okay_counter + 1)
+
+      # Clean up.
+      rm "$temp_file"
+    else
+      # Error messages have been printed above after the file name.
+      # Move to new line.
+      echo
+
+      # Overwrite input file if overwrite mode is enabled.
+      # Otherwise clean up the temporary file.
+      if [ "$mode" = "$overwrite_mode" ]; then
+        mv "$temp_file" "$file"
+      else
+        rm "$temp_file"
+      fi
+    fi
+  else
+    # The file is not tracked by Git.
+    echo "Skipping ${bold}$file${reset} ... ${bold}NOT TRACKED${reset}"
+    skipped_counter=$(expr $skipped_counter + 1)
   fi
 done
 
-# By default, the script returns `0`. If any check below failed, the
-# exit code is set to `1`.
-exit_code=0
+# Print statistics.
+echo "${bold}"
+echo "----------------------------------------------------------------------"
+echo "${reset}"
+echo "Processed ${bold}$processed_counter${reset} and" \
+     "skipped ${bold}$skipped_counter${reset} files."
 
-# Test whether there are any files that are not encoded properly.
-if [ "$line_ending_counter" -gt "0" ]; then
-  echo "${bold}"
-  echo "----------------------------------------------------------------------"
-  echo "${reset}"
-  echo "${yellow}${bold}Warning:${reset}" \
-       "${bold}Some Haskell files don't use Unix line endings.${reset}"
-  echo " |"
-  echo " | Run the ${bold}./tool/format-code.sh${reset} script to normalize"
-  echo " | line endings automatically."
-  exit_code=1
+# Test whether all processed files were okay.
+if [ "$okay_counter" -eq "$processed_counter" ]; then
+  echo "${green}${bold}All processed files are formatted correctly.${reset}"
+else
+  # Print command error statistics.
+  if [ "$error_counter" -ne 0 ]; then
+    echo -n "${red}${bold}Error:${reset} "
+    echo "There were ${bold}$error_counter${reset} errors when processing" \
+         "files."
+  fi
+
+  # Print line ending error statistics.
+  if [ "$eol_counter" -ne 0 ]; then
+    echo $(select_by_mode "${yellow}${bold}Warning:${reset}" \
+                          "${bold}Info:${reset}") "There were ${bold}$eol_counter${reset} files with non-Unix" \
+         "line endings."
+  fi
+
+  # Print formatting error statistics.
+  if [ "$format_counter" -ne 0 ]; then
+    echo $(select_by_mode "${red}${bold}Error:${reset}"                  \
+                          "${bold}Info:${reset}")                        \
+         "There were ${bold}$format_counter${reset} files that were not" \
+         "formatted correctly."
+  fi
+
+  # Exit with status code `1` in check mode if any check failed.
+  if [ "$mode" = "$check_mode" ]; then
+    exit 1
+  fi
 fi
-
-# Test whether there are any files that need formatting.
-if [ "$format_counter" -gt "0" ]; then
-  echo "${bold}"
-  echo "----------------------------------------------------------------------"
-  echo "${reset}"
-  echo "${red}${bold}Error:${reset}" \
-       "${bold}Some Haskell files need formatting.${reset}"
-  echo " |"
-  echo " | Run the ${bold}./tool/format-code.sh${reset} script to format all"
-  echo " | files automatically."
-  exit_code=1
-fi
-
-# If any check above failed, the script exists with error code `1`.
-exit "$exit_code"
