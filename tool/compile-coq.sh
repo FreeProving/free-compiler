@@ -46,7 +46,12 @@ fi
 
 # Change into specified directory.
 coq_dir="$1"
-if ! [ -d "$coq_dir" ]; then
+if [ -z "$coq_dir" ]; then
+  echo "Error: Missing input directory."
+  echo
+  echo "Type '$script --help' for more information."
+  exit 1
+elif ! [ -d "$coq_dir" ]; then
   echo "Error: Could not find directory $coq_dir"
   exit 1
 fi
