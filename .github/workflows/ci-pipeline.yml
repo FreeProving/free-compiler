@@ -375,8 +375,11 @@ jobs:
   # Agda Base library                                                         #
   #############################################################################
 
-  # Build the base library of the compiler with the supported agda version.
-  # We are using jlimperg's docker image with Agda and its stdlib in this Job.
+  # Build the base library of the compiler with the supported Agda version.
+  # We are using jlimperg's docker image with Agda and its standard library
+  # in this job.
+  #
+  # This job is skipped in draft pull requests.
   build-agda-base-library:
     name: Build Agda base library
     runs-on: ubuntu-latest
@@ -385,6 +388,7 @@ jobs:
       matrix:
         agda: ["2.6.1"]
         agda_stdlib: ["1.3"]
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     steps:
     - name: Checkout
       uses: actions/checkout@v2
