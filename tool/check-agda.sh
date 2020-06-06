@@ -54,7 +54,7 @@ shift
 echo "Compiling Agda files in $agda_dir ..."
 
 # Delete `_build` directory if the `--recompile` flag is set.
-if [ -f _build ] && [ "$recompile" = true ]; then
+if [ -d _build ] && [ "$recompile" = true ]; then
   echo "Removing '_build' directory ..."
   rm -r _build
 fi
@@ -62,6 +62,14 @@ fi
 # Check all `.agda` files. All remaining command line options are forwarded
 # to the Agda compiler.
 echo "Running 'agda' ..."
-for f in $(find . -name "*.agda"); do
-  agda "$f" "$@"
+for file in $(find . -name "*.agda"); do
+  agda "$file" "$@"
+
+  # Stop script as soon as Agda fails once. If we did not do this,
+  # the script would always exit with status code `0`.
+  agda_status_code="$?"
+  if [ "$agda_status_code" -ne 0 ]; then
+    echo "Error: Agda failed while processing $file"
+    exit "$agda_status_code"
+  fi
 done
