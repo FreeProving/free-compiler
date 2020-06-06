@@ -40,18 +40,28 @@ fi
 
 # Change into the directory containing the Agda modules.
 agda_dir=$1
+if [ -z "$agda_dir" ]; then
+  echo "Error: Missing input directory."
+  echo
+  echo "Type '$script --help' for more information."
+  exit 1
+elif ! [ -d "$agda_dir" ]; then
+  echo "Error: Could not find directory $agda_dir"
+  exit 1
+fi
 cd "$agda_dir"
 shift
 echo "Compiling Agda files in $agda_dir ..."
 
 # Delete `_build` directory if the `--recompile` flag is set.
 if [ -f _build ] && [ "$recompile" = true ]; then
-  echo "Removing _build directory ..."
+  echo "Removing '_build' directory ..."
   rm -r _build
 fi
 
 # Check all `.agda` files. All remaining command line options are forwarded
 # to the Agda compiler.
+echo "Running 'agda' ..."
 for f in $(find . -name "*.agda"); do
   agda "$f" "$@"
 done
