@@ -147,7 +147,7 @@ jobs:
         mkdir -p ./build/bin
         cp "$exe_path" "./build/bin/$exe_name"
     - name: Upload executable
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v2
       with:
         name: compiler-${{ matrix.os }}
         path: ./build/bin/freec
@@ -269,7 +269,7 @@ jobs:
         mkdir -p ./build/docs
         cp -R $doc_path ./build/docs
     - name: Upload documentation
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v2
       with:
         name: documentation
         path: ./build/docs
@@ -365,7 +365,7 @@ jobs:
         mkdir -p ./build/base
         cp --parents $(find base -name "*.vo" -or -name "*.glob") ./build
     - name: Upload compiled base library for Coq ${{ matrix.coq }}
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v2
       with:
         name: coq-${{ matrix.coq }}-base-library
         path: ./build/base
@@ -410,7 +410,7 @@ jobs:
         cp -R ./example/generated ./build/examples
         cp -R ./example/transformed ./build/examples
     - name: Upload compiled examples
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v2
       with:
         name: examples
         path: ./build/examples
