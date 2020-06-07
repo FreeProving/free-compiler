@@ -328,8 +328,12 @@ simplifyDecl decl@(HSE.GDataDecl _ _ _ _ _ _ _) =
 simplifyDecl decl@(HSE.GDataInsDecl _ _ _ _ _ _) =
   notSupported "GADT style declarations" decl
 simplifyDecl decl@(HSE.ClassDecl _ _ _ _ _) = notSupported "Type classes" decl
-simplifyDecl decl@(HSE.InstDecl _ _ _ _) = notSupported "Type classes" decl
-simplifyDecl decl@(HSE.DerivDecl _ _ _ _) = notSupported "Type classes" decl
+simplifyDecl decl@(HSE.InstDecl _ _ _ _) = do
+  skipNotSupported "Instance declarations" decl
+  return ([], [], [])
+simplifyDecl decl@(HSE.DerivDecl _ _ _ _) = do
+  skipNotSupported "Deriving declarations" decl
+  return ([], [], [])
 simplifyDecl decl@(HSE.DefaultDecl _ _) = notSupported "Type classes" decl
 simplifyDecl decl@(HSE.SpliceDecl _ _) = notSupported "Template Haskell" decl
 simplifyDecl decl@(HSE.TSpliceDecl _ _) = notSupported "Template Haskell" decl
