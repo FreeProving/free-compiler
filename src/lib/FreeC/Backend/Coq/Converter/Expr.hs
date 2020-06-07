@@ -9,6 +9,7 @@ import           Data.Composition
 import           Data.Foldable                  ( foldlM
                                                 , foldrM
                                                 )
+import           Data.Maybe                     ( fromJust )
 
 import qualified FreeC.Backend.Coq.Base        as Coq.Base
 import           FreeC.Backend.Coq.Converter.Arg
@@ -269,11 +270,25 @@ generateApplyN arity term args =
 -------------------------------------------------------------------------------
 
 -- | Converts an alternative of a Haskell @case@-expressions to Coq.
+--
+--   Strict arguments are bound.
 convertAlt :: IR.Alt -> Converter Coq.Equation
 convertAlt (IR.Alt _ conPat varPats expr) = localEnv $ do
   conPat' <- convertConPat conPat varPats
-  expr'   <- convertExpr expr
+  let varNames  = map IR.varPatQName varPats
+      varTypes  = map IR.varPatType varPats
+      areStrict = map IR.varPatIsStrict varPats
+  vars <- mapM (inEnv . lookupIdent IR.ValueScope) varNames
+  let vars' = map (Coq.Qualid . fromJust) vars
+  varTypes' <- mapM (mapM convertType') varTypes
+  expr'     <- generateBinds vars' freshArgPrefix areStrict varTypes'
+    $ \ts -> mapM_ (uncurry renameVars) (zip ts varNames) >> convertExpr expr
   return (Coq.equation conPat' expr')
+ where
+  renameVars :: Coq.Term -> IR.QName -> Converter ()
+  renameVars (Coq.Qualid x) name = do
+    modifyEnv $ modifyEntryIdent IR.ValueScope name x
+  renameVars _ _ = return ()
 
 -- | Converts a Haskell constructor pattern with the given variable pattern
 --   arguments to a Coq pattern.
@@ -287,6 +302,6 @@ convertConPat (IR.ConPat srcSpan ident) varPats = do
 --
 --   The types of variable patterns are not annotated in Coq.
 convertVarPat :: IR.VarPat -> Converter Coq.Pattern
-convertVarPat (IR.VarPat srcSpan ident maybeVarType _) = do
-  ident' <- renameAndDefineVar srcSpan False ident maybeVarType
+convertVarPat (IR.VarPat srcSpan ident maybeVarType isStrict) = do
+  ident' <- renameAndDefineVar srcSpan isStrict ident maybeVarType
   return (Coq.QualidPat ident')
