@@ -13,7 +13,7 @@ import           FreeC.Backend.Coq.Pretty       ( )
 import           FreeC.Environment              ( emptyEnv )
 import           FreeC.Monad.Class.Testable
 import           FreeC.Monad.Converter
-import           FreeC.Monad.Reporter           ( evalReporter )
+import           FreeC.Monad.Reporter           ( runReporter )
 import           FreeC.Test.Environment
 import           FreeC.Test.Expectations
 import           FreeC.Test.Parser
@@ -31,6 +31,18 @@ shouldConvertWithHelpersTo inputStrs expectedOutputStr = do
   input  <- mapM parseTestFuncDecl inputStrs
   output <- convertRecFuncDeclsWithHelpers input
   return (output `prettyShouldBe` expectedOutputStr)
+
+-- | Runs a converter and uses the resulting environment and messages to
+--   produce an empty string to be printed before forwarding the result.
+avoidLaziness :: Converter a -> IO a
+avoidLaziness c =
+  let (mbResEnv, msgs) = runReporter $ runConverter c emptyEnv
+      (res     , str ) = case mbResEnv of
+        Nothing         -> error "no result"
+        Just (res, env) -> (res, show env ++ show msgs)
+  in  do
+        putStr $ drop (length str) str
+        return res
 
 -------------------------------------------------------------------------------
 -- Tests                                                                     --
@@ -492,6 +504,7 @@ testConvertRecFuncDeclWithHelpers = context "with helper functions" $ do
   it
       "translates recursive functions affected by the eta conversion pass correctly"
     $ shouldSucceedWith
+    $ avoidLaziness
     $ do
         "List"           <- defineTestTypeCon "List" 1
         ("nil" , "Nil" ) <- defineTestCon "Nil" 0 "forall a. List a"
@@ -543,7 +556,7 @@ testConvertRecFuncDeclWithHelpers = context "with helper functions" $ do
 
   it "fails when translating functions with arguments of unknown type"
     $ let
-        env = do
+        res = do
           "List"           <- defineTestTypeCon "List" 1
           ("nil" , "Nil" ) <- defineTestCon "Nil" 0 "forall a. List a"
           ("cons", "Cons") <- defineTestCon "Cons"
@@ -564,10 +577,4 @@ testConvertRecFuncDeclWithHelpers = context "with helper functions" $ do
               ++ "    } :: List a) y"
             ]
           convertRecFuncDeclsWithHelpers input
-          getEnv
-        avoidLaziness :: Show a => Converter a -> IO ()
-        avoidLaziness x =
-          let str = show $ evalReporter $ evalConverter x emptyEnv
-          in  putStr (show $ drop (length str) str)
-      in
-        shouldThrow (avoidLaziness env) (errorCall "Maybe.fromJust: Nothing")
+      in  shouldThrow (avoidLaziness res) (errorCall "Maybe.fromJust: Nothing")
