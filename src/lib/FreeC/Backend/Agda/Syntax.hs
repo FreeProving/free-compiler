@@ -11,6 +11,7 @@ module FreeC.Backend.Agda.Syntax
   , qname'
     -- * Imports
   , simpleImport
+  , moduleDecl
     -- * Expressions
   , intLiteral
   , lambda
@@ -54,6 +55,9 @@ simpleImport modName = Import
   Nothing
   DoOpen
   (ImportDirective NoRange UseEverything [] [] Nothing)
+
+moduleDecl :: QName -> [Declaration] -> Declaration
+moduleDecl modName = Module NoRange modName []
 
 -------------------------------------------------------------------------------
 -- Expressions                                                               --
