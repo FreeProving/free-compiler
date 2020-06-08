@@ -170,6 +170,7 @@ library freec-internal
                       , FreeC.Pass.ExportPass
                       , FreeC.Pass.ImplicitPreludePass
                       , FreeC.Pass.ImportPass
+                      , FreeC.Pass.KindInferencePass
                       , FreeC.Pass.PartialityAnalysisPass
                       , FreeC.Pass.TypeInferencePass
                       , FreeC.Pass.TypeSignaturePass

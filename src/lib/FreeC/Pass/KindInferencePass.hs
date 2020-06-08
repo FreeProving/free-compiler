@@ -9,7 +9,7 @@ import           FreeC.Pass
 import           FreeC.Pretty
 
 kindInferencePass :: Pass IR.Module
-kindInferencePass (Module _ _ _ typeDecls typeSigs  _ funcDecls ) = do
+kindInferencePass (Module _ _ _ typeDecls typeSigs _ funcDecls) = do
   checkTypeDecls typeDecls
   checkTypeSigs typeSigs
   checkFuncDecls funcDecls
@@ -27,8 +27,8 @@ checkTypes :: Monad m => m IR.Type -> Converter ()
 checkTypes types = mapM_ containsLeftTypeVars types
 
 checkTypeDecl :: IR.TypeDecl -> Converter ()
-checkTypeDecl (DataDecl _ _ _ conDecls) = mapM_ checkConDecl conDecls
-checkTypeDecl (TypeSynDecl _ _ _ typ) = containsLeftTypeVars typ
+checkTypeDecl (DataDecl    _ _ _ conDecls) = mapM_ checkConDecl conDecls
+checkTypeDecl (TypeSynDecl _ _ _ typ     ) = containsLeftTypeVars typ
 
 checkConDecl :: IR.ConDecl -> Converter ()
 checkConDecl (ConDecl _ _ types) = mapM_ containsLeftTypeVars types
@@ -40,15 +40,15 @@ checkTypeSchema :: IR.TypeSchema -> Converter ()
 checkTypeSchema (TypeSchema _ _ typ) = containsLeftTypeVars typ
 
 checkFuncDecl :: IR.FuncDecl -> Converter ()
-checkFuncDecl (_ _ _ varPats retType rhs) = do
+checkFuncDecl (FuncDecl _ _ _ varPats retType rhs) = do
   checkVarPats varPats
   checkTypes retType
   checkExpr rhs
   return ()
 
 checkExpr :: IR.Expr -> Converter ()
-checkExpr (Con _ _ typeSchema) = mapM_ checkTypeSchema typeSchema
-checkExpr (Var _ _ typeSchema) = mapM_ checkTypeSchema typeSchema
+checkExpr (Con _ _ typeSchema      ) = mapM_ checkTypeSchema typeSchema
+checkExpr (Var _ _ typeSchema      ) = mapM_ checkTypeSchema typeSchema
 checkExpr (App _ lhs rhs typeSchema) = do
   checkExpr lhs
   checkExpr rhs
@@ -70,9 +70,9 @@ checkExpr (Case _ scrutinee alts typeSchema) = do
   checkAlts alts
   mapM_ checkTypeSchema typeSchema
   return ()
-checkExpr (Undefined _ typeSchema) = mapM_ checkTypeSchema typeSchema
-checkExpr (ErrorExpr _ _ typeSchema) = mapM_ checkTypeSchema typeSchema
-checkExpr (IntLiteral _ _ typeSchema) = mapM_ checkTypeSchema typeSchema
+checkExpr (Undefined _ typeSchema      ) = mapM_ checkTypeSchema typeSchema
+checkExpr (ErrorExpr  _ _ typeSchema   ) = mapM_ checkTypeSchema typeSchema
+checkExpr (IntLiteral _ _ typeSchema   ) = mapM_ checkTypeSchema typeSchema
 checkExpr (Lambda _ args rhs typeSchema) = do
   checkVarPats args
   checkExpr rhs
