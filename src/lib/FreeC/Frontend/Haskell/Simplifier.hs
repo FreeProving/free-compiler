@@ -892,7 +892,7 @@ simplifyAlt :: HSE.Alt SrcSpan -> Simplifier IR.Alt
 simplifyAlt (HSE.Alt srcSpan pat (HSE.UnGuardedRhs _ expr) Nothing) = do
   (con, vars) <- simplifyConPat pat
   expr'       <- simplifyExpr expr
-  return (IR.Alt srcSpan con vars expr' False)
+  return (IR.Alt srcSpan con vars expr')
 simplifyAlt (HSE.Alt _ _ rhss@(HSE.GuardedRhss _ _) _) =
   experimentallySupported "Guards" rhss
 simplifyAlt (HSE.Alt _ _ _ (Just binds)) =

@@ -10,6 +10,7 @@ module FreeC.Test.Environment
   , defineTestVar
   , defineTestFunc
   , definePartialTestFunc
+  , defineStrictTestFunc
   )
 where
 
@@ -151,12 +152,14 @@ defineTestVar nameStr = do
 --   The argument and return types are parsed from the given string.
 --   Returns the Coq identifier assigned to the function.
 defineTestFunc :: String -> Int -> String -> Converter String
-defineTestFunc = defineTestFunc' False
+defineTestFunc nameStr arity =
+  defineTestFunc' False (replicate arity False) nameStr arity
 
--- | Like 'defineTestFunc' but the first argument controls whether the
---   defined function is partial or not.
-defineTestFunc' :: Bool -> String -> Int -> String -> Converter String
-defineTestFunc' partial nameStr arity typeStr = do
+-- | Like 'defineTestFunc' but the second argument controls whether the
+--   defined function is partial or not. The first argument controls the
+--   strictness of the function arguments.
+defineTestFunc' :: Bool -> [Bool] -> String -> Int -> String -> Converter String
+defineTestFunc' partial areStrict nameStr arity typeStr = do
   name                              <- parseTestQName nameStr
   IR.TypeSchema _ typeArgs typeExpr <- parseExplicitTestTypeSchema typeStr
   let (argTypes, returnType) = IR.splitFuncType typeExpr arity
@@ -165,7 +168,7 @@ defineTestFunc' partial nameStr arity typeStr = do
     , entryArity         = arity
     , entryTypeArgs      = map IR.typeVarDeclIdent typeArgs
     , entryArgTypes      = map Just argTypes
-    , entryStrictArgs    = replicate arity False
+    , entryStrictArgs    = areStrict
     , entryReturnType    = Just returnType
     , entryNeedsFreeArgs = True
     , entryIsPartial     = partial
@@ -177,7 +180,13 @@ defineTestFunc' partial nameStr arity typeStr = do
 --
 --   Returns the Coq identifier assigned to the function.
 definePartialTestFunc :: String -> Int -> String -> Converter String
-definePartialTestFunc = defineTestFunc' True
+definePartialTestFunc nameStr arity =
+  defineTestFunc' True (replicate arity False) nameStr arity
+
+-- | Like 'defineTestFunc' but also allows to mark arguments as strict in the
+--   first argument.
+defineStrictTestFunc :: [Bool] -> String -> Int -> String -> Converter String
+defineStrictTestFunc = defineTestFunc' False
 
 -------------------------------------------------------------------------------
 -- Utility functions                                                         --

@@ -9,6 +9,7 @@ import           Data.Composition
 import           Data.Foldable                  ( foldlM
                                                 , foldrM
                                                 )
+import           Data.Maybe                     ( fromJust )
 
 import qualified FreeC.Backend.Coq.Base        as Coq.Base
 import           FreeC.Backend.Coq.Converter.Arg
@@ -115,26 +116,18 @@ convertExpr' (IR.Var srcSpan name _) typeArgs args = do
       callee <- ifM (inEnv $ needsFreeArgs name)
                     (return (genericApply qualid partialArg typeArgs' []))
                     (return (Coq.app (Coq.Qualid qualid) partialArg))
-      -- Is this a recursive helper function?
-      Just arity   <- inEnv $ lookupArity IR.ValueScope name
-      mDecArgIndex <- inEnv $ lookupFirstStrictArgIndex name
-      case mDecArgIndex of
-        Nothing ->
-          -- Regular functions can be applied directly.
-          generateApplyN arity callee args'
-        Just index -> do
-          -- The decreasing argument of a recursive helper function must be
-          -- unwrapped first.
-          let (before, decArg : after) = splitAt index args'
-          -- Add type annotation for decreasing argument.
-          Just typeArgIdents <- inEnv $ lookupTypeArgs IR.ValueScope name
-          Just argTypes      <- inEnv $ lookupArgTypes IR.ValueScope name
-          let typeArgNames = map (IR.UnQual . IR.Ident) typeArgIdents
-              subst = composeSubsts (zipWith singleSubst typeArgNames typeArgs)
-              decArgType = applySubst subst (argTypes !! index)
-          decArgType' <- mapM convertType' decArgType
-          generateBind decArg freshArgPrefix decArgType' $ \decArg' ->
-            generateApplyN arity callee (before ++ decArg' : after)
+      Just arity         <- inEnv $ lookupArity IR.ValueScope name
+      Just strictArgs    <- inEnv $ lookupStrictArgs name
+      -- Add type annotations for strict arguments.
+      Just typeArgIdents <- inEnv $ lookupTypeArgs IR.ValueScope name
+      Just argTypes      <- inEnv $ lookupArgTypes IR.ValueScope name
+      let typeArgNames = map (IR.UnQual . IR.Ident) typeArgIdents
+          subst = composeSubsts (zipWith singleSubst typeArgNames typeArgs)
+          decArgTypes = map (applySubst subst) argTypes
+      decArgTypes' <- mapM (mapM convertType') decArgTypes
+      -- Generate a bind for each strict argument
+      generateBinds args' freshArgPrefix strictArgs decArgTypes'
+        $ \decArgs' -> generateApplyN arity callee decArgs'
     else do
       -- If this is the decreasing argument of a recursive helper function,
       -- it must be lifted into the @Free@ monad.
@@ -277,11 +270,25 @@ generateApplyN arity term args =
 -------------------------------------------------------------------------------
 
 -- | Converts an alternative of a Haskell @case@-expressions to Coq.
+--
+--   Strict arguments are bound.
 convertAlt :: IR.Alt -> Converter Coq.Equation
-convertAlt (IR.Alt _ conPat varPats expr _) = localEnv $ do
+convertAlt (IR.Alt _ conPat varPats expr) = localEnv $ do
   conPat' <- convertConPat conPat varPats
-  expr'   <- convertExpr expr
+  let varNames  = map IR.varPatQName varPats
+      varTypes  = map IR.varPatType varPats
+      areStrict = map IR.varPatIsStrict varPats
+  vars <- mapM (inEnv . lookupIdent IR.ValueScope) varNames
+  let vars' = map (Coq.Qualid . fromJust) vars
+  varTypes' <- mapM (mapM convertType') varTypes
+  expr'     <- generateBinds vars' freshArgPrefix areStrict varTypes'
+    $ \ts -> mapM_ (uncurry renameVars) (zip ts varNames) >> convertExpr expr
   return (Coq.equation conPat' expr')
+ where
+  renameVars :: Coq.Term -> IR.QName -> Converter ()
+  renameVars (Coq.Qualid x) name = do
+    modifyEnv $ modifyEntryIdent IR.ValueScope name x
+  renameVars _ _ = return ()
 
 -- | Converts a Haskell constructor pattern with the given variable pattern
 --   arguments to a Coq pattern.
@@ -295,6 +302,6 @@ convertConPat (IR.ConPat srcSpan ident) varPats = do
 --
 --   The types of variable patterns are not annotated in Coq.
 convertVarPat :: IR.VarPat -> Converter Coq.Pattern
-convertVarPat (IR.VarPat srcSpan ident maybeVarType _) = do
-  ident' <- renameAndDefineVar srcSpan False ident maybeVarType
+convertVarPat (IR.VarPat srcSpan ident maybeVarType isStrict) = do
+  ident' <- renameAndDefineVar srcSpan isStrict ident maybeVarType
   return (Coq.QualidPat ident')

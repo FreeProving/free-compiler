@@ -616,20 +616,16 @@ instance Parseable IR.Expr where
 altsParser :: Parser [IR.Alt]
 altsParser = bracesParser (altParser `Parsec.sepEndBy` token Semi)
 
--- | Parser for IR @case@ expression alternatives with optional @!@ annotation.
+-- | Parser for IR @case@ expression alternatives.
 --
---   > alt ::= ["!"] conPat { varPat } "->" expr
+--   > alt ::= conPat { varPat } "->" expr
 altParser :: Parser IR.Alt
-altParser = token Bang *> altParser' True <|> altParser' False
- where
-  altParser' :: Bool -> Parser IR.Alt
-  altParser' isStrict =
-    IR.Alt NoSrcSpan
-      <$> conPatParser
-      <*> Parsec.many varPatParser
-      <*  token RArrow
-      <*> exprParser
-      <*> return isStrict
+altParser =
+  IR.Alt NoSrcSpan
+    <$> conPatParser
+    <*> Parsec.many varPatParser
+    <*  token RArrow
+    <*> exprParser
 
 -------------------------------------------------------------------------------
 -- Patterns                                                                  --

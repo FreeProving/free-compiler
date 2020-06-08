@@ -14,6 +14,8 @@ module FreeC.Environment
   , addEntry
   , defineDecArg
   , removeDecArg
+  -- * Modifying entries in the environment
+  , modifyEntryIdent
   -- * Looking up entries from the environment
   , lookupEntry
   , isFunction
@@ -27,7 +29,6 @@ module FreeC.Environment
   , lookupTypeArgArity
   , lookupArgTypes
   , lookupStrictArgs
-  , lookupFirstStrictArgIndex
   , lookupReturnType
   , lookupTypeSchema
   , lookupArity
@@ -44,9 +45,7 @@ import           Control.Monad                  ( (<=<) )
 import           Data.Composition               ( (.:)
                                                 , (.:.)
                                                 )
-import           Data.List                      ( find
-                                                , elemIndex
-                                                )
+import           Data.List                      ( find )
 import           Data.Map.Strict                ( Map )
 import qualified Data.Map.Strict               as Map
 import           Data.Maybe                     ( catMaybes
@@ -139,6 +138,20 @@ removeDecArg funcName env =
   env { envDecArgs = Map.delete funcName (envDecArgs env) }
 
 -------------------------------------------------------------------------------
+-- Modifying entries in the environment                                      --
+-------------------------------------------------------------------------------
+
+-- | Changes the Coq identifier of the entry with the given name in the given
+--   scope to the given identifier.
+--
+--   If such an entry does not exists, the environment is not changed.
+modifyEntryIdent
+  :: IR.Scope -> IR.QName -> Coq.Qualid -> Environment -> Environment
+modifyEntryIdent scope name newIdent env = case lookupEntry scope name env of
+  Nothing    -> env
+  Just entry -> addEntry (entry { entryIdent = newIdent }) env
+
+-------------------------------------------------------------------------------
 -- Looking up entries from the environment                                   --
 -------------------------------------------------------------------------------
 
@@ -226,13 +239,6 @@ lookupArgTypes =
 lookupStrictArgs :: IR.QName -> Environment -> Maybe [Bool]
 lookupStrictArgs =
   fmap entryStrictArgs . find isFuncEntry .: lookupEntry IR.ValueScope
-
--- | Looks up the index of the first strict argument of the function
---   with the given name.
---
---   Returns @Nothing@ if there is no such function.
-lookupFirstStrictArgIndex :: IR.QName -> Environment -> Maybe Int
-lookupFirstStrictArgIndex = (>>= elemIndex True) .: lookupStrictArgs
 
 -- | Looks up the return type of the function or (smart) constructor with the
 --   given name.
