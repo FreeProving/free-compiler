@@ -225,6 +225,7 @@ test-suite freec-unit-tests
                     , FreeC.Frontend.IR.ParserTests
                     , FreeC.Frontend.IR.ScannerTests
                     , FreeC.Frontend.IR.Tests
+                    , FreeC.IR.InliningTests
                     , FreeC.IR.ReferenceTests
                     , FreeC.IR.SimilarTests
                     , FreeC.IR.SubstTests
