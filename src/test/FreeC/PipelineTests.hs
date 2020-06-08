@@ -12,6 +12,7 @@ import           FreeC.Pass.EtaConversionPassTests
 import           FreeC.Pass.PartialityAnalysisPassTests
 import           FreeC.Pass.ResolverPassTests
 import           FreeC.Pass.TypeInferencePassTests
+import           FreeC.Pass.ExhaustivePatternMatchingPassTests
 
 -- | Test group for 'FreeC.Pipeline.runPipeline' tests.
 testPipeline :: Spec
@@ -20,3 +21,4 @@ testPipeline = do
   testPartialityAnalysisPass
   testResolverPass
   testTypeInferencePass
+  testExhaustivePatternMatchingPass
