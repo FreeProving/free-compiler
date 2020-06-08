@@ -42,6 +42,7 @@
 --   The arity of all constructors and functions must be known (i.e., there
 --   must be corresponding environment entries) and all function declarations 
 --   must be type annotated.
+--   Additionally, the function declarations must be sorted in reverse topological order.
 --
 --   == Translation
 --
@@ -55,8 +56,13 @@
 --   
 --   where x₍ₘ₊₁₎ … xₙ are @n-m@ fresh variables. 
 --
+--   If a function rule has several alternatives for the right-hand side through 
+--   -- possibly nested -- if or case expressions, the number of added arguments 
+--   is determined by the minimum number of missing arguments for an alternative 
+--   on the right-hand side.
+--
 --   Additionally, on the right-hand sides of function declarations, all of the largest
---   proper sub-expressions of the form
+--   sub-expressions of the form
 --
 --   > h @α₁ … @αᵣ e₁ … eₗ
 --
@@ -65,7 +71,24 @@
 --
 --   > \y₍ₗ₊₁₎ … yₚ -> f @α₁ … @αᵣ e₁ … eₘ y₍ₗ₊₁₎ … yₚ
 --
---   where @y₍ₗ₊₁₎ … yₚ@ are @p-l@ fresh variables.
+--   where @y₍ₗ₊₁₎ … yₚ@ are @p-l@ fresh variables. 
+-- 
+--   Both types of η-conversion may also be applied to the same expression.
+--   For example, the function 
+--   
+--  > f :: τ₁ -> τ₂ -> τ₃ > τ 
+--  > f e₁ = case e₁ of
+--  >           c₁ -> g 
+--  >           c₂ -> h 
+--
+--  where c₁ and c₂ are the constructors of τ₁, 
+--  @g@ is a binary function of type @τ₂ -> τ₃ > τ@, and
+--  @h@ is a unary function of type @τ₂ -> (τ₃ > τ)@, 
+--  will be converted to 
+-- 
+--  > f e₁ x = case e₁ of
+--  >           c₁ -> \y -> g x y
+--  >           c₂ -> h x 
 --
 --   == Postconditions
 --
@@ -94,7 +117,8 @@ import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Converter
 import           FreeC.Pass
 -- temporary import; ideally, this pass should be moved before the TypeSignaturePass.
-import 		 FreeC.Pass.TypeSignaturePass ( splitFuncType )
+import           FreeC.Pass.TypeSignaturePass   ( splitFuncType )
+
 
 -- | Applies η-conversions to the right-hand sides of all function declarations
 --   in the given module until all function and constructor applications are
@@ -108,58 +132,98 @@ etaConversionPass ast = do
 -- Function declarations                                                     --
 -------------------------------------------------------------------------------
 
--- | Applies 'etaConvertTopLevelRhs' to the right-hand side of the given function
---   declaration to ensure all functions and constructors on the right-hand side 
+-- | Depending on the presence or absence of missing top-level arguments, applies 
+--   'modifyTopLevel' or 'etaConvertExpr' to the right-hand side of the given 
+--   function declaration to ensure all functions and constructors on the right-hand side 
 --   are fully applied. 
 --   The missing top-level arguments are also added to the left-hand side of the 
 --   declaration and the function's type and the environment are updated accordingly. 
 etaConvertFuncDecl :: IR.FuncDecl -> Converter IR.FuncDecl
 etaConvertFuncDecl funcDecl = do
   let rhs = IR.funcDeclRhs funcDecl
-  newArgIdents <- generateFullArgumentList rhs
-  -- Compute the function's new (uncurried) type. Assumes that funcDecl's return type has already been inferred.
+  newArgNumber <- findMinMissingArguments rhs
+  -- Only perform top-level eta conversion when all alternatives for right-hand 
+  -- sides are missing at least one argument.
+  if newArgNumber == 0
+    then do
+      rhs' <- etaConvertExpr (IR.funcDeclRhs funcDecl)
+      return funcDecl { IR.funcDeclRhs = rhs' }
+    else do
+      newFuncDecl <- localEnv $ do
+        newArgIdents <- replicateM newArgNumber
+          $ freshHaskellIdent freshArgPrefix
+        modifyTopLevel funcDecl rhs newArgIdents
+     -- Update the environment with the new type and arguments.
+      Just entry <- inEnv
+        $ lookupEntry IR.ValueScope (IR.funcDeclQName funcDecl)
+      modifyEnv $ addEntry entry
+        { entryArity      = length (IR.funcDeclArgs newFuncDecl)
+        , entryArgTypes   = map IR.varPatType (IR.funcDeclArgs newFuncDecl)
+        , entryReturnType = IR.funcDeclReturnType newFuncDecl
+        }
+      return newFuncDecl
+
+-- | Compute the new function declaration where all missing top-level 
+--   arguments have been added and all occurring functions are fully applied.  
+modifyTopLevel :: IR.FuncDecl -> IR.Expr -> [String] -> Converter IR.FuncDecl
+modifyTopLevel funcDecl rhs newArgIdents = do
+  -- Compute the function's new (uncurried) type. Assumes that funcDecl's return type is known.
   (newArgTypes, returnType) <- splitFuncType
-	(IR.funcDeclQName funcDecl)
-	(map IR.toVarPat newArgIdents)
-        (fromJust $ IR.funcDeclReturnType funcDecl)
+    (IR.funcDeclQName funcDecl)
+    (map IR.toVarPat newArgIdents)
+    (fromJust $ IR.funcDeclReturnType funcDecl)
   -- Compute the function's new arguments and add them to the argument list.
   let newArgs =
         zipWith (IR.VarPat NoSrcSpan) newArgIdents (map Just newArgTypes)
   let vars' = IR.funcDeclArgs funcDecl ++ newArgs
   -- Compute the new right-hand side.
-  rhs'       <- etaConvertTopLevelRhs newArgs rhs
-  -- Update the environment with the new type and arguments.
-  Just entry <- inEnv $ lookupEntry IR.ValueScope (IR.funcDeclQName funcDecl)
-  modifyEnv $ addEntry entry { entryArity      = length vars'
-                             , entryArgTypes   = map IR.varPatType vars'
-                             , entryReturnType = Just returnType
-                             }
+  rhs' <- etaConvertTopLevel newArgs rhs
   -- Update the function declaration's attributes.
   return funcDecl { IR.funcDeclArgs       = vars'
                   , IR.funcDeclReturnType = Just returnType
                   , IR.funcDeclRhs        = rhs'
                   }
 
+
 -------------------------------------------------------------------------------
 -- Expressions                                                               --
 -------------------------------------------------------------------------------
 
--- | Applies a function declaration's or constructor's right-hand side to its 
---   missing arguments.
---   Regular η-conversions are performed for the right-hand side's proper subexpressions 
---   via 'etaConvertSubExprs'.
-etaConvertTopLevelRhs :: [IR.VarPat] -> IR.Expr -> Converter IR.Expr
-etaConvertTopLevelRhs argPats expr = localEnv $ do
-  expr' <- etaConvertSubExprs expr
+-- | Apply missing arguments to all top-level alternatives of an expression
+--   and perform further necessary eta-conversions afterwards.
+etaConvertTopLevel :: [IR.VarPat] -> IR.Expr -> Converter IR.Expr
+-- If there is more than one alternative, apply the conversion to 
+-- all alternatives. 
+etaConvertTopLevel argPats expr@(IR.If _ _ _ _ _) =
+  etaConvertTopLevel' argPats expr
+etaConvertTopLevel argPats expr@(IR.Case _ _ _ _) =
+  etaConvertTopLevel' argPats expr
+-- If there is only one alternative, apply it to the newly-added arguments, then 
+-- apply @etaConvertExpr@ to it to make so the expression and its sub-expressions 
+-- are fully applied.
+etaConvertTopLevel argPats expr = localEnv $ do
   let argExprs = map IR.varPatToExpr argPats
-  return $ IR.app NoSrcSpan expr' argExprs
+  -- apply expression to missing arguments and perform eta-conversion on the 
+  -- resulting expression 
+  etaConvertExpr $ IR.app NoSrcSpan expr argExprs
+
+-- | Calls @etaConvertTopLevel@ on all alternatives in an if or case expression. 
+etaConvertTopLevel' :: [IR.VarPat] -> IR.Expr -> Converter IR.Expr
+etaConvertTopLevel' argPats expr = do
+  -- The first child term of an if or case expression is the condition/the scrutinee
+  -- and should remain unchanged.
+  let (e : subterms) = childTerms expr
+  subterms' <- mapM (etaConvertTopLevel argPats) subterms
+  let Just expr' = replaceChildTerms expr (e : subterms')
+  return expr'
 
 
 -- | Applies η-conversions to the given expression and its sub-expressions
 --   until all function and constructor applications are fully applied.
 etaConvertExpr :: IR.Expr -> Converter IR.Expr
 etaConvertExpr expr = localEnv $ do
-  xs    <- generateFullArgumentList expr
+  arity <- arityOf expr
+  xs    <- replicateM arity $ freshHaskellIdent freshArgPrefix
   expr' <- etaConvertSubExprs expr
   return (etaAbstractWith xs expr')
 
@@ -212,6 +276,19 @@ etaConvertSubExprs' expr = do
 -- Arity                                                                     --
 -------------------------------------------------------------------------------
 
+-- | Find the minimum number of missing arguments (the arity of the expressions) among the alternatives
+--   for the right-hand side of a function declaration. 
+--   All non-zero arities on the right-hand side of a function declaration 
+--   have the same arity.
+findMinMissingArguments :: IR.Expr -> Converter Int
+findMinMissingArguments (IR.If _ _ e1 e2 _) =
+  minM (findMinMissingArguments e1) (findMinMissingArguments e2)
+findMinMissingArguments (IR.Case _ _ alts _) =
+  minimumM $ map (findMinMissingArguments . IR.altRhs) alts
+-- Any expression that isn't an if or case expression only has one 
+-- option for the number of missing arguments, namely the arity of the expression. 
+findMinMissingArguments expr = arityOf expr
+
 -- | Determines the number of arguments expected to be passed to the given
 --   expression.
 arityOf :: IR.Expr -> Converter Int
@@ -240,8 +317,15 @@ arityOf (IR.Lambda _ _ _ _     ) = return 0
 -- Helper functions                                                                     --
 -------------------------------------------------------------------------------
 
--- | Generates fresh identifiers for all missing arguments of an expression. 
-generateFullArgumentList :: IR.Expr -> Converter [String]
-generateFullArgumentList expr = localEnv $ do
-  arity <- arityOf expr
-  replicateM arity $ freshHaskellIdent freshArgPrefix
+-- Calculates the minimum in a list of integers lifted into the Converter monad.
+-- The default minimum is 0.
+minimumM :: [Converter Int] -> Converter Int
+minimumM []         = return 0
+minimumM (mx : mxs) = foldr minM mx mxs
+
+-- Calculates the minimum of two integers lifted into the Converter monad.
+minM :: Converter Int -> Converter Int -> Converter Int
+minM m1 m2 = do
+  i1 <- m1
+  i2 <- m2
+  return (if i1 <= i2 then i1 else i2)
