@@ -8,10 +8,12 @@ module FreeC.Backend.Agda.Base
   , imports
     -- * Free Monad
   , free
+  , free'
   , pure
   , impure
   , shape
   , position
+  , addTVars
     -- * reserved identifiers
   , reservedIdents
   )
@@ -46,6 +48,15 @@ imports = Agda.simpleImport $ Agda.qname [baseLibName] $ Agda.name "Free"
 free :: Agda.Name
 free = Agda.name "Free"
 
+free' :: Agda.Expr -> Agda.Expr
+free' e = foldl1
+  Agda.app
+  [ Agda.Ident (Agda.qname' free)
+  , Agda.Ident (Agda.qname' shape)
+  , Agda.Ident (Agda.qname' position)
+  , e
+  ]
+
 pureConName :: Agda.Name
 pureConName = Agda.name "pure"
 
@@ -63,6 +74,9 @@ shape = Agda.name "S"
 
 position :: Agda.Name
 position = Agda.name "P"
+
+addTVars :: [Agda.Name] -> [Agda.Name]
+addTVars ts = shape : position : ts
 
 -------------------------------------------------------------------------------
 -- Reserved identifiers                                                      --

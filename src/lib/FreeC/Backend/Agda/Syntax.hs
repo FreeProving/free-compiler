@@ -18,6 +18,7 @@ module FreeC.Backend.Agda.Syntax
   , intLiteral
   , lambda
   , app
+  , ident
     -- * Types
   , func
   , pi
@@ -99,10 +100,15 @@ lambda args = Lam NoRange (DomainFree . defaultNamedArg . mkBinder_ <$> args)
 --
 --   @e a@
 app :: Expr -> Expr -> Expr
-app l r = App NoRange l $ defaultNamedArg r
+app l r@(App _ _ _) = App NoRange l $ defaultNamedArg $ paren r -- ($) is left assoc
+app l r@(Fun _ _ _) = App NoRange l $ defaultNamedArg $ paren r -- ($) bind stronger than (->)
+app l r             = App NoRange l $ defaultNamedArg r
 
 paren :: Expr -> Expr
 paren = Paren NoRange
+
+ident :: String -> Expr
+ident = Ident . qname' . name
 
 -------------------------------------------------------------------------------
 -- Types                                                                     --
