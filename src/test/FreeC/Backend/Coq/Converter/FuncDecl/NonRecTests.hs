@@ -153,3 +153,81 @@ testConvertNonRecFuncDecl = context "non-recursive functions" $ do
       ++ "    | nil       => @undefined Shape Pos P (List Shape Pos a)"
       ++ "    | cons x xs0 => xs0"
       ++ "    end)."
+
+  it "translates functions with one strict argument correctly"
+    $ shouldSucceedWith
+    $ do
+        "List"      <- defineTestTypeCon "List" 1
+        ("nil" , _) <- defineTestCon "Nil" 0 "forall a. List a"
+        ("cons", _) <- defineTestCon "Cons" 2 "forall a. a -> List a -> List a"
+        "head"      <- definePartialTestFunc "head" 1 "forall a. List a -> a"
+        shouldConvertNonRecTo
+            (  "head @a !(x :: List a) :: a = case x of {"
+            ++ "    Cons h xs -> h;"
+            ++ "    Nil       -> error @a \"head was called on an empty list\""
+            ++ "}"
+            )
+          $  "Definition head (Shape : Type) (Pos : Shape -> Type)"
+          ++ "  (P : Partial Shape Pos) {a : Type}"
+          ++ "  (x : List Shape Pos a)"
+          ++ "  : Free Shape Pos a"
+          ++ " := match x with"
+          ++ "    | cons h xs => h"
+          ++ "    | nil       => @error Shape Pos P a"
+          ++ "                     \"head was called on an empty list\"%string"
+          ++ "    end."
+
+  it "translates functions with strict and non-strict arguments correctly"
+    $ shouldSucceedWith
+    $ do
+        "List"       <- defineTestTypeCon "List" 1
+        ("nil" , _)  <- defineTestCon "Nil" 0 "forall a. List a"
+        ("cons", _)  <- defineTestCon "Cons" 2 "forall a. a -> List a -> List a"
+        "Pair"       <- defineTestTypeCon "Pair" 2
+        ("pair0", _) <- defineTestCon "Pair0" 2 "forall a b. a -> b -> Pair a b"
+        "Bool"       <- defineTestTypeCon "Bool" 0
+        ("false", _) <- defineTestCon "False" 0 "Bool"
+        ("true" , _) <- defineTestCon "True" 0 "Bool"
+        "foo"        <- defineTestFunc
+          "foo"
+          3
+          "forall a. Pair a a -> Bool -> List a -> List a"
+        shouldConvertNonRecTo
+            (  "foo @a !(pair :: Pair a a) (bool :: Bool) !(list :: List a)"
+            ++ "  :: List a ="
+            ++ "  case pair of {"
+            ++ "    Pair0 p1 p2 ->"
+            ++ "      case list of {"
+            ++ "        Nil ->"
+            ++ "          case bool of {"
+            ++ "            True  -> Cons @a p1 (Nil @a);"
+            ++ "            False -> Cons @a p2 (Nil @a)"
+            ++ "          };"
+            ++ "        Cons x xs ->"
+            ++ "          case bool of {"
+            ++ "            True  -> Cons @a p1 xs;"
+            ++ "            False -> Cons @a p2 xs"
+            ++ "          }"
+            ++ "      }"
+            ++ "  }"
+            )
+          $  "Definition foo (Shape : Type) (Pos : Shape -> Type)"
+          ++ "  {a : Type} (pair : Pair Shape Pos a a)"
+          ++ "  (bool : Free Shape Pos (Bool Shape Pos))"
+          ++ "  (list : List Shape Pos a)"
+          ++ "  : Free Shape Pos (List Shape Pos a)"
+          ++ " := let 'pair0 p1 p2 := pair"
+          ++ "    in match list with"
+          ++ "       | nil =>"
+          ++ "           bool >>= (fun bool_0 =>"
+          ++ "             match bool_0 with"
+          ++ "             | true  => @Cons Shape Pos a p1 (@Nil Shape Pos a)"
+          ++ "             | false => @Cons Shape Pos a p2 (@Nil Shape Pos a)"
+          ++ "             end)"
+          ++ "       | cons x xs =>"
+          ++ "           bool >>= (fun bool_0 =>"
+          ++ "             match bool_0 with"
+          ++ "             | true  => @Cons Shape Pos a p1 xs"
+          ++ "             | false => @Cons Shape Pos a p2 xs"
+          ++ "             end)"
+          ++ "       end."
