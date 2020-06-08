@@ -18,13 +18,25 @@ module FreeC.Backend.Agda.Syntax
   , intLiteral
   , lambda
   , app
+    -- * Types
+  , func
+  , pi
   )
 where
+
+import           Prelude                 hiding ( pi )
 
 import           Agda.Syntax.Common
 import           Agda.Syntax.Concrete
 import           Agda.Syntax.Literal
 import           Agda.Syntax.Position
+
+hiddenArgInfo :: ArgInfo
+hiddenArgInfo = ArgInfo { argInfoHiding        = Hidden
+                        , argInfoModality      = defaultModality
+                        , argInfoOrigin        = UserWritten
+                        , argInfoFreeVariables = UnknownFVs
+                        }
 
 -------------------------------------------------------------------------------
 -- Identifiers                                                               --
@@ -88,3 +100,21 @@ lambda args = Lam NoRange (DomainFree . defaultNamedArg . mkBinder_ <$> args)
 --   @e a@
 app :: Expr -> Expr -> Expr
 app l r = App NoRange l $ defaultNamedArg r
+
+paren :: Expr -> Expr
+paren = Paren NoRange
+
+-------------------------------------------------------------------------------
+-- Types                                                                     --
+-------------------------------------------------------------------------------
+
+-- | Function type
+func :: Expr -> Expr -> Expr
+func l@(Fun _ _ _) = Fun NoRange (defaultArg (paren l)) -- (->) is right assoc.
+func l             = Fun NoRange (defaultArg l)
+
+pi :: [Name] -> Expr -> Expr
+pi decls = Pi [TBind NoRange (bName <$> decls) (Underscore NoRange Nothing)]
+
+bName :: Name -> NamedArg Binder
+bName n = Arg hiddenArgInfo $ Named Nothing $ Binder Nothing $ mkBoundName_ n
