@@ -32,6 +32,7 @@ import           Data.Maybe                     ( fromMaybe
 import           Text.Casing
 import           Text.RegexPR
 
+import qualified FreeC.Backend.Agda.Syntax     as Agda
 import qualified FreeC.Backend.Coq.Base        as Coq.Base
 import           FreeC.Backend.Coq.Keywords
 import qualified FreeC.Backend.Coq.Syntax      as Coq
@@ -171,6 +172,9 @@ renameIdent' ident n env
 renameQualid :: String -> Environment -> Coq.Qualid
 renameQualid = Coq.bare .: renameIdent
 
+renameAgdaQualid :: String -> Environment -> Agda.QName
+renameAgdaQualid name _ = Agda.qname [] $ Agda.name name
+
 -------------------------------------------------------------------------------
 -- Define and automatically rename identifiers                               --
 -------------------------------------------------------------------------------
@@ -188,7 +192,9 @@ renameEntry entry env
   | isVarEntry entry || isTypeVarEntry entry = entry
     { entryIdent = renameQualid ident env
     }
-  | otherwise = entry { entryIdent = renameQualid ident env }
+  | otherwise = entry { entryIdent     = renameQualid ident env
+                      , entryAgdaIdent = renameAgdaQualid ident env
+                      }
  where
   ident :: String
   ident = fromMaybe "op" $ IR.identFromQName (entryName entry)
