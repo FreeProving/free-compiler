@@ -1,4 +1,7 @@
-module FreeC.Backend.Agda.Converter.FuncDecl where
+module FreeC.Backend.Agda.Converter.FuncDecl
+  ( convertFuncDecl
+  )
+where
 
 import           Prelude                 hiding ( mod )
 
@@ -13,21 +16,25 @@ import           FreeC.Monad.Converter          ( Converter
                                                 , inEnv
                                                 )
 import           FreeC.Environment              ( lookupAgdaIdent )
-import           Debug.Trace
+import           FreeC.Environment.LookupOrFail ( lookupAgdaIdentOrFail )
 
+
+-- | Converts the given function declarations. Returns the declarations for the
+--   type signature and the definition (TODO).
 convertFuncDecl :: IR.FuncDecl -> Converter [Agda.Declaration]
 convertFuncDecl decl = sequence [convertSignature decl]
 
+-- | Converts the type signature of the given function to an Agda type
+--   declaration.
 convertSignature :: IR.FuncDecl -> Converter Agda.Declaration
 convertSignature (IR.FuncDecl _ ident tVars args retType _) =
-  Agda.funcSig <$> convertIdent ident <*> liftType tVars types
+  Agda.funcSig <$> lookupIdent ident <*> convertFunc_ tVars types
   where types = (IR.varPatType <$> args) `snoc` retType
 
-convertDef :: IR.FuncDecl -> Converter Agda.Declaration
-convertDef = undefined
-
-convertIdent :: IR.DeclIdent -> Converter Agda.Name
-convertIdent ident = do
+-- | Looks up the name of a Haskell function in the environment and converts it
+--   to an Agda name.
+lookupIdent :: IR.DeclIdent -> Converter Agda.Name
+lookupIdent ident = do
   let name = IR.declIdentName ident
   Just qualid <- inEnv $ lookupAgdaIdent IR.ValueScope name
   pure $ Agda.unqualify qualid
@@ -36,8 +43,9 @@ convertIdent ident = do
 -- Free Type Lifting                                                         --
 -------------------------------------------------------------------------------
 
-liftType :: [IR.TypeVarDecl] -> [Maybe IR.Type] -> Converter Agda.Expr
-liftType tVars ts = Agda.pi tVars' <$> convertFunc (fromJust <$> ts)
+-- | Converts a fully applied function.
+convertFunc_ :: [IR.TypeVarDecl] -> [Maybe IR.Type] -> Converter Agda.Expr
+convertFunc_ tVars ts = Agda.pi tVars' <$> convertFunc (fromJust <$> ts)
   where tVars' = Agda.Base.addTVars (Agda.name . IR.typeVarDeclIdent <$> tVars)
 
 -- | Lifts an n-ary function piece wise. Functions, which take all their
@@ -49,21 +57,17 @@ convertFunc :: [IR.Type] -> Converter Agda.Expr
 convertFunc ts =
   foldr1 Agda.func <$> mapM (fmap Agda.Base.free' . convertType) ts
 
+-- | Implements the dagger translation. Types are lifted recursively in the free
+--   monad.
+--   The dagger translation is denoted by ' and ^ denoted renamed identifiers.
+--
+-- > (τ → σ)’ = Free (Free τ’ → Free σ’)
+-- > α' = α    (τ σ)’ = τ’ σ’    C' = Ĉ @S @P
 convertType :: IR.Type -> Converter Agda.Expr
 convertType (IR.TypeVar _ name) = pure $ Agda.ident name -- TODO: lookup
-convertType (IR.TypeCon _ name) = convertConName name
+convertType (IR.TypeCon s name) =
+  Agda.Base.freeArgs <$> lookupAgdaIdentOrFail s IR.TypeScope name
 convertType (IR.TypeApp  _ l r) = Agda.app <$> convertType l <*> convertType r
 convertType (IR.FuncType _ l r) = freeFunc <$> convertType l <*> convertType r
   where freeFunc = Agda.func `on` Agda.Base.free'
-
-convertConName :: IR.QName -> Converter Agda.Expr
-convertConName (IR.Qual _ n) = pure $ Agda.Ident $ Agda.qname' $ convertName n
-convertConName (IR.UnQual n) = pure $ Agda.Ident $ Agda.qname' $ convertName n
-
-convertName :: IR.Name -> Agda.Name
-convertName n = Agda.name $ case n of
-  IR.Ident  name -> name
-  IR.Symbol "[]" -> "List"
-  IR.Symbol ","  -> "Pair"
-  IR.Symbol name -> trace ("Missing ident: " <> name) undefined
 

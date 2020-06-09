@@ -9,6 +9,7 @@ module FreeC.Backend.Agda.Base
     -- * Free Monad
   , free
   , free'
+  , freeArgs
   , pure
   , impure
   , shape
@@ -45,36 +46,50 @@ imports = Agda.simpleImport $ Agda.qname [baseLibName] $ Agda.name "Free"
 -- Free Monad                                                                --
 -------------------------------------------------------------------------------
 
+-- | Identifier for the @Free@ monad.
 free :: Agda.Name
 free = Agda.name "Free"
 
+-- | Lifts a type in the free monad.
 free' :: Agda.Expr -> Agda.Expr
-free' e = foldl1
+free' = Agda.app $ freeArgs $ Agda.qname' free
+
+-- | Apply the @Shape@ and @Position@ argument to the given type constructor.
+--
+-- > c ↦ c @S @P
+freeArgs :: Agda.QName -> Agda.Expr
+freeArgs qname = foldl1
   Agda.app
-  [ Agda.Ident (Agda.qname' free)
+  [ Agda.Ident qname
   , Agda.Ident (Agda.qname' shape)
   , Agda.Ident (Agda.qname' position)
-  , e
   ]
 
+-- | Identifier for the @Pure@ constructor of the @Free@ monad.
 pureConName :: Agda.Name
 pureConName = Agda.name "pure"
 
+-- | Applies the @Pure@ constructor of the free monad to the given expression.
 pure :: Agda.Expr -> Agda.Expr
 pure = Agda.app $ Agda.Ident $ Agda.qname [Agda.name "Free"] pureConName
 
+-- | Identifier for the @Impure@ constructor of the @Free@ monad.
 impureConName :: Agda.Name
 impureConName = Agda.name "impure"
 
+-- | Applies the @Impure@ constructor of the free monad to the given expression.
 impure :: Agda.Expr -> Agda.Expr
 impure = Agda.app $ Agda.Ident $ Agda.qname [Agda.name "Free"] impureConName
 
+-- | Reserved name for the @Shape@ type variable.
 shape :: Agda.Name
 shape = Agda.name "S"
 
+-- | Reserved name for the @Position@ type variable.
 position :: Agda.Name
 position = Agda.name "P"
 
+-- | Adds the @Shape@ and @Position@ type variables to a list of variables.
 addTVars :: [Agda.Name] -> [Agda.Name]
 addTVars ts = shape : position : ts
 
