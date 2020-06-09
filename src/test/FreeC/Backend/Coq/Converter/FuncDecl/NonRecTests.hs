@@ -231,3 +231,63 @@ testConvertNonRecFuncDecl = context "non-recursive functions" $ do
           ++ "             | false => @Cons Shape Pos a p2 xs"
           ++ "             end)"
           ++ "       end."
+
+  it "translates case expressions with one strict pattern correctly"
+    $ shouldSucceedWith
+    $ do
+        "List"      <- defineTestTypeCon "List" 1
+        ("nil" , _) <- defineTestCon "Nil" 0 "forall a. List a"
+        ("cons", _) <- defineTestCon "Cons" 2 "forall a. a -> List a -> List a"
+        "head"      <- definePartialTestFunc "head" 1 "forall a. List a -> a"
+        shouldConvertNonRecTo
+            (  "head @a (x :: List a) :: a = case x of {"
+            ++ "    Cons !h xs -> h;"
+            ++ "    Nil        -> error @a \"head was called on a empty list\""
+            ++ "}"
+            )
+          $  "Definition head (Shape : Type) (Pos : Shape -> Type)"
+          ++ "  (P : Partial Shape Pos) {a : Type}"
+          ++ "  (x : Free Shape Pos (List Shape Pos a))"
+          ++ "  : Free Shape Pos a"
+          ++ " := x >>= (fun x_0 =>"
+          ++ "    match x_0 with"
+          ++ "    | cons h xs => h >>= (fun h_0 => pure h_0)"
+          ++ "    | nil => @error Shape Pos P a"
+          ++ "               \"head was called on a empty list\"%string"
+          ++ "    end)."
+
+  it "translates case expressions with strict and non-strict patterns correctly"
+    $ shouldSucceedWith
+    $ do
+        "Triple"       <- defineTestTypeCon "Triple" 3
+        ("triple0", _) <- defineTestCon
+          "Triple0"
+          3
+          "forall a b c. a -> b -> c -> Triple a b c"
+        "Int"        <- defineTestTypeCon "Int" 0
+        "succ"       <- defineTestFunc "succ" 1 "Int -> Int"
+        "succTriple" <- defineTestFunc
+          "succTriple"
+          1
+          "Triple Int Int Int -> Triple Int Int Int"
+        shouldConvertNonRecTo
+            (  "succTriple (triple :: Triple Int Int Int)"
+            ++ " :: Triple Int Int Int = case triple of {"
+            ++ "    Triple0 i1 !i2 !i3 ->"
+            ++ "      Triple0 @Int @Int @Int (succ i1) (succ i2) (succ i3)"
+            ++ "    }"
+            )
+          $  "Definition succTriple (Shape : Type) (Pos : Shape -> Type)"
+          ++ "  (triple : Free Shape Pos (Triple Shape Pos (Int Shape Pos)"
+          ++ "                                             (Int Shape Pos)"
+          ++ "                                             (Int Shape Pos)))"
+          ++ "  : Free Shape Pos (Triple Shape Pos (Int Shape Pos)"
+          ++ "                                     (Int Shape Pos)"
+          ++ "                                     (Int Shape Pos))"
+          ++ " := triple >>= (fun '(triple0 i1 i2 i3) =>"
+          ++ "      i2 >>= (fun i2_0 => i3 >>= (fun i3_0 =>"
+          ++ "        @Triple0 Shape Pos"
+          ++ "                 (Int Shape Pos) (Int Shape Pos) (Int Shape Pos)"
+          ++ "                 (succ Shape Pos i1)"
+          ++ "                 (succ Shape Pos (pure i2_0))"
+          ++ "                 (succ Shape Pos (pure i3_0)))))."
