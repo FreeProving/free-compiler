@@ -5,7 +5,7 @@
 --   types, constructors and functions from the Base library.
 --
 --   Renaming identifiers is also required because in Haskell the scopes for
---   types and functions are separated. Thus Git is allowed in Haskell for a
+--   types and functions are separated. Thus it is allowed in Haskell for a
 --   data type to have the same name as one of it's constructors. In Coq this
 --   would cause a name conflict. Therefore, one of them needs to be renamed.
 
