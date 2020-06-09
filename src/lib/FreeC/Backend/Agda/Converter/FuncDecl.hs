@@ -14,15 +14,18 @@ import qualified FreeC.Backend.Agda.Base       as Agda.Base
 import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Converter          ( Converter
                                                 , inEnv
+                                                , localEnv
                                                 )
 import           FreeC.Environment              ( lookupAgdaIdent )
+import           FreeC.Environment.Renamer      ( renameAndDefineAgdaTypeVar
+                                                )
 import           FreeC.Environment.LookupOrFail ( lookupAgdaIdentOrFail )
 
 
 -- | Converts the given function declarations. Returns the declarations for the
 --   type signature and the definition (TODO).
 convertFuncDecl :: IR.FuncDecl -> Converter [Agda.Declaration]
-convertFuncDecl decl = sequence [convertSignature decl]
+convertFuncDecl decl = localEnv $ sequence [convertSignature decl]
 
 -- | Converts the type signature of the given function to an Agda type
 --   declaration.
@@ -45,8 +48,12 @@ lookupIdent ident = do
 
 -- | Converts a fully applied function.
 convertFunc_ :: [IR.TypeVarDecl] -> [Maybe IR.Type] -> Converter Agda.Expr
-convertFunc_ tVars ts = Agda.pi tVars' <$> convertFunc (fromJust <$> ts)
-  where tVars' = Agda.Base.addTVars (Agda.name . IR.typeVarDeclIdent <$> tVars)
+convertFunc_ tVars ts = Agda.pi <$> tVars' <*> convertFunc (fromJust <$> ts)
+  where tVars' = Agda.Base.addTVars <$> mapM renameAgdaTypeVar tVars
+
+renameAgdaTypeVar :: IR.TypeVarDecl -> Converter Agda.Name
+renameAgdaTypeVar (IR.TypeVarDecl srcSpan name) =
+  Agda.unqualify <$> renameAndDefineAgdaTypeVar srcSpan name
 
 -- | Lifts an n-ary function piece wise. Functions, which take all their
 --   arguments aren't evaluated until they are fully applied. Therefore partial
@@ -59,12 +66,13 @@ convertFunc ts =
 
 -- | Implements the dagger translation. Types are lifted recursively in the free
 --   monad.
---   The dagger translation is denoted by ' and ^ denoted renamed identifiers.
+--   The dagger translation is denoted by ' and ^ denotes renamed identifiers.
 --
--- > (τ → σ)’ = Free (Free τ’ → Free σ’)
--- > α' = α    (τ σ)’ = τ’ σ’    C' = Ĉ @S @P
+--   > (τ → σ)’ = Free (Free τ’ → Free σ’)
+--   > α' = α    (τ σ)’ = τ’ σ’    C' = Ĉ @S @P
 convertType :: IR.Type -> Converter Agda.Expr
-convertType (IR.TypeVar _ name) = pure $ Agda.ident name -- TODO: lookup
+convertType (IR.TypeVar s name) = Agda.Ident
+  <$> lookupAgdaIdentOrFail s IR.TypeScope (IR.UnQual (IR.Ident name))
 convertType (IR.TypeCon s name) =
   Agda.Base.freeArgs <$> lookupAgdaIdentOrFail s IR.TypeScope name
 convertType (IR.TypeApp  _ l r) = Agda.app <$> convertType l <*> convertType r

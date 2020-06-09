@@ -23,6 +23,7 @@ module FreeC.Environment
   , lookupAgdaIdent
   , lookupSmartIdent
   , usedIdents
+  , usedAgdaIdents
   , lookupSrcSpan
   , lookupTypeArgs
   , lookupTypeArgArity
@@ -192,6 +193,16 @@ usedIdents = concatMap entryIdents . Map.elems . envEntries
   entryIdents entry
     | isConEntry entry = [entryIdent entry, entrySmartIdent entry]
     | otherwise        = [entryIdent entry]
+
+-- | Gets a list of Agda identifiers for functions, (type/smart) constructors,
+--   (type/fresh) variables that were used in the given environment already.
+usedAgdaIdents :: Environment -> [Agda.QName]
+usedAgdaIdents = concatMap entryIdents . Map.elems . envEntries
+ where
+  entryIdents :: EnvEntry -> [Agda.QName]
+  entryIdents entry
+    | isConEntry entry = [entryAgdaIdent entry, entryAgdaSmartIdent entry]
+    | otherwise        = [entryAgdaIdent entry]
 
 -- | Looks up the location of the declaration with the given name.
 lookupSrcSpan :: IR.Scope -> IR.QName -> Environment -> Maybe SrcSpan

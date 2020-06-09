@@ -89,7 +89,6 @@ shape = Agda.name "S"
 position :: Agda.Name
 position = Agda.name "P"
 
--- | Adds the @Shape@ and @Position@ type variables to a list of variables.
 addTVars :: [Agda.Name] -> [Agda.Name]
 addTVars ts = shape : position : ts
 
