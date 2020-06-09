@@ -486,8 +486,15 @@ exprParser :: Parser IR.Expr
 exprParser = setExprType <$> lExprParser <*> Parsec.optionMaybe
   (token DoubleColon *> typeSchemaParser)
  where
+  -- | Sets the 'IR.exprTypeSchema' field of the given expression if it is not
+  --   set already.
+  --
+  --   The field is usually set to @Nothing@ but can be a @Just@ value if
+  --   the parsed expression was in parenthesis.
   setExprType :: IR.Expr -> Maybe IR.TypeSchema -> IR.Expr
-  setExprType expr exprTypeSchema = expr { IR.exprTypeSchema = exprTypeSchema }
+  setExprType expr Nothing = expr
+  setExprType expr (Just exprTypeSchema) =
+    expr { IR.exprTypeSchema = Just exprTypeSchema }
 
 -- | Parser for IR expressions without type annotation.
 --
