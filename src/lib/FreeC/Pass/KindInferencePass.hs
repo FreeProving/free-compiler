@@ -7,6 +7,7 @@ import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
 import           FreeC.Pass
+import           FreeC.Pretty
 
 kindInferencePass :: Pass IR.Module
 kindInferencePass m@(IR.Module _ _ _ typeDecls typeSigs _ funcDecls) = do
@@ -21,7 +22,7 @@ checkMaybeTypeSchema (Just x) = checkTypeSchema x
 
 checkMaybeType :: Maybe IR.Type -> Converter ()
 checkMaybeType Nothing  = return ()
-checkMaybeType (Just x) = containsLeftTypeVars x
+checkMaybeType (Just x) = checkType x
 
 checkTypeDecls :: [IR.TypeDecl] -> Converter ()
 checkTypeDecls = mapM_ checkTypeDecl
@@ -34,16 +35,16 @@ checkFuncDecls = mapM_ checkFuncDecl
 
 checkTypeDecl :: IR.TypeDecl -> Converter ()
 checkTypeDecl (IR.DataDecl    _ _ _ conDecls) = mapM_ checkConDecl conDecls
-checkTypeDecl (IR.TypeSynDecl _ _ _ typ     ) = containsLeftTypeVars typ
+checkTypeDecl (IR.TypeSynDecl _ _ _ typ     ) = checkType typ
 
 checkConDecl :: IR.ConDecl -> Converter ()
-checkConDecl (IR.ConDecl _ _ types) = mapM_ containsLeftTypeVars types
+checkConDecl (IR.ConDecl _ _ types) = mapM_ checkType types
 
 checkTypeSig :: IR.TypeSig -> Converter ()
 checkTypeSig (IR.TypeSig _ _ typeSchema) = checkTypeSchema typeSchema
 
 checkTypeSchema :: IR.TypeSchema -> Converter ()
-checkTypeSchema (IR.TypeSchema _ _ typ) = containsLeftTypeVars typ
+checkTypeSchema (IR.TypeSchema _ _ typ) = checkType typ
 
 checkFuncDecl :: IR.FuncDecl -> Converter ()
 checkFuncDecl (IR.FuncDecl _ _ _ varPats retType rhs) = do
@@ -61,7 +62,7 @@ checkExpr (IR.App _ lhs rhs typeSchema) = do
   checkMaybeTypeSchema typeSchema
 checkExpr (IR.TypeAppExpr _ lhs rhs typeSchema) = do
   checkExpr lhs
-  containsLeftTypeVars rhs
+  checkType rhs
   checkMaybeTypeSchema typeSchema
 checkExpr (IR.If _ cond thenExp elseExp typeSchema) = do
   checkExpr cond
@@ -93,6 +94,36 @@ checkVarPats = mapM_ checkVarPat
 
 checkVarPat :: IR.VarPat -> Converter ()
 checkVarPat (IR.VarPat _ _ typ) = checkMaybeType typ
+
+checkType :: IR.Type -> Converter ()
+checkType typ = do
+                 containsLeftTypeVars typ
+                 checkCorrectArities typ
+
+
+checkCorrectArities :: IR.Type -> Converter ()
+checkCorrectArities = checkCorrectArities' 0 -- to be implemented
+
+checkCorrectArities' :: Int -> IR.Type -> Converter ()
+checkCorrectArities' depth (IR.TypeVar srcSpan varId) = do
+  if depth == 0 then
+    return ()
+  else do
+        reportFatal $ Message srcSpan Error
+                    $ "Type variable "
+                    ++ varId 
+                    ++ " occurs on left-hand side of type application"
+checkCorrectArities' depth (IR.TypeCon srcSpan ident) = undefined
+checkCorrectArities' depth (IR.TypeApp _ lhs rhs) = do
+  checkCorrectArities' (depth + 1) lhs
+  checkCorrectArities rhs
+checkCorrectArities' depth (IR.FuncType srcSpan lhs rhs)
+  | depth /= 0 = reportFatal
+                 $ Message srcSpan Error
+                 $ "Function type occurs on left-hand side of type application"
+  | otherwise  = do
+                   checkCorrectArities lhs
+                   checkCorrectArities rhs
 
 
 containsLeftTypeVars :: IR.Type -> Converter ()
