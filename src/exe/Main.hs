@@ -148,7 +148,6 @@ convertInputModule haskellAst = do
     agdaAst <- liftConverter $ Agda.convertModule haskellAst
     traceM $ showPretty agdaAst
     traceM "\n--------\n"
-    traceM undefined
     return (modName, coqAst)
 
 -------------------------------------------------------------------------------

@@ -38,12 +38,12 @@ import           Agda.Syntax.Position
 
 -- | Creates a (not qualified) Agda variable name from a 'String'.
 name :: String -> Name
-name ident = Name NoRange InScope [Id ident]
+name str = Name NoRange InScope [Id str]
 
 -- | Create a qualified identifier given a local identifier as 'Name' and a
 --   list of module 'Name's.
 qname :: [Name] -> Name -> QName
-qname modules ident = foldr Qual (QName ident) modules
+qname modules n = foldr Qual (QName n) modules
 
 -- | Creates a qualified name using an empty list of module names.
 qname' :: Name -> QName
@@ -93,12 +93,14 @@ intLiteral = Lit . LitNat NoRange
 lambda :: [Name] -> Expr -> Expr
 lambda args = Lam NoRange (DomainFree . defaultNamedArg . mkBinder_ <$> args)
 
--- | Creates an application AST node.
+-- | Creates an application AST node. Application is left associative and in
+--   in type expressions binds stronger than type arrow. For these cases paren-
+--   thesis are added automatically.
 --
---   @e a@
+--   > e a
 app :: Expr -> Expr -> Expr
-app l r@(App _ _ _) = App NoRange l $ defaultNamedArg $ paren r -- ($) is left assoc
-app l r@(Fun _ _ _) = App NoRange l $ defaultNamedArg $ paren r -- ($) bind stronger than (->)
+app l r@(App _ _ _) = App NoRange l $ defaultNamedArg $ paren r
+app l r@(Fun _ _ _) = App NoRange l $ defaultNamedArg $ paren r
 app l r             = App NoRange l $ defaultNamedArg r
 
 -- | Wraps the given expression in parenthesis.
