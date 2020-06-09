@@ -17,8 +17,7 @@ import           FreeC.Monad.Converter          ( Converter
                                                 , localEnv
                                                 )
 import           FreeC.Environment              ( lookupAgdaIdent )
-import           FreeC.Environment.Renamer      ( renameAndDefineAgdaTypeVar
-                                                )
+import           FreeC.Environment.Renamer      ( renameAndDefineAgdaTypeVar )
 import           FreeC.Environment.LookupOrFail ( lookupAgdaIdentOrFail )
 
 

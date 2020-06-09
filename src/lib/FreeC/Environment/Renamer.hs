@@ -203,8 +203,10 @@ renameAgdaQualid name = renameAgdaIdent (Agda.qname' $ Agda.name name)
 renameEntry :: EnvEntry -> Environment -> EnvEntry
 renameEntry entry env
   | isConEntry entry = entry
-    { entryIdent      = renameQualid (toCamel (fromHumps ident)) env
-    , entrySmartIdent = renameQualid ident env
+    { entryIdent          = renameQualid (toCamel (fromHumps ident)) env
+    , entrySmartIdent     = renameQualid ident env
+    , entryAgdaIdent      = renameAgdaQualid (toCamel (fromHumps ident)) env
+    , entryAgdaSmartIdent = renameAgdaQualid ident env
     }
   | isVarEntry entry || isTypeVarEntry entry = entry
     { entryIdent     = renameQualid ident env
