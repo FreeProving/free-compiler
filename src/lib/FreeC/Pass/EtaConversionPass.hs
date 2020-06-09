@@ -146,7 +146,7 @@ etaConvertFuncDecl funcDecl = do
   -- sides are missing at least one argument.
   if newArgNumber == 0
     then do
-      rhs' <- etaConvertExpr (IR.funcDeclRhs funcDecl)
+      rhs' <- etaConvertExpr rhs
       return funcDecl { IR.funcDeclRhs = rhs' }
     else do
       newFuncDecl <- localEnv $ do
@@ -281,8 +281,9 @@ etaConvertSubExprs' expr = do
 --   All non-zero arities on the right-hand side of a function declaration 
 --   have the same arity.
 findMinMissingArguments :: IR.Expr -> Converter Int
+findMinMissingArguments :: IR.Expr -> Converter Int
 findMinMissingArguments (IR.If _ _ e1 e2 _) =
-  minM (findMinMissingArguments e1) (findMinMissingArguments e2)
+  minimumM (map findMinMissingArguments [e1, e2])
 findMinMissingArguments (IR.Case _ _ alts _) =
   minimumM $ map (findMinMissingArguments . IR.altRhs) alts
 -- Any expression that isn't an if or case expression only has one 
@@ -319,13 +320,5 @@ arityOf (IR.Lambda _ _ _ _     ) = return 0
 
 -- Calculates the minimum in a list of integers lifted into the Converter monad.
 -- The default minimum is 0.
-minimumM :: [Converter Int] -> Converter Int
-minimumM []         = return 0
-minimumM (mx : mxs) = foldr minM mx mxs
-
--- Calculates the minimum of two integers lifted into the Converter monad.
-minM :: Converter Int -> Converter Int -> Converter Int
-minM m1 m2 = do
-  i1 <- m1
-  i2 <- m2
-  return (if i1 <= i2 then i1 else i2)
+minimumM :: (Ord a, Bounded a) => [m a] -> m a
+minimumM = foldr (liftM2 min) (return minBound)
