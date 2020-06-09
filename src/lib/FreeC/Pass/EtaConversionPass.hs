@@ -103,7 +103,10 @@ module FreeC.Pass.EtaConversionPass
   )
 where
 
-import           Control.Monad                  ( replicateM )
+import           Control.Monad                  ( replicateM
+-- TODO: Remove liftM2 import after moving minimumM to a util module 
+                                                , liftM2
+                                                )
 import           Data.Maybe                     ( fromMaybe
                                                 , fromJust
                                                 )
@@ -132,18 +135,16 @@ etaConversionPass ast = do
 -- Function declarations                                                     --
 -------------------------------------------------------------------------------
 
--- | Depending on the presence or absence of missing top-level arguments, applies 
---   'modifyTopLevel' or 'etaConvertExpr' to the right-hand side of the given 
---   function declaration to ensure all functions and constructors on the right-hand side 
---   are fully applied. 
---   The missing top-level arguments are also added to the left-hand side of the 
---   declaration and the function's type and the environment are updated accordingly. 
+-- | Depending on the presence or absence of missing top-level arguments, applies 'modifyTopLevel' or 'etaConvertExpr' to the right-hand side of the given function declaration to ensure all functions 
+-- and constructors on the right-hand side are fully applied. 
+-- The missing top-level arguments are also added to the left-hand
+-- side of the declaration and the function's type and the environment
+-- are updated accordingly. 
 etaConvertFuncDecl :: IR.FuncDecl -> Converter IR.FuncDecl
 etaConvertFuncDecl funcDecl = do
   let rhs = IR.funcDeclRhs funcDecl
   newArgNumber <- findMinMissingArguments rhs
-  -- Only perform top-level eta conversion when all alternatives for right-hand 
-  -- sides are missing at least one argument.
+  -- Only perform top-level eta conversion when all alternatives for right-hand sides are missing at least one argument.
   if newArgNumber == 0
     then do
       rhs' <- etaConvertExpr rhs
@@ -281,7 +282,6 @@ etaConvertSubExprs' expr = do
 --   All non-zero arities on the right-hand side of a function declaration 
 --   have the same arity.
 findMinMissingArguments :: IR.Expr -> Converter Int
-findMinMissingArguments :: IR.Expr -> Converter Int
 findMinMissingArguments (IR.If _ _ e1 e2 _) =
   minimumM (map findMinMissingArguments [e1, e2])
 findMinMissingArguments (IR.Case _ _ alts _) =
@@ -318,7 +318,7 @@ arityOf (IR.Lambda _ _ _ _     ) = return 0
 -- Helper functions                                                                     --
 -------------------------------------------------------------------------------
 
--- Calculates the minimum in a list of integers lifted into the Converter monad.
--- The default minimum is 0.
-minimumM :: (Ord a, Bounded a) => [m a] -> m a
+-- Calculates a minimum in a monadic list 
+-- TODO: Move to a monad util module
+minimumM :: (Monad m, Ord a, Bounded a) => [m a] -> m a
 minimumM = foldr (liftM2 min) (return minBound)
