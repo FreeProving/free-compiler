@@ -147,6 +147,18 @@ instance Similar node => Similar [node] where
   similar' ms ns | length ms == length ns = andM (zipWith similar' ms ns)
                  | otherwise              = const False
 
+
+-------------------------------------------------------------------------------
+-- Similarity test for modules                                               --
+-------------------------------------------------------------------------------
+instance Similar IR.Module where
+  similar' moduleA moduleB =
+    const (IR.modName moduleA == IR.modName moduleB) .&&.
+  --  similar' (IR.modImports moduleA) (IR.modImports moduleB) .&&.
+    similar' (IR.modTypeDecls moduleA) (IR.modTypeDecls moduleB) .&&.
+  --  similar' (IR.modTypeSigs moduleA) (IR.modTypeSigs moduleB) .&&.
+  --  similar' (IR.modPragmas moduleA) (IR.modPragmas moduleB) .&&.
+    similar' (IR.modFuncDecls moduleA) (IR.modFuncDecls moduleB)
 -------------------------------------------------------------------------------
 -- Similarity test for types                                                 --
 -------------------------------------------------------------------------------
