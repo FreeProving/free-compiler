@@ -206,11 +206,12 @@ shadowVarPats :: MonadConverter m => [IR.VarPat] -> m a -> m a
 shadowVarPats varPats converter = do
   oldEntries <- inEnv envEntries
   forM_ varPats $ \varPat -> modifyEnv $ addEntry VarEntry
-    { entrySrcSpan = IR.varPatSrcSpan varPat
-    , entryIsPure  = False
-    , entryIdent   = undefined
-    , entryName    = IR.varPatQName varPat
-    , entryType    = IR.varPatType varPat
+    { entrySrcSpan   = IR.varPatSrcSpan varPat
+    , entryIsPure    = False
+    , entryIdent     = undefined
+    , entryAgdaIdent = undefined
+    , entryName      = IR.varPatQName varPat
+    , entryType      = IR.varPatType varPat
     }
   x <- converter
   modifyEnv $ \env -> env { envEntries = oldEntries }

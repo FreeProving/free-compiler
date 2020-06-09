@@ -118,6 +118,7 @@ import           Data.Text                      ( Text )
 import qualified Data.Text                     as Text
 import qualified Data.Vector                   as Vector
 
+import qualified FreeC.Backend.Agda.Syntax     as Agda
 import qualified FreeC.Backend.Coq.Syntax      as Coq
 import           FreeC.Environment.ModuleInterface
 import           FreeC.Environment.Entry
@@ -139,7 +140,7 @@ import           FreeC.Util.Config
 --   that the implementation of the corresponding change in the other module
 --   is forgotten.
 moduleInterfaceFileFormatVersion :: Integer
-moduleInterfaceFileFormatVersion = 2
+moduleInterfaceFileFormatVersion = 3
 
 -- | Parses an IR AST node from an Aeson string.
 parseAesonIR :: Parseable a => Text -> Aeson.Parser a
@@ -157,6 +158,10 @@ instance Aeson.FromJSON IR.QName where
 -- | Restores a Coq identifier from the interface file.
 instance Aeson.FromJSON Coq.Qualid where
   parseJSON = Aeson.withText "Coq.Qualid" $ return . Coq.bare . Text.unpack
+
+instance Aeson.FromJSON Agda.QName where
+  parseJSON =
+    Aeson.withText "Agda.QName" $ return . Agda.qname' . Agda.name . Text.unpack
 
 -- | Restores a Haskell type from the interface file.
 instance Aeson.FromJSON IR.Type where
@@ -213,10 +218,12 @@ instance Aeson.FromJSON ModuleInterface where
       arity       <- obj .: "arity"
       haskellName <- obj .: "haskell-name"
       coqName     <- obj .: "coq-name"
-      return DataEntry { entrySrcSpan = NoSrcSpan
-                       , entryArity   = arity
-                       , entryIdent   = coqName
-                       , entryName    = haskellName
+      agdaName    <- obj .: "agda-name"
+      return DataEntry { entrySrcSpan   = NoSrcSpan
+                       , entryArity     = arity
+                       , entryIdent     = coqName
+                       , entryAgdaIdent = agdaName
+                       , entryName      = haskellName
                        }
 
     parseConfigTypeSyn :: Aeson.Value -> Aeson.Parser EnvEntry
@@ -226,31 +233,37 @@ instance Aeson.FromJSON ModuleInterface where
       typeArgs    <- obj .: "type-arguments"
       haskellName <- obj .: "haskell-name"
       coqName     <- obj .: "coq-name"
-      return TypeSynEntry { entrySrcSpan  = NoSrcSpan
-                          , entryArity    = arity
-                          , entryTypeArgs = typeArgs
-                          , entryTypeSyn  = typeSyn
-                          , entryIdent    = coqName
-                          , entryName     = haskellName
+      agdaName    <- obj .: "agda-name"
+      return TypeSynEntry { entrySrcSpan   = NoSrcSpan
+                          , entryArity     = arity
+                          , entryTypeArgs  = typeArgs
+                          , entryTypeSyn   = typeSyn
+                          , entryIdent     = coqName
+                          , entryAgdaIdent = agdaName
+                          , entryName      = haskellName
                           }
 
     parseConfigCon :: Aeson.Value -> Aeson.Parser EnvEntry
     parseConfigCon = Aeson.withObject "Constructor" $ \obj -> do
-      arity        <- obj .: "arity"
-      haskellName  <- obj .: "haskell-name"
-      haskellType  <- obj .: "haskell-type"
-      coqName      <- obj .: "coq-name"
-      coqSmartName <- obj .: "coq-smart-name"
+      arity         <- obj .: "arity"
+      haskellName   <- obj .: "haskell-name"
+      haskellType   <- obj .: "haskell-type"
+      coqName       <- obj .: "coq-name"
+      coqSmartName  <- obj .: "coq-smart-name"
+      agdaName      <- obj .: "agda-name"
+      agdaSmartName <- obj .: "agda-smart-name"
       let (argTypes, returnType) = IR.splitFuncType haskellType arity
       return ConEntry
-        { entrySrcSpan    = NoSrcSpan
-        , entryArity      = arity
-        , entryTypeArgs   = mapMaybe IR.identFromQName (freeTypeVars returnType)
-        , entryArgTypes   = map Just argTypes
-        , entryReturnType = Just returnType
-        , entryIdent      = coqName
-        , entrySmartIdent = coqSmartName
-        , entryName       = haskellName
+        { entrySrcSpan        = NoSrcSpan
+        , entryArity          = arity
+        , entryTypeArgs = mapMaybe IR.identFromQName (freeTypeVars returnType)
+        , entryArgTypes       = map Just argTypes
+        , entryReturnType     = Just returnType
+        , entryIdent          = coqName
+        , entrySmartIdent     = coqSmartName
+        , entryAgdaIdent      = agdaName
+        , entryAgdaSmartIdent = agdaSmartName
+        , entryName           = haskellName
         }
 
     parseConfigFunc :: Aeson.Value -> Aeson.Parser EnvEntry
@@ -261,6 +274,7 @@ instance Aeson.FromJSON ModuleInterface where
       partial        <- obj .: "partial"
       freeArgsNeeded <- obj .: "needs-free-args"
       coqName        <- obj .: "coq-name"
+      agdaName       <- obj .: "agda-name"
       -- TODO this does not work with vanishing type arguments.
       let (argTypes, returnType) = IR.splitFuncType haskellType arity
           typeArgs = mapMaybe IR.identFromQName (freeTypeVars haskellType)
@@ -272,6 +286,7 @@ instance Aeson.FromJSON ModuleInterface where
                        , entryNeedsFreeArgs = freeArgsNeeded
                        , entryIsPartial     = partial
                        , entryIdent         = coqName
+                       , entryAgdaIdent     = agdaName
                        , entryName          = haskellName
                        }
 
