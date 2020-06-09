@@ -105,8 +105,9 @@ containsLeftTypeVars (IR.TypeApp _ (IR.TypeVar srcSpan varId) _) =
     ++ varId
     ++ " occurs on left-hand"
     ++ " side of type application"
-containsLeftTypeVars (IR.TypeApp _ lhs _) = do
+containsLeftTypeVars (IR.TypeApp _ lhs rhs) = do
   containsLeftTypeVars lhs
+  containsLeftTypeVars rhs
 containsLeftTypeVars (IR.FuncType _ lhs rhs) = do
   containsLeftTypeVars lhs
   containsLeftTypeVars rhs
