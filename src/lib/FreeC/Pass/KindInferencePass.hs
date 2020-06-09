@@ -16,11 +16,11 @@ kindInferencePass m@(IR.Module _ _ _ typeDecls typeSigs _ funcDecls) = do
   return m
 
 checkMaybeTypeSchema :: Maybe IR.TypeSchema -> Converter ()
-checkMaybeTypeSchema Nothing = return ()
+checkMaybeTypeSchema Nothing  = return ()
 checkMaybeTypeSchema (Just x) = checkTypeSchema x
 
 checkMaybeType :: Maybe IR.Type -> Converter ()
-checkMaybeType Nothing = return ()
+checkMaybeType Nothing  = return ()
 checkMaybeType (Just x) = containsLeftTypeVars x
 
 checkTypeDecls :: [IR.TypeDecl] -> Converter ()
@@ -103,7 +103,7 @@ containsLeftTypeVars (IR.TypeApp _ (IR.TypeVar srcSpan varId) _) =
     $  Message srcSpan Error
     $  "Type variable "
     ++ varId
-    ++ " occurs on right-hand"
+    ++ " occurs on left-hand"
     ++ " side of type application"
 containsLeftTypeVars (IR.TypeApp _ lhs _) = do
   containsLeftTypeVars lhs
