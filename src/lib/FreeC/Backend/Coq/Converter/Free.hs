@@ -67,7 +67,7 @@ generatePure = return . Coq.app (Coq.Qualid Coq.Base.freePureCon) . (: [])
 --   The fresh variables and the not bound values are passed to the given
 --   function in their original order. The fresh variables are not visible
 --   outside this function. If a value is a variable, the name of that variable
---   is used as the prefix of the corresponding fresh variable. Otherwise the
+--   is used as the prefix of the corresponding fresh variable. Otherwise, the
 --   given default prefix is used.
 --
 --   If some given type is @Nothing@, the type of the fresh variable is

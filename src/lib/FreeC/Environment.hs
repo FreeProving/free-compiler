@@ -144,7 +144,7 @@ removeDecArg funcName env =
 -- | Changes the Coq identifier of the entry with the given name in the given
 --   scope to the given identifier.
 --
---   If such an entry does not exists, the environment is not changed.
+--   If such an entry does not exist, the environment is not changed.
 modifyEntryIdent
   :: IR.Scope -> IR.QName -> Coq.Qualid -> Environment -> Environment
 modifyEntryIdent scope name newIdent env = case lookupEntry scope name env of
