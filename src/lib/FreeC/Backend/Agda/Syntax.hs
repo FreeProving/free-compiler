@@ -132,11 +132,13 @@ fun l             = Fun NoRange (defaultArg l)
 --
 --   > pi [α₁, …, αₙ] expr ↦ ∀ {α₁} … {αₙ} → expr
 pi :: [Name] -> Expr -> Expr
-pi decls = Pi [TBind NoRange (bName <$> decls) (Underscore NoRange Nothing)]
+pi decls =
+  Pi [TBind NoRange (hiddenArg <$> decls) (Underscore NoRange Nothing)]
 
--- | Helper function for creating bound, named arguments.
-bName :: Name -> NamedArg Binder
-bName n = Arg hiddenArgInfo $ Named Nothing $ Binder Nothing $ mkBoundName_ n
+-- | Helper function for creating hidden named arguments.
+hiddenArg :: Name -> NamedArg Binder
+hiddenArg n =
+  Arg hiddenArgInfo $ Named Nothing $ Binder Nothing $ mkBoundName_ n
 
 -- | Argument meta data marking them as hidden.
 hiddenArgInfo :: ArgInfo
