@@ -103,10 +103,8 @@ module FreeC.Pass.EtaConversionPass
   )
 where
 
-import           Control.Monad                  ( replicateM
--- TODO: Remove liftM2 import after moving minimumM to a util module 
-                                                , liftM2
-                                                )
+import           Control.Monad                  ( replicateM )
+
 import           Data.Maybe                     ( fromMaybe
                                                 , fromJust
                                                 )
@@ -119,7 +117,7 @@ import           FreeC.IR.Subterm
 import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Converter
 import           FreeC.Pass
--- temporary import; ideally, this pass should be moved before the TypeSignaturePass.
+-- temporary import; TODO: move this pass before the TypeSignaturePass.
 import           FreeC.Pass.TypeSignaturePass   ( splitFuncType )
 
 
@@ -144,25 +142,17 @@ etaConvertFuncDecl :: IR.FuncDecl -> Converter IR.FuncDecl
 etaConvertFuncDecl funcDecl = do
   let rhs = IR.funcDeclRhs funcDecl
   newArgNumber <- findMinMissingArguments rhs
-  -- Only perform top-level eta conversion when all alternatives for right-hand sides are missing at least one argument.
-  if newArgNumber == 0
-    then do
-      rhs' <- etaConvertExpr rhs
-      return funcDecl { IR.funcDeclRhs = rhs' }
-    else do
-      newFuncDecl <- localEnv $ do
-        newArgIdents <- replicateM newArgNumber
-          $ freshHaskellIdent freshArgPrefix
-        modifyTopLevel funcDecl rhs newArgIdents
+  newFuncDecl  <- localEnv $ do
+    newArgIdents <- replicateM newArgNumber $ freshHaskellIdent freshArgPrefix
+    modifyTopLevel funcDecl rhs newArgIdents
      -- Update the environment with the new type and arguments.
-      Just entry <- inEnv
-        $ lookupEntry IR.ValueScope (IR.funcDeclQName funcDecl)
-      modifyEnv $ addEntry entry
-        { entryArity      = length (IR.funcDeclArgs newFuncDecl)
-        , entryArgTypes   = map IR.varPatType (IR.funcDeclArgs newFuncDecl)
-        , entryReturnType = IR.funcDeclReturnType newFuncDecl
-        }
-      return newFuncDecl
+  Just entry <- inEnv $ lookupEntry IR.ValueScope (IR.funcDeclQName funcDecl)
+  modifyEnv $ addEntry entry
+    { entryArity      = length (IR.funcDeclArgs newFuncDecl)
+    , entryArgTypes   = map IR.varPatType (IR.funcDeclArgs newFuncDecl)
+    , entryReturnType = IR.funcDeclReturnType newFuncDecl
+    }
+  return newFuncDecl
 
 -- | Compute the new function declaration where all missing top-level 
 --   arguments have been added and all occurring functions are fully applied.  
@@ -196,9 +186,9 @@ etaConvertTopLevel :: [IR.VarPat] -> IR.Expr -> Converter IR.Expr
 -- If there is more than one alternative, apply the conversion to 
 -- all alternatives. 
 etaConvertTopLevel argPats expr@(IR.If _ _ _ _ _) =
-  etaConvertTopLevel' argPats expr
+  etaConvertAlternatives argPats expr
 etaConvertTopLevel argPats expr@(IR.Case _ _ _ _) =
-  etaConvertTopLevel' argPats expr
+  etaConvertAlternatives argPats expr
 -- If there is only one alternative, apply it to the newly-added arguments, then 
 -- apply @etaConvertExpr@ to it to make so the expression and its sub-expressions 
 -- are fully applied.
@@ -209,8 +199,8 @@ etaConvertTopLevel argPats expr = localEnv $ do
   etaConvertExpr $ IR.app NoSrcSpan expr argExprs
 
 -- | Calls @etaConvertTopLevel@ on all alternatives in an if or case expression. 
-etaConvertTopLevel' :: [IR.VarPat] -> IR.Expr -> Converter IR.Expr
-etaConvertTopLevel' argPats expr = do
+etaConvertAlternatives :: [IR.VarPat] -> IR.Expr -> Converter IR.Expr
+etaConvertAlternatives argPats expr = do
   -- The first child term of an if or case expression is the condition/the scrutinee
   -- and should remain unchanged.
   let (e : subterms) = childTerms expr
@@ -283,9 +273,9 @@ etaConvertSubExprs' expr = do
 --   have the same arity.
 findMinMissingArguments :: IR.Expr -> Converter Int
 findMinMissingArguments (IR.If _ _ e1 e2 _) =
-  minimumM (map findMinMissingArguments [e1, e2])
+  minimum <$> mapM findMinMissingArguments [e1, e2]
 findMinMissingArguments (IR.Case _ _ alts _) =
-  minimumM $ map (findMinMissingArguments . IR.altRhs) alts
+  minimum <$> mapM (findMinMissingArguments . IR.altRhs) alts
 -- Any expression that isn't an if or case expression only has one 
 -- option for the number of missing arguments, namely the arity of the expression. 
 findMinMissingArguments expr = arityOf expr
@@ -313,12 +303,3 @@ arityOf (IR.Undefined _ _      ) = return 0
 arityOf (IR.ErrorExpr  _ _ _   ) = return 0
 arityOf (IR.IntLiteral _ _ _   ) = return 0
 arityOf (IR.Lambda _ _ _ _     ) = return 0
-
--------------------------------------------------------------------------------
--- Helper functions                                                                     --
--------------------------------------------------------------------------------
-
--- Calculates a minimum in a monadic list 
--- TODO: Move to a monad util module
-minimumM :: (Monad m, Ord a, Bounded a) => [m a] -> m a
-minimumM = foldr (liftM2 min) (return minBound)
