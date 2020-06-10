@@ -21,8 +21,19 @@ enable_color=true
 enable_skip=true
 mode="$check_mode"
 
+# By default all formatters are enabled.
+enable_brittany=true
+enable_eol=true
+
 # Parse command line options.
-options=$(getopt -o h --long help,no-color,no-skip,overwrite -- "$@")
+options=$(getopt     \
+  --long help -o h   \
+  --long no-brittany \
+  --long no-color    \
+  --long no-eol      \
+  --long no-skip     \
+  --long overwrite   \
+  -- "$@")
 if [ $? -ne 0 ]; then
   echo
   echo "Type '$script --help' for more information."
@@ -32,7 +43,9 @@ eval set -- "$options"
 while true; do
   case "$1" in
   -h | --help) help=true; shift ;;
+  --no-brittany) enable_brittany=false; shift ;;
   --no-color) enable_color=false; shift ;;
+  --no-eol) enable_eol=false; shift ;;
   --no-skip) enable_skip=false; shift ;;
   --overwrite) mode="$overwrite_mode"; shift ;;
   --) shift; break ;;
@@ -67,10 +80,12 @@ if [ "$help" = true ]; then
   echo "directories are processed by default: ${default_files[@]}."
   echo
   echo "Command line options:"
-  echo "  -h    --help         Display this message."
-  echo "        --no-color     Disable colored output."
-  echo "        --no-skip      Disable skipping of untracked files."
-  echo "        --overwrite    Enable overwrite mode (see above for details)."
+  echo "  -h    --help           Display this message."
+  echo "        --no-brittany    Disable formatting using Brittany."
+  echo "        --no-color       Disable colored output."
+  echo "        --no-eol         Disable normalization of line endings."
+  echo "        --no-skip        Disable skipping of untracked files."
+  echo "        --overwrite      Enable overwrite mode (see above for details)."
   exit 0
 fi
 
@@ -144,11 +159,20 @@ format_counter=0
 # Sets the `is_okay` environment variable to `false` if the file has been
 # changed or there was an error executing the command. Returns the exit code
 # of the command.
+#
+# The last argument indicates whether the formatter is enabled or not. Returns
+# status code `0` without modifying the file if the formatter is not enabled.
 function run_formatter() {
   local command="$1"
   local file="$2"
   local counter_var="$3"
   local msg="$4"
+  local enabled="$5"
+
+  # Test whether the formatter is enabled or not.
+  if [ "$enabled" = false ]; then
+    return 0
+  fi
 
   # Save hash of file before the command such that we can test whether the
   # command changed the file.
@@ -220,10 +244,12 @@ for file in $(find "${files[@]}" -name '*.hs' -type f); do
     # Run formatters.
     run_formatter eol_formatter "$temp_file" \
                   "eol_counter"              \
-                  "$eol_formatter_msg" &&
+                  "$eol_formatter_msg"       \
+                  "$enable_eol" &&
     run_formatter brittany_formatter "$temp_file" \
                   "format_counter"                \
-                  "$brittany_formatter_msg"
+                  "$brittany_formatter_msg"       \
+                  "$enable_brittany"
 
     # Test whether all checks where successful.
     if [ "$is_okay" = true ]; then
