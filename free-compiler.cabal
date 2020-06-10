@@ -106,6 +106,7 @@ library freec-internal
                       , FreeC.Backend.Agda.Converter
                       , FreeC.Backend.Agda.Converter.FuncDecl
                       , FreeC.Backend.Agda.Converter.Module
+                      , FreeC.Backend.Agda.Converter.Type
                       , FreeC.Backend.Agda.Pretty
                       , FreeC.Backend.Agda.Syntax
                       , FreeC.Backend.Coq.Analysis.ConstantArguments

@@ -21,7 +21,7 @@ module FreeC.Backend.Agda.Syntax
   , app
   , ident
     -- * Types
-  , func
+  , fun
   , pi
   )
 where
@@ -130,9 +130,9 @@ ident = Ident . qname' . name
 -------------------------------------------------------------------------------
 
 -- | A smart constructor for non dependent function types.
-func :: Expr -> Expr -> Expr
-func l@(Fun _ _ _) = Fun NoRange (defaultArg (paren l)) -- (->) is right assoc.
-func l             = Fun NoRange (defaultArg l)
+fun :: Expr -> Expr -> Expr
+fun l@(Fun _ _ _) = Fun NoRange (defaultArg (paren l)) -- (->) is right assoc.
+fun l             = Fun NoRange (defaultArg l)
 
 -- | Creates a pi type binding the given names as hidden variables.
 --
