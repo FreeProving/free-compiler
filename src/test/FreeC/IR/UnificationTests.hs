@@ -161,6 +161,15 @@ shouldFailUnification t s = do
         ++ "` and `"
         ++ showPretty s
         ++ "`."
+    Left (RigidTypeVarError _ _ _) ->
+      return
+        $  expectationFailure
+        $  "Expected unification error, but unification failed due to "
+        ++ "matching of a rigid type variable in unification of `"
+        ++ showPretty t
+        ++ "` and `"
+        ++ showPretty s
+        ++ "`."
     Right mgu ->
       return
         $  expectationFailure
@@ -183,6 +192,15 @@ shouldFailOccursCheck t s = do
       return
         $  expectationFailure
         $  "Expected occurs check to fail, but got unification error for `"
+        ++ showPretty t
+        ++ "` and `"
+        ++ showPretty s
+        ++ "`."
+    Left (RigidTypeVarError _ _ _) ->
+      return
+        $  expectationFailure
+        $  "Expected occurs check to fail, but unification failed due to "
+        ++ "matching of a rigid type variable in unification of `"
         ++ showPretty t
         ++ "` and `"
         ++ showPretty s
