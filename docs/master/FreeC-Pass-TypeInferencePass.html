@@ -4,7 +4,7 @@
    constructors.</p><h1>Examples</h1><h2>Example 1: Type inference</h2><p>The type of a function declaration that does not have a type signature</p><pre>double x = x + x</pre><p>can be inferred from the types of the functions it is using on it's
    right-hand side. Instead of just inferring the type of the declared
    function, the types of all argument patterns and the return type of
-   the function are annotated by this pass.</p><pre>double (x :: Integer) = x + x :: Integer</pre><h2>Example 2: Polymorphic functions</h2><p>When a function is polymorphic</p><pre>null xs = case xs of {
+   the function are annotated by this pass.</p><pre>double (x :: Integer) :: Integer = x + x</pre><h2>Example 2: Polymorphic functions</h2><p>When a function is polymorphic</p><pre>null xs = case xs of {
     []      -&gt; False;
     x : xs' -&gt; True
   }</pre><p>its type variables will be specified explicitly on the left-hand
@@ -19,7 +19,7 @@
    visible type application contains type variables that are not related to
    the functions type (also called &quot;vanishing type arguments&quot;). The function
    below has type <code>Bool</code> for example, but the list it is using is polymorphic.</p><pre>myTrue = null []</pre><p>Thus, the list contains elements of some type <code>t0</code> which needs to be
-   added as a type argument to the list constructor <code>[]</code> and <code>null</code>.</p><pre>myTrue @t0 = null @t0 ([] @t0) :: Bool</pre><p>While Haskell would tolerate the definition of <code>myTrue</code> without type
+   added as a type argument to the list constructor <code>[]</code> and <code>null</code>.</p><pre>myTrue @t0 :: Bool = null @t0 ([] @t0)</pre><p>While Haskell would tolerate the definition of <code>myTrue</code> without type
    arguments, Coq does not accept an equivalent definition.</p><pre>Definition null {a : Type} (xs : list a) : bool
   := match xs with
      | nil      =&gt; true
