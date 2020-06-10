@@ -30,8 +30,8 @@ pipeline =
   , qualifierPass
   , resolverPass
   , importPass
-  , kindInferencePass
   , dependencyAnalysisPass [defineTypeDeclsPass]
+  , kindInferencePass
   , typeSignaturePass
   , dependencyAnalysisPass
     [typeInferencePass, defineFuncDeclsPass, partialityAnalysisPass]

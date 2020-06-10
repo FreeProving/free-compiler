@@ -3,11 +3,15 @@ module FreeC.Pass.KindInferencePass
   )
 where
 
+import           Control.Monad                  ( when )
+import           Data.Maybe                     ( fromMaybe )
+
+import           FreeC.Environment              ( lookupArity )
 import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
 import           FreeC.Pass
-import           FreeC.Pretty
+import           FreeC.Pretty                   ( showPretty )
 
 kindInferencePass :: Pass IR.Module
 kindInferencePass m@(IR.Module _ _ _ typeDecls typeSigs _ funcDecls) = do
@@ -96,49 +100,40 @@ checkVarPat :: IR.VarPat -> Converter ()
 checkVarPat (IR.VarPat _ _ typ) = checkMaybeType typ
 
 checkType :: IR.Type -> Converter ()
-checkType typ = do
-                 containsLeftTypeVars typ
-                 checkCorrectArities typ
+checkType = checkCorrectArities
 
 
 checkCorrectArities :: IR.Type -> Converter ()
 checkCorrectArities = checkCorrectArities' 0 -- to be implemented
 
 checkCorrectArities' :: Int -> IR.Type -> Converter ()
-checkCorrectArities' depth (IR.TypeVar srcSpan varId) = do
-  if depth == 0 then
-    return ()
-  else do
-        reportFatal $ Message srcSpan Error
-                    $ "Type variable "
-                    ++ varId 
-                    ++ " occurs on left-hand side of type application"
-checkCorrectArities' depth (IR.TypeCon srcSpan ident) = undefined
+checkCorrectArities' depth (IR.TypeVar srcSpan varId) =
+  when (depth /= 0)
+    $  reportFatal
+    $  Message srcSpan Error
+    $  "Type variable "
+    ++ varId
+    ++ " occurs on left-hand side of type application"
+checkCorrectArities' depth (IR.TypeCon srcSpan ident) = do
+  arity <- inEnv $ fromMaybe (-1) . lookupArity IR.TypeScope ident
+  when (arity /= depth)
+    $  reportFatal
+    $  Message srcSpan Error
+    $  "Type constructor "
+    ++ showPretty ident
+    ++ " is applied to wrong number of arguments: expected "
+    ++ show arity
+    ++ " but was "
+    ++ show depth
 checkCorrectArities' depth (IR.TypeApp _ lhs rhs) = do
   checkCorrectArities' (depth + 1) lhs
   checkCorrectArities rhs
 checkCorrectArities' depth (IR.FuncType srcSpan lhs rhs)
-  | depth /= 0 = reportFatal
-                 $ Message srcSpan Error
-                 $ "Function type occurs on left-hand side of type application"
-  | otherwise  = do
-                   checkCorrectArities lhs
-                   checkCorrectArities rhs
-
-
-containsLeftTypeVars :: IR.Type -> Converter ()
-containsLeftTypeVars (IR.TypeVar _ _) = return ()
-containsLeftTypeVars (IR.TypeCon _ _) = return ()
-containsLeftTypeVars (IR.TypeApp _ (IR.TypeVar srcSpan varId) _) =
-  reportFatal
-    $  Message srcSpan Error
-    $  "Type variable "
-    ++ varId
-    ++ " occurs on left-hand"
-    ++ " side of type application"
-containsLeftTypeVars (IR.TypeApp _ lhs rhs) = do
-  containsLeftTypeVars lhs
-  containsLeftTypeVars rhs
-containsLeftTypeVars (IR.FuncType _ lhs rhs) = do
-  containsLeftTypeVars lhs
-  containsLeftTypeVars rhs
+  | depth /= 0
+  = reportFatal
+    $ Message srcSpan Error
+    $ "Function type occurs on left-hand side of type application"
+  | otherwise
+  = do
+    checkCorrectArities lhs
+    checkCorrectArities rhs
