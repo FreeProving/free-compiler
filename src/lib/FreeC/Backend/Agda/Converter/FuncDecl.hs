@@ -1,3 +1,6 @@
+-- | This module contains functions for generating Agda function declarations
+--   from our intermediate representation.
+
 module FreeC.Backend.Agda.Converter.FuncDecl
   ( convertFuncDecl
   )

@@ -1,3 +1,5 @@
+-- | This module contains functions for converting Haskell modules to Agda.
+
 module FreeC.Backend.Agda.Converter.Module where
 
 import           Control.Monad                  ( (>=>) )
@@ -21,6 +23,7 @@ convertModule' :: IR.Module -> Converter Agda.Declaration
 convertModule' (IR.Module _ name _ _ _ _ funcDecls) =
   Agda.moduleDecl (convertModName name) <$> concatMapM convertFuncDecl funcDecls
 
+-- | Converts a Haskell module name to an Agda module name
 convertModName :: IR.ModName -> Agda.QName
 convertModName name = Agda.qname (init parts) (last parts)
   where parts = Agda.name <$> splitOn "." name
