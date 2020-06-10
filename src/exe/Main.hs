@@ -140,7 +140,7 @@ convertInputModule haskellAst = do
     else putDebug $ "Compiling " ++ showPretty modName
   reportApp $ do
     loadRequiredModules haskellAst
-    coqAst  <- liftConverter $ convertModule haskellAst
+    coqAst <- liftConverter $ convertModule haskellAst
     return (modName, coqAst)
 
 -------------------------------------------------------------------------------

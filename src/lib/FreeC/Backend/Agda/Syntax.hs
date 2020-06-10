@@ -33,6 +33,8 @@ import           Agda.Syntax.Concrete
 import           Agda.Syntax.Literal
 import           Agda.Syntax.Position
 
+import           FreeC.Util.Predicate           ( (.||.) )
+
 -------------------------------------------------------------------------------
 -- Identifiers                                                               --
 -------------------------------------------------------------------------------
@@ -88,6 +90,13 @@ funcSig = TypeSig defaultArgInfo Nothing
 -- Expressions                                                               --
 -------------------------------------------------------------------------------
 
+isApp :: Expr -> Bool
+isApp (App _ _ _) = True
+isApp _           = False
+
+isFun :: Expr -> Bool
+isFun (Fun _ _ _) = True
+isFun _           = False
 -- | Creates an integer literal.
 intLiteral :: Integer -> Expr
 intLiteral = Lit . LitNat NoRange
@@ -105,9 +114,8 @@ lambda args = Lam NoRange (DomainFree . defaultNamedArg . mkBinder_ <$> args)
 --
 --   > e a
 app :: Expr -> Expr -> Expr
-app l r@(App _ _ _) = App NoRange l $ defaultNamedArg $ paren r
-app l r@(Fun _ _ _) = App NoRange l $ defaultNamedArg $ paren r
-app l r             = App NoRange l $ defaultNamedArg r
+app l r =
+  App NoRange l $ defaultNamedArg (if isApp .||. isFun $ r then paren r else r)
 
 -- | Wraps the given expression in parenthesis.
 paren :: Expr -> Expr

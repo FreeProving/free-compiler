@@ -40,10 +40,13 @@ module FreeC.Environment
   )
 where
 
-import           Control.Monad                  ( (<=<) )
+import           Control.Monad                  ( (<=<)
+                                                , guard
+                                                )
 import           Data.Composition               ( (.:)
                                                 , (.:.)
                                                 )
+import           Data.Functor                   ( ($>) )
 import           Data.List                      ( find )
 import           Data.Map.Strict                ( Map )
 import qualified Data.Map.Strict               as Map
@@ -190,9 +193,8 @@ usedIdents :: Environment -> [Coq.Qualid]
 usedIdents = concatMap entryIdents . Map.elems . envEntries
  where
   entryIdents :: EnvEntry -> [Coq.Qualid]
-  entryIdents entry
-    | isConEntry entry = [entryIdent entry, entrySmartIdent entry]
-    | otherwise        = [entryIdent entry]
+  entryIdents entry =
+    entryIdent entry : (guard (isConEntry entry) $> entrySmartIdent entry)
 
 -- | Gets a list of Agda identifiers for functions, (type/smart) constructors,
 --   (type/fresh) variables that were used in the given environment already.
@@ -200,9 +202,9 @@ usedAgdaIdents :: Environment -> [Agda.QName]
 usedAgdaIdents = concatMap entryIdents . Map.elems . envEntries
  where
   entryIdents :: EnvEntry -> [Agda.QName]
-  entryIdents entry
-    | isConEntry entry = [entryAgdaIdent entry, entryAgdaSmartIdent entry]
-    | otherwise        = [entryAgdaIdent entry]
+  entryIdents entry =
+    entryAgdaIdent entry
+      : (guard (isConEntry entry) $> entryAgdaSmartIdent entry)
 
 -- | Looks up the location of the declaration with the given name.
 lookupSrcSpan :: IR.Scope -> IR.QName -> Environment -> Maybe SrcSpan
