@@ -184,13 +184,18 @@ renameAgdaIdent :: Agda.QName -> Environment -> Agda.QName
 renameAgdaIdent ident env =
   if (Agda.unqualify ident `elem` Agda.Base.reservedIdents)
        || isUsedAgdaIdent env ident
-    then renameAgdaIdent (Agda.nextQName ident) env
+    then renameAgdaIdent (nextQName ident) env
     else ident
 
 -- | Generates a new Agda identifier based on the given @String@, the used
 --   @Agda.QName@s from the environment and reserved identifier.
 renameAgdaQualid :: String -> Environment -> Agda.QName
 renameAgdaQualid name = renameAgdaIdent (Agda.qname' $ Agda.name name)
+
+-- | Creates a new qualified name, by appending a number or incrementing it.
+nextQName :: Agda.QName -> Agda.QName
+nextQName (Agda.Qual modName qName) = Agda.Qual modName $ nextQName qName
+nextQName (Agda.QName unQName     ) = Agda.QName $ Agda.nextName unQName
 
 -------------------------------------------------------------------------------
 -- Define and automatically rename identifiers                               --

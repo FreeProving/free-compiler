@@ -9,7 +9,6 @@ module FreeC.Backend.Agda.Syntax
   , name
   , qname
   , qname'
-  , nextQName
     -- * Imports
   , simpleImport
     -- * Declarations
@@ -51,11 +50,6 @@ qname modules unQName = foldr Qual (QName unQName) modules
 -- | Creates a qualified name using an empty list of module names.
 qname' :: Name -> QName
 qname' = qname []
-
--- | Creates a new qualified name, by appending a number or incrementing it.
-nextQName :: QName -> QName
-nextQName (Qual modName qName) = Qual modName $ nextQName qName
-nextQName (QName unQName     ) = QName $ nextName unQName
 
 -------------------------------------------------------------------------------
 -- Imports                                                                   --
