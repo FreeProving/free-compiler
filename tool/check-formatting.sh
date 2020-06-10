@@ -135,6 +135,71 @@ processed_counter=0
 eol_counter=0
 format_counter=0
 
+# Applies the given command (first argument) to the given contents of the file
+# with them given name (second argument).
+#
+# Prints the given message (fourth argument) and increments the variable with
+# the given name (third argument) if the file has been changed.
+#
+# Sets the `is_okay` environment variable to `false` if the file has been
+# changed or there was an error executing the command. Returns the exit code
+# of the command.
+function run_formatter() {
+  local command="$1"
+  local file="$2"
+  local counter_var="$3"
+  local msg="$4"
+
+  # Save hash of file before the command such that we can test whether the
+  # command changed the file.
+  hash_before=$(sha256sum "$file")
+
+  # Run the command on the file.
+  "$command" "$file" >/dev/null 2>&1
+  local exit_code=$?
+
+  # Test whether the command was successful.
+  if [ "$exit_code" -eq 0 ]; then
+    # Test whether the file has changed.
+    hash_after=$(sha256sum "$temp_file")
+    if [ "$hash_before" != "$hash_after" ]; then
+      # The file has changed. Print the message and increment the counter.
+      if [ "$is_okay" = false ]; then
+        echo -n " and "
+      fi
+      echo -n "$msg"
+      eval $counter_var=$(expr ${!counter_var} + 1)
+      is_okay=false
+    fi
+  else
+    echo "${red}${bold}ERROR${reset}"
+    error_counter=$(expr $error_counter + 1)
+    is_okay=false
+  fi
+  return "$exit_code"
+}
+
+# Convert Windows line endings (CRLF) to Unix line endings (LF) by
+# removing all carriage return (CR) bytes.
+function eol_formatter() {
+  local file="$1"
+  cat "$file" | tr -d '\r' | write_to_file "$file"
+}
+eol_formatter_msg=$(select_by_mode                      \
+    "${yellow}${bold}HAS WRONG LINE ENDINGS${reset}"  \
+    "${yellow}${bold}NORMALIZED LINE ENDINGS${reset}" \
+  )
+
+# Format code with Brittany.
+function brittany_formatter() {
+  local file="$1"
+  brittany --write-mode=inplace "$file"
+}
+brittany_formatter_msg=$(select_by_mode           \
+    "${red}${bold}NEEDS FORMATTING${reset}"     \
+    "${green}${bold}HAS BEEN FORMATTED${reset}" \
+  )
+
 # Process all given Haskell files that are tracked by `git` and count how
 # many files are not formatted or encoded correctly.
 for file in $(find "${files[@]}" -name '*.hs' -type f); do
@@ -152,45 +217,13 @@ for file in $(find "${files[@]}" -name '*.hs' -type f); do
     temp_file=$(mktemp)
     cp "$file" "$temp_file"
 
-    # Convert Windows line endings (CRLF) to Unix line endings (LF) by
-    # removing all carriage return (CR) bytes.
-    hash_before=$(sha256sum "$temp_file")
-    cat "$temp_file" | tr -d '\r' | write_to_file "$temp_file"
-    if [ "$?" -eq 0 ]; then
-      hash_after=$(sha256sum "$temp_file")
-      if [ "$hash_before" != "$hash_after" ]; then
-        echo -n "${yellow}${bold}"
-        echo -n $(select_by_mode "HAS WRONG LINE ENDINGS"    \
-                                 "NORMALIZED LINE ENDINGS")
-        echo -n "${reset}"
-        eol_counter=$(expr $eol_counter + 1)
-        is_okay=false
-      fi
-    else
-      echo "${red}${bold}ERROR${reset}"
-      error_counter=$(expr $error_counter + 1)
-      continue
-    fi
-
-    # Format code with Brittany.
-    hash_before=$(sha256sum "$temp_file")
-    brittany --write-mode=inplace "$temp_file"
-    if [ "$?" -eq 0 ]; then
-      hash_after=$(sha256sum "$temp_file")
-      if [ "$hash_before" != "$hash_after" ]; then
-        if [ "$is_okay" = false ]; then
-          echo -n " and "
-        fi
-        echo -n "$(select_by_mode "${red}${bold}NEEDS FORMATTING${reset}" \
-                                  "${green}${bold}HAS BEEN FORMATTED${reset}")"
-        format_counter=$(expr $format_counter + 1)
-        is_okay=false
-      fi
-    else
-      echo "${red}${bold}ERROR${reset}"
-      error_counter=$(expr $error_counter + 1)
-      continue
-    fi
+    # Run formatters.
+    run_formatter eol_formatter "$temp_file" \
+                  "eol_counter"              \
+                  "$eol_formatter_msg" &&
+    run_formatter brittany_formatter "$temp_file" \
+                  "format_counter"                \
+                  "$brittany_formatter_msg"
 
     # Test whether all checks where successful.
     if [ "$is_okay" = true ]; then
@@ -233,15 +266,16 @@ if [ "$okay_counter" -eq "$processed_counter" ]; then
 else
   # Print command error statistics.
   if [ "$error_counter" -ne 0 ]; then
-    echo -n "${red}${bold}Error:${reset} "
-    echo "There were ${bold}$error_counter${reset} errors when processing" \
+    echo "${red}${bold}Error:${reset}"                                     \
+         "There were ${bold}$error_counter${reset} errors when processing" \
          "files."
   fi
 
   # Print line ending error statistics.
   if [ "$eol_counter" -ne 0 ]; then
-    echo $(select_by_mode "${yellow}${bold}Warning:${reset}" \
-                          "${bold}Info:${reset}") "There were ${bold}$eol_counter${reset} files with non-Unix" \
+    echo $(select_by_mode "${yellow}${bold}Warning:${reset}"          \
+                          "${bold}Info:${reset}")                     \
+         "There were ${bold}$eol_counter${reset} files with non-Unix" \
          "line endings."
   fi
 
