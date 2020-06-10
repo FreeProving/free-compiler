@@ -8,7 +8,8 @@ import           Prelude                 hiding ( mod )
 import           Data.List.Extra                ( snoc )
 import           Data.Maybe                     ( fromJust )
 
-import qualified FreeC.Backend.Agda.Base       as Agda.Base
+import           FreeC.Backend.Agda.Converter.Free
+                                                ( addFreeArgs )
 import           FreeC.Backend.Agda.Converter.Type
                                                 ( convertFunctionType
                                                 , renameAgdaTypeVar
@@ -43,5 +44,6 @@ lookupValueIdent (IR.DeclIdent srcSpan name) =
 convertFunc_ :: [IR.TypeVarDecl] -> [Maybe IR.Type] -> Converter Agda.Expr
 convertFunc_ tVars ts = Agda.pi <$> tVars' <*> convertFunctionType
   (fromJust <$> ts) -- handled in #19
-  where tVars' = Agda.Base.addTVars <$> mapM renameAgdaTypeVar tVars
+  where tVars' = addFreeArgs <$> mapM renameAgdaTypeVar tVars
+
 

@@ -8,13 +8,9 @@ module FreeC.Backend.Agda.Base
   , imports
     -- * Free Monad
   , free
-  , free'
-  , freeArgs
   , pure
-  , impure
   , shape
   , position
-  , addTVars
     -- * reserved identifiers
   , reservedIdents
   )
@@ -50,47 +46,21 @@ imports = Agda.simpleImport $ Agda.qname [baseLibName] $ Agda.name "Free"
 free :: Agda.Name
 free = Agda.name "Free"
 
--- | Lifts a type in the free monad.
-free' :: Agda.Expr -> Agda.Expr
-free' = Agda.app $ freeArgs $ Agda.qname' free
+-- | Identifier for the @pure@ constructor of the @Free@ monad.
+pure :: Agda.Name
+pure = Agda.name "pure"
 
--- | Apply the @Shape@ and @Position@ argument to the given type constructor.
---
--- > c ↦ c @S @P
-freeArgs :: Agda.QName -> Agda.Expr
-freeArgs qname = foldl1
-  Agda.app
-  [ Agda.Ident qname
-  , Agda.Ident (Agda.qname' shape)
-  , Agda.Ident (Agda.qname' position)
-  ]
-
--- | Identifier for the @Pure@ constructor of the @Free@ monad.
-pureConName :: Agda.Name
-pureConName = Agda.name "pure"
-
--- | Applies the @Pure@ constructor of the free monad to the given expression.
-pure :: Agda.Expr -> Agda.Expr
-pure = Agda.app $ Agda.Ident $ Agda.qname [Agda.name "Free"] pureConName
-
--- | Identifier for the @Impure@ constructor of the @Free@ monad.
-impureConName :: Agda.Name
-impureConName = Agda.name "impure"
-
--- | Applies the @Impure@ constructor of the free monad to the given expression.
-impure :: Agda.Expr -> Agda.Expr
-impure = Agda.app $ Agda.Ident $ Agda.qname [Agda.name "Free"] impureConName
+-- | Identifier for the @impure@ constructor of the @Free@ monad.
+impure :: Agda.Name
+impure = Agda.name "impure"
 
 -- | Reserved name for the @Shape@ type variable.
 shape :: Agda.Name
-shape = Agda.name "S"
+shape = Agda.name "Shape"
 
--- | Reserved name for the @Position@ type variable.
+-- | Reserved name for the @Pos@ type variable.
 position :: Agda.Name
-position = Agda.name "P"
-
-addTVars :: [Agda.Name] -> [Agda.Name]
-addTVars ts = shape : position : ts
+position = Agda.name "Pos"
 
 -------------------------------------------------------------------------------
 -- Reserved identifiers                                                      --
@@ -100,4 +70,4 @@ addTVars ts = shape : position : ts
 --
 --   This does only include identifiers without corresponding Haskell name.
 reservedIdents :: [Agda.Name]
-reservedIdents = [free, pureConName, impureConName, shape, position]
+reservedIdents = [free, pure, impure, shape, position]

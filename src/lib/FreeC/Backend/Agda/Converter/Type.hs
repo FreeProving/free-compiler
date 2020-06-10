@@ -1,3 +1,7 @@
+-- | Implements the IR to Agda translation, which applies the monadic lifting as
+--   described by Abel et al. in "Verifying Haskell Programs Using Constructive
+--   Type Theory".
+
 module FreeC.Backend.Agda.Converter.Type
   ( convertType
   , convertFunctionType
@@ -6,14 +10,13 @@ module FreeC.Backend.Agda.Converter.Type
   )
 where
 
--- | Implements the IR to Agda translation, which applies the monadic lifting as
---   described by Abel et al. in "Verifying Haskell Programs Using Constructive
---   Type Theory".
-
 import           Control.Monad                  ( mapM )
 
-import qualified FreeC.Backend.Agda.Base       as Agda.Base
 import qualified FreeC.Backend.Agda.Syntax     as Agda
+import           FreeC.Backend.Agda.Converter.Free
+                                                ( free
+                                                , applyFreeArgs
+                                                )
 import           FreeC.Environment.LookupOrFail ( lookupAgdaIdentOrFail )
 import           FreeC.Environment.Renamer      ( renameAndDefineAgdaTypeVar )
 import qualified FreeC.IR.Syntax               as IR
@@ -47,6 +50,7 @@ convertConstructorType types =
 renameAgdaTypeVar :: IR.TypeVarDecl -> Converter Agda.Name
 renameAgdaTypeVar (IR.TypeVarDecl srcSpan name) =
   Agda.unqualify <$> renameAndDefineAgdaTypeVar srcSpan name
+
 -------------------------------------------------------------------------------
 -- Translations                                                              --
 -------------------------------------------------------------------------------
@@ -64,7 +68,7 @@ renameAgdaTypeVar (IR.TypeVarDecl srcSpan name) =
 --   > -- all other cases (monotypes):
 --   > τ’ = m τ
 dagger :: IR.Type -> Converter Agda.Expr
-dagger = fmap Agda.Base.free' . star
+dagger = fmap free . star
 
 -- | The star translation for monotypes as described by Abel et al.
 --
@@ -76,7 +80,7 @@ star :: IR.Type -> Converter Agda.Expr
 star (IR.TypeVar s name) = Agda.Ident
   <$> lookupAgdaIdentOrFail s IR.TypeScope (IR.UnQual (IR.Ident name))
 star (IR.TypeCon s name) =
-  Agda.Base.freeArgs <$> lookupAgdaIdentOrFail s IR.TypeScope name
+  applyFreeArgs <$> lookupAgdaIdentOrFail s IR.TypeScope name
 star (IR.TypeApp  _ l r) = Agda.app <$> star l <*> star r
 -- At the moment this case simplifies to
 -- @Agda.func <$> Agda.base.free' (dagger l) <*> Agda.base.free' (dagger r)@.

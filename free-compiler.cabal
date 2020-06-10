@@ -104,6 +104,7 @@ library freec-internal
   hs-source-dirs:     src/lib
   exposed-modules:      FreeC.Backend.Agda.Base
                       , FreeC.Backend.Agda.Converter
+                      , FreeC.Backend.Agda.Converter.Free
                       , FreeC.Backend.Agda.Converter.FuncDecl
                       , FreeC.Backend.Agda.Converter.Module
                       , FreeC.Backend.Agda.Converter.Type
