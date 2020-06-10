@@ -21,6 +21,8 @@ module FreeC.Backend.Agda.Syntax
   , app
   , ident
     -- * Types
+  , set
+  , dataDecl
   , func
   , pi
   )
@@ -128,6 +130,13 @@ ident = Ident . qname' . name
 -------------------------------------------------------------------------------
 -- Types                                                                     --
 -------------------------------------------------------------------------------
+
+-- | The first level of Agda's hierarchy of type theoretic universes.
+set :: Expr
+set = ident "Set"
+
+dataDecl :: Name -> [Declaration] -> Declaration
+dataDecl dataName = Data NoRange dataName [] set
 
 -- | A smart constructor for non dependent function types.
 func :: Expr -> Expr -> Expr
