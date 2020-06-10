@@ -324,9 +324,9 @@ instance Pretty ConPat where
 --   The variable pattern can optionally have a type signature
 --   or be annotated by a @!@.
 data VarPat = VarPat
-  { varPatSrcSpan :: SrcSpan
-  , varPatIdent   :: String
-  , varPatType    :: Maybe Type
+  { varPatSrcSpan   :: SrcSpan
+  , varPatIdent     :: String
+  , varPatType      :: Maybe Type
   , varPatIsStrict  :: Bool
   }
  deriving (Eq, Show)

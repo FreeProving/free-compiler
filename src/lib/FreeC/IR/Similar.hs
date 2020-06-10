@@ -369,8 +369,8 @@ instance Similar IR.Alt where
 --   > —————————————  ————————————————————————————
 --   >  Γ ⊢ !x ≈ !y    Γ ⊢ !(x :: τ) ≈ !(y :: τ')
 instance Similar IR.VarPat where
-  similar' (IR.VarPat _ _ t1 s1) (IR.VarPat _ _ t2 s2) renaming =
-    s1 == s2 && similar' t1 t2 renaming
+  similar' (IR.VarPat _ _ t1 s1) (IR.VarPat _ _ t2 s2) =
+    const (s1 == s2) .&&. similar' t1 t2
 
 -------------------------------------------------------------------------------
 -- Similarity test for declarations                                          --

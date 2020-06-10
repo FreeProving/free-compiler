@@ -155,8 +155,8 @@ defineTestFunc :: String -> Int -> String -> Converter String
 defineTestFunc nameStr arity =
   defineTestFunc' False (replicate arity False) nameStr arity
 
--- | Like 'defineTestFunc' but the second argument controls whether the
---   defined function is partial or not. The first argument controls the
+-- | Like 'defineTestFunc' but the first argument controls whether the
+--   defined function is partial or not. The second argument controls the
 --   strictness of the function arguments.
 defineTestFunc' :: Bool -> [Bool] -> String -> Int -> String -> Converter String
 defineTestFunc' partial areStrict nameStr arity typeStr = do
@@ -185,8 +185,9 @@ definePartialTestFunc nameStr arity =
 
 -- | Like 'defineTestFunc' but also allows to mark arguments as strict in the
 --   first argument.
-defineStrictTestFunc :: [Bool] -> String -> Int -> String -> Converter String
-defineStrictTestFunc = defineTestFunc' False
+defineStrictTestFunc :: [Bool] -> String -> String -> Converter String
+defineStrictTestFunc areStrict nameStr =
+  defineTestFunc' False areStrict nameStr (length areStrict)
 
 -------------------------------------------------------------------------------
 -- Utility functions                                                         --

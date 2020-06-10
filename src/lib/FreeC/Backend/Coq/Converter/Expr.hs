@@ -123,11 +123,11 @@ convertExpr' (IR.Var srcSpan name _) typeArgs args = do
       Just argTypes      <- inEnv $ lookupArgTypes IR.ValueScope name
       let typeArgNames = map (IR.UnQual . IR.Ident) typeArgIdents
           subst = composeSubsts (zipWith singleSubst typeArgNames typeArgs)
-          decArgTypes = map (applySubst subst) argTypes
-      decArgTypes' <- mapM (mapM convertType') decArgTypes
+          strictArgTypes = map (applySubst subst) argTypes
+      strictArgTypes' <- mapM (mapM convertType') strictArgTypes
       -- Generate a bind for each strict argument
-      generateBinds args' freshArgPrefix strictArgs decArgTypes'
-        $ \decArgs' -> generateApplyN arity callee decArgs'
+      generateBinds args' freshArgPrefix strictArgs strictArgTypes'
+        $ \strictArgs' -> generateApplyN arity callee strictArgs'
     else do
       -- If this is the decreasing argument of a recursive helper function,
       -- it must be lifted into the @Free@ monad.

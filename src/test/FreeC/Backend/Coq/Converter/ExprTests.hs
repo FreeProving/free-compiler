@@ -167,7 +167,7 @@ testConvertFuncApp = context "function applications" $ do
   it "converts function applications with one strict argument correctly"
     $ shouldSucceedWith
     $ do
-        "f" <- defineStrictTestFunc [True] "f" 1 "forall a. a -> a"
+        "f" <- defineStrictTestFunc [True] "f" "forall a. a -> a"
         "a" <- defineTestTypeVar "a"
         "x" <- defineTestVar "x"
         "f @a x"
@@ -176,7 +176,7 @@ testConvertFuncApp = context "function applications" $ do
   it "converts function applications with two strict arguments correctly"
     $ shouldSucceedWith
     $ do
-        "f" <- defineStrictTestFunc [True, True] "f" 2 "forall a. a -> a -> a"
+        "f" <- defineStrictTestFunc [True, True] "f" "forall a. a -> a -> a"
         "a" <- defineTestTypeVar "a"
         "x" <- defineTestVar "x"
         "y" <- defineTestVar "y"
@@ -187,7 +187,7 @@ testConvertFuncApp = context "function applications" $ do
       "converts function applications with one non-strict and one strict argument correctly"
     $ shouldSucceedWith
     $ do
-        "f" <- defineStrictTestFunc [False, True] "f" 2 "forall a. a -> a -> a"
+        "f" <- defineStrictTestFunc [False, True] "f" "forall a. a -> a -> a"
         "a" <- defineTestTypeVar "a"
         "x" <- defineTestVar "x"
         "y" <- defineTestVar "y"
