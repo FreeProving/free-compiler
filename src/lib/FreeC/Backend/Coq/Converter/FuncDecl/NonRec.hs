@@ -1,5 +1,5 @@
--- | This module contains a function for converting non-recursive
---   Haskell functions to Coq.
+-- | This module contains a function for converting non-recursive
+--   Haskell functions to Coq.
 
 module FreeC.Backend.Coq.Converter.FuncDecl.NonRec
   ( convertNonRecFuncDecl
@@ -15,9 +15,9 @@ import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Converter
 
 
--- | Converts non-recursive but possibly linear dependent Haskell functions
---   into an ordered list of @Definiton@ sentences such that each definition
---   only depends on definitions at smaller list positions.
+-- | Converts non-recursive but possibly linear dependent Haskell functions
+--   into an ordered list of @Definiton@ sentences such that each definition
+--   only depends on definitions at preceeding list positions.
 convertNonRecFuncDecls :: [IR.FuncDecl] -> Converter [Coq.Sentence]
 convertNonRecFuncDecls decls =
   let orderdDecls = concatMap
@@ -25,8 +25,8 @@ convertNonRecFuncDecls decls =
         (dependencyComponents (funcDependencyGraph decls))
   in  mapM convertNonRecFuncDecl orderdDecls
 
--- | Converts a non-recursive Haskell function declaration to a Coq
---   @Definition@ sentence.
+-- | Converts a non-recursive Haskell function declaration to a Coq
+--   @Definition@ sentence.
 convertNonRecFuncDecl :: IR.FuncDecl -> Converter Coq.Sentence
 convertNonRecFuncDecl funcDecl = localEnv $ do
   (qualid, binders, returnType') <- convertFuncHead funcDecl
