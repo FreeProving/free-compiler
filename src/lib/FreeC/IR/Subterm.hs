@@ -25,6 +25,7 @@ module FreeC.IR.Subterm
     -- * Searching for subterms
   , findSubtermPos
   , findSubterms
+  , findFirstSubterm
     -- * Bound variables
   , boundVarsAt
   , boundVarsWithTypeAt
@@ -37,6 +38,7 @@ import           Data.List                      ( intersperse
                                                 )
 import           Data.Maybe                     ( fromJust
                                                 , fromMaybe
+                                                , listToMaybe
                                                 )
 import           Data.Map.Strict                ( Map )
 import qualified Data.Map.Strict               as Map
@@ -260,6 +262,13 @@ findSubtermPos predicate term =
 findSubterms :: Subterm a => (a -> Bool) -> a -> [a]
 findSubterms predicate term =
   filter predicate (map (fromJust . selectSubterm term) (allPos term))
+
+-- | Gets the first subterm of the given expression that satisfies the
+--   provided predicate.
+--
+--   Return @Nothing@ if there is no such subterm.
+findFirstSubterm :: Subterm a => (a -> Bool) -> a -> Maybe a
+findFirstSubterm = listToMaybe .: findSubterms
 
 -------------------------------------------------------------------------------
 -- Bound variables                                                           --
