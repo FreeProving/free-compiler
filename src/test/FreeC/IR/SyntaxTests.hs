@@ -1,4 +1,5 @@
--- | This module contains tests for 'Pretty' instances of IR AST nodes.
+-- | This module contains tests for 'FreeC.Pretty.Pretty' instances of IR AST
+--   nodes.
 
 module FreeC.IR.SyntaxTests
   ( testSyntax
@@ -9,7 +10,7 @@ import           Test.Hspec
 
 import           FreeC.IR.Syntax.ModuleTests
 
--- | Test group for 'Pretty' instances of IR AST nodes.
+-- | Test group for 'FreeC.Pretty.Pretty' instances of IR AST nodes.
 testSyntax :: Spec
 testSyntax = do
   testModuleSyntax
