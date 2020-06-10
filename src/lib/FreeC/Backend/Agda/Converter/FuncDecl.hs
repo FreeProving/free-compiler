@@ -8,12 +8,10 @@ import           Data.List.Extra                ( snoc )
 import           Data.Maybe                     ( fromJust )
 import qualified FreeC.Backend.Agda.Base       as Agda.Base
 import qualified FreeC.Backend.Agda.Syntax     as Agda
-import           FreeC.Environment              ( lookupAgdaIdent )
 import           FreeC.Environment.LookupOrFail ( lookupAgdaIdentOrFail )
 import           FreeC.Environment.Renamer      ( renameAndDefineAgdaTypeVar )
 import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Converter          ( Converter
-                                                , inEnv
                                                 , localEnv
                                                 )
 import           Prelude                 hiding ( mod )
@@ -27,16 +25,14 @@ convertFuncDecl decl = localEnv $ sequence [convertSignature decl]
 --   declaration.
 convertSignature :: IR.FuncDecl -> Converter Agda.Declaration
 convertSignature (IR.FuncDecl _ ident tVars args retType _) =
-  Agda.funcSig <$> lookupIdent ident <*> convertFunc_ tVars types
+  Agda.funcSig <$> lookupValueIdent ident <*> convertFunc_ tVars types
   where types = (IR.varPatType <$> args) `snoc` retType
 
 -- | Looks up the name of a Haskell function in the environment and converts it
 --   to an Agda name.
-lookupIdent :: IR.DeclIdent -> Converter Agda.Name
-lookupIdent ident = do
-  let name = IR.declIdentName ident
-  Just qualid <- inEnv $ lookupAgdaIdent IR.ValueScope name
-  pure $ Agda.unqualify qualid
+lookupValueIdent :: IR.DeclIdent -> Converter Agda.Name
+lookupValueIdent (IR.DeclIdent srcSpan name) =
+  Agda.unqualify <$> lookupAgdaIdentOrFail srcSpan IR.ValueScope name
 
 -------------------------------------------------------------------------------
 -- Free Type Lifting                                                         --
