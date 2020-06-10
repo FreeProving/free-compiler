@@ -44,15 +44,16 @@ name str = Name NoRange InScope [Id str]
 -- | Create a qualified identifier given a local identifier as 'Name' and a
 --   list of module 'Name's.
 qname :: [Name] -> Name -> QName
-qname modules n = foldr Qual (QName n) modules
+qname modules unQName = foldr Qual (QName unQName) modules
 
 -- | Creates a qualified name using an empty list of module names.
 qname' :: Name -> QName
 qname' = qname []
 
+-- | Creates a new qualified name, by appending a number or incrementing it.
 nextQName :: QName -> QName
-nextQName (Qual n qn) = Qual (nextName n) qn
-nextQName (QName n  ) = QName $ nextName n
+nextQName (Qual modName qName) = Qual modName $ nextQName qName
+nextQName (QName unQName     ) = QName $ nextName unQName
 
 -------------------------------------------------------------------------------
 -- Imports                                                                   --

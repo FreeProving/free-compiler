@@ -3,23 +3,20 @@ module FreeC.Backend.Agda.Converter.FuncDecl
   )
 where
 
-import           Prelude                 hiding ( mod )
-
 import           Data.Function                  ( on )
 import           Data.List.Extra                ( snoc )
 import           Data.Maybe                     ( fromJust )
-
-import qualified FreeC.Backend.Agda.Syntax     as Agda
 import qualified FreeC.Backend.Agda.Base       as Agda.Base
+import qualified FreeC.Backend.Agda.Syntax     as Agda
+import           FreeC.Environment              ( lookupAgdaIdent )
+import           FreeC.Environment.LookupOrFail ( lookupAgdaIdentOrFail )
+import           FreeC.Environment.Renamer      ( renameAndDefineAgdaTypeVar )
 import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Converter          ( Converter
                                                 , inEnv
                                                 , localEnv
                                                 )
-import           FreeC.Environment              ( lookupAgdaIdent )
-import           FreeC.Environment.Renamer      ( renameAndDefineAgdaTypeVar )
-import           FreeC.Environment.LookupOrFail ( lookupAgdaIdentOrFail )
-
+import           Prelude                 hiding ( mod )
 
 -- | Converts the given function declarations. Returns the declarations for the
 --   type signature and the definition (TODO).
@@ -77,4 +74,3 @@ convertType (IR.TypeCon s name) =
 convertType (IR.TypeApp  _ l r) = Agda.app <$> convertType l <*> convertType r
 convertType (IR.FuncType _ l r) = freeFunc <$> convertType l <*> convertType r
   where freeFunc = Agda.func `on` Agda.Base.free'
-
