@@ -130,7 +130,7 @@ fun l             = Fun NoRange (defaultArg l)
 
 -- | Creates a pi type binding the given names as hidden variables.
 --
---   > pi [α, β, γ, …] expr = ∀ {α} {β} {γ} … → expr
+--   > pi [α₁, …, αₙ] expr ↦ ∀ {α₁} … {αₙ} → expr
 pi :: [Name] -> Expr -> Expr
 pi decls = Pi [TBind NoRange (bName <$> decls) (Underscore NoRange Nothing)]
 
