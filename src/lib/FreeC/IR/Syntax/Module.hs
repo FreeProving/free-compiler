@@ -33,11 +33,14 @@ instance Pretty Module where
     prettyString "module"
       <+>  prettyString (modName ast)
       <+>  prettyString "where"
-      <$$> vcat (map pretty (modImports ast))
-      <$$> vcat (map pretty (modTypeDecls ast))
-      <$$> vcat (map pretty (modTypeSigs ast))
-      <$$> vcat (map pretty (modPragmas ast))
-      <$$> vcat (map pretty (modFuncDecls ast))
+      <$$> prettySeparated
+             (semi <> line)
+             (  map pretty (modImports ast)
+             ++ map pretty (modTypeDecls ast)
+             ++ map pretty (modTypeSigs ast)
+             ++ map pretty (modPragmas ast)
+             ++ map pretty (modFuncDecls ast)
+             )
 
 -------------------------------------------------------------------------------
 -- Imports                                                                   --
