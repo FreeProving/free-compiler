@@ -3,9 +3,12 @@ module FreeC.Backend.Agda.Converter.FuncDecl
   )
 where
 
+import           Prelude                 hiding ( mod )
+
 import           Data.Function                  ( on )
 import           Data.List.Extra                ( snoc )
 import           Data.Maybe                     ( fromJust )
+
 import qualified FreeC.Backend.Agda.Base       as Agda.Base
 import qualified FreeC.Backend.Agda.Syntax     as Agda
 import           FreeC.Environment.LookupOrFail ( lookupAgdaIdentOrFail )
@@ -14,7 +17,7 @@ import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Converter          ( Converter
                                                 , localEnv
                                                 )
-import           Prelude                 hiding ( mod )
+
 
 -- | Converts the given function declarations. Returns the declarations for the
 --   type signature and the definition (TODO).
