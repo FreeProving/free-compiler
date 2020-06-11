@@ -38,8 +38,8 @@ avoidLaziness :: Converter a -> IO a
 avoidLaziness c =
   let (mbResEnv, msgs) = runReporter $ runConverter c emptyEnv
       (res     , str ) = case mbResEnv of
-        Nothing         -> error "no result"
-        Just (res, env) -> (res, show env ++ show msgs)
+        Nothing          -> error "no result"
+        Just (res', env) -> (res', show env ++ show msgs)
   in  do
         putStr $ drop (length str) str
         return res
