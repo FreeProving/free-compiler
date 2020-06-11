@@ -59,7 +59,7 @@ renameAgdaTypeVar (IR.TypeVarDecl srcSpan name) =
 --   This corresponds to the dagger translation for monotypes as described by 
 --   Abel et al.
 --
---   > τ' = Free τ
+--   > τ' = Free τ*
 dagger :: IR.Type -> Converter Agda.Expr
 dagger = fmap free . star
 
