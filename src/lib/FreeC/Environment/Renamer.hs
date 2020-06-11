@@ -1,5 +1,5 @@
 -- | Contains functions for renaming Haskell identifiers such that they can be
---   savely used as Coq identifiers.
+--   savely used as Coq and Agda identifiers.
 --
 --   Identifiers must not conflict with Coq keywords and must not shadow
 --   types, constructors and functions from the Base library.
@@ -19,6 +19,7 @@ module FreeC.Environment.Renamer
   , renameEntry
   , renameAndAddEntry
   , renameAndDefineTypeVar
+  , renameAndDefineAgdaTypeVar
   , renameAndDefineVar
   )
 where
@@ -32,6 +33,8 @@ import           Data.Maybe                     ( fromMaybe
 import           Text.Casing
 import           Text.RegexPR
 
+import qualified FreeC.Backend.Agda.Syntax     as Agda
+import qualified FreeC.Backend.Agda.Base       as Agda.Base
 import qualified FreeC.Backend.Coq.Base        as Coq.Base
 import           FreeC.Backend.Coq.Keywords
 import qualified FreeC.Backend.Coq.Syntax      as Coq
@@ -171,6 +174,29 @@ renameIdent' ident n env
 renameQualid :: String -> Environment -> Coq.Qualid
 renameQualid = Coq.bare .: renameIdent
 
+-- | Tests if the identifier is in the environment.
+isUsedAgdaIdent :: Environment -> Agda.QName -> Bool
+isUsedAgdaIdent env name = name `elem` usedAgdaIdents env
+
+-- | Generates new Agda identifiers until one is found, which isn't in the
+--   given environment or reserved.
+renameAgdaIdent :: Agda.QName -> Environment -> Agda.QName
+renameAgdaIdent ident env =
+  if (Agda.unqualify ident `elem` Agda.Base.reservedIdents)
+       || isUsedAgdaIdent env ident
+    then renameAgdaIdent (nextQName ident) env
+    else ident
+
+-- | Generates a new Agda identifier based on the given @String@, the used
+--   @Agda.QName@s from the environment and reserved identifier.
+renameAgdaQualid :: String -> Environment -> Agda.QName
+renameAgdaQualid name = renameAgdaIdent (Agda.qname' $ Agda.name name)
+
+-- | Creates a new qualified name, by appending a number or incrementing it.
+nextQName :: Agda.QName -> Agda.QName
+nextQName (Agda.Qual modName qName) = Agda.Qual modName $ nextQName qName
+nextQName (Agda.QName unQName     ) = Agda.QName $ Agda.nextName unQName
+
 -------------------------------------------------------------------------------
 -- Define and automatically rename identifiers                               --
 -------------------------------------------------------------------------------
@@ -182,13 +208,18 @@ renameQualid = Coq.bare .: renameIdent
 renameEntry :: EnvEntry -> Environment -> EnvEntry
 renameEntry entry env
   | isConEntry entry = entry
-    { entryIdent      = renameQualid (toCamel (fromHumps ident)) env
-    , entrySmartIdent = renameQualid ident env
+    { entryIdent          = renameQualid (toCamel (fromHumps ident)) env
+    , entrySmartIdent     = renameQualid ident env
+    , entryAgdaIdent      = renameAgdaQualid (toCamel (fromHumps ident)) env
+    , entryAgdaSmartIdent = renameAgdaQualid ident env
     }
   | isVarEntry entry || isTypeVarEntry entry = entry
-    { entryIdent = renameQualid ident env
+    { entryIdent     = renameQualid ident env
+    , entryAgdaIdent = renameAgdaQualid ident env
     }
-  | otherwise = entry { entryIdent = renameQualid ident env }
+  | otherwise = entry { entryIdent     = renameQualid ident env
+                      , entryAgdaIdent = renameAgdaQualid ident env
+                      }
  where
   ident :: String
   ident = fromMaybe "op" $ IR.identFromQName (entryName entry)
@@ -218,6 +249,22 @@ renameAndAddEntry entry = do
   return entry'
 
 -- | Associates the identifier of a user defined Haskell type variable with an
+--   automatically generated Coq and Agda identifier, which do not cause any
+--   name conflicts in the current environment.
+--
+--   Returns the generated @EnvEntry@
+renameAndDefineTypeVar'
+  :: SrcSpan -- ^ The location of the type variable declaration.
+  -> String  -- ^ The name of the type variable.
+  -> Converter EnvEntry
+renameAndDefineTypeVar' srcSpan ident = renameAndAddEntry TypeVarEntry
+  { entrySrcSpan   = srcSpan
+  , entryName      = IR.UnQual (IR.Ident ident)
+  , entryIdent     = undefined -- filled by renamer
+  , entryAgdaIdent = undefined -- filled by renamer
+  }
+
+-- | Associates the identifier of a user defined Haskell type variable with an
 --   automatically generated Coq identifier that does not cause any name
 --   conflict in the current environment.
 --
@@ -226,14 +273,20 @@ renameAndDefineTypeVar
   :: SrcSpan -- ^ The location of the type variable declaration.
   -> String  -- ^ The name of the type variable.
   -> Converter Coq.Qualid
-renameAndDefineTypeVar srcSpan ident = do
-  entry <- renameAndAddEntry TypeVarEntry
-    { entrySrcSpan   = srcSpan
-    , entryName      = IR.UnQual (IR.Ident ident)
-    , entryIdent     = undefined -- filled by renamer
-    , entryAgdaIdent = undefined -- filled by renamer
-    }
-  return (entryIdent entry)
+renameAndDefineTypeVar srcSpan ident =
+  entryIdent <$> renameAndDefineTypeVar' srcSpan ident
+
+-- | Associates the identifier of a user defined Haskell type variable with an
+--   automatically generated Agda identifier that does not cause any name
+--   conflict in the current environment.
+--
+--   Returns the generated identifier.
+renameAndDefineAgdaTypeVar
+  :: SrcSpan -- ^ The location of the type variable declaration.
+  -> String  -- ^ The name of the type variable.
+  -> Converter Agda.QName
+renameAndDefineAgdaTypeVar srcSpan ident =
+  entryAgdaIdent <$> renameAndDefineTypeVar' srcSpan ident
 
 -- | Associates the identifier of a user defined Haskell variable with an
 --   automatically generated Coq identifier that does not cause any name

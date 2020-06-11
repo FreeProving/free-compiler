@@ -1,9 +1,9 @@
 -- | This module contains functions to lookup entries of the 'Environment'
 --   that (in contrast to the functions defined in "FreeC.Environment")
 --   report a fatal error message when there is no such entry.
-
 module FreeC.Environment.LookupOrFail where
 
+import qualified FreeC.Backend.Agda.Syntax     as Agda
 import qualified FreeC.Backend.Coq.Syntax      as Coq
 import           FreeC.Environment
 import           FreeC.Environment.Entry
@@ -37,12 +37,24 @@ lookupEntryOrFail srcSpan scope name = do
 --   If an error is reported, it points to the given source span.
 lookupIdentOrFail
   :: SrcSpan  -- ^ The source location where the identifier is requested.
-  -> IR.Scope    -- ^ The scope to look the identifier up in.
+  -> IR.Scope -- ^ The scope to look the identifier up in.
   -> IR.QName -- ^ The Haskell identifier to look up.
   -> Converter Coq.Qualid
-lookupIdentOrFail srcSpan scope name = do
-  entry <- lookupEntryOrFail srcSpan scope name
-  return (entryIdent entry)
+lookupIdentOrFail srcSpan scope name =
+  entryIdent <$> lookupEntryOrFail srcSpan scope name
+
+-- | Looks up the Agda identifier for a Haskell function, (type)
+--   constructor or (type) variable with the given name or reports a fatal
+--   error message if the identifier has not been defined.
+--
+--   If an error is reported, it points to the given source span.
+lookupAgdaIdentOrFail
+  :: SrcSpan  -- ^ The source location where the identifier is requested.
+  -> IR.Scope -- ^ The scope to look the identifier up in.
+  -> IR.QName -- ^ The Haskell identifier to look up.
+  -> Converter Agda.QName
+lookupAgdaIdentOrFail srcSpan scope name =
+  entryAgdaIdent <$> lookupEntryOrFail srcSpan scope name
 
 -- | Looks up the Coq identifier of a smart constructor of the Haskell
 --   data constructr with the given name or reports a fatal error message
@@ -53,6 +65,6 @@ lookupSmartIdentOrFail
   :: SrcSpan  -- ^ The source location where the identifier is requested.
   -> IR.QName -- ^ The Haskell identifier to look up.
   -> Converter Coq.Qualid
-lookupSmartIdentOrFail srcSpan name = do
-  entry <- lookupEntryOrFail srcSpan IR.ValueScope name
-  return (entrySmartIdent entry)
+lookupSmartIdentOrFail srcSpan name =
+  entrySmartIdent <$> lookupEntryOrFail srcSpan IR.ValueScope name
+

@@ -9,7 +9,6 @@ module FreeC.Backend.Agda.Base
     -- * Free Monad
   , free
   , pure
-  , impure
   , shape
   , position
     -- * reserved identifiers
@@ -43,24 +42,23 @@ imports = Agda.simpleImport $ Agda.qname [baseLibName] $ Agda.name "Free"
 -- Free Monad                                                                --
 -------------------------------------------------------------------------------
 
+-- | Identifier for the @Free@ monad.
 free :: Agda.Name
 free = Agda.name "Free"
 
-pureConName :: Agda.Name
-pureConName = Agda.name "pure"
+-- | Identifier for the @pure@ constructor of the @Free@ monad.
+pure :: Agda.Name
+pure = Agda.name "pure"
 
-pure :: Agda.Expr -> Agda.Expr
-pure = Agda.app $ Agda.Ident $ Agda.qname [Agda.name "Free"] pureConName
+-- | Identifier for the @impure@ constructor of the @Free@ monad.
+impure :: Agda.Name
+impure = Agda.name "impure"
 
-impureConName :: Agda.Name
-impureConName = Agda.name "impure"
-
-impure :: Agda.Expr -> Agda.Expr
-impure = Agda.app $ Agda.Ident $ Agda.qname [Agda.name "Free"] impureConName
-
+-- | Reserved name for the @Shape@ type variable.
 shape :: Agda.Name
 shape = Agda.name "Shape"
 
+-- | Reserved name for the @Pos@ type variable.
 position :: Agda.Name
 position = Agda.name "Pos"
 
@@ -72,4 +70,4 @@ position = Agda.name "Pos"
 --
 --   This does only include identifiers without corresponding Haskell name.
 reservedIdents :: [Agda.Name]
-reservedIdents = [free, pureConName, impureConName, shape, position]
+reservedIdents = [free, pure, impure, shape, position]

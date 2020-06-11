@@ -50,7 +50,7 @@ exported-values = [
 [[types]]
   haskell-name = 'Prelude.Bool'
   coq-name     = 'Bool'
-  agda-name    = 'Bool'
+  agda-name    = '𝔹'
   arity        = 0
 
 [[constructors]]

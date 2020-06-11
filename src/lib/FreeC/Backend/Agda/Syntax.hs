@@ -11,17 +11,28 @@ module FreeC.Backend.Agda.Syntax
   , qname'
     -- * Imports
   , simpleImport
+    -- * Declarations
+  , moduleDecl
+  , funcSig
     -- * Expressions
   , intLiteral
   , lambda
   , app
+  , ident
+    -- * Types
+  , fun
+  , pi
   )
 where
+
+import           Prelude                 hiding ( pi )
 
 import           Agda.Syntax.Common
 import           Agda.Syntax.Concrete
 import           Agda.Syntax.Literal
 import           Agda.Syntax.Position
+
+import           FreeC.Util.Predicate           ( (.||.) )
 
 -------------------------------------------------------------------------------
 -- Identifiers                                                               --
@@ -29,12 +40,12 @@ import           Agda.Syntax.Position
 
 -- | Creates a (not qualified) Agda variable name from a 'String'.
 name :: String -> Name
-name ident = Name NoRange InScope [Id ident]
+name str = Name NoRange InScope [Id str]
 
 -- | Create a qualified identifier given a local identifier as 'Name' and a
 --   list of module 'Name's.
 qname :: [Name] -> Name -> QName
-qname modules ident = foldr Qual (QName ident) modules
+qname modules unQName = foldr Qual (QName unQName) modules
 
 -- | Creates a qualified name using an empty list of module names.
 qname' :: Name -> QName
@@ -56,9 +67,30 @@ simpleImport modName = Import
   (ImportDirective NoRange UseEverything [] [] Nothing)
 
 -------------------------------------------------------------------------------
+-- Declarations                                                              --
+-------------------------------------------------------------------------------
+
+-- | Smart constructor for creating a module containing a list of declarations.
+moduleDecl :: QName -> [Declaration] -> Declaration
+moduleDecl modName = Module NoRange modName []
+
+-- | Smart constructor for creating function type declarations.
+--
+--   > funcSig foo expr = foo : expr
+funcSig :: Name -> Expr -> Declaration
+funcSig = TypeSig defaultArgInfo Nothing
+
+-------------------------------------------------------------------------------
 -- Expressions                                                               --
 -------------------------------------------------------------------------------
 
+isApp :: Expr -> Bool
+isApp (App _ _ _) = True
+isApp _           = False
+
+isFun :: Expr -> Bool
+isFun (Fun _ _ _) = True
+isFun _           = False
 -- | Creates an integer literal.
 intLiteral :: Integer -> Expr
 intLiteral = Lit . LitNat NoRange
@@ -70,8 +102,48 @@ intLiteral = Lit . LitNat NoRange
 lambda :: [Name] -> Expr -> Expr
 lambda args = Lam NoRange (DomainFree . defaultNamedArg . mkBinder_ <$> args)
 
--- | Creates an application AST node.
+-- | Creates an application AST node. Application is left associative and in
+--   in type expressions binds stronger than type arrow. For these cases paren-
+--   thesis are added automatically.
 --
---   @e a@
+--   > e a
 app :: Expr -> Expr -> Expr
-app l r = App NoRange l $ defaultNamedArg r
+app l r =
+  App NoRange l $ defaultNamedArg (if isApp .||. isFun $ r then paren r else r)
+
+-- | Wraps the given expression in parenthesis.
+paren :: Expr -> Expr
+paren = Paren NoRange
+
+-- | Helper function for creating expressions from @String@s.
+ident :: String -> Expr
+ident = Ident . qname' . name
+
+-------------------------------------------------------------------------------
+-- Types                                                                     --
+-------------------------------------------------------------------------------
+
+-- | A smart constructor for non dependent function types.
+fun :: Expr -> Expr -> Expr
+fun l@(Fun _ _ _) = Fun NoRange (defaultArg (paren l)) -- (->) is right assoc.
+fun l             = Fun NoRange (defaultArg l)
+
+-- | Creates a pi type binding the given names as hidden variables.
+--
+--   > pi [α₁, …, αₙ] expr ↦ ∀ {α₁} … {αₙ} → expr
+pi :: [Name] -> Expr -> Expr
+pi decls =
+  Pi [TBind NoRange (hiddenArg <$> decls) (Underscore NoRange Nothing)]
+
+-- | Helper function for creating hidden named arguments.
+hiddenArg :: Name -> NamedArg Binder
+hiddenArg n =
+  Arg hiddenArgInfo $ Named Nothing $ Binder Nothing $ mkBoundName_ n
+
+-- | Argument meta data marking them as hidden.
+hiddenArgInfo :: ArgInfo
+hiddenArgInfo = ArgInfo { argInfoHiding        = Hidden
+                        , argInfoModality      = defaultModality
+                        , argInfoOrigin        = UserWritten
+                        , argInfoFreeVariables = UnknownFVs
+                        }
