@@ -568,6 +568,8 @@ testFuncDeclParser = context "function declarations" $ do
     "f (x :: a) = x" `shouldParse` IR.FuncDecl NoSrcSpan f [] [xPat'] Nothing x
   it "accepts function declarations with annotated return type" $ do
     "f x :: a = x" `shouldParse` IR.FuncDecl NoSrcSpan f [] [xPat] (Just a) x
+  it "accepts nullary function declarations with annotated return type" $ do
+    "f :: a = x" `shouldParse` IR.FuncDecl NoSrcSpan f [] [] (Just a) x
   it "accepts function declarations with type arguments" $ do
     "f @a = x" `shouldParse` IR.FuncDecl NoSrcSpan f [aDecl] [] Nothing x
   it "accepts function declarations with arguments and type arguments" $ do
@@ -648,6 +650,23 @@ testModuleParser = context "modules" $ do
         { IR.modName      = "M"
         , IR.modFuncDecls = [IR.FuncDecl NoSrcSpan funFoo [] [xPat] Nothing x]
         }
+  it
+      (  "accepts modules with nullary function declarations whose return type"
+      ++ "is annotated"
+      )
+    $ do
+        shouldParseModule
+          ["module M where", "foo :: Foo = x"]
+          emptyModule
+            { IR.modName      = "M"
+            , IR.modFuncDecls = [ IR.FuncDecl NoSrcSpan
+                                              funFoo
+                                              []
+                                              []
+                                              (Just tyFoo)
+                                              x
+                                ]
+            }
   it "accepts modules with top-level declarations separated by semicolon" $ do
     shouldParseModule
       ["module M1 where", "import M2;", "type Bar = Foo;"]
