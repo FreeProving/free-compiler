@@ -10,8 +10,6 @@ module FreeC.Backend.Agda.Converter.Type
   )
 where
 
-import           Control.Monad                  ( mapM )
-
 import qualified FreeC.Backend.Agda.Syntax     as Agda
 import           FreeC.Backend.Agda.Converter.Free
                                                 ( free
@@ -64,12 +62,17 @@ renameAgdaTypeVar (IR.TypeVarDecl srcSpan name) =
 dagger :: IR.Type -> Converter Agda.Expr
 dagger = fmap free . star
 
--- | The star translation for monotypes as described by Abel et al.
+-- | Lifts a type from IR to Agda by renaming type variables and constructors,
+--   adding the free arguments to constructors and lifting function types in
+--   the @Free@ monad.
 --
--- > (τ₁ τ₂)* = τ₁* τ₂*
--- > (τ₁ → τ₂)* = τ₁' → τ₂'
--- > C* = Ĉ Shape Position
--- > α* = α̂
+--   This corresponds to the star translation for monotypes as described by
+--   Abel et al.
+--
+--   > (τ₁ τ₂)* = τ₁* τ₂*
+--   > (τ₁ → τ₂)* = τ₁' → τ₂'
+--   > C* = Ĉ Shape Position
+--   > α* = α̂
 star :: IR.Type -> Converter Agda.Expr
 star (IR.TypeVar s name) = Agda.Ident
   <$> lookupAgdaIdentOrFail s IR.TypeScope (IR.UnQual (IR.Ident name))
