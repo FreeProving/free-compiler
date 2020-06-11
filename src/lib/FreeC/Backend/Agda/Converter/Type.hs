@@ -75,6 +75,4 @@ star (IR.TypeVar s name) = Agda.Ident
 star (IR.TypeCon s name) =
   applyFreeArgs <$> lookupAgdaIdentOrFail s IR.TypeScope name
 star (IR.TypeApp  _ l r) = Agda.app <$> star l <*> star r
--- At the moment this case simplifies to
--- @Agda.func <$> free (dagger l) <*> free (dagger r)@.
 star (IR.FuncType _ l r) = Agda.fun <$> dagger l <*> dagger r
