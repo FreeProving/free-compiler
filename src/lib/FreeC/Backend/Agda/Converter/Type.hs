@@ -38,7 +38,7 @@ convertFunctionType types = foldr1 Agda.fun <$> mapM dagger types
 --   type of a constructor for a data type D has to be D and therefore cannot be
 --   lifted.
 --
---   > (τ₁ -> … -> τₙ -> ρ)' = τ₁' → … → τₙ' → ρ*
+--   > τ₁ -> … -> τₙ -> ρ ↦ τ₁' → … → τₙ' → ρ*
 convertConstructorType :: [IR.Type] -> Converter Agda.Expr
 convertConstructorType types =
   -- We can use the @star@ translation for the data type, because only the name
@@ -55,7 +55,9 @@ renameAgdaTypeVar (IR.TypeVarDecl srcSpan name) =
 -- Translations                                                              --
 -------------------------------------------------------------------------------
 
--- | The dagger translation as describer by Abel et al.
+-- | Converts a type from IR to Agda by lifting it into the @Free@ monad.
+--   This corresponds to the dagger translation for monotypes as described by 
+--   Abel et al.
 --
 --   > τ' = Free τ
 dagger :: IR.Type -> Converter Agda.Expr
