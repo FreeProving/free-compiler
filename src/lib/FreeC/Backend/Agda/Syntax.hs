@@ -9,7 +9,6 @@ module FreeC.Backend.Agda.Syntax
   , name
   , qname
   , qname'
-  , nextQName
     -- * Imports
   , simpleImport
     -- * Declarations
@@ -23,7 +22,7 @@ module FreeC.Backend.Agda.Syntax
     -- * Types
   , set
   , dataDecl
-  , func
+  , fun
   , pi
   )
 where
@@ -53,11 +52,6 @@ qname modules unQName = foldr Qual (QName unQName) modules
 -- | Creates a qualified name using an empty list of module names.
 qname' :: Name -> QName
 qname' = qname []
-
--- | Creates a new qualified name, by appending a number or incrementing it.
-nextQName :: QName -> QName
-nextQName (Qual modName qName) = Qual modName $ nextQName qName
-nextQName (QName unQName     ) = QName $ nextName unQName
 
 -------------------------------------------------------------------------------
 -- Imports                                                                   --
@@ -139,19 +133,21 @@ dataDecl :: Name -> [Declaration] -> Declaration
 dataDecl dataName = Data NoRange dataName [] set
 
 -- | A smart constructor for non dependent function types.
-func :: Expr -> Expr -> Expr
-func l@(Fun _ _ _) = Fun NoRange (defaultArg (paren l)) -- (->) is right assoc.
-func l             = Fun NoRange (defaultArg l)
+fun :: Expr -> Expr -> Expr
+fun l@(Fun _ _ _) = Fun NoRange (defaultArg (paren l)) -- (->) is right assoc.
+fun l             = Fun NoRange (defaultArg l)
 
 -- | Creates a pi type binding the given names as hidden variables.
 --
---   > pi [α, β, γ, …] expr = ∀ {α} {β} {γ} … → expr
+--   > pi [α₁, …, αₙ] expr ↦ ∀ {α₁} … {αₙ} → expr
 pi :: [Name] -> Expr -> Expr
-pi decls = Pi [TBind NoRange (bName <$> decls) (Underscore NoRange Nothing)]
+pi decls =
+  Pi [TBind NoRange (hiddenArg <$> decls) (Underscore NoRange Nothing)]
 
--- | Helper function for creating bound, named arguments.
-bName :: Name -> NamedArg Binder
-bName n = Arg hiddenArgInfo $ Named Nothing $ Binder Nothing $ mkBoundName_ n
+-- | Helper function for creating hidden named arguments.
+hiddenArg :: Name -> NamedArg Binder
+hiddenArg n =
+  Arg hiddenArgInfo $ Named Nothing $ Binder Nothing $ mkBoundName_ n
 
 -- | Argument meta data marking them as hidden.
 hiddenArgInfo :: ArgInfo
