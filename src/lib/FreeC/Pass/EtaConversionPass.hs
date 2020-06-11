@@ -125,9 +125,9 @@ import           FreeC.Pass.TypeSignaturePass   ( splitFuncType )
 --   in the given module until all function and constructor applications are
 --   fully applied.
 etaConversionPass :: Pass IR.Module
-etaConversionPass ast = do
-  funcDecls' <- mapM etaConvertFuncDecl (IR.modFuncDecls ast)
-  return ast { IR.modFuncDecls = funcDecls' }
+etaConversionPass ast = return ast -- do
+  --funcDecls' <- mapM etaConvertFuncDecl (IR.modFuncDecls ast)
+  --return ast { IR.modFuncDecls = funcDecls' }
 
 -------------------------------------------------------------------------------
 -- Function declarations                                                     --
