@@ -35,7 +35,7 @@ convertFuncDecl decl = localEnv $ sequence [convertSignature decl]
 convertSignature :: IR.FuncDecl -> Converter Agda.Declaration
 convertSignature (IR.FuncDecl _ ident tVars args retType _) =
   Agda.funcSig <$> lookupValueIdent ident <*> convertFunc_ tVars types
-  where types = (map IR.varPatType args) `snoc` retType
+  where types = map IR.varPatType args `snoc` retType
 
 -- | Looks up the name of a Haskell function in the environment and converts it
 --   to an Agda name.
