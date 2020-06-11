@@ -233,6 +233,8 @@ test-suite freec-unit-tests
                     , FreeC.IR.SimilarTests
                     , FreeC.IR.SubstTests
                     , FreeC.IR.SubtermTests
+                    , FreeC.IR.SyntaxTests
+                    , FreeC.IR.Syntax.ModuleTests
                     , FreeC.IR.Tests
                     , FreeC.IR.UnificationTests
                     , FreeC.Monad.Class.Testable
