@@ -41,20 +41,20 @@ testConvertType = describe "FreeC.Backend.Coq.Converter.Type.convertType" $ do
     "a" `shouldConvertTypeTo` "Free Shape Pos a"
 
   it "converts nullary type constructors correctly" $ shouldSucceedWith $ do
-    "Bool" <- defineTestTypeCon "Bool" 0
+    "Bool" <- defineTestTypeCon "Bool" 0 []
     "Bool" `shouldConvertTypeTo` "Free Shape Pos (Bool Shape Pos)"
 
   it "converts nullary type constructors correctly" $ shouldSucceedWith $ do
-    "Bool" <- defineTestTypeCon "Bool" 0
+    "Bool" <- defineTestTypeCon "Bool" 0 []
     "Bool" `shouldConvertTypeTo` "Free Shape Pos (Bool Shape Pos)"
 
   it "converts unary type constructors correctly" $ shouldSucceedWith $ do
-    "List" <- defineTestTypeCon "List" 1
+    "List" <- defineTestTypeCon "List" 1 []
     "a"    <- defineTestTypeVar "a"
     "List a" `shouldConvertTypeTo` "Free Shape Pos (List Shape Pos a)"
 
   it "converts binary type constructors correctly" $ shouldSucceedWith $ do
-    "Pair" <- defineTestTypeCon "Pair" 2
+    "Pair" <- defineTestTypeCon "Pair" 2 []
     "a"    <- defineTestTypeVar "a"
     "b"    <- defineTestTypeVar "b"
     "Pair a b" `shouldConvertTypeTo` "Free Shape Pos (Pair Shape Pos a b)"

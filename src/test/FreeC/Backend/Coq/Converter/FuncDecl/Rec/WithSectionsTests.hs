@@ -41,7 +41,7 @@ testConvertRecFuncDeclWithSections = context "with section sentences" $ do
   it "creates variable sentences for constant arguments"
     $ shouldSucceedWith
     $ do
-        "List"           <- defineTestTypeCon "List" 1
+        "List"           <- defineTestTypeCon "List" 1 ["Nil", "Cons"]
         ("nil" , "Nil" ) <- defineTestCon "Nil" 0 "forall a. List a"
         ("cons", "Cons") <- defineTestCon "Cons"
                                           2
@@ -89,7 +89,7 @@ testConvertRecFuncDeclWithSections = context "with section sentences" $ do
   it "creates variable sentences for type variables in constant argument types"
     $ shouldSucceedWith
     $ do
-        "List"           <- defineTestTypeCon "List" 1
+        "List"           <- defineTestTypeCon "List" 1 ["Nil", "Cons"]
         ("nil" , "Nil" ) <- defineTestCon "Nil" 0 "forall a. List a"
         ("cons", "Cons") <- defineTestCon "Cons"
                                           2
@@ -162,7 +162,7 @@ testConvertRecFuncDeclWithSections = context "with section sentences" $ do
   it "does not create variable sentences for unsued constant arguments"
     $ shouldSucceedWith
     $ do
-        "List"           <- defineTestTypeCon "List" 1
+        "List"           <- defineTestTypeCon "List" 1 ["Nil", "Cons"]
         ("nil" , "Nil" ) <- defineTestCon "Nil" 0 "forall a. List a"
         ("cons", "Cons") <- defineTestCon "Cons"
                                           2
@@ -206,7 +206,7 @@ testConvertRecFuncDeclWithSections = context "with section sentences" $ do
   it "passes constant type arguments explicitly the main function"
     $ shouldSucceedWith
     $ do
-        "List"           <- defineTestTypeCon "List" 1
+        "List"           <- defineTestTypeCon "List" 1 ["Nil", "Cons"]
         ("nil" , "Nil" ) <- defineTestCon "Nil" 0 "forall a. List a"
         ("cons", "Cons") <- defineTestCon "Cons"
                                           2

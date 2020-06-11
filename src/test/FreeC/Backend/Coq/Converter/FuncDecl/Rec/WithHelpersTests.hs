@@ -48,7 +48,7 @@ testConvertRecFuncDeclWithHelpers = context "with helper functions" $ do
       ++ "  = if (==) n 0 then 1 else (*) n (fac (pred n))"
       )
     shouldFail $ do
-      _ <- defineTestTypeCon "Integer" 0
+      _ <- defineTestTypeCon "Integer" 0 []
       _ <- defineTestFunc "fac" 1 "Integer -> Integer"
       _ <- defineTestFunc "pred" 1 "Integer -> Integer"
       _ <- defineTestFunc "(*)" 1 "Integer -> Integer -> Integer"
@@ -59,7 +59,7 @@ testConvertRecFuncDeclWithHelpers = context "with helper functions" $ do
     input <- expectParseTestFuncDecl
       "loop @a :: a = case f of { () -> loop @a }"
     shouldFail $ do
-      _ <- defineTestTypeCon "()" 0
+      _ <- defineTestTypeCon "()" 0 ["()"]
       _ <- defineTestCon "()" 0 "()"
       _ <- defineTestFunc "f" 0 "()"
       _ <- defineTestFunc "loop" 0 "forall a. a"
@@ -73,9 +73,9 @@ testConvertRecFuncDeclWithHelpers = context "with helper functions" $ do
       convertRecFuncDeclsWithHelpers [input]
 
   it "translates simple recursive functions correctly" $ shouldSucceedWith $ do
-    "Integer"        <- defineTestTypeCon "Integer" 0
+    "Integer"        <- defineTestTypeCon "Integer" 0 []
     "succ"           <- defineTestFunc "succ" 1 "Integer -> Integer"
-    "List"           <- defineTestTypeCon "List" 1
+    "List"           <- defineTestTypeCon "List" 1 ["Nil", "Cons"]
     ("nil" , "Nil" ) <- defineTestCon "Nil" 0 "forall a. List a"
     ("cons", "Cons") <- defineTestCon "Cons" 2 "forall a. a -> List a -> List a"
     "length"         <- defineTestFunc "length" 1 "forall a. List a -> Integer"
@@ -104,9 +104,9 @@ testConvertRecFuncDeclWithHelpers = context "with helper functions" $ do
   it "uses expression type annotations for return type of helper functions"
     $ shouldSucceedWith
     $ do
-        "Integer"        <- defineTestTypeCon "Integer" 0
+        "Integer"        <- defineTestTypeCon "Integer" 0 []
         "succ"           <- defineTestFunc "succ" 1 "Integer -> Integer"
-        "List"           <- defineTestTypeCon "List" 1
+        "List"           <- defineTestTypeCon "List" 1 ["Nil", "Cons"]
         ("nil" , "Nil" ) <- defineTestCon "Nil" 0 "forall a. List a"
         ("cons", "Cons") <- defineTestCon "Cons"
                                           2
@@ -136,8 +136,8 @@ testConvertRecFuncDeclWithHelpers = context "with helper functions" $ do
           ++ "       @length_0 Shape Pos a xs_0)."
 
   it "translates partial recursive functions correctly" $ shouldSucceedWith $ do
-    "Bool"           <- defineTestTypeCon "Prelude.Bool" 0
-    "List"           <- defineTestTypeCon "List" 1
+    "Bool"           <- defineTestTypeCon "Prelude.Bool" 0 []
+    "List"           <- defineTestTypeCon "List" 1 ["Nil", "Cons"]
     ("nil" , "Nil" ) <- defineTestCon "Nil" 0 "forall a. List a"
     ("cons", "Cons") <- defineTestCon "Cons" 2 "forall a. a -> List a -> List a"
     "findJust" <- definePartialTestFunc "findJust"
@@ -178,10 +178,10 @@ testConvertRecFuncDeclWithHelpers = context "with helper functions" $ do
   it "translates mutually recursive functions correctly"
     $ shouldSucceedWith
     $ do
-        "Bool"           <- defineTestTypeCon "Bool" 0
+        "Bool"           <- defineTestTypeCon "Bool" 0 []
         (_, "True" )     <- defineTestCon "True" 0 "Bool"
         (_, "False")     <- defineTestCon "False" 0 "Bool"
-        "List"           <- defineTestTypeCon "List" 1
+        "List"           <- defineTestTypeCon "List" 1 ["Nil", "Cons"]
         ("nil" , "Nil" ) <- defineTestCon "Nil" 0 "forall a. List a"
         ("cons", "Cons") <- defineTestCon "Cons"
                                           2
@@ -232,7 +232,7 @@ testConvertRecFuncDeclWithHelpers = context "with helper functions" $ do
   it "translates recursive functions with nested case expressions correctly"
     $ shouldSucceedWith
     $ do
-        "List"           <- defineTestTypeCon "List" 1
+        "List"           <- defineTestTypeCon "List" 1 ["Nil", "Cons"]
         ("nil" , "Nil" ) <- defineTestCon "Nil" 0 "forall a. List a"
         ("cons", "Cons") <- defineTestCon "Cons"
                                           2
@@ -267,7 +267,7 @@ testConvertRecFuncDeclWithHelpers = context "with helper functions" $ do
   it "translates recursive functions with outer lambda abstractions correctly"
     $ shouldSucceedWith
     $ do
-        "List"           <- defineTestTypeCon "List" 1
+        "List"           <- defineTestTypeCon "List" 1 ["Nil", "Cons"]
         ("nil" , "Nil" ) <- defineTestCon "Nil" 0 "forall a. List a"
         ("cons", "Cons") <- defineTestCon "Cons"
                                           2
@@ -307,7 +307,7 @@ testConvertRecFuncDeclWithHelpers = context "with helper functions" $ do
   it "translates recursive functions with nested lambda abstractions correctly"
     $ shouldSucceedWith
     $ do
-        "List"           <- defineTestTypeCon "List" 1
+        "List"           <- defineTestTypeCon "List" 1 ["Nil", "Cons"]
         ("nil" , "Nil" ) <- defineTestCon "Nil" 0 "forall a. List a"
         ("cons", "Cons") <- defineTestCon "Cons"
                                           2
@@ -343,7 +343,7 @@ testConvertRecFuncDeclWithHelpers = context "with helper functions" $ do
       "translates recursive functions with nested pattern matching on recursive argument correctly"
     $ shouldSucceedWith
     $ do
-        "List"           <- defineTestTypeCon "List" 1
+        "List"           <- defineTestTypeCon "List" 1 ["Nil", "Cons"]
         ("nil" , "Nil" ) <- defineTestCon "Nil" 0 "forall a. List a"
         ("cons", "Cons") <- defineTestCon "Cons"
                                           2
@@ -383,9 +383,9 @@ testConvertRecFuncDeclWithHelpers = context "with helper functions" $ do
   it "allows the arguments of helper functions to be shadowed"
     $ shouldSucceedWith
     $ do
-        "Integer"        <- defineTestTypeCon "Integer" 0
+        "Integer"        <- defineTestTypeCon "Integer" 0 []
         "succ"           <- defineTestFunc "succ" 1 "Integer -> Integer"
-        "List"           <- defineTestTypeCon "List" 1
+        "List"           <- defineTestTypeCon "List" 1 ["Nil", "Cons"]
         ("nil" , "Nil" ) <- defineTestCon "Nil" 0 "forall a. List a"
         ("cons", "Cons") <- defineTestCon "Cons"
                                           2
@@ -416,9 +416,9 @@ testConvertRecFuncDeclWithHelpers = context "with helper functions" $ do
   it "does not pass shadowed arguments of main function to helper functions"
     $ shouldSucceedWith
     $ do
-        "Integer"        <- defineTestTypeCon "Integer" 0
+        "Integer"        <- defineTestTypeCon "Integer" 0 []
         "succ"           <- defineTestFunc "succ" 1 "Integer -> Integer"
-        "List"           <- defineTestTypeCon "List" 1
+        "List"           <- defineTestTypeCon "List" 1 ["Nil", "Cons"]
         ("nil" , "Nil" ) <- defineTestCon "Nil" 0 "forall a. List a"
         ("cons", "Cons") <- defineTestCon "Cons"
                                           2
@@ -455,10 +455,10 @@ testConvertRecFuncDeclWithHelpers = context "with helper functions" $ do
   it "translates polymorphically recursive functions correctly"
     $ shouldSucceedWith
     $ do
-        "Integer"        <- defineTestTypeCon "Integer" 0
+        "Integer"        <- defineTestTypeCon "Integer" 0 []
         "succ"           <- defineTestFunc "succ" 1 "Integer -> Integer"
-        "Pair"           <- defineTestTypeCon "Pair" 2
-        "Tree"           <- defineTestTypeCon "Tree" 1
+        "Pair"           <- defineTestTypeCon "Pair" 2 []
+        "Tree"           <- defineTestTypeCon "Tree" 1 ["Leaf", "Fork"]
         ("leaf", "Leaf") <- defineTestCon "Leaf" 1 "forall a. a -> Tree a"
         ("fork", "Fork") <- defineTestCon "Fork"
                                           1
