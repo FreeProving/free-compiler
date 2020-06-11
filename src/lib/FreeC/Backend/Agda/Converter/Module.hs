@@ -19,7 +19,6 @@ import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Converter
 import           FreeC.Pipeline
 
-
 -- | Converts a Haskell module to an Agda declaration.
 convertModule :: IR.Module -> Converter Agda.Declaration
 convertModule = moduleEnv . (runPipeline >=> convertModule')

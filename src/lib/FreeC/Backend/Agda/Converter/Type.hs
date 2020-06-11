@@ -9,7 +9,6 @@ module FreeC.Backend.Agda.Converter.Type
   )
 where
 
-
 import qualified FreeC.Backend.Agda.Syntax     as Agda
 import           FreeC.Backend.Agda.Converter.Free
                                                 ( free
@@ -28,42 +27,49 @@ convertType = dagger
 --   monadic layers isn't needed.
 --
 --   > τ₁ -> … -> τₙ -> ρ ↦ τ₁' → … → τₙ' → ρ'
-convertFunctionType :: [IR.Type] -> Converter Agda.Expr
-convertFunctionType types = foldr1 Agda.fun <$> mapM dagger types
+convertFunctionType :: [IR.Type] -> IR.Type -> Converter Agda.Expr
+convertFunctionType argTypes returnType =
+  foldr Agda.fun <$> dagger returnType <*> mapM dagger argTypes
 
 -- | Constructors aren't evaluated until fully applied. Furthermore the return
 --   type of a constructor for a data type D has to be D and therefore cannot be
 --   lifted.
 --
---   > (τ₁ -> … -> τₙ -> ρ)' = τ₁' → … → τₙ' → ρ*
-convertConstructorType :: [IR.Type] -> Converter Agda.Expr
-convertConstructorType types =
+--   > τ₁ -> … -> τₙ -> ρ ↦ τ₁' → … → τₙ' → ρ*
+convertConstructorType :: [IR.Type] -> IR.Type -> Converter Agda.Expr
+convertConstructorType argTypes returnType =
   -- We can use the @star@ translation for the data type, because only the name
   -- and the application of type and @Size@ variables have to be translated.
-  Agda.fun <$> convertFunctionType (init types) <*> star (last types)
+  foldr Agda.fun <$> star returnType <*> mapM dagger argTypes
 
 -------------------------------------------------------------------------------
 -- Translations                                                              --
 -------------------------------------------------------------------------------
 
--- | The dagger translation as describer by Abel et al.
+-- | Converts a type from IR to Agda by lifting it into the @Free@ monad.
 --
---   > τ' = Free τ
+--   This corresponds to the dagger translation for monotypes as described by
+--   Abel et al.
+--
+--   > τ' = Free τ*
 dagger :: IR.Type -> Converter Agda.Expr
 dagger = fmap free . star
 
--- | The star translation for monotypes as described by Abel et al.
+-- | Lifts a type from IR to Agda by renaming type variables and constructors,
+--   adding the free arguments to constructors and lifting function types in
+--   the @Free@ monad.
 --
--- > (τ₁ τ₂)* = τ₁* τ₂*
--- > (τ₁ → τ₂)* = τ₁' → τ₂'
--- > C* = Ĉ Shape Position
--- > α* = α̂
+--   This corresponds to the star translation for monotypes as described by
+--   Abel et al.
+--
+--   > (τ₁ τ₂)* = τ₁* τ₂*
+--   > (τ₁ → τ₂)* = τ₁' → τ₂'
+--   > C* = Ĉ Shape Position
+--   > α* = α̂
 star :: IR.Type -> Converter Agda.Expr
 star (IR.TypeVar s name) = Agda.Ident
   <$> lookupAgdaIdentOrFail s IR.TypeScope (IR.UnQual (IR.Ident name))
 star (IR.TypeCon s name) =
   applyFreeArgs <$> lookupAgdaIdentOrFail s IR.TypeScope name
 star (IR.TypeApp  _ l r) = Agda.app <$> star l <*> star r
--- At the moment this case simplifies to
--- @Agda.func <$> free (dagger l) <*> free (dagger r)@.
 star (IR.FuncType _ l r) = Agda.fun <$> dagger l <*> dagger r
