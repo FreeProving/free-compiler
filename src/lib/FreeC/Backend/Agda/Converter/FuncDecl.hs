@@ -23,7 +23,6 @@ import           FreeC.Monad.Converter          ( Converter
                                                 , localEnv
                                                 )
 
-
 -- | Converts the given function declarations. Returns the declarations for the
 --   type signature and the definition (TODO).
 convertFuncDecl :: IR.FuncDecl -> Converter [Agda.Declaration]
@@ -51,5 +50,3 @@ convertFunc_ tVars ts rt =
   (map fromJust ts)
   (fromJust rt)
   where tVars' = addFreeArgs <$> mapM renameAgdaTypeVar tVars
-
-
