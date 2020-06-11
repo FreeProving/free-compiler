@@ -11,14 +11,15 @@ import           Prelude                 hiding ( mod )
 import           Data.List.Extra                ( snoc )
 import           Data.Maybe                     ( fromJust )
 
+import           FreeC.Backend.Agda.Converter.Arg
+                                                ( convertTypeVarDecl
+                                                , lookupValueIdent
+                                                )
 import           FreeC.Backend.Agda.Converter.Free
                                                 ( addFreeArgs )
 import           FreeC.Backend.Agda.Converter.Type
-                                                ( convertFunctionType
-                                                , renameAgdaTypeVar
-                                                )
+                                                ( convertFunctionType )
 import qualified FreeC.Backend.Agda.Syntax     as Agda
-import           FreeC.Environment.LookupOrFail ( lookupAgdaIdentOrFail )
 import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Converter          ( Converter
                                                 , localEnv
@@ -37,15 +38,9 @@ convertSignature (IR.FuncDecl _ ident tVars args retType _) =
   Agda.funcSig <$> lookupValueIdent ident <*> convertFunc_ tVars types
   where types = (IR.varPatType `map` args) `snoc` retType
 
--- | Looks up the name of a Haskell function in the environment and converts it
---   to an Agda name.
-lookupValueIdent :: IR.DeclIdent -> Converter Agda.Name
-lookupValueIdent (IR.DeclIdent srcSpan name) =
-  Agda.unqualify <$> lookupAgdaIdentOrFail srcSpan IR.ValueScope name
-
 -- | Converts a fully applied function.
 convertFunc_ :: [IR.TypeVarDecl] -> [Maybe IR.Type] -> Converter Agda.Expr
 convertFunc_ tVars ts = Agda.pi <$> tVars' <*> convertFunctionType
   (fromJust `map` ts) -- handled in #19
-  where tVars' = addFreeArgs <$> mapM renameAgdaTypeVar tVars
+  where tVars' = addFreeArgs <$> mapM convertTypeVarDecl tVars
 

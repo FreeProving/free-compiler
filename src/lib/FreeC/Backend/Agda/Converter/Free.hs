@@ -6,8 +6,11 @@ module FreeC.Backend.Agda.Converter.Free
   , free
   , applyFreeArgs
   , addFreeArgs
+  , freeDataDecl
   )
 where
+
+import           Data.List.Extra                ( snoc )
 
 import qualified FreeC.Backend.Agda.Syntax     as Agda
 import qualified FreeC.Backend.Agda.Base       as Agda.Base
@@ -36,3 +39,27 @@ applyFreeArgs qname = foldl1
 --   names.
 addFreeArgs :: [Agda.Name] -> [Agda.Name]
 addFreeArgs ts = Agda.Base.shape : Agda.Base.position : ts
+
+shape :: Agda.Expr
+shape = Agda.Ident $ Agda.qname' $ Agda.Base.shape
+
+-- | Binder for the type arguments of the @Free@ monad.
+--
+--   > (Shape : Set) (Pos : Shape → Set)
+freeArgBinder :: [Agda.LamBinding]
+freeArgBinder = map
+  Agda.DomainFull
+  [ Agda.binding [Agda.Base.shape] Agda.set
+  , Agda.binding [Agda.Base.position] (shape `Agda.fun` Agda.set)
+  ]
+
+-- | Creates a declaration for a data type, which is parameterized over @Shape@
+--   and @Pos@.
+freeDataDecl
+  :: Agda.Name          -- ^ Name of the data type
+  -> [Agda.Name]        -- ^ Names of the bound type variables
+  -> [Agda.Declaration] -- ^ List of constructor declarations
+  -> Agda.Declaration
+freeDataDecl dataName typeNames =
+  Agda.dataDecl dataName $ freeArgBinder `snoc` Agda.DomainFull
+    (Agda.binding typeNames Agda.set)

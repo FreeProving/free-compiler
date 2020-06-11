@@ -22,6 +22,7 @@ module FreeC.Backend.Agda.Syntax
     -- * Types
   , set
   , dataDecl
+  , binding
   , fun
   , pi
   )
@@ -129,8 +130,17 @@ ident = Ident . qname' . name
 set :: Expr
 set = ident "Set"
 
-dataDecl :: Name -> [Declaration] -> Declaration
-dataDecl dataName = Data NoRange dataName [] set
+dataDecl :: Name -> [LamBinding] -> [Declaration] -> Declaration
+dataDecl dataName bindings = Data NoRange dataName bindings set
+
+-- | Creates a binder with visible args.
+--
+--   > [α₁, …, αₙ] e ↦ (α₁ … αₙ : e)
+binding :: [Name] -> Expr -> TypedBinding
+binding types = TBind NoRange (map visibleArg types)
+
+visibleArg :: Name -> NamedArg Binder
+visibleArg = defaultNamedArg . mkBinder_
 
 -- | A smart constructor for non dependent function types.
 fun :: Expr -> Expr -> Expr

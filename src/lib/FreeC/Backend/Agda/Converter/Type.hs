@@ -6,11 +6,9 @@ module FreeC.Backend.Agda.Converter.Type
   ( convertType
   , convertFunctionType
   , convertConstructorType
-  , renameAgdaTypeVar
   )
 where
 
-import           Control.Monad                  ( mapM )
 
 import qualified FreeC.Backend.Agda.Syntax     as Agda
 import           FreeC.Backend.Agda.Converter.Free
@@ -18,7 +16,6 @@ import           FreeC.Backend.Agda.Converter.Free
                                                 , applyFreeArgs
                                                 )
 import           FreeC.Environment.LookupOrFail ( lookupAgdaIdentOrFail )
-import           FreeC.Environment.Renamer      ( renameAndDefineAgdaTypeVar )
 import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Converter          ( Converter )
 
@@ -44,12 +41,6 @@ convertConstructorType types =
   -- We can use the @star@ translation for the data type, because only the name
   -- and the application of type and @Size@ variables have to be translated.
   Agda.fun <$> convertFunctionType (init types) <*> star (last types)
-
--- | Utility function for introducing a new Agda type variable to the current
---   scope.
-renameAgdaTypeVar :: IR.TypeVarDecl -> Converter Agda.Name
-renameAgdaTypeVar (IR.TypeVarDecl srcSpan name) =
-  Agda.unqualify <$> renameAndDefineAgdaTypeVar srcSpan name
 
 -------------------------------------------------------------------------------
 -- Translations                                                              --

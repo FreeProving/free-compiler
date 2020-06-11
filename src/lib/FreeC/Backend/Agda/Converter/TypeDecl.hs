@@ -7,24 +7,31 @@ module FreeC.Backend.Agda.Converter.TypeDecl
 where
 
 import qualified FreeC.IR.Syntax               as IR
+import           FreeC.Backend.Agda.Converter.Free
 import qualified FreeC.Backend.Agda.Syntax     as Agda
-import           FreeC.Environment.LookupOrFail ( lookupAgdaIdentOrFail )
+import           FreeC.Backend.Agda.Converter.Arg
+                                                ( lookupTypeIdent
+                                                , lookupValueIdent
+                                                , convertTypeVarDecl
+                                                )
 import           FreeC.Monad.Converter          ( Converter
                                                 , localEnv
                                                 )
 
 convertTypeDecl :: IR.TypeDecl -> Converter Agda.Declaration
-convertTypeDecl (IR.TypeSynDecl _ _ _ _) = error "Not Supported"
-convertTypeDecl (IR.DataDecl _ ident _ constrs) =
-  localEnv (Agda.dataDecl <$> lookupIdent ident <*> convertConstructors constrs)
+convertTypeDecl (IR.TypeSynDecl _ _     _     _      ) = error "Not Supported"
+convertTypeDecl (IR.DataDecl    _ ident tVars constrs) = localEnv
+  (   freeDataDecl
+  <$> lookupTypeIdent ident
+  <*> mapM convertTypeVarDecl tVars
+  <*> convertConstructors tVars constrs
+  )
 
--- unify with version from FuncDecl?
-lookupIdent :: IR.DeclIdent -> Converter Agda.Name
-lookupIdent (IR.DeclIdent srcSpan name) =
-  Agda.unqualify <$> lookupAgdaIdentOrFail srcSpan IR.TypeScope name
+convertConstructors
+  :: [IR.TypeVarDecl] -> [IR.ConDecl] -> Converter [Agda.Declaration]
+convertConstructors tVars = mapM $ convertConstructor tVars
 
-convertConstructors :: [IR.ConDecl] -> Converter [Agda.Declaration]
-convertConstructors = mapM convertConstructor
-
-convertConstructor :: IR.ConDecl -> Converter Agda.Declaration
-convertConstructor (IR.ConDecl _ ident types) = undefined
+convertConstructor
+  :: [IR.TypeVarDecl] -> IR.ConDecl -> Converter Agda.Declaration
+convertConstructor types (IR.ConDecl _ ident _) =
+  Agda.funcSig <$> lookupValueIdent ident <*> pure (Agda.intLiteral 42)
