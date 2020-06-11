@@ -29,19 +29,20 @@ convertType = dagger
 --   monadic layers isn't needed.
 --
 --   > τ₁ -> … -> τₙ -> ρ ↦ τ₁' → … → τₙ' → ρ'
-convertFunctionType :: [IR.Type] -> Converter Agda.Expr
-convertFunctionType types = foldr1 Agda.fun <$> mapM dagger types
+convertFunctionType :: [IR.Type] -> IR.Type -> Converter Agda.Expr
+convertFunctionType argTypes returnType =
+  foldr Agda.fun <$> dagger returnType <*> mapM dagger argTypes
 
 -- | Constructors aren't evaluated until fully applied. Furthermore the return
 --   type of a constructor for a data type D has to be D and therefore cannot be
 --   lifted.
 --
 --   > τ₁ -> … -> τₙ -> ρ ↦ τ₁' → … → τₙ' → ρ*
-convertConstructorType :: [IR.Type] -> Converter Agda.Expr
-convertConstructorType types =
+convertConstructorType :: [IR.Type] -> IR.Type -> Converter Agda.Expr
+convertConstructorType argTypes returnType =
   -- We can use the @star@ translation for the data type, because only the name
   -- and the application of type and @Size@ variables have to be translated.
-  Agda.fun <$> convertFunctionType (init types) <*> star (last types)
+  foldr Agda.fun <$> star returnType <*> mapM dagger argTypes
 
 -- | Utility function for introducing a new Agda type variable to the current
 --   scope.
