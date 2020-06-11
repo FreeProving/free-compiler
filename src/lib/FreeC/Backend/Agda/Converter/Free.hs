@@ -23,7 +23,7 @@ free = Agda.app $ applyFreeArgs $ Agda.qname' Agda.Base.free
 
 -- | Apply the @Shape@ and @Pos@ argument to the given type constructor.
 --
--- > c ↦ c @S @P
+-- > c ↦ c Shape Pos
 applyFreeArgs :: Agda.QName -> Agda.Expr
 applyFreeArgs qname = foldl1
   Agda.app
