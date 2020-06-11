@@ -30,7 +30,7 @@ convertType = dagger
 --   evaluated until fully applied, i.e. cannot be bottom. Therefore interleaving
 --   monadic layers isn't needed.
 --
---   > (τ₁ → τ₂ → … → τₙ)' = τ₁' → Free τ₂' → … → Free τₙ'
+--   > τ₁ -> … -> τₙ -> ρ ↦ τ₁' → … → τₙ' → ρ'
 convertFunctionType :: [IR.Type] -> Converter Agda.Expr
 convertFunctionType types = foldr1 Agda.fun <$> mapM dagger types
 
@@ -38,7 +38,7 @@ convertFunctionType types = foldr1 Agda.fun <$> mapM dagger types
 --   type of a constructor for a data type D has to be D and therefore cannot be
 --   lifted.
 --
---   > (τ₁ → τ₂ → … → τₙ → D)' = τ₁' → Free τ₂' → … → τₙ' → D
+--   > (τ₁ -> … -> τₙ -> ρ)' = τ₁' → … → τₙ' → ρ*
 convertConstructorType :: [IR.Type] -> Converter Agda.Expr
 convertConstructorType types =
   -- We can use the @star@ translation for the data type, because only the name
@@ -56,26 +56,17 @@ renameAgdaTypeVar (IR.TypeVarDecl srcSpan name) =
 -------------------------------------------------------------------------------
 
 -- | The dagger translation as describer by Abel et al.
---   Normally the dagger translations separates mono and poly types, but the
---   polytype cases are not applicable for our IR.
---   Note: If polytypes are added in the future (e.g. for type classes) add
---   their type translation here.
 --
---   > -- not applicable (polytypes)
---   > (∀α:κ.σ)’ = (α : κ’) → σ’ -- RankNTypes translate to pi types
---   > (σ ↦ τ)’ = σ’ → τ’        -- functions handling polytypes e.g.
---   >                           -- result from type class dictionary translation
---   > -- all other cases (monotypes):
---   > τ’ = m τ
+--   > τ' = Free τ
 dagger :: IR.Type -> Converter Agda.Expr
 dagger = fmap free . star
 
 -- | The star translation for monotypes as described by Abel et al.
 --
--- > (σ τ)* = σ* τ*
--- > (σ → τ)* = σ’ → τ’
--- > C* = Ĉ @S @P
--- > α* = α
+-- > (τ₁ τ₂)* = τ₁* τ₂*
+-- > (τ₁ → τ₂)* = τ₁' → τ₂'
+-- > C* = Ĉ Shape Position
+-- > α* = α̂
 star :: IR.Type -> Converter Agda.Expr
 star (IR.TypeVar s name) = Agda.Ident
   <$> lookupAgdaIdentOrFail s IR.TypeScope (IR.UnQual (IR.Ident name))
@@ -83,5 +74,5 @@ star (IR.TypeCon s name) =
   applyFreeArgs <$> lookupAgdaIdentOrFail s IR.TypeScope name
 star (IR.TypeApp  _ l r) = Agda.app <$> star l <*> star r
 -- At the moment this case simplifies to
--- @Agda.func <$> Agda.base.free' (dagger l) <*> Agda.base.free' (dagger r)@.
+-- @Agda.func <$> free (dagger l) <*> free (dagger r)@.
 star (IR.FuncType _ l r) = Agda.fun <$> dagger l <*> dagger r
