@@ -56,7 +56,8 @@ renameAgdaTypeVar (IR.TypeVarDecl srcSpan name) =
 -------------------------------------------------------------------------------
 
 -- | Converts a type from IR to Agda by lifting it into the @Free@ monad.
---   This corresponds to the dagger translation for monotypes as described by 
+--
+--   This corresponds to the dagger translation for monotypes as described by
 --   Abel et al.
 --
 --   > τ' = Free τ*
