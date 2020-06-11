@@ -6,7 +6,7 @@
 # Metadata                                                                   #
 ##############################################################################
 
-version = 2
+version = 3
 module-name = 'Prelude'
 library-name = 'Base'
 exported-types = [
@@ -50,26 +50,32 @@ exported-values = [
 [[types]]
   haskell-name = 'Prelude.Bool'
   coq-name     = 'Bool'
+  agda-name    = 'Bool'
   arity        = 0
 
 [[constructors]]
-  haskell-type   = 'Prelude.Bool'
-  haskell-name   = 'Prelude.True'
-  coq-name       = 'true'
-  coq-smart-name = 'True_'
-  arity          = 0
+  haskell-type    = 'Prelude.Bool'
+  haskell-name    = 'Prelude.True'
+  coq-name        = 'true'
+  coq-smart-name  = 'True_'
+  agda-name       = 'true'
+  agda-smart-name = 'True'
+  arity           = 0
 
 [[constructors]]
-  haskell-type   = 'Prelude.Bool'
-  haskell-name   = 'Prelude.False'
-  coq-name       = 'false'
-  coq-smart-name = 'False_'
-  arity          = 0
+  haskell-type    = 'Prelude.Bool'
+  haskell-name    = 'Prelude.False'
+  coq-name        = 'false'
+  coq-smart-name  = 'False_'
+  agda-name       = 'false'
+  agda-smart-name = 'False'
+  arity           = 0
 
 [[functions]]
   haskell-type    = 'Prelude.Bool -> Prelude.Bool -> Prelude.Bool'
   haskell-name    = 'Prelude.(&&)'
   coq-name        = 'andBool'
+  agda-name       = '_∧_'
   arity           = 2
   partial         = false
   needs-free-args = true
@@ -78,6 +84,7 @@ exported-values = [
   haskell-type    = 'Prelude.Bool -> Prelude.Bool -> Prelude.Bool'
   haskell-name    = 'Prelude.(||)'
   coq-name        = 'orBool'
+  agda-name       = '_∨_'
   arity           = 2
   partial         = false
   needs-free-args = true
@@ -89,12 +96,14 @@ exported-values = [
 [[types]]
   haskell-name = 'Prelude.Integer'
   coq-name     = 'Integer'
+  agda-name    = 'ℤ'
   arity        = 0
 
 [[functions]]
   haskell-type    = 'Prelude.Integer -> Prelude.Integer -> Prelude.Integer'
   haskell-name    = 'Prelude.(+)'
   coq-name        = 'addInteger'
+  agda-name       = '_+_'
   arity           = 2
   partial         = false
   needs-free-args = true
@@ -103,6 +112,7 @@ exported-values = [
   haskell-type    = 'Prelude.Integer -> Prelude.Integer -> Prelude.Integer'
   haskell-name    = 'Prelude.(-)'
   coq-name        = 'subInteger'
+  agda-name       = '_-_'
   arity           = 2
   partial         = false
   needs-free-args = true
@@ -111,6 +121,7 @@ exported-values = [
   haskell-type    = 'Prelude.Integer -> Prelude.Integer -> Prelude.Integer'
   haskell-name    = 'Prelude.(*)'
   coq-name        = 'mulInteger'
+  agda-name       = '_*_'
   arity           = 2
   partial         = false
   needs-free-args = true
@@ -119,6 +130,7 @@ exported-values = [
   haskell-type    = 'Prelude.Integer -> Prelude.Integer -> Prelude.Integer'
   haskell-name    = 'Prelude.(^)'
   coq-name        = 'powInteger'
+  agda-name       = '_^_'
   arity           = 2
   partial         = false
   needs-free-args = true
@@ -127,6 +139,7 @@ exported-values = [
   haskell-type    = 'Prelude.Integer -> Prelude.Integer -> Prelude.Bool'
   haskell-name    = 'Prelude.(<=)'
   coq-name        = 'leInteger'
+  agda-name       = '_≤_'
   arity           = 2
   partial         = false
   needs-free-args = true
@@ -135,6 +148,7 @@ exported-values = [
   haskell-type    = 'Prelude.Integer -> Prelude.Integer -> Prelude.Bool'
   haskell-name    = 'Prelude.(<)'
   coq-name        = 'ltInteger'
+  agda-name       = '_<_'
   arity           = 2
   partial         = false
   needs-free-args = true
@@ -143,6 +157,7 @@ exported-values = [
   haskell-type    = 'Prelude.Integer -> Prelude.Integer -> Prelude.Bool'
   haskell-name    = 'Prelude.(==)'
   coq-name        = 'eqInteger'
+  agda-name       = '_==_'
   arity           = 2
   partial         = false
   needs-free-args = true
@@ -151,6 +166,7 @@ exported-values = [
   haskell-type    = 'Prelude.Integer -> Prelude.Integer -> Prelude.Bool'
   haskell-name    = 'Prelude.(/=)'
   coq-name        = 'neqInteger'
+  agda-name       = '_/=_'
   arity           = 2
   partial         = false
   needs-free-args = true
@@ -159,6 +175,7 @@ exported-values = [
   haskell-type    = 'Prelude.Integer -> Prelude.Integer -> Prelude.Bool'
   haskell-name    = 'Prelude.(>=)'
   coq-name        = 'geInteger'
+  agda-name       = '_≥_'
   arity           = 2
   partial         = false
   needs-free-args = true
@@ -167,14 +184,16 @@ exported-values = [
   haskell-type    = 'Prelude.Integer -> Prelude.Integer -> Prelude.Bool'
   haskell-name    = 'Prelude.(>)'
   coq-name        = 'gtInteger'
+  agda-name       = '_>_'
   arity           = 2
   partial         = false
   needs-free-args = true
 
 [[functions]]
-  haskell-type    = 'Prelude.Integer -> Prelude.Integer -> Prelude.Integer'
+  haskell-type    = 'Prelude.Integer -> Prelude.Integer'
   haskell-name    = 'Prelude.negate'
   coq-name        = 'negate'
+  agda-name       = 'neg'
   arity           = 1
   partial         = false
   needs-free-args = true
@@ -186,21 +205,26 @@ exported-values = [
 [[types]]
   haskell-name = 'Prelude.([])'
   coq-name     = 'List'
+  agda-name    = 'List'
   arity = 1
 
 [[constructors]]
-  haskell-type   = 'Prelude.([]) a'
-  haskell-name   = 'Prelude.([])'
-  coq-name       = 'nil'
-  coq-smart-name = 'Nil'
-  arity          = 0
+  haskell-type    = 'Prelude.([]) a'
+  haskell-name    = 'Prelude.([])'
+  coq-name        = 'nil'
+  agda-name       = 'nil'
+  coq-smart-name  = 'Nil'
+  agda-smart-name = 'Nil'
+  arity           = 0
 
 [[constructors]]
-  haskell-type   = 'a -> Prelude.([]) a -> Prelude.([]) a'
-  haskell-name   = 'Prelude.(:)'
-  coq-name       = 'cons'
-  coq-smart-name = 'Cons'
-  arity          = 2
+  haskell-type    = 'a -> Prelude.([]) a -> Prelude.([]) a'
+  haskell-name    = 'Prelude.(:)'
+  coq-name        = 'cons'
+  agda-name       = 'cons'
+  coq-smart-name  = 'Cons'
+  agda-smart-name = 'Cons'
+  arity           = 2
 
 ##############################################################################
 # Pairs                                                                      #
@@ -209,14 +233,17 @@ exported-values = [
 [[types]]
   haskell-name = 'Prelude.(,)'
   coq-name     = 'Pair'
+  agda-name    = 'Pair'
   arity        = 2
 
 [[constructors]]
-  haskell-type   = 'a -> b -> Prelude.(,) a b'
-  haskell-name   = 'Prelude.(,)'
-  coq-name       = 'pair_'
-  coq-smart-name = 'Pair_'
-  arity          = 2
+  haskell-type    = 'a -> b -> Prelude.(,) a b'
+  haskell-name    = 'Prelude.(,)'
+  coq-name        = 'pair_'
+  agda-name       = 'pair'
+  coq-smart-name  = 'Pair_'
+  agda-smart-name = 'Pair'
+  arity           = 2
 
 ##############################################################################
 # Unit                                                                       #
@@ -225,11 +252,14 @@ exported-values = [
 [[types]]
   haskell-name = 'Prelude.()'
   coq-name     = 'Unit'
+  agda-name    = '⊤'
   arity        = 0
 
 [[constructors]]
-  haskell-type   = 'Prelude.()'
-  haskell-name   = 'Prelude.()'
-  coq-name       = 'tt'
-  coq-smart-name = 'Tt'
-  arity          = 0
+  haskell-type    = 'Prelude.()'
+  haskell-name    = 'Prelude.()'
+  coq-name        = 'tt'
+  agda-name       = 'tt'
+  coq-smart-name  = 'Tt'
+  agda-smart-name = 'Tt'
+  arity           = 0

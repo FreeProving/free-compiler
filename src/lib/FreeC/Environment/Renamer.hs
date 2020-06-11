@@ -228,9 +228,10 @@ renameAndDefineTypeVar
   -> Converter Coq.Qualid
 renameAndDefineTypeVar srcSpan ident = do
   entry <- renameAndAddEntry TypeVarEntry
-    { entrySrcSpan = srcSpan
-    , entryName    = IR.UnQual (IR.Ident ident)
-    , entryIdent   = undefined -- filled by renamer
+    { entrySrcSpan   = srcSpan
+    , entryName      = IR.UnQual (IR.Ident ident)
+    , entryIdent     = undefined -- filled by renamer
+    , entryAgdaIdent = undefined -- filled by renamer
     }
   return (entryIdent entry)
 
@@ -247,11 +248,12 @@ renameAndDefineVar
   -> Maybe IR.Type -- ^ The type of the variable if it is known.
   -> Converter Coq.Qualid
 renameAndDefineVar srcSpan isPure ident maybeVarType = do
-  entry <- renameAndAddEntry VarEntry { entrySrcSpan = srcSpan
-                                      , entryIsPure  = isPure
+  entry <- renameAndAddEntry VarEntry { entrySrcSpan   = srcSpan
+                                      , entryIsPure    = isPure
                                       , entryName = IR.UnQual (IR.Ident ident)
-                                      , entryIdent   = undefined -- filled by renamer
-                                      , entryType    = maybeVarType
+                                      , entryIdent     = undefined -- filled by renamer
+                                      , entryAgdaIdent = undefined -- filled by renamer
+                                      , entryType      = maybeVarType
                                       }
   return (entryIdent entry)
 

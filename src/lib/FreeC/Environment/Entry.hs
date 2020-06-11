@@ -7,6 +7,7 @@ module FreeC.Environment.Entry where
 import           Data.Function                  ( on )
 import           Data.Tuple.Extra               ( (&&&) )
 
+import qualified FreeC.Backend.Agda.Syntax     as Agda
 import qualified FreeC.Backend.Coq.Syntax      as Coq
 import           FreeC.IR.SrcSpan
 import qualified FreeC.IR.Syntax               as IR
@@ -22,6 +23,8 @@ data EnvEntry
       -- ^ The number of type arguments expected by the type constructor.
     , entryIdent   :: Coq.Qualid
       -- ^ The name of the data type in Coq.
+    , entryAgdaIdent :: Agda.QName
+      -- ^ The name of the data type in Agda.
     , entryName    :: IR.QName
       -- ^ The name of the data type in the module it has been defined in.
     }
@@ -37,6 +40,8 @@ data EnvEntry
       -- ^ The type that is abbreviated by this type synonym.
     , entryIdent    :: Coq.Qualid
       -- ^ The name of the type synonym in Coq.
+    , entryAgdaIdent :: Agda.QName
+      -- ^ The name of the type synonym in Agda.
     , entryName     :: IR.QName
       -- ^ The name of the type synonym in the module it has been defined in.
     }
@@ -46,6 +51,8 @@ data EnvEntry
       -- ^ The source code location where the type variable was declared.
     , entryIdent   :: Coq.Qualid
       -- ^ The name of the type variable in Coq.
+    , entryAgdaIdent :: Agda.QName
+      -- ^ The name of the type variable in Agda.
     , entryName    :: IR.QName
       -- ^ The name of the type variable (must be unqualified).
     }
@@ -64,8 +71,12 @@ data EnvEntry
       -- ^ The return type of the data constructor (if known).
     , entryIdent      :: Coq.Qualid
       -- ^ The name of the regular data constructor in Coq.
+    , entryAgdaIdent :: Agda.QName
+      -- ^ The name of the regular data constructor in Agda.
     , entrySmartIdent :: Coq.Qualid
       -- ^ The name of the corresponding smart constructor in Coq.
+    , entryAgdaSmartIdent :: Agda.QName
+      -- ^ The name of the corresponding smart constructor in Agda.
     , entryName       :: IR.QName
       -- ^ The name of the data constructor in the module it has been
       --   defined in.
@@ -91,6 +102,8 @@ data EnvEntry
       --   the @Partial@ type class when translated to Coq.
     , entryIdent         :: Coq.Qualid
       -- ^ The name of the function in Coq.
+    , entryAgdaIdent     :: Agda.QName
+      -- ^ The name of the function in Agda.
     , entryName          :: IR.QName
       -- ^ The name of the function in the module it has been defined in.
     }
@@ -102,6 +115,8 @@ data EnvEntry
       -- ^ Whether the variable has not been lifted to the free monad.
     , entryIdent   :: Coq.Qualid
       -- ^ The name of the variable in Coq.
+    , entryAgdaIdent   :: Agda.QName
+      -- ^ The name of the variable in Agda.
     , entryName    :: IR.QName
       -- ^ The name of the variable (must be unqualified).
     , entryType    :: Maybe IR.Type

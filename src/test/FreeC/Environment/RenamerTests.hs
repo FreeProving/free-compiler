@@ -69,9 +69,10 @@ testMustRenameIdent = describe "mustRenameIdent" $ do
   it "defined identifiers must be renamed" $ do
     property $ forAll genIdent $ \ident ->
       let env = addEntry
-            TypeVarEntry { entrySrcSpan = NoSrcSpan
-                         , entryName    = IR.UnQual (IR.Ident ident)
-                         , entryIdent   = Coq.bare ident
+            TypeVarEntry { entrySrcSpan   = NoSrcSpan
+                         , entryName      = IR.UnQual (IR.Ident ident)
+                         , entryIdent     = Coq.bare ident
+                         , entryAgdaIdent = undefined -- ignore Agda identifiers for the moment - TODO: add Unit Tests for Agda renamer!
                          }
             emptyEnv
       in  mustRenameIdent ident env
