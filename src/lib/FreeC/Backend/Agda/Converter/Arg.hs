@@ -23,7 +23,7 @@ convertTypeVarDecl (IR.TypeVarDecl srcSpan name) =
   Agda.unqualify <$> renameAndDefineAgdaTypeVar srcSpan name
 
 lookupIdent :: IR.Scope -> IR.DeclIdent -> Converter Agda.Name
-rookupIdent scope (IR.DeclIdent srcSpan name) =
+lookupIdent scope (IR.DeclIdent srcSpan name) =
   Agda.unqualify <$> lookupAgdaIdentOrFail srcSpan scope name
 
 -- | Looks up the name of a Haskell function in the environment and converts

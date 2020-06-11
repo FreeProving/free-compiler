@@ -42,4 +42,4 @@ convertFunc_
 convertFunc_ tVars ts rt = Agda.pi <$> tVars' <*> convertFunctionType
   (map fromJust ts)
   (fromJust rt)
-  where tVars' = addFreeArgs <$> mapM renameAgdaTypeVar tVars
+  where tVars' = addFreeArgs <$> mapM convertTypeVarDecl tVars
