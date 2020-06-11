@@ -963,9 +963,10 @@ unifyEquation eqn = localEnv $ do
 --   given type variable declaration.
 bindRigidTypeVar :: MonadConverter m => IR.TypeVarDecl -> m ()
 bindRigidTypeVar typeVarDecl = modifyEnv $ addEntry $ TypeVarEntry
-  { entrySrcSpan = IR.typeVarDeclSrcSpan typeVarDecl
-  , entryName    = IR.UnQual (IR.Ident (IR.typeVarDeclIdent typeVarDecl))
-  , entryIdent   = undefined
+  { entrySrcSpan   = IR.typeVarDeclSrcSpan typeVarDecl
+  , entryName      = IR.UnQual (IR.Ident (IR.typeVarDeclIdent typeVarDecl))
+  , entryIdent     = undefined
+  , entryAgdaIdent = undefined
   }
 
 -------------------------------------------------------------------------------
