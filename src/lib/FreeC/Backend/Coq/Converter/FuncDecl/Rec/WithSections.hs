@@ -75,9 +75,9 @@ convertRecFuncDeclsWithSection constArgs decls = do
   -- unique.
   (constArgTypes, mgus) <- mapAndUnzipM (lookupConstArgType argTypeMap)
                                         renamedConstArgs
-  let mgu           = composeSubsts mgus
-      typeArgNames  = Set.toList (Set.unions (map freeTypeVarSet constArgTypes))
-      typeArgIdents = map (fromJust . IR.identFromQName) typeArgNames
+  let mgu = composeSubsts mgus
+      typeArgIdents =
+        Set.toList (Set.unions (map freeTypeVarSet constArgTypes))
 
   -- Apply unificator to rename the type arguments on the right-hand side.
   let renamedDecls' = applySubst mgu renamedDecls
@@ -89,13 +89,11 @@ convertRecFuncDeclsWithSection constArgs decls = do
   -- Test which of the constant arguments is actually used by any function
   -- in the section and which of the type arguments is needed by the types
   -- of used arguments.
-  let
-    isConstArgUsed    = map (flip any sectionDecls . isConstArgUsedBy) constArgs
-    usedConstArgTypes = map snd $ filter fst $ zip isConstArgUsed constArgTypes
-    isTypeArgUsed v = any
-      (Set.member (IR.UnQual (IR.Ident v)) . freeTypeVarSet)
-      usedConstArgTypes
-    usedTypeArgIdents = filter isTypeArgUsed typeArgIdents
+  let isConstArgUsed = map (flip any sectionDecls . isConstArgUsedBy) constArgs
+      usedConstArgTypes =
+        map snd $ filter fst $ zip isConstArgUsed constArgTypes
+      isTypeArgUsed v = any (Set.member v . freeTypeVarSet) usedConstArgTypes
+      usedTypeArgIdents = filter isTypeArgUsed typeArgIdents
 
     -- Remove constant arguments from the type signatures of the renamed
     -- function declarations.

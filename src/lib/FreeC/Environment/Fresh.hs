@@ -1,7 +1,7 @@
--- | This module contains functions for generating frsh identifiers.
+-- | This module contains functions for generating fresh identifiers.
 --
---   Fresh identifiers are identifiers that have been introduced aritifically
---   into the Haskell or Coq AST. They are guranteed not to conflict with any
+--   Fresh identifiers are identifiers that have been introduced artificially
+--   into the Haskell or Coq AST. They are guaranteed not to conflict with any
 --   other valid identifier.
 
 module FreeC.Environment.Fresh where
@@ -36,7 +36,7 @@ freshBoolPrefix = "cond"
 freshTypeVarPrefix :: String
 freshTypeVarPrefix = "a"
 
--- | The prefix to use for aritifcially introduced type variables of kind @*@
+-- | The prefix to use for artificially introduced type variables of kind @*@
 --   that are passed as a type argument to a function.
 freshTypeArgPrefix :: String
 freshTypeArgPrefix = "t"

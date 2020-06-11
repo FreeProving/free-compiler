@@ -1,4 +1,4 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving, MultiParamTypeClasses #-}
 
 -- | This module contains a compiler pass that infers the types of all
 --   function declarations including the types of the sub-expressions of
@@ -18,7 +18,7 @@
 --   function, the types of all argument patterns and the return type of
 --   the function are annotated by this pass.
 --
---   > double (x :: Integer) = x + x :: Integer
+--   > double (x :: Integer) :: Integer = x + x
 --
 --   == Example 2: Polymorphic functions
 --
@@ -61,7 +61,7 @@
 --   Thus, the list contains elements of some type @t0@ which needs to be
 --   added as a type argument to the list constructor @[]@ and @null@.
 --
---   > myTrue @t0 = null @t0 ([] @t0) :: Bool
+--   > myTrue @t0 :: Bool = null @t0 ([] @t0)
 --
 --   While Haskell would tolerate the definition of @myTrue@ without type
 --   arguments, Coq does not accept an equivalent definition.
@@ -200,6 +200,7 @@ import           Data.Set                       ( Set )
 import qualified Data.Set                      as Set
 
 import           FreeC.Environment
+import           FreeC.Environment.Entry
 import           FreeC.Environment.Fresh
 import qualified FreeC.IR.Base.Prelude         as IR.Prelude
 import           FreeC.IR.DependencyGraph       ( mapComponentM )
@@ -221,12 +222,40 @@ typeInferencePass :: DependencyAwarePass IR.FuncDecl
 typeInferencePass = mapComponentM inferFuncDeclTypes
 
 -------------------------------------------------------------------------------
--- Type inference state monad                                                --
+-- Type equations                                                            --
 -------------------------------------------------------------------------------
 
 -- | A type equation and the location in the source that caused the creation
---   of this type variable.
-type TypeEquation = (SrcSpan, IR.Type, IR.Type)
+--   of this type equation.
+data TypeEquation = TypeEquation
+  { eqnSrcSpan :: SrcSpan
+    -- ^ The location in the source code of the expression that caused the
+    --   creation of this type equation.
+  , eqnExpectedType :: IR.Type
+    -- ^ The left-hand side of the type equation.
+  , eqnActualType :: IR.Type
+    -- ^ The right-hand side of the type equation.
+  , eqnRigidTypeVars :: [IR.TypeVarDecl]
+    -- ^ Declarations of type variables that are bound by the type signature
+    --   of the function declaration that caused the creation of this type
+    --   equation. These type variable must not be matched by the unification
+    --   algorithm.
+  }
+
+-- | Type substitutions can be applied to the left- and right-hand sides of
+--   type equations.
+--
+--    Rigid type variables in type equations cannot be substituted.
+instance ApplySubst IR.Type TypeEquation where
+  applySubst subst eqn =
+    let subst'        = subst
+        actualType'   = applySubst subst' (eqnActualType eqn)
+        expectedType' = applySubst subst' (eqnExpectedType eqn)
+    in  eqn { eqnActualType = actualType', eqnExpectedType = expectedType' }
+
+-------------------------------------------------------------------------------
+-- Type inference state monad                                                --
+-------------------------------------------------------------------------------
 
 -- | Maps the names of defined functions and constructors to their type schema.
 type TypeAssumption = Map IR.QName IR.TypeSchema
@@ -235,6 +264,11 @@ type TypeAssumption = Map IR.QName IR.TypeSchema
 data TypeInferenceState = TypeInferenceState
   { typeEquations :: [TypeEquation]
     -- ^ The type equations that have to be unified.
+  , rigidTypeVars :: [IR.TypeVarDecl]
+    -- ^ Declarations of type variables that are bound in the current context.
+    --   This is used by 'annotateFuncDecls' to remember which type variables
+    --   have to be inserted into 'eqnRigidTypeVars' by
+    --   'addTypeEquation'.
   , typeAssumption :: TypeAssumption
     -- ^ The known type schemas of predefined functions and constructors.
   , fixedTypeArgs :: Map IR.QName [IR.Type]
@@ -246,11 +280,12 @@ data TypeInferenceState = TypeInferenceState
 -- | An empty 'TypeInferenceState'.
 emptyTypeInferenceState :: TypeInferenceState
 emptyTypeInferenceState = TypeInferenceState { typeEquations  = []
+                                             , rigidTypeVars  = []
                                              , typeAssumption = Map.empty
                                              , fixedTypeArgs  = Map.empty
                                              }
 
--- | Creates a 'TypeAssumption' for all funtions and constructors defined
+-- | Creates a 'TypeAssumption' for all functions and constructors defined
 --   in the given environment.
 makeTypeAssumption :: Environment -> TypeAssumption
 makeTypeAssumption env = Map.fromList
@@ -303,8 +338,13 @@ lookupFixedTypeArgs name = gets (Map.findWithDefault [] name . fixedTypeArgs)
 
 -- | Adds a 'TypeEquation' entry the current state.
 addTypeEquation :: SrcSpan -> IR.Type -> IR.Type -> TypeInference ()
-addTypeEquation srcSpan t t' =
-  modify $ \s -> s { typeEquations = (srcSpan, t, t') : typeEquations s }
+addTypeEquation srcSpan t t' = modify $ \s ->
+  let eqn = TypeEquation { eqnSrcSpan       = srcSpan
+                         , eqnExpectedType  = t
+                         , eqnActualType    = t'
+                         , eqnRigidTypeVars = rigidTypeVars s
+                         }
+  in  s { typeEquations = eqn : typeEquations s }
 
 -- | Instantiates the type schema of the function or constructor with the
 --   given name and adds a 'TypeEquation' for the resulting type and the
@@ -346,7 +386,7 @@ extendTypeAssumptionWithVarPat varPat = mapM_
   (IR.varPatType varPat)
 
 -- | Removes the variable bound by the given variable pattern from the
---   type assumption while runnign the given type inference.
+--   type assumption while running the given type inference.
 removeVarPatFromTypeAssumption :: IR.VarPat -> TypeInference ()
 removeVarPatFromTypeAssumption varPat = modify $ \s ->
   s { typeAssumption = Map.delete (IR.varPatQName varPat) (typeAssumption s) }
@@ -361,7 +401,7 @@ fixTypeArgs name subst =
 -- Scoping                                                                   --
 -------------------------------------------------------------------------------
 
--- | Runs the given type inference and discards all modifications o fthe
+-- | Runs the given type inference and discards all modifications of the
 --   state afterwards.
 withLocalState :: TypeInference a -> TypeInference a
 withLocalState mx = do
@@ -377,6 +417,15 @@ withLocalTypeAssumption mx = do
   oldTypeAssumption <- gets typeAssumption
   x                 <- mx
   modify $ \s -> s { typeAssumption = oldTypeAssumption }
+  return x
+
+-- | Adds the given type variable declarations to the list of 'rigidTypeVars'
+--   during the given type inference computation.
+withRigidTypeVars :: [IR.TypeVarDecl] -> TypeInference a -> TypeInference a
+withRigidTypeVars vs mx = do
+  modify $ \s -> s { rigidTypeVars = vs ++ rigidTypeVars s }
+  x <- mx
+  modify $ \s -> s { rigidTypeVars = drop (length vs) (rigidTypeVars s) }
   return x
 
 -------------------------------------------------------------------------------
@@ -410,21 +459,22 @@ inferFuncDeclTypes' funcDecls = withLocalState $ do
   -- if @e₁ e₂@ is annotated with a type @τ@, then @e₂@ is annotated with
   -- a fresh type variable @α@ and @e₂@ is annotated with @α -> τ@.
   -- Furthermore, this step introduces type equations, for example if
-  -- predefined functions and constructor are used.
+  -- predefined functions and constructors are used.
   annotatedFuncDecls <- annotateFuncDecls funcDecls
 
   -- Unify type equations.
   --
-  -- During the annotation of the function declaration type equations were
+  -- During the annotation of the function declaration, type equations were
   -- added. The system of type equations is solved by computing the most
   -- general unificator (mgu).
+  --
   -- The mgu is then applied to the annotated function declarations to
   -- replace the type variables (that act as place holders) by their
   -- actual type. In the example of @e₁ e₂@ above for example, the type
   -- equation @α = Integer@ would have been added if @e₂@ was an integer
   -- literal. Thus, the mgu would map the type variable @α@ to @Integer@.
   -- By applying the mgu, the type annotation of @e₁ e₂@ is corrected to
-  -- @Integer -> mgu(τ)@
+  -- @Integer -> mgu(τ)@.
   eqns               <- gets typeEquations
   mgu                <- liftConverter $ unifyEquations eqns
   let typedFuncDecls = applySubst mgu annotatedFuncDecls
@@ -467,7 +517,7 @@ inferFuncDeclTypes' funcDecls = withLocalState $ do
   --
   -- Now that we also know the type arguments of the functions in then
   -- strongly connected component, we can replace the type annotations
-  -- for function and constructor applications added by 'annotateFuncDecl'
+  -- for function and constructor applications added by 'annotateFuncDecls'
   -- by visible type applications.
   mapM_ extendTypeAssumptionWithFuncDecl abstractedFuncDecls
   visiblyAppliedFuncDecls <- mapM applyFuncDeclVisibly abstractedFuncDecls
@@ -532,14 +582,14 @@ annotateExprWith expr resType = case IR.exprTypeSchema expr of
 annotateExprWith' :: IR.Expr -> IR.Type -> TypeInference IR.Expr
 
 -- If @C :: τ@ is a predefined constructor with @C :: forall α₀ … αₙ. τ'@,
--- then add a type equation @τ = σ(τ')@ where @σ = { α₀ ↦ β₀, …, αₙ ↦ βₙ }@
+-- then add a type equation @σ(τ') = τ@ where @σ = { α₀ ↦ β₀, …, αₙ ↦ βₙ }@
 -- and @β₀, …, βₙ@ are fresh type variables.
 annotateExprWith' (IR.Con srcSpan conName _) resType = do
   addTypeEquationFor srcSpan conName resType
   return (IR.Con srcSpan conName (makeExprType resType))
 
 -- If @x :: τ@ is in scope with @x :: forall α₀ … αₙ. τ'@, then add a type
--- equation @τ = σ(τ')@ where @σ = { α₀ ↦ β₀, …, αₙ ↦ βₙ }@ and @β₀, …, βₙ@
+-- equation @σ(τ') = τ@ where @σ = { α₀ ↦ β₀, …, αₙ ↦ βₙ }@ and @β₀, …, βₙ@
 -- are fresh type variables.
 -- In case of local variables or functions whose types are currently inferred,
 -- the type assumption of @x@ is not abstracted (i.e., @n = 0@).
@@ -589,7 +639,7 @@ annotateExprWith' (IR.Case srcSpan scrutinee alts _) resType = do
       rhs' <- annotateExprWith rhs resType
       return (IR.Alt altSrcSpan conPat varPats' rhs')
 
--- Error terms are predefined polymorphic funtions. They can be annoated
+-- Error terms are predefined polymorphic funtions. They can be annotated
 -- with the given result type directly.
 annotateExprWith' (IR.Undefined srcSpan _) resType =
   return (IR.Undefined srcSpan (makeExprType resType))
@@ -597,7 +647,7 @@ annotateExprWith' (IR.ErrorExpr srcSpan msg _) resType =
   return (IR.ErrorExpr srcSpan msg (makeExprType resType))
 
 -- If @n :: τ@ for some integer literal @n@, then add the type equation
--- @τ = Integer@.
+-- @Integer = τ@.
 annotateExprWith' (IR.IntLiteral srcSpan value _) resType = do
   let intType = IR.TypeCon NoSrcSpan IR.Prelude.integerTypeConName
   addTypeEquation srcSpan intType resType
@@ -648,11 +698,14 @@ annotateFuncDecls funcDecls = withLocalTypeAssumption $ do
 
   -- | Annotates the right-hand side of the given function declaration.
   annotateFuncDeclRhs :: IR.FuncDecl -> TypeInference IR.FuncDecl
-  annotateFuncDeclRhs funcDecl = withLocalTypeAssumption $ do
-    let Just retType = IR.funcDeclReturnType funcDecl
-    mapM_ extendTypeAssumptionWithVarPat (IR.funcDeclArgs funcDecl)
-    rhs' <- annotateExprWith (IR.funcDeclRhs funcDecl) retType
-    return funcDecl { IR.funcDeclRhs = rhs' }
+  annotateFuncDeclRhs funcDecl =
+    withLocalTypeAssumption
+      $ withRigidTypeVars (IR.funcDeclTypeArgs funcDecl)
+      $ do
+          let Just retType = IR.funcDeclReturnType funcDecl
+          mapM_ extendTypeAssumptionWithVarPat (IR.funcDeclArgs funcDecl)
+          rhs' <- annotateExprWith (IR.funcDeclRhs funcDecl) retType
+          return funcDecl { IR.funcDeclRhs = rhs' }
 
 -------------------------------------------------------------------------------
 -- Visible type application                                                  --
@@ -758,15 +811,18 @@ applyFuncDeclVisibly funcDecl = withLocalTypeAssumption $ do
 --   occur in the function declaration's type and on its right-hand side.
 --
 --   Fresh type variables used by the given type are replaced by regular type
---   varibales with the prefix 'freshTypeArgPrefix'. All other type variables
+--   variables with the prefix 'freshTypeArgPrefix'. All other type variables
 --   are not renamed.
-abstractTypeArgs :: [IR.QName] -> IR.FuncDecl -> IR.FuncDecl
-abstractTypeArgs typeArgs funcDecl =
-  let IR.TypeSchema _ _ typeExpr = fromJust (IR.funcDeclTypeSchema funcDecl)
-      (IR.TypeSchema _ typeArgs' _, subst) =
-          abstractTypeSchema' typeArgs typeExpr
-      funcDecl' = applySubst subst funcDecl
-  in  funcDecl' { IR.funcDeclTypeArgs = typeArgs' }
+abstractTypeArgs :: [IR.TypeVarIdent] -> IR.FuncDecl -> IR.FuncDecl
+abstractTypeArgs typeArgIdents funcDecl =
+  let
+    typeArgs                   = map (IR.UnQual . IR.Ident) typeArgIdents
+    IR.TypeSchema _ _ typeExpr = fromJust (IR.funcDeclTypeSchema funcDecl)
+    (IR.TypeSchema _ typeArgs' _, subst) =
+      abstractTypeSchema' typeArgs typeExpr
+    funcDecl' = applySubst subst funcDecl
+  in
+    funcDecl' { IR.funcDeclTypeArgs = typeArgs' }
 
 -- | Abstracts the remaining internal type variables that occur within
 --   the given function declarations by renaming them to non-internal
@@ -781,21 +837,19 @@ abstractVanishingTypeArgs funcDecls =
   in  map abstractVanishingTypeArgs' funcDecls'
  where
   -- | The names of the type variables to abstract.
-  internalTypeArgNames :: [IR.QName]
-  internalTypeArgNames = filter IR.isInternalQName (freeTypeVars funcDecls)
+  internalTypeArgIdents :: [IR.TypeVarIdent]
+  internalTypeArgIdents = filter IR.isInternalIdent (freeTypeVars funcDecls)
 
   -- | Type variables for 'internalTypeArgNames'.
   internalTypeArgs :: [IR.Type]
-  internalTypeArgs = map
-    (IR.TypeVar NoSrcSpan . fromJust . IR.identFromQName)
-    internalTypeArgNames
+  internalTypeArgs = map (IR.TypeVar NoSrcSpan) internalTypeArgIdents
 
   -- | Renames 'internalTypeArgNames' and adds them as type arguments
   --   to the given function declaration.
   abstractVanishingTypeArgs' :: IR.FuncDecl -> IR.FuncDecl
   abstractVanishingTypeArgs' funcDecl =
-    let typeArgNames = map IR.typeVarDeclQName (IR.funcDeclTypeArgs funcDecl)
-    in  abstractTypeArgs (typeArgNames ++ internalTypeArgNames) funcDecl
+    let typeArgIdents = map IR.typeVarDeclIdent (IR.funcDeclTypeArgs funcDecl)
+    in  abstractTypeArgs (typeArgIdents ++ internalTypeArgIdents) funcDecl
 
   -- | Adds visible type applications for 'internalTypeArgs' to recursive
   --   calls on the right-hand side of the given function declaration.
@@ -847,7 +901,7 @@ abstractVanishingTypeArgs funcDecls =
         expr'      = addInternalTypeArgsToExpr funcNames' expr
     in  (IR.Lambda srcSpan args expr' exprType, [])
 
-  -- Leave all other expressions unchnaged.
+  -- Leave all other expressions unchanged.
   addInternalTypeArgsToExpr' _ expr@(IR.Con        _ _ _) = (expr, [])
   addInternalTypeArgsToExpr' _ expr@(IR.IntLiteral _ _ _) = (expr, [])
   addInternalTypeArgsToExpr' _ expr@(IR.Undefined _ _   ) = (expr, [])
@@ -870,18 +924,50 @@ abstractVanishingTypeArgs funcDecls =
 -------------------------------------------------------------------------------
 
 -- | Finds the most general unificator that satisfies all given type equations.
+--
+--   The type equations are unified in reverse order in order to improve
+--   error messages. The list of type equations contains equations for
+--   parent expressions before sub-expressions. By reversing the order of
+--   equations, type errors in sub-expressions are reported first.
 unifyEquations :: [TypeEquation] -> Converter (Subst IR.Type)
-unifyEquations = unifyEquations' identitySubst
+unifyEquations = unifyEquations' identitySubst . reverse
  where
   unifyEquations'
     :: Subst IR.Type -> [TypeEquation] -> Converter (Subst IR.Type)
-  unifyEquations' subst []                         = return subst
-  unifyEquations' subst ((srcSpan, t1, t2) : eqns) = do
-    let t1' = applySubst subst t1
-        t2' = applySubst subst t2
-    mgu <- unifyOrFail srcSpan t1' t2'
+  unifyEquations' subst []           = return subst
+  unifyEquations' subst (eqn : eqns) = do
+    let eqn' = applySubst subst eqn
+    mgu <- unifyEquation eqn'
     let subst' = composeSubst mgu subst
     unifyEquations' subst' eqns
+
+-- | Unifies the left- and right-hand sides of the given type equation.
+--
+--   In order to avoid matching of rigid type variables that are bound by
+--   type signatures, the unification algorithm checks whether there is an
+--   environment entry for a matched type variable. Thus, we have to insert
+--   such entries for the type variables bound by the function declaration
+--   that created the given type equation before the actual unification.
+--   These entries are inserted only locally and not visible after this
+--   operation anymore.
+unifyEquation :: TypeEquation -> Converter (Subst IR.Type)
+unifyEquation eqn = localEnv $ do
+  mapM_ bindRigidTypeVar (eqnRigidTypeVars eqn)
+  unifyOrFail (eqnSrcSpan eqn) (eqnExpectedType eqn) (eqnActualType eqn)
+
+-------------------------------------------------------------------------------
+-- Rigid type variables                                                      --
+-------------------------------------------------------------------------------
+
+-- | Adds an environment entry for the type variable that is bound by the
+--   given type variable declaration.
+bindRigidTypeVar :: MonadConverter m => IR.TypeVarDecl -> m ()
+bindRigidTypeVar typeVarDecl = modifyEnv $ addEntry $ TypeVarEntry
+  { entrySrcSpan   = IR.typeVarDeclSrcSpan typeVarDecl
+  , entryName      = IR.UnQual (IR.Ident (IR.typeVarDeclIdent typeVarDecl))
+  , entryIdent     = undefined
+  , entryAgdaIdent = undefined
+  }
 
 -------------------------------------------------------------------------------
 -- Error reporting                                                           --
