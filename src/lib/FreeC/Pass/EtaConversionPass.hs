@@ -163,8 +163,8 @@ etaConvertFuncDecl funcDecl = do
   Just entry <- inEnv $ lookupEntry IR.ValueScope (IR.funcDeclQName funcDecl)
   modifyEnv $ addEntry entry
     { entryArity      = length (IR.funcDeclArgs newFuncDecl)
-    , entryArgTypes   = map IR.varPatType (IR.funcDeclArgs newFuncDecl)
-    , entryReturnType = IR.funcDeclReturnType newFuncDecl
+    , entryArgTypes   = map (fromJust . IR.varPatType) (IR.funcDeclArgs newFuncDecl)
+    , entryReturnType = fromJust $ IR.funcDeclReturnType newFuncDecl
     }
   return newFuncDecl
 
