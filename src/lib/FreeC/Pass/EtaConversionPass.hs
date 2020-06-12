@@ -139,13 +139,13 @@ etaConversionPass ast = do
 --   previously converted function declarations. 
 --   This ensures that all functions, including mutually-recursive 
 --   functions, are fully applied correctly. 
-etaConvertFuncDecls :: [IR.FuncDecl] -> [IR.FuncDecl] -> Converter [IR.FuncDecl] 
-etaConvertFuncDecls [] newFuncDecls = return newFuncDecls 
-etaConvertFuncDecls (fd:fds) newFuncDecls = do 
-    newFuncDecl <- etaConvertFuncDecl fd
-    if IR.funcDeclReturnType newFuncDecl /= IR.funcDeclReturnType fd
-       then etaConvertFuncDecls (newFuncDecls ++ (newFuncDecl : fds)) []
-       else etaConvertFuncDecls fds (newFuncDecls ++ [newFuncDecl])
+etaConvertFuncDecls :: [IR.FuncDecl] -> [IR.FuncDecl] -> Converter [IR.FuncDecl]
+etaConvertFuncDecls []         newFuncDecls = return newFuncDecls
+etaConvertFuncDecls (fd : fds) newFuncDecls = do
+  newFuncDecl <- etaConvertFuncDecl fd
+  if IR.funcDeclReturnType newFuncDecl /= IR.funcDeclReturnType fd
+    then etaConvertFuncDecls (newFuncDecls ++ (newFuncDecl : fds)) []
+    else etaConvertFuncDecls fds (newFuncDecls ++ [newFuncDecl])
 
 -- | Depending on the presence or absence of missing top-level arguments, applies 'modifyTopLevel' or 'etaConvertExpr' to the right-hand side of the given function declaration to ensure all functions 
 -- and constructors on the right-hand side are fully applied. 
