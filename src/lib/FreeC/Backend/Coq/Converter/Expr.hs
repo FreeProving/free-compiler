@@ -124,9 +124,9 @@ convertExpr' (IR.Var srcSpan name _) typeArgs args = do
       let typeArgNames = map (IR.UnQual . IR.Ident) typeArgIdents
           subst = composeSubsts (zipWith singleSubst typeArgNames typeArgs)
           strictArgTypes = map (applySubst subst) argTypes
-      strictArgTypes' <- mapM (mapM convertType') strictArgTypes
+      strictArgTypes' <- mapM convertType' strictArgTypes
       -- Generate a bind for each strict argument
-      generateBinds args' freshArgPrefix strictArgs strictArgTypes'
+      generateBinds args' freshArgPrefix strictArgs (map Just strictArgTypes')
         $ \strictArgs' -> generateApplyN arity callee strictArgs'
     else do
       -- If this is the decreasing argument of a recursive helper function,

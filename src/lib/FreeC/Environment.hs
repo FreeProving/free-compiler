@@ -41,16 +41,13 @@ module FreeC.Environment
   )
 where
 
-import           Control.Monad                  ( (<=<) )
 import           Data.Composition               ( (.:)
                                                 , (.:.)
                                                 )
 import           Data.List                      ( find )
 import           Data.Map.Strict                ( Map )
 import qualified Data.Map.Strict               as Map
-import           Data.Maybe                     ( catMaybes
-                                                , isJust
-                                                )
+import           Data.Maybe                     ( isJust )
 import           Data.Tuple.Extra               ( (&&&) )
 
 import qualified FreeC.Backend.Coq.Syntax      as Coq
@@ -229,7 +226,7 @@ lookupTypeArgArity = fmap length .:. lookupTypeArgs
 --
 --   Returns @Nothing@ if there is no such function or (smart) constructor
 --   with the given name.
-lookupArgTypes :: IR.Scope -> IR.QName -> Environment -> Maybe [Maybe IR.Type]
+lookupArgTypes :: IR.Scope -> IR.QName -> Environment -> Maybe [IR.Type]
 lookupArgTypes =
   fmap entryArgTypes . find (isConEntry .||. isFuncEntry) .:. lookupEntry
 
@@ -247,7 +244,7 @@ lookupStrictArgs =
 --   with the given name or the return type is not known.
 lookupReturnType :: IR.Scope -> IR.QName -> Environment -> Maybe IR.Type
 lookupReturnType =
-  (entryReturnType <=< find (isConEntry .||. isFuncEntry)) .:. lookupEntry
+  fmap entryReturnType . find (isConEntry .||. isFuncEntry) .:. lookupEntry
 
 -- | Gets the type schema of the variable, function or constructor with the
 --   given name.
@@ -261,7 +258,7 @@ lookupTypeSchema scope name env
     argTypes   <- lookupArgTypes scope name env
     returnType <- lookupReturnType scope name env
     let typeArgDecls = map (IR.TypeVarDecl NoSrcSpan) typeArgs
-        funcType     = IR.funcType NoSrcSpan (catMaybes argTypes) returnType
+        funcType     = IR.funcType NoSrcSpan argTypes returnType
     return (IR.TypeSchema NoSrcSpan typeArgDecls funcType)
 
 -- | Looks up the number of arguments expected by the Haskell function
