@@ -175,12 +175,12 @@ transformRecFuncDecl (IR.FuncDecl srcSpan declIdent typeArgs args maybeRetType e
     -- well.
     freeArgsNeeded <- inEnv $ needsFreeArgs name
     partial        <- inEnv $ isPartial name
-    _              <- renameAndAddEntry $ FuncEntry
+    _entry         <- renameAndAddEntry $ FuncEntry
       { entrySrcSpan       = NoSrcSpan
       , entryArity         = length helperArgTypes
       , entryTypeArgs      = map IR.typeVarDeclIdent helperTypeArgs
-      , entryArgTypes      = helperArgTypes
-      , entryReturnType    = helperReturnType
+      , entryArgTypes      = map fromJust helperArgTypes
+      , entryReturnType    = fromJust helperReturnType
       , entryNeedsFreeArgs = freeArgsNeeded
       , entryIsPartial     = partial
       , entryName          = helperName
