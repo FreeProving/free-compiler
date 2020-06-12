@@ -132,8 +132,8 @@ convertExpr' (IR.Var srcSpan name _) typeArgs args = do
           let typeArgNames = map (IR.UnQual . IR.Ident) typeArgIdents
               subst = composeSubsts (zipWith singleSubst typeArgNames typeArgs)
               decArgType = applySubst subst (argTypes !! index)
-          decArgType' <- mapM convertType' decArgType
-          generateBind decArg freshArgPrefix decArgType' $ \decArg' ->
+          decArgType' <- convertType' decArgType
+          generateBind decArg freshArgPrefix (Just decArgType') $ \decArg' ->
             generateApplyN arity callee (before ++ decArg' : after)
     else do
       -- If this is the decreasing argument of a recursive helper function,

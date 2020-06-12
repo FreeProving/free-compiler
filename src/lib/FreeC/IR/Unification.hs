@@ -19,6 +19,7 @@ import           Control.Monad.Trans.Except     ( ExceptT
                                                 )
 import           Data.Composition               ( (.:) )
 
+import           FreeC.Environment
 import           FreeC.Environment.Entry
 import           FreeC.Environment.LookupOrFail
 import           FreeC.IR.SrcSpan
@@ -38,6 +39,7 @@ import           FreeC.Pretty                   ( showPretty )
 data UnificationError
   = UnificationError IR.Type IR.Type
   | OccursCheckFailure IR.TypeVarIdent IR.Type
+  | RigidTypeVarError SrcSpan IR.TypeVarIdent IR.Type
 
 -- | Reports the given 'UnificationError'.
 reportUnificationError :: MonadReporter m => SrcSpan -> UnificationError -> m a
@@ -58,8 +60,18 @@ reportUnificationError srcSpan err = case err of
       ++ "` ~ `"
       ++ showPretty u
       ++ "`."
+  RigidTypeVarError xSrcSpan x u ->
+    reportFatal
+      $  Message srcSpan Error
+      $  "Could not match rigid type variable '"
+      ++ x
+      ++ "' (bound at '"
+      ++ showPretty xSrcSpan
+      ++ "') with type '"
+      ++ showPretty u
+      ++ "'."
 
--- | Runs the given converter an reports unification errors using
+-- | Runs the given converter and reports unification errors using
 --   'reportUnificationError'.
 runOrFail :: SrcSpan -> ExceptT UnificationError Converter a -> Converter a
 runOrFail srcSpan mx =
@@ -114,6 +126,7 @@ unify t s = do
     -> IR.Type
     -> ExceptT UnificationError Converter (Subst IR.Type)
   x `mapsTo` u = do
+    rigidCheck
     occursCheck u
     let subst = singleSubst (IR.UnQual (IR.Ident x)) u
         t'    = applySubst subst t
@@ -121,6 +134,18 @@ unify t s = do
     mgu <- unify t' s'
     return (composeSubst mgu subst)
    where
+    -- | Tests whether there is a binder for the type variable.
+    --
+    --   Type variables that are bound by a type signature must not be matched
+    --   with another type. Reports a fatal error if the variable is bound.
+    rigidCheck :: ExceptT UnificationError Converter ()
+    rigidCheck = do
+      maybeEntry <- lift $ inEnv $ lookupEntry IR.TypeScope
+                                               (IR.UnQual (IR.Ident x))
+      case maybeEntry of
+        Nothing    -> return ()
+        Just entry -> throwE $ RigidTypeVarError (entrySrcSpan entry) x u
+
     -- | Tests whether the type variable occurs in the given type expression.
     --
     --   Reports a fatal error if the variable is found.
