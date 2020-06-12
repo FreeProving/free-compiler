@@ -65,10 +65,10 @@ testEtaConversionPass = describe "FreeC.Pass.EtaConversionPass" $ do
       _ <- defineTestFunc "f" 2 "Foo -> Foo -> Foo"
       "f x" `shouldEtaConvert` "\\y -> f x y"
     it "leaves application of local variables unchanged"
-      $                  shouldSucceedWith
-      $                  do
+      $ shouldSucceedWith
+      $ do
+          shouldEtaConvert "\\(f :: a -> b -> c) x -> f x"
                            "\\(f :: a -> b -> c) x -> f x"
-      `shouldEtaConvert` "\\(f :: a -> b -> c) x -> f x"
     it "leaves fully applied constructors unchanged" $ shouldSucceedWith $ do
       _ <- defineTestTypeCon "Foo" 0
       _ <- defineTestTypeCon "Bar" 0
