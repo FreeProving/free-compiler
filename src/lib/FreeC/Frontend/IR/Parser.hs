@@ -612,7 +612,7 @@ instance Parseable IR.Expr where
 
 -- | Parser for zero or more IR @case@ expression alternatives.
 --
---   > alts ::= "{" alt { ";" alt } "}"
+--   > alts ::= "{" [ alt { ";" alt } ] "}"
 altsParser :: Parser [IR.Alt]
 altsParser = bracesParser (altParser `Parsec.sepEndBy` token Semi)
 

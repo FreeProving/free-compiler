@@ -217,16 +217,17 @@ testConvertRecFuncDeclWithHelpers = context "with helper functions" $ do
           ++ "         xs' >>= (fun (xs'_0 : List Shape Pos a) =>"
           ++ "           @even_len_0 Shape Pos a xs'_0)"
           ++ "     end. "
+          ++ "Definition odd_len (Shape : Type) (Pos : Shape -> Type) {a : Type}"
+          ++ "  (xs : Free Shape Pos (List Shape Pos a))"
+          ++ "  : Free Shape Pos (Bool Shape Pos)"
+          ++ "  := xs >>= (fun (xs_0 : List Shape Pos a) =>"
+          ++ "           @odd_len_0 Shape Pos a xs_0). "
           ++ "Definition even_len (Shape : Type) (Pos : Shape -> Type) {a : Type}"
           ++ "  (xs : Free Shape Pos (List Shape Pos a))"
           ++ "  : Free Shape Pos (Bool Shape Pos)"
           ++ "  := xs >>= (fun (xs_0 : List Shape Pos a) =>"
           ++ "           @even_len_0 Shape Pos a xs_0). "
-          ++ "Definition odd_len (Shape : Type) (Pos : Shape -> Type) {a : Type}"
-          ++ "  (xs : Free Shape Pos (List Shape Pos a))"
-          ++ "  : Free Shape Pos (Bool Shape Pos)"
-          ++ "  := xs >>= (fun (xs_0 : List Shape Pos a) =>"
-          ++ "           @odd_len_0 Shape Pos a xs_0)."
+
 
 
   it "translates recursive functions with nested case expressions correctly"
