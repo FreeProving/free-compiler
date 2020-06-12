@@ -42,7 +42,6 @@
 --   The arity of all constructors and functions must be known (i.e., there
 --   must be corresponding environment entries) and all function declarations 
 --   must be type annotated.
---   Additionally, the function declarations must be sorted in reverse topological order.
 --
 --   == Translation
 --
@@ -126,12 +125,27 @@ import           FreeC.Pass.TypeSignaturePass   ( splitFuncType )
 --   fully applied.
 etaConversionPass :: Pass IR.Module
 etaConversionPass ast = do
-  funcDecls' <- mapM etaConvertFuncDecl (IR.modFuncDecls ast)
+  funcDecls' <- etaConvertFuncDecls (IR.modFuncDecls ast) []
   return ast { IR.modFuncDecls = funcDecls' }
 
 -------------------------------------------------------------------------------
 -- Function declarations                                                     --
 -------------------------------------------------------------------------------
+
+-- | Make sure all occurring functions are fully applied by calling 'etaConvertFuncDecl' on each function declaration. 
+--
+--   If the type of a function declaration changes due to a top-level 
+--   η-conversion, the procedure is performed recursively on all 
+--   previously converted function declarations. 
+--   This ensures that all functions, including mutually-recursive 
+--   functions, are fully applied correctly. 
+etaConvertFuncDecls :: [IR.FuncDecl] -> [IR.FuncDecl] -> Converter [IR.FuncDecl] 
+etaConvertFuncDecls [] newFuncDecls = return newFuncDecls 
+etaConvertFuncDecls (fd:fds) newFuncDecls = do 
+    newFuncDecl <- etaConvertFuncDecl fd
+    if IR.funcDeclReturnType newFuncDecl /= IR.funcDeclReturnType fd
+       then etaConvertFuncDecls (newFuncDecls ++ (newFuncDecl : fds)) []
+       else etaConvertFuncDecls fds (newFuncDecls ++ [newFuncDecl])
 
 -- | Depending on the presence or absence of missing top-level arguments, applies 'modifyTopLevel' or 'etaConvertExpr' to the right-hand side of the given function declaration to ensure all functions 
 -- and constructors on the right-hand side are fully applied. 
