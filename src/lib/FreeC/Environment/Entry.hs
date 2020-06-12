@@ -107,6 +107,17 @@ data EnvEntry
     , entryType    :: Maybe IR.Type
       -- ^ The type of the variable (if known).
     }
+  | -- | Entry for fresh variables.
+    --
+    --   The purpose of these entries is to prevent two fresh variables with
+    --   the same name to be issued for generated AST nodes that have no
+    --   corresponding
+    FreshEntry
+    { entryIdent :: Coq.Qualid
+      -- ^ The renamed fresh Coq identifier.
+    , entryName :: IR.QName
+      -- ^ The actual fresh identifier before renaming.
+    }
  deriving Show
 
 -------------------------------------------------------------------------------
@@ -133,6 +144,7 @@ entryScope TypeVarEntry{} = IR.TypeScope
 entryScope ConEntry{}     = IR.ValueScope
 entryScope FuncEntry{}    = IR.ValueScope
 entryScope VarEntry{}     = IR.ValueScope
+entryScope FreshEntry{}   = IR.FreshScope
 
 -- | Gets the scope and name of the given entry.
 entryScopedName :: EnvEntry -> IR.ScopedName
@@ -198,3 +210,4 @@ prettyEntryType TypeVarEntry{} = "type variable"
 prettyEntryType ConEntry{}     = "constructor"
 prettyEntryType FuncEntry{}    = "function"
 prettyEntryType VarEntry{}     = "variable"
+prettyEntryType FreshEntry{}   = "fresh identifier"

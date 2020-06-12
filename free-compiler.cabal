@@ -221,6 +221,8 @@ test-suite freec-unit-tests
                     , FreeC.Backend.Coq.Converter.TypeDeclTests
                     , FreeC.Backend.Coq.Converter.TypeTests
                     , FreeC.Backend.Coq.Tests
+                    , FreeC.EnvironmentTests
+                    , FreeC.Environment.FreshTests
                     , FreeC.Environment.RenamerTests
                     , FreeC.Frontend.IR.ParserTests
                     , FreeC.Frontend.IR.ScannerTests

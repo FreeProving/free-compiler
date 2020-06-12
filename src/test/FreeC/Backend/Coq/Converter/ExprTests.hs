@@ -234,6 +234,26 @@ testConvertCase = context "case expressions" $ do
           ++ "  | cons x0 xs => x0"
           ++ "  end)"
 
+  it "allows case expressions to shadow local variables"
+    $ shouldSucceedWith
+    $ do
+        "AB"     <- defineTestTypeCon "AB" 0
+        ("a", _) <- defineTestCon "A" 0 "Unit"
+        ("b", _) <- defineTestCon "B" 0 "Unit"
+        "x"      <- defineTestVar "x"
+        "x_0"    <- defineTestVar "x_0"
+        shouldConvertExprTo
+            "case x of { A -> case x of { A -> x; B -> x }; B -> x }"
+          $  "x >>= (fun x_1 =>"
+          ++ "  match x_1 with"
+          ++ "  | a => x >>= (fun x_2 =>"
+          ++ "    match x_2 with"
+          ++ "    | a => x"
+          ++ "    | b => x"
+          ++ "    end)"
+          ++ "  | b => x"
+          ++ "  end)"
+
 -------------------------------------------------------------------------------
 -- Lambda abstractions                                                       --
 -------------------------------------------------------------------------------
