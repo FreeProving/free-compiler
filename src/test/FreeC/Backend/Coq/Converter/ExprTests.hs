@@ -43,6 +43,7 @@ testConvertExpr = describe "FreeC.Backend.Coq.Converter.Expr.convertExpr" $ do
   testConvertExprTypeAnnotations
   testConvertTypeAppExprs
   testConvertInteger
+  testConvertUndefined
 
 -------------------------------------------------------------------------------
 -- Constructor applications                                                  --
@@ -334,3 +335,25 @@ testConvertInteger = context "integer expressions" $ do
   it "translates negative decimal integer literals correctly"
     $ shouldSucceedWith
     $ shouldConvertExprTo "-42" "pure (- 42)%Z"
+
+
+-- | Test group for translation of undefined expressions.
+testConvertUndefined :: Spec
+testConvertUndefined = context "undefined expressions" $ do
+  it "translates undefined expressions correctly" $ shouldSucceedWith $ do
+    "a" <- defineTestTypeVar "a"
+    shouldConvertExprTo "undefined @a" "@undefined Shape Pos P a"
+
+  it "translates undefined expressions applied to arguments correctly"
+    $ shouldSucceedWith
+    $ do
+        "a" <- defineTestTypeVar "a"
+        "b" <- defineTestTypeVar "b"
+        "c" <- defineTestTypeVar "c"
+        "x" <- defineTestVar "x"
+        "y" <- defineTestVar "y"
+        shouldConvertExprTo "undefined @(a->b->c) x y"
+          $  "(@undefined Shape Pos P (Free Shape Pos a ->"
+          ++ " Free Shape Pos (Free Shape Pos b -> Free Shape Pos c))"
+          ++ " >>= (fun f_0 => f_0 x))"
+          ++ " >>= (fun f_0 => f_0 y)"
