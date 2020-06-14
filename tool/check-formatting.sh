@@ -320,6 +320,7 @@ for file in $(find "${files[@]}" -name '*.hs' -type f); do
   # Skip files that are not tracked by Git unless the `--no-skip` command
   # line flag has been specified.
   if [ "$enable_skip" = false ] ||
+     ! git rev-parse --is-inside-work-tree >/dev/null 2>&1 ||
      git ls-files --error-unmatch "$file" >/dev/null 2>&1; then
     # Print which file is processed.
     echo -n "$(select_by_mode "Checking" "Formatting")" \

@@ -255,19 +255,23 @@ moduleParser = do
 --
 --   > topLevel ::= importDecl
 --   >            | typeDecl
---   >            | typeSig
 --   >            | funcDecl
+--   >            | typeSig
 --
 --   Since all top-level declaration nodes are of different types, we
 --   cannot simply return a top-level declaration. Instead, we return
 --   a function that inserts the top-level declaration into the module
 --   appropriately.
+--
+--   Function declarations must be parsed before type signatures such that
+--   nullary function declarations whose return type is annotated are not
+--   confused with type signatures.
 topLevelDeclParser :: Parser (IR.Module -> IR.Module)
 topLevelDeclParser = Parsec.choice
   [ insertImportDecl <$> importDeclParser
   , insertTypeDecl <$> typeDeclParser
-  , Parsec.try (insertTypeSig <$> typeSigParser)
-  , insertFuncDecl <$> funcDeclParser
+  , Parsec.try (insertFuncDecl <$> funcDeclParser)
+  , insertTypeSig <$> typeSigParser
   ]
  where
   -- | Inserts an import declaration into the given module.
@@ -486,8 +490,15 @@ exprParser :: Parser IR.Expr
 exprParser = setExprType <$> lExprParser <*> Parsec.optionMaybe
   (token DoubleColon *> typeSchemaParser)
  where
+  -- | Sets the 'IR.exprTypeSchema' field of the given expression if it is not
+  --   set already.
+  --
+  --   The field is usually set to @Nothing@ but can be a @Just@ value if
+  --   the parsed expression was in parenthesis.
   setExprType :: IR.Expr -> Maybe IR.TypeSchema -> IR.Expr
-  setExprType expr exprTypeSchema = expr { IR.exprTypeSchema = exprTypeSchema }
+  setExprType expr Nothing = expr
+  setExprType expr (Just exprTypeSchema) =
+    expr { IR.exprTypeSchema = Just exprTypeSchema }
 
 -- | Parser for IR expressions without type annotation.
 --

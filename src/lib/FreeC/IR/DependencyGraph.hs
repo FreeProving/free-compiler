@@ -245,6 +245,7 @@ instance Pretty (DependencyGraph node) where
 data DependencyComponent decl
   = NonRecursive decl -- ^ A single non-recursive declaration.
   | Recursive [decl]  -- ^ A list of mutually recursive declarations.
+ deriving Show
 
 -- | Gets the declarations wrapped by the given strongly connected component.
 unwrapComponent :: DependencyComponent decl -> [decl]
@@ -337,3 +338,19 @@ mapComponentM_
   :: MonadFail m => ([decl] -> m a) -> DependencyComponent decl -> m ()
 mapComponentM_ f (NonRecursive decl ) = void (f [decl])
 mapComponentM_ f (Recursive    decls) = void (f decls)
+
+-------------------------------------------------------------------------------
+-- Pretty print SCCs                                                         --
+-------------------------------------------------------------------------------
+
+-- | Pretty instance that pretty prints the declarations of a strongly
+--   connected component.
+--
+--   Each declaration is on its own line and indented by two spaces.
+--   The first line of the document indicates whether the component
+--   was recursive or not.
+instance Pretty decl => Pretty (DependencyComponent decl) where
+  pretty (NonRecursive decl) =
+    prettyString "non-recursive" <$$> indent 2 (pretty decl)
+  pretty (Recursive decls) =
+    prettyString "recursive" <$$> indent 2 (vcat (map pretty decls))
