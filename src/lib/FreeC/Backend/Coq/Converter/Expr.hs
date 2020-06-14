@@ -218,7 +218,7 @@ convertExpr' (IR.ErrorExpr srcSpan msg _) typeArgs args = do
       callee     = genericApply Coq.Base.partialError partialArg typeArgs' []
   generateApplyN (1 :: Int)
                  callee
-                 ((Coq.InScope (Coq.string msg) Coq.Base.stringScope) : args')
+                 (Coq.InScope (Coq.string msg) Coq.Base.stringScope : args')
 
 -- Integer literals.
 convertExpr' (IR.IntLiteral _ value _) [] [] = do
