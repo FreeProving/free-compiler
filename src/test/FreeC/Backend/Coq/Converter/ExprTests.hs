@@ -364,7 +364,8 @@ testConvertError :: Spec
 testConvertError = context "error expressions" $ do
   it "translates error expressions correctly" $ shouldSucceedWith $ do
     "a" <- defineTestTypeVar "a"
-    shouldConvertExprTo "error @a \"message\"" "@error Shape Pos P a \"message\"%string"
+    shouldConvertExprTo "error @a \"message\""
+                        "@error Shape Pos P a \"message\"%string"
 
   it "translates error expressions applied to arguments correctly"
     $ shouldSucceedWith
