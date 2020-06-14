@@ -41,7 +41,7 @@ convertExpr' :: IR.Expr -> [IR.Type] -> [IR.Expr] -> Converter Coq.Term
 
 -- Constructors.
 --
--- Partially applied constructors are not evaluated in Haskell and therefor
+-- Partially applied constructors are not evaluated in Haskell and therefore
 -- cannot be @⊥@. The translated type of a constructor @C : τ₀ -> … -> τₙ@ is
 -- @c : τ₀' -> … -> τₙ*@ instead of @m(τ₀' -> m(τ₁' -> m(… -> τₙ')))@.
 --
@@ -187,7 +187,7 @@ convertExpr' (IR.Case _ expr alts _) [] [] = do
     return (Coq.match value alts')
 
 -- Error terms.
-convertExpr' (IR.Undefined srcSpan _) typeArgs [] = do
+convertExpr' (IR.Undefined srcSpan _) typeArgs args = do
   when (length typeArgs /= 1)
     $  reportFatal
     $  Message srcSpan Internal
@@ -196,11 +196,13 @@ convertExpr' (IR.Undefined srcSpan _) typeArgs [] = do
     ++ "Expected 1 type arguments, got "
     ++ show (length typeArgs)
     ++ "."
-  let partialArg = Coq.Qualid (fst Coq.Base.partialArg)
   typeArgs' <- mapM convertType' typeArgs
-  return (genericApply Coq.Base.partialUndefined [partialArg] typeArgs' [])
+  args'     <- mapM convertExpr args
+  let partialArg = [Coq.Qualid (fst Coq.Base.partialArg)]
+      callee = genericApply Coq.Base.partialUndefined partialArg typeArgs' []
+  generateApply callee args'
 
-convertExpr' (IR.ErrorExpr srcSpan msg _) typeArgs [] = do
+convertExpr' (IR.ErrorExpr srcSpan msg _) typeArgs args = do
   when (length typeArgs /= 1)
     $  reportFatal
     $  Message srcSpan Internal
@@ -210,14 +212,13 @@ convertExpr' (IR.ErrorExpr srcSpan msg _) typeArgs [] = do
     ++ "Expected 1 type arguments, got "
     ++ show (length typeArgs)
     ++ "."
-  let partialArg = Coq.Qualid (fst Coq.Base.partialArg)
   typeArgs' <- mapM convertType' typeArgs
-  return
-    (genericApply Coq.Base.partialError
-                  [partialArg]
-                  typeArgs'
-                  [Coq.InScope (Coq.string msg) Coq.Base.stringScope]
-    )
+  args'     <- mapM convertExpr args
+  let partialArg = [Coq.Qualid (fst Coq.Base.partialArg)]
+      callee     = genericApply Coq.Base.partialError partialArg typeArgs' []
+  generateApplyN 1
+                 callee
+                 (Coq.InScope (Coq.string msg) Coq.Base.stringScope : args')
 
 -- Integer literals.
 convertExpr' (IR.IntLiteral _ value _) [] [] = do
