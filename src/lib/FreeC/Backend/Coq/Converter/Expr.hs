@@ -202,7 +202,7 @@ convertExpr' (IR.Undefined srcSpan _) typeArgs args = do
       callee = genericApply Coq.Base.partialUndefined partialArg typeArgs' []
   generateApply callee args'
 
-convertExpr' (IR.ErrorExpr srcSpan msg _) typeArgs [] = do
+convertExpr' (IR.ErrorExpr srcSpan msg _) typeArgs args = do
   when (length typeArgs /= 1)
     $  reportFatal
     $  Message srcSpan Internal
@@ -212,14 +212,13 @@ convertExpr' (IR.ErrorExpr srcSpan msg _) typeArgs [] = do
     ++ "Expected 1 type arguments, got "
     ++ show (length typeArgs)
     ++ "."
-  let partialArg = Coq.Qualid (fst Coq.Base.partialArg)
   typeArgs' <- mapM convertType' typeArgs
-  return
-    (genericApply Coq.Base.partialError
-                  [partialArg]
-                  typeArgs'
-                  [Coq.InScope (Coq.string msg) Coq.Base.stringScope]
-    )
+  args'     <- mapM convertExpr args
+  let partialArg = [Coq.Qualid (fst Coq.Base.partialArg)]
+      callee     = genericApply Coq.Base.partialError partialArg typeArgs' []
+  generateApplyN (1 :: Int)
+                 callee
+                 ((Coq.InScope (Coq.string msg) Coq.Base.stringScope) : args')
 
 -- Integer literals.
 convertExpr' (IR.IntLiteral _ value _) [] [] = do
