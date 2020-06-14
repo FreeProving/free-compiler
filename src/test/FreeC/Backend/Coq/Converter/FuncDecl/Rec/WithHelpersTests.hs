@@ -511,7 +511,9 @@ testConvertRecFuncDeclWithHelpers = context "with helper functions" $ do
         ("cons", "Cons") <- defineTestCon "Cons"
                                           2
                                           "forall a. a -> List a -> List a"
-        "length" <- defineTestFunc "length" 1 "forall a. List a -> Integer"
+        "length" <- defineStrictTestFunc "length"
+                                         [True]
+                                         "forall a. List a -> Integer"
         shouldConvertWithHelpersTo
             [ "length @a !(xs :: List a) :: Integer = case xs of {"
               ++ "    Nil        -> 0;"
@@ -541,9 +543,10 @@ testConvertRecFuncDeclWithHelpers = context "with helper functions" $ do
         ("cons", "Cons") <- defineTestCon "Cons"
                                           2
                                           "forall a. a -> List a -> List a"
-        "interleave" <- defineTestFunc "interleave"
-                                       2
-                                       "forall a. List a -> List a -> List a"
+        "interleave" <- defineStrictTestFunc
+          "interleave"
+          [False, True]
+          "forall a. List a -> List a -> List a"
         shouldConvertWithHelpersTo
             [ "interleave @a (xs :: List a) !(ys :: List a) :: List a ="
               ++ "  case xs of {"

@@ -160,7 +160,9 @@ testConvertNonRecFuncDecl = context "non-recursive functions" $ do
         "List"      <- defineTestTypeCon "List" 1
         ("nil" , _) <- defineTestCon "Nil" 0 "forall a. List a"
         ("cons", _) <- defineTestCon "Cons" 2 "forall a. a -> List a -> List a"
-        "head"      <- definePartialTestFunc "head" 1 "forall a. List a -> a"
+        "head"      <- definePartialStrictTestFunc "head"
+                                                   [True]
+                                                   "forall a. List a -> a"
         shouldConvertNonRecTo
             (  "head @a !(x :: List a) :: a = case x of {"
             ++ "    Cons h xs -> h;"
@@ -188,9 +190,9 @@ testConvertNonRecFuncDecl = context "non-recursive functions" $ do
         "Bool"       <- defineTestTypeCon "Bool" 0
         ("false", _) <- defineTestCon "False" 0 "Bool"
         ("true" , _) <- defineTestCon "True" 0 "Bool"
-        "foo"        <- defineTestFunc
+        "foo"        <- defineStrictTestFunc
           "foo"
-          3
+          [True, False, True]
           "forall a. Pair a a -> Bool -> List a -> List a"
         shouldConvertNonRecTo
             (  "foo @a !(pair :: Pair a a) (bool :: Bool) !(list :: List a)"

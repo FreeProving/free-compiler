@@ -11,6 +11,7 @@ module FreeC.Test.Environment
   , defineTestFunc
   , definePartialTestFunc
   , defineStrictTestFunc
+  , definePartialStrictTestFunc
   )
 where
 
@@ -185,9 +186,19 @@ definePartialTestFunc nameStr arity =
 
 -- | Like 'defineTestFunc' but also allows to mark arguments as strict in the
 --   second argument.
+--
+--   Returns the Coq identifier assigned to the function.
 defineStrictTestFunc :: String -> [Bool] -> String -> Converter String
 defineStrictTestFunc nameStr areStrict =
   defineTestFunc' False areStrict nameStr (length areStrict)
+
+-- | Like 'defineTestFunc' but also allows to mark arguments as strict in the
+--   second argument and marks the given function as partial.
+--
+--   Returns the Coq identifier assigned to the function.
+definePartialStrictTestFunc :: String -> [Bool] -> String -> Converter String
+definePartialStrictTestFunc nameStr areStrict =
+  defineTestFunc' True areStrict nameStr (length areStrict)
 
 -------------------------------------------------------------------------------
 -- Utility functions                                                         --
