@@ -216,7 +216,7 @@ convertExpr' (IR.ErrorExpr srcSpan msg _) typeArgs args = do
   args'     <- mapM convertExpr args
   let partialArg = [Coq.Qualid (fst Coq.Base.partialArg)]
       callee     = genericApply Coq.Base.partialError partialArg typeArgs' []
-  generateApplyN (1 :: Int)
+  generateApplyN 1
                  callee
                  (Coq.InScope (Coq.string msg) Coq.Base.stringScope : args')
 
