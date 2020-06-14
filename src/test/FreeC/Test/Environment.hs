@@ -184,9 +184,9 @@ definePartialTestFunc nameStr arity =
   defineTestFunc' True (replicate arity False) nameStr arity
 
 -- | Like 'defineTestFunc' but also allows to mark arguments as strict in the
---   first argument.
-defineStrictTestFunc :: [Bool] -> String -> String -> Converter String
-defineStrictTestFunc areStrict nameStr =
+--   second argument.
+defineStrictTestFunc :: String -> [Bool] -> String -> Converter String
+defineStrictTestFunc nameStr areStrict =
   defineTestFunc' False areStrict nameStr (length areStrict)
 
 -------------------------------------------------------------------------------
