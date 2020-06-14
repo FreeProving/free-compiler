@@ -44,6 +44,7 @@ testConvertExpr = describe "FreeC.Backend.Coq.Converter.Expr.convertExpr" $ do
   testConvertTypeAppExprs
   testConvertInteger
   testConvertUndefined
+  testConvertError
 
 -------------------------------------------------------------------------------
 -- Constructor applications                                                  --
@@ -355,5 +356,27 @@ testConvertUndefined = context "undefined expressions" $ do
         shouldConvertExprTo "undefined @(a->b->c) x y"
           $  "(@undefined Shape Pos P (Free Shape Pos a ->"
           ++ " Free Shape Pos (Free Shape Pos b -> Free Shape Pos c))"
+          ++ " >>= (fun f_0 => f_0 x))"
+          ++ " >>= (fun f_0 => f_0 y)"
+
+-- | Test group for translation of undefined expressions.
+testConvertError :: Spec
+testConvertError = context "error expressions" $ do
+  it "translates error expressions correctly" $ shouldSucceedWith $ do
+    "a" <- defineTestTypeVar "a"
+    shouldConvertExprTo "error @a \"message\"" "@error Shape Pos P a \"message\"%string"
+
+  it "translates error expressions applied to arguments correctly"
+    $ shouldSucceedWith
+    $ do
+        "a" <- defineTestTypeVar "a"
+        "b" <- defineTestTypeVar "b"
+        "c" <- defineTestTypeVar "c"
+        "x" <- defineTestVar "x"
+        "y" <- defineTestVar "y"
+        shouldConvertExprTo "error @(a->b->c) \"message\" x y"
+          $  "(@error Shape Pos P (Free Shape Pos a ->"
+          ++ " Free Shape Pos (Free Shape Pos b -> Free Shape Pos c))"
+          ++ " \"message\"%string"
           ++ " >>= (fun f_0 => f_0 x))"
           ++ " >>= (fun f_0 => f_0 y)"
