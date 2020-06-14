@@ -187,7 +187,7 @@ convertExpr' (IR.Case _ expr alts _) [] [] = do
     return (Coq.match value alts')
 
 -- Error terms.
-convertExpr' (IR.Undefined srcSpan _) typeArgs [] = do
+convertExpr' (IR.Undefined srcSpan _) typeArgs args = do
   when (length typeArgs /= 1)
     $  reportFatal
     $  Message srcSpan Internal
@@ -196,9 +196,11 @@ convertExpr' (IR.Undefined srcSpan _) typeArgs [] = do
     ++ "Expected 1 type arguments, got "
     ++ show (length typeArgs)
     ++ "."
-  let partialArg = Coq.Qualid (fst Coq.Base.partialArg)
   typeArgs' <- mapM convertType' typeArgs
-  return (genericApply Coq.Base.partialUndefined [partialArg] typeArgs' [])
+  args'     <- mapM convertExpr args
+  let partialArg = [Coq.Qualid (fst Coq.Base.partialArg)]
+      callee = genericApply Coq.Base.partialUndefined partialArg typeArgs' []
+  generateApply callee args'
 
 convertExpr' (IR.ErrorExpr srcSpan msg _) typeArgs [] = do
   when (length typeArgs /= 1)
