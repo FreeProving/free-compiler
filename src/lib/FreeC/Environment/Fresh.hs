@@ -13,10 +13,8 @@ import qualified FreeC.Backend.Agda.Syntax     as Agda
 import qualified FreeC.Backend.Coq.Syntax      as Coq
 import           FreeC.Environment
 import           FreeC.Environment.Renamer
-import           FreeC.IR.SrcSpan
+import           FreeC.IR.SrcSpan               ( SrcSpan(NoSrcSpan) )
 import qualified FreeC.IR.Syntax               as IR
-import qualified FreeC.IR.SrcSpan              as IR
-                                                ( SrcSpan(NoSrcSpan) )
 import           FreeC.Monad.Converter
 
 -------------------------------------------------------------------------------
@@ -126,4 +124,4 @@ freshAgdaVar :: String -> IR.Type -> Converter Agda.QName
 freshAgdaVar name varType = do
   ident <- freshHaskellIdent name
   -- Add identifier to environment to prevent future usage of the same name.
-  renameAndDefineAgdaVar IR.NoSrcSpan False ident $ Just varType
+  renameAndDefineAgdaVar NoSrcSpan False ident $ Just varType

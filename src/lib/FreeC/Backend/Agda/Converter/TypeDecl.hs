@@ -7,8 +7,7 @@ module FreeC.Backend.Agda.Converter.TypeDecl
 where
 
 import qualified FreeC.IR.Syntax               as IR
-import qualified FreeC.IR.SrcSpan              as IR
-                                                ( SrcSpan(NoSrcSpan) )
+import           FreeC.IR.SrcSpan               ( SrcSpan(NoSrcSpan) )
 import qualified FreeC.Backend.Agda.Syntax     as Agda
 import qualified FreeC.Backend.Agda.Base       as Agda.Base
 import           FreeC.Backend.Agda.Converter.Free
@@ -55,7 +54,7 @@ convertConDecl
   -> [IR.ConDecl]     -- ^ The constructor declarations of the data type.
   -> Converter [Agda.Declaration]
 convertConDecl (IR.DeclIdent srcSpan ident) typeVars =
-  mapM $ convertConstructor $ IR.typeApp IR.NoSrcSpan
+  mapM $ convertConstructor $ IR.typeApp NoSrcSpan
                                          (IR.TypeCon srcSpan ident)
                                          (map IR.typeVarDeclToType typeVars)
 
