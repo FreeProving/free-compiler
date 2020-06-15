@@ -51,8 +51,8 @@
 --   All type constructors in type expressions are applied to the correct
 --   number of arguments and there are no type variables or function types on
 --   the left-hand side of type applications.
-module FreeC.Pass.KindInferencePass
-  ( kindInferencePass
+module FreeC.Pass.KindCheckPass
+  ( kindCheckPass
   )
 where
 
@@ -66,11 +66,11 @@ import           FreeC.Monad.Reporter
 import           FreeC.Pass
 import           FreeC.Pretty                   ( showPretty )
 
--- | A compiler pass that checks wheter there are type applications with type
+-- | A compiler pass that checks whether there are type applications with type
 --   variables or function types on the left-hand side in the module and checks
 --   whether all type construcors in the module are fully applied.
-kindInferencePass :: Pass IR.Module
-kindInferencePass m@(IR.Module _ _ _ typeDecls typeSigs _ funcDecls) = do
+kindCheckPass :: Pass IR.Module
+kindCheckPass m@(IR.Module _ _ _ typeDecls typeSigs _ funcDecls) = do
   mapM_ checkTypeDecl typeDecls
   mapM_ checkTypeSig  typeSigs
   mapM_ checkFuncDecl funcDecls

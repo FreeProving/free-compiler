@@ -14,7 +14,7 @@ import           FreeC.Pass.EtaConversionPass
 import           FreeC.Pass.ExportPass
 import           FreeC.Pass.ImplicitPreludePass
 import           FreeC.Pass.ImportPass
-import           FreeC.Pass.KindInferencePass
+import           FreeC.Pass.KindCheckPass
 import           FreeC.Pass.PartialityAnalysisPass
 import           FreeC.Pass.TypeSignaturePass
 import           FreeC.Pass.TypeInferencePass
@@ -31,7 +31,7 @@ pipeline =
   , resolverPass
   , importPass
   , dependencyAnalysisPass [defineTypeDeclsPass]
-  , kindInferencePass
+  , kindCheckPass
   , typeSignaturePass
   , dependencyAnalysisPass
     [typeInferencePass, defineFuncDeclsPass, partialityAnalysisPass]
