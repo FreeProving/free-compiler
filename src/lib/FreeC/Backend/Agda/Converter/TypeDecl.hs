@@ -6,6 +6,8 @@ module FreeC.Backend.Agda.Converter.TypeDecl
   )
 where
 
+import           Data.List.Extra                ( snoc )
+
 import qualified FreeC.IR.Syntax               as IR
 import           FreeC.IR.SrcSpan               ( SrcSpan(NoSrcSpan) )
 import qualified FreeC.Backend.Agda.Syntax     as Agda
@@ -80,7 +82,21 @@ generateSmartConDecl (IR.ConDecl _ ident argTypes) = do
   patternDecl smartName (repeat "x" `zip` argTypes) $ \vars -> do
     normalName <- Agda.IdentP . Agda.qname' <$> lookupValueIdent ident
     let pureVal = foldl Agda.appP normalName vars
-    pure (Agda.IdentP (Agda.qname' Agda.Base.pure) `Agda.appP` pureVal)
+    return (Agda.IdentP (Agda.qname' Agda.Base.pure) `Agda.appP` pureVal)
+
+-------------------------------------------------------------------------------
+-- specialized syntax                                                        --
+-------------------------------------------------------------------------------
+
+-- | Creates a declaration for a data type, which is parameterized over @Shape@
+--   and @Pos@.
+freeDataDecl
+  :: Agda.Name          -- ^ Name of the data type
+  -> [Agda.Name]        -- ^ Names of the bound type variables
+  -> [Agda.Declaration] -- ^ List of constructor declarations
+  -> Agda.Declaration
+freeDataDecl dataName typeNames =
+  Agda.dataDecl dataName $ freeArgBinder `snoc` Agda.binding typeNames Agda.set
 
 -- | Creates a new pattern declaration binding variables with the given names
 --   and types.
