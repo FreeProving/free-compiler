@@ -161,9 +161,9 @@ set = ident "Set"
 -- | Creates a @data@ declaration with the given name, binding the list of type
 --   variables and defining the list of constructors.
 --
---   > name [(α₁ : eₙ), …, {αₙ : eₙ}] [C₁, …, Cₘ]
+--   > D [b₁, …, bₙ] [C₁, …, Cₘ]
 --   >   ↧
---   > data name (α₁ : eₙ) … {αₙ : eₙ} : Set where
+--   > data D b₁ … bₙ : Set where
 --   >   C₁
 --   >   ⋮
 --   >   Cₘ
