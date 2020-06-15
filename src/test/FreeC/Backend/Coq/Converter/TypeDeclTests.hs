@@ -1,4 +1,4 @@
--- | This module contains tests for "FreeC.Backend.Coq.Converter.TypeDecl".
+-- | This module contains tests for "FreeC.Backend.Coq.Converter.TypeDecl".
 
 module FreeC.Backend.Coq.Converter.TypeDeclTests
   ( testConvertTypeDecl
@@ -17,14 +17,14 @@ import           FreeC.Test.Parser
 import           FreeC.Test.Environment
 import           FreeC.Test.Expectations
 
--------------------------------------------------------------------------------
--- Expectation setters                                                       --
--------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+-- Expectation setters                                                       --
+-------------------------------------------------------------------------------
 
--- | Parses the given type-level IR declarations, converts them to Coq using
---   'convertTypeComponent' and sets the expectation that the resulting AST
---   is equal to the given output when pretty printed modulo white
---   space.
+-- | Parses the given type-level IR declarations, converts them to Coq using
+--   'convertTypeComponent' and sets the expectation that the resulting AST
+--   is equal to the given output when pretty printed modulo white
+--   space.
 shouldConvertTypeDeclsTo
   :: DependencyComponent String -> String -> Converter Expectation
 shouldConvertTypeDeclsTo inputStrs expectedOutputStr = do
@@ -32,11 +32,11 @@ shouldConvertTypeDeclsTo inputStrs expectedOutputStr = do
   output <- convertTypeComponent input
   return (output `prettyShouldBe` expectedOutputStr)
 
--------------------------------------------------------------------------------
--- Tests for Type Synonym Declarations                                       --
--------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+-- Tests for Type Synonym Declarations                                       --
+-------------------------------------------------------------------------------
 
--- | Test group for 'convertTypeSynDecl' tests.
+-- | Test group for 'convertTypeSynDecl' tests.
 testConvertTypeDecl :: Spec
 testConvertTypeDecl =
   describe "FreeC.Backend.Coq.Converter.TypeDecl.convertTypeSynDecl" $ do
@@ -138,11 +138,11 @@ testConvertTypeDecl =
         "Bar" <- defineTestTypeSyn "Bar" [] "Foo"
         convertTypeComponent input
 
--------------------------------------------------------------------------------
--- Data type declarations                                                    --
--------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+-- Data type declarations                                                    --
+-------------------------------------------------------------------------------
 
--- | Test group for 'convertDataDecls' tests.
+-- | Test group for 'convertDataDecls' tests.
 testConvertDataDecls :: Spec
 testConvertDataDecls =
   describe "FreeC.Backend.Coq.Converter.TypeDecl.convertDataDecls" $ do
