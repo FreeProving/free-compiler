@@ -124,7 +124,7 @@ convertExpr' (IR.Var srcSpan name _) typeArgs args = do
       let typeArgNames = map (IR.UnQual . IR.Ident) typeArgIdents
           subst = composeSubsts (zipWith singleSubst typeArgNames typeArgs)
       argTypes' <- mapM (convertType' . applySubst subst) argTypes
-      -- Generate a bind for each strict argument
+      -- Generate a bind for each strict argument.
       generateBinds args' freshArgPrefix strictArgs (map Just argTypes')
         $ \strictArgs' -> generateApplyN arity callee strictArgs'
     else do
