@@ -1,5 +1,4 @@
 -- | This module contains a compiler pass that checks if all function
---
 --   declarations have complete patten macthing. A pattern ist complete if there
 --   is exactly one case alternative for each constructor of the corresponding
 --   type.
@@ -48,7 +47,6 @@
 --   == Translation
 --
 --   This pass only performs a check and therefore does not change the module.
---
 --   == Postconditions
 --
 --   All case expressions are guaranteed to have complete pattern matching.
@@ -56,7 +54,6 @@
 --   == Error cases
 --
 --   A fatal error is reported if an incomplete case expression is found.
-
 
 module FreeC.Pass.CompletePatternPass
   ( completePatternPass
@@ -140,6 +137,7 @@ checkPatternFuncDecl funcDecl = checkPatternExpr (IR.funcDeclRhs funcDecl)
   getTypeConName :: IR.Type -> Maybe IR.TypeConName
   getTypeConName (IR.TypeCon _ typeConName ) = Just typeConName
   getTypeConName (IR.TypeApp _ typeAppLhs _) = getTypeConName typeAppLhs
-    -- The type of the scrutinee shouldn't be function or a type var
+
+  -- The type of the scrutinee shouldn't be function or a type var
   getTypeConName IR.TypeVar{}                = Nothing
   getTypeConName IR.FuncType{}               = Nothing
