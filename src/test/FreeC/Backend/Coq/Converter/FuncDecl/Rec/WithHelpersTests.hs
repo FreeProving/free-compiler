@@ -582,6 +582,38 @@ testConvertRecFuncDeclWithHelpers = context "with helper functions" $ do
           ++ " := xs >>= (fun (xs_0 : List Shape Pos a) =>"
           ++ "             @interleave_0 Shape Pos a xs_0 ys)."
   it
+      "converts recursive functions with a strict argument preceding the decreasing argument correctly"
+    $ shouldSucceedWith
+    $ do
+        "List"           <- defineTestTypeCon "List" 1
+        ("nil" , "Nil" ) <- defineTestCon "Nil" 0 "forall a. List a"
+        ("cons", "Cons") <- defineTestCon "Cons"
+                                          2
+                                          "forall a. a -> List a -> List a"
+        "foo" <- defineStrictTestFunc "foo"
+                                      [True, False]
+                                      "forall a. a -> List a -> a"
+        shouldConvertWithHelpersTo
+            [ "foo @a !(x :: a) (xs :: List a) :: a ="
+              ++ "  case xs of {"
+              ++ "    Cons x' xs' -> foo @a x xs';"
+              ++ "    Nil         -> x"
+              ++ "  }"
+            ]
+          $  "(* Helper functions for foo *) "
+          ++ "Fixpoint foo_0 (Shape : Type) (Pos : Shape -> Type) {a : Type}"
+          ++ "  (x : a) (xs : List Shape Pos a) {struct xs}"
+          ++ " := match xs with"
+          ++ "    | cons x' xs' => xs' >>= (fun (xs'_0 : List Shape Pos a) =>"
+          ++ "                                @foo_0 Shape Pos a x xs'_0)"
+          ++ "    | nil => pure x"
+          ++ "    end. "
+          ++ "Definition foo (Shape : Type) (Pos : Shape -> Type) {a : Type}"
+          ++ "  (x : a) (xs : Free Shape Pos (List Shape Pos a))"
+          ++ "  : Free Shape Pos a"
+          ++ " := xs >>= (fun (xs_0 : List Shape Pos a) =>"
+          ++ "              @foo_0 Shape Pos a x xs_0)."
+  it
       "translates recursive functions affected by the eta conversion pass correctly"
     $ shouldSucceedWith
     $ avoidLaziness
