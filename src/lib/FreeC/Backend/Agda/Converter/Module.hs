@@ -28,7 +28,7 @@ convertModule' :: IR.Module -> Converter Agda.Declaration
 convertModule' (IR.Module _ name _ typeDecls _ _ funcDecls) =
   Agda.moduleDecl (convertModName name) <$> getAp (typeDecls' <> funcDecls')
  where
-  typeDecls' = Ap $ mapM convertTypeDecl typeDecls
+  typeDecls' = Ap $ concatMapM convertTypeDecl typeDecls
   funcDecls' = Ap $ concatMapM convertFuncDecl funcDecls
 
 -- | Converts a Haskell module name to an Agda module name

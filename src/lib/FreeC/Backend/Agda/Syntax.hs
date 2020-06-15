@@ -14,6 +14,9 @@ module FreeC.Backend.Agda.Syntax
     -- * Declarations
   , moduleDecl
   , funcSig
+  , patternSyn
+    -- * Pattern
+  , appP
     -- * Expressions
   , intLiteral
   , lambda
@@ -83,6 +86,20 @@ moduleDecl modName = Module NoRange modName []
 funcSig :: Name -> Expr -> Declaration
 funcSig = TypeSig defaultArgInfo Nothing
 
+patternSyn :: Name -> [Arg Name] -> Pattern -> Declaration
+patternSyn = PatternSyn NoRange
+
+-------------------------------------------------------------------------------
+-- Pattern                                                                   --
+-------------------------------------------------------------------------------
+
+isAppP :: Pattern -> Bool
+isAppP (AppP _ _) = True
+isAppP _          = False
+
+appP :: Pattern -> Pattern -> Pattern
+appP l r = AppP l $ defaultNamedArg $ if isAppP r then ParenP NoRange r else r
+
 -------------------------------------------------------------------------------
 -- Expressions                                                               --
 -------------------------------------------------------------------------------
@@ -136,9 +153,10 @@ dataDecl dataName bindings = Data NoRange dataName bindings set
 -- | Creates a binder with visible args.
 --
 --   > [α₁, …, αₙ] e ↦ (α₁ … αₙ : e)
-binding :: [Name] -> Expr -> TypedBinding
-binding types = TBind NoRange (map visibleArg types)
+binding :: [Name] -> Expr -> LamBinding
+binding types expr = DomainFull $ TBind NoRange (map visibleArg types) expr
 
+-- | Argument meta data marking them as visible.
 visibleArg :: Name -> NamedArg Binder
 visibleArg = defaultNamedArg . mkBinder_
 
@@ -159,7 +177,6 @@ hiddenArg :: Name -> NamedArg Binder
 hiddenArg n =
   Arg hiddenArgInfo $ Named Nothing $ Binder Nothing $ mkBoundName_ n
 
--- | Argument meta data marking them as hidden.
 hiddenArgInfo :: ArgInfo
 hiddenArgInfo = ArgInfo { argInfoHiding        = Hidden
                         , argInfoModality      = defaultModality

@@ -6,11 +6,14 @@ module FreeC.Backend.Agda.Converter.Arg
   , lookupIdent
   , lookupValueIdent
   , lookupTypeIdent
+  , lookupSmartIdent
   )
 where
 
 import qualified FreeC.Backend.Agda.Syntax     as Agda
-import           FreeC.Environment.LookupOrFail ( lookupAgdaIdentOrFail )
+import           FreeC.Environment.LookupOrFail ( lookupAgdaIdentOrFail
+                                                , lookupAgdaSmartIdentOrFail
+                                                )
 import           FreeC.Environment.Renamer      ( renameAndDefineAgdaTypeVar )
 import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Converter          ( Converter )
@@ -22,6 +25,8 @@ convertTypeVarDecl :: IR.TypeVarDecl -> Converter Agda.Name
 convertTypeVarDecl (IR.TypeVarDecl srcSpan name) =
   Agda.unqualify <$> renameAndDefineAgdaTypeVar srcSpan name
 
+-- | Looks up an IR identifier in the environment and converts it to an
+--   unqualified Agda name.
 lookupIdent :: IR.Scope -> IR.DeclIdent -> Converter Agda.Name
 lookupIdent scope (IR.DeclIdent srcSpan name) =
   Agda.unqualify <$> lookupAgdaIdentOrFail srcSpan scope name
@@ -36,3 +41,8 @@ lookupValueIdent = lookupIdent IR.ValueScope
 lookupTypeIdent :: IR.DeclIdent -> Converter Agda.Name
 lookupTypeIdent = lookupIdent IR.TypeScope
 
+-- | Looks up the name of a smart constructor for a Haskell data type in the
+--   environment and converts it to an Agda name.
+lookupSmartIdent :: IR.DeclIdent -> Converter Agda.Name
+lookupSmartIdent (IR.DeclIdent srcSpan name) =
+  Agda.unqualify <$> lookupAgdaSmartIdentOrFail srcSpan name
