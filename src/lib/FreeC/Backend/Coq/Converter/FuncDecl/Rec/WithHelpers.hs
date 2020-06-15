@@ -1,5 +1,5 @@
 -- | This module contains functions for converting mutually recursive
---   function declarations by spliting them into one or more recursive helper
+--   function declarations by splitting them into one or more recursive helper
 --   function whose decreasing argument is not lifted to the @Free@ monad and
 --   a non-recursive main function.
 
