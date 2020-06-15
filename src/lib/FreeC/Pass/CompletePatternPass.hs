@@ -1,44 +1,46 @@
 -- | This module contains a compiler pass that checks if all function
---   declarations have complete patten macthing. A pattern ist complete if there
+--   declarations have complete pattern macthing. A pattern is complete if there
 --   is exactly one case alternative for each constructor of the corresponding
 --   type.
 --
 --   = Examples
 --
 --   == Example 1
---   The following declarations
+--   The module consisting of the following declarations
 --
 --   > data Maybe a = Just a | Nothing
 --   >
 --   > fromJust :: Maybe a -> a
 --   > fromJust @a (x :: Maybe a) = case (x :: Maybe a) of {Just a -> a}
 --
---   should not pass the check.
+--   should not pass the check because the @case@ expression is missing an
+--   alternative for the constructor @Nothing@.
 --
 --   == Example 2
---   The following declaration with redundant alternavies
+--   The following declaration with redundant alternatives
 --
 --   > redundant :: Just Bool -> Just Bool
 --   > redundant (on :: Just Bool) = case (on :: Just Bool) of {
---   >     Some a -> Some (False);
---   >     None -> None;
---   >     Some b -> Some (True)}
+--   >     Just a  -> Just False;
+--   >     Nothing -> Nothing;
+--   >     Just b  -> Just True}
 --   >   }
 --
---   should not pass the check either.
+--   should not pass the check because the @case@ expression has two alternatives
+--   for the constructor @Just@.
 --
 --   == Example 3
 --   The following declaration where the scrutinee is a function
 --
 --   > case_id = case \x -> x  of
 --
---   should not pass the check.
+--   should not pass the check because the type of the scrutinee.
 --
 --   = Specification
 --
 --   == Preconditions
 --
---   The type of all checked expressions has to be annotaded.
+--   The type of all checked expressions has to be annotated.
 --   The Environment has to contain the names of all constructors for
 --   all used data types.
 --   Additionally, the environment should contain entries for all used type
@@ -76,8 +78,9 @@ import           FreeC.Pretty                   ( showPretty )
 
 -- | Checks that all functions of a given module have complete pattern matching.
 --
---   The pattern matching is complete if there is exactly one case alternative
---   for each constructor of the corresponding type.
+--   The pattern matching for a function is complete if for each @case@
+--   expression there exists exactly one case alternative for each constructor
+--   of the corresponding type.
 completePatternPass :: Pass IR.Module
 completePatternPass ast = do
   mapM_ checkPatternFuncDecl (IR.modFuncDecls ast)
