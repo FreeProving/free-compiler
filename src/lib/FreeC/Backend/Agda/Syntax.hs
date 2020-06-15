@@ -93,10 +93,10 @@ patternSyn = PatternSyn NoRange
 -- Pattern                                                                   --
 -------------------------------------------------------------------------------
 
+-- | Tests wether the given AST node is an @AppP@.
 isAppP :: Pattern -> Bool
 isAppP (AppP _ _) = True
 isAppP _          = False
-
 
 -- | Creates an application AST node in a pattern context.
 --
