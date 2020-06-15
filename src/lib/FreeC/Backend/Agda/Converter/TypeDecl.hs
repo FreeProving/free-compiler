@@ -16,12 +16,9 @@ import           FreeC.Backend.Agda.Converter.Free
 import           FreeC.Backend.Agda.Converter.Type
                                                 ( convertConstructorType )
 import           FreeC.Backend.Agda.Converter.Arg
-                                                ( convertTypeVarDecl
-                                                , lookupValueIdent
-                                                , lookupTypeIdent
-                                                , lookupSmartIdent
-                                                )
+                                                ( convertTypeVarDecl )
 import           FreeC.Environment.Fresh        ( freshAgdaVar )
+import           FreeC.Environment.LookupOrFail
 import           FreeC.Monad.Converter          ( Converter
                                                 , localEnv
                                                 )
@@ -30,7 +27,9 @@ import           FreeC.Monad.Converter          ( Converter
 convertTypeDecl :: IR.TypeDecl -> Converter [Agda.Declaration]
 convertTypeDecl (IR.TypeSynDecl _ _ _ _) = error "Not supported at the moment."
 convertTypeDecl (IR.DataDecl _ ident tVars constrs) =
-  (:) <$> convertDataDecl ident tVars constrs <*> generateSmartConDecls constrs
+  (:)
+    <$> convertDataDecl ident tVars constrs
+    <*> mapM generateSmartConDecl constrs
 
 -- | Converts a data declaration.
 convertDataDecl
@@ -38,10 +37,10 @@ convertDataDecl
   -> [IR.TypeVarDecl]
   -> [IR.ConDecl]
   -> Converter Agda.Declaration
-convertDataDecl ident typeVars constrs =
+convertDataDecl ident@(IR.DeclIdent srcSpan name) typeVars constrs =
   localEnv
     $   freeDataDecl
-    <$> lookupTypeIdent ident
+    <$> lookupUnQualAgdaIdentOrFail srcSpan IR.TypeScope name
     <*> mapM convertTypeVarDecl typeVars
     <*> convertConDecl ident typeVars constrs
 
@@ -62,14 +61,10 @@ convertConDecl (IR.DeclIdent srcSpan ident) typeVars =
 
 -- | Converts a single constructor of a (non-recursive) data type.
 convertConstructor :: IR.Type -> IR.ConDecl -> Converter Agda.Declaration
-convertConstructor retType (IR.ConDecl _ ident argTypes) =
-  Agda.funcSig
-    <$> lookupValueIdent ident
+convertConstructor retType (IR.ConDecl _ (IR.DeclIdent srcSpan name) argTypes)
+  = Agda.funcSig
+    <$> lookupUnQualAgdaIdentOrFail srcSpan IR.ValueScope name
     <*> convertConstructorType argTypes retType
-
--- | Converts a list of constructors to a list of smart constructors.
-generateSmartConDecls :: [IR.ConDecl] -> Converter [Agda.Declaration]
-generateSmartConDecls = mapM generateSmartConDecl
 
 -- | Converts a single constructor to a smart constructor, which wraps the normal
 --   constructor in the @Free@ monad using @pure@.
@@ -77,10 +72,10 @@ generateSmartConDecls = mapM generateSmartConDecl
 --   We use Agda's @pattern@ declarations for smart constructors to simplify
 --   pattern matching in proofs.
 generateSmartConDecl :: IR.ConDecl -> Converter Agda.Declaration
-generateSmartConDecl (IR.ConDecl _ ident argTypes) = do
-  smartName <- lookupSmartIdent ident
+generateSmartConDecl (IR.ConDecl _ (IR.DeclIdent srcSpan name) argTypes) = do
+  smartName <- lookupUnQualAgdaSmartIdentOrFail srcSpan name
   patternDecl smartName (repeat "x" `zip` argTypes) $ \vars -> do
-    normalName <- Agda.IdentP . Agda.qname' <$> lookupValueIdent ident
+    normalName <- Agda.IdentP <$> lookupAgdaValIdentOrFail srcSpan name
     let pureVal = foldl Agda.appP normalName vars
     return (Agda.IdentP (Agda.qname' Agda.Base.pure) `Agda.appP` pureVal)
 
