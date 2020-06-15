@@ -306,7 +306,15 @@ brittany_formatter_msg=$(select_by_mode           \
 # line length limit.
 function coulmn_check() {
   local file="$1"
-  ! grep -Pq '^.{81,}$' "$file"
+
+  # Search for long lines but ignore lines that contain URLs.
+  cat "$file" | grep -Pv 'https?:' | grep -Pq '^.{81,}$'
+
+  # Return with status code `1` if a line that exceeds the limit was found.
+  local status_code="$?"
+  if [ "$status_code" -eq 0 ]; then
+    return 1
+  fi
 }
 coulmn_check_msg="${yellow}${bold}EXCEEDS COLUMN LIMIT${reset}"
 
@@ -342,7 +350,7 @@ for file in $(find "${files[@]}" -name '*.hs' -type f); do
                   "$brittany_formatter_msg"       \
                   "$enable_brittany" &&
     run_check coulmn_check "$temp_file" \
-              "coulmn_counter"          \
+              "column_counter"          \
               "$coulmn_check_msg"       \
               "$enable_coulmn_check"
 
