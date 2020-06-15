@@ -18,7 +18,6 @@ module FreeC.Test.Environment
   , defineTestTypeVar
   , defineTestTypeSyn
   , defineTestTypeCon
-  , defineTestTypeCon'
   , defineTestCon
   , defineTestVar
   , defineTestFunc
@@ -293,30 +292,10 @@ defineTestTypeCon nameStr arity consNameStrs = do
                                   , entryArity     = arity
                                   , entryName      = name
                                   , entryIdent     = undefined -- filled by renamer
-
-
-
-
-
-
                                   , entryConsNames = consNames
-                                  }
-
-defineTestTypeCon' :: String -> Int -> [IR.QName] -> Converter String
-defineTestTypeCon' nameStr arity consNames = do
-  name      <- parseTestQName nameStr
-  renameAndAddTestEntry DataEntry { entrySrcSpan   = NoSrcSpan
-                                  , entryArity     = arity
-                                  , entryName      = name
-                                  , entryIdent     = undefined -- filled by renamer
+  }
 
 
-
-
-
-
-                                  , entryConsNames = consNames
-                                  }
 
 -------------------------------------------------------------------------------
 

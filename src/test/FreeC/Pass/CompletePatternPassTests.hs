@@ -1,26 +1,15 @@
 -- name subject to change 
 
--- | This module contains tests for "FreeC.Pass.EtaConversionPass".
+-- | This module contains tests for "FreeC.Pass.CompletePatternPassTests".
 
 module FreeC.Pass.CompletePatternPassTests where
 
 import           Test.Hspec
 
-import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Class.Testable
 import           FreeC.Pass.CompletePatternPass
 import           FreeC.Test.Environment
 import           FreeC.Test.Parser
-
-
-{-
--------------------------------------------------------------------------------
--- Assumed interface (use for renaming once real interface is known)                                                   --
--------------------------------------------------------------------------------
-Pass name : FreeC.Pass.CompletePatternPass 
-Name of function that checks expression: checkPatternFuncDecl 
--}
-
 -------------------------------------------------------------------------------
 -- Tests                                                                     --
 -------------------------------------------------------------------------------
@@ -44,10 +33,10 @@ testCompletePatternPass =
         input <- expectParseTestFuncDecl
           "f x = case x :: Foobar of {Foo -> Foo ; Bar -> Bar ; Foo -> Foo}"
         shouldFail $ do
-          _ <- defineTestTypeCon'
+          _ <- defineTestTypeCon
             "Foobar"
             0
-            [IR.UnQual (IR.Ident "Foo"), IR.UnQual (IR.Ident "Bar")]
+            ["Foo","Bar"]
           _ <- defineTestCon "Foo" 0 "Foobar"
           _ <- defineTestCon "Bar" 0 "Foobar"
           _ <- defineTestVar "x"
@@ -56,10 +45,10 @@ testCompletePatternPass =
         input <- expectParseTestFuncDecl
           "f x = case x :: Foobar of {Foo -> Foo ; Bar -> Bar}"
         shouldSucceed $ do
-          _ <- defineTestTypeCon'
+          _ <- defineTestTypeCon
             "Foobar"
             0
-            [IR.UnQual (IR.Ident "Foo"), IR.UnQual (IR.Ident "Bar")]
+            ["Foo","Bar"]
           _ <- defineTestCon "Foo" 0 "Foobar"
           _ <- defineTestCon "Bar" 0 "Foobar"
           _ <- defineTestVar "x"
@@ -70,10 +59,10 @@ testCompletePatternPass =
             input <- expectParseTestFuncDecl
               "f x = case x :: Foobar of {Foo y -> Foo ; Bar y -> Bar}"
             shouldSucceed $ do
-              _ <- defineTestTypeCon'
+              _ <- defineTestTypeCon
                 "Foobar"
                 0
-                [IR.UnQual (IR.Ident "Foo"), IR.UnQual (IR.Ident "Bar")]
+                ["Foo","Bar"]
               _ <- defineTestCon "Foo" 1 "Foobar -> Foobar"
               _ <- defineTestCon "Bar" 0 "Foobar"
               _ <- defineTestVar "x"
@@ -82,11 +71,11 @@ testCompletePatternPass =
         input <- expectParseTestFuncDecl
           "f x = case x :: Foobar of {Foo -> Foo ; Bar -> Bar ; Evil -> Bar}"
         shouldFail $ do
-          _ <- defineTestTypeCon'
+          _ <- defineTestTypeCon
             "Foobar"
             0
-            [IR.UnQual (IR.Ident "Foo"), IR.UnQual (IR.Ident "Bar")]
-          _ <- defineTestTypeCon' "Evil" 0 [IR.UnQual (IR.Ident "Evil")]
+            ["Foo","Bar"]
+          _ <- defineTestTypeCon "Evil" 0 ["Evil"]
           _ <- defineTestCon "Foo" 0 "Foobar"
           _ <- defineTestCon "Bar" 0 "Foobar"
           _ <- defineTestCon "Evil" 0 "Evil"
@@ -97,10 +86,10 @@ testCompletePatternPass =
         input <- expectParseTestFuncDecl
           "f x = if b then case x :: Foobar of {Foo -> Foo} else Bar"
         shouldFail $ do
-          _ <- defineTestTypeCon'
+          _ <- defineTestTypeCon
             "Foobar"
             0
-            [IR.UnQual (IR.Ident "Foo"), IR.UnQual (IR.Ident "Bar")]
+            ["Foo","Bar"]
           _ <- defineTestCon "Foo" 0 "Foobar"
           _ <- defineTestCon "Bar" 0 "Foobar"
           _ <- defineTestVar "x"
@@ -111,10 +100,10 @@ testCompletePatternPass =
           expectParseTestFuncDecl
             "f x = case x :: Foobar of {Foo -> case x :: Foobar of {Foo -> Foo} ; Bar -> Bar}"
         shouldFail $ do
-          _ <- defineTestTypeCon'
+          _ <- defineTestTypeCon
             "Foobar"
             0
-            [IR.UnQual (IR.Ident "Foo"), IR.UnQual (IR.Ident "Bar")]
+            ["Foo","Bar"]
           _ <- defineTestCon "Foo" 0 "Foobar"
           _ <- defineTestCon "Bar" 0 "Foobar"
           _ <- defineTestVar "x"
@@ -126,10 +115,10 @@ testCompletePatternPass =
               expectParseTestFuncDecl
                 "f x = case ((case x :: Foobar of {Foo -> x} ) :: Foobar) of {Foo -> Foo ; Bar -> Bar}"
             shouldFail $ do
-              _ <- defineTestTypeCon'
+              _ <- defineTestTypeCon
                 "Foobar"
                 0
-                [IR.UnQual (IR.Ident "Foo"), IR.UnQual (IR.Ident "Bar")]
+                ["Foo","Bar"]
               _ <- defineTestCon "Foo" 0 "Foobar"
               _ <- defineTestCon "Bar" 0 "Foobar"
               _ <- defineTestVar "x"
@@ -139,10 +128,10 @@ testCompletePatternPass =
           expectParseTestFuncDecl
             "f x = case x :: Foobar of {Foo -> case x :: Foobar of {Foo -> Foo ; Bar -> Bar} ; Bar -> Bar}"
         shouldSucceed $ do
-          _ <- defineTestTypeCon'
+          _ <- defineTestTypeCon
             "Foobar"
             0
-            [IR.UnQual (IR.Ident "Foo"), IR.UnQual (IR.Ident "Bar")]
+            ["Foo","Bar"]
           _ <- defineTestCon "Foo" 0 "Foobar"
           _ <- defineTestCon "Bar" 0 "Foobar"
           _ <- defineTestVar "x"
@@ -152,10 +141,10 @@ testCompletePatternPass =
         input <- expectParseTestFuncDecl
           "f x = \\ y -> case x :: Foobar of {Foo -> Foo}"
         shouldFail $ do
-          _ <- defineTestTypeCon'
+          _ <- defineTestTypeCon
             "Foobar"
             0
-            [IR.UnQual (IR.Ident "Foo"), IR.UnQual (IR.Ident "Bar")]
+            ["Foo","Bar"]
           _ <- defineTestCon "Foo" 0 "Foobar"
           _ <- defineTestVar "x"
           checkPatternFuncDecl input
@@ -165,10 +154,10 @@ testCompletePatternPass =
         $ do
             input <- expectParseTestFuncDecl "g f = case f :: Foobar -> Foobar of {Foo -> Foo ; Bar -> Bar}"
             shouldFail $ do
-              _ <- defineTestTypeCon'
+              _ <- defineTestTypeCon
                 "Foobar"
                 0
-                [IR.UnQual (IR.Ident "Foo"), IR.UnQual (IR.Ident "Bar")]
+                ["Foo","Bar"]
               _ <- defineTestCon "Foo" 0 "Foobar"
               _ <- defineTestCon "Bar" 0 "Foobar"
               _ <- defineTestFunc "f" 1 "Foobar -> Foobar"
@@ -179,10 +168,10 @@ testCompletePatternPass =
         $ do
             input <- expectParseTestFuncDecl "g f = case f :: Foobar -> Foobar of {}"
             shouldFail $ do
-              _ <- defineTestTypeCon'
+              _ <- defineTestTypeCon
                 "Foobar"
                 0
-                [IR.UnQual (IR.Ident "Foo"), IR.UnQual (IR.Ident "Bar")]
+                ["Foo","Bar"]
               _ <- defineTestCon "Foo" 0 "Foobar"
               _ <- defineTestCon "Bar" 0 "Foobar"
               _ <- defineTestVar "b"
@@ -193,10 +182,10 @@ testCompletePatternPass =
             input <- expectParseTestFuncDecl
               "g x = case (f x) :: Foobar of {Foo -> Foo ; Bar -> Bar}"
             shouldSucceed $ do
-              _ <- defineTestTypeCon'
+              _ <- defineTestTypeCon
                 "Foobar"
                 0
-                [IR.UnQual (IR.Ident "Foo"), IR.UnQual (IR.Ident "Bar")]
+                ["Foo","Bar"]
               _ <- defineTestCon "Foo" 0 "Foobar"
               _ <- defineTestCon "Bar" 0 "Foobar"
               _ <- defineTestFunc "f" 1 "Foobar -> Foobar"
@@ -206,20 +195,20 @@ testCompletePatternPass =
         input <- expectParseTestFuncDecl
           "f = case (\\ x -> Foo) :: Foobar -> Foobar of {Foo -> Foo ; Bar -> Bar}"
         shouldFail $ do
-          _ <- defineTestTypeCon'
+          _ <- defineTestTypeCon
             "Foobar"
             0
-            [IR.UnQual (IR.Ident "Foo"), IR.UnQual (IR.Ident "Bar")]
+            ["Foo","Bar"]
           _ <- defineTestCon "Foo" 0 "Foobar"
           _ <- defineTestCon "Bar" 0 "Foobar"
           checkPatternFuncDecl input
       it "fails if the case expression's scrutinee is polymorphic" $ do
         input <- expectParseTestFuncDecl "f x = case x :: a of {}"
         shouldFail $ do
-          _ <- defineTestTypeCon'
+          _ <- defineTestTypeCon
             "Foobar"
             0
-            [IR.UnQual (IR.Ident "Foo"), IR.UnQual (IR.Ident "Bar")]
+            ["Foo","Bar"]
           _ <- defineTestCon "Foo" 0 "Foobar"
           _ <- defineTestCon "Bar" 0 "Foobar"
           _ <- defineTestVar "x"
