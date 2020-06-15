@@ -214,7 +214,9 @@ testConvertRecFuncDeclWithHelpers = context "with helper functions" $ do
             ++ "  }"
             ]
           $  "(* Helper functions for even_len, odd_len *) "
-          ++ "Fixpoint even_len_0 (Shape : Type) (Pos : Shape -> Type) {a : Type}"
+          ++ "Fixpoint even_len_0"
+          ++ "  (Shape : Type) (Pos : Shape -> Type)"
+          ++ "  {a : Type}"
           ++ "  (xs : List Shape Pos a)"
           ++ "  {struct xs}"
           ++ "  := match xs with"
@@ -223,7 +225,8 @@ testConvertRecFuncDeclWithHelpers = context "with helper functions" $ do
           ++ "         xs' >>= (fun (xs'_0 : List Shape Pos a) =>"
           ++ "           @odd_len_0 Shape Pos a xs'_0)"
           ++ "     end "
-          ++ "with odd_len_0 (Shape : Type) (Pos : Shape -> Type) {a : Type}"
+          ++ "with odd_len_0"
+          ++ "  (Shape : Type) (Pos : Shape -> Type) {a : Type}"
           ++ "  (xs : List Shape Pos a)"
           ++ "  {struct xs}"
           ++ "  := match xs with"
@@ -232,12 +235,16 @@ testConvertRecFuncDeclWithHelpers = context "with helper functions" $ do
           ++ "         xs' >>= (fun (xs'_0 : List Shape Pos a) =>"
           ++ "           @even_len_0 Shape Pos a xs'_0)"
           ++ "     end. "
-          ++ "Definition even_len (Shape : Type) (Pos : Shape -> Type) {a : Type}"
+          ++ "Definition even_len"
+          ++ "  (Shape : Type) (Pos : Shape -> Type)"
+          ++ "  {a : Type}"
           ++ "  (xs : Free Shape Pos (List Shape Pos a))"
           ++ "  : Free Shape Pos (Bool Shape Pos)"
           ++ "  := xs >>= (fun (xs_0 : List Shape Pos a) =>"
           ++ "           @even_len_0 Shape Pos a xs_0). "
-          ++ "Definition odd_len (Shape : Type) (Pos : Shape -> Type) {a : Type}"
+          ++ "Definition odd_len"
+          ++ "  (Shape : Type) (Pos : Shape -> Type)"
+          ++ "  {a : Type}"
           ++ "  (xs : Free Shape Pos (List Shape Pos a))"
           ++ "  : Free Shape Pos (Bool Shape Pos)"
           ++ "  := xs >>= (fun (xs_0 : List Shape Pos a) =>"
@@ -355,7 +362,9 @@ testConvertRecFuncDeclWithHelpers = context "with helper functions" $ do
           ++ "        @foo_0 Shape Pos a xs_0 y)))."
 
   it
-      "translates recursive functions with nested pattern matching on recursive argument correctly"
+      (  "translates recursive functions with nested pattern matching on"
+      ++ "recursive argument correctly"
+      )
     $ shouldSucceedWith
     $ do
         "List"           <- defineTestTypeCon "List" 1
@@ -502,7 +511,9 @@ testConvertRecFuncDeclWithHelpers = context "with helper functions" $ do
           ++ "      @height_0 Shape Pos a t_0)."
 
   it
-      "translates recursive functions affected by the eta conversion pass correctly"
+      (  "translates recursive functions affected by the eta conversion"
+      ++ "pass correctly"
+      )
     $ shouldSucceedWith
     $ avoidLaziness
     $ do
@@ -529,16 +540,19 @@ testConvertRecFuncDeclWithHelpers = context "with helper functions" $ do
           (  "(* Helper functions for append *)"
           ++ " Fixpoint append_0"
           ++ "   (Shape : Type) (Pos : Shape -> Type) {a b : Type}"
-          ++ "   (xs : List Shape Pos a) (ys : Free Shape Pos (List Shape Pos a))"
+          ++ "   (xs : List Shape Pos a)"
+          ++ "   (ys : Free Shape Pos (List Shape Pos a))"
           ++ "   {struct xs} : Free Shape Pos (List Shape Pos a)"
           ++ "  := match xs with"
           ++ "     | nil => ys"
           ++ "     | cons x xs' =>"
           ++ "         @Cons Shape Pos a x"
           ++ "           ((fun y =>"
-          ++ "               @const Shape Pos (List Shape Pos a) (Unit Shape Pos)"
+          ++ "              @const Shape Pos"
+          ++ "                 (List Shape Pos a) (Unit Shape Pos)"
           ++ "                 (xs' >>= (fun (xs'_0 : List Shape Pos a) =>"
-          ++ "                   @append_0 Shape Pos a (Unit Shape Pos) xs'_0 ys))"
+          ++ "                   @append_0 Shape Pos a"
+          ++ "                             (Unit Shape Pos) xs'_0 ys))"
           ++ "                 y)"
           ++ "            (Tt Shape Pos))"
           ++ "     end."
@@ -546,7 +560,8 @@ testConvertRecFuncDeclWithHelpers = context "with helper functions" $ do
           ++ "   (Shape : Type) (Pos : Shape -> Type) {a b : Type}"
           ++ "   (xs : Free Shape Pos (List Shape Pos a))"
           ++ "   (ys : Free Shape Pos (List Shape Pos a))"
-          ++ "   : Free Shape Pos (Free Shape Pos b -> Free Shape Pos (List Shape Pos a))"
+          ++ "   : Free Shape Pos"
+          ++ "       (Free Shape Pos b -> Free Shape Pos (List Shape Pos a))"
           ++ "  := pure (fun y =>"
           ++ "       @const Shape Pos (List Shape Pos a) b"
           ++ "         (xs >>= (fun (xs_0 : List Shape Pos a) =>"

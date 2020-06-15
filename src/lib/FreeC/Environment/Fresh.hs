@@ -142,5 +142,5 @@ freshEntry :: String -> Converter EnvEntry
 freshEntry prefix = do
   ident <- freshHaskellIdent prefix
   renameAndAddEntry FreshEntry { entryName  = IR.UnQual (IR.Ident ident)
-                               , entryIdent = undefined -- filled by renamer
+                               , entryIdent = filledByRenamer
                                }

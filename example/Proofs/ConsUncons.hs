@@ -24,7 +24,8 @@ unconsE ls = case ls of
 prop_cons_unconsE :: (Eq a, Show a) => a -> [a] -> Property
 prop_cons_unconsE x xs = unconsE (x : xs) === (x, xs)
 
--- And we define a property whose validity depends on the model used in the proof.
+-- And we define a property whose validity depends on the concrete effect
+-- that is considered in the proof.
 
 fst :: (a, b) -> a
 fst p = case p of

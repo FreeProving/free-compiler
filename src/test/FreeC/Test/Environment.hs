@@ -55,7 +55,7 @@ defineTestTypeVar nameStr = do
   name <- parseTestQName nameStr
   renameAndAddTestEntry TypeVarEntry { entrySrcSpan = NoSrcSpan
                                      , entryName    = name
-                                     , entryIdent   = undefined -- filled by renamer
+                                     , entryIdent   = filledByRenamer
                                      }
 
 -------------------------------------------------------------------------------
@@ -75,7 +75,7 @@ defineTestTypeSyn nameStr typeArgs typeStr = do
                                      , entryTypeArgs = typeArgs
                                      , entryTypeSyn  = typeExpr
                                      , entryName     = name
-                                     , entryIdent    = undefined -- filled by renamer
+                                     , entryIdent    = filledByRenamer
                                      }
 
 -------------------------------------------------------------------------------
@@ -92,7 +92,7 @@ defineTestTypeCon nameStr arity = do
   renameAndAddTestEntry DataEntry { entrySrcSpan = NoSrcSpan
                                   , entryArity   = arity
                                   , entryName    = name
-                                  , entryIdent   = undefined -- filled by renamer
+                                  , entryIdent   = filledByRenamer
                                   }
 
 -------------------------------------------------------------------------------
@@ -116,8 +116,8 @@ defineTestCon nameStr arity typeStr = do
     , entryArgTypes   = argTypes
     , entryReturnType = returnType
     , entryName       = name
-    , entryIdent      = undefined -- filled by renamer
-    , entrySmartIdent = undefined -- filled by renamer
+    , entryIdent      = filledByRenamer
+    , entrySmartIdent = filledByRenamer
     }
   let (Just ident'     ) = Coq.unpackQualid (entryIdent entry)
       (Just smartIdent') = Coq.unpackQualid (entrySmartIdent entry)
@@ -137,7 +137,7 @@ defineTestVar nameStr = do
   renameAndAddTestEntry VarEntry { entrySrcSpan = NoSrcSpan
                                  , entryIsPure  = False
                                  , entryName    = name
-                                 , entryIdent   = undefined -- filled by renamer
+                                 , entryIdent   = filledByRenamer
                                  , entryType    = Nothing
                                  }
 
@@ -169,7 +169,7 @@ defineTestFunc' partial nameStr arity typeStr = do
     , entryNeedsFreeArgs = True
     , entryIsPartial     = partial
     , entryName          = name
-    , entryIdent         = undefined -- filled by renamer
+    , entryIdent         = filledByRenamer
     }
 
 -- | Like 'defineTestFunc' but also marks the given function as partial.

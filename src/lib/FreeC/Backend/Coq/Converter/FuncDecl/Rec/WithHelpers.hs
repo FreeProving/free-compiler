@@ -184,7 +184,7 @@ transformRecFuncDecl (IR.FuncDecl srcSpan declIdent typeArgs args maybeRetType e
       , entryNeedsFreeArgs = freeArgsNeeded
       , entryIsPartial     = partial
       , entryName          = helperName
-      , entryIdent         = undefined -- filled by renamer
+      , entryIdent         = filledByRenamer
       }
 
     -- Additionally we need to remember the index of the decreasing argument

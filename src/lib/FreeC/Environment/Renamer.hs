@@ -20,6 +20,8 @@ module FreeC.Environment.Renamer
   , renameAndAddEntry
   , renameAndDefineTypeVar
   , renameAndDefineVar
+  -- * Placeholders
+  , filledByRenamer
   )
 where
 
@@ -230,7 +232,7 @@ renameAndDefineTypeVar srcSpan ident = do
   entry <- renameAndAddEntry TypeVarEntry
     { entrySrcSpan = srcSpan
     , entryName    = IR.UnQual (IR.Ident ident)
-    , entryIdent   = undefined -- filled by renamer
+    , entryIdent   = filledByRenamer
     }
   return (entryIdent entry)
 
@@ -250,10 +252,19 @@ renameAndDefineVar srcSpan isPure ident maybeVarType = do
   entry <- renameAndAddEntry VarEntry { entrySrcSpan = srcSpan
                                       , entryIsPure  = isPure
                                       , entryName = IR.UnQual (IR.Ident ident)
-                                      , entryIdent   = undefined -- filled by renamer
+                                      , entryIdent   = filledByRenamer
                                       , entryType    = maybeVarType
                                       }
   return (entryIdent entry)
+
+-------------------------------------------------------------------------------
+-- Placeholders                                                              --
+-------------------------------------------------------------------------------
+
+-- Value that is used for 'entryIdent' by convention in calls to 'renameEntry'
+-- and indicates that the field will overwritten by the renamer.
+filledByRenamer :: a
+filledByRenamer = error "filledByRenamer: entry has not yet been renamed"
 
 -------------------------------------------------------------------------------
 -- Error reporting                                                           --

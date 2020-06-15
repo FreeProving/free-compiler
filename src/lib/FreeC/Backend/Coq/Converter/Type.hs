@@ -38,7 +38,7 @@ convertType t = do
 --     Type constructor applications are translated recursively but
 --     remain unchanged otherwise.
 --
---   [\((\tau_1 \rightarrow \tau_2)^* = \tau_1^\dagger \rightarrow \tau_2^\dagger\)]
+--   [\((\tau_1 \to \tau_2)^* = \tau_1^\dagger \to \tau_2^\dagger\)]
 --     Type constructor applications are translated recursively but
 --     remain unchanged otherwise.
 convertType' :: IR.Type -> Converter Coq.Term

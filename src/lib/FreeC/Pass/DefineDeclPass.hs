@@ -71,14 +71,14 @@ defineTypeDecl (IR.TypeSynDecl srcSpan declIdent typeArgs typeExpr) = do
     , entryTypeArgs = map IR.typeVarDeclIdent typeArgs
     , entryTypeSyn  = typeExpr
     , entryName     = IR.declIdentName declIdent
-    , entryIdent    = undefined -- filled by renamer
+    , entryIdent    = filledByRenamer
     }
   return ()
 defineTypeDecl (IR.DataDecl srcSpan declIdent typeArgs conDecls) = do
   _ <- renameAndAddEntry DataEntry { entrySrcSpan = srcSpan
                                    , entryArity   = length typeArgs
                                    , entryName    = IR.declIdentName declIdent
-                                   , entryIdent   = undefined -- filled by renamer
+                                   , entryIdent   = filledByRenamer
                                    }
   mapM_ defineConDecl conDecls
  where
@@ -99,8 +99,8 @@ defineTypeDecl (IR.DataDecl srcSpan declIdent typeArgs conDecls) = do
       , entryArgTypes   = argTypes
       , entryReturnType = returnType
       , entryName       = IR.declIdentName conDeclIdent
-      , entryIdent      = undefined -- filled by renamer
-      , entrySmartIdent = undefined -- filled by renamer
+      , entryIdent      = filledByRenamer
+      , entrySmartIdent = filledByRenamer
       }
     return ()
 
@@ -120,6 +120,6 @@ defineFuncDecl funcDecl = do
     , entryNeedsFreeArgs = True
     , entryIsPartial     = False -- may be updated by partiality analysis pass
     , entryName          = IR.funcDeclQName funcDecl
-    , entryIdent         = undefined -- filled by renamer
+    , entryIdent         = filledByRenamer
     }
   return ()
