@@ -158,6 +158,15 @@ ident = Ident . qname' . name
 set :: Expr
 set = ident "Set"
 
+-- | Creates a @data@ declaration with the given name, binding the list of type
+--   variables and defining the list of constructors.
+--
+--   > name [(α₁ : eₙ), …, {αₙ : eₙ}] [C₁, …, Cₘ]
+--   >   ↧
+--   > data name (α₁ : eₙ) … {αₙ : eₙ} : Set where
+--   >   C₁
+--   >   ⋮
+--   >   Cₘ
 dataDecl :: Name -> [LamBinding] -> [Declaration] -> Declaration
 dataDecl dataName bindings = Data NoRange dataName bindings set
 
@@ -188,6 +197,7 @@ hiddenArg :: Name -> NamedArg Binder
 hiddenArg n =
   Arg hiddenArgInfo $ Named Nothing $ Binder Nothing $ mkBoundName_ n
 
+-- | Argument meta data marking them as hidden.
 hiddenArgInfo :: ArgInfo
 hiddenArgInfo = ArgInfo { argInfoHiding        = Hidden
                         , argInfoModality      = defaultModality
