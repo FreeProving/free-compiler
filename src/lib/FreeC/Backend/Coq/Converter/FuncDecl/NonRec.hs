@@ -20,7 +20,7 @@ import           FreeC.Monad.Converter
 --   only depends on definitions at preceeding list positions.
 convertNonRecFuncDecls :: [IR.FuncDecl] -> Converter [Coq.Sentence]
 convertNonRecFuncDecls decls =
-  let orderdDecls = concatMap
+  let orderedDecls = concatMap
         unwrapComponent
         (dependencyComponents (funcDependencyGraph decls))
   in  mapM convertNonRecFuncDecl orderdDecls
