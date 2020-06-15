@@ -118,7 +118,7 @@ freshCoqQualid prefix = do
 
 -- | Generates a new Agda identifer based on the given name.
 --
---   Note: Type is redundant with next merge from master and the introduction
+--   TODO: Type is redundant with next merge from master and the introduction
 --   of @Fresh@
 freshAgdaVar :: String -> IR.Type -> Converter Agda.QName
 freshAgdaVar name varType = do
