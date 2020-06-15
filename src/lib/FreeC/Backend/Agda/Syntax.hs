@@ -97,6 +97,13 @@ isAppP :: Pattern -> Bool
 isAppP (AppP _ _) = True
 isAppP _          = False
 
+
+-- | Creates an application AST node in a pattern context.
+--
+--   Application is left associative. Parenthesis are added automatically if
+--   the right child is also an @AppP@ node.
+--
+--   > e a
 appP :: Pattern -> Pattern -> Pattern
 appP l r = AppP l $ defaultNamedArg $ if isAppP r then ParenP NoRange r else r
 
@@ -104,13 +111,16 @@ appP l r = AppP l $ defaultNamedArg $ if isAppP r then ParenP NoRange r else r
 -- Expressions                                                               --
 -------------------------------------------------------------------------------
 
+-- | Tests wether the given AST node is an @App@.
 isApp :: Expr -> Bool
 isApp (App _ _ _) = True
 isApp _           = False
 
+-- | Tests wether the given AST node is an @Fun@.
 isFun :: Expr -> Bool
 isFun (Fun _ _ _) = True
 isFun _           = False
+
 -- | Creates an integer literal.
 intLiteral :: Integer -> Expr
 intLiteral = Lit . LitNat NoRange
@@ -122,9 +132,10 @@ intLiteral = Lit . LitNat NoRange
 lambda :: [Name] -> Expr -> Expr
 lambda args = Lam NoRange (DomainFree . defaultNamedArg . mkBinder_ <$> args)
 
--- | Creates an application AST node. Application is left associative and in
---   in type expressions binds stronger than type arrow. For these cases paren-
---   thesis are added automatically.
+-- | Creates an application AST node.
+--
+--   Application is left associative and in in type expressions binds stronger
+--   than type arrow. For these cases paren- thesis are added automatically.
 --
 --   > e a
 app :: Expr -> Expr -> Expr

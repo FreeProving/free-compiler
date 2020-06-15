@@ -28,7 +28,7 @@ import           FreeC.Monad.Converter          ( Converter
 
 -- | Converts a data or type synonym declaration.
 convertTypeDecl :: IR.TypeDecl -> Converter [Agda.Declaration]
-convertTypeDecl (IR.TypeSynDecl _ _ _ _) = error "At the Moment Not Supported"
+convertTypeDecl (IR.TypeSynDecl _ _ _ _) = error "Not supported at the moment."
 convertTypeDecl (IR.DataDecl _ ident tVars constrs) =
   (:) <$> convertDataDecl ident tVars constrs <*> convertSmartConstrs constrs
 
