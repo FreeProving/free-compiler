@@ -14,6 +14,8 @@ module FreeC.Environment
   , addEntry
   , defineDecArg
   , removeDecArg
+  -- * Modifying entries in the environment
+  , modifyEntryIdent
   -- * Looking up entries from the environment
   , lookupEntry
   , isFunction
@@ -26,6 +28,7 @@ module FreeC.Environment
   , lookupTypeArgs
   , lookupTypeArgArity
   , lookupArgTypes
+  , lookupStrictArgs
   , lookupReturnType
   , lookupTypeSchema
   , lookupArity
@@ -132,6 +135,20 @@ removeDecArg funcName env =
   env { envDecArgs = Map.delete funcName (envDecArgs env) }
 
 -------------------------------------------------------------------------------
+-- Modifying entries in the environment                                      --
+-------------------------------------------------------------------------------
+
+-- | Changes the Coq identifier of the entry with the given name in the given
+--   scope to the given identifier.
+--
+--   If such an entry does not exist, the environment is not changed.
+modifyEntryIdent
+  :: IR.Scope -> IR.QName -> Coq.Qualid -> Environment -> Environment
+modifyEntryIdent scope name newIdent env = case lookupEntry scope name env of
+  Nothing    -> env
+  Just entry -> addEntry (entry { entryIdent = newIdent }) env
+
+-------------------------------------------------------------------------------
 -- Looking up entries from the environment                                   --
 -------------------------------------------------------------------------------
 
@@ -212,6 +229,13 @@ lookupTypeArgArity = fmap length .:. lookupTypeArgs
 lookupArgTypes :: IR.Scope -> IR.QName -> Environment -> Maybe [IR.Type]
 lookupArgTypes =
   fmap entryArgTypes . find (isConEntry .||. isFuncEntry) .:. lookupEntry
+
+-- | Looks up the strict arguments of the function with the given name.
+--
+--   Returns @Nothing@ if there is no such function.
+lookupStrictArgs :: IR.QName -> Environment -> Maybe [Bool]
+lookupStrictArgs =
+  fmap entryStrictArgs . find isFuncEntry .: lookupEntry IR.ValueScope
 
 -- | Looks up the return type of the function or (smart) constructor with the
 --   given name.
