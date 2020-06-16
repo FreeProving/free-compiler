@@ -6,6 +6,7 @@
 --   = Examples
 --
 --   == Example 1
+--
 --   The module consisting of the following declarations
 --
 --   > data Maybe a = Just a | Nothing
@@ -17,6 +18,7 @@
 --   alternative for the constructor @Nothing@.
 --
 --   == Example 2
+--
 --   The following declaration with redundant alternatives
 --
 --   > redundant :: Just Bool -> Just Bool
@@ -30,11 +32,12 @@
 --   for the constructor @Just@.
 --
 --   == Example 3
+--
 --   The following declaration where the scrutinee is a function
 --
 --   > case_id = case \x -> x  of
 --
---   should not pass the check because the type of the scrutinee.
+--   should not pass the check because functions are not permitted as scrutinees.
 --
 --   = Specification
 --
@@ -49,6 +52,7 @@
 --   == Translation
 --
 --   This pass only performs a check and therefore does not change the module.
+--
 --   == Postconditions
 --
 --   All case expressions are guaranteed to have complete pattern matching.
@@ -66,8 +70,8 @@ where
 import           Control.Monad                  ( unless )
 import           Data.Maybe                     ( fromJust )
 
-import           FreeC.Environment
 import           FreeC.Environment.Entry
+import           FreeC.Environment.LookupOrFail
 import qualified FreeC.IR.Syntax               as IR
 import           FreeC.IR.SrcSpan
 import           FreeC.IR.TypeSynExpansion
@@ -95,17 +99,17 @@ checkPatternFuncDecl funcDecl = checkPatternExpr (IR.funcDeclRhs funcDecl)
   checkPatternExpr (IR.Case srcSpan exprScrutinee exprAlts _) = do
     checkPatternExpr exprScrutinee
     mapM_ (checkPatternExpr . IR.altRhs) exprAlts
-    let tau = fromJust $ IR.exprType exprScrutinee -- is safe beacause all types are annotated
+    -- The usage of 'fromJust' is safe, because all types are annotated.
+    let tau = fromJust $ IR.exprType exprScrutinee
     tau' <- expandAllTypeSynonyms tau
     case getTypeConName tau' of
       Nothing       -> failedPatternCheck srcSpan
       Just typeName -> do
-        maybeEntry <- inEnv $ lookupEntry IR.TypeScope typeName
+        -- If an entry is found we can assume that it is 'DataEntry' because
+        -- all type synonyms have been expanded.
+        entry <- lookupEntryOrFail srcSpan IR.TypeScope typeName
         let altConNames = map (IR.conPatName . IR.altConPat) exprAlts
-        case maybeEntry of
-          Just entry | isDataEntry entry ->
-            performCheck (entryConsNames entry) altConNames srcSpan
-          _ -> failedPatternCheck srcSpan
+        performCheck (entryConsNames entry) altConNames srcSpan
   checkPatternExpr (IR.App _ lhr rhs _) =
     checkPatternExpr lhr >> checkPatternExpr rhs
   checkPatternExpr (IR.TypeAppExpr _ lhr _ _) = checkPatternExpr lhr
