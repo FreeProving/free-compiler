@@ -26,6 +26,7 @@ where
 import           Control.Monad                  ( unless
                                                 , when
                                                 )
+import           Data.Composition               ( (.:) )
 import           Data.List.Extra                ( concatUnzip3 )
 import           Data.Maybe                     ( fromJust
                                                 , fromMaybe
@@ -39,6 +40,7 @@ import           FreeC.Frontend.IR.PragmaParser
 import qualified FreeC.IR.Base.Prelude         as IR.Prelude
 import           FreeC.IR.Reference             ( freeTypeVars )
 import           FreeC.IR.SrcSpan
+import           FreeC.IR.Subterm               ( findFirstSubterm )
 import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
@@ -328,10 +330,14 @@ simplifyDecl decl@(HSE.GDataDecl _ _ _ _ _ _ _) =
 simplifyDecl decl@(HSE.GDataInsDecl _ _ _ _ _ _) =
   notSupported "GADT style declarations" decl
 simplifyDecl decl@(HSE.ClassDecl _ _ _ _ _) = notSupported "Type classes" decl
-simplifyDecl decl@(HSE.InstDecl _ _ _ _) = notSupported "Type classes" decl
-simplifyDecl decl@(HSE.DerivDecl _ _ _ _) = notSupported "Type classes" decl
+simplifyDecl decl@(HSE.InstDecl _ _ _ _   ) = do
+  skipNotSupported "Instance declarations" decl
+  return ([], [], [])
+simplifyDecl decl@(HSE.DerivDecl _ _ _ _) = do
+  skipNotSupported "Deriving declarations" decl
+  return ([], [], [])
 simplifyDecl decl@(HSE.DefaultDecl _ _) = notSupported "Type classes" decl
-simplifyDecl decl@(HSE.SpliceDecl _ _) = notSupported "Template Haskell" decl
+simplifyDecl decl@(HSE.SpliceDecl  _ _) = notSupported "Template Haskell" decl
 simplifyDecl decl@(HSE.TSpliceDecl _ _) = notSupported "Template Haskell" decl
 simplifyDecl decl@(HSE.PatSynSig _ _ _ _ _ _ _) =
   notSupported "Pattern synonyms" decl
@@ -480,11 +486,30 @@ simplifyTypeSchema (HSE.TyForall srcSpan (Just binds) Nothing typeExpr) = do
 -- Without explicit @forall@.
 simplifyTypeSchema typeExpr = do
   typeExpr' <- simplifyType typeExpr
-  let srcSpan  = IR.typeSrcSpan typeExpr'
-      typeArgs = map
-        (IR.TypeVarDecl NoSrcSpan . fromJust . IR.identFromQName)
-        (freeTypeVars typeExpr')
+  let srcSpan         = IR.typeSrcSpan typeExpr'
+      typeArgIdents   = freeTypeVars typeExpr'
+      typeArgSrcSpans = map (findTypeArgSrcSpan typeExpr') typeArgIdents
+      typeArgs        = zipWith IR.TypeVarDecl typeArgSrcSpans typeArgIdents
   return (IR.TypeSchema srcSpan typeArgs typeExpr')
+ where
+  -- | Finds the first occurrence of the type variable with the given name.
+  --
+  --   Returns 'NoSrcSpan' if 'findTypeArgSrcSpan'' returns @Nothing@.
+  --   Since the type arguments have been extracted using 'freeTypeVars',
+  --   'findTypeArgSrcSpan'' should never return @Nothing@.
+  findTypeArgSrcSpan :: IR.Type -> IR.TypeVarIdent -> SrcSpan
+  findTypeArgSrcSpan = fromMaybe NoSrcSpan .: flip findTypeArgSrcSpan'
+
+  -- | Like 'findTypeArgSrcSpan' but returns @Nothing@ if there is
+  --   no such type variable.
+  findTypeArgSrcSpan' :: IR.TypeVarIdent -> IR.Type -> Maybe SrcSpan
+  findTypeArgSrcSpan' = fmap IR.typeSrcSpan .: findFirstSubterm . isTypeVar
+
+  -- | Tests whether the given type is the type variable with the given name.
+  isTypeVar :: IR.TypeVarIdent -> IR.Type -> Bool
+  isTypeVar typeVarIdent (IR.TypeVar _ typeVarIdent') =
+    typeVarIdent == typeVarIdent'
+  isTypeVar _ _ = False
 
 -- | Simplifies the a type expression.
 simplifyType :: HSE.Type SrcSpan -> Simplifier IR.Type
@@ -654,7 +679,7 @@ simplifyExpr (HSE.RightSection srcSpan op e2) = do
   x   <- freshHaskellIdent freshArgPrefix
   op' <- simplifyOp op
   e2' <- simplifyExpr e2
-  let x'  = IR.VarPat srcSpan x Nothing
+  let x'  = IR.VarPat srcSpan x Nothing False
       e1' = IR.Var srcSpan (IR.UnQual (IR.Ident x)) Nothing
   return (IR.Lambda srcSpan [x'] (IR.app srcSpan op' [e1', e2']) Nothing)
 
@@ -831,7 +856,7 @@ simplifyConName name@(HSE.Special _ (HSE.ExprHole _)) =
 --  Parenthesis are ignored.
 simplifyVarPat :: HSE.Pat SrcSpan -> Simplifier IR.VarPat
 simplifyVarPat (HSE.PVar srcSpan (HSE.Ident _ ident)) =
-  return (IR.VarPat srcSpan ident Nothing)
+  return (IR.VarPat srcSpan ident Nothing False)
 simplifyVarPat pat = expected "variable pattern" pat
 
 -- Simplifies a constructor pattern.

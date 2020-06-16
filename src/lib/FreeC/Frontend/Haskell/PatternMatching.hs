@@ -51,8 +51,7 @@ makeConsMapEntry :: EnvEntry -> Maybe (String, [(HSE.QName (), Int, Bool)])
 makeConsMapEntry entry
   | not (isConEntry entry) = Nothing
   | otherwise = do
-    returnType   <- entryReturnType entry
-    typeConIdent <- extractTypeConIdent returnType
+    typeConIdent <- extractTypeConIdent (entryReturnType entry)
     return (typeConIdent, [(conQName, arity, isInfix)])
  where
   -- | Gets the name of the data type from the return type of the constructor.

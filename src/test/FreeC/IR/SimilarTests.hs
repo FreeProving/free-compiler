@@ -268,6 +268,10 @@ testSimilarFuncDecls = context "function declarations" $ do
     fx <- expectParseTestFuncDecl "f (x :: Foo) = x"
     fy <- expectParseTestFuncDecl "f y = y"
     fx `shouldNotBeSimilarTo` fy
+  it "functions with strict and non-strict arguments are not similar" $ do
+    fx <- expectParseTestFuncDecl "f !x = x"
+    fy <- expectParseTestFuncDecl "f y = y"
+    fx `shouldNotBeSimilarTo` fy
   it "functions with and without return type annotations are not similar" $ do
     fx <- expectParseTestFuncDecl "f x :: Foo = x"
     fy <- expectParseTestFuncDecl "f y = y"

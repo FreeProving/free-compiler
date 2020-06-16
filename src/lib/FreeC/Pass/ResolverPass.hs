@@ -578,6 +578,7 @@ lookupResolverEntryOrFail srcSpan scope name = do
   showPrettyScope :: IR.Scope -> (String, String)
   showPrettyScope IR.TypeScope  = ("Type", "type")
   showPrettyScope IR.ValueScope = ("Value", "value")
+  showPrettyScope IR.FreshScope = ("Fresh identifier", "fresh identifier")
 
 -- | Looks up the original name of the entry associated with the given name
 --   in the given scope.

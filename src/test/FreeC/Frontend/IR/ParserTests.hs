@@ -259,6 +259,7 @@ testTypeSigParser = context "type signatures" $ do
 -- | Test group for 'Parseable' instance of 'IR.Expr'.
 testExprParser :: Spec
 testExprParser = context "expressions" $ do
+  testExprTypeParser
   testConExprParser
   testVarExprParser
   testIntLiteralParser
@@ -267,6 +268,28 @@ testExprParser = context "expressions" $ do
   testIfExprParser
   testCaseExprParser
   testErrorTermParser
+
+-- | Test group for 'Parseable' instance of expressions with type annotations.
+testExprTypeParser :: Spec
+testExprTypeParser = context "type annotated expressions" $ do
+  it "does not require parenthesis around type annotated expressions" $ do
+    "x :: a" `shouldParse` IR.Var
+      NoSrcSpan
+      (IR.UnQual (IR.Ident "x"))
+      (Just (IR.TypeSchema NoSrcSpan [] (IR.TypeVar NoSrcSpan "a")))
+  it "allows parenthesis around type annotated expressions" $ do
+    "(x :: a)" `shouldParse` IR.Var
+      NoSrcSpan
+      (IR.UnQual (IR.Ident "x"))
+      (Just (IR.TypeSchema NoSrcSpan [] (IR.TypeVar NoSrcSpan "a")))
+  it "prefers the outermost type annotation" $ do
+    "(x :: a) :: b" `shouldParse` IR.Var
+      NoSrcSpan
+      (IR.UnQual (IR.Ident "x"))
+      (Just (IR.TypeSchema NoSrcSpan [] (IR.TypeVar NoSrcSpan "b")))
+  it "rejects multiple type annotations without parenthesis" $ do
+    shouldBeParseError (parseTestExpr "x :: a :: b")
+
 
 -- | Test group for 'Parseable' instance of constructor expressions.
 testConExprParser :: Spec
@@ -322,9 +345,9 @@ testLambdaExprParser :: Spec
 testLambdaExprParser = context "lambda abstractions" $ do
   let a     = IR.TypeSchema NoSrcSpan [] a'
       a'    = IR.TypeVar NoSrcSpan "a"
-      xPat  = IR.VarPat NoSrcSpan "x" Nothing
-      xPat' = IR.VarPat NoSrcSpan "x" (Just a')
-      yPat  = IR.VarPat NoSrcSpan "y" Nothing
+      xPat  = IR.VarPat NoSrcSpan "x" Nothing False
+      xPat' = IR.VarPat NoSrcSpan "x" (Just a') False
+      yPat  = IR.VarPat NoSrcSpan "y" Nothing False
       x     = IR.Var NoSrcSpan (IR.UnQual (IR.Ident "x")) Nothing
       x'    = IR.Var NoSrcSpan (IR.UnQual (IR.Ident "x")) (Just a)
   it "accepts lambda abstractions with a single argument" $ do
@@ -360,24 +383,33 @@ testIfExprParser = context "if expressions" $ do
     "if x then y else z" `shouldParse` IR.If NoSrcSpan x y z Nothing
   it "accepts if expressions with type annotated conditions" $ do
     "if x :: a then y else z" `shouldParse` IR.If NoSrcSpan x' y z Nothing
+  it "accepts if expressions with type annotated conditions in parentheses" $ do
+    "if (x :: a) then y else z" `shouldParse` IR.If NoSrcSpan x' y z Nothing
   it "accepts if expressions with type annotated branches" $ do
     "if x then y :: a else z :: a" `shouldParse` IR.If NoSrcSpan x y' z' Nothing
+  it "accepts if expressions with type annotated branches in parentheses" $ do
+    "if x then (y :: a) else (z :: a)"
+      `shouldParse` IR.If NoSrcSpan x y' z' Nothing
   it "accepts if expressions with type annotations" $ do
     "(if x then y else z) :: a" `shouldParse` IR.If NoSrcSpan x y z (Just a)
 
 -- | Test group for 'Parseable' instance of @case@ expressions.
 testCaseExprParser :: Spec
 testCaseExprParser = context "case expressions" $ do
-  let a      = IR.TypeSchema NoSrcSpan [] a'
-      a'     = IR.TypeVar NoSrcSpan "a"
-      s      = IR.Var NoSrcSpan (IR.UnQual (IR.Ident "s")) Nothing
-      x      = IR.Var NoSrcSpan (IR.UnQual (IR.Ident "x")) Nothing
-      xPat   = IR.VarPat NoSrcSpan "x" Nothing
-      xPat'  = IR.VarPat NoSrcSpan "x" (Just a')
-      y      = IR.Var NoSrcSpan (IR.UnQual (IR.Ident "y")) Nothing
-      yPat   = IR.VarPat NoSrcSpan "y" Nothing
-      fooPat = IR.ConPat NoSrcSpan (IR.UnQual (IR.Ident "Foo"))
-      barPat = IR.ConPat NoSrcSpan (IR.UnQual (IR.Ident "Bar"))
+  let a           = IR.TypeSchema NoSrcSpan [] a'
+      a'          = IR.TypeVar NoSrcSpan "a"
+      s           = IR.Var NoSrcSpan (IR.UnQual (IR.Ident "s")) Nothing
+      s'          = IR.Var NoSrcSpan (IR.UnQual (IR.Ident "s")) (Just a)
+      x           = IR.Var NoSrcSpan (IR.UnQual (IR.Ident "x")) Nothing
+      xPat        = IR.VarPat NoSrcSpan "x" Nothing False
+      xPatStrict  = IR.VarPat NoSrcSpan "x" Nothing True
+      xPat'       = IR.VarPat NoSrcSpan "x" (Just a') False
+      xPatStrict' = IR.VarPat NoSrcSpan "x" (Just a') True
+      y           = IR.Var NoSrcSpan (IR.UnQual (IR.Ident "y")) Nothing
+      yPat        = IR.VarPat NoSrcSpan "y" Nothing False
+      yPatStrict  = IR.VarPat NoSrcSpan "y" Nothing True
+      fooPat      = IR.ConPat NoSrcSpan (IR.UnQual (IR.Ident "Foo"))
+      barPat      = IR.ConPat NoSrcSpan (IR.UnQual (IR.Ident "Bar"))
   it "accepts empty case expressions" $ do
     "case s of {}" `shouldParse` IR.Case NoSrcSpan s [] Nothing
   it "accepts case expressions with a single alternative" $ do
@@ -407,18 +439,45 @@ testCaseExprParser = context "case expressions" $ do
                             s
                             [IR.Alt NoSrcSpan fooPat [xPat, yPat] x]
                             Nothing
+  it "accepts case expressions with strict variable patterns" $ do
+    "case s of { Foo !x !y -> x }"
+      `shouldParse` IR.Case
+                      NoSrcSpan
+                      s
+                      [IR.Alt NoSrcSpan fooPat [xPatStrict, yPatStrict] x]
+                      Nothing
   it "accepts case expressions with type annotated variable patterns" $ do
     "case s of { Foo (x :: a) -> x }"
       `shouldParse` IR.Case NoSrcSpan
                             s
                             [IR.Alt NoSrcSpan fooPat [xPat'] x]
                             Nothing
+  it "accepts case expressions with strict type-annotated variable patterns"
+    $ do
+        "case s of { Foo !(x :: a) -> x }"
+          `shouldParse` IR.Case NoSrcSpan
+                                s
+                                [IR.Alt NoSrcSpan fooPat [xPatStrict'] x]
+                                Nothing
   it "accepts case expressions with type annotations" $ do
     "case s of { Foo x -> x } :: a" `shouldParse` IR.Case
       NoSrcSpan
       s
       [IR.Alt NoSrcSpan fooPat [xPat] x]
       (Just a)
+  it "accepts case expressions with type annotated scrutinee" $ do
+    "case s :: a of { Foo x -> x }"
+      `shouldParse` IR.Case NoSrcSpan
+                            s'
+                            [IR.Alt NoSrcSpan fooPat [xPat] x]
+                            Nothing
+  it "accepts case expressions with type annotated scrutinee in parenthesis"
+    $ do
+        "case (s :: a) of { Foo x -> x }"
+          `shouldParse` IR.Case NoSrcSpan
+                                s'
+                                [IR.Alt NoSrcSpan fooPat [xPat] x]
+                                Nothing
 
 -- | Test group for 'Parseable' instance of error terms.
 testErrorTermParser :: Spec
@@ -508,24 +567,42 @@ testIntLiteralParser = context "integer literals" $ do
 -- | Test group for 'Parseable' instance of function declarations.
 testFuncDeclParser :: Spec
 testFuncDeclParser = context "function declarations" $ do
-  let a     = IR.TypeVar NoSrcSpan "a"
-      aDecl = IR.TypeVarDecl NoSrcSpan "a"
-      f     = IR.DeclIdent NoSrcSpan (IR.UnQual (IR.Ident "f"))
-      f'    = IR.DeclIdent NoSrcSpan (IR.Qual "M" (IR.Ident "f"))
-      xPat  = IR.VarPat NoSrcSpan "x" Nothing
-      xPat' = IR.VarPat NoSrcSpan "x" (Just a)
-      yPat  = IR.VarPat NoSrcSpan "y" Nothing
-      x     = IR.Var NoSrcSpan (IR.UnQual (IR.Ident "x")) Nothing
+  let a           = IR.TypeVar NoSrcSpan "a"
+      aDecl       = IR.TypeVarDecl NoSrcSpan "a"
+      f           = IR.DeclIdent NoSrcSpan (IR.UnQual (IR.Ident "f"))
+      f'          = IR.DeclIdent NoSrcSpan (IR.Qual "M" (IR.Ident "f"))
+      xPat        = IR.VarPat NoSrcSpan "x" Nothing False
+      xPatStrict  = IR.VarPat NoSrcSpan "x" Nothing True
+      xPat'       = IR.VarPat NoSrcSpan "x" (Just a) False
+      xPatStrict' = IR.VarPat NoSrcSpan "x" (Just a) True
+      yPat        = IR.VarPat NoSrcSpan "y" Nothing False
+      yPatStrict  = IR.VarPat NoSrcSpan "y" Nothing True
+      x           = IR.Var NoSrcSpan (IR.UnQual (IR.Ident "x")) Nothing
   it "accepts function declarations without arguments" $ do
     "f = x" `shouldParse` IR.FuncDecl NoSrcSpan f [] [] Nothing x
   it "accepts function declarations with a single argument" $ do
     "f x = x" `shouldParse` IR.FuncDecl NoSrcSpan f [] [xPat] Nothing x
-  it "accepts function declarations with a multiple arguments" $ do
+  it "accepts function declarations with a single strict argument" $ do
+    "f !x = x" `shouldParse` IR.FuncDecl NoSrcSpan f [] [xPatStrict] Nothing x
+  it "accepts function declarations with multiple arguments" $ do
     "f x y = x" `shouldParse` IR.FuncDecl NoSrcSpan f [] [xPat, yPat] Nothing x
-  it "accepts function declarations with a type annotated arguments" $ do
+  it "accepts function declarations with multiple strict arguments" $ do
+    "f !x !y = x"
+      `shouldParse` IR.FuncDecl NoSrcSpan
+                                f
+                                []
+                                [xPatStrict, yPatStrict]
+                                Nothing
+                                x
+  it "accepts function declarations with a type-annotated argument" $ do
     "f (x :: a) = x" `shouldParse` IR.FuncDecl NoSrcSpan f [] [xPat'] Nothing x
+  it "accepts function declarations with a strict type-annotated argument" $ do
+    "f !(x :: a) = x"
+      `shouldParse` IR.FuncDecl NoSrcSpan f [] [xPatStrict'] Nothing x
   it "accepts function declarations with annotated return type" $ do
     "f x :: a = x" `shouldParse` IR.FuncDecl NoSrcSpan f [] [xPat] (Just a) x
+  it "accepts nullary function declarations with annotated return type" $ do
+    "f :: a = x" `shouldParse` IR.FuncDecl NoSrcSpan f [] [] (Just a) x
   it "accepts function declarations with type arguments" $ do
     "f @a = x" `shouldParse` IR.FuncDecl NoSrcSpan f [aDecl] [] Nothing x
   it "accepts function declarations with arguments and type arguments" $ do
@@ -561,7 +638,7 @@ testModuleParser = context "modules" $ do
       funFoo = IR.DeclIdent NoSrcSpan (IR.UnQual (IR.Ident "foo"))
       conBar = IR.DeclIdent NoSrcSpan (IR.UnQual (IR.Ident "Bar"))
       x      = IR.Var NoSrcSpan (IR.UnQual (IR.Ident "x")) Nothing
-      xPat   = IR.VarPat NoSrcSpan "x" Nothing
+      xPat   = IR.VarPat NoSrcSpan "x" Nothing False
   it "accepts empty modules" $ do
     "module M where" `shouldParse` emptyModule { IR.modName = "M" }
   it "accepts empty modules with dotted names" $ do
@@ -606,6 +683,23 @@ testModuleParser = context "modules" $ do
         { IR.modName      = "M"
         , IR.modFuncDecls = [IR.FuncDecl NoSrcSpan funFoo [] [xPat] Nothing x]
         }
+  it
+      (  "accepts modules with nullary function declarations whose return type"
+      ++ "is annotated"
+      )
+    $ do
+        shouldParseModule
+          ["module M where", "foo :: Foo = x"]
+          emptyModule
+            { IR.modName      = "M"
+            , IR.modFuncDecls = [ IR.FuncDecl NoSrcSpan
+                                              funFoo
+                                              []
+                                              []
+                                              (Just tyFoo)
+                                              x
+                                ]
+            }
   it "accepts modules with top-level declarations separated by semicolon" $ do
     shouldParseModule
       ["module M1 where", "import M2;", "type Bar = Foo;"]

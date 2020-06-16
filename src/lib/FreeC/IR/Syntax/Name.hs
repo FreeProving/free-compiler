@@ -71,10 +71,18 @@ instance Pretty QName where
 -- Name spaces                                                               --
 -------------------------------------------------------------------------------
 
--- | Data type for the two different name spaces.
+-- | Data type for the different name spaces of the intermediate representation.
 --
 --   Similar to Haskell, type and function names live in separate name spaces.
-data Scope = TypeScope | ValueScope
+--
+--   Additionally, there is a name space for fresh identifiers without
+--   corresponding IR node. If a fresh identifier is introduced and used
+--   as an IR variable or type variable name, the corresponding entry
+--   lives in the value or type scope respectively. The 'FreshScope'
+--   contains only IR identifiers that were generated such that their
+--   renamed counterpart of the target language can be used as a fresh
+--   identifier by the back end.
+data Scope = TypeScope | ValueScope | FreshScope
   deriving (Eq, Ord, Show)
 
 -- | A 'QName' with additional information about it's name space.
