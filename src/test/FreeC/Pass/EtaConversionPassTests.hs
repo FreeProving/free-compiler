@@ -32,7 +32,6 @@ shouldEtaConvert inputStr expectedOutputStr = do
   output         <- etaConvertExpr input
   return (output `shouldBeSimilarTo` expectedOutput)
 
-
 -------------------------------------------------------------------------------
 -- Tests                                                                     --
 -------------------------------------------------------------------------------
@@ -84,4 +83,4 @@ testEtaConversionPass = describe "FreeC.Pass.EtaConversionPass" $ do
       _ <- defineTestTypeCon "Bar" 0
       _ <- defineTestCon "Bar" 2 "Foo -> Foo -> Bar"
       "Bar x" `shouldEtaConvert` "\\y -> Bar x y"
-
+      

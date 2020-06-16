@@ -132,13 +132,20 @@ etaConversionPass ast = do
 -- Function declarations                                                     --
 -------------------------------------------------------------------------------
 
--- | Make sure all occurring functions are fully applied by calling 'etaConvertFuncDecl' on each function declaration. 
---
+-- | Makes sure that all occurring functions are fully applied
+--   by calling 'etaConvertFuncDecl' on each of them.
+-- 
 --   If the type of a function declaration changes due to a top-level 
 --   η-conversion, the procedure is performed recursively on all 
 --   previously converted function declarations. 
 --   This ensures that all functions, including mutually-recursive 
 --   functions, are fully applied correctly. 
+
+--   The function's first argument represents the function 
+--   declarations yet to be converted.
+--   The function's second argument is an accumulator for already 
+--   converted functions that is needed in case they must be 
+--   re-converted recursively. 
 etaConvertFuncDecls :: [IR.FuncDecl] -> [IR.FuncDecl] -> Converter [IR.FuncDecl]
 etaConvertFuncDecls []         newFuncDecls = return newFuncDecls
 etaConvertFuncDecls (fd : fds) newFuncDecls = do
@@ -147,8 +154,11 @@ etaConvertFuncDecls (fd : fds) newFuncDecls = do
     then etaConvertFuncDecls (newFuncDecls ++ (newFuncDecl : fds)) []
     else etaConvertFuncDecls fds (newFuncDecls ++ [newFuncDecl])
 
--- | Depending on the presence or absence of missing top-level arguments, applies 'modifyTopLevel' or 'etaConvertExpr' to the right-hand side of the given function declaration to ensure all functions 
--- and constructors on the right-hand side are fully applied. 
+-- | Applies appropriate η-conversions to a function declaration.
+--
+-- Depending on the presence or absence of missing top-level arguments,
+-- the function uses 'etaConvertTopLevel' or 'etaConvertExpr' to ensure 
+-- all functions and constructors on the right-hand side are fully applied. 
 -- The missing top-level arguments are also added to the left-hand
 -- side of the declaration and the function's type and the environment
 -- are updated accordingly. 
@@ -168,8 +178,7 @@ etaConvertFuncDecl funcDecl = do
     }
   return newFuncDecl
 
--- | Compute the new function declaration where all missing top-level 
---   arguments have been added and all occurring functions are fully applied.  
+-- | Computes a new function declaration with all missing top-level arguments.
 modifyTopLevel :: IR.FuncDecl -> IR.Expr -> [String] -> Converter IR.FuncDecl
 modifyTopLevel funcDecl rhs newArgIdents = do
   -- Compute the function's new (uncurried) type. Assumes that funcDecl's return type is known.
@@ -189,13 +198,13 @@ modifyTopLevel funcDecl rhs newArgIdents = do
                   , IR.funcDeclRhs        = rhs'
                   }
 
-
 -------------------------------------------------------------------------------
 -- Expressions                                                               --
 -------------------------------------------------------------------------------
 
--- | Apply missing arguments to all top-level alternatives of an expression
---   and perform further necessary eta-conversions afterwards.
+-- | Applies all top-level alternatives of an expression to their missing 
+-- arguments and calls 'etaConvertExpr' on the result to convert any occurring
+--   lower-level partial applications. 
 etaConvertTopLevel :: [IR.VarPat] -> IR.Expr -> Converter IR.Expr
 -- If there is more than one alternative, apply the conversion to 
 -- all alternatives. 
@@ -222,8 +231,7 @@ etaConvertAlternatives argPats expr = do
   let Just expr' = replaceChildTerms expr (e : subterms')
   return expr'
 
-
--- | Applies η-conversions to the given expression and its sub-expressions
+-- | Applies η-conversions to the given expression and its sub-expressions.
 --   until all function and constructor applications are fully applied.
 etaConvertExpr :: IR.Expr -> Converter IR.Expr
 etaConvertExpr expr = localEnv $ do
@@ -276,15 +284,12 @@ etaConvertSubExprs' expr = do
   let Just expr' = replaceChildTerms expr children'
   return expr'
 
-
 -------------------------------------------------------------------------------
 -- Arity                                                                     --
 -------------------------------------------------------------------------------
 
--- | Find the minimum number of missing arguments (the arity of the expressions) among the alternatives
+-- | Find the minimum number of missing arguments among the alternatives
 --   for the right-hand side of a function declaration. 
---   All non-zero arities on the right-hand side of a function declaration 
---   have the same arity.
 findMinMissingArguments :: IR.Expr -> Converter Int
 findMinMissingArguments (IR.If _ _ e1 e2 _) =
   minimum <$> mapM findMinMissingArguments [e1, e2]
