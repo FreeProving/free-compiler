@@ -153,12 +153,14 @@ instance Similar node => Similar [node] where
 -------------------------------------------------------------------------------
 instance Similar IR.Module where
   similar' moduleA moduleB =
-    const (IR.modName moduleA == IR.modName moduleB) .&&.
+    const (IR.modName moduleA == IR.modName moduleB)
+      .&&.
   --  similar' (IR.modImports moduleA) (IR.modImports moduleB) .&&.
-    similar' (IR.modTypeDecls moduleA) (IR.modTypeDecls moduleB) .&&.
+           similar' (IR.modTypeDecls moduleA) (IR.modTypeDecls moduleB)
+      .&&.
   --  similar' (IR.modTypeSigs moduleA) (IR.modTypeSigs moduleB) .&&.
   --  similar' (IR.modPragmas moduleA) (IR.modPragmas moduleB) .&&.
-    similar' (IR.modFuncDecls moduleA) (IR.modFuncDecls moduleB)
+           similar' (IR.modFuncDecls moduleA) (IR.modFuncDecls moduleB)
 -------------------------------------------------------------------------------
 -- Similarity test for types                                                 --
 -------------------------------------------------------------------------------
