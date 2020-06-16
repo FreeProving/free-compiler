@@ -173,7 +173,8 @@ etaConvertFuncDecl funcDecl = do
   Just entry <- inEnv $ lookupEntry IR.ValueScope (IR.funcDeclQName funcDecl)
   modifyEnv $ addEntry entry
     { entryArity      = length (IR.funcDeclArgs newFuncDecl)
-    , entryArgTypes   = map (fromJust . IR.varPatType) (IR.funcDeclArgs newFuncDecl)
+    , entryArgTypes   = map (fromJust . IR.varPatType)
+                            (IR.funcDeclArgs newFuncDecl)
     , entryReturnType = fromJust $ IR.funcDeclReturnType newFuncDecl
     }
   return newFuncDecl
@@ -187,8 +188,8 @@ modifyTopLevel funcDecl rhs newArgIdents = do
     (map IR.toVarPat newArgIdents)
     (fromJust $ IR.funcDeclReturnType funcDecl)
   -- Compute the function's new arguments and add them to the argument list.
-  let newArgs =
-        zipWith (IR.VarPat NoSrcSpan) newArgIdents (map Just newArgTypes)
+  let newArgs = map ($ False)
+        $ zipWith (IR.VarPat NoSrcSpan) newArgIdents (map Just newArgTypes)
   let vars' = IR.funcDeclArgs funcDecl ++ newArgs
   -- Compute the new right-hand side.
   rhs' <- etaConvertTopLevel newArgs rhs

@@ -83,4 +83,4 @@ testEtaConversionPass = describe "FreeC.Pass.EtaConversionPass" $ do
       _ <- defineTestTypeCon "Bar" 0
       _ <- defineTestCon "Bar" 2 "Foo -> Foo -> Bar"
       "Bar x" `shouldEtaConvert` "\\y -> Bar x y"
-      
+
