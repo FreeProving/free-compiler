@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # This script can be used to check whether there are Haskell source files that
-# have not been formatted using `brittany`. It is used by the CI pipeline and
-# the `./tool/full-test.sh` script.
+# have not been formatted using `brittany` or contains non-Unix line endings.
+# It is used by the CI pipeline and the `./tool/full-test.sh` script.
 # Use `./tool/format-code.sh` to format all source files automatically.
 
 # Change into the compiler's root directory.
@@ -14,6 +14,7 @@ cd "$root_dir"
 # Colored output.
 red=$(tput setaf 1)
 green=$(tput setaf 2)
+yellow=$(tput setaf 3)
 bold=$(tput bold)
 reset=$(tput sgr0)
 
@@ -36,24 +37,66 @@ if [ "${#files[@]}" == "0" ]; then
   files=(src example)
 fi
 
-# Format all given Haskell files that are tracked by `git` using `brittany`
-# and compare the output with the original file. Count the number of files
-# that need formatting.
-counter=0
+# Check all given Haskell files that are tracked by `git` and count the number
+# of files that are not formatted or encoded correctly.
+format_counter=0
+line_ending_counter=0
 for file in $(find "${files[@]}" -name '*.hs' -type f); do
-  if git ls-files --error-unmatch "$file" >/dev/null 2>&1; then
+  # Skip files that are not tracked by git.
+  if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1 ||
+       git ls-files --error-unmatch "$file" >/dev/null 2>&1; then
     echo -n "Checking ${bold}$file${reset} ... "
-    if brittany "$file" | cmp -s "$file"; then
+    is_okay=0
+
+    # Test whether the file uses Windows line endings (CRLF) or mixed line
+    # endings instead of Unix line endings (LF) by deleting all carriage
+    # return (CR) characters and comparing the output to the original file.
+    if ! tr -d '\r' <"$file" | cmp -s "$file"; then
+      echo -n "${yellow}${bold}HAS WRONG LINE ENDINGS${reset}"
+      line_ending_counter=$(expr $line_ending_counter + 1)
+      is_okay=1
+    fi
+
+    # Test whether the file is formatted by formatting it and comparing the
+    # output to the original file.
+    if ! brittany "$file" | cmp -s "$file"; then
+      if [ "$is_okay" -ne "0" ]; then
+        echo -n " and "
+      fi
+      echo -n "${red}${bold}NEEDS FORMATTING${reset}"
+      format_counter=$(expr $format_counter + 1)
+      is_okay=1
+    fi
+
+    if [ "$is_okay" -eq "0" ]; then
       echo "${green}${bold}OK${reset}"
     else
-      echo "${red}${bold}NEEDS FORMATTING${reset}"
-      counter=$(expr $counter + 1)
+      echo ""
     fi
+  else
+    echo "Skipping ${bold}$file${reset} ... ${bold}NOT TRACKED${reset}"
   fi
 done
 
+# By default, the script returns `0`. If any check below failed, the
+# exit code is set to `1`.
+exit_code=0
+
+# Test whether there are any files that are not encoded properly.
+if [ "$line_ending_counter" -gt "0" ]; then
+  echo "${bold}"
+  echo "----------------------------------------------------------------------"
+  echo "${reset}"
+  echo "${yellow}${bold}Warning:${reset}" \
+       "${bold}Some Haskell files don't use Unix line endings.${reset}"
+  echo " |"
+  echo " | Run the ${bold}./tool/format-code.sh${reset} script to normalize"
+  echo " | line endings automatically."
+  exit_code=1
+fi
+
 # Test whether there are any files that need formatting.
-if [ "$counter" -gt "0" ]; then
+if [ "$format_counter" -gt "0" ]; then
   echo "${bold}"
   echo "----------------------------------------------------------------------"
   echo "${reset}"
@@ -62,5 +105,8 @@ if [ "$counter" -gt "0" ]; then
   echo " |"
   echo " | Run the ${bold}./tool/format-code.sh${reset} script to format all"
   echo " | files automatically."
-  exit 1
+  exit_code=1
 fi
+
+# If any check above failed, the script exists with error code `1`.
+exit "$exit_code"

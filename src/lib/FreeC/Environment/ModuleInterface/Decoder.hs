@@ -112,7 +112,6 @@ import           Data.Aeson                     ( (.!=)
                                                 )
 import qualified Data.Aeson                    as Aeson
 import qualified Data.Aeson.Types              as Aeson
-import           Data.Maybe                     ( mapMaybe )
 import qualified Data.Set                      as Set
 import           Data.Text                      ( Text )
 import qualified Data.Text                     as Text
@@ -242,16 +241,15 @@ instance Aeson.FromJSON ModuleInterface where
       coqName      <- obj .: "coq-name"
       coqSmartName <- obj .: "coq-smart-name"
       let (argTypes, returnType) = IR.splitFuncType haskellType arity
-      return ConEntry
-        { entrySrcSpan    = NoSrcSpan
-        , entryArity      = arity
-        , entryTypeArgs   = mapMaybe IR.identFromQName (freeTypeVars returnType)
-        , entryArgTypes   = map Just argTypes
-        , entryReturnType = Just returnType
-        , entryIdent      = coqName
-        , entrySmartIdent = coqSmartName
-        , entryName       = haskellName
-        }
+      return ConEntry { entrySrcSpan    = NoSrcSpan
+                      , entryArity      = arity
+                      , entryTypeArgs   = freeTypeVars returnType
+                      , entryArgTypes   = argTypes
+                      , entryReturnType = returnType
+                      , entryIdent      = coqName
+                      , entrySmartIdent = coqSmartName
+                      , entryName       = haskellName
+                      }
 
     parseConfigFunc :: Aeson.Value -> Aeson.Parser EnvEntry
     parseConfigFunc = Aeson.withObject "Function" $ \obj -> do
@@ -263,12 +261,13 @@ instance Aeson.FromJSON ModuleInterface where
       coqName        <- obj .: "coq-name"
       -- TODO this does not work with vanishing type arguments.
       let (argTypes, returnType) = IR.splitFuncType haskellType arity
-          typeArgs = mapMaybe IR.identFromQName (freeTypeVars haskellType)
+          typeArgs               = freeTypeVars haskellType
       return FuncEntry { entrySrcSpan       = NoSrcSpan
                        , entryArity         = arity
                        , entryTypeArgs      = typeArgs
-                       , entryArgTypes      = map Just argTypes
-                       , entryReturnType    = Just returnType
+                       , entryArgTypes      = argTypes
+                       , entryStrictArgs    = replicate arity False
+                       , entryReturnType    = returnType
                        , entryNeedsFreeArgs = freeArgsNeeded
                        , entryIsPartial     = partial
                        , entryIdent         = coqName
