@@ -100,7 +100,7 @@ testEtaConversionPass = describe "FreeC.Pass.EtaConversionPass" $ do
           "f (b :: Bool) :: Foo -> Foo = if b then g Foo else g Foo"
             `shouldEtaConvertTopLevel` "f (b :: Bool) (y :: Foo) :: Foo = if b then g Foo y else g Foo y"
     it
-        "applies under-applied function that is if-expression to maximal number of missing argument in both branches"
+        "applies under-applied function that is if-expression to minimal number of missing argument in both branches"
       $ shouldSucceedWith
       $ do
           _ <- defineTestTypeCon "Foo" 0
@@ -108,16 +108,16 @@ testEtaConversionPass = describe "FreeC.Pass.EtaConversionPass" $ do
           _ <- defineTestFunc "g" 2 "Foo -> Foo -> Foo"
           _ <- defineTestFunc "h" 1 "Foo -> Foo -> Foo"
           "f (b :: Bool) :: Foo -> Foo = if b then g Foo else h Foo"
-            `shouldEtaConvertTopLevel` "f (b :: Bool) (y :: Foo) :: Foo = if b then g Foo y else h Foo y"
+            `shouldEtaConvertTopLevel` "f (b :: Bool) :: Foo = if b then (\\y -> g Foo y) else h Foo"
     it
-        "applies under-applied function that is if-expression to maximal numer of missing argument where one branche is lambda expression"
+        "applies under-applied function that is if-expression to minimal number of missing argument where one branche is lambda expression"
       $ shouldSucceedWith
       $ do
           _ <- defineTestTypeCon "Foo" 0
           _ <- defineTestFunc "f" 1 "Bool -> Foo -> Foo"
           _ <- defineTestFunc "g" 2 "Foo -> Foo -> Foo"
           "f (b :: Bool) :: Foo -> Foo = if b then g Foo else (\\x -> x)"
-            `shouldEtaConvertTopLevel` "f (b :: Bool) (y :: Foo) :: Foo = if b then g Foo y else (\\x -> x) y"
+            `shouldEtaConvertTopLevel` "f (b :: Bool) :: Foo = if b then (\\y -> g Foo y) else (\\x -> x)"
     it "works with mutually recursive functions" $ shouldSucceedWith $ do
       _      <- defineTestTypeCon "Foo" 0
       _      <- defineTestFunc "k" 0 " Foo -> Foo"
@@ -125,8 +125,8 @@ testEtaConversionPass = describe "FreeC.Pass.EtaConversionPass" $ do
       _      <- defineTestFunc "g" 2 "Foo -> Foo -> Foo"
       moduly <- parseTestModule
         [ "module Test where"
-        , "k (fo :: Foo):: Foo -> Foo = f;"
-        , "f (fo :: Foo):: Foo -> Foo = g (k Foo)"
+        , "k :: Foo -> Foo = f;"
+        , "f :: Foo -> Foo = g (k Foo)"
         ]
       actualModuly   <- etaConversionPass moduly
       expectedModuly <- parseTestModule
