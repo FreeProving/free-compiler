@@ -139,7 +139,7 @@ checkAlt (IR.Alt _ _ varPats rhs) = do
 
 -- | Checks whether the type annotation of a variable pattern is kind-correct.
 checkVarPat :: IR.VarPat -> Converter ()
-checkVarPat (IR.VarPat _ _ typ) = mapM_ checkType typ
+checkVarPat (IR.VarPat _ _ typ _) = mapM_ checkType typ
 
 -- | Checks if all type constructors have the correct number of arguments
 checkType :: IR.Type -> Converter ()
