@@ -1,5 +1,5 @@
 -- | This module contains a compiler pass that checks if all function
---   declarations have complete pattern macthing. A pattern is complete if there
+--   declarations have complete pattern matching. A pattern is complete if there
 --   is exactly one case alternative for each constructor of the corresponding
 --   type.
 --
