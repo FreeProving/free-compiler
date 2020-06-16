@@ -22,6 +22,7 @@ module FreeC.Backend.Agda.Syntax
   , lambda
   , app
   , ident
+  , hiddenArg_
     -- * Types
   , set
   , dataDecl
@@ -150,6 +151,9 @@ paren = Paren NoRange
 ident :: String -> Expr
 ident = Ident . qname' . name
 
+hiddenArg_ :: Expr -> Expr
+hiddenArg_ = HiddenArg NoRange .unnamed
+
 -------------------------------------------------------------------------------
 -- Types                                                                     --
 -------------------------------------------------------------------------------
@@ -167,8 +171,8 @@ set = ident "Set"
 --   >   C₁
 --   >   ⋮
 --   >   Cₘ
-dataDecl :: Name -> [LamBinding] -> [Declaration] -> Declaration
-dataDecl dataName bindings = Data NoRange dataName bindings set
+dataDecl :: Name -> [LamBinding] -> Expr -> [Declaration] -> Declaration
+dataDecl = Data NoRange
 
 -- | Creates a binder with visible args.
 --
