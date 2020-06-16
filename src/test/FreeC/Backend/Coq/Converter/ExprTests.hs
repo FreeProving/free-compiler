@@ -43,6 +43,8 @@ testConvertExpr = describe "FreeC.Backend.Coq.Converter.Expr.convertExpr" $ do
   testConvertExprTypeAnnotations
   testConvertTypeAppExprs
   testConvertInteger
+  testConvertUndefined
+  testConvertError
 
 -------------------------------------------------------------------------------
 -- Constructor applications                                                  --
@@ -164,6 +166,35 @@ testConvertFuncApp = context "function applications" $ do
       "f" <- defineTestFunc "f" 0 "forall a. a"
       convertExpr input
 
+  it "converts function applications with one strict argument correctly"
+    $ shouldSucceedWith
+    $ do
+        "f" <- defineStrictTestFunc "f" [True] "forall a. a -> a"
+        "a" <- defineTestTypeVar "a"
+        "x" <- defineTestVar "x"
+        "f @a x"
+          `shouldConvertExprTo` "x >>= (fun (x_0 : a) => @f Shape Pos a x_0)"
+
+  it "converts function applications with two strict arguments correctly"
+    $ shouldSucceedWith
+    $ do
+        "f" <- defineStrictTestFunc "f" [True, True] "forall a. a -> a -> a"
+        "a" <- defineTestTypeVar "a"
+        "x" <- defineTestVar "x"
+        "y" <- defineTestVar "y"
+        "f @a x y"
+          `shouldConvertExprTo` "x >>= (fun (x_0 : a) => y >>= (fun (y_0 : a) => @f Shape Pos a x_0 y_0))"
+
+  it
+      "converts function applications with one non-strict and one strict argument correctly"
+    $ shouldSucceedWith
+    $ do
+        "f" <- defineStrictTestFunc "f" [False, True] "forall a. a -> a -> a"
+        "a" <- defineTestTypeVar "a"
+        "x" <- defineTestVar "x"
+        "y" <- defineTestVar "y"
+        "f @a x y"
+          `shouldConvertExprTo` "y >>= (fun (y_0 : a) => @f Shape Pos a x y_0)"
 -------------------------------------------------------------------------------
 -- If-expressions                                                            --
 -------------------------------------------------------------------------------
@@ -232,6 +263,26 @@ testConvertCase = context "case expressions" $ do
           ++ "  match e_0 with"
           ++ "  | nil => x"
           ++ "  | cons x0 xs => x0"
+          ++ "  end)"
+
+  it "allows case expressions to shadow local variables"
+    $ shouldSucceedWith
+    $ do
+        "AB"     <- defineTestTypeCon "AB" 0
+        ("a", _) <- defineTestCon "A" 0 "Unit"
+        ("b", _) <- defineTestCon "B" 0 "Unit"
+        "x"      <- defineTestVar "x"
+        "x_0"    <- defineTestVar "x_0"
+        shouldConvertExprTo
+            "case x of { A -> case x of { A -> x; B -> x }; B -> x }"
+          $  "x >>= (fun x_1 =>"
+          ++ "  match x_1 with"
+          ++ "  | a => x >>= (fun x_2 =>"
+          ++ "    match x_2 with"
+          ++ "    | a => x"
+          ++ "    | b => x"
+          ++ "    end)"
+          ++ "  | b => x"
           ++ "  end)"
 
 -------------------------------------------------------------------------------
@@ -314,3 +365,48 @@ testConvertInteger = context "integer expressions" $ do
   it "translates negative decimal integer literals correctly"
     $ shouldSucceedWith
     $ shouldConvertExprTo "-42" "pure (- 42)%Z"
+
+
+-- | Test group for translation of undefined expressions.
+testConvertUndefined :: Spec
+testConvertUndefined = context "undefined expressions" $ do
+  it "translates undefined expressions correctly" $ shouldSucceedWith $ do
+    "a" <- defineTestTypeVar "a"
+    shouldConvertExprTo "undefined @a" "@undefined Shape Pos P a"
+
+  it "translates undefined expressions applied to arguments correctly"
+    $ shouldSucceedWith
+    $ do
+        "a" <- defineTestTypeVar "a"
+        "b" <- defineTestTypeVar "b"
+        "c" <- defineTestTypeVar "c"
+        "x" <- defineTestVar "x"
+        "y" <- defineTestVar "y"
+        shouldConvertExprTo "undefined @(a->b->c) x y"
+          $  "(@undefined Shape Pos P (Free Shape Pos a ->"
+          ++ " Free Shape Pos (Free Shape Pos b -> Free Shape Pos c))"
+          ++ " >>= (fun f_0 => f_0 x))"
+          ++ " >>= (fun f_0 => f_0 y)"
+
+-- | Test group for translation of undefined expressions.
+testConvertError :: Spec
+testConvertError = context "error expressions" $ do
+  it "translates error expressions correctly" $ shouldSucceedWith $ do
+    "a" <- defineTestTypeVar "a"
+    shouldConvertExprTo "error @a \"message\""
+                        "@error Shape Pos P a \"message\"%string"
+
+  it "translates error expressions applied to arguments correctly"
+    $ shouldSucceedWith
+    $ do
+        "a" <- defineTestTypeVar "a"
+        "b" <- defineTestTypeVar "b"
+        "c" <- defineTestTypeVar "c"
+        "x" <- defineTestVar "x"
+        "y" <- defineTestVar "y"
+        shouldConvertExprTo "error @(a->b->c) \"message\" x y"
+          $  "(@error Shape Pos P (Free Shape Pos a ->"
+          ++ " Free Shape Pos (Free Shape Pos b -> Free Shape Pos c))"
+          ++ " \"message\"%string"
+          ++ " >>= (fun f_0 => f_0 x))"
+          ++ " >>= (fun f_0 => f_0 y)"

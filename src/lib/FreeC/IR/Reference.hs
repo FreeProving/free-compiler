@@ -31,6 +31,7 @@ where
 import           Data.Composition               ( (.:) )
 import qualified Data.Foldable                 as OSet
                                                 ( toList )
+import           Data.Maybe                     ( fromJust )
 import           Data.Set                       ( Set )
 import qualified Data.Set                      as Set
 import           Data.Set.Ordered               ( OSet
@@ -92,6 +93,12 @@ refScope = fst . unwrapRef
 -- | Unwraps the given reference and discards the scope information.
 refName :: Ref -> IR.QName
 refName = snd . unwrapRef
+
+-- | Like 'refName' but unwraps the identifier of the name.
+--
+--   Fails if the given reference is a symbol.
+refIdent :: Ref -> String
+refIdent = fromJust . IR.identFromQName . refName
 
 -------------------------------------------------------------------------------
 -- Reference sets                                                            --
@@ -286,13 +293,13 @@ withoutArgs args set =
 -------------------------------------------------------------------------------
 
 -- | The type variables that occur freely in the given node from left to right.
-freeTypeVars :: HasRefs a => a -> [IR.QName]
-freeTypeVars = map refName . filter (isVarRef .&&. isTypeRef) . refs
+freeTypeVars :: HasRefs a => a -> [IR.TypeVarIdent]
+freeTypeVars = map refIdent . filter (isVarRef .&&. isTypeRef) . refs
 
 -- | The type variables that occur freely in the given node.
-freeTypeVarSet :: HasRefs a => a -> Set IR.QName
+freeTypeVarSet :: HasRefs a => a -> Set IR.TypeVarIdent
 freeTypeVarSet =
-  Set.map refName . Set.filter (isVarRef .&&. isTypeRef) . OSet.toSet . refSet
+  Set.map refIdent . Set.filter (isVarRef .&&. isTypeRef) . OSet.toSet . refSet
 
 -------------------------------------------------------------------------------
 -- Free variables                                                            --

@@ -57,11 +57,11 @@ data EnvEntry
       -- ^ The number of arguments expected by the data constructor.
     , entryTypeArgs   :: [IR.TypeVarIdent]
       -- ^ The names of the type arguments.
-    , entryArgTypes   :: [Maybe IR.Type]
-      -- ^ The types of the constructor's arguments (if known).
+    , entryArgTypes   :: [IR.Type]
+      -- ^ The types of the constructor's arguments.
       --   Contains exactly 'entryArity' elements.
-    , entryReturnType :: Maybe IR.Type
-      -- ^ The return type of the data constructor (if known).
+    , entryReturnType :: IR.Type
+      -- ^ The return type of the data constructor.
     , entryIdent      :: Coq.Qualid
       -- ^ The name of the regular data constructor in Coq.
     , entrySmartIdent :: Coq.Qualid
@@ -78,10 +78,13 @@ data EnvEntry
       -- ^ The number of arguments expected by the function.
     , entryTypeArgs      :: [IR.TypeVarIdent]
       -- ^ The names of the type arguments.
-    , entryArgTypes      :: [Maybe IR.Type]
-      -- ^ The types of the function arguments (if known).
+    , entryArgTypes      :: [IR.Type]
+      -- ^ The types of the function arguments.
       --   Contains exactly 'entryArity' elements.
-    , entryReturnType    :: Maybe IR.Type
+    , entryStrictArgs    :: [Bool]
+      -- ^ Whether each argument is strict.
+      --   Contains exactly 'entryArity' elements.
+    , entryReturnType    ::  IR.Type
       -- ^ The return type of the function (if known).
     , entryNeedsFreeArgs :: Bool
       -- ^ Whether the arguments of the @Free@ monad need to be
@@ -106,6 +109,17 @@ data EnvEntry
       -- ^ The name of the variable (must be unqualified).
     , entryType    :: Maybe IR.Type
       -- ^ The type of the variable (if known).
+    }
+  | -- | Entry for fresh variables.
+    --
+    --   The purpose of these entries is to prevent two fresh variables with
+    --   the same name to be issued for generated AST nodes that have no
+    --   corresponding
+    FreshEntry
+    { entryIdent :: Coq.Qualid
+      -- ^ The renamed fresh Coq identifier.
+    , entryName :: IR.QName
+      -- ^ The actual fresh identifier before renaming.
     }
  deriving Show
 
@@ -133,6 +147,7 @@ entryScope TypeVarEntry{} = IR.TypeScope
 entryScope ConEntry{}     = IR.ValueScope
 entryScope FuncEntry{}    = IR.ValueScope
 entryScope VarEntry{}     = IR.ValueScope
+entryScope FreshEntry{}   = IR.FreshScope
 
 -- | Gets the scope and name of the given entry.
 entryScopedName :: EnvEntry -> IR.ScopedName
@@ -198,3 +213,4 @@ prettyEntryType TypeVarEntry{} = "type variable"
 prettyEntryType ConEntry{}     = "constructor"
 prettyEntryType FuncEntry{}    = "function"
 prettyEntryType VarEntry{}     = "variable"
+prettyEntryType FreshEntry{}   = "fresh identifier"

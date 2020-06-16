@@ -9,7 +9,23 @@
 --   the type synonyms (because they cannot be declared in the same sentence
 --   in Coq).
 
-module FreeC.IR.TypeSynExpansion where
+module FreeC.IR.TypeSynExpansion
+  ( -- * Type Declarations
+    expandAllTypeSynonymsInDecl
+  , expandAllTypeSynonymsInDeclWhere
+     -- * Constructor Declarations
+  , expandAllTypeSynonymsInConDecl
+  , expandAllTypeSynonymsInConDeclWhere
+     -- * Type Expressions
+  , expandTypeSynonym
+  , expandAllTypeSynonyms
+  , expandAllTypeSynonymsWhere
+  , expandTypeSynonyms
+  , expandTypeSynonymsWhere
+     -- * Subterms of Type Expressions
+  , expandTypeSynonymAt
+  )
+where
 
 import           Control.Applicative            ( (<|>) )
 import           Control.Monad.Trans.Maybe      ( MaybeT(..) )
@@ -21,6 +37,10 @@ import           FreeC.IR.Subst
 import           FreeC.IR.Subterm
 import           FreeC.Monad.Class.Hoistable    ( hoistMaybe )
 import           FreeC.Monad.Converter
+
+-------------------------------------------------------------------------------
+-- Type Declarations                                                         --
+-------------------------------------------------------------------------------
 
 -- | Expands all type synonyms in all types in the given data type or type
 --   synonym declaration.
@@ -40,6 +60,10 @@ expandAllTypeSynonymsInDeclWhere predicate (IR.DataDecl srcSpan declIdent typeVa
     conDecls' <- mapM (expandAllTypeSynonymsInConDeclWhere predicate) conDecls
     return (IR.DataDecl srcSpan declIdent typeVarDecls conDecls')
 
+-------------------------------------------------------------------------------
+-- Constructor Declarations                                                  --
+-------------------------------------------------------------------------------
+
 -- | Expands all type synonyms in all types in the given constructor
 --   declaration.
 expandAllTypeSynonymsInConDecl :: IR.ConDecl -> Converter IR.ConDecl
@@ -54,6 +78,10 @@ expandAllTypeSynonymsInConDeclWhere predicate (IR.ConDecl srcSpan declIdent argT
   = do
     argTypes' <- mapM (expandAllTypeSynonymsWhere predicate) argTypes
     return (IR.ConDecl srcSpan declIdent argTypes')
+
+-------------------------------------------------------------------------------
+-- Type Expressions                                                          --
+-------------------------------------------------------------------------------
 
 -- | Expands the outermost type synonym in the given type expression.
 expandTypeSynonym :: IR.Type -> Converter IR.Type
@@ -72,7 +100,7 @@ expandAllTypeSynonymsWhere = expandTypeSynonymsWhere (-1)
 -- | Like 'expandAllTypeSynonyms' but accepts an additional argument for the
 --   maximum depth.
 --
---   If the maximum depth if @0@, the type will be returned unchanged.
+--   If the maximum depth is @0@, the type will be returned unchanged.
 --   If it is @1@ only the outermost type synonym will be expanded.
 --   If it is negative, all type synonyms will be expanded (see also
 --   'expandAllTypeSynonyms').
@@ -112,6 +140,10 @@ expandTypeSynonymsWhere maxDepth predicate t0
     return (Just (IR.FuncType srcSpan t1' t2'))
 
   expandTypeSynonyms' (IR.TypeVar _ _) _ = return Nothing
+
+-------------------------------------------------------------------------------
+-- Subterms of Type Expressions                                              --
+-------------------------------------------------------------------------------
 
 -- | Applies 'expandTypeSynonym' to the subterm at the given position.
 --
