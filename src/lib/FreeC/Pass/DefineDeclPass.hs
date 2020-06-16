@@ -116,6 +116,7 @@ defineFuncDecl funcDecl = do
     , entryArity         = length (IR.funcDeclArgs funcDecl)
     , entryTypeArgs = map IR.typeVarDeclIdent (IR.funcDeclTypeArgs funcDecl)
     , entryArgTypes = map (fromJust . IR.varPatType) (IR.funcDeclArgs funcDecl)
+    , entryStrictArgs    = map IR.varPatIsStrict (IR.funcDeclArgs funcDecl)
     , entryReturnType    = fromJust (IR.funcDeclReturnType funcDecl)
     , entryNeedsFreeArgs = True
     , entryIsPartial     = False -- may be updated by partiality analysis pass

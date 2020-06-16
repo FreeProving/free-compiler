@@ -362,8 +362,15 @@ instance Similar IR.Alt where
 --   >                      Γ ⊢ τ ≈ τ'
 --   > ———————————  ——————————————————————————
 --   >  Γ ⊢ x ≈ y    Γ ⊢ (x :: τ) ≈ (y :: τ')
+--
+--   If one of the patterns has a bang pattern, the other one needs one as well.
+--
+--   >                        Γ ⊢ τ ≈ τ'
+--   > —————————————  ————————————————————————————
+--   >  Γ ⊢ !x ≈ !y    Γ ⊢ !(x :: τ) ≈ !(y :: τ')
 instance Similar IR.VarPat where
-  similar' (IR.VarPat _ _ t1) (IR.VarPat _ _ t2) = similar' t1 t2
+  similar' (IR.VarPat _ _ t1 s1) (IR.VarPat _ _ t2 s2) =
+    const (s1 == s2) .&&. similar' t1 t2
 
 -------------------------------------------------------------------------------
 -- Similarity test for declarations                                          --

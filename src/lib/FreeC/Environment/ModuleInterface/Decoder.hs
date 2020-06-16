@@ -266,6 +266,7 @@ instance Aeson.FromJSON ModuleInterface where
                        , entryArity         = arity
                        , entryTypeArgs      = typeArgs
                        , entryArgTypes      = argTypes
+                       , entryStrictArgs    = replicate arity False
                        , entryReturnType    = returnType
                        , entryNeedsFreeArgs = freeArgsNeeded
                        , entryIsPartial     = partial

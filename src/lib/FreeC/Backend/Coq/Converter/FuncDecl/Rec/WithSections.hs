@@ -617,10 +617,6 @@ generateInterfaceDecl constArgs isConstArgUsed nameMap mgu sectionTypeArgs renam
       usedConstArgNames =
         map fst $ filter snd $ zip constArgNames isConstArgUsed
 
-    -- The interface function is not recursive. Thus, we have to remove the
-    -- decreasing argument, if one has been specified by the user.
-    modifyEnv $ removeDecArg name
-
     -- Generate the left-hand side of the interface function definition.
     (qualid, binders, returnType') <- convertFuncHead funcDecl
 

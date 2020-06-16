@@ -1,5 +1,5 @@
 -- | Contains functions for renaming Haskell identifiers such that they can be
---   savely used as Coq identifiers.
+--   safely used as Coq identifiers.
 --
 --   Identifiers must not conflict with Coq keywords and must not shadow
 --   types, constructors and functions from the Base library.
