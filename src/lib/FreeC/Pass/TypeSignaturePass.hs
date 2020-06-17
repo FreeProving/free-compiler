@@ -87,6 +87,8 @@
 
 module FreeC.Pass.TypeSignaturePass
   ( typeSignaturePass
+  -- * definitions reused in the EtaConversionPass
+  , splitFuncType
   )
 where
 
