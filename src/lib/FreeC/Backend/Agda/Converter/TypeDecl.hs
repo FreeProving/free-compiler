@@ -31,6 +31,7 @@ import           FreeC.Monad.Converter          ( Converter
                                                 )
 
 -- | Converts a data or type synonym declaration.
+--   TODO: Convert type synonyms.
 convertTypeDecl :: IR.TypeDecl -> Converter [Agda.Declaration]
 convertTypeDecl (IR.TypeSynDecl _ _ _ _) = error "Not supported at the moment."
 convertTypeDecl decl@(IR.DataDecl _ ident tVars constrs) =
@@ -38,7 +39,15 @@ convertTypeDecl decl@(IR.DataDecl _ ident tVars constrs) =
     <$> convertDataDecl ident tVars constrs (isRecursiveDataType decl)
     <*> mapM generateSmartConDecl constrs
 
--- | Converts a data declaration.
+-- | Converts a data declaration by creating an Agda data type of the
+--  (preferably) same name and lifting constructors piecewise using
+--  @convertConDecl@.
+--
+--  @Shape@ and @Pos@ are abbreviated for readability.
+--  > data D α₁ … αₙ    data D̂ (S : Set)(P : S → Set)(α̂₁ … α̂ₙ : Set) : Set where
+--  >   = C₁ τ₁ … τᵢ        Ĉ₁ : τ₁̓ → … → τᵢ̓ → D̂ S P α̂₁ … α̂ₙ
+--  >                 ↦
+--  >   | Cₘ ρ₁ … ρⱼ        Ĉₘ : ρ₁̓ → … → ρⱼ̓ → D̂ S P α̂₁ … α̂ₙ
 convertDataDecl
   :: IR.DeclIdent     -- ^ The name of the data type
   -> [IR.TypeVarDecl] -- ^ Type parameters for the data type.
@@ -46,7 +55,7 @@ convertDataDecl
   -> Bool             -- ^ Is this a recursive data declaration?
   -> Converter Agda.Declaration
 convertDataDecl ident@(IR.DeclIdent srcSpan name) typeVars constrs isRec =
-  localEnv
+  localEnv -- The data declaration opens a new scope binding @S@, @P and α̂ᵢ.
     $   freeDataDecl
     <$> lookupUnQualAgdaIdentOrFail srcSpan IR.TypeScope name
     <*> mapM convertTypeVarDecl typeVars

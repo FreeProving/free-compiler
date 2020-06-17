@@ -37,19 +37,19 @@ convertFuncDecl decl = localEnv $ sequence [convertSignature decl]
 convertSignature :: IR.FuncDecl -> Converter Agda.Declaration
 convertSignature (IR.FuncDecl _ (IR.DeclIdent s name) tVars args rType _) = do
   decArg <- inEnv $ lookupDecArgIndex name
-  Agda.funcSig <$> ident <*> convertFunc_ decArg tVars types rType
+  Agda.funcSig <$> ident <*> convertFunc decArg tVars types rType
  where
   types = map IR.varPatType args
   ident = lookupUnQualAgdaIdentOrFail s IR.ValueScope name
 
 -- | Converts a fully applied function.
-convertFunc_
+convertFunc
   :: Maybe Int
   -> [IR.TypeVarDecl]
   -> [Maybe IR.Type]
   -> Maybe IR.Type
   -> Converter Agda.Expr
-convertFunc_ decArg tVars ts rt = do
+convertFunc decArg tVars ts rt = do
   Agda.pi . addFreeArgs <$> mapM convertTypeVarDecl tVars <*> maybe
     convertFuncType
     convertRecFuncType
