@@ -157,6 +157,7 @@ library freec-internal
                       , FreeC.IR.Base.Test.QuickCheck
                       , FreeC.IR.DependencyGraph
                       , FreeC.IR.Inlining
+                      , FreeC.IR.Pragma
                       , FreeC.IR.Reference
                       , FreeC.IR.Similar
                       , FreeC.IR.SrcSpan

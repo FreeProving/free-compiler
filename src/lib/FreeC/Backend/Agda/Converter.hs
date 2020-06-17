@@ -16,5 +16,4 @@ import           FreeC.Backend.Agda.Converter.FuncDecl
 import           FreeC.Backend.Agda.Converter.TypeDecl
                                                 ( convertTypeDecl )
 import           FreeC.Backend.Agda.Converter.Type
-                                                ( convertType
-                                                )
+                                                ( convertType )

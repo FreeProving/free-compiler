@@ -63,7 +63,7 @@ convertDataDecl ident@(IR.DeclIdent srcSpan name) typeVars constrs isRec =
     <*> convertConDecl ident typeVars isRec constrs
  where
   universe =
-    (if isRec then Agda.hiddenArg_ size `Agda.fun` Agda.set else Agda.set)
+    if isRec then Agda.hiddenArg_ size `Agda.fun` Agda.set else Agda.set
 
 -- | Converts all constructors of a data declaration.
 --

@@ -11,11 +11,11 @@ import qualified FreeC.IR.Syntax               as IR
 isRecursiveDataType :: IR.TypeDecl -> Bool
 isRecursiveDataType (IR.TypeSynDecl _ _ _ _) = False
 isRecursiveDataType (IR.DataDecl _ ident _ constructors) =
-  or $ map (requires ident) constructors
+  any (requires ident) constructors
 
 -- | Does the constructor use a type constructor with the given name?
 requires :: IR.DeclIdent -> IR.ConDecl -> Bool
-requires ident (IR.ConDecl _ _ argTypes) = or $ map (contains ident) argTypes
+requires ident (IR.ConDecl _ _ argTypes) = any (contains ident) argTypes
 
 -- | Does the given type contain a type constructor with the given name?
 contains :: IR.DeclIdent -> IR.Type -> Bool

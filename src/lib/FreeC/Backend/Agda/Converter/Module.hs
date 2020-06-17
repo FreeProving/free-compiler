@@ -15,12 +15,10 @@ import           FreeC.Backend.Agda.Converter.FuncDecl
 import           FreeC.Backend.Agda.Converter.TypeDecl
                                                 ( convertTypeDecl )
 import qualified FreeC.Backend.Agda.Syntax     as Agda
+import           FreeC.IR.Pragma
 import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Converter
 import           FreeC.Pipeline
-
-import           FreeC.Backend.Coq.Converter.Module
-                                                ( addDecArgPragma )
 
 -- | Converts a Haskell module to an Agda declaration.
 convertModule :: IR.Module -> Converter Agda.Declaration
