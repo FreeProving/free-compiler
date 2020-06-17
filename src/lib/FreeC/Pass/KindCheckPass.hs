@@ -53,6 +53,8 @@
 --   the left-hand side of type applications.
 module FreeC.Pass.KindCheckPass
   ( kindCheckPass
+    -- * Testing interface
+  , checkType
   )
 where
 
