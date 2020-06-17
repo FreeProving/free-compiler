@@ -26,7 +26,6 @@
 --   >     Just a  -> Just False;
 --   >     Nothing -> Nothing;
 --   >     Just b  -> Just True
-
 --   >   }
 --
 --   should not pass the check because the @case@ expression has two alternatives
