@@ -152,7 +152,7 @@ ident :: String -> Expr
 ident = Ident . qname' . name
 
 hiddenArg_ :: Expr -> Expr
-hiddenArg_ = HiddenArg NoRange .unnamed
+hiddenArg_ = HiddenArg NoRange . unnamed
 
 -------------------------------------------------------------------------------
 -- Types                                                                     --

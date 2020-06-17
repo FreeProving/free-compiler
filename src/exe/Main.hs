@@ -143,7 +143,7 @@ convertInputModule haskellAst = do
     else putDebug $ "Compiling " ++ showPretty modName
   reportApp $ do
     loadRequiredModules haskellAst
-    coqAst <- liftConverter $ convertModule haskellAst
+    coqAst  <- liftConverter $ convertModule haskellAst
     agdaAst <- liftConverter $ Agda.convertModule haskellAst
     traceM $ showPretty agdaAst
     traceM undefined

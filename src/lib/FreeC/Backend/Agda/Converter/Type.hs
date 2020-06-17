@@ -4,7 +4,8 @@
 
 module FreeC.Backend.Agda.Converter.Type
   ( convertType
-  , convertFunctionType
+  , convertFuncType
+  , convertRecFuncType
   , convertConType
   , convertRecConType
   )
@@ -38,9 +39,18 @@ convertType = dagger'
 --   monadic layers isn't needed.
 --
 --   > τ₁ -> … -> τₙ -> ρ ↦ τ₁' → … → τₙ' → ρ'
-convertFunctionType :: [IR.Type] -> IR.Type -> Converter Agda.Expr
-convertFunctionType argTypes returnType =
+convertFuncType :: [IR.Type] -> IR.Type -> Converter Agda.Expr
+convertFuncType argTypes returnType =
   foldr Agda.fun <$> dagger' returnType <*> mapM dagger' argTypes
+
+convertRecFuncType :: Int -> [IR.Type] -> IR.Type -> Converter Agda.Expr
+convertRecFuncType decIndex args returnType = pi "i" $ \i -> do
+  startArgs <- mapM dagger' $ take (decIndex - 1) args
+  decArg    <- dagger (Just $ Agda.hiddenArg_ i) $ args !! decIndex
+  endArgs   <- mapM dagger' $ drop (decIndex + 1) args
+  foldr Agda.fun
+    <*> pure (startArgs ++ (decArg : endArgs))
+    <$> dagger' returnType
 
 -- | Constructors aren't evaluated until fully applied. Furthermore the return
 --   type of a constructor for a data type D has to be D and therefore cannot be
@@ -55,9 +65,12 @@ convertConType argTypes returnType =
 
 convertRecConType :: IR.QName -> [IR.Type] -> IR.Type -> Converter Agda.Expr
 convertRecConType ident argTypes returnType = pi "i" $ \i -> do
+  let dagger'' = \t -> if t `appliesTo` ident
+        then dagger (Just $ Agda.hiddenArg_ i) t
+        else dagger' t
   foldr Agda.fun
     <$> (Agda.app <$> star' returnType <*> pure (Agda.hiddenArg_ $ up i))
-    <*> mapM (dagger $ Just (ident, Agda.hiddenArg_ i)) argTypes
+    <*> mapM dagger'' argTypes
 
 -------------------------------------------------------------------------------
 -- Translations                                                              --
@@ -69,7 +82,7 @@ convertRecConType ident argTypes returnType = pi "i" $ \i -> do
 --   Abel et al.
 --
 --   > τ' = Free τ*
-dagger :: Maybe (IR.QName, Agda.Expr) -> IR.Type -> Converter Agda.Expr
+dagger :: Maybe Agda.Expr -> IR.Type -> Converter Agda.Expr
 dagger = fmap free .: star
 
 -- | Lifts a type from IR to Agda by renaming type variables and constructors,
@@ -83,15 +96,9 @@ dagger = fmap free .: star
 --   > (τ₁ → τ₂)* = τ₁' → τ₂'
 --   > C* = Ĉ Shape Position
 --   > α* = α̂
-star :: Maybe (IR.QName, Agda.Expr) -> IR.Type -> Converter Agda.Expr
--- If we apply arguments to the constructor of the data type itself we add a
--- size annotation.
-star (Just (ident, i)) t@(IR.TypeApp _ _ _) =
-  if t `appliesTo` ident then Agda.app <$> star' t <*> pure i else star' t
-star (Just (ident, i)) t@(IR.TypeCon _ name) =
-  if ident == name then Agda.app <$> star' t <*> pure i else star' t
--- Otherwise we just apply the normal star transformation.
-star _ (IR.TypeVar s name) = Agda.Ident
+star :: Maybe Agda.Expr -> IR.Type -> Converter Agda.Expr
+star (Just i) t                   = Agda.app <$> star' t <*> pure i
+star _        (IR.TypeVar s name) = Agda.Ident
   <$> lookupAgdaIdentOrFail s IR.TypeScope (IR.UnQual (IR.Ident name))
 star _ (IR.TypeCon s name) =
   applyFreeArgs <$> lookupAgdaIdentOrFail s IR.TypeScope name

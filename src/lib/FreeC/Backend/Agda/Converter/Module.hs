@@ -19,13 +19,17 @@ import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Converter
 import           FreeC.Pipeline
 
+import           FreeC.Backend.Coq.Converter.Module
+                                                ( addDecArgPragma )
+
 -- | Converts a Haskell module to an Agda declaration.
 convertModule :: IR.Module -> Converter Agda.Declaration
 convertModule = moduleEnv . (runPipeline >=> convertModule')
 
 -- | Like 'convertModule'' but does not apply any compiler passes beforehand.
 convertModule' :: IR.Module -> Converter Agda.Declaration
-convertModule' (IR.Module _ name _ typeDecls _ _ funcDecls) =
+convertModule' modul@(IR.Module _ name _ typeDecls _ _ funcDecls) = do
+  mapM_ (addDecArgPragma (IR.modFuncDecls modul)) (IR.modPragmas modul)
   Agda.moduleDecl (convertModName name) <$> getAp (typeDecls' <> funcDecls')
  where
   typeDecls' = Ap $ concatMapM convertTypeDecl typeDecls

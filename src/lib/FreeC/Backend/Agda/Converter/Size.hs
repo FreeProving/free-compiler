@@ -18,3 +18,4 @@ size = Agda.Ident $ Agda.qname' Agda.Base.size
 -- > e ↦ ↑ e
 up :: Agda.Expr -> Agda.Expr
 up = Agda.app $ Agda.Ident $ Agda.qname' Agda.Base.up
+
