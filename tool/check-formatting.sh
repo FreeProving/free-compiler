@@ -16,33 +16,49 @@ root_dir_rel=$(realpath --relative-to . "$root_dir")
 default_files=("$root_dir_rel/src" "$root_dir_rel/example")
 
 ###############################################################################
-# Command Line Options                                                        #
+# Command Line Option Defaults                                                #
 ###############################################################################
 
 # Constants for the names of the two available modes of operation.
 check_mode="check"
 overwrite_mode="overwrite"
 
-# Set default values for command line options.
+# By default, the usage information is not displayed.
 help=false
-enable_color=true
-enable_skip=true
-mode="$check_mode"
 
-# By default all formatters and checks are enabled.
-enable_brittany=true
-enable_eol=true
-enable_coulmn_check=true
+# By default, colored output is enabled.
+enable_color_default=true; enable_color="$enable_color_default"
+
+# By default files that are not tracked by Git are skipped.
+enable_skip_default=true; enable_skip="$enable_skip_default"
+
+# By default, check mode is enabled, i.e., files will not be overwritten.
+default_mode="$check_mode"; mode="$default_mode"
+
+# Brittany is enabled by default.
+enable_brittany_default=true; enable_brittany="$enable_brittany_default"
+
+# The formatter that normalizes line endings is enabled by default.
+enable_eol_default=true; enable_eol="$enable_eol_default"
+
+# The check whether the line length limit of 80 characters is exceeded or not
+# is enabled by default.
+enable_column_check_default=true;
+enable_column_check="$enable_column_check_default"
+
+###############################################################################
+# Command Line Option Parser                                                  #
+###############################################################################
 
 # Parse command line options.
-options=$(getopt         \
-  --long help -o h       \
-  --long no-brittany     \
-  --long no-color        \
-  --long no-coulmn-check \
-  --long no-eol          \
-  --long no-skip         \
-  --long overwrite       \
+options=$(getopt                      \
+  --long help -o h                    \
+  --long brittany,no-brittany         \
+  --long color,no-color               \
+  --long column-check,no-column-check \
+  --long eol,no-eol                   \
+  --long skip,no-skip                 \
+  --long overwrite                    \
   -- "$@")
 if [ $? -ne 0 ]; then
   echo
@@ -53,11 +69,22 @@ eval set -- "$options"
 while true; do
   case "$1" in
   -h | --help) help=true; shift ;;
+
+  --brittany) enable_brittany=true; shift ;;
   --no-brittany) enable_brittany=false; shift ;;
+
+  --color) enable_color=true; shift ;;
   --no-color) enable_color=false; shift ;;
-  --no-coulmn-check) enable_column_check=false; shift ;;
+
+  --column-check) enable_column_check=true; shift ;;
+  --no-column-check) enable_column_check=false; shift ;;
+
+  --eol) enable_eol=true; shift ;;
   --no-eol) enable_eol=false; shift ;;
+
+  --skip) enable_skip=true; shift ;;
   --no-skip) enable_skip=false; shift ;;
+
   --overwrite) mode="$overwrite_mode"; shift ;;
   --) shift; break ;;
   *) break ;;
@@ -75,6 +102,17 @@ fi
 ###############################################################################
 # Usage Message                                                               #
 ###############################################################################
+
+# Utility function that prints whether a command line option is `"on"` or
+# `"off"` by default.
+function on_or_off() {
+  local default_value="$1"
+  if [ "$default_value" = true ]; then
+    echo "on"
+  else
+    echo "off"
+  fi
+}
 
 # Print usage information if the `--help` flag is set.
 if [ "$help" = true ]; then
@@ -103,16 +141,29 @@ if [ "$help" = true ]; then
   echo "directories are processed by default: ${default_files[@]}."
   echo
   echo "Command line options:"
-  echo "  -h    --help              Display this message."
-  echo
-  echo "        --no-brittany       Disable formatting using Brittany."
-  echo "        --no-color          Disable colored output."
-  echo "        --no-column-check   Disable colored output."
-  echo "        --no-eol            Disable normalization of line endings."
-  echo "        --no-skip           Disable skipping of untracked files."
-  echo
-  echo "        --overwrite         Enable overwrite mode"
-  echo "                            (see above for details)."
+  echo "  -h    --help                Display this message."
+  echo "        --[no-]brittany       Enable formatting using Brittany."
+  echo "                              ('$(on_or_off                     \
+                                          "$enable_brittany_default")'" \
+                                       "by default)"
+  echo "        --[no-]color          Enable colored output."
+  echo "                              ('$(on_or_off                     \
+                                          "$enable_brittany_default")'" \
+                                       "by default)"
+  echo "        --[no-]column-check   Enable 80 column line length limit check."
+  echo "                              ('$(on_or_off                     \
+                                          "$enable_column_check_default")'" \
+                                       "by default)"
+  echo "        --[no-]eol            Enable normalization of line endings."
+  echo "                              ('$(on_or_off                     \
+                                          "$enable_eol_default")'" \
+                                       "by default)"
+  echo "        --[no-]skip           Enable skipping of untracked files."
+  echo "                              ('$(on_or_off                     \
+                                          "$enable_skip_default")'" \
+                                       "by default)"
+  echo "        --overwrite           Enable overwrite mode"
+  echo "                              (see above for details)."
   exit 0
 fi
 
@@ -304,7 +355,7 @@ brittany_formatter_msg=$(select_by_mode           \
 
 # Check that tests whether a file contains lines that exceed the 80 character
 # line length limit.
-function coulmn_check() {
+function column_check() {
   local file="$1"
 
   # Search for long lines but ignore lines that contain URLs.
@@ -316,7 +367,7 @@ function coulmn_check() {
     return 1
   fi
 }
-coulmn_check_msg="${yellow}${bold}EXCEEDS COLUMN LIMIT${reset}"
+column_check_msg="${yellow}${bold}EXCEEDS COLUMN LIMIT${reset}"
 
 ###############################################################################
 # Run All Enabled Formatters and Checks                                       #
@@ -349,10 +400,10 @@ for file in $(find "${files[@]}" -name '*.hs' -type f); do
                   "format_counter"                \
                   "$brittany_formatter_msg"       \
                   "$enable_brittany" &&
-    run_check coulmn_check "$temp_file" \
+    run_check column_check "$temp_file" \
               "column_counter"          \
-              "$coulmn_check_msg"       \
-              "$enable_coulmn_check"
+              "$column_check_msg"       \
+              "$enable_column_check"
 
     # Stop processing the current file if any formatter or check failed.
     error_code="$?"
