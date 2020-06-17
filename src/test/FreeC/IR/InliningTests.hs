@@ -1,3 +1,5 @@
+-- | This moduule contains tests for FreeC.IR.Inlining
+
 module FreeC.IR.InliningTests where
 
 import           Test.Hspec
@@ -13,7 +15,7 @@ import           FreeC.Test.Parser              ( parseTestFuncDecl
                                                 , parseTestExpr
                                                 )
 
-
+-- | Test group for inlineExpr and inlineFuncDecls
 testInlining :: Spec
 testInlining = describe "FreeC.IR.Inlining" $ do
   context "inlineExpr" $ do
