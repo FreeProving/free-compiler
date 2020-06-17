@@ -22,18 +22,18 @@
 --   This optimization does not work when functions are applied only partially.
 --   Thus, we have to convert partial applications to full applications.
 --
---   We differentiate between top-level partial applications (i.e. when a 
---   function is defined as the partial application of another defined function 
---   or constructor) and partial applications that occur in the arguments of 
---   the function declaration's right-hand side. 
--- 
---   We perform regular η-conversions on partial applications in proper 
---   subexpressions of a function declaration's right-hand side. 
--- 
+--   We differentiate between top-level partial applications (i.e. when a
+--   function is defined as the partial application of another defined function
+--   or constructor) and partial applications that occur in the arguments of
+--   the function declaration's right-hand side.
+--
+--   We perform regular η-conversions on partial applications in proper
+--   subexpressions of a function declaration's right-hand side.
+--
 --   However, on the top-level, we add the missing arguments to the left-hand
 --   and right-hand sides of the function rule explicitly, without a lambda
---   abstraction. 
---   This is an optimization that allows the compiler to avoid some unnecessary 
+--   abstraction.
+--   This is an optimization that allows the compiler to avoid some unnecessary
 --   monadic lifting.
 --
 --   = Specification
@@ -41,21 +41,23 @@
 --   == Preconditions
 --
 --   The arity of all constructors and functions must be known (i.e., there
---   must be corresponding environment entries) and all function declarations 
+--   must be corresponding environment entries) and all function declarations
 --   must be type annotated.
 --
 --   == Translation
 --
---   Assume that we have the following function declaration. 
+--   Assume that we have the following function declaration.
 --
---   > f e₁ … eₖ = g @α₁ … @αₚ e₁ … eₘ
+--   > f (e₁ :: τ₁) … (eₖ :: τₖ) :: τ'₁ -> … -> τ'ₙ₋ₘ -> τ =
+--   >     g @α₁ … @αₚ e₁ … eₘ
 --
 --   where @g@ is the name of an @n@-ary constructor or function declaration
---   and @m < n@. This declaration is then replaced by 
+--   and @m < n@. This declaration is then replaced by
 --
---   > f e₁ … eₖ x₍ₘ₊₁₎ … xₙ = g @α₁ … @αₚ e₁ … eₘ x₍ₘ₊₁₎ … xₙ
---   
---   where x₍ₘ₊₁₎ … xₙ are @n-m@ fresh variables. 
+--   > f (e₁ :: τ₁) … (eₖ :: τₖ) (x₍ₘ₊₁₎ :: τ'₁) … (xₙ :: τ'ₙ₋ₘ) :: τ =
+--   >     g @α₁ … @αₚ e₁ … eₘ x₍ₘ₊₁₎ … xₙ
+--
+--   where x₍ₘ₊₁₎ … xₙ are @n-m@ fresh variables.
 --
 --   If a function rule has several alternatives for the right-hand side
 --   through (possibly nested) if or case expressions, the number of added
@@ -72,25 +74,25 @@
 --
 --   > \y₍ₗ₊₁₎ … yₚ -> f @α₁ … @αᵣ e₁ … eₘ y₍ₗ₊₁₎ … yₚ
 --
---   where @y₍ₗ₊₁₎ … yₚ@ are @p-l@ fresh variables. 
--- 
+--   where @y₍ₗ₊₁₎ … yₚ@ are @p-l@ fresh variables.
+--
 --   Both types of η-conversion may also be applied to the same expression.
---   For example, the function 
---   
---  > f :: τ₁ -> τ₂ -> τ₃ > τ 
---  > f e₁ = case e₁ of {
---  >           c₁ -> g; 
---  >           c₂ -> h 
+--   For example, the function
+--
+--  > f (e₁ :: τ₁) ::  τ₂ -> τ₃ -> τ = case e₁ of {
+--  >     c₁ -> g;
+--  >     c₂ -> h
 --  >   }
 --
---  where @c₁@ and @c₂@ are the constructors of @τ₁@, 
---  @g@ is a binary function of type @τ₂ -> τ₃ > τ@, and
---  @h@ is a unary function of type @τ₂ -> (τ₃ > τ)@, 
---  will be converted to 
--- 
---  > f e₁ x = case e₁ of
---  >           c₁ -> \y -> g x y
---  >           c₂ -> h x 
+--  where @c₁@ and @c₂@ are the constructors of @τ₁@,
+--  @g@ is a binary function of type @τ₂ -> τ₃ -> τ@, and
+--  @h@ is a unary function of type @τ₂ -> (τ₃ -> τ)@,
+--  will be converted to
+--
+--  > f (e₁ :: τ₁) (x :: τ₂) :: τ₃ -> τ = case e₁ of {
+--  >     c₁ -> \y -> g x y;
+--  >     c₂ -> h x
+--  >   }
 --
 --   == Postconditions
 --
@@ -136,18 +138,18 @@ etaConversionPass ast = do
 
 -- | Makes sure that all occurring functions are fully applied
 --   by calling 'etaConvertFuncDecl' on each of them.
--- 
---   If the type of a function declaration changes due to a top-level 
---   η-conversion, the procedure is performed recursively on all 
---   previously converted function declarations. 
---   This ensures that all functions, including mutually-recursive 
---   functions, are fully applied correctly. 
+--
+--   If the type of a function declaration changes due to a top-level
+--   η-conversion, the procedure is performed recursively on all
+--   previously converted function declarations.
+--   This ensures that all functions, including mutually-recursive
+--   functions, are fully applied correctly.
 
---   The function's first argument represents the function 
+--   The function's first argument represents the function
 --   declarations yet to be converted.
---   The function's second argument is an accumulator for already 
---   converted functions that is needed in case they must be 
---   re-converted recursively. 
+--   The function's second argument is an accumulator for already
+--   converted functions that is needed in case they must be
+--   re-converted recursively.
 etaConvertFuncDecls :: [IR.FuncDecl] -> [IR.FuncDecl] -> Converter [IR.FuncDecl]
 etaConvertFuncDecls []         newFuncDecls = return newFuncDecls
 etaConvertFuncDecls (fd : fds) newFuncDecls = do
@@ -159,11 +161,11 @@ etaConvertFuncDecls (fd : fds) newFuncDecls = do
 -- | Applies appropriate η-conversions to a function declaration.
 --
 --   Depending on the presence or absence of missing top-level arguments,
---   the function uses 'etaConvertTopLevel' or 'etaConvertExpr' to ensure 
---   all functions and constructors on the right-hand side are fully applied. 
+--   the function uses 'etaConvertTopLevel' or 'etaConvertExpr' to ensure
+--   all functions and constructors on the right-hand side are fully applied.
 --   The missing top-level arguments are also added to the left-hand
 --   side of the declaration and the function's type and the environment
---   are updated accordingly. 
+--   are updated accordingly.
 etaConvertFuncDecl :: IR.FuncDecl -> Converter IR.FuncDecl
 etaConvertFuncDecl funcDecl = do
   let rhs = IR.funcDeclRhs funcDecl
@@ -206,27 +208,27 @@ modifyTopLevel funcDecl rhs newArgIdents = do
 -- Expressions                                                               --
 -------------------------------------------------------------------------------
 
--- | Applies all top-level alternatives of an expression to their missing 
+-- | Applies all top-level alternatives of an expression to their missing
 --   arguments and calls 'etaConvertExpr' on the result to convert any
---   occurring lower-level partial applications. 
+--   occurring lower-level partial applications.
 etaConvertTopLevel :: [IR.VarPat] -> IR.Expr -> Converter IR.Expr
--- If there is more than one alternative, apply the conversion to 
--- all alternatives. 
+-- If there is more than one alternative, apply the conversion to
+-- all alternatives.
 etaConvertTopLevel argPats expr@(IR.If _ _ _ _ _) =
   etaConvertAlternatives argPats expr
 etaConvertTopLevel argPats expr@(IR.Case _ _ _ _) =
   etaConvertAlternatives argPats expr
--- If there is only one alternative, apply it to the newly-added arguments, 
+-- If there is only one alternative, apply it to the newly-added arguments,
 -- then apply @etaConvertExpr@ to it to make so the expression and its sub
 -- expressions are fully applied.
 etaConvertTopLevel argPats expr = localEnv $ do
   let argExprs = map IR.varPatToExpr argPats
-  -- Apply expression to missing arguments and perform eta-conversion on the 
+  -- Apply expression to missing arguments and perform eta-conversion on the
   -- resulting expression.
   etaConvertExpr $ IR.app NoSrcSpan expr argExprs
 
 -- | Calls @etaConvertTopLevel@ on all alternatives in an if or case
---   expression. 
+--   expression.
 etaConvertAlternatives :: [IR.VarPat] -> IR.Expr -> Converter IR.Expr
 etaConvertAlternatives argPats expr = do
   -- The first child term of an if or case expression is the condition/the
@@ -294,15 +296,15 @@ etaConvertSubExprs' expr = do
 -------------------------------------------------------------------------------
 
 -- | Finds the minimum number of missing arguments among the alternatives
---   for the right-hand side of a function declaration. 
+--   for the right-hand side of a function declaration.
 findMinMissingArguments :: IR.Expr -> Converter Int
 findMinMissingArguments (IR.If _ _ e1 e2 _) =
   minimum <$> mapM findMinMissingArguments [e1, e2]
 findMinMissingArguments (IR.Case _ _ alts _) =
   minimum <$> mapM (findMinMissingArguments . IR.altRhs) alts
--- Any expression that isn't an if or case expression only has one 
+-- Any expression that isn't an if or case expression only has one
 -- option for the number of missing arguments, namely the arity of the
--- expression. 
+-- expression.
 findMinMissingArguments expr = arityOf expr
 
 -- | Determines the number of arguments expected to be passed to the given
