@@ -359,16 +359,16 @@ testTypeInferencePass = describe "FreeC.Analysis.TypeInference" $ do
           shouldInferType
             (Recursive
               [ "length xs = case xs of {"
-              ++ "    Nil        -> if eq Nil Nil then 0 else 1;"
-              ++ "    Cons x xs' -> succ (length xs')"
-              ++ "  }"
+                ++ "    Nil        -> if eq Nil Nil then 0 else 1;"
+                ++ "    Cons x xs' -> succ (length xs')"
+                ++ "  }"
               ]
             )
             [ "length @a @b (xs :: List a) :: Prelude.Integer = case xs of {"
-            ++ "    Nil -> if eq @(List b) (Nil @b) (Nil @b) then 0 else 1;"
-            ++ "    Cons (x :: a) (xs' :: List a) ->"
-            ++ "      succ (length @a @b xs')"
-            ++ "  }"
+              ++ "    Nil -> if eq @(List b) (Nil @b) (Nil @b) then 0 else 1;"
+              ++ "    Cons (x :: a) (xs' :: List a) ->"
+              ++ "      succ (length @a @b xs')"
+              ++ "  }"
             ]
     it
         (  "infers vanishing type arguments correctly in recursive functions "
