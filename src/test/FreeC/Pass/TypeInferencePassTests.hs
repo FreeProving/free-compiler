@@ -336,13 +336,17 @@ testTypeInferencePass = describe "FreeC.Analysis.TypeInference" $ do
                 ++ "    Nil        -> 0;"
                 ++ "    Cons x xs' -> succ (length xs')"
                 ++ "  }"
-              ]
-            )
-            [ "length @a (xs :: List a) :: Prelude.Integer = case xs of {"
+                ]
+              )
+              [ "length @a (xs :: List a) :: Prelude.Integer = case xs of {"
+              ++ "    Nil -> 0;"
+              ++ "    Cons (x :: a) (xs' :: List a) -> succ (length' @a xs')"
+              ++ "  }"
+              , "length' @a (xs :: List a) :: Prelude.Integer = case xs of {"
               ++ "    Nil -> 0;"
               ++ "    Cons (x :: a) (xs' :: List a) -> succ (length @a xs')"
               ++ "  }"
-            ]
+              ]
     it "infers vanishing type arguments correctly in recursive functions"
       $ shouldSucceedWith
       $ do
@@ -358,9 +362,9 @@ testTypeInferencePass = describe "FreeC.Analysis.TypeInference" $ do
               ++ "    Nil        -> if eq Nil Nil then 0 else 1;"
               ++ "    Cons x xs' -> succ (length xs')"
               ++ "  }"
-            ]
-          )
-          [ "length @a @b (xs :: List a) :: Prelude.Integer = case xs of {"
+              ]
+            )
+            [ "length @a @b (xs :: List a) :: Prelude.Integer = case xs of {"
             ++ "    Nil -> if eq @(List b) (Nil @b) (Nil @b) then 0 else 1;"
             ++ "    Cons (x :: a) (xs' :: List a) ->"
             ++ "      succ (length @a @b xs')"
@@ -397,9 +401,9 @@ testTypeInferencePass = describe "FreeC.Analysis.TypeInference" $ do
     it "infers the types of mutually recursive functions correctly"
       $ shouldSucceedWith
       $ do
-          _ <- defineTestTypeCon "Prelude.Integer" 0
+          _ <- defineTestTypeCon "Prelude.Integer" 0 []
           _ <- defineTestFunc "succ" 1 "Prelude.Integer -> Prelude.Integer"
-          _ <- defineTestTypeCon "List" 1
+          _ <- defineTestTypeCon "List" 1 ["Nil", "Cons"]
           _ <- defineTestCon "Nil" 0 "forall a. List a"
           _ <- defineTestCon "Cons" 2 "forall a. a -> List a -> List a"
           shouldInferType
@@ -429,10 +433,10 @@ testTypeInferencePass = describe "FreeC.Analysis.TypeInference" $ do
         )
       $ shouldSucceedWith
       $ do
-          _ <- defineTestTypeCon "Prelude.Integer" 0
+          _ <- defineTestTypeCon "Prelude.Integer" 0 []
           _ <- defineTestFunc "succ" 1 "Prelude.Integer -> Prelude.Integer"
           _ <- defineTestFunc "eq" 0 "forall a. a -> a -> Prelude.Bool"
-          _ <- defineTestTypeCon "List" 1
+          _ <- defineTestTypeCon "List" 1 ["Nil", "Cons"]
           _ <- defineTestCon "Nil" 0 "forall a. List a"
           _ <- defineTestCon "Cons" 2 "forall a. a -> List a -> List a"
           shouldInferType
@@ -466,10 +470,10 @@ testTypeInferencePass = describe "FreeC.Analysis.TypeInference" $ do
         )
       $ shouldSucceedWith
       $ do
-          _ <- defineTestTypeCon "Prelude.Integer" 0
+          _ <- defineTestTypeCon "Prelude.Integer" 0 []
           _ <- defineTestFunc "succ" 1 "Prelude.Integer -> Prelude.Integer"
           _ <- defineTestFunc "true" 0 "forall a. Prelude.Bool"
-          _ <- defineTestTypeCon "List" 1
+          _ <- defineTestTypeCon "List" 1 ["Nil", "Cons"]
           _ <- defineTestCon "Nil" 0 "forall a. List a"
           _ <- defineTestCon "Cons" 2 "forall a. a -> List a -> List a"
           shouldInferType
@@ -502,13 +506,13 @@ testTypeInferencePass = describe "FreeC.Analysis.TypeInference" $ do
     it "allows argument type annotation to make type more specific"
       $ shouldSucceedWith
       $ do
-          _ <- defineTestTypeCon "Foo" 0
+          _ <- defineTestTypeCon "Foo" 0 []
           shouldInferType (NonRecursive "fooId (x :: Foo) = x")
                           ["fooId (x :: Foo) :: Foo = x"]
     it "allows return type annotation to make type more specific"
       $ shouldSucceedWith
       $ do
-          _ <- defineTestTypeCon "Foo" 0
+          _ <- defineTestTypeCon "Foo" 0 []
           shouldInferType (NonRecursive "fooId x :: Foo = x")
                           ["fooId (x :: Foo) :: Foo = x"]
 
@@ -516,13 +520,13 @@ testTypeInferencePass = describe "FreeC.Analysis.TypeInference" $ do
     it "cannot match rigid type variable with type constructor" $ do
       funcDecl <- expectParseTestFuncDecl "foo @a (x :: a) :: Foo = x"
       shouldFailPretty $ do
-        _ <- defineTestTypeCon "Foo" 0
+        _ <- defineTestTypeCon "Foo" 0 []
         typeInferencePass (NonRecursive funcDecl)
 
     it "cannot match type constructor with rigid type variable" $ do
       funcDecl <- expectParseTestFuncDecl "foo @a (x :: a) :: a = Foo"
       shouldFailPretty $ do
-        _ <- defineTestTypeCon "Foo" 0
+        _ <- defineTestTypeCon "Foo" 0 ["Foo"]
         _ <- defineTestCon "Foo" 0 "Foo"
         typeInferencePass (NonRecursive funcDecl)
 
