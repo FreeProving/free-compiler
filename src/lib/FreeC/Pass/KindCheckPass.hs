@@ -18,16 +18,16 @@
 --   >
 --   > data MyList a = MyNil | MyCons a (MyList a)
 --   >
---   > -- Invalid because MyList is applied to 2 arguments
+--   > -- Invalid because 'MyList' is applied to 2 arguments
 --   > fail1 :: MyList (MyList a a) -> Integer
 --   > fail1 x = 42
 --   >
---   > -- Invalid because type variable a is on the right hand side of a types
---   > -- application
+--   > -- Invalid because type variable 'a' is on the right hand side of a type
+--   > -- application.
 --   > fail2 :: a a -> Integer
 --   > fail2 x = 42
 --   >
---   > -- Fails because MyList is applied to no arguments
+--   > -- Fails because 'MyList' is applied to no arguments.
 --   > fail3 :: MyList -> Integer
 --   > fail3 x = 42
 --
@@ -76,32 +76,31 @@ kindCheckPass m@(IR.Module _ _ _ typeDecls typeSigs _ funcDecls) = do
   mapM_ checkFuncDecl funcDecls
   return m
 
--- | Checks whether all type expressions in a type declaration are correct
+-- | Checks whether all type expressions in a type declaration are correct.
 checkTypeDecl :: IR.TypeDecl -> Converter ()
 checkTypeDecl (IR.DataDecl    _ _ _ conDecls) = mapM_ checkConDecl conDecls
 checkTypeDecl (IR.TypeSynDecl _ _ _ typ     ) = checkType typ
 
--- | Checks whether the arguments of a constructor declaration are kind-correct
+-- | Checks whether the arguments of a constructor declaration are kind-correct.
 checkConDecl :: IR.ConDecl -> Converter ()
 checkConDecl (IR.ConDecl _ _ types) = mapM_ checkType types
 
--- | Checks whether the type schema in a type signature is kind-correct
+-- | Checks whether the type schema in a type signature is kind-correct.
 checkTypeSig :: IR.TypeSig -> Converter ()
 checkTypeSig (IR.TypeSig _ _ typeSchema) = checkTypeSchema typeSchema
 
--- | Checks whether a given type schema is kind-correct
+-- | Checks whether a given type schema is kind-correct.
 checkTypeSchema :: IR.TypeSchema -> Converter ()
-checkTypeSchema (IR.TypeSchema _ _ typ) = checkType typ
+checkTypeSchema (IR.TypeSchema _ _ typeExpr) = checkType typeExpr
 
--- | Checks whether a function declaration has kind-correct type annotations
+-- | Checks whether a function declaration has kind-correct type annotations.
 checkFuncDecl :: IR.FuncDecl -> Converter ()
 checkFuncDecl (IR.FuncDecl _ _ _ varPats retType rhs) = do
   mapM_ checkVarPat varPats
   mapM_ checkType   retType
   checkExpr rhs
-  return ()
 
--- | Checks whether all type annotations in an expression are kind-correct
+-- | Checks whether all type annotations in an expression are kind-correct.
 checkExpr :: IR.Expr -> Converter ()
 checkExpr (IR.Con _ _ typeSchema      ) = mapM_ checkTypeSchema typeSchema
 checkExpr (IR.Var _ _ typeSchema      ) = mapM_ checkTypeSchema typeSchema
@@ -113,10 +112,10 @@ checkExpr (IR.TypeAppExpr _ lhs rhs typeSchema) = do
   checkExpr lhs
   checkType rhs
   mapM_ checkTypeSchema typeSchema
-checkExpr (IR.If _ cond thenExp elseExp typeSchema) = do
+checkExpr (IR.If _ cond thenExpr elseExpr typeSchema) = do
   checkExpr cond
-  checkExpr thenExp
-  checkExpr elseExp
+  checkExpr thenExpr
+  checkExpr elseExpr
   mapM_ checkTypeSchema typeSchema
 checkExpr (IR.Case _ scrutinee alts typeSchema) = do
   checkExpr scrutinee
@@ -131,7 +130,7 @@ checkExpr (IR.Lambda _ args rhs typeSchema) = do
   mapM_ checkTypeSchema typeSchema
 
 -- | Checks whether the variable patterns have correct type annotations and the
---   expression has kind-correct type annotations
+--   expression has kind-correct type annotations.
 checkAlt :: IR.Alt -> Converter ()
 checkAlt (IR.Alt _ _ varPats rhs) = do
   mapM_ checkVarPat varPats
@@ -139,9 +138,9 @@ checkAlt (IR.Alt _ _ varPats rhs) = do
 
 -- | Checks whether the type annotation of a variable pattern is kind-correct.
 checkVarPat :: IR.VarPat -> Converter ()
-checkVarPat (IR.VarPat _ _ typ _) = mapM_ checkType typ
+checkVarPat (IR.VarPat _ _ typeExpr _) = mapM_ checkType typeExpr
 
--- | Checks if all type constructors have the correct number of arguments
+-- | Checks if all type constructors have the correct number of arguments.
 checkType :: IR.Type -> Converter ()
 checkType = checkType' 0
 
@@ -154,7 +153,7 @@ checkType' depth (IR.TypeVar srcSpan varId) =
     $  Message srcSpan Error
     $  "Type variable "
     ++ varId
-    ++ " occurs on left-hand side of type application"
+    ++ " occurs on left-hand side of type application."
 checkType' depth (IR.TypeCon srcSpan ident) = do
   arity <- inEnv $ fromMaybe (-1) . lookupArity IR.TypeScope ident
   when (arity /= depth)
@@ -166,6 +165,7 @@ checkType' depth (IR.TypeCon srcSpan ident) = do
     ++ show arity
     ++ " but was "
     ++ show depth
+    ++ "."
 checkType' depth (IR.TypeApp _ lhs rhs) = do
   checkType' (depth + 1) lhs
   checkType rhs
@@ -173,7 +173,7 @@ checkType' depth (IR.FuncType srcSpan lhs rhs)
   | depth /= 0
   = reportFatal
     $ Message srcSpan Error
-    $ "Function type occurs on left-hand side of type application"
+    $ "Function type occurs on left-hand side of type application."
   | otherwise
   = do
     checkType lhs
