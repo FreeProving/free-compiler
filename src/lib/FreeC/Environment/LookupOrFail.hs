@@ -3,6 +3,10 @@
 --   report a fatal error message when there is no such entry.
 module FreeC.Environment.LookupOrFail where
 
+import           Data.Composition               ( (.:)
+                                                , (.:.)
+                                                )
+
 import qualified FreeC.Backend.Agda.Syntax     as Agda
 import qualified FreeC.Backend.Coq.Syntax      as Coq
 import           FreeC.Environment
@@ -56,6 +60,19 @@ lookupAgdaIdentOrFail
 lookupAgdaIdentOrFail srcSpan scope name =
   entryAgdaIdent <$> lookupEntryOrFail srcSpan scope name
 
+-- | Looks up an Agda identifier from the @IR.ValueScope@.
+lookupAgdaValIdentOrFail :: SrcSpan -> IR.QName -> Converter Agda.QName
+lookupAgdaValIdentOrFail = flip lookupAgdaIdentOrFail IR.ValueScope
+
+-- | Looks up an Agda identifier from the @IR.TypeScope@.
+lookupAgdaTypeIdentOrFail :: SrcSpan -> IR.QName -> Converter Agda.QName
+lookupAgdaTypeIdentOrFail = flip lookupAgdaIdentOrFail IR.TypeScope
+
+-- | Looks up an Agda identifier and unqualifies the name.
+lookupUnQualAgdaIdentOrFail
+  :: SrcSpan -> IR.Scope -> IR.QName -> Converter Agda.Name
+lookupUnQualAgdaIdentOrFail = fmap Agda.unqualify .:. lookupAgdaIdentOrFail
+
 -- | Looks up the Coq identifier of a smart constructor of the Haskell
 --   data constructr with the given name or reports a fatal error message
 --   if there is no such constructor.
@@ -68,3 +85,26 @@ lookupSmartIdentOrFail
 lookupSmartIdentOrFail srcSpan name =
   entrySmartIdent <$> lookupEntryOrFail srcSpan IR.ValueScope name
 
+-- | Looks up the Agda identifier of a smart constructor of the Haskell
+--   data constructor with the given name or reports a fatal error message
+--   if there is no such constructor.
+--
+--   If an error is reported, it points to the given source span.
+lookupAgdaSmartIdentOrFail
+  :: SrcSpan  -- ^ The source location where the identifier is requested.
+  -> IR.QName -- ^ The Haskell identifier to look up.
+  -> Converter Agda.QName
+lookupAgdaSmartIdentOrFail srcSpan name =
+  entryAgdaSmartIdent <$> lookupEntryOrFail srcSpan IR.ValueScope name
+
+-- | Looks up the Agda identifier of a smart constructor of the Haskell
+--   data constructor with the given name and unqualifies it or reports
+--   a fatal error message if there is no such constructor.
+--
+--   If an error is reported, it points to the given source span.
+lookupUnQualAgdaSmartIdentOrFail
+  :: SrcSpan  -- ^ The source location where the identifier is requested.
+  -> IR.QName -- ^ The Haskell identifier to look up.
+  -> Converter Agda.Name
+lookupUnQualAgdaSmartIdentOrFail =
+  fmap Agda.unqualify .: lookupAgdaSmartIdentOrFail

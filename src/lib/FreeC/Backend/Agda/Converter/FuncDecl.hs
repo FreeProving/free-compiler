@@ -10,14 +10,14 @@ import           Prelude                 hiding ( mod )
 
 import           Data.Maybe                     ( fromJust )
 
+import           FreeC.Backend.Agda.Converter.Arg
+                                                ( convertTypeVarDecl )
 import           FreeC.Backend.Agda.Converter.Free
                                                 ( addFreeArgs )
 import           FreeC.Backend.Agda.Converter.Type
-                                                ( convertFunctionType
-                                                , renameAgdaTypeVar
-                                                )
+                                                ( convertFunctionType )
 import qualified FreeC.Backend.Agda.Syntax     as Agda
-import           FreeC.Environment.LookupOrFail ( lookupAgdaIdentOrFail )
+import           FreeC.Environment.LookupOrFail
 import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Converter          ( Converter
                                                 , localEnv
@@ -31,22 +31,17 @@ convertFuncDecl decl = localEnv $ sequence [convertSignature decl]
 -- | Converts the type signature of the given function to an Agda type
 --   declaration.
 convertSignature :: IR.FuncDecl -> Converter Agda.Declaration
-convertSignature (IR.FuncDecl _ ident tVars args retType _) =
-  Agda.funcSig <$> lookupValueIdent ident <*> convertFunc_ tVars types retType
-  where types = map IR.varPatType args
-
--- | Looks up the name of a Haskell function in the environment and converts it
---   to an Agda name.
-lookupValueIdent :: IR.DeclIdent -> Converter Agda.Name
-lookupValueIdent (IR.DeclIdent srcSpan name) =
-  Agda.unqualify <$> lookupAgdaIdentOrFail srcSpan IR.ValueScope name
+convertSignature (IR.FuncDecl _ (IR.DeclIdent srcSpan name) tVars args retType _)
+  = Agda.funcSig <$> ident <*> convertFunc tVars types retType
+ where
+  types = map IR.varPatType args
+  ident = lookupUnQualAgdaIdentOrFail srcSpan IR.ValueScope name
 
 -- | Converts a fully applied function.
-convertFunc_
+convertFunc
   :: [IR.TypeVarDecl] -> [Maybe IR.Type] -> Maybe IR.Type -> Converter Agda.Expr
-convertFunc_ tVars ts rt =
-  --fromJust handled in #19
-                           Agda.pi <$> tVars' <*> convertFunctionType
-  (map fromJust ts)
-  (fromJust rt)
-  where tVars' = addFreeArgs <$> mapM renameAgdaTypeVar tVars
+convertFunc tVars ts rt =
+  Agda.pi
+    .   addFreeArgs
+    <$> mapM convertTypeVarDecl tVars
+    <*> convertFunctionType (map fromJust ts) (fromJust rt)

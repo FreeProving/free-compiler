@@ -14,12 +14,18 @@ module FreeC.Backend.Agda.Syntax
     -- * Declarations
   , moduleDecl
   , funcSig
+  , patternSyn
+    -- * Pattern
+  , appP
     -- * Expressions
   , intLiteral
   , lambda
   , app
   , ident
     -- * Types
+  , set
+  , dataDecl
+  , binding
   , fun
   , pi
   )
@@ -80,17 +86,41 @@ moduleDecl modName = Module NoRange modName []
 funcSig :: Name -> Expr -> Declaration
 funcSig = TypeSig defaultArgInfo Nothing
 
+patternSyn :: Name -> [Arg Name] -> Pattern -> Declaration
+patternSyn = PatternSyn NoRange
+
+-------------------------------------------------------------------------------
+-- Pattern                                                                   --
+-------------------------------------------------------------------------------
+
+-- | Tests wether the given AST node is an @AppP@.
+isAppP :: Pattern -> Bool
+isAppP (AppP _ _) = True
+isAppP _          = False
+
+-- | Creates an application AST node in a pattern context.
+--
+--   Application is left associative. Parenthesis are added automatically if
+--   the right child is also an @AppP@ node.
+--
+--   > e a
+appP :: Pattern -> Pattern -> Pattern
+appP l r = AppP l $ defaultNamedArg $ if isAppP r then ParenP NoRange r else r
+
 -------------------------------------------------------------------------------
 -- Expressions                                                               --
 -------------------------------------------------------------------------------
 
+-- | Tests wether the given AST node is an @App@.
 isApp :: Expr -> Bool
 isApp (App _ _ _) = True
 isApp _           = False
 
+-- | Tests wether the given AST node is an @Fun@.
 isFun :: Expr -> Bool
 isFun (Fun _ _ _) = True
 isFun _           = False
+
 -- | Creates an integer literal.
 intLiteral :: Integer -> Expr
 intLiteral = Lit . LitNat NoRange
@@ -102,9 +132,10 @@ intLiteral = Lit . LitNat NoRange
 lambda :: [Name] -> Expr -> Expr
 lambda args = Lam NoRange (DomainFree . defaultNamedArg . mkBinder_ <$> args)
 
--- | Creates an application AST node. Application is left associative and in
---   in type expressions binds stronger than type arrow. For these cases paren-
---   thesis are added automatically.
+-- | Creates an application AST node.
+--
+--   Application is left associative and in in type expressions binds stronger
+--   than type arrow. For these cases paren- thesis are added automatically.
 --
 --   > e a
 app :: Expr -> Expr -> Expr
@@ -122,6 +153,32 @@ ident = Ident . qname' . name
 -------------------------------------------------------------------------------
 -- Types                                                                     --
 -------------------------------------------------------------------------------
+
+-- | The first level of Agda's hierarchy of type theoretic universes.
+set :: Expr
+set = ident "Set"
+
+-- | Creates a @data@ declaration with the given name, binding the list of type
+--   variables and defining the list of constructors.
+--
+--   > D [b₁, …, bₙ] [C₁, …, Cₘ]
+--   >   ↧
+--   > data D b₁ … bₙ : Set where
+--   >   C₁
+--   >   ⋮
+--   >   Cₘ
+dataDecl :: Name -> [LamBinding] -> [Declaration] -> Declaration
+dataDecl dataName bindings = Data NoRange dataName bindings set
+
+-- | Creates a binder with visible args.
+--
+--   > [α₁, …, αₙ] e ↦ (α₁ … αₙ : e)
+binding :: [Name] -> Expr -> LamBinding
+binding types expr = DomainFull $ TBind NoRange (map visibleArg types) expr
+
+-- | Argument meta data marking them as visible.
+visibleArg :: Name -> NamedArg Binder
+visibleArg = defaultNamedArg . mkBinder_
 
 -- | A smart constructor for non dependent function types.
 fun :: Expr -> Expr -> Expr

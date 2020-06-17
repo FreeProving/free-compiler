@@ -6,6 +6,7 @@ module FreeC.Backend.Agda.Converter.Free
   , free
   , applyFreeArgs
   , addFreeArgs
+  , freeArgBinder
   )
 where
 
@@ -32,7 +33,22 @@ applyFreeArgs qname = foldl1
   , Agda.Ident (Agda.qname' Agda.Base.position)
   ]
 
--- | Adds the resvered names for the free args @Shape@ and @Pos@ to a list of
+-- | Adds the reserved names for the free args @Shape@ and @Pos@ to a list of
 --   names.
 addFreeArgs :: [Agda.Name] -> [Agda.Name]
 addFreeArgs ts = Agda.Base.shape : Agda.Base.position : ts
+
+-- | Identifier for @Shape@.
+--
+--   > Shape
+shape :: Agda.Expr
+shape = Agda.Ident $ Agda.qname [Agda.name "Base"] $ Agda.Base.shape
+
+-- | Binder for the type arguments of the @Free@ monad.
+--
+--   > (Shape : Set) (Pos : Shape → Set)
+freeArgBinder :: [Agda.LamBinding]
+freeArgBinder =
+  [ Agda.binding [Agda.Base.shape] Agda.set
+  , Agda.binding [Agda.Base.position] (shape `Agda.fun` Agda.set)
+  ]

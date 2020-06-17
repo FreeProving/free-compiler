@@ -9,10 +9,11 @@ module FreeC.Environment.Fresh where
 import           Data.List                      ( elemIndex )
 import qualified Data.Map.Strict               as Map
 
+import qualified FreeC.Backend.Agda.Syntax     as Agda
 import qualified FreeC.Backend.Coq.Syntax      as Coq
 import           FreeC.Environment
 import           FreeC.Environment.Renamer
-import           FreeC.IR.SrcSpan
+import           FreeC.IR.SrcSpan               ( SrcSpan(NoSrcSpan) )
 import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Converter
 
@@ -114,3 +115,13 @@ freshCoqQualid :: String -> Converter Coq.Qualid
 freshCoqQualid prefix = do
   ident <- freshHaskellIdent prefix
   inEnv $ renameQualid ident
+
+-- | Generates a new Agda identifer based on the given name.
+--
+--   TODO: Type is redundant with next merge from master and the introduction
+--   of @Fresh@
+freshAgdaVar :: String -> IR.Type -> Converter Agda.QName
+freshAgdaVar name varType = do
+  ident <- freshHaskellIdent name
+  -- Add identifier to environment to prevent future usage of the same name.
+  renameAndDefineAgdaVar NoSrcSpan False ident $ Just varType

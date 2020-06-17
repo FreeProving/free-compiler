@@ -20,7 +20,6 @@ module FreeC.Environment
   , isVariable
   , isPureVar
   , lookupIdent
-  , lookupAgdaIdent
   , lookupSmartIdent
   , usedIdents
   , usedAgdaIdents
@@ -172,9 +171,6 @@ isPureVar =
 --   constructor or (type) variable with the given name.
 lookupIdent :: IR.Scope -> IR.QName -> Environment -> Maybe Coq.Qualid
 lookupIdent = fmap entryIdent .:. lookupEntry
-
-lookupAgdaIdent :: IR.Scope -> IR.QName -> Environment -> Maybe Agda.QName
-lookupAgdaIdent = fmap entryAgdaIdent .:. lookupEntry
 
 -- | Looks up the Coq identifier for the smart constructor of the Haskell
 --   constructor with the given name.

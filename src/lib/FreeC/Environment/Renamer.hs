@@ -15,18 +15,21 @@ module FreeC.Environment.Renamer
     -- * Rename identifiers
   , renameIdent
   , renameQualid
+  , renameAgdaQualid
     -- * Define and automatically rename identifiers
   , renameEntry
   , renameAndAddEntry
   , renameAndDefineTypeVar
   , renameAndDefineAgdaTypeVar
   , renameAndDefineVar
+  , renameAndDefineAgdaVar
   )
 where
 
 import           Control.Monad                  ( when )
 import           Data.Char
 import           Data.Composition               ( (.:) )
+import           Data.List.Extra                ( splitOn )
 import           Data.Maybe                     ( fromMaybe
                                                 , mapMaybe
                                                 )
@@ -190,7 +193,8 @@ renameAgdaIdent ident env =
 -- | Generates a new Agda identifier based on the given @String@, the used
 --   @Agda.QName@s from the environment and reserved identifier.
 renameAgdaQualid :: String -> Environment -> Agda.QName
-renameAgdaQualid name = renameAgdaIdent (Agda.qname' $ Agda.name name)
+renameAgdaQualid = renameAgdaIdent . Agda.qname' . Agda.name . head . splitOn
+  [IR.internalIdentChar]
 
 -- | Creates a new qualified name, by appending a number or incrementing it.
 nextQName :: Agda.QName -> Agda.QName
@@ -289,6 +293,27 @@ renameAndDefineAgdaTypeVar srcSpan ident =
   entryAgdaIdent <$> renameAndDefineTypeVar' srcSpan ident
 
 -- | Associates the identifier of a user defined Haskell variable with an
+--   automatically generated Coq and Agda identifier that does not cause any
+--   name conflict in the current environment.
+--
+--   Returns the generated identifier.
+renameAndDefineVar'
+  :: SrcSpan       -- ^ The location of the variable declaration.
+  -> Bool          -- ^ Whether the variable has not been lifted to the
+                   --   free monad.
+  -> String        -- ^ The name of the variable.
+  -> Maybe IR.Type -- ^ The type of the variable if it is known.
+  -> Converter EnvEntry
+renameAndDefineVar' srcSpan isPure ident maybeVarType = renameAndAddEntry
+  VarEntry { entrySrcSpan   = srcSpan
+           , entryIsPure    = isPure
+           , entryName      = IR.UnQual (IR.Ident ident)
+           , entryIdent     = undefined -- filled by renamer
+           , entryAgdaIdent = undefined -- filled by renamer
+           , entryType      = maybeVarType
+           }
+
+-- | Associates the identifier of a user defined Haskell variable with an
 --   automatically generated Coq identifier that does not cause any name
 --   conflict in the current environment.
 --
@@ -300,15 +325,24 @@ renameAndDefineVar
   -> String        -- ^ The name of the variable.
   -> Maybe IR.Type -- ^ The type of the variable if it is known.
   -> Converter Coq.Qualid
-renameAndDefineVar srcSpan isPure ident maybeVarType = do
-  entry <- renameAndAddEntry VarEntry { entrySrcSpan   = srcSpan
-                                      , entryIsPure    = isPure
-                                      , entryName = IR.UnQual (IR.Ident ident)
-                                      , entryIdent     = undefined -- filled by renamer
-                                      , entryAgdaIdent = undefined -- filled by renamer
-                                      , entryType      = maybeVarType
-                                      }
-  return (entryIdent entry)
+renameAndDefineVar srcSpan isPure ident maybeVarType =
+  entryIdent <$> renameAndDefineVar' srcSpan isPure ident maybeVarType
+
+-- | Associates the identifier of a user defined Haskell variable with an
+--   automatically generated Agda identifier that does not cause any name
+--   conflict in the current environment.
+--
+--   Returns the generated identifier.
+renameAndDefineAgdaVar
+  :: SrcSpan       -- ^ The location of the variable declaration.
+  -> Bool          -- ^ Whether the variable has not been lifted to the
+                   --   free monad.
+  -> String        -- ^ The name of the variable.
+  -> Maybe IR.Type -- ^ The type of the variable if it is known.
+  -> Converter Agda.QName
+renameAndDefineAgdaVar srcSpan isPure ident maybeVarType =
+  entryAgdaIdent <$> renameAndDefineVar' srcSpan isPure ident maybeVarType
+
 
 -------------------------------------------------------------------------------
 -- Error reporting                                                           --
