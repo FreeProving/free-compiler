@@ -164,6 +164,7 @@ library freec-internal
                       , FreeC.IR.TypeSynExpansion
                       , FreeC.IR.Unification
                       , FreeC.Pass
+                      , FreeC.Pass.CompletePatternPass
                       , FreeC.Pass.DefineDeclPass
                       , FreeC.Pass.DependencyAnalysisPass
                       , FreeC.Pass.EtaConversionPass

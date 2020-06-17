@@ -59,35 +59,35 @@ testUnification = describe "FreeC.IR.Unification.unify" $ do
     it "arguments of constructors are matched recursively"
       $ shouldSucceedWith
       $ do
-          _ <- defineTestTypeCon "(,)" 2
+          _ <- defineTestTypeCon "(,)" 2 []
           t <- parseTestType "(,) a b"
           s <- parseTestType "(,) b c"
           u <- parseTestType "(,) c c"
           (t, s) `shouldUnifyTo` u
     it "constructors do not match other constructors" $ shouldSucceedWith $ do
-      _ <- defineTestTypeCon "()" 0
-      _ <- defineTestTypeCon "Integer" 0
+      _ <- defineTestTypeCon "()" 0 []
+      _ <- defineTestTypeCon "Integer" 0 []
       t <- parseTestType "()"
       s <- parseTestType "Integer"
       shouldFailUnification t s
     it "maps variables on the left to constructors on the right"
       $ shouldSucceedWith
       $ do
-          _ <- defineTestTypeCon "()" 0
+          _ <- defineTestTypeCon "()" 0 []
           t <- parseTestType "a"
           s <- parseTestType "()"
           (t, s) `shouldUnifyTo` s
     it "maps variables on the right to constructors on the left"
       $ shouldSucceedWith
       $ do
-          _ <- defineTestTypeCon "()" 0
+          _ <- defineTestTypeCon "()" 0 []
           t <- parseTestType "()"
           s <- parseTestType "a"
           (t, s) `shouldUnifyTo` t
   context "type synonyms" $ do
     it "expands nullary type synonyms when necessary" $ shouldSucceedWith $ do
-      _  <- defineTestTypeCon "([])" 1
-      _  <- defineTestTypeCon "Char" 0
+      _  <- defineTestTypeCon "([])" 1 []
+      _  <- defineTestTypeCon "Char" 0 []
       _  <- defineTestTypeSyn "String" [] "([]) Char"
       t  <- parseTestType "([]) a"
       s  <- parseTestType "String"
@@ -97,8 +97,8 @@ testUnification = describe "FreeC.IR.Unification.unify" $ do
     it "expands type synonyms with arguments when necessary"
       $ shouldSucceedWith
       $ do
-          _  <- defineTestTypeCon "Bool" 0
-          _  <- defineTestTypeCon "Integer" 0
+          _  <- defineTestTypeCon "Bool" 0 []
+          _  <- defineTestTypeCon "Integer" 0 []
           _  <- defineTestTypeSyn "Predicate" ["a"] "a -> Bool"
           t  <- parseTestType "Predicate b"
           s  <- parseTestType "Integer -> c"
@@ -108,7 +108,7 @@ testUnification = describe "FreeC.IR.Unification.unify" $ do
     it "can unify two type synonyms with different arity"
       $ shouldSucceedWith
       $ do
-          _  <- defineTestTypeCon "Integer" 0
+          _  <- defineTestTypeCon "Integer" 0 []
           _  <- defineTestTypeSyn "Foo" ["a"] "a -> Integer"
           _  <- defineTestTypeSyn "Bar" ["a", "b"] "a -> b"
           t  <- parseTestType "Foo a"

@@ -75,11 +75,13 @@ defineTypeDecl (IR.TypeSynDecl srcSpan declIdent typeArgs typeExpr) = do
     }
   return ()
 defineTypeDecl (IR.DataDecl srcSpan declIdent typeArgs conDecls) = do
-  _ <- renameAndAddEntry DataEntry { entrySrcSpan = srcSpan
-                                   , entryArity   = length typeArgs
-                                   , entryName    = IR.declIdentName declIdent
-                                   , entryIdent   = undefined -- filled by renamer
-                                   }
+  _ <- renameAndAddEntry DataEntry
+    { entrySrcSpan   = srcSpan
+    , entryArity     = length typeArgs
+    , entryName      = IR.declIdentName declIdent
+    , entryIdent     = undefined -- filled by renamer
+    , entryConsNames = map IR.conDeclQName conDecls
+    }
   mapM_ defineConDecl conDecls
  where
   -- | The type produced by all constructors of the data type.
