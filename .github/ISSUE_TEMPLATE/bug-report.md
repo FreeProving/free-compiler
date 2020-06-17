@@ -1,5 +1,5 @@
 ---
-name: Bug report
+name: Bug Report
 labels: bug
 about: Create a report to help us improve
 
@@ -21,11 +21,11 @@ about: Create a report to help us improve
 2. <!-- Second Step -->
 3. <!-- and so on… -->
 
-#### Expected behavior
+#### Expected Behavior
 
 <!-- What did you expect to happen from the steps above and why? -->
 
-#### Actual behavior
+#### Actual Behavior
 
 <!-- What actually happens if you follow the steps above? -->
 
@@ -43,7 +43,7 @@ about: Create a report to help us improve
  - `coqc --version`: <!-- Copy and paste the version only. -->
  - OS: <!-- Name and version of your operating system. -->
 
-### Known workarounds
+### Known Workarounds
 
 <!--
   Have you found a way to work around the problem?
