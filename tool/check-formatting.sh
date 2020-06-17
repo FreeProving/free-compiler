@@ -42,8 +42,9 @@ enable_brittany_default=true; enable_brittany="$enable_brittany_default"
 enable_eol_default=true; enable_eol="$enable_eol_default"
 
 # The check whether the line length limit of 80 characters is exceeded or not
-# is enabled by default.
-enable_column_check_default=true;
+# is disabled by default since Brittany does not break long left-hand sides
+# at the moment.
+enable_column_check_default=false;
 enable_column_check="$enable_column_check_default"
 
 ###############################################################################
