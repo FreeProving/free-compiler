@@ -126,7 +126,7 @@ checkPatternFuncDecl funcDecl = checkPatternExpr (IR.funcDeclRhs funcDecl)
 
   performCheck :: [IR.ConName] -> [IR.ConName] -> SrcSpan -> Converter ()
   performCheck typeConNames altConNames srcSpan = unless
-    (  all (\x -> elem x typeConNames) typeConNames
+    (  all (`elem` typeConNames) typeConNames
     && length typeConNames
     == length altConNames
     )
