@@ -44,7 +44,7 @@
 --   == Preconditions
 --
 --   The type of all checked expressions has to be annotated.
---   The Environment has to contain the names of all constructors for
+--   The environment has to contain the names of all constructors for
 --   all used data types.
 --   Additionally, the environment should contain entries for all used type
 --   synonyms.
