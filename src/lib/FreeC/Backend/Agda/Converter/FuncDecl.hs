@@ -34,7 +34,8 @@ convertFuncDecls (NonRecursive decl  ) = convertFuncDecl decl Nothing
 convertFuncDecls (Recursive    [decl]) = do
   [decArg] <- identifyDecArgs [decl]
   convertFuncDecl decl $ Just decArg
-convertFuncDecls (Recursive _) = undefined
+convertFuncDecls (Recursive _) =
+  error "Mutual recursive functions are not supported at the moment."
 
 -- | Converts the given function declarations. Returns the declarations for the
 --   type signature and the definition (TODO).
