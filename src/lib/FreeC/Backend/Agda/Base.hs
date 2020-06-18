@@ -69,7 +69,7 @@ position = Agda.name "Pos"
 -- Sized Types                                                               --
 -------------------------------------------------------------------------------
 
--- | Size type.
+-- | The name of Agda's @Size@ data type.
 --
 --   > Size
 size :: Agda.Name
