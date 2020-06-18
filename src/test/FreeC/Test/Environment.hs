@@ -88,13 +88,15 @@ defineTestTypeSyn nameStr typeArgs typeStr = do
 --   testing purposes.
 --
 --   Returns the Coq identifier assigned to the type constructor.
-defineTestTypeCon :: String -> Int -> Converter String
-defineTestTypeCon nameStr arity = do
-  name <- parseTestQName nameStr
-  renameAndAddTestEntry DataEntry { entrySrcSpan = NoSrcSpan
-                                  , entryArity   = arity
-                                  , entryName    = name
-                                  , entryIdent   = undefined -- filled by renamer
+defineTestTypeCon :: String -> Int -> [String] -> Converter String
+defineTestTypeCon nameStr arity consNameStrs = do
+  name      <- parseTestQName nameStr
+  consNames <- mapM parseTestQName consNameStrs
+  renameAndAddTestEntry DataEntry { entrySrcSpan   = NoSrcSpan
+                                  , entryArity     = arity
+                                  , entryName      = name
+                                  , entryIdent     = undefined -- filled by renamer
+                                  , entryConsNames = consNames
                                   }
 
 -------------------------------------------------------------------------------

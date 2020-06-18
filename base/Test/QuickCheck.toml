@@ -7,7 +7,7 @@
 # Metadata                                                                   #
 ##############################################################################
 
-version = 2
+version = 3
 module-name = 'Test.QuickCheck'
 library-name = 'Base'
 exported-types = [
@@ -30,6 +30,7 @@ exported-values = [
   haskell-name = 'Test.QuickCheck.Property'
   coq-name     = 'Property'
   arity        = 0
+  cons-names   = []
 
 ##############################################################################
 # Functions                                                                  #
@@ -95,3 +96,7 @@ exported-values = [
   haskell-name = 'Prelude.Bool'
   coq-name     = 'Bool'
   arity        = 0
+  cons-names   = [
+      'Prelude.True',
+      'Prelude.False',
+    ]
