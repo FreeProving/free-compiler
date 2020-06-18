@@ -2,17 +2,17 @@
 --   declarations and their constructors.
 
 module FreeC.Backend.Agda.Converter.TypeDecl
-  ( convertTypeDecl
+  ( convertTypeDecls
   )
 where
 
 import           Data.Bool                      ( bool )
 import           Data.List.Extra                ( snoc )
 
+import           FreeC.IR.DependencyGraph
 import qualified FreeC.IR.Syntax               as IR
 import           FreeC.IR.SrcSpan               ( SrcSpan(NoSrcSpan) )
 import qualified FreeC.Backend.Agda.Base       as Agda.Base
-import           FreeC.Backend.Agda.Analysis.RecursiveDataType
 import           FreeC.Backend.Agda.Converter.Free
 import qualified FreeC.Backend.Agda.Syntax     as Agda
 import           FreeC.Backend.Agda.Converter.Type
@@ -28,13 +28,24 @@ import           FreeC.Monad.Converter          ( Converter
                                                 , localEnv
                                                 )
 
+-- | Converts a strongly connected component of the type dependency graph.
+--   TODO: handle mutual recursive types
+convertTypeDecls
+  :: DependencyComponent IR.TypeDecl -> Converter [Agda.Declaration]
+convertTypeDecls comp = case comp of
+  NonRecursive decl   -> convertTypeDecl decl False
+  Recursive    [decl] -> convertTypeDecl decl True
+  Recursive _ ->
+    error "Mutual recursive data types are not supported at the moment."
+
 -- | Converts a data or type synonym declaration.
 --   TODO: Convert type synonyms.
-convertTypeDecl :: IR.TypeDecl -> Converter [Agda.Declaration]
-convertTypeDecl (IR.TypeSynDecl _ _ _ _) = error "Not supported at the moment."
-convertTypeDecl decl@(IR.DataDecl _ ident tVars constrs) =
+convertTypeDecl :: IR.TypeDecl -> Bool -> Converter [Agda.Declaration]
+convertTypeDecl (IR.TypeSynDecl _ _ _ _) _ =
+  error "Type synonyms are not supported at the moment."
+convertTypeDecl (IR.DataDecl _ ident tVars constrs) isRec =
   (:)
-    <$> convertDataDecl ident tVars constrs (isRecursiveDataType decl)
+    <$> convertDataDecl ident tVars constrs isRec
     <*> mapM generateSmartConDecl constrs
 
 -- | Converts a data declaration by creating an Agda data type of the

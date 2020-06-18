@@ -103,7 +103,6 @@ library freec-internal
   import:             deps
   hs-source-dirs:     src/lib
   exposed-modules:      FreeC.Backend.Agda.Base
-                      , FreeC.Backend.Agda.Analysis.RecursiveDataType
                       , FreeC.Backend.Agda.Converter
                       , FreeC.Backend.Agda.Converter.Arg
                       , FreeC.Backend.Agda.Converter.Free
