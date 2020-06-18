@@ -119,8 +119,8 @@ convertType = convertSizedType Nothing
 convertType' :: IR.Type -> Converter Agda.Expr
 convertType' = convertSizedType' Nothing
 
--- | Is the given type a type application, which applies arguments to the given
---   constructor?
+-- | Tests whether the given type is a type application, which applies
+--   arguments to the given constructor?
 --
 --   > appliesTo (((C x₁) …) xₙ) C ↦ True
 appliesTo :: IR.Type -> IR.QName -> Bool
