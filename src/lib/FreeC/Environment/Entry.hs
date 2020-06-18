@@ -126,7 +126,7 @@ data EnvEntry
  deriving Show
 
 -------------------------------------------------------------------------------
--- Comparision                                                               --
+-- Comparison                                                               --
 -------------------------------------------------------------------------------
 
 -- | Entries are identified by their original name.

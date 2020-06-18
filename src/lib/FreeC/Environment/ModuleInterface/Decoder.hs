@@ -14,7 +14,7 @@
 --
 --   The TOML document is expected to contain four arrays of tables @types@,
 --   @type-synonyms@, @constructors@ and @functions@. Each table in these
---   arrays defines a data type, type synonym, constrcutor or function
+--   arrays defines a data type, type synonym, constructor or function
 --   respectively. The expected contents of each table is described below.
 --   In addition, the module interface file contains meta information in the
 --   top-level table.

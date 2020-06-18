@@ -48,7 +48,7 @@ convertExpr' :: IR.Expr -> [IR.Type] -> [IR.Expr] -> Converter Coq.Term
 --
 -- Note that the return type is translated using * not ', because a constructor
 -- in Coq cannot return a wrapped value. A smart constructor @C@ is generated,
--- which wrapps the value of @c@. It is therefore sufficient to just convert
+-- which wraps the value of @c@. It is therefore sufficient to just convert
 -- and apply the arguments.
 convertExpr' (IR.Con srcSpan name _) typeArgs args = do
   qualid            <- lookupSmartIdentOrFail srcSpan name
@@ -240,7 +240,7 @@ convertExpr' expr (_ : _) _ =
 
 -- Application of an expression other than a function or constructor
 -- application. We use an as-pattern for @args@ such that we get a compile
--- time warning when a node is added to the AST that we do not conver above.
+-- time warning when a node is added to the AST that we do not cover above.
 convertExpr' expr [] args@(_ : _) = do
   expr' <- convertExpr' expr [] []
   args' <- mapM convertExpr args

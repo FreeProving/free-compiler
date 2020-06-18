@@ -50,7 +50,7 @@ freshFuncPrefix = "f"
 freshBoolPrefix :: String
 freshBoolPrefix = "cond"
 
--- | The prefix to use for aritifcially introduced type variables of kind @*@.
+-- | The prefix to use for artificially introduced type variables of kind @*@.
 freshTypeVarPrefix :: String
 freshTypeVarPrefix = "a"
 
