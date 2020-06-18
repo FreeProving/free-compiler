@@ -1,4 +1,3 @@
-
 -- | This module contains a compiler pass that checks if all type constructors
 --   in type expressions are fully applied and type variables are not applied.
 --
@@ -18,7 +17,7 @@
 --   >
 --   > data MyList a = MyNil | MyCons a (MyList a)
 --   >
---   > -- Invalid because 'MyList' is applied to 2 arguments
+--   > -- Invalid because 'MyList' is applied to 2 arguments.
 --   > fail1 :: MyList (MyList a a) -> Integer
 --   > fail1 x = 42
 --   >
@@ -81,7 +80,7 @@ kindCheckPass m@(IR.Module _ _ _ typeDecls typeSigs _ funcDecls) = do
 -- | Checks whether all type expressions in a type declaration are correct.
 checkTypeDecl :: IR.TypeDecl -> Converter ()
 checkTypeDecl (IR.DataDecl    _ _ _ conDecls) = mapM_ checkConDecl conDecls
-checkTypeDecl (IR.TypeSynDecl _ _ _ typ     ) = checkType typ
+checkTypeDecl (IR.TypeSynDecl _ _ _ typeExpr) = checkType typeExpr
 
 -- | Checks whether the arguments of a constructor declaration are kind-correct.
 checkConDecl :: IR.ConDecl -> Converter ()

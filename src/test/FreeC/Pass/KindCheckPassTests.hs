@@ -1,3 +1,5 @@
+-- | This module contains tests for "FreeC.Pass.KindCheckPass".
+
 module FreeC.Pass.KindCheckPassTests where
 
 import           Test.Hspec
