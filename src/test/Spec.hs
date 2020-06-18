@@ -4,6 +4,7 @@ module Spec where
 
 import           Test.Hspec
 
+import           FreeC.Backend.Agda.Tests
 import           FreeC.Backend.Coq.Tests
 import           FreeC.Environment.RenamerTests
 import           FreeC.Frontend.IR.Tests
@@ -16,6 +17,7 @@ main :: IO ()
 main = hspec $ do
   testIR
   testIRFrontend
+  testAgdaBackend
   testCoqBackend
 
   testPipeline
