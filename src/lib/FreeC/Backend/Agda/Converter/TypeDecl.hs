@@ -71,7 +71,7 @@ convertDataDecl ident@(IR.DeclIdent srcSpan name) typeVars constrs isRec =
 convertConDecls
   :: IR.DeclIdent     -- ^ The identifier of the data type.
   -> [IR.TypeVarDecl] -- ^ The type parameters declared by the data type.
-  -> Bool             -- ^ Is this a recursive data declaration
+  -> Bool             -- ^ Whether this is a recursive data declaration.
   -> [IR.ConDecl]     -- ^ The constructor declarations of the data type.
   -> Converter [Agda.Declaration]
 convertConDecls (IR.DeclIdent srcSpan ident) typeVars isRec =
@@ -131,4 +131,3 @@ patternDecl name vars k = localEnv $ do
   let decls = map (Agda.Arg Agda.defaultArgInfo . Agda.unqualify) names
   let varPatterns = map Agda.IdentP names
   Agda.patternSyn name decls <$> k varPatterns
-
