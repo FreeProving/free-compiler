@@ -58,7 +58,7 @@ convertDataDecl ident@(IR.DeclIdent srcSpan name) typeVars constrs isRec =
     <$> lookupUnQualAgdaIdentOrFail srcSpan IR.TypeScope name
     <*> mapM convertTypeVarDecl typeVars
     <*> pure universe
-    <*> convertConDecl ident typeVars isRec constrs
+    <*> convertConDecls ident typeVars isRec constrs
  where
   universe =
     if isRec then Agda.hiddenArg_ size `Agda.fun` Agda.set else Agda.set
@@ -68,22 +68,22 @@ convertDataDecl ident@(IR.DeclIdent srcSpan name) typeVars constrs isRec =
 --   We synthesize the return type of the constructor in IR to avoid passing the
 --   identifier and all used type variables to the type converter. This way we
 --   can reuse the existing translation.
-convertConDecl
+convertConDecls
   :: IR.DeclIdent     -- ^ The identifier of the data type.
   -> [IR.TypeVarDecl] -- ^ The type parameters declared by the data type.
   -> Bool             -- ^ Is this a recursive data declaration
   -> [IR.ConDecl]     -- ^ The constructor declarations of the data type.
   -> Converter [Agda.Declaration]
-convertConDecl (IR.DeclIdent srcSpan ident) typeVars isRec =
-  mapM $ convertConstructor (bool Nothing (Just ident) isRec) $ IR.typeApp
+convertConDecls (IR.DeclIdent srcSpan ident) typeVars isRec =
+  mapM $ convertConDecl (bool Nothing (Just ident) isRec) $ IR.typeApp
     NoSrcSpan
     (IR.TypeCon srcSpan ident)
     (map IR.typeVarDeclToType typeVars)
 
 -- | Converts a single constructor of a (non-recursive) data type.
-convertConstructor
+convertConDecl
   :: Maybe IR.QName -> IR.Type -> IR.ConDecl -> Converter Agda.Declaration
-convertConstructor ident retType (IR.ConDecl _ (IR.DeclIdent srcSpan name) argTypes)
+convertConDecl ident retType (IR.ConDecl _ (IR.DeclIdent srcSpan name) argTypes)
   = Agda.funcSig
     <$> lookupUnQualAgdaIdentOrFail srcSpan IR.ValueScope name
     <*> maybe convertConType convertRecConType ident argTypes retType
