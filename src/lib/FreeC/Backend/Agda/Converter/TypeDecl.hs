@@ -6,8 +6,6 @@ module FreeC.Backend.Agda.Converter.TypeDecl
   )
 where
 
-import           Prelude                 hiding ( pi )
-
 import           Data.Bool                      ( bool )
 import           Data.List.Extra                ( snoc )
 

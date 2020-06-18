@@ -6,8 +6,6 @@ module FreeC.Backend.Agda.Converter.FuncDecl
   )
 where
 
-import           Prelude                 hiding ( mod )
-
 import           Data.Maybe                     ( fromJust )
 
 import           FreeC.Backend.Agda.Converter.Arg
@@ -35,11 +33,12 @@ convertFuncDecl decl = localEnv $ sequence [convertSignature decl]
 -- | Converts the type signature of the given function to an Agda type
 --   declaration.
 convertSignature :: IR.FuncDecl -> Converter Agda.Declaration
-convertSignature (IR.FuncDecl _ (IR.DeclIdent s name) tVars args rType _) = do
-  let types = map IR.varPatType args
-  let ident = lookupUnQualAgdaIdentOrFail s IR.ValueScope name
-  decArg <- inEnv $ lookupDecArgIndex name
-  Agda.funcSig <$> ident <*> convertFunc decArg tVars types rType
+convertSignature (IR.FuncDecl _ (IR.DeclIdent srcSpan name) typeVars args returnType _)
+  = do
+    let types = map IR.varPatType args
+    let ident = lookupUnQualAgdaIdentOrFail srcSpan IR.ValueScope name
+    decArg <- inEnv $ lookupDecArgIndex name
+    Agda.funcSig <$> ident <*> convertFunc decArg typeVars types returnType
 
 -- | Converts a fully applied function.
 convertFunc
