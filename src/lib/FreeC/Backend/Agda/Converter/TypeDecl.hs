@@ -53,7 +53,7 @@ convertDataDecl
   -> Bool             -- ^ Is this a recursive data declaration?
   -> Converter Agda.Declaration
 convertDataDecl ident@(IR.DeclIdent srcSpan name) typeVars constrs isRec =
-  localEnv -- The data declaration opens a new scope binding @S@, @P and α̂ᵢ.
+  localEnv -- The data declaration opens a new scope binding @S@, @P@ and @α̂ᵢ@.
     $   freeDataDecl
     <$> lookupUnQualAgdaIdentOrFail srcSpan IR.TypeScope name
     <*> mapM convertTypeVarDecl typeVars
