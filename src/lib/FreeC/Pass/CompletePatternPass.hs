@@ -25,7 +25,11 @@
 --   > redundant (on :: Just Bool) = case (on :: Just Bool) of {
 --   >     Just a  -> Just False;
 --   >     Nothing -> Nothing;
+<<<<<<< HEAD
 --   >     Just b  -> Just True}
+=======
+--   >     Just b  -> Just True
+>>>>>>> 3df4f9a825148e9caafdad16174f184ece4b6ca0
 --   >   }
 --
 --   should not pass the check because the @case@ expression has two alternatives
@@ -44,7 +48,11 @@
 --   == Preconditions
 --
 --   The type of all checked expressions has to be annotated.
+<<<<<<< HEAD
 --   The Environment has to contain the names of all constructors for
+=======
+--   The environment has to contain the names of all constructors for
+>>>>>>> 3df4f9a825148e9caafdad16174f184ece4b6ca0
 --   all used data types.
 --   Additionally, the environment should contain entries for all used type
 --   synonyms.
@@ -126,7 +134,7 @@ checkPatternFuncDecl funcDecl = checkPatternExpr (IR.funcDeclRhs funcDecl)
 
   performCheck :: [IR.ConName] -> [IR.ConName] -> SrcSpan -> Converter ()
   performCheck typeConNames altConNames srcSpan = unless
-    (  all (\x -> elem x typeConNames) typeConNames
+    (  all (`elem` typeConNames) typeConNames
     && length typeConNames
     == length altConNames
     )

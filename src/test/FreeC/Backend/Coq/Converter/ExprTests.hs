@@ -268,7 +268,7 @@ testConvertCase = context "case expressions" $ do
   it "allows case expressions to shadow local variables"
     $ shouldSucceedWith
     $ do
-        "AB"     <- defineTestTypeCon "AB" 0
+        "AB"     <- defineTestTypeCon "AB" 0 ["A", "B"]
         ("a", _) <- defineTestCon "A" 0 "Unit"
         ("b", _) <- defineTestCon "B" 0 "Unit"
         "x"      <- defineTestVar "x"
