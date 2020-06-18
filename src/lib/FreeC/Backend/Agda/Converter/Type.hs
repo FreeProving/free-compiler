@@ -121,11 +121,10 @@ appliesTo (IR.TypeCon _ conName) name = conName == name
 appliesTo _                      _    = False
 
 -------------------------------------------------------------------------------
--- specialized syntax                                                        --
+-- Specialized Syntax                                                        --
 -------------------------------------------------------------------------------
 
 pi :: String -> (Agda.Expr -> Converter Agda.Expr) -> Converter Agda.Expr
 pi name k = localEnv $ do
   var <- freshAgdaVar name undefined
   Agda.pi [Agda.unqualify var] <$> k (Agda.Ident var)
-
