@@ -36,9 +36,9 @@ convertSignature :: IR.FuncDecl -> Converter Agda.Declaration
 convertSignature (IR.FuncDecl _ (IR.DeclIdent srcSpan name) typeVars args returnType _)
   = do
     let types = map IR.varPatType args
-    let ident = lookupUnQualAgdaIdentOrFail srcSpan IR.ValueScope name
+    ident  <- lookupUnQualAgdaIdentOrFail srcSpan IR.ValueScope name
     decArg <- inEnv $ lookupDecArgIndex name
-    Agda.funcSig <$> ident <*> convertFunc decArg typeVars types returnType
+    Agda.funcSig ident <$> convertFunc decArg typeVars types returnType
 
 -- | Converts a fully applied function.
 convertFunc
