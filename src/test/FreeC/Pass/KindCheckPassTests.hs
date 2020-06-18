@@ -26,26 +26,26 @@ testValidTypes = context "valid types" $ do
   it "should accept constant type constructors" $ do
     input <- expectParseTestType "()"
     shouldSucceed $ do
-      _ <- defineTestTypeCon "()" 0
+      _ <- defineTestTypeCon "()" 0 ["()"]
       checkType input
   it "should accept constant type synonyms" $ do
     input <- expectParseTestType "Name"
     shouldSucceed $ do
       _ <- defineTestTypeSyn "Name" [] "String"
-      _ <- defineTestTypeCon "String" 0
+      _ <- defineTestTypeCon "String" 0 []
       checkType input
   it "should accept fully applied type constructors" $ do
     input <- expectParseTestType "State Int Int"
     shouldSucceed $ do
-      _ <- defineTestTypeCon "State" 2
-      _ <- defineTestTypeCon "Int" 0
+      _ <- defineTestTypeCon "State" 2 []
+      _ <- defineTestTypeCon "Int" 0 []
       checkType input
   it "should accept fully applied type synonyms" $ do
     input <- expectParseTestType "State Int Int"
     shouldSucceed $ do
       _ <- defineTestTypeSyn "State" ["s", "a"] "s -> (,) s a"
-      _ <- defineTestTypeCon "Int" 0
-      _ <- defineTestTypeCon "(,)" 2
+      _ <- defineTestTypeCon "Int" 0 []
+      _ <- defineTestTypeCon "(,)" 2 []
       checkType input
   it "should accept a single type variable in function type signatures" $ do
     input <- expectParseTestModule
@@ -107,28 +107,28 @@ testNotValidTypes = context "not valid types" $ do
   it "should not accept underapplied type constructors" $ do
     input <- expectParseTestType "State Int"
     shouldFail $ do
-      _ <- defineTestTypeCon "State" 2
-      _ <- defineTestTypeCon "Int" 0
+      _ <- defineTestTypeCon "State" 2 []
+      _ <- defineTestTypeCon "Int" 0 []
       checkType input
   it "should not accept underapplied type synonyms" $ do
     input <- expectParseTestType "State Int"
     shouldFail $ do
       _ <- defineTestTypeSyn "State" ["s", "a"] "s -> (,) s a"
-      _ <- defineTestTypeCon "Int" 0
-      _ <- defineTestTypeCon "(,)" 2
+      _ <- defineTestTypeCon "Int" 0 []
+      _ <- defineTestTypeCon "(,)" 2 []
       checkType input
   it "should not accept overapplied type constructors" $ do
     input <- expectParseTestType "State Int Int Int"
     shouldFail $ do
-      _ <- defineTestTypeCon "State" 2
-      _ <- defineTestTypeCon "Int" 0
+      _ <- defineTestTypeCon "State" 2 []
+      _ <- defineTestTypeCon "Int" 0 []
       checkType input
   it "should not accept overapplied type synonyms" $ do
     input <- expectParseTestType "State Int Int Int"
     shouldFail $ do
       _ <- defineTestTypeSyn "State" ["s", "a"] "s -> (,) s a"
-      _ <- defineTestTypeCon "Int" 0
-      _ <- defineTestTypeCon "(,)" 2
+      _ <- defineTestTypeCon "Int" 0 []
+      _ <- defineTestTypeCon "(,)" 2 []
       checkType input
   it "should not accept type variable applications in function type signatures"
     $ do
