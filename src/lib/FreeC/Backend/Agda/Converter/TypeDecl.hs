@@ -113,7 +113,7 @@ patternDecl
   -- ^ Continuation for creating the definition using the new variables.
   -> Converter Agda.Declaration
 patternDecl name vars k = localEnv $ do
-  names <- mapM (uncurry freshAgdaVar) vars
+  names <- mapM (freshAgdaVar . fst) vars
   let decls = map (Agda.Arg Agda.defaultArgInfo . Agda.unqualify) names
   let varPatterns = map Agda.IdentP names
   Agda.patternSyn name decls <$> k varPatterns

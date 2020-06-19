@@ -19,6 +19,8 @@ module FreeC.Environment.Fresh
     -- * Generating fresh Coq identifiers
   , freshCoqIdent
   , freshCoqQualid
+    -- * Generating fresh Agda identifiers
+  , freshAgdaVar
   )
 where
 
@@ -139,7 +141,7 @@ freshCoqQualid = fmap entryIdent . freshEntry
 
 -- | Generates a new Agda identifier based on the given name.
 freshAgdaVar :: String -> Converter Agda.QName
-freshAgdaVar name = fmap entryAgdaIdent . freshEntry
+freshAgdaVar = fmap entryAgdaIdent . freshEntry
 
 -------------------------------------------------------------------------------
 -- Generating entries for fresh identifiers                                  --

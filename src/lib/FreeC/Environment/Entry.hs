@@ -135,6 +135,8 @@ data EnvEntry
     FreshEntry
     { entryIdent :: Coq.Qualid
       -- ^ The renamed fresh Coq identifier.
+    , entryAgdaIdent   :: Agda.QName
+      -- ^ The name of the variable in Agda.
     , entryName :: IR.QName
       -- ^ The actual fresh identifier before renaming.
     }
