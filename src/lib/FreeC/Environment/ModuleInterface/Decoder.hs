@@ -14,7 +14,7 @@
 --
 --   The TOML document is expected to contain four arrays of tables @types@,
 --   @type-synonyms@, @constructors@ and @functions@. Each table in these
---   arrays defines a data type, type synonym, constrcutor or function
+--   arrays defines a data type, type synonym, constructor or function
 --   respectively. The expected contents of each table is described below.
 --   In addition, the module interface file contains meta information in the
 --   top-level table.
@@ -51,6 +51,8 @@
 --       constructor.
 --     * @arity@ (@Integer@) the number of type arguments expected by the
 --       type constructor.
+--     * @cons-names@ (@Array@ of @String@) the names of the constructors of
+--       the defined data type.
 --
 --   == Type synonyms
 --
@@ -112,7 +114,6 @@ import           Data.Aeson                     ( (.!=)
                                                 )
 import qualified Data.Aeson                    as Aeson
 import qualified Data.Aeson.Types              as Aeson
-import           Data.Maybe                     ( mapMaybe )
 import qualified Data.Set                      as Set
 import           Data.Text                      ( Text )
 import qualified Data.Text                     as Text
@@ -139,7 +140,7 @@ import           FreeC.Util.Config
 --   that the implementation of the corresponding change in the other module
 --   is forgotten.
 moduleInterfaceFileFormatVersion :: Integer
-moduleInterfaceFileFormatVersion = 2
+moduleInterfaceFileFormatVersion = 3
 
 -- | Parses an IR AST node from an Aeson string.
 parseAesonIR :: Parseable a => Text -> Aeson.Parser a
@@ -213,10 +214,12 @@ instance Aeson.FromJSON ModuleInterface where
       arity       <- obj .: "arity"
       haskellName <- obj .: "haskell-name"
       coqName     <- obj .: "coq-name"
-      return DataEntry { entrySrcSpan = NoSrcSpan
-                       , entryArity   = arity
-                       , entryIdent   = coqName
-                       , entryName    = haskellName
+      consNames   <- obj .: "cons-names"
+      return DataEntry { entrySrcSpan   = NoSrcSpan
+                       , entryArity     = arity
+                       , entryIdent     = coqName
+                       , entryName      = haskellName
+                       , entryConsNames = consNames
                        }
 
     parseConfigTypeSyn :: Aeson.Value -> Aeson.Parser EnvEntry
@@ -242,16 +245,15 @@ instance Aeson.FromJSON ModuleInterface where
       coqName      <- obj .: "coq-name"
       coqSmartName <- obj .: "coq-smart-name"
       let (argTypes, returnType) = IR.splitFuncType haskellType arity
-      return ConEntry
-        { entrySrcSpan    = NoSrcSpan
-        , entryArity      = arity
-        , entryTypeArgs   = mapMaybe IR.identFromQName (freeTypeVars returnType)
-        , entryArgTypes   = map Just argTypes
-        , entryReturnType = Just returnType
-        , entryIdent      = coqName
-        , entrySmartIdent = coqSmartName
-        , entryName       = haskellName
-        }
+      return ConEntry { entrySrcSpan    = NoSrcSpan
+                      , entryArity      = arity
+                      , entryTypeArgs   = freeTypeVars returnType
+                      , entryArgTypes   = argTypes
+                      , entryReturnType = returnType
+                      , entryIdent      = coqName
+                      , entrySmartIdent = coqSmartName
+                      , entryName       = haskellName
+                      }
 
     parseConfigFunc :: Aeson.Value -> Aeson.Parser EnvEntry
     parseConfigFunc = Aeson.withObject "Function" $ \obj -> do
@@ -263,12 +265,13 @@ instance Aeson.FromJSON ModuleInterface where
       coqName        <- obj .: "coq-name"
       -- TODO this does not work with vanishing type arguments.
       let (argTypes, returnType) = IR.splitFuncType haskellType arity
-          typeArgs = mapMaybe IR.identFromQName (freeTypeVars haskellType)
+          typeArgs               = freeTypeVars haskellType
       return FuncEntry { entrySrcSpan       = NoSrcSpan
                        , entryArity         = arity
                        , entryTypeArgs      = typeArgs
-                       , entryArgTypes      = map Just argTypes
-                       , entryReturnType    = Just returnType
+                       , entryArgTypes      = argTypes
+                       , entryStrictArgs    = replicate arity False
+                       , entryReturnType    = returnType
                        , entryNeedsFreeArgs = freeArgsNeeded
                        , entryIsPartial     = partial
                        , entryIdent         = coqName

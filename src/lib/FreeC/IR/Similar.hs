@@ -147,6 +147,20 @@ instance Similar node => Similar [node] where
   similar' ms ns | length ms == length ns = andM (zipWith similar' ms ns)
                  | otherwise              = const False
 
+
+-------------------------------------------------------------------------------
+-- Similarity test for modules                                               --
+-------------------------------------------------------------------------------
+instance Similar IR.Module where
+  similar' moduleA moduleB =
+    const (IR.modName moduleA == IR.modName moduleB)
+      .&&.
+  --  similar' (IR.modImports moduleA) (IR.modImports moduleB) .&&.
+           similar' (IR.modTypeDecls moduleA) (IR.modTypeDecls moduleB)
+      .&&.
+  --  similar' (IR.modTypeSigs moduleA) (IR.modTypeSigs moduleB) .&&.
+  --  similar' (IR.modPragmas moduleA) (IR.modPragmas moduleB) .&&.
+           similar' (IR.modFuncDecls moduleA) (IR.modFuncDecls moduleB)
 -------------------------------------------------------------------------------
 -- Similarity test for types                                                 --
 -------------------------------------------------------------------------------
@@ -362,8 +376,15 @@ instance Similar IR.Alt where
 --   >                      Γ ⊢ τ ≈ τ'
 --   > ———————————  ——————————————————————————
 --   >  Γ ⊢ x ≈ y    Γ ⊢ (x :: τ) ≈ (y :: τ')
+--
+--   If one of the patterns has a bang pattern, the other one needs one as well.
+--
+--   >                        Γ ⊢ τ ≈ τ'
+--   > —————————————  ————————————————————————————
+--   >  Γ ⊢ !x ≈ !y    Γ ⊢ !(x :: τ) ≈ !(y :: τ')
 instance Similar IR.VarPat where
-  similar' (IR.VarPat _ _ t1) (IR.VarPat _ _ t2) = similar' t1 t2
+  similar' (IR.VarPat _ _ t1 s1) (IR.VarPat _ _ t2 s2) =
+    const (s1 == s2) .&&. similar' t1 t2
 
 -------------------------------------------------------------------------------
 -- Similarity test for declarations                                          --

@@ -19,6 +19,7 @@ import           FreeC.Pass.TypeSignaturePass
 import           FreeC.Pass.TypeInferencePass
 import           FreeC.Pass.QualifierPass
 import           FreeC.Pass.ResolverPass
+import           FreeC.Pass.CompletePatternPass
 import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Converter
 
@@ -33,6 +34,7 @@ pipeline =
   , typeSignaturePass
   , dependencyAnalysisPass
     [typeInferencePass, defineFuncDeclsPass, partialityAnalysisPass]
+  , completePatternPass
   , etaConversionPass
   , exportPass
   ]
