@@ -11,10 +11,13 @@ import           Data.Monoid                    ( Ap(Ap)
                                                 )
 
 import           FreeC.Backend.Agda.Converter.FuncDecl
-                                                ( convertFuncDecl )
+                                                ( convertFuncDecls )
 import           FreeC.Backend.Agda.Converter.TypeDecl
-                                                ( convertTypeDecl )
+                                                ( convertTypeDecls )
 import qualified FreeC.Backend.Agda.Syntax     as Agda
+import           FreeC.IR.DependencyGraph       ( groupTypeDecls
+                                                , groupFuncDecls
+                                                )
 import           FreeC.IR.Pragma
 import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Converter
@@ -30,8 +33,8 @@ convertModule' modul@(IR.Module _ name _ typeDecls _ _ funcDecls) = do
   mapM_ (addDecArgPragma (IR.modFuncDecls modul)) (IR.modPragmas modul)
   Agda.moduleDecl (convertModName name) <$> getAp (typeDecls' <> funcDecls')
  where
-  typeDecls' = Ap $ concatMapM convertTypeDecl typeDecls
-  funcDecls' = Ap $ concatMapM convertFuncDecl funcDecls
+  typeDecls' = Ap $ concatMapM convertTypeDecls $ groupTypeDecls typeDecls
+  funcDecls' = Ap $ concatMapM convertFuncDecls $ groupFuncDecls funcDecls
 
 -- | Converts a Haskell module name to an Agda module name
 convertModName :: IR.ModName -> Agda.QName

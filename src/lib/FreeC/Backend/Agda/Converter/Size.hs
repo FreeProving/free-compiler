@@ -9,7 +9,7 @@ import qualified FreeC.Backend.Agda.Base       as Agda.Base
 
 -- | Hidden Size argument.
 --
---   > {Size}
+--   > Size
 size :: Agda.Expr
 size = Agda.Ident $ Agda.qname' Agda.Base.size
 

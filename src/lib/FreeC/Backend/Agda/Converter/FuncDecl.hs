@@ -2,11 +2,9 @@
 --   from our intermediate representation.
 
 module FreeC.Backend.Agda.Converter.FuncDecl
-  ( convertFuncDecl
+  ( convertFuncDecls
   )
 where
-
-import           Prelude                 hiding ( mod )
 
 import           Data.Maybe                     ( fromJust )
 
@@ -19,27 +17,41 @@ import           FreeC.Backend.Agda.Converter.Type
                                                 , convertRecFuncType
                                                 )
 import qualified FreeC.Backend.Agda.Syntax     as Agda
-import           FreeC.Environment              ( lookupDecArgIndex )
+import           FreeC.Backend.Coq.Analysis.DecreasingArguments
+                                                ( identifyDecArgs )
 import           FreeC.Environment.LookupOrFail
+import           FreeC.IR.DependencyGraph
 import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Converter          ( Converter
                                                 , localEnv
-                                                , inEnv
                                                 )
+
+-- | Converts a strongly connected component of the function dependency graph.
+--   TODO: Handle mutually recursive functions.
+convertFuncDecls
+  :: DependencyComponent IR.FuncDecl -> Converter [Agda.Declaration]
+convertFuncDecls (NonRecursive decl  ) = convertFuncDecl decl Nothing
+convertFuncDecls (Recursive    [decl]) = do
+  [decArg] <- identifyDecArgs [decl]
+  convertFuncDecl decl $ Just decArg
+convertFuncDecls (Recursive _) =
+  error "Mutual recursive functions are not supported at the moment."
 
 -- | Converts the given function declarations. Returns the declarations for the
 --   type signature and the definition (TODO).
-convertFuncDecl :: IR.FuncDecl -> Converter [Agda.Declaration]
-convertFuncDecl decl = localEnv $ sequence [convertSignature decl]
+convertFuncDecl :: IR.FuncDecl -> Maybe Int -> Converter [Agda.Declaration]
+convertFuncDecl decl decArg =
+  localEnv $ sequence [convertSignature decl decArg]
 
 -- | Converts the type signature of the given function to an Agda type
 --   declaration.
-convertSignature :: IR.FuncDecl -> Converter Agda.Declaration
-convertSignature (IR.FuncDecl _ (IR.DeclIdent s name) tVars args rType _) = do
-  let types = map IR.varPatType args
-  let ident = lookupUnQualAgdaIdentOrFail s IR.ValueScope name
-  decArg <- inEnv $ lookupDecArgIndex name
-  Agda.funcSig <$> ident <*> convertFunc decArg tVars types rType
+convertSignature :: IR.FuncDecl -> Maybe Int -> Converter Agda.Declaration
+convertSignature (IR.FuncDecl _ declIdent typeVars args returnType _) decArg =
+  do
+    let IR.DeclIdent srcSpan name = declIdent
+    let types                     = map IR.varPatType args
+    ident <- lookupUnQualAgdaIdentOrFail srcSpan IR.ValueScope name
+    Agda.funcSig ident <$> convertFunc decArg typeVars types returnType
 
 -- | Converts a fully applied function.
 convertFunc

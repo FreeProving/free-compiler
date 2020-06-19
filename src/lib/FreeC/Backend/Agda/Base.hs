@@ -69,15 +69,15 @@ position = Agda.name "Pos"
 -- Sized Types                                                               --
 -------------------------------------------------------------------------------
 
--- | Size type.
+-- | The name of Agda's @Size@ data type.
 --
 --   > Size
 size :: Agda.Name
 size = Agda.name "Size"
 
--- | Agda function for larger size.
+-- | The Name of the Agda function for larger @Size@.
 --
--- > e ↦ ↑ e
+--   > ↑
 up :: Agda.Name
 up = Agda.name "\x2191"
 

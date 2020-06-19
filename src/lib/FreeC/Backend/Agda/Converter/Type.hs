@@ -30,10 +30,6 @@ import           FreeC.Monad.Converter          ( Converter
                                                 , localEnv
                                                 )
 
--- | Lifts a single type.
-convertType :: IR.Type -> Converter Agda.Expr
-convertType = dagger'
-
 -- | Functions not defined in terms lambdas (@f x = …@ not @f = \x -> …@) aren't
 --   evaluated until fully applied, i.e. cannot be bottom. Therefore interleaving
 --   monadic layers isn't needed.
@@ -41,16 +37,16 @@ convertType = dagger'
 --   > τ₁ -> … -> τₙ -> ρ ↦ τ₁' → … → τₙ' → ρ'
 convertFuncType :: [IR.Type] -> IR.Type -> Converter Agda.Expr
 convertFuncType argTypes returnType =
-  foldr Agda.fun <$> dagger' returnType <*> mapM dagger' argTypes
+  foldr Agda.fun <$> convertType returnType <*> mapM convertType argTypes
 
 convertRecFuncType :: Int -> [IR.Type] -> IR.Type -> Converter Agda.Expr
 convertRecFuncType decIndex args returnType = pi "i" $ \i -> do
-  startArgs <- mapM dagger' $ take (decIndex - 1) args
-  decArg    <- dagger (Just $ Agda.hiddenArg_ i) $ args !! decIndex
-  endArgs   <- mapM dagger' $ drop (decIndex + 1) args
+  startArgs <- mapM convertType $ take (decIndex - 1) args
+  decArg    <- convertSizedType (Just $ Agda.hiddenArg_ i) $ args !! decIndex
+  endArgs   <- mapM convertType $ drop (decIndex + 1) args
   foldr Agda.fun
     <*> pure (startArgs ++ (decArg : endArgs))
-    <$> dagger' returnType
+    <$> convertType returnType
 
 -- | Constructors aren't evaluated until fully applied. Furthermore the return
 --   type of a constructor for a data type D has to be D and therefore cannot be
@@ -61,15 +57,18 @@ convertConType :: [IR.Type] -> IR.Type -> Converter Agda.Expr
 convertConType argTypes returnType =
   -- We can use the @star@ translation for the data type, because only the name
   -- and the application of type and @Size@ variables have to be translated.
-  foldr Agda.fun <$> star' returnType <*> mapM dagger' argTypes
+  foldr Agda.fun <$> convertType' returnType <*> mapM convertType argTypes
 
+-- | Converts a constructor type of a recursive data type by lifting it piecewise
+--   in the free monad and annotating recursive occurrences of the type with
+--   a variable of type @Size@.
 convertRecConType :: IR.QName -> [IR.Type] -> IR.Type -> Converter Agda.Expr
 convertRecConType ident argTypes returnType = pi "i" $ \i -> do
   let dagger'' = \t -> if t `appliesTo` ident
-        then dagger (Just $ Agda.hiddenArg_ i) t
-        else dagger' t
+        then convertSizedType (Just $ Agda.hiddenArg_ i) t
+        else convertType t
   foldr Agda.fun
-    <$> (Agda.app <$> star' returnType <*> pure (Agda.hiddenArg_ $ up i))
+    <$> (Agda.app <$> convertType' returnType <*> pure (Agda.hiddenArg_ $ up i))
     <*> mapM dagger'' argTypes
 
 -------------------------------------------------------------------------------
@@ -81,9 +80,12 @@ convertRecConType ident argTypes returnType = pi "i" $ \i -> do
 --   This corresponds to the dagger translation for monotypes as described by
 --   Abel et al.
 --
+--   The optional @Agda.Expr@ is a size annotation, which is applied under the
+--   free monad.
+--
 --   > τ' = Free τ*
-dagger :: Maybe Agda.Expr -> IR.Type -> Converter Agda.Expr
-dagger = fmap free .: star
+convertSizedType :: Maybe Agda.Expr -> IR.Type -> Converter Agda.Expr
+convertSizedType = fmap free .: convertSizedType'
 
 -- | Lifts a type from IR to Agda by renaming type variables and constructors,
 --   adding the free arguments to constructors and lifting function types in
@@ -96,23 +98,29 @@ dagger = fmap free .: star
 --   > (τ₁ → τ₂)* = τ₁' → τ₂'
 --   > C* = Ĉ Shape Position
 --   > α* = α̂
-star :: Maybe Agda.Expr -> IR.Type -> Converter Agda.Expr
-star (Just i) t                   = Agda.app <$> star' t <*> pure i
-star _        (IR.TypeVar s name) = Agda.Ident
-  <$> lookupAgdaIdentOrFail s IR.TypeScope (IR.UnQual (IR.Ident name))
-star _ (IR.TypeCon s name) =
+convertSizedType' :: Maybe Agda.Expr -> IR.Type -> Converter Agda.Expr
+convertSizedType' (Just i) t = Agda.app <$> convertType' t <*> pure i
+convertSizedType' _ (IR.TypeVar s name) = Agda.Ident
+  <$> lookupAgdaIdentOrFail s IR.TypeScope (IR.UnQual $ IR.Ident name)
+convertSizedType' _ (IR.TypeCon s name) =
   applyFreeArgs <$> lookupAgdaIdentOrFail s IR.TypeScope name
-star _ (IR.TypeApp  _ l r) = Agda.app <$> star' l <*> star' r
-star _ (IR.FuncType _ l r) = Agda.fun <$> dagger' l <*> dagger' r
+convertSizedType' _ (IR.TypeApp _ l r) =
+  Agda.app <$> convertType' l <*> convertType' r
+convertSizedType' _ (IR.FuncType _ l r) =
+  Agda.fun <$> convertType l <*> convertType r
 
-dagger' :: IR.Type -> Converter Agda.Expr
-dagger' = dagger Nothing
+-- | Converts a type from IR to Agda by lifting it into the @Free@ monad.
+convertType :: IR.Type -> Converter Agda.Expr
+convertType = convertSizedType Nothing
 
-star' :: IR.Type -> Converter Agda.Expr
-star' = star Nothing
+-- | Lifts a type from IR to Agda by renaming type variables and constructors,
+--   adding the free arguments to constructors and lifting function types in
+--   the @Free@ monad.
+convertType' :: IR.Type -> Converter Agda.Expr
+convertType' = convertSizedType' Nothing
 
--- | Is the given type a type application, which applies arguments to the given
---   constructor?
+-- | Tests whether the given type is a type application, which applies
+--   arguments to the given constructor?
 --
 --   > appliesTo (((C x₁) …) xₙ) C ↦ True
 appliesTo :: IR.Type -> IR.QName -> Bool
@@ -121,11 +129,16 @@ appliesTo (IR.TypeCon _ conName) name = conName == name
 appliesTo _                      _    = False
 
 -------------------------------------------------------------------------------
--- specialized syntax                                                        --
+-- Specialized Syntax                                                        --
 -------------------------------------------------------------------------------
 
-pi :: String -> (Agda.Expr -> Converter Agda.Expr) -> Converter Agda.Expr
+-- | Creates a new pi expression binding a variable with the given name.
+pi
+  :: String
+  -- ^ Preferred name for the bound variable.
+  -> (Agda.Expr -> Converter Agda.Expr)
+  -- ^ Continuation for creating the expression using the variable.
+  -> Converter Agda.Expr
 pi name k = localEnv $ do
   var <- freshAgdaVar name undefined
   Agda.pi [Agda.unqualify var] <$> k (Agda.Ident var)
-
