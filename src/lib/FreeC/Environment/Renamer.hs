@@ -98,7 +98,7 @@ mustRenameIdent ident env =
 
 -- | Tests whether the given character is allowed in a Coq identifier.
 --
---   The Coq langauge specification also lists `unicode-id-part`s as allowed
+--   The Coq language specification also lists `unicode-id-part`s as allowed
 --   characters in identifiers and states that those include "non-exhaustively
 --   includes symbols for prime letters and subscripts". I have not yet been
 --   able to find a way to identify this category of unicode characters in
@@ -128,19 +128,19 @@ sanitizeIdent [] = "_"
 sanitizeIdent (firstChar : subsequentChars) =
   sanitizeFirstChar firstChar : map sanitizeChar subsequentChars
  where
-  -- | Replaces the given character with an underscope if it is not allowed
+  -- | Replaces the given character with an underscore if it is not allowed
   --   to occur in the first place of a Coq identifier.
   sanitizeFirstChar :: Char -> Char
   sanitizeFirstChar c | isAllowedFirstChar c = c
                       | otherwise            = '_'
 
-  -- | Replaces the given character with an underscope if it is not allowed
+  -- | Replaces the given character with an underscore if it is not allowed
   --   to occur in a Coq identifier.
   sanitizeChar :: Char -> Char
   sanitizeChar c | isAllowedChar c = c
                  | otherwise       = '_'
 
--- | Renames a Haskell identifier such that it can be savely used in Coq.
+-- | Renames a Haskell identifier such that it can be safely used in Coq.
 --
 --   If the identifier has no name conflict, it is return unchanged.
 --   If the identifier would cause a name conflict the smallest natural number

@@ -24,10 +24,10 @@ import           FreeC.Monad.Converter
 --   binder @(a b : Type)@ because we assume all Haskell type variables to be
 --   of kind @*@.
 --
---   The first argument controlls whether the generated binders are explicit
+--   The first argument controls whether the generated binders are explicit
 --   (e.g. @(a : Type)@) or implicit (e.g. @{a : Type}@).
 convertTypeVarDecls
-  :: Coq.Explicitness -- ^ Whether to generate an explicit or implit binder.
+  :: Coq.Explicitness -- ^ Whether to generate an explicit or implicit binder.
   -> [IR.TypeVarDecl] -- ^ The type variable declarations.
   -> Converter [Coq.Binder]
 convertTypeVarDecls explicitness typeVarDecls
@@ -69,7 +69,7 @@ generateArgBinder ident' Nothing =
 generateArgBinder ident' (Just argType') =
   return (Coq.typedBinder' Coq.Explicit ident' argType')
 
--- | Converts the argument of an artifically generated function to an explicit
+-- | Converts the argument of an artificially generated function to an explicit
 --   Coq binder. A fresh Coq identifier is selected for the argument
 --   and returned together with the binder.
 convertAnonymousArg :: Maybe IR.Type -> Converter (Coq.Qualid, Coq.Binder)
