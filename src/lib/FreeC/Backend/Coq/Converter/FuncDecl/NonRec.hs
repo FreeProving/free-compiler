@@ -23,7 +23,7 @@ convertNonRecFuncDecls decls =
   let orderedDecls = concatMap
         unwrapComponent
         (dependencyComponents (funcDependencyGraph decls))
-  in  mapM convertNonRecFuncDecl orderdDecls
+  in  mapM convertNonRecFuncDecl orderedDecls
 
 -- | Converts a non-recursive Haskell function declaration to a Coq
 --   @Definition@ sentence.
