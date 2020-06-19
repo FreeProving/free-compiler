@@ -24,10 +24,10 @@ import           FreeC.Monad.Converter
 --   binder @(a b : Type)@ because we assume all Haskell type variables to be
 --   of kind @*@.
 --
---   The first argument controlls whether the generated binders are explicit
+--   The first argument controls whether the generated binders are explicit
 --   (e.g. @(a : Type)@) or implicit (e.g. @{a : Type}@).
 convertTypeVarDecls
-  :: Coq.Explicitness -- ^ Whether to generate an explicit or implit binder.
+  :: Coq.Explicitness -- ^ Whether to generate an explicit or implicit binder.
   -> [IR.TypeVarDecl] -- ^ The type variable declarations.
   -> Converter [Coq.Binder]
 convertTypeVarDecls explicitness typeVarDecls
@@ -45,48 +45,18 @@ convertTypeVarDecls explicitness typeVarDecls
 -- Function arguments                                                        --
 -------------------------------------------------------------------------------
 
--- | Converts the given arguments of a function declaration or lambda
---   abstraction to Coq binders.
---
---   If the type of an argument is not annotated, it's type will be inferred
---   by Coq.
---
---   If the function is recursive (i.e., the second argument is not @Nothing@),
---   its decreasing argument (given index) is not lifted.
-convertArgs
-  :: [IR.VarPat] -- ^ The function arguments.
-  -> Maybe Int   -- ^ The position of the decreasing argument or @Nothing@
-                 --   if the function does not decrease on any of its
-                 --   arguments.
-  -> Converter [Coq.Binder]
-convertArgs args Nothing      = mapM convertArg args
-convertArgs args (Just index) = do
-  let (argsBefore, decArg : argsAfter) = splitAt index args
-  bindersBefore <- convertArgs argsBefore Nothing
-  decArgBinder  <- convertPureArg decArg
-  bindersAfter  <- convertArgs argsAfter Nothing
-  return (bindersBefore ++ decArgBinder : bindersAfter)
-
 -- | Converts the argument of a function (a variable pattern) to an explicit
 --   Coq binder.
 --
 --   If the variable pattern has a type annotation, the generated binder is
---   annotated with the converted type.
+--   annotated with the converted type. If the variable pattern is strict, the
+--   variable is marked as non-monadic and the converted type is not
+--   lifted to the @Free@ monad.
 convertArg :: IR.VarPat -> Converter Coq.Binder
-convertArg (IR.VarPat srcSpan ident maybeArgType) = do
-  ident'        <- renameAndDefineVar srcSpan False ident maybeArgType
-  maybeArgType' <- mapM convertType maybeArgType
-  generateArgBinder ident' maybeArgType'
-
--- | Like 'convertArg' but marks the variable as non-monadic.
---
---   If the variable pattern has a type annotation, the generated binder is
---   annotated with the converted type but the type is not lifted to the
---   @Maybe@ monad.
-convertPureArg :: IR.VarPat -> Converter Coq.Binder
-convertPureArg (IR.VarPat srcSpan ident maybeArgType) = do
-  ident'        <- renameAndDefineVar srcSpan True ident maybeArgType
-  maybeArgType' <- mapM convertType' maybeArgType
+convertArg (IR.VarPat srcSpan ident maybeArgType isStrict) = do
+  ident'        <- renameAndDefineVar srcSpan isStrict ident maybeArgType
+  maybeArgType' <- mapM (if isStrict then convertType' else convertType)
+                        maybeArgType
   generateArgBinder ident' maybeArgType'
 
 -- | Generates an explicit Coq binder for a function argument with the given
@@ -99,7 +69,7 @@ generateArgBinder ident' Nothing =
 generateArgBinder ident' (Just argType') =
   return (Coq.typedBinder' Coq.Explicit ident' argType')
 
--- | Converts the argument of an artifically generated function to an explicit
+-- | Converts the argument of an artificially generated function to an explicit
 --   Coq binder. A fresh Coq identifier is selected for the argument
 --   and returned together with the binder.
 convertAnonymousArg :: Maybe IR.Type -> Converter (Coq.Qualid, Coq.Binder)

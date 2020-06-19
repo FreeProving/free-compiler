@@ -4,13 +4,31 @@
 --   into the Haskell or Coq AST. They are guaranteed not to conflict with any
 --   other valid identifier.
 
-module FreeC.Environment.Fresh where
+module FreeC.Environment.Fresh
+  ( -- * Prefixes
+    freshArgPrefix
+  , freshFuncPrefix
+  , freshBoolPrefix
+  , freshTypeVarPrefix
+  , freshTypeArgPrefix
+    -- * Generating fresh Haskell identifiers
+  , freshHaskellIdent
+  , freshHaskellName
+  , freshHaskellQName
+  , freshTypeVar
+    -- * Generating fresh Coq identifiers
+  , freshCoqIdent
+  , freshCoqQualid
+  )
+where
 
 import           Data.List                      ( elemIndex )
+import           Data.Maybe                     ( fromJust )
 import qualified Data.Map.Strict               as Map
 
 import qualified FreeC.Backend.Coq.Syntax      as Coq
 import           FreeC.Environment
+import           FreeC.Environment.Entry
 import           FreeC.Environment.Renamer
 import           FreeC.IR.SrcSpan
 import qualified FreeC.IR.Syntax               as IR
@@ -32,7 +50,7 @@ freshFuncPrefix = "f"
 freshBoolPrefix :: String
 freshBoolPrefix = "cond"
 
--- | The prefix to use for aritifcially introduced type variables of kind @*@.
+-- | The prefix to use for artificially introduced type variables of kind @*@.
 freshTypeVarPrefix :: String
 freshTypeVarPrefix = "a"
 
@@ -101,16 +119,28 @@ freshTypeVar = do
 -- | Gets the next fresh Haskell identifier from the current environment
 --   and renames it such that it can be used in Coq.
 --
---   The freshly generated identifier is not inserted into the environment,
---   i.e. it can still be used to create a declaration.
+--   A 'VarEntry' is added to the environment for the Haskell identifier in the
+--   'IR.FreshScope' name space. Since the fresh Haskell identifier is not
+--   visible from the outside, the environment entry cannot be accessed
+--   directly. Its main purpose is to prevent the the same fresh Coq identifier
+--   to be issued twice.
 freshCoqIdent :: String -> Converter String
-freshCoqIdent prefix = do
-  ident <- freshHaskellIdent prefix
-  inEnv $ renameIdent ident
+freshCoqIdent = fmap (fromJust . Coq.unpackQualid) . freshCoqQualid
 
 -- | Like 'freshCoqIdent' but the resulting Coq identifier is wrapped in a
 --   'Coq.Qualid'.
 freshCoqQualid :: String -> Converter Coq.Qualid
-freshCoqQualid prefix = do
+freshCoqQualid = fmap entryIdent . freshEntry
+
+-------------------------------------------------------------------------------
+-- Generating entries for fresh identifiers                                  --
+-------------------------------------------------------------------------------
+
+-- | Creates a new 'FreshEntry' from a fresh Haskell identifier with the
+--   given prefix.
+freshEntry :: String -> Converter EnvEntry
+freshEntry prefix = do
   ident <- freshHaskellIdent prefix
-  inEnv $ renameQualid ident
+  renameAndAddEntry FreshEntry { entryName  = IR.UnQual (IR.Ident ident)
+                               , entryIdent = undefined -- filled by renamer
+                               }

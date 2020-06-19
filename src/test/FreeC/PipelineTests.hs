@@ -9,6 +9,7 @@ where
 import           Test.Hspec
 
 import           FreeC.Pass.EtaConversionPassTests
+import           FreeC.Pass.KindCheckPassTests
 import           FreeC.Pass.PartialityAnalysisPassTests
 import           FreeC.Pass.ResolverPassTests
 import           FreeC.Pass.TypeInferencePassTests
@@ -17,6 +18,7 @@ import           FreeC.Pass.TypeInferencePassTests
 testPipeline :: Spec
 testPipeline = do
   testEtaConversionPass
+  testKindCheckPass
   testPartialityAnalysisPass
   testResolverPass
   testTypeInferencePass

@@ -42,7 +42,7 @@ import           FreeC.Util.Config
 --   that the implementation of the corresponding change in the other module
 --   is forgotten.
 moduleInterfaceFileFormatVersion :: Integer
-moduleInterfaceFileFormatVersion = 2
+moduleInterfaceFileFormatVersion = 3
 
 instance Aeson.ToJSON IR.QName where
   toJSON = Aeson.toJSON . showPretty
@@ -89,7 +89,11 @@ instance Aeson.ToJSON ModuleInterface where
 encodeEntry :: EnvEntry -> Maybe Aeson.Value
 encodeEntry entry
   | isDataEntry entry = return $ Aeson.object
-    ["haskell-name" .= haskellName, "coq-name" .= coqName, "arity" .= arity]
+    [ "haskell-name" .= haskellName
+    , "coq-name" .= coqName
+    , "arity" .= arity
+    , "cons-names" .= consNames
+    ]
   | isTypeSynEntry entry = return $ Aeson.object
     [ "haskell-name" .= haskellName
     , "coq-name" .= coqName
@@ -97,25 +101,21 @@ encodeEntry entry
     , "haskell-type" .= typeSyn
     , "type-arguments" .= typeArgs
     ]
-  | isConEntry entry = do
-    haskellType <- maybeHaskellType
-    return $ Aeson.object
-      [ "haskell-type" .= haskellType
-      , "haskell-name" .= haskellName
-      , "coq-name" .= coqName
-      , "coq-smart-name" .= coqSmartName
-      , "arity" .= arity
-      ]
-  | isFuncEntry entry = do
-    haskellType <- maybeHaskellType
-    return $ Aeson.object
-      [ "haskell-type" .= haskellType
-      , "haskell-name" .= haskellName
-      , "coq-name" .= coqName
-      , "arity" .= arity
-      , "partial" .= partial
-      , "needs-free-args" .= freeArgsNeeded
-      ]
+  | isConEntry entry = return $ Aeson.object
+    [ "haskell-type" .= haskellType
+    , "haskell-name" .= haskellName
+    , "coq-name" .= coqName
+    , "coq-smart-name" .= coqSmartName
+    , "arity" .= arity
+    ]
+  | isFuncEntry entry = return $ Aeson.object
+    [ "haskell-type" .= haskellType
+    , "haskell-name" .= haskellName
+    , "coq-name" .= coqName
+    , "arity" .= arity
+    , "partial" .= partial
+    , "needs-free-args" .= freeArgsNeeded
+    ]
   | otherwise = error "encodeEntry: Cannot serialize (type) variable entry."
  where
   haskellName :: Aeson.Value
@@ -128,18 +128,19 @@ encodeEntry entry
   arity :: Aeson.Value
   arity = Aeson.toJSON (entryArity entry)
 
+  consNames :: Aeson.Value
+  consNames = Aeson.toJSON (entryConsNames entry)
+
   partial :: Aeson.Value
   partial = Aeson.toJSON (entryIsPartial entry)
 
   freeArgsNeeded :: Aeson.Value
   freeArgsNeeded = Aeson.toJSON (entryNeedsFreeArgs entry)
 
-  maybeHaskellType :: Maybe Aeson.Value
-  maybeHaskellType = do
-    returnType <- entryReturnType entry
-    argTypes   <- sequence (entryArgTypes entry)
-    let funcType = foldr (IR.FuncType NoSrcSpan) returnType argTypes
-    return (Aeson.toJSON funcType)
+  haskellType :: Aeson.Value
+  haskellType = Aeson.toJSON
+    (foldr (IR.FuncType NoSrcSpan) (entryReturnType entry) (entryArgTypes entry)
+    )
 
   typeSyn :: Aeson.Value
   typeSyn = Aeson.toJSON (entryTypeSyn entry)

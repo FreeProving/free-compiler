@@ -13,7 +13,7 @@ import           FreeC.Monad.Converter
 --
 --   [\(\tau^\dagger = Free\,Shape\,Pos\,\tau^*\)]
 --     A type \(\tau\) is converted by lifting it into the @Free@ monad and
---     recursivly converting the argument and return types of functions
+--     recursively converting the argument and return types of functions
 --     using 'convertType''.
 convertType :: IR.Type -> Converter Coq.Term
 convertType t = do
@@ -23,8 +23,8 @@ convertType t = do
 -- | Converts a Haskell type to Coq.
 --
 --   In contrast to 'convertType', the type itself is not lifted into the
---   @Free@ moand. Only the argument and return types of contained function
---   type constructors are lifted recursivly.
+--   @Free@ monad. Only the argument and return types of contained function
+--   type constructors are lifted recursively.
 --
 --   [\(\alpha^* = \alpha'\)]
 --     A type variable \(\alpha\) is translated by looking up the corresponding

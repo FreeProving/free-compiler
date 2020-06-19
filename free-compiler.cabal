@@ -164,12 +164,14 @@ library freec-internal
                       , FreeC.IR.TypeSynExpansion
                       , FreeC.IR.Unification
                       , FreeC.Pass
+                      , FreeC.Pass.CompletePatternPass
                       , FreeC.Pass.DefineDeclPass
                       , FreeC.Pass.DependencyAnalysisPass
                       , FreeC.Pass.EtaConversionPass
                       , FreeC.Pass.ExportPass
                       , FreeC.Pass.ImplicitPreludePass
                       , FreeC.Pass.ImportPass
+                      , FreeC.Pass.KindCheckPass
                       , FreeC.Pass.PartialityAnalysisPass
                       , FreeC.Pass.TypeInferencePass
                       , FreeC.Pass.TypeSignaturePass
@@ -221,6 +223,8 @@ test-suite freec-unit-tests
                     , FreeC.Backend.Coq.Converter.TypeDeclTests
                     , FreeC.Backend.Coq.Converter.TypeTests
                     , FreeC.Backend.Coq.Tests
+                    , FreeC.EnvironmentTests
+                    , FreeC.Environment.FreshTests
                     , FreeC.Environment.RenamerTests
                     , FreeC.Frontend.IR.ParserTests
                     , FreeC.Frontend.IR.ScannerTests
@@ -229,11 +233,15 @@ test-suite freec-unit-tests
                     , FreeC.IR.SimilarTests
                     , FreeC.IR.SubstTests
                     , FreeC.IR.SubtermTests
+                    , FreeC.IR.SyntaxTests
+                    , FreeC.IR.Syntax.ModuleTests
                     , FreeC.IR.Tests
+                    , FreeC.IR.TypeSynExpansionTests
                     , FreeC.IR.UnificationTests
                     , FreeC.Monad.Class.Testable
                     , FreeC.Monad.ReporterTests
                     , FreeC.Pass.EtaConversionPassTests
+                    , FreeC.Pass.KindCheckPassTests
                     , FreeC.Pass.PartialityAnalysisPassTests
                     , FreeC.Pass.ResolverPassTests
                     , FreeC.Pass.TypeInferencePassTests
