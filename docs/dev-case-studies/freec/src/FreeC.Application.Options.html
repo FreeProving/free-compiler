@@ -1,0 +1,69 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-comment">-- | This module contains the command line argument parser and the data type</span><span>
+</span><a name="line-2"></a><span class="hs-comment">--   that stores the values of the command line options.</span><span>
+</span><a name="line-3"></a><span>
+</span><a name="line-4"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">FreeC.Application.Options</span><span>
+</span><a name="line-5"></a><span>  </span><span class="hs-special">(</span><span> </span><a href="FreeC.Application.Options.html#Options"><span class="hs-identifier hs-type">Options</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><a name="line-6"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="FreeC.Application.Options.html#makeDefaultOptions"><span class="hs-identifier hs-var">makeDefaultOptions</span></a><span>
+</span><a name="line-7"></a><span>  </span><span class="hs-special">)</span><span>
+</span><a name="line-8"></a><span class="hs-keyword">where</span><span>
+</span><a name="line-9"></a><span>
+</span><a name="line-10"></a><span class="hs-keyword">import</span><span>           </span><a href="Paths_free_compiler.html"><span class="hs-identifier">Paths_free_compiler</span></a><span>            </span><span class="hs-special">(</span><span> </span><a href="Paths_free_compiler.html#getDataFileName"><span class="hs-identifier hs-var">getDataFileName</span></a><span> </span><span class="hs-special">)</span><span>
+</span><a name="line-11"></a><span>
+</span><a name="line-12"></a><span class="hs-comment">-- | Data type that stores the command line options passed to the compiler.</span><span>
+</span><a name="line-13"></a><span class="hs-keyword">data</span><span> </span><a name="Options"><a href="FreeC.Application.Options.html#Options"><span class="hs-identifier">Options</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a name="Options"><a href="FreeC.Application.Options.html#Options"><span class="hs-identifier">Options</span></a></a><span>
+</span><a name="line-14"></a><span>  </span><span class="hs-special">{</span><span> </span><a name="optShowHelp"><a href="FreeC.Application.Options.html#optShowHelp"><span class="hs-identifier">optShowHelp</span></a></a><span>                  </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Bool</span><span>
+</span><a name="line-15"></a><span>    </span><span class="hs-comment">-- ^ Flag that indicates whether to show the usage information.</span><span>
+</span><a name="line-16"></a><span>
+</span><a name="line-17"></a><span>  </span><span class="hs-special">,</span><span> </span><a name="optShowVersion"><a href="FreeC.Application.Options.html#optShowVersion"><span class="hs-identifier">optShowVersion</span></a></a><span>               </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Bool</span><span>
+</span><a name="line-18"></a><span>    </span><span class="hs-comment">-- ^ Flag that indicates whether to show the compiler's version.</span><span>
+</span><a name="line-19"></a><span>
+</span><a name="line-20"></a><span>  </span><span class="hs-special">,</span><span> </span><a name="optInputFiles"><a href="FreeC.Application.Options.html#optInputFiles"><span class="hs-identifier">optInputFiles</span></a></a><span>                </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="hs-identifier hs-type">FilePath</span><span class="hs-special">]</span><span>
+</span><a name="line-21"></a><span>    </span><span class="hs-comment">-- ^ The input files passed to the compiler.</span><span>
+</span><a name="line-22"></a><span>    </span><span class="hs-comment">--   All non-option command line arguments are considered input files.</span><span>
+</span><a name="line-23"></a><span>
+</span><a name="line-24"></a><span>  </span><span class="hs-special">,</span><span> </span><a name="optOutputDir"><a href="FreeC.Application.Options.html#optOutputDir"><span class="hs-identifier">optOutputDir</span></a></a><span>                 </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Maybe</span><span> </span><span class="hs-identifier hs-type">FilePath</span><span>
+</span><a name="line-25"></a><span>    </span><span class="hs-comment">-- ^ The output directory or 'Nothing' if the output should be printed</span><span>
+</span><a name="line-26"></a><span>    </span><span class="hs-comment">--   to @stdout@.</span><span>
+</span><a name="line-27"></a><span>
+</span><a name="line-28"></a><span>  </span><span class="hs-special">,</span><span> </span><a name="optImportDirs"><a href="FreeC.Application.Options.html#optImportDirs"><span class="hs-identifier">optImportDirs</span></a></a><span>                </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="hs-identifier hs-type">FilePath</span><span class="hs-special">]</span><span>
+</span><a name="line-29"></a><span>    </span><span class="hs-comment">-- ^ The directories to look in for imported modules.</span><span>
+</span><a name="line-30"></a><span>
+</span><a name="line-31"></a><span>  </span><span class="hs-special">,</span><span> </span><a name="optBaseLibDir"><a href="FreeC.Application.Options.html#optBaseLibDir"><span class="hs-identifier">optBaseLibDir</span></a></a><span>                </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">FilePath</span><span>
+</span><a name="line-32"></a><span>    </span><span class="hs-comment">-- ^ The directory that contains the Coq Base library that accompanies</span><span>
+</span><a name="line-33"></a><span>    </span><span class="hs-comment">--   this compiler.</span><span>
+</span><a name="line-34"></a><span>
+</span><a name="line-35"></a><span>  </span><span class="hs-special">,</span><span> </span><a name="optCreateCoqProject"><a href="FreeC.Application.Options.html#optCreateCoqProject"><span class="hs-identifier">optCreateCoqProject</span></a></a><span>          </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Bool</span><span>
+</span><a name="line-36"></a><span>    </span><span class="hs-comment">-- ^ Flag that indicates whether to generate a @_CoqProject@ file in the</span><span>
+</span><a name="line-37"></a><span>    </span><span class="hs-comment">--   ouput directory. This argument is ignored if 'optOutputDir' is not</span><span>
+</span><a name="line-38"></a><span>    </span><span class="hs-comment">--   specified.</span><span>
+</span><a name="line-39"></a><span>
+</span><a name="line-40"></a><span>  </span><span class="hs-special">,</span><span> </span><a name="optTransformPatternMatching"><a href="FreeC.Application.Options.html#optTransformPatternMatching"><span class="hs-identifier">optTransformPatternMatching</span></a></a><span>  </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Bool</span><span>
+</span><a name="line-41"></a><span>    </span><span class="hs-comment">-- ^ Flag that indicates whether to transform pattern matching, perform</span><span>
+</span><a name="line-42"></a><span>    </span><span class="hs-comment">--   guard elimination and case completion.</span><span>
+</span><a name="line-43"></a><span>
+</span><a name="line-44"></a><span>  </span><span class="hs-special">,</span><span> </span><a name="optDumpTransformedModulesDir"><a href="FreeC.Application.Options.html#optDumpTransformedModulesDir"><span class="hs-identifier">optDumpTransformedModulesDir</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Maybe</span><span> </span><span class="hs-identifier hs-type">FilePath</span><span>
+</span><a name="line-45"></a><span>    </span><span class="hs-comment">-- ^ The directory to dump transformed modules to.</span><span>
+</span><a name="line-46"></a><span>  </span><span class="hs-special">}</span><span>
+</span><a name="line-47"></a><span>
+</span><a name="line-48"></a><span class="hs-comment">-- | The default command line options.</span><span>
+</span><a name="line-49"></a><span class="hs-comment">--</span><span>
+</span><a name="line-50"></a><span class="hs-comment">--   The base library directory defaults to the @base@ directory in the</span><span>
+</span><a name="line-51"></a><span class="hs-comment">--   cabal data directory.</span><span>
+</span><a name="line-52"></a><span class="hs-comment">--</span><span>
+</span><a name="line-53"></a><span class="hs-comment">--   By default output will be printed to the console.</span><span>
+</span><a name="line-54"></a><span class="hs-comment">--   The compiler looks for imported files in the current directory and</span><span>
+</span><a name="line-55"></a><span class="hs-comment">--   the output directory (if one is specified).</span><span>
+</span><a name="line-56"></a><span class="hs-identifier">makeDefaultOptions</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">IO</span><span> </span><a href="FreeC.Application.Options.html#Options"><span class="hs-identifier hs-type">Options</span></a><span>
+</span><a name="line-57"></a><a name="makeDefaultOptions"><a href="FreeC.Application.Options.html#makeDefaultOptions"><span class="hs-identifier">makeDefaultOptions</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><a name="line-58"></a><span>  </span><a name="local-6989586621679054643"><a href="#local-6989586621679054643"><span class="hs-identifier">defaultBaseLibDir</span></a></a><span> </span><span class="hs-glyph">&lt;-</span><span> </span><a href="Paths_free_compiler.html#getDataFileName"><span class="hs-identifier hs-var">getDataFileName</span></a><span> </span><span class="hs-string">&quot;base&quot;</span><span>
+</span><a name="line-59"></a><span>  </span><span class="hs-identifier hs-var">return</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><a href="FreeC.Application.Options.html#Options"><span class="hs-identifier hs-var">Options</span></a><span> </span><span class="hs-special">{</span><span> </span><span class="hs-identifier">optShowHelp</span><span>                  </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">False</span><span>
+</span><a name="line-60"></a><span>                   </span><span class="hs-special">,</span><span> </span><span class="hs-identifier">optShowVersion</span><span>               </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">False</span><span>
+</span><a name="line-61"></a><span>                   </span><span class="hs-special">,</span><span> </span><span class="hs-identifier">optInputFiles</span><span>                </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span>
+</span><a name="line-62"></a><span>                   </span><span class="hs-special">,</span><span> </span><span class="hs-identifier">optOutputDir</span><span>                 </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">Nothing</span><span>
+</span><a name="line-63"></a><span>                   </span><span class="hs-special">,</span><span> </span><span class="hs-identifier">optImportDirs</span><span>                </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">[</span><span class="hs-string">&quot;.&quot;</span><span class="hs-special">]</span><span>
+</span><a name="line-64"></a><span>                   </span><span class="hs-special">,</span><span> </span><span class="hs-identifier">optBaseLibDir</span><span>                </span><span class="hs-glyph">=</span><span> </span><a href="#local-6989586621679054643"><span class="hs-identifier hs-var">defaultBaseLibDir</span></a><span>
+</span><a name="line-65"></a><span>                   </span><span class="hs-special">,</span><span> </span><span class="hs-identifier">optCreateCoqProject</span><span>          </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">True</span><span>
+</span><a name="line-66"></a><span>                   </span><span class="hs-special">,</span><span> </span><span class="hs-identifier">optTransformPatternMatching</span><span>  </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">False</span><span>
+</span><a name="line-67"></a><span>                   </span><span class="hs-special">,</span><span> </span><span class="hs-identifier">optDumpTransformedModulesDir</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">Nothing</span><span>
+</span><a name="line-68"></a><span>                   </span><span class="hs-special">}</span><span>
+</span><a name="line-69"></a></pre></body></html>

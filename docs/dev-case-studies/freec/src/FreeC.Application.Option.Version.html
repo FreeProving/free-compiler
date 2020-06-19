@@ -1,0 +1,61 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE TemplateHaskell #-}</span><span>
+</span><a name="line-2"></a><span>
+</span><a name="line-3"></a><span class="hs-comment">-- | This module contains the implementation of the @--version@ command.</span><span>
+</span><a name="line-4"></a><span class="hs-comment">--</span><span>
+</span><a name="line-5"></a><span class="hs-comment">--   The template Haskell language extension is used to include the hash</span><span>
+</span><a name="line-6"></a><span class="hs-comment">--   of the Git commit at compile time.</span><span>
+</span><a name="line-7"></a><span>
+</span><a name="line-8"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">FreeC.Application.Option.Version</span><span> </span><span class="hs-keyword">where</span><span>
+</span><a name="line-9"></a><span>
+</span><a name="line-10"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data.List</span><span>                      </span><span class="hs-special">(</span><span> </span><span class="hs-identifier hs-var">intercalate</span><span> </span><span class="hs-special">)</span><span>
+</span><a name="line-11"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data.Version</span><span>
+</span><a name="line-12"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">GitHash</span><span>
+</span><a name="line-13"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">System.Info</span><span>
+</span><a name="line-14"></a><span>
+</span><a name="line-15"></a><span class="hs-keyword">import</span><span>           </span><a href="Paths_free_compiler.html"><span class="hs-identifier">Paths_free_compiler</span></a><span>
+</span><a name="line-16"></a><span>
+</span><a name="line-17"></a><span class="hs-comment">-- | Prints version information for the compiler, the compiler it has been</span><span>
+</span><a name="line-18"></a><span class="hs-comment">--   compiled with and operating system it is running on.</span><span>
+</span><a name="line-19"></a><span class="hs-comment">--</span><span>
+</span><a name="line-20"></a><span class="hs-comment">--   The version string has the following format.</span><span>
+</span><a name="line-21"></a><span class="hs-comment">--</span><span>
+</span><a name="line-22"></a><span class="hs-comment">--   &gt; The Free Compiler, version &lt;version&gt; (&lt;commit&gt;, &lt;compiler&gt;, &lt;os&gt;, &lt;arch&gt;)</span><span>
+</span><a name="line-23"></a><span class="hs-comment">--</span><span>
+</span><a name="line-24"></a><span class="hs-comment">--   where</span><span>
+</span><a name="line-25"></a><span class="hs-comment">--</span><span>
+</span><a name="line-26"></a><span class="hs-comment">--    * @&lt;version&gt;@ is the version of the compiler as specified in the</span><span>
+</span><a name="line-27"></a><span class="hs-comment">--      Cabal configuration file.</span><span>
+</span><a name="line-28"></a><span class="hs-comment">--    * @&lt;commit&gt;@ is the output of @git describe --always --dirty@ at</span><span>
+</span><a name="line-29"></a><span class="hs-comment">--      compile time. The output has the format @&lt;tag&gt;-&lt;n&gt;-g&lt;hash&gt;[-dirty]@</span><span>
+</span><a name="line-30"></a><span class="hs-comment">--      where @&lt;tag&gt;@ is the name of the latest tag, @&lt;n&gt;@ is the number of</span><span>
+</span><a name="line-31"></a><span class="hs-comment">--      commits since the latest tag, @&lt;hash&gt;@ is the abbreviated Git commit</span><span>
+</span><a name="line-32"></a><span class="hs-comment">--      hash and the suffix @-dirty@ is appended if there are uncommitted</span><span>
+</span><a name="line-33"></a><span class="hs-comment">--      changes.</span><span>
+</span><a name="line-34"></a><span class="hs-comment">--      If the compiler is not installed from the Git repository, this</span><span>
+</span><a name="line-35"></a><span class="hs-comment">--      information is missing.</span><span>
+</span><a name="line-36"></a><span class="hs-comment">--    * @&lt;os&gt;@ is the name of the operating system (e.g., &quot;linux&quot;).</span><span>
+</span><a name="line-37"></a><span class="hs-comment">--    * @&lt;arch&gt;@ is the name of the machine architecture (e.g., &quot;x86_64&quot;).</span><span>
+</span><a name="line-38"></a><span class="hs-identifier">putVersionInfo</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">IO</span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><a name="line-39"></a><a name="putVersionInfo"><a href="FreeC.Application.Option.Version.html#putVersionInfo"><span class="hs-identifier">putVersionInfo</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><a name="line-40"></a><span>  </span><span class="hs-identifier hs-var">putStrLn</span><span>
+</span><a name="line-41"></a><span>    </span><span class="hs-special">(</span><span>  </span><span class="hs-string">&quot;The Free Compiler, version &quot;</span><span>
+</span><a name="line-42"></a><span>    </span><span class="hs-operator hs-var">++</span><span> </span><span class="hs-identifier hs-var">showVersion</span><span> </span><a href="Paths_free_compiler.html#version"><span class="hs-identifier hs-var">version</span></a><span>
+</span><a name="line-43"></a><span>    </span><span class="hs-operator hs-var">++</span><span> </span><span class="hs-string">&quot; (&quot;</span><span>
+</span><a name="line-44"></a><span>    </span><span class="hs-operator hs-var">++</span><span> </span><span class="hs-identifier hs-var">intercalate</span><span>
+</span><a name="line-45"></a><span>         </span><span class="hs-string">&quot;, &quot;</span><span>
+</span><a name="line-46"></a><span>         </span><span class="hs-special">(</span><span>  </span><span class="hs-identifier hs-var">either</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">const</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">return</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><a href="#local-6989586621679062088"><span class="hs-identifier hs-var">giDescribeDirty</span></a><span class="hs-special">)</span><span> </span><a href="#local-6989586621679062087"><span class="hs-identifier hs-var">gitInfoOrError</span></a><span>
+</span><a name="line-47"></a><span>         </span><span class="hs-operator hs-var">++</span><span> </span><span class="hs-special">[</span><span class="hs-identifier hs-var">compilerName</span><span> </span><span class="hs-operator hs-var">++</span><span> </span><span class="hs-string">&quot; &quot;</span><span> </span><span class="hs-operator hs-var">++</span><span> </span><span class="hs-identifier hs-var">showVersion</span><span> </span><span class="hs-identifier hs-var">compilerVersion</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-var">os</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-var">arch</span><span class="hs-special">]</span><span>
+</span><a name="line-48"></a><span>         </span><span class="hs-special">)</span><span>
+</span><a name="line-49"></a><span>    </span><span class="hs-operator hs-var">++</span><span> </span><span class="hs-string">&quot;)&quot;</span><span>
+</span><a name="line-50"></a><span>    </span><span class="hs-special">)</span><span>
+</span><a name="line-51"></a><span> </span><span class="hs-keyword">where</span><span>
+</span><a name="line-52"></a><span>  </span><span class="hs-comment">-- | Compile time information about the current Git commit.</span><span>
+</span><a name="line-53"></a><span>  </span><span class="hs-identifier">gitInfoOrError</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Either</span><span> </span><span class="hs-identifier hs-type">String</span><span> </span><span class="hs-identifier hs-type">GitInfo</span><span>
+</span><a name="line-54"></a><span>  </span><a name="local-6989586621679062087"><a href="#local-6989586621679062087"><span class="hs-identifier">gitInfoOrError</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="">$$tGitInfoCwdTry</span><span>
+</span><a name="line-55"></a><span>
+</span><a name="line-56"></a><span>  </span><span class="hs-comment">-- | Gets the output of @git describe --always --dirty@ for the most recent</span><span>
+</span><a name="line-57"></a><span>  </span><span class="hs-comment">--   commit at compile time.</span><span>
+</span><a name="line-58"></a><span>  </span><span class="hs-identifier">giDescribeDirty</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">GitInfo</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">String</span><span>
+</span><a name="line-59"></a><span>  </span><a name="local-6989586621679062088"><a href="#local-6989586621679062088"><span class="hs-identifier">giDescribeDirty</span></a></a><span> </span><a name="local-6989586621679062233"><a href="#local-6989586621679062233"><span class="hs-identifier">gitInfo</span></a></a><span> </span><span class="hs-glyph">|</span><span> </span><span class="hs-identifier hs-var">giDirty</span><span> </span><a href="#local-6989586621679062233"><span class="hs-identifier hs-var">gitInfo</span></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">giDescribe</span><span> </span><a href="#local-6989586621679062233"><span class="hs-identifier hs-var">gitInfo</span></a><span> </span><span class="hs-operator hs-var">++</span><span> </span><span class="hs-string">&quot;-dirty&quot;</span><span>
+</span><a name="line-60"></a><span>                          </span><span class="hs-glyph">|</span><span> </span><span class="hs-identifier hs-var">otherwise</span><span>       </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">giDescribe</span><span> </span><a href="#local-6989586621679062233"><span class="hs-identifier hs-var">gitInfo</span></a><span>
+</span><a name="line-61"></a></pre></body></html>
