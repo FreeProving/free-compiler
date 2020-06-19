@@ -13,7 +13,7 @@
 </span><a name="line-13"></a><span class="hs-comment">--</span><span>
 </span><a name="line-14"></a><span class="hs-comment">--   [\(\tau^\dagger = Free\,Shape\,Pos\,\tau^*\)]</span><span>
 </span><a name="line-15"></a><span class="hs-comment">--     A type \(\tau\) is converted by lifting it into the @Free@ monad and</span><span>
-</span><a name="line-16"></a><span class="hs-comment">--     recursivly converting the argument and return types of functions</span><span>
+</span><a name="line-16"></a><span class="hs-comment">--     recursively converting the argument and return types of functions</span><span>
 </span><a name="line-17"></a><span class="hs-comment">--     using 'convertType''.</span><span>
 </span><a name="line-18"></a><span class="hs-identifier">convertType</span><span> </span><span class="hs-glyph">::</span><span> </span><a href="FreeC.IR.Syntax.Type.html#Type"><span class="hs-identifier hs-type">IR.Type</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="FreeC.Monad.Converter.html#Converter"><span class="hs-identifier hs-type">Converter</span></a><span> </span><span class="hs-identifier hs-type">Coq.Term</span><span>
 </span><a name="line-19"></a><a name="convertType"><a href="FreeC.Backend.Coq.Converter.Type.html#convertType"><span class="hs-identifier">convertType</span></a></a><span> </span><a name="local-6989586621679214260"><a href="#local-6989586621679214260"><span class="hs-identifier">t</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
@@ -23,8 +23,8 @@
 </span><a name="line-23"></a><span class="hs-comment">-- | Converts a Haskell type to Coq.</span><span>
 </span><a name="line-24"></a><span class="hs-comment">--</span><span>
 </span><a name="line-25"></a><span class="hs-comment">--   In contrast to 'convertType', the type itself is not lifted into the</span><span>
-</span><a name="line-26"></a><span class="hs-comment">--   @Free@ moand. Only the argument and return types of contained function</span><span>
-</span><a name="line-27"></a><span class="hs-comment">--   type constructors are lifted recursivly.</span><span>
+</span><a name="line-26"></a><span class="hs-comment">--   @Free@ monad. Only the argument and return types of contained function</span><span>
+</span><a name="line-27"></a><span class="hs-comment">--   type constructors are lifted recursively.</span><span>
 </span><a name="line-28"></a><span class="hs-comment">--</span><span>
 </span><a name="line-29"></a><span class="hs-comment">--   [\(\alpha^* = \alpha'\)]</span><span>
 </span><a name="line-30"></a><span class="hs-comment">--     A type variable \(\alpha\) is translated by looking up the corresponding</span><span>
