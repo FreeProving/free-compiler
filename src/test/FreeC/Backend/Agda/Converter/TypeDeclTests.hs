@@ -16,17 +16,20 @@ import           FreeC.Monad.Converter
 import           FreeC.Test.Parser
 import           FreeC.Test.Environment
 import           FreeC.Test.Expectations
-import           FreeC.Pretty                   ( Pretty
-                                                , showPretty
-                                                )
+import           FreeC.Pretty                   ( showPretty )
 
+-- | Parses the given type-level IR declarations, converts them to Agda using
+--   'convertTypeDecls' and sets the expectation that the resulting AST
+--   is equal to the given output when pretty printed modulo white
+--   space.
 shouldConvertTypeDeclsTo
-  :: (Pretty a) => DependencyComponent String -> a -> Converter Expectation
+  :: DependencyComponent String -> [String] -> Converter Expectation
 shouldConvertTypeDeclsTo inputStrs expectedOutput = do
   input  <- parseTestComponent inputStrs
   output <- convertTypeDecls input
   return (output `prettyShouldBe` showPretty expectedOutput)
 
+-- | Test group for @convertTypeDecls@ tests.
 testConvertDataDecls :: Spec
 testConvertDataDecls =
   describe "FreeC.Backend.Agda.Converter.TypeDecl.convertTypeDecl" $ do

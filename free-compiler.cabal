@@ -222,6 +222,7 @@ test-suite freec-unit-tests
   main-is:            Spec.hs
   ghc-options:        -main-is Spec
   other-modules:      Paths_free_compiler
+                    , FreeC.Backend.Agda.Converter.FuncDeclTests
                     , FreeC.Backend.Agda.Converter.TypeDeclTests
                     , FreeC.Backend.Agda.Tests
                     , FreeC.Backend.Coq.Analysis.ConstantArgumentsTests
