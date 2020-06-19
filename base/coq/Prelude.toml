@@ -52,6 +52,10 @@ exported-values = [
   coq-name     = 'Bool'
   agda-name    = '𝔹'
   arity        = 0
+  cons-names   = [
+      'Prelude.True',
+      'Prelude.False',
+    ]
 
 [[constructors]]
   haskell-type    = 'Prelude.Bool'
@@ -98,6 +102,7 @@ exported-values = [
   coq-name     = 'Integer'
   agda-name    = 'ℤ'
   arity        = 0
+  cons-names   = []
 
 [[functions]]
   haskell-type    = 'Prelude.Integer -> Prelude.Integer -> Prelude.Integer'
@@ -206,7 +211,11 @@ exported-values = [
   haskell-name = 'Prelude.([])'
   coq-name     = 'List'
   agda-name    = 'List'
-  arity = 1
+  arity        = 1
+  cons-names   = [
+      'Prelude.([])',
+      'Prelude.(:)',
+    ]
 
 [[constructors]]
   haskell-type    = 'Prelude.([]) a'
@@ -235,6 +244,7 @@ exported-values = [
   coq-name     = 'Pair'
   agda-name    = 'Pair'
   arity        = 2
+  cons-names   = ['Prelude.(,)']
 
 [[constructors]]
   haskell-type    = 'a -> b -> Prelude.(,) a b'
@@ -254,6 +264,7 @@ exported-values = [
   coq-name     = 'Unit'
   agda-name    = '⊤'
   arity        = 0
+  cons-names   = ['Prelude.()']
 
 [[constructors]]
   haskell-type    = 'Prelude.()'

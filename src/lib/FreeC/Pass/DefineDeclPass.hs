@@ -31,6 +31,8 @@ module FreeC.Pass.DefineDeclPass
   )
 where
 
+import           Data.Maybe                     ( fromJust )
+
 import           FreeC.Environment.Entry
 import           FreeC.Environment.Renamer
 import           FreeC.IR.DependencyGraph
@@ -74,12 +76,14 @@ defineTypeDecl (IR.TypeSynDecl srcSpan declIdent typeArgs typeExpr) = do
     }
   return ()
 defineTypeDecl (IR.DataDecl srcSpan declIdent typeArgs conDecls) = do
-  _ <- renameAndAddEntry DataEntry { entrySrcSpan   = srcSpan
-                                   , entryArity     = length typeArgs
-                                   , entryName      = IR.declIdentName declIdent
-                                   , entryIdent     = undefined -- filled by renamer
-                                   , entryAgdaIdent = undefined -- filled by renamer
-                                   }
+  _ <- renameAndAddEntry DataEntry
+    { entrySrcSpan   = srcSpan
+    , entryArity     = length typeArgs
+    , entryName      = IR.declIdentName declIdent
+    , entryConsNames = map IR.conDeclQName conDecls
+    , entryIdent     = undefined -- filled by renamer
+    , entryAgdaIdent = undefined -- filled by renamer
+    }
   mapM_ defineConDecl conDecls
  where
   -- | The type produced by all constructors of the data type.
@@ -96,8 +100,8 @@ defineTypeDecl (IR.DataDecl srcSpan declIdent typeArgs conDecls) = do
       { entrySrcSpan        = conSrcSpan
       , entryArity          = length argTypes
       , entryTypeArgs       = map IR.typeVarDeclIdent typeArgs
-      , entryArgTypes       = map Just argTypes
-      , entryReturnType     = Just returnType
+      , entryArgTypes       = argTypes
+      , entryReturnType     = returnType
       , entryName           = IR.declIdentName conDeclIdent
       , entryIdent          = undefined -- filled by renamer
       , entryAgdaIdent      = undefined -- filled by renamer
@@ -117,8 +121,9 @@ defineFuncDecl funcDecl = do
     { entrySrcSpan       = IR.funcDeclSrcSpan funcDecl
     , entryArity         = length (IR.funcDeclArgs funcDecl)
     , entryTypeArgs = map IR.typeVarDeclIdent (IR.funcDeclTypeArgs funcDecl)
-    , entryArgTypes      = map IR.varPatType (IR.funcDeclArgs funcDecl)
-    , entryReturnType    = IR.funcDeclReturnType funcDecl
+    , entryArgTypes = map (fromJust . IR.varPatType) (IR.funcDeclArgs funcDecl)
+    , entryStrictArgs    = map IR.varPatIsStrict (IR.funcDeclArgs funcDecl)
+    , entryReturnType    = fromJust (IR.funcDeclReturnType funcDecl)
     , entryNeedsFreeArgs = True
     , entryIsPartial     = False -- may be updated by partiality analysis pass
     , entryName          = IR.funcDeclQName funcDecl

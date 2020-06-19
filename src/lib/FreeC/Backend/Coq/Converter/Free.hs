@@ -1,4 +1,4 @@
--- | This module contains auxilary functions that help to generate Coq code
+-- | This module contains auxiliary functions that help to generate Coq code
 --   that uses the @Free@ monad.
 
 module FreeC.Backend.Coq.Converter.Free where
@@ -18,7 +18,7 @@ import           FreeC.Monad.Converter
 
 -- | The declarations of type parameters for the @Free@ monad.
 --
---   The first argument controlls whether the generated binders are explicit
+--   The first argument controls whether the generated binders are explicit
 --   (e.g. @(Shape : Type)@) or implicit (e.g. @{Shape : Type}@).
 genericArgDecls :: Coq.Explicitness -> [Coq.Binder]
 genericArgDecls explicitness =
@@ -61,6 +61,40 @@ genericApply func effectArgs implicitArgs args
 generatePure :: Coq.Term -> Converter Coq.Term
 generatePure = return . Coq.app (Coq.Qualid Coq.Base.freePureCon) . (: [])
 
+-- | Generates a Coq expression that binds the given values to fresh variables
+--   if the position in the given @[Bool]@ list is @True@.
+--
+--   The fresh variables and the not bound values are passed to the given
+--   function in their original order. The fresh variables are not visible
+--   outside this function. If a value is a variable, the name of that variable
+--   is used as the prefix of the corresponding fresh variable. Otherwise, the
+--   given default prefix is used.
+--
+--   If some given type is @Nothing@, the type of the fresh variable is
+--   inferred by Coq.
+generateBinds
+  :: [Coq.Term]       -- ^ The values to bind or pass through.
+  -> String           -- ^ A prefix to use for fresh variables by default.
+  -> [Bool]           -- ^ If each value should be bound or passed through.
+  -> [Maybe Coq.Term] -- ^ The types of the values to bind.
+  -> ([Coq.Term] -> Converter Coq.Term)
+                      -- ^ Converter for the right hand side of the generated
+                      --   function. The first argument are the fresh variables
+                      --   and passed through values.
+  -> Converter Coq.Term
+generateBinds exprs' defaultPrefix areStrict argTypes' generateRHS =
+  generateBinds'
+    (zip3 exprs' (areStrict ++ repeat False) (argTypes' ++ repeat Nothing))
+    []
+ where
+  generateBinds'
+    :: [(Coq.Term, Bool, Maybe Coq.Term)] -> [Coq.Term] -> Converter Coq.Term
+  generateBinds' [] acc = generateRHS acc
+  generateBinds' ((expr', isStrict, argType') : xs) acc = if isStrict
+    then generateBind expr' defaultPrefix argType'
+      $ \arg -> generateBinds' xs (acc ++ [arg])
+    else generateBinds' xs (acc ++ [expr'])
+
 -- | Generates a Coq expressions that binds the given value to a fresh variable.
 --
 --   The generated fresh variable is passed to the given function. It is not
@@ -91,7 +125,7 @@ generateBind expr' defaultPrefix argType' generateRHS = localEnv $ do
   return
     (Coq.app (Coq.Qualid Coq.Base.freeBind) [expr', Coq.fun [x] [argType'] rhs])
  where
-  -- | Suggests a prefix for the fresh varibale the given expression
+  -- | Suggests a prefix for the fresh variable the given expression
   --   is bound to.
   suggestPrefixFor :: Coq.Term -> String
   suggestPrefixFor (Coq.Qualid qualid) =

@@ -12,6 +12,7 @@ import           FreeC.IR.SimilarTests
 import           FreeC.IR.SubstTests
 import           FreeC.IR.SubtermTests
 import           FreeC.IR.SyntaxTests
+import           FreeC.IR.TypeSynExpansionTests
 import           FreeC.IR.UnificationTests
 
 -- | Test group for tests of modules below @FreeC.IR@.
@@ -22,4 +23,5 @@ testIR = do
   testExprSubst
   testSubterm
   testSyntax
+  testTypeSynExpansion
   testUnification

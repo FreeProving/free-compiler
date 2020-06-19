@@ -40,7 +40,8 @@ fi
 
 # Format all given Haskell files that are tracked by `git` using `brittany`.
 for file in $(find "${files[@]}" -name '*.hs' -type f); do
-  if git ls-files --error-unmatch "$file" >/dev/null 2>&1; then
+  if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1 ||
+       git ls-files --error-unmatch "$file" >/dev/null 2>&1; then
     echo -n "Formatting ${bold}$file${reset} ... "
     unchanged=0
 
@@ -86,5 +87,7 @@ for file in $(find "${files[@]}" -name '*.hs' -type f); do
       echo ""
       mv "$temp_file" "$file"
     fi
+  else
+    echo "Skipping ${bold}$file${reset} ... ${bold}NOT TRACKED${reset}"
   fi
 done
