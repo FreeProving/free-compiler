@@ -42,8 +42,9 @@ fi
 format_counter=0
 line_ending_counter=0
 for file in $(find "${files[@]}" -name '*.hs' -type f); do
-  # Skip files that are not tracked by git..
-  if git ls-files --error-unmatch "$file" >/dev/null 2>&1; then
+  # Skip files that are not tracked by git.
+  if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1 ||
+       git ls-files --error-unmatch "$file" >/dev/null 2>&1; then
     echo -n "Checking ${bold}$file${reset} ... "
     is_okay=0
 
@@ -72,6 +73,8 @@ for file in $(find "${files[@]}" -name '*.hs' -type f); do
     else
       echo ""
     fi
+  else
+    echo "Skipping ${bold}$file${reset} ... ${bold}NOT TRACKED${reset}"
   fi
 done
 

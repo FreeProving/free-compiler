@@ -1,5 +1,5 @@
 ---
-name: Feature request
+name: Feature Request
 labels: enhancement
 about: Suggest an idea for this project
 
@@ -30,6 +30,6 @@ about: Suggest an idea for this project
   What are their drawbacks in comparison to your proposal?
 -->
 
-## Additional context
+## Additional Context
 
 <!-- Add any other context about the feature request here. -->

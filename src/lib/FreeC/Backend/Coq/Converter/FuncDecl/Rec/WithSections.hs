@@ -75,9 +75,9 @@ convertRecFuncDeclsWithSection constArgs decls = do
   -- unique.
   (constArgTypes, mgus) <- mapAndUnzipM (lookupConstArgType argTypeMap)
                                         renamedConstArgs
-  let mgu           = composeSubsts mgus
-      typeArgNames  = Set.toList (Set.unions (map freeTypeVarSet constArgTypes))
-      typeArgIdents = map (fromJust . IR.identFromQName) typeArgNames
+  let mgu = composeSubsts mgus
+      typeArgIdents =
+        Set.toList (Set.unions (map freeTypeVarSet constArgTypes))
 
   -- Apply unificator to rename the type arguments on the right-hand side.
   let renamedDecls' = applySubst mgu renamedDecls
@@ -89,13 +89,11 @@ convertRecFuncDeclsWithSection constArgs decls = do
   -- Test which of the constant arguments is actually used by any function
   -- in the section and which of the type arguments is needed by the types
   -- of used arguments.
-  let
-    isConstArgUsed    = map (flip any sectionDecls . isConstArgUsedBy) constArgs
-    usedConstArgTypes = map snd $ filter fst $ zip isConstArgUsed constArgTypes
-    isTypeArgUsed v = any
-      (Set.member (IR.UnQual (IR.Ident v)) . freeTypeVarSet)
-      usedConstArgTypes
-    usedTypeArgIdents = filter isTypeArgUsed typeArgIdents
+  let isConstArgUsed = map (flip any sectionDecls . isConstArgUsedBy) constArgs
+      usedConstArgTypes =
+        map snd $ filter fst $ zip isConstArgUsed constArgTypes
+      isTypeArgUsed v = any (Set.member v . freeTypeVarSet) usedConstArgTypes
+      usedTypeArgIdents = filter isTypeArgUsed typeArgIdents
 
     -- Remove constant arguments from the type signatures of the renamed
     -- function declarations.
@@ -207,8 +205,8 @@ renameFuncDecls decls = do
             _     <- renameAndAddEntry entry
               { entryName       = name'
               , entryTypeArgs   = typeArgIdents'
-              , entryArgTypes   = map IR.varPatType args'
-              , entryReturnType = maybeRetType'
+              , entryArgTypes   = map (fromJust . IR.varPatType) args'
+              , entryReturnType = fromJust maybeRetType'
               }
 
             -- If the decreasing argument of the original function has been
@@ -466,8 +464,8 @@ updateTypeSig mgu constTypeVars argTypeMap returnTypeMap funcDecl = do
   let allTypeArgs = map IR.typeVarIdent typeArgVars
       entry'      = entry { entryArity         = length args
                           , entryTypeArgs      = allTypeArgs \\ constTypeVars
-                          , entryArgTypes      = argTypes
-                          , entryReturnType    = returnType
+                          , entryArgTypes      = map fromJust argTypes
+                          , entryReturnType    = fromJust returnType
                           , entryNeedsFreeArgs = False
                           }
   modifyEnv $ addEntry entry'
@@ -618,10 +616,6 @@ generateInterfaceDecl constArgs isConstArgUsed nameMap mgu sectionTypeArgs renam
         $ mapMaybe (Map.lookup name . constArgIdents) constArgs
       usedConstArgNames =
         map fst $ filter snd $ zip constArgNames isConstArgUsed
-
-    -- The interface function is not recursive. Thus, we have to remove the
-    -- decreasing argument, if one has been specified by the user.
-    modifyEnv $ removeDecArg name
 
     -- Generate the left-hand side of the interface function definition.
     (qualid, binders, returnType') <- convertFuncHead funcDecl

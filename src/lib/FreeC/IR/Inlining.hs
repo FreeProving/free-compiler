@@ -18,7 +18,6 @@ import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
 import           FreeC.Pretty
 
-
 -- | Inlines the right hand sides of the given function declarations into
 --   the right hand sides of other function declarations.
 inlineFuncDecls :: [IR.FuncDecl] -> IR.FuncDecl -> Converter IR.FuncDecl
