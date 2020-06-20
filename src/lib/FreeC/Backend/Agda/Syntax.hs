@@ -151,6 +151,9 @@ paren = Paren NoRange
 ident :: String -> Expr
 ident = Ident . qname' . name
 
+-- | Hides the given expression.
+--
+--   e ↦ {e}
 hiddenArg_ :: Expr -> Expr
 hiddenArg_ = HiddenArg NoRange . unnamed
 
