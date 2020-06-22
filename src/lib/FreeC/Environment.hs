@@ -14,6 +14,8 @@ module FreeC.Environment
   , addEntry
   , defineDecArg
   , removeDecArg
+  -- * Modifying entries in the environment
+  , modifyEntryIdent
   -- * Looking up entries from the environment
   , lookupEntry
   , isFunction
@@ -27,6 +29,7 @@ module FreeC.Environment
   , lookupTypeArgs
   , lookupTypeArgArity
   , lookupArgTypes
+  , lookupStrictArgs
   , lookupReturnType
   , lookupTypeSchema
   , lookupArity
@@ -39,16 +42,13 @@ module FreeC.Environment
   )
 where
 
-import           Control.Monad                  ( (<=<) )
 import           Data.Composition               ( (.:)
                                                 , (.:.)
                                                 )
 import           Data.List                      ( find )
 import           Data.Map.Strict                ( Map )
 import qualified Data.Map.Strict               as Map
-import           Data.Maybe                     ( catMaybes
-                                                , isJust
-                                                )
+import           Data.Maybe                     ( isJust )
 import           Data.Tuple.Extra               ( (&&&) )
 
 import qualified FreeC.Backend.Agda.Syntax     as Agda
@@ -137,6 +137,20 @@ removeDecArg funcName env =
   env { envDecArgs = Map.delete funcName (envDecArgs env) }
 
 -------------------------------------------------------------------------------
+-- Modifying entries in the environment                                      --
+-------------------------------------------------------------------------------
+
+-- | Changes the Coq identifier of the entry with the given name in the given
+--   scope to the given identifier.
+--
+--   If such an entry does not exist, the environment is not changed.
+modifyEntryIdent
+  :: IR.Scope -> IR.QName -> Coq.Qualid -> Environment -> Environment
+modifyEntryIdent scope name newIdent env = case lookupEntry scope name env of
+  Nothing    -> env
+  Just entry -> addEntry (entry { entryIdent = newIdent }) env
+
+-------------------------------------------------------------------------------
 -- Looking up entries from the environment                                   --
 -------------------------------------------------------------------------------
 
@@ -222,9 +236,16 @@ lookupTypeArgArity = fmap length .:. lookupTypeArgs
 --
 --   Returns @Nothing@ if there is no such function or (smart) constructor
 --   with the given name.
-lookupArgTypes :: IR.Scope -> IR.QName -> Environment -> Maybe [Maybe IR.Type]
+lookupArgTypes :: IR.Scope -> IR.QName -> Environment -> Maybe [IR.Type]
 lookupArgTypes =
   fmap entryArgTypes . find (isConEntry .||. isFuncEntry) .:. lookupEntry
+
+-- | Looks up the strict arguments of the function with the given name.
+--
+--   Returns @Nothing@ if there is no such function.
+lookupStrictArgs :: IR.QName -> Environment -> Maybe [Bool]
+lookupStrictArgs =
+  fmap entryStrictArgs . find isFuncEntry .: lookupEntry IR.ValueScope
 
 -- | Looks up the return type of the function or (smart) constructor with the
 --   given name.
@@ -233,7 +254,7 @@ lookupArgTypes =
 --   with the given name or the return type is not known.
 lookupReturnType :: IR.Scope -> IR.QName -> Environment -> Maybe IR.Type
 lookupReturnType =
-  (entryReturnType <=< find (isConEntry .||. isFuncEntry)) .:. lookupEntry
+  fmap entryReturnType . find (isConEntry .||. isFuncEntry) .:. lookupEntry
 
 -- | Gets the type schema of the variable, function or constructor with the
 --   given name.
@@ -247,7 +268,7 @@ lookupTypeSchema scope name env
     argTypes   <- lookupArgTypes scope name env
     returnType <- lookupReturnType scope name env
     let typeArgDecls = map (IR.TypeVarDecl NoSrcSpan) typeArgs
-        funcType     = IR.funcType NoSrcSpan (catMaybes argTypes) returnType
+        funcType     = IR.funcType NoSrcSpan argTypes returnType
     return (IR.TypeSchema NoSrcSpan typeArgDecls funcType)
 
 -- | Looks up the number of arguments expected by the Haskell function

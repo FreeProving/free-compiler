@@ -648,26 +648,31 @@ altParser =
 conPatParser :: Parser IR.ConPat
 conPatParser = IR.ConPat NoSrcSpan <$> conQNameParser
 
--- | Parser for IR variable patterns with optional type annotation.
+-- | Parser for IR variable patterns with optional type annotation and @!@.
 --
---   > varPat ::= "(" <varid> "::" type ")"
---   >          | <varid>
+--   > varPat ::= ["!"] "(" <varid> "::" type ")"
+--   >          | ["!"] <varid>
 varPatParser :: Parser IR.VarPat
-varPatParser = typedVarPatParser <|> untypedVarPatParser
+varPatParser =
+  token Bang
+    *>  (typedVarPatParser True <|> untypedVarPatParser True)
+    <|> typedVarPatParser False
+    <|> untypedVarPatParser False
  where
-  -- @varPat ::= "(" <varid> "::" type ")" | …@
-  typedVarPatParser :: Parser IR.VarPat
-  typedVarPatParser = parensParser
+  -- @varPat ::= ["!"] "(" <varid> "::" type ")" | …@
+  typedVarPatParser :: Bool -> Parser IR.VarPat
+  typedVarPatParser isStrict = parensParser
     (   IR.VarPat NoSrcSpan
     <$> varIdentToken
     <*  token DoubleColon
     <*> (Just <$> typeParser)
+    <*> return isStrict
     )
 
-  -- @varPat ::= <varid> | …@
-  untypedVarPatParser :: Parser IR.VarPat
-  untypedVarPatParser =
-    IR.VarPat NoSrcSpan <$> varIdentToken <*> return Nothing
+  -- @varPat ::= ["!"] <varid> | …@
+  untypedVarPatParser :: Bool -> Parser IR.VarPat
+  untypedVarPatParser isStrict =
+    IR.VarPat NoSrcSpan <$> varIdentToken <*> return Nothing <*> return isStrict
 
 -------------------------------------------------------------------------------
 -- Literals                                                                  --

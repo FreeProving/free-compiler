@@ -330,10 +330,14 @@ simplifyDecl decl@(HSE.GDataDecl _ _ _ _ _ _ _) =
 simplifyDecl decl@(HSE.GDataInsDecl _ _ _ _ _ _) =
   notSupported "GADT style declarations" decl
 simplifyDecl decl@(HSE.ClassDecl _ _ _ _ _) = notSupported "Type classes" decl
-simplifyDecl decl@(HSE.InstDecl _ _ _ _) = notSupported "Type classes" decl
-simplifyDecl decl@(HSE.DerivDecl _ _ _ _) = notSupported "Type classes" decl
+simplifyDecl decl@(HSE.InstDecl _ _ _ _   ) = do
+  skipNotSupported "Instance declarations" decl
+  return ([], [], [])
+simplifyDecl decl@(HSE.DerivDecl _ _ _ _) = do
+  skipNotSupported "Deriving declarations" decl
+  return ([], [], [])
 simplifyDecl decl@(HSE.DefaultDecl _ _) = notSupported "Type classes" decl
-simplifyDecl decl@(HSE.SpliceDecl _ _) = notSupported "Template Haskell" decl
+simplifyDecl decl@(HSE.SpliceDecl  _ _) = notSupported "Template Haskell" decl
 simplifyDecl decl@(HSE.TSpliceDecl _ _) = notSupported "Template Haskell" decl
 simplifyDecl decl@(HSE.PatSynSig _ _ _ _ _ _ _) =
   notSupported "Pattern synonyms" decl
@@ -675,7 +679,7 @@ simplifyExpr (HSE.RightSection srcSpan op e2) = do
   x   <- freshHaskellIdent freshArgPrefix
   op' <- simplifyOp op
   e2' <- simplifyExpr e2
-  let x'  = IR.VarPat srcSpan x Nothing
+  let x'  = IR.VarPat srcSpan x Nothing False
       e1' = IR.Var srcSpan (IR.UnQual (IR.Ident x)) Nothing
   return (IR.Lambda srcSpan [x'] (IR.app srcSpan op' [e1', e2']) Nothing)
 
@@ -852,7 +856,7 @@ simplifyConName name@(HSE.Special _ (HSE.ExprHole _)) =
 --  Parenthesis are ignored.
 simplifyVarPat :: HSE.Pat SrcSpan -> Simplifier IR.VarPat
 simplifyVarPat (HSE.PVar srcSpan (HSE.Ident _ ident)) =
-  return (IR.VarPat srcSpan ident Nothing)
+  return (IR.VarPat srcSpan ident Nothing False)
 simplifyVarPat pat = expected "variable pattern" pat
 
 -- Simplifies a constructor pattern.

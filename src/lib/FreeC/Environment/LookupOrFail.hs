@@ -19,7 +19,7 @@ import           FreeC.Pretty
 
 -- | Looks up an entry of the environment with the given name or reports
 --   a fatal error message if the identifier has not been defined or the
---   name is ambigious.
+--   name is ambiguous.
 --
 --   If an error is reported, it points to the given source span.
 lookupEntryOrFail :: SrcSpan -> IR.Scope -> IR.QName -> Converter EnvEntry
@@ -74,7 +74,7 @@ lookupUnQualAgdaIdentOrFail
 lookupUnQualAgdaIdentOrFail = fmap Agda.unqualify .:. lookupAgdaIdentOrFail
 
 -- | Looks up the Coq identifier of a smart constructor of the Haskell
---   data constructr with the given name or reports a fatal error message
+--   data constructor with the given name or reports a fatal error message
 --   if there is no such constructor.
 --
 --   If an error is reported, it points to the given source span.

@@ -4,14 +4,34 @@
 --   into the Haskell or Coq AST. They are guaranteed not to conflict with any
 --   other valid identifier.
 
-module FreeC.Environment.Fresh where
+module FreeC.Environment.Fresh
+  ( -- * Prefixes
+    freshArgPrefix
+  , freshFuncPrefix
+  , freshBoolPrefix
+  , freshTypeVarPrefix
+  , freshTypeArgPrefix
+    -- * Generating fresh Haskell identifiers
+  , freshHaskellIdent
+  , freshHaskellName
+  , freshHaskellQName
+  , freshTypeVar
+    -- * Generating fresh Coq identifiers
+  , freshCoqIdent
+  , freshCoqQualid
+    -- * Generating fresh Agda identifiers
+  , freshAgdaVar
+  )
+where
 
 import           Data.List                      ( elemIndex )
+import           Data.Maybe                     ( fromJust )
 import qualified Data.Map.Strict               as Map
 
 import qualified FreeC.Backend.Agda.Syntax     as Agda
 import qualified FreeC.Backend.Coq.Syntax      as Coq
 import           FreeC.Environment
+import           FreeC.Environment.Entry
 import           FreeC.Environment.Renamer
 import           FreeC.IR.SrcSpan               ( SrcSpan(NoSrcSpan) )
 import qualified FreeC.IR.Syntax               as IR
@@ -33,7 +53,7 @@ freshFuncPrefix = "f"
 freshBoolPrefix :: String
 freshBoolPrefix = "cond"
 
--- | The prefix to use for aritifcially introduced type variables of kind @*@.
+-- | The prefix to use for artificially introduced type variables of kind @*@.
 freshTypeVarPrefix :: String
 freshTypeVarPrefix = "a"
 
@@ -102,26 +122,37 @@ freshTypeVar = do
 -- | Gets the next fresh Haskell identifier from the current environment
 --   and renames it such that it can be used in Coq.
 --
---   The freshly generated identifier is not inserted into the environment,
---   i.e. it can still be used to create a declaration.
+--   A 'VarEntry' is added to the environment for the Haskell identifier in the
+--   'IR.FreshScope' name space. Since the fresh Haskell identifier is not
+--   visible from the outside, the environment entry cannot be accessed
+--   directly. Its main purpose is to prevent the the same fresh Coq identifier
+--   to be issued twice.
 freshCoqIdent :: String -> Converter String
-freshCoqIdent prefix = do
-  ident <- freshHaskellIdent prefix
-  inEnv $ renameIdent ident
+freshCoqIdent = fmap (fromJust . Coq.unpackQualid) . freshCoqQualid
 
 -- | Like 'freshCoqIdent' but the resulting Coq identifier is wrapped in a
 --   'Coq.Qualid'.
 freshCoqQualid :: String -> Converter Coq.Qualid
-freshCoqQualid prefix = do
-  ident <- freshHaskellIdent prefix
-  inEnv $ renameQualid ident
+freshCoqQualid = fmap entryIdent . freshEntry
 
--- | Generates a new Agda identifer based on the given name.
---
---   TODO: Type is redundant with next merge from master and the introduction
---   of @Fresh@
-freshAgdaVar :: String -> IR.Type -> Converter Agda.QName
-freshAgdaVar name varType = do
-  ident <- freshHaskellIdent name
-  -- Add identifier to environment to prevent future usage of the same name.
-  renameAndDefineAgdaVar NoSrcSpan False ident $ Just varType
+-------------------------------------------------------------------------------
+-- Generating fresh Agda identifiers                                         --
+-------------------------------------------------------------------------------
+
+-- | Generates a new Agda identifier based on the given name.
+freshAgdaVar :: String -> Converter Agda.QName
+freshAgdaVar = fmap entryAgdaIdent . freshEntry
+
+-------------------------------------------------------------------------------
+-- Generating entries for fresh identifiers                                  --
+-------------------------------------------------------------------------------
+
+-- | Creates a new 'FreshEntry' from a fresh Haskell identifier with the
+--   given prefix.
+freshEntry :: String -> Converter EnvEntry
+freshEntry prefix = do
+  ident <- freshHaskellIdent prefix
+  renameAndAddEntry FreshEntry { entryName      = IR.UnQual (IR.Ident ident)
+                               , entryIdent     = undefined -- filled by renamer
+                               , entryAgdaIdent = undefined -- filled by renamer
+                               }

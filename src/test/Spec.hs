@@ -6,7 +6,7 @@ import           Test.Hspec
 
 import           FreeC.Backend.Agda.Tests
 import           FreeC.Backend.Coq.Tests
-import           FreeC.Environment.RenamerTests
+import           FreeC.EnvironmentTests
 import           FreeC.Frontend.IR.Tests
 import           FreeC.IR.Tests
 import           FreeC.Monad.ReporterTests
@@ -15,12 +15,12 @@ import           FreeC.PipelineTests
 -- | Runs all unit tests for the Free Compiler.
 main :: IO ()
 main = hspec $ do
+  testEnvironment
   testIR
   testIRFrontend
   testAgdaBackend
   testCoqBackend
 
   testPipeline
-  testRenamer
 
   testReporter

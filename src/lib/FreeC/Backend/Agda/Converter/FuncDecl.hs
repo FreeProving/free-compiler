@@ -49,9 +49,9 @@ convertSignature :: IR.FuncDecl -> Maybe Int -> Converter Agda.Declaration
 convertSignature (IR.FuncDecl _ declIdent typeVars args returnType _) decArg =
   do
     let IR.DeclIdent srcSpan name = declIdent
-    let types                     = map IR.varPatType args
+    let argTypes                  = map IR.varPatType args
     ident <- lookupUnQualAgdaIdentOrFail srcSpan IR.ValueScope name
-    Agda.funcSig ident <$> convertFunc decArg typeVars types returnType
+    Agda.funcSig ident <$> convertFunc decArg typeVars argTypes returnType
 
 -- | Converts a fully applied function.
 convertFunc
@@ -65,4 +65,3 @@ convertFunc decArg tVars argTypes returnType =
     (map fromJust argTypes)
     (fromJust returnType)
   where typeConverter = maybe convertFuncType convertRecFuncType decArg
-
