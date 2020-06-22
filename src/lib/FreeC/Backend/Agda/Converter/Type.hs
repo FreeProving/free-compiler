@@ -140,5 +140,5 @@ pi
   -- ^ Continuation for creating the expression using the variable.
   -> Converter Agda.Expr
 pi name k = localEnv $ do
-  var <- freshAgdaVar name undefined
+  var <- freshAgdaVar name
   Agda.pi [Agda.unqualify var] <$> k (Agda.Ident var)
