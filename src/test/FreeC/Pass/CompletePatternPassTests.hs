@@ -1,6 +1,4 @@
--- name subject to change
-
--- | This module contains tests for "FreeC.Pass.CompletePatternPassTests".
+-- | This module contains tests for "FreeC.Pass.CompletePatternPass".
 
 module FreeC.Pass.CompletePatternPassTests where
 
@@ -10,10 +8,8 @@ import           FreeC.Monad.Class.Testable
 import           FreeC.Pass.CompletePatternPass
 import           FreeC.Test.Environment
 import           FreeC.Test.Parser
--------------------------------------------------------------------------------
--- Tests                                                                     --
--------------------------------------------------------------------------------
 
+-- | Test group for 'completePatternPass' tests.
 testCompletePatternPass :: SpecWith ()
 testCompletePatternPass = describe "FreeC.Pass.CompletePatternPass" $ do
   context "Top-level case expressions" $ do
@@ -78,7 +74,8 @@ testCompletePatternPass = describe "FreeC.Pass.CompletePatternPass" $ do
     it "fails for a faulty nested case expression" $ do
       input <-
         expectParseTestFuncDecl
-          "f x = case x :: Foobar of {Foo -> case x :: Foobar of {Foo -> Foo} ; Bar -> Bar}"
+        $  "f x = case x :: Foobar of {Foo -> case x :: Foobar of "
+        ++ "{Foo -> Foo} ; Bar -> Bar}"
       shouldFail $ do
         _ <- defineTestTypeCon "Foobar" 0 ["Foo", "Bar"]
         _ <- defineTestCon "Foo" 0 "Foobar"
@@ -86,11 +83,14 @@ testCompletePatternPass = describe "FreeC.Pass.CompletePatternPass" $ do
         _ <- defineTestVar "x"
         checkPatternFuncDecl input
     it
-        "fails for a faulty case expression used as another case expression's scrutinee"
+        ("fails for a faulty case expression used as another case expression's"
+        ++ "scrutinee"
+        )
       $ do
           input <-
             expectParseTestFuncDecl
-              "f x = case ((case x :: Foobar of {Foo -> x} ) :: Foobar) of {Foo -> Foo ; Bar -> Bar}"
+            $  "f x = case ((case x :: Foobar of {Foo -> x} ) :: Foobar) "
+            ++ "of {Foo -> Foo ; Bar -> Bar}"
           shouldFail $ do
             _ <- defineTestTypeCon "Foobar" 0 ["Foo", "Bar"]
             _ <- defineTestCon "Foo" 0 "Foobar"
@@ -100,15 +100,15 @@ testCompletePatternPass = describe "FreeC.Pass.CompletePatternPass" $ do
     it "succeeds for a valid nested case expression" $ do
       input <-
         expectParseTestFuncDecl
-          "f x = case x :: Foobar of {Foo -> case x :: Foobar of {Foo -> Foo ; Bar -> Bar} ; Bar -> Bar}"
+        $  "f x = case x :: Foobar of {Foo -> case x :: Foobar of "
+        ++ "{Foo -> Foo ; Bar -> Bar} ; Bar -> Bar}"
       shouldSucceed $ do
         _ <- defineTestTypeCon "Foobar" 0 ["Foo", "Bar"]
         _ <- defineTestCon "Foo" 0 "Foobar"
         _ <- defineTestCon "Bar" 0 "Foobar"
         _ <- defineTestVar "x"
         checkPatternFuncDecl input
-
-    it "fails for a faulty case expression inside a lambda" $ do
+    it "fails for a faulty case expression inside a lambda expression" $ do
       input <- expectParseTestFuncDecl
         "f x = \\ y -> case x :: Foobar of {Foo -> Foo}"
       shouldFail $ do
@@ -118,7 +118,9 @@ testCompletePatternPass = describe "FreeC.Pass.CompletePatternPass" $ do
         checkPatternFuncDecl input
   context "Illegal scrutinee types" $ do
     it
-        "fails if the case expression's scrutinee is a function and alternative list is not empty"
+        (  "fails if the case expression's scrutinee is a function and"
+        ++ "the alternative list is not empty"
+        )
       $ do
           input <- expectParseTestFuncDecl
             "g f = case f :: Foobar -> Foobar of {Foo -> Foo ; Bar -> Bar}"
@@ -130,7 +132,9 @@ testCompletePatternPass = describe "FreeC.Pass.CompletePatternPass" $ do
             _ <- defineTestVar "b"
             checkPatternFuncDecl input
     it
-        "fails if the case expression's scrutinee is a function and alternative list is empty"
+        (  "fails if the case expression's scrutinee is a function"
+        ++ "and the alternative list is empty"
+        )
       $ do
           input <- expectParseTestFuncDecl
             "g f = case f :: Foobar -> Foobar of {}"
@@ -141,7 +145,9 @@ testCompletePatternPass = describe "FreeC.Pass.CompletePatternPass" $ do
             _ <- defineTestVar "b"
             checkPatternFuncDecl input
     it
-        "succeeds if the case expression's scrutinee is a full function application"
+        (  "succeeds if the case expression's scrutinee is a full"
+        ++ "function application"
+        )
       $ do
           input <- expectParseTestFuncDecl
             "g x = case (f x) :: Foobar of {Foo -> Foo ; Bar -> Bar}"
@@ -152,10 +158,11 @@ testCompletePatternPass = describe "FreeC.Pass.CompletePatternPass" $ do
             _ <- defineTestFunc "f" 1 "Foobar -> Foobar"
             _ <- defineTestVar "x"
             checkPatternFuncDecl input
-    it "fails if the case expression's scrutinee is a lambda" $ do
+    it "fails if the case expression's scrutinee is a lambda expression" $ do
       input <-
         expectParseTestFuncDecl
-          "f = case (\\ x -> Foo) :: Foobar -> Foobar of {Foo -> Foo ; Bar -> Bar}"
+        $  "f = case (\\ x -> Foo) :: Foobar -> Foobar of "
+        ++ "{Foo -> Foo ; Bar -> Bar}"
       shouldFail $ do
         _ <- defineTestTypeCon "Foobar" 0 ["Foo", "Bar"]
         _ <- defineTestCon "Foo" 0 "Foobar"
@@ -169,4 +176,22 @@ testCompletePatternPass = describe "FreeC.Pass.CompletePatternPass" $ do
         _ <- defineTestCon "Bar" 0 "Foobar"
         _ <- defineTestVar "x"
         _ <- defineTestTypeVar "a"
+        checkPatternFuncDecl input
+  context "Type synonyms" $ do
+    it "succeeds for complete pattern matching on a type synonym" $ do
+      input <- expectParseTestFuncDecl
+        "f x = case x :: FoobarSyn of { Foo -> Foo }"
+      shouldSucceed $ do
+        _ <- defineTestTypeCon "Foobar" 0 ["Foo"]
+        _ <- defineTestCon "Foo" 0 "Foobar"
+        _ <- defineTestTypeSyn "FoobarSyn" [] "Foobar"
+        checkPatternFuncDecl input
+    it "succeeds for complete pattern matching on a nested type synonym" $ do
+      input <- expectParseTestFuncDecl
+        "f x = case x :: FooSynSyn of { Foo -> Foo }"
+      shouldSucceed $ do
+        _ <- defineTestTypeCon "Foo" 0 ["Foo"]
+        _ <- defineTestCon "Foo" 0 "Foobar"
+        _ <- defineTestTypeSyn "FooSyn" [] "Foo"
+        _ <- defineTestTypeSyn "FooSynSyn" [] "FooSyn"
         checkPatternFuncDecl input

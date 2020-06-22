@@ -18,9 +18,9 @@ import           FreeC.Pass.TypeInferencePassTests
 -- | Test group for 'FreeC.Pipeline.runPipeline' tests.
 testPipeline :: Spec
 testPipeline = do
+  testCompletePatternPass
   testEtaConversionPass
   testKindCheckPass
   testPartialityAnalysisPass
   testResolverPass
   testTypeInferencePass
-  testCompletePatternPass
