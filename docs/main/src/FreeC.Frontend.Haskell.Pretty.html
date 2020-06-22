@@ -1,0 +1,20 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# OPTIONS_GHC -Wno-orphans #-}</span><span>
+</span><a name="line-2"></a><span>
+</span><a name="line-3"></a><span class="hs-comment">-- | This module contains a 'Pretty' instance for module nodes of the Haskell</span><span>
+</span><a name="line-4"></a><span class="hs-comment">--   Source Extensions AST.</span><span>
+</span><a name="line-5"></a><span class="hs-comment">--</span><span>
+</span><a name="line-6"></a><span class="hs-comment">--   The pretty instance is used to dump the output of the pattern matching</span><span>
+</span><a name="line-7"></a><span class="hs-comment">--   compiler library (See &quot;FreeC.Frontent.Haskell.PatternMatching&quot;).</span><span>
+</span><a name="line-8"></a><span>
+</span><a name="line-9"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">FreeC.Frontend.Haskell.Pretty</span><span> </span><span class="hs-keyword">where</span><span>
+</span><a name="line-10"></a><span>
+</span><a name="line-11"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Language.Haskell.Exts.Pretty</span><span>  </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">HSE</span><span>
+</span><a name="line-12"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Language.Haskell.Exts.Syntax</span><span>  </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">HSE</span><span>
+</span><a name="line-13"></a><span>
+</span><a name="line-14"></a><span class="hs-keyword">import</span><span>           </span><a href="FreeC.Pretty.html"><span class="hs-identifier">FreeC.Pretty</span></a><span>
+</span><a name="line-15"></a><span>
+</span><a name="line-16"></a><span class="hs-comment">-- | Pretty instance for module nodes of Haskell Source Extensions AST.</span><span>
+</span><a name="line-17"></a><span class="hs-keyword">instance</span><span> </span><span class="hs-identifier hs-type">Pretty</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">HSE.Module</span><span> </span><a href="#local-6989586621679126767"><span class="hs-identifier hs-type">l</span></a><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><a name="line-18"></a><span>  </span><a name="local-8214565720323834040"><span class="hs-identifier">pretty</span></a><span>     </span><span class="hs-glyph">=</span><span> </span><a href="FreeC.Pretty.html#prettyString"><span class="hs-identifier hs-var">prettyString</span></a><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier hs-var">HSE.prettyPrint</span><span>
+</span><a name="line-19"></a><span>  </span><a name="local-8214565720323834041"><span class="hs-identifier">prettyList</span></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="FreeC.Pretty.html#prettySeparated"><span class="hs-identifier hs-var">prettySeparated</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">line</span><span> </span><span class="hs-operator hs-var">&lt;&gt;</span><span> </span><span class="hs-identifier hs-var">line</span><span class="hs-special">)</span><span>
+</span><a name="line-20"></a></pre></body></html>

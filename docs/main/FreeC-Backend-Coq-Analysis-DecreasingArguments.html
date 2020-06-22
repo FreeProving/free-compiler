@@ -1,0 +1,34 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><title>FreeC.Backend.Coq.Analysis.DecreasingArguments</title><link href="ocean.css" rel="stylesheet" type="text/css" title="Ocean" /><link rel="stylesheet" type="text/css" href="quick-jump.css" /><script src="haddock-bundle.min.js" async="async" type="text/javascript"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML" type="text/javascript"></script></head><body><div id="package-header"><ul class="links" id="page-menu"><li><a href="src/FreeC.Backend.Coq.Analysis.DecreasingArguments.html">Source</a></li><li><a href="index.html">Contents</a></li><li><a href="doc-index.html">Index</a></li></ul><p class="caption">free-compiler-0.2.0.0: A Haskell to Coq compiler.</p></div><div id="content"><div id="module-header"><table class="info"><tr><th>Safe Haskell</th><td>None</td></tr><tr><th>Language</th><td>Haskell2010</td></tr></table><p class="caption">FreeC.Backend.Coq.Analysis.DecreasingArguments</p></div><div id="description"><p class="caption">Description</p><div class="doc"><p>This module contains the termination checker for the intermediate
+   language. The goal is to to find one argument for every recursive
+   function whose size is reduced in every recursive call. If such
+   arguments exist we know that the function will terminate and can
+   be translated to Coq. The termination checker defined in this
+   module is very limited compared to Coq's termination checker.
+   Even if we don't recognize the decreasing arguments, Coq might
+   still be able to tell that the function is decreasing on one of
+   its arguments. However, we cannot rely on Coq's termination
+   entirely, since we need to know the decreasing arguments for
+   the transformation of recursive functions into a recursive
+   helper function and a non-recursive main function (see also
+   <a href="FreeC-Backend-Coq-Converter-FuncDecl-Rec-WithHelpers.html">FreeC.Backend.Coq.Converter.FuncDecl.Rec.WithHelpers</a>)</p><h2>Guessing Decreasing Arguments</h2><p>Given set of mutually recursive function declarations <code>F</code>, the
+   termination checker tries to find a combination of arguments such
+   that each function in the set decreases on the corresponding argument.
+   Since we have to know the decreasing argument of all functions in the
+   set in order to test whether a function decreases on one of its argument,
+   we first enumerate (or <em>guess</em>) all possible combinations and then check
+   whether the combination of decreasing arguments is valid.</p><h2>Checking Decreasing Arguments</h2><p>A function <code>f &#8712; F</code> declared by</p><pre>f x&#8321; &#8230; x&#7522; &#8230; x&#8345; = e</pre><p>decreases on its <code>i</code>-th argument if for every recursive call to
+   functions <code>g &#8712; F</code> on the right-hand side <code>e</code> of <code>f</code></p><pre>g e&#8321; &#8230; e&#11388; &#8230; e&#8344;</pre><p>where <code>j</code> is the decreasing argument guessed for <code>g</code> the expression
+   <code>e&#11388;</code> is recognizes as structurally smaller than <code>x&#7522;</code>.</p><h2>Checking for Structurally Smaller Expressions</h2><p>Within a function for whose decreasing argument we've guessed <code>x&#7522;</code> a
+   variable <code>x</code> is structurally smaller than <code>x&#7522;</code> if one of the following
+   two conditions is met.</p><ol><li><code>x</code> is bound by a variable pattern in a <code>case</code> expression whose
+      scrutinee is the decreasing argument <code>x&#7522;</code>.</li><li><code>x</code> is bound by a variable pattern in a <code>case</code> expression whose
+      scrutinee is structurally smaller that <code>x&#7522;</code> itself.</li></ol><h2>Bypassing the termination checker</h2><p>Cop's termination checker uses the same idea as described above but
+   is much more sophisticated. If the user knows that their function
+   declaration is decreasing on one of its arguments, they can annotate
+   the decreasing argument using a custom pragma (see also
+   <code><a href="FreeC-IR-Syntax-Pragma.html#v:DecArgPragma" title="FreeC.IR.Syntax.Pragma">DecArgPragma</a></code>). If there is such an annotation
+   <code>guessDecArgs</code> will not consider any other argument for the annotated
+   function declaration and <code>checkDecArgs</code> always accepts the guessed
+   argument as a decreasing argument.</p></div></div><div id="synopsis"><details id="syn"><summary>Synopsis</summary><ul class="details-toggle" data-details-id="syn"><li class="src short"><span class="keyword">type</span> <a href="#t:DecArgIndex">DecArgIndex</a> = <a href="file:///opt/ghc/8.6.5/share/doc/ghc-8.6.5/html/libraries/base-4.12.0.0/Data-Int.html#t:Int" title="Data.Int">Int</a></li><li class="src short"><a href="#v:identifyDecArgs">identifyDecArgs</a> :: [<a href="FreeC-IR-Syntax-FuncDecl.html#t:FuncDecl" title="FreeC.IR.Syntax.FuncDecl">FuncDecl</a>] -&gt; <a href="FreeC-Monad-Converter.html#t:Converter" title="FreeC.Monad.Converter">Converter</a> [<a href="FreeC-Backend-Coq-Analysis-DecreasingArguments.html#t:DecArgIndex" title="FreeC.Backend.Coq.Analysis.DecreasingArguments">DecArgIndex</a>]</li></ul></details></div><div id="interface"><h1>Documentation</h1><div class="top"><p class="src"><span class="keyword">type</span> <a id="t:DecArgIndex" class="def">DecArgIndex</a> = <a href="file:///opt/ghc/8.6.5/share/doc/ghc-8.6.5/html/libraries/base-4.12.0.0/Data-Int.html#t:Int" title="Data.Int">Int</a> <a href="src/FreeC.Backend.Coq.Analysis.DecreasingArguments.html#DecArgIndex" class="link">Source</a> <a href="#t:DecArgIndex" class="selflink">#</a></p><div class="doc"><p>Type for the index of a decreasing argument.</p></div></div><div class="top"><p class="src"><a id="v:identifyDecArgs" class="def">identifyDecArgs</a> :: [<a href="FreeC-IR-Syntax-FuncDecl.html#t:FuncDecl" title="FreeC.IR.Syntax.FuncDecl">FuncDecl</a>] -&gt; <a href="FreeC-Monad-Converter.html#t:Converter" title="FreeC.Monad.Converter">Converter</a> [<a href="FreeC-Backend-Coq-Analysis-DecreasingArguments.html#t:DecArgIndex" title="FreeC.Backend.Coq.Analysis.DecreasingArguments">DecArgIndex</a>] <a href="src/FreeC.Backend.Coq.Analysis.DecreasingArguments.html#identifyDecArgs" class="link">Source</a> <a href="#v:identifyDecArgs" class="selflink">#</a></p><div class="doc"><p>Identifies the decreasing arguments of the given mutually recursive
+   function declarations.</p><p>Reports a fatal error message, if the decreasing arguments could not be
+   identified.</p></div></div></div></div><div id="footer"><p>Produced by <a href="http://www.haskell.org/haddock/">Haddock</a> version 2.22.0</p></div></body></html>
