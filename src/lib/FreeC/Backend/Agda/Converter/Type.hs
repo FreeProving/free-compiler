@@ -42,7 +42,7 @@ convertFuncType argTypes returnType =
 convertRecFuncType :: Int -> [IR.Type] -> IR.Type -> Converter Agda.Expr
 convertRecFuncType decIndex args returnType = pi "i" $ \i -> do
   startArgs <- mapM convertType $ take (decIndex - 1) args
-  decArg    <- convertSizedType (Just $ Agda.hiddenArg_ i) $ args !! decIndex
+  decArg    <- convertSizedType (Just i) $ args !! decIndex
   endArgs   <- mapM convertType $ drop (decIndex + 1) args
   foldr Agda.fun
     <*> pure (startArgs ++ (decArg : endArgs))
@@ -64,9 +64,10 @@ convertConType argTypes returnType =
 --   a variable of type @Size@.
 convertRecConType :: IR.QName -> [IR.Type] -> IR.Type -> Converter Agda.Expr
 convertRecConType ident argTypes returnType = pi "i" $ \i -> do
-  let dagger'' = \t -> if t `appliesTo` ident
-        then convertSizedType (Just $ Agda.hiddenArg_ i) t
-        else convertType t
+  let dagger'' =
+        \t -> if t `appliesTo` ident
+          then convertSizedType (Just i) t
+          else convertType t
   foldr Agda.fun
     <$> (Agda.app <$> convertType' returnType <*> pure (Agda.hiddenArg_ $ up i))
     <*> mapM dagger'' argTypes
@@ -99,7 +100,8 @@ convertSizedType = fmap free .: convertSizedType'
 --   > C* = Ĉ Shape Position
 --   > α* = α̂
 convertSizedType' :: Maybe Agda.Expr -> IR.Type -> Converter Agda.Expr
-convertSizedType' (Just i) t = Agda.app <$> convertType' t <*> pure i
+convertSizedType' (Just i) t =
+  Agda.app <$> convertType' t <*> pure (Agda.hiddenArg_ i)
 convertSizedType' _ (IR.TypeVar s name) = Agda.Ident
   <$> lookupAgdaIdentOrFail s IR.TypeScope (IR.UnQual $ IR.Ident name)
 convertSizedType' _ (IR.TypeCon s name) =
