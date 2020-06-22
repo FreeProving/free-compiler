@@ -4,5 +4,5 @@ The Free Proving project and everyone participating in it is governed by our [Co
 By participating, you are expected to uphold this code.
 
 [CODE_OF_CONDUCT]:
-  https://github.com/FreeProving/guidelines/blob/master/CODE_OF_CONDUCT.md
+  https://github.com/FreeProving/guidelines/blob/main/CODE_OF_CONDUCT.md
   "Code of Conduct of the FreeProving project"

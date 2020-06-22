@@ -1,7 +1,7 @@
 # Free Compiler
 
 <!-- Logo -->
-<img src="https://raw.githubusercontent.com/FreeProving/free-compiler/master/img/logo.png" width="350" style="max-width: 100%" align="right" alt="Logo" />
+<img src="https://raw.githubusercontent.com/FreeProving/free-compiler/main/img/logo.png" width="350" style="max-width: 100%" align="right" alt="Logo" />
 
 <!-- Badges -->
 ![CI Pipeline](https://github.com/FreeProving/free-compiler/workflows/CI%20Pipeline/badge.svg)
@@ -391,40 +391,40 @@ The Free Compiler is licensed under The 3-Clause BSD License.
 See the [LICENSE][freec/LICENSE] file for details.
 
 [doc]:
-  https://github.com/FreeProving/free-compiler/tree/master/doc
+  https://github.com/FreeProving/free-compiler/tree/main/doc
   "Free Compiler Documentation"
 [doc/ModuleInterfaceFileFormat.md]:
-  https://github.com/FreeProving/free-compiler/blob/master/doc/ModuleInterfaceFileFormat.md
+  https://github.com/FreeProving/free-compiler/blob/main/doc/ModuleInterfaceFileFormat.md
   "Free Compiler Documentation — Module Interface File Format"
 [doc/ExperimentalFeatures/PatternMatchingCompilation.md]:
-  https://github.com/FreeProving/free-compiler/blob/master/doc/ExperimentalFeatures/PatternMatchingCompilation.md
+  https://github.com/FreeProving/free-compiler/blob/main/doc/ExperimentalFeatures/PatternMatchingCompilation.md
   "Free Compiler Documentation — Pattern Matching Compilation"
 [doc/ProvingQuickCheckProperties.md]:
-  https://github.com/FreeProving/free-compiler/blob/master/doc/ProvingQuickCheckProperties.md
+  https://github.com/FreeProving/free-compiler/blob/main/doc/ProvingQuickCheckProperties.md
   "Free Compiler Documentation — Proving QuickCheck Properties"
 
 [freec/CHANGELOG]:
-  https://github.com/FreeProving/free-compiler/blob/master/CHANGELOG.md
+  https://github.com/FreeProving/free-compiler/blob/main/CHANGELOG.md
   "Free Compiler — Changelog"
 [freec/LICENSE]:
-  https://github.com/FreeProving/free-compiler/blob/master/LICENSE
+  https://github.com/FreeProving/free-compiler/blob/main/LICENSE
   "Free Compiler — The 3-Clause BSD License"
 
 [guidelines/CONTRIBUTING]:
-  https://github.com/FreeProving/guidelines/blob/master/CONTRIBUTING.md
+  https://github.com/FreeProving/guidelines/blob/main/CONTRIBUTING.md
   "Contributing Guidelines of the FreeProving project"
 [guidelines/CONTRIBUTING#the-ci-pipeline]:
-  https://github.com/FreeProving/guidelines/blob/master/CONTRIBUTING.md#the-ci-pipeline
+  https://github.com/FreeProving/guidelines/blob/main/CONTRIBUTING.md#the-ci-pipeline
   "Contributing Guidelines of the FreeProving project — The CI Pipeline"
 
 [gh-pages/haddock/exe]:
-  https://freeproving.github.io/free-compiler/docs/master/freec
+  https://freeproving.github.io/free-compiler/docs/main/freec
   "Free Compiler Command Line Interface Haddock Documentation"
 [gh-pages/haddock/lib]:
-  https://freeproving.github.io/free-compiler/docs/master
+  https://freeproving.github.io/free-compiler/docs/main
   "Free Compiler Haddock Documentation"
 [gh-pages/haddock/test]:
-  https://freeproving.github.io/free-compiler/docs/master/freec-unit-tests
+  https://freeproving.github.io/free-compiler/docs/main/freec-unit-tests
   "Free Compiler Test Suite Haddock Documentation"
 
 [package/haskell-src-transformations]:
