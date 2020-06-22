@@ -36,7 +36,7 @@ testConvertDataDecls =
     it "translates non-polymorphic, non-recursive data types correctly"
       $ shouldSucceedWith
       $ do
-          "Foo"          <- defineTestTypeCon "Foo" 0
+          "Foo"          <- defineTestTypeCon "Foo" 0 ["Bar", "Baz"]
           ("bar", "Bar") <- defineTestCon "Bar" 0 "Foo"
           ("baz", "Baz") <- defineTestCon "Baz" 0 "Foo"
           shouldConvertTypeDeclsTo
@@ -48,7 +48,7 @@ testConvertDataDecls =
             , "pattern Baz = pure baz"
             ]
     it "annotates recursive data type with Sized type" $ shouldSucceedWith $ do
-      "List"           <- defineTestTypeCon "List" 1
+      "List"           <- defineTestTypeCon "List" 1 ["Nil", "Cons"]
       ("nil" , "Nil" ) <- defineTestCon "Nil" 0 "List"
       ("cons", "Cons") <- defineTestCon "Cons" 2 "List"
       shouldConvertTypeDeclsTo

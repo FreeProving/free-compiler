@@ -31,7 +31,7 @@ testConvertFuncDecls :: Spec
 testConvertFuncDecls =
   describe "FreeC.Backend.Agda.Converter.TypeDecl.convertFuncDecl" $ do
     it "translates 0-ary functions correctly" $ shouldSucceedWith $ do
-      "Integer" <- defineTestTypeCon "Integer" 0
+      "Integer" <- defineTestTypeCon "Integer" 0 []
       "foo"     <- defineTestFunc "foo" 0 "Integer"
       shouldConvertTypeDeclsTo
         (NonRecursive "foo :: Integer = 42")
@@ -58,7 +58,7 @@ testConvertFuncDecls =
     it "translates functions with multiple arguments correctly"
       $ shouldSucceedWith
       $ do
-          "Pair"       <- defineTestTypeCon "Pair" 0
+          "Pair"       <- defineTestTypeCon "Pair" 0 ["Pair"]
           (_, "Pair0") <- defineTestCon "Pair"
                                         2
                                         "forall a b. a -> b -> Pair a b"
@@ -73,7 +73,7 @@ testConvertFuncDecls =
             ]
 
     it "translates higher order functions correctly" $ shouldSucceedWith $ do
-      "Pair" <- defineTestTypeCon "Pair" 0
+      "Pair" <- defineTestTypeCon "Pair" 0 ["Pair"]
       (_, "Pair0") <- defineTestCon "Pair" 2 "forall a b. a -> b -> Pair a b"
       "curry" <- defineTestFunc "curry"
                                 0
