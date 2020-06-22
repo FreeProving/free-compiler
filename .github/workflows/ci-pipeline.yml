@@ -6,16 +6,16 @@ name: CI Pipeline
 # or reopened. If just the README or documentation changes, the pipeline does
 # not have to run. It also runs when the workflow configuration changed itself.
 #
-# When such a pull request is merged the resulting `push` event on the master
+# When such a pull request is merged the resulting `push` event on the main
 # branch triggers another run of the CI pipeline. This is necessary because
-# there could be changes to the master branch that are not compatible with the
+# there could be changes to the main branch that are not compatible with the
 # pull request but don't prevent fast-forward merging.
 # Furthermore, the documentation is deployed to GitHub pages during the second
 # run of the CI pipeline.
 #
-# Most jobs below are disabled in draft pull requests. When the duch a draft
+# Most jobs below are disabled in draft pull requests. When the such a draft
 # pull request becomes ready for review, the CI pipeline is triggered again
-# such that the remaining jobs as well.
+# such that the remaining jobs run as well.
 on:
   pull_request:
     types:
@@ -32,7 +32,8 @@ on:
     - '.github/workflows/ci-pipeline.yml'
   push:
     branches:
-    - 'master'
+    - 'main'
+    - 'dev-*'
     paths:
     - 'cabal.project'
     - 'free-compiler.cabal'
@@ -293,7 +294,7 @@ jobs:
   # when forking the repository.
   #
   # This job only runs on `push` events and not on `pull_request` events.
-  # This limits the deployment effectively to the master branch (and maybe
+  # This limits the deployment effectively to the main branch (and maybe
   # tags in the future).
   #
   # **NEVER** commit the contents of the private key!

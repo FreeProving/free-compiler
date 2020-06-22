@@ -28,10 +28,10 @@
  - **Initial version**
 
 [`doc/ExperimentalFeatures/PatternMatchingCompilation.md`]:
-  https://github.com/FreeProving/free-compiler/blob/master/doc/ExperimentalFeatures/PatternMatchingCompilation.md
+  https://github.com/FreeProving/free-compiler/blob/main/doc/ExperimentalFeatures/PatternMatchingCompilation.md
   "Free Compiler Documentation — Pattern Matching Compilation"
 [`doc/CustomPragma/DecreasingArgumentPragma.md`]:
-  https://github.com/FreeProving/free-compiler/blob/master/doc/CustomPragma/DecreasingArgumentPragma.md
+  https://github.com/FreeProving/free-compiler/blob/main/doc/CustomPragma/DecreasingArgumentPragma.md
   "Free Compiler Documentation — Decreasing Argument Pragma"
 
 [tag/v0.1.0.0]:
