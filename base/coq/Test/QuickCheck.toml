@@ -31,6 +31,7 @@ exported-values = [
   coq-name     = 'Property'
   agda-name    = 'Property'
   arity        = 0
+  cons-names   = []
 
 ##############################################################################
 # Functions                                                                  #
@@ -103,3 +104,7 @@ exported-values = [
   coq-name     = 'Bool'
   agda-name    = 'Bool'
   arity        = 0
+  cons-names   = [
+      'Prelude.True',
+      'Prelude.False',
+    ]

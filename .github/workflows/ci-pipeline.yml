@@ -13,9 +13,9 @@ name: CI Pipeline
 # Furthermore, the documentation is deployed to GitHub pages during the second
 # run of the CI pipeline.
 #
-# Most jobs below are disabled in draft pull requests. When the duch a draft
+# Most jobs below are disabled in draft pull requests. When the such a draft
 # pull request becomes ready for review, the CI pipeline is triggered again
-# such that the remaining jobs as well.
+# such that the remaining jobs run as well.
 on:
   pull_request:
     types:
@@ -33,7 +33,7 @@ on:
   push:
     branches:
     - 'master'
-    - 'dev-agda'
+    - 'dev-*'
     paths:
     - 'cabal.project'
     - 'free-compiler.cabal'

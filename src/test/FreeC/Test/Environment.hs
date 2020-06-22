@@ -10,6 +10,8 @@ module FreeC.Test.Environment
   , defineTestVar
   , defineTestFunc
   , definePartialTestFunc
+  , defineStrictTestFunc
+  , definePartialStrictTestFunc
   )
 where
 
@@ -88,12 +90,14 @@ defineTestTypeSyn nameStr typeArgs typeStr = do
 --   testing purposes.
 --
 --   Returns the Coq identifier assigned to the type constructor.
-defineTestTypeCon :: String -> Int -> Converter String
-defineTestTypeCon nameStr arity = do
-  name <- parseTestQName nameStr
+defineTestTypeCon :: String -> Int -> [String] -> Converter String
+defineTestTypeCon nameStr arity consNameStrs = do
+  name      <- parseTestQName nameStr
+  consNames <- mapM parseTestQName consNameStrs
   renameAndAddTestEntry DataEntry { entrySrcSpan   = NoSrcSpan
                                   , entryArity     = arity
                                   , entryName      = name
+                                  , entryConsNames = consNames
                                   , entryIdent     = undefined -- filled by renamer
                                   , entryAgdaIdent = undefined -- filled by renamer
                                   }
@@ -116,8 +120,8 @@ defineTestCon nameStr arity typeStr = do
     { entrySrcSpan        = NoSrcSpan
     , entryArity          = arity
     , entryTypeArgs       = map IR.typeVarDeclIdent typeArgs
-    , entryArgTypes       = map Just argTypes
-    , entryReturnType     = Just returnType
+    , entryArgTypes       = argTypes
+    , entryReturnType     = returnType
     , entryName           = name
     , entryIdent          = undefined -- filled by renamer
     , entryAgdaIdent      = undefined -- filled by renamer
@@ -157,12 +161,14 @@ defineTestVar nameStr = do
 --   The argument and return types are parsed from the given string.
 --   Returns the Coq identifier assigned to the function.
 defineTestFunc :: String -> Int -> String -> Converter String
-defineTestFunc = defineTestFunc' False
+defineTestFunc nameStr arity =
+  defineTestFunc' False (replicate arity False) nameStr arity
 
 -- | Like 'defineTestFunc' but the first argument controls whether the
---   defined function is partial or not.
-defineTestFunc' :: Bool -> String -> Int -> String -> Converter String
-defineTestFunc' partial nameStr arity typeStr = do
+--   defined function is partial or not. The second argument controls the
+--   strictness of the function arguments.
+defineTestFunc' :: Bool -> [Bool] -> String -> Int -> String -> Converter String
+defineTestFunc' partial areStrict nameStr arity typeStr = do
   name                              <- parseTestQName nameStr
   IR.TypeSchema _ typeArgs typeExpr <- parseExplicitTestTypeSchema typeStr
   let (argTypes, returnType) = IR.splitFuncType typeExpr arity
@@ -170,8 +176,9 @@ defineTestFunc' partial nameStr arity typeStr = do
     { entrySrcSpan       = NoSrcSpan
     , entryArity         = arity
     , entryTypeArgs      = map IR.typeVarDeclIdent typeArgs
-    , entryArgTypes      = map Just argTypes
-    , entryReturnType    = Just returnType
+    , entryArgTypes      = argTypes
+    , entryStrictArgs    = areStrict
+    , entryReturnType    = returnType
     , entryNeedsFreeArgs = True
     , entryIsPartial     = partial
     , entryName          = name
@@ -183,7 +190,24 @@ defineTestFunc' partial nameStr arity typeStr = do
 --
 --   Returns the Coq identifier assigned to the function.
 definePartialTestFunc :: String -> Int -> String -> Converter String
-definePartialTestFunc = defineTestFunc' True
+definePartialTestFunc nameStr arity =
+  defineTestFunc' True (replicate arity False) nameStr arity
+
+-- | Like 'defineTestFunc' but also allows to mark arguments as strict in the
+--   second argument.
+--
+--   Returns the Coq identifier assigned to the function.
+defineStrictTestFunc :: String -> [Bool] -> String -> Converter String
+defineStrictTestFunc nameStr areStrict =
+  defineTestFunc' False areStrict nameStr (length areStrict)
+
+-- | Like 'defineTestFunc' but also allows to mark arguments as strict in the
+--   second argument and marks the given function as partial.
+--
+--   Returns the Coq identifier assigned to the function.
+definePartialStrictTestFunc :: String -> [Bool] -> String -> Converter String
+definePartialStrictTestFunc nameStr areStrict =
+  defineTestFunc' True areStrict nameStr (length areStrict)
 
 -------------------------------------------------------------------------------
 -- Utility functions                                                         --

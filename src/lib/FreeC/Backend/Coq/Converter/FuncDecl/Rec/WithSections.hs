@@ -205,8 +205,8 @@ renameFuncDecls decls = do
             _     <- renameAndAddEntry entry
               { entryName       = name'
               , entryTypeArgs   = typeArgIdents'
-              , entryArgTypes   = map IR.varPatType args'
-              , entryReturnType = maybeRetType'
+              , entryArgTypes   = map (fromJust . IR.varPatType) args'
+              , entryReturnType = fromJust maybeRetType'
               }
 
             -- If the decreasing argument of the original function has been
@@ -464,8 +464,8 @@ updateTypeSig mgu constTypeVars argTypeMap returnTypeMap funcDecl = do
   let allTypeArgs = map IR.typeVarIdent typeArgVars
       entry'      = entry { entryArity         = length args
                           , entryTypeArgs      = allTypeArgs \\ constTypeVars
-                          , entryArgTypes      = argTypes
-                          , entryReturnType    = returnType
+                          , entryArgTypes      = map fromJust argTypes
+                          , entryReturnType    = fromJust returnType
                           , entryNeedsFreeArgs = False
                           }
   modifyEnv $ addEntry entry'
@@ -616,10 +616,6 @@ generateInterfaceDecl constArgs isConstArgUsed nameMap mgu sectionTypeArgs renam
         $ mapMaybe (Map.lookup name . constArgIdents) constArgs
       usedConstArgNames =
         map fst $ filter snd $ zip constArgNames isConstArgUsed
-
-    -- The interface function is not recursive. Thus, we have to remove the
-    -- decreasing argument, if one has been specified by the user.
-    modifyEnv $ removeDecArg name
 
     -- Generate the left-hand side of the interface function definition.
     (qualid, binders, returnType') <- convertFuncHead funcDecl
