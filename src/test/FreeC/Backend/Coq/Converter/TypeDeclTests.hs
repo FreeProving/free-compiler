@@ -23,8 +23,7 @@ import           FreeC.Test.Expectations
 
 -- | Parses the given type-level IR declarations, converts them to Coq using
 --   'convertTypeComponent' and sets the expectation that the resulting AST
---   is equal to the given output when pretty printed modulo white
---   space.
+--   is equal to the given output when pretty printed modulo whitespace.
 shouldConvertTypeDeclsTo
   :: DependencyComponent String -> String -> Converter Expectation
 shouldConvertTypeDeclsTo inputStrs expectedOutputStr = do
