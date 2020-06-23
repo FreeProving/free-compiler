@@ -4,6 +4,7 @@
     "exported-values": [
         "FastLooseBasic.S",
         "FastLooseBasic.Zero",
+        "FastLooseBasic.append",
         "FastLooseBasic.comp",
         "FastLooseBasic.foldPeano",
         "FastLooseBasic.id",
@@ -12,8 +13,10 @@
         "FastLooseBasic.plus",
         "FastLooseBasic.pred",
         "FastLooseBasic.prop_rev_is_rev_inv",
+        "FastLooseBasic.prop_reverse_is_reverseNaive",
         "FastLooseBasic.rev",
-        "FastLooseBasic.reverse"
+        "FastLooseBasic.reverse",
+        "FastLooseBasic.reverseNaive"
     ],
     "module-name": "FastLooseBasic",
     "exported-types": [
@@ -137,6 +140,14 @@
     "version": 3,
     "functions": [
         {
+            "arity": 2,
+            "haskell-type": "Prelude.([]) a -> Prelude.([]) a -> Prelude.([]) a",
+            "coq-name": "append",
+            "needs-free-args": true,
+            "partial": false,
+            "haskell-name": "FastLooseBasic.append"
+        },
+        {
             "arity": 3,
             "haskell-type": "(b -> c) -> (a -> b) -> a -> c",
             "coq-name": "comp",
@@ -201,6 +212,14 @@
             "haskell-name": "FastLooseBasic.prop_rev_is_rev_inv"
         },
         {
+            "arity": 1,
+            "haskell-type": "Prelude.([]) a -> Test.QuickCheck.Property",
+            "coq-name": "prop_reverse_is_reverseNaive",
+            "needs-free-args": true,
+            "partial": false,
+            "haskell-name": "FastLooseBasic.prop_reverse_is_reverseNaive"
+        },
+        {
             "arity": 2,
             "haskell-type": "Prelude.([]) t0 -> Prelude.([]) t0 -> Prelude.([]) t0",
             "coq-name": "rev",
@@ -215,6 +234,14 @@
             "needs-free-args": true,
             "partial": false,
             "haskell-name": "FastLooseBasic.reverse"
+        },
+        {
+            "arity": 1,
+            "haskell-type": "Prelude.([]) a -> Prelude.([]) a",
+            "coq-name": "reverseNaive",
+            "needs-free-args": true,
+            "partial": false,
+            "haskell-name": "FastLooseBasic.reverseNaive"
         },
         {
             "arity": 1,
