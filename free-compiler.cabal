@@ -111,6 +111,7 @@ library freec-internal
                       , FreeC.Backend.Agda.Converter.Size
                       , FreeC.Backend.Agda.Converter.Type
                       , FreeC.Backend.Agda.Converter.TypeDecl
+                      , FreeC.Backend.Agda.Keywords
                       , FreeC.Backend.Agda.Pretty
                       , FreeC.Backend.Agda.Syntax
                       , FreeC.Backend.Coq.Analysis.ConstantArguments
