@@ -227,5 +227,5 @@ requireExportFrom library modules = ModuleSentence
 
 -- | Creates a @From ... Require ...@ sentence.
 requireFrom :: ModuleIdent -> [ModuleIdent] -> Sentence
-requireFrom library modules = ModuleSentence
-  (Require (Just library) Nothing (NonEmpty.fromList modules))
+requireFrom library modules =
+  ModuleSentence (Require (Just library) Nothing (NonEmpty.fromList modules))
