@@ -362,8 +362,9 @@ testLambdaExprParser = context "lambda abstractions" $ do
                               Nothing
   it "accepts lambda abstractions with type annotated arguments" $ do
     "\\(x :: a) -> x" `shouldParse` IR.Lambda NoSrcSpan [xPat'] x Nothing
-  it "accepts lambda abstractions with type annotations for right-hand side" $ do
-    "\\x -> x :: a" `shouldParse` IR.Lambda NoSrcSpan [xPat] x' Nothing
+  it "accepts lambda abstractions with type annotations for right-hand side"
+    $ do
+        "\\x -> x :: a" `shouldParse` IR.Lambda NoSrcSpan [xPat] x' Nothing
   it "accepts lambda abstractions with type annotations" $ do
     "(\\x -> x) :: a" `shouldParse` IR.Lambda NoSrcSpan [xPat] x (Just a)
   it "rejects lambda abstractions without arguments" $ do
