@@ -45,7 +45,7 @@ testExpandTypeSynonym = context "expandTypeSynonym" $ do
 
 -- | Test group for 'expandAllTypeSynonyms' tests.
 testExpandAllTypeSynonyms :: Spec
-testExpandAllTypeSynonyms = context "expandAllTypeSynonym" $ do
+testExpandAllTypeSynonyms = context "expandAllTypeSynonyms" $ do
   it "expands outermost type synonyms" $ shouldSucceedWith $ do
     _              <- defineTestTypeSyn "Foo" ["a"] "Bar a"
     _              <- defineTestTypeCon "Bar" 1
