@@ -10,10 +10,10 @@
 </span><a name="line-10"></a><span class="hs-comment">--</span><span>
 </span><a name="line-11"></a><span class="hs-comment">--   There are two versions of the parsing functions. The functions with</span><span>
 </span><a name="line-12"></a><span class="hs-comment">--   @parseTest@ prefix parse the input string and report errors to an</span><span>
-</span><a name="line-13"></a><span class="hs-comment">--   arbitrary 'MonadReporter'. The functions with @expectParseTest@ prefix</span><span>
-</span><a name="line-14"></a><span class="hs-comment">--   on the other hand set the expectation that parsing is successful.</span><span>
+</span><a name="line-13"></a><span class="hs-comment">--   arbitrary 'MonadReporter'. The functions with @expectParseTest@ prefix,</span><span>
+</span><a name="line-14"></a><span class="hs-comment">--   on the other hand, set the expectation that parsing is successful.</span><span>
 </span><a name="line-15"></a><span class="hs-comment">--   If there is a parse error, an assertion failure will cause the test</span><span>
-</span><a name="line-16"></a><span class="hs-comment">--   to fail immediately. The latter kind of functions are supposed to be</span><span>
+</span><a name="line-16"></a><span class="hs-comment">--   to fail immediately. The latter kind of functions is supposed to be</span><span>
 </span><a name="line-17"></a><span class="hs-comment">--   used for setup actions. The example below illustrates how to use</span><span>
 </span><a name="line-18"></a><span class="hs-comment">--   these functions.</span><span>
 </span><a name="line-19"></a><span class="hs-comment">--</span><span>
@@ -22,8 +22,8 @@
 </span><a name="line-22"></a><span class="hs-comment">--   &gt;   foo expr `shouldReturn` something</span><span>
 </span><a name="line-23"></a><span class="hs-comment">--</span><span>
 </span><a name="line-24"></a><span class="hs-comment">--   This pattern is especially important when testing for failures. In the</span><span>
-</span><a name="line-25"></a><span class="hs-comment">--   following example we cannot distinguish whether @foo@ failed or we have</span><span>
-</span><a name="line-26"></a><span class="hs-comment">--   a typo in out test expression.</span><span>
+</span><a name="line-25"></a><span class="hs-comment">--   following example, we cannot distinguish whether @foo@ failed or we have</span><span>
+</span><a name="line-26"></a><span class="hs-comment">--   a typo in our test expression.</span><span>
 </span><a name="line-27"></a><span class="hs-comment">--</span><span>
 </span><a name="line-28"></a><span class="hs-comment">--   &gt; it &quot;...&quot; $ shouldFail $ do</span><span>
 </span><a name="line-29"></a><span class="hs-comment">--   &gt;   expr &lt;- parseTestExpr &quot;...&quot;</span><span>
@@ -211,7 +211,7 @@
 </span><a name="line-211"></a><a name="parseTestComponent"><a href="FreeC.Test.Parser.html#parseTestComponent"><span class="hs-identifier">parseTestComponent</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="file:///home/runner/work/free-compiler/free-compiler/dist-newstyle/build/x86_64-linux/ghc-8.6.5/free-compiler-0.2.0.0/l/freec-internal/doc/html/free-compiler/src/FreeC.IR.DependencyGraph.html#mapComponentM"><span class="hs-identifier hs-var">mapComponentM</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">mapM</span><span> </span><a href="FreeC.Test.Parser.html#parseTestIR"><span class="hs-identifier hs-var">parseTestIR</span></a><span class="hs-special">)</span><span>
 </span><a name="line-212"></a><span>
 </span><a name="line-213"></a><span class="hs-comment">-- | Parses the declarations in the given dependency component and sets the</span><span>
-</span><a name="line-214"></a><span class="hs-comment">--   expectation that parsing is successul.</span><span>
+</span><a name="line-214"></a><span class="hs-comment">--   expectation that parsing is successful.</span><span>
 </span><a name="line-215"></a><span class="hs-identifier">expectParseTestComponent</span><span>
 </span><a name="line-216"></a><span>  </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">MonadFail</span><span> </span><a href="#local-6989586621679117817"><span class="hs-identifier hs-type">m</span></a><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">MonadIO</span><span> </span><a href="#local-6989586621679117817"><span class="hs-identifier hs-type">m</span></a><span class="hs-special">,</span><span> </span><a href="file:///home/runner/work/free-compiler/free-compiler/dist-newstyle/build/x86_64-linux/ghc-8.6.5/free-compiler-0.2.0.0/l/freec-internal/doc/html/free-compiler/src/FreeC.Frontend.IR.Parser.html#Parseable"><span class="hs-identifier hs-type">Parseable</span></a><span> </span><a href="#local-6989586621679117818"><span class="hs-identifier hs-type">decl</span></a><span class="hs-special">)</span><span>
 </span><a name="line-217"></a><span>  </span><span class="hs-glyph">=&gt;</span><span> </span><a href="file:///home/runner/work/free-compiler/free-compiler/dist-newstyle/build/x86_64-linux/ghc-8.6.5/free-compiler-0.2.0.0/l/freec-internal/doc/html/free-compiler/src/FreeC.IR.DependencyGraph.html#DependencyComponent"><span class="hs-identifier hs-type">DependencyComponent</span></a><span> </span><span class="hs-identifier hs-type">String</span><span>
