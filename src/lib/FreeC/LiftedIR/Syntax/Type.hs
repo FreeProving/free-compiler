@@ -17,6 +17,7 @@ data Type
       { typeSrcSpan  :: SrcSpan
       , typeVarIdent :: TypeVarIdent
       }
+
   | -- | A fully applied n-ary type constructor application.
     TypeCon
       { typeSrcSpan :: SrcSpan
@@ -29,12 +30,14 @@ data Type
         --   argument. This field is used by the Agda back end to place sized
         --   type annotations.
       }
+
   | -- | A function type.
     FuncType
       { typeSrcSpan :: SrcSpan
       , funcTypeArg :: Type
       , funcTypeRes :: Type
       }
+
   | -- | A type constructor for the free monad.
     FreeTypeCon
       { typeSrcSpan :: SrcSpan

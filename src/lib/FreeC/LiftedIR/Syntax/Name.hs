@@ -3,6 +3,10 @@
 module FreeC.LiftedIR.Syntax.Name
   ( IR.Name(..)
   , IR.QName(..)
+    -- * Value Level Names
+  , IR.ConName
+  , IR.VarName
+    -- * Type Level Names
   , IR.TypeVarIdent
   , IR.TypeConName
   )
