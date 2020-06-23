@@ -240,6 +240,7 @@ test-suite freec-unit-tests
                     , FreeC.IR.UnificationTests
                     , FreeC.Monad.Class.Testable
                     , FreeC.Monad.ReporterTests
+                    , FreeC.Pass.CompletePatternPassTests
                     , FreeC.Pass.EtaConversionPassTests
                     , FreeC.Pass.KindCheckPassTests
                     , FreeC.Pass.PartialityAnalysisPassTests
