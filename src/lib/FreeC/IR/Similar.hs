@@ -214,7 +214,7 @@ instance Similar IR.Type where
   similar' (IR.TypeApp  _ _ _) _ = const False
   similar' (IR.FuncType _ _ _) _ = const False
 
--- | Two type schemas are similar if their abstracted types are similar
+-- | Two type schemata are similar if their abstracted types are similar
 --   under an extend 'Renaming' that maps the corresponding type arguments
 --   to each other.
 --
