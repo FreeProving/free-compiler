@@ -8,7 +8,7 @@ import           Control.Monad.Trans.Class
 import           Control.Monad.Trans.Maybe      ( MaybeT(..) )
 
 -- | Type class for monad transformers whose inner monad can be lifted from
---   'Identity' to some arbitry 'Monad'.
+--   'Identity' to some arbitrary 'Monad'.
 class MonadTrans t => Hoistable t where
   -- | Lifts the transformed identity monad to any transformed monad.
   hoist :: Monad m => t Identity a -> t m a
