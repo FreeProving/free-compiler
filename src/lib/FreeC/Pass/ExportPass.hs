@@ -6,6 +6,10 @@
 --   are listed as exported. All other entries are "hidden". Hidden entries are
 --   included such that module interfaces are self contained and type synonyms
 --   can be expanded properly.
+--   Additionally, all Coq identifiers of exported entries are qualified with
+--   their original module name in the module interface.
+--   This prevents name conflicts when several modules that use the same identifier
+--   are imported.
 --
 --   = Examples
 --
@@ -19,7 +23,7 @@
 --
 --   contains 'interfaceEntries' for all entries from the implicitly imported
 --   @Prelude@ module and an entry for the type @A.Foo@ and constructor @A.Bar@.
---   However, only @A.Foo@ and @A.Bar@ are are exported by the module and
+--   However, only @A.Foo@ and @A.Bar@ are exported by the module and
 --   therefore listed in 'interfaceExports'.
 --
 --   == Example 2
@@ -62,6 +66,9 @@ where
 
 import qualified Data.Map.Strict               as Map
 import qualified Data.Set                      as Set
+import qualified Data.Text                     as Text
+
+import           Language.Coq.Gallina
 
 import qualified FreeC.Backend.Coq.Base        as Coq.Base
 import           FreeC.Environment
@@ -85,12 +92,15 @@ exportPass ast = do
 exportInterface :: IR.ModName -> Converter ModuleInterface
 exportInterface modName = do
   entries <- inEnv $ Map.elems . envEntries
-  let exports = map entryScopedName $ filter isExported entries
-  return ModuleInterface { interfaceModName = modName
-                         , interfaceLibName = Coq.Base.generatedLibName
-                         , interfaceExports = Set.fromList exports
-                         , interfaceEntries = Set.fromList entries
-                         }
+  let exports     = map entryScopedName $ filter isExported entries
+  let qualEntries = map qualifyExportedIdent entries
+  return
+    (ModuleInterface { interfaceModName = modName
+                     , interfaceLibName = Coq.Base.generatedLibName
+                     , interfaceExports = Set.fromList exports
+                     , interfaceEntries = Set.fromList qualEntries
+                     }
+    )
  where
    -- Tests whether to export the given entry.
    --
@@ -103,3 +113,23 @@ exportInterface modName = do
   isExported entry = case entryName entry of
     IR.Qual modName' _ -> modName' == modName
     IR.UnQual _        -> False
+
+  -- Qualifies the Coq identifier in the module interface with the module name
+  -- when an entry of the module is exported.
+  -- This ensures that any module that imports the entry uses its qualified
+  -- name, which prevents name conflicts between imported modules.
+  qualifyExportedIdent :: EnvEntry -> EnvEntry
+  qualifyExportedIdent entry
+    | isExported entry = if isConEntry entry
+      then entry { entryIdent      = qualifyIdent (entryIdent entry)
+                 , entrySmartIdent = qualifyIdent (entrySmartIdent entry)
+                 }
+      else entry { entryIdent = qualifyIdent (entryIdent entry) }
+    | otherwise = entry
+
+
+  -- Qualifies an unqualified Coq identifier with the module name.
+  -- A qualified Coq identifer is not modified.
+  qualifyIdent :: Qualid -> Qualid
+  qualifyIdent (         Bare coqName ) = Qualified (Text.pack modName) coqName
+  qualifyIdent qualName@(Qualified _ _) = qualName
