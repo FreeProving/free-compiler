@@ -13,7 +13,7 @@ import           FreeC.Test.Parser
 -- Expectation setters                                                       --
 -------------------------------------------------------------------------------
 
--- | Sets the expectation that the 'Parseable' instance can accepts the given
+-- | Sets the expectation that the 'Parseable' instance accepts the given
 --   input and produces the given output.
 shouldParse :: (Eq a, Parseable a, Show a) => String -> a -> Expectation
 shouldParse input expectedOutput =
@@ -135,7 +135,7 @@ testTypeParser = context "type expressions" $ do
     "A b" `shouldParse` IR.TypeApp NoSrcSpan a' b
   it "parses type application left associative" $ do
     "A b c" `shouldParse` IR.TypeApp NoSrcSpan (IR.TypeApp NoSrcSpan a' b) c
-  it "accepts types with parenthesis" $ do
+  it "accepts types with parentheses" $ do
     "(a -> b) -> c"
       `shouldParse` IR.FuncType NoSrcSpan (IR.FuncType NoSrcSpan a b) c
     "A (B c)" `shouldParse` IR.TypeApp NoSrcSpan a' (IR.TypeApp NoSrcSpan b' c)
@@ -164,14 +164,14 @@ testTypeSchemaParser = context "type schemas" $ do
 -- | Test group for 'Parseable' instance of type synonym declarations.
 testSynTypeDeclParser :: Spec
 testSynTypeDeclParser = context "type synonym declarations" $ do
-  it "accepts type synonyms declarations without type arguments"
+  it "accepts type synonym declarations without type arguments"
     $             "type Foo = Bar"
     `shouldParse` IR.TypeSynDecl
                     NoSrcSpan
                     (IR.DeclIdent NoSrcSpan (IR.UnQual (IR.Ident "Foo")))
                     []
                     (IR.TypeCon NoSrcSpan (IR.UnQual (IR.Ident "Bar")))
-  it "accepts type synonyms declarations with type arguments"
+  it "accepts type synonym declarations with type arguments"
     $             "type Foo a = Bar a"
     `shouldParse` IR.TypeSynDecl
                     NoSrcSpan
@@ -182,7 +182,7 @@ testSynTypeDeclParser = context "type synonym declarations" $ do
                       (IR.TypeCon NoSrcSpan (IR.UnQual (IR.Ident "Bar")))
                       (IR.TypeVar NoSrcSpan "a")
                     )
-  it "accepts type synonyms declarations with qualified name"
+  it "accepts type synonym declarations with qualified name"
     $             "type M.Foo = Bar"
     `shouldParse` IR.TypeSynDecl
                     NoSrcSpan
@@ -202,7 +202,7 @@ testDataDeclParser = context "data type declarations" $ do
   it "accepts data type declarations with a single constructor"
     $ shouldParse "data Foo = Bar"
     $ IR.DataDecl NoSrcSpan foo [] [IR.ConDecl NoSrcSpan bar []]
-  it "accepts data type declarations with a multiple constructors"
+  it "accepts data type declarations with multiple constructors"
     $ shouldParse "data Foo = Bar | Baz"
     . IR.DataDecl NoSrcSpan foo []
     $ [IR.ConDecl NoSrcSpan bar [], IR.ConDecl NoSrcSpan baz []]
@@ -217,7 +217,7 @@ testDataDeclParser = context "data type declarations" $ do
     shouldParse "data Foo a b = Bar a | Baz a b"
       . IR.DataDecl NoSrcSpan foo [a, b]
       $ [IR.ConDecl NoSrcSpan bar [a'], IR.ConDecl NoSrcSpan baz [a', b']]
-  it "accepts data type declarations with qualified name" $ do
+  it "accepts data type declarations with qualified names" $ do
     let foo' = IR.DeclIdent NoSrcSpan (IR.Qual "M" (IR.Ident "Foo"))
     shouldParse "data M.Foo" $ IR.DataDecl NoSrcSpan foo' [] []
   it "accepts data type declarations with qualified constructor names" $ do
@@ -272,12 +272,12 @@ testExprParser = context "expressions" $ do
 -- | Test group for 'Parseable' instance of expressions with type annotations.
 testExprTypeParser :: Spec
 testExprTypeParser = context "type annotated expressions" $ do
-  it "does not require parenthesis around type annotated expressions" $ do
+  it "does not require parentheses around type annotated expressions" $ do
     "x :: a" `shouldParse` IR.Var
       NoSrcSpan
       (IR.UnQual (IR.Ident "x"))
       (Just (IR.TypeSchema NoSrcSpan [] (IR.TypeVar NoSrcSpan "a")))
-  it "allows parenthesis around type annotated expressions" $ do
+  it "allows parentheses around type annotated expressions" $ do
     "(x :: a)" `shouldParse` IR.Var
       NoSrcSpan
       (IR.UnQual (IR.Ident "x"))
@@ -287,7 +287,7 @@ testExprTypeParser = context "type annotated expressions" $ do
       NoSrcSpan
       (IR.UnQual (IR.Ident "x"))
       (Just (IR.TypeSchema NoSrcSpan [] (IR.TypeVar NoSrcSpan "b")))
-  it "rejects multiple type annotations without parenthesis" $ do
+  it "rejects multiple type annotations without parentheses" $ do
     shouldBeParseError (parseTestExpr "x :: a :: b")
 
 
@@ -296,12 +296,12 @@ testConExprParser :: Spec
 testConExprParser = context "constructors" $ do
   it "accepts constructors" $ do
     "Foo" `shouldParse` IR.Con NoSrcSpan (IR.UnQual (IR.Ident "Foo")) Nothing
-  it "accepts constructors with symbolic name" $ do
+  it "accepts constructors with symbolic names" $ do
     "()" `shouldParse` IR.Con NoSrcSpan (IR.UnQual (IR.Symbol "")) Nothing
     "([])" `shouldParse` IR.Con NoSrcSpan (IR.UnQual (IR.Symbol "[]")) Nothing
     "(:)" `shouldParse` IR.Con NoSrcSpan (IR.UnQual (IR.Symbol ":")) Nothing
     "(,)" `shouldParse` IR.Con NoSrcSpan (IR.UnQual (IR.Symbol ",")) Nothing
-  it "accepts constructors with qualified name" $ do
+  it "accepts constructors with qualified names" $ do
     "M.Foo"
       `shouldParse` IR.Con NoSrcSpan (IR.Qual "M" (IR.Ident "Foo")) Nothing
 
@@ -310,9 +310,9 @@ testVarExprParser :: Spec
 testVarExprParser = context "variables" $ do
   it "accepts variables" $ do
     "x" `shouldParse` IR.Var NoSrcSpan (IR.UnQual (IR.Ident "x")) Nothing
-  it "accepts variables with symbolic name" $ do
+  it "accepts variables with symbolic names" $ do
     "(+)" `shouldParse` IR.Var NoSrcSpan (IR.UnQual (IR.Symbol "+")) Nothing
-  it "accepts variables with qualified name" $ do
+  it "accepts variables with qualified names" $ do
     "M.f" `shouldParse` IR.Var NoSrcSpan (IR.Qual "M" (IR.Ident "f")) Nothing
 
 -- | Test group for 'Parseable' instance of function application expressions.
@@ -331,13 +331,13 @@ testAppExprParser = context "function applications" $ do
     "f x" `shouldParse` fx
   it "parses function applications left associative" $ do
     "f x y" `shouldParse` IR.App NoSrcSpan fx y Nothing
-  it "accepts parenthesis in function applications" $ do
+  it "accepts parentheses in function applications" $ do
     "f (g x)" `shouldParse` IR.App NoSrcSpan f gx Nothing
-  it "accepts function applications with type annotation" $ do
+  it "accepts function applications with type annotations" $ do
     "f x :: a" `shouldParse` IR.App NoSrcSpan f x (Just a)
-  it "accepts function applications with type annotation for argument" $ do
+  it "accepts function applications with type annotations for argument" $ do
     "f (x :: a)" `shouldParse` IR.App NoSrcSpan f x' Nothing
-  it "accepts function applications with type annotation for callee" $ do
+  it "accepts function applications with type annotations for callee" $ do
     "(f :: a) x" `shouldParse` IR.App NoSrcSpan f' x Nothing
 
 -- | Test group for 'Parseable' instance of lambda abstractions.
@@ -352,7 +352,7 @@ testLambdaExprParser = context "lambda abstractions" $ do
       x'    = IR.Var NoSrcSpan (IR.UnQual (IR.Ident "x")) (Just a)
   it "accepts lambda abstractions with a single argument" $ do
     "\\x -> x" `shouldParse` IR.Lambda NoSrcSpan [xPat] x Nothing
-  it "accepts lambda abstractions with a multiple arguments" $ do
+  it "accepts lambda abstractions with multiple arguments" $ do
     "\\x y -> x" `shouldParse` IR.Lambda NoSrcSpan [xPat, yPat] x Nothing
   it "accepts nested lambda abstractions" $ do
     "\\x -> \\y -> x"
@@ -362,9 +362,9 @@ testLambdaExprParser = context "lambda abstractions" $ do
                               Nothing
   it "accepts lambda abstractions with type annotated arguments" $ do
     "\\(x :: a) -> x" `shouldParse` IR.Lambda NoSrcSpan [xPat'] x Nothing
-  it "accepts lambda abstractions with type annotation for right-hand side" $ do
+  it "accepts lambda abstractions with type annotations for right-hand side" $ do
     "\\x -> x :: a" `shouldParse` IR.Lambda NoSrcSpan [xPat] x' Nothing
-  it "accepts lambda abstractions with type annotation" $ do
+  it "accepts lambda abstractions with type annotations" $ do
     "(\\x -> x) :: a" `shouldParse` IR.Lambda NoSrcSpan [xPat] x (Just a)
   it "rejects lambda abstractions without arguments" $ do
     shouldBeParseError (parseTestExpr "\\ -> x")
@@ -424,7 +424,7 @@ testCaseExprParser = context "case expressions" $ do
                       , IR.Alt NoSrcSpan barPat [] y
                       ]
                       Nothing
-  it "accepts case expressions with trailing semicolon" $ do
+  it "accepts case expressions with trailing semicolons" $ do
     "case s of { Foo -> x; Bar -> y; }"
       `shouldParse` IR.Case
                       NoSrcSpan
@@ -465,13 +465,13 @@ testCaseExprParser = context "case expressions" $ do
       s
       [IR.Alt NoSrcSpan fooPat [xPat] x]
       (Just a)
-  it "accepts case expressions with type annotated scrutinee" $ do
+  it "accepts case expressions with type annotated scrutinees" $ do
     "case s :: a of { Foo x -> x }"
       `shouldParse` IR.Case NoSrcSpan
                             s'
                             [IR.Alt NoSrcSpan fooPat [xPat] x]
                             Nothing
-  it "accepts case expressions with type annotated scrutinee in parenthesis"
+  it "accepts case expressions with type annotated scrutinees in parentheses"
     $ do
         "case (s :: a) of { Foo x -> x }"
           `shouldParse` IR.Case NoSrcSpan
@@ -495,7 +495,7 @@ testErrorTermParser = context "error terms" $ do
     shouldBeParseError (parseTestExpr "error")
   it "rejects standalone string literal" $ do
     shouldBeParseError (parseTestExpr "\"...\"")
-  it "requires parenthesis around 'error' in application" $ do
+  it "requires parentheses around 'error' in application" $ do
     shouldBeParseError (parseTestExpr "f error \"...\"")
 
 -- | Test group for 'Parseable' instance of visible type applications.
@@ -519,7 +519,7 @@ testTypeAppExprParser = context "visible type applications" $ do
                                    (IR.ErrorExpr NoSrcSpan "..." Nothing)
                                    a
                                    Nothing
-  it "requires parenthesis around visible type application in application" $ do
+  it "requires parentheses around visible type application in application" $ do
     shouldBeParseError (parseTestExpr "f g @a")
   it "rejects visible type application of literals" $ do
     shouldBeParseError (parseTestExpr "42 @a")
