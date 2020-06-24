@@ -71,6 +71,12 @@ data Expr
            , exprType       :: Type
            }
 
+  | -- | The @pure@ constructor of the @Free@ monad.
+    Pure { exprSrcSpan  :: SrcSpan
+         , exprPureArg  :: Expr -- ^ The value that is lifted into the @Free@ monad.
+         , exprType     :: Type
+         }
+
   | -- | The bind operator for the free monad.
     Bind { exprSrcSpan  :: SrcSpan
          , exprBindArg  :: Expr -- ^ The left-hand side argument of @>>=@.
