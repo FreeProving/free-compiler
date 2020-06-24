@@ -98,3 +98,56 @@ Section Expr_ind.
   Defined.
 
 End Expr_ind.
+
+(* The following lemma and theorem are proven in the file `AppendAssocProofs.v`. *)
+Lemma append_nil : quickCheck prop_append_nil. Proof. Admitted.
+Theorem append_assoc : quickCheck prop_append_assoc. Proof. Admitted.
+
+Section Proofs.
+
+  Variable Shape   : Type.
+  Variable Pos     : Shape -> Type.
+  Variable Partial : Partial Shape Pos.
+
+  (* As the second compiler [comp'] just calls [compApp], we need the following lemma to prove [comp_comp'_eq]. *)
+  Lemma compApp_comp_append_eq :
+    forall (fexpr : Free Shape Pos (Expr Shape Pos))
+           (fcode : Free Shape Pos (Code Shape Pos)),
+        compApp Shape Pos fexpr fcode
+        = append Shape Pos (comp Shape Pos fexpr) fcode.
+  Proof.
+    intro fexpr.
+    inductFree fexpr as [ expr | s pf IHpf ].
+    induction expr as [ fn | fx fy IHfx IHfy ] using Expr_Ind.
+    - reflexivity.
+    - intro fcode. simpl comp_0.
+      do 2 (rewrite <- append_assoc).
+      simpl append.
+      (* Use [replace] here to make this main proof simple and produce additional simple subgoals. *)
+      replace (append Shape Pos (fy >>= (fun a34_0 : Expr Shape Pos => comp_0 Shape Pos a34_0)) (Cons Shape Pos (ADD Shape Pos) fcode))
+        with (compApp Shape Pos fy (Cons Shape Pos (ADD Shape Pos) fcode)).
+      replace (append Shape Pos (fx >>= (fun a33_0 : Expr Shape Pos => comp_0 Shape Pos a33_0))
+                (compApp Shape Pos fy (Cons Shape Pos (ADD Shape Pos) fcode)))
+        with (compApp Shape Pos fx (compApp Shape Pos fy (Cons Shape Pos (ADD Shape Pos) fcode))).
+      reflexivity.
+      (* Prove subgoals that were introduced by the [replace] tactic. *)
+      + inductFree fx as [ x | s pf IHpf ].
+        * apply IH.
+        * f_equal. extensionality p. dependent destruction IHfx. specialize (IHpf p (H p)) as IH. apply IH.
+      + inductFree fy as [ y | s pf IHpf ].
+        * apply IH.
+        * f_equal. extensionality p. dependent destruction IHfy. specialize (IHpf p (H p)) as IH. apply IH.
+    - intro fcode. f_equal. extensionality p. apply IHpf.
+  Qed.
+
+  (* With the lemma above the proof of the main theorem is simple. *)
+  Theorem comp_comp'_eq : quickCheck (prop_comp_comp'_eq Shape Pos).
+  Proof.
+    simpl.
+    intro fexpr.
+    rewrite <- append_nil.
+    rewrite <- compApp_comp_append_eq.
+    reflexivity.
+  Qed.
+
+End Proofs.
