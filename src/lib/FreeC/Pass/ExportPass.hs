@@ -101,13 +101,13 @@ exportInterface modName = do
                      }
     )
  where
-   -- | Tests whether to export the given entry.
-   --
-   --   Only top-level entries that are declared in the module are exported.
-   --   Since the original names of entries are qualified with the name of the
-   --   module they are declared in, we can tell whether an entry is declared
-   --   in the exported module by comparing the prefix of its original name
-   --   with the module name.
+  -- | Tests whether to export the given entry.
+  --
+  --   Only top-level entries that are declared in the module are exported.
+  --   Since the original names of entries are qualified with the name of the
+  --   module they are declared in, we can tell whether an entry is declared
+  --   in the exported module by comparing the prefix of its original name
+  --   with the module name.
   isExported :: EnvEntry -> Bool
   isExported entry = case entryName entry of
     IR.Qual modName' _ -> modName' == modName
