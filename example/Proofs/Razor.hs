@@ -54,3 +54,16 @@ compApp (Add x y) c = compApp x (compApp y (ADD : c))
 
 comp' :: Expr -> Code
 comp' e = compApp e []
+
+-- Now we can define a property for the correctness of those compilers.
+
+prop_comp_correct :: Expr -> Property
+prop_comp_correct e = exec (comp e) [] === [eval e]
+
+prop_comp'_correct :: Expr -> Property
+prop_comp'_correct e = exec (comp' e) [] === [eval e]
+
+-- We can also define the property that both compilers produce the same code.
+
+prop_comp_comp'_eq :: Expr -> Property
+prop_comp_comp'_eq e = comp e === comp' e
