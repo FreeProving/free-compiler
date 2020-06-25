@@ -1,4 +1,4 @@
--- | This module contains tests for "FreeC.Pass.ExportPass".
+-- | This module contains tests for "FreeC.Pass.ExportPass".
 
 module FreeC.Pass.ExportPassTests
   ( testExportPass
@@ -43,8 +43,8 @@ testExportPass = describe "FreeC.Pass.ExportPass" $ do
     it "Names of data types should be qualified when exported" $ do
       input <- expectParseTestModule ["module A where", "data Foo = Bar"]
       shouldSucceedWith $ do
-        _       <- defineTestTypeCon "Foo" 0 ["Bar"]
-        _       <- defineTestCon "Bar" 0 "Foo"
+        _       <- defineTestTypeCon "A.Foo" 0 ["A.Bar"]
+        _       <- defineTestCon "A.Bar" 0 "A.Foo"
         _       <- exportPass input
         mOutput <- inEnv $ lookupAvailableModule "A"
         let dEntries =
@@ -53,10 +53,10 @@ testExportPass = describe "FreeC.Pass.ExportPass" $ do
             foo = head dEntries
         entryIdent foo `shouldBeQualifiedWith` "A"
     it "Names of constructors are qualified when exported" $ do
-      input <- expectParseTestModule ["module A where", "data ABar = Foo"]
+      input <- expectParseTestModule ["module A where", "data Bar = Foo"]
       shouldSucceedWith $ do
-        _       <- defineTestTypeCon "ABar" 0 ["Foo"]
-        _       <- defineTestCon "Foo" 0 "ABar"
+        _       <- defineTestTypeCon "A.Bar" 0 ["Foo"]
+        _       <- defineTestCon "A.Foo" 0 "A.Bar"
         _       <- exportPass input
         mOutput <- inEnv $ lookupAvailableModule "A"
         let
@@ -68,9 +68,9 @@ testExportPass = describe "FreeC.Pass.ExportPass" $ do
       input <- expectParseTestModule
         ["module A where", "data Bar = Bar;", "type Foo = Bar"]
       shouldSucceedWith $ do
-        _       <- defineTestTypeCon "Bar" 0 ["Bar"]
-        _       <- defineTestCon "Bar" 0 "Bar"
-        _       <- defineTestTypeSyn "Foo" [] "Bar"
+        _       <- defineTestTypeCon "A.Bar" 0 ["A.Bar"]
+        _       <- defineTestCon "A.Bar" 0 "A.Bar"
+        _       <- defineTestTypeSyn "A.Foo" [] "A.Bar"
         _       <- exportPass input
         mOutput <- inEnv $ lookupAvailableModule "A"
         let tsEntries =
@@ -82,9 +82,9 @@ testExportPass = describe "FreeC.Pass.ExportPass" $ do
       input <- expectParseTestModule
         ["module A where", "data Bar = Bar;", "type Foo = Bar"]
       shouldSucceedWith $ do
-        _       <- defineTestTypeCon "Foo" 0 ["Foo"]
-        _       <- defineTestCon "Foo" 0 "Foo"
-        _       <- defineTestFunc "mkFoo" 0 "Foo"
+        _       <- defineTestTypeCon "A.Foo" 0 ["A.Foo"]
+        _       <- defineTestCon "A.Foo" 0 "A.Foo"
+        _       <- defineTestFunc "A.mkFoo" 0 "A.Foo"
         _       <- exportPass input
         mOutput <- inEnv $ lookupAvailableModule "A"
         let fEntries =
