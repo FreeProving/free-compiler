@@ -4,13 +4,13 @@
 </span><a name="line-4"></a><span class="hs-comment">--   The intermediate language is very similar to the subset of Haskell</span><span>
 </span><a name="line-5"></a><span class="hs-comment">--   supported by the compiler. The main goal is to make the transformations</span><span>
 </span><a name="line-6"></a><span class="hs-comment">--   on the AST and code generation functions easier to comprehend. The IR does</span><span>
-</span><a name="line-7"></a><span class="hs-comment">--   have fewer syntactic constructs than  Haskell AST that fewer cases need to</span><span>
+</span><a name="line-7"></a><span class="hs-comment">--   have fewer syntactic constructs than Haskell so that fewer cases need to</span><span>
 </span><a name="line-8"></a><span class="hs-comment">--   be distinguished. For example, there is no explicit representation of</span><span>
 </span><a name="line-9"></a><span class="hs-comment">--   infix function applications and no list literals. These kinds of syntactic</span><span>
 </span><a name="line-10"></a><span class="hs-comment">--   sugar must be removed by the front end.</span><span>
 </span><a name="line-11"></a><span class="hs-comment">--</span><span>
 </span><a name="line-12"></a><span class="hs-comment">--   An additional goal of this AST is to reduce coupling with the parsing</span><span>
-</span><a name="line-13"></a><span class="hs-comment">--   library and source language. Ideally the compiler works with any language</span><span>
+</span><a name="line-13"></a><span class="hs-comment">--   library and source language. Ideally, the compiler works with any language</span><span>
 </span><a name="line-14"></a><span class="hs-comment">--   whose AST can be transformed into this intermediate representation.</span><span>
 </span><a name="line-15"></a><span class="hs-comment">--</span><span>
 </span><a name="line-16"></a><span class="hs-comment">--   A parser for the intermediate language and a description of its syntax</span><span>

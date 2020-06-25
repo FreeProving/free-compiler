@@ -1,9 +1,9 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-comment">-- | This module contains functions for for expanding type synonyms in type</span><span>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-comment">-- | This module contains functions for expanding type synonyms in type</span><span>
 </span><a name="line-2"></a><span class="hs-comment">--   expressions, type signatures as well as data type and other type synonym</span><span>
 </span><a name="line-3"></a><span class="hs-comment">--   declarations.</span><span>
 </span><a name="line-4"></a><span class="hs-comment">--</span><span>
 </span><a name="line-5"></a><span class="hs-comment">--   The expansion of type synonyms is used to split the type of a function</span><span>
-</span><a name="line-6"></a><span class="hs-comment">--   into the types of it's arguments and the return type. It is also used</span><span>
+</span><a name="line-6"></a><span class="hs-comment">--   into the types of its arguments and the return type. It is also used</span><span>
 </span><a name="line-7"></a><span class="hs-comment">--   during the conversion of mutually recursive data type and type synonym</span><span>
 </span><a name="line-8"></a><span class="hs-comment">--   declarations to break the dependency of the data type declarations on</span><span>
 </span><a name="line-9"></a><span class="hs-comment">--   the type synonyms (because they cannot be declared in the same sentence</span><span>
@@ -101,7 +101,7 @@
 </span><a name="line-101"></a><span class="hs-comment">--   maximum depth.</span><span>
 </span><a name="line-102"></a><span class="hs-comment">--</span><span>
 </span><a name="line-103"></a><span class="hs-comment">--   If the maximum depth is @0@, the type will be returned unchanged.</span><span>
-</span><a name="line-104"></a><span class="hs-comment">--   If it is @1@ only the outermost type synonym will be expanded.</span><span>
+</span><a name="line-104"></a><span class="hs-comment">--   If it is @1@, only the outermost type synonym will be expanded.</span><span>
 </span><a name="line-105"></a><span class="hs-comment">--   If it is negative, all type synonyms will be expanded (see also</span><span>
 </span><a name="line-106"></a><span class="hs-comment">--   'expandAllTypeSynonyms').</span><span>
 </span><a name="line-107"></a><span class="hs-identifier">expandTypeSynonyms</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Int</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="FreeC.IR.Syntax.Type.html#Type"><span class="hs-identifier hs-type">IR.Type</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="FreeC.Monad.Converter.html#Converter"><span class="hs-identifier hs-type">Converter</span></a><span> </span><a href="FreeC.IR.Syntax.Type.html#Type"><span class="hs-identifier hs-type">IR.Type</span></a><span>

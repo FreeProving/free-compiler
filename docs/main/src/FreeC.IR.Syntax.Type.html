@@ -13,7 +13,7 @@
 </span><a name="line-13"></a><span>
 </span><a name="line-14"></a><span class="hs-comment">-- | A type expression.</span><span>
 </span><a name="line-15"></a><span class="hs-comment">--</span><span>
-</span><a name="line-16"></a><span class="hs-comment">--   Build-in types are represented by applications of their type constructors.</span><span>
+</span><a name="line-16"></a><span class="hs-comment">--   Built-in types are represented by applications of their type constructors.</span><span>
 </span><a name="line-17"></a><span class="hs-comment">--   E.g. the type @[a]@ is represented as</span><span>
 </span><a name="line-18"></a><span class="hs-comment">--   @'TypeApp' ('TypeCon' &quot;[]&quot;) ('TypeVar' &quot;a&quot;)@.</span><span>
 </span><a name="line-19"></a><span class="hs-comment">--   The only exception to this rule is the function type @a -&gt; b@. It is</span><span>
@@ -86,13 +86,13 @@
 </span><a name="line-86"></a><span class="hs-keyword">instance</span><span> </span><span class="hs-identifier hs-type">Pretty</span><span> </span><a href="FreeC.IR.Syntax.Type.html#Type"><span class="hs-identifier hs-type">Type</span></a><span> </span><span class="hs-keyword">where</span><span>
 </span><a name="line-87"></a><span>  </span><a name="local-8214565720323834057"><span class="hs-identifier">pretty</span></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="FreeC.IR.Syntax.Type.html#prettyTypePred"><span class="hs-identifier hs-var">prettyTypePred</span></a><span> </span><span class="hs-number">0</span><span>
 </span><a name="line-88"></a><span>
-</span><a name="line-89"></a><span class="hs-comment">-- | Pretty prints a type and adds parenthesis if necessary.</span><span>
+</span><a name="line-89"></a><span class="hs-comment">-- | Pretty prints a type and adds parentheses if necessary.</span><span>
 </span><a name="line-90"></a><span class="hs-comment">--</span><span>
 </span><a name="line-91"></a><span class="hs-comment">--   The first argument indicates the precedence of the surrounding</span><span>
 </span><a name="line-92"></a><span class="hs-comment">--   context.</span><span>
-</span><a name="line-93"></a><span class="hs-comment">--    * @0@ - Top level. No parenthesis are necessary.</span><span>
-</span><a name="line-94"></a><span class="hs-comment">--    * @1@ - Parenthesis are needed around function types.</span><span>
-</span><a name="line-95"></a><span class="hs-comment">--    * @2@ - Parenthesis are also needed around type constructor</span><span>
+</span><a name="line-93"></a><span class="hs-comment">--    * @0@ - Top level. No parentheses are necessary.</span><span>
+</span><a name="line-94"></a><span class="hs-comment">--    * @1@ - Parentheses are needed around function types.</span><span>
+</span><a name="line-95"></a><span class="hs-comment">--    * @2@ - Parentheses are also needed around type constructor</span><span>
 </span><a name="line-96"></a><span class="hs-comment">--            applications.</span><span>
 </span><a name="line-97"></a><span class="hs-identifier">prettyTypePred</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Int</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="FreeC.IR.Syntax.Type.html#Type"><span class="hs-identifier hs-type">Type</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Doc</span><span>
 </span><a name="line-98"></a><span class="hs-comment">-- There are never parentheses around type variables or constructors.</span><span>

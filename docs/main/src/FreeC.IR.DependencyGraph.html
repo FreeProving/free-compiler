@@ -8,30 +8,30 @@
 </span><a name="line-8"></a><span class="hs-comment">--   @import@ declaration for the module of @B@.</span><span>
 </span><a name="line-9"></a><span class="hs-comment">--</span><span>
 </span><a name="line-10"></a><span class="hs-comment">--   The dependency graph does only contain defined top-level declarations</span><span>
-</span><a name="line-11"></a><span class="hs-comment">--   (i.e. there are no nodes for imported or build-in data types or operations</span><span>
+</span><a name="line-11"></a><span class="hs-comment">--   (i.e. there are no nodes for imported or built-in data types or operations</span><span>
 </span><a name="line-12"></a><span class="hs-comment">--   and there are no nodes for local variables such as function parameters or</span><span>
-</span><a name="line-13"></a><span class="hs-comment">--   variable patterns). However the entries of the dependency graph contain</span><span>
+</span><a name="line-13"></a><span class="hs-comment">--   variable patterns). However, the entries of the dependency graph contain</span><span>
 </span><a name="line-14"></a><span class="hs-comment">--   keys for predefined functions (but not local variables) as well as the</span><span>
 </span><a name="line-15"></a><span class="hs-comment">--   special functions @error@ and @undefined@ that are used in error terms.</span><span>
 </span><a name="line-16"></a><span class="hs-comment">--</span><span>
 </span><a name="line-17"></a><span class="hs-comment">--   We distinguish between the type and function dependency graph.</span><span>
-</span><a name="line-18"></a><span class="hs-comment">--   This is because in function declarations and type declarations</span><span>
+</span><a name="line-18"></a><span class="hs-comment">--   This is because function declarations and type declarations</span><span>
 </span><a name="line-19"></a><span class="hs-comment">--   live in separate scopes but we want to avoid name conflicts.</span><span>
 </span><a name="line-20"></a><span class="hs-comment">--   Since we assume all type declarations to precede function declarations</span><span>
 </span><a name="line-21"></a><span class="hs-comment">--   in the generated Coq code, this separation of the dependency graphs</span><span>
-</span><a name="line-22"></a><span class="hs-comment">--   should not be a problem. For the same reason the function dependency</span><span>
+</span><a name="line-22"></a><span class="hs-comment">--   should not be a problem. For the same reason, the function dependency</span><span>
 </span><a name="line-23"></a><span class="hs-comment">--   graph does not include nodes for constructors (as always, the keys of</span><span>
 </span><a name="line-24"></a><span class="hs-comment">--   used constructors are still present).</span><span>
 </span><a name="line-25"></a><span class="hs-comment">--</span><span>
 </span><a name="line-26"></a><span class="hs-comment">--   The construction of a dependency graph does not fail even if there are</span><span>
 </span><a name="line-27"></a><span class="hs-comment">--   are undefined identifiers. The dependency graph does not know about the</span><span>
 </span><a name="line-28"></a><span class="hs-comment">--   environment, it only knows which (type) constructors and (type) variables</span><span>
-</span><a name="line-29"></a><span class="hs-comment">--   occur freely in the declarations. Most importantly that means that it</span><span>
+</span><a name="line-29"></a><span class="hs-comment">--   occur freely in the declarations. Most importantly, that means that it</span><span>
 </span><a name="line-30"></a><span class="hs-comment">--   does not know about the module system. Thus, dependency analysis should</span><span>
 </span><a name="line-31"></a><span class="hs-comment">--   not be performed before all references have been resolved to their</span><span>
 </span><a name="line-32"></a><span class="hs-comment">--   original (qualified) identifiers.</span><span>
 </span><a name="line-33"></a><span class="hs-comment">--</span><span>
-</span><a name="line-34"></a><span class="hs-comment">--   For debugging purposes dependency graphs can be converted to the DOT</span><span>
+</span><a name="line-34"></a><span class="hs-comment">--   For debugging purposes, dependency graphs can be converted to the DOT</span><span>
 </span><a name="line-35"></a><span class="hs-comment">--   format such that they can be visualized using Graphviz</span><span>
 </span><a name="line-36"></a><span class="hs-comment">--   (See &lt;https://www.graphviz.org/&gt;).</span><span>
 </span><a name="line-37"></a><span>
@@ -93,7 +93,7 @@
 </span><a name="line-93"></a><span class="hs-comment">--   @A@ to node @B@ if the declaration of @A@ depends on @B@.</span><span>
 </span><a name="line-94"></a><span class="hs-comment">--</span><span>
 </span><a name="line-95"></a><span class="hs-comment">--   Nodes are identified by their qualified original name (See 'DGKey').</span><span>
-</span><a name="line-96"></a><span class="hs-comment">--   Internally nodes are identified by a number (See 'Vertex').</span><span>
+</span><a name="line-96"></a><span class="hs-comment">--   Internally, nodes are identified by a number (See 'Vertex').</span><span>
 </span><a name="line-97"></a><span class="hs-comment">--</span><span>
 </span><a name="line-98"></a><span class="hs-comment">--   In addition to the actual 'Graph' that stores the adjacency matrix</span><span>
 </span><a name="line-99"></a><span class="hs-comment">--   of the internal identifiers, this data type contains functions to convert</span><span>
@@ -217,7 +217,7 @@
 </span><a name="line-217"></a><span>    </span><a name="local-6989586621679167268"><a href="#local-6989586621679167268"><span class="hs-identifier">edgesDocs</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">mapMaybe</span><span> </span><a href="#local-6989586621679167269"><span class="hs-identifier hs-var">prettyEdges</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">vertices</span><span> </span><a href="#local-6989586621679167260"><span class="hs-identifier hs-var">graph</span></a><span class="hs-special">)</span><span>
 </span><a name="line-218"></a><span>
 </span><a name="line-219"></a><span>    </span><span class="hs-comment">-- | Pretty prints all outgoing edges of the given vertex as a single</span><span>
-</span><a name="line-220"></a><span>    </span><span class="hs-comment">--   DOT command. Returns `Nothing` if the vertex is not incident to</span><span>
+</span><a name="line-220"></a><span>    </span><span class="hs-comment">--   DOT command. Returns 'Nothing' if the vertex is not incident to</span><span>
 </span><a name="line-221"></a><span>    </span><span class="hs-comment">--   any edge.</span><span>
 </span><a name="line-222"></a><span>    </span><span class="hs-identifier">prettyEdges</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Vertex</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Maybe</span><span> </span><span class="hs-identifier hs-type">Doc</span><span>
 </span><a name="line-223"></a><span>    </span><a name="local-6989586621679167269"><a href="#local-6989586621679167269"><span class="hs-identifier">prettyEdges</span></a></a><span> </span><a name="local-6989586621679167272"><a href="#local-6989586621679167272"><span class="hs-identifier">v</span></a></a><span> </span><span class="hs-glyph">=</span><span>
@@ -296,7 +296,7 @@
 </span><a name="line-296"></a><span class="hs-comment">--</span><span>
 </span><a name="line-297"></a><span class="hs-comment">--   Since cyclic module dependencies are not allowed, all</span><span>
 </span><a name="line-298"></a><span class="hs-comment">--   'DependencyComponent's in the returned list should be 'NonRecursive'.</span><span>
-</span><a name="line-299"></a><span class="hs-comment">--   Otherwise there is a module dependency error.</span><span>
+</span><a name="line-299"></a><span class="hs-comment">--   Otherwise, there is a module dependency error.</span><span>
 </span><a name="line-300"></a><span class="hs-identifier">groupModules</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><a href="FreeC.IR.Syntax.Module.html#Module"><span class="hs-identifier hs-type">IR.Module</span></a><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><a href="FreeC.IR.DependencyGraph.html#DependencyComponent"><span class="hs-identifier hs-type">DependencyComponent</span></a><span> </span><a href="FreeC.IR.Syntax.Module.html#Module"><span class="hs-identifier hs-type">IR.Module</span></a><span class="hs-special">]</span><span>
 </span><a name="line-301"></a><a name="groupModules"><a href="FreeC.IR.DependencyGraph.html#groupModules"><span class="hs-identifier">groupModules</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="FreeC.IR.DependencyGraph.html#dependencyComponents"><span class="hs-identifier hs-var">dependencyComponents</span></a><span> </span><span class="hs-operator hs-var">.</span><span> </span><a href="FreeC.IR.DependencyGraph.html#moduleDependencyGraph"><span class="hs-identifier hs-var">moduleDependencyGraph</span></a><span>
 </span><a name="line-302"></a><span>
@@ -308,7 +308,7 @@
 </span><a name="line-308"></a><span class="hs-comment">--   connected component of the dependency graph.</span><span>
 </span><a name="line-309"></a><span class="hs-comment">--</span><span>
 </span><a name="line-310"></a><span class="hs-comment">--   In case of a 'NonRecursive' component, the function is given a singleton</span><span>
-</span><a name="line-311"></a><span class="hs-comment">--   list. The given must not change the number of declarations in the</span><span>
+</span><a name="line-311"></a><span class="hs-comment">--   list. The given function must not change the number of declarations in the</span><span>
 </span><a name="line-312"></a><span class="hs-comment">--   component.</span><span>
 </span><a name="line-313"></a><span class="hs-identifier">mapComponent</span><span>
 </span><a name="line-314"></a><span>  </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="hs-special">[</span><a href="#local-6989586621679167281"><span class="hs-identifier hs-type">decl</span></a><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><a href="#local-6989586621679167282"><span class="hs-identifier hs-type">decl'</span></a><span class="hs-special">]</span><span class="hs-special">)</span><span>

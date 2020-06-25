@@ -1,4 +1,4 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-comment">-- | This module contains data types and function for working with subterms</span><span>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-comment">-- | This module contains data types and functions for working with subterms</span><span>
 </span><a name="line-2"></a><span class="hs-comment">--   of expressions and type expressions.</span><span>
 </span><a name="line-3"></a><span class="hs-comment">--</span><span>
 </span><a name="line-4"></a><span class="hs-comment">--   There are also functions for finding the names and types of variables that</span><span>
@@ -52,8 +52,8 @@
 </span><a name="line-52"></a><span class="hs-comment">-- Utility functions                                                         --</span><span>
 </span><a name="line-53"></a><span class="hs-comment">-------------------------------------------------------------------------------</span><span>
 </span><a name="line-54"></a><span>
-</span><a name="line-55"></a><span class="hs-comment">-- | Runs the given function on if the given list has the specified number of</span><span>
-</span><a name="line-56"></a><span class="hs-comment">--   arguments.</span><span>
+</span><a name="line-55"></a><span class="hs-comment">-- | Runs the given function on the given list if the latter has the specified</span><span>
+</span><a name="line-56"></a><span class="hs-comment">--   number of arguments.</span><span>
 </span><a name="line-57"></a><span class="hs-comment">--</span><span>
 </span><a name="line-58"></a><span class="hs-comment">--   Returns the function's result of @Nothing@ if the list has the wrong</span><span>
 </span><a name="line-59"></a><span class="hs-comment">--   number of elements.</span><span>
@@ -158,7 +158,7 @@
 </span><a name="line-158"></a><span class="hs-identifier">rootPos</span><span> </span><span class="hs-glyph">::</span><span> </span><a href="FreeC.IR.Subterm.html#Pos"><span class="hs-identifier hs-type">Pos</span></a><span>
 </span><a name="line-159"></a><a name="rootPos"><a href="FreeC.IR.Subterm.html#rootPos"><span class="hs-identifier">rootPos</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="FreeC.IR.Subterm.html#Pos"><span class="hs-identifier hs-var">Pos</span></a><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span>
 </span><a name="line-160"></a><span>
-</span><a name="line-161"></a><span class="hs-comment">-- | Extends an position inside of a child node to a position inside of a</span><span>
+</span><a name="line-161"></a><span class="hs-comment">-- | Extends a position inside of a child node to a position inside of a</span><span>
 </span><a name="line-162"></a><span class="hs-comment">--   parent node.</span><span>
 </span><a name="line-163"></a><span class="hs-comment">--</span><span>
 </span><a name="line-164"></a><span class="hs-comment">--   If @pos@ is the position of a subterm @s@ of an expression or</span><span>
@@ -282,7 +282,7 @@
 </span><a name="line-282"></a><span class="hs-identifier">boundVarsAt</span><span> </span><span class="hs-glyph">::</span><span> </span><a href="FreeC.IR.Syntax.Expr.html#Expr"><span class="hs-identifier hs-type">IR.Expr</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="FreeC.IR.Subterm.html#Pos"><span class="hs-identifier hs-type">Pos</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Set</span><span> </span><a href="FreeC.IR.Syntax.Name.html#QName"><span class="hs-identifier hs-type">IR.QName</span></a><span>
 </span><a name="line-283"></a><a name="boundVarsAt"><a href="FreeC.IR.Subterm.html#boundVarsAt"><span class="hs-identifier">boundVarsAt</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">Map.keysSet</span><span> </span><span class="hs-operator hs-var">.:</span><span> </span><a href="FreeC.IR.Subterm.html#boundVarsWithTypeAt"><span class="hs-identifier hs-var">boundVarsWithTypeAt</span></a><span>
 </span><a name="line-284"></a><span>
-</span><a name="line-285"></a><span class="hs-comment">-- | Like 'boundVarsAt' but also returns the annotated type of then</span><span>
+</span><a name="line-285"></a><span class="hs-comment">-- | Like 'boundVarsAt' but also returns the annotated type of the</span><span>
 </span><a name="line-286"></a><span class="hs-comment">--   variable pattern.</span><span>
 </span><a name="line-287"></a><span class="hs-comment">--</span><span>
 </span><a name="line-288"></a><span class="hs-comment">--   Returns an empty map if the position is invalid.</span><span>
