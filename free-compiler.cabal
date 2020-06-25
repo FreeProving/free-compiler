@@ -242,6 +242,7 @@ test-suite freec-unit-tests
                     , FreeC.Monad.ReporterTests
                     , FreeC.Pass.CompletePatternPassTests
                     , FreeC.Pass.EtaConversionPassTests
+                    , FreeC.Pass.ExportPassTests
                     , FreeC.Pass.KindCheckPassTests
                     , FreeC.Pass.PartialityAnalysisPassTests
                     , FreeC.Pass.ResolverPassTests
