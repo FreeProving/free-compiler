@@ -10,10 +10,10 @@ Require Import Coq.Logic.FunctionalExtensionality.
    just apply [quickCheck] *)
 Theorem prop_map_id_theorem : quickCheck prop_map_id.
 Proof.
-  simpl. intros Shape Pos t0. unfold id.
+  simpl. intros Shape Pos t0. unfold Data.Function.id.
   apply f_equal. extensionality fxs.
   induction fxs using FreeList_ind
-    with (P := fun xs => map Shape Pos (pure (fun x => x)) (pure xs) = pure xs).
+    with (P := fun xs => Data.List.map Shape Pos (pure (fun x => x)) (pure xs) = pure xs).
   - (* fxs = pure nil *)              simpl. reflexivity.
   - (* fxs = pure (cons fxs1 fxs2) *) simpl. unfold Cons. do 2 apply f_equal. apply IHfxs1.
   - (* fxs = pure xs *)               simpl. apply IHfxs.
