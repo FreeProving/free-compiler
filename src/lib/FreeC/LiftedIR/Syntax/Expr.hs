@@ -111,8 +111,7 @@ data ConPat = ConPat
 -- | A variable pattern used as an argument to a function, lambda abstraction
 --   or constructor pattern.
 --
---   The variable pattern can optionally have a type signature
---   or be annotated by a @!@.
+--   The variable pattern can optionally have a type signature.
 data VarPat = VarPat
   { varPatSrcSpan   :: SrcSpan
   , varPatIdent     :: String
