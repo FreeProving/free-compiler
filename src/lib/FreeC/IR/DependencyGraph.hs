@@ -8,30 +8,30 @@
 --   @import@ declaration for the module of @B@.
 --
 --   The dependency graph does only contain defined top-level declarations
---   (i.e. there are no nodes for imported or build-in data types or operations
+--   (i.e. there are no nodes for imported or built-in data types or operations
 --   and there are no nodes for local variables such as function parameters or
---   variable patterns). However the entries of the dependency graph contain
+--   variable patterns). However, the entries of the dependency graph contain
 --   keys for predefined functions (but not local variables) as well as the
 --   special functions @error@ and @undefined@ that are used in error terms.
 --
 --   We distinguish between the type and function dependency graph.
---   This is because in function declarations and type declarations
+--   This is because function declarations and type declarations
 --   live in separate scopes but we want to avoid name conflicts.
 --   Since we assume all type declarations to precede function declarations
 --   in the generated Coq code, this separation of the dependency graphs
---   should not be a problem. For the same reason the function dependency
+--   should not be a problem. For the same reason, the function dependency
 --   graph does not include nodes for constructors (as always, the keys of
 --   used constructors are still present).
 --
 --   The construction of a dependency graph does not fail even if there are
 --   are undefined identifiers. The dependency graph does not know about the
 --   environment, it only knows which (type) constructors and (type) variables
---   occur freely in the declarations. Most importantly that means that it
+--   occur freely in the declarations. Most importantly, that means that it
 --   does not know about the module system. Thus, dependency analysis should
 --   not be performed before all references have been resolved to their
 --   original (qualified) identifiers.
 --
---   For debugging purposes dependency graphs can be converted to the DOT
+--   For debugging purposes, dependency graphs can be converted to the DOT
 --   format such that they can be visualized using Graphviz
 --   (See <https://www.graphviz.org/>).
 
@@ -93,7 +93,7 @@ type DGEntry node = (node, DGKey, [DGKey])
 --   @A@ to node @B@ if the declaration of @A@ depends on @B@.
 --
 --   Nodes are identified by their qualified original name (See 'DGKey').
---   Internally nodes are identified by a number (See 'Vertex').
+--   Internally, nodes are identified by a number (See 'Vertex').
 --
 --   In addition to the actual 'Graph' that stores the adjacency matrix
 --   of the internal identifiers, this data type contains functions to convert
@@ -217,7 +217,7 @@ instance Pretty (DependencyGraph node) where
     edgesDocs = mapMaybe prettyEdges (vertices graph)
 
     -- | Pretty prints all outgoing edges of the given vertex as a single
-    --   DOT command. Returns `Nothing` if the vertex is not incident to
+    --   DOT command. Returns 'Nothing' if the vertex is not incident to
     --   any edge.
     prettyEdges :: Vertex -> Maybe Doc
     prettyEdges v =
@@ -296,7 +296,7 @@ groupFuncDecls = dependencyComponents . funcDependencyGraph
 --
 --   Since cyclic module dependencies are not allowed, all
 --   'DependencyComponent's in the returned list should be 'NonRecursive'.
---   Otherwise there is a module dependency error.
+--   Otherwise, there is a module dependency error.
 groupModules :: [IR.Module] -> [DependencyComponent IR.Module]
 groupModules = dependencyComponents . moduleDependencyGraph
 
@@ -308,7 +308,7 @@ groupModules = dependencyComponents . moduleDependencyGraph
 --   connected component of the dependency graph.
 --
 --   In case of a 'NonRecursive' component, the function is given a singleton
---   list. The given must not change the number of declarations in the
+--   list. The given function must not change the number of declarations in the
 --   component.
 mapComponent
   :: ([decl] -> [decl'])

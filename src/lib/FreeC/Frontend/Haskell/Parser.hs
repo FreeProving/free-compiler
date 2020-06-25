@@ -119,7 +119,7 @@ parseHaskellWithCommentsAndExts enabledExts srcFile =
   --
   --   The 'srcFiles' are needed because when pretty printing a message,
   --   an excerpt of the code that caused the message to be reported is shown.
-  toMessageSrcSpan :: ConvertableSrcSpan l => l -> SrcSpan
+  toMessageSrcSpan :: ConvertibleSrcSpan l => l -> SrcSpan
   toMessageSrcSpan = convertSrcSpanWithCode srcFiles
 
   -- | Unlike all other AST nodes of @haskell-src-exts@, the

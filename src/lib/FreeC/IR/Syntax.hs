@@ -4,13 +4,13 @@
 --   The intermediate language is very similar to the subset of Haskell
 --   supported by the compiler. The main goal is to make the transformations
 --   on the AST and code generation functions easier to comprehend. The IR does
---   have fewer syntactic constructs than  Haskell AST that fewer cases need to
+--   have fewer syntactic constructs than Haskell so that fewer cases need to
 --   be distinguished. For example, there is no explicit representation of
 --   infix function applications and no list literals. These kinds of syntactic
 --   sugar must be removed by the front end.
 --
 --   An additional goal of this AST is to reduce coupling with the parsing
---   library and source language. Ideally the compiler works with any language
+--   library and source language. Ideally, the compiler works with any language
 --   whose AST can be transformed into this intermediate representation.
 --
 --   A parser for the intermediate language and a description of its syntax
