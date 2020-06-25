@@ -88,7 +88,7 @@ data SrcSpan
 -------------------------------------------------------------------------------
 
 -- | Tests whether the given 'SrcSpan' contains filename information (i.e.,
---   there is a field `srcSpanFilename`).
+--   there is a field 'srcSpanFilename').
 hasSrcSpanFilename :: SrcSpan -> Bool
 hasSrcSpanFilename NoSrcSpan = False
 hasSrcSpanFilename _         = True

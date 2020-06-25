@@ -1,4 +1,4 @@
--- | This module contains the names of build-in data types and operations
+-- | This module contains the names of built-in data types and operations
 --   from the @Prelude@ module that are needed for code generation.
 --
 --   For example, to infer the type of integer literals, we have to know
@@ -55,7 +55,7 @@ unitConName = IR.Qual modName (IR.Symbol "")
 nilConName :: IR.ConName
 nilConName = IR.Qual modName (IR.Symbol "[]")
 
--- | The name of the non empty list data constructor.
+-- | The name of the non-empty list data constructor.
 consConName :: IR.ConName
 consConName = IR.Qual modName (IR.Symbol ":")
 

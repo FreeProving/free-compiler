@@ -47,7 +47,7 @@ import           FreeC.Pretty
 -- | A substitution is a mapping from Haskell variable names to expressions
 --   (i.e. @'Subst' 'IR.Expr'@) or type expressions (i.e. @'Subst' 'IR.Type'@).
 --
---   When the substitution is applied (see 'applySubst') the source span of
+--   When the substitution is applied (see 'applySubst'), the source span of
 --   the substituted variable can be inserted into the (type) expression it is
 --   replaced by (e.g. to rename a variable without loosing source spans).
 newtype Subst a = Subst (Map IR.QName (SrcSpan -> a))
@@ -167,7 +167,7 @@ instance ApplySubst IR.Expr IR.Expr where
     applySubst' expr@(IR.IntLiteral _ _ _) = expr
 
 -- | Applies the given expression substitution to the right-hand side of the
---   given @case@-expression alterntaive.
+--   given @case@-expression alternative.
 instance ApplySubst IR.Expr IR.Alt where
   applySubst subst (IR.Alt srcSpan conPat varPats expr) =
     let (subst', varPats') = newRenameArgs subst varPats
@@ -236,7 +236,7 @@ instance ApplySubst IR.Type IR.Expr where
       in  IR.Lambda srcSpan args' expr' exprType'
 
 -- | Applies the given type substitution to the right-hand side of the
---   given @case@-expression alterntaive.
+--   given @case@-expression alternative.
 instance ApplySubst IR.Type IR.Alt where
   applySubst subst (IR.Alt srcSpan conPat varPats expr) =
     let varPats' = applySubst subst varPats
@@ -251,7 +251,7 @@ instance ApplySubst IR.Type IR.VarPat where
     in  IR.VarPat srcSpan varIdent maybeVarType' isStrict
 
 -------------------------------------------------------------------------------
--- Application to function declarations.                                     --
+-- Application to function declarations                                      --
 -------------------------------------------------------------------------------
 
 -- | Applies the given expression substitution to the right-hand side of a
@@ -393,8 +393,8 @@ newRenameArgs' subst (arg : args) = (arg' :) <$> newRenameArgs' subst' args
   {- arg' :: arg -}
   arg'      = setIdent arg argIdent'
 
--- | Gets the identifiers that occur freely on in the specified scope of the
---   given substitution.
+-- | Gets the identifiers that occur freely in the specified scope of the given
+--   substitution.
 freeSubstIdents :: HasRefs a => IR.Scope -> Subst a -> Set String
 freeSubstIdents scope (Subst substMap) =
   Set.fromList

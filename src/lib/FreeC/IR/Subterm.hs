@@ -1,4 +1,4 @@
--- | This module contains data types and function for working with subterms
+-- | This module contains data types and functions for working with subterms
 --   of expressions and type expressions.
 --
 --   There are also functions for finding the names and types of variables that
@@ -52,8 +52,8 @@ import           FreeC.Pretty
 -- Utility functions                                                         --
 -------------------------------------------------------------------------------
 
--- | Runs the given function on if the given list has the specified number of
---   arguments.
+-- | Runs the given function on the given list if the latter has the specified
+--   number of arguments.
 --
 --   Returns the function's result of @Nothing@ if the list has the wrong
 --   number of elements.
@@ -158,7 +158,7 @@ instance Pretty Pos where
 rootPos :: Pos
 rootPos = Pos []
 
--- | Extends an position inside of a child node to a position inside of a
+-- | Extends a position inside of a child node to a position inside of a
 --   parent node.
 --
 --   If @pos@ is the position of a subterm @s@ of an expression or
@@ -282,7 +282,7 @@ findFirstSubterm = listToMaybe .: findSubterms
 boundVarsAt :: IR.Expr -> Pos -> Set IR.QName
 boundVarsAt = Map.keysSet .: boundVarsWithTypeAt
 
--- | Like 'boundVarsAt' but also returns the annotated type of then
+-- | Like 'boundVarsAt' but also returns the annotated type of the
 --   variable pattern.
 --
 --   Returns an empty map if the position is invalid.
