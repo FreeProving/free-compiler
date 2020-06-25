@@ -26,7 +26,7 @@ import           FreeC.Test.Parser
 shouldBeQualifiedWith :: Coq.Qualid -> String -> Converter Expectation
 shouldBeQualifiedWith qualid modName = do
   case qualid of
-    Coq.Qualified s _ -> return $ (Text.unpack s) `shouldBe` modName
+    Coq.Qualified s _ -> return $ Text.unpack s `shouldBe` modName
     Coq.Bare _ ->
       return
         $    expectationFailure
