@@ -1,4 +1,4 @@
--- | This module contains tests for "FreeC.Pass.ExportPass".
+-- | This module contains tests for "FreeC.Pass.ExportPass".
 
 module FreeC.Pass.ExportPassTests
   ( testExportPass
@@ -39,7 +39,7 @@ shouldBeQualifiedWith qualid modName = do
 
 testExportPass :: SpecWith ()
 testExportPass = describe "FreeC.Pass.ExportPass" $ do
-  context "Exported entries are qualified when exported" $ do
+  context "Exported entries are qualified when exported " $ do
     it "Names of data types should be qualified when exported" $ do
       input <- expectParseTestModule ["module A where", "data Foo = Bar"]
       shouldSucceedWith $ do
@@ -65,7 +65,8 @@ testExportPass = describe "FreeC.Pass.ExportPass" $ do
           foo = head cEntries
         entryIdent foo `shouldBeQualifiedWith` "A"
     it "Typesynonyms are qualified when exported" $ do
-      input <- expectParseTestModule ["module A where", "data Bar = Bar;", "type Foo = Bar"]
+      input <- expectParseTestModule
+        ["module A where", "data Bar = Bar;", "type Foo = Bar"]
       shouldSucceedWith $ do
         _       <- defineTestTypeCon "Bar" 0 ["Bar"]
         _       <- defineTestCon "Bar" 0 "Bar"
@@ -78,7 +79,8 @@ testExportPass = describe "FreeC.Pass.ExportPass" $ do
             foo = head tsEntries
         entryIdent foo `shouldBeQualifiedWith` "A"
     it "Function definitions are qualified when exported" $ do
-      input <- expectParseTestModule ["module A where", "data Bar = Bar;", "type Foo = Bar"]
+      input <- expectParseTestModule
+        ["module A where", "data Bar = Bar;", "type Foo = Bar"]
       shouldSucceedWith $ do
         _       <- defineTestTypeCon "Foo" 0 ["Foo"]
         _       <- defineTestCon "Foo" 0 "Foo"
