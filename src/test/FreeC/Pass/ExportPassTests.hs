@@ -1,4 +1,4 @@
--- | This module contains tests for "FreeC.Pass.ExportPass".
+-- | This module contains tests for "FreeC.Pass.ExportPass".
 
 module FreeC.Pass.ExportPassTests
   ( testExportPass
