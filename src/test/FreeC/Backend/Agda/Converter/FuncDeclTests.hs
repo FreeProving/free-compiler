@@ -28,7 +28,7 @@ shouldConvertTypeDeclsTo inputStrs expectedOutput = do
   output <- convertFuncDecls input
   return (output `prettyShouldBe` showPretty expectedOutput)
 
--- | Test group for @convertFuncDecls@ tests.
+-- | Test group for 'convertFuncDecls' tests.
 testConvertFuncDecls :: Spec
 testConvertFuncDecls =
   describe "FreeC.Backend.Agda.Converter.TypeDecl.convertFuncDecl" $ do
