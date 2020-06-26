@@ -123,6 +123,6 @@ writePrettyFile filename = withFile filename WriteMode . flip hPutPrettyLn
 -- Conversion                                                                --
 -------------------------------------------------------------------------------
 
--- | Convers a pretty printable value to a string.
+-- | Converts a pretty printable value to a string.
 showPretty :: Pretty a => a -> String
 showPretty = LazyText.unpack . displayT . renderPretty'
