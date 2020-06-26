@@ -1,3 +1,5 @@
+-- | This module contains tests for "FreeC.Backend.Agda.Converter.FuncDecl".
+
 module FreeC.Backend.Agda.Converter.FuncDeclTests
   ( testConvertFuncDecls
   )
