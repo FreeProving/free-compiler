@@ -76,7 +76,6 @@ Proof.
   - induction xs as [ | x [xs' | []]] using List_Ind.
     + reflexivity.
     + simplify H as H'. simpl.
-
-Qed.
+Admitted.
 
 Section reverseIsReverseNaive.
