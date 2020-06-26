@@ -182,11 +182,14 @@ testConvertFuncApp = context "function applications" $ do
         "a" <- defineTestTypeVar "a"
         "x" <- defineTestVar "x"
         "y" <- defineTestVar "y"
-        "f @a x y"
-          `shouldConvertExprTo` "x >>= (fun (x_0 : a) => y >>= (fun (y_0 : a) => @f Shape Pos a x_0 y_0))"
+        shouldConvertExprTo "f @a x y"
+          $  "x >>= (fun (x_0 : a) =>"
+          ++ "  y >>= (fun (y_0 : a) => @f Shape Pos a x_0 y_0))"
 
   it
-      "converts function applications with one non-strict and one strict argument correctly"
+      (  "converts function applications with one non-strict and one"
+      ++ "strict argument correctly"
+      )
     $ shouldSucceedWith
     $ do
         "f" <- defineStrictTestFunc "f" [False, True] "forall a. a -> a -> a"
