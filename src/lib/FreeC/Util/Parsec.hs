@@ -14,7 +14,7 @@ import           FreeC.IR.SrcSpan
 import           FreeC.Monad.Reporter
 
 -- | Converts a Parsec 'Parsec.SourcePos' to a 'SrcSpan'.
-instance ConvertableSrcSpan Parsec.SourcePos where
+instance ConvertibleSrcSpan Parsec.SourcePos where
   convertSrcSpan srcPos = SrcSpan
     { srcSpanFilename    = Parsec.sourceName srcPos
     , srcSpanStartLine   = Parsec.sourceLine srcPos

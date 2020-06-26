@@ -7,7 +7,7 @@ module FreeC.Test.Expectations
   ( -- * Similarity test
     shouldBeSimilarTo
   , shouldNotBeSimilarTo
-    -- * Pretty printing comparision
+    -- * Pretty printing comparison
   , prettyShouldBe
   )
 where
@@ -60,10 +60,10 @@ shouldNotBeSimilarTo n m
 -------------------------------------------------------------------------------
 
 -- | Pretty prints both values and tests whether the resulting strings are
---   equal modulo white space.
+--   equal modulo whitespace.
 prettyShouldBe :: (Pretty a, Pretty b) => a -> b -> Expectation
 prettyShouldBe x y =
-  let discardWhiteSpace = unwords . words
-      prettyX           = discardWhiteSpace (showPretty x)
-      prettyY           = discardWhiteSpace (showPretty y)
+  let discardWhitespace = unwords . words
+      prettyX           = discardWhitespace (showPretty x)
+      prettyY           = discardWhitespace (showPretty y)
   in  prettyX `shouldBe` prettyY

@@ -37,6 +37,7 @@ module FreeC.Backend.Coq.Syntax
     -- * Imports
   , requireImportFrom
   , requireExportFrom
+  , requireFrom
   )
 where
 
@@ -214,12 +215,17 @@ disj t1 t2 = app (Qualid (bare "op_\\/__")) [t1, t2]
 -- Imports                                                                   --
 -------------------------------------------------------------------------------
 
--- | Creates a @From ... Require Import ...@ sentence.
+-- | Creates a @From … Require Import …@ sentence.
 requireImportFrom :: ModuleIdent -> [ModuleIdent] -> Sentence
 requireImportFrom library modules = ModuleSentence
   (Require (Just library) (Just Import) (NonEmpty.fromList modules))
 
--- | Creates a @From ... Require Export ...@ sentence.
+-- | Creates a @From … Require Export …@ sentence.
 requireExportFrom :: ModuleIdent -> [ModuleIdent] -> Sentence
 requireExportFrom library modules = ModuleSentence
   (Require (Just library) (Just Export) (NonEmpty.fromList modules))
+
+-- | Creates a @From … Require …@ sentence.
+requireFrom :: ModuleIdent -> [ModuleIdent] -> Sentence
+requireFrom library modules =
+  ModuleSentence (Require (Just library) Nothing (NonEmpty.fromList modules))
