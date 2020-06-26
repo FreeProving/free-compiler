@@ -4,22 +4,24 @@
 </span><a name="line-4"></a><span>
 </span><a name="line-5"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Test.Hspec</span><span>
 </span><a name="line-6"></a><span>
-</span><a name="line-7"></a><span class="hs-keyword">import</span><span>           </span><a href="FreeC.Backend.Coq.Tests.html"><span class="hs-identifier">FreeC.Backend.Coq.Tests</span></a><span>
-</span><a name="line-8"></a><span class="hs-keyword">import</span><span>           </span><a href="FreeC.EnvironmentTests.html"><span class="hs-identifier">FreeC.EnvironmentTests</span></a><span>
-</span><a name="line-9"></a><span class="hs-keyword">import</span><span>           </span><a href="FreeC.Frontend.IR.Tests.html"><span class="hs-identifier">FreeC.Frontend.IR.Tests</span></a><span>
-</span><a name="line-10"></a><span class="hs-keyword">import</span><span>           </span><a href="FreeC.IR.Tests.html"><span class="hs-identifier">FreeC.IR.Tests</span></a><span>
-</span><a name="line-11"></a><span class="hs-keyword">import</span><span>           </span><a href="FreeC.Monad.ReporterTests.html"><span class="hs-identifier">FreeC.Monad.ReporterTests</span></a><span>
-</span><a name="line-12"></a><span class="hs-keyword">import</span><span>           </span><a href="FreeC.PipelineTests.html"><span class="hs-identifier">FreeC.PipelineTests</span></a><span>
-</span><a name="line-13"></a><span>
-</span><a name="line-14"></a><span class="hs-comment">-- | Runs all unit tests for the Free Compiler.</span><span>
-</span><a name="line-15"></a><span class="hs-identifier">main</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">IO</span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
-</span><a name="line-16"></a><a name="main"><a href="Spec.html#main"><span class="hs-identifier">main</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">hspec</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-keyword">do</span><span>
-</span><a name="line-17"></a><span>  </span><a href="FreeC.EnvironmentTests.html#testEnvironment"><span class="hs-identifier hs-var">testEnvironment</span></a><span>
-</span><a name="line-18"></a><span>  </span><a href="FreeC.IR.Tests.html#testIR"><span class="hs-identifier hs-var">testIR</span></a><span>
-</span><a name="line-19"></a><span>  </span><a href="FreeC.Frontend.IR.Tests.html#testIRFrontend"><span class="hs-identifier hs-var">testIRFrontend</span></a><span>
-</span><a name="line-20"></a><span>  </span><a href="FreeC.Backend.Coq.Tests.html#testCoqBackend"><span class="hs-identifier hs-var">testCoqBackend</span></a><span>
-</span><a name="line-21"></a><span>
-</span><a name="line-22"></a><span>  </span><a href="FreeC.PipelineTests.html#testPipeline"><span class="hs-identifier hs-var">testPipeline</span></a><span>
+</span><a name="line-7"></a><span class="hs-keyword">import</span><span>           </span><a href="FreeC.Backend.Agda.Tests.html"><span class="hs-identifier">FreeC.Backend.Agda.Tests</span></a><span>
+</span><a name="line-8"></a><span class="hs-keyword">import</span><span>           </span><a href="FreeC.Backend.Coq.Tests.html"><span class="hs-identifier">FreeC.Backend.Coq.Tests</span></a><span>
+</span><a name="line-9"></a><span class="hs-keyword">import</span><span>           </span><a href="FreeC.EnvironmentTests.html"><span class="hs-identifier">FreeC.EnvironmentTests</span></a><span>
+</span><a name="line-10"></a><span class="hs-keyword">import</span><span>           </span><a href="FreeC.Frontend.IR.Tests.html"><span class="hs-identifier">FreeC.Frontend.IR.Tests</span></a><span>
+</span><a name="line-11"></a><span class="hs-keyword">import</span><span>           </span><a href="FreeC.IR.Tests.html"><span class="hs-identifier">FreeC.IR.Tests</span></a><span>
+</span><a name="line-12"></a><span class="hs-keyword">import</span><span>           </span><a href="FreeC.Monad.ReporterTests.html"><span class="hs-identifier">FreeC.Monad.ReporterTests</span></a><span>
+</span><a name="line-13"></a><span class="hs-keyword">import</span><span>           </span><a href="FreeC.PipelineTests.html"><span class="hs-identifier">FreeC.PipelineTests</span></a><span>
+</span><a name="line-14"></a><span>
+</span><a name="line-15"></a><span class="hs-comment">-- | Runs all unit tests for the Free Compiler.</span><span>
+</span><a name="line-16"></a><span class="hs-identifier">main</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">IO</span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><a name="line-17"></a><a name="main"><a href="Spec.html#main"><span class="hs-identifier">main</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">hspec</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-keyword">do</span><span>
+</span><a name="line-18"></a><span>  </span><a href="FreeC.EnvironmentTests.html#testEnvironment"><span class="hs-identifier hs-var">testEnvironment</span></a><span>
+</span><a name="line-19"></a><span>  </span><a href="FreeC.IR.Tests.html#testIR"><span class="hs-identifier hs-var">testIR</span></a><span>
+</span><a name="line-20"></a><span>  </span><a href="FreeC.Frontend.IR.Tests.html#testIRFrontend"><span class="hs-identifier hs-var">testIRFrontend</span></a><span>
+</span><a name="line-21"></a><span>  </span><a href="FreeC.Backend.Agda.Tests.html#testAgdaBackend"><span class="hs-identifier hs-var">testAgdaBackend</span></a><span>
+</span><a name="line-22"></a><span>  </span><a href="FreeC.Backend.Coq.Tests.html#testCoqBackend"><span class="hs-identifier hs-var">testCoqBackend</span></a><span>
 </span><a name="line-23"></a><span>
-</span><a name="line-24"></a><span>  </span><a href="FreeC.Monad.ReporterTests.html#testReporter"><span class="hs-identifier hs-var">testReporter</span></a><span>
-</span><a name="line-25"></a></pre></body></html>
+</span><a name="line-24"></a><span>  </span><a href="FreeC.PipelineTests.html#testPipeline"><span class="hs-identifier hs-var">testPipeline</span></a><span>
+</span><a name="line-25"></a><span>
+</span><a name="line-26"></a><span>  </span><a href="FreeC.Monad.ReporterTests.html#testReporter"><span class="hs-identifier hs-var">testReporter</span></a><span>
+</span><a name="line-27"></a></pre></body></html>
