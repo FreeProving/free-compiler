@@ -20,7 +20,7 @@ import           FreeC.Pretty                   ( showPretty )
 
 -- | Parses the given IR function declaration, converts it to Agda using
 --   'convertFuncDecls' and sets the expectation that the resulting
---   Agda code equals the given expected output modulo white space.
+--   Agda code equals the given expected output modulo whitespace.
 shouldConvertTypeDeclsTo
   :: DependencyComponent String -> [String] -> Converter Expectation
 shouldConvertTypeDeclsTo inputStrs expectedOutput = do
