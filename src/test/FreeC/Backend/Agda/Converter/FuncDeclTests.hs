@@ -21,9 +21,9 @@ import           FreeC.Pretty                   ( showPretty )
 -- | Parses the given IR function declaration, converts it to Agda using
 --   'convertFuncDecls' and sets the expectation that the resulting
 --   Agda code equals the given expected output modulo whitespace.
-shouldConvertTypeDeclsTo
+shouldConvertFuncDeclsTo
   :: DependencyComponent String -> [String] -> Converter Expectation
-shouldConvertTypeDeclsTo inputStrs expectedOutput = do
+shouldConvertFuncDeclsTo inputStrs expectedOutput = do
   input  <- parseTestComponent inputStrs
   output <- convertFuncDecls input
   return (output `prettyShouldBe` showPretty expectedOutput)
@@ -35,13 +35,13 @@ testConvertFuncDecls =
     it "translates 0-ary functions correctly" $ shouldSucceedWith $ do
       "Integer" <- defineTestTypeCon "Integer" 0 []
       "foo"     <- defineTestFunc "foo" 0 "Integer"
-      shouldConvertTypeDeclsTo
+      shouldConvertFuncDeclsTo
         (NonRecursive "foo :: Integer = 42")
         ["foo : \x2200 {Shape} {Pos} \x2192 Free Shape Pos (Integer Shape Pos)"]
 
     it "translates polymorphic functions correctly" $ shouldSucceedWith $ do
       "foo" <- defineTestFunc "foo" 0 "forall a. a -> a"
-      shouldConvertTypeDeclsTo
+      shouldConvertFuncDeclsTo
         (NonRecursive "foo @a (x :: a) :: a = x")
         [ "foo : \x2200 {Shape} {Pos} {a} \x2192 Free Shape Pos a "
             ++ "\x2192 Free Shape Pos a"
@@ -51,7 +51,7 @@ testConvertFuncDecls =
       $ shouldSucceedWith
       $ do
           "foo" <- defineTestFunc "foo" 0 "forall b. b -> b"
-          shouldConvertTypeDeclsTo
+          shouldConvertFuncDeclsTo
             (NonRecursive "foo @a (x :: a) :: a = x")
             [ "foo : \x2200 {Shape} {Pos} {a} \x2192 Free Shape Pos a "
                 ++ "\x2192 Free Shape Pos a"
@@ -65,7 +65,7 @@ testConvertFuncDecls =
                                         2
                                         "forall a b. a -> b -> Pair a b"
           "foo" <- defineTestFunc "foo" 0 "forall a b. a -> b -> Pair a b"
-          shouldConvertTypeDeclsTo
+          shouldConvertFuncDeclsTo
             (NonRecursive
               "foo @a @b (x :: a) (y :: b) :: Pair a b = Pair @a @b x y"
             )
@@ -80,7 +80,7 @@ testConvertFuncDecls =
       "curry" <- defineTestFunc "curry"
                                 0
                                 "forall a b c. (Pair a b -> c) -> a -> b -> c"
-      shouldConvertTypeDeclsTo
+      shouldConvertFuncDeclsTo
         (  NonRecursive
         $  "curry @a @b @c (f :: Pair a b -> c) (x :: a) (y :: b) :: c "
         ++ "= f (Pair @a @b x y)"
