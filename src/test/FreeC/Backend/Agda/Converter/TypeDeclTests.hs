@@ -41,7 +41,7 @@ testConvertDataDecls =
           ("baz", "Baz") <- defineTestCon "Baz" 0 "Foo"
           shouldConvertTypeDeclsTo
             (NonRecursive "data Foo = Bar | Baz")
-            [ "data Foo (Shape : Set)(Pos : Shape \8594 Set) : Set where"
+            [ "data Foo (Shape : Set)(Pos : Shape → Set) : Set where"
             ++ "  bar : Foo Shape Pos"
             ++ "  baz : Foo Shape Pos"
             , "pattern Bar = pure bar"
@@ -53,10 +53,10 @@ testConvertDataDecls =
       ("cons", "Cons") <- defineTestCon "Cons" 2 "List"
       shouldConvertTypeDeclsTo
         (Recursive ["data List a = Nil | Cons a (List a)"])
-        [ "data List (Shape : Set)(Pos : Shape \8594 Set)(a : Set) : {Size} \8594 Set where"
-        ++ "  nil : \x2200 {i} \8594 List Shape Pos a {\x2191 i}"
-        ++ "  cons : \x2200 {i} \8594 Free Shape Pos a \8594 Free Shape Pos (List Shape Pos a {i}) \8594 List Shape Pos a {\x2191 i}"
+        [ "data List (Shape : Set)(Pos : Shape → Set)(a : Set) : {Size} → Set where"
+        ++ "  nil : ∀ {i} → List Shape Pos a {↑ i}"
+        ++ "  cons : ∀ {i} → Free Shape Pos a → Free Shape Pos (List Shape Pos a {i}) → List Shape Pos a {↑ i}"
         , "pattern Nil = pure nil"
-        , "pattern Cons x x\x2081 = pure (cons x x\x2081)"
+        , "pattern Cons x x₁ = pure (cons x x₁)"
         ]
 

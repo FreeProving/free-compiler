@@ -1,4 +1,6 @@
 -- | This module contains tests for "FreeC.Backend.Agda.Converter.FuncDecl".
+--
+--   Agda source code uses 
 
 module FreeC.Backend.Agda.Converter.FuncDeclTests
   ( testConvertFuncDecls
@@ -37,14 +39,14 @@ testConvertFuncDecls =
       "foo"     <- defineTestFunc "foo" 0 "Integer"
       shouldConvertFuncDeclsTo
         (NonRecursive "foo :: Integer = 42")
-        ["foo : \x2200 {Shape} {Pos} \x2192 Free Shape Pos (Integer Shape Pos)"]
+        ["foo : ∀ {Shape} {Pos} → Free Shape Pos (Integer Shape Pos)"]
 
     it "translates polymorphic functions correctly" $ shouldSucceedWith $ do
       "foo" <- defineTestFunc "foo" 0 "forall a. a -> a"
       shouldConvertFuncDeclsTo
         (NonRecursive "foo @a (x :: a) :: a = x")
-        [ "foo : \x2200 {Shape} {Pos} {a} \x2192 Free Shape Pos a "
-            ++ "\x2192 Free Shape Pos a"
+        [ "foo : ∀ {Shape} {Pos} {a} → Free Shape Pos a "
+            ++ "→ Free Shape Pos a"
         ]
 
     it "uses type information from the AST not the environment"
@@ -53,8 +55,8 @@ testConvertFuncDecls =
           "foo" <- defineTestFunc "foo" 0 "forall b. b -> b"
           shouldConvertFuncDeclsTo
             (NonRecursive "foo @a (x :: a) :: a = x")
-            [ "foo : \x2200 {Shape} {Pos} {a} \x2192 Free Shape Pos a "
-                ++ "\x2192 Free Shape Pos a"
+            [ "foo : ∀ {Shape} {Pos} {a} → Free Shape Pos a "
+                ++ "→ Free Shape Pos a"
             ]
 
     it "translates functions with multiple arguments correctly"
@@ -69,9 +71,9 @@ testConvertFuncDecls =
             (NonRecursive
               "foo @a @b (x :: a) (y :: b) :: Pair a b = Pair @a @b x y"
             )
-            [ "foo : \x2200 {Shape} {Pos} {a} {b} \x2192 Free Shape Pos a "
-              ++ "\x2192 Free Shape Pos b "
-              ++ "\x2192 Free Shape Pos (Pair Shape Pos a b)"
+            [ "foo : ∀ {Shape} {Pos} {a} {b} → Free Shape Pos a "
+              ++ "→ Free Shape Pos b "
+              ++ "→ Free Shape Pos (Pair Shape Pos a b)"
             ]
 
     it "translates higher order functions correctly" $ shouldSucceedWith $ do
@@ -85,9 +87,9 @@ testConvertFuncDecls =
         $  "curry @a @b @c (f :: Pair a b -> c) (x :: a) (y :: b) :: c "
         ++ "= f (Pair @a @b x y)"
         )
-        [ "curry : \x2200 {Shape} {Pos} {a} {b} {c} "
-          ++ "\x2192 Free Shape Pos"
-          ++ "  (Free Shape Pos (Pair Shape Pos a b) \x2192 Free Shape Pos c) "
-          ++ "\x2192 Free Shape Pos a "
-          ++ "\x2192 Free Shape Pos b \x2192 Free Shape Pos c"
+        [ "curry : ∀ {Shape} {Pos} {a} {b} {c} "
+          ++ "→ Free Shape Pos"
+          ++ "  (Free Shape Pos (Pair Shape Pos a b) → Free Shape Pos c) "
+          ++ "→ Free Shape Pos a "
+          ++ "→ Free Shape Pos b → Free Shape Pos c"
         ]
