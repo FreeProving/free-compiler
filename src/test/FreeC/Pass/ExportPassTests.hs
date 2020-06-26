@@ -7,9 +7,8 @@ where
 
 import           Test.Hspec
 
-import           Data.Maybe                     ( fromJust
-                                                , listToMaybe
-                                                )
+import           Data.List                      ( find )
+import           Data.Maybe                     ( fromJust )
 import qualified Data.Set                      as Set
 import qualified Data.Text                     as Text
 
