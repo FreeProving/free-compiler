@@ -331,7 +331,7 @@ prettyCodeBlock srcSpan
     let gutterWidth = length (show (srcSpanStartLine srcSpan)) + 2
     in  indent gutterWidth pipe
 
-  -- | Document that contains 'caret' signs to highligh the code in the
+  -- | Document that contains 'caret' signs to highlight the code in the
   --   first line that is covered by the source span.
   highlightDoc :: Doc
   highlightDoc = indent (srcSpanStartColumn srcSpan)
@@ -345,7 +345,7 @@ prettyCodeBlock srcSpan
     | otherwise
     = max 1 $ srcSpanEndColumn srcSpan - srcSpanStartColumn srcSpan
 
-  -- | Document added after the 'highlightDoc' if the source span coveres
+  -- | Document added after the 'highlightDoc' if the source span covers
   --   more than one line.
   ellipsisDoc :: Doc
   ellipsisDoc | isMultiLine = prettyString "..."

@@ -466,7 +466,7 @@ inferFuncDeclTypes' funcDecls = withLocalState $ do
   --
   -- During the annotation of the function declaration, type equations were
   -- added. The system of type equations is solved by computing the most
-  -- general unificator (mgu).
+  -- general unifier (mgu).
   --
   -- The mgu is then applied to the annotated function declarations to
   -- replace the type variables (that act as place holders) by their
@@ -524,7 +524,7 @@ inferFuncDeclTypes' funcDecls = withLocalState $ do
 
   -- Abstract new vanishing type arguments.
   --
-  -- The instatiation of type schemas by 'applyFuncDeclVisibly' might
+  -- The instantiation of type schemas by 'applyFuncDeclVisibly' might
   -- have introduced new vanishing type arguments if a function with
   -- vanishing type arguments is applied that does not occur in the
   -- strongly connected component. Those additional type arguments
@@ -593,7 +593,7 @@ annotateExprWith' (IR.Con srcSpan conName _) resType = do
 -- are fresh type variables.
 -- In case of local variables or functions whose types are currently inferred,
 -- the type assumption of @x@ is not abstracted (i.e., @n = 0@).
--- Therfore a type equation that unifies the type the binder of @x@ has been
+-- Therefore a type equation that unifies the type the binder of @x@ has been
 -- annotated with and the given type @τ@ is simply added in this case.
 annotateExprWith' (IR.Var srcSpan varName _) resType = do
   addTypeEquationFor srcSpan varName resType
@@ -639,7 +639,7 @@ annotateExprWith' (IR.Case srcSpan scrutinee alts _) resType = do
       rhs' <- annotateExprWith rhs resType
       return (IR.Alt altSrcSpan conPat varPats' rhs')
 
--- Error terms are predefined polymorphic funtions. They can be annotated
+-- Error terms are predefined polymorphic functions. They can be annotated
 -- with the given result type directly.
 annotateExprWith' (IR.Undefined srcSpan _) resType =
   return (IR.Undefined srcSpan (makeExprType resType))
@@ -877,7 +877,7 @@ abstractVanishingTypeArgs funcDecls =
     | varName `Set.member` funcNames = (expr, internalTypeArgs)
     | otherwise                      = (expr, [])
 
-  -- Add new type arguments after exisiting visible type applications.
+  -- Add new type arguments after existing visible type applications.
   addInternalTypeArgsToExpr' funcNames (IR.TypeAppExpr srcSpan expr typeExpr exprType)
     = let (expr', typeArgs) = addInternalTypeArgsToExpr' funcNames expr
       in  (IR.TypeAppExpr srcSpan expr' typeExpr exprType, typeArgs)
@@ -923,7 +923,7 @@ abstractVanishingTypeArgs funcDecls =
 -- Solving type equations                                                    --
 -------------------------------------------------------------------------------
 
--- | Finds the most general unificator that satisfies all given type equations.
+-- | Finds the most general unifier that satisfies all given type equations.
 --
 --   The type equations are unified in reverse order in order to improve
 --   error messages. The list of type equations contains equations for

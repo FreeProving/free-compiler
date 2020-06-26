@@ -8,6 +8,7 @@ where
 
 import           Test.Hspec
 
+import           FreeC.Pass.CompletePatternPassTests
 import           FreeC.Pass.EtaConversionPassTests
 import           FreeC.Pass.KindCheckPassTests
 import           FreeC.Pass.PartialityAnalysisPassTests
@@ -17,6 +18,7 @@ import           FreeC.Pass.TypeInferencePassTests
 -- | Test group for 'FreeC.Pipeline.runPipeline' tests.
 testPipeline :: Spec
 testPipeline = do
+  testCompletePatternPass
   testEtaConversionPass
   testKindCheckPass
   testPartialityAnalysisPass
