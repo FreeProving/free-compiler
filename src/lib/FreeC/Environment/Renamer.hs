@@ -36,6 +36,7 @@ import           Data.Maybe                     ( fromMaybe
 import           Text.Casing
 import           Text.RegexPR
 
+import           FreeC.Backend.Agda.Keywords
 import qualified FreeC.Backend.Agda.Syntax     as Agda
 import qualified FreeC.Backend.Agda.Base       as Agda.Base
 import qualified FreeC.Backend.Coq.Base        as Coq.Base
@@ -186,6 +187,7 @@ isUsedAgdaIdent env name = name `elem` usedAgdaIdents env
 renameAgdaIdent :: Agda.QName -> Environment -> Agda.QName
 renameAgdaIdent ident env =
   if (Agda.unqualify ident `elem` Agda.Base.reservedIdents)
+       || (Agda.unqualify ident `elem` map Agda.name agdaKeywords)
        || isUsedAgdaIdent env ident
     then renameAgdaIdent (nextQName ident) env
     else ident

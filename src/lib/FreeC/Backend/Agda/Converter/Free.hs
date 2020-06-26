@@ -42,7 +42,7 @@ addFreeArgs ts = Agda.Base.shape : Agda.Base.position : ts
 --
 --   > Shape
 shape :: Agda.Expr
-shape = Agda.Ident $ Agda.qname [Agda.name "Base"] $ Agda.Base.shape
+shape = Agda.Ident $ Agda.qname' $ Agda.Base.shape
 
 -- | Binder for the type arguments of the @Free@ monad.
 --

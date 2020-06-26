@@ -22,6 +22,7 @@ module FreeC.Backend.Agda.Syntax
   , lambda
   , app
   , ident
+  , hiddenArg_
     -- * Types
   , set
   , dataDecl
@@ -150,6 +151,12 @@ paren = Paren NoRange
 ident :: String -> Expr
 ident = Ident . qname' . name
 
+-- | Hides the given expression.
+--
+--   e ↦ {e}
+hiddenArg_ :: Expr -> Expr
+hiddenArg_ = HiddenArg NoRange . unnamed
+
 -------------------------------------------------------------------------------
 -- Types                                                                     --
 -------------------------------------------------------------------------------
@@ -167,8 +174,8 @@ set = ident "Set"
 --   >   C₁
 --   >   ⋮
 --   >   Cₘ
-dataDecl :: Name -> [LamBinding] -> [Declaration] -> Declaration
-dataDecl dataName bindings = Data NoRange dataName bindings set
+dataDecl :: Name -> [LamBinding] -> Expr -> [Declaration] -> Declaration
+dataDecl = Data NoRange
 
 -- | Creates a binder with visible args.
 --
@@ -189,8 +196,10 @@ fun l             = Fun NoRange (defaultArg l)
 --
 --   > pi [α₁, …, αₙ] expr ↦ ∀ {α₁} … {αₙ} → expr
 pi :: [Name] -> Expr -> Expr
-pi decls =
-  Pi [TBind NoRange (hiddenArg <$> decls) (Underscore NoRange Nothing)]
+pi decls expr | (Pi binders expr') <- expr = Pi (binder : binders) expr'
+              | otherwise                  = Pi [binder] expr
+ where
+  binder = TBind NoRange (map hiddenArg decls) $ Underscore NoRange Nothing
 
 -- | Helper function for creating hidden named arguments.
 hiddenArg :: Name -> NamedArg Binder

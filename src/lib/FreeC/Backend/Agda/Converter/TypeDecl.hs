@@ -2,34 +2,50 @@
 --   declarations and their constructors.
 
 module FreeC.Backend.Agda.Converter.TypeDecl
-  ( convertTypeDecl
+  ( convertTypeDecls
   )
 where
 
+import           Data.Bool                      ( bool )
 import           Data.List.Extra                ( snoc )
 
+import           FreeC.IR.DependencyGraph
 import qualified FreeC.IR.Syntax               as IR
 import           FreeC.IR.SrcSpan               ( SrcSpan(NoSrcSpan) )
-import qualified FreeC.Backend.Agda.Syntax     as Agda
 import qualified FreeC.Backend.Agda.Base       as Agda.Base
 import           FreeC.Backend.Agda.Converter.Free
+import qualified FreeC.Backend.Agda.Syntax     as Agda
 import           FreeC.Backend.Agda.Converter.Type
-                                                ( convertConstructorType )
+                                                ( convertConType
+                                                , convertRecConType
+                                                )
 import           FreeC.Backend.Agda.Converter.Arg
                                                 ( convertTypeVarDecl )
+import           FreeC.Backend.Agda.Converter.Size
 import           FreeC.Environment.Fresh        ( freshAgdaVar )
 import           FreeC.Environment.LookupOrFail
 import           FreeC.Monad.Converter          ( Converter
                                                 , localEnv
                                                 )
 
+-- | Converts a strongly connected component of the type dependency graph.
+--   TODO: handle mutual recursive types
+convertTypeDecls
+  :: DependencyComponent IR.TypeDecl -> Converter [Agda.Declaration]
+convertTypeDecls comp = case comp of
+  NonRecursive decl   -> convertTypeDecl decl False
+  Recursive    [decl] -> convertTypeDecl decl True
+  Recursive _ ->
+    error "Mutual recursive data types are not supported at the moment."
+
 -- | Converts a data or type synonym declaration.
 --   TODO: Convert type synonyms.
-convertTypeDecl :: IR.TypeDecl -> Converter [Agda.Declaration]
-convertTypeDecl (IR.TypeSynDecl _ _ _ _) = error "Not supported at the moment."
-convertTypeDecl (IR.DataDecl _ ident tVars constrs) =
+convertTypeDecl :: IR.TypeDecl -> Bool -> Converter [Agda.Declaration]
+convertTypeDecl (IR.TypeSynDecl _ _ _ _) _ =
+  error "Type synonyms are not supported at the moment."
+convertTypeDecl (IR.DataDecl _ ident tVars constrs) isRec =
   (:)
-    <$> convertDataDecl ident tVars constrs
+    <$> convertDataDecl ident tVars constrs isRec
     <*> mapM generateSmartConDecl constrs
 
 -- | Converts a data declaration by creating an Agda data type of the
@@ -42,38 +58,46 @@ convertTypeDecl (IR.DataDecl _ ident tVars constrs) =
 --  >                 ↦
 --  >   | Cₘ ρ₁ … ρⱼ        Ĉₘ : ρ₁̓ → … → ρⱼ̓ → D̂ S P α̂₁ … α̂ₙ
 convertDataDecl
-  :: IR.DeclIdent
-  -> [IR.TypeVarDecl]
-  -> [IR.ConDecl]
+  :: IR.DeclIdent     -- ^ The name of the data type
+  -> [IR.TypeVarDecl] -- ^ Type parameters for the data type.
+  -> [IR.ConDecl]     -- ^ The constructors for this data type.
+  -> Bool             -- ^ Is this a recursive data declaration?
   -> Converter Agda.Declaration
-convertDataDecl ident@(IR.DeclIdent srcSpan name) typeVars constrs =
-  localEnv -- The data declaration opens a new scope binding @S@, @P and α̂ᵢ.
+convertDataDecl ident@(IR.DeclIdent srcSpan name) typeVars constrs isRec =
+  localEnv -- The data declaration opens a new scope binding @S@, @P@ and @α̂ᵢ@.
     $   freeDataDecl
     <$> lookupUnQualAgdaIdentOrFail srcSpan IR.TypeScope name
     <*> mapM convertTypeVarDecl typeVars
-    <*> convertConDecl ident typeVars constrs
+    <*> pure universe
+    <*> convertConDecls ident typeVars isRec constrs
+ where
+  universe =
+    if isRec then Agda.hiddenArg_ size `Agda.fun` Agda.set else Agda.set
 
 -- | Converts all constructors of a data declaration.
 --
 --   We synthesize the return type of the constructor in IR to avoid passing the
 --   identifier and all used type variables to the type converter. This way we
 --   can reuse the existing translation.
-convertConDecl
+convertConDecls
   :: IR.DeclIdent     -- ^ The identifier of the data type.
   -> [IR.TypeVarDecl] -- ^ The type parameters declared by the data type.
+  -> Bool             -- ^ Whether this is a recursive data declaration.
   -> [IR.ConDecl]     -- ^ The constructor declarations of the data type.
   -> Converter [Agda.Declaration]
-convertConDecl (IR.DeclIdent srcSpan ident) typeVars =
-  mapM $ convertConstructor $ IR.typeApp NoSrcSpan
-                                         (IR.TypeCon srcSpan ident)
-                                         (map IR.typeVarDeclToType typeVars)
+convertConDecls (IR.DeclIdent srcSpan ident) typeVars isRec =
+  mapM $ convertConDecl (bool Nothing (Just ident) isRec) $ IR.typeApp
+    NoSrcSpan
+    (IR.TypeCon srcSpan ident)
+    (map IR.typeVarDeclToType typeVars)
 
 -- | Converts a single constructor of a (non-recursive) data type.
-convertConstructor :: IR.Type -> IR.ConDecl -> Converter Agda.Declaration
-convertConstructor retType (IR.ConDecl _ (IR.DeclIdent srcSpan name) argTypes)
+convertConDecl
+  :: Maybe IR.QName -> IR.Type -> IR.ConDecl -> Converter Agda.Declaration
+convertConDecl ident retType (IR.ConDecl _ (IR.DeclIdent srcSpan name) argTypes)
   = Agda.funcSig
     <$> lookupUnQualAgdaIdentOrFail srcSpan IR.ValueScope name
-    <*> convertConstructorType argTypes retType
+    <*> maybe convertConType convertRecConType ident argTypes retType
 
 -- | Converts a single constructor to a smart constructor, which wraps the normal
 --   constructor in the @Free@ monad using @pure@.
@@ -89,7 +113,7 @@ generateSmartConDecl (IR.ConDecl _ (IR.DeclIdent srcSpan name) argTypes) = do
     return (Agda.IdentP (Agda.qname' Agda.Base.pure) `Agda.appP` pureVal)
 
 -------------------------------------------------------------------------------
--- specialized syntax                                                        --
+-- Specialized syntax                                                        --
 -------------------------------------------------------------------------------
 
 -- | Creates a declaration for a data type, which is parameterized over @Shape@
@@ -97,10 +121,11 @@ generateSmartConDecl (IR.ConDecl _ (IR.DeclIdent srcSpan name) argTypes) = do
 freeDataDecl
   :: Agda.Name          -- ^ Name of the data type
   -> [Agda.Name]        -- ^ Names of the bound type variables
+  -> Agda.Expr          -- ^ Universe containing the declaration
   -> [Agda.Declaration] -- ^ List of constructor declarations
   -> Agda.Declaration
 freeDataDecl dataName typeNames =
-  Agda.dataDecl dataName $ freeArgBinder `snoc` Agda.binding typeNames Agda.set
+  Agda.dataDecl dataName (freeArgBinder `snoc` Agda.binding typeNames Agda.set)
 
 -- | Creates a new pattern declaration binding variables with the given names
 --   and types.

@@ -108,8 +108,10 @@ library freec-internal
                       , FreeC.Backend.Agda.Converter.Free
                       , FreeC.Backend.Agda.Converter.FuncDecl
                       , FreeC.Backend.Agda.Converter.Module
+                      , FreeC.Backend.Agda.Converter.Size
                       , FreeC.Backend.Agda.Converter.Type
                       , FreeC.Backend.Agda.Converter.TypeDecl
+                      , FreeC.Backend.Agda.Keywords
                       , FreeC.Backend.Agda.Pretty
                       , FreeC.Backend.Agda.Syntax
                       , FreeC.Backend.Coq.Analysis.ConstantArguments
@@ -155,6 +157,7 @@ library freec-internal
                       , FreeC.IR.Base.Test.QuickCheck
                       , FreeC.IR.DependencyGraph
                       , FreeC.IR.Inlining
+                      , FreeC.IR.Pragma
                       , FreeC.IR.Reference
                       , FreeC.IR.Similar
                       , FreeC.IR.SrcSpan

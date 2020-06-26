@@ -11,6 +11,9 @@ module FreeC.Backend.Agda.Base
   , pure
   , shape
   , position
+    -- * sized types
+  , size
+  , up
     -- * reserved identifiers
   , reservedIdents
   )
@@ -63,6 +66,22 @@ position :: Agda.Name
 position = Agda.name "Pos"
 
 -------------------------------------------------------------------------------
+-- Sized Types                                                               --
+-------------------------------------------------------------------------------
+
+-- | The name of Agda's @Size@ data type.
+--
+--   > Size
+size :: Agda.Name
+size = Agda.name "Size"
+
+-- | The Name of the Agda function for larger @Size@.
+--
+--   > ↑
+up :: Agda.Name
+up = Agda.name "\x2191"
+
+-------------------------------------------------------------------------------
 -- Reserved identifiers                                                      --
 -------------------------------------------------------------------------------
 
@@ -70,4 +89,4 @@ position = Agda.name "Pos"
 --
 --   This does only include identifiers without corresponding Haskell name.
 reservedIdents :: [Agda.Name]
-reservedIdents = [free, pure, impure, shape, position]
+reservedIdents = [free, pure, impure, shape, position, size, up]
