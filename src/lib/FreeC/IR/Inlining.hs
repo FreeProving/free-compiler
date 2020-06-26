@@ -26,9 +26,11 @@ inlineFuncDecls decls decl = do
   rhs' <- inlineExpr decls rhs
   return decl { IR.funcDeclRhs = rhs' }
 
--- | Inlines the right hand sides of the given function declarations into an
---   expression. This step is repeated until the expression remains unchanged
---   or no more function declarations are available.
+-- | Inlines the right-hand sides of the given function declarations into an
+--   expression.
+--
+--   Inlining is repeated until the expression remains unchanged or no more
+--   function declarations are available.
 --   That is done under the assumption that regarding a certain position
 --   of the given expression every given function should be inlined at
 --   most once in order to avoid endless inlining.

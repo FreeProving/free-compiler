@@ -115,6 +115,7 @@ hPutPrettyLn :: Pretty a => Handle -> a -> IO ()
 hPutPrettyLn h = hPutPretty h . TrailingLine
 
 -- | Writes a pretty printable value to the file located at the given path.
+--
 --   There is always a trailing newline at the end of the file.
 writePrettyFile :: Pretty a => FilePath -> a -> IO ()
 writePrettyFile filename = withFile filename WriteMode . flip hPutPrettyLn
