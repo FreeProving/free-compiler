@@ -25,14 +25,17 @@ import           FreeC.Pretty
 import           FreeC.Test.Environment
 import           FreeC.Test.Parser
 
-
+-- | looks up an exported entry in the given module interface
 lookupExportedEntry :: IR.Scope -> IR.QName -> ModuleInterface -> Maybe EnvEntry
 lookupExportedEntry scope qname moduleInterface =
-  if (scope, qname) `elem` (Set.toList $ interfaceExports moduleInterface)
-    then listToMaybe $ filter ((qname ==) . entryName)
-                              (Set.toList $ interfaceEntries moduleInterface)
+  if (scope, qname) `elem` Set.toList (interfaceExports moduleInterface)
+    then find ((qname ==) . entryName)
+              (Set.toList $ interfaceEntries moduleInterface)
     else Nothing
 
+-- | checks if the given 'Coq.Qualid' is qualified and compares the qualifier
+--   to the given module name.
+--   The check succeeds if the qualifier and module name are the same.
 shouldBeQualifiedWith :: Coq.Qualid -> String -> Converter Expectation
 shouldBeQualifiedWith qualid modNameStr = do
   case qualid of
