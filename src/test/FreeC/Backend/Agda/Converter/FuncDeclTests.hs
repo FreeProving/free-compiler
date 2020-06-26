@@ -86,7 +86,8 @@ testConvertFuncDecls =
         ++ "= f (Pair @a @b x y)"
         )
         [ "curry : \x2200 {Shape} {Pos} {a} {b} {c} "
-          ++ "\x2192 Free Shape Pos (Free Shape Pos (Pair Shape Pos a b) "
-          ++ "\x2192 Free Shape Pos c) \x2192 Free Shape Pos a "
+          ++ "\x2192 Free Shape Pos"
+          ++ "  (Free Shape Pos (Pair Shape Pos a b) \x2192 Free Shape Pos c)"
+          ++ "\x2192 Free Shape Pos a "
           ++ "\x2192 Free Shape Pos b \x2192 Free Shape Pos c"
         ]
