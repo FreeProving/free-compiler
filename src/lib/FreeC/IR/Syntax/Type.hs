@@ -19,7 +19,7 @@ import           FreeC.Pretty
 --   The only exception to this rule is the function type @a -> b@. It is
 --   represented directly as @'FuncType' ('TypeVar' "a") ('TypeVar' "b")@.
 --   The syntax @(->) a b@ is not supported at the moment. This is due to the
---   special role of functions during the translation to Coq.
+--   special role of functions during the lifting.
 data Type
   = -- | A type variable.
     TypeVar
