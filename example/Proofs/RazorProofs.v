@@ -1,4 +1,4 @@
-From Base Require Import Free Prelude Test.QuickCheck.
+From Base Require Import Free Free.Instance.Maybe Free.Instance.Error Prelude Test.QuickCheck.
 From Generated Require Import Proofs.Razor.
 
 Require Import Coq.Logic.FunctionalExtensionality.
@@ -8,7 +8,7 @@ Require Import Coq.Program.Equality.
 
 Ltac simplifyInductionHypothesis ident1 ident2 :=
   match goal with
-  | [ ident1 : ForFree ?Shape ?Pos ?A ?P (pure _) |- _ ] => inversion ident1 as [ Heq ident2 |]; clear ident1; subst; simpl
+  | [ ident1 : ForFree ?Shape ?Pos ?A ?P (pure _) |- _ ] => inversion ident1 as [ Heq ident2 |]; clear ident1; subst Heq; simpl
   | [ ident1 : ForFree ?Shape ?Pos ?A ?P (impure ?s ?pf) |- _ ] =>
     dependent destruction ident1;
     match goal with
@@ -103,11 +103,112 @@ End Expr_ind.
 Lemma append_nil : quickCheck prop_append_nil. Proof. Admitted.
 Theorem append_assoc : quickCheck prop_append_assoc. Proof. Admitted.
 
+(* This states the property, that the given Partial instance represents every [undefined] as an impure value. *)
+Definition UndefinedIsImpure (Shape : Type) (Pos : Shape -> Type) (Partial : Partial Shape Pos): Prop :=
+    forall (A : Type),
+    exists (s : Shape) (pf : (Pos s) -> Free Shape Pos A),
+  @undefined Shape Pos Partial A = impure s pf.
+
+(* The property holds for the [Maybe] monad and the [Error] monad. *)
+Lemma undefinedIsImpureMaybe : UndefinedIsImpure Maybe.Shape Maybe.Pos Maybe.Partial.
+Proof.
+  intro A.
+  simpl. unfold Nothing. exists tt.
+  exists (fun p : Maybe.Pos tt => match p return (Free unit Maybe.Pos A) with end).
+  reflexivity.
+Qed.
+
+Lemma undefinedIsImpureError : UndefinedIsImpure (Error.Shape string) Error.Pos Error.Partial.
+Proof.
+  intro A.
+  simpl. unfold ThrowError. exists "undefined"%string.
+  exists (fun p : Error.Pos "undefined"%string => match p return (Free string Error.Pos A) with end).
+  reflexivity.
+Qed.
+
+(* This is a tactic, which iscriminates assumptions where [impure] is equal to some [pure] value. *)
+Ltac pureEqImpure :=
+  match goal with
+  | [ HUnd : UndefinedIsImpure ?Shape ?Pos ?Partial |- _] =>
+      match goal with
+      | [ HEq : pure _ = @undefined Shape Pos Partial ?A |- _] =>
+          specialize (HUnd (Stack Shape Pos));
+          destruct HUnd as [ sImp HUnd ];
+          destruct HUnd as [ pfImp HUnd ];
+          rewrite HUnd in HEq;
+          discriminate HEq
+      | [ HEq : @undefined Shape Pos Partial ?A = pure _ |- _] =>
+          specialize (HUnd (Stack Shape Pos));
+          destruct HUnd as [ sImp HUnd ];
+          destruct HUnd as [ pfImp HUnd ];
+          rewrite HUnd in HEq;
+          discriminate HEq
+      
+      end
+  | [ H : impure _ _ = pure _ |- _ ] => discriminate H
+  | [ H : pure _ = impure _ _ |- _ ] => discriminate H
+  end.
+
 Section Proofs.
 
   Variable Shape   : Type.
   Variable Pos     : Shape -> Type.
   Variable Partial : Partial Shape Pos.
+
+  (* If [UndefinedIsImpure] holds and we know that [exec] applied to some [Code]
+     [fcode1] returns a pure value, we know that [exec] applied to [fcode1]
+     appended with some [Code] [fcode2] has the same result as applying [exec] to
+     [fcode1] first and applying [exec] to [fcode2] second. *)
+  Lemma exec_append :
+    UndefinedIsImpure Shape Pos Partial ->
+    forall (fcode1 fcode2 : Free Shape Pos (Code Shape Pos))
+           (fstack        : Free Shape Pos (Stack Shape Pos)),
+        (exists (stack' : Stack Shape Pos),
+           exec Shape Pos Partial fcode1 fstack = pure stack')
+      ->
+        exec Shape Pos Partial (append Shape Pos fcode1 fcode2) fstack
+        = exec Shape Pos Partial fcode2 (exec Shape Pos Partial fcode1 fstack).
+  Proof.
+    intros HUndefined fcode1 fcode2.
+    (* Do an induction over the first part of code. *)
+    inductFree fcode1 as [ code1 | sCode1 pfCode1 IHpfCode1 ].
+    - induction code1 as [ | [ [ fn | ] | sOp pfOp ] fcode1' IHfcode1'] using List_Ind.
+      + (* fcode1 = pure [] *)
+        (* This case is trivial. *)
+        reflexivity.
+      + (* fcode1 = pure (pure (PUSH fn) : fcode1') *)
+        intros fstack H.
+        (* Destruct the remaining code [fcode1'] to see, wether it is pure or impure. *)
+        destruct fcode1' as [ code1' | sCode1' pfCode1' ].
+        * (* fcode1 = pure (pure (PUSH fn) : pure code1') *)
+          (* In this case we can apply the induction hypothesis. *)
+          autoIH. apply IH. apply H.
+        * (* fcode1 = pure (pure (PUSH fn) : impure sCode1' pfCode1' *)
+          (* In this case we have impure code and therefore [H] can't hold. *)
+          destruct H as [ stack' Hstack' ]. discriminate Hstack'.
+      + (* fcode1 = pure (pure ADD : fcode1') *)
+        intros fstack H. destruct H as [ stack' Hstack' ].
+        (* Destruct the remaining code [fcode1'] to see, wether it is pure or impure. *)
+        destruct fcode1' as [ code1' | sCode1' pfCode1' ].
+        * (* fcode1 = pure (pure ADD : pure code1') *)
+          (* As the addition reads its two inputs from the stack [fstack], we need to destruct it.
+             All cases where the stack does not contain at least two values can't produce a pure result
+             and are therefore a violation to [Hstack']. *)
+          destruct fstack as [ [ | fv1 [ [ | fv2 fstack2 ] | sStack1 pfStack1 ] ] | sStack pfStack ];
+            simpl in Hstack'; try pureEqImpure.
+          (* In the only valid case we can apply the induction hypothesis. *)
+          autoIH. apply IH. exists stack'. apply Hstack'.
+        * (* fcode1 = pure (pure ADD : impure sCode1' pfCode1') *)
+          (* This case is again a violation to [Hstack'] which we can proof by destructing [fstack]. *)
+          destruct fstack as [ [ | fv1 [ [ | fv2 fstack2 ] | sStack1 pfStack1 ] ] | sStack pfStack ];
+            simpl in Hstack'; pureEqImpure.
+      + (* fcode1 = pure (impure sOp pfOp : fcode1') *)
+        (* In this case the first operation is impure, therefore we have another violation to [H]. *)
+        intros fstack H. destruct H as [ stack' Hstack' ]. discriminate Hstack'.
+  - (* fcode1 = impure sCode1 pfCode1 *)
+    (* The last case, where the whole [fcode1] is impure is another violation to [H]. *)
+    intros fstack H. destruct H as [ stack' Hstack' ]. discriminate Hstack'.
+  Qed.
 
   (* As the second compiler [comp'] just calls [compApp], we need the following lemma to prove [comp_comp'_eq]. *)
   Lemma compApp_comp_append_eq :
