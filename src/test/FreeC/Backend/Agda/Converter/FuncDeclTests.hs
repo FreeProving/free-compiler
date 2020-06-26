@@ -31,7 +31,7 @@ shouldConvertTypeDeclsTo inputStrs expectedOutput = do
 -- | Test group for 'convertFuncDecls' tests.
 testConvertFuncDecls :: Spec
 testConvertFuncDecls =
-  describe "FreeC.Backend.Agda.Converter.TypeDecl.convertFuncDecl" $ do
+  describe "FreeC.Backend.Agda.Converter.FuncDecl.convertFuncDecl" $ do
     it "translates 0-ary functions correctly" $ shouldSucceedWith $ do
       "Integer" <- defineTestTypeCon "Integer" 0 []
       "foo"     <- defineTestFunc "foo" 0 "Integer"
