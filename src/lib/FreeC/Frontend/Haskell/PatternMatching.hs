@@ -1,5 +1,5 @@
 -- | This module provides an interface to the pattern matching compiler and
---   case complition library by Malte Clement
+--   case completion library by Malte Clement
 --   <https://git.informatik.uni-kiel.de/stu204333/placc-thesis>.
 --   We are using a slightly adapted version of the library located at
 --   <https://github.com/FreeProving/haskell-src-transformations>.

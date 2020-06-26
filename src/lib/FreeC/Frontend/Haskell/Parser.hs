@@ -144,7 +144,7 @@ parseHaskellModule
   -> r (HSE.Module SrcSpan)
 parseHaskellModule = parseHaskell
 
--- | Like 'parseHaskellModule' but returns the comments in addtion to the AST.
+-- | Like 'parseHaskellModule' but returns the comments in addition to the AST.
 parseHaskellModuleWithComments
   :: MonadReporter r
   => SrcFile -- ^ The name and contents of the Haskell source file.
@@ -158,7 +158,8 @@ parseHaskellModuleFile
   -> r (HSE.Module SrcSpan)
 parseHaskellModuleFile = fmap fst . parseHaskellModuleFileWithComments
 
--- | Like 'parseHaskellModuleFile' but returns the comments in addtion to the AST.
+-- | Like 'parseHaskellModuleFile' but returns the comments in addition to
+--   the AST.
 parseHaskellModuleFileWithComments
   :: (MonadIO r, MonadReporter r)
   => FilePath -- ^ The name of the Haskell source file.
