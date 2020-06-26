@@ -1,4 +1,4 @@
--- | This function contains auxiliary functions that are used both to translate
+-- | This module contains auxiliary functions that are used to translate both
 --   recursive and non-recursive Haskell functions to Coq.
 
 module FreeC.Backend.Coq.Converter.FuncDecl.Common

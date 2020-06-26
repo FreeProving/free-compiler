@@ -21,7 +21,7 @@ import           FreeC.Monad.Converter
 --   E.g. the declaration of the type variable @a@ in @data D a = ...@ is
 --   translated to the binder @(a : Type)@. If there are multiple type variable
 --   declarations as in @data D a b = ...@ they are grouped into a single
---   binder @(a b : Type)@ because we assume all Haskell type variables to be
+--   binder @(a b : Type)@, because we assume all Haskell type variables to be
 --   of kind @*@.
 --
 --   The first argument controls whether the generated binders are explicit

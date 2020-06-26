@@ -109,13 +109,16 @@ generateBinds exprs' defaultPrefix areStrict argTypes' generateRHS =
 --   If the third argument is @Nothing@, the type of the fresh variable is
 --   inferred by Coq.
 generateBind
-  :: Coq.Term        -- ^ The left hand side of the bind operator.
-  -> String        -- ^ A prefix to use for fresh variable by default.
-  -> Maybe Coq.Term  -- ^ The  Coq type of the value to bind or @Nothing@ if it
-                   --   should be inferred by Coq.
+  :: Coq.Term
+  -- ^ The left hand side of the bind operator.
+  -> String
+  -- ^ A prefix to use for fresh variable by default.
+  -> Maybe Coq.Term
+  -- ^ The Coq type of the value to bind or @Nothing@ if it should be inferred
+  --   by Coq.
   -> (Coq.Term -> Converter Coq.Term)
-                   -- ^ Converter for the right hand side of the generated
-                   --   function. The first argument is the fresh variable.
+  -- ^ Converter for the right hand side of the generated
+  --   function. The first argument is the fresh variable.
   -> Converter Coq.Term
 generateBind (Coq.App (Coq.Qualid con) (Coq.PosArg arg :| [])) _ _ generateRHS
   | con == Coq.Base.freePureCon = generateRHS arg
