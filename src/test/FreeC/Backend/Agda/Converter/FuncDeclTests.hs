@@ -1,3 +1,5 @@
+-- | This module contains tests for "FreeC.Backend.Agda.Converter.FuncDecl".
+
 module FreeC.Backend.Agda.Converter.FuncDeclTests
   ( testConvertFuncDecls
   )
@@ -18,7 +20,7 @@ import           FreeC.Pretty                   ( showPretty )
 
 -- | Parses the given IR function declaration, converts it to Agda using
 --   'convertFuncDecls' and sets the expectation that the resulting
---   Agda code equals the given expected output modulo white space.
+--   Agda code equals the given expected output modulo whitespace.
 shouldConvertTypeDeclsTo
   :: DependencyComponent String -> [String] -> Converter Expectation
 shouldConvertTypeDeclsTo inputStrs expectedOutput = do
@@ -26,10 +28,10 @@ shouldConvertTypeDeclsTo inputStrs expectedOutput = do
   output <- convertFuncDecls input
   return (output `prettyShouldBe` showPretty expectedOutput)
 
--- | Test group for @convertFuncDecls@ tests.
+-- | Test group for 'convertFuncDecls' tests.
 testConvertFuncDecls :: Spec
 testConvertFuncDecls =
-  describe "FreeC.Backend.Agda.Converter.TypeDecl.convertFuncDecl" $ do
+  describe "FreeC.Backend.Agda.Converter.FuncDecl.convertFuncDecl" $ do
     it "translates 0-ary functions correctly" $ shouldSucceedWith $ do
       "Integer" <- defineTestTypeCon "Integer" 0 []
       "foo"     <- defineTestFunc "foo" 0 "Integer"
@@ -84,7 +86,8 @@ testConvertFuncDecls =
         ++ "= f (Pair @a @b x y)"
         )
         [ "curry : \x2200 {Shape} {Pos} {a} {b} {c} "
-          ++ "\x2192 Free Shape Pos (Free Shape Pos (Pair Shape Pos a b) "
-          ++ "\x2192 Free Shape Pos c) \x2192 Free Shape Pos a "
+          ++ "\x2192 Free Shape Pos"
+          ++ "  (Free Shape Pos (Pair Shape Pos a b) \x2192 Free Shape Pos c)"
+          ++ "\x2192 Free Shape Pos a "
           ++ "\x2192 Free Shape Pos b \x2192 Free Shape Pos c"
         ]
