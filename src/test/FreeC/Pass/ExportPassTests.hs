@@ -24,7 +24,7 @@ import           FreeC.Pretty
 import           FreeC.Test.Environment
 import           FreeC.Test.Parser
 
--- | looks up an exported entry in the given module interface
+-- | Looks up an exported entry in the given module interface.
 lookupExportedEntry :: IR.Scope -> IR.QName -> ModuleInterface -> Maybe EnvEntry
 lookupExportedEntry scope qname moduleInterface =
   if (scope, qname) `elem` Set.toList (interfaceExports moduleInterface)
