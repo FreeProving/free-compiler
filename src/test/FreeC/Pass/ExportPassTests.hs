@@ -49,6 +49,7 @@ shouldBeQualifiedWith qualid modNameStr = do
         <>   line
         <$$> prettyString "but it was not qualified"
 
+-- | Test group for 'exportPass' tests.
 testExportPass :: SpecWith ()
 testExportPass = describe "FreeC.Pass.ExportPass" $ do
   context "qualifies Coq identifiers of exported entries" $ do
