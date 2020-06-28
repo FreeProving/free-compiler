@@ -20,8 +20,11 @@ module FreeC.IR.Subterm
   , rightOf
     -- * Subterms
   , selectSubterm
+  , selectSubterm'
   , replaceSubterm
+  , replaceSubterm'
   , replaceSubterms
+  , replaceSubterms'
     -- * Searching for subterms
   , findSubtermPos
   , findSubterms
@@ -66,12 +69,26 @@ nullary :: b -> [a] -> Maybe b
 nullary y xs | null xs   = Just y
              | otherwise = Nothing
 
+-- | Throws an error that the subterm of the given term of the given position
+--   does not exists.
+--
+--   The error message is annotated with the given function name.
+missingPosError :: Subterm a => String -> a -> Pos -> a
+missingPosError funcName term pos =
+  error
+    $  funcName
+    ++ ": The subterm at position "
+    ++ showPretty pos
+    ++ "in term "
+    ++ showPretty term
+    ++ " does not exists."
+
 -------------------------------------------------------------------------------
 -- Direct children                                                           --
 -------------------------------------------------------------------------------
 
 -- | Type class for AST nodes with child nodes of the same type.
-class Subterm a where
+class Pretty a => Subterm a where
   -- | Gets the child nodes of the given AST node.
   childTerms :: a -> [a]
 
@@ -218,6 +235,11 @@ selectSubterm term (Pos (p : ps))
   where {- children :: [a] -}
         children = childTerms term
 
+-- | Like 'selectSubterm' but throws an error if there is no such subterm.
+selectSubterm' :: Subterm a => a -> Pos -> a
+selectSubterm' term pos =
+  fromMaybe (missingPosError "selectSubterm" term pos) (selectSubterm term pos)
+
 -- | Replaces a subterm of the given expression or type expression at the
 --   specified position with another expression.
 --
@@ -238,6 +260,12 @@ replaceSubterm term (Pos (p : ps)) term'
   where {- children :: [a] -}
         children = childTerms term
 
+-- | Like 'replaceSubterm' but throws an error if there is no such subterm.
+replaceSubterm' :: Subterm a => a -> Pos -> a -> a
+replaceSubterm' term pos term' = fromMaybe
+  (missingPosError "replaceSubterm" term pos)
+  (replaceSubterm term pos term')
+
 -- | Replaces all subterms at the given positions with other (type) expressions.
 --
 --   Returns @Nothing@ if any of the subterms could not be replaced
@@ -247,6 +275,10 @@ replaceSubterms term ((p, e) : pes) = do
   term' <- replaceSubterm term p e
   replaceSubterms term' pes
 
+-- | Like 'replaceSubterms' but throws an error if any of the subterms could
+--   not be replaced.
+replaceSubterms' :: Subterm a => a -> [(Pos, a)] -> a
+replaceSubterms' = foldl (\term (pos, term') -> replaceSubterm' term pos term')
 -------------------------------------------------------------------------------
 -- Searching for subterms                                                    --
 -------------------------------------------------------------------------------
