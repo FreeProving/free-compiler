@@ -21,8 +21,8 @@ testPipeline :: Spec
 testPipeline = do
   testCompletePatternPass
   testEtaConversionPass
+  testExportPass
   testKindCheckPass
   testPartialityAnalysisPass
   testResolverPass
   testTypeInferencePass
-  testExportPass

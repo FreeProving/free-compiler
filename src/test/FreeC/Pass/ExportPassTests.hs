@@ -10,7 +10,6 @@ import           Test.Hspec
 import           Data.List                      ( find )
 import           Data.Maybe                     ( fromJust )
 import qualified Data.Set                      as Set
-import qualified Data.Text                     as Text
 
 import qualified FreeC.Backend.Coq.Syntax      as Coq
 import           FreeC.Environment
@@ -25,6 +24,8 @@ import           FreeC.Test.Environment
 import           FreeC.Test.Parser
 
 -- | Looks up an exported entry in the given module interface.
+--   also checks if the entry is defined in the given module.
+--   Returns 'Nothing' if either the check or the lookup fails.
 lookupExportedEntry :: IR.Scope -> IR.QName -> ModuleInterface -> Maybe EnvEntry
 lookupExportedEntry scope qname moduleInterface =
   if (scope, qname) `elem` Set.toList (interfaceExports moduleInterface)
@@ -32,13 +33,18 @@ lookupExportedEntry scope qname moduleInterface =
               (Set.toList $ interfaceEntries moduleInterface)
     else Nothing
 
--- | checks if the given 'Coq.Qualid' is qualified and compares the qualifier
+-- | Looks up an exported entry in the given module interface
+--   but does not check if the entry is defined in the given module.
+lookupExportedEntry' :: IR.QName -> ModuleInterface -> Maybe EnvEntry
+lookupExportedEntry' qname moduleInterface =
+  find ((qname ==) . entryName) (Set.toList $ interfaceEntries moduleInterface)
+
+-- | Checks if the given 'Coq.Qualid' is qualified and compares the qualifier
 --   to the given module name.
---   The check succeeds if the qualifier and module name are the same.
 shouldBeQualifiedWith :: Coq.Qualid -> String -> Converter Expectation
 shouldBeQualifiedWith qualid modNameStr = do
   case qualid of
-    Coq.Qualified s _ -> return $ Text.unpack s `shouldBe` modNameStr
+    Coq.Qualified s _ -> return $ s `shouldBe` Coq.ident modNameStr
     Coq.Bare _ ->
       return
         $    expectationFailure
@@ -49,7 +55,6 @@ shouldBeQualifiedWith qualid modNameStr = do
         <>   line
         <$$> prettyString "but it was not qualified"
 
--- | Test group for 'exportPass' tests.
 -- | Test group for 'exportPass' tests.
 testExportPass :: Spec
 testExportPass = describe "FreeC.Pass.ExportPass" $ do
@@ -103,17 +108,19 @@ testExportPass = describe "FreeC.Pass.ExportPass" $ do
                                                    (fromJust mOutput)
         entryIdent mkFoo `shouldBeQualifiedWith` "A"
     it "does not override qualification of Coq identifiers for entries" $ do
-      input  <- expectParseTestModule ["module A where", "data A.Foo = A.Foo"]
-      input' <- expectParseTestModule ["module B where", "data B.Foo = B.Foo"]
+      _     <- expectParseTestModule ["module A where", "data A.Foo = A.Foo"]
+      input <- expectParseTestModule ["module B where", "import A"]
       shouldSucceedWith $ do
-        _       <- defineTestTypeCon "A.Foo" 0 ["A.Foo"]
-        _       <- defineTestCon "A.Foo" 0 "A.Foo"
-        _       <- defineTestTypeCon "B.Foo" 0 ["B.Foo"]
-        _       <- defineTestCon "B.Foo" 0 "B.Foo"
+        _    <- defineTestTypeCon "A.Foo" 0 ["A.Foo"]
+        _    <- defineTestCon "A.Foo" 0 "A.Foo"
+        name <- parseTestQName "A.Foo"
+        let qualifier = Coq.ident "A"
+            textName  = Coq.ident "Foo"
+        modifyEnv $ modifyEntryIdent IR.TypeScope
+                                     name
+                                     (Coq.Qualified qualifier textName)
         _       <- exportPass input
-        _       <- exportPass input'
-        mOutput <- inEnv $ lookupAvailableModule "A"
-        let foo = fromJust $ lookupExportedEntry IR.TypeScope
-                                                 (Qual "A" (Ident "Foo"))
-                                                 (fromJust mOutput)
+        mOutput <- inEnv $ lookupAvailableModule "B"
+        let foo = fromJust $ lookupExportedEntry' (Qual "A" (Ident "Foo"))
+                                                  (fromJust mOutput)
         entryIdent foo `shouldBeQualifiedWith` "A"
