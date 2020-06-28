@@ -268,6 +268,67 @@ Section Proofs.
     - dependent destruction HPure.
   Qed.
 
+  (* To prove the correctness of the compiler [comp] as stated in the QuickCheck property,
+     we have to generalize it first by adding an additional stack and we need the preconditions,
+     that [UndefinedIsImpure] holds and the given expression is recursively pure. *)
+  Lemma comp_correct' :
+    UndefinedIsImpure Shape Pos Partial ->
+    forall (fexpr : Free Shape Pos (Expr Shape Pos)),
+    RecPureExpr fexpr ->
+    forall (fstack : Free Shape Pos (Stack Shape Pos)),
+        exec Shape Pos Partial (comp Shape Pos fexpr) fstack
+        = Cons Shape Pos (eval Shape Pos fexpr) fstack.
+  Proof.
+    intros HUndefined fexpr HPure.
+    (* First we need to destruct the free monad holding the expression. *)
+    destruct fexpr as [ expr | sExpr pfExpr ].
+    - (* We proof this lemma by doing an induction over this expression. *)
+      induction expr as [ fn | fx fy IHfx IHfy ] using Expr_Ind.
+      + (* The correctness is trivial for an expression that is a single value. *)
+        reflexivity.
+      + (* An expression that represents the addition of two expressions [fx] and [fy] gets
+           compiled to more complex code. We start by destructing the pureness property for
+           the addition, to get a pureness property for [fx] and a pureness property for [fy]. *)
+        intro fstack.
+        dependent destruction HPure.
+        simpl comp.
+        (* Now we use the lemma [exec_append] to transform the execution of appended pieces of code
+           to multiple [exec] calls, where the resulting stack of the [exec] call on one piece of
+           code is handed over as the initial stack of the [exec] call on the next piece of code. *)
+        do 2 rewrite (exec_append HUndefined).
+        (* As [exec_append] has the precondition, that the execution of the first piece of code
+           produces a (not necessarily recursively) pure stack, we gain three additional subgoals. *)
+        * (* For the main goal we destruct the expressions [fx] and [fy] and apply the induction
+             hypotheses in the pure case. *)
+          destruct fx as [ x | sX pfX ]; destruct fy as [ y | yX pfY ].
+          { simplify IHfy as IHy. simplify IHfx as IHx.
+            simpl exec at 3. rewrite (IHx HPure1).
+            simpl exec at 2. rewrite (IHy HPure2). 
+            reflexivity.
+          }
+          (* The impure cases violate our pureness property. *)
+          { dependent destruction HPure2. }
+          { dependent destruction HPure1. }
+          { dependent destruction HPure1. }
+        (* The three remaining subgoals can be proven each by destructing the expression in that
+           subgoal and using the induction hypothesis in the pure case and eliminating the impure
+           case with the pureness property. *)
+        * destruct fx as [ x | sX pfX ].
+          { exists (cons (eval Shape Pos (pure x)) fstack).
+            autoIH. apply (IH HPure1). }
+          { dependent destruction HPure1. }
+        * destruct fy as [ y | sY pfY ].
+          { exists (cons (eval Shape Pos (pure y)) (exec Shape Pos Partial (comp Shape Pos fx) fstack)).
+            autoIH. apply (IH HPure2). }
+          { dependent destruction HPure2. }
+        * destruct fx as [ x | sX pfX ].
+          { exists (cons (eval Shape Pos (pure x)) fstack).
+            autoIH. apply (IH HPure1). }
+          { dependent destruction HPure1. }
+    - (* The pureness property prohibits the impure case. *)
+      dependent destruction HPure.
+  Qed.
+
   (* As the second compiler [comp'] just calls [compApp], we need the following lemma to prove [comp_comp'_eq]. *)
   Lemma compApp_comp_append_eq :
     forall (fexpr : Free Shape Pos (Expr Shape Pos))
