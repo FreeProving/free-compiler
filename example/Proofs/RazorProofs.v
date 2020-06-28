@@ -343,7 +343,8 @@ Section Proofs.
     apply (comp_correct' HUndefined fexpr HPure).
   Qed.
 
-  (* As the second compiler [comp'] just calls [compApp], we need the following lemma to prove [comp_comp'_eq]. *)
+  (* To prove the equivalence property of the two compilers [comp] and [comp'] we first prove the
+     derived property for [comp] and [compApp] which is used by [comp']. *)
   Lemma compApp_comp_append_eq :
     forall (fexpr : Free Shape Pos (Expr Shape Pos))
            (fcode : Free Shape Pos (Code Shape Pos)),
@@ -351,30 +352,34 @@ Section Proofs.
         = append Shape Pos (comp Shape Pos fexpr) fcode.
   Proof.
     intro fexpr.
+    (* We start with an induction over the monadic expression and complete the impure case by
+       using the induction hypothesis. *)
     inductFree fexpr as [ expr | s pf IHpf ].
+    2: { intro fcode. f_equal. extensionality p. apply IHpf. }
+    (* In the pure case, we do an induction over the given expression. *)
     induction expr as [ fn | fx fy IHfx IHfy ] using Expr_Ind.
-    - reflexivity.
-    - intro fcode. simpl comp_0.
+    - (* For an expression that is only a single value, the property is trivial. *)
+      reflexivity.
+    - (* For an addition expression, we start with some simplification steps for the [append] function. *)
+      intro fcode. simpl comp_0.
       do 2 (rewrite <- append_assoc).
       simpl append.
-      (* Use [replace] here to make this main proof simple and produce additional simple subgoals. *)
-      replace (append Shape Pos (fy >>= (fun a34_0 : Expr Shape Pos => comp_0 Shape Pos a34_0)) (Cons Shape Pos (ADD Shape Pos) fcode))
+      (* We use [replace] here to make this main proof simple and produce additional simple subgoals. *)
+      replace (append Shape Pos _ (Cons Shape Pos (ADD Shape Pos) fcode))
         with (compApp Shape Pos fy (Cons Shape Pos (ADD Shape Pos) fcode)).
-      replace (append Shape Pos (fx >>= (fun a33_0 : Expr Shape Pos => comp_0 Shape Pos a33_0))
-                (compApp Shape Pos fy (Cons Shape Pos (ADD Shape Pos) fcode)))
+      replace (append Shape Pos _ (compApp Shape Pos fy (Cons Shape Pos (ADD Shape Pos) fcode)))
         with (compApp Shape Pos fx (compApp Shape Pos fy (Cons Shape Pos (ADD Shape Pos) fcode))).
       reflexivity.
-      (* Prove subgoals that were introduced by the [replace] tactic. *)
+      (* Prove subgoals that were introduced by the [replace] tactic by induction. *)
       + inductFree fx as [ x | s pf IHpf ].
         * apply IH.
         * f_equal. extensionality p. dependent destruction IHfx. specialize (IHpf p (H p)) as IH. apply IH.
       + inductFree fy as [ y | s pf IHpf ].
         * apply IH.
         * f_equal. extensionality p. dependent destruction IHfy. specialize (IHpf p (H p)) as IH. apply IH.
-    - intro fcode. f_equal. extensionality p. apply IHpf.
   Qed.
 
-  (* With the lemma above the proof of the main theorem is simple. *)
+  (* With the equivalence lemma above the proof of the main equivalence theorem is simple. *)
   Theorem comp_comp'_eq : quickCheck (prop_comp_comp'_eq Shape Pos).
   Proof.
     simpl.
