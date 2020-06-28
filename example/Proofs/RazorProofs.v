@@ -329,6 +329,20 @@ Section Proofs.
       dependent destruction HPure.
   Qed.
 
+  (* The theorem derived by the correctness QuickCheck property for comp_correct can now be proven
+     with the more general lemma above and under the same two assumptions, namely [UndefinedIsImpure]
+     holds and the given expression is recursively pure. *)
+  Theorem comp_correct :
+    UndefinedIsImpure Shape Pos Partial ->
+    forall (fexpr : Free Shape Pos (Expr Shape Pos)),
+    RecPureExpr fexpr ->
+        quickCheck (prop_comp_correct Shape Pos Partial fexpr).
+  Proof.
+    simpl.
+    intros HUndefined fexpr HPure.
+    apply (comp_correct' HUndefined fexpr HPure).
+  Qed.
+
   (* As the second compiler [comp'] just calls [compApp], we need the following lemma to prove [comp_comp'_eq]. *)
   Lemma compApp_comp_append_eq :
     forall (fexpr : Free Shape Pos (Expr Shape Pos))
