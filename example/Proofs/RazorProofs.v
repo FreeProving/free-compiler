@@ -126,7 +126,7 @@ Proof.
   reflexivity.
 Qed.
 
-(* This is a tactic, which iscriminates assumptions where [impure] is equal to some [pure] value. *)
+(* This is a tactic, which discriminates assumptions where [impure] is equal to some [pure] value. *)
 Ltac pureEqImpure :=
   match goal with
   | [ HUnd : UndefinedIsImpure ?Shape ?Pos ?Partial |- _] =>
@@ -143,11 +143,26 @@ Ltac pureEqImpure :=
           destruct HUnd as [ pfImp HUnd ];
           rewrite HUnd in HEq;
           discriminate HEq
-      
       end
   | [ H : impure _ _ = pure _ |- _ ] => discriminate H
   | [ H : pure _ = impure _ _ |- _ ] => discriminate H
   end.
+
+(* This property states that the given expression is recursively pure.
+   The integers in that expression however might still be impure. *)
+Inductive RecPureExpr {Shape : Type} {Pos : Shape -> Type} : Free Shape Pos (Expr Shape Pos) -> Prop :=
+  | recPureExpr_val : forall (fn : Free Shape Pos (Integer.Integer Shape Pos)),
+      RecPureExpr (Val Shape Pos fn)
+  | recPureExpr_add : forall (fx fy : Free Shape Pos (Expr Shape Pos)),
+      RecPureExpr fx -> RecPureExpr fy -> RecPureExpr (Add0 Shape Pos fx fy).
+
+(* This property states that the for a given code the list is recursively pure
+   and all contained operations are pure.
+   The integers in those operations however might still be impure. *)
+Inductive RecPureCode {Shape : Type} {Pos : Shape -> Type} : Free Shape Pos (Code Shape Pos) -> Prop :=
+  | recPureCode_nil : RecPureCode (Nil Shape Pos)
+  | recPureCode_cons : forall (op : Op Shape Pos) (fcode : Free Shape Pos (Code Shape Pos)),
+      RecPureCode fcode -> RecPureCode (Cons Shape Pos (pure op) fcode).
 
 Section Proofs.
 
