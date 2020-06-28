@@ -225,6 +225,49 @@ Section Proofs.
     intros fstack H. destruct H as [ stack' Hstack' ]. discriminate Hstack'.
   Qed.
 
+  (* If we apply [append] on to pieces of recursively pure code the result is recursively pure code. *)
+  Lemma append_pure :
+    forall (fcode1 fcode2 : Free Shape Pos (Code Shape Pos)),
+      RecPureCode fcode1 -> RecPureCode fcode2 -> RecPureCode (append Shape Pos fcode1 fcode2).
+  Proof.
+    intros fcode1 fcode2 HPure1 HPure2.
+    inductFree fcode1 as [ code1 | sCode1 pfCode1 IHpfCode1 ].
+    - induction code1 as [ | [ op | sOp pfOp ] fcode1' ] using List_Ind.
+      + simpl. apply HPure2.
+      + simpl. apply recPureCode_cons.
+        destruct fcode1' as [ code1' | sCode1' pfCode1' ].
+        * autoIH. dependent destruction HPure1. apply (IH HPure1).
+        * do 2 dependent destruction HPure1.
+      + do 2 dependent destruction HPure1.
+    - dependent destruction HPure1.
+  Qed.
+
+  (* The compilation of a recursively pure expression with [comp] produces recursively pure code. *)
+  Lemma comp_pure :
+    forall (fexpr : Free Shape Pos (Expr Shape Pos)),
+      RecPureExpr fexpr -> RecPureCode (comp Shape Pos fexpr).
+  Proof.
+    intros fexpr HPure.
+    inductFree fexpr as [ expr | sExpr pfExpr IHpfExpr ].
+    - induction expr as [ fn | fx fy IHfx IHfy ] using Expr_Ind.
+      + simpl. apply recPureCode_cons. apply recPureCode_nil.
+      + dependent destruction HPure.
+        destruct fx as [ x | sX pfX ].
+        * (* Use the lemma [append_pure] with the three recursively pure pieces of code: 
+             - (comp_0 Shape Pos x)
+             - (fy >>= (fun a29_0 : Expr Shape Pos => comp_0 Shape Pos a29_0))
+             - (Cons Shape Pos (ADD Shape Pos) (Nil Shape Pos)) *)
+          simpl. apply append_pure. apply append_pure.
+          (* Now we need to prove that those pieces of code were indeed recursively pure. *)
+          { autoIH. apply (IH HPure1). }
+          { destruct fy as [ y | sY pfY ].
+            - autoIH. apply (IH HPure2).
+            - dependent destruction HPure2. }
+          { apply recPureCode_cons. apply recPureCode_nil. }
+        * dependent destruction HPure1.
+    - dependent destruction HPure.
+  Qed.
+
   (* As the second compiler [comp'] just calls [compApp], we need the following lemma to prove [comp_comp'_eq]. *)
   Lemma compApp_comp_append_eq :
     forall (fexpr : Free Shape Pos (Expr Shape Pos))
