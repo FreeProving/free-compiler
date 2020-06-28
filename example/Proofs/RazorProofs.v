@@ -389,4 +389,18 @@ Section Proofs.
     reflexivity.
   Qed.
 
+  (* The correctness of the compiler [comp'] is implied by the equivalence to
+     the compiler [comp] and the correctness of [comp]. *)
+  Lemma comp'_correct : 
+    UndefinedIsImpure Shape Pos Partial ->
+    forall (fexpr : Free Shape Pos (Expr Shape Pos)),
+    RecPureExpr fexpr ->
+        quickCheck (prop_comp'_correct Shape Pos Partial fexpr).
+  Proof.
+    simpl.
+    intros HUndefined fexpr HPure.
+    rewrite <- comp_comp'_eq.
+    apply (comp_correct HUndefined fexpr HPure).
+  Qed.
+
 End Proofs.
