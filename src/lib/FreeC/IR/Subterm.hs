@@ -39,8 +39,7 @@ import           Data.Composition               ( (.:) )
 import           Data.List                      ( intersperse
                                                 , isPrefixOf
                                                 )
-import           Data.Maybe                     ( fromJust
-                                                , fromMaybe
+import           Data.Maybe                     ( fromMaybe
                                                 , listToMaybe
                                                 )
 import           Data.Map.Strict                ( Map )
@@ -287,13 +286,13 @@ replaceSubterms' = foldl (\term (pos, term') -> replaceSubterm' term pos term')
 --   satisfy the provided predicate.
 findSubtermPos :: Subterm a => (a -> Bool) -> a -> [Pos]
 findSubtermPos predicate term =
-  filter (predicate . fromJust . selectSubterm term) (allPos term)
+  filter (predicate . selectSubterm' term) (allPos term)
 
 -- | Gets a list of subterms of the given expression that satisfy the
 --   provided predicate.
 findSubterms :: Subterm a => (a -> Bool) -> a -> [a]
 findSubterms predicate term =
-  filter predicate (map (fromJust . selectSubterm term) (allPos term))
+  filter predicate (map (selectSubterm' term) (allPos term))
 
 -- | Gets the first subterm of the given expression that satisfies the
 --   provided predicate.
