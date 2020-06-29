@@ -23,21 +23,10 @@ import           FreeC.Pretty
 import           FreeC.Test.Environment
 import           FreeC.Test.Parser
 
--- | Looks up an exported entry in the given module interface.
---   also checks if the entry is defined in the given module.
---   Returns 'Nothing' if either the check or the lookup fails.
-lookupExportedEntry :: IR.Scope -> IR.QName -> ModuleInterface -> Maybe EnvEntry
-lookupExportedEntry scope qname moduleInterface =
-  if (scope, qname) `elem` Set.toList (interfaceExports moduleInterface)
-    then find ((qname ==) . entryName)
-              (Set.toList $ interfaceEntries moduleInterface)
-    else Nothing
-
 -- | Looks up an exported entry in the given module interface
 --   but does not check if the entry is defined in the given module.
-lookupExportedEntry'
-  :: IR.Scope -> IR.QName -> ModuleInterface -> Maybe EnvEntry
-lookupExportedEntry' scope qname moduleInterface = find
+lookupExportedEntry :: IR.Scope -> IR.QName -> ModuleInterface -> Maybe EnvEntry
+lookupExportedEntry scope qname moduleInterface = find
   (((scope, qname) ==) . entryScopedName)
   (Set.toList $ interfaceEntries moduleInterface)
 
@@ -68,9 +57,10 @@ testExportPass = describe "FreeC.Pass.ExportPass" $ do
         _       <- defineTestCon "A.Bar" 0 "A.Foo"
         _       <- exportPass input
         mOutput <- inEnv $ lookupAvailableModule "A"
-        let foo = fromJust $ lookupExportedEntry IR.TypeScope
-                                                 (Qual "A" (Ident "Foo"))
-                                                 (fromJust mOutput)
+        let foo = fromJust $ lookupExportedEntry
+              IR.TypeScope
+              (IR.Qual "A" (IR.Ident "Foo"))
+              (fromJust mOutput)
         entryIdent foo `shouldBeQualifiedWith` "A"
     it "qualifies Coq identifiers of constructor entries" $ do
       input <- expectParseTestModule ["module A where", "data A.Bar = A.Foo"]
@@ -79,9 +69,10 @@ testExportPass = describe "FreeC.Pass.ExportPass" $ do
         _       <- defineTestCon "A.Foo" 0 "A.Bar"
         _       <- exportPass input
         mOutput <- inEnv $ lookupAvailableModule "A"
-        let foo = fromJust $ lookupExportedEntry IR.ValueScope
-                                                 (Qual "A" (Ident "Foo"))
-                                                 (fromJust mOutput)
+        let foo = fromJust $ lookupExportedEntry
+              IR.ValueScope
+              (IR.Qual "A" (IR.Ident "Foo"))
+              (fromJust mOutput)
         entryIdent foo `shouldBeQualifiedWith` "A"
     it "qualifies Coq identifiers of type synonym entries" $ do
       input <- expectParseTestModule
@@ -92,9 +83,10 @@ testExportPass = describe "FreeC.Pass.ExportPass" $ do
         _       <- defineTestTypeSyn "A.Foo" [] "A.Bar"
         _       <- exportPass input
         mOutput <- inEnv $ lookupAvailableModule "A"
-        let foo = fromJust $ lookupExportedEntry IR.TypeScope
-                                                 (Qual "A" (Ident "Foo"))
-                                                 (fromJust mOutput)
+        let foo = fromJust $ lookupExportedEntry
+              IR.TypeScope
+              (IR.Qual "A" (IR.Ident "Foo"))
+              (fromJust mOutput)
         entryIdent foo `shouldBeQualifiedWith` "A"
     it "qualifies Coq identifiers of function declaration entries" $ do
       input <- expectParseTestModule
@@ -105,9 +97,10 @@ testExportPass = describe "FreeC.Pass.ExportPass" $ do
         _       <- defineTestFunc "A.mkFoo" 0 "A.Foo"
         _       <- exportPass input
         mOutput <- inEnv $ lookupAvailableModule "A"
-        let mkFoo = fromJust $ lookupExportedEntry IR.ValueScope
-                                                   (Qual "A" (Ident "mkFoo"))
-                                                   (fromJust mOutput)
+        let mkFoo = fromJust $ lookupExportedEntry
+              IR.ValueScope
+              (IR.Qual "A" (IR.Ident "mkFoo"))
+              (fromJust mOutput)
         entryIdent mkFoo `shouldBeQualifiedWith` "A"
     it "does not override qualification of Coq identifiers for entries" $ do
       _     <- expectParseTestModule ["module A where", "data A.Foo = A.Foo"]
@@ -120,5 +113,7 @@ testExportPass = describe "FreeC.Pass.ExportPass" $ do
         modifyEnv $ modifyEntryIdent IR.TypeScope name qualid
         _       <- exportPass input
         mOutput <- inEnv $ lookupAvailableModule "B"
-        let foo = fromJust $ lookupExportedEntry' name (fromJust mOutput)
+        let
+          foo =
+            fromJust $ lookupExportedEntry IR.TypeScope name (fromJust mOutput)
         entryIdent foo `shouldBeQualifiedWith` "A"
