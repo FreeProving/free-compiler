@@ -49,7 +49,7 @@ import           FreeC.Monad.Reporter
 -- State monad                                                               --
 -------------------------------------------------------------------------------
 
--- | The simplifier is a special converter that converts the haskell@-src-exts@
+-- | The simplifier is a special converter that converts the @haskell-src-exts@
 --   AST to the simplified internal representation for Haskell modules.
 --
 --   During simplification the environment is usually empty (except for fresh
@@ -123,7 +123,7 @@ usageError message node = reportFatal $ Message (HSE.ann node) Error message
 -- | Creates a reporter that reports a warning if the given condition is met.
 warnIf
   :: HSE.Annotated a
-  => Bool      -- ^ The conditiuon to test.
+  => Bool      -- ^ The condition to test.
   -> String    -- ^ The waning to print if the condition is not met.
   -> a SrcSpan -- ^ The node that caused the warning.
   -> Simplifier ()
@@ -180,7 +180,7 @@ simplifyModuleHead (HSE.ModuleHead _ (HSE.ModuleName _ modName) _ exports) = do
 -- | Gets the name of the module imported by the given import declaration.
 simplifyImport :: HSE.ImportDecl SrcSpan -> Simplifier IR.ImportDecl
 simplifyImport decl
-  | HSE.importQualified decl = notSupported "Quallified imports" decl
+  | HSE.importQualified decl = notSupported "Qualified imports" decl
   | HSE.importSrc decl = notSupported "Mutually recursive modules" decl
   | HSE.importSafe decl = notSupported "Safe imports" decl
   | isJust (HSE.importPkg decl) = notSupported
@@ -278,7 +278,7 @@ simplifyDecl (HSE.TypeSig srcSpan names typeExpr) = do
   return ([], [IR.TypeSig srcSpan names' typeSchema'], [])
 
 -- The user is allowed to specify fixities of custom infix declarations
--- and they are respected by the haskell-src-exts parser, but we do not
+-- and they are respected by the @haskell-src-exts@ parser, but we do not
 -- represent them in the AST.
 simplifyDecl (     HSE.InfixDecl _ _ _ _ ) = return ([], [], [])
 
@@ -571,7 +571,7 @@ simplifyType ty@(HSE.TyInfix _ _ _ _) = notSupported "Type operators" ty
 simplifyType ty@(HSE.TyEquals _ _ _) =
   notSupported "Type equality predicates" ty
 simplifyType ty@(HSE.TySplice _ _  ) = notSupported "Template Haskell" ty
-simplifyType ty@(HSE.TyBang _ _ _ _) = notSupported "Striktness annotations" ty
+simplifyType ty@(HSE.TyBang _ _ _ _) = notSupported "Strictness annotations" ty
 simplifyType ty@(HSE.TyWildCard _ _) = notSupported "Type wildcards" ty
 simplifyType ty@(HSE.TyQuasiQuote _ _ _) =
   notSupported "Quasiquotation types" ty

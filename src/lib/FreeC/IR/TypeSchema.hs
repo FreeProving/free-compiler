@@ -33,7 +33,7 @@ import           FreeC.Monad.Converter
 instantiateTypeSchema :: IR.TypeSchema -> Converter IR.Type
 instantiateTypeSchema = fmap fst . instantiateTypeSchema'
 
--- | Like 'instantiateTypeSchema' but also returns the fresh type variables,
+-- | Like 'instantiateTypeSchema' but also returns the fresh type variables
 --   the type schema has been instantiated with.
 instantiateTypeSchema' :: IR.TypeSchema -> Converter (IR.Type, [IR.Type])
 instantiateTypeSchema' (IR.TypeSchema _ typeArgs typeExpr) = do

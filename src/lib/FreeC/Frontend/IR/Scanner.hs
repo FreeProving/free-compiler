@@ -2,8 +2,7 @@
 --   the source code and converts it into a token stream.
 --
 --   We convert the source code to a token stream such that
---   "FreeC.Frontend.IR.Parser" does not have to handle white
---   space explicitly.
+--   "FreeC.Frontend.IR.Parser" does not have to handle whitespace explicitly.
 
 module FreeC.Frontend.IR.Scanner
   ( TokenWithPos(..)
@@ -168,9 +167,9 @@ languageDef = Parsec.LanguageDef
 tokenParser :: Parsec.TokenParser ()
 tokenParser = Parsec.makeTokenParser languageDef
 
--- | Scanner for zero or more white space characters or comments.
-whiteSpaceScanner :: Scanner ()
-whiteSpaceScanner = Parsec.whiteSpace tokenParser
+-- | Scanner for zero or more whitespace characters or comments.
+whitespaceScanner :: Scanner ()
+whitespaceScanner = Parsec.whiteSpace tokenParser
 
 -- | Scanner for 'ConIdent' and 'VarIdent' tokens.
 identScanner :: Scanner Token
@@ -211,10 +210,10 @@ tokenScanner =
 
 -- | A scanner for zero or more 'Token's.
 --
---   White spaces and comments before and between tokens are ignored.
+--   Whitespaces and comments before and between tokens are ignored.
 tokenListScanner :: Scanner [TokenWithPos]
 tokenListScanner =
-  whiteSpaceScanner
+  whitespaceScanner
     *> Parsec.many (Parsec.lexeme tokenParser tokenScanner)
     <* Parsec.eof
 

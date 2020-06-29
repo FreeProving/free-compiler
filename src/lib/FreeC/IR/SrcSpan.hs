@@ -19,7 +19,7 @@ module FreeC.IR.SrcSpan
   , hasSourceCode
   , spansMultipleLines
     -- * Conversion
-  , ConvertableSrcSpan(..)
+  , ConvertibleSrcSpan(..)
   , convertSrcSpanWithCode
   , addSourceCode
   )
@@ -88,7 +88,7 @@ data SrcSpan
 -------------------------------------------------------------------------------
 
 -- | Tests whether the given 'SrcSpan' contains filename information (i.e.,
---   there is a field `srcSpanFilename`).
+--   there is a field 'srcSpanFilename').
 hasSrcSpanFilename :: SrcSpan -> Bool
 hasSrcSpanFilename NoSrcSpan = False
 hasSrcSpanFilename _         = True
@@ -111,13 +111,13 @@ spansMultipleLines srcSpan = srcSpanStartLine srcSpan /= srcSpanEndLine srcSpan
 
 -- | Type class for source spans from other packages that can be converted
 --   to 'SrcSpan's for pretty printing of messages.
-class ConvertableSrcSpan ss where
+class ConvertibleSrcSpan ss where
   -- | Converts the given third party source span to a 'SrcSpan' by attaching
   --   the corresponding line of source code.
   convertSrcSpan :: ss -> SrcSpan
 
 -- | Like 'convertSrcSpan' but also adds source code using 'addSourceCode'.
-convertSrcSpanWithCode :: ConvertableSrcSpan ss => SrcFileMap -> ss -> SrcSpan
+convertSrcSpanWithCode :: ConvertibleSrcSpan ss => SrcFileMap -> ss -> SrcSpan
 convertSrcSpanWithCode srcFiles = addSourceCode srcFiles . convertSrcSpan
 
 -- | Adds source code to the given source span if it does not have source code

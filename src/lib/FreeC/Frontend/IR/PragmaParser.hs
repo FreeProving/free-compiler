@@ -71,7 +71,7 @@ parseCustomPragmas = mapMaybeM parseCustomPragma
 -- | Parses a pragma from the given comment.
 --
 --   Returns @Nothing@ if the given comment is not a pragma or an
---   unrecognised pragma.
+--   unrecognized pragma.
 parseCustomPragma :: IR.Comment -> Reporter (Maybe IR.Pragma)
 parseCustomPragma (IR.LineComment _ _) = return Nothing
 parseCustomPragma (IR.BlockComment srcSpan text) =

@@ -63,7 +63,7 @@ convertImportDecls imports = do
   imports' <- mapM convertImportDecl imports
   return (Coq.Base.imports : imports')
 
--- | Convert a import declaration.
+-- | Convert an import declaration.
 convertImportDecl :: IR.ImportDecl -> Converter Coq.Sentence
 convertImportDecl (IR.ImportDecl _ modName) = do
   Just iface <- inEnv $ lookupAvailableModule modName
@@ -73,12 +73,14 @@ convertImportDecl (IR.ImportDecl _ modName) = do
 --   from the given library.
 --
 --   Modules from the base library are imported via @From Base Require Import@
---   sentences and all other modules are also exported.
+--   sentences. Other external modules are imported via @From … Require@
+--   sentences, which means that references to these modules' contents must
+--   be qualified in the code.
 generateImport :: Coq.ModuleIdent -> IR.ModName -> Converter Coq.Sentence
 generateImport libName modName = return
   (mkRequireSentence libName [Coq.ident (showPretty modName)])
  where
-  -- | Makes a @From ... Require Import ...@ or  @From ... Require Export ...@.
+  -- | Makes a @From … Require Import …@ or  @From … Require …@.
   mkRequireSentence :: Coq.ModuleIdent -> [Coq.ModuleIdent] -> Coq.Sentence
   mkRequireSentence | libName == Coq.Base.baseLibName = Coq.requireImportFrom
-                    | otherwise                       = Coq.requireExportFrom
+                    | otherwise                       = Coq.requireFrom
