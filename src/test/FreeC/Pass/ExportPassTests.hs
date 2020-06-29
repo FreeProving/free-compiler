@@ -15,7 +15,7 @@ import qualified FreeC.Backend.Coq.Syntax      as Coq
 import           FreeC.Environment
 import           FreeC.Environment.Entry
 import           FreeC.Environment.ModuleInterface
-import           FreeC.IR.Syntax               as IR
+import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Class.Testable
 import           FreeC.Monad.Converter
 import           FreeC.Pass.ExportPass
