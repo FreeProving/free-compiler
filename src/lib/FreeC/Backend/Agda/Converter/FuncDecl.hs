@@ -6,7 +6,6 @@ module FreeC.Backend.Agda.Converter.FuncDecl
   )
 where
 
-import           Data.Composition               ( (.:) )
 import           Data.Maybe                     ( fromJust )
 
 import           FreeC.Backend.Agda.Converter.Arg
@@ -63,7 +62,7 @@ convertFunc
 convertFunc decArg tVars argTypes returnType =
   Agda.pi . addFreeArgs <$> mapM convertTypeVarDecl tVars <*> typeConverter
     (map fromJust argTypes)
-    (fromJust returnType)
+    (LIR.convertType $ fromJust returnType)
  where
-  typeConverter =
-    convertFuncType .: maybe LIR.convertFuncType LIR.convertRecFuncType decArg
+  typeConverter x =
+    convertFuncType (maybe LIR.convertFuncType LIR.convertRecFuncType decArg x)

@@ -3,7 +3,6 @@
 module FreeC.Backend.Agda.Converter.Type
   ( convertFuncType
   , convertConType
-  , convertType
   )
 where
 
@@ -34,15 +33,11 @@ import           FreeC.Monad.Converter          ( Converter
 --
 --   If the type contains decreasing annotations, a size type variable is bound
 --   and used to annotate these occurrences.
-convertFuncType :: LIR.Type -> Converter Agda.Expr
-convertFuncType funcType = if decreasing funcType
-  then convertRecFuncType funcType
+convertFuncType :: [LIR.Type] -> LIR.Type -> Converter Agda.Expr
+convertFuncType argTypes retType = if any decreasing argTypes
+  then pi "i" $ \i -> convertType (Just i) funcType
   else convertType' funcType
-
--- | Converts a lifted IR function type, by binding a new variable @i : Size@
---   and annotating decreasing arguments with it.
-convertRecFuncType :: LIR.Type -> Converter Agda.Expr
-convertRecFuncType funcType = pi "i" $ \i -> convertType (Just i) funcType
+  where funcType = foldr LIR.func retType argTypes
 
 -------------------------------------------------------------------------------
 -- Constructors                                                              --
@@ -53,15 +48,9 @@ convertRecFuncType funcType = pi "i" $ \i -> convertType (Just i) funcType
 --   If the constructor contains decreasing arguments (i.e. recursive arguments),
 --   a new sized type variable is bound and used to annotate these types.
 convertConType :: [LIR.Type] -> LIR.Type -> Converter Agda.Expr
-convertConType argTypes = if any decreasing argTypes
-  then convertRecConType argTypes
-  else convertNonRecConType argTypes
-
--- | Converts a constructor type from lifted IR to Agda without applying size
---   annotations.
-convertNonRecConType :: [LIR.Type] -> LIR.Type -> Converter Agda.Expr
-convertNonRecConType argTypes retType =
-  foldr Agda.fun <$> convertType' retType <*> mapM convertType' argTypes
+convertConType argTypes retType = if any decreasing argTypes
+  then convertRecConType argTypes retType
+  else convertType' $ foldr LIR.func retType argTypes
 
 -- | Converts a constructor from lifted IR to Agda by binding a new variable
 --   @i : Size@ and annotating recursive occurrences and the return type.

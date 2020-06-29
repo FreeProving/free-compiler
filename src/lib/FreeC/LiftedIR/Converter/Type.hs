@@ -2,6 +2,8 @@ module FreeC.LiftedIR.Converter.Type
   ( convertFuncType
   , convertRecFuncType
   , convertConArg
+    -- * Translations
+  , convertType
   , convertType'
   )
 where
@@ -15,16 +17,15 @@ import qualified FreeC.LiftedIR.Syntax         as LIR
 --   monadic layers isn't needed.
 --
 --   > τ₁ -> … -> τₙ -> ρ ↦ τ₁' -> … -> τₙ' -> ρ'
-convertFuncType :: [IR.Type] -> IR.Type -> LIR.Type
-convertFuncType argTypes returnType =
-  foldr LIR.func (convertType returnType) (map convertType argTypes)
+convertFuncType :: [IR.Type] -> [LIR.Type]
+convertFuncType = map convertType
 
-convertRecFuncType :: Int -> [IR.Type] -> IR.Type -> LIR.Type
-convertRecFuncType decIndex args returnType =
+convertRecFuncType :: Int -> [IR.Type] -> [LIR.Type]
+convertRecFuncType decIndex args =
   let startArgs = map convertType $ take (decIndex - 1) args
       decArg    = markOutermostDecreasing $ convertType $ args !! decIndex
       endArgs   = map convertType $ drop (decIndex + 1) args
-  in  foldr LIR.func (convertType returnType) (startArgs ++ (decArg : endArgs))
+  in  startArgs ++ (decArg : endArgs)
 
 convertConArg :: IR.QName -> IR.Type -> LIR.Type
 convertConArg ident = markAllDec ident . convertType
@@ -89,3 +90,5 @@ markOutermostDecreasing (LIR.TypeCon srcSpan name ts _) =
   LIR.TypeCon srcSpan name ts True
 markOutermostDecreasing (LIR.FreeTypeCon srcSpan t) =
   LIR.FreeTypeCon srcSpan $ markOutermostDecreasing t
+markOutermostDecreasing _ =
+  error "Outermost argument is not necessarily unique"

@@ -104,9 +104,9 @@ convertConDecl ident retType (IR.ConDecl _ (IR.DeclIdent srcSpan name) argTypes)
 --   We use Agda's @pattern@ declarations for smart constructors to simplify
 --   pattern matching in proofs.
 generateSmartConDecl :: IR.ConDecl -> Converter Agda.Declaration
-generateSmartConDecl (IR.ConDecl _ (IR.DeclIdent srcSpan name) _) = do
+generateSmartConDecl (IR.ConDecl _ (IR.DeclIdent srcSpan name) argTypes) = do
   smartName <- lookupUnQualAgdaSmartIdentOrFail srcSpan name
-  patternDecl smartName (repeat "x") $ \vars -> do
+  patternDecl smartName (replicate (length argTypes) "x") $ \vars -> do
     normalName <- Agda.IdentP <$> lookupAgdaValIdentOrFail srcSpan name
     let pureVal = foldl Agda.appP normalName vars
     return (Agda.IdentP (Agda.qname' Agda.Base.pure) `Agda.appP` pureVal)
