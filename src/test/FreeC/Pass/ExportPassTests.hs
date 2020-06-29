@@ -121,6 +121,5 @@ testExportPass = describe "FreeC.Pass.ExportPass" $ do
                                      (Coq.Qualified qualifier textName)
         _       <- exportPass input
         mOutput <- inEnv $ lookupAvailableModule "B"
-        let foo = fromJust $ lookupExportedEntry' (Qual "A" (Ident "Foo"))
-                                                  (fromJust mOutput)
+        let foo = fromJust $ lookupExportedEntry' name (fromJust mOutput)
         entryIdent foo `shouldBeQualifiedWith` "A"
