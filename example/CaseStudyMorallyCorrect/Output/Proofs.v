@@ -10,11 +10,22 @@ Require Import Coq.Logic.FunctionalExtensionality.
 Set Implicit Arguments.
 
 Arguments rev {_} {_} {_} _ _.
+Arguments rev_0 {_} {_} {_} _ _.
 Arguments reverse {_} {_} {_} _ .
 Arguments reverseNaive {_} {_} {_} _ .
+Arguments reverseNaive_0 {_} {_} {_} _ .
 Arguments append {_} {_} {_} _ _.
+Arguments Nil {_} {_} {_}.
+Arguments Cons {_} {_} {_} _ _.
 
 Section reverseIsReverseNaive.
+
+Lemma rev_0_rev: forall (Shape : Type) (Pos : Shape -> Type) (A : Type)
+  (xs : List Shape Pos A) (fys : Free Shape Pos (List Shape Pos A)),
+  rev_0 xs fys = rev (pure xs) fys.
+Proof.
+  reflexivity.
+Qed.
 
 Lemma rev_acc_and_rest_list_connection': forall (Shape : Type) (Pos : Shape -> Type) (A : Type)
   (xs : List Shape Pos A) (facc : Free Shape Pos (List Shape Pos A)),  
@@ -24,11 +35,9 @@ Proof.
   induction xs as [ | x fxs' ] using List_Ind; intros.
   - reflexivity.
   - induction fxs' as [ xs' | sh pos ] using Free_Ind.
-    + simplify2 H as IHxs'. simpl. simpl in IHxs'. rewrite IHxs'. rewrite IHxs'. 
-      assert (H : rev_0 Shape Pos xs' (Cons Shape Pos x (Nil Shape Pos)) = 
-           append (rev_0 Shape Pos xs' (Nil Shape Pos)) (Cons Shape Pos x (Nil Shape Pos))).
-      {rewrite IHxs'. reflexivity. }
-      rewrite H. rewrite append_nil. rewrite <- append_assoc. reflexivity.
+    + simplify2 H as IHxs'. simpl. simpl in IHxs'. rewrite IHxs'. 
+      rewrite IHxs' with (facc := Cons x Nil).
+      rewrite <- append_assoc. reflexivity.
     + simpl. f_equal. extensionality x0. simplify2 H0 as H0'. apply H0'.
 Qed.
 
@@ -51,10 +60,8 @@ Proof.
   - reflexivity.
   - induction fxs' as [ xs' | sh pos ] using Free_Ind.
     + simplify H as IHxs'. simpl reverseNaive. simpl reverse.
-      assert  (H : rev_0 Shape Pos xs' (Cons Shape Pos x (Nil Shape Pos)) = 
-                   rev (pure xs') (Cons Shape Pos x (Nil Shape Pos))).
-      {reflexivity. }
-      rewrite H. rewrite rev_acc_and_rest_list_connection. rewrite IHxs'. reflexivity.
+      rewrite rev_0_rev.
+      rewrite rev_acc_and_rest_list_connection. rewrite IHxs'. reflexivity.
     + simpl. f_equal. extensionality x0. simplify2 H0 as H0'. apply H0'.
 Qed.
 
@@ -68,14 +75,72 @@ Proof.
   - simpl. f_equal. extensionality x. apply H.
 Qed.
 
-Theorem rev_inv_rev: quickCheck (@prop_rev_is_rev_inv Identity.Shape Identity.Pos).
+End reverseIsReverseNaive.
+
+Section reverse_is_involution.
+
+(*in appendProofs kopieren*)
+  Lemma rewrite_Cons:
+  forall (Shape : Type) (Pos : Shape -> Type) (A : Type)
+  (fx : Free Shape Pos A) (fxs : Free Shape Pos (List Shape Pos A)),
+    pure (cons fx fxs) = append (Cons fx Nil) fxs.
+  Proof.
+  reflexivity.
+  Qed.  
+
+Lemma reverseNaive_0_reverseNaive: forall (Shape : Type) (Pos : Shape -> Type) (A : Type)
+  (xs : List Shape Pos A),
+  reverseNaive_0 xs = reverseNaive (pure xs).
+Proof.
+  reflexivity.
+Qed.
+
+Lemma reverseNaive_append : forall (A : Type)
+  (fxs fys : Free Identity.Shape Identity.Pos (List Identity.Shape Identity.Pos A)),
+      reverseNaive (append fxs fys) = append (reverseNaive fys) (reverseNaive fxs).
+Proof.
+intros A fxs.
+destruct fxs as [ xs | [] _ ].
+- induction xs as [| fx fxs' IHfxs'] using List_Ind; intros.
+  + rewrite append_nil. simpl. reflexivity.
+  + destruct fxs' as [ xs' | [] pf].
+    * simplify2 IHfxs' as IHxs'. simpl reverseNaive at 3. rewrite reverseNaive_0_reverseNaive.
+      rewrite append_assoc.
+       rewrite <- IHxs'. reflexivity.
+Qed.
+
+Theorem reverseNaive_is_involution: forall (A : Type)
+ (fxs : Free Identity.Shape Identity.Pos (List Identity.Shape Identity.Pos A)),
+  reverseNaive (reverseNaive fxs) = fxs.
+Proof.
+  intros A fxs.
+  destruct fxs as [ xs | [] _ ].
+  - induction xs as [ | fx fxs' IHfxs' ] using List_Ind.
+    + reflexivity.
+    + destruct fxs' as [ xs' | [] pf].
+      * simplify2 IHfxs' as IHxs'. simpl. rewrite reverseNaive_append.
+        simpl in IHxs'. rewrite IHxs'. reflexivity.
+Qed.
+
+Theorem reverse_is_involution: quickCheck (@prop_rev_is_rev_inv Identity.Shape Identity.Pos).
 Proof.
   simpl.
-  intros A totalList.
-  induction totalList as [ xs | [] ] using Free_Ind.
-  - induction xs as [ | x [xs' | []]] using List_Ind.
-    + reflexivity.
-    + simplify H as H'. simpl.
-Admitted.
+  intros A fxs.
+  do 2 rewrite reverse_is_reverseNaive. 
+  apply reverseNaive_is_involution.
+Qed.
 
-Section reverseIsReverseNaive.
+End reverse_is_involution.
+
+Section minus_is_plus_inverse.
+
+Theorem minus_is_plus_inv: quickCheck (@prop_minus_is_plus_inv Identity.Shape Identity.Pos).
+Proof.
+  simpl.
+  intros fx fy.
+  destruct fx as [ x | [] _ ].
+  induction x as [ _ | 
+
+
+End minus_is_plus_inverse.
+
