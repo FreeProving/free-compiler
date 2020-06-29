@@ -69,7 +69,7 @@ convertRecConType ident argTypes returnType = pi "i" $ \i -> do
           then convertSizedType (Just i) t
           else convertType t
   foldr Agda.fun
-    <$> (Agda.app <$> convertType' returnType <*> pure (Agda.hiddenArg_ $ up i))
+    <$> (Agda.app <$> convertType' returnType <*> pure (Agda.hiddenArg_ (up i)))
     <*> mapM dagger'' argTypes
 
 -------------------------------------------------------------------------------
