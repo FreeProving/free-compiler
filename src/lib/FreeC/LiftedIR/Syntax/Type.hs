@@ -3,7 +3,7 @@
 
 module FreeC.LiftedIR.Syntax.Type where
 
-import           FreeC.IR.SrcSpan               ( SrcSpan )
+import           FreeC.IR.SrcSpan               ( SrcSpan(NoSrcSpan) )
 import           FreeC.LiftedIR.Syntax.Name
 
 -- | A type expression.
@@ -44,3 +44,23 @@ data Type
       , typeFreeArg :: Type
       }
  deriving (Eq, Show)
+
+-------------------------------------------------------------------------------
+-- Utility                                                                   --
+-------------------------------------------------------------------------------
+
+-- | Applies a type level expression lifted IR expression to a type constructor.
+typeApp :: Type -> Type -> Type
+typeApp (TypeCon srcSpan name ts dec) t = TypeCon srcSpan name (t : ts) dec
+typeApp _ _ = error "Cannot apply type to non type constructor!"
+
+-- | Smart constructor for lifted IR functions.
+func :: Type -> Type -> Type
+func = FuncType NoSrcSpan
+
+-- | Whether the type contains a decreasing argument.
+decreasing :: Type -> Bool
+decreasing (TypeCon _ _ _ dec) = dec
+decreasing (FuncType _ l r   ) = decreasing l || decreasing r
+decreasing (FreeTypeCon _ t  ) = decreasing t
+decreasing (TypeVar     _ _  ) = False

@@ -177,6 +177,7 @@ library freec-internal
                       , FreeC.IR.TypeSchema
                       , FreeC.IR.TypeSynExpansion
                       , FreeC.IR.Unification
+                      , FreeC.LiftedIR.Converter.Type
                       , FreeC.LiftedIR.Effect
                       , FreeC.LiftedIR.Syntax
                       , FreeC.LiftedIR.Syntax.Expr
