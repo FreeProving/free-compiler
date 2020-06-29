@@ -163,6 +163,11 @@ library freec-internal
                       , FreeC.IR.TypeSchema
                       , FreeC.IR.TypeSynExpansion
                       , FreeC.IR.Unification
+                      , FreeC.LiftedIR.Effect
+                      , FreeC.LiftedIR.Syntax
+                      , FreeC.LiftedIR.Syntax.Expr
+                      , FreeC.LiftedIR.Syntax.Name
+                      , FreeC.LiftedIR.Syntax.Type
                       , FreeC.Pass
                       , FreeC.Pass.CompletePatternPass
                       , FreeC.Pass.DefineDeclPass

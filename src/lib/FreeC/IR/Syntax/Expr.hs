@@ -31,7 +31,7 @@ data Expr
 
   | -- | Function or constructor application.
     App { exprSrcSpan    :: SrcSpan
-        , exprAppLhr     :: Expr
+        , exprAppLhs     :: Expr
         , exprAppRhs     :: Expr
         , exprTypeSchema :: Maybe TypeSchema
         }
