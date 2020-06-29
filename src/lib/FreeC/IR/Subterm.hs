@@ -35,6 +35,7 @@ module FreeC.IR.Subterm
   )
 where
 
+import           Control.Monad                  ( foldM )
 import           Data.Composition               ( (.:) )
 import           Data.List                      ( intersperse
                                                 , isPrefixOf
@@ -269,10 +270,7 @@ replaceSubterm' term pos term' = fromMaybe
 --
 --   Returns @Nothing@ if any of the subterms could not be replaced
 replaceSubterms :: Subterm a => a -> [(Pos, a)] -> Maybe a
-replaceSubterms term []             = return term
-replaceSubterms term ((p, e) : pes) = do
-  term' <- replaceSubterm term p e
-  replaceSubterms term' pes
+replaceSubterms = foldM (\term (pos, term') -> replaceSubterm term pos term')
 
 -- | Like 'replaceSubterms' but throws an error if any of the subterms could
 --   not be replaced.
