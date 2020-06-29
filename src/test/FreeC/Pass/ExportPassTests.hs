@@ -116,11 +116,8 @@ testExportPass = describe "FreeC.Pass.ExportPass" $ do
         _    <- defineTestTypeCon "A.Foo" 0 ["A.Foo"]
         _    <- defineTestCon "A.Foo" 0 "A.Foo"
         name <- parseTestQName "A.Foo"
-        let qualifier = Coq.ident "A"
-            textName  = Coq.ident "Foo"
-        modifyEnv $ modifyEntryIdent IR.TypeScope
-                                     name
-                                     (Coq.Qualified qualifier textName)
+        let qualid = Coq.Qualified (Coq.ident "A") (Coq.ident "Foo")
+        modifyEnv $ modifyEntryIdent IR.TypeScope name qualid
         _       <- exportPass input
         mOutput <- inEnv $ lookupAvailableModule "B"
         let foo = fromJust $ lookupExportedEntry' name (fromJust mOutput)
