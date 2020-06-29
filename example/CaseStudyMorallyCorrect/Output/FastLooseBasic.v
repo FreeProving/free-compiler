@@ -137,6 +137,11 @@ Definition plus (Shape : Type) (Pos : Shape -> Type) (x_0
   @foldPeano Shape Pos (Peano Shape Pos) (pure (fun x_2 => S Shape Pos x_2)) x_0
                                          x_1.
 
+Definition prop_minus_is_plus_inv (Shape : Type) (Pos : Shape -> Type) (x
+    : Free Shape Pos (Peano Shape Pos)) (y : Free Shape Pos (Peano Shape Pos))
+   : Free Shape Pos (Property Shape Pos) :=
+  @eqProp Shape Pos (Peano Shape Pos) (minus Shape Pos (plus Shape Pos y x) y) x.
+
 Definition comp (Shape : Type) (Pos : Shape -> Type) {b c a : Type} (g
     : Free Shape Pos (Free Shape Pos b -> Free Shape Pos c)) (f
     : Free Shape Pos (Free Shape Pos a -> Free Shape Pos b)) (a0

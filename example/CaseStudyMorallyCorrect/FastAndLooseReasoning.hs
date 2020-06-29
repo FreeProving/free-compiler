@@ -47,3 +47,6 @@ prop_reverse_is_reverseNaive xs = reverse xs === reverseNaive xs
 
 prop_rev_is_rev_inv :: [a] -> Property
 prop_rev_is_rev_inv xs = reverse (reverse xs) === xs
+
+prop_minus_is_plus_inv :: Peano -> Peano -> Property
+prop_minus_is_plus_inv x y = minus (plus y x) y === x

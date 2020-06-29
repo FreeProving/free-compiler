@@ -12,6 +12,7 @@
         "FastLooseBasic.minus",
         "FastLooseBasic.plus",
         "FastLooseBasic.pred",
+        "FastLooseBasic.prop_minus_is_plus_inv",
         "FastLooseBasic.prop_rev_is_rev_inv",
         "FastLooseBasic.prop_reverse_is_reverseNaive",
         "FastLooseBasic.rev",
@@ -202,6 +203,14 @@
             "needs-free-args": true,
             "partial": false,
             "haskell-name": "FastLooseBasic.pred"
+        },
+        {
+            "arity": 2,
+            "haskell-type": "FastLooseBasic.Peano -> FastLooseBasic.Peano -> Test.QuickCheck.Property",
+            "coq-name": "prop_minus_is_plus_inv",
+            "needs-free-args": true,
+            "partial": false,
+            "haskell-name": "FastLooseBasic.prop_minus_is_plus_inv"
         },
         {
             "arity": 1,
