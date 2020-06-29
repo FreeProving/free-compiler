@@ -88,6 +88,9 @@ missingPosError funcName term pos =
 -------------------------------------------------------------------------------
 
 -- | Type class for AST nodes with child nodes of the same type.
+--
+--   It is a subclass of 'Pretty' so error messages involving subterms can be
+--   pretty printed.
 class Pretty a => Subterm a where
   -- | Gets the child nodes of the given AST node.
   childTerms :: a -> [a]
