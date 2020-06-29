@@ -35,9 +35,11 @@ lookupExportedEntry scope qname moduleInterface =
 
 -- | Looks up an exported entry in the given module interface
 --   but does not check if the entry is defined in the given module.
-lookupExportedEntry' :: IR.QName -> ModuleInterface -> Maybe EnvEntry
-lookupExportedEntry' qname moduleInterface =
-  find ((qname ==) . entryName) (Set.toList $ interfaceEntries moduleInterface)
+lookupExportedEntry'
+  :: IR.Scope -> IR.QName -> ModuleInterface -> Maybe EnvEntry
+lookupExportedEntry' scope qname moduleInterface = find
+  (((scope, qname) ==) . entryScopedName)
+  (Set.toList $ interfaceEntries moduleInterface)
 
 -- | Checks if the given 'Coq.Qualid' is qualified and compares the qualifier
 --   to the given module name.
