@@ -6,6 +6,7 @@ module FreeC.Backend.Agda.Converter.FuncDecl
   )
 where
 
+import           Data.Composition               ( (.:) )
 import           Data.Maybe                     ( fromJust )
 
 import           FreeC.Backend.Agda.Converter.Arg
@@ -13,15 +14,14 @@ import           FreeC.Backend.Agda.Converter.Arg
 import           FreeC.Backend.Agda.Converter.Free
                                                 ( addFreeArgs )
 import           FreeC.Backend.Agda.Converter.Type
-                                                ( convertFuncType
-                                                , convertRecFuncType
-                                                )
+                                                ( convertFuncType )
 import qualified FreeC.Backend.Agda.Syntax     as Agda
 import           FreeC.Backend.Coq.Analysis.DecreasingArguments
                                                 ( identifyDecArgs )
 import           FreeC.Environment.LookupOrFail
 import           FreeC.IR.DependencyGraph
 import qualified FreeC.IR.Syntax               as IR
+import qualified FreeC.LiftedIR.Converter.Type as LIR
 import           FreeC.Monad.Converter          ( Converter
                                                 , localEnv
                                                 )
@@ -64,4 +64,6 @@ convertFunc decArg tVars argTypes returnType =
   Agda.pi . addFreeArgs <$> mapM convertTypeVarDecl tVars <*> typeConverter
     (map fromJust argTypes)
     (fromJust returnType)
-  where typeConverter = maybe convertFuncType convertRecFuncType decArg
+ where
+  typeConverter =
+    convertFuncType .: maybe LIR.convertFuncType LIR.convertRecFuncType decArg

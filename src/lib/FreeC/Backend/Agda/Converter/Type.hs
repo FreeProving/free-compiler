@@ -1,134 +1,100 @@
--- | Implements the IR to Agda translation, which applies the monadic lifting as
---   described by Abel et al. in "Verifying Haskell Programs Using Constructive
---   Type Theory".
+-- | Implements the lifted IR to Agda translation.
 
 module FreeC.Backend.Agda.Converter.Type
-  ( convertType
-  , convertFuncType
-  , convertRecFuncType
+  ( convertFuncType
   , convertConType
-  , convertRecConType
+  , convertType
   )
 where
 
 
 import           Prelude                 hiding ( pi )
 
-import           Data.Composition               ( (.:) )
-
 import qualified FreeC.Backend.Agda.Syntax     as Agda
 import           FreeC.Backend.Agda.Converter.Free
                                                 ( free
                                                 , applyFreeArgs
                                                 )
-import           FreeC.Environment.Fresh        ( freshAgdaVar )
-import           FreeC.Environment.LookupOrFail ( lookupAgdaIdentOrFail )
 import           FreeC.Backend.Agda.Converter.Size
                                                 ( up )
+import           FreeC.Environment.Fresh        ( freshAgdaVar )
+import           FreeC.Environment.LookupOrFail ( lookupAgdaIdentOrFail )
 import qualified FreeC.IR.Syntax               as IR
+import qualified FreeC.LiftedIR.Syntax         as LIR
+import           FreeC.LiftedIR.Syntax.Type     ( decreasing )
 import           FreeC.Monad.Converter          ( Converter
                                                 , localEnv
                                                 )
 
--- | Functions not defined in terms lambdas (@f x = …@ not @f = \x -> …@) aren't
---   evaluated until fully applied, i.e. cannot be bottom. Therefore interleaving
---   monadic layers isn't needed.
---
---   > τ₁ -> … -> τₙ -> ρ ↦ τ₁' → … → τₙ' → ρ'
-convertFuncType :: [IR.Type] -> IR.Type -> Converter Agda.Expr
-convertFuncType argTypes returnType =
-  foldr Agda.fun <$> convertType returnType <*> mapM convertType argTypes
-
-convertRecFuncType :: Int -> [IR.Type] -> IR.Type -> Converter Agda.Expr
-convertRecFuncType decIndex args returnType = pi "i" $ \i -> do
-  startArgs <- mapM convertType $ take (decIndex - 1) args
-  decArg    <- convertSizedType (Just i) $ args !! decIndex
-  endArgs   <- mapM convertType $ drop (decIndex + 1) args
-  foldr Agda.fun
-    <*> pure (startArgs ++ (decArg : endArgs))
-    <$> convertType returnType
-
--- | Constructors aren't evaluated until fully applied. Furthermore the return
---   type of a constructor for a data type D has to be D and therefore cannot be
---   lifted.
---
---   > τ₁ -> … -> τₙ -> ρ ↦ τ₁' → … → τₙ' → ρ*
-convertConType :: [IR.Type] -> IR.Type -> Converter Agda.Expr
-convertConType argTypes returnType =
-  -- We can use the @star@ translation for the data type, because only the name
-  -- and the application of type and @Size@ variables have to be translated.
-  foldr Agda.fun <$> convertType' returnType <*> mapM convertType argTypes
-
--- | Converts a constructor type of a recursive data type by lifting it piecewise
---   in the free monad and annotating recursive occurrences of the type with
---   a variable of type @Size@.
-convertRecConType :: IR.QName -> [IR.Type] -> IR.Type -> Converter Agda.Expr
-convertRecConType ident argTypes returnType = pi "i" $ \i -> do
-  let dagger'' =
-        \t -> if t `appliesTo` ident
-          then convertSizedType (Just i) t
-          else convertType t
-  foldr Agda.fun
-    <$> (Agda.app <$> convertType' returnType <*> pure (Agda.hiddenArg_ (up i)))
-    <*> mapM dagger'' argTypes
-
 -------------------------------------------------------------------------------
--- Translations                                                              --
+-- Functions                                                                 --
 -------------------------------------------------------------------------------
 
--- | Converts a type from IR to Agda by lifting it into the @Free@ monad.
+-- | Converts a lifted IR function type to an Agda type expression.
 --
---   This corresponds to the dagger translation for monotypes as described by
---   Abel et al.
---
---   The optional @Agda.Expr@ is a size annotation, which is applied under the
---   free monad.
---
---   > τ' = Free τ*
-convertSizedType :: Maybe Agda.Expr -> IR.Type -> Converter Agda.Expr
-convertSizedType = fmap free .: convertSizedType'
+--   If the type contains decreasing annotations, a size type variable is bound
+--   and used to annotate these occurrences.
+convertFuncType :: LIR.Type -> Converter Agda.Expr
+convertFuncType funcType = if decreasing funcType
+  then convertRecFuncType funcType
+  else convertType' funcType
 
--- | Lifts a type from IR to Agda by renaming type variables and constructors,
---   adding the free arguments to constructors and lifting function types in
---   the @Free@ monad.
---
---   This corresponds to the star translation for monotypes as described by
---   Abel et al.
---
---   > (τ₁ τ₂)* = τ₁* τ₂*
---   > (τ₁ → τ₂)* = τ₁' → τ₂'
---   > C* = Ĉ Shape Position
---   > α* = α̂
-convertSizedType' :: Maybe Agda.Expr -> IR.Type -> Converter Agda.Expr
-convertSizedType' (Just i) t =
-  Agda.app <$> convertType' t <*> pure (Agda.hiddenArg_ i)
-convertSizedType' _ (IR.TypeVar s name) = Agda.Ident
-  <$> lookupAgdaIdentOrFail s IR.TypeScope (IR.UnQual $ IR.Ident name)
-convertSizedType' _ (IR.TypeCon s name) =
-  applyFreeArgs <$> lookupAgdaIdentOrFail s IR.TypeScope name
-convertSizedType' _ (IR.TypeApp _ l r) =
-  Agda.app <$> convertType' l <*> convertType' r
-convertSizedType' _ (IR.FuncType _ l r) =
-  Agda.fun <$> convertType l <*> convertType r
+-- | Converts a lifted IR function type, by binding a new variable @i : Size@
+--   and annotating decreasing arguments with it.
+convertRecFuncType :: LIR.Type -> Converter Agda.Expr
+convertRecFuncType funcType = pi "i" $ \i -> convertType (Just i) funcType
 
--- | Converts a type from IR to Agda by lifting it into the @Free@ monad.
-convertType :: IR.Type -> Converter Agda.Expr
-convertType = convertSizedType Nothing
+-------------------------------------------------------------------------------
+-- Constructors                                                              --
+-------------------------------------------------------------------------------
 
--- | Lifts a type from IR to Agda by renaming type variables and constructors,
---   adding the free arguments to constructors and lifting function types in
---   the @Free@ monad.
-convertType' :: IR.Type -> Converter Agda.Expr
-convertType' = convertSizedType' Nothing
-
--- | Tests whether the given type is a type application, which applies
---   arguments to the given constructor?
+-- | Converts a constructor type from lifted IR to Agda.
 --
---   > appliesTo (((C x₁) …) xₙ) C ↦ True
-appliesTo :: IR.Type -> IR.QName -> Bool
-appliesTo (IR.TypeApp _ l _    ) name = l `appliesTo` name
-appliesTo (IR.TypeCon _ conName) name = conName == name
-appliesTo _                      _    = False
+--   If the constructor contains decreasing arguments (i.e. recursive arguments),
+--   a new sized type variable is bound and used to annotate these types.
+convertConType :: [LIR.Type] -> LIR.Type -> Converter Agda.Expr
+convertConType argTypes = if any decreasing argTypes
+  then convertRecConType argTypes
+  else convertNonRecConType argTypes
+
+-- | Converts a constructor type from lifted IR to Agda without applying size
+--   annotations.
+convertNonRecConType :: [LIR.Type] -> LIR.Type -> Converter Agda.Expr
+convertNonRecConType argTypes retType =
+  foldr Agda.fun <$> convertType' retType <*> mapM convertType' argTypes
+
+-- | Converts a constructor from lifted IR to Agda by binding a new variable
+--   @i : Size@ and annotating recursive occurrences and the return type.
+convertRecConType :: [LIR.Type] -> LIR.Type -> Converter Agda.Expr
+convertRecConType argTypes retType = pi "i" $ \i -> do
+  retType' <- convertType' retType
+  foldr Agda.fun (Agda.app retType' $ Agda.hiddenArg_ $ up i)
+    <$> mapM (convertType $ Just $ Agda.hiddenArg_ i) argTypes
+
+-------------------------------------------------------------------------------
+-- Lifted IR to Agda translation                                             --
+-------------------------------------------------------------------------------
+
+-- | Translates a given type in lifted IR to Agda.
+--
+--   If a @Size@ variable is needed, but non is provided an error will be occur.
+convertType :: Maybe Agda.Expr -> LIR.Type -> Converter Agda.Expr
+convertType _ (LIR.TypeVar srcSpan name) = Agda.Ident
+  <$> lookupAgdaIdentOrFail srcSpan IR.TypeScope (IR.UnQual $ IR.Ident name)
+convertType i (LIR.TypeCon srcSpan name typeArgs dec) = do
+  typeArgs' <- mapM (convertType i) typeArgs
+  constr    <- applyFreeArgs <$> lookupAgdaIdentOrFail srcSpan IR.TypeScope name
+  let type' = foldl Agda.app constr $ reverse typeArgs'
+  if dec
+    then Agda.app type' <$> maybe (fail "No Size annotation declared!") return i
+    else return type'
+convertType i (LIR.FuncType _ l r) =
+  Agda.fun <$> convertType i l <*> convertType i r
+convertType i (LIR.FreeTypeCon _ t) = free <$> convertType i t
+
+-- | Calls @convertType'@ without providing a @Size@ annotation.
+convertType' :: LIR.Type -> Converter Agda.Expr
+convertType' = convertType Nothing
 
 -------------------------------------------------------------------------------
 -- Specialized Syntax                                                        --
