@@ -39,14 +39,17 @@ testConvertFuncDecls =
       "foo"     <- defineTestFunc "foo" 0 "Integer"
       shouldConvertFuncDeclsTo
         (NonRecursive "foo :: Integer = 42")
-        ["foo : ∀ {Shape} {Pos} → Free Shape Pos (Integer Shape Pos)"]
+        [ "foo : ∀ {Shape} {Pos} → Free Shape Pos (Integer Shape Pos)"
+        , "foo = 42"
+        ]
 
     it "translates polymorphic functions correctly" $ shouldSucceedWith $ do
       "foo" <- defineTestFunc "foo" 0 "forall a. a -> a"
       shouldConvertFuncDeclsTo
         (NonRecursive "foo @a (x :: a) :: a = x")
         [ "foo : ∀ {Shape} {Pos} {a} → Free Shape Pos a "
-            ++ "→ Free Shape Pos a"
+          ++ "→ Free Shape Pos a"
+        , "foo x = x"
         ]
 
     it "uses type information from the AST not the environment"
@@ -57,6 +60,7 @@ testConvertFuncDecls =
             (NonRecursive "foo @a (x :: a) :: a = x")
             [ "foo : ∀ {Shape} {Pos} {a} → Free Shape Pos a "
                 ++ "→ Free Shape Pos a"
+            , "foo x = x"
             ]
 
     it "translates functions with multiple arguments correctly"
@@ -74,6 +78,7 @@ testConvertFuncDecls =
             [ "foo : ∀ {Shape} {Pos} {a} {b} → Free Shape Pos a "
               ++ "→ Free Shape Pos b "
               ++ "→ Free Shape Pos (Pair Shape Pos a b)"
+            , "foo x y = Pair x y"
             ]
 
     it "translates higher order functions correctly" $ shouldSucceedWith $ do
@@ -92,4 +97,6 @@ testConvertFuncDecls =
           ++ "  (Free Shape Pos (Pair Shape Pos a b) → Free Shape Pos c) "
           ++ "→ Free Shape Pos a "
           ++ "→ Free Shape Pos b → Free Shape Pos c"
+        , "curry f x y = f >>= λ where"
+        , "  f₀ → f₀ (Pair x y)"
         ]
