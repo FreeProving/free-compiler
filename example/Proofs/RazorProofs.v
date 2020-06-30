@@ -4,8 +4,7 @@ From Generated Require Import Proofs.Razor.
 Require Import Coq.Logic.FunctionalExtensionality.
 Require Import Coq.Program.Equality.
 
-(* Define additional tactics and lemmata. TODO cleanup later. *)
-
+(* Define some additional tactics. *)
 Ltac simplifyInductionHypothesis ident1 ident2 :=
   match goal with
   | [ ident1 : ForFree ?Shape ?Pos ?A ?P (pure _) |- _ ] => inversion ident1 as [ Heq ident2 |]; clear ident1; subst Heq; simpl
@@ -20,13 +19,6 @@ Ltac simplifyInductionHypothesis ident1 ident2 :=
 
 Tactic Notation "simplify'" ident(H) "as" ident(IH) := (simplifyInductionHypothesis H IH).
 
-Ltac rewriteBindInductionHypothesis ident1 :=
-  match goal with
-  | [ ident1 : ForFree ?Shape ?Pos ?A ?P ?fx |- _ ] => apply ForFree_bind in ident1
-  end.
-
-Tactic Notation "simplBind" ident(H) := (rewriteBindInductionHypothesis H).
-  
 Ltac autoInductionHypothesis :=
   match goal with
   (*  | [ s : Zero__S |- _ ] => destruct s *)
@@ -46,27 +38,7 @@ Tactic Notation "autoIH" := (autoInductionHypothesis).
 
 Tactic Notation "inductFree" ident(fx) "as" simple_intropattern(pat) := (induction fx as pat; simpl; try autoIH).
 
-Lemma bind_assoc : forall (Shape : Type) (Pos : Shape -> Type) (A B C : Type) (mx : Free Shape Pos A) 
-       (f : A -> Free Shape Pos B) (g : B -> Free Shape Pos C),
-  (mx >>= f) >>= g = mx >>= fun my => (f my >>= g).
-Proof.
-  intros Shape Pos A B C mx f g.
-  induction mx as [ | s pf H ] using Free_Ind.
-  + reflexivity.
-  + simpl; f_equal; extensionality p; apply H.
-Qed.
-
-Lemma bind_pure : forall (Shape : Type) (Pos : Shape -> Type) (A : Type) (fx : Free Shape Pos A),
-  fx >>= pure = fx.
-Proof.
-  intros Shape Pos A fx.
-  induction fx as [ x | s pf IH ] using Free_Ind.
-  - reflexivity.
-  - simpl. apply f_equal; extensionality x; apply IH.
-Qed.
-(* End additional definitions. *)
-
-(* Define induction scheme for the [Expr] data structure. *)
+(* Define induction scheme for [Expr]. *)
 Section Expr_ind.
 
   Variable Shape : Type.
