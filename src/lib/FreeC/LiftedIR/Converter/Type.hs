@@ -34,7 +34,7 @@ convertConArg ident = markAllDec ident . convertType
 -- Translations                                                              --
 -------------------------------------------------------------------------------
 
--- | Converts a type from IR to Lifted IR by lifting it into the @Free@ monad.
+-- | Converts a type from IR to lifted IR by lifting it into the @Free@ monad.
 --
 --   This corresponds to the dagger translation for monotypes as described by
 --   Abel et al.
