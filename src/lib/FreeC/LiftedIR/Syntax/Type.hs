@@ -58,7 +58,7 @@ typeApp _ _ = error "Cannot apply type to non type constructor!"
 func :: Type -> Type -> Type
 func = FuncType NoSrcSpan
 
--- | Whether the type contains a decreasing argument.
+-- | Decides whether a type contains a decreasing argument.
 decreasing :: Type -> Bool
 decreasing (TypeCon _ _ _ dec) = dec
 decreasing (FuncType _ l r   ) = decreasing l || decreasing r
