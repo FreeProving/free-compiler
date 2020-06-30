@@ -150,16 +150,16 @@ Section Proofs.
     UndefinedIsImpure Partial ->
     forall (fcode1 fcode2 : Free Shape Pos (Code Shape Pos))
            (fstack        : Free Shape Pos (Stack Shape Pos)),
-        (exists (stack' : Stack Shape Pos),
-           exec Shape Pos Partial fcode1 fstack = pure stack')
-      ->
+    (exists (stack' : Stack Shape Pos), exec Shape Pos Partial fcode1 fstack = pure stack') ->
         exec Shape Pos Partial (append Shape Pos fcode1 fcode2) fstack
         = exec Shape Pos Partial fcode2 (exec Shape Pos Partial fcode1 fstack).
   Proof.
     intros HUndefined fcode1 fcode2.
-    (* Do an induction over the first part of code. *)
-    inductFree fcode1 as [ code1 | sCode1 pfCode1 IHpfCode1 ].
-    - induction code1 as [ | [ [ fn | ] | sOp pfOp ] fcode1' IHfcode1'] using List_Ind.
+    (* Destruct the monadic layer of the first piece of code. *)
+    destruct fcode1 as [ code1 | sCode1 pfCode1 ].
+    - (* fcode1 = pure code1 *)
+      (* Do an induction over the first piece of code. *)
+      induction code1 as [ | [ [ fn | ] | sOp pfOp ] fcode1' IHfcode1'] using List_Ind.
       + (* fcode1 = pure [] *)
         (* This case is trivial. *)
         reflexivity.
@@ -179,7 +179,7 @@ Section Proofs.
         destruct fcode1' as [ code1' | sCode1' pfCode1' ].
         * (* fcode1 = pure (pure ADD : pure code1') *)
           (* As the addition reads its two inputs from the stack [fstack], we need to destruct it.
-             All cases where the stack does not contain at least two values can't produce a pure result
+             All cases, where the stack does not contain at least two values, can't produce a pure result
              and are therefore a violation to [Hstack']. *)
           destruct fstack as [ [ | fv1 [ [ | fv2 fstack2 ] | sStack1 pfStack1 ] ] | sStack pfStack ];
             simpl in Hstack'; try pureEqImpure.
@@ -193,52 +193,60 @@ Section Proofs.
         (* In this case the first operation is impure, therefore we have another violation to [H]. *)
         intros fstack H. destruct H as [ stack' Hstack' ]. discriminate Hstack'.
   - (* fcode1 = impure sCode1 pfCode1 *)
-    (* The last case, where the whole [fcode1] is impure is another violation to [H]. *)
+    (* In this case, where the whole [fcode1] is impure, we have another violation to [H]. *)
     intros fstack H. destruct H as [ stack' Hstack' ]. discriminate Hstack'.
   Qed.
 
   (* If we apply [append] on to pieces of recursively pure code the result is recursively pure code. *)
   Lemma append_pure :
     forall (fcode1 fcode2 : Free Shape Pos (Code Shape Pos)),
-      RecPureCode fcode1 -> RecPureCode fcode2 -> RecPureCode (append Shape Pos fcode1 fcode2).
+    RecPureCode fcode1 ->
+    RecPureCode fcode2 ->
+        RecPureCode (append Shape Pos fcode1 fcode2).
   Proof.
     intros fcode1 fcode2 HPure1 HPure2.
-    inductFree fcode1 as [ code1 | sCode1 pfCode1 IHpfCode1 ].
-    - induction code1 as [ | [ op | sOp pfOp ] fcode1' ] using List_Ind.
-      + simpl. apply HPure2.
-      + simpl. apply recPureCode_cons.
-        destruct fcode1' as [ code1' | sCode1' pfCode1' ].
-        * autoIH. dependent destruction HPure1. apply (IH HPure1).
-        * do 2 dependent destruction HPure1.
-      + do 2 dependent destruction HPure1.
-    - dependent destruction HPure1.
+    (* The first piece of code is pure. *)
+    destruct fcode1 as [ code1 | ]. 2: dependent destruction HPure1.
+    (* Do an induction over the first piece of code. *)
+    induction code1 as [ | fop fcode1' ] using List_Ind.
+    - simpl. apply HPure2.
+    - (* The first operation in a non empty [code1] is pure. *)
+      destruct fop as [ op | ]. 2: do 2 dependent destruction HPure1.
+      (* The rest list in a non empty [code1] is also pure. *)
+      destruct fcode1' as [ code1' | ]. 2: do 2 dependent destruction HPure1.
+      simpl. apply recPureCode_cons.
+      autoIH. dependent destruction HPure1. apply (IH HPure1).
   Qed.
 
   (* The compilation of a recursively pure expression with [comp] produces recursively pure code. *)
   Lemma comp_pure :
     forall (fexpr : Free Shape Pos (Expr Shape Pos)),
-      RecPureExpr fexpr -> RecPureCode (comp Shape Pos fexpr).
+    RecPureExpr fexpr ->
+        RecPureCode (comp Shape Pos fexpr).
   Proof.
     intros fexpr HPure.
-    inductFree fexpr as [ expr | sExpr pfExpr IHpfExpr ].
-    - induction expr as [ fn | fx fy IHfx IHfy ] using Expr_Ind.
-      + simpl. apply recPureCode_cons. apply recPureCode_nil.
-      + dependent destruction HPure.
-        destruct fx as [ x | sX pfX ].
-        * (* Use the lemma [append_pure] with the three recursively pure pieces of code: 
-             - (comp_0 Shape Pos x)
-             - (fy >>= (fun a29_0 : Expr Shape Pos => comp_0 Shape Pos a29_0))
-             - (Cons Shape Pos (ADD Shape Pos) (Nil Shape Pos)) *)
-          simpl. apply append_pure. apply append_pure.
-          (* Now we need to prove that those pieces of code were indeed recursively pure. *)
-          { autoIH. apply (IH HPure1). }
-          { destruct fy as [ y | sY pfY ].
-            - autoIH. apply (IH HPure2).
-            - dependent destruction HPure2. }
-          { apply recPureCode_cons. apply recPureCode_nil. }
-        * dependent destruction HPure1.
-    - dependent destruction HPure.
-  Qed.
+    (* The given expression is pure. *)
+    destruct fexpr as [ expr | sExpr pfExpr ]. 2: dependent destruction HPure.
+    (* Do an induction over this expression. *)
+    induction expr as [ fn | fx fy IHfx IHfy ] using Expr_Ind.
+    - (* In this case, we have a single value as expression. *)
+      simpl. apply recPureCode_cons. apply recPureCode_nil.
+    - (* In this case, we have an addition of two expressions [fx] and [fy]. *)
+      dependent destruction HPure.
+      (* The expression [fx] is pure. *)
+      destruct fx as [ x | sX pfX ]. 2: dependent destruction HPure1.
+      (* Use the lemma [append_pure] with the three recursively pure pieces of code: 
+         - (comp_0 Shape Pos x)
+         - (fy >>= (fun y : Expr Shape Pos => comp_0 Shape Pos y))
+         - (Cons Shape Pos (ADD Shape Pos) (Nil Shape Pos)) *)
+      simpl. apply append_pure. apply append_pure.
+      (* Now we need to prove that those pieces of code were indeed recursively pure. *)
+      + autoIH. apply (IH HPure1).
+      + (* The expression [fy] is pure. *)
+        destruct fy as [ y | sY pfY ]. 2: dependent destruction HPure2.
+        autoIH. apply (IH HPure2).
+      + apply recPureCode_cons. apply recPureCode_nil.
+Qed.
 
   (* To prove the correctness of the compiler [comp] as stated in the QuickCheck property,
      we have to generalize it first by adding an additional stack and we need the preconditions,
@@ -252,53 +260,39 @@ Section Proofs.
         = Cons Shape Pos (eval Shape Pos fexpr) fstack.
   Proof.
     intros HUndefined fexpr HPure.
-    (* First we need to destruct the free monad holding the expression. *)
-    destruct fexpr as [ expr | sExpr pfExpr ].
-    - (* We proof this lemma by doing an induction over this expression. *)
-      induction expr as [ fn | fx fy IHfx IHfy ] using Expr_Ind.
-      + (* The correctness is trivial for an expression that is a single value. *)
-        reflexivity.
-      + (* An expression that represents the addition of two expressions [fx] and [fy] gets
-           compiled to more complex code. We start by destructing the pureness property for
-           the addition, to get a pureness property for [fx] and a pureness property for [fy]. *)
-        intro fstack.
-        dependent destruction HPure.
-        simpl comp.
-        (* Now we use the lemma [exec_append] to transform the execution of appended pieces of code
-           to multiple [exec] calls, where the resulting stack of the [exec] call on one piece of
-           code is handed over as the initial stack of the [exec] call on the next piece of code. *)
-        do 2 rewrite (exec_append HUndefined).
-        (* As [exec_append] has the precondition, that the execution of the first piece of code
-           produces a (not necessarily recursively) pure stack, we gain three additional subgoals. *)
-        * (* For the main goal we destruct the expressions [fx] and [fy] and apply the induction
-             hypotheses in the pure case. *)
-          destruct fx as [ x | sX pfX ]; destruct fy as [ y | yX pfY ].
-          { simplify IHfy as IHy. simplify IHfx as IHx.
-            simpl exec at 3. rewrite (IHx HPure1).
-            simpl exec at 2. rewrite (IHy HPure2). 
-            reflexivity.
-          }
-          (* The impure cases violate our pureness property. *)
-          { dependent destruction HPure2. }
-          { dependent destruction HPure1. }
-          { dependent destruction HPure1. }
-        (* The three remaining subgoals can be proven each by destructing the expression in that
-           subgoal and using the induction hypothesis in the pure case and eliminating the impure
-           case with the pureness property. *)
-        * destruct fx as [ x | sX pfX ].
-          { exists (cons (eval Shape Pos (pure x)) fstack).
-            autoIH. apply (IH HPure1). }
-          { dependent destruction HPure1. }
-        * destruct fy as [ y | sY pfY ].
-          { exists (cons (eval Shape Pos (pure y)) (exec Shape Pos Partial (comp Shape Pos fx) fstack)).
-            autoIH. apply (IH HPure2). }
-          { dependent destruction HPure2. }
-        * destruct fx as [ x | sX pfX ].
-          { exists (cons (eval Shape Pos (pure x)) fstack).
-            autoIH. apply (IH HPure1). }
-          { dependent destruction HPure1. }
-    - (* The pureness property prohibits the impure case. *)
+    (* The given expression is pure. *)
+    destruct fexpr as [ expr | sExpr pfExpr ]. 2: dependent destruction HPure.
+    (* We proof this lemma by doing an induction over this expression. *)
+    induction expr as [ fn | fx fy IHfx IHfy ] using Expr_Ind.
+    - (* The correctness is trivial for an expression that is a single value. *)
+      reflexivity.
+    - (* An expression that represents the addition of two expressions [fx] and [fy] gets
+         compiled to more complex code. We start by destructing the pureness property for
+         the addition, to get a pureness property for [fx] and a pureness property for [fy]. *)
+      intro fstack.
       dependent destruction HPure.
+      (* Now we know, that both expressions are pure. *)
+      destruct fx as [ x | sX pfX ]. 2: dependent destruction HPure1.
+      destruct fy as [ y | yX pfY ]. 2: dependent destruction HPure2.
+      simpl comp.
+      (* We use the lemma [exec_append] to transform the execution of appended pieces of code
+         to multiple [exec] calls, where the resulting stack of the [exec] call on one piece of
+         code is handed over as the initial stack of the [exec] call on the next piece of code. *)
+      do 2 rewrite (exec_append HUndefined).
+      (* As [exec_append] has the precondition, that the execution of the first piece of code
+         produces a (not necessarily recursively) pure stack, we gain three additional subgoals. *)
+      + (* For the main goal, we can apply the induction hypotheses. *)
+        simplify IHfy as IHy. simplify IHfx as IHx.
+        simpl exec at 3. rewrite (IHx HPure1).
+        simpl exec at 2. rewrite (IHy HPure2). 
+        reflexivity.
+      (* The three remaining subgoals can be proven each by using an induction hypothesis. *)
+      + exists (cons (eval Shape Pos (pure x)) fstack).
+        clear IHfy. autoIH. apply (IH HPure1).
+      + exists (cons (eval Shape Pos (pure y)) (exec Shape Pos Partial (comp Shape Pos (pure x)) fstack)).
+        clear IHfx. autoIH. apply (IH HPure2).
+      + exists (cons (eval Shape Pos (pure x)) fstack).
+        clear IHfy. autoIH. apply (IH HPure1).
   Qed.
 
   (* The theorem derived by the correctness QuickCheck property for comp_correct can now be proven
@@ -324,31 +318,31 @@ Section Proofs.
         = append Shape Pos (comp Shape Pos fexpr) fcode.
   Proof.
     intro fexpr.
-    (* We start with an induction over the monadic expression and complete the impure case by
-       using the induction hypothesis. *)
+    (* We start with an induction over the monadic expression. *)
     inductFree fexpr as [ expr | s pf IHpf ].
-    2: { intro fcode. f_equal. extensionality p. apply IHpf. }
-    (* In the pure case, we do an induction over the given expression. *)
-    induction expr as [ fn | fx fy IHfx IHfy ] using Expr_Ind.
-    - (* For an expression that is only a single value, the property is trivial. *)
-      reflexivity.
-    - (* For an addition expression, we start with some simplification steps for the [append] function. *)
-      intro fcode. simpl comp_0.
-      do 2 (rewrite <- append_assoc).
-      simpl append.
-      (* We use [replace] here to make this main proof simple and produce additional simple subgoals. *)
-      replace (append Shape Pos _ (Cons Shape Pos (ADD Shape Pos) fcode))
-        with (compApp Shape Pos fy (Cons Shape Pos (ADD Shape Pos) fcode)).
-      replace (append Shape Pos _ (compApp Shape Pos fy (Cons Shape Pos (ADD Shape Pos) fcode)))
-        with (compApp Shape Pos fx (compApp Shape Pos fy (Cons Shape Pos (ADD Shape Pos) fcode))).
-      reflexivity.
-      (* Prove subgoals that were introduced by the [replace] tactic by induction. *)
-      + inductFree fx as [ x | s pf IHpf ].
-        * apply IH.
-        * f_equal. extensionality p. dependent destruction IHfx. specialize (IHpf p (H p)) as IH. apply IH.
-      + inductFree fy as [ y | s pf IHpf ].
-        * apply IH.
-        * f_equal. extensionality p. dependent destruction IHfy. specialize (IHpf p (H p)) as IH. apply IH.
+    - (* In the pure case, we do an induction over the given expression. *)
+      induction expr as [ fn | fx fy IHfx IHfy ] using Expr_Ind.
+      + (* For an expression that is only a single value, the property is trivial. *)
+        reflexivity.
+      + (* For an addition expression, we start with some simplification steps for the [append] function. *)
+        intro fcode. simpl comp_0.
+        do 2 (rewrite <- append_assoc).
+        simpl append.
+        (* We use [replace] here to make this main proof simple and produce additional simple subgoals. *)
+        replace (append Shape Pos _ (Cons Shape Pos (ADD Shape Pos) fcode))
+          with (compApp Shape Pos fy (Cons Shape Pos (ADD Shape Pos) fcode)).
+        replace (append Shape Pos _ (compApp Shape Pos fy (Cons Shape Pos (ADD Shape Pos) fcode)))
+          with (compApp Shape Pos fx (compApp Shape Pos fy (Cons Shape Pos (ADD Shape Pos) fcode))).
+        reflexivity.
+        (* Prove subgoals, that were introduced by the [replace] tactic, by induction. *)
+        * inductFree fx as [ x | s pf IHpf ].
+          { apply IH. }
+          { f_equal. extensionality p. dependent destruction IHfx. specialize (IHpf p (H p)) as IH. apply IH. }
+        * inductFree fy as [ y | s pf IHpf ].
+          { apply IH. }
+          { f_equal. extensionality p. dependent destruction IHfy. specialize (IHpf p (H p)) as IH. apply IH. }
+    - (* In the impure case, we apply the induction hypothesis.*)
+      intro fcode. f_equal. extensionality p. apply IHpf.
   Qed.
 
   (* With the equivalence lemma above the proof of the main equivalence theorem is simple. *)
