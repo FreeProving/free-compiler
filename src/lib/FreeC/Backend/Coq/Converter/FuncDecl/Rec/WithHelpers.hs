@@ -95,7 +95,7 @@ transformRecFuncDecl (IR.FuncDecl srcSpan declIdent typeArgs args maybeRetType e
     -- Generate main function declaration. The main function's right hand side
     -- is constructed by replacing all case expressions of the decreasing
     -- argument by an invocation of the corresponding recursive helper function.
-    let (Just mainExpr) = replaceSubterms expr (zip caseExprsPos helperApps)
+    let mainExpr = replaceSubterms' expr (zip caseExprsPos helperApps)
         mainDecl =
           IR.FuncDecl srcSpan declIdent typeArgs args maybeRetType mainExpr
 
@@ -150,7 +150,7 @@ transformRecFuncDecl (IR.FuncDecl srcSpan declIdent typeArgs args maybeRetType e
     let boundVarTypeMap = boundVarsWithTypeAt expr caseExprPos
         boundVars =
           Map.keysSet boundVarTypeMap `Set.union` Set.fromList argNames
-        Just caseExpr  = selectSubterm expr caseExprPos
+        caseExpr       = selectSubterm' expr caseExprPos
         usedVars       = freeVarSet caseExpr
         helperArgNames = Set.toList (usedVars `Set.intersection` boundVars)
 
