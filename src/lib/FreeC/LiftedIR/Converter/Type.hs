@@ -22,8 +22,8 @@ convertFuncType = map convertType
 
 convertRecFuncType :: Int -> [IR.Type] -> [LIR.Type]
 convertRecFuncType decIndex args =
-  let convArgs = map convertType args
-      (startArgs, decArg:endArgs) = splitAt (decIndex - 1) convArgs
+  let convArgs                      = map convertType args
+      (startArgs, decArg : endArgs) = splitAt (decIndex - 1) convArgs
   in  startArgs ++ (markOutermostDecreasing decArg : endArgs)
 
 convertConArgTypes :: IR.QName -> IR.Type -> LIR.Type

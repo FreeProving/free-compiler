@@ -49,7 +49,7 @@ data Type
 -- Utility                                                                   --
 -------------------------------------------------------------------------------
 
--- | Applies a type level expression lifted IR expression to a type constructor.
+-- | Applies a lifted IR type constructor to type level expression.
 typeApp :: Type -> Type -> Type
 typeApp (TypeCon srcSpan name ts dec) t = TypeCon srcSpan name (t : ts) dec
 typeApp _ _ = error "Cannot apply type to non type constructor!"
