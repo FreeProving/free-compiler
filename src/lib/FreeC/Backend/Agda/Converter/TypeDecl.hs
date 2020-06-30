@@ -12,7 +12,7 @@ import           FreeC.IR.DependencyGraph
 import qualified FreeC.IR.Syntax               as IR
 import           FreeC.IR.SrcSpan               ( SrcSpan(NoSrcSpan) )
 import qualified FreeC.LiftedIR.Converter.Type as LIR
-
+                                                ( convertConArgTypes )
 import qualified FreeC.Backend.Agda.Base       as Agda.Base
 import           FreeC.Backend.Agda.Converter.Free
 import qualified FreeC.Backend.Agda.Syntax     as Agda
@@ -95,7 +95,7 @@ convertConDecl
 convertConDecl ident retType (IR.ConDecl _ (IR.DeclIdent srcSpan name) argTypes)
   = Agda.funcSig
     <$> lookupUnQualAgdaIdentOrFail srcSpan IR.ValueScope name
-    <*> convertConType (map (LIR.convertConArg ident) argTypes)
+    <*> convertConType (map (LIR.convertConArgTypes ident) argTypes)
                        (LIR.convertType' retType)
 
 -- | Converts a single constructor to a smart constructor, which wraps the normal

@@ -1,7 +1,7 @@
 module FreeC.LiftedIR.Converter.Type
   ( convertFuncType
   , convertRecFuncType
-  , convertConArg
+  , convertConArgTypes
     -- * Translations
   , convertType
   , convertType'
@@ -27,8 +27,8 @@ convertRecFuncType decIndex args =
       endArgs   = map convertType $ drop (decIndex + 1) args
   in  startArgs ++ (decArg : endArgs)
 
-convertConArg :: IR.QName -> IR.Type -> LIR.Type
-convertConArg ident = markAllDec ident . convertType
+convertConArgTypes :: IR.QName -> IR.Type -> LIR.Type
+convertConArgTypes ident = markAllDec ident . convertType
 
 -------------------------------------------------------------------------------
 -- Translations                                                              --
