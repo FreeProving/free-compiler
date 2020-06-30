@@ -9,7 +9,9 @@ where
 import           Data.Maybe                     ( fromJust )
 
 import           FreeC.Backend.Agda.Converter.Arg
-                                                ( convertTypeVarDecl )
+                                                ( convertTypeVarDecl
+                                                , convertArg
+                                                )
 import           FreeC.Backend.Agda.Converter.Free
                                                 ( addFreeArgs )
 import           FreeC.Backend.Agda.Converter.Type
@@ -39,8 +41,22 @@ convertFuncDecls (Recursive _) =
 -- | Converts the given function declarations. Returns the declarations for the
 --   type signature and the definition (TODO).
 convertFuncDecl :: IR.FuncDecl -> Maybe Int -> Converter [Agda.Declaration]
-convertFuncDecl decl decArg =
-  localEnv $ sequence [convertSignature decl decArg]
+convertFuncDecl decl decArg = sequence
+  [localEnv $ convertSignature decl decArg, localEnv $ convertFuncDef decl]
+
+------------------------------------------------------------------------------
+-- Definitions                                                              --
+------------------------------------------------------------------------------
+
+convertFuncDef :: IR.FuncDecl -> Converter Agda.Declaration
+convertFuncDef (IR.FuncDecl _ (IR.DeclIdent srcSpan name) _ args _ _) = do
+  args' <- mapM convertArg args
+  ident <- lookupAgdaIdentOrFail srcSpan IR.ValueScope name
+  return $ Agda.funcDef ident args' $ Agda.intLiteral 42
+
+------------------------------------------------------------------------------
+-- Signatures                                                               --
+------------------------------------------------------------------------------
 
 -- | Converts the type signature of the given function to an Agda type
 --   declaration.
