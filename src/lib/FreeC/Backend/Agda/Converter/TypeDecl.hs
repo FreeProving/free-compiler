@@ -12,7 +12,9 @@ import           FreeC.IR.DependencyGraph
 import qualified FreeC.IR.Syntax               as IR
 import           FreeC.IR.SrcSpan               ( SrcSpan(NoSrcSpan) )
 import qualified FreeC.LiftedIR.Converter.Type as LIR
-                                                ( convertConArgTypes )
+                                                ( convertConArgTypes
+                                                , convertType'
+                                                )
 import qualified FreeC.Backend.Agda.Base       as Agda.Base
 import           FreeC.Backend.Agda.Converter.Free
 import qualified FreeC.Backend.Agda.Syntax     as Agda
