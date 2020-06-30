@@ -5,6 +5,7 @@ From Base Require Import Prelude.List.
 From Generated Require Import FastLooseBasic.
 From Generated Require Import AppendProofs.
 From Generated Require Import Simplify.
+From Generated Require Import PeanoInd.
 Require Import Coq.Logic.FunctionalExtensionality.
 
 Set Implicit Arguments.
@@ -17,6 +18,9 @@ Arguments reverseNaive_0 {_} {_} {_} _ .
 Arguments append {_} {_} {_} _ _.
 Arguments Nil {_} {_} {_}.
 Arguments Cons {_} {_} {_} _ _.
+Arguments plus {_} {_} _ _.
+Arguments minus {_} {_} _ _.
+Arguments pred {_} {_} _.
 
 Section reverseIsReverseNaive.
 
@@ -134,13 +138,78 @@ End reverse_is_involution.
 
 Section minus_is_plus_inverse.
 
+Lemma plus_zero': forall (Shape : Type) (Pos : Shape -> Type)
+  (x : Peano Shape Pos),
+  plus (pure zero) (pure x) = (pure x).
+Proof.
+  intros Shape Pos x.
+  induction x as [ | fx' ] using Peano_Ind.
+  - reflexivity.
+  - induction fx' as [ x' | sh pf ] using Free_Ind.
+    + simplify2 H as H'. simpl plus. simpl in H'. rewrite H'.
+      reflexivity.
+    + simpl. unfold S. do 3 apply f_equal. extensionality x. simplify2 H as IH.
+      apply IH.
+Qed.
+
+Lemma plus_zero: forall (Shape : Type) (Pos : Shape -> Type)
+  (fx : Free Shape Pos (Peano Shape Pos)),
+  plus (pure zero) fx = fx.
+Proof.
+  intros Shape Pos fx.
+  induction fx as [ x | pf sh ] using Free_Ind.
+  - apply plus_zero'.
+  - simpl. f_equal. extensionality x. apply H.
+Qed.
+
+Lemma plus_s : forall (fx fy : Free Identity.Shape Identity.Pos (Peano Identity.Shape Identity.Pos)),
+  plus (pure (s fy)) fx = pure (s (plus fy fx)).
+Proof.
+  intros fx fy.
+  destruct fx as [ x | [] _ ].
+  induction x as [ | fx' IHfx' ] using Peano_Ind.
+  - reflexivity.
+  - destruct fx' as [ x' | [] _ ].
+    + simplify2 IHfx' as IH. simpl. simpl in IH.
+      rewrite IH. reflexivity.
+Qed.
+
+Lemma minus_pred : forall (Shape : Type) (Pos : Shape -> Type)
+  (fy fx: Free Shape Pos (Peano Shape Pos)) ,
+  minus fx (pure (s fy)) = minus (pred fx) fy.
+Proof.
+  intros Shape Pos fy fx.
+  induction fy as [ y | sh pos ] using Free_Ind.
+  - induction y as [ | fy' IHfy'] using Peano_Ind. 
+    + reflexivity.
+    + induction fy' as [ y' | sh pos ] using Free_Ind.
+      * simplify2 IHfy' as IH. simpl. simpl in IH. rewrite IH. reflexivity.
+      * simpl. f_equal. extensionality x. simplify2 H as IH. apply IH.
+  - simpl. f_equal. extensionality x. apply H.
+Qed.
+
+Lemma pred_succ: forall (Shape : Type) (Pos : Shape -> Type)
+  (fx: Free Shape Pos (Peano Shape Pos)),
+   pred (pure (s fx)) = fx.
+Proof.
+  intros Shape Pos fx.
+  destruct fx as [ x | sh pf ].
+  - destruct x as [ | fx' ].
+    + reflexivity.
+    + destruct fx' as [ x' | sh pf ]; reflexivity.
+  - reflexivity.
+Qed.
+
 Theorem minus_is_plus_inv: quickCheck (@prop_minus_is_plus_inv Identity.Shape Identity.Pos).
 Proof.
   simpl.
   intros fx fy.
-  destruct fx as [ x | [] _ ].
-  induction x as [ _ | 
-
+  destruct fy as [ y | [] _ ].
+  induction y as [ | fy' IHfy' ] using Peano_Ind. 
+  - simpl.  apply plus_zero.
+  - destruct fy' as [ y' | [] _ ].
+    + simplify2 IHfy' as IH. rewrite plus_s. rewrite minus_pred. rewrite pred_succ. apply IH.
+Qed.
 
 End minus_is_plus_inverse.
 
