@@ -88,7 +88,7 @@ inlineExpr decls = inlineAndBind
   --   If a function is inlined, fresh free variables are introduced for the
   --   function arguments. The first two components of the returned tuple
   --   contain the names of the type variables and variables that still need
-  --   to be bound. 
+  --   to be bound.
   --   Function application and visible type application expressions
   --   automatically substitute the corresponding argument for
   --   the passed value.
