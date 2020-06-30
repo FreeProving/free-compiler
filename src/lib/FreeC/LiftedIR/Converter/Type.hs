@@ -43,7 +43,7 @@ convertConArg ident = markAllDec ident . convertType
 convertType :: IR.Type -> LIR.Type
 convertType = LIR.FreeTypeCon NoSrcSpan . convertType'
 
--- | Lifts a type from IR to Lifted IR by renaming type variables and
+-- | Lifts a type from IR to lifted IR by renaming type variables and
 --   constructors, adding the free arguments to constructors and lifting
 --   function types in the @Free@ monad.
 --
