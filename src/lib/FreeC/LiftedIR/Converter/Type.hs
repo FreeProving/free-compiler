@@ -82,9 +82,9 @@ markAllDec decName (LIR.TypeCon srcSpan name ts dec) = LIR.TypeCon
 -- | Marks the outermost occurring type constructor as decreasing.
 --
 --   Note: Could be generalized to annotate a constructor based on a position.
---   At the moment this isn't needed, because our termination checker doesn't
---   cover cases, where the decreasing argument is just part of anther argument.
---   e.g. Decreasing in the first element of a pair.
+--   At the moment this isn't needed because our termination checker doesn't
+--   cover cases where the decreasing argument is part of another argument.
+--   For example, a decreasing argument in the first element of a pair is not covered.
 markOutermostDecreasing :: LIR.Type -> LIR.Type
 markOutermostDecreasing (LIR.TypeCon srcSpan name ts _) =
   LIR.TypeCon srcSpan name ts True
