@@ -75,14 +75,14 @@ End Expr_ind.
 Lemma append_nil : quickCheck prop_append_nil. Proof. Admitted.
 Theorem append_assoc : quickCheck prop_append_assoc. Proof. Admitted.
 
-(* This states the property, that the given Partial instance represents every [undefined] as an impure value. *)
-Definition UndefinedIsImpure (Shape : Type) (Pos : Shape -> Type) (Partial : Partial Shape Pos): Prop :=
+(* This property states, that the given Partial instance represents every [undefined] as an impure value. *)
+Definition UndefinedIsImpure {Shape : Type} {Pos : Shape -> Type} (Partial : Partial Shape Pos): Prop :=
     forall (A : Type),
     exists (s : Shape) (pf : (Pos s) -> Free Shape Pos A),
   @undefined Shape Pos Partial A = impure s pf.
 
 (* The property holds for the [Maybe] monad and the [Error] monad. *)
-Lemma undefinedIsImpureMaybe : UndefinedIsImpure Maybe.Shape Maybe.Pos Maybe.Partial.
+Example undefinedIsImpureMaybe : UndefinedIsImpure Maybe.Partial.
 Proof.
   intro A.
   simpl. unfold Nothing. exists tt.
@@ -90,7 +90,7 @@ Proof.
   reflexivity.
 Qed.
 
-Lemma undefinedIsImpureError : UndefinedIsImpure (Error.Shape string) Error.Pos Error.Partial.
+Example undefinedIsImpureError : UndefinedIsImpure Error.Partial.
 Proof.
   intro A.
   simpl. unfold ThrowError. exists "undefined"%string.
@@ -101,7 +101,7 @@ Qed.
 (* This is a tactic, which discriminates assumptions where [impure] is equal to some [pure] value. *)
 Ltac pureEqImpure :=
   match goal with
-  | [ HUnd : UndefinedIsImpure ?Shape ?Pos ?Partial |- _] =>
+  | [ HUnd : @UndefinedIsImpure ?Shape ?Pos ?Partial |- _] =>
       match goal with
       | [ HEq : pure _ = @undefined Shape Pos Partial ?A |- _] =>
           specialize (HUnd (Stack Shape Pos));
@@ -147,7 +147,7 @@ Section Proofs.
      appended with some [Code] [fcode2] has the same result as applying [exec] to
      [fcode1] first and applying [exec] to [fcode2] second. *)
   Lemma exec_append :
-    UndefinedIsImpure Shape Pos Partial ->
+    UndefinedIsImpure Partial ->
     forall (fcode1 fcode2 : Free Shape Pos (Code Shape Pos))
            (fstack        : Free Shape Pos (Stack Shape Pos)),
         (exists (stack' : Stack Shape Pos),
@@ -244,7 +244,7 @@ Section Proofs.
      we have to generalize it first by adding an additional stack and we need the preconditions,
      that [UndefinedIsImpure] holds and the given expression is recursively pure. *)
   Lemma comp_correct' :
-    UndefinedIsImpure Shape Pos Partial ->
+    UndefinedIsImpure Partial ->
     forall (fexpr : Free Shape Pos (Expr Shape Pos)),
     RecPureExpr fexpr ->
     forall (fstack : Free Shape Pos (Stack Shape Pos)),
@@ -305,7 +305,7 @@ Section Proofs.
      with the more general lemma above and under the same two assumptions, namely [UndefinedIsImpure]
      holds and the given expression is recursively pure. *)
   Theorem comp_correct :
-    UndefinedIsImpure Shape Pos Partial ->
+    UndefinedIsImpure Partial ->
     forall (fexpr : Free Shape Pos (Expr Shape Pos)),
     RecPureExpr fexpr ->
         quickCheck (prop_comp_correct Shape Pos Partial fexpr).
@@ -364,7 +364,7 @@ Section Proofs.
   (* The correctness of the compiler [comp'] is implied by the equivalence to
      the compiler [comp] and the correctness of [comp]. *)
   Lemma comp'_correct : 
-    UndefinedIsImpure Shape Pos Partial ->
+    UndefinedIsImpure Partial ->
     forall (fexpr : Free Shape Pos (Expr Shape Pos)),
     RecPureExpr fexpr ->
         quickCheck (prop_comp'_correct Shape Pos Partial fexpr).
