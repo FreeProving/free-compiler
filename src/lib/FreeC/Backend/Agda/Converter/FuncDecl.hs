@@ -63,6 +63,4 @@ convertFunc decArg tVars argTypes returnType =
   Agda.pi . addFreeArgs <$> mapM convertTypeVarDecl tVars <*> typeConverter
     (map fromJust argTypes)
     (LIR.convertType $ fromJust returnType)
- where
-  typeConverter x =
-    convertFuncType (maybe LIR.convertFuncType LIR.convertRecFuncType decArg x)
+  where typeConverter ts = convertFuncType (LIR.convertFuncArgTypes decArg ts)

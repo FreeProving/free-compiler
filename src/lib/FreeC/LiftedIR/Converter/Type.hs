@@ -1,7 +1,6 @@
 module FreeC.LiftedIR.Converter.Type
-  ( convertFuncType
-  , convertRecFuncType
-  , convertConArgTypes
+  ( convertFuncArgTypes
+  , convertConArgType
     -- * Translations
   , convertType
   , convertType'
@@ -12,22 +11,31 @@ import qualified FreeC.IR.Syntax               as IR
 import           FreeC.IR.SrcSpan               ( SrcSpan(NoSrcSpan) )
 import qualified FreeC.LiftedIR.Syntax         as LIR
 
--- | Functions not defined in terms of lambdas (@f x = …@ not @f = \x -> …@) aren't
---   evaluated until fully applied, i.e. cannot be bottom. Therefore interleaving
---   monadic layers isn't needed.
---
---   > τ₁ -> … -> τₙ -> ρ ↦ τ₁' -> … -> τₙ' -> ρ'
-convertFuncType :: [IR.Type] -> [LIR.Type]
-convertFuncType = map convertType
+-- | Converts the argument types of a function.
+convertFuncArgTypes
+  :: Maybe Int -- ^ Index of the decreasing argument for recursive functions.
+  -> [IR.Type] -- ^ The argument types.
+  -> [LIR.Type]
+convertFuncArgTypes = maybe convertNonRecFuncArgTypes convertRecFuncArgTypes
 
-convertRecFuncType :: Int -> [IR.Type] -> [LIR.Type]
-convertRecFuncType decIndex args =
+-- | Converts the argument types of a non recursive function using @convertType@.
+convertNonRecFuncArgTypes :: [IR.Type] -> [LIR.Type]
+convertNonRecFuncArgTypes = map convertType
+
+-- | Converts the argument types of a recursive function using @convertType@.
+--
+--   The outermost argument at the given index is marked decreasing.
+convertRecFuncArgTypes :: Int -> [IR.Type] -> [LIR.Type]
+convertRecFuncArgTypes decIndex args =
   let convArgs                      = map convertType args
       (startArgs, decArg : endArgs) = splitAt (decIndex - 1) convArgs
   in  startArgs ++ (markOutermostDecreasing decArg : endArgs)
 
-convertConArgTypes :: IR.QName -> IR.Type -> LIR.Type
-convertConArgTypes ident = markAllDec ident . convertType
+-- | Converts a constructor argument using @convertType@.
+--
+--   All occurrences of the constructed type are marked as structurally smaller.
+convertConArgType :: IR.QName -> IR.Type -> LIR.Type
+convertConArgType ident = markAllDec ident . convertType
 
 -------------------------------------------------------------------------------
 -- Translations                                                              --
