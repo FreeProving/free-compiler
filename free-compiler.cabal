@@ -163,6 +163,11 @@ library freec-internal
                       , FreeC.IR.TypeSchema
                       , FreeC.IR.TypeSynExpansion
                       , FreeC.IR.Unification
+                      , FreeC.LiftedIR.Effect
+                      , FreeC.LiftedIR.Syntax
+                      , FreeC.LiftedIR.Syntax.Expr
+                      , FreeC.LiftedIR.Syntax.Name
+                      , FreeC.LiftedIR.Syntax.Type
                       , FreeC.Pass
                       , FreeC.Pass.CompletePatternPass
                       , FreeC.Pass.DefineDeclPass
@@ -229,6 +234,7 @@ test-suite freec-unit-tests
                     , FreeC.Frontend.IR.ParserTests
                     , FreeC.Frontend.IR.ScannerTests
                     , FreeC.Frontend.IR.Tests
+                    , FreeC.IR.InliningTests
                     , FreeC.IR.ReferenceTests
                     , FreeC.IR.SimilarTests
                     , FreeC.IR.SubstTests
@@ -242,6 +248,7 @@ test-suite freec-unit-tests
                     , FreeC.Monad.ReporterTests
                     , FreeC.Pass.CompletePatternPassTests
                     , FreeC.Pass.EtaConversionPassTests
+                    , FreeC.Pass.ExportPassTests
                     , FreeC.Pass.KindCheckPassTests
                     , FreeC.Pass.PartialityAnalysisPassTests
                     , FreeC.Pass.ResolverPassTests
