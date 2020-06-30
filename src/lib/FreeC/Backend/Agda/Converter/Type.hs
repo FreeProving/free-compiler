@@ -66,7 +66,7 @@ convertRecConType argTypes retType = pi "i" $ \i -> do
 
 -- | Translates a given type in lifted IR to Agda.
 --
---   If a @Size@ variable is needed, but non is provided an error will be occur.
+--   If a @Size@ variable is needed, but none is provided, an error occurs.
 convertType :: Maybe Agda.Expr -> LIR.Type -> Converter Agda.Expr
 convertType _ (LIR.TypeVar srcSpan name) = Agda.Ident
   <$> lookupAgdaIdentOrFail srcSpan IR.TypeScope (IR.UnQual $ IR.Ident name)
