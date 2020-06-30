@@ -15,6 +15,7 @@ module FreeC.Backend.Agda.Syntax
   , moduleDecl
   , funcSig
   , patternSyn
+  , funcDef
     -- * Pattern
   , appP
     -- * Expressions
@@ -89,6 +90,12 @@ funcSig = TypeSig defaultArgInfo Nothing
 
 patternSyn :: Name -> [Arg Name] -> Pattern -> Declaration
 patternSyn = PatternSyn NoRange
+
+funcDef :: QName -> [QName] -> Expr -> Declaration
+funcDef funcName argNames rhs = FunClause lhs (RHS rhs) NoWhere False
+ where
+  argPattern = foldl appP (IdentP funcName) $ map IdentP argNames
+  lhs        = LHS argPattern [] [] $ ExpandedEllipsis NoRange 0
 
 -------------------------------------------------------------------------------
 -- Pattern                                                                   --
