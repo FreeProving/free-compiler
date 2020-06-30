@@ -1,3 +1,7 @@
+-- | Implements the IR to lifted IR translation, which applies the monadic lifting
+--   as described by Abel et al. in "Verifying Haskell Programs Using Constructive
+--   Type Theory".
+
 module FreeC.LiftedIR.Converter.Type
   ( convertFuncArgTypes
   , convertConArgType

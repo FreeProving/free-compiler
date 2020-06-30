@@ -97,6 +97,7 @@ convertConDecl
 convertConDecl ident retType (IR.ConDecl _ (IR.DeclIdent srcSpan name) argTypes)
   = Agda.funcSig
     <$> lookupUnQualAgdaIdentOrFail srcSpan IR.ValueScope name
+        -- TODO: Add declarations to lifted IR and move this translation logic.
     <*> convertConType (map (LIR.convertConArgType ident) argTypes)
                        (LIR.convertType' retType)
 
