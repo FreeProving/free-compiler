@@ -12,7 +12,7 @@ import qualified FreeC.IR.Syntax               as IR
 import           FreeC.IR.SrcSpan               ( SrcSpan(NoSrcSpan) )
 import qualified FreeC.LiftedIR.Syntax         as LIR
 
--- | Functions not defined in terms lambdas (@f x = …@ not @f = \x -> …@) aren't
+-- | Functions not defined in terms of lambdas (@f x = …@ not @f = \x -> …@) aren't
 --   evaluated until fully applied, i.e. cannot be bottom. Therefore interleaving
 --   monadic layers isn't needed.
 --
