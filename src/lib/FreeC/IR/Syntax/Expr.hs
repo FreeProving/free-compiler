@@ -31,7 +31,7 @@ data Expr
 
   | -- | Function or constructor application.
     App { exprSrcSpan    :: SrcSpan
-        , exprAppLhr     :: Expr
+        , exprAppLhs     :: Expr
         , exprAppRhs     :: Expr
         , exprTypeSchema :: Maybe TypeSchema
         }
@@ -83,10 +83,11 @@ data Expr
            }
  deriving (Eq, Show)
 
--- | Gets the type annotation of the given expression but discards the @forall@.
+-- | Gets the type annotation of the given expression, but discards the
+--   @forall@.
 --
 --   Type annotations quantify their type variables usually only if they are
---   as expression type signatures. The type annotations generated during
+--   used as expression type signatures. The type annotations generated during
 --   type inference never quantify their type arguments.
 exprType :: Expr -> Maybe Type
 exprType = exprTypeSchema >=> \(TypeSchema _ typeArgs typeExpr) ->
@@ -103,7 +104,7 @@ untypedVar srcSpan varName = Var srcSpan varName Nothing
 -- | Smart constructor for 'app' without the last argument.
 --
 --   The type annotation is inferred from the callee's type annotation.
---   If it is annotated with a function type, the  created expression
+--   If it is annotated with a function type, the created expression
 --   is annotated with the function type's result type.
 untypedApp :: SrcSpan -> Expr -> Expr -> Expr
 untypedApp srcSpan e1 e2 = App srcSpan e1 e2 appType
@@ -126,7 +127,7 @@ untypedApp srcSpan e1 e2 = App srcSpan e1 e2 appType
 
 -- | Smart constructor for 'TypeAppExpr' without the last argument.
 --
---   The type annotation from the expression which is visibly applied is
+--   The type annotation of the expression which is visibly applied is
 --   used to annotate the type of this expression.
 untypedTypeAppExpr :: SrcSpan -> Expr -> Type -> Expr
 untypedTypeAppExpr srcSpan expr typeExpr =
@@ -192,16 +193,16 @@ visibleTypeApp = foldl . untypedTypeAppExpr
 instance Pretty Expr where
   pretty = prettyExprPred 0
 
--- | Pretty prints an expression and adds parenthesis if necessary.
+-- | Pretty prints an expression and adds parentheses if necessary.
 --
 --   The first argument indicates the precedence of the surrounding
 --   context.
---    * @0@ - Top level. No parenthesis are necessary.
---    * @1@ - Parenthesis are needed around @if@ and lambda expressions.
---    * @2@ - Parenthesis are also needed around function applications.
+--    * @0@ - Top level. No parentheses are necessary.
+--    * @1@ - Parentheses are needed around @if@ and lambda expressions.
+--    * @2@ - Parentheses are also needed around function applications.
 prettyExprPred :: Int -> Expr -> Doc
 
--- If there is a type annotation, parenthesis are needed around @if@
+-- If there is a type annotation, parentheses are needed around @if@
 -- expressions and lambda abstractions since their sub-expressions would
 -- capture the type annotation otherwise.
 prettyExprPred n expr = case exprTypeSchema expr of
@@ -216,9 +217,9 @@ prettyExprPred n expr = case exprTypeSchema expr of
 -- | Like 'prettyExprPred' but ignores outermost type annotations.
 prettyExprPred' :: Int -> Expr -> Doc
 
--- Due to the use of braces, parenthesis can be omitted around @case@
+-- Due to the use of braces, parentheses can be omitted around @case@
 -- expressions even if they are not at top-level. However, if they are
--- used in function applications, parenthesis are needed.
+-- used in function applications, parentheses are needed.
 prettyExprPred' n expr@(Case _ scrutinee alts _)
   | n <= 1
   = prettyString "case"
@@ -229,7 +230,7 @@ prettyExprPred' n expr@(Case _ scrutinee alts _)
   | otherwise
   = parens (prettyExprPred' 1 expr)
 
--- Parenthesis can be omitted around @if@@ and lambda abstractions at
+-- Parentheses can be omitted around @if@ and lambda abstractions at
 -- top-level only.
 prettyExprPred' 0 (If _ e1 e2 e3 _) =
   prettyString "if"
@@ -244,7 +245,7 @@ prettyExprPred' 0 (Lambda _ args expr _) =
     <+> prettyString "->"
     <+> prettyExprPred 0 expr
 
--- At all other levels, the parenthesis cannot be omitted.
+-- At all other levels, the parentheses cannot be omitted.
 prettyExprPred' _ expr@(If _ _ _ _ _  ) = parens (prettyExprPred' 0 expr)
 prettyExprPred' _ expr@(Lambda _ _ _ _) = parens (prettyExprPred' 0 expr)
 
@@ -264,7 +265,7 @@ prettyExprPred' n expr@(ErrorExpr _ msg _)
   | n <= 1    = prettyString "error" <+> prettyString (show msg)
   | otherwise = parens (prettyExprPred' 1 expr)
 
--- No parenthesis are needed around variable and constructor names and
+-- No parentheses are needed around variable and constructor names and
 -- integer literals.
 prettyExprPred' _ (Con        _ name _) = pretty name
 prettyExprPred' _ (Var        _ name _) = pretty name

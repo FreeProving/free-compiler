@@ -88,13 +88,15 @@ defineTestTypeSyn nameStr typeArgs typeStr = do
 --   testing purposes.
 --
 --   Returns the Coq identifier assigned to the type constructor.
-defineTestTypeCon :: String -> Int -> Converter String
-defineTestTypeCon nameStr arity = do
-  name <- parseTestQName nameStr
-  renameAndAddTestEntry DataEntry { entrySrcSpan = NoSrcSpan
-                                  , entryArity   = arity
-                                  , entryName    = name
-                                  , entryIdent   = undefined -- filled by renamer
+defineTestTypeCon :: String -> Int -> [String] -> Converter String
+defineTestTypeCon nameStr arity consNameStrs = do
+  name      <- parseTestQName nameStr
+  consNames <- mapM parseTestQName consNameStrs
+  renameAndAddTestEntry DataEntry { entrySrcSpan   = NoSrcSpan
+                                  , entryArity     = arity
+                                  , entryName      = name
+                                  , entryIdent     = undefined -- filled by renamer
+                                  , entryConsNames = consNames
                                   }
 
 -------------------------------------------------------------------------------
@@ -206,7 +208,7 @@ definePartialStrictTestFunc nameStr areStrict =
 
 -- | Like 'parseTestTypeSchema' but makes sure that all type variables have
 --   been introduced explicitly. A common error when writing tests is that the
---   tester forgets that in contrast to Haskell type variables must
+--   tester forgets that in contrast to Haskell, type variables must
 --   be introduced explicitly.
 parseExplicitTestTypeSchema :: String -> Converter IR.TypeSchema
 parseExplicitTestTypeSchema input = do

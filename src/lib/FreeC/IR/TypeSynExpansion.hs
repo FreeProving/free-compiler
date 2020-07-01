@@ -1,9 +1,9 @@
--- | This module contains functions for for expanding type synonyms in type
+-- | This module contains functions for expanding type synonyms in type
 --   expressions, type signatures as well as data type and other type synonym
 --   declarations.
 --
 --   The expansion of type synonyms is used to split the type of a function
---   into the types of it's arguments and the return type. It is also used
+--   into the types of its arguments and the return type. It is also used
 --   during the conversion of mutually recursive data type and type synonym
 --   declarations to break the dependency of the data type declarations on
 --   the type synonyms (because they cannot be declared in the same sentence
@@ -101,7 +101,7 @@ expandAllTypeSynonymsWhere = expandTypeSynonymsWhere (-1)
 --   maximum depth.
 --
 --   If the maximum depth is @0@, the type will be returned unchanged.
---   If it is @1@ only the outermost type synonym will be expanded.
+--   If it is @1@, only the outermost type synonym will be expanded.
 --   If it is negative, all type synonyms will be expanded (see also
 --   'expandAllTypeSynonyms').
 expandTypeSynonyms :: Int -> IR.Type -> Converter IR.Type

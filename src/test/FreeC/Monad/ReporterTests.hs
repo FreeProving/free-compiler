@@ -50,7 +50,7 @@ testMessage1 = Message NoSrcSpan Error "Keyboard not found\nPress F1 to Resume"
 testMessage2 :: Message
 testMessage2 = Message NoSrcSpan Error "Maximum call stack size exceeded!"
 
--- | A value that is returned some reporters for testing purposes.
+-- | A value that is returned by some reporters for testing purposes.
 testValue :: Int
 testValue = 42
 

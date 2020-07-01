@@ -14,7 +14,7 @@
 --
 --   The TOML document is expected to contain four arrays of tables @types@,
 --   @type-synonyms@, @constructors@ and @functions@. Each table in these
---   arrays defines a data type, type synonym, constrcutor or function
+--   arrays defines a data type, type synonym, constructor or function
 --   respectively. The expected contents of each table is described below.
 --   In addition, the module interface file contains meta information in the
 --   top-level table.
@@ -51,6 +51,8 @@
 --       constructor.
 --     * @arity@ (@Integer@) the number of type arguments expected by the
 --       type constructor.
+--     * @cons-names@ (@Array@ of @String@) the names of the constructors of
+--       the defined data type.
 --
 --   == Type synonyms
 --
@@ -138,7 +140,7 @@ import           FreeC.Util.Config
 --   that the implementation of the corresponding change in the other module
 --   is forgotten.
 moduleInterfaceFileFormatVersion :: Integer
-moduleInterfaceFileFormatVersion = 2
+moduleInterfaceFileFormatVersion = 3
 
 -- | Parses an IR AST node from an Aeson string.
 parseAesonIR :: Parseable a => Text -> Aeson.Parser a
@@ -212,10 +214,12 @@ instance Aeson.FromJSON ModuleInterface where
       arity       <- obj .: "arity"
       haskellName <- obj .: "haskell-name"
       coqName     <- obj .: "coq-name"
-      return DataEntry { entrySrcSpan = NoSrcSpan
-                       , entryArity   = arity
-                       , entryIdent   = coqName
-                       , entryName    = haskellName
+      consNames   <- obj .: "cons-names"
+      return DataEntry { entrySrcSpan   = NoSrcSpan
+                       , entryArity     = arity
+                       , entryIdent     = coqName
+                       , entryName      = haskellName
+                       , entryConsNames = consNames
                        }
 
     parseConfigTypeSyn :: Aeson.Value -> Aeson.Parser EnvEntry

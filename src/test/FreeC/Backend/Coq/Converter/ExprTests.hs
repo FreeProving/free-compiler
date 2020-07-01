@@ -56,20 +56,20 @@ testConvertConApp = context "constructor applications" $ do
   it "converts 0-ary constructor applications correctly"
     $ shouldSucceedWith
     $ do
-        "D"        <- defineTestTypeCon "D" 0
+        "D"        <- defineTestTypeCon "D" 0 ["C"]
         ("c", "C") <- defineTestCon "C" 0 "D"
         "C" `shouldConvertExprTo` "C Shape Pos"
 
   it "converts polymorphic 0-ary constructor applications correctly"
     $ shouldSucceedWith
     $ do
-        "D"        <- defineTestTypeCon "D" 1
+        "D"        <- defineTestTypeCon "D" 1 ["C"]
         ("c", "C") <- defineTestCon "C" 0 "forall a. D a"
         "a"        <- defineTestTypeVar "a"
         "C @a" `shouldConvertExprTo` "@C Shape Pos a"
 
   it "converts constructor applications correctly" $ shouldSucceedWith $ do
-    "D"      <- defineTestTypeCon "D" 0
+    "D"      <- defineTestTypeCon "D" 0 ["C"]
     (_, "C") <- defineTestCon "C" 3 "forall a b. a -> b -> D"
     "a"      <- defineTestTypeVar "a"
     "b"      <- defineTestTypeVar "b"
@@ -80,7 +80,7 @@ testConvertConApp = context "constructor applications" $ do
   it "converts partial constructor applications correctly"
     $ shouldSucceedWith
     $ do
-        "D"      <- defineTestTypeCon "D" 0
+        "D"      <- defineTestTypeCon "D" 0 ["C"]
         (_, "C") <- defineTestCon "C" 3 "forall a b. a -> b -> D"
         "a"      <- defineTestTypeVar "a"
         "b"      <- defineTestTypeVar "b"
@@ -88,7 +88,7 @@ testConvertConApp = context "constructor applications" $ do
         "C @a @b x" `shouldConvertExprTo` "@C Shape Pos a b x"
 
   it "converts unapplied constructors correctly" $ shouldSucceedWith $ do
-    "D"      <- defineTestTypeCon "D" 0
+    "D"      <- defineTestTypeCon "D" 0 ["C"]
     (_, "C") <- defineTestCon "C" 3 "forall a b. a -> b -> D"
     "a"      <- defineTestTypeVar "a"
     "b"      <- defineTestTypeVar "b"
@@ -97,7 +97,7 @@ testConvertConApp = context "constructor applications" $ do
   it "requires visible type applications of constructors" $ do
     input <- expectParseTestExpr "C"
     shouldFail $ do
-      "D"      <- defineTestTypeCon "D" 0
+      "D"      <- defineTestTypeCon "D" 0 ["C"]
       (_, "C") <- defineTestCon "C" 3 "forall a. a -> D"
       convertExpr input
 
@@ -203,7 +203,7 @@ testConvertFuncApp = context "function applications" $ do
 testConvertIf :: Spec
 testConvertIf = context "if expressions" $ do
   it "converts if expressions correctly" $ shouldSucceedWith $ do
-    "Bool" <- defineTestTypeCon "Prelude.Bool" 0
+    "Bool" <- defineTestTypeCon "Prelude.Bool" 0 []
     "e1"   <- defineTestVar "e1"
     "e2"   <- defineTestVar "e2"
     "e3"   <- defineTestVar "e3"
@@ -211,9 +211,9 @@ testConvertIf = context "if expressions" $ do
       $ "e1 >>= (fun (e1_0 : Bool Shape Pos) => if e1_0 then e2 else e3)"
 
   it "there is no name conflict with custom `Bool`" $ shouldSucceedWith $ do
-    "Bool"  <- defineTestTypeCon "M1.Bool" 0
-    "Bool0" <- defineTestTypeCon "Prelude.Bool" 0
-    "Bool1" <- defineTestTypeCon "M2.Bool" 0
+    "Bool"  <- defineTestTypeCon "M1.Bool" 0 []
+    "Bool0" <- defineTestTypeCon "Prelude.Bool" 0 []
+    "Bool1" <- defineTestTypeCon "M2.Bool" 0 []
     "e1"    <- defineTestVar "e1"
     "e2"    <- defineTestVar "e2"
     "e3"    <- defineTestVar "e3"
@@ -232,7 +232,7 @@ testConvertCase = context "case expressions" $ do
     $ do
         "e"      <- defineTestVar "e"
         "e'"     <- defineTestVar "e'"
-        "D"      <- defineTestTypeCon "D" 0
+        "D"      <- defineTestTypeCon "D" 0 ["C"]
         ("c", _) <- defineTestCon "C" 0 "D"
         "case e of { C -> e' }" `shouldConvertExprTo` "e >>= (fun '(c) => e')"
 
@@ -240,7 +240,7 @@ testConvertCase = context "case expressions" $ do
     "e"       <- defineTestVar "e"
     "e1"      <- defineTestVar "e1"
     "e2"      <- defineTestVar "e2"
-    "D"       <- defineTestTypeCon "D" 0
+    "D"       <- defineTestTypeCon "D" 0 ["C1", "C2"]
     ("c1", _) <- defineTestCon "C1" 0 "D"
     ("c2", _) <- defineTestCon "C2" 0 "D"
     shouldConvertExprTo "case e of { C1 -> e1;  C2 -> e2 }"
@@ -253,7 +253,7 @@ testConvertCase = context "case expressions" $ do
   it "allows case expressions to shadow local variables"
     $ shouldSucceedWith
     $ do
-        "List"      <- defineTestTypeCon "List" 1
+        "List"      <- defineTestTypeCon "List" 1 ["Nil", "Cons"]
         ("nil" , _) <- defineTestCon "Nil" 0 "forall a. List a"
         ("cons", _) <- defineTestCon "Cons" 2 "forall a. a -> List a -> List a"
         "e"         <- defineTestVar "e"
@@ -268,7 +268,7 @@ testConvertCase = context "case expressions" $ do
   it "allows case expressions to shadow local variables"
     $ shouldSucceedWith
     $ do
-        "AB"     <- defineTestTypeCon "AB" 0
+        "AB"     <- defineTestTypeCon "AB" 0 ["A", "B"]
         ("a", _) <- defineTestCon "A" 0 "Unit"
         ("b", _) <- defineTestCon "B" 0 "Unit"
         "x"      <- defineTestVar "x"
@@ -334,8 +334,8 @@ testConvertTypeAppExprs = context "visible type applications" $ do
   it "translates visible type applications to explicit applications in Coq"
     $ shouldSucceedWith
     $ do
-        "Bool"     <- defineTestTypeCon "Bool" 0
-        "List"     <- defineTestTypeCon "List" 1
+        "Bool"     <- defineTestTypeCon "Bool" 0 []
+        "List"     <- defineTestTypeCon "List" 1 ["Nil"]
         (_, "Nil") <- defineTestCon "Nil" 0 "forall a. List a"
         "Nil @Bool" `shouldConvertExprTo` "@Nil Shape Pos (Bool Shape Pos)"
 

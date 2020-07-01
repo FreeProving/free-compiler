@@ -13,13 +13,13 @@ import           FreeC.Pretty
 
 -- | A type expression.
 --
---   Build-in types are represented by applications of their type constructors.
+--   Built-in types are represented by applications of their type constructors.
 --   E.g. the type @[a]@ is represented as
 --   @'TypeApp' ('TypeCon' "[]") ('TypeVar' "a")@.
 --   The only exception to this rule is the function type @a -> b@. It is
 --   represented directly as @'FuncType' ('TypeVar' "a") ('TypeVar' "b")@.
 --   The syntax @(->) a b@ is not supported at the moment. This is due to the
---   special role of functions during the translation to Coq.
+--   special role of functions during the lifting.
 data Type
   = -- | A type variable.
     TypeVar
@@ -86,13 +86,13 @@ splitFuncType returnType _ = ([], returnType)
 instance Pretty Type where
   pretty = prettyTypePred 0
 
--- | Pretty prints a type and adds parenthesis if necessary.
+-- | Pretty prints a type and adds parentheses if necessary.
 --
 --   The first argument indicates the precedence of the surrounding
 --   context.
---    * @0@ - Top level. No parenthesis are necessary.
---    * @1@ - Parenthesis are needed around function types.
---    * @2@ - Parenthesis are also needed around type constructor
+--    * @0@ - Top level. No parentheses are necessary.
+--    * @1@ - Parentheses are needed around function types.
+--    * @2@ - Parentheses are also needed around type constructor
 --            applications.
 prettyTypePred :: Int -> Type -> Doc
 -- There are never parentheses around type variables or constructors.

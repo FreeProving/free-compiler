@@ -10,10 +10,10 @@
 --
 --   There are two versions of the parsing functions. The functions with
 --   @parseTest@ prefix parse the input string and report errors to an
---   arbitrary 'MonadReporter'. The functions with @expectParseTest@ prefix
---   on the other hand set the expectation that parsing is successful.
+--   arbitrary 'MonadReporter'. The functions with @expectParseTest@ prefix,
+--   on the other hand, set the expectation that parsing is successful.
 --   If there is a parse error, an assertion failure will cause the test
---   to fail immediately. The latter kind of functions are supposed to be
+--   to fail immediately. The latter kind of functions is supposed to be
 --   used for setup actions. The example below illustrates how to use
 --   these functions.
 --
@@ -22,8 +22,8 @@
 --   >   foo expr `shouldReturn` something
 --
 --   This pattern is especially important when testing for failures. In the
---   following example we cannot distinguish whether @foo@ failed or we have
---   a typo in out test expression.
+--   following example, we cannot distinguish whether @foo@ failed or we have
+--   a typo in our test expression.
 --
 --   > it "..." $ shouldFail $ do
 --   >   expr <- parseTestExpr "..."
@@ -211,7 +211,7 @@ parseTestComponent
 parseTestComponent = mapComponentM (mapM parseTestIR)
 
 -- | Parses the declarations in the given dependency component and sets the
---   expectation that parsing is successul.
+--   expectation that parsing is successful.
 expectParseTestComponent
   :: (MonadFail m, MonadIO m, Parseable decl)
   => DependencyComponent String

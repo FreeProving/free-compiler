@@ -42,7 +42,7 @@ import           FreeC.Util.Config
 --   that the implementation of the corresponding change in the other module
 --   is forgotten.
 moduleInterfaceFileFormatVersion :: Integer
-moduleInterfaceFileFormatVersion = 2
+moduleInterfaceFileFormatVersion = 3
 
 instance Aeson.ToJSON IR.QName where
   toJSON = Aeson.toJSON . showPretty
@@ -89,7 +89,11 @@ instance Aeson.ToJSON ModuleInterface where
 encodeEntry :: EnvEntry -> Maybe Aeson.Value
 encodeEntry entry
   | isDataEntry entry = return $ Aeson.object
-    ["haskell-name" .= haskellName, "coq-name" .= coqName, "arity" .= arity]
+    [ "haskell-name" .= haskellName
+    , "coq-name" .= coqName
+    , "arity" .= arity
+    , "cons-names" .= consNames
+    ]
   | isTypeSynEntry entry = return $ Aeson.object
     [ "haskell-name" .= haskellName
     , "coq-name" .= coqName
@@ -123,6 +127,9 @@ encodeEntry entry
 
   arity :: Aeson.Value
   arity = Aeson.toJSON (entryArity entry)
+
+  consNames :: Aeson.Value
+  consNames = Aeson.toJSON (entryConsNames entry)
 
   partial :: Aeson.Value
   partial = Aeson.toJSON (entryIsPartial entry)

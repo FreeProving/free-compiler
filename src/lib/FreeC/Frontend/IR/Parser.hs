@@ -574,7 +574,7 @@ vExprParser = visibleTypeAppParser <|> errorParser <|> wExprParser
       <*> Parsec.option [] (return <$> vArgParser)
       <*> (IR.ErrorExpr NoSrcSpan <$> stringToken <*> return Nothing)
 
--- | Parser for IR expressions that can be be applied to their type arguments.
+-- | Parser for IR expressions that can be applied to their type arguments.
 --
 --   > uexpr ::= varQName                            (variable)
 --   >         | conQName                            (constructor)

@@ -48,7 +48,7 @@ testEtaConversionPass = describe "FreeC.Pass.EtaConversionPass" $ do
         "applies functions under-applied on the top level to one missing argument"
       $ shouldSucceedWith
       $ do
-          _ <- defineTestTypeCon "Foo" 0
+          _ <- defineTestTypeCon "Foo" 0 []
           _ <- defineTestFunc "f" 0 "Foo -> Foo"
           _ <- defineTestFunc "g" 2 "Foo -> Foo -> Foo"
           "f :: Foo -> Foo = g Foo"
@@ -57,13 +57,13 @@ testEtaConversionPass = describe "FreeC.Pass.EtaConversionPass" $ do
         "applies functions under-applied on the top level to multiple missing arguments"
       $ shouldSucceedWith
       $ do
-          _ <- defineTestTypeCon "Foo" 0
+          _ <- defineTestTypeCon "Foo" 0 []
           _ <- defineTestFunc "f" 0 "Foo -> Foo -> Foo"
           _ <- defineTestFunc "g" 3 "Foo -> Foo -> Foo -> Foo"
           "f :: Foo -> Foo -> Foo = g Foo"
             `shouldEtaConvertTopLevel` "f (x :: Foo) (y :: Foo) :: Foo = g Foo x y"
     it "updates function arity in environment" $ shouldSucceedWith $ do
-      _     <- defineTestTypeCon "Foo" 0
+      _     <- defineTestTypeCon "Foo" 0 []
       _     <- defineTestFunc "f" 0 "Foo -> Foo"
       _     <- defineTestFunc "g" 2 "Foo -> Foo -> Foo"
       input <- parseTestFuncDecl "f :: Foo -> Foo = g Foo"
@@ -71,7 +71,7 @@ testEtaConversionPass = describe "FreeC.Pass.EtaConversionPass" $ do
       arity <- inEnv $ lookupArity IR.ValueScope (IR.UnQual (IR.Ident "f"))
       return (arity `shouldBe` Just 1)
     it "updates function return type in environment" $ shouldSucceedWith $ do
-      _            <- defineTestTypeCon "Foo" 0
+      _            <- defineTestTypeCon "Foo" 0 []
       _            <- defineTestFunc "f" 0 "Foo -> Foo"
       _            <- defineTestFunc "g" 2 "Foo -> Foo -> Foo"
       input        <- parseTestFuncDecl "f :: Foo -> Foo = g Foo"
@@ -81,7 +81,7 @@ testEtaConversionPass = describe "FreeC.Pass.EtaConversionPass" $ do
         $ lookupReturnType IR.ValueScope (IR.UnQual (IR.Ident "f"))
       return (returnType `shouldBeSimilarTo` Just expectedType)
     it "updates function argument type in environment" $ shouldSucceedWith $ do
-      _            <- defineTestTypeCon "Foo" 0
+      _            <- defineTestTypeCon "Foo" 0 []
       _            <- defineTestFunc "f" 0 "Foo -> Foo"
       _            <- defineTestFunc "g" 2 "Foo -> Foo -> Foo"
       input        <- parseTestFuncDecl "f :: Foo -> Foo = g Foo"
@@ -94,7 +94,7 @@ testEtaConversionPass = describe "FreeC.Pass.EtaConversionPass" $ do
         "applies under-applied function that is if-expression to missing argument"
       $ shouldSucceedWith
       $ do
-          _ <- defineTestTypeCon "Foo" 0
+          _ <- defineTestTypeCon "Foo" 0 []
           _ <- defineTestFunc "f" 1 "Bool -> Foo -> Foo"
           _ <- defineTestFunc "g" 2 "Foo -> Foo -> Foo"
           "f (b :: Bool) :: Foo -> Foo = if b then g Foo else g Foo"
@@ -103,7 +103,7 @@ testEtaConversionPass = describe "FreeC.Pass.EtaConversionPass" $ do
         "applies under-applied function that is if-expression to minimal number of missing argument in both branches"
       $ shouldSucceedWith
       $ do
-          _ <- defineTestTypeCon "Foo" 0
+          _ <- defineTestTypeCon "Foo" 0 []
           _ <- defineTestFunc "f" 1 "Bool -> Foo -> Foo"
           _ <- defineTestFunc "g" 2 "Foo -> Foo -> Foo"
           _ <- defineTestFunc "h" 1 "Foo -> Foo -> Foo"
@@ -113,13 +113,13 @@ testEtaConversionPass = describe "FreeC.Pass.EtaConversionPass" $ do
         "applies under-applied function that is if-expression to minimal number of missing argument where one branche is lambda expression"
       $ shouldSucceedWith
       $ do
-          _ <- defineTestTypeCon "Foo" 0
+          _ <- defineTestTypeCon "Foo" 0 []
           _ <- defineTestFunc "f" 1 "Bool -> Foo -> Foo"
           _ <- defineTestFunc "g" 2 "Foo -> Foo -> Foo"
           "f (b :: Bool) :: Foo -> Foo = if b then g Foo else (\\x -> x)"
             `shouldEtaConvertTopLevel` "f (b :: Bool) :: Foo -> Foo = if b then (\\y -> g Foo y) else (\\x -> x)"
     it "works with mutually recursive functions" $ shouldSucceedWith $ do
-      _      <- defineTestTypeCon "Foo" 0
+      _      <- defineTestTypeCon "Foo" 0 []
       _      <- defineTestFunc "k" 0 " Foo -> Foo"
       _      <- defineTestFunc "f" 0 "Foo -> Foo"
       _      <- defineTestFunc "g" 2 "Foo -> Foo -> Foo"
@@ -138,15 +138,15 @@ testEtaConversionPass = describe "FreeC.Pass.EtaConversionPass" $ do
 
   context "Lower-level eta conversion" $ do
     it "leaves fully applied functions unchanged" $ shouldSucceedWith $ do
-      _ <- defineTestTypeCon "Foo" 0
+      _ <- defineTestTypeCon "Foo" 0 []
       _ <- defineTestFunc "f" 2 "Foo -> Foo -> Foo"
       "f x y" `shouldEtaConvert` "f x y"
     it "leaves over applied functions unchanged" $ shouldSucceedWith $ do
-      _ <- defineTestTypeCon "Foo" 0
+      _ <- defineTestTypeCon "Foo" 0 []
       _ <- defineTestFunc "f" 2 "Foo -> Foo -> Foo"
       "f x y z" `shouldEtaConvert` "f x y z"
     it "eta-converts under applied functions" $ shouldSucceedWith $ do
-      _ <- defineTestTypeCon "Foo" 0
+      _ <- defineTestTypeCon "Foo" 0 []
       _ <- defineTestFunc "f" 2 "Foo -> Foo -> Foo"
       "f x" `shouldEtaConvert` "\\y -> f x y"
     it "leaves application of local variables unchanged"
@@ -155,17 +155,17 @@ testEtaConversionPass = describe "FreeC.Pass.EtaConversionPass" $ do
           shouldEtaConvert "\\(f :: a -> b -> c) x -> f x"
                            "\\(f :: a -> b -> c) x -> f x"
     it "leaves fully applied constructors unchanged" $ shouldSucceedWith $ do
-      _ <- defineTestTypeCon "Foo" 0
-      _ <- defineTestTypeCon "Bar" 0
+      _ <- defineTestTypeCon "Foo" 0 []
+      _ <- defineTestTypeCon "Bar" 0 ["Bar"]
       _ <- defineTestCon "Bar" 2 "Foo -> Foo -> Bar"
       "Bar x y" `shouldEtaConvert` "Bar x y"
     it "leaves over applied functions unchanged" $ shouldSucceedWith $ do
-      _ <- defineTestTypeCon "Foo" 0
-      _ <- defineTestTypeCon "Bar" 0
+      _ <- defineTestTypeCon "Foo" 0 []
+      _ <- defineTestTypeCon "Bar" 0 ["Bar"]
       _ <- defineTestCon "Bar" 2 "Foo -> Foo -> Bar"
       "Bar x y z" `shouldEtaConvert` "Bar x y z"
     it "eta-converts under applied functions" $ shouldSucceedWith $ do
-      _ <- defineTestTypeCon "Foo" 0
-      _ <- defineTestTypeCon "Bar" 0
+      _ <- defineTestTypeCon "Foo" 0 []
+      _ <- defineTestTypeCon "Bar" 0 ["Bar"]
       _ <- defineTestCon "Bar" 2 "Foo -> Foo -> Bar"
       "Bar x" `shouldEtaConvert` "\\y -> Bar x y"

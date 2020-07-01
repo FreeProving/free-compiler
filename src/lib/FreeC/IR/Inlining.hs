@@ -27,8 +27,13 @@ inlineFuncDecls decls decl = do
   return decl { IR.funcDeclRhs = rhs' }
 
 -- | Inlines the right hand sides of the given function declarations into an
---   expression.
+--   expression. This step is repeated until the expression remains unchanged
+--   or no more function declarations are available.
+--   That is done under the assumption that regarding a certain position
+--   of the given expression every given function should be inlined at
+--   most once in order to avoid endless inlining.
 inlineExpr :: [IR.FuncDecl] -> IR.Expr -> Converter IR.Expr
+inlineExpr []    = return
 inlineExpr decls = inlineAndBind
  where
   -- | Maps the names of function declarations in 'decls' to the arguments
@@ -83,17 +88,19 @@ inlineExpr decls = inlineAndBind
   --   If a function is inlined, fresh free variables are introduced for the
   --   function arguments. The first two components of the returned tuple
   --   contain the names of the type variables and variables that still need
-  --   to be bound. Function application and visible type application
-  --   expressions automatically substitute the corresponding argument for
+  --   to be bound.
+  --   Function application and visible type application expressions
+  --   automatically substitute the corresponding argument for
   --   the passed value.
   inlineExpr' :: IR.Expr -> Converter ([String], [String], IR.Expr)
   inlineExpr' var@(IR.Var _ name _) = case Map.lookup name declMap of
     Nothing                    -> return ([], [], var)
     Just (typeArgs, args, rhs) -> do
-      (typeArgs', rhs' ) <- renameTypeArgs typeArgs rhs
-      (args'    , rhs'') <- renameArgs args rhs'
+      (typeArgs', rhs') <- renameTypeArgs typeArgs rhs
+      (args', rhs'') <- renameArgs args rhs'
+      rhs''' <- inlineExpr (filter ((name /=) . IR.funcDeclQName) decls) rhs''
       return
-        (map IR.typeVarDeclIdent typeArgs', map IR.varPatIdent args', rhs'')
+        (map IR.typeVarDeclIdent typeArgs', map IR.varPatIdent args', rhs''')
 
   -- Substitute argument of inlined function and inline recursively in
   -- function arguments.

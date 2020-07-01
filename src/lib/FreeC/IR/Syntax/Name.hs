@@ -61,9 +61,9 @@ toUnQual = UnQual . nameFromQName
 
 -- | Pretty instance for qualifiable identifiers and symbols.
 instance Pretty QName where
-  pretty (Qual modid name)
-    | null modid = pretty name
-    | otherwise  = prettyString modid <> dot <> pretty name
+  pretty (Qual modId name)
+    | null modId = pretty name
+    | otherwise  = prettyString modId <> dot <> pretty name
   pretty (UnQual name) = pretty name
   prettyList = prettySeparated (comma <> space) . map pretty
 
@@ -75,7 +75,7 @@ instance Pretty QName where
 --
 --   Similar to Haskell, type and function names live in separate name spaces.
 --
---   Additionally, there is a name space for fresh identifiers without
+--   Additionally, there is a name space for fresh identifiers without a
 --   corresponding IR node. If a fresh identifier is introduced and used
 --   as an IR variable or type variable name, the corresponding entry
 --   lives in the value or type scope respectively. The 'FreshScope'
@@ -85,7 +85,7 @@ instance Pretty QName where
 data Scope = TypeScope | ValueScope | FreshScope
   deriving (Eq, Ord, Show)
 
--- | A 'QName' with additional information about it's name space.
+-- | A 'QName' with additional information about its name space.
 type ScopedName = (Scope, QName)
 
 -------------------------------------------------------------------------------
@@ -98,11 +98,11 @@ type TypeVarIdent = String
 -- | The name of a module.
 type ModName = String
 
--- | The name of a function or build-in operator used in prefix notation, e.g.
+-- | The name of a function or built-in operator used in prefix notation, e.g.
 --   @f x y@ or @(+) n m@
 type VarName = QName
 
--- | The name of an constructor used in prefix notation, e.g. @(:) x xs@.
+-- | The name of a constructor used in prefix notation, e.g. @(:) x xs@.
 type ConName = QName
 
 -- | The name of a type or type constructor, e.g. @Integer@ or @[] a@
@@ -130,7 +130,7 @@ instance Pretty DeclIdent where
 
 -- | The character that is used to mark internal identifiers.
 --
---   This is used to generate fresh identifiers that don't conflict with user
+--   This is used to generate fresh identifiers that don't conflict with user-
 --   defined identifiers.
 internalIdentChar :: Char
 internalIdentChar = '@'

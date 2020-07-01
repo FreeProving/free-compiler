@@ -1,5 +1,5 @@
 -- | This module contains functions for converting mutually recursive
---   function declarations by spliting when into one or more recursive helper
+--   function declarations by splitting them into one or more recursive helper
 --   function whose decreasing argument is not lifted to the @Free@ monad and
 --   a non-recursive main function.
 
@@ -68,7 +68,7 @@ convertRecFuncDeclsWithHelpers' decls = do
     localEnv $ do
       inlinedHelperDecl <- inlineFuncDecls mainDecls helperDecl
       convertRecHelperFuncDecl inlinedHelperDecl decArgIndex
-  mainDecls' <- mapM convertNonRecFuncDecl mainDecls
+  mainDecls' <- convertNonRecFuncDecls mainDecls
 
   -- Create common fixpoint sentence for all helper functions.
   return
@@ -95,7 +95,7 @@ transformRecFuncDecl (IR.FuncDecl srcSpan declIdent typeArgs args maybeRetType e
     -- Generate main function declaration. The main function's right hand side
     -- is constructed by replacing all case expressions of the decreasing
     -- argument by an invocation of the corresponding recursive helper function.
-    let (Just mainExpr) = replaceSubterms expr (zip caseExprsPos helperApps)
+    let mainExpr = replaceSubterms' expr (zip caseExprsPos helperApps)
         mainDecl =
           IR.FuncDecl srcSpan declIdent typeArgs args maybeRetType mainExpr
 
@@ -150,7 +150,7 @@ transformRecFuncDecl (IR.FuncDecl srcSpan declIdent typeArgs args maybeRetType e
     let boundVarTypeMap = boundVarsWithTypeAt expr caseExprPos
         boundVars =
           Map.keysSet boundVarTypeMap `Set.union` Set.fromList argNames
-        Just caseExpr  = selectSubterm expr caseExprPos
+        caseExpr       = selectSubterm' expr caseExprPos
         usedVars       = freeVarSet caseExpr
         helperArgNames = Set.toList (usedVars `Set.intersection` boundVars)
 

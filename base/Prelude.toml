@@ -6,7 +6,7 @@
 # Metadata                                                                   #
 ##############################################################################
 
-version = 2
+version = 3
 module-name = 'Prelude'
 library-name = 'Base'
 exported-types = [
@@ -51,6 +51,10 @@ exported-values = [
   haskell-name = 'Prelude.Bool'
   coq-name     = 'Bool'
   arity        = 0
+  cons-names   = [
+      'Prelude.True', 
+      'Prelude.False',
+    ]
 
 [[constructors]]
   haskell-type   = 'Prelude.Bool'
@@ -90,6 +94,7 @@ exported-values = [
   haskell-name = 'Prelude.Integer'
   coq-name     = 'Integer'
   arity        = 0
+  cons-names   = []
 
 [[functions]]
   haskell-type    = 'Prelude.Integer -> Prelude.Integer -> Prelude.Integer'
@@ -186,7 +191,11 @@ exported-values = [
 [[types]]
   haskell-name = 'Prelude.([])'
   coq-name     = 'List'
-  arity = 1
+  arity        = 1
+  cons-names   = [
+      'Prelude.([])',
+      'Prelude.(:)',
+    ]
 
 [[constructors]]
   haskell-type   = 'Prelude.([]) a'
@@ -210,6 +219,7 @@ exported-values = [
   haskell-name = 'Prelude.(,)'
   coq-name     = 'Pair'
   arity        = 2
+  cons-names   = ['Prelude.(,)']
 
 [[constructors]]
   haskell-type   = 'a -> b -> Prelude.(,) a b'
@@ -226,6 +236,7 @@ exported-values = [
   haskell-name = 'Prelude.()'
   coq-name     = 'Unit'
   arity        = 0
+  cons-names   = ['Prelude.()']
 
 [[constructors]]
   haskell-type   = 'Prelude.()'

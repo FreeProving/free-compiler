@@ -24,6 +24,8 @@ data EnvEntry
       -- ^ The name of the data type in Coq.
     , entryName    :: IR.QName
       -- ^ The name of the data type in the module it has been defined in.
+    , entryConsNames :: [IR.ConName]
+      -- ^ The names of the constructors of the data type.
     }
   | -- | Entry for a type synonym declaration.
     TypeSynEntry
@@ -124,7 +126,7 @@ data EnvEntry
  deriving Show
 
 -------------------------------------------------------------------------------
--- Comparision                                                               --
+-- Comparison                                                               --
 -------------------------------------------------------------------------------
 
 -- | Entries are identified by their original name.

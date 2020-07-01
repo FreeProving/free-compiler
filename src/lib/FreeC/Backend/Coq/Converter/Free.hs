@@ -1,4 +1,4 @@
--- | This module contains auxilary functions that help to generate Coq code
+-- | This module contains auxiliary functions that help to generate Coq code
 --   that uses the @Free@ monad.
 
 module FreeC.Backend.Coq.Converter.Free where
@@ -18,7 +18,7 @@ import           FreeC.Monad.Converter
 
 -- | The declarations of type parameters for the @Free@ monad.
 --
---   The first argument controlls whether the generated binders are explicit
+--   The first argument controls whether the generated binders are explicit
 --   (e.g. @(Shape : Type)@) or implicit (e.g. @{Shape : Type}@).
 genericArgDecls :: Coq.Explicitness -> [Coq.Binder]
 genericArgDecls explicitness =
@@ -125,7 +125,7 @@ generateBind expr' defaultPrefix argType' generateRHS = localEnv $ do
   return
     (Coq.app (Coq.Qualid Coq.Base.freeBind) [expr', Coq.fun [x] [argType'] rhs])
  where
-  -- | Suggests a prefix for the fresh varibale the given expression
+  -- | Suggests a prefix for the fresh variable the given expression
   --   is bound to.
   suggestPrefixFor :: Coq.Term -> String
   suggestPrefixFor (Coq.Qualid qualid) =

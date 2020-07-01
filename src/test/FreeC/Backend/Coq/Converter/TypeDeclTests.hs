@@ -23,8 +23,7 @@ import           FreeC.Test.Expectations
 
 -- | Parses the given type-level IR declarations, converts them to Coq using
 --   'convertTypeComponent' and sets the expectation that the resulting AST
---   is equal to the given output when pretty printed modulo white
---   space.
+--   is equal to the given output when pretty printed modulo whitespace.
 shouldConvertTypeDeclsTo
   :: DependencyComponent String -> String -> Converter Expectation
 shouldConvertTypeDeclsTo inputStrs expectedOutputStr = do
@@ -43,8 +42,8 @@ testConvertTypeDecl =
     it "translates non-polymorphic type synonyms correctly"
       $ shouldSucceedWith
       $ do
-          "Integer" <- defineTestTypeCon "Integer" 0
-          "List"    <- defineTestTypeCon "List" 1
+          "Integer" <- defineTestTypeCon "Integer" 0 []
+          "List"    <- defineTestTypeCon "List" 1 []
           "TermPos" <- defineTestTypeSyn "TermPos" [] "List Integer"
           shouldConvertTypeDeclsTo (NonRecursive "type TermPos = List Integer")
             $  "Definition TermPos (Shape : Type) (Pos : Shape -> Type)"
@@ -52,8 +51,8 @@ testConvertTypeDecl =
             ++ " := List Shape Pos (Integer Shape Pos)."
 
     it "translates polymorphic type synonyms correctly" $ shouldSucceedWith $ do
-      "List"  <- defineTestTypeCon "List" 1
-      "Pair"  <- defineTestTypeCon "Pair" 2
+      "List"  <- defineTestTypeCon "List" 1 []
+      "Pair"  <- defineTestTypeCon "Pair" 2 []
       "Queue" <- defineTestTypeSyn "Queue" ["a"] "Pair (List a) (List a)"
       shouldConvertTypeDeclsTo
           (NonRecursive "type Queue a = Pair (List a) (List a)")
@@ -64,9 +63,9 @@ testConvertTypeDecl =
     it "expands type synonyms in mutually recursive data type declarations"
       $ shouldSucceedWith
       $ do
-          "List"               <- defineTestTypeCon "List" 1
+          "List"               <- defineTestTypeCon "List" 1 []
           "Forest" <- defineTestTypeSyn "Forest" ["a"] "List (Tree a)"
-          "Tree"               <- defineTestTypeCon "Tree" 1
+          "Tree"               <- defineTestTypeCon "Tree" 1 []
           ("leaf"  , "Leaf"  ) <- defineTestCon "Leaf" 1 "forall a. a -> Tree a"
           ("branch", "Branch") <- defineTestCon "Branch"
                                                 1
@@ -103,7 +102,7 @@ testConvertTypeDecl =
     it "sorts type synonym declarations topologically" $ shouldSucceedWith $ do
       "Bar"           <- defineTestTypeSyn "Bar" [] "Baz"
       "Baz"           <- defineTestTypeSyn "Baz" [] "Foo"
-      "Foo"           <- defineTestTypeCon "Foo" 1
+      "Foo"           <- defineTestTypeCon "Foo" 1 ["Foo"]
       ("foo", "Foo0") <- defineTestCon "Foo" 2 "Bar -> Baz -> Foo"
       shouldConvertTypeDeclsTo
           (Recursive
@@ -149,7 +148,7 @@ testConvertDataDecls =
     it "translates non-polymorphic data types correctly"
       $ shouldSucceedWith
       $ do
-          "Foo"          <- defineTestTypeCon "Foo" 0
+          "Foo"          <- defineTestTypeCon "Foo" 0 ["Bar", "Baz"]
           ("bar", "Bar") <- defineTestCon "Bar" 0 "Foo"
           ("baz", "Baz") <- defineTestCon "Baz" 0 "Foo"
           shouldConvertTypeDeclsTo (NonRecursive "data Foo = Bar | Baz")
@@ -167,7 +166,7 @@ testConvertDataDecls =
             ++ " : Free Shape Pos (Foo Shape Pos) := pure baz."
 
     it "translates polymorphic data types correctly" $ shouldSucceedWith $ do
-      "Foo"          <- defineTestTypeCon "Foo" 2
+      "Foo"          <- defineTestTypeCon "Foo" 2 ["Bar", "Baz"]
       ("bar", "Bar") <- defineTestCon "Bar" 1 "forall a b. a -> Foo a b"
       ("baz", "Baz") <- defineTestCon "Baz" 1 "forall a b. b -> Foo a b"
       shouldConvertTypeDeclsTo (NonRecursive "data Foo a b = Bar a | Baz b")
@@ -190,7 +189,7 @@ testConvertDataDecls =
     it "renames constructors with same name as their data type"
       $ shouldSucceedWith
       $ do
-          "Foo"           <- defineTestTypeCon "Foo" 0
+          "Foo"           <- defineTestTypeCon "Foo" 0 ["Foo"]
           ("foo", "Foo0") <- defineTestCon "Foo" 0 "Foo"
           shouldConvertTypeDeclsTo (NonRecursive "data Foo = Foo")
             $  "(* Data type declarations for Foo *) "
@@ -205,7 +204,7 @@ testConvertDataDecls =
     it "renames type variables with same name as generated constructors"
       $ shouldSucceedWith
       $ do
-          "Foo"      <- defineTestTypeCon "Foo" 0
+          "Foo"      <- defineTestTypeCon "Foo" 0 ["A"]
           ("a", "A") <- defineTestCon "A" 1 "forall a. a -> Foo a"
           shouldConvertTypeDeclsTo (NonRecursive "data Foo a = A a")
             $  "(* Data type declarations for Foo *) "
@@ -222,9 +221,9 @@ testConvertDataDecls =
     it "translates mutually recursive data types correctly"
       $ shouldSucceedWith
       $ do
-          "Foo"           <- defineTestTypeCon "Foo" 0
+          "Foo"           <- defineTestTypeCon "Foo" 0 ["Foo"]
           ("foo", "Foo0") <- defineTestCon "Foo" 1 "Bar -> Foo"
-          "Bar"           <- defineTestTypeCon "Bar" 0
+          "Bar"           <- defineTestTypeCon "Bar" 0 ["Bar"]
           ("bar", "Bar0") <- defineTestCon "Bar" 1 "Foo -> Bar"
           shouldConvertTypeDeclsTo
               (Recursive ["data Foo = Foo Bar", "data Bar = Bar Foo"])
