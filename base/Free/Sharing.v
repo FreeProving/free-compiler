@@ -15,25 +15,25 @@ Definition SPos {Shape : Type} (Pos : Shape -> Type) : SShape Shape -> Type :=
   Comb.Pos State.Pos (Comb.Pos Share.Pos Pos).
 
 (* The type of a shared variable or expression of type Free Shape Pos A*)
-Definition SFree (Shape : Type) (Pos : Shape -> Type) (A : Type) := Free (SShape Shape) (SPos Pos) A.
+Definition Prog (Shape : Type) (Pos : Shape -> Type) (A : Type) := Free (SShape Shape) (SPos Pos) A.
 
 (* An effect-generic (non-functional) sharing operator for an already lifted variable or expression. *)
 (* Will eventually also require A to be an instance of Shareable. *)
 Definition share {A : Type} {Shape : Type} {Pos : Shape -> Type}
-  (x : Free (SShape Shape) (SPos Pos) A) 
-  : Free (SShape Shape) (SPos Pos) (SFree Shape Pos A) := 
+  (x : Prog Shape Pos A) 
+  : Prog Shape Pos (Prog Shape Pos A) := 
   pure x.
 
 (* A function to lift a Free value into the sharing setting. *)
 Definition liftS {A : Type} {Shape : Type} {Pos : Shape -> Type} (x : Free Shape Pos A) 
-  : SFree Shape Pos A :=
+  : Prog Shape Pos A :=
   Comb.Monad.Inr (Comb.Monad.Inr x).
 
 (* An effect-generic (non-functional) sharing operator for a non-lifted variable or expression. *)
 (* Will eventually also require A to be an instance of Shareable. *)
 (* I'm not sure if it's going to be useful at all. *)
 Definition share' {A : Type} {Shape : Type} {Pos : Shape -> Type} (x : Free Shape Pos A) 
-  : Free (SShape Shape) (SPos Pos) (SFree Shape Pos A) :=
+  : Prog Shape Pos (Prog Shape Pos A) :=
   pure (liftS x).
 
 
@@ -49,7 +49,9 @@ Compute double (pure n).
 
 (* Doubling an integer that is shared. *)
 (* Note that we need to wrap the shape and position function with SShape and SPos. *)
-Definition doubleShare {Shape : Type} {Pos : Shape -> Type} (x : SFree Shape Pos (Integer Shape Pos)) := 
-   share x >>= fun sx => addInteger (SShape Shape) (SPos Pos) sx sx.
+Definition doubleShare {Shape : Type} {Pos : Shape -> Type} 
+  (x : Prog Shape Pos (Integer Shape Pos))
+  : Prog Shape Pos (Integer Shape Pos) := 
+  share x >>= fun sx => addInteger (SShape Shape) (SPos Pos) sx sx.
 
 Compute doubleShare (liftS (pure n)).
