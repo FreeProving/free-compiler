@@ -14,6 +14,7 @@ where
 import qualified FreeC.IR.Syntax               as IR
 import           FreeC.IR.SrcSpan               ( SrcSpan(NoSrcSpan) )
 import qualified FreeC.LiftedIR.Syntax         as LIR
+import           FreeC.Util.SnocList            ( SnocList(Nil) )
 
 -- | Converts the argument types of a function.
 convertFuncArgTypes
@@ -66,7 +67,7 @@ convertType = LIR.FreeTypeCon NoSrcSpan . convertType'
 --   > C* = Ĉ Shape Position
 --   > α* = α̂
 convertType' :: IR.Type -> LIR.Type
-convertType' (IR.TypeCon srcSpan name) = LIR.TypeCon srcSpan name [] False
+convertType' (IR.TypeCon srcSpan name) = LIR.TypeCon srcSpan name Nil False
 convertType' (IR.TypeVar srcSpan name) = LIR.TypeVar srcSpan name
 convertType' (IR.TypeApp _ l r) = convertType' l `LIR.typeApp` convertType' r
 convertType' (IR.FuncType srcSpan l r) =
@@ -87,7 +88,7 @@ markAllDec decName (LIR.FreeTypeCon srcSpan t) =
 markAllDec decName (LIR.TypeCon srcSpan name ts dec) = LIR.TypeCon
   srcSpan
   name
-  (markAllDec decName `map` ts)
+  (markAllDec decName `fmap` ts)
   (name == decName || dec)
 
 -- | Marks the outermost occurring type constructor as decreasing.

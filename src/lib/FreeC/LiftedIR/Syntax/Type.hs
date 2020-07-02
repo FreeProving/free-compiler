@@ -5,6 +5,7 @@ module FreeC.LiftedIR.Syntax.Type where
 
 import           FreeC.IR.SrcSpan               ( SrcSpan )
 import           FreeC.LiftedIR.Syntax.Name
+import           FreeC.Util.SnocList            ( SnocList(Snoc) )
 
 -- | A type expression.
 --
@@ -22,7 +23,7 @@ data Type
     TypeCon
       { typeSrcSpan :: SrcSpan
       , typeConName :: TypeConName
-      , typeConArgs :: [Type]
+      , typeConArgs :: SnocList Type
       , typeIsDec   :: Bool
         -- ^ Marks this type as a decreasing element of a type signature.
         --
@@ -51,7 +52,7 @@ data Type
 
 -- | Applies a lifted IR type constructor to a type level expression.
 typeApp :: Type -> Type -> Type
-typeApp (TypeCon srcSpan name ts dec) t = TypeCon srcSpan name (t : ts) dec
+typeApp (TypeCon srcSpan name ts dec) t = TypeCon srcSpan name (Snoc ts t) dec
 typeApp _ _ = error "Cannot apply type to non type constructor!"
 
 -- | Creates a function type with the given argument and return types.

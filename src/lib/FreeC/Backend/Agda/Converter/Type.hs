@@ -74,7 +74,7 @@ convertType _ (LIR.TypeVar srcSpan name) = Agda.Ident
 convertType i (LIR.TypeCon srcSpan name typeArgs dec) = do
   typeArgs' <- mapM (convertType i) typeArgs
   constr    <- applyFreeArgs <$> lookupAgdaIdentOrFail srcSpan IR.TypeScope name
-  let type' = foldl Agda.app constr $ reverse typeArgs'
+  let type' = foldl Agda.app constr typeArgs'
   if dec
     then Agda.app type' <$> maybe (fail "No Size annotation declared!") return i
     else return type'
