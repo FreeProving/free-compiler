@@ -3,6 +3,7 @@
 
 module FreeC.Backend.Agda.Converter.Free
   ( generatePure
+  , bind
   , free
   , applyFreeArgs
   , addFreeArgs
@@ -15,8 +16,10 @@ import qualified FreeC.Backend.Agda.Base       as Agda.Base
 
 -- | Applies the @pure@ constructor of the free monad to the given expression.
 generatePure :: Agda.Expr -> Agda.Expr
-generatePure =
-  Agda.app $ Agda.Ident $ Agda.qname [Agda.Base.baseLibName] Agda.Base.pure
+generatePure = Agda.app $ Agda.Ident $ Agda.qname [] Agda.Base.pure -- @pure@ is always imported and therefore doesn't need to be qualified.
+
+bind :: Agda.Expr -> Agda.Expr -> Agda.Expr
+bind arg k = Agda.RawApp Agda.NoRange [arg, Agda.ident ">>=", k]
 
 -- | Lifts a type in the free monad.
 free :: Agda.Expr -> Agda.Expr

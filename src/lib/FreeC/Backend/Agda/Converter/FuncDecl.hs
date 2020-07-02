@@ -6,12 +6,16 @@ module FreeC.Backend.Agda.Converter.FuncDecl
   )
 where
 
+
+import           Control.Monad                  ( (>=>) )
 import           Data.Maybe                     ( fromJust )
 
 import           FreeC.Backend.Agda.Converter.Arg
                                                 ( convertTypeVarDecl
                                                 , convertArg
                                                 )
+import           FreeC.Backend.Agda.Converter.Expr
+                                                ( convertExpr )
 import           FreeC.Backend.Agda.Converter.Free
                                                 ( addFreeArgs )
 import           FreeC.Backend.Agda.Converter.Type
@@ -23,6 +27,7 @@ import           FreeC.Environment.LookupOrFail
 import           FreeC.IR.DependencyGraph
 import qualified FreeC.IR.Syntax               as IR
 import qualified FreeC.LiftedIR.Converter.Type as LIR
+import qualified FreeC.LiftedIR.Converter.Expr as LIR
 import           FreeC.Monad.Converter          ( Converter
                                                 , localEnv
                                                 )
@@ -49,10 +54,10 @@ convertFuncDecl decl decArg = sequence
 ------------------------------------------------------------------------------
 
 convertFuncDef :: IR.FuncDecl -> Converter Agda.Declaration
-convertFuncDef (IR.FuncDecl _ (IR.DeclIdent srcSpan name) _ args _ _) = do
+convertFuncDef (IR.FuncDecl _ (IR.DeclIdent srcSpan name) _ args _ expr) = do
   args' <- mapM convertArg args
   ident <- lookupAgdaIdentOrFail srcSpan IR.ValueScope name
-  return $ Agda.funcDef ident args' $ Agda.intLiteral 42
+  Agda.funcDef ident args' <$> (LIR.convertExpr >=> convertExpr) expr
 
 ------------------------------------------------------------------------------
 -- Signatures                                                               --
