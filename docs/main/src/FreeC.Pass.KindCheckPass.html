@@ -4,7 +4,7 @@
 </span><a name="line-4"></a><span class="hs-comment">--   For simplification, all type variables have kind @*@. Therefore, all type</span><span>
 </span><a name="line-5"></a><span class="hs-comment">--   constructors must be fully applied, so partial application of type</span><span>
 </span><a name="line-6"></a><span class="hs-comment">--   constructors is not allowed. This pass also checks that type variables and</span><span>
-</span><a name="line-7"></a><span class="hs-comment">--   function types do not occur on the left hand side of a type application.</span><span>
+</span><a name="line-7"></a><span class="hs-comment">--   function types do not occur on the left-hand side of a type application.</span><span>
 </span><a name="line-8"></a><span class="hs-comment">--   If a type expression is found that does not match this rules, a fatal</span><span>
 </span><a name="line-9"></a><span class="hs-comment">--   error is reported. For simplification, a type expression that satisfies all</span><span>
 </span><a name="line-10"></a><span class="hs-comment">--   of these rules is called kind-correct.</span><span>
@@ -21,7 +21,7 @@
 </span><a name="line-21"></a><span class="hs-comment">--   &gt; fail1 :: MyList (MyList a a) -&gt; Integer</span><span>
 </span><a name="line-22"></a><span class="hs-comment">--   &gt; fail1 x = 42</span><span>
 </span><a name="line-23"></a><span class="hs-comment">--   &gt;</span><span>
-</span><a name="line-24"></a><span class="hs-comment">--   &gt; -- Invalid because type variable 'a' is on the right hand side of a type</span><span>
+</span><a name="line-24"></a><span class="hs-comment">--   &gt; -- Invalid because type variable 'a' is on the right-hand side of a type</span><span>
 </span><a name="line-25"></a><span class="hs-comment">--   &gt; -- application.</span><span>
 </span><a name="line-26"></a><span class="hs-comment">--   &gt; fail2 :: a a -&gt; Integer</span><span>
 </span><a name="line-27"></a><span class="hs-comment">--   &gt; fail2 x = 42</span><span>

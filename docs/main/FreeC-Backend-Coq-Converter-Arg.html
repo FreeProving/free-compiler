@@ -4,7 +4,7 @@
    type arguments.</p><p>E.g. the declaration of the type variable <code>a</code> in <code>data D a = ...</code> is
    translated to the binder <code>(a : Type)</code>. If there are multiple type variable
    declarations as in <code>data D a b = ...</code> they are grouped into a single
-   binder <code>(a b : Type)</code> because we assume all Haskell type variables to be
+   binder <code>(a b : Type)</code>, because we assume all Haskell type variables to be
    of kind <code>*</code>.</p><p>The first argument controls whether the generated binders are explicit
    (e.g. <code>(a : Type)</code>) or implicit (e.g. <code>{a : Type}</code>).</p></div></div><div class="top"><p class="src"><a id="v:convertArg" class="def">convertArg</a> :: <a href="FreeC-IR-Syntax-Expr.html#t:VarPat" title="FreeC.IR.Syntax.Expr">VarPat</a> -&gt; <a href="FreeC-Monad-Converter.html#t:Converter" title="FreeC.Monad.Converter">Converter</a> Binder <a href="src/FreeC.Backend.Coq.Converter.Arg.html#convertArg" class="link">Source</a> <a href="#v:convertArg" class="selflink">#</a></p><div class="doc"><p>Converts the argument of a function (a variable pattern) to an explicit
    Coq binder.</p><p>If the variable pattern has a type annotation, the generated binder is

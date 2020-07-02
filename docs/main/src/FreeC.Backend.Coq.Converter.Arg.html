@@ -21,7 +21,7 @@
 </span><a name="line-21"></a><span class="hs-comment">--   E.g. the declaration of the type variable @a@ in @data D a = ...@ is</span><span>
 </span><a name="line-22"></a><span class="hs-comment">--   translated to the binder @(a : Type)@. If there are multiple type variable</span><span>
 </span><a name="line-23"></a><span class="hs-comment">--   declarations as in @data D a b = ...@ they are grouped into a single</span><span>
-</span><a name="line-24"></a><span class="hs-comment">--   binder @(a b : Type)@ because we assume all Haskell type variables to be</span><span>
+</span><a name="line-24"></a><span class="hs-comment">--   binder @(a b : Type)@, because we assume all Haskell type variables to be</span><span>
 </span><a name="line-25"></a><span class="hs-comment">--   of kind @*@.</span><span>
 </span><a name="line-26"></a><span class="hs-comment">--</span><span>
 </span><a name="line-27"></a><span class="hs-comment">--   The first argument controls whether the generated binders are explicit</span><span>

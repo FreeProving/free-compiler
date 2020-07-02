@@ -157,7 +157,7 @@
 </span><a name="line-157"></a><span>  </span><span class="hs-comment">--</span><span>
 </span><a name="line-158"></a><span>  </span><span class="hs-comment">--   The second argument is a set of variables that are known to be</span><span>
 </span><a name="line-159"></a><span>  </span><span class="hs-comment">--   structurally smaller than the decreasing argument of the function</span><span>
-</span><a name="line-160"></a><span>  </span><span class="hs-comment">--   whose right hand side is checked.</span><span>
+</span><a name="line-160"></a><span>  </span><span class="hs-comment">--   whose right-hand side is checked.</span><span>
 </span><a name="line-161"></a><span>  </span><span class="hs-comment">--</span><span>
 </span><a name="line-162"></a><span>  </span><span class="hs-comment">--   The last argument is a list of actual arguments passed to the given</span><span>
 </span><a name="line-163"></a><span>  </span><span class="hs-comment">--   expression.</span><span>
@@ -216,7 +216,7 @@
 </span><a name="line-216"></a><span>    </span><span class="hs-identifier">checkExpr'</span><span> </span><span class="hs-special">(</span><a href="FreeC.IR.Syntax.Expr.html#ErrorExpr"><span class="hs-identifier hs-var">IR.ErrorExpr</span></a><span>  </span><span class="hs-identifier">_</span><span> </span><span class="hs-identifier">_</span><span> </span><span class="hs-identifier">_</span><span>      </span><span class="hs-special">)</span><span> </span><span class="hs-identifier">_</span><span>    </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">True</span><span>
 </span><a name="line-217"></a><span>    </span><span class="hs-identifier">checkExpr'</span><span> </span><span class="hs-special">(</span><a href="FreeC.IR.Syntax.Expr.html#IntLiteral"><span class="hs-identifier hs-var">IR.IntLiteral</span></a><span> </span><span class="hs-identifier">_</span><span> </span><span class="hs-identifier">_</span><span> </span><span class="hs-identifier">_</span><span>      </span><span class="hs-special">)</span><span> </span><span class="hs-identifier">_</span><span>    </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">True</span><span>
 </span><a name="line-218"></a><span>
-</span><a name="line-219"></a><span>    </span><span class="hs-comment">-- | Applies 'checkExpr' on the right hand side of an alternative of a</span><span>
+</span><a name="line-219"></a><span>    </span><span class="hs-comment">-- | Applies 'checkExpr' on the right-hand side of an alternative of a</span><span>
 </span><a name="line-220"></a><span>    </span><span class="hs-comment">--   @case@ expression.</span><span>
 </span><a name="line-221"></a><span>    </span><span class="hs-comment">--</span><span>
 </span><a name="line-222"></a><span>    </span><span class="hs-comment">--   The variable patterns shadow existing (structurally smaller) variables</span><span>
