@@ -3,11 +3,11 @@
 --   Type Theory".
 
 module FreeC.LiftedIR.Converter.Type
-  ( convertFuncArgTypes
-  , convertConArgType
+  ( liftFuncArgTypes
+  , liftConArgType
     -- * Translations
-  , convertType
-  , convertType'
+  , liftType
+  , liftType'
   )
 where
 
@@ -17,30 +17,30 @@ import qualified FreeC.LiftedIR.Syntax         as LIR
 import           FreeC.Util.SnocList            ( SnocList(Nil) )
 
 -- | Converts the argument types of a function.
-convertFuncArgTypes
+liftFuncArgTypes
   :: Maybe Int -- ^ Index of the decreasing argument for recursive functions.
   -> [IR.Type] -- ^ The argument types.
   -> [LIR.Type]
-convertFuncArgTypes = maybe convertNonRecFuncArgTypes convertRecFuncArgTypes
+liftFuncArgTypes = maybe liftNonRecFuncArgTypes liftRecFuncArgTypes
 
 -- | Converts the argument types of a non recursive function using @convertType@.
-convertNonRecFuncArgTypes :: [IR.Type] -> [LIR.Type]
-convertNonRecFuncArgTypes = map convertType
+liftNonRecFuncArgTypes :: [IR.Type] -> [LIR.Type]
+liftNonRecFuncArgTypes = map liftType
 
 -- | Converts the argument types of a recursive function using @convertType@.
 --
 --   The outermost argument at the given index is marked decreasing.
-convertRecFuncArgTypes :: Int -> [IR.Type] -> [LIR.Type]
-convertRecFuncArgTypes decIndex args =
-  let convArgs                      = map convertType args
+liftRecFuncArgTypes :: Int -> [IR.Type] -> [LIR.Type]
+liftRecFuncArgTypes decIndex args =
+  let convArgs                      = map liftType args
       (startArgs, decArg : endArgs) = splitAt (decIndex - 1) convArgs
   in  startArgs ++ (markOutermostDecreasing decArg : endArgs)
 
 -- | Converts a constructor argument using @convertType@.
 --
 --   All occurrences of the constructed type are marked as structurally smaller.
-convertConArgType :: IR.QName -> IR.Type -> LIR.Type
-convertConArgType ident = markAllDec ident . convertType
+liftConArgType :: IR.QName -> IR.Type -> LIR.Type
+liftConArgType ident = markAllDec ident . liftType
 
 -------------------------------------------------------------------------------
 -- Translations                                                              --
@@ -52,12 +52,11 @@ convertConArgType ident = markAllDec ident . convertType
 --   Abel et al.
 --
 --   > τ' = Free τ*
-convertType :: IR.Type -> LIR.Type
-convertType = LIR.FreeTypeCon NoSrcSpan . convertType'
+liftType :: IR.Type -> LIR.Type
+liftType = LIR.FreeTypeCon NoSrcSpan . liftType'
 
--- | Lifts a type from IR to lifted IR by renaming type variables and
---   constructors, adding the free arguments to constructors and lifting
---   function types in the @Free@ monad.
+-- | Lifts a type from IR to lifted IR by adding the free arguments to
+--   constructors and lifting function types in the @Free@ monad.
 --
 --   This corresponds to the star translation for monotypes as described by
 --   Abel et al.
@@ -66,12 +65,12 @@ convertType = LIR.FreeTypeCon NoSrcSpan . convertType'
 --   > (τ₁ -> τ₂)* = τ₁' -> τ₂'
 --   > C* = Ĉ Shape Position
 --   > α* = α̂
-convertType' :: IR.Type -> LIR.Type
-convertType' (IR.TypeCon srcSpan name) = LIR.TypeCon srcSpan name Nil False
-convertType' (IR.TypeVar srcSpan name) = LIR.TypeVar srcSpan name
-convertType' (IR.TypeApp _ l r) = convertType' l `LIR.typeApp` convertType' r
-convertType' (IR.FuncType srcSpan l r) =
-  LIR.FuncType srcSpan (convertType l) (convertType r)
+liftType' :: IR.Type -> LIR.Type
+liftType' (IR.TypeCon srcSpan name) = LIR.TypeCon srcSpan name Nil False
+liftType' (IR.TypeVar srcSpan name) = LIR.TypeVar srcSpan name
+liftType' (IR.TypeApp _ l r       ) = liftType' l `LIR.typeApp` liftType' r
+liftType' (IR.FuncType srcSpan l r) =
+  LIR.FuncType srcSpan (liftType l) (liftType r)
 
 -------------------------------------------------------------------------------
 -- Helper Functions for Decreasing Arguments                                 --

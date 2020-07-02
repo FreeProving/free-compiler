@@ -13,7 +13,7 @@ import           FreeC.Backend.Agda.Converter.Arg
 import           FreeC.Backend.Agda.Converter.Free
                                                 ( addFreeArgs )
 import           FreeC.Backend.Agda.Converter.Type
-                                                ( convertFuncType )
+                                                ( convertLiftedFuncType )
 import qualified FreeC.Backend.Agda.Syntax     as Agda
 import           FreeC.Backend.Coq.Analysis.DecreasingArguments
                                                 ( identifyDecArgs )
@@ -62,5 +62,6 @@ convertFunc
 convertFunc decArg tVars argTypes returnType =
   Agda.pi . addFreeArgs <$> mapM convertTypeVarDecl tVars <*> typeConverter
     (map fromJust argTypes)
-    (LIR.convertType $ fromJust returnType)
-  where typeConverter ts = convertFuncType (LIR.convertFuncArgTypes decArg ts)
+    (LIR.liftType $ fromJust returnType)
+ where
+  typeConverter ts = convertLiftedFuncType (LIR.liftFuncArgTypes decArg ts)
