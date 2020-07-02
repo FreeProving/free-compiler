@@ -11,10 +11,10 @@
         "FastLooseBasic.map",
         "FastLooseBasic.minus",
         "FastLooseBasic.plus",
-        "FastLooseBasic.porp_morally_correct",
         "FastLooseBasic.pred",
         "FastLooseBasic.prop_map_id",
         "FastLooseBasic.prop_minus_plus_inv",
+        "FastLooseBasic.prop_morally_correct",
         "FastLooseBasic.prop_rev_is_rev_inv",
         "FastLooseBasic.prop_reverse_is_reverseNaive",
         "FastLooseBasic.rev",
@@ -199,14 +199,6 @@
             "haskell-name": "FastLooseBasic.plus"
         },
         {
-            "arity": 2,
-            "haskell-type": "FastLooseBasic.Peano -> Prelude.([]) FastLooseBasic.Peano -> Test.QuickCheck.Property",
-            "coq-name": "porp_morally_correct",
-            "needs-free-args": true,
-            "partial": false,
-            "haskell-name": "FastLooseBasic.porp_morally_correct"
-        },
-        {
             "arity": 1,
             "haskell-type": "FastLooseBasic.Peano -> FastLooseBasic.Peano",
             "coq-name": "pred",
@@ -229,6 +221,14 @@
             "needs-free-args": true,
             "partial": false,
             "haskell-name": "FastLooseBasic.prop_minus_plus_inv"
+        },
+        {
+            "arity": 2,
+            "haskell-type": "FastLooseBasic.Peano -> Prelude.([]) FastLooseBasic.Peano -> Test.QuickCheck.Property",
+            "coq-name": "prop_morally_correct",
+            "needs-free-args": true,
+            "partial": false,
+            "haskell-name": "FastLooseBasic.prop_morally_correct"
         },
         {
             "arity": 1,

@@ -54,10 +54,10 @@ prop_minus_plus_inv x y = (comp (\x -> minus x y) (\x -> plus y x)) x === x
 prop_map_id :: [a] -> Property
 prop_map_id xs = map id xs === xs
 
--- prop_morally_correct :: Peano -> [Peano] -> Property
--- porp_morally_correct y xs =
---   (comp (comp reverse (map (\x -> minus x y)))
---         (comp (map (\x -> plus y x)) reverse)
---     )
---       xs
---     === id xs
+prop_morally_correct :: Peano -> [Peano] -> Property
+prop_morally_correct y xs =
+  (comp (comp reverse (map (\x -> minus x y)))
+        (comp (map (\x -> plus y x)) reverse)
+    )
+      xs
+    === id xs

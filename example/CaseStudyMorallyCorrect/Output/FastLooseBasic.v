@@ -150,7 +150,25 @@ Definition comp (Shape : Type) (Pos : Shape -> Type) {b c a : Type} (g
    : Free Shape Pos c :=
   g >>= (fun g_0 => g_0 (f >>= (fun f_0 => f_0 a0))).
 
-Definition porp_morally_correct (Shape : Type) (Pos : Shape -> Type) (y
+Definition prop_minus_plus_inv (Shape : Type) (Pos : Shape -> Type) (x
+    : Free Shape Pos (Peano Shape Pos)) (y : Free Shape Pos (Peano Shape Pos))
+   : Free Shape Pos (Property Shape Pos) :=
+  @eqProp Shape Pos (Peano Shape Pos) (@comp Shape Pos (Peano Shape Pos) (Peano
+                                        Shape Pos) (Peano Shape Pos) (pure (fun (a0
+                                                                              : Free Shape Pos (Peano Shape Pos)) =>
+                                                                              minus Shape Pos a0 y)) (pure (fun (a1
+                                                                                                              : Free
+                                                                                                                Shape
+                                                                                                                Pos
+                                                                                                                (Peano
+                                                                                                                 Shape
+                                                                                                                 Pos)) =>
+                                                                                                              plus Shape
+                                                                                                                   Pos y
+                                                                                                                   a1))
+                                                                     x) x.
+
+Definition prop_morally_correct (Shape : Type) (Pos : Shape -> Type) (y
     : Free Shape Pos (Peano Shape Pos)) (xs
     : Free Shape Pos (List Shape Pos (Peano Shape Pos)))
    : Free Shape Pos (Property Shape Pos) :=
@@ -227,24 +245,6 @@ Definition porp_morally_correct (Shape : Type) (Pos : Shape -> Type) (y
                                                                                                                    Pos)
                                                                                                         x_1)) x_0)) xs)
                                                        (@id Shape Pos (List Shape Pos (Peano Shape Pos)) xs).
-
-Definition prop_minus_plus_inv (Shape : Type) (Pos : Shape -> Type) (x
-    : Free Shape Pos (Peano Shape Pos)) (y : Free Shape Pos (Peano Shape Pos))
-   : Free Shape Pos (Property Shape Pos) :=
-  @eqProp Shape Pos (Peano Shape Pos) (@comp Shape Pos (Peano Shape Pos) (Peano
-                                        Shape Pos) (Peano Shape Pos) (pure (fun (a0
-                                                                              : Free Shape Pos (Peano Shape Pos)) =>
-                                                                              minus Shape Pos a0 y)) (pure (fun (a1
-                                                                                                              : Free
-                                                                                                                Shape
-                                                                                                                Pos
-                                                                                                                (Peano
-                                                                                                                 Shape
-                                                                                                                 Pos)) =>
-                                                                                                              plus Shape
-                                                                                                                   Pos y
-                                                                                                                   a1))
-                                                                     x) x.
 
 Section section_append_0.
 (* Constant arguments for append *)

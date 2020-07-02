@@ -1,4 +1,3 @@
-
 From Base Require Import Test.QuickCheck.
 From Base Require Import Free.Instance.Identity.
 From Base Require Import Free.
@@ -45,7 +44,7 @@ Proof.
   induction xs as [ | fx fxs' IHfxs'] using List_Ind; intros facc.
   - reflexivity.
   - induction fxs' as [ xs' | sh pos IHpos] using Free_Ind.
-    + simplify2 IHfxs' as IH. simpl. simpl in IH. rewrite IH. 
+    + simplify2 IHfxs' as IH. simpl. simpl in IH. rewrite IH.
       rewrite IH with (facc := Cons fx Nil).
       rewrite <- append_assoc. reflexivity.
     + simpl. f_equal. extensionality x. simplify2 IHpos as IH. apply IH.
@@ -281,6 +280,10 @@ Qed.
 End small_helping_lemmas.
 
 Section main_proof.
+
+(*Theorem fancy_id : quickCheck (@prop_morally_correct Identity.Shape Identity.Pos).
+Proof.
+  simpl quickCheck.*)
 
 Theorem fancy_id : forall (fy : Free Identity.Shape Identity.Pos (Peano Identity.Shape Identity.Pos))
   (fxs : Free Identity.Shape Identity.Pos (List Identity.Shape Identity.Pos (Peano Identity.Shape Identity.Pos))),
