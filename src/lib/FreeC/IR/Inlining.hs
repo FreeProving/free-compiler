@@ -18,15 +18,15 @@ import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
 import           FreeC.Pretty
 
--- | Inlines the right hand sides of the given function declarations into
---   the right hand sides of other function declarations.
+-- | Inlines the right-hand sides of the given function declarations into
+--   the right-hand sides of other function declarations.
 inlineFuncDecls :: [IR.FuncDecl] -> IR.FuncDecl -> Converter IR.FuncDecl
 inlineFuncDecls decls decl = do
   let rhs = IR.funcDeclRhs decl
   rhs' <- inlineExpr decls rhs
   return decl { IR.funcDeclRhs = rhs' }
 
--- | Inlines the right hand sides of the given function declarations into an
+-- | Inlines the right-hand sides of the given function declarations into an
 --   expression. This step is repeated until the expression remains unchanged
 --   or no more function declarations are available.
 --   That is done under the assumption that regarding a certain position
@@ -37,7 +37,7 @@ inlineExpr []    = return
 inlineExpr decls = inlineAndBind
  where
   -- | Maps the names of function declarations in 'decls' to the arguments
-  --   and right hand sides of the functions.
+  --   and right-hand sides of the functions.
   declMap :: Map IR.QName ([IR.TypeVarDecl], [IR.VarPat], IR.Expr)
   declMap = foldr insertFuncDecl Map.empty decls
 
@@ -145,7 +145,7 @@ inlineExpr decls = inlineAndBind
   inlineExpr' expr@(IR.ErrorExpr  _ _ _) = return ([], [], expr)
   inlineExpr' expr@(IR.IntLiteral _ _ _) = return ([], [], expr)
 
-  -- | Performs inlining on the right hand side of the given @case@-expression
+  -- | Performs inlining on the right-hand side of the given @case@-expression
   --   alternative.
   inlineAlt :: IR.Alt -> Converter IR.Alt
   inlineAlt (IR.Alt srcSpan conPat varPats expr) = shadowVarPats varPats $ do

@@ -110,7 +110,7 @@ arrows
 arrows args returnType = foldr Arrow returnType args
 
 -- | Smart constructor for the construction of a Coq lambda expression with
---   the given arguments and right hand side.
+--   the given arguments and right-hand side.
 --
 --   The second argument contains the types of the arguments are inferred
 --   by Coq.
@@ -162,7 +162,7 @@ definitionSentence
   :: Qualid     -- ^ The name of the definition.
   -> [Binder]   -- ^ Binders for the parameters of the definition.
   -> Maybe Term -- ^ The return type of the definition.
-  -> Term       -- ^ The right hand side of the definition.
+  -> Term       -- ^ The right-hand side of the definition.
   -> Sentence
 definitionSentence qualid binders returnType term =
   DefinitionSentence (DefinitionDef Global qualid binders returnType term)

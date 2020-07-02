@@ -109,7 +109,7 @@ instance Subterm IR.Expr where
       (zipWith replaceAltChildExpr alts altChildren')
       exprType
    where
-    -- | Replaces the expression on the right hand side of the given
+    -- | Replaces the expression on the right-hand side of the given
     --   @case@-expression alternative.
     replaceAltChildExpr :: IR.Alt -> IR.Expr -> IR.Alt
     replaceAltChildExpr alt rhs' = alt { IR.altRhs = rhs' }

@@ -61,7 +61,7 @@ convertRecFuncDeclsWithHelpers' decls = do
   (helperDecls, mainDecls) <- mapAndUnzipM (uncurry transformRecFuncDecl)
                                            (zip decls decArgs)
   -- Convert helper and main functions.
-  -- The right hand sides of the main functions are inlined into the helper
+  -- The right-hand sides of the main functions are inlined into the helper
   -- functions. Because inlining can produce fresh identifiers, we need to
   -- perform inlining and conversion of helper functions in a local environment.
   helperDecls' <- forM (concat helperDecls) $ \(helperDecl, decArgIndex) ->
@@ -92,7 +92,7 @@ transformRecFuncDecl (IR.FuncDecl srcSpan declIdent typeArgs args maybeRetType e
   -- expression of the decreasing argument.
     (helperDecls, helperApps) <- mapAndUnzipM generateHelperDecl caseExprsPos
 
-    -- Generate main function declaration. The main function's right hand side
+    -- Generate main function declaration. The main function's right-hand side
     -- is constructed by replacing all @case@-expressions of the decreasing
     -- argument by an invocation of the corresponding recursive helper function.
     let (Just mainExpr) = replaceSubterms expr (zip caseExprsPos helperApps)
@@ -132,7 +132,7 @@ transformRecFuncDecl (IR.FuncDecl srcSpan declIdent typeArgs args maybeRetType e
   decArgNotShadowed p = decArg `Set.notMember` boundVarsAt expr p
 
   -- | Generates the recursive helper function declaration for the @case@-
-  --   expression at the given position of the right hand side.
+  --   expression at the given position of the right-hand side.
   --
   --   Returns the helper function declaration with the index of its decreasing
   --   argument and an expression for the application of the helper function.

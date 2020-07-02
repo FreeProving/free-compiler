@@ -157,7 +157,7 @@ checkDecArgs decls knownDecArgIndecies decArgIndecies = all
   --
   --   The second argument is a set of variables that are known to be
   --   structurally smaller than the decreasing argument of the function
-  --   whose right hand side is checked.
+  --   whose right-hand side is checked.
   --
   --   The last argument is a list of actual arguments passed to the given
   --   expression.
@@ -216,7 +216,7 @@ checkDecArgs decls knownDecArgIndecies decArgIndecies = all
     checkExpr' (IR.ErrorExpr  _ _ _      ) _    = True
     checkExpr' (IR.IntLiteral _ _ _      ) _    = True
 
-    -- | Applies 'checkExpr' on the right hand side of an alternative of a
+    -- | Applies 'checkExpr' on the right-hand side of an alternative of a
     --   @case@ expression.
     --
     --   The variable patterns shadow existing (structurally smaller) variables
