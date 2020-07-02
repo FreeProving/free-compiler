@@ -40,7 +40,7 @@ testConvertFuncDecls =
       shouldConvertFuncDeclsTo
         (NonRecursive "foo :: Integer = 42")
         [ "foo : ∀ {Shape} {Pos} → Free Shape Pos (Integer Shape Pos)"
-        , "foo = 42"
+        , "foo = pure 42"
         ]
 
     it "translates polymorphic functions correctly" $ shouldSucceedWith $ do
@@ -78,7 +78,7 @@ testConvertFuncDecls =
             [ "foo : ∀ {Shape} {Pos} {a} {b} → Free Shape Pos a "
               ++ "→ Free Shape Pos b "
               ++ "→ Free Shape Pos (Pair Shape Pos a b)"
-            , "foo x y = Pair x y"
+            , "foo x y = Pair₁ x y"
             ]
 
     it "translates higher order functions correctly" $ shouldSucceedWith $ do
@@ -97,6 +97,5 @@ testConvertFuncDecls =
           ++ "  (Free Shape Pos (Pair Shape Pos a b) → Free Shape Pos c) "
           ++ "→ Free Shape Pos a "
           ++ "→ Free Shape Pos b → Free Shape Pos c"
-        , "curry f x y = f >>= λ where"
-        , "  f₀ → f₀ (Pair x y)"
+        , "curry f x y = f >>= λ f₁ → f₁ (Pair₁ x y)"
         ]
