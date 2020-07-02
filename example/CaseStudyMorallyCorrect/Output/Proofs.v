@@ -1,3 +1,4 @@
+
 From Base Require Import Test.QuickCheck.
 From Base Require Import Free.Instance.Identity.
 From Base Require Import Free.
@@ -21,6 +22,11 @@ Arguments Cons {_} {_} {_} _ _.
 Arguments plus {_} {_} _ _.
 Arguments minus {_} {_} _ _.
 Arguments pred {_} {_} _.
+Arguments map {_} {_} {_} {_} _ _.
+Arguments comp {_} {_} {_} {_} {_} _ _.
+Arguments id {_} {_} {_} _.
+Arguments S {_} {_} _.
+Arguments Zero {_} {_}.
 
 Section reverseIsReverseNaive.
 
@@ -36,13 +42,13 @@ Lemma rev_acc_and_rest_list_connection': forall (Shape : Type) (Pos : Shape -> T
   rev (pure xs) facc = append (reverse (pure xs)) facc.
 Proof.
   intros Shape Pos A xs.
-  induction xs as [ | x fxs' ] using List_Ind; intros.
+  induction xs as [ | fx fxs' IHfxs'] using List_Ind; intros facc.
   - reflexivity.
-  - induction fxs' as [ xs' | sh pos ] using Free_Ind.
-    + simplify2 H as IHxs'. simpl. simpl in IHxs'. rewrite IHxs'. 
-      rewrite IHxs' with (facc := Cons x Nil).
+  - induction fxs' as [ xs' | sh pos IHpos] using Free_Ind.
+    + simplify2 IHfxs' as IH. simpl. simpl in IH. rewrite IH. 
+      rewrite IH with (facc := Cons fx Nil).
       rewrite <- append_assoc. reflexivity.
-    + simpl. f_equal. extensionality x0. simplify2 H0 as H0'. apply H0'.
+    + simpl. f_equal. extensionality x. simplify2 IHpos as IH. apply IH.
 Qed.
 
 Lemma rev_acc_and_rest_list_connection: forall (Shape : Type) (Pos : Shape -> Type) (A : Type)
@@ -50,9 +56,9 @@ Lemma rev_acc_and_rest_list_connection: forall (Shape : Type) (Pos : Shape -> Ty
   rev fxs facc = append (reverse fxs) facc.
 Proof.
   intros Shape Pos A fxs facc.
-  induction fxs as [ xs | sh pos ] using Free_Ind.
+  induction fxs as [ xs | sh pos IHpos ] using Free_Ind.
   - apply rev_acc_and_rest_list_connection'.
-  - simpl. f_equal. extensionality x. apply H.
+  - simpl. f_equal. extensionality x. apply IHpos.
 Qed.
 
 Lemma reverse_is_reverseNaive': forall (Shape : Type) (Pos : Shape -> Type) (A : Type)
@@ -60,37 +66,28 @@ Lemma reverse_is_reverseNaive': forall (Shape : Type) (Pos : Shape -> Type) (A :
   reverse (pure xs) = reverseNaive (pure xs).
 Proof.
   intros Shape Pos A xs.
-  induction xs as [ | x fxs' ] using List_Ind.
+  induction xs as [ | fx fxs' IHfxs' ] using List_Ind.
   - reflexivity.
-  - induction fxs' as [ xs' | sh pos ] using Free_Ind.
-    + simplify H as IHxs'. simpl reverseNaive. simpl reverse.
+  - induction fxs' as [ xs' | sh pos IHpos ] using Free_Ind.
+    + simplify IHfxs' as IH. simpl reverseNaive. simpl reverse.
       rewrite rev_0_rev.
-      rewrite rev_acc_and_rest_list_connection. rewrite IHxs'. reflexivity.
-    + simpl. f_equal. extensionality x0. simplify2 H0 as H0'. apply H0'.
+      rewrite rev_acc_and_rest_list_connection. rewrite IH. reflexivity.
+    + simpl. f_equal. extensionality x. simplify2 IHpos as IH. apply IH.
 Qed.
-
 
 Theorem reverse_is_reverseNaive: quickCheck prop_reverse_is_reverseNaive.
 Proof.
   simpl.
   intros Shape Pos A fxs.
-  induction fxs as [ xs | sh pos ] using Free_Ind.
+  induction fxs as [ xs | sh pos IHpos ] using Free_Ind.
   - apply reverse_is_reverseNaive'.
-  - simpl. f_equal. extensionality x. apply H.
+  - simpl. f_equal. extensionality x. apply IHpos.
 Qed.
 
 End reverseIsReverseNaive.
 
-Section reverse_is_involution.
 
-(*in appendProofs kopieren*)
-  Lemma rewrite_Cons:
-  forall (Shape : Type) (Pos : Shape -> Type) (A : Type)
-  (fx : Free Shape Pos A) (fxs : Free Shape Pos (List Shape Pos A)),
-    pure (cons fx fxs) = append (Cons fx Nil) fxs.
-  Proof.
-  reflexivity.
-  Qed.  
+Section reverse_is_involution.
 
 Lemma reverseNaive_0_reverseNaive: forall (Shape : Type) (Pos : Shape -> Type) (A : Type)
   (xs : List Shape Pos A),
@@ -110,7 +107,7 @@ destruct fxs as [ xs | [] _ ].
   + destruct fxs' as [ xs' | [] pf].
     * simplify2 IHfxs' as IHxs'. simpl reverseNaive at 3. rewrite reverseNaive_0_reverseNaive.
       rewrite append_assoc.
-       rewrite <- IHxs'. reflexivity.
+      rewrite <- IHxs'. reflexivity.
 Qed.
 
 Theorem reverseNaive_is_involution: forall (A : Type)
@@ -143,12 +140,12 @@ Lemma plus_zero': forall (Shape : Type) (Pos : Shape -> Type)
   plus (pure zero) (pure x) = (pure x).
 Proof.
   intros Shape Pos x.
-  induction x as [ | fx' ] using Peano_Ind.
+  induction x as [ | fx' IHfx' ] using Peano_Ind.
   - reflexivity.
-  - induction fx' as [ x' | sh pf ] using Free_Ind.
-    + simplify2 H as H'. simpl plus. simpl in H'. rewrite H'.
+  - induction fx' as [ x' | sh pos IHpos ] using Free_Ind.
+    + simplify2 IHfx' as IH. simpl plus. simpl in IH. rewrite IH.
       reflexivity.
-    + simpl. unfold S. do 3 apply f_equal. extensionality x. simplify2 H as IH.
+    + simpl. unfold S. do 3 apply f_equal. extensionality x. simplify2 IHpos as IH.
       apply IH.
 Qed.
 
@@ -157,9 +154,9 @@ Lemma plus_zero: forall (Shape : Type) (Pos : Shape -> Type)
   plus (pure zero) fx = fx.
 Proof.
   intros Shape Pos fx.
-  induction fx as [ x | pf sh ] using Free_Ind.
+  induction fx as [ x | pf sh IHpos ] using Free_Ind.
   - apply plus_zero'.
-  - simpl. f_equal. extensionality x. apply H.
+  - simpl. f_equal. extensionality x. apply IHpos.
 Qed.
 
 Lemma plus_s : forall (fx fy : Free Identity.Shape Identity.Pos (Peano Identity.Shape Identity.Pos)),
@@ -179,13 +176,13 @@ Lemma minus_pred : forall (Shape : Type) (Pos : Shape -> Type)
   minus fx (pure (s fy)) = minus (pred fx) fy.
 Proof.
   intros Shape Pos fy fx.
-  induction fy as [ y | sh pos ] using Free_Ind.
-  - induction y as [ | fy' IHfy'] using Peano_Ind. 
+  induction fy as [ y | sh pos IHpos ] using Free_Ind.
+  - induction y as [ | fy' IHfy' ] using Peano_Ind. 
     + reflexivity.
-    + induction fy' as [ y' | sh pos ] using Free_Ind.
+    + induction fy' as [ y' | sh pos IHpos ] using Free_Ind.
       * simplify2 IHfy' as IH. simpl. simpl in IH. rewrite IH. reflexivity.
-      * simpl. f_equal. extensionality x. simplify2 H as IH. apply IH.
-  - simpl. f_equal. extensionality x. apply H.
+      * simpl. f_equal. extensionality x. simplify2 IHpos as IH. apply IH.
+  - simpl. f_equal. extensionality x. apply IHpos.
 Qed.
 
 Lemma pred_succ: forall (Shape : Type) (Pos : Shape -> Type)
@@ -200,16 +197,106 @@ Proof.
   - reflexivity.
 Qed.
 
-Theorem minus_is_plus_inv: quickCheck (@prop_minus_is_plus_inv Identity.Shape Identity.Pos).
+Theorem minus_is_plus_inv_ext: quickCheck (@prop_minus_plus_inv Identity.Shape Identity.Pos).
 Proof.
-  simpl.
+  simpl quickCheck.
   intros fx fy.
   destruct fy as [ y | [] _ ].
   induction y as [ | fy' IHfy' ] using Peano_Ind. 
-  - simpl.  apply plus_zero.
+  - simpl. apply plus_zero.
   - destruct fy' as [ y' | [] _ ].
     + simplify2 IHfy' as IH. rewrite plus_s. rewrite minus_pred. rewrite pred_succ. apply IH.
 Qed.
 
+Lemma minus_plus_inv: forall (fy : Free Identity.Shape Identity.Pos (Peano Identity.Shape Identity.Pos)),
+  comp (pure (fun fx => minus fx fy)) (pure (fun fx => plus fy fx)) = id.
+Proof.
+  intros fy.
+  extensionality fx.
+  simpl.
+  apply minus_is_plus_inv_ext.
+Qed.
+
+
 End minus_is_plus_inverse.
 
+Section small_helping_lemmas.
+
+Lemma comp_id : forall (Shape : Type) (Pos : Shape -> Type) (A B : Type)
+ (f :(Free Shape Pos A -> Free Shape Pos B)),
+  (pure (comp (pure id) (pure f))) = @pure Shape Pos (Free Shape Pos A -> Free Shape Pos B) f.
+Proof.
+  intros Shape Pos A B ff.
+  f_equal.
+Qed.
+
+Lemma map_fusion : forall (Shape : Type) (Pos : Shape -> Type) (A B C : Type) 
+  (ff : Free Shape Pos (Free Shape Pos B -> Free Shape Pos C))
+  (fg : Free Shape Pos (Free Shape Pos A -> Free Shape Pos B)),
+  comp (pure (map ff)) (pure (map fg)) = map (pure (comp ff fg)).
+Proof.
+  intros Shape Pos A B C ff gg.
+  extensionality fxs.
+  induction fxs as [ xs | sh pos IHpos ] using Free_Ind.
+  - induction xs as [| fx fxs' IHfxs ] using List_Ind.
+    + reflexivity.
+    + induction fxs' as [ xs' | sh pos IHpos ] using Free_Ind.
+      * simplify2 IHfxs as IH. simpl. f_equal. simpl in IH. rewrite <- IH. reflexivity.
+      * simpl. do 2 f_equal. extensionality x. simplify2 IHpos as IH. apply IH.
+  - simpl. f_equal. extensionality x. apply IHpos.
+Qed.
+
+Lemma map_id_ext : quickCheck prop_map_id.
+Proof.
+  simpl.
+  intros Shape Pos A fxs.
+  unfold id.
+  induction fxs as [ xs | sh pos IHpos ] using Free_Ind.
+  - induction xs as [| fx fxs' IHfxs ] using List_Ind.
+    + reflexivity.
+    + induction fxs' as [ xs' | sh pos IHpos ] using Free_Ind.
+      * simplify2 IHfxs as IH. simpl. unfold Cons. do 2 f_equal. simpl in IH. apply IH.
+      * simpl. unfold Cons. do 3 f_equal. extensionality x. simplify2 IHpos as IH. apply IH.
+  - simpl. f_equal. extensionality x. apply IHpos.
+Qed.
+
+Lemma map_id : forall (Shape : Type) (Pos : Shape -> Type) (A : Type),
+  @map Shape Pos A A (pure id) = id.
+Proof.
+  intros Shape Pos A.
+  extensionality fxs.
+  apply map_id_ext.
+Qed.
+
+Lemma compose_assoc : forall (Shape : Type) (Pos : Shape -> Type) (A B C D : Type) 
+  (fcd : Free Shape Pos (Free Shape Pos C -> Free Shape Pos D))
+  (fbc : Free Shape Pos (Free Shape Pos B -> Free Shape Pos C))
+  (fab : Free Shape Pos (Free Shape Pos A -> Free Shape Pos B)),
+  (comp (pure (comp fcd fbc)) fab)  = (comp fcd (pure (comp fbc fab))).
+Proof.
+  intros Shape Pos A B C D fcd fbc fab.
+  destruct fcd as [ cd | sh pos ]; reflexivity.
+Qed.
+
+End small_helping_lemmas.
+
+Section main_proof.
+
+Theorem fancy_id : forall (fy : Free Identity.Shape Identity.Pos (Peano Identity.Shape Identity.Pos))
+  (fxs : Free Identity.Shape Identity.Pos (List Identity.Shape Identity.Pos (Peano Identity.Shape Identity.Pos))),
+  (comp (pure (comp (pure reverse) (pure (map (pure (fun x => minus x fy))))))
+        (pure (comp (pure (map (pure (fun x => plus fy x)))) (pure reverse))))
+   fxs = id fxs.
+Proof.
+  intros fy fxs.
+  rewrite compose_assoc.
+  rewrite <- compose_assoc with (fcd := pure (map (pure (fun x => minus x fy)))).
+  rewrite map_fusion.  
+  rewrite minus_plus_inv.
+  rewrite map_id.
+  rewrite comp_id.
+  simpl. 
+  apply reverse_is_involution.
+Qed.
+
+End main_proof.
