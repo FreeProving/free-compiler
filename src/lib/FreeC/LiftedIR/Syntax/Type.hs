@@ -3,7 +3,7 @@
 
 module FreeC.LiftedIR.Syntax.Type where
 
-import           FreeC.IR.SrcSpan               ( SrcSpan(NoSrcSpan) )
+import           FreeC.IR.SrcSpan               ( SrcSpan )
 import           FreeC.LiftedIR.Syntax.Name
 
 -- | A type expression.
@@ -54,9 +54,9 @@ typeApp :: Type -> Type -> Type
 typeApp (TypeCon srcSpan name ts dec) t = TypeCon srcSpan name (t : ts) dec
 typeApp _ _ = error "Cannot apply type to non type constructor!"
 
--- | Smart constructor for lifted IR functions.
-func :: Type -> Type -> Type
-func = FuncType NoSrcSpan
+-- | Creates a function type with the given argument and return types.
+funcType :: SrcSpan -> [Type] -> Type -> Type
+funcType srcSpan = flip (foldr (FuncType srcSpan))
 
 -- | Decides whether a type contains a decreasing argument.
 decreasing :: Type -> Bool

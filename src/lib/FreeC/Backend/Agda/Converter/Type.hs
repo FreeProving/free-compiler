@@ -19,6 +19,7 @@ import           FreeC.Backend.Agda.Converter.Size
 import           FreeC.Environment.Fresh        ( freshAgdaVar )
 import           FreeC.Environment.LookupOrFail ( lookupAgdaIdentOrFail )
 import qualified FreeC.IR.Syntax               as IR
+import           FreeC.IR.SrcSpan               ( SrcSpan(NoSrcSpan) )
 import qualified FreeC.LiftedIR.Syntax         as LIR
 import           FreeC.LiftedIR.Syntax.Type     ( decreasing )
 import           FreeC.Monad.Converter          ( Converter
@@ -37,7 +38,7 @@ convertFuncType :: [LIR.Type] -> LIR.Type -> Converter Agda.Expr
 convertFuncType argTypes retType = if any decreasing argTypes
   then pi "i" $ \i -> convertType (Just i) funcType
   else convertType' funcType
-  where funcType = foldr LIR.func retType argTypes
+  where funcType = LIR.funcType NoSrcSpan argTypes retType
 
 -------------------------------------------------------------------------------
 -- Constructors                                                              --
@@ -50,7 +51,7 @@ convertFuncType argTypes retType = if any decreasing argTypes
 convertConType :: [LIR.Type] -> LIR.Type -> Converter Agda.Expr
 convertConType argTypes retType = if any decreasing argTypes
   then convertRecConType argTypes retType
-  else convertType' $ foldr LIR.func retType argTypes
+  else convertType' $ LIR.funcType NoSrcSpan argTypes retType
 
 -- | Converts a constructor from lifted IR to Agda by binding a new variable
 --   @i : Size@ and annotating recursive occurrences and the return type.
