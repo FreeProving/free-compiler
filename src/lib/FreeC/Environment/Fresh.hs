@@ -21,6 +21,8 @@ module FreeC.Environment.Fresh
   , freshCoqQualid
     -- * Generating fresh Agda identifiers
   , freshAgdaVar
+    -- * Generating fresh IR/LIR identifiers
+  , freshIRQName
   )
 where
 
@@ -142,6 +144,14 @@ freshCoqQualid = fmap entryIdent . freshEntry
 -- | Generates a new Agda identifier based on the given name.
 freshAgdaVar :: String -> Converter Agda.QName
 freshAgdaVar = fmap entryAgdaIdent . freshEntry
+
+-------------------------------------------------------------------------------
+-- Generating fresh IR/LIR identifiers                                       --
+-------------------------------------------------------------------------------
+
+-- | Generates a new IR/LIR based on the given name.
+freshIRQName :: String -> Converter IR.QName
+freshIRQName = fmap entryName . freshEntry
 
 -------------------------------------------------------------------------------
 -- Generating entries for fresh identifiers                                  --

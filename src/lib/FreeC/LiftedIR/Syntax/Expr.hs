@@ -17,6 +17,11 @@ data Expr
         , exprType    :: Type
         }
 
+  | SmartCon { exprSrcSpan :: SrcSpan
+             , exprConName :: ConName
+             , exprType    :: Type
+             }
+
   | -- | A function or local variable.
     Var { exprSrcSpan :: SrcSpan
         , exprVarName :: VarName
@@ -114,7 +119,7 @@ data ConPat = ConPat
 --   The variable pattern can optionally have a type signature.
 data VarPat = VarPat
   { varPatSrcSpan   :: SrcSpan
-  , varPatIdent     :: String
+  , varPatIdent     :: QName
   , varPatType      :: Maybe Type
     -- TODO: remove after EtaConversionPass is moved
   }
