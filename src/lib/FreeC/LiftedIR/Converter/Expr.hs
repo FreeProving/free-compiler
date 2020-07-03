@@ -4,7 +4,9 @@ module FreeC.LiftedIR.Converter.Expr
 where
 
 import           Control.Monad                  ( foldM )
-import           Data.Maybe                     ( fromJust )
+import           Data.Maybe                     ( fromJust
+                                                , fromMaybe
+                                                )
 
 import qualified FreeC.IR.Syntax               as IR
 import           FreeC.IR.SrcSpan               ( SrcSpan(NoSrcSpan) )
@@ -79,6 +81,30 @@ convertExpr' (IR.If srcSpan cond true false _) [] [] = do
   cond' <- convertExpr cond
   cond' `bind` \d -> ite srcSpan d <$> convertExpr true <*> convertExpr false
 
+-- @case@-expressions.
+--
+-- > ⎡Γ ⊢ e:τ₀   Γ ⊢ alts:τ₀ => τ⎤'     Γ' ⊢ e':τ₀'     Γ' ⊢ alts':τ₀* => τ'
+-- > ⎢---------------------------⎥ = ------------------------------------------
+-- > ⎣  Γ ⊢ case e of alts : τ   ⎦   Γ' ⊢ e' >>= λx:τ₀*.match x with alts' : τ'
+--
+-- where @alts'@ are the lifted (not smart) constructors for τ₀.
+convertExpr' (IR.Case srcSpan discriminante patterns _) [] [] = do
+  discriminant' <- convertExpr discriminante
+  discriminant' `bind` \d -> patternMatch srcSpan d <$> mapM convertAlt patterns
+
+-------------------------------------------------------------------------------
+-- Lift Patterns                                                             --
+-------------------------------------------------------------------------------
+
+convertAlt :: IR.Alt -> Converter LIR.Alt
+convertAlt (IR.Alt srcSpan conPat varPats expr) =
+  LIR.Alt srcSpan (convertConPat conPat)
+    <$> mapM convertVarPat varPats
+    <*> convertExpr expr
+
+convertConPat :: IR.ConPat -> LIR.ConPat
+convertConPat (IR.ConPat srcSpan name) = LIR.ConPat srcSpan name
+
 convertVarPat :: IR.VarPat -> Converter LIR.VarPat
 convertVarPat (IR.VarPat srcSpan ident t _) = do
   ident' <- freshIRQName ident
@@ -100,9 +126,14 @@ generateApply = foldM $ \mf arg -> mf `bind` \f -> return (f `app` arg)
 -- Smart Constructors                                                        --
 -------------------------------------------------------------------------------
 
+guessName :: LIR.Expr -> Maybe String
+guessName (LIR.Var _ name _  ) = IR.identFromQName name
+guessName (LIR.Bind _ arg _ _) = guessName arg
+guessName _                    = Nothing
+
 bind :: LIR.Expr -> (LIR.Expr -> Converter LIR.Expr) -> Converter LIR.Expr
 bind arg k = do
-  argIdent <- freshIRQName "f"
+  argIdent <- freshIRQName $ fromMaybe "f" (guessName arg)
   rhs      <- lambda NoSrcSpan [varPat argIdent] <$> (k $ var argIdent)
   return $ LIR.Bind NoSrcSpan arg rhs undefined
 
@@ -125,4 +156,43 @@ ite srcSpan cond true false =
   LIR.If srcSpan cond true false $ LIR.exprType true
 
 pure :: SrcSpan -> LIR.Expr -> LIR.Expr
-pure srcSpan expr = LIR.Pure srcSpan expr $ LIR.FreeTypeCon srcSpan $ LIR.exprType expr
+pure srcSpan expr =
+  LIR.Pure srcSpan expr $ LIR.FreeTypeCon srcSpan $ LIR.exprType expr
+
+patternMatch :: SrcSpan -> LIR.Expr -> [LIR.Alt] -> LIR.Expr
+patternMatch srcSpan discriminant patterns =
+  LIR.Case srcSpan discriminant patterns undefined -- TODO: type
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

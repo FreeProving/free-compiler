@@ -24,6 +24,7 @@ module FreeC.Backend.Agda.Syntax
   , app
   , ident
   , hiddenArg_
+  , ite
     -- * Types
   , set
   , dataDecl
@@ -163,6 +164,11 @@ ident = Ident . qname' . name
 --   e ↦ {e}
 hiddenArg_ :: Expr -> Expr
 hiddenArg_ = HiddenArg NoRange . unnamed
+
+ite :: Expr -> Expr -> Expr -> Expr
+ite cond true false =
+  RawApp NoRange [ident "if", cond, ident "then", true, ident "else", false]
+
 
 -------------------------------------------------------------------------------
 -- Types                                                                     --

@@ -14,8 +14,7 @@ import           FreeC.Backend.Agda.Converter.Free
 
 import           FreeC.Environment              ( lookupEntry )
 import           FreeC.Environment.Entry        ( entryAgdaIdent )
-import           FreeC.Environment.LookupOrFail ( lookupAgdaSmartIdentOrFail
-                                                )
+import           FreeC.Environment.LookupOrFail ( lookupAgdaSmartIdentOrFail )
 import qualified FreeC.IR.Syntax               as IR
 import qualified FreeC.LiftedIR.Syntax         as LIR
 import           FreeC.Monad.Converter
@@ -28,10 +27,11 @@ convertExpr (LIR.Var _ name _) = do
   valueName <- inEnv $ lookupEntry IR.ValueScope name
   freshName <- inEnv $ lookupEntry IR.FreshScope name
   -- Adding an alternative instance for @ReporterT@ and @ConverterT@ would allow us to use @lookupOrFail@ functions.
-  return $ Agda.Ident $ entryAgdaIdent $ fromJust $ (valueName <|> freshName)
+  return $ Agda.Ident $ entryAgdaIdent $ fromJust $ valueName <|> freshName
 convertExpr (LIR.App _ expr _ _ args _) =
   foldl Agda.app <$> convertExpr expr <*> mapM convertExpr args
-convertExpr (LIR.If _ _ _ _ _       ) = undefined
+convertExpr (LIR.If _ cond true false _) =
+  Agda.ite <$> convertExpr cond <*> convertExpr true <*> convertExpr false
 convertExpr (LIR.Case _ _ _ _       ) = undefined
 convertExpr (LIR.Undefined _ _      ) = undefined
 convertExpr (LIR.ErrorExpr  _ _   _ ) = undefined
@@ -46,4 +46,6 @@ lookupVarPat :: LIR.VarPat -> Converter Agda.Name
 lookupVarPat (LIR.VarPat _ name _) = do
   valueName <- inEnv $ lookupEntry IR.ValueScope name
   freshName <- inEnv $ lookupEntry IR.FreshScope name
-  maybe (fail "") (return . Agda.unqualify . entryAgdaIdent) $ valueName <|> freshName
+  maybe (fail "") (return . Agda.unqualify . entryAgdaIdent)
+    $   valueName
+    <|> freshName

@@ -1,6 +1,4 @@
 -- | This module contains tests for "FreeC.Backend.Agda.Converter.FuncDecl".
---
---   Agda source code uses 
 
 module FreeC.Backend.Agda.Converter.FuncDeclTests
   ( testConvertFuncDecls
@@ -59,7 +57,7 @@ testConvertFuncDecls =
           shouldConvertFuncDeclsTo
             (NonRecursive "foo @a (x :: a) :: a = x")
             [ "foo : ∀ {Shape} {Pos} {a} → Free Shape Pos a "
-                ++ "→ Free Shape Pos a"
+              ++ "→ Free Shape Pos a"
             , "foo x = x"
             ]
 
@@ -76,8 +74,8 @@ testConvertFuncDecls =
               "foo @a @b (x :: a) (y :: b) :: Pair a b = Pair @a @b x y"
             )
             [ "foo : ∀ {Shape} {Pos} {a} {b} → Free Shape Pos a "
-              ++ "→ Free Shape Pos b "
-              ++ "→ Free Shape Pos (Pair Shape Pos a b)"
+            ++ "→ Free Shape Pos b "
+            ++ "→ Free Shape Pos (Pair Shape Pos a b)"
             , "foo x y = Pair₁ x y"
             ]
 
@@ -93,9 +91,25 @@ testConvertFuncDecls =
         ++ "= f (Pair @a @b x y)"
         )
         [ "curry : ∀ {Shape} {Pos} {a} {b} {c} "
-          ++ "→ Free Shape Pos"
-          ++ "  (Free Shape Pos (Pair Shape Pos a b) → Free Shape Pos c) "
-          ++ "→ Free Shape Pos a "
-          ++ "→ Free Shape Pos b → Free Shape Pos c"
+        ++ "→ Free Shape Pos"
+        ++ "  (Free Shape Pos (Pair Shape Pos a b) → Free Shape Pos c) "
+        ++ "→ Free Shape Pos a "
+        ++ "→ Free Shape Pos b → Free Shape Pos c"
         , "curry f x y = f >>= λ f₁ → f₁ (Pair₁ x y)"
+        ]
+
+    it "translates if-then-else correctly" $ shouldSucceedWith $ do
+      "Integer"    <- defineTestTypeCon "Integer" 0 []
+      "Boolean"    <- defineTestTypeCon "Boolean" 0 []
+      (_, "True" ) <- defineTestCon "True" 0 "Boolean"
+      (_, "False") <- defineTestCon "False" 0 "Boolean"
+      "even"       <- defineTestFunc "even" 0 "Integer -> Boolean"
+      shouldConvertFuncDeclsTo
+        (  NonRecursive
+        $  "even (n :: Integer) :: Boolean "
+        ++ "= if n then True else False"
+        )
+        [ "even : ∀ {Shape} {Pos} → Free Shape Pos (Integer Shape Pos)"
+          ++ "    → Free Shape Pos (Boolean Shape Pos)"
+        , "even n = n >>= λ n₁ → if n₁ then True else False"
         ]
