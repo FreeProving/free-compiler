@@ -6,7 +6,7 @@ From Base Require Import Free.Monad.
     sharing effects to be present.
     The operator will eventually also require A to be an instance 
     of a type class Shareable. *)
-Definition share {A : Type} {Shape : Type} {Pos : Shape -> Type}
+Definition share_cbn {A : Type} {Shape : Type} {Pos : Shape -> Type}
   (p : Free Shape Pos A) 
   : Free Shape Pos (Free Shape Pos A) := 
   pure p.
@@ -14,6 +14,6 @@ Definition share {A : Type} {Shape : Type} {Pos : Shape -> Type}
 (** An effect-generic (non-functional) sharing operator that models 
     call-by-value instead of call-by-name, that is, it evaluates its
     program argument immediately. *)
-Definition share' {A : Type} {Shape : Type} {Pos : Shape -> Type} (p : Free Shape Pos A) 
+Definition share_cbv {A : Type} {Shape : Type} {Pos : Shape -> Type} (p : Free Shape Pos A) 
   : Free Shape Pos (Free Shape Pos A) :=
   p >>= fun x => pure (pure x).
