@@ -746,6 +746,11 @@ instance Resolvable IR.Expr where
     alts'      <- mapM resolve alts
     exprType'  <- mapM resolve exprType
     return (IR.Case srcSpan scrutinee' alts' exprType')
+  resolve (IR.Let srcSpan binds e exprType) = do
+    binds'    <- mapM resolve binds
+    e'        <- resolve e
+    exprType' <- mapM resolve exprType
+    return (IR.Let srcSpan binds' e' exprType')
 
   -- Only resolve in type annotation of other expressions.
   resolve (IR.Undefined srcSpan exprType) = do
@@ -785,3 +790,9 @@ instance Resolvable IR.VarPat where
   resolve varPat = do
     varType' <- mapM resolve (IR.varPatType varPat)
     return varPat { IR.varPatType = varType' }
+
+instance Resolvable IR.Bind where
+  resolve (IR.Bind srcSpan varPat expr) = do
+    varPat' <- resolve varPat
+    expr'   <- resolve expr
+    return (IR.Bind srcSpan varPat' expr')

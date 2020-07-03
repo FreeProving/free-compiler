@@ -296,6 +296,8 @@ instance Similar IR.TypeSchema where
 --        > ———————————————————————————————————————————————————
 --        >  Γ ⊢ if e₁ then e₂ else e₃ ≈ if f₁ then f₂ else f₃
 --
+--    TODO :: Let binding similar
+
 --    * All AST nodes which do not contain any variables are similar to
 --      themselves under every 'Renaming' @Γ@.
 --
@@ -329,6 +331,8 @@ similarExpr (IR.Case _ e as _) (IR.Case _ f bs _) =
   similar' e f .&&. similar' as bs
 similarExpr (IR.If _ e1 e2 e3 _) (IR.If _ f1 f2 f3 _) =
   similar' e1 f1 .&&. similar' e2 f2 .&&. similar' e3 f3
+similarExpr (IR.Let _ bs e _) (IR.Let _ cs f _) =
+  similar' e f .&&. similar' bs cs
 
 -- Expressions without variables are only similar to themselves.
 similarExpr (IR.Con _ n1 _         ) (IR.Con _ n2 _       ) = const (n1 == n2)
@@ -347,6 +351,7 @@ similarExpr (IR.Con _ _ _          ) _                      = const False
 similarExpr (IR.Undefined _ _      ) _                      = const False
 similarExpr (IR.ErrorExpr  _ _ _   ) _                      = const False
 similarExpr (IR.IntLiteral _ _ _   ) _                      = const False
+similarExpr (IR.Let _ _ _ _        ) _                      = const False
 
 -- | Two alternatives that match the same constructor @C@ are similar
 --   if their right-hand sides are similar under an extended 'Renaming'
@@ -477,3 +482,9 @@ instance Similar IR.ConDecl where
   similar' (IR.ConDecl _ c1 ts1) (IR.ConDecl _ c2 ts2)
     | IR.declIdentName c1 == IR.declIdentName c2 = similar' ts1 ts2
     | otherwise = const False
+
+-- | Two bindings are similir if their variable pattern and their expression is
+--   similar. TODO :: notation
+instance Similar IR.Bind where
+  similar' (IR.Bind _ vP1 e1) (IR.Bind _ vP2 e2) =
+    similar' vP1 vP2 .&&. similar' e1 e2

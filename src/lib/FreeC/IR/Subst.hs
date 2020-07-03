@@ -159,6 +159,7 @@ instance ApplySubst IR.Expr IR.Expr where
       let (subst', args') = newRenameArgs subst args
           expr'           = applySubst subst' expr
       in  IR.Lambda srcSpan args' expr' exprType
+    applySubst' expr@(IR.Let _ _ _ _) = expr -- TODO needed ?
 
     -- All other expressions remain unchanged.
     applySubst' expr@(IR.Con _ _ _       ) = expr
