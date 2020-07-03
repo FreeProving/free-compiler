@@ -6,22 +6,22 @@ module FreeC.Backend.Agda.Converter.TypeDecl
   )
 where
 
-import           Data.Bool                      ( bool )
 import           Data.List.Extra                ( snoc )
 
 import           FreeC.IR.DependencyGraph
 import qualified FreeC.IR.Syntax               as IR
 import           FreeC.IR.SrcSpan               ( SrcSpan(NoSrcSpan) )
+import           FreeC.LiftedIR.Converter.Type  ( liftConArgType
+                                                , liftType'
+                                                )
 import qualified FreeC.Backend.Agda.Base       as Agda.Base
 import           FreeC.Backend.Agda.Converter.Free
 import qualified FreeC.Backend.Agda.Syntax     as Agda
-import           FreeC.Backend.Agda.Converter.Type
-                                                ( convertConType
-                                                , convertRecConType
-                                                )
 import           FreeC.Backend.Agda.Converter.Arg
                                                 ( convertTypeVarDecl )
 import           FreeC.Backend.Agda.Converter.Size
+import           FreeC.Backend.Agda.Converter.Type
+                                                ( convertLiftedConType )
 import           FreeC.Environment.Fresh        ( freshAgdaVar )
 import           FreeC.Environment.LookupOrFail
 import           FreeC.Monad.Converter          ( Converter
@@ -69,7 +69,7 @@ convertDataDecl ident@(IR.DeclIdent srcSpan name) typeVars constrs isRec =
     <$> lookupUnQualAgdaIdentOrFail srcSpan IR.TypeScope name
     <*> mapM convertTypeVarDecl typeVars
     <*> pure universe
-    <*> convertConDecls ident typeVars isRec constrs
+    <*> convertConDecls ident typeVars constrs
  where
   universe =
     if isRec then Agda.hiddenArg_ size `Agda.fun` Agda.set else Agda.set
@@ -82,22 +82,23 @@ convertDataDecl ident@(IR.DeclIdent srcSpan name) typeVars constrs isRec =
 convertConDecls
   :: IR.DeclIdent     -- ^ The identifier of the data type.
   -> [IR.TypeVarDecl] -- ^ The type parameters declared by the data type.
-  -> Bool             -- ^ Whether this is a recursive data declaration.
   -> [IR.ConDecl]     -- ^ The constructor declarations of the data type.
   -> Converter [Agda.Declaration]
-convertConDecls (IR.DeclIdent srcSpan ident) typeVars isRec =
-  mapM $ convertConDecl (bool Nothing (Just ident) isRec) $ IR.typeApp
-    NoSrcSpan
-    (IR.TypeCon srcSpan ident)
-    (map IR.typeVarDeclToType typeVars)
+convertConDecls (IR.DeclIdent srcSpan ident) typeVars = mapM
+  $ convertConDecl ident constructedType
+ where
+  constructedType = IR.typeApp NoSrcSpan (IR.TypeCon srcSpan ident)
+    $ map IR.typeVarDeclToType typeVars
 
--- | Converts a single constructor of a (non-recursive) data type.
+-- | Converts a single constructor of a data type.
 convertConDecl
-  :: Maybe IR.QName -> IR.Type -> IR.ConDecl -> Converter Agda.Declaration
+  :: IR.QName -> IR.Type -> IR.ConDecl -> Converter Agda.Declaration
 convertConDecl ident retType (IR.ConDecl _ (IR.DeclIdent srcSpan name) argTypes)
   = Agda.funcSig
     <$> lookupUnQualAgdaIdentOrFail srcSpan IR.ValueScope name
-    <*> maybe convertConType convertRecConType ident argTypes retType
+        -- TODO: Add declarations to lifted IR and move this translation logic.
+    <*> convertLiftedConType (map (liftConArgType ident) argTypes)
+                             (liftType' retType)
 
 -- | Converts a single constructor to a smart constructor, which wraps the normal
 --   constructor in the @Free@ monad using @pure@.
@@ -107,7 +108,7 @@ convertConDecl ident retType (IR.ConDecl _ (IR.DeclIdent srcSpan name) argTypes)
 generateSmartConDecl :: IR.ConDecl -> Converter Agda.Declaration
 generateSmartConDecl (IR.ConDecl _ (IR.DeclIdent srcSpan name) argTypes) = do
   smartName <- lookupUnQualAgdaSmartIdentOrFail srcSpan name
-  patternDecl smartName (repeat "x" `zip` argTypes) $ \vars -> do
+  patternDecl smartName (replicate (length argTypes) "x") $ \vars -> do
     normalName <- Agda.IdentP <$> lookupAgdaValIdentOrFail srcSpan name
     let pureVal = foldl Agda.appP normalName vars
     return (Agda.IdentP (Agda.qname' Agda.Base.pure) `Agda.appP` pureVal)
@@ -132,13 +133,13 @@ freeDataDecl dataName typeNames =
 patternDecl
   :: Agda.Name
   -- ^ Name of the declaration.
-  -> [(String, IR.Type)]
+  -> [String]
   -- ^ Types and preferred names for the bound variables.
   -> ([Agda.Pattern] -> Converter Agda.Pattern)
   -- ^ Continuation for creating the definition using the new variables.
   -> Converter Agda.Declaration
 patternDecl name vars k = localEnv $ do
-  names <- mapM (freshAgdaVar . fst) vars
+  names <- mapM freshAgdaVar vars
   let decls = map (Agda.Arg Agda.defaultArgInfo . Agda.unqualify) names
   let varPatterns = map Agda.IdentP names
   Agda.patternSyn name decls <$> k varPatterns

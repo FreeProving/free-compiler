@@ -5,7 +5,6 @@ module FreeC.Backend.Agda.Converter
   ( convertModule
   , convertFuncDecls
   , convertTypeDecls
-  , convertType
   )
 where
 
@@ -15,5 +14,3 @@ import           FreeC.Backend.Agda.Converter.FuncDecl
                                                 ( convertFuncDecls )
 import           FreeC.Backend.Agda.Converter.TypeDecl
                                                 ( convertTypeDecls )
-import           FreeC.Backend.Agda.Converter.Type
-                                                ( convertType )
