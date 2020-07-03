@@ -75,7 +75,8 @@ liftTypeApp' (IR.TypeVar srcSpan name) [] = LIR.TypeVar srcSpan name
 liftTypeApp' (IR.TypeApp _ l r       ) ts = liftTypeApp' l (r : ts)
 liftTypeApp' (IR.FuncType srcSpan l r) [] =
   LIR.FuncType srcSpan (liftType l) (liftType r)
-liftTypeApp' _ (_ : _) = error "liftTypeApp': Only type constructors can be applied!"
+liftTypeApp' _ (_ : _) =
+  error "liftTypeApp': Only type constructors can be applied!"
 
 -------------------------------------------------------------------------------
 -- Helper Functions for Decreasing Arguments                                 --
