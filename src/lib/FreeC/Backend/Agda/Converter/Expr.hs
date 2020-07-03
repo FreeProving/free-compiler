@@ -1,5 +1,5 @@
 module FreeC.Backend.Agda.Converter.Expr
-  ( convertExpr
+  ( convertLiftedExpr
   )
 where
 
@@ -19,27 +19,31 @@ import qualified FreeC.IR.Syntax               as IR
 import qualified FreeC.LiftedIR.Syntax         as LIR
 import           FreeC.Monad.Converter
 
-convertExpr :: LIR.Expr -> Converter Agda.Expr
-convertExpr (LIR.Con _ _ _) = fail "Missing case for constructors!"
-convertExpr (LIR.SmartCon srcSpan name _) =
+convertLiftedExpr :: LIR.Expr -> Converter Agda.Expr
+convertLiftedExpr (LIR.Con _ _ _) = fail "Missing case for constructors!"
+convertLiftedExpr (LIR.SmartCon srcSpan name _) =
   Agda.Ident <$> lookupAgdaSmartIdentOrFail srcSpan name
-convertExpr (LIR.Var _ name _) = do
+convertLiftedExpr (LIR.Var _ name _) = do
   valueName <- inEnv $ lookupEntry IR.ValueScope name
   freshName <- inEnv $ lookupEntry IR.FreshScope name
   -- Adding an alternative instance for @ReporterT@ and @ConverterT@ would allow us to use @lookupOrFail@ functions.
   return $ Agda.Ident $ entryAgdaIdent $ fromJust $ valueName <|> freshName
-convertExpr (LIR.App _ expr _ _ args _) =
-  foldl Agda.app <$> convertExpr expr <*> mapM convertExpr args
-convertExpr (LIR.If _ cond true false _) =
-  Agda.ite <$> convertExpr cond <*> convertExpr true <*> convertExpr false
-convertExpr (LIR.Case _ _ _ _       ) = undefined
-convertExpr (LIR.Undefined _ _      ) = undefined
-convertExpr (LIR.ErrorExpr  _ _   _ ) = undefined
-convertExpr (LIR.IntLiteral _ val _ ) = return $ Agda.intLiteral val
-convertExpr (LIR.Lambda _ args rhs _) = do
-  Agda.lambda <$> mapM lookupVarPat args <*> convertExpr rhs
-convertExpr (LIR.Pure _ expr _ ) = generatePure <$> convertExpr expr
-convertExpr (LIR.Bind _ arg k _) = bind <$> convertExpr arg <*> convertExpr k
+convertLiftedExpr (LIR.App _ expr _ _ args _) =
+  foldl Agda.app <$> convertLiftedExpr expr <*> mapM convertLiftedExpr args
+convertLiftedExpr (LIR.If _ cond true false _) =
+  Agda.ite
+    <$> convertLiftedExpr cond
+    <*> convertLiftedExpr true
+    <*> convertLiftedExpr false
+convertLiftedExpr (LIR.Case _ _ _ _       ) = undefined
+convertLiftedExpr (LIR.Undefined _ _      ) = undefined
+convertLiftedExpr (LIR.ErrorExpr  _ _   _ ) = undefined
+convertLiftedExpr (LIR.IntLiteral _ val _ ) = return $ Agda.intLiteral val
+convertLiftedExpr (LIR.Lambda _ args rhs _) = do
+  Agda.lambda <$> mapM lookupVarPat args <*> convertLiftedExpr rhs
+convertLiftedExpr (LIR.Pure _ expr _) = generatePure <$> convertLiftedExpr expr
+convertLiftedExpr (LIR.Bind _ arg k _) =
+  bind <$> convertLiftedExpr arg <*> convertLiftedExpr k
 
 -- TODO: unify with LIR.Var case
 lookupVarPat :: LIR.VarPat -> Converter Agda.Name

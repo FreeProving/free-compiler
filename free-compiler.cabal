@@ -204,6 +204,7 @@ library freec-internal
                       , FreeC.Util.Config
                       , FreeC.Util.Parsec
                       , FreeC.Util.Predicate
+                      , FreeC.Util.SnocList
 
 -- Build configuration for the executable for the compiler's command line
 -- interface.

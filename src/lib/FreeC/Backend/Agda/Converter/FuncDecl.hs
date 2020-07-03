@@ -15,19 +15,21 @@ import           FreeC.Backend.Agda.Converter.Arg
                                                 , convertArg
                                                 )
 import           FreeC.Backend.Agda.Converter.Expr
-                                                ( convertExpr )
+                                                ( convertLiftedExpr )
 import           FreeC.Backend.Agda.Converter.Free
                                                 ( addFreeArgs )
 import           FreeC.Backend.Agda.Converter.Type
-                                                ( convertFuncType )
+                                                ( convertLiftedFuncType )
 import qualified FreeC.Backend.Agda.Syntax     as Agda
 import           FreeC.Backend.Coq.Analysis.DecreasingArguments
                                                 ( identifyDecArgs )
 import           FreeC.Environment.LookupOrFail
 import           FreeC.IR.DependencyGraph
 import qualified FreeC.IR.Syntax               as IR
-import qualified FreeC.LiftedIR.Converter.Type as LIR
-import qualified FreeC.LiftedIR.Converter.Expr as LIR
+import           FreeC.LiftedIR.Converter.Expr  ( convertExpr )
+import           FreeC.LiftedIR.Converter.Type  ( liftFuncArgTypes
+                                                , liftType
+                                                )
 import           FreeC.Monad.Converter          ( Converter
                                                 , localEnv
                                                 )
@@ -57,7 +59,7 @@ convertFuncDef :: IR.FuncDecl -> Converter Agda.Declaration
 convertFuncDef (IR.FuncDecl _ (IR.DeclIdent srcSpan name) _ args _ expr) = do
   args' <- mapM convertArg args
   ident <- lookupAgdaIdentOrFail srcSpan IR.ValueScope name
-  Agda.funcDef ident args' <$> (LIR.convertExpr >=> convertExpr) expr
+  Agda.funcDef ident args' <$> (convertExpr >=> convertLiftedExpr) expr
 
 ------------------------------------------------------------------------------
 -- Signatures                                                               --
@@ -83,5 +85,5 @@ convertFunc
 convertFunc decArg tVars argTypes returnType =
   Agda.pi . addFreeArgs <$> mapM convertTypeVarDecl tVars <*> typeConverter
     (map fromJust argTypes)
-    (LIR.convertType $ fromJust returnType)
-  where typeConverter ts = convertFuncType (LIR.convertFuncArgTypes decArg ts)
+    (liftType $ fromJust returnType)
+  where typeConverter ts = convertLiftedFuncType (liftFuncArgTypes decArg ts)

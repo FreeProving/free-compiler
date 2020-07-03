@@ -108,7 +108,7 @@ convertConPat (IR.ConPat srcSpan name) = LIR.ConPat srcSpan name
 convertVarPat :: IR.VarPat -> Converter LIR.VarPat
 convertVarPat (IR.VarPat srcSpan ident t _) = do
   ident' <- freshIRQName ident
-  return $ LIR.VarPat srcSpan ident' $ LIR.convertType <$> t
+  return $ LIR.VarPat srcSpan ident' $ LIR.liftType <$> t
 
 -------------------------------------------------------------------------------
 -- Application-expression helper                                             --
@@ -134,7 +134,7 @@ guessName _                    = Nothing
 bind :: LIR.Expr -> (LIR.Expr -> Converter LIR.Expr) -> Converter LIR.Expr
 bind arg k = do
   argIdent <- freshIRQName $ fromMaybe "f" (guessName arg)
-  rhs      <- lambda NoSrcSpan [varPat argIdent] <$> (k $ var argIdent)
+  rhs      <- lambda NoSrcSpan [varPat argIdent] <$> k (var argIdent)
   return $ LIR.Bind NoSrcSpan arg rhs undefined
 
 app :: LIR.Expr -> LIR.Expr -> LIR.Expr
@@ -148,8 +148,10 @@ varPat :: LIR.VarName -> LIR.VarPat
 varPat ident = LIR.VarPat NoSrcSpan ident Nothing
 
 lambda :: SrcSpan -> [LIR.VarPat] -> LIR.Expr -> LIR.Expr
-lambda srcSpan args rhs = LIR.Lambda srcSpan args rhs
-  $ foldr LIR.func (LIR.exprType rhs) (map (fromJust . LIR.varPatType) args)
+lambda srcSpan args rhs = LIR.Lambda srcSpan args rhs $ LIR.funcType
+  NoSrcSpan
+  (map (fromJust . LIR.varPatType) args)
+  (LIR.exprType rhs)
 
 ite :: SrcSpan -> LIR.Expr -> LIR.Expr -> LIR.Expr -> LIR.Expr
 ite srcSpan cond true false =
