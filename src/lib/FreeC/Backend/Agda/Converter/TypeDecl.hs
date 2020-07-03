@@ -11,8 +11,7 @@ import           Data.List.Extra                ( snoc )
 import           FreeC.IR.DependencyGraph
 import qualified FreeC.IR.Syntax               as IR
 import           FreeC.IR.SrcSpan               ( SrcSpan(NoSrcSpan) )
-import qualified FreeC.LiftedIR.Converter.Type as LIR
-                                                ( liftConArgType
+import           FreeC.LiftedIR.Converter.Type  ( liftConArgType
                                                 , liftType'
                                                 )
 import qualified FreeC.Backend.Agda.Base       as Agda.Base
@@ -98,8 +97,8 @@ convertConDecl ident retType (IR.ConDecl _ (IR.DeclIdent srcSpan name) argTypes)
   = Agda.funcSig
     <$> lookupUnQualAgdaIdentOrFail srcSpan IR.ValueScope name
         -- TODO: Add declarations to lifted IR and move this translation logic.
-    <*> convertLiftedConType (map (LIR.liftConArgType ident) argTypes)
-                             (LIR.liftType' retType)
+    <*> convertLiftedConType (map (liftConArgType ident) argTypes)
+                             (liftType' retType)
 
 -- | Converts a single constructor to a smart constructor, which wraps the normal
 --   constructor in the @Free@ monad using @pure@.

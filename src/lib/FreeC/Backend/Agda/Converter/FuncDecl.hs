@@ -20,7 +20,9 @@ import           FreeC.Backend.Coq.Analysis.DecreasingArguments
 import           FreeC.Environment.LookupOrFail
 import           FreeC.IR.DependencyGraph
 import qualified FreeC.IR.Syntax               as IR
-import qualified FreeC.LiftedIR.Converter.Type as LIR
+import           FreeC.LiftedIR.Converter.Type  ( liftFuncArgTypes
+                                                , liftType
+                                                )
 import           FreeC.Monad.Converter          ( Converter
                                                 , localEnv
                                                 )
@@ -62,6 +64,5 @@ convertFunc
 convertFunc decArg tVars argTypes returnType =
   Agda.pi . addFreeArgs <$> mapM convertTypeVarDecl tVars <*> typeConverter
     (map fromJust argTypes)
-    (LIR.liftType $ fromJust returnType)
- where
-  typeConverter ts = convertLiftedFuncType (LIR.liftFuncArgTypes decArg ts)
+    (liftType $ fromJust returnType)
+  where typeConverter ts = convertLiftedFuncType (liftFuncArgTypes decArg ts)
