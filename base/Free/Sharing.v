@@ -14,6 +14,6 @@ Definition share {A : Type} {Shape : Type} {Pos : Shape -> Type}
 (** An effect-generic (non-functional) sharing operator that models 
     call-by-value instead of call-by-name, that is, it evaluates its
     program argument immediately. *)
-Definition share' {A : Type} {Shape : Type} {Pos : Shape -> Type} (p : Prog Shape Pos A) 
+Definition share' {A : Type} {Shape : Type} {Pos : Shape -> Type} (p : Free Shape Pos A) 
   : Free Shape Pos (Free Shape Pos A) :=
   p >>= fun x => pure (pure x).
