@@ -34,10 +34,13 @@ data Op    =
  deriving (Eq, Show)
 
 -- The execution of a program works as follows.
+-- Note that we make exec strict on the second argument.
 
 exec :: Code -> Stack -> Stack
-exec []           s           = s
-exec (PUSH n : c) s           = exec c (n : s)
+exec []           []          = []
+exec []           (v : s)     = v : s
+exec (PUSH n : c) []          = exec c [n]
+exec (PUSH n : c) (v     : s) = exec c (n : v : s)
 exec (ADD    : c) (m : n : s) = exec c (n + m : s)
 
 -- A simple compiler for Hutton's Razor could look like this.
