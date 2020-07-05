@@ -136,11 +136,44 @@ Inductive RecPureCode {Shape : Type} {Pos : Shape -> Type} : Free Shape Pos (Cod
   | recPureCode_cons : forall (op : Op Shape Pos) (fcode : Free Shape Pos (Code Shape Pos)),
       RecPureCode fcode -> RecPureCode (Cons Shape Pos (pure op) fcode).
 
+Inductive RecPureStack {Shape : Type} {Pos : Shape -> Type} : Free Shape Pos (Stack Shape Pos) -> Prop :=
+  | recPureStack_nil : RecPureStack (Nil Shape Pos)
+  | recPureStack_cons : forall (fv : Free Shape Pos (Integer Shape Pos))
+                              (fstack : Free Shape Pos (Stack Shape Pos)),
+      RecPureStack fstack -> RecPureStack (Cons Shape Pos fv fstack).
+
 Section Proofs.
 
   Variable Shape   : Type.
   Variable Pos     : Shape -> Type.
   Variable Partial : Partial Shape Pos.
+
+  (* If the code is pure and the first operation is pure if there is any, the
+     effect of an impure stack will transfer to the result of an exec call with
+     that code and that stack. *)
+  Lemma exec_strict_on_stack_arg_nil :
+    forall (sStack  : Shape)
+           (pfStack : Pos sStack -> Free Shape Pos (Stack Shape Pos)),
+        exec Shape Pos Partial (Nil Shape Pos) (impure sStack pfStack)
+        = impure sStack (fun p => exec Shape Pos Partial (Nil Shape Pos) (pfStack p)).
+  Proof.
+    intros sStack pfStack.
+    reflexivity.
+  Qed.
+
+  Lemma exec_strict_on_stack_arg_cons :
+    forall (op : Op Shape Pos)
+           (fcode : Free Shape Pos (Code Shape Pos))
+           (sStack  : Shape)
+           (pfStack : Pos sStack -> Free Shape Pos (Stack Shape Pos)),
+        exec Shape Pos Partial (Cons Shape Pos (pure op) fcode) (impure sStack pfStack)
+        = impure sStack (fun p => exec Shape Pos Partial (Cons Shape Pos (pure op) fcode) (pfStack p)).
+  Proof.
+    intros op fcode sStack pfStack.
+    destruct op as [ fn | ].
+    - reflexivity.
+    - reflexivity.
+  Qed.
 
   (* If [UndefinedIsImpure] holds and we know that [exec] applied to some [Code]
      [fcode1] returns a pure value, we know that [exec] applied to [fcode1]
@@ -162,17 +195,26 @@ Section Proofs.
       induction code1 as [ | [ [ fn | ] | sOp pfOp ] fcode1' IHfcode1'] using List_Ind.
       + (* fcode1 = pure [] *)
         (* This case is trivial. *)
-        reflexivity.
+        intros fstack H.
+        destruct fstack as [ [ | fv fstack1 ] | sStack pfStack ]; try reflexivity.
+        rewrite exec_strict_on_stack_arg_nil in H.
+        destruct H as [ stack' H ]. discriminate H.
       + (* fcode1 = pure (pure (PUSH fn) : fcode1') *)
         intros fstack H.
         (* Destruct the remaining code [fcode1'] to see, wether it is pure or impure. *)
         destruct fcode1' as [ code1' | sCode1' pfCode1' ].
         * (* fcode1 = pure (pure (PUSH fn) : pure code1') *)
           (* In this case we can apply the induction hypothesis. *)
-          autoIH. apply IH. apply H.
+          destruct fstack as [ [ | fv fstack1 ] | sStack pfStack ].
+          { autoIH. apply IH. apply H. }
+          { autoIH. apply IH. apply H. }
+          { specialize exec_strict_on_stack_arg_cons as L.
+            unfold Cons in L. rewrite L in H.
+            destruct H as [stack' H]. discriminate H. }
         * (* fcode1 = pure (pure (PUSH fn) : impure sCode1' pfCode1' *)
           (* In this case we have impure code and therefore [H] can't hold. *)
-          destruct H as [ stack' Hstack' ]. discriminate Hstack'.
+          destruct H as [ stack' Hstack' ].
+          destruct fstack as [ [ | fv fstack1 ] | sStack pfStack ]; discriminate Hstack'.
       + (* fcode1 = pure (pure ADD : fcode1') *)
         intros fstack H. destruct H as [ stack' Hstack' ].
         (* Destruct the remaining code [fcode1'] to see, wether it is pure or impure. *)
@@ -249,31 +291,35 @@ Section Proofs.
 Qed.
 
   (* To prove the correctness of the compiler [comp] as stated in the QuickCheck property,
-     we have to generalize it first by adding an additional stack and we need the preconditions,
-     that [UndefinedIsImpure] holds and the given expression is recursively pure. *)
+     we have to generalize it first by adding an additional recursivly pure stack and we
+     need the preconditions, that [UndefinedIsImpure] holds and the given expression is
+     recursively pure. *)
   Lemma comp_correct' :
     UndefinedIsImpure Partial ->
     forall (fexpr : Free Shape Pos (Expr Shape Pos)),
     RecPureExpr fexpr ->
     forall (fstack : Free Shape Pos (Stack Shape Pos)),
+    RecPureStack fstack ->
         exec Shape Pos Partial (comp Shape Pos fexpr) fstack
         = Cons Shape Pos (eval Shape Pos fexpr) fstack.
   Proof.
-    intros HUndefined fexpr HPure.
+    intros HUndefined fexpr HPureE.
     (* The given expression is pure. *)
-    destruct fexpr as [ expr | sExpr pfExpr ]. 2: dependent destruction HPure.
+    destruct fexpr as [ expr | sExpr pfExpr ]. 2: dependent destruction HPureE.
     (* We proof this lemma by doing an induction over this expression. *)
     induction expr as [ fn | fx fy IHfx IHfy ] using Expr_Ind.
     - (* The correctness is trivial for an expression that is a single value. *)
-      reflexivity.
+      intros fstack HPureS.
+      destruct fstack as [ [ | fv fstack1 ] | sStack pfStack ]; try reflexivity.
+      dependent destruction HPureS.
     - (* An expression that represents the addition of two expressions [fx] and [fy] gets
          compiled to more complex code. We start by destructing the pureness property for
          the addition, to get a pureness property for [fx] and a pureness property for [fy]. *)
-      intro fstack.
-      dependent destruction HPure.
+      intros fstack HPureS.
+      dependent destruction HPureE.
       (* Now we know, that both expressions are pure. *)
-      destruct fx as [ x | sX pfX ]. 2: dependent destruction HPure1.
-      destruct fy as [ y | yX pfY ]. 2: dependent destruction HPure2.
+      destruct fx as [ x | sX pfX ]. 2: dependent destruction HPureE1.
+      destruct fy as [ y | yX pfY ]. 2: dependent destruction HPureE2.
       simpl comp.
       (* We use the lemma [exec_append] to transform the execution of appended pieces of code
          to multiple [exec] calls, where the resulting stack of the [exec] call on one piece of
@@ -283,16 +329,19 @@ Qed.
          produces a (not necessarily recursively) pure stack, we gain three additional subgoals. *)
       + (* For the main goal, we can apply the induction hypotheses. *)
         simplify IHfy as IHy. simplify IHfx as IHx.
-        simpl exec at 3. rewrite (IHx HPure1).
-        simpl exec at 2. rewrite (IHy HPure2). 
+        simpl exec at 3. simpl in IHx. rewrite (IHx HPureE1 _ HPureS).
+        simpl exec at 2. rewrite (IHy HPureE2 _ (recPureStack_cons _ _ HPureS)).
         reflexivity.
       (* The three remaining subgoals can be proven each by using an induction hypothesis. *)
       + exists (cons (eval Shape Pos (pure x)) fstack).
-        clear IHfy. autoIH. apply (IH HPure1).
+        clear IHfy. autoIH. apply (IH HPureE1 _ HPureS).
       + exists (cons (eval Shape Pos (pure y)) (exec Shape Pos Partial (comp Shape Pos (pure x)) fstack)).
-        clear IHfx. autoIH. apply (IH HPure2).
+        autoIH. rename IH into IHy.
+        autoIH. rename IH into IHx.
+        simpl in IHx. rewrite (IHx HPureE1 _ HPureS).
+        apply (IHy HPureE2 _ (recPureStack_cons _ _ HPureS)).
       + exists (cons (eval Shape Pos (pure x)) fstack).
-        clear IHfy. autoIH. apply (IH HPure1).
+        clear IHfy. autoIH. apply (IH HPureE1 _ HPureS).
   Qed.
 
   (* The theorem derived by the correctness QuickCheck property for comp_correct can now be proven
@@ -306,7 +355,7 @@ Qed.
   Proof.
     simpl.
     intros HUndefined fexpr HPure.
-    apply (comp_correct' HUndefined fexpr HPure).
+    apply (comp_correct' HUndefined fexpr HPure _ recPureStack_nil).
   Qed.
 
   (* To prove the equivalence property of the two compilers [comp] and [comp'] we first prove the
