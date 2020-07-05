@@ -12,10 +12,10 @@ import qualified FreeC.LiftedIR.Syntax         as LIR
 import           FreeC.Monad.Converter
 
 -------------------------------------------------------------------------------
--- IR to Coq translation                                             --
+-- IR to Coq translation                                                     --
 -------------------------------------------------------------------------------
 
--- | Converts a Haskell type to Coq, lifting it into the @Free@ monad.
+-- | Converts a type from IR to Coq, lifting it into the @Free@ monad.
 --
 --   [\(\tau^\dagger = Free\,Shape\,Pos\,\tau^*\)]
 --     A type \(\tau\) is converted by lifting it into the @Free@ monad and
@@ -24,7 +24,7 @@ import           FreeC.Monad.Converter
 convertType :: IR.Type -> Converter Coq.Term
 convertType = convertLiftedType . liftType
 
--- | Converts a Haskell type to Coq.
+-- | Converts a type from IR to Coq.
 --
 --   In contrast to 'convertType', the type itself is not lifted into the
 --   @Free@ monad. Only the argument and return types of contained function
@@ -49,10 +49,10 @@ convertType' :: IR.Type -> Converter Coq.Term
 convertType' = convertLiftedType . liftType'
 
 -------------------------------------------------------------------------------
--- Lifted IR to Coq translation                                             --
+-- Lifted IR to Coq translation                                              --
 -------------------------------------------------------------------------------
 
--- | Converts a given type in the lifted IR to a coq term.
+-- | Converts a given type in the lifted IR to a Coq term.
 convertLiftedType :: LIR.Type -> Converter Coq.Term
 convertLiftedType (LIR.TypeVar srcSpan ident) = do
   qualid <- lookupIdentOrFail srcSpan IR.TypeScope (IR.UnQual (IR.Ident ident))
