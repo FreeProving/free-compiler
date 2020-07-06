@@ -149,7 +149,7 @@ Section Proofs.
   Qed.
 
   (* To prove the correctness of the compiler [comp] as stated in the QuickCheck property,
-     we have to generalize it first by adding an additional recursivly pure stack and we
+     we have to generalize it first by adding an additional recursively pure stack and we
      need the preconditions, that [UndefinedIsImpure] holds and the given expression is
      recursively pure. *)
   Lemma comp_correct' :

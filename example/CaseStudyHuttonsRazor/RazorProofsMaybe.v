@@ -60,13 +60,14 @@ Section Proofs_Maybe.
         (* Destruct the remaining code [fcode1'] to see, wether it is pure or impure. *)
         destruct fcode1' as [ code1' | sCode1' pfCode1' ].
         * (* fcode1 = pure (pure (PUSH fn) : pure code1') *)
-          (* In this case we can apply the induction hypothesis. *)
+          (* In this case we can apply the induction hypothesis if we have a pure stack.
+             Otherwise the result is undefined on both sides. *)
           destruct fstack as [ [ | fv fstack1 ] | sStack pfStack ].
           { autoIH. apply IH. }
           { autoIH. apply IH. }
           { simpl. do 2 rewrite impure_Nothing. symmetry. apply exec_strict_on_stack_arg. }
         * (* fcode1 = pure (pure (PUSH fn) : impure sCode1' pfCode1' *)
-          (* In this case we have impure code and therefore [H] can't hold. *)
+          (* In this case the result is undefined on both sides. *)
           destruct fstack as [ [ | fv fstack1 ] | sStack pfStack ];
             simpl; do 2 rewrite impure_Nothing; symmetry; apply exec_strict_on_stack_arg.
       + (* fcode1 = pure (pure ADD : fcode1') *)
@@ -75,23 +76,22 @@ Section Proofs_Maybe.
         destruct fcode1' as [ code1' | sCode1' pfCode1' ].
         * (* fcode1 = pure (pure ADD : pure code1') *)
           (* As the addition reads its two inputs from the stack [fstack], we need to destruct it.
-             All cases, where the stack does not contain at least two values, can't produce a pure result
-             and are therefore a violation to [Hstack']. *)
+             All cases, where the stack does not contain at least two values, produce an undefined. *)
           destruct fstack as [ [ | fv1 [ [ | fv2 fstack2 ] | sStack1 pfStack1 ] ] | sStack pfStack ];
             try (simpl; try do 2 rewrite impure_Nothing; symmetry; apply exec_strict_on_stack_arg).
           (* In the only valid case we can apply the induction hypothesis. *)
           autoIH. apply IH.
         * (* fcode1 = pure (pure ADD : impure sCode1' pfCode1') *)
-          (* This case is again a violation to [Hstack'] which we can proof by destructing [fstack]. *)
+          (* In this case the result is undefined on both sides. *)
           destruct fstack as [ [ | fv1 [ [ | fv2 fstack2 ] | sStack1 pfStack1 ] ] | sStack pfStack ];
             simpl; try do 2 rewrite impure_Nothing; symmetry; apply exec_strict_on_stack_arg.
       + (* fcode1 = pure (impure sOp pfOp : fcode1') *)
-        (* In this case the first operation is impure, therefore we have another violation to [H]. *)
+        (* In this case the result is undefined on both sides. *)
         intro fstack.
         destruct fstack as [ [ | fv1 [ [ | fv2 fstack2 ] | sStack1 pfStack1 ] ] | sStack pfStack ];
             simpl; try do 2 rewrite impure_Nothing; symmetry; apply exec_strict_on_stack_arg.
   - (* fcode1 = impure sCode1 pfCode1 *)
-    (* In this case, where the whole [fcode1] is impure, we have another violation to [H]. *)
+    (* In this case the result is undefined on both sides. *)
     intro fstack.
     simpl; try do 2 rewrite impure_Nothing; symmetry; apply exec_strict_on_stack_arg.
   Qed.
