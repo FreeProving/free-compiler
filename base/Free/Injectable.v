@@ -63,8 +63,8 @@ Fixpoint embed {A : Type} {Shape : Type} {Pos : Shape -> Type} (Shape' : Type)
  end.
 
 (* Partial instance *)
-Instance PartialLifted (Shape : Type) (Pos : Shape' -> Type) 
-  (Shape' : Type) (Pos' : Shape -> Type) `{Injectable Shape Pos Shape' Pos'}
+Instance PartialLifted (Shape : Type) (Pos : Shape -> Type) 
+  (Shape' : Type) (Pos' : Shape' -> Type) `{Injectable Shape Pos Shape' Pos'}
   `(Partial Shape Pos) : Partial Shape' Pos' := {
     undefined := fun {A : Type} => embed Shape' Pos' undefined;
     error     := fun {A : Type} (msg : string) => embed Shape' Pos' (error msg)
