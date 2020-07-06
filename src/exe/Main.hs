@@ -23,8 +23,6 @@ import           FreeC.Application.Option.Help
 import           FreeC.Application.Option.Version
 import           FreeC.Application.Options
 import           FreeC.Application.Options.Parser
-import qualified FreeC.Backend.Agda.Converter  as Agda
-                                                ( convertModule )
 import           FreeC.Backend.Agda.Pretty      ( )
 import qualified FreeC.Backend.Coq.Base        as Coq.Base
 import           FreeC.Backend.Coq.Converter    ( convertModule )
@@ -52,8 +50,6 @@ import           FreeC.Pretty                   ( putPrettyLn
                                                 , showPretty
                                                 , writePrettyFile
                                                 )
-
-import           Debug.Trace
 
 -------------------------------------------------------------------------------
 -- Main                                                                      --
@@ -145,10 +141,7 @@ convertInputModule haskellAst = do
     else putDebug $ "Compiling " ++ showPretty modName
   reportApp $ do
     loadRequiredModules haskellAst
-    coqAst  <- liftConverter $ convertModule haskellAst
-    agdaAst <- liftConverter $ Agda.convertModule haskellAst
-    traceM $ showPretty agdaAst
-    traceM $ undefined
+    coqAst <- liftConverter $ convertModule haskellAst
     return (modName, coqAst)
 
 -------------------------------------------------------------------------------

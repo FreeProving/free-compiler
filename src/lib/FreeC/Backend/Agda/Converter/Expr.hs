@@ -80,7 +80,7 @@ convertLiftedVarPat (LIR.VarPat srcSpan name _) = do
 --
 --   Note: Adding an alternative instance for @ReporterT@ and @ConverterT@ would
 --   allow us to use @lookupOrFail@ functions.
-lookupAgdaFreshOrValIdent :: LIR.QName -> Converter (Agda.QName)
+lookupAgdaFreshOrValIdent :: LIR.QName -> Converter Agda.QName
 lookupAgdaFreshOrValIdent name = do
   valueName <- inEnv $ lookupEntry IR.ValueScope name
   freshName <- inEnv $ lookupEntry IR.FreshScope name
