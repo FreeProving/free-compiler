@@ -54,6 +54,7 @@ convertExpr' (IR.App _ e1 e2 _) [] args = convertExpr' e1 [] (e2 : args)
 convertExpr' (IR.TypeAppExpr _ e t _) typeArgs args =
   convertExpr' e (t : typeArgs) args
 
+-- Constructors.
 convertExpr' (IR.Con srcSpan name _) _ args = do
   args' <- mapM convertExpr args
   let con = LIR.SmartCon srcSpan name
@@ -68,7 +69,7 @@ convertExpr' (IR.Var srcSpan name _) _ args = do
     then return $ LIR.App srcSpan varName [] [] args'
     else generateApply varName args'
 
--- Integer Literals
+-- Integer Literals.
 convertExpr' (IR.IntLiteral srcSpan value _) [] [] =
   return $ LIR.Pure srcSpan $ LIR.IntLiteral srcSpan value
 
