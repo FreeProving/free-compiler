@@ -113,3 +113,30 @@ testConvertFuncDecls =
           ++ "    → Free Shape Pos (Boolean Shape Pos)"
         , "even n = n >>= λ n₁ → if n₁ then True else False"
         ]
+
+    it "translates simple recursive functions correctly"
+      $ shouldSucceedWith
+      $ do
+          "Integer"        <- defineTestTypeCon "Integer" 0 []
+          "succ"           <- defineTestFunc "succ" 1 "Integer -> Integer"
+          "List"           <- defineTestTypeCon "List" 1 ["Nil", "Cons"]
+          ("nil" , "Nil" ) <- defineTestCon "Nil" 0 "forall a. List a"
+          ("cons", "Cons") <- defineTestCon "Cons"
+                                            2
+                                            "forall a. a -> List a -> List a"
+          "length" <- defineTestFunc "length" 1 "forall a. List a -> Integer"
+          shouldConvertFuncDeclsTo
+            ( Recursive
+            $ [ "length @a (xs :: List a) :: Integer = case xs of {"
+                ++ "    Nil        -> 0;"
+                ++ "    Cons x xs' -> succ (length @a xs')"
+                ++ "  }"
+              ]
+            )
+            [ "length : ∀ {Shape} {Pos} {a} {i} "
+            ++ "    → Free Shape Pos (List Shape Pos a {i})"
+            ++ "    → Free Shape Pos (Integer Shape Pos)"
+            , "length xs = xs >>= λ xs₁ → case xs₁ of λ { nil → pure 0 "
+              ++ "; (cons x xs') → succ (length xs') }"
+            ]
+
