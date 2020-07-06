@@ -2,7 +2,7 @@
 --   an evaluation function and two compilers that produce code for a simple
 --   stack machine.
 
-module Proofs.Razor where
+module Razor where
 
 import           Test.QuickCheck
 

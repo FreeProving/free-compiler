@@ -1,0 +1,11 @@
+-R ./Output Generated
+-R ./Extra Extra
+-R ../../base Base
+-R ../Proofs Proofs
+
+../Proofs/AppendAssocProofs.v
+Extra/ExprInd.v
+Extra/Pureness.v
+Extra/Tactic.v
+Output/Proofs/AppendAssoc.v
+Output/Razor.v

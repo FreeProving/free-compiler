@@ -1,79 +1,10 @@
 From Base Require Import Free Free.Instance.Maybe Free.Instance.Error Prelude Test.QuickCheck.
-From Generated Require Import Proofs.Razor.
+From Extra Require Import ExprInd Tactic Pureness.
+From Generated Require Import Razor.
+From Proofs Require Import AppendAssocProofs.
 
 Require Import Coq.Logic.FunctionalExtensionality.
 Require Import Coq.Program.Equality.
-
-(* Define some additional tactics. *)
-Ltac simplifyInductionHypothesis ident1 ident2 :=
-  match goal with
-  | [ ident1 : ForFree ?Shape ?Pos ?A ?P (pure _) |- _ ] => inversion ident1 as [ Heq ident2 |]; clear ident1; subst Heq; simpl
-  | [ ident1 : ForFree ?Shape ?Pos ?A ?P (impure ?s ?pf) |- _ ] =>
-    dependent destruction ident1;
-    match goal with
-    | [ H1 : forall p : ?T, ForFree ?Shape ?Pos ?A ?P (?pf p), H0 : forall p, ForFree ?Shape ?Pos ?A ?Py (?pf p) -> _ = _,
-        p : ?T |- _ ] =>
-      specialize (H0 p (H1 p)) as ident2; clear H1; clear H0; simpl
-    end
-  end.
-
-Tactic Notation "simplify'" ident(H) "as" ident(IH) := (simplifyInductionHypothesis H IH).
-
-Ltac autoInductionHypothesis :=
-  match goal with
-  (*  | [ s : Zero__S |- _ ] => destruct s *)
-  | [ H : ForFree ?Shape ?Pos ?A ?P (impure ?s ?pf) |- ?h ?s ?pf1 = ?h ?s ?pf2 ] =>
-    f_equal; let x := fresh in
-             extensionality x; simplify' H as Hnew; assumption
-    (*   try apply newH) *)
-  | [ H : ForFree ?Shape ?Pos ?A ?P (pure ?x) |- _ ] =>
-    let newH := fresh in simplify' H as newH; rename newH into IH
-  | [ H : forall p : ?T, ?f = ?g |- ?h ?s ?pf1 = ?h ?s ?pf2 ] =>
-    f_equal; let x := fresh in extensionality x; apply H
-  | [ H : forall p : ?T, ?f = ?g |- impure ?s ?pf1 = impure ?s ?pf2 ] =>
-    f_equal; let x := fresh in extensionality x; apply H
-  end.
-
-Tactic Notation "autoIH" := (autoInductionHypothesis).
-
-Tactic Notation "inductFree" ident(fx) "as" simple_intropattern(pat) := (induction fx as pat; simpl; try autoIH).
-
-(* Define induction scheme for [Expr]. *)
-Section Expr_ind.
-
-  Variable Shape : Type.
-  Variable Pos   : Shape -> Type.
-  Variable P     : Expr Shape Pos -> Prop.
-
-  Hypothesis valP : forall (fn : Free Shape Pos (Integer.Integer Shape Pos)), P (val fn).
-
-  Hypothesis addP : forall (fx fy : Free Shape Pos (Expr Shape Pos)),
-    ForFree Shape Pos (Expr Shape Pos) P fx ->
-      ForFree Shape Pos (Expr Shape Pos) P fy ->
-        P (add0 fx fy).
-
-  Fixpoint Expr_Ind (expr : Expr Shape Pos) : P expr.
-  Proof.
-    destruct expr as [ fn | fx fy ].
-    - apply valP.
-    - apply addP.
-      + apply ForFree_forall. intros e IHe.
-        inductFree fx as [ x | s pf IHpf ].
-        * inversion IHe; subst. apply Expr_Ind.
-        * dependent destruction IHe; subst. destruct H as [ p ].
-          apply IHpf with (p := p). apply H.
-      + apply ForFree_forall. intros e IHe.
-        inductFree fy as [ y | s pf IHpf ].
-        * inversion IHe; subst. apply Expr_Ind.
-        * dependent destruction IHe; subst. destruct H as [ p ].
-          apply IHpf with (p := p). apply H.
-  Defined.
-
-End Expr_ind.
-
-(* The following lemma and theorem are proven in the file `AppendAssocProofs.v`. *)
-Lemma append_nil : quickCheck prop_append_nil. Proof. Admitted.
-Theorem append_assoc : quickCheck prop_append_assoc. Proof. Admitted.
 
 (* This property states, that the given Partial instance represents every [undefined] as an impure value. *)
 Definition UndefinedIsImpure {Shape : Type} {Pos : Shape -> Type} (Partial : Partial Shape Pos): Prop :=
@@ -119,28 +50,6 @@ Ltac pureEqImpure :=
   | [ H : impure _ _ = pure _ |- _ ] => discriminate H
   | [ H : pure _ = impure _ _ |- _ ] => discriminate H
   end.
-
-(* This property states that the given expression is recursively pure.
-   The integers in that expression however might still be impure. *)
-Inductive RecPureExpr {Shape : Type} {Pos : Shape -> Type} : Free Shape Pos (Expr Shape Pos) -> Prop :=
-  | recPureExpr_val : forall (fn : Free Shape Pos (Integer.Integer Shape Pos)),
-      RecPureExpr (Val Shape Pos fn)
-  | recPureExpr_add : forall (fx fy : Free Shape Pos (Expr Shape Pos)),
-      RecPureExpr fx -> RecPureExpr fy -> RecPureExpr (Add0 Shape Pos fx fy).
-
-(* This property states that the for a given code the list is recursively pure
-   and all contained operations are pure.
-   The integers in those operations however might still be impure. *)
-Inductive RecPureCode {Shape : Type} {Pos : Shape -> Type} : Free Shape Pos (Code Shape Pos) -> Prop :=
-  | recPureCode_nil : RecPureCode (Nil Shape Pos)
-  | recPureCode_cons : forall (op : Op Shape Pos) (fcode : Free Shape Pos (Code Shape Pos)),
-      RecPureCode fcode -> RecPureCode (Cons Shape Pos (pure op) fcode).
-
-Inductive RecPureStack {Shape : Type} {Pos : Shape -> Type} : Free Shape Pos (Stack Shape Pos) -> Prop :=
-  | recPureStack_nil : RecPureStack (Nil Shape Pos)
-  | recPureStack_cons : forall (fv : Free Shape Pos (Integer Shape Pos))
-                              (fstack : Free Shape Pos (Stack Shape Pos)),
-      RecPureStack fstack -> RecPureStack (Cons Shape Pos fv fstack).
 
 Section Proofs.
 
@@ -239,57 +148,6 @@ Section Proofs.
     intros fstack H. destruct H as [ stack' Hstack' ]. discriminate Hstack'.
   Qed.
 
-  (* If we apply [append] on to pieces of recursively pure code the result is recursively pure code. *)
-  Lemma append_pure :
-    forall (fcode1 fcode2 : Free Shape Pos (Code Shape Pos)),
-    RecPureCode fcode1 ->
-    RecPureCode fcode2 ->
-        RecPureCode (append Shape Pos fcode1 fcode2).
-  Proof.
-    intros fcode1 fcode2 HPure1 HPure2.
-    (* The first piece of code is pure. *)
-    destruct fcode1 as [ code1 | ]. 2: dependent destruction HPure1.
-    (* Do an induction over the first piece of code. *)
-    induction code1 as [ | fop fcode1' ] using List_Ind.
-    - simpl. apply HPure2.
-    - (* The first operation in a non empty [code1] is pure. *)
-      destruct fop as [ op | ]. 2: do 2 dependent destruction HPure1.
-      (* The rest list in a non empty [code1] is also pure. *)
-      destruct fcode1' as [ code1' | ]. 2: do 2 dependent destruction HPure1.
-      simpl. apply recPureCode_cons.
-      autoIH. dependent destruction HPure1. apply (IH HPure1).
-  Qed.
-
-  (* The compilation of a recursively pure expression with [comp] produces recursively pure code. *)
-  Lemma comp_pure :
-    forall (fexpr : Free Shape Pos (Expr Shape Pos)),
-    RecPureExpr fexpr ->
-        RecPureCode (comp Shape Pos fexpr).
-  Proof.
-    intros fexpr HPure.
-    (* The given expression is pure. *)
-    destruct fexpr as [ expr | sExpr pfExpr ]. 2: dependent destruction HPure.
-    (* Do an induction over this expression. *)
-    induction expr as [ fn | fx fy IHfx IHfy ] using Expr_Ind.
-    - (* In this case, we have a single value as expression. *)
-      simpl. apply recPureCode_cons. apply recPureCode_nil.
-    - (* In this case, we have an addition of two expressions [fx] and [fy]. *)
-      dependent destruction HPure.
-      (* The expression [fx] is pure. *)
-      destruct fx as [ x | sX pfX ]. 2: dependent destruction HPure1.
-      (* Use the lemma [append_pure] with the three recursively pure pieces of code: 
-         - (comp_0 Shape Pos x)
-         - (fy >>= (fun y : Expr Shape Pos => comp_0 Shape Pos y))
-         - (Cons Shape Pos (ADD Shape Pos) (Nil Shape Pos)) *)
-      simpl. apply append_pure. apply append_pure.
-      (* Now we need to prove that those pieces of code were indeed recursively pure. *)
-      + autoIH. apply (IH HPure1).
-      + (* The expression [fy] is pure. *)
-        destruct fy as [ y | sY pfY ]. 2: dependent destruction HPure2.
-        autoIH. apply (IH HPure2).
-      + apply recPureCode_cons. apply recPureCode_nil.
-Qed.
-
   (* To prove the correctness of the compiler [comp] as stated in the QuickCheck property,
      we have to generalize it first by adding an additional recursivly pure stack and we
      need the preconditions, that [UndefinedIsImpure] holds and the given expression is
@@ -375,7 +233,7 @@ Qed.
         reflexivity.
       + (* For an addition expression, we start with some simplification steps for the [append] function. *)
         intro fcode. simpl comp_0.
-        do 2 (rewrite <- append_assoc).
+        do 2 (rewrite <- append_assocs).
         simpl append.
         (* We use [replace] here to make this main proof simple and produce additional simple subgoals. *)
         replace (append Shape Pos _ (Cons Shape Pos (ADD Shape Pos) fcode))
