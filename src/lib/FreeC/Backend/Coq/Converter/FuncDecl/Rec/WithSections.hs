@@ -79,7 +79,7 @@ convertRecFuncDeclsWithSection constArgs decls = do
       typeArgIdents =
         Set.toList (Set.unions (map freeTypeVarSet constArgTypes))
 
-  -- Apply unificator to rename the type arguments on the right-hand side.
+  -- Apply unifier to rename the type arguments on the right-hand side.
   let renamedDecls' = applySubst mgu renamedDecls
 
   -- Remove constant arguments from the renamed function declarations.
@@ -435,7 +435,7 @@ removeConstArgsFromExpr constArgs rootExpr = do
 --   argument indices that have been removed.
 updateTypeSig
   :: Subst IR.Type
-     -- ^ The most general unificator for the constant argument types.
+     -- ^ The most general unifier for the constant argument types.
   -> [IR.TypeVarIdent]
      -- ^ The type arguments declared in the section already.
   -> Map (IR.QName, String) IR.Type
