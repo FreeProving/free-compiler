@@ -1,5 +1,5 @@
-From Base Require Import Free Free.Instance.Maybe Prelude.
-From Extra Require Import ExprInd Tactic.
+From Base Require Import Free Free.Instance.Maybe Prelude QuickCheck.
+From Extra Require Import ExprInd Tactic Pureness.
 From Generated Require Import Razor.
 From Proofs Require Import AppendAssocProofs.
 
@@ -94,6 +94,54 @@ Section Proofs_Maybe.
     (* In this case the result is undefined on both sides. *)
     intro fstack.
     simpl; try do 2 rewrite impure_Nothing; symmetry; apply exec_strict_on_stack_arg.
+  Qed.
+
+  (* To prove the correctness of the compiler [comp] as stated in the QuickCheck property,
+     we have to generalize it first by adding an additional recursively pure stack and we
+     need the precondition, that the given expression is recursively pure. *)
+  Lemma comp_correct' :
+    forall (fexpr : Free Shape Pos (Expr Shape Pos)),
+    RecPureExpr fexpr ->
+    forall (fstack : Free Shape Pos (Stack Shape Pos)),
+    RecPureStack fstack ->
+        exec Shape Pos Partial (comp Shape Pos fexpr) fstack
+        = Cons Shape Pos (eval Shape Pos fexpr) fstack.
+  Proof.
+    intros fexpr HPureE.
+    destruct fexpr as [ expr | ]. 2: dependent destruction HPureE.
+    induction expr as [ fn | fx fy IHfx IHfy ] using Expr_Ind.
+    - (* fexpr = pure (val fn) *)
+      intros fstack HPureS.
+      destruct fstack as [ [ | fv1 fstack1 ] | ]. 3: dependent destruction HPureS.
+      1,2: reflexivity.
+    - (* fexpr = pure (add fx fy) *)
+      intros fstack HPureS.
+      (* Prepare induction hypothesis. *)
+      dependent destruction HPureE.
+      destruct fx as [ x | ]. 2: dependent destruction HPureE1.
+      autoIH; specialize (IH HPureE1) as IHx; simpl comp in IHx; clear IH.
+      destruct fy as [ y | ]. 2: dependent destruction HPureE2.
+      autoIH; specialize (IH HPureE2) as IHy; simpl comp in IHy; clear IH.
+      (* Do actual proof. *)
+      rewrite <- append_assocs.
+      destruct fstack as [ [ | fv1 fstack1 ] | ]. 3: dependent destruction HPureS.
+      1,2: rewrite exec_append.
+      1,2: rewrite (IHx _ HPureS).
+      1,2: rewrite exec_append.
+      1,2: rewrite (IHy _ (recPureStack_cons _ _ HPureS)).
+      1,2: reflexivity.
+  Qed.
+
+  (* The theorem derived by the correctness QuickCheck property for comp_correct
+     can now be proven with the more general lemma above and under the that the
+     given expression is recursively pure. *)
+  Lemma comp_correct :
+    forall (fexpr : Free Shape Pos (Expr Shape Pos)),
+    RecPureExpr fexpr ->
+        quickCheck (prop_comp_correct Shape Pos Partial fexpr).
+  Proof.
+    intros fexpr HPureE.
+    apply (comp_correct' fexpr HPureE (Nil Shape Pos) recPureStack_nil).
   Qed.
 
 End Proofs_Maybe.
