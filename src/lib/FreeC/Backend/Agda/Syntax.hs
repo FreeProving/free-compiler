@@ -25,6 +25,8 @@ module FreeC.Backend.Agda.Syntax
   , ident
   , hiddenArg_
   , ite
+  , caseOf
+  , lamClause
     -- * Types
   , set
   , dataDecl
@@ -116,6 +118,10 @@ isAppP _          = False
 appP :: Pattern -> Pattern -> Pattern
 appP l r = AppP l $ defaultNamedArg $ if isAppP r then ParenP NoRange r else r
 
+parenIfNeeded :: Pattern -> Pattern
+parenIfNeeded p@(AppP _ _) = ParenP NoRange p
+parenIfNeeded p            = p
+
 -------------------------------------------------------------------------------
 -- Expressions                                                               --
 -------------------------------------------------------------------------------
@@ -140,6 +146,7 @@ intLiteral = Lit . LitNat NoRange
 --   @λ x y … → [expr]@
 lambda :: [Name] -> Expr -> Expr
 lambda args = Lam NoRange (DomainFree . defaultNamedArg . mkBinder_ <$> args)
+
 
 -- | Creates an application AST node.
 --
@@ -169,6 +176,15 @@ ite :: Expr -> Expr -> Expr -> Expr
 ite cond true false =
   RawApp NoRange [ident "if", cond, ident "then", true, ident "else", false]
 
+caseOf :: Expr -> [LamClause] -> Expr
+caseOf discr alts =
+  RawApp NoRange [ident "case", discr, ident "of", ExtendedLam NoRange alts]
+
+lamClause :: Pattern -> Expr -> LamClause
+lamClause pat rhs = LamClause (lhs pat) (RHS rhs) NoWhere False
+
+lhs :: Pattern -> LHS
+lhs pat = LHS (parenIfNeeded pat) [] [] NoEllipsis
 
 -------------------------------------------------------------------------------
 -- Types                                                                     --

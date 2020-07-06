@@ -51,10 +51,11 @@ convertExpr' (IR.Con srcSpan name _) _ args = do
 convertExpr' (IR.Var srcSpan name _) _ args = do
   args'    <- mapM convertExpr args
   function <- inEnv $ isFunction name
+  let varName = LIR.Var srcSpan name undefined
   if function
-    then do -- top level function (lifted piece wise)
-      undefined
-    else generateApply (LIR.Var srcSpan name undefined) args'
+    then -- top level function (lifted piece wise)
+         return $ LIR.App srcSpan varName [] [] args' undefined
+    else generateApply varName args'
 
 -- | Integer Literals
 convertExpr' (IR.IntLiteral srcSpan value _) [] [] =
@@ -66,8 +67,7 @@ convertExpr' (IR.IntLiteral srcSpan value _) [] [] =
 -- > ⎢-----------------------⎥ = -----------------------------------
 -- > ⎣ Γ ⊢ λx:τ₀.e : τ₀ → τ₁ ⎦   Γ' ⊢ pure(λx:τ₀'.e') : m(τ₀' → τ₁')
 convertExpr' (IR.Lambda srcSpan args rhs _) [] [] =
-  pure srcSpan
-    <$> (lambda srcSpan <$> mapM convertVarPat args <*> convertExpr rhs)
+  pure srcSpan <$> (lambda srcSpan (map convertVarPat args) <$> convertExpr rhs)
 
 -- | @if@-expressions.
 --
@@ -90,7 +90,7 @@ convertExpr' (IR.If srcSpan cond true false _) [] [] = do
 -- where @alts'@ are the lifted (not smart) constructors for τ₀.
 convertExpr' (IR.Case srcSpan discriminante patterns _) [] [] = do
   discriminant' <- convertExpr discriminante
-  discriminant' `bind` \d -> patternMatch srcSpan d <$> mapM convertAlt patterns
+  discriminant' `bind` \d -> LIR.Case srcSpan d <$> mapM convertAlt patterns
 
 -------------------------------------------------------------------------------
 -- Lift Patterns                                                             --
@@ -98,17 +98,16 @@ convertExpr' (IR.Case srcSpan discriminante patterns _) [] [] = do
 
 convertAlt :: IR.Alt -> Converter LIR.Alt
 convertAlt (IR.Alt srcSpan conPat varPats expr) =
-  LIR.Alt srcSpan (convertConPat conPat)
-    <$> mapM convertVarPat varPats
-    <*> convertExpr expr
+  LIR.Alt srcSpan (convertConPat conPat) (map convertVarPat varPats)
+    <$> convertExpr expr
 
 convertConPat :: IR.ConPat -> LIR.ConPat
 convertConPat (IR.ConPat srcSpan name) = LIR.ConPat srcSpan name
 
-convertVarPat :: IR.VarPat -> Converter LIR.VarPat
-convertVarPat (IR.VarPat srcSpan ident t _) = do
-  ident' <- freshIRQName ident
-  return $ LIR.VarPat srcSpan ident' $ LIR.liftType <$> t
+-- translated without fresh ident, because @localEnv@ is not possible in lifted IR!
+convertVarPat :: IR.VarPat -> LIR.VarPat
+convertVarPat (IR.VarPat srcSpan name t _) = do
+  LIR.VarPat srcSpan (IR.UnQual $ IR.Ident name) $ LIR.liftType <$> t
 
 -------------------------------------------------------------------------------
 -- Application-expression helper                                             --
@@ -133,12 +132,13 @@ guessName _                    = Nothing
 
 bind :: LIR.Expr -> (LIR.Expr -> Converter LIR.Expr) -> Converter LIR.Expr
 bind arg k = do
-  argIdent <- freshIRQName $ fromMaybe "f" (guessName arg)
-  rhs      <- lambda NoSrcSpan [varPat argIdent] <$> k (var argIdent)
+  let argIdent = IR.UnQual $ IR.Ident $ fromMaybe "f" (guessName arg)
+  -- argIdent <- freshIRQName $ fromMaybe "f" (guessName arg)
+  rhs <- lambda NoSrcSpan [varPat argIdent] <$> k (var argIdent)
   return $ LIR.Bind NoSrcSpan arg rhs undefined
 
 app :: LIR.Expr -> LIR.Expr -> LIR.Expr
-app l@(LIR.App _ _ _ _ _ _) r = l { LIR.exprAppArgs = r : LIR.exprAppArgs l } -- TODO: update types
+app l@(LIR.App _ _ _ _ _ _) r = l { LIR.exprAppArgs = r : LIR.exprAppArgs l } -- TODO: update types ; reverses Args?
 app l                       r = LIR.App NoSrcSpan l [] [] [r] undefined
 
 var :: LIR.VarName -> LIR.Expr
@@ -160,34 +160,6 @@ ite srcSpan cond true false =
 pure :: SrcSpan -> LIR.Expr -> LIR.Expr
 pure srcSpan expr =
   LIR.Pure srcSpan expr $ LIR.FreeTypeCon srcSpan $ LIR.exprType expr
-
-patternMatch :: SrcSpan -> LIR.Expr -> [LIR.Alt] -> LIR.Expr
-patternMatch srcSpan discriminant patterns =
-  LIR.Case srcSpan discriminant patterns undefined -- TODO: type
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

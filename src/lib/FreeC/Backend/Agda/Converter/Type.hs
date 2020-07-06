@@ -36,7 +36,7 @@ import           FreeC.Monad.Converter          ( Converter
 --   and used to annotate these occurrences.
 convertLiftedFuncType :: [LIR.Type] -> LIR.Type -> Converter Agda.Expr
 convertLiftedFuncType argTypes retType = if any decreasing argTypes
-  then pi "i" $ \i -> convertLiftedType (Just i) funcType
+  then pi "i" $ \i -> convertLiftedType (Just $ Agda.hiddenArg_ i) funcType
   else convertLiftedType' funcType
   where funcType = LIR.funcType NoSrcSpan argTypes retType
 

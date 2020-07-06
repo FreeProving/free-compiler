@@ -49,7 +49,6 @@ data Expr
     Case { exprSrcSpan       :: SrcSpan
          , caseExprScrutinee :: Expr
          , caseExprAlts      :: [Alt]
-         , exprType          :: Type
          }
 
   | -- | Error term @undefined@.
