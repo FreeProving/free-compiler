@@ -14,18 +14,15 @@ data Expr
   = -- | A constructor.
     Con { exprSrcSpan :: SrcSpan
         , exprConName :: ConName
-        , exprType    :: Type
         }
 
   | SmartCon { exprSrcSpan :: SrcSpan
              , exprConName :: ConName
-             , exprType    :: Type
              }
 
   | -- | A function or local variable.
     Var { exprSrcSpan :: SrcSpan
         , exprVarName :: VarName
-        , exprType    :: Type
         }
 
   | -- | Function or constructor application.
@@ -34,7 +31,6 @@ data Expr
         , exprAppTypeArgs :: [Type]   -- ^ Visible type applications.
         , exprEffects     :: [Effect] -- ^ Effect set.
         , exprAppArgs     :: [Expr]   -- ^ Applied arguments.
-        , exprType        :: Type
         }
 
   | -- | @if@ expression.
@@ -42,7 +38,6 @@ data Expr
        , ifExprCond  :: Expr
        , ifExprThen  :: Expr
        , ifExprElse  :: Expr
-       , exprType    :: Type
        }
 
   | -- | @case@ expression.
@@ -53,39 +48,33 @@ data Expr
 
   | -- | Error term @undefined@.
     Undefined { exprSrcSpan :: SrcSpan
-              , exprType    :: Type
               }
 
   | -- | Error term @error "<message>"@.
     ErrorExpr { exprSrcSpan  :: SrcSpan
               , errorExprMsg :: String
-              , exprType     :: Type
               }
 
   | -- | An integer literal.
     IntLiteral { exprSrcSpan     :: SrcSpan
                , intLiteralValue :: Integer
-               , exprType        :: Type
                }
 
   | -- | A lambda abstraction.
     Lambda { exprSrcSpan    :: SrcSpan
            , lambdaExprArgs :: [VarPat]
-           , lambdaEprRhs   :: Expr
-           , exprType       :: Type
+           , lambdaExprRhs   :: Expr
            }
 
   | -- | The @pure@ constructor of the @Free@ monad.
     Pure { exprSrcSpan  :: SrcSpan
          , exprPureArg  :: Expr -- ^ The value that is lifted into the @Free@ monad.
-         , exprType     :: Type
          }
 
   | -- | The bind operator for the free monad.
     Bind { exprSrcSpan  :: SrcSpan
          , exprBindArg  :: Expr -- ^ The left-hand side argument of @>>=@.
          , exprBindCont :: Expr -- ^ The right-hand side argument of @>>=@.
-         , exprType     :: Type
          }
  deriving (Eq, Show)
 

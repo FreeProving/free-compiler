@@ -1,4 +1,4 @@
--- | Implements the lifted IR to Agda translation.
+-- | Implements the lifted IR to Agda translation for types.
 
 module FreeC.Backend.Agda.Converter.Type
   ( convertLiftedFuncType
