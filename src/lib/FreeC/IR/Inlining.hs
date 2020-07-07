@@ -19,7 +19,7 @@ import           FreeC.Monad.Reporter
 import           FreeC.Pretty
 
 -- | Inlines the right-hand sides of the given function declarations into
---   the right-hand sides of other function declarations.
+--   the right-hand sides of another function declaration.
 inlineFuncDecls :: [IR.FuncDecl] -> IR.FuncDecl -> Converter IR.FuncDecl
 inlineFuncDecls decls decl = do
   let rhs = IR.funcDeclRhs decl
@@ -27,8 +27,10 @@ inlineFuncDecls decls decl = do
   return decl { IR.funcDeclRhs = rhs' }
 
 -- | Inlines the right-hand sides of the given function declarations into an
---   expression. This step is repeated until the expression remains unchanged
---   or no more function declarations are available.
+--   expression.
+--
+--   Inlining is repeated until the expression remains unchanged or no more
+--   function declarations are available.
 --   That is done under the assumption that regarding a certain position
 --   of the given expression every given function should be inlined at
 --   most once in order to avoid endless inlining.
