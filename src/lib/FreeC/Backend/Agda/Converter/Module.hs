@@ -55,7 +55,7 @@ convertModName name = Agda.qname (init parts) (last parts)
 -- | Converts the given import declarations to Coq.
 convertImportDecls :: [IR.ImportDecl] -> Converter [Agda.Declaration]
 convertImportDecls imports =
-  (:) Agda.Base.imports <$> mapM convertImportDecl imports
+  (Agda.Base.imports ++) <$> mapM convertImportDecl imports
 
 -- | Convert an import declaration.
 convertImportDecl :: IR.ImportDecl -> Converter Agda.Declaration

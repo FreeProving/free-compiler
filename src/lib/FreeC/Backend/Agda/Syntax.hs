@@ -20,6 +20,7 @@ module FreeC.Backend.Agda.Syntax
   , appP
     -- * Expressions
   , intLiteral
+  , stringLiteral
   , lambda
   , app
   , ident
@@ -36,14 +37,14 @@ module FreeC.Backend.Agda.Syntax
   )
 where
 
-import           Prelude                 hiding ( pi )
-
 import           Agda.Syntax.Common
 import           Agda.Syntax.Concrete
 import           Agda.Syntax.Literal
 import           Agda.Syntax.Position
 
 import           FreeC.Util.Predicate           ( (.||.) )
+
+import           Prelude                 hiding ( pi )
 
 -------------------------------------------------------------------------------
 -- Identifiers                                                               --
@@ -91,14 +92,20 @@ moduleDecl modName = Module NoRange modName []
 funcSig :: Name -> Expr -> Declaration
 funcSig = TypeSig defaultArgInfo Nothing
 
+-- | Smart constructor for @pattern@ synonyms.
+--
+--   > pattern Cons x xs = pure (cons x xs)
 patternSyn :: Name -> [Arg Name] -> Pattern -> Declaration
 patternSyn = PatternSyn NoRange
 
+-- | Smart constructor for function definitions.
+--
+--   > f a₁ a₂ … = expr
 funcDef :: QName -> [QName] -> Expr -> Declaration
-funcDef funcName argNames rhs = FunClause lhs (RHS rhs) NoWhere False
+funcDef funcName argNames rhs = FunClause lhs' (RHS rhs) NoWhere False
  where
   argPattern = foldl appP (IdentP funcName) $ map IdentP argNames
-  lhs        = LHS argPattern [] [] $ ExpandedEllipsis NoRange 0
+  lhs'       = LHS argPattern [] [] $ ExpandedEllipsis NoRange 0
 
 -------------------------------------------------------------------------------
 -- Pattern                                                                   --
@@ -140,6 +147,10 @@ isFun _           = False
 intLiteral :: Integer -> Expr
 intLiteral = Lit . LitNat NoRange
 
+-- | Creates a string literal.
+stringLiteral :: String -> Expr
+stringLiteral = Lit . LitString NoRange
+
 -- | Creates a lambda expression, binding the given names and abstracting the
 --   given expression.
 --
@@ -168,21 +179,33 @@ ident = Ident . qname' . name
 
 -- | Hides the given expression.
 --
---   e ↦ {e}
+--   > e ↦ {e}
 hiddenArg_ :: Expr -> Expr
 hiddenArg_ = HiddenArg NoRange . unnamed
 
+-- | @if_then_else_@ from the base library.
+--
+--   > cond true false ↦ if cond then true else false
 ite :: Expr -> Expr -> Expr -> Expr
 ite cond true false =
   RawApp NoRange [ident "if", cond, ident "then", true, ident "else", false]
 
+-- | @case_of_@ from the base library.
+--
+--   > disrc clauses ↦ case disrc of λ { clause₁ ; clause₂ ; … }
 caseOf :: Expr -> [LamClause] -> Expr
 caseOf discr alts =
   RawApp NoRange [ident "case", discr, ident "of", ExtendedLam NoRange alts]
 
+-- | Smart constructor for @LamClause@s.
+--
+--   Each @LamClause@ stores  a pattern matched on the left-hand side of an @→@
+--   and the expression on the right-hand side. In Agda normal lambda expressions
+--   can pattern match on their arguments.
 lamClause :: Pattern -> Expr -> LamClause
 lamClause pat rhs = LamClause (lhs pat) (RHS rhs) NoWhere False
 
+-- | Smart constructor for a simple @LHS@ for function declarations or lambdas.
 lhs :: Pattern -> LHS
 lhs pat = LHS (parenIfNeeded pat) [] [] NoEllipsis
 

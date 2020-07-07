@@ -106,9 +106,10 @@ convertExpr' (IR.Case srcSpan discriminante patterns _) [] [] = do
   discriminant' <- convertExpr discriminante
   discriminant' `bind` \d -> LIR.Case srcSpan d <$> mapM convertAlt patterns
 
-convertExpr' (IR.Undefined _ _  ) _ _ = undefined
+convertExpr' (IR.Undefined srcSpan _) _ _ = return $ LIR.Undefined srcSpan
 
-convertExpr' (IR.ErrorExpr _ _ _) _ _ = undefined
+convertExpr' (IR.ErrorExpr srcSpan msg _) _ _ =
+  return $ LIR.ErrorExpr srcSpan msg
 
 -- Visible type application of an expression other than a function or
 -- constructor.
@@ -183,4 +184,3 @@ bind arg k = do
   let varPat   = LIR.VarPat NoSrcSpan argIdent Nothing
   rhs <- LIR.Lambda NoSrcSpan [varPat] <$> k (LIR.Var NoSrcSpan argIdent)
   return $ LIR.Bind NoSrcSpan arg rhs
-

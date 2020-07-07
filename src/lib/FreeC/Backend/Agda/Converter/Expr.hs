@@ -11,6 +11,8 @@ import qualified FreeC.Backend.Agda.Syntax     as Agda
 import           FreeC.Backend.Agda.Converter.Free
                                                 ( generatePure
                                                 , bind
+                                                , undefinedExpr
+                                                , errorExpr
                                                 )
 
 import           FreeC.Environment              ( lookupEntry )
@@ -50,8 +52,8 @@ convertLiftedExpr (LIR.Lambda _ args rhs) = localEnv $ do
 convertLiftedExpr (LIR.Pure _ expr) = generatePure <$> convertLiftedExpr expr
 convertLiftedExpr (LIR.Bind _ arg k) =
   bind <$> convertLiftedExpr arg <*> convertLiftedExpr k
-convertLiftedExpr (LIR.Undefined _  ) = undefined
-convertLiftedExpr (LIR.ErrorExpr _ _) = undefined
+convertLiftedExpr (LIR.Undefined _    ) = return $ undefinedExpr
+convertLiftedExpr (LIR.ErrorExpr _ msg) = return $ errorExpr msg
 
 -- | Converts a single pattern from a LIR case expression to an Agda
 --   expression.

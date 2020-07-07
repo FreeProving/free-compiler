@@ -23,6 +23,7 @@ import           FreeC.Backend.Agda.Converter.Type
 import qualified FreeC.Backend.Agda.Syntax     as Agda
 import           FreeC.Backend.Coq.Analysis.DecreasingArguments
                                                 ( identifyDecArgs )
+import           FreeC.Environment              ( isPartial )
 import           FreeC.Environment.LookupOrFail
 import           FreeC.IR.DependencyGraph
 import qualified FreeC.IR.Syntax               as IR
@@ -32,6 +33,7 @@ import           FreeC.LiftedIR.Converter.Type  ( liftFuncArgTypes
                                                 )
 import           FreeC.Monad.Converter          ( Converter
                                                 , localEnv
+                                                , inEnv
                                                 )
 
 -- | Converts a strongly connected component of the function dependency graph.
@@ -72,18 +74,22 @@ convertSignature (IR.FuncDecl _ declIdent typeVars args returnType _) decArg =
   do
     let IR.DeclIdent srcSpan name = declIdent
     let argTypes                  = map IR.varPatType args
-    ident <- lookupUnQualAgdaIdentOrFail srcSpan IR.ValueScope name
-    Agda.funcSig ident <$> convertFunc decArg typeVars argTypes returnType
+    partial <- inEnv $ isPartial name
+    ident   <- lookupUnQualAgdaIdentOrFail srcSpan IR.ValueScope name
+    Agda.funcSig ident
+      <$> convertFunc decArg partial typeVars argTypes returnType
 
 -- | Converts a fully applied function.
 convertFunc
   :: Maybe Int        -- ^ The index of the decreasing argument.
+  -> Bool             -- ^ Whether the function needs a @Partial@ instance.
   -> [IR.TypeVarDecl] -- ^ Type variables bound by the function declaration.
   -> [Maybe IR.Type]  -- ^ The types of the arguments.
   -> Maybe IR.Type    -- ^ The return type of the function.
   -> Converter Agda.Expr
-convertFunc decArg tVars argTypes returnType =
+convertFunc decArg partial tVars argTypes returnType =
   Agda.pi . addFreeArgs <$> mapM convertTypeVarDecl tVars <*> typeConverter
     (map fromJust argTypes)
     (liftType $ fromJust returnType)
-  where typeConverter ts = convertLiftedFuncType (liftFuncArgTypes decArg ts)
+ where
+  typeConverter ts = convertLiftedFuncType partial (liftFuncArgTypes decArg ts)

@@ -8,6 +8,9 @@ module FreeC.Backend.Agda.Converter.Free
   , applyFreeArgs
   , addFreeArgs
   , freeArgBinder
+  , undefinedExpr
+  , errorExpr
+  , addPartial
   )
 where
 
@@ -18,6 +21,7 @@ import qualified FreeC.Backend.Agda.Base       as Agda.Base
 generatePure :: Agda.Expr -> Agda.Expr
 generatePure = Agda.app $ Agda.Ident $ Agda.qname [] Agda.Base.pure -- @pure@ is always imported and therefore doesn't need to be qualified.
 
+-- | The infix @>>=@ operator.
 bind :: Agda.Expr -> Agda.Expr -> Agda.Expr
 bind arg k = Agda.RawApp Agda.NoRange [arg, Agda.ident ">>=", k]
 
@@ -47,6 +51,16 @@ addFreeArgs ts = Agda.Base.shape : Agda.Base.position : ts
 shape :: Agda.Expr
 shape = Agda.Ident $ Agda.qname' $ Agda.Base.shape
 
+-- | Identifier for @Position@.
+--
+--   > Position
+position :: Agda.Expr
+position = Agda.Ident $ Agda.qname' $ Agda.Base.position
+
+-- | Identifier for the partial type class.
+partial :: Agda.Expr
+partial = Agda.Ident (Agda.qname' Agda.Base.partial)
+
 -- | Binder for the type arguments of the @Free@ monad.
 --
 --   > (Shape : Set) (Pos : Shape → Set)
@@ -55,3 +69,13 @@ freeArgBinder =
   [ Agda.binding [Agda.Base.shape] Agda.set
   , Agda.binding [Agda.Base.position] (shape `Agda.fun` Agda.set)
   ]
+
+undefinedExpr :: Agda.Expr
+undefinedExpr = Agda.ident "undefined"
+
+errorExpr :: String -> Agda.Expr
+errorExpr msg = Agda.ident "error" `Agda.app` Agda.stringLiteral msg
+
+addPartial :: Agda.Expr -> Agda.Expr
+addPartial = Agda.fun $ Agda.InstanceArg Agda.NoRange $ Agda.unnamed partial'
+  where partial' = partial `Agda.app` shape `Agda.app` position

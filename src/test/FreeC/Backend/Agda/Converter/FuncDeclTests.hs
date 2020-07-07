@@ -140,3 +140,22 @@ testConvertFuncDecls =
               ++ "; (cons x xs') → succ (length xs') }"
             ]
 
+    it "translates partial functions correctly" $ shouldSucceedWith $ do
+      "List"      <- defineTestTypeCon "List" 1 ["Nil", "Cons"]
+      ("nil" , _) <- defineTestCon "Nil" 0 "forall a. List a"
+      ("cons", _) <- defineTestCon "Cons" 2 "forall a. a -> List a -> List a"
+      "head"      <- definePartialTestFunc "head" 1 "forall a. List a -> a"
+      shouldConvertFuncDeclsTo
+        (  NonRecursive
+        $  "head @a (xs :: List a) :: a = case xs of {"
+        ++ "    Nil        -> undefined @a;"
+        ++ "    Cons x xs' -> x"
+        ++ "  }"
+        )
+        [ "head : ∀ {Shape} {Pos} {a} → ⦃ Partial Shape Pos ⦄ "
+        ++ "    → Free Shape Pos (List Shape Pos a)"
+        ++ "    → Free Shape Pos a"
+        , "head xs = xs >>= λ xs₁ → case xs₁ of λ { "
+        ++ " nil → undefined ; "
+        ++ "(cons x xs') → x }"
+        ]
