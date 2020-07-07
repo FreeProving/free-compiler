@@ -6,11 +6,13 @@ module FreeC.Util.Predicate where
 import           Control.Monad
 import           Control.Monad.Reader           ( )
 
--- | Conjunction of two boolean predicates.
+-- | Combines two predicates to a new predicate whose result is the conjunction
+--   of the results of the two given predicates.
 (.&&.) :: (a -> Bool) -> (a -> Bool) -> a -> Bool
 (.&&.) = liftM2 (&&)
 
--- | Disjunction of two boolean predicates.
+-- | Combines two predicates to a new predicate whose result is the disjunction
+--   of the results of the two given predicates.
 (.||.) :: (a -> Bool) -> (a -> Bool) -> a -> Bool
 (.||.) = liftM2 (||)
 
