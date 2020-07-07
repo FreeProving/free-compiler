@@ -1,5 +1,5 @@
 From Base Require Import Free Prelude.
-From Extra Require Import ExprInd Tactic.
+From Razor.Extra Require Import ExprInd Tactic.
 From Generated Require Import Razor.
 
 Require Import Coq.Program.Equality.

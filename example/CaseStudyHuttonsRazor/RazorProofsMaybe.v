@@ -1,5 +1,5 @@
 From Base Require Import Free Free.Instance.Maybe Prelude QuickCheck.
-From Extra Require Import ExprInd Tactic Pureness.
+From Razor.Extra Require Import ExprInd Tactic Pureness.
 From Generated Require Import Razor.
 From Proofs Require Import AppendAssocProofs.
 
