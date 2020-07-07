@@ -2,15 +2,13 @@
 
 module Main where
 
-import           Control.Monad.Extra            ( ifM
-                                                , unlessM
+import           Control.Monad.Extra            ( unlessM
                                                 , whenM
                                                 )
 import           Control.Monad.IO.Class
 import           Data.List                      ( intercalate )
 import           Data.List.Extra                ( splitOn )
 import           Data.Maybe                     ( isJust )
-import qualified Language.Haskell.Exts.Syntax  as HSE
 import           System.Directory               ( createDirectoryIfMissing
                                                 , doesFileExist
                                                 , makeAbsolute
@@ -30,13 +28,7 @@ import qualified FreeC.Backend.Coq.Syntax      as Coq
 import           FreeC.Environment
 import           FreeC.Environment.ModuleInterface.Decoder
 import           FreeC.Environment.ModuleInterface.Encoder
-import           FreeC.Frontend.Haskell.Parser  ( parseHaskellModuleFile
-                                                , parseHaskellModuleFileWithComments
-                                                )
-import           FreeC.Frontend.Haskell.PatternMatching
-                                                ( transformPatternMatching )
-import           FreeC.Frontend.Haskell.Pretty  ( )
-import           FreeC.Frontend.Haskell.Simplifier
+import           FreeC.Frontend
 import           FreeC.IR.DependencyGraph
 import qualified FreeC.IR.Base.Prelude         as IR.Prelude
 import qualified FreeC.IR.Base.Test.QuickCheck as IR.Test.QuickCheck
@@ -90,7 +82,11 @@ compiler = do
   loadQuickCheck
   createCoqProject
   -- Process input files.
-  modules  <- inOpts optInputFiles >>= mapM parseInputFile >>= sortInputModules
+  let frontend = haskellFrontend
+  modules <-
+    inOpts optInputFiles
+    >>= mapM (parseInputFile $ parseFile frontend)
+    >>= sortInputModules
   modules' <- mapM convertInputModule modules
   mapM_ (uncurry outputCoqModule) modules'
 
@@ -98,15 +94,14 @@ compiler = do
 -- Haskell input files                                                       --
 -------------------------------------------------------------------------------
 
--- | Parses and simplifies the given input file.
-parseInputFile :: FilePath -> Application IR.Module
-parseInputFile inputFile = reportApp $ do
+-- | Parses the given input file with the given parser function.
+parseInputFile
+  :: (SrcFile -> Application IR.Module) -> FilePath -> Application IR.Module
+parseInputFile parser inputFile = reportApp $ do
   -- Parse and simplify input file.
   putDebug $ "Loading " ++ inputFile
-  (haskellAst, comments) <- liftReporterIO
-    $ parseHaskellModuleFileWithComments inputFile
-  haskellAst' <- transformInputModule haskellAst
-  liftConverter (simplifyModuleWithComments haskellAst' comments)
+  contents <- liftIO $ readFile inputFile
+  parser $ mkSrcFile inputFile contents
 
 -- | Sorts the given modules based on their dependencies.
 --
@@ -142,34 +137,6 @@ convertInputModule haskellAst = do
     loadRequiredModules haskellAst
     coqAst <- liftConverter $ convertModule haskellAst
     return (modName, coqAst)
-
--------------------------------------------------------------------------------
--- Pattern matching compilation                                              --
--------------------------------------------------------------------------------
-
--- | Applies Haskell source code transformations if they are enabled.
-transformInputModule :: HSE.Module SrcSpan -> Application (HSE.Module SrcSpan)
-transformInputModule haskellAst = ifM (inOpts optTransformPatternMatching)
-                                      transformPatternMatching'
-                                      (return haskellAst)
- where
-  transformPatternMatching' :: Application (HSE.Module SrcSpan)
-  transformPatternMatching' = do
-    haskellAst'  <- liftConverter (transformPatternMatching haskellAst)
-    maybeDumpDir <- inOpts optDumpTransformedModulesDir
-    case maybeDumpDir of
-      Nothing      -> return haskellAst'
-      Just dumpDir -> do
-        -- Generate name of dump file.
-        modName <- liftConverter $ extractModName haskellAst'
-        let modPath  = map (\c -> if c == '.' then '/' else c) modName
-            dumpFile = dumpDir </> modPath <.> "hs"
-        -- Dump the transformed module.
-        liftIO $ createDirectoryIfMissing True (takeDirectory dumpFile)
-        liftIO $ writePrettyFile dumpFile haskellAst'
-        -- Read the dumped module back in, such that source spans in
-        -- error messages refer to the dumped file.
-        liftReporterIO $ parseHaskellModuleFile dumpFile
 
 -------------------------------------------------------------------------------
 -- Output                                                                    --
