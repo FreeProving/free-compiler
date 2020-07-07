@@ -1,7 +1,9 @@
-(** Operators that model call-by-value, call-by-name and (eventually) call-by-need 
+(** Operators that model call-by-value, call-by-name and call-by-need 
    evaluation. *)
 
-From Base Require Import Free.Monad.
+From Base Require Import Free.
+From Base Require Export Free.Instance.Comb.
+From Base Require Export Free.Instance.Share.
 
 (** An operator to model call-by-value evaluation *)
 Definition cbv {A : Type} {Shape : Type} {Pos : Shape -> Type} (p : Free Shape Pos A) 
@@ -13,3 +15,15 @@ Definition cbn {A : Type} {Shape : Type} {Pos : Shape -> Type}
   (p : Free Shape Pos A) 
   : Free Shape Pos (Free Shape Pos A) := 
   pure p.
+
+Definition cbneed {A : Type} {Shape : Type} {Pos : Shape -> Type}
+  `{Injectable Share.Shape Share.Pos Shape Pos} (p : Free Shape Pos A)
+  : Free Shape Pos (Free Shape Pos A) :=
+  Get >>= fun '(i,j) =>
+  Put (i + 1, j) >>= fun _ =>
+  pure (BeginShare (i,j) >>= fun _ =>
+      Put (i, j+1) >>= fun _ =>
+      p >>= fun x =>
+      Put (i+1,j) >>= fun _ =>
+      EndShare (i,j) >>= fun _ =>
+      pure x).
