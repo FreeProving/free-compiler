@@ -13,8 +13,8 @@ where
 
 import qualified FreeC.IR.Syntax               as IR
 import           FreeC.IR.SrcSpan               ( SrcSpan(NoSrcSpan) )
-import qualified FreeC.LiftedIR.Syntax         as LIR
 import           FreeC.Util.SnocList            ( SnocList(Nil) )
+import qualified FreeC.LiftedIR.Syntax         as LIR
 
 -- | Converts the argument types of a function.
 liftFuncArgTypes
@@ -33,7 +33,7 @@ liftNonRecFuncArgTypes = map liftType
 liftRecFuncArgTypes :: Int -> [IR.Type] -> [LIR.Type]
 liftRecFuncArgTypes decIndex args =
   let convArgs                      = map liftType args
-      (startArgs, decArg : endArgs) = splitAt (decIndex - 1) convArgs
+      (startArgs, decArg : endArgs) = splitAt decIndex convArgs
   in  startArgs ++ (markOutermostDecreasing decArg : endArgs)
 
 -- | Converts a constructor argument using @convertType@.
