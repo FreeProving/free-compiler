@@ -1,6 +1,7 @@
 module FreeC.Frontend
   ( Frontend(..)
   , haskellFrontend
+  , irFrontend
   )
 where
 
@@ -18,6 +19,7 @@ import           FreeC.Frontend.Haskell.PatternMatching
                                                 ( transformPatternMatching )
 import           FreeC.Frontend.Haskell.Pretty  ( )
 import           FreeC.Frontend.Haskell.Simplifier
+import           FreeC.Frontend.IR.Parser
 import           FreeC.IR.SrcSpan
 import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Application
@@ -30,6 +32,14 @@ data Frontend = Frontend
   , parseFile :: SrcFile -> Application IR.Module
     -- ^ The parsing function that converts a file to the IR representation.
   }
+
+-------------------------------------------------------------------------------
+-- IR frontend                                                               --
+-------------------------------------------------------------------------------
+
+-- | A dummy frontend that just parses the IR.
+irFrontend :: Frontend
+irFrontend = Frontend {name = "ir", parseFile = parseIR}
 
 -------------------------------------------------------------------------------
 -- Haskell frontend                                                          --

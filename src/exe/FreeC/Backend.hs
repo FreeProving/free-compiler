@@ -1,6 +1,7 @@
 module FreeC.Backend
   ( Backend(..)
   , coqBackend
+  , irBackend
   )
 where
 
@@ -35,6 +36,18 @@ data Backend = Backend
     -- ^ An action that has to performed by the backend before conversion, e.g.
     --   project file creation.
   }
+
+-------------------------------------------------------------------------------
+-- IR backend                                                                --
+-------------------------------------------------------------------------------
+
+-- | A dummy backend that just pretty prints the IR.
+irBackend :: Backend
+irBackend = Backend { name          = "ir"
+                    , convertModule = return . showPretty
+                    , fileExtension = "ir"
+                    , specialAction = return ()
+                    }
 
 -------------------------------------------------------------------------------
 -- Coq backend                                                               --
