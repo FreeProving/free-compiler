@@ -21,7 +21,8 @@ import           FreeC.Monad.Converter
 
 -- | Converts an expression from lifted IR to an Agda expression.
 convertLiftedExpr :: LIR.Expr -> Converter Agda.Expr
-convertLiftedExpr (LIR.Con _ _) = fail "Missing case for constructors!"
+convertLiftedExpr (LIR.Con srcSpan name) =
+  Agda.Ident <$> lookupAgdaValIdentOrFail srcSpan name
 convertLiftedExpr (LIR.SmartCon srcSpan name) =
   Agda.Ident <$> lookupAgdaSmartIdentOrFail srcSpan name
 convertLiftedExpr (LIR.Var _ _ name) = return $ Agda.Ident name
@@ -36,7 +37,7 @@ convertLiftedExpr (LIR.Case _ discr alts) =
   Agda.caseOf <$> convertLiftedExpr discr <*> mapM convertLiftedAlt alts
 convertLiftedExpr (LIR.IntLiteral _ val ) = return $ Agda.intLiteral val
 convertLiftedExpr (LIR.Lambda _ args rhs) = do
-  let args' = map (Agda.unqualify . convertLiftedVarPat) args
+  let args' = map (Agda.unqualify . LIR.varPatAgdaIdent) args
   Agda.lambda args' <$> convertLiftedExpr rhs
 convertLiftedExpr (LIR.Pure _ expr) = generatePure <$> convertLiftedExpr expr
 convertLiftedExpr (LIR.Bind _ arg k) =
@@ -49,12 +50,5 @@ convertLiftedExpr (LIR.ErrorExpr _ msg) = return $ errorExpr msg
 convertLiftedAlt :: LIR.Alt -> Converter Agda.LamClause
 convertLiftedAlt (LIR.Alt _ (LIR.ConPat srcSpan name) vars rhs) = do
   conPat' <- Agda.IdentP <$> lookupAgdaValIdentOrFail srcSpan name
-  let varPats = map (Agda.IdentP . convertLiftedVarPat) vars
+  let varPats = map (Agda.IdentP . LIR.varPatAgdaIdent) vars
   Agda.lamClause (foldl Agda.appP conPat' varPats) <$> convertLiftedExpr rhs
-
--- | We translate a var pattern by defining a new variable with  preferably the
---   same name.
---
---   Var patterns are used on the left-hand side of lambdas and case expressions.
-convertLiftedVarPat :: LIR.VarPat -> Agda.QName
-convertLiftedVarPat (LIR.VarPat _ _ _ ident) = ident
