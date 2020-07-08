@@ -1,5 +1,6 @@
 module FreeC.Backend
   ( Backend(..)
+  , backends
   , coqBackend
   , irBackend
   )
@@ -9,6 +10,7 @@ import           Control.Monad.Extra            ( unlessM
                                                 , whenM
                                                 )
 import           Control.Monad.IO.Class
+import qualified Data.Map.Lazy                 as Map
 import           Data.Maybe                     ( isJust )
 import           System.Directory               ( createDirectoryIfMissing
                                                 , doesFileExist
@@ -36,6 +38,9 @@ data Backend = Backend
     -- ^ An action that has to performed by the backend before conversion, e.g.
     --   project file creation.
   }
+
+backends :: Map.Map String Backend
+backends = Map.fromList [ (name b, b) | b <- [coqBackend, irBackend] ]
 
 -------------------------------------------------------------------------------
 -- IR backend                                                                --

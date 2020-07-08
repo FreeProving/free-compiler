@@ -1,5 +1,6 @@
 module FreeC.Frontend
   ( Frontend(..)
+  , frontends
   , haskellFrontend
   , irFrontend
   )
@@ -7,6 +8,7 @@ where
 
 import           Control.Monad.Extra            ( ifM )
 import           Control.Monad.IO.Class
+import qualified Data.Map.Lazy                 as Map
 import qualified Language.Haskell.Exts.Syntax  as HSE
 import           System.Directory               ( createDirectoryIfMissing )
 import           System.FilePath
@@ -33,13 +35,16 @@ data Frontend = Frontend
     -- ^ The parsing function that converts a file to the IR representation.
   }
 
+frontends :: Map.Map String Frontend
+frontends = Map.fromList [ (name f, f) | f <- [haskellFrontend, irFrontend] ]
+
 -------------------------------------------------------------------------------
 -- IR frontend                                                               --
 -------------------------------------------------------------------------------
 
 -- | A dummy frontend that just parses the IR.
 irFrontend :: Frontend
-irFrontend = Frontend {name = "ir", parseFile = parseIR}
+irFrontend = Frontend { name = "ir", parseFile = parseIR }
 
 -------------------------------------------------------------------------------
 -- Haskell frontend                                                          --
