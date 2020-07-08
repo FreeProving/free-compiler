@@ -75,4 +75,20 @@ optionDescriptors =
     ++ "This option adds location information to error messages that\n"
     ++ "refer to the dumped file."
     )
+  , Option
+    []
+    ["from"]
+    (ReqArg (\p opts -> opts { optFrontend = p }) "LANG")
+    ("Optional. Specifies the frontend for the compiler to use. Currently the\n"
+    ++ "Haskell frontend and a dummy IR frontend that parses the IR are\n"
+    ++ "supported. Defaults to the Haskell frontend."
+    )
+  , Option
+    []
+    ["to"]
+    (ReqArg (\p opts -> opts { optBackend = p }) "LANG")
+    ("Optional. Specifies the backend for the compiler to use. Currently the\n"
+    ++ "Coq backend and a dummy IR backend that pretty prints the IR\n"
+    ++ "are supported. Defaults to the Coq backend."
+    )
   ]

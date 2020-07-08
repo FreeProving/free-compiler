@@ -43,6 +43,10 @@ data Options = Options
 
   , optDumpTransformedModulesDir :: Maybe FilePath
     -- ^ The directory to dump transformed modules to.
+  , optFrontend                  :: String
+    -- ^ The frontend to use.
+  , optBackend                   :: String
+    -- ^ The backend to use.
   }
 
 -- | The default command line options.
@@ -65,4 +69,6 @@ makeDefaultOptions = do
                    , optCreateCoqProject          = True
                    , optTransformPatternMatching  = False
                    , optDumpTransformedModulesDir = Nothing
+                   , optFrontend                  = "haskell"
+                   , optBackend                   = "coq"
                    }
