@@ -8,10 +8,13 @@ import           Control.Monad.Extra            ( unlessM
 import           Control.Monad.IO.Class
 import           Data.List                      ( intercalate )
 import           Data.List.Extra                ( splitOn )
+import qualified Data.Map.Lazy                 as Map
 import           System.Directory               ( createDirectoryIfMissing
                                                 , doesFileExist
                                                 )
-import           System.Exit                    ( exitSuccess )
+import           System.Exit                    ( exitSuccess
+                                                , exitFailure
+                                                )
 import           System.FilePath
 
 import           FreeC.Application.Debug
@@ -73,8 +76,9 @@ compiler = do
     putDebug "No input file.\n"
     putUsageInfo
     exitSuccess
-  let frontend = haskellFrontend
-      backend  = coqBackend
+  -- Select frontend and backend
+  frontend <- selectFrontend
+  backend  <- selectBackend
   -- Initialize environment.
   loadPrelude
   loadQuickCheck
@@ -87,6 +91,36 @@ compiler = do
     >>= mapM (liftConverter . runPipeline)
     >>= mapM (convertInputModule $ convertModule backend)
   mapM_ (uncurry (outputModule $ fileExtension backend)) modules'
+
+-------------------------------------------------------------------------------
+-- Front- and backend selection                                              --
+-------------------------------------------------------------------------------
+
+-- | Selects the correct frontend or throws an error if such a frontend does
+--   not exist.
+selectFrontend :: Application Frontend
+selectFrontend = do
+  frontendName <- inOpts optFrontend
+  case Map.lookup frontendName frontends of
+    Nothing -> do
+      putDebug
+        $  "Unrecognized frontend. Currently supported frontends are: "
+        ++ intercalate ", " (Map.keys frontends)
+      liftIO exitFailure
+    Just f -> return f
+
+-- | Selects the correct backend or throws an error if such a backend does
+--   not exist.
+selectBackend :: Application Backend
+selectBackend = do
+  backendName <- inOpts optBackend
+  case Map.lookup backendName backends of
+    Nothing -> do
+      putDebug
+        $  "Unrecognized backend. Currently supported backends are: "
+        ++ intercalate ", " (Map.keys backends)
+      liftIO exitFailure
+    Just b -> return b
 
 -------------------------------------------------------------------------------
 -- Haskell input files                                                       --
