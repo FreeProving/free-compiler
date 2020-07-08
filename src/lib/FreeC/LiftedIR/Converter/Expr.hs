@@ -5,10 +5,7 @@ module FreeC.LiftedIR.Converter.Expr
   )
 where
 
-import           Control.Monad                  ( foldM
-                                                , join
-                                                )
-import           Data.Foldable                  ( foldrM )
+import           Control.Monad                  ( join )
 import           Data.Maybe                     ( fromMaybe )
 
 import qualified FreeC.IR.Syntax               as IR
@@ -16,6 +13,11 @@ import           FreeC.IR.SrcSpan               ( SrcSpan(NoSrcSpan) )
 import qualified FreeC.LiftedIR.Syntax         as LIR
 import qualified FreeC.LiftedIR.Converter.Type as LIR
 import           FreeC.Environment
+import           FreeC.Environment.LookupOrFail ( lookupAgdaFreshIdentOrFail
+                                                , lookupAgdaValIdentOrFail
+                                                )
+import           FreeC.Environment.Renamer      ( renameAndDefineAgdaVar )
+import           FreeC.Environment.Fresh        ( freshIRQName )
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter           ( reportFatal
                                                 , Message(Message)
@@ -24,7 +26,6 @@ import           FreeC.Monad.Reporter           ( reportFatal
 
 -- | Converts an expression from IR to lifted IR and lifts it during the
 --   translation.
---
 convertExpr :: IR.Expr -> Converter LIR.Expr
 convertExpr expr = convertExpr' expr [] []
 
@@ -63,8 +64,8 @@ convertExpr' (IR.Con srcSpan name _) _ args = do
 
 -- Cases for (possible applied) variables (i.e. variables and functions).
 convertExpr' (IR.Var srcSpan name _) _ args = do
-  args' <- mapM convertExpr args
-  let varName = LIR.Var srcSpan name
+  args'    <- mapM convertExpr args
+  varName  <- LIR.Var srcSpan name <$> lookupAgdaValIdentOrFail srcSpan name
   function <- inEnv $ isFunction name
   if function -- If this is a top level functions it's lifted argument wise.
     then return $ LIR.App srcSpan varName [] [] args'
@@ -80,12 +81,10 @@ convertExpr' (IR.IntLiteral srcSpan value _) [] [] =
 -- > ⎢-----------------------⎥ = -----------------------------------
 -- > ⎣ Γ ⊢ λx:τ₀.e : τ₀ → τ₁ ⎦   Γ' ⊢ pure(λx:τ₀'.e') : m(τ₀' → τ₁')
 convertExpr' (IR.Lambda srcSpan args rhs _) [] [] =
-  flip (foldr (\a b -> LIR.Pure srcSpan $ LIR.Lambda srcSpan [a] b))
-       (map convertVarPat args)
-    <$> convertExpr rhs
-
-  -- LIR.Pure srcSpan
-  --   <$> (LIR.Lambda srcSpan (map convertVarPat args) <$> convertExpr rhs)
+  localEnv
+    $   flip (foldr (\a b -> LIR.Pure srcSpan $ LIR.Lambda srcSpan [a] b))
+    <$> mapM convertVarPat args
+    <*> convertExpr rhs
 
 -- @if@-expressions.
 --
@@ -138,21 +137,20 @@ convertExpr' expr [] args@(_ : _) =
 --   and the right-hand side.
 convertAlt :: IR.Alt -> Converter LIR.Alt
 convertAlt (IR.Alt srcSpan conPat varPats expr) =
-  LIR.Alt srcSpan (convertConPat conPat) (map convertVarPat varPats)
-    <$> convertExpr expr
+  LIR.Alt srcSpan (convertConPat conPat)
+    <$> mapM convertVarPat varPats
+    <*> convertExpr expr
 
 -- | Translates a constructor pattern from IR to LIR.
 convertConPat :: IR.ConPat -> LIR.ConPat
 convertConPat (IR.ConPat srcSpan name) = LIR.ConPat srcSpan name
 
 -- | Translates a variable pattern from IR to LIR.
---
---   The bound variable is not added to the environment, because the same IR name
---   could refer to different variables (e.g. shadowing, two @case@ branches
---   biding the same name). In the back end this can be solved using @localEnv@.
-convertVarPat :: IR.VarPat -> LIR.VarPat
-convertVarPat (IR.VarPat srcSpan name t _) = do
-  LIR.VarPat srcSpan (IR.UnQual $ IR.Ident name) $ LIR.liftType <$> t
+convertVarPat :: IR.VarPat -> Converter LIR.VarPat
+convertVarPat (IR.VarPat srcSpan name t strict) = do
+  let name' = IR.UnQual $ IR.Ident name
+  agdaVar <- renameAndDefineAgdaVar srcSpan strict name t
+  return $ LIR.VarPat srcSpan name' (LIR.liftType <$> t) agdaVar
 
 -------------------------------------------------------------------------------
 -- Application-expression helper                                             --
@@ -164,7 +162,8 @@ convertVarPat (IR.VarPat srcSpan name t _) = do
 --   > ⎢--------------------------⎥ = ---------------------------------------
 --   > ⎣      Γ ⊢ e₀e₁ : τ₁       ⎦   Γ' ⊢ e₀' >>= λf:(τ₀' → τ₁').f e₀' : e₁'
 generateApply :: LIR.Expr -> [LIR.Expr] -> Converter LIR.Expr
-generateApply = foldM $ \mf arg -> mf `bind` \f -> return (f `app` arg)
+generateApply mf []       = return mf
+generateApply mf (a : as) = mf `bind` \f -> generateApply (f `app` a) as
   where app l r = LIR.App NoSrcSpan l [] [] [r]
 
 -------------------------------------------------------------------------------
@@ -174,24 +173,18 @@ generateApply = foldM $ \mf arg -> mf `bind` \f -> return (f `app` arg)
 -- | Tries to extract a variable name from an expression. This function can be
 --   used to preserve the same base variable name across chains of binds.
 guessName :: LIR.Expr -> Maybe String
-guessName (LIR.Var _ name  ) = IR.identFromQName name
-guessName (LIR.Bind _ arg _) = guessName arg
-guessName _                  = Nothing
+guessName (LIR.Var  _ name _) = IR.identFromQName name
+guessName (LIR.Bind _ arg  _) = guessName arg
+guessName _                   = Nothing
 
 -- | Creates a @>>= \x ->@, which binds a new variable.
---
---   The bound variable is not added to the environment, because the same IR name
---   could refer to different variables (e.g. shadowing, two @case@ branches
---   binding the same name). In the back end this can be solved using @localEnv@.
 bind :: LIR.Expr -> (LIR.Expr -> Converter LIR.Expr) -> Converter LIR.Expr
-bind arg k = do
-  let argIdent = IR.UnQual $ IR.Ident $ "uf"  -- fromMaybe "f" (guessName arg)
-  let varPat   = LIR.VarPat NoSrcSpan argIdent Nothing
-  rhs <- LIR.Lambda NoSrcSpan [varPat] <$> k (LIR.Var NoSrcSpan argIdent)
+bind arg k = localEnv $ do
+  -- Build the lambda on the RHS of the bind.
+  argIdent <- freshIRQName $ fromMaybe "f" (guessName arg)
+  argAgda  <- lookupAgdaFreshIdentOrFail NoSrcSpan argIdent
+  let varPat = LIR.VarPat NoSrcSpan argIdent Nothing $ argAgda
+  rhs <- LIR.Lambda NoSrcSpan [varPat]
+    <$> k (LIR.Var NoSrcSpan argIdent argAgda)
+  -- Build the bind.
   return $ LIR.Bind NoSrcSpan arg rhs
-
-
-
-
-
-

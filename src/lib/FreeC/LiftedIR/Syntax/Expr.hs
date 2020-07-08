@@ -9,6 +9,8 @@ import           FreeC.LiftedIR.Effect          ( Effect )
 import           FreeC.LiftedIR.Syntax.Name
 import           FreeC.LiftedIR.Syntax.Type
 
+import qualified FreeC.Backend.Agda.Syntax     as Agda
+
 -- | An expression.
 data Expr
   = -- | A constructor.
@@ -16,13 +18,15 @@ data Expr
         , exprConName :: ConName
         }
 
-  | SmartCon { exprSrcSpan :: SrcSpan
+  | -- | A smart constructor.
+    SmartCon { exprSrcSpan :: SrcSpan
              , exprConName :: ConName
              }
 
   | -- | A function or local variable.
-    Var { exprSrcSpan :: SrcSpan
-        , exprVarName :: VarName
+    Var { exprSrcSpan     :: SrcSpan
+        , exprVarName     :: VarName
+        , exprAgdaVarName :: Agda.QName
         }
 
   | -- | Function or constructor application.
@@ -109,6 +113,7 @@ data VarPat = VarPat
   { varPatSrcSpan   :: SrcSpan
   , varPatIdent     :: QName
   , varPatType      :: Maybe Type
-    -- TODO: remove after EtaConversionPass is moved
+    -- TODO: remove maybe after EtaConversionPass is moved
+  , varPatAgdaIdent :: Agda.QName
   }
  deriving (Eq, Show)
