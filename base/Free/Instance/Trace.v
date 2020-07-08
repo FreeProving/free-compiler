@@ -4,8 +4,6 @@ From Base Require Import Free.
 From Base Require Import Free.Util.Void.
 Require Export Coq.Strings.String.
 
-From Base Require Import Prelude.Integer.
-
 Module Trace.
 
   (* Type synonym for a tracing id *)
