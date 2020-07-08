@@ -8,6 +8,7 @@ where
 import           Control.Monad                  ( foldM
                                                 , join
                                                 )
+import           Data.Foldable                  ( foldrM )
 import           Data.Maybe                     ( fromMaybe )
 
 import qualified FreeC.IR.Syntax               as IR
@@ -79,8 +80,12 @@ convertExpr' (IR.IntLiteral srcSpan value _) [] [] =
 -- > ⎢-----------------------⎥ = -----------------------------------
 -- > ⎣ Γ ⊢ λx:τ₀.e : τ₀ → τ₁ ⎦   Γ' ⊢ pure(λx:τ₀'.e') : m(τ₀' → τ₁')
 convertExpr' (IR.Lambda srcSpan args rhs _) [] [] =
-  LIR.Pure srcSpan
-    <$> (LIR.Lambda srcSpan (map convertVarPat args) <$> convertExpr rhs)
+  flip (foldr (\a b -> LIR.Pure srcSpan $ LIR.Lambda srcSpan [a] b))
+       (map convertVarPat args)
+    <$> convertExpr rhs
+
+  -- LIR.Pure srcSpan
+  --   <$> (LIR.Lambda srcSpan (map convertVarPat args) <$> convertExpr rhs)
 
 -- @if@-expressions.
 --
@@ -180,7 +185,13 @@ guessName _                  = Nothing
 --   binding the same name). In the back end this can be solved using @localEnv@.
 bind :: LIR.Expr -> (LIR.Expr -> Converter LIR.Expr) -> Converter LIR.Expr
 bind arg k = do
-  let argIdent = IR.UnQual $ IR.Ident $ fromMaybe "f" (guessName arg)
+  let argIdent = IR.UnQual $ IR.Ident $ "uf"  -- fromMaybe "f" (guessName arg)
   let varPat   = LIR.VarPat NoSrcSpan argIdent Nothing
   rhs <- LIR.Lambda NoSrcSpan [varPat] <$> k (LIR.Var NoSrcSpan argIdent)
   return $ LIR.Bind NoSrcSpan arg rhs
+
+
+
+
+
+

@@ -23,6 +23,7 @@ module FreeC.Backend.Agda.Syntax
   , stringLiteral
   , lambda
   , app
+  , appN
   , ident
   , hiddenArg_
   , ite
@@ -52,7 +53,8 @@ import           Prelude                 hiding ( pi )
 
 -- | Creates a (not qualified) Agda variable name from a 'String'.
 name :: String -> Name
-name str = Name NoRange InScope [Id str]
+name str = Name NoRange InScope $ stringNameParts str
+-- name str = Name NoRange InScope [Id str]
 
 -- | Create a qualified identifier given a local identifier as 'Name' and a
 --   list of module 'Name's.
@@ -135,8 +137,9 @@ parenIfNeeded p            = p
 
 -- | Tests wether the given AST node is an @App@.
 isApp :: Expr -> Bool
-isApp (App _ _ _) = True
-isApp _           = False
+isApp (App _ _ _ ) = True
+isApp (RawApp _ _) = True
+isApp _            = False
 
 -- | Tests wether the given AST node is an @Fun@.
 isFun :: Expr -> Bool
@@ -168,6 +171,22 @@ lambda args = Lam NoRange (DomainFree . defaultNamedArg . mkBinder_ <$> args)
 app :: Expr -> Expr -> Expr
 app l r =
   App NoRange l $ defaultNamedArg (if isApp .||. isFun $ r then paren r else r)
+
+appN :: Expr -> [Expr] -> Expr
+appN f = if isOp f then opApp f else foldl app f
+
+isOp :: Expr -> Bool
+isOp (Ident n) = isOperator $ unqualify n
+isOp _         = False
+
+opApp :: Expr -> [Expr] -> Expr
+opApp (Ident op) =
+  paren . RawApp NoRange . opApp' (nameNameParts $ unqualify $ op)
+
+opApp' :: [NamePart] -> [Expr] -> [Expr]
+opApp' (Hole    : ps) (a : as) = a : opApp' ps as
+opApp' (Id part : ps) as       = ident part : opApp' ps as
+opApp' []             []       = []
 
 -- | Wraps the given expression in parenthesis.
 paren :: Expr -> Expr

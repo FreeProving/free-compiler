@@ -29,6 +29,8 @@ import           FreeC.Monad.Reporter           ( reportFatal
                                                 , Severity(Error)
                                                 )
 
+import Debug.Trace
+
 -- | Converts an expression from lifted IR to an Agda expression.
 convertLiftedExpr :: LIR.Expr -> Converter Agda.Expr
 convertLiftedExpr (LIR.Con _ _) = fail "Missing case for constructors!"
@@ -37,7 +39,7 @@ convertLiftedExpr (LIR.SmartCon srcSpan name) =
 convertLiftedExpr (LIR.Var _ name) =
   Agda.Ident <$> lookupAgdaFreshOrValIdent name
 convertLiftedExpr (LIR.App _ expr _ _ args) =
-  foldl Agda.app <$> convertLiftedExpr expr <*> mapM convertLiftedExpr args
+  Agda.appN <$> convertLiftedExpr expr <*> mapM convertLiftedExpr args
 convertLiftedExpr (LIR.If _ cond true false) =
   Agda.ite
     <$> convertLiftedExpr cond
@@ -51,7 +53,7 @@ convertLiftedExpr (LIR.Lambda _ args rhs) = localEnv $ do
   Agda.lambda args' <$> convertLiftedExpr rhs
 convertLiftedExpr (LIR.Pure _ expr) = generatePure <$> convertLiftedExpr expr
 convertLiftedExpr (LIR.Bind _ arg k) =
-  bind <$> convertLiftedExpr arg <*> convertLiftedExpr k
+  bind <$> convertLiftedExpr arg <*> convertLiftedExpr k -- 'f' not fresh
 convertLiftedExpr (LIR.Undefined _    ) = return $ undefinedExpr
 convertLiftedExpr (LIR.ErrorExpr _ msg) = return $ errorExpr msg
 
@@ -71,9 +73,11 @@ convertLiftedAlt (LIR.Alt _ (LIR.ConPat srcSpan name) vars rhs) = localEnv $ do
 --
 --   Var patterns are used on the left-hand side of lambdas and case expressions.
 convertLiftedVarPat :: LIR.VarPat -> Converter Agda.QName
-convertLiftedVarPat (LIR.VarPat srcSpan name _) = do
+convertLiftedVarPat (LIR.VarPat srcSpan name _) = trace (">>>" <> show name) $ do
   ident <- maybe invalidIdentError return $ IR.identFromQName name
-  renameAndDefineAgdaVar srcSpan False ident Nothing
+  ident' <- renameAndDefineAgdaVar srcSpan False ident Nothing
+  traceM $ show ident'
+  return ident'
  where
   invalidIdentError =
     reportFatal $ Message srcSpan Error $ "Variable name cannot be an operator!"
