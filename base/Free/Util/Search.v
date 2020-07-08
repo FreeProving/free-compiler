@@ -1,6 +1,7 @@
 (** Definition of choice trees and the depth-first search algorithm *)
 
 Require Import EqNat.
+Require Import Coq.Strings.String.
 
 Set Implicit Arguments.
 
@@ -36,6 +37,8 @@ Definition update {K V : Type} (beq : K -> K -> bool) (m : partial_map K V) (k :
 
 Definition Memo := partial_map ID Decision.
 
+Definition List_Memo := partial_map ID unit.
+
 Fixpoint dfs A (m : Memo) (t : Tree A) : list A :=
   match t with
   | Empty _ => Datatypes.nil
@@ -50,3 +53,16 @@ Fixpoint dfs A (m : Memo) (t : Tree A) : list A :=
   end.
 
 Definition collectVals A := @dfs A emptymap.
+
+Fixpoint compute_log (m : List_Memo) (xs : list (option ID * string)) : list string :=
+  match xs with
+  | nil                    => nil
+  | cons (None, msg)    ys => cons msg (compute_log m ys)
+  | cons (Some id, msg) ys => match m id with
+     | None   => cons msg (compute_log (update beq_id m id tt) ys)
+     | Some _ => compute_log m ys
+     end
+  end.
+
+Definition collectMessages (A : Type) (x : (A * list (option ID * string))) : (A * list string) :=
+   (fst x,compute_log emptymap (snd x)).
