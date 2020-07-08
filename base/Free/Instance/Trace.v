@@ -4,6 +4,8 @@ From Base Require Import Free.
 From Base Require Import Free.Util.Void.
 Require Export Coq.Strings.String.
 
+From Base Require Import Prelude.Integer.
+
 Module Trace.
 
   (* Type synonym for a tracing id *)
@@ -16,19 +18,17 @@ Module Trace.
   (* Type synonym and smart constructors for the maybe monad. *)
   Module Import Monad.
     Definition Trace (A : Type) : Type := Free Shape Pos A.
-    Definition Nil {A : Type} (x : A) : Trace A := pure x.
-    Definition LCons {A : Type} mid msg x : Trace A := 
-       impure (mid, msg) (fun tt => x).
-
-  (* Versions of the smart constructors that automatically embed values in an effect stack *)
-    Definition Nil_inj {A : Type} {Shape' : Type} {Pos' : Shape' -> Type} 
+    Definition Nil {A : Type} {Shape' : Type} {Pos' : Shape' -> Type} 
       (x : A) `{Injectable Shape Pos Shape' Pos'} 
       : Free Shape' Pos' A := pure x.
-
-    Definition LCons_inj {A : Type} {Shape' : Type} {Pos' : Shape' -> Type} 
-      `{Injectable Shape Pos Shape' Pos'} mid msg x
+    Definition LCons {A : Type} {Shape' : Type} {Pos' : Shape' -> Type} 
+      `{Injectable Shape Pos Shape' Pos'} (mid : option ID) (msg : string) x
       : Free Shape' Pos' A :=
       impure (injS (mid, msg)) (fun tt => x).
+
+    Definition trace {A : Type} {Shape' : Type} {Pos' : Shape' -> Type} 
+      `{i : Injectable Shape Pos Shape' Pos'} msg x := 
+      @LCons A Shape' Pos' i None msg x. 
   End Monad.
 
   (* There is no Partial instance. *)
