@@ -13,7 +13,7 @@ Module Trace.
   Definition Shape : Type := option ID * string.
   Definition Pos : Shape -> Type := fun _ => unit.
 
-  (* Type synonym and smart constructors for the maybe monad. *)
+  (* Type synonym and smart constructors for the tracing effect. *)
   Module Import Monad.
     Definition Trace (A : Type) : Type := Free Shape Pos A.
     Definition Nil {A : Type} {Shape' : Type} {Pos' : Shape' -> Type} 
