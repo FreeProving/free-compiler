@@ -182,11 +182,13 @@ isOp _         = False
 opApp :: Expr -> [Expr] -> Expr
 opApp (Ident op) =
   paren . RawApp NoRange . opApp' (nameNameParts $ unqualify $ op)
+opApp _ = error "Only an identifier can be an operator!"
 
 opApp' :: [NamePart] -> [Expr] -> [Expr]
 opApp' (Hole    : ps) (a : as) = a : opApp' ps as
 opApp' (Id part : ps) as       = ident part : opApp' ps as
 opApp' []             []       = []
+opApp' _ _ = error "Wrong number of arguments supplied to operator!"
 
 -- | Wraps the given expression in parenthesis.
 paren :: Expr -> Expr
