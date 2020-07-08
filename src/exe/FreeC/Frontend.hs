@@ -31,9 +31,9 @@ data Frontend = Frontend
     -- ^ The parsing function that converts a file to the IR representation.
   }
 
-  -------------------------------------------------------------------------------
-  -- Haskell frontend                                                          --
-  -------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+-- Haskell frontend                                                          --
+-------------------------------------------------------------------------------
 
 -- | Parses and simplifies the given file.
 parseHaskell :: SrcFile -> Application IR.Module

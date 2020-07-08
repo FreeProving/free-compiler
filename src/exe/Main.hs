@@ -21,10 +21,8 @@ import           FreeC.Application.Option.Help
 import           FreeC.Application.Option.Version
 import           FreeC.Application.Options
 import           FreeC.Application.Options.Parser
+import           FreeC.Backend
 import qualified FreeC.Backend.Coq.Base        as Coq.Base
-import           FreeC.Backend.Coq.Converter    ( convertModule )
-import           FreeC.Backend.Coq.Pretty
-import qualified FreeC.Backend.Coq.Syntax      as Coq
 import           FreeC.Environment
 import           FreeC.Environment.ModuleInterface.Decoder
 import           FreeC.Environment.ModuleInterface.Encoder
@@ -77,18 +75,19 @@ compiler = do
     putDebug "No input file.\n"
     putUsageInfo
     exitSuccess
+  let frontend = haskellFrontend
+      backend  = coqBackend
   -- Initialize environment.
   loadPrelude
   loadQuickCheck
-  createCoqProject
+  specialAction backend
   -- Process input files.
-  let frontend = haskellFrontend
   modules <-
     inOpts optInputFiles
     >>= mapM (parseInputFile $ parseFile frontend)
     >>= sortInputModules
-  modules' <- mapM convertInputModule modules
-  mapM_ (uncurry outputCoqModule) modules'
+  modules' <- mapM (convertInputModule $ convertModule backend) modules
+  mapM_ (uncurry (outputModule $ fileExtension backend)) modules'
 
 -------------------------------------------------------------------------------
 -- Haskell input files                                                       --
@@ -117,13 +116,16 @@ sortInputModules = mapM checkForCycle . groupModules
       $  "Module imports form a cycle: "
       ++ intercalate ", " (map (showPretty . IR.modName) ms)
 
--- | Converts the given Haskell module to Coq.
+-- | Converts the given module with the given converter function.
 --
---   The resulting Coq AST is written to the console or output file.
-convertInputModule :: IR.Module -> Application (IR.ModName, [Coq.Sentence])
-convertInputModule haskellAst = do
-  let modName = IR.modName haskellAst
-      srcSpan = IR.modSrcSpan haskellAst
+--   The resulting string is written to the console or output file.
+convertInputModule
+  :: (IR.Module -> Application String)
+  -> IR.Module
+  -> Application (IR.ModName, String)
+convertInputModule converter ast = do
+  let modName = IR.modName ast
+      srcSpan = IR.modSrcSpan ast
   if hasSrcSpanFilename srcSpan
     then
       putDebug
@@ -134,29 +136,31 @@ convertInputModule haskellAst = do
       ++ ")"
     else putDebug $ "Compiling " ++ showPretty modName
   reportApp $ do
-    loadRequiredModules haskellAst
-    coqAst <- liftConverter $ convertModule haskellAst
-    return (modName, coqAst)
+    loadRequiredModules ast
+    prog <- converter ast
+    return (modName, prog)
 
 -------------------------------------------------------------------------------
 -- Output                                                                    --
 -------------------------------------------------------------------------------
 
--- | Output a Coq module that has been generated from a Haskell module
+-- | Output a module that has been generated from a IR module
 --   with the given name.
-outputCoqModule :: IR.ModName -> [Coq.Sentence] -> Application ()
-outputCoqModule modName coqAst = do
+--
+--  The generated file has the given file extension.
+outputModule :: String -> IR.ModName -> String -> Application ()
+outputModule ext modName outputStr = do
   maybeOutputDir <- inOpts optOutputDir
   case maybeOutputDir of
-    Nothing        -> liftIO (putPrettyLn (map PrettyCoq coqAst))
+    Nothing        -> liftIO $ putPrettyLn outputStr
     Just outputDir -> do
       let outputPath = map (\c -> if c == '.' then '/' else c) modName
-          outputFile = outputDir </> outputPath <.> "v"
+          outputFile = outputDir </> outputPath <.> ext
           ifaceFile  = outputDir </> outputPath <.> "json"
       Just iface <- inEnv $ lookupAvailableModule modName
       liftIO $ createDirectoryIfMissing True (takeDirectory outputFile)
       writeModuleInterface ifaceFile iface
-      liftIO $ writePrettyFile outputFile (map PrettyCoq coqAst)
+      liftIO $ writePrettyFile outputFile $ outputStr
 
 -------------------------------------------------------------------------------
 -- Imports                                                                   --
