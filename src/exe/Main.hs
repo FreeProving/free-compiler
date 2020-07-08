@@ -8,10 +8,8 @@ import           Control.Monad.Extra            ( unlessM
 import           Control.Monad.IO.Class
 import           Data.List                      ( intercalate )
 import           Data.List.Extra                ( splitOn )
-import           Data.Maybe                     ( isJust )
 import           System.Directory               ( createDirectoryIfMissing
                                                 , doesFileExist
-                                                , makeAbsolute
                                                 )
 import           System.Exit                    ( exitSuccess )
 import           System.FilePath
@@ -22,7 +20,6 @@ import           FreeC.Application.Option.Version
 import           FreeC.Application.Options
 import           FreeC.Application.Options.Parser
 import           FreeC.Backend
-import qualified FreeC.Backend.Coq.Base        as Coq.Base
 import           FreeC.Environment
 import           FreeC.Environment.ModuleInterface.Decoder
 import           FreeC.Environment.ModuleInterface.Encoder
@@ -233,55 +230,3 @@ loadModuleFromBaseLib modName = do
       ifaceFile = baseLibDir </> modPath <.> "toml"
   ifrace <- loadModuleInterface ifaceFile
   modifyEnv $ makeModuleAvailable ifrace
-
--- | Creates a @_CoqProject@ file (if enabled) that maps the physical directory
---   of the Base library.
---
---   The path to the Base library will be relative to the output directory.
-createCoqProject :: Application ()
-createCoqProject = whenM coqProjectEnabled
-  $ unlessM coqProjectExists writeCoqProject
- where
-  -- | Tests whether the generation of a @_CoqProject@ file is enabled.
-  --
-  --   The generation of the @_CoqProject@ file can be disabled with the
-  --   command line option @--no-coq-project@. If there is no @--output@
-  --   directory, the generation of the @_CoqProject@ file is disabled as
-  --   well.
-  coqProjectEnabled :: Application Bool
-  coqProjectEnabled = do
-    isEnabled      <- inOpts optCreateCoqProject
-    maybeOutputDir <- inOpts optOutputDir
-    return (isEnabled && isJust maybeOutputDir)
-
-  -- | Path to the @_CoqProject@ file to create.
-  getCoqProjectFile :: Application FilePath
-  getCoqProjectFile = do
-    Just outputDir <- inOpts optOutputDir
-    return (outputDir </> "_CoqProject")
-
-  -- | Tests whether the @_CoqProject@ file does exist already.
-  coqProjectExists :: Application Bool
-  coqProjectExists = getCoqProjectFile >>= liftIO . doesFileExist
-
-  -- | Writes the string returned by 'makeContents' to the @_CoqProject@ file.
-  writeCoqProject :: Application ()
-  writeCoqProject = do
-    coqProject <- getCoqProjectFile
-    contents   <- makeContents
-    liftIO $ do
-      createDirectoryIfMissing True (takeDirectory coqProject)
-      writeFile coqProject contents
-
-  -- | Creates the string to write to the 'coqProject' file.
-  makeContents :: Application String
-  makeContents = do
-    baseDir        <- inOpts optBaseLibDir
-    Just outputDir <- inOpts optOutputDir
-    absBaseDir     <- liftIO $ makeAbsolute baseDir
-    absOutputDir   <- liftIO $ makeAbsolute outputDir
-    let relBaseDir = makeRelative absOutputDir absBaseDir
-    return $ unlines
-      [ "-R " ++ relBaseDir ++ " " ++ showPretty Coq.Base.baseLibName
-      , "-R . " ++ showPretty Coq.Base.generatedLibName
-      ]
