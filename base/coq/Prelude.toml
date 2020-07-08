@@ -252,7 +252,7 @@ exported-values = [
   coq-name        = 'pair_'
   agda-name       = 'pair'
   coq-smart-name  = 'Pair_'
-  agda-smart-name = 'Pair'
+  agda-smart-name = 'Pair′'
   arity           = 2
 
 ##############################################################################
