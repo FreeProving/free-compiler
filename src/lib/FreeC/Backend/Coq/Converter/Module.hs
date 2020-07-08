@@ -2,7 +2,6 @@
 
 module FreeC.Backend.Coq.Converter.Module where
 
-import           Control.Monad                  ( (>=>) )
 import           Control.Monad.Extra            ( concatMapM )
 import           Data.List                      ( find
                                                 , findIndex
@@ -18,20 +17,15 @@ import           FreeC.IR.DependencyGraph
 import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
-import           FreeC.Pipeline
 import           FreeC.Pretty
 
 -------------------------------------------------------------------------------
 -- Modules                                                                   --
 -------------------------------------------------------------------------------
 
--- | Converts a Haskell module to a Gallina sentences.
+-- | Converts a module to Gallina sentences.
 convertModule :: IR.Module -> Converter [Coq.Sentence]
-convertModule = moduleEnv . (runPipeline >=> convertModule')
-
--- | Like 'convertModule'' but does not apply any compiler passes beforehand.
-convertModule' :: IR.Module -> Converter [Coq.Sentence]
-convertModule' haskellAst = do
+convertModule haskellAst = moduleEnv $ do
   imports' <- convertImportDecls (IR.modImports haskellAst)
   mapM_ (addDecArgPragma (IR.modFuncDecls haskellAst))
         (IR.modPragmas haskellAst)

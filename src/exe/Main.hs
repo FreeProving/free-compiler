@@ -32,6 +32,7 @@ import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Application
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
+import           FreeC.Pipeline
 import           FreeC.Pretty                   ( putPrettyLn
                                                 , showPretty
                                                 , writePrettyFile
@@ -79,11 +80,12 @@ compiler = do
   loadQuickCheck
   specialAction backend
   -- Process input files.
-  modules <-
+  modules' <-
     inOpts optInputFiles
     >>= mapM (parseInputFile $ parseFile frontend)
     >>= sortInputModules
-  modules' <- mapM (convertInputModule $ convertModule backend) modules
+    >>= mapM (liftConverter . runPipeline)
+    >>= mapM (convertInputModule $ convertModule backend)
   mapM_ (uncurry (outputModule $ fileExtension backend)) modules'
 
 -------------------------------------------------------------------------------
