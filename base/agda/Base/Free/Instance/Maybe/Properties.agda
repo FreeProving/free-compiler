@@ -7,7 +7,7 @@ open import Base.Free.Instance.Maybe              using (Just; Nothing)      ren
 
 open import Base.Isomorphism                      using (_≃_)
 open        _≃_
-open import Base.Extensionality                   using (∀-extensionality)
+open import Base.Extensionality                   using (ext)
 
 
 -- The usual `Maybe` monad representation an the free version are isomorphic.
@@ -23,4 +23,4 @@ from Maybe≃MaybeF (impure tt _) = nothing
 from∘to Maybe≃MaybeF (just x) = refl
 from∘to Maybe≃MaybeF nothing  = refl
 to∘from Maybe≃MaybeF (pure x)      = refl
-to∘from Maybe≃MaybeF (impure tt x) = cong (impure tt) (∀-extensionality λ())
+to∘from Maybe≃MaybeF (impure tt x) = cong (impure tt) (ext λ())
