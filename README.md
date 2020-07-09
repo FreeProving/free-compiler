@@ -27,7 +27,7 @@ A compiler for the monadic translation of Haskell programs to Coq that uses the 
         4. [`--no-coq-project`](#--no-coq-project)
         5. [`--version`, `-v`](#--version--v)
         6. [`--help`, `-h`](#--help--h)
-        7. [`--from=LANG`, `--to=LANG`](#--fromlang--tolang)
+        7. [`--from=LANG`, `--to=LANG`](#--fromlang---tolang)
     2. [Proving properties](#proving-properties)
     3. [Experimental Features](#experimental-features)
         1. [Pattern-Matching Compilation](#pattern-matching-compilation)
