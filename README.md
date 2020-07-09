@@ -27,6 +27,7 @@ A compiler for the monadic translation of Haskell programs to Coq that uses the 
         4. [`--no-coq-project`](#--no-coq-project)
         5. [`--version`, `-v`](#--version--v)
         6. [`--help`, `-h`](#--help--h)
+        7. [`--from=LANG`, `--to=LANG`](#--fromlang--tolang)
     2. [Proving properties](#proving-properties)
     3. [Experimental Features](#experimental-features)
         1. [Pattern-Matching Compilation](#pattern-matching-compilation)
@@ -353,6 +354,20 @@ To see a list of all available command line options, use the following command.
 
 ```bash
 freec --help
+```
+
+#### `--from=LANG`, `--to=LANG`
+
+By default the compiler translates from Haskell to Coq.
+The `--from` and `--to` options select a different frontend and backend respectively.
+Currently the `haskell` frontend and the `coq` backend are available.
+
+For debugging purposes there also exists a `ir` frontend and backend
+that parses or prints the intermediate representation used by the compiler respectively.
+For example, to print the intermediate representation of a Haskell file, run the following command.
+
+```bash
+freec --from haskell --to ir ./example/Data/List.hs
 ```
 
 ### Proving properties
