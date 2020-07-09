@@ -13,9 +13,7 @@ import qualified Data.Map.Lazy                 as Map
 import           System.Directory               ( createDirectoryIfMissing
                                                 , doesFileExist
                                                 )
-import           System.Exit                    ( exitSuccess
-                                                , exitFailure
-                                                )
+import           System.Exit                    ( exitSuccess )
 import           System.FilePath
 
 import           FreeC.Application.Debug
@@ -103,11 +101,11 @@ selectFrontend = do
   name <- inOpts optFrontend
   case Map.lookup name frontends of
     Nothing -> do
-      putDebug
+      reportFatal
+        $  Message NoSrcSpan Error
         $  "Unrecognized frontend. Currently supported frontends are: "
         ++ showFrontends
         ++ "."
-      liftIO exitFailure
     Just f -> return f
 
 -- | Selects the correct backend or throws an error if such a backend does
@@ -117,11 +115,11 @@ selectBackend = do
   name <- inOpts optBackend
   case Map.lookup name backends of
     Nothing -> do
-      putDebug
+      reportFatal
+        $  Message NoSrcSpan Error
         $  "Unrecognized backend. Currently supported backends are: "
         ++ showBackends
         ++ "."
-      liftIO exitFailure
     Just b -> return b
 
 -------------------------------------------------------------------------------
