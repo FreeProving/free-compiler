@@ -1,14 +1,15 @@
 module FreeC.Frontend
   ( Frontend(..)
   , frontends
-  , haskellFrontend
-  , irFrontend
+  , showFrontends
+  , defaultFrontend
   )
 where
 
 import           Control.Monad.Extra            ( ifM )
 import           Control.Monad.IO.Class
 import qualified Data.Map.Lazy                 as Map
+import           Data.List                      ( intercalate )
 import qualified Language.Haskell.Exts.Syntax  as HSE
 import           System.Directory               ( createDirectoryIfMissing )
 import           System.FilePath
@@ -38,6 +39,14 @@ data Frontend = Frontend
 frontends :: Map.Map String Frontend
 frontends =
   Map.fromList [ (frontendName f, f) | f <- [haskellFrontend, irFrontend] ]
+
+-- | Shows a list of all frontends.
+showFrontends :: String
+showFrontends = '`' : intercalate "`, `" (Map.keys frontends) ++ "`"
+
+-- | Shows the name of the default frontend.
+defaultFrontend :: String
+defaultFrontend = frontendName haskellFrontend
 
 -------------------------------------------------------------------------------
 -- IR frontend                                                               --

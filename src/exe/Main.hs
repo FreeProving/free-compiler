@@ -105,7 +105,8 @@ selectFrontend = do
     Nothing -> do
       putDebug
         $  "Unrecognized frontend. Currently supported frontends are: "
-        ++ intercalate ", " (Map.keys frontends)
+        ++ showFrontends
+        ++ "."
       liftIO exitFailure
     Just f -> return f
 
@@ -118,7 +119,8 @@ selectBackend = do
     Nothing -> do
       putDebug
         $  "Unrecognized backend. Currently supported backends are: "
-        ++ intercalate ", " (Map.keys backends)
+        ++ showBackends
+        ++ "."
       liftIO exitFailure
     Just b -> return b
 

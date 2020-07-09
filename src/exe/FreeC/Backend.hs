@@ -1,8 +1,8 @@
 module FreeC.Backend
   ( Backend(..)
   , backends
-  , coqBackend
-  , irBackend
+  , showBackends
+  , defaultBackend
   )
 where
 
@@ -12,6 +12,7 @@ import           Control.Monad.Extra            ( unlessM
 import           Control.Monad.IO.Class
 import qualified Data.Map.Lazy                 as Map
 import           Data.Maybe                     ( isJust )
+import           Data.List                      ( intercalate )
 import           System.Directory               ( createDirectoryIfMissing
                                                 , doesFileExist
                                                 , makeAbsolute
@@ -41,6 +42,14 @@ data Backend = Backend
 
 backends :: Map.Map String Backend
 backends = Map.fromList [ (backendName b, b) | b <- [coqBackend, irBackend] ]
+
+-- | Shows a list of all backends.
+showBackends :: String
+showBackends = '`': intercalate "`, `" (Map.keys backends) ++ "`"
+
+-- | Shows the name of the default backend.
+defaultBackend :: String
+defaultBackend = backendName coqBackend
 
 -------------------------------------------------------------------------------
 -- IR backend                                                                --

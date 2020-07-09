@@ -7,6 +7,8 @@ module FreeC.Application.Options.Descriptors where
 import           System.Console.GetOpt
 
 import           FreeC.Application.Options
+import           FreeC.Backend
+import           FreeC.Frontend
 
 -- | The command line option descriptors from the @GetOpt@ library for the
 --   command line options understood by the command line option parser.
@@ -79,16 +81,22 @@ optionDescriptors =
     []
     ["from"]
     (ReqArg (\p opts -> opts { optFrontend = p }) "LANG")
-    ("Optional. Specifies the frontend for the compiler to use. Currently the\n"
-    ++ "Haskell frontend and a dummy IR frontend that parses the IR are\n"
-    ++ "supported. Defaults to the Haskell frontend."
+    (  "Optional. Specifies the frontend for the compiler to use.\n"
+    ++ "Allowed values are: "
+    ++ showFrontends
+    ++ ".\nDefaults to: `"
+    ++ defaultFrontend
+    ++ "`."
     )
   , Option
     []
     ["to"]
     (ReqArg (\p opts -> opts { optBackend = p }) "LANG")
-    ("Optional. Specifies the backend for the compiler to use. Currently the\n"
-    ++ "Coq backend and a dummy IR backend that pretty prints the IR\n"
-    ++ "are supported. Defaults to the Coq backend."
+    (  "Optional. Specifies the backend for the compiler to use.\n"
+    ++ "Allowed values are: "
+    ++ showBackends
+    ++ ".\nDefaults to: `"
+    ++ defaultBackend
+    ++ "`."
     )
   ]
