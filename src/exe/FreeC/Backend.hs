@@ -48,7 +48,7 @@ backends = Map.fromList [ (backendName b, b) | b <- [coqBackend, irBackend] ]
 
 -- | Shows a list of all backends.
 showBackends :: String
-showBackends = '`': intercalate "`, `" (Map.keys backends) ++ "`"
+showBackends = '`' : intercalate "`, `" (Map.keys backends) ++ "`"
 
 -- | Shows the name of the default backend.
 defaultBackend :: String
