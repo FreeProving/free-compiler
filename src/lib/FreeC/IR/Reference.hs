@@ -178,7 +178,7 @@ valueRefs :: HasRefs a => a -> [IR.QName]
 valueRefs = map refName . filter isValueRef . refs
 
 -------------------------------------------------------------------------------
--- Types and type schemata                                                    --
+-- Types and type schemas                                                    --
 -------------------------------------------------------------------------------
 
 -- | Type expressions refer to the used type variables and type constructors.
@@ -189,7 +189,7 @@ instance HasRefs IR.Type where
   refSet (IR.TypeApp  _ t1 t2 ) = refSet t1 `union` refSet t2
   refSet (IR.FuncType _ t1 t2 ) = refSet t1 `union` refSet t2
 
--- | Type schemata refer to the types it's type expression refers to but
+-- | Type schemas refer to the types it's type expression refers to but
 --   not to the type variables that are bound by the type schema.
 instance HasRefs IR.TypeSchema where
   refSet (IR.TypeSchema _ typeArgs typeExpr) =
