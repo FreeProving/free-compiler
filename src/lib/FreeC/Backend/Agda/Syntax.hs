@@ -96,13 +96,13 @@ funcSig = TypeSig defaultArgInfo Nothing
 
 -- | Smart constructor for @pattern@ synonyms.
 --
---   > pattern Cons x xs = pure (cons x xs)
+--   > pattern C x₁ … xₙ = pure (c x₁ … xₙ)
 patternSyn :: Name -> [Arg Name] -> Pattern -> Declaration
 patternSyn = PatternSyn NoRange
 
 -- | Smart constructor for function definitions.
 --
---   > f a₁ a₂ … = expr
+--   > f a₁ … aₙ = expr
 funcDef :: QName -> [QName] -> Expr -> Declaration
 funcDef funcName argNames rhs = FunClause lhs' (RHS rhs) NoWhere False
  where
@@ -226,7 +226,7 @@ caseOf discr alts =
 lamClause :: Pattern -> Expr -> LamClause
 lamClause pat rhs = LamClause (lhs pat) (RHS rhs) NoWhere False
 
--- | Smart constructor for a simple @LHS@ for function declarations or lambdas.
+-- | Smart constructor for a simple 'LHS' for function declarations or lambdas.
 lhs :: Pattern -> LHS
 lhs pat = LHS (parenIfNeeded pat) [] [] NoEllipsis
 

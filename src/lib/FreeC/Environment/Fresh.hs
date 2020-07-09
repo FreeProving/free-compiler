@@ -149,7 +149,7 @@ freshAgdaVar = fmap entryAgdaIdent . freshEntry
 -- Generating fresh IR/LIR identifiers                                       --
 -------------------------------------------------------------------------------
 
--- | Generates a new IR/LIR based on the given name.
+-- | Generates a new IR name based on the given name.
 freshIRQName :: String -> Converter IR.QName
 freshIRQName = fmap entryName . freshEntry
 

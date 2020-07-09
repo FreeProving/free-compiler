@@ -1,6 +1,7 @@
 module Base.Free where
 
--- for transformation
+-- Reexport definitions from Agda's standard library that are needed by the
+-- generated code.
 open import Function            using (case_of_)      public
 open import Data.Bool           using (if_then_else_) public
 open import Size                using (Size; ↑_)      public
