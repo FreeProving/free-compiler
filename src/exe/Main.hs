@@ -2,6 +2,7 @@
 
 module Main where
 
+import           Control.Monad                  ( (>=>) )
 import           Control.Monad.Extra            ( unlessM
                                                 , whenM
                                                 )
@@ -84,12 +85,11 @@ compiler = do
   loadQuickCheck
   specialAction backend
   -- Process input files.
-  modules' <-
+  modules <-
     inOpts optInputFiles
     >>= mapM (parseInputFile $ parseFile frontend)
     >>= sortInputModules
-    >>= mapM (liftConverter . runPipeline)
-    >>= mapM (convertInputModule $ convertModule backend)
+  modules' <- mapM (convertInputModule $ convertModule backend) modules
   mapM_ (uncurry (outputModule $ fileExtension backend)) modules'
 
 -------------------------------------------------------------------------------
@@ -170,7 +170,7 @@ convertInputModule converter ast = do
     else putDebug $ "Compiling " ++ showPretty modName
   reportApp $ do
     loadRequiredModules ast
-    prog <- converter ast
+    prog <- moduleEnv $ (liftConverter . runPipeline >=> converter) ast
     return (modName, prog)
 
 -------------------------------------------------------------------------------

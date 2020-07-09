@@ -25,7 +25,7 @@ import           FreeC.Pretty
 
 -- | Converts a module to Gallina sentences.
 convertModule :: IR.Module -> Converter [Coq.Sentence]
-convertModule haskellAst = moduleEnv $ do
+convertModule haskellAst = do
   imports' <- convertImportDecls (IR.modImports haskellAst)
   mapM_ (addDecArgPragma (IR.modFuncDecls haskellAst))
         (IR.modPragmas haskellAst)

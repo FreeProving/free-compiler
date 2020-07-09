@@ -64,20 +64,20 @@ convertModuleToCoq ast = do
   ast' <- liftConverter $ Coq.Converter.convertModule ast
   return $ showPretty $ map PrettyCoq ast'
 
- -- | Creates a @_CoqProject@ file (if enabled) that maps the physical directory
- --   of the Base library.
- --
- --   The path to the Base library will be relative to the output directory.
+-- | Creates a @_CoqProject@ file (if enabled) that maps the physical directory
+--   of the Base library.
+--
+--   The path to the Base library will be relative to the output directory.
 createCoqProject :: Application ()
 createCoqProject = whenM coqProjectEnabled
   $ unlessM coqProjectExists writeCoqProject
  where
- -- | Tests whether the generation of a @_CoqProject@ file is enabled.
- --
- --   The generation of the @_CoqProject@ file can be disabled with the
- --   command line option @--no-coq-project@. If there is no @--output@
- --   directory, the generation of the @_CoqProject@ file is disabled as
- --   well.
+  -- | Tests whether the generation of a @_CoqProject@ file is enabled.
+  --
+  --   The generation of the @_CoqProject@ file can be disabled with the
+  --   command line option @--no-coq-project@. If there is no @--output@
+  --   directory, the generation of the @_CoqProject@ file is disabled as
+  --   well.
   coqProjectEnabled :: Application Bool
   coqProjectEnabled = do
     isEnabled      <- inOpts optCreateCoqProject
