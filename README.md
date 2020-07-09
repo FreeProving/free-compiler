@@ -362,8 +362,7 @@ By default the compiler translates from Haskell to Coq.
 The `--from` and `--to` options select a different frontend and backend respectively.
 Currently the `haskell` frontend and the `coq` backend are available.
 
-For debugging purposes there also exists a `ir` frontend and backend
-that parses or prints the intermediate representation used by the compiler respectively.
+For debugging purposes there also exists a `ir` frontend and backend that parses or prints the intermediate representation used by the compiler respectively.
 For example, to print the intermediate representation of a Haskell file, run the following command.
 
 ```bash
