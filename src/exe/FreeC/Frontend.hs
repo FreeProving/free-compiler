@@ -1,3 +1,5 @@
+-- | This module contains the @Frontend@ data type and all available frontends.
+
 module FreeC.Frontend
   ( Frontend(..)
   , frontends
@@ -36,6 +38,7 @@ data Frontend = Frontend
     -- ^ The parsing function that converts a file to the IR representation.
   }
 
+-- | A map of all available frontends with the name of those frontends as keys.
 frontends :: Map.Map String Frontend
 frontends =
   Map.fromList [ (frontendName f, f) | f <- [haskellFrontend, irFrontend] ]

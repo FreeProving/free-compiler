@@ -1,3 +1,5 @@
+-- | This module contains the @Backend@ data type and all available backends.
+
 module FreeC.Backend
   ( Backend(..)
   , backends
@@ -40,6 +42,7 @@ data Backend = Backend
     --   project file creation.
   }
 
+-- | A map of all available backends with the name of those backends as keys.
 backends :: Map.Map String Backend
 backends = Map.fromList [ (backendName b, b) | b <- [coqBackend, irBackend] ]
 
