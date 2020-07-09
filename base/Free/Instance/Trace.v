@@ -6,7 +6,8 @@ Require Export Coq.Strings.String.
 
 Module Trace.
 
-  (* Type synonym for a tracing id *)
+  (* Type synonym for a tracing id. This id is needed to identify
+     shared messages. *)
   Definition ID : Type := nat * nat * nat.
 
   (* Container instance for a functor [Log]. *)
