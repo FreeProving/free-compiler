@@ -29,14 +29,15 @@ import           FreeC.Pretty                   ( writePrettyFile )
 
 -- | Data type that represents a frontend.
 data Frontend = Frontend
-  { name      :: String
+  { frontendName      :: String
     -- ^ The name of the frontend.
-  , parseFile :: SrcFile -> Application IR.Module
+  , frontendParseFile :: SrcFile -> Application IR.Module
     -- ^ The parsing function that converts a file to the IR representation.
   }
 
 frontends :: Map.Map String Frontend
-frontends = Map.fromList [ (name f, f) | f <- [haskellFrontend, irFrontend] ]
+frontends =
+  Map.fromList [ (frontendName f, f) | f <- [haskellFrontend, irFrontend] ]
 
 -------------------------------------------------------------------------------
 -- IR frontend                                                               --
@@ -44,7 +45,7 @@ frontends = Map.fromList [ (name f, f) | f <- [haskellFrontend, irFrontend] ]
 
 -- | A dummy frontend that just parses the IR.
 irFrontend :: Frontend
-irFrontend = Frontend { name = "ir", parseFile = parseIR }
+irFrontend = Frontend { frontendName = "ir", frontendParseFile = parseIR }
 
 -------------------------------------------------------------------------------
 -- Haskell frontend                                                          --
@@ -59,7 +60,8 @@ parseHaskell file = do
 
 -- | The Haskell frontend.
 haskellFrontend :: Frontend
-haskellFrontend = Frontend { name = "haskell", parseFile = parseHaskell }
+haskellFrontend =
+  Frontend { frontendName = "haskell", frontendParseFile = parseHaskell }
 
 -------------------------------------------------------------------------------
 -- Pattern matching compilation                                              --

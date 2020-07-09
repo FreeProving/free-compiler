@@ -83,14 +83,14 @@ compiler = do
   -- Initialize environment.
   loadPrelude
   loadQuickCheck
-  specialAction backend
+  backendSpecialAction backend
   -- Process input files.
   modules <-
     inOpts optInputFiles
-    >>= mapM (parseInputFile $ parseFile frontend)
+    >>= mapM (parseInputFile $ frontendParseFile frontend)
     >>= sortInputModules
-  modules' <- mapM (convertInputModule $ convertModule backend) modules
-  mapM_ (uncurry (outputModule $ fileExtension backend)) modules'
+  modules' <- mapM (convertInputModule $ backendConvertModule backend) modules
+  mapM_ (uncurry (outputModule $ backendFileExtension backend)) modules'
 
 -------------------------------------------------------------------------------
 -- Front- and backend selection                                              --
@@ -100,8 +100,8 @@ compiler = do
 --   not exist.
 selectFrontend :: Application Frontend
 selectFrontend = do
-  frontendName <- inOpts optFrontend
-  case Map.lookup frontendName frontends of
+  name <- inOpts optFrontend
+  case Map.lookup name frontends of
     Nothing -> do
       putDebug
         $  "Unrecognized frontend. Currently supported frontends are: "
@@ -113,8 +113,8 @@ selectFrontend = do
 --   not exist.
 selectBackend :: Application Backend
 selectBackend = do
-  backendName <- inOpts optBackend
-  case Map.lookup backendName backends of
+  name <- inOpts optBackend
+  case Map.lookup name backends of
     Nothing -> do
       putDebug
         $  "Unrecognized backend. Currently supported backends are: "

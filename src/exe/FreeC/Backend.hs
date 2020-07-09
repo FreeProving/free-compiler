@@ -20,7 +20,7 @@ import           System.FilePath
 
 import           FreeC.Application.Options
 import qualified FreeC.Backend.Coq.Base        as Coq.Base
-import qualified FreeC.Backend.Coq.Converter   as Coq.Converter
+import           FreeC.Backend.Coq.Converter
 import           FreeC.Backend.Coq.Pretty
 import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Application
@@ -28,19 +28,19 @@ import           FreeC.Pretty                   ( showPretty )
 
 -- | Data type that represents a backend.
 data Backend = Backend
-  { name          :: String
+  { backendName          :: String
     -- ^ The name of the backend.
-  , convertModule :: IR.Module -> Application String
+  , backendConvertModule :: IR.Module -> Application String
     -- ^ The conversion function that converts a module to program text.
-  , fileExtension :: String
+  , backendFileExtension :: String
     -- ^ The file extension associated with the backend.
-  , specialAction :: Application ()
+  , backendSpecialAction :: Application ()
     -- ^ An action that has to performed by the backend before conversion, e.g.
     --   project file creation.
   }
 
 backends :: Map.Map String Backend
-backends = Map.fromList [ (name b, b) | b <- [coqBackend, irBackend] ]
+backends = Map.fromList [ (backendName b, b) | b <- [coqBackend, irBackend] ]
 
 -------------------------------------------------------------------------------
 -- IR backend                                                                --
@@ -48,10 +48,10 @@ backends = Map.fromList [ (name b, b) | b <- [coqBackend, irBackend] ]
 
 -- | A dummy backend that just pretty prints the IR.
 irBackend :: Backend
-irBackend = Backend { name          = "ir"
-                    , convertModule = return . showPretty
-                    , fileExtension = "ir"
-                    , specialAction = return ()
+irBackend = Backend { backendName          = "ir"
+                    , backendConvertModule = return . showPretty
+                    , backendFileExtension = "ir"
+                    , backendSpecialAction = return ()
                     }
 
 -------------------------------------------------------------------------------
@@ -61,7 +61,7 @@ irBackend = Backend { name          = "ir"
 -- | Converts a module to a Coq program.
 convertModuleToCoq :: IR.Module -> Application String
 convertModuleToCoq ast = do
-  ast' <- liftConverter $ Coq.Converter.convertModule ast
+  ast' <- liftConverter $ convertModule ast
   return $ showPretty $ map PrettyCoq ast'
 
 -- | Creates a @_CoqProject@ file (if enabled) that maps the physical directory
@@ -118,8 +118,8 @@ createCoqProject = whenM coqProjectEnabled
 
 -- | The Coq backend.
 coqBackend :: Backend
-coqBackend = Backend { name          = "coq"
-                     , convertModule = convertModuleToCoq
-                     , fileExtension = "v"
-                     , specialAction = createCoqProject
+coqBackend = Backend { backendName          = "coq"
+                     , backendConvertModule = convertModuleToCoq
+                     , backendFileExtension = "v"
+                     , backendSpecialAction = createCoqProject
                      }
