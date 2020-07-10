@@ -25,7 +25,7 @@ module FreeC.IR.Syntax
   , module FreeC.IR.Syntax.Pragma
   , module FreeC.IR.Syntax.Type
   , module FreeC.IR.Syntax.TypeDecl
-  , module FreeC.IR.Syntax.TypeSchema
+  , module FreeC.IR.Syntax.TypeScheme
   , module FreeC.IR.Syntax.TypeVarDecl
   )
 where
@@ -37,5 +37,5 @@ import           FreeC.IR.Syntax.Name
 import           FreeC.IR.Syntax.Pragma
 import           FreeC.IR.Syntax.Type
 import           FreeC.IR.Syntax.TypeDecl
-import           FreeC.IR.Syntax.TypeSchema
+import           FreeC.IR.Syntax.TypeScheme
 import           FreeC.IR.Syntax.TypeVarDecl

@@ -1,14 +1,14 @@
 -- | This module contains functions for converting between type expressions
---   and type schemas.
+--   and type schemes.
 
-module FreeC.IR.TypeSchema
+module FreeC.IR.TypeScheme
   (
-    -- * Instantiating type schemas
-    instantiateTypeSchema
-  , instantiateTypeSchema'
+    -- * Instantiating type schemes
+    instantiateTypeScheme
+  , instantiateTypeScheme'
     -- * Abstracting type expressions
-  , abstractTypeSchema
-  , abstractTypeSchema'
+  , abstractTypeScheme
+  , abstractTypeScheme'
   )
 where
 
@@ -25,18 +25,18 @@ import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Converter
 
 -------------------------------------------------------------------------------
--- Instantiating type schemas                                                --
+-- Instantiating type schemes                                                --
 -------------------------------------------------------------------------------
 
--- | Replaces the type variables in the given type schema by fresh type
+-- | Replaces the type variables in the given type scheme by fresh type
 --   variables.
-instantiateTypeSchema :: IR.TypeSchema -> Converter IR.Type
-instantiateTypeSchema = fmap fst . instantiateTypeSchema'
+instantiateTypeScheme :: IR.TypeScheme -> Converter IR.Type
+instantiateTypeScheme = fmap fst . instantiateTypeScheme'
 
--- | Like 'instantiateTypeSchema' but also returns the fresh type variables,
---   the type schema has been instantiated with.
-instantiateTypeSchema' :: IR.TypeSchema -> Converter (IR.Type, [IR.Type])
-instantiateTypeSchema' (IR.TypeSchema _ typeArgs typeExpr) = do
+-- | Like 'instantiateTypeScheme' but also returns the fresh type variables,
+--   the type scheme has been instantiated with.
+instantiateTypeScheme' :: IR.TypeScheme -> Converter (IR.Type, [IR.Type])
+instantiateTypeScheme' (IR.TypeScheme _ typeArgs typeExpr) = do
   (typeArgs', subst) <- renameTypeArgsSubst typeArgs
   let typeExpr' = applySubst subst typeExpr
       typeVars' = map IR.typeVarDeclToType typeArgs'
@@ -47,23 +47,23 @@ instantiateTypeSchema' (IR.TypeSchema _ typeArgs typeExpr) = do
 -------------------------------------------------------------------------------
 
 -- | Normalizes the names of type variables in the given type and returns
---   it as a type schema.
+--   it as a type scheme.
 --
 --   The first argument contains the names of type variables that should be
---   bound by the type schema. Usually these are the type variables that
+--   bound by the type scheme. Usually these are the type variables that
 --   occur in the given type (see 'FreeC.IR.Reference.freeTypeVars').
 --
 --   Fresh type variables used by the given type are replaced by regular type
 --   variables with the prefix 'freshTypeArgPrefix'. All other type variables
 --   are not renamed.
-abstractTypeSchema :: [IR.QName] -> IR.Type -> IR.TypeSchema
-abstractTypeSchema = fst .: abstractTypeSchema'
+abstractTypeScheme :: [IR.QName] -> IR.Type -> IR.TypeScheme
+abstractTypeScheme = fst .: abstractTypeScheme'
 
--- | Like 'abstractTypeSchema' but returns the resulting type schema and the
+-- | Like 'abstractTypeScheme' but returns the resulting type scheme and the
 --   substitution that replaces the abstracted type variables by their name in
---   the type schema.
-abstractTypeSchema' :: [IR.QName] -> IR.Type -> (IR.TypeSchema, Subst IR.Type)
-abstractTypeSchema' ns t =
+--   the type scheme.
+abstractTypeScheme' :: [IR.QName] -> IR.Type -> (IR.TypeScheme, Subst IR.Type)
+abstractTypeScheme' ns t =
   let vs         = map (fromJust . IR.identFromQName) ns
       (ivs, uvs) = partition IR.isInternalIdent vs
       vs'        = uvs ++ take (length ivs) (map makeTypeArg [0 ..] \\ uvs)
@@ -71,7 +71,7 @@ abstractTypeSchema' ns t =
       ts         = map (IR.TypeVar NoSrcSpan) vs'
       subst      = composeSubsts (zipWith singleSubst ns' ts)
       t'         = applySubst subst t
-  in  (IR.TypeSchema NoSrcSpan (map (IR.TypeVarDecl NoSrcSpan) vs') t', subst)
+  in  (IR.TypeScheme NoSrcSpan (map (IR.TypeVarDecl NoSrcSpan) vs') t', subst)
  where
   makeTypeArg :: Int -> IR.TypeVarIdent
   makeTypeArg = (freshTypeArgPrefix ++) . show

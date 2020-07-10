@@ -8,7 +8,7 @@ import           Control.Monad                  ( (>=>) )
 import           FreeC.IR.SrcSpan
 import           FreeC.IR.Syntax.Name
 import           FreeC.IR.Syntax.Type
-import           FreeC.IR.Syntax.TypeSchema
+import           FreeC.IR.Syntax.TypeScheme
 import           FreeC.Pretty
 
 -------------------------------------------------------------------------------
@@ -20,27 +20,27 @@ data Expr
   = -- | A constructor.
     Con { exprSrcSpan    :: SrcSpan
         , exprConName    :: ConName
-        , exprTypeSchema :: Maybe TypeSchema
+        , exprTypeScheme :: Maybe TypeScheme
         }
 
   | -- | A function or local variable.
     Var { exprSrcSpan    :: SrcSpan
         , exprVarName    :: VarName
-        , exprTypeSchema :: Maybe TypeSchema
+        , exprTypeScheme :: Maybe TypeScheme
         }
 
   | -- | Function or constructor application.
     App { exprSrcSpan    :: SrcSpan
         , exprAppLhr     :: Expr
         , exprAppRhs     :: Expr
-        , exprTypeSchema :: Maybe TypeSchema
+        , exprTypeScheme :: Maybe TypeScheme
         }
 
   | -- | Visible type application.
     TypeAppExpr { exprSrcSpan    :: SrcSpan
                 , exprTypeAppLhs :: Expr
                 , exprTypeAppRhs :: Type
-                , exprTypeSchema :: Maybe TypeSchema
+                , exprTypeScheme :: Maybe TypeScheme
                 }
 
   | -- | @if@ expression.
@@ -48,38 +48,38 @@ data Expr
        , ifExprCond     :: Expr
        , ifExprThen     :: Expr
        , ifExprElse     :: Expr
-       , exprTypeSchema :: Maybe TypeSchema
+       , exprTypeScheme :: Maybe TypeScheme
        }
 
   | -- | @case@ expression.
     Case { exprSrcSpan       :: SrcSpan
          , caseExprScrutinee :: Expr
          , caseExprAlts      :: [Alt]
-         , exprTypeSchema    :: Maybe TypeSchema
+         , exprTypeScheme    :: Maybe TypeScheme
          }
 
   | -- | Error term @undefined@.
     Undefined { exprSrcSpan    :: SrcSpan
-              , exprTypeSchema :: Maybe TypeSchema
+              , exprTypeScheme :: Maybe TypeScheme
               }
 
   | -- | Error term @error "<message>"@.
     ErrorExpr { exprSrcSpan    :: SrcSpan
               , errorExprMsg   :: String
-              , exprTypeSchema :: Maybe TypeSchema
+              , exprTypeScheme :: Maybe TypeScheme
               }
 
   | -- | An integer literal.
     IntLiteral { exprSrcSpan     :: SrcSpan
                , intLiteralValue :: Integer
-               , exprTypeSchema  :: Maybe TypeSchema
+               , exprTypeScheme  :: Maybe TypeScheme
                }
 
   | -- | A lambda abstraction.
     Lambda { exprSrcSpan    :: SrcSpan
            , lambdaExprArgs :: [VarPat]
            , lambdaEprRhs   :: Expr
-           , exprTypeSchema :: Maybe TypeSchema
+           , exprTypeScheme :: Maybe TypeScheme
            }
  deriving (Eq, Show)
 
@@ -89,7 +89,7 @@ data Expr
 --   as expression type signatures. The type annotations generated during
 --   type inference never quantify their type arguments.
 exprType :: Expr -> Maybe Type
-exprType = exprTypeSchema >=> \(TypeSchema _ typeArgs typeExpr) ->
+exprType = exprTypeScheme >=> \(TypeScheme _ typeArgs typeExpr) ->
   if null typeArgs then Just typeExpr else Nothing
 
 -- | Smart constructor for 'Con' without the last argument.
@@ -109,16 +109,16 @@ untypedApp :: SrcSpan -> Expr -> Expr -> Expr
 untypedApp srcSpan e1 e2 = App srcSpan e1 e2 appType
  where
   -- | The type to annotate the application with.
-  appType :: Maybe TypeSchema
-  appType = exprTypeSchema e1 >>= maybeFuncResTypeSchema
+  appType :: Maybe TypeScheme
+  appType = exprTypeScheme e1 >>= maybeFuncResTypeScheme
 
-  -- | If the given type schema has the form @forall α₁ … αₙ. τ -> τ'@, the
+  -- | If the given type scheme has the form @forall α₁ … αₙ. τ -> τ'@, the
   --   result has the form @forall α₁ … αₙ. τ'@. Returns @Nothing@ otherwise.
-  maybeFuncResTypeSchema :: TypeSchema -> Maybe TypeSchema
-  maybeFuncResTypeSchema (TypeSchema srcSpan' typeArgs typeExpr) =
-    TypeSchema srcSpan' typeArgs <$> maybeFuncResType typeExpr
+  maybeFuncResTypeScheme :: TypeScheme -> Maybe TypeScheme
+  maybeFuncResTypeScheme (TypeScheme srcSpan' typeArgs typeExpr) =
+    TypeScheme srcSpan' typeArgs <$> maybeFuncResType typeExpr
 
-  -- | If the given type schema has the form @τ -> τ'@, the result has the
+  -- | If the given type scheme has the form @τ -> τ'@, the result has the
   --   form @τ'@. Returns @Nothing@ otherwise.
   maybeFuncResType :: Type -> Maybe Type
   maybeFuncResType (FuncType _ _ resType) = Just resType
@@ -130,7 +130,7 @@ untypedApp srcSpan e1 e2 = App srcSpan e1 e2 appType
 --   used to annotate the type of this expression.
 untypedTypeAppExpr :: SrcSpan -> Expr -> Type -> Expr
 untypedTypeAppExpr srcSpan expr typeExpr =
-  TypeAppExpr srcSpan expr typeExpr (exprTypeSchema expr)
+  TypeAppExpr srcSpan expr typeExpr (exprTypeScheme expr)
 
 -- | Creates an expression for applying the given expression to the provided
 --   arguments.
@@ -204,14 +204,14 @@ prettyExprPred :: Int -> Expr -> Doc
 -- If there is a type annotation, parenthesis are needed around @if@
 -- expressions and lambda abstractions since their sub-expressions would
 -- capture the type annotation otherwise.
-prettyExprPred n expr = case exprTypeSchema expr of
+prettyExprPred n expr = case exprTypeScheme expr of
   Nothing -> prettyExprPred' n expr
-  Just typeSchema | n == 0    -> prettyExpr
+  Just typeScheme | n == 0    -> prettyExpr
                   | otherwise -> parens prettyExpr
    where
     prettyExpr :: Doc
     prettyExpr =
-      prettyExprPred' 1 expr <+> colon <> colon <+> pretty typeSchema
+      prettyExprPred' 1 expr <+> colon <> colon <+> pretty typeScheme
 
 -- | Like 'prettyExprPred' but ignores outermost type annotations.
 prettyExprPred' :: Int -> Expr -> Doc

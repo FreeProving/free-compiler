@@ -158,9 +158,9 @@ library freec-internal
                       , FreeC.IR.Syntax.Pragma
                       , FreeC.IR.Syntax.Type
                       , FreeC.IR.Syntax.TypeDecl
-                      , FreeC.IR.Syntax.TypeSchema
+                      , FreeC.IR.Syntax.TypeScheme
                       , FreeC.IR.Syntax.TypeVarDecl
-                      , FreeC.IR.TypeSchema
+                      , FreeC.IR.TypeScheme
                       , FreeC.IR.TypeSynExpansion
                       , FreeC.IR.Unification
                       , FreeC.Pass
