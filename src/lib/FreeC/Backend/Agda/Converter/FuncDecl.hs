@@ -27,7 +27,7 @@ import           FreeC.Environment              ( isPartial )
 import           FreeC.Environment.LookupOrFail
 import           FreeC.IR.DependencyGraph
 import qualified FreeC.IR.Syntax               as IR
-import           FreeC.LiftedIR.Converter.Expr  ( convertExpr )
+import           FreeC.LiftedIR.Converter.Expr  ( liftExpr )
 import           FreeC.LiftedIR.Converter.Type  ( liftFuncArgTypes
                                                 , liftType
                                                 )
@@ -63,7 +63,7 @@ convertFuncDef :: IR.FuncDecl -> Converter Agda.Declaration
 convertFuncDef (IR.FuncDecl _ (IR.DeclIdent srcSpan name) _ args _ expr) = do
   args' <- mapM convertArg args
   ident <- lookupAgdaIdentOrFail srcSpan IR.ValueScope name
-  Agda.funcDef ident args' <$> (convertExpr >=> convertLiftedExpr) expr
+  Agda.funcDef ident args' <$> (liftExpr >=> convertLiftedExpr) expr
 
 ------------------------------------------------------------------------------
 -- Signatures                                                               --

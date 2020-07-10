@@ -1,7 +1,7 @@
 -- | Implements the IR to lifted IR translation for expressions.
 
 module FreeC.LiftedIR.Converter.Expr
-  ( convertExpr
+  ( liftExpr
   )
 where
 
@@ -26,10 +26,10 @@ import           FreeC.Monad.Reporter           ( reportFatal
 
 -- | Converts an expression from IR to lifted IR and lifts it during the
 --   translation.
-convertExpr :: IR.Expr -> Converter LIR.Expr
-convertExpr expr = convertExpr' expr [] []
+liftExpr :: IR.Expr -> Converter LIR.Expr
+liftExpr expr = liftExpr' expr [] []
 
--- | Same as @convertExpr@ but accumulates arguments.
+-- | Same as @liftExpr@ but accumulates arguments.
 --
 --   This function always produces a term of type @Free S P τ*@.
 --   The accumulation of arguments is needed to reason about fully applied
@@ -38,33 +38,33 @@ convertExpr expr = convertExpr' expr [] []
 --   invariant.
 --
 --   > e : τ ↦ e' : τ'
-convertExpr' :: IR.Expr -> [IR.Type] -> [IR.Expr] -> Converter LIR.Expr
+liftExpr' :: IR.Expr -> [IR.Type] -> [IR.Expr] -> Converter LIR.Expr
 
 -- Pass argument from applications to converter for callee, allowing us to
 -- convert functions and constructors with full access to their parameters.
 --
 -- >                $
--- > convertExpr'  / \   [] args = convertExpr' e₁ [] (e₂ : args)
+-- > liftExpr'  / \   [] args = liftExpr' e₁ [] (e₂ : args)
 -- >              e₁  e₂
-convertExpr' (IR.App _ e1 e2 _) [] args = convertExpr' e1 [] (e2 : args)
+liftExpr' (IR.App _ e1 e2 _) [] args = liftExpr' e1 [] (e2 : args)
 
 -- Pass type argument from visible type application to converter for callee.
 --
 -- >                @
--- > convertExpr'  / \   tArgs args = convertExpr' e (τ : tArgs) args
+-- > liftExpr'  / \   tArgs args = liftExpr' e (τ : tArgs) args
 -- >              e   τ
-convertExpr' (IR.TypeAppExpr _ e t _) typeArgs args =
-  convertExpr' e (t : typeArgs) args
+liftExpr' (IR.TypeAppExpr _ e t _) typeArgs args =
+  liftExpr' e (t : typeArgs) args
 
 -- Constructors.
-convertExpr' (IR.Con srcSpan name _) _ args = do
-  args' <- mapM convertExpr args
+liftExpr' (IR.Con srcSpan name _) _ args = do
+  args' <- mapM liftExpr args
   let con = LIR.SmartCon srcSpan name
   return $ LIR.App srcSpan con [] [] args'
 
 -- Cases for (possible applied) variables (i.e. variables and functions).
-convertExpr' (IR.Var srcSpan name _) _ args = do
-  args'    <- mapM convertExpr args
+liftExpr' (IR.Var srcSpan name _) _ args = do
+  args'    <- mapM liftExpr args
   varName  <- LIR.Var srcSpan name <$> lookupAgdaValIdentOrFail srcSpan name
   function <- inEnv $ isFunction name
   if function -- If this is a top level functions it's lifted argument wise.
@@ -72,7 +72,7 @@ convertExpr' (IR.Var srcSpan name _) _ args = do
     else generateApply varName args'
 
 -- Integer Literals.
-convertExpr' (IR.IntLiteral srcSpan value _) [] [] =
+liftExpr' (IR.IntLiteral srcSpan value _) [] [] =
   return $ LIR.Pure srcSpan $ LIR.IntLiteral srcSpan value
 
 -- Lambda abstractions.
@@ -80,11 +80,11 @@ convertExpr' (IR.IntLiteral srcSpan value _) [] [] =
 -- > ⎡     Γ,x:τ₀ ⊢ e:τ₁     ⎤'           Γ',x:τ₀' ⊢ e':τ₁'
 -- > ⎢-----------------------⎥ = -----------------------------------
 -- > ⎣ Γ ⊢ λx:τ₀.e : τ₀ → τ₁ ⎦   Γ' ⊢ pure(λx:τ₀'.e') : m(τ₀' → τ₁')
-convertExpr' (IR.Lambda srcSpan args rhs _) [] [] =
+liftExpr' (IR.Lambda srcSpan args rhs _) [] [] =
   localEnv
     $   flip (foldr (\a b -> LIR.Pure srcSpan $ LIR.Lambda srcSpan [a] b))
     <$> mapM convertVarPat args
-    <*> convertExpr rhs
+    <*> liftExpr rhs
 
 -- @if@-expressions.
 --
@@ -95,9 +95,9 @@ convertExpr' (IR.Lambda srcSpan args rhs _) [] [] =
 -- Note that the argument of the lambda is lifted, but its type is
 -- @Bool Shape Pos@, which is just an alias for @bool@, which ignores its
 -- arguments.
-convertExpr' (IR.If srcSpan cond true false _) [] [] = do
-  cond' <- convertExpr cond
-  cond' `bind` \d -> LIR.If srcSpan d <$> convertExpr true <*> convertExpr false
+liftExpr' (IR.If srcSpan cond true false _) [] [] = do
+  cond' <- liftExpr cond
+  cond' `bind` \d -> LIR.If srcSpan d <$> liftExpr true <*> liftExpr false
 
 -- @case@-expressions.
 --
@@ -106,18 +106,17 @@ convertExpr' (IR.If srcSpan cond true false _) [] [] = do
 -- > ⎣  Γ ⊢ case e of alts : τ   ⎦   Γ' ⊢ e' >>= λx:τ₀*.match x with alts' : τ'
 --
 -- where @alts'@ are the lifted (not smart) constructors for τ₀.
-convertExpr' (IR.Case srcSpan discriminante patterns _) [] [] = do
-  discriminant' <- convertExpr discriminante
+liftExpr' (IR.Case srcSpan discriminante patterns _) [] [] = do
+  discriminant' <- liftExpr discriminante
   discriminant' `bind` \d -> LIR.Case srcSpan d <$> mapM convertAlt patterns
 
-convertExpr' (IR.Undefined srcSpan _) _ _ = return $ LIR.Undefined srcSpan
+liftExpr' (IR.Undefined srcSpan _    ) _ _ = return $ LIR.Undefined srcSpan
 
-convertExpr' (IR.ErrorExpr srcSpan msg _) _ _ =
-  return $ LIR.ErrorExpr srcSpan msg
+liftExpr' (IR.ErrorExpr srcSpan msg _) _ _ = return $ LIR.ErrorExpr srcSpan msg
 
 -- Visible type application of an expression other than a function or
 -- constructor.
-convertExpr' expr (_ : _) _ =
+liftExpr' expr (_ : _) _ =
   reportFatal
     $  Message (IR.exprSrcSpan expr) Internal
     $  "Only type arguments of functions and constructors can be "
@@ -126,8 +125,8 @@ convertExpr' expr (_ : _) _ =
 -- Application of an expression other than a function or constructor
 -- application. We use an as-pattern for @args@ such that we get a compile
 -- time warning when a node is added to the AST that we do not cover above.
-convertExpr' expr [] args@(_ : _) =
-  join $ generateApply <$> convertExpr expr <*> mapM convertExpr args
+liftExpr' expr [] args@(_ : _) =
+  join $ generateApply <$> liftExpr expr <*> mapM liftExpr args
 
 -------------------------------------------------------------------------------
 -- Lift Patterns                                                             --
@@ -139,7 +138,7 @@ convertAlt :: IR.Alt -> Converter LIR.Alt
 convertAlt (IR.Alt srcSpan conPat varPats expr) =
   LIR.Alt srcSpan (convertConPat conPat)
     <$> mapM convertVarPat varPats
-    <*> convertExpr expr
+    <*> liftExpr expr
 
 -- | Translates a constructor pattern from IR to LIR.
 convertConPat :: IR.ConPat -> LIR.ConPat
