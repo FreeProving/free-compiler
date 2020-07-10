@@ -54,7 +54,6 @@ import           Prelude                 hiding ( pi )
 -- | Creates a (not qualified) Agda variable name from a 'String'.
 name :: String -> Name
 name str = Name NoRange InScope $ stringNameParts str
--- name str = Name NoRange InScope [Id str]
 
 -- | Create a qualified identifier given a local identifier as 'Name' and a
 --   list of module 'Name's.
@@ -140,13 +139,13 @@ parenIfNeeded p            = p
 -- Expressions                                                               --
 -------------------------------------------------------------------------------
 
--- | Tests wether the given AST node is an @App@.
+-- | Tests whether the given AST node is an @App@.
 isApp :: Expr -> Bool
 isApp (App _ _ _ ) = True
 isApp (RawApp _ _) = True
 isApp _            = False
 
--- | Tests wether the given AST node is an @Fun@.
+-- | Tests whether the given AST node is an @Fun@.
 isFun :: Expr -> Bool
 isFun (Fun _ _ _) = True
 isFun _           = False

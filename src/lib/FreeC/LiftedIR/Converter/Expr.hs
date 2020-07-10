@@ -35,7 +35,7 @@ liftExpr expr = liftExpr' expr [] []
 --   This function always produces a term of type @Free S P τ*@.
 --   The accumulation of arguments is needed to reason about fully applied
 --   functions. Top level functions and constructors are lifted argument wise.
---   Translating them with out considering all arguments would violate the
+--   Translating them without considering all arguments would violate the
 --   invariant.
 --
 --   > e : τ ↦ e' : τ'
