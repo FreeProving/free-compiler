@@ -21,7 +21,7 @@ convertTypeVarDecl :: IR.TypeVarDecl -> Converter Agda.Name
 convertTypeVarDecl (IR.TypeVarDecl srcSpan name) =
   Agda.unqualify <$> renameAndDefineAgdaTypeVar srcSpan name
 
--- | Converts a given @IR.VarPat@ by defining a new Agda variable with the
+-- | Converts a given 'IR.VarPat' by defining a new Agda variable with the
 --   same name in the current scope.
 convertArg :: IR.VarPat -> Converter Agda.QName
 convertArg (IR.VarPat srcSpan ident maybeArgType isStrict) =
