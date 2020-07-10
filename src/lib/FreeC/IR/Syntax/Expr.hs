@@ -81,6 +81,13 @@ data Expr
            , lambdaEprRhs   :: Expr
            , exprTypeSchema :: Maybe TypeSchema
            }
+
+  | -- | A let expression.
+    Let { exprSrcSpan :: SrcSpan
+        , binds :: [Bind]
+        , inExpr :: Expr
+        , exprTypeSchema :: Maybe TypeSchema -- is this needed? the expression itself has a type schema
+        }
  deriving (Eq, Show)
 
 -- | Gets the type annotation of the given expression, but discards the
@@ -244,10 +251,16 @@ prettyExprPred' 0 (Lambda _ args expr _) =
     <>  hsep (map pretty args)
     <+> prettyString "->"
     <+> prettyExprPred 0 expr
+prettyExprPred' 0 (Let _ bs e _) =
+  prettyString "let"
+    <+> hsep (map pretty bs)
+    <+> prettyString "in"
+    <+> prettyExprPred 0 e
 
 -- At all other levels, the parentheses cannot be omitted.
 prettyExprPred' _ expr@(If _ _ _ _ _  ) = parens (prettyExprPred' 0 expr)
 prettyExprPred' _ expr@(Lambda _ _ _ _) = parens (prettyExprPred' 0 expr)
+prettyExprPred' _ expr@(Let _ _ _ _)    = parens (prettyExprPred' 0 expr)
 
 -- Fix placement of visible type arguments in error terms.
 prettyExprPred' n (TypeAppExpr _ (ErrorExpr _ msg _) t _) | n <= 1 =
@@ -358,3 +371,23 @@ instance Pretty VarPat where
     parens (pretty varName <+> colon <> colon <+> pretty varType)
   pretty (VarPat _ varName (Just varType) True) =
     char '!' <> parens (pretty varName <+> colon <> colon <+> pretty varType)
+
+
+-------------------------------------------------------------------------------
+-- Binding inside a let clause                                               --
+-------------------------------------------------------------------------------
+
+-- | A binding of a variable to an expression inside of a let clause
+data Bind = Bind
+  { bindSrcSpan  :: SrcSpan
+  , bindVarPat   :: VarPat
+  , bindExpr     :: Expr
+  }
+ deriving (Eq, Show)
+
+ -- | Pretty instance for @let@ expression binds.
+instance Pretty Bind where
+  pretty (Bind _ varPat expr) =
+     pretty varPat
+     <+> prettyString "="
+     <+> pretty expr
