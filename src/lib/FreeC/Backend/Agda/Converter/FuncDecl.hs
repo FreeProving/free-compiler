@@ -48,7 +48,7 @@ convertFuncDecls (Recursive _) =
   error "Mutual recursive functions are not supported at the moment."
 
 -- | Converts the given function declarations. Returns the declarations for the
---   type signature and the definition (TODO).
+--   type signature and the definition.
 convertFuncDecl :: IR.FuncDecl -> Maybe Int -> Converter [Agda.Declaration]
 convertFuncDecl decl decArg = sequence
   [localEnv $ convertSignature decl decArg, localEnv $ convertFuncDef decl]
@@ -57,6 +57,8 @@ convertFuncDecl decl decArg = sequence
 -- Definitions                                                              --
 ------------------------------------------------------------------------------
 
+-- | Converts the definition of the given function to an Agda function
+--   declaration.
 convertFuncDef :: IR.FuncDecl -> Converter Agda.Declaration
 convertFuncDef (IR.FuncDecl _ (IR.DeclIdent srcSpan name) _ args _ expr) = do
   args' <- mapM convertArg args

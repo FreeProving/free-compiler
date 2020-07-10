@@ -127,6 +127,11 @@ isAppP _          = False
 appP :: Pattern -> Pattern -> Pattern
 appP l r = AppP l $ defaultNamedArg $ if isAppP r then ParenP NoRange r else r
 
+-- | Adds parentheses to the pattern iff the root node in the AST is an
+--   application.
+--
+--   On the left-hand side of lambda clauses app patterns have to be
+--   parenthesized.
 parenIfNeeded :: Pattern -> Pattern
 parenIfNeeded p@(AppP _ _) = ParenP NoRange p
 parenIfNeeded p            = p
@@ -172,18 +177,28 @@ app :: Expr -> Expr -> Expr
 app l r =
   App NoRange l $ defaultNamedArg (if isApp .||. isFun $ r then paren r else r)
 
+-- | Applies the list of arguments to the given expression. If the expression is
+--   an operator the application is written in mixfix notation.
 appN :: Expr -> [Expr] -> Expr
 appN f = if isOp f then opApp f else foldl app f
 
+-- | Whether the given expression is an identifier containing an operator (i.e.
+--   a name with holes).
 isOp :: Expr -> Bool
 isOp (Ident n) = isOperator $ unqualify n
 isOp _         = False
 
+-- | Applies an operator to a list with the right amount of arguments.
+--
+--   This functions fails iff the left-hand side isn't an operator or the wrong
+--   number of arguments is supplied.
 opApp :: Expr -> [Expr] -> Expr
 opApp (Ident op) =
   paren . RawApp NoRange . opApp' (nameNameParts $ unqualify $ op)
 opApp _ = error "Only an identifier can be an operator!"
 
+-- | Translates a list of @NamePart@s to a list of expressions by replacing holes
+--   with arguments and translating name parts to identifiers.
 opApp' :: [NamePart] -> [Expr] -> [Expr]
 opApp' (Hole    : ps) (a : as) = a : opApp' ps as
 opApp' (Id part : ps) as       = ident part : opApp' ps as

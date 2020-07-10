@@ -70,12 +70,18 @@ freeArgBinder =
   , Agda.binding [Agda.Base.position] (shape `Agda.fun` Agda.set)
   ]
 
+-- | The identifier for the error term @undefined@.
 undefinedExpr :: Agda.Expr
 undefinedExpr = Agda.ident "undefined"
 
+-- | The identifier for the error term @error@.
 errorExpr :: String -> Agda.Expr
 errorExpr msg = Agda.ident "error" `Agda.app` Agda.stringLiteral msg
 
+-- | Adds an instance argument for the partial type class to the given function
+--   type.
+--
+--   > τ ↦ ⦃ Partial Shape Pos ⦄ → τ
 addPartial :: Agda.Expr -> Agda.Expr
 addPartial = Agda.fun $ Agda.InstanceArg Agda.NoRange $ Agda.unnamed partial'
   where partial' = partial `Agda.app` shape `Agda.app` position
