@@ -9,6 +9,9 @@ where
 
 import           Paths_free_compiler            ( getDataFileName )
 
+import {-# SOURCE #-} FreeC.Backend
+import {-# SOURCE #-} FreeC.Frontend
+
 -- | Data type that stores the command line options passed to the compiler.
 data Options = Options
   { optShowHelp                  :: Bool
@@ -69,6 +72,6 @@ makeDefaultOptions = do
                    , optCreateCoqProject          = True
                    , optTransformPatternMatching  = False
                    , optDumpTransformedModulesDir = Nothing
-                   , optFrontend                  = "haskell"
-                   , optBackend                   = "coq"
+                   , optFrontend                  = defaultFrontend
+                   , optBackend                   = defaultBackend
                    }
