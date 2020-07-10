@@ -3,9 +3,9 @@ From Base Require Import Free.Instance.Identity.
 From Base Require Import Free.
 From Base Require Import Prelude.List.
 From Generated Require Import FastLooseBasic.
-From Generated Require Import AppendProofs.
-From Generated Require Import Simplify.
-From Generated Require Import PeanoInd.
+From Proofs Require Import AppendProofs.
+From Proofs Require Import Simplify.
+From Proofs Require Import PeanoInd.
 Require Import Coq.Logic.FunctionalExtensionality.
 
 Set Implicit Arguments.

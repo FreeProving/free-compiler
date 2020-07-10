@@ -1,6 +1,6 @@
 From Base Require Import Free.
 From Base Require Import Prelude.List.
-From Generated Require Import Simplify.
+From Proofs Require Import Simplify.
 From Generated Require Import FastLooseBasic.
 Require Import Coq.Logic.FunctionalExtensionality.
 
