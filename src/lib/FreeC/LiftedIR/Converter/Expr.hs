@@ -9,6 +9,7 @@ import           Control.Monad                  ( join )
 import           Data.Maybe                     ( fromMaybe )
 
 import qualified FreeC.IR.Syntax               as IR
+import           FreeC.IR.Syntax.Name           ( identFromQName )
 import           FreeC.IR.SrcSpan               ( SrcSpan(NoSrcSpan) )
 import qualified FreeC.LiftedIR.Syntax         as LIR
 import qualified FreeC.LiftedIR.Converter.Type as LIR
@@ -146,10 +147,9 @@ convertConPat (IR.ConPat srcSpan name) = LIR.ConPat srcSpan name
 
 -- | Translates a variable pattern from IR to LIR.
 convertVarPat :: IR.VarPat -> Converter LIR.VarPat
-convertVarPat (IR.VarPat srcSpan name t strict) = do
-  let name' = IR.UnQual $ IR.Ident name
-  agdaVar <- renameAndDefineAgdaVar srcSpan strict name t
-  return $ LIR.VarPat srcSpan name' (LIR.liftType <$> t) agdaVar
+convertVarPat (IR.VarPat srcSpan name t strict) =
+  LIR.VarPat srcSpan name (LIR.liftType <$> t)
+    <$> renameAndDefineAgdaVar srcSpan strict name t
 
 -------------------------------------------------------------------------------
 -- Application-expression helper                                             --
@@ -179,11 +179,78 @@ guessName _                   = Nothing
 -- | Creates a @>>= \x ->@, which binds a new variable.
 bind :: LIR.Expr -> (LIR.Expr -> Converter LIR.Expr) -> Converter LIR.Expr
 bind arg k = localEnv $ do
-  -- Build the lambda on the RHS of the bind.
+  -- Generate a new name for lambda argument.
   argIdent <- freshIRQName $ fromMaybe "f" (guessName arg)
-  argAgda  <- lookupAgdaFreshIdentOrFail NoSrcSpan argIdent
-  let varPat = LIR.VarPat NoSrcSpan argIdent Nothing $ argAgda
+  let Just argIdent' = identFromQName argIdent
+  -- Build the lambda on the RHS of the bind.
+  argAgda <- lookupAgdaFreshIdentOrFail NoSrcSpan argIdent
+  let varPat = LIR.VarPat NoSrcSpan argIdent' Nothing $ argAgda
   rhs <- LIR.Lambda NoSrcSpan [varPat]
     <$> k (LIR.Var NoSrcSpan argIdent argAgda)
   -- Build the bind.
   return $ LIR.Bind NoSrcSpan arg rhs
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

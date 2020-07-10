@@ -235,9 +235,9 @@ caseOf discr alts =
 
 -- | Smart constructor for @LamClause@s.
 --
---   Each @LamClause@ stores  a pattern matched on the left-hand side of an @→@
---   and the expression on the right-hand side. In Agda normal lambda expressions
---   can pattern match on their arguments.
+--   Each @LamClause@ stores a pattern matched on the left-hand side of an @→@
+--   and the expression on the right-hand side. In Agda lambda expressions can
+--   pattern match on their arguments.
 lamClause :: Pattern -> Expr -> LamClause
 lamClause pat rhs = LamClause (lhs pat) (RHS rhs) NoWhere False
 

@@ -67,7 +67,7 @@ data Expr
   | -- | A lambda abstraction.
     Lambda { exprSrcSpan    :: SrcSpan
            , lambdaExprArgs :: [VarPat]
-           , lambdaExprRhs   :: Expr
+           , lambdaExprRhs  :: Expr
            }
 
   | -- | The @pure@ constructor of the @Free@ monad.
@@ -111,7 +111,7 @@ data ConPat = ConPat
 --   The variable pattern can optionally have a type signature.
 data VarPat = VarPat
   { varPatSrcSpan   :: SrcSpan
-  , varPatIdent     :: QName
+  , varPatIdent     :: String
   , varPatType      :: Maybe Type
     -- TODO: remove maybe after EtaConversionPass is moved
   , varPatAgdaIdent :: Agda.QName
