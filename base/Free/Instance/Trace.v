@@ -1,7 +1,7 @@
 (** * Definition of the tracing effect in terms of the free monad. *)
 
 From Base Require Import Free.
-From Base Require Import Free.Instance.Share.
+From Base Require Import Free.Util.Sharing.
 From Base Require Import Free.Util.Void.
 Require Export Coq.Strings.String.
 
