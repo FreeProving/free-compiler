@@ -1,6 +1,7 @@
 (** * Definition of the sharing effect in terms of the free monad. *)
 
 From Base Require Import Free.
+From Base Require Export Free.Util.Sharing.
 
 Module Share.
 

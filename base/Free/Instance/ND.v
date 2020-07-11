@@ -1,12 +1,10 @@
 (** * Definition of the non-determinism effect in terms of the free monad. *)
 
 From Base Require Import Free.
+From Base Require Import Free.Util.Share.
 From Base Require Import Free.Util.Void.
 
 Module ND.
-  (* Type synonym for a choice id *)
-  Definition ID : Type := (nat * nat * nat).
-
   (* Shape and position function *)
   Inductive Shape : Type :=
   | sfail : Shape
@@ -33,7 +31,8 @@ Module ND.
        let s := injS (schoice mid) 
        in impure s (fun p : Pos' s => if injP p : Pos (schoice mid) then l else r).
 
-    (** Curry notation for the choice operator *)
+    (* Curry notation for the choice operator. 
+       The ID is set by the sharing handler. *)
     Notation "x ? y" := (Choice None x y) (at level 80).
  End Monad.
 

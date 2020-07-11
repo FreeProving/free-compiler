@@ -1,13 +1,11 @@
 (** * Definition of the tracing effect in terms of the free monad. *)
 
 From Base Require Import Free.
+From Base Require Import Free.Util.Sharing.
 From Base Require Import Free.Util.Void.
 Require Export Coq.Strings.String.
 
 Module Trace.
-
-  (* Type synonym for a tracing id *)
-  Definition ID : Type := nat * nat * nat.
 
   (* Container instance for a functor [Log]. *)
   Definition Shape : Type := option ID * string.
