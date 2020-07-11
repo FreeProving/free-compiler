@@ -22,6 +22,7 @@ Module Trace.
       : Free Shape' Pos' A :=
       impure (injS (mid, msg)) (fun tt => x).
 
+    (* A function to log a message in addition to returning a value. *)
     Definition trace {A : Type} {Shape' : Type} {Pos' : Shape' -> Type} 
       `{i : Injectable Shape Pos Shape' Pos'} msg x := 
       @LCons A Shape' Pos' i None msg x. 
