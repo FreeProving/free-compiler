@@ -1,3 +1,5 @@
+{-# LANGUAGE TupleSections #-}
+
 -- | Implements the IR to lifted IR translation for expressions.
 
 module FreeC.LiftedIR.Converter.Expr
@@ -5,19 +7,25 @@ module FreeC.LiftedIR.Converter.Expr
   )
 where
 
+import           Control.Applicative            ( (<|>) )
 import           Control.Monad                  ( join )
-import           Data.Maybe                     ( fromMaybe )
+import           Data.Bool                      ( bool )
+import           Data.Maybe                     ( fromMaybe
+                                                , fromJust
+                                                )
 
 import qualified FreeC.IR.Syntax               as IR
 import           FreeC.IR.Syntax.Name           ( identFromQName )
 import           FreeC.IR.SrcSpan               ( SrcSpan(NoSrcSpan) )
+import           FreeC.LiftedIR.Effect          ( Effect(Partiality) )
 import qualified FreeC.LiftedIR.Syntax         as LIR
 import qualified FreeC.LiftedIR.Converter.Type as LIR
 import           FreeC.Environment
+import           FreeC.Environment.Entry        ( entryAgdaIdent )
 import           FreeC.Environment.LookupOrFail ( lookupAgdaFreshIdentOrFail
                                                 , lookupAgdaValIdentOrFail
                                                 )
-import           FreeC.Environment.Renamer      ( renameAndDefineAgdaVar )
+import           FreeC.Environment.Renamer      ( renameAndDefineLIRVar )
 import           FreeC.Environment.Fresh        ( freshIRQName )
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter           ( reportFatal
@@ -44,16 +52,16 @@ liftExpr' :: IR.Expr -> [IR.Type] -> [IR.Expr] -> Converter LIR.Expr
 -- Pass argument from applications to converter for callee, allowing us to
 -- convert functions and constructors with full access to their parameters.
 --
--- >                $
+-- >             $
 -- > liftExpr'  / \   [] args = liftExpr' e₁ [] (e₂ : args)
--- >              e₁  e₂
+-- >           e₁  e₂
 liftExpr' (IR.App _ e1 e2 _) [] args = liftExpr' e1 [] (e2 : args)
 
 -- Pass type argument from visible type application to converter for callee.
 --
--- >                @
+-- >             @
 -- > liftExpr'  / \   tArgs args = liftExpr' e (τ : tArgs) args
--- >              e   τ
+-- >           e   τ
 liftExpr' (IR.TypeAppExpr _ e t _) typeArgs args =
   liftExpr' e (t : typeArgs) args
 
@@ -69,8 +77,14 @@ liftExpr' (IR.Var srcSpan name _) _ args = do
   varName  <- LIR.Var srcSpan name <$> lookupAgdaValIdentOrFail srcSpan name
   function <- inEnv $ isFunction name
   if function -- If this is a top level functions it's lifted argument wise.
-    then return $ LIR.App srcSpan varName [] [] args'
-    else generateApply varName args'
+    then do
+      partial         <- inEnv $ isPartial name
+      Just strictArgs <- inEnv $ lookupStrictArgs name
+      generateBinds (zip args' $ strictArgs ++ repeat False) $ \args'' ->
+        return $ LIR.App srcSpan varName [] [ Partiality | partial ] args''
+    else do
+      pureArg <- inEnv $ isPureVar name
+      generateApply (bool id (LIR.Pure NoSrcSpan) pureArg varName) args'
 
 -- Integer Literals.
 liftExpr' (IR.IntLiteral srcSpan value _) [] [] =
@@ -81,11 +95,9 @@ liftExpr' (IR.IntLiteral srcSpan value _) [] [] =
 -- > ⎡     Γ,x:τ₀ ⊢ e:τ₁     ⎤'           Γ',x:τ₀' ⊢ e':τ₁'
 -- > ⎢-----------------------⎥ = -----------------------------------
 -- > ⎣ Γ ⊢ λx:τ₀.e : τ₀ → τ₁ ⎦   Γ' ⊢ pure(λx:τ₀'.e') : m(τ₀' → τ₁')
-liftExpr' (IR.Lambda srcSpan args rhs _) [] [] =
-  localEnv
-    $   flip (foldr (\a b -> LIR.Pure srcSpan $ LIR.Lambda srcSpan [a] b))
-    <$> mapM convertVarPat args
-    <*> liftExpr rhs
+liftExpr' (IR.Lambda srcSpan args rhs _) [] [] = localEnv $ do
+  (pats, expr) <- convertAlt' args rhs
+  return $ foldr (\a b -> LIR.Pure srcSpan $ LIR.Lambda srcSpan [a] b) expr pats
 
 -- @if@-expressions.
 --
@@ -133,23 +145,43 @@ liftExpr' expr [] args@(_ : _) =
 -- Lift Patterns                                                             --
 -------------------------------------------------------------------------------
 
--- | Translates a case alternative pattern from IR to LIR, by lifting the pattern
---   and the right-hand side.
-convertAlt :: IR.Alt -> Converter LIR.Alt
-convertAlt (IR.Alt srcSpan conPat varPats expr) =
-  LIR.Alt srcSpan (convertConPat conPat)
-    <$> mapM convertVarPat varPats
-    <*> liftExpr expr
-
 -- | Translates a constructor pattern from IR to LIR.
 convertConPat :: IR.ConPat -> LIR.ConPat
 convertConPat (IR.ConPat srcSpan name) = LIR.ConPat srcSpan name
 
--- | Translates a variable pattern from IR to LIR.
-convertVarPat :: IR.VarPat -> Converter LIR.VarPat
-convertVarPat (IR.VarPat srcSpan name t strict) =
-  LIR.VarPat srcSpan name (LIR.liftType <$> t)
-    <$> renameAndDefineAgdaVar srcSpan strict name t
+-- | Translates a case alternative pattern from IR to LIR, by lifting the pattern
+--   and the right-hand side.
+convertAlt :: IR.Alt -> Converter LIR.Alt
+convertAlt (IR.Alt srcSpan conPat pats expr) = do
+  (pats', expr') <- convertAlt' pats expr
+  return $ LIR.Alt srcSpan (convertConPat conPat) pats' expr'
+
+-- | Translates an alternative (which consist of a list of variable patterns and
+--   a bound expression). Strict variables are replaced with fresh ones, which
+--   are unwrapped using @>>=@.
+convertAlt' :: [IR.VarPat] -> IR.Expr -> Converter ([LIR.VarPat], LIR.Expr)
+convertAlt' [] expr = ([], ) <$> liftExpr expr
+convertAlt' ((IR.VarPat srcSpan name varType strict) : pats) expr = do
+  var            <- renameAndDefineLIRVar srcSpan strict name varType
+  (pats', expr') <- convertAlt' pats expr
+  if strict
+    then do
+      var'   <- freshIRQName name
+      expr'' <- rawBind srcSpan var' var varType expr'
+      pat'   <- varPat srcSpan var' varType
+      return (pat' : pats', expr'')
+    else do
+      pat' <- varPat srcSpan var varType
+      return (pat' : pats', expr')
+
+-- | Smart constructor for variable patterns.
+varPat :: SrcSpan -> IR.QName -> Maybe IR.Type -> Converter LIR.VarPat
+varPat srcSpan var varType = do
+  let Just unqualVar = identFromQName var
+  valueEntry <- inEnv $ lookupEntry IR.ValueScope var
+  freshEntry <- inEnv $ lookupEntry IR.FreshScope var
+  let agdaVar = entryAgdaIdent $ fromJust (valueEntry <|> freshEntry)
+  return $ LIR.VarPat srcSpan unqualVar (LIR.liftType <$> varType) agdaVar
 
 -------------------------------------------------------------------------------
 -- Application-expression helper                                             --
@@ -172,20 +204,48 @@ generateApply mf (a : as) = mf `bind` \f -> generateApply (f `app` a) as
 -- | Tries to extract a variable name from an expression. This function can be
 --   used to preserve the same base variable name across chains of binds.
 guessName :: LIR.Expr -> Maybe String
-guessName (LIR.Var  _ name _) = IR.identFromQName name
-guessName (LIR.Bind _ arg  _) = guessName arg
-guessName _                   = Nothing
+guessName (LIR.Var _ name _) = IR.identFromQName name
+guessName (LIR.Pure _ arg  ) = guessName arg
+guessName (LIR.Bind _ arg _) = guessName arg
+guessName _                  = Nothing
 
 -- | Creates a @>>= \x ->@, which binds a new variable.
 bind :: LIR.Expr -> (LIR.Expr -> Converter LIR.Expr) -> Converter LIR.Expr
-bind arg k = localEnv $ do
+bind (LIR.Pure _ arg) k = k arg -- We don't have to unwrap pure values.
+bind arg              k = localEnv $ do
   -- Generate a new name for lambda argument.
   argIdent <- freshIRQName $ fromMaybe "f" (guessName arg)
   let Just argIdent' = identFromQName argIdent
   -- Build the lambda on the RHS of the bind.
   argAgda <- lookupAgdaFreshIdentOrFail NoSrcSpan argIdent
-  let varPat = LIR.VarPat NoSrcSpan argIdent' Nothing $ argAgda
-  rhs <- LIR.Lambda NoSrcSpan [varPat]
-    <$> k (LIR.Var NoSrcSpan argIdent argAgda)
+  let pat = LIR.VarPat NoSrcSpan argIdent' Nothing $ argAgda
+  rhs <- LIR.Lambda NoSrcSpan [pat] <$> k (LIR.Var NoSrcSpan argIdent argAgda)
   -- Build the bind.
   return $ LIR.Bind NoSrcSpan arg rhs
+
+-- | Passes a list of arguments to the given function unwrapping the marked
+--   arguments using 'bind'.
+generateBinds
+  :: [(LIR.Expr, Bool)]
+  -> ([LIR.Expr] -> Converter LIR.Expr)
+  -> Converter LIR.Expr
+generateBinds []                  k = k []
+generateBinds ((arg, False) : as) k = generateBinds as $ \as' -> k (arg : as')
+generateBinds ((arg, True) : as) k =
+  arg `bind` \arg' -> generateBinds as $ \as' -> k (arg' : as')
+
+-- | Generates just the syntax for a bind expression.
+rawBind
+  :: SrcSpan
+  -> IR.QName
+  -> IR.QName
+  -> Maybe IR.Type
+  -> LIR.Expr
+  -> Converter LIR.Expr
+rawBind ss mx x varType expr = do
+  mxAgda <- lookupAgdaFreshIdentOrFail ss mx
+  xAgda  <- lookupAgdaValIdentOrFail ss x
+  let mx'          = LIR.Var ss mx mxAgda
+      Just unqualX = identFromQName x
+      x'           = LIR.VarPat ss unqualX (LIR.liftType' <$> varType) xAgda
+  return $ LIR.Bind ss mx' $ LIR.Lambda ss [x'] expr

@@ -159,3 +159,84 @@ testConvertFuncDecls =
         ++ " nil → undefined ; "
         ++ "(cons x xs') → x }"
         ]
+    it "translates functions with strict and non-strict arguments correctly"
+      $ shouldSucceedWith
+      $ do
+          "List"      <- defineTestTypeCon "List" 1 ["Nil", "Cons"]
+          ("nil" , _) <- defineTestCon "Nil" 0 "forall a. List a"
+          ("cons", _) <- defineTestCon "Cons"
+                                       2
+                                       "forall a. a -> List a -> List a"
+          "Pair"       <- defineTestTypeCon "Pair" 2 ["Pair0"]
+          ("pair0", _) <- defineTestCon "Pair0"
+                                        2
+                                        "forall a b. a -> b -> Pair a b"
+          "Bool"       <- defineTestTypeCon "Bool" 0 ["False", "True"]
+          ("false", _) <- defineTestCon "False" 0 "Bool"
+          ("true" , _) <- defineTestCon "True" 0 "Bool"
+          "foo"        <- defineStrictTestFunc
+            "foo"
+            [True, False, True]
+            "forall a. Pair a a -> Bool -> List a -> List a"
+          shouldConvertFuncDeclsTo
+            (  NonRecursive
+            $  "foo @a !(pair :: Pair a a) (bool :: Bool) !(list :: List a)"
+            ++ "  :: List a ="
+            ++ "  case pair of {"
+            ++ "    Pair0 !p1 !p2 ->"
+            ++ "      case list of {"
+            ++ "        Nil ->"
+            ++ "          case bool of {"
+            ++ "            True  -> Cons @a p1 (Nil @a);"
+            ++ "            False -> Cons @a p2 (Nil @a)"
+            ++ "          };"
+            ++ "        Cons x xs ->"
+            ++ "          case bool of {"
+            ++ "            True  -> Cons @a p1 xs;"
+            ++ "            False -> Cons @a p2 xs"
+            ++ "          }"
+            ++ "      }"
+            ++ "  }"
+            )
+            [ "foo : ∀ {Shape} {Pos} {a} → Pair Shape Pos a a"
+            ++ "    → Free Shape Pos (Bool Shape Pos)"
+            ++ "    → List Shape Pos a"
+            ++ "    → Free Shape Pos (List Shape Pos a)"
+            , "foo pair bool list = case pair of λ { "
+            ++ "  (pair0 p4 p3) → p4 >>= λ p1 → p3 >>= λ p2 → case list of λ {"
+            ++ "    nil → bool >>= λ bool₁ → case bool₁ of λ { "
+            ++ "      true  → Cons (pure p1) Nil ; "
+            ++ "      false → Cons (pure p2) Nil"
+            ++ "    } ; "
+            ++ "    (cons x xs) → bool >>= λ bool₁ → case bool₁ of λ { "
+            ++ "      true  → Cons (pure p1) xs ; "
+            ++ "      false → Cons (pure p2) xs"
+            ++ "    }"
+            ++ " } }"
+            ]
+
+    it "translates case expressions with one strict pattern correctly"
+      $ shouldSucceedWith
+      $ do
+          "List"      <- defineTestTypeCon "List" 1 ["Nil", "Cons"]
+          ("nil" , _) <- defineTestCon "Nil" 0 "forall a. List a"
+          ("cons", _) <- defineTestCon "Cons"
+                                       2
+                                       "forall a. a -> List a -> List a"
+          "head" <- definePartialTestFunc "head" 1 "forall a. List a -> a"
+          shouldConvertFuncDeclsTo
+            (  NonRecursive
+            $  "head @a (x :: List a) :: a = case x of {"
+            ++ "    Cons !h xs -> h;"
+            ++ "    Nil        -> error @a \"head was called on a empty list\""
+            ++ "}"
+            )
+            [ "head : ∀ {Shape} {Pos} {a} → ⦃ Partial Shape Pos ⦄"
+            ++ " → Free Shape Pos (List Shape Pos a)"
+            ++ " → Free Shape Pos a"
+            , "head x = x >>= λ x₁ → case x₁ of λ { "
+            ++ "   (cons h₁ xs) → h₁ >>= λ h → pure h ; "
+            ++ "   nil → error \"head was called on a empty list\""
+            ++ " }"
+            ]
+

@@ -168,7 +168,7 @@ lambda args = Lam NoRange (DomainFree . defaultNamedArg . mkBinder_ <$> args)
 
 -- | Creates an application AST node.
 --
---   Application is left associative and in in type expressions binds stronger
+--   Application is left associative and in type expressions binds stronger
 --   than type arrow. For these cases paren- thesis are added automatically.
 --
 --   > e a
