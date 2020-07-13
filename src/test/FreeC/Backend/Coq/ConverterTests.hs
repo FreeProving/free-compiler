@@ -12,8 +12,8 @@ import           FreeC.Backend.Coq.Converter.TypeTests
 -- | Test group for all @FreeC.Backend.Coq.Converter@ tests.
 testConverter :: Spec
 testConverter = do
-  testConvertType
-  testConvertTypeDecl
   testConvertDataDecls
   testConvertExpr
   testConvertFuncDecl
+  testConvertType
+  testConvertTypeDecl

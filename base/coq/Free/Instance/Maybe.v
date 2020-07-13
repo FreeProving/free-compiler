@@ -12,8 +12,18 @@ Module Maybe.
   Module Import Monad.
     Definition Maybe (A : Type) : Type := Free Shape Pos A.
     Definition Just {A : Type} (x : A) : Maybe A := pure x.
-    Definition Nothing {A : Type} : Maybe A :=
-      impure tt (fun (p : Pos tt) => match p with end).
+    Definition Nothing {A : Type}      : Maybe A := 
+       impure tt (fun (p : Pos tt) => match p with end).
+
+  (* Versions of the smart constructors that automatically embed values in an effect stack *)
+    Definition Just_inj {A : Type} {Shape' : Type} {Pos' : Shape' -> Type} 
+      (x : A) `{Injectable Shape Pos Shape' Pos'} 
+      : Free Shape' Pos' A := pure x.
+
+    Definition Nothing_inj {A : Type} {Shape' : Type} {Pos' : Shape' -> Type} 
+      `{Injectable Shape Pos Shape' Pos'} 
+      : Free Shape' Pos' A :=
+      impure (injS tt) (fun p : Pos' (injS tt) => (fun (x : Void) => match x with end) (injP p)).
   End Monad.
 
   (* Partial instance for the maybe monad. *)
