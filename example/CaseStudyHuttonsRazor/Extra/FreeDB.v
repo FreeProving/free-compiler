@@ -290,3 +290,71 @@ Hint Rewrite def_comp_Add : simplDB.
 Hint Rewrite def_compApp_Val : simplDB.
 Hint Rewrite def_compApp_Add : simplDB.
 Hint Rewrite def_comp' : simplDB.
+
+Section Rewrite_Helper_Functions.
+
+  Variable Shape : Type.
+  Variable Pos : Shape -> Type.
+  Variable Part : Partial Shape Pos.
+
+  Lemma def_append_0 :
+    forall (A : Type)
+           (fl1 fl2 : Free Shape Pos (List Shape Pos A)),
+        append_0 Shape Pos A fl2 fl1
+        = append fl1 fl2.
+  Proof.
+    reflexivity.
+  Qed.
+
+  Lemma def_append_1 :
+    forall (A : Type)
+           (l1 : List Shape Pos A)
+           (fl2 : Free Shape Pos (List Shape Pos A)),
+        append_1 Shape Pos A fl2 l1
+        = append (pure l1) fl2.
+  Proof.
+    reflexivity.
+  Qed.
+
+  Lemma def_eval_0 :
+    forall (expr : Expr Shape Pos),
+        eval_0 Shape Pos expr
+        = eval (pure expr).
+  Proof.
+    reflexivity.
+  Qed.
+
+  Lemma def_exec_0 :
+    forall (code : Code Shape Pos)
+           (fstack : Free Shape Pos (Stack Shape Pos)),
+        exec_0 Shape Pos Part code fstack
+        = exec Part (pure code) fstack.
+  Proof.
+    reflexivity.
+  Qed.
+
+  Lemma def_comp_0 :
+    forall (expr : Expr Shape Pos),
+        comp_0 Shape Pos expr
+        = comp (pure expr).
+  Proof.
+    reflexivity.
+  Qed.
+
+  Lemma def_compApp_0 :
+    forall (expr : Expr Shape Pos)
+           (fcode : Free Shape Pos (Code Shape Pos)),
+        compApp_0 Shape Pos expr fcode
+        = compApp (pure expr) fcode.
+  Proof.
+    reflexivity.
+  Qed.
+
+End Rewrite_Helper_Functions.
+
+Hint Rewrite def_append_1 : prettyDB.
+Hint Rewrite def_append_0 : prettyDB.
+Hint Rewrite def_eval_0 : prettyDB.
+Hint Rewrite def_exec_0 : prettyDB.
+Hint Rewrite def_comp_0 : prettyDB.
+Hint Rewrite def_compApp_0 : prettyDB.
