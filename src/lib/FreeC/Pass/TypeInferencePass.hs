@@ -666,6 +666,23 @@ annotateExprWith' (IR.Lambda srcSpan args expr _) resType =
     addTypeEquation srcSpan funcType resType
     return (IR.Lambda srcSpan args' expr' (makeExprType resType))
 
+
+annotateExprWith' (IR.Let srcSpan binds expr _) resType = do
+    retType  <- liftConverter freshTypeVar
+    expr'    <- annotateExprWith expr retType
+    binds'   <- mapM annotateBind binds
+    -- addTypeEquation srcSpan (fromJust $ IR.exprTypeSchema expr') resType -- TODO unclear if needed
+    return (IR.Let srcSpan binds' expr' (makeExprType resType))
+     where
+       annotateBind :: IR.Bind -> TypeInference IR.Bind
+       annotateBind (IR.Bind bindSrcSpan bindVarPat bindExpr) =
+         withLocalTypeAssumption $ do
+           varPat'  <- annotateVarPat bindVarPat
+           bindType <- liftConverter freshTypeVar
+           expr'    <- annotateExprWith bindExpr bindType
+           addTypeEquation srcSpan (fromJust $ IR.varPatType varPat') bindType
+           return (IR.Bind bindSrcSpan varPat' expr')
+
 -- | Utility function used by 'annotateExprWith' to construct the
 --   'IR.exprTypeSchema' field.
 --
@@ -771,6 +788,10 @@ applyExprVisibly (IR.Case srcSpan expr alts exprType) = do
   expr' <- applyExprVisibly expr
   alts' <- mapM applyAltVisibly alts
   return (IR.Case srcSpan expr' alts' exprType)
+applyExprVisibly (IR.Let srcSpan binds expr exprType) = do
+  binds' <- mapM applyBindVisibly binds
+  expr'  <- applyExprVisibly expr
+  return (IR.Let srcSpan binds' expr' exprType)
 applyExprVisibly (IR.Lambda srcSpan args expr exprType) =
   withLocalTypeAssumption $ do
     mapM_ removeVarPatFromTypeAssumption args
@@ -779,6 +800,12 @@ applyExprVisibly (IR.Lambda srcSpan args expr exprType) =
 
 -- Leave all literals unchanged.
 applyExprVisibly expr@(IR.IntLiteral _ _ _) = return expr
+
+-- | Applies 'applyExprVisibly' to the right-hand side of the given let binding.
+applyBindVisibly :: IR.Bind -> TypeInference IR.Bind
+applyBindVisibly (IR.Bind srcSpan varPat expr) = do
+  expr' <- applyExprVisibly expr
+  return (IR.Bind srcSpan varPat expr')
 
 -- | Applies 'applyExprVisibly' to the right-hand side of the given @case@-
 --   expression alternative.
@@ -900,6 +927,7 @@ abstractVanishingTypeArgs funcDecls =
     let funcNames' = withoutArgs args funcNames
         expr'      = addInternalTypeArgsToExpr funcNames' expr
     in  (IR.Lambda srcSpan args expr' exprType, [])
+  addInternalTypeArgsToExpr' _ (IR.Let _ _ _ _) = undefined -- TODO
 
   -- Leave all other expressions unchanged.
   addInternalTypeArgsToExpr' _ expr@(IR.Con        _ _ _) = (expr, [])
