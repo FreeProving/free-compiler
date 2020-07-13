@@ -39,8 +39,8 @@ liftRecFuncArgTypes decIndex args =
       (startArgs, decArg : endArgs) = splitAt decIndex convArgs
   in  startArgs ++ (markOutermostDecreasing decArg : endArgs)
 
--- | Lifts the type of an 'IR.VarPat'. If the argument is strict the type isn't
---   lifted into the @Free@ monad.
+-- | Lifts the type of an 'IR.VarPat'. If the argument is strict the type itself
+--   isn't lifted into the @Free@ monad.
 liftVarPatType :: IR.VarPat -> Maybe LIR.Type
 liftVarPatType (IR.VarPat _ _ patType strict) =
   bool liftType liftType' strict <$> patType

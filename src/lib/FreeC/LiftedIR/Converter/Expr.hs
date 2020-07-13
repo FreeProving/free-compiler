@@ -235,7 +235,8 @@ generateBinds ((arg, False) : as) k = generateBinds as $ \as' -> k (arg : as')
 generateBinds ((arg, True) : as) k =
   arg `bind` \arg' -> generateBinds as $ \as' -> k (arg' : as')
 
--- | Generates just the syntax for a bind expression.
+-- | Generates just the syntax for a bind expression, which unwraps the first
+--   variable and binds its value two the second one in the given expression.
 rawBind
   :: SrcSpan
   -> IR.QName
@@ -250,9 +251,3 @@ rawBind ss mx x varType expr = do
       Just unqualX = identFromQName x
       x'           = LIR.VarPat ss unqualX (LIR.liftType' <$> varType) xAgda
   return $ LIR.Bind ss mx' $ LIR.Lambda ss [x'] expr
-
-
-
-
-
-
