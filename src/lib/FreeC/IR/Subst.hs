@@ -159,7 +159,11 @@ instance ApplySubst IR.Expr IR.Expr where
       let (subst', args') = newRenameArgs subst args
           expr'           = applySubst subst' expr
       in  IR.Lambda srcSpan args' expr' exprType
-    applySubst' expr@(IR.Let _ _ _ _) = expr -- TODO needed ?
+    applySubst' (IR.Let srcSpan binds expr exprType) =
+      let (subst', varpats') = newRenameArgs subst (map IR.bindVarPat binds)
+          binds'             = zipWith (\v b -> b {IR.bindVarPat = v}) varpats' binds
+          expr'              = applySubst subst' expr
+      in IR.Let srcSpan binds' expr' exprType
 
     -- All other expressions remain unchanged.
     applySubst' expr@(IR.Con _ _ _       ) = expr
@@ -236,6 +240,12 @@ instance ApplySubst IR.Type IR.Expr where
           exprType' = applySubst subst exprType
       in  IR.Lambda srcSpan args' expr' exprType'
 
+    applySubst' (IR.Let srcSpan binds expr exprType) =
+      let binds'    = applySubst subst binds
+          expr'     = applySubst subst expr
+          exprType' = applySubst subst exprType
+      in  IR.Let srcSpan binds' expr' exprType'
+
 -- | Applies the given type substitution to the right-hand side of the
 --   given @case@-expression alternative.
 instance ApplySubst IR.Type IR.Alt where
@@ -251,6 +261,11 @@ instance ApplySubst IR.Type IR.VarPat where
     let maybeVarType' = applySubst subst maybeVarType
     in  IR.VarPat srcSpan varIdent maybeVarType' isStrict
 
+instance ApplySubst IR.Type IR.Bind where
+  applySubst subst (IR.Bind srcSpan varPat expr) =
+    let varPat' = applySubst subst varPat
+        expr'   = applySubst subst expr
+    in IR.Bind srcSpan varPat' expr'
 -------------------------------------------------------------------------------
 -- Application to function declarations                                      --
 -------------------------------------------------------------------------------

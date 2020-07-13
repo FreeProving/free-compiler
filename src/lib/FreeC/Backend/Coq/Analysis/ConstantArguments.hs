@@ -143,6 +143,8 @@ makeConstArgGraph decls = do
           checkExpr e1 [] && checkExpr e2 [] && checkExpr e3 []
         checkExpr (IR.Case _ expr alts _) _ =
           checkExpr expr [] && all (flip checkAlt []) alts
+        checkExpr (IR.Let _ binds expr _) _ =
+          checkExpr expr [] && all (flip checkBind []) binds
 
         -- No beta reduction is applied when a lambda expression is
         -- encountered, but the right-hand side still needs to be checked.
@@ -169,6 +171,15 @@ makeConstArgGraph decls = do
         checkAlt (IR.Alt _ _ varPats expr) args
           | x `shadowedBy` varPats = not (callsG expr)
           | otherwise              = checkExpr expr args
+
+        -- | Applies 'checkExpr' to the right hand sides of a bind inside a
+        --   @let@ expression.
+        --
+        --   If a variable pattern shadows @x_i@, @x_i@ is not unchanged.
+        checkBind :: IR.Bind -> [IR.Expr] -> Bool
+        checkBind (IR.Bind _ varPat expr) args
+          | x `shadowedBy` [varPat] = not (callsG expr)
+          | otherwise               = checkExpr expr args -- TODO [] ?
 
         -- | Tests whethe the given variable is shadowed by the given
         --   variale patterns.
