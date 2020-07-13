@@ -6,20 +6,6 @@ From Proofs Require Import AppendAssocProofs.
 Require Import Coq.Logic.FunctionalExtensionality.
 Require Import Coq.Program.Equality.
 
-Arguments Cons {Shape} {Pos} {A}.
-Arguments Nil {Shape} {Pos} {A}.
-Arguments Val {Shape} {Pos}.
-Arguments Add0 {Shape} {Pos}.
-Arguments PUSH {Shape} {Pos}.
-Arguments ADD {Shape} {Pos}.
-Arguments append {Shape} {Pos} {a}.
-Arguments addInteger {Shape} {Pos}.
-Arguments eval {Shape} {Pos}.
-Arguments exec {Shape} {Pos}.
-Arguments comp {Shape} {Pos}.
-Arguments compApp {Shape} {Pos}.
-Arguments comp' {Shape} {Pos}.
-
 Section Proofs.
 
   Definition Shape := Maybe.Shape.
