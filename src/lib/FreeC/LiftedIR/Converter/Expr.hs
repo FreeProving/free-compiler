@@ -161,27 +161,28 @@ convertAlt (IR.Alt srcSpan conPat pats expr) = do
 --   are unwrapped using @>>=@.
 convertAlt' :: [IR.VarPat] -> IR.Expr -> Converter ([LIR.VarPat], LIR.Expr)
 convertAlt' [] expr = ([], ) <$> liftExpr expr
-convertAlt' ((IR.VarPat srcSpan name varType strict) : pats) expr = do
+convertAlt' (pat@(IR.VarPat srcSpan name varType strict) : pats) expr = do
+  let varType' = LIR.liftVarPatType pat
   var            <- renameAndDefineLIRVar srcSpan strict name varType
   (pats', expr') <- convertAlt' pats expr
   if strict
     then do
       var'   <- freshIRQName name
       expr'' <- rawBind srcSpan var' var varType expr'
-      pat'   <- varPat srcSpan var' varType
+      pat'   <- varPat srcSpan var' varType'
       return (pat' : pats', expr'')
     else do
-      pat' <- varPat srcSpan var varType
+      pat' <- varPat srcSpan var varType'
       return (pat' : pats', expr')
 
 -- | Smart constructor for variable patterns.
-varPat :: SrcSpan -> IR.QName -> Maybe IR.Type -> Converter LIR.VarPat
+varPat :: SrcSpan -> IR.QName -> Maybe LIR.Type -> Converter LIR.VarPat
 varPat srcSpan var varType = do
   let Just unqualVar = identFromQName var
   valueEntry <- inEnv $ lookupEntry IR.ValueScope var
   freshEntry <- inEnv $ lookupEntry IR.FreshScope var
   let agdaVar = entryAgdaIdent $ fromJust (valueEntry <|> freshEntry)
-  return $ LIR.VarPat srcSpan unqualVar (LIR.liftType <$> varType) agdaVar
+  return $ LIR.VarPat srcSpan unqualVar varType agdaVar
 
 -------------------------------------------------------------------------------
 -- Application-expression helper                                             --
@@ -249,3 +250,9 @@ rawBind ss mx x varType expr = do
       Just unqualX = identFromQName x
       x'           = LIR.VarPat ss unqualX (LIR.liftType' <$> varType) xAgda
   return $ LIR.Bind ss mx' $ LIR.Lambda ss [x'] expr
+
+
+
+
+
+

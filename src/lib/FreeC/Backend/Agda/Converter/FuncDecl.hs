@@ -75,23 +75,21 @@ convertSignature :: IR.FuncDecl -> Maybe Int -> Converter Agda.Declaration
 convertSignature (IR.FuncDecl _ declIdent typeVars args returnType _) decArg =
   do
     let IR.DeclIdent srcSpan name = declIdent
-    let argTypes                  = map IR.varPatType args
     partial <- inEnv $ isPartial name
     ident   <- lookupUnQualAgdaIdentOrFail srcSpan IR.ValueScope name
-    Agda.funcSig ident
-      <$> convertFunc decArg partial typeVars argTypes returnType
+    Agda.funcSig ident <$> convertFunc decArg partial typeVars args returnType
 
 -- | Converts a fully applied function.
 convertFunc
   :: Maybe Int        -- ^ The index of the decreasing argument.
   -> Bool             -- ^ Whether the function needs a @Partial@ instance.
   -> [IR.TypeVarDecl] -- ^ Type variables bound by the function declaration.
-  -> [Maybe IR.Type]  -- ^ The types of the arguments.
+  -> [IR.VarPat]      -- ^ The types of the arguments.
   -> Maybe IR.Type    -- ^ The return type of the function.
   -> Converter Agda.Expr
 convertFunc decArg partial tVars argTypes returnType =
   Agda.pi . addFreeArgs <$> mapM convertTypeVarDecl tVars <*> typeConverter
-    (map fromJust argTypes)
+    argTypes
     (liftType $ fromJust returnType)
  where
   typeConverter ts = convertLiftedFuncType partial (liftFuncArgTypes decArg ts)
