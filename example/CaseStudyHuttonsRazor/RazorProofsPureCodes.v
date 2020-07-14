@@ -124,13 +124,13 @@ Section Proofs_PureCodes.
         = exec Shape Pos Partial fcode2 (exec Shape Pos Partial fcode1 fstack).
   Proof.
     intros HUndefined1 HUndefined2 fcode1 HPure1 fcode2 HPure2.
-    (* As we now that both pieces of code are recursivly pure we, we can
-       immediatly destruct the monadic layer.*)
+    (* As we now that both pieces of code are recursively pure we, we can
+       immediately destruct the monadic layer.*)
     destruct fcode1 as [ code1 | ]. 2: dependent destruction HPure1.
     destruct fcode2 as [ code2 | ]. 2: dependent destruction HPure2.
     induction code1 as [ | [ [ fn | ] | ] fcode1' IHfcode1' ] using List_Ind. 4: dependent destruction HPure1.
     - (* code1 = [] *)
-      (* In this case is trivial. *)
+      (* This case is trivial. *)
       intro fstack.
       destruct fstack as [ [ | fv1 fstack1 ] | sStack pfStack ]; try reflexivity.
       simpl. f_equal. f_equal. extensionality p.

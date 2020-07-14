@@ -520,7 +520,7 @@ Section Rewrite_Maybe.
 
 End Rewrite_Maybe.
 
-(* We won't use the smart constructor [Just] as it interfers with other smart constructors. *)
+(* We won't use the smart constructor [Just] as it interferes with other smart constructors. *)
 (* Hint Rewrite -> def_Just         : smartConstrDB. *)
 Hint Rewrite <- def_Just         : invSmartConstrDB.
 Hint Rewrite -> impure_Nothing   : smartConstrDB.
