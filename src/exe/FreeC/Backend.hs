@@ -23,7 +23,8 @@ import           System.FilePath
 
 import           FreeC.Application.Options
 import qualified FreeC.Backend.Coq.Base        as Coq.Base
-import           FreeC.Backend.Coq.Converter
+import qualified FreeC.Backend.Coq.Converter.Module
+                                               as Coq.Converter
 import           FreeC.Backend.Coq.Pretty
 import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Application
@@ -73,7 +74,7 @@ irBackend = Backend { backendName          = "ir"
 -- | Converts a module to a Coq program.
 convertModuleToCoq :: IR.Module -> Application String
 convertModuleToCoq ast = do
-  ast' <- liftConverter $ convertModule ast
+  ast' <- liftConverter $ Coq.Converter.convertModule ast
   return $ showPretty $ map PrettyCoq ast'
 
 -- | Creates a @_CoqProject@ file (if enabled) that maps the physical directory
