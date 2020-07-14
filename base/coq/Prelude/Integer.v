@@ -1,4 +1,5 @@
 From Base Require Import Free.
+From Base Require Import Free.Partial.
 From Base Require Import Prelude.Bool.
 
 (* We need to export this library (instead of just importing it) such that we
@@ -46,10 +47,12 @@ Section SecInteger.
         pure (Z.mul n1' n2').
 
   (* exponentiation *)
-  Definition powInteger (n1 : Free' Integer') (n2 : Free' Integer') : Free' Integer' :=
+  Definition powInteger (P : Partial Shape Pos) (n1 : Free' Integer') (n2 : Free' Integer') : Free' Integer' :=
     n1 >>= fun(n1' : Integer') =>
-      n2 >>= fun(n2' : Integer') =>
-        pure (Z.pow n1' n2').
+      if Z.ltb n1' 0
+        then error "Negative exponent"
+        else n2 >>= fun(n2' : Integer') =>
+          pure (Z.pow n1' n2').
 
   (** * Comparison operators *)
 
