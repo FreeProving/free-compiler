@@ -16,21 +16,10 @@ Section Proofs.
   Lemma exec_strict_on_stack_arg :
     forall (fcode  : Free Shape Pos (Code Shape Pos)),
       exec Part fcode Nothing = Nothing.
-  Proof with (simpl; pretty; try reflexivity).
+  Proof with (autodef).
     intro fcode.
     destruct fcode as [ [ | [ [ fn | ] | sOp pfOp ] fcode1 ] | sCode pfCode ]...
   Qed.
-  Hint Rewrite exec_strict_on_stack_arg : simplDB.
-
-  (* If the code is [Nothing] the result of any [exec] call with that code will also be [Nothing]. *)
-  Lemma exec_strict_on_code_arg :
-    forall (fstack  : Free Shape Pos (Stack Shape Pos)),
-      exec Part Nothing fstack = Nothing.
-  Proof with (simpl; pretty; try reflexivity).
-    intro fstack.
-    destruct fstack as [ stack | sStack pfStack ]...
-  Qed.
-  Hint Rewrite exec_strict_on_code_arg : simplDB.
 
   (* The result of [exec] applied with the concatenation of some pieces of
      [Code] [fcode1] and [fcode2] to some stack, is the same as the result of
@@ -51,50 +40,53 @@ Section Proofs.
       + (* fcode1 = Nil *)
         (* This case is trivial. *)
         intro fstack.
-        rewrite def_append_Nil.
+        rewrite def_append_Nil...
         destruct fstack as [ stack | ]; autodef.
       + (* fcode1 = Cons (PUSH fn) fcode1' *)
         intro fstack.
-        rewrite def_append_Cons.
+        setoid_rewrite def_append_Cons...
         destruct fstack as [ stack | ]...
         * (* If the stack is pure we can apply the definition of [exec]. *)
-          do 2 rewrite def_exec_PUSH.
+          setoid_rewrite def_exec_PUSH...
           (* Finish proof with induction. *)
           destruct fcode1' as [ code1' | ]...
           { autoIH; apply IH. }
-          { simpl append... autodef. }
+          { autodef.
+            rewrite exec_strict_on_stack_arg... }
         * (* If the stack is [Nothing], the result is [Nothing] as well. *)
           autodef.
+          rewrite exec_strict_on_stack_arg...
       + (* fcode1 = Cons ADD fcode1' *)
         intro fstack.
-        rewrite def_append_Cons.
+        setoid_rewrite def_append_Cons...
         (* Check wether there are enough values in the stack for addition. *)
         destruct fstack as [ [ | fv1 [ [ | fv2 fstack2 ] | ] ] | ]...
         1,2: (* If there are not at least two values, the result is undefined. *)
              autodef.
+        1,2: rewrite exec_strict_on_stack_arg...
         * (* If there are to values, we can use the definition of [exec]. *)
-          do 2 rewrite def_exec_ADD.
+          setoid_rewrite def_exec_ADD...
           (* Finish proof with induction. *)
           induction fcode1' as [ code1' | sCode1' pfCode1' IHpfCode1' ] using Free_Ind...
           { autoIH; apply IH. }
-          { simpl append...
-            rewrite exec_strict_on_code_arg.
+          { autodef.
             rewrite exec_strict_on_stack_arg... }
         * (* If the stack is [Nothing] after the first value, the result is [Nothing]. *)
-          simpl...
           autodef.
+          rewrite exec_strict_on_stack_arg...
         * (* If the stack is [Nothing], the result is also be [Nothing]. *)
           autodef.
+          rewrite exec_strict_on_stack_arg...
       + (* fcode1 = Cons Nothing fcode1' *)
         (* If the operation is [Nothing] the result is also [Nothing]. *)
         intro fstack.
-        simpl...
         autodef.
+        rewrite exec_strict_on_stack_arg...
     - (* fcode1 = Nothing *)
       (* If the code is [Nothing] the result is also [Nothing]. *)
       intro fstack.
-      simpl...
       autodef.
+      rewrite exec_strict_on_stack_arg...
   Qed.
 
   (* To prove the correctness of the compiler [comp] as stated in the QuickCheck property,
@@ -107,17 +99,18 @@ Section Proofs.
     RecPureStack fstack ->
         exec Part (comp fexpr) fstack
         = Cons (eval fexpr) fstack.
-  Proof with (pretty; try reflexivity).
+  Proof with (pretty).
     intros fexpr HPureE.
     destruct fexpr as [ expr | ] using Free_Ind; [ | dependent destruction HPureE ]...
     induction expr as [ fn | fx fy IHfx IHfy ] using Expr_Ind...
     + (* Expr = Val fn *)
       intros fstack HPureS.
-      rewrite def_comp_Val.
-      rewrite def_eval_Val.
+      setoid_rewrite def_comp_Val...
+      setoid_rewrite def_eval_Val...
       destruct fstack as [ stack | ]; [ | dependent destruction HPureS ]...
-      rewrite def_exec_PUSH.
+      setoid_rewrite def_exec_PUSH...
       setoid_rewrite def_exec_Nil...
+      reflexivity.
     + (* Expr = Add fx fy *)
       intros fstack HPureS.
       dependent destruction HPureE.
@@ -125,13 +118,13 @@ Section Proofs.
       simplify IHfx as IHx.
       destruct fy as [ y | ]; [ | dependent destruction HPureE2 ]...
       simplify IHfy as IHy.
-      rewrite def_eval_Add.
-      rewrite def_comp_Add.
-      rewrite exec_append.
-      rewrite exec_append.
-      rewrite (IHx HPureE1 _ HPureS).
+      setoid_rewrite def_eval_Add...
+      setoid_rewrite def_comp_Add...
+      rewrite exec_append...
+      rewrite exec_append...
+      setoid_rewrite (IHx HPureE1 _ HPureS)...
       rewrite (IHy HPureE2 _ (recPureStack_cons _ _ HPureS)).
-      rewrite def_exec_ADD.
+      setoid_rewrite def_exec_ADD...
       setoid_rewrite def_exec_Nil...
   Qed.
 
@@ -161,18 +154,18 @@ Section Proofs.
       induction expr as [ fn | fx fy IHfx IHfy ] using Expr_Ind...
       + (* expr = Val fn *)
         intro fcode.
-        rewrite def_comp_Val.
-        rewrite def_compApp_Val.
-        rewrite def_append_Cons.
-        rewrite def_append_Nil.
+        setoid_rewrite def_comp_Val...
+        setoid_rewrite def_compApp_Val...
+        setoid_rewrite def_append_Cons...
+        rewrite def_append_Nil...
         reflexivity.
       + (* expr = Add fx fy *)
         intro fcode.
-        rewrite def_comp_Add.
+        setoid_rewrite def_comp_Add...
         rewrite <- append_assocs.
-        rewrite def_append_Cons.
-        rewrite def_append_Nil.
-        rewrite def_compApp_Add.
+        setoid_rewrite def_append_Cons...
+        rewrite def_append_Nil...
+        setoid_rewrite def_compApp_Add...
         destruct fy as [ y | ]; destruct fx as [ x | ]...
         * (* Both sub-expressions are pure *)
           simplify IHfy as IHy.
@@ -182,23 +175,18 @@ Section Proofs.
           rewrite append_assocs.
           reflexivity.
         * (* fx = Nothing *)
-          simpl...
-          reflexivity.
+          autodef.
         * (* fy = Nothing *)
           simplify IHfx as IHx.
           rewrite IHx.
-          simpl compApp...
-          simpl comp at 3...
+          autodef.
           rewrite <- append_assocs.
-          simpl append at 3...
-          reflexivity.
+          autodef.
         * (* fx = fy = Nothing *)
-          simpl...
-          reflexivity.
+          autodef.
     - (* fexpr = Nothing *)
       intro fcode.
-      simpl...
-      reflexivity.
+      autodef.
    Qed.
 
  (* With the equivalence lemma above the proof of the main equivalence theorem is simple. *)
