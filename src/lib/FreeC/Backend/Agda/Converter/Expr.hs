@@ -29,7 +29,7 @@ convertLiftedExpr (LIR.Var _ _ name) = return $ Agda.Ident name
 convertLiftedExpr (LIR.App _ expr _ _ args) =
   Agda.appN <$> convertLiftedExpr expr <*> mapM convertLiftedExpr args
 convertLiftedExpr (LIR.If _ cond true false) =
-  Agda.ite
+  Agda.ifThenElse
     <$> convertLiftedExpr cond
     <*> convertLiftedExpr true
     <*> convertLiftedExpr false

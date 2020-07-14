@@ -26,7 +26,7 @@ module FreeC.Backend.Agda.Syntax
   , appN
   , ident
   , hiddenArg_
-  , ite
+  , ifThenElse
   , caseOf
   , lamClause
     -- * Types
@@ -221,8 +221,8 @@ hiddenArg_ = HiddenArg NoRange . unnamed
 -- | @if_then_else_@ from the base library.
 --
 --   > cond true false ↦ if cond then true else false
-ite :: Expr -> Expr -> Expr -> Expr
-ite cond true false =
+ifThenElse :: Expr -> Expr -> Expr -> Expr
+ifThenElse cond true false =
   RawApp NoRange [ident "if", cond, ident "then", true, ident "else", false]
 
 -- | @case_of_@ from the base library.
