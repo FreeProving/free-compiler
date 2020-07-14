@@ -207,6 +207,12 @@ checkDecArgs decls knownDecArgIndecies decArgIndecies = all
       let smaller' = withoutArgs args smaller
       in  checkExpr decArg smaller' expr []
 
+    -- The right hand side of a @let@-binding shadow existing (structurally
+    -- smaller) variables.
+    checkExpr' (IR.Let _ binds expr _) _ =
+      let smaller' = withoutArgs (map IR.bindVarPat binds) smaller
+      in checkExpr decArg smaller' expr []
+
     -- Recursively check visibly applied expressions.
     checkExpr' (IR.TypeAppExpr _ expr _ _) args = checkExpr' expr args
 

@@ -179,7 +179,7 @@ makeConstArgGraph decls = do
         checkBind :: IR.Bind -> [IR.Expr] -> Bool
         checkBind (IR.Bind _ varPat expr) args
           | x `shadowedBy` [varPat] = not (callsG expr)
-          | otherwise               = checkExpr expr args -- TODO [] ?
+          | otherwise               = checkExpr expr args
 
         -- | Tests whethe the given variable is shadowed by the given
         --   variale patterns.
