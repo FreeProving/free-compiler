@@ -137,7 +137,7 @@ exported-values = [
   coq-name        = 'powInteger'
   agda-name       = '_^_'
   arity           = 2
-  partial         = false
+  partial         = true
   needs-free-args = true
 
 [[functions]]
@@ -162,7 +162,7 @@ exported-values = [
   haskell-type    = 'Prelude.Integer -> Prelude.Integer -> Prelude.Bool'
   haskell-name    = 'Prelude.(==)'
   coq-name        = 'eqInteger'
-  agda-name       = '_==_'
+  agda-name       = '_≟_'
   arity           = 2
   partial         = false
   needs-free-args = true
@@ -171,7 +171,7 @@ exported-values = [
   haskell-type    = 'Prelude.Integer -> Prelude.Integer -> Prelude.Bool'
   haskell-name    = 'Prelude.(/=)'
   coq-name        = 'neqInteger'
-  agda-name       = '_/=_'
+  agda-name       = '_≠_'
   arity           = 2
   partial         = false
   needs-free-args = true
@@ -198,7 +198,7 @@ exported-values = [
   haskell-type    = 'Prelude.Integer -> Prelude.Integer'
   haskell-name    = 'Prelude.negate'
   coq-name        = 'negate'
-  agda-name       = 'neg'
+  agda-name       = 'not'
   arity           = 1
   partial         = false
   needs-free-args = true
@@ -252,7 +252,7 @@ exported-values = [
   coq-name        = 'pair_'
   agda-name       = 'pair'
   coq-smart-name  = 'Pair_'
-  agda-smart-name = 'Pair'
+  agda-smart-name = 'Pair′'
   arity           = 2
 
 ##############################################################################
