@@ -7,7 +7,6 @@ open import Base.Free.Instance.Identity                                      ren
 
 open import Base.Isomorphism                      using (_≃_)
 open        _≃_
-open import Base.Extensionality                   using (∀-extensionality)
 
 
 -- The usual `Identity` monad representation an the free version are isomorphic.

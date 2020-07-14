@@ -1,4 +1,4 @@
--- | Implements the lifted IR to Agda translation.
+-- | Implements the lifted IR to Agda translation for types.
 
 module FreeC.Backend.Agda.Converter.Type
   ( convertLiftedFuncType
@@ -6,13 +6,13 @@ module FreeC.Backend.Agda.Converter.Type
   )
 where
 
-
-import           Prelude                 hiding ( pi )
+import           Data.Bool                      ( bool )
 
 import qualified FreeC.Backend.Agda.Syntax     as Agda
 import           FreeC.Backend.Agda.Converter.Free
                                                 ( free
                                                 , applyFreeArgs
+                                                , addPartial
                                                 )
 import           FreeC.Backend.Agda.Converter.Size
                                                 ( up )
@@ -26,6 +26,8 @@ import           FreeC.Monad.Converter          ( Converter
                                                 , localEnv
                                                 )
 
+import           Prelude                 hiding ( pi )
+
 -------------------------------------------------------------------------------
 -- Functions                                                                 --
 -------------------------------------------------------------------------------
@@ -34,11 +36,14 @@ import           FreeC.Monad.Converter          ( Converter
 --
 --   If the type contains decreasing annotations, a size type variable is bound
 --   and used to annotate these occurrences.
-convertLiftedFuncType :: [LIR.Type] -> LIR.Type -> Converter Agda.Expr
-convertLiftedFuncType argTypes retType = if any decreasing argTypes
-  then pi "i" $ \i -> convertLiftedType (Just i) funcType
-  else convertLiftedType' funcType
-  where funcType = LIR.funcType NoSrcSpan argTypes retType
+convertLiftedFuncType :: Bool -> [LIR.Type] -> LIR.Type -> Converter Agda.Expr
+convertLiftedFuncType isPartial argTypes retType = if any decreasing argTypes
+  then pi "i"
+    $ \i -> partial <$> convertLiftedType (Just $ Agda.hiddenArg_ i) funcType
+  else partial <$> convertLiftedType' funcType
+ where
+  funcType = LIR.funcType NoSrcSpan argTypes retType
+  partial  = bool id addPartial isPartial
 
 -------------------------------------------------------------------------------
 -- Constructors                                                              --

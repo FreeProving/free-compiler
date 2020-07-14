@@ -5,11 +5,15 @@
 module FreeC.LiftedIR.Converter.Type
   ( liftFuncArgTypes
   , liftConArgType
+  , liftVarPatType
     -- * Translations
   , liftType
   , liftType'
   )
 where
+
+import           Data.Bool                      ( bool )
+import           Data.Maybe                     ( fromJust )
 
 import qualified FreeC.IR.Syntax               as IR
 import           FreeC.IR.SrcSpan               ( SrcSpan(NoSrcSpan) )
@@ -18,22 +22,28 @@ import qualified FreeC.LiftedIR.Syntax         as LIR
 -- | Converts the argument types of a function.
 liftFuncArgTypes
   :: Maybe Int -- ^ Index of the decreasing argument for recursive functions.
-  -> [IR.Type] -- ^ The argument types.
+  -> [IR.VarPat] -- ^ The argument types.
   -> [LIR.Type]
 liftFuncArgTypes = maybe liftNonRecFuncArgTypes liftRecFuncArgTypes
 
 -- | Converts the argument types of a non recursive function using @convertType@.
-liftNonRecFuncArgTypes :: [IR.Type] -> [LIR.Type]
-liftNonRecFuncArgTypes = map liftType
+liftNonRecFuncArgTypes :: [IR.VarPat] -> [LIR.Type]
+liftNonRecFuncArgTypes = map $ fromJust . liftVarPatType
 
 -- | Converts the argument types of a recursive function using @convertType@.
 --
 --   The outermost argument at the given index is marked decreasing.
-liftRecFuncArgTypes :: Int -> [IR.Type] -> [LIR.Type]
+liftRecFuncArgTypes :: Int -> [IR.VarPat] -> [LIR.Type]
 liftRecFuncArgTypes decIndex args =
-  let convArgs                      = map liftType args
-      (startArgs, decArg : endArgs) = splitAt (decIndex - 1) convArgs
+  let convArgs                      = map (fromJust . liftVarPatType) args
+      (startArgs, decArg : endArgs) = splitAt decIndex convArgs
   in  startArgs ++ (markOutermostDecreasing decArg : endArgs)
+
+-- | Lifts the type of an 'IR.VarPat'. If the argument is strict the type itself
+--   isn't lifted into the @Free@ monad.
+liftVarPatType :: IR.VarPat -> Maybe LIR.Type
+liftVarPatType (IR.VarPat _ _ patType strict) =
+  bool liftType liftType' strict <$> patType
 
 -- | Converts a constructor argument using @convertType@.
 --

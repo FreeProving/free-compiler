@@ -105,6 +105,7 @@ library freec-internal
   exposed-modules:      FreeC.Backend.Agda.Base
                       , FreeC.Backend.Agda.Converter
                       , FreeC.Backend.Agda.Converter.Arg
+                      , FreeC.Backend.Agda.Converter.Expr
                       , FreeC.Backend.Agda.Converter.Free
                       , FreeC.Backend.Agda.Converter.FuncDecl
                       , FreeC.Backend.Agda.Converter.Module
@@ -177,6 +178,7 @@ library freec-internal
                       , FreeC.IR.TypeSchema
                       , FreeC.IR.TypeSynExpansion
                       , FreeC.IR.Unification
+                      , FreeC.LiftedIR.Converter.Expr
                       , FreeC.LiftedIR.Converter.Type
                       , FreeC.LiftedIR.Effect
                       , FreeC.LiftedIR.Syntax

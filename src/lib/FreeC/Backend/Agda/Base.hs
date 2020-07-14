@@ -11,6 +11,7 @@ module FreeC.Backend.Agda.Base
   , pure
   , shape
   , position
+  , partial
     -- * sized types
   , size
   , up
@@ -37,9 +38,11 @@ baseLibName = Agda.name "Base"
 generatedLibName :: Agda.Name
 generatedLibName = Agda.name "Generated"
 
--- | Import declaration for the @Free@ module from the Base Agda library.
-imports :: Agda.Declaration
-imports = Agda.simpleImport $ Agda.qname [baseLibName] $ Agda.name "Free"
+-- | Import declaration for the @Free@ and @partial@ modules from the Base Agda
+--   base library.
+imports :: [Agda.Declaration]
+imports = map (Agda.simpleImport . Agda.qname [baseLibName] . Agda.name)
+              ["Free", "Partial"]
 
 -------------------------------------------------------------------------------
 -- Free Monad                                                                --
@@ -65,6 +68,10 @@ shape = Agda.name "Shape"
 position :: Agda.Name
 position = Agda.name "Pos"
 
+-- | Reserved name for the @Partial@ type class.
+partial :: Agda.Name
+partial = Agda.name "Partial"
+
 -------------------------------------------------------------------------------
 -- Sized Types                                                               --
 -------------------------------------------------------------------------------
@@ -89,4 +96,4 @@ up = Agda.name "\x2191"
 --
 --   This does only include identifiers without corresponding Haskell name.
 reservedIdents :: [Agda.Name]
-reservedIdents = [free, pure, impure, shape, position, size, up]
+reservedIdents = [free, pure, impure, shape, position, size, up, partial]
