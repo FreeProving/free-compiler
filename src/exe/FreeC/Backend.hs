@@ -1,4 +1,4 @@
--- | This module contains the @Backend@ data type and all available backends.
+-- | This module contains the 'Backend' data type and all available backends.
 
 module FreeC.Backend
   ( Backend(..)

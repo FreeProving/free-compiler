@@ -193,7 +193,7 @@ outputModule ext modName outputStr = do
       Just iface <- inEnv $ lookupAvailableModule modName
       liftIO $ createDirectoryIfMissing True (takeDirectory outputFile)
       writeModuleInterface ifaceFile iface
-      liftIO $ writePrettyFile outputFile $ outputStr
+      liftIO $ writePrettyFile outputFile outputStr
 
 -------------------------------------------------------------------------------
 -- Imports                                                                   --

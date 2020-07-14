@@ -1,4 +1,4 @@
--- | This module contains the @Frontend@ data type and all available frontends.
+-- | This module contains the 'Frontend' data type and all available frontends.
 
 module FreeC.Frontend
   ( Frontend(..)
