@@ -200,18 +200,19 @@ instance Aeson.FromJSON ModuleInterface where
         "Functions"
         (mapM parseConfigFunc)
     return ModuleInterface
-      { interfaceModName = modName
-      , interfaceLibName = libName
-      , interfaceExports = Set.fromList
-                             (  map ((,) IR.TypeScope)  exportedTypes
-                             ++ map ((,) IR.ValueScope) exportedValues
-                             )
-      , interfaceEntries = Set.fromList
-                             (  Vector.toList types
-                             ++ Vector.toList typeSyns
-                             ++ Vector.toList cons
-                             ++ Vector.toList funcs
-                             )
+      { interfaceModName     = modName
+      , interfaceLibName     = libName
+      , interfaceAgdaLibName = Agda.name $ Text.unpack $ libName
+      , interfaceExports     = Set.fromList
+                                 (  map ((,) IR.TypeScope)  exportedTypes
+                                 ++ map ((,) IR.ValueScope) exportedValues
+                                 )
+      , interfaceEntries     = Set.fromList
+                                 (  Vector.toList types
+                                 ++ Vector.toList typeSyns
+                                 ++ Vector.toList cons
+                                 ++ Vector.toList funcs
+                                 )
       }
    where
     parseConfigType :: Aeson.Value -> Aeson.Parser EnvEntry

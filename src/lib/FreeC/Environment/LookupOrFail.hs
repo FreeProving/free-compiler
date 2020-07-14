@@ -64,6 +64,10 @@ lookupAgdaIdentOrFail srcSpan scope name =
 lookupAgdaValIdentOrFail :: SrcSpan -> IR.QName -> Converter Agda.QName
 lookupAgdaValIdentOrFail = flip lookupAgdaIdentOrFail IR.ValueScope
 
+-- | Looks up an Agda identifier from the 'IR.FreshScope'.
+lookupAgdaFreshIdentOrFail :: SrcSpan -> IR.QName -> Converter Agda.QName
+lookupAgdaFreshIdentOrFail = flip lookupAgdaIdentOrFail IR.FreshScope
+
 -- | Looks up an Agda identifier from the @IR.TypeScope@.
 lookupAgdaTypeIdentOrFail :: SrcSpan -> IR.QName -> Converter Agda.QName
 lookupAgdaTypeIdentOrFail = flip lookupAgdaIdentOrFail IR.TypeScope

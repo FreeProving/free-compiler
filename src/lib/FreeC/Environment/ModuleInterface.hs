@@ -17,6 +17,7 @@ module FreeC.Environment.ModuleInterface where
 
 import           Data.Set                       ( Set )
 
+import qualified FreeC.Backend.Agda.Syntax     as Agda
 import qualified FreeC.Backend.Coq.Syntax      as Coq
 import           FreeC.Environment.Entry
 import qualified FreeC.IR.Syntax               as IR
@@ -28,6 +29,9 @@ data ModuleInterface = ModuleInterface
     -- ^ The name of the module.
   , interfaceLibName :: Coq.ModuleIdent
     -- ^ The name of the Coq library that contains this module (e.g. @"Base"@
+    --   for the @Prelude@ module).
+  , interfaceAgdaLibName :: Agda.Name
+    -- ^ The name of the Agda library that contains this module (e.g. @"Base"@
     --   for the @Prelude@ module).
   , interfaceExports :: Set IR.ScopedName
     -- ^ The names (qualified with their original module name) that are
