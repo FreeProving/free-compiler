@@ -64,3 +64,6 @@ mx ^ pure (+ 0)         = pure 1
 mx ^ pure (+ (suc n))   = mx * (mx ^ (pure (+ n)))
 mx ^ pure (ℤᵖ.negsuc n) = error "*** Exception: Negative exponent"
 mx ^ impure s pf        = impure s pf
+
+neg : ∀ {S P} → Free S P (ℤ S P) → Free S P (ℤ S P)
+neg x = pure -1 * x
