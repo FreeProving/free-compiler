@@ -22,8 +22,12 @@ import           System.Directory               ( createDirectoryIfMissing
 import           System.FilePath
 
 import           FreeC.Application.Options
+import qualified FreeC.Backend.Agda.Converter.Module
+                                               as Agda.Converter
+import           FreeC.Backend.Agda.Pretty
 import qualified FreeC.Backend.Coq.Base        as Coq.Base
-import           FreeC.Backend.Coq.Converter
+import           FreeC.Backend.Coq.Converter.Module
+                                               as Coq.Converter
 import           FreeC.Backend.Coq.Pretty
 import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Application
@@ -44,7 +48,7 @@ data Backend = Backend
 
 -- | A map of all available backends with the name of those backends as keys.
 backends :: Map.Map String Backend
-backends = Map.fromList [ (backendName b, b) | b <- [coqBackend, irBackend] ]
+backends = Map.fromList [ (backendName b, b) | b <- [coqBackend, irBackend, agdaBackend] ]
 
 -- | Shows a list of all backends.
 showBackends :: String
@@ -73,7 +77,7 @@ irBackend = Backend { backendName          = "ir"
 -- | Converts a module to a Coq program.
 convertModuleToCoq :: IR.Module -> Application String
 convertModuleToCoq ast = do
-  ast' <- liftConverter $ convertModule ast
+  ast' <- liftConverter $ Coq.Converter.convertModule ast
   return $ showPretty $ map PrettyCoq ast'
 
 -- | Creates a @_CoqProject@ file (if enabled) that maps the physical directory
@@ -135,3 +139,21 @@ coqBackend = Backend { backendName          = "coq"
                      , backendFileExtension = "v"
                      , backendSpecialAction = createCoqProject
                      }
+
+-------------------------------------------------------------------------------
+-- Agda backend                                                              --
+-------------------------------------------------------------------------------
+
+-- | Converts an IR module to a Coq program.
+convertModuleToAgda :: IR.Module -> Application String
+convertModuleToAgda ast = do
+  ast' <- liftConverter $ Agda.Converter.convertModule ast
+  return $ showPretty $ PrettyAgda ast'
+
+-- | The Agda backend.
+agdaBackend :: Backend
+agdaBackend = Backend { backendName          = "agda"
+                      , backendConvertModule = convertModuleToAgda
+                      , backendFileExtension = "agda"
+                      , backendSpecialAction = return ()
+                      }

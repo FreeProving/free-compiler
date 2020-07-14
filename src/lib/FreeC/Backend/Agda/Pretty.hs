@@ -10,7 +10,8 @@
 --   instances and explicitly declare 'Pretty' instances for common AST
 --   nodes.
 module FreeC.Backend.Agda.Pretty
-  ( prettyAgda
+  ( PrettyAgda(..)
+  , prettyAgda
   )
 where
 
