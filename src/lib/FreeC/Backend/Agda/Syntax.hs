@@ -232,7 +232,7 @@ caseOf :: Expr -> [LamClause] -> Expr
 caseOf discr alts =
   RawApp NoRange [ident "case", discr, ident "of", ExtendedLam NoRange alts]
 
--- | Smart constructor for @LamClause@s.
+-- | Smart constructor for a clause of a pattern matching lambda abstraction.
 --
 --   Each @LamClause@ stores a pattern matched on the left-hand side of an @→@
 --   and the expression on the right-hand side. In Agda lambda expressions can
