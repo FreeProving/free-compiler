@@ -113,7 +113,7 @@ data VarPat = VarPat
   { varPatSrcSpan   :: SrcSpan
   , varPatIdent     :: String
   , varPatType      :: Maybe Type
-    -- TODO: remove maybe after EtaConversionPass is moved
+    -- TODO: remove @Maybe@ after 'EtaConversionPass' is moved.
   , varPatAgdaIdent :: Agda.QName
   }
  deriving (Eq, Show)
