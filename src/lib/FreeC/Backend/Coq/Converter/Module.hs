@@ -20,7 +20,7 @@ import           FreeC.Pretty
 -- Modules                                                                   --
 -------------------------------------------------------------------------------
 
--- | Converts a module to Gallina sentences.
+-- | Converts an IR module to Gallina sentences.
 convertModule :: IR.Module -> Converter [Coq.Sentence]
 convertModule haskellAst = do
   imports' <- convertImportDecls (IR.modImports haskellAst)
@@ -34,7 +34,7 @@ convertModule haskellAst = do
 -- Declarations                                                              --
 -------------------------------------------------------------------------------
 
--- | Converts the given declarations of a Haskell module.
+-- | Converts the given declarations of an IR module.
 convertDecls :: [IR.TypeDecl] -> [IR.FuncDecl] -> Converter [Coq.Sentence]
 convertDecls typeDecls funcDecls = do
   typeDecls' <- convertTypeDecls typeDecls

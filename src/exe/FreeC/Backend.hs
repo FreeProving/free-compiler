@@ -1,4 +1,4 @@
--- | This module contains the @Backend@ data type and all available backends.
+-- | This module contains the 'Backend' data type and all available backends.
 
 module FreeC.Backend
   ( Backend(..)
@@ -26,7 +26,7 @@ import qualified FreeC.Backend.Agda.Converter.Module
                                                as Agda.Converter
 import           FreeC.Backend.Agda.Pretty
 import qualified FreeC.Backend.Coq.Base        as Coq.Base
-import           FreeC.Backend.Coq.Converter.Module
+import qualified FreeC.Backend.Coq.Converter.Module
                                                as Coq.Converter
 import           FreeC.Backend.Coq.Pretty
 import qualified FreeC.IR.Syntax               as IR
