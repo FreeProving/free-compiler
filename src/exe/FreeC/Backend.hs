@@ -48,7 +48,8 @@ data Backend = Backend
 
 -- | A map of all available backends with the name of those backends as keys.
 backends :: Map.Map String Backend
-backends = Map.fromList [ (backendName b, b) | b <- [coqBackend, irBackend, agdaBackend] ]
+backends = Map.fromList
+  [ (backendName b, b) | b <- [coqBackend, irBackend, agdaBackend] ]
 
 -- | Shows a list of all backends.
 showBackends :: String
