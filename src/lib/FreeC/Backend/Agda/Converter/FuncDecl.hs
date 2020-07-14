@@ -37,21 +37,15 @@ import           FreeC.Monad.Converter          ( Converter
                                                 )
 
 -- | Converts a strongly connected component of the function dependency graph.
---   TODO: Handle mutually recursive functions.
 convertFuncDecls
   :: DependencyComponent IR.FuncDecl -> Converter [Agda.Declaration]
-convertFuncDecls (NonRecursive decl  ) = convertFuncDecl decl Nothing
-convertFuncDecls (Recursive    [decl]) = do
-  [decArg] <- identifyDecArgs [decl]
-  convertFuncDecl decl $ Just decArg
-convertFuncDecls (Recursive _) =
-  error "Mutual recursive functions are not supported at the moment."
-
--- | Converts the given function declarations. Returns the declarations for the
---   type signature and the definition.
-convertFuncDecl :: IR.FuncDecl -> Maybe Int -> Converter [Agda.Declaration]
-convertFuncDecl decl decArg = sequence
-  [localEnv $ convertSignature decl decArg, localEnv $ convertFuncDef decl]
+convertFuncDecls (NonRecursive decl) =
+  sequence [convertSignature decl Nothing, convertFuncDef decl]
+convertFuncDecls (Recursive decls) = do
+  decArgs <- identifyDecArgs decls
+  decls'  <- mapM (uncurry convertSignature) (decls `zip` map Just decArgs)
+  defs    <- mapM convertFuncDef decls
+  return $ decls' <> defs
 
 ------------------------------------------------------------------------------
 -- Definitions                                                              --
@@ -60,10 +54,11 @@ convertFuncDecl decl decArg = sequence
 -- | Converts the definition of the given function to an Agda function
 --   declaration.
 convertFuncDef :: IR.FuncDecl -> Converter Agda.Declaration
-convertFuncDef (IR.FuncDecl _ (IR.DeclIdent srcSpan name) _ args _ expr) = do
-  args' <- mapM convertArg args
-  ident <- lookupAgdaIdentOrFail srcSpan IR.ValueScope name
-  Agda.funcDef ident args' <$> (liftExpr >=> convertLiftedExpr) expr
+convertFuncDef (IR.FuncDecl _ (IR.DeclIdent srcSpan name) _ args _ expr) =
+  localEnv $ do
+    args' <- mapM convertArg args
+    ident <- lookupAgdaIdentOrFail srcSpan IR.ValueScope name
+    Agda.funcDef ident args' <$> (liftExpr >=> convertLiftedExpr) expr
 
 ------------------------------------------------------------------------------
 -- Signatures                                                               --
@@ -73,7 +68,7 @@ convertFuncDef (IR.FuncDecl _ (IR.DeclIdent srcSpan name) _ args _ expr) = do
 --   declaration.
 convertSignature :: IR.FuncDecl -> Maybe Int -> Converter Agda.Declaration
 convertSignature (IR.FuncDecl _ declIdent typeVars args returnType _) decArg =
-  do
+  localEnv $ do
     let IR.DeclIdent srcSpan name = declIdent
     partial <- inEnv $ isPartial name
     ident   <- lookupUnQualAgdaIdentOrFail srcSpan IR.ValueScope name

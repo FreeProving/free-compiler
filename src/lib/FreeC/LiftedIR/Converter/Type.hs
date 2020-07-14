@@ -21,7 +21,7 @@ import qualified FreeC.LiftedIR.Syntax         as LIR
 
 -- | Converts the argument types of a function.
 liftFuncArgTypes
-  :: Maybe Int -- ^ Index of the decreasing argument for recursive functions.
+  :: Maybe Int   -- ^ Index of the decreasing argument for recursive functions.
   -> [IR.VarPat] -- ^ The argument types.
   -> [LIR.Type]
 liftFuncArgTypes = maybe liftNonRecFuncArgTypes liftRecFuncArgTypes
