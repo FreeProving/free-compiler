@@ -23,6 +23,7 @@ module FreeC.Environment.Renamer
   , renameAndDefineAgdaTypeVar
   , renameAndDefineVar
   , renameAndDefineAgdaVar
+  , renameAndDefineLIRVar
   )
 where
 
@@ -345,6 +346,19 @@ renameAndDefineAgdaVar
 renameAndDefineAgdaVar srcSpan isPure ident maybeVarType =
   entryAgdaIdent <$> renameAndDefineVar' srcSpan isPure ident maybeVarType
 
+--   automatically generated LIR identifier that does not cause any name
+--   conflict in the current environment.
+--
+--   Returns the generated identifier.
+renameAndDefineLIRVar
+  :: SrcSpan       -- ^ The location of the variable declaration.
+  -> Bool          -- ^ Whether the variable has not been lifted to the
+                   --   free monad.
+  -> String        -- ^ The name of the variable.
+  -> Maybe IR.Type -- ^ The type of the variable if it is known.
+  -> Converter IR.QName
+renameAndDefineLIRVar srcSpan isPure ident maybeVarType =
+  entryName <$> renameAndDefineVar' srcSpan isPure ident maybeVarType
 
 -------------------------------------------------------------------------------
 -- Error reporting                                                           --

@@ -54,7 +54,6 @@ import           Prelude                 hiding ( pi )
 -- | Creates a (not qualified) Agda variable name from a 'String'.
 name :: String -> Name
 name str = Name NoRange InScope $ stringNameParts str
--- name str = Name NoRange InScope [Id str]
 
 -- | Create a qualified identifier given a local identifier as 'Name' and a
 --   list of module 'Name's.
@@ -96,13 +95,13 @@ funcSig = TypeSig defaultArgInfo Nothing
 
 -- | Smart constructor for @pattern@ synonyms.
 --
---   > pattern Cons x xs = pure (cons x xs)
+--   > pattern C x₁ … xₙ = pure (c x₁ … xₙ)
 patternSyn :: Name -> [Arg Name] -> Pattern -> Declaration
 patternSyn = PatternSyn NoRange
 
 -- | Smart constructor for function definitions.
 --
---   > f a₁ a₂ … = expr
+--   > f a₁ … aₙ = expr
 funcDef :: QName -> [QName] -> Expr -> Declaration
 funcDef funcName argNames rhs = FunClause lhs' (RHS rhs) NoWhere False
  where
@@ -127,6 +126,11 @@ isAppP _          = False
 appP :: Pattern -> Pattern -> Pattern
 appP l r = AppP l $ defaultNamedArg $ if isAppP r then ParenP NoRange r else r
 
+-- | Adds parentheses to the pattern iff the root node in the AST is an
+--   application.
+--
+--   On the left-hand side of lambda clauses app patterns have to be
+--   parenthesized.
 parenIfNeeded :: Pattern -> Pattern
 parenIfNeeded p@(AppP _ _) = ParenP NoRange p
 parenIfNeeded p            = p
@@ -135,13 +139,13 @@ parenIfNeeded p            = p
 -- Expressions                                                               --
 -------------------------------------------------------------------------------
 
--- | Tests wether the given AST node is an @App@.
+-- | Tests whether the given AST node is an @App@.
 isApp :: Expr -> Bool
 isApp (App _ _ _ ) = True
 isApp (RawApp _ _) = True
 isApp _            = False
 
--- | Tests wether the given AST node is an @Fun@.
+-- | Tests whether the given AST node is an @Fun@.
 isFun :: Expr -> Bool
 isFun (Fun _ _ _) = True
 isFun _           = False
@@ -164,7 +168,7 @@ lambda args = Lam NoRange (DomainFree . defaultNamedArg . mkBinder_ <$> args)
 
 -- | Creates an application AST node.
 --
---   Application is left associative and in in type expressions binds stronger
+--   Application is left associative and in type expressions binds stronger
 --   than type arrow. For these cases paren- thesis are added automatically.
 --
 --   > e a
@@ -172,21 +176,33 @@ app :: Expr -> Expr -> Expr
 app l r =
   App NoRange l $ defaultNamedArg (if isApp .||. isFun $ r then paren r else r)
 
+-- | Applies the list of arguments to the given expression. If the expression is
+--   an operator the application is written in mixfix notation.
 appN :: Expr -> [Expr] -> Expr
 appN f = if isOp f then opApp f else foldl app f
 
+-- | Whether the given expression is an identifier containing an operator (i.e.
+--   a name with holes).
 isOp :: Expr -> Bool
 isOp (Ident n) = isOperator $ unqualify n
 isOp _         = False
 
+-- | Applies an operator to a list with the right amount of arguments.
+--
+--   This functions fails iff the left-hand side isn't an operator or the wrong
+--   number of arguments is supplied.
 opApp :: Expr -> [Expr] -> Expr
 opApp (Ident op) =
   paren . RawApp NoRange . opApp' (nameNameParts $ unqualify $ op)
+opApp _ = error "Only an identifier can be an operator!"
 
+-- | Translates a list of @NamePart@s to a list of expressions by replacing holes
+--   with arguments and translating name parts to identifiers.
 opApp' :: [NamePart] -> [Expr] -> [Expr]
 opApp' (Hole    : ps) (a : as) = a : opApp' ps as
 opApp' (Id part : ps) as       = ident part : opApp' ps as
 opApp' []             []       = []
+opApp' _ _ = error "Wrong number of arguments supplied to operator!"
 
 -- | Wraps the given expression in parenthesis.
 paren :: Expr -> Expr
@@ -218,13 +234,13 @@ caseOf discr alts =
 
 -- | Smart constructor for @LamClause@s.
 --
---   Each @LamClause@ stores  a pattern matched on the left-hand side of an @→@
---   and the expression on the right-hand side. In Agda normal lambda expressions
---   can pattern match on their arguments.
+--   Each @LamClause@ stores a pattern matched on the left-hand side of an @→@
+--   and the expression on the right-hand side. In Agda lambda expressions can
+--   pattern match on their arguments.
 lamClause :: Pattern -> Expr -> LamClause
 lamClause pat rhs = LamClause (lhs pat) (RHS rhs) NoWhere False
 
--- | Smart constructor for a simple @LHS@ for function declarations or lambdas.
+-- | Smart constructor for a simple 'LHS' for function declarations or lambdas.
 lhs :: Pattern -> LHS
 lhs pat = LHS (parenIfNeeded pat) [] [] NoEllipsis
 

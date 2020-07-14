@@ -23,7 +23,6 @@ import           FreeC.Application.Option.Help
 import           FreeC.Application.Option.Version
 import           FreeC.Application.Options
 import           FreeC.Application.Options.Parser
-import           FreeC.Backend.Agda.Pretty      ( )
 import qualified FreeC.Backend.Coq.Base        as Coq.Base
 import           FreeC.Backend.Coq.Converter    ( convertModule )
 import           FreeC.Backend.Coq.Pretty

@@ -1,15 +1,10 @@
 module Base.Free where
 
--- for transformation
+-- Reexport definitions from Agda's standard library that are needed by the
+-- generated code.
 open import Function            using (case_of_)      public
 open import Data.Bool           using (if_then_else_) public
 open import Size                using (Size; ↑_)      public
-
--- for proofs
-open import Base.Extensionality using (ext)           public
-import Relation.Binary.PropositionalEquality as Eq
-open Eq             public
-open Eq.≡-Reasoning public
 
 -- The `Free` monad over a container with shapes `S` and postions `P`.
 data Free (S : Set) (P : S → Set) (A : Set) : Set where
