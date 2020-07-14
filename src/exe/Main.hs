@@ -123,7 +123,7 @@ selectBackend = do
     Just b -> return b
 
 -------------------------------------------------------------------------------
--- Haskell input files                                                       --
+-- Input files                                                       --
 -------------------------------------------------------------------------------
 
 -- | Parses the given input file with the given parser function.
@@ -257,7 +257,7 @@ loadQuickCheck = loadModuleFromBaseLib IR.Test.QuickCheck.modName
 
 -- | Loads the module with the given name from the base library.
 --
---   If the `--base-library` option is omited, this function looks for the
+--   If the `--base-library` option is omitted, this function looks for the
 --   base library in the `data-files` field of the `.cabal` file.
 loadModuleFromBaseLib :: IR.ModName -> Application ()
 loadModuleFromBaseLib modName = do
