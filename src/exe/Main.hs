@@ -2,18 +2,16 @@
 
 module Main where
 
-import           Control.Monad.Extra            ( ifM
-                                                , unlessM
+import           Control.Monad                  ( (>=>) )
+import           Control.Monad.Extra            ( unlessM
                                                 , whenM
                                                 )
 import           Control.Monad.IO.Class
 import           Data.List                      ( intercalate )
 import           Data.List.Extra                ( splitOn )
-import           Data.Maybe                     ( isJust )
-import qualified Language.Haskell.Exts.Syntax  as HSE
+import qualified Data.Map.Lazy                 as Map
 import           System.Directory               ( createDirectoryIfMissing
                                                 , doesFileExist
-                                                , makeAbsolute
                                                 )
 import           System.Exit                    ( exitSuccess )
 import           System.FilePath
@@ -23,20 +21,11 @@ import           FreeC.Application.Option.Help
 import           FreeC.Application.Option.Version
 import           FreeC.Application.Options
 import           FreeC.Application.Options.Parser
-import qualified FreeC.Backend.Coq.Base        as Coq.Base
-import           FreeC.Backend.Coq.Converter    ( convertModule )
-import           FreeC.Backend.Coq.Pretty
-import qualified FreeC.Backend.Coq.Syntax      as Coq
+import           FreeC.Backend
 import           FreeC.Environment
 import           FreeC.Environment.ModuleInterface.Decoder
 import           FreeC.Environment.ModuleInterface.Encoder
-import           FreeC.Frontend.Haskell.Parser  ( parseHaskellModuleFile
-                                                , parseHaskellModuleFileWithComments
-                                                )
-import           FreeC.Frontend.Haskell.PatternMatching
-                                                ( transformPatternMatching )
-import           FreeC.Frontend.Haskell.Pretty  ( )
-import           FreeC.Frontend.Haskell.Simplifier
+import           FreeC.Frontend
 import           FreeC.IR.DependencyGraph
 import qualified FreeC.IR.Base.Prelude         as IR.Prelude
 import qualified FreeC.IR.Base.Test.QuickCheck as IR.Test.QuickCheck
@@ -45,6 +34,7 @@ import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Application
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
+import           FreeC.Pipeline
 import           FreeC.Pretty                   ( putPrettyLn
                                                 , showPretty
                                                 , writePrettyFile
@@ -85,28 +75,65 @@ compiler = do
     putDebug "No input file.\n"
     putUsageInfo
     exitSuccess
+  -- Select frontend and backend
+  frontend <- selectFrontend
+  backend  <- selectBackend
   -- Initialize environment.
   loadPrelude
   loadQuickCheck
-  createCoqProject
+  backendSpecialAction backend
   -- Process input files.
-  modules  <- inOpts optInputFiles >>= mapM parseInputFile >>= sortInputModules
-  modules' <- mapM convertInputModule modules
-  mapM_ (uncurry outputCoqModule) modules'
+  modules <-
+    inOpts optInputFiles
+    >>= mapM (parseInputFile $ frontendParseFile frontend)
+    >>= sortInputModules
+  modules' <- mapM (convertInputModule $ backendConvertModule backend) modules
+  mapM_ (uncurry (outputModule $ backendFileExtension backend)) modules'
 
 -------------------------------------------------------------------------------
--- Haskell input files                                                       --
+-- Front- and backend selection                                              --
 -------------------------------------------------------------------------------
 
--- | Parses and simplifies the given input file.
-parseInputFile :: FilePath -> Application IR.Module
-parseInputFile inputFile = reportApp $ do
+-- | Selects the correct frontend or throws an error if such a frontend does
+--   not exist.
+selectFrontend :: Application Frontend
+selectFrontend = do
+  name <- inOpts optFrontend
+  case Map.lookup name frontends of
+    Nothing -> do
+      reportFatal
+        $  Message NoSrcSpan Error
+        $  "Unrecognized frontend. Currently supported frontends are: "
+        ++ showFrontends
+        ++ "."
+    Just f -> return f
+
+-- | Selects the correct backend or throws an error if such a backend does
+--   not exist.
+selectBackend :: Application Backend
+selectBackend = do
+  name <- inOpts optBackend
+  case Map.lookup name backends of
+    Nothing -> do
+      reportFatal
+        $  Message NoSrcSpan Error
+        $  "Unrecognized backend. Currently supported backends are: "
+        ++ showBackends
+        ++ "."
+    Just b -> return b
+
+-------------------------------------------------------------------------------
+-- Input files                                                       --
+-------------------------------------------------------------------------------
+
+-- | Parses the given input file with the given parser function.
+parseInputFile
+  :: (SrcFile -> Application IR.Module) -> FilePath -> Application IR.Module
+parseInputFile parser inputFile = reportApp $ do
   -- Parse and simplify input file.
   putDebug $ "Loading " ++ inputFile
-  (haskellAst, comments) <- liftReporterIO
-    $ parseHaskellModuleFileWithComments inputFile
-  haskellAst' <- transformInputModule haskellAst
-  liftConverter (simplifyModuleWithComments haskellAst' comments)
+  contents <- liftIO $ readFile inputFile
+  parser $ mkSrcFile inputFile contents
 
 -- | Sorts the given modules based on their dependencies.
 --
@@ -122,13 +149,16 @@ sortInputModules = mapM checkForCycle . groupModules
       $  "Module imports form a cycle: "
       ++ intercalate ", " (map (showPretty . IR.modName) ms)
 
--- | Converts the given Haskell module to Coq.
+-- | Converts the given module with the given converter function.
 --
---   The resulting Coq AST is written to the console or output file.
-convertInputModule :: IR.Module -> Application (IR.ModName, [Coq.Sentence])
-convertInputModule haskellAst = do
-  let modName = IR.modName haskellAst
-      srcSpan = IR.modSrcSpan haskellAst
+--   The resulting string is written to the console or output file.
+convertInputModule
+  :: (IR.Module -> Application String)
+  -> IR.Module
+  -> Application (IR.ModName, String)
+convertInputModule converter ast = do
+  let modName = IR.modName ast
+      srcSpan = IR.modSrcSpan ast
   if hasSrcSpanFilename srcSpan
     then
       putDebug
@@ -139,57 +169,31 @@ convertInputModule haskellAst = do
       ++ ")"
     else putDebug $ "Compiling " ++ showPretty modName
   reportApp $ do
-    loadRequiredModules haskellAst
-    coqAst <- liftConverter $ convertModule haskellAst
-    return (modName, coqAst)
-
--------------------------------------------------------------------------------
--- Pattern matching compilation                                              --
--------------------------------------------------------------------------------
-
--- | Applies Haskell source code transformations if they are enabled.
-transformInputModule :: HSE.Module SrcSpan -> Application (HSE.Module SrcSpan)
-transformInputModule haskellAst = ifM (inOpts optTransformPatternMatching)
-                                      transformPatternMatching'
-                                      (return haskellAst)
- where
-  transformPatternMatching' :: Application (HSE.Module SrcSpan)
-  transformPatternMatching' = do
-    haskellAst'  <- liftConverter (transformPatternMatching haskellAst)
-    maybeDumpDir <- inOpts optDumpTransformedModulesDir
-    case maybeDumpDir of
-      Nothing      -> return haskellAst'
-      Just dumpDir -> do
-        -- Generate name of dump file.
-        modName <- liftConverter $ extractModName haskellAst'
-        let modPath  = map (\c -> if c == '.' then '/' else c) modName
-            dumpFile = dumpDir </> modPath <.> "hs"
-        -- Dump the transformed module.
-        liftIO $ createDirectoryIfMissing True (takeDirectory dumpFile)
-        liftIO $ writePrettyFile dumpFile haskellAst'
-        -- Read the dumped module back in, such that source spans in
-        -- error messages refer to the dumped file.
-        liftReporterIO $ parseHaskellModuleFile dumpFile
+    loadRequiredModules ast
+    prog <- moduleEnv $ (liftConverter . runPipeline >=> converter) ast
+    return (modName, prog)
 
 -------------------------------------------------------------------------------
 -- Output                                                                    --
 -------------------------------------------------------------------------------
 
--- | Output a Coq module that has been generated from a Haskell module
+-- | Output a module that has been generated from a IR module
 --   with the given name.
-outputCoqModule :: IR.ModName -> [Coq.Sentence] -> Application ()
-outputCoqModule modName coqAst = do
+--
+--  The generated file has the given file extension.
+outputModule :: String -> IR.ModName -> String -> Application ()
+outputModule ext modName outputStr = do
   maybeOutputDir <- inOpts optOutputDir
   case maybeOutputDir of
-    Nothing        -> liftIO (putPrettyLn (map PrettyCoq coqAst))
+    Nothing        -> liftIO $ putPrettyLn outputStr
     Just outputDir -> do
       let outputPath = map (\c -> if c == '.' then '/' else c) modName
-          outputFile = outputDir </> outputPath <.> "v"
+          outputFile = outputDir </> outputPath <.> ext
           ifaceFile  = outputDir </> outputPath <.> "json"
       Just iface <- inEnv $ lookupAvailableModule modName
       liftIO $ createDirectoryIfMissing True (takeDirectory outputFile)
       writeModuleInterface ifaceFile iface
-      liftIO $ writePrettyFile outputFile (map PrettyCoq coqAst)
+      liftIO $ writePrettyFile outputFile outputStr
 
 -------------------------------------------------------------------------------
 -- Imports                                                                   --
@@ -262,55 +266,3 @@ loadModuleFromBaseLib modName = do
       ifaceFile = baseLibDir </> modPath <.> "toml"
   ifrace <- loadModuleInterface ifaceFile
   modifyEnv $ makeModuleAvailable ifrace
-
--- | Creates a @_CoqProject@ file (if enabled) that maps the physical directory
---   of the Base library.
---
---   The path to the Base library will be relative to the output directory.
-createCoqProject :: Application ()
-createCoqProject = whenM coqProjectEnabled
-  $ unlessM coqProjectExists writeCoqProject
- where
-  -- | Tests whether the generation of a @_CoqProject@ file is enabled.
-  --
-  --   The generation of the @_CoqProject@ file can be disabled with the
-  --   command line option @--no-coq-project@. If there is no @--output@
-  --   directory, the generation of the @_CoqProject@ file is disabled as
-  --   well.
-  coqProjectEnabled :: Application Bool
-  coqProjectEnabled = do
-    isEnabled      <- inOpts optCreateCoqProject
-    maybeOutputDir <- inOpts optOutputDir
-    return (isEnabled && isJust maybeOutputDir)
-
-  -- | Path to the @_CoqProject@ file to create.
-  getCoqProjectFile :: Application FilePath
-  getCoqProjectFile = do
-    Just outputDir <- inOpts optOutputDir
-    return (outputDir </> "_CoqProject")
-
-  -- | Tests whether the @_CoqProject@ file does exist already.
-  coqProjectExists :: Application Bool
-  coqProjectExists = getCoqProjectFile >>= liftIO . doesFileExist
-
-  -- | Writes the string returned by 'makeContents' to the @_CoqProject@ file.
-  writeCoqProject :: Application ()
-  writeCoqProject = do
-    coqProject <- getCoqProjectFile
-    contents   <- makeContents
-    liftIO $ do
-      createDirectoryIfMissing True (takeDirectory coqProject)
-      writeFile coqProject contents
-
-  -- | Creates the string to write to the 'coqProject' file.
-  makeContents :: Application String
-  makeContents = do
-    baseDir        <- inOpts optBaseLibDir
-    Just outputDir <- inOpts optOutputDir
-    absBaseDir     <- liftIO $ makeAbsolute baseDir
-    absOutputDir   <- liftIO $ makeAbsolute outputDir
-    let relBaseDir = makeRelative absOutputDir absBaseDir
-    return $ unlines
-      [ "-R " ++ relBaseDir ++ " " ++ showPretty Coq.Base.baseLibName
-      , "-R . " ++ showPretty Coq.Base.generatedLibName
-      ]
