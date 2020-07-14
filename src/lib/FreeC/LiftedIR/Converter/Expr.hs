@@ -236,7 +236,7 @@ generateBinds ((arg, True) : as) k =
   arg `bind` \arg' -> generateBinds as $ \as' -> k (arg' : as')
 
 -- | Generates just the syntax for a bind expression, which unwraps the first
---   variable and binds its value two the second one in the given expression.
+--   variable and binds its value to the second one in the given expression.
 rawBind
   :: SrcSpan
   -> IR.QName
