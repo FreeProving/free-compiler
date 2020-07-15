@@ -242,9 +242,10 @@ Proof.
   induction fxs as [ xs | sh pos IHpos ] using Free_Ind.
   - induction xs as [| fx fxs' IHfxs ] using List_Ind.
     + reflexivity.
-    + induction fxs' as [ xs' | sh pos IHpos ] using Free_Ind.
-      * simplify2 IHfxs as IH. simpl. unfold Cons. do 2 f_equal. simpl in IH. apply IH.
-      * simpl. unfold Cons. do 3 f_equal. extensionality x. simplify2 IHpos as IH. apply IH.
+    + induction fxs' as [ xs' | sh pos IHpos ] using Free_Ind;
+      rewrite cons_Cons; rewrite apply_map; f_equal. 
+      * simplify2 IHfxs as IH. apply IH.
+      * simpl. f_equal. extensionality x. simplify2 IHpos as IH. apply IH.
   - simpl. f_equal. extensionality x. apply IHpos.
 Qed.
 
