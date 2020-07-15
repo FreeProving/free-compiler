@@ -4,7 +4,7 @@
 null xs = case xs of { [] -&gt; True; x : xs' -&gt; False }</pre><p>will be be converted to a module that still contains the type signature
    but the types of the argument <code>xs</code> and the return type of <code>head</code> are
    also annotated explicitly in the function declaration itself.
-   In addition, the type arguments of the type schema are copied from the type
+   In addition, the type arguments of the type scheme are copied from the type
    signature to the function declaration's type argument list.</p><pre>null :: forall a. [a] -&gt; Bool
 null @a (xs :: [a]) :: Bool = case xs of {
     []      -&gt; True;
