@@ -667,16 +667,16 @@ annotateExprWith' (IR.Lambda srcSpan args expr _) resType =
     return (IR.Lambda srcSpan args' expr' (makeExprType resType))
 
 
-annotateExprWith' (IR.Let srcSpan binds expr _) resType = do
+annotateExprWith' (IR.Let srcSpan binds expr _) resType =
+  withLocalTypeAssumption $ do
     retType  <- liftConverter freshTypeVar
     expr'    <- annotateExprWith expr retType
     binds'   <- mapM annotateBind binds
-    -- addTypeEquation srcSpan (fromJust $ IR.exprTypeSchema expr') resType -- TODO unclear if needed
+--    addTypeEquation srcSpan (fromJust $ IR.exprTypeSchema expr') resType -- TODO is needed
     return (IR.Let srcSpan binds' expr' (makeExprType resType))
      where
        annotateBind :: IR.Bind -> TypeInference IR.Bind
-       annotateBind (IR.Bind bindSrcSpan bindVarPat bindExpr) =
-         withLocalTypeAssumption $ do
+       annotateBind (IR.Bind bindSrcSpan bindVarPat bindExpr) = do
            varPat'  <- annotateVarPat bindVarPat
            bindType <- liftConverter freshTypeVar
            expr'    <- annotateExprWith bindExpr bindType

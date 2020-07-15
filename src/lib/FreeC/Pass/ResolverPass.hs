@@ -746,7 +746,8 @@ instance Resolvable IR.Expr where
     alts'      <- mapM resolve alts
     exprType'  <- mapM resolve exprType
     return (IR.Case srcSpan scrutinee' alts' exprType')
-  resolve (IR.Let srcSpan binds e exprType) = do
+  resolve (IR.Let srcSpan binds e exprType) = withLocalResolverEnv $ do
+    defineVarPats (map IR.bindVarPat binds)
     binds'    <- mapM resolve binds
     e'        <- resolve e
     exprType' <- mapM resolve exprType
