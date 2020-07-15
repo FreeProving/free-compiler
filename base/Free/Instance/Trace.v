@@ -1,13 +1,11 @@
 (** * Definition of the tracing effect in terms of the free monad. *)
 
 From Base Require Import Free.
+From Base Require Import Free.Util.Sharing.
 From Base Require Import Free.Util.Void.
 Require Export Coq.Strings.String.
 
 Module Trace.
-
-  (* Type synonym for a tracing id *)
-  Definition ID : Type := nat * nat * nat.
 
   (* Container instance for a functor [Log]. *)
   Definition Shape : Type := option ID * string.
@@ -24,6 +22,7 @@ Module Trace.
       : Free Shape' Pos' A :=
       impure (injS (mid, msg)) (fun tt => x).
 
+    (* A function to log a message in addition to returning a value. *)
     Definition trace {A : Type} {Shape' : Type} {Pos' : Shape' -> Type} 
       `{i : Injectable Shape Pos Shape' Pos'} msg x := 
       @LCons A Shape' Pos' i None msg x. 
