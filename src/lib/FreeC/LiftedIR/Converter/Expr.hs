@@ -21,9 +21,12 @@ import           FreeC.LiftedIR.Effect          ( Effect(Partiality) )
 import qualified FreeC.LiftedIR.Syntax         as LIR
 import qualified FreeC.LiftedIR.Converter.Type as LIR
 import           FreeC.Environment
-import           FreeC.Environment.Entry        ( entryAgdaIdent )
+import           FreeC.Environment.Entry        ( entryAgdaIdent
+                                                , entryIdent
+                                                )
 import           FreeC.Environment.LookupOrFail ( lookupAgdaFreshIdentOrFail
                                                 , lookupAgdaValIdentOrFail
+                                                , lookupIdentOrFail
                                                 )
 import           FreeC.Environment.Renamer      ( renameAndDefineLIRVar )
 import           FreeC.Environment.Fresh        ( freshIRQName )
@@ -73,8 +76,10 @@ liftExpr' (IR.Con srcSpan name _) _ args = do
 
 -- Cases for (possible applied) variables (i.e. variables and functions).
 liftExpr' (IR.Var srcSpan name _) _ args = do
-  args'    <- mapM liftExpr args
-  varName  <- LIR.Var srcSpan name <$> lookupAgdaValIdentOrFail srcSpan name
+  args'     <- mapM liftExpr args
+  agdaIdent <- lookupAgdaValIdentOrFail srcSpan name
+  coqIdent  <- lookupIdentOrFail srcSpan IR.ValueScope name
+  let varName = LIR.Var srcSpan name agdaIdent coqIdent
   function <- inEnv $ isFunction name
   if function -- If this is a top level functions it's lifted argument wise.
     then do
@@ -182,7 +187,8 @@ varPat srcSpan var varType = do
   valueEntry <- inEnv $ lookupEntry IR.ValueScope var
   freshEntry <- inEnv $ lookupEntry IR.FreshScope var
   let agdaVar = entryAgdaIdent $ fromJust (valueEntry <|> freshEntry)
-  return $ LIR.VarPat srcSpan unqualVar varType agdaVar
+  let coqVar  = entryIdent $ fromJust (valueEntry <|> freshEntry)
+  return $ LIR.VarPat srcSpan unqualVar varType agdaVar coqVar
 
 -------------------------------------------------------------------------------
 -- Application-expression helper                                             --
@@ -205,10 +211,10 @@ generateApply mf (a : as) = mf `bind` \f -> generateApply (f `app` a) as
 -- | Tries to extract a variable name from an expression. This function can be
 --   used to preserve the same base variable name across chains of binds.
 guessName :: LIR.Expr -> Maybe String
-guessName (LIR.Var _ name _) = IR.identFromQName name
-guessName (LIR.Pure _ arg  ) = guessName arg
-guessName (LIR.Bind _ arg _) = guessName arg
-guessName _                  = Nothing
+guessName (LIR.Var _ name _ _) = IR.identFromQName name
+guessName (LIR.Pure _ arg    ) = guessName arg
+guessName (LIR.Bind _ arg _  ) = guessName arg
+guessName _                    = Nothing
 
 -- | Creates a @>>= \x ->@, which binds a new variable.
 bind :: LIR.Expr -> (LIR.Expr -> Converter LIR.Expr) -> Converter LIR.Expr
@@ -219,8 +225,10 @@ bind arg              k = localEnv $ do
   let Just argIdent' = identFromQName argIdent
   -- Build the lambda on the RHS of the bind.
   argAgda <- lookupAgdaFreshIdentOrFail NoSrcSpan argIdent
-  let pat = LIR.VarPat NoSrcSpan argIdent' Nothing $ argAgda
-  rhs <- LIR.Lambda NoSrcSpan [pat] <$> k (LIR.Var NoSrcSpan argIdent argAgda)
+  argCoq  <- lookupIdentOrFail NoSrcSpan IR.FreshScope argIdent
+  let pat = LIR.VarPat NoSrcSpan argIdent' Nothing argAgda argCoq
+  rhs <- LIR.Lambda NoSrcSpan [pat]
+    <$> k (LIR.Var NoSrcSpan argIdent argAgda argCoq)
   -- Build the bind.
   return $ LIR.Bind NoSrcSpan arg rhs
 
@@ -244,10 +252,12 @@ rawBind
   -> Maybe IR.Type
   -> LIR.Expr
   -> Converter LIR.Expr
-rawBind ss mx x varType expr = do
-  mxAgda <- lookupAgdaFreshIdentOrFail ss mx
-  xAgda  <- lookupAgdaValIdentOrFail ss x
-  let mx'          = LIR.Var ss mx mxAgda
+rawBind srcSpan mx x varType expr = do
+  mxAgda <- lookupAgdaFreshIdentOrFail srcSpan mx
+  mxCoq  <- lookupIdentOrFail srcSpan IR.FreshScope mx
+  xAgda  <- lookupAgdaValIdentOrFail srcSpan x
+  xCoq   <- lookupIdentOrFail srcSpan IR.ValueScope x
+  let mx' = LIR.Var srcSpan mx mxAgda mxCoq
       Just unqualX = identFromQName x
-      x'           = LIR.VarPat ss unqualX (LIR.liftType' <$> varType) xAgda
-  return $ LIR.Bind ss mx' $ LIR.Lambda ss [x'] expr
+      x' = LIR.VarPat srcSpan unqualX (LIR.liftType' <$> varType) xAgda xCoq
+  return $ LIR.Bind srcSpan mx' $ LIR.Lambda srcSpan [x'] expr

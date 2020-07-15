@@ -10,6 +10,7 @@ import           FreeC.LiftedIR.Syntax.Name
 import           FreeC.LiftedIR.Syntax.Type
 
 import qualified FreeC.Backend.Agda.Syntax     as Agda
+import qualified FreeC.Backend.Coq.Syntax      as Coq
 
 -- | An expression.
 data Expr
@@ -27,6 +28,7 @@ data Expr
     Var { exprSrcSpan     :: SrcSpan
         , exprVarName     :: VarName
         , exprAgdaVarName :: Agda.QName
+        , exprCoqVarIdent :: Coq.Qualid
         }
 
   | -- | Function or constructor application.
@@ -115,5 +117,6 @@ data VarPat = VarPat
   , varPatType      :: Maybe Type
     -- TODO: remove @Maybe@ after 'EtaConversionPass' is moved.
   , varPatAgdaIdent :: Agda.QName
+  , varPatCoqIdent  :: Coq.Qualid
   }
  deriving (Eq, Show)
