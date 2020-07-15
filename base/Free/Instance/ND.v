@@ -2,6 +2,7 @@
 
 From Base Require Import Free.
 From Base Require Import Free.Instance.Comb.
+From Base Require Import Free.Instance.Share.
 From Base Require Import Free.Util.Search.
 From Base Require Import Free.Util.Sharing.
 From Base Require Import Free.Util.Void.
@@ -40,10 +41,11 @@ Module ND.
 
   (* Handlers for non-determinism and call-time choice. *)
   Module Import Handler.
+    (* Helper definitions and handler for non-determinism. *)
     Definition SChoice (Shape' : Type) := Comb.Shape Shape Shape'.
     Definition PChoice {Shape' : Type} (Pos' : Shape' -> Type) 
     := Comb.Pos Pos Pos'.
-    (* Non-determinism effect handler. *)
+
     Fixpoint runChoice {A : Type} 
                        {Shape' : Type} 
                        {Pos' : Shape' -> Type} 
@@ -59,19 +61,71 @@ Module ND.
        | impure (inr s) pf =>
          impure s (fun p => runChoice (pf p))
        end.
-  End Handler.
 
+    (* Helper definitions and handler for sharing combined with non-determinism 
+       (call-time choice). *)
+    Definition SNDShare (Shape' : Type) 
+    := Comb.Shape Share.Shape (SChoice Shape').
+    Definition PNDShare {Shape' : Type} (Pos' : Shape' -> Type) 
+    := Comb.Pos Share.Pos (PChoice Pos').
+
+    Fixpoint runNDSharing {A : Type} 
+                          {Shape' : Type} 
+                          {Pos' : Shape' -> Type} 
+                          (n : nat * nat)
+                          (fs : Free (SNDShare Shape') (PNDShare Pos') A) 
+     : Free (SChoice Shape') (PChoice Pos') A 
+    := let fix nameChoices (next : nat) 
+                           (scope : nat * nat) 
+                           (scopes : list (nat * nat)) 
+                           (fs : Free (SNDShare Shape') (PNDShare Pos') A)
+     : Free (SChoice Shape') (PChoice Pos') A  
+       := match fs with (* inside scope handler *)
+          | pure x => pure x
+          | impure (inl (Share.sbsharing n')) pf =>
+             nameChoices 1 n' (cons n' scopes) (pf tt)
+          | impure (inl (Share.sesharing n')) pf =>
+             match scopes with
+            | cons _ (cons j js) as ks => nameChoices next j ks (pf tt)
+            | _                        => runNDSharing scope (pf tt)
+            end
+          | impure (inl Share.sget) pf =>
+             nameChoices next scope scopes (pf n)
+          | impure (inl (Share.sput n')) pf =>
+             nameChoices next n' scopes (pf tt)
+          | impure (inr (inl (ND.schoice id))) pf =>
+             let l := nameChoices (next + 1) scope scopes (pf true) in
+             let r := nameChoices (next + 1) scope scopes (pf false) in
+             Choice (Some (tripl scope next)) l r
+          | impure (inr (inl ND.sfail)) _ => Fail
+          | impure (inr (inr s)) pf =>
+             impure (inr s) (fun p => nameChoices next scope scopes (pf p))
+          end
+       in match fs with (* outside scope handler *)
+          | pure x => pure x
+          | impure (inl (Share.sbsharing n'))  pf =>
+            nameChoices 1 n' (cons n' nil) (pf tt)
+          | impure (inl (Share.sesharing n'))  pf =>
+            runNDSharing n' (pf tt) (* error *)
+          | impure (inl Share.sget) pf =>
+            runNDSharing n (pf n)
+          | impure (inl (Share.sput n')) pf =>
+            runNDSharing n' (pf tt)
+          | impure (inr s) pf => impure s (fun p =>
+            runNDSharing n (pf p))
+          end.
+  End Handler.
 
   (* Partial instance for the non-determinism effect. *)
   Instance Partial : Partial Shape Pos := {
       undefined := fun {A : Type}                => Fail;
       error     := fun {A : Type} (msg : string) => Fail
     }.
-
 End ND.
 
 
-(* The type and smart constructor should be visible to other modules
+(* The type, smart constructors and handlers should be visible to other modules
    but to use the shape, position function or partial instance the
    identifier must be fully qualified, e.g. [ND.Partial]. *)
+Export ND.Handler.
 Export ND.Monad.

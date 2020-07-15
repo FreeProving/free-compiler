@@ -31,7 +31,7 @@ Module Identity.
   (* There is no partial instance for the identity monad. *)
 End Identity.
 
-(* The type and smart constructor should be visible to other modules
+(* The type, smart constructor and handler should be visible to other modules
    but to use the shape or position function the identifier must be
    fully qualified, i.e. [Identity.Shape]. *)
 Export Identity.Handler.

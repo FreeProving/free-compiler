@@ -34,17 +34,12 @@ Module Maybe.
       (fun (x : Void) => match x with end) (injP p)).
   End Monad.
 
-  (* Partial instance for the maybe monad. *)
-  Instance Partial : Partial Shape Pos := {
-      undefined := fun {A : Type}                => Nothing;
-      error     := fun {A : Type} (msg : string) => Nothing
-    }.
-
   (* Handler for a program containing Maybe. *)
   Module Import Handler.
     Definition SMaybe (Shape' : Type) := Comb.Shape Shape Shape'.
     Definition PMaybe {Shape' : Type} (Pos' : Shape' -> Type)
     := Comb.Pos Pos Pos'.
+
     Fixpoint runMaybe {A : Type} 
                       {Shape' : Type}
                       {Pos' : Shape' -> Type} 
@@ -56,6 +51,12 @@ Module Maybe.
        | impure (inr s) pf => impure s (fun p : Pos' s => runMaybe (pf p))
        end.
   End Handler.
+
+  (* Partial instance for the maybe monad. *)
+  Instance Partial : Partial Shape Pos := {
+      undefined := fun {A : Type}                => Nothing;
+      error     := fun {A : Type} (msg : string) => Nothing
+    }.
 End Maybe.
 
 
