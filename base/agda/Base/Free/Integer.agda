@@ -62,7 +62,7 @@ instance
 _^_ : ∀ {S P} → ⦃ Partial S P ⦄ → Free S P (ℤ S P) → Free S P (ℤ S P) → Free S P (ℤ S P)
 mx ^ pure (+ 0)         = pure 1
 mx ^ pure (+ (suc n))   = mx * (mx ^ (pure (+ n)))
-mx ^ pure (ℤᵖ.negsuc n) = error "*** Exception: Negative exponent"
+mx ^ pure (ℤᵖ.negsuc n) = error "Negative exponent"
 mx ^ impure s pf        = impure s pf
 
 neg : ∀ {S P} → Free S P (ℤ S P) → Free S P (ℤ S P)
