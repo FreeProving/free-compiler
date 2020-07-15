@@ -707,6 +707,11 @@ simplifyExpr (HSE.Case srcSpan expr alts) = do
   alts' <- mapM simplifyAlt alts
   return (IR.Case srcSpan expr' alts' Nothing)
 
+simplifyExpr (HSE.Let srcSpan binds expr) = do
+  expr'  <- simplifyExpr expr
+  binds' <- simplifyBinds binds
+  return (IR.Let srcSpan binds' expr' Nothing)
+
 -- Type signatures.
 simplifyExpr (HSE.ExpTypeSig srcSpan expr typeExpr) = do
   expr' <- simplifyExpr expr
@@ -736,7 +741,6 @@ simplifyExpr expr@(HSE.OverloadedLabel _ _) =
   notSupported "Overloaded labels" expr
 simplifyExpr expr@(HSE.IPVar _ _) =
   notSupported "Implicit parameter variables" expr
-simplifyExpr expr@(HSE.Let _ _ _) = notSupported "Local declarations" expr
 simplifyExpr expr@(HSE.MultiIf _ _) =
   notSupported "Multi-Way if expressions" expr
 simplifyExpr expr@(HSE.Do  _ _) = notSupported "do-expressions" expr
@@ -922,3 +926,22 @@ simplifyAlt (HSE.Alt _ _ rhss@(HSE.GuardedRhss _ _) _) =
   experimentallySupported "Guards" rhss
 simplifyAlt (HSE.Alt _ _ _ (Just binds)) =
   notSupported "Local declarations" binds
+
+-- | Simplifies a group of bindings inside a 'let' clause
+simplifyBinds :: HSE.Binds SrcSpan -> Simplifier [IR.Bind]
+simplifyBinds binds@(HSE.IPBinds _ _) =
+  notSupported "Binding groups for implicit parameters" binds
+simplifyBinds (HSE.BDecls _ decls) =
+  mapM simplifyBind decls
+   where
+     simplifyBind :: HSE.Decl SrcSpan -> Simplifier IR.Bind
+     simplifyBind (HSE.PatBind srcSpan pat (HSE.UnGuardedRhs _ expr) Nothing) = do
+        varPat <- simplifyVarPat pat
+        expr'  <- simplifyExpr expr
+        return (IR.Bind srcSpan varPat expr')
+     simplifyBind (HSE.PatBind _  _ rhss@(HSE.GuardedRhss _ _) _) =
+       experimentallySupported "Guards" rhss
+     simplifyBind (HSE.PatBind _ _ _ (Just binds)) =
+       notSupported "Local declarations" binds
+     simplifyBind decl =
+       expected "A pattern binding" decl
