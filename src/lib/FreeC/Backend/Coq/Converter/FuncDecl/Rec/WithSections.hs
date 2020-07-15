@@ -599,6 +599,8 @@ removeConstTypeArgsFromExpr constTypeVars rootExpr = do
       (expr', []) <- removeConstTypeArgsFromExpr' expr
       return (IR.Alt srcSpan conPat varPats expr')
 
+  -- | Applies 'removeConstTypeArgsFromExpr'' to the right-hand side of the
+  --   given @let@ binding.
   removeConstTypeArgsFromBind :: IR.Bind -> Converter IR.Bind
   removeConstTypeArgsFromBind (IR.Bind srcSpan varPat expr) =
     shadowVarPats [varPat] $ do

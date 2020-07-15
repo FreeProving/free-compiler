@@ -935,10 +935,10 @@ simplifyBinds (HSE.BDecls _ decls) =
   mapM simplifyBind decls
    where
      simplifyBind :: HSE.Decl SrcSpan -> Simplifier IR.Bind
-     simplifyBind (HSE.PatBind srcSpan pat (HSE.UnGuardedRhs _ expr) Nothing) = do
-        varPat <- simplifyVarPat pat
-        expr'  <- simplifyExpr expr
-        return (IR.Bind srcSpan varPat expr')
+     simplifyBind (HSE.PatBind srcSpan varPat (HSE.UnGuardedRhs _ expr) Nothing) = do
+        varPat' <- simplifyVarPat varPat
+        expr'   <- simplifyExpr expr
+        return (IR.Bind srcSpan varPat' expr')
      simplifyBind (HSE.PatBind _  _ rhss@(HSE.GuardedRhss _ _) _) =
        experimentallySupported "Guards" rhss
      simplifyBind (HSE.PatBind _ _ _ (Just binds)) =
