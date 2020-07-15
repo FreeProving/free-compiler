@@ -5,7 +5,7 @@ open import Data.Integer               using (+_; -_) renaming (ℤ to ℤᵖ; _
 open import Data.Integer.Properties    using (_≤?_; _<?_) renaming (_≟_ to _≟ᵖ_)
 open import Relation.Nullary.Decidable using (⌊_⌋)
 
--- for literals
+-- Imports for literals.
 open import Agda.Builtin.FromNat
 open import Agda.Builtin.FromNeg
 open import Agda.Builtin.FromNat       public
@@ -45,6 +45,7 @@ mx ≟ my = mx >>= λ x → my >>= λ y → pure ⌊ x ≟ᵖ y ⌋
 
 _≠_ : ∀ {S P} → Free S P (ℤ S P) → Free S P (ℤ S P) → Free S P (𝔹 S P)
 mx ≠ my = not (mx ≟ my)
+
 instance
   number : Number ℤᵖ
   number = record
