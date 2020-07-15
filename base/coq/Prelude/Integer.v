@@ -48,11 +48,13 @@ Section SecInteger.
 
   (* exponentiation *)
   Definition powInteger (P : Partial Shape Pos) (n1 : Free' Integer') (n2 : Free' Integer') : Free' Integer' :=
-    n1 >>= fun(n1' : Integer') =>
-      if Z.ltb n1' 0
+    n2 >>= fun(n2' : Integer') =>
+      if Z.ltb n2' 0
         then error "Negative exponent"
-        else n2 >>= fun(n2' : Integer') =>
-          pure (Z.pow n1' n2').
+        else if Z.eqb n2' 0
+               then pure 1%Z
+               else n1 >>= fun(n1' : Integer') =>
+                 pure (Z.pow n1' n2').
 
   (** * Comparison operators *)
 

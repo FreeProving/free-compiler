@@ -1,6 +1,6 @@
 module Base.Free.Integer where
 
-open import Data.Nat                   using (zero; suc)
+open import Data.Nat                   using (ℕ; zero; suc)
 open import Data.Integer               using (+_; -_) renaming (ℤ to ℤᵖ; _+_ to _+ᵖ_; _-_ to _-ᵖ_; _*_ to _*ᵖ_)
 open import Data.Integer.Properties    using (_≤?_; _<?_) renaming (_≟_ to _≟ᵖ_)
 open import Relation.Nullary.Decidable using (⌊_⌋)
@@ -59,12 +59,16 @@ instance
     ; fromNeg    = λ n → - (+ n)
     }
 
+_^ᵖ_ : ℤᵖ → ℕ → ℤᵖ
+b ^ᵖ 0     = 1
+b ^ᵖ suc e = b *ᵖ (b ^ᵖ e)
+
 -- If it encounters a negative exponent the Haskell implementation of @(^)@ raises an exception using @errorWithoutStackTrace@.
 _^_ : ∀ {S P} → ⦃ Partial S P ⦄ → Free S P (ℤ S P) → Free S P (ℤ S P) → Free S P (ℤ S P)
-mx ^ pure (+ 0)         = pure 1
-mx ^ pure (+ (suc n))   = mx * (mx ^ (pure (+ n)))
-mx ^ pure (ℤᵖ.negsuc n) = error "Negative exponent"
-mx ^ impure s pf        = impure s pf
+mb ^ me = me >>= λ where
+  (ℤᵖ.negsuc _) → error "Negative exponent"
+  (+ 0)         → pure 1
+  (+ (suc e))   → mb >>= λ b → pure (b ^ᵖ suc e)
 
 neg : ∀ {S P} → Free S P (ℤ S P) → Free S P (ℤ S P)
 neg x = pure -1 * x
