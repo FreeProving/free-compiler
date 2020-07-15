@@ -1,6 +1,6 @@
 module Base.Free.Bool where
 
-open import Data.Bool using (Bool; true; false) renaming (_∧_ to _∧ᵖ_; _∨_ to _∨ᵖ_; not to notᵖ)
+open import Data.Bool using (Bool; true; false; if_then_else_) renaming (_∧_ to _∧ᵖ_; _∨_ to _∨ᵖ_; not to notᵖ)
 open import Base.Free using (Free; pure; _>>=_)
 
 𝔹 : (Shape : Set) → (Shape → Set) → Set
