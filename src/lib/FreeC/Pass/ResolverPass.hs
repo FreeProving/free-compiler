@@ -643,16 +643,16 @@ instance Resolvable IR.ConDecl where
 -- | References to types in type signatures can be resolved.
 instance Resolvable IR.TypeSig where
   resolve typeSig = do
-    typeSchema' <- resolve (IR.typeSigTypeSchema typeSig)
-    return typeSig { IR.typeSigTypeSchema = typeSchema' }
+    typeScheme' <- resolve (IR.typeSigTypeScheme typeSig)
+    return typeSig { IR.typeSigTypeScheme = typeScheme' }
 
--- | The type variables quantified by the @forall@ of a type schema can be
+-- | The type variables quantified by the @forall@ of a type scheme can be
 --   referenced by its type expression.
-instance Resolvable IR.TypeSchema where
-  resolve (IR.TypeSchema srcSpan args typeExpr) = withLocalResolverEnv $ do
+instance Resolvable IR.TypeScheme where
+  resolve (IR.TypeScheme srcSpan args typeExpr) = withLocalResolverEnv $ do
     defineTypeVars args
     typeExpr' <- resolve typeExpr
-    return (IR.TypeSchema srcSpan args typeExpr')
+    return (IR.TypeScheme srcSpan args typeExpr')
 
 -- | References to type constructors can be resolved in type expressions and
 --   all type variables that occur in the type expression must be declared.
