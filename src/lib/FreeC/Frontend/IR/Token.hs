@@ -222,6 +222,8 @@ data Keyword
   | TYPE      -- ^ @"type"@
   | UNDEFINED -- ^ @"undefined"@
   | WHERE     -- ^ @"where"@
+  | LET       -- ^ @"let"@
+  | IN        -- ^ @"in"@
  deriving (Eq, Show)
 
 -- | Maps reserved words that cannot be used as identifiers to the
@@ -264,3 +266,5 @@ instance Pretty Keyword where
   pretty TYPE      = prettyString "type"
   pretty UNDEFINED = prettyString "undefined"
   pretty WHERE     = prettyString "where"
+  pretty LET       = prettyString "let"
+  pretty IN        = prettyString "in"

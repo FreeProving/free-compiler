@@ -506,9 +506,10 @@ exprParser = setExprType <$> lExprParser <*> Parsec.optionMaybe
 --   >         | "if" expr "then" expr "else" expr     (conditional)
 --   >         | "case" expr "of" alts                 (case expression)
 --   >         | fexpr                                 (function application)
+--   >         | "let" binds "in" expr                 (let expression)
 lExprParser :: Parser IR.Expr
 lExprParser =
-  lambdaExprParser <|> ifExprParser <|> caseExprParser <|> fExprParser
+  lambdaExprParser <|> ifExprParser <|> caseExprParser <|> fExprParser <|> letExprParser
  where
   -- @lexpr ::= "\\" varPat { varPat } "->" expr | …@
   lambdaExprParser :: Parser IR.Expr
@@ -540,6 +541,15 @@ lExprParser =
       <*> exprParser
       <*  keyword OF
       <*> altsParser
+      <*> return Nothing
+
+  letExprParser :: Parser IR.Expr
+  letExprParser =
+    IR.Let NoSrcSpan
+      <$  keyword LET
+      <*> bindsParser
+      <*  keyword IN
+      <*> exprParser
       <*> return Nothing
 
 -- | Parser for IR function application expressions.
@@ -636,6 +646,26 @@ altParser =
     <$> conPatParser
     <*> Parsec.many varPatParser
     <*  token RArrow
+    <*> exprParser
+
+-------------------------------------------------------------------------------
+-- @let@ expression bindings                                            --
+-------------------------------------------------------------------------------
+
+-- | Parser for zero or more IR @let@ bindings.
+--
+--   > binds ::= "{" [ bind { ";" bind } ] "}"
+bindsParser :: Parser [IR.Bind]
+bindsParser = bracesParser (bindParser `Parsec.sepEndBy` token Semi)
+
+-- | Parser for IR @case@ expression alternatives.
+--
+--   > bind ::= varPat "=" expr
+bindParser :: Parser IR.Bind
+bindParser =
+  IR.Bind NoSrcSpan
+    <$> varPatParser
+    <*  token Equals
     <*> exprParser
 
 -------------------------------------------------------------------------------
