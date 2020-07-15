@@ -13,10 +13,10 @@ False : ∀ {S P} → Free S P (𝔹 S P)
 False = pure false
 
 _∧_ : ∀ {S P} → Free S P (𝔹 S P) → Free S P (𝔹 S P) → Free S P (𝔹 S P)
-mx ∧ my = mx >>= λ x → my >>= λ y → pure (x ∧ᵖ y)
+mx ∧ my = mx >>= λ x → if x then my else False
 
 _∨_ : ∀ {S P} → Free S P (𝔹 S P) → Free S P (𝔹 S P) → Free S P (𝔹 S P)
-mx ∨ my = mx >>= λ x → my >>= λ y → pure (x ∨ᵖ y)
+mx ∨ my = mx >>= λ x → if x then True else my
 
 not : ∀ {S P} → Free S P (𝔹 S P) → Free S P (𝔹 S P)
 not mb = mb >>= λ b → pure (notᵖ b)
