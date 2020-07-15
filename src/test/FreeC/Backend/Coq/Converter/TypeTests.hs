@@ -11,9 +11,9 @@ import           FreeC.Backend.Coq.Converter.Type
 import           FreeC.Backend.Coq.Pretty       ( )
 import           FreeC.Monad.Class.Testable
 import           FreeC.Monad.Converter
-import           FreeC.Test.Parser
 import           FreeC.Test.Environment
 import           FreeC.Test.Expectations
+import           FreeC.Test.Parser
 
 -------------------------------------------------------------------------------
 -- Expectation setters                                                       --

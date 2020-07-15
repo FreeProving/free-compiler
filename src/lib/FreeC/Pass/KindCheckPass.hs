@@ -4,7 +4,7 @@
 --   For simplification, all type variables have kind @*@. Therefore, all type
 --   constructors must be fully applied, so partial application of type
 --   constructors is not allowed. This pass also checks that type variables and
---   function types do not occur on the left hand side of a type application.
+--   function types do not occur on the left-hand side of a type application.
 --   If a type expression is found that does not match this rules, a fatal
 --   error is reported. For simplification, a type expression that satisfies all
 --   of these rules is called kind-correct.
@@ -21,7 +21,7 @@
 --   > fail1 :: MyList (MyList a a) -> Integer
 --   > fail1 x = 42
 --   >
---   > -- Invalid because type variable 'a' is on the right hand side of a type
+--   > -- Invalid because type variable 'a' is on the right-hand side of a type
 --   > -- application.
 --   > fail2 :: a a -> Integer
 --   > fail2 x = 42

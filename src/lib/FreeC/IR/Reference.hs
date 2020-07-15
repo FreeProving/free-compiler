@@ -245,7 +245,7 @@ instance HasRefs IR.VarPat where
 -------------------------------------------------------------------------------
 
 -- | Data type declarations refer to the types their constructors refer to and
---   type synonym declarations refer to the types it's right hand side refers
+--   type synonym declarations refer to the types it's right-hand side refers
 --   to. Both don't refer to type variables that are bound by their type
 --   arguments.
 instance HasRefs IR.TypeDecl where

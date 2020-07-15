@@ -1,4 +1,4 @@
--- | This module contains data types and function for working with subterms
+-- | This module contains data types and functions for working with subterms
 --   of expressions and type expressions.
 --
 --   There are also functions for finding the names and types of variables that
@@ -20,8 +20,11 @@ module FreeC.IR.Subterm
   , rightOf
     -- * Subterms
   , selectSubterm
+  , selectSubterm'
   , replaceSubterm
+  , replaceSubterm'
   , replaceSubterms
+  , replaceSubterms'
     -- * Searching for subterms
   , findSubtermPos
   , findSubterms
@@ -32,12 +35,12 @@ module FreeC.IR.Subterm
   )
 where
 
+import           Control.Monad                  ( foldM )
 import           Data.Composition               ( (.:) )
 import           Data.List                      ( intersperse
                                                 , isPrefixOf
                                                 )
-import           Data.Maybe                     ( fromJust
-                                                , fromMaybe
+import           Data.Maybe                     ( fromMaybe
                                                 , listToMaybe
                                                 )
 import           Data.Map.Strict                ( Map )
@@ -52,8 +55,8 @@ import           FreeC.Pretty
 -- Utility functions                                                         --
 -------------------------------------------------------------------------------
 
--- | Runs the given function on if the given list has the specified number of
---   arguments.
+-- | Runs the given function on the given list if the latter has the specified
+--   number of arguments.
 --
 --   Returns the function's result of @Nothing@ if the list has the wrong
 --   number of elements.
@@ -66,12 +69,29 @@ nullary :: b -> [a] -> Maybe b
 nullary y xs | null xs   = Just y
              | otherwise = Nothing
 
+-- | Throws an error that the subterm of the given term of the given position
+--   does not exists.
+--
+--   The error message is annotated with the given function name.
+missingPosError :: Subterm a => String -> a -> Pos -> a
+missingPosError funcName term pos =
+  error
+    $  funcName
+    ++ ": The subterm at position "
+    ++ showPretty pos
+    ++ "in term "
+    ++ showPretty term
+    ++ " does not exists."
+
 -------------------------------------------------------------------------------
 -- Direct children                                                           --
 -------------------------------------------------------------------------------
 
 -- | Type class for AST nodes with child nodes of the same type.
-class Subterm a where
+--
+--   It is a subclass of 'Pretty' so error messages involving subterms can be
+--   pretty printed.
+class Pretty a => Subterm a where
   -- | Gets the child nodes of the given AST node.
   childTerms :: a -> [a]
 
@@ -109,7 +129,7 @@ instance Subterm IR.Expr where
       (zipWith replaceAltChildExpr alts altChildren')
       exprType
    where
-    -- | Replaces the expression on the right hand side of the given
+    -- | Replaces the expression on the right-hand side of the given
     --   @case@-expression alternative.
     replaceAltChildExpr :: IR.Alt -> IR.Expr -> IR.Alt
     replaceAltChildExpr alt rhs' = alt { IR.altRhs = rhs' }
@@ -158,7 +178,7 @@ instance Pretty Pos where
 rootPos :: Pos
 rootPos = Pos []
 
--- | Extends an position inside of a child node to a position inside of a
+-- | Extends a position inside of a child node to a position inside of a
 --   parent node.
 --
 --   If @pos@ is the position of a subterm @s@ of an expression or
@@ -218,6 +238,11 @@ selectSubterm term (Pos (p : ps))
   where {- children :: [a] -}
         children = childTerms term
 
+-- | Like 'selectSubterm' but throws an error if there is no such subterm.
+selectSubterm' :: Subterm a => a -> Pos -> a
+selectSubterm' term pos =
+  fromMaybe (missingPosError "selectSubterm" term pos) (selectSubterm term pos)
+
 -- | Replaces a subterm of the given expression or type expression at the
 --   specified position with another expression.
 --
@@ -238,15 +263,22 @@ replaceSubterm term (Pos (p : ps)) term'
   where {- children :: [a] -}
         children = childTerms term
 
+-- | Like 'replaceSubterm' but throws an error if there is no such subterm.
+replaceSubterm' :: Subterm a => a -> Pos -> a -> a
+replaceSubterm' term pos term' = fromMaybe
+  (missingPosError "replaceSubterm" term pos)
+  (replaceSubterm term pos term')
+
 -- | Replaces all subterms at the given positions with other (type) expressions.
 --
 --   Returns @Nothing@ if any of the subterms could not be replaced
 replaceSubterms :: Subterm a => a -> [(Pos, a)] -> Maybe a
-replaceSubterms term []             = return term
-replaceSubterms term ((p, e) : pes) = do
-  term' <- replaceSubterm term p e
-  replaceSubterms term' pes
+replaceSubterms = foldM (\term (pos, term') -> replaceSubterm term pos term')
 
+-- | Like 'replaceSubterms' but throws an error if any of the subterms could
+--   not be replaced.
+replaceSubterms' :: Subterm a => a -> [(Pos, a)] -> a
+replaceSubterms' = foldl (\term (pos, term') -> replaceSubterm' term pos term')
 -------------------------------------------------------------------------------
 -- Searching for subterms                                                    --
 -------------------------------------------------------------------------------
@@ -255,13 +287,13 @@ replaceSubterms term ((p, e) : pes) = do
 --   satisfy the provided predicate.
 findSubtermPos :: Subterm a => (a -> Bool) -> a -> [Pos]
 findSubtermPos predicate term =
-  filter (predicate . fromJust . selectSubterm term) (allPos term)
+  filter (predicate . selectSubterm' term) (allPos term)
 
 -- | Gets a list of subterms of the given expression that satisfy the
 --   provided predicate.
 findSubterms :: Subterm a => (a -> Bool) -> a -> [a]
 findSubterms predicate term =
-  filter predicate (map (fromJust . selectSubterm term) (allPos term))
+  filter predicate (map (selectSubterm' term) (allPos term))
 
 -- | Gets the first subterm of the given expression that satisfies the
 --   provided predicate.
@@ -282,7 +314,7 @@ findFirstSubterm = listToMaybe .: findSubterms
 boundVarsAt :: IR.Expr -> Pos -> Set IR.QName
 boundVarsAt = Map.keysSet .: boundVarsWithTypeAt
 
--- | Like 'boundVarsAt' but also returns the annotated type of then
+-- | Like 'boundVarsAt' but also returns the annotated type of the
 --   variable pattern.
 --
 --   Returns an empty map if the position is invalid.

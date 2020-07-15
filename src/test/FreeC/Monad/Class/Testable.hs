@@ -49,14 +49,14 @@ import           FreeC.Pretty
 class Monad m => MonadTestable m err | m -> err where
   -- | Like 'shouldReturnWith' but uses the first argument for pretty printing.
   shouldReturnWith'
-    :: (a -> String)      -- ^ Function to use to print unexpected values.
+    :: (a -> String)      -- ^ Function for printing unexpected values.
     -> m a                -- ^ The computation to set the expectation for.
     -> (a -> IO b)        -- ^ Sets the expectation for a value.
     -> IO b
 
   -- | Like 'shouldFailWith' but uses the first argument for pretty printing.
   shouldFailWith'
-    :: (a -> String)        -- ^ Function to use to print unexpected values.
+    :: (a -> String)        -- ^ Function for printing unexpected values.
     -> m a                  -- ^ The computation to set the expectation for.
     -> (err -> IO b)        -- ^ Sets the expectation for the produced error.
     -> IO b
@@ -158,7 +158,7 @@ instance MonadTestable IO IOError where
 -- Instance for the reporter monad                                           --
 -------------------------------------------------------------------------------
 
--- | Utility function that print the given message like an item of an
+-- | Utility function that prints the given message like an item of an
 --   unordered Markdown list.
 showListItem :: String -> String
 showListItem = (++ "\n") . (" * " ++) . intercalate "\n   " . lines
@@ -278,7 +278,7 @@ instance MonadTestable m err => MonadTestable (ConverterT m) [Message] where
 
 -- | Sets the expectation that the given computation returns a testable
 --   QuickCheck property and returns a property that is satisfied if and
---   only if.
+--   only if the property returned by the computation is satisfied.
 shouldReturnProperty
   :: (MonadTestable m err, Testable prop) => m prop -> Property
 shouldReturnProperty mp =

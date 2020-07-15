@@ -208,7 +208,7 @@ definePartialStrictTestFunc nameStr areStrict =
 
 -- | Like 'parseTestTypeScheme' but makes sure that all type variables have
 --   been introduced explicitly. A common error when writing tests is that the
---   tester forgets that in contrast to Haskell type variables must
+--   tester forgets that in contrast to Haskell, type variables must
 --   be introduced explicitly.
 parseExplicitTestTypeScheme :: String -> Converter IR.TypeScheme
 parseExplicitTestTypeScheme input = do
