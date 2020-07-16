@@ -32,14 +32,6 @@ Module Trace.
       : Free Shape' Pos' A :=
       impure (injS (mid, msg)) (fun tt => x).
 
-    (* A function to log a message in addition to returning a value. *)
-    Definition trace {A : Type} 
-                     {Shape' : Type} 
-                     {Pos' : Shape' -> Type} 
-                     `{i : Injectable Shape Pos Shape' Pos'} 
-                     (msg : string) 
-                     (x : Free Shape' Pos' A) := 
-      @LCons A Shape' Pos' i None msg x. 
   End Monad.
   (* Handlers for tracing and sharing combined with tracing. *)
   Module Import Handler.
@@ -112,6 +104,13 @@ Module Trace.
             impure s (fun p => runTraceSharing n (pf p))
           end.
        End Handler.
+
+  (* Traceable instance for the Trace effect. *)
+  Instance Trace (Shape' : Type) (Pos' : Shape' -> Type)
+                 `{I: Injectable Shape Pos Shape' Pos'}
+   : Traceable Shape' Pos' := {
+     trace A msg p := @LCons A Shape' Pos' I None msg p
+  }.
   (* There is no Partial instance. *)
 End Trace.
 
