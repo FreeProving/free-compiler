@@ -1,4 +1,4 @@
-module Base.Free.Integer where
+module Base.Prelude.Integer where
 
 open import Data.Nat                   using (ℕ; zero; suc)
 open import Data.Integer               using (+_; -_) renaming (ℤ to ℤᵖ; _+_ to _+ᵖ_; _-_ to _-ᵖ_; _*_ to _*ᵖ_)
@@ -12,8 +12,8 @@ open import Agda.Builtin.FromNat       public
 
 open import Base.Free                  using (Free; pure; impure; _>>=_)
 open import Base.Partial               using (Partial; error)
-open import Base.Free.Bool             using (𝔹; not)
-open import Base.Free.Unit             using (⊤ᵖ)
+open import Base.Prelude.Bool          using (𝔹; not)
+open import Base.Prelude.Unit          using (⊤ᵖ)
 
 
 ℤ : (Shape : Set) → (Shape → Set) → Set

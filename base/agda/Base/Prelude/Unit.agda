@@ -1,4 +1,4 @@
-module Base.Free.Unit where
+module Base.Prelude.Unit where
 
 open import Data.Unit using (tt)         renaming (⊤ to ⊤ᵖ) public
 open import Base.Free using (Free; pure)

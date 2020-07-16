@@ -1,4 +1,4 @@
-module Base.Free.Bool where
+module Base.Prelude.Bool where
 
 open import Data.Bool using (Bool; true; false; if_then_else_) renaming (_∧_ to _∧ᵖ_; _∨_ to _∨ᵖ_; not to notᵖ)
 open import Base.Free using (Free; pure; _>>=_)
