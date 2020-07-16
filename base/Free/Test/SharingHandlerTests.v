@@ -1,5 +1,6 @@
-From Base Require Import Free.
+(** * Test module for sharing handlers. *)
 
+From Base Require Import Free.
 From Base Require Import Free.Instance.Comb.
 From Base Require Import Free.Instance.Identity.
 From Base Require Import Free.Instance.Maybe.
