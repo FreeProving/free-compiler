@@ -3,4 +3,6 @@ From Base Require Export Free.Induction.
 From Base Require Export Free.Injectable.
 From Base Require Export Free.Monad.
 From Base Require Export Free.Partial.
+From Base Require Export Free.Shareable.
 From Base Require Export Free.Tactic.Simplify.
+From Base Require Export Free.Traceable.
