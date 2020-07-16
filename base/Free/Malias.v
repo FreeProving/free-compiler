@@ -4,7 +4,6 @@
 From Base Require Import Free.
 From Base Require Export Free.Instance.Comb.
 From Base Require Export Free.Instance.Share.
-From Base Require Import Free.Shared.
 
 (* An operator to model call-by-value evaluation *)
 Definition cbv {A : Type} {Shape : Type} {Pos : Shape -> Type} (p : Free Shape Pos A) 
