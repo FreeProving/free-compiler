@@ -35,8 +35,6 @@ Definition evalND {A : Type} p
 Definition evalTracing {A : Type} p 
 := @collectMessages A (run (runTracing (runTraceSharing (0,0) p))).
 
-Check evalTracing.
-
 (* Shortcut to evaluate a non-deterministic partial program to a result 
    list. *)
 Definition evalNDM {A : Type} p
