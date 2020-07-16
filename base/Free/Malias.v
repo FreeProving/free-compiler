@@ -34,9 +34,7 @@ Instance Cbneed (Shape : Type) (Pos : Shape -> Type)
  : Shareable Shape Pos | 1 := {
     share A p := @cbneed A Shape Pos I p
 }.
-Arguments Cbneed {Shape} {Pos} {I}.
 Instance Cbn (Shape : Type) (Pos : Shape -> Type)
  : Shareable Shape Pos | 2 := {
     share A p := @cbn A Shape Pos p
 }.
-Arguments Cbn {Shape} {Pos}.
