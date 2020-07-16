@@ -18,16 +18,16 @@ Module Maybe.
 
   (* Versions of the smart constructors that automatically embed values in an effect stack *)
     Definition Just_inj {A : Type} 
-                        {Shape' : Type} 
-                        {Pos' : Shape' -> Type} 
+                        (Shape' : Type) 
+                        (Pos' : Shape' -> Type) 
                         `{Injectable Shape Pos Shape' Pos'} 
                         (x : A) 
       : Free Shape' Pos' A 
      := pure x.
 
     Definition Nothing_inj {A : Type} 
-                           {Shape' : Type} 
-                           {Pos' : Shape' -> Type} 
+                           (Shape' : Type)
+                           (Pos' : Shape' -> Type) 
                            `{Injectable Shape Pos Shape' Pos'} 
        : Free Shape' Pos' A 
       := impure (injS tt) (fun p : Pos' (injS tt) => 

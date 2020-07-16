@@ -64,7 +64,7 @@ Fixpoint compute_log (m : ListMemo) (xs : list (option ID * string)) : list stri
   | nil                    => nil
   | cons (None, msg)    ys => cons msg (compute_log m ys)
   | cons (Some id, msg) ys => match m id with
-     | None   => cons msg (compute_log (update beq_id m id tt) ys)
+     | None   => cons msg (compute_log (update beqId m id tt) ys)
      | Some _ => compute_log m ys
      end
   end.

@@ -20,11 +20,11 @@ Definition cbn {A : Type} {Shape : Type} {Pos : Shape -> Type}
 Definition cbneed {A : Type} {Shape : Type} {Pos : Shape -> Type}
   `{Injectable Share.Shape Share.Pos Shape Pos} (p : Free Shape Pos A)
   : Free Shape Pos (Free Shape Pos A) :=
-  Get >>= fun '(i,j) =>
-  Put (i+1,j) >>
-  pure (BeginShare (i,j) >>
-      Put (i,j+1) >>
+  Get _ _ >>= fun '(i,j) =>
+  Put _ _ (i+1,j) >>
+  pure (BeginShare _ _ (i,j) >>
+      Put _ _ (i,j+1) >>
       p >>= fun x =>
-      Put (i+1,j) >>
-      EndShare (i,j) >>
+      Put _ _ (i+1,j) >>
+      EndShare _ _ (i,j) >>
       pure x).

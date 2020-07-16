@@ -16,17 +16,29 @@ Module Trace.
   (* Type synonym and smart constructors for the tracing effect. *)
   Module Import Monad.
     Definition Trace (A : Type) : Type := Free Shape Pos A.
-    Definition Nil {A : Type} {Shape' : Type} {Pos' : Shape' -> Type} 
-      (x : A) `{Injectable Shape Pos Shape' Pos'} 
+    Definition Nil {A : Type} 
+                   (Shape' : Type) 
+                   (Pos' : Shape' -> Type)
+                   `{Injectable Shape Pos Shape' Pos'} 
+                   (x : A) 
       : Free Shape' Pos' A := pure x.
-    Definition LCons {A : Type} {Shape' : Type} {Pos' : Shape' -> Type} 
-      `{Injectable Shape Pos Shape' Pos'} (mid : option ID) (msg : string) x
+    Definition LCons {A : Type} 
+                     (Shape' : Type) 
+                     (Pos' : Shape' -> Type)
+                     `{Injectable Shape Pos Shape' Pos'} 
+                     (mid : option ID) 
+                     (msg : string) 
+                     (x : Free Shape' Pos' A)
       : Free Shape' Pos' A :=
       impure (injS (mid, msg)) (fun tt => x).
 
     (* A function to log a message in addition to returning a value. *)
-    Definition trace {A : Type} {Shape' : Type} {Pos' : Shape' -> Type} 
-      `{i : Injectable Shape Pos Shape' Pos'} msg x := 
+    Definition trace {A : Type} 
+                     {Shape' : Type} 
+                     {Pos' : Shape' -> Type} 
+                     `{i : Injectable Shape Pos Shape' Pos'} 
+                     (msg : string) 
+                     (x : Free Shape' Pos' A) := 
       @LCons A Shape' Pos' i None msg x. 
   End Monad.
   (* Handlers for tracing and sharing combined with tracing. *)
@@ -82,7 +94,7 @@ Module Trace.
             nameMessages next n' scopes (pf tt)
           | impure (inr (inl (_,msg))) pf        =>
             let x := nameMessages (next + 1) scope scopes (pf tt) in
-            LCons (Some (tripl scope next)) msg x
+            LCons (STrace Shape') (PTrace Pos') (Some (tripl scope next)) msg x
           | impure (inr (inr s)) pf              =>
             impure (inr s) (fun p => nameMessages next scope scopes (pf p)) 
           end

@@ -15,8 +15,11 @@ Module Identity.
     Definition Id {A : Type} (x : A) : Identity A := pure x.
 
     (* Version of the smart constructor that automatically embeds values in an effect stack *)
-    Definition Id_inj {Shape' : Type} {Pos' : Shape' -> Type} {A : Type} 
-    `{Injectable Shape Pos Shape' Pos'} (x : A) 
+    Definition Id_inj {A : Type}
+                      (Shape' : Type) 
+                      (Pos' : Shape' -> Type)
+                      `{Injectable Shape Pos Shape' Pos'}
+                      (x : A) 
     : Free Shape' Pos' A := pure x.
   End Monad.
 

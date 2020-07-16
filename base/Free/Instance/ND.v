@@ -23,12 +23,12 @@ Module ND.
   Module Import Monad.
     Definition ND (A : Type) : Type := Free Shape Pos A.
 
-    Definition Fail {A : Type} {Shape' : Type} {Pos' : Shape' -> Type} 
+    Definition Fail {A : Type} (Shape' : Type) (Pos' : Shape' -> Type) 
       `{Injectable Shape Pos Shape' Pos'} 
       : Free Shape' Pos' A :=
       impure (injS sfail) (fun p => (fun (x : Void) => match x with end) (injP p)).
 
-    Definition Choice {A : Type} {Shape' : Type} {Pos' : Shape' -> Type} 
+    Definition Choice {A : Type} (Shape' : Type) (Pos' : Shape' -> Type) 
     `{Injectable Shape Pos Shape' Pos'} mid l r
     : Free Shape' Pos' A := 
        let s := injS (schoice mid) 
@@ -36,7 +36,7 @@ Module ND.
 
     (* Curry notation for the choice operator. 
        The ID is set by the sharing handler. *)
-    Notation "x ? y" := (Choice None x y) (at level 80).
+    Notation "x ? y" := (Choice _ _ None x y) (at level 80).
  End Monad.
 
   (* Handlers for non-determinism and call-time choice. *)
@@ -96,8 +96,8 @@ Module ND.
           | impure (inr (inl (ND.schoice id))) pf =>
              let l := nameChoices (next + 1) scope scopes (pf true) in
              let r := nameChoices (next + 1) scope scopes (pf false) in
-             Choice (Some (tripl scope next)) l r
-          | impure (inr (inl ND.sfail)) _ => Fail
+             Choice (SChoice Shape') (PChoice Pos') (Some (tripl scope next)) l r
+          | impure (inr (inl ND.sfail)) _ => Fail (SChoice Shape') (PChoice Pos')
           | impure (inr (inr s)) pf =>
              impure (inr s) (fun p => nameChoices next scope scopes (pf p))
           end
@@ -118,8 +118,8 @@ Module ND.
 
   (* Partial instance for the non-determinism effect. *)
   Instance Partial : Partial Shape Pos := {
-      undefined := fun {A : Type}                => Fail;
-      error     := fun {A : Type} (msg : string) => Fail
+      undefined := fun {A : Type}                => Fail Shape Pos;
+      error     := fun {A : Type} (msg : string) => Fail Shape Pos
     }.
 End ND.
 
