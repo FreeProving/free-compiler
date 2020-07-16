@@ -2,6 +2,7 @@ From Base Require Import Free.
 
 From Base Require Import Free.Instance.Comb.
 From Base Require Import Free.Instance.Identity.
+From Base Require Import Free.Instance.Maybe.
 From Base Require Import Free.Instance.ND.
 From Base Require Import Free.Instance.Share.
 From Base Require Import Free.Instance.Trace.
@@ -48,9 +49,19 @@ Definition evalTracing {A : Type} (p : TraceProg A)
 Definition coin : NDProg (Integer NDShape NDPos)
 := pure 0%Z ? pure 1%Z.
 
+(* Non-deterministic boolean value. *)
+Definition coinB : NDProg (Bool NDShape NDPos)
+ := True_ _ _ ? False_ _ _.
+
 (* Traced integer. *)
 Definition traceOne : TraceProg (Integer TraceShape TracePos) 
 := trace "One" (pure 1%Z).
+
+(* Traced boolean values. *)
+Definition traceTrue : TraceProg (Bool TraceShape TracePos)
+:= trace "True" (True_ _ _).
+Definition traceFalse : TraceProg (Bool TraceShape TracePos)
+:= trace "False" (False_ _ _).
 
 (* ---------------------- Test cases without sharing ----------------------- *)
 
@@ -85,6 +96,46 @@ Example exAddNoSharingTrace
   = (2%Z,["One"%string;"One"%string]).
 Proof. constructor. Qed.
 
+(*
+(true ? false) or (true ? false)
+= (true or (true ? false)) ? (false or (true ? false))
+= true ? (true ? false)
+= true ? true ? false
+*)
+Example exOrNDNoSharing 
+ : evalND (double orBool coinB) = [true;true;false].
+Proof. constructor. Qed.
+
+(*
+(trace "True" true) or (trace "True" true)
+=> The second argument is not evaluated, so the result should be true and the 
+   message should be logged only once.
+*)
+Example exOrTrueTracingNoSharing 
+ : evalTracing (orBool TraceShape TracePos traceTrue traceTrue) 
+   = (true,["True"%string]).
+Proof. constructor. Qed.
+
+(*
+(trace "False" false) or (trace "False" false)
+=> Both arguments are evaluated, so the result should be false and the message
+   should be logged twice.
+*)
+Example exOrFalseTracingNoSharing 
+ : evalTracing (orBool TraceShape TracePos traceFalse traceFalse) 
+   = (false,["False"%string;"False"%string]).
+Proof. constructor. Qed.
+
+(*
+(trace "False" false) or (trace "True" false)
+=> Both arguments are evaluated, so the result should be true and both messages
+   should be logged.
+*)
+Example exOrMixedTracingNoSharing
+ : evalTracing (orBool TraceShape TracePos traceFalse traceTrue) 
+   = (true,["False"%string;"True"%string]).
+Proof. constructor. Qed.
+
 
 (* --------------------- Test cases for simple sharing --------------------- *)
 
@@ -117,6 +168,44 @@ in sx + sx
 *)
 Example exAddSharingTrace 
  : evalTracing (doubleShared addInteger traceOne) = (2%Z,["One"%string]).
+Proof. constructor. Qed.
+
+(*
+let sx = true ? false
+in sx or sx
+= (true or true) ? (false or false)
+= true ? false
+*)
+Example exOrNDSharing
+ : evalND (doubleShared orBool coinB) = [true;false].
+Proof. constructor. Qed.
+
+(*
+let sx = trace "True" true
+in sx or sx 
+=> The second argument is not evaluated, so sharing makes no difference here.
+   The message should be logged once and the result should be true.
+*)
+Example exOrTrueTraceSharing
+ : evalTracing (doubleShared orBool traceTrue) = (true,["True"%string]).
+Proof. constructor. Qed.
+
+(*
+let sx = trace "False" true
+in sx or sx
+=> Both arguments are evaluated, but sx is shared, so the message should
+only be logged once and the result should be false.
+*)
+Example exOrFalseTraceSharing
+ : evalTracing (doubleShared orBool traceFalse) = (false,["False"%string]).
+Proof. constructor. Qed.
+
+(* traceFalse is shared, but does not occur more than once. 
+   Therefore, sharing should make no difference here. *)
+Example exOrMixedTraceSharing
+ : evalTracing (share traceFalse >>= fun sx => 
+                orBool TraceShape TracePos sx traceTrue)
+   = (true,["False"%string;"True"%string]).
 Proof. constructor. Qed.
 
 (* --------------------- Test cases for nested sharing --------------------- *)
@@ -157,6 +246,41 @@ in sy + sy
 Example exAddNestedSharingTrace 
  : evalTracing (doubleSharedNested addInteger traceOne) 
    = (4%Z,["One"%string]).
+Proof. constructor. Qed.
+
+(*
+let sx = true ? false
+    sy = sx or sx
+in sy or sy
+= true ? false
+*)
+Example exOrNestedSharingND
+ : evalND (doubleSharedNested orBool coinB)
+   = [true;false].
+Proof. constructor. Qed.
+
+(*
+let sx = trace "True" true
+    sy = sx or sx
+in sy or sy
+=> The message should only be logged once due to non-strictness
+   and the result should be true.
+*)
+Example exOrNestedTrueTracing 
+ : evalTracing (doubleSharedNested orBool traceTrue)
+   = (true,["True"%string]).
+Proof. constructor. Qed.
+
+(*
+let sx = trace "True" true
+    sy = sx or sx
+in sy or sy
+=> The message should only be logged once due to sharing
+   and the result should be false.
+*)
+Example exOrNestedFalseTracing
+ : evalTracing (doubleSharedNested orBool traceFalse)
+   = (false, ["False"%string]).
 Proof. constructor. Qed.
 
 (* let sx = fx  
@@ -201,6 +325,47 @@ in sy + sz
 Example exAddClashSharingTracing
  : evalTracing (doubleSharedClash addInteger traceOne traceOne) 
    = (3%Z,["One"%string;"One"%string]).
+Proof. constructor. Qed.
+
+(*
+let sx = true ? false
+    sy = sx or sx
+    sz = true ? false
+in sy or sz
+= ((true or true) or (true ? false)) ? ((false or false) or (true ? false))
+= true ? (true ? false)
+= true ? true ? false
+*)
+Example exOrClashSharingND
+ : evalND (doubleSharedClash orBool coinB coinB)
+   = [true;true;false].
+Proof. constructor. Qed.
+
+(*
+let sx = trace "True" true
+    sy = sx or sx
+    sz = trace "True" true
+in sy or sz
+=> The message should only be logged once due to non-strictness and the 
+   result should be true.
+*)
+Example exOrClashTrueTracing
+ : evalTracing (doubleSharedClash orBool traceTrue traceTrue)
+   = (true,["True"%string]).
+Proof. constructor. Qed.
+
+(*
+let sx = trace "False" false
+    sy = sx or sx
+    sz = trace "False" false
+in sy or sz
+=> sx is shared, so evaluating sy should only log one message.
+   Evaluating sz should log the message once more, so it should
+   be logged twice in total and the result should be false.
+*)
+Example exOrClashFalseTracing
+ : evalTracing (doubleSharedClash orBool traceFalse traceFalse)
+   = (false,["False"%string;"False"%string]).
 Proof. constructor. Qed.
 
 (*
@@ -259,3 +424,64 @@ Example exAddRecSharingTracing
    = (7%Z,["One"%string;"One"%string]).
 Proof. constructor. Qed.
 
+(*
+let sx = true
+    sy = sx or (true ? false)
+    sz = sy or (true ? false)
+in sx or (sy or (sz or true))
+= true (due to non-strictness)
+*)
+Example exOrRecSharingNDTrue
+ : evalND (doubleSharedRec orBool coinB coinB true)
+   = [true].
+Proof. constructor. Qed.
+
+(*
+let sx = false
+    sy = sx or (true ? false)
+    sz = sy or (true ? false)
+in sx or (sy or (sz or false))
+= false or ((false or true) or ((true or (true ? false)) or false)) ?
+  false or ((false or false) or ((false or (true ? false)) or false))
+= (false or true) or ((true or (true ? false)) or false) ?
+  (false or false) or ((false or (true ? false)) or false)
+= true ? 
+  (false or (true ? false)) or false
+= true ? 
+  (true ? false) or false
+= true ?
+  true or false ?
+  false or false
+= true ? true ? false
+*)
+Example exOrRecSharingNDFalse
+ : evalND (doubleSharedRec orBool coinB coinB false)
+   = [true;true;false].
+Proof. constructor. Qed.
+
+(* 
+let sx = false
+    sy = sx or (trace "True" true)
+    sz = sy or (trace "True" true)
+in sx or (sy or (sz or false))
+=> sy has the value true, so sz is not evaluated. The message should only 
+   be logged once and the result should be true.
+*)
+Example exOrRecTrueTracing
+ : evalTracing (doubleSharedRec orBool traceTrue traceTrue false)
+   = (true,["True"%string]).
+Proof. constructor. Qed.
+
+(*
+let sx = false
+    sy = sx or (trace "False" false)
+    sz = sy or (trace "False" false)
+in sx or (sy or (sz or false))
+=> sy is shared, so its message should only be logged once. Additionally,
+   the message is logged once more when sz is evaluated. The result should
+   be false.
+*)
+Example exOrRecFalseTracing
+ : evalTracing (doubleSharedRec orBool traceFalse traceFalse false)
+   = (false,["False"%string;"False"%string]).
+Proof. constructor. Qed.
