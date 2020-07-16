@@ -31,10 +31,12 @@ Definition cbneed {A : Type} {Shape : Type} {Pos : Shape -> Type}
 
 Instance Cbneed (Shape : Type) (Pos : Shape -> Type)
                 `{I : Injectable Share.Shape Share.Pos Shape Pos}
- : Shared Shape Pos | 1 := {
+ : Shareable Shape Pos | 1 := {
     share A p := @cbneed A Shape Pos I p
 }.
+Arguments Cbneed {Shape} {Pos} {I}.
 Instance Cbn (Shape : Type) (Pos : Shape -> Type)
- : Shared Shape Pos | 2 := {
+ : Shareable Shape Pos | 2 := {
     share A p := @cbn A Shape Pos p
 }.
+Arguments Cbn {Shape} {Pos}.
