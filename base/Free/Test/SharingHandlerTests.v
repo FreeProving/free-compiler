@@ -35,6 +35,16 @@ Definition TraceShape := (Comb.Shape Share.Shape (Comb.Shape Trace.Shape Identit
 Definition TracePos := (Comb.Pos Share.Pos (Comb.Pos Trace.Pos Identity.Pos)).
 Definition TraceProg (A : Type) := Free TraceShape TracePos A.
 
+(* Synonyms for programs containing non-determinism and partiality. *)
+Definition NDMShape := Comb.Shape Maybe.Shape NDShape.
+Definition NDMPos := Comb.Pos Maybe.Pos NDPos.
+Definition NDMProg (A : Type) := Free NDMShape NDMPos A.
+
+(* Synonyms for programs containing tracing and partiality. *)
+Definition TraceMShape := Comb.Shape Maybe.Shape TraceShape.
+Definition TraceMPos := Comb.Pos Maybe.Pos TracePos.
+Definition TraceMProg (A : Type) := Free TraceMShape TraceMPos A.
+
 (* Shortcut to evaluate a non-deterministic program to a result list.
    list. *)
 Definition evalND {A : Type} (p : NDProg A) 
@@ -45,6 +55,16 @@ Definition evalND {A : Type} (p : NDProg A)
 Definition evalTracing {A : Type} (p : TraceProg A) 
 := collectMessages (run (runTracing (runTraceSharing (0,0) p))).
 
+(* Shortcut to evaluate a non-deterministic partial program to a result 
+   list. *)
+Definition evalNDM {A : Type} (p : NDMProg A) 
+:= collectVals (run (runChoice (runNDSharing (0,0) (runMaybe p)))).
+
+(* Shortcut to evaluate a traced partial program to a result and a list 
+   of logged messages. *)
+Definition evalTraceM {A : Type} (p : TraceMProg A)
+:= collectMessages (run (runTracing (runTraceSharing (0,0) (runMaybe p)))).
+
 (* Non-deterministic integer. *)
 Definition coin : NDProg (Integer NDShape NDPos)
 := pure 0%Z ? pure 1%Z.
@@ -52,6 +72,10 @@ Definition coin : NDProg (Integer NDShape NDPos)
 (* Non-deterministic boolean value. *)
 Definition coinB : NDProg (Bool NDShape NDPos)
  := True_ _ _ ? False_ _ _.
+
+(* Non-deterministic partial integer. *)
+Definition coinM : NDMProg (Integer NDMShape NDMPos)
+:= Nothing_inj ? Just_inj 1%Z.
 
 (* Traced integer. *)
 Definition traceOne : TraceProg (Integer TraceShape TracePos) 
@@ -62,6 +86,12 @@ Definition traceTrue : TraceProg (Bool TraceShape TracePos)
 := trace "True" (True_ _ _).
 Definition traceFalse : TraceProg (Bool TraceShape TracePos)
 := trace "False" (False_ _ _).
+
+(* Traced Maybe values *)
+Definition traceNothing : TraceMProg (Integer TraceMShape TraceMPos)
+:= trace "Nothing" Nothing_inj.
+Definition traceJust : TraceMProg (Integer TraceMShape TraceMPos)
+:= trace "Just 1" (Just_inj 1%Z).
 
 (* ---------------------- Test cases without sharing ----------------------- *)
 
@@ -136,6 +166,36 @@ Example exOrMixedTracingNoSharing
    = (true,["False"%string;"True"%string]).
 Proof. constructor. Qed.
 
+(*
+(Nothing ? Just 1) + (Nothing ? Just 1)
+= (Nothing + (Nothing ? Just 1)) ? (Just 1 + (Nothing ? Just 1))
+= Nothing ? (Just 1 + (Nothing ? Just 1))
+= Nothing ? (Just 1 + Nothing ? Just 1 + Just 1)
+= Nothing ? Nothing ? Just 2
+*)
+Example exNDMNoSharing
+ : evalNDM (double addInteger coinM) = [None;None;Some 2%Z].
+Proof. constructor. Qed.
+
+(* 
+trace "Nothing" Nothing + trace "Nothing" Nothing
+=> The second argument is not evaluated due to >>=, so the message should
+   only be logged once and the result should be Nothing (i.e. None in Coq).
+*)
+Example exTraceNothingNoSharing
+ : evalTraceM (double addInteger traceNothing) = (None,["Nothing"%string]).
+Proof. constructor. Qed.
+
+(*
+trace "Just 1" (Just 1) + trace "Just 1" (Just 1)
+=> Since there is no sharing, the message should be logged twice and the 
+   result should be Just 2 (Some 2 in Coq).
+*)
+Example exTraceJustNoSharing
+ : evalTraceM (double addInteger traceJust)
+   = (Some 2%Z,["Just 1"%string;"Just 1"%string]).
+Proof. constructor. Qed.
+
 
 (* --------------------- Test cases for simple sharing --------------------- *)
 
@@ -206,6 +266,36 @@ Example exOrMixedTraceSharing
  : evalTracing (share traceFalse >>= fun sx => 
                 orBool TraceShape TracePos sx traceTrue)
    = (true,["False"%string;"True"%string]).
+Proof. constructor. Qed.
+
+(*
+let sx = Nothing ? Just 1
+in sx + sx
+= Nothing + Nothing ? Just 1 + Just 1
+= Nothing ? Just 2
+*)
+Example exNDMSharing
+ : evalNDM (doubleShared addInteger coinM) = [None;Some 2%Z].
+Proof. constructor. Qed.
+
+(*
+let sx = trace "Nothing" Nothing
+in sx + sx
+=> The message should only be logged once and the result should be Nothing
+   due to >>=.
+*)
+Example exTraceNothingSharing
+ : evalTraceM (doubleShared addInteger traceNothing) = (None,["Nothing"%string]).
+Proof. constructor. Qed.
+
+(*
+let sx = trace "Just 1" (Just 1)
+in sx + sx 
+=> The message should only be logged once due to sharing and the result 
+   should be Some 2.
+*)
+Example exTraceJustSharing
+ : evalTraceM (doubleShared addInteger traceJust) = (Some 2%Z,["Just 1"%string]).
 Proof. constructor. Qed.
 
 (* --------------------- Test cases for nested sharing --------------------- *)
