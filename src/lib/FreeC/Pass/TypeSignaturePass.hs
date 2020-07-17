@@ -14,7 +14,7 @@
 --   will be be converted to a module that still contains the type signature
 --   but the types of the argument @xs@ and the return type of @head@ are
 --   also annotated explicitly in the function declaration itself.
---   In addition, the type arguments of the type schema are copied from the type
+--   In addition, the type arguments of the type scheme are copied from the type
 --   signature to the function declaration's type argument list.
 --
 --   > null :: forall a. [a] -> Bool
@@ -155,11 +155,11 @@ addTypeSigsToFuncDecls
 addTypeSigsToFuncDecls typeSigs = mapM addTypeSigToFuncDecl
  where
   -- | Maps the names of functions to their annotated type.
-  typeSigMap :: Map IR.QName [IR.TypeSchema]
+  typeSigMap :: Map IR.QName [IR.TypeScheme]
   typeSigMap = Map.fromListWith
     (++)
-    [ (name, [typeSchema])
-    | IR.TypeSig _ declIdents typeSchema <- typeSigs
+    [ (name, [typeScheme])
+    | IR.TypeSig _ declIdents typeScheme <- typeSigs
     , IR.DeclIdent _ name                <- declIdents
     ]
 
@@ -175,16 +175,16 @@ addTypeSigsToFuncDecls typeSigs = mapM addTypeSigToFuncDecl
         args = IR.funcDeclArgs funcDecl
     case Map.lookup name typeSigMap of
       Nothing -> return funcDecl
-      Just [IR.TypeSchema _ typeArgs typeExpr] -> do
+      Just [IR.TypeScheme _ typeArgs typeExpr] -> do
         (argTypes, retType) <- splitFuncType name args typeExpr
         return funcDecl { IR.funcDeclTypeArgs = typeArgs
                         , IR.funcDeclArgs = zipWith setVarPatType args argTypes
                         , IR.funcDeclReturnType = Just retType
                         }
-      Just typeSchemas -> reportDuplicateTypeSigs
+      Just typeSchemes -> reportDuplicateTypeSigs
         (IR.funcDeclSrcSpan funcDecl)
         name
-        (map IR.typeSchemaSrcSpan typeSchemas)
+        (map IR.typeSchemeSrcSpan typeSchemes)
 
 -- | Splits the annotated type of a Haskell function with the given arguments
 --   into its argument and return types.

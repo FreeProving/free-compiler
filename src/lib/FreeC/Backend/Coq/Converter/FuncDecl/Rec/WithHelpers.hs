@@ -1,6 +1,6 @@
 -- | This module contains functions for converting mutually recursive
 --   function declarations by splitting them into one or more recursive helper
---   function whose decreasing argument is not lifted to the @Free@ monad and
+--   function, whose decreasing argument is not lifted to the @Free@ monad, and
 --   a non-recursive main function.
 
 module FreeC.Backend.Coq.Converter.FuncDecl.Rec.WithHelpers
@@ -52,7 +52,7 @@ convertRecFuncDeclsWithHelpers decls = do
     )
 
 -- | Like 'convertRecFuncDeclsWithHelpers' but does return the helper and
---   main functions separtly.
+--   main functions separately.
 convertRecFuncDeclsWithHelpers'
   :: [IR.FuncDecl] -> Converter ([Coq.Sentence], [Coq.Sentence])
 convertRecFuncDeclsWithHelpers' decls = do
@@ -61,8 +61,8 @@ convertRecFuncDeclsWithHelpers' decls = do
   (helperDecls, mainDecls) <- mapAndUnzipM (uncurry transformRecFuncDecl)
                                            (zip decls decArgs)
   -- Convert helper and main functions.
-  -- The right hand side of the main functions are inlined into helper the
-  -- functions. Because inlining can produce fesh identifiers, we need to
+  -- The right-hand sides of the main functions are inlined into the helper
+  -- functions. Because inlining can produce fresh identifiers, we need to
   -- perform inlining and conversion of helper functions in a local environment.
   helperDecls' <- forM (concat helperDecls) $ \(helperDecl, decArgIndex) ->
     localEnv $ do
@@ -92,10 +92,10 @@ transformRecFuncDecl (IR.FuncDecl srcSpan declIdent typeArgs args maybeRetType e
   -- expression of the decreasing argument.
     (helperDecls, helperApps) <- mapAndUnzipM generateHelperDecl caseExprsPos
 
-    -- Generate main function declaration. The main function's right hand side
-    -- is constructed by replacing all case expressions of the decreasing
+    -- Generate main function declaration. The main function's right-hand side
+    -- is constructed by replacing all @case@-expressions of the decreasing
     -- argument by an invocation of the corresponding recursive helper function.
-    let (Just mainExpr) = replaceSubterms expr (zip caseExprsPos helperApps)
+    let mainExpr = replaceSubterms' expr (zip caseExprsPos helperApps)
         mainDecl =
           IR.FuncDecl srcSpan declIdent typeArgs args maybeRetType mainExpr
 
@@ -131,8 +131,8 @@ transformRecFuncDecl (IR.FuncDecl srcSpan declIdent typeArgs args maybeRetType e
   decArgNotShadowed :: Pos -> Bool
   decArgNotShadowed p = decArg `Set.notMember` boundVarsAt expr p
 
-  -- | Generates the recursive helper function declaration for the @case@
-  --   expression at the given position of the right hand side.
+  -- | Generates the recursive helper function declaration for the @case@-
+  --   expression at the given position of the right-hand side.
   --
   --   Returns the helper function declaration with the index of its decreasing
   --   argument and an expression for the application of the helper function.
@@ -150,11 +150,11 @@ transformRecFuncDecl (IR.FuncDecl srcSpan declIdent typeArgs args maybeRetType e
     let boundVarTypeMap = boundVarsWithTypeAt expr caseExprPos
         boundVars =
           Map.keysSet boundVarTypeMap `Set.union` Set.fromList argNames
-        Just caseExpr  = selectSubterm expr caseExprPos
+        caseExpr       = selectSubterm' expr caseExprPos
         usedVars       = freeVarSet caseExpr
         helperArgNames = Set.toList (usedVars `Set.intersection` boundVars)
 
-    -- Determine the type of helper function's arguments and its return type.
+    -- Determine the types of helper function's arguments and its return type.
     -- Additionally, the decreasing argument is marked as strict.
     let
       argTypes         = map IR.varPatType args
@@ -178,7 +178,7 @@ transformRecFuncDecl (IR.FuncDecl srcSpan declIdent typeArgs args maybeRetType e
 
     -- Register the helper function to the environment.
     -- Even though we know the type of the original and additional arguments
-    -- the return type is unknown since @case@ the right-hand side of @case@
+    -- the return type is unknown, since the right-hand side of @case@
     -- expressions is not annotated.
     -- If the original function was partial, the helper function is partial as
     -- well.
@@ -203,7 +203,7 @@ transformRecFuncDecl (IR.FuncDecl srcSpan declIdent typeArgs args maybeRetType e
 
     -- Build helper function declaration and application.
     let helperTypeArgs' = map IR.typeVarDeclToType helperTypeArgs
-        helperAppType   = IR.TypeSchema NoSrcSpan [] <$> helperType
+        helperAppType   = IR.TypeScheme NoSrcSpan [] <$> helperType
         helperDecl      = IR.FuncDecl srcSpan
                                       helperDeclIdent
                                       helperTypeArgs
@@ -221,7 +221,7 @@ transformRecFuncDecl (IR.FuncDecl srcSpan declIdent typeArgs args maybeRetType e
     return ((helperDecl, decArgIndex'), helperApp)
 
 -- | Converts a recursive helper function to the body of a Coq @Fixpoint@
---   sentence with the decreasing argument with the given index annotated with
+--   sentence with the decreasing argument at the given index annotated with
 --   @struct@.
 convertRecHelperFuncDecl :: IR.FuncDecl -> DecArgIndex -> Converter Coq.FixBody
 convertRecHelperFuncDecl helperDecl decArgIndex = localEnv $ do

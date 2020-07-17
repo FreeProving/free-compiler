@@ -2,6 +2,10 @@
 
 ## Unrealeased
 
+ - **Added command line options for front- and backend selection**
+    + A frontend / backend can be specified with `--to LANG` / `--from LANG`.
+    + Added IR frontend and backend for debugging purposes.
+
 ## [0.2.0.0][tag/v0.2.0.0] / 2020-05-25
 
  - **Implemented module imports**

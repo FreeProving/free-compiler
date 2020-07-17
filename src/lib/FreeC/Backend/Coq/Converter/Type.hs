@@ -27,7 +27,7 @@ convertType = convertLiftedType . liftType
 -- | Converts a type from IR to Coq.
 --
 --   In contrast to 'convertType', the type itself is not lifted into the
---   @Free@ monad. Only the argument and return types of contained function
+--   @Free@ monad. Only the argument and return types of the contained function
 --   type constructors are lifted recursively.
 --
 --   [\(\alpha^* = \alpha'\)]

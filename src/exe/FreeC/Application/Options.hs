@@ -9,6 +9,9 @@ where
 
 import           Paths_free_compiler            ( getDataFileName )
 
+import {-# SOURCE #-} FreeC.Backend
+import {-# SOURCE #-} FreeC.Frontend
+
 -- | Data type that stores the command line options passed to the compiler.
 data Options = Options
   { optShowHelp                  :: Bool
@@ -43,6 +46,10 @@ data Options = Options
 
   , optDumpTransformedModulesDir :: Maybe FilePath
     -- ^ The directory to dump transformed modules to.
+  , optFrontend                  :: String
+    -- ^ The frontend to use.
+  , optBackend                   :: String
+    -- ^ The backend to use.
   }
 
 -- | The default command line options.
@@ -65,4 +72,6 @@ makeDefaultOptions = do
                    , optCreateCoqProject          = True
                    , optTransformPatternMatching  = False
                    , optDumpTransformedModulesDir = Nothing
+                   , optFrontend                  = defaultFrontend
+                   , optBackend                   = defaultBackend
                    }
