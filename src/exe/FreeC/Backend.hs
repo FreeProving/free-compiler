@@ -28,7 +28,7 @@ import           FreeC.Backend.Agda.Pretty      ( )
 import qualified FreeC.Backend.Coq.Base        as Coq.Base
 import qualified FreeC.Backend.Coq.Converter.Module
                                                as Coq.Converter
-import           FreeC.Backend.Coq.Pretty
+import           FreeC.Backend.Coq.Pretty       ( )
 import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Application
 import           FreeC.Pretty                   ( showPretty )
@@ -77,8 +77,8 @@ irBackend = Backend { backendName          = "ir"
 
 -- | Converts a module to a Coq program.
 convertModuleToCoq :: IR.Module -> Application String
-convertModuleToCoq ast =
-  fmap showPretty . liftConverter . Agda.Converter.convertModule
+convertModuleToCoq =
+  fmap showPretty . liftConverter . Coq.Converter.convertModule
 
 -- | Creates a @_CoqProject@ file (if enabled) that maps the physical directory
 --   of the Base library.
@@ -146,7 +146,7 @@ coqBackend = Backend { backendName          = "coq"
 
 -- | Converts an IR module to a Coq program.
 convertModuleToAgda :: IR.Module -> Application String
-convertModuleToAgda ast =
+convertModuleToAgda =
   fmap showPretty . liftConverter . Agda.Converter.convertModule
 
 -- | The Agda backend.
