@@ -210,7 +210,7 @@ in sx + sx
 = 0+0 ? 1+1
 = 0 ? 2
 *)
-Example exAddSharingND : evalND (doubleShared (Cbneed Shape Pos _) 
+Example exAddSharingND : evalND (doubleShared (Cbneed _ _) 
   (addInteger _ _) coin) 
   = [0%Z;2%Z].
 Proof. constructor. Qed.
@@ -221,7 +221,7 @@ in sx + sx
 => The message should be logged once and the result should be 2.
 *)
 Example exAddSharingTrace 
- : evalTracing (doubleShared (Cbneed _ _ _) (addInteger _ _) traceOne) 
+ : evalTracing (doubleShared (Cbneed _ _) (addInteger _ _) traceOne) 
  = (2%Z,["One"%string]).
 Proof. constructor. Qed.
 
@@ -232,7 +232,7 @@ in sx or sx
 = true ? false
 *)
 Example exOrNDSharing
- : evalND (doubleShared (Cbneed _ _ _) (orBool _ _) coinB) = [true;false].
+ : evalND (doubleShared (Cbneed _ _) (orBool _ _) coinB) = [true;false].
 Proof. constructor. Qed.
 
 (*
@@ -242,7 +242,7 @@ in sx or sx
    The message should be logged once and the result should be true.
 *)
 Example exOrTrueTraceSharing
- : evalTracing (doubleShared (Cbneed _ _ _) (orBool _ _) traceTrue)
+ : evalTracing (doubleShared (Cbneed _ _) (orBool _ _) traceTrue)
    = (true,["True"%string]).
 Proof. constructor. Qed.
 
@@ -253,7 +253,7 @@ in sx or sx
 only be logged once and the result should be false.
 *)
 Example exOrFalseTraceSharing
- : evalTracing (doubleShared (Cbneed _ _ _) (orBool _ _) traceFalse)
+ : evalTracing (doubleShared (Cbneed _ _) (orBool _ _) traceFalse)
    = (false,["False"%string]).
 Proof. constructor. Qed.
 
@@ -272,7 +272,7 @@ in sx + sx
 = Nothing ? Just 2
 *)
 Example exNDMSharing
- : evalNDM (doubleShared (Cbneed _ _ _) (addInteger _ _) coinM)
+ : evalNDM (doubleShared (Cbneed _ _) (addInteger _ _) coinM)
    = [None;Some 2%Z].
 Proof. constructor. Qed.
 
@@ -283,7 +283,7 @@ in sx + sx
    due to >>=.
 *)
 Example exTraceNothingSharing
- : evalTraceM (doubleShared (Cbneed _ _ _) (addInteger _ _) traceNothing)
+ : evalTraceM (doubleShared (Cbneed _ _) (addInteger _ _) traceNothing)
    = (None,["Nothing"%string]).
 Proof. constructor. Qed.
 
@@ -294,7 +294,7 @@ in sx + sx
    should be Some 2.
 *)
 Example exTraceJustSharing
- : evalTraceM (doubleShared (Cbneed _ _ _) (addInteger _ _) traceJust)
+ : evalTraceM (doubleShared (Cbneed _ _) (addInteger _ _) traceJust)
    = (Some 2%Z,["Just 1"%string]).
 Proof. constructor. Qed.
 
@@ -322,7 +322,7 @@ in sy + sy
 = (0+0)+(0+0) ? (1+1)+(1+1) 
 = 0 ? 4 
 *)
-Example exAddNestedSharingND : evalND (doubleSharedNested (Cbneed _ _ _)
+Example exAddNestedSharingND : evalND (doubleSharedNested (Cbneed _ _)
                                                           (addInteger _ _) 
                                                           coin) 
                                = [0%Z;4%Z].
@@ -335,7 +335,7 @@ in sy + sy
 => The message should only be logged once and the result should be 4. 
 *)
 Example exAddNestedSharingTrace 
- : evalTracing (doubleSharedNested (Cbneed _ _ _) (addInteger _ _) traceOne) 
+ : evalTracing (doubleSharedNested (Cbneed _ _) (addInteger _ _) traceOne) 
    = (4%Z,["One"%string]).
 Proof. constructor. Qed.
 
@@ -346,7 +346,7 @@ in sy or sy
 = true ? false
 *)
 Example exOrNestedSharingND
- : evalND (doubleSharedNested (Cbneed _ _ _) (orBool _ _) coinB)
+ : evalND (doubleSharedNested (Cbneed _ _) (orBool _ _) coinB)
    = [true;false].
 Proof. constructor. Qed.
 
@@ -358,7 +358,7 @@ in sy or sy
    and the result should be true.
 *)
 Example exOrNestedTrueTracing 
- : evalTracing (doubleSharedNested (Cbneed _ _ _) (orBool _ _) traceTrue)
+ : evalTracing (doubleSharedNested (Cbneed _ _) (orBool _ _) traceTrue)
    = (true,["True"%string]).
 Proof. constructor. Qed.
 
@@ -370,7 +370,7 @@ in sy or sy
    and the result should be false.
 *)
 Example exOrNestedFalseTracing
- : evalTracing (doubleSharedNested (Cbneed _ _ _) (orBool _ _) traceFalse)
+ : evalTracing (doubleSharedNested (Cbneed _ _) (orBool _ _) traceFalse)
    = (false, ["False"%string]).
 Proof. constructor. Qed.
 
@@ -402,7 +402,7 @@ in sy + sz
 = 0 ? 1 ? 2 ? 3
 *)
 Example exAddClashSharingND
- : evalND (doubleSharedClash (Cbneed _ _ _) (addInteger _ _) coin coin) 
+ : evalND (doubleSharedClash (Cbneed _ _) (addInteger _ _) coin coin) 
    = [0%Z;1%Z;2%Z;3%Z].
 Proof. constructor. Qed.
 
@@ -414,7 +414,7 @@ in sy + sz
 => The message should be logged twice and the result should be 3.
 *)
 Example exAddClashSharingTracing
- : evalTracing (doubleSharedClash (Cbneed _ _ _) (addInteger _ _)
+ : evalTracing (doubleSharedClash (Cbneed _ _) (addInteger _ _)
                                   traceOne traceOne) 
    = (3%Z,["One"%string;"One"%string]).
 Proof. constructor. Qed.
@@ -429,7 +429,7 @@ in sy or sz
 = true ? true ? false
 *)
 Example exOrClashSharingND
- : evalND (doubleSharedClash (Cbneed _ _ _) (orBool _ _) coinB coinB)
+ : evalND (doubleSharedClash (Cbneed _ _) (orBool _ _) coinB coinB)
    = [true;true;false].
 Proof. constructor. Qed.
 
@@ -442,7 +442,7 @@ in sy or sz
    result should be true.
 *)
 Example exOrClashTrueTracing
- : evalTracing (doubleSharedClash (Cbneed _ _ _) (orBool _ _)
+ : evalTracing (doubleSharedClash (Cbneed _ _) (orBool _ _)
                                   traceTrue traceTrue)
    = (true,["True"%string]).
 Proof. constructor. Qed.
@@ -457,7 +457,7 @@ in sy or sz
    be logged twice in total and the result should be false.
 *)
 Example exOrClashFalseTracing
- : evalTracing (doubleSharedClash (Cbneed _ _ _) (orBool _ _)
+ : evalTracing (doubleSharedClash (Cbneed _ _) (orBool _ _)
                                   traceFalse traceFalse)
    = (false,["False"%string;"False"%string]).
 Proof. constructor. Qed.
@@ -498,7 +498,7 @@ in sx + (sy + (sz + 1))
   ? (1 + (1+1 + ((1+1 + 1) + 1)))
 = 4 ? 5 ? 6 ? 7
 *)
-Example exAddRecSharingND : evalND (doubleSharedRec (Cbneed _ _ _)
+Example exAddRecSharingND : evalND (doubleSharedRec (Cbneed _ _)
                                                     (addInteger _ _) 
                                                     coin coin 1%Z) 
                             = [4%Z;5%Z;6%Z;7%Z].
@@ -515,7 +515,7 @@ in sx + (sy + (sz + 1))
    final value should be 1 + 2 + 3 + 1 = 7.
 *)
 Example exAddRecSharingTracing
- : evalTracing (doubleSharedRec (Cbneed _ _ _) (addInteger _ _)
+ : evalTracing (doubleSharedRec (Cbneed _ _) (addInteger _ _)
                                 traceOne traceOne 1%Z) 
    = (7%Z,["One"%string;"One"%string]).
 Proof. constructor. Qed.
@@ -528,7 +528,7 @@ in sx or (sy or (sz or true))
 = true (due to non-strictness)
 *)
 Example exOrRecSharingNDTrue
- : evalND (doubleSharedRec (Cbneed _ _ _) (orBool _ _) coinB coinB true)
+ : evalND (doubleSharedRec (Cbneed _ _) (orBool _ _) coinB coinB true)
    = [true].
 Proof. constructor. Qed.
 
@@ -551,7 +551,7 @@ in sx or (sy or (sz or false))
 = true ? true ? false
 *)
 Example exOrRecSharingNDFalse
- : evalND (doubleSharedRec (Cbneed _ _ _) (orBool _ _) coinB coinB false)
+ : evalND (doubleSharedRec (Cbneed _ _) (orBool _ _) coinB coinB false)
    = [true;true;false].
 Proof. constructor. Qed.
 
@@ -564,7 +564,7 @@ in sx or (sy or (sz or false))
    be logged once and the result should be true.
 *)
 Example exOrRecTrueTracing
- : evalTracing (doubleSharedRec (Cbneed _ _ _) (orBool _ _)
+ : evalTracing (doubleSharedRec (Cbneed _ _) (orBool _ _)
                                 traceTrue traceTrue false)
    = (true,["True"%string]).
 Proof. constructor. Qed.
@@ -579,7 +579,7 @@ in sx or (sy or (sz or false))
    be false.
 *)
 Example exOrRecFalseTracing
- : evalTracing (doubleSharedRec (Cbneed _ _ _) (orBool _ _)
+ : evalTracing (doubleSharedRec (Cbneed _ _) (orBool _ _)
                                 traceFalse traceFalse false)
    = (false,["False"%string;"False"%string]).
 Proof. constructor. Qed.
