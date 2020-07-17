@@ -27,8 +27,8 @@ import           FreeC.Monad.Converter
 
 -- | Converts an IR module to an Agda declaration.
 convertModule :: IR.Module -> Converter Agda.Declaration
-convertModule modul@(IR.Module _ name importDecls typeDecls _ _ funcDecls) = do
-  mapM_ (addDecArgPragma (IR.modFuncDecls modul)) (IR.modPragmas modul)
+convertModule (IR.Module _ name importDecls typeDecls _ modPragmas funcDecls) = do
+  mapM_ (addDecArgPragma funcDecls) modPragmas
   Agda.moduleDecl (convertModName name)
     <$> getAp (importDecls' <> typeDecls' <> funcDecls')
  where
