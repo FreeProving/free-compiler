@@ -2,7 +2,7 @@
    in type expressions are fully applied and type variables are not applied.</p><p>For simplification, all type variables have kind <code>*</code>. Therefore, all type
    constructors must be fully applied, so partial application of type
    constructors is not allowed. This pass also checks that type variables and
-   function types do not occur on the left hand side of a type application.
+   function types do not occur on the left-hand side of a type application.
    If a type expression is found that does not match this rules, a fatal
    error is reported. For simplification, a type expression that satisfies all
    of these rules is called kind-correct.</p><h1>Example</h1><p>The following module contains three invalid definitions.</p><pre>module Failures where
@@ -13,7 +13,7 @@ data MyList a = MyNil | MyCons a (MyList a)
 fail1 :: MyList (MyList a a) -&gt; Integer
 fail1 x = 42
 
--- Invalid because type variable 'a' is on the right hand side of a type
+-- Invalid because type variable 'a' is on the right-hand side of a type
 -- application.
 fail2 :: a a -&gt; Integer
 fail2 x = 42

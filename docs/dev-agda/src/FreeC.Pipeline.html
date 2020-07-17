@@ -7,22 +7,22 @@
 </span><a name="line-7"></a><span>
 </span><a name="line-8"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">FreeC.Pipeline</span><span> </span><span class="hs-keyword">where</span><span>
 </span><a name="line-9"></a><span>
-</span><a name="line-10"></a><span class="hs-keyword">import</span><span>           </span><a href="FreeC.Pass.html"><span class="hs-identifier">FreeC.Pass</span></a><span>
-</span><a name="line-11"></a><span class="hs-keyword">import</span><span>           </span><a href="FreeC.Pass.DefineDeclPass.html"><span class="hs-identifier">FreeC.Pass.DefineDeclPass</span></a><span>
-</span><a name="line-12"></a><span class="hs-keyword">import</span><span>           </span><a href="FreeC.Pass.DependencyAnalysisPass.html"><span class="hs-identifier">FreeC.Pass.DependencyAnalysisPass</span></a><span>
-</span><a name="line-13"></a><span class="hs-keyword">import</span><span>           </span><a href="FreeC.Pass.EtaConversionPass.html"><span class="hs-identifier">FreeC.Pass.EtaConversionPass</span></a><span>
-</span><a name="line-14"></a><span class="hs-keyword">import</span><span>           </span><a href="FreeC.Pass.ExportPass.html"><span class="hs-identifier">FreeC.Pass.ExportPass</span></a><span>
-</span><a name="line-15"></a><span class="hs-keyword">import</span><span>           </span><a href="FreeC.Pass.ImplicitPreludePass.html"><span class="hs-identifier">FreeC.Pass.ImplicitPreludePass</span></a><span>
-</span><a name="line-16"></a><span class="hs-keyword">import</span><span>           </span><a href="FreeC.Pass.ImportPass.html"><span class="hs-identifier">FreeC.Pass.ImportPass</span></a><span>
-</span><a name="line-17"></a><span class="hs-keyword">import</span><span>           </span><a href="FreeC.Pass.KindCheckPass.html"><span class="hs-identifier">FreeC.Pass.KindCheckPass</span></a><span>
-</span><a name="line-18"></a><span class="hs-keyword">import</span><span>           </span><a href="FreeC.Pass.PartialityAnalysisPass.html"><span class="hs-identifier">FreeC.Pass.PartialityAnalysisPass</span></a><span>
-</span><a name="line-19"></a><span class="hs-keyword">import</span><span>           </span><a href="FreeC.Pass.TypeSignaturePass.html"><span class="hs-identifier">FreeC.Pass.TypeSignaturePass</span></a><span>
-</span><a name="line-20"></a><span class="hs-keyword">import</span><span>           </span><a href="FreeC.Pass.TypeInferencePass.html"><span class="hs-identifier">FreeC.Pass.TypeInferencePass</span></a><span>
-</span><a name="line-21"></a><span class="hs-keyword">import</span><span>           </span><a href="FreeC.Pass.QualifierPass.html"><span class="hs-identifier">FreeC.Pass.QualifierPass</span></a><span>
-</span><a name="line-22"></a><span class="hs-keyword">import</span><span>           </span><a href="FreeC.Pass.ResolverPass.html"><span class="hs-identifier">FreeC.Pass.ResolverPass</span></a><span>
-</span><a name="line-23"></a><span class="hs-keyword">import</span><span>           </span><a href="FreeC.Pass.CompletePatternPass.html"><span class="hs-identifier">FreeC.Pass.CompletePatternPass</span></a><span>
-</span><a name="line-24"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><a href="FreeC.IR.Syntax.html"><span class="hs-identifier">FreeC.IR.Syntax</span></a><span>               </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">IR</span><span>
-</span><a name="line-25"></a><span class="hs-keyword">import</span><span>           </span><a href="FreeC.Monad.Converter.html"><span class="hs-identifier">FreeC.Monad.Converter</span></a><span>
+</span><a name="line-10"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><a href="FreeC.IR.Syntax.html"><span class="hs-identifier">FreeC.IR.Syntax</span></a><span>               </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">IR</span><span>
+</span><a name="line-11"></a><span class="hs-keyword">import</span><span>           </span><a href="FreeC.Monad.Converter.html"><span class="hs-identifier">FreeC.Monad.Converter</span></a><span>
+</span><a name="line-12"></a><span class="hs-keyword">import</span><span>           </span><a href="FreeC.Pass.html"><span class="hs-identifier">FreeC.Pass</span></a><span>
+</span><a name="line-13"></a><span class="hs-keyword">import</span><span>           </span><a href="FreeC.Pass.CompletePatternPass.html"><span class="hs-identifier">FreeC.Pass.CompletePatternPass</span></a><span>
+</span><a name="line-14"></a><span class="hs-keyword">import</span><span>           </span><a href="FreeC.Pass.DefineDeclPass.html"><span class="hs-identifier">FreeC.Pass.DefineDeclPass</span></a><span>
+</span><a name="line-15"></a><span class="hs-keyword">import</span><span>           </span><a href="FreeC.Pass.DependencyAnalysisPass.html"><span class="hs-identifier">FreeC.Pass.DependencyAnalysisPass</span></a><span>
+</span><a name="line-16"></a><span class="hs-keyword">import</span><span>           </span><a href="FreeC.Pass.EtaConversionPass.html"><span class="hs-identifier">FreeC.Pass.EtaConversionPass</span></a><span>
+</span><a name="line-17"></a><span class="hs-keyword">import</span><span>           </span><a href="FreeC.Pass.ExportPass.html"><span class="hs-identifier">FreeC.Pass.ExportPass</span></a><span>
+</span><a name="line-18"></a><span class="hs-keyword">import</span><span>           </span><a href="FreeC.Pass.ImplicitPreludePass.html"><span class="hs-identifier">FreeC.Pass.ImplicitPreludePass</span></a><span>
+</span><a name="line-19"></a><span class="hs-keyword">import</span><span>           </span><a href="FreeC.Pass.ImportPass.html"><span class="hs-identifier">FreeC.Pass.ImportPass</span></a><span>
+</span><a name="line-20"></a><span class="hs-keyword">import</span><span>           </span><a href="FreeC.Pass.KindCheckPass.html"><span class="hs-identifier">FreeC.Pass.KindCheckPass</span></a><span>
+</span><a name="line-21"></a><span class="hs-keyword">import</span><span>           </span><a href="FreeC.Pass.PartialityAnalysisPass.html"><span class="hs-identifier">FreeC.Pass.PartialityAnalysisPass</span></a><span>
+</span><a name="line-22"></a><span class="hs-keyword">import</span><span>           </span><a href="FreeC.Pass.QualifierPass.html"><span class="hs-identifier">FreeC.Pass.QualifierPass</span></a><span>
+</span><a name="line-23"></a><span class="hs-keyword">import</span><span>           </span><a href="FreeC.Pass.ResolverPass.html"><span class="hs-identifier">FreeC.Pass.ResolverPass</span></a><span>
+</span><a name="line-24"></a><span class="hs-keyword">import</span><span>           </span><a href="FreeC.Pass.TypeInferencePass.html"><span class="hs-identifier">FreeC.Pass.TypeInferencePass</span></a><span>
+</span><a name="line-25"></a><span class="hs-keyword">import</span><span>           </span><a href="FreeC.Pass.TypeSignaturePass.html"><span class="hs-identifier">FreeC.Pass.TypeSignaturePass</span></a><span>
 </span><a name="line-26"></a><span>
 </span><a name="line-27"></a><span class="hs-comment">-- | The passes of the compiler pipeline.</span><span>
 </span><a name="line-28"></a><span class="hs-identifier">pipeline</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><a href="FreeC.Pass.html#Pass"><span class="hs-identifier hs-type">Pass</span></a><span> </span><a href="FreeC.IR.Syntax.Module.html#Module"><span class="hs-identifier hs-type">IR.Module</span></a><span class="hs-special">]</span><span>
