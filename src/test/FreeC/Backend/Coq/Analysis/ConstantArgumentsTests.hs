@@ -29,7 +29,7 @@ identifyConstArgIdents =
 -- Test                                                                      --
 -------------------------------------------------------------------------------
 
--- | Test group for @identifyConstArgs@.
+-- | Test group for 'identifyConstArgs'.
 testConstantArguments :: Spec
 testConstantArguments =
   describe "FreeC.Backend.Coq.Analysis.ConstantArguments" $ do

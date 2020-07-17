@@ -147,7 +147,7 @@ makeConstArgGraph decls = do
         -- No beta reduction is applied when a lambda expression is
         -- encountered, but the right-hand side still needs to be checked.
         -- If an argument shadows @x_i@ and there are calls to @g@ on the
-        -- right hand side, @x_i@ is not left unchanged.
+        -- right-hand side, @x_i@ is not left unchanged.
         checkExpr (IR.Lambda _ args expr _) _
           | x `shadowedBy` args = not (callsG expr)
           | otherwise           = checkExpr expr []
