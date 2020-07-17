@@ -7,7 +7,7 @@ import           FreeC.IR.SrcSpan
 import           FreeC.IR.Syntax.Expr
 import           FreeC.IR.Syntax.Name
 import           FreeC.IR.Syntax.Type
-import           FreeC.IR.Syntax.TypeSchema
+import           FreeC.IR.Syntax.TypeScheme
 import           FreeC.IR.Syntax.TypeVarDecl
 import           FreeC.Pretty
 
@@ -19,17 +19,17 @@ import           FreeC.Pretty
 data TypeSig = TypeSig
   { typeSigSrcSpan    :: SrcSpan
   , typeSigDeclIdents :: [DeclIdent]
-  , typeSigTypeSchema :: TypeSchema
+  , typeSigTypeScheme :: TypeScheme
   }
  deriving (Eq, Show)
 
 -- | Pretty instance for type signatures.
 instance Pretty TypeSig where
-  pretty (TypeSig _ declIdents typeSchema) =
+  pretty (TypeSig _ declIdents typeScheme) =
     prettySeparated (comma <> space) (map pretty declIdents)
       <+> colon
       <>  colon
-      <+> pretty typeSchema
+      <+> pretty typeScheme
 
 -------------------------------------------------------------------------------
 -- Function declarations                                                     --
@@ -63,7 +63,7 @@ funcDeclName = nameFromQName . funcDeclQName
 -- | Gets the type of the given function declaration or @Nothing@ if at
 --   least one of the argument or return type is not annotated.
 --
---   In contrast to 'funcDeclTypeSchema' the function's type arguments
+--   In contrast to 'funcDeclTypeScheme' the function's type arguments
 --   are not abstracted away.
 funcDeclType :: FuncDecl -> Maybe Type
 funcDeclType funcDecl = do
@@ -71,11 +71,11 @@ funcDeclType funcDecl = do
   retType  <- funcDeclReturnType funcDecl
   return (funcType NoSrcSpan argTypes retType)
 
--- | Gets the type schema of the given function declaration or @Nothing@
+-- | Gets the type scheme of the given function declaration or @Nothing@
 --   if at least one of the argument or the return type is not annotated.
-funcDeclTypeSchema :: FuncDecl -> Maybe TypeSchema
-funcDeclTypeSchema funcDecl =
-  TypeSchema NoSrcSpan (funcDeclTypeArgs funcDecl) <$> funcDeclType funcDecl
+funcDeclTypeScheme :: FuncDecl -> Maybe TypeScheme
+funcDeclTypeScheme funcDecl =
+  TypeScheme NoSrcSpan (funcDeclTypeArgs funcDecl) <$> funcDeclType funcDecl
 
 -- | Pretty instance for function declarations.
 instance Pretty FuncDecl where

@@ -203,7 +203,7 @@ transformRecFuncDecl (IR.FuncDecl srcSpan declIdent typeArgs args maybeRetType e
 
     -- Build helper function declaration and application.
     let helperTypeArgs' = map IR.typeVarDeclToType helperTypeArgs
-        helperAppType   = IR.TypeSchema NoSrcSpan [] <$> helperType
+        helperAppType   = IR.TypeScheme NoSrcSpan [] <$> helperType
         helperDecl      = IR.FuncDecl srcSpan
                                       helperDeclIdent
                                       helperTypeArgs

@@ -33,6 +33,6 @@ instance StripExprType IR.FuncDecl where
 --   sub-expressions recursively.
 instance StripExprType IR.Expr where
   stripExprType expr = fromJust
-    (replaceChildTerms expr { IR.exprTypeSchema = Nothing }
+    (replaceChildTerms expr { IR.exprTypeScheme = Nothing }
                        (map stripExprType (childTerms expr))
     )
