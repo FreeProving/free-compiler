@@ -37,7 +37,7 @@ convertModule (IR.Module _ name importDecls typeDecls _ modPragmas funcDecls) =
   typeDecls'   = Ap $ concatMapM convertTypeDecls $ groupTypeDecls typeDecls
   funcDecls'   = Ap $ concatMapM convertFuncDecls $ groupFuncDecls funcDecls
 
--- | Converts an IR module name to an Agda module name
+-- | Converts an IR module name to an Agda module name.
 convertModName :: IR.ModName -> Agda.QName
 convertModName name = Agda.qname (init parts) (last parts)
   where parts = Agda.name <$> splitOn "." name
@@ -46,7 +46,7 @@ convertModName name = Agda.qname (init parts) (last parts)
 -- Import declarations                                                       --
 -------------------------------------------------------------------------------
 
--- | Converts the given import declarations to Coq.
+-- | Converts the given import declarations to Agda.
 convertImportDecls :: [IR.ImportDecl] -> Converter [Agda.Declaration]
 convertImportDecls imports =
   (Agda.Base.imports ++) <$> mapM convertImportDecl imports

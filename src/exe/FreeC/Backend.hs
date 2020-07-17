@@ -144,7 +144,7 @@ coqBackend = Backend { backendName          = "coq"
 -- Agda backend                                                              --
 -------------------------------------------------------------------------------
 
--- | Converts an IR module to a Coq program.
+-- | Converts an IR module to an Agda program.
 convertModuleToAgda :: IR.Module -> Application String
 convertModuleToAgda =
   fmap showPretty . liftConverter . Agda.Converter.convertModule
