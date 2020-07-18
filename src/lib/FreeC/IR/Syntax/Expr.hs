@@ -86,7 +86,7 @@ data Expr
     Let { exprSrcSpan :: SrcSpan
         , binds :: [Bind]
         , inExpr :: Expr
-        , exprTypeSchema :: Maybe TypeSchema -- is this needed? the expression itself has a type schema
+        , exprTypeSchema :: Maybe TypeSchema
         }
  deriving (Eq, Show)
 

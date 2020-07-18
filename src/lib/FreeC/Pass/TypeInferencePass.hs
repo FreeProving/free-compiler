@@ -926,7 +926,10 @@ abstractVanishingTypeArgs funcDecls =
     let funcNames' = withoutArgs args funcNames
         expr'      = addInternalTypeArgsToExpr funcNames' expr
     in  (IR.Lambda srcSpan args expr' exprType, [])
-  addInternalTypeArgsToExpr' _ (IR.Let _ _ _ _) = undefined -- TODO
+  addInternalTypeArgsToExpr' funcNames (IR.Let srcSpan binds expr exprType) =
+    let funcNames' = withoutArgs (map IR.bindVarPat binds) funcNames
+        expr'      = addInternalTypeArgsToExpr funcNames' expr
+    in (IR.Let srcSpan binds expr' exprType, [])
 
   -- Leave all other expressions unchanged.
   addInternalTypeArgsToExpr' _ expr@(IR.Con        _ _ _) = (expr, [])

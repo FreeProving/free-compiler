@@ -296,8 +296,13 @@ instance Similar IR.TypeSchema where
 --        > ———————————————————————————————————————————————————
 --        >  Γ ⊢ if e₁ then e₂ else e₃ ≈ if f₁ then f₂ else f₃
 --
---    TODO :: Let binding similar
-
+--    * Two @let@ expressions are similar if their binds and the expression are
+--      similar.
+--
+--        >  Γ ⊢ e ≈ e',  Γ ⊢ x₁ ≈ x'₁, …, Γ ⊢ xₙ ≈ x'ₙ  Γ ⊢ e₁ ≈ e'₁, …, Γ ⊢ eₙ ≈ e'ₙ
+--        > ——————————————————————————————————————————————————————————————————————————————
+--        >  Γ ⊢ let { x₁ = e₁; …; xₙ = eₙ } in e ≈ let { x₁' = e₁'; …; xₙ' = eₙ' } in e'
+--
 --    * All AST nodes which do not contain any variables are similar to
 --      themselves under every 'Renaming' @Γ@.
 --
@@ -483,8 +488,12 @@ instance Similar IR.ConDecl where
     | IR.declIdentName c1 == IR.declIdentName c2 = similar' ts1 ts2
     | otherwise = const False
 
--- | Two bindings are similir if their variable pattern and their expression is
---   similar. TODO :: notation
+-- | Two bindings are similar if their variable pattern and their expression are
+--   similar.
+--
+--   >  Γ ⊢ v ≈ v', …, Γ ⊢ e ≈ e'
+--   > ———————————————————————————————
+--   >   Γ ⊢  v = e ≈ v' = e'
 instance Similar IR.Bind where
   similar' (IR.Bind _ vP1 e1) (IR.Bind _ vP2 e2) =
     similar' vP1 vP2 .&&. similar' e1 e2
