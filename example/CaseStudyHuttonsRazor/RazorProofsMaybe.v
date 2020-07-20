@@ -1,3 +1,8 @@
+(* This file contains a naive proofs for one of the properties of the haskell file.
+   Those proofs use the [Maybe] monad which means that there is only one impure
+   value [Nothing] and all impure values are therefore equal and have a trivial
+   position function. *)
+
 From Base Require Import Free Free.Instance.Maybe Prelude QuickCheck.
 From Razor.Extra Require Import ExprInd Tactic Pureness.
 From Generated Require Import Razor.

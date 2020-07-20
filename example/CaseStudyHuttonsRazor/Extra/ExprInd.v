@@ -1,3 +1,5 @@
+(* This file contains the induction scheme for an [Expr]. *)
+
 From Base Require Import Free.
 From Generated Require Import Razor.
 

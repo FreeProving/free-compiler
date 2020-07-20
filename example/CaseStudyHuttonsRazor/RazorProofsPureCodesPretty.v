@@ -1,3 +1,6 @@
+(* This file is a variant of [RazorProofsPureCodes] but it is using the advanced
+   tactics of [Extra/FreeDB]. *)
+
 From Base Require Import Free Free.Instance.Maybe Free.Instance.Error Prelude Test.QuickCheck.
 From Razor.Extra Require Import ExprInd FreeDB Tactic Pureness.
 From Generated Require Import Razor.

@@ -1,3 +1,7 @@
+(* This file defines what it means for an [Expr], a [Stack] and a piece of [Code]
+   to be recursively pure. It also gives some lemmas for the pureness of the
+   result of [append] and [comp]. *)
+
 From Base Require Import Free Prelude.
 From Razor.Extra Require Import ExprInd Tactic.
 From Generated Require Import Razor.
@@ -29,7 +33,7 @@ Inductive RecPureStack {Shape : Type} {Pos : Shape -> Type} : Free Shape Pos (St
 Section Lemmas.
   Variable Shape : Type.
   Variable Pos : Shape -> Type.
-  
+
   (* If we apply [append] on to pieces of recursively pure code the result is recursively pure code. *)
   Lemma append_pure :
     forall (fcode1 fcode2 : Free Shape Pos (Code Shape Pos)),

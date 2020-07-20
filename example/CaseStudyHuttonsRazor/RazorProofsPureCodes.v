@@ -1,3 +1,8 @@
+(* This file contains an alternative proof for one of the lemmas of the proof file
+   [RazorProofs] under different preconditions. Notice that this proof contains
+   complex impure cases that are not easy to solve with the default tactics and
+   require to deal with lemmas on the [>>=] operator. *)
+   
 From Base Require Import Free Free.Instance.Maybe Free.Instance.Error Prelude Test.QuickCheck.
 From Razor.Extra Require Import ExprInd Tactic Pureness.
 From Generated Require Import Razor.

@@ -1,3 +1,6 @@
+(* This file is a variant of [RazorProofsMaybe] but it is using the advanced
+   tactics of [Extra/FreeDB]. *)
+
 From Base Require Import Free Free.Instance.Maybe Prelude QuickCheck.
 From Razor.Extra Require Import ExprInd FreeDB Pureness Tactic.
 From Generated Require Import Razor.
@@ -126,6 +129,7 @@ Section Proofs.
       rewrite (IHy HPureE2 _ (recPureStack_cons _ _ HPureS)).
       setoid_rewrite def_exec_ADD...
       setoid_rewrite def_exec_Nil...
+      reflexivity.
   Qed.
 
   (* The theorem derived by the correctness QuickCheck property for comp_correct

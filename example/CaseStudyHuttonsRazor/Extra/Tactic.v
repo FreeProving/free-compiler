@@ -1,3 +1,5 @@
+(* This file contains some additional tactics that are used in some proofs. *)
+
 From Base Require Import Free.
 
 Require Import Coq.Logic.FunctionalExtensionality.

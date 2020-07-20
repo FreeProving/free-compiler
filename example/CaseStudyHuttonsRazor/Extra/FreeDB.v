@@ -1,3 +1,7 @@
+(* This file defines simplification lemmas for function definitions, a tactic
+  [pretty] for 'prettifying' the goal and a tactic [autodef] as replacement
+  for [simpl]. *)
+
 From Base Require Import Free Free.Instance.Maybe Prelude.
 From Generated Require Import Razor.
 
