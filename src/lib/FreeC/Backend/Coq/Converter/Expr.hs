@@ -230,6 +230,22 @@ convertExpr' (IR.Lambda _ args expr _) [] [] = localEnv $ do
   expr' <- convertExpr expr
   foldrM (generatePure .: Coq.Fun . return) expr' args'
 
+convertExpr' (IR.Let _ binds expr _) [] [] = localEnv $ do
+  rek (map (\x -> (IR.bindVarPat x, IR.bindExpr x)) binds)
+   where
+    -- fold the lists into a nested let expression
+    rek :: [(IR.VarPat, IR.Expr)] -> Converter Coq.Term
+    rek [] = convertExpr expr
+    rek ((p,e):pes) = do
+      e'      <- convertExpr e
+      inExpr' <- rek pes
+      let qualid     = Coq.bare (IR.varPatIdent p)
+      case IR.varPatType p of
+        Just varPatType ->  convertType varPatType >>= \type' ->
+          generatePure (Coq.Let qualid [] (Just type') e' inExpr')
+        Nothing         ->
+          generatePure (Coq.Let qualid [] Nothing e' inExpr')
+
 -- Visible type application of an expression other than a function or
 -- constructor.
 convertExpr' expr (_ : _) _ =

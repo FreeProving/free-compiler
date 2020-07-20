@@ -410,8 +410,8 @@ removeConstArgsFromExpr constArgs rootExpr = do
     alts'       <- mapM removeConstArgsFromAlt alts
     return (IR.Case srcSpan expr' alts' exprType, [])
   removeConstArgsFromExpr' (IR.Let srcSpan binds expr exprType) = do
-    (expr', []) <- removeConstArgsFromExpr' expr
     binds'      <- mapM removeConstArgsFromBind binds
+    (expr', []) <- removeConstArgsFromExpr' expr
     return (IR.Let srcSpan binds' expr' exprType, [])
 
   -- Leave all other expressions unchanged.
@@ -581,8 +581,8 @@ removeConstTypeArgsFromExpr constTypeVars rootExpr = do
       (expr', []) <- removeConstTypeArgsFromExpr' expr
       return (IR.Lambda srcSpan args expr' exprType, [])
   removeConstTypeArgsFromExpr' (IR.Let srcSpan binds expr exprType) = do
-      (expr', []) <- removeConstTypeArgsFromExpr' expr
       binds'      <- mapM removeConstTypeArgsFromBind binds
+      (expr', []) <- removeConstTypeArgsFromExpr' expr
       return (IR.Let srcSpan binds' expr' exprType, [])
 
   -- Leave all other nodes unchanged.
