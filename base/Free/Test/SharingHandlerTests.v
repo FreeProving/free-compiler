@@ -49,21 +49,21 @@ Definition evalTraceM {A : Type} p
 (* Non-deterministic integer. *)
 Definition coin (Shape : Type) (Pos : Shape -> Type)
                 `{Injectable ND.Shape ND.Pos Shape Pos}
-:= pure 0%Z ? pure 1%Z.
+:= Choice Shape Pos (pure 0%Z) (pure 1%Z).
 Arguments coin {_} {_} {_}.
 
 
 (* Non-deterministic boolean value. *)
 Definition coinB (Shape : Type) (Pos : Shape -> Type)
                  `{Injectable ND.Shape ND.Pos Shape Pos}
- := True_ _ _ ? False_ _ _.
+ := Choice Shape Pos (True_ _ _) (False_ _ _).
 Arguments coinB {_} {_} {_}.
 
 (* Non-deterministic partial integer. *)
 Definition coinM (Shape : Type) (Pos : Shape -> Type)
                  `{Injectable ND.Shape ND.Pos Shape Pos}
                  `{Injectable Maybe.Shape Maybe.Pos Shape Pos}
-:= (Nothing_inj _ _) ? (Just_inj _ _ 1%Z).
+:= Choice Shape Pos (Nothing_inj _ _) (Just_inj _ _ 1%Z).
 Arguments coinM {_} {_} {_} {_}.
 
 (* Traced integer. *)
@@ -218,6 +218,7 @@ in sx + sx
 = 0+0 ? 1+1
 = 0 ? 2
 *)
+
 Example exAddSharingND : evalND (doubleShared (addInteger _ _) coin) = [0%Z;2%Z].
 Proof. constructor. Qed.
 
