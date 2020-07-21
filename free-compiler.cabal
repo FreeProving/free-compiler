@@ -173,9 +173,9 @@ library freec-internal
                       , FreeC.IR.Syntax.Pragma
                       , FreeC.IR.Syntax.Type
                       , FreeC.IR.Syntax.TypeDecl
-                      , FreeC.IR.Syntax.TypeSchema
+                      , FreeC.IR.Syntax.TypeScheme
                       , FreeC.IR.Syntax.TypeVarDecl
-                      , FreeC.IR.TypeSchema
+                      , FreeC.IR.TypeScheme
                       , FreeC.IR.TypeSynExpansion
                       , FreeC.IR.Unification
                       , FreeC.LiftedIR.Converter.Expr
@@ -219,6 +219,8 @@ executable freec
                     , FreeC.Application.Options
                     , FreeC.Application.Options.Descriptors
                     , FreeC.Application.Options.Parser
+                    , FreeC.Backend
+                    , FreeC.Frontend
                     , FreeC.Monad.Application
   build-depends:      freec-internal
                       -- Library for including compile time Git commit hash
@@ -254,6 +256,7 @@ test-suite freec-unit-tests
                     , FreeC.Frontend.IR.ParserTests
                     , FreeC.Frontend.IR.ScannerTests
                     , FreeC.Frontend.IR.Tests
+                    , FreeC.IR.InliningTests
                     , FreeC.IR.ReferenceTests
                     , FreeC.IR.SimilarTests
                     , FreeC.IR.SubstTests
@@ -267,6 +270,7 @@ test-suite freec-unit-tests
                     , FreeC.Monad.ReporterTests
                     , FreeC.Pass.CompletePatternPassTests
                     , FreeC.Pass.EtaConversionPassTests
+                    , FreeC.Pass.ExportPassTests
                     , FreeC.Pass.KindCheckPassTests
                     , FreeC.Pass.PartialityAnalysisPassTests
                     , FreeC.Pass.ResolverPassTests

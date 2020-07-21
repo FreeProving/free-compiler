@@ -18,7 +18,7 @@ module FreeC.Frontend.Haskell.Simplifier
   , extractModName
   , simplifyDecls
   , simplifyType
-  , simplifyTypeSchema
+  , simplifyTypeScheme
   , simplifyExpr
   )
 where
@@ -274,8 +274,8 @@ simplifyDecl decl@(HSE.PatBind _ _ _ _) =
 -- Type signatures.
 simplifyDecl (HSE.TypeSig srcSpan names typeExpr) = do
   names'      <- mapM simplifyFuncDeclName names
-  typeSchema' <- simplifyTypeSchema typeExpr
-  return ([], [IR.TypeSig srcSpan names' typeSchema'], [])
+  typeScheme' <- simplifyTypeScheme typeExpr
+  return ([], [IR.TypeSig srcSpan names' typeScheme'], [])
 
 -- The user is allowed to specify fixities of custom infix declarations
 -- and they are respected by the @haskell-src-exts@ parser, but we do not
@@ -470,27 +470,27 @@ simplifyFuncDeclName sym@(HSE.Symbol _ _) =
 -- Types                                                                     --
 -------------------------------------------------------------------------------
 
--- | Simplifies the given type expression and abstracts it to a type schema.
+-- | Simplifies the given type expression and abstracts it to a type scheme.
 --
 --   If there is no explicit @forall@, all type variables that occur in the
 --   type expression are abstracted aw. Otherwise, only the specified type
 --   arguments are abstracted.
-simplifyTypeSchema :: HSE.Type SrcSpan -> Simplifier IR.TypeSchema
+simplifyTypeScheme :: HSE.Type SrcSpan -> Simplifier IR.TypeScheme
 
 -- With explicit @forall@.
-simplifyTypeSchema (HSE.TyForall srcSpan (Just binds) Nothing typeExpr) = do
+simplifyTypeScheme (HSE.TyForall srcSpan (Just binds) Nothing typeExpr) = do
   typeArgs  <- mapM simplifyTypeVarBind binds
   typeExpr' <- simplifyType typeExpr
-  return (IR.TypeSchema srcSpan typeArgs typeExpr')
+  return (IR.TypeScheme srcSpan typeArgs typeExpr')
 
 -- Without explicit @forall@.
-simplifyTypeSchema typeExpr = do
+simplifyTypeScheme typeExpr = do
   typeExpr' <- simplifyType typeExpr
   let srcSpan         = IR.typeSrcSpan typeExpr'
       typeArgIdents   = freeTypeVars typeExpr'
       typeArgSrcSpans = map (findTypeArgSrcSpan typeExpr') typeArgIdents
       typeArgs        = zipWith IR.TypeVarDecl typeArgSrcSpans typeArgIdents
-  return (IR.TypeSchema srcSpan typeArgs typeExpr')
+  return (IR.TypeScheme srcSpan typeArgs typeExpr')
  where
   -- | Finds the first occurrence of the type variable with the given name.
   --
@@ -710,10 +710,10 @@ simplifyExpr (HSE.Case srcSpan expr alts) = do
 -- Type signatures.
 simplifyExpr (HSE.ExpTypeSig srcSpan expr typeExpr) = do
   expr' <- simplifyExpr expr
-  case IR.exprTypeSchema expr' of
+  case IR.exprTypeScheme expr' of
     Nothing -> do
-      typeSchema <- simplifyTypeSchema typeExpr
-      return expr' { IR.exprTypeSchema = Just typeSchema }
+      typeScheme <- simplifyTypeScheme typeExpr
+      return expr' { IR.exprTypeScheme = Just typeScheme }
     Just _ -> do
       report
         $ Message srcSpan Warning

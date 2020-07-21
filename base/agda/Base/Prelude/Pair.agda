@@ -1,4 +1,4 @@
-module Base.Free.Pair where
+module Base.Prelude.Pair where
 
 open import Base.Free using (Free; pure)
 

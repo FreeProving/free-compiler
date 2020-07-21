@@ -1,4 +1,4 @@
-module Base.Free.List where
+module Base.Prelude.List where
 
 open import Size      using (Size; ↑_)
 open import Base.Free using (Free; pure)

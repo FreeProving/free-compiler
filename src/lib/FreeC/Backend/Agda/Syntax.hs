@@ -26,7 +26,7 @@ module FreeC.Backend.Agda.Syntax
   , appN
   , ident
   , hiddenArg_
-  , ite
+  , ifThenElse
   , caseOf
   , lamClause
     -- * Types
@@ -221,8 +221,8 @@ hiddenArg_ = HiddenArg NoRange . unnamed
 -- | @if_then_else_@ from the base library.
 --
 --   > cond true false ↦ if cond then true else false
-ite :: Expr -> Expr -> Expr -> Expr
-ite cond true false =
+ifThenElse :: Expr -> Expr -> Expr -> Expr
+ifThenElse cond true false =
   RawApp NoRange [ident "if", cond, ident "then", true, ident "else", false]
 
 -- | @case_of_@ from the base library.
@@ -232,7 +232,7 @@ caseOf :: Expr -> [LamClause] -> Expr
 caseOf discr alts =
   RawApp NoRange [ident "case", discr, ident "of", ExtendedLam NoRange alts]
 
--- | Smart constructor for @LamClause@s.
+-- | Smart constructor for a clause of a pattern matching lambda abstraction.
 --
 --   Each @LamClause@ stores a pattern matched on the left-hand side of an @→@
 --   and the expression on the right-hand side. In Agda lambda expressions can

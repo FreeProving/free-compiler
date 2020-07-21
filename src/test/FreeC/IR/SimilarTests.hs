@@ -18,7 +18,7 @@ testSimilar = describe "FreeC.IR.Similar" $ do
   testSimilarFuncDecls
   testSimilarTypeDecls
 
--- | Test group for 'FreeC.IR.Similar.Similar' instance of type schemas and
+-- | Test group for 'FreeC.IR.Similar.Similar' instance of type schemes and
 --   type expressions.
 testSimilarTypes :: Spec
 testSimilarTypes = context "types" $ do
@@ -43,47 +43,47 @@ testSimilarTypes = context "types" $ do
     a `shouldNotBeSimilarTo` b
 
   it "bound type variables are similar to similarly bound type variables" $ do
-    a <- expectParseTestTypeSchema "forall a. a"
-    b <- expectParseTestTypeSchema "forall b. b"
+    a <- expectParseTestTypeScheme "forall a. a"
+    b <- expectParseTestTypeScheme "forall b. b"
     a `shouldBeSimilarTo` b
   it "bound type variables are not similar to unrelated bound type variables"
     $ do
-        ab <- expectParseTestTypeSchema "forall a b. Foo a b"
-        ba <- expectParseTestTypeSchema "forall b a. Foo a b"
+        ab <- expectParseTestTypeScheme "forall a b. Foo a b"
+        ba <- expectParseTestTypeScheme "forall b a. Foo a b"
         ab `shouldNotBeSimilarTo` ba
   it "bound type variables are not similar to right free type variables" $ do
-    a  <- expectParseTestTypeSchema "forall a. a"
-    a' <- expectParseTestTypeSchema "forall b. a"
+    a  <- expectParseTestTypeScheme "forall a. a"
+    a' <- expectParseTestTypeScheme "forall b. a"
     a `shouldNotBeSimilarTo` a'
   it "bound type variables are not similar to left free type variables" $ do
-    a  <- expectParseTestTypeSchema "forall b. a"
-    a' <- expectParseTestTypeSchema "forall a. a"
+    a  <- expectParseTestTypeScheme "forall b. a"
+    a' <- expectParseTestTypeScheme "forall a. a"
     a `shouldNotBeSimilarTo` a'
 
   it "type applications with similar children are similar" $ do
-    fooA <- expectParseTestTypeSchema "forall a. Foo a"
-    fooB <- expectParseTestTypeSchema "forall b. Foo b"
+    fooA <- expectParseTestTypeScheme "forall a. Foo a"
+    fooB <- expectParseTestTypeScheme "forall b. Foo b"
     fooA `shouldBeSimilarTo` fooB
   it "type applications with dissimilar left-hand sides are dissimilar" $ do
-    fooA <- expectParseTestTypeSchema "forall a. Foo a"
-    barB <- expectParseTestTypeSchema "forall b. Bar b"
+    fooA <- expectParseTestTypeScheme "forall a. Foo a"
+    barB <- expectParseTestTypeScheme "forall b. Bar b"
     fooA `shouldNotBeSimilarTo` barB
   it "type applications with dissimilar right-hand sides are dissimilar" $ do
-    fooA  <- expectParseTestTypeSchema "forall a b. Foo a"
-    fooA' <- expectParseTestTypeSchema "forall b a. Foo a"
+    fooA  <- expectParseTestTypeScheme "forall a b. Foo a"
+    fooA' <- expectParseTestTypeScheme "forall b a. Foo a"
     fooA `shouldNotBeSimilarTo` fooA'
 
   it "function types with similar children are similar" $ do
-    f <- expectParseTestTypeSchema "forall a b. a -> b"
-    g <- expectParseTestTypeSchema "forall c d. c -> d"
+    f <- expectParseTestTypeScheme "forall a b. a -> b"
+    g <- expectParseTestTypeScheme "forall c d. c -> d"
     f `shouldBeSimilarTo` g
   it "function types with dissimilar right-hand sides are dissimilar" $ do
-    f <- expectParseTestTypeSchema "forall a. a -> Foo"
-    g <- expectParseTestTypeSchema "forall a. a -> Bar"
+    f <- expectParseTestTypeScheme "forall a. a -> Foo"
+    g <- expectParseTestTypeScheme "forall a. a -> Bar"
     f `shouldNotBeSimilarTo` g
   it "function types with dissimilar left-hand sides are dissimilar" $ do
-    f <- expectParseTestTypeSchema "forall a. Foo -> a"
-    g <- expectParseTestTypeSchema "forall a. Bar -> a"
+    f <- expectParseTestTypeScheme "forall a. Foo -> a"
+    g <- expectParseTestTypeScheme "forall a. Bar -> a"
     f `shouldNotBeSimilarTo` g
 
 -- | Test group for 'FreeC.IR.Similar.Similar' instance of expressions.

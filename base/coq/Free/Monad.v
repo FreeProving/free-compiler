@@ -34,3 +34,4 @@ Arguments impure {Shape} {Pos} {A}.
    introduce the infix notation for the bind operator. *)
 Arguments free_bind {Shape} {Pos} {A} {B}.
 Notation "mx >>= f" := (free_bind mx f) (left associativity, at level 50).
+Notation "mx >> my" := (free_bind mx (fun _ => my)) (left associativity, at level 50).

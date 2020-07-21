@@ -7,6 +7,8 @@ module FreeC.Application.Options.Descriptors where
 import           System.Console.GetOpt
 
 import           FreeC.Application.Options
+import           FreeC.Backend
+import           FreeC.Frontend
 
 -- | The command line option descriptors from the @GetOpt@ library for the
 --   command line options understood by the command line option parser.
@@ -74,5 +76,27 @@ optionDescriptors =
     ++ "Haskell modules will be placed in the given directory.\n"
     ++ "This option adds location information to error messages that\n"
     ++ "refer to the dumped file."
+    )
+  , Option
+    []
+    ["from"]
+    (ReqArg (\p opts -> opts { optFrontend = p }) "LANG")
+    (  "Optional. Specifies the frontend for the compiler to use.\n"
+    ++ "Allowed values are: "
+    ++ showFrontends
+    ++ ".\nDefaults to: `"
+    ++ defaultFrontend
+    ++ "`."
+    )
+  , Option
+    []
+    ["to"]
+    (ReqArg (\p opts -> opts { optBackend = p }) "LANG")
+    (  "Optional. Specifies the backend for the compiler to use.\n"
+    ++ "Allowed values are: "
+    ++ showBackends
+    ++ ".\nDefaults to: `"
+    ++ defaultBackend
+    ++ "`."
     )
   ]

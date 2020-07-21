@@ -96,7 +96,7 @@ liftExpr' (IR.IntLiteral srcSpan value _) [] [] =
 -- > ⎢-----------------------⎥ = -----------------------------------
 -- > ⎣ Γ ⊢ λx:τ₀.e : τ₀ → τ₁ ⎦   Γ' ⊢ pure(λx:τ₀'.e') : m(τ₀' → τ₁')
 liftExpr' (IR.Lambda srcSpan args rhs _) [] [] = localEnv $ do
-  (pats, expr) <- convertAlt' args rhs
+  (pats, expr) <- liftAlt' args rhs
   return $ foldr (\a b -> LIR.Pure srcSpan $ LIR.Lambda srcSpan [a] b) expr pats
 
 -- @if@-expressions.
@@ -121,7 +121,7 @@ liftExpr' (IR.If srcSpan cond true false _) [] [] = do
 -- where @alts'@ are the lifted (not smart) constructors for τ₀.
 liftExpr' (IR.Case srcSpan discriminante patterns _) [] [] = do
   discriminant' <- liftExpr discriminante
-  discriminant' `bind` \d -> LIR.Case srcSpan d <$> mapM convertAlt patterns
+  discriminant' `bind` \d -> LIR.Case srcSpan d <$> mapM liftAlt patterns
 
 liftExpr' (IR.Undefined srcSpan _    ) _ _ = return $ LIR.Undefined srcSpan
 
@@ -146,25 +146,25 @@ liftExpr' expr [] args@(_ : _) =
 -------------------------------------------------------------------------------
 
 -- | Translates a constructor pattern from IR to LIR.
-convertConPat :: IR.ConPat -> LIR.ConPat
-convertConPat (IR.ConPat srcSpan name) = LIR.ConPat srcSpan name
+liftConPat :: IR.ConPat -> LIR.ConPat
+liftConPat (IR.ConPat srcSpan name) = LIR.ConPat srcSpan name
 
 -- | Translates a case alternative pattern from IR to LIR, by lifting the pattern
 --   and the right-hand side.
-convertAlt :: IR.Alt -> Converter LIR.Alt
-convertAlt (IR.Alt srcSpan conPat pats expr) = do
-  (pats', expr') <- convertAlt' pats expr
-  return $ LIR.Alt srcSpan (convertConPat conPat) pats' expr'
+liftAlt :: IR.Alt -> Converter LIR.Alt
+liftAlt (IR.Alt srcSpan conPat pats expr) = do
+  (pats', expr') <- liftAlt' pats expr
+  return $ LIR.Alt srcSpan (liftConPat conPat) pats' expr'
 
 -- | Translates an alternative (which consist of a list of variable patterns and
 --   a bound expression). Strict variables are replaced with fresh ones, which
 --   are unwrapped using @>>=@.
-convertAlt' :: [IR.VarPat] -> IR.Expr -> Converter ([LIR.VarPat], LIR.Expr)
-convertAlt' [] expr = ([], ) <$> liftExpr expr
-convertAlt' (pat@(IR.VarPat srcSpan name varType strict) : pats) expr = do
+liftAlt' :: [IR.VarPat] -> IR.Expr -> Converter ([LIR.VarPat], LIR.Expr)
+liftAlt' [] expr = ([], ) <$> liftExpr expr
+liftAlt' (pat@(IR.VarPat srcSpan name varType strict) : pats) expr = do
   let varType' = LIR.liftVarPatType pat
   var            <- renameAndDefineLIRVar srcSpan strict name varType
-  (pats', expr') <- convertAlt' pats expr
+  (pats', expr') <- liftAlt' pats expr
   if strict
     then do
       var'   <- freshIRQName name
@@ -236,7 +236,7 @@ generateBinds ((arg, True) : as) k =
   arg `bind` \arg' -> generateBinds as $ \as' -> k (arg' : as')
 
 -- | Generates just the syntax for a bind expression, which unwraps the first
---   variable and binds its value two the second one in the given expression.
+--   variable and binds its value to the second one in the given expression.
 rawBind
   :: SrcSpan
   -> IR.QName
