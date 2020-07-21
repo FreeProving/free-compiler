@@ -30,6 +30,74 @@ Inductive RecPureStack {Shape : Type} {Pos : Shape -> Type} : Free Shape Pos (St
                               (fstack : Free Shape Pos (Stack Shape Pos)),
       RecPureStack fstack -> RecPureStack (Cons Shape Pos fv fstack).
 
+(* If the goal is to prove one of those pureness properties of those above,
+   this tactic tries to do this. *)
+Ltac prove_pureness_property :=
+  match goal with
+  (* Try to apply a hypothesis directly. *)
+  | [ H : RecPureExpr ?fe |- RecPureExpr ?fe ] => apply H
+  | [ H : RecPureCode ?fc |- RecPureCode ?fc ] => apply H
+  | [ H : RecPureStack ?fs |- RecPureStack ?fs ] => apply H
+  (* Try to apply base rule for pureness. *)
+  | [ |- RecPureExpr (Val ?S ?P ?fn) ] => apply recPureExpr_val
+  | [ |- RecPureCode (Nil ?S ?P) ] => apply recPureCode_nil
+  | [ |- RecPureStack (Nil ?S ?P) ] => apply recPureStack_nil
+  | [ |- RecPureExpr (pure (val ?fn)) ] => apply recPureExpr_val
+  | [ |- RecPureCode (pure nil) ] => apply recPureCode_nil
+  | [ |- RecPureStack (pure nil) ] => apply recPureStack_nil
+  (* Try to apply inductive rule for pureness. *)
+  | [ |- RecPureExpr (Add0 ?S ?P ?fx ?fy) ] =>
+        apply recPureExpr_add; try prove_pureness_property
+  | [ |- RecPureCode (Cons ?S ?P (pure ?op) ?fxs) ] =>
+        apply recPureCode_cons; try prove_pureness_property
+  | [ |- RecPureStack (Cons ?S ?P ?fv ?fxs) ] =>
+        apply recPureStack_cons; try prove_pureness_property
+  | [ |- RecPureExpr (pure (add0 ?fx ?fy)) ] =>
+        apply recPureExpr_add; try prove_pureness_property
+  | [ |- RecPureCode (pure (cons (pure ?op)) ?fxs) ] =>
+        apply recPureCode_cons; try prove_pureness_property
+  | [ |- RecPureStack (pure (cons ?fv ?fxs)) ] =>
+        apply recPureStack_cons; try prove_pureness_property
+  (* Try to apply inductive rule for pureness on a hypothesis. *)
+  | [ H : RecPureExpr (Add0 ?S ?P ?fx ?fy) |- RecPureExpr ?fe ] =>
+        dependent destruction H; try prove_pureness_property
+  | [ H : RecPureCode (Cons ?S ?P ?fop ?fxs) |- RecPureCode ?fc ] =>
+        dependent destruction H; try prove_pureness_property
+  | [ H : RecPureStack (Cons ?S ?P ?fv ?fxs) |- RecPureStack ?fs ] =>
+        dependent destruction H; prove_pureness_property
+  | [ H : RecPureExpr (pure (add0 ?fx ?fy)) |- RecPureExpr ?fe ] =>
+        dependent destruction H; try prove_pureness_property
+  | [ H : RecPureCode (pure (cons ?fop ?fxs)) |- RecPureCode ?fc ] =>
+        dependent destruction H; try prove_pureness_property
+  | [ H : RecPureStack (pure (cons ?fv ?fxs)) |- RecPureStack ?fs ] =>
+        dependent destruction H; prove_pureness_property
+  end.
+
+(* If we have an assumption that a pureness property holds for something impure,
+   we can finish the proof. *)
+Ltac eliminate_pureness_property_impure :=
+  match goal with
+  (* Try to destruct a pureness property over an impure value. *)
+  | [ H : RecPureExpr (impure ?s ?pf) |- _ ] => dependent destruction H
+  | [ H : RecPureCode (impure ?s ?pf) |- _ ] => dependent destruction H
+  | [ H : RecPureCode (Cons ?S ?P (impure ?s ?pf) ?fxs) |- _ ] => dependent destruction H
+  | [ H : RecPureCode (pure (cons ?S ?P (impure ?s ?pf) ?fxs)) |- _ ] => dependent destruction H
+  | [ H : RecPureStack (impure ?s ?pf) |- _ ] => dependent destruction H
+  (* Try to apply inductive rule for pureness on a hypothesis. *)
+  | [ H : RecPureExpr (Add0 ?S ?P ?fx ?fy) |- _ ] =>
+        dependent destruction H; eliminate_pureness_property_impure
+  | [ H : RecPureCode (Cons ?S ?P ?fop ?fxs) |- _ ] =>
+        dependent destruction H; eliminate_pureness_property_impure
+  | [ H : RecPureStack (Cons ?S ?P ?fv ?fxs) |- _ ] =>
+        dependent destruction H; eliminate_pureness_property_impure
+  | [ H : RecPureExpr (pure (add0 ?fx ?fy)) |- _ ] =>
+        dependent destruction H; eliminate_pureness_property_impure
+  | [ H : RecPureCode (pure (cons ?fop ?fxs)) |- _ ] =>
+        dependent destruction H; eliminate_pureness_property_impure
+  | [ H : RecPureStack (pure (cons ?fv ?fxs)) |- _ ] =>
+        dependent destruction H; eliminate_pureness_property_impure
+  end.
+
 Section Lemmas.
   Variable Shape : Type.
   Variable Pos : Shape -> Type.
