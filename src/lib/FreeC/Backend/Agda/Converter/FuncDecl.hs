@@ -7,7 +7,9 @@ module FreeC.Backend.Agda.Converter.FuncDecl
 where
 
 
-import           Control.Monad                  ( (>=>) )
+import           Control.Monad                  ( (>=>)
+                                                , zipWithM
+                                                )
 import           Data.Maybe                     ( fromJust )
 
 import           FreeC.Backend.Agda.Converter.Arg
@@ -43,7 +45,7 @@ convertFuncDecls (NonRecursive decl) =
   sequence [convertSignature decl Nothing, convertFuncDef decl]
 convertFuncDecls (Recursive decls) = do
   decArgs <- identifyDecArgs decls
-  decls'  <- mapM (uncurry convertSignature) (decls `zip` map Just decArgs)
+  decls'  <- zipWithM convertSignature decls (map Just decArgs)
   defs    <- mapM convertFuncDef decls
   return $ decls' <> defs
 
