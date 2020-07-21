@@ -24,7 +24,7 @@ Definition share {A : Type}
                  {Pos : Shape -> Type}
                  `{i : Injectable Share.Shape Share.Pos Shape Pos} 
                  (x : Free Shape Pos A) 
-:= @cbneed A Shape Pos i x.
+:= @cbneed Shape Pos A i x.
 
 (* Shortcut to evaluate a non-deterministic program to a result list.
    list. *)
@@ -218,7 +218,6 @@ in sx + sx
 = 0+0 ? 1+1
 = 0 ? 2
 *)
-
 Example exAddSharingND : evalND (doubleShared (addInteger _ _) coin) = [0%Z;2%Z].
 Proof. constructor. Qed.
 
