@@ -35,6 +35,10 @@ import           FreeC.Monad.Converter          ( Converter
                                                 , localEnv
                                                 , inEnv
                                                 )
+import           FreeC.Monad.Reporter           ( reportFatal
+                                                , Message(Message)
+                                                , Severity(Error)
+                                                )
 
 -- | Converts a strongly connected component of the function dependency graph.
 --   TODO: Handle mutually recursive functions.
@@ -44,8 +48,10 @@ convertFuncDecls (NonRecursive decl  ) = convertFuncDecl decl Nothing
 convertFuncDecls (Recursive    [decl]) = do
   [decArg] <- identifyDecArgs [decl]
   convertFuncDecl decl $ Just decArg
-convertFuncDecls (Recursive _) =
-  error "Mutual recursive functions are not supported at the moment."
+convertFuncDecls (Recursive ds) = reportFatal $ Message
+  (IR.funcDeclSrcSpan $ head ds)
+  Error
+  "Mutual recursive functions are not supported at the moment."
 
 -- | Converts the given function declarations. Returns the declarations for the
 --   type signature and the definition.
