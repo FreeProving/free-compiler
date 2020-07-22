@@ -36,6 +36,8 @@ data-files:          base/Prelude.toml
                    , base/Test/QuickCheck.toml
                    , base/**/*.v
                    , base/**/*.vo
+                   , base/**/*.agda
+                   , base/**/*.agda-lib
 
 -- Build configuration.
 build-type:          Simple
