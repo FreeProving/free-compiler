@@ -93,9 +93,8 @@ convertFunc
   -> [IR.VarPat]      -- ^ The types of the arguments.
   -> Maybe IR.Type    -- ^ The return type of the function.
   -> Converter Agda.Expr
-convertFunc decArg partial tVars argTypes returnType =
-  Agda.pi . addFreeArgs <$> mapM convertTypeVarDecl tVars <*> typeConverter
-    argTypes
-    (liftType $ fromJust returnType)
- where
-  typeConverter ts = convertLiftedFuncType partial (liftFuncArgTypes decArg ts)
+convertFunc decArg partial tVars argTypes returnType = do
+  typeVars  <- addFreeArgs <$> mapM convertTypeVarDecl tVars
+  argTypes' <- liftFuncArgTypes decArg argTypes
+  retType'  <- liftType $ fromJust returnType
+  Agda.pi typeVars <$> convertLiftedFuncType partial argTypes' retType'

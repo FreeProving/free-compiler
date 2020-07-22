@@ -162,7 +162,7 @@ liftAlt (IR.Alt srcSpan conPat pats expr) = do
 liftAlt' :: [IR.VarPat] -> IR.Expr -> Converter ([LIR.VarPat], LIR.Expr)
 liftAlt' [] expr = ([], ) <$> liftExpr expr
 liftAlt' (pat@(IR.VarPat srcSpan name varType strict) : pats) expr = do
-  let varType' = LIR.liftVarPatType pat
+  varType'       <- LIR.liftVarPatType pat
   var            <- renameAndDefineLIRVar srcSpan strict name varType
   (pats', expr') <- liftAlt' pats expr
   if strict
@@ -245,9 +245,10 @@ rawBind
   -> LIR.Expr
   -> Converter LIR.Expr
 rawBind ss mx x varType expr = do
-  mxAgda <- lookupAgdaFreshIdentOrFail ss mx
-  xAgda  <- lookupAgdaValIdentOrFail ss x
+  mxAgda   <- lookupAgdaFreshIdentOrFail ss mx
+  xAgda    <- lookupAgdaValIdentOrFail ss x
+  varType' <- mapM LIR.liftType' varType
   let mx'          = LIR.Var ss mx mxAgda
       Just unqualX = identFromQName x
-      x'           = LIR.VarPat ss unqualX (LIR.liftType' <$> varType) xAgda
+      x'           = LIR.VarPat ss unqualX varType' xAgda
   return $ LIR.Bind ss mx' $ LIR.Lambda ss [x'] expr

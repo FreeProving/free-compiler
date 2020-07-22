@@ -100,11 +100,13 @@ convertConDecls (IR.DeclIdent srcSpan ident) typeVars = mapM
 convertConDecl
   :: IR.QName -> IR.Type -> IR.ConDecl -> Converter Agda.Declaration
 convertConDecl ident retType (IR.ConDecl _ (IR.DeclIdent srcSpan name) argTypes)
-  = Agda.funcSig
-    <$> lookupUnQualAgdaIdentOrFail srcSpan IR.ValueScope name
-        -- TODO: Add declarations to lifted IR and move this translation logic.
-    <*> convertLiftedConType (map (liftConArgType ident) argTypes)
-                             (liftType' retType)
+  = do
+    argTypes' <- mapM (liftConArgType ident) argTypes
+    retType'  <- liftType' retType
+    Agda.funcSig
+      <$> lookupUnQualAgdaIdentOrFail srcSpan IR.ValueScope name
+          -- TODO: Add declarations to lifted IR and move this translation logic.
+      <*> convertLiftedConType argTypes' retType'
 
 -- | Converts a single constructor to a smart constructor, which wraps the normal
 --   constructor in the @Free@ monad using @pure@.
