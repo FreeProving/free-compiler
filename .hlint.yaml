@@ -23,25 +23,63 @@
 
 # Aliases for qualified imports.
 - modules:
-  - {name: [ FreeC.Backend.Coq.Base ], as: Coq.Base}
-  - {name: [ FreeC.Backend.Coq.Syntax ], as: Coq}
-  - {name: [ FreeC.IR.Syntax ], as: IR}
-  - {name: [ FreeC.IR.Base.Prelude ], as: IR.Prelude}
-  - {name: [ FreeC.IR.Base.Test.QuickCheck], as: IR.Test.QuickCheck}
-  - {name: [ FreeC.LiftedIR.Effect], as: Effect}
-  - {name: [ FreeC.LiftedIR.Syntax], as: LIR}
-  - {name: [ Data.Aeson ], as: Aeson}
-  - {name: [ Data.ByteString.Lazy ], as: LazyByteString}
-  - {name: [ Data.List.NonEmpty ], as: NonEmpty}
-  - {name: [ Data.Map.Strict ], as: Map}
-  - {name: [ Data.Set ], as: Set}
-  - {name: [ Data.Set.Ordered ], as: OSet}
-  - {name: [ Data.Text ], as: Text}
-  - {name: [ Data.Text.Lazy ], as: LazyText}
-  - {name: [ Data.Vector ], as: Vector}
-  - {name: [ Language.Haskell.Exts.Syntax
-           , Language.Haskell.Exts.Pretty
-           , Language.Haskell.Exts.SrcLoc ], as: HSE}
-  - {name: [ Text.Parsec.Error
-           , Text.Parsec.Pos ], as: Parsec}
-  - {name: [ Text.Toml.Types ], as: Toml}
+  - name: [ FreeC.Backend.Coq.Base ]
+    as: Coq.Base
+  - name:
+    - FreeC.Backend.Coq.Syntax
+    - Language.Coq.Gallina
+    as: Coq
+  - name: [ FreeC.IR.Syntax ]
+    as: IR
+  - name: [ FreeC.IR.Base.Prelude ]
+    as: IR.Prelude
+  - name: [ FreeC.IR.Base.Test.QuickCheck]
+    as: IR.Test.QuickCheck
+  - name: [ FreeC.LiftedIR.Effect]
+    as: Effect
+  - name: [ FreeC.LiftedIR.Syntax]
+    as: LIR
+  - name:
+    - Data.Aeson
+    - Data.Aeson.Encode.Pretty
+    - Data.Aeson.Types
+    as: Aeson
+  - name: [ Data.ByteString.Lazy ]
+    as: LazyByteString
+  - name: [ Data.List.NonEmpty ]
+    as: NonEmpty
+  - name:
+    - Data.Map
+    - Data.Map.Lazy
+    as: LazyMap
+    within: []
+    message: >
+      Use `Data.Map.Strict` instead or add an exception
+      for the module to `hlint.yaml`.
+  - name: [ Data.Map.Strict ]
+    as: Map
+  - name: [ Data.Set ]
+    as: Set
+  - name: [ Data.Set.Ordered ]
+    as: OSet
+  - name: [ Data.Text ]
+    as: Text
+  - name: [ Data.Text.Lazy ]
+    as: LazyText
+  - name: [ Data.Vector ]
+    as: Vector
+  - name:
+    - Language.Haskell.Exts
+    - Language.Haskell.Exts.Comments
+    - Language.Haskell.Exts.Syntax
+    - Language.Haskell.Exts.Pretty
+    - Language.Haskell.Exts.SrcLoc
+    as: HSE
+  - name:
+    - Text.Parsec
+    - Text.Parsec.Error
+    - Text.Parsec.Pos
+    - Text.Parsec.Token
+    as: Parsec
+  - name: [ Text.Toml.Types ]
+    as: Toml

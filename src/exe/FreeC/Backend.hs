@@ -12,7 +12,7 @@ import           Control.Monad.Extra            ( unlessM
                                                 , whenM
                                                 )
 import           Control.Monad.IO.Class
-import qualified Data.Map.Lazy                 as Map
+import qualified Data.Map.Strict               as Map
 import           Data.Maybe                     ( isJust )
 import           Data.List                      ( intercalate )
 import           System.Directory               ( createDirectoryIfMissing
@@ -23,8 +23,7 @@ import           System.FilePath
 
 import           FreeC.Application.Options
 import qualified FreeC.Backend.Coq.Base        as Coq.Base
-import qualified FreeC.Backend.Coq.Converter.Module
-                                               as Coq.Converter
+import qualified FreeC.Backend.Coq.Converter   as Coq.Converter
 import           FreeC.Backend.Coq.Pretty
 import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Application
