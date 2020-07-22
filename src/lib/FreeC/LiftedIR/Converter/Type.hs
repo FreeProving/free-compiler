@@ -21,7 +21,7 @@ import qualified FreeC.LiftedIR.Syntax         as LIR
 import           FreeC.Monad.Converter          ( Converter )
 import           FreeC.Monad.Reporter           ( reportFatal
                                                 , Message(Message)
-                                                , Severity(Error)
+                                                , Severity(Error, Internal)
                                                 )
 
 -- | Converts the argument types of a function.
