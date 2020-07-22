@@ -56,15 +56,19 @@ data Expr
     Undefined { exprSrcSpan :: SrcSpan
               }
 
-  | -- | Error term @error "<message>"@.
+  | -- | Error term @error@.
     ErrorExpr { exprSrcSpan  :: SrcSpan
-              , errorExprMsg :: String
               }
 
   | -- | An integer literal.
     IntLiteral { exprSrcSpan     :: SrcSpan
                , intLiteralValue :: Integer
                }
+
+  | -- | A string literal.
+    StringLiteral { exprSrcSpan :: SrcSpan
+                  , stringValue :: String
+                  }
 
   | -- | A lambda abstraction.
     Lambda { exprSrcSpan    :: SrcSpan

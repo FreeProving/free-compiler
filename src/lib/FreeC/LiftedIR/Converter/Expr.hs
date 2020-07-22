@@ -128,9 +128,25 @@ liftExpr' (IR.Case srcSpan discriminante patterns _) [] [] = do
   discriminant' <- liftExpr discriminante
   discriminant' `bind` \d -> LIR.Case srcSpan d <$> mapM liftAlt patterns
 
-liftExpr' (IR.Undefined srcSpan _    ) _ _ = return $ LIR.Undefined srcSpan
+liftExpr' (IR.Undefined srcSpan _) typeArgs args = do
+  let typeArgs' = map LIR.liftType' typeArgs
+  args' <- mapM liftExpr args
+  generateApply
+    (LIR.App srcSpan (LIR.Undefined srcSpan) typeArgs' [Partiality] [] True)
+    args'
 
-liftExpr' (IR.ErrorExpr srcSpan msg _) _ _ = return $ LIR.ErrorExpr srcSpan msg
+liftExpr' (IR.ErrorExpr srcSpan msg _) typeArgs args = do
+  let typeArgs' = map LIR.liftType' typeArgs
+  args' <- mapM liftExpr args
+  generateApply
+    (LIR.App srcSpan
+             (LIR.ErrorExpr srcSpan)
+             typeArgs'
+             [Partiality]
+             [LIR.StringLiteral srcSpan msg]
+             True
+    )
+    args'
 
 -- Visible type application of an expression other than a function or
 -- constructor.

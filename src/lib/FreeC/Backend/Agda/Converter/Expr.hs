@@ -35,15 +35,16 @@ convertLiftedExpr (LIR.If _ cond true false) =
     <*> convertLiftedExpr false
 convertLiftedExpr (LIR.Case _ discr alts) =
   Agda.caseOf <$> convertLiftedExpr discr <*> mapM convertLiftedAlt alts
-convertLiftedExpr (LIR.IntLiteral _ val ) = return $ Agda.intLiteral val
-convertLiftedExpr (LIR.Lambda _ args rhs) = do
+convertLiftedExpr (LIR.IntLiteral    _ val) = return $ Agda.intLiteral val
+convertLiftedExpr (LIR.StringLiteral _ str) = return $ Agda.stringLiteral str
+convertLiftedExpr (LIR.Lambda _ args rhs  ) = do
   let args' = map (Agda.unqualify . LIR.varPatAgdaIdent) args
   Agda.lambda args' <$> convertLiftedExpr rhs
 convertLiftedExpr (LIR.Pure _ expr) = generatePure <$> convertLiftedExpr expr
 convertLiftedExpr (LIR.Bind _ arg k) =
   bind <$> convertLiftedExpr arg <*> convertLiftedExpr k
-convertLiftedExpr (LIR.Undefined _    ) = return $ undefinedExpr
-convertLiftedExpr (LIR.ErrorExpr _ msg) = return $ errorExpr msg
+convertLiftedExpr (LIR.Undefined _) = return undefinedExpr
+convertLiftedExpr (LIR.ErrorExpr _) = return errorExpr
 
 -- | Converts a single pattern from a LIR case expression to an Agda
 --   expression.
