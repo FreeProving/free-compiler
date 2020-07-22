@@ -432,7 +432,7 @@ jobs:
         ./freec                                          \
           --transform-pattern-matching                   \
           --dump-transformed-modules example/transformed \
-          -b ./base/coq                                  \
+          -b ./base                                      \
           -o ./example/generated                         \
           $(find ./example -name "*.hs")
     - name: Copy compiled examples to build directory
