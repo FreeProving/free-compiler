@@ -39,16 +39,20 @@ convertTypeDecls
 convertTypeDecls comp = case comp of
   NonRecursive decl   -> convertTypeDecl decl False
   Recursive    [decl] -> convertTypeDecl decl True
-  Recursive    ds     -> reportFatal $ Message
-    (IR.typeDeclSrcSpan $ head ds)
-    Error
-    "Mutual recursive data types are not supported at the moment."
+  Recursive ds ->
+    reportFatal
+      $  Message (IR.typeDeclSrcSpan $ head ds) Error
+      $  "Mutual recursive data types are not supported by the Agda back end "
+      ++ "at the moment."
 
 -- | Converts a data or type synonym declaration.
 --   TODO: Convert type synonyms.
 convertTypeDecl :: IR.TypeDecl -> Bool -> Converter [Agda.Declaration]
-convertTypeDecl (IR.TypeSynDecl srcSpan _ _ _) _ = reportFatal
-  $ Message srcSpan Error "Type synonyms are not supported at the moment."
+convertTypeDecl (IR.TypeSynDecl srcSpan _ _ _) _ =
+  reportFatal
+    $  Message srcSpan Error
+    $  "Type synonyms are not supported by the Agda back end "
+    ++ "at the moment."
 convertTypeDecl (IR.DataDecl _ ident tVars constrs) isRec =
   (:)
     <$> convertDataDecl ident tVars constrs isRec
