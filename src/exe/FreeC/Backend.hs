@@ -122,9 +122,10 @@ createCoqProject = whenM coqProjectEnabled
   -- | Creates the string to write to the 'coqProject' file.
   makeContents :: Application String
   makeContents = do
-    baseDir        <- inOpts optBaseLibDir
+    baseDir <- inOpts optBaseLibDir
+    let coqBaseDir = baseDir </> "coq"
     Just outputDir <- inOpts optOutputDir
-    absBaseDir     <- liftIO $ makeAbsolute baseDir
+    absBaseDir     <- liftIO $ makeAbsolute coqBaseDir
     absOutputDir   <- liftIO $ makeAbsolute outputDir
     let relBaseDir = makeRelative absOutputDir absBaseDir
     return $ unlines

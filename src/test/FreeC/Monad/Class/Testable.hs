@@ -225,8 +225,8 @@ instance MonadTestable m err => MonadTestable (ReporterT m) [Message] where
 initTestEnvironment :: IO Environment
 initTestEnvironment = do
   (maybeEnv, ms) <- runReporterT $ do
-    preludeIface    <- loadTestModuleInterface "./base/coq/Prelude.toml"
-    quickCheckIface <- loadTestModuleInterface "./base/coq/Test/QuickCheck.toml"
+    preludeIface    <- loadTestModuleInterface "./base/Prelude.toml"
+    quickCheckIface <- loadTestModuleInterface "./base/Test/QuickCheck.toml"
     return
       $ foldr makeModuleAvailable emptyEnv
       $ [preludeIface, quickCheckIface]

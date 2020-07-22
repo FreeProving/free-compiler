@@ -62,7 +62,7 @@ data Options = Options
 --   the output directory (if one is specified).
 makeDefaultOptions :: IO Options
 makeDefaultOptions = do
-  defaultBaseLibDir <- getDataFileName "base/coq"
+  defaultBaseLibDir <- getDataFileName "base"
   return $ Options { optShowHelp                  = False
                    , optShowVersion               = False
                    , optInputFiles                = []

@@ -429,7 +429,7 @@ step "Building the Agda base library"        \
      "Built Agda base library successfully"  \
      "Failed to build the Agda base library" \
      "Canceled Agda base library build"      \
-     "./tool/check-agda.sh --recompile base/agda"
+     "./tool/check-agda.sh base/agda"
 
 # Generate Haddock documentation.
 step "Generating Haddock documentation"              \
@@ -452,7 +452,7 @@ step "Compiling examples"               \
      "cabal new-run freec --                           \\
         --transform-pattern-matching                   \\
         --dump-transformed-modules example/transformed \\
-        -b ./base/coq                                  \\
+        -b ./base/                                     \\
         -o ./example/generated                         \\
         \$(find ./example -path ./example/transformed -prune -o -name \"*.hs\" -print)"
 
