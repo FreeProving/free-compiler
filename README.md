@@ -61,6 +61,12 @@ This repository is structured as follows.
 
    This directory contains GitHub-related files such as issue and pull request templates as well as the configuration of the [CI pipeline][guidelines/CONTRIBUTING#the-ci-pipeline].
 
+ - `./base/agda`
+
+   This directory contains the Agda base library of the compiler.
+   The Agda base library is a collection of Agda files that are required by the generated code.
+   This includes the definition of the `Free` monad as well as the `Prelude` implementation.
+
  - `./base/coq`
 
    This directory contains the Coq base library of the compiler.
