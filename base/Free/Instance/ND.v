@@ -28,7 +28,7 @@ Module ND.
       : Free Shape' Pos' A :=
       impure (injS sfail) (fun p => (fun (x : Void) => match x with end) (injP p)).
 
-    Definition Choice {A : Type} (Shape' : Type) (Pos' : Shape' -> Type) 
+    Definition Choice_ {A : Type} (Shape' : Type) (Pos' : Shape' -> Type) 
     `{Injectable Shape Pos Shape' Pos'} mid l r
     : Free Shape' Pos' A := 
        let s := injS (schoice mid) 
@@ -36,7 +36,8 @@ Module ND.
 
     (* Curry notation for the choice operator. 
        The ID is set by the sharing handler. *)
-    Notation "x ? y" := (Choice _ _ None x y) (at level 80).
+    Definition Choice {A} Shape Pos `{I : Injectable ND.Shape ND.Pos Shape Pos} x y 
+      := @Choice_ A Shape Pos I None x y.
  End Monad.
 
   (* Handlers for non-determinism and call-time choice. *)
@@ -96,7 +97,7 @@ Module ND.
           | impure (inr (inl (ND.schoice id))) pf =>
              let l := nameChoices (next + 1) scope scopes (pf true) in
              let r := nameChoices (next + 1) scope scopes (pf false) in
-             Choice (SChoice Shape') (PChoice Pos') (Some (tripl scope next)) l r
+             Choice_ (SChoice Shape') (PChoice Pos') (Some (tripl scope next)) l r
           | impure (inr (inl ND.sfail)) _ => Fail (SChoice Shape') (PChoice Pos')
           | impure (inr (inr s)) pf =>
              impure (inr s) (fun p => nameChoices next scope scopes (pf p))
