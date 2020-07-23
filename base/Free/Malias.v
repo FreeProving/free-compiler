@@ -40,3 +40,15 @@ Definition cbneed {A : Type}
       pure x).
 
 End SecCbneed.
+
+(* Shareable instances. *)
+
+Instance Cbneed (Shape : Type) (Pos : Shape -> Type)
+                `{I : Injectable Share.Shape Share.Pos Shape Pos}
+ : Shareable Shape Pos | 1 := {
+    share A p := @cbneed Shape Pos A I p
+}.
+Instance Cbn (Shape : Type) (Pos : Shape -> Type)
+ : Shareable Shape Pos | 2 := {
+    share A p := @cbn A Shape Pos p
+}.

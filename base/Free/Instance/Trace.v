@@ -16,13 +16,13 @@ Module Trace.
   (* Type synonym and smart constructors for the tracing effect. *)
   Module Import Monad.
     Definition Trace (A : Type) : Type := Free Shape Pos A.
-    Definition Nil {A : Type} 
+    Definition NoMsg {A : Type} 
                    (Shape' : Type) 
                    (Pos' : Shape' -> Type)
                    `{Injectable Shape Pos Shape' Pos'} 
                    (x : A) 
       : Free Shape' Pos' A := pure x.
-    Definition LCons {A : Type} 
+    Definition Msg {A : Type} 
                      (Shape' : Type) 
                      (Pos' : Shape' -> Type)
                      `{Injectable Shape Pos Shape' Pos'} 
@@ -32,14 +32,6 @@ Module Trace.
       : Free Shape' Pos' A :=
       impure (injS (mid, msg)) (fun tt => x).
 
-    (* A function to log a message in addition to returning a value. *)
-    Definition trace {A : Type} 
-                     {Shape' : Type} 
-                     {Pos' : Shape' -> Type} 
-                     `{i : Injectable Shape Pos Shape' Pos'} 
-                     (msg : string) 
-                     (x : Free Shape' Pos' A) := 
-      @LCons A Shape' Pos' i None msg x. 
   End Monad.
   (* Handlers for tracing and sharing combined with tracing. *)
   Module Import Handler.
@@ -94,7 +86,7 @@ Module Trace.
             nameMessages next n' scopes (pf tt)
           | impure (inr (inl (_,msg))) pf        =>
             let x := nameMessages (next + 1) scope scopes (pf tt) in
-            LCons (STrace Shape') (PTrace Pos') (Some (tripl scope next)) msg x
+            Msg (STrace Shape') (PTrace Pos') (Some (tripl scope next)) msg x
           | impure (inr (inr s)) pf              =>
             impure (inr s) (fun p => nameMessages next scope scopes (pf p)) 
           end
@@ -112,6 +104,13 @@ Module Trace.
             impure s (fun p => runTraceSharing n (pf p))
           end.
        End Handler.
+
+  (* Traceable instance for the Trace effect. *)
+  Instance Trace (Shape' : Type) (Pos' : Shape' -> Type)
+                 `{I: Injectable Shape Pos Shape' Pos'}
+   : Traceable Shape' Pos' := {
+     trace A msg p := @Msg A Shape' Pos' I None msg p
+  }.
   (* There is no Partial instance. *)
 End Trace.
 
