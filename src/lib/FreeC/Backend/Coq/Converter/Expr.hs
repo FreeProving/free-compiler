@@ -232,15 +232,14 @@ convertExpr' (IR.Lambda _ args expr _) [] [] = localEnv $ do
 
 convertExpr' (IR.Let _ binds expr _) [] [] = localEnv $ do
   let bindPatsExprs = map (\x -> (IR.bindVarPat x, IR.bindExpr x)) binds
-  expr' <- convertExpr expr -- wrong order ?
-  foldrM helper expr' bindPatsExprs
+  foldr helper (convertExpr expr) bindPatsExprs
    where
-    helper :: (IR.VarPat, IR.Expr) -> Coq.Term -> Converter Coq.Term
-    helper (p, e) inExprTerm = do
+    helper :: (IR.VarPat, IR.Expr) -> Converter Coq.Term -> Converter Coq.Term
+    helper (p, e) inExprConverter = do
       e'      <- convertExpr e
       qualid  <- renameAndDefineVar (IR.varPatSrcSpan p) (IR.varPatIsStrict p) (IR.varPatIdent p) (IR.varPatType p)
       varPatType' <- mapM convertType (IR.varPatType p)
-      return (Coq.Let qualid [] varPatType' e' inExprTerm)
+      Coq.Let qualid [] varPatType' e' <$> inExprConverter
 
 -- Visible type application of an expression other than a function or
 -- constructor.
