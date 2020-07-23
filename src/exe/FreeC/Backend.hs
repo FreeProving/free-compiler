@@ -170,7 +170,7 @@ createAgdaLib = do
   getAgdaLib :: Application (FilePath, String)
   getAgdaLib = do
     Just outputDir <- inOpts optOutputDir
-    name <- liftIO $ last . splitPath <$> makeAbsolute outputDir
+    name           <- liftIO $ last . splitPath <$> makeAbsolute outputDir
     return (outputDir </> (name ++ ".agda-lib"), name)
 
 -- | The Agda backend.
