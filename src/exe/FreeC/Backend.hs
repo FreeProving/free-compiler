@@ -150,7 +150,7 @@ convertModuleToAgda :: IR.Module -> Application String
 convertModuleToAgda =
   fmap showPretty . liftConverter . Agda.Converter.convertModule
 
--- | Creates an '.agda-lib' file for the output directory.
+-- | Creates an @.agda-lib@ file for the output directory.
 --
 --   The file declares dependencies on the Agda standard library and our base
 --   library.
@@ -161,10 +161,12 @@ createAgdaLib = do
     createDirectoryIfMissing True (takeDirectory agdaLib)
     writeFile agdaLib $ contents name
  where
+  -- | Creates the string to write to the @.agda-lib@ file.
   contents :: String -> String
   contents name =
     unlines ["name: " ++ name, "include: .", "depend: standard-library base"]
 
+  -- | Path to the @.agda-lib@ file to create and the name of the library.
   getAgdaLib :: Application (FilePath, String)
   getAgdaLib = do
     Just outputDir <- inOpts optOutputDir
