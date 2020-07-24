@@ -364,8 +364,10 @@ simplifyDeclHead (HSE.DHApp _ declHead typeVarBind) = do
   (declIdent, typeArgs) <- simplifyDeclHead declHead
   typeArg               <- simplifyTypeVarBind typeVarBind
   return (declIdent, typeArgs ++ [typeArg])
-simplifyDeclHead declHead@(HSE.DHInfix _ _ _) =
-  notSupported "Type operators" declHead
+simplifyDeclHead (HSE.DHInfix _ typeVarBind declName) = do
+  typeArg   <- simplifyTypeVarBind typeVarBind
+  declIdent <- simplifyDeclName declName
+  return (declIdent, [typeArg])
 
 -- | Gets the name of a data type or type synonym declaration from the name
 --   stored in the head of the declaration.
