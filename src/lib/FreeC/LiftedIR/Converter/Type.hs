@@ -38,7 +38,7 @@ liftNonRecFuncArgTypes = mapM $ \pat ->
           reportFatal
             $ Message (IR.varPatSrcSpan pat) Internal
             $ "Expected variable pattern to have a type annotation."
-  in  liftVarPatType pat >>= maybe err pure
+  in  liftVarPatType pat >>= maybe err return
 
 -- | Converts the argument types of a recursive function using @convertType@.
 --
