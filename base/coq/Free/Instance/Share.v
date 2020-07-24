@@ -21,22 +21,22 @@ Module Share.
   Module Import Monad.
     Definition Share (A : Type) : Type := Free Shape Pos A.
 
-    Definition Get {Shape' : Type} {Pos' : Shape' -> Type} 
+    Definition Get (Shape' : Type) (Pos' : Shape' -> Type) 
     `{Injectable Shape Pos Shape' Pos'} 
     : Free Shape' Pos' (nat * nat) :=
     impure (injS sget) (fun p => pure (injP p)).
 
-    Definition Put (n : nat * nat) {Shape' : Type} {Pos' : Shape' -> Type} 
+    Definition Put (Shape' : Type) (Pos' : Shape' -> Type) (n : nat * nat) 
     `{Injectable Shape Pos Shape' Pos'} 
     : Free Shape' Pos' unit :=
     impure (injS (sput n)) (fun _ => pure tt).
 
-    Definition BeginShare (n : nat * nat) {Shape' : Type} {Pos' : Shape' -> Type} 
+    Definition BeginShare (Shape' : Type) (Pos' : Shape' -> Type) (n : nat * nat)
     `{Injectable Shape Pos Shape' Pos'} 
     : Free Shape' Pos' unit :=
     impure (injS (sbsharing n)) (fun _ => pure tt).
 
-    Definition EndShare (n : nat * nat) {Shape' : Type} {Pos' : Shape' -> Type} 
+    Definition EndShare (Shape' : Type) (Pos' : Shape' -> Type) (n : nat * nat)
     `{Injectable Shape Pos Shape' Pos'} 
     : Free Shape' Pos' unit :=
     impure (injS (sesharing n)) (fun _ => pure tt).

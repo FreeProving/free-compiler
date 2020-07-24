@@ -6,7 +6,7 @@ module FreeC.Backend.Coq.Analysis.ConstantArgumentsTests
   )
 where
 
-import qualified Data.Map                      as Map
+import qualified Data.Map.Strict               as Map
 import           Test.Hspec              hiding ( shouldReturn )
 
 import           FreeC.Backend.Coq.Analysis.ConstantArguments

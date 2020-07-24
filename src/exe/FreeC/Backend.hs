@@ -12,7 +12,7 @@ import           Control.Monad.Extra            ( unlessM
                                                 , whenM
                                                 )
 import           Control.Monad.IO.Class
-import qualified Data.Map.Lazy                 as Map
+import qualified Data.Map.Strict               as Map
 import           Data.Maybe                     ( isJust )
 import           Data.List                      ( intercalate )
 import           System.Directory               ( createDirectoryIfMissing
