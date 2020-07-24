@@ -14,7 +14,7 @@
 
 module FreeC.IR.Base.Prelude where
 
-import qualified FreeC.IR.Syntax.Name          as IR
+import qualified FreeC.IR.Syntax               as IR
 
 -------------------------------------------------------------------------------
 -- Names of predefined modules                                               --

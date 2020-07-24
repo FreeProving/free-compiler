@@ -2,7 +2,7 @@
 
 From Base Require Import Free.Instance.Comb.
 From Base Require Import Free.Monad.
-From Base Require Import Free.Partial.
+From Base Require Import Free.Class.Partial.
 
 (* injS embeds an effect in an effect stack that contains it. 
    injP allows us to view a position of an embedded effect as an 

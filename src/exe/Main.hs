@@ -9,7 +9,7 @@ import           Control.Monad.Extra            ( unlessM
 import           Control.Monad.IO.Class
 import           Data.List                      ( intercalate )
 import           Data.List.Extra                ( splitOn )
-import qualified Data.Map.Lazy                 as Map
+import qualified Data.Map.Strict               as Map
 import           System.Directory               ( createDirectoryIfMissing
                                                 , doesFileExist
                                                 )

@@ -1,5 +1,4 @@
 From Base Require Import Free.
-From Base Require Import Free.Partial.
 From Base Require Import Prelude.Bool.
 
 (* We need to export this library (instead of just importing it) such that we

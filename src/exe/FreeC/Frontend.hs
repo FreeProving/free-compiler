@@ -10,7 +10,7 @@ where
 
 import           Control.Monad.Extra            ( ifM )
 import           Control.Monad.IO.Class
-import qualified Data.Map.Lazy                 as Map
+import qualified Data.Map.Strict               as Map
 import           Data.List                      ( intercalate )
 import qualified Language.Haskell.Exts.Syntax  as HSE
 import           System.Directory               ( createDirectoryIfMissing )
