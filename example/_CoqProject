@@ -1,2 +1,2 @@
 -R ./generated Generated
--R ../base Base
+-R ../base/coq Base

@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TypeApplications #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 -- | This module contains functions for encoding 'ModuleInterface's in JSON
@@ -22,6 +23,8 @@ import qualified Data.Aeson                    as Aeson
 import           Data.Maybe                     ( mapMaybe )
 import qualified Data.Set                      as Set
 
+import           FreeC.Backend.Agda.Pretty
+import qualified FreeC.Backend.Agda.Syntax     as Agda
 import           FreeC.Backend.Coq.Pretty
 import qualified FreeC.Backend.Coq.Syntax      as Coq
 import           FreeC.Environment.Entry
@@ -52,6 +55,9 @@ instance Aeson.ToJSON IR.Type where
 
 instance Aeson.ToJSON Coq.Qualid where
   toJSON = Aeson.toJSON . showPretty . PrettyCoq
+
+instance Aeson.ToJSON Agda.QName where
+  toJSON = Aeson.toJSON . show . prettyAgda
 
 -- | Serializes a 'ModuleInterface'.
 instance Aeson.ToJSON ModuleInterface where
@@ -91,12 +97,14 @@ encodeEntry entry
   | isDataEntry entry = return $ Aeson.object
     [ "haskell-name" .= haskellName
     , "coq-name" .= coqName
-    , "arity" .= arity
+    , "agda-name" .= agdaName
     , "cons-names" .= consNames
+    , "arity" .= arity
     ]
   | isTypeSynEntry entry = return $ Aeson.object
     [ "haskell-name" .= haskellName
     , "coq-name" .= coqName
+    , "agda-name" .= agdaName
     , "arity" .= arity
     , "haskell-type" .= typeSyn
     , "type-arguments" .= typeArgs
@@ -105,13 +113,16 @@ encodeEntry entry
     [ "haskell-type" .= haskellType
     , "haskell-name" .= haskellName
     , "coq-name" .= coqName
+    , "agda-name" .= agdaName
     , "coq-smart-name" .= coqSmartName
+    , "agda-smart-name" .= agdaSmartName
     , "arity" .= arity
     ]
   | isFuncEntry entry = return $ Aeson.object
     [ "haskell-type" .= haskellType
     , "haskell-name" .= haskellName
     , "coq-name" .= coqName
+    , "agda-name" .= agdaName
     , "arity" .= arity
     , "partial" .= partial
     , "needs-free-args" .= freeArgsNeeded
@@ -124,6 +135,14 @@ encodeEntry entry
   coqName, coqSmartName :: Aeson.Value
   coqName      = Aeson.toJSON (entryIdent entry)
   coqSmartName = Aeson.toJSON (entrySmartIdent entry)
+
+  -- @entryAgdaIdent entry@ is undefined because the agda renamer isn't
+  -- implemented at the moment. To allow encoding a dummy value is needed.
+  -- I decided to insert the placeholder at this point to avoid placing
+  -- temporary code at at every point were an environment entry is initialized.
+  agdaName, agdaSmartName :: Aeson.Value
+  agdaName      = Aeson.toJSON @String "placeholder" -- (entryAgdaIdent entry)
+  agdaSmartName = Aeson.toJSON @String "placeholder" -- (entryAgdaSmartIdent entry)
 
   arity :: Aeson.Value
   arity = Aeson.toJSON (entryArity entry)

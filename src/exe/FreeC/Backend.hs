@@ -22,9 +22,13 @@ import           System.Directory               ( createDirectoryIfMissing
 import           System.FilePath
 
 import           FreeC.Application.Options
+import qualified FreeC.Backend.Agda.Converter.Module
+                                               as Agda.Converter
+import           FreeC.Backend.Agda.Pretty      ( )
 import qualified FreeC.Backend.Coq.Base        as Coq.Base
-import qualified FreeC.Backend.Coq.Converter   as Coq.Converter
-import           FreeC.Backend.Coq.Pretty
+import qualified FreeC.Backend.Coq.Converter.Module
+                                               as Coq.Converter
+import           FreeC.Backend.Coq.Pretty       ( )
 import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Application
 import           FreeC.Pretty                   ( showPretty )
@@ -44,7 +48,8 @@ data Backend = Backend
 
 -- | A map of all available backends with the name of those backends as keys.
 backends :: Map.Map String Backend
-backends = Map.fromList [ (backendName b, b) | b <- [coqBackend, irBackend] ]
+backends = Map.fromList
+  [ (backendName b, b) | b <- [coqBackend, irBackend, agdaBackend] ]
 
 -- | Shows a list of all backends.
 showBackends :: String
@@ -72,9 +77,8 @@ irBackend = Backend { backendName          = "ir"
 
 -- | Converts a module to a Coq program.
 convertModuleToCoq :: IR.Module -> Application String
-convertModuleToCoq ast = do
-  ast' <- liftConverter $ Coq.Converter.convertModule ast
-  return $ showPretty $ map PrettyCoq ast'
+convertModuleToCoq =
+  fmap showPretty . liftConverter . Coq.Converter.convertModule
 
 -- | Creates a @_CoqProject@ file (if enabled) that maps the physical directory
 --   of the Base library.
@@ -118,9 +122,10 @@ createCoqProject = whenM coqProjectEnabled
   -- | Creates the string to write to the 'coqProject' file.
   makeContents :: Application String
   makeContents = do
-    baseDir        <- inOpts optBaseLibDir
+    baseDir <- inOpts optBaseLibDir
+    let coqBaseDir = baseDir </> "coq"
     Just outputDir <- inOpts optOutputDir
-    absBaseDir     <- liftIO $ makeAbsolute baseDir
+    absBaseDir     <- liftIO $ makeAbsolute coqBaseDir
     absOutputDir   <- liftIO $ makeAbsolute outputDir
     let relBaseDir = makeRelative absOutputDir absBaseDir
     return $ unlines
@@ -135,3 +140,52 @@ coqBackend = Backend { backendName          = "coq"
                      , backendFileExtension = "v"
                      , backendSpecialAction = createCoqProject
                      }
+
+-------------------------------------------------------------------------------
+-- Agda backend                                                              --
+-------------------------------------------------------------------------------
+
+-- | Converts an IR module to an Agda program.
+convertModuleToAgda :: IR.Module -> Application String
+convertModuleToAgda =
+  fmap showPretty . liftConverter . Agda.Converter.convertModule
+
+-- | Creates an @.agda-lib@ file for the output directory.
+--
+--   The file declares dependencies on the Agda standard library and our base
+--   library.
+createAgdaLib :: Application ()
+createAgdaLib = whenM agdaLibEnabled $ unlessM agdaLibExists $ do
+  (agdaLib, name) <- getAgdaLib
+  liftIO $ do
+    createDirectoryIfMissing True (takeDirectory agdaLib)
+    writeFile agdaLib $ contents name
+ where
+  agdaLibEnabled :: Application Bool
+  agdaLibEnabled = do
+    isEnabled      <- inOpts optCreateAgdaLib
+    maybeOutputDir <- inOpts optOutputDir
+    return $ isEnabled && isJust maybeOutputDir
+
+  agdaLibExists :: Application Bool
+  agdaLibExists = getAgdaLib >>= liftIO . doesFileExist . fst
+
+  -- | Creates the string to write to the @.agda-lib@ file.
+  contents :: String -> String
+  contents name =
+    unlines ["name: " ++ name, "include: .", "depend: standard-library base"]
+
+  -- | Path to the @.agda-lib@ file to create and the name of the library.
+  getAgdaLib :: Application (FilePath, String)
+  getAgdaLib = do
+    Just outputDir <- inOpts optOutputDir
+    name <- liftIO $ last . splitDirectories <$> makeAbsolute outputDir
+    return (outputDir </> (name ++ ".agda-lib"), name)
+
+-- | The Agda backend.
+agdaBackend :: Backend
+agdaBackend = Backend { backendName          = "agda"
+                      , backendConvertModule = convertModuleToAgda
+                      , backendFileExtension = "agda"
+                      , backendSpecialAction = createAgdaLib
+                      }

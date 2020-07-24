@@ -36,6 +36,8 @@ data-files:          base/Prelude.toml
                    , base/Test/QuickCheck.toml
                    , base/**/*.v
                    , base/**/*.vo
+                   , base/**/*.agda
+                   , base/**/*.agda-lib
 
 -- Build configuration.
 build-type:          Simple
@@ -44,6 +46,7 @@ build-type:          Simple
 common deps
   build-depends:     base                        ==4.12.*
                      -- ASTs:
+                   , Agda                        ==2.6.*
                    , haskell-src-exts            ==1.23.*
                    , language-coq                ==0.1.*
                      -- Configuration:
@@ -82,7 +85,20 @@ common deps
 library freec-internal
   import:             deps
   hs-source-dirs:     src/lib
-  exposed-modules:      FreeC.Backend.Coq.Analysis.ConstantArguments
+  exposed-modules:      FreeC.Backend.Agda.Base
+                      , FreeC.Backend.Agda.Converter
+                      , FreeC.Backend.Agda.Converter.Arg
+                      , FreeC.Backend.Agda.Converter.Expr
+                      , FreeC.Backend.Agda.Converter.Free
+                      , FreeC.Backend.Agda.Converter.FuncDecl
+                      , FreeC.Backend.Agda.Converter.Module
+                      , FreeC.Backend.Agda.Converter.Size
+                      , FreeC.Backend.Agda.Converter.Type
+                      , FreeC.Backend.Agda.Converter.TypeDecl
+                      , FreeC.Backend.Agda.Keywords
+                      , FreeC.Backend.Agda.Pretty
+                      , FreeC.Backend.Agda.Syntax
+                      , FreeC.Backend.Coq.Analysis.ConstantArguments
                       , FreeC.Backend.Coq.Analysis.DecreasingArguments
                       , FreeC.Backend.Coq.Base
                       , FreeC.Backend.Coq.Converter
@@ -125,6 +141,7 @@ library freec-internal
                       , FreeC.IR.Base.Test.QuickCheck
                       , FreeC.IR.DependencyGraph
                       , FreeC.IR.Inlining
+                      , FreeC.IR.Pragma
                       , FreeC.IR.Reference
                       , FreeC.IR.Similar
                       , FreeC.IR.SrcSpan
@@ -144,6 +161,8 @@ library freec-internal
                       , FreeC.IR.TypeScheme
                       , FreeC.IR.TypeSynExpansion
                       , FreeC.IR.Unification
+                      , FreeC.LiftedIR.Converter.Expr
+                      , FreeC.LiftedIR.Converter.Type
                       , FreeC.LiftedIR.Effect
                       , FreeC.LiftedIR.Syntax
                       , FreeC.LiftedIR.Syntax.Expr
@@ -199,6 +218,9 @@ test-suite freec-unit-tests
   main-is:            Spec.hs
   ghc-options:        -main-is Spec
   other-modules:      Paths_free_compiler
+                    , FreeC.Backend.Agda.Converter.FuncDeclTests
+                    , FreeC.Backend.Agda.Converter.TypeDeclTests
+                    , FreeC.Backend.Agda.Tests
                     , FreeC.Backend.Coq.Analysis.ConstantArgumentsTests
                     , FreeC.Backend.Coq.Analysis.DecreasingArgumentsTests
                     , FreeC.Backend.Coq.ConverterTests

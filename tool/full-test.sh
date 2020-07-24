@@ -250,6 +250,7 @@ function check_required_software() {
   check_version "Coq" coqc '8.8.*|8.9.*|8.10.*|8.11.*' >> "$temp_log"
   check_version "HLint" hlint '3.1.*' >> "$temp_log"
   check_version "Brittany" brittany '0.12.*'>> "$temp_log"
+  check_version "Agda" agda '2.6.1' >> "$temp_log"
 
   # Print reported messages.
   local log_text=$(cat "$temp_log")
@@ -416,12 +417,19 @@ step "Building the command line interface"        \
      "Canceled command line interface build"      \
      "cabal new-build freec"
 
-# Build the base library.
-step "Building the base library"        \
-     "Built base library successfully"  \
-     "Failed to build the base library" \
-     "Canceled base library build"      \
-     "./tool/compile-coq.sh --recompile base"
+# Build the Coq base library.
+step "Building the Coq base library"        \
+     "Built Coq base library successfully"  \
+     "Failed to build the Coq base library" \
+     "Canceled Coq base library build"      \
+     "./tool/compile-coq.sh --recompile base/coq"
+
+# Build the Agda base library.
+step "Building the Agda base library"        \
+     "Built Agda base library successfully"  \
+     "Failed to build the Agda base library" \
+     "Canceled Agda base library build"      \
+     "./tool/check-agda.sh base/agda"
 
 # Generate Haddock documentation.
 step "Generating Haddock documentation"              \
@@ -444,7 +452,7 @@ step "Compiling examples"               \
      "cabal new-run freec --                           \\
         --transform-pattern-matching                   \\
         --dump-transformed-modules example/transformed \\
-        -b ./base                                      \\
+        -b ./base/                                     \\
         -o ./example/generated                         \\
         \$(find ./example -path ./example/transformed -prune -o -name \"*.hs\" -print)"
 

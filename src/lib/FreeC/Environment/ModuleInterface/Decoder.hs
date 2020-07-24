@@ -119,6 +119,7 @@ import           Data.Text                      ( Text )
 import qualified Data.Text                     as Text
 import qualified Data.Vector                   as Vector
 
+import qualified FreeC.Backend.Agda.Syntax     as Agda
 import qualified FreeC.Backend.Coq.Syntax      as Coq
 import           FreeC.Environment.ModuleInterface
 import           FreeC.Environment.Entry
@@ -159,6 +160,10 @@ instance Aeson.FromJSON IR.QName where
 instance Aeson.FromJSON Coq.Qualid where
   parseJSON = Aeson.withText "Coq.Qualid" $ return . Coq.bare . Text.unpack
 
+instance Aeson.FromJSON Agda.QName where
+  parseJSON =
+    Aeson.withText "Agda.QName" $ return . Agda.qname' . Agda.name . Text.unpack
+
 -- | Restores a Haskell type from the interface file.
 instance Aeson.FromJSON IR.Type where
   parseJSON = Aeson.withText "IR.Type" parseAesonIR
@@ -195,18 +200,19 @@ instance Aeson.FromJSON ModuleInterface where
         "Functions"
         (mapM parseConfigFunc)
     return ModuleInterface
-      { interfaceModName = modName
-      , interfaceLibName = libName
-      , interfaceExports = Set.fromList
-                             (  map ((,) IR.TypeScope)  exportedTypes
-                             ++ map ((,) IR.ValueScope) exportedValues
-                             )
-      , interfaceEntries = Set.fromList
-                             (  Vector.toList types
-                             ++ Vector.toList typeSyns
-                             ++ Vector.toList cons
-                             ++ Vector.toList funcs
-                             )
+      { interfaceModName     = modName
+      , interfaceLibName     = libName
+      , interfaceAgdaLibName = Agda.name $ Text.unpack $ libName
+      , interfaceExports     = Set.fromList
+                                 (  map ((,) IR.TypeScope)  exportedTypes
+                                 ++ map ((,) IR.ValueScope) exportedValues
+                                 )
+      , interfaceEntries     = Set.fromList
+                                 (  Vector.toList types
+                                 ++ Vector.toList typeSyns
+                                 ++ Vector.toList cons
+                                 ++ Vector.toList funcs
+                                 )
       }
    where
     parseConfigType :: Aeson.Value -> Aeson.Parser EnvEntry
@@ -214,10 +220,12 @@ instance Aeson.FromJSON ModuleInterface where
       arity       <- obj .: "arity"
       haskellName <- obj .: "haskell-name"
       coqName     <- obj .: "coq-name"
+      agdaName    <- obj .: "agda-name"
       consNames   <- obj .: "cons-names"
       return DataEntry { entrySrcSpan   = NoSrcSpan
                        , entryArity     = arity
                        , entryIdent     = coqName
+                       , entryAgdaIdent = agdaName
                        , entryName      = haskellName
                        , entryConsNames = consNames
                        }
@@ -229,30 +237,36 @@ instance Aeson.FromJSON ModuleInterface where
       typeArgs    <- obj .: "type-arguments"
       haskellName <- obj .: "haskell-name"
       coqName     <- obj .: "coq-name"
-      return TypeSynEntry { entrySrcSpan  = NoSrcSpan
-                          , entryArity    = arity
-                          , entryTypeArgs = typeArgs
-                          , entryTypeSyn  = typeSyn
-                          , entryIdent    = coqName
-                          , entryName     = haskellName
+      agdaName    <- obj .: "agda-name"
+      return TypeSynEntry { entrySrcSpan   = NoSrcSpan
+                          , entryArity     = arity
+                          , entryTypeArgs  = typeArgs
+                          , entryTypeSyn   = typeSyn
+                          , entryIdent     = coqName
+                          , entryAgdaIdent = agdaName
+                          , entryName      = haskellName
                           }
 
     parseConfigCon :: Aeson.Value -> Aeson.Parser EnvEntry
     parseConfigCon = Aeson.withObject "Constructor" $ \obj -> do
-      arity        <- obj .: "arity"
-      haskellName  <- obj .: "haskell-name"
-      haskellType  <- obj .: "haskell-type"
-      coqName      <- obj .: "coq-name"
-      coqSmartName <- obj .: "coq-smart-name"
+      arity         <- obj .: "arity"
+      haskellName   <- obj .: "haskell-name"
+      haskellType   <- obj .: "haskell-type"
+      coqName       <- obj .: "coq-name"
+      coqSmartName  <- obj .: "coq-smart-name"
+      agdaName      <- obj .: "agda-name"
+      agdaSmartName <- obj .: "agda-smart-name"
       let (argTypes, returnType) = IR.splitFuncType haskellType arity
-      return ConEntry { entrySrcSpan    = NoSrcSpan
-                      , entryArity      = arity
-                      , entryTypeArgs   = freeTypeVars returnType
-                      , entryArgTypes   = argTypes
-                      , entryReturnType = returnType
-                      , entryIdent      = coqName
-                      , entrySmartIdent = coqSmartName
-                      , entryName       = haskellName
+      return ConEntry { entrySrcSpan        = NoSrcSpan
+                      , entryArity          = arity
+                      , entryTypeArgs       = freeTypeVars returnType
+                      , entryArgTypes       = argTypes
+                      , entryReturnType     = returnType
+                      , entryIdent          = coqName
+                      , entrySmartIdent     = coqSmartName
+                      , entryAgdaIdent      = agdaName
+                      , entryAgdaSmartIdent = agdaSmartName
+                      , entryName           = haskellName
                       }
 
     parseConfigFunc :: Aeson.Value -> Aeson.Parser EnvEntry
@@ -263,6 +277,7 @@ instance Aeson.FromJSON ModuleInterface where
       partial        <- obj .: "partial"
       freeArgsNeeded <- obj .: "needs-free-args"
       coqName        <- obj .: "coq-name"
+      agdaName       <- obj .: "agda-name"
       -- TODO this does not work with vanishing type arguments.
       let (argTypes, returnType) = IR.splitFuncType haskellType arity
           typeArgs               = freeTypeVars haskellType
@@ -275,6 +290,7 @@ instance Aeson.FromJSON ModuleInterface where
                        , entryNeedsFreeArgs = freeArgsNeeded
                        , entryIsPartial     = partial
                        , entryIdent         = coqName
+                       , entryAgdaIdent     = agdaName
                        , entryName          = haskellName
                        }
 

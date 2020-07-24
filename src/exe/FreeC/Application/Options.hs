@@ -40,6 +40,11 @@ data Options = Options
     --   ouput directory. This argument is ignored if 'optOutputDir' is not
     --   specified.
 
+  , optCreateAgdaLib             :: Bool
+    -- ^ Flag that indicates whether to generate a @.agda-lib@ file in the
+    --   ouput directory. This argument is ignored if 'optOutputDir' is not
+    --   specified.
+
   , optTransformPatternMatching  :: Bool
     -- ^ Flag that indicates whether to transform pattern matching, perform
     --   guard elimination and case completion.
@@ -54,7 +59,7 @@ data Options = Options
 
 -- | The default command line options.
 --
---   The base library directory defaults to the @base@ directory in the
+--   The base library directory defaults to the @base/coq@ directory in the
 --   cabal data directory.
 --
 --   By default output will be printed to the console.
@@ -70,6 +75,7 @@ makeDefaultOptions = do
                    , optImportDirs                = ["."]
                    , optBaseLibDir                = defaultBaseLibDir
                    , optCreateCoqProject          = True
+                   , optCreateAgdaLib             = True
                    , optTransformPatternMatching  = False
                    , optDumpTransformedModulesDir = Nothing
                    , optFrontend                  = defaultFrontend

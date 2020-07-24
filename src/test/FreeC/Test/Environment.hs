@@ -55,9 +55,10 @@ renameAndAddTestEntry' = renameAndAddEntry
 defineTestTypeVar :: String -> Converter String
 defineTestTypeVar nameStr = do
   name <- parseTestQName nameStr
-  renameAndAddTestEntry TypeVarEntry { entrySrcSpan = NoSrcSpan
-                                     , entryName    = name
-                                     , entryIdent   = undefined -- filled by renamer
+  renameAndAddTestEntry TypeVarEntry { entrySrcSpan   = NoSrcSpan
+                                     , entryName      = name
+                                     , entryIdent     = undefined -- filled by renamer
+                                     , entryAgdaIdent = undefined -- filled by renamer
                                      }
 
 -------------------------------------------------------------------------------
@@ -72,12 +73,13 @@ defineTestTypeSyn :: String -> [String] -> String -> Converter String
 defineTestTypeSyn nameStr typeArgs typeStr = do
   name     <- parseTestQName nameStr
   typeExpr <- parseTestType typeStr
-  renameAndAddTestEntry TypeSynEntry { entrySrcSpan  = NoSrcSpan
-                                     , entryArity    = length typeArgs
-                                     , entryTypeArgs = typeArgs
-                                     , entryTypeSyn  = typeExpr
-                                     , entryName     = name
-                                     , entryIdent    = undefined -- filled by renamer
+  renameAndAddTestEntry TypeSynEntry { entrySrcSpan   = NoSrcSpan
+                                     , entryArity     = length typeArgs
+                                     , entryTypeArgs  = typeArgs
+                                     , entryTypeSyn   = typeExpr
+                                     , entryName      = name
+                                     , entryIdent     = undefined -- filled by renamer
+                                     , entryAgdaIdent = undefined -- filled by renamer
                                      }
 
 -------------------------------------------------------------------------------
@@ -95,8 +97,9 @@ defineTestTypeCon nameStr arity consNameStrs = do
   renameAndAddTestEntry DataEntry { entrySrcSpan   = NoSrcSpan
                                   , entryArity     = arity
                                   , entryName      = name
-                                  , entryIdent     = undefined -- filled by renamer
                                   , entryConsNames = consNames
+                                  , entryIdent     = undefined -- filled by renamer
+                                  , entryAgdaIdent = undefined -- filled by renamer
                                   }
 
 -------------------------------------------------------------------------------
@@ -114,14 +117,16 @@ defineTestCon nameStr arity typeStr = do
   IR.TypeScheme _ typeArgs typeExpr <- parseExplicitTestTypeScheme typeStr
   let (argTypes, returnType) = IR.splitFuncType typeExpr arity
   entry <- renameAndAddTestEntry' ConEntry
-    { entrySrcSpan    = NoSrcSpan
-    , entryArity      = arity
-    , entryTypeArgs   = map IR.typeVarDeclIdent typeArgs
-    , entryArgTypes   = argTypes
-    , entryReturnType = returnType
-    , entryName       = name
-    , entryIdent      = undefined -- filled by renamer
-    , entrySmartIdent = undefined -- filled by renamer
+    { entrySrcSpan        = NoSrcSpan
+    , entryArity          = arity
+    , entryTypeArgs       = map IR.typeVarDeclIdent typeArgs
+    , entryArgTypes       = argTypes
+    , entryReturnType     = returnType
+    , entryName           = name
+    , entryIdent          = undefined -- filled by renamer
+    , entryAgdaIdent      = undefined -- filled by renamer
+    , entrySmartIdent     = undefined -- filled by renamer
+    , entryAgdaSmartIdent = undefined -- filled by renamer
     }
   let (Just ident'     ) = Coq.unpackQualid (entryIdent entry)
       (Just smartIdent') = Coq.unpackQualid (entrySmartIdent entry)
@@ -138,11 +143,12 @@ defineTestCon nameStr arity typeStr = do
 defineTestVar :: String -> Converter String
 defineTestVar nameStr = do
   name <- parseTestQName nameStr
-  renameAndAddTestEntry VarEntry { entrySrcSpan = NoSrcSpan
-                                 , entryIsPure  = False
-                                 , entryName    = name
-                                 , entryIdent   = undefined -- filled by renamer
-                                 , entryType    = Nothing
+  renameAndAddTestEntry VarEntry { entrySrcSpan   = NoSrcSpan
+                                 , entryIsPure    = False
+                                 , entryName      = name
+                                 , entryIdent     = undefined -- filled by renamer
+                                 , entryAgdaIdent = undefined -- filled by renamer
+                                 , entryType      = Nothing
                                  }
 
 -------------------------------------------------------------------------------
@@ -177,6 +183,7 @@ defineTestFunc' partial areStrict nameStr arity typeStr = do
     , entryIsPartial     = partial
     , entryName          = name
     , entryIdent         = undefined -- filled by renamer
+    , entryAgdaIdent     = undefined -- filled by renamer
     }
 
 -- | Like 'defineTestFunc' but also marks the given function as partial.
