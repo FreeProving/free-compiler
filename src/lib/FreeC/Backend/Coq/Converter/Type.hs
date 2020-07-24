@@ -2,6 +2,8 @@
 
 module FreeC.Backend.Coq.Converter.Type where
 
+import           Control.Monad                  ( (>=>) )
+
 import qualified FreeC.Backend.Coq.Base        as Coq.Base
 import           FreeC.Backend.Coq.Converter.Free
 import qualified FreeC.Backend.Coq.Syntax      as Coq
@@ -22,7 +24,7 @@ import           FreeC.Monad.Converter
 --     recursively converting the argument and return types of functions
 --     using 'convertType''.
 convertType :: IR.Type -> Converter Coq.Term
-convertType = convertLiftedType . liftType
+convertType = liftType >=> convertLiftedType
 
 -- | Converts a type from IR to Coq.
 --
@@ -46,7 +48,7 @@ convertType = convertLiftedType . liftType
 --     Type constructor applications are translated recursively but
 --     remain unchanged otherwise.
 convertType' :: IR.Type -> Converter Coq.Term
-convertType' = convertLiftedType . liftType'
+convertType' = liftType' >=> convertLiftedType
 
 -------------------------------------------------------------------------------
 -- Lifted IR to Coq translation                                              --

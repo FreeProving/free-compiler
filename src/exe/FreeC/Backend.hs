@@ -122,9 +122,10 @@ createCoqProject = whenM coqProjectEnabled
   -- | Creates the string to write to the 'coqProject' file.
   makeContents :: Application String
   makeContents = do
-    baseDir        <- inOpts optBaseLibDir
+    baseDir <- inOpts optBaseLibDir
+    let coqBaseDir = baseDir </> "coq"
     Just outputDir <- inOpts optOutputDir
-    absBaseDir     <- liftIO $ makeAbsolute baseDir
+    absBaseDir     <- liftIO $ makeAbsolute coqBaseDir
     absOutputDir   <- liftIO $ makeAbsolute outputDir
     let relBaseDir = makeRelative absOutputDir absBaseDir
     return $ unlines
@@ -149,10 +150,42 @@ convertModuleToAgda :: IR.Module -> Application String
 convertModuleToAgda =
   fmap showPretty . liftConverter . Agda.Converter.convertModule
 
+-- | Creates an @.agda-lib@ file for the output directory.
+--
+--   The file declares dependencies on the Agda standard library and our base
+--   library.
+createAgdaLib :: Application ()
+createAgdaLib = whenM agdaLibEnabled $ unlessM agdaLibExists $ do
+  (agdaLib, name) <- getAgdaLib
+  liftIO $ do
+    createDirectoryIfMissing True (takeDirectory agdaLib)
+    writeFile agdaLib $ contents name
+ where
+  agdaLibEnabled :: Application Bool
+  agdaLibEnabled = do
+    isEnabled      <- inOpts optCreateAgdaLib
+    maybeOutputDir <- inOpts optOutputDir
+    return $ isEnabled && isJust maybeOutputDir
+
+  agdaLibExists :: Application Bool
+  agdaLibExists = getAgdaLib >>= liftIO . doesFileExist . fst
+
+  -- | Creates the string to write to the @.agda-lib@ file.
+  contents :: String -> String
+  contents name =
+    unlines ["name: " ++ name, "include: .", "depend: standard-library base"]
+
+  -- | Path to the @.agda-lib@ file to create and the name of the library.
+  getAgdaLib :: Application (FilePath, String)
+  getAgdaLib = do
+    Just outputDir <- inOpts optOutputDir
+    name <- liftIO $ last . splitDirectories <$> makeAbsolute outputDir
+    return (outputDir </> (name ++ ".agda-lib"), name)
+
 -- | The Agda backend.
 agdaBackend :: Backend
 agdaBackend = Backend { backendName          = "agda"
                       , backendConvertModule = convertModuleToAgda
                       , backendFileExtension = "agda"
-                      , backendSpecialAction = return ()
+                      , backendSpecialAction = createAgdaLib
                       }

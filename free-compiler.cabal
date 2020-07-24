@@ -32,29 +32,12 @@ homepage:            https://github.com/FreeProving/free-compiler
 bug-reports:         https://github.com/FreeProving/free-compiler/labels/bug
 
 -- Additional files.
-data-files:          base/coq/Prelude.toml
-                   , base/coq/Test/QuickCheck.toml
-                     -- Due to a Bug in Cabal version 2.4, we cannot make
-                     -- use of `**` wildcard patterns here. Otherwise, the
-                     -- `new-install` command fails.
-                     -- base/coq/**/*.v
-                   , base/coq/Prelude.v
-                   , base/coq/Prelude/*.v
-                   , base/coq/Free.v
-                   , base/coq/Free/*.v
-                   , base/coq/Free/Instance/*.v
-                   , base/coq/Free/Tactic/*.v
-                   , base/coq/Free/Util/*.v
-                   , base/coq/Test/*.v
-                     -- base/coq/**/*.vo
-                   , base/coq/Prelude.vo
-                   , base/coq/Prelude/*.vo
-                   , base/coq/Free.vo
-                   , base/coq/Free/*.vo
-                   , base/coq/Free/Instance/*.vo
-                   , base/coq/Free/Tactic/*.vo
-                   , base/coq/Free/Util/*.vo
-                   , base/coq/Test/*.vo
+data-files:          base/Prelude.toml
+                   , base/Test/QuickCheck.toml
+                   , base/**/*.v
+                   , base/**/*.vo
+                   , base/**/*.agda
+                   , base/**/*.agda-lib
 
 -- Build configuration.
 build-type:          Simple

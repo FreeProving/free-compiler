@@ -35,6 +35,10 @@ import           FreeC.Monad.Converter          ( Converter
                                                 , localEnv
                                                 , inEnv
                                                 )
+import           FreeC.Monad.Reporter           ( reportFatal
+                                                , Message(Message)
+                                                , Severity(Error)
+                                                )
 
 -- | Converts a strongly connected component of the function dependency graph.
 --   TODO: Handle mutually recursive functions.
@@ -44,8 +48,11 @@ convertFuncDecls (NonRecursive decl  ) = convertFuncDecl decl Nothing
 convertFuncDecls (Recursive    [decl]) = do
   [decArg] <- identifyDecArgs [decl]
   convertFuncDecl decl $ Just decArg
-convertFuncDecls (Recursive _) =
-  error "Mutual recursive functions are not supported at the moment."
+convertFuncDecls (Recursive ds) =
+  reportFatal
+    $  Message (IR.funcDeclSrcSpan $ head ds) Error
+    $  "Mutual recursive functions are not supported by the Agda back end "
+    ++ "at the moment."
 
 -- | Converts the given function declarations. Returns the declarations for the
 --   type signature and the definition.
@@ -87,9 +94,8 @@ convertFunc
   -> [IR.VarPat]      -- ^ The types of the arguments.
   -> Maybe IR.Type    -- ^ The return type of the function.
   -> Converter Agda.Expr
-convertFunc decArg partial tVars argTypes returnType =
-  Agda.pi . addFreeArgs <$> mapM convertTypeVarDecl tVars <*> typeConverter
-    argTypes
-    (liftType $ fromJust returnType)
- where
-  typeConverter ts = convertLiftedFuncType partial (liftFuncArgTypes decArg ts)
+convertFunc decArg partial tVars argTypes returnType = do
+  typeVars  <- addFreeArgs <$> mapM convertTypeVarDecl tVars
+  argTypes' <- liftFuncArgTypes decArg argTypes
+  retType'  <- liftType $ fromJust returnType
+  Agda.pi typeVars <$> convertLiftedFuncType partial argTypes' retType'
