@@ -354,6 +354,18 @@ The compiler will not overwrite your changes since the `_CoqProject` file is onl
 If you don't want the `_CoqProject` file to be generated at all, you can add the `--no-coq-project` flag.
 However, note that you may not be able to compile the generated Coq code if the `_CoqProject` file is missing.
 
+#### `--no-agda-lib`
+
+When an output directory has been specified using the `--output` option and the output directory does not contain a `.agda-lib` file, it is created automatically.
+The name of the `.agda-lib` file is the same as the output directory.
+The `.agda-lib` file tells Agda that generated code depends on the compilers base library and the [Agda standard library][software/agda-stdlib].
+
+You can safely edit the `.agda-lib` file or supply your own configuration as long as the dependencies remain intact.
+The compiler will not overwrite your changes since the `.agda-lib` file is only written to if it does not exist.
+
+If you don't want the `.agda-lib` file to be generated at all, you can add the `--no-agda-lib` flag.
+However, note that you may not be able to compile the generated Agda code if the `.agda-lib` file is missing.
+
 #### `--version`, `-v`
 
 To check which version of the Free Compiler is currently installed on your system, run the following command.
