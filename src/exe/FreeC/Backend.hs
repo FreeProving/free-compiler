@@ -163,7 +163,7 @@ createAgdaLib = whenM agdaLibEnabled $ unlessM agdaLibExists $ do
  where
   agdaLibEnabled :: Application Bool
   agdaLibEnabled = do
-    isEnabled <- inOpts optCreateAgdaLib
+    isEnabled      <- inOpts optCreateAgdaLib
     maybeOutputDir <- inOpts optOutputDir
     return $ isEnabled && isJust maybeOutputDir
 
