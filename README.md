@@ -25,9 +25,10 @@ A compiler for the monadic translation of Haskell programs to Coq that uses the 
         2. [`--import=DIR`, `-i DIR`](#--importdir--i-dir)
         3. [`--base-library=DIR`, `-b DIR`](#--base-librarydir--b-dir)
         4. [`--no-coq-project`](#--no-coq-project)
-        5. [`--version`, `-v`](#--version--v)
-        6. [`--help`, `-h`](#--help--h)
-        7. [`--from=LANG`, `--to=LANG`](#--fromlang---tolang)
+        5. [`--no-agda-lib`](#--no-agda-lib)
+        6. [`--version`, `-v`](#--version--v)
+        7. [`--help`, `-h`](#--help--h)
+        8. [`--from=LANG`, `--to=LANG`](#--fromlang---tolang)
     2. [Proving properties](#proving-properties)
     3. [Experimental Features](#experimental-features)
         1. [Pattern-Matching Compilation](#pattern-matching-compilation)
@@ -425,12 +426,12 @@ Consult [`doc/ExperimentalFeatures/PatternMatchingCompilation.md`][doc/Experimen
 
 ## Get Involved
 
-Feature requests, enhancement proposals, bug reports, pull requests and all other contributions are welcome!  
+Feature requests, enhancement proposals, bug reports, pull requests and all other contributions are welcome!
 Have a look at our [contributing guidelines][guidelines/CONTRIBUTING] for more information on how to contribute.
 
 ## License
 
-The Free Compiler is licensed under The 3-Clause BSD License.  
+The Free Compiler is licensed under The 3-Clause BSD License.
 See the [LICENSE][freec/LICENSE] file for details.
 
 [doc]:
