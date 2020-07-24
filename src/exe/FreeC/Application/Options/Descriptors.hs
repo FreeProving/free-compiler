@@ -61,6 +61,14 @@ optionDescriptors =
     )
   , Option
     []
+    ["no-agda-lib"]
+    (NoArg (\opts -> opts { optCreateAgdaLib = False }))
+    (  "Disables the creation of an `.agda-lib` file in the output\n"
+    ++ "directory. If the `--output` option is missing or the `.agda-lib`\n"
+    ++ "file exists already, no `.agda-lib` is created.\n"
+    )
+  , Option
+    []
     ["transform-pattern-matching"]
     (NoArg (\opts -> opts { optTransformPatternMatching = True }))
     (  "Experimental. Enables the automatic transformation of pattern\n"
