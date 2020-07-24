@@ -155,12 +155,21 @@ convertModuleToAgda =
 --   The file declares dependencies on the Agda standard library and our base
 --   library.
 createAgdaLib :: Application ()
-createAgdaLib = do
+createAgdaLib = whenM agdaLibEnabled $ unlessM agdaLibExists $ do
   (agdaLib, name) <- getAgdaLib
   liftIO $ do
     createDirectoryIfMissing True (takeDirectory agdaLib)
     writeFile agdaLib $ contents name
  where
+  agdaLibEnabled :: Application Bool
+  agdaLibEnabled = do
+    let isEnabled = True
+    maybeOutputDir <- inOpts optOutputDir
+    return $ isEnabled && isJust maybeOutputDir
+
+  agdaLibExists :: Application Bool
+  agdaLibExists = getAgdaLib >>= liftIO . doesFileExist . fst
+
   -- | Creates the string to write to the @.agda-lib@ file.
   contents :: String -> String
   contents name =
@@ -170,7 +179,7 @@ createAgdaLib = do
   getAgdaLib :: Application (FilePath, String)
   getAgdaLib = do
     Just outputDir <- inOpts optOutputDir
-    name           <- liftIO $ last . splitPath <$> makeAbsolute outputDir
+    name <- liftIO $ last . splitDirectories <$> makeAbsolute outputDir
     return (outputDir </> (name ++ ".agda-lib"), name)
 
 -- | The Agda backend.
