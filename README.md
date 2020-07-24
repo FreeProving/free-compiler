@@ -120,6 +120,8 @@ This repository is structured as follows.
     + `FreeC.Frontend` contains modules that are concerned with the translation of an input language to the intermediate representation.
       This includes a front end for the intermediate representation itself.
     + `FreeC.IR` contains modules that define data types and operations for the intermediate representation such as the AST or commonly used operations on the AST.
+    + `FreeC.LiftedIR` contains modules that define data types and operations for the lifted intermediate representation such as the AST or commonly used operations on the AST.
+      The lifted intermediate representation is used store the transformed program before Coq or Agda code is generated.
     + `FreeC.Monad` contains modules that define monads that are used throughout the compiler (e.g., for error reporting or stateful operations).
     + `FreeC.Monad.Class` contains type classes for monads.
     + `FreeC.Pass` contains one module for each *compiler pass*.
