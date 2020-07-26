@@ -30,11 +30,30 @@ convertTypeVarDecls
   :: Coq.Explicitness -- ^ Whether to generate an explicit or implicit binder.
   -> [IR.TypeVarDecl] -- ^ The type variable declarations.
   -> Converter [Coq.Binder]
-convertTypeVarDecls explicitness typeVarDecls
-  | null typeVarDecls = return []
+convertTypeVarDecls explicitness typeVarDecls =
+  snd <$> convertTypeVarDecls' explicitness typeVarDecls
+
+-- | Converts the declarations of type variables in the head of a data type or
+--   type synonym declaration to a Coq binder for a set of explicit or implicit
+--   type arguments and returns also the bound variables.
+--
+--   E.g. the declaration of the type variable @a@ in @data D a = ...@ is
+--   translated to the binder @(a : Type)@. If there are multiple type variable
+--   declarations as in @data D a b = ...@ they are grouped into a single
+--   binder @(a b : Type)@ because we assume all Haskell type variables to be
+--   of kind @*@.
+--
+--   The first argument controls whether the generated binders are explicit
+--   (e.g. @(a : Type)@) or implicit (e.g. @{a : Type}@).
+convertTypeVarDecls'
+  :: Coq.Explicitness -- ^ Whether to generate an explicit or implicit binder.
+  -> [IR.TypeVarDecl] -- ^ The type variable declarations.
+  -> Converter ([Coq.Qualid], [Coq.Binder])
+convertTypeVarDecls' explicitness typeVarDecls
+  | null typeVarDecls = return ([], [])
   | otherwise = do
     idents' <- mapM convertTypeVarDecl typeVarDecls
-    return [Coq.typedBinder explicitness idents' Coq.sortType]
+    return $ (idents', [Coq.typedBinder explicitness idents' Coq.sortType])
  where
   -- | TODO
   convertTypeVarDecl :: IR.TypeVarDecl -> Converter Coq.Qualid

@@ -52,6 +52,10 @@ freeArgs =
     )
   ]
 
+-- | The Coq identifier for the @ForFree@ property.
+forFree :: Coq.Qualid
+forFree = Coq.bare "ForFree"
+
 -------------------------------------------------------------------------------
 -- Partiality                                                                --
 -------------------------------------------------------------------------------
