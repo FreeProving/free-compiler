@@ -18,14 +18,14 @@ Local Ltac prove_ind_prove_for_free FP :=
   match goal with
   | [ fx: Free ?Shape ?Pos ?T |- _ ] =>
     match goal with
-    | [ |- ForFree ?Shape ?Pos ?T ?P fx ] =>
-      let x1    := fresh "x"
-      with H    := fresh "H"
-      with x2   := fresh "x2"
-      with s    := fresh "s"
-      with pf   := fresh "pf"
-      with IHpf := fresh "IHpf"
-      with p    := fresh "p"
+    | [ |- ForFree Shape Pos T ?P fx ] =>
+         let x1    := fresh "x"
+      in let H    := fresh "H"
+      in let x2   := fresh "x"
+      in let s    := fresh "s"
+      in let pf   := fresh "pf"
+      in let IHpf := fresh "IHpf"
+      in let p    := fresh "p"
       in apply ForFree_forall; intros x1 H;
          induction fx as [ x2 | s pf IHpf ] using Free_Ind;
          [ inversion H; subst; apply FP
