@@ -119,13 +119,12 @@ checkPatternFuncDecl funcDecl = checkPatternExpr (IR.funcDeclRhs funcDecl)
       >> checkPatternExpr exprElse
   checkPatternExpr (IR.Lambda _ _ lambdaRhs _) = checkPatternExpr lambdaRhs
   checkPatternExpr (IR.Let _ binds e _) =
-    mapM checkPatternExpr (map IR.bindExpr binds)
-      >> checkPatternExpr e
-  checkPatternExpr IR.Con{}                    = return ()
-  checkPatternExpr IR.Var{}                    = return ()
-  checkPatternExpr IR.Undefined{}              = return ()
-  checkPatternExpr IR.ErrorExpr{}              = return ()
-  checkPatternExpr IR.IntLiteral{}             = return ()
+    mapM checkPatternExpr (map IR.bindExpr binds) >> checkPatternExpr e
+  checkPatternExpr IR.Con{}        = return ()
+  checkPatternExpr IR.Var{}        = return ()
+  checkPatternExpr IR.Undefined{}  = return ()
+  checkPatternExpr IR.ErrorExpr{}  = return ()
+  checkPatternExpr IR.IntLiteral{} = return ()
 
   performCheck :: [IR.ConName] -> [IR.ConName] -> SrcSpan -> Converter ()
   performCheck typeConNames altConNames srcSpan = unless

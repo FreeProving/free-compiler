@@ -433,8 +433,8 @@ removeConstArgsFromExpr constArgs rootExpr = do
   --   given @let@ binding.
   removeConstArgsFromBind :: IR.Bind -> Converter IR.Bind
   removeConstArgsFromBind (IR.Bind srcSpan varPat expr) = do
-      (expr', []) <- removeConstArgsFromExpr' expr
-      return (IR.Bind srcSpan varPat expr')
+    (expr', []) <- removeConstArgsFromExpr' expr
+    return (IR.Bind srcSpan varPat expr')
 
 -------------------------------------------------------------------------------
 -- Updating the environment                                                  --
@@ -604,8 +604,8 @@ removeConstTypeArgsFromExpr constTypeVars rootExpr = do
   --   given @let@ binding.
   removeConstTypeArgsFromBind :: IR.Bind -> Converter IR.Bind
   removeConstTypeArgsFromBind (IR.Bind srcSpan varPat expr) = do
-      (expr', []) <- removeConstTypeArgsFromExpr' expr
-      return (IR.Bind srcSpan varPat expr')
+    (expr', []) <- removeConstTypeArgsFromExpr' expr
+    return (IR.Bind srcSpan varPat expr')
 
 -------------------------------------------------------------------------------
 -- Interface functions                                                       --

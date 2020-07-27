@@ -224,9 +224,8 @@ instance HasRefs IR.Expr where
   refSet (IR.IntLiteral _ _ exprType) = refSet exprType
   refSet (IR.Lambda _ args expr exprType) =
     unions [refSet args, withoutArgs args (refSet expr), refSet exprType]
-  refSet (IR.Let _  binds expr  exprType) =
-    withoutArgs (map IR.bindVarPat binds) $
-      unions [refSet expr, refSet binds, refSet exprType]
+  refSet (IR.Let _ binds expr exprType) = withoutArgs (map IR.bindVarPat binds)
+    $ unions [refSet expr, refSet binds, refSet exprType]
 
 -- | @case@ expression alternatives refer to the matched constructor, the types
 --   the type annotations of the variable patterns refer to and the references

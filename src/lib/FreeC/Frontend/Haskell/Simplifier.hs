@@ -931,17 +931,16 @@ simplifyAlt (HSE.Alt _ _ _ (Just binds)) =
 simplifyBinds :: HSE.Binds SrcSpan -> Simplifier [IR.Bind]
 simplifyBinds binds@(HSE.IPBinds _ _) =
   notSupported "Implicit parameters" binds
-simplifyBinds (HSE.BDecls _ decls) =
-  mapM simplifyBind decls
-   where
-     simplifyBind :: HSE.Decl SrcSpan -> Simplifier IR.Bind
-     simplifyBind (HSE.PatBind srcSpan varPat (HSE.UnGuardedRhs _ expr) Nothing) = do
-        varPat' <- simplifyVarPat varPat
-        expr'   <- simplifyExpr expr
-        return (IR.Bind srcSpan varPat' expr')
-     simplifyBind (HSE.PatBind _  _ rhss@(HSE.GuardedRhss _ _) _) =
-       experimentallySupported "Guards" rhss
-     simplifyBind (HSE.PatBind _ _ _ (Just binds)) =
-       notSupported "Local declarations" binds
-     simplifyBind decl =
-       expected "A variable pattern binding" decl
+simplifyBinds (HSE.BDecls _ decls) = mapM simplifyBind decls
+ where
+  simplifyBind :: HSE.Decl SrcSpan -> Simplifier IR.Bind
+  simplifyBind (HSE.PatBind srcSpan varPat (HSE.UnGuardedRhs _ expr) Nothing) =
+    do
+      varPat' <- simplifyVarPat varPat
+      expr'   <- simplifyExpr expr
+      return (IR.Bind srcSpan varPat' expr')
+  simplifyBind (HSE.PatBind _ _ rhss@(HSE.GuardedRhss _ _) _) =
+    experimentallySupported "Guards" rhss
+  simplifyBind (HSE.PatBind _ _ _ (Just binds)) =
+    notSupported "Local declarations" binds
+  simplifyBind decl = expected "A variable pattern binding" decl

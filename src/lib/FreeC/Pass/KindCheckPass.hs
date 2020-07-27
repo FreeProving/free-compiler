@@ -129,7 +129,7 @@ checkExpr (IR.Lambda _ args rhs typeSchema) = do
   mapM_ checkVarPat args
   checkExpr rhs
   mapM_ checkTypeSchema typeSchema
-checkExpr (IR.Let _ binds expr typeSchema ) = do
+checkExpr (IR.Let _ binds expr typeSchema) = do
   mapM_ checkBind binds
   checkExpr expr
   mapM_ checkTypeSchema typeSchema
@@ -154,7 +154,7 @@ checkType = checkType' 0
 checkBind :: IR.Bind -> Converter ()
 checkBind (IR.Bind _ varPat expr) = do
   checkVarPat varPat
-  checkExpr expr 
+  checkExpr expr
 
 -- | Helper function for @checkType@. Uses a counter to count how many
 --   arguments have already been applied.
