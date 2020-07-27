@@ -145,10 +145,9 @@ convertDataDecl (IR.DataDecl _ (IR.DeclIdent _ name) typeVarDecls conDecls) =
       , Coq.comment
         ("Arguments sentences for " ++ showPretty (IR.toUnQual name))
       :  argumentsSentences
-      ++ Coq.comment
-           ("Induction scheme for " ++ showPretty (IR.toUnQual name))
+      ++ Coq.comment ("Induction scheme for " ++ showPretty (IR.toUnQual name))
       :  inductionScheme
-      :  Coq.comment ("Smart constructors for " ++ showPretty (IR.toUnQual name))
+      : Coq.comment ("Smart constructors for " ++ showPretty (IR.toUnQual name))
       :  smartConDecls
       )
  where
@@ -284,8 +283,8 @@ convertDataDecl (IR.DataDecl _ (IR.DeclIdent _ name) typeVarDecls conDecls) =
                  [Coq.app (Coq.Qualid conIdent) (map Coq.Qualid argIdents)]
         )
       indCase = if null argBinders
-                  then term
-                  else Coq.Forall (NonEmpty.fromList argBinders) term
+        then term
+        else Coq.Forall (NonEmpty.fromList argBinders) term
     indCaseIdent  <- freshCoqQualid freshArgPrefix
     indCaseBinder <- generateArgBinder indCaseIdent (Just indCase)
     return (indCaseIdent, indCaseBinder)
