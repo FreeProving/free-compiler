@@ -306,3 +306,40 @@ testConvertDataDecls =
             ++ "  (x_0 : Free Shape Pos (Foo Shape Pos))"
             ++ "  : Free Shape Pos (Bar Shape Pos)"
             ++ "  := pure (bar x_0)."
+
+    it "creates a correct induction scheme" $ shouldSucceedWith $ do
+      "Foo"           <- defineTestTypeCon "Foo" 1 ["Foo"]
+      ("foo", "Foo0") <- defineTestCon
+        "Foo"
+        3
+        "forall a. Foo a -> a -> Foo a -> Foo a"
+      shouldConvertTypeDeclsTo
+          (Recursive ["data Foo a = Foo (Foo a) a (Foo a)"])
+        $  "(* Data type declarations for Foo *) "
+        ++ "Inductive Foo (Shape : Type) (Pos : Shape -> Type) (a : Type) "
+        ++ "  : Type"
+        ++ "  := foo : Free Shape Pos (Foo Shape Pos a) -> "
+        ++ "           Free Shape Pos a -> "
+        ++ "           Free Shape Pos (Foo Shape Pos a) -> "
+        ++ "             Foo Shape Pos a. "
+        ++ "(* Arguments sentences for Foo *) "
+        ++ "Arguments foo {Shape} {Pos} {a}. "
+        ++ "(* Induction scheme for Foo *) "
+        ++ "Definition Foo_Ind (Shape : Type) (Pos : Shape -> Type) "
+        ++ "  (a : Type) (x_0 : Foo Shape Pos a -> Prop) "
+        ++ "  (x_4 : forall "
+        ++ "           (x_1 : Free Shape Pos (Foo Shape Pos a)) "
+        ++ "           (x_2 : Free Shape Pos a) "
+        ++ "           (x_3 : Free Shape Pos (Foo Shape Pos a)), "
+        ++ "         ForFree Shape Pos (Foo Shape Pos a) x_0 x_1 -> "
+        ++ "         ForFree Shape Pos (Foo Shape Pos a) x_0 x_3 -> "
+        ++ "           x_0 (foo x_1 x_2 x_3)) "
+        ++ " : forall (x_5 : Foo Shape Pos a), x_0 x_5. "
+        ++ "Proof. fix H 1; intro; prove_ind. Defined. "
+        ++ "(* Smart constructors for Foo *) "
+        ++ "Definition Foo0 (Shape : Type) (Pos : Shape -> Type) {a : Type} "
+        ++ "  (x_0 : Free Shape Pos (Foo Shape Pos a)) "
+        ++ "  (x_1 : Free Shape Pos a) "
+        ++ "  (x_2 : Free Shape Pos (Foo Shape Pos a)) "
+        ++ "  : Free Shape Pos (Foo Shape Pos a)"
+        ++ "  := pure (foo x_0 x_1 x_2). "
