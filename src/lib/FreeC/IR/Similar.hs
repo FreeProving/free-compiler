@@ -296,12 +296,18 @@ instance Similar IR.TypeSchema where
 --        > ———————————————————————————————————————————————————
 --        >  Γ ⊢ if e₁ then e₂ else e₃ ≈ if f₁ then f₂ else f₃
 --
---    * Two @let@ expressions are similar if their binds and the expression are
---      similar.
+--    * Two @let@ expressions are similar if their bindings and the expression
+--      are similar under an extended 'Renaming' @Γ'@ that maps the variables
+--      bound by the first @let@ expression to the variables bound by the
+--      second @let@ expression.
 --
---        >  Γ ⊢ e ≈ e',  Γ ⊢ x₁ ≈ x'₁, …, Γ ⊢ xₙ ≈ x'ₙ  Γ ⊢ e₁ ≈ e'₁, …, Γ ⊢ eₙ ≈ e'ₙ
---        > ——————————————————————————————————————————————————————————————————————————————
---        >  Γ ⊢ let { x₁ = e₁; …; xₙ = eₙ } in e ≈ let { x₁' = e₁'; …; xₙ' = eₙ' } in e'
+--        >  Γ' ⊢ e ≈ f,    Γ' ⊢ b₁ ≈ d₁,    …,    Γ' ⊢ bₙ ≈ dₙ
+--        > ——————————————————————————————————————————————————————
+--        >  Γ ⊢ let { b₁; …; bₙ } in e ≈ let { d₁; …; dₙ } in f
+--
+--        where @Γ' = Γ ∪ { x₁ ↦ y₁, …, xₙ ↦ yₙ }@ and @x₁, …, xₙ@
+--        and @y₁, …, yₙ@ denote the names of variables bound by
+--        @b₁, …, bₙ@ and @d₁, …, dₙ@, respectively.
 --
 --    * All AST nodes which do not contain any variables are similar to
 --      themselves under every 'Renaming' @Γ@.
@@ -337,7 +343,9 @@ similarExpr (IR.Case _ e as _) (IR.Case _ f bs _) =
 similarExpr (IR.If _ e1 e2 e3 _) (IR.If _ f1 f2 f3 _) =
   similar' e1 f1 .&&. similar' e2 f2 .&&. similar' e3 f3
 similarExpr (IR.Let _ bs e _) (IR.Let _ cs f _) =
-  similar' e f .&&. similar' bs cs
+  let ns = map (IR.varPatQName . IR.bindVarPat) bs
+      ms = map (IR.varPatQName . IR.bindVarPat) cs
+  in similar' e f . extendRenaming IR.ValueScope ns ms .&&. similar' bs cs
 
 -- Expressions without variables are only similar to themselves.
 similarExpr (IR.Con _ n1 _         ) (IR.Con _ n2 _       ) = const (n1 == n2)
@@ -488,12 +496,19 @@ instance Similar IR.ConDecl where
     | IR.declIdentName c1 == IR.declIdentName c2 = similar' ts1 ts2
     | otherwise = const False
 
--- | Two bindings are similar if their variable pattern and their expression are
---   similar.
+-- | Two @let@ bindings are similar if their variable pattern and expression are
+--      are similar under an extended 'Renaming' @Γ'@ that maps the variables
+--      bound by the first @let@ bind to the variables bound by the
+--      second @let@ bind.
 --
---   >  Γ ⊢ v ≈ v', …, Γ ⊢ e ≈ e'
---   > ———————————————————————————————
---   >   Γ ⊢  v = e ≈ v' = e'
+--   >  Γ' ⊢ p ≈ q  , Γ' ⊢ e ≈ f
+--   > ——————————————————————————
+--   >     Γ ⊢ p = e ≈ q = f
+--
+--   where Γ' = Γ ∪ { x ↦ y} with @x@ and @y@ being the names of the variables
+--   bound by the patterns @p@ and @q@ respectively.
 instance Similar IR.Bind where
-  similar' (IR.Bind _ vP1 e1) (IR.Bind _ vP2 e2) =
-    similar' vP1 vP2 .&&. similar' e1 e2
+  similar' (IR.Bind _ p e) (IR.Bind _ q f) =
+    let n = IR.varPatQName p
+        m = IR.varPatQName q
+    in similar' p q .&&.  similar' e f . extendRenaming IR.ValueScope [n] [m]

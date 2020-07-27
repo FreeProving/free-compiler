@@ -216,14 +216,15 @@ data Keyword
   | FORALL    -- ^ @"forall"@
   | IF        -- ^ @"if"@
   | IMPORT    -- ^ @"import"@
+  | IN        -- ^ @"in"@
+  | LET       -- ^ @"let"@
   | MODULE    -- ^ @"module"@
   | OF        -- ^ @"of"@
   | THEN      -- ^ @"then"@
   | TYPE      -- ^ @"type"@
   | UNDEFINED -- ^ @"undefined"@
   | WHERE     -- ^ @"where"@
-  | LET       -- ^ @"let"@
-  | IN        -- ^ @"in"@
+
  deriving (Eq, Show)
 
 -- | Maps reserved words that cannot be used as identifiers to the
@@ -241,8 +242,10 @@ keywords = map
   , ELSE
   , ERROR
   , FORALL
+  , IN
   , IF
   , IMPORT
+  , LET
   , MODULE
   , OF
   , THEN
@@ -258,13 +261,13 @@ instance Pretty Keyword where
   pretty ELSE      = prettyString "else"
   pretty ERROR     = prettyString "error"
   pretty FORALL    = prettyString "forall"
+  pretty IN        = prettyString "in"
   pretty IF        = prettyString "if"
   pretty IMPORT    = prettyString "import"
+  pretty LET       = prettyString "let"
   pretty MODULE    = prettyString "module"
   pretty OF        = prettyString "of"
   pretty THEN      = prettyString "then"
   pretty TYPE      = prettyString "type"
   pretty UNDEFINED = prettyString "undefined"
   pretty WHERE     = prettyString "where"
-  pretty LET       = prettyString "let"
-  pretty IN        = prettyString "in"

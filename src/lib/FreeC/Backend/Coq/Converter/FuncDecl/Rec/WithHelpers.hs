@@ -95,9 +95,9 @@ transformRecFuncDecl (IR.FuncDecl srcSpan declIdent typeArgs args maybeRetType e
     -- Generate main function declaration. The main function's right-hand side
     -- is constructed by replacing all @case@-expressions of the decreasing
     -- argument by an invocation of the corresponding recursive helper function.
-    let mainExpr = replaceSubterms' expr (zip caseExprsPos helperApps)
+    let maletExprIn = replaceSubterms' expr (zip caseExprsPos helperApps)
         mainDecl =
-          IR.FuncDecl srcSpan declIdent typeArgs args maybeRetType mainExpr
+          IR.FuncDecl srcSpan declIdent typeArgs args maybeRetType maletExprIn
 
     return (helperDecls, mainDecl)
  where

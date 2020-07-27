@@ -505,11 +505,13 @@ exprParser = setExprType <$> lExprParser <*> Parsec.optionMaybe
 --   > lexpr ::= "\" varPat { varPat } "->" expr       (lambda abstraction)
 --   >         | "if" expr "then" expr "else" expr     (conditional)
 --   >         | "case" expr "of" alts                 (case expression)
---   >         | fexpr                                 (function application)
 --   >         | "let" binds "in" expr                 (let expression)
+--   >         | fexpr                                 (function application)
+
 lExprParser :: Parser IR.Expr
 lExprParser =
-  lambdaExprParser <|> ifExprParser <|> caseExprParser <|> fExprParser <|> letExprParser
+  lambdaExprParser <|> ifExprParser <|> caseExprParser <|>
+  letExprParser    <|> fExprParser
  where
   -- @lexpr ::= "\\" varPat { varPat } "->" expr | …@
   lambdaExprParser :: Parser IR.Expr
@@ -543,6 +545,7 @@ lExprParser =
       <*> altsParser
       <*> return Nothing
 
+-- @lexpr ::= "let" binds "in" expr | …@
   letExprParser :: Parser IR.Expr
   letExprParser =
     IR.Let NoSrcSpan

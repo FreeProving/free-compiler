@@ -225,7 +225,8 @@ instance HasRefs IR.Expr where
   refSet (IR.Lambda _ args expr exprType) =
     unions [refSet args, withoutArgs args (refSet expr), refSet exprType]
   refSet (IR.Let _  binds expr  exprType) =
-    unions [refSet expr, refSet binds, refSet exprType]
+    withoutArgs (map IR.bindVarPat binds) $
+      unions [refSet expr, refSet binds, refSet exprType]
 
 -- | @case@ expression alternatives refer to the matched constructor, the types
 --   the type annotations of the variable patterns refer to and the references
@@ -242,8 +243,12 @@ instance HasRefs IR.ConPat where
 instance HasRefs IR.VarPat where
   refSet = refSet . IR.varPatType
 
--- | Bindings refer to the used variable pattern and the types used in type
--- signatures.
+  -- | Bindings refer to the types used in the variable pattern's type signature
+  --   as well as all references of the right-hand side.
+  --
+  --   If the right-hand side refers to the bound variable, the bound variable is
+  --   also part of the bindings 'refSet'. Bound variables are removed from the
+  --   references of a @let@ expression by the 'HasRefs' instance of 'IR.Expr'.
 instance HasRefs IR.Bind where
   refSet b = refSet (IR.bindVarPat b) `union` refSet (IR.bindExpr b)
 

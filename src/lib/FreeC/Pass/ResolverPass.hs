@@ -746,6 +746,7 @@ instance Resolvable IR.Expr where
     alts'      <- mapM resolve alts
     exprType'  <- mapM resolve exprType
     return (IR.Case srcSpan scrutinee' alts' exprType')
+  -- Shadow variable patterns and recursively
   resolve (IR.Let srcSpan binds e exprType) = withLocalResolverEnv $ do
     defineVarPats (map IR.bindVarPat binds)
     binds'    <- mapM resolve binds
@@ -792,6 +793,11 @@ instance Resolvable IR.VarPat where
     varType' <- mapM resolve (IR.varPatType varPat)
     return varPat { IR.varPatType = varType' }
 
+-- | The reference of variable pattern and expression from a given @let@ binding
+--   can be resolved.
+--
+--   References on the right-hand side are resolved recursively. The right-hand
+--   can reference the variable patterns.
 instance Resolvable IR.Bind where
   resolve (IR.Bind srcSpan varPat expr) = do
     varPat' <- resolve varPat

@@ -409,10 +409,11 @@ removeConstArgsFromExpr constArgs rootExpr = do
     (expr', []) <- removeConstArgsFromExpr' expr
     alts'       <- mapM removeConstArgsFromAlt alts
     return (IR.Case srcSpan expr' alts' exprType, [])
-  removeConstArgsFromExpr' (IR.Let srcSpan binds expr exprType) = do
-    binds'      <- mapM removeConstArgsFromBind binds
-    (expr', []) <- removeConstArgsFromExpr' expr
-    return (IR.Let srcSpan binds' expr' exprType, [])
+  removeConstArgsFromExpr' (IR.Let srcSpan binds expr exprType) =
+    shadowVarPats (map IR.bindVarPat binds) $ do
+      binds'      <- mapM removeConstArgsFromBind binds
+      (expr', []) <- removeConstArgsFromExpr' expr
+      return (IR.Let srcSpan binds' expr' exprType, [])
 
   -- Leave all other expressions unchanged.
   removeConstArgsFromExpr' expr@(IR.Con _ _ _       ) = return (expr, [])
@@ -431,8 +432,7 @@ removeConstArgsFromExpr constArgs rootExpr = do
   -- | Applies 'removeConstArgsFromExpr'' to the right-hand side of the
   --   given @let@ binding.
   removeConstArgsFromBind :: IR.Bind -> Converter IR.Bind
-  removeConstArgsFromBind (IR.Bind srcSpan varPat expr) =
-    shadowVarPats [varPat] $ do
+  removeConstArgsFromBind (IR.Bind srcSpan varPat expr) = do
       (expr', []) <- removeConstArgsFromExpr' expr
       return (IR.Bind srcSpan varPat expr')
 
@@ -580,7 +580,8 @@ removeConstTypeArgsFromExpr constTypeVars rootExpr = do
     shadowVarPats args $ do
       (expr', []) <- removeConstTypeArgsFromExpr' expr
       return (IR.Lambda srcSpan args expr' exprType, [])
-  removeConstTypeArgsFromExpr' (IR.Let srcSpan binds expr exprType) = do
+  removeConstTypeArgsFromExpr' (IR.Let srcSpan binds expr exprType) =
+    shadowVarPats (map IR.bindVarPat binds) $ do
       binds'      <- mapM removeConstTypeArgsFromBind binds
       (expr', []) <- removeConstTypeArgsFromExpr' expr
       return (IR.Let srcSpan binds' expr' exprType, [])
@@ -602,8 +603,7 @@ removeConstTypeArgsFromExpr constTypeVars rootExpr = do
   -- | Applies 'removeConstTypeArgsFromExpr'' to the right-hand side of the
   --   given @let@ binding.
   removeConstTypeArgsFromBind :: IR.Bind -> Converter IR.Bind
-  removeConstTypeArgsFromBind (IR.Bind srcSpan varPat expr) =
-    shadowVarPats [varPat] $ do
+  removeConstTypeArgsFromBind (IR.Bind srcSpan varPat expr) = do
       (expr', []) <- removeConstTypeArgsFromExpr' expr
       return (IR.Bind srcSpan varPat expr')
 

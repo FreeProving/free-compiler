@@ -161,7 +161,7 @@ instance ApplySubst IR.Expr IR.Expr where
       in  IR.Lambda srcSpan args' expr' exprType
     applySubst' (IR.Let srcSpan binds expr exprType) =
       let (subst', varpats') = newRenameArgs subst (map IR.bindVarPat binds)
-          binds'             = zipWith (\v b -> b {IR.bindVarPat = v}) varpats' binds
+          binds'             = zipWith (\v (IR.Bind s _ e) -> IR.Bind s v (applySubst subst' e)) varpats' binds
           expr'              = applySubst subst' expr
       in IR.Let srcSpan binds' expr' exprType
 
@@ -261,11 +261,14 @@ instance ApplySubst IR.Type IR.VarPat where
     let maybeVarType' = applySubst subst maybeVarType
     in  IR.VarPat srcSpan varIdent maybeVarType' isStrict
 
+-- | Applies the given type substitution to the variable pattern and expression
+--   of the given @let@ binding.
 instance ApplySubst IR.Type IR.Bind where
   applySubst subst (IR.Bind srcSpan varPat expr) =
     let varPat' = applySubst subst varPat
         expr'   = applySubst subst expr
     in IR.Bind srcSpan varPat' expr'
+
 -------------------------------------------------------------------------------
 -- Application to function declarations                                      --
 -------------------------------------------------------------------------------

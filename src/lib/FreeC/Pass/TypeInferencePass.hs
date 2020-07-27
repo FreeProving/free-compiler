@@ -177,7 +177,7 @@ module FreeC.Pass.TypeInferencePass
 where
 
 import           Control.Monad.Fail             ( MonadFail )
-import           Control.Monad.Extra            ( zipWithM_ )
+import           Control.Monad.Extra            ( zipWithM_, zipWithM )
 import           Control.Monad.State            ( MonadState(..)
                                                 , StateT(..)
                                                 , evalStateT
@@ -669,17 +669,16 @@ annotateExprWith' (IR.Lambda srcSpan args expr _) resType =
 
 annotateExprWith' (IR.Let srcSpan binds expr _) resType =
   withLocalTypeAssumption $ do
-    retType  <- liftConverter freshTypeVar
-    binds'   <- mapM annotateBind binds
-    expr'    <- annotateExprWith expr retType
-    return (IR.Let srcSpan binds' expr' (makeExprType resType))
+    bindVarPats' <- mapM (annotateVarPat . IR.bindVarPat) binds
+    exprType     <- liftConverter freshTypeVar
+    binds''      <- zipWithM annotateBindExpr binds bindVarPats'
+    expr'        <- annotateExprWith expr exprType
+    return (IR.Let srcSpan binds'' expr' (makeExprType resType))
      where
-       annotateBind :: IR.Bind -> TypeInference IR.Bind
-       annotateBind (IR.Bind bindSrcSpan bindVarPat bindExpr) = do
-           bindVarPat' <- annotateVarPat bindVarPat
-           bindType    <- liftConverter freshTypeVar
-           bindExpr'   <- annotateExprWith bindExpr bindType
-           addTypeEquation srcSpan (fromJust $ IR.varPatType bindVarPat') bindType
+       annotateBindExpr :: IR.Bind -> IR.VarPat -> TypeInference IR.Bind
+       annotateBindExpr (IR.Bind bindSrcSpan _ bindExpr) bindVarPat' = do
+           let Just bindType = IR.varPatType bindVarPat'
+           bindExpr' <- annotateExprWith bindExpr bindType
            return (IR.Bind bindSrcSpan bindVarPat' bindExpr')
 
 -- | Utility function used by 'annotateExprWith' to construct the

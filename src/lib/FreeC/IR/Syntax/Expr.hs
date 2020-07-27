@@ -84,8 +84,8 @@ data Expr
 
   | -- | A let expression.
     Let { exprSrcSpan :: SrcSpan
-        , binds :: [Bind]
-        , inExpr :: Expr
+        , letExprBinds :: [Bind]
+        , letExprIn :: Expr
         , exprTypeSchema :: Maybe TypeSchema
         }
  deriving (Eq, Show)
@@ -237,7 +237,7 @@ prettyExprPred' n expr@(Case _ scrutinee alts _)
   | otherwise
   = parens (prettyExprPred' 1 expr)
 
--- Parentheses can be omitted around @if@ and lambda abstractions at
+-- Parentheses can be omitted around @if@, @let@ and lambda abstractions at
 -- top-level only.
 prettyExprPred' 0 (If _ e1 e2 e3 _) =
   prettyString "if"
@@ -253,7 +253,8 @@ prettyExprPred' 0 (Lambda _ args expr _) =
     <+> prettyExprPred 0 expr
 prettyExprPred' 0 (Let _ bs e _) =
   prettyString "let"
-    <+> hsep (map pretty bs)
+    <+> braces
+          (space <> prettySeparated (semi <> space) (map pretty bs) <> space)
     <+> prettyString "in"
     <+> prettyExprPred 0 e
 
@@ -371,7 +372,6 @@ instance Pretty VarPat where
     parens (pretty varName <+> colon <> colon <+> pretty varType)
   pretty (VarPat _ varName (Just varType) True) =
     char '!' <> parens (pretty varName <+> colon <> colon <+> pretty varType)
-
 
 -------------------------------------------------------------------------------
 -- Binding inside a let clause                                               --

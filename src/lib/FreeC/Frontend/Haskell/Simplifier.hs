@@ -930,7 +930,7 @@ simplifyAlt (HSE.Alt _ _ _ (Just binds)) =
 -- | Simplifies a group of bindings inside a 'let' clause
 simplifyBinds :: HSE.Binds SrcSpan -> Simplifier [IR.Bind]
 simplifyBinds binds@(HSE.IPBinds _ _) =
-  notSupported "Binding groups for implicit parameters" binds
+  notSupported "Implicit parameters" binds
 simplifyBinds (HSE.BDecls _ decls) =
   mapM simplifyBind decls
    where
@@ -944,4 +944,4 @@ simplifyBinds (HSE.BDecls _ decls) =
      simplifyBind (HSE.PatBind _ _ _ (Just binds)) =
        notSupported "Local declarations" binds
      simplifyBind decl =
-       expected "A pattern binding" decl
+       expected "A variable pattern binding" decl
