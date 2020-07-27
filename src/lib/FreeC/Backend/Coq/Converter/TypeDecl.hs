@@ -283,7 +283,9 @@ convertDataDecl (IR.DataDecl _ (IR.DeclIdent _ name) typeVarDecls conDecls) =
         (Coq.app (Coq.Qualid pIdent)
                  [Coq.app (Coq.Qualid conIdent) (map Coq.Qualid argIdents)]
         )
-      indCase = Coq.Forall (NonEmpty.fromList argBinders) term
+      indCase = if null argBinders
+                  then term
+                  else Coq.Forall (NonEmpty.fromList argBinders) term
     indCaseIdent  <- freshCoqQualid freshArgPrefix
     indCaseBinder <- generateArgBinder indCaseIdent (Just indCase)
     return (indCaseIdent, indCaseBinder)
