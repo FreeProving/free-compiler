@@ -33,18 +33,8 @@ convertTypeVarDecls
 convertTypeVarDecls explicitness typeVarDecls =
   snd <$> convertTypeVarDecls' explicitness typeVarDecls
 
--- | Converts the declarations of type variables in the head of a data type or
---   type synonym declaration to a Coq binder for a set of explicit or implicit
---   type arguments and returns also the bound variables.
---
---   E.g. the declaration of the type variable @a@ in @data D a = ...@ is
---   translated to the binder @(a : Type)@. If there are multiple type variable
---   declarations as in @data D a b = ...@ they are grouped into a single
---   binder @(a b : Type)@ because we assume all Haskell type variables to be
---   of kind @*@.
---
---   The first argument controls whether the generated binders are explicit
---   (e.g. @(a : Type)@) or implicit (e.g. @{a : Type}@).
+-- | Like 'convertTypeVarDecls' but also returns the Coq identifiers of the
+--   bound variables.
 convertTypeVarDecls'
   :: Coq.Explicitness -- ^ Whether to generate an explicit or implicit binder.
   -> [IR.TypeVarDecl] -- ^ The type variable declarations.

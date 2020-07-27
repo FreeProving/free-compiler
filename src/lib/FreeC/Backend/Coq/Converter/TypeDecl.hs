@@ -242,8 +242,9 @@ convertDataDecl (IR.DataDecl _ (IR.DeclIdent _ name) typeVarDecls conDecls) =
     (valIdent, valBinder) <- generateArg
       (genericApply tIdent [] [] (map Coq.Qualid tvarIdents))
     -- Stick everything together.
-    let schemeName = Coq.bare $ fromJust (Coq.unpackQualid tIdent) ++ "_Ind"
-        binders =
+    schemeName <- freshCoqQualid $ fromJust (Coq.unpackQualid tIdent) ++ "_Ind"
+    hypothesisVar <- freshCoqIdent "H"
+    let binders =
           genericArgDecls Coq.Explicit
             ++ tvarBinders
             ++ [propBinder]
@@ -252,7 +253,14 @@ convertDataDecl (IR.DataDecl _ (IR.DeclIdent _ name) typeVarDecls conDecls) =
           (NonEmpty.fromList [valBinder])
           (Coq.app (Coq.Qualid propIdent) [Coq.Qualid valIdent])
         scheme = Coq.Assertion Coq.Definition schemeName binders term
-        proof  = Coq.ProofDefined (Text.pack "  fix H 1; intro; prove_ind.")
+        proof  = Coq.ProofDefined
+          (  Text.pack
+          $  "  fix "
+          ++ hypothesisVar
+          ++ " 1; intro; "
+          ++ fromJust (Coq.unpackQualid Coq.Base.proveInd)
+          ++ "."
+          )
     return (Coq.AssertionSentence scheme proof)
 
   -- | Generates an induction case for a given property and constructor.

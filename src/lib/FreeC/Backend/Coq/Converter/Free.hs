@@ -56,8 +56,8 @@ genericApply func effectArgs implicitArgs args
 -- | Smart constructor for a @ForFree@ statement with a given type, property
 --   and @Free@ value.
 genericForFree :: Coq.Term -> Coq.Qualid -> Coq.Qualid -> Coq.Term
-genericForFree tipe prop fv =
-  genericApply Coq.Base.forFree [] [] [tipe, Coq.Qualid prop, Coq.Qualid fv]
+genericForFree typeTerm prop fv =
+  genericApply Coq.Base.forFree [] [] [typeTerm, Coq.Qualid prop, Coq.Qualid fv]
 
 -------------------------------------------------------------------------------
 -- Free monad operations                                                     --

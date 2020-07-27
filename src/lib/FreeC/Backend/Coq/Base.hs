@@ -94,6 +94,14 @@ stringScope :: Coq.Ident
 stringScope = Coq.ident "string"
 
 -------------------------------------------------------------------------------
+-- Tactics                                                                   --
+-------------------------------------------------------------------------------
+
+-- | The tactic that is needed to prove induction schemes.
+proveInd :: Coq.Qualid
+proveInd = Coq.bare "prove_ind"
+
+-------------------------------------------------------------------------------
 -- Reserved identifiers                                                      --
 -------------------------------------------------------------------------------
 
@@ -106,6 +114,7 @@ reservedIdents =
     free
     , freePureCon
     , freeImpureCon
+    , forFree
     -- Partiality
     , partial
     , partialUndefined
