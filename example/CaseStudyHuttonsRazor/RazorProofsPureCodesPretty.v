@@ -47,9 +47,8 @@ Section Proofs_PureCodes.
   Variable Pos     : Shape -> Type.
   Variable Part : Partial Shape Pos.
 
-  (* If the code is pure and the first operation is pure if there is any, the
-     effect of an impure stack will transfer to the result of an exec call with
-     that code and that stack. *)
+  (* If the code is pure and the first operation is pure if there is any, an
+     [exec] call on an undefined stack will result in an undefined stack. *)
   Lemma exec_strict_on_stack_arg_Nil :
     UndefinedIsImpure Part ->
     UndefinedHasNoPositions Part ->
@@ -105,9 +104,10 @@ Section Proofs_PureCodes.
     intros HUndefined1 HUndefined2 fcode1 HPure1 fcode2 HPure2.
     (* As we now that both pieces of code are recursively pure we, we can
        immediately destruct the monadic layer.*)
-    destruct fcode1 as [ code1 | ]; [ | dependent destruction HPure1 ].
-    destruct fcode2 as [ code2 | ]; [ | dependent destruction HPure2 ].
-    induction code1 as [ | [ [ fn | ] | ] fcode1' IHfcode1' ] using List_Ind; [ | | | dependent destruction HPure1 ]; pretty.
+    destruct fcode1 as [ code1 | ]; try eliminate_pureness_property_impure.
+    destruct fcode2 as [ code2 | ]; try eliminate_pureness_property_impure.
+    induction code1 as [ | [ [ fn | ] | ] fcode1' IHfcode1' ] using List_Ind;
+      try eliminate_pureness_property_impure; pretty.
     - (* code1 = [] *)
       (* This case is trivial. *)
       intro fstack.
@@ -117,46 +117,45 @@ Section Proofs_PureCodes.
     - (* code1 = (PUSH fn : fcode1') *)
       (* This case is also easy. *)
       intro fstack.
-      dependent destruction HPure1.
-      destruct fcode1' as [ code1' | ]; [ | dependent destruction HPure1 ].
+      destruct fcode1' as [ code1' | ]; try eliminate_pureness_property_impure.
       simplify IHfcode1' as IH.
       (* We can proof the goal per induction over the stack. *)
-      induction fstack as [ stack | sStack pfStack IHpfStack ] using Free_Ind; autodef; try apply (IH HPure1).
+      induction fstack as [ stack | sStack pfStack IHpfStack ] using Free_Ind; autodef;
+        try (apply IH; prove_pureness_property).
       (* In the impure case we need to destruct the second piece of code to be able to simplify
          the goal before applying the induction hypothesis in the pure cases. *)
-      destruct code2 as [ | [ op | ] fcode2' ]; autodef; try autoIH; dependent destruction HPure2.
+      destruct code2 as [ | [ op | ] fcode2' ]; autodef; try autoIH; eliminate_pureness_property_impure.
     - (* code1 = (ADD : fcode1') *)
       (* In this case the [exec] function might return [undefined] and we need
          our two assumptions for an [undefined] [Stack]. *)
       intro fstack.
-      dependent destruction HPure1.
-      destruct fcode1' as [ code1' | ]; [ | dependent destruction HPure1 ].
+      destruct fcode1' as [ code1' | ]; try eliminate_pureness_property_impure.
       simplify IHfcode1' as IH.
       (* As the addition reads two values from the stack, we need to destruct the stack. *)
       induction fstack as [ [ | fv1 fstack1 ] | sStack pfStack IHpfStack ] using Free_Ind...
       + (* fstack = [] *)
         (* On both sides an [undefined] is returned. *)
         autodef.
-        destruct code2 as [ | [ op | ] fcode2' ]; [ | | dependent destruction HPure2 ]...
+        destruct code2 as [ | [ op | ] fcode2' ]; try eliminate_pureness_property_impure...
         { rewrite (exec_strict_on_stack_arg_Nil HUndefined1 HUndefined2)... }
         { rewrite (exec_strict_on_stack_arg_Op HUndefined1 HUndefined2)... }
       + induction fstack1 as [ [ | fv2 fstack2 ] | sStack1 pfStack1 IHpfStack1 ] using Free_Ind...
         * (* fstack = (fv1 : fstack1) *)
           (* On both sides an [undefined] is returned. *)
           autodef.
-          destruct code2 as [ | [ op | ] fcode2' ]; [ | | dependent destruction HPure2 ]...
+          destruct code2 as [ | [ op | ] fcode2' ]; try eliminate_pureness_property_impure...
           { rewrite (exec_strict_on_stack_arg_Nil HUndefined1 HUndefined2)... }
           { rewrite (exec_strict_on_stack_arg_Op HUndefined1 HUndefined2)... }
         * (* fstack = (fv1 : fv2 : fstack2) *)
           (* The function definition can be applied and we can use the induction hypothesis. *)
           autodef.
-          apply (IH HPure1).
+          apply IH; prove_pureness_property.
         * (* fstack = (fv1 : impure sStack1 pfStack1) *)
           autodef.
-          destruct code2 as [ | [ op | ] fcode2' ]; autodef; try autoIH; dependent destruction HPure2.
+          destruct code2 as [ | [ op | ] fcode2' ]; autodef; try autoIH; eliminate_pureness_property_impure.
       + (* fstack = impure sStack2 pfStack2 *)
         autodef.
-        destruct code2 as [ | [ op | ] fcode2' ]; autodef; try autoIH; dependent destruction HPure2.
+        destruct code2 as [ | [ op | ] fcode2' ]; autodef; try autoIH; eliminate_pureness_property_impure.
   Qed.
 
 End Proofs_PureCodes.
