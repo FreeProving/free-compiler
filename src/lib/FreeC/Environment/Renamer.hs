@@ -143,7 +143,6 @@ sanitizeIdent (firstChar : subsequentChars) =
 
 -- | Renames a Haskell identifier such that it can be safely used in Coq.
 --
---   
 --   If the given identifier is a fresh identifier (i.e. contains an at-sign),
 --   the prefix of that identifier is used instead.
 --   If the identifier has no name conflict, it is return unchanged.
