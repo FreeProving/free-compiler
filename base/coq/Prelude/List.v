@@ -1,4 +1,5 @@
 From Base Require Import Free.
+From Base Require Import Free.Instance.Identity.
 
 Require Import Coq.Program.Equality.
 
@@ -26,6 +27,54 @@ End SecList.
 
 Arguments nil  {Shape} {Pos} {A}.
 Arguments cons {Shape} {Pos} {A}.
+
+(* Normalform instance *)
+
+Fixpoint nf'List (Shape : Type) (Pos : Shape -> Type)
+                   (A B : Type) 
+                   `{Normalform Shape Pos A B}
+                   (l : List Shape Pos A)
+  : Free Shape Pos (List Identity.Shape Identity.Pos B)
+ := match l with
+     | nil => pure nil
+     | cons fx fxs => nf fx >>= fun nx =>
+                      fxs >>= fun xs =>
+                      nf'List Shape Pos A B xs >>= fun nxs =>
+                      pure (cons (pure nx) (pure nxs))
+     end.
+
+Definition nfList (Shape : Type) (Pos : Shape -> Type)
+                  (A B : Type)
+                  `{Normalform Shape Pos A B}
+                  (p : Free Shape Pos (List Shape Pos A))
+  : Free Shape Pos (List Identity.Shape Identity.Pos B)
+ := p >>= (fun p' => nf'List Shape Pos A B p').
+
+Lemma nf_impure_list (Shape : Type) (Pos : Shape -> Type)
+                     (A B : Type)
+                     `{Normalform Shape Pos A B}
+  : forall s (pf : _ -> Free Shape Pos (List Shape Pos A)),
+    nfList Shape Pos A B (impure s pf) 
+    = impure s (fun p => nfList Shape Pos A B (pf p)).
+Proof. trivial. Qed.
+
+Lemma nf_pure_list (Shape : Type) (Pos : Shape -> Type)
+                   (A B : Type)
+                   `{Normalform Shape Pos A B}
+  : forall (x : List Shape Pos A),
+    nfList Shape Pos A B (pure x) = nf'List Shape Pos A B x.
+Proof. trivial. Qed.
+
+Instance NormalformList (Shape : Type) (Pos : Shape -> Type) (A B : Type)
+                        `{Normalform Shape Pos A B}
+  : Normalform Shape Pos (List Shape Pos A) 
+                         (List Identity.Shape Identity.Pos B)
+ := {
+      nf := nfList Shape Pos A B;
+      nf_impure := nf_impure_list Shape Pos A B;
+      nf' := nf'List Shape Pos A B;
+      nf_pure := nf_pure_list Shape Pos A B
+    }.
 
 (* Induction principle for lists *)
 
