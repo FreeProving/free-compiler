@@ -388,13 +388,13 @@ conDeclParser =
 
 -- | Parser for IR type signatures.
 --
---   > varQName { "," varQName } "::" typeSchema
+--   > varQName { "," varQName } "::" typeScheme
 typeSigParser :: Parser IR.TypeSig
 typeSigParser =
   IR.TypeSig NoSrcSpan
     <$> ((IR.DeclIdent NoSrcSpan <$> varQNameParser) `Parsec.sepBy` token Comma)
     <*  token DoubleColon
-    <*> typeSchemaParser
+    <*> typeSchemeParser
 
 instance Parseable IR.TypeSig where
   parseIR' = typeSigParser
@@ -422,23 +422,23 @@ instance Parseable IR.FuncDecl where
   parseIR' = funcDeclParser
 
 -------------------------------------------------------------------------------
--- Type schemas                                                          --
+-- Type schemes                                                          --
 -------------------------------------------------------------------------------
 
--- | Parser for IR type schemas.
+-- | Parser for IR type schemes.
 --
---   > typeSchema ::= [ "forall" { typeVarDecl } "." ] type
-typeSchemaParser :: Parser IR.TypeSchema
-typeSchemaParser =
-  IR.TypeSchema NoSrcSpan
+--   > typeScheme ::= [ "forall" { typeVarDecl } "." ] type
+typeSchemeParser :: Parser IR.TypeScheme
+typeSchemeParser =
+  IR.TypeScheme NoSrcSpan
     <$> Parsec.option
           []
           (keyword FORALL *> Parsec.many typeVarDeclParser <* token Dot)
     <*> typeParser
 
--- | Parser for IR type schemas.
-instance Parseable IR.TypeSchema where
-  parseIR' = typeSchemaParser
+-- | Parser for IR type schemes.
+instance Parseable IR.TypeScheme where
+  parseIR' = typeSchemeParser
 
 -------------------------------------------------------------------------------
 -- Type expressions                                                          --
@@ -485,20 +485,20 @@ instance Parseable IR.Type where
 
 -- | Parser for IR expressions with optional type annotation.
 --
---   > expr ::= lexpr [ "::" typeSchema ]           (optional type annotation)
+--   > expr ::= lexpr [ "::" typeScheme ]           (optional type annotation)
 exprParser :: Parser IR.Expr
 exprParser = setExprType <$> lExprParser <*> Parsec.optionMaybe
-  (token DoubleColon *> typeSchemaParser)
+  (token DoubleColon *> typeSchemeParser)
  where
-  -- | Sets the 'IR.exprTypeSchema' field of the given expression if it is not
+  -- | Sets the 'IR.exprTypeScheme' field of the given expression if it is not
   --   set already.
   --
   --   The field is usually set to @Nothing@ but can be a @Just@ value if
   --   the parsed expression was in parenthesis.
-  setExprType :: IR.Expr -> Maybe IR.TypeSchema -> IR.Expr
+  setExprType :: IR.Expr -> Maybe IR.TypeScheme -> IR.Expr
   setExprType expr Nothing = expr
-  setExprType expr (Just exprTypeSchema) =
-    expr { IR.exprTypeSchema = Just exprTypeSchema }
+  setExprType expr (Just exprTypeScheme) =
+    expr { IR.exprTypeScheme = Just exprTypeScheme }
 
 -- | Parser for IR expressions without type annotation.
 --

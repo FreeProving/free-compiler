@@ -146,7 +146,7 @@ convertDataDecl (IR.DataDecl _ (IR.DeclIdent _ name) typeVarDecls conDecls) =
       )
  where
   -- | Generates the body of the @Inductive@ sentence and the @Arguments@
-  --   sentences for the constructors but not the smart the smart constructors
+  --   sentences for the constructors but not the smart constructors
   --   of the data type.
   --
   --   Type variables declared by the data type declaration are visible to the

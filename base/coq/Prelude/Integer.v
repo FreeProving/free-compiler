@@ -46,10 +46,14 @@ Section SecInteger.
         pure (Z.mul n1' n2').
 
   (* exponentiation *)
-  Definition powInteger (n1 : Free' Integer') (n2 : Free' Integer') : Free' Integer' :=
-    n1 >>= fun(n1' : Integer') =>
-      n2 >>= fun(n2' : Integer') =>
-        pure (Z.pow n1' n2').
+  Definition powInteger (P : Partial Shape Pos) (n1 : Free' Integer') (n2 : Free' Integer') : Free' Integer' :=
+    n2 >>= fun(n2' : Integer') =>
+      if Z.ltb n2' 0
+        then error "Negative exponent"
+        else if Z.eqb n2' 0
+               then pure 1%Z
+               else n1 >>= fun(n1' : Integer') =>
+                 pure (Z.pow n1' n2').
 
   (** * Comparison operators *)
 

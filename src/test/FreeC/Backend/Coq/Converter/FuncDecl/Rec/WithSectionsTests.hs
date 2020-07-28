@@ -23,7 +23,7 @@ import           FreeC.Test.Parser
 
 -- | Parses the given function declarations, converts them to Coq using
 --   'convertRecFuncDeclsWithSection' and expects the resulting Coq code
---   to equal the given expected output modulo white space.
+--   to equal the given expected output modulo whitespace.
 convertRecFuncDeclsWithSectionTo :: [String] -> String -> Converter Expectation
 convertRecFuncDeclsWithSectionTo inputStrs expectedOutputStr = do
   input     <- mapM parseTestFuncDecl inputStrs
@@ -159,7 +159,7 @@ testConvertRecFuncDeclWithSections = context "with section sentences" $ do
           ++ "  : Free Shape Pos (List Shape Pos a)"
           ++ "  := mapAlt'_0 Shape Pos b a f xs."
 
-  it "does not create variable sentences for unsued constant arguments"
+  it "does not create variable sentences for unused constant arguments"
     $ shouldSucceedWith
     $ do
         "List"           <- defineTestTypeCon "List" 1 ["Nil", "Cons"]

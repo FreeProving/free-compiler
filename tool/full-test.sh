@@ -246,7 +246,7 @@ function check_required_software() {
   local temp_log=$(mktemp)
   local program_not_found_counter=0
   check_version "GHC" ghc '8.6.5' >> "$temp_log"
-  check_version "Cabal" cabal '2.4.1.*|3.*' >> "$temp_log"
+  check_version "Cabal" cabal '3.*' >> "$temp_log"
   check_version "Coq" coqc '8.8.*|8.9.*|8.10.*|8.11.*' >> "$temp_log"
   check_version "HLint" hlint '3.1.*' >> "$temp_log"
   check_version "Brittany" brittany '0.12.*'>> "$temp_log"
@@ -429,7 +429,7 @@ step "Building the Agda base library"        \
      "Built Agda base library successfully"  \
      "Failed to build the Agda base library" \
      "Canceled Agda base library build"      \
-     "./tool/check-agda.sh --recompile base/agda"
+     "./tool/check-agda.sh base/agda"
 
 # Generate Haddock documentation.
 step "Generating Haddock documentation"              \
@@ -452,7 +452,7 @@ step "Compiling examples"               \
      "cabal new-run freec --                           \\
         --transform-pattern-matching                   \\
         --dump-transformed-modules example/transformed \\
-        -b ./base/coq                                  \\
+        -b ./base/                                     \\
         -o ./example/generated                         \\
         \$(find ./example -path ./example/transformed -prune -o -name \"*.hs\" -print)"
 

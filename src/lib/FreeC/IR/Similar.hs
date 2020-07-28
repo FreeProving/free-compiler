@@ -214,15 +214,15 @@ instance Similar IR.Type where
   similar' (IR.TypeApp  _ _ _) _ = const False
   similar' (IR.FuncType _ _ _) _ = const False
 
--- | Two type schemas are similar if their abstracted types are similar
+-- | Two type schemes are similar if their abstracted types are similar
 --   under an extend 'Renaming' that maps the corresponding type arguments
 --   to each other.
 --
 --   >     Γ ∪ { α₁ ↦ β₁, …, αₙ ↦ βₙ } ⊢ τ ≈ τ'
 --   > ————————————————————————————————————————————
 --   >  Γ ⊢ forall α₁ … αₙ. τ ≈ forall β₁ … βₙ. τ'
-instance Similar IR.TypeSchema where
-  similar' (IR.TypeSchema _ as t1) (IR.TypeSchema _ bs t2) =
+instance Similar IR.TypeScheme where
+  similar' (IR.TypeScheme _ as t1) (IR.TypeScheme _ bs t2) =
     let ns = map IR.typeVarDeclQName as
         ms = map IR.typeVarDeclQName bs
     in  similar' t1 t2 . extendRenaming IR.TypeScope ns ms
@@ -306,7 +306,7 @@ instance Similar IR.TypeSchema where
 --        arbitrary error message.
 instance Similar IR.Expr where
   similar' e1 e2 = similarExpr e1 e2
-    .&&. similar' (IR.exprTypeSchema e1) (IR.exprTypeSchema e2)
+    .&&. similar' (IR.exprTypeScheme e1) (IR.exprTypeScheme e2)
 
 -- | Like 'similar'' for expressions but ignores optional type annotations.
 similarExpr :: IR.Expr -> IR.Expr -> Renaming -> Bool

@@ -21,7 +21,7 @@ import           FreeC.Test.Parser
 
 -- | Parses the given IR function declaration, converts it to Coq using
 --   'convertNonRecFuncDecl' and sets the expectation that the resulting
---   Coq code equals the given expected output modulo white space.
+--   Coq code equals the given expected output modulo whitespace.
 shouldConvertNonRecTo :: String -> String -> Converter Expectation
 shouldConvertNonRecTo inputStr expectedOutputStr = do
   input  <- parseTestFuncDecl inputStr

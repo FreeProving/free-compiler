@@ -9,6 +9,9 @@ where
 
 import           Paths_free_compiler            ( getDataFileName )
 
+import {-# SOURCE #-} FreeC.Backend
+import {-# SOURCE #-} FreeC.Frontend
+
 -- | Data type that stores the command line options passed to the compiler.
 data Options = Options
   { optShowHelp                  :: Bool
@@ -37,12 +40,21 @@ data Options = Options
     --   ouput directory. This argument is ignored if 'optOutputDir' is not
     --   specified.
 
+  , optCreateAgdaLib             :: Bool
+    -- ^ Flag that indicates whether to generate a @.agda-lib@ file in the
+    --   ouput directory. This argument is ignored if 'optOutputDir' is not
+    --   specified.
+
   , optTransformPatternMatching  :: Bool
     -- ^ Flag that indicates whether to transform pattern matching, perform
     --   guard elimination and case completion.
 
   , optDumpTransformedModulesDir :: Maybe FilePath
     -- ^ The directory to dump transformed modules to.
+  , optFrontend                  :: String
+    -- ^ The frontend to use.
+  , optBackend                   :: String
+    -- ^ The backend to use.
   }
 
 -- | The default command line options.
@@ -55,7 +67,7 @@ data Options = Options
 --   the output directory (if one is specified).
 makeDefaultOptions :: IO Options
 makeDefaultOptions = do
-  defaultBaseLibDir <- getDataFileName "base/coq"
+  defaultBaseLibDir <- getDataFileName "base"
   return $ Options { optShowHelp                  = False
                    , optShowVersion               = False
                    , optInputFiles                = []
@@ -63,6 +75,9 @@ makeDefaultOptions = do
                    , optImportDirs                = ["."]
                    , optBaseLibDir                = defaultBaseLibDir
                    , optCreateCoqProject          = True
+                   , optCreateAgdaLib             = True
                    , optTransformPatternMatching  = False
                    , optDumpTransformedModulesDir = Nothing
+                   , optFrontend                  = defaultFrontend
+                   , optBackend                   = defaultBackend
                    }

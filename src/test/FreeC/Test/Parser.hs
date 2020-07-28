@@ -42,7 +42,7 @@ module FreeC.Test.Parser
   , parseTestName
   , parseTestQName
   , parseTestType
-  , parseTestTypeSchema
+  , parseTestTypeScheme
   , parseTestTypeDecl
   , parseTestTypeSig
   , parseTestExpr
@@ -54,7 +54,7 @@ module FreeC.Test.Parser
   , expectParseTestName
   , expectParseTestQName
   , expectParseTestType
-  , expectParseTestTypeSchema
+  , expectParseTestTypeScheme
   , expectParseTestTypeDecl
   , expectParseTestTypeSig
   , expectParseTestExpr
@@ -98,9 +98,9 @@ parseTestQName = parseTestIR
 parseTestType :: MonadReporter r => String -> r IR.Type
 parseTestType = parseTestIR
 
--- | Parses an IR type schema for testing purposes.
-parseTestTypeSchema :: MonadReporter r => String -> r IR.TypeSchema
-parseTestTypeSchema = parseTestIR
+-- | Parses an IR type scheme for testing purposes.
+parseTestTypeScheme :: MonadReporter r => String -> r IR.TypeScheme
+parseTestTypeScheme = parseTestIR
 
 -- | Parses an IR type declaration for testing purposes.
 parseTestTypeDecl :: MonadReporter r => String -> r IR.TypeDecl
@@ -164,10 +164,10 @@ expectParseTestQName = expectParseTestIR "qualifiable name"
 expectParseTestType :: MonadIO m => String -> m IR.Type
 expectParseTestType = expectParseTestIR "type expression"
 
--- | Parses an IR type schema for testing purposes and sets the
+-- | Parses an IR type scheme for testing purposes and sets the
 --   expectation that parsing is successful.
-expectParseTestTypeSchema :: MonadIO m => String -> m IR.TypeSchema
-expectParseTestTypeSchema = expectParseTestIR "type schema"
+expectParseTestTypeScheme :: MonadIO m => String -> m IR.TypeScheme
+expectParseTestTypeScheme = expectParseTestIR "type scheme"
 
 -- | Parses an IR type declaration for testing purposes and sets the
 --   expectation that parsing is successful.

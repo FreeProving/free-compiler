@@ -7,7 +7,10 @@
 
 module FreeC.Pipeline where
 
+import qualified FreeC.IR.Syntax               as IR
+import           FreeC.Monad.Converter
 import           FreeC.Pass
+import           FreeC.Pass.CompletePatternPass
 import           FreeC.Pass.DefineDeclPass
 import           FreeC.Pass.DependencyAnalysisPass
 import           FreeC.Pass.EtaConversionPass
@@ -16,13 +19,10 @@ import           FreeC.Pass.ImplicitPreludePass
 import           FreeC.Pass.ImportPass
 import           FreeC.Pass.KindCheckPass
 import           FreeC.Pass.PartialityAnalysisPass
-import           FreeC.Pass.TypeSignaturePass
-import           FreeC.Pass.TypeInferencePass
 import           FreeC.Pass.QualifierPass
 import           FreeC.Pass.ResolverPass
-import           FreeC.Pass.CompletePatternPass
-import qualified FreeC.IR.Syntax               as IR
-import           FreeC.Monad.Converter
+import           FreeC.Pass.TypeInferencePass
+import           FreeC.Pass.TypeSignaturePass
 
 -- | The passes of the compiler pipeline.
 pipeline :: [Pass IR.Module]

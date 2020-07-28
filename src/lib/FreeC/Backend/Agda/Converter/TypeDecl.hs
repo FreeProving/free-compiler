@@ -27,6 +27,10 @@ import           FreeC.Environment.LookupOrFail
 import           FreeC.Monad.Converter          ( Converter
                                                 , localEnv
                                                 )
+import           FreeC.Monad.Reporter           ( reportFatal
+                                                , Message(Message)
+                                                , Severity(Error)
+                                                )
 
 -- | Converts a strongly connected component of the type dependency graph.
 --   TODO: handle mutual recursive types
@@ -35,14 +39,20 @@ convertTypeDecls
 convertTypeDecls comp = case comp of
   NonRecursive decl   -> convertTypeDecl decl False
   Recursive    [decl] -> convertTypeDecl decl True
-  Recursive _ ->
-    error "Mutual recursive data types are not supported at the moment."
+  Recursive ds ->
+    reportFatal
+      $  Message (IR.typeDeclSrcSpan $ head ds) Error
+      $  "Mutual recursive data types are not supported by the Agda back end "
+      ++ "at the moment."
 
 -- | Converts a data or type synonym declaration.
 --   TODO: Convert type synonyms.
 convertTypeDecl :: IR.TypeDecl -> Bool -> Converter [Agda.Declaration]
-convertTypeDecl (IR.TypeSynDecl _ _ _ _) _ =
-  error "Type synonyms are not supported at the moment."
+convertTypeDecl (IR.TypeSynDecl srcSpan _ _ _) _ =
+  reportFatal
+    $  Message srcSpan Error
+    $  "Type synonyms are not supported by the Agda back end "
+    ++ "at the moment."
 convertTypeDecl (IR.DataDecl _ ident tVars constrs) isRec =
   (:)
     <$> convertDataDecl ident tVars constrs isRec
@@ -94,11 +104,13 @@ convertConDecls (IR.DeclIdent srcSpan ident) typeVars = mapM
 convertConDecl
   :: IR.QName -> IR.Type -> IR.ConDecl -> Converter Agda.Declaration
 convertConDecl ident retType (IR.ConDecl _ (IR.DeclIdent srcSpan name) argTypes)
-  = Agda.funcSig
-    <$> lookupUnQualAgdaIdentOrFail srcSpan IR.ValueScope name
-        -- TODO: Add declarations to lifted IR and move this translation logic.
-    <*> convertLiftedConType (map (liftConArgType ident) argTypes)
-                             (liftType' retType)
+  = do
+    argTypes' <- mapM (liftConArgType ident) argTypes
+    retType'  <- liftType' retType
+    Agda.funcSig
+      <$> lookupUnQualAgdaIdentOrFail srcSpan IR.ValueScope name
+          -- TODO: Add declarations to lifted IR and move this translation logic.
+      <*> convertLiftedConType argTypes' retType'
 
 -- | Converts a single constructor to a smart constructor, which wraps the normal
 --   constructor in the @Free@ monad using @pure@.

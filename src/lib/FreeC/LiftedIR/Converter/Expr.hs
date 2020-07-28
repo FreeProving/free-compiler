@@ -78,9 +78,9 @@ liftExpr' (IR.TypeAppExpr _ e t _) typeArgs args =
 -- Constructors.
 liftExpr' (IR.Con srcSpan name _) typeArgs args = do
   args'             <- mapM liftExpr args
+  typeArgs'         <- mapM LIR.liftType' typeArgs
   Just typeArgArity <- inEnv $ lookupTypeArgArity IR.ValueScope name
   let con          = LIR.SmartCon srcSpan name
-      typeArgs'    = map LIR.liftType' typeArgs
       typeArgCount = length typeArgs'
   when (typeArgCount /= typeArgArity)
     $  reportFatal
@@ -141,8 +141,8 @@ liftExpr' (IR.Var srcSpan name _) typeArgs args = do
       Just arity         <- inEnv $ lookupArity IR.ValueScope name
       let typeArgNames = map (IR.UnQual . IR.Ident) typeArgIdents
           subst = composeSubsts (zipWith singleSubst typeArgNames typeArgs)
-          argTypes'    = map (LIR.liftType' . applySubst subst) argTypes
-          typeArgs'    = map LIR.liftType' typeArgs
+      argTypes' <- mapM (LIR.liftType' . applySubst subst) argTypes
+      typeArgs' <- mapM LIR.liftType' typeArgs
       generateBinds
           (  zip3 args' (map Just argTypes' ++ repeat Nothing)
           $  strictArgs
@@ -186,7 +186,7 @@ liftExpr' (IR.Lambda srcSpan args rhs _) [] [] = localEnv $ do
 -- arguments.
 liftExpr' (IR.If srcSpan cond true false _) [] [] = do
   cond' <- liftExpr cond
-  let bool' = LIR.liftType' $ IR.TypeCon NoSrcSpan IR.Prelude.boolTypeConName
+  bool' <- LIR.liftType' $ IR.TypeCon NoSrcSpan IR.Prelude.boolTypeConName
   bind cond' (Just bool')
     $ \d -> LIR.If srcSpan d <$> liftExpr true <*> liftExpr false
 
@@ -211,8 +211,8 @@ liftExpr' (IR.Undefined srcSpan _) typeArgs args = do
     ++ "Expected 1 type arguments, got "
     ++ show (length typeArgs)
     ++ "."
-  let typeArgs' = map LIR.liftType' typeArgs
-  args' <- mapM liftExpr args
+  typeArgs' <- mapM LIR.liftType' typeArgs
+  args'     <- mapM liftExpr args
   generateApply
     (LIR.App srcSpan (LIR.Undefined srcSpan) typeArgs' [Partiality] [] True)
     args'
@@ -227,8 +227,8 @@ liftExpr' (IR.ErrorExpr srcSpan msg _) typeArgs args = do
     ++ "Expected 1 type arguments, got "
     ++ show (length typeArgs)
     ++ "."
-  let typeArgs' = map LIR.liftType' typeArgs
-  args' <- mapM liftExpr args
+  typeArgs' <- mapM LIR.liftType' typeArgs
+  args'     <- mapM liftExpr args
   generateApply
     (LIR.App srcSpan
              (LIR.ErrorExpr srcSpan)
@@ -275,7 +275,7 @@ liftAlt' :: [IR.VarPat] -> IR.Expr -> Converter ([LIR.VarPat], LIR.Expr)
 liftAlt' [] expr = ([], ) <$> liftExpr expr
 liftAlt' (pat@(IR.VarPat srcSpan name varType strict) : pats) expr =
   localEnv $ do
-    let varType' = LIR.liftVarPatType pat
+    varType'       <- LIR.liftVarPatType pat
     var            <- renameAndDefineLIRVar srcSpan strict name varType
     (pats', expr') <- liftAlt' pats expr
     if strict
@@ -365,11 +365,12 @@ rawBind
   -> LIR.Expr
   -> Converter LIR.Expr
 rawBind srcSpan mx x varType expr = do
-  mxAgda <- lookupAgdaFreshIdentOrFail srcSpan mx
-  mxCoq  <- lookupIdentOrFail srcSpan IR.FreshScope mx
-  xAgda  <- lookupAgdaValIdentOrFail srcSpan x
-  xCoq   <- lookupIdentOrFail srcSpan IR.ValueScope x
-  let mx' = LIR.Var srcSpan mx mxAgda mxCoq
+  mxAgda   <- lookupAgdaFreshIdentOrFail srcSpan mx
+  mxCoq    <- lookupIdentOrFail srcSpan IR.FreshScope mx
+  xAgda    <- lookupAgdaValIdentOrFail srcSpan x
+  xCoq     <- lookupIdentOrFail srcSpan IR.ValueScope x
+  varType' <- mapM LIR.liftType' varType
+  let mx'          = LIR.Var srcSpan mx mxAgda mxCoq
       Just unqualX = identFromQName x
-      x' = LIR.VarPat srcSpan unqualX (LIR.liftType' <$> varType) xAgda xCoq
+      x'           = LIR.VarPat srcSpan unqualX varType' xAgda xCoq
   return $ LIR.Bind srcSpan mx' $ LIR.Lambda srcSpan [x'] expr

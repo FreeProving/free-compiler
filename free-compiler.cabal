@@ -32,29 +32,12 @@ homepage:            https://github.com/FreeProving/free-compiler
 bug-reports:         https://github.com/FreeProving/free-compiler/labels/bug
 
 -- Additional files.
-data-files:          base/coq/Prelude.toml
-                   , base/coq/Test/QuickCheck.toml
-                     -- Due to a Bug in Cabal version 2.4, we cannot make
-                     -- use of `**` wildcard patterns here. Otherwise, the
-                     -- `new-install` command fails.
-                     -- base/coq/**/*.v
-                   , base/coq/Prelude.v
-                   , base/coq/Prelude/*.v
-                   , base/coq/Free.v
-                   , base/coq/Free/*.v
-                   , base/coq/Free/Instance/*.v
-                   , base/coq/Free/Tactic/*.v
-                   , base/coq/Free/Util/*.v
-                   , base/coq/Test/*.v
-                     -- base/coq/**/*.vo
-                   , base/coq/Prelude.vo
-                   , base/coq/Prelude/*.vo
-                   , base/coq/Free.vo
-                   , base/coq/Free/*.vo
-                   , base/coq/Free/Instance/*.vo
-                   , base/coq/Free/Tactic/*.vo
-                   , base/coq/Free/Util/*.vo
-                   , base/coq/Test/*.vo
+data-files:          base/Prelude.toml
+                   , base/Test/QuickCheck.toml
+                   , base/**/*.v
+                   , base/**/*.vo
+                   , base/**/*.agda
+                   , base/**/*.agda-lib
 
 -- Build configuration.
 build-type:          Simple
@@ -173,9 +156,9 @@ library freec-internal
                       , FreeC.IR.Syntax.Pragma
                       , FreeC.IR.Syntax.Type
                       , FreeC.IR.Syntax.TypeDecl
-                      , FreeC.IR.Syntax.TypeSchema
+                      , FreeC.IR.Syntax.TypeScheme
                       , FreeC.IR.Syntax.TypeVarDecl
-                      , FreeC.IR.TypeSchema
+                      , FreeC.IR.TypeScheme
                       , FreeC.IR.TypeSynExpansion
                       , FreeC.IR.Unification
                       , FreeC.LiftedIR.Converter.Expr
@@ -219,6 +202,8 @@ executable freec
                     , FreeC.Application.Options
                     , FreeC.Application.Options.Descriptors
                     , FreeC.Application.Options.Parser
+                    , FreeC.Backend
+                    , FreeC.Frontend
                     , FreeC.Monad.Application
   build-depends:      freec-internal
                       -- Library for including compile time Git commit hash
@@ -254,6 +239,7 @@ test-suite freec-unit-tests
                     , FreeC.Frontend.IR.ParserTests
                     , FreeC.Frontend.IR.ScannerTests
                     , FreeC.Frontend.IR.Tests
+                    , FreeC.IR.InliningTests
                     , FreeC.IR.ReferenceTests
                     , FreeC.IR.SimilarTests
                     , FreeC.IR.SubstTests
@@ -267,6 +253,7 @@ test-suite freec-unit-tests
                     , FreeC.Monad.ReporterTests
                     , FreeC.Pass.CompletePatternPassTests
                     , FreeC.Pass.EtaConversionPassTests
+                    , FreeC.Pass.ExportPassTests
                     , FreeC.Pass.KindCheckPassTests
                     , FreeC.Pass.PartialityAnalysisPassTests
                     , FreeC.Pass.ResolverPassTests

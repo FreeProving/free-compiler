@@ -2,7 +2,6 @@
 
 module FreeC.Backend.Agda.Converter.Module where
 
-import           Control.Monad                  ( (>=>) )
 import           Control.Monad.Extra            ( concatMapM )
 
 import           Data.List.Extra                ( splitOn )
@@ -25,17 +24,12 @@ import           FreeC.IR.DependencyGraph       ( groupTypeDecls
 import           FreeC.IR.Pragma
 import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Converter
-import           FreeC.Pipeline
 
--- | Converts a Haskell module to an Agda declaration.
+-- | Converts an IR module to an Agda declaration.
 convertModule :: IR.Module -> Converter Agda.Declaration
-convertModule = moduleEnv . (runPipeline >=> convertModule')
-
--- | Like 'convertModule'' but does not apply any compiler passes beforehand.
-convertModule' :: IR.Module -> Converter Agda.Declaration
-convertModule' modul@(IR.Module _ name importDecls typeDecls _ _ funcDecls) =
+convertModule (IR.Module _ name importDecls typeDecls _ modPragmas funcDecls) =
   do
-    mapM_ (addDecArgPragma (IR.modFuncDecls modul)) (IR.modPragmas modul)
+    mapM_ (addDecArgPragma funcDecls) modPragmas
     Agda.moduleDecl (convertModName name)
       <$> getAp (importDecls' <> typeDecls' <> funcDecls')
  where
@@ -43,7 +37,7 @@ convertModule' modul@(IR.Module _ name importDecls typeDecls _ _ funcDecls) =
   typeDecls'   = Ap $ concatMapM convertTypeDecls $ groupTypeDecls typeDecls
   funcDecls'   = Ap $ concatMapM convertFuncDecls $ groupFuncDecls funcDecls
 
--- | Converts a Haskell module name to an Agda module name
+-- | Converts an IR module name to an Agda module name.
 convertModName :: IR.ModName -> Agda.QName
 convertModName name = Agda.qname (init parts) (last parts)
   where parts = Agda.name <$> splitOn "." name
@@ -52,7 +46,7 @@ convertModName name = Agda.qname (init parts) (last parts)
 -- Import declarations                                                       --
 -------------------------------------------------------------------------------
 
--- | Converts the given import declarations to Coq.
+-- | Converts the given import declarations to Agda.
 convertImportDecls :: [IR.ImportDecl] -> Converter [Agda.Declaration]
 convertImportDecls imports =
   (Agda.Base.imports ++) <$> mapM convertImportDecl imports
@@ -65,4 +59,3 @@ convertImportDecl (IR.ImportDecl _ modName) = do
     $ Agda.simpleImport
     $ Agda.qname [interfaceAgdaLibName iface]
     $ Agda.name modName
-

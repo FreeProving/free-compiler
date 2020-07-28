@@ -11,9 +11,9 @@ import           FreeC.Backend.Coq.Converter.Expr
 import           FreeC.Backend.Coq.Pretty       ( )
 import           FreeC.Monad.Class.Testable
 import           FreeC.Monad.Converter
-import           FreeC.Test.Parser
 import           FreeC.Test.Environment
 import           FreeC.Test.Expectations
+import           FreeC.Test.Parser
 
 -------------------------------------------------------------------------------
 -- Expectation setters                                                       --
@@ -21,7 +21,7 @@ import           FreeC.Test.Expectations
 
 -- | Parses the given IR expression, converts it to Coq using 'convertExpr'
 --   and sets the expectation that the resulting AST is equal to the given
---   output when pretty printed modulo white space.
+--   output when pretty printed modulo whitespace.
 shouldConvertExprTo :: String -> String -> Converter Expectation
 shouldConvertExprTo inputStr expectedOutputStr = do
   input  <- parseTestExpr inputStr
@@ -53,14 +53,14 @@ testConvertExpr = describe "FreeC.Backend.Coq.Converter.Expr.convertExpr" $ do
 -- | Test group for translation of constructor application expressions.
 testConvertConApp :: Spec
 testConvertConApp = context "constructor applications" $ do
-  it "converts 0-ary constructor applications correctly"
+  it "converts nullary constructor applications correctly"
     $ shouldSucceedWith
     $ do
         "D"        <- defineTestTypeCon "D" 0 ["C"]
         ("c", "C") <- defineTestCon "C" 0 "D"
         "C" `shouldConvertExprTo` "C Shape Pos"
 
-  it "converts polymorphic 0-ary constructor applications correctly"
+  it "converts polymorphic nullary constructor applications correctly"
     $ shouldSucceedWith
     $ do
         "D"        <- defineTestTypeCon "D" 1 ["C"]
@@ -108,7 +108,7 @@ testConvertConApp = context "constructor applications" $ do
 -- | Test group for translation of function application expressions.
 testConvertFuncApp :: Spec
 testConvertFuncApp = context "function applications" $ do
-  it "converts 0-ary function (pattern-binding) applications correctly"
+  it "converts nullary function (pattern-binding) applications correctly"
     $ shouldSucceedWith
     $ do
         "f" <- defineTestFunc "f" 0 "forall a. a"
@@ -182,11 +182,14 @@ testConvertFuncApp = context "function applications" $ do
         "a" <- defineTestTypeVar "a"
         "x" <- defineTestVar "x"
         "y" <- defineTestVar "y"
-        "f @a x y"
-          `shouldConvertExprTo` "x >>= (fun (x_0 : a) => y >>= (fun (y_0 : a) => @f Shape Pos a x_0 y_0))"
+        shouldConvertExprTo "f @a x y"
+          $  "x >>= (fun (x_0 : a) =>"
+          ++ "  y >>= (fun (y_0 : a) => @f Shape Pos a x_0 y_0))"
 
   it
-      "converts function applications with one non-strict and one strict argument correctly"
+      (  "converts function applications with one non-strict and one"
+      ++ "strict argument correctly"
+      )
     $ shouldSucceedWith
     $ do
         "f" <- defineStrictTestFunc "f" [False, True] "forall a. a -> a -> a"

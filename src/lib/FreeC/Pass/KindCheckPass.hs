@@ -4,7 +4,7 @@
 --   For simplification, all type variables have kind @*@. Therefore, all type
 --   constructors must be fully applied, so partial application of type
 --   constructors is not allowed. This pass also checks that type variables and
---   function types do not occur on the left hand side of a type application.
+--   function types do not occur on the left-hand side of a type application.
 --   If a type expression is found that does not match this rules, a fatal
 --   error is reported. For simplification, a type expression that satisfies all
 --   of these rules is called kind-correct.
@@ -21,7 +21,7 @@
 --   > fail1 :: MyList (MyList a a) -> Integer
 --   > fail1 x = 42
 --   >
---   > -- Invalid because type variable 'a' is on the right hand side of a type
+--   > -- Invalid because type variable 'a' is on the right-hand side of a type
 --   > -- application.
 --   > fail2 :: a a -> Integer
 --   > fail2 x = 42
@@ -86,13 +86,13 @@ checkTypeDecl (IR.TypeSynDecl _ _ _ typeExpr) = checkType typeExpr
 checkConDecl :: IR.ConDecl -> Converter ()
 checkConDecl (IR.ConDecl _ _ types) = mapM_ checkType types
 
--- | Checks whether the type schema in a type signature is kind-correct.
+-- | Checks whether the type scheme in a type signature is kind-correct.
 checkTypeSig :: IR.TypeSig -> Converter ()
-checkTypeSig (IR.TypeSig _ _ typeSchema) = checkTypeSchema typeSchema
+checkTypeSig (IR.TypeSig _ _ typeScheme) = checkTypeScheme typeScheme
 
--- | Checks whether a given type schema is kind-correct.
-checkTypeSchema :: IR.TypeSchema -> Converter ()
-checkTypeSchema (IR.TypeSchema _ _ typeExpr) = checkType typeExpr
+-- | Checks whether a given type scheme is kind-correct.
+checkTypeScheme :: IR.TypeScheme -> Converter ()
+checkTypeScheme (IR.TypeScheme _ _ typeExpr) = checkType typeExpr
 
 -- | Checks whether a function declaration has kind-correct type annotations.
 checkFuncDecl :: IR.FuncDecl -> Converter ()
@@ -103,32 +103,32 @@ checkFuncDecl (IR.FuncDecl _ _ _ varPats retType rhs) = do
 
 -- | Checks whether all type annotations in an expression are kind-correct.
 checkExpr :: IR.Expr -> Converter ()
-checkExpr (IR.Con _ _ typeSchema      ) = mapM_ checkTypeSchema typeSchema
-checkExpr (IR.Var _ _ typeSchema      ) = mapM_ checkTypeSchema typeSchema
-checkExpr (IR.App _ lhs rhs typeSchema) = do
+checkExpr (IR.Con _ _ typeScheme      ) = mapM_ checkTypeScheme typeScheme
+checkExpr (IR.Var _ _ typeScheme      ) = mapM_ checkTypeScheme typeScheme
+checkExpr (IR.App _ lhs rhs typeScheme) = do
   checkExpr lhs
   checkExpr rhs
-  mapM_ checkTypeSchema typeSchema
-checkExpr (IR.TypeAppExpr _ lhs rhs typeSchema) = do
+  mapM_ checkTypeScheme typeScheme
+checkExpr (IR.TypeAppExpr _ lhs rhs typeScheme) = do
   checkExpr lhs
   checkType rhs
-  mapM_ checkTypeSchema typeSchema
-checkExpr (IR.If _ cond thenExpr elseExpr typeSchema) = do
+  mapM_ checkTypeScheme typeScheme
+checkExpr (IR.If _ cond thenExpr elseExpr typeScheme) = do
   checkExpr cond
   checkExpr thenExpr
   checkExpr elseExpr
-  mapM_ checkTypeSchema typeSchema
-checkExpr (IR.Case _ scrutinee alts typeSchema) = do
+  mapM_ checkTypeScheme typeScheme
+checkExpr (IR.Case _ scrutinee alts typeScheme) = do
   checkExpr scrutinee
   mapM_ checkAlt        alts
-  mapM_ checkTypeSchema typeSchema
-checkExpr (IR.Undefined _ typeSchema      ) = mapM_ checkTypeSchema typeSchema
-checkExpr (IR.ErrorExpr  _ _ typeSchema   ) = mapM_ checkTypeSchema typeSchema
-checkExpr (IR.IntLiteral _ _ typeSchema   ) = mapM_ checkTypeSchema typeSchema
-checkExpr (IR.Lambda _ args rhs typeSchema) = do
+  mapM_ checkTypeScheme typeScheme
+checkExpr (IR.Undefined _ typeScheme      ) = mapM_ checkTypeScheme typeScheme
+checkExpr (IR.ErrorExpr  _ _ typeScheme   ) = mapM_ checkTypeScheme typeScheme
+checkExpr (IR.IntLiteral _ _ typeScheme   ) = mapM_ checkTypeScheme typeScheme
+checkExpr (IR.Lambda _ args rhs typeScheme) = do
   mapM_ checkVarPat args
   checkExpr rhs
-  mapM_ checkTypeSchema typeSchema
+  mapM_ checkTypeScheme typeScheme
 
 -- | Checks whether the variable patterns have correct type annotations and the
 --   expression has kind-correct type annotations.

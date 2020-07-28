@@ -90,7 +90,7 @@ jobs:
       uses: actions/setup-haskell@v1.1
       with:
         ghc-version: '8.6.5'
-        cabal-version: '2.4'
+        cabal-version: '3.2'
     - name: Update Cabal Package List
       id: cabal-update
       run: cabal new-update
@@ -176,7 +176,7 @@ jobs:
       uses: actions/setup-haskell@v1.1
       with:
         ghc-version: '8.6.5'
-        cabal-version: '2.4'
+        cabal-version: '3.2'
     - name: Update Cabal Package List
       id: cabal-update
       run: cabal new-update
@@ -233,7 +233,7 @@ jobs:
       uses: actions/setup-haskell@v1.1
       with:
         ghc-version: '8.6.5'
-        cabal-version: '2.4'
+        cabal-version: '3.2'
     - name: Update Cabal Package List
       id: cabal-update
       run: cabal new-update
@@ -432,7 +432,7 @@ jobs:
         ./freec                                          \
           --transform-pattern-matching                   \
           --dump-transformed-modules example/transformed \
-          -b ./base/coq                                  \
+          -b ./base                                      \
           -o ./example/generated                         \
           $(find ./example -name "*.hs")
     - name: Copy compiled examples to build directory
