@@ -37,7 +37,8 @@ data Expr
         , exprAppTypeArgs :: [Type]   -- ^ Visible type applications.
         , exprEffects     :: [Effect] -- ^ Effect set.
         , exprAppArgs     :: [Expr]   -- ^ Applied arguments.
-        , exprFreeArgs    :: Bool     -- ^ If the arguments for the free monad are needed.
+        , exprFreeArgs    :: Bool     -- ^ Whether the arguments for the free
+                                      --   monad are needed.
         }
 
   | -- | @if@ expression.

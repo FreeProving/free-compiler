@@ -48,7 +48,7 @@ genericApply func = genericApply' $ Coq.Qualid func
 -- | Like 'genericApply' but takes a function or (type) constructor term instead
 --   of a qualified identifier as its first argument.
 genericApply'
-  :: Coq.Term -- ^ The function or (type) constructor term
+  :: Coq.Term   -- ^ The function or (type) constructor term
   -> [Coq.Term] -- ^ The type class instances to pass to the callee.
   -> [Coq.Term] -- ^ Implicit arguments to pass explicitly to the callee.
   -> [Coq.Term] -- ^ The actual arguments of the callee.
