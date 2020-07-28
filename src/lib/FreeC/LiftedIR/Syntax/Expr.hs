@@ -69,7 +69,7 @@ data Expr
 
   | -- | A string literal.
     StringLiteral { exprSrcSpan :: SrcSpan
-                  , stringValue :: String
+                  , stringLiteralValue :: String
                   }
 
   | -- | A lambda abstraction.
