@@ -26,7 +26,7 @@ convertLiftedExpr (LIR.Con srcSpan name) =
 convertLiftedExpr (LIR.SmartCon srcSpan name) =
   Agda.Ident <$> lookupAgdaSmartIdentOrFail srcSpan name
 convertLiftedExpr (LIR.Var _ _ name _) = return $ Agda.Ident name
-convertLiftedExpr (LIR.App _ expr _ _ args) =
+convertLiftedExpr (LIR.App _ expr _ _ args _) =
   Agda.appN <$> convertLiftedExpr expr <*> mapM convertLiftedExpr args
 convertLiftedExpr (LIR.If _ cond true false) =
   Agda.ifThenElse
