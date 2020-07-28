@@ -31,8 +31,7 @@ convertLiftedExpr (LIR.Var _ _ _ qualid) = return $ Coq.Qualid qualid
 convertLiftedExpr (LIR.App _ func typeArgs effects args freeArgs) = do
   func' : args' <- mapM convertLiftedExpr $ func : args
   typeArgs'     <- mapM convertLiftedType typeArgs
-  let effectArgs' =
-        [ Coq.Qualid (fst Coq.Base.partialArg) | Partiality `elem` effects ]
+  let effectArgs' = map convertEffect effects
   if freeArgs
     then return $ genericApply' func' effectArgs' typeArgs' args'
     else return $ Coq.app func' args'
@@ -72,6 +71,14 @@ convertLiftedExpr (LIR.Bind _ lhs rhs) = do
 -- | Converts a Haskell expression to Coq.
 convertExpr :: IR.Expr -> Converter Coq.Term
 convertExpr = liftExpr >=> convertLiftedExpr
+
+-------------------------------------------------------------------------------
+-- Effect helpers                                                   --
+-------------------------------------------------------------------------------
+
+-- | Converts an effect to a Coq function argument.
+convertEffect :: Effect -> Coq.Term
+convertEffect Partiality = Coq.Qualid $ fst Coq.Base.partialArg
 
 -------------------------------------------------------------------------------
 -- Case-expression helpers                                                   --
