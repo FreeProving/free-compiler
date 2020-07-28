@@ -36,7 +36,7 @@ import           FreeC.Environment.LookupOrFail ( lookupAgdaFreshIdentOrFail
                                                 , lookupIdentOrFail
                                                 )
 import           FreeC.Environment.Renamer      ( renameAndDefineLIRVar )
-import           FreeC.Environment.Fresh        ( freshIRQName )
+import           FreeC.Environment.Fresh
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter           ( reportFatal
                                                 , Message(Message)
@@ -187,7 +187,7 @@ liftExpr' (IR.Lambda srcSpan args rhs _) [] [] = localEnv $ do
 liftExpr' (IR.If srcSpan cond true false _) [] [] = do
   cond' <- liftExpr cond
   bool' <- LIR.liftType' $ IR.TypeCon NoSrcSpan IR.Prelude.boolTypeConName
-  bind cond' (Just bool')
+  bind cond' freshBoolPrefix (Just bool')
     $ \d -> LIR.If srcSpan d <$> liftExpr true <*> liftExpr false
 
 -- @case@-expressions.
@@ -199,7 +199,7 @@ liftExpr' (IR.If srcSpan cond true false _) [] [] = do
 -- where @alts'@ are the lifted (not smart) constructors for τ₀.
 liftExpr' (IR.Case srcSpan discriminante patterns _) [] [] = do
   discriminant' <- liftExpr discriminante
-  bind discriminant' Nothing
+  bind discriminant' freshArgPrefix Nothing
     $ \d -> LIR.Case srcSpan d <$> mapM liftAlt patterns
 
 liftExpr' (IR.Undefined srcSpan _) typeArgs args = do
@@ -308,8 +308,8 @@ varPat srcSpan var varType = do
 --   > ⎢--------------------------⎥ = ---------------------------------------
 --   > ⎣      Γ ⊢ e₀e₁ : τ₁       ⎦   Γ' ⊢ e₀' >>= λf:(τ₀' → τ₁').f e₀' : e₁'
 generateApply :: LIR.Expr -> [LIR.Expr] -> Converter LIR.Expr
-generateApply = foldlM $ \expr arg ->
-  bind expr Nothing $ \f -> return $ LIR.App NoSrcSpan f [] [] [arg] False
+generateApply = foldlM $ \expr arg -> bind expr freshFuncPrefix Nothing
+  $ \f -> return $ LIR.App NoSrcSpan f [] [] [arg] False
 
 -------------------------------------------------------------------------------
 -- Bind Expression                                                           --
@@ -326,13 +326,14 @@ guessName _                    = Nothing
 -- | Creates a @>>= \x ->@, which binds a new variable.
 bind
   :: LIR.Expr
+  -> String
   -> Maybe LIR.Type
   -> (LIR.Expr -> Converter LIR.Expr)
   -> Converter LIR.Expr
-bind (LIR.Pure _ arg) _       k = k arg -- We don't have to unwrap pure values.
-bind arg              argType k = localEnv $ do
+bind (LIR.Pure _ arg) _             _       k = k arg -- We don't have to unwrap pure values.
+bind arg              defaultPrefix argType k = localEnv $ do
   -- Generate a new name for lambda argument.
-  argIdent <- freshIRQName $ fromMaybe "f" (guessName arg)
+  argIdent <- freshIRQName $ fromMaybe defaultPrefix (guessName arg)
   let Just argIdent' = identFromQName argIdent
   -- Build the lambda on the RHS of the bind.
   argAgda <- lookupAgdaFreshIdentOrFail NoSrcSpan argIdent
@@ -352,8 +353,8 @@ generateBinds
 generateBinds [] k = k []
 generateBinds ((arg, _, False) : as) k =
   generateBinds as $ \as' -> k (arg : as')
-generateBinds ((arg, argType, True) : as) k =
-  bind arg argType $ \arg' -> generateBinds as $ \as' -> k (arg' : as')
+generateBinds ((arg, argType, True) : as) k = bind arg freshArgPrefix argType
+  $ \arg' -> generateBinds as $ \as' -> k (arg' : as')
 
 -- | Generates just the syntax for a bind expression, which unwraps the first
 --   variable and binds its value to the second one in the given expression.
