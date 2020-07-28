@@ -242,9 +242,9 @@ keywords = map
   , ELSE
   , ERROR
   , FORALL
-  , IN
   , IF
   , IMPORT
+  , IN
   , LET
   , MODULE
   , OF
@@ -261,9 +261,9 @@ instance Pretty Keyword where
   pretty ELSE      = prettyString "else"
   pretty ERROR     = prettyString "error"
   pretty FORALL    = prettyString "forall"
-  pretty IN        = prettyString "in"
   pretty IF        = prettyString "if"
   pretty IMPORT    = prettyString "import"
+  pretty IN        = prettyString "in"
   pretty LET       = prettyString "let"
   pretty MODULE    = prettyString "module"
   pretty OF        = prettyString "of"
