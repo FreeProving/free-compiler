@@ -261,7 +261,7 @@ prettyExprPred' 0 (Let _ bs e _) =
 -- At all other levels, the parentheses cannot be omitted.
 prettyExprPred' _ expr@(If _ _ _ _ _  ) = parens (prettyExprPred' 0 expr)
 prettyExprPred' _ expr@(Lambda _ _ _ _) = parens (prettyExprPred' 0 expr)
-prettyExprPred' _ expr@(Let _ _ _ _)    = parens (prettyExprPred' 0 expr)
+prettyExprPred' _ expr@(Let    _ _ _ _) = parens (prettyExprPred' 0 expr)
 
 -- Fix placement of visible type arguments in error terms.
 prettyExprPred' n (TypeAppExpr _ (ErrorExpr _ msg _) t _) | n <= 1 =
@@ -297,7 +297,7 @@ data Alt = Alt
   , altVarPats :: [VarPat]
   , altRhs     :: Expr
   }
- deriving (Eq, Show)
+  deriving (Eq, Show)
 
 -- | Pretty instance for @case@ expression alternatives.
 instance Pretty Alt where
@@ -319,7 +319,7 @@ data ConPat = ConPat
   { conPatSrcSpan :: SrcSpan
   , conPatName    :: ConName
   }
- deriving (Eq, Show)
+  deriving (Eq, Show)
 
 -- | Converts a constructor pattern to a constructor expression.
 conPatToExpr :: ConPat -> Expr
@@ -339,12 +339,12 @@ instance Pretty ConPat where
 --   The variable pattern can optionally have a type signature
 --   or be annotated by a @!@.
 data VarPat = VarPat
-  { varPatSrcSpan   :: SrcSpan
-  , varPatIdent     :: String
-  , varPatType      :: Maybe Type
-  , varPatIsStrict  :: Bool
+  { varPatSrcSpan  :: SrcSpan
+  , varPatIdent    :: String
+  , varPatType     :: Maybe Type
+  , varPatIsStrict :: Bool
   }
- deriving (Eq, Show)
+  deriving (Eq, Show)
 
 -- | Gets the name of the given variable pattern.
 varPatName :: VarPat -> Name
@@ -379,15 +379,13 @@ instance Pretty VarPat where
 
 -- | A binding of a variable to an expression inside of a let clause
 data Bind = Bind
-  { bindSrcSpan  :: SrcSpan
-  , bindVarPat   :: VarPat
-  , bindExpr     :: Expr
+  { bindSrcSpan :: SrcSpan
+  , bindVarPat  :: VarPat
+  , bindExpr    :: Expr
   }
- deriving (Eq, Show)
+  deriving (Eq, Show)
 
  -- | Pretty instance for @let@ expression binds.
 instance Pretty Bind where
   pretty (Bind _ varPat expr) =
-     pretty varPat
-     <+> prettyString "="
-     <+> pretty expr
+    pretty varPat <+> prettyString "=" <+> pretty expr

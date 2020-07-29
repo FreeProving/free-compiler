@@ -503,5 +503,4 @@ instance Similar IR.ConDecl where
 --   > ——————————————————————————
 --   >     Γ ⊢ p = e ≈ q = f
 instance Similar IR.Bind where
-  similar' (IR.Bind _ p e) (IR.Bind _ q f) =
-    similar' p q .&&.  similar' e f
+  similar' (IR.Bind _ p e) (IR.Bind _ q f) = similar' p q .&&. similar' e f
