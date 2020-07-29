@@ -145,7 +145,7 @@ makeConstArgGraph decls = do
           checkExpr expr [] && all (flip checkAlt []) alts
         checkExpr (IR.Let _ binds expr _) _
           | x `shadowedBy` map IR.bindVarPat binds = not (callsG expr) && all (not . callsG . IR.bindExpr) binds
-          | otherwise = checkExpr expr [] && all (checkExpr [] . IR.bindExpr) binds
+          | otherwise = checkExpr expr [] && all (flip checkExpr [] . IR.bindExpr) binds
 
         -- No beta reduction is applied when a lambda expression is
         -- encountered, but the right-hand side still needs to be checked.

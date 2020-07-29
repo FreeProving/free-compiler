@@ -232,8 +232,8 @@ checkDecArgs decls knownDecArgIndecies decArgIndecies = all
       let smaller' = withoutArgs varPats smaller
       in  checkExpr decArg smaller' expr []
 
-    checkBind :: IR.Bind -> Set IR.QName -> Bool
-    checkBind (IR.Bind _ varPat expr) smaller' =
+    checkBind :: Set IR.QName -> IR.Bind -> Bool
+    checkBind smaller' (IR.Bind _ _ expr) =
       checkExpr decArg smaller' expr []
 
     -- | Like 'checkAlt' but for alternatives of @case@-expressions on
