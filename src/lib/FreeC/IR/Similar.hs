@@ -345,7 +345,7 @@ similarExpr (IR.If _ e1 e2 e3 _) (IR.If _ f1 f2 f3 _) =
 similarExpr (IR.Let _ bs e _) (IR.Let _ cs f _) =
   let ns = map (IR.varPatQName . IR.bindVarPat) bs
       ms = map (IR.varPatQName . IR.bindVarPat) cs
-  in similar' e f . extendRenaming IR.ValueScope ns ms .&&. similar' bs cs
+  in  (similar' e f .&&. similar' bs cs) . extendRenaming IR.ValueScope ns ms
 
 -- Expressions without variables are only similar to themselves.
 similarExpr (IR.Con _ n1 _         ) (IR.Con _ n2 _       ) = const (n1 == n2)
@@ -497,18 +497,11 @@ instance Similar IR.ConDecl where
     | otherwise = const False
 
 -- | Two @let@ bindings are similar if their variable pattern and expression are
---      are similar under an extended 'Renaming' @Γ'@ that maps the variables
---      bound by the first @let@ bind to the variables bound by the
---      second @let@ bind.
+--   are similar.
 --
 --   >  Γ' ⊢ p ≈ q  , Γ' ⊢ e ≈ f
 --   > ——————————————————————————
 --   >     Γ ⊢ p = e ≈ q = f
---
---   where Γ' = Γ ∪ { x ↦ y} with @x@ and @y@ being the names of the variables
---   bound by the patterns @p@ and @q@ respectively.
 instance Similar IR.Bind where
   similar' (IR.Bind _ p e) (IR.Bind _ q f) =
-    let n = IR.varPatQName p
-        m = IR.varPatQName q
-    in similar' p q .&&.  similar' e f . extendRenaming IR.ValueScope [n] [m]
+    similar' p q .&&.  similar' e f

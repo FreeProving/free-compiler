@@ -179,6 +179,12 @@ instance ApplySubst IR.Expr IR.Alt where
         expr'              = applySubst subst' expr
     in  IR.Alt srcSpan conPat varPats' expr'
 
+instance ApplySubst IR.Expr IR.Bind where
+  applySubst subst (IR.Bind srcSpan varPat expr) =
+    let varPat' = applySubst subst varPat
+        expr'   = applySubst subst expr
+    in  IR.Bind srcSpan varPat' expr'
+
 -------------------------------------------------------------------------------
 -- Application to types in expressions                                       --
 -------------------------------------------------------------------------------

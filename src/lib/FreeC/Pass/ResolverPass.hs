@@ -716,13 +716,21 @@ instance Resolvable IR.Expr where
     exprType'    <- mapM resolve exprType
     return (IR.Var srcSpan originalName exprType')
 
-  -- Shadow lambda arguments and resolve recursively.
+  -- Shadow the arguments of lambda arguments or variable patterns in @let@
+  -- bindings. Resolve all right hand sides of @let@ bindings or the right
+  -- hand side of a lambda abstraction recursively.
   resolve (IR.Lambda srcSpan args rhs exprType) = withLocalResolverEnv $ do
     defineVarPats args
     args'     <- mapM resolve args
     rhs'      <- resolve rhs
     exprType' <- mapM resolve exprType
     return (IR.Lambda srcSpan args' rhs' exprType')
+  resolve (IR.Let srcSpan binds e exprType) = withLocalResolverEnv $ do
+    defineVarPats (map IR.bindVarPat binds)
+    binds'    <- mapM resolve binds
+    e'        <- resolve e
+    exprType' <- mapM resolve exprType
+    return (IR.Let srcSpan binds' e' exprType')
 
   -- Resolve references recursively.
   resolve (IR.App srcSpan e1 e2 exprType) = do
@@ -746,13 +754,7 @@ instance Resolvable IR.Expr where
     alts'      <- mapM resolve alts
     exprType'  <- mapM resolve exprType
     return (IR.Case srcSpan scrutinee' alts' exprType')
-  -- Shadow variable patterns and recursively
-  resolve (IR.Let srcSpan binds e exprType) = withLocalResolverEnv $ do
-    defineVarPats (map IR.bindVarPat binds)
-    binds'    <- mapM resolve binds
-    e'        <- resolve e
-    exprType' <- mapM resolve exprType
-    return (IR.Let srcSpan binds' e' exprType')
+
 
   -- Only resolve in type annotation of other expressions.
   resolve (IR.Undefined srcSpan exprType) = do
