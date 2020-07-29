@@ -90,7 +90,7 @@ jobs:
       uses: actions/setup-haskell@v1.1
       with:
         ghc-version: '8.6.5'
-        cabal-version: '2.4'
+        cabal-version: '3.2'
     - name: Update Cabal Package List
       id: cabal-update
       run: cabal new-update
@@ -176,7 +176,7 @@ jobs:
       uses: actions/setup-haskell@v1.1
       with:
         ghc-version: '8.6.5'
-        cabal-version: '2.4'
+        cabal-version: '3.2'
     - name: Update Cabal Package List
       id: cabal-update
       run: cabal new-update
@@ -233,7 +233,7 @@ jobs:
       uses: actions/setup-haskell@v1.1
       with:
         ghc-version: '8.6.5'
-        cabal-version: '2.4'
+        cabal-version: '3.2'
     - name: Update Cabal Package List
       id: cabal-update
       run: cabal new-update
@@ -337,14 +337,14 @@ jobs:
         TARGET_FOLDER: docs/${{ env.GITHUB_REF_SLUG }}
 
   #############################################################################
-  # Base library                                                              #
+  # Coq Base library                                                          #
   #############################################################################
 
   # Build the base library of the compiler with all supported Coq versions.
   # We are using Ubuntu and a Debian based Coq docker image in this Job.
   #
   # This job is skipped in draft pull requests.
-  build-base-library:
+  build-coq-base-library:
     name: Build Coq base library
     runs-on: ubuntu-latest
     container: coqorg/coq:${{ matrix.coq }}
@@ -360,16 +360,46 @@ jobs:
     - name: Setup Coq
       run: echo "::add-path::/home/coq/.opam/$COMPILER/bin"
     - name: Build Coq base library
-      run: ./tool/compile-coq.sh base
+      run: ./tool/compile-coq.sh base/coq
     - name: Copy compiled base library to build directory
       run: |
-        mkdir -p ./build/base
-        cp --parents $(find base -name "*.vo" -or -name "*.glob") ./build
+        mkdir -p ./build/base/coq
+        cp --parents $(find base/coq -name "*.vo" -or -name "*.glob") ./build
     - name: Upload compiled base library for Coq ${{ matrix.coq }}
       uses: actions/upload-artifact@v2
       with:
         name: coq-${{ matrix.coq }}-base-library
-        path: ./build/base
+        path: ./build/base/coq
+
+  #############################################################################
+  # Agda Base library                                                         #
+  #############################################################################
+
+  # Build the base library of the compiler with the supported Agda version.
+  # We are using jlimperg's docker image with Agda and its standard library
+  # in this job.
+  #
+  # This job is skipped in draft pull requests.
+  build-agda-base-library:
+    name: Build Agda base library
+    runs-on: ubuntu-latest
+    container: jlimperg/agda-stdlib:${{ matrix.agda }}_${{ matrix.agda_stdlib }}
+    strategy:
+      matrix:
+        agda: ["2.6.1"]
+        agda_stdlib: ["1.3"]
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    # Checks all *.agda files in `./base/agda`.
+    - name: Check Agda Code
+      working-directory: ./base/agda
+      run: |
+        for f in $(find . -name "*.agda"); do
+          agda --library-file /root/.agda/libraries "$f"
+        done
 
   #############################################################################
   # Examples                                                                  #
@@ -424,7 +454,7 @@ jobs:
   # are skipped in drafts.
   test-generated-code:
     name: Test generated Coq code
-    needs: [test-examples, build-base-library]
+    needs: [test-examples, build-coq-base-library]
     runs-on: ubuntu-latest
     container: coqorg/coq:${{ matrix.coq }}
     strategy:
@@ -439,7 +469,7 @@ jobs:
       uses: actions/download-artifact@v2
       with:
         name: coq-${{ matrix.coq }}-base-library
-        path: ./base
+        path: ./base/coq
     - name: Download compiled examples
       uses: actions/download-artifact@v2
       with:

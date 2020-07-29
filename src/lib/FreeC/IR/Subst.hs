@@ -314,15 +314,15 @@ instance ApplySubst IR.Type IR.Type where
       in  IR.FuncType srcSpan t1' t2'
 
 -------------------------------------------------------------------------------
--- Application to type schemas                                           --
+-- Application to type schemes                                           --
 -------------------------------------------------------------------------------
 
--- | Applies the given type substitution to a type schema.
-instance ApplySubst IR.Type IR.TypeSchema where
-  applySubst subst (IR.TypeSchema srcSpan typeArgs typeExpr) =
+-- | Applies the given type substitution to a type scheme.
+instance ApplySubst IR.Type IR.TypeScheme where
+  applySubst subst (IR.TypeScheme srcSpan typeArgs typeExpr) =
     let (subst', typeArgs') = newRenameArgs subst typeArgs
         typeExpr'           = applySubst subst' typeExpr
-    in  IR.TypeSchema srcSpan typeArgs' typeExpr'
+    in  IR.TypeScheme srcSpan typeArgs' typeExpr'
 
 -------------------------------------------------------------------------------
 -- Renaming arguments                                                        --

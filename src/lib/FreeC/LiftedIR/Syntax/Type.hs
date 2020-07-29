@@ -44,3 +44,18 @@ data Type
       , typeFreeArg :: Type
       }
  deriving (Eq, Show)
+
+-------------------------------------------------------------------------------
+-- Utility                                                                   --
+-------------------------------------------------------------------------------
+
+-- | Creates a function type with the given argument and return types.
+funcType :: SrcSpan -> [Type] -> Type -> Type
+funcType srcSpan = flip (foldr (FuncType srcSpan))
+
+-- | Decides whether a type contains a decreasing argument.
+decreasing :: Type -> Bool
+decreasing (TypeCon _ _ _ dec) = dec
+decreasing (FuncType _ l r   ) = decreasing l || decreasing r
+decreasing (FreeTypeCon _ t  ) = decreasing t
+decreasing (TypeVar     _ _  ) = False

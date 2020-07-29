@@ -66,12 +66,13 @@ defineFuncDeclsPass component = do
 defineTypeDecl :: IR.TypeDecl -> Converter ()
 defineTypeDecl (IR.TypeSynDecl srcSpan declIdent typeArgs typeExpr) = do
   _ <- renameAndAddEntry TypeSynEntry
-    { entrySrcSpan  = srcSpan
-    , entryArity    = length typeArgs
-    , entryTypeArgs = map IR.typeVarDeclIdent typeArgs
-    , entryTypeSyn  = typeExpr
-    , entryName     = IR.declIdentName declIdent
-    , entryIdent    = undefined -- filled by renamer
+    { entrySrcSpan   = srcSpan
+    , entryArity     = length typeArgs
+    , entryTypeArgs  = map IR.typeVarDeclIdent typeArgs
+    , entryTypeSyn   = typeExpr
+    , entryName      = IR.declIdentName declIdent
+    , entryIdent     = undefined -- filled by renamer
+    , entryAgdaIdent = undefined -- filled by renamer
     }
   return ()
 defineTypeDecl (IR.DataDecl srcSpan declIdent typeArgs conDecls) = do
@@ -79,8 +80,9 @@ defineTypeDecl (IR.DataDecl srcSpan declIdent typeArgs conDecls) = do
     { entrySrcSpan   = srcSpan
     , entryArity     = length typeArgs
     , entryName      = IR.declIdentName declIdent
-    , entryIdent     = undefined -- filled by renamer
     , entryConsNames = map IR.conDeclQName conDecls
+    , entryIdent     = undefined -- filled by renamer
+    , entryAgdaIdent = undefined -- filled by renamer
     }
   mapM_ defineConDecl conDecls
  where
@@ -95,14 +97,16 @@ defineTypeDecl (IR.DataDecl srcSpan declIdent typeArgs conDecls) = do
   defineConDecl :: IR.ConDecl -> Converter ()
   defineConDecl (IR.ConDecl conSrcSpan conDeclIdent argTypes) = do
     _ <- renameAndAddEntry ConEntry
-      { entrySrcSpan    = conSrcSpan
-      , entryArity      = length argTypes
-      , entryTypeArgs   = map IR.typeVarDeclIdent typeArgs
-      , entryArgTypes   = argTypes
-      , entryReturnType = returnType
-      , entryName       = IR.declIdentName conDeclIdent
-      , entryIdent      = undefined -- filled by renamer
-      , entrySmartIdent = undefined -- filled by renamer
+      { entrySrcSpan        = conSrcSpan
+      , entryArity          = length argTypes
+      , entryTypeArgs       = map IR.typeVarDeclIdent typeArgs
+      , entryArgTypes       = argTypes
+      , entryReturnType     = returnType
+      , entryName           = IR.declIdentName conDeclIdent
+      , entryIdent          = undefined -- filled by renamer
+      , entryAgdaIdent      = undefined -- filled by renamer
+      , entrySmartIdent     = undefined -- filled by renamer
+      , entryAgdaSmartIdent = undefined -- filled by renamer
       }
     return ()
 
@@ -124,5 +128,6 @@ defineFuncDecl funcDecl = do
     , entryIsPartial     = False -- may be updated by partiality analysis pass
     , entryName          = IR.funcDeclQName funcDecl
     , entryIdent         = undefined -- filled by renamer
+    , entryAgdaIdent     = undefined -- filled by renamer
     }
   return ()

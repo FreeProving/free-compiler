@@ -86,13 +86,13 @@ checkTypeDecl (IR.TypeSynDecl _ _ _ typeExpr) = checkType typeExpr
 checkConDecl :: IR.ConDecl -> Converter ()
 checkConDecl (IR.ConDecl _ _ types) = mapM_ checkType types
 
--- | Checks whether the type schema in a type signature is kind-correct.
+-- | Checks whether the type scheme in a type signature is kind-correct.
 checkTypeSig :: IR.TypeSig -> Converter ()
-checkTypeSig (IR.TypeSig _ _ typeSchema) = checkTypeSchema typeSchema
+checkTypeSig (IR.TypeSig _ _ typeScheme) = checkTypeScheme typeScheme
 
--- | Checks whether a given type schema is kind-correct.
-checkTypeSchema :: IR.TypeSchema -> Converter ()
-checkTypeSchema (IR.TypeSchema _ _ typeExpr) = checkType typeExpr
+-- | Checks whether a given type scheme is kind-correct.
+checkTypeScheme :: IR.TypeScheme -> Converter ()
+checkTypeScheme (IR.TypeScheme _ _ typeExpr) = checkType typeExpr
 
 -- | Checks whether a function declaration has kind-correct type annotations.
 checkFuncDecl :: IR.FuncDecl -> Converter ()
@@ -103,36 +103,36 @@ checkFuncDecl (IR.FuncDecl _ _ _ varPats retType rhs) = do
 
 -- | Checks whether all type annotations in an expression are kind-correct.
 checkExpr :: IR.Expr -> Converter ()
-checkExpr (IR.Con _ _ typeSchema      ) = mapM_ checkTypeSchema typeSchema
-checkExpr (IR.Var _ _ typeSchema      ) = mapM_ checkTypeSchema typeSchema
-checkExpr (IR.App _ lhs rhs typeSchema) = do
+checkExpr (IR.Con _ _ typeScheme      ) = mapM_ checkTypeScheme typeScheme
+checkExpr (IR.Var _ _ typeScheme      ) = mapM_ checkTypeScheme typeScheme
+checkExpr (IR.App _ lhs rhs typeScheme) = do
   checkExpr lhs
   checkExpr rhs
-  mapM_ checkTypeSchema typeSchema
-checkExpr (IR.TypeAppExpr _ lhs rhs typeSchema) = do
+  mapM_ checkTypeScheme typeScheme
+checkExpr (IR.TypeAppExpr _ lhs rhs typeScheme) = do
   checkExpr lhs
   checkType rhs
-  mapM_ checkTypeSchema typeSchema
-checkExpr (IR.If _ cond thenExpr elseExpr typeSchema) = do
+  mapM_ checkTypeScheme typeScheme
+checkExpr (IR.If _ cond thenExpr elseExpr typeScheme) = do
   checkExpr cond
   checkExpr thenExpr
   checkExpr elseExpr
-  mapM_ checkTypeSchema typeSchema
-checkExpr (IR.Case _ scrutinee alts typeSchema) = do
+  mapM_ checkTypeScheme typeScheme
+checkExpr (IR.Case _ scrutinee alts typeScheme) = do
   checkExpr scrutinee
   mapM_ checkAlt        alts
-  mapM_ checkTypeSchema typeSchema
-checkExpr (IR.Undefined _ typeSchema      ) = mapM_ checkTypeSchema typeSchema
-checkExpr (IR.ErrorExpr  _ _ typeSchema   ) = mapM_ checkTypeSchema typeSchema
-checkExpr (IR.IntLiteral _ _ typeSchema   ) = mapM_ checkTypeSchema typeSchema
-checkExpr (IR.Lambda _ args rhs typeSchema) = do
+  mapM_ checkTypeScheme typeScheme
+checkExpr (IR.Undefined _ typeScheme      ) = mapM_ checkTypeScheme typeScheme
+checkExpr (IR.ErrorExpr  _ _ typeScheme   ) = mapM_ checkTypeScheme typeScheme
+checkExpr (IR.IntLiteral _ _ typeScheme   ) = mapM_ checkTypeScheme typeScheme
+checkExpr (IR.Lambda _ args rhs typeScheme) = do
   mapM_ checkVarPat args
   checkExpr rhs
-  mapM_ checkTypeSchema typeSchema
-checkExpr (IR.Let _ binds expr typeSchema) = do
+  mapM_ checkTypeScheme typeScheme
+checkExpr (IR.Let _ binds expr typeScheme) = do
   mapM_ checkBind binds
   checkExpr expr
-  mapM_ checkTypeSchema typeSchema
+  mapM_ checkTypeScheme typeScheme
 
 -- | Checks whether the variable patterns have correct type annotations and the
 --   expression has kind-correct type annotations.

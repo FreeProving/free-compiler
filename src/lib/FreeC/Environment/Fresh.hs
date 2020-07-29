@@ -19,6 +19,10 @@ module FreeC.Environment.Fresh
     -- * Generating fresh Coq identifiers
   , freshCoqIdent
   , freshCoqQualid
+    -- * Generating fresh Agda identifiers
+  , freshAgdaVar
+    -- * Generating fresh IR/LIR identifiers
+  , freshIRQName
   )
 where
 
@@ -26,11 +30,12 @@ import           Data.List                      ( elemIndex )
 import           Data.Maybe                     ( fromJust )
 import qualified Data.Map.Strict               as Map
 
+import qualified FreeC.Backend.Agda.Syntax     as Agda
 import qualified FreeC.Backend.Coq.Syntax      as Coq
 import           FreeC.Environment
 import           FreeC.Environment.Entry
 import           FreeC.Environment.Renamer
-import           FreeC.IR.SrcSpan
+import           FreeC.IR.SrcSpan               ( SrcSpan(NoSrcSpan) )
 import qualified FreeC.IR.Syntax               as IR
 import           FreeC.Monad.Converter
 
@@ -133,6 +138,22 @@ freshCoqQualid :: String -> Converter Coq.Qualid
 freshCoqQualid = fmap entryIdent . freshEntry
 
 -------------------------------------------------------------------------------
+-- Generating fresh Agda identifiers                                         --
+-------------------------------------------------------------------------------
+
+-- | Generates a new Agda identifier based on the given name.
+freshAgdaVar :: String -> Converter Agda.QName
+freshAgdaVar = fmap entryAgdaIdent . freshEntry
+
+-------------------------------------------------------------------------------
+-- Generating fresh IR/LIR identifiers                                       --
+-------------------------------------------------------------------------------
+
+-- | Generates a new IR name based on the given name.
+freshIRQName :: String -> Converter IR.QName
+freshIRQName = fmap entryName . freshEntry
+
+-------------------------------------------------------------------------------
 -- Generating entries for fresh identifiers                                  --
 -------------------------------------------------------------------------------
 
@@ -141,6 +162,7 @@ freshCoqQualid = fmap entryIdent . freshEntry
 freshEntry :: String -> Converter EnvEntry
 freshEntry prefix = do
   ident <- freshHaskellIdent prefix
-  renameAndAddEntry FreshEntry { entryName  = IR.UnQual (IR.Ident ident)
-                               , entryIdent = undefined -- filled by renamer
+  renameAndAddEntry FreshEntry { entryName      = IR.UnQual (IR.Ident ident)
+                               , entryIdent     = undefined -- filled by renamer
+                               , entryAgdaIdent = undefined -- filled by renamer
                                }

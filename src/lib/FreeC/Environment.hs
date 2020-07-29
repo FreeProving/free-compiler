@@ -24,13 +24,14 @@ module FreeC.Environment
   , lookupIdent
   , lookupSmartIdent
   , usedIdents
+  , usedAgdaIdents
   , lookupSrcSpan
   , lookupTypeArgs
   , lookupTypeArgArity
   , lookupArgTypes
   , lookupStrictArgs
   , lookupReturnType
-  , lookupTypeSchema
+  , lookupTypeScheme
   , lookupArity
   , lookupTypeSynonym
   , needsFreeArgs
@@ -50,6 +51,7 @@ import qualified Data.Map.Strict               as Map
 import           Data.Maybe                     ( isJust )
 import           Data.Tuple.Extra               ( (&&&) )
 
+import qualified FreeC.Backend.Agda.Syntax     as Agda
 import qualified FreeC.Backend.Coq.Syntax      as Coq
 import           FreeC.Environment.Entry
 import           FreeC.Environment.ModuleInterface
@@ -198,9 +200,17 @@ usedIdents :: Environment -> [Coq.Qualid]
 usedIdents = concatMap entryIdents . Map.elems . envEntries
  where
   entryIdents :: EnvEntry -> [Coq.Qualid]
-  entryIdents entry
-    | isConEntry entry = [entryIdent entry, entrySmartIdent entry]
-    | otherwise        = [entryIdent entry]
+  entryIdents entry =
+    entryIdent entry : [ entrySmartIdent entry | isConEntry entry ]
+
+-- | Gets a list of Agda identifiers for functions, (type/smart) constructors,
+--   (type/fresh) variables that were used in the given environment already.
+usedAgdaIdents :: Environment -> [Agda.QName]
+usedAgdaIdents = concatMap entryIdents . Map.elems . envEntries
+ where
+  entryIdents :: EnvEntry -> [Agda.QName]
+  entryIdents entry =
+    entryAgdaIdent entry : [ entryAgdaSmartIdent entry | isConEntry entry ]
 
 -- | Looks up the location of the declaration with the given name.
 lookupSrcSpan :: IR.Scope -> IR.QName -> Environment -> Maybe SrcSpan
@@ -246,20 +256,20 @@ lookupReturnType :: IR.Scope -> IR.QName -> Environment -> Maybe IR.Type
 lookupReturnType =
   fmap entryReturnType . find (isConEntry .||. isFuncEntry) .:. lookupEntry
 
--- | Gets the type schema of the variable, function or constructor with the
+-- | Gets the type scheme of the variable, function or constructor with the
 --   given name.
-lookupTypeSchema :: IR.Scope -> IR.QName -> Environment -> Maybe IR.TypeSchema
-lookupTypeSchema scope name env
+lookupTypeScheme :: IR.Scope -> IR.QName -> Environment -> Maybe IR.TypeScheme
+lookupTypeScheme scope name env
   | scope == IR.ValueScope && isVariable name env = do
     typeExpr <- lookupEntry scope name env >>= entryType
-    return (IR.TypeSchema NoSrcSpan [] typeExpr)
+    return (IR.TypeScheme NoSrcSpan [] typeExpr)
   | otherwise = do
     typeArgs   <- lookupTypeArgs scope name env
     argTypes   <- lookupArgTypes scope name env
     returnType <- lookupReturnType scope name env
     let typeArgDecls = map (IR.TypeVarDecl NoSrcSpan) typeArgs
         funcType     = IR.funcType NoSrcSpan argTypes returnType
-    return (IR.TypeSchema NoSrcSpan typeArgDecls funcType)
+    return (IR.TypeScheme NoSrcSpan typeArgDecls funcType)
 
 -- | Looks up the number of arguments expected by the Haskell function
 --   or smart constructor with the given name.

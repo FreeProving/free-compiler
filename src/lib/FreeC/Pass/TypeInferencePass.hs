@@ -131,9 +131,9 @@
 --   return types of functions, this pass also annotates all sub-expressions
 --   on the right-hand side with the type that was inferred for them.
 --
---   The type of an expression is stored in 'IR.exprTypeSchema' in the
---   form @'IR.TypeSchema' NoSrcSpan [] τ@ and can safely be accessed
---   via 'IR.exprType' after this pass. The field contains a type schema
+--   The type of an expression is stored in 'IR.exprTypeScheme' in the
+--   form @'IR.TypeScheme' NoSrcSpan [] τ@ and can safely be accessed
+--   via 'IR.exprType' after this pass. The field contains a type scheme
 --   rather than a type because it is also used to store expression type
 --   signatures of the user and type variables in type signatures need
 --   to be universally quantified in Haskell.
@@ -208,7 +208,7 @@ import           FreeC.IR.Reference             ( freeTypeVars )
 import           FreeC.IR.SrcSpan
 import           FreeC.IR.Subst
 import qualified FreeC.IR.Syntax               as IR
-import           FreeC.IR.TypeSchema
+import           FreeC.IR.TypeScheme
 import           FreeC.IR.Unification
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
@@ -257,8 +257,8 @@ instance ApplySubst IR.Type TypeEquation where
 -- Type inference state monad                                                --
 -------------------------------------------------------------------------------
 
--- | Maps the names of defined functions and constructors to their type schema.
-type TypeAssumption = Map IR.QName IR.TypeSchema
+-- | Maps the names of defined functions and constructors to their type scheme.
+type TypeAssumption = Map IR.QName IR.TypeScheme
 
 -- | The state that is passed implicitly between the modules of this module.
 data TypeInferenceState = TypeInferenceState
@@ -270,7 +270,7 @@ data TypeInferenceState = TypeInferenceState
     --   have to be inserted into 'eqnRigidTypeVars' by
     --   'addTypeEquation'.
   , typeAssumption :: TypeAssumption
-    -- ^ The known type schemas of predefined functions and constructors.
+    -- ^ The known type schemes of predefined functions and constructors.
   , fixedTypeArgs :: Map IR.QName [IR.Type]
     -- ^ Maps function names to the types to instantiate their last type
     --   arguments with. This is used to instantiate additional type arguments
@@ -289,10 +289,10 @@ emptyTypeInferenceState = TypeInferenceState { typeEquations  = []
 --   in the given environment.
 makeTypeAssumption :: Environment -> TypeAssumption
 makeTypeAssumption env = Map.fromList
-  [ (name, typeSchema)
+  [ (name, typeScheme)
   | (scope, name) <- Map.keys (envEntries env)
   , scope == IR.ValueScope
-  , typeSchema <- maybeToList (lookupTypeSchema scope name env)
+  , typeScheme <- maybeToList (lookupTypeScheme scope name env)
   ]
 
 -- | The state monad used throughout this module.
@@ -322,9 +322,9 @@ runTypeInference initialTypeAssumption =
 -- Type inference state inspection                                           --
 -------------------------------------------------------------------------------
 
--- | Looks up the type schema of the function or constructor with the given
+-- | Looks up the type scheme of the function or constructor with the given
 --   name in the current type assumption.
-lookupTypeAssumption :: IR.QName -> TypeInference (Maybe IR.TypeSchema)
+lookupTypeAssumption :: IR.QName -> TypeInference (Maybe IR.TypeScheme)
 lookupTypeAssumption name = gets (Map.lookup name . typeAssumption)
 
 -- | Looks up the types to instantiate the additional type arguments
@@ -346,7 +346,7 @@ addTypeEquation srcSpan t t' = modify $ \s ->
                          }
   in  s { typeEquations = eqn : typeEquations s }
 
--- | Instantiates the type schema of the function or constructor with the
+-- | Instantiates the type scheme of the function or constructor with the
 --   given name and adds a 'TypeEquation' for the resulting type and the
 --   given type to the current state.
 --
@@ -354,35 +354,35 @@ addTypeEquation srcSpan t t' = modify $ \s ->
 --   The error message refers to the given source location information.
 addTypeEquationFor :: SrcSpan -> IR.QName -> IR.Type -> TypeInference ()
 addTypeEquationFor srcSpan name resType = do
-  maybeTypeSchema <- lookupTypeAssumption name
-  case maybeTypeSchema of
+  maybeTypeScheme <- lookupTypeAssumption name
+  case maybeTypeScheme of
     Nothing ->
       reportFatal
         $  Message NoSrcSpan Error
         $  "Identifier not in scope "
         ++ showPretty name
-    Just typeSchema -> do
-      typeExpr <- liftConverter $ instantiateTypeSchema typeSchema
+    Just typeScheme -> do
+      typeExpr <- liftConverter $ instantiateTypeScheme typeScheme
       addTypeEquation srcSpan typeExpr resType
 
--- | Extends the type assumption with the type schema for the function,
+-- | Extends the type assumption with the type scheme for the function,
 --   constructor or local variable with the given name.
-extendTypeAssumption :: IR.QName -> IR.TypeSchema -> TypeInference ()
-extendTypeAssumption name typeSchema = modify
-  $ \s -> s { typeAssumption = Map.insert name typeSchema (typeAssumption s) }
+extendTypeAssumption :: IR.QName -> IR.TypeScheme -> TypeInference ()
+extendTypeAssumption name typeScheme = modify
+  $ \s -> s { typeAssumption = Map.insert name typeScheme (typeAssumption s) }
 
--- | Extends the type assumption with the type schema for the given function
+-- | Extends the type assumption with the type scheme for the given function
 --   declaration if all of its argument and return types are annotated.
 extendTypeAssumptionWithFuncDecl :: IR.FuncDecl -> TypeInference ()
 extendTypeAssumptionWithFuncDecl funcDecl = mapM_
   (extendTypeAssumption (IR.funcDeclQName funcDecl))
-  (IR.funcDeclTypeSchema funcDecl)
+  (IR.funcDeclTypeScheme funcDecl)
 
 -- | Extends the type assumption with the unabstracted type the given
 --   variable pattern has been annotated with.
 extendTypeAssumptionWithVarPat :: IR.VarPat -> TypeInference ()
 extendTypeAssumptionWithVarPat varPat = mapM_
-  (extendTypeAssumption (IR.varPatQName varPat) . IR.TypeSchema NoSrcSpan [])
+  (extendTypeAssumption (IR.varPatQName varPat) . IR.TypeScheme NoSrcSpan [])
   (IR.varPatType varPat)
 
 -- | Removes the variable bound by the given variable pattern from the
@@ -479,7 +479,7 @@ inferFuncDeclTypes' funcDecls = withLocalState $ do
   mgu                <- liftConverter $ unifyEquations eqns
   let typedFuncDecls = applySubst mgu annotatedFuncDecls
 
-  -- Abstract inferred type to type schema.
+  -- Abstract inferred type to type scheme.
   --
   -- The function takes one type argument for each type variable in the
   -- inferred type expression. Additional type arguments that occur in
@@ -524,7 +524,7 @@ inferFuncDeclTypes' funcDecls = withLocalState $ do
 
   -- Abstract new vanishing type arguments.
   --
-  -- The instantiation of type schemas by 'applyFuncDeclVisibly' might
+  -- The instantiation of type schemes by 'applyFuncDeclVisibly' might
   -- have introduced new vanishing type arguments if a function with
   -- vanishing type arguments is applied that does not occur in the
   -- strongly connected component. Those additional type arguments
@@ -556,7 +556,7 @@ annotateVarPat varPat = do
 --   If the type (or the general structure of the type) of the given expression
 --   is known, type equations are added. For example, if a function is
 --   predefined, it is known that its type must be an instance of its type
---   schema. Thus, the type schema is instantiated with fresh type variables
+--   scheme. Thus, the type scheme is instantiated with fresh type variables
 --   and a type equation is added that unifies the expected type with the given
 --   type.
 --
@@ -571,10 +571,10 @@ annotateVarPat varPat = do
 --   annotated type with the given type. The annotated expression keeps its
 --   original annotation.
 annotateExprWith :: IR.Expr -> IR.Type -> TypeInference IR.Expr
-annotateExprWith expr resType = case IR.exprTypeSchema expr of
+annotateExprWith expr resType = case IR.exprTypeScheme expr of
   Nothing         -> annotateExprWith' expr resType
-  Just typeSchema -> do
-    exprType <- liftConverter $ instantiateTypeSchema typeSchema
+  Just typeScheme -> do
+    exprType <- liftConverter $ instantiateTypeScheme typeScheme
     addTypeEquation (IR.exprSrcSpan expr) exprType resType
     annotateExprWith' expr exprType
 
@@ -682,14 +682,14 @@ annotateExprWith' (IR.Let srcSpan binds expr _) resType =
            return (IR.Bind bindSrcSpan bindVarPat' bindExpr')
 
 -- | Utility function used by 'annotateExprWith' to construct the
---   'IR.exprTypeSchema' field.
+--   'IR.exprTypeScheme' field.
 --
 --   Never returns @Nothing@ since all expressions must be annotated by
---   'annotateExprWith'. The type schema does not quantify any variables.
+--   'annotateExprWith'. The type scheme does not quantify any variables.
 --   Type variables will be bound by the function declaration that contains
 --   the expression.
-makeExprType :: IR.Type -> Maybe IR.TypeSchema
-makeExprType = Just . IR.TypeSchema NoSrcSpan []
+makeExprType :: IR.Type -> Maybe IR.TypeScheme
+makeExprType = Just . IR.TypeScheme NoSrcSpan []
 
 -- | Annotates the function arguments and return types with fresh type
 --   variables if they are not annotated already and applies 'annotateExprWith'
@@ -730,24 +730,24 @@ annotateFuncDecls funcDecls = withLocalTypeAssumption $ do
 --   with the given name.
 --
 --   Unifies the type annotations added by 'annotateExprWith' and the assumed
---   type schema for the function or constructor to infer the type arguments.
+--   type scheme for the function or constructor to infer the type arguments.
 --   If the function or constructor has vanishing type arguments, this function
 --   introduces new vanishing type variables to the expression that have to be
 --   abstracted later (See 'abstractVanishingTypeArgs').
 --
 --   Since the expression has been annotated with 'annotateExprWith', we
---   can safely assume, that 'IR.exprTypeSchema' does not quantify any type
+--   can safely assume, that 'IR.exprTypeScheme' does not quantify any type
 --   variables itself.
 applyVisibly :: IR.QName -> IR.Expr -> TypeInference IR.Expr
 applyVisibly name expr = do
   let srcSpan            = IR.exprSrcSpan expr
       Just annotatedType = IR.exprType expr
-  maybeAssumedTypeSchema <- lookupTypeAssumption name
-  case maybeAssumedTypeSchema of
+  maybeAssumedTypeScheme <- lookupTypeAssumption name
+  case maybeAssumedTypeScheme of
     Nothing                -> return expr
-    Just assumedTypeSchema -> do
+    Just assumedTypeScheme -> do
       (assumedType, typeArgs) <- liftConverter
-        $ instantiateTypeSchema' assumedTypeSchema
+        $ instantiateTypeScheme' assumedTypeScheme
       mgu   <- liftConverter $ unifyOrFail srcSpan annotatedType assumedType
       fixed <- lookupFixedTypeArgs name
       let typeArgs' = applySubst mgu (dropEnd (length fixed) typeArgs)
@@ -763,10 +763,10 @@ applyExprVisibly :: IR.Expr -> TypeInference IR.Expr
 applyExprVisibly expr@(IR.Con _ conName _) = applyVisibly conName expr
 applyExprVisibly expr@(IR.Var _ varName _) = applyVisibly varName expr
 applyExprVisibly expr@(IR.Undefined srcSpan exprType) = do
-  let Just (IR.TypeSchema _ [] typeArg) = exprType
+  let Just (IR.TypeScheme _ [] typeArg) = exprType
   return (IR.TypeAppExpr srcSpan expr typeArg exprType)
 applyExprVisibly expr@(IR.ErrorExpr srcSpan _ exprType) = do
-  let Just (IR.TypeSchema _ [] typeArg) = exprType
+  let Just (IR.TypeScheme _ [] typeArg) = exprType
   return (IR.TypeAppExpr srcSpan expr typeArg exprType)
 
 -- There should be no visible type applications prior to type inference.
@@ -842,9 +842,9 @@ abstractTypeArgs :: [IR.TypeVarIdent] -> IR.FuncDecl -> IR.FuncDecl
 abstractTypeArgs typeArgIdents funcDecl =
   let
     typeArgs                   = map (IR.UnQual . IR.Ident) typeArgIdents
-    IR.TypeSchema _ _ typeExpr = fromJust (IR.funcDeclTypeSchema funcDecl)
-    (IR.TypeSchema _ typeArgs' _, subst) =
-      abstractTypeSchema' typeArgs typeExpr
+    IR.TypeScheme _ _ typeExpr = fromJust (IR.funcDeclTypeScheme funcDecl)
+    (IR.TypeScheme _ typeArgs' _, subst) =
+      abstractTypeScheme' typeArgs typeExpr
     funcDecl' = applySubst subst funcDecl
   in
     funcDecl' { IR.funcDeclTypeArgs = typeArgs' }
@@ -992,9 +992,10 @@ unifyEquation eqn = localEnv $ do
 --   given type variable declaration.
 bindRigidTypeVar :: MonadConverter m => IR.TypeVarDecl -> m ()
 bindRigidTypeVar typeVarDecl = modifyEnv $ addEntry $ TypeVarEntry
-  { entrySrcSpan = IR.typeVarDeclSrcSpan typeVarDecl
-  , entryName    = IR.UnQual (IR.Ident (IR.typeVarDeclIdent typeVarDecl))
-  , entryIdent   = undefined
+  { entrySrcSpan   = IR.typeVarDeclSrcSpan typeVarDecl
+  , entryName      = IR.UnQual (IR.Ident (IR.typeVarDeclIdent typeVarDecl))
+  , entryIdent     = undefined
+  , entryAgdaIdent = undefined
   }
 
 -------------------------------------------------------------------------------

@@ -68,6 +68,7 @@ where
 import qualified Data.Map.Strict               as Map
 import qualified Data.Set                      as Set
 
+import qualified FreeC.Backend.Agda.Base       as Agda.Base
 import qualified FreeC.Backend.Coq.Base        as Coq.Base
 import qualified FreeC.Backend.Coq.Syntax      as Coq
 import           FreeC.Environment
@@ -94,10 +95,11 @@ exportInterface modName = do
   let exports     = map entryScopedName $ filter isExported entries
   let qualEntries = map qualifyExportedIdent entries
   return
-    (ModuleInterface { interfaceModName = modName
-                     , interfaceLibName = Coq.Base.generatedLibName
-                     , interfaceExports = Set.fromList exports
-                     , interfaceEntries = Set.fromList qualEntries
+    (ModuleInterface { interfaceModName     = modName
+                     , interfaceLibName     = Coq.Base.generatedLibName
+                     , interfaceAgdaLibName = Agda.Base.generatedLibName
+                     , interfaceExports     = Set.fromList exports
+                     , interfaceEntries     = Set.fromList qualEntries
                      }
     )
  where
