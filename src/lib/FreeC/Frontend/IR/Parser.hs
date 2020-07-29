@@ -510,8 +510,11 @@ exprParser = setExprType <$> lExprParser <*> Parsec.optionMaybe
 
 lExprParser :: Parser IR.Expr
 lExprParser =
-  lambdaExprParser <|> ifExprParser <|> caseExprParser <|>
-  letExprParser    <|> fExprParser
+  lambdaExprParser
+    <|> ifExprParser
+    <|> caseExprParser
+    <|> letExprParser
+    <|> fExprParser
  where
   -- @lexpr ::= "\\" varPat { varPat } "->" expr | …@
   lambdaExprParser :: Parser IR.Expr
@@ -665,11 +668,7 @@ bindsParser = bracesParser (bindParser `Parsec.sepEndBy` token Semi)
 --
 --   > bind ::= varPat "=" expr
 bindParser :: Parser IR.Bind
-bindParser =
-  IR.Bind NoSrcSpan
-    <$> varPatParser
-    <*  token Equals
-    <*> exprParser
+bindParser = IR.Bind NoSrcSpan <$> varPatParser <* token Equals <*> exprParser
 
 -------------------------------------------------------------------------------
 -- Patterns                                                                  --

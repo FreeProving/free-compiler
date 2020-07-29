@@ -147,8 +147,8 @@ instance Subterm IR.Expr where
    where
      -- | Replaces the expression on the right hand side of the given
      --   @let@-expression bindings.
-     replaceBindChildExpr :: IR.Bind -> IR.Expr -> IR.Bind
-     replaceBindChildExpr b expr = b {IR.bindExpr = expr }
+    replaceBindChildExpr :: IR.Bind -> IR.Expr -> IR.Bind
+    replaceBindChildExpr b expr = b { IR.bindExpr = expr }
 
   replaceChildTerms expr@(IR.Con _ _ _       ) = nullary expr
   replaceChildTerms expr@(IR.Var _ _ _       ) = nullary expr
