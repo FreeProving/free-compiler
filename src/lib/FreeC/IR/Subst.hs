@@ -161,10 +161,10 @@ instance ApplySubst IR.Expr IR.Expr where
       in  IR.Lambda srcSpan args' expr' exprType
     applySubst' (IR.Let srcSpan binds expr exprType) =
       let (subst', varpats') = newRenameArgs subst (map IR.bindVarPat binds)
-          binds'             = zipWith (\v (IR.Bind s _ e) -> IR.Bind s v e) varpats' binds
+          binds' = zipWith (\v (IR.Bind s _ e) -> IR.Bind s v e) varpats' binds
           binds''            = map (applySubst subst') binds'
           expr'              = applySubst subst' expr
-      in IR.Let srcSpan binds'' expr' exprType
+      in  IR.Let srcSpan binds'' expr' exprType
 
     -- All other expressions remain unchanged.
     applySubst' expr@(IR.Con _ _ _       ) = expr
@@ -182,8 +182,7 @@ instance ApplySubst IR.Expr IR.Alt where
 
 instance ApplySubst IR.Expr IR.Bind where
   applySubst subst (IR.Bind srcSpan varPat expr) =
-    let expr'   = applySubst subst expr
-    in  IR.Bind srcSpan varPat expr'
+    let expr' = applySubst subst expr in IR.Bind srcSpan varPat expr'
 
 -------------------------------------------------------------------------------
 -- Application to types in expressions                                       --
@@ -273,7 +272,7 @@ instance ApplySubst IR.Type IR.Bind where
   applySubst subst (IR.Bind srcSpan varPat expr) =
     let varPat' = applySubst subst varPat
         expr'   = applySubst subst expr
-    in IR.Bind srcSpan varPat' expr'
+    in  IR.Bind srcSpan varPat' expr'
 
 -------------------------------------------------------------------------------
 -- Application to function declarations                                      --
