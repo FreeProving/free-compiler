@@ -140,6 +140,11 @@ inlineExpr decls = inlineAndBind
     shadowVarPats varPats $ do
       expr' <- inlineAndBind expr
       return ([], [], IR.Lambda srcSpan varPats expr' exprType)
+  inlineExpr' (IR.Let srcSpan binds expr exprType) =
+    shadowVarPats (map IR.bindVarPat binds) $ do
+      binds' <- mapM inlineBind binds
+      expr'  <- inlineAndBind expr
+      return ([], [], IR.Let srcSpan binds' expr' exprType)
 
   -- All other expressions remain unchanged.
   inlineExpr' expr@(IR.Con _ _ _       ) = return ([], [], expr)
@@ -153,3 +158,8 @@ inlineExpr decls = inlineAndBind
   inlineAlt (IR.Alt srcSpan conPat varPats expr) = shadowVarPats varPats $ do
     expr' <- inlineAndBind expr
     return (IR.Alt srcSpan conPat varPats expr')
+
+  inlineBind :: IR.Bind -> Converter IR.Bind
+  inlineBind (IR.Bind srcSpan varPat expr) = do
+    expr' <- inlineAndBind expr
+    return (IR.Bind srcSpan varPat expr')
