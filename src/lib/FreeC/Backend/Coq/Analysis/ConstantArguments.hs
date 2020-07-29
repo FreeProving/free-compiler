@@ -145,7 +145,7 @@ makeConstArgGraph decls = do
           checkExpr expr [] && all (flip checkAlt []) alts
         checkExpr (IR.Let _ binds expr _) _
           | x `shadowedBy` map IR.bindVarPat binds
-          = not (callsG expr) && all (not . callsG . IR.bindExpr) binds
+          = not (callsG expr) && not (any (callsG . IR.bindExpr) binds)
           | otherwise
           = checkExpr expr [] && all (flip checkExpr [] . IR.bindExpr) binds
 
