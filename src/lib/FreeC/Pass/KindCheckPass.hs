@@ -129,10 +129,6 @@ checkExpr (IR.Lambda _ args rhs typeScheme) = do
   mapM_ checkVarPat args
   checkExpr rhs
   mapM_ checkTypeScheme typeScheme
-checkExpr (IR.Let _ binds expr typeScheme) = do
-  mapM_ checkBind binds
-  checkExpr expr
-  mapM_ checkTypeScheme typeScheme
 
 -- | Checks whether the variable patterns have correct type annotations and the
 --   expression has kind-correct type annotations.
@@ -148,13 +144,6 @@ checkVarPat (IR.VarPat _ _ typeExpr _) = mapM_ checkType typeExpr
 -- | Checks if all type constructors have the correct number of arguments.
 checkType :: IR.Type -> Converter ()
 checkType = checkType' 0
-
--- | Checks whether the variable patterns have correct type annotations and the
---   expression has kind-correct type annotations.
-checkBind :: IR.Bind -> Converter ()
-checkBind (IR.Bind _ varPat expr) = do
-  checkVarPat varPat
-  checkExpr expr
 
 -- | Helper function for @checkType@. Uses a counter to count how many
 --   arguments have already been applied.
