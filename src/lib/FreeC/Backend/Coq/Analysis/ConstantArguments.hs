@@ -176,7 +176,6 @@ makeConstArgGraph decls = do
           | otherwise              = checkExpr expr args
 
 
-
         -- | Tests whethe the given variable is shadowed by the given
         --   variale patterns.
         shadowedBy :: String -> [IR.VarPat] -> Bool

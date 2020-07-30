@@ -180,6 +180,12 @@ instance ApplySubst IR.Expr IR.Alt where
         expr'              = applySubst subst' expr
     in  IR.Alt srcSpan conPat varPats' expr'
 
+-- | Applies the given expression substitution to an the right-hand side of a
+--   @let@ binding.
+--
+--   The variable that is bound by the binding is not renamed by this instance.
+--   The 'ApplySubst' instance for expressions renames all variables that are
+--   bound by @let@ expressions.
 instance ApplySubst IR.Expr IR.Bind where
   applySubst subst (IR.Bind srcSpan varPat expr) =
     let expr' = applySubst subst expr in IR.Bind srcSpan varPat expr'
