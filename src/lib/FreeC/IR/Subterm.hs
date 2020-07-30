@@ -145,8 +145,8 @@ instance Subterm IR.Expr where
       expr'
       exprType
    where
-     -- | Replaces the expression on the right hand side of the given
-     --   @let@-expression bindings.
+    -- | Replaces the expression on the right hand side of the given
+    --   @let@-expression bindings.
     replaceBindChildExpr :: IR.Bind -> IR.Expr -> IR.Bind
     replaceBindChildExpr b expr = b { IR.bindExpr = expr }
 

@@ -385,7 +385,7 @@ data Bind = Bind
   }
   deriving (Eq, Show)
 
- -- | Pretty instance for @let@ expression binds.
+-- | Pretty instance for @let@ expression binds.
 instance Pretty Bind where
   pretty (Bind _ varPat expr) =
     pretty varPat <+> prettyString "=" <+> pretty expr
