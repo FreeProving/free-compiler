@@ -40,7 +40,7 @@ import           FreeC.Environment.Fresh
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter           ( reportFatal
                                                 , Message(Message)
-                                                , Severity(Internal)
+                                                , Severity(Internal, Error)
                                                 )
 
 -- | Converts an expression from IR to lifted IR and lifts it during the
@@ -239,6 +239,10 @@ liftExpr' (IR.ErrorExpr srcSpan msg _) typeArgs args = do
     )
     args'
 
+liftExpr' (IR.Let srcSpan _ _ _) _ _ =
+  reportFatal
+    $ Message srcSpan Error
+    $ "Let expressions are currently not supported."
 -- Visible type application of an expression other than a function or
 -- constructor.
 liftExpr' expr (_ : _) _ =
