@@ -98,6 +98,7 @@ transformRecFuncDecl (IR.FuncDecl srcSpan declIdent typeArgs args maybeRetType e
     let mainExpr = replaceSubterms' expr (zip caseExprsPos helperApps)
         mainDecl =
           IR.FuncDecl srcSpan declIdent typeArgs args maybeRetType mainExpr
+
     return (helperDecls, mainDecl)
  where
   -- | The name of the function to transform.
