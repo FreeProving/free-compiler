@@ -30,7 +30,7 @@ cabal new-haddock --haddock-all                   \
 
 # Cabal currently does not set the exit status correctly when the Haddock
 # command fails. Thus we have to set the exit status ourselves.
-if grep "Warning: Failed to build documentation for" "$haddock_output"; then
+if grep "cabal: Failed to build documentation for" "$haddock_output"; then
   printErrorAndDie "Failed to build documentation"
 fi
 
