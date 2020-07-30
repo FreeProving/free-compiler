@@ -234,7 +234,7 @@ Section Proofs.
       + (* For an expression that is only a single value, the property is trivial. *)
         reflexivity.
       + (* For an addition expression, we start with some simplification steps for the [append] function. *)
-        intro fcode. simpl comp_0.
+        intro fcode. simpl comp0.
         do 2 (rewrite <- append_assocs).
         simpl append.
         (* We use [replace] here to make this main proof simple and produce additional simple subgoals. *)

@@ -409,54 +409,54 @@ Section Rewrite_Helper_Functions.
   Variable Pos : Shape -> Type.
   Variable Part : Partial Shape Pos.
 
-  Lemma def_append_0 :
+  Lemma def_append0 :
     forall (A : Type)
            (fl1 fl2 : Free Shape Pos (List Shape Pos A)),
-        append_0 Shape Pos A fl2 fl1
+        append0 Shape Pos A fl2 fl1
         = append fl1 fl2.
   Proof.
     reflexivity.
   Qed.
 
-  Lemma def_append_1 :
+  Lemma def_append1 :
     forall (A : Type)
            (l1 : List Shape Pos A)
            (fl2 : Free Shape Pos (List Shape Pos A)),
-        append_1 Shape Pos A fl2 l1
+        append1 Shape Pos A fl2 l1
         = append (pure l1) fl2.
   Proof.
     reflexivity.
   Qed.
 
-  Lemma def_eval_0 :
+  Lemma def_eval0 :
     forall (expr : Expr Shape Pos),
-        eval_0 Shape Pos expr
+        eval0 Shape Pos expr
         = eval (pure expr).
   Proof.
     reflexivity.
   Qed.
 
-  Lemma def_exec_0 :
+  Lemma def_exec0 :
     forall (code : Code Shape Pos)
            (fstack : Free Shape Pos (Stack Shape Pos)),
-        exec_0 Shape Pos Part code fstack
+        exec0 Shape Pos Part code fstack
         = exec Part (pure code) fstack.
   Proof.
     reflexivity.
   Qed.
 
-  Lemma def_comp_0 :
+  Lemma def_comp0 :
     forall (expr : Expr Shape Pos),
-        comp_0 Shape Pos expr
+        comp0 Shape Pos expr
         = comp (pure expr).
   Proof.
     reflexivity.
   Qed.
 
-  Lemma def_compApp_0 :
+  Lemma def_compApp0 :
     forall (expr : Expr Shape Pos)
            (fcode : Free Shape Pos (Code Shape Pos)),
-        compApp_0 Shape Pos expr fcode
+        compApp0 Shape Pos expr fcode
         = compApp (pure expr) fcode.
   Proof.
     reflexivity.
@@ -464,12 +464,12 @@ Section Rewrite_Helper_Functions.
 
 End Rewrite_Helper_Functions.
 
-Hint Rewrite def_append_1  : prettyDB.
-Hint Rewrite def_append_0  : prettyDB.
-Hint Rewrite def_eval_0    : prettyDB.
-Hint Rewrite def_exec_0    : prettyDB.
-Hint Rewrite def_comp_0    : prettyDB.
-Hint Rewrite def_compApp_0 : prettyDB.
+Hint Rewrite def_append1  : prettyDB.
+Hint Rewrite def_append0  : prettyDB.
+Hint Rewrite def_eval0    : prettyDB.
+Hint Rewrite def_exec0    : prettyDB.
+Hint Rewrite def_comp0    : prettyDB.
+Hint Rewrite def_compApp0 : prettyDB.
 
 (* Define specific rules for the [Maybe] monad. *)
 Section Rewrite_Maybe.
