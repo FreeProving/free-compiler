@@ -111,6 +111,7 @@ instance Subterm IR.Expr where
   childTerms (IR.Undefined _ _          ) = []
   childTerms (IR.ErrorExpr  _ _ _       ) = []
   childTerms (IR.IntLiteral _ _ _       ) = []
+  childTerms (IR.Let _ binds e _        ) = e : map IR.bindExpr binds
 
   -- | Replaces all direct child expression nodes of the given expression.
   replaceChildTerms (IR.App srcSpan _ _ exprType) =
@@ -136,6 +137,18 @@ instance Subterm IR.Expr where
 
   replaceChildTerms (IR.Lambda srcSpan args _ exprType) =
     checkArity 1 $ \[expr'] -> IR.Lambda srcSpan args expr' exprType
+
+  replaceChildTerms (IR.Let srcSpan binds _ exprType) =
+    checkArity (length binds + 1) $ \(expr' : bindChildren') -> IR.Let
+      srcSpan
+      (zipWith replaceBindChildExpr binds bindChildren')
+      expr'
+      exprType
+   where
+     -- | Replaces the expression on the right hand side of the given
+     --   @let@-expression bindings.
+    replaceBindChildExpr :: IR.Bind -> IR.Expr -> IR.Bind
+    replaceBindChildExpr b expr = b { IR.bindExpr = expr }
 
   replaceChildTerms expr@(IR.Con _ _ _       ) = nullary expr
   replaceChildTerms expr@(IR.Var _ _ _       ) = nullary expr

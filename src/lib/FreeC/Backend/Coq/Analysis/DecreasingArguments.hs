@@ -207,6 +207,12 @@ checkDecArgs decls knownDecArgIndecies decArgIndecies = all
       let smaller' = withoutArgs args smaller
       in  checkExpr decArg smaller' expr []
 
+    -- The right hand side of a @let@-binding shadow existing (structurally
+    -- smaller) variables.
+    checkExpr' (IR.Let _ binds expr _) _ =
+      let smaller' = withoutArgs (map IR.bindVarPat binds) smaller
+      in  checkExpr decArg smaller' expr [] && all (checkBind smaller') binds
+
     -- Recursively check visibly applied expressions.
     checkExpr' (IR.TypeAppExpr _ expr _ _) args = checkExpr' expr args
 
@@ -225,6 +231,9 @@ checkDecArgs decls knownDecArgIndecies decArgIndecies = all
     checkAlt (IR.Alt _ _ varPats expr) =
       let smaller' = withoutArgs varPats smaller
       in  checkExpr decArg smaller' expr []
+
+    checkBind :: Set IR.QName -> IR.Bind -> Bool
+    checkBind smaller' (IR.Bind _ _ expr) = checkExpr decArg smaller' expr []
 
     -- | Like 'checkAlt' but for alternatives of @case@-expressions on
     --   the decreasing argument or a variable that is structurally smaller.

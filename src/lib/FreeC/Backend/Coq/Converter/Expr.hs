@@ -230,6 +230,21 @@ convertExpr' (IR.Lambda _ args expr _) [] [] = localEnv $ do
   expr' <- convertExpr expr
   foldrM (generatePure .: Coq.Fun . return) expr' args'
 
+convertExpr' (IR.Let _ binds expr _) [] [] = localEnv
+  $ foldr convertBind (convertExpr expr) binds
+ where
+  convertBind :: IR.Bind -> Converter Coq.Term -> Converter Coq.Term
+  convertBind bind letExprInConverter = do
+    let p = IR.bindVarPat bind
+        e = IR.bindExpr bind
+    e'     <- convertExpr e
+    qualid <- renameAndDefineVar (IR.varPatSrcSpan p)
+                                 (IR.varPatIsStrict p)
+                                 (IR.varPatIdent p)
+                                 (IR.varPatType p)
+    varPatType' <- mapM convertType (IR.varPatType p)
+    Coq.Let qualid [] varPatType' e' <$> letExprInConverter
+
 -- Visible type application of an expression other than a function or
 -- constructor.
 convertExpr' expr (_ : _) _ =
