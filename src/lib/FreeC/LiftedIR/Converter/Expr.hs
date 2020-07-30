@@ -8,25 +8,35 @@ module FreeC.LiftedIR.Converter.Expr
 where
 
 import           Control.Applicative            ( (<|>) )
-import           Control.Monad                  ( join )
+import           Control.Monad                  ( join
+                                                , when
+                                                )
 import           Data.Bool                      ( bool )
 import           Data.Maybe                     ( fromMaybe
                                                 , fromJust
                                                 )
+import           Data.Foldable
+
+import qualified FreeC.IR.Base.Prelude         as IR.Prelude
 
 import qualified FreeC.IR.Syntax               as IR
 import           FreeC.IR.Syntax.Name           ( identFromQName )
+import           FreeC.IR.Subst
 import           FreeC.IR.SrcSpan               ( SrcSpan(NoSrcSpan) )
 import           FreeC.LiftedIR.Effect          ( Effect(Partiality) )
 import qualified FreeC.LiftedIR.Syntax         as LIR
 import qualified FreeC.LiftedIR.Converter.Type as LIR
+import           FreeC.Pretty                   ( showPretty )
 import           FreeC.Environment
-import           FreeC.Environment.Entry        ( entryAgdaIdent )
+import           FreeC.Environment.Entry        ( entryAgdaIdent
+                                                , entryIdent
+                                                )
 import           FreeC.Environment.LookupOrFail ( lookupAgdaFreshIdentOrFail
                                                 , lookupAgdaValIdentOrFail
+                                                , lookupIdentOrFail
                                                 )
 import           FreeC.Environment.Renamer      ( renameAndDefineLIRVar )
-import           FreeC.Environment.Fresh        ( freshIRQName )
+import           FreeC.Environment.Fresh
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter           ( reportFatal
                                                 , Message(Message)
@@ -66,22 +76,88 @@ liftExpr' (IR.TypeAppExpr _ e t _) typeArgs args =
   liftExpr' e (t : typeArgs) args
 
 -- Constructors.
-liftExpr' (IR.Con srcSpan name _) _ args = do
-  args' <- mapM liftExpr args
-  let con = LIR.SmartCon srcSpan name
-  return $ LIR.App srcSpan con [] [] args'
+liftExpr' (IR.Con srcSpan name _) typeArgs args = do
+  args'             <- mapM liftExpr args
+  typeArgs'         <- mapM LIR.liftType' typeArgs
+  Just typeArgArity <- inEnv $ lookupTypeArgArity IR.ValueScope name
+  let con          = LIR.SmartCon srcSpan name
+      typeArgCount = length typeArgs'
+  when (typeArgCount /= typeArgArity)
+    $  reportFatal
+    $  Message srcSpan Internal
+    $  "The constructor '"
+    ++ showPretty name
+    ++ "' is applied to the wrong number of type arguments.\n"
+    ++ "Expected "
+    ++ show typeArgArity
+    ++ " type arguments, got "
+    ++ show typeArgCount
+    ++ "."
+  return $ LIR.App srcSpan con typeArgs' [] args' True
 
 -- Cases for (possible applied) variables (i.e. variables and functions).
-liftExpr' (IR.Var srcSpan name _) _ args = do
-  args'    <- mapM liftExpr args
-  varName  <- LIR.Var srcSpan name <$> lookupAgdaValIdentOrFail srcSpan name
+liftExpr' (IR.Var srcSpan name _) typeArgs args = do
+  args'     <- mapM liftExpr args
+  agdaIdent <- lookupAgdaValIdentOrFail srcSpan name
+  coqIdent  <- lookupIdentOrFail srcSpan IR.ValueScope name
+  let varName      = LIR.Var srcSpan name agdaIdent coqIdent
+      typeArgCount = length typeArgs
+  maybeTypeArgArity <- inEnv $ lookupTypeArgArity IR.ValueScope name
+  -- The number of type arguments must match the number of type parameters.
+  -- In case of variables, there must be no type arguments.
+  -- Since, the user cannot create visible type applications, it is an
+  -- internal error if the number of type arguments does not match.
+  case maybeTypeArgArity of
+    Just typeArgArity ->
+      when (typeArgCount /= typeArgArity)
+        $  reportFatal
+        $  Message srcSpan Internal
+        $  "The function '"
+        ++ showPretty name
+        ++ "' is applied to the wrong number of type arguments.\n"
+        ++ "Expected "
+        ++ show typeArgArity
+        ++ " type arguments, got "
+        ++ show typeArgCount
+        ++ "."
+    Nothing ->
+      when (typeArgCount /= 0)
+        $  reportFatal
+        $  Message srcSpan Internal
+        $  "The variable '"
+        ++ showPretty name
+        ++ "' must not be applied to type arguments.\n"
+        ++ "Got "
+        ++ show typeArgCount
+        ++ " type arguments."
   function <- inEnv $ isFunction name
   if function -- If this is a top level functions it's lifted argument wise.
     then do
-      partial         <- inEnv $ isPartial name
-      Just strictArgs <- inEnv $ lookupStrictArgs name
-      generateBinds (zip args' $ strictArgs ++ repeat False) $ \args'' ->
-        return $ LIR.App srcSpan varName [] [ Partiality | partial ] args''
+      partial            <- inEnv $ isPartial name
+      Just strictArgs    <- inEnv $ lookupStrictArgs name
+      freeArgs           <- inEnv $ needsFreeArgs name
+      Just typeArgIdents <- inEnv $ lookupTypeArgs IR.ValueScope name
+      Just argTypes      <- inEnv $ lookupArgTypes IR.ValueScope name
+      Just arity         <- inEnv $ lookupArity IR.ValueScope name
+      let typeArgNames = map (IR.UnQual . IR.Ident) typeArgIdents
+          subst = composeSubsts (zipWith singleSubst typeArgNames typeArgs)
+      argTypes' <- mapM (LIR.liftType' . applySubst subst) argTypes
+      typeArgs' <- mapM LIR.liftType' typeArgs
+      generateBinds
+          (  zip3 args' (map Just argTypes' ++ repeat Nothing)
+          $  strictArgs
+          ++ repeat False
+          )
+        $ \args'' ->
+            generateApply
+                (LIR.App srcSpan
+                         varName
+                         typeArgs'
+                         [ Partiality | partial ]
+                         (take arity args'')
+                         freeArgs
+                )
+              $ drop arity args''
     else do
       pureArg <- inEnv $ isPureVar name
       generateApply (bool id (LIR.Pure NoSrcSpan) pureArg varName) args'
@@ -110,7 +186,9 @@ liftExpr' (IR.Lambda srcSpan args rhs _) [] [] = localEnv $ do
 -- arguments.
 liftExpr' (IR.If srcSpan cond true false _) [] [] = do
   cond' <- liftExpr cond
-  cond' `bind` \d -> LIR.If srcSpan d <$> liftExpr true <*> liftExpr false
+  bool' <- LIR.liftType' $ IR.TypeCon NoSrcSpan IR.Prelude.boolTypeConName
+  bind cond' freshBoolPrefix (Just bool')
+    $ \d -> LIR.If srcSpan d <$> liftExpr true <*> liftExpr false
 
 -- @case@-expressions.
 --
@@ -121,11 +199,45 @@ liftExpr' (IR.If srcSpan cond true false _) [] [] = do
 -- where @alts'@ are the lifted (not smart) constructors for τ₀.
 liftExpr' (IR.Case srcSpan discriminante patterns _) [] [] = do
   discriminant' <- liftExpr discriminante
-  discriminant' `bind` \d -> LIR.Case srcSpan d <$> mapM liftAlt patterns
+  bind discriminant' freshArgPrefix Nothing
+    $ \d -> LIR.Case srcSpan d <$> mapM liftAlt patterns
 
-liftExpr' (IR.Undefined srcSpan _    ) _ _ = return $ LIR.Undefined srcSpan
+liftExpr' (IR.Undefined srcSpan _) typeArgs args = do
+  when (length typeArgs /= 1)
+    $  reportFatal
+    $  Message srcSpan Internal
+    $  "The error term 'undefined' is applied to the wrong number of "
+    ++ "type arguments.\n"
+    ++ "Expected 1 type arguments, got "
+    ++ show (length typeArgs)
+    ++ "."
+  typeArgs' <- mapM LIR.liftType' typeArgs
+  args'     <- mapM liftExpr args
+  generateApply
+    (LIR.App srcSpan (LIR.Undefined srcSpan) typeArgs' [Partiality] [] True)
+    args'
 
-liftExpr' (IR.ErrorExpr srcSpan msg _) _ _ = return $ LIR.ErrorExpr srcSpan msg
+liftExpr' (IR.ErrorExpr srcSpan msg _) typeArgs args = do
+  when (length typeArgs /= 1)
+    $  reportFatal
+    $  Message srcSpan Internal
+    $  "The error term 'error "
+    ++ show msg
+    ++ "' is applied to the wrong number of type arguments.\n"
+    ++ "Expected 1 type arguments, got "
+    ++ show (length typeArgs)
+    ++ "."
+  typeArgs' <- mapM LIR.liftType' typeArgs
+  args'     <- mapM liftExpr args
+  generateApply
+    (LIR.App srcSpan
+             (LIR.ErrorExpr srcSpan)
+             typeArgs'
+             [Partiality]
+             [LIR.StringLiteral srcSpan msg]
+             True
+    )
+    args'
 
 liftExpr' (IR.Let srcSpan _ _ _) _ _ =
   reportFatal
@@ -165,19 +277,20 @@ liftAlt (IR.Alt srcSpan conPat pats expr) = do
 --   are unwrapped using @>>=@.
 liftAlt' :: [IR.VarPat] -> IR.Expr -> Converter ([LIR.VarPat], LIR.Expr)
 liftAlt' [] expr = ([], ) <$> liftExpr expr
-liftAlt' (pat@(IR.VarPat srcSpan name varType strict) : pats) expr = do
-  varType'       <- LIR.liftVarPatType pat
-  var            <- renameAndDefineLIRVar srcSpan strict name varType
-  (pats', expr') <- liftAlt' pats expr
-  if strict
-    then do
-      var'   <- freshIRQName name
-      expr'' <- rawBind srcSpan var' var varType expr'
-      pat'   <- varPat srcSpan var' varType'
-      return (pat' : pats', expr'')
-    else do
-      pat' <- varPat srcSpan var varType'
-      return (pat' : pats', expr')
+liftAlt' (pat@(IR.VarPat srcSpan name varType strict) : pats) expr =
+  localEnv $ do
+    varType'       <- LIR.liftVarPatType pat
+    var            <- renameAndDefineLIRVar srcSpan strict name varType
+    (pats', expr') <- liftAlt' pats expr
+    if strict
+      then do
+        var'   <- freshIRQName name
+        expr'' <- rawBind srcSpan var' var varType expr'
+        pat'   <- varPat srcSpan var' varType'
+        return (pat' : pats', expr'')
+      else do
+        pat' <- varPat srcSpan var varType'
+        return (pat' : pats', expr')
 
 -- | Smart constructor for variable patterns.
 varPat :: SrcSpan -> IR.QName -> Maybe LIR.Type -> Converter LIR.VarPat
@@ -186,7 +299,8 @@ varPat srcSpan var varType = do
   valueEntry <- inEnv $ lookupEntry IR.ValueScope var
   freshEntry <- inEnv $ lookupEntry IR.FreshScope var
   let agdaVar = entryAgdaIdent $ fromJust (valueEntry <|> freshEntry)
-  return $ LIR.VarPat srcSpan unqualVar varType agdaVar
+  let coqVar  = entryIdent $ fromJust (valueEntry <|> freshEntry)
+  return $ LIR.VarPat srcSpan unqualVar varType agdaVar coqVar
 
 -------------------------------------------------------------------------------
 -- Application-expression helper                                             --
@@ -198,9 +312,8 @@ varPat srcSpan var varType = do
 --   > ⎢--------------------------⎥ = ---------------------------------------
 --   > ⎣      Γ ⊢ e₀e₁ : τ₁       ⎦   Γ' ⊢ e₀' >>= λf:(τ₀' → τ₁').f e₀' : e₁'
 generateApply :: LIR.Expr -> [LIR.Expr] -> Converter LIR.Expr
-generateApply mf []       = return mf
-generateApply mf (a : as) = mf `bind` \f -> generateApply (f `app` a) as
-  where app l r = LIR.App NoSrcSpan l [] [] [r]
+generateApply = foldlM $ \expr arg -> bind expr freshFuncPrefix Nothing
+  $ \f -> return $ LIR.App NoSrcSpan f [] [] [arg] False
 
 -------------------------------------------------------------------------------
 -- Bind Expression                                                           --
@@ -209,50 +322,65 @@ generateApply mf (a : as) = mf `bind` \f -> generateApply (f `app` a) as
 -- | Tries to extract a variable name from an expression. This function can be
 --   used to preserve the same base variable name across chains of binds.
 guessName :: LIR.Expr -> Maybe String
-guessName (LIR.Var _ name _) = IR.identFromQName name
-guessName (LIR.Pure _ arg  ) = guessName arg
-guessName (LIR.Bind _ arg _) = guessName arg
-guessName _                  = Nothing
+guessName (LIR.Var _ name _ _) = IR.identFromQName name
+guessName (LIR.Pure _ arg    ) = guessName arg
+guessName (LIR.Bind _ arg _  ) = guessName arg
+guessName _                    = Nothing
 
 -- | Creates a @>>= \x ->@, which binds a new variable.
-bind :: LIR.Expr -> (LIR.Expr -> Converter LIR.Expr) -> Converter LIR.Expr
-bind (LIR.Pure _ arg) k = k arg -- We don't have to unwrap pure values.
-bind arg              k = localEnv $ do
+bind
+  :: LIR.Expr -- ^ The left-hand side of the bind.
+  -> String   -- ^ A prefix to use for the fresh variable by default.
+  -> Maybe LIR.Type
+  -- ^ The type of the value to bind or @Nothing@ if it should be inferred.
+  -> (LIR.Expr -> Converter LIR.Expr)
+  -- ^ Converter for the right-hand side of the generated
+  --   function. The first argument is the fresh variable.
+  -> Converter LIR.Expr
+bind (LIR.Pure _ arg) _             _       k = k arg -- We don't have to unwrap pure values.
+bind arg              defaultPrefix argType k = localEnv $ do
   -- Generate a new name for lambda argument.
-  argIdent <- freshIRQName $ fromMaybe "f" (guessName arg)
+  argIdent <- freshIRQName $ fromMaybe defaultPrefix (guessName arg)
   let Just argIdent' = identFromQName argIdent
   -- Build the lambda on the RHS of the bind.
   argAgda <- lookupAgdaFreshIdentOrFail NoSrcSpan argIdent
-  let pat = LIR.VarPat NoSrcSpan argIdent' Nothing $ argAgda
-  rhs <- LIR.Lambda NoSrcSpan [pat] <$> k (LIR.Var NoSrcSpan argIdent argAgda)
+  argCoq  <- lookupIdentOrFail NoSrcSpan IR.FreshScope argIdent
+  let pat = LIR.VarPat NoSrcSpan argIdent' argType argAgda argCoq
+  rhs <- LIR.Lambda NoSrcSpan [pat]
+    <$> k (LIR.Var NoSrcSpan argIdent argAgda argCoq)
   -- Build the bind.
   return $ LIR.Bind NoSrcSpan arg rhs
 
 -- | Passes a list of arguments to the given function unwrapping the marked
 --   arguments using 'bind'.
 generateBinds
-  :: [(LIR.Expr, Bool)]
+  :: [(LIR.Expr, Maybe LIR.Type, Bool)]
   -> ([LIR.Expr] -> Converter LIR.Expr)
   -> Converter LIR.Expr
-generateBinds []                  k = k []
-generateBinds ((arg, False) : as) k = generateBinds as $ \as' -> k (arg : as')
-generateBinds ((arg, True) : as) k =
-  arg `bind` \arg' -> generateBinds as $ \as' -> k (arg' : as')
+generateBinds [] k = k []
+generateBinds ((arg, _, False) : as) k =
+  generateBinds as $ \as' -> k (arg : as')
+generateBinds ((arg, argType, True) : as) k = bind arg freshArgPrefix argType
+  $ \arg' -> generateBinds as $ \as' -> k (arg' : as')
 
 -- | Generates just the syntax for a bind expression, which unwraps the first
 --   variable and binds its value to the second one in the given expression.
 rawBind
-  :: SrcSpan
-  -> IR.QName
-  -> IR.QName
+  :: SrcSpan   -- ^ The source location of the bind.
+  -> IR.QName  -- ^ The variable on the left-hand side of the bind.
+  -> IR.QName  -- ^ The variable in the lambda expression.
   -> Maybe IR.Type
-  -> LIR.Expr
+  -- ^ The type annotation of the variable in the lambda expression or
+  --   @Nothing@ if no annotation should be generated.
+  -> LIR.Expr  -- ^ The right-hand side of the bind.
   -> Converter LIR.Expr
-rawBind ss mx x varType expr = do
-  mxAgda   <- lookupAgdaFreshIdentOrFail ss mx
-  xAgda    <- lookupAgdaValIdentOrFail ss x
+rawBind srcSpan mx x varType expr = do
+  mxAgda   <- lookupAgdaFreshIdentOrFail srcSpan mx
+  mxCoq    <- lookupIdentOrFail srcSpan IR.FreshScope mx
+  xAgda    <- lookupAgdaValIdentOrFail srcSpan x
+  xCoq     <- lookupIdentOrFail srcSpan IR.ValueScope x
   varType' <- mapM LIR.liftType' varType
-  let mx'          = LIR.Var ss mx mxAgda
+  let mx'          = LIR.Var srcSpan mx mxAgda mxCoq
       Just unqualX = identFromQName x
-      x'           = LIR.VarPat ss unqualX varType' xAgda
-  return $ LIR.Bind ss mx' $ LIR.Lambda ss [x'] expr
+      x'           = LIR.VarPat srcSpan unqualX varType' xAgda xCoq
+  return $ LIR.Bind srcSpan mx' $ LIR.Lambda srcSpan [x'] expr

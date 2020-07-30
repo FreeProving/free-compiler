@@ -75,8 +75,8 @@ undefinedExpr :: Agda.Expr
 undefinedExpr = Agda.ident "undefined"
 
 -- | The identifier for the error term @error@.
-errorExpr :: String -> Agda.Expr
-errorExpr msg = Agda.ident "error" `Agda.app` Agda.stringLiteral msg
+errorExpr :: Agda.Expr
+errorExpr = Agda.ident "error"
 
 -- | Adds an instance argument for the partial type class to the given function
 --   type.
