@@ -1,8 +1,11 @@
 (** Type class for the normalization of data types with effectful components.
-    Moves effects from components to the root of the expression. *)
+    Moves effects from components to the root of the expression. 
+    This implementation is based on the following implementation:
+    https://github.com/nbun/mathesis/blob/master/Coq/src/Classes.v *)
+
 From Base Require Import Free.Monad.
 
-Class Normalform (Shape : Type) (Pos : Shape -> Type)
+Class Normalform {Shape : Type} {Pos : Shape -> Type}
                  (A B : Type) :=
   {
     (** The function is split into two parts due to termination check errors
