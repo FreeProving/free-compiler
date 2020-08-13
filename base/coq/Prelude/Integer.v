@@ -107,13 +107,13 @@ Section SecInteger.
       nfInteger (pure x) = pure x.
   Proof. trivial. Qed.
 
-  Global Instance NormalformInteger 
-    : Normalform Shape Pos (Integer Shape Pos) (Integer Identity.Shape Identity.Pos)
-   := {
-        nf := nfInteger;
-        nf_impure := nf_impure_integer;
-        nf' := pure;
-        nf_pure := nf_pure_integer
-      }.
-
 End SecInteger.
+
+Global Instance NormalformInteger {Shape : Type} {Pos : Shape -> Type}
+  : Normalform (Integer Shape Pos) (Integer Identity.Shape Identity.Pos)
+ := {
+      nf := nfInteger Shape Pos;
+      nf_impure := nf_impure_integer Shape Pos;
+      nf' := pure;
+      nf_pure := nf_pure_integer Shape Pos
+    }.

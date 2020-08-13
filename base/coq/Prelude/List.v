@@ -65,9 +65,9 @@ Lemma nf_pure_list (Shape : Type) (Pos : Shape -> Type)
     nfList Shape Pos A B (pure x) = nf'List Shape Pos A B x.
 Proof. trivial. Qed.
 
-Instance NormalformList (Shape : Type) (Pos : Shape -> Type) (A B : Type)
+Instance NormalformList {Shape : Type} {Pos : Shape -> Type} (A B : Type)
                         `{Normalform Shape Pos A B}
-  : Normalform Shape Pos (List Shape Pos A) 
+  : Normalform (List Shape Pos A) 
                          (List Identity.Shape Identity.Pos B)
  := {
       nf := nfList Shape Pos A B;

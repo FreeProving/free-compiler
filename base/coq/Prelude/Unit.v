@@ -29,13 +29,13 @@ Section SecUnit.
       nfUnit (pure x) = pure x.
   Proof. trivial. Qed.
 
-  Global Instance NormalformUnit 
-    : Normalform Shape Pos (Unit Shape Pos) (Unit Identity.Shape Identity.Pos)
-   := {
-        nf := nfUnit;
-        nf_impure := nf_impure_unit;
-        nf' := pure;
-        nf_pure := nf_pure_unit
-      }.
-
 End SecUnit.
+
+Instance NormalformUnit {Shape : Type} {Pos : Shape -> Type}
+  : Normalform (Unit Shape Pos) (Unit Identity.Shape Identity.Pos)
+ := {
+      nf := nfUnit Shape Pos;
+      nf_impure := nf_impure_unit Shape Pos;
+      nf' := pure;
+      nf_pure := nf_pure_unit Shape Pos
+    }.

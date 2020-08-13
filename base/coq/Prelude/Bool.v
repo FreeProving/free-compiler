@@ -38,13 +38,13 @@ Section SecBool.
       nfBool (pure x) = pure x.
   Proof. trivial. Qed.
 
-  Global Instance NormalformBool 
-    : Normalform Shape Pos (Bool Shape Pos) (Bool Identity.Shape Identity.Pos)
-   := {
-        nf := nfBool;
-        nf_impure := nf_impure_bool;
-        nf' := pure;
-        nf_pure := nf_pure_bool
-      }.
-
 End SecBool.
+
+Instance NormalformBool {Shape : Type} {Pos : Shape -> Type}
+ : Normalform (Bool Shape Pos) (Bool Identity.Shape Identity.Pos)
+ := {
+        nf := nfBool Shape Pos;
+        nf_impure := nf_impure_bool Shape Pos;
+        nf' := pure;
+        nf_pure := nf_pure_bool Shape Pos
+    }.

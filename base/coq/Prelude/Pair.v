@@ -58,11 +58,11 @@ Lemma nf_pure_pair (Shape : Type) (Pos : Shape -> Type)
     nfPair Shape Pos A B C D (pure x) = nf'Pair Shape Pos A B C D x.
 Proof. trivial. Qed.
 
-Instance NormalformPair (Shape : Type) (Pos : Shape -> Type) (A B C D : Type)
+Instance NormalformPair {Shape : Type} {Pos : Shape -> Type} (A B C D : Type)
                         `{Normalform Shape Pos A C}
                         `{Normalform Shape Pos B D}
-  : Normalform Shape Pos (Pair Shape Pos A B) 
-                         (Pair Identity.Shape Identity.Pos C D)
+  : Normalform (Pair Shape Pos A B) 
+               (Pair Identity.Shape Identity.Pos C D)
  := {
       nf := nfPair Shape Pos A B C D;
       nf_impure := nf_impure_pair Shape Pos A B C D;
