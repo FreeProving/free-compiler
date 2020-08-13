@@ -10,6 +10,7 @@ import           FreeC.LiftedIR.Syntax.Name
 import           FreeC.LiftedIR.Syntax.Type
 
 import qualified FreeC.Backend.Agda.Syntax     as Agda
+import qualified FreeC.Backend.Coq.Syntax      as Coq
 
 -- | An expression.
 data Expr
@@ -27,6 +28,7 @@ data Expr
     Var { exprSrcSpan     :: SrcSpan
         , exprVarName     :: VarName
         , exprAgdaVarName :: Agda.QName
+        , exprCoqVarIdent :: Coq.Qualid
         }
 
   | -- | Function or constructor application.
@@ -35,6 +37,8 @@ data Expr
         , exprAppTypeArgs :: [Type]   -- ^ Visible type applications.
         , exprEffects     :: [Effect] -- ^ Effect set.
         , exprAppArgs     :: [Expr]   -- ^ Applied arguments.
+        , exprFreeArgs    :: Bool     -- ^ Whether the arguments for the free
+                                      --   monad are needed.
         }
 
   | -- | @if@ expression.
@@ -54,15 +58,19 @@ data Expr
     Undefined { exprSrcSpan :: SrcSpan
               }
 
-  | -- | Error term @error "<message>"@.
+  | -- | Error term @error@.
     ErrorExpr { exprSrcSpan  :: SrcSpan
-              , errorExprMsg :: String
               }
 
   | -- | An integer literal.
     IntLiteral { exprSrcSpan     :: SrcSpan
                , intLiteralValue :: Integer
                }
+
+  | -- | A string literal.
+    StringLiteral { exprSrcSpan :: SrcSpan
+                  , stringLiteralValue :: String
+                  }
 
   | -- | A lambda abstraction.
     Lambda { exprSrcSpan    :: SrcSpan
@@ -115,5 +123,6 @@ data VarPat = VarPat
   , varPatType      :: Maybe Type
     -- TODO: remove @Maybe@ after 'EtaConversionPass' is moved.
   , varPatAgdaIdent :: Agda.QName
+  , varPatCoqIdent  :: Coq.Qualid
   }
  deriving (Eq, Show)
