@@ -9,7 +9,7 @@ Class Normalform {Shape : Type} {Pos : Shape -> Type}
                  (A B : Type) :=
   {
     (** The function is split into two parts due to termination check errors
-        for recrusive data types. *)
+        for recursive data types. *)
     nf  : Free Shape Pos A -> Free Shape Pos B;
     nf' : A -> Free Shape Pos B;
     (** Property for moving nf into position functions *)
