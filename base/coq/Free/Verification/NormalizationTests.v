@@ -2,6 +2,7 @@
 
 From Base Require Import Free.
 From Base Require Import Free.Instance.Identity.
+From Base Require Import Free.Instance.Maybe.
 From Base Require Import Free.Instance.ND.
 From Base Require Import Free.Instance.Trace.
 From Base Require Import Prelude.
@@ -22,6 +23,14 @@ Definition evalND {A : Type} (p : Free _ _ A)
 Definition evalTracing {A : Type} p 
 := @collectMessages A (run (runTracing p)).
 
+(* Shortcut to evaluate a program with partial values to an option. *)
+Definition evalMaybe {A : Type} p
+:= run (@runMaybe A _ _ p).
+
+(* Shortcut to evaluate a program with partiality and non-determinism. *)
+Definition evalNDMaybe {A : Type} p
+:= @evalND (option A) (runMaybe p).
+
 (* Handle a non-deterministic program after normalization. *)
 Definition evalNDNF {A B : Type} 
                     `{Normalform _ _ A B}
@@ -32,9 +41,25 @@ Definition evalTracingNF {A B : Type}
                          `{Normalform _ _ A B} p
   := evalTracing (nf p).
 
-(* Shortcuts for the Identity effect (i.e. no effect). *)
+(* Handle a possibly partial program after normalization. *)
+Definition evalMaybeNF {A B : Type} 
+                       `{Normalform _ _ A B} p
+  := evalMaybe (nf p).
+
+(* Handle a possibly partial or non-deterministic program after 
+   normalization. *)
+Definition evalNDMaybeNF {A B : Type}
+                         `{Normalform _ _ A B} p 
+:= evalNDMaybe (nf p).
+
+(* Shortcuts for the Identity effect (i.e. the lack of an effect). *)
 Definition IdS := Identity.Shape.
 Definition IdP := Identity.Pos.
+
+Definition MaybePartial (Shape : Type) (Pos : Shape -> Type)
+                        `{Injectable Maybe.Shape Maybe.Pos Shape Pos}
+ := PartialLifted Maybe.Shape Maybe.Pos Shape Pos Maybe.Partial.
+Arguments MaybePartial {_} {_} {_}.
 
 (* Effectful lists *)
 
@@ -86,6 +111,25 @@ Definition traceList (Shape : Type) (Pos : Shape -> Type) `{Traceable Shape Pos}
  := Cons Shape Pos (pure true) 
       (Cons Shape Pos (trace "component effect" (pure false)) (Nil Shape Pos)).
 Arguments traceList {_} {_} {_}.
+
+(* [true, undefined] *)
+Definition partialList (Shape : Type) (Pos : Shape -> Type) 
+                       `(P : Partial Shape Pos)
+  : Free Shape Pos (List Shape Pos (Bool Shape Pos))
+ := Cons Shape Pos (True_ Shape Pos)
+      (Cons Shape Pos undefined (Nil Shape Pos)).
+Arguments partialList {_} {_} P.
+
+(* [true, false ? undefined] *)
+Definition partialCoinList (Shape : Type) (Pos : Shape -> Type)
+                           `{Injectable ND.Shape ND.Pos Shape Pos}
+                           `(P : Partial Shape Pos)
+  : Free Shape Pos (List Shape Pos (Bool Shape Pos))
+ := Cons Shape Pos (True_ Shape Pos)
+      (Cons Shape Pos (Choice Shape Pos (False_ Shape Pos) 
+                                         undefined) 
+                      (Nil Shape Pos)).
+Arguments partialCoinList {_} {_} {_} P.
 
 (* List with an effect at the root and an effectful element. *)
 
@@ -142,6 +186,7 @@ Definition headOrFalse (Shape : Type) (Pos : Shape -> Type)
     | List.nil => pure false
     | List.cons fb _ => fb
     end.
+Arguments headOrFalse {_} {_} fl. 
 
 (* Auxiliary properties *)
 
@@ -242,18 +287,47 @@ Example componentEffectND : evalNDNF coinList
     (List.cons (True_ IdS IdP) (Cons IdS IdP (False_ IdS IdP) (Nil IdS IdP)))].
 Proof. constructor. Qed.
 
+(* [true, undefined] --> undefined *)
+Example componentEffectPartial : evalMaybeNF (partialList MaybePartial)
+ = None.
+Proof. constructor. Qed.
+
+(* [true, false ? undefined] --> [[true,false], undefined] *)
+Example componentEffectPartialND : evalNDMaybeNF (partialCoinList MaybePartial)
+ = [Some (List.cons (True_ IdS IdP) (Cons IdS IdP (False_ IdS IdP) (Nil IdS IdP)));
+    None].
+Proof. constructor. Qed.
+
 (* Normalization combined with non-strictness. *)
 
 (* Non-strictness should be preserved, so no tracing should occur.
    headOrFalse [true, trace "component effect" false] --> (true,[]) *)
-Example nonStrictnessNoTracing : evalTracingNF (headOrFalse _ _ traceList)
+Example nonStrictnessNoTracing : evalTracingNF (headOrFalse traceList)
  = (true, []).
 Proof. constructor. Qed.
 
 (* Non-strictness should be preserved, so no non-determinism should occur.
    headOrFalse [true,coin] --> [true] *)
-Example nonStrictnessNoND : evalNDNF (headOrFalse _ _ coinList)
+Example nonStrictnessNoND : evalNDNF (headOrFalse coinList)
  = [true].
+Proof. constructor. Qed.
+
+(* Evaluating the defined part of a partial list is still possible.
+   headOrFalse [true,undefined] --> true *)
+(* Since Maybe is still handled, the actual result should be Some true. *)
+Example nonStrictnessPartiality : evalMaybeNF 
+                                    (headOrFalse 
+                                      (partialList MaybePartial))
+ = Some true.
+Proof. constructor. Qed.
+
+(* headOrFalse [true, false ? undefined] --> true *)
+(* Since non-determinism and Maybe are still handled, the actual 
+   result should be [Some true]. *)
+Example nonStrictnessNDPartiality : evalNDMaybeNF 
+                                    (headOrFalse 
+                                      (partialCoinList MaybePartial))
+ = [Some true].
 Proof. constructor. Qed.
 
 (* Effects at different levels are accumulated. *)
@@ -279,7 +353,7 @@ Proof. constructor. Qed.
    headOrFalse (trace "root effect" [true, trace "component effect" false])
    --> (true, ["root effect") *)
 Example nonStrictnessRootAndComponentTracing 
- : evalTracing (headOrFalse _ _ tracedTraceList)
+ : evalTracing (headOrFalse tracedTraceList)
  = (true, ["root effect"%string]).
 Proof. constructor. Qed.
 
@@ -288,7 +362,7 @@ Proof. constructor. Qed.
    first element, the results should be false and true.
    headOrFalse ([] ? [true, coin]) --> [false,true] *)
 Example nonStrictnessRootAndComponentND 
- : evalNDNF (headOrFalse _ _ NDCoinList) 
+ : evalNDNF (headOrFalse NDCoinList) 
  = [false;true].
 Proof. constructor. Qed.
 
