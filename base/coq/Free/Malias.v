@@ -5,6 +5,9 @@ From Base Require Import Free.
 From Base Require Export Free.Instance.Comb.
 From Base Require Export Free.Instance.Share.
 
+(* TODO: Add to Class *)
+From Base Require Import Free.Class.ShareableArgs.
+
 (* An operator to model call-by-value evaluation *)
 Definition cbv {A : Type} (Shape : Type) (Pos : Shape -> Type) (p : Free Shape Pos A) 
   : Free Shape Pos (Free Shape Pos A) :=
@@ -26,8 +29,9 @@ Notation "'BeginShare''" := (BeginShare Shape Pos).
 Notation "'EndShare''" := (EndShare Shape Pos).
 
 (* An operator to model call-by-need evaluation *)
-Definition cbneed {A : Type} 
-                  `{Injectable Share.Shape Share.Pos Shape Pos} 
+Definition cbneed {A : Type}
+                  `{Injectable Share.Shape Share.Pos Shape Pos}
+                  `{ShareableArgs Shape Pos A}
                   (p : Free Shape Pos A)
   : Free Shape Pos (Free Shape Pos A) :=
   Get' >>= fun '(i,j) =>
@@ -35,20 +39,21 @@ Definition cbneed {A : Type}
   pure (BeginShare' (i,j) >>
       Put' (i,j+1) >>
       p >>= fun x =>
+      shareArgs x >>= fun x' =>
       Put' (i+1,j) >>
       EndShare' (i,j) >>
-      pure x).
+      pure x').
 
 End SecCbneed.
 
 (* Shareable instances. *)
-
+Check @cbneed.
 Instance Cbneed (Shape : Type) (Pos : Shape -> Type)
                 `{I : Injectable Share.Shape Share.Pos Shape Pos}
  : Shareable Shape Pos | 1 := {
-    share A p := @cbneed Shape Pos A I p
+    share A S p := @cbneed Shape Pos A I S p
 }.
-Instance Cbn (Shape : Type) (Pos : Shape -> Type)
+Instance Cbn (Shape : Type) (Pos : Shape -> Type) {A : Type}
  : Shareable Shape Pos | 2 := {
-    share A p := @cbn A Shape Pos p
+    share A S p := @cbn A Shape Pos p
 }.

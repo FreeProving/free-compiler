@@ -18,6 +18,10 @@ From Base Require Import Free.Util.Search.
 Require Import Lists.List.
 Import List.ListNotations.
 
+
+(* TODO: Put ShareableArgs in Class *)
+From Base Require Import Free.Class.ShareableArgs.
+
 (* Shortcut to evaluate a non-deterministic program to a result list.
    list. *)
 Definition evalND {A : Type} p
@@ -42,6 +46,7 @@ Definition evalTraceM {A : Type} p
 (* Non-deterministic integer. *)
 Definition coin (Shape : Type) (Pos : Shape -> Type)
                 `{Injectable ND.Shape ND.Pos Shape Pos}
+ : Free Shape Pos (Integer Shape Pos)
 := Choice Shape Pos (pure 0%Z) (pure 1%Z).
 Arguments coin {_} {_} {_}.
 
@@ -198,18 +203,61 @@ Example exTraceJustNoSharing
    = (Some 2%Z,["Just 1"%string;"Just 1"%string]).
 Proof. constructor. Qed.
 
+(*
+Instance ShareableArgsGeneric (Shape : Type) (Pos : Shape -> Type)
+                              (A : Type)
+ : ShareableArgs Shape Pos A := {
+     shareArgs := pure
+}.
+*)
+Instance ShareableArgsInteger (Shape : Type) (Pos : Shape -> Type)
+                              `{Injectable Share.Shape Share.Pos Shape Pos}
+ : ShareableArgs Shape Pos (Integer Shape Pos) := {
+    shareArgs n := pure n
+}.
+
+Instance ShareableArgsBool (Shape : Type) (Pos : Shape -> Type)
+                           
+ : ShareableArgs Shape Pos (Bool Shape Pos) := {
+    shareArgs b := pure b
+}.
+
 (* --------------------- Test cases for simple sharing --------------------- *)
 (* let sx = fx in f sx sx *)
 Definition doubleShared {Shape : Type}
                         {Pos : Shape -> Type}
                         {A : Type}
                         (S : Shareable Shape Pos)
+                        {SA : ShareableArgs Shape Pos A}
                         (f : Free Shape Pos A ->
                              Free Shape Pos A -> 
                              Free Shape Pos A)
                         (fx : Free Shape Pos A)
  : Free Shape Pos A
 := share fx >>= fun sx => f sx sx.
+
+Definition doubleShared' {Shape : Type}
+                        {Pos : Shape -> Type}
+                        {A : Type}
+                        `{Injectable ND.Shape ND.Pos Shape Pos}
+                        (S : Shareable Shape Pos)
+                        (SA : ShareableArgs Shape Pos A)
+                        (f : Free Shape Pos A ->
+                             Free Shape Pos A -> 
+                             Free Shape Pos A)
+                        (fx : Free Shape Pos A)
+ : Free Shape Pos A
+:= share fx >>= fun sx => share coin >>= fun sy => f sx sx.
+
+
+Set Typeclasses Debug.
+Compute evalND (cbneed _ _ coin >>= fun sc => addInteger _ _ sc sc).
+Compute evalND (doubleShared (Cbneed _ _)
+  (addInteger _ _) coin).
+Compute evalND (doubleShared (Cbn _ _) 
+  (addInteger _ _) coin).
+Compute evalND (doubleShared' (Cbneed _ _) _
+  (addInteger _ _) coin).
 
 (*
 let sx = 0 ? 1 
