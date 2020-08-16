@@ -1,4 +1,8 @@
-{-# LANGUAGE FlexibleContexts, FlexibleInstances, FunctionalDependencies #-}
+{-# LANGUAGE FlexibleContexts
+           , FlexibleInstances
+           , FunctionalDependencies
+           , MultiParamTypeClasses
+#-}
 
 -- | This module contains a definition of substitutions for expressions and
 --   type expressions.

@@ -26,7 +26,7 @@ import           FreeC.Util.Parsec
 --
 --   The configuration file type is inferred from the file extension.
 loadConfig
-  :: (MonadIO r, MonadReporter r) => Aeson.FromJSON a => FilePath -> r a
+  :: (MonadIO r, MonadReporter r, Aeson.FromJSON a) => FilePath -> r a
 loadConfig filename = do
   contents <- liftIO $ readFile filename
   case takeExtension filename of
@@ -44,14 +44,14 @@ loadConfig filename = do
 
 -- | Parses a @.toml@ configuration file with the given contents.
 decodeTomlConfig
-  :: MonadReporter r => Aeson.FromJSON a => FilePath -> String -> r a
+  :: (MonadReporter r, Aeson.FromJSON a) => FilePath -> String -> r a
 decodeTomlConfig filename contents = either
   (reportParsecError (mkSrcFileMap [mkSrcFile filename contents]))
   decodeTomlDocument
   (parseTomlDoc filename (Text.pack contents))
  where
   -- | Decodes a TOML document using the "Aeson" interface.
-  decodeTomlDocument :: MonadReporter r => Aeson.FromJSON a => Toml.Table -> r a
+  decodeTomlDocument :: (MonadReporter r, Aeson.FromJSON a) => Toml.Table -> r a
   decodeTomlDocument document = case Aeson.fromJSON (Aeson.toJSON document) of
     Aeson.Error msg ->
       reportFatal
@@ -62,7 +62,7 @@ decodeTomlConfig filename contents = either
 
 -- | Parses a @.json@ file with the given contents.
 decodeJsonConfig
-  :: MonadReporter r => Aeson.FromJSON a => FilePath -> String -> r a
+  :: (MonadReporter r, Aeson.FromJSON a) => FilePath -> String -> r a
 decodeJsonConfig filename contents =
   case Aeson.eitherDecode (fromString contents) of
     Right result   -> return result
@@ -71,6 +71,6 @@ decodeJsonConfig filename contents =
 -- | Encodes the given value using its "Aeson" interface and saves
 --   the encoded value as @.json@ file.
 saveConfig
-  :: (MonadIO r, MonadReporter r) => Aeson.ToJSON a => FilePath -> a -> r ()
+  :: (MonadIO r, MonadReporter r, Aeson.ToJSON a) => FilePath -> a -> r ()
 saveConfig filename =
   liftIO . LazyByteString.writeFile filename . Aeson.encodePretty

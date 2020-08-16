@@ -1,4 +1,8 @@
-{-# LANGUAGE FlexibleInstances, FunctionalDependencies, UndecidableInstances #-}
+{-# LANGUAGE FlexibleInstances
+           , FunctionalDependencies
+           , MultiParamTypeClasses
+           , UndecidableInstances
+#-}
 
 -- | This module contains a type class for monads that can be used in tests.
 
