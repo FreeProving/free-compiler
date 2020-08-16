@@ -2,7 +2,6 @@
 
 -- | This module contains the state monad used by the compiler's command
 --   line interface to pass command line options around implicitly.
-
 module FreeC.Monad.Application
   ( -- * State monad
     Application
@@ -19,24 +18,15 @@ module FreeC.Monad.Application
   , liftReporterIO
   , liftConverter
   , liftConverterIO
-  )
-where
+  ) where
 
-import           Prelude                 hiding ( fail )
+import           Prelude                   hiding ( fail )
 
-import           Control.Monad.Fail             ( MonadFail(..) )
-import           Control.Monad.State            ( StateT(..)
-                                                , MonadIO(..)
-                                                , MonadState(..)
-                                                , MonadTrans(..)
-                                                , evalStateT
-                                                , get
-                                                , gets
-                                                , modify
-                                                , put
-                                                , state
-                                                )
-import           System.IO                      ( stderr )
+import           Control.Monad.Fail        ( MonadFail(..) )
+import           Control.Monad.State
+  ( MonadIO(..), MonadState(..), MonadTrans(..), StateT(..), evalStateT, get
+  , gets, modify, put, state )
+import           System.IO                 ( stderr )
 
 import           FreeC.Application.Options
 import           FreeC.Environment
@@ -46,15 +36,13 @@ import           FreeC.Monad.Reporter
 -------------------------------------------------------------------------------
 -- Application state monad                                                   --
 -------------------------------------------------------------------------------
-
 -- | A state monad used by the compiler application to pass the command
 --   line options implicitly.
 --
 --   The entire application is lifted to the 'ConverterIO' monad.
-newtype Application a = Application
-  { unwrapApplication :: StateT Options ConverterIO a
-  }
- deriving (Functor, Applicative, Monad, MonadState Options)
+newtype Application a
+  = Application { unwrapApplication :: StateT Options ConverterIO a }
+ deriving ( Functor, Applicative, Monad, MonadState Options )
 
 -- | Runs the compiler application.
 runApp :: Application a -> IO a
@@ -68,10 +56,10 @@ runApp app = do
 reportApp :: Application a -> Application a
 reportApp app = do
   opts <- getOpts
-  env  <- getEnv
+  env <- getEnv
   let converter = runStateT (unwrapApplication app) opts
       reporter  = runConverterT converter env
-  ((x, opts'), env') <- liftIO (reportToOrExit stderr reporter)
+  ( ( x, opts' ), env' ) <- liftIO (reportToOrExit stderr reporter)
   putEnv env'
   putOpts opts'
   return x
@@ -79,7 +67,6 @@ reportApp app = do
 -------------------------------------------------------------------------------
 -- Accessing and modifying state                                             --
 -------------------------------------------------------------------------------
-
 -- | Gets the options of the application.
 getOpts :: Application Options
 getOpts = get
@@ -98,13 +85,12 @@ modifyOpts :: (Options -> Options) -> Application ()
 modifyOpts = modify
 
 -- | Gets a specific component and modifies the options of the application.
-modifyOpts' :: (Options -> (a, Options)) -> Application a
+modifyOpts' :: (Options -> ( a, Options )) -> Application a
 modifyOpts' = state
 
 -------------------------------------------------------------------------------
 -- Lifting other monads                                                      --
 -------------------------------------------------------------------------------
-
 -- | IO actions can be embedded into applications.
 instance MonadIO Application where
   liftIO = Application . liftIO

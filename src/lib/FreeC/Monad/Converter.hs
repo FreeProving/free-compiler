@@ -5,7 +5,6 @@
 --
 --   There are also utility functions to modify the state and retrieve
 --   information stored in the state.
-
 module FreeC.Monad.Converter
   ( -- * State monad
     Converter
@@ -33,38 +32,27 @@ module FreeC.Monad.Converter
   , localEnv
   , moduleEnv
   , shadowVarPats
-  )
-where
+  ) where
 
-import           Prelude                 hiding ( fail )
+import           Prelude                     hiding ( fail )
 
-import           Control.Monad                  ( forM_ )
-import           Control.Monad.Fail             ( MonadFail(..) )
-import           Control.Monad.Identity         ( Identity(..) )
-import           Control.Monad.State            ( StateT(..)
-                                                , MonadIO(..)
-                                                , MonadState(..)
-                                                , MonadTrans(..)
-                                                , evalStateT
-                                                , execStateT
-                                                , get
-                                                , gets
-                                                , modify
-                                                , put
-                                                , state
-                                                )
-import           Data.Composition               ( (.:) )
+import           Control.Monad               ( forM_ )
+import           Control.Monad.Fail          ( MonadFail(..) )
+import           Control.Monad.Identity      ( Identity(..) )
+import           Control.Monad.State
+  ( MonadIO(..), MonadState(..), MonadTrans(..), StateT(..), evalStateT
+  , execStateT, get, gets, modify, put, state )
+import           Data.Composition            ( (.:) )
 
 import           FreeC.Environment
 import           FreeC.Environment.Entry
-import qualified FreeC.IR.Syntax               as IR
+import qualified FreeC.IR.Syntax             as IR
 import           FreeC.Monad.Class.Hoistable
 import           FreeC.Monad.Reporter
 
 -------------------------------------------------------------------------------
 -- State monad                                                               --
 -------------------------------------------------------------------------------
-
 -- | Type synonym for the state monad used by the converter.
 --
 --   All converter functions usually require the current 'Environment'
@@ -77,7 +65,7 @@ type Converter = ConverterT Identity
 
 -- | Runs the converter with the given initial environment and
 --   returns the converter's result as well as the final environment.
-runConverter :: Converter a -> Environment -> Reporter (a, Environment)
+runConverter :: Converter a -> Environment -> Reporter ( a, Environment )
 runConverter = runConverterT
 
 -- | Runs the converter with the given initial environment and
@@ -93,16 +81,15 @@ execConverter = execConverterT
 -------------------------------------------------------------------------------
 -- State monad transformer                                                   --
 -------------------------------------------------------------------------------
-
 -- | A state monad used by the converter parameterized by the inner monad @m@.
 newtype ConverterT m a
   = ConverterT { unwrapConverterT :: StateT Environment (ReporterT m) a }
-  deriving (Functor, Applicative, Monad, MonadState Environment)
+ deriving ( Functor, Applicative, Monad, MonadState Environment )
 
 -- | Runs the converter with the given initial environment and
 --   returns the converter's result as well as the final environment.
 runConverterT
-  :: Monad m => ConverterT m a -> Environment -> ReporterT m (a, Environment)
+  :: Monad m => ConverterT m a -> Environment -> ReporterT m ( a, Environment )
 runConverterT = runStateT . unwrapConverterT
 
 -- | Runs the converter with the given initial environment and
@@ -131,7 +118,6 @@ instance Hoistable ConverterT where
 -------------------------------------------------------------------------------
 -- Using IO actions in converters                                            --
 -------------------------------------------------------------------------------
-
 -- | A converter with an IO action as its inner monad.
 type ConverterIO = ConverterT IO
 
@@ -142,7 +128,6 @@ instance MonadIO m => MonadIO (ConverterT m) where
 -------------------------------------------------------------------------------
 -- Modifying environments                                                    --
 -------------------------------------------------------------------------------
-
 -- | Type class for monad a converter can be lifted to. Inside such monads,
 --   the functions for modifying the converters environment can be called
 --   without lifting them explicitly.
@@ -171,19 +156,18 @@ modifyEnv :: MonadConverter m => (Environment -> Environment) -> m ()
 modifyEnv = liftConverter . modify
 
 -- | Gets a specific component and modifies the environment.
-modifyEnv' :: MonadConverter m => (Environment -> (a, Environment)) -> m a
+modifyEnv' :: MonadConverter m => (Environment -> ( a, Environment )) -> m a
 modifyEnv' = liftConverter . state
 
 -------------------------------------------------------------------------------
 -- Encapsulating environments                                                --
 -------------------------------------------------------------------------------
-
 -- | Runs the given converter and returns its result but discards all
 --   modifications to the environment.
 localEnv :: MonadConverter m => m a -> m a
 localEnv converter = do
   env <- getEnv
-  x   <- converter
+  x <- converter
   putEnv env
   return x
 
@@ -192,8 +176,8 @@ localEnv converter = do
 moduleEnv :: MonadConverter m => m a -> m a
 moduleEnv converter = do
   env <- getEnv
-  x   <- converter
-  ms  <- inEnv envAvailableModules
+  x <- converter
+  ms <- inEnv envAvailableModules
   putEnv env { envAvailableModules = ms }
   return x
 
@@ -202,7 +186,7 @@ moduleEnv converter = do
 --
 --   Unlike 'localEnv', all modifications to the environment are kept
 --   (except for added entries), except for the definition of the variables.
-shadowVarPats :: MonadConverter m => [IR.VarPat] -> m a -> m a
+shadowVarPats :: MonadConverter m => [ IR.VarPat ] -> m a -> m a
 shadowVarPats varPats converter = do
   oldEntries <- inEnv envEntries
   forM_ varPats $ \varPat -> modifyEnv $ addEntry VarEntry
@@ -220,7 +204,6 @@ shadowVarPats varPats converter = do
 -------------------------------------------------------------------------------
 -- Reporting in converter                                                    --
 -------------------------------------------------------------------------------
-
 -- | Promotes a reporter to a converter that produces the same result and
 --   ignores the environment.
 --

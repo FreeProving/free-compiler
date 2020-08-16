@@ -1,6 +1,5 @@
 -- | This module exports functions for generating Coq that uses the @Free@
 --   monad from out intermediate representation.
-
 module FreeC.Backend.Coq.Converter
   ( -- * Modules
     convertModule
@@ -18,32 +17,20 @@ module FreeC.Backend.Coq.Converter
     -- * Type expressions
   , convertType
   , convertType'
-   -- * Expressions
+    -- * Expressions
   , convertExpr
-  )
-where
+  ) where
 
-import           FreeC.Backend.Coq.Converter.Expr
-                                                ( convertExpr )
+import           FreeC.Backend.Coq.Converter.Expr            ( convertExpr )
 import           FreeC.Backend.Coq.Converter.FuncDecl
-                                                ( convertFuncDecls
-                                                , convertFuncComponent
-                                                )
+  ( convertFuncComponent, convertFuncDecls )
 import           FreeC.Backend.Coq.Converter.FuncDecl.NonRec
-                                                ( convertNonRecFuncDecl )
+  ( convertNonRecFuncDecl )
 import           FreeC.Backend.Coq.Converter.FuncDecl.Rec
-                                                ( convertRecFuncDecls )
+  ( convertRecFuncDecls )
 import           FreeC.Backend.Coq.Converter.Module
-                                                ( convertDecls
-                                                , convertModule
-                                                , convertTypeDecls
-                                                )
+  ( convertDecls, convertModule, convertTypeDecls )
 import           FreeC.Backend.Coq.Converter.Type
-                                                ( convertType
-                                                , convertType'
-                                                )
+  ( convertType, convertType' )
 import           FreeC.Backend.Coq.Converter.TypeDecl
-                                                ( convertDataDecl
-                                                , convertDataDecls
-                                                , convertTypeComponent
-                                                )
+  ( convertDataDecl, convertDataDecls, convertTypeComponent )

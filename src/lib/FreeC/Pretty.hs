@@ -1,7 +1,6 @@
 -- | This module contains functions for pretty printing.
 --
 --   We are using the 'Pretty' type class from the 'wl-pprint-text' package.
-
 module FreeC.Pretty
   ( module Text.PrettyPrint.Leijen.Text
     -- * Pretty printing
@@ -22,23 +21,19 @@ module FreeC.Pretty
   , writePrettyFile
     -- * Conversion
   , showPretty
-  )
-where
+  ) where
 
-import           Data.List                      ( intersperse )
+import           Data.List                    ( intersperse )
+import qualified Data.Text.Lazy               as LazyText
 import           System.IO
-
-import qualified Data.Text.Lazy                as LazyText
-import           Text.PrettyPrint.Leijen.Text
-                                         hiding ( (<$>) )
+import           Text.PrettyPrint.Leijen.Text hiding ( (<$>) )
 
 -------------------------------------------------------------------------------
 -- Pretty printing                                                           --
 -------------------------------------------------------------------------------
-
 -- | Pretty prints a list of pretty printable values by concatenating their
 --   documents with the given separator in between.
-prettySeparated :: Pretty a => Doc -> [a] -> Doc
+prettySeparated :: Pretty a => Doc -> [ a ] -> Doc
 prettySeparated separator = hcat . intersperse separator . map pretty
 
 -- | Pretty prints the value contained in the given 'Maybe' value or pretty
@@ -46,7 +41,7 @@ prettySeparated separator = hcat . intersperse separator . map pretty
 --
 --   There is also a 'Pretty' instance for 'Maybe' that produces the empty
 --   document if the value is 'Nothing'.
-prettyMaybe :: (Pretty a, Pretty b) => a -> Maybe b -> Doc
+prettyMaybe :: ( Pretty a, Pretty b ) => a -> Maybe b -> Doc
 prettyMaybe c Nothing  = pretty c
 prettyMaybe _ (Just x) = pretty x
 
@@ -68,7 +63,6 @@ prettyLines = vcat . map prettyText . lines
 -------------------------------------------------------------------------------
 -- Trailing lines                                                            --
 -------------------------------------------------------------------------------
-
 -- | A pretty printable value with a trailing newline.
 newtype TrailingLine a = TrailingLine a
 
@@ -80,23 +74,22 @@ instance Pretty a => Pretty (TrailingLine a) where
 -------------------------------------------------------------------------------
 -- Rendering                                                                 --
 -------------------------------------------------------------------------------
-
 -- | Pretty prints a value with a maximum line length of @120@ characters of
 --   which @80@ are allowed to be non-indentation characters.
 renderPretty' :: Pretty a => a -> SimpleDoc
 renderPretty' = renderPretty ribbonFrac maxLineWidth . pretty
  where
-  ribbonWidth, maxLineWidth :: Int
-  ribbonWidth  = 80
-  maxLineWidth = 120
+   ribbonWidth, maxLineWidth :: Int
+   ribbonWidth = 80
 
-  ribbonFrac :: Float
-  ribbonFrac = fromIntegral ribbonWidth / fromIntegral maxLineWidth
+   maxLineWidth = 120
+
+   ribbonFrac :: Float
+   ribbonFrac = fromIntegral ribbonWidth / fromIntegral maxLineWidth
 
 -------------------------------------------------------------------------------
 -- Output                                                                    --
 -------------------------------------------------------------------------------
-
 -- | Prints a pretty printable value to 'stdout'.
 putPretty :: Pretty a => a -> IO ()
 putPretty = hPutPretty stdout
@@ -123,7 +116,6 @@ writePrettyFile filename = withFile filename WriteMode . flip hPutPrettyLn
 -------------------------------------------------------------------------------
 -- Conversion                                                                --
 -------------------------------------------------------------------------------
-
 -- | Converts a pretty printable value to a string.
 showPretty :: Pretty a => a -> String
 showPretty = LazyText.unpack . displayT . renderPretty'

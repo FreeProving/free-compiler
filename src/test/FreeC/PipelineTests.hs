@@ -1,10 +1,6 @@
 -- | This module contains tests for passes that are part of the compiler
 --   pipeline (see "FreeC.Pipeline").
-
-module FreeC.PipelineTests
-  ( testPipeline
-  )
-where
+module FreeC.PipelineTests ( testPipeline ) where
 
 import           Test.Hspec
 

@@ -1,6 +1,5 @@
 -- | This module contains the Agda identifiers of types, constructors and
 --   functions defined in the Base library that accompanies the compiler.
-
 module FreeC.Backend.Agda.Base
   ( -- * Library imports
     baseLibName
@@ -17,19 +16,17 @@ module FreeC.Backend.Agda.Base
   , up
     -- * reserved identifiers
   , reservedIdents
-  )
-where
+  ) where
 
 -- We always import this module qualified, therefore clashing with the Prelude
 -- isn't a problem.
-import           Prelude                 hiding ( pure )
+import           Prelude                   hiding ( pure )
 
-import qualified FreeC.Backend.Agda.Syntax     as Agda
+import qualified FreeC.Backend.Agda.Syntax as Agda
 
 -------------------------------------------------------------------------------
 -- Library imports                                                           --
 -------------------------------------------------------------------------------
-
 -- | The name of the Agda Base library.
 baseLibName :: Agda.Name
 baseLibName = Agda.name "Base"
@@ -40,14 +37,13 @@ generatedLibName = Agda.name "Generated"
 
 -- | Import declaration for the @Free@ and @partial@ modules from the Base Agda
 --   base library.
-imports :: [Agda.Declaration]
-imports = map (Agda.simpleImport . Agda.qname [baseLibName] . Agda.name)
-              ["Free", "Partial"]
+imports :: [ Agda.Declaration ]
+imports = map (Agda.simpleImport . Agda.qname [ baseLibName ] . Agda.name)
+  [ "Free", "Partial" ]
 
 -------------------------------------------------------------------------------
 -- Free Monad                                                                --
 -------------------------------------------------------------------------------
-
 -- | Identifier for the @Free@ monad.
 free :: Agda.Name
 free = Agda.name "Free"
@@ -75,7 +71,6 @@ partial = Agda.name "Partial"
 -------------------------------------------------------------------------------
 -- Sized Types                                                               --
 -------------------------------------------------------------------------------
-
 -- | The name of Agda's @Size@ data type.
 --
 --   > Size
@@ -91,9 +86,8 @@ up = Agda.name "\x2191"
 -------------------------------------------------------------------------------
 -- Reserved identifiers                                                      --
 -------------------------------------------------------------------------------
-
 -- | All Agda identifiers that are reserved for the Base library.
 --
 --   This does only include identifiers without corresponding Haskell name.
-reservedIdents :: [Agda.Name]
-reservedIdents = [free, pure, impure, shape, position, size, up, partial]
+reservedIdents :: [ Agda.Name ]
+reservedIdents = [ free, pure, impure, shape, position, size, up, partial ]

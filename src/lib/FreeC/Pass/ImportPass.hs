@@ -60,18 +60,14 @@
 --
 --   * A fatal error is reported if there is an import for a module @M@ but
 --     there is no such module interface available.
+module FreeC.Pass.ImportPass ( importPass ) where
 
-module FreeC.Pass.ImportPass
-  ( importPass
-  )
-where
-
-import qualified Data.Set                      as Set
+import qualified Data.Set                          as Set
 
 import           FreeC.Environment
 import           FreeC.Environment.Entry
 import           FreeC.Environment.ModuleInterface
-import qualified FreeC.IR.Syntax               as IR
+import qualified FreeC.IR.Syntax                   as IR
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
 import           FreeC.Pass
@@ -85,7 +81,7 @@ importPass ast = do
 
 -- | Inserts multiple entries into the given environment and associates them
 --   with their original names.
-importEntries :: [EnvEntry] -> Environment -> Environment
+importEntries :: [ EnvEntry ] -> Environment -> Environment
 importEntries = flip (foldr addEntry)
 
 -- | Imports all entries from the given module interface into the given
@@ -96,7 +92,6 @@ importEntries = flip (foldr addEntry)
 importInterface :: ModuleInterface -> Environment -> Environment
 importInterface = importEntries . Set.toList . interfaceEntries
 
-
 -- | Adds the entries of the module interface imported by the given import
 --   declaration to the environment.
 --
@@ -106,9 +101,5 @@ importModule (IR.ImportDecl srcSpan modName) = do
   maybeIface <- inEnv $ lookupAvailableModule modName
   case maybeIface of
     Just iface -> modifyEnv $ importInterface iface
-    Nothing ->
-      reportFatal
-        $  Message srcSpan Error
-        $  "Could not find module '"
-        ++ modName
-        ++ "'"
+    Nothing    -> reportFatal $ Message srcSpan Error
+      $ "Could not find module '" ++ modName ++ "'"

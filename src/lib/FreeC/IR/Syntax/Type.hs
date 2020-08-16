@@ -1,6 +1,5 @@
 -- | This module contains the definition of type expressions of our
 --   intermediate language.
-
 module FreeC.IR.Syntax.Type where
 
 import           FreeC.IR.SrcSpan
@@ -10,7 +9,6 @@ import           FreeC.Pretty
 -------------------------------------------------------------------------------
 -- Type expressions                                                          --
 -------------------------------------------------------------------------------
-
 -- | A type expression.
 --
 --   Built-in types are represented by applications of their type constructors.
@@ -22,37 +20,25 @@ import           FreeC.Pretty
 --   special role of functions during the lifting.
 data Type
   = -- | A type variable.
-    TypeVar
-      { typeSrcSpan  :: SrcSpan
-      , typeVarIdent :: TypeVarIdent
-      }
-  | -- | A type constructor.
-    TypeCon
-      { typeSrcSpan :: SrcSpan
-      , typeConName :: TypeConName
-      }
-  | -- | A type constructor application.
-    TypeApp
-      { typeSrcSpan :: SrcSpan
-      , typeAppLhs  :: Type
-      , typeAppRhs  :: Type
-      }
-  | -- | A function type.
-    FuncType
-      { typeSrcSpan :: SrcSpan
-      , funcTypeArg :: Type
-      , funcTypeRes :: Type
-      }
- deriving (Eq, Show)
+    TypeVar { typeSrcSpan :: SrcSpan, typeVarIdent :: TypeVarIdent }
+    -- | A type constructor.
+  | TypeCon { typeSrcSpan :: SrcSpan, typeConName :: TypeConName }
+    -- | A type constructor application.
+  | TypeApp { typeSrcSpan :: SrcSpan, typeAppLhs :: Type, typeAppRhs :: Type }
+    -- | A function type.
+  | FuncType { typeSrcSpan :: SrcSpan
+             , funcTypeArg :: Type
+             , funcTypeRes :: Type
+             }
+ deriving ( Eq, Show )
 
 -- | Creates a type constructor application type.
 --
 --   The given source span is inserted into the generated type constructor
 --   and every generated type constructor application.
-typeApp
-  :: SrcSpan -- ^ The source span to insert into generated nodes.
+typeApp :: SrcSpan -- ^ The source span to insert into generated nodes.
   -> Type    -- ^ The partially applied type constructor.
-  -> [Type]  -- ^ The type arguments to pass to the type constructor.
+  -> [ Type ]  -- ^ The type arguments to pass to the type constructor.
   -> Type
 typeApp srcSpan = foldl (TypeApp srcSpan)
 
@@ -61,26 +47,25 @@ typeApp srcSpan = foldl (TypeApp srcSpan)
 --
 --   The given source span is inserted into the generated type constructor
 --   and every generated type constructor application.
-typeConApp
-  :: SrcSpan     -- ^ The source span to insert into generated nodes.
+typeConApp :: SrcSpan     -- ^ The source span to insert into generated nodes.
   -> TypeConName -- ^ The name of the type constructor to apply.
-  -> [Type]      -- ^ The type arguments to pass to the type constructor.
+  -> [ Type ]      -- ^ The type arguments to pass to the type constructor.
   -> Type
 typeConApp srcSpan = typeApp srcSpan . TypeCon srcSpan
 
 -- | Creates a function type with the given argument and return types.
-funcType :: SrcSpan -> [Type] -> Type -> Type
+funcType :: SrcSpan -> [ Type ] -> Type -> Type
 funcType srcSpan = flip (foldr (FuncType srcSpan))
 
 -- | Splits the type of a function or constructor with the given arity
 --   into the argument and return types.
 --
 --   This is basically the inverse of 'funcType'.
-splitFuncType :: Type -> Int -> ([Type], Type)
-splitFuncType (FuncType _ t1 t2) arity | arity > 0 =
-  let (argTypes, returnType) = splitFuncType t2 (arity - 1)
-  in  (t1 : argTypes, returnType)
-splitFuncType returnType _ = ([], returnType)
+splitFuncType :: Type -> Int -> ( [ Type ], Type )
+splitFuncType (FuncType _ t1 t2) arity
+  | arity > 0 = let ( argTypes, returnType ) = splitFuncType t2 (arity - 1)
+                in ( t1 : argTypes, returnType )
+splitFuncType returnType _ = ( [], returnType )
 
 -- | Pretty instance for type expressions.
 instance Pretty Type where
@@ -95,13 +80,13 @@ instance Pretty Type where
 --    * @2@ - Parentheses are also needed around type constructor
 --            applications.
 prettyTypePred :: Int -> Type -> Doc
+
 -- There are never parentheses around type variables or constructors.
 prettyTypePred _ (TypeVar _ ident) = prettyString ident
-prettyTypePred _ (TypeCon _ name ) = pretty name
-
+prettyTypePred _ (TypeCon _ name) = pretty name
 -- There may be parentheses around type applications and function types.
-prettyTypePred n (TypeApp _ t1 t2) | n <= 1 =
-  prettyTypePred 1 t1 <+> prettyTypePred 2 t2
-prettyTypePred 0 (FuncType _ t1 t2) =
-  prettyTypePred 1 t1 <+> prettyString "->" <+> pretty t2
+prettyTypePred n (TypeApp _ t1 t2)
+  | n <= 1 = prettyTypePred 1 t1 <+> prettyTypePred 2 t2
+prettyTypePred 0 (FuncType _ t1 t2)
+  = prettyTypePred 1 t1 <+> prettyString "->" <+> pretty t2
 prettyTypePred _ t = parens (pretty t)

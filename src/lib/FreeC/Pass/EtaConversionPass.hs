@@ -98,31 +98,26 @@
 --
 --   All applications of @n@-ary functions or constructors have at least @n@
 --   arguments.
-
 module FreeC.Pass.EtaConversionPass
   ( etaConversionPass
     -- * Testing interface
   , etaConvertFuncDecl
   , etaConvertExpr
-  )
-where
+  ) where
 
-import           Control.Monad                  ( replicateM )
-
-import           Data.Maybe                     ( fromMaybe
-                                                , fromJust
-                                                )
+import           Control.Monad                ( replicateM )
+import           Data.Maybe                   ( fromJust, fromMaybe )
 
 import           FreeC.Environment
-import           FreeC.Environment.Fresh
 import           FreeC.Environment.Entry
+import           FreeC.Environment.Fresh
 import           FreeC.IR.SrcSpan
 import           FreeC.IR.Subterm
-import qualified FreeC.IR.Syntax               as IR
+import qualified FreeC.IR.Syntax              as IR
 import           FreeC.Monad.Converter
 import           FreeC.Pass
 -- temporary import; TODO: move this pass before the TypeSignaturePass.
-import           FreeC.Pass.TypeSignaturePass   ( splitFuncType )
+import           FreeC.Pass.TypeSignaturePass ( splitFuncType )
 
 -- | Applies η-conversions to the right-hand sides of all function declarations
 --   in the given module until all function and constructor applications are
@@ -135,7 +130,6 @@ etaConversionPass ast = do
 -------------------------------------------------------------------------------
 -- Function declarations                                                     --
 -------------------------------------------------------------------------------
-
 -- | Makes sure that all occurring functions are fully applied
 --   by calling 'etaConvertFuncDecl' on each of them.
 --
@@ -144,19 +138,19 @@ etaConversionPass ast = do
 --   previously converted function declarations.
 --   This ensures that all functions, including mutually-recursive
 --   functions, are fully applied correctly.
-
 --   The function's first argument represents the function
 --   declarations yet to be converted.
 --   The function's second argument is an accumulator for already
 --   converted functions that is needed in case they must be
 --   re-converted recursively.
-etaConvertFuncDecls :: [IR.FuncDecl] -> [IR.FuncDecl] -> Converter [IR.FuncDecl]
-etaConvertFuncDecls []         newFuncDecls = return newFuncDecls
+etaConvertFuncDecls
+  :: [ IR.FuncDecl ] -> [ IR.FuncDecl ] -> Converter [ IR.FuncDecl ]
+etaConvertFuncDecls [] newFuncDecls         = return newFuncDecls
 etaConvertFuncDecls (fd : fds) newFuncDecls = do
   newFuncDecl <- etaConvertFuncDecl fd
   if IR.funcDeclReturnType newFuncDecl /= IR.funcDeclReturnType fd
     then etaConvertFuncDecls (newFuncDecls ++ (newFuncDecl : fds)) []
-    else etaConvertFuncDecls fds (newFuncDecls ++ [newFuncDecl])
+    else etaConvertFuncDecls fds (newFuncDecls ++ [ newFuncDecl ])
 
 -- | Applies appropriate η-conversions to a function declaration.
 --
@@ -170,7 +164,7 @@ etaConvertFuncDecl :: IR.FuncDecl -> Converter IR.FuncDecl
 etaConvertFuncDecl funcDecl = do
   let rhs = IR.funcDeclRhs funcDecl
   newArgNumber <- findMinMissingArguments rhs
-  newFuncDecl  <- localEnv $ do
+  newFuncDecl <- localEnv $ do
     newArgIdents <- replicateM newArgNumber $ freshHaskellIdent freshArgPrefix
     modifyTopLevel funcDecl rhs newArgIdents
      -- Update the environment with the new type and arguments.
@@ -178,23 +172,21 @@ etaConvertFuncDecl funcDecl = do
   modifyEnv $ addEntry entry
     { entryArity      = length (IR.funcDeclArgs newFuncDecl)
     , entryArgTypes   = map (fromJust . IR.varPatType)
-                            (IR.funcDeclArgs newFuncDecl)
+        (IR.funcDeclArgs newFuncDecl)
     , entryReturnType = fromJust $ IR.funcDeclReturnType newFuncDecl
     }
   return newFuncDecl
 
 -- | Computes a new function declaration with all missing top-level arguments.
-modifyTopLevel :: IR.FuncDecl -> IR.Expr -> [String] -> Converter IR.FuncDecl
+modifyTopLevel :: IR.FuncDecl -> IR.Expr -> [ String ] -> Converter IR.FuncDecl
 modifyTopLevel funcDecl rhs newArgIdents = do
   -- Compute the function's new (uncurried) type. Assumes that funcDecl's
   -- return type is known.
-  (newArgTypes, returnType) <- splitFuncType
-    (IR.funcDeclQName funcDecl)
-    (map IR.toVarPat newArgIdents)
-    (fromJust $ IR.funcDeclReturnType funcDecl)
+  ( newArgTypes, returnType ) <- splitFuncType (IR.funcDeclQName funcDecl)
+    (map IR.toVarPat newArgIdents) (fromJust $ IR.funcDeclReturnType funcDecl)
   -- Compute the function's new arguments and add them to the argument list.
-  let newArgs = map ($ False)
-        $ zipWith (IR.VarPat NoSrcSpan) newArgIdents (map Just newArgTypes)
+  let newArgs = map ($ False) $ zipWith (IR.VarPat NoSrcSpan) newArgIdents
+        (map Just newArgTypes)
   let vars' = IR.funcDeclArgs funcDecl ++ newArgs
   -- Compute the new right-hand side.
   rhs' <- etaConvertTopLevel newArgs rhs
@@ -207,17 +199,17 @@ modifyTopLevel funcDecl rhs newArgIdents = do
 -------------------------------------------------------------------------------
 -- Expressions                                                               --
 -------------------------------------------------------------------------------
-
 -- | Applies all top-level alternatives of an expression to their missing
 --   arguments and calls 'etaConvertExpr' on the result to convert any
 --   occurring lower-level partial applications.
-etaConvertTopLevel :: [IR.VarPat] -> IR.Expr -> Converter IR.Expr
+etaConvertTopLevel :: [ IR.VarPat ] -> IR.Expr -> Converter IR.Expr
+
 -- If there is more than one alternative, apply the conversion to
 -- all alternatives.
-etaConvertTopLevel argPats expr@(IR.If _ _ _ _ _) =
-  etaConvertAlternatives argPats expr
-etaConvertTopLevel argPats expr@(IR.Case _ _ _ _) =
-  etaConvertAlternatives argPats expr
+etaConvertTopLevel argPats expr@(IR.If _ _ _ _ _)
+  = etaConvertAlternatives argPats expr
+etaConvertTopLevel argPats expr@(IR.Case _ _ _ _)
+  = etaConvertAlternatives argPats expr
 -- If there is only one alternative, apply it to the newly-added arguments,
 -- then apply @etaConvertExpr@ to it to make so the expression and its sub
 -- expressions are fully applied.
@@ -229,7 +221,7 @@ etaConvertTopLevel argPats expr = localEnv $ do
 
 -- | Calls @etaConvertTopLevel@ on all alternatives in an if or case
 --   expression.
-etaConvertAlternatives :: [IR.VarPat] -> IR.Expr -> Converter IR.Expr
+etaConvertAlternatives :: [ IR.VarPat ] -> IR.Expr -> Converter IR.Expr
 etaConvertAlternatives argPats expr = do
   -- The first child term of an if or case expression is the condition/the
   -- scrutinee and should remain unchanged.
@@ -243,46 +235,47 @@ etaConvertAlternatives argPats expr = do
 etaConvertExpr :: IR.Expr -> Converter IR.Expr
 etaConvertExpr expr = localEnv $ do
   arity <- arityOf expr
-  xs    <- replicateM arity $ freshHaskellIdent freshArgPrefix
+  xs <- replicateM arity $ freshHaskellIdent freshArgPrefix
   expr' <- etaConvertSubExprs expr
   return (etaAbstractWith xs expr')
 
 -- | Creates a lambda abstraction with the given arguments that immediately
 --   applies the given expression to the arguments.
-etaAbstractWith :: [String] -> IR.Expr -> IR.Expr
-etaAbstractWith xs expr | null xs   = expr
-                        | otherwise = IR.Lambda NoSrcSpan argPats expr' Nothing
+etaAbstractWith :: [ String ] -> IR.Expr -> IR.Expr
+etaAbstractWith xs expr
+  | null xs = expr
+  | otherwise = IR.Lambda NoSrcSpan argPats expr' Nothing
  where
-  argPats  = map IR.toVarPat xs
-  argExprs = map IR.varPatToExpr argPats
-  expr'    = IR.app NoSrcSpan expr argExprs
+   argPats  = map IR.toVarPat xs
+
+   argExprs = map IR.varPatToExpr argPats
+
+   expr'    = IR.app NoSrcSpan expr argExprs
 
 -------------------------------------------------------------------------------
 -- Sub-expressions                                                           --
 -------------------------------------------------------------------------------
-
 -- | Applies 'etaConvertExpr' to all sub-expressions of the given expression
 --   except for the left-hand side of function applications.
 etaConvertSubExprs :: IR.Expr -> Converter IR.Expr
+
 -- If the expression is applied, it expects one argument less.
 etaConvertSubExprs (IR.App srcSpan e1 e2 exprType) = do
   e1' <- etaConvertSubExprs e1
   e2' <- etaConvertExpr e2
   return (IR.App srcSpan e1' e2' exprType)
-
 -- Apply η-conversion recursively.
-etaConvertSubExprs expr@(IR.If _ _ _ _ _       ) = etaConvertSubExprs' expr
-etaConvertSubExprs expr@(IR.Case   _ _ _ _     ) = etaConvertSubExprs' expr
-etaConvertSubExprs expr@(IR.Lambda _ _ _ _     ) = etaConvertSubExprs' expr
-etaConvertSubExprs expr@(IR.Let    _ _ _ _     ) = etaConvertSubExprs' expr
-
+etaConvertSubExprs expr@(IR.If _ _ _ _ _)          = etaConvertSubExprs' expr
+etaConvertSubExprs expr@(IR.Case _ _ _ _)          = etaConvertSubExprs' expr
+etaConvertSubExprs expr@(IR.Lambda _ _ _ _)        = etaConvertSubExprs' expr
+etaConvertSubExprs expr@(IR.Let _ _ _ _)           = etaConvertSubExprs' expr
 -- Leave all other expressions unchanged.
-etaConvertSubExprs expr@(IR.Con _ _ _          ) = return expr
-etaConvertSubExprs expr@(IR.Var _ _ _          ) = return expr
-etaConvertSubExprs expr@(IR.TypeAppExpr _ _ _ _) = return expr
-etaConvertSubExprs expr@(IR.Undefined _ _      ) = return expr
-etaConvertSubExprs expr@(IR.ErrorExpr  _ _ _   ) = return expr
-etaConvertSubExprs expr@(IR.IntLiteral _ _ _   ) = return expr
+etaConvertSubExprs expr@(IR.Con _ _ _)             = return expr
+etaConvertSubExprs expr@(IR.Var _ _ _)             = return expr
+etaConvertSubExprs expr@(IR.TypeAppExpr _ _ _ _)   = return expr
+etaConvertSubExprs expr@(IR.Undefined _ _)         = return expr
+etaConvertSubExprs expr@(IR.ErrorExpr _ _ _)       = return expr
+etaConvertSubExprs expr@(IR.IntLiteral _ _ _)      = return expr
 
 -- | Applies 'etaConvertExpr' to all sub-expressions of the given expression.
 etaConvertSubExprs' :: IR.Expr -> Converter IR.Expr
@@ -295,14 +288,13 @@ etaConvertSubExprs' expr = do
 -------------------------------------------------------------------------------
 -- Arity                                                                     --
 -------------------------------------------------------------------------------
-
 -- | Finds the minimum number of missing arguments among the alternatives
 --   for the right-hand side of a function declaration.
 findMinMissingArguments :: IR.Expr -> Converter Int
-findMinMissingArguments (IR.If _ _ e1 e2 _) =
-  minimum <$> mapM findMinMissingArguments [e1, e2]
-findMinMissingArguments (IR.Case _ _ alts _) =
-  minimum <$> mapM (findMinMissingArguments . IR.altRhs) alts
+findMinMissingArguments (IR.If _ _ e1 e2 _)
+  = minimum <$> mapM findMinMissingArguments [ e1, e2 ]
+findMinMissingArguments (IR.Case _ _ alts _) = minimum <$> mapM
+  (findMinMissingArguments . IR.altRhs) alts
 -- Any expression that isn't an if or case expression only has one
 -- option for the number of missing arguments, namely the arity of the
 -- expression.
@@ -311,24 +303,22 @@ findMinMissingArguments expr = arityOf expr
 -- | Determines the number of arguments expected to be passed to the given
 --   expression.
 arityOf :: IR.Expr -> Converter Int
-arityOf (IR.Con _ name _) = do
+arityOf (IR.Con _ name _)        = do
   arity <- inEnv $ lookupArity IR.ValueScope name
   return (fromMaybe 0 arity)
-arityOf (IR.Var _ name _) = do
+arityOf (IR.Var _ name _)        = do
   arity <- inEnv $ lookupArity IR.ValueScope name
   return (fromMaybe 0 arity)
-arityOf (IR.App _ e1 _ _) = do
+arityOf (IR.App _ e1 _ _)        = do
   arity <- arityOf e1
   return (max 0 (arity - 1))
-
 -- Visible type applications do not affect the function's arity.
 arityOf (IR.TypeAppExpr _ e _ _) = arityOf e
-
 -- All other expressions do not expect any arguments.
-arityOf (IR.If _ _ _ _ _       ) = return 0
-arityOf (IR.Case _ _ _ _       ) = return 0
-arityOf (IR.Undefined _ _      ) = return 0
-arityOf (IR.ErrorExpr  _ _ _   ) = return 0
-arityOf (IR.IntLiteral _ _ _   ) = return 0
-arityOf (IR.Lambda _ _ _ _     ) = return 0
-arityOf (IR.Let    _ _ _ _     ) = return 0
+arityOf (IR.If _ _ _ _ _)        = return 0
+arityOf (IR.Case _ _ _ _)        = return 0
+arityOf (IR.Undefined _ _)       = return 0
+arityOf (IR.ErrorExpr _ _ _)     = return 0
+arityOf (IR.IntLiteral _ _ _)    = return 0
+arityOf (IR.Lambda _ _ _ _)      = return 0
+arityOf (IR.Let _ _ _ _)         = return 0

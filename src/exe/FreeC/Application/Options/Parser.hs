@@ -1,13 +1,8 @@
 -- | This module contains the command line option parser.
-
-module FreeC.Application.Options.Parser
-  ( parseArgs
-  , getAndParseArgs
-  )
-where
+module FreeC.Application.Options.Parser ( parseArgs, getAndParseArgs ) where
 
 import           System.Console.GetOpt
-import           System.Environment             ( getArgs )
+import           System.Environment                    ( getArgs )
 
 import           FreeC.Application.Options
 import           FreeC.Application.Options.Descriptors
@@ -23,9 +18,8 @@ import           FreeC.Monad.Reporter
 --
 --   Returns the default options (first argument) if no arguments are
 --   specified.
-parseArgs
-  :: Options  -- ^ The default options.
-  -> [String] -- ^ The command line arguments.
+parseArgs :: Options  -- ^ The default options.
+  -> [ String ] -- ^ The command line arguments.
   -> Reporter Options
 parseArgs defaultOptions args
   | null errors = do
@@ -33,17 +27,14 @@ parseArgs defaultOptions args
     return opts { optInputFiles = nonOpts }
   | otherwise = do
     mapM_ (report . Message NoSrcSpan Error) errors
-    reportFatal $ Message
-      NoSrcSpan
-      Error
-      (  "Failed to parse command line arguments.\n"
-      ++ "Use '--help' for usage information."
-      )
+    reportFatal $ Message NoSrcSpan Error
+      ("Failed to parse command line arguments.\n"
+       ++ "Use '--help' for usage information.")
  where
-  optSetters :: [Options -> Options]
-  nonOpts :: [String]
-  errors :: [String]
-  (optSetters, nonOpts, errors) = getOpt Permute optionDescriptors args
+   optSetters :: [ Options -> Options ]
+   nonOpts :: [ String ]
+   errors :: [ String ]
+   ( optSetters, nonOpts, errors ) = getOpt Permute optionDescriptors args
 
 -- | Gets the 'Options' for the command line arguments that were passed to
 --   the application.

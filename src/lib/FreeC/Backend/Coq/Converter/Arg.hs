@@ -1,19 +1,17 @@
 -- | This module contains functions for generating Coq function, constructor
 --   and type arguments from our intermediate representation.
-
 module FreeC.Backend.Coq.Converter.Arg where
 
 import           FreeC.Backend.Coq.Converter.Type
-import qualified FreeC.Backend.Coq.Syntax      as Coq
+import qualified FreeC.Backend.Coq.Syntax         as Coq
 import           FreeC.Environment.Fresh
 import           FreeC.Environment.Renamer
-import qualified FreeC.IR.Syntax               as IR
+import qualified FreeC.IR.Syntax                  as IR
 import           FreeC.Monad.Converter
 
 -------------------------------------------------------------------------------
 -- Type arguments                                                            --
 -------------------------------------------------------------------------------
-
 -- | Converts the declarations of type variables in the head of a data type or
 --   type synonym declaration to a Coq binder for a set of explicit or implicit
 --   type arguments.
@@ -28,23 +26,22 @@ import           FreeC.Monad.Converter
 --   (e.g. @(a : Type)@) or implicit (e.g. @{a : Type}@).
 convertTypeVarDecls
   :: Coq.Explicitness -- ^ Whether to generate an explicit or implicit binder.
-  -> [IR.TypeVarDecl] -- ^ The type variable declarations.
-  -> Converter [Coq.Binder]
+  -> [ IR.TypeVarDecl ] -- ^ The type variable declarations.
+  -> Converter [ Coq.Binder ]
 convertTypeVarDecls explicitness typeVarDecls
   | null typeVarDecls = return []
   | otherwise = do
     idents' <- mapM convertTypeVarDecl typeVarDecls
-    return [Coq.typedBinder explicitness idents' Coq.sortType]
+    return [ Coq.typedBinder explicitness idents' Coq.sortType ]
  where
-  -- | TODO
-  convertTypeVarDecl :: IR.TypeVarDecl -> Converter Coq.Qualid
-  convertTypeVarDecl (IR.TypeVarDecl srcSpan ident) =
-    renameAndDefineTypeVar srcSpan ident
+   -- | TODO
+   convertTypeVarDecl :: IR.TypeVarDecl -> Converter Coq.Qualid
+   convertTypeVarDecl (IR.TypeVarDecl srcSpan ident)
+     = renameAndDefineTypeVar srcSpan ident
 
 -------------------------------------------------------------------------------
 -- Function arguments                                                        --
 -------------------------------------------------------------------------------
-
 -- | Converts the argument of a function (a variable pattern) to an explicit
 --   Coq binder.
 --
@@ -54,9 +51,9 @@ convertTypeVarDecls explicitness typeVarDecls
 --   lifted to the @Free@ monad.
 convertArg :: IR.VarPat -> Converter Coq.Binder
 convertArg (IR.VarPat srcSpan ident maybeArgType isStrict) = do
-  ident'        <- renameAndDefineVar srcSpan isStrict ident maybeArgType
+  ident' <- renameAndDefineVar srcSpan isStrict ident maybeArgType
   maybeArgType' <- mapM (if isStrict then convertType' else convertType)
-                        maybeArgType
+    maybeArgType
   generateArgBinder ident' maybeArgType'
 
 -- | Generates an explicit Coq binder for a function argument with the given
@@ -64,17 +61,17 @@ convertArg (IR.VarPat srcSpan ident maybeArgType isStrict) = do
 --
 --   If no type is provided, it will be inferred by Coq.
 generateArgBinder :: Coq.Qualid -> Maybe Coq.Term -> Converter Coq.Binder
-generateArgBinder ident' Nothing =
-  return (Coq.Inferred Coq.Explicit (Coq.Ident ident'))
-generateArgBinder ident' (Just argType') =
-  return (Coq.typedBinder' Coq.Explicit ident' argType')
+generateArgBinder ident' Nothing         = return
+  (Coq.Inferred Coq.Explicit (Coq.Ident ident'))
+generateArgBinder ident' (Just argType') = return
+  (Coq.typedBinder' Coq.Explicit ident' argType')
 
 -- | Converts the argument of an artificially generated function to an explicit
 --   Coq binder. A fresh Coq identifier is selected for the argument
 --   and returned together with the binder.
-convertAnonymousArg :: Maybe IR.Type -> Converter (Coq.Qualid, Coq.Binder)
+convertAnonymousArg :: Maybe IR.Type -> Converter ( Coq.Qualid, Coq.Binder )
 convertAnonymousArg mArgType = do
-  ident'    <- freshCoqQualid freshArgPrefix
+  ident' <- freshCoqQualid freshArgPrefix
   mArgType' <- mapM convertType mArgType
-  binder    <- generateArgBinder ident' mArgType'
-  return (ident', binder)
+  binder <- generateArgBinder ident' mArgType'
+  return ( ident', binder )

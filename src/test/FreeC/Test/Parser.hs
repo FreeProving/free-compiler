@@ -34,8 +34,6 @@
 --   > it "..." $ do
 --   >   expr <- expectParseTestExpr "..."
 --   >   shouldFail (foo expr)
-
-
 module FreeC.Test.Parser
   ( -- * Within Reporters
     parseTestIR
@@ -64,26 +62,24 @@ module FreeC.Test.Parser
     -- * Parsing Dependency Components
   , parseTestComponent
   , expectParseTestComponent
-  )
-where
+  ) where
 
-import           Control.Monad.IO.Class         ( MonadIO(..) )
-import           Control.Monad.Fail             ( MonadFail )
-import           Test.HUnit.Base                ( assertFailure )
+import           Control.Monad.Fail       ( MonadFail )
+import           Control.Monad.IO.Class   ( MonadIO(..) )
+import           Test.HUnit.Base          ( assertFailure )
 
+import           FreeC.Frontend.IR.Parser
 import           FreeC.IR.DependencyGraph
 import           FreeC.IR.SrcSpan
-import           FreeC.Frontend.IR.Parser
-import qualified FreeC.IR.Syntax               as IR
+import qualified FreeC.IR.Syntax          as IR
 import           FreeC.Monad.Reporter
 import           FreeC.Pretty
 
 -------------------------------------------------------------------------------
 -- Within Reporters                                                          --
 -------------------------------------------------------------------------------
-
 -- | Parses an IR node of type @a@ for testing purposes.
-parseTestIR :: (MonadReporter r, Parseable a) => String -> r a
+parseTestIR :: ( MonadReporter r, Parseable a ) => String -> r a
 parseTestIR = parseIR . mkSrcFile "<test-input>"
 
 -- | Parses an IR name for testing purposes.
@@ -123,31 +119,24 @@ parseTestImportDecl :: MonadReporter r => String -> r IR.ImportDecl
 parseTestImportDecl = parseTestIR
 
 -- | Parses an IR module for testing purposes.
-parseTestModule :: MonadReporter r => [String] -> r IR.Module
+parseTestModule :: MonadReporter r => [ String ] -> r IR.Module
 parseTestModule = parseTestIR . unlines
 
 -------------------------------------------------------------------------------
 -- Within Expectations                                                       --
 -------------------------------------------------------------------------------
-
 -- | Parses an IR node of type @a@ for testing purposes and sets the
 --   expectation that parsing is successful.
 --
 --   The first argument is a textual description of the type of node to parse.
-expectParseTestIR :: (MonadIO m, Parseable a) => String -> String -> m a
+expectParseTestIR :: ( MonadIO m, Parseable a ) => String -> String -> m a
 expectParseTestIR nodeType input = do
-  let (mx, ms) = runReporter (parseTestIR input)
+  let ( mx, ms ) = runReporter (parseTestIR input)
   case mx of
-    Just x -> return x
-    Nothing ->
-      liftIO
-        $  assertFailure
-        $  "Could not parse test "
-        ++ nodeType
-        ++ ".\nThe following "
-        ++ show (length ms)
-        ++ " messages were reported:\n"
-        ++ showPretty ms
+    Just x  -> return x
+    Nothing -> liftIO $ assertFailure $ "Could not parse test " ++ nodeType
+      ++ ".\nThe following " ++ show (length ms) ++ " messages were reported:\n"
+      ++ showPretty ms
 
 -- | Parses an IR name for testing purposes and sets the
 --   expectation that parsing is successful.
@@ -196,25 +185,20 @@ expectParseTestImportDecl = expectParseTestIR "import"
 
 -- | Parses an IR module for testing purposes and sets the
 --   expectation that parsing is successful.
-expectParseTestModule :: MonadIO m => [String] -> m IR.Module
+expectParseTestModule :: MonadIO m => [ String ] -> m IR.Module
 expectParseTestModule = expectParseTestIR "module" . unlines
 
 -------------------------------------------------------------------------------
 -- Parsing Dependency Components                                             --
 -------------------------------------------------------------------------------
-
 -- | Parses the declarations in the given dependency component.
-parseTestComponent
-  :: (MonadFail r, MonadReporter r, Parseable decl)
-  => DependencyComponent String
-  -> r (DependencyComponent decl)
+parseTestComponent :: ( MonadFail r, MonadReporter r, Parseable decl )
+  => DependencyComponent String -> r (DependencyComponent decl)
 parseTestComponent = mapComponentM (mapM parseTestIR)
 
 -- | Parses the declarations in the given dependency component and sets the
 --   expectation that parsing is successful.
-expectParseTestComponent
-  :: (MonadFail m, MonadIO m, Parseable decl)
-  => DependencyComponent String
-  -> m (DependencyComponent decl)
-expectParseTestComponent =
-  mapComponentM (mapM (expectParseTestIR "dependency component"))
+expectParseTestComponent :: ( MonadFail m, MonadIO m, Parseable decl )
+  => DependencyComponent String -> m (DependencyComponent decl)
+expectParseTestComponent = mapComponentM
+  (mapM (expectParseTestIR "dependency component"))

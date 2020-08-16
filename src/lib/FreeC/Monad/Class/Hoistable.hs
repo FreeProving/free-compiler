@@ -1,11 +1,10 @@
 -- | This module defines type classes for converting between monads and their
 --   monad transformer counterparts.
-
 module FreeC.Monad.Class.Hoistable where
 
 import           Control.Monad.Identity
 import           Control.Monad.Trans.Class
-import           Control.Monad.Trans.Maybe      ( MaybeT(..) )
+import           Control.Monad.Trans.Maybe ( MaybeT(..) )
 
 -- | Type class for monad transformers whose inner monad can be lifted from
 --   'Identity' to some arbitrary 'Monad'.
@@ -21,7 +20,6 @@ class Hoistable t => UnHoistable t where
 -------------------------------------------------------------------------------
 -- Default implementations                                                   --
 -------------------------------------------------------------------------------
-
 -- | Lifts a @Maybe@ value to an arbitrary monad.
 --
 --   Since @Maybe@ and @MaybeT Identity@ are distinct types, no equivalent

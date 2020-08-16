@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 -- | This module contains functions for loading and decoding 'ModuleInterface's
@@ -100,33 +101,26 @@
 --       an instance of the @Partial@ type class).
 --     * @needs-free-args@ (@Boolean@) whether the arguments of the @Free@
 --       monad need to be passed to the function.
+module FreeC.Environment.ModuleInterface.Decoder ( loadModuleInterface ) where
 
-module FreeC.Environment.ModuleInterface.Decoder
-  ( loadModuleInterface
-  )
-where
+import           Control.Monad                     ( when )
+import           Control.Monad.IO.Class            ( MonadIO )
+import           Data.Aeson                        ( (.!=), (.:), (.:?) )
+import qualified Data.Aeson                        as Aeson
+import qualified Data.Aeson.Types                  as Aeson
+import qualified Data.Set                          as Set
+import           Data.Text                         ( Text )
+import qualified Data.Text                         as Text
+import qualified Data.Vector                       as Vector
 
-import           Control.Monad                  ( when )
-import           Control.Monad.IO.Class         ( MonadIO )
-import           Data.Aeson                     ( (.!=)
-                                                , (.:)
-                                                , (.:?)
-                                                )
-import qualified Data.Aeson                    as Aeson
-import qualified Data.Aeson.Types              as Aeson
-import qualified Data.Set                      as Set
-import           Data.Text                      ( Text )
-import qualified Data.Text                     as Text
-import qualified Data.Vector                   as Vector
-
-import qualified FreeC.Backend.Agda.Syntax     as Agda
-import qualified FreeC.Backend.Coq.Syntax      as Coq
-import           FreeC.Environment.ModuleInterface
+import qualified FreeC.Backend.Agda.Syntax         as Agda
+import qualified FreeC.Backend.Coq.Syntax          as Coq
 import           FreeC.Environment.Entry
+import           FreeC.Environment.ModuleInterface
 import           FreeC.Frontend.IR.Parser
-import           FreeC.IR.Reference             ( freeTypeVars )
+import           FreeC.IR.Reference                ( freeTypeVars )
 import           FreeC.IR.SrcSpan
-import qualified FreeC.IR.Syntax               as IR
+import qualified FreeC.IR.Syntax                   as IR
 import           FreeC.Monad.Reporter
 import           FreeC.Pretty
 import           FreeC.Util.Config
@@ -146,8 +140,8 @@ moduleInterfaceFileFormatVersion = 3
 -- | Parses an IR AST node from an Aeson string.
 parseAesonIR :: Parseable a => Text -> Aeson.Parser a
 parseAesonIR input = do
-  let srcFile   = mkSrcFile "<config-input>" (Text.unpack input)
-      (res, ms) = runReporter (parseIR srcFile)
+  let srcFile     = mkSrcFile "<config-input>" (Text.unpack input)
+      ( res, ms ) = runReporter (parseIR srcFile)
   case res of
     Nothing -> Aeson.parserThrowError [] (showPretty ms)
     Just t  -> return t
@@ -161,8 +155,8 @@ instance Aeson.FromJSON Coq.Qualid where
   parseJSON = Aeson.withText "Coq.Qualid" $ return . Coq.bare . Text.unpack
 
 instance Aeson.FromJSON Agda.QName where
-  parseJSON =
-    Aeson.withText "Agda.QName" $ return . Agda.qname' . Agda.name . Text.unpack
+  parseJSON = Aeson.withText "Agda.QName"
+    $ return . Agda.qname' . Agda.name . Text.unpack
 
 -- | Restores a Haskell type from the interface file.
 instance Aeson.FromJSON IR.Type where
@@ -172,129 +166,117 @@ instance Aeson.FromJSON IR.Type where
 instance Aeson.FromJSON ModuleInterface where
   parseJSON = Aeson.withObject "ModuleInterface" $ \env -> do
     version <- env .: "version"
-    when (version /= moduleInterfaceFileFormatVersion)
-      $  Aeson.parseFail
-      $  "Expected version "
-      ++ show moduleInterfaceFileFormatVersion
-      ++ ", got version "
-      ++ show version
-      ++ ".\n"
+    when (version /= moduleInterfaceFileFormatVersion) $ Aeson.parseFail
+      $ "Expected version " ++ show moduleInterfaceFileFormatVersion
+      ++ ", got version " ++ show version ++ ".\n"
       ++ "Try to recompile the module."
-    modName        <- env .: "module-name"
-    libName        <- env .: "library-name"
-    exportedTypes  <- env .: "exported-types"
+    modName <- env .: "module-name"
+    libName <- env .: "library-name"
+    exportedTypes <- env .: "exported-types"
     exportedValues <- env .: "exported-values"
     types <- env .:? "types" .!= Aeson.Array Vector.empty >>= Aeson.withArray
-      "Data types"
-      (mapM parseConfigType)
-    typeSyns <-
-      env .:? "type-synonyms" .!= Aeson.Array Vector.empty >>= Aeson.withArray
-        "Type Synonyms"
-        (mapM parseConfigTypeSyn)
-    cons <-
-      env .:? "constructors" .!= Aeson.Array Vector.empty >>= Aeson.withArray
-        "Constructors"
-        (mapM parseConfigCon)
-    funcs <-
-      env .:? "functions" .!= Aeson.Array Vector.empty >>= Aeson.withArray
-        "Functions"
-        (mapM parseConfigFunc)
+      "Data types" (mapM parseConfigType)
+    typeSyns <- env .:? "type-synonyms" .!= Aeson.Array Vector.empty
+      >>= Aeson.withArray "Type Synonyms" (mapM parseConfigTypeSyn)
+    cons <- env .:? "constructors" .!= Aeson.Array Vector.empty
+      >>= Aeson.withArray "Constructors" (mapM parseConfigCon)
+    funcs <- env .:? "functions" .!= Aeson.Array Vector.empty
+      >>= Aeson.withArray "Functions" (mapM parseConfigFunc)
     return ModuleInterface
       { interfaceModName     = modName
       , interfaceLibName     = libName
       , interfaceAgdaLibName = Agda.name $ Text.unpack $ libName
       , interfaceExports     = Set.fromList
-                                 (  map ((,) IR.TypeScope)  exportedTypes
-                                 ++ map ((,) IR.ValueScope) exportedValues
-                                 )
+          (map ((,) IR.TypeScope) exportedTypes ++ map ((,) IR.ValueScope)
+           exportedValues)
       , interfaceEntries     = Set.fromList
-                                 (  Vector.toList types
-                                 ++ Vector.toList typeSyns
-                                 ++ Vector.toList cons
-                                 ++ Vector.toList funcs
-                                 )
+          (Vector.toList types ++ Vector.toList typeSyns ++ Vector.toList cons
+           ++ Vector.toList funcs)
       }
    where
-    parseConfigType :: Aeson.Value -> Aeson.Parser EnvEntry
-    parseConfigType = Aeson.withObject "Data type" $ \obj -> do
-      arity       <- obj .: "arity"
-      haskellName <- obj .: "haskell-name"
-      coqName     <- obj .: "coq-name"
-      agdaName    <- obj .: "agda-name"
-      consNames   <- obj .: "cons-names"
-      return DataEntry { entrySrcSpan   = NoSrcSpan
-                       , entryArity     = arity
-                       , entryIdent     = coqName
-                       , entryAgdaIdent = agdaName
-                       , entryName      = haskellName
-                       , entryConsNames = consNames
-                       }
+     parseConfigType :: Aeson.Value -> Aeson.Parser EnvEntry
+     parseConfigType = Aeson.withObject "Data type" $ \obj -> do
+       arity <- obj .: "arity"
+       haskellName <- obj .: "haskell-name"
+       coqName <- obj .: "coq-name"
+       agdaName <- obj .: "agda-name"
+       consNames <- obj .: "cons-names"
+       return DataEntry { entrySrcSpan   = NoSrcSpan
+                        , entryArity     = arity
+                        , entryIdent     = coqName
+                        , entryAgdaIdent = agdaName
+                        , entryName      = haskellName
+                        , entryConsNames = consNames
+                        }
 
-    parseConfigTypeSyn :: Aeson.Value -> Aeson.Parser EnvEntry
-    parseConfigTypeSyn = Aeson.withObject "Type synonym" $ \obj -> do
-      arity       <- obj .: "arity"
-      typeSyn     <- obj .: "haskell-type"
-      typeArgs    <- obj .: "type-arguments"
-      haskellName <- obj .: "haskell-name"
-      coqName     <- obj .: "coq-name"
-      agdaName    <- obj .: "agda-name"
-      return TypeSynEntry { entrySrcSpan   = NoSrcSpan
-                          , entryArity     = arity
-                          , entryTypeArgs  = typeArgs
-                          , entryTypeSyn   = typeSyn
-                          , entryIdent     = coqName
-                          , entryAgdaIdent = agdaName
-                          , entryName      = haskellName
-                          }
+     parseConfigTypeSyn :: Aeson.Value -> Aeson.Parser EnvEntry
+     parseConfigTypeSyn = Aeson.withObject "Type synonym" $ \obj -> do
+       arity <- obj .: "arity"
+       typeSyn <- obj .: "haskell-type"
+       typeArgs <- obj .: "type-arguments"
+       haskellName <- obj .: "haskell-name"
+       coqName <- obj .: "coq-name"
+       agdaName <- obj .: "agda-name"
+       return TypeSynEntry
+         { entrySrcSpan   = NoSrcSpan
+         , entryArity     = arity
+         , entryTypeArgs  = typeArgs
+         , entryTypeSyn   = typeSyn
+         , entryIdent     = coqName
+         , entryAgdaIdent = agdaName
+         , entryName      = haskellName
+         }
 
-    parseConfigCon :: Aeson.Value -> Aeson.Parser EnvEntry
-    parseConfigCon = Aeson.withObject "Constructor" $ \obj -> do
-      arity         <- obj .: "arity"
-      haskellName   <- obj .: "haskell-name"
-      haskellType   <- obj .: "haskell-type"
-      coqName       <- obj .: "coq-name"
-      coqSmartName  <- obj .: "coq-smart-name"
-      agdaName      <- obj .: "agda-name"
-      agdaSmartName <- obj .: "agda-smart-name"
-      let (argTypes, returnType) = IR.splitFuncType haskellType arity
-      return ConEntry { entrySrcSpan        = NoSrcSpan
-                      , entryArity          = arity
-                      , entryTypeArgs       = freeTypeVars returnType
-                      , entryArgTypes       = argTypes
-                      , entryReturnType     = returnType
-                      , entryIdent          = coqName
-                      , entrySmartIdent     = coqSmartName
-                      , entryAgdaIdent      = agdaName
-                      , entryAgdaSmartIdent = agdaSmartName
-                      , entryName           = haskellName
-                      }
+     parseConfigCon :: Aeson.Value -> Aeson.Parser EnvEntry
+     parseConfigCon = Aeson.withObject "Constructor" $ \obj -> do
+       arity <- obj .: "arity"
+       haskellName <- obj .: "haskell-name"
+       haskellType <- obj .: "haskell-type"
+       coqName <- obj .: "coq-name"
+       coqSmartName <- obj .: "coq-smart-name"
+       agdaName <- obj .: "agda-name"
+       agdaSmartName <- obj .: "agda-smart-name"
+       let ( argTypes, returnType ) = IR.splitFuncType haskellType arity
+       return ConEntry
+         { entrySrcSpan        = NoSrcSpan
+         , entryArity          = arity
+         , entryTypeArgs       = freeTypeVars returnType
+         , entryArgTypes       = argTypes
+         , entryReturnType     = returnType
+         , entryIdent          = coqName
+         , entrySmartIdent     = coqSmartName
+         , entryAgdaIdent      = agdaName
+         , entryAgdaSmartIdent = agdaSmartName
+         , entryName           = haskellName
+         }
 
-    parseConfigFunc :: Aeson.Value -> Aeson.Parser EnvEntry
-    parseConfigFunc = Aeson.withObject "Function" $ \obj -> do
-      arity          <- obj .: "arity"
-      haskellName    <- obj .: "haskell-name"
-      haskellType    <- obj .: "haskell-type"
-      partial        <- obj .: "partial"
-      freeArgsNeeded <- obj .: "needs-free-args"
-      coqName        <- obj .: "coq-name"
-      agdaName       <- obj .: "agda-name"
-      -- TODO this does not work with vanishing type arguments.
-      let (argTypes, returnType) = IR.splitFuncType haskellType arity
-          typeArgs               = freeTypeVars haskellType
-      return FuncEntry { entrySrcSpan       = NoSrcSpan
-                       , entryArity         = arity
-                       , entryTypeArgs      = typeArgs
-                       , entryArgTypes      = argTypes
-                       , entryStrictArgs    = replicate arity False
-                       , entryReturnType    = returnType
-                       , entryNeedsFreeArgs = freeArgsNeeded
-                       , entryIsPartial     = partial
-                       , entryIdent         = coqName
-                       , entryAgdaIdent     = agdaName
-                       , entryName          = haskellName
-                       }
+     parseConfigFunc :: Aeson.Value -> Aeson.Parser EnvEntry
+     parseConfigFunc = Aeson.withObject "Function" $ \obj -> do
+       arity <- obj .: "arity"
+       haskellName <- obj .: "haskell-name"
+       haskellType <- obj .: "haskell-type"
+       partial <- obj .: "partial"
+       freeArgsNeeded <- obj .: "needs-free-args"
+       coqName <- obj .: "coq-name"
+       agdaName <- obj .: "agda-name"
+       -- TODO this does not work with vanishing type arguments.
+       let ( argTypes, returnType ) = IR.splitFuncType haskellType arity
+           typeArgs = freeTypeVars haskellType
+       return FuncEntry
+         { entrySrcSpan       = NoSrcSpan
+         , entryArity         = arity
+         , entryTypeArgs      = typeArgs
+         , entryArgTypes      = argTypes
+         , entryStrictArgs    = replicate arity False
+         , entryReturnType    = returnType
+         , entryNeedsFreeArgs = freeArgsNeeded
+         , entryIsPartial     = partial
+         , entryIdent         = coqName
+         , entryAgdaIdent     = agdaName
+         , entryName          = haskellName
+         }
 
 -- | Loads a module interface file from a @.toml@ or @.json@ file.
 loadModuleInterface
-  :: (MonadIO r, MonadReporter r) => FilePath -> r ModuleInterface
+  :: ( MonadIO r, MonadReporter r ) => FilePath -> r ModuleInterface
 loadModuleInterface = loadConfig

@@ -1,5 +1,4 @@
 -- | This module contains tests for "FreeC.Environment".
-
 module FreeC.EnvironmentTests where
 
 import           Test.Hspec

@@ -35,15 +35,13 @@
 --   == Error cases
 --
 --   The messages reported by the child passes are reported.
-
 module FreeC.Pass.DependencyAnalysisPass
   ( DependencyAwarePass
   , dependencyAnalysisPass
-  )
-where
+  ) where
 
 import           FreeC.IR.DependencyGraph
-import qualified FreeC.IR.Syntax               as IR
+import qualified FreeC.IR.Syntax          as IR
 import           FreeC.Monad.Converter
 import           FreeC.Pass
 
@@ -55,35 +53,37 @@ type DependencyAwarePass decl = Pass (DependencyComponent decl)
 -- | Type class for declaration AST nodes whose dependencies can be analyzed.
 class DependencyAnalysisPass decl where
   -- | Constructs the dependency graph for the given nodes.
-  groupDecls :: [decl] -> [DependencyComponent decl]
+  groupDecls :: [ decl ] -> [ DependencyComponent decl ]
 
   -- | Gets the declarations of the node type from the given module.
-  getDecls :: IR.Module -> [decl]
+  getDecls :: IR.Module -> [ decl ]
 
   -- | Replaces the declarations of the node type in the given module.
-  setDecls :: IR.Module -> [decl] -> IR.Module
+  setDecls :: IR.Module -> [ decl ] -> IR.Module
 
 -- | The dependencies of type declarations can be analyzed.
 instance DependencyAnalysisPass IR.TypeDecl where
-  groupDecls = groupTypeDecls
-  getDecls   = IR.modTypeDecls
+  groupDecls         = groupTypeDecls
+
+  getDecls           = IR.modTypeDecls
+
   setDecls ast decls = ast { IR.modTypeDecls = decls }
 
 -- | The dependencies of function declarations can be analyzed.
 instance DependencyAnalysisPass IR.FuncDecl where
-  groupDecls = groupFuncDecls
-  getDecls   = IR.modFuncDecls
+  groupDecls         = groupFuncDecls
+
+  getDecls           = IR.modFuncDecls
+
   setDecls ast decls = ast { IR.modFuncDecls = decls }
 
 -- | Applies the given child passes to the strongly connected components
 --   of the dependency graph for declarations of type @decl@ of the given
 --   module.
-dependencyAnalysisPass
-  :: DependencyAnalysisPass decl
-  => [DependencyAwarePass decl]
-  -> IR.Module
-  -> Converter IR.Module
+dependencyAnalysisPass :: DependencyAnalysisPass decl
+  => [ DependencyAwarePass decl ] -> IR.Module -> Converter IR.Module
 dependencyAnalysisPass = subPipelinePass getComponents setComponents
  where
-  getComponents = groupDecls . getDecls
-  setComponents ast = setDecls ast . concatMap unwrapComponent
+   getComponents     = groupDecls . getDecls
+
+   setComponents ast = setDecls ast . concatMap unwrapComponent

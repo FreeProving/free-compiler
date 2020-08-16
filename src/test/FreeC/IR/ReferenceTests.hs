@@ -1,5 +1,4 @@
 -- | This module contains tests for "FreeC.IR.Reference".
-
 module FreeC.IR.ReferenceTests where
 
 import           Test.Hspec
@@ -17,4 +16,4 @@ testTypeVars :: Spec
 testTypeVars = context "freeTypeVars" $ do
   it "should preserve the order of type arguments" $ do
     typeExpr <- expectParseTestType "C b ((c -> f) -> (e -> d)) a"
-    freeTypeVars typeExpr `shouldBe` ["b", "c", "f", "e", "d", "a"]
+    freeTypeVars typeExpr `shouldBe` [ "b", "c", "f", "e", "d", "a" ]

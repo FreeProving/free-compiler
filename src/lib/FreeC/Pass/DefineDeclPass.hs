@@ -24,19 +24,17 @@
 --   = Error cases
 --
 --   * The user is informed if a different name is assigned to an entry.
-
 module FreeC.Pass.DefineDeclPass
   ( defineTypeDeclsPass
   , defineFuncDeclsPass
-  )
-where
+  ) where
 
-import           Data.Maybe                     ( fromJust )
+import           Data.Maybe                        ( fromJust )
 
 import           FreeC.Environment.Entry
 import           FreeC.Environment.Renamer
 import           FreeC.IR.DependencyGraph
-import qualified FreeC.IR.Syntax               as IR
+import qualified FreeC.IR.Syntax                   as IR
 import           FreeC.Monad.Converter
 import           FreeC.Pass.DependencyAnalysisPass
 
@@ -60,7 +58,6 @@ defineFuncDeclsPass component = do
 -------------------------------------------------------------------------------
 -- Type declarations                                                         --
 -------------------------------------------------------------------------------
-
 -- | Inserts the given data type (including its constructors) or type synonym
 --   declaration into the current environment.
 defineTypeDecl :: IR.TypeDecl -> Converter ()
@@ -86,42 +83,42 @@ defineTypeDecl (IR.DataDecl srcSpan declIdent typeArgs conDecls) = do
     }
   mapM_ defineConDecl conDecls
  where
-  -- | The type produced by all constructors of the data type.
-  returnType :: IR.Type
-  returnType = IR.typeConApp srcSpan
-                             (IR.declIdentName declIdent)
-                             (map IR.typeVarDeclToType typeArgs)
+   -- | The type produced by all constructors of the data type.
+   returnType :: IR.Type
+   returnType = IR.typeConApp srcSpan (IR.declIdentName declIdent)
+     (map IR.typeVarDeclToType typeArgs)
 
-  -- | Inserts the given data constructor declaration and its smart constructor
-  --   into the current environment.
-  defineConDecl :: IR.ConDecl -> Converter ()
-  defineConDecl (IR.ConDecl conSrcSpan conDeclIdent argTypes) = do
-    _ <- renameAndAddEntry ConEntry
-      { entrySrcSpan        = conSrcSpan
-      , entryArity          = length argTypes
-      , entryTypeArgs       = map IR.typeVarDeclIdent typeArgs
-      , entryArgTypes       = argTypes
-      , entryReturnType     = returnType
-      , entryName           = IR.declIdentName conDeclIdent
-      , entryIdent          = undefined -- filled by renamer
-      , entryAgdaIdent      = undefined -- filled by renamer
-      , entrySmartIdent     = undefined -- filled by renamer
-      , entryAgdaSmartIdent = undefined -- filled by renamer
-      }
-    return ()
+   -- | Inserts the given data constructor declaration and its smart constructor
+   --   into the current environment.
+   defineConDecl :: IR.ConDecl -> Converter ()
+   defineConDecl (IR.ConDecl conSrcSpan conDeclIdent argTypes) = do
+     _ <- renameAndAddEntry ConEntry
+       { entrySrcSpan        = conSrcSpan
+       , entryArity          = length argTypes
+       , entryTypeArgs       = map IR.typeVarDeclIdent typeArgs
+       , entryArgTypes       = argTypes
+       , entryReturnType     = returnType
+       , entryName           = IR.declIdentName conDeclIdent
+       , entryIdent          = undefined -- filled by renamer
+       , entryAgdaIdent      = undefined -- filled by renamer
+       , entrySmartIdent     = undefined -- filled by renamer
+       , entryAgdaSmartIdent = undefined -- filled by renamer
+       }
+     return ()
 
 -------------------------------------------------------------------------------
 -- Function declarations                                                     --
 -------------------------------------------------------------------------------
-
 -- | Inserts the given function declaration into the current environment.
 defineFuncDecl :: IR.FuncDecl -> Converter ()
 defineFuncDecl funcDecl = do
   _ <- renameAndAddEntry FuncEntry
     { entrySrcSpan       = IR.funcDeclSrcSpan funcDecl
     , entryArity         = length (IR.funcDeclArgs funcDecl)
-    , entryTypeArgs = map IR.typeVarDeclIdent (IR.funcDeclTypeArgs funcDecl)
-    , entryArgTypes = map (fromJust . IR.varPatType) (IR.funcDeclArgs funcDecl)
+    , entryTypeArgs      = map IR.typeVarDeclIdent
+        (IR.funcDeclTypeArgs funcDecl)
+    , entryArgTypes      = map (fromJust . IR.varPatType)
+        (IR.funcDeclArgs funcDecl)
     , entryStrictArgs    = map IR.varPatIsStrict (IR.funcDeclArgs funcDecl)
     , entryReturnType    = fromJust (IR.funcDeclReturnType funcDecl)
     , entryNeedsFreeArgs = True

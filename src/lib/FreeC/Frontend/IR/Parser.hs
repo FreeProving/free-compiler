@@ -16,29 +16,22 @@
 --
 --   The parser does not support source spans at the moment, all generated
 --   nodes are annotated with 'NoSrcSpan'.
+module FreeC.Frontend.IR.Parser ( Parseable(..), parseIR ) where
 
-module FreeC.Frontend.IR.Parser
-  ( Parseable(..)
-  , parseIR
-  )
-where
-
-import           Data.List                      ( intercalate )
-import           Text.Parsec                    ( Parsec
-                                                , (<|>)
-                                                )
-import qualified Text.Parsec                   as Parsec
+import           Data.List                 ( intercalate )
+import           Text.Parsec               ( (<|>), Parsec )
+import qualified Text.Parsec               as Parsec
 
 import           FreeC.Frontend.IR.Scanner
 import           FreeC.Frontend.IR.Token
 import           FreeC.IR.SrcSpan
-import qualified FreeC.IR.Syntax               as IR
+import qualified FreeC.IR.Syntax           as IR
 import           FreeC.Monad.Reporter
 import           FreeC.Pretty
 import           FreeC.Util.Parsec
 
 -- | Type for parsers of IR nodes of type @a@.
-type Parser a = Parsec [TokenWithPos] () a
+type Parser a = Parsec [ TokenWithPos ] () a
 
 -- | Type class for IR nodes that can be parsed.
 class Parseable a where
@@ -53,7 +46,7 @@ class Parseable a where
 --
 --   Leading white spaces and comments are ignored. The full input must
 --   be consumed otherwise a fatal error is reported.
-parseIR :: (Parseable a, MonadReporter r) => SrcFile -> r a
+parseIR :: ( Parseable a, MonadReporter r ) => SrcFile -> r a
 parseIR srcFile = do
   tokens <- scan srcFile
   runParsecOrFail srcFile tokens (parseIR' <* Parsec.eof)
@@ -61,12 +54,11 @@ parseIR srcFile = do
 -------------------------------------------------------------------------------
 -- Tokens                                                                    --
 -------------------------------------------------------------------------------
-
 -- | Creates a parser that consumes a token if the given function returns
 --   @Just@ a result and fails when @Nothing@ is returned.
 tokenParser :: (Token -> Maybe a) -> Parser a
-tokenParser testToken =
-  Parsec.token (showPretty . getToken) getTokenPos (testToken . getToken)
+tokenParser testToken = Parsec.token (showPretty . getToken) getTokenPos
+  (testToken . getToken)
 
 -- | Creates a parser that matches exactly the given token and fails otherwise.
 token :: Token -> Parser ()
@@ -89,7 +81,6 @@ parensParser = Parsec.between (token LParen) (token RParen)
 -------------------------------------------------------------------------------
 -- Identifiers                                                               --
 -------------------------------------------------------------------------------
-
 -- | Parser for IR identifiers.
 --
 --   > id ::= <varid>
@@ -103,7 +94,7 @@ identParser = varIdentToken <|> conIdentToken
 varIdentToken :: Parser String
 varIdentToken = tokenParser $ \t -> case t of
   VarIdent ident -> Just ident
-  _              -> Nothing
+  _ -> Nothing
 
 -- | Parser for IR constructor identifier tokens (see 'ConIdent').
 --
@@ -111,12 +102,11 @@ varIdentToken = tokenParser $ \t -> case t of
 conIdentToken :: Parser String
 conIdentToken = tokenParser $ \t -> case t of
   ConIdent ident -> Just ident
-  _              -> Nothing
+  _ -> Nothing
 
 -------------------------------------------------------------------------------
 -- Symbols                                                                   --
 -------------------------------------------------------------------------------
-
 -- | Parser for IR symbols.
 --
 --   > sym ::= <varsym>
@@ -130,7 +120,7 @@ symbolParser = varSymbolToken <|> conSymbolToken
 varSymbolToken :: Parser String
 varSymbolToken = tokenParser $ \t -> case t of
   VarSymbol sym -> Just sym
-  _             -> Nothing
+  _ -> Nothing
 
 -- | Parser for IR constructor symbol tokens (see 'ConSymbol').
 --
@@ -138,12 +128,11 @@ varSymbolToken = tokenParser $ \t -> case t of
 conSymbolToken :: Parser String
 conSymbolToken = tokenParser $ \t -> case t of
   ConSymbol sym -> Just sym
-  _             -> Nothing
+  _ -> Nothing
 
 -------------------------------------------------------------------------------
 -- Module names                                                              --
 -------------------------------------------------------------------------------
-
 -- | Parser for IR module names.
 --
 --   > modid ::= { <conid> "." } <conid>
@@ -154,18 +143,16 @@ modNameParser = intercalate "." <$> (conIdentToken `Parsec.sepBy1` token Dot)
 --
 --   > modid' ::= <conid> "." [ modid' ]
 modNameParser' :: Parser IR.ModName
-modNameParser' =
-  extendModName <$> conIdentToken <* token Dot <*> Parsec.optionMaybe
-    (Parsec.try modNameParser')
+modNameParser' = extendModName <$> conIdentToken <* token Dot
+  <*> Parsec.optionMaybe (Parsec.try modNameParser')
  where
-  extendModName :: String -> Maybe IR.ModName -> IR.ModName
-  extendModName conid Nothing      = conid
-  extendModName conid (Just modid) = conid ++ '.' : modid
+   extendModName :: String -> Maybe IR.ModName -> IR.ModName
+   extendModName conid Nothing      = conid
+   extendModName conid (Just modid) = conid ++ '.' : modid
 
 -------------------------------------------------------------------------------
 -- Names                                                                     --
 -------------------------------------------------------------------------------
-
 -- | Parser for IR names.
 --
 --   > name ::= id
@@ -194,15 +181,15 @@ instance Parseable IR.Name where
 -------------------------------------------------------------------------------
 -- Quantifiable names                                                        --
 -------------------------------------------------------------------------------
-
 -- | Converts a parser that accepts unqualified names to a parser that
 --   accepts optionally qualified names.
 mkQualifiable :: Parser IR.Name -> Parser IR.QName
 mkQualifiable p = Parsec.try qualParser <|> unQualParser
  where
-  qualParser, unQualParser :: Parser IR.QName
-  qualParser   = IR.Qual <$> modNameParser' <*> p
-  unQualParser = IR.UnQual <$> p
+   qualParser, unQualParser :: Parser IR.QName
+   qualParser = IR.Qual <$> modNameParser' <*> p
+
+   unQualParser = IR.UnQual <$> p
 
 -- | Parser for qualifiable IR names.
 --
@@ -229,7 +216,6 @@ instance Parseable IR.QName where
 -------------------------------------------------------------------------------
 -- Modules                                                                   --
 -------------------------------------------------------------------------------
-
 -- | Parser for IR modules.
 --
 --   > module ::= "module" modid "where" { topLevel ";" } [ topLevel ]
@@ -240,14 +226,15 @@ instance Parseable IR.QName where
 moduleParser :: Parser IR.Module
 moduleParser = do
   modName <- keyword MODULE *> modNameParser <* keyword WHERE
-  let ast = IR.Module { IR.modSrcSpan   = NoSrcSpan
-                      , IR.modName      = modName
-                      , IR.modImports   = []
-                      , IR.modTypeDecls = []
-                      , IR.modTypeSigs  = []
-                      , IR.modPragmas   = []
-                      , IR.modFuncDecls = []
-                      }
+  let ast = IR.Module
+        { IR.modSrcSpan   = NoSrcSpan
+        , IR.modName      = modName
+        , IR.modImports   = []
+        , IR.modTypeDecls = []
+        , IR.modTypeSigs  = []
+        , IR.modPragmas   = []
+        , IR.modFuncDecls = []
+        }
   topLevelDecls <- topLevelDeclParser `Parsec.sepEndBy` token Semi
   return (foldr ($) ast topLevelDecls)
 
@@ -274,25 +261,25 @@ topLevelDeclParser = Parsec.choice
   , insertTypeSig <$> typeSigParser
   ]
  where
-  -- | Inserts an import declaration into the given module.
-  insertImportDecl :: IR.ImportDecl -> IR.Module -> IR.Module
-  insertImportDecl importDecl ast =
-    ast { IR.modImports = importDecl : IR.modImports ast }
+   -- | Inserts an import declaration into the given module.
+   insertImportDecl :: IR.ImportDecl -> IR.Module -> IR.Module
+   insertImportDecl importDecl ast
+     = ast { IR.modImports = importDecl : IR.modImports ast }
 
-  -- | Inserts a type declaration into the given module.
-  insertTypeDecl :: IR.TypeDecl -> IR.Module -> IR.Module
-  insertTypeDecl typeDecl ast =
-    ast { IR.modTypeDecls = typeDecl : IR.modTypeDecls ast }
+   -- | Inserts a type declaration into the given module.
+   insertTypeDecl :: IR.TypeDecl -> IR.Module -> IR.Module
+   insertTypeDecl typeDecl ast
+     = ast { IR.modTypeDecls = typeDecl : IR.modTypeDecls ast }
 
-  -- | Inserts a type signature into the given module.
-  insertTypeSig :: IR.TypeSig -> IR.Module -> IR.Module
-  insertTypeSig typeSig ast =
-    ast { IR.modTypeSigs = typeSig : IR.modTypeSigs ast }
+   -- | Inserts a type signature into the given module.
+   insertTypeSig :: IR.TypeSig -> IR.Module -> IR.Module
+   insertTypeSig typeSig ast
+     = ast { IR.modTypeSigs = typeSig : IR.modTypeSigs ast }
 
-  -- | Inserts a function declaration into the given module.
-  insertFuncDecl :: IR.FuncDecl -> IR.Module -> IR.Module
-  insertFuncDecl funcDecl ast =
-    ast { IR.modFuncDecls = funcDecl : IR.modFuncDecls ast }
+   -- | Inserts a function declaration into the given module.
+   insertFuncDecl :: IR.FuncDecl -> IR.Module -> IR.Module
+   insertFuncDecl funcDecl ast
+     = ast { IR.modFuncDecls = funcDecl : IR.modFuncDecls ast }
 
 -- | Modules can be parsed.
 instance Parseable IR.Module where
@@ -301,7 +288,6 @@ instance Parseable IR.Module where
 -------------------------------------------------------------------------------
 -- Imports                                                                   --
 -------------------------------------------------------------------------------
-
 -- | Parser for IR import declarations.
 --
 --   > import ::= "import" modid
@@ -315,7 +301,6 @@ instance Parseable IR.ImportDecl where
 -------------------------------------------------------------------------------
 -- Type arguments                                                            --
 -------------------------------------------------------------------------------
-
 -- | Parser for IR type variable declarations.
 --
 --   > typeVarDecl ::= <varid>
@@ -325,7 +310,6 @@ typeVarDeclParser = IR.TypeVarDecl NoSrcSpan <$> varIdentToken
 -------------------------------------------------------------------------------
 -- Type declarations                                                         --
 -------------------------------------------------------------------------------
-
 -- | Parser for type-level IR declarations.
 --
 --   > typeDecl ::= typeSynDecl
@@ -340,61 +324,47 @@ instance Parseable IR.TypeDecl where
 -------------------------------------------------------------------------------
 -- Type synonym declarations                                                 --
 -------------------------------------------------------------------------------
-
 -- | Parser for IR type synonym declarations.
 --
 --   > typeSynDecl ::= "type" conQName { typeVarDecl } "=" type
 typeSynDeclParser :: Parser IR.TypeDecl
-typeSynDeclParser =
-  IR.TypeSynDecl NoSrcSpan
-    <$> (keyword TYPE *> (IR.DeclIdent NoSrcSpan <$> conQNameParser))
-    <*> Parsec.many typeVarDeclParser
-    <*  token Equals
-    <*> typeParser
+typeSynDeclParser = IR.TypeSynDecl NoSrcSpan
+  <$> (keyword TYPE *> (IR.DeclIdent NoSrcSpan <$> conQNameParser))
+  <*> Parsec.many typeVarDeclParser <* token Equals <*> typeParser
 
 -------------------------------------------------------------------------------
 -- Data type declarations                                                    --
 -------------------------------------------------------------------------------
-
 -- | Parser for IR data type declarations.
 --
 --   > dataDecl ::= "data" conQName { typeVarDecl }
 --   >              [ "=" conDecl { "|" conDecl } ]
 dataDeclParser :: Parser IR.TypeDecl
-dataDeclParser =
-  IR.DataDecl NoSrcSpan
-    <$> (keyword DATA *> (IR.DeclIdent NoSrcSpan <$> conQNameParser))
-    <*> Parsec.many typeVarDeclParser
-    <*> Parsec.option
-          []
-          (token Equals *> (conDeclParser `Parsec.sepBy1` token Pipe))
+dataDeclParser = IR.DataDecl NoSrcSpan
+  <$> (keyword DATA *> (IR.DeclIdent NoSrcSpan <$> conQNameParser))
+  <*> Parsec.many typeVarDeclParser <*> Parsec.option []
+  (token Equals *> (conDeclParser `Parsec.sepBy1` token Pipe))
 
 -------------------------------------------------------------------------------
 -- Constructor declarations                                                  --
 -------------------------------------------------------------------------------
-
 -- | Parser for IR constructor declarations.
 --
 --   > conDecl ::= conQName { atype }
 conDeclParser :: Parser IR.ConDecl
-conDeclParser =
-  IR.ConDecl NoSrcSpan
-    <$> (IR.DeclIdent NoSrcSpan <$> conQNameParser)
-    <*> Parsec.many aTypeParser
+conDeclParser = IR.ConDecl NoSrcSpan
+  <$> (IR.DeclIdent NoSrcSpan <$> conQNameParser) <*> Parsec.many aTypeParser
 
 -------------------------------------------------------------------------------
 -- Type signatures                                                           --
 -------------------------------------------------------------------------------
-
 -- | Parser for IR type signatures.
 --
 --   > varQName { "," varQName } "::" typeScheme
 typeSigParser :: Parser IR.TypeSig
-typeSigParser =
-  IR.TypeSig NoSrcSpan
-    <$> ((IR.DeclIdent NoSrcSpan <$> varQNameParser) `Parsec.sepBy` token Comma)
-    <*  token DoubleColon
-    <*> typeSchemeParser
+typeSigParser = IR.TypeSig NoSrcSpan
+  <$> ((IR.DeclIdent NoSrcSpan <$> varQNameParser) `Parsec.sepBy` token Comma)
+  <* token DoubleColon <*> typeSchemeParser
 
 instance Parseable IR.TypeSig where
   parseIR' = typeSigParser
@@ -402,20 +372,16 @@ instance Parseable IR.TypeSig where
 -------------------------------------------------------------------------------
 -- Function declarations                                                     --
 -------------------------------------------------------------------------------
-
 -- | Parser for IR function declarations.
 --
 --   > funcDecl ::= varQName { "@" typeVarDecl } { varPat } [ "::" type ]
 --   >              "=" expr
 funcDeclParser :: Parser IR.FuncDecl
-funcDeclParser =
-  IR.FuncDecl NoSrcSpan
-    <$> (IR.DeclIdent NoSrcSpan <$> varQNameParser)
-    <*> Parsec.many (token At *> typeVarDeclParser)
-    <*> Parsec.many varPatParser
-    <*> Parsec.optionMaybe (token DoubleColon *> typeParser)
-    <*  token Equals
-    <*> exprParser
+funcDeclParser = IR.FuncDecl NoSrcSpan
+  <$> (IR.DeclIdent NoSrcSpan <$> varQNameParser) <*> Parsec.many
+  (token At *> typeVarDeclParser) <*> Parsec.many varPatParser
+  <*> Parsec.optionMaybe (token DoubleColon *> typeParser) <* token Equals
+  <*> exprParser
 
 -- | Function declarations can be parsed.
 instance Parseable IR.FuncDecl where
@@ -424,17 +390,12 @@ instance Parseable IR.FuncDecl where
 -------------------------------------------------------------------------------
 -- Type schemes                                                          --
 -------------------------------------------------------------------------------
-
 -- | Parser for IR type schemes.
 --
 --   > typeScheme ::= [ "forall" { typeVarDecl } "." ] type
 typeSchemeParser :: Parser IR.TypeScheme
-typeSchemeParser =
-  IR.TypeScheme NoSrcSpan
-    <$> Parsec.option
-          []
-          (keyword FORALL *> Parsec.many typeVarDeclParser <* token Dot)
-    <*> typeParser
+typeSchemeParser = IR.TypeScheme NoSrcSpan <$> Parsec.option []
+  (keyword FORALL *> Parsec.many typeVarDeclParser <* token Dot) <*> typeParser
 
 -- | Parser for IR type schemes.
 instance Parseable IR.TypeScheme where
@@ -443,15 +404,12 @@ instance Parseable IR.TypeScheme where
 -------------------------------------------------------------------------------
 -- Type expressions                                                          --
 -------------------------------------------------------------------------------
-
 -- | Parser for IR type expressions.
 --
 --   > type  ::= btype [ "->" type ]          (function type)
 typeParser :: Parser IR.Type
-typeParser =
-  IR.funcType NoSrcSpan
-    <$> Parsec.many (Parsec.try (bTypeParser <* token RArrow))
-    <*> bTypeParser
+typeParser = IR.funcType NoSrcSpan <$> Parsec.many
+  (Parsec.try (bTypeParser <* token RArrow)) <*> bTypeParser
 
 -- | Parser for IR type applications.
 --
@@ -467,13 +425,13 @@ bTypeParser = IR.typeApp NoSrcSpan <$> aTypeParser <*> Parsec.many aTypeParser
 aTypeParser :: Parser IR.Type
 aTypeParser = typeVarParser <|> typeConParser <|> parensParser typeParser
  where
-  -- @atype ::= <varid> | …@
-  typeVarParser :: Parser IR.Type
-  typeVarParser = IR.TypeVar NoSrcSpan <$> varIdentToken
+   -- @atype ::= <varid> | …@
+   typeVarParser :: Parser IR.Type
+   typeVarParser = IR.TypeVar NoSrcSpan <$> varIdentToken
 
-  -- @atype ::= conName | …@
-  typeConParser :: Parser IR.Type
-  typeConParser = IR.TypeCon NoSrcSpan <$> conQNameParser
+   -- @atype ::= conName | …@
+   typeConParser :: Parser IR.Type
+   typeConParser = IR.TypeCon NoSrcSpan <$> conQNameParser
 
 -- | Type expressions can be parsed.
 instance Parseable IR.Type where
@@ -482,7 +440,6 @@ instance Parseable IR.Type where
 -------------------------------------------------------------------------------
 -- Expressions                                                               --
 -------------------------------------------------------------------------------
-
 -- | Parser for IR expressions with optional type annotation.
 --
 --   > expr ::= lexpr [ "::" typeScheme ]           (optional type annotation)
@@ -490,15 +447,15 @@ exprParser :: Parser IR.Expr
 exprParser = setExprType <$> lExprParser <*> Parsec.optionMaybe
   (token DoubleColon *> typeSchemeParser)
  where
-  -- | Sets the 'IR.exprTypeScheme' field of the given expression if it is not
-  --   set already.
-  --
-  --   The field is usually set to @Nothing@ but can be a @Just@ value if
-  --   the parsed expression was in parenthesis.
-  setExprType :: IR.Expr -> Maybe IR.TypeScheme -> IR.Expr
-  setExprType expr Nothing = expr
-  setExprType expr (Just exprTypeScheme) =
-    expr { IR.exprTypeScheme = Just exprTypeScheme }
+   -- | Sets the 'IR.exprTypeScheme' field of the given expression if it is not
+   --   set already.
+   --
+   --   The field is usually set to @Nothing@ but can be a @Just@ value if
+   --   the parsed expression was in parenthesis.
+   setExprType :: IR.Expr -> Maybe IR.TypeScheme -> IR.Expr
+   setExprType expr Nothing = expr
+   setExprType expr (Just exprTypeScheme)
+     = expr { IR.exprTypeScheme = Just exprTypeScheme }
 
 -- | Parser for IR expressions without type annotation.
 --
@@ -507,56 +464,30 @@ exprParser = setExprType <$> lExprParser <*> Parsec.optionMaybe
 --   >         | "case" expr "of" alts                 (case expression)
 --   >         | "let" binds "in" expr                 (let expression)
 --   >         | fexpr                                 (function application)
-
 lExprParser :: Parser IR.Expr
-lExprParser =
-  lambdaExprParser
-    <|> ifExprParser
-    <|> caseExprParser
-    <|> letExprParser
-    <|> fExprParser
+lExprParser = lambdaExprParser <|> ifExprParser <|> caseExprParser
+  <|> letExprParser <|> fExprParser
  where
-  -- @lexpr ::= "\\" varPat { varPat } "->" expr | …@
-  lambdaExprParser :: Parser IR.Expr
-  lambdaExprParser =
-    IR.Lambda NoSrcSpan
-      <$  token Lambda
-      <*> Parsec.many1 varPatParser
-      <*  token RArrow
-      <*> exprParser
-      <*> return Nothing
+   -- @lexpr ::= "\\" varPat { varPat } "->" expr | …@
+   lambdaExprParser :: Parser IR.Expr
+   lambdaExprParser
+     = IR.Lambda NoSrcSpan <$ token Lambda <*> Parsec.many1 varPatParser
+     <* token RArrow <*> exprParser <*> return Nothing
 
-  -- @lexpr ::= "if" expr "then" expr "else" expr | …@
-  ifExprParser :: Parser IR.Expr
-  ifExprParser =
-    IR.If NoSrcSpan
-      <$  keyword IF
-      <*> exprParser
-      <*  keyword THEN
-      <*> exprParser
-      <*  keyword ELSE
-      <*> exprParser
-      <*> return Nothing
+   -- @lexpr ::= "if" expr "then" expr "else" expr | …@
+   ifExprParser :: Parser IR.Expr
+   ifExprParser = IR.If NoSrcSpan <$ keyword IF <*> exprParser <* keyword THEN
+     <*> exprParser <* keyword ELSE <*> exprParser <*> return Nothing
 
-  -- @lexpr ::= "case" expr "of" alts | …@
-  caseExprParser :: Parser IR.Expr
-  caseExprParser =
-    IR.Case NoSrcSpan
-      <$  keyword CASE
-      <*> exprParser
-      <*  keyword OF
-      <*> altsParser
-      <*> return Nothing
+   -- @lexpr ::= "case" expr "of" alts | …@
+   caseExprParser :: Parser IR.Expr
+   caseExprParser = IR.Case NoSrcSpan <$ keyword CASE <*> exprParser
+     <* keyword OF <*> altsParser <*> return Nothing
 
--- @lexpr ::= "let" binds "in" expr | …@
-  letExprParser :: Parser IR.Expr
-  letExprParser =
-    IR.Let NoSrcSpan
-      <$  keyword LET
-      <*> bindsParser
-      <*  keyword IN
-      <*> exprParser
-      <*> return Nothing
+   -- @lexpr ::= "let" binds "in" expr | …@
+   letExprParser :: Parser IR.Expr
+   letExprParser = IR.Let NoSrcSpan <$ keyword LET <*> bindsParser <* keyword IN
+     <*> exprParser <*> return Nothing
 
 -- | Parser for IR function application expressions.
 --
@@ -573,22 +504,20 @@ fExprParser = IR.app NoSrcSpan <$> vExprParser <*> Parsec.many aExprParser
 vExprParser :: Parser IR.Expr
 vExprParser = visibleTypeAppParser <|> errorParser <|> wExprParser
  where
-  -- @varg  ::= "@" atype@
-  vArgParser :: Parser IR.Type
-  vArgParser = token At *> aTypeParser
+   -- @varg  ::= "@" atype@
+   vArgParser :: Parser IR.Type
+   vArgParser = token At *> aTypeParser
 
-  -- @vexpr ::= uexpr { varg } | …@
-  visibleTypeAppParser :: Parser IR.Expr
-  visibleTypeAppParser =
-    IR.visibleTypeApp NoSrcSpan <$> uExprParser <*> Parsec.many vArgParser
+   -- @vexpr ::= uexpr { varg } | …@
+   visibleTypeAppParser :: Parser IR.Expr
+   visibleTypeAppParser
+     = IR.visibleTypeApp NoSrcSpan <$> uExprParser <*> Parsec.many vArgParser
 
-  -- @vexpr ::= "error" [ varg ] <string> | …@
-  errorParser :: Parser IR.Expr
-  errorParser =
-    flip (IR.visibleTypeApp NoSrcSpan)
-      <$  keyword ERROR
-      <*> Parsec.option [] (return <$> vArgParser)
-      <*> (IR.ErrorExpr NoSrcSpan <$> stringToken <*> return Nothing)
+   -- @vexpr ::= "error" [ varg ] <string> | …@
+   errorParser :: Parser IR.Expr
+   errorParser = flip (IR.visibleTypeApp NoSrcSpan) <$ keyword ERROR
+     <*> Parsec.option [] (return <$> vArgParser)
+     <*> (IR.ErrorExpr NoSrcSpan <$> stringToken <*> return Nothing)
 
 -- | Parser for IR expressions that can be applied to their type arguments.
 --
@@ -602,18 +531,18 @@ vExprParser = visibleTypeAppParser <|> errorParser <|> wExprParser
 uExprParser :: Parser IR.Expr
 uExprParser = varExprParser <|> conExprParser <|> undefinedParser
  where
-  -- @uexpr ::= varQName | …@
-  varExprParser :: Parser IR.Expr
-  varExprParser = IR.Var NoSrcSpan <$> varQNameParser <*> return Nothing
+   -- @uexpr ::= varQName | …@
+   varExprParser :: Parser IR.Expr
+   varExprParser = IR.Var NoSrcSpan <$> varQNameParser <*> return Nothing
 
-  -- @uexpr ::= conQName | …@
-  conExprParser :: Parser IR.Expr
-  conExprParser = IR.Con NoSrcSpan <$> conQNameParser <*> return Nothing
+   -- @uexpr ::= conQName | …@
+   conExprParser :: Parser IR.Expr
+   conExprParser = IR.Con NoSrcSpan <$> conQNameParser <*> return Nothing
 
-  -- @uexpr ::= "undefined" | …@
-  undefinedParser :: Parser IR.Expr
-  undefinedParser =
-    IR.Undefined NoSrcSpan <$ keyword UNDEFINED <*> return Nothing
+   -- @uexpr ::= "undefined" | …@
+   undefinedParser :: Parser IR.Expr
+   undefinedParser
+     = IR.Undefined NoSrcSpan <$ keyword UNDEFINED <*> return Nothing
 
 -- | Parser for IR expressions that cannot be applied to type arguments.
 --
@@ -636,32 +565,26 @@ instance Parseable IR.Expr where
 -------------------------------------------------------------------------------
 -- @case@ expression alternatives                                            --
 -------------------------------------------------------------------------------
-
 -- | Parser for zero or more IR @case@ expression alternatives.
 --
 --   > alts ::= "{" [ alt { ";" alt } ] "}"
-altsParser :: Parser [IR.Alt]
+altsParser :: Parser [ IR.Alt ]
 altsParser = bracesParser (altParser `Parsec.sepEndBy` token Semi)
 
 -- | Parser for IR @case@ expression alternatives.
 --
 --   > alt ::= conPat { varPat } "->" expr
 altParser :: Parser IR.Alt
-altParser =
-  IR.Alt NoSrcSpan
-    <$> conPatParser
-    <*> Parsec.many varPatParser
-    <*  token RArrow
-    <*> exprParser
+altParser = IR.Alt NoSrcSpan <$> conPatParser <*> Parsec.many varPatParser
+  <* token RArrow <*> exprParser
 
 -------------------------------------------------------------------------------
 -- @let@ expression bindings                                            --
 -------------------------------------------------------------------------------
-
 -- | Parser for zero or more IR @let@ bindings.
 --
 --   > binds ::= "{" [ bind { ";" bind } ] "}"
-bindsParser :: Parser [IR.Bind]
+bindsParser :: Parser [ IR.Bind ]
 bindsParser = bracesParser (bindParser `Parsec.sepEndBy` token Semi)
 
 -- | Parser for IR @case@ expression alternatives.
@@ -673,7 +596,6 @@ bindParser = IR.Bind NoSrcSpan <$> varPatParser <* token Equals <*> exprParser
 -------------------------------------------------------------------------------
 -- Patterns                                                                  --
 -------------------------------------------------------------------------------
-
 -- | Parser for IR constructor patterns.
 --
 --   > conPat ::= conQName
@@ -685,31 +607,24 @@ conPatParser = IR.ConPat NoSrcSpan <$> conQNameParser
 --   > varPat ::= ["!"] "(" <varid> "::" type ")"
 --   >          | ["!"] <varid>
 varPatParser :: Parser IR.VarPat
-varPatParser =
-  token Bang
-    *>  (typedVarPatParser True <|> untypedVarPatParser True)
-    <|> typedVarPatParser False
-    <|> untypedVarPatParser False
+varPatParser = token Bang
+  *> (typedVarPatParser True <|> untypedVarPatParser True)
+  <|> typedVarPatParser False <|> untypedVarPatParser False
  where
-  -- @varPat ::= ["!"] "(" <varid> "::" type ")" | …@
-  typedVarPatParser :: Bool -> Parser IR.VarPat
-  typedVarPatParser isStrict = parensParser
-    (   IR.VarPat NoSrcSpan
-    <$> varIdentToken
-    <*  token DoubleColon
-    <*> (Just <$> typeParser)
-    <*> return isStrict
-    )
+   -- @varPat ::= ["!"] "(" <varid> "::" type ")" | …@
+   typedVarPatParser :: Bool -> Parser IR.VarPat
+   typedVarPatParser isStrict = parensParser
+     (IR.VarPat NoSrcSpan <$> varIdentToken <* token DoubleColon
+      <*> (Just <$> typeParser) <*> return isStrict)
 
-  -- @varPat ::= ["!"] <varid> | …@
-  untypedVarPatParser :: Bool -> Parser IR.VarPat
-  untypedVarPatParser isStrict =
-    IR.VarPat NoSrcSpan <$> varIdentToken <*> return Nothing <*> return isStrict
+   -- @varPat ::= ["!"] <varid> | …@
+   untypedVarPatParser :: Bool -> Parser IR.VarPat
+   untypedVarPatParser isStrict = IR.VarPat NoSrcSpan <$> varIdentToken
+     <*> return Nothing <*> return isStrict
 
 -------------------------------------------------------------------------------
 -- Literals                                                                  --
 -------------------------------------------------------------------------------
-
 -- | Parser for IR literals.
 --
 --   > literal ::= <integer>
@@ -729,7 +644,7 @@ literalParser = IR.IntLiteral NoSrcSpan <$> integerToken <*> return Nothing
 integerToken :: Parser Integer
 integerToken = tokenParser $ \t -> case t of
   IntToken value -> Just value
-  _              -> Nothing
+  _ -> Nothing
 
 -- | Parser for a string literal token (see 'StrToken').
 --
@@ -737,4 +652,4 @@ integerToken = tokenParser $ \t -> case t of
 stringToken :: Parser String
 stringToken = tokenParser $ \t -> case t of
   StrToken value -> Just value
-  _              -> Nothing
+  _ -> Nothing

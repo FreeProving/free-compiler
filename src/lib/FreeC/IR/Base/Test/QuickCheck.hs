@@ -6,10 +6,9 @@
 --   as regular functions and the QuickCheck module is imported from its
 --   module interface file like every other module, we actually don't
 --   have to know the contents of the QuickCheck module at all.
-
 module FreeC.IR.Base.Test.QuickCheck where
 
-import qualified FreeC.IR.Syntax               as IR
+import qualified FreeC.IR.Syntax as IR
 
 -- | The name of the @Test.QuickCheck@ module.
 modName :: IR.ModName

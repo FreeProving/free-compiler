@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeApplications #-}
+
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 -- | This module contains functions for encoding 'ModuleInterface's in JSON
@@ -11,26 +12,22 @@
 --
 --   See "FreeC.Environment.ModuleInterface.Decoder" for more information on
 --   the interface file format.
+module FreeC.Environment.ModuleInterface.Encoder ( writeModuleInterface ) where
 
-module FreeC.Environment.ModuleInterface.Encoder
-  ( writeModuleInterface
-  )
-where
-
-import           Control.Monad.IO.Class         ( MonadIO )
-import           Data.Aeson                     ( (.=) )
-import qualified Data.Aeson                    as Aeson
-import           Data.Maybe                     ( mapMaybe )
-import qualified Data.Set                      as Set
+import           Control.Monad.IO.Class            ( MonadIO )
+import           Data.Aeson                        ( (.=) )
+import qualified Data.Aeson                        as Aeson
+import           Data.Maybe                        ( mapMaybe )
+import qualified Data.Set                          as Set
 
 import           FreeC.Backend.Agda.Pretty
-import qualified FreeC.Backend.Agda.Syntax     as Agda
+import qualified FreeC.Backend.Agda.Syntax         as Agda
 import           FreeC.Backend.Coq.Pretty
-import qualified FreeC.Backend.Coq.Syntax      as Coq
+import qualified FreeC.Backend.Coq.Syntax          as Coq
 import           FreeC.Environment.Entry
 import           FreeC.Environment.ModuleInterface
 import           FreeC.IR.SrcSpan
-import qualified FreeC.IR.Syntax               as IR
+import qualified FreeC.IR.Syntax                   as IR
 import           FreeC.Monad.Reporter
 import           FreeC.Pretty
 import           FreeC.Util.Config
@@ -66,30 +63,21 @@ instance Aeson.ToJSON ModuleInterface where
     , "module-name" .= Aeson.toJSON (interfaceModName iface)
     , "library-name" .= Aeson.toJSON (interfaceLibName iface)
     , "exported-types" .= Aeson.toJSON
-      (map
-        snd
-        (filter ((== IR.TypeScope) . fst) (Set.toList (interfaceExports iface)))
-      )
+        (map snd (filter ((== IR.TypeScope) . fst)
+                  (Set.toList (interfaceExports iface))))
     , "exported-values" .= Aeson.toJSON
-      (map
-        snd
-        (filter ((== IR.ValueScope) . fst) (Set.toList (interfaceExports iface))
-        )
-      )
+        (map snd (filter ((== IR.ValueScope) . fst)
+                  (Set.toList (interfaceExports iface))))
     , "types" .= encodeEntriesWhere isDataEntry
     , "type-synonyms" .= encodeEntriesWhere isTypeSynEntry
     , "constructors" .= encodeEntriesWhere isConEntry
     , "functions" .= encodeEntriesWhere isFuncEntry
     ]
    where
-    -- | Encodes the entries of the environment that match the given predicate.
-    encodeEntriesWhere :: (EnvEntry -> Bool) -> Aeson.Value
-    encodeEntriesWhere p =
-      Aeson.toJSON
-        $ mapMaybe encodeEntry
-        $ Set.toList
-        $ Set.filter p
-        $ interfaceEntries iface
+     -- | Encodes the entries of the environment that match the given predicate.
+     encodeEntriesWhere :: (EnvEntry -> Bool) -> Aeson.Value
+     encodeEntriesWhere p = Aeson.toJSON $ mapMaybe encodeEntry $ Set.toList
+       $ Set.filter p $ interfaceEntries iface
 
 -- | Encodes an entry of the environment.
 encodeEntry :: EnvEntry -> Maybe Aeson.Value
@@ -129,45 +117,46 @@ encodeEntry entry
     ]
   | otherwise = error "encodeEntry: Cannot serialize (type) variable entry."
  where
-  haskellName :: Aeson.Value
-  haskellName = Aeson.toJSON (entryName entry)
+   haskellName :: Aeson.Value
+   haskellName = Aeson.toJSON (entryName entry)
 
-  coqName, coqSmartName :: Aeson.Value
-  coqName      = Aeson.toJSON (entryIdent entry)
-  coqSmartName = Aeson.toJSON (entrySmartIdent entry)
+   coqName, coqSmartName :: Aeson.Value
+   coqName = Aeson.toJSON (entryIdent entry)
 
-  -- @entryAgdaIdent entry@ is undefined because the agda renamer isn't
-  -- implemented at the moment. To allow encoding a dummy value is needed.
-  -- I decided to insert the placeholder at this point to avoid placing
-  -- temporary code at at every point were an environment entry is initialized.
-  agdaName, agdaSmartName :: Aeson.Value
-  agdaName      = Aeson.toJSON @String "placeholder" -- (entryAgdaIdent entry)
-  agdaSmartName = Aeson.toJSON @String "placeholder" -- (entryAgdaSmartIdent entry)
+   coqSmartName = Aeson.toJSON (entrySmartIdent entry)
 
-  arity :: Aeson.Value
-  arity = Aeson.toJSON (entryArity entry)
+   -- @entryAgdaIdent entry@ is undefined because the agda renamer isn't
+   -- implemented at the moment. To allow encoding a dummy value is needed.
+   -- I decided to insert the placeholder at this point to avoid placing
+   -- temporary code at at every point were an environment entry is initialized.
+   agdaName, agdaSmartName :: Aeson.Value
+   agdaName = Aeson.toJSON @String "placeholder" -- (entryAgdaIdent entry)
 
-  consNames :: Aeson.Value
-  consNames = Aeson.toJSON (entryConsNames entry)
+   agdaSmartName = Aeson.toJSON @String "placeholder" -- (entryAgdaSmartIdent entry)
 
-  partial :: Aeson.Value
-  partial = Aeson.toJSON (entryIsPartial entry)
+   arity :: Aeson.Value
+   arity = Aeson.toJSON (entryArity entry)
 
-  freeArgsNeeded :: Aeson.Value
-  freeArgsNeeded = Aeson.toJSON (entryNeedsFreeArgs entry)
+   consNames :: Aeson.Value
+   consNames = Aeson.toJSON (entryConsNames entry)
 
-  haskellType :: Aeson.Value
-  haskellType = Aeson.toJSON
-    (foldr (IR.FuncType NoSrcSpan) (entryReturnType entry) (entryArgTypes entry)
-    )
+   partial :: Aeson.Value
+   partial = Aeson.toJSON (entryIsPartial entry)
 
-  typeSyn :: Aeson.Value
-  typeSyn = Aeson.toJSON (entryTypeSyn entry)
+   freeArgsNeeded :: Aeson.Value
+   freeArgsNeeded = Aeson.toJSON (entryNeedsFreeArgs entry)
 
-  typeArgs :: Aeson.Value
-  typeArgs = Aeson.toJSON (entryTypeArgs entry)
+   haskellType :: Aeson.Value
+   haskellType = Aeson.toJSON (foldr (IR.FuncType NoSrcSpan)
+                               (entryReturnType entry) (entryArgTypes entry))
+
+   typeSyn :: Aeson.Value
+   typeSyn = Aeson.toJSON (entryTypeSyn entry)
+
+   typeArgs :: Aeson.Value
+   typeArgs = Aeson.toJSON (entryTypeArgs entry)
 
 -- | Serializes a module interface and writes it to a @.json@ file.
 writeModuleInterface
-  :: (MonadIO r, MonadReporter r) => FilePath -> ModuleInterface -> r ()
+  :: ( MonadIO r, MonadReporter r ) => FilePath -> ModuleInterface -> r ()
 writeModuleInterface = saveConfig

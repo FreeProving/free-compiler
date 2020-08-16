@@ -84,23 +84,21 @@
 --     same function declaration.
 --   * A warning is reported if there is a type signature without accompanying
 --     function declaration.
-
 module FreeC.Pass.TypeSignaturePass
   ( typeSignaturePass
-  -- * definitions reused in the EtaConversionPass
+    -- * definitions reused in the EtaConversionPass
   , splitFuncType
-  )
-where
+  ) where
 
-import           Control.Monad                  ( when )
-import           Data.List                      ( intercalate )
-import           Data.Map.Strict                ( Map )
-import qualified Data.Map.Strict               as Map
-import           Data.Set                       ( Set )
-import qualified Data.Set                      as Set
+import           Control.Monad             ( when )
+import           Data.List                 ( intercalate )
+import           Data.Map.Strict           ( Map )
+import qualified Data.Map.Strict           as Map
+import           Data.Set                  ( Set )
+import qualified Data.Set                  as Set
 
 import           FreeC.IR.SrcSpan
-import qualified FreeC.IR.Syntax               as IR
+import qualified FreeC.IR.Syntax           as IR
 import           FreeC.IR.TypeSynExpansion
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
@@ -120,30 +118,27 @@ typeSignaturePass ast = do
 -------------------------------------------------------------------------------
 -- Checks                                                                    --
 -------------------------------------------------------------------------------
-
 -- | Checks whether there is a function declaration for all functions
 --   annotated by the given type signature.
 --
 --   Reports a warning is there is a type signature without accompanying
 --   function declaration.
-checkHasBinding :: [IR.FuncDecl] -> IR.TypeSig -> Converter ()
+checkHasBinding :: [ IR.FuncDecl ] -> IR.TypeSig -> Converter ()
 checkHasBinding funcDecls = mapM_ checkHasBinding' . IR.typeSigDeclIdents
  where
-  -- | The names of all declared functions.
-  funcDeclNames :: Set IR.QName
-  funcDeclNames = Set.fromList $ map IR.funcDeclQName funcDecls
+   -- | The names of all declared functions.
+   funcDeclNames :: Set IR.QName
+   funcDeclNames = Set.fromList $ map IR.funcDeclQName funcDecls
 
-  -- | Checks whether there is a function declaration for the function
-  --   with the given name.
-  checkHasBinding' :: IR.DeclIdent -> Converter ()
-  checkHasBinding' (IR.DeclIdent srcSpan name) =
-    when (name `Set.notMember` funcDeclNames)
-      $ reportMissingBinding srcSpan name
+   -- | Checks whether there is a function declaration for the function
+   --   with the given name.
+   checkHasBinding' :: IR.DeclIdent -> Converter ()
+   checkHasBinding' (IR.DeclIdent srcSpan name) = when
+     (name `Set.notMember` funcDeclNames) $ reportMissingBinding srcSpan name
 
 -------------------------------------------------------------------------------
 -- Translation                                                               --
 -------------------------------------------------------------------------------
-
 -- | Annotates the given function declarations with the type from the
 --   corresponding type signature.
 --
@@ -151,40 +146,37 @@ checkHasBinding funcDecls = mapM_ checkHasBinding' . IR.typeSigDeclIdents
 --   the type signature (see 'splitFuncType') or there are multiple type
 --   signatures for the same function.
 addTypeSigsToFuncDecls
-  :: [IR.TypeSig] -> [IR.FuncDecl] -> Converter [IR.FuncDecl]
+  :: [ IR.TypeSig ] -> [ IR.FuncDecl ] -> Converter [ IR.FuncDecl ]
 addTypeSigsToFuncDecls typeSigs = mapM addTypeSigToFuncDecl
  where
-  -- | Maps the names of functions to their annotated type.
-  typeSigMap :: Map IR.QName [IR.TypeScheme]
-  typeSigMap = Map.fromListWith
-    (++)
-    [ (name, [typeScheme])
-    | IR.TypeSig _ declIdents typeScheme <- typeSigs
-    , IR.DeclIdent _ name                <- declIdents
-    ]
+   -- | Maps the names of functions to their annotated type.
+   typeSigMap :: Map IR.QName [ IR.TypeScheme ]
+   typeSigMap = Map.fromListWith (++)
+     [ ( name, [ typeScheme ] ) | IR.TypeSig _ declIdents typeScheme <- typeSigs
+                                , IR.DeclIdent _ name <- declIdents
+     ]
 
-  -- | Sets the type annotation of the given variable pattern.
-  setVarPatType :: IR.VarPat -> IR.Type -> IR.VarPat
-  setVarPatType arg argType = arg { IR.varPatType = Just argType }
+   -- | Sets the type annotation of the given variable pattern.
+   setVarPatType :: IR.VarPat -> IR.Type -> IR.VarPat
+   setVarPatType arg argType = arg { IR.varPatType = Just argType }
 
-  -- | Annotates the given function declaration with the type from the
-  --   corresponding type signature.
-  addTypeSigToFuncDecl :: IR.FuncDecl -> Converter IR.FuncDecl
-  addTypeSigToFuncDecl funcDecl = do
-    let name = IR.funcDeclQName funcDecl
-        args = IR.funcDeclArgs funcDecl
-    case Map.lookup name typeSigMap of
-      Nothing -> return funcDecl
-      Just [IR.TypeScheme _ typeArgs typeExpr] -> do
-        (argTypes, retType) <- splitFuncType name args typeExpr
-        return funcDecl { IR.funcDeclTypeArgs = typeArgs
-                        , IR.funcDeclArgs = zipWith setVarPatType args argTypes
-                        , IR.funcDeclReturnType = Just retType
-                        }
-      Just typeSchemes -> reportDuplicateTypeSigs
-        (IR.funcDeclSrcSpan funcDecl)
-        name
-        (map IR.typeSchemeSrcSpan typeSchemes)
+   -- | Annotates the given function declaration with the type from the
+   --   corresponding type signature.
+   addTypeSigToFuncDecl :: IR.FuncDecl -> Converter IR.FuncDecl
+   addTypeSigToFuncDecl funcDecl = do
+     let name = IR.funcDeclQName funcDecl
+         args = IR.funcDeclArgs funcDecl
+     case Map.lookup name typeSigMap of
+       Nothing -> return funcDecl
+       Just [ IR.TypeScheme _ typeArgs typeExpr ] -> do
+         ( argTypes, retType ) <- splitFuncType name args typeExpr
+         return funcDecl
+           { IR.funcDeclTypeArgs   = typeArgs
+           , IR.funcDeclArgs       = zipWith setVarPatType args argTypes
+           , IR.funcDeclReturnType = Just retType
+           }
+       Just typeSchemes -> reportDuplicateTypeSigs (IR.funcDeclSrcSpan funcDecl)
+         name (map IR.typeSchemeSrcSpan typeSchemes)
 
 -- | Splits the annotated type of a Haskell function with the given arguments
 --   into its argument and return types.
@@ -193,68 +185,53 @@ addTypeSigsToFuncDecls typeSigs = mapM addTypeSigToFuncDecl
 --   synonym could not be expanded.
 splitFuncType
   :: IR.QName    -- ^ The name of the function to display in error messages.
-  -> [IR.VarPat] -- ^ The argument variable patterns whose types to split of.
+  -> [ IR.VarPat ] -- ^ The argument variable patterns whose types to split of.
   -> IR.Type     -- ^ The type to split.
-  -> Converter ([IR.Type], IR.Type)
+  -> Converter ( [ IR.Type ], IR.Type )
 splitFuncType name = splitFuncType'
  where
-  splitFuncType' :: [IR.VarPat] -> IR.Type -> Converter ([IR.Type], IR.Type)
-  splitFuncType' []         typeExpr              = return ([], typeExpr)
-  splitFuncType' (_ : args) (IR.FuncType _ t1 t2) = do
-    (argTypes, returnType) <- splitFuncType' args t2
-    return (t1 : argTypes, returnType)
-  splitFuncType' args@(arg : _) typeExpr = do
-    typeExpr' <- expandTypeSynonym typeExpr
-    if typeExpr == typeExpr'
-      then reportTypeSynExpansionError name arg
-      else splitFuncType' args typeExpr'
+   splitFuncType'
+     :: [ IR.VarPat ] -> IR.Type -> Converter ( [ IR.Type ], IR.Type )
+   splitFuncType' [] typeExpr = return ( [], typeExpr )
+   splitFuncType' (_ : args) (IR.FuncType _ t1 t2) = do
+     ( argTypes, returnType ) <- splitFuncType' args t2
+     return ( t1 : argTypes, returnType )
+   splitFuncType' args@(arg : _) typeExpr = do
+     typeExpr' <- expandTypeSynonym typeExpr
+     if typeExpr == typeExpr' then reportTypeSynExpansionError name arg
+       else splitFuncType' args typeExpr'
 
 -------------------------------------------------------------------------------
 -- Error messages                                                            --
 -------------------------------------------------------------------------------
-
 -- | Warns the user that there is no function declaration for the type
 --   signature of the function with the given name.
 reportMissingBinding
-  :: MonadReporter r
-  => SrcSpan  -- ^ The location of the type signature.
+  :: MonadReporter r => SrcSpan  -- ^ The location of the type signature.
   -> IR.QName -- ^ The name of the function.
   -> r ()
-reportMissingBinding srcSpan name =
-  report
-    $  Message srcSpan Warning
-    $  "The type signature for '"
-    ++ showPretty name
-    ++ "' lacks an accompanying binding."
+reportMissingBinding srcSpan name
+  = report $ Message srcSpan Warning $ "The type signature for '"
+  ++ showPretty name ++ "' lacks an accompanying binding."
 
 -- | Reports a fatal error if there are multiple type signatures for the
 --   same function declaration.
 reportDuplicateTypeSigs
-  :: MonadReporter r
-  => SrcSpan   -- ^ The location of the function declaration.
+  :: MonadReporter r => SrcSpan   -- ^ The location of the function declaration.
   -> IR.QName  -- ^ The name of the function.
-  -> [SrcSpan] -- ^ The locations of the type signatures.
+  -> [ SrcSpan ] -- ^ The locations of the type signatures.
   -> r a
-reportDuplicateTypeSigs srcSpan funcName typeSigSrcSpans =
-  reportFatal
-    $  Message srcSpan Error
-    $  "Duplicate type signatures for '"
-    ++ showPretty funcName
-    ++ "' at "
-    ++ intercalate ", " (map showPretty typeSigSrcSpans)
+reportDuplicateTypeSigs srcSpan funcName typeSigSrcSpans
+  = reportFatal $ Message srcSpan Error $ "Duplicate type signatures for '"
+  ++ showPretty funcName ++ "' at " ++ intercalate ", "
+  (map showPretty typeSigSrcSpans)
 
 -- | Reports a fatal error if the type of a function argument cannot be
 --   determined by expanding a type synonyms from its type signature.
 reportTypeSynExpansionError
-  :: MonadReporter r
-  => IR.QName  -- ^ The name of the function.
+  :: MonadReporter r => IR.QName  -- ^ The name of the function.
   -> IR.VarPat -- ^ The argument whose argument type could not be determined.
   -> r a
-reportTypeSynExpansionError funcName arg =
-  reportFatal
-    $  Message (IR.varPatSrcSpan arg) Error
-    $  "Could not determine type of argument '"
-    ++ IR.varPatIdent arg
-    ++ "' for function '"
-    ++ showPretty funcName
-    ++ "'."
+reportTypeSynExpansionError funcName arg = reportFatal $ Message
+  (IR.varPatSrcSpan arg) Error $ "Could not determine type of argument '"
+  ++ IR.varPatIdent arg ++ "' for function '" ++ showPretty funcName ++ "'."
