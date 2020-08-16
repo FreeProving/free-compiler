@@ -35,7 +35,7 @@ loadConfig filename = do
 decodeTomlConfig
   :: (MonadReporter r, Aeson.FromJSON a) => FilePath -> String -> r a
 decodeTomlConfig filename contents = either
-  (reportParsecError (mkSrcFileMap [ mkSrcFile filename contents ]))
+  (reportParsecError (mkSrcFileMap [mkSrcFile filename contents]))
   decodeTomlDocument (parseTomlDoc filename (Text.pack contents))
  where
    -- | Decodes a TOML document using the "Aeson" interface.

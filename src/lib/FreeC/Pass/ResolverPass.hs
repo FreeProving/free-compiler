@@ -387,7 +387,7 @@ instance TopLevelDeclaration IR.Module where
 --   constructors at top-level.
 instance TopLevelDeclaration IR.TypeDecl where
   topLevelEntries typeSynDecl@IR.TypeSynDecl {}
-    = [ makeTopLevelEntry IR.TypeScope (IR.typeDeclIdent typeSynDecl) ]
+    = [makeTopLevelEntry IR.TypeScope (IR.typeDeclIdent typeSynDecl)]
   topLevelEntries dataDecl@IR.DataDecl {}       = makeTopLevelEntry IR.TypeScope
     (IR.typeDeclIdent dataDecl) : concatMap topLevelEntries
     (IR.dataDeclCons dataDecl)
@@ -395,12 +395,12 @@ instance TopLevelDeclaration IR.TypeDecl where
 -- | Constructors of data type declarations are declared at top-level.
 instance TopLevelDeclaration IR.ConDecl where
   topLevelEntries conDecl
-    = [ makeTopLevelEntry IR.ValueScope (IR.conDeclIdent conDecl) ]
+    = [makeTopLevelEntry IR.ValueScope (IR.conDeclIdent conDecl)]
 
 -- | Function declarations are declared at top-level.
 instance TopLevelDeclaration IR.FuncDecl where
   topLevelEntries funcDecl
-    = [ makeTopLevelEntry IR.ValueScope (IR.funcDeclIdent funcDecl) ]
+    = [makeTopLevelEntry IR.ValueScope (IR.funcDeclIdent funcDecl)]
 
 -- | Creates the entry for a top-level declaration with the given name
 --   in the given scope.
@@ -478,8 +478,8 @@ checkSingleDeclarations = mapM checkSingleDeclaration . group . sort
 --   Reports a fatal error if there are multiple entries with the same name.
 checkSingleDeclaration
   :: MonadReporter r => [ ResolverEntry ] -> r ResolverEntry
-checkSingleDeclaration [ entry ] = return entry
-checkSingleDeclaration entries   = do
+checkSingleDeclaration [entry] = return entry
+checkSingleDeclaration entries = do
   let srcSpan = resolverEntrySrcSpan (last entries)
       name    = IR.toUnQual (resolverEntryOriginalName (head entries))
   reportFatal $ Message srcSpan Error $ "Multiple declarations of '"
@@ -521,13 +521,13 @@ lookupResolverEntryOrFail
 lookupResolverEntryOrFail srcSpan scope name = do
   entrySet <- gets $ lookupResolverEntries scope name
   case Set.toList entrySet of
-    []        -> reportFatal $ Message srcSpan Error $ fst
-      (showPrettyScope scope) ++ " not in scope: '" ++ showPretty name ++ "'"
-    [ entry ] -> return entry
-    entries   -> reportFatal $ Message srcSpan Error
-      $ "Ambiguous occurrence of " ++ snd (showPrettyScope scope) ++ " '"
-      ++ showPretty name ++ "'\n" ++ "It could refer to either " ++ intercalate
-      " or " (map showPretty entries)
+    []      -> reportFatal $ Message srcSpan Error $ fst (showPrettyScope scope)
+      ++ " not in scope: '" ++ showPretty name ++ "'"
+    [entry] -> return entry
+    entries -> reportFatal $ Message srcSpan Error $ "Ambiguous occurrence of "
+      ++ snd (showPrettyScope scope) ++ " '" ++ showPretty name ++ "'\n"
+      ++ "It could refer to either " ++ intercalate " or "
+      (map showPretty entries)
  where
    -- | Pretty prints the capitalized and the lower case name of the scopes.
    showPrettyScope :: IR.Scope -> (String, String)

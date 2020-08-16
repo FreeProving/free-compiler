@@ -63,8 +63,7 @@ convertRecFuncDeclsWithHelpers' decls = do
   mainDecls' <- convertNonRecFuncDecls mainDecls
   -- Create common fixpoint sentence for all helper functions.
   return
-    ( [ Coq.FixpointSentence (Coq.Fixpoint (NonEmpty.fromList helperDecls') [])
-        ]
+    ( [Coq.FixpointSentence (Coq.Fixpoint (NonEmpty.fromList helperDecls') [])]
     , mainDecls'
     )
 
@@ -104,7 +103,7 @@ transformRecFuncDecl
 
    -- | The positions of @case@-expressions for the decreasing argument.
    caseExprsPos :: [ Pos ]
-   caseExprsPos = [ p | p <- ps, not (any (below p) (delete p ps)) ]
+   caseExprsPos = [p | p <- ps, not (any (below p) (delete p ps))]
     where
       ps :: [ Pos ]
       ps = filter decArgNotShadowed (findSubtermPos isCaseExpr expr)

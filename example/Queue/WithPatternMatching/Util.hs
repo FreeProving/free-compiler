@@ -14,4 +14,4 @@ append (x : xs') ys = x : (append xs' ys)
 
 reverse :: [ a ] -> [ a ]
 reverse []        = []
-reverse (x : xs') = reverse xs' `append` [ x ]
+reverse (x : xs') = reverse xs' `append` [x]

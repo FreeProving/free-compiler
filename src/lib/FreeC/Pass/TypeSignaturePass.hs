@@ -152,8 +152,8 @@ addTypeSigsToFuncDecls typeSigs = mapM addTypeSigToFuncDecl
    -- | Maps the names of functions to their annotated type.
    typeSigMap :: Map IR.QName [ IR.TypeScheme ]
    typeSigMap = Map.fromListWith (++)
-     [ (name, [ typeScheme ]) | IR.TypeSig _ declIdents typeScheme <- typeSigs
-                              , IR.DeclIdent _ name <- declIdents
+     [(name, [typeScheme]) | IR.TypeSig _ declIdents typeScheme <- typeSigs
+                           , IR.DeclIdent _ name <- declIdents
      ]
 
    -- | Sets the type annotation of the given variable pattern.
@@ -168,7 +168,7 @@ addTypeSigsToFuncDecls typeSigs = mapM addTypeSigToFuncDecl
          args = IR.funcDeclArgs funcDecl
      case Map.lookup name typeSigMap of
        Nothing -> return funcDecl
-       Just [ IR.TypeScheme _ typeArgs typeExpr ] -> do
+       Just [IR.TypeScheme _ typeArgs typeExpr] -> do
          (argTypes, retType) <- splitFuncType name args typeExpr
          return funcDecl
            { IR.funcDeclTypeArgs   = typeArgs

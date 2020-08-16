@@ -144,7 +144,7 @@ mkIdentToken ident = case lookup ident keywords of
 mkSymbolToken :: String -> Token
 mkSymbolToken "" = ConSymbol ""
 mkSymbolToken sym@(first : _)
-  | first `elem` [ '[', ':', ',' ] = ConSymbol sym
+  | first `elem` ['[', ':', ','] = ConSymbol sym
 mkSymbolToken sym = VarSymbol sym
 
 -- | Pretty prints a token.

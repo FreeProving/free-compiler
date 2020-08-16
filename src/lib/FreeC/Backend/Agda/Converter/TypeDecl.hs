@@ -25,9 +25,9 @@ import           FreeC.Monad.Reporter
 convertTypeDecls
   :: DependencyComponent IR.TypeDecl -> Converter [ Agda.Declaration ]
 convertTypeDecls comp = case comp of
-  NonRecursive decl  -> convertTypeDecl decl False
-  Recursive [ decl ] -> convertTypeDecl decl True
-  Recursive ds       -> reportFatal $ Message (IR.typeDeclSrcSpan $ head ds)
+  NonRecursive decl -> convertTypeDecl decl False
+  Recursive [decl]  -> convertTypeDecl decl True
+  Recursive ds      -> reportFatal $ Message (IR.typeDeclSrcSpan $ head ds)
     Error
     $ "Mutual recursive data types are not supported by the Agda back end "
     ++ "at the moment."

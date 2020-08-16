@@ -172,7 +172,7 @@ makeConstArgGraph decls = do
      let funcName = IR.funcDeclQName decl
          args     = IR.funcDeclArgs decl
          rhs      = IR.funcDeclRhs decl
-     (argName, argIndex) <- zip (map IR.varPatIdent args) [ 0 .. ]
+     (argName, argIndex) <- zip (map IR.varPatIdent args) [0 ..]
      return ((funcName, argName), argIndex, rhs)
 
 -------------------------------------------------------------------------------
@@ -207,7 +207,7 @@ identifyConstArgs decls = mapM makeConstArg constArgNameMaps
    --   arguments.
    argNamesMap :: Map IR.QName [ String ]
    argNamesMap = Map.fromList
-     [ (IR.funcDeclQName decl, map IR.varPatIdent (IR.funcDeclArgs decl))
+     [(IR.funcDeclQName decl, map IR.varPatIdent (IR.funcDeclArgs decl))
      | decl <- decls
      ]
 
@@ -232,7 +232,7 @@ identifyConstArgs' decls = map Map.fromList $ filter checkSCC
 
    -- | Maps the keys of the 'constArgGraph' to the adjacency lists.
    constArgMap :: Map CGNode [ CGNode ]
-   constArgMap = Map.fromList [ (k, ks) | (_, k, ks) <- constArgGraph ]
+   constArgMap = Map.fromList [(k, ks) | (_, k, ks) <- constArgGraph]
 
    -- | The dependency graph of the function declarations.
    callGraph :: DependencyGraph IR.FuncDecl

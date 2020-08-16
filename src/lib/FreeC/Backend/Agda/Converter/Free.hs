@@ -21,7 +21,7 @@ generatePure = Agda.app $ Agda.Ident $ Agda.qname [] Agda.Base.pure -- @pure@ is
 
 -- | The infix @>>=@ operator.
 bind :: Agda.Expr -> Agda.Expr -> Agda.Expr
-bind arg k = Agda.RawApp Agda.NoRange [ arg, Agda.ident ">>=", k ]
+bind arg k = Agda.RawApp Agda.NoRange [arg, Agda.ident ">>=", k]
 
 -- | Lifts a type in the free monad.
 free :: Agda.Expr -> Agda.Expr
@@ -62,10 +62,9 @@ partial = Agda.Ident (Agda.qname' Agda.Base.partial)
 --
 --   > (Shape : Set) (Pos : Shape → Set)
 freeArgBinder :: [ Agda.LamBinding ]
-freeArgBinder
-  = [ Agda.binding [ Agda.Base.shape ] Agda.set
-    , Agda.binding [ Agda.Base.position ] (shape `Agda.fun` Agda.set)
-    ]
+freeArgBinder = [ Agda.binding [Agda.Base.shape] Agda.set
+                , Agda.binding [Agda.Base.position] (shape `Agda.fun` Agda.set)
+                ]
 
 -- | The identifier for the error term @undefined@.
 undefinedExpr :: Agda.Expr

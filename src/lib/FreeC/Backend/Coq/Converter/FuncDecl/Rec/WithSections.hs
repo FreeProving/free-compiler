@@ -200,12 +200,12 @@ argAndReturnTypeMaps (IR.FuncDecl _ (IR.DeclIdent _ name) _ args maybeRetType _)
   = return (argTypeMap, returnTypeMap)
  where
    argTypeMap    = Map.fromList
-     [ ((name, IR.varPatIdent arg), argType)
+     [((name, IR.varPatIdent arg), argType)
      | arg <- args, argType <- maybeToList (IR.varPatType arg)
      ]
 
    returnTypeMap
-     = Map.fromList [ (name, retType) | retType <- maybeToList maybeRetType ]
+     = Map.fromList [(name, retType) | retType <- maybeToList maybeRetType]
 
 -- | Looks up the type of a constant argument in the given argument type
 --   map (see 'argAndReturnTypeMaps').
@@ -251,7 +251,7 @@ generateConstArgVariable constArg constArgType = do
   let ident = constArgFreshIdent constArg
   constArgType' <- convertType constArgType
   ident' <- renameAndDefineVar NoSrcSpan False ident (Just constArgType)
-  return (Coq.variable [ ident' ] constArgType')
+  return (Coq.variable [ident'] constArgType')
 
 -------------------------------------------------------------------------------
 -- Removing constant arguments                                               --
@@ -271,9 +271,9 @@ removeConstArgsFromFuncDecl constArgs
           (Map.map return . constArgIdents) constArgs
         freshArgs   = map constArgFreshIdent constArgs
         args'
-          = [ arg | arg <- args, IR.varPatIdent arg `notElem` removedArgs ]
+          = [arg | arg <- args, IR.varPatIdent arg `notElem` removedArgs]
         subst       = composeSubsts
-          [ singleSubst' (IR.UnQual (IR.Ident removedArg))
+          [singleSubst' (IR.UnQual (IR.Ident removedArg))
             (flip IR.untypedVar (IR.UnQual (IR.Ident freshArg)))
           | (removedArg, freshArg) <- zip removedArgs freshArgs
           ]
@@ -573,7 +573,7 @@ generateInterfaceDecl constArgs isConstArgUsed nameMap mgu sectionTypeArgs
     -- main function.
     let typeArgIdents = map IR.typeVarDeclIdent (IR.funcDeclTypeArgs funcDecl)
     typeArgNames <- mapM
-      (lookupTypeArgName typeArgIdents (zip renamedTypeArgs [ 0 .. ]))
+      (lookupTypeArgName typeArgIdents (zip renamedTypeArgs [0 ..]))
       sectionTypeArgs
     typeArgNames' <- catMaybes <$> mapM (inEnv . lookupIdent IR.TypeScope)
       typeArgNames
@@ -583,7 +583,7 @@ generateInterfaceDecl constArgs isConstArgUsed nameMap mgu sectionTypeArgs
     -- If the function is partial, the @Partial@ instance needs to be passed
     -- to the main function.
     partialArg <- ifM (inEnv $ isPartial name)
-      (return [ fst Coq.Base.partialArg ]) (return [])
+      (return [fst Coq.Base.partialArg]) (return [])
     -- Lookup the names of all other arguments to pass to the main function.
     let nonConstArgNames = map IR.varPatQName args \\ constArgNames
     nonConstArgNames' <- catMaybes <$> mapM (inEnv . lookupIdent IR.ValueScope)

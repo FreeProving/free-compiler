@@ -88,7 +88,7 @@ testUnification = describe "FreeC.IR.Unification.unify" $ do
       $ do
         _ <- defineTestTypeCon "Bool" 0 []
         _ <- defineTestTypeCon "Integer" 0 []
-        _ <- defineTestTypeSyn "Predicate" [ "a" ] "a -> Bool"
+        _ <- defineTestTypeSyn "Predicate" ["a"] "a -> Bool"
         t <- parseTestType "Predicate b"
         s <- parseTestType "Integer -> c"
         t' <- parseTestType "Predicate Integer"
@@ -97,8 +97,8 @@ testUnification = describe "FreeC.IR.Unification.unify" $ do
     it "can unify two type synonyms with different arity" $ shouldSucceedWith
       $ do
         _ <- defineTestTypeCon "Integer" 0 []
-        _ <- defineTestTypeSyn "Foo" [ "a" ] "a -> Integer"
-        _ <- defineTestTypeSyn "Bar" [ "a", "b" ] "a -> b"
+        _ <- defineTestTypeSyn "Foo" ["a"] "a -> Integer"
+        _ <- defineTestTypeSyn "Bar" ["a", "b"] "a -> b"
         t <- parseTestType "Foo a"
         s <- parseTestType "Bar b c"
         t' <- parseTestType "Foo b"

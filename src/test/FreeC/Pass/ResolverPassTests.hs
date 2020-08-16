@@ -20,23 +20,23 @@ testRedefinition :: Spec
 testRedefinition = context "redefinition" $ do
   context "data types" $ do
     it "accepts data type and constructor with same name" $ do
-      input <- expectParseTestModule [ "module M where", "data Foo = Foo;" ]
+      input <- expectParseTestModule ["module M where", "data Foo = Foo;"]
       shouldSucceed (resolverPass input)
     it "rejects data type declarations with same name" $ do
       input <- expectParseTestModule
-        [ "module M where", "data Foo = Foo;", "data Foo = Bar;" ]
+        ["module M where", "data Foo = Foo;", "data Foo = Bar;"]
       shouldFail (resolverPass input)
     it "rejects constructors with same name in same data type" $ do
       input
-        <- expectParseTestModule [ "module M where", "data Foo = Foo | Foo;" ]
+        <- expectParseTestModule ["module M where", "data Foo = Foo | Foo;"]
       shouldFail (resolverPass input)
     it "rejects constructors with same name in different data types" $ do
       input <- expectParseTestModule
-        [ "module M where", "data Foo = Foo;", "data Bar = Foo;" ]
+        ["module M where", "data Foo = Foo;", "data Bar = Foo;"]
       shouldFail (resolverPass input)
     it "rejects type arguments of data type with same name" $ do
       input
-        <- expectParseTestModule [ "module M where", "data Foo a a = Foo a;" ]
+        <- expectParseTestModule ["module M where", "data Foo a a = Foo a;"]
       shouldFail (resolverPass input)
   context "type synonyms" $ do
     it "rejects type synonym declarations with same name" $ do
@@ -49,28 +49,25 @@ testRedefinition = context "redefinition" $ do
       shouldFail (resolverPass input)
     it "rejects type arguments of type synonym with same name" $ do
       input <- expectParseTestModule
-        [ "module M where"
-        , "import Prelude;"
-        , "type Foo a a = Prelude.([]) a;"
-        ]
+        ["module M where", "import Prelude;", "type Foo a a = Prelude.([]) a;"]
       shouldFail (resolverPass input)
   context "function declarations" $ do
     it "rejects function declarations with same name" $ do
-      input <- expectParseTestModule
-        [ "module M where", "foo = 42;", "foo = 1337" ]
+      input
+        <- expectParseTestModule ["module M where", "foo = 42;", "foo = 1337"]
       shouldFail (resolverPass input)
     it "rejects function arguments with same name" $ do
-      input <- expectParseTestModule [ "module M where", "const x x = x;" ]
+      input <- expectParseTestModule ["module M where", "const x x = x;"]
       shouldFail (resolverPass input)
     it "rejects function type arguments with same name" $ do
-      input <- expectParseTestModule [ "module M where", "id @a @a x = x;" ]
+      input <- expectParseTestModule ["module M where", "id @a @a x = x;"]
       shouldFail (resolverPass input)
   context "variable patterns" $ do
     it "accepts lambda abstraction arguments to shadow other variables" $ do
-      input <- expectParseTestModule [ "module M where", "foo x = \\x -> x" ]
+      input <- expectParseTestModule ["module M where", "foo x = \\x -> x"]
       shouldSucceed (resolverPass input)
     it "rejects variable patterns with same name in lambda abstraction" $ do
-      input <- expectParseTestModule [ "module M where", "foo = \\x x -> x" ]
+      input <- expectParseTestModule ["module M where", "foo = \\x x -> x"]
       shouldFail (resolverPass input)
     it "rejects variable patterns with same name in case expression" $ do
       input <- expectParseTestModule

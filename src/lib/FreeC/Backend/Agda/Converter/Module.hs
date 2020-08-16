@@ -49,5 +49,5 @@ convertImportDecls imports = (Agda.Base.imports ++)
 convertImportDecl :: IR.ImportDecl -> Converter Agda.Declaration
 convertImportDecl (IR.ImportDecl _ modName) = do
   Just iface <- inEnv $ lookupAvailableModule modName
-  return $ Agda.simpleImport $ Agda.qname [ interfaceAgdaLibName iface ]
+  return $ Agda.simpleImport $ Agda.qname [interfaceAgdaLibName iface]
     $ Agda.name modName

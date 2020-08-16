@@ -189,7 +189,7 @@ renameAgdaIdent ident env
 --   @Agda.QName@s from the environment and reserved identifier.
 renameAgdaQualid :: String -> Environment -> Agda.QName
 renameAgdaQualid = renameAgdaIdent . Agda.qname' . Agda.name . head
-  . splitOn [ IR.internalIdentChar ]
+  . splitOn [IR.internalIdentChar]
 
 -- | Creates a new qualified name, by appending a number or incrementing it.
 nextQName :: Agda.QName -> Agda.QName

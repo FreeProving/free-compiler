@@ -90,11 +90,11 @@ class Pretty a => Subterm a where
 -- | Expressions have subterms.
 instance Subterm IR.Expr where
   -- | Gets the direct child expression nodes of the given expression.
-  childTerms (IR.App _ e1 e2 _) = [ e1, e2 ]
-  childTerms (IR.TypeAppExpr _ expr _ _) = [ expr ]
-  childTerms (IR.If _ e1 e2 e3 _) = [ e1, e2, e3 ]
+  childTerms (IR.App _ e1 e2 _) = [e1, e2]
+  childTerms (IR.TypeAppExpr _ expr _ _) = [expr]
+  childTerms (IR.If _ e1 e2 e3 _) = [e1, e2, e3]
   childTerms (IR.Case _ expr alts _) = expr : map IR.altRhs alts
-  childTerms (IR.Lambda _ _ expr _) = [ expr ]
+  childTerms (IR.Lambda _ _ expr _) = [expr]
   childTerms (IR.Con _ _ _) = []
   childTerms (IR.Var _ _ _) = []
   childTerms (IR.Undefined _ _) = []
@@ -104,11 +104,11 @@ instance Subterm IR.Expr where
 
   -- | Replaces all direct child expression nodes of the given expression.
   replaceChildTerms (IR.App srcSpan _ _ exprType)
-    = checkArity 2 $ \[ e1', e2' ] -> IR.App srcSpan e1' e2' exprType
-  replaceChildTerms (IR.TypeAppExpr srcSpan _ typeExpr exprType) = checkArity 1
-    $ \[ expr' ] -> IR.TypeAppExpr srcSpan expr' typeExpr exprType
+    = checkArity 2 $ \[e1', e2'] -> IR.App srcSpan e1' e2' exprType
+  replaceChildTerms (IR.TypeAppExpr srcSpan _ typeExpr exprType)
+    = checkArity 1 $ \[expr'] -> IR.TypeAppExpr srcSpan expr' typeExpr exprType
   replaceChildTerms (IR.If srcSpan _ _ _ exprType)
-    = checkArity 3 $ \[ e1', e2', e3' ] -> IR.If srcSpan e1' e2' e3' exprType
+    = checkArity 3 $ \[e1', e2', e3'] -> IR.If srcSpan e1' e2' e3' exprType
   replaceChildTerms (IR.Case srcSpan _ alts exprType) = checkArity
     (length alts + 1) $ \(expr' : altChildren') -> IR.Case srcSpan expr'
     (zipWith replaceAltChildExpr alts altChildren') exprType
@@ -118,7 +118,7 @@ instance Subterm IR.Expr where
      replaceAltChildExpr :: IR.Alt -> IR.Expr -> IR.Alt
      replaceAltChildExpr alt rhs' = alt { IR.altRhs = rhs' }
   replaceChildTerms (IR.Lambda srcSpan args _ exprType)
-    = checkArity 1 $ \[ expr' ] -> IR.Lambda srcSpan args expr' exprType
+    = checkArity 1 $ \[expr'] -> IR.Lambda srcSpan args expr' exprType
   replaceChildTerms (IR.Let srcSpan binds _ exprType) = checkArity
     (length binds + 1) $ \(expr' : bindChildren') -> IR.Let srcSpan
     (zipWith replaceBindChildExpr binds bindChildren') expr' exprType
@@ -139,17 +139,17 @@ instance Subterm IR.Type where
   --   expression.
   childTerms (IR.TypeVar _ _)      = []
   childTerms (IR.TypeCon _ _)      = []
-  childTerms (IR.TypeApp _ t1 t2)  = [ t1, t2 ]
-  childTerms (IR.FuncType _ t1 t2) = [ t1, t2 ]
+  childTerms (IR.TypeApp _ t1 t2)  = [t1, t2]
+  childTerms (IR.FuncType _ t1 t2) = [t1, t2]
 
   -- | Replaces all direct child type expression nodes of the given type
   --   expression.
   replaceChildTerms typeExpr@(IR.TypeVar _ _) = nullary typeExpr
   replaceChildTerms typeExpr@(IR.TypeCon _ _) = nullary typeExpr
   replaceChildTerms (IR.TypeApp srcSpan _ _)
-    = checkArity 2 $ \[ t1', t2' ] -> IR.TypeApp srcSpan t1' t2'
+    = checkArity 2 $ \[t1', t2'] -> IR.TypeApp srcSpan t1' t2'
   replaceChildTerms (IR.FuncType srcSpan _ _)
-    = checkArity 2 $ \[ t1', t2' ] -> IR.FuncType srcSpan t1' t2'
+    = checkArity 2 $ \[t1', t2'] -> IR.FuncType srcSpan t1' t2'
 
 -------------------------------------------------------------------------------
 -- Positions                                                                 --
@@ -186,8 +186,8 @@ parentPos (Pos ps)
 -- | Gets all valid positions of subterms within the given Haskell expression.
 allPos :: Subterm a => a -> [ Pos ]
 allPos term = rootPos
-  : [ consPos p childPos
-    | (p, child) <- zip [ 1 .. ] (childTerms term), childPos <- allPos child
+  : [consPos p childPos
+    | (p, child) <- zip [1 ..] (childTerms term), childPos <- allPos child
     ]
 
 -- | Tests whether a position is above another one.
@@ -313,7 +313,7 @@ boundVarsWithTypeAt = fromMaybe Map.empty .: boundVarsWithTypeAt'
      (Map IR.QName (Maybe IR.Type))
    boundVarsWithTypeAt' _ (Pos [])          = return Map.empty
    boundVarsWithTypeAt' expr (Pos (p : ps)) = do
-     child <- selectSubterm expr (Pos [ p ])
+     child <- selectSubterm expr (Pos [p])
      bvars <- boundVarsWithTypeAt' child (Pos ps)
      case expr of
        (IR.Case _ _ alts _)

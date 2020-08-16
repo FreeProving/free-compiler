@@ -47,7 +47,7 @@ makeConsMapEntry entry
   | not (isConEntry entry) = Nothing
   | otherwise = do
     typeConIdent <- extractTypeConIdent (entryReturnType entry)
-    return (typeConIdent, [ (conQName, arity, isInfix) ])
+    return (typeConIdent, [(conQName, arity, isInfix)])
  where
    -- | Gets the name of the data type from the return type of the constructor.
    extractTypeConIdent :: IR.Type -> Maybe String

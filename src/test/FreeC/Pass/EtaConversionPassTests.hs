@@ -87,7 +87,7 @@ testEtaConvertFuncDecl = context "etaConvertFuncDecl" $ do
     _ <- etaConvertFuncDecl input
     expectedType <- parseTestType "Foo"
     argTypes <- inEnv $ lookupArgTypes IR.ValueScope (IR.UnQual (IR.Ident "f"))
-    return (argTypes `shouldBeSimilarTo` Just [ expectedType ])
+    return (argTypes `shouldBeSimilarTo` Just [expectedType])
   it "applies under-applied function that is if-expression to missing argument"
     $ shouldSucceedWith $ do
       _ <- defineTestTypeCon "Foo" 0 []
@@ -154,16 +154,16 @@ testEtaConvertExpr = context "etaConvertExpr" $ do
       "\\(f :: a -> b -> c) x -> f x"
   it "leaves fully applied constructors unchanged" $ shouldSucceedWith $ do
     _ <- defineTestTypeCon "Foo" 0 []
-    _ <- defineTestTypeCon "Bar" 0 [ "Bar" ]
+    _ <- defineTestTypeCon "Bar" 0 ["Bar"]
     _ <- defineTestCon "Bar" 2 "Foo -> Foo -> Bar"
     "Bar x y" `shouldEtaConvert` "Bar x y"
   it "leaves over applied functions unchanged" $ shouldSucceedWith $ do
     _ <- defineTestTypeCon "Foo" 0 []
-    _ <- defineTestTypeCon "Bar" 0 [ "Bar" ]
+    _ <- defineTestTypeCon "Bar" 0 ["Bar"]
     _ <- defineTestCon "Bar" 2 "Foo -> Foo -> Bar"
     "Bar x y z" `shouldEtaConvert` "Bar x y z"
   it "eta-converts under applied functions" $ shouldSucceedWith $ do
     _ <- defineTestTypeCon "Foo" 0 []
-    _ <- defineTestTypeCon "Bar" 0 [ "Bar" ]
+    _ <- defineTestTypeCon "Bar" 0 ["Bar"]
     _ <- defineTestCon "Bar" 2 "Foo -> Foo -> Bar"
     "Bar x" `shouldEtaConvert` "\\y -> Bar x y"

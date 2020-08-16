@@ -122,7 +122,7 @@ identLetter
 --   > <namesymbol> ::= <symbol> \ ( "(" | ")" )
 nameSymbolChar :: Scanner Char
 nameSymbolChar = Parsec.satisfy
-  ((isSymbol .||. isPunctuation) .&&. (`notElem` [ '(', ')' ]))
+  ((isSymbol .||. isPunctuation) .&&. (`notElem` ['(', ')']))
 
 -- | Language definition for the intermediate language.
 --

@@ -38,7 +38,7 @@ putVersionInfo = do
   putStrLn
     ("The Free Compiler, version " ++ showVersion version ++ " (" ++ intercalate
      ", " (either (const []) (return . giDescribeDirty) gitInfoOrError
-           ++ [ compilerName ++ " " ++ showVersion compilerVersion, os, arch ])
+           ++ [compilerName ++ " " ++ showVersion compilerVersion, os, arch])
      ++ ")")
  where
    -- | Compile time information about the current Git commit.

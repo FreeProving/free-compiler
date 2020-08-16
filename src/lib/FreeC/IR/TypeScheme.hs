@@ -60,7 +60,7 @@ abstractTypeScheme'
 abstractTypeScheme' ns t
   = let vs         = map (fromJust . IR.identFromQName) ns
         (ivs, uvs) = partition IR.isInternalIdent vs
-        vs'        = uvs ++ take (length ivs) (map makeTypeArg [ 0 .. ] \\ uvs)
+        vs'        = uvs ++ take (length ivs) (map makeTypeArg [0 ..] \\ uvs)
         ns'        = map (IR.UnQual . IR.Ident) (uvs ++ ivs)
         ts         = map (IR.TypeVar NoSrcSpan) vs'
         subst      = composeSubsts (zipWith singleSubst ns' ts)

@@ -275,7 +275,7 @@ emptyTypeInferenceState = TypeInferenceState
 --   in the given environment.
 makeTypeAssumption :: Environment -> TypeAssumption
 makeTypeAssumption env = Map.fromList
-  [ (name, typeScheme)
+  [(name, typeScheme)
   | (scope, name) <- Map.keys (envEntries env)
   , scope == IR.ValueScope
   , typeScheme <- maybeToList (lookupTypeScheme scope name env)

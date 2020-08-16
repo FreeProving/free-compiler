@@ -18,4 +18,4 @@ testModuleSyntax :: Spec
 testModuleSyntax = describe "FreeC.IR.Syntax.Module" $ do
   context "instance (Pretty IR.Module)" $ do
     it "separates top-level entries with semi-colons" $ do
-      shouldPrettyPrintModule [ "module M where", "foo = 42;", "bar = 1337" ]
+      shouldPrettyPrintModule ["module M where", "foo = 42;", "bar = 1337"]

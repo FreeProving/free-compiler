@@ -56,6 +56,6 @@ runParsecOrFail :: MonadReporter r => SrcFile         -- ^ The file to parse.
   -> Parsec [ t ] () a -- ^ The parser to run.
   -> r a
 runParsecOrFail srcFile stream parser = do
-  let srcFiles = mkSrcFileMap [ srcFile ]
+  let srcFiles = mkSrcFileMap [srcFile]
       result   = Parsec.runParser parser () (srcFileName srcFile) stream
   either (reportParsecError srcFiles) return result

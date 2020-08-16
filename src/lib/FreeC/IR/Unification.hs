@@ -135,7 +135,7 @@ unify t s = do
 -- | Computes the most general unificator for all given type expressions.
 unifyAll :: [ IR.Type ] -> ExceptT UnificationError Converter (Subst IR.Type)
 unifyAll [] = return identitySubst
-unifyAll [ _ ] = return identitySubst
+unifyAll [_] = return identitySubst
 unifyAll (t0 : t1 : ts) = do
   mgu <- unify t0 t1
   let t1' = applySubst mgu t1
@@ -172,9 +172,9 @@ disagreementSet t@(IR.TypeCon _ c) s@(IR.TypeCon _ d)
     if n == m then return Nothing else return (Just (rootPos, t, s))
 -- Compute disagreement set recursively.
 disagreementSet (IR.TypeApp _ t1 t2) (IR.TypeApp _ s1 s2)
-  = disagreementSet' 1 [ t1, t2 ] [ s1, s2 ]
+  = disagreementSet' 1 [t1, t2] [s1, s2]
 disagreementSet (IR.FuncType _ t1 t2) (IR.FuncType _ s1 s2)
-  = disagreementSet' 1 [ t1, t2 ] [ s1, s2 ]
+  = disagreementSet' 1 [t1, t2] [s1, s2]
 -- If the two types have a different constructor, they disagree.
 disagreementSet t s = return (Just (rootPos, t, s))
 

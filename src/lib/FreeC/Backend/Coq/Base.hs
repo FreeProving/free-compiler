@@ -9,7 +9,7 @@ import qualified FreeC.Backend.Coq.Syntax as Coq
 -------------------------------------------------------------------------------
 -- | Import sentence for the @Free@ module from the Base Coq library.
 imports :: Coq.Sentence
-imports = Coq.requireImportFrom baseLibName [ Coq.ident "Free" ]
+imports = Coq.requireImportFrom baseLibName [Coq.ident "Free"]
 
 -- | The name of the Base Coq library.
 baseLibName :: Coq.ModuleIdent
@@ -60,7 +60,7 @@ partial = Coq.bare "Partial"
 partialArg :: (Coq.Qualid, Coq.Term)
 partialArg = ( Coq.bare "P"
              , Coq.app (Coq.Qualid (Coq.bare "Partial"))
-                 [ Coq.Qualid (Coq.bare "Shape"), Coq.Qualid (Coq.bare "Pos") ]
+                 [Coq.Qualid (Coq.bare "Shape"), Coq.Qualid (Coq.bare "Pos")]
              )
 
 -- | The identifier for the error term @undefined@.

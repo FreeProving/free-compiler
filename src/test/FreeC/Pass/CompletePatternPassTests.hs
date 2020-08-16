@@ -15,7 +15,7 @@ testCompletePatternPass = describe "FreeC.Pass.CompletePatternPass" $ do
     it "fails when a constructor is missing" $ do
       input <- expectParseTestFuncDecl "f x = case x :: Foobar of {Foo -> Foo}"
       shouldFail $ do
-        _ <- defineTestTypeCon "Foobar" 0 [ "Foo", "Bar" ]
+        _ <- defineTestTypeCon "Foobar" 0 ["Foo", "Bar"]
         _ <- defineTestCon "Foo" 0 "Foobar"
         _ <- defineTestCon "Bar" 0 "Foobar"
         _ <- defineTestVar "x"
@@ -24,7 +24,7 @@ testCompletePatternPass = describe "FreeC.Pass.CompletePatternPass" $ do
       input <- expectParseTestFuncDecl
         "f x = case x :: Foobar of {Foo -> Foo ; Bar -> Bar ; Foo -> Foo}"
       shouldFail $ do
-        _ <- defineTestTypeCon "Foobar" 0 [ "Foo", "Bar" ]
+        _ <- defineTestTypeCon "Foobar" 0 ["Foo", "Bar"]
         _ <- defineTestCon "Foo" 0 "Foobar"
         _ <- defineTestCon "Bar" 0 "Foobar"
         _ <- defineTestVar "x"
@@ -33,7 +33,7 @@ testCompletePatternPass = describe "FreeC.Pass.CompletePatternPass" $ do
       input <- expectParseTestFuncDecl
         "f x = case x :: Foobar of {Foo -> Foo ; Bar -> Bar}"
       shouldSucceed $ do
-        _ <- defineTestTypeCon "Foobar" 0 [ "Foo", "Bar" ]
+        _ <- defineTestTypeCon "Foobar" 0 ["Foo", "Bar"]
         _ <- defineTestCon "Foo" 0 "Foobar"
         _ <- defineTestCon "Bar" 0 "Foobar"
         _ <- defineTestVar "x"
@@ -43,7 +43,7 @@ testCompletePatternPass = describe "FreeC.Pass.CompletePatternPass" $ do
         input <- expectParseTestFuncDecl
           "f x = case x :: Foobar of {Foo y -> Foo ; Bar y -> Bar}"
         shouldSucceed $ do
-          _ <- defineTestTypeCon "Foobar" 0 [ "Foo", "Bar" ]
+          _ <- defineTestTypeCon "Foobar" 0 ["Foo", "Bar"]
           _ <- defineTestCon "Foo" 1 "Foobar -> Foobar"
           _ <- defineTestCon "Bar" 0 "Foobar"
           _ <- defineTestVar "x"
@@ -52,8 +52,8 @@ testCompletePatternPass = describe "FreeC.Pass.CompletePatternPass" $ do
       input <- expectParseTestFuncDecl
         "f x = case x :: Foobar of {Foo -> Foo ; Bar -> Bar ; Evil -> Bar}"
       shouldFail $ do
-        _ <- defineTestTypeCon "Foobar" 0 [ "Foo", "Bar" ]
-        _ <- defineTestTypeCon "Evil" 0 [ "Evil" ]
+        _ <- defineTestTypeCon "Foobar" 0 ["Foo", "Bar"]
+        _ <- defineTestTypeCon "Evil" 0 ["Evil"]
         _ <- defineTestCon "Foo" 0 "Foobar"
         _ <- defineTestCon "Bar" 0 "Foobar"
         _ <- defineTestCon "Evil" 0 "Evil"
@@ -64,7 +64,7 @@ testCompletePatternPass = describe "FreeC.Pass.CompletePatternPass" $ do
       input <- expectParseTestFuncDecl
         "f x = if b then case x :: Foobar of {Foo -> Foo} else Bar"
       shouldFail $ do
-        _ <- defineTestTypeCon "Foobar" 0 [ "Foo", "Bar" ]
+        _ <- defineTestTypeCon "Foobar" 0 ["Foo", "Bar"]
         _ <- defineTestCon "Foo" 0 "Foobar"
         _ <- defineTestCon "Bar" 0 "Foobar"
         _ <- defineTestVar "x"
@@ -75,7 +75,7 @@ testCompletePatternPass = describe "FreeC.Pass.CompletePatternPass" $ do
         $ "f x = case x :: Foobar of {Foo -> case x :: Foobar of "
         ++ "{Foo -> Foo} ; Bar -> Bar}"
       shouldFail $ do
-        _ <- defineTestTypeCon "Foobar" 0 [ "Foo", "Bar" ]
+        _ <- defineTestTypeCon "Foobar" 0 ["Foo", "Bar"]
         _ <- defineTestCon "Foo" 0 "Foobar"
         _ <- defineTestCon "Bar" 0 "Foobar"
         _ <- defineTestVar "x"
@@ -86,7 +86,7 @@ testCompletePatternPass = describe "FreeC.Pass.CompletePatternPass" $ do
         $ "f x = case ((case x :: Foobar of {Foo -> x} ) :: Foobar) "
         ++ "of {Foo -> Foo ; Bar -> Bar}"
       shouldFail $ do
-        _ <- defineTestTypeCon "Foobar" 0 [ "Foo", "Bar" ]
+        _ <- defineTestTypeCon "Foobar" 0 ["Foo", "Bar"]
         _ <- defineTestCon "Foo" 0 "Foobar"
         _ <- defineTestCon "Bar" 0 "Foobar"
         _ <- defineTestVar "x"
@@ -96,7 +96,7 @@ testCompletePatternPass = describe "FreeC.Pass.CompletePatternPass" $ do
         $ "f x = case x :: Foobar of {Foo -> case x :: Foobar of "
         ++ "{Foo -> Foo ; Bar -> Bar} ; Bar -> Bar}"
       shouldSucceed $ do
-        _ <- defineTestTypeCon "Foobar" 0 [ "Foo", "Bar" ]
+        _ <- defineTestTypeCon "Foobar" 0 ["Foo", "Bar"]
         _ <- defineTestCon "Foo" 0 "Foobar"
         _ <- defineTestCon "Bar" 0 "Foobar"
         _ <- defineTestVar "x"
@@ -105,7 +105,7 @@ testCompletePatternPass = describe "FreeC.Pass.CompletePatternPass" $ do
       input <- expectParseTestFuncDecl
         "f x = \\ y -> case x :: Foobar of {Foo -> Foo}"
       shouldFail $ do
-        _ <- defineTestTypeCon "Foobar" 0 [ "Foo", "Bar" ]
+        _ <- defineTestTypeCon "Foobar" 0 ["Foo", "Bar"]
         _ <- defineTestCon "Foo" 0 "Foobar"
         _ <- defineTestVar "x"
         checkPatternFuncDecl input
@@ -115,7 +115,7 @@ testCompletePatternPass = describe "FreeC.Pass.CompletePatternPass" $ do
       input <- expectParseTestFuncDecl
         "g f = case f :: Foobar -> Foobar of {Foo -> Foo ; Bar -> Bar}"
       shouldFail $ do
-        _ <- defineTestTypeCon "Foobar" 0 [ "Foo", "Bar" ]
+        _ <- defineTestTypeCon "Foobar" 0 ["Foo", "Bar"]
         _ <- defineTestCon "Foo" 0 "Foobar"
         _ <- defineTestCon "Bar" 0 "Foobar"
         _ <- defineTestFunc "f" 1 "Foobar -> Foobar"
@@ -125,7 +125,7 @@ testCompletePatternPass = describe "FreeC.Pass.CompletePatternPass" $ do
         ++ "and the alternative list is empty") $ do
       input <- expectParseTestFuncDecl "g f = case f :: Foobar -> Foobar of {}"
       shouldFail $ do
-        _ <- defineTestTypeCon "Foobar" 0 [ "Foo", "Bar" ]
+        _ <- defineTestTypeCon "Foobar" 0 ["Foo", "Bar"]
         _ <- defineTestCon "Foo" 0 "Foobar"
         _ <- defineTestCon "Bar" 0 "Foobar"
         _ <- defineTestVar "b"
@@ -135,7 +135,7 @@ testCompletePatternPass = describe "FreeC.Pass.CompletePatternPass" $ do
       input <- expectParseTestFuncDecl
         "g x = case (f x) :: Foobar of {Foo -> Foo ; Bar -> Bar}"
       shouldSucceed $ do
-        _ <- defineTestTypeCon "Foobar" 0 [ "Foo", "Bar" ]
+        _ <- defineTestTypeCon "Foobar" 0 ["Foo", "Bar"]
         _ <- defineTestCon "Foo" 0 "Foobar"
         _ <- defineTestCon "Bar" 0 "Foobar"
         _ <- defineTestFunc "f" 1 "Foobar -> Foobar"
@@ -146,14 +146,14 @@ testCompletePatternPass = describe "FreeC.Pass.CompletePatternPass" $ do
         $ "f = case (\\ x -> Foo) :: Foobar -> Foobar of "
         ++ "{Foo -> Foo ; Bar -> Bar}"
       shouldFail $ do
-        _ <- defineTestTypeCon "Foobar" 0 [ "Foo", "Bar" ]
+        _ <- defineTestTypeCon "Foobar" 0 ["Foo", "Bar"]
         _ <- defineTestCon "Foo" 0 "Foobar"
         _ <- defineTestCon "Bar" 0 "Foobar"
         checkPatternFuncDecl input
     it "fails if the case expression's scrutinee is polymorphic" $ do
       input <- expectParseTestFuncDecl "f x = case x :: a of {}"
       shouldFail $ do
-        _ <- defineTestTypeCon "Foobar" 0 [ "Foo", "Bar" ]
+        _ <- defineTestTypeCon "Foobar" 0 ["Foo", "Bar"]
         _ <- defineTestCon "Foo" 0 "Foobar"
         _ <- defineTestCon "Bar" 0 "Foobar"
         _ <- defineTestVar "x"
@@ -164,7 +164,7 @@ testCompletePatternPass = describe "FreeC.Pass.CompletePatternPass" $ do
       input
         <- expectParseTestFuncDecl "f x = case x :: FoobarSyn of { Foo -> Foo }"
       shouldSucceed $ do
-        _ <- defineTestTypeCon "Foobar" 0 [ "Foo" ]
+        _ <- defineTestTypeCon "Foobar" 0 ["Foo"]
         _ <- defineTestCon "Foo" 0 "Foobar"
         _ <- defineTestTypeSyn "FoobarSyn" [] "Foobar"
         checkPatternFuncDecl input
@@ -172,7 +172,7 @@ testCompletePatternPass = describe "FreeC.Pass.CompletePatternPass" $ do
       input
         <- expectParseTestFuncDecl "f x = case x :: FooSynSyn of { Foo -> Foo }"
       shouldSucceed $ do
-        _ <- defineTestTypeCon "Foo" 0 [ "Foo" ]
+        _ <- defineTestTypeCon "Foo" 0 ["Foo"]
         _ <- defineTestCon "Foo" 0 "Foobar"
         _ <- defineTestTypeSyn "FooSyn" [] "Foo"
         _ <- defineTestTypeSyn "FooSynSyn" [] "FooSyn"

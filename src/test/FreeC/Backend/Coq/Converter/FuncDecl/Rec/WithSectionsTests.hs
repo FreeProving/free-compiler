@@ -37,7 +37,7 @@ testConvertRecFuncDeclWithSections :: Spec
 testConvertRecFuncDeclWithSections = context "with section sentences" $ do
   it "creates variable sentences for constant arguments" $ shouldSucceedWith
     $ do
-      "List" <- defineTestTypeCon "List" 1 [ "Nil", "Cons" ]
+      "List" <- defineTestTypeCon "List" 1 ["Nil", "Cons"]
       ("nil", "Nil") <- defineTestCon "Nil" 0 "forall a. List a"
       ("cons", "Cons")
         <- defineTestCon "Cons" 2 "forall a. a -> List a -> List a"
@@ -70,7 +70,7 @@ testConvertRecFuncDeclWithSections = context "with section sentences" $ do
         ++ "  := map_0 Shape Pos a b f xs."
   it "creates variable sentences for type variables in constant argument types"
     $ shouldSucceedWith $ do
-      "List" <- defineTestTypeCon "List" 1 [ "Nil", "Cons" ]
+      "List" <- defineTestTypeCon "List" 1 ["Nil", "Cons"]
       ("nil", "Nil") <- defineTestCon "Nil" 0 "forall a. List a"
       ("cons", "Cons")
         <- defineTestCon "Cons" 2 "forall a. a -> List a -> List a"
@@ -126,7 +126,7 @@ testConvertRecFuncDeclWithSections = context "with section sentences" $ do
         ++ "  := mapAlt'_0 Shape Pos b a f xs."
   it "does not create variable sentences for unused constant arguments"
     $ shouldSucceedWith $ do
-      "List" <- defineTestTypeCon "List" 1 [ "Nil", "Cons" ]
+      "List" <- defineTestTypeCon "List" 1 ["Nil", "Cons"]
       ("nil", "Nil") <- defineTestCon "Nil" 0 "forall a. List a"
       ("cons", "Cons")
         <- defineTestCon "Cons" 2 "forall a. a -> List a -> List a"
@@ -157,7 +157,7 @@ testConvertRecFuncDeclWithSections = context "with section sentences" $ do
         ++ "  := foo_0 Shape Pos a v xs."
   it "passes constant type arguments explicitly the main function"
     $ shouldSucceedWith $ do
-      "List" <- defineTestTypeCon "List" 1 [ "Nil", "Cons" ]
+      "List" <- defineTestTypeCon "List" 1 ["Nil", "Cons"]
       ("nil", "Nil") <- defineTestCon "Nil" 0 "forall a. List a"
       ("cons", "Cons")
         <- defineTestCon "Cons" 2 "forall a. a -> List a -> List a"

@@ -229,7 +229,7 @@ data DependencyComponent decl
 
 -- | Gets the declarations wrapped by the given strongly connected component.
 unwrapComponent :: DependencyComponent decl -> [ decl ]
-unwrapComponent (NonRecursive decl) = [ decl ]
+unwrapComponent (NonRecursive decl) = [decl]
 unwrapComponent (Recursive decls)   = decls
 
 -------------------------------------------------------------------------------
@@ -291,7 +291,7 @@ groupModules = dependencyComponents . moduleDependencyGraph
 mapComponent :: ([ decl ] -> [ decl' ])
   -> DependencyComponent decl -> DependencyComponent decl'
 mapComponent f (NonRecursive decl)
-  = let [ decl' ] = f [ decl ] in NonRecursive decl'
+  = let [decl'] = f [decl] in NonRecursive decl'
 mapComponent f (Recursive decls)   = Recursive (f decls)
 
 -- | Monadic version of 'mapComponent'.
@@ -302,14 +302,14 @@ mapComponent f (Recursive decls)   = Recursive (f decls)
 mapComponentM :: MonadFail m => ([ decl ] -> m [ decl' ]) -> DependencyComponent
   decl -> m (DependencyComponent decl')
 mapComponentM f (NonRecursive decl) = do
-  [ decl' ] <- f [ decl ]
+  [decl'] <- f [decl]
   return (NonRecursive decl')
 mapComponentM f (Recursive decls)   = Recursive <$> f decls
 
 -- | Like 'mapComponentM' but discards the result.
 mapComponentM_ :: MonadFail m => ([ decl ] -> m a)
   -> DependencyComponent decl -> m ()
-mapComponentM_ f (NonRecursive decl) = void (f [ decl ])
+mapComponentM_ f (NonRecursive decl) = void (f [decl])
 mapComponentM_ f (Recursive decls)   = void (f decls)
 
 -------------------------------------------------------------------------------

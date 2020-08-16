@@ -25,10 +25,10 @@ testRunReporter = describe "runReporter" $ do
     runReporter (return testValue) `shouldBe` (Just testValue, [])
   it "returns 'Just' the produced value if no fatal message was reported" $ do
     runReporter (report testMessage1 >> return testValue)
-      `shouldBe` (Just testValue, [ testMessage1 ])
+      `shouldBe` (Just testValue, [testMessage1])
   it "returns 'Nothing' if a fatal message was reported" $ do
     runReporter (reportFatal testMessage1)
-      `shouldBe` (Nothing :: Maybe (), [ testMessage1 ])
+      `shouldBe` (Nothing :: Maybe (), [testMessage1])
 
 -------------------------------------------------------------------------------
 -- Test data                                                                 --
@@ -77,7 +77,7 @@ testMessages = describe "messages" $ do
     length (messages reporter) `shouldBe` 1
   it "collects no messages in the right order" $ do
     let reporter = report testMessage1 >> report testMessage2
-    messages reporter `shouldBe` [ testMessage1, testMessage2 ]
+    messages reporter `shouldBe` [testMessage1, testMessage2]
 
 -------------------------------------------------------------------------------
 -- Tests for @liftIO@                                                        --

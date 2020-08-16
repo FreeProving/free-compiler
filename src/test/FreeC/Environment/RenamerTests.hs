@@ -32,11 +32,11 @@ genIdent = do
                      , (1, genReservedIdent)
                      ]
   num <- choose (0, 42) :: Gen Int
-  oneof $ map return [ ident, ident ++ show num ]
+  oneof $ map return [ident, ident ++ show num]
 
 -- | Generator for arbitrary user defined identifiers.
 genRegularIdent :: Gen String
-genRegularIdent = oneof $ map return [ "x", "y", "z" ]
+genRegularIdent = oneof $ map return ["x", "y", "z"]
 
 -- | Generator for arbitrary identifiers reserved by the Coq Base library.
 genReservedIdent :: Gen String

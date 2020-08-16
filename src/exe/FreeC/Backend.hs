@@ -41,7 +41,7 @@ data Backend = Backend
 -- | A map of all available backends with the name of those backends as keys.
 backends :: Map.Map String Backend
 backends = Map.fromList
-  [ (backendName b, b) | b <- [ coqBackend, irBackend, agdaBackend ] ]
+  [(backendName b, b) | b <- [coqBackend, irBackend, agdaBackend]]
 
 -- | Shows a list of all backends.
 showBackends :: String
@@ -162,7 +162,7 @@ createAgdaLib = whenM agdaLibEnabled $ unlessM agdaLibExists $ do
    -- | Creates the string to write to the @.agda-lib@ file.
    contents :: String -> String
    contents name = unlines
-     [ "name: " ++ name, "include: .", "depend: standard-library base" ]
+     ["name: " ++ name, "include: .", "depend: standard-library base"]
 
    -- | Path to the @.agda-lib@ file to create and the name of the library.
    getAgdaLib :: Application (FilePath, String)

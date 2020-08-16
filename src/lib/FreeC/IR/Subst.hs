@@ -412,7 +412,7 @@ freeSubstIdents scope (Subst substMap) = Set.fromList $ mapMaybe
 --   that starts with the prefix followed by an increasing number starting with
 --   zero.
 freshIdentsWithPrefix :: String -> [ String ]
-freshIdentsWithPrefix prefix = map (prefix ++) ("" : map show [ 0 :: Int .. ])
+freshIdentsWithPrefix prefix = map (prefix ++) ("" : map show [0 :: Int ..])
 
 -------------------------------------------------------------------------------
 -- Rename arguments (old)                                                    --

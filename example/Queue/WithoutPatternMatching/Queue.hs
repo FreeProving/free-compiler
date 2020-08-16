@@ -16,4 +16,4 @@ front q = case q of
   x : q' -> x
 
 add :: a -> Queue a -> Queue a
-add x q = q `append` [ x ]
+add x q = q `append` [x]

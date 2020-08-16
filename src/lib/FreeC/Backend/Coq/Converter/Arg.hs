@@ -32,7 +32,7 @@ convertTypeVarDecls explicitness typeVarDecls
   | null typeVarDecls = return []
   | otherwise = do
     idents' <- mapM convertTypeVarDecl typeVarDecls
-    return [ Coq.typedBinder explicitness idents' Coq.sortType ]
+    return [Coq.typedBinder explicitness idents' Coq.sortType]
  where
    -- | TODO
    convertTypeVarDecl :: IR.TypeVarDecl -> Converter Coq.Qualid

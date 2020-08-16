@@ -15,12 +15,11 @@ import qualified FreeC.IR.Syntax       as IR
 -------------------------------------------------------------------------------
 -- | Generates an arbitrary type expression.
 instance Arbitrary IR.Type where
-  arbitrary
-    = oneof [ arbitraryTypeVar, arbitraryTypeConApp, arbitraryFuncType ]
+  arbitrary = oneof [arbitraryTypeVar, arbitraryTypeConApp, arbitraryFuncType]
    where
      arbitraryTypeVar :: Gen IR.Type
      arbitraryTypeVar = do
-       ident <- oneof $ map return [ "a", "b", "c", "d" ]
+       ident <- oneof $ map return ["a", "b", "c", "d"]
        return (IR.TypeVar NoSrcSpan ident)
 
      arbitraryTypeConApp :: Gen IR.Type

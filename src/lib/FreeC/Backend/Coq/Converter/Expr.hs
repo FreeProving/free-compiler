@@ -47,7 +47,7 @@ convertLiftedExpr (LIR.ErrorExpr _) = return $ Coq.Qualid Coq.Base.partialError
 convertLiftedExpr (LIR.IntLiteral _ value) = do
   let natValue = Coq.Num $ fromInteger (abs value)
       value'
-        | value < 0 = Coq.app (Coq.Qualid (Coq.bare "-")) [ natValue ]
+        | value < 0 = Coq.app (Coq.Qualid (Coq.bare "-")) [natValue]
         | otherwise = natValue
   return $ Coq.InScope value' Coq.Base.integerScope
 convertLiftedExpr (LIR.StringLiteral _ str) = return $ Coq.InScope
@@ -64,7 +64,7 @@ convertLiftedExpr (LIR.Pure _ arg) = do
 convertLiftedExpr (LIR.Bind _ lhs rhs) = do
   lhs' <- convertLiftedExpr lhs
   rhs' <- convertLiftedExpr rhs
-  return $ Coq.app (Coq.Qualid Coq.Base.freeBind) [ lhs', rhs' ]
+  return $ Coq.app (Coq.Qualid Coq.Base.freeBind) [lhs', rhs']
 
 -- | Converts a Haskell expression to Coq.
 convertExpr :: IR.Expr -> Converter Coq.Term

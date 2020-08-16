@@ -40,9 +40,9 @@ testExportPass :: Spec
 testExportPass = describe "FreeC.Pass.ExportPass" $ do
   context "qualifies Coq identifiers of exported entries" $ do
     it "qualifies Coq identifiers of data type entries" $ do
-      input <- expectParseTestModule [ "module A where", "data A.Foo = A.Bar" ]
+      input <- expectParseTestModule ["module A where", "data A.Foo = A.Bar"]
       shouldSucceedWith $ do
-        _ <- defineTestTypeCon "A.Foo" 0 [ "A.Bar" ]
+        _ <- defineTestTypeCon "A.Foo" 0 ["A.Bar"]
         _ <- defineTestCon "A.Bar" 0 "A.Foo"
         _ <- exportPass input
         mOutput <- inEnv $ lookupAvailableModule "A"
@@ -50,9 +50,9 @@ testExportPass = describe "FreeC.Pass.ExportPass" $ do
               (IR.Qual "A" (IR.Ident "Foo")) (fromJust mOutput)
         entryIdent foo `shouldBeQualifiedWith` "A"
     it "qualifies Coq identifiers of constructor entries" $ do
-      input <- expectParseTestModule [ "module A where", "data A.Bar = A.Foo" ]
+      input <- expectParseTestModule ["module A where", "data A.Bar = A.Foo"]
       shouldSucceedWith $ do
-        _ <- defineTestTypeCon "A.Bar" 0 [ "A.Foo" ]
+        _ <- defineTestTypeCon "A.Bar" 0 ["A.Foo"]
         _ <- defineTestCon "A.Foo" 0 "A.Bar"
         _ <- exportPass input
         mOutput <- inEnv $ lookupAvailableModule "A"
@@ -61,9 +61,9 @@ testExportPass = describe "FreeC.Pass.ExportPass" $ do
         entryIdent foo `shouldBeQualifiedWith` "A"
     it "qualifies Coq identifiers of type synonym entries" $ do
       input <- expectParseTestModule
-        [ "module A where", "data A.Bar = A.Bar;", "type A.Foo = A.Bar" ]
+        ["module A where", "data A.Bar = A.Bar;", "type A.Foo = A.Bar"]
       shouldSucceedWith $ do
-        _ <- defineTestTypeCon "A.Bar" 0 [ "A.Bar" ]
+        _ <- defineTestTypeCon "A.Bar" 0 ["A.Bar"]
         _ <- defineTestCon "A.Bar" 0 "A.Bar"
         _ <- defineTestTypeSyn "A.Foo" [] "A.Bar"
         _ <- exportPass input
@@ -73,9 +73,9 @@ testExportPass = describe "FreeC.Pass.ExportPass" $ do
         entryIdent foo `shouldBeQualifiedWith` "A"
     it "qualifies Coq identifiers of function declaration entries" $ do
       input <- expectParseTestModule
-        [ "module A where", "data A.Bar = A.Bar;", "type A.Foo = A.Bar" ]
+        ["module A where", "data A.Bar = A.Bar;", "type A.Foo = A.Bar"]
       shouldSucceedWith $ do
-        _ <- defineTestTypeCon "A.Foo" 0 [ "A.Foo" ]
+        _ <- defineTestTypeCon "A.Foo" 0 ["A.Foo"]
         _ <- defineTestCon "A.Foo" 0 "A.Foo"
         _ <- defineTestFunc "A.mkFoo" 0 "A.Foo"
         _ <- exportPass input
@@ -84,10 +84,10 @@ testExportPass = describe "FreeC.Pass.ExportPass" $ do
               (IR.Qual "A" (IR.Ident "mkFoo")) (fromJust mOutput)
         entryIdent mkFoo `shouldBeQualifiedWith` "A"
     it "does not override qualification of Coq identifiers for entries" $ do
-      _ <- expectParseTestModule [ "module A where", "data A.Foo = A.Foo" ]
-      input <- expectParseTestModule [ "module B where", "import A" ]
+      _ <- expectParseTestModule ["module A where", "data A.Foo = A.Foo"]
+      input <- expectParseTestModule ["module B where", "import A"]
       shouldSucceedWith $ do
-        _ <- defineTestTypeCon "A.Foo" 0 [ "A.Foo" ]
+        _ <- defineTestTypeCon "A.Foo" 0 ["A.Foo"]
         _ <- defineTestCon "A.Foo" 0 "A.Foo"
         name <- parseTestQName "A.Foo"
         let qualid = Coq.Qualified (Coq.ident "A") (Coq.ident "Foo")

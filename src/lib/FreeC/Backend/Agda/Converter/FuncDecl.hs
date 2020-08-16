@@ -31,11 +31,11 @@ import           FreeC.Monad.Reporter
 --   TODO: Handle mutually recursive functions.
 convertFuncDecls
   :: DependencyComponent IR.FuncDecl -> Converter [ Agda.Declaration ]
-convertFuncDecls (NonRecursive decl)  = convertFuncDecl decl Nothing
-convertFuncDecls (Recursive [ decl ]) = do
-  [ decArg ] <- identifyDecArgs [ decl ]
+convertFuncDecls (NonRecursive decl) = convertFuncDecl decl Nothing
+convertFuncDecls (Recursive [decl])  = do
+  [decArg] <- identifyDecArgs [decl]
   convertFuncDecl decl $ Just decArg
-convertFuncDecls (Recursive ds)       = reportFatal $ Message
+convertFuncDecls (Recursive ds)      = reportFatal $ Message
   (IR.funcDeclSrcSpan $ head ds) Error
   $ "Mutual recursive functions are not supported by the Agda back end "
   ++ "at the moment."
@@ -44,7 +44,7 @@ convertFuncDecls (Recursive ds)       = reportFatal $ Message
 --   type signature and the definition.
 convertFuncDecl :: IR.FuncDecl -> Maybe Int -> Converter [ Agda.Declaration ]
 convertFuncDecl decl decArg = sequence
-  [ localEnv $ convertSignature decl decArg, localEnv $ convertFuncDef decl ]
+  [localEnv $ convertSignature decl decArg, localEnv $ convertFuncDef decl]
 
 ------------------------------------------------------------------------------
 -- Definitions                                                              --

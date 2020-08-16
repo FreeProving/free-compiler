@@ -99,7 +99,7 @@ guessDecArgs (_ : decls) (Just decArgIndex : knownDecArgIndecies) = do
 guessDecArgs (decl : decls) (Nothing : knownDecArgIndecies) = do
   let arity = length (IR.funcDeclArgs decl)
   decArgIndecies <- guessDecArgs decls knownDecArgIndecies
-  decArgIndex <- [ 0 .. arity - 1 ]
+  decArgIndex <- [0 .. arity - 1]
   return (decArgIndex : decArgIndecies)
 
 -------------------------------------------------------------------------------

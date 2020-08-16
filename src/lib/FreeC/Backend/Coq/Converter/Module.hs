@@ -68,7 +68,7 @@ convertImportDecl (IR.ImportDecl _ modName) = do
 --   be qualified in the code.
 generateImport :: Coq.ModuleIdent -> IR.ModName -> Converter Coq.Sentence
 generateImport libName modName = return
-  (mkRequireSentence libName [ Coq.ident (showPretty modName) ])
+  (mkRequireSentence libName [Coq.ident (showPretty modName)])
  where
    -- | Makes a @From … Require Import …@ or  @From … Require …@.
    mkRequireSentence :: Coq.ModuleIdent -> [ Coq.ModuleIdent ] -> Coq.Sentence

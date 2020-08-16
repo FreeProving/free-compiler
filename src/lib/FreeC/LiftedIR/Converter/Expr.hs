@@ -108,7 +108,7 @@ liftExpr' (IR.Var srcSpan name _) typeArgs args = do
       typeArgs' <- mapM LIR.liftType' typeArgs
       generateBinds (zip3 args' (map Just argTypes' ++ repeat Nothing)
                      $ strictArgs ++ repeat False) $ \args'' -> generateApply
-        (LIR.App srcSpan varName typeArgs' [ Partiality | partial ]
+        (LIR.App srcSpan varName typeArgs' [Partiality | partial]
          (take arity args'') freeArgs) $ drop arity args'' else do
       pureArg <- inEnv $ isPureVar name
       generateApply (bool id (LIR.Pure NoSrcSpan) pureArg varName) args'
@@ -122,8 +122,7 @@ liftExpr' (IR.IntLiteral srcSpan value _) [] []
 -- > ⎣ Γ ⊢ λx:τ₀.e : τ₀ → τ₁ ⎦   Γ' ⊢ pure(λx:τ₀'.e') : m(τ₀' → τ₁')
 liftExpr' (IR.Lambda srcSpan args rhs _) [] [] = localEnv $ do
   (pats, expr) <- liftAlt' args rhs
-  return $ foldr (\a b -> LIR.Pure srcSpan $ LIR.Lambda srcSpan [ a ] b) expr
-    pats
+  return $ foldr (\a b -> LIR.Pure srcSpan $ LIR.Lambda srcSpan [a] b) expr pats
 -- @if@-expressions.
 --
 -- > ⎡Γ ⊢ p:Bool  Γ ⊢ t:τ  Γ ⊢ f:τ⎤'     Γ' ⊢ p':Bool'  Γ' ⊢ t':τ'  Γ' ⊢ f':τ'
@@ -157,7 +156,7 @@ liftExpr' (IR.Undefined srcSpan _) typeArgs args = do
   typeArgs' <- mapM LIR.liftType' typeArgs
   args' <- mapM liftExpr args
   generateApply
-    (LIR.App srcSpan (LIR.Undefined srcSpan) typeArgs' [ Partiality ] [] True)
+    (LIR.App srcSpan (LIR.Undefined srcSpan) typeArgs' [Partiality] [] True)
     args'
 liftExpr' (IR.ErrorExpr srcSpan msg _) typeArgs args = do
   when (length typeArgs /= 1) $ reportFatal $ Message srcSpan Internal
@@ -166,8 +165,8 @@ liftExpr' (IR.ErrorExpr srcSpan msg _) typeArgs args = do
     ++ "Expected 1 type arguments, got " ++ show (length typeArgs) ++ "."
   typeArgs' <- mapM LIR.liftType' typeArgs
   args' <- mapM liftExpr args
-  generateApply (LIR.App srcSpan (LIR.ErrorExpr srcSpan) typeArgs'
-                 [ Partiality ] [ LIR.StringLiteral srcSpan msg ] True) args'
+  generateApply (LIR.App srcSpan (LIR.ErrorExpr srcSpan) typeArgs' [Partiality]
+                 [LIR.StringLiteral srcSpan msg] True) args'
 liftExpr' (IR.Let srcSpan _ _ _) _ _ = reportFatal $ Message srcSpan Error
   $ "Let expressions are currently not supported."
 -- Visible type application of an expression other than a function or
@@ -233,7 +232,7 @@ varPat srcSpan var varType = do
 --   > ⎣      Γ ⊢ e₀e₁ : τ₁       ⎦   Γ' ⊢ e₀' >>= λf:(τ₀' → τ₁').f e₀' : e₁'
 generateApply :: LIR.Expr -> [ LIR.Expr ] -> Converter LIR.Expr
 generateApply = foldlM $ \expr arg -> bind expr freshFuncPrefix Nothing
-  $ \f -> return $ LIR.App NoSrcSpan f [] [] [ arg ] False
+  $ \f -> return $ LIR.App NoSrcSpan f [] [] [arg] False
 
 -------------------------------------------------------------------------------
 -- Bind Expression                                                           --
@@ -264,7 +263,7 @@ bind arg defaultPrefix argType k = localEnv $ do
   argAgda <- lookupAgdaFreshIdentOrFail NoSrcSpan argIdent
   argCoq <- lookupIdentOrFail NoSrcSpan IR.FreshScope argIdent
   let pat = LIR.VarPat NoSrcSpan argIdent' argType argAgda argCoq
-  rhs <- LIR.Lambda NoSrcSpan [ pat ] <$> k
+  rhs <- LIR.Lambda NoSrcSpan [pat] <$> k
     (LIR.Var NoSrcSpan argIdent argAgda argCoq)
   -- Build the bind.
   return $ LIR.Bind NoSrcSpan arg rhs
@@ -298,4 +297,4 @@ rawBind srcSpan mx x varType expr = do
   let mx'          = LIR.Var srcSpan mx mxAgda mxCoq
       Just unqualX = identFromQName x
       x'           = LIR.VarPat srcSpan unqualX varType' xAgda xCoq
-  return $ LIR.Bind srcSpan mx' $ LIR.Lambda srcSpan [ x' ] expr
+  return $ LIR.Bind srcSpan mx' $ LIR.Lambda srcSpan [x'] expr

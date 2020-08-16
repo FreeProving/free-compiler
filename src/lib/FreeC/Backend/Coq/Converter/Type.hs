@@ -66,4 +66,4 @@ convertLiftedType (LIR.FuncType _ l r)              = do
   return $ Coq.Arrow l' r'
 convertLiftedType (LIR.FreeTypeCon _ t)             = do
   t' <- convertLiftedType t
-  return $ genericApply Coq.Base.free [] [] [ t' ]
+  return $ genericApply Coq.Base.free [] [] [t']

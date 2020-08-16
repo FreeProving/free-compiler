@@ -39,7 +39,7 @@ data Frontend = Frontend
 -- | A map of all available frontends with the name of those frontends as keys.
 frontends :: Map.Map String Frontend
 frontends
-  = Map.fromList [ (frontendName f, f) | f <- [ haskellFrontend, irFrontend ] ]
+  = Map.fromList [(frontendName f, f) | f <- [haskellFrontend, irFrontend]]
 
 -- | Shows a list of all frontends.
 showFrontends :: String

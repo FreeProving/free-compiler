@@ -90,4 +90,4 @@ pi :: String
   -> Converter Agda.Expr
 pi name k = localEnv $ do
   var <- freshAgdaVar name
-  Agda.pi [ Agda.unqualify var ] <$> k (Agda.Ident var)
+  Agda.pi [Agda.unqualify var] <$> k (Agda.Ident var)

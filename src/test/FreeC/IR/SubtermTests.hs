@@ -31,7 +31,7 @@ testPos :: IR.Expr -> Gen (Pos, Bool)
 testPos expr = do
   validPos <- validTestPos expr
   invalidPos <- invalidTestPos expr
-  oneof [ return (validPos, True), return (invalidPos, False) ]
+  oneof [return (validPos, True), return (invalidPos, False)]
 
 -------------------------------------------------------------------------------
 -- Subterm tests                                                             --
@@ -70,7 +70,7 @@ testSubterm = describe "FreeC.IR.Subterm" $ do
       it "finds subterm positions" $ \testExpr -> do
         let isCase (IR.Case _ _ _ _) = True
             isCase _ = False
-        findSubtermPos isCase testExpr `shouldBe` [ Pos [ 1, 3, 3 ] ]
+        findSubtermPos isCase testExpr `shouldBe` [Pos [1, 3, 3]]
       it "finds subterms" $ \testExpr -> do
         let isVar (IR.Var _ _ _) = True
             isVar _ = False
@@ -90,14 +90,14 @@ testSubterm = describe "FreeC.IR.Subterm" $ do
       it "finds no bound variables at root position" $ \testExpr -> do
         boundVarsAt testExpr rootPos `shouldBe` Set.empty
       it "finds bound variables of lambda" $ \testExpr -> do
-        boundVarsAt testExpr (Pos [ 1 ]) `shouldBe` Set.fromList
-          [ IR.UnQual (IR.Ident "n"), IR.UnQual (IR.Ident "xs") ]
+        boundVarsAt testExpr (Pos [1]) `shouldBe` Set.fromList
+          [IR.UnQual (IR.Ident "n"), IR.UnQual (IR.Ident "xs")]
       it "finds bound variables of case alternative" $ \testExpr -> do
-        boundVarsAt testExpr (Pos [ 1, 3, 3, 1 ]) `shouldBe` Set.fromList
-          [ IR.UnQual (IR.Ident "n"), IR.UnQual (IR.Ident "xs") ]
-        boundVarsAt testExpr (Pos [ 1, 3, 3, 2 ]) `shouldBe` Set.fromList
-          [ IR.UnQual (IR.Ident "n"), IR.UnQual (IR.Ident "xs") ]
-        boundVarsAt testExpr (Pos [ 1, 3, 3, 3 ]) `shouldBe` Set.fromList
+        boundVarsAt testExpr (Pos [1, 3, 3, 1]) `shouldBe` Set.fromList
+          [IR.UnQual (IR.Ident "n"), IR.UnQual (IR.Ident "xs")]
+        boundVarsAt testExpr (Pos [1, 3, 3, 2]) `shouldBe` Set.fromList
+          [IR.UnQual (IR.Ident "n"), IR.UnQual (IR.Ident "xs")]
+        boundVarsAt testExpr (Pos [1, 3, 3, 3]) `shouldBe` Set.fromList
           [ IR.UnQual (IR.Ident "n")
           , IR.UnQual (IR.Ident "xs")
           , IR.UnQual (IR.Ident "x")

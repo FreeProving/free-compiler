@@ -211,15 +211,15 @@ hiddenArg_ = HiddenArg NoRange . unnamed
 --
 --   > cond true false ↦ if cond then true else false
 ifThenElse :: Expr -> Expr -> Expr -> Expr
-ifThenElse cond true false = RawApp NoRange
-  [ ident "if", cond, ident "then", true, ident "else", false ]
+ifThenElse cond true false
+  = RawApp NoRange [ident "if", cond, ident "then", true, ident "else", false]
 
 -- | @case_of_@ from the base library.
 --
 --   > disrc clauses ↦ case disrc of λ { clause₁ ; clause₂ ; … }
 caseOf :: Expr -> [ LamClause ] -> Expr
-caseOf discr alts = RawApp NoRange
-  [ ident "case", discr, ident "of", ExtendedLam NoRange alts ]
+caseOf discr alts
+  = RawApp NoRange [ident "case", discr, ident "of", ExtendedLam NoRange alts]
 
 -- | Smart constructor for a clause of a pattern matching lambda abstraction.
 --
@@ -273,7 +273,7 @@ fun l = Fun NoRange (defaultArg l)
 pi :: [ Name ] -> Expr -> Expr
 pi decls expr
   | (Pi binders expr') <- expr = Pi (binder : binders) expr'
-  | otherwise = Pi [ binder ] expr
+  | otherwise = Pi [binder] expr
  where
    binder = TBind NoRange (map hiddenArg decls) $ Underscore NoRange Nothing
 

@@ -191,13 +191,13 @@ simplifyDecl :: HSE.Decl SrcSpan
 simplifyDecl (HSE.TypeDecl srcSpan declHead typeExpr) = do
   (declIdent, typeArgs) <- simplifyDeclHead declHead
   typeExpr' <- simplifyType typeExpr
-  return ([ IR.TypeSynDecl srcSpan declIdent typeArgs typeExpr' ], [], [])
+  return ([IR.TypeSynDecl srcSpan declIdent typeArgs typeExpr'], [], [])
 -- Data type declarations.
 simplifyDecl
   (HSE.DataDecl srcSpan (HSE.DataType _) Nothing declHead conDecls []) = do
     (declIdent, typeArgs) <- simplifyDeclHead declHead
     conDecls' <- mapM simplifyConDecl conDecls
-    return ([ IR.DataDecl srcSpan declIdent typeArgs conDecls' ], [], [])
+    return ([IR.DataDecl srcSpan declIdent typeArgs conDecls'], [], [])
 -- `newtype` declarations are not supported.
 simplifyDecl decl@(HSE.DataDecl _ (HSE.NewType _) _ _ _ _)
   = notSupported "Newtype declarations" decl
@@ -212,9 +212,9 @@ simplifyDecl (HSE.DataDecl srcSpan dataType Nothing declHead conDecls
   skipNotSupported "Deriving clauses" derivingDecl
   simplifyDecl (HSE.DataDecl srcSpan dataType Nothing declHead conDecls [])
 -- Function declarations.
-simplifyDecl (HSE.FunBind _ [ match ]) = do
+simplifyDecl (HSE.FunBind _ [match]) = do
   funcDecl <- simplifyFuncDecl match
-  return ([], [], [ funcDecl ])
+  return ([], [], [funcDecl])
 -- Function declarations with more than one rule are not supported.
 simplifyDecl decl@(HSE.FunBind _ _)
   = experimentallySupported "Function declarations with more than one rule" decl
@@ -223,7 +223,7 @@ simplifyDecl (HSE.PatBind srcSpan (HSE.PVar _ declName) (HSE.UnGuardedRhs _ rhs)
               Nothing) = do
   declIdent <- simplifyFuncDeclName declName
   rhs' <- simplifyExpr rhs
-  return ([], [], [ IR.FuncDecl srcSpan declIdent [] [] Nothing rhs' ])
+  return ([], [], [IR.FuncDecl srcSpan declIdent [] [] Nothing rhs'])
 -- The pattern-binding for a 0-ary function must not use guards or have a
 -- where block.
 simplifyDecl (HSE.PatBind _ (HSE.PVar _ _) rhss@(HSE.GuardedRhss _ _) _)
@@ -237,7 +237,7 @@ simplifyDecl decl@(HSE.PatBind _ _ _ _)
 simplifyDecl (HSE.TypeSig srcSpan names typeExpr) = do
   names' <- mapM simplifyFuncDeclName names
   typeScheme' <- simplifyTypeScheme typeExpr
-  return ([], [ IR.TypeSig srcSpan names' typeScheme' ], [])
+  return ([], [IR.TypeSig srcSpan names' typeScheme'], [])
 -- The user is allowed to specify fixities of custom infix declarations
 -- and they are respected by the @haskell-src-exts@ parser, but we do not
 -- represent them in the AST.
@@ -320,11 +320,11 @@ simplifyDeclHead (HSE.DHParen _ declHead) = simplifyDeclHead declHead
 simplifyDeclHead (HSE.DHApp _ declHead typeVarBind) = do
   (declIdent, typeArgs) <- simplifyDeclHead declHead
   typeArg <- simplifyTypeVarBind typeVarBind
-  return (declIdent, typeArgs ++ [ typeArg ])
+  return (declIdent, typeArgs ++ [typeArg])
 simplifyDeclHead (HSE.DHInfix _ typeVarBind declName) = do
   typeArg <- simplifyTypeVarBind typeVarBind
   declIdent <- simplifyDeclName declName
-  return (declIdent, [ typeArg ])
+  return (declIdent, [typeArg])
 
 -- | Gets the name of a data type or type synonym declaration from the name
 --   stored in the head of the declaration.
@@ -374,7 +374,7 @@ simplifyConDecl' (HSE.ConDecl srcSpan conName args)   = do
   args' <- mapM simplifyType args
   return (IR.ConDecl srcSpan conIdent args')
 simplifyConDecl' (HSE.InfixConDecl pos t1 conName t2) = simplifyConDecl'
-  (HSE.ConDecl pos conName [ t1, t2 ])
+  (HSE.ConDecl pos conName [t1, t2])
 simplifyConDecl' conDecl@(HSE.RecDecl _ _ _)
   = notSupported "Record constructors" conDecl
 
@@ -480,7 +480,7 @@ simplifyType (HSE.TyTuple srcSpan HSE.Boxed ts) = do
 -- List type @['t']@.
 simplifyType (HSE.TyList srcSpan t) = do
   t' <- simplifyType t
-  return (IR.typeConApp srcSpan IR.Prelude.listTypeConName [ t' ])
+  return (IR.typeConApp srcSpan IR.Prelude.listTypeConName [t'])
 -- Type constructor application @'t1' 't2'@.
 simplifyType (HSE.TyApp srcSpan t1 t2) = do
   t1' <- simplifyType t1
@@ -599,7 +599,7 @@ simplifyExpr (HSE.InfixApp srcSpan e1 op e2) = do
   e1' <- simplifyExpr e1
   op' <- simplifyOp op
   e2' <- simplifyExpr e2
-  return (IR.app srcSpan op' [ e1', e2' ])
+  return (IR.app srcSpan op' [e1', e2'])
 -- Partial infix applications. For right sections we need to introduce a
 -- fresh variable for the missing left argument using a lambda abstraction.
 simplifyExpr (HSE.LeftSection srcSpan e1 op) = do
@@ -612,11 +612,11 @@ simplifyExpr (HSE.RightSection srcSpan op e2) = do
   e2' <- simplifyExpr e2
   let x'  = IR.VarPat srcSpan x Nothing False
       e1' = IR.Var srcSpan (IR.UnQual (IR.Ident x)) Nothing
-  return (IR.Lambda srcSpan [ x' ] (IR.app srcSpan op' [ e1', e2' ]) Nothing)
+  return (IR.Lambda srcSpan [x'] (IR.app srcSpan op' [e1', e2']) Nothing)
 -- Negation.
 simplifyExpr (HSE.NegApp srcSpan expr) = do
   expr' <- simplifyExpr expr
-  return (IR.varApp srcSpan IR.Prelude.negateOpName [ expr' ])
+  return (IR.varApp srcSpan IR.Prelude.negateOpName [expr'])
 -- Lambda abstractions.
 simplifyExpr (HSE.Lambda srcSpan args expr) = do
   args' <- mapM simplifyVarPat args
@@ -804,7 +804,7 @@ simplifyConPat (HSE.PInfixApp _ p1 name p2) = do
   v1 <- simplifyVarPat p1
   name' <- simplifyConName name
   v2 <- simplifyVarPat p2
-  return (IR.ConPat (HSE.ann name) name', [ v1, v2 ])
+  return (IR.ConPat (HSE.ann name) name', [v1, v2])
 -- Tuple constructor pattern.
 simplifyConPat (HSE.PTuple srcSpan HSE.Boxed ps) = do
   let n = length ps

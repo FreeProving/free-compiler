@@ -96,7 +96,7 @@ generateBinds exprs' defaultPrefix areStrict argTypes' generateRHS
    generateBinds' [] acc = generateRHS acc
    generateBinds' ((expr', isStrict, argType') : xs) acc = if isStrict
      then generateBind expr' defaultPrefix argType' $ \arg -> generateBinds' xs
-       (acc ++ [ arg ]) else generateBinds' xs (acc ++ [ expr' ])
+       (acc ++ [arg]) else generateBinds' xs (acc ++ [expr'])
 
 -- | Generates a Coq expressions that binds the given value to a fresh variable.
 --
@@ -127,8 +127,8 @@ generateBind (Coq.App (Coq.Qualid con) (Coq.PosArg arg :| [])) _ _ generateRHS
 generateBind expr' defaultPrefix argType' generateRHS = localEnv $ do
   x <- freshCoqQualid (suggestPrefixFor expr')
   rhs <- generateRHS (Coq.Qualid x)
-  return (Coq.app (Coq.Qualid Coq.Base.freeBind)
-          [ expr', Coq.fun [ x ] [ argType' ] rhs ])
+  return
+    (Coq.app (Coq.Qualid Coq.Base.freeBind) [expr', Coq.fun [x] [argType'] rhs])
  where
    -- | Suggests a prefix for the fresh variable the given expression
    --   is bound to.

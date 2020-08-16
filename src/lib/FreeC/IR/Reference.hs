@@ -199,29 +199,29 @@ instance HasRefs IR.Expr where
     = varRef IR.ValueScope varName `insertBefore` refSet exprType
   refSet (IR.Con _ conName exprType)
     = conRef IR.ValueScope conName `insertBefore` refSet exprType
-  refSet (IR.App _ e1 e2 exprType) = refSet [ e1, e2 ] `union` refSet exprType
+  refSet (IR.App _ e1 e2 exprType) = refSet [e1, e2] `union` refSet exprType
   refSet (IR.TypeAppExpr _ expr typeExpr exprType)
-    = unions [ refSet expr, refSet typeExpr, refSet exprType ]
+    = unions [refSet expr, refSet typeExpr, refSet exprType]
   refSet (IR.If _ e1 e2 e3 exprType)
-    = refSet [ e1, e2, e3 ] `union` refSet exprType
+    = refSet [e1, e2, e3] `union` refSet exprType
   refSet (IR.Case _ scrutinee alts exprType)
-    = unions [ refSet scrutinee, refSet alts, refSet exprType ]
+    = unions [refSet scrutinee, refSet alts, refSet exprType]
   refSet (IR.Undefined _ exprType) = varRef IR.ValueScope
     IR.Prelude.undefinedFuncName `insertBefore` refSet exprType
   refSet (IR.ErrorExpr _ _ exprType) = varRef IR.ValueScope
     IR.Prelude.errorFuncName `insertBefore` refSet exprType
   refSet (IR.IntLiteral _ _ exprType) = refSet exprType
   refSet (IR.Lambda _ args expr exprType) = unions
-    [ refSet args, withoutArgs args (refSet expr), refSet exprType ]
+    [refSet args, withoutArgs args (refSet expr), refSet exprType]
   refSet (IR.Let _ binds expr exprType) = withoutArgs (map IR.bindVarPat binds)
-    $ unions [ refSet expr, refSet binds, refSet exprType ]
+    $ unions [refSet expr, refSet binds, refSet exprType]
 
 -- | @case@ expression alternatives refer to the matched constructor, the types
 --   the type annotations of the variable patterns refer to and the references
 --   of the right-hand side that are not bound by the variable patterns.
 instance HasRefs IR.Alt where
   refSet (IR.Alt _ conPat varPats rhs) = unions
-    [ refSet conPat, refSet varPats, withoutArgs varPats (refSet rhs) ]
+    [refSet conPat, refSet varPats, withoutArgs varPats (refSet rhs)]
 
 -- | Constructor patterns refer to the matched constructor.
 instance HasRefs IR.ConPat where

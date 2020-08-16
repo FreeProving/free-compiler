@@ -169,10 +169,10 @@ showReportedValue showValue (Just x)
 -- | Pretty prints the messages that were reported by a reporter for an
 --   error message in an expectation.
 showReportedMessages :: [ Message ] -> String
-showReportedMessages []    = showListItem $ "No messages were reported."
-showReportedMessages [ m ]
+showReportedMessages []  = showListItem $ "No messages were reported."
+showReportedMessages [m]
   = showListItem $ "The following message was reported:\n" ++ showPretty m
-showReportedMessages ms    = showListItem $ "The following " ++ show (length ms)
+showReportedMessages ms  = showListItem $ "The following " ++ show (length ms)
   ++ " messages were reported:\n" ++ showPretty ms
 
 -- | A reporter fails when a fatal message is reported.
@@ -206,7 +206,7 @@ initTestEnvironment = do
     preludeIface <- loadTestModuleInterface "./base/Prelude.toml"
     quickCheckIface <- loadTestModuleInterface "./base/Test/QuickCheck.toml"
     return $ foldr makeModuleAvailable emptyEnv
-      $ [ preludeIface, quickCheckIface ]
+      $ [preludeIface, quickCheckIface]
   case maybeEnv of
     Just env -> return env
     Nothing  -> assertFailure

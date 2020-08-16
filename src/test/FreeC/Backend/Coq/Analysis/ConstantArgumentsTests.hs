@@ -34,8 +34,8 @@ testConstantArguments = describe "FreeC.Backend.Coq.Analysis.ConstantArguments" 
     funcDecl <- expectParseTestFuncDecl
       $ "map f xs = case xs of {" ++ "    Nil        -> Nil;"
       ++ "    Cons x xs' -> Cons (f x) (map f xs')" ++ "  }"
-    identifyConstArgIdents [ funcDecl ]
-      `shouldReturn` [ [ (IR.UnQual (IR.Ident "map"), "f") ] ]
+    identifyConstArgIdents [funcDecl]
+      `shouldReturn` [[(IR.UnQual (IR.Ident "map"), "f")]]
   it "identifies constant arguments of mutually recursive functions" $ do
     funcDecls <- mapM expectParseTestFuncDecl
       [ "mapAlt f g xs = case xs of {" ++ "    Nil        -> Nil;"
@@ -55,7 +55,7 @@ testConstantArguments = describe "FreeC.Backend.Coq.Analysis.ConstantArguments" 
     funcDecl <- expectParseTestFuncDecl
       $ "mapAlt f g xs = case xs of {" ++ "    Nil        -> Nil;"
       ++ "    Cons x xs' -> Cons (f x) (mapAlt g f xs')" ++ "  }"
-    identifyConstArgIdents [ funcDecl ] `shouldReturn` []
+    identifyConstArgIdents [funcDecl] `shouldReturn` []
   it "identifies constant arguments with multiple recursive calls" $ do
     funcDecls <- mapM expectParseTestFuncDecl
       [ "foo n xs = case xs of {" ++ "    Nil        -> Nil;"

@@ -50,7 +50,7 @@ testConvertNonRecFuncDecl = context "non-recursive functions" $ do
         ++ "  (x : Free Shape Pos a) : Free Shape Pos a := x."
   it "translates functions with multiple arguments correctly"
     $ shouldSucceedWith $ do
-      "Pair" <- defineTestTypeCon "Pair" 0 [ "Pair" ]
+      "Pair" <- defineTestTypeCon "Pair" 0 ["Pair"]
       (_, "Pair0") <- defineTestCon "Pair" 2 "forall a b. a -> b -> Pair a b"
       "foo" <- defineTestFunc "foo" 0 "forall a b. a -> b -> Pair a b"
       shouldConvertNonRecTo
@@ -60,7 +60,7 @@ testConvertNonRecFuncDecl = context "non-recursive functions" $ do
         ++ "  : Free Shape Pos (Pair Shape Pos a b)"
         ++ "  := @Pair0 Shape Pos a b x y."
   it "translates higher order functions correctly" $ shouldSucceedWith $ do
-    "Pair" <- defineTestTypeCon "Pair" 0 [ "Pair" ]
+    "Pair" <- defineTestTypeCon "Pair" 0 ["Pair"]
     (_, "Pair0") <- defineTestCon "Pair" 2 "forall a b. a -> b -> Pair a b"
     "curry"
       <- defineTestFunc "curry" 0 "forall a b c. (Pair a b -> c) -> a -> b -> c"
@@ -74,7 +74,7 @@ testConvertNonRecFuncDecl = context "non-recursive functions" $ do
       ++ "  (y : Free Shape Pos b)" ++ "  : Free Shape Pos c"
       ++ "  := f >>= (fun f_0 => f_0 (@Pair0 Shape Pos a b x y))."
   it "translates partial functions correctly" $ shouldSucceedWith $ do
-    "List" <- defineTestTypeCon "List" 1 [ "Nil", "Cons" ]
+    "List" <- defineTestTypeCon "List" 1 ["Nil", "Cons"]
     ("nil", _) <- defineTestCon "Nil" 0 "forall a. List a"
     ("cons", _) <- defineTestCon "Cons" 2 "forall a. a -> List a -> List a"
     "head" <- definePartialTestFunc "head" 1 "forall a. List a -> a"
@@ -88,7 +88,7 @@ testConvertNonRecFuncDecl = context "non-recursive functions" $ do
       ++ "       | nil        => @undefined Shape Pos P a"
       ++ "       | cons x xs' => x" ++ "       end)."
   it "uses partiality information from the environment" $ shouldSucceedWith $ do
-    "List" <- defineTestTypeCon "List" 1 [ "Nil", "Cons" ]
+    "List" <- defineTestTypeCon "List" 1 ["Nil", "Cons"]
     ("nil", _) <- defineTestCon "Nil" 0 "forall a. List a"
     ("cons", _) <- defineTestCon "Cons" 2 "forall a. a -> List a -> List a"
     "head" <- defineTestFunc "head" 1 "forall a. List a -> a"
@@ -104,7 +104,7 @@ testConvertNonRecFuncDecl = context "non-recursive functions" $ do
       ++ "       | nil        => @undefined Shape Pos P a"
       ++ "       | cons x xs' => x" ++ "       end)."
   it "allows the function arguments to be shadowed" $ shouldSucceedWith $ do
-    "List" <- defineTestTypeCon "List" 1 [ "Nil", "Cons" ]
+    "List" <- defineTestTypeCon "List" 1 ["Nil", "Cons"]
     ("nil", _) <- defineTestCon "Nil" 0 "forall a. List a"
     ("cons", _) <- defineTestCon "Cons" 2 "forall a. a -> List a -> List a"
     "tail" <- definePartialTestFunc "tail" 1 "forall a. List a -> List a"
@@ -120,11 +120,11 @@ testConvertNonRecFuncDecl = context "non-recursive functions" $ do
       ++ "    | cons x xs0 => xs0" ++ "    end)."
   it "translates functions with one strict argument correctly"
     $ shouldSucceedWith $ do
-      "List" <- defineTestTypeCon "List" 1 [ "Nil", "Cons" ]
+      "List" <- defineTestTypeCon "List" 1 ["Nil", "Cons"]
       ("nil", _) <- defineTestCon "Nil" 0 "forall a. List a"
       ("cons", _) <- defineTestCon "Cons" 2 "forall a. a -> List a -> List a"
       "head"
-        <- definePartialStrictTestFunc "head" [ True ] "forall a. List a -> a"
+        <- definePartialStrictTestFunc "head" [True] "forall a. List a -> a"
       shouldConvertNonRecTo
         ("head @a !(x :: List a) :: a = case x of {" ++ "    Cons h xs -> h;"
          ++ "    Nil       -> error @a \"head was called on an empty list\""
@@ -136,15 +136,15 @@ testConvertNonRecFuncDecl = context "non-recursive functions" $ do
         ++ "    end."
   it "translates functions with strict and non-strict arguments correctly"
     $ shouldSucceedWith $ do
-      "List" <- defineTestTypeCon "List" 1 [ "Nil", "Cons" ]
+      "List" <- defineTestTypeCon "List" 1 ["Nil", "Cons"]
       ("nil", _) <- defineTestCon "Nil" 0 "forall a. List a"
       ("cons", _) <- defineTestCon "Cons" 2 "forall a. a -> List a -> List a"
-      "Pair" <- defineTestTypeCon "Pair" 2 [ "Pair0" ]
+      "Pair" <- defineTestTypeCon "Pair" 2 ["Pair0"]
       ("pair0", _) <- defineTestCon "Pair0" 2 "forall a b. a -> b -> Pair a b"
-      "Bool" <- defineTestTypeCon "Bool" 0 [ "False", "True" ]
+      "Bool" <- defineTestTypeCon "Bool" 0 ["False", "True"]
       ("false", _) <- defineTestCon "False" 0 "Bool"
       ("true", _) <- defineTestCon "True" 0 "Bool"
-      "foo" <- defineStrictTestFunc "foo" [ True, False, True ]
+      "foo" <- defineStrictTestFunc "foo" [True, False, True]
         "forall a. Pair a a -> Bool -> List a -> List a"
       shouldConvertNonRecTo
         ("foo @a !(pair :: Pair a a) (bool :: Bool) !(list :: List a)"
@@ -174,7 +174,7 @@ testConvertNonRecFuncDecl = context "non-recursive functions" $ do
         ++ "             end)" ++ "       end."
   it "translates case expressions with one strict pattern correctly"
     $ shouldSucceedWith $ do
-      "List" <- defineTestTypeCon "List" 1 [ "Nil", "Cons" ]
+      "List" <- defineTestTypeCon "List" 1 ["Nil", "Cons"]
       ("nil", _) <- defineTestCon "Nil" 0 "forall a. List a"
       ("cons", _) <- defineTestCon "Cons" 2 "forall a. a -> List a -> List a"
       "head" <- definePartialTestFunc "head" 1 "forall a. List a -> a"
@@ -191,7 +191,7 @@ testConvertNonRecFuncDecl = context "non-recursive functions" $ do
         ++ "    end)."
   it "translates case expressions with strict and non-strict patterns correctly"
     $ shouldSucceedWith $ do
-      "Triple" <- defineTestTypeCon "Triple" 3 [ "Triple0" ]
+      "Triple" <- defineTestTypeCon "Triple" 3 ["Triple0"]
       ("triple0", _)
         <- defineTestCon "Triple0" 3 "forall a b c. a -> b -> c -> Triple a b c"
       "Int" <- defineTestTypeCon "Int" 0 []

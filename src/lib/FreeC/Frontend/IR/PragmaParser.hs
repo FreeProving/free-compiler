@@ -34,7 +34,7 @@ customPragmaPattern
 -- | Regular expressions and functions that create the pragma AST node
 --   from the capturing groups of the match.
 customPragmas :: [ (String, CustomPragmaBuilder) ]
-customPragmas = [ (decArgPattern, parseDecArgPragma) ]
+customPragmas = [(decArgPattern, parseDecArgPragma)]
 
 -------------------------------------------------------------------------------
 -- Decreasing arguments                                                      --

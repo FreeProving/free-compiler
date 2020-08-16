@@ -19,7 +19,7 @@ infixr 5 `append`
 reverse :: [ a ] -> [ a ]
 reverse xs = case xs of
   []     -> []
-  x : xs -> reverse xs `append` [ x ]
+  x : xs -> reverse xs `append` [x]
 
 -- Next we state the property that we want to prove, namely that @reverse@ is
 -- its own inverse.
@@ -34,5 +34,5 @@ reverse_involutive_counterexample = () : undefined
 -- For the proof that @reverse@ is involutive in a total setting, we need
 -- the following lemmas.
 prop_reverse_append_singleton :: (Eq a, Show a) => [ a ] -> a -> Property
-prop_reverse_append_singleton xs x = reverse (xs `append` [ x ]) === x
+prop_reverse_append_singleton xs x = reverse (xs `append` [x]) === x
   : reverse xs

@@ -150,7 +150,7 @@ etaConvertFuncDecls (fd : fds) newFuncDecls = do
   newFuncDecl <- etaConvertFuncDecl fd
   if IR.funcDeclReturnType newFuncDecl /= IR.funcDeclReturnType fd
     then etaConvertFuncDecls (newFuncDecls ++ (newFuncDecl : fds)) []
-    else etaConvertFuncDecls fds (newFuncDecls ++ [ newFuncDecl ])
+    else etaConvertFuncDecls fds (newFuncDecls ++ [newFuncDecl])
 
 -- | Applies appropriate η-conversions to a function declaration.
 --
@@ -292,7 +292,7 @@ etaConvertSubExprs' expr = do
 --   for the right-hand side of a function declaration.
 findMinMissingArguments :: IR.Expr -> Converter Int
 findMinMissingArguments (IR.If _ _ e1 e2 _)
-  = minimum <$> mapM findMinMissingArguments [ e1, e2 ]
+  = minimum <$> mapM findMinMissingArguments [e1, e2]
 findMinMissingArguments (IR.Case _ _ alts _) = minimum <$> mapM
   (findMinMissingArguments . IR.altRhs) alts
 -- Any expression that isn't an if or case expression only has one

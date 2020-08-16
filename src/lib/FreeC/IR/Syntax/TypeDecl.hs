@@ -37,7 +37,7 @@ typeDeclName = nameFromQName . typeDeclQName
 instance Pretty TypeDecl where
   pretty (DataDecl _ declIdent typeVarDecls conDecls) = prettyString "data"
     <+> pretty declIdent <+> hsep (map pretty typeVarDecls) <+> align
-    (vcat (zipWith prettyConDecl [ 0 .. ] conDecls))
+    (vcat (zipWith prettyConDecl [0 ..] conDecls))
    where
      prettyConDecl :: Int -> ConDecl -> Doc
      prettyConDecl i conDecl

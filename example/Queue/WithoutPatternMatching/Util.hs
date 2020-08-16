@@ -18,4 +18,4 @@ append xs ys = case xs of
 reverse :: [ a ] -> [ a ]
 reverse xs = case xs of
   []      -> []
-  x : xs' -> reverse xs' `append` [ x ]
+  x : xs' -> reverse xs' `append` [x]

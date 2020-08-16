@@ -19,7 +19,7 @@ testTypeSynExpansion = describe "FreeC.IR.TypeSynExpansion" $ do
 testExpandTypeSynonym :: Spec
 testExpandTypeSynonym = context "expandTypeSynonym" $ do
   it "expands only the outermost type synonym" $ shouldSucceedWith $ do
-    _ <- defineTestTypeSyn "Foo" [ "a" ] "Bar a"
+    _ <- defineTestTypeSyn "Foo" ["a"] "Bar a"
     _ <- defineTestTypeCon "Bar" 1 []
     _ <- defineTestTypeCon "Baz" 0 []
     input <- parseTestType "Foo Baz"
@@ -27,8 +27,8 @@ testExpandTypeSynonym = context "expandTypeSynonym" $ do
     output <- expandTypeSynonym input
     return (output `shouldBeSimilarTo` expectedOutput)
   it "does not expand type synonyms recursively" $ shouldSucceedWith $ do
-    _ <- defineTestTypeSyn "Foo" [ "a" ] "Bar a"
-    _ <- defineTestTypeSyn "Bar" [ "a" ] "Baz a"
+    _ <- defineTestTypeSyn "Foo" ["a"] "Bar a"
+    _ <- defineTestTypeSyn "Bar" ["a"] "Baz a"
     _ <- defineTestTypeCon "Qux" 0 []
     input <- parseTestType "Foo Qux"
     expectedOutput <- parseTestType "Bar Qux"
@@ -46,7 +46,7 @@ testExpandTypeSynonym = context "expandTypeSynonym" $ do
 testExpandAllTypeSynonyms :: Spec
 testExpandAllTypeSynonyms = context "expandAllTypeSynonyms" $ do
   it "expands outermost type synonyms" $ shouldSucceedWith $ do
-    _ <- defineTestTypeSyn "Foo" [ "a" ] "Bar a"
+    _ <- defineTestTypeSyn "Foo" ["a"] "Bar a"
     _ <- defineTestTypeCon "Bar" 1 []
     _ <- defineTestTypeCon "Baz" 0 []
     input <- parseTestType "Foo Baz"
@@ -54,8 +54,8 @@ testExpandAllTypeSynonyms = context "expandAllTypeSynonyms" $ do
     output <- expandAllTypeSynonyms input
     return (output `shouldBeSimilarTo` expectedOutput)
   it "expands type synonyms recursively" $ shouldSucceedWith $ do
-    _ <- defineTestTypeSyn "Foo" [ "a" ] "Bar a"
-    _ <- defineTestTypeSyn "Bar" [ "a" ] "Baz a"
+    _ <- defineTestTypeSyn "Foo" ["a"] "Bar a"
+    _ <- defineTestTypeSyn "Bar" ["a"] "Baz a"
     _ <- defineTestTypeCon "Qux" 0 []
     input <- parseTestType "Foo Qux"
     expectedOutput <- parseTestType "Baz Qux"

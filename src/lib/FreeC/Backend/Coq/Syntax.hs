@@ -184,19 +184,19 @@ match value = Match (return item) Nothing
 
 -- | Smart constructor for reflexive equality in Coq.
 equals :: Term -> Term -> Term
-equals t1 t2 = app (Qualid (bare "op_=__")) [ t1, t2 ]
+equals t1 t2 = app (Qualid (bare "op_=__")) [t1, t2]
 
 -- | Smart constructor for reflexive inequality in Coq.
 notEquals :: Term -> Term -> Term
-notEquals t1 t2 = app (Qualid (bare "op_<>__")) [ t1, t2 ]
+notEquals t1 t2 = app (Qualid (bare "op_<>__")) [t1, t2]
 
 -- | Smart constructor for a conjunction in Coq.
 conj :: Term -> Term -> Term
-conj t1 t2 = app (Qualid (bare "op_/\\__")) [ t1, t2 ]
+conj t1 t2 = app (Qualid (bare "op_/\\__")) [t1, t2]
 
 -- | Smart constructor for a disjunction in Coq.
 disj :: Term -> Term -> Term
-disj t1 t2 = app (Qualid (bare "op_\\/__")) [ t1, t2 ]
+disj t1 t2 = app (Qualid (bare "op_\\/__")) [t1, t2]
 
 -------------------------------------------------------------------------------
 -- Imports                                                                   --

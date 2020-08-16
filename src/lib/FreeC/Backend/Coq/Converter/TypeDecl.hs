@@ -30,7 +30,7 @@ convertTypeComponent
   :: DependencyComponent IR.TypeDecl -> Converter [ Coq.Sentence ]
 convertTypeComponent (NonRecursive decl)
   | isTypeSynDecl decl = convertTypeSynDecl decl
-  | otherwise = convertDataDecls [ decl ]
+  | otherwise = convertDataDecls [decl]
 convertTypeComponent (Recursive decls)   = do
   let (typeSynDecls, dataDecls) = partition isTypeSynDecl decls
       typeSynDeclQNames         = Set.fromList
@@ -168,8 +168,8 @@ convertDataDecl (IR.DataDecl _ (IR.DeclIdent _ name) typeVarDecls conDecls) = do
      typeVarQualids <- mapM (inEnv . lookupIdent IR.TypeScope) typeVarNames
      return (Coq.ArgumentsSentence
              (Coq.Arguments Nothing qualid
-              [ Coq.ArgumentSpec Coq.ArgMaximal (Coq.Ident typeVarQualid)
-                Nothing | typeVarQualid
+              [Coq.ArgumentSpec Coq.ArgMaximal (Coq.Ident typeVarQualid) Nothing
+              | typeVarQualid
               <- map fst Coq.Base.freeArgs ++ catMaybes typeVarQualids
               ]))
 

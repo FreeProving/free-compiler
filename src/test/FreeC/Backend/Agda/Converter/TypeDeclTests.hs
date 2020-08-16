@@ -30,7 +30,7 @@ testConvertDataDecls
   = describe "FreeC.Backend.Agda.Converter.TypeDecl.convertTypeDecl" $ do
     it "translates non-polymorphic, non-recursive data types correctly"
       $ shouldSucceedWith $ do
-        "Foo" <- defineTestTypeCon "Foo" 0 [ "Bar", "Baz" ]
+        "Foo" <- defineTestTypeCon "Foo" 0 ["Bar", "Baz"]
         ("bar", "Bar") <- defineTestCon "Bar" 0 "Foo"
         ("baz", "Baz") <- defineTestCon "Baz" 0 "Foo"
         shouldConvertTypeDeclsTo (NonRecursive "data Foo = Bar | Baz")
@@ -40,11 +40,11 @@ testConvertDataDecls
           , "pattern Baz = pure baz"
           ]
     it "annotates recursive data type with Sized type" $ shouldSucceedWith $ do
-      "List" <- defineTestTypeCon "List" 1 [ "Nil", "Cons" ]
+      "List" <- defineTestTypeCon "List" 1 ["Nil", "Cons"]
       ("nil", "Nil") <- defineTestCon "Nil" 0 "List"
       ("cons", "Cons") <- defineTestCon "Cons" 2 "List"
       shouldConvertTypeDeclsTo
-        (Recursive [ "data List a = Nil | Cons a (List a)" ])
+        (Recursive ["data List a = Nil | Cons a (List a)"])
         [ "data List (Shape : Set)(Pos : Shape → Set)(a : Set) : {Size} → Set where"
             ++ "  nil : List Shape Pos a"
             ++ "  cons : ∀ {i} → Free Shape Pos a → Free Shape Pos (List Shape Pos a {i}) → List Shape Pos a {↑ i}"

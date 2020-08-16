@@ -30,6 +30,11 @@
         "force-linebreak": false,
         "spaces": "both",
         "linebreaks": "after"
+      },
+      "[": {
+        "force-linebreak": false,
+        "spaces": "none",
+        "linebreaks": "after"
       }
     },
     "indent": {
