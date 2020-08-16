@@ -74,8 +74,8 @@ convertRecFuncDeclsWithHelpers' decls = do
 --
 --   The helper functions are annotated with the index of their decreasing
 --   argument.
-transformRecFuncDecl :: IR.FuncDecl
-  -> DecArgIndex -> Converter ([(IR.FuncDecl, DecArgIndex)], IR.FuncDecl)
+transformRecFuncDecl :: IR.FuncDecl -> DecArgIndex
+                     -> Converter ([(IR.FuncDecl, DecArgIndex)], IR.FuncDecl)
 transformRecFuncDecl
   (IR.FuncDecl srcSpan declIdent typeArgs args maybeRetType expr) decArgIndex
   = do

@@ -37,9 +37,9 @@ data Type
 --   The given source span is inserted into the generated type constructor
 --   and every generated type constructor application.
 typeApp :: SrcSpan -- ^ The source span to insert into generated nodes.
-  -> Type    -- ^ The partially applied type constructor.
-  -> [Type]  -- ^ The type arguments to pass to the type constructor.
-  -> Type
+        -> Type    -- ^ The partially applied type constructor.
+        -> [Type]  -- ^ The type arguments to pass to the type constructor.
+        -> Type
 typeApp srcSpan = foldl (TypeApp srcSpan)
 
 -- | Creates a type constructor application type for the constructor with
@@ -47,7 +47,8 @@ typeApp srcSpan = foldl (TypeApp srcSpan)
 --
 --   The given source span is inserted into the generated type constructor
 --   and every generated type constructor application.
-typeConApp :: SrcSpan     -- ^ The source span to insert into generated nodes.
+typeConApp
+  :: SrcSpan     -- ^ The source span to insert into generated nodes.
   -> TypeConName -- ^ The name of the type constructor to apply.
   -> [Type]      -- ^ The type arguments to pass to the type constructor.
   -> Type

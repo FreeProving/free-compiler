@@ -56,7 +56,7 @@
       "let-binds": "align",
       "multi-if": "indent-by 2",
       "onside": 2,
-      "typesig": "indent-by 2",
+      "typesig": "align",
       "where": 1,
       "where-binds": "indent-by 2"
     },

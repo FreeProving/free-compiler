@@ -63,10 +63,10 @@ convertTypeDecl (IR.DataDecl _ ident tVars constrs) isRec = (:)
 --   Environment entries for the type arguments @α̂₁ … α̂ₙ@ are only visible
 --   within the data type declaration.
 convertDataDecl :: IR.DeclIdent     -- ^ The name of the data type
-  -> [IR.TypeVarDecl] -- ^ Type parameters for the data type.
-  -> [IR.ConDecl]     -- ^ The constructors for this data type.
-  -> Bool               -- ^ Is this a recursive data declaration?
-  -> Converter Agda.Declaration
+                -> [IR.TypeVarDecl] -- ^ Type parameters for the data type.
+                -> [IR.ConDecl]     -- ^ The constructors for this data type.
+                -> Bool             -- ^ Is this a recursive data declaration?
+                -> Converter Agda.Declaration
 convertDataDecl ident@(IR.DeclIdent srcSpan name) typeVars constrs isRec
   = localEnv
   $ freeDataDecl <$> lookupUnQualAgdaIdentOrFail srcSpan IR.TypeScope name
@@ -82,7 +82,8 @@ convertDataDecl ident@(IR.DeclIdent srcSpan name) typeVars constrs isRec
 --   We synthesize the return type of the constructor in IR to avoid passing the
 --   identifier and all used type variables to the type converter. This way we
 --   can reuse the existing translation.
-convertConDecls :: IR.DeclIdent     -- ^ The identifier of the data type.
+convertConDecls
+  :: IR.DeclIdent     -- ^ The identifier of the data type.
   -> [IR.TypeVarDecl] -- ^ The type parameters declared by the data type.
   -> [IR.ConDecl]     -- ^ The constructor declarations of the data type.
   -> Converter [Agda.Declaration]
@@ -123,16 +124,17 @@ generateSmartConDecl (IR.ConDecl _ (IR.DeclIdent srcSpan name) argTypes) = do
 -- | Creates a declaration for a data type, which is parameterized over @Shape@
 --   and @Pos@.
 freeDataDecl :: Agda.Name          -- ^ Name of the data type
-  -> [Agda.Name]        -- ^ Names of the bound type variables
-  -> Agda.Expr          -- ^ Universe containing the declaration
-  -> [Agda.Declaration] -- ^ List of constructor declarations
-  -> Agda.Declaration
+             -> [Agda.Name]        -- ^ Names of the bound type variables
+             -> Agda.Expr          -- ^ Universe containing the declaration
+             -> [Agda.Declaration] -- ^ List of constructor declarations
+             -> Agda.Declaration
 freeDataDecl dataName typeNames = Agda.dataDecl dataName
   (freeArgBinder `snoc` Agda.binding typeNames Agda.set)
 
 -- | Creates a new pattern declaration binding variables with the given names
 --   and types.
-patternDecl :: Agda.Name
+patternDecl
+  :: Agda.Name
   -- ^ Name of the declaration.
   -> [String]
   -- ^ Types and preferred names for the bound variables.

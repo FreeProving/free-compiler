@@ -123,8 +123,8 @@ selectBackend = do
 -- Input Files                                                               --
 -------------------------------------------------------------------------------
 -- | Parses the given input file with the given parser function.
-parseInputFile :: (SrcFile -> Application IR.Module)
-  -> FilePath -> Application IR.Module
+parseInputFile
+  :: (SrcFile -> Application IR.Module) -> FilePath -> Application IR.Module
 parseInputFile parser inputFile = reportApp
   $ do
     -- Parse and simplify input file.
@@ -149,7 +149,7 @@ sortInputModules = mapM checkForCycle . groupModules
 --
 --   The resulting string is written to the console or output file.
 convertInputModule :: (IR.Module -> Application String)
-  -> IR.Module -> Application (IR.ModName, String)
+                   -> IR.Module -> Application (IR.ModName, String)
 convertInputModule converter ast = do
   let modName = IR.modName ast
       srcSpan = IR.modSrcSpan ast

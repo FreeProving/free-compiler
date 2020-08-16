@@ -54,14 +54,15 @@ type Simplifier = Converter
 --   the given feature is not supported but required by the given Haskell
 --   AST node.
 notSupported :: HSE.Annotated a
-  => String    -- ^ The feature (in plural) that is not supported.
-  -> a SrcSpan -- ^ The node that is not supported.
-  -> Simplifier r
+             => String    -- ^ The feature (in plural) that is not supported.
+             -> a SrcSpan -- ^ The node that is not supported.
+             -> Simplifier r
 notSupported feature = usageError (feature ++ " are not supported!")
 
 -- | Reports that a feature is not supported and the given Haskell AST node
 --   will therefore be ignored.
-skipNotSupported :: HSE.Annotated a
+skipNotSupported
+  :: HSE.Annotated a
   => String    -- ^ The feature (in plural) that is not supported.
   -> a SrcSpan -- ^ The node that is skipped.
   -> Simplifier ()
@@ -69,7 +70,8 @@ skipNotSupported feature = skipNotSupported' feature "will be skipped"
 
 -- | Like 'skipNotSupported' but an additional parameter describes what is
 --   done to skip the feature.
-skipNotSupported' :: HSE.Annotated a
+skipNotSupported'
+  :: HSE.Annotated a
   => String    -- ^ The feature (in plural) that is not supported.
   -> String    -- ^ Description of what will be done to skip the feature.
   -> a SrcSpan -- ^ The node that is skipped.
@@ -98,15 +100,15 @@ expected description = usageError ("Expected " ++ description ++ ".")
 
 -- | Creates a reporter that fails with the given error message.
 usageError :: HSE.Annotated a => String    -- ^ The error message.
-  -> a SrcSpan -- ^ The node that caused the error.
-  -> Simplifier r
+           -> a SrcSpan -- ^ The node that caused the error.
+           -> Simplifier r
 usageError message node = reportFatal $ Message (HSE.ann node) Error message
 
 -- | Creates a reporter that reports a warning if the given condition is met.
 warnIf :: HSE.Annotated a => Bool      -- ^ The condition to test.
-  -> String    -- ^ The waning to print if the condition is not met.
-  -> a SrcSpan -- ^ The node that caused the warning.
-  -> Simplifier ()
+       -> String    -- ^ The waning to print if the condition is not met.
+       -> a SrcSpan -- ^ The node that caused the warning.
+       -> Simplifier ()
 warnIf cond msg node = when cond (report $ Message (HSE.ann node) Warning msg)
 
 -------------------------------------------------------------------------------
@@ -175,7 +177,7 @@ simplifyImport decl
 -------------------------------------------------------------------------------
 -- | Simplifies the given declarations.
 simplifyDecls :: [HSE.Decl SrcSpan]
-  -> Simplifier ([IR.TypeDecl], [IR.TypeSig], [IR.FuncDecl])
+              -> Simplifier ([IR.TypeDecl], [IR.TypeSig], [IR.FuncDecl])
 simplifyDecls decls = do
   decls' <- mapM simplifyDecl decls
   return (concatUnzip3 decls')
@@ -187,7 +189,7 @@ simplifyDecls decls = do
 --   Fixity signatures are allowed but don't have a corresponding node in
 --   the AST.
 simplifyDecl :: HSE.Decl SrcSpan
-  -> Simplifier ([IR.TypeDecl], [IR.TypeSig], [IR.FuncDecl])
+             -> Simplifier ([IR.TypeDecl], [IR.TypeSig], [IR.FuncDecl])
 
 -- Type synonym declarations.
 simplifyDecl (HSE.TypeDecl srcSpan declHead typeExpr) = do

@@ -27,7 +27,8 @@ runPasses = foldr (>=>) return
 --   input (which are extracted using first given function) and recombines the
 --   results of the sub-pipelines into the result of the entire pass (using the
 --   second given function).
-subPipelinePass :: (a -> [b])
+subPipelinePass
+  :: (a -> [b])
   -- ^ The helper function extracting the components of the input.
   -> (a -> [b] -> a)
   -- ^ The helper function recombining the results of the sub passes.

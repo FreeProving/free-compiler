@@ -99,8 +99,8 @@ explicitApp qualid typeArgs = ExplicitApp qualid typeArgs
 
 -- | Smart constructor for a Coq function type.
 arrows :: [Term] -- ^ The types of the function arguments.
-  -> Term   -- ^ The return type of the function.
-  -> Term
+       -> Term   -- ^ The return type of the function.
+       -> Term
 arrows args returnType = foldr Arrow returnType args
 
 -- | Smart constructor for the construction of a Coq lambda expression with
@@ -149,7 +149,8 @@ variable
 -- Definition Sentences                                                      --
 -------------------------------------------------------------------------------
 -- | Smart constructor for a Coq definition sentence.
-definitionSentence :: Qualid     -- ^ The name of the definition.
+definitionSentence
+  :: Qualid     -- ^ The name of the definition.
   -> [Binder]   -- ^ Binders for the parameters of the definition.
   -> Maybe Term -- ^ The return type of the definition.
   -> Term       -- ^ The right-hand side of the definition.

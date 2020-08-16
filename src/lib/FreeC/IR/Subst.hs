@@ -358,7 +358,7 @@ instance Renamable IR.VarPat IR.Expr where
 --   Returns the renamed (type) arguments as well as a modified substitution
 --   that replaces the renamed (type) arguments appropriately.
 newRenameArgs :: (HasRefs expr, Renamable arg expr, ApplySubst expr expr)
-  => Subst expr -> [arg] -> (Subst expr, [arg])
+              => Subst expr -> [arg] -> (Subst expr, [arg])
 newRenameArgs subst args
   = let subst' = subst
           `substWithout` map (IR.UnQual . IR.Ident . getIdent) args
@@ -367,7 +367,7 @@ newRenameArgs subst args
 -- | Like 'newRenameArgs' but the domain of the given substitution does not
 --   contain any of the given type arguments.
 newRenameArgs' :: (HasRefs expr, Renamable arg expr, ApplySubst expr expr)
-  => Subst expr -> [arg] -> (Subst expr, [arg])
+               => Subst expr -> [arg] -> (Subst expr, [arg])
 newRenameArgs' subst [] = (subst, [])
 newRenameArgs' subst (arg : args) = (arg' :) <$> newRenameArgs' subst' args
  where
@@ -445,7 +445,7 @@ renameTypeArgsSubst typeArgDecls = do
 -- | Renames the given type variables in the given expression or type
 --   to fresh type variables.
 renameTypeArgs :: ApplySubst IR.Type a
-  => [IR.TypeVarDecl] -> a -> Converter ([IR.TypeVarDecl], a)
+               => [IR.TypeVarDecl] -> a -> Converter ([IR.TypeVarDecl], a)
 renameTypeArgs typeArgDecls x = do
   (typeArgDecls', subst) <- renameTypeArgsSubst typeArgDecls
   return (typeArgDecls', applySubst subst x)

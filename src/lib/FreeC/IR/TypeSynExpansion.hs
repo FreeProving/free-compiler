@@ -46,8 +46,8 @@ expandAllTypeSynonymsInDecl = expandAllTypeSynonymsInDeclWhere (const True)
 
 -- | Like 'expandAllTypeSynonymsInDecl' but expands only type synonyms whose
 --   name matches the given predicate.
-expandAllTypeSynonymsInDeclWhere :: (IR.QName -> Bool)
-  -> IR.TypeDecl -> Converter IR.TypeDecl
+expandAllTypeSynonymsInDeclWhere
+  :: (IR.QName -> Bool) -> IR.TypeDecl -> Converter IR.TypeDecl
 expandAllTypeSynonymsInDeclWhere predicate
   (IR.TypeSynDecl srcSpan declIdent typeVarDecls typeExpr) = do
     typeExpr' <- expandAllTypeSynonymsWhere predicate typeExpr
@@ -68,8 +68,8 @@ expandAllTypeSynonymsInConDecl = expandAllTypeSynonymsInConDeclWhere
 
 -- | Like 'expandAllTypeSynonymsInConDecl' but expands only type synonyms whose
 --   name matches the given predicate.
-expandAllTypeSynonymsInConDeclWhere :: (IR.QName -> Bool)
-  -> IR.ConDecl -> Converter IR.ConDecl
+expandAllTypeSynonymsInConDeclWhere
+  :: (IR.QName -> Bool) -> IR.ConDecl -> Converter IR.ConDecl
 expandAllTypeSynonymsInConDeclWhere predicate
   (IR.ConDecl srcSpan declIdent argTypes) = do
     argTypes' <- mapM (expandAllTypeSynonymsWhere predicate) argTypes
@@ -104,8 +104,8 @@ expandTypeSynonyms = flip expandTypeSynonymsWhere (const True)
 
 -- | Like 'expandTypeSynonyms' but expands only type synonyms whose name
 --   matches the given predicate.
-expandTypeSynonymsWhere :: Int -> (IR.QName -> Bool)
-  -> IR.Type -> Converter IR.Type
+expandTypeSynonymsWhere
+  :: Int -> (IR.QName -> Bool) -> IR.Type -> Converter IR.Type
 expandTypeSynonymsWhere maxDepth predicate t0
   | maxDepth == 0 = return t0
   | otherwise = do

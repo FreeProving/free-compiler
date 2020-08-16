@@ -126,8 +126,8 @@ checkDecArgs decls knownDecArgIndecies decArgIndecies = all
 
    -- | Inserts a function declaration with the given decreasing argument index
    --   into 'decArgMap'.
-   insertFuncDecl :: IR.FuncDecl
-     -> DecArgIndex -> Map IR.QName DecArgIndex -> Map IR.QName DecArgIndex
+   insertFuncDecl :: IR.FuncDecl -> DecArgIndex
+                  -> Map IR.QName DecArgIndex -> Map IR.QName DecArgIndex
    insertFuncDecl = Map.insert . IR.funcDeclQName
 
    -- | Tests whether the given function declaration actually decreases on the

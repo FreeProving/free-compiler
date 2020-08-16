@@ -71,7 +71,8 @@ convertSignature (IR.FuncDecl _ declIdent typeVars args returnType _) decArg
     Agda.funcSig ident <$> convertFunc decArg partial typeVars args returnType
 
 -- | Converts a fully applied function.
-convertFunc :: Maybe Int        -- ^ The index of the decreasing argument.
+convertFunc
+  :: Maybe Int        -- ^ The index of the decreasing argument.
   -> Bool             -- ^ Whether the function needs a @Partial@ instance.
   -> [IR.TypeVarDecl] -- ^ Type variables bound by the function declaration.
   -> [IR.VarPat]      -- ^ The types of the arguments.

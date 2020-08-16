@@ -116,9 +116,9 @@ dependencyGraphEntries (DependencyGraph graph getEntry _) = map getEntry
 --
 --   Returns @False@ if one of the nodes does not exist.
 dependsDirectlyOn :: DependencyGraph node -- ^ The dependency graph.
-  -> DGKey                -- ^ The key of the first node.
-  -> DGKey                -- ^ The key of the second node.
-  -> Bool
+                  -> DGKey                -- ^ The key of the first node.
+                  -> DGKey                -- ^ The key of the second node.
+                  -> Bool
 dependsDirectlyOn (DependencyGraph graph _ getVertex) k1 k2 = Just True
   == do
     v1 <- getVertex k1
@@ -295,7 +295,7 @@ groupModules = dependencyComponents . moduleDependencyGraph
 --   list. The given function must not change the number of declarations in the
 --   component.
 mapComponent :: ([decl] -> [decl'])
-  -> DependencyComponent decl -> DependencyComponent decl'
+             -> DependencyComponent decl -> DependencyComponent decl'
 mapComponent f (NonRecursive decl)
   = let [decl'] = f [decl] in NonRecursive decl'
 mapComponent f (Recursive decls)   = Recursive (f decls)
@@ -306,15 +306,15 @@ mapComponent f (Recursive decls)   = Recursive (f decls)
 --   given function changes the number of declarations in a non-recursive
 --   strongly connected component.
 mapComponentM :: MonadFail m => ([decl] -> m [decl']) -> DependencyComponent
-  decl -> m (DependencyComponent decl')
+              decl -> m (DependencyComponent decl')
 mapComponentM f (NonRecursive decl) = do
   [decl'] <- f [decl]
   return (NonRecursive decl')
 mapComponentM f (Recursive decls)   = Recursive <$> f decls
 
 -- | Like 'mapComponentM' but discards the result.
-mapComponentM_ :: MonadFail m => ([decl] -> m a)
-  -> DependencyComponent decl -> m ()
+mapComponentM_
+  :: MonadFail m => ([decl] -> m a) -> DependencyComponent decl -> m ()
 mapComponentM_ f (NonRecursive decl) = void (f [decl])
 mapComponentM_ f (Recursive decls)   = void (f decls)
 

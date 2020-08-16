@@ -928,7 +928,7 @@ unifyEquations :: [TypeEquation] -> Converter (Subst IR.Type)
 unifyEquations = unifyEquations' identitySubst . reverse
  where
    unifyEquations' :: Subst IR.Type -> [TypeEquation] -> Converter
-     (Subst IR.Type)
+                   (Subst IR.Type)
    unifyEquations' subst []           = return subst
    unifyEquations' subst (eqn : eqns) = do
      let eqn' = applySubst subst eqn

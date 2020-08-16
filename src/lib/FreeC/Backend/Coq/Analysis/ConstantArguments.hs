@@ -214,8 +214,8 @@ identifyConstArgs decls = mapM makeConstArg constArgNameMaps
    -- | Looks up the index of the argument with the given name of the function
    --   with the given name.
    lookupArgIndex :: IR.QName -- ^ The name of the function.
-     -> String   -- ^ The name of the argument.
-     -> Int
+                  -> String   -- ^ The name of the argument.
+                  -> Int
    lookupArgIndex funcName argName = fromJust
      $ do
        argNames <- Map.lookup funcName argNamesMap

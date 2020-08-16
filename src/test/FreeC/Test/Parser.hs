@@ -198,12 +198,13 @@ expectParseTestModule = expectParseTestIR "module" . unlines
 -------------------------------------------------------------------------------
 -- | Parses the declarations in the given dependency component.
 parseTestComponent :: (MonadFail r, MonadReporter r, Parseable decl)
-  => DependencyComponent String -> r (DependencyComponent decl)
+                   => DependencyComponent String -> r (DependencyComponent decl)
 parseTestComponent = mapComponentM (mapM parseTestIR)
 
 -- | Parses the declarations in the given dependency component and sets the
 --   expectation that parsing is successful.
-expectParseTestComponent :: (MonadFail m, MonadIO m, Parseable decl)
-  => DependencyComponent String -> m (DependencyComponent decl)
+expectParseTestComponent
+  :: (MonadFail m, MonadIO m, Parseable decl) => DependencyComponent String -> m
+  (DependencyComponent decl)
 expectParseTestComponent = mapComponentM
   (mapM (expectParseTestIR "dependency component"))

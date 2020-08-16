@@ -202,8 +202,8 @@ renameConstArg nameMap constArg = constArg
 --   function name) of the given function declaration to their annotated
 --   type and a second map that maps the function names to their annotated
 --   return types.
-argAndReturnTypeMaps :: IR.FuncDecl
-  -> Converter (Map (IR.QName, String) IR.Type, Map IR.QName IR.Type)
+argAndReturnTypeMaps :: IR.FuncDecl -> Converter
+                     (Map (IR.QName, String) IR.Type, Map IR.QName IR.Type)
 argAndReturnTypeMaps (IR.FuncDecl _ (IR.DeclIdent _ name) _ args maybeRetType _)
   = return (argTypeMap, returnTypeMap)
  where
@@ -221,7 +221,7 @@ argAndReturnTypeMaps (IR.FuncDecl _ (IR.DeclIdent _ name) _ args maybeRetType _)
 --   Does not check whether all arguments have the same type but returns the
 --   first matching type.
 lookupConstArgType :: Map (IR.QName, String) IR.Type
-  -> ConstArg -> Converter (IR.Type, Subst IR.Type)
+                   -> ConstArg -> Converter (IR.Type, Subst IR.Type)
 lookupConstArgType argTypeMap constArg = do
   let idents  = Map.assocs (constArgIdents constArg)
       types   = mapMaybe (flip Map.lookup argTypeMap) idents
@@ -243,8 +243,8 @@ isConstArgUsedBy constArg funcDecl = IR.UnQual
 
 -- | Generates the @Variable@ sentence for the type variables in the given
 --   types of the constant arguments.
-generateConstTypeArgSentence :: [IR.TypeVarIdent] -> Converter
-  (Maybe Coq.Sentence)
+generateConstTypeArgSentence
+  :: [IR.TypeVarIdent] -> Converter (Maybe Coq.Sentence)
 generateConstTypeArgSentence typeVarIdents
   | null typeVarIdents = return Nothing
   | otherwise = do
@@ -317,7 +317,7 @@ removeConstArgsFromExpr constArgs rootExpr = do
    -- | Implementation of 'removeConstArgsFromExpr' that returns the indices
    --   of the arguments that still need to be removed.
    removeConstArgsFromExpr'
-     :: IR.Expr    -- ^ The expression to remove the constant arguments from.
+     :: IR.Expr -- ^ The expression to remove the constant arguments from.
      -> Converter (IR.Expr, [Int])
 
    -- If a variable is applied, lookup the indices of the arguments that
@@ -392,7 +392,8 @@ removeConstArgsFromExpr constArgs rootExpr = do
 --
 --   Returns the name of the function declaration and a list of type
 --   argument indices that have been removed.
-updateTypeSig :: Subst IR.Type
+updateTypeSig
+  :: Subst IR.Type
   -- ^ The most general unifier for the constant argument types.
   -> [IR.TypeVarIdent]
   -- ^ The type arguments declared in the section already.
@@ -559,7 +560,8 @@ removeConstTypeArgsFromExpr constTypeVars rootExpr = do
 -- | Generates a @Definition@ sentence for the given function declaration
 --   that passes the arguments to the function declared inside the @Section@
 --   sentence in the correct order.
-generateInterfaceDecl :: [ConstArg]
+generateInterfaceDecl
+  :: [ConstArg]
   -- ^ The constant arguments of the function.
   -> [Bool]
   -- ^ Whether the constant argument is used by any function.
@@ -618,7 +620,8 @@ generateInterfaceDecl constArgs isConstArgUsed nameMap mgu sectionTypeArgs
  where
    -- | Looks up the name of the function's type argument that corresponds to
    --   the given type argument of the @Section@.
-   lookupTypeArgName :: [IR.TypeVarIdent]
+   lookupTypeArgName
+     :: [IR.TypeVarIdent]
      -- ^ The type arguments of the function.
      -> [(IR.TypeVarIdent, Int)]
      -- ^ The renamed type arguments of the function and their index.

@@ -89,10 +89,10 @@ convertLiftedType' = convertLiftedType Nothing
 -------------------------------------------------------------------------------
 -- | Creates a new pi expression binding a variable with the given name.
 pi :: String
-  -- ^ Preferred name for the bound variable.
-  -> (Agda.Expr -> Converter Agda.Expr)
-  -- ^ Continuation for creating the expression using the variable.
-  -> Converter Agda.Expr
+   -- ^ Preferred name for the bound variable.
+   -> (Agda.Expr -> Converter Agda.Expr)
+   -- ^ Continuation for creating the expression using the variable.
+   -> Converter Agda.Expr
 pi name k = localEnv
   $ do
     var <- freshAgdaVar name

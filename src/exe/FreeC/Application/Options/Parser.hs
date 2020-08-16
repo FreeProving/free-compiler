@@ -19,8 +19,8 @@ import           FreeC.Monad.Reporter
 --   Returns the default options (first argument) if no arguments are
 --   specified.
 parseArgs :: Options  -- ^ The default options.
-  -> [String] -- ^ The command line arguments.
-  -> Reporter Options
+          -> [String] -- ^ The command line arguments.
+          -> Reporter Options
 parseArgs defaultOptions args
   | null errors = do
     let opts = foldr ($) defaultOptions optSetters

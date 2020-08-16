@@ -13,8 +13,8 @@ import           FreeC.Pretty
 --   'Name's are intended to be comparable. They are used as keys to
 --   identify nodes of the dependency graph for example.
 data Name
-  = Ident String     -- ^ An identifier, e.g. @Ident \"f\"@ for a function @f@.
-  | Symbol String    -- ^ A symbolic name, e.g. @Symbol \"+\"@ for @(+)@.
+  = Ident String  -- ^ An identifier, e.g. @Ident \"f\"@ for a function @f@.
+  | Symbol String -- ^ A symbolic name, e.g. @Symbol \"+\"@ for @(+)@.
  deriving ( Eq, Ord, Show )
 
 -- | Extracts an identifier from a name. Returns @Nothing@ if the

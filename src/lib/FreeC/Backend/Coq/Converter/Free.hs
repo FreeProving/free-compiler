@@ -35,7 +35,8 @@ partialArgDecl = uncurry (Coq.typedBinder' Coq.Explicit) Coq.Base.partialArg
 
 -- | Smart constructor for the application of a Coq function or (type)
 --   constructor that requires the parameters for the @Free@ monad.
-genericApply :: Coq.Qualid -- ^ The name of the function or (type) constructor
+genericApply
+  :: Coq.Qualid -- ^ The name of the function or (type) constructor
   -> [Coq.Term] -- ^ The type class instances to pass to the callee.
   -> [Coq.Term] -- ^ Implicit arguments to pass explicitly to the callee.
   -> [Coq.Term] -- ^ The actual arguments of the callee.
@@ -44,7 +45,8 @@ genericApply func = genericApply' $ Coq.Qualid func
 
 -- | Like 'genericApply' but takes a function or (type) constructor term instead
 --   of a qualified identifier as its first argument.
-genericApply' :: Coq.Term   -- ^ The function or (type) constructor term
+genericApply'
+  :: Coq.Term   -- ^ The function or (type) constructor term
   -> [Coq.Term] -- ^ The type class instances to pass to the callee.
   -> [Coq.Term] -- ^ Implicit arguments to pass explicitly to the callee.
   -> [Coq.Term] -- ^ The actual arguments of the callee.
@@ -78,7 +80,8 @@ generatePure = return . Coq.app (Coq.Qualid Coq.Base.freePureCon) . (: [])
 --
 --   If some given type is @Nothing@, the type of the fresh variable is
 --   inferred by Coq.
-generateBinds :: [Coq.Term]       -- ^ The values to bind or pass through.
+generateBinds
+  :: [Coq.Term]       -- ^ The values to bind or pass through.
   -> String           -- ^ A prefix to use for fresh variables by default.
   -> [Bool]           -- ^ If each value should be bound or passed through.
   -> [Maybe Coq.Term] -- ^ The types of the values to bind.
@@ -112,7 +115,8 @@ generateBinds exprs' defaultPrefix areStrict argTypes' generateRHS
 --
 --   If the third argument is @Nothing@, the type of the fresh variable is
 --   inferred by Coq.
-generateBind :: Coq.Term
+generateBind
+  :: Coq.Term
   -- ^ The left-hand side of the bind operator.
   -> String
   -- ^ A prefix to use for fresh variable by default.

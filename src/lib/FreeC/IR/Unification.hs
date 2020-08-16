@@ -94,7 +94,7 @@ unifyAllOrFail srcSpan = runOrFail srcSpan . unifyAll
 --
 --   Type synonyms are expanded only when necessary.
 unify :: IR.Type -> IR.Type -> ExceptT UnificationError Converter
-  (Subst IR.Type)
+      (Subst IR.Type)
 unify t s = do
   ds <- lift $ disagreementSet t s
   case ds of
@@ -112,7 +112,7 @@ unify t s = do
    -- | Maps the given variable to the given type expression and continues
    --   with the next iteration of the unification algorithm.
    mapsTo :: IR.TypeVarIdent -> IR.Type -> ExceptT UnificationError Converter
-     (Subst IR.Type)
+          (Subst IR.Type)
    x `mapsTo` u = do
      rigidCheck
      occursCheck u

@@ -148,9 +148,9 @@ app = foldl . untypedApp
 --   Since the type of the variable with the given name is not known,
 --   no type annotations will be generated.
 varApp :: SrcSpan -- ^ The source span to insert into generated nodes.
-  -> VarName -- ^ The name of the function to apply.
-  -> [Expr]  -- ^ The arguments to pass to the function.
-  -> Expr
+       -> VarName -- ^ The name of the function to apply.
+       -> [Expr]  -- ^ The arguments to pass to the function.
+       -> Expr
 varApp srcSpan = app srcSpan . untypedVar srcSpan
 
 -- | Creates a data constructor application expression.
@@ -161,9 +161,9 @@ varApp srcSpan = app srcSpan . untypedVar srcSpan
 --   Since the type of the constructor with the given name is not known,
 --   no type annotations will be generated.
 conApp :: SrcSpan -- ^ The source span to insert into generated nodes.
-  -> ConName -- ^ The name of the constructor to apply.
-  -> [Expr]  -- ^ The arguments to pass to the constructor.
-  -> Expr
+       -> ConName -- ^ The name of the constructor to apply.
+       -> [Expr]  -- ^ The arguments to pass to the constructor.
+       -> Expr
 conApp srcSpan = app srcSpan . untypedCon srcSpan
 
 -- | Creates an expression for passing the type arguments of a function or

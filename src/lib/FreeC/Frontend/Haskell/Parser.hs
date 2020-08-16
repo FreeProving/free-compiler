@@ -64,7 +64,8 @@ predefinedFixities = concat
   ]
 
 -- | Parses a node of the Haskell AST.
-parseHaskell :: (Functor ast, Parseable (ast SrcSpanInfo), MonadReporter r)
+parseHaskell
+  :: (Functor ast, Parseable (ast SrcSpanInfo), MonadReporter r)
   => SrcFile          -- ^ The name and contents of the Haskell source file.
   -> r (ast SrcSpan)
 parseHaskell = fmap fst . parseHaskellWithComments
@@ -124,26 +125,29 @@ parseHaskellWithCommentsAndExts enabledExts srcFile
 -- | Parses a Haskell module.
 --
 --   Syntax errors cause a fatal error message to be reported.
-parseHaskellModule :: MonadReporter r
+parseHaskellModule
+  :: MonadReporter r
   => SrcFile -- ^ The name and contents of the Haskell source file.
   -> r (HSE.Module SrcSpan)
 parseHaskellModule = parseHaskell
 
 -- | Like 'parseHaskellModule' but returns the comments in addition to the AST.
-parseHaskellModuleWithComments :: MonadReporter r
+parseHaskellModuleWithComments
+  :: MonadReporter r
   => SrcFile -- ^ The name and contents of the Haskell source file.
   -> r (HSE.Module SrcSpan, [IR.Comment])
 parseHaskellModuleWithComments = parseHaskellWithComments
 
 -- | Loads and parses a Haskell module from the file with the given name.
 parseHaskellModuleFile :: (MonadIO r, MonadReporter r)
-  => FilePath -- ^ The name of the Haskell source file.
-  -> r (HSE.Module SrcSpan)
+                       => FilePath -- ^ The name of the Haskell source file.
+                       -> r (HSE.Module SrcSpan)
 parseHaskellModuleFile = fmap fst . parseHaskellModuleFileWithComments
 
 -- | Like 'parseHaskellModuleFile' but returns the comments in addition to
 --   the AST.
-parseHaskellModuleFileWithComments :: (MonadIO r, MonadReporter r)
+parseHaskellModuleFileWithComments
+  :: (MonadIO r, MonadReporter r)
   => FilePath -- ^ The name of the Haskell source file.
   -> r (HSE.Module SrcSpan, [IR.Comment])
 parseHaskellModuleFileWithComments filename = do

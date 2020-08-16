@@ -283,13 +283,13 @@ guessName _ = Nothing
 
 -- | Creates a @>>= \x ->@, which binds a new variable.
 bind :: LIR.Expr -- ^ The left-hand side of the bind.
-  -> String   -- ^ A prefix to use for the fresh variable by default.
-  -> Maybe LIR.Type
-  -- ^ The type of the value to bind or @Nothing@ if it should be inferred.
-  -> (LIR.Expr -> Converter LIR.Expr)
-  -- ^ Converter for the right-hand side of the generated
-  --   function. The first argument is the fresh variable.
-  -> Converter LIR.Expr
+     -> String   -- ^ A prefix to use for the fresh variable by default.
+     -> Maybe LIR.Type
+     -- ^ The type of the value to bind or @Nothing@ if it should be inferred.
+     -> (LIR.Expr -> Converter LIR.Expr)
+     -- ^ Converter for the right-hand side of the generated
+     --   function. The first argument is the fresh variable.
+     -> Converter LIR.Expr
 bind (LIR.Pure _ arg) _ _ k      = k arg -- We don't have to unwrap pure values.
 bind arg defaultPrefix argType k = localEnv
   $ do
@@ -308,7 +308,7 @@ bind arg defaultPrefix argType k = localEnv
 -- | Passes a list of arguments to the given function unwrapping the marked
 --   arguments using 'bind'.
 generateBinds :: [(LIR.Expr, Maybe LIR.Type, Bool)]
-  -> ([LIR.Expr] -> Converter LIR.Expr) -> Converter LIR.Expr
+              -> ([LIR.Expr] -> Converter LIR.Expr) -> Converter LIR.Expr
 generateBinds [] k = k []
 generateBinds ((arg, _, False) : as) k = generateBinds as
   $ \as' -> k (arg : as')
@@ -318,13 +318,13 @@ generateBinds ((arg, argType, True) : as) k = bind arg freshArgPrefix argType
 -- | Generates just the syntax for a bind expression, which unwraps the first
 --   variable and binds its value to the second one in the given expression.
 rawBind :: SrcSpan   -- ^ The source location of the bind.
-  -> IR.QName  -- ^ The variable on the left-hand side of the bind.
-  -> IR.QName  -- ^ The variable in the lambda expression.
-  -> Maybe IR.Type
-  -- ^ The type annotation of the variable in the lambda expression or
-  --   @Nothing@ if no annotation should be generated.
-  -> LIR.Expr  -- ^ The right-hand side of the bind.
-  -> Converter LIR.Expr
+        -> IR.QName  -- ^ The variable on the left-hand side of the bind.
+        -> IR.QName  -- ^ The variable in the lambda expression.
+        -> Maybe IR.Type
+        -- ^ The type annotation of the variable in the lambda expression or
+        --   @Nothing@ if no annotation should be generated.
+        -> LIR.Expr  -- ^ The right-hand side of the bind.
+        -> Converter LIR.Expr
 rawBind srcSpan mx x varType expr = do
   mxAgda <- lookupAgdaFreshIdentOrFail srcSpan mx
   mxCoq <- lookupIdentOrFail srcSpan IR.FreshScope mx
