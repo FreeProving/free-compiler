@@ -86,7 +86,7 @@
 --     function declaration.
 module FreeC.Pass.TypeSignaturePass
   ( typeSignaturePass
-    -- * Definitions Reused in the 'EtaConversionPass'
+    -- * Definitions Reused in the @EtaConversionPass@
   , splitFuncType
   ) where
 

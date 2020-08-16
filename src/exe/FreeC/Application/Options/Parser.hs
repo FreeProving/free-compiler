@@ -14,7 +14,7 @@ import           FreeC.Monad.Reporter
 --   If there are errors when parsing the command line arguments, a fatal
 --   error message is reported.
 --
---   All non-option arguments are considered as input files.
+--   All non-option arguments are considered input files.
 --
 --   Returns the default options (first argument) if no arguments are
 --   specified.
