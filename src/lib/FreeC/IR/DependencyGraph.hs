@@ -40,7 +40,7 @@ module FreeC.IR.DependencyGraph
   , DGEntry
   , DependencyGraph(..)
     -- ** Getters
-  , dependencyGraphEntries
+  , dgEntries
     -- ** Predicates
   , dependsDirectlyOn
     -- ** Constructors
@@ -61,7 +61,7 @@ module FreeC.IR.DependencyGraph
   , mapComponentM_
   ) where
 
-import           Control.Monad ( void )
+import           Control.Monad ( liftM2, void )
 import           Control.Monad.Fail ( MonadFail )
 import           Data.Graph
 import           Data.Maybe ( mapMaybe )
@@ -93,19 +93,29 @@ type DGEntry node = (node, DGKey, [DGKey])
 --   In addition to the actual 'Graph' that stores the adjacency matrix
 --   of the internal identifiers, this data type contains functions to convert
 --   between the internal and high level representation.
-data DependencyGraph node
-  = DependencyGraph Graph                    -- ^ The actual graph.
-                    (Vertex
-                     -> DGEntry node) -- ^ Gets an entry for a vertex of the graph.
-                    (DGKey -> Maybe Vertex)  -- ^ Gets the vertex of a node with the given key.
+data DependencyGraph node = DependencyGraph
+  { dgGraph     :: Graph
+    -- ^ The actual graph.
+  , dgGetEntry  :: Vertex -> DGEntry node
+    -- ^ Gets an entry for a vertex of the graph.
+  , dgGetVertex :: DGKey -> Maybe Vertex
+    -- ^ Gets the vertex of a node with the given key.
+  }
 
 -------------------------------------------------------------------------------
 -- Getters                                                                   --
 -------------------------------------------------------------------------------
 -- | Gets the entries of the given dependency graph.
-dependencyGraphEntries :: DependencyGraph node -> [DGEntry node]
-dependencyGraphEntries (DependencyGraph graph getEntry _) = map getEntry
-  (vertices graph)
+dgEntries :: DependencyGraph node -> [DGEntry node]
+dgEntries = liftM2 map dgGetEntry dgVertecies
+
+-- | Gets the vertices of the given dependency graph.
+dgVertecies :: DependencyGraph node -> [Vertex]
+dgVertecies = vertices . dgGraph
+
+-- | Gets the edges of the given dependency graph.
+dgEdges :: DependencyGraph node -> [(Vertex, Vertex)]
+dgEdges = edges . dgGraph
 
 -------------------------------------------------------------------------------
 -- Predicates                                                                --
@@ -119,11 +129,13 @@ dependsDirectlyOn :: DependencyGraph node -- ^ The dependency graph.
                   -> DGKey                -- ^ The key of the first node.
                   -> DGKey                -- ^ The key of the second node.
                   -> Bool
-dependsDirectlyOn (DependencyGraph graph _ getVertex) k1 k2 = Just True
-  == do
-    v1 <- getVertex k1
-    v2 <- getVertex k2
-    return ((v1, v2) `elem` edges graph)
+dependsDirectlyOn graph k1 k2 = containsEdge == Just True
+ where
+   containsEdge :: Maybe Bool
+   containsEdge = do
+     v1 <- dgGetVertex graph k1
+     v2 <- dgGetVertex graph k2
+     return ((v1, v2) `elem` dgEdges graph)
 
 -------------------------------------------------------------------------------
 -- Type Dependencies                                                         --
@@ -254,8 +266,7 @@ unwrapComponent (Recursive decls)   = decls
 --   If two components do not depend on each other, they are in reverse
 --   alphabetical order.
 dependencyComponents :: DependencyGraph a -> [DependencyComponent a]
-dependencyComponents
-  = map convertSCC . stronglyConnComp . dependencyGraphEntries
+dependencyComponents = map convertSCC . stronglyConnComp . dgEntries
  where
    -- | Converts a strongly connected component from @Data.Graph@ to a
    --   'DependencyComponent'.

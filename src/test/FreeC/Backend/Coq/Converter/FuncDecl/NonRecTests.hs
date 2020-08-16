@@ -112,13 +112,13 @@ testConvertNonRecFuncDecl = context "non-recursive functions"
         ("nil", _) <- defineTestCon "Nil" 0 "forall a. List a"
         ("cons", _) <- defineTestCon "Cons" 2 "forall a. a -> List a -> List a"
         "head" <- defineTestFunc "head" 1 "forall a. List a -> a"
+        -- Note the missing binding for the Partial type class instance below.
+        -- `head` is not marked as partial in the environment. `undefined`
+        -- still expects `P` to be an instance of `Partial`.
         shouldConvertNonRecTo ("head @a (xs :: List a) :: a = case xs of {"
                                ++ "    Nil        -> undefined @a;"
                                ++ "    Cons x xs' -> x"
                                ++ "  }")
-             -- Note the missing binding for the Partial type class instance below.
-             -- `head` is not marked as partial in the environment. `undefined`
-             -- still expects `P` to be an instance of `Partial`.
           $ "Definition head (Shape : Type) (Pos : Shape -> Type) {a : Type}"
           ++ "  (xs : Free Shape Pos (List Shape Pos a))"
           ++ "  : Free Shape Pos a"
@@ -242,7 +242,8 @@ testConvertNonRecFuncDecl = context "non-recursive functions"
           ++ "    | nil => @error Shape Pos P a"
           ++ "               \"head was called on a empty list\"%string"
           ++ "    end)."
-    it "translates case expressions with strict and non-strict patterns correctly"
+    it ("translates case expressions with strict and non-strict patterns "
+        ++ "correctly")
       $ shouldSucceedWith
       $ do
         "Triple" <- defineTestTypeCon "Triple" 3 ["Triple0"]

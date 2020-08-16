@@ -47,7 +47,8 @@ testCompletePatternPass = describe "FreeC.Pass.CompletePatternPass"
                 _ <- defineTestCon "Bar" 0 "Foobar"
                 _ <- defineTestVar "x"
                 checkPatternFuncDecl input
-        it "succeeds when all constructors are given the right number of arguments"
+        it ("succeeds when all constructors are given the right number of "
+            ++ "arguments")
           $ do
             input <- expectParseTestFuncDecl
               "f x = case x :: Foobar of {Foo y -> Foo ; Bar y -> Bar}"
@@ -61,7 +62,7 @@ testCompletePatternPass = describe "FreeC.Pass.CompletePatternPass"
         it "fails when a constructor of the wrong type occurs"
           $ do
             input <- expectParseTestFuncDecl
-              "f x = case x :: Foobar of {Foo -> Foo ; Bar -> Bar ; Evil -> Bar}"
+              "f x = case x :: Foobar of {Foo -> Foo; Bar -> Bar; Evil -> Bar}"
             shouldFail
               $ do
                 _ <- defineTestTypeCon "Foobar" 0 ["Foo", "Bar"]
@@ -97,8 +98,8 @@ testCompletePatternPass = describe "FreeC.Pass.CompletePatternPass"
                 _ <- defineTestCon "Bar" 0 "Foobar"
                 _ <- defineTestVar "x"
                 checkPatternFuncDecl input
-        it ("fails for a faulty case expression used as another case expression's"
-            ++ "scrutinee")
+        it ("fails for a faulty case expression used as another case "
+            ++ "expression's scrutinee")
           $ do
             input <- expectParseTestFuncDecl
               $ "f x = case ((case x :: Foobar of {Foo -> x} ) :: Foobar) "

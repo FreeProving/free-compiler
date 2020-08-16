@@ -50,10 +50,12 @@ testConvertDataDecls = describe
         ("cons", "Cons") <- defineTestCon "Cons" 2 "List"
         shouldConvertTypeDeclsTo
           (Recursive ["data List a = Nil | Cons a (List a)"])
-          [ "data List (Shape : Set)(Pos : Shape → Set)(a : Set) : {Size} → Set where"
+          [ "data List (Shape : Set)(Pos : Shape → Set)(a : Set)"
+              ++ " : {Size} → Set where"
               ++ "  nil : List Shape Pos a"
-              ++ "  cons : ∀ {i} → Free Shape Pos a → Free Shape Pos (List Shape Pos a {i}) → List Shape Pos a {↑ i}"
+              ++ "  cons : ∀ {i} → Free Shape Pos a"
+              ++ "               → Free Shape Pos (List Shape Pos a {i})"
+              ++ "               → List Shape Pos a {↑ i}"
           , "pattern Nil = pure nil"
           , "pattern Cons x x₁ = pure (cons x x₁)"
           ]
-

@@ -1,6 +1,6 @@
--- | Implements the IR to lifted IR translation, which applies the monadic lifting
---   as described by Abel et al. in "Verifying Haskell Programs Using Constructive
---   Type Theory".
+-- | Implements the IR to lifted IR translation, which applies the monadic
+--   lifting as described by Abel et al. in "Verifying Haskell Programs Using
+--   Constructive Type Theory".
 module FreeC.LiftedIR.Converter.Type
   ( liftFuncArgTypes
   , liftConArgType
@@ -26,7 +26,8 @@ liftFuncArgTypes
   -> Converter [LIR.Type]
 liftFuncArgTypes = maybe liftNonRecFuncArgTypes liftRecFuncArgTypes
 
--- | Converts the argument types of a non recursive function using @convertType@.
+-- | Converts the argument types of a non recursive function using
+--   @convertType@.
 liftNonRecFuncArgTypes :: [IR.VarPat] -> Converter [LIR.Type]
 liftNonRecFuncArgTypes = mapM
   $ \pat -> let err = reportFatal
@@ -112,7 +113,8 @@ markAllDec decName (LIR.TypeCon srcSpan name ts dec) = LIR.TypeCon srcSpan name
 --   Note: Could be generalized to annotate a constructor based on a position.
 --   At the moment this isn't needed because our termination checker doesn't
 --   cover cases where the decreasing argument is part of another argument.
---   For example, a decreasing argument in the first element of a pair is not covered.
+--   For example, a decreasing argument in the first element of a pair is not
+--   covered.
 markOutermostDecreasing :: LIR.Type -> Converter LIR.Type
 markOutermostDecreasing (LIR.TypeCon srcSpan name ts _)
   = return $ LIR.TypeCon srcSpan name ts True

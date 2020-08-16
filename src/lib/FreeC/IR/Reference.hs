@@ -236,9 +236,10 @@ instance HasRefs IR.VarPat where
   -- | Bindings refer to the types used in the variable pattern's type signature
   --   as well as all references of the right-hand side.
   --
-  --   If the right-hand side refers to the bound variable, the bound variable is
-  --   also part of the bindings 'refSet'. Bound variables are removed from the
-  --   references of a @let@ expression by the 'HasRefs' instance of 'IR.Expr'.
+  --   If the right-hand side refers to the bound variable, the bound variable
+  --   is also part of the bindings 'refSet'. Bound variables are removed from
+  --   the references of a @let@ expression by the 'HasRefs' instance of
+  --   'IR.Expr'.
 instance HasRefs IR.Bind where
   refSet b = refSet (IR.bindVarPat b) `union` refSet (IR.bindExpr b)
 

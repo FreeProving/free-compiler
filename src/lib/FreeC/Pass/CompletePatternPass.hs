@@ -28,8 +28,8 @@
 --   >     Just b  -> Just True
 --   >   }
 --
---   should not pass the check because the @case@ expression has two alternatives
---   for the constructor @Just@.
+--   should not pass the check because the @case@ expression has two
+--   alternatives for the constructor @Just@.
 --
 --   == Example 3
 --
@@ -37,7 +37,8 @@
 --
 --   > case_id = case \x -> x  of
 --
---   should not pass the check because functions are not permitted as scrutinees.
+--   should not pass the check because functions are not permitted as
+--   scrutinees.
 --
 --   = Specification
 --

@@ -165,7 +165,8 @@ convertDataDecl (IR.DataDecl _ (IR.DeclIdent _ name) typeVarDecls conDecls) = do
      returnType' <- convertType' returnType
      return (conQualid, [], Just (args' `Coq.arrows` returnType'))
 
-   -- | Generates the @Arguments@ sentence for the given constructor declaration.
+   -- | Generates the @Arguments@ sentence for the given constructor
+   --   declaration.
    generateArgumentsSentence :: IR.ConDecl -> Converter Coq.Sentence
    generateArgumentsSentence (IR.ConDecl _ (IR.DeclIdent _ conName) _) = do
      Just qualid <- inEnv $ lookupIdent IR.ValueScope conName

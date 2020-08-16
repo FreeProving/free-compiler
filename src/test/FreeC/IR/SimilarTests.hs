@@ -184,7 +184,8 @@ testSimilarExprs = context "expressions"
         e1 <- expectParseTestExpr "\\(x :: Foo) -> x"
         e2 <- expectParseTestExpr "\\(x :: Bar) -> x"
         e1 `shouldNotBeSimilarTo` e2
-    it "lambda abstractions with and without argument annotations are not similar"
+    it ("lambda abstractions with and without argument annotations are not "
+        ++ "similar")
       $ do
         e1 <- expectParseTestExpr "\\(x :: Foo) -> x"
         e2 <- expectParseTestExpr "\\x -> x"

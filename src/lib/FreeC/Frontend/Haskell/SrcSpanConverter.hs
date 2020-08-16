@@ -22,8 +22,8 @@ instance ConvertibleSrcSpan HSE.SrcSpan where
     , srcSpanCodeLines   = []
     }
 
--- | Converts a 'HSE.SrcSpanInfo' by removing additional information and applying
---   the conversion for 'HSE.SrcSpan's.
+-- | Converts a 'HSE.SrcSpanInfo' by removing additional information and
+--   applying the conversion for 'HSE.SrcSpan's.
 instance ConvertibleSrcSpan HSE.SrcSpanInfo where
   convertSrcSpan = convertSrcSpan . HSE.srcInfoSpan
 

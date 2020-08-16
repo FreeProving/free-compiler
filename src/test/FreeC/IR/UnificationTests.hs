@@ -40,13 +40,15 @@ testUnification = describe "FreeC.IR.Unification.unify"
             f <- freshTypeVar
             b <- parseTestType "b"
             (f, b) `shouldUnifyTo` b
-        it "maps internal variables on the left to internal variables on the right"
+        it ("maps internal variables on the left to internal variables on the "
+            ++ "right")
           $ shouldSucceedWith
           $ do
             f1 <- freshTypeVar
             f2 <- freshTypeVar
             (f1, f2) `shouldUnifyTo` f2
-        it "cannot match variable with type containing the variable (occurs check)"
+        it ("cannot match variable with type containing the variable "
+            ++ "(occurs check)")
           $ shouldSucceedWith
           $ do
             t <- parseTestType "a"

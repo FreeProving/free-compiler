@@ -446,8 +446,9 @@ instance Similar IR.FuncDecl where
 --
 --   >  Γ ∪ { α₁ ↦ β₁, …, αₙ ↦ βₙ } ⊢ con₁ ≈ con'₁, …,
 --   >  Γ ∪ { α₁ ↦ β₁, …, αₙ ↦ βₙ } ⊢ conₘ ≈ con'ₘ
---   > ———————————————————————————————————————————————————————————————————————————
---   >  Γ ⊢ data D α₁ … αₙ = con₁ | … | conₘ ≈ data D β₁ … βₙ = con'₁ | … | con'ₘ
+--   > ————————————————————————————————————————————————————————————————————————
+--   >  Γ ⊢ data D α₁ … αₙ = con₁ | … | conₘ
+--   >    ≈ data D β₁ … βₙ = con'₁ | … | con'ₘ
 instance Similar IR.TypeDecl where
   similar' (IR.TypeSynDecl _ d1 as t1) (IR.TypeSynDecl _ d2 bs t2)
     | IR.declIdentName d1 == IR.declIdentName d2 && length as == length bs

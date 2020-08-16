@@ -77,7 +77,8 @@ testValidTypes = context "valid types"
             _ <- defineTestVar "x"
             _ <- defineTestFunc "f" 1 "forall a. a -> a"
             kindCheckPass input
-    it "should accept a single type variable in type annotated function arguments"
+    it ("should accept a single type variable in type annotated "
+        ++ "function arguments")
       $ do
         input <- expectParseTestModule ["module M where", "f (x :: a) = x;"]
         shouldSucceed
@@ -95,7 +96,8 @@ testValidTypes = context "valid types"
             _ <- defineTestVar "x"
             _ <- defineTestFunc "f" 1 "forall a. a -> a"
             kindCheckPass input
-    it "should accept a single type variable in type annotated case expression variables"
+    it ("should accept a single type variable in type annotated case "
+        ++ "expression variables")
       $ do
         input <- expectParseTestModule
           ["module M where", "f x = case x of {C (y :: b) -> y};"]
@@ -181,7 +183,9 @@ testNotValidTypes = context "not valid types"
             _ <- defineTestVar "x"
             _ <- defineTestFunc "f" 1 "forall m a. m a -> m a"
             kindCheckPass input
-    it "should not accept type variable applications in type annotated function arguments"
+    it
+      ("should not accept type variable applications in type annotated function"
+       ++ "arguments")
       $ do
         input <- expectParseTestModule ["module M where", "f (x :: m a) = x;"]
         shouldFail
@@ -200,7 +204,8 @@ testNotValidTypes = context "not valid types"
             _ <- defineTestVar "x"
             _ <- defineTestFunc "f" 1 "forall m a. m a -> m a"
             kindCheckPass input
-    it "should not accept type variable applications in type annotated case expression variables"
+    it ("should not accept type variable applications in type annotated case "
+        ++ "expression variables")
       $ do
         input <- expectParseTestModule
           ["module M where", "f x = case x of {C (y :: m b) -> y};"]

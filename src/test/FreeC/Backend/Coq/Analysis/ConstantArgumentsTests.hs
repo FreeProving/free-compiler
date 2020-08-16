@@ -79,7 +79,8 @@ testConstantArguments = describe "FreeC.Backend.Coq.Analysis.ConstantArguments"
               ++ "  }"
           , "baz n xs = case xs of {"
               ++ "    Nil        -> Nil;"
-              ++ "    Cons x xs' -> append (Cons ((+) x n) (foo n xs')) (bar n xs')"
+              ++ "    Cons x xs' ->"
+              ++ "      append (Cons ((+) x n) (foo n xs')) (bar n xs')"
               ++ "  }"
           ]
         identifyConstArgIdents funcDecls

@@ -139,9 +139,7 @@ liftExpr' (IR.IntLiteral srcSpan value _) [] []
   = return $ LIR.Pure srcSpan $ LIR.IntLiteral srcSpan value
 -- Lambda abstractions.
 --
--- > ⎡     Γ,x:τ₀ ⊢ e:τ₁     ⎤'           Γ',x:τ₀' ⊢ e':τ₁'
--- > ⎢-----------------------⎥ = -----------------------------------
--- > ⎣ Γ ⊢ λx:τ₀.e : τ₀ → τ₁ ⎦   Γ' ⊢ pure(λx:τ₀'.e') : m(τ₀' → τ₁')
+-- > (\(x :: τ) -> e)' = pure (\(x :: τ') -> e')
 liftExpr' (IR.Lambda srcSpan args rhs _) [] [] = localEnv
   $ do
     (pats, expr) <- liftAlt' args rhs
@@ -149,9 +147,8 @@ liftExpr' (IR.Lambda srcSpan args rhs _) [] [] = localEnv
       $ foldr (\a b -> LIR.Pure srcSpan $ LIR.Lambda srcSpan [a] b) expr pats
 -- @if@-expressions.
 --
--- > ⎡Γ ⊢ p:Bool  Γ ⊢ t:τ  Γ ⊢ f:τ⎤'     Γ' ⊢ p':Bool'  Γ' ⊢ t':τ'  Γ' ⊢ f':τ'
--- > ⎢----------------------------⎥ = -------------------------------------------
--- > ⎣ Γ ⊢ if p then t else f : τ ⎦   Γ' ⊢ p' >>= λx:𝔹'.if x then t' else f' : τ'
+-- > (if e₁ then e₂ else e₃)'
+-- >   = e₁' >>= \(x :: Bool Shape Pos) -> if x then e₂' else e₃'
 --
 -- Note that the argument of the lambda is lifted, but its type is
 -- @Bool Shape Pos@, which is just an alias for @bool@, which ignores its
@@ -163,9 +160,7 @@ liftExpr' (IR.If srcSpan cond true false _) [] [] = do
     $ \d -> LIR.If srcSpan d <$> liftExpr true <*> liftExpr false
 -- @case@-expressions.
 --
--- > ⎡Γ ⊢ e:τ₀   Γ ⊢ alts:τ₀ => τ⎤'     Γ' ⊢ e':τ₀'     Γ' ⊢ alts':τ₀* => τ'
--- > ⎢---------------------------⎥ = ------------------------------------------
--- > ⎣  Γ ⊢ case e of alts : τ   ⎦   Γ' ⊢ e' >>= λx:τ₀*.match x with alts' : τ'
+-- > (case (e :: τ) of alts)' = e' >>= \(x :: τ*) -> case x of alts'
 --
 -- where @alts'@ are the lifted (not smart) constructors for τ₀.
 liftExpr' (IR.Case srcSpan discriminante patterns _) [] [] = do
@@ -220,8 +215,8 @@ liftExpr' expr [] args@(_ : _)
 liftConPat :: IR.ConPat -> LIR.ConPat
 liftConPat (IR.ConPat srcSpan name) = LIR.ConPat srcSpan name
 
--- | Translates a case alternative pattern from IR to LIR, by lifting the pattern
---   and the right-hand side.
+-- | Translates a case alternative pattern from IR to LIR, by lifting the
+--   pattern and the right-hand side.
 liftAlt :: IR.Alt -> Converter LIR.Alt
 liftAlt (IR.Alt srcSpan conPat pats expr) = do
   (pats', expr') <- liftAlt' pats expr
