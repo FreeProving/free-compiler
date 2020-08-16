@@ -64,7 +64,7 @@ data Environment = Environment
     -- ^ Maps names of modules that can be imported to their interface.
   , envEntries          :: Map IR.ScopedName EnvEntry
     -- ^ Maps original names of entries for declarations to the entries.
-  , envDecArgs          :: Map IR.QName ( Int, String )
+  , envDecArgs          :: Map IR.QName (Int, String)
     -- ^ Maps Haskell function names to the index and name of their decreasing
     --   argument. Contains no entry for non-recursive functions, but there are
     --   also entries for functions that are shadowed by local variables.
@@ -118,8 +118,7 @@ addEntry entry env = env
 --   function in the environment.
 defineDecArg :: IR.QName -> Int -> String -> Environment -> Environment
 defineDecArg funcName decArgIndex decArgIdent env = env
-  { envDecArgs = Map.insert funcName ( decArgIndex, decArgIdent )
-      (envDecArgs env)
+  { envDecArgs = Map.insert funcName (decArgIndex, decArgIdent) (envDecArgs env)
   }
 
 -- | Removes the index of the decreasing argument of a recursive function
@@ -148,7 +147,7 @@ modifyEntryIdent scope name newIdent env = case lookupEntry scope name env of
 -- | Looks up the entry with the given original name in the given scope of
 --   the given environment.
 lookupEntry :: IR.Scope -> IR.QName -> Environment -> Maybe EnvEntry
-lookupEntry scope name = Map.lookup ( scope, name ) . envEntries
+lookupEntry scope name = Map.lookup (scope, name) . envEntries
 
 -- | Tests whether the given name identifies a function in the given
 --   environment.
@@ -274,7 +273,7 @@ lookupArity = fmap entryArity . find (not . (isVarEntry .||. isTypeVarEntry))
 --
 --   Returns @Nothing@ if there is no such type synonym.
 lookupTypeSynonym
-  :: IR.QName -> Environment -> Maybe ( [ IR.TypeVarIdent ], IR.Type )
+  :: IR.QName -> Environment -> Maybe ([ IR.TypeVarIdent ], IR.Type)
 lookupTypeSynonym = fmap (entryTypeArgs &&& entryTypeSyn) . find isTypeSynEntry
   .: lookupEntry IR.TypeScope
 
@@ -297,7 +296,7 @@ isPartial = maybe False (isFuncEntry .&&. entryIsPartial)
 --   function with the given name.
 --
 --   Returns @Nothing@ if there is no such recursive function.
-lookupDecArg :: IR.QName -> Environment -> Maybe ( Int, String )
+lookupDecArg :: IR.QName -> Environment -> Maybe (Int, String)
 lookupDecArg name = Map.lookup name . envDecArgs
 
 -- | Like 'lookupDecArg' but returns the decreasing argument's index only.

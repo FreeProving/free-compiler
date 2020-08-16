@@ -152,8 +152,8 @@ addTypeSigsToFuncDecls typeSigs = mapM addTypeSigToFuncDecl
    -- | Maps the names of functions to their annotated type.
    typeSigMap :: Map IR.QName [ IR.TypeScheme ]
    typeSigMap = Map.fromListWith (++)
-     [ ( name, [ typeScheme ] ) | IR.TypeSig _ declIdents typeScheme <- typeSigs
-                                , IR.DeclIdent _ name <- declIdents
+     [ (name, [ typeScheme ]) | IR.TypeSig _ declIdents typeScheme <- typeSigs
+                              , IR.DeclIdent _ name <- declIdents
      ]
 
    -- | Sets the type annotation of the given variable pattern.
@@ -169,7 +169,7 @@ addTypeSigsToFuncDecls typeSigs = mapM addTypeSigToFuncDecl
      case Map.lookup name typeSigMap of
        Nothing -> return funcDecl
        Just [ IR.TypeScheme _ typeArgs typeExpr ] -> do
-         ( argTypes, retType ) <- splitFuncType name args typeExpr
+         (argTypes, retType) <- splitFuncType name args typeExpr
          return funcDecl
            { IR.funcDeclTypeArgs   = typeArgs
            , IR.funcDeclArgs       = zipWith setVarPatType args argTypes
@@ -187,15 +187,15 @@ splitFuncType
   :: IR.QName    -- ^ The name of the function to display in error messages.
   -> [ IR.VarPat ] -- ^ The argument variable patterns whose types to split of.
   -> IR.Type     -- ^ The type to split.
-  -> Converter ( [ IR.Type ], IR.Type )
+  -> Converter ([ IR.Type ], IR.Type)
 splitFuncType name = splitFuncType'
  where
    splitFuncType'
-     :: [ IR.VarPat ] -> IR.Type -> Converter ( [ IR.Type ], IR.Type )
-   splitFuncType' [] typeExpr = return ( [], typeExpr )
+     :: [ IR.VarPat ] -> IR.Type -> Converter ([ IR.Type ], IR.Type)
+   splitFuncType' [] typeExpr = return ([], typeExpr)
    splitFuncType' (_ : args) (IR.FuncType _ t1 t2) = do
-     ( argTypes, returnType ) <- splitFuncType' args t2
-     return ( t1 : argTypes, returnType )
+     (argTypes, returnType) <- splitFuncType' args t2
+     return (t1 : argTypes, returnType)
    splitFuncType' args@(arg : _) typeExpr = do
      typeExpr' <- expandTypeSynonym typeExpr
      if typeExpr == typeExpr' then reportTypeSynExpansionError name arg

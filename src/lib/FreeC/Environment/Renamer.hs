@@ -151,8 +151,7 @@ sanitizeIdent (firstChar : subsequentChars)
 renameIdent :: String -> Environment -> String
 renameIdent ident env
   | mustRenameIdent ident' env = case matchRegexPR "\\d+$" ident' of
-    Just ( ( number, ( prefix, _ ) ), _ ) -> renameIdent' prefix (read number)
-      env
+    Just ((number, (prefix, _)), _) -> renameIdent' prefix (read number) env
     Nothing -> renameIdent' ident' 0 env
   | otherwise = ident'
  where

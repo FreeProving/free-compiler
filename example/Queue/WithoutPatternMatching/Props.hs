@@ -7,7 +7,7 @@ import           Test.QuickCheck
 
 invariant :: QueueI a -> Bool
 invariant qi = case qi of
-  ( f, b ) -> null b || not (null f)
+  (f, b) -> null b || not (null f)
 
 prop_inv_empty :: Bool
 prop_inv_empty = invariant emptyI
@@ -18,7 +18,7 @@ prop_inv_add x q = invariant q ==> property (invariant (addI x q))
 -------------------------------------------------------------------------------
 toQueue :: QueueI a -> Queue a
 toQueue qi = case qi of
-  ( f, b ) -> f `append` reverse b
+  (f, b) -> f `append` reverse b
 
 prop_isEmpty :: QueueI a -> Property
 prop_isEmpty qi = invariant qi ==> isEmptyI qi === isEmpty (toQueue qi)

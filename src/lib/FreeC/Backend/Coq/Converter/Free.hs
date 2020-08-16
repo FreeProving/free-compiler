@@ -91,10 +91,10 @@ generateBinds exprs' defaultPrefix areStrict argTypes' generateRHS
   = generateBinds' (zip3 exprs' (areStrict ++ repeat False)
                     (argTypes' ++ repeat Nothing)) []
  where
-   generateBinds' :: [ ( Coq.Term, Bool, Maybe Coq.Term ) ]
+   generateBinds' :: [ (Coq.Term, Bool, Maybe Coq.Term) ]
      -> [ Coq.Term ] -> Converter Coq.Term
    generateBinds' [] acc = generateRHS acc
-   generateBinds' (( expr', isStrict, argType' ) : xs) acc = if isStrict
+   generateBinds' ((expr', isStrict, argType') : xs) acc = if isStrict
      then generateBind expr' defaultPrefix argType' $ \arg -> generateBinds' xs
        (acc ++ [ arg ]) else generateBinds' xs (acc ++ [ expr' ])
 

@@ -34,7 +34,7 @@ parseArgs defaultOptions args
    optSetters :: [ Options -> Options ]
    nonOpts :: [ String ]
    errors :: [ String ]
-   ( optSetters, nonOpts, errors ) = getOpt Permute optionDescriptors args
+   (optSetters, nonOpts, errors) = getOpt Permute optionDescriptors args
 
 -- | Gets the 'Options' for the command line arguments that were passed to
 --   the application.

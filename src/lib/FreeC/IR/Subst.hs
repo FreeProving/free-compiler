@@ -54,7 +54,7 @@ newtype Subst a = Subst (Map IR.QName (SrcSpan -> a))
 -- | Substitutions can be pretty printed for testing purposes.
 instance Pretty a => Pretty (Subst a) where
   pretty (Subst m) = braces $ prettySeparated (comma <> space) $ flip map
-    (Map.assocs m) $ \( v, f ) -> pretty v <+> prettyString "↦" <+> pretty
+    (Map.assocs m) $ \(v, f) -> pretty v <+> prettyString "↦" <+> pretty
     (f NoSrcSpan)
 
 -------------------------------------------------------------------------------
@@ -111,7 +111,7 @@ class ApplySubst a b where
   applySubst :: Subst a -> b -> b
 
 -- | Substitutions can be applied to the elements of every functor.
-instance ( ApplySubst a b, Functor f ) => ApplySubst a (f b) where
+instance (ApplySubst a b, Functor f) => ApplySubst a (f b) where
   applySubst = fmap . applySubst
 
 -------------------------------------------------------------------------------
@@ -147,12 +147,11 @@ instance ApplySubst IR.Expr IR.Expr where
              alts' = map (applySubst subst) alts
          in IR.Case srcSpan expr' alts' exprType
      applySubst' (IR.Lambda srcSpan args expr exprType)
-       = let ( subst', args' ) = newRenameArgs subst args
-             expr' = applySubst subst' expr
+       = let (subst', args') = newRenameArgs subst args
+             expr'           = applySubst subst' expr
          in IR.Lambda srcSpan args' expr' exprType
      applySubst' (IR.Let srcSpan binds expr exprType)
-       = let ( subst', varpats' ) = newRenameArgs subst
-               (map IR.bindVarPat binds)
+       = let (subst', varpats') = newRenameArgs subst (map IR.bindVarPat binds)
              binds' = zipWith (\v (IR.Bind s _ e) -> IR.Bind s v e) varpats'
                binds
              binds'' = map (applySubst subst') binds'
@@ -168,7 +167,7 @@ instance ApplySubst IR.Expr IR.Expr where
 --   given @case@-expression alternative.
 instance ApplySubst IR.Expr IR.Alt where
   applySubst subst (IR.Alt srcSpan conPat varPats expr)
-    = let ( subst', varPats' ) = newRenameArgs subst varPats
+    = let (subst', varPats') = newRenameArgs subst varPats
           expr' = applySubst subst' expr
       in IR.Alt srcSpan conPat varPats' expr'
 
@@ -268,7 +267,7 @@ instance ApplySubst IR.Type IR.Bind where
 instance ApplySubst IR.Expr IR.FuncDecl where
   applySubst subst
     (IR.FuncDecl srcSpan declIdent typeArgs args maybeRetType rhs)
-    = let ( subst', args' ) = newRenameArgs subst args
+    = let (subst', args') = newRenameArgs subst args
           rhs' = applySubst subst' rhs
       in IR.FuncDecl srcSpan declIdent typeArgs args' maybeRetType rhs'
 
@@ -308,8 +307,8 @@ instance ApplySubst IR.Type IR.Type where
 -- | Applies the given type substitution to a type scheme.
 instance ApplySubst IR.Type IR.TypeScheme where
   applySubst subst (IR.TypeScheme srcSpan typeArgs typeExpr)
-    = let ( subst', typeArgs' ) = newRenameArgs subst typeArgs
-          typeExpr' = applySubst subst' typeExpr
+    = let (subst', typeArgs') = newRenameArgs subst typeArgs
+          typeExpr'           = applySubst subst' typeExpr
       in IR.TypeScheme srcSpan typeArgs' typeExpr'
 
 -------------------------------------------------------------------------------
@@ -357,17 +356,17 @@ instance Renamable IR.VarPat IR.Expr where
 --
 --   Returns the renamed (type) arguments as well as a modified substitution
 --   that replaces the renamed (type) arguments appropriately.
-newRenameArgs :: ( HasRefs expr, Renamable arg expr, ApplySubst expr expr )
-  => Subst expr -> [ arg ] -> ( Subst expr, [ arg ] )
+newRenameArgs :: (HasRefs expr, Renamable arg expr, ApplySubst expr expr)
+  => Subst expr -> [ arg ] -> (Subst expr, [ arg ])
 newRenameArgs subst args
   = let subst' = subst `substWithout` map (IR.UnQual . IR.Ident . getIdent) args
     in newRenameArgs' subst' args
 
 -- | Like 'newRenameArgs' but the domain of the given substitution does not
 --   contain any of the given type arguments.
-newRenameArgs' :: ( HasRefs expr, Renamable arg expr, ApplySubst expr expr )
-  => Subst expr -> [ arg ] -> ( Subst expr, [ arg ] )
-newRenameArgs' subst [] = ( subst, [] )
+newRenameArgs' :: (HasRefs expr, Renamable arg expr, ApplySubst expr expr)
+  => Subst expr -> [ arg ] -> (Subst expr, [ arg ])
+newRenameArgs' subst [] = (subst, [])
 newRenameArgs' subst (arg : args) = (arg' :) <$> newRenameArgs' subst' args
  where
    -- | The original identifier of the argument.
@@ -423,13 +422,13 @@ freshIdentsWithPrefix prefix = map (prefix ++) ("" : map show [ 0 :: Int .. ])
 --
 --   Returns the new names for the type variables and the substitution.
 renameTypeArgsSubst
-  :: [ IR.TypeVarDecl ] -> Converter ( [ IR.TypeVarDecl ], Subst IR.Type )
+  :: [ IR.TypeVarDecl ] -> Converter ([ IR.TypeVarDecl ], Subst IR.Type)
 renameTypeArgsSubst typeArgDecls = do
   typeArgDecls' <- mapM freshTypeArgDecl typeArgDecls
   let typeArgNames = map IR.typeVarDeclQName typeArgDecls
       typeArgs'    = map (flip IR.TypeVar . IR.typeVarDeclIdent) typeArgDecls'
       subst        = composeSubsts (zipWith singleSubst' typeArgNames typeArgs')
-  return ( typeArgDecls', subst )
+  return (typeArgDecls', subst)
  where
    -- | Generates a fresh identifier for the given type argument and returns
    --   a type argument that preserves the source span of the original
@@ -442,22 +441,22 @@ renameTypeArgsSubst typeArgDecls = do
 -- | Renames the given type variables in the given expression or type
 --   to fresh type variables.
 renameTypeArgs :: ApplySubst IR.Type a
-  => [ IR.TypeVarDecl ] -> a -> Converter ( [ IR.TypeVarDecl ], a )
+  => [ IR.TypeVarDecl ] -> a -> Converter ([ IR.TypeVarDecl ], a)
 renameTypeArgs typeArgDecls x = do
-  ( typeArgDecls', subst ) <- renameTypeArgsSubst typeArgDecls
-  return ( typeArgDecls', applySubst subst x )
+  (typeArgDecls', subst) <- renameTypeArgsSubst typeArgDecls
+  return (typeArgDecls', applySubst subst x)
 
 -- | Creates a substitution that renames the arguments bound by the given
 --   variable patterns to fresh variables.
 --
 --   Returns the new names for the variables and the substitution.
-renameArgsSubst :: [ IR.VarPat ] -> Converter ( [ IR.VarPat ], Subst IR.Expr )
+renameArgsSubst :: [ IR.VarPat ] -> Converter ([ IR.VarPat ], Subst IR.Expr)
 renameArgsSubst args = do
   args' <- mapM freshVarPat args
   let argNames = map IR.varPatQName args
       argVars' = map (flip IR.untypedVar . IR.varPatQName) args'
       argSubst = composeSubsts (zipWith singleSubst' argNames argVars')
-  return ( args', argSubst )
+  return (args', argSubst)
  where
    -- | Generates a fresh identifier for the given variable pattern and returns
    --   a variable pattern that preserves the source span of the original
@@ -471,8 +470,8 @@ renameArgsSubst args = do
 --   expression to fresh variables.
 --
 --   Returns the new names for the variables and the resulting expression.
-renameArgs :: ApplySubst IR.Expr a
-  => [ IR.VarPat ] -> a -> Converter ( [ IR.VarPat ], a )
+renameArgs
+  :: ApplySubst IR.Expr a => [ IR.VarPat ] -> a -> Converter ([ IR.VarPat ], a)
 renameArgs args x = do
-  ( args', subst ) <- renameArgsSubst args
-  return ( args', applySubst subst x )
+  (args', subst) <- renameArgsSubst args
+  return (args', applySubst subst x)

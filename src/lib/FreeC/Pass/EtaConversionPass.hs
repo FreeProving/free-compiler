@@ -182,7 +182,7 @@ modifyTopLevel :: IR.FuncDecl -> IR.Expr -> [ String ] -> Converter IR.FuncDecl
 modifyTopLevel funcDecl rhs newArgIdents = do
   -- Compute the function's new (uncurried) type. Assumes that funcDecl's
   -- return type is known.
-  ( newArgTypes, returnType ) <- splitFuncType (IR.funcDeclQName funcDecl)
+  (newArgTypes, returnType) <- splitFuncType (IR.funcDeclQName funcDecl)
     (map IR.toVarPat newArgIdents) (fromJust $ IR.funcDeclReturnType funcDecl)
   -- Compute the function's new arguments and add them to the argument list.
   let newArgs = map ($ False) $ zipWith (IR.VarPat NoSrcSpan) newArgIdents

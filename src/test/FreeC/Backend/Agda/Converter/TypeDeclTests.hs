@@ -31,8 +31,8 @@ testConvertDataDecls
     it "translates non-polymorphic, non-recursive data types correctly"
       $ shouldSucceedWith $ do
         "Foo" <- defineTestTypeCon "Foo" 0 [ "Bar", "Baz" ]
-        ( "bar", "Bar" ) <- defineTestCon "Bar" 0 "Foo"
-        ( "baz", "Baz" ) <- defineTestCon "Baz" 0 "Foo"
+        ("bar", "Bar") <- defineTestCon "Bar" 0 "Foo"
+        ("baz", "Baz") <- defineTestCon "Baz" 0 "Foo"
         shouldConvertTypeDeclsTo (NonRecursive "data Foo = Bar | Baz")
           [ "data Foo (Shape : Set)(Pos : Shape → Set) : Set where"
               ++ "  bar : Foo Shape Pos" ++ "  baz : Foo Shape Pos"
@@ -41,8 +41,8 @@ testConvertDataDecls
           ]
     it "annotates recursive data type with Sized type" $ shouldSucceedWith $ do
       "List" <- defineTestTypeCon "List" 1 [ "Nil", "Cons" ]
-      ( "nil", "Nil" ) <- defineTestCon "Nil" 0 "List"
-      ( "cons", "Cons" ) <- defineTestCon "Cons" 2 "List"
+      ("nil", "Nil") <- defineTestCon "Nil" 0 "List"
+      ("cons", "Cons") <- defineTestCon "Cons" 2 "List"
       shouldConvertTypeDeclsTo
         (Recursive [ "data List a = Nil | Cons a (List a)" ])
         [ "data List (Shape : Set)(Pos : Shape → Set)(a : Set) : {Size} → Set where"

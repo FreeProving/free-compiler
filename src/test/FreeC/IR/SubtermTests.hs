@@ -27,11 +27,11 @@ invalidTestPos expr = (Pos <$> arbitrary)
 -- | Creates a generator for test positions for the given expression.
 --
 --   The @Bool@ indicates whether the position is valid or not.
-testPos :: IR.Expr -> Gen ( Pos, Bool )
+testPos :: IR.Expr -> Gen (Pos, Bool)
 testPos expr = do
   validPos <- validTestPos expr
   invalidPos <- invalidTestPos expr
-  oneof [ return ( validPos, True ), return ( invalidPos, False ) ]
+  oneof [ return (validPos, True), return (invalidPos, False) ]
 
 -------------------------------------------------------------------------------
 -- Subterm tests                                                             --
@@ -52,10 +52,10 @@ testSubterm = describe "FreeC.IR.Subterm" $ do
              ]) $ do
     context "selecting and replacing subterms" $ do
       it "selects valid positions successfully" $ \testExpr -> property $ forAll
-        (testPos testExpr) $ \( p, valid ) -> isJust (selectSubterm testExpr p)
+        (testPos testExpr) $ \(p, valid) -> isJust (selectSubterm testExpr p)
         == valid
       it "replaces valid positions successfully" $ \testExpr -> property
-        $ forAll (testPos testExpr) $ \( p, valid ) ->
+        $ forAll (testPos testExpr) $ \(p, valid) ->
         let testExpr' = IR.Var NoSrcSpan (IR.UnQual (IR.Ident "x")) Nothing
         in isJust (replaceSubterm testExpr p testExpr') == valid
       it "produces the input when replacing a subterm with itself"

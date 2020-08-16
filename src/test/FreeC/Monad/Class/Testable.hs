@@ -58,17 +58,17 @@ class Monad m => MonadTestable m err | m -> err where
 
 -- | Sets the expectation returned by the given function for the value
 --   returned by the given computation.
-shouldReturnWith :: ( Show a, MonadTestable m err ) => m a -> (a -> Expectation)
+shouldReturnWith :: (Show a, MonadTestable m err) => m a -> (a -> Expectation)
   -> Expectation
 shouldReturnWith = shouldReturnWith' show
 
 -- | Sets the expectation that the given computation successfully returns
 --   the given value.
-shouldReturn :: ( Eq a, Show a, MonadTestable m err ) => m a -> a -> Expectation
+shouldReturn :: (Eq a, Show a, MonadTestable m err) => m a -> a -> Expectation
 shouldReturn mx y = shouldReturnWith mx (`shouldBe` y)
 
 -- | Sets the expectation that the given computation does not fail.
-shouldSucceed :: ( Show a, MonadTestable m err ) => m a -> Expectation
+shouldSucceed :: (Show a, MonadTestable m err) => m a -> Expectation
 shouldSucceed mx = shouldSucceedWith (return () <$ mx)
 
 -- | Sets the expectation that the given computation successfully produces
@@ -78,17 +78,17 @@ shouldSucceedWith = flip (shouldReturnWith' (const "<expectation>")) id
 
 -- | Sets the expectation that the given computation fails without returning
 --   a value.
-shouldFail :: ( Show a, MonadTestable m err ) => m a -> Expectation
+shouldFail :: (Show a, MonadTestable m err) => m a -> Expectation
 shouldFail = flip shouldFailWith expectAnyError
 
 -- | Like 'shouldFail' but if the given computation does not fail, the
 --   produced value is printed using its 'Pretty' instance.
-shouldFailPretty :: ( Pretty a, MonadTestable m err ) => m a -> Expectation
+shouldFailPretty :: (Pretty a, MonadTestable m err) => m a -> Expectation
 shouldFailPretty mx = shouldFailWith' showPretty mx expectAnyError
 
 -- | Sets the expectation returned by the given function for the error
 --   that was produced by the given computation instead of a value.
-shouldFailWith :: ( Show a, MonadTestable m err ) => m a -> (err -> Expectation)
+shouldFailWith :: (Show a, MonadTestable m err) => m a -> (err -> Expectation)
   -> Expectation
 shouldFailWith = shouldFailWith' show
 
@@ -154,8 +154,8 @@ showListItem = (++ "\n") . (" * " ++) . intercalate "\n   " . lines
 
 -- | Converts the pretty printing function for the result of a reporter to
 --   a pretty printing function for the result of 'runReporterT'.
-showReporterValue :: (a -> String) -> ( Maybe a, [ Message ] ) -> String
-showReporterValue showValue ( mx, ms ) = "Reporter result where:\n"
+showReporterValue :: (a -> String) -> (Maybe a, [ Message ]) -> String
+showReporterValue showValue (mx, ms) = "Reporter result where:\n"
   ++ showReportedValue showValue mx ++ showReportedMessages ms
 
 -- | Converts the pretty printing function for the result of a reporter to
@@ -180,15 +180,15 @@ instance MonadTestable m err => MonadTestable (ReporterT m) [ Message ] where
   shouldReturnWith' showValue reporter setExpectation = shouldReturnWith'
     (showReporterValue showValue) (runReporterT reporter)
     $ \result -> case result of
-      ( Just x, _ )   -> setExpectation x
-      ( Nothing, ms ) ->
+      (Just x, _)   -> setExpectation x
+      (Nothing, ms) ->
         assertFailure $ "Unexpected fatal message.\n" ++ showReportedMessages ms
 
   shouldFailWith' showValue reporter setExpectation = shouldReturnWith'
     (showReporterValue showValue) (runReporterT reporter)
     $ \result -> case result of
-      ( Nothing, ms ) -> setExpectation ms
-      ( Just x, ms )
+      (Nothing, ms) -> setExpectation ms
+      (Just x, ms)
         | null ms -> assertFailure
           $ "Expected a fatal message, but no messages were reported.\n"
           ++ showReportedValue showValue (Just x)
@@ -202,7 +202,7 @@ instance MonadTestable m err => MonadTestable (ReporterT m) [ Message ] where
 -- | Initializes the test environment for the converter monad.
 initTestEnvironment :: IO Environment
 initTestEnvironment = do
-  ( maybeEnv, ms ) <- runReporterT $ do
+  (maybeEnv, ms) <- runReporterT $ do
     preludeIface <- loadTestModuleInterface "./base/Prelude.toml"
     quickCheckIface <- loadTestModuleInterface "./base/Test/QuickCheck.toml"
     return $ foldr makeModuleAvailable emptyEnv
@@ -216,7 +216,7 @@ initTestEnvironment = do
 --   the initial test environment (see 'initTestEnvironment') such that
 --   they do not have to be loaded in every test case.
 {-# NOINLINE moduleInterfaceCache #-}
-moduleInterfaceCache :: IORef [ ( IR.ModName, ModuleInterface ) ]
+moduleInterfaceCache :: IORef [ (IR.ModName, ModuleInterface) ]
 moduleInterfaceCache = unsafePerformIO $ newIORef []
 
 -- | Loads the module interface file for the module with the given name from
@@ -225,13 +225,13 @@ moduleInterfaceCache = unsafePerformIO $ newIORef []
 --   If the module interface has been loaded before, the previously loaded
 --   interface file is restored from 'moduleInterfaceCache'.
 loadTestModuleInterface
-  :: ( MonadIO r, MonadReporter r ) => FilePath -> r ModuleInterface
+  :: (MonadIO r, MonadReporter r) => FilePath -> r ModuleInterface
 loadTestModuleInterface ifaceFile = do
   cache <- liftIO $ readIORef moduleInterfaceCache
   case lookup ifaceFile cache of
     Nothing    -> do
       iface <- loadModuleInterface ifaceFile
-      let cache' = ( ifaceFile, iface ) : cache
+      let cache' = (ifaceFile, iface) : cache
       liftIO $ writeIORef moduleInterfaceCache cache'
       return iface
     Just iface -> return iface
@@ -255,6 +255,6 @@ instance MonadTestable m err => MonadTestable (ConverterT m) [ Message ] where
 --   QuickCheck property and returns a property that is satisfied if and
 --   only if the property returned by the computation is satisfied.
 shouldReturnProperty
-  :: ( MonadTestable m err, Testable prop ) => m prop -> Property
+  :: (MonadTestable m err, Testable prop) => m prop -> Property
 shouldReturnProperty mp = idempotentIOProperty $ shouldReturnWith'
   (const "<property>") mp return

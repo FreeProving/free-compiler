@@ -38,8 +38,8 @@ testConvertRecFuncDeclWithSections = context "with section sentences" $ do
   it "creates variable sentences for constant arguments" $ shouldSucceedWith
     $ do
       "List" <- defineTestTypeCon "List" 1 [ "Nil", "Cons" ]
-      ( "nil", "Nil" ) <- defineTestCon "Nil" 0 "forall a. List a"
-      ( "cons", "Cons" )
+      ("nil", "Nil") <- defineTestCon "Nil" 0 "forall a. List a"
+      ("cons", "Cons")
         <- defineTestCon "Cons" 2 "forall a. a -> List a -> List a"
       "map" <- defineTestFunc "map" 2 "forall a b. (a -> b) -> List a -> List b"
       convertRecFuncDeclsWithSectionTo
@@ -71,8 +71,8 @@ testConvertRecFuncDeclWithSections = context "with section sentences" $ do
   it "creates variable sentences for type variables in constant argument types"
     $ shouldSucceedWith $ do
       "List" <- defineTestTypeCon "List" 1 [ "Nil", "Cons" ]
-      ( "nil", "Nil" ) <- defineTestCon "Nil" 0 "forall a. List a"
-      ( "cons", "Cons" )
+      ("nil", "Nil") <- defineTestCon "Nil" 0 "forall a. List a"
+      ("cons", "Cons")
         <- defineTestCon "Cons" 2 "forall a. a -> List a -> List a"
       "mapAlt"
         <- defineTestFunc "mapAlt" 2 "forall a b. (a -> b) -> List a -> List b"
@@ -127,8 +127,8 @@ testConvertRecFuncDeclWithSections = context "with section sentences" $ do
   it "does not create variable sentences for unused constant arguments"
     $ shouldSucceedWith $ do
       "List" <- defineTestTypeCon "List" 1 [ "Nil", "Cons" ]
-      ( "nil", "Nil" ) <- defineTestCon "Nil" 0 "forall a. List a"
-      ( "cons", "Cons" )
+      ("nil", "Nil") <- defineTestCon "Nil" 0 "forall a. List a"
+      ("cons", "Cons")
         <- defineTestCon "Cons" 2 "forall a. a -> List a -> List a"
       "foo" <- defineTestFunc "foo" 3 "forall a. a -> a -> List a -> List a"
       convertRecFuncDeclsWithSectionTo
@@ -158,8 +158,8 @@ testConvertRecFuncDeclWithSections = context "with section sentences" $ do
   it "passes constant type arguments explicitly the main function"
     $ shouldSucceedWith $ do
       "List" <- defineTestTypeCon "List" 1 [ "Nil", "Cons" ]
-      ( "nil", "Nil" ) <- defineTestCon "Nil" 0 "forall a. List a"
-      ( "cons", "Cons" )
+      ("nil", "Nil") <- defineTestCon "Nil" 0 "forall a. List a"
+      ("cons", "Cons")
         <- defineTestCon "Cons" 2 "forall a. a -> List a -> List a"
       "foo" <- defineTestFunc "foo" 3 "forall a b c. a -> b -> List c -> List b"
       convertRecFuncDeclsWithSectionTo

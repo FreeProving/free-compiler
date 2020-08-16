@@ -65,7 +65,7 @@ type Converter = ConverterT Identity
 
 -- | Runs the converter with the given initial environment and
 --   returns the converter's result as well as the final environment.
-runConverter :: Converter a -> Environment -> Reporter ( a, Environment )
+runConverter :: Converter a -> Environment -> Reporter (a, Environment)
 runConverter = runConverterT
 
 -- | Runs the converter with the given initial environment and
@@ -89,7 +89,7 @@ newtype ConverterT m a
 -- | Runs the converter with the given initial environment and
 --   returns the converter's result as well as the final environment.
 runConverterT
-  :: Monad m => ConverterT m a -> Environment -> ReporterT m ( a, Environment )
+  :: Monad m => ConverterT m a -> Environment -> ReporterT m (a, Environment)
 runConverterT = runStateT . unwrapConverterT
 
 -- | Runs the converter with the given initial environment and
@@ -156,7 +156,7 @@ modifyEnv :: MonadConverter m => (Environment -> Environment) -> m ()
 modifyEnv = liftConverter . modify
 
 -- | Gets a specific component and modifies the environment.
-modifyEnv' :: MonadConverter m => (Environment -> ( a, Environment )) -> m a
+modifyEnv' :: MonadConverter m => (Environment -> (a, Environment)) -> m a
 modifyEnv' = liftConverter . state
 
 -------------------------------------------------------------------------------

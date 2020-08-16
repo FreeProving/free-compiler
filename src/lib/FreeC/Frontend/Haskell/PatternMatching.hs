@@ -42,13 +42,12 @@ initialState = do
 
 -- | Converts an entry of the 'Environment' to an entry of the constructor map
 --   for the 'initialState'.
-makeConsMapEntry
-  :: EnvEntry -> Maybe ( String, [ ( HSE.QName (), Int, Bool ) ] )
+makeConsMapEntry :: EnvEntry -> Maybe (String, [ (HSE.QName (), Int, Bool) ])
 makeConsMapEntry entry
   | not (isConEntry entry) = Nothing
   | otherwise = do
     typeConIdent <- extractTypeConIdent (entryReturnType entry)
-    return ( typeConIdent, [ ( conQName, arity, isInfix ) ] )
+    return (typeConIdent, [ (conQName, arity, isInfix) ])
  where
    -- | Gets the name of the data type from the return type of the constructor.
    extractTypeConIdent :: IR.Type -> Maybe String
@@ -92,10 +91,10 @@ makeConsMapEntry entry
    -- | Maps special IR constructor names to the corresponding Haskell name.
    specialNames :: Map IR.QName (HSE.SpecialCon ())
    specialNames = Map.fromList
-     [ ( IR.Prelude.unitConName, HSE.UnitCon () )
-     , ( IR.Prelude.nilConName, HSE.ListCon () )
-     , ( IR.Prelude.consConName, HSE.Cons () )
-     , ( IR.Prelude.tupleConName 2, HSE.TupleCon () HSE.Boxed 2 )
+     [ (IR.Prelude.unitConName, HSE.UnitCon ())
+     , (IR.Prelude.nilConName, HSE.ListCon ())
+     , (IR.Prelude.consConName, HSE.Cons ())
+     , (IR.Prelude.tupleConName 2, HSE.TupleCon () HSE.Boxed 2)
      ]
 
 -- | Applies the pattern matching transformation, guard elimination and case

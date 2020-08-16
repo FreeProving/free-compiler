@@ -32,8 +32,8 @@ convertTypeComponent (NonRecursive decl)
   | isTypeSynDecl decl = convertTypeSynDecl decl
   | otherwise = convertDataDecls [ decl ]
 convertTypeComponent (Recursive decls)   = do
-  let ( typeSynDecls, dataDecls ) = partition isTypeSynDecl decls
-      typeSynDeclQNames           = Set.fromList
+  let (typeSynDecls, dataDecls) = partition isTypeSynDecl decls
+      typeSynDeclQNames         = Set.fromList
         (map IR.typeDeclQName typeSynDecls)
   sortedTypeSynDecls <- sortTypeSynDecls typeSynDecls
   expandedDataDecls <- mapM
@@ -107,7 +107,7 @@ convertTypeSynDecl (IR.DataDecl _ _ _ _)
 --   each constructor declaration of the given data types.
 convertDataDecls :: [ IR.TypeDecl ] -> Converter [ Coq.Sentence ]
 convertDataDecls dataDecls = do
-  ( indBodies, extraSentences ) <- mapAndUnzipM convertDataDecl dataDecls
+  (indBodies, extraSentences) <- mapAndUnzipM convertDataDecl dataDecls
   return
     (Coq.comment ("Data type declarations for " ++ showPretty
                   (map IR.typeDeclName dataDecls)) : Coq.InductiveSentence
@@ -119,9 +119,9 @@ convertDataDecls dataDecls = do
 --
 --   Type variables declared by the data type or the smart constructors are
 --   not visible outside of this function.
-convertDataDecl :: IR.TypeDecl -> Converter ( Coq.IndBody, [ Coq.Sentence ] )
+convertDataDecl :: IR.TypeDecl -> Converter (Coq.IndBody, [ Coq.Sentence ])
 convertDataDecl (IR.DataDecl _ (IR.DeclIdent _ name) typeVarDecls conDecls) = do
-  ( body, argumentsSentences ) <- generateBodyAndArguments
+  (body, argumentsSentences) <- generateBodyAndArguments
   smartConDecls <- mapM generateSmartConDecl conDecls
   return ( body
          , Coq.comment ("Arguments sentences for " ++ showPretty
@@ -139,7 +139,7 @@ convertDataDecl (IR.DataDecl _ (IR.DeclIdent _ name) typeVarDecls conDecls) = do
    --   function, but not outside this function. This allows the smart
    --   constructors to reuse the identifiers for their type arguments (see
    --   'generateSmartConDecl').
-   generateBodyAndArguments :: Converter ( Coq.IndBody, [ Coq.Sentence ] )
+   generateBodyAndArguments :: Converter (Coq.IndBody, [ Coq.Sentence ])
    generateBodyAndArguments = localEnv $ do
      Just qualid <- inEnv $ lookupIdent IR.TypeScope name
      typeVarDecls' <- convertTypeVarDecls Coq.Explicit typeVarDecls
@@ -152,13 +152,13 @@ convertDataDecl (IR.DataDecl _ (IR.DeclIdent _ name) typeVarDecls conDecls) = do
 
    -- | Converts a constructor of the data type.
    convertConDecl
-     :: IR.ConDecl -> Converter ( Coq.Qualid, [ Coq.Binder ], Maybe Coq.Term )
+     :: IR.ConDecl -> Converter (Coq.Qualid, [ Coq.Binder ], Maybe Coq.Term)
    convertConDecl (IR.ConDecl _ (IR.DeclIdent _ conName) args) = do
      Just conQualid <- inEnv $ lookupIdent IR.ValueScope conName
      Just returnType <- inEnv $ lookupReturnType IR.ValueScope conName
      args' <- mapM convertType args
      returnType' <- convertType' returnType
-     return ( conQualid, [], Just (args' `Coq.arrows` returnType') )
+     return (conQualid, [], Just (args' `Coq.arrows` returnType'))
 
    -- | Generates the @Arguments@ sentence for the given constructor declaration.
    generateArgumentsSentence :: IR.ConDecl -> Converter Coq.Sentence
@@ -182,7 +182,7 @@ convertDataDecl (IR.DataDecl _ (IR.DeclIdent _ name) typeVarDecls conDecls) = do
      Just smartQualid <- inEnv $ lookupSmartIdent conName
      Just returnType <- inEnv $ lookupReturnType IR.ValueScope conName
      typeVarDecls' <- convertTypeVarDecls Coq.Implicit typeVarDecls
-     ( argIdents', argDecls' ) <- mapAndUnzipM convertAnonymousArg
+     (argIdents', argDecls') <- mapAndUnzipM convertAnonymousArg
        (map Just argTypes)
      returnType' <- convertType returnType
      rhs <- generatePure

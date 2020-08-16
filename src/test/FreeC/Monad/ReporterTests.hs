@@ -22,13 +22,13 @@ testReporter = describe "FreeC.Monad.Reporter" $ do
 testRunReporter :: Spec
 testRunReporter = describe "runReporter" $ do
   it "returns 'Just' the produced value if no message was reported" $ do
-    runReporter (return testValue) `shouldBe` ( Just testValue, [] )
+    runReporter (return testValue) `shouldBe` (Just testValue, [])
   it "returns 'Just' the produced value if no fatal message was reported" $ do
     runReporter (report testMessage1 >> return testValue)
-      `shouldBe` ( Just testValue, [ testMessage1 ] )
+      `shouldBe` (Just testValue, [ testMessage1 ])
   it "returns 'Nothing' if a fatal message was reported" $ do
     runReporter (reportFatal testMessage1)
-      `shouldBe` ( Nothing :: Maybe (), [ testMessage1 ] )
+      `shouldBe` (Nothing :: Maybe (), [ testMessage1 ])
 
 -------------------------------------------------------------------------------
 -- Test data                                                                 --

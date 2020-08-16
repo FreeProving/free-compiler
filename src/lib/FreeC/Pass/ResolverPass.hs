@@ -277,10 +277,9 @@ resolverEnvFromUnQualEntries = resolverEnvFromNamedEntries . map
 
 -- | Creates an environment that associates the given names with the given
 --   entries.
-resolverEnvFromNamedEntries :: [ ( IR.QName, ResolverEntry ) ] -> ResolverEnv
+resolverEnvFromNamedEntries :: [ (IR.QName, ResolverEntry) ] -> ResolverEnv
 resolverEnvFromNamedEntries = ResolverEnv . Map.fromListWith Set.union . map
-  (\( name, entry ) ->
-   ( ( resolverEntryScope entry, name ), Set.singleton entry ))
+  (\(name, entry) -> ((resolverEntryScope entry, name), Set.singleton entry))
 
 -- | Creates an environment that contains all entries of the given environments.
 --
@@ -309,7 +308,7 @@ shadowResolverEnv e1 e2 = ResolverEnv
 lookupResolverEntries
   :: IR.Scope -> IR.QName -> ResolverEnv -> Set ResolverEntry
 lookupResolverEntries scope name env = Map.findWithDefault Set.empty
-  ( scope, name ) (unwrapResolverEnv env)
+  (scope, name) (unwrapResolverEnv env)
 
 -------------------------------------------------------------------------------
 -- Modules                                                                   --
@@ -361,7 +360,7 @@ resolverEnvFromImport (IR.ImportDecl srcSpan modName) = do
    -- | Creates an entry for the import of the given name by the current
    --   import declaration.
    makeImportedEntry :: IR.ScopedName -> ResolverEntry
-   makeImportedEntry ( scope, originalName ) = ImportedEntry
+   makeImportedEntry (scope, originalName) = ImportedEntry
      { resolverEntrySrcSpan      = srcSpan
      , resolverEntryImportName   = modName
      , resolverEntryScope        = scope
@@ -531,10 +530,10 @@ lookupResolverEntryOrFail srcSpan scope name = do
       " or " (map showPretty entries)
  where
    -- | Pretty prints the capitalized and the lower case name of the scopes.
-   showPrettyScope :: IR.Scope -> ( String, String )
-   showPrettyScope IR.TypeScope  = ( "Type", "type" )
-   showPrettyScope IR.ValueScope = ( "Value", "value" )
-   showPrettyScope IR.FreshScope = ( "Fresh identifier", "fresh identifier" )
+   showPrettyScope :: IR.Scope -> (String, String)
+   showPrettyScope IR.TypeScope  = ("Type", "type")
+   showPrettyScope IR.ValueScope = ("Value", "value")
+   showPrettyScope IR.FreshScope = ("Fresh identifier", "fresh identifier")
 
 -- | Looks up the original name of the entry associated with the given name
 --   in the given scope.

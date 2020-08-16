@@ -25,12 +25,12 @@ instance Arbitrary IR.Type where
 
      arbitraryTypeConApp :: Gen IR.Type
      arbitraryTypeConApp = do
-       ( name, arity ) <- oneof $ map return
-         [ ( IR.Prelude.boolTypeConName, 0 )
-         , ( IR.Prelude.integerTypeConName, 0 )
-         , ( IR.Prelude.unitTypeConName, 0 )
-         , ( IR.Prelude.listTypeConName, 1 )
-         , ( IR.Prelude.tupleTypeConName 2, 2 )
+       (name, arity) <- oneof $ map return
+         [ (IR.Prelude.boolTypeConName, 0)
+         , (IR.Prelude.integerTypeConName, 0)
+         , (IR.Prelude.unitTypeConName, 0)
+         , (IR.Prelude.listTypeConName, 1)
+         , (IR.Prelude.tupleTypeConName 2, 2)
          ]
        args <- replicateM arity arbitrary
        return (IR.typeConApp NoSrcSpan name args)

@@ -52,8 +52,7 @@ testConvertFuncDecls
     it "translates functions with multiple arguments correctly"
       $ shouldSucceedWith $ do
         "Pair" <- defineTestTypeCon "Pair" 0 [ "Pair" ]
-        ( _, "Pair0" )
-          <- defineTestCon "Pair" 2 "forall a b. a -> b -> Pair a b"
+        (_, "Pair0") <- defineTestCon "Pair" 2 "forall a b. a -> b -> Pair a b"
         "foo" <- defineTestFunc "foo" 0 "forall a b. a -> b -> Pair a b"
         shouldConvertFuncDeclsTo
           (NonRecursive
@@ -65,7 +64,7 @@ testConvertFuncDecls
           ]
     it "translates higher order functions correctly" $ shouldSucceedWith $ do
       "Pair" <- defineTestTypeCon "Pair" 0 [ "Pair" ]
-      ( _, "Pair0" ) <- defineTestCon "Pair" 2 "forall a b. a -> b -> Pair a b"
+      (_, "Pair0") <- defineTestCon "Pair" 2 "forall a b. a -> b -> Pair a b"
       "curry" <- defineTestFunc "curry" 0
         "forall a b c. (Pair a b -> c) -> a -> b -> c"
       shouldConvertFuncDeclsTo
@@ -81,8 +80,8 @@ testConvertFuncDecls
     it "translates if-then-else correctly" $ shouldSucceedWith $ do
       "Integer" <- defineTestTypeCon "Integer" 0 []
       "Boolean" <- defineTestTypeCon "Boolean" 0 []
-      ( _, "True" ) <- defineTestCon "True" 0 "Boolean"
-      ( _, "False" ) <- defineTestCon "False" 0 "Boolean"
+      (_, "True") <- defineTestCon "True" 0 "Boolean"
+      (_, "False") <- defineTestCon "False" 0 "Boolean"
       "even" <- defineTestFunc "even" 0 "Integer -> Boolean"
       shouldConvertFuncDeclsTo (NonRecursive $ "even (n :: Integer) :: Boolean "
                                 ++ "= if n then True else False")
@@ -95,8 +94,8 @@ testConvertFuncDecls
         "Integer" <- defineTestTypeCon "Integer" 0 []
         "succ" <- defineTestFunc "succ" 1 "Integer -> Integer"
         "List" <- defineTestTypeCon "List" 1 [ "Nil", "Cons" ]
-        ( "nil", "Nil" ) <- defineTestCon "Nil" 0 "forall a. List a"
-        ( "cons", "Cons" )
+        ("nil", "Nil") <- defineTestCon "Nil" 0 "forall a. List a"
+        ("cons", "Cons")
           <- defineTestCon "Cons" 2 "forall a. a -> List a -> List a"
         "length" <- defineTestFunc "length" 1 "forall a. List a -> Integer"
         shouldConvertFuncDeclsTo
@@ -112,8 +111,8 @@ testConvertFuncDecls
           ]
     it "translates partial functions correctly" $ shouldSucceedWith $ do
       "List" <- defineTestTypeCon "List" 1 [ "Nil", "Cons" ]
-      ( "nil", _ ) <- defineTestCon "Nil" 0 "forall a. List a"
-      ( "cons", _ ) <- defineTestCon "Cons" 2 "forall a. a -> List a -> List a"
+      ("nil", _) <- defineTestCon "Nil" 0 "forall a. List a"
+      ("cons", _) <- defineTestCon "Cons" 2 "forall a. a -> List a -> List a"
       "head" <- definePartialTestFunc "head" 1 "forall a. List a -> a"
       shouldConvertFuncDeclsTo
         (NonRecursive $ "head @a (xs :: List a) :: a = case xs of {"
@@ -127,15 +126,13 @@ testConvertFuncDecls
     it "translates functions with strict and non-strict arguments correctly"
       $ shouldSucceedWith $ do
         "List" <- defineTestTypeCon "List" 1 [ "Nil", "Cons" ]
-        ( "nil", _ ) <- defineTestCon "Nil" 0 "forall a. List a"
-        ( "cons", _ )
-          <- defineTestCon "Cons" 2 "forall a. a -> List a -> List a"
+        ("nil", _) <- defineTestCon "Nil" 0 "forall a. List a"
+        ("cons", _) <- defineTestCon "Cons" 2 "forall a. a -> List a -> List a"
         "Pair" <- defineTestTypeCon "Pair" 2 [ "Pair0" ]
-        ( "pair0", _ )
-          <- defineTestCon "Pair0" 2 "forall a b. a -> b -> Pair a b"
+        ("pair0", _) <- defineTestCon "Pair0" 2 "forall a b. a -> b -> Pair a b"
         "Bool" <- defineTestTypeCon "Bool" 0 [ "False", "True" ]
-        ( "false", _ ) <- defineTestCon "False" 0 "Bool"
-        ( "true", _ ) <- defineTestCon "True" 0 "Bool"
+        ("false", _) <- defineTestCon "False" 0 "Bool"
+        ("true", _) <- defineTestCon "True" 0 "Bool"
         "foo" <- defineStrictTestFunc "foo" [ True, False, True ]
           "forall a. Pair a a -> Bool -> List a -> List a"
         shouldConvertFuncDeclsTo
@@ -166,9 +163,8 @@ testConvertFuncDecls
     it "translates case expressions with one strict pattern correctly"
       $ shouldSucceedWith $ do
         "List" <- defineTestTypeCon "List" 1 [ "Nil", "Cons" ]
-        ( "nil", _ ) <- defineTestCon "Nil" 0 "forall a. List a"
-        ( "cons", _ )
-          <- defineTestCon "Cons" 2 "forall a. a -> List a -> List a"
+        ("nil", _) <- defineTestCon "Nil" 0 "forall a. List a"
+        ("cons", _) <- defineTestCon "Cons" 2 "forall a. a -> List a -> List a"
         "head" <- definePartialTestFunc "head" 1 "forall a. List a -> a"
         shouldConvertFuncDeclsTo
           (NonRecursive $ "head @a (x :: List a) :: a = case x of {"

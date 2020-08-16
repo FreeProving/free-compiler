@@ -29,12 +29,12 @@ instantiateTypeScheme = fmap fst . instantiateTypeScheme'
 
 -- | Like 'instantiateTypeScheme' but also returns the fresh type variables,
 --   the type scheme has been instantiated with.
-instantiateTypeScheme' :: IR.TypeScheme -> Converter ( IR.Type, [ IR.Type ] )
+instantiateTypeScheme' :: IR.TypeScheme -> Converter (IR.Type, [ IR.Type ])
 instantiateTypeScheme' (IR.TypeScheme _ typeArgs typeExpr) = do
-  ( typeArgs', subst ) <- renameTypeArgsSubst typeArgs
+  (typeArgs', subst) <- renameTypeArgsSubst typeArgs
   let typeExpr' = applySubst subst typeExpr
       typeVars' = map IR.typeVarDeclToType typeArgs'
-  return ( typeExpr', typeVars' )
+  return (typeExpr', typeVars')
 
 -------------------------------------------------------------------------------
 -- Abstracting type expressions                                              --
@@ -56,19 +56,16 @@ abstractTypeScheme = fst .: abstractTypeScheme'
 --   substitution that replaces the abstracted type variables by their name in
 --   the type scheme.
 abstractTypeScheme'
-  :: [ IR.QName ] -> IR.Type -> ( IR.TypeScheme, Subst IR.Type )
+  :: [ IR.QName ] -> IR.Type -> (IR.TypeScheme, Subst IR.Type)
 abstractTypeScheme' ns t
-  = let vs           = map (fromJust . IR.identFromQName) ns
-        ( ivs, uvs ) = partition IR.isInternalIdent vs
-        vs'          = uvs ++ take (length ivs)
-          (map makeTypeArg [ 0 .. ] \\ uvs)
-        ns'          = map (IR.UnQual . IR.Ident) (uvs ++ ivs)
-        ts           = map (IR.TypeVar NoSrcSpan) vs'
-        subst        = composeSubsts (zipWith singleSubst ns' ts)
-        t'           = applySubst subst t
-    in ( IR.TypeScheme NoSrcSpan (map (IR.TypeVarDecl NoSrcSpan) vs') t'
-       , subst
-       )
+  = let vs         = map (fromJust . IR.identFromQName) ns
+        (ivs, uvs) = partition IR.isInternalIdent vs
+        vs'        = uvs ++ take (length ivs) (map makeTypeArg [ 0 .. ] \\ uvs)
+        ns'        = map (IR.UnQual . IR.Ident) (uvs ++ ivs)
+        ts         = map (IR.TypeVar NoSrcSpan) vs'
+        subst      = composeSubsts (zipWith singleSubst ns' ts)
+        t'         = applySubst subst t
+    in (IR.TypeScheme NoSrcSpan (map (IR.TypeVarDecl NoSrcSpan) vs') t', subst)
  where
    makeTypeArg :: Int -> IR.TypeVarIdent
    makeTypeArg = (freshTypeArgPrefix ++) . show

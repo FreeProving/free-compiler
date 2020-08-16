@@ -84,7 +84,7 @@ data Scope = TypeScope | ValueScope | FreshScope
  deriving ( Eq, Ord, Show )
 
 -- | A 'QName' with additional information about its name space.
-type ScopedName = ( Scope, QName )
+type ScopedName = (Scope, QName)
 
 -------------------------------------------------------------------------------
 -- Aliases for name types                                                    --

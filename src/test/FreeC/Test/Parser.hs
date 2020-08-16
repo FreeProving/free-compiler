@@ -79,7 +79,7 @@ import           FreeC.Pretty
 -- Within Reporters                                                          --
 -------------------------------------------------------------------------------
 -- | Parses an IR node of type @a@ for testing purposes.
-parseTestIR :: ( MonadReporter r, Parseable a ) => String -> r a
+parseTestIR :: (MonadReporter r, Parseable a) => String -> r a
 parseTestIR = parseIR . mkSrcFile "<test-input>"
 
 -- | Parses an IR name for testing purposes.
@@ -129,9 +129,9 @@ parseTestModule = parseTestIR . unlines
 --   expectation that parsing is successful.
 --
 --   The first argument is a textual description of the type of node to parse.
-expectParseTestIR :: ( MonadIO m, Parseable a ) => String -> String -> m a
+expectParseTestIR :: (MonadIO m, Parseable a) => String -> String -> m a
 expectParseTestIR nodeType input = do
-  let ( mx, ms ) = runReporter (parseTestIR input)
+  let (mx, ms) = runReporter (parseTestIR input)
   case mx of
     Just x  -> return x
     Nothing -> liftIO $ assertFailure $ "Could not parse test " ++ nodeType
@@ -192,13 +192,13 @@ expectParseTestModule = expectParseTestIR "module" . unlines
 -- Parsing Dependency Components                                             --
 -------------------------------------------------------------------------------
 -- | Parses the declarations in the given dependency component.
-parseTestComponent :: ( MonadFail r, MonadReporter r, Parseable decl )
+parseTestComponent :: (MonadFail r, MonadReporter r, Parseable decl)
   => DependencyComponent String -> r (DependencyComponent decl)
 parseTestComponent = mapComponentM (mapM parseTestIR)
 
 -- | Parses the declarations in the given dependency component and sets the
 --   expectation that parsing is successful.
-expectParseTestComponent :: ( MonadFail m, MonadIO m, Parseable decl )
+expectParseTestComponent :: (MonadFail m, MonadIO m, Parseable decl)
   => DependencyComponent String -> m (DependencyComponent decl)
 expectParseTestComponent = mapComponentM
   (mapM (expectParseTestIR "dependency component"))

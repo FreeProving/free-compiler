@@ -38,7 +38,7 @@ data SrcFile = SrcFile
   }
 
 -- | Type for a map that associates source files with their filename.
-type SrcFileMap = [ ( FilePath, SrcFile ) ]
+type SrcFileMap = [ (FilePath, SrcFile) ]
 
 -- | Smart constructor for 'SrcFile' that automatically splits the file
 --   contents into lines.

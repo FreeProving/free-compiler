@@ -6,7 +6,7 @@ import           Queue.WithPatternMatching.Util
 import           Test.QuickCheck
 
 invariant :: QueueI a -> Bool
-invariant ( f, b ) = null b || not (null f)
+invariant (f, b) = null b || not (null f)
 
 prop_inv_empty :: Bool
 prop_inv_empty = invariant emptyI
@@ -16,7 +16,7 @@ prop_inv_add x q = invariant q ==> property (invariant (addI x q))
 
 -------------------------------------------------------------------------------
 toQueue :: QueueI a -> Queue a
-toQueue ( f, b ) = f `append` reverse b
+toQueue (f, b) = f `append` reverse b
 
 prop_isEmpty :: QueueI a -> Property
 prop_isEmpty qi = invariant qi ==> isEmptyI qi === isEmpty (toQueue qi)

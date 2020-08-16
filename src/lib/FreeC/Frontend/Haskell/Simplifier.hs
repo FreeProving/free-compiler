@@ -124,7 +124,7 @@ simplifyModuleWithComments ast@(HSE.Module srcSpan _ pragmas imports decls)
     modName <- extractModName ast
     imports' <- mapM simplifyImport imports
     custumPragmas <- liftReporter $ parseCustomPragmas comments
-    ( typeDecls', typeSigs', funcDecls' ) <- simplifyDecls decls
+    (typeDecls', typeSigs', funcDecls') <- simplifyDecls decls
     return (IR.Module { IR.modSrcSpan   = srcSpan
                       , IR.modName      = modName
                       , IR.modImports   = imports'
@@ -173,7 +173,7 @@ simplifyImport decl
 -------------------------------------------------------------------------------
 -- | Simplifies the given declarations.
 simplifyDecls :: [ HSE.Decl SrcSpan ]
-  -> Simplifier ( [ IR.TypeDecl ], [ IR.TypeSig ], [ IR.FuncDecl ] )
+  -> Simplifier ([ IR.TypeDecl ], [ IR.TypeSig ], [ IR.FuncDecl ])
 simplifyDecls decls = do
   decls' <- mapM simplifyDecl decls
   return (concatUnzip3 decls')
@@ -185,19 +185,19 @@ simplifyDecls decls = do
 --   Fixity signatures are allowed but don't have a corresponding node in
 --   the AST.
 simplifyDecl :: HSE.Decl SrcSpan
-  -> Simplifier ( [ IR.TypeDecl ], [ IR.TypeSig ], [ IR.FuncDecl ] )
+  -> Simplifier ([ IR.TypeDecl ], [ IR.TypeSig ], [ IR.FuncDecl ])
 
 -- Type synonym declarations.
 simplifyDecl (HSE.TypeDecl srcSpan declHead typeExpr) = do
-  ( declIdent, typeArgs ) <- simplifyDeclHead declHead
+  (declIdent, typeArgs) <- simplifyDeclHead declHead
   typeExpr' <- simplifyType typeExpr
-  return ( [ IR.TypeSynDecl srcSpan declIdent typeArgs typeExpr' ], [], [] )
+  return ([ IR.TypeSynDecl srcSpan declIdent typeArgs typeExpr' ], [], [])
 -- Data type declarations.
 simplifyDecl
   (HSE.DataDecl srcSpan (HSE.DataType _) Nothing declHead conDecls []) = do
-    ( declIdent, typeArgs ) <- simplifyDeclHead declHead
+    (declIdent, typeArgs) <- simplifyDeclHead declHead
     conDecls' <- mapM simplifyConDecl conDecls
-    return ( [ IR.DataDecl srcSpan declIdent typeArgs conDecls' ], [], [] )
+    return ([ IR.DataDecl srcSpan declIdent typeArgs conDecls' ], [], [])
 -- `newtype` declarations are not supported.
 simplifyDecl decl@(HSE.DataDecl _ (HSE.NewType _) _ _ _ _)
   = notSupported "Newtype declarations" decl
@@ -214,7 +214,7 @@ simplifyDecl (HSE.DataDecl srcSpan dataType Nothing declHead conDecls
 -- Function declarations.
 simplifyDecl (HSE.FunBind _ [ match ]) = do
   funcDecl <- simplifyFuncDecl match
-  return ( [], [], [ funcDecl ] )
+  return ([], [], [ funcDecl ])
 -- Function declarations with more than one rule are not supported.
 simplifyDecl decl@(HSE.FunBind _ _)
   = experimentallySupported "Function declarations with more than one rule" decl
@@ -223,7 +223,7 @@ simplifyDecl (HSE.PatBind srcSpan (HSE.PVar _ declName) (HSE.UnGuardedRhs _ rhs)
               Nothing) = do
   declIdent <- simplifyFuncDeclName declName
   rhs' <- simplifyExpr rhs
-  return ( [], [], [ IR.FuncDecl srcSpan declIdent [] [] Nothing rhs' ] )
+  return ([], [], [ IR.FuncDecl srcSpan declIdent [] [] Nothing rhs' ])
 -- The pattern-binding for a 0-ary function must not use guards or have a
 -- where block.
 simplifyDecl (HSE.PatBind _ (HSE.PVar _ _) rhss@(HSE.GuardedRhss _ _) _)
@@ -237,45 +237,45 @@ simplifyDecl decl@(HSE.PatBind _ _ _ _)
 simplifyDecl (HSE.TypeSig srcSpan names typeExpr) = do
   names' <- mapM simplifyFuncDeclName names
   typeScheme' <- simplifyTypeScheme typeExpr
-  return ( [], [ IR.TypeSig srcSpan names' typeScheme' ], [] )
+  return ([], [ IR.TypeSig srcSpan names' typeScheme' ], [])
 -- The user is allowed to specify fixities of custom infix declarations
 -- and they are respected by the @haskell-src-exts@ parser, but we do not
 -- represent them in the AST.
-simplifyDecl (HSE.InfixDecl _ _ _ _) = return ( [], [], [] )
+simplifyDecl (HSE.InfixDecl _ _ _ _) = return ([], [], [])
 -- Skip pragmas.
 simplifyDecl decl@(HSE.RulePragmaDecl _ _) = do
   skipNotSupported "RULES pragmas" decl
-  return ( [], [], [] )
+  return ([], [], [])
 simplifyDecl decl@(HSE.DeprPragmaDecl _ _) = do
   skipNotSupported "DEPRECATED pragmas" decl
-  return ( [], [], [] )
+  return ([], [], [])
 simplifyDecl decl@(HSE.WarnPragmaDecl _ _) = do
   skipNotSupported "WARNING pragmas" decl
-  return ( [], [], [] )
+  return ([], [], [])
 simplifyDecl decl@(HSE.InlineSig _ _ _ _) = do
   skipNotSupported "INLINE pragmas" decl
-  return ( [], [], [] )
+  return ([], [], [])
 simplifyDecl decl@(HSE.InlineConlikeSig _ _ _) = do
   skipNotSupported "INLINE CONLIKE pragmas" decl
-  return ( [], [], [] )
+  return ([], [], [])
 simplifyDecl decl@(HSE.SpecSig _ _ _ _) = do
   skipNotSupported "SPECIALISE pragma" decl
-  return ( [], [], [] )
+  return ([], [], [])
 simplifyDecl decl@(HSE.SpecInlineSig _ _ _ _ _) = do
   skipNotSupported "SPECIALISE INLINE pragmas" decl
-  return ( [], [], [] )
+  return ([], [], [])
 simplifyDecl decl@(HSE.InstSig _ _) = do
   skipNotSupported "SPECIALISE instance pragmas" decl
-  return ( [], [], [] )
+  return ([], [], [])
 simplifyDecl decl@(HSE.AnnPragma _ _) = do
   skipNotSupported "ANN pragmas" decl
-  return ( [], [], [] )
+  return ([], [], [])
 simplifyDecl decl@(HSE.MinimalPragma _ _) = do
   skipNotSupported "MINIMAL pragmas" decl
-  return ( [], [], [] )
+  return ([], [], [])
 simplifyDecl decl@(HSE.CompletePragma _ _ _) = do
   skipNotSupported "COMPLETE pragma" decl
-  return ( [], [], [] )
+  return ([], [], [])
 -- All other declarations are not supported.
 simplifyDecl decl@(HSE.TypeFamDecl _ _ _ _) = notSupported "Type families" decl
 simplifyDecl decl@(HSE.ClosedTypeFamDecl _ _ _ _ _)
@@ -291,10 +291,10 @@ simplifyDecl decl@(HSE.GDataInsDecl _ _ _ _ _ _)
 simplifyDecl decl@(HSE.ClassDecl _ _ _ _ _) = notSupported "Type classes" decl
 simplifyDecl decl@(HSE.InstDecl _ _ _ _) = do
   skipNotSupported "Instance declarations" decl
-  return ( [], [], [] )
+  return ([], [], [])
 simplifyDecl decl@(HSE.DerivDecl _ _ _ _) = do
   skipNotSupported "Deriving declarations" decl
-  return ( [], [], [] )
+  return ([], [], [])
 simplifyDecl decl@(HSE.DefaultDecl _ _) = notSupported "Type classes" decl
 simplifyDecl decl@(HSE.SpliceDecl _ _) = notSupported "Template Haskell" decl
 simplifyDecl decl@(HSE.TSpliceDecl _ _) = notSupported "Template Haskell" decl
@@ -312,19 +312,19 @@ simplifyDecl decl@(HSE.RoleAnnotDecl _ _ _)
 -- | Gets the name the data type or type synonym declaration as well as the
 --   type variables stored in the head of the declaration.
 simplifyDeclHead
-  :: HSE.DeclHead SrcSpan -> Simplifier ( IR.DeclIdent, [ IR.TypeVarDecl ] )
+  :: HSE.DeclHead SrcSpan -> Simplifier (IR.DeclIdent, [ IR.TypeVarDecl ])
 simplifyDeclHead (HSE.DHead _ declName) = do
   declIdent <- simplifyDeclName declName
-  return ( declIdent, [] )
+  return (declIdent, [])
 simplifyDeclHead (HSE.DHParen _ declHead) = simplifyDeclHead declHead
 simplifyDeclHead (HSE.DHApp _ declHead typeVarBind) = do
-  ( declIdent, typeArgs ) <- simplifyDeclHead declHead
+  (declIdent, typeArgs) <- simplifyDeclHead declHead
   typeArg <- simplifyTypeVarBind typeVarBind
-  return ( declIdent, typeArgs ++ [ typeArg ] )
+  return (declIdent, typeArgs ++ [ typeArg ])
 simplifyDeclHead (HSE.DHInfix _ typeVarBind declName) = do
   typeArg <- simplifyTypeVarBind typeVarBind
   declIdent <- simplifyDeclName declName
-  return ( declIdent, [ typeArg ] )
+  return (declIdent, [ typeArg ])
 
 -- | Gets the name of a data type or type synonym declaration from the name
 --   stored in the head of the declaration.
@@ -790,7 +790,7 @@ simplifyVarPat pat = expected "variable pattern" pat
 -- @()@) or pair (i.e. @(x, y)@) constructor pattern, however the list pattern
 -- @[x1, ..., xn]@ is not allowed.
 --  Parentheses are ignored.
-simplifyConPat :: HSE.Pat SrcSpan -> Simplifier ( IR.ConPat, [ IR.VarPat ] )
+simplifyConPat :: HSE.Pat SrcSpan -> Simplifier (IR.ConPat, [ IR.VarPat ])
 
 -- Ignore parentheses.
 simplifyConPat (HSE.PParen _ pat) = simplifyConPat pat
@@ -798,18 +798,18 @@ simplifyConPat (HSE.PParen _ pat) = simplifyConPat pat
 simplifyConPat (HSE.PApp _ name args) = do
   name' <- simplifyConName name
   vars <- mapM simplifyVarPat args
-  return ( IR.ConPat (HSE.ann name) name', vars )
+  return (IR.ConPat (HSE.ann name) name', vars)
 -- Infix constructor pattern (e.g. @x : xs@).
 simplifyConPat (HSE.PInfixApp _ p1 name p2) = do
   v1 <- simplifyVarPat p1
   name' <- simplifyConName name
   v2 <- simplifyVarPat p2
-  return ( IR.ConPat (HSE.ann name) name', [ v1, v2 ] )
+  return (IR.ConPat (HSE.ann name) name', [ v1, v2 ])
 -- Tuple constructor pattern.
 simplifyConPat (HSE.PTuple srcSpan HSE.Boxed ps) = do
   let n = length ps
   vs <- mapM simplifyVarPat ps
-  return ( IR.ConPat srcSpan (IR.Prelude.tupleConName n), vs )
+  return (IR.ConPat srcSpan (IR.Prelude.tupleConName n), vs)
 -- Other tuple constructor patterns are not supported.
 simplifyConPat pat@(HSE.PTuple _ HSE.Unboxed _)
   = notSupported "Unboxed tuples" pat
@@ -818,7 +818,7 @@ simplifyConPat pat@(HSE.PTuple _ HSE.Unboxed _)
 -- name and variable patterns).
 -- But we allow the empty list pattern @[]@.
 simplifyConPat (HSE.PList srcSpan [])
-  = return ( IR.ConPat srcSpan IR.Prelude.nilConName, [] )
+  = return (IR.ConPat srcSpan IR.Prelude.nilConName, [])
 simplifyConPat pat@(HSE.PList _ _)
   = experimentallySupported "List notation patterns" pat
 -- Record constructors are not supported.
@@ -830,7 +830,7 @@ simplifyConPat pat = expected "constructor pattern" pat
 -- | Simplifies an alternative of a case expression.
 simplifyAlt :: HSE.Alt SrcSpan -> Simplifier IR.Alt
 simplifyAlt (HSE.Alt srcSpan pat (HSE.UnGuardedRhs _ expr) Nothing) = do
-  ( con, vars ) <- simplifyConPat pat
+  (con, vars) <- simplifyConPat pat
   expr' <- simplifyExpr expr
   return (IR.Alt srcSpan con vars expr')
 simplifyAlt (HSE.Alt _ _ rhss@(HSE.GuardedRhss _ _) _)

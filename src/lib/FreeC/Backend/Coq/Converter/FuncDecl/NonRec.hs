@@ -25,6 +25,6 @@ convertNonRecFuncDecls decls
 --   @Definition@ sentence.
 convertNonRecFuncDecl :: IR.FuncDecl -> Converter Coq.Sentence
 convertNonRecFuncDecl funcDecl = localEnv $ do
-  ( qualid, binders, returnType' ) <- convertFuncHead funcDecl
+  (qualid, binders, returnType') <- convertFuncHead funcDecl
   rhs' <- convertExpr (IR.funcDeclRhs funcDecl)
   return (Coq.definitionSentence qualid binders returnType' rhs')

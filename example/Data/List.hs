@@ -152,18 +152,18 @@ minimum = foldr1 (\a b -> if a <= b then a else b)
 --
 --   > zip [1] ['a', 'b'] = [(1, 'a')]
 --   > zip [1, 2] ['a'] = [(1, 'a')]
-zip :: [ a ] -> [ b ] -> [ ( a, b ) ]
+zip :: [ a ] -> [ b ] -> [ (a, b) ]
 zip xs ys = case xs of
   []      -> []
   x : xs' -> case ys of
     []      -> []
-    y : ys' -> ( x, y ) : (zip xs' ys')
+    y : ys' -> (x, y) : (zip xs' ys')
 
 -- | 'unzip' transforms a list of pairs into a list of first components and a
 --   list of second components.
-unzip :: [ ( a, b ) ] -> ( [ a ], [ b ] )
+unzip :: [ (a, b) ] -> ([ a ], [ b ])
 unzip xys = case xys of
-  []        -> ( [], [] )
+  []        -> ([], [])
   xy : xys' -> case xy of
-    ( x, y ) -> case unzip xys' of
-      ( xs, ys ) -> ( x : xs, y : ys )
+    (x, y) -> case unzip xys' of
+      (xs, ys) -> (x : xs, y : ys)

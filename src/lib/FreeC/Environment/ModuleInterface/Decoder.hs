@@ -140,8 +140,8 @@ moduleInterfaceFileFormatVersion = 3
 -- | Parses an IR AST node from an Aeson string.
 parseAesonIR :: Parseable a => Text -> Aeson.Parser a
 parseAesonIR input = do
-  let srcFile     = mkSrcFile "<config-input>" (Text.unpack input)
-      ( res, ms ) = runReporter (parseIR srcFile)
+  let srcFile   = mkSrcFile "<config-input>" (Text.unpack input)
+      (res, ms) = runReporter (parseIR srcFile)
   case res of
     Nothing -> Aeson.parserThrowError [] (showPretty ms)
     Just t  -> return t
@@ -236,7 +236,7 @@ instance Aeson.FromJSON ModuleInterface where
        coqSmartName <- obj .: "coq-smart-name"
        agdaName <- obj .: "agda-name"
        agdaSmartName <- obj .: "agda-smart-name"
-       let ( argTypes, returnType ) = IR.splitFuncType haskellType arity
+       let (argTypes, returnType) = IR.splitFuncType haskellType arity
        return ConEntry
          { entrySrcSpan        = NoSrcSpan
          , entryArity          = arity
@@ -260,7 +260,7 @@ instance Aeson.FromJSON ModuleInterface where
        coqName <- obj .: "coq-name"
        agdaName <- obj .: "agda-name"
        -- TODO this does not work with vanishing type arguments.
-       let ( argTypes, returnType ) = IR.splitFuncType haskellType arity
+       let (argTypes, returnType) = IR.splitFuncType haskellType arity
            typeArgs = freeTypeVars haskellType
        return FuncEntry
          { entrySrcSpan       = NoSrcSpan
@@ -278,5 +278,5 @@ instance Aeson.FromJSON ModuleInterface where
 
 -- | Loads a module interface file from a @.toml@ or @.json@ file.
 loadModuleInterface
-  :: ( MonadIO r, MonadReporter r ) => FilePath -> r ModuleInterface
+  :: (MonadIO r, MonadReporter r) => FilePath -> r ModuleInterface
 loadModuleInterface = loadConfig

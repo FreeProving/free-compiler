@@ -19,7 +19,7 @@ import           FreeC.Pretty
 -- Similarity test                                                           --
 -------------------------------------------------------------------------------
 -- | Sets the expectation that the given AST nodes are 'similar'.
-shouldBeSimilarTo :: ( Similar a, Pretty a ) => a -> a -> Expectation
+shouldBeSimilarTo :: (Similar a, Pretty a) => a -> a -> Expectation
 shouldBeSimilarTo n m
   | n `similar` m = return ()
   | otherwise = expectationFailure $ showPretty $ prettyString
@@ -28,7 +28,7 @@ shouldBeSimilarTo n m
     (pretty m) <> line
 
 -- | Sets the expectation that the given AST nodes are 'notSimilar'.
-shouldNotBeSimilarTo :: ( Similar a, Pretty a ) => a -> a -> Expectation
+shouldNotBeSimilarTo :: (Similar a, Pretty a) => a -> a -> Expectation
 shouldNotBeSimilarTo n m
   | n `notSimilar` m = return ()
   | otherwise = expectationFailure $ showPretty $ prettyString
@@ -41,7 +41,7 @@ shouldNotBeSimilarTo n m
 -------------------------------------------------------------------------------
 -- | Pretty prints both values and tests whether the resulting strings are
 --   equal modulo whitespace.
-prettyShouldBe :: ( Pretty a, Pretty b ) => a -> b -> Expectation
+prettyShouldBe :: (Pretty a, Pretty b) => a -> b -> Expectation
 prettyShouldBe x y = let discardWhitespace = unwords . words
                          prettyX           = discardWhitespace (showPretty x)
                          prettyY           = discardWhitespace (showPretty y)

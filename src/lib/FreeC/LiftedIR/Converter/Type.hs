@@ -39,7 +39,7 @@ liftNonRecFuncArgTypes = mapM $ \pat ->
 liftRecFuncArgTypes :: Int -> [ IR.VarPat ] -> Converter [ LIR.Type ]
 liftRecFuncArgTypes decIndex args = do
   convArgs <- liftNonRecFuncArgTypes args
-  let ( startArgs, decArg : endArgs ) = splitAt decIndex convArgs
+  let (startArgs, decArg : endArgs) = splitAt decIndex convArgs
   decArg' <- markOutermostDecreasing decArg
   return $ startArgs ++ (decArg' : endArgs)
 

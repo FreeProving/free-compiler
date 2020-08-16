@@ -46,7 +46,7 @@ class Parseable a where
 --
 --   Leading white spaces and comments are ignored. The full input must
 --   be consumed otherwise a fatal error is reported.
-parseIR :: ( Parseable a, MonadReporter r ) => SrcFile -> r a
+parseIR :: (Parseable a, MonadReporter r) => SrcFile -> r a
 parseIR srcFile = do
   tokens <- scan srcFile
   runParsecOrFail srcFile tokens (parseIR' <* Parsec.eof)

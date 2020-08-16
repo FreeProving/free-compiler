@@ -173,7 +173,7 @@ stringScanner = StrToken <$> Parsec.stringLiteral tokenParser
 -- | Scanners for tokens listed in 'specialSymbols'.
 specialSymbolScanners :: [ Scanner Token ]
 specialSymbolScanners = map
-  (\( symbol, token ) -> Parsec.symbol tokenParser symbol >> return token)
+  (\(symbol, token) -> Parsec.symbol tokenParser symbol >> return token)
   specialSymbols
 
 -- | Scanner for a single 'Token'.

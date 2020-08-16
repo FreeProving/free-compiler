@@ -158,5 +158,5 @@ encodeEntry entry
 
 -- | Serializes a module interface and writes it to a @.json@ file.
 writeModuleInterface
-  :: ( MonadIO r, MonadReporter r ) => FilePath -> ModuleInterface -> r ()
+  :: (MonadIO r, MonadReporter r) => FilePath -> ModuleInterface -> r ()
 writeModuleInterface = saveConfig

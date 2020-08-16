@@ -41,7 +41,7 @@ prettySeparated separator = hcat . intersperse separator . map pretty
 --
 --   There is also a 'Pretty' instance for 'Maybe' that produces the empty
 --   document if the value is 'Nothing'.
-prettyMaybe :: ( Pretty a, Pretty b ) => a -> Maybe b -> Doc
+prettyMaybe :: (Pretty a, Pretty b) => a -> Maybe b -> Doc
 prettyMaybe c Nothing  = pretty c
 prettyMaybe _ (Just x) = pretty x
 

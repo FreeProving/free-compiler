@@ -41,7 +41,7 @@ data Backend = Backend
 -- | A map of all available backends with the name of those backends as keys.
 backends :: Map.Map String Backend
 backends = Map.fromList
-  [ ( backendName b, b ) | b <- [ coqBackend, irBackend, agdaBackend ] ]
+  [ (backendName b, b) | b <- [ coqBackend, irBackend, agdaBackend ] ]
 
 -- | Shows a list of all backends.
 showBackends :: String
@@ -145,7 +145,7 @@ convertModuleToAgda
 --   library.
 createAgdaLib :: Application ()
 createAgdaLib = whenM agdaLibEnabled $ unlessM agdaLibExists $ do
-  ( agdaLib, name ) <- getAgdaLib
+  (agdaLib, name) <- getAgdaLib
   liftIO $ do
     createDirectoryIfMissing True (takeDirectory agdaLib)
     writeFile agdaLib $ contents name
@@ -165,11 +165,11 @@ createAgdaLib = whenM agdaLibEnabled $ unlessM agdaLibExists $ do
      [ "name: " ++ name, "include: .", "depend: standard-library base" ]
 
    -- | Path to the @.agda-lib@ file to create and the name of the library.
-   getAgdaLib :: Application ( FilePath, String )
+   getAgdaLib :: Application (FilePath, String)
    getAgdaLib = do
      Just outputDir <- inOpts optOutputDir
      name <- liftIO $ last . splitDirectories <$> makeAbsolute outputDir
-     return ( outputDir </> (name ++ ".agda-lib"), name )
+     return (outputDir </> (name ++ ".agda-lib"), name)
 
 -- | The Agda backend.
 agdaBackend :: Backend

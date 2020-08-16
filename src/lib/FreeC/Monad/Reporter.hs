@@ -89,7 +89,7 @@ unwrapReporter = runIdentity . unwrapReporterT
 -- | Runs the given reporter and returns the produced value as well as all
 --   reported messages. If a fatal message has been reported the produced
 --   value is @Nothing@.
-runReporter :: Reporter a -> ( Maybe a, [ Message ] )
+runReporter :: Reporter a -> (Maybe a, [ Message ])
 runReporter = runIdentity . runReporterT
 
 -- | Like 'runReporter' but discards the reported messages.
@@ -106,7 +106,7 @@ newtype ReporterT m a
 -- | Runs the given reporter and returns the produced value as well as all
 --   reported messages. If a fatal message has been reported the produced
 --   value is @Nothing@. The result is wrapped in the inner monad.
-runReporterT :: Monad m => ReporterT m a -> m ( Maybe a, [ Message ] )
+runReporterT :: Monad m => ReporterT m a -> m (Maybe a, [ Message ])
 runReporterT rmx = runWriter . runMaybeT <$> unwrapReporterT rmx
 
 -- | The @Functor@ instance for 'ReporterT' is needed to define the @Monad@
@@ -126,9 +126,9 @@ instance Monad m => Monad (ReporterT m) where
   return     = ReporterT . return . return
 
   (>>=) rt f = ReporterT $ do
-    ( mx, ms ) <- runReporterT rt
-    ( mx', ms' ) <- maybe (return ( Nothing, [] )) (runReporterT . f) mx
-    return (MaybeT (writer ( mx', ms ++ ms' )))
+    (mx, ms) <- runReporterT rt
+    (mx', ms') <- maybe (return (Nothing, [])) (runReporterT . f) mx
+    return (MaybeT (writer (mx', ms ++ ms')))
 
 -- | @MonadTrans@ instance for 'ReporterT'.
 instance MonadTrans ReporterT where
@@ -228,7 +228,7 @@ messages = snd . runReporter
 --   @join (reportTo h reporter)@.
 reportTo :: MonadIO m => Handle -> ReporterT m a -> m (Maybe a)
 reportTo h reporter = do
-  ( mx, ms ) <- runReporterT reporter
+  (mx, ms) <- runReporterT reporter
   liftIO $ hPutPretty h ms
   return mx
 

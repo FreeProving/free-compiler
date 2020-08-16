@@ -81,9 +81,9 @@ similarVars scope x y renaming
   | otherwise = Map.lookup x' (renameMap renaming) == Just y
  where
    x', y' :: IR.ScopedName
-   x' = ( scope, x )
+   x' = (scope, x)
 
-   y' = ( scope, y )
+   y' = (scope, y)
 
 -- | Extends a renaming by the corresponding pairs of variable names from the
 --   two given lists.

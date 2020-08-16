@@ -22,7 +22,7 @@ import           FreeC.Test.Parser
 --   but does not check if the entry is defined in the given module.
 lookupExportedEntry :: IR.Scope -> IR.QName -> ModuleInterface -> Maybe EnvEntry
 lookupExportedEntry scope qname moduleInterface = find
-  ((( scope, qname ) ==) . entryScopedName)
+  (((scope, qname) ==) . entryScopedName)
   (Set.toList $ interfaceEntries moduleInterface)
 
 -- | Checks if the given 'Coq.Qualid' is qualified and compares the qualifier

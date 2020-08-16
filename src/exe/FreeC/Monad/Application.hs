@@ -59,7 +59,7 @@ reportApp app = do
   env <- getEnv
   let converter = runStateT (unwrapApplication app) opts
       reporter  = runConverterT converter env
-  ( ( x, opts' ), env' ) <- liftIO (reportToOrExit stderr reporter)
+  ((x, opts'), env') <- liftIO (reportToOrExit stderr reporter)
   putEnv env'
   putOpts opts'
   return x
@@ -85,7 +85,7 @@ modifyOpts :: (Options -> Options) -> Application ()
 modifyOpts = modify
 
 -- | Gets a specific component and modifies the options of the application.
-modifyOpts' :: (Options -> ( a, Options )) -> Application a
+modifyOpts' :: (Options -> (a, Options)) -> Application a
 modifyOpts' = state
 
 -------------------------------------------------------------------------------

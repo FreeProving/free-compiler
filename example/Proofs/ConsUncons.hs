@@ -10,20 +10,20 @@ import           Data.List       ( head )
 import           Test.QuickCheck
 
 -- First we have to define the @unconsE@ function in an error throwing way.
-unconsE :: [ a ] -> ( a, [ a ] )
+unconsE :: [ a ] -> (a, [ a ])
 unconsE ls = case ls of
   []       -> error "unconsE: empty list"
-  (x : xs) -> ( x, xs )
+  (x : xs) -> (x, xs)
 
 -- Next we can define a simple property about this function, e.g., its relation
 -- to the constructor of an non-empty list.
-prop_cons_unconsE :: ( Eq a, Show a ) => a -> [ a ] -> Property
-prop_cons_unconsE x xs = unconsE (x : xs) === ( x, xs )
+prop_cons_unconsE :: (Eq a, Show a) => a -> [ a ] -> Property
+prop_cons_unconsE x xs = unconsE (x : xs) === (x, xs)
 
 -- And we define a property whose validity depends on the model used in the proof.
-fst :: ( a, b ) -> a
+fst :: (a, b) -> a
 fst p = case p of
-  ( x, y ) -> x
+  (x, y) -> x
 
-prop_unconsE_fst :: ( Eq a, Show a ) => [ a ] -> Property
+prop_unconsE_fst :: (Eq a, Show a) => [ a ] -> Property
 prop_unconsE_fst xs = fst (unconsE xs) === head xs

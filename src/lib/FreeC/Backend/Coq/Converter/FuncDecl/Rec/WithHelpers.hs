@@ -38,7 +38,7 @@ import           FreeC.Util.Predicate
 --   non-recursive main functions.
 convertRecFuncDeclsWithHelpers :: [ IR.FuncDecl ] -> Converter [ Coq.Sentence ]
 convertRecFuncDeclsWithHelpers decls = do
-  ( helperDecls', mainDecls' ) <- convertRecFuncDeclsWithHelpers' decls
+  (helperDecls', mainDecls') <- convertRecFuncDeclsWithHelpers' decls
   return
     (Coq.comment ("Helper functions for " ++ showPretty
                   (map IR.funcDeclName decls)) : helperDecls' ++ mainDecls')
@@ -46,18 +46,18 @@ convertRecFuncDeclsWithHelpers decls = do
 -- | Like 'convertRecFuncDeclsWithHelpers' but does return the helper and
 --   main functions separately.
 convertRecFuncDeclsWithHelpers'
-  :: [ IR.FuncDecl ] -> Converter ( [ Coq.Sentence ], [ Coq.Sentence ] )
+  :: [ IR.FuncDecl ] -> Converter ([ Coq.Sentence ], [ Coq.Sentence ])
 convertRecFuncDeclsWithHelpers' decls = do
   -- Split into helper and main functions.
   decArgs <- identifyDecArgs decls
-  ( helperDecls, mainDecls ) <- mapAndUnzipM (uncurry transformRecFuncDecl)
+  (helperDecls, mainDecls) <- mapAndUnzipM (uncurry transformRecFuncDecl)
     (zip decls decArgs)
   -- Convert helper and main functions.
   -- The right-hand sides of the main functions are inlined into the helper
   -- functions. Because inlining can produce fresh identifiers, we need to
   -- perform inlining and conversion of helper functions in a local environment.
   helperDecls'
-    <- forM (concat helperDecls) $ \( helperDecl, decArgIndex ) -> localEnv $ do
+    <- forM (concat helperDecls) $ \(helperDecl, decArgIndex) -> localEnv $ do
       inlinedHelperDecl <- inlineFuncDecls mainDecls helperDecl
       convertRecHelperFuncDecl inlinedHelperDecl decArgIndex
   mainDecls' <- convertNonRecFuncDecls mainDecls
@@ -75,20 +75,20 @@ convertRecFuncDeclsWithHelpers' decls = do
 --   The helper functions are annotated with the index of their decreasing
 --   argument.
 transformRecFuncDecl :: IR.FuncDecl
-  -> DecArgIndex -> Converter ( [ ( IR.FuncDecl, DecArgIndex ) ], IR.FuncDecl )
+  -> DecArgIndex -> Converter ([ (IR.FuncDecl, DecArgIndex) ], IR.FuncDecl)
 transformRecFuncDecl
   (IR.FuncDecl srcSpan declIdent typeArgs args maybeRetType expr) decArgIndex
   = do
     -- Generate a helper function declaration and application for each case
     -- expression of the decreasing argument.
-    ( helperDecls, helperApps ) <- mapAndUnzipM generateHelperDecl caseExprsPos
+    (helperDecls, helperApps) <- mapAndUnzipM generateHelperDecl caseExprsPos
     -- Generate main function declaration. The main function's right-hand side
     -- is constructed by replacing all @case@-expressions of the decreasing
     -- argument by an invocation of the corresponding recursive helper function.
     let mainExpr = replaceSubterms' expr (zip caseExprsPos helperApps)
         mainDecl
           = IR.FuncDecl srcSpan declIdent typeArgs args maybeRetType mainExpr
-    return ( helperDecls, mainDecl )
+    return (helperDecls, mainDecl)
  where
    -- | The name of the function to transform.
    name :: IR.QName
@@ -125,8 +125,7 @@ transformRecFuncDecl
    --
    --   Returns the helper function declaration with the index of its decreasing
    --   argument and an expression for the application of the helper function.
-   generateHelperDecl
-     :: Pos -> Converter ( ( IR.FuncDecl, DecArgIndex ), IR.Expr )
+   generateHelperDecl :: Pos -> Converter ((IR.FuncDecl, DecArgIndex), IR.Expr)
    generateHelperDecl caseExprPos = do
      -- Generate a fresh name for the helper function.
      helperName <- freshHaskellQName (IR.declIdentName declIdent)
@@ -191,7 +190,7 @@ transformRecFuncDecl
            (IR.visibleTypeApp NoSrcSpan
             (IR.Var NoSrcSpan helperName helperAppType) helperTypeArgs')
            (map IR.varPatToExpr helperArgs)
-     return ( ( helperDecl, decArgIndex' ), helperApp )
+     return ((helperDecl, decArgIndex'), helperApp)
 
 -- | Converts a recursive helper function to the body of a Coq @Fixpoint@
 --   sentence with the decreasing argument at the given index annotated with
@@ -199,7 +198,7 @@ transformRecFuncDecl
 convertRecHelperFuncDecl :: IR.FuncDecl -> DecArgIndex -> Converter Coq.FixBody
 convertRecHelperFuncDecl helperDecl decArgIndex = localEnv $ do
   -- Convert left- and right-hand side of helper function.
-  ( qualid, binders, returnType' ) <- convertFuncHead helperDecl
+  (qualid, binders, returnType') <- convertFuncHead helperDecl
   rhs' <- convertExpr (IR.funcDeclRhs helperDecl)
   -- Lookup name of decreasing argument.
   Just decArg' <- inEnv $ lookupIdent IR.ValueScope $ IR.varPatQName

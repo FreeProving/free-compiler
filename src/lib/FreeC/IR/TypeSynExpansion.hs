@@ -116,7 +116,7 @@ expandTypeSynonymsWhere maxDepth predicate t0
    expandTypeSynonyms' (IR.TypeCon _ typeConName) args = do
      mTypeSynonym <- inEnv $ lookupTypeSynonym typeConName
      case mTypeSynonym of
-       Just ( typeVars, typeExpr )
+       Just (typeVars, typeExpr)
          | predicate typeConName -> do
            let subst     = composeSubsts
                  (zipWith (singleSubst . IR.UnQual . IR.Ident) typeVars args)

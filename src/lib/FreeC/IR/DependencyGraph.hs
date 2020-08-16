@@ -81,7 +81,7 @@ type DGKey = IR.QName
 -- | Every node (i.e., declaration) in a dependency graph is associated with a
 --   unique key (its qualified original name) and a list of keys that identify
 --   the nodes this node depends on (adjacency list).
-type DGEntry node = ( node, DGKey, [ DGKey ] )
+type DGEntry node = (node, DGKey, [ DGKey ])
 
 -- | A dependency graph is a directed graph whose nodes are declarations
 --   (Usually 'IR.TypeDecl' or 'IR.FuncDecl'). There is an edge from node
@@ -122,7 +122,7 @@ dependsDirectlyOn :: DependencyGraph node -- ^ The dependency graph.
 dependsDirectlyOn (DependencyGraph graph _ getVertex) k1 k2 = Just True == do
   v1 <- getVertex k1
   v2 <- getVertex k2
-  return (( v1, v2 ) `elem` edges graph)
+  return ((v1, v2) `elem` edges graph)
 
 -------------------------------------------------------------------------------
 -- Type dependencies                                                         --
@@ -136,7 +136,7 @@ typeDependencyGraph
 -- | Creates an entry of the dependency graph for the given data type or type
 --   synonym declaration.
 typeDeclEntry :: IR.TypeDecl -> DGEntry IR.TypeDecl
-typeDeclEntry decl = ( decl, IR.typeDeclQName decl, typeRefs decl )
+typeDeclEntry decl = (decl, IR.typeDeclQName decl, typeRefs decl)
 
 -------------------------------------------------------------------------------
 -- Function dependencies                                                     --
@@ -149,7 +149,7 @@ funcDependencyGraph
 -- | Creates an entry of the dependency graph for the given function
 --   declaration or pattern binding.
 funcDeclEntry :: IR.FuncDecl -> DGEntry IR.FuncDecl
-funcDeclEntry decl = ( decl, IR.funcDeclQName decl, valueRefs decl )
+funcDeclEntry decl = (decl, IR.funcDeclQName decl, valueRefs decl)
 
 -------------------------------------------------------------------------------
 -- Module dependencies                                                       --
@@ -195,7 +195,7 @@ instance Pretty (DependencyGraph node) where
      --   is used a the label.
      prettyNode :: Vertex -> Doc
      prettyNode v
-       = let ( _, key, _ ) = getEntry v
+       = let (_, key, _) = getEntry v
          in int v <+> brackets (label <> equals <> dquotes (pretty key)) <> semi
 
      -- | Pretty printed DOT edges for the dependency graph.
@@ -206,7 +206,7 @@ instance Pretty (DependencyGraph node) where
      --   DOT command. Returns 'Nothing' if the vertex is not incident to
      --   any edge.
      prettyEdges :: Vertex -> Maybe Doc
-     prettyEdges v = let ( _, _, neighbors ) = getEntry v
+     prettyEdges v = let (_, _, neighbors) = getEntry v
                      in case mapMaybe getVertex neighbors of
                           [] -> Nothing
                           vs -> Just $ int v <+> arrow <+> braces

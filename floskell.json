@@ -21,12 +21,12 @@
         "spaces": "both",
         "linebreaks": "after"
       },
-      "(# in pattern": {
+      "(": {
         "force-linebreak": false,
-        "spaces": "both",
+        "spaces": "none",
         "linebreaks": "after"
       },
-      "(# in expression": {
+      "( in other": {
         "force-linebreak": false,
         "spaces": "both",
         "linebreaks": "after"

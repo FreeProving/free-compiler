@@ -86,12 +86,12 @@ unify t s = do
   ds <- lift $ disagreementSet t s
   case ds of
     Nothing -> return identitySubst
-    Just ( _, u@(IR.TypeVar _ x), v@(IR.TypeVar _ y) )
+    Just (_, u@(IR.TypeVar _ x), v@(IR.TypeVar _ y))
       | IR.isInternalIdent x -> x `mapsTo` v
       | IR.isInternalIdent y -> y `mapsTo` u
-    Just ( _, IR.TypeVar _ x, v ) -> x `mapsTo` v
-    Just ( _, u, IR.TypeVar _ y ) -> y `mapsTo` u
-    Just ( pos, u, v ) -> do
+    Just (_, IR.TypeVar _ x, v) -> x `mapsTo` v
+    Just (_, u, IR.TypeVar _ y) -> y `mapsTo` u
+    Just (pos, u, v) -> do
       t' <- lift $ expandTypeSynonymAt pos t
       s' <- lift $ expandTypeSynonymAt pos s
       if t /= t' || s /= s' then unify t' s' else throwE $ UnificationError u v
@@ -146,7 +146,7 @@ unifyAll (t0 : t1 : ts) = do
 -- Disagreement set                                                          --
 -------------------------------------------------------------------------------
 -- | Type synonym for a disagreement set.
-type DisagreementSet = Maybe ( Pos, IR.Type, IR.Type )
+type DisagreementSet = Maybe (Pos, IR.Type, IR.Type)
 
 -- | Gets subterms at the left-most inner-most position where the
 --   two given types differ.
@@ -169,14 +169,14 @@ disagreementSet t@(IR.TypeCon _ c) s@(IR.TypeCon _ d)
     f <- lookupEntryOrFail (IR.typeSrcSpan s) IR.TypeScope d
     let n = entryName e
         m = entryName f
-    if n == m then return Nothing else return (Just ( rootPos, t, s ))
+    if n == m then return Nothing else return (Just (rootPos, t, s))
 -- Compute disagreement set recursively.
 disagreementSet (IR.TypeApp _ t1 t2) (IR.TypeApp _ s1 s2)
   = disagreementSet' 1 [ t1, t2 ] [ s1, s2 ]
 disagreementSet (IR.FuncType _ t1 t2) (IR.FuncType _ s1 s2)
   = disagreementSet' 1 [ t1, t2 ] [ s1, s2 ]
 -- If the two types have a different constructor, they disagree.
-disagreementSet t s = return (Just ( rootPos, t, s ))
+disagreementSet t s = return (Just (rootPos, t, s))
 
 -- | Computes the disagreement sets for each pair of the given types and
 --   returns the first non-empty disagreement set extended by it's position
@@ -190,5 +190,5 @@ disagreementSet' i (t : ts) (s : ss) = do
   ds <- disagreementSet t s
   case ds of
     Nothing -> disagreementSet' (i + 1) ts ss
-    Just ( pos, t', s' ) -> return (Just ( consPos i pos, t', s' ))
+    Just (pos, t', s') -> return (Just (consPos i pos, t', s'))
 disagreementSet' _ _ _ = return Nothing

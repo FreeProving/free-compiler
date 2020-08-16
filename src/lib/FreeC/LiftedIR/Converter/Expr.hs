@@ -121,7 +121,7 @@ liftExpr' (IR.IntLiteral srcSpan value _) [] []
 -- > ⎢-----------------------⎥ = -----------------------------------
 -- > ⎣ Γ ⊢ λx:τ₀.e : τ₀ → τ₁ ⎦   Γ' ⊢ pure(λx:τ₀'.e') : m(τ₀' → τ₁')
 liftExpr' (IR.Lambda srcSpan args rhs _) [] [] = localEnv $ do
-  ( pats, expr ) <- liftAlt' args rhs
+  (pats, expr) <- liftAlt' args rhs
   return $ foldr (\a b -> LIR.Pure srcSpan $ LIR.Lambda srcSpan [ a ] b) expr
     pats
 -- @if@-expressions.
@@ -192,26 +192,26 @@ liftConPat (IR.ConPat srcSpan name) = LIR.ConPat srcSpan name
 --   and the right-hand side.
 liftAlt :: IR.Alt -> Converter LIR.Alt
 liftAlt (IR.Alt srcSpan conPat pats expr) = do
-  ( pats', expr' ) <- liftAlt' pats expr
+  (pats', expr') <- liftAlt' pats expr
   return $ LIR.Alt srcSpan (liftConPat conPat) pats' expr'
 
 -- | Translates an alternative (which consist of a list of variable patterns and
 --   a bound expression). Strict variables are replaced with fresh ones, which
 --   are unwrapped using @>>=@.
-liftAlt' :: [ IR.VarPat ] -> IR.Expr -> Converter ( [ LIR.VarPat ], LIR.Expr )
-liftAlt' [] expr = ( [],  ) <$> liftExpr expr
+liftAlt' :: [ IR.VarPat ] -> IR.Expr -> Converter ([ LIR.VarPat ], LIR.Expr)
+liftAlt' [] expr = ([], ) <$> liftExpr expr
 liftAlt' (pat@(IR.VarPat srcSpan name varType strict) : pats) expr
   = localEnv $ do
     varType' <- LIR.liftVarPatType pat
     var <- renameAndDefineLIRVar srcSpan strict name varType
-    ( pats', expr' ) <- liftAlt' pats expr
+    (pats', expr') <- liftAlt' pats expr
     if strict then do
       var' <- freshIRQName name
       expr'' <- rawBind srcSpan var' var varType expr'
       pat' <- varPat srcSpan var' varType'
-      return ( pat' : pats', expr'' ) else do
+      return (pat' : pats', expr'') else do
       pat' <- varPat srcSpan var varType'
-      return ( pat' : pats', expr' )
+      return (pat' : pats', expr')
 
 -- | Smart constructor for variable patterns.
 varPat :: SrcSpan -> IR.QName -> Maybe LIR.Type -> Converter LIR.VarPat
@@ -271,12 +271,12 @@ bind arg defaultPrefix argType k = localEnv $ do
 
 -- | Passes a list of arguments to the given function unwrapping the marked
 --   arguments using 'bind'.
-generateBinds :: [ ( LIR.Expr, Maybe LIR.Type, Bool ) ]
+generateBinds :: [ (LIR.Expr, Maybe LIR.Type, Bool) ]
   -> ([ LIR.Expr ] -> Converter LIR.Expr) -> Converter LIR.Expr
 generateBinds [] k = k []
-generateBinds (( arg, _, False ) : as) k = generateBinds as $ \as' -> k
+generateBinds ((arg, _, False) : as) k = generateBinds as $ \as' -> k
   (arg : as')
-generateBinds (( arg, argType, True ) : as) k = bind arg freshArgPrefix argType
+generateBinds ((arg, argType, True) : as) k = bind arg freshArgPrefix argType
   $ \arg' -> generateBinds as $ \as' -> k (arg' : as')
 
 -- | Generates just the syntax for a bind expression, which unwraps the first

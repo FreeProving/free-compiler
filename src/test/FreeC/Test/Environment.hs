@@ -107,11 +107,11 @@ defineTestTypeCon nameStr arity consNameStrs = do
 --
 --   The argument and return types are parsed from the given string.
 --   Returns the Coq identifier assigned to the data constructor.
-defineTestCon :: String -> Int -> String -> Converter ( String, String )
+defineTestCon :: String -> Int -> String -> Converter (String, String)
 defineTestCon nameStr arity typeStr = do
   name <- parseTestQName nameStr
   IR.TypeScheme _ typeArgs typeExpr <- parseExplicitTestTypeScheme typeStr
-  let ( argTypes, returnType ) = IR.splitFuncType typeExpr arity
+  let (argTypes, returnType) = IR.splitFuncType typeExpr arity
   entry <- renameAndAddTestEntry' ConEntry
     { entrySrcSpan        = NoSrcSpan
     , entryArity          = arity
@@ -126,7 +126,7 @@ defineTestCon nameStr arity typeStr = do
     }
   let (Just ident')      = Coq.unpackQualid (entryIdent entry)
       (Just smartIdent') = Coq.unpackQualid (entrySmartIdent entry)
-  return ( ident', smartIdent' )
+  return (ident', smartIdent')
 
 -------------------------------------------------------------------------------
 -- Variable entries                                                          --
@@ -166,7 +166,7 @@ defineTestFunc'
 defineTestFunc' partial areStrict nameStr arity typeStr = do
   name <- parseTestQName nameStr
   IR.TypeScheme _ typeArgs typeExpr <- parseExplicitTestTypeScheme typeStr
-  let ( argTypes, returnType ) = IR.splitFuncType typeExpr arity
+  let (argTypes, returnType) = IR.splitFuncType typeExpr arity
   renameAndAddTestEntry FuncEntry
     { entrySrcSpan       = NoSrcSpan
     , entryArity         = arity

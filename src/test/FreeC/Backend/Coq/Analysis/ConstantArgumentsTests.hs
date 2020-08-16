@@ -20,7 +20,7 @@ import           FreeC.Test.Parser
 -- | Like 'identifyConstArgs' but returns just the 'constArgIdents' as a list
 --   for each constant argument.
 identifyConstArgIdents
-  :: [ IR.FuncDecl ] -> Converter [ [ ( IR.QName, String ) ] ]
+  :: [ IR.FuncDecl ] -> Converter [ [ (IR.QName, String) ] ]
 identifyConstArgIdents = fmap (map (Map.assocs . constArgIdents))
   . identifyConstArgs
 
@@ -35,7 +35,7 @@ testConstantArguments = describe "FreeC.Backend.Coq.Analysis.ConstantArguments" 
       $ "map f xs = case xs of {" ++ "    Nil        -> Nil;"
       ++ "    Cons x xs' -> Cons (f x) (map f xs')" ++ "  }"
     identifyConstArgIdents [ funcDecl ]
-      `shouldReturn` [ [ ( IR.UnQual (IR.Ident "map"), "f" ) ] ]
+      `shouldReturn` [ [ (IR.UnQual (IR.Ident "map"), "f") ] ]
   it "identifies constant arguments of mutually recursive functions" $ do
     funcDecls <- mapM expectParseTestFuncDecl
       [ "mapAlt f g xs = case xs of {" ++ "    Nil        -> Nil;"
@@ -44,11 +44,11 @@ testConstantArguments = describe "FreeC.Backend.Coq.Analysis.ConstantArguments" 
           ++ "    Cons x xs' -> Cons (g x) (mapAlt f g xs')" ++ "  }"
       ]
     identifyConstArgIdents funcDecls
-      `shouldReturn` [ [ ( IR.UnQual (IR.Ident "mapAlt"), "g" )
-                         , ( IR.UnQual (IR.Ident "mapAlt'"), "g" )
+      `shouldReturn` [ [ (IR.UnQual (IR.Ident "mapAlt"), "g")
+                         , (IR.UnQual (IR.Ident "mapAlt'"), "g")
                          ]
-                     , [ ( IR.UnQual (IR.Ident "mapAlt"), "f" )
-                         , ( IR.UnQual (IR.Ident "mapAlt'"), "f" )
+                     , [ (IR.UnQual (IR.Ident "mapAlt"), "f")
+                         , (IR.UnQual (IR.Ident "mapAlt'"), "f")
                          ]
                      ]
   it "does not identify swapped arguments as constant" $ do
@@ -67,9 +67,9 @@ testConstantArguments = describe "FreeC.Backend.Coq.Analysis.ConstantArguments" 
           ++ "  }"
       ]
     identifyConstArgIdents funcDecls
-      `shouldReturn` [ [ ( IR.UnQual (IR.Ident "bar"), "n" )
-                         , ( IR.UnQual (IR.Ident "baz"), "n" )
-                         , ( IR.UnQual (IR.Ident "foo"), "n" )
+      `shouldReturn` [ [ (IR.UnQual (IR.Ident "bar"), "n")
+                         , (IR.UnQual (IR.Ident "baz"), "n")
+                         , (IR.UnQual (IR.Ident "foo"), "n")
                          ]
                      ]
   it "does not identify argument as constant if it is modified in one call" $ do

@@ -23,7 +23,7 @@ reverse xs = case xs of
 
 -- Next we state the property that we want to prove, namely that @reverse@ is
 -- its own inverse.
-prop_reverse_involutive :: ( Eq a, Show a ) => [ a ] -> Property
+prop_reverse_involutive :: (Eq a, Show a) => [ a ] -> Property
 prop_reverse_involutive xs = reverse (reverse xs) === xs
 
 -- For the proof that @reverse@ is not involutive in a partial setting,
@@ -33,6 +33,6 @@ reverse_involutive_counterexample = () : undefined
 
 -- For the proof that @reverse@ is involutive in a total setting, we need
 -- the following lemmas.
-prop_reverse_append_singleton :: ( Eq a, Show a ) => [ a ] -> a -> Property
+prop_reverse_append_singleton :: (Eq a, Show a) => [ a ] -> a -> Property
 prop_reverse_append_singleton xs x = reverse (xs `append` [ x ]) === x
   : reverse xs

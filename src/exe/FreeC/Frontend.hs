@@ -38,8 +38,8 @@ data Frontend = Frontend
 
 -- | A map of all available frontends with the name of those frontends as keys.
 frontends :: Map.Map String Frontend
-frontends = Map.fromList
-  [ ( frontendName f, f ) | f <- [ haskellFrontend, irFrontend ] ]
+frontends
+  = Map.fromList [ (frontendName f, f) | f <- [ haskellFrontend, irFrontend ] ]
 
 -- | Shows a list of all frontends.
 showFrontends :: String
@@ -62,7 +62,7 @@ irFrontend = Frontend { frontendName = "ir", frontendParseFile = parseIR }
 -- | Parses and simplifies the given file.
 parseHaskell :: SrcFile -> Application IR.Module
 parseHaskell file = do
-  ( haskellAst, comments ) <- parseHaskellModuleWithComments file
+  (haskellAst, comments) <- parseHaskellModuleWithComments file
   haskellAst' <- transformInputModule haskellAst
   liftConverter $ simplifyModuleWithComments haskellAst' comments
 

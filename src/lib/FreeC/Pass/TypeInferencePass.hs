@@ -275,8 +275,8 @@ emptyTypeInferenceState = TypeInferenceState
 --   in the given environment.
 makeTypeAssumption :: Environment -> TypeAssumption
 makeTypeAssumption env = Map.fromList
-  [ ( name, typeScheme )
-  | ( scope, name ) <- Map.keys (envEntries env)
+  [ (name, typeScheme)
+  | (scope, name) <- Map.keys (envEntries env)
   , scope == IR.ValueScope
   , typeScheme <- maybeToList (lookupTypeScheme scope name env)
   ]
@@ -703,7 +703,7 @@ applyVisibly name expr = do
   case maybeAssumedTypeScheme of
     Nothing -> return expr
     Just assumedTypeScheme -> do
-      ( assumedType, typeArgs )
+      (assumedType, typeArgs)
         <- liftConverter $ instantiateTypeScheme' assumedTypeScheme
       mgu <- liftConverter $ unifyOrFail srcSpan annotatedType assumedType
       fixed <- lookupFixedTypeArgs name
@@ -798,7 +798,7 @@ abstractTypeArgs :: [ IR.TypeVarIdent ] -> IR.FuncDecl -> IR.FuncDecl
 abstractTypeArgs typeArgIdents funcDecl
   = let typeArgs = map (IR.UnQual . IR.Ident) typeArgIdents
         IR.TypeScheme _ _ typeExpr = fromJust (IR.funcDeclTypeScheme funcDecl)
-        ( IR.TypeScheme _ typeArgs' _, subst )
+        (IR.TypeScheme _ typeArgs' _, subst)
           = abstractTypeScheme' typeArgs typeExpr
         funcDecl' = applySubst subst funcDecl
     in funcDecl' { IR.funcDeclTypeArgs = typeArgs' }
@@ -850,45 +850,45 @@ abstractVanishingTypeArgs funcDecls
    -- | Like 'addInternalTypeArgs' but returns the visible type
    --   arguments that still need to be added.
    addInternalTypeArgsToExpr'
-     :: Set IR.QName -> IR.Expr -> ( IR.Expr, [ IR.Type ] )
+     :: Set IR.QName -> IR.Expr -> (IR.Expr, [ IR.Type ])
 
    -- If this is a recursive call the internal type arguments need to be
    -- applied visibly.
    addInternalTypeArgsToExpr' funcNames expr@(IR.Var _ varName _)
-     | varName `Set.member` funcNames = ( expr, internalTypeArgs )
-     | otherwise = ( expr, [] )
+     | varName `Set.member` funcNames = (expr, internalTypeArgs)
+     | otherwise = (expr, [])
    -- Add new type arguments after existing visible type applications.
    addInternalTypeArgsToExpr' funcNames
      (IR.TypeAppExpr srcSpan expr typeExpr exprType)
-     = let ( expr', typeArgs ) = addInternalTypeArgsToExpr' funcNames expr
-       in ( IR.TypeAppExpr srcSpan expr' typeExpr exprType, typeArgs )
+     = let (expr', typeArgs) = addInternalTypeArgsToExpr' funcNames expr
+       in (IR.TypeAppExpr srcSpan expr' typeExpr exprType, typeArgs)
    -- Recursively add the internal type arguments.
    addInternalTypeArgsToExpr' funcNames (IR.App srcSpan e1 e2 exprType)
      = let e1' = addInternalTypeArgsToExpr funcNames e1
            e2' = addInternalTypeArgsToExpr funcNames e2
-       in ( IR.App srcSpan e1' e2' exprType, [] )
+       in (IR.App srcSpan e1' e2' exprType, [])
    addInternalTypeArgsToExpr' funcNames (IR.If srcSpan e1 e2 e3 exprType)
      = let e1' = addInternalTypeArgsToExpr funcNames e1
            e2' = addInternalTypeArgsToExpr funcNames e2
            e3' = addInternalTypeArgsToExpr funcNames e3
-       in ( IR.If srcSpan e1' e2' e3' exprType, [] )
+       in (IR.If srcSpan e1' e2' e3' exprType, [])
    addInternalTypeArgsToExpr' funcNames (IR.Case srcSpan expr alts exprType)
      = let expr' = addInternalTypeArgsToExpr funcNames expr
            alts' = map (addInternalTypeArgsToAlt funcNames) alts
-       in ( IR.Case srcSpan expr' alts' exprType, [] )
+       in (IR.Case srcSpan expr' alts' exprType, [])
    addInternalTypeArgsToExpr' funcNames (IR.Lambda srcSpan args expr exprType)
      = let funcNames' = withoutArgs args funcNames
            expr'      = addInternalTypeArgsToExpr funcNames' expr
-       in ( IR.Lambda srcSpan args expr' exprType, [] )
+       in (IR.Lambda srcSpan args expr' exprType, [])
    addInternalTypeArgsToExpr' funcNames (IR.Let srcSpan binds expr exprType)
      = let funcNames' = withoutArgs (map IR.bindVarPat binds) funcNames
            expr'      = addInternalTypeArgsToExpr funcNames' expr
-       in ( IR.Let srcSpan binds expr' exprType, [] )
+       in (IR.Let srcSpan binds expr' exprType, [])
    -- Leave all other expressions unchanged.
-   addInternalTypeArgsToExpr' _ expr@(IR.Con _ _ _) = ( expr, [] )
-   addInternalTypeArgsToExpr' _ expr@(IR.IntLiteral _ _ _) = ( expr, [] )
-   addInternalTypeArgsToExpr' _ expr@(IR.Undefined _ _) = ( expr, [] )
-   addInternalTypeArgsToExpr' _ expr@(IR.ErrorExpr _ _ _) = ( expr, [] )
+   addInternalTypeArgsToExpr' _ expr@(IR.Con _ _ _) = (expr, [])
+   addInternalTypeArgsToExpr' _ expr@(IR.IntLiteral _ _ _) = (expr, [])
+   addInternalTypeArgsToExpr' _ expr@(IR.Undefined _ _) = (expr, [])
+   addInternalTypeArgsToExpr' _ expr@(IR.ErrorExpr _ _ _) = (expr, [])
 
    -- | Applies 'addInternalTypeArgsToExpr' to the right-hand side of
    --   the given @case@ expression alternative.

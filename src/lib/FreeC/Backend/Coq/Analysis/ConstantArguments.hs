@@ -69,11 +69,11 @@ data ConstArg = ConstArg
 -------------------------------------------------------------------------------
 -- | Nodes of the the constant argument graph (see 'makeConstArgGraph') are
 --   pairs of function and argument names.
-type CGNode = ( IR.QName, String )
+type CGNode = (IR.QName, String)
 
 -- | The nodes of the the constant argument graph (see 'makeConstArgGraph')
 --   are identified by themselves.
-type CGEntry = ( CGNode, CGNode, [ CGNode ] )
+type CGEntry = (CGNode, CGNode, [ CGNode ])
 
 -- | Constructs a graph that is used to identify contant arguments, i.e.,
 --   arguments that are passed unchanged between the given function
@@ -92,11 +92,11 @@ type CGEntry = ( CGNode, CGNode, [ CGNode ] )
 makeConstArgGraph :: [ IR.FuncDecl ] -> [ CGEntry ]
 makeConstArgGraph decls = do
   -- Create one node @(f,x_i)@ for every argument @x_i@ of every function @f@.
-  ( node@( _f, x ), _i, rhs ) <- nodes
+  (node@(_f, x), _i, rhs) <- nodes
   -- Generate outgoing edges of @(f,x_i)@.
   let adjacent = do
         -- Consider every node @(g,y_j)@.
-        ( ( g, y ), j, _ ) <- nodes
+        ((g, y), j, _) <- nodes
         -- Test whether there is any call to @g@ on the right-hand side of @f@.
         let callsG :: IR.Expr -> Bool
             callsG = elem g . freeVarSet
@@ -162,18 +162,18 @@ makeConstArgGraph decls = do
           shadowedBy = flip (flip elem . map IR.varPatIdent)
         guard (checkExpr rhs [])
         -- Add edge if the test was successful.
-        return ( g, y )
-  return ( node, node, adjacent )
+        return (g, y)
+  return (node, node, adjacent)
  where
    -- | There is one node for each argument of every function declaration.
-   nodes :: [ ( CGNode, Int, IR.Expr ) ]
+   nodes :: [ (CGNode, Int, IR.Expr) ]
    nodes = do
      decl <- decls
      let funcName = IR.funcDeclQName decl
          args     = IR.funcDeclArgs decl
          rhs      = IR.funcDeclRhs decl
-     ( argName, argIndex ) <- zip (map IR.varPatIdent args) [ 0 .. ]
-     return ( ( funcName, argName ), argIndex, rhs )
+     (argName, argIndex) <- zip (map IR.varPatIdent args) [ 0 .. ]
+     return ((funcName, argName), argIndex, rhs)
 
 -------------------------------------------------------------------------------
 -- Identifying Constant Arguments                                            --
@@ -207,7 +207,7 @@ identifyConstArgs decls = mapM makeConstArg constArgNameMaps
    --   arguments.
    argNamesMap :: Map IR.QName [ String ]
    argNamesMap = Map.fromList
-     [ ( IR.funcDeclQName decl, map IR.varPatIdent (IR.funcDeclArgs decl) )
+     [ (IR.funcDeclQName decl, map IR.varPatIdent (IR.funcDeclArgs decl))
      | decl <- decls
      ]
 
@@ -232,7 +232,7 @@ identifyConstArgs' decls = map Map.fromList $ filter checkSCC
 
    -- | Maps the keys of the 'constArgGraph' to the adjacency lists.
    constArgMap :: Map CGNode [ CGNode ]
-   constArgMap = Map.fromList [ ( k, ks ) | ( _, k, ks ) <- constArgGraph ]
+   constArgMap = Map.fromList [ (k, ks) | (_, k, ks) <- constArgGraph ]
 
    -- | The dependency graph of the function declarations.
    callGraph :: DependencyGraph IR.FuncDecl
@@ -249,13 +249,13 @@ identifyConstArgs' decls = map Map.fromList $ filter checkSCC
    checkSCC nodes
      | not (containsAllFunctions nodes) = False
      | otherwise = and $ do
-       ( f, x ) <- nodes
-       ( g, y ) <- nodes
+       (f, x) <- nodes
+       (g, y) <- nodes
        -- If there is an edge from @f@ to @g@ in the call graph, ...
        guard (dependsDirectlyOn callGraph f g)
        -- ... there must also be an edge in the constant argument graph.
-       adjacent <- maybeToList (Map.lookup ( f, x ) constArgMap)
-       return (( g, y ) `elem` adjacent)
+       adjacent <- maybeToList (Map.lookup (f, x) constArgMap)
+       return ((g, y) `elem` adjacent)
 
    -- | The names of all given function declarations.
    funcNames :: [ IR.QName ]

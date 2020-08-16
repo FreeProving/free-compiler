@@ -61,11 +61,11 @@ funcType srcSpan = flip (foldr (FuncType srcSpan))
 --   into the argument and return types.
 --
 --   This is basically the inverse of 'funcType'.
-splitFuncType :: Type -> Int -> ( [ Type ], Type )
+splitFuncType :: Type -> Int -> ([ Type ], Type)
 splitFuncType (FuncType _ t1 t2) arity
-  | arity > 0 = let ( argTypes, returnType ) = splitFuncType t2 (arity - 1)
-                in ( t1 : argTypes, returnType )
-splitFuncType returnType _ = ( [], returnType )
+  | arity > 0 = let (argTypes, returnType) = splitFuncType t2 (arity - 1)
+                in (t1 : argTypes, returnType)
+splitFuncType returnType _ = ([], returnType)
 
 -- | Pretty instance for type expressions.
 instance Pretty Type where

@@ -69,9 +69,9 @@ generateArgBinder ident' (Just argType') = return
 -- | Converts the argument of an artificially generated function to an explicit
 --   Coq binder. A fresh Coq identifier is selected for the argument
 --   and returned together with the binder.
-convertAnonymousArg :: Maybe IR.Type -> Converter ( Coq.Qualid, Coq.Binder )
+convertAnonymousArg :: Maybe IR.Type -> Converter (Coq.Qualid, Coq.Binder)
 convertAnonymousArg mArgType = do
   ident' <- freshCoqQualid freshArgPrefix
   mArgType' <- mapM convertType mArgType
   binder <- generateArgBinder ident' mArgType'
-  return ( ident', binder )
+  return (ident', binder)

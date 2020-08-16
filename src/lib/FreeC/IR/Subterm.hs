@@ -187,7 +187,7 @@ parentPos (Pos ps)
 allPos :: Subterm a => a -> [ Pos ]
 allPos term = rootPos
   : [ consPos p childPos
-    | ( p, child ) <- zip [ 1 .. ] (childTerms term), childPos <- allPos child
+    | (p, child) <- zip [ 1 .. ] (childTerms term), childPos <- allPos child
     ]
 
 -- | Tests whether a position is above another one.
@@ -244,7 +244,7 @@ replaceSubterm _ (Pos []) term' = Just term'
 replaceSubterm term (Pos (p : ps)) term'
   | p <= 0 || p > length children = Nothing
   | otherwise = do
-    let ( before, child : after ) = splitAt (p - 1) children
+    let (before, child : after) = splitAt (p - 1) children
     child' <- replaceSubterm child (Pos ps) term'
     replaceChildTerms term (before ++ child' : after)
  where
@@ -259,14 +259,13 @@ replaceSubterm' term pos term' = fromMaybe
 -- | Replaces all subterms at the given positions with other (type) expressions.
 --
 --   Returns @Nothing@ if any of the subterms could not be replaced
-replaceSubterms :: Subterm a => a -> [ ( Pos, a ) ] -> Maybe a
-replaceSubterms = foldM (\term ( pos, term' ) -> replaceSubterm term pos term')
+replaceSubterms :: Subterm a => a -> [ (Pos, a) ] -> Maybe a
+replaceSubterms = foldM (\term (pos, term') -> replaceSubterm term pos term')
 
 -- | Like 'replaceSubterms' but throws an error if any of the subterms could
 --   not be replaced.
-replaceSubterms' :: Subterm a => a -> [ ( Pos, a ) ] -> a
-replaceSubterms' = foldl
-  (\term ( pos, term' ) -> replaceSubterm' term pos term')
+replaceSubterms' :: Subterm a => a -> [ (Pos, a) ] -> a
+replaceSubterms' = foldl (\term (pos, term') -> replaceSubterm' term pos term')
 
 -------------------------------------------------------------------------------
 -- Searching for subterms                                                    --

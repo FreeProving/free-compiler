@@ -64,32 +64,32 @@ predefinedFixities = concat
   ]
 
 -- | Parses a node of the Haskell AST.
-parseHaskell :: ( Functor ast, Parseable (ast SrcSpanInfo), MonadReporter r )
+parseHaskell :: (Functor ast, Parseable (ast SrcSpanInfo), MonadReporter r)
   => SrcFile          -- ^ The name and contents of the Haskell source file.
   -> r (ast SrcSpan)
 parseHaskell = fmap fst . parseHaskellWithComments
 
 -- | Like 'parseHaskell' but returns comments in addition to the AST.
 parseHaskellWithComments
-  :: ( Functor ast, Parseable (ast SrcSpanInfo), MonadReporter r )
+  :: (Functor ast, Parseable (ast SrcSpanInfo), MonadReporter r)
   => SrcFile          -- ^ The name and contents of the Haskell source file.
-  -> r ( ast SrcSpan, [ IR.Comment ] )
+  -> r (ast SrcSpan, [ IR.Comment ])
 parseHaskellWithComments = parseHaskellWithCommentsAndExts []
 
 -- | Like 'parseHaskellWithComments' but allows language extensions to be
 --   enabled.
 parseHaskellWithCommentsAndExts
-  :: ( Functor ast, Parseable (ast SrcSpanInfo), MonadReporter r )
+  :: (Functor ast, Parseable (ast SrcSpanInfo), MonadReporter r)
   => [ KnownExtension ] -- ^ The extensions to enable.
   -> SrcFile          -- ^ The name and contents of the Haskell source file.
-  -> r ( ast SrcSpan, [ IR.Comment ] )
+  -> r (ast SrcSpan, [ IR.Comment ])
 parseHaskellWithCommentsAndExts enabledExts srcFile
   = case parseWithComments parseMode (srcFileContents srcFile) of
-    ParseOk ( node, comments ) -> return
+    ParseOk (node, comments) -> return
       ( fmap (toMessageSrcSpan :: SrcSpanInfo -> SrcSpan) node
       , map convertComment comments
       )
-    ParseFailed loc msg        -> reportFatal $ Message (toMessageSrcSpan loc)
+    ParseFailed loc msg      -> reportFatal $ Message (toMessageSrcSpan loc)
       Error msg
  where
    -- | Configuration of the Haskell parser.
@@ -132,20 +132,20 @@ parseHaskellModule = parseHaskell
 -- | Like 'parseHaskellModule' but returns the comments in addition to the AST.
 parseHaskellModuleWithComments :: MonadReporter r
   => SrcFile -- ^ The name and contents of the Haskell source file.
-  -> r ( HSE.Module SrcSpan, [ IR.Comment ] )
+  -> r (HSE.Module SrcSpan, [ IR.Comment ])
 parseHaskellModuleWithComments = parseHaskellWithComments
 
 -- | Loads and parses a Haskell module from the file with the given name.
-parseHaskellModuleFile :: ( MonadIO r, MonadReporter r )
+parseHaskellModuleFile :: (MonadIO r, MonadReporter r)
   => FilePath -- ^ The name of the Haskell source file.
   -> r (HSE.Module SrcSpan)
 parseHaskellModuleFile = fmap fst . parseHaskellModuleFileWithComments
 
 -- | Like 'parseHaskellModuleFile' but returns the comments in addition to
 --   the AST.
-parseHaskellModuleFileWithComments :: ( MonadIO r, MonadReporter r )
+parseHaskellModuleFileWithComments :: (MonadIO r, MonadReporter r)
   => FilePath -- ^ The name of the Haskell source file.
-  -> r ( HSE.Module SrcSpan, [ IR.Comment ] )
+  -> r (HSE.Module SrcSpan, [ IR.Comment ])
 parseHaskellModuleFileWithComments filename = do
   contents <- liftIO $ readFile filename
   parseHaskellModuleWithComments (mkSrcFile filename contents)

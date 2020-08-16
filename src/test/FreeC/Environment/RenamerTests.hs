@@ -26,12 +26,12 @@ testRenamer = describe "FreeC.Environment.Renamer" $ do
 -- | Generator for arbitrary identifiers with optional number postfix.
 genIdent :: Gen String
 genIdent = do
-  ident <- frequency [ ( 6, genRegularIdent )
-                     , ( 2, genKeyword )
-                     , ( 2, genVernacularCommand )
-                     , ( 1, genReservedIdent )
+  ident <- frequency [ (6, genRegularIdent)
+                     , (2, genKeyword)
+                     , (2, genVernacularCommand)
+                     , (1, genReservedIdent)
                      ]
-  num <- choose ( 0, 42 ) :: Gen Int
+  num <- choose (0, 42) :: Gen Int
   oneof $ map return [ ident, ident ++ show num ]
 
 -- | Generator for arbitrary user defined identifiers.

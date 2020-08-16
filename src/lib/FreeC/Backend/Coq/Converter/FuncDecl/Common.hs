@@ -23,7 +23,7 @@ import           FreeC.Monad.Converter
 --   (see 'Haskell.Backend.Coq.Converter.FuncDecl.NonRec.convertNonRecFuncDecl'
 --    and 'Haskell.Backend.Coq.Converter.FuncDecl.Rec.convertRecFuncDecls').
 convertFuncHead
-  :: IR.FuncDecl -> Converter ( Coq.Qualid, [ Coq.Binder ], Maybe Coq.Term )
+  :: IR.FuncDecl -> Converter (Coq.Qualid, [ Coq.Binder ], Maybe Coq.Term)
 convertFuncHead (IR.FuncDecl _ declIdent typeArgs args maybeRetType _) = do
   let name = IR.declIdentName declIdent
   -- Lookup the Coq name of the function.

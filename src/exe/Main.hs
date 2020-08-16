@@ -136,7 +136,7 @@ sortInputModules = mapM checkForCycle . groupModules
 --
 --   The resulting string is written to the console or output file.
 convertInputModule :: (IR.Module -> Application String)
-  -> IR.Module -> Application ( IR.ModName, String )
+  -> IR.Module -> Application (IR.ModName, String)
 convertInputModule converter ast = do
   let modName = IR.modName ast
       srcSpan = IR.modSrcSpan ast
@@ -146,7 +146,7 @@ convertInputModule converter ast = do
   reportApp $ do
     loadRequiredModules ast
     prog <- moduleEnv $ (liftConverter . runPipeline >=> converter) ast
-    return ( modName, prog )
+    return (modName, prog)
 
 -------------------------------------------------------------------------------
 -- Output                                                                    --

@@ -14,7 +14,7 @@ import           FreeC.Test.Parser
 -------------------------------------------------------------------------------
 -- | Sets the expectation that the 'Parseable' instance accepts the given
 --   input and produces the given output.
-shouldParse :: ( Eq a, Parseable a, Show a ) => String -> a -> Expectation
+shouldParse :: (Eq a, Parseable a, Show a) => String -> a -> Expectation
 shouldParse input expectedOutput = (parseTestIR input :: Parseable a => Reporter
                                       a) `shouldReturn` expectedOutput
 
@@ -25,7 +25,7 @@ shouldParseModule :: [ String ] -> IR.Module -> Expectation
 shouldParseModule = shouldParse . unlines
 
 -- | Sets the expectation that the given parser reports a fatal message.
-shouldBeParseError :: ( Parseable a, Show a ) => Reporter a -> Expectation
+shouldBeParseError :: (Parseable a, Show a) => Reporter a -> Expectation
 shouldBeParseError = shouldFail
 
 -------------------------------------------------------------------------------

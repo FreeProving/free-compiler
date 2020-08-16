@@ -41,8 +41,8 @@ freeBind = Coq.bare "op_>>=__"
 -- | The names and types of the parameters that must be passed to the @Free@
 --   monad. These parameters are added automatically to every defined type and
 --   function.
-freeArgs :: [ ( Coq.Qualid, Coq.Term ) ]
-freeArgs = [ ( Coq.bare "Shape", Coq.Sort Coq.Type )
+freeArgs :: [ (Coq.Qualid, Coq.Term) ]
+freeArgs = [ (Coq.bare "Shape", Coq.Sort Coq.Type)
            , ( Coq.bare "Pos"
                , Coq.Arrow (Coq.Qualid (Coq.bare "Shape")) (Coq.Sort Coq.Type)
                )
@@ -57,7 +57,7 @@ partial = Coq.bare "Partial"
 
 -- | The name and type of the @Partial@ instance that must be passed to
 --   partial functions.
-partialArg :: ( Coq.Qualid, Coq.Term )
+partialArg :: (Coq.Qualid, Coq.Term)
 partialArg = ( Coq.bare "P"
              , Coq.app (Coq.Qualid (Coq.bare "Partial"))
                  [ Coq.Qualid (Coq.bare "Shape"), Coq.Qualid (Coq.bare "Pos") ]
