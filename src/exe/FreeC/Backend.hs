@@ -52,7 +52,7 @@ defaultBackend :: String
 defaultBackend = backendName coqBackend
 
 -------------------------------------------------------------------------------
--- IR backend                                                                --
+-- IR Backend                                                                --
 -------------------------------------------------------------------------------
 -- | A dummy backend that just pretty prints the IR.
 irBackend :: Backend
@@ -63,7 +63,7 @@ irBackend = Backend { backendName          = "ir"
                     }
 
 -------------------------------------------------------------------------------
--- Coq backend                                                               --
+-- Coq Backend                                                               --
 -------------------------------------------------------------------------------
 -- | Converts a module to a Coq program.
 convertModuleToCoq :: IR.Module -> Application String
@@ -134,7 +134,7 @@ coqBackend = Backend { backendName          = "coq"
                      }
 
 -------------------------------------------------------------------------------
--- Agda backend                                                              --
+-- Agda Backend                                                              --
 -------------------------------------------------------------------------------
 -- | Converts an IR module to an Agda program.
 convertModuleToAgda :: IR.Module -> Application String

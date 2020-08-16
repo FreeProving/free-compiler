@@ -258,7 +258,7 @@ varPat srcSpan var varType = do
   return $ LIR.VarPat srcSpan unqualVar varType agdaVar coqVar
 
 -------------------------------------------------------------------------------
--- Application-expression helper                                             --
+-- Application Expression Helper                                             --
 -------------------------------------------------------------------------------
 -- | Applies a n-ary lifted function by applying the rule below repeatedly.
 --

@@ -4,7 +4,7 @@ module FreeC.Frontend.IR.Token
     Token(..)
   , mkIdentToken
   , mkSymbolToken
-    -- * Special symbols
+    -- * Special Symbols
   , specialSymbols
     -- * Keywords
   , Keyword(..)
@@ -174,7 +174,7 @@ instance Pretty Token where
   pretty Bang = prettyString "!"
 
 -------------------------------------------------------------------------------
--- Special symbols                                                           --
+-- Special Symbols                                                           --
 -------------------------------------------------------------------------------
 -- | Symbols that cannot be used as symbolic names.
 --

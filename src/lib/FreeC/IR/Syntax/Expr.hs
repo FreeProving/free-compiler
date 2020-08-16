@@ -262,7 +262,7 @@ prettyExprPred' _ (IntLiteral _ i _) = integer i
 prettyExprPred' _ (Undefined _ _) = prettyString "undefined"
 
 -------------------------------------------------------------------------------
--- @case@ expression alternatives                                            --
+-- @case@ Expression Alternatives                                            --
 -------------------------------------------------------------------------------
 -- | One alternative of a @case@ expression.
 data Alt = Alt { altSrcSpan :: SrcSpan
@@ -280,7 +280,7 @@ instance Pretty Alt where
     <+> pretty expr
 
 -------------------------------------------------------------------------------
--- Constructor patterns                                                      --
+-- Constructor Patterns                                                      --
 -------------------------------------------------------------------------------
 -- | A constructor pattern used in an alternative of a @case@ expression.
 --
@@ -298,7 +298,7 @@ instance Pretty ConPat where
   pretty (ConPat _ conName) = pretty conName
 
 -------------------------------------------------------------------------------
--- Variable patterns                                                         --
+-- Variable Patterns                                                         --
 -------------------------------------------------------------------------------
 -- | A variable pattern used as an argument to a function, lambda abstraction
 --   or constructor pattern.
@@ -340,7 +340,7 @@ instance Pretty VarPat where
     <> parens (pretty varName <+> colon <> colon <+> pretty varType)
 
 -------------------------------------------------------------------------------
--- Binding inside a let clause                                               --
+-- @let@ Bindings                                                            --
 -------------------------------------------------------------------------------
 -- | A binding of a variable to an expression inside of a let clause
 data Bind

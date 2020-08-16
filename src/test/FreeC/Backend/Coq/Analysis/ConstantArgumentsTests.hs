@@ -15,7 +15,7 @@ import           FreeC.Monad.Converter
 import           FreeC.Test.Parser
 
 -------------------------------------------------------------------------------
--- Utility functions                                                         --
+-- Utility Functions                                                         --
 -------------------------------------------------------------------------------
 -- | Like 'identifyConstArgs' but returns just the 'constArgIdents' as a list
 --   for each constant argument.

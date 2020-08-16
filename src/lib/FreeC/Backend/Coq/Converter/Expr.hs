@@ -72,14 +72,14 @@ convertExpr :: IR.Expr -> Converter Coq.Term
 convertExpr = liftExpr >=> convertLiftedExpr
 
 -------------------------------------------------------------------------------
--- Effect helpers                                                   --
+-- Effects                                                                   --
 -------------------------------------------------------------------------------
 -- | Converts an effect to a Coq function argument.
 convertEffect :: Effect -> Coq.Term
 convertEffect Partiality = Coq.Qualid $ fst Coq.Base.partialArg
 
 -------------------------------------------------------------------------------
--- Case-expression helpers                                                   --
+-- @case@ Expressions                                                        --
 -------------------------------------------------------------------------------
 -- Converts an alternative of a case expression in the lifted IR to Coq.
 convertLiftedAlt :: LIR.Alt -> Converter Coq.Equation

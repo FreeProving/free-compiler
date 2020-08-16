@@ -13,7 +13,7 @@ import qualified FreeC.LiftedIR.Syntax            as LIR
 import           FreeC.Monad.Converter
 
 -------------------------------------------------------------------------------
--- IR to Coq translation                                                     --
+-- IR to Coq Translation                                                     --
 -------------------------------------------------------------------------------
 -- | Converts a type from IR to Coq, lifting it into the @Free@ monad.
 --
@@ -49,7 +49,7 @@ convertType' :: IR.Type -> Converter Coq.Term
 convertType' = liftType' >=> convertLiftedType
 
 -------------------------------------------------------------------------------
--- Lifted IR to Coq translation                                              --
+-- Lifted IR to Coq Translation                                              --
 -------------------------------------------------------------------------------
 -- | Converts a given type in the lifted IR to a Coq term.
 convertLiftedType :: LIR.Type -> Converter Coq.Term

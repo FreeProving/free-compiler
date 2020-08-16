@@ -5,7 +5,7 @@ import           FreeC.IR.SrcSpan
 import           FreeC.Pretty
 
 -------------------------------------------------------------------------------
--- Unqualifiable names                                                       --
+-- Unqualifiable Names                                                       --
 -------------------------------------------------------------------------------
 -- | An identifier or a symbolic name.
 --
@@ -31,7 +31,7 @@ instance Pretty Name where
   prettyList = prettySeparated (comma <> space) . map pretty
 
 -------------------------------------------------------------------------------
--- Qualifiable names                                                         --
+-- Qualifiable Names                                                         --
 -------------------------------------------------------------------------------
 -- | A qualifiable 'Name'.
 data QName
@@ -67,7 +67,7 @@ instance Pretty QName where
   prettyList = prettySeparated (comma <> space) . map pretty
 
 -------------------------------------------------------------------------------
--- Name spaces                                                               --
+-- Name Spaces                                                               --
 -------------------------------------------------------------------------------
 -- | Data type for the different name spaces of the intermediate representation.
 --
@@ -87,7 +87,7 @@ data Scope = TypeScope | ValueScope | FreshScope
 type ScopedName = (Scope, QName)
 
 -------------------------------------------------------------------------------
--- Aliases for name types                                                    --
+-- Aliases for Name Types                                                    --
 -------------------------------------------------------------------------------
 -- | The name of a type variable.
 type TypeVarIdent = String
@@ -106,7 +106,7 @@ type ConName = QName
 type TypeConName = QName
 
 -------------------------------------------------------------------------------
--- Names of top-level declarations                                           --
+-- Names of Top-Level Declarations                                           --
 -------------------------------------------------------------------------------
 -- | The name of a top-level declaration including location information.
 data DeclIdent
@@ -120,7 +120,7 @@ instance Pretty DeclIdent where
   prettyList = prettySeparated (comma <> space) . map pretty
 
 -------------------------------------------------------------------------------
--- Internal identifiers                                                      --
+-- Internal Identifiers                                                      --
 -------------------------------------------------------------------------------
 -- | The character that is used to mark internal identifiers.
 --

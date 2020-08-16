@@ -42,7 +42,7 @@ renameAndAddTestEntry' :: EnvEntry -> Converter EnvEntry
 renameAndAddTestEntry' = renameAndAddEntry
 
 -------------------------------------------------------------------------------
--- Type variable entries                                                     --
+-- Type Variable Entries                                                     --
 -------------------------------------------------------------------------------
 -- | Adds an entry for a type variable to the current environment for
 --   testing purposes.
@@ -59,7 +59,7 @@ defineTestTypeVar nameStr = do
     }
 
 -------------------------------------------------------------------------------
--- Type synonym entries                                                      --
+-- Type Synonym Entries                                                      --
 -------------------------------------------------------------------------------
 -- | Adds an entry for a type synonym to the current environment for
 --   testing purposes.
@@ -80,7 +80,7 @@ defineTestTypeSyn nameStr typeArgs typeStr = do
     }
 
 -------------------------------------------------------------------------------
--- Data type entries                                                         --
+-- Data Type Entries                                                         --
 -------------------------------------------------------------------------------
 -- | Adds an entry for a type constructor to the current environment for
 --   testing purposes.
@@ -100,7 +100,7 @@ defineTestTypeCon nameStr arity consNameStrs = do
     }
 
 -------------------------------------------------------------------------------
--- Constructor entries                                                       --
+-- Constructor Entries                                                       --
 -------------------------------------------------------------------------------
 -- | Adds an entry for a data constructor to the current environment for
 --   testing purposes.
@@ -129,7 +129,7 @@ defineTestCon nameStr arity typeStr = do
   return (ident', smartIdent')
 
 -------------------------------------------------------------------------------
--- Variable entries                                                          --
+-- Variable Entries                                                          --
 -------------------------------------------------------------------------------
 -- | Adds an entry for a local variable to the current environment for
 --   testing purposes.
@@ -147,7 +147,7 @@ defineTestVar nameStr = do
     }
 
 -------------------------------------------------------------------------------
--- Function entries                                                          --
+-- Function Entries                                                          --
 -------------------------------------------------------------------------------
 -- | Adds an entry for a function  to the current environment for
 --   testing purposes.
@@ -205,7 +205,7 @@ definePartialStrictTestFunc nameStr areStrict = defineTestFunc' True areStrict
   nameStr (length areStrict)
 
 -------------------------------------------------------------------------------
--- Utility functions                                                         --
+-- Utility Functions                                                         --
 -------------------------------------------------------------------------------
 -- | Like 'parseTestTypeScheme' but makes sure that all type variables have
 --   been introduced explicitly. A common error when writing tests is that the

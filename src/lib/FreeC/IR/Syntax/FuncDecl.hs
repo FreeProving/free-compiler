@@ -11,7 +11,7 @@ import           FreeC.IR.Syntax.TypeVarDecl
 import           FreeC.Pretty
 
 -------------------------------------------------------------------------------
--- Type signatures                                                           --
+-- Type Signatures                                                           --
 -------------------------------------------------------------------------------
 -- | A type signature of one or more function declarations.
 data TypeSig = TypeSig { typeSigSrcSpan    :: SrcSpan
@@ -28,7 +28,7 @@ instance Pretty TypeSig where
     <+> pretty typeScheme
 
 -------------------------------------------------------------------------------
--- Function declarations                                                     --
+-- Function Declarations                                                     --
 -------------------------------------------------------------------------------
 -- | A function declaration.
 data FuncDecl = FuncDecl

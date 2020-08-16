@@ -19,7 +19,7 @@ module FreeC.IR.Subst
   , substWithout
     -- * Application
   , ApplySubst(..)
-    -- * Rename arguments
+    -- * Rename Arguments
   , renameTypeArgsSubst
   , renameTypeArgs
   , renameArgsSubst
@@ -104,7 +104,7 @@ substWithout :: Subst a -> [ IR.QName ] -> Subst a
 substWithout subst names = filterSubst (`notElem` names) subst
 
 -------------------------------------------------------------------------------
--- Application of substitutions                                              --
+-- Application of Substitutions                                              --
 -------------------------------------------------------------------------------
 -- | Type class for applying a substitution that replaces variables by
 --   values of type @a@ on values of type @b@.
@@ -116,7 +116,7 @@ instance (ApplySubst a b, Functor f) => ApplySubst a (f b) where
   applySubst = fmap . applySubst
 
 -------------------------------------------------------------------------------
--- Application to expressions                                                --
+-- Application to Expressions                                                --
 -------------------------------------------------------------------------------
 -- | Applies the given expression substitution to an expression.
 --
@@ -183,7 +183,7 @@ instance ApplySubst IR.Expr IR.Bind where
     = let expr' = applySubst subst expr in IR.Bind srcSpan varPat expr'
 
 -------------------------------------------------------------------------------
--- Application to types in expressions                                       --
+-- Application to Types in Expressions                                       --
 -------------------------------------------------------------------------------
 -- | Applies the given type substitution to an expression.
 instance ApplySubst IR.Type IR.Expr where
@@ -261,7 +261,7 @@ instance ApplySubst IR.Type IR.Bind where
       in IR.Bind srcSpan varPat' expr'
 
 -------------------------------------------------------------------------------
--- Application to function declarations                                      --
+-- Application to Function Declarations                                      --
 -------------------------------------------------------------------------------
 -- | Applies the given expression substitution to the right-hand side of a
 --   function declaration.
@@ -283,7 +283,7 @@ instance ApplySubst IR.Type IR.FuncDecl where
       in IR.FuncDecl srcSpan declIdent typeArgs args' maybeRetType' rhs'
 
 -------------------------------------------------------------------------------
--- Application to type expressions                                           --
+-- Application to Type Expressions                                           --
 -------------------------------------------------------------------------------
 -- | Applies the given type substitution to a type expression.
 instance ApplySubst IR.Type IR.Type where
@@ -303,7 +303,7 @@ instance ApplySubst IR.Type IR.Type where
          in IR.FuncType srcSpan t1' t2'
 
 -------------------------------------------------------------------------------
--- Application to type schemes                                           --
+-- Application to Type Schemes                                               --
 -------------------------------------------------------------------------------
 -- | Applies the given type substitution to a type scheme.
 instance ApplySubst IR.Type IR.TypeScheme where
@@ -313,7 +313,7 @@ instance ApplySubst IR.Type IR.TypeScheme where
       in IR.TypeScheme srcSpan typeArgs' typeExpr'
 
 -------------------------------------------------------------------------------
--- Renaming arguments                                                        --
+-- Renaming Arguments                                                        --
 -------------------------------------------------------------------------------
 -- | Type class for (type) arguments of type @arg@ that can be renamed in
 --   (type) expressions of type @expr@.
@@ -419,7 +419,7 @@ freshIdentsWithPrefix :: String -> [ String ]
 freshIdentsWithPrefix prefix = map (prefix ++) ("" : map show [0 :: Int ..])
 
 -------------------------------------------------------------------------------
--- Rename arguments (old)                                                    --
+-- Rename Arguments (old)                                                    --
 -------------------------------------------------------------------------------
 -- | Creates a substitution that renames the given type variables to fresh
 --   variables.

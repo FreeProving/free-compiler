@@ -50,14 +50,14 @@ defaultFrontend :: String
 defaultFrontend = frontendName haskellFrontend
 
 -------------------------------------------------------------------------------
--- IR frontend                                                               --
+-- IR Frontend                                                               --
 -------------------------------------------------------------------------------
 -- | A dummy frontend that just parses the IR.
 irFrontend :: Frontend
 irFrontend = Frontend { frontendName = "ir", frontendParseFile = parseIR }
 
 -------------------------------------------------------------------------------
--- Haskell frontend                                                          --
+-- Haskell Frontend                                                          --
 -------------------------------------------------------------------------------
 -- | Parses and simplifies the given file.
 parseHaskell :: SrcFile -> Application IR.Module
@@ -72,7 +72,7 @@ haskellFrontend
   = Frontend { frontendName = "haskell", frontendParseFile = parseHaskell }
 
 -------------------------------------------------------------------------------
--- Pattern matching compilation                                              --
+-- Pattern Matching Compilation                                              --
 -------------------------------------------------------------------------------
 -- | Applies Haskell source code transformations if they are enabled.
 transformInputModule :: HSE.Module SrcSpan -> Application (HSE.Module SrcSpan)

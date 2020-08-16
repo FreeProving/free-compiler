@@ -187,7 +187,7 @@ resolverPass ast = do
   liftReporter $ runResolver env (resolve ast)
 
 -------------------------------------------------------------------------------
--- Environment entries                                                       --
+-- Environment Entries                                                       --
 -------------------------------------------------------------------------------
 -- | An entry of the resolver's environment.
 --
@@ -377,7 +377,7 @@ resolverEnvFromImport (IR.ImportDecl srcSpan modName) = do
      }
 
 -------------------------------------------------------------------------------
--- Top-level declarations                                                    --
+-- Top-level Declarations                                                    --
 -------------------------------------------------------------------------------
 -- | Type class for declarations that declare top-level entries.
 class TopLevelDeclaration node where
@@ -434,7 +434,7 @@ resolverEnvFromTopLevel node = do
   return (qualEnv `mergeResolverEnv` unQualEnv)
 
 -------------------------------------------------------------------------------
--- Local declarations                                                        --
+-- Local Declarations                                                        --
 -------------------------------------------------------------------------------
 -- | Extends the environment with entries for the type variables declared by
 --   the given declarations.
@@ -471,7 +471,7 @@ defineVarPats varPats = do
      }
 
 -------------------------------------------------------------------------------
--- Utility functions                                                         --
+-- Utility Functions                                                         --
 -------------------------------------------------------------------------------
 -- | Tests whether the given list does not contain two entries with the
 --   same name.
@@ -499,7 +499,7 @@ checkSingleDeclaration entries = do
     ]
 
 -------------------------------------------------------------------------------
--- Resolver monad                                                            --
+-- Resolver Monad                                                            --
 -------------------------------------------------------------------------------
 -- | The state monad that is used to resolve references to the original names
 --   of the referenced entries.
@@ -577,7 +577,7 @@ checkIsDefined srcSpan scope name = do
   return ()
 
 -------------------------------------------------------------------------------
--- Resolving references                                                      --
+-- Resolving References                                                      --
 -------------------------------------------------------------------------------
 -- | Type class for AST nodes that contain references which can be resolved.
 class Resolvable node where

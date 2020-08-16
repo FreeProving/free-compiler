@@ -35,7 +35,7 @@
 --   format such that they can be visualized using Graphviz
 --   (See <https://www.graphviz.org/>).
 module FreeC.IR.DependencyGraph
-  ( -- * Dependency graph
+  ( -- * Dependency Graph
     DGKey
   , DGEntry
   , DependencyGraph(..)
@@ -47,7 +47,7 @@ module FreeC.IR.DependencyGraph
   , typeDependencyGraph
   , funcDependencyGraph
   , moduleDependencyGraph
-    -- * Strongly connected components
+    -- * Strongly Connected Components
   , DependencyComponent(..)
   , unwrapComponent
     -- ** Constructors
@@ -72,7 +72,7 @@ import qualified FreeC.IR.Syntax    as IR
 import           FreeC.Pretty
 
 -------------------------------------------------------------------------------
--- Dependency graph                                                          --
+-- Dependency Graph                                                          --
 -------------------------------------------------------------------------------
 -- | Every node of the dependency graph is uniquely identified by a key.
 --   We use their qualified original name to identify declarations.
@@ -126,7 +126,7 @@ dependsDirectlyOn (DependencyGraph graph _ getVertex) k1 k2 = Just True
     return ((v1, v2) `elem` edges graph)
 
 -------------------------------------------------------------------------------
--- Type dependencies                                                         --
+-- Type Dependencies                                                         --
 -------------------------------------------------------------------------------
 -- | Creates the dependency graph for a list of data type or type synonym
 --   declarations.
@@ -140,7 +140,7 @@ typeDeclEntry :: IR.TypeDecl -> DGEntry IR.TypeDecl
 typeDeclEntry decl = (decl, IR.typeDeclQName decl, typeRefs decl)
 
 -------------------------------------------------------------------------------
--- Function dependencies                                                     --
+-- Function Dependencies                                                     --
 -------------------------------------------------------------------------------
 -- | Creates the dependency graph for a list of function declarations.
 funcDependencyGraph :: [ IR.FuncDecl ] -> DependencyGraph IR.FuncDecl
@@ -153,7 +153,7 @@ funcDeclEntry :: IR.FuncDecl -> DGEntry IR.FuncDecl
 funcDeclEntry decl = (decl, IR.funcDeclQName decl, valueRefs decl)
 
 -------------------------------------------------------------------------------
--- Module dependencies                                                       --
+-- Module Dependencies                                                       --
 -------------------------------------------------------------------------------
 -- | Creates the dependency graph for the given modules.
 moduleDependencyGraph :: [ IR.Module ] -> DependencyGraph IR.Module
@@ -169,7 +169,7 @@ moduleEntries decl
     )
 
 -------------------------------------------------------------------------------
--- Pretty print dependency graph                                             --
+-- Pretty Print Dependency Graph                                             --
 -------------------------------------------------------------------------------
 -- | Pretty instance that converts a dependency graph to the DOT format.
 instance Pretty (DependencyGraph node) where
@@ -219,7 +219,7 @@ instance Pretty (DependencyGraph node) where
                 <+> braces (cat (punctuate comma (map int vs))) <> semi
 
 -------------------------------------------------------------------------------
--- Strongly connected components                                             --
+-- Strongly Connected Components                                             --
 -------------------------------------------------------------------------------
 -- | A strongly connected component of the dependency graph.
 --
@@ -319,7 +319,7 @@ mapComponentM_ f (NonRecursive decl) = void (f [decl])
 mapComponentM_ f (Recursive decls)   = void (f decls)
 
 -------------------------------------------------------------------------------
--- Pretty print SCCs                                                         --
+-- Pretty Print SCCs                                                         --
 -------------------------------------------------------------------------------
 -- | Pretty instance that pretty prints the declarations of a strongly
 --   connected component.

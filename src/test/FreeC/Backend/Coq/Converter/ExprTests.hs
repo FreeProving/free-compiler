@@ -12,7 +12,7 @@ import           FreeC.Test.Expectations
 import           FreeC.Test.Parser
 
 -------------------------------------------------------------------------------
--- Expectation setters                                                       --
+-- Expectation Setters                                                       --
 -------------------------------------------------------------------------------
 -- | Parses the given IR expression, converts it to Coq using 'convertExpr'
 --   and sets the expectation that the resulting AST is equal to the given
@@ -42,7 +42,7 @@ testConvertExpr = describe "FreeC.Backend.Coq.Converter.Expr.convertExpr"
     testConvertError
 
 -------------------------------------------------------------------------------
--- Constructor applications                                                  --
+-- Constructor Applications                                                  --
 -------------------------------------------------------------------------------
 -- | Test group for translation of constructor application expressions.
 testConvertConApp :: Spec
@@ -98,7 +98,7 @@ testConvertConApp = context "constructor applications"
             convertExpr input
 
 -------------------------------------------------------------------------------
--- Function applications                                                     --
+-- Function Applications                                                     --
 -------------------------------------------------------------------------------
 -- | Test group for translation of function application expressions.
 testConvertFuncApp :: Spec
@@ -190,7 +190,7 @@ testConvertFuncApp = context "function applications"
           `shouldConvertExprTo` "y >>= (fun (y_0 : a) => @f Shape Pos a x y_0)"
 
 -------------------------------------------------------------------------------
--- If-expressions                                                            --
+-- @if@-Expressions                                                          --
 -------------------------------------------------------------------------------
 -- | Test group for translation of @if@-expressions.
 testConvertIf :: Spec
@@ -218,7 +218,7 @@ testConvertIf = context "if expressions"
           $ "e1 >>= (fun (e1_0 : Bool0 Shape Pos) => if e1_0 then e2 else e3)"
 
 -------------------------------------------------------------------------------
--- Case-expressions                                                          --
+-- @case@-Expressions                                                        --
 -------------------------------------------------------------------------------
 -- | Test group for translation of @case@-expressions.
 testConvertCase :: Spec
@@ -282,7 +282,7 @@ testConvertCase = context "case expressions"
           ++ "  end)"
 
 -------------------------------------------------------------------------------
--- Lambda abstractions                                                       --
+-- Lambda Abstractions                                                       --
 -------------------------------------------------------------------------------
 -- | Test group for translation of lambda abstractions.
 testConvertLambda :: Spec
@@ -312,7 +312,7 @@ testConvertLambda = context "lambda abstractions"
         "\\x -> x" `shouldConvertExprTo` "pure (fun x0 => x0)"
 
 -------------------------------------------------------------------------------
--- Type signatures                                                           --
+-- Type Signatures                                                           --
 -------------------------------------------------------------------------------
 -- | Test group for translation of expressions with type annotations.
 testConvertExprTypeAnnotations :: Spec
@@ -336,7 +336,7 @@ testConvertTypeAppExprs = context "visible type applications"
         "Nil @Bool" `shouldConvertExprTo` "@Nil Shape Pos (Bool Shape Pos)"
 
 -------------------------------------------------------------------------------
--- Integer expressions                                                       --
+-- Integer Expressions                                                       --
 -------------------------------------------------------------------------------
 -- | Test group for translation of integer expressions.
 testConvertInteger :: Spec

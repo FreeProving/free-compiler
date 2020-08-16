@@ -12,7 +12,7 @@ import           FreeC.Test.Expectations
 import           FreeC.Test.Parser
 
 -------------------------------------------------------------------------------
--- Expectation setters                                                       --
+-- Expectation Setters                                                       --
 -------------------------------------------------------------------------------
 -- | Parses the given IR type expression, converts it to Coq using
 --   'convertType' and sets the expectation that the resulting AST

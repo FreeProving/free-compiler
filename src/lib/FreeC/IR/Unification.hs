@@ -1,7 +1,7 @@
 -- | This module contains functions for calculating the most general
 --   unificator (mgu) of two type expressions.
 module FreeC.IR.Unification
-  ( -- * Error reporting
+  ( -- * Error Reporting
     UnificationError(..)
   , reportUnificationError
   , unifyOrFail
@@ -27,7 +27,7 @@ import           FreeC.Monad.Reporter
 import           FreeC.Pretty                   ( showPretty )
 
 -------------------------------------------------------------------------------
--- Error reporting                                                           --
+-- Error Reporting                                                           --
 -------------------------------------------------------------------------------
 -- | An error that can occur during the unification of two types.
 data UnificationError
@@ -156,7 +156,7 @@ unifyAll (t0 : t1 : ts) = do
   return (composeSubst mgu mgu')
 
 -------------------------------------------------------------------------------
--- Disagreement set                                                          --
+-- Disagreement Set                                                          --
 -------------------------------------------------------------------------------
 -- | Type synonym for a disagreement set.
 type DisagreementSet = Maybe (Pos, IR.Type, IR.Type)

@@ -11,11 +11,11 @@
 module FreeC.Environment.Renamer
   ( -- * Predicates
     mustRenameIdent
-    -- * Rename identifiers
+    -- * Rename Identifiers
   , renameIdent
   , renameQualid
   , renameAgdaQualid
-    -- * Define and automatically rename identifiers
+    -- * Define and Automatically Rename Identifiers
   , renameEntry
   , renameAndAddEntry
   , renameAndDefineTypeVar
@@ -120,7 +120,7 @@ isAllowedFirstChar :: Char -> Bool
 isAllowedFirstChar c = isLetter c || isDigit c || c == '_'
 
 -------------------------------------------------------------------------------
--- Rename identifiers                                                        --
+-- Rename Identifiers                                                        --
 -------------------------------------------------------------------------------
 -- | Replaces characters that are not allowed in Coq identifiers by
 --   underscores.
@@ -203,7 +203,7 @@ nextQName (Agda.Qual modName qName) = Agda.Qual modName $ nextQName qName
 nextQName (Agda.QName unQName)      = Agda.QName $ Agda.nextName unQName
 
 -------------------------------------------------------------------------------
--- Define and automatically rename identifiers                               --
+-- Define and Automatically Rename Identifiers                               --
 -------------------------------------------------------------------------------
 -- | Renames the identifier of the given entry such that it does not cause
 --   any name conflict in the given environment.
@@ -358,7 +358,7 @@ renameAndDefineLIRVar srcSpan isPure ident maybeVarType
   = entryName <$> renameAndDefineVar' srcSpan isPure ident maybeVarType
 
 -------------------------------------------------------------------------------
--- Error reporting                                                           --
+-- Error Reporting                                                           --
 -------------------------------------------------------------------------------
 -- | Reports a message if the given entry has been renamed.
 informIfRenamed :: EnvEntry -> EnvEntry -> Converter ()

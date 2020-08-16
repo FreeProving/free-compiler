@@ -1,11 +1,32 @@
 -- | This module contains the Coq identifiers of types, constructors and
 --   functions defined in the Base library that accompanies the compiler.
-module FreeC.Backend.Coq.Base where
+module FreeC.Backend.Coq.Base
+  ( -- * Base Library Import
+    imports
+  , baseLibName
+  , generatedLibName
+    -- * Free Monad
+  , free
+  , freePureCon
+  , freeImpureCon
+  , freeBind
+  , freeArgs
+    -- * Partiality
+  , partial
+  , partialArg
+  , partialUndefined
+  , partialError
+    -- * Literal Scopes
+  , integerScope
+  , stringScope
+    -- * Reserved Identifiers
+  , reservedIdents
+  ) where
 
 import qualified FreeC.Backend.Coq.Syntax as Coq
 
 -------------------------------------------------------------------------------
--- Base library import                                                       --
+-- Base Library Import                                                       --
 -------------------------------------------------------------------------------
 -- | Import sentence for the @Free@ module from the Base Coq library.
 imports :: Coq.Sentence
@@ -20,7 +41,7 @@ generatedLibName :: Coq.ModuleIdent
 generatedLibName = Coq.ident "Generated"
 
 -------------------------------------------------------------------------------
--- Free monad                                                                --
+-- Free Monad                                                                --
 -------------------------------------------------------------------------------
 -- | The Coq identifier for the @Free@ monad.
 free :: Coq.Qualid
@@ -72,7 +93,7 @@ partialError :: Coq.Qualid
 partialError = Coq.bare "error"
 
 -------------------------------------------------------------------------------
--- Literal scopes                                                            --
+-- Literal Scopes                                                            --
 -------------------------------------------------------------------------------
 -- | The scope of integer literals.
 integerScope :: Coq.Ident
@@ -83,7 +104,7 @@ stringScope :: Coq.Ident
 stringScope = Coq.ident "string"
 
 -------------------------------------------------------------------------------
--- Reserved identifiers                                                      --
+-- Reserved Identifiers                                                      --
 -------------------------------------------------------------------------------
 -- | All Coq identifiers that are reserved for the Base library.
 --

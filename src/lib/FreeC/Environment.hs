@@ -5,17 +5,17 @@ module FreeC.Environment
   ( -- * Environment
     Environment(..)
   , emptyEnv
-    -- * Module information
+    -- * Module Information
   , makeModuleAvailable
   , isModuleAvailable
   , lookupAvailableModule
-    -- * Inserting entries into the environment
+    -- * Inserting Entries into the Environment
   , addEntry
   , defineDecArg
   , removeDecArg
-    -- * Modifying entries in the environment
+    -- * Modifying Entries in the Environment
   , modifyEntryIdent
-    -- * Looking up entries from the environment
+    -- * Looking up Entries from the Environment
   , lookupEntry
   , isFunction
   , isVariable
@@ -105,7 +105,7 @@ lookupAvailableModule :: IR.ModName -> Environment -> Maybe ModuleInterface
 lookupAvailableModule modName = Map.lookup modName . envAvailableModules
 
 -------------------------------------------------------------------------------
--- Inserting entries into the environment                                    --
+-- Inserting Entries into the Environment                                    --
 -------------------------------------------------------------------------------
 -- | Inserts an entry into the given environment and associates it with
 --   its original name.
@@ -129,7 +129,7 @@ removeDecArg funcName env
   = env { envDecArgs = Map.delete funcName (envDecArgs env) }
 
 -------------------------------------------------------------------------------
--- Modifying entries in the environment                                      --
+-- Modifying Entries in the Environment                                      --
 -------------------------------------------------------------------------------
 -- | Changes the Coq identifier of the entry with the given name in the given
 --   scope to the given identifier.
@@ -142,7 +142,7 @@ modifyEntryIdent scope name newIdent env = case lookupEntry scope name env of
   Just entry -> addEntry (entry { entryIdent = newIdent }) env
 
 -------------------------------------------------------------------------------
--- Looking up entries from the environment                                   --
+-- Looking up Entries from the Environment                                   --
 -------------------------------------------------------------------------------
 -- | Looks up the entry with the given original name in the given scope of
 --   the given environment.

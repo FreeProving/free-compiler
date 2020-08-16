@@ -4,17 +4,17 @@ module FreeC.Backend.Coq.Converter
   ( -- * Modules
     convertModule
   , convertDecls
-    -- * Data type declarations
+    -- * Data Type Declarations
   , convertTypeDecls
   , convertTypeComponent
   , convertDataDecls
   , convertDataDecl
-    -- * Function declarations
+    -- * Function Declarations
   , convertFuncDecls
   , convertFuncComponent
   , convertNonRecFuncDecl
   , convertRecFuncDecls
-    -- * Type expressions
+    -- * Type Expressions
   , convertType
   , convertType'
     -- * Expressions

@@ -12,7 +12,7 @@ import           FreeC.Environment.Fresh
 import           FreeC.Monad.Converter
 
 -------------------------------------------------------------------------------
--- Generic arguments for free monad                                          --
+-- Generic Arguments for Free Monad                                          --
 -------------------------------------------------------------------------------
 -- | The declarations of type parameters for the @Free@ monad.
 --
@@ -61,7 +61,7 @@ genericApply' func effectArgs implicitArgs args
    allArgs = genericArgs ++ effectArgs ++ implicitArgs ++ args
 
 -------------------------------------------------------------------------------
--- Free monad operations                                                     --
+-- Free Monad Operations                                                     --
 -------------------------------------------------------------------------------
 -- | Wraps the given Coq term with the @pure@ constructor of the @Free@ monad.
 generatePure :: Coq.Term -> Converter Coq.Term

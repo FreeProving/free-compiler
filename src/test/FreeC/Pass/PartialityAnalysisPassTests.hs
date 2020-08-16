@@ -17,7 +17,7 @@ import           FreeC.Test.Environment
 import           FreeC.Test.Parser
 
 -------------------------------------------------------------------------------
--- Expectation setters                                                       --
+-- Expectation Setters                                                       --
 -------------------------------------------------------------------------------
 -- | Parses the function declarations in the given dependency component,
 --   runs the 'partialityAnalysisPass' and sets the expectation that there

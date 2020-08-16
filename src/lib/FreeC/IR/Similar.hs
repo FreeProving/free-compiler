@@ -100,7 +100,7 @@ extendRenaming scope xs ys renaming = Renaming
    ys' = map ((,) scope) ys
 
 -------------------------------------------------------------------------------
--- Similarity test                                                           --
+-- Similarity Test                                                           --
 -------------------------------------------------------------------------------
 -- | A type class for AST nodes that can be tested for similarity.
 class Similar node where
@@ -118,7 +118,7 @@ notSimilar :: Similar node => node -> node -> Bool
 notSimilar = not .: similar
 
 -------------------------------------------------------------------------------
--- Utility instances                                                         --
+-- Utility Instances                                                         --
 -------------------------------------------------------------------------------
 -- | Two optional nodes are similar when they are either both not present
 --   or both are present and similar.
@@ -144,7 +144,7 @@ instance Similar node => Similar [ node ] where
     | otherwise = const False
 
 -------------------------------------------------------------------------------
--- Similarity test for modules                                               --
+-- Similarity Test for Modules                                               --
 -------------------------------------------------------------------------------
 instance Similar IR.Module where
   similar' moduleA moduleB = const (IR.modName moduleA == IR.modName moduleB)
@@ -157,7 +157,7 @@ instance Similar IR.Module where
     similar' (IR.modFuncDecls moduleA) (IR.modFuncDecls moduleB)
 
 -------------------------------------------------------------------------------
--- Similarity test for types                                                 --
+-- Similarity Test for Types                                                 --
 -------------------------------------------------------------------------------
 -- | The similarity relation of type expressions is governed by the
 --   the following inference rules.
@@ -221,7 +221,7 @@ instance Similar IR.TypeScheme where
       in similar' t1 t2 . extendRenaming IR.TypeScope ns ms
 
 -------------------------------------------------------------------------------
--- Similarity test for expressions                                           --
+-- Similarity Test for Expressions                                           --
 -------------------------------------------------------------------------------
 -- | The similarity relation of expressions is governed by the the following
 --   inference rules
@@ -393,7 +393,7 @@ instance Similar IR.VarPat where
     .&&. similar' t1 t2
 
 -------------------------------------------------------------------------------
--- Similarity test for declarations                                          --
+-- Similarity Test for Declarations                                          --
 -------------------------------------------------------------------------------
 -- | Two function declarations are similar if their right-hand sides are
 --   similar under an extended 'Renaming' that maps the corresponding type

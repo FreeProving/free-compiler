@@ -60,7 +60,7 @@ convertLiftedRecConType argTypes retType = pi "i"
       <$> mapM (convertLiftedType $ Just $ Agda.hiddenArg_ i) argTypes
 
 -------------------------------------------------------------------------------
--- Lifted IR to Agda translation                                             --
+-- Lifted IR to Agda Translation                                             --
 -------------------------------------------------------------------------------
 -- | Translates a given type in lifted IR to Agda.
 --

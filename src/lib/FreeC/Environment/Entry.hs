@@ -140,7 +140,7 @@ data EnvEntry
  deriving Show
 
 -------------------------------------------------------------------------------
--- Comparison                                                               --
+-- Comparison                                                                --
 -------------------------------------------------------------------------------
 -- | Entries are identified by their original name.
 instance Eq EnvEntry where
@@ -215,7 +215,7 @@ entryHasSmartIdent :: EnvEntry -> Bool
 entryHasSmartIdent = isConEntry
 
 -------------------------------------------------------------------------------
--- Pretty printing                                                           --
+-- Pretty Printing                                                           --
 -------------------------------------------------------------------------------
 -- | Gets a human readable description of the entry type.
 prettyEntryType :: EnvEntry -> String

@@ -4,7 +4,7 @@
 --   There are also functions for finding the names and types of variables that
 --   are bound at a given position in an expression.
 module FreeC.IR.Subterm
-  ( -- * Direct children
+  ( -- * Direct Children
     childTerms
   , replaceChildTerms
     -- * Positions
@@ -24,11 +24,11 @@ module FreeC.IR.Subterm
   , replaceSubterm'
   , replaceSubterms
   , replaceSubterms'
-    -- * Searching for subterms
+    -- * Searching for Subterms
   , findSubtermPos
   , findSubterms
   , findFirstSubterm
-    -- * Bound variables
+    -- * Bound Variables
   , boundVarsAt
   , boundVarsWithTypeAt
   ) where
@@ -46,7 +46,7 @@ import qualified FreeC.IR.Syntax  as IR
 import           FreeC.Pretty
 
 -------------------------------------------------------------------------------
--- Utility functions                                                         --
+-- Utility Functions                                                         --
 -------------------------------------------------------------------------------
 -- | Runs the given function on the given list if the latter has the specified
 --   number of arguments.
@@ -78,7 +78,7 @@ missingPosError funcName term pos = error
   ++ " does not exists."
 
 -------------------------------------------------------------------------------
--- Direct children                                                           --
+-- Direct Children                                                           --
 -------------------------------------------------------------------------------
 -- | Type class for AST nodes with child nodes of the same type.
 --
@@ -274,7 +274,7 @@ replaceSubterms' :: Subterm a => a -> [ (Pos, a) ] -> a
 replaceSubterms' = foldl (\term (pos, term') -> replaceSubterm' term pos term')
 
 -------------------------------------------------------------------------------
--- Searching for subterms                                                    --
+-- Searching for Subterms                                                    --
 -------------------------------------------------------------------------------
 -- | Gets a list of positions for subterms of the given expression that
 --   satisfy the provided predicate.
@@ -296,7 +296,7 @@ findFirstSubterm :: Subterm a => (a -> Bool) -> a -> Maybe a
 findFirstSubterm = listToMaybe .: findSubterms
 
 -------------------------------------------------------------------------------
--- Bound variables                                                           --
+-- Bound Variables                                                           --
 -------------------------------------------------------------------------------
 -- | Gets the names of variables that are bound by lambda abstractions or
 --   variable patterns in @case@-expressions at the given position of an

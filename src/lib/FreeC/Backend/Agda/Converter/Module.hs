@@ -38,7 +38,7 @@ convertModName name = Agda.qname (init parts) (last parts)
    parts = Agda.name <$> splitOn "." name
 
 -------------------------------------------------------------------------------
--- Import declarations                                                       --
+-- Import Declarations                                                       --
 -------------------------------------------------------------------------------
 -- | Converts the given import declarations to Agda.
 convertImportDecls :: [ IR.ImportDecl ] -> Converter [ Agda.Declaration ]

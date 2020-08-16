@@ -3,13 +3,13 @@
 --   We are using the 'Pretty' type class from the 'wl-pprint-text' package.
 module FreeC.Pretty
   ( module Text.PrettyPrint.Leijen.Text
-    -- * Pretty printing
+    -- * Pretty Printing
   , prettySeparated
   , prettyMaybe
   , prettyString
   , prettyText
   , prettyLines
-    -- * Trailing lines
+    -- * Trailing Lines
   , TrailingLine
     -- * Rendering
   , renderPretty'
@@ -29,7 +29,7 @@ import           System.IO
 import           Text.PrettyPrint.Leijen.Text hiding ( (<$>) )
 
 -------------------------------------------------------------------------------
--- Pretty printing                                                           --
+-- Pretty Printing                                                           --
 -------------------------------------------------------------------------------
 -- | Pretty prints a list of pretty printable values by concatenating their
 --   documents with the given separator in between.
@@ -61,7 +61,7 @@ prettyLines :: String -> Doc
 prettyLines = vcat . map prettyText . lines
 
 -------------------------------------------------------------------------------
--- Trailing lines                                                            --
+-- Trailing Lines                                                            --
 -------------------------------------------------------------------------------
 -- | A pretty printable value with a trailing newline.
 newtype TrailingLine a = TrailingLine a

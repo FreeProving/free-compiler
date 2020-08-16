@@ -13,15 +13,15 @@ module FreeC.IR.Reference
   , isConRef
   , isTypeRef
   , isValueRef
-    -- * Finding references
+    -- * Finding References
   , HasRefs
   , refs
   , typeRefs
   , valueRefs
-    -- * Free type variables
+    -- * Free Type Variables
   , freeTypeVars
   , freeTypeVarSet
-    -- * Free variables
+    -- * Free Variables
   , freeVars
   , freeVarSet
   ) where
@@ -95,7 +95,7 @@ refIdent :: Ref -> String
 refIdent = fromJust . IR.identFromQName . refName
 
 -------------------------------------------------------------------------------
--- Reference sets                                                            --
+-- Reference Sets                                                            --
 -------------------------------------------------------------------------------
 -- | A set of references.
 --
@@ -137,7 +137,7 @@ unions :: [ RefSet ] -> RefSet
 unions = foldr union OSet.empty
 
 -------------------------------------------------------------------------------
--- Type class                                                                --
+-- Type Class                                                                --
 -------------------------------------------------------------------------------
 -- | Type class for AST nodes that contain references to (type) variables and
 --   constructors.
@@ -170,7 +170,7 @@ valueRefs :: HasRefs a => a -> [ IR.QName ]
 valueRefs = map refName . filter isValueRef . refs
 
 -------------------------------------------------------------------------------
--- Types and type schemes                                                    --
+-- Types and Type Schemes                                                    --
 -------------------------------------------------------------------------------
 -- | Type expressions refer to the used type variables and type constructors.
 instance HasRefs IR.Type where
@@ -243,7 +243,7 @@ instance HasRefs IR.Bind where
   refSet b = refSet (IR.bindVarPat b) `union` refSet (IR.bindExpr b)
 
 -------------------------------------------------------------------------------
--- Type declarations                                                         --
+-- Type Declarations                                                         --
 -------------------------------------------------------------------------------
 -- | Data type declarations refer to the types their constructors refer to and
 --   type synonym declarations refer to the types it's right-hand side refers
@@ -260,7 +260,7 @@ instance HasRefs IR.ConDecl where
   refSet = refSet . IR.conDeclFields
 
 -------------------------------------------------------------------------------
--- Function declarations                                                     --
+-- Function Declarations                                                     --
 -------------------------------------------------------------------------------
 -- | Function declarations refer to the types their argument and return type
 --   annotations refer to as well as the references of their right-hand side
@@ -270,7 +270,7 @@ instance HasRefs IR.FuncDecl where
     $ refSet args `union` refSet retType `union` withoutArgs args (refSet rhs)
 
 -------------------------------------------------------------------------------
--- Removing bound (type) variables                                           --
+-- Removing Bound (Type) Variables                                           --
 -------------------------------------------------------------------------------
 -- | Removes the references to type variables that are bound by the given
 --   type variable declarations from the given set.
@@ -285,7 +285,7 @@ withoutArgs args set = set
   \\ OSet.fromList (map (varRef IR.ValueScope . IR.varPatQName) args)
 
 -------------------------------------------------------------------------------
--- Free type variables                                                       --
+-- Free Type Variables                                                       --
 -------------------------------------------------------------------------------
 -- | The type variables that occur freely in the given node from left to right.
 freeTypeVars :: HasRefs a => a -> [ IR.TypeVarIdent ]
@@ -299,7 +299,7 @@ freeTypeVarSet = Set.map refIdent
   . refSet
 
 -------------------------------------------------------------------------------
--- Free variables                                                            --
+-- Free Variables                                                            --
 -------------------------------------------------------------------------------
 -- | The variables that occur freely in the given node from left to right.
 freeVars :: HasRefs a => a -> [ IR.QName ]

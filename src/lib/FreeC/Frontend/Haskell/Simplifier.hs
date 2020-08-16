@@ -38,7 +38,7 @@ import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
 
 -------------------------------------------------------------------------------
--- State monad                                                               --
+-- State Monad                                                               --
 -------------------------------------------------------------------------------
 -- | The simplifier is a special converter that converts the @haskell-src-exts@
 --   AST to the simplified internal representation for Haskell modules.
@@ -48,7 +48,7 @@ import           FreeC.Monad.Reporter
 type Simplifier = Converter
 
 -------------------------------------------------------------------------------
--- Error reporting                                                           --
+-- Error Reporting                                                           --
 -------------------------------------------------------------------------------
 -- | Creates a reporter that fails with an error message stating that
 --   the given feature is not supported but required by the given Haskell
@@ -309,7 +309,7 @@ simplifyDecl decl@(HSE.RoleAnnotDecl _ _ _)
   = notSupported "Role annotations" decl
 
 -------------------------------------------------------------------------------
--- Data type and type synonym declarations                                   --
+-- Data Type and Type Synonym Declarations                                   --
 -------------------------------------------------------------------------------
 -- | Gets the name the data type or type synonym declaration as well as the
 --   type variables stored in the head of the declaration.
@@ -351,7 +351,7 @@ simplifyTypeVarBind typeVarBind@(HSE.KindedVar _ _ _)
   = notSupported "Kind annotations" typeVarBind
 
 -------------------------------------------------------------------------------
--- Data type constructor declarations                                        --
+-- Data Type Constructor Declarations                                        --
 -------------------------------------------------------------------------------
 -- | Simplifies a constructor declaration of a data type declaration with
 --   optional existential quantification binding. Existential quantification
@@ -391,7 +391,7 @@ simplifyConDeclName sym@(HSE.Symbol _ _)
   = notSupported "Constructor operator declarations" sym
 
 -------------------------------------------------------------------------------
--- Function declarations                                        --
+-- Function Declarations                                                     --
 -------------------------------------------------------------------------------
 -- | Simplifies the single rule of a function declaration.
 simplifyFuncDecl :: HSE.Match SrcSpan -> Simplifier IR.FuncDecl

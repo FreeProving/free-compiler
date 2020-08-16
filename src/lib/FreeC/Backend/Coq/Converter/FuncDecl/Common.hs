@@ -1,7 +1,7 @@
 -- | This module contains auxiliary functions that are used to translate both
 --   recursive and non-recursive Haskell functions to Coq.
 module FreeC.Backend.Coq.Converter.FuncDecl.Common
-  ( -- * Code generation
+  ( -- * Code Generation
     convertFuncHead
   ) where
 
@@ -14,7 +14,7 @@ import qualified FreeC.IR.Syntax                  as IR
 import           FreeC.Monad.Converter
 
 -------------------------------------------------------------------------------
--- Code generation                                                           --
+-- Code Generation                                                           --
 -------------------------------------------------------------------------------
 -- | Converts the name, arguments and return type of a function to Coq.
 --

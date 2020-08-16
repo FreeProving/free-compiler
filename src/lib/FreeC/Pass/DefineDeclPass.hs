@@ -56,7 +56,7 @@ defineFuncDeclsPass component = do
   return component
 
 -------------------------------------------------------------------------------
--- Type declarations                                                         --
+-- Type Declarations                                                         --
 -------------------------------------------------------------------------------
 -- | Inserts the given data type (including its constructors) or type synonym
 --   declaration into the current environment.
@@ -107,7 +107,7 @@ defineTypeDecl (IR.DataDecl srcSpan declIdent typeArgs conDecls) = do
      return ()
 
 -------------------------------------------------------------------------------
--- Function declarations                                                     --
+-- Function Declarations                                                     --
 -------------------------------------------------------------------------------
 -- | Inserts the given function declaration into the current environment.
 defineFuncDecl :: IR.FuncDecl -> Converter ()

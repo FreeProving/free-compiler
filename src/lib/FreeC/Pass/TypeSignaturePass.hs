@@ -86,7 +86,7 @@
 --     function declaration.
 module FreeC.Pass.TypeSignaturePass
   ( typeSignaturePass
-    -- * definitions reused in the EtaConversionPass
+    -- * Definitions Reused in the 'EtaConversionPass'
   , splitFuncType
   ) where
 
@@ -204,7 +204,7 @@ splitFuncType name = splitFuncType'
        else splitFuncType' args typeExpr'
 
 -------------------------------------------------------------------------------
--- Error messages                                                            --
+-- Error Messages                                                            --
 -------------------------------------------------------------------------------
 -- | Warns the user that there is no function declaration for the type
 --   signature of the function with the given name.

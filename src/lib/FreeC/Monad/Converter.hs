@@ -6,12 +6,12 @@
 --   There are also utility functions to modify the state and retrieve
 --   information stored in the state.
 module FreeC.Monad.Converter
-  ( -- * State monad
+  ( -- * State Monad
     Converter
   , runConverter
   , evalConverter
   , execConverter
-    -- * State monad transformer
+    -- * State Monad Transformer
   , ConverterT
   , runConverterT
   , evalConverterT
@@ -19,16 +19,16 @@ module FreeC.Monad.Converter
   , lift
   , lift'
   , hoist
-    -- * Using IO actions in converters
+    -- * Using IO Actions in Converters
   , ConverterIO
-    -- * Modifying environments
+    -- * Modifying Environments
   , MonadConverter(..)
   , getEnv
   , inEnv
   , putEnv
   , modifyEnv
   , modifyEnv'
-    -- * Encapsulating environments
+    -- * Encapsulating Environments
   , localEnv
   , moduleEnv
   , shadowVarPats
@@ -51,7 +51,7 @@ import           FreeC.Monad.Class.Hoistable
 import           FreeC.Monad.Reporter
 
 -------------------------------------------------------------------------------
--- State monad                                                               --
+-- State Monad                                                               --
 -------------------------------------------------------------------------------
 -- | Type synonym for the state monad used by the converter.
 --
@@ -79,7 +79,7 @@ execConverter :: Converter a -> Environment -> Reporter Environment
 execConverter = execConverterT
 
 -------------------------------------------------------------------------------
--- State monad transformer                                                   --
+-- State Monad Transformer                                                   --
 -------------------------------------------------------------------------------
 -- | A state monad used by the converter parameterized by the inner monad @m@.
 newtype ConverterT m a
@@ -116,7 +116,7 @@ instance Hoistable ConverterT where
   hoist = ConverterT . StateT . (hoist .) . runConverter
 
 -------------------------------------------------------------------------------
--- Using IO actions in converters                                            --
+-- Using IO Actions in Converters                                            --
 -------------------------------------------------------------------------------
 -- | A converter with an IO action as its inner monad.
 type ConverterIO = ConverterT IO
@@ -126,7 +126,7 @@ instance MonadIO m => MonadIO (ConverterT m) where
   liftIO = ConverterT . liftIO
 
 -------------------------------------------------------------------------------
--- Modifying environments                                                    --
+-- Modifying Environments                                                    --
 -------------------------------------------------------------------------------
 -- | Type class for monad a converter can be lifted to. Inside such monads,
 --   the functions for modifying the converters environment can be called
@@ -160,7 +160,7 @@ modifyEnv' :: MonadConverter m => (Environment -> (a, Environment)) -> m a
 modifyEnv' = liftConverter . state
 
 -------------------------------------------------------------------------------
--- Encapsulating environments                                                --
+-- Encapsulating Environments                                                --
 -------------------------------------------------------------------------------
 -- | Runs the given converter and returns its result but discards all
 --   modifications to the environment.
@@ -204,7 +204,7 @@ shadowVarPats varPats converter = do
   return x
 
 -------------------------------------------------------------------------------
--- Reporting in converter                                                    --
+-- Reporting in Converter                                                    --
 -------------------------------------------------------------------------------
 -- | Promotes a reporter to a converter that produces the same result and
 --   ignores the environment.

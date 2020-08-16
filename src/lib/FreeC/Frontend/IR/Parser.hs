@@ -135,7 +135,7 @@ conSymbolToken = tokenParser
     _ -> Nothing
 
 -------------------------------------------------------------------------------
--- Module names                                                              --
+-- Module Names                                                              --
 -------------------------------------------------------------------------------
 -- | Parser for IR module names.
 --
@@ -183,7 +183,7 @@ instance Parseable IR.Name where
   parseIR' = nameParser
 
 -------------------------------------------------------------------------------
--- Quantifiable names                                                        --
+-- Quantifiable Names                                                        --
 -------------------------------------------------------------------------------
 -- | Converts a parser that accepts unqualified names to a parser that
 --   accepts optionally qualified names.
@@ -303,7 +303,7 @@ instance Parseable IR.ImportDecl where
   parseIR' = importDeclParser
 
 -------------------------------------------------------------------------------
--- Type arguments                                                            --
+-- Type Arguments                                                            --
 -------------------------------------------------------------------------------
 -- | Parser for IR type variable declarations.
 --
@@ -312,7 +312,7 @@ typeVarDeclParser :: Parser IR.TypeVarDecl
 typeVarDeclParser = IR.TypeVarDecl NoSrcSpan <$> varIdentToken
 
 -------------------------------------------------------------------------------
--- Type declarations                                                         --
+-- Type Declarations                                                         --
 -------------------------------------------------------------------------------
 -- | Parser for type-level IR declarations.
 --
@@ -326,7 +326,7 @@ instance Parseable IR.TypeDecl where
   parseIR' = typeDeclParser
 
 -------------------------------------------------------------------------------
--- Type synonym declarations                                                 --
+-- Type Synonym Declarations                                                 --
 -------------------------------------------------------------------------------
 -- | Parser for IR type synonym declarations.
 --
@@ -339,7 +339,7 @@ typeSynDeclParser = IR.TypeSynDecl NoSrcSpan
   <*> typeParser
 
 -------------------------------------------------------------------------------
--- Data type declarations                                                    --
+-- Data Type Declarations                                                    --
 -------------------------------------------------------------------------------
 -- | Parser for IR data type declarations.
 --
@@ -353,7 +353,7 @@ dataDeclParser = IR.DataDecl NoSrcSpan
   (token Equals *> (conDeclParser `Parsec.sepBy1` token Pipe))
 
 -------------------------------------------------------------------------------
--- Constructor declarations                                                  --
+-- Constructor Declarations                                                  --
 -------------------------------------------------------------------------------
 -- | Parser for IR constructor declarations.
 --
@@ -364,7 +364,7 @@ conDeclParser = IR.ConDecl NoSrcSpan
   <*> Parsec.many aTypeParser
 
 -------------------------------------------------------------------------------
--- Type signatures                                                           --
+-- Type Signatures                                                           --
 -------------------------------------------------------------------------------
 -- | Parser for IR type signatures.
 --
@@ -379,7 +379,7 @@ instance Parseable IR.TypeSig where
   parseIR' = typeSigParser
 
 -------------------------------------------------------------------------------
--- Function declarations                                                     --
+-- Function Declarations                                                     --
 -------------------------------------------------------------------------------
 -- | Parser for IR function declarations.
 --
@@ -399,7 +399,7 @@ instance Parseable IR.FuncDecl where
   parseIR' = funcDeclParser
 
 -------------------------------------------------------------------------------
--- Type schemes                                                          --
+-- Type Schemes                                                              --
 -------------------------------------------------------------------------------
 -- | Parser for IR type schemes.
 --
@@ -415,7 +415,7 @@ instance Parseable IR.TypeScheme where
   parseIR' = typeSchemeParser
 
 -------------------------------------------------------------------------------
--- Type expressions                                                          --
+-- Type Expressions                                                          --
 -------------------------------------------------------------------------------
 -- | Parser for IR type expressions.
 --
@@ -589,7 +589,7 @@ instance Parseable IR.Expr where
   parseIR' = exprParser
 
 -------------------------------------------------------------------------------
--- @case@ expression alternatives                                            --
+-- @case@ Expression Alternatives                                            --
 -------------------------------------------------------------------------------
 -- | Parser for zero or more IR @case@ expression alternatives.
 --
@@ -606,7 +606,7 @@ altParser = IR.Alt NoSrcSpan <$> conPatParser <*> Parsec.many varPatParser
   <*> exprParser
 
 -------------------------------------------------------------------------------
--- @let@ expression bindings                                            --
+-- @let@ Expression Bindings                                                 --
 -------------------------------------------------------------------------------
 -- | Parser for zero or more IR @let@ bindings.
 --

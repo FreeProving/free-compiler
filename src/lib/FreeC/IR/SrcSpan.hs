@@ -130,7 +130,7 @@ addSourceCode srcFiles srcSpan@SrcSpan { srcSpanCodeLines = [] } = srcSpan
 addSourceCode _ srcSpan = srcSpan
 
 -------------------------------------------------------------------------------
--- Pretty printing source spans                                              --
+-- Pretty Printing Source Spans                                              --
 -------------------------------------------------------------------------------
 -- | Pretty instance for a source span that displays the filename and the start
 --   and end position of the source span.

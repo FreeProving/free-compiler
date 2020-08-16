@@ -7,7 +7,7 @@ import           FreeC.IR.Syntax.Name
 import           FreeC.Pretty
 
 -------------------------------------------------------------------------------
--- Type expressions                                                          --
+-- Type Expressions                                                          --
 -------------------------------------------------------------------------------
 -- | A type expression.
 --

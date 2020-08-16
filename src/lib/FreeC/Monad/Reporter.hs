@@ -16,28 +16,28 @@ module FreeC.Monad.Reporter
   ( -- * Messages
     Message(..)
   , Severity(..)
-    -- * Reporter monad
+    -- * Reporter Monad
   , Reporter
   , runReporter
   , evalReporter
-    -- * Reporter monad transformer
+    -- * Reporter Monad Transformer
   , ReporterT
   , runReporterT
   , lift
   , hoist
   , unhoist
-    -- * Reporting messages
+    -- * Reporting Messages
   , MonadReporter(..)
   , report
   , reportFatal
-    -- * Reporting IO errors
+    -- * Reporting IO Errors
   , ReporterIO
   , liftIO
   , reportIOError
-    -- * Handling messages and reporter results
+    -- * Handling Messages and Reporter Results
   , isFatal
   , messages
-    -- * Handling reported messages
+    -- * Handling Reported Messages
   , reportTo
   , reportToOrExit
   ) where
@@ -70,7 +70,7 @@ data Message = Message SrcSpan Severity String
  deriving ( Eq, Show )
 
 -------------------------------------------------------------------------------
--- Reporter monad                                                            --
+-- Reporter Monad                                                            --
 -------------------------------------------------------------------------------
 -- | The underlying representation of a reporter.
 type UnwrappedReporter = MaybeT (Writer [ Message ])
@@ -97,7 +97,7 @@ evalReporter :: Reporter a -> Maybe a
 evalReporter = fst . runReporter
 
 -------------------------------------------------------------------------------
--- Reporter monad transformer                                                --
+-- Reporter Monad Transformer                                                --
 -------------------------------------------------------------------------------
 -- | A reporter monad parameterized by the inner monad @m@.
 newtype ReporterT m a
@@ -144,7 +144,7 @@ instance UnHoistable ReporterT where
   unhoist = fmap (ReporterT . Identity) . unwrapReporterT
 
 -------------------------------------------------------------------------------
--- Reporting messages                                                        --
+-- Reporting Messages                                                        --
 -------------------------------------------------------------------------------
 -- | Type class for all monads within which 'Message's can be reported.
 class Monad r => MonadReporter r where
@@ -170,7 +170,7 @@ instance Monad m => MonadFail (ReporterT m) where
   fail = reportFatal . Message NoSrcSpan Internal
 
 -------------------------------------------------------------------------------
--- Reporting IO errors                                                       --
+-- Reporting IO Errors                                                       --
 -------------------------------------------------------------------------------
 -- | A reporter with an IO action as its inner monad.
 type ReporterIO = ReporterT IO
@@ -202,7 +202,7 @@ reportIOError = reportFatal . Message NoSrcSpan Error . ioErrorMessageText
      ++ maybe "" (": " ++) (ioeGetFileName err)
 
 -------------------------------------------------------------------------------
--- Handling messages and reporter results                                    --
+-- Handling Messages and Reporter Results                                    --
 -------------------------------------------------------------------------------
 -- | Tests whether a fatal error was reported to the given reporter.
 isFatal :: Reporter a -> Bool
@@ -213,7 +213,7 @@ messages :: Reporter a -> [ Message ]
 messages = snd . runReporter
 
 -------------------------------------------------------------------------------
--- Handling reported messages                                                --
+-- Handling Reported Messages                                                --
 -------------------------------------------------------------------------------
 -- | Runs the given reporter and prints all reported messages to the
 --   provided file handle.
@@ -245,7 +245,7 @@ reportToOrExit h reporter = do
     Just x  -> return x
 
 -------------------------------------------------------------------------------
--- Pretty printing messages                                                  --
+-- Pretty Printing Messages                                                  --
 -------------------------------------------------------------------------------
 -- | Pretty instance for message severity levels.
 instance Pretty Severity where

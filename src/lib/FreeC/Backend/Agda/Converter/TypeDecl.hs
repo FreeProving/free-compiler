@@ -118,7 +118,7 @@ generateSmartConDecl (IR.ConDecl _ (IR.DeclIdent srcSpan name) argTypes) = do
       return (Agda.IdentP (Agda.qname' Agda.Base.pure) `Agda.appP` pureVal)
 
 -------------------------------------------------------------------------------
--- Specialized syntax                                                        --
+-- Specialized Syntax                                                        --
 -------------------------------------------------------------------------------
 -- | Creates a declaration for a data type, which is parameterized over @Shape@
 --   and @Pos@.

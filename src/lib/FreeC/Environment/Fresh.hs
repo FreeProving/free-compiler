@@ -10,17 +10,17 @@ module FreeC.Environment.Fresh
   , freshBoolPrefix
   , freshTypeVarPrefix
   , freshTypeArgPrefix
-    -- * Generating fresh Haskell identifiers
+    -- * Generating Fresh Haskell Identifiers
   , freshHaskellIdent
   , freshHaskellName
   , freshHaskellQName
   , freshTypeVar
-    -- * Generating fresh Coq identifiers
+    -- * Generating Fresh Coq Identifiers
   , freshCoqIdent
   , freshCoqQualid
-    -- * Generating fresh Agda identifiers
+    -- * Generating Fresh Agda Identifiers
   , freshAgdaVar
-    -- * Generating fresh IR/LIR identifiers
+    -- * Generating Fresh IR/LIR Identifiers
   , freshIRQName
   ) where
 
@@ -62,7 +62,7 @@ freshTypeArgPrefix :: String
 freshTypeArgPrefix = "t"
 
 -------------------------------------------------------------------------------
--- Generating fresh Haskell identifiers                                      --
+-- Generating Fresh Haskell Identifiers                                      --
 -------------------------------------------------------------------------------
 -- | Gets the next fresh Haskell identifier from the current environment.
 --
@@ -110,7 +110,7 @@ freshTypeVar = do
   return (IR.TypeVar NoSrcSpan ident)
 
 -------------------------------------------------------------------------------
--- Generating fresh Coq identifiers                                          --
+-- Generating Fresh Coq Identifiers                                          --
 -------------------------------------------------------------------------------
 -- | Gets the next fresh Haskell identifier from the current environment
 --   and renames it such that it can be used in Coq.
@@ -129,21 +129,21 @@ freshCoqQualid :: String -> Converter Coq.Qualid
 freshCoqQualid = fmap entryIdent . freshEntry
 
 -------------------------------------------------------------------------------
--- Generating fresh Agda identifiers                                         --
+-- Generating fresh Agda Identifiers                                         --
 -------------------------------------------------------------------------------
 -- | Generates a new Agda identifier based on the given name.
 freshAgdaVar :: String -> Converter Agda.QName
 freshAgdaVar = fmap entryAgdaIdent . freshEntry
 
 -------------------------------------------------------------------------------
--- Generating fresh IR/LIR identifiers                                       --
+-- Generating Fresh IR/LIR Identifiers                                       --
 -------------------------------------------------------------------------------
 -- | Generates a new IR name based on the given name.
 freshIRQName :: String -> Converter IR.QName
 freshIRQName = fmap entryName . freshEntry
 
 -------------------------------------------------------------------------------
--- Generating entries for fresh identifiers                                  --
+-- Generating Entries for Fresh Identifiers                                  --
 -------------------------------------------------------------------------------
 -- | Creates a new 'FreshEntry' from a fresh Haskell identifier with the
 --   given prefix.

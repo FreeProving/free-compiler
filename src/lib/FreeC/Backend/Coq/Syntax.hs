@@ -21,7 +21,7 @@ module FreeC.Backend.Coq.Syntax
   , typedBinder'
     -- * Assumptions
   , variable
-    -- * Definition sentences
+    -- * Definition Sentences
   , definitionSentence
     -- * Types
   , sortType
@@ -146,7 +146,7 @@ variable
   = AssumptionSentence . Assumption Variable .: Assums . NonEmpty.fromList
 
 -------------------------------------------------------------------------------
--- Definition sentences                                                      --
+-- Definition Sentences                                                      --
 -------------------------------------------------------------------------------
 -- | Smart constructor for a Coq definition sentence.
 definitionSentence :: Qualid     -- ^ The name of the definition.
@@ -165,7 +165,7 @@ sortType :: Term
 sortType = Sort Type
 
 -------------------------------------------------------------------------------
--- Expressions                                                              --
+-- Expressions                                                               --
 -------------------------------------------------------------------------------
 -- | Smart constructor for Coq string literals.
 string :: String -> Term

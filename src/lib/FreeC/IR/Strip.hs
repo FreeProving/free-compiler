@@ -4,7 +4,7 @@
 --   These functions are useful to simplify tests or make the output of
 --   pretty instances actually pretty by removing irrelevant information.
 module FreeC.IR.Strip
-  ( -- * Removing expression type annotations
+  ( -- * Removing Expression Type Annotations
     StripExprType(..)
   ) where
 
@@ -14,7 +14,7 @@ import           FreeC.IR.Subterm
 import qualified FreeC.IR.Syntax  as IR
 
 -------------------------------------------------------------------------------
--- Removing expression type annotations                                      --
+-- Removing Expression Type Annotations                                      --
 -------------------------------------------------------------------------------
 -- | Type class for AST nodes from which expression type annotations can
 --   be removed.

@@ -8,7 +8,7 @@ import           FreeC.IR.Syntax.TypeVarDecl
 import           FreeC.Pretty
 
 -------------------------------------------------------------------------------
--- Type schemes                                                          --
+-- Type Schemes                                                              --
 -------------------------------------------------------------------------------
 -- | A type expression with explicitly introduced type variables.
 data TypeScheme = TypeScheme { typeSchemeSrcSpan :: SrcSpan

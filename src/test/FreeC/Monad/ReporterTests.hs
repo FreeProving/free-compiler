@@ -17,7 +17,7 @@ testReporter = describe "FreeC.Monad.Reporter"
     testLiftIO
 
 -------------------------------------------------------------------------------
--- Tests for @runReporter@                                                  --
+-- Tests for @runReporter@                                                   --
 -------------------------------------------------------------------------------
 -- | Test group for 'runReporter' tests.
 testRunReporter :: Spec
@@ -36,7 +36,7 @@ testRunReporter = describe "runReporter"
           `shouldBe` (Nothing :: Maybe (), [testMessage1])
 
 -------------------------------------------------------------------------------
--- Test data                                                                 --
+-- Test Data                                                                 --
 -------------------------------------------------------------------------------
 -- | A message that is reported by some reporters for testing purposes.
 testMessage1 :: Message

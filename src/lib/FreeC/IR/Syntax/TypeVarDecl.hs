@@ -8,7 +8,7 @@ import           FreeC.IR.Syntax.Type
 import           FreeC.Pretty
 
 -------------------------------------------------------------------------------
--- Type arguments                                                            --
+-- Type Arguments                                                            --
 -------------------------------------------------------------------------------
 -- | The name of a type variable declaration in the head of a data type or
 --   type synonym declaration including location information.

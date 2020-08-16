@@ -23,7 +23,7 @@ import           FreeC.Monad.Reporter
 import           FreeC.Pretty
 
 -------------------------------------------------------------------------------
--- Strongly connected components                                             --
+-- Strongly Connected Components                                             --
 -------------------------------------------------------------------------------
 -- | Converts a strongly connected component of the type dependency graph.
 convertTypeComponent
@@ -66,7 +66,7 @@ fromNonRecursive (Recursive decls)   = reportFatal
   ++ showPretty (map IR.typeDeclIdent decls)
 
 -------------------------------------------------------------------------------
--- Type synonym declarations                                                 --
+-- Type Synonym Declarations                                                 --
 -------------------------------------------------------------------------------
 -- | Tests whether the given declaration is a type synonym declaration.
 isTypeSynDecl :: IR.TypeDecl -> Bool

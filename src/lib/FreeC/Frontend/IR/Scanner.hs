@@ -18,7 +18,7 @@ import           FreeC.Util.Parsec
 import           FreeC.Util.Predicate    ( (.&&.), (.||.) )
 
 -------------------------------------------------------------------------------
--- Type synonyms                                                             --
+-- Type Synonyms                                                             --
 -------------------------------------------------------------------------------
 -- | Type of parsers for IR lexeme of type @a@.
 type Scanner a = Parsec String () a
@@ -38,7 +38,7 @@ tokenWithPos :: Scanner Token -> Scanner TokenWithPos
 tokenWithPos scanner = TokenWithPos <$> Parsec.getPosition <*> scanner
 
 -------------------------------------------------------------------------------
--- Character classes                                                         --
+-- Character Classes                                                         --
 -------------------------------------------------------------------------------
 -- | Scanner for a lowercase character.
 --
@@ -143,7 +143,7 @@ languageDef = Parsec.LanguageDef
   }
 
 -------------------------------------------------------------------------------
--- Generated lexical parsers                                                 --
+-- Generated Lexical Parsers                                                 --
 -------------------------------------------------------------------------------
 -- | Contains lexical parsers for the intermediate language.
 tokenParser :: Parsec.TokenParser ()

@@ -12,7 +12,7 @@ import           FreeC.IR.Syntax   as IR
 import           FreeC.Test.Parser
 
 -------------------------------------------------------------------------------
--- Test data                                                                 --
+-- Test Data                                                                 --
 -------------------------------------------------------------------------------
 -- | Creates a generator for valid test positions for the given expression.
 validTestPos :: IR.Expr -> Gen Pos
@@ -34,7 +34,7 @@ testPos expr = do
   oneof [return (validPos, True), return (invalidPos, False)]
 
 -------------------------------------------------------------------------------
--- Subterm tests                                                             --
+-- Subterm Tests                                                             --
 -------------------------------------------------------------------------------
 -- | Test group for "FreeC.IR.Subterm" tests.
 testSubterm :: Spec

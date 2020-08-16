@@ -9,7 +9,7 @@ import           FreeC.IR.Syntax.TypeVarDecl
 import           FreeC.Pretty
 
 -------------------------------------------------------------------------------
--- Type declarations                                                         --
+-- Type Declarations                                                         --
 -------------------------------------------------------------------------------
 -- | A data type or type synonym declaration.
 data TypeDecl
@@ -51,7 +51,7 @@ instance Pretty TypeDecl where
     <+> pretty typeExpr
 
 -------------------------------------------------------------------------------
--- Constructor declarations                                                  --
+-- Constructor Declarations                                                  --
 -------------------------------------------------------------------------------
 -- | A constructor declaration.
 data ConDecl = ConDecl { conDeclSrcSpan :: SrcSpan

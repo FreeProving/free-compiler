@@ -3,17 +3,17 @@
 -- | This module contains the state monad used by the compiler's command
 --   line interface to pass command line options around implicitly.
 module FreeC.Monad.Application
-  ( -- * State monad
+  ( -- * State Monad
     Application
   , runApp
   , reportApp
-    -- * Accessing and modifying state
+    -- * Accessing and Modifying State
   , getOpts
   , inOpts
   , putOpts
   , modifyOpts
   , modifyOpts'
-    -- * Lifting other monads
+    -- * Lifting Other Monads
   , liftReporter
   , liftReporterIO
   , liftConverter
@@ -34,7 +34,7 @@ import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
 
 -------------------------------------------------------------------------------
--- Application state monad                                                   --
+-- Application State Monad                                                   --
 -------------------------------------------------------------------------------
 -- | A state monad used by the compiler application to pass the command
 --   line options implicitly.
@@ -65,7 +65,7 @@ reportApp app = do
   return x
 
 -------------------------------------------------------------------------------
--- Accessing and modifying state                                             --
+-- Accessing and Modifying State                                             --
 -------------------------------------------------------------------------------
 -- | Gets the options of the application.
 getOpts :: Application Options
@@ -89,7 +89,7 @@ modifyOpts' :: (Options -> (a, Options)) -> Application a
 modifyOpts' = state
 
 -------------------------------------------------------------------------------
--- Lifting other monads                                                      --
+-- Lifting Other Monads                                                      --
 -------------------------------------------------------------------------------
 -- | IO actions can be embedded into applications.
 instance MonadIO Application where

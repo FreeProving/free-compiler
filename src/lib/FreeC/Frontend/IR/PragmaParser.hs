@@ -37,7 +37,7 @@ customPragmas :: [ (String, CustomPragmaBuilder) ]
 customPragmas = [(decArgPattern, parseDecArgPragma)]
 
 -------------------------------------------------------------------------------
--- Decreasing arguments                                                      --
+-- Decreasing Arguments                                                      --
 -------------------------------------------------------------------------------
 -- | A regular expression for a decreasing argument pragma.
 decArgPattern :: String

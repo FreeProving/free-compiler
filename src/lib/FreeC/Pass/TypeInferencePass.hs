@@ -209,7 +209,7 @@ typeInferencePass :: DependencyAwarePass IR.FuncDecl
 typeInferencePass = mapComponentM inferFuncDeclTypes
 
 -------------------------------------------------------------------------------
--- Type equations                                                            --
+-- Type Equations                                                            --
 -------------------------------------------------------------------------------
 -- | A type equation and the location in the source that caused the creation
 --   of this type equation.
@@ -240,7 +240,7 @@ instance ApplySubst IR.Type TypeEquation where
       in eqn { eqnActualType = actualType', eqnExpectedType = expectedType' }
 
 -------------------------------------------------------------------------------
--- Type inference state monad                                                --
+-- Type Inference State Monad                                                --
 -------------------------------------------------------------------------------
 -- | Maps the names of defined functions and constructors to their type scheme.
 type TypeAssumption = Map IR.QName IR.TypeScheme
@@ -306,7 +306,7 @@ runTypeInference initialTypeAssumption
      = emptyTypeInferenceState { typeAssumption = initialTypeAssumption }
 
 -------------------------------------------------------------------------------
--- Type inference state inspection                                           --
+-- Type Inference Staten Inspection                                          --
 -------------------------------------------------------------------------------
 -- | Looks up the type scheme of the function or constructor with the given
 --   name in the current type assumption.
@@ -319,7 +319,7 @@ lookupFixedTypeArgs :: IR.QName -> TypeInference [ IR.Type ]
 lookupFixedTypeArgs name = gets (Map.findWithDefault [] name . fixedTypeArgs)
 
 -------------------------------------------------------------------------------
--- Type inference state manipulation                                         --
+-- Type Inference State Manipulation                                         --
 -------------------------------------------------------------------------------
 -- | Adds a 'TypeEquation' entry the current state.
 addTypeEquation :: SrcSpan -> IR.Type -> IR.Type -> TypeInference ()
@@ -412,7 +412,7 @@ withRigidTypeVars vs mx = do
   return x
 
 -------------------------------------------------------------------------------
--- Function declarations                                                     --
+-- Function Declarations                                                     --
 -------------------------------------------------------------------------------
 -- | Infers the types of (mutually recursive) function declarations.
 --
@@ -508,7 +508,7 @@ inferFuncDeclTypes' funcDecls = withLocalState
     return (abstractVanishingTypeArgs visiblyAppliedFuncDecls)
 
 -------------------------------------------------------------------------------
--- Type annotations                                                          --
+-- Type Annotations                                                          --
 -------------------------------------------------------------------------------
 -- | Generates a fresh type variable if the given type is @Nothing@
 --   and returns the given type otherwise.
@@ -692,7 +692,7 @@ annotateFuncDecls funcDecls = withLocalTypeAssumption
        return funcDecl { IR.funcDeclRhs = rhs' }
 
 -------------------------------------------------------------------------------
--- Visible type application                                                  --
+-- Visible Type Application                                                  --
 -------------------------------------------------------------------------------
 -- | Adds visible type application expressions to a function or constructor
 --   with the given name.
@@ -795,7 +795,7 @@ applyFuncDeclVisibly funcDecl = withLocalTypeAssumption
     return funcDecl { IR.funcDeclRhs = rhs' }
 
 -------------------------------------------------------------------------------
--- Abstracting type arguments                                                --
+-- Abstracting Type Arguments                                                --
 -------------------------------------------------------------------------------
 -- | Normalizes the names of the given type variables and adds them as type
 --   arguments to the function declaration.
@@ -916,7 +916,7 @@ abstractVanishingTypeArgs funcDecls
    withoutArgs = flip (Set.\\) . Set.fromList . map IR.varPatQName
 
 -------------------------------------------------------------------------------
--- Solving type equations                                                    --
+-- Solving Type Equations                                                    --
 -------------------------------------------------------------------------------
 -- | Finds the most general unifier that satisfies all given type equations.
 --
@@ -952,7 +952,7 @@ unifyEquation eqn = localEnv
     unifyOrFail (eqnSrcSpan eqn) (eqnExpectedType eqn) (eqnActualType eqn)
 
 -------------------------------------------------------------------------------
--- Rigid type variables                                                      --
+-- Rigid Type Variables                                                      --
 -------------------------------------------------------------------------------
 -- | Adds an environment entry for the type variable that is bound by the
 --   given type variable declaration.
@@ -967,7 +967,7 @@ bindRigidTypeVar typeVarDecl = modifyEnv
   }
 
 -------------------------------------------------------------------------------
--- Error reporting                                                           --
+-- Error Reporting                                                           --
 -------------------------------------------------------------------------------
 -- | Reports an internal error when a type application expression is
 --   encountered prior to type inference.

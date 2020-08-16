@@ -18,7 +18,7 @@ class Hoistable t => UnHoistable t where
   unhoist :: Monad m => t m a -> m (t Identity a)
 
 -------------------------------------------------------------------------------
--- Default implementations                                                   --
+-- Default Implementations                                                   --
 -------------------------------------------------------------------------------
 -- | Lifts a @Maybe@ value to an arbitrary monad.
 --

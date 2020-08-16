@@ -16,7 +16,7 @@ import           FreeC.Test.Expectations
 import           FreeC.Test.Parser
 
 -------------------------------------------------------------------------------
--- Expectation setters                                                       --
+-- Expectation Setters                                                       --
 -------------------------------------------------------------------------------
 -- | Parses the given function declarations, converts them to Coq using
 --   'convertRecFuncDeclsWithSection' and expects the resulting Coq code

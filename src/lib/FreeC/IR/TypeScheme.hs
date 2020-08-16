@@ -1,10 +1,10 @@
 -- | This module contains functions for converting between type expressions
 --   and type schemes.
 module FreeC.IR.TypeScheme
-  ( -- * Instantiating type schemes
+  ( -- * Instantiating Type Schemes
     instantiateTypeScheme
   , instantiateTypeScheme'
-    -- * Abstracting type expressions
+    -- * Abstracting Type Expressions
   , abstractTypeScheme
   , abstractTypeScheme'
   ) where
@@ -20,7 +20,7 @@ import qualified FreeC.IR.Syntax         as IR
 import           FreeC.Monad.Converter
 
 -------------------------------------------------------------------------------
--- Instantiating type schemes                                                --
+-- Instantiating Type Schemes                                                --
 -------------------------------------------------------------------------------
 -- | Replaces the type variables in the given type scheme by fresh type
 --   variables.
@@ -37,7 +37,7 @@ instantiateTypeScheme' (IR.TypeScheme _ typeArgs typeExpr) = do
   return (typeExpr', typeVars')
 
 -------------------------------------------------------------------------------
--- Abstracting type expressions                                              --
+-- Abstracting Type Expressions                                              --
 -------------------------------------------------------------------------------
 -- | Normalizes the names of type variables in the given type and returns
 --   it as a type scheme.

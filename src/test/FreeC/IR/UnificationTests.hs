@@ -135,7 +135,7 @@ testUnification = describe "FreeC.IR.Unification.unify"
             return (typeExpr' == typeExpr)
 
 -------------------------------------------------------------------------------
--- Expectation setters                                                       --
+-- Expectation Setters                                                       --
 -------------------------------------------------------------------------------
 -- | Unifies the given type expressions and sets the expectation that the
 --   both are equal after applying the computed unificator.

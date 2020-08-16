@@ -16,7 +16,7 @@ import           FreeC.Test.Expectations
 import           FreeC.Test.Parser
 
 -------------------------------------------------------------------------------
--- Expectation setters                                                       --
+-- Expectation Setters                                                       --
 -------------------------------------------------------------------------------
 -- | Parses the given type-level IR declarations, converts them to Coq using
 --   'convertTypeComponent' and sets the expectation that the resulting AST
@@ -133,7 +133,7 @@ testConvertTypeDecl = describe
             convertTypeComponent input
 
 -------------------------------------------------------------------------------
--- Data type declarations                                                    --
+-- Data Type Declarations                                                    --
 -------------------------------------------------------------------------------
 -- | Test group for 'convertDataDecls' tests.
 testConvertDataDecls :: Spec

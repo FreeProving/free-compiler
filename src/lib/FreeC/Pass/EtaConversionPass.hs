@@ -100,7 +100,7 @@
 --   arguments.
 module FreeC.Pass.EtaConversionPass
   ( etaConversionPass
-    -- * Testing interface
+    -- * Testing Interface
   , etaConvertFuncDecl
   , etaConvertExpr
   ) where
@@ -128,7 +128,7 @@ etaConversionPass ast = do
   return ast { IR.modFuncDecls = funcDecls' }
 
 -------------------------------------------------------------------------------
--- Function declarations                                                     --
+-- Function Declarations                                                     --
 -------------------------------------------------------------------------------
 -- | Makes sure that all occurring functions are fully applied
 --   by calling 'etaConvertFuncDecl' on each of them.
@@ -258,7 +258,7 @@ etaAbstractWith xs expr
    expr'    = IR.app NoSrcSpan expr argExprs
 
 -------------------------------------------------------------------------------
--- Sub-expressions                                                           --
+-- Sub-Expressions                                                           --
 -------------------------------------------------------------------------------
 -- | Applies 'etaConvertExpr' to all sub-expressions of the given expression
 --   except for the left-hand side of function applications.

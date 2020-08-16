@@ -45,7 +45,7 @@ convertTypeDecls typeDecls = do
   concatMapM convertTypeComponent components
 
 -------------------------------------------------------------------------------
--- Import declarations                                                       --
+-- Import Declarations                                                       --
 -------------------------------------------------------------------------------
 -- | Converts the given import declarations to Coq.
 convertImportDecls :: [ IR.ImportDecl ] -> Converter [ Coq.Sentence ]

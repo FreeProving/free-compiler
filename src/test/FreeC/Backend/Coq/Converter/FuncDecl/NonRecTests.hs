@@ -14,7 +14,7 @@ import           FreeC.Test.Expectations
 import           FreeC.Test.Parser
 
 -------------------------------------------------------------------------------
--- Expectation setters                                                       --
+-- Expectation Setters                                                       --
 -------------------------------------------------------------------------------
 -- | Parses the given IR function declaration, converts it to Coq using
 --   'convertNonRecFuncDecl' and sets the expectation that the resulting

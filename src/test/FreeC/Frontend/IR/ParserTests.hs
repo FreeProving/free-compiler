@@ -10,7 +10,7 @@ import           FreeC.Monad.Reporter
 import           FreeC.Test.Parser
 
 -------------------------------------------------------------------------------
--- Expectation setters                                                       --
+-- Expectation Setters                                                       --
 -------------------------------------------------------------------------------
 -- | Sets the expectation that the 'Parseable' instance accepts the given
 --   input and produces the given output.
@@ -181,7 +181,7 @@ testTypeSchemeParser = context "type schemes"
         "forall a b. a -> b" `shouldParse` IR.TypeScheme NoSrcSpan [a, b] t
 
 -------------------------------------------------------------------------------
--- Type declarations                                                         --
+-- Type Declarations                                                         --
 -------------------------------------------------------------------------------
 -- | Test group for 'Parseable' instance of type synonym declarations.
 testSynTypeDeclParser :: Spec
@@ -246,7 +246,7 @@ testDataDeclParser = context "data type declarations"
           $ [IR.ConDecl NoSrcSpan bar' [], IR.ConDecl NoSrcSpan baz' []]
 
 -------------------------------------------------------------------------------
--- Type signatures                                                           --
+-- Type Signatures                                                           --
 -------------------------------------------------------------------------------
 -- | Test group for 'Parseable' instance of 'IR.TypeSig'.
 testTypeSigParser :: Spec
@@ -635,7 +635,7 @@ testIntLiteralParser = context "integer literals"
           `shouldParse` IR.IntLiteral NoSrcSpan (-0xCAFEBABE) Nothing
 
 -------------------------------------------------------------------------------
--- Function declarations                                                     --
+-- Function Declarations                                                     --
 -------------------------------------------------------------------------------
 -- | Test group for 'Parseable' instance of function declarations.
 testFuncDeclParser :: Spec

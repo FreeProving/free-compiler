@@ -10,7 +10,7 @@ import qualified FreeC.IR.Syntax                  as IR
 import           FreeC.Monad.Converter
 
 -------------------------------------------------------------------------------
--- Type arguments                                                            --
+-- Type Arguments                                                            --
 -------------------------------------------------------------------------------
 -- | Converts the declarations of type variables in the head of a data type or
 --   type synonym declaration to a Coq binder for a set of explicit or implicit
@@ -40,7 +40,7 @@ convertTypeVarDecls explicitness typeVarDecls
      = renameAndDefineTypeVar srcSpan ident
 
 -------------------------------------------------------------------------------
--- Function arguments                                                        --
+-- Function Arguments                                                        --
 -------------------------------------------------------------------------------
 -- | Converts the argument of a function (a variable pattern) to an explicit
 --   Coq binder.

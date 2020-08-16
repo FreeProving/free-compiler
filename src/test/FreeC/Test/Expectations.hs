@@ -3,10 +3,10 @@
 --
 --   TODO should we maybe re-export "FreeC.Monad.Class.Testable"?
 module FreeC.Test.Expectations
-  ( -- * Similarity test
+  ( -- * Similarity Test
     shouldBeSimilarTo
   , shouldNotBeSimilarTo
-    -- * Pretty printing comparison
+    -- * Pretty Printing Comparison
   , prettyShouldBe
   ) where
 
@@ -16,7 +16,7 @@ import           FreeC.IR.Similar
 import           FreeC.Pretty
 
 -------------------------------------------------------------------------------
--- Similarity test                                                           --
+-- Similarity Test                                                           --
 -------------------------------------------------------------------------------
 -- | Sets the expectation that the given AST nodes are 'similar'.
 shouldBeSimilarTo :: (Similar a, Pretty a) => a -> a -> Expectation
@@ -43,7 +43,7 @@ shouldNotBeSimilarTo n m
     <> line
 
 -------------------------------------------------------------------------------
--- Pretty printing comparison                                                --
+-- Pretty Printing Comparison                                                --
 -------------------------------------------------------------------------------
 -- | Pretty prints both values and tests whether the resulting strings are
 --   equal modulo whitespace.

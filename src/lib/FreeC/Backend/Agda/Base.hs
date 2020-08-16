@@ -1,7 +1,7 @@
 -- | This module contains the Agda identifiers of types, constructors and
 --   functions defined in the Base library that accompanies the compiler.
 module FreeC.Backend.Agda.Base
-  ( -- * Library imports
+  ( -- * Library Imports
     baseLibName
   , generatedLibName
   , imports
@@ -11,10 +11,10 @@ module FreeC.Backend.Agda.Base
   , shape
   , position
   , partial
-    -- * sized types
+    -- * Sized Types
   , size
   , up
-    -- * reserved identifiers
+    -- * Reserved Identifiers
   , reservedIdents
   ) where
 
@@ -25,7 +25,7 @@ import           Prelude                   hiding ( pure )
 import qualified FreeC.Backend.Agda.Syntax as Agda
 
 -------------------------------------------------------------------------------
--- Library imports                                                           --
+-- Library Imports                                                           --
 -------------------------------------------------------------------------------
 -- | The name of the Agda Base library.
 baseLibName :: Agda.Name
@@ -84,7 +84,7 @@ up :: Agda.Name
 up = Agda.name "\x2191"
 
 -------------------------------------------------------------------------------
--- Reserved identifiers                                                      --
+-- Reserved Identifiers                                                      --
 -------------------------------------------------------------------------------
 -- | All Agda identifiers that are reserved for the Base library.
 --

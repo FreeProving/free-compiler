@@ -13,7 +13,7 @@ import           FreeC.Test.Expectations
 import           FreeC.Test.Parser
 
 -------------------------------------------------------------------------------
--- Expectation setters                                                       --
+-- Expectation Setters                                                       --
 -------------------------------------------------------------------------------
 -- | Parses the given function declaration, applies the eta conversion
 --   pass and sets the expectation that the resulting function declaration

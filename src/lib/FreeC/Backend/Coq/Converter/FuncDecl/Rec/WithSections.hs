@@ -123,7 +123,7 @@ convertRecFuncDeclsWithSection constArgs decls = do
   return (section : interfaceDecls')
 
 -------------------------------------------------------------------------------
--- Renaming functions, arguments and type variables                          --
+-- Renaming Functions, Arguments and Type Variables                          --
 -------------------------------------------------------------------------------
 -- | Renames the given function declarations using fresh identifiers.
 --
@@ -196,7 +196,7 @@ renameConstArg nameMap constArg = constArg
    renameKeys = Map.mapKeys (fromJust . flip Map.lookup nameMap)
 
 -------------------------------------------------------------------------------
--- Argument and return types                                                 --
+-- Argument and Return Types                                                 --
 -------------------------------------------------------------------------------
 -- | Gets a map that maps the names of the arguments (qualified with the
 --   function name) of the given function declaration to their annotated
@@ -232,7 +232,7 @@ lookupConstArgType argTypeMap constArg = do
   return (constArgType, mgu)
 
 -------------------------------------------------------------------------------
--- Generating @Variable@ sentences                                           --
+-- Generating @Variable@ Sentences                                           --
 -------------------------------------------------------------------------------
 -- | Tests whether the given (renamed) function declaration uses the constant
 --   argument.
@@ -262,7 +262,7 @@ generateConstArgVariable constArg constArgType = do
   return (Coq.variable [ident'] constArgType')
 
 -------------------------------------------------------------------------------
--- Removing constant arguments                                               --
+-- Removing Constant Arguments                                               --
 -------------------------------------------------------------------------------
 -- | Removes constant arguments from the argument list of the given
 --   function declaration and replaces the argument by the fresh
@@ -385,7 +385,7 @@ removeConstArgsFromExpr constArgs rootExpr = do
      return (IR.Bind srcSpan varPat expr')
 
 -------------------------------------------------------------------------------
--- Updating the environment                                                  --
+-- Updating the Environment                                                  --
 -------------------------------------------------------------------------------
 -- | Modifies the type signature of the given function declaration, such that
 --   it does not include the removed constant arguments anymore.
@@ -439,7 +439,7 @@ updateTypeSig mgu constTypeVars argTypeMap returnTypeMap funcDecl = do
   return (name, removedTypeArgIndices)
 
 -------------------------------------------------------------------------------
--- Removing constant type arguments                                          --
+-- Removing Constant Type Arguments                                          --
 -------------------------------------------------------------------------------
 -- | Removes the type arguments that have been removed from the type
 --   signature of function declarations from the type argument list of the
@@ -554,7 +554,7 @@ removeConstTypeArgsFromExpr constTypeVars rootExpr = do
      return (IR.Bind srcSpan varPat expr')
 
 -------------------------------------------------------------------------------
--- Interface functions                                                       --
+-- Interface Functions                                                       --
 -------------------------------------------------------------------------------
 -- | Generates a @Definition@ sentence for the given function declaration
 --   that passes the arguments to the function declared inside the @Section@

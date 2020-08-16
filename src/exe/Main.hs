@@ -89,7 +89,7 @@ compiler = do
   mapM_ (uncurry (outputModule $ backendFileExtension backend)) modules'
 
 -------------------------------------------------------------------------------
--- Front- and backend selection                                              --
+-- Front- and Backend Selection                                              --
 -------------------------------------------------------------------------------
 -- | Selects the correct frontend or throws an error if such a frontend does
 --   not exist.
@@ -120,7 +120,7 @@ selectBackend = do
     Just b  -> return b
 
 -------------------------------------------------------------------------------
--- Input files                                                       --
+-- Input Files                                                               --
 -------------------------------------------------------------------------------
 -- | Parses the given input file with the given parser function.
 parseInputFile :: (SrcFile -> Application IR.Module)
@@ -234,7 +234,7 @@ loadModule srcSpan modName = do
      if exists then return ifaceFile else findIfaceFile ds
 
 -------------------------------------------------------------------------------
--- Base library                                                              --
+-- Base Library                                                              --
 -------------------------------------------------------------------------------
 -- | Loads the @Prelude@ module from the base library.
 loadPrelude :: Application ()

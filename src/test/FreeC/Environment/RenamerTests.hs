@@ -22,7 +22,7 @@ testRenamer = describe "FreeC.Environment.Renamer"
     testRenameIdent
 
 -------------------------------------------------------------------------------
--- Test identifiers                                                          --
+-- Test Identifiers                                                          --
 -------------------------------------------------------------------------------
 -- | Generator for arbitrary identifiers with optional number postfix.
 genIdent :: Gen String
@@ -53,7 +53,7 @@ genVernacularCommand :: Gen String
 genVernacularCommand = oneof $ map return vernacularCommands
 
 -------------------------------------------------------------------------------
--- Tests for @mustRenameIdent@                                              --
+-- Tests for @mustRenameIdent@                                               --
 -------------------------------------------------------------------------------
 -- | Test group for 'mustRenameIdent' tests.
 testMustRenameIdent :: Spec

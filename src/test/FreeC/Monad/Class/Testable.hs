@@ -5,13 +5,13 @@
 -- | This module contains a type class for monads that can be used in tests.
 module FreeC.Monad.Class.Testable
   ( MonadTestable
-    -- * Expecting values
+    -- * Expecting Values
   , shouldReturn
   , shouldReturnWith
-    -- * Expecting success
+    -- * Expecting Success
   , shouldSucceed
   , shouldSucceedWith
-    -- * Expecting failures
+    -- * Expecting Failures
   , shouldFail
   , shouldFailPretty
   , shouldFailWith
@@ -97,7 +97,7 @@ expectAnyError :: err -> Expectation
 expectAnyError = const (return ())
 
 -------------------------------------------------------------------------------
--- Instances for common pure monads                                          --
+-- Instances for Common Pure Monads                                          --
 -------------------------------------------------------------------------------
 -- | A computation in the @Identity@ monad can return a result but never fails.
 instance MonadTestable Identity () where
@@ -133,7 +133,7 @@ instance Show err => MonadTestable (Either err) err where
     ++ showValue x
 
 -------------------------------------------------------------------------------
--- Instance for the IO monad                                                 --
+-- Instance for the IO Monad                                                 --
 -------------------------------------------------------------------------------
 -- | An impure computation in the @IO@ monad fails if an @IO@ error is thrown.
 instance MonadTestable IO IOError where
@@ -151,7 +151,7 @@ instance MonadTestable IO IOError where
         ++ showValue x
 
 -------------------------------------------------------------------------------
--- Instance for the reporter monad                                           --
+-- Instance for the Reporter Monad                                           --
 -------------------------------------------------------------------------------
 -- | Utility function that prints the given message like an item of an
 --   unordered Markdown list.
@@ -208,7 +208,7 @@ instance MonadTestable m err => MonadTestable (ReporterT m) [ Message ] where
           ++ showReportedMessages ms
 
 -------------------------------------------------------------------------------
--- Instance for the converter monad                                          --
+-- Instance for the @Converter@ Monad                                        --
 -------------------------------------------------------------------------------
 -- | Initializes the test environment for the converter monad.
 initTestEnvironment :: IO Environment

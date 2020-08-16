@@ -46,9 +46,9 @@ convertFuncDecl :: IR.FuncDecl -> Maybe Int -> Converter [ Agda.Declaration ]
 convertFuncDecl decl decArg = sequence
   [localEnv $ convertSignature decl decArg, localEnv $ convertFuncDef decl]
 
-------------------------------------------------------------------------------
--- Definitions                                                              --
-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+-- Definitions                                                               --
+-------------------------------------------------------------------------------
 -- | Converts the definition of the given function to an Agda function
 --   declaration.
 convertFuncDef :: IR.FuncDecl -> Converter Agda.Declaration
@@ -57,9 +57,9 @@ convertFuncDef (IR.FuncDecl _ (IR.DeclIdent srcSpan name) _ args _ expr) = do
   ident <- lookupAgdaIdentOrFail srcSpan IR.ValueScope name
   Agda.funcDef ident args' <$> (liftExpr >=> convertLiftedExpr) expr
 
-------------------------------------------------------------------------------
--- Signatures                                                               --
-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+-- Signatures                                                                --
+-------------------------------------------------------------------------------
 -- | Converts the type signature of the given function to an Agda type
 --   declaration.
 convertSignature :: IR.FuncDecl -> Maybe Int -> Converter Agda.Declaration
