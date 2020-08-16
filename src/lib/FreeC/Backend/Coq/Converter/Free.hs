@@ -2,11 +2,11 @@
 --   that uses the @Free@ monad.
 module FreeC.Backend.Coq.Converter.Free where
 
-import           Data.List                ( elemIndex )
-import           Data.List.NonEmpty       ( NonEmpty(..) )
-import           Data.Maybe               ( maybe )
+import           Data.List ( elemIndex )
+import           Data.List.NonEmpty ( NonEmpty(..) )
+import           Data.Maybe ( maybe )
 
-import qualified FreeC.Backend.Coq.Base   as Coq.Base
+import qualified FreeC.Backend.Coq.Base as Coq.Base
 import qualified FreeC.Backend.Coq.Syntax as Coq
 import           FreeC.Environment.Fresh
 import           FreeC.Monad.Converter

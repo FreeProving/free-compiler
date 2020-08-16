@@ -5,7 +5,7 @@
 --   representation of the compiler.
 module FreeC.Frontend.Haskell.SrcSpanConverter ( ConvertibleSrcSpan(..) ) where
 
-import           Control.Monad                ( join )
+import           Control.Monad ( join )
 import qualified Language.Haskell.Exts.SrcLoc as HSE
 
 import           FreeC.IR.SrcSpan

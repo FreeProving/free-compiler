@@ -18,14 +18,14 @@
 --   nodes are annotated with 'NoSrcSpan'.
 module FreeC.Frontend.IR.Parser ( Parseable(..), parseIR ) where
 
-import           Data.List                 ( intercalate )
-import           Text.Parsec               ( (<|>), Parsec )
-import qualified Text.Parsec               as Parsec
+import           Data.List ( intercalate )
+import           Text.Parsec ( (<|>), Parsec )
+import qualified Text.Parsec as Parsec
 
 import           FreeC.Frontend.IR.Scanner
 import           FreeC.Frontend.IR.Token
 import           FreeC.IR.SrcSpan
-import qualified FreeC.IR.Syntax           as IR
+import qualified FreeC.IR.Syntax as IR
 import           FreeC.Monad.Reporter
 import           FreeC.Pretty
 import           FreeC.Util.Parsec

@@ -12,7 +12,7 @@ module FreeC.Backend.Agda.Converter.Free
   , addPartial
   ) where
 
-import qualified FreeC.Backend.Agda.Base   as Agda.Base
+import qualified FreeC.Backend.Agda.Base as Agda.Base
 import qualified FreeC.Backend.Agda.Syntax as Agda
 
 -- | Applies the @pure@ constructor of the free monad to the given expression.

@@ -1,7 +1,7 @@
 -- | This module contains tests for the 'Reporter' monad.
 module FreeC.Monad.ReporterTests ( testReporter ) where
 
-import           System.IO.Error      ( ioError, userError )
+import           System.IO.Error ( ioError, userError )
 import           Test.Hspec
 
 import           FreeC.IR.SrcSpan

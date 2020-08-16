@@ -7,7 +7,7 @@ module FreeC.Backend.Coq.Converter.TypeDeclTests
 import           Test.Hspec
 
 import           FreeC.Backend.Coq.Converter.TypeDecl
-import           FreeC.Backend.Coq.Pretty             ()
+import           FreeC.Backend.Coq.Pretty ()
 import           FreeC.IR.DependencyGraph
 import           FreeC.Monad.Class.Testable
 import           FreeC.Monad.Converter

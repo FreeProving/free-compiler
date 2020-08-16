@@ -14,20 +14,20 @@
 --   the interface file format.
 module FreeC.Environment.ModuleInterface.Encoder ( writeModuleInterface ) where
 
-import           Control.Monad.IO.Class            ( MonadIO )
-import           Data.Aeson                        ( (.=) )
-import qualified Data.Aeson                        as Aeson
-import           Data.Maybe                        ( mapMaybe )
-import qualified Data.Set                          as Set
+import           Control.Monad.IO.Class ( MonadIO )
+import           Data.Aeson ( (.=) )
+import qualified Data.Aeson as Aeson
+import           Data.Maybe ( mapMaybe )
+import qualified Data.Set as Set
 
 import           FreeC.Backend.Agda.Pretty
-import qualified FreeC.Backend.Agda.Syntax         as Agda
+import qualified FreeC.Backend.Agda.Syntax as Agda
 import           FreeC.Backend.Coq.Pretty
-import qualified FreeC.Backend.Coq.Syntax          as Coq
+import qualified FreeC.Backend.Coq.Syntax as Coq
 import           FreeC.Environment.Entry
 import           FreeC.Environment.ModuleInterface
 import           FreeC.IR.SrcSpan
-import qualified FreeC.IR.Syntax                   as IR
+import qualified FreeC.IR.Syntax as IR
 import           FreeC.Monad.Reporter
 import           FreeC.Pretty
 import           FreeC.Util.Config

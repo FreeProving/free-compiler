@@ -173,28 +173,28 @@
 --     applied visibly including vanishing type arguments.
 module FreeC.Pass.TypeInferencePass ( typeInferencePass ) where
 
-import           Control.Monad.Extra               ( zipWithM, zipWithM_ )
-import           Control.Monad.Fail                ( MonadFail )
+import           Control.Monad.Extra ( zipWithM, zipWithM_ )
+import           Control.Monad.Fail ( MonadFail )
 import           Control.Monad.State
   ( MonadState(..), StateT(..), evalStateT, gets, modify )
-import           Data.Composition                  ( (.:) )
-import           Data.List                         ( (\\), nub )
-import           Data.List.Extra                   ( dropEnd, takeEnd )
-import           Data.Map.Strict                   ( Map )
-import qualified Data.Map.Strict                   as Map
-import           Data.Maybe                        ( fromJust, maybeToList )
-import           Data.Set                          ( Set )
-import qualified Data.Set                          as Set
+import           Data.Composition ( (.:) )
+import           Data.List ( (\\), nub )
+import           Data.List.Extra ( dropEnd, takeEnd )
+import           Data.Map.Strict ( Map )
+import qualified Data.Map.Strict as Map
+import           Data.Maybe ( fromJust, maybeToList )
+import           Data.Set ( Set )
+import qualified Data.Set as Set
 
 import           FreeC.Environment
 import           FreeC.Environment.Entry
 import           FreeC.Environment.Fresh
-import qualified FreeC.IR.Base.Prelude             as IR.Prelude
-import           FreeC.IR.DependencyGraph          ( mapComponentM )
-import           FreeC.IR.Reference                ( freeTypeVars )
+import qualified FreeC.IR.Base.Prelude as IR.Prelude
+import           FreeC.IR.DependencyGraph ( mapComponentM )
+import           FreeC.IR.Reference ( freeTypeVars )
 import           FreeC.IR.SrcSpan
 import           FreeC.IR.Subst
-import qualified FreeC.IR.Syntax                   as IR
+import qualified FreeC.IR.Syntax as IR
 import           FreeC.IR.TypeScheme
 import           FreeC.IR.Unification
 import           FreeC.Monad.Converter

@@ -2,7 +2,7 @@
 module FreeC.Application.Options.Parser ( parseArgs, getAndParseArgs ) where
 
 import           System.Console.GetOpt
-import           System.Environment                    ( getArgs )
+import           System.Environment ( getArgs )
 
 import           FreeC.Application.Options
 import           FreeC.Application.Options.Descriptors

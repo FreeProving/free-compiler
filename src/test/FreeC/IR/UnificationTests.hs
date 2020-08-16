@@ -7,12 +7,12 @@ import           Test.QuickCheck
 
 import           FreeC.Environment.Fresh
 import           FreeC.IR.Subst
-import qualified FreeC.IR.Syntax            as IR
+import qualified FreeC.IR.Syntax as IR
 import           FreeC.IR.Unification
 import           FreeC.Monad.Class.Testable
 import           FreeC.Monad.Converter
 import           FreeC.Pretty
-import           FreeC.Test.Arbitrary       ()
+import           FreeC.Test.Arbitrary ()
 import           FreeC.Test.Environment
 import           FreeC.Test.Parser
 

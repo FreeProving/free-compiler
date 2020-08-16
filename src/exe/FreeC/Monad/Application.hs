@@ -20,13 +20,13 @@ module FreeC.Monad.Application
   , liftConverterIO
   ) where
 
-import           Prelude                   hiding ( fail )
+import           Prelude hiding ( fail )
 
-import           Control.Monad.Fail        ( MonadFail(..) )
+import           Control.Monad.Fail ( MonadFail(..) )
 import           Control.Monad.State
   ( MonadIO(..), MonadState(..), MonadTrans(..), StateT(..), evalStateT, get
   , gets, modify, put, state )
-import           System.IO                 ( stderr )
+import           System.IO ( stderr )
 
 import           FreeC.Application.Options
 import           FreeC.Environment

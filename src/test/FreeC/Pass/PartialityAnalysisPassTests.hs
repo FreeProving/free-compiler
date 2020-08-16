@@ -3,12 +3,12 @@ module FreeC.Pass.PartialityAnalysisPassTests
   ( testPartialityAnalysisPass
   ) where
 
-import           Control.Monad.Extra               ( zipWithM_ )
+import           Control.Monad.Extra ( zipWithM_ )
 import           Test.Hspec
 
 import           FreeC.Environment
 import           FreeC.IR.DependencyGraph
-import qualified FreeC.IR.Syntax                   as IR
+import qualified FreeC.IR.Syntax as IR
 import           FreeC.Monad.Class.Testable
 import           FreeC.Monad.Converter
 import           FreeC.Pass.PartialityAnalysisPass

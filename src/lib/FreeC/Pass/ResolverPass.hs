@@ -158,26 +158,26 @@
 --     a fatal error is reported.
 module FreeC.Pass.ResolverPass ( resolverPass ) where
 
-import           Control.Monad.Fail                ( MonadFail )
+import           Control.Monad.Fail ( MonadFail )
 import           Control.Monad.State
   ( MonadState(..), StateT(..), evalStateT, gets, modify )
-import           Data.Composition                  ( (.:.) )
-import           Data.Function                     ( on )
-import           Data.List                         ( group, intercalate, sort )
-import           Data.Map.Strict                   ( Map )
-import qualified Data.Map.Strict                   as Map
-import           Data.Set                          ( Set )
-import qualified Data.Set                          as Set
-import           Data.Tuple.Extra                  ( (&&&) )
+import           Data.Composition ( (.:.) )
+import           Data.Function ( on )
+import           Data.List ( group, intercalate, sort )
+import           Data.Map.Strict ( Map )
+import qualified Data.Map.Strict as Map
+import           Data.Set ( Set )
+import qualified Data.Set as Set
+import           Data.Tuple.Extra ( (&&&) )
 
 import           FreeC.Environment
 import           FreeC.Environment.ModuleInterface
 import           FreeC.IR.SrcSpan
-import qualified FreeC.IR.Syntax                   as IR
+import qualified FreeC.IR.Syntax as IR
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
 import           FreeC.Pass
-import           FreeC.Pretty                      hiding ( group )
+import           FreeC.Pretty hiding ( group )
 
 -- | Compiler pass that replaces all references by the original names of the
 --   entries they refer to.

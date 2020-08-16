@@ -8,7 +8,7 @@ import           Test.Hspec
 
 import           FreeC.Backend.Coq.Analysis.ConstantArguments
 import           FreeC.Backend.Coq.Converter.FuncDecl.Rec.WithSections
-import           FreeC.Backend.Coq.Pretty                              ()
+import           FreeC.Backend.Coq.Pretty ()
 import           FreeC.Monad.Class.Testable
 import           FreeC.Monad.Converter
 import           FreeC.Test.Environment

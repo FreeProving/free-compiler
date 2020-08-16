@@ -6,7 +6,7 @@
 --   performs some transformation on the converted module.
 module FreeC.Pipeline where
 
-import qualified FreeC.IR.Syntax                   as IR
+import qualified FreeC.IR.Syntax as IR
 import           FreeC.Monad.Converter
 import           FreeC.Pass
 import           FreeC.Pass.CompletePatternPass

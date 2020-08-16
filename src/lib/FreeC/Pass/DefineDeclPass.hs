@@ -29,12 +29,12 @@ module FreeC.Pass.DefineDeclPass
   , defineFuncDeclsPass
   ) where
 
-import           Data.Maybe                        ( fromJust )
+import           Data.Maybe ( fromJust )
 
 import           FreeC.Environment.Entry
 import           FreeC.Environment.Renamer
 import           FreeC.IR.DependencyGraph
-import qualified FreeC.IR.Syntax                   as IR
+import qualified FreeC.IR.Syntax as IR
 import           FreeC.Monad.Converter
 import           FreeC.Pass.DependencyAnalysisPass
 

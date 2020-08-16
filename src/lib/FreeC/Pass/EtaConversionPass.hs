@@ -105,15 +105,15 @@ module FreeC.Pass.EtaConversionPass
   , etaConvertExpr
   ) where
 
-import           Control.Monad                ( replicateM )
-import           Data.Maybe                   ( fromJust, fromMaybe )
+import           Control.Monad ( replicateM )
+import           Data.Maybe ( fromJust, fromMaybe )
 
 import           FreeC.Environment
 import           FreeC.Environment.Entry
 import           FreeC.Environment.Fresh
 import           FreeC.IR.SrcSpan
 import           FreeC.IR.Subterm
-import qualified FreeC.IR.Syntax              as IR
+import qualified FreeC.IR.Syntax as IR
 import           FreeC.Monad.Converter
 import           FreeC.Pass
 -- temporary import; TODO: move this pass before the TypeSignaturePass.

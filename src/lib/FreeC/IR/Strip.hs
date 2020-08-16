@@ -8,10 +8,10 @@ module FreeC.IR.Strip
     StripExprType(..)
   ) where
 
-import           Data.Maybe       ( fromJust )
+import           Data.Maybe ( fromJust )
 
 import           FreeC.IR.Subterm
-import qualified FreeC.IR.Syntax  as IR
+import qualified FreeC.IR.Syntax as IR
 
 -------------------------------------------------------------------------------
 -- Removing Expression Type Annotations                                      --

@@ -10,34 +10,31 @@ module FreeC.Backend.Coq.Converter.FuncDecl.Rec.WithSections
   ( convertRecFuncDeclsWithSection
   ) where
 
-import           Control.Monad
-  ( forM, mapAndUnzipM, zipWithM )
-import           Control.Monad.Extra                                  ( ifM )
-import           Data.List
-  ( (\\), elemIndex, intercalate )
-import           Data.Map.Strict                                      ( Map )
-import qualified Data.Map.Strict                                      as Map
+import           Control.Monad ( forM, mapAndUnzipM, zipWithM )
+import           Control.Monad.Extra ( ifM )
+import           Data.List ( (\\), elemIndex, intercalate )
+import           Data.Map.Strict ( Map )
+import qualified Data.Map.Strict as Map
 import           Data.Maybe
   ( catMaybes, fromJust, fromMaybe, mapMaybe, maybeToList )
-import qualified Data.Set                                             as Set
+import qualified Data.Set as Set
 
 import           FreeC.Backend.Coq.Analysis.ConstantArguments
-import qualified FreeC.Backend.Coq.Base                               as Coq.Base
+import qualified FreeC.Backend.Coq.Base as Coq.Base
 import           FreeC.Backend.Coq.Converter.Free
 import           FreeC.Backend.Coq.Converter.FuncDecl.Common
 import           FreeC.Backend.Coq.Converter.FuncDecl.Rec.WithHelpers
 import           FreeC.Backend.Coq.Converter.Type
-import qualified FreeC.Backend.Coq.Syntax                             as Coq
+import qualified FreeC.Backend.Coq.Syntax as Coq
 import           FreeC.Environment
 import           FreeC.Environment.Entry
 import           FreeC.Environment.Fresh
 import           FreeC.Environment.LookupOrFail
 import           FreeC.Environment.Renamer
-import           FreeC.IR.Reference
-  ( freeTypeVarSet, freeVarSet )
+import           FreeC.IR.Reference ( freeTypeVarSet, freeVarSet )
 import           FreeC.IR.SrcSpan
 import           FreeC.IR.Subst
-import qualified FreeC.IR.Syntax                                      as IR
+import qualified FreeC.IR.Syntax as IR
 import           FreeC.IR.Unification
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter

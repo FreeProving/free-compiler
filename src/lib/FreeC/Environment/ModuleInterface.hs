@@ -14,12 +14,12 @@
 --   don't have to be in scope when the imported type synonym is used.
 module FreeC.Environment.ModuleInterface where
 
-import           Data.Set                  ( Set )
+import           Data.Set ( Set )
 
 import qualified FreeC.Backend.Agda.Syntax as Agda
-import qualified FreeC.Backend.Coq.Syntax  as Coq
+import qualified FreeC.Backend.Coq.Syntax as Coq
 import           FreeC.Environment.Entry
-import qualified FreeC.IR.Syntax           as IR
+import qualified FreeC.IR.Syntax as IR
 
 -- | Data type that contains the information of a module environment that
 --   is exported and imported.

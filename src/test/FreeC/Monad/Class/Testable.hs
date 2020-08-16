@@ -19,23 +19,21 @@ module FreeC.Monad.Class.Testable
   , shouldReturnProperty
   ) where
 
-import           Control.Monad.IO.Class                    ( MonadIO )
-import           Data.Functor.Identity                     ( Identity(..) )
-import           Data.IORef
-  ( IORef, newIORef, readIORef, writeIORef )
-import           Data.List                                 ( intercalate )
+import           Control.Monad.IO.Class ( MonadIO )
+import           Data.Functor.Identity ( Identity(..) )
+import           Data.IORef ( IORef, newIORef, readIORef, writeIORef )
+import           Data.List ( intercalate )
 import           System.IO.Error
   ( catchIOError, ioeGetErrorString, ioeGetFileName )
-import           System.IO.Unsafe                          ( unsafePerformIO )
-import           Test.HUnit.Base                           ( assertFailure )
-import           Test.Hspec
-  hiding ( shouldReturn )
+import           System.IO.Unsafe ( unsafePerformIO )
+import           Test.HUnit.Base ( assertFailure )
+import           Test.Hspec hiding ( shouldReturn )
 import           Test.QuickCheck
 
 import           FreeC.Environment
 import           FreeC.Environment.ModuleInterface
 import           FreeC.Environment.ModuleInterface.Decoder
-import qualified FreeC.IR.Syntax                           as IR
+import qualified FreeC.IR.Syntax as IR
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
 import           FreeC.Pretty

@@ -10,13 +10,13 @@
 --       the current module.
 module FreeC.Frontend.IR.PragmaParser ( parseCustomPragmas ) where
 
-import           Control.Applicative  ( (<|>) )
-import           Control.Monad        ( forM, msum )
-import           Control.Monad.Extra  ( mapMaybeM )
+import           Control.Applicative ( (<|>) )
+import           Control.Monad ( forM, msum )
+import           Control.Monad.Extra ( mapMaybeM )
 import           Text.RegexPR
 
 import           FreeC.IR.SrcSpan
-import qualified FreeC.IR.Syntax      as IR
+import qualified FreeC.IR.Syntax as IR
 import           FreeC.Monad.Reporter
 
 -- | Type alias for a function that creates a pragma AST node

@@ -2,7 +2,7 @@ module Proofs.ReverseInvolutive where
 
 -- @reverse@ is not yet part of our @Prelude@ but of Haskell's @Prelude@.
 -- Thus, we have to hide @reverse@ if we want to run this test in GHCi.
-import           Prelude         hiding ( reverse )
+import           Prelude hiding ( reverse )
 
 import           Test.QuickCheck
 

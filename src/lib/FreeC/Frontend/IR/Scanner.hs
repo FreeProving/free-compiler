@@ -5,17 +5,17 @@
 --   "FreeC.Frontend.IR.Parser" does not have to handle whitespace explicitly.
 module FreeC.Frontend.IR.Scanner ( TokenWithPos(..), scan ) where
 
-import           Data.Char               ( isNumber, isPunctuation, isSymbol )
-import           Text.Parsec             ( (<|>), Parsec )
-import qualified Text.Parsec             as Parsec
-import qualified Text.Parsec.Token       as Parsec
+import           Data.Char ( isNumber, isPunctuation, isSymbol )
+import           Text.Parsec ( (<|>), Parsec )
+import qualified Text.Parsec as Parsec
+import qualified Text.Parsec.Token as Parsec
 
 import           FreeC.Frontend.IR.Token
 import           FreeC.IR.SrcSpan
 import           FreeC.Monad.Reporter
 import           FreeC.Pretty
 import           FreeC.Util.Parsec
-import           FreeC.Util.Predicate    ( (.&&.), (.||.) )
+import           FreeC.Util.Predicate ( (.&&.), (.||.) )
 
 -------------------------------------------------------------------------------
 -- Type Synonyms                                                             --

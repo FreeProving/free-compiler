@@ -56,15 +56,15 @@ module FreeC.Pass.KindCheckPass
   , checkType
   ) where
 
-import           Control.Monad         ( when )
-import           Data.Maybe            ( fromMaybe )
+import           Control.Monad ( when )
+import           Data.Maybe ( fromMaybe )
 
-import           FreeC.Environment     ( lookupArity )
-import qualified FreeC.IR.Syntax       as IR
+import           FreeC.Environment ( lookupArity )
+import qualified FreeC.IR.Syntax as IR
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
 import           FreeC.Pass
-import           FreeC.Pretty          ( showPretty )
+import           FreeC.Pretty ( showPretty )
 
 -- | A compiler pass that checks whether there are type applications with type
 --   variables or function types on the left-hand side in the module and checks

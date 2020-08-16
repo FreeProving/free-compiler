@@ -13,14 +13,14 @@ module FreeC.Test.Environment
   , definePartialStrictTestFunc
   ) where
 
-import           Data.Maybe                ( fromJust )
+import           Data.Maybe ( fromJust )
 
-import qualified FreeC.Backend.Coq.Syntax  as Coq
+import qualified FreeC.Backend.Coq.Syntax as Coq
 import           FreeC.Environment.Entry
 import           FreeC.Environment.Renamer
 import           FreeC.IR.Reference
 import           FreeC.IR.SrcSpan
-import qualified FreeC.IR.Syntax           as IR
+import qualified FreeC.IR.Syntax as IR
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
 import           FreeC.Test.Parser

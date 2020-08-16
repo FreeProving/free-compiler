@@ -3,12 +3,12 @@
 -- | This module contains @Arbitrary@ instances for IR AST nodes.
 module FreeC.Test.Arbitrary where
 
-import           Control.Monad         ( replicateM )
+import           Control.Monad ( replicateM )
 import           Test.QuickCheck
 
 import qualified FreeC.IR.Base.Prelude as IR.Prelude
 import           FreeC.IR.SrcSpan
-import qualified FreeC.IR.Syntax       as IR
+import qualified FreeC.IR.Syntax as IR
 
 -------------------------------------------------------------------------------
 -- Types                                                                     --

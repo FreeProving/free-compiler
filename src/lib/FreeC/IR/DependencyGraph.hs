@@ -61,14 +61,14 @@ module FreeC.IR.DependencyGraph
   , mapComponentM_
   ) where
 
-import           Control.Monad      ( void )
+import           Control.Monad ( void )
 import           Control.Monad.Fail ( MonadFail )
 import           Data.Graph
-import           Data.Maybe         ( mapMaybe )
+import           Data.Maybe ( mapMaybe )
 import           Data.Tuple.Extra
 
 import           FreeC.IR.Reference ( typeRefs, valueRefs )
-import qualified FreeC.IR.Syntax    as IR
+import qualified FreeC.IR.Syntax as IR
 import           FreeC.Pretty
 
 -------------------------------------------------------------------------------

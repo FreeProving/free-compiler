@@ -103,24 +103,24 @@
 --       monad need to be passed to the function.
 module FreeC.Environment.ModuleInterface.Decoder ( loadModuleInterface ) where
 
-import           Control.Monad                     ( when )
-import           Control.Monad.IO.Class            ( MonadIO )
-import           Data.Aeson                        ( (.!=), (.:), (.:?) )
-import qualified Data.Aeson                        as Aeson
-import qualified Data.Aeson.Types                  as Aeson
-import qualified Data.Set                          as Set
-import           Data.Text                         ( Text )
-import qualified Data.Text                         as Text
-import qualified Data.Vector                       as Vector
+import           Control.Monad ( when )
+import           Control.Monad.IO.Class ( MonadIO )
+import           Data.Aeson ( (.!=), (.:), (.:?) )
+import qualified Data.Aeson as Aeson
+import qualified Data.Aeson.Types as Aeson
+import qualified Data.Set as Set
+import           Data.Text ( Text )
+import qualified Data.Text as Text
+import qualified Data.Vector as Vector
 
-import qualified FreeC.Backend.Agda.Syntax         as Agda
-import qualified FreeC.Backend.Coq.Syntax          as Coq
+import qualified FreeC.Backend.Agda.Syntax as Agda
+import qualified FreeC.Backend.Coq.Syntax as Coq
 import           FreeC.Environment.Entry
 import           FreeC.Environment.ModuleInterface
 import           FreeC.Frontend.IR.Parser
-import           FreeC.IR.Reference                ( freeTypeVars )
+import           FreeC.IR.Reference ( freeTypeVars )
 import           FreeC.IR.SrcSpan
-import qualified FreeC.IR.Syntax                   as IR
+import qualified FreeC.IR.Syntax as IR
 import           FreeC.Monad.Reporter
 import           FreeC.Pretty
 import           FreeC.Util.Config

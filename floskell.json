@@ -5,7 +5,7 @@
       "case": true,
       "class": true,
       "import-module": true,
-      "import-spec": true,
+      "import-spec": false,
       "let-binds": true,
       "limits": [
         10,

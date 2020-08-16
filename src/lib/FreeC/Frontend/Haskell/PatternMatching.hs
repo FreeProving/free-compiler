@@ -6,20 +6,20 @@
 module FreeC.Frontend.Haskell.PatternMatching ( transformPatternMatching ) where
 
 import           Application
-import           Control.Monad                     ( void )
-import           Data.Map.Strict                   ( Map )
-import qualified Data.Map.Strict                   as Map
-import           Data.Maybe                        ( mapMaybe )
-import qualified Data.Set                          as Set
+import           Control.Monad ( void )
+import           Data.Map.Strict ( Map )
+import qualified Data.Map.Strict as Map
+import           Data.Maybe ( mapMaybe )
+import qualified Data.Set as Set
 import           FreshVars
-import qualified Language.Haskell.Exts.Syntax      as HSE
+import qualified Language.Haskell.Exts.Syntax as HSE
 
 import           FreeC.Environment
 import           FreeC.Environment.Entry
 import           FreeC.Environment.ModuleInterface
-import qualified FreeC.IR.Base.Prelude             as IR.Prelude
+import qualified FreeC.IR.Base.Prelude as IR.Prelude
 import           FreeC.IR.SrcSpan
-import qualified FreeC.IR.Syntax                   as IR
+import qualified FreeC.IR.Syntax as IR
 import           FreeC.Monad.Converter
 
 -- | Constructs the initial state of the pattern matching compiler library.

@@ -4,7 +4,7 @@ module FreeC.IR.SubstTests where
 import           Test.Hspec
 
 import           FreeC.IR.Subst
-import qualified FreeC.IR.Syntax   as IR
+import qualified FreeC.IR.Syntax as IR
 import           FreeC.Test.Parser
 
 -- | Test group for the 'FreeC.IR.Subst.ApplySubst' instance for expressions.

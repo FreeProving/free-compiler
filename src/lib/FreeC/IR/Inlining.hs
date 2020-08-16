@@ -6,13 +6,13 @@
 --   function into the recursive helper functions.
 module FreeC.IR.Inlining where
 
-import           Control.Monad         ( unless )
-import           Data.Map.Strict       ( Map )
-import qualified Data.Map.Strict       as Map
+import           Control.Monad ( unless )
+import           Data.Map.Strict ( Map )
+import qualified Data.Map.Strict as Map
 
 import           FreeC.IR.SrcSpan
 import           FreeC.IR.Subst
-import qualified FreeC.IR.Syntax       as IR
+import qualified FreeC.IR.Syntax as IR
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
 import           FreeC.Pretty

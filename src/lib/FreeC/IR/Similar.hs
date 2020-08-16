@@ -25,14 +25,14 @@
 --   instances below.
 module FreeC.IR.Similar ( Similar, similar, notSimilar ) where
 
-import           Control.Monad.Extra  ( andM )
-import           Data.Composition     ( (.:) )
-import           Data.Map.Strict      ( Map )
-import qualified Data.Map.Strict      as Map
-import           Data.Set             ( Set )
-import qualified Data.Set             as Set
+import           Control.Monad.Extra ( andM )
+import           Data.Composition ( (.:) )
+import           Data.Map.Strict ( Map )
+import qualified Data.Map.Strict as Map
+import           Data.Set ( Set )
+import qualified Data.Set as Set
 
-import qualified FreeC.IR.Syntax      as IR
+import qualified FreeC.IR.Syntax as IR
 import           FreeC.Util.Predicate ( (.&&.) )
 
 -------------------------------------------------------------------------------

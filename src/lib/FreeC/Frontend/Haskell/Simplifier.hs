@@ -21,19 +21,19 @@ module FreeC.Frontend.Haskell.Simplifier
   , simplifyExpr
   ) where
 
-import           Control.Monad                  ( unless, when )
-import           Data.Composition               ( (.:) )
-import           Data.List.Extra                ( concatUnzip3 )
-import           Data.Maybe                     ( fromJust, fromMaybe, isJust )
-import qualified Language.Haskell.Exts.Syntax   as HSE
+import           Control.Monad ( unless, when )
+import           Data.Composition ( (.:) )
+import           Data.List.Extra ( concatUnzip3 )
+import           Data.Maybe ( fromJust, fromMaybe, isJust )
+import qualified Language.Haskell.Exts.Syntax as HSE
 
 import           FreeC.Environment.Fresh
 import           FreeC.Frontend.IR.PragmaParser
-import qualified FreeC.IR.Base.Prelude          as IR.Prelude
-import           FreeC.IR.Reference             ( freeTypeVars )
+import qualified FreeC.IR.Base.Prelude as IR.Prelude
+import           FreeC.IR.Reference ( freeTypeVars )
 import           FreeC.IR.SrcSpan
-import           FreeC.IR.Subterm               ( findFirstSubterm )
-import qualified FreeC.IR.Syntax                as IR
+import           FreeC.IR.Subterm ( findFirstSubterm )
+import qualified FreeC.IR.Syntax as IR
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
 

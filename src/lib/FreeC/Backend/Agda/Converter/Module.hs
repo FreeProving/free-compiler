@@ -1,20 +1,19 @@
 -- | This module contains functions for converting Haskell modules to Agda.
 module FreeC.Backend.Agda.Converter.Module where
 
-import           Control.Monad.Extra                   ( concatMapM )
-import           Data.List.Extra                       ( splitOn )
-import           Data.Monoid                           ( Ap(Ap), getAp )
+import           Control.Monad.Extra ( concatMapM )
+import           Data.List.Extra ( splitOn )
+import           Data.Monoid ( Ap(Ap), getAp )
 
-import qualified FreeC.Backend.Agda.Base               as Agda.Base
+import qualified FreeC.Backend.Agda.Base as Agda.Base
 import           FreeC.Backend.Agda.Converter.FuncDecl ( convertFuncDecls )
 import           FreeC.Backend.Agda.Converter.TypeDecl ( convertTypeDecls )
-import qualified FreeC.Backend.Agda.Syntax             as Agda
-import           FreeC.Environment                     ( lookupAvailableModule )
-import           FreeC.Environment.ModuleInterface     ( interfaceAgdaLibName )
-import           FreeC.IR.DependencyGraph
-  ( groupFuncDecls, groupTypeDecls )
+import qualified FreeC.Backend.Agda.Syntax as Agda
+import           FreeC.Environment ( lookupAvailableModule )
+import           FreeC.Environment.ModuleInterface ( interfaceAgdaLibName )
+import           FreeC.IR.DependencyGraph ( groupFuncDecls, groupTypeDecls )
 import           FreeC.IR.Pragma
-import qualified FreeC.IR.Syntax                       as IR
+import qualified FreeC.IR.Syntax as IR
 import           FreeC.Monad.Converter
 
 -- | Converts an IR module to an Agda declaration.

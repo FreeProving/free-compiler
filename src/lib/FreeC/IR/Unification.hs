@@ -11,8 +11,8 @@ module FreeC.IR.Unification
   , unifyAll
   ) where
 
-import           Control.Monad.Trans.Except     ( ExceptT, runExceptT, throwE )
-import           Data.Composition               ( (.:) )
+import           Control.Monad.Trans.Except ( ExceptT, runExceptT, throwE )
+import           Data.Composition ( (.:) )
 
 import           FreeC.Environment
 import           FreeC.Environment.Entry
@@ -20,11 +20,11 @@ import           FreeC.Environment.LookupOrFail
 import           FreeC.IR.SrcSpan
 import           FreeC.IR.Subst
 import           FreeC.IR.Subterm
-import qualified FreeC.IR.Syntax                as IR
+import qualified FreeC.IR.Syntax as IR
 import           FreeC.IR.TypeSynExpansion
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
-import           FreeC.Pretty                   ( showPretty )
+import           FreeC.Pretty ( showPretty )
 
 -------------------------------------------------------------------------------
 -- Error Reporting                                                           --

@@ -2,10 +2,10 @@
 --   pragma.
 module FreeC.IR.Pragma where
 
-import           Data.List             ( find, findIndex )
+import           Data.List ( find, findIndex )
 
 import           FreeC.Environment
-import qualified FreeC.IR.Syntax       as IR
+import qualified FreeC.IR.Syntax as IR
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
 import           FreeC.Pretty

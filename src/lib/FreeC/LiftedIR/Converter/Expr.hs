@@ -3,30 +3,30 @@
 -- | Implements the IR to lifted IR translation for expressions.
 module FreeC.LiftedIR.Converter.Expr ( liftExpr ) where
 
-import           Control.Applicative            ( (<|>) )
-import           Control.Monad                  ( join, when )
-import           Data.Bool                      ( bool )
+import           Control.Applicative ( (<|>) )
+import           Control.Monad ( join, when )
+import           Data.Bool ( bool )
 import           Data.Foldable
-import           Data.Maybe                     ( fromJust, fromMaybe )
+import           Data.Maybe ( fromJust, fromMaybe )
 
 import           FreeC.Environment
-import           FreeC.Environment.Entry        ( entryAgdaIdent, entryIdent )
+import           FreeC.Environment.Entry ( entryAgdaIdent, entryIdent )
 import           FreeC.Environment.Fresh
 import           FreeC.Environment.LookupOrFail
   ( lookupAgdaFreshIdentOrFail, lookupAgdaValIdentOrFail, lookupIdentOrFail )
-import           FreeC.Environment.Renamer      ( renameAndDefineLIRVar )
-import qualified FreeC.IR.Base.Prelude          as IR.Prelude
-import           FreeC.IR.SrcSpan               ( SrcSpan(NoSrcSpan) )
+import           FreeC.Environment.Renamer ( renameAndDefineLIRVar )
+import qualified FreeC.IR.Base.Prelude as IR.Prelude
+import           FreeC.IR.SrcSpan ( SrcSpan(NoSrcSpan) )
 import           FreeC.IR.Subst
-import qualified FreeC.IR.Syntax                as IR
-import           FreeC.IR.Syntax.Name           ( identFromQName )
-import qualified FreeC.LiftedIR.Converter.Type  as LIR
-import           FreeC.LiftedIR.Effect          ( Effect(Partiality) )
-import qualified FreeC.LiftedIR.Syntax          as LIR
+import qualified FreeC.IR.Syntax as IR
+import           FreeC.IR.Syntax.Name ( identFromQName )
+import qualified FreeC.LiftedIR.Converter.Type as LIR
+import           FreeC.LiftedIR.Effect ( Effect(Partiality) )
+import qualified FreeC.LiftedIR.Syntax as LIR
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
   ( Message(Message), Severity(Internal, Error), reportFatal )
-import           FreeC.Pretty                   ( showPretty )
+import           FreeC.Pretty ( showPretty )
 
 -- | Converts an expression from IR to lifted IR and lifts it during the
 --   translation.

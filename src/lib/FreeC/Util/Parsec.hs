@@ -4,10 +4,10 @@
 --   library.
 module FreeC.Util.Parsec where
 
-import           Data.Composition     ( (.:) )
-import           Text.Parsec          ( Parsec )
-import qualified Text.Parsec          as Parsec
-import qualified Text.Parsec.Error    as Parsec
+import           Data.Composition ( (.:) )
+import           Text.Parsec ( Parsec )
+import qualified Text.Parsec as Parsec
+import qualified Text.Parsec.Error as Parsec
 
 import           FreeC.IR.SrcSpan
 import           FreeC.Monad.Reporter

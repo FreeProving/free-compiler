@@ -1,18 +1,18 @@
 -- | This module contains tests for "FreeC.Environment.Renamer".
 module FreeC.Environment.RenamerTests where
 
-import           Data.Maybe                 ( mapMaybe )
+import           Data.Maybe ( mapMaybe )
 import           Test.Hspec
 import           Test.QuickCheck
 
-import qualified FreeC.Backend.Coq.Base     as Coq.Base
+import qualified FreeC.Backend.Coq.Base as Coq.Base
 import           FreeC.Backend.Coq.Keywords
-import qualified FreeC.Backend.Coq.Syntax   as Coq
+import qualified FreeC.Backend.Coq.Syntax as Coq
 import           FreeC.Environment
 import           FreeC.Environment.Entry
 import           FreeC.Environment.Renamer
 import           FreeC.IR.SrcSpan
-import qualified FreeC.IR.Syntax            as IR
+import qualified FreeC.IR.Syntax as IR
 
 -- | Test group for all @FreeC.Environment.Renamer@ tests.
 testRenamer :: Spec

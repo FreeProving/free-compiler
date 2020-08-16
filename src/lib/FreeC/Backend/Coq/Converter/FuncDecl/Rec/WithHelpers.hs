@@ -7,29 +7,27 @@ module FreeC.Backend.Coq.Converter.FuncDecl.Rec.WithHelpers
   , convertRecFuncDeclsWithHelpers'
   ) where
 
-import           Control.Monad
-  ( forM, join, mapAndUnzipM )
-import           Data.List
-  ( delete, elemIndex )
-import qualified Data.List.NonEmpty                             as NonEmpty
-import qualified Data.Map.Strict                                as Map
-import           Data.Maybe                                     ( fromJust )
-import qualified Data.Set                                       as Set
+import           Control.Monad ( forM, join, mapAndUnzipM )
+import           Data.List ( delete, elemIndex )
+import qualified Data.List.NonEmpty as NonEmpty
+import qualified Data.Map.Strict as Map
+import           Data.Maybe ( fromJust )
+import qualified Data.Set as Set
 
 import           FreeC.Backend.Coq.Analysis.DecreasingArguments
 import           FreeC.Backend.Coq.Converter.Expr
 import           FreeC.Backend.Coq.Converter.FuncDecl.Common
 import           FreeC.Backend.Coq.Converter.FuncDecl.NonRec
-import qualified FreeC.Backend.Coq.Syntax                       as Coq
+import qualified FreeC.Backend.Coq.Syntax as Coq
 import           FreeC.Environment
 import           FreeC.Environment.Entry
 import           FreeC.Environment.Fresh
 import           FreeC.Environment.Renamer
 import           FreeC.IR.Inlining
-import           FreeC.IR.Reference                             ( freeVarSet )
+import           FreeC.IR.Reference ( freeVarSet )
 import           FreeC.IR.SrcSpan
 import           FreeC.IR.Subterm
-import qualified FreeC.IR.Syntax                                as IR
+import qualified FreeC.IR.Syntax as IR
 import           FreeC.Monad.Converter
 import           FreeC.Pretty
 import           FreeC.Util.Predicate

@@ -42,15 +42,15 @@ module FreeC.Monad.Reporter
   , reportToOrExit
   ) where
 
-import           Control.Monad               ( (<=<), ap, liftM, mzero )
-import           Control.Monad.Fail          ( MonadFail(..) )
-import           Control.Monad.Identity      ( Identity(..) )
-import           Control.Monad.Trans.Maybe   ( MaybeT(..) )
+import           Control.Monad ( (<=<), ap, liftM, mzero )
+import           Control.Monad.Fail ( MonadFail(..) )
+import           Control.Monad.Identity ( Identity(..) )
+import           Control.Monad.Trans.Maybe ( MaybeT(..) )
 import           Control.Monad.Writer
   ( MonadIO(..), MonadTrans(..), Writer, runWriter, tell, writer )
-import           Data.Maybe                  ( isNothing, maybe )
-import           System.Exit                 ( exitFailure )
-import           System.IO                   ( Handle )
+import           Data.Maybe ( isNothing, maybe )
+import           System.Exit ( exitFailure )
+import           System.IO ( Handle )
 import           System.IO.Error
   ( catchIOError, ioeGetErrorString, ioeGetFileName )
 

@@ -39,9 +39,9 @@ module FreeC.Backend.Coq.Syntax
   , requireFrom
   ) where
 
-import           Data.Composition     ( (.:) )
-import qualified Data.List.NonEmpty   as NonEmpty
-import qualified Data.Text            as Text
+import           Data.Composition ( (.:) )
+import qualified Data.List.NonEmpty as NonEmpty
+import qualified Data.Text as Text
 import           Language.Coq.Gallina
 
 -------------------------------------------------------------------------------

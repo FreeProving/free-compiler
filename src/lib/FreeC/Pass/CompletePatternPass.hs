@@ -65,18 +65,18 @@ module FreeC.Pass.CompletePatternPass
   , checkPatternFuncDecl
   ) where
 
-import           Control.Monad                  ( unless )
-import           Data.Maybe                     ( fromJust )
+import           Control.Monad ( unless )
+import           Data.Maybe ( fromJust )
 
 import           FreeC.Environment.Entry
 import           FreeC.Environment.LookupOrFail
 import           FreeC.IR.SrcSpan
-import qualified FreeC.IR.Syntax                as IR
+import qualified FreeC.IR.Syntax as IR
 import           FreeC.IR.TypeSynExpansion
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
 import           FreeC.Pass
-import           FreeC.Pretty                   ( showPretty )
+import           FreeC.Pretty ( showPretty )
 
 -- | Checks that all functions of a given module have complete pattern matching.
 --

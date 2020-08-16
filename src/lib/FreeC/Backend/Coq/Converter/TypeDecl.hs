@@ -2,21 +2,21 @@
 --   declarations and their constructors.
 module FreeC.Backend.Coq.Converter.TypeDecl where
 
-import           Control.Monad                    ( mapAndUnzipM )
-import           Control.Monad.Extra              ( concatMapM )
-import           Data.List                        ( partition )
-import qualified Data.List.NonEmpty               as NonEmpty
-import           Data.Maybe                       ( catMaybes )
-import qualified Data.Set                         as Set
+import           Control.Monad ( mapAndUnzipM )
+import           Control.Monad.Extra ( concatMapM )
+import           Data.List ( partition )
+import qualified Data.List.NonEmpty as NonEmpty
+import           Data.Maybe ( catMaybes )
+import qualified Data.Set as Set
 
-import qualified FreeC.Backend.Coq.Base           as Coq.Base
+import qualified FreeC.Backend.Coq.Base as Coq.Base
 import           FreeC.Backend.Coq.Converter.Arg
 import           FreeC.Backend.Coq.Converter.Free
 import           FreeC.Backend.Coq.Converter.Type
-import qualified FreeC.Backend.Coq.Syntax         as Coq
+import qualified FreeC.Backend.Coq.Syntax as Coq
 import           FreeC.Environment
 import           FreeC.IR.DependencyGraph
-import qualified FreeC.IR.Syntax                  as IR
+import qualified FreeC.IR.Syntax as IR
 import           FreeC.IR.TypeSynExpansion
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter

@@ -1,14 +1,14 @@
 -- | This module contains tests for "FreeC.IR.Subterm".
 module FreeC.IR.SubtermTests where
 
-import           Data.Maybe        ( isJust )
-import qualified Data.Set          as Set
+import           Data.Maybe ( isJust )
+import qualified Data.Set as Set
 import           Test.Hspec
 import           Test.QuickCheck
 
 import           FreeC.IR.SrcSpan
 import           FreeC.IR.Subterm
-import           FreeC.IR.Syntax   as IR
+import           FreeC.IR.Syntax as IR
 import           FreeC.Test.Parser
 
 -------------------------------------------------------------------------------

@@ -25,14 +25,14 @@ module FreeC.IR.TypeSynExpansion
   , expandTypeSynonymAt
   ) where
 
-import           Control.Applicative         ( (<|>) )
-import           Control.Monad.Trans.Maybe   ( MaybeT(..) )
-import           Data.Maybe                  ( fromMaybe )
+import           Control.Applicative ( (<|>) )
+import           Control.Monad.Trans.Maybe ( MaybeT(..) )
+import           Data.Maybe ( fromMaybe )
 
 import           FreeC.Environment
 import           FreeC.IR.Subst
 import           FreeC.IR.Subterm
-import qualified FreeC.IR.Syntax             as IR
+import qualified FreeC.IR.Syntax as IR
 import           FreeC.Monad.Class.Hoistable ( hoistMaybe )
 import           FreeC.Monad.Converter
 

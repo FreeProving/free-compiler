@@ -1,17 +1,17 @@
 -- | This module contains functions for converting Haskell expressions to Coq.
 module FreeC.Backend.Coq.Converter.Expr where
 
-import           Control.Monad                    ( (>=>) )
+import           Control.Monad ( (>=>) )
 
-import qualified FreeC.Backend.Coq.Base           as Coq.Base
+import qualified FreeC.Backend.Coq.Base as Coq.Base
 import           FreeC.Backend.Coq.Converter.Free
 import           FreeC.Backend.Coq.Converter.Type
-import qualified FreeC.Backend.Coq.Syntax         as Coq
+import qualified FreeC.Backend.Coq.Syntax as Coq
 import           FreeC.Environment.LookupOrFail
-import qualified FreeC.IR.Syntax                  as IR
+import qualified FreeC.IR.Syntax as IR
 import           FreeC.LiftedIR.Converter.Expr
 import           FreeC.LiftedIR.Effect
-import qualified FreeC.LiftedIR.Syntax            as LIR
+import qualified FreeC.LiftedIR.Syntax as LIR
 import           FreeC.Monad.Converter
 
 -------------------------------------------------------------------------------

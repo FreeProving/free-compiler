@@ -26,17 +26,17 @@ module FreeC.IR.Subst
   , renameArgs
   ) where
 
-import           Data.Composition        ( (.:) )
-import           Data.Map.Strict         ( Map )
-import qualified Data.Map.Strict         as Map
-import           Data.Maybe              ( mapMaybe )
-import           Data.Set                ( Set )
-import qualified Data.Set                as Set
+import           Data.Composition ( (.:) )
+import           Data.Map.Strict ( Map )
+import qualified Data.Map.Strict as Map
+import           Data.Maybe ( mapMaybe )
+import           Data.Set ( Set )
+import qualified Data.Set as Set
 
 import           FreeC.Environment.Fresh
 import           FreeC.IR.Reference
 import           FreeC.IR.SrcSpan
-import qualified FreeC.IR.Syntax         as IR
+import qualified FreeC.IR.Syntax as IR
 import           FreeC.Monad.Converter
 import           FreeC.Pretty
 

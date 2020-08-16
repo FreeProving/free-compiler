@@ -4,21 +4,21 @@ module FreeC.Backend.Agda.Converter.Type
   , convertLiftedConType
   ) where
 
-import           Prelude                           hiding ( pi )
+import           Prelude hiding ( pi )
 
-import           Data.Bool                         ( bool )
+import           Data.Bool ( bool )
 
 import           FreeC.Backend.Agda.Converter.Free
   ( addPartial, applyFreeArgs, free )
 import           FreeC.Backend.Agda.Converter.Size ( up )
-import qualified FreeC.Backend.Agda.Syntax         as Agda
-import           FreeC.Environment.Fresh           ( freshAgdaVar )
-import           FreeC.Environment.LookupOrFail    ( lookupAgdaIdentOrFail )
-import           FreeC.IR.SrcSpan                  ( SrcSpan(NoSrcSpan) )
-import qualified FreeC.IR.Syntax                   as IR
-import qualified FreeC.LiftedIR.Syntax             as LIR
-import           FreeC.LiftedIR.Syntax.Type        ( decreasing )
-import           FreeC.Monad.Converter             ( Converter, localEnv )
+import qualified FreeC.Backend.Agda.Syntax as Agda
+import           FreeC.Environment.Fresh ( freshAgdaVar )
+import           FreeC.Environment.LookupOrFail ( lookupAgdaIdentOrFail )
+import           FreeC.IR.SrcSpan ( SrcSpan(NoSrcSpan) )
+import qualified FreeC.IR.Syntax as IR
+import qualified FreeC.LiftedIR.Syntax as LIR
+import           FreeC.LiftedIR.Syntax.Type ( decreasing )
+import           FreeC.Monad.Converter ( Converter, localEnv )
 
 -------------------------------------------------------------------------------
 -- Functions                                                                 --

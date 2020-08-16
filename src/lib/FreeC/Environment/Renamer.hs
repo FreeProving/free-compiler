@@ -25,24 +25,24 @@ module FreeC.Environment.Renamer
   , renameAndDefineLIRVar
   ) where
 
-import           Control.Monad               ( when )
+import           Control.Monad ( when )
 import           Data.Char
-import           Data.Composition            ( (.:) )
-import           Data.List.Extra             ( splitOn )
-import           Data.Maybe                  ( fromMaybe, mapMaybe )
+import           Data.Composition ( (.:) )
+import           Data.List.Extra ( splitOn )
+import           Data.Maybe ( fromMaybe, mapMaybe )
 import           Text.Casing
 import           Text.RegexPR
 
-import qualified FreeC.Backend.Agda.Base     as Agda.Base
+import qualified FreeC.Backend.Agda.Base as Agda.Base
 import           FreeC.Backend.Agda.Keywords
-import qualified FreeC.Backend.Agda.Syntax   as Agda
-import qualified FreeC.Backend.Coq.Base      as Coq.Base
+import qualified FreeC.Backend.Agda.Syntax as Agda
+import qualified FreeC.Backend.Coq.Base as Coq.Base
 import           FreeC.Backend.Coq.Keywords
-import qualified FreeC.Backend.Coq.Syntax    as Coq
+import qualified FreeC.Backend.Coq.Syntax as Coq
 import           FreeC.Environment
 import           FreeC.Environment.Entry
 import           FreeC.IR.SrcSpan
-import qualified FreeC.IR.Syntax             as IR
+import qualified FreeC.IR.Syntax as IR
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
 import           FreeC.Pretty

@@ -6,24 +6,24 @@ module FreeC.Backend
   , defaultBackend
   ) where
 
-import           Control.Monad.Extra                 ( unlessM, whenM )
+import           Control.Monad.Extra ( unlessM, whenM )
 import           Control.Monad.IO.Class
-import           Data.List                           ( intercalate )
-import qualified Data.Map.Strict                     as Map
-import           Data.Maybe                          ( isJust )
+import           Data.List ( intercalate )
+import qualified Data.Map.Strict as Map
+import           Data.Maybe ( isJust )
 import           System.Directory
   ( createDirectoryIfMissing, doesFileExist, makeAbsolute )
 import           System.FilePath
 
 import           FreeC.Application.Options
 import qualified FreeC.Backend.Agda.Converter.Module as Agda.Converter
-import           FreeC.Backend.Agda.Pretty           ()
-import qualified FreeC.Backend.Coq.Base              as Coq.Base
-import qualified FreeC.Backend.Coq.Converter.Module  as Coq.Converter
-import           FreeC.Backend.Coq.Pretty            ()
-import qualified FreeC.IR.Syntax                     as IR
+import           FreeC.Backend.Agda.Pretty ()
+import qualified FreeC.Backend.Coq.Base as Coq.Base
+import qualified FreeC.Backend.Coq.Converter.Module as Coq.Converter
+import           FreeC.Backend.Coq.Pretty ()
+import qualified FreeC.IR.Syntax as IR
 import           FreeC.Monad.Application
-import           FreeC.Pretty                        ( showPretty )
+import           FreeC.Pretty ( showPretty )
 
 -- | Data type that represents a backend.
 data Backend = Backend

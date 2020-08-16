@@ -1,10 +1,10 @@
 module FreeC.Frontend.IR.ParserTests where
 
-import           Test.Hspec                 hiding ( shouldReturn )
+import           Test.Hspec hiding ( shouldReturn )
 
 import           FreeC.Frontend.IR.Parser
 import           FreeC.IR.SrcSpan
-import qualified FreeC.IR.Syntax            as IR
+import qualified FreeC.IR.Syntax as IR
 import           FreeC.Monad.Class.Testable
 import           FreeC.Monad.Reporter
 import           FreeC.Test.Parser

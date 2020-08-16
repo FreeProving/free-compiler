@@ -1,17 +1,17 @@
 -- | This module contains functions for converting Haskell modules to Coq.
 module FreeC.Backend.Coq.Converter.Module where
 
-import           Control.Monad.Extra                  ( concatMapM )
+import           Control.Monad.Extra ( concatMapM )
 
-import qualified FreeC.Backend.Coq.Base               as Coq.Base
+import qualified FreeC.Backend.Coq.Base as Coq.Base
 import           FreeC.Backend.Coq.Converter.FuncDecl
 import           FreeC.Backend.Coq.Converter.TypeDecl
-import qualified FreeC.Backend.Coq.Syntax             as Coq
+import qualified FreeC.Backend.Coq.Syntax as Coq
 import           FreeC.Environment
 import           FreeC.Environment.ModuleInterface
 import           FreeC.IR.DependencyGraph
 import           FreeC.IR.Pragma
-import qualified FreeC.IR.Syntax                      as IR
+import qualified FreeC.IR.Syntax as IR
 import           FreeC.Monad.Converter
 import           FreeC.Pretty
 

@@ -3,10 +3,10 @@
 module FreeC.Backend.Coq.Converter.Arg where
 
 import           FreeC.Backend.Coq.Converter.Type
-import qualified FreeC.Backend.Coq.Syntax         as Coq
+import qualified FreeC.Backend.Coq.Syntax as Coq
 import           FreeC.Environment.Fresh
 import           FreeC.Environment.Renamer
-import qualified FreeC.IR.Syntax                  as IR
+import qualified FreeC.IR.Syntax as IR
 import           FreeC.Monad.Converter
 
 -------------------------------------------------------------------------------

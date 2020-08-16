@@ -2,21 +2,21 @@
 --   declarations and their constructors.
 module FreeC.Backend.Agda.Converter.TypeDecl ( convertTypeDecls ) where
 
-import           Data.List.Extra                   ( snoc )
+import           Data.List.Extra ( snoc )
 
-import qualified FreeC.Backend.Agda.Base           as Agda.Base
-import           FreeC.Backend.Agda.Converter.Arg  ( convertTypeVarDecl )
+import qualified FreeC.Backend.Agda.Base as Agda.Base
+import           FreeC.Backend.Agda.Converter.Arg ( convertTypeVarDecl )
 import           FreeC.Backend.Agda.Converter.Free
 import           FreeC.Backend.Agda.Converter.Size
 import           FreeC.Backend.Agda.Converter.Type ( convertLiftedConType )
-import qualified FreeC.Backend.Agda.Syntax         as Agda
-import           FreeC.Environment.Fresh           ( freshAgdaVar )
+import qualified FreeC.Backend.Agda.Syntax as Agda
+import           FreeC.Environment.Fresh ( freshAgdaVar )
 import           FreeC.Environment.LookupOrFail
 import           FreeC.IR.DependencyGraph
-import           FreeC.IR.SrcSpan                  ( SrcSpan(NoSrcSpan) )
-import qualified FreeC.IR.Syntax                   as IR
-import           FreeC.LiftedIR.Converter.Type     ( liftConArgType, liftType' )
-import           FreeC.Monad.Converter             ( Converter, localEnv )
+import           FreeC.IR.SrcSpan ( SrcSpan(NoSrcSpan) )
+import qualified FreeC.IR.Syntax as IR
+import           FreeC.LiftedIR.Converter.Type ( liftConArgType, liftType' )
+import           FreeC.Monad.Converter ( Converter, localEnv )
 import           FreeC.Monad.Reporter
   ( Message(Message), Severity(Error), reportFatal )
 
@@ -104,8 +104,8 @@ convertConDecl ident retType (IR.ConDecl _ (IR.DeclIdent srcSpan name) argTypes)
     Agda.funcSig <$> lookupUnQualAgdaIdentOrFail srcSpan IR.ValueScope name
       <*> convertLiftedConType argTypes' retType'
 
--- | Converts a single constructor to a smart constructor, which wraps the normal
---   constructor in the @Free@ monad using @pure@.
+-- | Converts a single constructor to a smart constructor, which wraps the
+--   normal constructor in the @Free@ monad using @pure@.
 --
 --   We use Agda's @pattern@ declarations for smart constructors to simplify
 --   pattern matching in proofs.

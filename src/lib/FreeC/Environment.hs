@@ -40,19 +40,19 @@ module FreeC.Environment
   , lookupDecArgIdent
   ) where
 
-import           Data.Composition                  ( (.:), (.:.) )
-import           Data.List                         ( find )
-import           Data.Map.Strict                   ( Map )
-import qualified Data.Map.Strict                   as Map
-import           Data.Maybe                        ( isJust )
-import           Data.Tuple.Extra                  ( (&&&) )
+import           Data.Composition ( (.:), (.:.) )
+import           Data.List ( find )
+import           Data.Map.Strict ( Map )
+import qualified Data.Map.Strict as Map
+import           Data.Maybe ( isJust )
+import           Data.Tuple.Extra ( (&&&) )
 
-import qualified FreeC.Backend.Agda.Syntax         as Agda
-import qualified FreeC.Backend.Coq.Syntax          as Coq
+import qualified FreeC.Backend.Agda.Syntax as Agda
+import qualified FreeC.Backend.Coq.Syntax as Coq
 import           FreeC.Environment.Entry
 import           FreeC.Environment.ModuleInterface
 import           FreeC.IR.SrcSpan
-import qualified FreeC.IR.Syntax                   as IR
+import qualified FreeC.IR.Syntax as IR
 import           FreeC.Util.Predicate
 
 -------------------------------------------------------------------------------

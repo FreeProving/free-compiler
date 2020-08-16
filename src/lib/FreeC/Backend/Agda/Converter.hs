@@ -7,5 +7,5 @@ module FreeC.Backend.Agda.Converter
   ) where
 
 import           FreeC.Backend.Agda.Converter.FuncDecl ( convertFuncDecls )
-import           FreeC.Backend.Agda.Converter.Module   ( convertModule )
+import           FreeC.Backend.Agda.Converter.Module ( convertModule )
 import           FreeC.Backend.Agda.Converter.TypeDecl ( convertTypeDecls )

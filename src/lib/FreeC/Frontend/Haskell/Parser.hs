@@ -13,20 +13,20 @@ module FreeC.Frontend.Haskell.Parser
   , parseHaskellModuleFileWithComments
   ) where
 
-import           Control.Monad.IO.Class                  ( MonadIO(..) )
-import qualified Language.Haskell.Exts.Comments          as HSE
+import           Control.Monad.IO.Class ( MonadIO(..) )
+import qualified Language.Haskell.Exts.Comments as HSE
 import           Language.Haskell.Exts.Extension
   ( Extension(..), KnownExtension(..), Language(..) )
 import           Language.Haskell.Exts.Fixity
   ( Fixity, infix_, infixl_, infixr_ )
 import           Language.Haskell.Exts.Parser
   ( ParseMode(..), ParseResult(..), Parseable(..) )
-import           Language.Haskell.Exts.SrcLoc            ( SrcSpanInfo )
-import qualified Language.Haskell.Exts.Syntax            as HSE
+import           Language.Haskell.Exts.SrcLoc ( SrcSpanInfo )
+import qualified Language.Haskell.Exts.Syntax as HSE
 
 import           FreeC.Frontend.Haskell.SrcSpanConverter
 import           FreeC.IR.SrcSpan
-import           FreeC.IR.Syntax                         as IR
+import           FreeC.IR.Syntax as IR
 import           FreeC.Monad.Reporter
 
 -- | Custom parameters for parsing a Haskell source file with the given name.

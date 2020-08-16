@@ -4,12 +4,11 @@ module FreeC.Backend.Coq.Analysis.ConstantArgumentsTests
   ( testConstantArguments
   ) where
 
-import qualified Data.Map.Strict                              as Map
-import           Test.Hspec
-  hiding ( shouldReturn )
+import qualified Data.Map.Strict as Map
+import           Test.Hspec hiding ( shouldReturn )
 
 import           FreeC.Backend.Coq.Analysis.ConstantArguments
-import qualified FreeC.IR.Syntax                              as IR
+import qualified FreeC.IR.Syntax as IR
 import           FreeC.Monad.Class.Testable
 import           FreeC.Monad.Converter
 import           FreeC.Test.Parser

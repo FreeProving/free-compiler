@@ -2,7 +2,7 @@
 --   language.
 module FreeC.IR.Syntax.Expr where
 
-import           Control.Monad              ( (>=>) )
+import           Control.Monad ( (>=>) )
 
 import           FreeC.IR.SrcSpan
 import           FreeC.IR.Syntax.Name

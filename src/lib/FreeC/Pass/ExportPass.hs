@@ -62,16 +62,16 @@
 --   The environment contains a module interface for the translated module.
 module FreeC.Pass.ExportPass ( exportPass ) where
 
-import qualified Data.Map.Strict                   as Map
-import qualified Data.Set                          as Set
+import qualified Data.Map.Strict as Map
+import qualified Data.Set as Set
 
-import qualified FreeC.Backend.Agda.Base           as Agda.Base
-import qualified FreeC.Backend.Coq.Base            as Coq.Base
-import qualified FreeC.Backend.Coq.Syntax          as Coq
+import qualified FreeC.Backend.Agda.Base as Agda.Base
+import qualified FreeC.Backend.Coq.Base as Coq.Base
+import qualified FreeC.Backend.Coq.Syntax as Coq
 import           FreeC.Environment
 import           FreeC.Environment.Entry
 import           FreeC.Environment.ModuleInterface
-import qualified FreeC.IR.Syntax                   as IR
+import qualified FreeC.IR.Syntax as IR
 import           FreeC.Monad.Converter
 import           FreeC.Pass
 

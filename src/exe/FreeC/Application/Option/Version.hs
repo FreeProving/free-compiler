@@ -6,9 +6,9 @@
 --   of the Git commit at compile time.
 module FreeC.Application.Option.Version where
 
-import           Data.Either.Extra   ( eitherToMaybe )
-import           Data.List           ( intercalate )
-import           Data.Maybe          ( maybeToList )
+import           Data.Either.Extra ( eitherToMaybe )
+import           Data.List ( intercalate )
+import           Data.Maybe ( maybeToList )
 import           Data.Version
 import           GitHash
 import           Paths_free_compiler

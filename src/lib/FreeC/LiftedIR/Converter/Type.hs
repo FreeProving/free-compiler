@@ -10,10 +10,10 @@ module FreeC.LiftedIR.Converter.Type
   , liftType'
   ) where
 
-import           Data.Bool             ( bool )
+import           Data.Bool ( bool )
 
-import           FreeC.IR.SrcSpan      ( SrcSpan(NoSrcSpan) )
-import qualified FreeC.IR.Syntax       as IR
+import           FreeC.IR.SrcSpan ( SrcSpan(NoSrcSpan) )
+import qualified FreeC.IR.Syntax as IR
 import qualified FreeC.LiftedIR.Syntax as LIR
 import           FreeC.Monad.Converter ( Converter )
 import           FreeC.Monad.Reporter

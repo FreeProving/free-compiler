@@ -2,28 +2,24 @@
 --   from our intermediate representation.
 module FreeC.Backend.Agda.Converter.FuncDecl ( convertFuncDecls ) where
 
-import           Control.Monad                                  ( (>=>) )
-import           Data.Maybe                                     ( fromJust )
+import           Control.Monad ( (>=>) )
+import           Data.Maybe ( fromJust )
 
 import           FreeC.Backend.Agda.Converter.Arg
   ( convertArg, convertTypeVarDecl )
-import           FreeC.Backend.Agda.Converter.Expr
-  ( convertLiftedExpr )
-import           FreeC.Backend.Agda.Converter.Free              ( addFreeArgs )
-import           FreeC.Backend.Agda.Converter.Type
-  ( convertLiftedFuncType )
-import qualified FreeC.Backend.Agda.Syntax                      as Agda
+import           FreeC.Backend.Agda.Converter.Expr ( convertLiftedExpr )
+import           FreeC.Backend.Agda.Converter.Free ( addFreeArgs )
+import           FreeC.Backend.Agda.Converter.Type ( convertLiftedFuncType )
+import qualified FreeC.Backend.Agda.Syntax as Agda
 import           FreeC.Backend.Coq.Analysis.DecreasingArguments
   ( identifyDecArgs )
-import           FreeC.Environment                              ( isPartial )
+import           FreeC.Environment ( isPartial )
 import           FreeC.Environment.LookupOrFail
 import           FreeC.IR.DependencyGraph
-import qualified FreeC.IR.Syntax                                as IR
-import           FreeC.LiftedIR.Converter.Expr                  ( liftExpr )
-import           FreeC.LiftedIR.Converter.Type
-  ( liftFuncArgTypes, liftType )
-import           FreeC.Monad.Converter
-  ( Converter, inEnv, localEnv )
+import qualified FreeC.IR.Syntax as IR
+import           FreeC.LiftedIR.Converter.Expr ( liftExpr )
+import           FreeC.LiftedIR.Converter.Type ( liftFuncArgTypes, liftType )
+import           FreeC.Monad.Converter ( Converter, inEnv, localEnv )
 import           FreeC.Monad.Reporter
   ( Message(Message), Severity(Error), reportFatal )
 

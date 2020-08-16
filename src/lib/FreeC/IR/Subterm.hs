@@ -33,16 +33,16 @@ module FreeC.IR.Subterm
   , boundVarsWithTypeAt
   ) where
 
-import           Control.Monad    ( foldM )
+import           Control.Monad ( foldM )
 import           Data.Composition ( (.:) )
-import           Data.List        ( intersperse, isPrefixOf )
-import           Data.Map.Strict  ( Map )
-import qualified Data.Map.Strict  as Map
-import           Data.Maybe       ( fromMaybe, listToMaybe )
-import           Data.Set         ( Set )
+import           Data.List ( intersperse, isPrefixOf )
+import           Data.Map.Strict ( Map )
+import qualified Data.Map.Strict as Map
+import           Data.Maybe ( fromMaybe, listToMaybe )
+import           Data.Set ( Set )
 import           Data.Tuple.Extra ( (&&&) )
 
-import qualified FreeC.IR.Syntax  as IR
+import qualified FreeC.IR.Syntax as IR
 import           FreeC.Pretty
 
 -------------------------------------------------------------------------------

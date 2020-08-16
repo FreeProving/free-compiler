@@ -4,11 +4,11 @@ module FreeC.Backend.Agda.Converter.TypeDeclTests ( testConvertDataDecls ) where
 import           Test.Hspec
 
 import           FreeC.Backend.Agda.Converter.TypeDecl ( convertTypeDecls )
-import           FreeC.Backend.Agda.Pretty             ()
+import           FreeC.Backend.Agda.Pretty ()
 import           FreeC.IR.DependencyGraph
 import           FreeC.Monad.Class.Testable
 import           FreeC.Monad.Converter
-import           FreeC.Pretty                          ( showPretty )
+import           FreeC.Pretty ( showPretty )
 import           FreeC.Test.Environment
 import           FreeC.Test.Expectations
 import           FreeC.Test.Parser

@@ -6,7 +6,7 @@ module FreeC.Backend.Coq.Converter.FuncDecl.NonRecTests
 import           Test.Hspec
 
 import           FreeC.Backend.Coq.Converter.FuncDecl.NonRec
-import           FreeC.Backend.Coq.Pretty                    ()
+import           FreeC.Backend.Coq.Pretty ()
 import           FreeC.Monad.Class.Testable
 import           FreeC.Monad.Converter
 import           FreeC.Test.Environment

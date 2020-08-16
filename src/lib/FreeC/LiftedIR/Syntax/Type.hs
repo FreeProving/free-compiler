@@ -2,7 +2,7 @@
 --   lifted intermediate language.
 module FreeC.LiftedIR.Syntax.Type where
 
-import           FreeC.IR.SrcSpan           ( SrcSpan )
+import           FreeC.IR.SrcSpan ( SrcSpan )
 import           FreeC.LiftedIR.Syntax.Name
 
 -- | A type expression.

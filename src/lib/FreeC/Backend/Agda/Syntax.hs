@@ -36,7 +36,7 @@ module FreeC.Backend.Agda.Syntax
   , pi
   ) where
 
-import           Prelude              hiding ( pi )
+import           Prelude hiding ( pi )
 
 import           Agda.Syntax.Common
 import           Agda.Syntax.Concrete
@@ -185,8 +185,8 @@ opApp (Ident op)
   = paren . RawApp NoRange . opApp' (nameNameParts $ unqualify $ op)
 opApp _          = error "Only an identifier can be an operator!"
 
--- | Translates a list of @NamePart@s to a list of expressions by replacing holes
---   with arguments and translating name parts to identifiers.
+-- | Translates a list of @NamePart@s to a list of expressions by replacing
+--   holes with arguments and translating name parts to identifiers.
 opApp' :: [NamePart] -> [Expr] -> [Expr]
 opApp' (Hole : ps) (a : as) = a : opApp' ps as
 opApp' (Id part : ps) as = ident part : opApp' ps as

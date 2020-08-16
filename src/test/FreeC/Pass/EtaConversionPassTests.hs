@@ -4,7 +4,7 @@ module FreeC.Pass.EtaConversionPassTests where
 import           Test.Hspec
 
 import           FreeC.Environment
-import qualified FreeC.IR.Syntax              as IR
+import qualified FreeC.IR.Syntax as IR
 import           FreeC.Monad.Class.Testable
 import           FreeC.Monad.Converter
 import           FreeC.Pass.EtaConversionPass

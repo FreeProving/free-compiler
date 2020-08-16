@@ -30,17 +30,17 @@ module FreeC.Backend.Coq.Analysis.ConstantArguments
   , identifyConstArgs
   ) where
 
-import           Control.Monad            ( guard )
+import           Control.Monad ( guard )
 import           Data.Graph
-import           Data.List                ( elemIndex, intercalate, nub )
-import           Data.Map.Strict          ( Map )
-import qualified Data.Map.Strict          as Map
-import           Data.Maybe               ( fromJust, mapMaybe, maybeToList )
+import           Data.List ( elemIndex, intercalate, nub )
+import           Data.Map.Strict ( Map )
+import qualified Data.Map.Strict as Map
+import           Data.Maybe ( fromJust, mapMaybe, maybeToList )
 
 import           FreeC.Environment.Fresh
 import           FreeC.IR.DependencyGraph
-import           FreeC.IR.Reference       ( freeVarSet )
-import qualified FreeC.IR.Syntax          as IR
+import           FreeC.IR.Reference ( freeVarSet )
+import qualified FreeC.IR.Syntax as IR
 import           FreeC.Monad.Converter
 
 -------------------------------------------------------------------------------

@@ -5,8 +5,8 @@ module FreeC.Backend.Coq.Converter.FuncDecl.Rec ( convertRecFuncDecls ) where
 import           FreeC.Backend.Coq.Analysis.ConstantArguments
 import           FreeC.Backend.Coq.Converter.FuncDecl.Rec.WithHelpers
 import           FreeC.Backend.Coq.Converter.FuncDecl.Rec.WithSections
-import qualified FreeC.Backend.Coq.Syntax                              as Coq
-import qualified FreeC.IR.Syntax                                       as IR
+import qualified FreeC.Backend.Coq.Syntax as Coq
+import qualified FreeC.IR.Syntax as IR
 import           FreeC.Monad.Converter
 
 -- | Converts (mutually) recursive Haskell function declarations to Coq.

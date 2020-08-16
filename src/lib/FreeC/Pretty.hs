@@ -23,8 +23,8 @@ module FreeC.Pretty
   , showPretty
   ) where
 
-import           Data.List                    ( intersperse )
-import qualified Data.Text.Lazy               as LazyText
+import           Data.List ( intersperse )
+import qualified Data.Text.Lazy as LazyText
 import           System.IO
 import           Text.PrettyPrint.Leijen.Text hiding ( (<$>) )
 

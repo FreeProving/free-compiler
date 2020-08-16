@@ -1,16 +1,16 @@
 -- | This module contains tests for "FreeC.Pass.ExportPass".
 module FreeC.Pass.ExportPassTests ( testExportPass ) where
 
-import           Data.List                         ( find )
-import           Data.Maybe                        ( fromJust )
-import qualified Data.Set                          as Set
+import           Data.List ( find )
+import           Data.Maybe ( fromJust )
+import qualified Data.Set as Set
 import           Test.Hspec
 
-import qualified FreeC.Backend.Coq.Syntax          as Coq
+import qualified FreeC.Backend.Coq.Syntax as Coq
 import           FreeC.Environment
 import           FreeC.Environment.Entry
 import           FreeC.Environment.ModuleInterface
-import qualified FreeC.IR.Syntax                   as IR
+import qualified FreeC.IR.Syntax as IR
 import           FreeC.Monad.Class.Testable
 import           FreeC.Monad.Converter
 import           FreeC.Pass.ExportPass

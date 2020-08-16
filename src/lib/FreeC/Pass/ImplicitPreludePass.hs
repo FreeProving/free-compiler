@@ -43,7 +43,7 @@ module FreeC.Pass.ImplicitPreludePass ( implicitPreludePass ) where
 
 import qualified FreeC.IR.Base.Prelude as IR.Prelude
 import           FreeC.IR.SrcSpan
-import qualified FreeC.IR.Syntax       as IR
+import qualified FreeC.IR.Syntax as IR
 import           FreeC.Pass
 
 -- | A compiler pass that adds an import declaration for the @Prelude@ module

@@ -4,8 +4,7 @@ module FreeC.Backend.Coq.Analysis.DecreasingArgumentsTests
   ( testDecreasingArguments
   ) where
 
-import           Test.Hspec
-  hiding ( shouldReturn )
+import           Test.Hspec hiding ( shouldReturn )
 
 import           FreeC.Backend.Coq.Analysis.DecreasingArguments
 import           FreeC.Environment

@@ -3,11 +3,11 @@ module FreeC.IR.InliningTests where
 
 import           Test.Hspec
 
-import           FreeC.IR.Inlining          ( inlineExpr, inlineFuncDecls )
+import           FreeC.IR.Inlining ( inlineExpr, inlineFuncDecls )
 import           FreeC.Monad.Class.Testable ( shouldSucceedWith )
 import           FreeC.Test.Environment
 import           FreeC.Test.Expectations
-import           FreeC.Test.Parser          ( parseTestExpr, parseTestFuncDecl )
+import           FreeC.Test.Parser ( parseTestExpr, parseTestFuncDecl )
 
 -- | Test group for 'inlineExpr' and 'inlineFuncDecls'.
 testInlining :: Spec

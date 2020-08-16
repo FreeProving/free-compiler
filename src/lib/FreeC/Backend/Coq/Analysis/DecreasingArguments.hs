@@ -63,19 +63,19 @@ module FreeC.Backend.Coq.Analysis.DecreasingArguments
   , identifyDecArgs
   ) where
 
-import           Data.List             ( find )
-import           Data.Map.Strict       ( Map )
-import qualified Data.Map.Strict       as Map
-import           Data.Set              ( (\\), Set )
-import qualified Data.Set              as Set
-import           Data.Tuple.Extra      ( uncurry3 )
+import           Data.List ( find )
+import           Data.Map.Strict ( Map )
+import qualified Data.Map.Strict as Map
+import           Data.Set ( (\\), Set )
+import qualified Data.Set as Set
+import           Data.Tuple.Extra ( uncurry3 )
 
 import           FreeC.Environment
-import qualified FreeC.IR.Syntax       as IR
+import qualified FreeC.IR.Syntax as IR
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
 import           FreeC.Pretty
-import           FreeC.Util.Predicate  ( (.||.) )
+import           FreeC.Util.Predicate ( (.||.) )
 
 -------------------------------------------------------------------------------
 -- Guessing Decreasing Arguments                                             --
@@ -211,8 +211,8 @@ checkDecArgs decls knownDecArgIndecies decArgIndecies = all
       -- | Applies 'checkExpr' on the right-hand side of an alternative of a
       --   @case@ expression.
       --
-      --   The variable patterns shadow existing (structurally smaller) variables
-      --   with the same name.
+      --   The variable patterns shadow existing (structurally smaller)
+      --   variables with the same name.
       checkAlt :: IR.Alt -> Bool
       checkAlt (IR.Alt _ _ varPats expr)
         = let smaller' = withoutArgs varPats smaller
@@ -231,7 +231,8 @@ checkDecArgs decls knownDecArgIndecies decArgIndecies = all
         = let smaller' = withArgs varPats smaller
           in checkExpr decArg smaller' expr []
 
-      -- | Adds the given variables to the set of structurally smaller variables.
+      -- | Adds the given variables to the set of structurally smaller
+      --   variables.
       withArgs :: [IR.VarPat] -> Set IR.QName -> Set IR.QName
       withArgs args set = set
         `Set.union` Set.fromList (map IR.varPatQName args)

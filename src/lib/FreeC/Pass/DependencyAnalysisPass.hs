@@ -41,7 +41,7 @@ module FreeC.Pass.DependencyAnalysisPass
   ) where
 
 import           FreeC.IR.DependencyGraph
-import qualified FreeC.IR.Syntax          as IR
+import qualified FreeC.IR.Syntax as IR
 import           FreeC.Monad.Converter
 import           FreeC.Pass
 

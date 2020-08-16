@@ -34,19 +34,19 @@ module FreeC.Monad.Converter
   , shadowVarPats
   ) where
 
-import           Prelude                     hiding ( fail )
+import           Prelude hiding ( fail )
 
-import           Control.Monad               ( forM_ )
-import           Control.Monad.Fail          ( MonadFail(..) )
-import           Control.Monad.Identity      ( Identity(..) )
+import           Control.Monad ( forM_ )
+import           Control.Monad.Fail ( MonadFail(..) )
+import           Control.Monad.Identity ( Identity(..) )
 import           Control.Monad.State
   ( MonadIO(..), MonadState(..), MonadTrans(..), StateT(..), evalStateT
   , execStateT, get, gets, modify, put, state )
-import           Data.Composition            ( (.:) )
+import           Data.Composition ( (.:) )
 
 import           FreeC.Environment
 import           FreeC.Environment.Entry
-import qualified FreeC.IR.Syntax             as IR
+import qualified FreeC.IR.Syntax as IR
 import           FreeC.Monad.Class.Hoistable
 import           FreeC.Monad.Reporter
 

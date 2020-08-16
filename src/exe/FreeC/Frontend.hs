@@ -6,13 +6,12 @@ module FreeC.Frontend
   , defaultFrontend
   ) where
 
-import           Control.Monad.Extra                    ( ifM )
+import           Control.Monad.Extra ( ifM )
 import           Control.Monad.IO.Class
-import           Data.List                              ( intercalate )
-import qualified Data.Map.Strict                        as Map
-import qualified Language.Haskell.Exts.Syntax           as HSE
-import           System.Directory
-  ( createDirectoryIfMissing )
+import           Data.List ( intercalate )
+import qualified Data.Map.Strict as Map
+import qualified Language.Haskell.Exts.Syntax as HSE
+import           System.Directory ( createDirectoryIfMissing )
 import           System.FilePath
 
 import           FreeC.Application.Options
@@ -20,13 +19,13 @@ import           FreeC.Frontend.Haskell.Parser
   ( parseHaskellModuleFile, parseHaskellModuleWithComments )
 import           FreeC.Frontend.Haskell.PatternMatching
   ( transformPatternMatching )
-import           FreeC.Frontend.Haskell.Pretty          ()
+import           FreeC.Frontend.Haskell.Pretty ()
 import           FreeC.Frontend.Haskell.Simplifier
 import           FreeC.Frontend.IR.Parser
 import           FreeC.IR.SrcSpan
-import qualified FreeC.IR.Syntax                        as IR
+import qualified FreeC.IR.Syntax as IR
 import           FreeC.Monad.Application
-import           FreeC.Pretty                           ( writePrettyFile )
+import           FreeC.Pretty ( writePrettyFile )
 
 -- | Data type that represents a frontend.
 data Frontend = Frontend

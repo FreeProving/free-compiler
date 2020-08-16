@@ -90,15 +90,15 @@ module FreeC.Pass.TypeSignaturePass
   , splitFuncType
   ) where
 
-import           Control.Monad             ( when )
-import           Data.List                 ( intercalate )
-import           Data.Map.Strict           ( Map )
-import qualified Data.Map.Strict           as Map
-import           Data.Set                  ( Set )
-import qualified Data.Set                  as Set
+import           Control.Monad ( when )
+import           Data.List ( intercalate )
+import           Data.Map.Strict ( Map )
+import qualified Data.Map.Strict as Map
+import           Data.Set ( Set )
+import qualified Data.Set as Set
 
 import           FreeC.IR.SrcSpan
-import qualified FreeC.IR.Syntax           as IR
+import qualified FreeC.IR.Syntax as IR
 import           FreeC.IR.TypeSynExpansion
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter

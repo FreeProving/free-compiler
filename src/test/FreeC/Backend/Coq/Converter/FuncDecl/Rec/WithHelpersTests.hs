@@ -7,13 +7,11 @@ module FreeC.Backend.Coq.Converter.FuncDecl.Rec.WithHelpersTests
 import           Test.Hspec
 
 import           FreeC.Backend.Coq.Converter.FuncDecl.Rec.WithHelpers
-import           FreeC.Backend.Coq.Pretty                             ()
-import           FreeC.Environment
-  ( emptyEnv )
+import           FreeC.Backend.Coq.Pretty ()
+import           FreeC.Environment ( emptyEnv )
 import           FreeC.Monad.Class.Testable
 import           FreeC.Monad.Converter
-import           FreeC.Monad.Reporter
-  ( runReporter )
+import           FreeC.Monad.Reporter ( runReporter )
 import           FreeC.Test.Environment
 import           FreeC.Test.Expectations
 import           FreeC.Test.Parser
