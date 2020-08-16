@@ -117,8 +117,8 @@
       "indent": 1,
       "linebreak": 100,
       "max-line-length": 80,
-      "overfull": 10,
-      "overfull-once": 200
+      "overfull": 100,
+      "overfull-once": 1000
     }
   },
   "language": "Haskell2010",
