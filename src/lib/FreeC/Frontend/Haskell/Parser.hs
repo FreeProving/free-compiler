@@ -33,7 +33,7 @@ import           FreeC.Monad.Reporter
 --
 --   Only the given language extensions are enabled and no additional
 --   language extensions can be enabled using pragmas.
-makeParseMode :: [ KnownExtension ] -> FilePath -> ParseMode
+makeParseMode :: [KnownExtension] -> FilePath -> ParseMode
 makeParseMode enabledExts filename = ParseMode
   { parseFilename = filename
   , baseLanguage = Haskell2010
@@ -47,7 +47,7 @@ makeParseMode enabledExts filename = ParseMode
   }
 
 -- | Fixities for all predefined operators and infix constructors.
-predefinedFixities :: [ Fixity ]
+predefinedFixities :: [Fixity]
 predefinedFixities = concat
   [ -- Prelude.
     infixr_ 8 ["^"]
@@ -73,16 +73,16 @@ parseHaskell = fmap fst . parseHaskellWithComments
 parseHaskellWithComments
   :: (Functor ast, Parseable (ast SrcSpanInfo), MonadReporter r)
   => SrcFile          -- ^ The name and contents of the Haskell source file.
-  -> r (ast SrcSpan, [ IR.Comment ])
+  -> r (ast SrcSpan, [IR.Comment])
 parseHaskellWithComments = parseHaskellWithCommentsAndExts []
 
 -- | Like 'parseHaskellWithComments' but allows language extensions to be
 --   enabled.
 parseHaskellWithCommentsAndExts
   :: (Functor ast, Parseable (ast SrcSpanInfo), MonadReporter r)
-  => [ KnownExtension ] -- ^ The extensions to enable.
+  => [KnownExtension] -- ^ The extensions to enable.
   -> SrcFile          -- ^ The name and contents of the Haskell source file.
-  -> r (ast SrcSpan, [ IR.Comment ])
+  -> r (ast SrcSpan, [IR.Comment])
 parseHaskellWithCommentsAndExts enabledExts srcFile
   = case parseWithComments parseMode (srcFileContents srcFile) of
     ParseOk (node, comments) -> return
@@ -132,7 +132,7 @@ parseHaskellModule = parseHaskell
 -- | Like 'parseHaskellModule' but returns the comments in addition to the AST.
 parseHaskellModuleWithComments :: MonadReporter r
   => SrcFile -- ^ The name and contents of the Haskell source file.
-  -> r (HSE.Module SrcSpan, [ IR.Comment ])
+  -> r (HSE.Module SrcSpan, [IR.Comment])
 parseHaskellModuleWithComments = parseHaskellWithComments
 
 -- | Loads and parses a Haskell module from the file with the given name.
@@ -145,7 +145,7 @@ parseHaskellModuleFile = fmap fst . parseHaskellModuleFileWithComments
 --   the AST.
 parseHaskellModuleFileWithComments :: (MonadIO r, MonadReporter r)
   => FilePath -- ^ The name of the Haskell source file.
-  -> r (HSE.Module SrcSpan, [ IR.Comment ])
+  -> r (HSE.Module SrcSpan, [IR.Comment])
 parseHaskellModuleFileWithComments filename = do
   contents <- liftIO $ readFile filename
   parseHaskellModuleWithComments (mkSrcFile filename contents)

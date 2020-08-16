@@ -90,7 +90,7 @@ type DecArgIndex = Int
 --   by the user.
 --
 --   Returns a list of all possible combinations of argument indecies.
-guessDecArgs :: [ IR.FuncDecl ] -> [ Maybe DecArgIndex ] -> [ [ DecArgIndex ] ]
+guessDecArgs :: [IR.FuncDecl] -> [Maybe DecArgIndex] -> [[DecArgIndex]]
 guessDecArgs [] _ = return []
 guessDecArgs _ [] = return []
 guessDecArgs (_ : decls) (Just decArgIndex : knownDecArgIndecies) = do
@@ -114,8 +114,7 @@ guessDecArgs (decl : decls) (Nothing : knownDecArgIndecies) = do
 --   by the user. If the user has specied the decreasing argument of a function
 --   it is not checked whether the function actually decreases on the argument
 --   (such that the user is not limited by our termination checker).
-checkDecArgs
-  :: [ IR.FuncDecl ] -> [ Maybe DecArgIndex ] -> [ DecArgIndex ] -> Bool
+checkDecArgs :: [IR.FuncDecl] -> [Maybe DecArgIndex] -> [DecArgIndex] -> Bool
 checkDecArgs decls knownDecArgIndecies decArgIndecies = all
   (uncurry3 checkDecArg) (zip3 knownDecArgIndecies decArgIndecies decls)
  where
@@ -152,7 +151,7 @@ checkDecArgs decls knownDecArgIndecies decArgIndecies = all
    --
    --   The last argument is a list of actual arguments passed to the given
    --   expression.
-   checkExpr :: IR.QName -> Set IR.QName -> IR.Expr -> [ IR.Expr ] -> Bool
+   checkExpr :: IR.QName -> Set IR.QName -> IR.Expr -> [IR.Expr] -> Bool
    checkExpr decArg smaller = checkExpr'
     where
       -- | Tests whether the given expression is the decreasing argument.
@@ -233,14 +232,14 @@ checkDecArgs decls knownDecArgIndecies decArgIndecies = all
           in checkExpr decArg smaller' expr []
 
       -- | Adds the given variables to the set of structurally smaller variables.
-      withArgs :: [ IR.VarPat ] -> Set IR.QName -> Set IR.QName
+      withArgs :: [IR.VarPat] -> Set IR.QName -> Set IR.QName
       withArgs args set = set
         `Set.union` Set.fromList (map IR.varPatQName args)
 
       -- | Removes the given variables to the set of structurally smaller
       --   variables (because they are shadowed by an argument from a lambda
       --   abstraction or @case@-alternative).
-      withoutArgs :: [ IR.VarPat ] -> Set IR.QName -> Set IR.QName
+      withoutArgs :: [IR.VarPat] -> Set IR.QName -> Set IR.QName
       withoutArgs args set = set \\ Set.fromList (map IR.varPatQName args)
 
 -------------------------------------------------------------------------------
@@ -254,7 +253,7 @@ checkDecArgs decls knownDecArgIndecies decArgIndecies = all
 --
 --   Returns @Nothing@ if the decreasing argument could not be identified.
 maybeIdentifyDecArgs
-  :: [ IR.FuncDecl ] -> [ Maybe DecArgIndex ] -> Maybe [ DecArgIndex ]
+  :: [IR.FuncDecl] -> [Maybe DecArgIndex] -> Maybe [DecArgIndex]
 maybeIdentifyDecArgs decls knownDecArgIndecies = find
   (checkDecArgs decls knownDecArgIndecies)
   (guessDecArgs decls knownDecArgIndecies)
@@ -264,7 +263,7 @@ maybeIdentifyDecArgs decls knownDecArgIndecies = find
 --
 --   Reports a fatal error message, if the decreasing arguments could not be
 --   identified.
-identifyDecArgs :: [ IR.FuncDecl ] -> Converter [ DecArgIndex ]
+identifyDecArgs :: [IR.FuncDecl] -> Converter [DecArgIndex]
 identifyDecArgs decls = do
   knownDecArgIndecies <- mapM lookupDecArgIndexOfDecl decls
   maybe decArgError return (maybeIdentifyDecArgs decls knownDecArgIndecies)

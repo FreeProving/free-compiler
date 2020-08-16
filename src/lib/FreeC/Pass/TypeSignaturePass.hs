@@ -123,7 +123,7 @@ typeSignaturePass ast = do
 --
 --   Reports a warning is there is a type signature without accompanying
 --   function declaration.
-checkHasBinding :: [ IR.FuncDecl ] -> IR.TypeSig -> Converter ()
+checkHasBinding :: [IR.FuncDecl] -> IR.TypeSig -> Converter ()
 checkHasBinding funcDecls = mapM_ checkHasBinding' . IR.typeSigDeclIdents
  where
    -- | The names of all declared functions.
@@ -147,11 +147,11 @@ checkHasBinding funcDecls = mapM_ checkHasBinding' . IR.typeSigDeclIdents
 --   the type signature (see 'splitFuncType') or there are multiple type
 --   signatures for the same function.
 addTypeSigsToFuncDecls
-  :: [ IR.TypeSig ] -> [ IR.FuncDecl ] -> Converter [ IR.FuncDecl ]
+  :: [IR.TypeSig] -> [IR.FuncDecl] -> Converter [IR.FuncDecl]
 addTypeSigsToFuncDecls typeSigs = mapM addTypeSigToFuncDecl
  where
    -- | Maps the names of functions to their annotated type.
-   typeSigMap :: Map IR.QName [ IR.TypeScheme ]
+   typeSigMap :: Map IR.QName [IR.TypeScheme]
    typeSigMap = Map.fromListWith (++)
      [(name, [typeScheme]) | IR.TypeSig _ declIdents typeScheme <- typeSigs
                            , IR.DeclIdent _ name <- declIdents
@@ -186,13 +186,12 @@ addTypeSigsToFuncDecls typeSigs = mapM addTypeSigToFuncDecl
 --   synonym could not be expanded.
 splitFuncType
   :: IR.QName    -- ^ The name of the function to display in error messages.
-  -> [ IR.VarPat ] -- ^ The argument variable patterns whose types to split of.
+  -> [IR.VarPat] -- ^ The argument variable patterns whose types to split of.
   -> IR.Type     -- ^ The type to split.
-  -> Converter ([ IR.Type ], IR.Type)
+  -> Converter ([IR.Type], IR.Type)
 splitFuncType name = splitFuncType'
  where
-   splitFuncType'
-     :: [ IR.VarPat ] -> IR.Type -> Converter ([ IR.Type ], IR.Type)
+   splitFuncType' :: [IR.VarPat] -> IR.Type -> Converter ([IR.Type], IR.Type)
    splitFuncType' [] typeExpr = return ([], typeExpr)
    splitFuncType' (_ : args) (IR.FuncType _ t1 t2) = do
      (argTypes, returnType) <- splitFuncType' args t2
@@ -223,7 +222,7 @@ reportMissingBinding srcSpan name = report
 reportDuplicateTypeSigs
   :: MonadReporter r => SrcSpan   -- ^ The location of the function declaration.
   -> IR.QName  -- ^ The name of the function.
-  -> [ SrcSpan ] -- ^ The locations of the type signatures.
+  -> [SrcSpan] -- ^ The locations of the type signatures.
   -> r a
 reportDuplicateTypeSigs srcSpan funcName typeSigSrcSpans = reportFatal
   $ Message srcSpan Error

@@ -16,7 +16,7 @@ import           FreeC.Monad.Converter
 --   calls), they are converted using a @Section@ sentence (see
 --   'convertRecFuncDeclsWithHelpers'). Otherwise they are converted into
 --   helper and main functions (see 'convertRecFuncDeclsWithSection').
-convertRecFuncDecls :: [ IR.FuncDecl ] -> Converter [ Coq.Sentence ]
+convertRecFuncDecls :: [IR.FuncDecl] -> Converter [Coq.Sentence]
 convertRecFuncDecls decls = localEnv
   $ do
     -- If there are constant arguments, move them to a section.

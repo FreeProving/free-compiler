@@ -13,14 +13,14 @@ import qualified FreeC.IR.Syntax                             as IR
 import           FreeC.Monad.Converter
 
 -- | Converts the given function declarations.
-convertFuncDecls :: [ IR.FuncDecl ] -> Converter [ Coq.Sentence ]
+convertFuncDecls :: [IR.FuncDecl] -> Converter [Coq.Sentence]
 convertFuncDecls funcDecls = do
   let components = groupFuncDecls funcDecls
   concatMapM convertFuncComponent components
 
 -- | Converts a strongly connected component of the function dependency graph.
 convertFuncComponent
-  :: DependencyComponent IR.FuncDecl -> Converter [ Coq.Sentence ]
+  :: DependencyComponent IR.FuncDecl -> Converter [Coq.Sentence]
 convertFuncComponent (NonRecursive decl)
   = return <$> convertNonRecFuncDecl decl
 convertFuncComponent (Recursive decls)   = convertRecFuncDecls decls

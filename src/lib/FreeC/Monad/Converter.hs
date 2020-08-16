@@ -186,7 +186,7 @@ moduleEnv converter = do
 --
 --   Unlike 'localEnv', all modifications to the environment are kept
 --   (except for added entries), except for the definition of the variables.
-shadowVarPats :: MonadConverter m => [ IR.VarPat ] -> m a -> m a
+shadowVarPats :: MonadConverter m => [IR.VarPat] -> m a -> m a
 shadowVarPats varPats converter = do
   oldEntries <- inEnv envEntries
   forM_ varPats

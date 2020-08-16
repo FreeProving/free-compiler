@@ -16,11 +16,11 @@ import           FreeC.Pretty
 data Module = Module
   { modSrcSpan   :: SrcSpan
   , modName      :: ModName
-  , modImports   :: [ ImportDecl ]
-  , modTypeDecls :: [ TypeDecl ]
-  , modTypeSigs  :: [ TypeSig ]
-  , modPragmas   :: [ Pragma ]
-  , modFuncDecls :: [ FuncDecl ]
+  , modImports   :: [ImportDecl]
+  , modTypeDecls :: [TypeDecl]
+  , modTypeSigs  :: [TypeSig]
+  , modPragmas   :: [Pragma]
+  , modFuncDecls :: [FuncDecl]
   }
  deriving ( Eq, Show )
 

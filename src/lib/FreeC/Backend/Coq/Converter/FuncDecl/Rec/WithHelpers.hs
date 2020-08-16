@@ -36,7 +36,7 @@ import           FreeC.Util.Predicate
 
 -- | Converts recursive function declarations into recursive helper and
 --   non-recursive main functions.
-convertRecFuncDeclsWithHelpers :: [ IR.FuncDecl ] -> Converter [ Coq.Sentence ]
+convertRecFuncDeclsWithHelpers :: [IR.FuncDecl] -> Converter [Coq.Sentence]
 convertRecFuncDeclsWithHelpers decls = do
   (helperDecls', mainDecls') <- convertRecFuncDeclsWithHelpers' decls
   return (Coq.comment
@@ -46,7 +46,7 @@ convertRecFuncDeclsWithHelpers decls = do
 -- | Like 'convertRecFuncDeclsWithHelpers' but does return the helper and
 --   main functions separately.
 convertRecFuncDeclsWithHelpers'
-  :: [ IR.FuncDecl ] -> Converter ([ Coq.Sentence ], [ Coq.Sentence ])
+  :: [IR.FuncDecl] -> Converter ([Coq.Sentence], [Coq.Sentence])
 convertRecFuncDeclsWithHelpers' decls = do
   -- Split into helper and main functions.
   decArgs <- identifyDecArgs decls
@@ -75,7 +75,7 @@ convertRecFuncDeclsWithHelpers' decls = do
 --   The helper functions are annotated with the index of their decreasing
 --   argument.
 transformRecFuncDecl :: IR.FuncDecl
-  -> DecArgIndex -> Converter ([ (IR.FuncDecl, DecArgIndex) ], IR.FuncDecl)
+  -> DecArgIndex -> Converter ([(IR.FuncDecl, DecArgIndex)], IR.FuncDecl)
 transformRecFuncDecl
   (IR.FuncDecl srcSpan declIdent typeArgs args maybeRetType expr) decArgIndex
   = do
@@ -95,7 +95,7 @@ transformRecFuncDecl
    name = IR.declIdentName declIdent
 
    -- | The names of the function's arguments.
-   argNames :: [ IR.QName ]
+   argNames :: [IR.QName]
    argNames = map IR.varPatQName args
 
    -- | The name of the decreasing argument.
@@ -103,10 +103,10 @@ transformRecFuncDecl
    decArg = argNames !! decArgIndex
 
    -- | The positions of @case@-expressions for the decreasing argument.
-   caseExprsPos :: [ Pos ]
+   caseExprsPos :: [Pos]
    caseExprsPos = [p | p <- ps, not (any (below p) (delete p ps))]
     where
-      ps :: [ Pos ]
+      ps :: [Pos]
       ps = filter decArgNotShadowed (findSubtermPos isCaseExpr expr)
 
    -- | Tests whether the given expression is a @case@-expression for the

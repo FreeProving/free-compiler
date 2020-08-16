@@ -27,7 +27,7 @@ import           FreeC.Monad.Converter             ( Converter, localEnv )
 --
 --   If the type contains decreasing annotations, a size type variable is bound
 --   and used to annotate these occurrences.
-convertLiftedFuncType :: Bool -> [ LIR.Type ] -> LIR.Type -> Converter Agda.Expr
+convertLiftedFuncType :: Bool -> [LIR.Type] -> LIR.Type -> Converter Agda.Expr
 convertLiftedFuncType isPartial argTypes retType = if any decreasing argTypes
   then pi "i"
     $ \i -> partial <$> convertLiftedType (Just $ Agda.hiddenArg_ i) funcType
@@ -45,14 +45,14 @@ convertLiftedFuncType isPartial argTypes retType = if any decreasing argTypes
 --   If the constructor contains decreasing arguments (i.e., recursive
 --   arguments), a new sized type variable is bound and used to annotate
 --   these types.
-convertLiftedConType :: [ LIR.Type ] -> LIR.Type -> Converter Agda.Expr
+convertLiftedConType :: [LIR.Type] -> LIR.Type -> Converter Agda.Expr
 convertLiftedConType argTypes retType = if any decreasing argTypes
   then convertLiftedRecConType argTypes retType
   else convertLiftedType' $ LIR.funcType NoSrcSpan argTypes retType
 
 -- | Converts a constructor from lifted IR to Agda by binding a new variable
 --   @i : Size@ and annotating recursive occurrences and the return type.
-convertLiftedRecConType :: [ LIR.Type ] -> LIR.Type -> Converter Agda.Expr
+convertLiftedRecConType :: [LIR.Type] -> LIR.Type -> Converter Agda.Expr
 convertLiftedRecConType argTypes retType = pi "i"
   $ \i -> do
     retType' <- convertLiftedType' retType

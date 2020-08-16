@@ -221,7 +221,7 @@ data TypeEquation = TypeEquation
     -- ^ The left-hand side of the type equation.
   , eqnActualType    :: IR.Type
     -- ^ The right-hand side of the type equation.
-  , eqnRigidTypeVars :: [ IR.TypeVarDecl ]
+  , eqnRigidTypeVars :: [IR.TypeVarDecl]
     -- ^ Declarations of type variables that are bound by the type signature
     --   of the function declaration that caused the creation of this type
     --   equation. These type variable must not be matched by the unification
@@ -247,16 +247,16 @@ type TypeAssumption = Map IR.QName IR.TypeScheme
 
 -- | The state that is passed implicitly between the modules of this module.
 data TypeInferenceState = TypeInferenceState
-  { typeEquations  :: [ TypeEquation ]
+  { typeEquations  :: [TypeEquation]
     -- ^ The type equations that have to be unified.
-  , rigidTypeVars  :: [ IR.TypeVarDecl ]
+  , rigidTypeVars  :: [IR.TypeVarDecl]
     -- ^ Declarations of type variables that are bound in the current context.
     --   This is used by 'annotateFuncDecls' to remember which type variables
     --   have to be inserted into 'eqnRigidTypeVars' by
     --   'addTypeEquation'.
   , typeAssumption :: TypeAssumption
     -- ^ The known type schemes of predefined functions and constructors.
-  , fixedTypeArgs  :: Map IR.QName [ IR.Type ]
+  , fixedTypeArgs  :: Map IR.QName [IR.Type]
     -- ^ Maps function names to the types to instantiate their last type
     --   arguments with. This is used to instantiate additional type arguments
     --   in recursive functions correctly.
@@ -315,7 +315,7 @@ lookupTypeAssumption name = gets (Map.lookup name . typeAssumption)
 
 -- | Looks up the types to instantiate the additional type arguments
 --   of the function with the given name with.
-lookupFixedTypeArgs :: IR.QName -> TypeInference [ IR.Type ]
+lookupFixedTypeArgs :: IR.QName -> TypeInference [IR.Type]
 lookupFixedTypeArgs name = gets (Map.findWithDefault [] name . fixedTypeArgs)
 
 -------------------------------------------------------------------------------
@@ -377,7 +377,7 @@ removeVarPatFromTypeAssumption varPat = modify
 
 -- | Sets the types to instantiate additional type arguments of the function
 --   with the given name with.
-fixTypeArgs :: IR.QName -> [ IR.Type ] -> TypeInference ()
+fixTypeArgs :: IR.QName -> [IR.Type] -> TypeInference ()
 fixTypeArgs name subst = modify
   $ \s -> s { fixedTypeArgs = Map.insert name subst (fixedTypeArgs s) }
 
@@ -404,7 +404,7 @@ withLocalTypeAssumption mx = do
 
 -- | Adds the given type variable declarations to the list of 'rigidTypeVars'
 --   during the given type inference computation.
-withRigidTypeVars :: [ IR.TypeVarDecl ] -> TypeInference a -> TypeInference a
+withRigidTypeVars :: [IR.TypeVarDecl] -> TypeInference a -> TypeInference a
 withRigidTypeVars vs mx = do
   modify $ \s -> s { rigidTypeVars = vs ++ rigidTypeVars s }
   x <- mx
@@ -419,14 +419,14 @@ withRigidTypeVars vs mx = do
 --   Returns the function declarations where the argument and return types
 --   as well as the types of variable patterns on the right-hand side and
 --   visible type arguments have been annotated with their inferred type.
-inferFuncDeclTypes :: [ IR.FuncDecl ] -> Converter [ IR.FuncDecl ]
+inferFuncDeclTypes :: [IR.FuncDecl] -> Converter [IR.FuncDecl]
 inferFuncDeclTypes funcDecls = localEnv
   $ do
     ta <- inEnv makeTypeAssumption
     runTypeInference ta $ inferFuncDeclTypes' funcDecls
 
 -- | Version of 'inferFuncDeclTypes' in the 'TypeInference' monad.
-inferFuncDeclTypes' :: [ IR.FuncDecl ] -> TypeInference [ IR.FuncDecl ]
+inferFuncDeclTypes' :: [IR.FuncDecl] -> TypeInference [IR.FuncDecl]
 inferFuncDeclTypes' funcDecls = withLocalState
   $ do
       -- Add type assumption for functions with type signatures.
@@ -663,7 +663,7 @@ makeExprType = Just . IR.TypeScheme NoSrcSpan []
 --   variables if they are not annotated already and applies 'annotateExprWith'
 --   to the right-hand side of the given function declaration with the
 --   return type of the function.
-annotateFuncDecls :: [ IR.FuncDecl ] -> TypeInference [ IR.FuncDecl ]
+annotateFuncDecls :: [IR.FuncDecl] -> TypeInference [IR.FuncDecl]
 annotateFuncDecls funcDecls = withLocalTypeAssumption
   $ do
     funcDecls' <- mapM annotateFuncDeclLhs funcDecls
@@ -807,7 +807,7 @@ applyFuncDeclVisibly funcDecl = withLocalTypeAssumption
 --   Fresh type variables used by the given type are replaced by regular type
 --   variables with the prefix 'freshTypeArgPrefix'. All other type variables
 --   are not renamed.
-abstractTypeArgs :: [ IR.TypeVarIdent ] -> IR.FuncDecl -> IR.FuncDecl
+abstractTypeArgs :: [IR.TypeVarIdent] -> IR.FuncDecl -> IR.FuncDecl
 abstractTypeArgs typeArgIdents funcDecl
   = let typeArgs = map (IR.UnQual . IR.Ident) typeArgIdents
         IR.TypeScheme _ _ typeExpr = fromJust (IR.funcDeclTypeScheme funcDecl)
@@ -823,17 +823,17 @@ abstractTypeArgs typeArgIdents funcDecl
 --
 --   The added type arguments are also added as visible type applications
 --   to recursive calls to the function declarations.
-abstractVanishingTypeArgs :: [ IR.FuncDecl ] -> [ IR.FuncDecl ]
+abstractVanishingTypeArgs :: [IR.FuncDecl] -> [IR.FuncDecl]
 abstractVanishingTypeArgs funcDecls
   = let funcDecls' = map addInternalTypeArgs funcDecls
     in map abstractVanishingTypeArgs' funcDecls'
  where
    -- | The names of the type variables to abstract.
-   internalTypeArgIdents :: [ IR.TypeVarIdent ]
+   internalTypeArgIdents :: [IR.TypeVarIdent]
    internalTypeArgIdents = filter IR.isInternalIdent (freeTypeVars funcDecls)
 
    -- | Type variables for 'internalTypeArgNames'.
-   internalTypeArgs :: [ IR.Type ]
+   internalTypeArgs :: [IR.Type]
    internalTypeArgs = map (IR.TypeVar NoSrcSpan) internalTypeArgIdents
 
    -- | Renames 'internalTypeArgNames' and adds them as type arguments
@@ -863,7 +863,7 @@ abstractVanishingTypeArgs funcDecls
    -- | Like 'addInternalTypeArgs' but returns the visible type
    --   arguments that still need to be added.
    addInternalTypeArgsToExpr'
-     :: Set IR.QName -> IR.Expr -> (IR.Expr, [ IR.Type ])
+     :: Set IR.QName -> IR.Expr -> (IR.Expr, [IR.Type])
 
    -- If this is a recursive call the internal type arguments need to be
    -- applied visibly.
@@ -912,7 +912,7 @@ abstractVanishingTypeArgs funcDecls
        in IR.Alt srcSpan conPat varPats expr'
 
    -- | Removes the names of the given variable patterns from the given set.
-   withoutArgs :: [ IR.VarPat ] -> Set IR.QName -> Set IR.QName
+   withoutArgs :: [IR.VarPat] -> Set IR.QName -> Set IR.QName
    withoutArgs = flip (Set.\\) . Set.fromList . map IR.varPatQName
 
 -------------------------------------------------------------------------------
@@ -924,10 +924,10 @@ abstractVanishingTypeArgs funcDecls
 --   error messages. The list of type equations contains equations for
 --   parent expressions before sub-expressions. By reversing the order of
 --   equations, type errors in sub-expressions are reported first.
-unifyEquations :: [ TypeEquation ] -> Converter (Subst IR.Type)
+unifyEquations :: [TypeEquation] -> Converter (Subst IR.Type)
 unifyEquations = unifyEquations' identitySubst . reverse
  where
-   unifyEquations' :: Subst IR.Type -> [ TypeEquation ] -> Converter
+   unifyEquations' :: Subst IR.Type -> [TypeEquation] -> Converter
      (Subst IR.Type)
    unifyEquations' subst []           = return subst
    unifyEquations' subst (eqn : eqns) = do

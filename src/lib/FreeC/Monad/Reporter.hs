@@ -73,7 +73,7 @@ data Message = Message SrcSpan Severity String
 -- Reporter Monad                                                            --
 -------------------------------------------------------------------------------
 -- | The underlying representation of a reporter.
-type UnwrappedReporter = MaybeT (Writer [ Message ])
+type UnwrappedReporter = MaybeT (Writer [Message])
 
 -- | A monad that collects the messages reported by the compiler and contains
 --   an optional value that is present only if the compiler did not encounter
@@ -89,7 +89,7 @@ unwrapReporter = runIdentity . unwrapReporterT
 -- | Runs the given reporter and returns the produced value as well as all
 --   reported messages. If a fatal message has been reported the produced
 --   value is @Nothing@.
-runReporter :: Reporter a -> (Maybe a, [ Message ])
+runReporter :: Reporter a -> (Maybe a, [Message])
 runReporter = runIdentity . runReporterT
 
 -- | Like 'runReporter' but discards the reported messages.
@@ -106,7 +106,7 @@ newtype ReporterT m a
 -- | Runs the given reporter and returns the produced value as well as all
 --   reported messages. If a fatal message has been reported the produced
 --   value is @Nothing@. The result is wrapped in the inner monad.
-runReporterT :: Monad m => ReporterT m a -> m (Maybe a, [ Message ])
+runReporterT :: Monad m => ReporterT m a -> m (Maybe a, [Message])
 runReporterT rmx = runWriter . runMaybeT <$> unwrapReporterT rmx
 
 -- | The @Functor@ instance for 'ReporterT' is needed to define the @Monad@
@@ -209,7 +209,7 @@ isFatal :: Reporter a -> Bool
 isFatal = isNothing . fst . runReporter
 
 -- | Gets the messages reported to the given reporter.
-messages :: Reporter a -> [ Message ]
+messages :: Reporter a -> [Message]
 messages = snd . runReporter
 
 -------------------------------------------------------------------------------

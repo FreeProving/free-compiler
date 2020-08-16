@@ -15,7 +15,7 @@ import           FreeC.Monad.Converter
 -- | Converts non-recursive but possibly linear dependent Haskell functions
 --   into an ordered list of @Definition@ sentences such that each definition
 --   only depends on definitions at preceding list positions.
-convertNonRecFuncDecls :: [ IR.FuncDecl ] -> Converter [ Coq.Sentence ]
+convertNonRecFuncDecls :: [IR.FuncDecl] -> Converter [Coq.Sentence]
 convertNonRecFuncDecls decls
   = let orderedDecls = concatMap unwrapComponent
           (dependencyComponents (funcDependencyGraph decls))

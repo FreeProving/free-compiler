@@ -88,7 +88,7 @@ composeSubst s2@(Subst m2) (Subst m1)
 
 -- | Creates a new substitution that applies all given substitutions after
 --   each other.
-composeSubsts :: ApplySubst a a => [ Subst a ] -> Subst a
+composeSubsts :: ApplySubst a a => [Subst a] -> Subst a
 composeSubsts = foldl composeSubst identitySubst
 
 -------------------------------------------------------------------------------
@@ -100,7 +100,7 @@ filterSubst :: (IR.QName -> Bool) -> Subst a -> Subst a
 filterSubst p (Subst m) = Subst (Map.filterWithKey (const . p) m)
 
 -- | Creates a new substitution whose domain does not contain the given names.
-substWithout :: Subst a -> [ IR.QName ] -> Subst a
+substWithout :: Subst a -> [IR.QName] -> Subst a
 substWithout subst names = filterSubst (`notElem` names) subst
 
 -------------------------------------------------------------------------------
@@ -358,7 +358,7 @@ instance Renamable IR.VarPat IR.Expr where
 --   Returns the renamed (type) arguments as well as a modified substitution
 --   that replaces the renamed (type) arguments appropriately.
 newRenameArgs :: (HasRefs expr, Renamable arg expr, ApplySubst expr expr)
-  => Subst expr -> [ arg ] -> (Subst expr, [ arg ])
+  => Subst expr -> [arg] -> (Subst expr, [arg])
 newRenameArgs subst args
   = let subst' = subst
           `substWithout` map (IR.UnQual . IR.Ident . getIdent) args
@@ -367,7 +367,7 @@ newRenameArgs subst args
 -- | Like 'newRenameArgs' but the domain of the given substitution does not
 --   contain any of the given type arguments.
 newRenameArgs' :: (HasRefs expr, Renamable arg expr, ApplySubst expr expr)
-  => Subst expr -> [ arg ] -> (Subst expr, [ arg ])
+  => Subst expr -> [arg] -> (Subst expr, [arg])
 newRenameArgs' subst [] = (subst, [])
 newRenameArgs' subst (arg : args) = (arg' :) <$> newRenameArgs' subst' args
  where
@@ -415,7 +415,7 @@ freeSubstIdents scope (Subst substMap) = Set.fromList
 --   Returns the identifier that equals the prefix as well as each identifier
 --   that starts with the prefix followed by an increasing number starting with
 --   zero.
-freshIdentsWithPrefix :: String -> [ String ]
+freshIdentsWithPrefix :: String -> [String]
 freshIdentsWithPrefix prefix = map (prefix ++) ("" : map show [0 :: Int ..])
 
 -------------------------------------------------------------------------------
@@ -426,7 +426,7 @@ freshIdentsWithPrefix prefix = map (prefix ++) ("" : map show [0 :: Int ..])
 --
 --   Returns the new names for the type variables and the substitution.
 renameTypeArgsSubst
-  :: [ IR.TypeVarDecl ] -> Converter ([ IR.TypeVarDecl ], Subst IR.Type)
+  :: [IR.TypeVarDecl] -> Converter ([IR.TypeVarDecl], Subst IR.Type)
 renameTypeArgsSubst typeArgDecls = do
   typeArgDecls' <- mapM freshTypeArgDecl typeArgDecls
   let typeArgNames = map IR.typeVarDeclQName typeArgDecls
@@ -445,7 +445,7 @@ renameTypeArgsSubst typeArgDecls = do
 -- | Renames the given type variables in the given expression or type
 --   to fresh type variables.
 renameTypeArgs :: ApplySubst IR.Type a
-  => [ IR.TypeVarDecl ] -> a -> Converter ([ IR.TypeVarDecl ], a)
+  => [IR.TypeVarDecl] -> a -> Converter ([IR.TypeVarDecl], a)
 renameTypeArgs typeArgDecls x = do
   (typeArgDecls', subst) <- renameTypeArgsSubst typeArgDecls
   return (typeArgDecls', applySubst subst x)
@@ -454,7 +454,7 @@ renameTypeArgs typeArgDecls x = do
 --   variable patterns to fresh variables.
 --
 --   Returns the new names for the variables and the substitution.
-renameArgsSubst :: [ IR.VarPat ] -> Converter ([ IR.VarPat ], Subst IR.Expr)
+renameArgsSubst :: [IR.VarPat] -> Converter ([IR.VarPat], Subst IR.Expr)
 renameArgsSubst args = do
   args' <- mapM freshVarPat args
   let argNames = map IR.varPatQName args
@@ -475,7 +475,7 @@ renameArgsSubst args = do
 --
 --   Returns the new names for the variables and the resulting expression.
 renameArgs
-  :: ApplySubst IR.Expr a => [ IR.VarPat ] -> a -> Converter ([ IR.VarPat ], a)
+  :: ApplySubst IR.Expr a => [IR.VarPat] -> a -> Converter ([IR.VarPat], a)
 renameArgs args x = do
   (args', subst) <- renameArgsSubst args
   return (args', applySubst subst x)

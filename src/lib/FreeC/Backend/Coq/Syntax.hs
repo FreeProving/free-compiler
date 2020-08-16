@@ -83,7 +83,7 @@ unpackQualid (Qualified _ _) = Nothing
 --
 --   If the first argument is an application term, the arguments are added
 --   to that term. Otherwise a new application term is created.
-app :: Term -> [ Term ] -> Term
+app :: Term -> [Term] -> Term
 app func [] = func
 app (App func args) args' = App func
   (args <> NonEmpty.fromList (map PosArg args'))
@@ -93,12 +93,12 @@ app func args = App func (NonEmpty.fromList (map PosArg args))
 --   constructor to otherwise inferred type arguments.
 --
 --   If there are no type arguments, no 'ExplicitApp' will be created.
-explicitApp :: Qualid -> [ Term ] -> Term
+explicitApp :: Qualid -> [Term] -> Term
 explicitApp qualid []       = Qualid qualid
 explicitApp qualid typeArgs = ExplicitApp qualid typeArgs
 
 -- | Smart constructor for a Coq function type.
-arrows :: [ Term ] -- ^ The types of the function arguments.
+arrows :: [Term] -- ^ The types of the function arguments.
   -> Term   -- ^ The return type of the function.
   -> Term
 arrows args returnType = foldr Arrow returnType args
@@ -108,13 +108,13 @@ arrows args returnType = foldr Arrow returnType args
 --
 --   The second argument contains the types of the arguments are inferred
 --   by Coq.
-fun :: [ Qualid ] -> [ Maybe Term ] -> Term -> Term
+fun :: [Qualid] -> [Maybe Term] -> Term -> Term
 fun args argTypes = Fun (NonEmpty.fromList binders)
  where
-   argNames :: [ Name ]
+   argNames :: [Name]
    argNames = map Ident args
 
-   binders :: [ Binder ]
+   binders :: [Binder]
    binders = zipWith makeBinder argTypes argNames
 
    makeBinder :: Maybe Term -> Name -> Binder
@@ -122,14 +122,14 @@ fun args argTypes = Fun (NonEmpty.fromList binders)
    makeBinder (Just t) = flip (Typed Ungeneralizable Explicit) t . return
 
 -- | Like 'fun', but all argument types are inferred.
-inferredFun :: [ Qualid ] -> Term -> Term
+inferredFun :: [Qualid] -> Term -> Term
 inferredFun = flip fun (repeat Nothing)
 
 -------------------------------------------------------------------------------
 -- Binders                                                                   --
 -------------------------------------------------------------------------------
 -- | Smart constructor for an explicit or implicit typed Coq binder.
-typedBinder :: Explicitness -> [ Qualid ] -> Term -> Binder
+typedBinder :: Explicitness -> [Qualid] -> Term -> Binder
 typedBinder explicitness
   = Typed Ungeneralizable explicitness . NonEmpty.fromList . map Ident
 
@@ -141,7 +141,7 @@ typedBinder' = flip (flip typedBinder . (: []))
 -- Assumptions                                                               --
 -------------------------------------------------------------------------------
 -- | Generates a @Variable@ assumption sentence.
-variable :: [ Qualid ] -> Term -> Sentence
+variable :: [Qualid] -> Term -> Sentence
 variable
   = AssumptionSentence . Assumption Variable .: Assums . NonEmpty.fromList
 
@@ -150,7 +150,7 @@ variable
 -------------------------------------------------------------------------------
 -- | Smart constructor for a Coq definition sentence.
 definitionSentence :: Qualid     -- ^ The name of the definition.
-  -> [ Binder ]   -- ^ Binders for the parameters of the definition.
+  -> [Binder]   -- ^ Binders for the parameters of the definition.
   -> Maybe Term -- ^ The return type of the definition.
   -> Term       -- ^ The right-hand side of the definition.
   -> Sentence
@@ -176,7 +176,7 @@ equation :: Pattern -> Term -> Equation
 equation = Equation . return . MultPattern . return
 
 -- | Smart constructor for a Coq @match@ expression.
-match :: Term -> [ Equation ] -> Term
+match :: Term -> [Equation] -> Term
 match value = Match (return item) Nothing
  where
    item :: MatchItem
@@ -202,16 +202,16 @@ disj t1 t2 = app (Qualid (bare "op_\\/__")) [t1, t2]
 -- Imports                                                                   --
 -------------------------------------------------------------------------------
 -- | Creates a @From … Require Import …@ sentence.
-requireImportFrom :: ModuleIdent -> [ ModuleIdent ] -> Sentence
+requireImportFrom :: ModuleIdent -> [ModuleIdent] -> Sentence
 requireImportFrom library modules = ModuleSentence
   (Require (Just library) (Just Import) (NonEmpty.fromList modules))
 
 -- | Creates a @From … Require Export …@ sentence.
-requireExportFrom :: ModuleIdent -> [ ModuleIdent ] -> Sentence
+requireExportFrom :: ModuleIdent -> [ModuleIdent] -> Sentence
 requireExportFrom library modules = ModuleSentence
   (Require (Just library) (Just Export) (NonEmpty.fromList modules))
 
 -- | Creates a @From … Require …@ sentence.
-requireFrom :: ModuleIdent -> [ ModuleIdent ] -> Sentence
+requireFrom :: ModuleIdent -> [ModuleIdent] -> Sentence
 requireFrom library modules = ModuleSentence
   (Require (Just library) Nothing (NonEmpty.fromList modules))

@@ -53,13 +53,13 @@ import           FreeC.Pretty
 --
 --   Returns the function's result of @Nothing@ if the list has the wrong
 --   number of elements.
-checkArity :: Int -> ([ a ] -> b) -> [ a ] -> Maybe b
+checkArity :: Int -> ([a] -> b) -> [a] -> Maybe b
 checkArity n f xs
   | length xs == n = Just (f xs)
   | otherwise = Nothing
 
 -- | Like 'checkArity' for functions that do no expect any arguments.
-nullary :: b -> [ a ] -> Maybe b
+nullary :: b -> [a] -> Maybe b
 nullary y xs
   | null xs = Just y
   | otherwise = Nothing
@@ -86,10 +86,10 @@ missingPosError funcName term pos = error
 --   pretty printed.
 class Pretty a => Subterm a where
   -- | Gets the child nodes of the given AST node.
-  childTerms :: a -> [ a ]
+  childTerms :: a -> [a]
 
   -- | Replaces the child nodes of the given AST node.
-  replaceChildTerms :: a -> [ a ] -> Maybe a
+  replaceChildTerms :: a -> [a] -> Maybe a
 
 -- | Expressions have subterms.
 instance Subterm IR.Expr where
@@ -161,7 +161,7 @@ instance Subterm IR.Type where
 -- Positions                                                                 --
 -------------------------------------------------------------------------------
 -- | Describes a position of a subterm within a Haskell expression.
-newtype Pos = Pos [ Int ]
+newtype Pos = Pos [Int]
  deriving ( Eq, Show )
 
 -- | Pretty prints a position.
@@ -190,7 +190,7 @@ parentPos (Pos ps)
   | otherwise = Just (Pos (init ps))
 
 -- | Gets all valid positions of subterms within the given Haskell expression.
-allPos :: Subterm a => a -> [ Pos ]
+allPos :: Subterm a => a -> [Pos]
 allPos term = rootPos
   : [consPos p childPos
     | (p, child) <- zip [1 ..] (childTerms term), childPos <- allPos child
@@ -265,12 +265,12 @@ replaceSubterm' term pos term' = fromMaybe
 -- | Replaces all subterms at the given positions with other (type) expressions.
 --
 --   Returns @Nothing@ if any of the subterms could not be replaced
-replaceSubterms :: Subterm a => a -> [ (Pos, a) ] -> Maybe a
+replaceSubterms :: Subterm a => a -> [(Pos, a)] -> Maybe a
 replaceSubterms = foldM (\term (pos, term') -> replaceSubterm term pos term')
 
 -- | Like 'replaceSubterms' but throws an error if any of the subterms could
 --   not be replaced.
-replaceSubterms' :: Subterm a => a -> [ (Pos, a) ] -> a
+replaceSubterms' :: Subterm a => a -> [(Pos, a)] -> a
 replaceSubterms' = foldl (\term (pos, term') -> replaceSubterm' term pos term')
 
 -------------------------------------------------------------------------------
@@ -278,13 +278,13 @@ replaceSubterms' = foldl (\term (pos, term') -> replaceSubterm' term pos term')
 -------------------------------------------------------------------------------
 -- | Gets a list of positions for subterms of the given expression that
 --   satisfy the provided predicate.
-findSubtermPos :: Subterm a => (a -> Bool) -> a -> [ Pos ]
+findSubtermPos :: Subterm a => (a -> Bool) -> a -> [Pos]
 findSubtermPos predicate term = filter (predicate . selectSubterm' term)
   (allPos term)
 
 -- | Gets a list of subterms of the given expression that satisfy the
 --   provided predicate.
-findSubterms :: Subterm a => (a -> Bool) -> a -> [ a ]
+findSubterms :: Subterm a => (a -> Bool) -> a -> [a]
 findSubterms predicate term = filter predicate
   (map (selectSubterm' term) (allPos term))
 
@@ -336,5 +336,5 @@ boundVarsWithTypeAt = fromMaybe Map.empty .: boundVarsWithTypeAt'
 
    -- | Converts a list of variable patterns to a set of variable names bound
    --   by these patterns.
-   fromVarPats :: [ IR.VarPat ] -> Map IR.QName (Maybe IR.Type)
+   fromVarPats :: [IR.VarPat] -> Map IR.QName (Maybe IR.Type)
    fromVarPats = Map.fromList . map (IR.varPatQName &&& IR.varPatType)

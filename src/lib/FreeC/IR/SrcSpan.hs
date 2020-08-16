@@ -34,11 +34,11 @@ import           FreeC.Pretty
 data SrcFile = SrcFile
   { srcFileName     :: FilePath -- ^ The name of the file.
   , srcFileContents :: String   -- ^ The contents of the file.
-  , srcFileLines    :: [ String ] -- ^ The lines of 'srcFileContents'.
+  , srcFileLines    :: [String] -- ^ The lines of 'srcFileContents'.
   }
 
 -- | Type for a map that associates source files with their filename.
-type SrcFileMap = [ (FilePath, SrcFile) ]
+type SrcFileMap = [(FilePath, SrcFile)]
 
 -- | Smart constructor for 'SrcFile' that automatically splits the file
 --   contents into lines.
@@ -50,7 +50,7 @@ mkSrcFile filename contents = SrcFile
   }
 
 -- | Smart constructor for 'SrcFileMap' for the given 'SrcFile's.
-mkSrcFileMap :: [ SrcFile ] -> SrcFileMap
+mkSrcFileMap :: [SrcFile] -> SrcFileMap
 mkSrcFileMap = map (srcFileName &&& id)
 
 -- | Looks up a 'SrcFile' in a 'SrcFileMap'.
@@ -73,7 +73,7 @@ data SrcSpan
       , srcSpanStartColumn :: Int      -- ^ The offset within the first line.
       , srcSpanEndLine     :: Int      -- ^ The number of the last spanned line.
       , srcSpanEndColumn   :: Int      -- ^ The offset within the last line.
-      , srcSpanCodeLines   :: [ String ] -- ^ The source code of the spanned lines.
+      , srcSpanCodeLines   :: [String] -- ^ The source code of the spanned lines.
       }
   | NoSrcSpan -- ^ Indicates that no location information is available.
   | FileSpan  -- ^ Points to an unknown location in the given file.

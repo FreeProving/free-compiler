@@ -17,7 +17,7 @@ import           FreeC.Test.Parser
 --   'convertFuncDecls' and sets the expectation that the resulting
 --   Agda code equals the given expected output modulo whitespace.
 shouldConvertFuncDeclsTo
-  :: DependencyComponent String -> [ String ] -> Converter Expectation
+  :: DependencyComponent String -> [String] -> Converter Expectation
 shouldConvertFuncDeclsTo inputStrs expectedOutput = do
   input <- parseTestComponent inputStrs
   output <- convertFuncDecls input

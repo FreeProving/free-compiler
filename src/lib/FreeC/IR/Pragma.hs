@@ -17,7 +17,7 @@ import           FreeC.Pretty
 --   in the current module (first argument).
 --
 --   All other pragmas are ignored.
-addDecArgPragma :: [ IR.FuncDecl ] -> IR.Pragma -> Converter ()
+addDecArgPragma :: [IR.FuncDecl] -> IR.Pragma -> Converter ()
 addDecArgPragma funcDecls (IR.DecArgPragma srcSpan funcName decArg)
   = case find ((== funcName) . IR.funcDeclQName) funcDecls of
     Just IR.FuncDecl { IR.funcDeclArgs = args } -> case decArg of

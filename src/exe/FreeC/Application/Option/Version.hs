@@ -47,7 +47,7 @@ putVersionInfo = do
    --
    --   Includes information about the Git Repository, compiler and operating
    --   system that were used to compile the Free Compiler.
-   versionDetails :: [ String ]
+   versionDetails :: [String]
    versionDetails = maybeToList gitDescription
      ++ [compilerName ++ " " ++ showVersion compilerVersion, os, arch]
 

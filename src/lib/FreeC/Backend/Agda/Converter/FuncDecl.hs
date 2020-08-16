@@ -30,7 +30,7 @@ import           FreeC.Monad.Reporter
 -- | Converts a strongly connected component of the function dependency graph.
 --   TODO: Handle mutually recursive functions.
 convertFuncDecls
-  :: DependencyComponent IR.FuncDecl -> Converter [ Agda.Declaration ]
+  :: DependencyComponent IR.FuncDecl -> Converter [Agda.Declaration]
 convertFuncDecls (NonRecursive decl) = convertFuncDecl decl Nothing
 convertFuncDecls (Recursive [decl])  = do
   [decArg] <- identifyDecArgs [decl]
@@ -42,7 +42,7 @@ convertFuncDecls (Recursive ds)      = reportFatal
 
 -- | Converts the given function declarations. Returns the declarations for the
 --   type signature and the definition.
-convertFuncDecl :: IR.FuncDecl -> Maybe Int -> Converter [ Agda.Declaration ]
+convertFuncDecl :: IR.FuncDecl -> Maybe Int -> Converter [Agda.Declaration]
 convertFuncDecl decl decArg = sequence
   [localEnv $ convertSignature decl decArg, localEnv $ convertFuncDef decl]
 
@@ -73,8 +73,8 @@ convertSignature (IR.FuncDecl _ declIdent typeVars args returnType _) decArg
 -- | Converts a fully applied function.
 convertFunc :: Maybe Int        -- ^ The index of the decreasing argument.
   -> Bool             -- ^ Whether the function needs a @Partial@ instance.
-  -> [ IR.TypeVarDecl ] -- ^ Type variables bound by the function declaration.
-  -> [ IR.VarPat ]      -- ^ The types of the arguments.
+  -> [IR.TypeVarDecl] -- ^ Type variables bound by the function declaration.
+  -> [IR.VarPat]      -- ^ The types of the arguments.
   -> Maybe IR.Type    -- ^ The return type of the function.
   -> Converter Agda.Expr
 convertFunc decArg partial tVars argTypes returnType = do

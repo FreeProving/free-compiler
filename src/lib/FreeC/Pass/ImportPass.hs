@@ -81,7 +81,7 @@ importPass ast = do
 
 -- | Inserts multiple entries into the given environment and associates them
 --   with their original names.
-importEntries :: [ EnvEntry ] -> Environment -> Environment
+importEntries :: [EnvEntry] -> Environment -> Environment
 importEntries = flip (foldr addEntry)
 
 -- | Imports all entries from the given module interface into the given

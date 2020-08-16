@@ -24,9 +24,9 @@ data Expr
     -- | Function or constructor application.
   | App { exprSrcSpan     :: SrcSpan
         , exprAppFunc     :: Expr
-        , exprAppTypeArgs :: [ Type ]   -- ^ Visible type applications.
-        , exprEffects     :: [ Effect ] -- ^ Effect set.
-        , exprAppArgs     :: [ Expr ]   -- ^ Applied arguments.
+        , exprAppTypeArgs :: [Type]   -- ^ Visible type applications.
+        , exprEffects     :: [Effect] -- ^ Effect set.
+        , exprAppArgs     :: [Expr]   -- ^ Applied arguments.
         , exprFreeArgs    :: Bool     -- ^ Whether the arguments for the free
                                       --   monad are needed.
         }
@@ -39,7 +39,7 @@ data Expr
     -- | @case@ expression.
   | Case { exprSrcSpan       :: SrcSpan
          , caseExprScrutinee :: Expr
-         , caseExprAlts      :: [ Alt ]
+         , caseExprAlts      :: [Alt]
          }
     -- | Error term @undefined@.
   | Undefined { exprSrcSpan :: SrcSpan }
@@ -51,7 +51,7 @@ data Expr
   | StringLiteral { exprSrcSpan :: SrcSpan, stringLiteralValue :: String }
     -- | A lambda abstraction.
   | Lambda { exprSrcSpan    :: SrcSpan
-           , lambdaExprArgs :: [ VarPat ]
+           , lambdaExprArgs :: [VarPat]
            , lambdaExprRhs  :: Expr
            }
     -- | The @pure@ constructor of the @Free@ monad.
@@ -72,7 +72,7 @@ data Expr
 -- | One alternative of a @case@ expression.
 data Alt = Alt { altSrcSpan :: SrcSpan
                , altConPat  :: ConPat
-               , altVarPats :: [ VarPat ]
+               , altVarPats :: [VarPat]
                , altRhs     :: Expr
                }
  deriving ( Eq, Show )

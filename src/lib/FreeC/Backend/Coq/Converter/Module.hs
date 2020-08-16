@@ -19,7 +19,7 @@ import           FreeC.Pretty
 -- Modules                                                                   --
 -------------------------------------------------------------------------------
 -- | Converts an IR module to Gallina sentences.
-convertModule :: IR.Module -> Converter [ Coq.Sentence ]
+convertModule :: IR.Module -> Converter [Coq.Sentence]
 convertModule haskellAst = do
   imports' <- convertImportDecls (IR.modImports haskellAst)
   mapM_ (addDecArgPragma (IR.modFuncDecls haskellAst))
@@ -32,14 +32,14 @@ convertModule haskellAst = do
 -- Declarations                                                              --
 -------------------------------------------------------------------------------
 -- | Converts the given declarations of an IR module.
-convertDecls :: [ IR.TypeDecl ] -> [ IR.FuncDecl ] -> Converter [ Coq.Sentence ]
+convertDecls :: [IR.TypeDecl] -> [IR.FuncDecl] -> Converter [Coq.Sentence]
 convertDecls typeDecls funcDecls = do
   typeDecls' <- convertTypeDecls typeDecls
   funcDecls' <- convertFuncDecls funcDecls
   return (typeDecls' ++ funcDecls')
 
 -- | Converts the given data type or type synonym declarations.
-convertTypeDecls :: [ IR.TypeDecl ] -> Converter [ Coq.Sentence ]
+convertTypeDecls :: [IR.TypeDecl] -> Converter [Coq.Sentence]
 convertTypeDecls typeDecls = do
   let components = groupTypeDecls typeDecls
   concatMapM convertTypeComponent components
@@ -48,7 +48,7 @@ convertTypeDecls typeDecls = do
 -- Import Declarations                                                       --
 -------------------------------------------------------------------------------
 -- | Converts the given import declarations to Coq.
-convertImportDecls :: [ IR.ImportDecl ] -> Converter [ Coq.Sentence ]
+convertImportDecls :: [IR.ImportDecl] -> Converter [Coq.Sentence]
 convertImportDecls imports = do
   imports' <- mapM convertImportDecl imports
   return (Coq.Base.imports : imports')
@@ -71,7 +71,7 @@ generateImport libName modName = return
   (mkRequireSentence libName [Coq.ident (showPretty modName)])
  where
    -- | Makes a @From … Require Import …@ or  @From … Require …@.
-   mkRequireSentence :: Coq.ModuleIdent -> [ Coq.ModuleIdent ] -> Coq.Sentence
+   mkRequireSentence :: Coq.ModuleIdent -> [Coq.ModuleIdent] -> Coq.Sentence
    mkRequireSentence
      | libName == Coq.Base.baseLibName = Coq.requireImportFrom
      | otherwise = Coq.requireFrom

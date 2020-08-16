@@ -26,8 +26,8 @@ import           FreeC.Monad.Converter
 --   (e.g. @(a : Type)@) or implicit (e.g. @{a : Type}@).
 convertTypeVarDecls
   :: Coq.Explicitness -- ^ Whether to generate an explicit or implicit binder.
-  -> [ IR.TypeVarDecl ] -- ^ The type variable declarations.
-  -> Converter [ Coq.Binder ]
+  -> [IR.TypeVarDecl] -- ^ The type variable declarations.
+  -> Converter [Coq.Binder]
 convertTypeVarDecls explicitness typeVarDecls
   | null typeVarDecls = return []
   | otherwise = do

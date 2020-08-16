@@ -87,14 +87,13 @@ similarVars scope x y renaming
 
 -- | Extends a renaming by the corresponding pairs of variable names from the
 --   two given lists.
-extendRenaming
-  :: IR.Scope -> [ IR.QName ] -> [ IR.QName ] -> Renaming -> Renaming
+extendRenaming :: IR.Scope -> [IR.QName] -> [IR.QName] -> Renaming -> Renaming
 extendRenaming scope xs ys renaming = Renaming
   { renameMap     = Map.fromList (zip xs' ys) `Map.union` renameMap renaming
   , rightBoundSet = Set.fromList ys' `Set.union` rightBoundSet renaming
   }
  where
-   xs', ys' :: [ IR.ScopedName ]
+   xs', ys' :: [IR.ScopedName]
    xs' = map ((,) scope) xs
 
    ys' = map ((,) scope) ys
@@ -138,7 +137,7 @@ instance Similar node => Similar (Maybe node) where
 --   >   Γ ⊢ x₁ ≈ y₁, …, Γ ⊢ xₙ ≈ yₙ
 --   > ———————————————————————————————
 --   >  Γ ⊢ [x₁, …, xₙ] ≈ [y₁, …, yₙ]
-instance Similar node => Similar [ node ] where
+instance Similar node => Similar [node] where
   similar' ms ns
     | length ms == length ns = andM (zipWith similar' ms ns)
     | otherwise = const False

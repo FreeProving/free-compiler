@@ -19,7 +19,7 @@ import           FreeC.Monad.Reporter
 --   Returns the default options (first argument) if no arguments are
 --   specified.
 parseArgs :: Options  -- ^ The default options.
-  -> [ String ] -- ^ The command line arguments.
+  -> [String] -- ^ The command line arguments.
   -> Reporter Options
 parseArgs defaultOptions args
   | null errors = do
@@ -31,9 +31,9 @@ parseArgs defaultOptions args
       $ Message NoSrcSpan Error ("Failed to parse command line arguments.\n"
                                  ++ "Use '--help' for usage information.")
  where
-   optSetters :: [ Options -> Options ]
-   nonOpts :: [ String ]
-   errors :: [ String ]
+   optSetters :: [Options -> Options]
+   nonOpts :: [String]
+   errors :: [String]
    (optSetters, nonOpts, errors) = getOpt Permute optionDescriptors args
 
 -- | Gets the 'Options' for the command line arguments that were passed to

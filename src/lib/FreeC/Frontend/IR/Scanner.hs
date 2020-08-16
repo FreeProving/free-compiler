@@ -171,7 +171,7 @@ stringScanner :: Scanner Token
 stringScanner = StrToken <$> Parsec.stringLiteral tokenParser
 
 -- | Scanners for tokens listed in 'specialSymbols'.
-specialSymbolScanners :: [ Scanner Token ]
+specialSymbolScanners :: [Scanner Token]
 specialSymbolScanners = map
   (\(symbol, token) -> Parsec.symbol tokenParser symbol >> return token)
   specialSymbols
@@ -190,7 +190,7 @@ tokenScanner = tokenWithPos
 -- | A scanner for zero or more 'Token's.
 --
 --   Whitespaces and comments before and between tokens are ignored.
-tokenListScanner :: Scanner [ TokenWithPos ]
+tokenListScanner :: Scanner [TokenWithPos]
 tokenListScanner = whitespaceScanner
   *> Parsec.many (Parsec.lexeme tokenParser tokenScanner)
   <* Parsec.eof
@@ -198,6 +198,6 @@ tokenListScanner = whitespaceScanner
 -- | Converts the given IR source code to a stream of IR tokens.
 --
 --   Reports a fatal error if there are unknown tokens.
-scan :: MonadReporter r => SrcFile -> r [ TokenWithPos ]
+scan :: MonadReporter r => SrcFile -> r [TokenWithPos]
 scan srcFile = runParsecOrFail srcFile (srcFileContents srcFile)
   tokenListScanner

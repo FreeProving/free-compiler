@@ -23,7 +23,7 @@ xor True True = False
 xor False b   = b
 xor b False   = b
 
-zip :: [ a ] -> [ b ] -> [ (a, b) ]
+zip :: [a] -> [b] -> [(a, b)]
 zip [] _ = []
 zip _ [] = []
 zip (a : as) (b : bs) = (a, b) : zip as bs
@@ -49,7 +49,7 @@ intercalate s (x : xs) = x : s : intercalate s xs
 -------------------------------------------------------------------------------
 -- Nested patterns                                                           --
 -------------------------------------------------------------------------------
-unzip :: [ (a, b) ] -> ([ a ], [ b ])
+unzip :: [(a, b)] -> ([a], [b])
 unzip [] = ([], [])
 unzip ((x, y) : xys) = case unzip xys of
   (xs, ys) -> (x : xs, y : ys)

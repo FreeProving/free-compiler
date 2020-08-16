@@ -35,6 +35,11 @@
         "force-linebreak": false,
         "spaces": "none",
         "linebreaks": "after"
+      },
+      "[ in type": {
+        "force-linebreak": false,
+        "spaces": "none",
+        "linebreaks": "after"
       }
     },
     "indent": {

@@ -17,7 +17,7 @@ data Type
   | TypeCon
       { typeSrcSpan :: SrcSpan
       , typeConName :: TypeConName
-      , typeConArgs :: [ Type ]
+      , typeConArgs :: [Type]
       , typeIsDec   :: Bool
         -- ^ Marks this type as a decreasing element of a type signature.
         --
@@ -38,7 +38,7 @@ data Type
 -- Utility                                                                   --
 -------------------------------------------------------------------------------
 -- | Creates a function type with the given argument and return types.
-funcType :: SrcSpan -> [ Type ] -> Type -> Type
+funcType :: SrcSpan -> [Type] -> Type -> Type
 funcType srcSpan = flip (foldr (FuncType srcSpan))
 
 -- | Decides whether a type contains a decreasing argument.

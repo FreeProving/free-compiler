@@ -54,7 +54,7 @@ implicitPreludePass ast = return
 
 -- | Adds an import for the @Prelude@ module to the given list of imports if
 --   there is no explicit import for the @Prelude@ already.
-addImplicitPreludeImport :: [ IR.ImportDecl ] -> [ IR.ImportDecl ]
+addImplicitPreludeImport :: [IR.ImportDecl] -> [IR.ImportDecl]
 addImplicitPreludeImport imports
   | importsPrelude = imports
   | otherwise = preludeImport : imports

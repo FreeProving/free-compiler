@@ -81,7 +81,7 @@ type DGKey = IR.QName
 -- | Every node (i.e., declaration) in a dependency graph is associated with a
 --   unique key (its qualified original name) and a list of keys that identify
 --   the nodes this node depends on (adjacency list).
-type DGEntry node = (node, DGKey, [ DGKey ])
+type DGEntry node = (node, DGKey, [DGKey])
 
 -- | A dependency graph is a directed graph whose nodes are declarations
 --   (Usually 'IR.TypeDecl' or 'IR.FuncDecl'). There is an edge from node
@@ -103,7 +103,7 @@ data DependencyGraph node
 -- Getters                                                                   --
 -------------------------------------------------------------------------------
 -- | Gets the entries of the given dependency graph.
-dependencyGraphEntries :: DependencyGraph node -> [ DGEntry node ]
+dependencyGraphEntries :: DependencyGraph node -> [DGEntry node]
 dependencyGraphEntries (DependencyGraph graph getEntry _) = map getEntry
   (vertices graph)
 
@@ -130,7 +130,7 @@ dependsDirectlyOn (DependencyGraph graph _ getVertex) k1 k2 = Just True
 -------------------------------------------------------------------------------
 -- | Creates the dependency graph for a list of data type or type synonym
 --   declarations.
-typeDependencyGraph :: [ IR.TypeDecl ] -> DependencyGraph IR.TypeDecl
+typeDependencyGraph :: [IR.TypeDecl] -> DependencyGraph IR.TypeDecl
 typeDependencyGraph
   = uncurry3 DependencyGraph . graphFromEdges . map typeDeclEntry
 
@@ -143,7 +143,7 @@ typeDeclEntry decl = (decl, IR.typeDeclQName decl, typeRefs decl)
 -- Function Dependencies                                                     --
 -------------------------------------------------------------------------------
 -- | Creates the dependency graph for a list of function declarations.
-funcDependencyGraph :: [ IR.FuncDecl ] -> DependencyGraph IR.FuncDecl
+funcDependencyGraph :: [IR.FuncDecl] -> DependencyGraph IR.FuncDecl
 funcDependencyGraph
   = uncurry3 DependencyGraph . graphFromEdges . map funcDeclEntry
 
@@ -156,7 +156,7 @@ funcDeclEntry decl = (decl, IR.funcDeclQName decl, valueRefs decl)
 -- Module Dependencies                                                       --
 -------------------------------------------------------------------------------
 -- | Creates the dependency graph for the given modules.
-moduleDependencyGraph :: [ IR.Module ] -> DependencyGraph IR.Module
+moduleDependencyGraph :: [IR.Module] -> DependencyGraph IR.Module
 moduleDependencyGraph
   = uncurry3 DependencyGraph . graphFromEdges . map moduleEntries
 
@@ -190,7 +190,7 @@ instance Pretty (DependencyGraph node) where
      arrow = prettyString "->"
 
      -- | Pretty printed DOT nodes for the dependency graph.
-     nodeDocs :: [ Doc ]
+     nodeDocs :: [Doc]
      nodeDocs = map prettyNode (vertices graph)
 
      -- | Pretty prints the given vertex as a DOT command. The key of the node
@@ -202,7 +202,7 @@ instance Pretty (DependencyGraph node) where
             <+> brackets (label <> equals <> dquotes (pretty key)) <> semi
 
      -- | Pretty printed DOT edges for the dependency graph.
-     edgesDocs :: [ Doc ]
+     edgesDocs :: [Doc]
      edgesDocs = mapMaybe prettyEdges (vertices graph)
 
      -- | Pretty prints all outgoing edges of the given vertex as a single
@@ -230,11 +230,11 @@ instance Pretty (DependencyGraph node) where
 --   renamed to be more explanatory in the context of dependency analysis.
 data DependencyComponent decl
   = NonRecursive decl -- ^ A single non-recursive declaration.
-  | Recursive [ decl ]  -- ^ A list of mutually recursive declarations.
+  | Recursive [decl]  -- ^ A list of mutually recursive declarations.
  deriving Show
 
 -- | Gets the declarations wrapped by the given strongly connected component.
-unwrapComponent :: DependencyComponent decl -> [ decl ]
+unwrapComponent :: DependencyComponent decl -> [decl]
 unwrapComponent (NonRecursive decl) = [decl]
 unwrapComponent (Recursive decls)   = decls
 
@@ -253,7 +253,7 @@ unwrapComponent (Recursive decls)   = decls
 --
 --   If two components do not depend on each other, they are in reverse
 --   alphabetical order.
-dependencyComponents :: DependencyGraph a -> [ DependencyComponent a ]
+dependencyComponents :: DependencyGraph a -> [DependencyComponent a]
 dependencyComponents
   = map convertSCC . stronglyConnComp . dependencyGraphEntries
  where
@@ -266,13 +266,13 @@ dependencyComponents
 -- | Combines the construction of the dependency graphs for the given
 --   type declarations (See 'typeDependencyGraph') with the computation of
 --   strongly connected components.
-groupTypeDecls :: [ IR.TypeDecl ] -> [ DependencyComponent IR.TypeDecl ]
+groupTypeDecls :: [IR.TypeDecl] -> [DependencyComponent IR.TypeDecl]
 groupTypeDecls = dependencyComponents . typeDependencyGraph
 
 -- | Combines the construction of the dependency graphs for the given
 --   function declarations (See 'funcDependencyGraph') with the computation
 --   of strongly connected components.
-groupFuncDecls :: [ IR.FuncDecl ] -> [ DependencyComponent IR.FuncDecl ]
+groupFuncDecls :: [IR.FuncDecl] -> [DependencyComponent IR.FuncDecl]
 groupFuncDecls = dependencyComponents . funcDependencyGraph
 
 -- | Combines the construction of the dependency graph for the given
@@ -282,7 +282,7 @@ groupFuncDecls = dependencyComponents . funcDependencyGraph
 --   Since cyclic module dependencies are not allowed, all
 --   'DependencyComponent's in the returned list should be 'NonRecursive'.
 --   Otherwise, there is a module dependency error.
-groupModules :: [ IR.Module ] -> [ DependencyComponent IR.Module ]
+groupModules :: [IR.Module] -> [DependencyComponent IR.Module]
 groupModules = dependencyComponents . moduleDependencyGraph
 
 -------------------------------------------------------------------------------
@@ -294,7 +294,7 @@ groupModules = dependencyComponents . moduleDependencyGraph
 --   In case of a 'NonRecursive' component, the function is given a singleton
 --   list. The given function must not change the number of declarations in the
 --   component.
-mapComponent :: ([ decl ] -> [ decl' ])
+mapComponent :: ([decl] -> [decl'])
   -> DependencyComponent decl -> DependencyComponent decl'
 mapComponent f (NonRecursive decl)
   = let [decl'] = f [decl] in NonRecursive decl'
@@ -305,7 +305,7 @@ mapComponent f (Recursive decls)   = Recursive (f decls)
 --   There must be a 'MonadFail' instance since this function fails if the
 --   given function changes the number of declarations in a non-recursive
 --   strongly connected component.
-mapComponentM :: MonadFail m => ([ decl ] -> m [ decl' ]) -> DependencyComponent
+mapComponentM :: MonadFail m => ([decl] -> m [decl']) -> DependencyComponent
   decl -> m (DependencyComponent decl')
 mapComponentM f (NonRecursive decl) = do
   [decl'] <- f [decl]
@@ -313,7 +313,7 @@ mapComponentM f (NonRecursive decl) = do
 mapComponentM f (Recursive decls)   = Recursive <$> f decls
 
 -- | Like 'mapComponentM' but discards the result.
-mapComponentM_ :: MonadFail m => ([ decl ] -> m a)
+mapComponentM_ :: MonadFail m => ([decl] -> m a)
   -> DependencyComponent decl -> m ()
 mapComponentM_ f (NonRecursive decl) = void (f [decl])
 mapComponentM_ f (Recursive decls)   = void (f decls)

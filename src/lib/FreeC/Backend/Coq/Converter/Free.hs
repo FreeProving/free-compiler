@@ -18,14 +18,14 @@ import           FreeC.Monad.Converter
 --
 --   The first argument controls whether the generated binders are explicit
 --   (e.g. @(Shape : Type)@) or implicit (e.g. @{Shape : Type}@).
-genericArgDecls :: Coq.Explicitness -> [ Coq.Binder ]
+genericArgDecls :: Coq.Explicitness -> [Coq.Binder]
 genericArgDecls explicitness = map (uncurry (Coq.typedBinder' explicitness))
   Coq.Base.freeArgs
 
 -- | @Variable@ sentences for the parameters of the @Free@ monad.
 --
 --   @Variable Shape : Type.@ and @Variable Pos : Shape -> Type.@
-genericArgVariables :: [ Coq.Sentence ]
+genericArgVariables :: [Coq.Sentence]
 genericArgVariables = map (uncurry (Coq.variable . return)) Coq.Base.freeArgs
 
 -- | An explicit binder for the @Partial@ instance that is passed to partial
@@ -36,28 +36,28 @@ partialArgDecl = uncurry (Coq.typedBinder' Coq.Explicit) Coq.Base.partialArg
 -- | Smart constructor for the application of a Coq function or (type)
 --   constructor that requires the parameters for the @Free@ monad.
 genericApply :: Coq.Qualid -- ^ The name of the function or (type) constructor
-  -> [ Coq.Term ] -- ^ The type class instances to pass to the callee.
-  -> [ Coq.Term ] -- ^ Implicit arguments to pass explicitly to the callee.
-  -> [ Coq.Term ] -- ^ The actual arguments of the callee.
+  -> [Coq.Term] -- ^ The type class instances to pass to the callee.
+  -> [Coq.Term] -- ^ Implicit arguments to pass explicitly to the callee.
+  -> [Coq.Term] -- ^ The actual arguments of the callee.
   -> Coq.Term
 genericApply func = genericApply' $ Coq.Qualid func
 
 -- | Like 'genericApply' but takes a function or (type) constructor term instead
 --   of a qualified identifier as its first argument.
 genericApply' :: Coq.Term   -- ^ The function or (type) constructor term
-  -> [ Coq.Term ] -- ^ The type class instances to pass to the callee.
-  -> [ Coq.Term ] -- ^ Implicit arguments to pass explicitly to the callee.
-  -> [ Coq.Term ] -- ^ The actual arguments of the callee.
+  -> [Coq.Term] -- ^ The type class instances to pass to the callee.
+  -> [Coq.Term] -- ^ Implicit arguments to pass explicitly to the callee.
+  -> [Coq.Term] -- ^ The actual arguments of the callee.
   -> Coq.Term
 genericApply' func effectArgs implicitArgs args
   | null implicitArgs = Coq.app func allArgs
   | otherwise
     = let (Coq.Qualid qualid) = func in Coq.explicitApp qualid allArgs
  where
-   genericArgs :: [ Coq.Term ]
+   genericArgs :: [Coq.Term]
    genericArgs = map (Coq.Qualid . fst) Coq.Base.freeArgs
 
-   allArgs :: [ Coq.Term ]
+   allArgs :: [Coq.Term]
    allArgs = genericArgs ++ effectArgs ++ implicitArgs ++ args
 
 -------------------------------------------------------------------------------
@@ -78,11 +78,11 @@ generatePure = return . Coq.app (Coq.Qualid Coq.Base.freePureCon) . (: [])
 --
 --   If some given type is @Nothing@, the type of the fresh variable is
 --   inferred by Coq.
-generateBinds :: [ Coq.Term ]       -- ^ The values to bind or pass through.
+generateBinds :: [Coq.Term]       -- ^ The values to bind or pass through.
   -> String           -- ^ A prefix to use for fresh variables by default.
-  -> [ Bool ]           -- ^ If each value should be bound or passed through.
-  -> [ Maybe Coq.Term ] -- ^ The types of the values to bind.
-  -> ([ Coq.Term ] -> Converter Coq.Term)
+  -> [Bool]           -- ^ If each value should be bound or passed through.
+  -> [Maybe Coq.Term] -- ^ The types of the values to bind.
+  -> ([Coq.Term] -> Converter Coq.Term)
   -- ^ Converter for the right-hand side of the generated
   --   function. The first argument are the fresh variables
   --   and passed through values.
@@ -91,8 +91,8 @@ generateBinds exprs' defaultPrefix areStrict argTypes' generateRHS
   = generateBinds' (zip3 exprs' (areStrict ++ repeat False)
                     (argTypes' ++ repeat Nothing)) []
  where
-   generateBinds' :: [ (Coq.Term, Bool, Maybe Coq.Term) ]
-     -> [ Coq.Term ] -> Converter Coq.Term
+   generateBinds'
+     :: [(Coq.Term, Bool, Maybe Coq.Term)] -> [Coq.Term] -> Converter Coq.Term
    generateBinds' [] acc = generateRHS acc
    generateBinds' ((expr', isStrict, argType') : xs) acc = if isStrict
      then generateBind expr' defaultPrefix argType'

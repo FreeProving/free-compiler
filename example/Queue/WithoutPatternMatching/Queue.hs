@@ -2,7 +2,7 @@ module Queue.WithoutPatternMatching.Queue where
 
 import           Queue.WithoutPatternMatching.Util
 
-type Queue a = [ a ]
+type Queue a = [a]
 
 empty :: Queue a
 empty = []

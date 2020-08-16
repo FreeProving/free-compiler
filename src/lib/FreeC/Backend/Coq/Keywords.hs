@@ -6,7 +6,7 @@ module FreeC.Backend.Coq.Keywords where
 --
 --   This list has been taken from the Coq documentation
 --   <https://coq.inria.fr/refman/language/gallina-specification-language.html>.
-coqKeywords :: [ String ]
+coqKeywords :: [String]
 coqKeywords
   = [ "as"
     , "at"
@@ -40,7 +40,7 @@ coqKeywords
 --
 --   This list contains all words of the commands listed in
 --   <https://coq.inria.fr/refman/coq-cmdindex.html>.
-vernacularCommands :: [ String ]
+vernacularCommands :: [String]
 vernacularCommands
   = [ "Abort"
     , "About"

@@ -29,7 +29,7 @@ instantiateTypeScheme = fmap fst . instantiateTypeScheme'
 
 -- | Like 'instantiateTypeScheme' but also returns the fresh type variables,
 --   the type scheme has been instantiated with.
-instantiateTypeScheme' :: IR.TypeScheme -> Converter (IR.Type, [ IR.Type ])
+instantiateTypeScheme' :: IR.TypeScheme -> Converter (IR.Type, [IR.Type])
 instantiateTypeScheme' (IR.TypeScheme _ typeArgs typeExpr) = do
   (typeArgs', subst) <- renameTypeArgsSubst typeArgs
   let typeExpr' = applySubst subst typeExpr
@@ -49,14 +49,13 @@ instantiateTypeScheme' (IR.TypeScheme _ typeArgs typeExpr) = do
 --   Fresh type variables used by the given type are replaced by regular type
 --   variables with the prefix 'freshTypeArgPrefix'. All other type variables
 --   are not renamed.
-abstractTypeScheme :: [ IR.QName ] -> IR.Type -> IR.TypeScheme
+abstractTypeScheme :: [IR.QName] -> IR.Type -> IR.TypeScheme
 abstractTypeScheme = fst .: abstractTypeScheme'
 
 -- | Like 'abstractTypeScheme' but returns the resulting type scheme and the
 --   substitution that replaces the abstracted type variables by their name in
 --   the type scheme.
-abstractTypeScheme'
-  :: [ IR.QName ] -> IR.Type -> (IR.TypeScheme, Subst IR.Type)
+abstractTypeScheme' :: [IR.QName] -> IR.Type -> (IR.TypeScheme, Subst IR.Type)
 abstractTypeScheme' ns t
   = let vs         = map (fromJust . IR.identFromQName) ns
         (ivs, uvs) = partition IR.isInternalIdent vs

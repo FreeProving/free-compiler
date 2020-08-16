@@ -73,7 +73,7 @@ type CGNode = (IR.QName, String)
 
 -- | The nodes of the the constant argument graph (see 'makeConstArgGraph')
 --   are identified by themselves.
-type CGEntry = (CGNode, CGNode, [ CGNode ])
+type CGEntry = (CGNode, CGNode, [CGNode])
 
 -- | Constructs a graph that is used to identify contant arguments, i.e.,
 --   arguments that are passed unchanged between the given function
@@ -89,7 +89,7 @@ type CGEntry = (CGNode, CGNode, [ CGNode ])
 --      in @e@ has the form @g e_0 ... e_{j-1} x_i e_{j+1} ... e_m@
 --      (i.e., the argument @x_i@ is passed unchanged to the @j@-th
 --      argument @g@).
-makeConstArgGraph :: [ IR.FuncDecl ] -> [ CGEntry ]
+makeConstArgGraph :: [IR.FuncDecl] -> [CGEntry]
 makeConstArgGraph decls = do
   -- Create one node @(f,x_i)@ for every argument @x_i@ of every function @f@.
   (node@(_f, x), _i, rhs) <- nodes
@@ -114,7 +114,7 @@ makeConstArgGraph decls = do
           --
           --   The second argument contains the arguments that are passed to
           --   the current expression.
-          checkExpr :: IR.Expr -> [ IR.Expr ] -> Bool
+          checkExpr :: IR.Expr -> [IR.Expr] -> Bool
           -- If this is a call to @g@, check the @j@-th argument.
           checkExpr (IR.Var _ name _) args
             | name == g = j < length args && checkArg (args !! j)
@@ -152,13 +152,13 @@ makeConstArgGraph decls = do
           -- | Applies 'checkExpr' to the alternative of a @case@ expression.
           --
           --   If a variable pattern shadows @x_i@, @x_i@ is not unchanged.
-          checkAlt :: IR.Alt -> [ IR.Expr ] -> Bool
+          checkAlt :: IR.Alt -> [IR.Expr] -> Bool
           checkAlt (IR.Alt _ _ varPats expr) args
             | x `shadowedBy` varPats = not (callsG expr)
             | otherwise = checkExpr expr args
           -- | Tests whethe the given variable is shadowed by the given
           --   variale patterns.
-          shadowedBy :: String -> [ IR.VarPat ] -> Bool
+          shadowedBy :: String -> [IR.VarPat] -> Bool
           shadowedBy = flip (flip elem . map IR.varPatIdent)
         guard (checkExpr rhs [])
         -- Add edge if the test was successful.
@@ -166,7 +166,7 @@ makeConstArgGraph decls = do
   return (node, node, adjacent)
  where
    -- | There is one node for each argument of every function declaration.
-   nodes :: [ (CGNode, Int, IR.Expr) ]
+   nodes :: [(CGNode, Int, IR.Expr)]
    nodes = do
      decl <- decls
      let funcName = IR.funcDeclQName decl
@@ -183,12 +183,12 @@ makeConstArgGraph decls = do
 --
 --   The call graph of the given function declarations should be strongly
 --   connected.
-identifyConstArgs :: [ IR.FuncDecl ] -> Converter [ ConstArg ]
+identifyConstArgs :: [IR.FuncDecl] -> Converter [ConstArg]
 identifyConstArgs decls = mapM makeConstArg constArgNameMaps
  where
    -- | Maps for each set of constant arguments the names of the functions to
    --   the name the constant argument has in that function.
-   constArgNameMaps :: [ Map IR.QName String ]
+   constArgNameMaps :: [Map IR.QName String]
    constArgNameMaps = identifyConstArgs' decls
 
    -- Creates 'ConstArg's from the 'constArgNameMaps'.
@@ -205,7 +205,7 @@ identifyConstArgs decls = mapM makeConstArg constArgNameMaps
 
    -- | Maps the names of the function declarations to the names of their
    --   arguments.
-   argNamesMap :: Map IR.QName [ String ]
+   argNamesMap :: Map IR.QName [String]
    argNamesMap = Map.fromList
      [(IR.funcDeclQName decl, map IR.varPatIdent (IR.funcDeclArgs decl))
      | decl <- decls
@@ -223,18 +223,18 @@ identifyConstArgs decls = mapM makeConstArg constArgNameMaps
 
 -- | Like 'identifyConstArgs' but returns a map from function to argument names
 --   for each constant argument instead of a 'ConstArg'.
-identifyConstArgs' :: [ IR.FuncDecl ] -> [ Map IR.QName String ]
+identifyConstArgs' :: [IR.FuncDecl] -> [Map IR.QName String]
 identifyConstArgs' decls = map Map.fromList
   $ filter checkSCC
   $ mapMaybe fromCyclicSCC
   $ stronglyConnComp constArgGraph
  where
    -- | The constant argument graph.
-   constArgGraph :: [ CGEntry ]
+   constArgGraph :: [CGEntry]
    constArgGraph = makeConstArgGraph decls
 
    -- | Maps the keys of the 'constArgGraph' to the adjacency lists.
-   constArgMap :: Map CGNode [ CGNode ]
+   constArgMap :: Map CGNode [CGNode]
    constArgMap = Map.fromList [(k, ks) | (_, k, ks) <- constArgGraph]
 
    -- | The dependency graph of the function declarations.
@@ -248,7 +248,7 @@ identifyConstArgs' decls = map Map.fromList
    --   exactly once (see 'containsAllFunctions') and if there is an edge
    --   between two functions in the 'callGraph', there must also be an
    --   edge between the corresponding nodes of the 'constArgGraph'.
-   checkSCC :: [ CGNode ] -> Bool
+   checkSCC :: [CGNode] -> Bool
    checkSCC nodes
      | not (containsAllFunctions nodes) = False
      | otherwise = and
@@ -262,16 +262,16 @@ identifyConstArgs' decls = map Map.fromList
          return ((g, y) `elem` adjacent)
 
    -- | The names of all given function declarations.
-   funcNames :: [ IR.QName ]
+   funcNames :: [IR.QName]
    funcNames = map IR.funcDeclQName decls
 
    -- | Tests whether the given list of nodes contains one node for every
    --   function declaration.
-   containsAllFunctions :: [ CGNode ] -> Bool
+   containsAllFunctions :: [CGNode] -> Bool
    containsAllFunctions nodes = length nodes == length decls
      && all (`elem` map fst nodes) funcNames
 
    -- | Gets the nodes of a cyclic strongly connected component.
-   fromCyclicSCC :: SCC CGNode -> Maybe [ CGNode ]
+   fromCyclicSCC :: SCC CGNode -> Maybe [CGNode]
    fromCyclicSCC (AcyclicSCC _)    = Nothing
    fromCyclicSCC (CyclicSCC nodes) = Just nodes

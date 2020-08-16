@@ -23,7 +23,7 @@ import           FreeC.Monad.Reporter
 -- | Converts a strongly connected component of the type dependency graph.
 --   TODO: handle mutual recursive types
 convertTypeDecls
-  :: DependencyComponent IR.TypeDecl -> Converter [ Agda.Declaration ]
+  :: DependencyComponent IR.TypeDecl -> Converter [Agda.Declaration]
 convertTypeDecls comp = case comp of
   NonRecursive decl -> convertTypeDecl decl False
   Recursive [decl]  -> convertTypeDecl decl True
@@ -34,7 +34,7 @@ convertTypeDecls comp = case comp of
 
 -- | Converts a data or type synonym declaration.
 --   TODO: Convert type synonyms.
-convertTypeDecl :: IR.TypeDecl -> Bool -> Converter [ Agda.Declaration ]
+convertTypeDecl :: IR.TypeDecl -> Bool -> Converter [Agda.Declaration]
 convertTypeDecl (IR.TypeSynDecl srcSpan _ _ _) _          = reportFatal
   $ Message srcSpan Error
   $ "Type synonyms are not supported by the Agda back end at the moment."
@@ -63,8 +63,8 @@ convertTypeDecl (IR.DataDecl _ ident tVars constrs) isRec = (:)
 --   Environment entries for the type arguments @α̂₁ … α̂ₙ@ are only visible
 --   within the data type declaration.
 convertDataDecl :: IR.DeclIdent     -- ^ The name of the data type
-  -> [ IR.TypeVarDecl ] -- ^ Type parameters for the data type.
-  -> [ IR.ConDecl ]     -- ^ The constructors for this data type.
+  -> [IR.TypeVarDecl] -- ^ Type parameters for the data type.
+  -> [IR.ConDecl]     -- ^ The constructors for this data type.
   -> Bool               -- ^ Is this a recursive data declaration?
   -> Converter Agda.Declaration
 convertDataDecl ident@(IR.DeclIdent srcSpan name) typeVars constrs isRec
@@ -83,9 +83,9 @@ convertDataDecl ident@(IR.DeclIdent srcSpan name) typeVars constrs isRec
 --   identifier and all used type variables to the type converter. This way we
 --   can reuse the existing translation.
 convertConDecls :: IR.DeclIdent     -- ^ The identifier of the data type.
-  -> [ IR.TypeVarDecl ] -- ^ The type parameters declared by the data type.
-  -> [ IR.ConDecl ]     -- ^ The constructor declarations of the data type.
-  -> Converter [ Agda.Declaration ]
+  -> [IR.TypeVarDecl] -- ^ The type parameters declared by the data type.
+  -> [IR.ConDecl]     -- ^ The constructor declarations of the data type.
+  -> Converter [Agda.Declaration]
 convertConDecls (IR.DeclIdent srcSpan ident) typeVars
   = mapM $ convertConDecl ident constructedType
  where
@@ -123,9 +123,9 @@ generateSmartConDecl (IR.ConDecl _ (IR.DeclIdent srcSpan name) argTypes) = do
 -- | Creates a declaration for a data type, which is parameterized over @Shape@
 --   and @Pos@.
 freeDataDecl :: Agda.Name          -- ^ Name of the data type
-  -> [ Agda.Name ]        -- ^ Names of the bound type variables
+  -> [Agda.Name]        -- ^ Names of the bound type variables
   -> Agda.Expr          -- ^ Universe containing the declaration
-  -> [ Agda.Declaration ] -- ^ List of constructor declarations
+  -> [Agda.Declaration] -- ^ List of constructor declarations
   -> Agda.Declaration
 freeDataDecl dataName typeNames = Agda.dataDecl dataName
   (freeArgBinder `snoc` Agda.binding typeNames Agda.set)
@@ -134,9 +134,9 @@ freeDataDecl dataName typeNames = Agda.dataDecl dataName
 --   and types.
 patternDecl :: Agda.Name
   -- ^ Name of the declaration.
-  -> [ String ]
+  -> [String]
   -- ^ Types and preferred names for the bound variables.
-  -> ([ Agda.Pattern ] -> Converter Agda.Pattern)
+  -> ([Agda.Pattern] -> Converter Agda.Pattern)
   -- ^ Continuation for creating the definition using the new variables.
   -> Converter Agda.Declaration
 patternDecl name vars k = localEnv

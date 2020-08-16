@@ -41,7 +41,7 @@ applyFreeArgs qname = foldl1 Agda.app
 
 -- | Adds the reserved names for the free args @Shape@ and @Pos@ to a list of
 --   names.
-addFreeArgs :: [ Agda.Name ] -> [ Agda.Name ]
+addFreeArgs :: [Agda.Name] -> [Agda.Name]
 addFreeArgs ts = Agda.Base.shape : Agda.Base.position : ts
 
 -- | Identifier for @Shape@.
@@ -63,7 +63,7 @@ partial = Agda.Ident (Agda.qname' Agda.Base.partial)
 -- | Binder for the type arguments of the @Free@ monad.
 --
 --   > (Shape : Set) (Pos : Shape → Set)
-freeArgBinder :: [ Agda.LamBinding ]
+freeArgBinder :: [Agda.LamBinding]
 freeArgBinder = [ Agda.binding [Agda.Base.shape] Agda.set
                 , Agda.binding [Agda.Base.position] (shape `Agda.fun` Agda.set)
                 ]

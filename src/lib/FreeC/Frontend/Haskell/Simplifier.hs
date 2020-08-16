@@ -119,7 +119,7 @@ warnIf cond msg node = when cond (report $ Message (HSE.ann node) Warning msg)
 --
 --   Only regular (non XML) modules are supported.
 simplifyModuleWithComments
-  :: HSE.Module SrcSpan -> [ IR.Comment ] -> Simplifier IR.Module
+  :: HSE.Module SrcSpan -> [IR.Comment] -> Simplifier IR.Module
 simplifyModuleWithComments ast@(HSE.Module srcSpan _ pragmas imports decls)
   comments = do
     unless (null pragmas) $ skipNotSupported "Module pragmas" (head pragmas)
@@ -174,8 +174,8 @@ simplifyImport decl
 -- Declarations                                                              --
 -------------------------------------------------------------------------------
 -- | Simplifies the given declarations.
-simplifyDecls :: [ HSE.Decl SrcSpan ]
-  -> Simplifier ([ IR.TypeDecl ], [ IR.TypeSig ], [ IR.FuncDecl ])
+simplifyDecls :: [HSE.Decl SrcSpan]
+  -> Simplifier ([IR.TypeDecl], [IR.TypeSig], [IR.FuncDecl])
 simplifyDecls decls = do
   decls' <- mapM simplifyDecl decls
   return (concatUnzip3 decls')
@@ -187,7 +187,7 @@ simplifyDecls decls = do
 --   Fixity signatures are allowed but don't have a corresponding node in
 --   the AST.
 simplifyDecl :: HSE.Decl SrcSpan
-  -> Simplifier ([ IR.TypeDecl ], [ IR.TypeSig ], [ IR.FuncDecl ])
+  -> Simplifier ([IR.TypeDecl], [IR.TypeSig], [IR.FuncDecl])
 
 -- Type synonym declarations.
 simplifyDecl (HSE.TypeDecl srcSpan declHead typeExpr) = do
@@ -314,7 +314,7 @@ simplifyDecl decl@(HSE.RoleAnnotDecl _ _ _)
 -- | Gets the name the data type or type synonym declaration as well as the
 --   type variables stored in the head of the declaration.
 simplifyDeclHead
-  :: HSE.DeclHead SrcSpan -> Simplifier (IR.DeclIdent, [ IR.TypeVarDecl ])
+  :: HSE.DeclHead SrcSpan -> Simplifier (IR.DeclIdent, [IR.TypeVarDecl])
 simplifyDeclHead (HSE.DHead _ declName) = do
   declIdent <- simplifyDeclName declName
   return (declIdent, [])
@@ -793,7 +793,7 @@ simplifyVarPat pat = expected "variable pattern" pat
 -- @()@) or pair (i.e. @(x, y)@) constructor pattern, however the list pattern
 -- @[x1, ..., xn]@ is not allowed.
 --  Parentheses are ignored.
-simplifyConPat :: HSE.Pat SrcSpan -> Simplifier (IR.ConPat, [ IR.VarPat ])
+simplifyConPat :: HSE.Pat SrcSpan -> Simplifier (IR.ConPat, [IR.VarPat])
 
 -- Ignore parentheses.
 simplifyConPat (HSE.PParen _ pat) = simplifyConPat pat
@@ -842,7 +842,7 @@ simplifyAlt (HSE.Alt _ _ _ (Just binds))
   = notSupported "Local declarations" binds
 
 -- | Simplifies a group of bindings inside a 'let' clause
-simplifyBinds :: HSE.Binds SrcSpan -> Simplifier [ IR.Bind ]
+simplifyBinds :: HSE.Binds SrcSpan -> Simplifier [IR.Bind]
 simplifyBinds binds@(HSE.IPBinds _ _) = notSupported "Implicit parameters" binds
 simplifyBinds (HSE.BDecls _ decls) = mapM simplifyBind decls
  where

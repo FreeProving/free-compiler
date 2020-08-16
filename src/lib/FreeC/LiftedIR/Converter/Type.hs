@@ -22,12 +22,12 @@ import           FreeC.Monad.Reporter
 -- | Converts the argument types of a function.
 liftFuncArgTypes
   :: Maybe Int -- ^ Index of the decreasing argument for recursive functions.
-  -> [ IR.VarPat ] -- ^ The argument types.
-  -> Converter [ LIR.Type ]
+  -> [IR.VarPat] -- ^ The argument types.
+  -> Converter [LIR.Type]
 liftFuncArgTypes = maybe liftNonRecFuncArgTypes liftRecFuncArgTypes
 
 -- | Converts the argument types of a non recursive function using @convertType@.
-liftNonRecFuncArgTypes :: [ IR.VarPat ] -> Converter [ LIR.Type ]
+liftNonRecFuncArgTypes :: [IR.VarPat] -> Converter [LIR.Type]
 liftNonRecFuncArgTypes = mapM
   $ \pat -> let err = reportFatal
                   $ Message (IR.varPatSrcSpan pat) Internal
@@ -37,7 +37,7 @@ liftNonRecFuncArgTypes = mapM
 -- | Converts the argument types of a recursive function using @convertType@.
 --
 --   The outermost argument at the given index is marked decreasing.
-liftRecFuncArgTypes :: Int -> [ IR.VarPat ] -> Converter [ LIR.Type ]
+liftRecFuncArgTypes :: Int -> [IR.VarPat] -> Converter [LIR.Type]
 liftRecFuncArgTypes decIndex args = do
   convArgs <- liftNonRecFuncArgTypes args
   let (startArgs, decArg : endArgs) = splitAt decIndex convArgs
@@ -82,7 +82,7 @@ liftType' = flip liftTypeApp' []
 --   > (C τ₁ … τₙ)* = C τ₁* … τₙ*
 --   > (τ₁ -> τ₂)* = τ₁' -> τ₂'
 --   > α* = α
-liftTypeApp' :: IR.Type -> [ IR.Type ] -> Converter LIR.Type
+liftTypeApp' :: IR.Type -> [IR.Type] -> Converter LIR.Type
 liftTypeApp' (IR.TypeCon srcSpan name) ts
   = LIR.TypeCon srcSpan name <$> mapM liftType' ts <*> return False
 liftTypeApp' (IR.TypeVar srcSpan name) [] = return $ LIR.TypeVar srcSpan name

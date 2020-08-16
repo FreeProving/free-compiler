@@ -19,7 +19,7 @@ import           FreeC.Pretty
 
 -- | Inlines the right-hand sides of the given function declarations into
 --   the right-hand sides of another function declaration.
-inlineFuncDecls :: [ IR.FuncDecl ] -> IR.FuncDecl -> Converter IR.FuncDecl
+inlineFuncDecls :: [IR.FuncDecl] -> IR.FuncDecl -> Converter IR.FuncDecl
 inlineFuncDecls decls decl = do
   let rhs = IR.funcDeclRhs decl
   rhs' <- inlineExpr decls rhs
@@ -33,19 +33,19 @@ inlineFuncDecls decls decl = do
 --   That is done under the assumption that regarding a certain position
 --   of the given expression every given function should be inlined at
 --   most once in order to avoid endless inlining.
-inlineExpr :: [ IR.FuncDecl ] -> IR.Expr -> Converter IR.Expr
+inlineExpr :: [IR.FuncDecl] -> IR.Expr -> Converter IR.Expr
 inlineExpr [] = return
 inlineExpr decls = inlineAndBind
  where
    -- | Maps the names of function declarations in 'decls' to the arguments
    --   and right-hand sides of the functions.
-   declMap :: Map IR.QName ([ IR.TypeVarDecl ], [ IR.VarPat ], IR.Expr)
+   declMap :: Map IR.QName ([IR.TypeVarDecl], [IR.VarPat], IR.Expr)
    declMap = foldr insertFuncDecl Map.empty decls
 
    -- | Inserts a function declaration into 'declMap'.
-   insertFuncDecl :: IR.FuncDecl
-     -> Map IR.QName ([ IR.TypeVarDecl ], [ IR.VarPat ], IR.Expr)
-     -> Map IR.QName ([ IR.TypeVarDecl ], [ IR.VarPat ], IR.Expr)
+   insertFuncDecl
+     :: IR.FuncDecl -> Map IR.QName ([IR.TypeVarDecl], [IR.VarPat], IR.Expr)
+     -> Map IR.QName ([IR.TypeVarDecl], [IR.VarPat], IR.Expr)
    insertFuncDecl funcDecl = Map.insert (IR.funcDeclQName funcDecl)
      ( IR.funcDeclTypeArgs funcDecl
      , IR.funcDeclArgs funcDecl
@@ -69,7 +69,7 @@ inlineExpr decls = inlineAndBind
    -- | Applies 'inlineExpr'' on the given expression and reports an
    --   internal fatal error if not all type arguments have been
    --   applied visibly.
-   inlineVisiblyApplied :: IR.Expr -> Converter ([ String ], IR.Expr)
+   inlineVisiblyApplied :: IR.Expr -> Converter ([String], IR.Expr)
    inlineVisiblyApplied e = do
      (remainingTypeArgs, remainingArgs, e') <- inlineExpr' e
      unless (null remainingTypeArgs)
@@ -91,7 +91,7 @@ inlineExpr decls = inlineAndBind
    --   Function application and visible type application expressions
    --   automatically substitute the corresponding argument for
    --   the passed value.
-   inlineExpr' :: IR.Expr -> Converter ([ String ], [ String ], IR.Expr)
+   inlineExpr' :: IR.Expr -> Converter ([String], [String], IR.Expr)
    inlineExpr' var@(IR.Var _ name _) = case Map.lookup name declMap of
      Nothing -> return ([], [], var)
      Just (typeArgs, args, rhs) -> do

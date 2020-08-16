@@ -53,13 +53,13 @@ type DependencyAwarePass decl = Pass (DependencyComponent decl)
 -- | Type class for declaration AST nodes whose dependencies can be analyzed.
 class DependencyAnalysisPass decl where
   -- | Constructs the dependency graph for the given nodes.
-  groupDecls :: [ decl ] -> [ DependencyComponent decl ]
+  groupDecls :: [decl] -> [DependencyComponent decl]
 
   -- | Gets the declarations of the node type from the given module.
-  getDecls :: IR.Module -> [ decl ]
+  getDecls :: IR.Module -> [decl]
 
   -- | Replaces the declarations of the node type in the given module.
-  setDecls :: IR.Module -> [ decl ] -> IR.Module
+  setDecls :: IR.Module -> [decl] -> IR.Module
 
 -- | The dependencies of type declarations can be analyzed.
 instance DependencyAnalysisPass IR.TypeDecl where
@@ -81,7 +81,7 @@ instance DependencyAnalysisPass IR.FuncDecl where
 --   of the dependency graph for declarations of type @decl@ of the given
 --   module.
 dependencyAnalysisPass :: DependencyAnalysisPass decl
-  => [ DependencyAwarePass decl ] -> IR.Module -> Converter IR.Module
+  => [DependencyAwarePass decl] -> IR.Module -> Converter IR.Module
 dependencyAnalysisPass = subPipelinePass getComponents setComponents
  where
    getComponents     = groupDecls . getDecls

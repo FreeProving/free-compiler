@@ -52,8 +52,8 @@ reportParsecError = reportFatal .: parsecErrorToMessage
 -- | Runs the given parser on the given input and reports a fatal error
 --   if there is a parse error.
 runParsecOrFail :: MonadReporter r => SrcFile         -- ^ The file to parse.
-  -> [ t ]             -- ^ The token stream to parse.
-  -> Parsec [ t ] () a -- ^ The parser to run.
+  -> [t]             -- ^ The token stream to parse.
+  -> Parsec [t] () a -- ^ The parser to run.
   -> r a
 runParsecOrFail srcFile stream parser = do
   let srcFiles = mkSrcFileMap [srcFile]

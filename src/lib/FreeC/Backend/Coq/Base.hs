@@ -62,7 +62,7 @@ freeBind = Coq.bare "op_>>=__"
 -- | The names and types of the parameters that must be passed to the @Free@
 --   monad. These parameters are added automatically to every defined type and
 --   function.
-freeArgs :: [ (Coq.Qualid, Coq.Term) ]
+freeArgs :: [(Coq.Qualid, Coq.Term)]
 freeArgs = [ (Coq.bare "Shape", Coq.Sort Coq.Type)
            , ( Coq.bare "Pos"
                , Coq.Arrow (Coq.Qualid (Coq.bare "Shape")) (Coq.Sort Coq.Type)
@@ -109,7 +109,7 @@ stringScope = Coq.ident "string"
 -- | All Coq identifiers that are reserved for the Base library.
 --
 --   This does only include identifiers without corresponding Haskell name.
-reservedIdents :: [ Coq.Qualid ]
+reservedIdents :: [Coq.Qualid]
 reservedIdents
   = [ -- Free monad
       free

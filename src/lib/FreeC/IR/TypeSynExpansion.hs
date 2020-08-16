@@ -112,7 +112,7 @@ expandTypeSynonymsWhere maxDepth predicate t0
     t0' <- expandTypeSynonyms' t0 []
     return (fromMaybe t0 t0')
  where
-   expandTypeSynonyms' :: IR.Type -> [ IR.Type ] -> Converter (Maybe IR.Type)
+   expandTypeSynonyms' :: IR.Type -> [IR.Type] -> Converter (Maybe IR.Type)
    expandTypeSynonyms' (IR.TypeCon _ typeConName) args = do
      mTypeSynonym <- inEnv $ lookupTypeSynonym typeConName
      case mTypeSynonym of

@@ -119,7 +119,7 @@ parseTestImportDecl :: MonadReporter r => String -> r IR.ImportDecl
 parseTestImportDecl = parseTestIR
 
 -- | Parses an IR module for testing purposes.
-parseTestModule :: MonadReporter r => [ String ] -> r IR.Module
+parseTestModule :: MonadReporter r => [String] -> r IR.Module
 parseTestModule = parseTestIR . unlines
 
 -------------------------------------------------------------------------------
@@ -190,7 +190,7 @@ expectParseTestImportDecl = expectParseTestIR "import"
 
 -- | Parses an IR module for testing purposes and sets the
 --   expectation that parsing is successful.
-expectParseTestModule :: MonadIO m => [ String ] -> m IR.Module
+expectParseTestModule :: MonadIO m => [String] -> m IR.Module
 expectParseTestModule = expectParseTestIR "module" . unlines
 
 -------------------------------------------------------------------------------

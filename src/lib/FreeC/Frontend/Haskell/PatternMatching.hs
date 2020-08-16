@@ -42,7 +42,7 @@ initialState = do
 
 -- | Converts an entry of the 'Environment' to an entry of the constructor map
 --   for the 'initialState'.
-makeConsMapEntry :: EnvEntry -> Maybe (String, [ (HSE.QName (), Int, Bool) ])
+makeConsMapEntry :: EnvEntry -> Maybe (String, [(HSE.QName (), Int, Bool)])
 makeConsMapEntry entry
   | not (isConEntry entry) = Nothing
   | otherwise = do

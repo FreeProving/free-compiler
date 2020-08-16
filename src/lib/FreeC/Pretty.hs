@@ -33,7 +33,7 @@ import           Text.PrettyPrint.Leijen.Text hiding ( (<$>) )
 -------------------------------------------------------------------------------
 -- | Pretty prints a list of pretty printable values by concatenating their
 --   documents with the given separator in between.
-prettySeparated :: Pretty a => Doc -> [ a ] -> Doc
+prettySeparated :: Pretty a => Doc -> [a] -> Doc
 prettySeparated separator = hcat . intersperse separator . map pretty
 
 -- | Pretty prints the value contained in the given 'Maybe' value or pretty

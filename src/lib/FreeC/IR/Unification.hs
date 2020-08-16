@@ -79,7 +79,7 @@ unifyOrFail srcSpan = runOrFail srcSpan .: unify
 --   unified.
 --
 --   The error message uses the given location information.
-unifyAllOrFail :: SrcSpan -> [ IR.Type ] -> Converter (Subst IR.Type)
+unifyAllOrFail :: SrcSpan -> [IR.Type] -> Converter (Subst IR.Type)
 unifyAllOrFail srcSpan = runOrFail srcSpan . unifyAll
 
 -------------------------------------------------------------------------------
@@ -146,7 +146,7 @@ unify t s = do
       occursCheck (IR.FuncType _ t1 t2) = occursCheck t1 >> occursCheck t2
 
 -- | Computes the most general unificator for all given type expressions.
-unifyAll :: [ IR.Type ] -> ExceptT UnificationError Converter (Subst IR.Type)
+unifyAll :: [IR.Type] -> ExceptT UnificationError Converter (Subst IR.Type)
 unifyAll [] = return identitySubst
 unifyAll [_] = return identitySubst
 unifyAll (t0 : t1 : ts) = do
@@ -197,8 +197,7 @@ disagreementSet t s = return (Just (rootPos, t, s))
 --
 --   The first parameter is the child position of the first element in the
 --   list.
-disagreementSet'
-  :: Int -> [ IR.Type ] -> [ IR.Type ] -> Converter DisagreementSet
+disagreementSet' :: Int -> [IR.Type] -> [IR.Type] -> Converter DisagreementSet
 disagreementSet' i (t : ts) (s : ss) = do
   ds <- disagreementSet t s
   case ds of

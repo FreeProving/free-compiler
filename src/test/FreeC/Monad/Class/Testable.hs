@@ -160,7 +160,7 @@ showListItem = (++ "\n") . (" * " ++) . intercalate "\n   " . lines
 
 -- | Converts the pretty printing function for the result of a reporter to
 --   a pretty printing function for the result of 'runReporterT'.
-showReporterValue :: (a -> String) -> (Maybe a, [ Message ]) -> String
+showReporterValue :: (a -> String) -> (Maybe a, [Message]) -> String
 showReporterValue showValue (mx, ms) = "Reporter result where:\n"
   ++ showReportedValue showValue mx
   ++ showReportedMessages ms
@@ -175,7 +175,7 @@ showReportedValue showValue (Just x)
 
 -- | Pretty prints the messages that were reported by a reporter for an
 --   error message in an expectation.
-showReportedMessages :: [ Message ] -> String
+showReportedMessages :: [Message] -> String
 showReportedMessages []  = showListItem $ "No messages were reported."
 showReportedMessages [m]
   = showListItem $ "The following message was reported:\n" ++ showPretty m
@@ -186,7 +186,7 @@ showReportedMessages ms  = showListItem
   ++ showPretty ms
 
 -- | A reporter fails when a fatal message is reported.
-instance MonadTestable m err => MonadTestable (ReporterT m) [ Message ] where
+instance MonadTestable m err => MonadTestable (ReporterT m) [Message] where
   shouldReturnWith' showValue reporter setExpectation = shouldReturnWith'
     (showReporterValue showValue) (runReporterT reporter)
     $ \result -> case result of
@@ -229,7 +229,7 @@ initTestEnvironment = do
 --   the initial test environment (see 'initTestEnvironment') such that
 --   they do not have to be loaded in every test case.
 {-# NOINLINE moduleInterfaceCache #-}
-moduleInterfaceCache :: IORef [ (IR.ModName, ModuleInterface) ]
+moduleInterfaceCache :: IORef [(IR.ModName, ModuleInterface)]
 moduleInterfaceCache = unsafePerformIO $ newIORef []
 
 -- | Loads the module interface file for the module with the given name from
@@ -252,7 +252,7 @@ loadTestModuleInterface ifaceFile = do
 -- | A converter is evaluated within the test environment created by
 --   'initTestEnvironment' and the resulting reporter is handled by
 --   the 'MonadTestable' instance for 'ReporterT'.
-instance MonadTestable m err => MonadTestable (ConverterT m) [ Message ] where
+instance MonadTestable m err => MonadTestable (ConverterT m) [Message] where
   shouldReturnWith' showValue converter setExpectation = do
     env <- initTestEnvironment
     shouldReturnWith' showValue (evalConverterT converter env) setExpectation

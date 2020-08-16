@@ -11,7 +11,7 @@ import           FreeC.Frontend
 
 -- | The command line option descriptors from the @GetOpt@ library for the
 --   command line options understood by the command line option parser.
-optionDescriptors :: [ OptDescr (Options -> Options) ]
+optionDescriptors :: [OptDescr (Options -> Options)]
 optionDescriptors
   = [ Option ['h'] ["help"] (NoArg (\opts -> opts { optShowHelp = True }))
         "Display this message."

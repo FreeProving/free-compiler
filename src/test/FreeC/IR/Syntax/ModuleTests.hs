@@ -8,7 +8,7 @@ import           FreeC.Test.Parser
 
 -- | Sets the expectation that after parsing an AST node from the given string
 --   and pretty printing the resulting node, the original string is obtained.
-shouldPrettyPrintModule :: [ String ] -> Expectation
+shouldPrettyPrintModule :: [String] -> Expectation
 shouldPrettyPrintModule inputs = do
   node <- expectParseTestModule inputs
   lines (showPretty node) `shouldBe` inputs

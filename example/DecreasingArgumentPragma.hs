@@ -4,12 +4,12 @@
 -- See @doc\/CustomPragmas\/DecreasingArgumentPragma.md@ for details.
 module DecreasingArgumentsPragma where
 
-map :: (a -> b) -> [ a ] -> [ b ]
+map :: (a -> b) -> [a] -> [b]
 map f xs = case xs of
   []        -> []
   (x : xs') -> f x : map f xs'
 
-data Rose a = Rose a [ Rose a ]
+data Rose a = Rose a [Rose a]
 
 {-# FreeC mapRose DECREASES ON r #-}
 mapRose :: (a -> b) -> Rose a -> Rose b

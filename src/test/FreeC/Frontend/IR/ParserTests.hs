@@ -22,7 +22,7 @@ shouldParse input expectedOutput
 -- | Like 'shouldParse' for modules.
 --
 --   Automatically concatenates the lines of the input module.
-shouldParseModule :: [ String ] -> IR.Module -> Expectation
+shouldParseModule :: [String] -> IR.Module -> Expectation
 shouldParseModule = shouldParse . unlines
 
 -- | Sets the expectation that the given parser reports a fatal message.

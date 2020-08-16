@@ -268,7 +268,7 @@ newtype ResolverEnv
 -- | Creates an environment that contains the given entries.
 --
 --   Each entry is associated with its original name.
-resolverEnvFromEntries :: [ ResolverEntry ] -> ResolverEnv
+resolverEnvFromEntries :: [ResolverEntry] -> ResolverEnv
 resolverEnvFromEntries = resolverEnvFromNamedEntries
   . map (resolverEntryOriginalName &&& id)
 
@@ -276,13 +276,13 @@ resolverEnvFromEntries = resolverEnvFromNamedEntries
 --   an unqualified version of their original name.
 --
 --   This is used for unqualified imports.
-resolverEnvFromUnQualEntries :: [ ResolverEntry ] -> ResolverEnv
+resolverEnvFromUnQualEntries :: [ResolverEntry] -> ResolverEnv
 resolverEnvFromUnQualEntries = resolverEnvFromNamedEntries
   . map (IR.toUnQual . resolverEntryOriginalName &&& id)
 
 -- | Creates an environment that associates the given names with the given
 --   entries.
-resolverEnvFromNamedEntries :: [ (IR.QName, ResolverEntry) ] -> ResolverEnv
+resolverEnvFromNamedEntries :: [(IR.QName, ResolverEntry)] -> ResolverEnv
 resolverEnvFromNamedEntries = ResolverEnv
   . Map.fromListWith Set.union
   . map
@@ -292,7 +292,7 @@ resolverEnvFromNamedEntries = ResolverEnv
 --
 --   If multiple environments contain entries for the same name, all entries
 --   are kept.
-mergeResolverEnvs :: [ ResolverEnv ] -> ResolverEnv
+mergeResolverEnvs :: [ResolverEnv] -> ResolverEnv
 mergeResolverEnvs
   = ResolverEnv . Map.unionsWith Set.union . map unwrapResolverEnv
 
@@ -345,7 +345,7 @@ resolverEnvFromModule ast = do
 --   scope, both are entered into the environment. That the name is ambiguous
 --   is reported only if there is an actual reference (i.e., when the name is
 --   looked up in the returned environment using 'lookupResolverEntryOrFail').
-resolverEnvFromImports :: [ IR.ImportDecl ] -> Converter ResolverEnv
+resolverEnvFromImports :: [IR.ImportDecl] -> Converter ResolverEnv
 resolverEnvFromImports = fmap mergeResolverEnvs . mapM resolverEnvFromImport
 
 -- | Creates an environment that contains entries for the names exported by
@@ -382,7 +382,7 @@ resolverEnvFromImport (IR.ImportDecl srcSpan modName) = do
 -- | Type class for declarations that declare top-level entries.
 class TopLevelDeclaration node where
   -- | Gets the top-level entries declared by the given node.
-  topLevelEntries :: node -> [ ResolverEntry ]
+  topLevelEntries :: node -> [ResolverEntry]
 
 -- | A module declares all of the contained type synonym, data type and
 --   function declarations at top-level.
@@ -441,7 +441,7 @@ resolverEnvFromTopLevel node = do
 --
 --   Reports a fatal error if there are multiple declarations for the same
 --   type variable in the given list. Existing type variables can be shadowed.
-defineTypeVars :: [ IR.TypeVarDecl ] -> Resolver ()
+defineTypeVars :: [IR.TypeVarDecl] -> Resolver ()
 defineTypeVars typeVarDecls = do
   entries <- checkSingleDeclarations (map makeTypeVarEntry typeVarDecls)
   modify $ shadowResolverEnv (resolverEnvFromEntries entries)
@@ -458,7 +458,7 @@ defineTypeVars typeVarDecls = do
 --
 --   Reports a fatal error if there are multiple patterns for the same variable
 --   in the given list. However, existing variables can be shadowed.
-defineVarPats :: [ IR.VarPat ] -> Resolver ()
+defineVarPats :: [IR.VarPat] -> Resolver ()
 defineVarPats varPats = do
   entries <- checkSingleDeclarations (map makeVarPatEntry varPats)
   modify $ shadowResolverEnv (resolverEnvFromEntries entries)
@@ -476,7 +476,7 @@ defineVarPats varPats = do
 -- | Tests whether the given list does not contain two entries with the
 --   same name.
 checkSingleDeclarations
-  :: MonadReporter r => [ ResolverEntry ] -> r [ ResolverEntry ]
+  :: MonadReporter r => [ResolverEntry] -> r [ResolverEntry]
 checkSingleDeclarations = mapM checkSingleDeclaration . group . sort
 
 -- | Tests whether the given list of entries with the same name contains
@@ -484,8 +484,7 @@ checkSingleDeclarations = mapM checkSingleDeclaration . group . sort
 --   same name).
 --
 --   Reports a fatal error if there are multiple entries with the same name.
-checkSingleDeclaration
-  :: MonadReporter r => [ ResolverEntry ] -> r ResolverEntry
+checkSingleDeclaration :: MonadReporter r => [ResolverEntry] -> r ResolverEntry
 checkSingleDeclaration [entry] = return entry
 checkSingleDeclaration entries = do
   let srcSpan = resolverEntrySrcSpan (last entries)

@@ -15,12 +15,12 @@ import           FreeC.Pretty
 data TypeDecl
   = DataDecl { typeDeclSrcSpan :: SrcSpan
              , typeDeclIdent   :: DeclIdent
-             , typeDeclArgs    :: [ TypeVarDecl ]
-             , dataDeclCons    :: [ ConDecl ]
+             , typeDeclArgs    :: [TypeVarDecl]
+             , dataDeclCons    :: [ConDecl]
              }
   | TypeSynDecl { typeDeclSrcSpan :: SrcSpan
                 , typeDeclIdent   :: DeclIdent
-                , typeDeclArgs    :: [ TypeVarDecl ]
+                , typeDeclArgs    :: [TypeVarDecl]
                 , typeSynDeclRhs  :: Type
                 }
  deriving ( Eq, Show )
@@ -56,7 +56,7 @@ instance Pretty TypeDecl where
 -- | A constructor declaration.
 data ConDecl = ConDecl { conDeclSrcSpan :: SrcSpan
                        , conDeclIdent   :: DeclIdent
-                       , conDeclFields  :: [ Type ]
+                       , conDeclFields  :: [Type]
                        }
  deriving ( Eq, Show )
 

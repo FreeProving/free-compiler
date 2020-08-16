@@ -144,7 +144,7 @@ etaConversionPass ast = do
 --   converted functions that is needed in case they must be
 --   re-converted recursively.
 etaConvertFuncDecls
-  :: [ IR.FuncDecl ] -> [ IR.FuncDecl ] -> Converter [ IR.FuncDecl ]
+  :: [IR.FuncDecl] -> [IR.FuncDecl] -> Converter [IR.FuncDecl]
 etaConvertFuncDecls [] newFuncDecls         = return newFuncDecls
 etaConvertFuncDecls (fd : fds) newFuncDecls = do
   newFuncDecl <- etaConvertFuncDecl fd
@@ -181,7 +181,7 @@ etaConvertFuncDecl funcDecl = do
   return newFuncDecl
 
 -- | Computes a new function declaration with all missing top-level arguments.
-modifyTopLevel :: IR.FuncDecl -> IR.Expr -> [ String ] -> Converter IR.FuncDecl
+modifyTopLevel :: IR.FuncDecl -> IR.Expr -> [String] -> Converter IR.FuncDecl
 modifyTopLevel funcDecl rhs newArgIdents = do
   -- Compute the function's new (uncurried) type. Assumes that funcDecl's
   -- return type is known.
@@ -205,7 +205,7 @@ modifyTopLevel funcDecl rhs newArgIdents = do
 -- | Applies all top-level alternatives of an expression to their missing
 --   arguments and calls 'etaConvertExpr' on the result to convert any
 --   occurring lower-level partial applications.
-etaConvertTopLevel :: [ IR.VarPat ] -> IR.Expr -> Converter IR.Expr
+etaConvertTopLevel :: [IR.VarPat] -> IR.Expr -> Converter IR.Expr
 
 -- If there is more than one alternative, apply the conversion to
 -- all alternatives.
@@ -225,7 +225,7 @@ etaConvertTopLevel argPats expr = localEnv
 
 -- | Calls @etaConvertTopLevel@ on all alternatives in an if or case
 --   expression.
-etaConvertAlternatives :: [ IR.VarPat ] -> IR.Expr -> Converter IR.Expr
+etaConvertAlternatives :: [IR.VarPat] -> IR.Expr -> Converter IR.Expr
 etaConvertAlternatives argPats expr = do
   -- The first child term of an if or case expression is the condition/the
   -- scrutinee and should remain unchanged.
@@ -246,7 +246,7 @@ etaConvertExpr expr = localEnv
 
 -- | Creates a lambda abstraction with the given arguments that immediately
 --   applies the given expression to the arguments.
-etaAbstractWith :: [ String ] -> IR.Expr -> IR.Expr
+etaAbstractWith :: [String] -> IR.Expr -> IR.Expr
 etaAbstractWith xs expr
   | null xs = expr
   | otherwise = IR.Lambda NoSrcSpan argPats expr' Nothing

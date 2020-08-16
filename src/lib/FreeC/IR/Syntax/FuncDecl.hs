@@ -15,7 +15,7 @@ import           FreeC.Pretty
 -------------------------------------------------------------------------------
 -- | A type signature of one or more function declarations.
 data TypeSig = TypeSig { typeSigSrcSpan    :: SrcSpan
-                       , typeSigDeclIdents :: [ DeclIdent ]
+                       , typeSigDeclIdents :: [DeclIdent]
                        , typeSigTypeScheme :: TypeScheme
                        }
  deriving ( Eq, Show )
@@ -36,9 +36,9 @@ data FuncDecl = FuncDecl
     -- ^ A source span that spans the entire function declaration.
   , funcDeclIdent      :: DeclIdent
     -- ^ The name of the function.
-  , funcDeclTypeArgs   :: [ TypeVarDecl ]
+  , funcDeclTypeArgs   :: [TypeVarDecl]
     -- ^ The type arguments of the function.
-  , funcDeclArgs       :: [ VarPat ]
+  , funcDeclArgs       :: [VarPat]
     -- ^ The function's argument patterns.
   , funcDeclReturnType :: Maybe Type
     -- ^ The return type of the function.

@@ -38,7 +38,7 @@ data Type
 --   and every generated type constructor application.
 typeApp :: SrcSpan -- ^ The source span to insert into generated nodes.
   -> Type    -- ^ The partially applied type constructor.
-  -> [ Type ]  -- ^ The type arguments to pass to the type constructor.
+  -> [Type]  -- ^ The type arguments to pass to the type constructor.
   -> Type
 typeApp srcSpan = foldl (TypeApp srcSpan)
 
@@ -49,19 +49,19 @@ typeApp srcSpan = foldl (TypeApp srcSpan)
 --   and every generated type constructor application.
 typeConApp :: SrcSpan     -- ^ The source span to insert into generated nodes.
   -> TypeConName -- ^ The name of the type constructor to apply.
-  -> [ Type ]      -- ^ The type arguments to pass to the type constructor.
+  -> [Type]      -- ^ The type arguments to pass to the type constructor.
   -> Type
 typeConApp srcSpan = typeApp srcSpan . TypeCon srcSpan
 
 -- | Creates a function type with the given argument and return types.
-funcType :: SrcSpan -> [ Type ] -> Type -> Type
+funcType :: SrcSpan -> [Type] -> Type -> Type
 funcType srcSpan = flip (foldr (FuncType srcSpan))
 
 -- | Splits the type of a function or constructor with the given arity
 --   into the argument and return types.
 --
 --   This is basically the inverse of 'funcType'.
-splitFuncType :: Type -> Int -> ([ Type ], Type)
+splitFuncType :: Type -> Int -> ([Type], Type)
 splitFuncType (FuncType _ t1 t2) arity
   | arity > 0 = let (argTypes, returnType) = splitFuncType t2 (arity - 1)
                 in (t1 : argTypes, returnType)

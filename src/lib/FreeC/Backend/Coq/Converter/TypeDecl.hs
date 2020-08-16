@@ -27,7 +27,7 @@ import           FreeC.Pretty
 -------------------------------------------------------------------------------
 -- | Converts a strongly connected component of the type dependency graph.
 convertTypeComponent
-  :: DependencyComponent IR.TypeDecl -> Converter [ Coq.Sentence ]
+  :: DependencyComponent IR.TypeDecl -> Converter [Coq.Sentence]
 convertTypeComponent (NonRecursive decl)
   | isTypeSynDecl decl = convertTypeSynDecl decl
   | otherwise = convertDataDecls [decl]
@@ -50,7 +50,7 @@ convertTypeComponent (Recursive decls)   = do
 --   if they form a cycle). However, type synonyms may still depend on other
 --   type synonyms from the same strongly connected component. Therefore we
 --   have to sort the declarations in reverse topological order.
-sortTypeSynDecls :: [ IR.TypeDecl ] -> Converter [ IR.TypeDecl ]
+sortTypeSynDecls :: [IR.TypeDecl] -> Converter [IR.TypeDecl]
 sortTypeSynDecls = mapM fromNonRecursive . groupTypeDecls
 
 -- | Extracts the single type synonym declaration from a strongly connected
@@ -74,7 +74,7 @@ isTypeSynDecl (IR.TypeSynDecl _ _ _ _) = True
 isTypeSynDecl (IR.DataDecl _ _ _ _)    = False
 
 -- | Converts a Haskell type synonym declaration to Coq.
-convertTypeSynDecl :: IR.TypeDecl -> Converter [ Coq.Sentence ]
+convertTypeSynDecl :: IR.TypeDecl -> Converter [Coq.Sentence]
 convertTypeSynDecl decl@(IR.TypeSynDecl _ _ typeVarDecls typeExpr) = localEnv
   $ do
     let name = IR.typeDeclQName decl
@@ -105,7 +105,7 @@ convertTypeSynDecl (IR.DataDecl _ _ _ _)
 --   After the @Inductive@ sentences for the data type declarations there
 --   is one @Arguments@ sentence and one smart constructor declaration for
 --   each constructor declaration of the given data types.
-convertDataDecls :: [ IR.TypeDecl ] -> Converter [ Coq.Sentence ]
+convertDataDecls :: [IR.TypeDecl] -> Converter [Coq.Sentence]
 convertDataDecls dataDecls = do
   (indBodies, extraSentences) <- mapAndUnzipM convertDataDecl dataDecls
   return
@@ -120,7 +120,7 @@ convertDataDecls dataDecls = do
 --
 --   Type variables declared by the data type or the smart constructors are
 --   not visible outside of this function.
-convertDataDecl :: IR.TypeDecl -> Converter (Coq.IndBody, [ Coq.Sentence ])
+convertDataDecl :: IR.TypeDecl -> Converter (Coq.IndBody, [Coq.Sentence])
 convertDataDecl (IR.DataDecl _ (IR.DeclIdent _ name) typeVarDecls conDecls) = do
   (body, argumentsSentences) <- generateBodyAndArguments
   smartConDecls <- mapM generateSmartConDecl conDecls
@@ -142,7 +142,7 @@ convertDataDecl (IR.DataDecl _ (IR.DeclIdent _ name) typeVarDecls conDecls) = do
    --   function, but not outside this function. This allows the smart
    --   constructors to reuse the identifiers for their type arguments (see
    --   'generateSmartConDecl').
-   generateBodyAndArguments :: Converter (Coq.IndBody, [ Coq.Sentence ])
+   generateBodyAndArguments :: Converter (Coq.IndBody, [Coq.Sentence])
    generateBodyAndArguments = localEnv
      $ do
        Just qualid <- inEnv $ lookupIdent IR.TypeScope name
@@ -157,7 +157,7 @@ convertDataDecl (IR.DataDecl _ (IR.DeclIdent _ name) typeVarDecls conDecls) = do
 
    -- | Converts a constructor of the data type.
    convertConDecl
-     :: IR.ConDecl -> Converter (Coq.Qualid, [ Coq.Binder ], Maybe Coq.Term)
+     :: IR.ConDecl -> Converter (Coq.Qualid, [Coq.Binder], Maybe Coq.Term)
    convertConDecl (IR.ConDecl _ (IR.DeclIdent _ conName) args) = do
      Just conQualid <- inEnv $ lookupIdent IR.ValueScope conName
      Just returnType <- inEnv $ lookupReturnType IR.ValueScope conName

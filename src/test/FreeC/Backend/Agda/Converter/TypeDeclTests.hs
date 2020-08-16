@@ -18,7 +18,7 @@ import           FreeC.Test.Parser
 --   is equal to the given output when pretty printed modulo white
 --   space.
 shouldConvertTypeDeclsTo
-  :: DependencyComponent String -> [ String ] -> Converter Expectation
+  :: DependencyComponent String -> [String] -> Converter Expectation
 shouldConvertTypeDeclsTo inputStrs expectedOutput = do
   input <- parseTestComponent inputStrs
   output <- convertTypeDecls input

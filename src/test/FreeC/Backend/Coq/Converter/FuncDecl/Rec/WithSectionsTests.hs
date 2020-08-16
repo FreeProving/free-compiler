@@ -21,8 +21,7 @@ import           FreeC.Test.Parser
 -- | Parses the given function declarations, converts them to Coq using
 --   'convertRecFuncDeclsWithSection' and expects the resulting Coq code
 --   to equal the given expected output modulo whitespace.
-convertRecFuncDeclsWithSectionTo
-  :: [ String ] -> String -> Converter Expectation
+convertRecFuncDeclsWithSectionTo :: [String] -> String -> Converter Expectation
 convertRecFuncDeclsWithSectionTo inputStrs expectedOutputStr = do
   input <- mapM parseTestFuncDecl inputStrs
   constArgs <- identifyConstArgs input

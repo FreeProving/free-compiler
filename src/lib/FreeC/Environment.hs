@@ -186,19 +186,19 @@ lookupSmartIdent
 
 -- | Gets a list of Coq identifiers for functions, (type/smart) constructors,
 --   (type/fresh) variables that were used in the given environment already.
-usedIdents :: Environment -> [ Coq.Qualid ]
+usedIdents :: Environment -> [Coq.Qualid]
 usedIdents = concatMap entryIdents . Map.elems . envEntries
  where
-   entryIdents :: EnvEntry -> [ Coq.Qualid ]
+   entryIdents :: EnvEntry -> [Coq.Qualid]
    entryIdents entry
      = entryIdent entry : [entrySmartIdent entry | isConEntry entry]
 
 -- | Gets a list of Agda identifiers for functions, (type/smart) constructors,
 --   (type/fresh) variables that were used in the given environment already.
-usedAgdaIdents :: Environment -> [ Agda.QName ]
+usedAgdaIdents :: Environment -> [Agda.QName]
 usedAgdaIdents = concatMap entryIdents . Map.elems . envEntries
  where
-   entryIdents :: EnvEntry -> [ Agda.QName ]
+   entryIdents :: EnvEntry -> [Agda.QName]
    entryIdents entry
      = entryAgdaIdent entry : [entryAgdaSmartIdent entry | isConEntry entry]
 
@@ -212,7 +212,7 @@ lookupSrcSpan = fmap entrySrcSpan .:. lookupEntry
 --   Returns @Nothing@ if there is no such type synonym, function or (smart)
 --   constructor with the given name.
 lookupTypeArgs
-  :: IR.Scope -> IR.QName -> Environment -> Maybe [ IR.TypeVarIdent ]
+  :: IR.Scope -> IR.QName -> Environment -> Maybe [IR.TypeVarIdent]
 lookupTypeArgs = fmap entryTypeArgs
   . find (isTypeSynEntry .||. isConEntry .||. isFuncEntry)
   .:. lookupEntry
@@ -226,14 +226,14 @@ lookupTypeArgArity = fmap length .:. lookupTypeArgs
 --
 --   Returns @Nothing@ if there is no such function or (smart) constructor
 --   with the given name.
-lookupArgTypes :: IR.Scope -> IR.QName -> Environment -> Maybe [ IR.Type ]
+lookupArgTypes :: IR.Scope -> IR.QName -> Environment -> Maybe [IR.Type]
 lookupArgTypes = fmap entryArgTypes . find (isConEntry .||. isFuncEntry)
   .:. lookupEntry
 
 -- | Looks up the strict arguments of the function with the given name.
 --
 --   Returns @Nothing@ if there is no such function.
-lookupStrictArgs :: IR.QName -> Environment -> Maybe [ Bool ]
+lookupStrictArgs :: IR.QName -> Environment -> Maybe [Bool]
 lookupStrictArgs
   = fmap entryStrictArgs . find isFuncEntry .: lookupEntry IR.ValueScope
 
@@ -274,7 +274,7 @@ lookupArity = fmap entryArity . find (not . (isVarEntry .||. isTypeVarEntry))
 --
 --   Returns @Nothing@ if there is no such type synonym.
 lookupTypeSynonym
-  :: IR.QName -> Environment -> Maybe ([ IR.TypeVarIdent ], IR.Type)
+  :: IR.QName -> Environment -> Maybe ([IR.TypeVarIdent], IR.Type)
 lookupTypeSynonym = fmap (entryTypeArgs &&& entryTypeSyn) . find isTypeSynEntry
   .: lookupEntry IR.TypeScope
 

@@ -42,7 +42,7 @@ liftExpr expr = liftExpr' expr [] []
 --   invariant.
 --
 --   > e : τ ↦ e' : τ'
-liftExpr' :: IR.Expr -> [ IR.Type ] -> [ IR.Expr ] -> Converter LIR.Expr
+liftExpr' :: IR.Expr -> [IR.Type] -> [IR.Expr] -> Converter LIR.Expr
 
 -- Pass argument from applications to converter for callee, allowing us to
 -- convert functions and constructors with full access to their parameters.
@@ -230,7 +230,7 @@ liftAlt (IR.Alt srcSpan conPat pats expr) = do
 -- | Translates an alternative (which consist of a list of variable patterns and
 --   a bound expression). Strict variables are replaced with fresh ones, which
 --   are unwrapped using @>>=@.
-liftAlt' :: [ IR.VarPat ] -> IR.Expr -> Converter ([ LIR.VarPat ], LIR.Expr)
+liftAlt' :: [IR.VarPat] -> IR.Expr -> Converter ([LIR.VarPat], LIR.Expr)
 liftAlt' [] expr = ([], ) <$> liftExpr expr
 liftAlt' (pat@(IR.VarPat srcSpan name varType strict) : pats) expr = localEnv
   $ do
@@ -265,7 +265,7 @@ varPat srcSpan var varType = do
 --   > ⎡Γ ⊢ e₀:τ₀ → τ₁   Γ ⊢ e₁:τ₀⎤'  Γ' ⊢ e₀' : m(τ₀' → τ₁')    Γ' ⊢ e₁':τ₀'
 --   > ⎢--------------------------⎥ = ---------------------------------------
 --   > ⎣      Γ ⊢ e₀e₁ : τ₁       ⎦   Γ' ⊢ e₀' >>= λf:(τ₀' → τ₁').f e₀' : e₁'
-generateApply :: LIR.Expr -> [ LIR.Expr ] -> Converter LIR.Expr
+generateApply :: LIR.Expr -> [LIR.Expr] -> Converter LIR.Expr
 generateApply = foldlM
   $ \expr arg -> bind expr freshFuncPrefix Nothing
   $ \f -> return $ LIR.App NoSrcSpan f [] [] [arg] False
@@ -307,8 +307,8 @@ bind arg defaultPrefix argType k = localEnv
 
 -- | Passes a list of arguments to the given function unwrapping the marked
 --   arguments using 'bind'.
-generateBinds :: [ (LIR.Expr, Maybe LIR.Type, Bool) ]
-  -> ([ LIR.Expr ] -> Converter LIR.Expr) -> Converter LIR.Expr
+generateBinds :: [(LIR.Expr, Maybe LIR.Type, Bool)]
+  -> ([LIR.Expr] -> Converter LIR.Expr) -> Converter LIR.Expr
 generateBinds [] k = k []
 generateBinds ((arg, _, False) : as) k = generateBinds as
   $ \as' -> k (arg : as')

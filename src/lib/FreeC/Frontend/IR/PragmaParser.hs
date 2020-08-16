@@ -24,7 +24,7 @@ import           FreeC.Monad.Reporter
 --
 --   The given source span is the source span of the comment that
 --   declares the pragma.
-type CustomPragmaBuilder = SrcSpan -> [ (Int, String) ] -> Reporter IR.Pragma
+type CustomPragmaBuilder = SrcSpan -> [(Int, String)] -> Reporter IR.Pragma
 
 -- | A regular expression for custom pragmas.
 customPragmaPattern :: String
@@ -33,7 +33,7 @@ customPragmaPattern
 
 -- | Regular expressions and functions that create the pragma AST node
 --   from the capturing groups of the match.
-customPragmas :: [ (String, CustomPragmaBuilder) ]
+customPragmas :: [(String, CustomPragmaBuilder)]
 customPragmas = [(decArgPattern, parseDecArgPragma)]
 
 -------------------------------------------------------------------------------
@@ -57,7 +57,7 @@ parseDecArgPragma srcSpan groups = do
 -------------------------------------------------------------------------------
 -- | Parses custom pragmas (i.e., 'IR.DecArgPragma') from the comments of a
 --   module.
-parseCustomPragmas :: [ IR.Comment ] -> Reporter [ IR.Pragma ]
+parseCustomPragmas :: [IR.Comment] -> Reporter [IR.Pragma]
 parseCustomPragmas = mapMaybeM parseCustomPragma
 
 -- | Parses a pragma from the given comment.

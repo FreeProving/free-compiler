@@ -5,7 +5,7 @@ module FreeC.Backend.Agda.Keywords where
 --
 --   This list contains all keywords from the Agda docs
 --   <https://agda.readthedocs.io/en/v2.6.1/language/lexical-structure.html#keywords-and-special-symbols>.
-agdaKeywords :: [ String ]
+agdaKeywords :: [String]
 agdaKeywords
   = [ "abstract"
     , "constructor"

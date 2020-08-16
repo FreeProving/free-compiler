@@ -10,12 +10,12 @@ import           FreeC.Monad.Class.Testable
 import           FreeC.Monad.Reporter
 
 -- | Tokenizes a string for testing purposes.
-scanTest :: String -> Reporter [ Token ]
+scanTest :: String -> Reporter [Token]
 scanTest = fmap (map getToken) . scan . mkSrcFile "<test-input>"
 
 -- | Sets the expectation that 'scan' produces the given token stream for
 --   the given input.
-shouldScan :: String -> [ Token ] -> Expectation
+shouldScan :: String -> [Token] -> Expectation
 shouldScan input expectedTokens = scanTest input `shouldReturn` expectedTokens
 
 -- | Test group for "FreeC.Frontend.IR.Scanner" tests.

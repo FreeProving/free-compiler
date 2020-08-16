@@ -37,7 +37,7 @@ generatedLibName = Agda.name "Generated"
 
 -- | Import declaration for the @Free@ and @partial@ modules from the Base Agda
 --   base library.
-imports :: [ Agda.Declaration ]
+imports :: [Agda.Declaration]
 imports = map (Agda.simpleImport . Agda.qname [baseLibName] . Agda.name)
   ["Free", "Partial"]
 
@@ -89,5 +89,5 @@ up = Agda.name "\x2191"
 -- | All Agda identifiers that are reserved for the Base library.
 --
 --   This does only include identifiers without corresponding Haskell name.
-reservedIdents :: [ Agda.Name ]
+reservedIdents :: [Agda.Name]
 reservedIdents = [free, pure, impure, shape, position, size, up, partial]

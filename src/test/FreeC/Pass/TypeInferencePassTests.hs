@@ -16,7 +16,7 @@ import           FreeC.Test.Parser
 --   and sets the expectation that the resulting type annotated function
 --   declarations are 'FreeC.IR.Similar.similar' to the expected output.
 shouldInferType
-  :: DependencyComponent String -> [ String ] -> Converter Expectation
+  :: DependencyComponent String -> [String] -> Converter Expectation
 shouldInferType inputStrs expectedOutputStrs = do
   input <- parseTestComponent inputStrs
   expectedOutputs <- mapM parseTestFuncDecl expectedOutputStrs

@@ -47,7 +47,7 @@ data Expr
     -- | @case@ expression.
   | Case { exprSrcSpan       :: SrcSpan
          , caseExprScrutinee :: Expr
-         , caseExprAlts      :: [ Alt ]
+         , caseExprAlts      :: [Alt]
          , exprTypeScheme    :: Maybe TypeScheme
          }
     -- | Error term @undefined@.
@@ -64,13 +64,13 @@ data Expr
                }
     -- | A lambda abstraction.
   | Lambda { exprSrcSpan    :: SrcSpan
-           , lambdaExprArgs :: [ VarPat ]
+           , lambdaExprArgs :: [VarPat]
            , lambdaEprRhs   :: Expr
            , exprTypeScheme :: Maybe TypeScheme
            }
     -- | A let expression.
   | Let { exprSrcSpan    :: SrcSpan
-        , letExprBinds   :: [ Bind ]
+        , letExprBinds   :: [Bind]
         , letExprIn      :: Expr
         , exprTypeScheme :: Maybe TypeScheme
         }
@@ -137,7 +137,7 @@ untypedTypeAppExpr srcSpan expr typeExpr = TypeAppExpr srcSpan expr typeExpr
 --   generated application nodes are annotated with the corresponding result
 --   types. If no more argument types can be split off, the types of the
 --   remaining arguments are not annotated.
-app :: SrcSpan -> Expr -> [ Expr ] -> Expr
+app :: SrcSpan -> Expr -> [Expr] -> Expr
 app = foldl . untypedApp
 
 -- | Creates an expression for applying the function with the given name.
@@ -149,7 +149,7 @@ app = foldl . untypedApp
 --   no type annotations will be generated.
 varApp :: SrcSpan -- ^ The source span to insert into generated nodes.
   -> VarName -- ^ The name of the function to apply.
-  -> [ Expr ]  -- ^ The arguments to pass to the function.
+  -> [Expr]  -- ^ The arguments to pass to the function.
   -> Expr
 varApp srcSpan = app srcSpan . untypedVar srcSpan
 
@@ -162,7 +162,7 @@ varApp srcSpan = app srcSpan . untypedVar srcSpan
 --   no type annotations will be generated.
 conApp :: SrcSpan -- ^ The source span to insert into generated nodes.
   -> ConName -- ^ The name of the constructor to apply.
-  -> [ Expr ]  -- ^ The arguments to pass to the constructor.
+  -> [Expr]  -- ^ The arguments to pass to the constructor.
   -> Expr
 conApp srcSpan = app srcSpan . untypedCon srcSpan
 
@@ -174,7 +174,7 @@ conApp srcSpan = app srcSpan . untypedCon srcSpan
 --
 --   If the given expression's type is annotated, all generated visible
 --   type application nodes are annotated with the same type.
-visibleTypeApp :: SrcSpan -> Expr -> [ Type ] -> Expr
+visibleTypeApp :: SrcSpan -> Expr -> [Type] -> Expr
 visibleTypeApp = foldl . untypedTypeAppExpr
 
 -- | Pretty instance for expressions.
@@ -267,7 +267,7 @@ prettyExprPred' _ (Undefined _ _) = prettyString "undefined"
 -- | One alternative of a @case@ expression.
 data Alt = Alt { altSrcSpan :: SrcSpan
                , altConPat  :: ConPat
-               , altVarPats :: [ VarPat ]
+               , altVarPats :: [VarPat]
                , altRhs     :: Expr
                }
  deriving ( Eq, Show )

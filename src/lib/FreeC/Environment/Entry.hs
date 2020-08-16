@@ -26,7 +26,7 @@ data EnvEntry
         -- ^ The name of the data type in Agda.
       , entryName      :: IR.QName
         -- ^ The name of the data type in the module it has been defined in.
-      , entryConsNames :: [ IR.ConName ]
+      , entryConsNames :: [IR.ConName]
         -- ^ The names of the constructors of the data type.
       }
     -- | Entry for a type synonym declaration.
@@ -35,7 +35,7 @@ data EnvEntry
         -- ^ The source code location where the type synonym was declared.
       , entryArity     :: Int
         -- ^ The number of type arguments expected by the type constructor.
-      , entryTypeArgs  :: [ IR.TypeVarIdent ]
+      , entryTypeArgs  :: [IR.TypeVarIdent]
         -- ^ The names of the type arguments.
       , entryTypeSyn   :: IR.Type
         -- ^ The type that is abbreviated by this type synonym.
@@ -63,9 +63,9 @@ data EnvEntry
         -- ^ The source code location where the data constructor was declared.
       , entryArity          :: Int
         -- ^ The number of arguments expected by the data constructor.
-      , entryTypeArgs       :: [ IR.TypeVarIdent ]
+      , entryTypeArgs       :: [IR.TypeVarIdent]
         -- ^ The names of the type arguments.
-      , entryArgTypes       :: [ IR.Type ]
+      , entryArgTypes       :: [IR.Type]
         -- ^ The types of the constructor's arguments.
         --   Contains exactly 'entryArity' elements.
       , entryReturnType     :: IR.Type
@@ -88,12 +88,12 @@ data EnvEntry
         -- ^ The source code location where the function was declared.
       , entryArity         :: Int
         -- ^ The number of arguments expected by the function.
-      , entryTypeArgs      :: [ IR.TypeVarIdent ]
+      , entryTypeArgs      :: [IR.TypeVarIdent]
         -- ^ The names of the type arguments.
-      , entryArgTypes      :: [ IR.Type ]
+      , entryArgTypes      :: [IR.Type]
         -- ^ The types of the function arguments.
         --   Contains exactly 'entryArity' elements.
-      , entryStrictArgs    :: [ Bool ]
+      , entryStrictArgs    :: [Bool]
         -- ^ Whether each argument is strict.
         --   Contains exactly 'entryArity' elements.
       , entryReturnType    :: IR.Type

@@ -124,7 +124,7 @@ checkPatternFuncDecl funcDecl = checkPatternExpr (IR.funcDeclRhs funcDecl)
    checkPatternExpr IR.ErrorExpr {} = return ()
    checkPatternExpr IR.IntLiteral {} = return ()
 
-   performCheck :: [ IR.ConName ] -> [ IR.ConName ] -> SrcSpan -> Converter ()
+   performCheck :: [IR.ConName] -> [IR.ConName] -> SrcSpan -> Converter ()
    performCheck typeConNames altConNames srcSpan = unless
      (all (`elem` typeConNames) typeConNames
       && length typeConNames == length altConNames) (failedPatternCheck srcSpan)

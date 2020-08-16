@@ -133,7 +133,7 @@ union :: RefSet -> RefSet -> RefSet
 union = (OSet.|<>)
 
 -- | Calculates the union of the given sets using 'union'.
-unions :: [ RefSet ] -> RefSet
+unions :: [RefSet] -> RefSet
 unions = foldr union OSet.empty
 
 -------------------------------------------------------------------------------
@@ -152,21 +152,21 @@ instance HasRefs a => HasRefs (Maybe a) where
   refSet = maybe empty refSet
 
 -- | Utility instance to get the references of all elements in a list.
-instance HasRefs a => HasRefs [ a ] where
+instance HasRefs a => HasRefs [a] where
   refSet = unions . map refSet
 
 -- | Gets all references to variables, constructors, type variables and type
 --   constructors in the given node as they occur from left to right.
-refs :: HasRefs a => a -> [ Ref ]
+refs :: HasRefs a => a -> [Ref]
 refs = OSet.toList . refSet
 
 -- | Gets the names of all type variables and type constructors the given
 --   node refers to.
-typeRefs :: HasRefs a => a -> [ IR.QName ]
+typeRefs :: HasRefs a => a -> [IR.QName]
 typeRefs = map refName . filter isTypeRef . refs
 
 -- | gets the names of all variable and constructors the given node refers to.
-valueRefs :: HasRefs a => a -> [ IR.QName ]
+valueRefs :: HasRefs a => a -> [IR.QName]
 valueRefs = map refName . filter isValueRef . refs
 
 -------------------------------------------------------------------------------
@@ -274,13 +274,13 @@ instance HasRefs IR.FuncDecl where
 -------------------------------------------------------------------------------
 -- | Removes the references to type variables that are bound by the given
 --   type variable declarations from the given set.
-withoutTypeArgs :: [ IR.TypeVarDecl ] -> RefSet -> RefSet
+withoutTypeArgs :: [IR.TypeVarDecl] -> RefSet -> RefSet
 withoutTypeArgs typeArgs set = set
   \\ OSet.fromList (map (varRef IR.TypeScope . IR.typeVarDeclQName) typeArgs)
 
 -- | Removes the references to variables that are bound by the given variable
 --   patterns from the given set.
-withoutArgs :: [ IR.VarPat ] -> RefSet -> RefSet
+withoutArgs :: [IR.VarPat] -> RefSet -> RefSet
 withoutArgs args set = set
   \\ OSet.fromList (map (varRef IR.ValueScope . IR.varPatQName) args)
 
@@ -288,7 +288,7 @@ withoutArgs args set = set
 -- Free Type Variables                                                       --
 -------------------------------------------------------------------------------
 -- | The type variables that occur freely in the given node from left to right.
-freeTypeVars :: HasRefs a => a -> [ IR.TypeVarIdent ]
+freeTypeVars :: HasRefs a => a -> [IR.TypeVarIdent]
 freeTypeVars = map refIdent . filter (isVarRef .&&. isTypeRef) . refs
 
 -- | The type variables that occur freely in the given node.
@@ -302,7 +302,7 @@ freeTypeVarSet = Set.map refIdent
 -- Free Variables                                                            --
 -------------------------------------------------------------------------------
 -- | The variables that occur freely in the given node from left to right.
-freeVars :: HasRefs a => a -> [ IR.QName ]
+freeVars :: HasRefs a => a -> [IR.QName]
 freeVars = map refName . filter (isVarRef .&&. isValueRef) . refs
 
 -- | The variables that occur freely in the given node.

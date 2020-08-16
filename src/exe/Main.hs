@@ -135,7 +135,7 @@ parseInputFile parser inputFile = reportApp
 -- | Sorts the given modules based on their dependencies.
 --
 --   If the module dependencies form a cycle, a fatal error is reported.
-sortInputModules :: [ IR.Module ] -> Application [ IR.Module ]
+sortInputModules :: [IR.Module] -> Application [IR.Module]
 sortInputModules = mapM checkForCycle . groupModules
  where
    checkForCycle :: DependencyComponent IR.Module -> Application IR.Module
@@ -224,7 +224,7 @@ loadModule srcSpan modName = do
    -- | Looks for the module's interface file in the import directories.
    --
    --   Reports a fatal message if the file could not be found.
-   findIfaceFile :: [ FilePath ] -> Application FilePath
+   findIfaceFile :: [FilePath] -> Application FilePath
    findIfaceFile []       = reportFatal
      $ Message srcSpan Error
      $ "Could not find imported module " ++ showPretty modName

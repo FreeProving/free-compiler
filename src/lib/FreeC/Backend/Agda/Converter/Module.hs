@@ -41,7 +41,7 @@ convertModName name = Agda.qname (init parts) (last parts)
 -- Import Declarations                                                       --
 -------------------------------------------------------------------------------
 -- | Converts the given import declarations to Agda.
-convertImportDecls :: [ IR.ImportDecl ] -> Converter [ Agda.Declaration ]
+convertImportDecls :: [IR.ImportDecl] -> Converter [Agda.Declaration]
 convertImportDecls imports = (Agda.Base.imports ++)
   <$> mapM convertImportDecl imports
 

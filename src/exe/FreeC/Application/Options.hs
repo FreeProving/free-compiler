@@ -13,13 +13,13 @@ data Options = Options
     -- ^ Flag that indicates whether to show the usage information.
   , optShowVersion :: Bool
     -- ^ Flag that indicates whether to show the compiler's version.
-  , optInputFiles :: [ FilePath ]
+  , optInputFiles :: [FilePath]
     -- ^ The input files passed to the compiler.
     --   All non-option command line arguments are considered input files.
   , optOutputDir :: Maybe FilePath
     -- ^ The output directory or 'Nothing' if the output should be printed
     --   to @stdout@.
-  , optImportDirs :: [ FilePath ]
+  , optImportDirs :: [FilePath]
     -- ^ The directories to look in for imported modules.
   , optBaseLibDir :: FilePath
     -- ^ The directory that contains the Coq Base library that accompanies

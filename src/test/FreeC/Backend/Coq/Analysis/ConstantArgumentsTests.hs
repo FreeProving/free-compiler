@@ -19,8 +19,7 @@ import           FreeC.Test.Parser
 -------------------------------------------------------------------------------
 -- | Like 'identifyConstArgs' but returns just the 'constArgIdents' as a list
 --   for each constant argument.
-identifyConstArgIdents
-  :: [ IR.FuncDecl ] -> Converter [ [ (IR.QName, String) ] ]
+identifyConstArgIdents :: [IR.FuncDecl] -> Converter [[(IR.QName, String)]]
 identifyConstArgIdents = fmap (map (Map.assocs . constArgIdents))
   . identifyConstArgs
 

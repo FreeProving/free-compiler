@@ -46,7 +46,7 @@ import           FreeC.Pretty
 -- | Converts recursive function declarations and adds a @Section@ sentence
 --   for the given constant arguments.
 convertRecFuncDeclsWithSection
-  :: [ ConstArg ] -> [ IR.FuncDecl ] -> Converter [ Coq.Sentence ]
+  :: [ConstArg] -> [IR.FuncDecl] -> Converter [Coq.Sentence]
 convertRecFuncDeclsWithSection constArgs decls = do
   -- Rename the function declarations in the section.
   (renamedDecls, nameMap) <- renameFuncDecls decls
@@ -136,7 +136,7 @@ convertRecFuncDeclsWithSection constArgs decls = do
 --   Returns the renamed function declarations and a map from old names
 --   to new names.
 renameFuncDecls
-  :: [ IR.FuncDecl ] -> Converter ([ IR.FuncDecl ], Map IR.QName IR.QName)
+  :: [IR.FuncDecl] -> Converter ([IR.FuncDecl], Map IR.QName IR.QName)
 renameFuncDecls decls = do
   -- Create a substitution from old identifiers to fresh identifiers.
   let names = map IR.funcDeclQName decls
@@ -243,7 +243,7 @@ isConstArgUsedBy constArg funcDecl = IR.UnQual
 
 -- | Generates the @Variable@ sentence for the type variables in the given
 --   types of the constant arguments.
-generateConstTypeArgSentence :: [ IR.TypeVarIdent ] -> Converter
+generateConstTypeArgSentence :: [IR.TypeVarIdent] -> Converter
   (Maybe Coq.Sentence)
 generateConstTypeArgSentence typeVarIdents
   | null typeVarIdents = return Nothing
@@ -271,7 +271,7 @@ generateConstArgVariable constArg constArgType = do
 --   The constant arguments are also removed from calls to functions
 --   that share the constant argument.
 removeConstArgsFromFuncDecl
-  :: [ ConstArg ] -> IR.FuncDecl -> Converter IR.FuncDecl
+  :: [ConstArg] -> IR.FuncDecl -> Converter IR.FuncDecl
 removeConstArgsFromFuncDecl constArgs
   (IR.FuncDecl srcSpan declIdent typeArgs args maybeRetType rhs) = do
     let name        = IR.declIdentName declIdent
@@ -291,34 +291,34 @@ removeConstArgsFromFuncDecl constArgs
     return (IR.FuncDecl srcSpan declIdent typeArgs args' maybeRetType rhs')
 
 -- | Removes constant arguments from the applications in the given expressions.
-removeConstArgsFromExpr :: [ ConstArg ] -> IR.Expr -> Converter IR.Expr
+removeConstArgsFromExpr :: [ConstArg] -> IR.Expr -> Converter IR.Expr
 removeConstArgsFromExpr constArgs rootExpr = do
   (rootExpr', []) <- removeConstArgsFromExpr' rootExpr
   return rootExpr'
  where
    -- | Maps the name of functions that share the constant arguments to
    --   the indices of their corresponding argument.
-   constArgIndicesMap :: Map IR.QName [ Int ]
+   constArgIndicesMap :: Map IR.QName [Int]
    constArgIndicesMap = Map.unionsWith (++)
      $ map (Map.map return . constArgIndicies) constArgs
 
    -- | Looks up the indices of arguments that can be removed from the
    --   application of a function with the given name.
-   lookupConstArgIndicies :: IR.QName -> Converter [ Int ]
+   lookupConstArgIndicies :: IR.QName -> Converter [Int]
    lookupConstArgIndicies name = do
      function <- inEnv $ isFunction name
      return (if function then lookupConstArgIndicies' name else [])
 
    -- | Like 'lookupConstArgIndicies' but assumes the function not to be
    --   shadowed by local varibales.
-   lookupConstArgIndicies' :: IR.QName -> [ Int ]
+   lookupConstArgIndicies' :: IR.QName -> [Int]
    lookupConstArgIndicies' = fromMaybe [] . flip Map.lookup constArgIndicesMap
 
    -- | Implementation of 'removeConstArgsFromExpr' that returns the indices
    --   of the arguments that still need to be removed.
    removeConstArgsFromExpr'
      :: IR.Expr    -- ^ The expression to remove the constant arguments from.
-     -> Converter (IR.Expr, [ Int ])
+     -> Converter (IR.Expr, [Int])
 
    -- If a variable is applied, lookup the indices of the arguments that
    -- can be removed.
@@ -394,7 +394,7 @@ removeConstArgsFromExpr constArgs rootExpr = do
 --   argument indices that have been removed.
 updateTypeSig :: Subst IR.Type
   -- ^ The most general unifier for the constant argument types.
-  -> [ IR.TypeVarIdent ]
+  -> [IR.TypeVarIdent]
   -- ^ The type arguments declared in the section already.
   -> Map (IR.QName, String) IR.Type
   -- ^ The types of the arguments by function and argument name.
@@ -402,7 +402,7 @@ updateTypeSig :: Subst IR.Type
   -- ^ The return types by function name.
   -> IR.FuncDecl
   -- ^ The function declaration whose type signature to update.
-  -> Converter (IR.QName, [ Int ])
+  -> Converter (IR.QName, [Int])
 updateTypeSig mgu constTypeVars argTypeMap returnTypeMap funcDecl = do
     -- TODO do we have to update type annotations in the AST?
     -- Lookup entry.
@@ -446,7 +446,7 @@ updateTypeSig mgu constTypeVars argTypeMap returnTypeMap funcDecl = do
 --   given function declaration and from visible type applications on its
 --   right-hand side.
 removeConstTypeArgsFromFuncDecl
-  :: [ (IR.QName, [ Int ]) ] -> IR.FuncDecl -> Converter IR.FuncDecl
+  :: [(IR.QName, [Int])] -> IR.FuncDecl -> Converter IR.FuncDecl
 removeConstTypeArgsFromFuncDecl constTypeVars funcDecl = do
   let rhs          = IR.funcDeclRhs funcDecl
       Just indices = lookup (IR.funcDeclQName funcDecl) constTypeVars
@@ -455,7 +455,7 @@ removeConstTypeArgsFromFuncDecl constTypeVars funcDecl = do
   return funcDecl { IR.funcDeclTypeArgs = typeArgs', IR.funcDeclRhs = rhs' }
 
 -- | Removes the elements with the given indices from the given list.
-removeIndicies :: [ Int ] -> [ a ] -> [ a ]
+removeIndicies :: [Int] -> [a] -> [a]
 removeIndicies _ [] = []
 removeIndicies indices (x : xs)
   | 0 `elem` indices = xs'
@@ -469,30 +469,30 @@ removeIndicies indices (x : xs)
 --   signature of function declarations from visible type applications
 --   in the given expression.
 removeConstTypeArgsFromExpr
-  :: [ (IR.QName, [ Int ]) ] -> IR.Expr -> Converter IR.Expr
+  :: [(IR.QName, [Int])] -> IR.Expr -> Converter IR.Expr
 removeConstTypeArgsFromExpr constTypeVars rootExpr = do
   (rootExpr', []) <- removeConstTypeArgsFromExpr' rootExpr
   return rootExpr'
  where
    -- | Maps names of functions that share constant arguments to the indices
    --   of their constant type arguments.
-   constTypeVarMap :: Map IR.QName [ Int ]
+   constTypeVarMap :: Map IR.QName [Int]
    constTypeVarMap = Map.fromList constTypeVars
 
    -- | Looks up the indices of the constant arguments that can be removed
    --   from a call to the function with the given name.
-   lookupConstTypeArgIndicies :: IR.QName -> Converter [ Int ]
+   lookupConstTypeArgIndicies :: IR.QName -> Converter [Int]
    lookupConstTypeArgIndicies name = do
      function <- inEnv $ isFunction name
      return (if function then lookupConstTypeArgIndicies' name else [])
 
    -- | Like 'lookupConstTypeArgIndicies' but assumes the function not to be
    --   shadowed by local varibales.
-   lookupConstTypeArgIndicies' :: IR.QName -> [ Int ]
+   lookupConstTypeArgIndicies' :: IR.QName -> [Int]
    lookupConstTypeArgIndicies' = fromMaybe [] . flip Map.lookup constTypeVarMap
 
    -- | Removes the type arguments recursively.
-   removeConstTypeArgsFromExpr' :: IR.Expr -> Converter (IR.Expr, [ Int ])
+   removeConstTypeArgsFromExpr' :: IR.Expr -> Converter (IR.Expr, [Int])
 
    -- Lookup the indices of the type arguments that need to be removed.
    removeConstTypeArgsFromExpr' expr@(IR.Var _ varName _) = do
@@ -559,18 +559,18 @@ removeConstTypeArgsFromExpr constTypeVars rootExpr = do
 -- | Generates a @Definition@ sentence for the given function declaration
 --   that passes the arguments to the function declared inside the @Section@
 --   sentence in the correct order.
-generateInterfaceDecl :: [ ConstArg ]
+generateInterfaceDecl :: [ConstArg]
   -- ^ The constant arguments of the function.
-  -> [ Bool ]
+  -> [Bool]
   -- ^ Whether the constant argument is used by any function.
   -> Map IR.QName IR.QName
   -- ^ Maps the names of the original functions to renamed/main functions.
   -> Subst IR.Type
   -- ^ The substitution of type variables of the function to type
   --   variables in the @Section@.
-  -> [ IR.TypeVarIdent ]
+  -> [IR.TypeVarIdent]
   -- ^ The names of the @Section@'s type variables.
-  -> [ IR.TypeVarIdent ]
+  -> [IR.TypeVarIdent]
   -- ^ The names of the renamed function's type variables.
   -> IR.FuncDecl
   -- ^ The original function declaration.
@@ -618,9 +618,9 @@ generateInterfaceDecl constArgs isConstArgUsed nameMap mgu sectionTypeArgs
  where
    -- | Looks up the name of the function's type argument that corresponds to
    --   the given type argument of the @Section@.
-   lookupTypeArgName :: [ IR.TypeVarIdent ]
+   lookupTypeArgName :: [IR.TypeVarIdent]
      -- ^ The type arguments of the function.
-     -> [ (IR.TypeVarIdent, Int) ]
+     -> [(IR.TypeVarIdent, Int)]
      -- ^ The renamed type arguments of the function and their index.
      -> IR.TypeVarIdent
      -- ^ The type argument of the section.

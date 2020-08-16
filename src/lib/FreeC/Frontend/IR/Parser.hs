@@ -31,7 +31,7 @@ import           FreeC.Pretty
 import           FreeC.Util.Parsec
 
 -- | Type for parsers of IR nodes of type @a@.
-type Parser a = Parsec [ TokenWithPos ] () a
+type Parser a = Parsec [TokenWithPos] () a
 
 -- | Type class for IR nodes that can be parsed.
 class Parseable a where
@@ -594,7 +594,7 @@ instance Parseable IR.Expr where
 -- | Parser for zero or more IR @case@ expression alternatives.
 --
 --   > alts ::= "{" [ alt { ";" alt } ] "}"
-altsParser :: Parser [ IR.Alt ]
+altsParser :: Parser [IR.Alt]
 altsParser = bracesParser (altParser `Parsec.sepEndBy` token Semi)
 
 -- | Parser for IR @case@ expression alternatives.
@@ -611,7 +611,7 @@ altParser = IR.Alt NoSrcSpan <$> conPatParser <*> Parsec.many varPatParser
 -- | Parser for zero or more IR @let@ bindings.
 --
 --   > binds ::= "{" [ bind { ";" bind } ] "}"
-bindsParser :: Parser [ IR.Bind ]
+bindsParser :: Parser [IR.Bind]
 bindsParser = bracesParser (bindParser `Parsec.sepEndBy` token Semi)
 
 -- | Parser for IR @case@ expression alternatives.
