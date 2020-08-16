@@ -122,7 +122,9 @@
     }
   },
   "language": "Haskell2010",
-  "extensions": [],
+  "extensions": [
+    "MultiParamTypeClasses"
+  ],
   "fixities": [
     "infixr 5 </>",
     "infixr 7 <.>",
