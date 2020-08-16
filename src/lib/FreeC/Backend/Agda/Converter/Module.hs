@@ -22,8 +22,8 @@ convertModule :: IR.Module -> Converter Agda.Declaration
 convertModule (IR.Module _ name importDecls typeDecls _ modPragmas funcDecls)
   = do
     mapM_ (addDecArgPragma funcDecls) modPragmas
-    Agda.moduleDecl (convertModName name) <$> getAp
-      (importDecls' <> typeDecls' <> funcDecls')
+    Agda.moduleDecl (convertModName name)
+      <$> getAp (importDecls' <> typeDecls' <> funcDecls')
  where
    importDecls' = Ap $ convertImportDecls importDecls
 
@@ -49,5 +49,7 @@ convertImportDecls imports = (Agda.Base.imports ++)
 convertImportDecl :: IR.ImportDecl -> Converter Agda.Declaration
 convertImportDecl (IR.ImportDecl _ modName) = do
   Just iface <- inEnv $ lookupAvailableModule modName
-  return $ Agda.simpleImport $ Agda.qname [interfaceAgdaLibName iface]
+  return
+    $ Agda.simpleImport
+    $ Agda.qname [interfaceAgdaLibName iface]
     $ Agda.name modName

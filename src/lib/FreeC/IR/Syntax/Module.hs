@@ -26,11 +26,15 @@ data Module = Module
 
 -- | Pretty instance for modules.
 instance Pretty Module where
-  pretty ast = prettyString "module" <+> prettyString (modName ast)
-    <+> prettyString "where" <$$> prettySeparated (semi <> line)
-    (map pretty (modImports ast) ++ map pretty (modTypeDecls ast) ++ map pretty
-     (modTypeSigs ast) ++ map pretty (modPragmas ast) ++ map pretty
-     (modFuncDecls ast))
+  pretty ast = prettyString "module"
+    <+> prettyString (modName ast)
+    <+> prettyString "where"
+    <$$> prettySeparated (semi <> line)
+    (map pretty (modImports ast)
+     ++ map pretty (modTypeDecls ast)
+     ++ map pretty (modTypeSigs ast)
+     ++ map pretty (modPragmas ast)
+     ++ map pretty (modFuncDecls ast))
 
 -------------------------------------------------------------------------------
 -- Imports                                                                   --

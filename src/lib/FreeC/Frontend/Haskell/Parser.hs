@@ -89,8 +89,8 @@ parseHaskellWithCommentsAndExts enabledExts srcFile
       ( fmap (toMessageSrcSpan :: SrcSpanInfo -> SrcSpan) node
       , map convertComment comments
       )
-    ParseFailed loc msg      -> reportFatal $ Message (toMessageSrcSpan loc)
-      Error msg
+    ParseFailed loc msg      -> reportFatal
+      $ Message (toMessageSrcSpan loc) Error msg
  where
    -- | Configuration of the Haskell parser.
    parseMode :: ParseMode

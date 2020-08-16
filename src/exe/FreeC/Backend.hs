@@ -105,9 +105,10 @@ createCoqProject
    writeCoqProject = do
      coqProject <- getCoqProjectFile
      contents <- makeContents
-     liftIO $ do
-       createDirectoryIfMissing True (takeDirectory coqProject)
-       writeFile coqProject contents
+     liftIO
+       $ do
+         createDirectoryIfMissing True (takeDirectory coqProject)
+         writeFile coqProject contents
 
    -- | Creates the string to write to the 'coqProject' file.
    makeContents :: Application String
@@ -118,7 +119,8 @@ createCoqProject
      absBaseDir <- liftIO $ makeAbsolute coqBaseDir
      absOutputDir <- liftIO $ makeAbsolute outputDir
      let relBaseDir = makeRelative absOutputDir absBaseDir
-     return $ unlines
+     return
+       $ unlines
        [ "-R " ++ relBaseDir ++ " " ++ showPretty Coq.Base.baseLibName
        , "-R . " ++ showPretty Coq.Base.generatedLibName
        ]
@@ -144,11 +146,14 @@ convertModuleToAgda
 --   The file declares dependencies on the Agda standard library and our base
 --   library.
 createAgdaLib :: Application ()
-createAgdaLib = whenM agdaLibEnabled $ unlessM agdaLibExists $ do
-  (agdaLib, name) <- getAgdaLib
-  liftIO $ do
-    createDirectoryIfMissing True (takeDirectory agdaLib)
-    writeFile agdaLib $ contents name
+createAgdaLib = whenM agdaLibEnabled
+  $ unlessM agdaLibExists
+  $ do
+    (agdaLib, name) <- getAgdaLib
+    liftIO
+      $ do
+        createDirectoryIfMissing True (takeDirectory agdaLib)
+        writeFile agdaLib $ contents name
  where
    agdaLibEnabled :: Application Bool
    agdaLibEnabled = do

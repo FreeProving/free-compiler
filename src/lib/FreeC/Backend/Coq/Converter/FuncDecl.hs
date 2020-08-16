@@ -21,5 +21,6 @@ convertFuncDecls funcDecls = do
 -- | Converts a strongly connected component of the function dependency graph.
 convertFuncComponent
   :: DependencyComponent IR.FuncDecl -> Converter [ Coq.Sentence ]
-convertFuncComponent (NonRecursive decl) = return <$> convertNonRecFuncDecl decl
+convertFuncComponent (NonRecursive decl)
+  = return <$> convertNonRecFuncDecl decl
 convertFuncComponent (Recursive decls)   = convertRecFuncDecls decls

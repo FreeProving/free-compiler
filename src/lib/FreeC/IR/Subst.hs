@@ -53,9 +53,10 @@ newtype Subst a = Subst (Map IR.QName (SrcSpan -> a))
 
 -- | Substitutions can be pretty printed for testing purposes.
 instance Pretty a => Pretty (Subst a) where
-  pretty (Subst m) = braces $ prettySeparated (comma <> space) $ flip map
-    (Map.assocs m) $ \(v, f) -> pretty v <+> prettyString "↦" <+> pretty
-    (f NoSrcSpan)
+  pretty (Subst m) = braces
+    $ prettySeparated (comma <> space)
+    $ flip map (Map.assocs m)
+    $ \(v, f) -> pretty v <+> prettyString "↦" <+> pretty (f NoSrcSpan)
 
 -------------------------------------------------------------------------------
 -- Construction                                                              --
@@ -359,7 +360,8 @@ instance Renamable IR.VarPat IR.Expr where
 newRenameArgs :: (HasRefs expr, Renamable arg expr, ApplySubst expr expr)
   => Subst expr -> [ arg ] -> (Subst expr, [ arg ])
 newRenameArgs subst args
-  = let subst' = subst `substWithout` map (IR.UnQual . IR.Ident . getIdent) args
+  = let subst' = subst
+          `substWithout` map (IR.UnQual . IR.Ident . getIdent) args
     in newRenameArgs' subst' args
 
 -- | Like 'newRenameArgs' but the domain of the given substitution does not
@@ -401,9 +403,11 @@ newRenameArgs' subst (arg : args) = (arg' :) <$> newRenameArgs' subst' args
 -- | Gets the identifiers that occur freely in the specified scope of the given
 --   substitution.
 freeSubstIdents :: HasRefs a => IR.Scope -> Subst a -> Set String
-freeSubstIdents scope (Subst substMap) = Set.fromList $ mapMaybe
-  (IR.identFromQName . refName) $ filter ((== scope) . refScope) $ concatMap
-  (refs . ($ NoSrcSpan)) $ Map.elems substMap
+freeSubstIdents scope (Subst substMap) = Set.fromList
+  $ mapMaybe (IR.identFromQName . refName)
+  $ filter ((== scope) . refScope)
+  $ concatMap (refs . ($ NoSrcSpan))
+  $ Map.elems substMap
 
 -- | Generates identifiers that start with the given prefix and can be used as
 --   fresh identifiers.

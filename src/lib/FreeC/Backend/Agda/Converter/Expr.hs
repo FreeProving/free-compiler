@@ -18,8 +18,9 @@ convertLiftedExpr (LIR.SmartCon srcSpan name)
 convertLiftedExpr (LIR.Var _ _ name _)        = return $ Agda.Ident name
 convertLiftedExpr (LIR.App _ expr _ _ args _)
   = Agda.appN <$> convertLiftedExpr expr <*> mapM convertLiftedExpr args
-convertLiftedExpr (LIR.If _ cond true false)
-  = Agda.ifThenElse <$> convertLiftedExpr cond <*> convertLiftedExpr true
+convertLiftedExpr (LIR.If _ cond true false)  = Agda.ifThenElse
+  <$> convertLiftedExpr cond
+  <*> convertLiftedExpr true
   <*> convertLiftedExpr false
 convertLiftedExpr (LIR.Case _ discr alts)
   = Agda.caseOf <$> convertLiftedExpr discr <*> mapM convertLiftedAlt alts

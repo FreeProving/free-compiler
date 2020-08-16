@@ -27,9 +27,9 @@ parseArgs defaultOptions args
     return opts { optInputFiles = nonOpts }
   | otherwise = do
     mapM_ (report . Message NoSrcSpan Error) errors
-    reportFatal $ Message NoSrcSpan Error
-      ("Failed to parse command line arguments.\n"
-       ++ "Use '--help' for usage information.")
+    reportFatal
+      $ Message NoSrcSpan Error ("Failed to parse command line arguments.\n"
+                                 ++ "Use '--help' for usage information.")
  where
    optSetters :: [ Options -> Options ]
    nonOpts :: [ String ]

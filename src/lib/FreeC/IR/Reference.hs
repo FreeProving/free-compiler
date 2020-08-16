@@ -207,9 +207,11 @@ instance HasRefs IR.Expr where
   refSet (IR.Case _ scrutinee alts exprType)
     = unions [refSet scrutinee, refSet alts, refSet exprType]
   refSet (IR.Undefined _ exprType) = varRef IR.ValueScope
-    IR.Prelude.undefinedFuncName `insertBefore` refSet exprType
+    IR.Prelude.undefinedFuncName
+    `insertBefore` refSet exprType
   refSet (IR.ErrorExpr _ _ exprType) = varRef IR.ValueScope
-    IR.Prelude.errorFuncName `insertBefore` refSet exprType
+    IR.Prelude.errorFuncName
+    `insertBefore` refSet exprType
   refSet (IR.IntLiteral _ _ exprType) = refSet exprType
   refSet (IR.Lambda _ args expr exprType) = unions
     [refSet args, withoutArgs args (refSet expr), refSet exprType]
@@ -273,14 +275,14 @@ instance HasRefs IR.FuncDecl where
 -- | Removes the references to type variables that are bound by the given
 --   type variable declarations from the given set.
 withoutTypeArgs :: [ IR.TypeVarDecl ] -> RefSet -> RefSet
-withoutTypeArgs typeArgs set = set \\ OSet.fromList
-  (map (varRef IR.TypeScope . IR.typeVarDeclQName) typeArgs)
+withoutTypeArgs typeArgs set = set
+  \\ OSet.fromList (map (varRef IR.TypeScope . IR.typeVarDeclQName) typeArgs)
 
 -- | Removes the references to variables that are bound by the given variable
 --   patterns from the given set.
 withoutArgs :: [ IR.VarPat ] -> RefSet -> RefSet
-withoutArgs args set = set \\ OSet.fromList
-  (map (varRef IR.ValueScope . IR.varPatQName) args)
+withoutArgs args set = set
+  \\ OSet.fromList (map (varRef IR.ValueScope . IR.varPatQName) args)
 
 -------------------------------------------------------------------------------
 -- Free type variables                                                       --
@@ -291,8 +293,10 @@ freeTypeVars = map refIdent . filter (isVarRef .&&. isTypeRef) . refs
 
 -- | The type variables that occur freely in the given node.
 freeTypeVarSet :: HasRefs a => a -> Set IR.TypeVarIdent
-freeTypeVarSet = Set.map refIdent . Set.filter (isVarRef .&&. isTypeRef)
-  . OSet.toSet . refSet
+freeTypeVarSet = Set.map refIdent
+  . Set.filter (isVarRef .&&. isTypeRef)
+  . OSet.toSet
+  . refSet
 
 -------------------------------------------------------------------------------
 -- Free variables                                                            --
@@ -303,5 +307,7 @@ freeVars = map refName . filter (isVarRef .&&. isValueRef) . refs
 
 -- | The variables that occur freely in the given node.
 freeVarSet :: HasRefs a => a -> Set IR.QName
-freeVarSet = Set.map refName . Set.filter (isVarRef .&&. isValueRef)
-  . OSet.toSet . refSet
+freeVarSet = Set.map refName
+  . Set.filter (isVarRef .&&. isValueRef)
+  . OSet.toSet
+  . refSet

@@ -74,15 +74,17 @@ skipNotSupported' :: HSE.Annotated a
   -> String    -- ^ Description of what will be done to skip the feature.
   -> a SrcSpan -- ^ The node that is skipped.
   -> Simplifier ()
-skipNotSupported' feature strategy node = report $ Message (HSE.ann node)
-  Warning (feature ++ " are not supported and " ++ strategy ++ "!")
+skipNotSupported' feature strategy node = report
+  $ Message (HSE.ann node) Warning
+  (feature ++ " are not supported and " ++ strategy ++ "!")
 
 -- | Like 'notSupported' but refers to the `--transform-pattern-matching`
 --   command line option to enable support for the future.
 experimentallySupported
   :: HSE.Annotated a => String -> a SrcSpan -> Simplifier r
 experimentallySupported feature = usageError
-  (feature ++ " are not supported!\n"
+  (feature
+   ++ " are not supported!\n"
    ++ "Add the `--transform-pattern-matching` command line option to enable "
    ++ feature)
 
@@ -645,7 +647,8 @@ simplifyExpr (HSE.ExpTypeSig srcSpan expr typeExpr) = do
       typeScheme <- simplifyTypeScheme typeExpr
       return expr' { IR.exprTypeScheme = Just typeScheme }
     Just _  -> do
-      report $ Message srcSpan Warning
+      report
+        $ Message srcSpan Warning
         $ "Type signature is redundant and will be ignored."
       return expr'
 -- Skip pragmas.

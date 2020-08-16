@@ -8,6 +8,7 @@ import           FreeC.Backend.Coq.Converter.FuncDecl.RecTests
 
 -- | Test group for "FreeC.Backend.Coq.Converter.FuncDecl" tests.
 testConvertFuncDecl :: Spec
-testConvertFuncDecl = describe "FreeC.Backend.Coq.Converter.FuncDecl" $ do
-  testConvertNonRecFuncDecl
-  testConvertRecFuncDecls
+testConvertFuncDecl = describe "FreeC.Backend.Coq.Converter.FuncDecl"
+  $ do
+    testConvertNonRecFuncDecl
+    testConvertRecFuncDecls

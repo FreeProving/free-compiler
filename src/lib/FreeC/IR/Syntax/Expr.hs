@@ -83,7 +83,8 @@ data Expr
 --   used as expression type signatures. The type annotations generated during
 --   type inference never quantify their type arguments.
 exprType :: Expr -> Maybe Type
-exprType = exprTypeScheme >=> \(TypeScheme _ typeArgs typeExpr) ->
+exprType = exprTypeScheme
+  >=> \(TypeScheme _ typeArgs typeExpr) ->
   if null typeArgs then Just typeExpr else Nothing
 
 -- | Smart constructor for 'Con' without the last argument.
@@ -213,27 +214,35 @@ prettyExprPred' :: Int -> Expr -> Doc
 -- expressions even if they are not at top-level. However, if they are
 -- used in function applications, parentheses are needed.
 prettyExprPred' n expr@(Case _ scrutinee alts _)
-  | n <= 1 = prettyString "case" <+> prettyExprPred 1 scrutinee
-    <+> prettyString "of" <+> braces
+  | n <= 1 = prettyString "case"
+    <+> prettyExprPred 1 scrutinee
+    <+> prettyString "of"
+    <+> braces
     (space <> prettySeparated (semi <> space) (map pretty alts) <> space)
   | otherwise = parens (prettyExprPred' 1 expr)
 -- Parentheses can be omitted around @if@, @let@ and lambda abstractions at
 -- top-level only.
-prettyExprPred' 0 (If _ e1 e2 e3 _)
-  = prettyString "if" <+> prettyExprPred 1 e1 <+> prettyString "then"
-  <+> prettyExprPred 0 e2 <+> prettyString "else" <+> prettyExprPred 0 e3
+prettyExprPred' 0 (If _ e1 e2 e3 _) = prettyString "if"
+  <+> prettyExprPred 1 e1
+  <+> prettyString "then"
+  <+> prettyExprPred 0 e2
+  <+> prettyString "else"
+  <+> prettyExprPred 0 e3
 prettyExprPred' 0 (Lambda _ args expr _) = backslash <> hsep (map pretty args)
-  <+> prettyString "->" <+> prettyExprPred 0 expr
-prettyExprPred' 0 (Let _ bs e _) = prettyString "let" <+> braces
-  (space <> prettySeparated (semi <> space) (map pretty bs) <> space)
-  <+> prettyString "in" <+> prettyExprPred 0 e
+  <+> prettyString "->"
+  <+> prettyExprPred 0 expr
+prettyExprPred' 0 (Let _ bs e _) = prettyString "let"
+  <+> braces (space <> prettySeparated (semi <> space) (map pretty bs) <> space)
+  <+> prettyString "in"
+  <+> prettyExprPred 0 e
 -- At all other levels, the parentheses cannot be omitted.
 prettyExprPred' _ expr@(If _ _ _ _ _) = parens (prettyExprPred' 0 expr)
 prettyExprPred' _ expr@(Lambda _ _ _ _) = parens (prettyExprPred' 0 expr)
 prettyExprPred' _ expr@(Let _ _ _ _) = parens (prettyExprPred' 0 expr)
 -- Fix placement of visible type arguments in error terms.
 prettyExprPred' n (TypeAppExpr _ (ErrorExpr _ msg _) t _)
-  | n <= 1 = prettyString "error" <+> char '@' <> prettyTypePred 2 t
+  | n <= 1 = prettyString "error"
+    <+> char '@' <> prettyTypePred 2 t
     <+> prettyString (show msg)
 -- Function application is left-associative.
 prettyExprPred' n expr@(App _ e1 e2 _)
@@ -265,8 +274,10 @@ data Alt = Alt { altSrcSpan :: SrcSpan
 
 -- | Pretty instance for @case@ expression alternatives.
 instance Pretty Alt where
-  pretty (Alt _ conPat varPats expr) = pretty conPat <+> hsep
-    (map pretty varPats) <+> prettyString "->" <+> pretty expr
+  pretty (Alt _ conPat varPats expr) = pretty conPat
+    <+> hsep (map pretty varPats)
+    <+> prettyString "->"
+    <+> pretty expr
 
 -------------------------------------------------------------------------------
 -- Constructor patterns                                                      --
@@ -325,8 +336,8 @@ instance Pretty VarPat where
   pretty (VarPat _ varName Nothing True)         = char '!' <> pretty varName
   pretty (VarPat _ varName (Just varType) False) = parens
     (pretty varName <+> colon <> colon <+> pretty varType)
-  pretty (VarPat _ varName (Just varType) True)  = char '!' <> parens
-    (pretty varName <+> colon <> colon <+> pretty varType)
+  pretty (VarPat _ varName (Just varType) True)  = char '!'
+    <> parens (pretty varName <+> colon <> colon <+> pretty varType)
 
 -------------------------------------------------------------------------------
 -- Binding inside a let clause                                               --

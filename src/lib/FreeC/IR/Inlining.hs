@@ -60,9 +60,11 @@ inlineExpr decls = inlineAndBind
    inlineAndBind :: IR.Expr -> Converter IR.Expr
    inlineAndBind expr = do
      (remainingArgs, expr') <- inlineVisiblyApplied expr
-     if null remainingArgs then return expr' else do
-       let remainingArgPats = map IR.toVarPat remainingArgs
-       return (IR.Lambda NoSrcSpan remainingArgPats expr' Nothing)
+     if null remainingArgs
+       then return expr'
+       else do
+         let remainingArgPats = map IR.toVarPat remainingArgs
+         return (IR.Lambda NoSrcSpan remainingArgPats expr' Nothing)
 
    -- | Applies 'inlineExpr'' on the given expression and reports an
    --   internal fatal error if not all type arguments have been
@@ -70,10 +72,14 @@ inlineExpr decls = inlineAndBind
    inlineVisiblyApplied :: IR.Expr -> Converter ([ String ], IR.Expr)
    inlineVisiblyApplied e = do
      (remainingTypeArgs, remainingArgs, e') <- inlineExpr' e
-     unless (null remainingTypeArgs) $ reportFatal $ Message (IR.exprSrcSpan e)
-       Internal $ "Missing visible application of " ++ show
-       (length remainingTypeArgs) ++ " type arguments in an application of '"
-       ++ showPretty e ++ "'."
+     unless (null remainingTypeArgs)
+       $ reportFatal
+       $ Message (IR.exprSrcSpan e) Internal
+       $ "Missing visible application of "
+       ++ show (length remainingTypeArgs)
+       ++ " type arguments in an application of '"
+       ++ showPretty e
+       ++ "'."
      return (remainingArgs, e')
 
    -- | Performs inlining on the given subexpression.
@@ -124,12 +130,13 @@ inlineExpr decls = inlineAndBind
      expr' <- inlineAndBind expr
      alts' <- mapM inlineAlt alts
      return ([], [], IR.Case srcSpan expr' alts' exprType)
-   inlineExpr' (IR.Lambda srcSpan varPats expr exprType)
-     = shadowVarPats varPats $ do
+   inlineExpr' (IR.Lambda srcSpan varPats expr exprType) = shadowVarPats varPats
+     $ do
        expr' <- inlineAndBind expr
        return ([], [], IR.Lambda srcSpan varPats expr' exprType)
-   inlineExpr' (IR.Let srcSpan binds expr exprType)
-     = shadowVarPats (map IR.bindVarPat binds) $ do
+   inlineExpr' (IR.Let srcSpan binds expr exprType) = shadowVarPats
+     (map IR.bindVarPat binds)
+     $ do
        binds' <- mapM inlineBind binds
        expr' <- inlineAndBind expr
        return ([], [], IR.Let srcSpan binds' expr' exprType)
@@ -142,9 +149,10 @@ inlineExpr decls = inlineAndBind
    -- | Performs inlining on the right-hand side of the given @case@-expression
    --   alternative.
    inlineAlt :: IR.Alt -> Converter IR.Alt
-   inlineAlt (IR.Alt srcSpan conPat varPats expr) = shadowVarPats varPats $ do
-     expr' <- inlineAndBind expr
-     return (IR.Alt srcSpan conPat varPats expr')
+   inlineAlt (IR.Alt srcSpan conPat varPats expr) = shadowVarPats varPats
+     $ do
+       expr' <- inlineAndBind expr
+       return (IR.Alt srcSpan conPat varPats expr')
 
    inlineBind :: IR.Bind -> Converter IR.Bind
    inlineBind (IR.Bind srcSpan varPat expr) = do

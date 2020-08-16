@@ -28,10 +28,11 @@ liftFuncArgTypes = maybe liftNonRecFuncArgTypes liftRecFuncArgTypes
 
 -- | Converts the argument types of a non recursive function using @convertType@.
 liftNonRecFuncArgTypes :: [ IR.VarPat ] -> Converter [ LIR.Type ]
-liftNonRecFuncArgTypes = mapM $ \pat ->
-  let err = reportFatal $ Message (IR.varPatSrcSpan pat) Internal
-        $ "Expected variable pattern to have a type annotation."
-  in liftVarPatType pat >>= maybe err return
+liftNonRecFuncArgTypes = mapM
+  $ \pat -> let err = reportFatal
+                  $ Message (IR.varPatSrcSpan pat) Internal
+                  $ "Expected variable pattern to have a type annotation."
+            in liftVarPatType pat >>= maybe err return
 
 -- | Converts the argument types of a recursive function using @convertType@.
 --
@@ -88,7 +89,8 @@ liftTypeApp' (IR.TypeVar srcSpan name) [] = return $ LIR.TypeVar srcSpan name
 liftTypeApp' (IR.TypeApp _ l r) ts = liftTypeApp' l (r : ts)
 liftTypeApp' (IR.FuncType srcSpan l r) []
   = LIR.FuncType srcSpan <$> liftType l <*> liftType r
-liftTypeApp' _ (_ : _) = reportFatal $ Message NoSrcSpan Internal
+liftTypeApp' _ (_ : _) = reportFatal
+  $ Message NoSrcSpan Internal
   $ "Only type constructors can be applied!"
 
 -------------------------------------------------------------------------------
@@ -116,6 +118,7 @@ markOutermostDecreasing (LIR.TypeCon srcSpan name ts _)
   = return $ LIR.TypeCon srcSpan name ts True
 markOutermostDecreasing (LIR.FreeTypeCon srcSpan t)
   = LIR.FreeTypeCon srcSpan <$> markOutermostDecreasing t
-markOutermostDecreasing _ = reportFatal $ Message NoSrcSpan Error
+markOutermostDecreasing _ = reportFatal
+  $ Message NoSrcSpan Error
   $ "Outermost type of decreasing argument is not a "
   ++ "type constructor application."

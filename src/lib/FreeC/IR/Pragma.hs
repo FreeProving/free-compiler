@@ -25,17 +25,27 @@ addDecArgPragma funcDecls (IR.DecArgPragma srcSpan funcName decArg)
         case findIndex ((== decArgIdent) . IR.varPatIdent) args of
           Just decArgIndex ->
             modifyEnv $ defineDecArg funcName decArgIndex decArgIdent
-          Nothing          -> reportFatal $ Message srcSpan Error
-            $ "The function '" ++ showPretty funcName
-            ++ "' does not have an argument pattern '" ++ decArgIdent ++ "'."
+          Nothing          -> reportFatal
+            $ Message srcSpan Error
+            $ "The function '"
+            ++ showPretty funcName
+            ++ "' does not have an argument pattern '"
+            ++ decArgIdent
+            ++ "'."
       Right decArgPosition
         | decArgPosition > 0 && decArgPosition <= length args -> do
           let decArgIndex = decArgPosition - 1
               decArgIdent = IR.varPatIdent (args !! decArgIndex)
           modifyEnv $ defineDecArg funcName decArgIndex decArgIdent
-        | otherwise -> reportFatal $ Message srcSpan Error $ "The function '"
-          ++ showPretty funcName ++ "' does not have an argument at index "
-          ++ show decArgPosition ++ "."
-    Nothing -> reportFatal $ Message srcSpan Error
-      $ "The module does not declare a function '" ++ showPretty funcName
+        | otherwise -> reportFatal
+          $ Message srcSpan Error
+          $ "The function '"
+          ++ showPretty funcName
+          ++ "' does not have an argument at index "
+          ++ show decArgPosition
+          ++ "."
+    Nothing -> reportFatal
+      $ Message srcSpan Error
+      $ "The module does not declare a function '"
+      ++ showPretty funcName
       ++ "'."

@@ -17,8 +17,10 @@ import           FreeC.Monad.Converter
 --   'convertRecFuncDeclsWithHelpers'). Otherwise they are converted into
 --   helper and main functions (see 'convertRecFuncDeclsWithSection').
 convertRecFuncDecls :: [ IR.FuncDecl ] -> Converter [ Coq.Sentence ]
-convertRecFuncDecls decls = localEnv $ do
-  -- If there are constant arguments, move them to a section.
-  constArgs <- identifyConstArgs decls
-  if null constArgs then convertRecFuncDeclsWithHelpers decls
-    else convertRecFuncDeclsWithSection constArgs decls
+convertRecFuncDecls decls = localEnv
+  $ do
+    -- If there are constant arguments, move them to a section.
+    constArgs <- identifyConstArgs decls
+    if null constArgs
+      then convertRecFuncDeclsWithHelpers decls
+      else convertRecFuncDeclsWithSection constArgs decls

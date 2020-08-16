@@ -162,8 +162,8 @@ lambda args = Lam NoRange (DomainFree . defaultNamedArg . mkBinder_ <$> args)
 --
 --   > e a
 app :: Expr -> Expr -> Expr
-app l r = App NoRange l $ defaultNamedArg
-  (if isApp .||. isFun $ r then paren r else r)
+app l r = App NoRange l
+  $ defaultNamedArg (if isApp .||. isFun $ r then paren r else r)
 
 -- | Applies the list of arguments to the given expression. If the expression is
 --   an operator the application is written in mixfix notation.
@@ -181,8 +181,8 @@ isOp _         = False
 --   This functions fails iff the left-hand side isn't an operator or the wrong
 --   number of arguments is supplied.
 opApp :: Expr -> [ Expr ] -> Expr
-opApp (Ident op) = paren . RawApp NoRange . opApp'
-  (nameNameParts $ unqualify $ op)
+opApp (Ident op)
+  = paren . RawApp NoRange . opApp' (nameNameParts $ unqualify $ op)
 opApp _          = error "Only an identifier can be an operator!"
 
 -- | Translates a list of @NamePart@s to a list of expressions by replacing holes

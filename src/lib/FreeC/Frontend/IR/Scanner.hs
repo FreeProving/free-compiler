@@ -178,15 +178,22 @@ specialSymbolScanners = map
 
 -- | Scanner for a single 'Token'.
 tokenScanner :: Scanner TokenWithPos
-tokenScanner = tokenWithPos $ Parsec.choice $ map Parsec.try $ identScanner
-  : symbolScanner : integerScanner : stringScanner : specialSymbolScanners
+tokenScanner = tokenWithPos
+  $ Parsec.choice
+  $ map Parsec.try
+  $ identScanner
+  : symbolScanner
+  : integerScanner
+  : stringScanner
+  : specialSymbolScanners
 
 -- | A scanner for zero or more 'Token's.
 --
 --   Whitespaces and comments before and between tokens are ignored.
 tokenListScanner :: Scanner [ TokenWithPos ]
-tokenListScanner = whitespaceScanner *> Parsec.many
-  (Parsec.lexeme tokenParser tokenScanner) <* Parsec.eof
+tokenListScanner = whitespaceScanner
+  *> Parsec.many (Parsec.lexeme tokenParser tokenScanner)
+  <* Parsec.eof
 
 -- | Converts the given IR source code to a stream of IR tokens.
 --

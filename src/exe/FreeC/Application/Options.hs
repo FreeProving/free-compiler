@@ -54,7 +54,8 @@ data Options = Options
 makeDefaultOptions :: IO Options
 makeDefaultOptions = do
   defaultBaseLibDir <- getDataFileName "base"
-  return $ Options
+  return
+    $ Options
     { optShowHelp = False
     , optShowVersion = False
     , optInputFiles = []

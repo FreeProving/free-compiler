@@ -87,29 +87,35 @@ convertRecFuncDeclsWithSection constArgs decls = do
   sectionDecls' <- mapM (removeConstTypeArgsFromFuncDecl removedConstTypeArgs)
     sectionDecls
   -- Generate @Section@ sentence.
-  section <- localEnv $ do
-    -- Create a @Variable@ sentence for the constant arguments and their type
-    -- variables. No @Variable@ sentence is created if a constant argument is
-    -- never used (Coq would ignore the @Variable@ sentence anyway).
-    maybeTypeArgSentence <- generateConstTypeArgSentence usedTypeArgIdents
-    varSentences <- zipWithM generateConstArgVariable
-      (map fst $ filter snd $ zip renamedConstArgs isConstArgUsed)
-      (map fst $ filter snd $ zip constArgTypes isConstArgUsed)
-    -- Generate a section identifier from the names of the original functions
-    -- and convert the renamed functions as usual.
-    let funcNames  = map IR.funcDeclQName decls
-        funcIdents = mapMaybe IR.identFromQName funcNames
-    sectionIdent <- freshCoqIdent (intercalate "_" ("section" : funcIdents))
-    (helperDecls', mainDecls') <- convertRecFuncDeclsWithHelpers' sectionDecls'
-    return
-      (Coq.SectionSentence
-       (Coq.Section (Coq.ident sectionIdent)
-        (Coq.comment ("Constant arguments for " ++ intercalate ", " funcIdents)
-         : genericArgVariables ++ maybeToList maybeTypeArgSentence
-         ++ varSentences ++ Coq.comment
-         ("Helper functions for " ++ intercalate ", " funcIdents) : helperDecls'
-         ++ Coq.comment ("Main functions for " ++ intercalate ", " funcIdents)
-         : mainDecls')))
+  section <- localEnv
+    $ do
+      -- Create a @Variable@ sentence for the constant arguments and their type
+      -- variables. No @Variable@ sentence is created if a constant argument is
+      -- never used (Coq would ignore the @Variable@ sentence anyway).
+      maybeTypeArgSentence <- generateConstTypeArgSentence usedTypeArgIdents
+      varSentences <- zipWithM generateConstArgVariable
+        (map fst $ filter snd $ zip renamedConstArgs isConstArgUsed)
+        (map fst $ filter snd $ zip constArgTypes isConstArgUsed)
+      -- Generate a section identifier from the names of the original functions
+      -- and convert the renamed functions as usual.
+      let funcNames  = map IR.funcDeclQName decls
+          funcIdents = mapMaybe IR.identFromQName funcNames
+      sectionIdent <- freshCoqIdent (intercalate "_" ("section" : funcIdents))
+      (helperDecls', mainDecls')
+        <- convertRecFuncDeclsWithHelpers' sectionDecls'
+      return
+        (Coq.SectionSentence
+         (Coq.Section (Coq.ident sectionIdent)
+          (Coq.comment
+           ("Constant arguments for " ++ intercalate ", " funcIdents)
+           : genericArgVariables
+           ++ maybeToList maybeTypeArgSentence
+           ++ varSentences
+           ++ Coq.comment
+           ("Helper functions for " ++ intercalate ", " funcIdents)
+           : helperDecls'
+           ++ Coq.comment ("Main functions for " ++ intercalate ", " funcIdents)
+           : mainDecls')))
   -- Add functions with correct argument order after the section.
   interfaceDecls'
     <- zipWithM (generateInterfaceDecl constArgs isConstArgUsed nameMap mgu
@@ -136,44 +142,46 @@ renameFuncDecls decls = do
   let names = map IR.funcDeclQName decls
   names' <- mapM freshHaskellQName names
   let nameMap = zip names names'
-      subst   = composeSubsts $ do
-        (name, name') <- nameMap
-        return (singleSubst' name (flip IR.untypedVar name'))
+      subst   = composeSubsts
+        $ do
+          (name, name') <- nameMap
+          return (singleSubst' name (flip IR.untypedVar name'))
   -- Rename function declarations, apply substituion to right-hand side
   -- and copy type signature and entry of original function.
-  decls' <- forM decls $ \(IR.FuncDecl srcSpan (IR.DeclIdent srcSpan' name)
-                           typeArgs args maybeRetType rhs) -> do
-    let Just name' = lookup name nameMap
-    -- Generate fresh identifiers for type variables.
-    let typeArgIdents = map IR.typeVarDeclIdent typeArgs
-    typeArgIdents' <- mapM freshHaskellIdent typeArgIdents
-    let typeArgs'     = zipWith IR.TypeVarDecl
-          (map IR.typeVarDeclSrcSpan typeArgs) typeArgIdents'
-        typeVarSubst  = composeSubsts
-          (zipWith singleSubst' (map (IR.UnQual . IR.Ident) typeArgIdents)
-           (map (flip IR.TypeVar) typeArgIdents'))
-        args'         = applySubst typeVarSubst args
-        maybeRetType' = applySubst typeVarSubst maybeRetType
-    -- Set environment entry for renamed function.
-    entry <- lookupEntryOrFail srcSpan' IR.ValueScope name
-    _ <- renameAndAddEntry entry
-      { entryName       = name'
-      , entryTypeArgs   = typeArgIdents'
-      , entryArgTypes   = map (fromJust . IR.varPatType) args'
-      , entryReturnType = fromJust maybeRetType'
-      }
-    -- If the decreasing argument of the original function has been
-    -- annotated, copy that annotation.
-    maybeDecArg <- inEnv $ lookupDecArg name
-    case maybeDecArg of
-      Just (decArgIndex, decArgIdent) ->
-        modifyEnv $ defineDecArg name' decArgIndex decArgIdent
-      Nothing -> return ()
-    -- Rename function references and type variables on right-hand side.
-    let rhs' = applySubst typeVarSubst (applySubst subst rhs)
-    -- Rename function declaration.
-    return (IR.FuncDecl srcSpan (IR.DeclIdent srcSpan' name') typeArgs' args'
-            maybeRetType' rhs')
+  decls' <- forM decls
+    $ \(IR.FuncDecl srcSpan (IR.DeclIdent srcSpan' name) typeArgs args
+        maybeRetType rhs) -> do
+      let Just name' = lookup name nameMap
+      -- Generate fresh identifiers for type variables.
+      let typeArgIdents = map IR.typeVarDeclIdent typeArgs
+      typeArgIdents' <- mapM freshHaskellIdent typeArgIdents
+      let typeArgs'     = zipWith IR.TypeVarDecl
+            (map IR.typeVarDeclSrcSpan typeArgs) typeArgIdents'
+          typeVarSubst  = composeSubsts
+            (zipWith singleSubst' (map (IR.UnQual . IR.Ident) typeArgIdents)
+             (map (flip IR.TypeVar) typeArgIdents'))
+          args'         = applySubst typeVarSubst args
+          maybeRetType' = applySubst typeVarSubst maybeRetType
+      -- Set environment entry for renamed function.
+      entry <- lookupEntryOrFail srcSpan' IR.ValueScope name
+      _ <- renameAndAddEntry entry
+        { entryName       = name'
+        , entryTypeArgs   = typeArgIdents'
+        , entryArgTypes   = map (fromJust . IR.varPatType) args'
+        , entryReturnType = fromJust maybeRetType'
+        }
+      -- If the decreasing argument of the original function has been
+      -- annotated, copy that annotation.
+      maybeDecArg <- inEnv $ lookupDecArg name
+      case maybeDecArg of
+        Just (decArgIndex, decArgIdent) ->
+          modifyEnv $ defineDecArg name' decArgIndex decArgIdent
+        Nothing -> return ()
+      -- Rename function references and type variables on right-hand side.
+      let rhs' = applySubst typeVarSubst (applySubst subst rhs)
+      -- Rename function declaration.
+      return (IR.FuncDecl srcSpan (IR.DeclIdent srcSpan' name') typeArgs' args'
+              maybeRetType' rhs')
   return (decls', Map.fromList nameMap)
 
 -- | Replaces the function names in the given 'ConstArg' using the given map.
@@ -230,8 +238,8 @@ lookupConstArgType argTypeMap constArg = do
 --   argument.
 isConstArgUsedBy :: ConstArg -> IR.FuncDecl -> Bool
 isConstArgUsedBy constArg funcDecl = IR.UnQual
-  (IR.Ident (constArgFreshIdent constArg)) `Set.member` freeVarSet
-  (IR.funcDeclRhs funcDecl)
+  (IR.Ident (constArgFreshIdent constArg))
+  `Set.member` freeVarSet (IR.funcDeclRhs funcDecl)
 
 -- | Generates the @Variable@ sentence for the type variables in the given
 --   types of the constant arguments.
@@ -267,8 +275,10 @@ removeConstArgsFromFuncDecl
 removeConstArgsFromFuncDecl constArgs
   (IR.FuncDecl srcSpan declIdent typeArgs args maybeRetType rhs) = do
     let name        = IR.declIdentName declIdent
-        removedArgs = fromJust $ Map.lookup name $ Map.unionsWith (++) $ map
-          (Map.map return . constArgIdents) constArgs
+        removedArgs = fromJust
+          $ Map.lookup name
+          $ Map.unionsWith (++)
+          $ map (Map.map return . constArgIdents) constArgs
         freshArgs   = map constArgFreshIdent constArgs
         args'
           = [arg | arg <- args, IR.varPatIdent arg `notElem` removedArgs]
@@ -289,8 +299,8 @@ removeConstArgsFromExpr constArgs rootExpr = do
    -- | Maps the name of functions that share the constant arguments to
    --   the indices of their corresponding argument.
    constArgIndicesMap :: Map IR.QName [ Int ]
-   constArgIndicesMap = Map.unionsWith (++) $ map
-     (Map.map return . constArgIndicies) constArgs
+   constArgIndicesMap = Map.unionsWith (++)
+     $ map (Map.map return . constArgIndicies) constArgs
 
    -- | Looks up the indices of arguments that can be removed from the
    --   application of a function with the given name.
@@ -321,9 +331,11 @@ removeConstArgsFromExpr constArgs rootExpr = do
    removeConstArgsFromExpr' (IR.App srcSpan e1 e2 exprType) = do
      (e1', indices) <- removeConstArgsFromExpr' e1
      let indices' = map (subtract 1) (filter (> 0) indices)
-     if 0 `elem` indices then return (e1', indices') else do
-       (e2', []) <- removeConstArgsFromExpr' e2
-       return (IR.App srcSpan e1' e2' exprType, indices')
+     if 0 `elem` indices
+       then return (e1', indices')
+       else do
+         (e2', []) <- removeConstArgsFromExpr' e2
+         return (IR.App srcSpan e1' e2' exprType, indices')
    -- Remove constant arguments recursively and pass through the indices of
    -- arguments that still have to be removed.
    removeConstArgsFromExpr' (IR.TypeAppExpr srcSpan expr typeExpr exprType) = do
@@ -331,7 +343,8 @@ removeConstArgsFromExpr constArgs rootExpr = do
      return (IR.TypeAppExpr srcSpan expr' typeExpr exprType, indices)
    -- Remove constant arguments recursively.
    removeConstArgsFromExpr' (IR.Lambda srcSpan varPats expr exprType)
-     = shadowVarPats varPats $ do
+     = shadowVarPats varPats
+     $ do
        (expr', []) <- removeConstArgsFromExpr' expr
        return (IR.Lambda srcSpan varPats expr' exprType, [])
    removeConstArgsFromExpr' (IR.If srcSpan e1 e2 e3 exprType) = do
@@ -343,8 +356,9 @@ removeConstArgsFromExpr constArgs rootExpr = do
      (expr', []) <- removeConstArgsFromExpr' expr
      alts' <- mapM removeConstArgsFromAlt alts
      return (IR.Case srcSpan expr' alts' exprType, [])
-   removeConstArgsFromExpr' (IR.Let srcSpan binds expr exprType)
-     = shadowVarPats (map IR.bindVarPat binds) $ do
+   removeConstArgsFromExpr' (IR.Let srcSpan binds expr exprType) = shadowVarPats
+     (map IR.bindVarPat binds)
+     $ do
        binds' <- mapM removeConstArgsFromBind binds
        (expr', []) <- removeConstArgsFromExpr' expr
        return (IR.Let srcSpan binds' expr' exprType, [])
@@ -357,8 +371,9 @@ removeConstArgsFromExpr constArgs rootExpr = do
    -- | Applies 'removeConstArgsFromExpr'' to the right-hand side of the
    --   given @case@ expression alternative.
    removeConstArgsFromAlt :: IR.Alt -> Converter IR.Alt
-   removeConstArgsFromAlt (IR.Alt srcSpan conPat varPats expr)
-     = shadowVarPats varPats $ do
+   removeConstArgsFromAlt (IR.Alt srcSpan conPat varPats expr) = shadowVarPats
+     varPats
+     $ do
        (expr', []) <- removeConstArgsFromExpr' expr
        return (IR.Alt srcSpan conPat varPats expr')
 
@@ -488,7 +503,8 @@ removeConstTypeArgsFromExpr constTypeVars rootExpr = do
      = do
        (expr', indices) <- removeConstTypeArgsFromExpr' expr
        let indices' = map (subtract 1) (filter (> 0) indices)
-       if 0 `elem` indices then return (expr', indices')
+       if 0 `elem` indices
+         then return (expr', indices')
          else return (IR.TypeAppExpr srcSpan expr' typeExpr exprType, indices')
    -- Remove constant type arguments recursively.
    removeConstTypeArgsFromExpr' (IR.App srcSpan e1 e2 exprType) = do
@@ -505,11 +521,13 @@ removeConstTypeArgsFromExpr constTypeVars rootExpr = do
      alts' <- mapM removeConstTypeArgsFromAlt alts
      return (IR.Case srcSpan expr' alts' exprType, [])
    removeConstTypeArgsFromExpr' (IR.Lambda srcSpan args expr exprType)
-     = shadowVarPats args $ do
+     = shadowVarPats args
+     $ do
        (expr', []) <- removeConstTypeArgsFromExpr' expr
        return (IR.Lambda srcSpan args expr' exprType, [])
    removeConstTypeArgsFromExpr' (IR.Let srcSpan binds expr exprType)
-     = shadowVarPats (map IR.bindVarPat binds) $ do
+     = shadowVarPats (map IR.bindVarPat binds)
+     $ do
        binds' <- mapM removeConstTypeArgsFromBind binds
        (expr', []) <- removeConstTypeArgsFromExpr' expr
        return (IR.Let srcSpan binds' expr' exprType, [])
@@ -523,7 +541,8 @@ removeConstTypeArgsFromExpr constTypeVars rootExpr = do
    --   given @case@ expression alternative.
    removeConstTypeArgsFromAlt :: IR.Alt -> Converter IR.Alt
    removeConstTypeArgsFromAlt (IR.Alt srcSpan conPat varPats expr)
-     = shadowVarPats varPats $ do
+     = shadowVarPats varPats
+     $ do
        (expr', []) <- removeConstTypeArgsFromExpr' expr
        return (IR.Alt srcSpan conPat varPats expr')
 
@@ -557,11 +576,12 @@ generateInterfaceDecl :: [ ConstArg ]
   -- ^ The original function declaration.
   -> Converter Coq.Sentence
 generateInterfaceDecl constArgs isConstArgUsed nameMap mgu sectionTypeArgs
-  renamedTypeArgs funcDecl = localEnv $ do
+  renamedTypeArgs funcDecl = localEnv
+  $ do
     let args = IR.funcDeclArgs funcDecl
         name = IR.funcDeclQName funcDecl
-        constArgNames = map (IR.UnQual . IR.Ident) $ mapMaybe
-          (Map.lookup name . constArgIdents) constArgs
+        constArgNames = map (IR.UnQual . IR.Ident)
+          $ mapMaybe (Map.lookup name . constArgIdents) constArgs
         usedConstArgNames
           = map fst $ filter snd $ zip constArgNames isConstArgUsed
     -- Generate the left-hand side of the interface function definition.
@@ -575,19 +595,19 @@ generateInterfaceDecl constArgs isConstArgUsed nameMap mgu sectionTypeArgs
     typeArgNames <- mapM
       (lookupTypeArgName typeArgIdents (zip renamedTypeArgs [0 ..]))
       sectionTypeArgs
-    typeArgNames' <- catMaybes <$> mapM (inEnv . lookupIdent IR.TypeScope)
-      typeArgNames
+    typeArgNames' <- catMaybes
+      <$> mapM (inEnv . lookupIdent IR.TypeScope) typeArgNames
     -- Lookup the names of the constant arguments to pass to the main function.
-    constArgNames' <- catMaybes <$> mapM (inEnv . lookupIdent IR.ValueScope)
-      usedConstArgNames
+    constArgNames' <- catMaybes
+      <$> mapM (inEnv . lookupIdent IR.ValueScope) usedConstArgNames
     -- If the function is partial, the @Partial@ instance needs to be passed
     -- to the main function.
     partialArg <- ifM (inEnv $ isPartial name)
       (return [fst Coq.Base.partialArg]) (return [])
     -- Lookup the names of all other arguments to pass to the main function.
     let nonConstArgNames = map IR.varPatQName args \\ constArgNames
-    nonConstArgNames' <- catMaybes <$> mapM (inEnv . lookupIdent IR.ValueScope)
-      nonConstArgNames
+    nonConstArgNames' <- catMaybes
+      <$> mapM (inEnv . lookupIdent IR.ValueScope) nonConstArgNames
     -- Generate invocation of the main function.
     -- TODO do we have to pass the remaining type arguments to the main
     --      function as well (using explicit type arguments)?
@@ -605,12 +625,16 @@ generateInterfaceDecl constArgs isConstArgUsed nameMap mgu sectionTypeArgs
      -> IR.TypeVarIdent
      -- ^ The type argument of the section.
      -> Converter IR.QName
-   lookupTypeArgName _ [] u = reportFatal $ Message
-     (IR.funcDeclSrcSpan funcDecl) Error
-     $ "Cannot find name of section type argument " ++ u ++ " for "
+   lookupTypeArgName _ [] u = reportFatal
+     $ Message (IR.funcDeclSrcSpan funcDecl) Error
+     $ "Cannot find name of section type argument "
+     ++ u
+     ++ " for "
      ++ showPretty (IR.funcDeclQName funcDecl)
    lookupTypeArgName ws ((v, i) : vs) u = do
      let IR.TypeVar _ v' = applySubst mgu (IR.TypeVar NoSrcSpan v)
-     if v' == u then do
-       let w = ws !! i
-       return (IR.UnQual (IR.Ident w)) else lookupTypeArgName ws vs u
+     if v' == u
+       then do
+         let w = ws !! i
+         return (IR.UnQual (IR.Ident w))
+       else lookupTypeArgName ws vs u

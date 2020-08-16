@@ -127,13 +127,13 @@ makeConstArgGraph decls = do
           -- and @case@ expressions.
           checkExpr (IR.If _ e1 e2 e3 _) _
             = checkExpr e1 [] && checkExpr e2 [] && checkExpr e3 []
-          checkExpr (IR.Case _ expr alts _) _ = checkExpr expr [] && all
-            (flip checkAlt []) alts
+          checkExpr (IR.Case _ expr alts _) _ = checkExpr expr []
+            && all (flip checkAlt []) alts
           checkExpr (IR.Let _ binds expr _) _
-            | x `shadowedBy` map IR.bindVarPat binds = not (callsG expr) && not
-              (any (callsG . IR.bindExpr) binds)
-            | otherwise = checkExpr expr [] && all
-              (flip checkExpr [] . IR.bindExpr) binds
+            | x `shadowedBy` map IR.bindVarPat binds = not (callsG expr)
+              && not (any (callsG . IR.bindExpr) binds)
+            | otherwise = checkExpr expr []
+              && all (flip checkExpr [] . IR.bindExpr) binds
           -- No beta reduction is applied when a lambda expression is
           -- encountered, but the right-hand side still needs to be checked.
           -- If an argument shadows @x_i@ and there are calls to @g@ on the
@@ -216,15 +216,18 @@ identifyConstArgs decls = mapM makeConstArg constArgNameMaps
    lookupArgIndex :: IR.QName -- ^ The name of the function.
      -> String   -- ^ The name of the argument.
      -> Int
-   lookupArgIndex funcName argName = fromJust $ do
-     argNames <- Map.lookup funcName argNamesMap
-     elemIndex argName argNames
+   lookupArgIndex funcName argName = fromJust
+     $ do
+       argNames <- Map.lookup funcName argNamesMap
+       elemIndex argName argNames
 
 -- | Like 'identifyConstArgs' but returns a map from function to argument names
 --   for each constant argument instead of a 'ConstArg'.
 identifyConstArgs' :: [ IR.FuncDecl ] -> [ Map IR.QName String ]
-identifyConstArgs' decls = map Map.fromList $ filter checkSCC
-  $ mapMaybe fromCyclicSCC $ stronglyConnComp constArgGraph
+identifyConstArgs' decls = map Map.fromList
+  $ filter checkSCC
+  $ mapMaybe fromCyclicSCC
+  $ stronglyConnComp constArgGraph
  where
    -- | The constant argument graph.
    constArgGraph :: [ CGEntry ]
@@ -248,14 +251,15 @@ identifyConstArgs' decls = map Map.fromList $ filter checkSCC
    checkSCC :: [ CGNode ] -> Bool
    checkSCC nodes
      | not (containsAllFunctions nodes) = False
-     | otherwise = and $ do
-       (f, x) <- nodes
-       (g, y) <- nodes
-       -- If there is an edge from @f@ to @g@ in the call graph, ...
-       guard (dependsDirectlyOn callGraph f g)
-       -- ... there must also be an edge in the constant argument graph.
-       adjacent <- maybeToList (Map.lookup (f, x) constArgMap)
-       return ((g, y) `elem` adjacent)
+     | otherwise = and
+       $ do
+         (f, x) <- nodes
+         (g, y) <- nodes
+         -- If there is an edge from @f@ to @g@ in the call graph, ...
+         guard (dependsDirectlyOn callGraph f g)
+         -- ... there must also be an edge in the constant argument graph.
+         adjacent <- maybeToList (Map.lookup (f, x) constArgMap)
+         return ((g, y) `elem` adjacent)
 
    -- | The names of all given function declarations.
    funcNames :: [ IR.QName ]
@@ -264,8 +268,8 @@ identifyConstArgs' decls = map Map.fromList $ filter checkSCC
    -- | Tests whether the given list of nodes contains one node for every
    --   function declaration.
    containsAllFunctions :: [ CGNode ] -> Bool
-   containsAllFunctions nodes = length nodes == length decls && all
-     (`elem` map fst nodes) funcNames
+   containsAllFunctions nodes = length nodes == length decls
+     && all (`elem` map fst nodes) funcNames
 
    -- | Gets the nodes of a cyclic strongly connected component.
    fromCyclicSCC :: SCC CGNode -> Maybe [ CGNode ]

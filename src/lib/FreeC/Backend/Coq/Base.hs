@@ -98,4 +98,5 @@ reservedIdents
     , partial
     , partialUndefined
     , partialError
-    ] ++ map fst (partialArg : freeArgs)
+    ]
+  ++ map fst (partialArg : freeArgs)

@@ -27,39 +27,51 @@ convertTypeDecls
 convertTypeDecls comp = case comp of
   NonRecursive decl -> convertTypeDecl decl False
   Recursive [decl]  -> convertTypeDecl decl True
-  Recursive ds      -> reportFatal $ Message (IR.typeDeclSrcSpan $ head ds)
-    Error
+  Recursive ds      -> reportFatal
+    $ Message (IR.typeDeclSrcSpan $ head ds) Error
     $ "Mutual recursive data types are not supported by the Agda back end "
     ++ "at the moment."
 
 -- | Converts a data or type synonym declaration.
 --   TODO: Convert type synonyms.
 convertTypeDecl :: IR.TypeDecl -> Bool -> Converter [ Agda.Declaration ]
-convertTypeDecl (IR.TypeSynDecl srcSpan _ _ _) _
-  = reportFatal $ Message srcSpan Error
-  $ "Type synonyms are not supported by the Agda back end " ++ "at the moment."
-convertTypeDecl (IR.DataDecl _ ident tVars constrs) isRec
-  = (:) <$> convertDataDecl ident tVars constrs isRec
+convertTypeDecl (IR.TypeSynDecl srcSpan _ _ _) _          = reportFatal
+  $ Message srcSpan Error
+  $ "Type synonyms are not supported by the Agda back end at the moment."
+convertTypeDecl (IR.DataDecl _ ident tVars constrs) isRec = (:)
+  <$> convertDataDecl ident tVars constrs isRec
   <*> mapM generateSmartConDecl constrs
 
 -- | Converts a data declaration by creating an Agda data type of the
---  (preferably) same name and lifting constructors piecewise using
---  @convertConDecl@.
+--   (preferably) same name and lifting constructors piecewise using
+--   @convertConDecl@.
 --
---  @Shape@ and @Pos@ are abbreviated for readability.
---  > data D α₁ … αₙ    data D̂ (S : Set)(P : S → Set)(α̂₁ … α̂ₙ : Set) : Set where
---  >   = C₁ τ₁ … τᵢ        Ĉ₁ : τ₁̓ → … → τᵢ̓ → D̂ S P α̂₁ … α̂ₙ
---  >                 ↦
---  >   | Cₘ ρ₁ … ρⱼ        Ĉₘ : ρ₁̓ → … → ρⱼ̓ → D̂ S P α̂₁ … α̂ₙ
+--   An IR data type declaration of the form
+--
+--   > data D α₁ … αₙ
+--   >   = C₁ τ₁ … τᵢ
+--   >   ⋮
+--   >   | Cₘ ρ₁ … ρⱼ
+--
+--   is converted into into an Agda data type of the following form.
+--
+--   > data D̂ (Shape : Set)(Pos : Shape → Set)(α̂₁ … α̂ₙ : Set) : Set where
+--   >   Ĉ₁ : τ₁̓ → … → τᵢ̓ → D̂ Shape Pos α̂₁ … α̂ₙ
+--   >     ⋮
+--   >   Ĉₘ : ρ₁̓ → … → ρⱼ̓ → D̂ Shape Pos α̂₁ … α̂ₙ
+--
+--   Environment entries for the type arguments @α̂₁ … α̂ₙ@ are only visible
+--   within the data type declaration.
 convertDataDecl :: IR.DeclIdent     -- ^ The name of the data type
   -> [ IR.TypeVarDecl ] -- ^ Type parameters for the data type.
   -> [ IR.ConDecl ]     -- ^ The constructors for this data type.
-  -> Bool             -- ^ Is this a recursive data declaration?
+  -> Bool               -- ^ Is this a recursive data declaration?
   -> Converter Agda.Declaration
 convertDataDecl ident@(IR.DeclIdent srcSpan name) typeVars constrs isRec
-  = localEnv -- The data declaration opens a new scope binding @S@, @P@ and @α̂ᵢ@.
+  = localEnv
   $ freeDataDecl <$> lookupUnQualAgdaIdentOrFail srcSpan IR.TypeScope name
-  <*> mapM convertTypeVarDecl typeVars <*> pure universe
+  <*> mapM convertTypeVarDecl typeVars
+  <*> pure universe
   <*> convertConDecls ident typeVars constrs
  where
    universe
@@ -87,8 +99,8 @@ convertConDecl ident retType (IR.ConDecl _ (IR.DeclIdent srcSpan name) argTypes)
   = do
     argTypes' <- mapM (liftConArgType ident) argTypes
     retType' <- liftType' retType
+    -- TODO: Add declarations to lifted IR and move this translation logic.
     Agda.funcSig <$> lookupUnQualAgdaIdentOrFail srcSpan IR.ValueScope name
-          -- TODO: Add declarations to lifted IR and move this translation logic.
       <*> convertLiftedConType argTypes' retType'
 
 -- | Converts a single constructor to a smart constructor, which wraps the normal
@@ -99,10 +111,11 @@ convertConDecl ident retType (IR.ConDecl _ (IR.DeclIdent srcSpan name) argTypes)
 generateSmartConDecl :: IR.ConDecl -> Converter Agda.Declaration
 generateSmartConDecl (IR.ConDecl _ (IR.DeclIdent srcSpan name) argTypes) = do
   smartName <- lookupUnQualAgdaSmartIdentOrFail srcSpan name
-  patternDecl smartName (replicate (length argTypes) "x") $ \vars -> do
-    normalName <- Agda.IdentP <$> lookupAgdaValIdentOrFail srcSpan name
-    let pureVal = foldl Agda.appP normalName vars
-    return (Agda.IdentP (Agda.qname' Agda.Base.pure) `Agda.appP` pureVal)
+  patternDecl smartName (replicate (length argTypes) "x")
+    $ \vars -> do
+      normalName <- Agda.IdentP <$> lookupAgdaValIdentOrFail srcSpan name
+      let pureVal = foldl Agda.appP normalName vars
+      return (Agda.IdentP (Agda.qname' Agda.Base.pure) `Agda.appP` pureVal)
 
 -------------------------------------------------------------------------------
 -- Specialized syntax                                                        --
@@ -126,8 +139,9 @@ patternDecl :: Agda.Name
   -> ([ Agda.Pattern ] -> Converter Agda.Pattern)
   -- ^ Continuation for creating the definition using the new variables.
   -> Converter Agda.Declaration
-patternDecl name vars k = localEnv $ do
-  names <- mapM freshAgdaVar vars
-  let decls = map (Agda.Arg Agda.defaultArgInfo . Agda.unqualify) names
-  let varPatterns = map Agda.IdentP names
-  Agda.patternSyn name decls <$> k varPatterns
+patternDecl name vars k = localEnv
+  $ do
+    names <- mapM freshAgdaVar vars
+    let decls       = map (Agda.Arg Agda.defaultArgInfo . Agda.unqualify) names
+        varPatterns = map Agda.IdentP names
+    Agda.patternSyn name decls <$> k varPatterns

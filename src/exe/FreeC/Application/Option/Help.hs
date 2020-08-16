@@ -10,8 +10,10 @@ import           FreeC.Application.Options.Descriptors
 --
 --   This text is added before the description of the command line arguments.
 usageHeader :: FilePath -> String
-usageHeader progName = "Usage: " ++ progName
-  ++ " [options...] <input-files...>\n\n" ++ "Command line options:"
+usageHeader progName = "Usage: "
+  ++ progName
+  ++ " [options...] <input-files...>\n\n"
+  ++ "Command line options:"
 
 -- | Prints the help message for the compiler.
 --

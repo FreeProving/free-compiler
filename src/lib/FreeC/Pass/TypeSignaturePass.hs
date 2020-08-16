@@ -134,7 +134,8 @@ checkHasBinding funcDecls = mapM_ checkHasBinding' . IR.typeSigDeclIdents
    --   with the given name.
    checkHasBinding' :: IR.DeclIdent -> Converter ()
    checkHasBinding' (IR.DeclIdent srcSpan name) = when
-     (name `Set.notMember` funcDeclNames) $ reportMissingBinding srcSpan name
+     (name `Set.notMember` funcDeclNames)
+     $ reportMissingBinding srcSpan name
 
 -------------------------------------------------------------------------------
 -- Translation                                                               --
@@ -198,7 +199,8 @@ splitFuncType name = splitFuncType'
      return (t1 : argTypes, returnType)
    splitFuncType' args@(arg : _) typeExpr = do
      typeExpr' <- expandTypeSynonym typeExpr
-     if typeExpr == typeExpr' then reportTypeSynExpansionError name arg
+     if typeExpr == typeExpr'
+       then reportTypeSynExpansionError name arg
        else splitFuncType' args typeExpr'
 
 -------------------------------------------------------------------------------
@@ -210,9 +212,11 @@ reportMissingBinding
   :: MonadReporter r => SrcSpan  -- ^ The location of the type signature.
   -> IR.QName -- ^ The name of the function.
   -> r ()
-reportMissingBinding srcSpan name
-  = report $ Message srcSpan Warning $ "The type signature for '"
-  ++ showPretty name ++ "' lacks an accompanying binding."
+reportMissingBinding srcSpan name = report
+  $ Message srcSpan Warning
+  $ "The type signature for '"
+  ++ showPretty name
+  ++ "' lacks an accompanying binding."
 
 -- | Reports a fatal error if there are multiple type signatures for the
 --   same function declaration.
@@ -221,10 +225,12 @@ reportDuplicateTypeSigs
   -> IR.QName  -- ^ The name of the function.
   -> [ SrcSpan ] -- ^ The locations of the type signatures.
   -> r a
-reportDuplicateTypeSigs srcSpan funcName typeSigSrcSpans
-  = reportFatal $ Message srcSpan Error $ "Duplicate type signatures for '"
-  ++ showPretty funcName ++ "' at " ++ intercalate ", "
-  (map showPretty typeSigSrcSpans)
+reportDuplicateTypeSigs srcSpan funcName typeSigSrcSpans = reportFatal
+  $ Message srcSpan Error
+  $ "Duplicate type signatures for '"
+  ++ showPretty funcName
+  ++ "' at "
+  ++ intercalate ", " (map showPretty typeSigSrcSpans)
 
 -- | Reports a fatal error if the type of a function argument cannot be
 --   determined by expanding a type synonyms from its type signature.
@@ -232,6 +238,10 @@ reportTypeSynExpansionError
   :: MonadReporter r => IR.QName  -- ^ The name of the function.
   -> IR.VarPat -- ^ The argument whose argument type could not be determined.
   -> r a
-reportTypeSynExpansionError funcName arg = reportFatal $ Message
-  (IR.varPatSrcSpan arg) Error $ "Could not determine type of argument '"
-  ++ IR.varPatIdent arg ++ "' for function '" ++ showPretty funcName ++ "'."
+reportTypeSynExpansionError funcName arg = reportFatal
+  $ Message (IR.varPatSrcSpan arg) Error
+  $ "Could not determine type of argument '"
+  ++ IR.varPatIdent arg
+  ++ "' for function '"
+  ++ showPretty funcName
+  ++ "'."

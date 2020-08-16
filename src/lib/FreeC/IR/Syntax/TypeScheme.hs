@@ -20,5 +20,6 @@ data TypeScheme = TypeScheme { typeSchemeSrcSpan :: SrcSpan
 -- | Pretty instance for type schemes.
 instance Pretty TypeScheme where
   pretty (TypeScheme _ [] typeExpr)       = pretty typeExpr
-  pretty (TypeScheme _ typeArgs typeExpr) = prettyString "forall" <+> hsep
-    (map pretty typeArgs) <> dot <+> pretty typeExpr
+  pretty (TypeScheme _ typeArgs typeExpr) = prettyString "forall"
+    <+> hsep (map pretty typeArgs) <> dot
+    <+> pretty typeExpr

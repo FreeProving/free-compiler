@@ -25,7 +25,8 @@ lookupEntryOrFail srcSpan scope name = do
   maybeEntry <- inEnv $ lookupEntry scope name
   case maybeEntry of
     Just entry -> return entry
-    Nothing    -> reportFatal $ Message srcSpan Error
+    Nothing    -> reportFatal
+      $ Message srcSpan Error
       $ "Identifier not in scope '" ++ showPretty name ++ "'"
 
 -- | Looks up the Coq identifier for a Haskell function, (type)

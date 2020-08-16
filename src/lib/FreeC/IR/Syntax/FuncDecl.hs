@@ -23,7 +23,9 @@ data TypeSig = TypeSig { typeSigSrcSpan    :: SrcSpan
 -- | Pretty instance for type signatures.
 instance Pretty TypeSig where
   pretty (TypeSig _ declIdents typeScheme) = prettySeparated (comma <> space)
-    (map pretty declIdents) <+> colon <> colon <+> pretty typeScheme
+    (map pretty declIdents)
+    <+> colon <> colon
+    <+> pretty typeScheme
 
 -------------------------------------------------------------------------------
 -- Function declarations                                                     --
@@ -75,10 +77,14 @@ instance Pretty FuncDecl where
   pretty (FuncDecl _ declIdent typeArgs args maybeReturnType rhs)
     = case maybeReturnType of
       Nothing         -> prettyFuncHead <+> equals <+> pretty rhs
-      Just returnType -> prettyFuncHead <+> colon <> colon <+> pretty returnType
-        <+> equals <+> pretty rhs
+      Just returnType -> prettyFuncHead
+        <+> colon <> colon
+        <+> pretty returnType
+        <+> equals
+        <+> pretty rhs
    where
      -- | The left-hand side of the function declaration.
      prettyFuncHead :: Doc
-     prettyFuncHead = pretty declIdent <+> hsep
-       (map ((char '@' <>) . pretty) typeArgs) <+> hsep (map pretty args)
+     prettyFuncHead = pretty declIdent
+       <+> hsep (map ((char '@' <>) . pretty) typeArgs)
+       <+> hsep (map pretty args)

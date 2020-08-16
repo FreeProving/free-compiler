@@ -215,7 +215,12 @@ parseExplicitTestTypeScheme :: String -> Converter IR.TypeScheme
 parseExplicitTestTypeScheme input = do
   typeScheme <- parseTestTypeScheme input
   if not (null (freeTypeVars typeScheme)) && take 7 input /= "forall."
-    then reportFatal $ Message NoSrcSpan Internal
+    then reportFatal
+      $ Message NoSrcSpan Internal
       $ "Type signatures in environment entries should not contain any free"
-      ++ "type variables, but got `" ++ input ++ "`. Write `forall. " ++ input
-      ++ "` if you really intended to do this." else return typeScheme
+      ++ "type variables, but got `"
+      ++ input
+      ++ "`. Write `forall. "
+      ++ input
+      ++ "` if you really intended to do this."
+    else return typeScheme

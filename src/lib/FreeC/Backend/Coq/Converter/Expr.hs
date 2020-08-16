@@ -30,7 +30,8 @@ convertLiftedExpr (LIR.App _ func typeArgs effects args freeArgs) = do
   func' : args' <- mapM convertLiftedExpr $ func : args
   typeArgs' <- mapM convertLiftedType typeArgs
   let effectArgs' = map convertEffect effects
-  if freeArgs then return $ genericApply' func' effectArgs' typeArgs' args'
+  if freeArgs
+    then return $ genericApply' func' effectArgs' typeArgs' args'
     else return $ Coq.app func' args'
 convertLiftedExpr (LIR.If _ cond true false) = do
   cond' <- convertLiftedExpr cond
@@ -50,8 +51,8 @@ convertLiftedExpr (LIR.IntLiteral _ value) = do
         | value < 0 = Coq.app (Coq.Qualid (Coq.bare "-")) [natValue]
         | otherwise = natValue
   return $ Coq.InScope value' Coq.Base.integerScope
-convertLiftedExpr (LIR.StringLiteral _ str) = return $ Coq.InScope
-  (Coq.string str) Coq.Base.stringScope
+convertLiftedExpr (LIR.StringLiteral _ str) = return
+  $ Coq.InScope (Coq.string str) Coq.Base.stringScope
 convertLiftedExpr (LIR.Lambda _ args rhs) = do
   let qualids  = map LIR.varPatCoqIdent args
       argTypes = map LIR.varPatType args

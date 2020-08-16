@@ -101,5 +101,6 @@ importModule (IR.ImportDecl srcSpan modName) = do
   maybeIface <- inEnv $ lookupAvailableModule modName
   case maybeIface of
     Just iface -> modifyEnv $ importInterface iface
-    Nothing    -> reportFatal $ Message srcSpan Error
+    Nothing    -> reportFatal
+      $ Message srcSpan Error
       $ "Could not find module '" ++ modName ++ "'"

@@ -21,49 +21,63 @@ optionDescriptors
         (ReqArg (\p opts -> opts { optOutputDir  = Just p
                                  , optImportDirs = p : optImportDirs opts
                                  }) "DIR")
-        ("Optional. Path to output directory.\n"
-         ++ "Prints to the console by default.")
+        (unlines [ "Optional. Path to output directory."
+                 , "Prints to the console by default."
+                 ])
     , Option ['i'] ["import"]
         (ReqArg (\p opts -> opts { optImportDirs = p : optImportDirs opts })
          "DIR")
-        ("Optional. Adds the specified directory to the search path for\n"
-         ++ "imported modules. The compiler looks in the current and output\n"
-         ++ "directory by default. Multiple import directories can be added\n"
-         ++ "by specifying additional `--import` options.")
+        (unlines
+         [ "Optional. Adds the specified directory to the search path for"
+         , "imported modules. The compiler looks in the current and output"
+         , "directory by default. Multiple import directories can be added"
+         , "by specifying additional `--import` options."
+         ])
     , Option ['b'] ["base-library"]
         (ReqArg (\p opts -> opts { optBaseLibDir = p }) "DIR")
-        ("Optional. Path to directory that contains the compiler's Coq\n"
-         ++ "Base library. By default the compiler will look for the Base\n"
-         ++ "library in it's data directory.")
+        (unlines
+         [ "Optional. Path to directory that contains the compiler's Coq"
+         , "Base library. By default the compiler will look for the Base"
+         , "library in it's data directory."
+         ])
     , Option [] ["no-coq-project"]
         (NoArg (\opts -> opts { optCreateCoqProject = False }))
-        ("Disables the creation of a `_CoqProject` file in the output\n"
-         ++ "directory. If the `--output` option is missing or the `_CoqProject`\n"
-         ++ "file exists already, no `_CoqProject` is created.\n")
+        (unlines
+         [ "Disables the creation of a `_CoqProject` file in the output"
+         , "directory. If the `--output` option is missing or the"
+         , "`_CoqProject` file exists already, no `_CoqProject` is created."
+         ])
     , Option [] ["no-agda-lib"]
         (NoArg (\opts -> opts { optCreateAgdaLib = False }))
-        ("Disables the creation of an `.agda-lib` file in the output\n"
-         ++ "directory. If the `--output` option is missing or the `.agda-lib`\n"
-         ++ "file exists already, no `.agda-lib` is created.\n")
+        (unlines [ "Disables the creation of an `.agda-lib` file in the output"
+                 , "directory. If the `--output` option is missing or the"
+                 , "`.agda-lib` file exists already, no `.agda-lib` is created."
+                 ])
     , Option [] ["transform-pattern-matching"]
         (NoArg (\opts -> opts { optTransformPatternMatching = True }))
-        ("Experimental. Enables the automatic transformation of pattern\n"
-         ++ "matching, including guard elimination and case completion.\n"
-         ++ "If this option is enabled, no location information will be\n"
-         ++ "available in error messages.")
+        (unlines
+         [ "Experimental. Enables the automatic transformation of pattern"
+         , "matching, including guard elimination and case completion."
+         , "If this option is enabled, no location information will be"
+         , "available in error messages."
+         ])
     , Option [] ["dump-transformed-modules"]
         (ReqArg (\p opts -> opts { optDumpTransformedModulesDir = Just p })
          "DIR")
-        ("If `--transform-pattern-matching` is enabled, the transformed\n"
-         ++ "Haskell modules will be placed in the given directory.\n"
-         ++ "This option adds location information to error messages that\n"
-         ++ "refer to the dumped file.")
+        (unlines
+         [ "If `--transform-pattern-matching` is enabled, the transformed"
+         , "Haskell modules will be placed in the given directory."
+         , "This option adds location information to error messages that"
+         , "refer to the dumped file."
+         ])
     , Option [] ["from"] (ReqArg (\p opts -> opts { optFrontend = p }) "LANG")
-        ("Optional. Specifies the frontend for the compiler to use.\n"
-         ++ "Allowed values are: " ++ showFrontends ++ ".\nDefaults to: `"
-         ++ defaultFrontend ++ "`.")
+        (unlines [ "Optional. Specifies the frontend for the compiler to use."
+                 , "Allowed values are: " ++ showFrontends ++ "."
+                 , "Defaults to: `" ++ defaultFrontend ++ "`."
+                 ])
     , Option [] ["to"] (ReqArg (\p opts -> opts { optBackend = p }) "LANG")
-        ("Optional. Specifies the backend for the compiler to use.\n"
-         ++ "Allowed values are: " ++ showBackends ++ ".\nDefaults to: `"
-         ++ defaultBackend ++ "`.")
+        (unlines [ "Optional. Specifies the backend for the compiler to use."
+                 , "Allowed values are: " ++ showBackends ++ "."
+                 , "Defaults to: `" ++ defaultBackend ++ "`."
+                 ])
     ]

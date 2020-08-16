@@ -112,10 +112,12 @@ checkPatternFuncDecl funcDecl = checkPatternExpr (IR.funcDeclRhs funcDecl)
      = checkPatternExpr lhr >> checkPatternExpr rhs
    checkPatternExpr (IR.TypeAppExpr _ lhr _ _) = checkPatternExpr lhr
    checkPatternExpr (IR.If _ exprCond exprThen exprElse _) = checkPatternExpr
-     exprCond >> checkPatternExpr exprThen >> checkPatternExpr exprElse
+     exprCond
+     >> checkPatternExpr exprThen
+     >> checkPatternExpr exprElse
    checkPatternExpr (IR.Lambda _ _ lambdaRhs _) = checkPatternExpr lambdaRhs
-   checkPatternExpr (IR.Let _ binds e _) = mapM_
-     (checkPatternExpr . IR.bindExpr) binds >> checkPatternExpr e
+   checkPatternExpr (IR.Let _ binds e _)
+     = mapM_ (checkPatternExpr . IR.bindExpr) binds >> checkPatternExpr e
    checkPatternExpr IR.Con {} = return ()
    checkPatternExpr IR.Var {} = return ()
    checkPatternExpr IR.Undefined {} = return ()
@@ -129,9 +131,10 @@ checkPatternFuncDecl funcDecl = checkPatternExpr (IR.funcDeclRhs funcDecl)
 
    -- | Generates the error message and reports the error
    failedPatternCheck :: SrcSpan -> Converter ()
-   failedPatternCheck srcSpan = reportFatal $ Message srcSpan Error
-     $ "Incomplete pattern in function: " ++ showPretty
-     (IR.funcDeclName funcDecl)
+   failedPatternCheck srcSpan = reportFatal
+     $ Message srcSpan Error
+     $ "Incomplete pattern in function: "
+     ++ showPretty (IR.funcDeclName funcDecl)
 
    -- | Selects the name of the outermost type constructor from a type
    getTypeConName :: IR.Type -> Maybe IR.TypeConName

@@ -134,8 +134,13 @@ expectParseTestIR nodeType input = do
   let (mx, ms) = runReporter (parseTestIR input)
   case mx of
     Just x  -> return x
-    Nothing -> liftIO $ assertFailure $ "Could not parse test " ++ nodeType
-      ++ ".\nThe following " ++ show (length ms) ++ " messages were reported:\n"
+    Nothing -> liftIO
+      $ assertFailure
+      $ "Could not parse test "
+      ++ nodeType
+      ++ ".\nThe following "
+      ++ show (length ms)
+      ++ " messages were reported:\n"
       ++ showPretty ms
 
 -- | Parses an IR name for testing purposes and sets the

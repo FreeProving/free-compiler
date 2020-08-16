@@ -71,9 +71,10 @@ reverse' acc xs = case xs of
 intersperse :: a -> [ a ] -> [ a ]
 intersperse sep xs = case xs of
   []     -> []
-  y : ys -> y : case ys of
-    []     -> []
-    z : zs -> sep : intersperse sep ys
+  y : ys -> y
+    : case ys of
+      []     -> []
+      z : zs -> sep : intersperse sep ys
 
 -------------------------------------------------------------------------------
 -- Reducing lists (folds)                                                    --

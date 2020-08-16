@@ -16,9 +16,10 @@ import qualified FreeC.IR.Syntax            as IR
 
 -- | Test group for all @FreeC.Environment.Renamer@ tests.
 testRenamer :: Spec
-testRenamer = describe "FreeC.Environment.Renamer" $ do
-  testMustRenameIdent
-  testRenameIdent
+testRenamer = describe "FreeC.Environment.Renamer"
+  $ do
+    testMustRenameIdent
+    testRenameIdent
 
 -------------------------------------------------------------------------------
 -- Test identifiers                                                          --
@@ -56,32 +57,43 @@ genVernacularCommand = oneof $ map return vernacularCommands
 -------------------------------------------------------------------------------
 -- | Test group for 'mustRenameIdent' tests.
 testMustRenameIdent :: Spec
-testMustRenameIdent = describe "mustRenameIdent" $ do
-  it "keywords must be renamed" $ do
-    property $ forAll genKeyword $ flip mustRenameIdent emptyEnv
-  it "reserved identifiers must be renamed" $ do
-    property $ forAll genReservedIdent $ flip mustRenameIdent emptyEnv
-  it "defined identifiers must be renamed" $ do
-    property $ forAll genIdent $ \ident ->
-      let env = addEntry TypeVarEntry
-            { entrySrcSpan   = NoSrcSpan
-            , entryName      = IR.UnQual (IR.Ident ident)
-            , entryIdent     = Coq.bare ident
-            , entryAgdaIdent = undefined -- ignore Agda identifiers for the moment - TODO: add Unit Tests for Agda renamer!
-            } emptyEnv
-      in mustRenameIdent ident env
+testMustRenameIdent = describe "mustRenameIdent"
+  $ do
+    it "keywords must be renamed"
+      $ do
+        property $ forAll genKeyword $ flip mustRenameIdent emptyEnv
+    it "reserved identifiers must be renamed"
+      $ do
+        property $ forAll genReservedIdent $ flip mustRenameIdent emptyEnv
+    it "defined identifiers must be renamed"
+      $ do
+        property
+          $ forAll genIdent
+          $ \ident ->
+          let env = addEntry TypeVarEntry
+                { entrySrcSpan   = NoSrcSpan
+                , entryName      = IR.UnQual (IR.Ident ident)
+                , entryIdent     = Coq.bare ident
+                , entryAgdaIdent = undefined -- ignore Agda identifiers for the moment - TODO: add Unit Tests for Agda renamer!
+                } emptyEnv
+          in mustRenameIdent ident env
 
 -------------------------------------------------------------------------------
 -- Tests for @renameIdent@                                                   --
 -------------------------------------------------------------------------------
 -- | Test group for 'renameIdent' tests.
 testRenameIdent :: Spec
-testRenameIdent = describe "renameIdent" $ do
-  it "generated identifiers don't need to be renamed" $ do
-    property $ forAll genIdent $ \ident ->
-      let ident' = renameIdent ident emptyEnv
-      in not (mustRenameIdent ident' emptyEnv)
-  it "generated identifiers are not renamed again" $ do
-    property $ forAll genIdent $ \ident ->
-      let ident' = renameIdent ident emptyEnv
-      in renameIdent ident' emptyEnv == ident'
+testRenameIdent = describe "renameIdent"
+  $ do
+    it "generated identifiers don't need to be renamed"
+      $ do
+        property
+          $ forAll genIdent
+          $ \ident -> let ident' = renameIdent ident emptyEnv
+                      in not (mustRenameIdent ident' emptyEnv)
+    it "generated identifiers are not renamed again"
+      $ do
+        property
+          $ forAll genIdent
+          $ \ident -> let ident' = renameIdent ident emptyEnv
+                      in renameIdent ident' emptyEnv == ident'

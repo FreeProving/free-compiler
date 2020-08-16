@@ -93,8 +93,10 @@ isUsedIdent = flip elem . mapMaybe Coq.unpackQualid . usedIdents
 --   otherwise conflict with a keyword, reserved or user defined
 --   identifier.
 mustRenameIdent :: String -> Environment -> Bool
-mustRenameIdent ident env = isCoqKeyword ident || isVernacularCommand ident
-  || isReservedIdent ident || isUsedIdent env ident
+mustRenameIdent ident env = isCoqKeyword ident
+  || isVernacularCommand ident
+  || isReservedIdent ident
+  || isUsedIdent env ident
 
 -- | Tests whether the given character is allowed in a Coq identifier.
 --
@@ -182,13 +184,17 @@ renameAgdaIdent :: Agda.QName -> Environment -> Agda.QName
 renameAgdaIdent ident env
   = if (Agda.unqualify ident `elem` Agda.Base.reservedIdents)
     || (Agda.unqualify ident `elem` map Agda.name agdaKeywords)
-    || isUsedAgdaIdent env ident then renameAgdaIdent (nextQName ident) env
-  else ident
+    || isUsedAgdaIdent env ident
+    then renameAgdaIdent (nextQName ident) env
+    else ident
 
 -- | Generates a new Agda identifier based on the given @String@, the used
 --   @Agda.QName@s from the environment and reserved identifier.
 renameAgdaQualid :: String -> Environment -> Agda.QName
-renameAgdaQualid = renameAgdaIdent . Agda.qname' . Agda.name . head
+renameAgdaQualid = renameAgdaIdent
+  . Agda.qname'
+  . Agda.name
+  . head
   . splitOn [IR.internalIdentChar]
 
 -- | Creates a new qualified name, by appending a number or incrementing it.
@@ -358,9 +364,16 @@ renameAndDefineLIRVar srcSpan isPure ident maybeVarType
 informIfRenamed :: EnvEntry -> EnvEntry -> Converter ()
 informIfRenamed entry entry' = do
   let topLevel = isTopLevelEntry entry
-  when (topLevel && not (IR.isInternalIdent ident) && ident /= ident') $ report
-    $ Message (entrySrcSpan entry) Info $ "Renamed " ++ prettyEntryType entry
-    ++ " '" ++ showPretty (entryName entry) ++ "' to '" ++ ident' ++ "'."
+  when (topLevel && not (IR.isInternalIdent ident) && ident /= ident')
+    $ report
+    $ Message (entrySrcSpan entry) Info
+    $ "Renamed "
+    ++ prettyEntryType entry
+    ++ " '"
+    ++ showPretty (entryName entry)
+    ++ "' to '"
+    ++ ident'
+    ++ "'."
  where
    ident, ident' :: String
    ident = fromMaybe "op" $ IR.identFromQName (entryName entry)

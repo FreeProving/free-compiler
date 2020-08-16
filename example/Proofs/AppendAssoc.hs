@@ -18,8 +18,8 @@ infixr 5 `append`
 -- Next we state the property that we want to prove, namely that @append@ is
 -- associative.
 prop_append_assoc :: (Eq a, Show a) => [ a ] -> [ a ] -> [ a ] -> Property
-prop_append_assoc xs ys zs = xs `append` (ys `append` zs) === (xs `append` ys)
-  `append` zs
+prop_append_assoc xs ys zs
+  = xs `append` (ys `append` zs) === (xs `append` ys) `append` zs
 
 -- Proving the property above requires some auxiliary lemmas.
 -- The following lemma can be stated using QuickCheck.

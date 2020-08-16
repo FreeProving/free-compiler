@@ -75,7 +75,8 @@ parseCustomPragma (IR.BlockComment srcSpan text) =
       -- Try to match the contents of the pragma with the pattern
       -- of each custom pragma and return the result of the builder
       -- associated with the first matching pattern.
-      fmap msum $ forM customPragmas
+      fmap msum
+        $ forM customPragmas
         $ \(regex, action) -> case matchRegexPR regex text' of
           Nothing           -> do
             report $ Message srcSpan Warning $ "Unrecognized pragma"

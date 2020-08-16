@@ -147,10 +147,11 @@ instance Similar node => Similar [ node ] where
 -- Similarity test for modules                                               --
 -------------------------------------------------------------------------------
 instance Similar IR.Module where
-  similar' moduleA moduleB
-    = const (IR.modName moduleA == IR.modName moduleB) .&&.
+  similar' moduleA moduleB = const (IR.modName moduleA == IR.modName moduleB)
+    .&&.
     --  similar' (IR.modImports moduleA) (IR.modImports moduleB) .&&.
-    similar' (IR.modTypeDecls moduleA) (IR.modTypeDecls moduleB) .&&.
+    similar' (IR.modTypeDecls moduleA) (IR.modTypeDecls moduleB)
+    .&&.
     --  similar' (IR.modTypeSigs moduleA) (IR.modTypeSigs moduleB) .&&.
     --  similar' (IR.modPragmas moduleA) (IR.modPragmas moduleB) .&&.
     similar' (IR.modFuncDecls moduleA) (IR.modFuncDecls moduleB)
@@ -309,8 +310,8 @@ instance Similar IR.TypeScheme where
 --        Where @C@ is a constructor or integer literal and @s@ is an
 --        arbitrary error message.
 instance Similar IR.Expr where
-  similar' e1 e2 = similarExpr e1 e2 .&&. similar' (IR.exprTypeScheme e1)
-    (IR.exprTypeScheme e2)
+  similar' e1 e2 = similarExpr e1 e2
+    .&&. similar' (IR.exprTypeScheme e1) (IR.exprTypeScheme e2)
 
 -- | Like 'similar'' for expressions but ignores optional type annotations.
 similarExpr :: IR.Expr -> IR.Expr -> Renaming -> Bool
@@ -369,10 +370,10 @@ similarExpr (IR.Let _ _ _ _) _ = const False
 --   patterns @pᵢ@ and @qᵢ@ respectively.
 instance Similar IR.Alt where
   similar' (IR.Alt _ c xs e) (IR.Alt _ d ys f)
-    | c == d
-      = let ns = map IR.varPatQName xs
-            ms = map IR.varPatQName ys
-        in similar' e f . extendRenaming IR.ValueScope ns ms .&&. similar' xs ys
+    | c == d = let ns = map IR.varPatQName xs
+                   ms = map IR.varPatQName ys
+               in similar' e f . extendRenaming IR.ValueScope ns ms
+                  .&&. similar' xs ys
     | otherwise = const False
 
 -- | Two variable patterns are similar if they either both don't have a type
@@ -426,7 +427,8 @@ instance Similar IR.FuncDecl where
             xs' = map IR.varPatQName xs
             ys' = map IR.varPatQName ys
         in (similar' e f . extendRenaming IR.ValueScope xs' ys'
-            .&&. similar' xs ys .&&. similar' s t)
+            .&&. similar' xs ys
+            .&&. similar' s t)
            . extendRenaming IR.TypeScope as' bs'
     | otherwise = const False
 

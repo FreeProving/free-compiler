@@ -119,10 +119,11 @@ dependsDirectlyOn :: DependencyGraph node -- ^ The dependency graph.
   -> DGKey                -- ^ The key of the first node.
   -> DGKey                -- ^ The key of the second node.
   -> Bool
-dependsDirectlyOn (DependencyGraph graph _ getVertex) k1 k2 = Just True == do
-  v1 <- getVertex k1
-  v2 <- getVertex k2
-  return ((v1, v2) `elem` edges graph)
+dependsDirectlyOn (DependencyGraph graph _ getVertex) k1 k2 = Just True
+  == do
+    v1 <- getVertex k1
+    v2 <- getVertex k2
+    return ((v1, v2) `elem` edges graph)
 
 -------------------------------------------------------------------------------
 -- Type dependencies                                                         --
@@ -172,8 +173,9 @@ moduleEntries decl
 -------------------------------------------------------------------------------
 -- | Pretty instance that converts a dependency graph to the DOT format.
 instance Pretty (DependencyGraph node) where
-  pretty (DependencyGraph graph getEntry getVertex) = digraph <+> braces
-    (line <> indent 2 (vcat (nodeDocs ++ edgesDocs)) <> line) <> line
+  pretty (DependencyGraph graph getEntry getVertex) = digraph
+    <+> braces (line <> indent 2 (vcat (nodeDocs ++ edgesDocs)) <> line)
+    <> line
    where
      -- | A document for the DOT digraph keyword.
      digraph :: Doc
@@ -196,7 +198,8 @@ instance Pretty (DependencyGraph node) where
      prettyNode :: Vertex -> Doc
      prettyNode v
        = let (_, key, _) = getEntry v
-         in int v <+> brackets (label <> equals <> dquotes (pretty key)) <> semi
+         in int v
+            <+> brackets (label <> equals <> dquotes (pretty key)) <> semi
 
      -- | Pretty printed DOT edges for the dependency graph.
      edgesDocs :: [ Doc ]
@@ -206,11 +209,14 @@ instance Pretty (DependencyGraph node) where
      --   DOT command. Returns 'Nothing' if the vertex is not incident to
      --   any edge.
      prettyEdges :: Vertex -> Maybe Doc
-     prettyEdges v = let (_, _, neighbors) = getEntry v
-                     in case mapMaybe getVertex neighbors of
-                          [] -> Nothing
-                          vs -> Just $ int v <+> arrow <+> braces
-                            (cat (punctuate comma (map int vs))) <> semi
+     prettyEdges v
+       = let (_, _, neighbors) = getEntry v
+         in case mapMaybe getVertex neighbors of
+              [] -> Nothing
+              vs -> Just
+                $ int v
+                <+> arrow
+                <+> braces (cat (punctuate comma (map int vs))) <> semi
 
 -------------------------------------------------------------------------------
 -- Strongly connected components                                             --
@@ -322,7 +328,7 @@ mapComponentM_ f (Recursive decls)   = void (f decls)
 --   The first line of the document indicates whether the component
 --   was recursive or not.
 instance Pretty decl => Pretty (DependencyComponent decl) where
-  pretty (NonRecursive decl) = prettyString "non-recursive" <$$> indent 2
-    (pretty decl)
-  pretty (Recursive decls)   = prettyString "recursive" <$$> indent 2
-    (vcat (map pretty decls))
+  pretty (NonRecursive decl) = prettyString "non-recursive"
+    <$$> indent 2 (pretty decl)
+  pretty (Recursive decls)   = prettyString "recursive"
+    <$$> indent 2 (vcat (map pretty decls))

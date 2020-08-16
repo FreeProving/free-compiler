@@ -38,22 +38,35 @@ data UnificationError
 -- | Reports the given 'UnificationError'.
 reportUnificationError :: MonadReporter m => SrcSpan -> UnificationError -> m a
 reportUnificationError srcSpan err = case err of
-  UnificationError actualType expectedType ->
-    reportFatal $ Message srcSpan Error
-    $ "Could not match expected type `" ++ showPretty expectedType
-    ++ "` with actual type `" ++ showPretty actualType ++ "`."
-  OccursCheckFailure x u -> reportFatal $ Message srcSpan Error
-    $ "Occurs check: Could not construct infinite type `" ++ showPretty x
-    ++ "` ~ `" ++ showPretty u ++ "`."
-  RigidTypeVarError xSrcSpan x u -> reportFatal $ Message srcSpan Error
-    $ "Could not match rigid type variable '" ++ x ++ "' (bound at '"
-    ++ showPretty xSrcSpan ++ "') with type '" ++ showPretty u ++ "'."
+  UnificationError actualType expectedType -> reportFatal
+    $ Message srcSpan Error
+    $ "Could not match expected type `"
+    ++ showPretty expectedType
+    ++ "` with actual type `"
+    ++ showPretty actualType
+    ++ "`."
+  OccursCheckFailure x u -> reportFatal
+    $ Message srcSpan Error
+    $ "Occurs check: Could not construct infinite type `"
+    ++ showPretty x
+    ++ "` ~ `"
+    ++ showPretty u
+    ++ "`."
+  RigidTypeVarError xSrcSpan x u -> reportFatal
+    $ Message srcSpan Error
+    $ "Could not match rigid type variable '"
+    ++ x
+    ++ "' (bound at '"
+    ++ showPretty xSrcSpan
+    ++ "') with type '"
+    ++ showPretty u
+    ++ "'."
 
 -- | Runs the given converter and reports unification errors using
 --   'reportUnificationError'.
 runOrFail :: SrcSpan -> ExceptT UnificationError Converter a -> Converter a
-runOrFail srcSpan mx = runExceptT mx >>= either (reportUnificationError srcSpan)
-  return
+runOrFail srcSpan mx = runExceptT mx
+  >>= either (reportUnificationError srcSpan) return
 
 -- | Like 'unify' but reports a fatal error message if the types cannot be
 --   unified.
@@ -115,8 +128,8 @@ unify t s = do
       --   with another type. Reports a fatal error if the variable is bound.
       rigidCheck :: ExceptT UnificationError Converter ()
       rigidCheck = do
-        maybeEntry <- lift $ inEnv $ lookupEntry IR.TypeScope
-          (IR.UnQual (IR.Ident x))
+        maybeEntry
+          <- lift $ inEnv $ lookupEntry IR.TypeScope (IR.UnQual (IR.Ident x))
         case maybeEntry of
           Nothing    -> return ()
           Just entry -> throwE $ RigidTypeVarError (entrySrcSpan entry) x u

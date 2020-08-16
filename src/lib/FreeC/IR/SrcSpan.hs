@@ -122,9 +122,10 @@ convertSrcSpanWithCode srcFiles = addSourceCode srcFiles . convertSrcSpan
 addSourceCode :: SrcFileMap -> SrcSpan -> SrcSpan
 addSourceCode srcFiles srcSpan@SrcSpan { srcSpanCodeLines = [] } = srcSpan
   { srcSpanCodeLines = take
-      (srcSpanEndLine srcSpan - srcSpanStartLine srcSpan + 1) $ drop
-      (srcSpanStartLine srcSpan - 1) $ maybe [] srcFileLines $ lookupSrcFile
-      (srcSpanFilename srcSpan) srcFiles
+      (srcSpanEndLine srcSpan - srcSpanStartLine srcSpan + 1)
+      $ drop (srcSpanStartLine srcSpan - 1)
+      $ maybe [] srcFileLines
+      $ lookupSrcFile (srcSpanFilename srcSpan) srcFiles
   }
 addSourceCode _ srcSpan = srcSpan
 
@@ -140,8 +141,16 @@ instance Pretty SrcSpan where
   pretty (FileSpan filename) = prettyString filename
   pretty srcSpan
     | spansMultipleLines srcSpan = prettyString (srcSpanFilename srcSpan)
-      <> colon <> int (srcSpanStartLine srcSpan) <> colon <> int
-      (srcSpanStartColumn srcSpan) <> char '-' <> int (srcSpanEndLine srcSpan)
-      <> colon <> int (srcSpanEndColumn srcSpan)
-    | otherwise = prettyString (srcSpanFilename srcSpan) <> colon <> int
-      (srcSpanStartLine srcSpan) <> colon <> int (srcSpanStartColumn srcSpan)
+      <> colon
+      <> int (srcSpanStartLine srcSpan)
+      <> colon
+      <> int (srcSpanStartColumn srcSpan)
+      <> char '-'
+      <> int (srcSpanEndLine srcSpan)
+      <> colon
+      <> int (srcSpanEndColumn srcSpan)
+    | otherwise = prettyString (srcSpanFilename srcSpan)
+      <> colon
+      <> int (srcSpanStartLine srcSpan)
+      <> colon
+      <> int (srcSpanStartColumn srcSpan)

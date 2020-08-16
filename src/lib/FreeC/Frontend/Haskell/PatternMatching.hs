@@ -109,7 +109,8 @@ transformPatternMatching haskellAst
 -- | Removes the source spans of the given Haskell AST and applies the pattern
 --   matching compilation.
 transformPatternMatching' :: HSE.Module SrcSpan -> PMState -> HSE.Module SrcSpan
-transformPatternMatching' haskellAst = evalPM $ do
-  let haskellAst' = void haskellAst
-  haskellAst'' <- processModule haskellAst'
-  return (fmap (const NoSrcSpan) haskellAst'')
+transformPatternMatching' haskellAst = evalPM
+  $ do
+    let haskellAst' = void haskellAst
+    haskellAst'' <- processModule haskellAst'
+    return (fmap (const NoSrcSpan) haskellAst'')

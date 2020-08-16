@@ -323,13 +323,13 @@ lookupFixedTypeArgs name = gets (Map.findWithDefault [] name . fixedTypeArgs)
 -------------------------------------------------------------------------------
 -- | Adds a 'TypeEquation' entry the current state.
 addTypeEquation :: SrcSpan -> IR.Type -> IR.Type -> TypeInference ()
-addTypeEquation srcSpan t t' = modify $ \s ->
-  let eqn = TypeEquation { eqnSrcSpan       = srcSpan
-                         , eqnExpectedType  = t
-                         , eqnActualType    = t'
-                         , eqnRigidTypeVars = rigidTypeVars s
-                         }
-  in s { typeEquations = eqn : typeEquations s }
+addTypeEquation srcSpan t t' = modify
+  $ \s -> let eqn = TypeEquation { eqnSrcSpan       = srcSpan
+                                 , eqnExpectedType  = t
+                                 , eqnActualType    = t'
+                                 , eqnRigidTypeVars = rigidTypeVars s
+                                 }
+          in s { typeEquations = eqn : typeEquations s }
 
 -- | Instantiates the type scheme of the function or constructor with the
 --   given name and adds a 'TypeEquation' for the resulting type and the
@@ -341,7 +341,8 @@ addTypeEquationFor :: SrcSpan -> IR.QName -> IR.Type -> TypeInference ()
 addTypeEquationFor srcSpan name resType = do
   maybeTypeScheme <- lookupTypeAssumption name
   case maybeTypeScheme of
-    Nothing         -> reportFatal $ Message NoSrcSpan Error
+    Nothing         -> reportFatal
+      $ Message NoSrcSpan Error
       $ "Identifier not in scope " ++ showPretty name
     Just typeScheme -> do
       typeExpr <- liftConverter $ instantiateTypeScheme typeScheme
@@ -350,8 +351,8 @@ addTypeEquationFor srcSpan name resType = do
 -- | Extends the type assumption with the type scheme for the function,
 --   constructor or local variable with the given name.
 extendTypeAssumption :: IR.QName -> IR.TypeScheme -> TypeInference ()
-extendTypeAssumption name typeScheme = modify $ \s ->
-  s { typeAssumption = Map.insert name typeScheme (typeAssumption s) }
+extendTypeAssumption name typeScheme = modify
+  $ \s -> s { typeAssumption = Map.insert name typeScheme (typeAssumption s) }
 
 -- | Extends the type assumption with the type scheme for the given function
 --   declaration if all of its argument and return types are annotated.
@@ -370,14 +371,15 @@ extendTypeAssumptionWithVarPat varPat = mapM_
 -- | Removes the variable bound by the given variable pattern from the
 --   type assumption while running the given type inference.
 removeVarPatFromTypeAssumption :: IR.VarPat -> TypeInference ()
-removeVarPatFromTypeAssumption varPat = modify $ \s ->
+removeVarPatFromTypeAssumption varPat = modify
+  $ \s ->
   s { typeAssumption = Map.delete (IR.varPatQName varPat) (typeAssumption s) }
 
 -- | Sets the types to instantiate additional type arguments of the function
 --   with the given name with.
 fixTypeArgs :: IR.QName -> [ IR.Type ] -> TypeInference ()
-fixTypeArgs name subst = modify $ \s ->
-  s { fixedTypeArgs = Map.insert name subst (fixedTypeArgs s) }
+fixTypeArgs name subst = modify
+  $ \s -> s { fixedTypeArgs = Map.insert name subst (fixedTypeArgs s) }
 
 -------------------------------------------------------------------------------
 -- Scoping                                                                   --
@@ -418,89 +420,92 @@ withRigidTypeVars vs mx = do
 --   as well as the types of variable patterns on the right-hand side and
 --   visible type arguments have been annotated with their inferred type.
 inferFuncDeclTypes :: [ IR.FuncDecl ] -> Converter [ IR.FuncDecl ]
-inferFuncDeclTypes funcDecls = localEnv $ do
-  ta <- inEnv makeTypeAssumption
-  runTypeInference ta $ inferFuncDeclTypes' funcDecls
+inferFuncDeclTypes funcDecls = localEnv
+  $ do
+    ta <- inEnv makeTypeAssumption
+    runTypeInference ta $ inferFuncDeclTypes' funcDecls
 
 -- | Version of 'inferFuncDeclTypes' in the 'TypeInference' monad.
 inferFuncDeclTypes' :: [ IR.FuncDecl ] -> TypeInference [ IR.FuncDecl ]
-inferFuncDeclTypes' funcDecls = withLocalState $ do
-    -- Add type assumption for functions with type signatures.
+inferFuncDeclTypes' funcDecls = withLocalState
+  $ do
+      -- Add type assumption for functions with type signatures.
+      --
+      -- This is required such that polymorphically recursive functions don't
+      -- cause a type error.
+    mapM_ extendTypeAssumptionWithFuncDecl funcDecls
+    -- Add type annotations.
     --
-    -- This is required such that polymorphically recursive functions don't
-    -- cause a type error.
-  mapM_ extendTypeAssumptionWithFuncDecl funcDecls
-  -- Add type annotations.
-  --
-  -- In this step all variable patterns, return types and sub-expressions
-  -- are annotated using fresh type variables. The type annotations resemble
-  -- the structure of the actual type after this step already. For example,
-  -- if @e₁ e₂@ is annotated with a type @τ@, then @e₂@ is annotated with
-  -- a fresh type variable @α@ and @e₂@ is annotated with @α -> τ@.
-  -- Furthermore, this step introduces type equations, for example if
-  -- predefined functions and constructors are used.
-  annotatedFuncDecls <- annotateFuncDecls funcDecls
-  -- Unify type equations.
-  --
-  -- During the annotation of the function declaration, type equations were
-  -- added. The system of type equations is solved by computing the most
-  -- general unifier (mgu).
-  --
-  -- The mgu is then applied to the annotated function declarations to
-  -- replace the type variables (that act as place holders) by their
-  -- actual type. In the example of @e₁ e₂@ above for example, the type
-  -- equation @α = Integer@ would have been added if @e₂@ was an integer
-  -- literal. Thus, the mgu would map the type variable @α@ to @Integer@.
-  -- By applying the mgu, the type annotation of @e₁ e₂@ is corrected to
-  -- @Integer -> mgu(τ)@.
-  eqns <- gets typeEquations
-  mgu <- liftConverter $ unifyEquations eqns
-  let typedFuncDecls = applySubst mgu annotatedFuncDecls
-  -- Abstract inferred type to type scheme.
-  --
-  -- The function takes one type argument for each type variable in the
-  -- inferred type expression. Additional type arguments that occur in
-  -- type signatures and visible type applications on the right-hand side
-  -- of the function but not in the inferred type (also known as "vanishing
-  -- type  arguments") are added as well. The order of the type arguments
-  -- depends on their order in the (type) expression (from left to right).
-  let typeExprs = map (fromJust . IR.funcDeclType) typedFuncDecls
-      typeArgs = map freeTypeVars typeExprs
-      additionalTypeArgs = nub (concatMap freeTypeVars typedFuncDecls)
-        \\ concat typeArgs
-      allTypeArgs = map (++ additionalTypeArgs) typeArgs
-      abstractedFuncDecls = zipWith abstractTypeArgs allTypeArgs typedFuncDecls
-  -- Fix instantiation of additional type arguments.
-  --
-  -- The additional type arguments must be passed unchanged in recursive
-  -- calls (otherwise there would have to be an infinite number of type
-  -- arguments). However, 'applyFuncDeclVisibly' would instantiate them
-  -- with fresh type variables since they do not occur in the inferred
-  -- type the application has been annotated with. Thus, we have to
-  -- remember for each function in the strongly connected component,
-  -- the type to instantiate the remaining type arguments with. The
-  -- fixed type arguments will be taken into account by 'applyVisibly'.
-  let funcNames           = map IR.funcDeclQName abstractedFuncDecls
-      additionalTypeArgs' = map
-        (map IR.typeVarDeclToType . takeEnd (length additionalTypeArgs)
-         . IR.funcDeclTypeArgs) abstractedFuncDecls
-  zipWithM_ fixTypeArgs funcNames additionalTypeArgs'
-  -- Add visible type applications.
-  --
-  -- Now that we also know the type arguments of the functions in then
-  -- strongly connected component, we can replace the type annotations
-  -- for function and constructor applications added by 'annotateFuncDecls'
-  -- by visible type applications.
-  mapM_ extendTypeAssumptionWithFuncDecl abstractedFuncDecls
-  visiblyAppliedFuncDecls <- mapM applyFuncDeclVisibly abstractedFuncDecls
-  -- Abstract new vanishing type arguments.
-  --
-  -- The instantiation of type schemes by 'applyFuncDeclVisibly' might
-  -- have introduced new vanishing type arguments if a function with
-  -- vanishing type arguments is applied that does not occur in the
-  -- strongly connected component. Those additional type arguments
-  -- need to be abstracted as well.
-  return (abstractVanishingTypeArgs visiblyAppliedFuncDecls)
+    -- In this step all variable patterns, return types and sub-expressions
+    -- are annotated using fresh type variables. The type annotations resemble
+    -- the structure of the actual type after this step already. For example,
+    -- if @e₁ e₂@ is annotated with a type @τ@, then @e₂@ is annotated with
+    -- a fresh type variable @α@ and @e₂@ is annotated with @α -> τ@.
+    -- Furthermore, this step introduces type equations, for example if
+    -- predefined functions and constructors are used.
+    annotatedFuncDecls <- annotateFuncDecls funcDecls
+    -- Unify type equations.
+    --
+    -- During the annotation of the function declaration, type equations were
+    -- added. The system of type equations is solved by computing the most
+    -- general unifier (mgu).
+    --
+    -- The mgu is then applied to the annotated function declarations to
+    -- replace the type variables (that act as place holders) by their
+    -- actual type. In the example of @e₁ e₂@ above for example, the type
+    -- equation @α = Integer@ would have been added if @e₂@ was an integer
+    -- literal. Thus, the mgu would map the type variable @α@ to @Integer@.
+    -- By applying the mgu, the type annotation of @e₁ e₂@ is corrected to
+    -- @Integer -> mgu(τ)@.
+    eqns <- gets typeEquations
+    mgu <- liftConverter $ unifyEquations eqns
+    let typedFuncDecls = applySubst mgu annotatedFuncDecls
+    -- Abstract inferred type to type scheme.
+    --
+    -- The function takes one type argument for each type variable in the
+    -- inferred type expression. Additional type arguments that occur in
+    -- type signatures and visible type applications on the right-hand side
+    -- of the function but not in the inferred type (also known as "vanishing
+    -- type  arguments") are added as well. The order of the type arguments
+    -- depends on their order in the (type) expression (from left to right).
+    let typeExprs = map (fromJust . IR.funcDeclType) typedFuncDecls
+        typeArgs = map freeTypeVars typeExprs
+        additionalTypeArgs = nub (concatMap freeTypeVars typedFuncDecls)
+          \\ concat typeArgs
+        allTypeArgs = map (++ additionalTypeArgs) typeArgs
+        abstractedFuncDecls
+          = zipWith abstractTypeArgs allTypeArgs typedFuncDecls
+    -- Fix instantiation of additional type arguments.
+    --
+    -- The additional type arguments must be passed unchanged in recursive
+    -- calls (otherwise there would have to be an infinite number of type
+    -- arguments). However, 'applyFuncDeclVisibly' would instantiate them
+    -- with fresh type variables since they do not occur in the inferred
+    -- type the application has been annotated with. Thus, we have to
+    -- remember for each function in the strongly connected component,
+    -- the type to instantiate the remaining type arguments with. The
+    -- fixed type arguments will be taken into account by 'applyVisibly'.
+    let funcNames           = map IR.funcDeclQName abstractedFuncDecls
+        additionalTypeArgs' = map (map IR.typeVarDeclToType
+                                   . takeEnd (length additionalTypeArgs)
+                                   . IR.funcDeclTypeArgs) abstractedFuncDecls
+    zipWithM_ fixTypeArgs funcNames additionalTypeArgs'
+    -- Add visible type applications.
+    --
+    -- Now that we also know the type arguments of the functions in then
+    -- strongly connected component, we can replace the type annotations
+    -- for function and constructor applications added by 'annotateFuncDecls'
+    -- by visible type applications.
+    mapM_ extendTypeAssumptionWithFuncDecl abstractedFuncDecls
+    visiblyAppliedFuncDecls <- mapM applyFuncDeclVisibly abstractedFuncDecls
+    -- Abstract new vanishing type arguments.
+    --
+    -- The instantiation of type schemes by 'applyFuncDeclVisibly' might
+    -- have introduced new vanishing type arguments if a function with
+    -- vanishing type arguments is applied that does not occur in the
+    -- strongly connected component. Those additional type arguments
+    -- need to be abstracted as well.
+    return (abstractVanishingTypeArgs visiblyAppliedFuncDecls)
 
 -------------------------------------------------------------------------------
 -- Type annotations                                                          --
@@ -596,7 +601,8 @@ annotateExprWith' (IR.Case srcSpan scrutinee alts _) resType = do
    --   and its right-hand side with the @case@ expressions result type.
    annotateAlt :: IR.Alt -> IR.Type -> TypeInference IR.Alt
    annotateAlt (IR.Alt altSrcSpan conPat varPats rhs) patType
-     = withLocalTypeAssumption $ do
+     = withLocalTypeAssumption
+     $ do
        varPats' <- mapM annotateVarPat varPats
        let varPatTypes = map (fromJust . IR.varPatType) varPats'
            conPatType  = IR.funcType NoSrcSpan varPatTypes patType
@@ -619,7 +625,8 @@ annotateExprWith' (IR.IntLiteral srcSpan value _) resType = do
 -- fresh type variables @α₀, …, αₙ@ and @β@ and add the a type equation
 -- @α₀ -> … -> αₙ -> β = τ@.
 annotateExprWith' (IR.Lambda srcSpan args expr _) resType
-  = withLocalTypeAssumption $ do
+  = withLocalTypeAssumption
+  $ do
     args' <- mapM annotateVarPat args
     retType <- liftConverter freshTypeVar
     expr' <- annotateExprWith expr retType
@@ -628,7 +635,8 @@ annotateExprWith' (IR.Lambda srcSpan args expr _) resType
     addTypeEquation srcSpan funcType resType
     return (IR.Lambda srcSpan args' expr' (makeExprType resType))
 annotateExprWith' (IR.Let srcSpan binds expr _) resType
-  = withLocalTypeAssumption $ do
+  = withLocalTypeAssumption
+  $ do
     bindVarPats' <- mapM (annotateVarPat . IR.bindVarPat) binds
     exprType <- liftConverter freshTypeVar
     binds'' <- zipWithM annotateBindExpr binds bindVarPats'
@@ -656,25 +664,28 @@ makeExprType = Just . IR.TypeScheme NoSrcSpan []
 --   to the right-hand side of the given function declaration with the
 --   return type of the function.
 annotateFuncDecls :: [ IR.FuncDecl ] -> TypeInference [ IR.FuncDecl ]
-annotateFuncDecls funcDecls = withLocalTypeAssumption $ do
-  funcDecls' <- mapM annotateFuncDeclLhs funcDecls
-  mapM_ extendTypeAssumptionWithFuncDecl funcDecls'
-  mapM annotateFuncDeclRhs funcDecls'
+annotateFuncDecls funcDecls = withLocalTypeAssumption
+  $ do
+    funcDecls' <- mapM annotateFuncDeclLhs funcDecls
+    mapM_ extendTypeAssumptionWithFuncDecl funcDecls'
+    mapM annotateFuncDeclRhs funcDecls'
  where
    -- | Annotates the argument and return types of the given function
    --   declaration.
    annotateFuncDeclLhs :: IR.FuncDecl -> TypeInference IR.FuncDecl
-   annotateFuncDeclLhs funcDecl = withLocalTypeAssumption $ do
-     args' <- mapM annotateVarPat (IR.funcDeclArgs funcDecl)
-     retType <- maybeFreshTypeVar (IR.funcDeclReturnType funcDecl)
-     return funcDecl { IR.funcDeclArgs       = args'
-                     , IR.funcDeclReturnType = Just retType
-                     }
+   annotateFuncDeclLhs funcDecl = withLocalTypeAssumption
+     $ do
+       args' <- mapM annotateVarPat (IR.funcDeclArgs funcDecl)
+       retType <- maybeFreshTypeVar (IR.funcDeclReturnType funcDecl)
+       return funcDecl { IR.funcDeclArgs       = args'
+                       , IR.funcDeclReturnType = Just retType
+                       }
 
    -- | Annotates the right-hand side of the given function declaration.
    annotateFuncDeclRhs :: IR.FuncDecl -> TypeInference IR.FuncDecl
-   annotateFuncDeclRhs funcDecl = withLocalTypeAssumption $ withRigidTypeVars
-     (IR.funcDeclTypeArgs funcDecl) $ do
+   annotateFuncDeclRhs funcDecl = withLocalTypeAssumption
+     $ withRigidTypeVars (IR.funcDeclTypeArgs funcDecl)
+     $ do
        let Just retType = IR.funcDeclReturnType funcDecl
        mapM_ extendTypeAssumptionWithVarPat (IR.funcDeclArgs funcDecl)
        rhs' <- annotateExprWith (IR.funcDeclRhs funcDecl) retType
@@ -749,7 +760,8 @@ applyExprVisibly (IR.Let srcSpan binds expr exprType)   = do
   expr' <- applyExprVisibly expr
   return (IR.Let srcSpan binds' expr' exprType)
 applyExprVisibly (IR.Lambda srcSpan args expr exprType)
-  = withLocalTypeAssumption $ do
+  = withLocalTypeAssumption
+  $ do
     mapM_ removeVarPatFromTypeAssumption args
     expr' <- applyExprVisibly expr
     return (IR.Lambda srcSpan args expr' exprType)
@@ -765,8 +777,8 @@ applyBindVisibly (IR.Bind srcSpan varPat expr) = do
 -- | Applies 'applyExprVisibly' to the right-hand side of the given @case@-
 --   expression alternative.
 applyAltVisibly :: IR.Alt -> TypeInference IR.Alt
-applyAltVisibly (IR.Alt srcSpan conPat varPats expr)
-  = withLocalTypeAssumption $ do
+applyAltVisibly (IR.Alt srcSpan conPat varPats expr) = withLocalTypeAssumption
+  $ do
     mapM_ removeVarPatFromTypeAssumption varPats
     expr' <- applyExprVisibly expr
     return (IR.Alt srcSpan conPat varPats expr')
@@ -774,12 +786,13 @@ applyAltVisibly (IR.Alt srcSpan conPat varPats expr)
 -- | Applies ' applyExprVisibly' to the right-hand side of the given function
 --   declaration.
 applyFuncDeclVisibly :: IR.FuncDecl -> TypeInference IR.FuncDecl
-applyFuncDeclVisibly funcDecl = withLocalTypeAssumption $ do
-  let args = IR.funcDeclArgs funcDecl
-      rhs  = IR.funcDeclRhs funcDecl
-  mapM_ removeVarPatFromTypeAssumption args
-  rhs' <- applyExprVisibly rhs
-  return funcDecl { IR.funcDeclRhs = rhs' }
+applyFuncDeclVisibly funcDecl = withLocalTypeAssumption
+  $ do
+    let args = IR.funcDeclArgs funcDecl
+        rhs  = IR.funcDeclRhs funcDecl
+    mapM_ removeVarPatFromTypeAssumption args
+    rhs' <- applyExprVisibly rhs
+    return funcDecl { IR.funcDeclRhs = rhs' }
 
 -------------------------------------------------------------------------------
 -- Abstracting type arguments                                                --
@@ -933,9 +946,10 @@ unifyEquations = unifyEquations' identitySubst . reverse
 --   These entries are inserted only locally and not visible after this
 --   operation anymore.
 unifyEquation :: TypeEquation -> Converter (Subst IR.Type)
-unifyEquation eqn = localEnv $ do
-  mapM_ bindRigidTypeVar (eqnRigidTypeVars eqn)
-  unifyOrFail (eqnSrcSpan eqn) (eqnExpectedType eqn) (eqnActualType eqn)
+unifyEquation eqn = localEnv
+  $ do
+    mapM_ bindRigidTypeVar (eqnRigidTypeVars eqn)
+    unifyOrFail (eqnSrcSpan eqn) (eqnExpectedType eqn) (eqnActualType eqn)
 
 -------------------------------------------------------------------------------
 -- Rigid type variables                                                      --
@@ -943,7 +957,9 @@ unifyEquation eqn = localEnv $ do
 -- | Adds an environment entry for the type variable that is bound by the
 --   given type variable declaration.
 bindRigidTypeVar :: MonadConverter m => IR.TypeVarDecl -> m ()
-bindRigidTypeVar typeVarDecl = modifyEnv $ addEntry $ TypeVarEntry
+bindRigidTypeVar typeVarDecl = modifyEnv
+  $ addEntry
+  $ TypeVarEntry
   { entrySrcSpan   = IR.typeVarDeclSrcSpan typeVarDecl
   , entryName      = IR.UnQual (IR.Ident (IR.typeVarDeclIdent typeVarDecl))
   , entryIdent     = undefined
@@ -956,5 +972,6 @@ bindRigidTypeVar typeVarDecl = modifyEnv $ addEntry $ TypeVarEntry
 -- | Reports an internal error when a type application expression is
 --   encountered prior to type inference.
 unexpectedTypeAppExpr :: MonadReporter r => SrcSpan -> r a
-unexpectedTypeAppExpr srcSpan = reportFatal $ Message srcSpan Internal
+unexpectedTypeAppExpr srcSpan = reportFatal
+  $ Message srcSpan Internal
   $ "Unexpected visible type application."

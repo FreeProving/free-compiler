@@ -35,8 +35,8 @@ convertFuncDecls (NonRecursive decl) = convertFuncDecl decl Nothing
 convertFuncDecls (Recursive [decl])  = do
   [decArg] <- identifyDecArgs [decl]
   convertFuncDecl decl $ Just decArg
-convertFuncDecls (Recursive ds)      = reportFatal $ Message
-  (IR.funcDeclSrcSpan $ head ds) Error
+convertFuncDecls (Recursive ds)      = reportFatal
+  $ Message (IR.funcDeclSrcSpan $ head ds) Error
   $ "Mutual recursive functions are not supported by the Agda back end "
   ++ "at the moment."
 

@@ -125,10 +125,11 @@ instance Monad m => Applicative (ReporterT m) where
 instance Monad m => Monad (ReporterT m) where
   return     = ReporterT . return . return
 
-  (>>=) rt f = ReporterT $ do
-    (mx, ms) <- runReporterT rt
-    (mx', ms') <- maybe (return (Nothing, [])) (runReporterT . f) mx
-    return (MaybeT (writer (mx', ms ++ ms')))
+  (>>=) rt f = ReporterT
+    $ do
+      (mx, ms) <- runReporterT rt
+      (mx', ms') <- maybe (return (Nothing, [])) (runReporterT . f) mx
+      return (MaybeT (writer (mx', ms ++ ms')))
 
 -- | @MonadTrans@ instance for 'ReporterT'.
 instance MonadTrans ReporterT where
@@ -160,8 +161,8 @@ report = liftReporter . ReporterT . Identity . lift . tell . (: [])
 
 -- | Creates a reporter that fails with the given message.
 reportFatal :: MonadReporter r => Message -> r a
-reportFatal = liftReporter . ReporterT . Identity . (>> mzero) . lift . tell
-  . (: [])
+reportFatal
+  = liftReporter . ReporterT . Identity . (>> mzero) . lift . tell . (: [])
 
 -- | Internal errors (e.g. pattern matching failures in @do@-blocks) are
 --   cause fatal error messages to be reported.
@@ -197,8 +198,8 @@ reportIOError :: MonadReporter r => IOError -> r a
 reportIOError = reportFatal . Message NoSrcSpan Error . ioErrorMessageText
  where
    ioErrorMessageText :: IOError -> String
-   ioErrorMessageText err = ioeGetErrorString err ++ maybe "" (": " ++)
-     (ioeGetFileName err)
+   ioErrorMessageText err = ioeGetErrorString err
+     ++ maybe "" (": " ++) (ioeGetFileName err)
 
 -------------------------------------------------------------------------------
 -- Handling messages and reporter results                                    --
@@ -270,7 +271,8 @@ instance Pretty Severity where
 --   Lists of messages are separated by a newline.
 instance Pretty Message where
   pretty (Message srcSpan severity msg) = (pretty srcSpan <> colon)
-    <+> (pretty severity <> colon) <$$> indent 4 (prettyLines msg) <> line
+    <+> (pretty severity <> colon) <$$> indent 4 (prettyLines msg)
+    <> line
     <> prettyCodeBlock srcSpan
 
   prettyList = prettySeparated line
@@ -282,8 +284,11 @@ instance Pretty Message where
 --   empty document is returned.
 prettyCodeBlock :: SrcSpan -> Doc
 prettyCodeBlock srcSpan
-  | hasSourceCode srcSpan = gutterDoc <$$> firstLineNumberDoc <+> prettyString
-    firstLine <$$> gutterDoc <> highlightDoc <> ellipsisDoc <> line
+  | hasSourceCode srcSpan = gutterDoc <$$> firstLineNumberDoc
+    <+> prettyString firstLine <$$> gutterDoc
+    <> highlightDoc
+    <> ellipsisDoc
+    <> line
   | otherwise = empty
  where
    -- | The first line of source code spanned by the given source span.
@@ -293,7 +298,8 @@ prettyCodeBlock srcSpan
    -- | Document for the first line number covered by the source span including
    --   padding and a trailing pipe symbol.
    firstLineNumberDoc :: Doc
-   firstLineNumberDoc = space <> int (srcSpanStartLine srcSpan) <> space <> pipe
+   firstLineNumberDoc
+     = space <> int (srcSpanStartLine srcSpan) <> space <> pipe
 
    -- | Document with the same length as 'firstLineNumberDoc' but does
    --   contain only spaces before the pipe character.
@@ -311,7 +317,8 @@ prettyCodeBlock srcSpan
    highlightWidth :: Int
    highlightWidth
      | isMultiLine = length firstLine - srcSpanStartColumn srcSpan + 1
-     | otherwise = max 1 $ srcSpanEndColumn srcSpan - srcSpanStartColumn srcSpan
+     | otherwise
+       = max 1 $ srcSpanEndColumn srcSpan - srcSpanStartColumn srcSpan
 
    -- | Document added after the 'highlightDoc' if the source span covers
    --   more than one line.

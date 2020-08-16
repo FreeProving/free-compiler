@@ -114,9 +114,10 @@ instance MonadTestable Maybe () where
     = assertFailure "Unexpected failure in Maybe monad."
 
   shouldFailWith' _ Nothing f          = f ()
-  shouldFailWith' showValue (Just x) _
-    = assertFailure $ "Expected failure in Maybe monad, "
-    ++ "but the following value was produced: " ++ showValue x
+  shouldFailWith' showValue (Just x) _ = assertFailure
+    $ "Expected failure in Maybe monad, "
+    ++ "but the following value was produced: "
+    ++ showValue x
 
 -- | A computation in the @Either@ monad fails if the result is @Left@ and
 --   succeeds if the result is @Right@.
@@ -126,23 +127,28 @@ instance Show err => MonadTestable (Either err) err where
     = assertFailure $ "Unexpected failure in Either monad, got " ++ show err
 
   shouldFailWith' _ (Left err) f        = f err
-  shouldFailWith' showValue (Right x) _
-    = assertFailure $ "Expected failure in Either monad, "
-    ++ "but the following value was produced: " ++ showValue x
+  shouldFailWith' showValue (Right x) _ = assertFailure
+    $ "Expected failure in Either monad, "
+    ++ "but the following value was produced: "
+    ++ showValue x
 
 -------------------------------------------------------------------------------
 -- Instance for the IO monad                                                 --
 -------------------------------------------------------------------------------
 -- | An impure computation in the @IO@ monad fails if an @IO@ error is thrown.
 instance MonadTestable IO IOError where
-  shouldReturnWith' _ mx f = catchIOError (mx >>= f) $ \err -> assertFailure
-    $ "Unexpected IO error: " ++ ioeGetErrorString err ++ maybe "" (": " ++)
-    (ioeGetFileName err)
+  shouldReturnWith' _ mx f = catchIOError (mx >>= f)
+    $ \err -> assertFailure
+    $ "Unexpected IO error: "
+    ++ ioeGetErrorString err
+    ++ maybe "" (": " ++) (ioeGetFileName err)
 
-  shouldFailWith' showValue mx f = flip catchIOError f $ do
-    x <- mx
-    assertFailure $ "Expected IO error, but the following value was produced: "
-      ++ showValue x
+  shouldFailWith' showValue mx f = flip catchIOError f
+    $ do
+      x <- mx
+      assertFailure
+        $ "Expected IO error, but the following value was produced: "
+        ++ showValue x
 
 -------------------------------------------------------------------------------
 -- Instance for the reporter monad                                           --
@@ -156,7 +162,8 @@ showListItem = (++ "\n") . (" * " ++) . intercalate "\n   " . lines
 --   a pretty printing function for the result of 'runReporterT'.
 showReporterValue :: (a -> String) -> (Maybe a, [ Message ]) -> String
 showReporterValue showValue (mx, ms) = "Reporter result where:\n"
-  ++ showReportedValue showValue mx ++ showReportedMessages ms
+  ++ showReportedValue showValue mx
+  ++ showReportedMessages ms
 
 -- | Converts the pretty printing function for the result of a reporter to
 --   a pretty printing function for the value in an error message in an
@@ -172,8 +179,11 @@ showReportedMessages :: [ Message ] -> String
 showReportedMessages []  = showListItem $ "No messages were reported."
 showReportedMessages [m]
   = showListItem $ "The following message was reported:\n" ++ showPretty m
-showReportedMessages ms  = showListItem $ "The following " ++ show (length ms)
-  ++ " messages were reported:\n" ++ showPretty ms
+showReportedMessages ms  = showListItem
+  $ "The following "
+  ++ show (length ms)
+  ++ " messages were reported:\n"
+  ++ showPretty ms
 
 -- | A reporter fails when a fatal message is reported.
 instance MonadTestable m err => MonadTestable (ReporterT m) [ Message ] where
@@ -181,8 +191,8 @@ instance MonadTestable m err => MonadTestable (ReporterT m) [ Message ] where
     (showReporterValue showValue) (runReporterT reporter)
     $ \result -> case result of
       (Just x, _)   -> setExpectation x
-      (Nothing, ms) ->
-        assertFailure $ "Unexpected fatal message.\n" ++ showReportedMessages ms
+      (Nothing, ms) -> assertFailure
+        $ "Unexpected fatal message.\n" ++ showReportedMessages ms
 
   shouldFailWith' showValue reporter setExpectation = shouldReturnWith'
     (showReporterValue showValue) (runReporterT reporter)
@@ -194,7 +204,8 @@ instance MonadTestable m err => MonadTestable (ReporterT m) [ Message ] where
           ++ showReportedValue showValue (Just x)
         | otherwise -> assertFailure
           $ "Expected a fatal message to be reported, but got none.\n"
-          ++ showReportedValue showValue (Just x) ++ showReportedMessages ms
+          ++ showReportedValue showValue (Just x)
+          ++ showReportedMessages ms
 
 -------------------------------------------------------------------------------
 -- Instance for the converter monad                                          --
@@ -202,11 +213,13 @@ instance MonadTestable m err => MonadTestable (ReporterT m) [ Message ] where
 -- | Initializes the test environment for the converter monad.
 initTestEnvironment :: IO Environment
 initTestEnvironment = do
-  (maybeEnv, ms) <- runReporterT $ do
-    preludeIface <- loadTestModuleInterface "./base/Prelude.toml"
-    quickCheckIface <- loadTestModuleInterface "./base/Test/QuickCheck.toml"
-    return $ foldr makeModuleAvailable emptyEnv
-      $ [preludeIface, quickCheckIface]
+  (maybeEnv, ms) <- runReporterT
+    $ do
+      preludeIface <- loadTestModuleInterface "./base/Prelude.toml"
+      quickCheckIface <- loadTestModuleInterface "./base/Test/QuickCheck.toml"
+      return
+        $ foldr makeModuleAvailable emptyEnv
+        $ [preludeIface, quickCheckIface]
   case maybeEnv of
     Just env -> return env
     Nothing  -> assertFailure
@@ -256,5 +269,5 @@ instance MonadTestable m err => MonadTestable (ConverterT m) [ Message ] where
 --   only if the property returned by the computation is satisfied.
 shouldReturnProperty
   :: (MonadTestable m err, Testable prop) => m prop -> Property
-shouldReturnProperty mp = idempotentIOProperty $ shouldReturnWith'
-  (const "<property>") mp return
+shouldReturnProperty mp = idempotentIOProperty
+  $ shouldReturnWith' (const "<property>") mp return

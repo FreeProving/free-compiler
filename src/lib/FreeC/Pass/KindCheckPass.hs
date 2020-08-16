@@ -158,20 +158,30 @@ checkBind (IR.Bind _ varPat expr) = do
 -- | Helper function for @checkType@. Uses a counter to count how many
 --   arguments have already been applied.
 checkType' :: Int -> IR.Type -> Converter ()
-checkType' depth (IR.TypeVar srcSpan varId)    = when (depth /= 0) $ reportFatal
-  $ Message srcSpan Error $ "Type variable " ++ varId
+checkType' depth (IR.TypeVar srcSpan varId)    = when (depth /= 0)
+  $ reportFatal
+  $ Message srcSpan Error
+  $ "Type variable "
+  ++ varId
   ++ " occurs on left-hand side of type application."
 checkType' depth (IR.TypeCon srcSpan ident)    = do
   arity <- inEnv $ fromMaybe (-1) . lookupArity IR.TypeScope ident
-  when (arity /= depth) $ reportFatal $ Message srcSpan Error
-    $ "Type constructor " ++ showPretty ident
-    ++ " is applied to wrong number of arguments: Expected " ++ show arity
-    ++ " but was " ++ show depth ++ "."
+  when (arity /= depth)
+    $ reportFatal
+    $ Message srcSpan Error
+    $ "Type constructor "
+    ++ showPretty ident
+    ++ " is applied to wrong number of arguments: Expected "
+    ++ show arity
+    ++ " but was "
+    ++ show depth
+    ++ "."
 checkType' depth (IR.TypeApp _ lhs rhs)        = do
   checkType' (depth + 1) lhs
   checkType rhs
 checkType' depth (IR.FuncType srcSpan lhs rhs)
-  | depth /= 0 = reportFatal $ Message srcSpan Error
+  | depth /= 0 = reportFatal
+    $ Message srcSpan Error
     $ "Function type occurs on left-hand side of type application."
   | otherwise = do
     checkType lhs

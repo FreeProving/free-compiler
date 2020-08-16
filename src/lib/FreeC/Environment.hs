@@ -213,8 +213,9 @@ lookupSrcSpan = fmap entrySrcSpan .:. lookupEntry
 --   constructor with the given name.
 lookupTypeArgs
   :: IR.Scope -> IR.QName -> Environment -> Maybe [ IR.TypeVarIdent ]
-lookupTypeArgs = fmap entryTypeArgs . find
-  (isTypeSynEntry .||. isConEntry .||. isFuncEntry) .:. lookupEntry
+lookupTypeArgs = fmap entryTypeArgs
+  . find (isTypeSynEntry .||. isConEntry .||. isFuncEntry)
+  .:. lookupEntry
 
 -- | Returns the length of the list returned by @lookupTypeArgs@.
 lookupTypeArgArity :: IR.Scope -> IR.QName -> Environment -> Maybe Int

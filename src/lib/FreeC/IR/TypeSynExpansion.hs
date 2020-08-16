@@ -147,10 +147,12 @@ expandTypeSynonymAt pos typeExpr = case parentPos pos of
   Just pos'
     | maybe False isTypeApp (selectSubterm typeExpr pos') ->
       expandTypeSynonymAt pos' typeExpr
-  _         -> fmap (fromMaybe typeExpr) $ runMaybeT $ do
-    subterm <- hoistMaybe $ selectSubterm typeExpr pos
-    subterm' <- lift $ expandTypeSynonym subterm
-    hoistMaybe $ replaceSubterm typeExpr pos subterm'
+  _         -> fmap (fromMaybe typeExpr)
+    $ runMaybeT
+    $ do
+      subterm <- hoistMaybe $ selectSubterm typeExpr pos
+      subterm' <- lift $ expandTypeSynonym subterm
+      hoistMaybe $ replaceSubterm typeExpr pos subterm'
  where
    -- | Tests whether the given type expression is a type constructor
    --   application.

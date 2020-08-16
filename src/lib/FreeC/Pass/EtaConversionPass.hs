@@ -164,12 +164,15 @@ etaConvertFuncDecl :: IR.FuncDecl -> Converter IR.FuncDecl
 etaConvertFuncDecl funcDecl = do
   let rhs = IR.funcDeclRhs funcDecl
   newArgNumber <- findMinMissingArguments rhs
-  newFuncDecl <- localEnv $ do
-    newArgIdents <- replicateM newArgNumber $ freshHaskellIdent freshArgPrefix
-    modifyTopLevel funcDecl rhs newArgIdents
+  newFuncDecl <- localEnv
+    $ do
+      newArgIdents
+        <- replicateM newArgNumber $ freshHaskellIdent freshArgPrefix
+      modifyTopLevel funcDecl rhs newArgIdents
      -- Update the environment with the new type and arguments.
   Just entry <- inEnv $ lookupEntry IR.ValueScope (IR.funcDeclQName funcDecl)
-  modifyEnv $ addEntry entry
+  modifyEnv
+    $ addEntry entry
     { entryArity      = length (IR.funcDeclArgs newFuncDecl)
     , entryArgTypes   = map (fromJust . IR.varPatType)
         (IR.funcDeclArgs newFuncDecl)
@@ -185,8 +188,8 @@ modifyTopLevel funcDecl rhs newArgIdents = do
   (newArgTypes, returnType) <- splitFuncType (IR.funcDeclQName funcDecl)
     (map IR.toVarPat newArgIdents) (fromJust $ IR.funcDeclReturnType funcDecl)
   -- Compute the function's new arguments and add them to the argument list.
-  let newArgs = map ($ False) $ zipWith (IR.VarPat NoSrcSpan) newArgIdents
-        (map Just newArgTypes)
+  let newArgs = map ($ False)
+        $ zipWith (IR.VarPat NoSrcSpan) newArgIdents (map Just newArgTypes)
   let vars' = IR.funcDeclArgs funcDecl ++ newArgs
   -- Compute the new right-hand side.
   rhs' <- etaConvertTopLevel newArgs rhs
@@ -213,11 +216,12 @@ etaConvertTopLevel argPats expr@(IR.Case _ _ _ _)
 -- If there is only one alternative, apply it to the newly-added arguments,
 -- then apply @etaConvertExpr@ to it to make so the expression and its sub
 -- expressions are fully applied.
-etaConvertTopLevel argPats expr = localEnv $ do
-  let argExprs = map IR.varPatToExpr argPats
-  -- Apply expression to missing arguments and perform eta-conversion on the
-  -- resulting expression.
-  etaConvertExpr $ IR.app NoSrcSpan expr argExprs
+etaConvertTopLevel argPats expr = localEnv
+  $ do
+    let argExprs = map IR.varPatToExpr argPats
+    -- Apply expression to missing arguments and perform eta-conversion on the
+    -- resulting expression.
+    etaConvertExpr $ IR.app NoSrcSpan expr argExprs
 
 -- | Calls @etaConvertTopLevel@ on all alternatives in an if or case
 --   expression.
@@ -233,11 +237,12 @@ etaConvertAlternatives argPats expr = do
 -- | Applies η-conversions to the given expression and its sub-expressions.
 --   until all function and constructor applications are fully applied.
 etaConvertExpr :: IR.Expr -> Converter IR.Expr
-etaConvertExpr expr = localEnv $ do
-  arity <- arityOf expr
-  xs <- replicateM arity $ freshHaskellIdent freshArgPrefix
-  expr' <- etaConvertSubExprs expr
-  return (etaAbstractWith xs expr')
+etaConvertExpr expr = localEnv
+  $ do
+    arity <- arityOf expr
+    xs <- replicateM arity $ freshHaskellIdent freshArgPrefix
+    expr' <- etaConvertSubExprs expr
+    return (etaAbstractWith xs expr')
 
 -- | Creates a lambda abstraction with the given arguments that immediately
 --   applies the given expression to the arguments.
@@ -293,8 +298,8 @@ etaConvertSubExprs' expr = do
 findMinMissingArguments :: IR.Expr -> Converter Int
 findMinMissingArguments (IR.If _ _ e1 e2 _)
   = minimum <$> mapM findMinMissingArguments [e1, e2]
-findMinMissingArguments (IR.Case _ _ alts _) = minimum <$> mapM
-  (findMinMissingArguments . IR.altRhs) alts
+findMinMissingArguments (IR.Case _ _ alts _) = minimum
+  <$> mapM (findMinMissingArguments . IR.altRhs) alts
 -- Any expression that isn't an if or case expression only has one
 -- option for the number of missing arguments, namely the arity of the
 -- expression.

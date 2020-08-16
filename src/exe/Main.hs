@@ -56,18 +56,24 @@ compiler = do
   -- Parse command line arguments.
   getOpts >>= liftReporterIO . getAndParseArgs >>= putOpts
   -- Show help message if the user specified the @--help@ option.
-  whenM (inOpts optShowHelp) $ liftIO $ do
-    putUsageInfo
-    exitSuccess
+  whenM (inOpts optShowHelp)
+    $ liftIO
+    $ do
+      putUsageInfo
+      exitSuccess
   -- Print version information if the user specified the @--version@ option.
-  whenM (inOpts optShowVersion) $ liftIO $ do
-    putVersionInfo
-    exitSuccess
+  whenM (inOpts optShowVersion)
+    $ liftIO
+    $ do
+      putVersionInfo
+      exitSuccess
   -- Show usage information if there are no input files.
-  whenM (inOpts (null . optInputFiles)) $ liftIO $ do
-    putDebug "No input file.\n"
-    putUsageInfo
-    exitSuccess
+  whenM (inOpts (null . optInputFiles))
+    $ liftIO
+    $ do
+      putDebug "No input file.\n"
+      putUsageInfo
+      exitSuccess
   -- Select frontend and backend
   frontend <- selectFrontend
   backend <- selectBackend
@@ -76,8 +82,9 @@ compiler = do
   loadQuickCheck
   backendSpecialAction backend
   -- Process input files.
-  modules <- inOpts optInputFiles >>= mapM
-    (parseInputFile $ frontendParseFile frontend) >>= sortInputModules
+  modules <- inOpts optInputFiles
+    >>= mapM (parseInputFile $ frontendParseFile frontend)
+    >>= sortInputModules
   modules' <- mapM (convertInputModule $ backendConvertModule backend) modules
   mapM_ (uncurry (outputModule $ backendFileExtension backend)) modules'
 
@@ -91,9 +98,11 @@ selectFrontend = do
   name <- inOpts optFrontend
   case Map.lookup name frontends of
     Nothing -> do
-      reportFatal $ Message NoSrcSpan Error
+      reportFatal
+        $ Message NoSrcSpan Error
         $ "Unrecognized frontend. Currently supported frontends are: "
-        ++ showFrontends ++ "."
+        ++ showFrontends
+        ++ "."
     Just f  -> return f
 
 -- | Selects the correct backend or throws an error if such a backend does
@@ -103,9 +112,11 @@ selectBackend = do
   name <- inOpts optBackend
   case Map.lookup name backends of
     Nothing -> do
-      reportFatal $ Message NoSrcSpan Error
+      reportFatal
+        $ Message NoSrcSpan Error
         $ "Unrecognized backend. Currently supported backends are: "
-        ++ showBackends ++ "."
+        ++ showBackends
+        ++ "."
     Just b  -> return b
 
 -------------------------------------------------------------------------------
@@ -114,11 +125,12 @@ selectBackend = do
 -- | Parses the given input file with the given parser function.
 parseInputFile :: (SrcFile -> Application IR.Module)
   -> FilePath -> Application IR.Module
-parseInputFile parser inputFile = reportApp $ do
-  -- Parse and simplify input file.
-  putDebug $ "Loading " ++ inputFile
-  contents <- liftIO $ readFile inputFile
-  parser $ mkSrcFile inputFile contents
+parseInputFile parser inputFile = reportApp
+  $ do
+    -- Parse and simplify input file.
+    putDebug $ "Loading " ++ inputFile
+    contents <- liftIO $ readFile inputFile
+    parser $ mkSrcFile inputFile contents
 
 -- | Sorts the given modules based on their dependencies.
 --
@@ -128,9 +140,10 @@ sortInputModules = mapM checkForCycle . groupModules
  where
    checkForCycle :: DependencyComponent IR.Module -> Application IR.Module
    checkForCycle (NonRecursive m) = return m
-   checkForCycle (Recursive ms)   = reportFatal $ Message NoSrcSpan Error
-     $ "Module imports form a cycle: " ++ intercalate ", "
-     (map (showPretty . IR.modName) ms)
+   checkForCycle (Recursive ms)   = reportFatal
+     $ Message NoSrcSpan Error
+     $ "Module imports form a cycle: "
+     ++ intercalate ", " (map (showPretty . IR.modName) ms)
 
 -- | Converts the given module with the given converter function.
 --
@@ -140,13 +153,19 @@ convertInputModule :: (IR.Module -> Application String)
 convertInputModule converter ast = do
   let modName = IR.modName ast
       srcSpan = IR.modSrcSpan ast
-  if hasSrcSpanFilename srcSpan then putDebug $ "Compiling "
-    ++ showPretty modName ++ " (" ++ srcSpanFilename srcSpan ++ ")"
+  if hasSrcSpanFilename srcSpan
+    then putDebug
+      $ "Compiling "
+      ++ showPretty modName
+      ++ " ("
+      ++ srcSpanFilename srcSpan
+      ++ ")"
     else putDebug $ "Compiling " ++ showPretty modName
-  reportApp $ do
-    loadRequiredModules ast
-    prog <- moduleEnv $ (liftConverter . runPipeline >=> converter) ast
-    return (modName, prog)
+  reportApp
+    $ do
+      loadRequiredModules ast
+      prog <- moduleEnv $ (liftConverter . runPipeline >=> converter) ast
+      return (modName, prog)
 
 -------------------------------------------------------------------------------
 -- Output                                                                    --
@@ -206,7 +225,8 @@ loadModule srcSpan modName = do
    --
    --   Reports a fatal message if the file could not be found.
    findIfaceFile :: [ FilePath ] -> Application FilePath
-   findIfaceFile []       = reportFatal $ Message srcSpan Error
+   findIfaceFile []       = reportFatal
+     $ Message srcSpan Error
      $ "Could not find imported module " ++ showPretty modName
    findIfaceFile (d : ds) = do
      let ifaceFile = d </> filename

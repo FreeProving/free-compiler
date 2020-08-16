@@ -49,11 +49,14 @@ instance Pretty Pragma where
   pretty (DecArgPragma _ funcName (Left argName))   = prettyPragma
     (pretty funcName <+> prettyString "DECREASES ON" <+> prettyString argName)
   pretty (DecArgPragma _ funcName (Right argIndex)) = prettyPragma
-    (pretty funcName <+> prettyString "DECREASES ON ARGUMENT"
+    (pretty funcName
+     <+> prettyString "DECREASES ON ARGUMENT"
      <+> pretty argIndex)
 
 -- | Pretty prints a custom @{-\# FreeC ... \#-}@ pragma with the given
 --   contents.
 prettyPragma :: Doc -> Doc
-prettyPragma contents = prettyString "{-#" <+> prettyString customPragmaPrefix
-  <+> contents <+> prettyString "#-}"
+prettyPragma contents = prettyString "{-#"
+  <+> prettyString customPragmaPrefix
+  <+> contents
+  <+> prettyString "#-}"

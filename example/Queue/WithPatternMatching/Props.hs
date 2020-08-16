@@ -25,5 +25,5 @@ prop_add :: a -> QueueI a -> Property
 prop_add x qi = toQueue (addI x qi) === add x (toQueue qi)
 
 prop_front :: QueueI a -> Property
-prop_front qi = invariant qi && not (isEmptyI qi) ==> frontI qi === front
-  (toQueue qi)
+prop_front qi = invariant qi
+  && not (isEmptyI qi) ==> frontI qi === front (toQueue qi)

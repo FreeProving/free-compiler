@@ -69,9 +69,13 @@ nullary y xs
 --
 --   The error message is annotated with the given function name.
 missingPosError :: Subterm a => String -> a -> Pos -> a
-missingPosError funcName term pos
-  = error $ funcName ++ ": The subterm at position " ++ showPretty pos
-  ++ "in term " ++ showPretty term ++ " does not exists."
+missingPosError funcName term pos = error
+  $ funcName
+  ++ ": The subterm at position "
+  ++ showPretty pos
+  ++ "in term "
+  ++ showPretty term
+  ++ " does not exists."
 
 -------------------------------------------------------------------------------
 -- Direct children                                                           --
@@ -110,7 +114,8 @@ instance Subterm IR.Expr where
   replaceChildTerms (IR.If srcSpan _ _ _ exprType)
     = checkArity 3 $ \[e1', e2', e3'] -> IR.If srcSpan e1' e2' e3' exprType
   replaceChildTerms (IR.Case srcSpan _ alts exprType) = checkArity
-    (length alts + 1) $ \(expr' : altChildren') -> IR.Case srcSpan expr'
+    (length alts + 1)
+    $ \(expr' : altChildren') -> IR.Case srcSpan expr'
     (zipWith replaceAltChildExpr alts altChildren') exprType
    where
      -- | Replaces the expression on the right-hand side of the given
@@ -120,7 +125,8 @@ instance Subterm IR.Expr where
   replaceChildTerms (IR.Lambda srcSpan args _ exprType)
     = checkArity 1 $ \[expr'] -> IR.Lambda srcSpan args expr' exprType
   replaceChildTerms (IR.Let srcSpan binds _ exprType) = checkArity
-    (length binds + 1) $ \(expr' : bindChildren') -> IR.Let srcSpan
+    (length binds + 1)
+    $ \(expr' : bindChildren') -> IR.Let srcSpan
     (zipWith replaceBindChildExpr binds bindChildren') expr' exprType
    where
      -- | Replaces the expression on the right hand side of the given
@@ -160,8 +166,8 @@ newtype Pos = Pos [ Int ]
 
 -- | Pretty prints a position.
 instance Pretty Pos where
-  pretty (Pos xs) = char '<' <> hcat (intersperse (char '.') (map int xs))
-    <> char '>'
+  pretty (Pos xs)
+    = char '<' <> hcat (intersperse (char '.') (map int xs)) <> char '>'
 
 -- | Position of the root expression.
 rootPos :: Pos

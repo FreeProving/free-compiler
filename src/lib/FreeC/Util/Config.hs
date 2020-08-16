@@ -26,9 +26,11 @@ loadConfig filename = do
   case takeExtension filename of
     ".toml" -> decodeTomlConfig filename contents
     ".json" -> decodeJsonConfig filename contents
-    '.' : format -> reportFatal $ Message (FileSpan filename) Error
+    '.' : format -> reportFatal
+      $ Message (FileSpan filename) Error
       $ "Unknown configuration file format: " ++ format
-    _ -> reportFatal $ Message (FileSpan filename) Error
+    _ -> reportFatal
+      $ Message (FileSpan filename) Error
       $ "Missing extension. Cannot determine configuration file format."
 
 -- | Parses a @.toml@ configuration file with the given contents.
@@ -42,7 +44,8 @@ decodeTomlConfig filename contents = either
    decodeTomlDocument
      :: (MonadReporter r, Aeson.FromJSON a) => Toml.Table -> r a
    decodeTomlDocument document = case Aeson.fromJSON (Aeson.toJSON document) of
-     Aeson.Error msg      -> reportFatal $ Message (FileSpan filename) Error
+     Aeson.Error msg      -> reportFatal
+       $ Message (FileSpan filename) Error
        $ "Invalid configuration file format: " ++ msg
      Aeson.Success result -> return result
 

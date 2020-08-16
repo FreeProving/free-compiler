@@ -62,12 +62,12 @@ instance Aeson.ToJSON ModuleInterface where
     [ "version" .= moduleInterfaceFileFormatVersion
     , "module-name" .= Aeson.toJSON (interfaceModName iface)
     , "library-name" .= Aeson.toJSON (interfaceLibName iface)
-    , "exported-types" .= Aeson.toJSON
-        (map snd (filter ((== IR.TypeScope) . fst)
-                  (Set.toList (interfaceExports iface))))
-    , "exported-values" .= Aeson.toJSON
-        (map snd (filter ((== IR.ValueScope) . fst)
-                  (Set.toList (interfaceExports iface))))
+    , "exported-types"
+        .= Aeson.toJSON (map snd (filter ((== IR.TypeScope) . fst)
+                                  (Set.toList (interfaceExports iface))))
+    , "exported-values"
+        .= Aeson.toJSON (map snd (filter ((== IR.ValueScope) . fst)
+                                  (Set.toList (interfaceExports iface))))
     , "types" .= encodeEntriesWhere isDataEntry
     , "type-synonyms" .= encodeEntriesWhere isTypeSynEntry
     , "constructors" .= encodeEntriesWhere isConEntry
@@ -76,20 +76,24 @@ instance Aeson.ToJSON ModuleInterface where
    where
      -- | Encodes the entries of the environment that match the given predicate.
      encodeEntriesWhere :: (EnvEntry -> Bool) -> Aeson.Value
-     encodeEntriesWhere p = Aeson.toJSON $ mapMaybe encodeEntry $ Set.toList
-       $ Set.filter p $ interfaceEntries iface
+     encodeEntriesWhere p = Aeson.toJSON
+       $ mapMaybe encodeEntry
+       $ Set.toList
+       $ Set.filter p
+       $ interfaceEntries iface
 
 -- | Encodes an entry of the environment.
 encodeEntry :: EnvEntry -> Maybe Aeson.Value
 encodeEntry entry
-  | isDataEntry entry = return $ Aeson.object
-    [ "haskell-name" .= haskellName
-    , "coq-name" .= coqName
-    , "agda-name" .= agdaName
-    , "cons-names" .= consNames
-    , "arity" .= arity
-    ]
-  | isTypeSynEntry entry = return $ Aeson.object
+  | isDataEntry entry = return
+    $ Aeson.object [ "haskell-name" .= haskellName
+                   , "coq-name" .= coqName
+                   , "agda-name" .= agdaName
+                   , "cons-names" .= consNames
+                   , "arity" .= arity
+                   ]
+  | isTypeSynEntry entry = return
+    $ Aeson.object
     [ "haskell-name" .= haskellName
     , "coq-name" .= coqName
     , "agda-name" .= agdaName
@@ -97,7 +101,8 @@ encodeEntry entry
     , "haskell-type" .= typeSyn
     , "type-arguments" .= typeArgs
     ]
-  | isConEntry entry = return $ Aeson.object
+  | isConEntry entry = return
+    $ Aeson.object
     [ "haskell-type" .= haskellType
     , "haskell-name" .= haskellName
     , "coq-name" .= coqName
@@ -106,7 +111,8 @@ encodeEntry entry
     , "agda-smart-name" .= agdaSmartName
     , "arity" .= arity
     ]
-  | isFuncEntry entry = return $ Aeson.object
+  | isFuncEntry entry = return
+    $ Aeson.object
     [ "haskell-type" .= haskellType
     , "haskell-name" .= haskellName
     , "coq-name" .= coqName

@@ -116,10 +116,11 @@ exportInterface modName = do
    --   name, which prevents name conflicts between imported modules.
    qualifyExportedIdent :: EnvEntry -> EnvEntry
    qualifyExportedIdent entry
-     | isExported entry = if isConEntry entry then entry
-       { entryIdent      = qualifyIdent (entryIdent entry)
-       , entrySmartIdent = qualifyIdent (entrySmartIdent entry)
-       } else entry { entryIdent = qualifyIdent (entryIdent entry) }
+     | isExported entry = if isConEntry entry
+       then entry { entryIdent      = qualifyIdent (entryIdent entry)
+                  , entrySmartIdent = qualifyIdent (entrySmartIdent entry)
+                  }
+       else entry { entryIdent = qualifyIdent (entryIdent entry) }
      | otherwise = entry
 
    -- | Qualifies an unqualified Coq identifier with the module name.

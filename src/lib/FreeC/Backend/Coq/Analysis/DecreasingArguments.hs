@@ -199,7 +199,8 @@ checkDecArgs decls knownDecArgIndecies decArgIndecies = all
       -- smaller) variables.
       checkExpr' (IR.Let _ binds expr _) _
         = let smaller' = withoutArgs (map IR.bindVarPat binds) smaller
-          in checkExpr decArg smaller' expr [] && all (checkBind smaller') binds
+          in checkExpr decArg smaller' expr []
+             && all (checkBind smaller') binds
       -- Recursively check visibly applied expressions.
       checkExpr' (IR.TypeAppExpr _ expr _ _) args = checkExpr' expr args
       -- Base expressions don't contain recursive calls.
@@ -233,7 +234,8 @@ checkDecArgs decls knownDecArgIndecies decArgIndecies = all
 
       -- | Adds the given variables to the set of structurally smaller variables.
       withArgs :: [ IR.VarPat ] -> Set IR.QName -> Set IR.QName
-      withArgs args set = set `Set.union` Set.fromList (map IR.varPatQName args)
+      withArgs args set = set
+        `Set.union` Set.fromList (map IR.varPatQName args)
 
       -- | Removes the given variables to the set of structurally smaller
       --   variables (because they are shadowed by an argument from a lambda
@@ -274,7 +276,12 @@ identifyDecArgs decls = do
    -- | Prints an error message if the decreasing arguments could not
    --   be identified.
    decArgError :: Converter a
-   decArgError = reportFatal $ Message (IR.funcDeclSrcSpan (head decls)) Error
-     $ "Could not identify decreasing arguments of " ++ showPretty
-     (map IR.funcDeclIdent decls) ++ ".\n" ++ "Consider adding a "
-     ++ "{-# FreeC <function> DECREASES ON <argument> #-} " ++ "annotation."
+   decArgError = reportFatal
+     $ Message (IR.funcDeclSrcSpan (head decls)) Error
+     $ unlines
+     [ "Could not identify decreasing arguments of "
+         ++ showPretty (map IR.funcDeclIdent decls)
+         ++ "."
+     , "Consider adding a {-# FreeC <function> DECREASES ON <argument> #-} "
+         ++ "annotation."
+     ]
