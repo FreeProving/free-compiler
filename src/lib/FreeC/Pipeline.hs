@@ -25,7 +25,7 @@ import           FreeC.Pass.TypeInferencePass
 import           FreeC.Pass.TypeSignaturePass
 
 -- | The passes of the compiler pipeline.
-pipeline :: [Pass IR.Module]
+pipeline :: [Pass IR.Module IR.Module]
 pipeline =
   [ implicitPreludePass
   , qualifierPass

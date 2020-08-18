@@ -78,7 +78,7 @@ import           FreeC.Pass
 
 -- | Compiler pass that adds entries imported by the given module to the
 --   environment.
-importPass :: Pass IR.Module
+importPass :: Pass IR.Module IR.Module
 importPass ast = do
   mapM_ importModule (IR.modImports ast)
   return ast

@@ -50,7 +50,8 @@ import           FreeC.Pass
 -- | Type of a compiler 'Pass' that does not operate on entire modules but
 --   on individual strongly connected components of the dependency graph
 --   for declarations of type @decl@.
-type DependencyAwarePass decl = Pass (DependencyComponent decl)
+type DependencyAwarePass decl
+  = Pass (DependencyComponent decl) (DependencyComponent decl)
 
 -- | Type class for declaration AST nodes whose dependencies can be analyzed.
 class DependencyAnalysisPass decl where

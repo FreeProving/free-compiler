@@ -80,7 +80,7 @@ import           FreeC.Pass
 
 -- | A compiler pass that constructs a module interface from the current
 --   environment for the given module and inserts it into the environment.
-exportPass :: Pass IR.Module
+exportPass :: Pass IR.Module IR.Module
 exportPass ast = do
   iface <- exportInterface (IR.modName ast)
   modifyEnv $ makeModuleAvailable iface

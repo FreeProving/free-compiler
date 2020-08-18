@@ -191,7 +191,7 @@ import           FreeC.Pretty            hiding ( group )
 
 -- | Compiler pass that replaces all references by the original names of the
 --   entries they refer to.
-resolverPass :: Pass IR.Module
+resolverPass :: Pass IR.Module IR.Module
 resolverPass ast = do
   env <- resolverEnvFromModule ast
   liftReporter $ runResolver env (resolve ast)

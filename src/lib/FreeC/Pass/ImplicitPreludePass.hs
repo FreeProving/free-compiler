@@ -17,12 +17,12 @@
 --   an import for the @Prelude@ module is added to the import list
 --
 --   > module Queue where
---   > 
+--   >
 --   > import Prelude
 --   > import Test.QuickCheck
---   > 
+--   >
 --   > type Queue a = ([a], [a])
---   > 
+--   >
 --   > {- ... -}
 --
 --   = Specification
@@ -51,7 +51,7 @@ import           FreeC.Pass
 
 -- | A compiler pass that adds an import declaration for the @Prelude@ module
 --   if there is no such import.
-implicitPreludePass :: Pass IR.Module
+implicitPreludePass :: Pass IR.Module IR.Module
 implicitPreludePass ast =
   return ast { IR.modImports = addImplicitPreludeImport (IR.modImports ast) }
 
