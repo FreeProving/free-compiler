@@ -199,8 +199,9 @@ renameConstArg nameMap constArg = constArg
 --   function name) of the given function declaration to their annotated
 --   type and a second map that maps the function names to their annotated
 --   return types.
-argAndReturnTypeMaps :: IR.FuncDecl -> Converter
-                     (Map (IR.QName, String) IR.Type, Map IR.QName IR.Type)
+argAndReturnTypeMaps
+  :: IR.FuncDecl
+  -> Converter (Map (IR.QName, String) IR.Type, Map IR.QName IR.Type)
 argAndReturnTypeMaps (IR.FuncDecl _ (IR.DeclIdent _ name) _ args maybeRetType _)
   = return (argTypeMap, returnTypeMap)
  where
@@ -218,7 +219,8 @@ argAndReturnTypeMaps (IR.FuncDecl _ (IR.DeclIdent _ name) _ args maybeRetType _)
 --   Does not check whether all arguments have the same type but returns the
 --   first matching type.
 lookupConstArgType :: Map (IR.QName, String) IR.Type
-                   -> ConstArg -> Converter (IR.Type, Subst IR.Type)
+                   -> ConstArg
+                   -> Converter (IR.Type, Subst IR.Type)
 lookupConstArgType argTypeMap constArg = do
   let idents  = Map.assocs (constArgIdents constArg)
       types   = mapMaybe (flip Map.lookup argTypeMap) idents

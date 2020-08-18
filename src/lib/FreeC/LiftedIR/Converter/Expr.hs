@@ -303,7 +303,8 @@ bind arg defaultPrefix argType k = localEnv
 -- | Passes a list of arguments to the given function unwrapping the marked
 --   arguments using 'bind'.
 generateBinds :: [(LIR.Expr, Maybe LIR.Type, Bool)]
-              -> ([LIR.Expr] -> Converter LIR.Expr) -> Converter LIR.Expr
+              -> ([LIR.Expr] -> Converter LIR.Expr)
+              -> Converter LIR.Expr
 generateBinds [] k = k []
 generateBinds ((arg, _, False) : as) k = generateBinds as
   $ \as' -> k (arg : as')

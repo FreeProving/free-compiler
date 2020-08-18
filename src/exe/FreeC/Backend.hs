@@ -1,10 +1,5 @@
 -- | This module contains the 'Backend' data type and all available backends.
-module FreeC.Backend
-  ( Backend(..)
-  , backends
-  , showBackends
-  , defaultBackend
-  ) where
+module FreeC.Backend ( Backend(..), backends, showBackends, defaultBackend ) where
 
 import           Control.Monad.Extra ( unlessM, whenM )
 import           Control.Monad.IO.Class

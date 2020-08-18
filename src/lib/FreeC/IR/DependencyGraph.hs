@@ -306,7 +306,8 @@ groupModules = dependencyComponents . moduleDependencyGraph
 --   list. The given function must not change the number of declarations in the
 --   component.
 mapComponent :: ([decl] -> [decl'])
-             -> DependencyComponent decl -> DependencyComponent decl'
+             -> DependencyComponent decl
+             -> DependencyComponent decl'
 mapComponent f (NonRecursive decl)
   = let [decl'] = f [decl] in NonRecursive decl'
 mapComponent f (Recursive decls)   = Recursive (f decls)
@@ -316,8 +317,10 @@ mapComponent f (Recursive decls)   = Recursive (f decls)
 --   There must be a 'MonadFail' instance since this function fails if the
 --   given function changes the number of declarations in a non-recursive
 --   strongly connected component.
-mapComponentM :: MonadFail m => ([decl] -> m [decl']) -> DependencyComponent
-              decl -> m (DependencyComponent decl')
+mapComponentM :: MonadFail m
+              => ([decl] -> m [decl'])
+              -> DependencyComponent decl
+              -> m (DependencyComponent decl')
 mapComponentM f (NonRecursive decl) = do
   [decl'] <- f [decl]
   return (NonRecursive decl')

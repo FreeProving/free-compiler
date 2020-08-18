@@ -56,8 +56,8 @@ class Monad m => MonadTestable m err | m -> err where
 
 -- | Sets the expectation returned by the given function for the value
 --   returned by the given computation.
-shouldReturnWith :: (Show a, MonadTestable m err) => m a -> (a -> Expectation)
-                 -> Expectation
+shouldReturnWith
+  :: (Show a, MonadTestable m err) => m a -> (a -> Expectation) -> Expectation
 shouldReturnWith = shouldReturnWith' show
 
 -- | Sets the expectation that the given computation successfully returns
@@ -86,7 +86,9 @@ shouldFailPretty mx = shouldFailWith' showPretty mx expectAnyError
 
 -- | Sets the expectation returned by the given function for the error
 --   that was produced by the given computation instead of a value.
-shouldFailWith :: (Show a, MonadTestable m err) => m a -> (err -> Expectation)
+shouldFailWith :: (Show a, MonadTestable m err)
+               => m a
+               -> (err -> Expectation)
                -> Expectation
 shouldFailWith = shouldFailWith' show
 

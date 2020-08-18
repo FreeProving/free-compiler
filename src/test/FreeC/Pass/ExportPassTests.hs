@@ -20,7 +20,8 @@ import           FreeC.Test.Parser
 
 -- | Looks up an exported entry in the given module interface
 --   but does not check if the entry is defined in the given module.
-lookupExportedEntry :: IR.Scope -> IR.QName -> ModuleInterface -> Maybe EnvEntry
+lookupExportedEntry
+  :: IR.Scope -> IR.QName -> ModuleInterface -> Maybe EnvEntry
 lookupExportedEntry scope qname moduleInterface = find
   (((scope, qname) ==) . entryScopedName)
   (Set.toList $ interfaceEntries moduleInterface)

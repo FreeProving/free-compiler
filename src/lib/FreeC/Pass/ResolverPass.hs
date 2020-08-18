@@ -561,7 +561,8 @@ lookupResolverEntryOrFail srcSpan scope name = do
 --
 --   If there is no such entry or the reference is ambiguous because multiple
 --   entries are associated with the name, a fatal error is reported.
-lookupOriginalNameOrFail :: SrcSpan -> IR.Scope -> IR.QName -> Resolver IR.QName
+lookupOriginalNameOrFail
+  :: SrcSpan -> IR.Scope -> IR.QName -> Resolver IR.QName
 lookupOriginalNameOrFail
   = fmap resolverEntryOriginalName .:. lookupResolverEntryOrFail
 

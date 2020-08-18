@@ -80,9 +80,10 @@ instance DependencyAnalysisPass IR.FuncDecl where
 -- | Applies the given child passes to the strongly connected components
 --   of the dependency graph for declarations of type @decl@ of the given
 --   module.
-dependencyAnalysisPass
-  :: DependencyAnalysisPass decl
-  => [DependencyAwarePass decl] -> IR.Module -> Converter IR.Module
+dependencyAnalysisPass :: DependencyAnalysisPass decl
+                       => [DependencyAwarePass decl]
+                       -> IR.Module
+                       -> Converter IR.Module
 dependencyAnalysisPass = subPipelinePass getComponents setComponents
  where
    getComponents     = groupDecls . getDecls

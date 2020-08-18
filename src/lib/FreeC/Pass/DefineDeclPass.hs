@@ -24,10 +24,7 @@
 --   = Error cases
 --
 --   * The user is informed if a different name is assigned to an entry.
-module FreeC.Pass.DefineDeclPass
-  ( defineTypeDeclsPass
-  , defineFuncDeclsPass
-  ) where
+module FreeC.Pass.DefineDeclPass ( defineTypeDeclsPass, defineFuncDeclsPass ) where
 
 import           Data.Maybe ( fromJust )
 

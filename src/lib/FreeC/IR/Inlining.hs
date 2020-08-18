@@ -43,9 +43,9 @@ inlineExpr decls = inlineAndBind
    declMap = foldr insertFuncDecl Map.empty decls
 
    -- | Inserts a function declaration into 'declMap'.
-   insertFuncDecl
-     :: IR.FuncDecl -> Map IR.QName ([IR.TypeVarDecl], [IR.VarPat], IR.Expr)
-     -> Map IR.QName ([IR.TypeVarDecl], [IR.VarPat], IR.Expr)
+   insertFuncDecl :: IR.FuncDecl
+                  -> Map IR.QName ([IR.TypeVarDecl], [IR.VarPat], IR.Expr)
+                  -> Map IR.QName ([IR.TypeVarDecl], [IR.VarPat], IR.Expr)
    insertFuncDecl funcDecl = Map.insert (IR.funcDeclQName funcDecl)
      ( IR.funcDeclTypeArgs funcDecl
      , IR.funcDeclArgs funcDecl

@@ -44,7 +44,8 @@ shouldNotBePartial = shouldBePartialWith
 
 -- | Common implementation of 'shouldBePartial' and 'shouldNotBePartial'.
 shouldBePartialWith :: (IR.QName -> Bool -> Expectation)
-                    -> DependencyComponent String -> Converter Expectation
+                    -> DependencyComponent String
+                    -> Converter Expectation
 shouldBePartialWith setExpectation inputs = do
   component <- parseTestComponent inputs
   _ <- partialityAnalysisPass component

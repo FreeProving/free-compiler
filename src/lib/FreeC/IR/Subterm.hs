@@ -242,7 +242,8 @@ selectSubterm' term pos = fromMaybe (missingPosError "selectSubterm" term pos)
 --
 --   Returns @Nothing@ if there is no such subterm.
 replaceSubterm
-  :: Subterm a => a       -- ^ The (type) expression whose subterm to replace.
+  :: Subterm a
+  => a       -- ^ The (type) expression whose subterm to replace.
   -> Pos     -- ^ The position of the subterm.
   -> a       -- ^ The (type) expression to replace the subterm with.
   -> Maybe a

@@ -161,7 +161,8 @@ defineTestFunc nameStr arity = defineTestFunc' False (replicate arity False)
 -- | Like 'defineTestFunc' but the first argument controls whether the
 --   defined function is partial or not. The second argument controls the
 --   strictness of the function arguments.
-defineTestFunc' :: Bool -> [Bool] -> String -> Int -> String -> Converter String
+defineTestFunc'
+  :: Bool -> [Bool] -> String -> Int -> String -> Converter String
 defineTestFunc' partial areStrict nameStr arity typeStr = do
   name <- parseTestQName nameStr
   IR.TypeScheme _ typeArgs typeExpr <- parseExplicitTestTypeScheme typeStr

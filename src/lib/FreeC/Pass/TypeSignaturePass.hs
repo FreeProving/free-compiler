@@ -207,10 +207,10 @@ splitFuncType name = splitFuncType'
 -------------------------------------------------------------------------------
 -- | Warns the user that there is no function declaration for the type
 --   signature of the function with the given name.
-reportMissingBinding
-  :: MonadReporter r => SrcSpan  -- ^ The location of the type signature.
-  -> IR.QName -- ^ The name of the function.
-  -> r ()
+reportMissingBinding :: MonadReporter r
+                     => SrcSpan  -- ^ The location of the type signature.
+                     -> IR.QName -- ^ The name of the function.
+                     -> r ()
 reportMissingBinding srcSpan name = report
   $ Message srcSpan Warning
   $ "The type signature for '"
@@ -220,7 +220,8 @@ reportMissingBinding srcSpan name = report
 -- | Reports a fatal error if there are multiple type signatures for the
 --   same function declaration.
 reportDuplicateTypeSigs
-  :: MonadReporter r => SrcSpan   -- ^ The location of the function declaration.
+  :: MonadReporter r
+  => SrcSpan   -- ^ The location of the function declaration.
   -> IR.QName  -- ^ The name of the function.
   -> [SrcSpan] -- ^ The locations of the type signatures.
   -> r a
@@ -234,7 +235,8 @@ reportDuplicateTypeSigs srcSpan funcName typeSigSrcSpans = reportFatal
 -- | Reports a fatal error if the type of a function argument cannot be
 --   determined by expanding a type synonyms from its type signature.
 reportTypeSynExpansionError
-  :: MonadReporter r => IR.QName  -- ^ The name of the function.
+  :: MonadReporter r
+  => IR.QName  -- ^ The name of the function.
   -> IR.VarPat -- ^ The argument whose argument type could not be determined.
   -> r a
 reportTypeSynExpansionError funcName arg = reportFatal

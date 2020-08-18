@@ -92,20 +92,22 @@ experimentallySupported feature = usageError
 
 -- | Creates a reporter that fails with an error message stating that
 --   a node that matches the given description was expected.
-expected
-  :: HSE.Annotated a => String    -- ^ A description of the expected node.
-  -> a SrcSpan -- ^ The actual node.
-  -> Simplifier r
+expected :: HSE.Annotated a
+         => String    -- ^ A description of the expected node.
+         -> a SrcSpan -- ^ The actual node.
+         -> Simplifier r
 expected description = usageError ("Expected " ++ description ++ ".")
 
 -- | Creates a reporter that fails with the given error message.
-usageError :: HSE.Annotated a => String    -- ^ The error message.
+usageError :: HSE.Annotated a
+           => String    -- ^ The error message.
            -> a SrcSpan -- ^ The node that caused the error.
            -> Simplifier r
 usageError message node = reportFatal $ Message (HSE.ann node) Error message
 
 -- | Creates a reporter that reports a warning if the given condition is met.
-warnIf :: HSE.Annotated a => Bool      -- ^ The condition to test.
+warnIf :: HSE.Annotated a
+       => Bool      -- ^ The condition to test.
        -> String    -- ^ The waning to print if the condition is not met.
        -> a SrcSpan -- ^ The node that caused the warning.
        -> Simplifier ()
