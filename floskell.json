@@ -1,19 +1,70 @@
 {
   "style": "base",
+  "language": "Haskell2010",
+  "extensions": [
+    "MultiParamTypeClasses"
+  ],
+  "fixities": [
+    "infixr 5 </>",
+    "infixr 7 <.>",
+    "infixr 8 .:",
+    "infixr 8 .:.",
+    "infixr 3 &&&",
+    "infixr 3 .&&.",
+    "infixr 2 .||."
+  ],
   "formatting": {
+    "penalties": {
+      "indent": 1,
+      "linebreak": 100,
+      "max-line-length": 80,
+      "overfull": 100,
+      "overfull-once": 1000
+    },
+    "layout": {
+      "export-spec-list": "try-oneline",
+      "import-spec-list": "flex",
+      "app": "flex",
+      "infix-app": "try-oneline",
+      "declaration": "flex",
+      "con-decls": "try-oneline",
+      "if": "try-oneline",
+      "let": "try-oneline",
+      "list-comp": "flex",
+      "record": "try-oneline",
+      "type": "try-oneline"
+    },
+    "indent": {
+      "class": "indent-by 2",
+      "case": "indent-by 2",
+      "do": "indent-by 2",
+      "export-spec-list": "indent-by 2",
+      "import-spec-list": "indent-by 2",
+      "let": "align",
+      "let-in": "align",
+      "let-binds": "align",
+      "if": "indent-by 2",
+      "multi-if": "indent-by 2",
+      "deriving": 1,
+      "where": 1,
+      "where-binds": "indent-by 2",
+      "typesig": "align",
+      "app": "indent-by 2",
+      "onside": 2
+    },
     "align": {
       "case": true,
       "class": true,
       "import-module": true,
       "import-spec": false,
       "let-binds": true,
+      "matches": true,
+      "record-fields": true,
+      "where": true,
       "limits": [
         10,
         25
-      ],
-      "matches": true,
-      "record-fields": true,
-      "where": true
+      ]
     },
     "group": {
       "default": {
@@ -42,37 +93,6 @@
         "linebreaks": "after"
       }
     },
-    "indent": {
-      "app": "indent-by 2",
-      "case": "indent-by 2",
-      "class": "indent-by 2",
-      "deriving": 1,
-      "do": "indent-by 2",
-      "export-spec-list": "indent-by 2",
-      "if": "indent-by 2",
-      "import-spec-list": "indent-by 2",
-      "let": "align",
-      "let-in": "align",
-      "let-binds": "align",
-      "multi-if": "indent-by 2",
-      "onside": 2,
-      "typesig": "align",
-      "where": 1,
-      "where-binds": "indent-by 2"
-    },
-    "layout": {
-      "app": "flex",
-      "con-decls": "try-oneline",
-      "declaration": "flex",
-      "export-spec-list": "try-oneline",
-      "if": "try-oneline",
-      "import-spec-list": "flex",
-      "infix-app": "try-oneline",
-      "let": "try-oneline",
-      "list-comp": "flex",
-      "record": "try-oneline",
-      "type": "flex"
-    },
     "op": {
       "default": {
         "force-linebreak": false,
@@ -83,16 +103,6 @@
         "force-linebreak": false,
         "spaces": "after",
         "linebreaks": "before"
-      },
-      ". in expression": {
-        "force-linebreak": false,
-        "spaces": "both",
-        "linebreaks": "before"
-      },
-      ". in type": {
-        "force-linebreak": false,
-        "spaces": "after",
-        "linebreaks": "after"
       },
       "-> in expression": {
         "force-linebreak": false,
@@ -105,46 +115,29 @@
       "decl-no-blank-lines": [],
       "flexible-oneline": false,
       "preserve-vertical-space": false,
-      "sort-imports": [
-        {
-          "prefixes": ["Prelude"],
-          "order": "sorted"
-        },
-        {
-          "prefixes": [""],
-          "order": "sorted"
-        },
-        {
-          "prefixes": ["FreeC"],
-          "order": "sorted"
-        }
-      ],
       "sort-import-lists": true,
       "sort-pragmas": true,
-      "split-language-pragmas": true
-    },
-    "penalty": {
-      "indent": 1,
-      "linebreak": 100,
-      "max-line-length": 80,
-      "overfull": 100,
-      "overfull-once": 1000
+      "split-language-pragmas": true,
+      "sort-imports": [
+        {
+          "prefixes": [
+            "Prelude"
+          ],
+          "order": "sorted"
+        },
+        {
+          "prefixes": [
+            ""
+          ],
+          "order": "sorted"
+        },
+        {
+          "prefixes": [
+            "FreeC"
+          ],
+          "order": "sorted"
+        }
+      ]
     }
-  },
-  "language": "Haskell2010",
-  "extensions": [
-    "MultiParamTypeClasses"
-  ],
-  "fixities": [
-    "infixr 5 </>",
-    "infixr 7 <.>",
-
-    "infixr 8 .:",
-    "infixr 8 .:.",
-
-    "infixr 3 &&&",
-
-    "infixr 3 .&&.",
-    "infixr 2 .||."
-  ]
+  }
 }
