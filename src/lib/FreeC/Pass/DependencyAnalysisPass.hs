@@ -81,7 +81,7 @@ instance DependencyAnalysisPass IR.FuncDecl where
 --   module.
 dependencyAnalysisPass
   :: DependencyAnalysisPass decl
-  => [DependencyAwarePass decl]
+  => DependencyAwarePass decl
   -> IR.Module
   -> Converter IR.Module
 dependencyAnalysisPass = subPipelinePass getComponents setComponents

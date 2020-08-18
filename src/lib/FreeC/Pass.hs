@@ -27,17 +27,17 @@ runPasses = foldr (>=>) return
 
 -- | Creates a pass that runs the given sub-pipeline on each component of its
 --   input (which are extracted using first given function) and recombines the
---   results of the sub-pipelines into the result of the entire pass (using the
+--   results of the sub-pipeline into the result of the entire pass (using the
 --   second given function).
 subPipelinePass
   :: (a -> [b])
   -- ^ The helper function extracting the components of the input.
-  -> (a -> [b] -> a)
+  -> (a -> [c] -> d)
   -- ^ The helper function recombining the results of the sub passes.
-  -> [Pass b b]
+  -> Pass b c
   -- ^ The sub passes running on each component of the input.
-  -> Pass a a
-subPipelinePass getComponents updateComponents childPasses input = do
+  -> Pass a d
+subPipelinePass getComponents updateComponents childPass input = do
   let components = getComponents input
-  components' <- mapM (runPasses childPasses) components
+  components' <- mapM (runPass childPass) components
   return (updateComponents input components')
