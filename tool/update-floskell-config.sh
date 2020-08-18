@@ -17,7 +17,7 @@ cd "$root_dir"
 # URL of the template configuration file.
 template_host="raw.githubusercontent.com"
 template_repo="FreeProving/guidelines"
-template_branch="floskell"
+template_branch="main"
 template_url="https://$template_host/$template_repo/$template_branch/floskell.toml"
 
 # Download the latest version of the template configuration.
