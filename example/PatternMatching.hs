@@ -24,8 +24,8 @@ xor False b   = b
 xor b False   = b
 
 zip :: [a] -> [b] -> [(a, b)]
-zip [] _ = []
-zip _ [] = []
+zip [] _              = []
+zip _ []              = []
 zip (a : as) (b : bs) = (a, b) : zip as bs
 
 -- In the following example the second rule cannot be replaced by
@@ -50,7 +50,7 @@ intercalate s (x : xs) = x : s : intercalate s xs
 -- Nested patterns                                                           --
 -------------------------------------------------------------------------------
 unzip :: [(a, b)] -> ([a], [b])
-unzip [] = ([], [])
+unzip []             = ([], [])
 unzip ((x, y) : xys) = case unzip xys of
   (xs, ys) -> (x : xs, y : ys)
 -------------------------------------------------------------------------------

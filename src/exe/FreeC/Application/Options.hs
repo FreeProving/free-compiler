@@ -9,37 +9,37 @@ import {-# SOURCE #-} FreeC.Frontend
 
 -- | Data type that stores the command line options passed to the compiler.
 data Options = Options
-  { optShowHelp :: Bool
+  { optShowHelp                  :: Bool
     -- ^ Flag that indicates whether to show the usage information.
-  , optShowVersion :: Bool
+  , optShowVersion               :: Bool
     -- ^ Flag that indicates whether to show the compiler's version.
-  , optInputFiles :: [FilePath]
+  , optInputFiles                :: [FilePath]
     -- ^ The input files passed to the compiler.
     --   All non-option command line arguments are considered input files.
-  , optOutputDir :: Maybe FilePath
+  , optOutputDir                 :: Maybe FilePath
     -- ^ The output directory or 'Nothing' if the output should be printed
     --   to @stdout@.
-  , optImportDirs :: [FilePath]
+  , optImportDirs                :: [FilePath]
     -- ^ The directories to look in for imported modules.
-  , optBaseLibDir :: FilePath
+  , optBaseLibDir                :: FilePath
     -- ^ The directory that contains the Coq Base library that accompanies
     --   this compiler.
-  , optCreateCoqProject :: Bool
+  , optCreateCoqProject          :: Bool
     -- ^ Flag that indicates whether to generate a @_CoqProject@ file in the
     --   ouput directory. This argument is ignored if 'optOutputDir' is not
     --   specified.
-  , optCreateAgdaLib :: Bool
+  , optCreateAgdaLib             :: Bool
     -- ^ Flag that indicates whether to generate a @.agda-lib@ file in the
     --   ouput directory. This argument is ignored if 'optOutputDir' is not
     --   specified.
-  , optTransformPatternMatching :: Bool
+  , optTransformPatternMatching  :: Bool
     -- ^ Flag that indicates whether to transform pattern matching, perform
     --   guard elimination and case completion.
   , optDumpTransformedModulesDir :: Maybe FilePath
     -- ^ The directory to dump transformed modules to.
-  , optFrontend :: String
+  , optFrontend                  :: String
     -- ^ The frontend to use.
-  , optBackend :: String
+  , optBackend                   :: String
     -- ^ The backend to use.
   }
 
@@ -56,16 +56,16 @@ makeDefaultOptions = do
   defaultBaseLibDir <- getDataFileName "base"
   return
     $ Options
-    { optShowHelp = False
-    , optShowVersion = False
-    , optInputFiles = []
-    , optOutputDir = Nothing
-    , optImportDirs = ["."]
-    , optBaseLibDir = defaultBaseLibDir
-    , optCreateCoqProject = True
-    , optCreateAgdaLib = True
-    , optTransformPatternMatching = False
+    { optShowHelp                  = False
+    , optShowVersion               = False
+    , optInputFiles                = []
+    , optOutputDir                 = Nothing
+    , optImportDirs                = ["."]
+    , optBaseLibDir                = defaultBaseLibDir
+    , optCreateCoqProject          = True
+    , optCreateAgdaLib             = True
+    , optTransformPatternMatching  = False
     , optDumpTransformedModulesDir = Nothing
-    , optFrontend = defaultFrontend
-    , optBackend = defaultBackend
+    , optFrontend                  = defaultFrontend
+    , optBackend                   = defaultBackend
     }

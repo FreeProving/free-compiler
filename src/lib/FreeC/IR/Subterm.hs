@@ -92,17 +92,17 @@ class Pretty a => Subterm a where
 -- | Expressions have subterms.
 instance Subterm IR.Expr where
   -- | Gets the direct child expression nodes of the given expression.
-  childTerms (IR.App _ e1 e2 _) = [e1, e2]
+  childTerms (IR.App _ e1 e2 _)          = [e1, e2]
   childTerms (IR.TypeAppExpr _ expr _ _) = [expr]
-  childTerms (IR.If _ e1 e2 e3 _) = [e1, e2, e3]
-  childTerms (IR.Case _ expr alts _) = expr : map IR.altRhs alts
-  childTerms (IR.Lambda _ _ expr _) = [expr]
-  childTerms (IR.Con _ _ _) = []
-  childTerms (IR.Var _ _ _) = []
-  childTerms (IR.Undefined _ _) = []
-  childTerms (IR.ErrorExpr _ _ _) = []
-  childTerms (IR.IntLiteral _ _ _) = []
-  childTerms (IR.Let _ binds e _) = e : map IR.bindExpr binds
+  childTerms (IR.If _ e1 e2 e3 _)        = [e1, e2, e3]
+  childTerms (IR.Case _ expr alts _)     = expr : map IR.altRhs alts
+  childTerms (IR.Lambda _ _ expr _)      = [expr]
+  childTerms (IR.Con _ _ _)              = []
+  childTerms (IR.Var _ _ _)              = []
+  childTerms (IR.Undefined _ _)          = []
+  childTerms (IR.ErrorExpr _ _ _)        = []
+  childTerms (IR.IntLiteral _ _ _)       = []
+  childTerms (IR.Let _ binds e _)        = e : map IR.bindExpr binds
 
   -- | Replaces all direct child expression nodes of the given expression.
   replaceChildTerms (IR.App srcSpan _ _ exprType)

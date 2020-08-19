@@ -91,7 +91,7 @@ inlineExpr decls = inlineAndBind
   --   the passed value.
   inlineExpr' :: IR.Expr -> Converter ([String], [String], IR.Expr)
   inlineExpr' var@(IR.Var _ name _) = case Map.lookup name declMap of
-    Nothing -> return ([], [], var)
+    Nothing                    -> return ([], [], var)
     Just (typeArgs, args, rhs) -> do
       (typeArgs', rhs') <- renameTypeArgs typeArgs rhs
       (args', rhs'') <- renameArgs args rhs'
@@ -104,7 +104,8 @@ inlineExpr decls = inlineAndBind
     (remainingArgs, e1') <- inlineVisiblyApplied e1
     e2' <- inlineAndBind e2
     case remainingArgs of
-      [] -> return ([], [], IR.App srcSpan e1' e2' exprType)
+      []                     ->
+        return ([], [], IR.App srcSpan e1' e2' exprType)
       (arg : remainingArgs') -> do
         let subst = singleSubst (IR.UnQual (IR.Ident arg)) e2'
             e1''  = applySubst subst e1'

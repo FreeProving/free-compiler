@@ -70,11 +70,11 @@ testSubterm = describe "FreeC.IR.Subterm" $ do
       context "searching subterms" $ do
         it "finds subterm positions" $ \testExpr -> do
           let isCase (IR.Case _ _ _ _) = True
-              isCase _ = False
+              isCase _                 = False
           findSubtermPos isCase testExpr `shouldBe` [Pos [1, 3, 3]]
         it "finds subterms" $ \testExpr -> do
           let isVar (IR.Var _ _ _) = True
-              isVar _ = False
+              isVar _              = False
           map IR.exprVarName (findSubterms isVar testExpr)
             `shouldBe` [ IR.UnQual (IR.Symbol "<")
                        , IR.UnQual (IR.Ident "n")

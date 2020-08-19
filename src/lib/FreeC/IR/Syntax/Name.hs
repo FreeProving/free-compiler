@@ -28,7 +28,7 @@ instance Pretty Name where
   pretty (Ident ident)   = prettyString ident
   pretty (Symbol symbol) = parens (prettyString symbol)
 
-  prettyList = prettySeparated (comma <> space) . map pretty
+  prettyList             = prettySeparated (comma <> space) . map pretty
 
 -------------------------------------------------------------------------------
 -- Qualifiable Names                                                         --
@@ -64,7 +64,7 @@ instance Pretty QName where
     | otherwise = prettyString modId <> dot <> pretty name
   pretty (UnQual name)     = pretty name
 
-  prettyList = prettySeparated (comma <> space) . map pretty
+  prettyList               = prettySeparated (comma <> space) . map pretty
 
 -------------------------------------------------------------------------------
 -- Name Spaces                                                               --

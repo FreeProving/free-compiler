@@ -66,7 +66,7 @@ splitFuncType :: Type -> Int -> ([Type], Type)
 splitFuncType (FuncType _ t1 t2) arity
   | arity > 0 = let (argTypes, returnType) = splitFuncType t2 (arity - 1)
                 in (t1 : argTypes, returnType)
-splitFuncType returnType _ = ([], returnType)
+splitFuncType returnType _             = ([], returnType)
 
 -- | Pretty instance for type expressions.
 instance Pretty Type where
@@ -83,11 +83,11 @@ instance Pretty Type where
 prettyTypePred :: Int -> Type -> Doc
 
 -- There are never parentheses around type variables or constructors.
-prettyTypePred _ (TypeVar _ ident) = prettyString ident
-prettyTypePred _ (TypeCon _ name) = pretty name
+prettyTypePred _ (TypeVar _ ident)  = prettyString ident
+prettyTypePred _ (TypeCon _ name)   = pretty name
 -- There may be parentheses around type applications and function types.
 prettyTypePred n (TypeApp _ t1 t2)
   | n <= 1 = prettyTypePred 1 t1 <+> prettyTypePred 2 t2
 prettyTypePred 0 (FuncType _ t1 t2)
   = prettyTypePred 1 t1 <+> prettyString "->" <+> pretty t2
-prettyTypePred _ t = parens (pretty t)
+prettyTypePred _ t                  = parens (pretty t)

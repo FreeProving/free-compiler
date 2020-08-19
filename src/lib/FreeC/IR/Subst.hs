@@ -153,10 +153,10 @@ instance ApplySubst IR.Expr IR.Expr where
         in IR.Lambda srcSpan args' expr' exprType
     applySubst' (IR.Let srcSpan binds expr exprType)
       = let (subst', varpats') = newRenameArgs subst (map IR.bindVarPat binds)
-            binds' = zipWith (\v (IR.Bind s _ e) -> IR.Bind s v e) varpats'
-              binds
-            binds'' = map (applySubst subst') binds'
-            expr' = applySubst subst' expr
+            binds'             = zipWith (\v (IR.Bind s _ e) -> IR.Bind s v e)
+              varpats' binds
+            binds''            = map (applySubst subst') binds'
+            expr'              = applySubst subst' expr
         in IR.Let srcSpan binds'' expr' exprType
     -- All other expressions remain unchanged.
     applySubst' expr@(IR.Con _ _ _) = expr
@@ -169,7 +169,7 @@ instance ApplySubst IR.Expr IR.Expr where
 instance ApplySubst IR.Expr IR.Alt where
   applySubst subst (IR.Alt srcSpan conPat varPats expr)
     = let (subst', varPats') = newRenameArgs subst varPats
-          expr' = applySubst subst' expr
+          expr'              = applySubst subst' expr
       in IR.Alt srcSpan conPat varPats' expr'
 
 -- | Applies the given expression substitution to an the right-hand side of a
@@ -270,7 +270,7 @@ instance ApplySubst IR.Expr IR.FuncDecl where
   applySubst subst
     (IR.FuncDecl srcSpan declIdent typeArgs args maybeRetType rhs)
     = let (subst', args') = newRenameArgs subst args
-          rhs' = applySubst subst' rhs
+          rhs'            = applySubst subst' rhs
       in IR.FuncDecl srcSpan declIdent typeArgs args' maybeRetType rhs'
 
 -- | Applies the given type substitution to the right-hand side of a
@@ -335,23 +335,23 @@ class Renamable arg expr | arg -> expr, expr -> arg where
 -- | Type variable declarations bind type variables in type expressions and
 --   can be renamed.
 instance Renamable IR.TypeVarDecl IR.Type where
-  getIdent = IR.typeVarDeclIdent
+  getIdent                = IR.typeVarDeclIdent
 
   setIdent typeArg ident' = typeArg { IR.typeVarDeclIdent = ident' }
 
-  getScope = const IR.TypeScope
+  getScope                = const IR.TypeScope
 
-  toExpr = flip IR.TypeVar . getIdent
+  toExpr                  = flip IR.TypeVar . getIdent
 
 -- | Variable patterns bind variables in expressions and can be renamed.
 instance Renamable IR.VarPat IR.Expr where
-  getIdent = IR.varPatIdent
+  getIdent               = IR.varPatIdent
 
   setIdent varPat ident' = varPat { IR.varPatIdent = ident' }
 
-  getScope = const IR.ValueScope
+  getScope               = const IR.ValueScope
 
-  toExpr = flip IR.untypedVar . IR.UnQual . IR.Ident . getIdent
+  toExpr                 = flip IR.untypedVar . IR.UnQual . IR.Ident . getIdent
 
 -- | Renames the given (type) arguments such that there are no name conflicts
 --   with the given substitution.

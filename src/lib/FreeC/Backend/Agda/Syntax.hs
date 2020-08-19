@@ -124,16 +124,16 @@ appP l r = AppP l $ defaultNamedArg $ if isAppP r then ParenP NoRange r else r
 --   parenthesized.
 parenIfNeeded :: Pattern -> Pattern
 parenIfNeeded p@(AppP _ _) = ParenP NoRange p
-parenIfNeeded p = p
+parenIfNeeded p            = p
 
 -------------------------------------------------------------------------------
 -- Expressions                                                               --
 -------------------------------------------------------------------------------
 -- | Tests whether the given AST node is an @App@.
 isApp :: Expr -> Bool
-isApp (App _ _ _) = True
+isApp (App _ _ _)  = True
 isApp (RawApp _ _) = True
-isApp _ = False
+isApp _            = False
 
 -- | Tests whether the given AST node is an @Fun@.
 isFun :: Expr -> Bool
@@ -189,9 +189,10 @@ opApp _          = error "Only an identifier can be an operator!"
 --   holes with arguments and translating name parts to identifiers.
 opApp' :: [NamePart] -> [Expr] -> [Expr]
 opApp' (Hole : ps) (a : as) = a : opApp' ps as
-opApp' (Id part : ps) as = ident part : opApp' ps as
-opApp' [] [] = []
-opApp' _ _ = error "Wrong number of arguments supplied to operator!"
+opApp' (Id part : ps) as    = ident part : opApp' ps as
+opApp' [] []                = []
+opApp' _ _
+  = error "Wrong number of arguments supplied to operator!"
 
 -- | Wraps the given expression in parenthesis.
 paren :: Expr -> Expr
@@ -265,7 +266,7 @@ visibleArg = defaultNamedArg . mkBinder_
 -- | A smart constructor for non dependent function types.
 fun :: Expr -> Expr -> Expr
 fun l@(Fun _ _ _) = Fun NoRange (defaultArg (paren l)) -- (->) is right assoc.
-fun l = Fun NoRange (defaultArg l)
+fun l             = Fun NoRange (defaultArg l)
 
 -- | Creates a pi type binding the given names as hidden variables.
 --

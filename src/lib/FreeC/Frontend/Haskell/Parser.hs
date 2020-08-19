@@ -35,15 +35,15 @@ import           FreeC.Monad.Reporter
 --   language extensions can be enabled using pragmas.
 makeParseMode :: [KnownExtension] -> FilePath -> ParseMode
 makeParseMode enabledExts filename = ParseMode
-  { parseFilename = filename
-  , baseLanguage = Haskell2010
-  , extensions = map EnableExtension enabledExts
+  { parseFilename         = filename
+  , baseLanguage          = Haskell2010
+  , extensions            = map EnableExtension enabledExts
   , ignoreLanguagePragmas = True
-  , ignoreLinePragmas = True
+  , ignoreLinePragmas     = True
     -- If this is set to @Nothing@, user defined fixities are ignored while
     -- parsing.
-  , fixities = Just predefinedFixities
-  , ignoreFunctionArity = True
+  , fixities              = Just predefinedFixities
+  , ignoreFunctionArity   = True
   }
 
 -- | Fixities for all predefined operators and infix constructors.

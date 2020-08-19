@@ -87,10 +87,10 @@ liftTypeApp' :: IR.Type -> [IR.Type] -> Converter LIR.Type
 liftTypeApp' (IR.TypeCon srcSpan name) ts
   = LIR.TypeCon srcSpan name <$> mapM liftType' ts <*> return False
 liftTypeApp' (IR.TypeVar srcSpan name) [] = return $ LIR.TypeVar srcSpan name
-liftTypeApp' (IR.TypeApp _ l r) ts = liftTypeApp' l (r : ts)
+liftTypeApp' (IR.TypeApp _ l r) ts        = liftTypeApp' l (r : ts)
 liftTypeApp' (IR.FuncType srcSpan l r) []
   = LIR.FuncType srcSpan <$> liftType l <*> liftType r
-liftTypeApp' _ (_ : _) = reportFatal
+liftTypeApp' _ (_ : _)                    = reportFatal
   $ Message NoSrcSpan Internal
   $ "Only type constructors can be applied!"
 

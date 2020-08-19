@@ -465,11 +465,11 @@ inferFuncDeclTypes' funcDecls = withLocalState $ do
   -- of the function but not in the inferred type (also known as "vanishing
   -- type  arguments") are added as well. The order of the type arguments
   -- depends on their order in the (type) expression (from left to right).
-  let typeExprs = map (fromJust . IR.funcDeclType) typedFuncDecls
-      typeArgs = map freeTypeVars typeExprs
-      additionalTypeArgs = nub (concatMap freeTypeVars typedFuncDecls)
+  let typeExprs           = map (fromJust . IR.funcDeclType) typedFuncDecls
+      typeArgs            = map freeTypeVars typeExprs
+      additionalTypeArgs  = nub (concatMap freeTypeVars typedFuncDecls)
         \\ concat typeArgs
-      allTypeArgs = map (++ additionalTypeArgs) typeArgs
+      allTypeArgs         = map (++ additionalTypeArgs) typeArgs
       abstractedFuncDecls = zipWith abstractTypeArgs allTypeArgs typedFuncDecls
   -- Fix instantiation of additional type arguments.
   --
@@ -699,11 +699,11 @@ annotateFuncDecls funcDecls = withLocalTypeAssumption $ do
 --   variables itself.
 applyVisibly :: IR.QName -> IR.Expr -> TypeInference IR.Expr
 applyVisibly name expr = do
-  let srcSpan = IR.exprSrcSpan expr
+  let srcSpan            = IR.exprSrcSpan expr
       Just annotatedType = IR.exprType expr
   maybeAssumedTypeScheme <- lookupTypeAssumption name
   case maybeAssumedTypeScheme of
-    Nothing -> return expr
+    Nothing                -> return expr
     Just assumedTypeScheme -> do
       (assumedType, typeArgs)
         <- liftConverter $ instantiateTypeScheme' assumedTypeScheme

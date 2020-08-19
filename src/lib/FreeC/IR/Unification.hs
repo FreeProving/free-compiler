@@ -45,14 +45,14 @@ reportUnificationError srcSpan err = case err of
     ++ "` with actual type `"
     ++ showPretty actualType
     ++ "`."
-  OccursCheckFailure x u -> reportFatal
+  OccursCheckFailure x u                   -> reportFatal
     $ Message srcSpan Error
     $ "Occurs check: Could not construct infinite type `"
     ++ showPretty x
     ++ "` ~ `"
     ++ showPretty u
     ++ "`."
-  RigidTypeVarError xSrcSpan x u -> reportFatal
+  RigidTypeVarError xSrcSpan x u           -> reportFatal
     $ Message srcSpan Error
     $ "Could not match rigid type variable `"
     ++ x
@@ -148,8 +148,8 @@ unify t s = do
 
 -- | Computes the most general unificator for all given type expressions.
 unifyAll :: [IR.Type] -> ExceptT UnificationError Converter (Subst IR.Type)
-unifyAll [] = return identitySubst
-unifyAll [_] = return identitySubst
+unifyAll []             = return identitySubst
+unifyAll [_]            = return identitySubst
 unifyAll (t0 : t1 : ts) = do
   mgu <- unify t0 t1
   let t1' = applySubst mgu t1
@@ -201,6 +201,6 @@ disagreementSet' :: Int -> [IR.Type] -> [IR.Type] -> Converter DisagreementSet
 disagreementSet' i (t : ts) (s : ss) = do
   ds <- disagreementSet t s
   case ds of
-    Nothing -> disagreementSet' (i + 1) ts ss
+    Nothing            -> disagreementSet' (i + 1) ts ss
     Just (pos, t', s') -> return (Just (consPos i pos, t', s'))
-disagreementSet' _ _ _ = return Nothing
+disagreementSet' _ _ _               = return Nothing

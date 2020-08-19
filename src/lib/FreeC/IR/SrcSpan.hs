@@ -137,7 +137,7 @@ addSourceCode _ srcSpan = srcSpan
 --
 --   If the source span spans only a single line, the end position is omitted.
 instance Pretty SrcSpan where
-  pretty NoSrcSpan = prettyString "<no location info>"
+  pretty NoSrcSpan           = prettyString "<no location info>"
   pretty (FileSpan filename) = prettyString filename
   pretty srcSpan
     | spansMultipleLines srcSpan = prettyString (srcSpanFilename srcSpan)

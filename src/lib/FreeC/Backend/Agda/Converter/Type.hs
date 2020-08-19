@@ -65,7 +65,7 @@ convertLiftedRecConType argTypes retType = pi "i" $ \i -> do
 --
 --   If a @Size@ variable is needed, but none is provided, an error occurs.
 convertLiftedType :: Maybe Agda.Expr -> LIR.Type -> Converter Agda.Expr
-convertLiftedType _ (LIR.TypeVar srcSpan name) = Agda.Ident
+convertLiftedType _ (LIR.TypeVar srcSpan name)              = Agda.Ident
   <$> lookupAgdaIdentOrFail srcSpan IR.TypeScope (IR.UnQual $ IR.Ident name)
 convertLiftedType i (LIR.TypeCon srcSpan name typeArgs dec) = do
   typeArgs' <- mapM (convertLiftedType i) typeArgs
@@ -77,7 +77,8 @@ convertLiftedType i (LIR.TypeCon srcSpan name typeArgs dec) = do
     else return type'
 convertLiftedType i (LIR.FuncType _ l r)
   = Agda.fun <$> convertLiftedType i l <*> convertLiftedType i r
-convertLiftedType i (LIR.FreeTypeCon _ t) = free <$> convertLiftedType i t
+convertLiftedType i (LIR.FreeTypeCon _ t)
+  = free <$> convertLiftedType i t
 
 -- | Calls @convertType'@ without providing a @Size@ annotation.
 convertLiftedType' :: LIR.Type -> Converter Agda.Expr

@@ -126,9 +126,9 @@ notSimilar = not .: similar
 --   > ———————————————————————  —————————————————————
 --   >  Γ ⊢ Nothing ≈ Nothing    Γ ⊢ Just x ≈ Just y
 instance Similar node => Similar (Maybe node) where
-  similar' Nothing Nothing = const True
+  similar' Nothing Nothing   = const True
   similar' (Just n) (Just m) = similar' n m
-  similar' _ _ = const False
+  similar' _ _               = const False
 
 -- | Two lists of nodes are similar if the corresponding elements are similar
 --   and each element has a corresponding element (i.e., the lists are of the

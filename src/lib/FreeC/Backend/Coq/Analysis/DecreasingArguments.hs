@@ -159,13 +159,13 @@ checkDecArgs decls knownDecArgIndecies decArgIndecies = all
     -- | Tests whether the given expression is the decreasing argument.
     isDecArg :: IR.Expr -> Bool
     isDecArg (IR.Var _ varName _) = varName == decArg
-    isDecArg _ = False
+    isDecArg _                    = False
 
     -- | Tests whether the given expression is a structurally smaller
     --   variable than the decreasing argument.
     isSmaller :: IR.Expr -> Bool
     isSmaller (IR.Var _ varName _) = varName `elem` smaller
-    isSmaller _ = False
+    isSmaller _                    = False
 
     -- | Tests whether the given expression matches 'isDecArg' or 'isSmaller'.
     isDecArgOrSmaller :: IR.Expr -> Bool
@@ -173,14 +173,15 @@ checkDecArgs decls knownDecArgIndecies decArgIndecies = all
 
     -- If one of the recursive functions is applied, there must be a
     -- structurally smaller variable in the decreasing position.
-    checkExpr' (IR.Var _ name _) args = case Map.lookup name decArgMap of
-      Nothing          -> True
-      Just decArgIndex | decArgIndex >= length args -> False
-                       | otherwise -> isSmaller (args !! decArgIndex)
+    checkExpr' (IR.Var _ name _) args
+      = case Map.lookup name decArgMap of
+        Nothing          -> True
+        Just decArgIndex | decArgIndex >= length args -> False
+                         | otherwise -> isSmaller (args !! decArgIndex)
     -- Function applications and @if@-expressions need to be checked
     -- recursively. In case of applications we also remember the
     -- arguments such that the case above can inspect the actual arguments.
-    checkExpr' (IR.App _ e1 e2 _) args = checkExpr' e1 (e2 : args)
+    checkExpr' (IR.App _ e1 e2 _) args          = checkExpr' e1 (e2 : args)
       && checkExpr' e2 []
     checkExpr' (IR.If _ e1 e2 e3 _) _
       = checkExpr' e1 [] && checkExpr' e2 [] && checkExpr' e3 []
@@ -203,10 +204,10 @@ checkDecArgs decls knownDecArgIndecies decArgIndecies = all
     -- Recursively check visibly applied expressions.
     checkExpr' (IR.TypeAppExpr _ expr _ _) args = checkExpr' expr args
     -- Base expressions don't contain recursive calls.
-    checkExpr' (IR.Con _ _ _) _ = True
-    checkExpr' (IR.Undefined _ _) _ = True
-    checkExpr' (IR.ErrorExpr _ _ _) _ = True
-    checkExpr' (IR.IntLiteral _ _ _) _ = True
+    checkExpr' (IR.Con _ _ _) _                 = True
+    checkExpr' (IR.Undefined _ _) _             = True
+    checkExpr' (IR.ErrorExpr _ _ _) _           = True
+    checkExpr' (IR.IntLiteral _ _ _) _          = True
 
     -- | Applies 'checkExpr' on the right-hand side of an alternative of a
     --   @case@ expression.

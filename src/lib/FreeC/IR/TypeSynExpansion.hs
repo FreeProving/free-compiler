@@ -156,4 +156,4 @@ expandTypeSynonymAt pos typeExpr = case parentPos pos of
   --   application.
   isTypeApp :: IR.Type -> Bool
   isTypeApp (IR.TypeApp _ _ _) = True
-  isTypeApp _ = False
+  isTypeApp _                  = False

@@ -139,8 +139,8 @@ checkPatternFuncDecl funcDecl = checkPatternExpr (IR.funcDeclRhs funcDecl)
 
   -- | Selects the name of the outermost type constructor from a type.
   getTypeConName :: IR.Type -> Maybe IR.TypeConName
-  getTypeConName (IR.TypeCon _ typeConName) = Just typeConName
+  getTypeConName (IR.TypeCon _ typeConName)  = Just typeConName
   getTypeConName (IR.TypeApp _ typeAppLhs _) = getTypeConName typeAppLhs
   -- The type of the scrutinee shouldn't be a function or type variable.
-  getTypeConName IR.TypeVar {} = Nothing
-  getTypeConName IR.FuncType {} = Nothing
+  getTypeConName IR.TypeVar {}               = Nothing
+  getTypeConName IR.FuncType {}              = Nothing

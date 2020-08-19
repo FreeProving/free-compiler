@@ -102,13 +102,15 @@ checkFuncDecl (IR.FuncDecl _ _ _ varPats retType rhs) = do
 
 -- | Checks whether all type annotations in an expression are kind-correct.
 checkExpr :: IR.Expr -> Converter ()
-checkExpr (IR.Con _ _ typeScheme) = mapM_ checkTypeScheme typeScheme
-checkExpr (IR.Var _ _ typeScheme) = mapM_ checkTypeScheme typeScheme
-checkExpr (IR.App _ lhs rhs typeScheme) = do
+checkExpr (IR.Con _ _ typeScheme)
+  = mapM_ checkTypeScheme typeScheme
+checkExpr (IR.Var _ _ typeScheme)
+  = mapM_ checkTypeScheme typeScheme
+checkExpr (IR.App _ lhs rhs typeScheme)               = do
   checkExpr lhs
   checkExpr rhs
   mapM_ checkTypeScheme typeScheme
-checkExpr (IR.TypeAppExpr _ lhs rhs typeScheme) = do
+checkExpr (IR.TypeAppExpr _ lhs rhs typeScheme)       = do
   checkExpr lhs
   checkType rhs
   mapM_ checkTypeScheme typeScheme
@@ -117,18 +119,21 @@ checkExpr (IR.If _ cond thenExpr elseExpr typeScheme) = do
   checkExpr thenExpr
   checkExpr elseExpr
   mapM_ checkTypeScheme typeScheme
-checkExpr (IR.Case _ scrutinee alts typeScheme) = do
+checkExpr (IR.Case _ scrutinee alts typeScheme)       = do
   checkExpr scrutinee
   mapM_ checkAlt alts
   mapM_ checkTypeScheme typeScheme
-checkExpr (IR.Undefined _ typeScheme) = mapM_ checkTypeScheme typeScheme
-checkExpr (IR.ErrorExpr _ _ typeScheme) = mapM_ checkTypeScheme typeScheme
-checkExpr (IR.IntLiteral _ _ typeScheme) = mapM_ checkTypeScheme typeScheme
-checkExpr (IR.Lambda _ args rhs typeScheme) = do
+checkExpr (IR.Undefined _ typeScheme)
+  = mapM_ checkTypeScheme typeScheme
+checkExpr (IR.ErrorExpr _ _ typeScheme)
+  = mapM_ checkTypeScheme typeScheme
+checkExpr (IR.IntLiteral _ _ typeScheme)
+  = mapM_ checkTypeScheme typeScheme
+checkExpr (IR.Lambda _ args rhs typeScheme)           = do
   mapM_ checkVarPat args
   checkExpr rhs
   mapM_ checkTypeScheme typeScheme
-checkExpr (IR.Let _ binds expr typeScheme) = do
+checkExpr (IR.Let _ binds expr typeScheme)            = do
   mapM_ checkBind binds
   checkExpr expr
   mapM_ checkTypeScheme typeScheme

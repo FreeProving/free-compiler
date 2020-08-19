@@ -568,9 +568,9 @@ generateInterfaceDecl
   -> Converter Coq.Sentence
 generateInterfaceDecl constArgs isConstArgUsed nameMap mgu sectionTypeArgs
   renamedTypeArgs funcDecl = localEnv $ do
-    let args = IR.funcDeclArgs funcDecl
-        name = IR.funcDeclQName funcDecl
-        constArgNames = map (IR.UnQual . IR.Ident)
+    let args              = IR.funcDeclArgs funcDecl
+        name              = IR.funcDeclQName funcDecl
+        constArgNames     = map (IR.UnQual . IR.Ident)
           $ mapMaybe (Map.lookup name . constArgIdents) constArgs
         usedConstArgNames
           = map fst $ filter snd $ zip constArgNames isConstArgUsed
@@ -616,7 +616,7 @@ generateInterfaceDecl constArgs isConstArgUsed nameMap mgu sectionTypeArgs
     -> IR.TypeVarIdent
     -- ^ The type argument of the section.
     -> Converter IR.QName
-  lookupTypeArgName _ [] u = reportFatal
+  lookupTypeArgName _ [] u             = reportFatal
     $ Message (IR.funcDeclSrcSpan funcDecl) Error
     $ "Cannot find name of section type argument "
     ++ u

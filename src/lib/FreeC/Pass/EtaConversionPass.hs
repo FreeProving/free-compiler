@@ -214,7 +214,7 @@ etaConvertTopLevel argPats expr@(IR.Case _ _ _ _)
 -- If there is only one alternative, apply it to the newly-added arguments,
 -- then apply @etaConvertExpr@ to it to make so the expression and its sub
 -- expressions are fully applied.
-etaConvertTopLevel argPats expr = localEnv $ do
+etaConvertTopLevel argPats expr                   = localEnv $ do
   let argExprs = map IR.varPatToExpr argPats
   -- Apply expression to missing arguments and perform eta-conversion on the
   -- resulting expression.
@@ -298,7 +298,7 @@ findMinMissingArguments (IR.Case _ _ alts _) = minimum
 -- Any expression that isn't an if or case expression only has one
 -- option for the number of missing arguments, namely the arity of the
 -- expression.
-findMinMissingArguments expr = arityOf expr
+findMinMissingArguments expr                 = arityOf expr
 
 -- | Determines the number of arguments expected to be passed to the given
 --   expression.

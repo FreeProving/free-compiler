@@ -267,7 +267,7 @@ instance Aeson.FromJSON ModuleInterface where
       agdaName <- obj .: "agda-name"
       -- TODO this does not work with vanishing type arguments.
       let (argTypes, returnType) = IR.splitFuncType haskellType arity
-          typeArgs = freeTypeVars haskellType
+          typeArgs               = freeTypeVars haskellType
       return FuncEntry
         { entrySrcSpan       = NoSrcSpan
         , entryArity         = arity

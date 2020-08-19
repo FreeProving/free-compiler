@@ -268,9 +268,9 @@ generateApply = foldlM $ \expr arg -> bind expr freshFuncPrefix Nothing
 --   used to preserve the same base variable name across chains of binds.
 guessName :: LIR.Expr -> Maybe String
 guessName (LIR.Var _ name _ _) = IR.identFromQName name
-guessName (LIR.Pure _ arg) = guessName arg
-guessName (LIR.Bind _ arg _) = guessName arg
-guessName _ = Nothing
+guessName (LIR.Pure _ arg)     = guessName arg
+guessName (LIR.Bind _ arg _)   = guessName arg
+guessName _                    = Nothing
 
 -- | Creates a @>>= \x ->@, which binds a new variable.
 bind :: LIR.Expr -- ^ The left-hand side of the bind.

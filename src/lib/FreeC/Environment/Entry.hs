@@ -173,18 +173,18 @@ entryScopedName = entryScope &&& entryName
 -- | Tests whether the given entry of the environment describes a data type.
 isDataEntry :: EnvEntry -> Bool
 isDataEntry DataEntry {} = True
-isDataEntry _ = False
+isDataEntry _            = False
 
 -- | Tests whether the given entry of the environment describes a type synonym.
 isTypeSynEntry :: EnvEntry -> Bool
 isTypeSynEntry TypeSynEntry {} = True
-isTypeSynEntry _ = False
+isTypeSynEntry _               = False
 
 -- | Tests whether the given entry of the environment describes a type
 --   variable.
 isTypeVarEntry :: EnvEntry -> Bool
 isTypeVarEntry TypeVarEntry {} = True
-isTypeVarEntry _ = False
+isTypeVarEntry _               = False
 
 -- | Tests whether the given entry of the environment describes a data
 --   constructor.
@@ -195,7 +195,7 @@ isConEntry _           = False
 -- | Tests whether the given entry of the environment describes a function.
 isFuncEntry :: EnvEntry -> Bool
 isFuncEntry FuncEntry {} = True
-isFuncEntry _ = False
+isFuncEntry _            = False
 
 -- | Tests whether the given entry of the environment describes a variable.
 isVarEntry :: EnvEntry -> Bool

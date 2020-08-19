@@ -681,31 +681,33 @@ instance Resolvable IR.FuncDecl where
 --   sides.
 instance Resolvable IR.Expr where
   -- Lookup the original name of constructors and functions.
-  resolve (IR.Con srcSpan conName exprType) = do
+  resolve (IR.Con srcSpan conName exprType)               = do
     originalName <- lookupOriginalNameOrFail srcSpan IR.ValueScope conName
     exprType' <- mapM resolve exprType
     return (IR.Con srcSpan originalName exprType')
-  resolve (IR.Var srcSpan varName exprType) = do
+  resolve (IR.Var srcSpan varName exprType)               = do
     originalName <- lookupOriginalNameOrFail srcSpan IR.ValueScope varName
     exprType' <- mapM resolve exprType
     return (IR.Var srcSpan originalName exprType')
   -- Shadow the arguments of lambda arguments or variable patterns in @let@
   -- bindings. Resolve all right hand sides of @let@ bindings or the right
   -- hand side of a lambda abstraction recursively.
-  resolve (IR.Lambda srcSpan args rhs exprType) = withLocalResolverEnv $ do
-    defineVarPats args
-    args' <- mapM resolve args
-    rhs' <- resolve rhs
-    exprType' <- mapM resolve exprType
-    return (IR.Lambda srcSpan args' rhs' exprType')
-  resolve (IR.Let srcSpan binds e exprType) = withLocalResolverEnv $ do
-    defineVarPats (map IR.bindVarPat binds)
-    binds' <- mapM resolve binds
-    e' <- resolve e
-    exprType' <- mapM resolve exprType
-    return (IR.Let srcSpan binds' e' exprType')
+  resolve (IR.Lambda srcSpan args rhs exprType)
+    = withLocalResolverEnv $ do
+      defineVarPats args
+      args' <- mapM resolve args
+      rhs' <- resolve rhs
+      exprType' <- mapM resolve exprType
+      return (IR.Lambda srcSpan args' rhs' exprType')
+  resolve (IR.Let srcSpan binds e exprType)
+    = withLocalResolverEnv $ do
+      defineVarPats (map IR.bindVarPat binds)
+      binds' <- mapM resolve binds
+      e' <- resolve e
+      exprType' <- mapM resolve exprType
+      return (IR.Let srcSpan binds' e' exprType')
   -- Resolve references recursively.
-  resolve (IR.App srcSpan e1 e2 exprType) = do
+  resolve (IR.App srcSpan e1 e2 exprType)                 = do
     e1' <- resolve e1
     e2' <- resolve e2
     exprType' <- mapM resolve exprType
@@ -715,25 +717,25 @@ instance Resolvable IR.Expr where
     typeExpr' <- resolve typeExpr
     exprType' <- mapM resolve exprType
     return (IR.TypeAppExpr srcSpan expr' typeExpr' exprType')
-  resolve (IR.If srcSpan e1 e2 e3 exprType) = do
+  resolve (IR.If srcSpan e1 e2 e3 exprType)               = do
     e1' <- resolve e1
     e2' <- resolve e2
     e3' <- resolve e3
     exprType' <- mapM resolve exprType
     return (IR.If srcSpan e1' e2' e3' exprType')
-  resolve (IR.Case srcSpan scrutinee alts exprType) = do
+  resolve (IR.Case srcSpan scrutinee alts exprType)       = do
     scrutinee' <- resolve scrutinee
     alts' <- mapM resolve alts
     exprType' <- mapM resolve exprType
     return (IR.Case srcSpan scrutinee' alts' exprType')
   -- Only resolve in type annotation of other expressions.
-  resolve (IR.Undefined srcSpan exprType) = do
+  resolve (IR.Undefined srcSpan exprType)                 = do
     exprType' <- mapM resolve exprType
     return (IR.Undefined srcSpan exprType')
-  resolve (IR.ErrorExpr srcSpan msg exprType) = do
+  resolve (IR.ErrorExpr srcSpan msg exprType)             = do
     exprType' <- mapM resolve exprType
     return (IR.ErrorExpr srcSpan msg exprType')
-  resolve (IR.IntLiteral srcSpan value exprType) = do
+  resolve (IR.IntLiteral srcSpan value exprType)          = do
     exprType' <- mapM resolve exprType
     return (IR.IntLiteral srcSpan value exprType')
 

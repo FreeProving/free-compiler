@@ -121,13 +121,13 @@ makeConstArgGraph decls = do
             | otherwise = True
           -- If this is an application, check for calls to @g@ in the callee
           -- and argument.
-          checkExpr (IR.App _ e1 e2 _) args = checkExpr e1 (e2 : args)
+          checkExpr (IR.App _ e1 e2 _) args          = checkExpr e1 (e2 : args)
             && checkExpr e2 []
           -- The arguments are not distributed among the branches of @if@
           -- and @case@ expressions.
           checkExpr (IR.If _ e1 e2 e3 _) _
             = checkExpr e1 [] && checkExpr e2 [] && checkExpr e3 []
-          checkExpr (IR.Case _ expr alts _) _ = checkExpr expr []
+          checkExpr (IR.Case _ expr alts _) _        = checkExpr expr []
             && all (flip checkAlt []) alts
           checkExpr (IR.Let _ binds expr _) _
             | x `shadowedBy` map IR.bindVarPat binds = not (callsG expr)
@@ -145,10 +145,10 @@ makeConstArgGraph decls = do
           checkExpr (IR.TypeAppExpr _ expr _ _) args = checkExpr expr args
           -- Constructors, literals and error terms cannot contain further
           -- calls to @g@.
-          checkExpr (IR.Con _ _ _) _ = True
-          checkExpr (IR.IntLiteral _ _ _) _ = True
-          checkExpr (IR.Undefined _ _) _ = True
-          checkExpr (IR.ErrorExpr _ _ _) _ = True
+          checkExpr (IR.Con _ _ _) _                 = True
+          checkExpr (IR.IntLiteral _ _ _) _          = True
+          checkExpr (IR.Undefined _ _) _             = True
+          checkExpr (IR.ErrorExpr _ _ _) _           = True
           -- | Applies 'checkExpr' to the alternative of a @case@ expression.
           --
           --   If a variable pattern shadows @x_i@, @x_i@ is not unchanged.

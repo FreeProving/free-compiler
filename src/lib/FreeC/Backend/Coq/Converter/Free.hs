@@ -139,7 +139,7 @@ generateBind expr' defaultPrefix argType' generateRHS = localEnv $ do
   suggestPrefixFor :: Coq.Term -> String
   suggestPrefixFor (Coq.Qualid qualid) = maybe defaultPrefix removeIndex
     (Coq.unpackQualid qualid)
-  suggestPrefixFor _ = defaultPrefix
+  suggestPrefixFor _                   = defaultPrefix
 
   -- | Removes a trailing underscore and number from the given string.
   removeIndex :: String -> String

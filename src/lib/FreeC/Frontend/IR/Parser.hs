@@ -94,7 +94,7 @@ identParser = varIdentToken <|> conIdentToken
 varIdentToken :: Parser String
 varIdentToken = tokenParser $ \t -> case t of
   VarIdent ident -> Just ident
-  _ -> Nothing
+  _              -> Nothing
 
 -- | Parser for IR constructor identifier tokens (see 'ConIdent').
 --
@@ -102,7 +102,7 @@ varIdentToken = tokenParser $ \t -> case t of
 conIdentToken :: Parser String
 conIdentToken = tokenParser $ \t -> case t of
   ConIdent ident -> Just ident
-  _ -> Nothing
+  _              -> Nothing
 
 -------------------------------------------------------------------------------
 -- Symbols                                                                   --
@@ -120,7 +120,7 @@ symbolParser = varSymbolToken <|> conSymbolToken
 varSymbolToken :: Parser String
 varSymbolToken = tokenParser $ \t -> case t of
   VarSymbol sym -> Just sym
-  _ -> Nothing
+  _             -> Nothing
 
 -- | Parser for IR constructor symbol tokens (see 'ConSymbol').
 --
@@ -128,7 +128,7 @@ varSymbolToken = tokenParser $ \t -> case t of
 conSymbolToken :: Parser String
 conSymbolToken = tokenParser $ \t -> case t of
   ConSymbol sym -> Just sym
-  _ -> Nothing
+  _             -> Nothing
 
 -------------------------------------------------------------------------------
 -- Module Names                                                              --
@@ -463,7 +463,7 @@ exprParser = setExprType <$> lExprParser
   --   The field is usually set to @Nothing@ but can be a @Just@ value if
   --   the parsed expression was in parenthesis.
   setExprType :: IR.Expr -> Maybe IR.TypeScheme -> IR.Expr
-  setExprType expr Nothing = expr
+  setExprType expr Nothing               = expr
   setExprType expr (Just exprTypeScheme)
     = expr { IR.exprTypeScheme = Just exprTypeScheme }
 
@@ -669,7 +669,7 @@ literalParser = IR.IntLiteral NoSrcSpan <$> integerToken <*> return Nothing
 integerToken :: Parser Integer
 integerToken = tokenParser $ \t -> case t of
   IntToken value -> Just value
-  _ -> Nothing
+  _              -> Nothing
 
 -- | Parser for a string literal token (see 'StrToken').
 --
@@ -677,4 +677,4 @@ integerToken = tokenParser $ \t -> case t of
 stringToken :: Parser String
 stringToken = tokenParser $ \t -> case t of
   StrToken value -> Just value
-  _ -> Nothing
+  _              -> Nothing

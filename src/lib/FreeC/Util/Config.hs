@@ -24,12 +24,12 @@ loadConfig :: (MonadIO r, MonadReporter r, Aeson.FromJSON a) => FilePath -> r a
 loadConfig filename = do
   contents <- liftIO $ readFile filename
   case takeExtension filename of
-    ".toml" -> decodeTomlConfig filename contents
-    ".json" -> decodeJsonConfig filename contents
+    ".toml"      -> decodeTomlConfig filename contents
+    ".json"      -> decodeJsonConfig filename contents
     '.' : format -> reportFatal
       $ Message (FileSpan filename) Error
       $ "Unknown configuration file format: " ++ format
-    _ -> reportFatal
+    _            -> reportFatal
       $ Message (FileSpan filename) Error
       $ "Missing extension. Cannot determine configuration file format."
 

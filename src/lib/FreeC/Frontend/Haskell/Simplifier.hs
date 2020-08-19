@@ -319,11 +319,12 @@ simplifyDecl decl@(HSE.RoleAnnotDecl _ _ _)
 --   type variables stored in the head of the declaration.
 simplifyDeclHead
   :: HSE.DeclHead SrcSpan -> Simplifier (IR.DeclIdent, [IR.TypeVarDecl])
-simplifyDeclHead (HSE.DHead _ declName) = do
+simplifyDeclHead (HSE.DHead _ declName)               = do
   declIdent <- simplifyDeclName declName
   return (declIdent, [])
-simplifyDeclHead (HSE.DHParen _ declHead) = simplifyDeclHead declHead
-simplifyDeclHead (HSE.DHApp _ declHead typeVarBind) = do
+simplifyDeclHead (HSE.DHParen _ declHead)
+  = simplifyDeclHead declHead
+simplifyDeclHead (HSE.DHApp _ declHead typeVarBind)   = do
   (declIdent, typeArgs) <- simplifyDeclHead declHead
   typeArg <- simplifyTypeVarBind typeVarBind
   return (declIdent, typeArgs ++ [typeArg])

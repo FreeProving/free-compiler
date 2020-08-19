@@ -141,35 +141,35 @@ mkIdentToken ident = case lookup ident keywords of
 --   Constructor symbols must be empty or start with one of @"["@, @":"@ or
 --   @","@.
 mkSymbolToken :: String -> Token
-mkSymbolToken "" = ConSymbol ""
+mkSymbolToken ""              = ConSymbol ""
 mkSymbolToken sym@(first : _) | first `elem` ['[', ':', ','] = ConSymbol sym
-mkSymbolToken sym = VarSymbol sym
+mkSymbolToken sym             = VarSymbol sym
 
 -- | Pretty prints a token.
 instance Pretty Token where
-  pretty (ConIdent ident) = prettyString ident
+  pretty (ConIdent ident)  = prettyString ident
   pretty (ConSymbol sym)
     = prettyString "(" <> prettyString sym <> prettyString ")"
-  pretty (VarIdent ident) = prettyString ident
+  pretty (VarIdent ident)  = prettyString ident
   pretty (VarSymbol sym)
     = prettyString "(" <> prettyString sym <> prettyString ")"
   pretty (Keyword keyword) = pretty keyword
-  pretty (IntToken value) = pretty value
-  pretty (StrToken value) = prettyString (show value)
-  pretty At = prettyString "@"
-  pretty Comma = prettyString ","
-  pretty Dot = prettyString "."
-  pretty DoubleColon = prettyString "::"
-  pretty Equals = prettyString "="
-  pretty Lambda = prettyString "\\"
-  pretty LBrace = prettyString "{"
-  pretty LParen = prettyString "("
-  pretty Pipe = prettyString "|"
-  pretty RBrace = prettyString "}"
-  pretty RParen = prettyString ")"
-  pretty RArrow = prettyString "->"
-  pretty Semi = prettyString ";"
-  pretty Bang = prettyString "!"
+  pretty (IntToken value)  = pretty value
+  pretty (StrToken value)  = prettyString (show value)
+  pretty At                = prettyString "@"
+  pretty Comma             = prettyString ","
+  pretty Dot               = prettyString "."
+  pretty DoubleColon       = prettyString "::"
+  pretty Equals            = prettyString "="
+  pretty Lambda            = prettyString "\\"
+  pretty LBrace            = prettyString "{"
+  pretty LParen            = prettyString "("
+  pretty Pipe              = prettyString "|"
+  pretty RBrace            = prettyString "}"
+  pretty RParen            = prettyString ")"
+  pretty RArrow            = prettyString "->"
+  pretty Semi              = prettyString ";"
+  pretty Bang              = prettyString "!"
 
 -------------------------------------------------------------------------------
 -- Special Symbols                                                           --
