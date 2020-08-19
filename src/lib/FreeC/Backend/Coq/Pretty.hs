@@ -12,7 +12,7 @@
 module FreeC.Backend.Coq.Pretty ( PrettyCoq(..), prettyCoq ) where
 
 import qualified Language.Coq.Gallina as Coq
-import           Language.Coq.Pretty ( Gallina, renderGallina )
+import           Language.Coq.Pretty  ( Gallina, renderGallina )
 
 import           FreeC.Pretty
 

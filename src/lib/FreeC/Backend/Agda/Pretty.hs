@@ -13,9 +13,9 @@ module FreeC.Backend.Agda.Pretty ( prettyAgda ) where
 
 -- We just need the pretty instances from 'Agda.Syntax.Concrete.Pretty'.
 import qualified Agda.Syntax.Concrete.Pretty ()
-import qualified Agda.Utils.Pretty as Agda
+import qualified Agda.Utils.Pretty           as Agda
 
-import qualified FreeC.Backend.Agda.Syntax as Agda
+import qualified FreeC.Backend.Agda.Syntax   as Agda
 import           FreeC.Pretty
 
 -- | Wrapper data type that makes any 'Agda.Pretty' instance pretty printable.

@@ -12,7 +12,7 @@ module FreeC.Backend.Agda.Converter.Free
   , addPartial
   ) where
 
-import qualified FreeC.Backend.Agda.Base as Agda.Base
+import qualified FreeC.Backend.Agda.Base   as Agda.Base
 import qualified FreeC.Backend.Agda.Syntax as Agda
 
 -- | Applies the @pure@ constructor of the free monad to the given expression.
@@ -83,4 +83,4 @@ errorExpr = Agda.ident "error"
 addPartial :: Agda.Expr -> Agda.Expr
 addPartial = Agda.fun $ Agda.InstanceArg Agda.NoRange $ Agda.unnamed partial'
  where
-   partial' = partial `Agda.app` shape `Agda.app` position
+  partial' = partial `Agda.app` shape `Agda.app` position

@@ -25,24 +25,24 @@ module FreeC.Environment.Renamer
   , renameAndDefineLIRVar
   ) where
 
-import           Control.Monad ( when )
+import           Control.Monad               ( when )
 import           Data.Char
-import           Data.Composition ( (.:) )
-import           Data.List.Extra ( splitOn )
-import           Data.Maybe ( fromMaybe, mapMaybe )
+import           Data.Composition            ( (.:) )
+import           Data.List.Extra             ( splitOn )
+import           Data.Maybe                  ( fromMaybe, mapMaybe )
 import           Text.Casing
 import           Text.RegexPR
 
-import qualified FreeC.Backend.Agda.Base as Agda.Base
+import qualified FreeC.Backend.Agda.Base     as Agda.Base
 import           FreeC.Backend.Agda.Keywords
-import qualified FreeC.Backend.Agda.Syntax as Agda
-import qualified FreeC.Backend.Coq.Base as Coq.Base
+import qualified FreeC.Backend.Agda.Syntax   as Agda
+import qualified FreeC.Backend.Coq.Base      as Coq.Base
 import           FreeC.Backend.Coq.Keywords
-import qualified FreeC.Backend.Coq.Syntax as Coq
+import qualified FreeC.Backend.Coq.Syntax    as Coq
 import           FreeC.Environment
 import           FreeC.Environment.Entry
 import           FreeC.IR.SrcSpan
-import qualified FreeC.IR.Syntax as IR
+import qualified FreeC.IR.Syntax             as IR
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
 import           FreeC.Pretty
@@ -129,19 +129,19 @@ sanitizeIdent [] = "_"
 sanitizeIdent (firstChar : subsequentChars)
   = sanitizeFirstChar firstChar : map sanitizeChar subsequentChars
  where
-   -- | Replaces the given character with an underscore if it is not allowed
-   --   to occur in the first place of a Coq identifier.
-   sanitizeFirstChar :: Char -> Char
-   sanitizeFirstChar c
-     | isAllowedFirstChar c = c
-     | otherwise = '_'
+  -- | Replaces the given character with an underscore if it is not allowed
+  --   to occur in the first place of a Coq identifier.
+  sanitizeFirstChar :: Char -> Char
+  sanitizeFirstChar c
+    | isAllowedFirstChar c = c
+    | otherwise = '_'
 
-   -- | Replaces the given character with an underscore if it is not allowed
-   --   to occur in a Coq identifier.
-   sanitizeChar :: Char -> Char
-   sanitizeChar c
-     | isAllowedChar c = c
-     | otherwise = '_'
+  -- | Replaces the given character with an underscore if it is not allowed
+  --   to occur in a Coq identifier.
+  sanitizeChar :: Char -> Char
+  sanitizeChar c
+    | isAllowedChar c = c
+    | otherwise = '_'
 
 -- | Renames a Haskell identifier such that it can be safely used in Coq.
 --
@@ -157,8 +157,8 @@ renameIdent ident env
     Nothing -> renameIdent' ident' 0 env
   | otherwise = ident'
  where
-   ident' :: String
-   ident' = sanitizeIdent ident
+  ident' :: String
+  ident' = sanitizeIdent ident
 
 -- | Renames an identifier by appending a number. The number is increased
 --   until the resulting identifier is available.
@@ -167,8 +167,8 @@ renameIdent' ident n env
   | mustRenameIdent identN env = renameIdent' ident (n + 1) env
   | otherwise = identN
  where
-   identN :: String
-   identN = ident ++ show n
+  identN :: String
+  identN = ident ++ show n
 
 -- | Like 'renameIdent' but the Coq identifier is wrapped in a "Coq.Qualid".
 renameQualid :: String -> Environment -> Coq.Qualid
@@ -225,8 +225,8 @@ renameEntry entry env
                       , entryAgdaIdent = renameAgdaQualid ident env
                       }
  where
-   ident :: String
-   ident = fromMaybe "op" $ IR.identFromQName (entryName entry)
+  ident :: String
+  ident = fromMaybe "op" $ IR.identFromQName (entryName entry)
 
 -- | Renames the identifier of the given entry such that it does not cause
 --   any name conflict in the current environment and inserts it into the
@@ -375,9 +375,9 @@ informIfRenamed entry entry' = do
     ++ ident'
     ++ "'."
  where
-   ident, ident' :: String
-   ident = fromMaybe "op" $ IR.identFromQName (entryName entry)
+  ident, ident' :: String
+  ident = fromMaybe "op" $ IR.identFromQName (entryName entry)
 
-   Just ident'
-     | entryHasSmartIdent entry = Coq.unpackQualid (entrySmartIdent entry')
-     | otherwise = Coq.unpackQualid (entryIdent entry')
+  Just ident'
+    | entryHasSmartIdent entry = Coq.unpackQualid (entrySmartIdent entry')
+    | otherwise = Coq.unpackQualid (entryIdent entry')

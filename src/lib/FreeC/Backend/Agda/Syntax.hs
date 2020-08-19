@@ -36,7 +36,7 @@ module FreeC.Backend.Agda.Syntax
   , pi
   ) where
 
-import           Prelude hiding ( pi )
+import           Prelude              hiding ( pi )
 
 import           Agda.Syntax.Common
 import           Agda.Syntax.Concrete
@@ -96,9 +96,9 @@ patternSyn = PatternSyn NoRange
 funcDef :: QName -> [QName] -> Expr -> Declaration
 funcDef funcName argNames rhs = FunClause lhs' (RHS rhs) NoWhere False
  where
-   argPattern = foldl appP (IdentP funcName) $ map IdentP argNames
+  argPattern = foldl appP (IdentP funcName) $ map IdentP argNames
 
-   lhs'       = LHS argPattern [] [] $ ExpandedEllipsis NoRange 0
+  lhs'       = LHS argPattern [] [] $ ExpandedEllipsis NoRange 0
 
 -------------------------------------------------------------------------------
 -- Pattern                                                                   --
@@ -275,7 +275,7 @@ pi decls expr
   | (Pi binders expr') <- expr = Pi (binder : binders) expr'
   | otherwise = Pi [binder] expr
  where
-   binder = TBind NoRange (map hiddenArg decls) $ Underscore NoRange Nothing
+  binder = TBind NoRange (map hiddenArg decls) $ Underscore NoRange Nothing
 
 -- | Helper function for creating hidden named arguments.
 hiddenArg :: Name -> NamedArg Binder

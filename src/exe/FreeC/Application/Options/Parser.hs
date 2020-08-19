@@ -2,7 +2,7 @@
 module FreeC.Application.Options.Parser ( parseArgs, getAndParseArgs ) where
 
 import           System.Console.GetOpt
-import           System.Environment ( getArgs )
+import           System.Environment                    ( getArgs )
 
 import           FreeC.Application.Options
 import           FreeC.Application.Options.Descriptors
@@ -31,10 +31,10 @@ parseArgs defaultOptions args
       $ Message NoSrcSpan Error ("Failed to parse command line arguments.\n"
                                  ++ "Use '--help' for usage information.")
  where
-   optSetters :: [Options -> Options]
-   nonOpts :: [String]
-   errors :: [String]
-   (optSetters, nonOpts, errors) = getOpt Permute optionDescriptors args
+  optSetters :: [Options -> Options]
+  nonOpts :: [String]
+  errors :: [String]
+  (optSetters, nonOpts, errors) = getOpt Permute optionDescriptors args
 
 -- | Gets the 'Options' for the command line arguments that were passed to
 --   the application.

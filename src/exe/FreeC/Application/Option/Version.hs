@@ -6,9 +6,9 @@
 --   of the Git commit at compile time.
 module FreeC.Application.Option.Version where
 
-import           Data.Either.Extra ( eitherToMaybe )
-import           Data.List ( intercalate )
-import           Data.Maybe ( maybeToList )
+import           Data.Either.Extra   ( eitherToMaybe )
+import           Data.List           ( intercalate )
+import           Data.Maybe          ( maybeToList )
 import           Data.Version
 import           GitHash
 import           Paths_free_compiler
@@ -43,27 +43,27 @@ putVersionInfo = do
             ++ intercalate ", " versionDetails
             ++ ")")
  where
-   -- | Additional information about the version.
-   --
-   --   Includes information about the Git Repository, compiler and operating
-   --   system that were used to compile the Free Compiler.
-   versionDetails :: [String]
-   versionDetails = maybeToList gitDescription
-     ++ [compilerName ++ " " ++ showVersion compilerVersion, os, arch]
+  -- | Additional information about the version.
+  --
+  --   Includes information about the Git Repository, compiler and operating
+  --   system that were used to compile the Free Compiler.
+  versionDetails :: [String]
+  versionDetails = maybeToList gitDescription
+    ++ [compilerName ++ " " ++ showVersion compilerVersion, os, arch]
 
-   -- | The output of @git describe --always --dirty@ for the most recent
-   --   commit at compile time or @Nothing@ if the compilation directory was
-   --   not a Git Repository.
-   gitDescription :: Maybe String
-   gitDescription = giDescribeDirty <$> eitherToMaybe gitInfoOrError
+  -- | The output of @git describe --always --dirty@ for the most recent
+  --   commit at compile time or @Nothing@ if the compilation directory was
+  --   not a Git Repository.
+  gitDescription :: Maybe String
+  gitDescription = giDescribeDirty <$> eitherToMaybe gitInfoOrError
 
-   -- | Compile time information about the current Git commit.
-   gitInfoOrError :: Either String GitInfo
-   gitInfoOrError = $$tGitInfoCwdTry
+  -- | Compile time information about the current Git commit.
+  gitInfoOrError :: Either String GitInfo
+  gitInfoOrError = $$tGitInfoCwdTry
 
-   -- | Gets the output of @git describe --always --dirty@ for the most recent
-   --   commit at compile time.
-   giDescribeDirty :: GitInfo -> String
-   giDescribeDirty gitInfo
-     | giDirty gitInfo = giDescribe gitInfo ++ "-dirty"
-     | otherwise = giDescribe gitInfo
+  -- | Gets the output of @git describe --always --dirty@ for the most recent
+  --   commit at compile time.
+  giDescribeDirty :: GitInfo -> String
+  giDescribeDirty gitInfo
+    | giDirty gitInfo = giDescribe gitInfo ++ "-dirty"
+    | otherwise = giDescribe gitInfo

@@ -61,14 +61,14 @@ module FreeC.IR.DependencyGraph
   , mapComponentM_
   ) where
 
-import           Control.Monad ( liftM2, void )
+import           Control.Monad      ( liftM2, void )
 import           Control.Monad.Fail ( MonadFail )
 import           Data.Graph
-import           Data.Maybe ( mapMaybe )
+import           Data.Maybe         ( mapMaybe )
 import           Data.Tuple.Extra
 
 import           FreeC.IR.Reference ( typeRefs, valueRefs )
-import qualified FreeC.IR.Syntax as IR
+import qualified FreeC.IR.Syntax    as IR
 import           FreeC.Pretty
 
 -------------------------------------------------------------------------------
@@ -131,11 +131,11 @@ dependsDirectlyOn :: DependencyGraph node -- ^ The dependency graph.
                   -> Bool
 dependsDirectlyOn graph k1 k2 = containsEdge == Just True
  where
-   containsEdge :: Maybe Bool
-   containsEdge = do
-     v1 <- dgGetVertex graph k1
-     v2 <- dgGetVertex graph k2
-     return ((v1, v2) `elem` dgEdges graph)
+  containsEdge :: Maybe Bool
+  containsEdge = do
+    v1 <- dgGetVertex graph k1
+    v2 <- dgGetVertex graph k2
+    return ((v1, v2) `elem` dgEdges graph)
 
 -------------------------------------------------------------------------------
 -- Type Dependencies                                                         --
@@ -189,46 +189,45 @@ instance Pretty (DependencyGraph node) where
     <+> braces (line <> indent 2 (vcat (nodeDocs ++ edgesDocs)) <> line)
     <> line
    where
-     -- | A document for the DOT digraph keyword.
-     digraph :: Doc
-     digraph = prettyString "digraph"
+    -- | A document for the DOT digraph keyword.
+    digraph :: Doc
+    digraph = prettyString "digraph"
 
-     -- | A document for the DOT label attribute.
-     label :: Doc
-     label = prettyString "label"
+    -- | A document for the DOT label attribute.
+    label :: Doc
+    label = prettyString "label"
 
-     -- | A document for the DOT arrow symbol.
-     arrow :: Doc
-     arrow = prettyString "->"
+    -- | A document for the DOT arrow symbol.
+    arrow :: Doc
+    arrow = prettyString "->"
 
-     -- | Pretty printed DOT nodes for the dependency graph.
-     nodeDocs :: [Doc]
-     nodeDocs = map prettyNode (vertices graph)
+    -- | Pretty printed DOT nodes for the dependency graph.
+    nodeDocs :: [Doc]
+    nodeDocs = map prettyNode (vertices graph)
 
-     -- | Pretty prints the given vertex as a DOT command. The key of the node
-     --   is used a the label.
-     prettyNode :: Vertex -> Doc
-     prettyNode v
-       = let (_, key, _) = getEntry v
-         in int v
-            <+> brackets (label <> equals <> dquotes (pretty key)) <> semi
+    -- | Pretty prints the given vertex as a DOT command. The key of the node
+    --   is used a the label.
+    prettyNode :: Vertex -> Doc
+    prettyNode v
+      = let (_, key, _) = getEntry v
+        in int v <+> brackets (label <> equals <> dquotes (pretty key)) <> semi
 
-     -- | Pretty printed DOT edges for the dependency graph.
-     edgesDocs :: [Doc]
-     edgesDocs = mapMaybe prettyEdges (vertices graph)
+    -- | Pretty printed DOT edges for the dependency graph.
+    edgesDocs :: [Doc]
+    edgesDocs = mapMaybe prettyEdges (vertices graph)
 
-     -- | Pretty prints all outgoing edges of the given vertex as a single
-     --   DOT command. Returns 'Nothing' if the vertex is not incident to
-     --   any edge.
-     prettyEdges :: Vertex -> Maybe Doc
-     prettyEdges v
-       = let (_, _, neighbors) = getEntry v
-         in case mapMaybe getVertex neighbors of
-              [] -> Nothing
-              vs -> Just
-                $ int v
-                <+> arrow
-                <+> braces (cat (punctuate comma (map int vs))) <> semi
+    -- | Pretty prints all outgoing edges of the given vertex as a single
+    --   DOT command. Returns 'Nothing' if the vertex is not incident to
+    --   any edge.
+    prettyEdges :: Vertex -> Maybe Doc
+    prettyEdges v
+      = let (_, _, neighbors) = getEntry v
+        in case mapMaybe getVertex neighbors of
+             [] -> Nothing
+             vs -> Just
+               $ int v
+               <+> arrow
+               <+> braces (cat (punctuate comma (map int vs))) <> semi
 
 -------------------------------------------------------------------------------
 -- Strongly Connected Components                                             --
@@ -268,11 +267,11 @@ unwrapComponent (Recursive decls)   = decls
 dependencyComponents :: DependencyGraph a -> [DependencyComponent a]
 dependencyComponents = map convertSCC . stronglyConnComp . dgEntries
  where
-   -- | Converts a strongly connected component from @Data.Graph@ to a
-   --   'DependencyComponent'.
-   convertSCC :: SCC decl -> DependencyComponent decl
-   convertSCC (AcyclicSCC decl) = NonRecursive decl
-   convertSCC (CyclicSCC decls) = Recursive decls
+  -- | Converts a strongly connected component from @Data.Graph@ to a
+  --   'DependencyComponent'.
+  convertSCC :: SCC decl -> DependencyComponent decl
+  convertSCC (AcyclicSCC decl) = NonRecursive decl
+  convertSCC (CyclicSCC decls) = Recursive decls
 
 -- | Combines the construction of the dependency graphs for the given
 --   type declarations (See 'typeDependencyGraph') with the computation of

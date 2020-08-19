@@ -40,19 +40,19 @@ module FreeC.Environment
   , lookupDecArgIdent
   ) where
 
-import           Data.Composition ( (.:), (.:.) )
-import           Data.List ( find )
-import           Data.Map.Strict ( Map )
-import qualified Data.Map.Strict as Map
-import           Data.Maybe ( isJust )
-import           Data.Tuple.Extra ( (&&&) )
+import           Data.Composition                  ( (.:), (.:.) )
+import           Data.List                         ( find )
+import           Data.Map.Strict                   ( Map )
+import qualified Data.Map.Strict                   as Map
+import           Data.Maybe                        ( isJust )
+import           Data.Tuple.Extra                  ( (&&&) )
 
-import qualified FreeC.Backend.Agda.Syntax as Agda
-import qualified FreeC.Backend.Coq.Syntax as Coq
+import qualified FreeC.Backend.Agda.Syntax         as Agda
+import qualified FreeC.Backend.Coq.Syntax          as Coq
 import           FreeC.Environment.Entry
 import           FreeC.Environment.ModuleInterface
 import           FreeC.IR.SrcSpan
-import qualified FreeC.IR.Syntax as IR
+import qualified FreeC.IR.Syntax                   as IR
 import           FreeC.Util.Predicate
 
 -------------------------------------------------------------------------------
@@ -189,18 +189,18 @@ lookupSmartIdent
 usedIdents :: Environment -> [Coq.Qualid]
 usedIdents = concatMap entryIdents . Map.elems . envEntries
  where
-   entryIdents :: EnvEntry -> [Coq.Qualid]
-   entryIdents entry
-     = entryIdent entry : [entrySmartIdent entry | isConEntry entry]
+  entryIdents :: EnvEntry -> [Coq.Qualid]
+  entryIdents entry
+    = entryIdent entry : [entrySmartIdent entry | isConEntry entry]
 
 -- | Gets a list of Agda identifiers for functions, (type/smart) constructors,
 --   (type/fresh) variables that were used in the given environment already.
 usedAgdaIdents :: Environment -> [Agda.QName]
 usedAgdaIdents = concatMap entryIdents . Map.elems . envEntries
  where
-   entryIdents :: EnvEntry -> [Agda.QName]
-   entryIdents entry
-     = entryAgdaIdent entry : [entryAgdaSmartIdent entry | isConEntry entry]
+  entryIdents :: EnvEntry -> [Agda.QName]
+  entryIdents entry
+    = entryAgdaIdent entry : [entryAgdaSmartIdent entry | isConEntry entry]
 
 -- | Looks up the location of the declaration with the given name.
 lookupSrcSpan :: IR.Scope -> IR.QName -> Environment -> Maybe SrcSpan

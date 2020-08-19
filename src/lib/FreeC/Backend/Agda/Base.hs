@@ -20,7 +20,7 @@ module FreeC.Backend.Agda.Base
 
 -- We always import this module qualified, therefore clashing with the Prelude
 -- isn't a problem.
-import           Prelude hiding ( pure )
+import           Prelude                   hiding ( pure )
 
 import qualified FreeC.Backend.Agda.Syntax as Agda
 

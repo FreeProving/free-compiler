@@ -23,8 +23,8 @@ module FreeC.Pretty
   , showPretty
   ) where
 
-import           Data.List ( intersperse )
-import qualified Data.Text.Lazy as LazyText
+import           Data.List                    ( intersperse )
+import qualified Data.Text.Lazy               as LazyText
 import           System.IO
 import           Text.PrettyPrint.Leijen.Text hiding ( (<$>) )
 
@@ -79,14 +79,14 @@ instance Pretty a => Pretty (TrailingLine a) where
 renderPretty' :: Pretty a => a -> SimpleDoc
 renderPretty' = renderPretty ribbonFrac maxLineWidth . pretty
  where
-   ribbonWidth :: Int
-   ribbonWidth = 80
+  ribbonWidth :: Int
+  ribbonWidth = 80
 
-   maxLineWidth :: Int
-   maxLineWidth = 120
+  maxLineWidth :: Int
+  maxLineWidth = 120
 
-   ribbonFrac :: Float
-   ribbonFrac = fromIntegral ribbonWidth / fromIntegral maxLineWidth
+  ribbonFrac :: Float
+  ribbonFrac = fromIntegral ribbonWidth / fromIntegral maxLineWidth
 
 -------------------------------------------------------------------------------
 -- Output                                                                    --

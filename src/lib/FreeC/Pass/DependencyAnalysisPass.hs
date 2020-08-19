@@ -41,7 +41,7 @@ module FreeC.Pass.DependencyAnalysisPass
   ) where
 
 import           FreeC.IR.DependencyGraph
-import qualified FreeC.IR.Syntax as IR
+import qualified FreeC.IR.Syntax          as IR
 import           FreeC.Monad.Converter
 import           FreeC.Pass
 
@@ -86,6 +86,6 @@ dependencyAnalysisPass :: DependencyAnalysisPass decl
                        -> Converter IR.Module
 dependencyAnalysisPass = subPipelinePass getComponents setComponents
  where
-   getComponents     = groupDecls . getDecls
+  getComponents     = groupDecls . getDecls
 
-   setComponents ast = setDecls ast . concatMap unwrapComponent
+  setComponents ast = setDecls ast . concatMap unwrapComponent

@@ -13,12 +13,11 @@ import           FreeC.PipelineTests
 
 -- | Runs all unit tests for the Free Compiler.
 main :: IO ()
-main = hspec
-  $ do
-    testEnvironment
-    testIR
-    testIRFrontend
-    testAgdaBackend
-    testCoqBackend
-    testPipeline
-    testReporter
+main = hspec $ do
+  testEnvironment
+  testIR
+  testIRFrontend
+  testAgdaBackend
+  testCoqBackend
+  testPipeline
+  testReporter

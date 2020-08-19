@@ -2,21 +2,21 @@
 --   declarations and their constructors.
 module FreeC.Backend.Agda.Converter.TypeDecl ( convertTypeDecls ) where
 
-import           Data.List.Extra ( snoc )
+import           Data.List.Extra                   ( snoc )
 
-import qualified FreeC.Backend.Agda.Base as Agda.Base
-import           FreeC.Backend.Agda.Converter.Arg ( convertTypeVarDecl )
+import qualified FreeC.Backend.Agda.Base           as Agda.Base
+import           FreeC.Backend.Agda.Converter.Arg  ( convertTypeVarDecl )
 import           FreeC.Backend.Agda.Converter.Free
 import           FreeC.Backend.Agda.Converter.Size
 import           FreeC.Backend.Agda.Converter.Type ( convertLiftedConType )
-import qualified FreeC.Backend.Agda.Syntax as Agda
-import           FreeC.Environment.Fresh ( freshAgdaVar )
+import qualified FreeC.Backend.Agda.Syntax         as Agda
+import           FreeC.Environment.Fresh           ( freshAgdaVar )
 import           FreeC.Environment.LookupOrFail
 import           FreeC.IR.DependencyGraph
-import           FreeC.IR.SrcSpan ( SrcSpan(NoSrcSpan) )
-import qualified FreeC.IR.Syntax as IR
-import           FreeC.LiftedIR.Converter.Type ( liftConArgType, liftType' )
-import           FreeC.Monad.Converter ( Converter, localEnv )
+import           FreeC.IR.SrcSpan                  ( SrcSpan(NoSrcSpan) )
+import qualified FreeC.IR.Syntax                   as IR
+import           FreeC.LiftedIR.Converter.Type     ( liftConArgType, liftType' )
+import           FreeC.Monad.Converter             ( Converter, localEnv )
 import           FreeC.Monad.Reporter
   ( Message(Message), Severity(Error), reportFatal )
 
@@ -74,8 +74,8 @@ convertDataDecl ident@(IR.DeclIdent srcSpan name) typeVars constrs isRec
   <*> pure universe
   <*> convertConDecls ident typeVars constrs
  where
-   universe
-     = if isRec then Agda.hiddenArg_ size `Agda.fun` Agda.set else Agda.set
+  universe
+    = if isRec then Agda.hiddenArg_ size `Agda.fun` Agda.set else Agda.set
 
 -- | Converts all constructors of a data declaration.
 --
@@ -90,8 +90,8 @@ convertConDecls
 convertConDecls (IR.DeclIdent srcSpan ident) typeVars
   = mapM $ convertConDecl ident constructedType
  where
-   constructedType = IR.typeApp NoSrcSpan (IR.TypeCon srcSpan ident)
-     $ map IR.typeVarDeclToType typeVars
+  constructedType = IR.typeApp NoSrcSpan (IR.TypeCon srcSpan ident)
+    $ map IR.typeVarDeclToType typeVars
 
 -- | Converts a single constructor of a data type.
 convertConDecl
@@ -112,11 +112,10 @@ convertConDecl ident retType (IR.ConDecl _ (IR.DeclIdent srcSpan name) argTypes)
 generateSmartConDecl :: IR.ConDecl -> Converter Agda.Declaration
 generateSmartConDecl (IR.ConDecl _ (IR.DeclIdent srcSpan name) argTypes) = do
   smartName <- lookupUnQualAgdaSmartIdentOrFail srcSpan name
-  patternDecl smartName (replicate (length argTypes) "x")
-    $ \vars -> do
-      normalName <- Agda.IdentP <$> lookupAgdaValIdentOrFail srcSpan name
-      let pureVal = foldl Agda.appP normalName vars
-      return (Agda.IdentP (Agda.qname' Agda.Base.pure) `Agda.appP` pureVal)
+  patternDecl smartName (replicate (length argTypes) "x") $ \vars -> do
+    normalName <- Agda.IdentP <$> lookupAgdaValIdentOrFail srcSpan name
+    let pureVal = foldl Agda.appP normalName vars
+    return (Agda.IdentP (Agda.qname' Agda.Base.pure) `Agda.appP` pureVal)
 
 -------------------------------------------------------------------------------
 -- Specialized Syntax                                                        --
@@ -141,9 +140,8 @@ patternDecl
   -> ([Agda.Pattern] -> Converter Agda.Pattern)
   -- ^ Continuation for creating the definition using the new variables.
   -> Converter Agda.Declaration
-patternDecl name vars k = localEnv
-  $ do
-    names <- mapM freshAgdaVar vars
-    let decls       = map (Agda.Arg Agda.defaultArgInfo . Agda.unqualify) names
-        varPatterns = map Agda.IdentP names
-    Agda.patternSyn name decls <$> k varPatterns
+patternDecl name vars k = localEnv $ do
+  names <- mapM freshAgdaVar vars
+  let decls       = map (Agda.Arg Agda.defaultArgInfo . Agda.unqualify) names
+      varPatterns = map Agda.IdentP names
+  Agda.patternSyn name decls <$> k varPatterns

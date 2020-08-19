@@ -7,9 +7,9 @@ module FreeC.Backend.Coq.Converter.FuncDecl.NonRec
 
 import           FreeC.Backend.Coq.Converter.Expr
 import           FreeC.Backend.Coq.Converter.FuncDecl.Common
-import qualified FreeC.Backend.Coq.Syntax as Coq
+import qualified FreeC.Backend.Coq.Syntax                    as Coq
 import           FreeC.IR.DependencyGraph
-import qualified FreeC.IR.Syntax as IR
+import qualified FreeC.IR.Syntax                             as IR
 import           FreeC.Monad.Converter
 
 -- | Converts non-recursive but possibly linear dependent Haskell functions
@@ -24,8 +24,7 @@ convertNonRecFuncDecls decls
 -- | Converts a non-recursive Haskell function declaration to a Coq
 --   @Definition@ sentence.
 convertNonRecFuncDecl :: IR.FuncDecl -> Converter Coq.Sentence
-convertNonRecFuncDecl funcDecl = localEnv
-  $ do
-    (qualid, binders, returnType') <- convertFuncHead funcDecl
-    rhs' <- convertExpr (IR.funcDeclRhs funcDecl)
-    return (Coq.definitionSentence qualid binders returnType' rhs')
+convertNonRecFuncDecl funcDecl = localEnv $ do
+  (qualid, binders, returnType') <- convertFuncHead funcDecl
+  rhs' <- convertExpr (IR.funcDeclRhs funcDecl)
+  return (Coq.definitionSentence qualid binders returnType' rhs')

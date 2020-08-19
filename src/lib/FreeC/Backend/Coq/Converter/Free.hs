@@ -2,11 +2,11 @@
 --   that uses the @Free@ monad.
 module FreeC.Backend.Coq.Converter.Free where
 
-import           Data.List ( elemIndex )
-import           Data.List.NonEmpty ( NonEmpty(..) )
-import           Data.Maybe ( maybe )
+import           Data.List                ( elemIndex )
+import           Data.List.NonEmpty       ( NonEmpty(..) )
+import           Data.Maybe               ( maybe )
 
-import qualified FreeC.Backend.Coq.Base as Coq.Base
+import qualified FreeC.Backend.Coq.Base   as Coq.Base
 import qualified FreeC.Backend.Coq.Syntax as Coq
 import           FreeC.Environment.Fresh
 import           FreeC.Monad.Converter
@@ -56,11 +56,11 @@ genericApply' func effectArgs implicitArgs args
   | otherwise
     = let (Coq.Qualid qualid) = func in Coq.explicitApp qualid allArgs
  where
-   genericArgs :: [Coq.Term]
-   genericArgs = map (Coq.Qualid . fst) Coq.Base.freeArgs
+  genericArgs :: [Coq.Term]
+  genericArgs = map (Coq.Qualid . fst) Coq.Base.freeArgs
 
-   allArgs :: [Coq.Term]
-   allArgs = genericArgs ++ effectArgs ++ implicitArgs ++ args
+  allArgs :: [Coq.Term]
+  allArgs = genericArgs ++ effectArgs ++ implicitArgs ++ args
 
 -------------------------------------------------------------------------------
 -- Free Monad Operations                                                     --
@@ -94,13 +94,12 @@ generateBinds exprs' defaultPrefix areStrict argTypes' generateRHS
   = generateBinds' (zip3 exprs' (areStrict ++ repeat False)
                     (argTypes' ++ repeat Nothing)) []
  where
-   generateBinds'
-     :: [(Coq.Term, Bool, Maybe Coq.Term)] -> [Coq.Term] -> Converter Coq.Term
-   generateBinds' [] acc = generateRHS acc
-   generateBinds' ((expr', isStrict, argType') : xs) acc = if isStrict
-     then generateBind expr' defaultPrefix argType'
-       $ \arg -> generateBinds' xs (acc ++ [arg])
-     else generateBinds' xs (acc ++ [expr'])
+  generateBinds'
+    :: [(Coq.Term, Bool, Maybe Coq.Term)] -> [Coq.Term] -> Converter Coq.Term
+  generateBinds' [] acc = generateRHS acc
+  generateBinds' ((expr', isStrict, argType') : xs) acc
+    = if isStrict then generateBind expr' defaultPrefix argType' $ \arg ->
+      generateBinds' xs (acc ++ [arg]) else generateBinds' xs (acc ++ [expr'])
 
 -- | Generates a Coq expressions that binds the given value to a fresh variable.
 --
@@ -129,22 +128,21 @@ generateBind
   -> Converter Coq.Term
 generateBind (Coq.App (Coq.Qualid con) (Coq.PosArg arg :| [])) _ _ generateRHS
   | con == Coq.Base.freePureCon = generateRHS arg
-generateBind expr' defaultPrefix argType' generateRHS = localEnv
-  $ do
-    x <- freshCoqQualid (suggestPrefixFor expr')
-    rhs <- generateRHS (Coq.Qualid x)
-    return (Coq.app (Coq.Qualid Coq.Base.freeBind)
-            [expr', Coq.fun [x] [argType'] rhs])
+generateBind expr' defaultPrefix argType' generateRHS = localEnv $ do
+  x <- freshCoqQualid (suggestPrefixFor expr')
+  rhs <- generateRHS (Coq.Qualid x)
+  return
+    (Coq.app (Coq.Qualid Coq.Base.freeBind) [expr', Coq.fun [x] [argType'] rhs])
  where
-   -- | Suggests a prefix for the fresh variable the given expression
-   --   is bound to.
-   suggestPrefixFor :: Coq.Term -> String
-   suggestPrefixFor (Coq.Qualid qualid) = maybe defaultPrefix removeIndex
-     (Coq.unpackQualid qualid)
-   suggestPrefixFor _ = defaultPrefix
+  -- | Suggests a prefix for the fresh variable the given expression
+  --   is bound to.
+  suggestPrefixFor :: Coq.Term -> String
+  suggestPrefixFor (Coq.Qualid qualid) = maybe defaultPrefix removeIndex
+    (Coq.unpackQualid qualid)
+  suggestPrefixFor _ = defaultPrefix
 
-   -- | Removes a trailing underscore and number from the given string.
-   removeIndex :: String -> String
-   removeIndex ident = case elemIndex '_' ident of
-     Just usIndex -> take usIndex ident
-     Nothing      -> ident
+  -- | Removes a trailing underscore and number from the given string.
+  removeIndex :: String -> String
+  removeIndex ident = case elemIndex '_' ident of
+    Just usIndex -> take usIndex ident
+    Nothing      -> ident

@@ -26,17 +26,17 @@ module FreeC.IR.Reference
   , freeVarSet
   ) where
 
-import           Data.Composition ( (.:) )
-import qualified Data.Foldable as OSet ( toList )
-import           Data.Maybe ( fromJust )
-import           Data.Set ( Set )
-import qualified Data.Set as Set
-import           Data.Set.Ordered ( (\\), OSet )
-import qualified Data.Set.Ordered as OSet
+import           Data.Composition      ( (.:) )
+import qualified Data.Foldable         as OSet ( toList )
+import           Data.Maybe            ( fromJust )
+import           Data.Set              ( Set )
+import qualified Data.Set              as Set
+import           Data.Set.Ordered      ( (\\), OSet )
+import qualified Data.Set.Ordered      as OSet
 
 import qualified FreeC.IR.Base.Prelude as IR.Prelude
-import qualified FreeC.IR.Syntax as IR
-import           FreeC.Util.Predicate ( (.&&.) )
+import qualified FreeC.IR.Syntax       as IR
+import           FreeC.Util.Predicate  ( (.&&.) )
 
 -------------------------------------------------------------------------------
 -- References                                                                --

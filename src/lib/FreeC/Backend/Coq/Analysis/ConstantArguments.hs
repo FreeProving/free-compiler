@@ -30,17 +30,17 @@ module FreeC.Backend.Coq.Analysis.ConstantArguments
   , identifyConstArgs
   ) where
 
-import           Control.Monad ( guard )
+import           Control.Monad            ( guard )
 import           Data.Graph
-import           Data.List ( elemIndex, intercalate, nub )
-import           Data.Map.Strict ( Map )
-import qualified Data.Map.Strict as Map
-import           Data.Maybe ( fromJust, mapMaybe, maybeToList )
+import           Data.List                ( elemIndex, intercalate, nub )
+import           Data.Map.Strict          ( Map )
+import qualified Data.Map.Strict          as Map
+import           Data.Maybe               ( fromJust, mapMaybe, maybeToList )
 
 import           FreeC.Environment.Fresh
 import           FreeC.IR.DependencyGraph
-import           FreeC.IR.Reference ( freeVarSet )
-import qualified FreeC.IR.Syntax as IR
+import           FreeC.IR.Reference       ( freeVarSet )
+import qualified FreeC.IR.Syntax          as IR
 import           FreeC.Monad.Converter
 
 -------------------------------------------------------------------------------
@@ -165,15 +165,15 @@ makeConstArgGraph decls = do
         return (g, y)
   return (node, node, adjacent)
  where
-   -- | There is one node for each argument of every function declaration.
-   nodes :: [(CGNode, Int, IR.Expr)]
-   nodes = do
-     decl <- decls
-     let funcName = IR.funcDeclQName decl
-         args     = IR.funcDeclArgs decl
-         rhs      = IR.funcDeclRhs decl
-     (argName, argIndex) <- zip (map IR.varPatIdent args) [0 ..]
-     return ((funcName, argName), argIndex, rhs)
+  -- | There is one node for each argument of every function declaration.
+  nodes :: [(CGNode, Int, IR.Expr)]
+  nodes = do
+    decl <- decls
+    let funcName = IR.funcDeclQName decl
+        args     = IR.funcDeclArgs decl
+        rhs      = IR.funcDeclRhs decl
+    (argName, argIndex) <- zip (map IR.varPatIdent args) [0 ..]
+    return ((funcName, argName), argIndex, rhs)
 
 -------------------------------------------------------------------------------
 -- Identifying Constant Arguments                                            --
@@ -186,40 +186,39 @@ makeConstArgGraph decls = do
 identifyConstArgs :: [IR.FuncDecl] -> Converter [ConstArg]
 identifyConstArgs decls = mapM makeConstArg constArgNameMaps
  where
-   -- | Maps for each set of constant arguments the names of the functions to
-   --   the name the constant argument has in that function.
-   constArgNameMaps :: [Map IR.QName String]
-   constArgNameMaps = identifyConstArgs' decls
+  -- | Maps for each set of constant arguments the names of the functions to
+  --   the name the constant argument has in that function.
+  constArgNameMaps :: [Map IR.QName String]
+  constArgNameMaps = identifyConstArgs' decls
 
-   -- Creates 'ConstArg's from the 'constArgNameMaps'.
-   makeConstArg :: Map IR.QName String -> Converter ConstArg
-   makeConstArg identMap = do
-     let idents = nub (Map.elems identMap)
-         prefix = intercalate "_" idents
-     freshIdent <- freshHaskellIdent prefix
-     return ConstArg
-       { constArgIdents     = identMap
-       , constArgIndicies   = Map.mapWithKey lookupArgIndex identMap
-       , constArgFreshIdent = freshIdent
-       }
+  -- Creates 'ConstArg's from the 'constArgNameMaps'.
+  makeConstArg :: Map IR.QName String -> Converter ConstArg
+  makeConstArg identMap = do
+    let idents = nub (Map.elems identMap)
+        prefix = intercalate "_" idents
+    freshIdent <- freshHaskellIdent prefix
+    return ConstArg
+      { constArgIdents     = identMap
+      , constArgIndicies   = Map.mapWithKey lookupArgIndex identMap
+      , constArgFreshIdent = freshIdent
+      }
 
-   -- | Maps the names of the function declarations to the names of their
-   --   arguments.
-   argNamesMap :: Map IR.QName [String]
-   argNamesMap = Map.fromList
-     [(IR.funcDeclQName decl, map IR.varPatIdent (IR.funcDeclArgs decl))
-     | decl <- decls
-     ]
+  -- | Maps the names of the function declarations to the names of their
+  --   arguments.
+  argNamesMap :: Map IR.QName [String]
+  argNamesMap = Map.fromList
+    [(IR.funcDeclQName decl, map IR.varPatIdent (IR.funcDeclArgs decl))
+    | decl <- decls
+    ]
 
-   -- | Looks up the index of the argument with the given name of the function
-   --   with the given name.
-   lookupArgIndex :: IR.QName -- ^ The name of the function.
-                  -> String   -- ^ The name of the argument.
-                  -> Int
-   lookupArgIndex funcName argName = fromJust
-     $ do
-       argNames <- Map.lookup funcName argNamesMap
-       elemIndex argName argNames
+  -- | Looks up the index of the argument with the given name of the function
+  --   with the given name.
+  lookupArgIndex :: IR.QName -- ^ The name of the function.
+                 -> String   -- ^ The name of the argument.
+                 -> Int
+  lookupArgIndex funcName argName = fromJust $ do
+    argNames <- Map.lookup funcName argNamesMap
+    elemIndex argName argNames
 
 -- | Like 'identifyConstArgs' but returns a map from function to argument names
 --   for each constant argument instead of a 'ConstArg'.
@@ -229,49 +228,48 @@ identifyConstArgs' decls = map Map.fromList
   $ mapMaybe fromCyclicSCC
   $ stronglyConnComp constArgGraph
  where
-   -- | The constant argument graph.
-   constArgGraph :: [CGEntry]
-   constArgGraph = makeConstArgGraph decls
+  -- | The constant argument graph.
+  constArgGraph :: [CGEntry]
+  constArgGraph = makeConstArgGraph decls
 
-   -- | Maps the keys of the 'constArgGraph' to the adjacency lists.
-   constArgMap :: Map CGNode [CGNode]
-   constArgMap = Map.fromList [(k, ks) | (_, k, ks) <- constArgGraph]
+  -- | Maps the keys of the 'constArgGraph' to the adjacency lists.
+  constArgMap :: Map CGNode [CGNode]
+  constArgMap = Map.fromList [(k, ks) | (_, k, ks) <- constArgGraph]
 
-   -- | The dependency graph of the function declarations.
-   callGraph :: DependencyGraph IR.FuncDecl
-   callGraph = funcDependencyGraph decls
+  -- | The dependency graph of the function declarations.
+  callGraph :: DependencyGraph IR.FuncDecl
+  callGraph = funcDependencyGraph decls
 
-   -- | Tests whether the given strongly connected component describes a
-   --   valid set of constant arguments.
-   --
-   --   The strongly connected component must contain every function
-   --   exactly once (see 'containsAllFunctions') and if there is an edge
-   --   between two functions in the 'callGraph', there must also be an
-   --   edge between the corresponding nodes of the 'constArgGraph'.
-   checkSCC :: [CGNode] -> Bool
-   checkSCC nodes
-     | not (containsAllFunctions nodes) = False
-     | otherwise = and
-       $ do
-         (f, x) <- nodes
-         (g, y) <- nodes
-         -- If there is an edge from @f@ to @g@ in the call graph, ...
-         guard (dependsDirectlyOn callGraph f g)
-         -- ... there must also be an edge in the constant argument graph.
-         adjacent <- maybeToList (Map.lookup (f, x) constArgMap)
-         return ((g, y) `elem` adjacent)
+  -- | Tests whether the given strongly connected component describes a
+  --   valid set of constant arguments.
+  --
+  --   The strongly connected component must contain every function
+  --   exactly once (see 'containsAllFunctions') and if there is an edge
+  --   between two functions in the 'callGraph', there must also be an
+  --   edge between the corresponding nodes of the 'constArgGraph'.
+  checkSCC :: [CGNode] -> Bool
+  checkSCC nodes
+    | not (containsAllFunctions nodes) = False
+    | otherwise = and $ do
+      (f, x) <- nodes
+      (g, y) <- nodes
+      -- If there is an edge from @f@ to @g@ in the call graph, ...
+      guard (dependsDirectlyOn callGraph f g)
+      -- ... there must also be an edge in the constant argument graph.
+      adjacent <- maybeToList (Map.lookup (f, x) constArgMap)
+      return ((g, y) `elem` adjacent)
 
-   -- | The names of all given function declarations.
-   funcNames :: [IR.QName]
-   funcNames = map IR.funcDeclQName decls
+  -- | The names of all given function declarations.
+  funcNames :: [IR.QName]
+  funcNames = map IR.funcDeclQName decls
 
-   -- | Tests whether the given list of nodes contains one node for every
-   --   function declaration.
-   containsAllFunctions :: [CGNode] -> Bool
-   containsAllFunctions nodes = length nodes == length decls
-     && all (`elem` map fst nodes) funcNames
+  -- | Tests whether the given list of nodes contains one node for every
+  --   function declaration.
+  containsAllFunctions :: [CGNode] -> Bool
+  containsAllFunctions nodes = length nodes == length decls
+    && all (`elem` map fst nodes) funcNames
 
-   -- | Gets the nodes of a cyclic strongly connected component.
-   fromCyclicSCC :: SCC CGNode -> Maybe [CGNode]
-   fromCyclicSCC (AcyclicSCC _)    = Nothing
-   fromCyclicSCC (CyclicSCC nodes) = Just nodes
+  -- | Gets the nodes of a cyclic strongly connected component.
+  fromCyclicSCC :: SCC CGNode -> Maybe [CGNode]
+  fromCyclicSCC (AcyclicSCC _)    = Nothing
+  fromCyclicSCC (CyclicSCC nodes) = Just nodes

@@ -90,15 +90,15 @@ module FreeC.Pass.TypeSignaturePass
   , splitFuncType
   ) where
 
-import           Control.Monad ( when )
-import           Data.List ( intercalate )
-import           Data.Map.Strict ( Map )
-import qualified Data.Map.Strict as Map
-import           Data.Set ( Set )
-import qualified Data.Set as Set
+import           Control.Monad             ( when )
+import           Data.List                 ( intercalate )
+import           Data.Map.Strict           ( Map )
+import qualified Data.Map.Strict           as Map
+import           Data.Set                  ( Set )
+import qualified Data.Set                  as Set
 
 import           FreeC.IR.SrcSpan
-import qualified FreeC.IR.Syntax as IR
+import qualified FreeC.IR.Syntax           as IR
 import           FreeC.IR.TypeSynExpansion
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
@@ -126,16 +126,16 @@ typeSignaturePass ast = do
 checkHasBinding :: [IR.FuncDecl] -> IR.TypeSig -> Converter ()
 checkHasBinding funcDecls = mapM_ checkHasBinding' . IR.typeSigDeclIdents
  where
-   -- | The names of all declared functions.
-   funcDeclNames :: Set IR.QName
-   funcDeclNames = Set.fromList $ map IR.funcDeclQName funcDecls
+  -- | The names of all declared functions.
+  funcDeclNames :: Set IR.QName
+  funcDeclNames = Set.fromList $ map IR.funcDeclQName funcDecls
 
-   -- | Checks whether there is a function declaration for the function
-   --   with the given name.
-   checkHasBinding' :: IR.DeclIdent -> Converter ()
-   checkHasBinding' (IR.DeclIdent srcSpan name) = when
-     (name `Set.notMember` funcDeclNames)
-     $ reportMissingBinding srcSpan name
+  -- | Checks whether there is a function declaration for the function
+  --   with the given name.
+  checkHasBinding' :: IR.DeclIdent -> Converter ()
+  checkHasBinding' (IR.DeclIdent srcSpan name) = when
+    (name `Set.notMember` funcDeclNames)
+    $ reportMissingBinding srcSpan name
 
 -------------------------------------------------------------------------------
 -- Translation                                                               --
@@ -150,34 +150,34 @@ addTypeSigsToFuncDecls
   :: [IR.TypeSig] -> [IR.FuncDecl] -> Converter [IR.FuncDecl]
 addTypeSigsToFuncDecls typeSigs = mapM addTypeSigToFuncDecl
  where
-   -- | Maps the names of functions to their annotated type.
-   typeSigMap :: Map IR.QName [IR.TypeScheme]
-   typeSigMap = Map.fromListWith (++)
-     [(name, [typeScheme]) | IR.TypeSig _ declIdents typeScheme <- typeSigs
-                           , IR.DeclIdent _ name <- declIdents
-     ]
+  -- | Maps the names of functions to their annotated type.
+  typeSigMap :: Map IR.QName [IR.TypeScheme]
+  typeSigMap = Map.fromListWith (++)
+    [(name, [typeScheme]) | IR.TypeSig _ declIdents typeScheme <- typeSigs
+                          , IR.DeclIdent _ name <- declIdents
+    ]
 
-   -- | Sets the type annotation of the given variable pattern.
-   setVarPatType :: IR.VarPat -> IR.Type -> IR.VarPat
-   setVarPatType arg argType = arg { IR.varPatType = Just argType }
+  -- | Sets the type annotation of the given variable pattern.
+  setVarPatType :: IR.VarPat -> IR.Type -> IR.VarPat
+  setVarPatType arg argType = arg { IR.varPatType = Just argType }
 
-   -- | Annotates the given function declaration with the type from the
-   --   corresponding type signature.
-   addTypeSigToFuncDecl :: IR.FuncDecl -> Converter IR.FuncDecl
-   addTypeSigToFuncDecl funcDecl = do
-     let name = IR.funcDeclQName funcDecl
-         args = IR.funcDeclArgs funcDecl
-     case Map.lookup name typeSigMap of
-       Nothing -> return funcDecl
-       Just [IR.TypeScheme _ typeArgs typeExpr] -> do
-         (argTypes, retType) <- splitFuncType name args typeExpr
-         return funcDecl
-           { IR.funcDeclTypeArgs   = typeArgs
-           , IR.funcDeclArgs       = zipWith setVarPatType args argTypes
-           , IR.funcDeclReturnType = Just retType
-           }
-       Just typeSchemes -> reportDuplicateTypeSigs (IR.funcDeclSrcSpan funcDecl)
-         name (map IR.typeSchemeSrcSpan typeSchemes)
+  -- | Annotates the given function declaration with the type from the
+  --   corresponding type signature.
+  addTypeSigToFuncDecl :: IR.FuncDecl -> Converter IR.FuncDecl
+  addTypeSigToFuncDecl funcDecl = do
+    let name = IR.funcDeclQName funcDecl
+        args = IR.funcDeclArgs funcDecl
+    case Map.lookup name typeSigMap of
+      Nothing -> return funcDecl
+      Just [IR.TypeScheme _ typeArgs typeExpr] -> do
+        (argTypes, retType) <- splitFuncType name args typeExpr
+        return funcDecl
+          { IR.funcDeclTypeArgs   = typeArgs
+          , IR.funcDeclArgs       = zipWith setVarPatType args argTypes
+          , IR.funcDeclReturnType = Just retType
+          }
+      Just typeSchemes -> reportDuplicateTypeSigs (IR.funcDeclSrcSpan funcDecl)
+        name (map IR.typeSchemeSrcSpan typeSchemes)
 
 -- | Splits the annotated type of a Haskell function with the given arguments
 --   into its argument and return types.
@@ -191,16 +191,16 @@ splitFuncType
   -> Converter ([IR.Type], IR.Type)
 splitFuncType name = splitFuncType'
  where
-   splitFuncType' :: [IR.VarPat] -> IR.Type -> Converter ([IR.Type], IR.Type)
-   splitFuncType' [] typeExpr = return ([], typeExpr)
-   splitFuncType' (_ : args) (IR.FuncType _ t1 t2) = do
-     (argTypes, returnType) <- splitFuncType' args t2
-     return (t1 : argTypes, returnType)
-   splitFuncType' args@(arg : _) typeExpr = do
-     typeExpr' <- expandTypeSynonym typeExpr
-     if typeExpr == typeExpr'
-       then reportTypeSynExpansionError name arg
-       else splitFuncType' args typeExpr'
+  splitFuncType' :: [IR.VarPat] -> IR.Type -> Converter ([IR.Type], IR.Type)
+  splitFuncType' [] typeExpr = return ([], typeExpr)
+  splitFuncType' (_ : args) (IR.FuncType _ t1 t2) = do
+    (argTypes, returnType) <- splitFuncType' args t2
+    return (t1 : argTypes, returnType)
+  splitFuncType' args@(arg : _) typeExpr = do
+    typeExpr' <- expandTypeSynonym typeExpr
+    if typeExpr == typeExpr'
+      then reportTypeSynExpansionError name arg
+      else splitFuncType' args typeExpr'
 
 -------------------------------------------------------------------------------
 -- Error Messages                                                            --

@@ -42,15 +42,15 @@ module FreeC.Monad.Reporter
   , reportToOrExit
   ) where
 
-import           Control.Monad ( (<=<), ap, liftM, mzero )
-import           Control.Monad.Fail ( MonadFail(..) )
-import           Control.Monad.Identity ( Identity(..) )
-import           Control.Monad.Trans.Maybe ( MaybeT(..) )
+import           Control.Monad               ( (<=<), ap, liftM, mzero )
+import           Control.Monad.Fail          ( MonadFail(..) )
+import           Control.Monad.Identity      ( Identity(..) )
+import           Control.Monad.Trans.Maybe   ( MaybeT(..) )
 import           Control.Monad.Writer
   ( MonadIO(..), MonadTrans(..), Writer, runWriter, tell, writer )
-import           Data.Maybe ( isNothing, maybe )
-import           System.Exit ( exitFailure )
-import           System.IO ( Handle )
+import           Data.Maybe                  ( isNothing, maybe )
+import           System.Exit                 ( exitFailure )
+import           System.IO                   ( Handle )
 import           System.IO.Error
   ( catchIOError, ioeGetErrorString, ioeGetFileName )
 
@@ -125,11 +125,10 @@ instance Monad m => Applicative (ReporterT m) where
 instance Monad m => Monad (ReporterT m) where
   return     = ReporterT . return . return
 
-  (>>=) rt f = ReporterT
-    $ do
-      (mx, ms) <- runReporterT rt
-      (mx', ms') <- maybe (return (Nothing, [])) (runReporterT . f) mx
-      return (MaybeT (writer (mx', ms ++ ms')))
+  (>>=) rt f = ReporterT $ do
+    (mx, ms) <- runReporterT rt
+    (mx', ms') <- maybe (return (Nothing, [])) (runReporterT . f) mx
+    return (MaybeT (writer (mx', ms ++ ms')))
 
 -- | @MonadTrans@ instance for 'ReporterT'.
 instance MonadTrans ReporterT where
@@ -182,24 +181,24 @@ type ReporterIO = ReporterT IO
 instance MonadIO m => MonadIO (ReporterT m) where
   liftIO = handleIOErrors <=< (lift . liftIO . wrapIOErrors)
    where
-     -- | Catches IO errors thrown by the given IO action and returns either
-     --   the caught error or the returned value.
-     wrapIOErrors :: IO a -> IO (Either IOError a)
-     wrapIOErrors = flip catchIOError (return . Left) . fmap Right
+    -- | Catches IO errors thrown by the given IO action and returns either
+    --   the caught error or the returned value.
+    wrapIOErrors :: IO a -> IO (Either IOError a)
+    wrapIOErrors = flip catchIOError (return . Left) . fmap Right
 
-     -- Handles IO errors thrown by the original IO action (which have been
-     -- wrapped by 'wrapIOErrors') by reporting a fatal error.
-     handleIOErrors :: MonadReporter r => Either IOError a -> r a
-     handleIOErrors (Left err) = reportIOError err
-     handleIOErrors (Right x)  = return x
+    -- Handles IO errors thrown by the original IO action (which have been
+    -- wrapped by 'wrapIOErrors') by reporting a fatal error.
+    handleIOErrors :: MonadReporter r => Either IOError a -> r a
+    handleIOErrors (Left err) = reportIOError err
+    handleIOErrors (Right x)  = return x
 
 -- | Reports the given IO error as a fatal error with no location information.
 reportIOError :: MonadReporter r => IOError -> r a
 reportIOError = reportFatal . Message NoSrcSpan Error . ioErrorMessageText
  where
-   ioErrorMessageText :: IOError -> String
-   ioErrorMessageText err = ioeGetErrorString err
-     ++ maybe "" (": " ++) (ioeGetFileName err)
+  ioErrorMessageText :: IOError -> String
+  ioErrorMessageText err = ioeGetErrorString err
+    ++ maybe "" (": " ++) (ioeGetFileName err)
 
 -------------------------------------------------------------------------------
 -- Handling Messages and Reporter Results                                    --
@@ -291,50 +290,48 @@ prettyCodeBlock srcSpan
     <> line
   | otherwise = empty
  where
-   -- | The first line of source code spanned by the given source span.
-   firstLine :: String
-   firstLine = head (srcSpanCodeLines srcSpan)
+  -- | The first line of source code spanned by the given source span.
+  firstLine :: String
+  firstLine = head (srcSpanCodeLines srcSpan)
 
-   -- | Document for the first line number covered by the source span including
-   --   padding and a trailing pipe symbol.
-   firstLineNumberDoc :: Doc
-   firstLineNumberDoc
-     = space <> int (srcSpanStartLine srcSpan) <> space <> pipe
+  -- | Document for the first line number covered by the source span including
+  --   padding and a trailing pipe symbol.
+  firstLineNumberDoc :: Doc
+  firstLineNumberDoc = space <> int (srcSpanStartLine srcSpan) <> space <> pipe
 
-   -- | Document with the same length as 'firstLineNumberDoc' but does
-   --   contain only spaces before the pipe character.
-   gutterDoc :: Doc
-   gutterDoc = let gutterWidth = length (show (srcSpanStartLine srcSpan)) + 2
-               in indent gutterWidth pipe
+  -- | Document with the same length as 'firstLineNumberDoc' but does
+  --   contain only spaces before the pipe character.
+  gutterDoc :: Doc
+  gutterDoc = let gutterWidth = length (show (srcSpanStartLine srcSpan)) + 2
+              in indent gutterWidth pipe
 
-   -- | Document that contains 'caret' signs to highlight the code in the
-   --   first line that is covered by the source span.
-   highlightDoc :: Doc
-   highlightDoc = indent (srcSpanStartColumn srcSpan)
-     (hcat (replicate highlightWidth caret))
+  -- | Document that contains 'caret' signs to highlight the code in the
+  --   first line that is covered by the source span.
+  highlightDoc :: Doc
+  highlightDoc = indent (srcSpanStartColumn srcSpan)
+    (hcat (replicate highlightWidth caret))
 
-   -- The number of characters in the the first line of the source span.
-   highlightWidth :: Int
-   highlightWidth
-     | isMultiLine = length firstLine - srcSpanStartColumn srcSpan + 1
-     | otherwise
-       = max 1 $ srcSpanEndColumn srcSpan - srcSpanStartColumn srcSpan
+  -- The number of characters in the the first line of the source span.
+  highlightWidth :: Int
+  highlightWidth
+    | isMultiLine = length firstLine - srcSpanStartColumn srcSpan + 1
+    | otherwise = max 1 $ srcSpanEndColumn srcSpan - srcSpanStartColumn srcSpan
 
-   -- | Document added after the 'highlightDoc' if the source span covers
-   --   more than one line.
-   ellipsisDoc :: Doc
-   ellipsisDoc
-     | isMultiLine = prettyString "..."
-     | otherwise = empty
+  -- | Document added after the 'highlightDoc' if the source span covers
+  --   more than one line.
+  ellipsisDoc :: Doc
+  ellipsisDoc
+    | isMultiLine = prettyString "..."
+    | otherwise = empty
 
-   -- | Whether the source span covers more than one line.
-   isMultiLine :: Bool
-   isMultiLine = spansMultipleLines srcSpan
+  -- | Whether the source span covers more than one line.
+  isMultiLine :: Bool
+  isMultiLine = spansMultipleLines srcSpan
 
-   -- | Document that contains the pipe character @|@.
-   pipe :: Doc
-   pipe = char '|'
+  -- | Document that contains the pipe character @|@.
+  pipe :: Doc
+  pipe = char '|'
 
-   -- | Document that contains the caret character @^@.
-   caret :: Doc
-   caret = char '^'
+  -- | Document that contains the caret character @^@.
+  caret :: Doc
+  caret = char '^'

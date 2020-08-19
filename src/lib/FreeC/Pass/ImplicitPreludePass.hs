@@ -43,7 +43,7 @@ module FreeC.Pass.ImplicitPreludePass ( implicitPreludePass ) where
 
 import qualified FreeC.IR.Base.Prelude as IR.Prelude
 import           FreeC.IR.SrcSpan
-import qualified FreeC.IR.Syntax as IR
+import qualified FreeC.IR.Syntax       as IR
 import           FreeC.Pass
 
 -- | A compiler pass that adds an import declaration for the @Prelude@ module
@@ -59,10 +59,10 @@ addImplicitPreludeImport imports
   | importsPrelude = imports
   | otherwise = preludeImport : imports
  where
-   -- | Whether there is an explicit import for the @Prelude@ module.
-   importsPrelude :: Bool
-   importsPrelude = IR.Prelude.modName `elem` map IR.importName imports
+  -- | Whether there is an explicit import for the @Prelude@ module.
+  importsPrelude :: Bool
+  importsPrelude = IR.Prelude.modName `elem` map IR.importName imports
 
-   -- | An explicit import for the @Prelude@ module.
-   preludeImport :: IR.ImportDecl
-   preludeImport = IR.ImportDecl NoSrcSpan IR.Prelude.modName
+  -- | An explicit import for the @Prelude@ module.
+  preludeImport :: IR.ImportDecl
+  preludeImport = IR.ImportDecl NoSrcSpan IR.Prelude.modName

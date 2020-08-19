@@ -6,7 +6,7 @@
 --   of the @uncons@ function.
 module Proofs.ConsUncons where
 
-import           Data.List ( head )
+import           Data.List       ( head )
 import           Test.QuickCheck
 
 -- First we have to define the @unconsE@ function in an error throwing way.

@@ -33,16 +33,16 @@ module FreeC.IR.Subterm
   , boundVarsWithTypeAt
   ) where
 
-import           Control.Monad ( foldM )
+import           Control.Monad    ( foldM )
 import           Data.Composition ( (.:) )
-import           Data.List ( intersperse, isPrefixOf )
-import           Data.Map.Strict ( Map )
-import qualified Data.Map.Strict as Map
-import           Data.Maybe ( fromMaybe, listToMaybe )
-import           Data.Set ( Set )
+import           Data.List        ( intersperse, isPrefixOf )
+import           Data.Map.Strict  ( Map )
+import qualified Data.Map.Strict  as Map
+import           Data.Maybe       ( fromMaybe, listToMaybe )
+import           Data.Set         ( Set )
 import           Data.Tuple.Extra ( (&&&) )
 
-import qualified FreeC.IR.Syntax as IR
+import qualified FreeC.IR.Syntax  as IR
 import           FreeC.Pretty
 
 -------------------------------------------------------------------------------
@@ -113,26 +113,24 @@ instance Subterm IR.Expr where
     = checkArity 1 $ \[expr'] -> IR.TypeAppExpr srcSpan expr' typeExpr exprType
   replaceChildTerms (IR.If srcSpan _ _ _ exprType)
     = checkArity 3 $ \[e1', e2', e3'] -> IR.If srcSpan e1' e2' e3' exprType
-  replaceChildTerms (IR.Case srcSpan _ alts exprType) = checkArity
-    (length alts + 1)
-    $ \(expr' : altChildren') -> IR.Case srcSpan expr'
-    (zipWith replaceAltChildExpr alts altChildren') exprType
+  replaceChildTerms (IR.Case srcSpan _ alts exprType)
+    = checkArity (length alts + 1) $ \(expr' : altChildren') -> IR.Case srcSpan
+    expr' (zipWith replaceAltChildExpr alts altChildren') exprType
    where
-     -- | Replaces the expression on the right-hand side of the given
-     --   @case@-expression alternative.
-     replaceAltChildExpr :: IR.Alt -> IR.Expr -> IR.Alt
-     replaceAltChildExpr alt rhs' = alt { IR.altRhs = rhs' }
+    -- | Replaces the expression on the right-hand side of the given
+    --   @case@-expression alternative.
+    replaceAltChildExpr :: IR.Alt -> IR.Expr -> IR.Alt
+    replaceAltChildExpr alt rhs' = alt { IR.altRhs = rhs' }
   replaceChildTerms (IR.Lambda srcSpan args _ exprType)
     = checkArity 1 $ \[expr'] -> IR.Lambda srcSpan args expr' exprType
-  replaceChildTerms (IR.Let srcSpan binds _ exprType) = checkArity
-    (length binds + 1)
-    $ \(expr' : bindChildren') -> IR.Let srcSpan
+  replaceChildTerms (IR.Let srcSpan binds _ exprType)
+    = checkArity (length binds + 1) $ \(expr' : bindChildren') -> IR.Let srcSpan
     (zipWith replaceBindChildExpr binds bindChildren') expr' exprType
    where
-     -- | Replaces the expression on the right hand side of the given
-     --   @let@-expression bindings.
-     replaceBindChildExpr :: IR.Bind -> IR.Expr -> IR.Bind
-     replaceBindChildExpr b expr = b { IR.bindExpr = expr }
+    -- | Replaces the expression on the right hand side of the given
+    --   @let@-expression bindings.
+    replaceBindChildExpr :: IR.Bind -> IR.Expr -> IR.Bind
+    replaceBindChildExpr b expr = b { IR.bindExpr = expr }
   replaceChildTerms expr@(IR.Con _ _ _) = nullary expr
   replaceChildTerms expr@(IR.Var _ _ _) = nullary expr
   replaceChildTerms expr@(IR.Undefined _ _) = nullary expr
@@ -229,8 +227,8 @@ selectSubterm term (Pos (p : ps))
   | p <= 0 || p > length children = Nothing
   | otherwise = selectSubterm (children !! (p - 1)) (Pos ps)
  where
-   {- children :: [a] -}
-   children = childTerms term
+  {- children :: [a] -}
+  children = childTerms term
 
 -- | Like 'selectSubterm' but throws an error if there is no such subterm.
 selectSubterm' :: Subterm a => a -> Pos -> a
@@ -255,8 +253,8 @@ replaceSubterm term (Pos (p : ps)) term'
     child' <- replaceSubterm child (Pos ps) term'
     replaceChildTerms term (before ++ child' : after)
  where
-   {- children :: [a] -}
-   children = childTerms term
+  {- children :: [a] -}
+  children = childTerms term
 
 -- | Like 'replaceSubterm' but throws an error if there is no such subterm.
 replaceSubterm' :: Subterm a => a -> Pos -> a -> a
@@ -314,28 +312,28 @@ boundVarsAt = Map.keysSet .: boundVarsWithTypeAt
 boundVarsWithTypeAt :: IR.Expr -> Pos -> Map IR.QName (Maybe IR.Type)
 boundVarsWithTypeAt = fromMaybe Map.empty .: boundVarsWithTypeAt'
  where
-   -- | Like 'boundVarsWithTypeAt' but returns @Nothing@ if the given position
-   --   is invalid.
-   boundVarsWithTypeAt'
-     :: IR.Expr -> Pos -> Maybe (Map IR.QName (Maybe IR.Type))
-   boundVarsWithTypeAt' _ (Pos [])          = return Map.empty
-   boundVarsWithTypeAt' expr (Pos (p : ps)) = do
-     child <- selectSubterm expr (Pos [p])
-     bvars <- boundVarsWithTypeAt' child (Pos ps)
-     case expr of
-       (IR.Case _ _ alts _)
-         | p > 1 -> do
-           let altVars = altBoundVarsWithType (alts !! (p - 2))
-           return (bvars `Map.union` altVars)
-       (IR.Lambda _ args _ _) -> return (bvars `Map.union` fromVarPats args)
-       _ -> return bvars
+  -- | Like 'boundVarsWithTypeAt' but returns @Nothing@ if the given position
+  --   is invalid.
+  boundVarsWithTypeAt'
+    :: IR.Expr -> Pos -> Maybe (Map IR.QName (Maybe IR.Type))
+  boundVarsWithTypeAt' _ (Pos [])          = return Map.empty
+  boundVarsWithTypeAt' expr (Pos (p : ps)) = do
+    child <- selectSubterm expr (Pos [p])
+    bvars <- boundVarsWithTypeAt' child (Pos ps)
+    case expr of
+      (IR.Case _ _ alts _)
+        | p > 1 -> do
+          let altVars = altBoundVarsWithType (alts !! (p - 2))
+          return (bvars `Map.union` altVars)
+      (IR.Lambda _ args _ _) -> return (bvars `Map.union` fromVarPats args)
+      _ -> return bvars
 
-   -- | Gets the names of variables bound by the variable patterns of the given
-   --   @case@-expression alternative.
-   altBoundVarsWithType :: IR.Alt -> Map IR.QName (Maybe IR.Type)
-   altBoundVarsWithType (IR.Alt _ _ varPats _) = fromVarPats varPats
+  -- | Gets the names of variables bound by the variable patterns of the given
+  --   @case@-expression alternative.
+  altBoundVarsWithType :: IR.Alt -> Map IR.QName (Maybe IR.Type)
+  altBoundVarsWithType (IR.Alt _ _ varPats _) = fromVarPats varPats
 
-   -- | Converts a list of variable patterns to a set of variable names bound
-   --   by these patterns.
-   fromVarPats :: [IR.VarPat] -> Map IR.QName (Maybe IR.Type)
-   fromVarPats = Map.fromList . map (IR.varPatQName &&& IR.varPatType)
+  -- | Converts a list of variable patterns to a set of variable names bound
+  --   by these patterns.
+  fromVarPats :: [IR.VarPat] -> Map IR.QName (Maybe IR.Type)
+  fromVarPats = Map.fromList . map (IR.varPatQName &&& IR.varPatType)

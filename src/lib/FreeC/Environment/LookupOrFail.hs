@@ -3,14 +3,14 @@
 --   report a fatal error message when there is no such entry.
 module FreeC.Environment.LookupOrFail where
 
-import           Data.Composition ( (.:), (.:.) )
+import           Data.Composition          ( (.:), (.:.) )
 
 import qualified FreeC.Backend.Agda.Syntax as Agda
-import qualified FreeC.Backend.Coq.Syntax as Coq
+import qualified FreeC.Backend.Coq.Syntax  as Coq
 import           FreeC.Environment
 import           FreeC.Environment.Entry
 import           FreeC.IR.SrcSpan
-import qualified FreeC.IR.Syntax as IR
+import qualified FreeC.IR.Syntax           as IR
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
 import           FreeC.Pretty

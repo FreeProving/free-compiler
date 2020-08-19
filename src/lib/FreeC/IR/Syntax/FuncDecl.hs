@@ -83,8 +83,8 @@ instance Pretty FuncDecl where
         <+> equals
         <+> pretty rhs
    where
-     -- | The left-hand side of the function declaration.
-     prettyFuncHead :: Doc
-     prettyFuncHead = pretty declIdent
-       <+> hsep (map ((char '@' <>) . pretty) typeArgs)
-       <+> hsep (map pretty args)
+    -- | The left-hand side of the function declaration.
+    prettyFuncHead :: Doc
+    prettyFuncHead = pretty declIdent
+      <+> hsep (map ((char '@' <>) . pretty) typeArgs)
+      <+> hsep (map pretty args)

@@ -8,9 +8,9 @@ module FreeC.Backend.Coq.Converter.FuncDecl.Common
 import           FreeC.Backend.Coq.Converter.Arg
 import           FreeC.Backend.Coq.Converter.Free
 import           FreeC.Backend.Coq.Converter.Type
-import qualified FreeC.Backend.Coq.Syntax as Coq
+import qualified FreeC.Backend.Coq.Syntax         as Coq
 import           FreeC.Environment
-import qualified FreeC.IR.Syntax as IR
+import qualified FreeC.IR.Syntax                  as IR
 import           FreeC.Monad.Converter
 
 -------------------------------------------------------------------------------

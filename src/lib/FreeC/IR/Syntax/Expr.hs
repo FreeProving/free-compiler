@@ -2,7 +2,7 @@
 --   language.
 module FreeC.IR.Syntax.Expr where
 
-import           Control.Monad ( (>=>) )
+import           Control.Monad              ( (>=>) )
 
 import           FreeC.IR.SrcSpan
 import           FreeC.IR.Syntax.Name
@@ -83,8 +83,7 @@ data Expr
 --   used as expression type signatures. The type annotations generated during
 --   type inference never quantify their type arguments.
 exprType :: Expr -> Maybe Type
-exprType = exprTypeScheme
-  >=> \(TypeScheme _ typeArgs typeExpr) ->
+exprType = exprTypeScheme >=> \(TypeScheme _ typeArgs typeExpr) ->
   if null typeArgs then Just typeExpr else Nothing
 
 -- | Smart constructor for 'Con' without the last argument.
@@ -103,21 +102,21 @@ untypedVar srcSpan varName = Var srcSpan varName Nothing
 untypedApp :: SrcSpan -> Expr -> Expr -> Expr
 untypedApp srcSpan e1 e2 = App srcSpan e1 e2 appType
  where
-   -- | The type to annotate the application with.
-   appType :: Maybe TypeScheme
-   appType = exprTypeScheme e1 >>= maybeFuncResTypeScheme
+  -- | The type to annotate the application with.
+  appType :: Maybe TypeScheme
+  appType = exprTypeScheme e1 >>= maybeFuncResTypeScheme
 
-   -- | If the given type scheme has the form @forall α₁ … αₙ. τ -> τ'@, the
-   --   result has the form @forall α₁ … αₙ. τ'@. Returns @Nothing@ otherwise.
-   maybeFuncResTypeScheme :: TypeScheme -> Maybe TypeScheme
-   maybeFuncResTypeScheme (TypeScheme srcSpan' typeArgs typeExpr)
-     = TypeScheme srcSpan' typeArgs <$> maybeFuncResType typeExpr
+  -- | If the given type scheme has the form @forall α₁ … αₙ. τ -> τ'@, the
+  --   result has the form @forall α₁ … αₙ. τ'@. Returns @Nothing@ otherwise.
+  maybeFuncResTypeScheme :: TypeScheme -> Maybe TypeScheme
+  maybeFuncResTypeScheme (TypeScheme srcSpan' typeArgs typeExpr)
+    = TypeScheme srcSpan' typeArgs <$> maybeFuncResType typeExpr
 
-   -- | If the given type scheme has the form @τ -> τ'@, the result has the
-   --   form @τ'@. Returns @Nothing@ otherwise.
-   maybeFuncResType :: Type -> Maybe Type
-   maybeFuncResType (FuncType _ _ resType) = Just resType
-   maybeFuncResType _ = Nothing
+  -- | If the given type scheme has the form @τ -> τ'@, the result has the
+  --   form @τ'@. Returns @Nothing@ otherwise.
+  maybeFuncResType :: Type -> Maybe Type
+  maybeFuncResType (FuncType _ _ resType) = Just resType
+  maybeFuncResType _ = Nothing
 
 -- | Smart constructor for 'TypeAppExpr' without the last argument.
 --
@@ -203,9 +202,9 @@ prettyExprPred n expr = case exprTypeScheme expr of
     | n == 0 -> prettyExpr
     | otherwise -> parens prettyExpr
    where
-     prettyExpr :: Doc
-     prettyExpr
-       = prettyExprPred' 1 expr <+> colon <> colon <+> pretty typeScheme
+    prettyExpr :: Doc
+    prettyExpr
+      = prettyExprPred' 1 expr <+> colon <> colon <+> pretty typeScheme
 
 -- | Like 'prettyExprPred' but ignores outermost type annotations.
 prettyExprPred' :: Int -> Expr -> Doc

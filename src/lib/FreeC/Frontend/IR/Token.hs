@@ -11,7 +11,7 @@ module FreeC.Frontend.IR.Token
   , keywords
   ) where
 
-import           Data.Char ( isUpper )
+import           Data.Char        ( isUpper )
 import           Data.Tuple.Extra ( (&&&) )
 
 import           FreeC.Pretty

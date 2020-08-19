@@ -10,13 +10,13 @@
 --       the current module.
 module FreeC.Frontend.IR.PragmaParser ( parseCustomPragmas ) where
 
-import           Control.Applicative ( (<|>) )
-import           Control.Monad ( forM, msum )
-import           Control.Monad.Extra ( mapMaybeM )
+import           Control.Applicative  ( (<|>) )
+import           Control.Monad        ( forM, msum )
+import           Control.Monad.Extra  ( mapMaybeM )
 import           Text.RegexPR
 
 import           FreeC.IR.SrcSpan
-import qualified FreeC.IR.Syntax as IR
+import qualified FreeC.IR.Syntax      as IR
 import           FreeC.Monad.Reporter
 
 -- | Type alias for a function that creates a pragma AST node
@@ -75,9 +75,8 @@ parseCustomPragma (IR.BlockComment srcSpan text) =
       -- Try to match the contents of the pragma with the pattern
       -- of each custom pragma and return the result of the builder
       -- associated with the first matching pattern.
-      fmap msum
-        $ forM customPragmas
-        $ \(regex, action) -> case matchRegexPR regex text' of
+      fmap msum $ forM customPragmas $ \(regex, action) ->
+        case matchRegexPR regex text' of
           Nothing           -> do
             report $ Message srcSpan Warning $ "Unrecognized pragma"
             return Nothing

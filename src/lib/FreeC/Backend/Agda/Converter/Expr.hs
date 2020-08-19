@@ -3,10 +3,10 @@ module FreeC.Backend.Agda.Converter.Expr ( convertLiftedExpr ) where
 
 import           FreeC.Backend.Agda.Converter.Free
   ( bind, errorExpr, generatePure, undefinedExpr )
-import qualified FreeC.Backend.Agda.Syntax as Agda
+import qualified FreeC.Backend.Agda.Syntax         as Agda
 import           FreeC.Environment.LookupOrFail
   ( lookupAgdaSmartIdentOrFail, lookupAgdaValIdentOrFail )
-import qualified FreeC.LiftedIR.Syntax as LIR
+import qualified FreeC.LiftedIR.Syntax             as LIR
 import           FreeC.Monad.Converter
 
 -- | Converts an expression from lifted IR to an Agda expression.

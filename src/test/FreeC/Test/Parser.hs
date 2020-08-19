@@ -64,14 +64,14 @@ module FreeC.Test.Parser
   , expectParseTestComponent
   ) where
 
-import           Control.Monad.Fail ( MonadFail )
-import           Control.Monad.IO.Class ( MonadIO(..) )
-import           Test.HUnit.Base ( assertFailure )
+import           Control.Monad.Fail       ( MonadFail )
+import           Control.Monad.IO.Class   ( MonadIO(..) )
+import           Test.HUnit.Base          ( assertFailure )
 
 import           FreeC.Frontend.IR.Parser
 import           FreeC.IR.DependencyGraph
 import           FreeC.IR.SrcSpan
-import qualified FreeC.IR.Syntax as IR
+import qualified FreeC.IR.Syntax          as IR
 import           FreeC.Monad.Reporter
 import           FreeC.Pretty
 

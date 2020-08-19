@@ -4,11 +4,11 @@ module FreeC.Backend.Agda.Converter.TypeDeclTests ( testConvertDataDecls ) where
 import           Test.Hspec
 
 import           FreeC.Backend.Agda.Converter.TypeDecl ( convertTypeDecls )
-import           FreeC.Backend.Agda.Pretty ()
+import           FreeC.Backend.Agda.Pretty             ()
 import           FreeC.IR.DependencyGraph
 import           FreeC.Monad.Class.Testable
 import           FreeC.Monad.Converter
-import           FreeC.Pretty ( showPretty )
+import           FreeC.Pretty                          ( showPretty )
 import           FreeC.Test.Environment
 import           FreeC.Test.Expectations
 import           FreeC.Test.Parser
@@ -26,9 +26,8 @@ shouldConvertTypeDeclsTo inputStrs expectedOutput = do
 
 -- | Test group for @convertTypeDecls@ tests.
 testConvertDataDecls :: Spec
-testConvertDataDecls = describe
-  "FreeC.Backend.Agda.Converter.TypeDecl.convertTypeDecl"
-  $ do
+testConvertDataDecls
+  = describe "FreeC.Backend.Agda.Converter.TypeDecl.convertTypeDecl" $ do
     it "translates non-polymorphic, non-recursive data types correctly"
       $ shouldSucceedWith
       $ do
@@ -42,20 +41,18 @@ testConvertDataDecls = describe
           , "pattern Bar = pure bar"
           , "pattern Baz = pure baz"
           ]
-    it "annotates recursive data type with Sized type"
-      $ shouldSucceedWith
-      $ do
-        "List" <- defineTestTypeCon "List" 1 ["Nil", "Cons"]
-        ("nil", "Nil") <- defineTestCon "Nil" 0 "List"
-        ("cons", "Cons") <- defineTestCon "Cons" 2 "List"
-        shouldConvertTypeDeclsTo
-          (Recursive ["data List a = Nil | Cons a (List a)"])
-          [ "data List (Shape : Set)(Pos : Shape → Set)(a : Set)"
-              ++ " : {Size} → Set where"
-              ++ "  nil : List Shape Pos a"
-              ++ "  cons : ∀ {i} → Free Shape Pos a"
-              ++ "               → Free Shape Pos (List Shape Pos a {i})"
-              ++ "               → List Shape Pos a {↑ i}"
-          , "pattern Nil = pure nil"
-          , "pattern Cons x x₁ = pure (cons x x₁)"
-          ]
+    it "annotates recursive data type with Sized type" $ shouldSucceedWith $ do
+      "List" <- defineTestTypeCon "List" 1 ["Nil", "Cons"]
+      ("nil", "Nil") <- defineTestCon "Nil" 0 "List"
+      ("cons", "Cons") <- defineTestCon "Cons" 2 "List"
+      shouldConvertTypeDeclsTo
+        (Recursive ["data List a = Nil | Cons a (List a)"])
+        [ "data List (Shape : Set)(Pos : Shape → Set)(a : Set)"
+            ++ " : {Size} → Set where"
+            ++ "  nil : List Shape Pos a"
+            ++ "  cons : ∀ {i} → Free Shape Pos a"
+            ++ "               → Free Shape Pos (List Shape Pos a {i})"
+            ++ "               → List Shape Pos a {↑ i}"
+        , "pattern Nil = pure nil"
+        , "pattern Cons x x₁ = pure (cons x x₁)"
+        ]

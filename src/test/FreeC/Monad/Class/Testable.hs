@@ -19,21 +19,23 @@ module FreeC.Monad.Class.Testable
   , shouldReturnProperty
   ) where
 
-import           Control.Monad.IO.Class ( MonadIO )
-import           Data.Functor.Identity ( Identity(..) )
-import           Data.IORef ( IORef, newIORef, readIORef, writeIORef )
-import           Data.List ( intercalate )
+import           Control.Monad.IO.Class                    ( MonadIO )
+import           Data.Functor.Identity                     ( Identity(..) )
+import           Data.IORef
+  ( IORef, newIORef, readIORef, writeIORef )
+import           Data.List                                 ( intercalate )
 import           System.IO.Error
   ( catchIOError, ioeGetErrorString, ioeGetFileName )
-import           System.IO.Unsafe ( unsafePerformIO )
-import           Test.HUnit.Base ( assertFailure )
-import           Test.Hspec hiding ( shouldReturn )
+import           System.IO.Unsafe                          ( unsafePerformIO )
+import           Test.HUnit.Base                           ( assertFailure )
+import           Test.Hspec
+  hiding ( shouldReturn )
 import           Test.QuickCheck
 
 import           FreeC.Environment
 import           FreeC.Environment.ModuleInterface
 import           FreeC.Environment.ModuleInterface.Decoder
-import qualified FreeC.IR.Syntax as IR
+import qualified FreeC.IR.Syntax                           as IR
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
 import           FreeC.Pretty
@@ -137,18 +139,16 @@ instance Show err => MonadTestable (Either err) err where
 -------------------------------------------------------------------------------
 -- | An impure computation in the @IO@ monad fails if an @IO@ error is thrown.
 instance MonadTestable IO IOError where
-  shouldReturnWith' _ mx f = catchIOError (mx >>= f)
-    $ \err -> assertFailure
+  shouldReturnWith' _ mx f = catchIOError (mx >>= f) $ \err -> assertFailure
     $ "Unexpected IO error: "
     ++ ioeGetErrorString err
     ++ maybe "" (": " ++) (ioeGetFileName err)
 
-  shouldFailWith' showValue mx f = flip catchIOError f
-    $ do
-      x <- mx
-      assertFailure
-        $ "Expected IO error, but the following value was produced: "
-        ++ showValue x
+  shouldFailWith' showValue mx f = flip catchIOError f $ do
+    x <- mx
+    assertFailure
+      $ "Expected IO error, but the following value was produced: "
+      ++ showValue x
 
 -------------------------------------------------------------------------------
 -- Instance for the Reporter Monad                                           --
@@ -213,13 +213,12 @@ instance MonadTestable m err => MonadTestable (ReporterT m) [Message] where
 -- | Initializes the test environment for the converter monad.
 initTestEnvironment :: IO Environment
 initTestEnvironment = do
-  (maybeEnv, ms) <- runReporterT
-    $ do
-      preludeIface <- loadTestModuleInterface "./base/Prelude.toml"
-      quickCheckIface <- loadTestModuleInterface "./base/Test/QuickCheck.toml"
-      return
-        $ foldr makeModuleAvailable emptyEnv
-        $ [preludeIface, quickCheckIface]
+  (maybeEnv, ms) <- runReporterT $ do
+    preludeIface <- loadTestModuleInterface "./base/Prelude.toml"
+    quickCheckIface <- loadTestModuleInterface "./base/Test/QuickCheck.toml"
+    return
+      $ foldr makeModuleAvailable emptyEnv
+      $ [preludeIface, quickCheckIface]
   case maybeEnv of
     Just env -> return env
     Nothing  -> assertFailure

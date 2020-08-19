@@ -2,15 +2,15 @@
 --   configuration files and JSON data.
 module FreeC.Util.Config ( loadConfig, saveConfig ) where
 
-import           Control.Monad.IO.Class ( MonadIO(..) )
-import qualified Data.Aeson as Aeson
+import           Control.Monad.IO.Class   ( MonadIO(..) )
+import qualified Data.Aeson               as Aeson
 import qualified Data.Aeson.Encode.Pretty as Aeson
-import qualified Data.ByteString.Lazy as LazyByteString
-import           Data.String ( fromString )
-import qualified Data.Text as Text
+import qualified Data.ByteString.Lazy     as LazyByteString
+import           Data.String              ( fromString )
+import qualified Data.Text                as Text
 import           System.FilePath
-import           Text.Toml ( parseTomlDoc )
-import qualified Text.Toml.Types as Toml
+import           Text.Toml                ( parseTomlDoc )
+import qualified Text.Toml.Types          as Toml
 
 import           FreeC.IR.SrcSpan
 import           FreeC.Monad.Reporter
@@ -40,14 +40,14 @@ decodeTomlConfig filename contents = either
   (reportParsecError (mkSrcFileMap [mkSrcFile filename contents]))
   decodeTomlDocument (parseTomlDoc filename (Text.pack contents))
  where
-   -- | Decodes a TOML document using the "Aeson" interface.
-   decodeTomlDocument
-     :: (MonadReporter r, Aeson.FromJSON a) => Toml.Table -> r a
-   decodeTomlDocument document = case Aeson.fromJSON (Aeson.toJSON document) of
-     Aeson.Error msg      -> reportFatal
-       $ Message (FileSpan filename) Error
-       $ "Invalid configuration file format: " ++ msg
-     Aeson.Success result -> return result
+  -- | Decodes a TOML document using the "Aeson" interface.
+  decodeTomlDocument
+    :: (MonadReporter r, Aeson.FromJSON a) => Toml.Table -> r a
+  decodeTomlDocument document = case Aeson.fromJSON (Aeson.toJSON document) of
+    Aeson.Error msg      -> reportFatal
+      $ Message (FileSpan filename) Error
+      $ "Invalid configuration file format: " ++ msg
+    Aeson.Success result -> return result
 
 -- | Parses a @.json@ file with the given contents.
 decodeJsonConfig

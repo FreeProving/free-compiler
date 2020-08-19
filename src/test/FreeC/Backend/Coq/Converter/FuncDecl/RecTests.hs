@@ -11,7 +11,6 @@ import           FreeC.Backend.Coq.Converter.FuncDecl.Rec.WithSectionsTests
 -- | Test group for 'FreeC.Backend.Coq.Converter.FuncDecl.convertRecFuncDecls'
 --   tests.
 testConvertRecFuncDecls :: Spec
-testConvertRecFuncDecls = context "recursive functions"
-  $ do
-    testConvertRecFuncDeclWithHelpers
-    testConvertRecFuncDeclWithSections
+testConvertRecFuncDecls = context "recursive functions" $ do
+  testConvertRecFuncDeclWithHelpers
+  testConvertRecFuncDeclWithSections

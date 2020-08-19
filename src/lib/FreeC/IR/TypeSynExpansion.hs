@@ -25,14 +25,14 @@ module FreeC.IR.TypeSynExpansion
   , expandTypeSynonymAt
   ) where
 
-import           Control.Applicative ( (<|>) )
-import           Control.Monad.Trans.Maybe ( MaybeT(..) )
-import           Data.Maybe ( fromMaybe )
+import           Control.Applicative         ( (<|>) )
+import           Control.Monad.Trans.Maybe   ( MaybeT(..) )
+import           Data.Maybe                  ( fromMaybe )
 
 import           FreeC.Environment
 import           FreeC.IR.Subst
 import           FreeC.IR.Subterm
-import qualified FreeC.IR.Syntax as IR
+import qualified FreeC.IR.Syntax             as IR
 import           FreeC.Monad.Class.Hoistable ( hoistMaybe )
 import           FreeC.Monad.Converter
 
@@ -113,27 +113,27 @@ expandTypeSynonymsWhere maxDepth predicate t0
     t0' <- expandTypeSynonyms' t0 []
     return (fromMaybe t0 t0')
  where
-   expandTypeSynonyms' :: IR.Type -> [IR.Type] -> Converter (Maybe IR.Type)
-   expandTypeSynonyms' (IR.TypeCon _ typeConName) args = do
-     mTypeSynonym <- inEnv $ lookupTypeSynonym typeConName
-     case mTypeSynonym of
-       Just (typeVars, typeExpr)
-         | predicate typeConName -> do
-           let subst     = composeSubsts
-                 (zipWith (singleSubst . IR.UnQual . IR.Ident) typeVars args)
-               typeExpr' = applySubst subst typeExpr
-           Just <$> expandTypeSynonymsWhere (maxDepth - 1) predicate typeExpr'
-       _ -> return Nothing
-   expandTypeSynonyms' (IR.TypeApp srcSpan t1 t2) args = do
-     t2' <- expandTypeSynonymsWhere (maxDepth - 1) predicate t2
-     let args' = t2' : args
-     t1' <- expandTypeSynonyms' t1 args'
-     return (t1' <|> Just (IR.typeApp srcSpan t1 args'))
-   expandTypeSynonyms' (IR.FuncType srcSpan t1 t2) _   = do
-     t1' <- expandTypeSynonymsWhere (maxDepth - 1) predicate t1
-     t2' <- expandTypeSynonymsWhere (maxDepth - 1) predicate t2
-     return (Just (IR.FuncType srcSpan t1' t2'))
-   expandTypeSynonyms' (IR.TypeVar _ _) _              = return Nothing
+  expandTypeSynonyms' :: IR.Type -> [IR.Type] -> Converter (Maybe IR.Type)
+  expandTypeSynonyms' (IR.TypeCon _ typeConName) args = do
+    mTypeSynonym <- inEnv $ lookupTypeSynonym typeConName
+    case mTypeSynonym of
+      Just (typeVars, typeExpr)
+        | predicate typeConName -> do
+          let subst     = composeSubsts
+                (zipWith (singleSubst . IR.UnQual . IR.Ident) typeVars args)
+              typeExpr' = applySubst subst typeExpr
+          Just <$> expandTypeSynonymsWhere (maxDepth - 1) predicate typeExpr'
+      _ -> return Nothing
+  expandTypeSynonyms' (IR.TypeApp srcSpan t1 t2) args = do
+    t2' <- expandTypeSynonymsWhere (maxDepth - 1) predicate t2
+    let args' = t2' : args
+    t1' <- expandTypeSynonyms' t1 args'
+    return (t1' <|> Just (IR.typeApp srcSpan t1 args'))
+  expandTypeSynonyms' (IR.FuncType srcSpan t1 t2) _   = do
+    t1' <- expandTypeSynonymsWhere (maxDepth - 1) predicate t1
+    t2' <- expandTypeSynonymsWhere (maxDepth - 1) predicate t2
+    return (Just (IR.FuncType srcSpan t1' t2'))
+  expandTypeSynonyms' (IR.TypeVar _ _) _              = return Nothing
 
 -------------------------------------------------------------------------------
 -- Subterms of Type Expressions                                              --
@@ -148,15 +148,13 @@ expandTypeSynonymAt pos typeExpr = case parentPos pos of
   Just pos'
     | maybe False isTypeApp (selectSubterm typeExpr pos') ->
       expandTypeSynonymAt pos' typeExpr
-  _         -> fmap (fromMaybe typeExpr)
-    $ runMaybeT
-    $ do
-      subterm <- hoistMaybe $ selectSubterm typeExpr pos
-      subterm' <- lift $ expandTypeSynonym subterm
-      hoistMaybe $ replaceSubterm typeExpr pos subterm'
+  _         -> fmap (fromMaybe typeExpr) $ runMaybeT $ do
+    subterm <- hoistMaybe $ selectSubterm typeExpr pos
+    subterm' <- lift $ expandTypeSynonym subterm
+    hoistMaybe $ replaceSubterm typeExpr pos subterm'
  where
-   -- | Tests whether the given type expression is a type constructor
-   --   application.
-   isTypeApp :: IR.Type -> Bool
-   isTypeApp (IR.TypeApp _ _ _) = True
-   isTypeApp _ = False
+  -- | Tests whether the given type expression is a type constructor
+  --   application.
+  isTypeApp :: IR.Type -> Bool
+  isTypeApp (IR.TypeApp _ _ _) = True
+  isTypeApp _ = False

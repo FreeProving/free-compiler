@@ -4,10 +4,10 @@
 --   library.
 module FreeC.Util.Parsec where
 
-import           Data.Composition ( (.:) )
-import           Text.Parsec ( Parsec )
-import qualified Text.Parsec as Parsec
-import qualified Text.Parsec.Error as Parsec
+import           Data.Composition     ( (.:) )
+import           Text.Parsec          ( Parsec )
+import qualified Text.Parsec          as Parsec
+import qualified Text.Parsec.Error    as Parsec
 
 import           FreeC.IR.SrcSpan
 import           FreeC.Monad.Reporter
@@ -32,16 +32,16 @@ parsecErrorToMessage srcFiles parseError = Message
   (Parsec.showErrorMessages msgOr msgUnknown msgExpecting msgUnExpected
    msgEndOfInput (Parsec.errorMessages parseError))
  where
-   msgOr, msgUnknown, msgExpecting, msgUnExpected, msgEndOfInput :: String
-   msgOr = "or"
+  msgOr, msgUnknown, msgExpecting, msgUnExpected, msgEndOfInput :: String
+  msgOr = "or"
 
-   msgUnknown = "unknown parse error"
+  msgUnknown = "unknown parse error"
 
-   msgExpecting = "expecting"
+  msgExpecting = "expecting"
 
-   msgUnExpected = "unexpected"
+  msgUnExpected = "unexpected"
 
-   msgEndOfInput = "end of input"
+  msgEndOfInput = "end of input"
 
 -- | Reports a fatal 'Parsec.ParseError'.
 --

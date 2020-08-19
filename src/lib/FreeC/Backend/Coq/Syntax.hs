@@ -39,9 +39,9 @@ module FreeC.Backend.Coq.Syntax
   , requireFrom
   ) where
 
-import           Data.Composition ( (.:) )
-import qualified Data.List.NonEmpty as NonEmpty
-import qualified Data.Text as Text
+import           Data.Composition     ( (.:) )
+import qualified Data.List.NonEmpty   as NonEmpty
+import qualified Data.Text            as Text
 import           Language.Coq.Gallina
 
 -------------------------------------------------------------------------------
@@ -111,15 +111,15 @@ arrows args returnType = foldr Arrow returnType args
 fun :: [Qualid] -> [Maybe Term] -> Term -> Term
 fun args argTypes = Fun (NonEmpty.fromList binders)
  where
-   argNames :: [Name]
-   argNames = map Ident args
+  argNames :: [Name]
+  argNames = map Ident args
 
-   binders :: [Binder]
-   binders = zipWith makeBinder argTypes argNames
+  binders :: [Binder]
+  binders = zipWith makeBinder argTypes argNames
 
-   makeBinder :: Maybe Term -> Name -> Binder
-   makeBinder Nothing  = Inferred Explicit
-   makeBinder (Just t) = flip (Typed Ungeneralizable Explicit) t . return
+  makeBinder :: Maybe Term -> Name -> Binder
+  makeBinder Nothing  = Inferred Explicit
+  makeBinder (Just t) = flip (Typed Ungeneralizable Explicit) t . return
 
 -- | Like 'fun', but all argument types are inferred.
 inferredFun :: [Qualid] -> Term -> Term
@@ -180,8 +180,8 @@ equation = Equation . return . MultPattern . return
 match :: Term -> [Equation] -> Term
 match value = Match (return item) Nothing
  where
-   item :: MatchItem
-   item = MatchItem value Nothing Nothing
+  item :: MatchItem
+  item = MatchItem value Nothing Nothing
 
 -- | Smart constructor for reflexive equality in Coq.
 equals :: Term -> Term -> Term

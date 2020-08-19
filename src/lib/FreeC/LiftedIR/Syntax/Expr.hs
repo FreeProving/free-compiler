@@ -2,10 +2,10 @@
 --   intermediate language.
 module FreeC.LiftedIR.Syntax.Expr where
 
-import qualified FreeC.Backend.Agda.Syntax as Agda
-import qualified FreeC.Backend.Coq.Syntax as Coq
-import           FreeC.IR.SrcSpan ( SrcSpan )
-import           FreeC.LiftedIR.Effect ( Effect )
+import qualified FreeC.Backend.Agda.Syntax  as Agda
+import qualified FreeC.Backend.Coq.Syntax   as Coq
+import           FreeC.IR.SrcSpan           ( SrcSpan )
+import           FreeC.LiftedIR.Effect      ( Effect )
 import           FreeC.LiftedIR.Syntax.Name
 import           FreeC.LiftedIR.Syntax.Type
 

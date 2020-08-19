@@ -1,24 +1,24 @@
 -- | This module contains the 'Backend' data type and all available backends.
 module FreeC.Backend ( Backend(..), backends, showBackends, defaultBackend ) where
 
-import           Control.Monad.Extra ( unlessM, whenM )
+import           Control.Monad.Extra                 ( unlessM, whenM )
 import           Control.Monad.IO.Class
-import           Data.List ( intercalate )
-import qualified Data.Map.Strict as Map
-import           Data.Maybe ( isJust )
+import           Data.List                           ( intercalate )
+import qualified Data.Map.Strict                     as Map
+import           Data.Maybe                          ( isJust )
 import           System.Directory
   ( createDirectoryIfMissing, doesFileExist, makeAbsolute )
 import           System.FilePath
 
 import           FreeC.Application.Options
 import qualified FreeC.Backend.Agda.Converter.Module as Agda.Converter
-import           FreeC.Backend.Agda.Pretty ()
-import qualified FreeC.Backend.Coq.Base as Coq.Base
-import qualified FreeC.Backend.Coq.Converter.Module as Coq.Converter
-import           FreeC.Backend.Coq.Pretty ()
-import qualified FreeC.IR.Syntax as IR
+import           FreeC.Backend.Agda.Pretty           ()
+import qualified FreeC.Backend.Coq.Base              as Coq.Base
+import qualified FreeC.Backend.Coq.Converter.Module  as Coq.Converter
+import           FreeC.Backend.Coq.Pretty            ()
+import qualified FreeC.IR.Syntax                     as IR
 import           FreeC.Monad.Application
-import           FreeC.Pretty ( showPretty )
+import           FreeC.Pretty                        ( showPretty )
 
 -- | Data type that represents a backend.
 data Backend = Backend
@@ -73,52 +73,50 @@ createCoqProject :: Application ()
 createCoqProject
   = whenM coqProjectEnabled $ unlessM coqProjectExists writeCoqProject
  where
-   -- | Tests whether the generation of a @_CoqProject@ file is enabled.
-   --
-   --   The generation of the @_CoqProject@ file can be disabled with the
-   --   command line option @--no-coq-project@. If there is no @--output@
-   --   directory, the generation of the @_CoqProject@ file is disabled as
-   --   well.
-   coqProjectEnabled :: Application Bool
-   coqProjectEnabled = do
-     isEnabled <- inOpts optCreateCoqProject
-     maybeOutputDir <- inOpts optOutputDir
-     return (isEnabled && isJust maybeOutputDir)
+  -- | Tests whether the generation of a @_CoqProject@ file is enabled.
+  --
+  --   The generation of the @_CoqProject@ file can be disabled with the
+  --   command line option @--no-coq-project@. If there is no @--output@
+  --   directory, the generation of the @_CoqProject@ file is disabled as
+  --   well.
+  coqProjectEnabled :: Application Bool
+  coqProjectEnabled = do
+    isEnabled <- inOpts optCreateCoqProject
+    maybeOutputDir <- inOpts optOutputDir
+    return (isEnabled && isJust maybeOutputDir)
 
-   -- | Path to the @_CoqProject@ file to create.
-   getCoqProjectFile :: Application FilePath
-   getCoqProjectFile = do
-     Just outputDir <- inOpts optOutputDir
-     return (outputDir </> "_CoqProject")
+  -- | Path to the @_CoqProject@ file to create.
+  getCoqProjectFile :: Application FilePath
+  getCoqProjectFile = do
+    Just outputDir <- inOpts optOutputDir
+    return (outputDir </> "_CoqProject")
 
-   -- | Tests whether the @_CoqProject@ file does exist already.
-   coqProjectExists :: Application Bool
-   coqProjectExists = getCoqProjectFile >>= liftIO . doesFileExist
+  -- | Tests whether the @_CoqProject@ file does exist already.
+  coqProjectExists :: Application Bool
+  coqProjectExists = getCoqProjectFile >>= liftIO . doesFileExist
 
-   -- | Writes the string returned by 'makeContents' to the @_CoqProject@ file.
-   writeCoqProject :: Application ()
-   writeCoqProject = do
-     coqProject <- getCoqProjectFile
-     contents <- makeContents
-     liftIO
-       $ do
-         createDirectoryIfMissing True (takeDirectory coqProject)
-         writeFile coqProject contents
+  -- | Writes the string returned by 'makeContents' to the @_CoqProject@ file.
+  writeCoqProject :: Application ()
+  writeCoqProject = do
+    coqProject <- getCoqProjectFile
+    contents <- makeContents
+    liftIO $ do
+      createDirectoryIfMissing True (takeDirectory coqProject)
+      writeFile coqProject contents
 
-   -- | Creates the string to write to the 'coqProject' file.
-   makeContents :: Application String
-   makeContents = do
-     baseDir <- inOpts optBaseLibDir
-     let coqBaseDir = baseDir </> "coq"
-     Just outputDir <- inOpts optOutputDir
-     absBaseDir <- liftIO $ makeAbsolute coqBaseDir
-     absOutputDir <- liftIO $ makeAbsolute outputDir
-     let relBaseDir = makeRelative absOutputDir absBaseDir
-     return
-       $ unlines
-       [ "-R " ++ relBaseDir ++ " " ++ showPretty Coq.Base.baseLibName
-       , "-R . " ++ showPretty Coq.Base.generatedLibName
-       ]
+  -- | Creates the string to write to the 'coqProject' file.
+  makeContents :: Application String
+  makeContents = do
+    baseDir <- inOpts optBaseLibDir
+    let coqBaseDir = baseDir </> "coq"
+    Just outputDir <- inOpts optOutputDir
+    absBaseDir <- liftIO $ makeAbsolute coqBaseDir
+    absOutputDir <- liftIO $ makeAbsolute outputDir
+    let relBaseDir = makeRelative absOutputDir absBaseDir
+    return
+      $ unlines [ "-R " ++ relBaseDir ++ " " ++ showPretty Coq.Base.baseLibName
+                , "-R . " ++ showPretty Coq.Base.generatedLibName
+                ]
 
 -- | The Coq backend.
 coqBackend :: Backend
@@ -141,35 +139,32 @@ convertModuleToAgda
 --   The file declares dependencies on the Agda standard library and our base
 --   library.
 createAgdaLib :: Application ()
-createAgdaLib = whenM agdaLibEnabled
-  $ unlessM agdaLibExists
-  $ do
-    (agdaLib, name) <- getAgdaLib
-    liftIO
-      $ do
-        createDirectoryIfMissing True (takeDirectory agdaLib)
-        writeFile agdaLib $ contents name
+createAgdaLib = whenM agdaLibEnabled $ unlessM agdaLibExists $ do
+  (agdaLib, name) <- getAgdaLib
+  liftIO $ do
+    createDirectoryIfMissing True (takeDirectory agdaLib)
+    writeFile agdaLib $ contents name
  where
-   agdaLibEnabled :: Application Bool
-   agdaLibEnabled = do
-     isEnabled <- inOpts optCreateAgdaLib
-     maybeOutputDir <- inOpts optOutputDir
-     return $ isEnabled && isJust maybeOutputDir
+  agdaLibEnabled :: Application Bool
+  agdaLibEnabled = do
+    isEnabled <- inOpts optCreateAgdaLib
+    maybeOutputDir <- inOpts optOutputDir
+    return $ isEnabled && isJust maybeOutputDir
 
-   agdaLibExists :: Application Bool
-   agdaLibExists = getAgdaLib >>= liftIO . doesFileExist . fst
+  agdaLibExists :: Application Bool
+  agdaLibExists = getAgdaLib >>= liftIO . doesFileExist . fst
 
-   -- | Creates the string to write to the @.agda-lib@ file.
-   contents :: String -> String
-   contents name = unlines
-     ["name: " ++ name, "include: .", "depend: standard-library base"]
+  -- | Creates the string to write to the @.agda-lib@ file.
+  contents :: String -> String
+  contents name
+    = unlines ["name: " ++ name, "include: .", "depend: standard-library base"]
 
-   -- | Path to the @.agda-lib@ file to create and the name of the library.
-   getAgdaLib :: Application (FilePath, String)
-   getAgdaLib = do
-     Just outputDir <- inOpts optOutputDir
-     name <- liftIO $ last . splitDirectories <$> makeAbsolute outputDir
-     return (outputDir </> (name ++ ".agda-lib"), name)
+  -- | Path to the @.agda-lib@ file to create and the name of the library.
+  getAgdaLib :: Application (FilePath, String)
+  getAgdaLib = do
+    Just outputDir <- inOpts optOutputDir
+    name <- liftIO $ last . splitDirectories <$> makeAbsolute outputDir
+    return (outputDir </> (name ++ ".agda-lib"), name)
 
 -- | The Agda backend.
 agdaBackend :: Backend

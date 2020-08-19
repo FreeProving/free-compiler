@@ -9,14 +9,14 @@ module FreeC.IR.TypeScheme
   , abstractTypeScheme'
   ) where
 
-import           Data.Composition ( (.:) )
-import           Data.List ( (\\), partition )
-import           Data.Maybe ( fromJust )
+import           Data.Composition        ( (.:) )
+import           Data.List               ( (\\), partition )
+import           Data.Maybe              ( fromJust )
 
 import           FreeC.Environment.Fresh
 import           FreeC.IR.SrcSpan
 import           FreeC.IR.Subst
-import qualified FreeC.IR.Syntax as IR
+import qualified FreeC.IR.Syntax         as IR
 import           FreeC.Monad.Converter
 
 -------------------------------------------------------------------------------
@@ -66,5 +66,5 @@ abstractTypeScheme' ns t
         t'         = applySubst subst t
     in (IR.TypeScheme NoSrcSpan (map (IR.TypeVarDecl NoSrcSpan) vs') t', subst)
  where
-   makeTypeArg :: Int -> IR.TypeVarIdent
-   makeTypeArg = (freshTypeArgPrefix ++) . show
+  makeTypeArg :: Int -> IR.TypeVarIdent
+  makeTypeArg = (freshTypeArgPrefix ++) . show

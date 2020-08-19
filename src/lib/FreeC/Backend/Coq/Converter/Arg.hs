@@ -3,10 +3,10 @@
 module FreeC.Backend.Coq.Converter.Arg where
 
 import           FreeC.Backend.Coq.Converter.Type
-import qualified FreeC.Backend.Coq.Syntax as Coq
+import qualified FreeC.Backend.Coq.Syntax         as Coq
 import           FreeC.Environment.Fresh
 import           FreeC.Environment.Renamer
-import qualified FreeC.IR.Syntax as IR
+import qualified FreeC.IR.Syntax                  as IR
 import           FreeC.Monad.Converter
 
 -------------------------------------------------------------------------------
@@ -34,10 +34,10 @@ convertTypeVarDecls explicitness typeVarDecls
     idents' <- mapM convertTypeVarDecl typeVarDecls
     return [Coq.typedBinder explicitness idents' Coq.sortType]
  where
-   -- | TODO
-   convertTypeVarDecl :: IR.TypeVarDecl -> Converter Coq.Qualid
-   convertTypeVarDecl (IR.TypeVarDecl srcSpan ident)
-     = renameAndDefineTypeVar srcSpan ident
+  -- | TODO
+  convertTypeVarDecl :: IR.TypeVarDecl -> Converter Coq.Qualid
+  convertTypeVarDecl (IR.TypeVarDecl srcSpan ident)
+    = renameAndDefineTypeVar srcSpan ident
 
 -------------------------------------------------------------------------------
 -- Function Arguments                                                        --

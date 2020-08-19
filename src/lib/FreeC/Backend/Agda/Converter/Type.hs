@@ -4,21 +4,21 @@ module FreeC.Backend.Agda.Converter.Type
   , convertLiftedConType
   ) where
 
-import           Prelude hiding ( pi )
+import           Prelude                           hiding ( pi )
 
-import           Data.Bool ( bool )
+import           Data.Bool                         ( bool )
 
 import           FreeC.Backend.Agda.Converter.Free
   ( addPartial, applyFreeArgs, free )
 import           FreeC.Backend.Agda.Converter.Size ( up )
-import qualified FreeC.Backend.Agda.Syntax as Agda
-import           FreeC.Environment.Fresh ( freshAgdaVar )
-import           FreeC.Environment.LookupOrFail ( lookupAgdaIdentOrFail )
-import           FreeC.IR.SrcSpan ( SrcSpan(NoSrcSpan) )
-import qualified FreeC.IR.Syntax as IR
-import qualified FreeC.LiftedIR.Syntax as LIR
-import           FreeC.LiftedIR.Syntax.Type ( decreasing )
-import           FreeC.Monad.Converter ( Converter, localEnv )
+import qualified FreeC.Backend.Agda.Syntax         as Agda
+import           FreeC.Environment.Fresh           ( freshAgdaVar )
+import           FreeC.Environment.LookupOrFail    ( lookupAgdaIdentOrFail )
+import           FreeC.IR.SrcSpan                  ( SrcSpan(NoSrcSpan) )
+import qualified FreeC.IR.Syntax                   as IR
+import qualified FreeC.LiftedIR.Syntax             as LIR
+import           FreeC.LiftedIR.Syntax.Type        ( decreasing )
+import           FreeC.Monad.Converter             ( Converter, localEnv )
 
 -------------------------------------------------------------------------------
 -- Functions                                                                 --
@@ -33,9 +33,9 @@ convertLiftedFuncType isPartial argTypes retType = if any decreasing argTypes
     $ \i -> partial <$> convertLiftedType (Just $ Agda.hiddenArg_ i) funcType
   else partial <$> convertLiftedType' funcType
  where
-   funcType = LIR.funcType NoSrcSpan argTypes retType
+  funcType = LIR.funcType NoSrcSpan argTypes retType
 
-   partial  = bool id addPartial isPartial
+  partial  = bool id addPartial isPartial
 
 -------------------------------------------------------------------------------
 -- Constructors                                                              --
@@ -53,11 +53,10 @@ convertLiftedConType argTypes retType = if any decreasing argTypes
 -- | Converts a constructor from lifted IR to Agda by binding a new variable
 --   @i : Size@ and annotating recursive occurrences and the return type.
 convertLiftedRecConType :: [LIR.Type] -> LIR.Type -> Converter Agda.Expr
-convertLiftedRecConType argTypes retType = pi "i"
-  $ \i -> do
-    retType' <- convertLiftedType' retType
-    foldr Agda.fun (Agda.app retType' $ Agda.hiddenArg_ $ up i)
-      <$> mapM (convertLiftedType $ Just $ Agda.hiddenArg_ i) argTypes
+convertLiftedRecConType argTypes retType = pi "i" $ \i -> do
+  retType' <- convertLiftedType' retType
+  foldr Agda.fun (Agda.app retType' $ Agda.hiddenArg_ $ up i)
+    <$> mapM (convertLiftedType $ Just $ Agda.hiddenArg_ i) argTypes
 
 -------------------------------------------------------------------------------
 -- Lifted IR to Agda Translation                                             --
@@ -93,7 +92,6 @@ pi :: String
    -> (Agda.Expr -> Converter Agda.Expr)
    -- ^ Continuation for creating the expression using the variable.
    -> Converter Agda.Expr
-pi name k = localEnv
-  $ do
-    var <- freshAgdaVar name
-    Agda.pi [Agda.unqualify var] <$> k (Agda.Ident var)
+pi name k = localEnv $ do
+  var <- freshAgdaVar name
+  Agda.pi [Agda.unqualify var] <$> k (Agda.Ident var)

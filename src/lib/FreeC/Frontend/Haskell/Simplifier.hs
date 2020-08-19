@@ -21,19 +21,19 @@ module FreeC.Frontend.Haskell.Simplifier
   , simplifyExpr
   ) where
 
-import           Control.Monad ( unless, when )
-import           Data.Composition ( (.:) )
-import           Data.List.Extra ( concatUnzip3 )
-import           Data.Maybe ( fromJust, fromMaybe, isJust )
-import qualified Language.Haskell.Exts.Syntax as HSE
+import           Control.Monad                  ( unless, when )
+import           Data.Composition               ( (.:) )
+import           Data.List.Extra                ( concatUnzip3 )
+import           Data.Maybe                     ( fromJust, fromMaybe, isJust )
+import qualified Language.Haskell.Exts.Syntax   as HSE
 
 import           FreeC.Environment.Fresh
 import           FreeC.Frontend.IR.PragmaParser
-import qualified FreeC.IR.Base.Prelude as IR.Prelude
-import           FreeC.IR.Reference ( freeTypeVars )
+import qualified FreeC.IR.Base.Prelude          as IR.Prelude
+import           FreeC.IR.Reference             ( freeTypeVars )
 import           FreeC.IR.SrcSpan
-import           FreeC.IR.Subterm ( findFirstSubterm )
-import qualified FreeC.IR.Syntax as IR
+import           FreeC.IR.Subterm               ( findFirstSubterm )
+import qualified FreeC.IR.Syntax                as IR
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
 
@@ -451,24 +451,24 @@ simplifyTypeScheme typeExpr = do
       typeArgs        = zipWith IR.TypeVarDecl typeArgSrcSpans typeArgIdents
   return (IR.TypeScheme srcSpan typeArgs typeExpr')
  where
-   -- | Finds the first occurrence of the type variable with the given name.
-   --
-   --   Returns 'NoSrcSpan' if 'findTypeArgSrcSpan'' returns @Nothing@.
-   --   Since the type arguments have been extracted using 'freeTypeVars',
-   --   'findTypeArgSrcSpan'' should never return @Nothing@.
-   findTypeArgSrcSpan :: IR.Type -> IR.TypeVarIdent -> SrcSpan
-   findTypeArgSrcSpan = fromMaybe NoSrcSpan .: flip findTypeArgSrcSpan'
+  -- | Finds the first occurrence of the type variable with the given name.
+  --
+  --   Returns 'NoSrcSpan' if 'findTypeArgSrcSpan'' returns @Nothing@.
+  --   Since the type arguments have been extracted using 'freeTypeVars',
+  --   'findTypeArgSrcSpan'' should never return @Nothing@.
+  findTypeArgSrcSpan :: IR.Type -> IR.TypeVarIdent -> SrcSpan
+  findTypeArgSrcSpan = fromMaybe NoSrcSpan .: flip findTypeArgSrcSpan'
 
-   -- | Like 'findTypeArgSrcSpan' but returns @Nothing@ if there is
-   --   no such type variable.
-   findTypeArgSrcSpan' :: IR.TypeVarIdent -> IR.Type -> Maybe SrcSpan
-   findTypeArgSrcSpan' = fmap IR.typeSrcSpan .: findFirstSubterm . isTypeVar
+  -- | Like 'findTypeArgSrcSpan' but returns @Nothing@ if there is
+  --   no such type variable.
+  findTypeArgSrcSpan' :: IR.TypeVarIdent -> IR.Type -> Maybe SrcSpan
+  findTypeArgSrcSpan' = fmap IR.typeSrcSpan .: findFirstSubterm . isTypeVar
 
-   -- | Tests whether the given type is the type variable with the given name.
-   isTypeVar :: IR.TypeVarIdent -> IR.Type -> Bool
-   isTypeVar typeVarIdent (IR.TypeVar _ typeVarIdent')
-     = typeVarIdent == typeVarIdent'
-   isTypeVar _ _ = False
+  -- | Tests whether the given type is the type variable with the given name.
+  isTypeVar :: IR.TypeVarIdent -> IR.Type -> Bool
+  isTypeVar typeVarIdent (IR.TypeVar _ typeVarIdent')
+    = typeVarIdent == typeVarIdent'
+  isTypeVar _ _ = False
 
 -- | Simplifies the a type expression.
 simplifyType :: HSE.Type SrcSpan -> Simplifier IR.Type
@@ -850,14 +850,14 @@ simplifyBinds :: HSE.Binds SrcSpan -> Simplifier [IR.Bind]
 simplifyBinds binds@(HSE.IPBinds _ _) = notSupported "Implicit parameters" binds
 simplifyBinds (HSE.BDecls _ decls) = mapM simplifyBind decls
  where
-   simplifyBind :: HSE.Decl SrcSpan -> Simplifier IR.Bind
-   simplifyBind (HSE.PatBind srcSpan varPat (HSE.UnGuardedRhs _ expr) Nothing)
-     = do
-       varPat' <- simplifyVarPat varPat
-       expr' <- simplifyExpr expr
-       return (IR.Bind srcSpan varPat' expr')
-   simplifyBind (HSE.PatBind _ _ rhss@(HSE.GuardedRhss _ _) _)
-     = experimentallySupported "Guards" rhss
-   simplifyBind (HSE.PatBind _ _ _ (Just binds))
-     = notSupported "Local declarations" binds
-   simplifyBind decl = expected "A variable pattern binding" decl
+  simplifyBind :: HSE.Decl SrcSpan -> Simplifier IR.Bind
+  simplifyBind (HSE.PatBind srcSpan varPat (HSE.UnGuardedRhs _ expr) Nothing)
+    = do
+      varPat' <- simplifyVarPat varPat
+      expr' <- simplifyExpr expr
+      return (IR.Bind srcSpan varPat' expr')
+  simplifyBind (HSE.PatBind _ _ rhss@(HSE.GuardedRhss _ _) _)
+    = experimentallySupported "Guards" rhss
+  simplifyBind (HSE.PatBind _ _ _ (Just binds))
+    = notSupported "Local declarations" binds
+  simplifyBind decl = expected "A variable pattern binding" decl

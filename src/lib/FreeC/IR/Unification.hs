@@ -11,8 +11,8 @@ module FreeC.IR.Unification
   , unifyAll
   ) where
 
-import           Control.Monad.Trans.Except ( ExceptT, runExceptT, throwE )
-import           Data.Composition ( (.:) )
+import           Control.Monad.Trans.Except     ( ExceptT, runExceptT, throwE )
+import           Data.Composition               ( (.:) )
 
 import           FreeC.Environment
 import           FreeC.Environment.Entry
@@ -20,11 +20,11 @@ import           FreeC.Environment.LookupOrFail
 import           FreeC.IR.SrcSpan
 import           FreeC.IR.Subst
 import           FreeC.IR.Subterm
-import qualified FreeC.IR.Syntax as IR
+import qualified FreeC.IR.Syntax                as IR
 import           FreeC.IR.TypeSynExpansion
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
-import           FreeC.Pretty ( showPretty )
+import           FreeC.Pretty                   ( showPretty )
 
 -------------------------------------------------------------------------------
 -- Error Reporting                                                           --
@@ -109,42 +109,42 @@ unify t s = do
       s' <- lift $ expandTypeSynonymAt pos s
       if t /= t' || s /= s' then unify t' s' else throwE $ UnificationError u v
  where
-   -- | Maps the given variable to the given type expression and continues
-   --   with the next iteration of the unification algorithm.
-   mapsTo :: IR.TypeVarIdent
-          -> IR.Type
-          -> ExceptT UnificationError Converter (Subst IR.Type)
-   x `mapsTo` u = do
-     rigidCheck
-     occursCheck u
-     let subst = singleSubst (IR.UnQual (IR.Ident x)) u
-         t'    = applySubst subst t
-         s'    = applySubst subst s
-     mgu <- unify t' s'
-     return (composeSubst mgu subst)
-    where
-      -- | Tests whether there is a binder for the type variable.
-      --
-      --   Type variables that are bound by a type signature must not be matched
-      --   with another type. Reports a fatal error if the variable is bound.
-      rigidCheck :: ExceptT UnificationError Converter ()
-      rigidCheck = do
-        maybeEntry
-          <- lift $ inEnv $ lookupEntry IR.TypeScope (IR.UnQual (IR.Ident x))
-        case maybeEntry of
-          Nothing    -> return ()
-          Just entry -> throwE $ RigidTypeVarError (entrySrcSpan entry) x u
+  -- | Maps the given variable to the given type expression and continues
+  --   with the next iteration of the unification algorithm.
+  mapsTo :: IR.TypeVarIdent
+         -> IR.Type
+         -> ExceptT UnificationError Converter (Subst IR.Type)
+  x `mapsTo` u = do
+    rigidCheck
+    occursCheck u
+    let subst = singleSubst (IR.UnQual (IR.Ident x)) u
+        t'    = applySubst subst t
+        s'    = applySubst subst s
+    mgu <- unify t' s'
+    return (composeSubst mgu subst)
+   where
+    -- | Tests whether there is a binder for the type variable.
+    --
+    --   Type variables that are bound by a type signature must not be matched
+    --   with another type. Reports a fatal error if the variable is bound.
+    rigidCheck :: ExceptT UnificationError Converter ()
+    rigidCheck = do
+      maybeEntry
+        <- lift $ inEnv $ lookupEntry IR.TypeScope (IR.UnQual (IR.Ident x))
+      case maybeEntry of
+        Nothing    -> return ()
+        Just entry -> throwE $ RigidTypeVarError (entrySrcSpan entry) x u
 
-      -- | Tests whether the type variable occurs in the given type expression.
-      --
-      --   Reports a fatal error if the variable is found.
-      occursCheck :: IR.Type -> ExceptT UnificationError Converter ()
-      occursCheck (IR.TypeVar _ y)
-        | x == y = throwE $ OccursCheckFailure x u
-        | otherwise = return ()
-      occursCheck (IR.TypeCon _ _)      = return ()
-      occursCheck (IR.TypeApp _ t1 t2)  = occursCheck t1 >> occursCheck t2
-      occursCheck (IR.FuncType _ t1 t2) = occursCheck t1 >> occursCheck t2
+    -- | Tests whether the type variable occurs in the given type expression.
+    --
+    --   Reports a fatal error if the variable is found.
+    occursCheck :: IR.Type -> ExceptT UnificationError Converter ()
+    occursCheck (IR.TypeVar _ y)
+      | x == y = throwE $ OccursCheckFailure x u
+      | otherwise = return ()
+    occursCheck (IR.TypeCon _ _)      = return ()
+    occursCheck (IR.TypeApp _ t1 t2)  = occursCheck t1 >> occursCheck t2
+    occursCheck (IR.FuncType _ t1 t2) = occursCheck t1 >> occursCheck t2
 
 -- | Computes the most general unificator for all given type expressions.
 unifyAll :: [IR.Type] -> ExceptT UnificationError Converter (Subst IR.Type)

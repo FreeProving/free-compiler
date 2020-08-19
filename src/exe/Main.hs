@@ -1,14 +1,15 @@
 -- | This is the main module for the compiler's command line interface.
 module Main where
 
-import           Control.Monad ( (>=>) )
-import           Control.Monad.Extra ( unlessM, whenM )
+import           Control.Monad                             ( (>=>) )
+import           Control.Monad.Extra                       ( unlessM, whenM )
 import           Control.Monad.IO.Class
-import           Data.List ( intercalate )
-import           Data.List.Extra ( splitOn )
-import qualified Data.Map.Strict as Map
-import           System.Directory ( createDirectoryIfMissing, doesFileExist )
-import           System.Exit ( exitSuccess )
+import           Data.List                                 ( intercalate )
+import           Data.List.Extra                           ( splitOn )
+import qualified Data.Map.Strict                           as Map
+import           System.Directory
+  ( createDirectoryIfMissing, doesFileExist )
+import           System.Exit                               ( exitSuccess )
 import           System.FilePath
 
 import           FreeC.Application.Debug
@@ -21,16 +22,17 @@ import           FreeC.Environment
 import           FreeC.Environment.ModuleInterface.Decoder
 import           FreeC.Environment.ModuleInterface.Encoder
 import           FreeC.Frontend
-import qualified FreeC.IR.Base.Prelude as IR.Prelude
-import qualified FreeC.IR.Base.Test.QuickCheck as IR.Test.QuickCheck
+import qualified FreeC.IR.Base.Prelude                     as IR.Prelude
+import qualified FreeC.IR.Base.Test.QuickCheck             as IR.Test.QuickCheck
 import           FreeC.IR.DependencyGraph
 import           FreeC.IR.SrcSpan
-import qualified FreeC.IR.Syntax as IR
+import qualified FreeC.IR.Syntax                           as IR
 import           FreeC.Monad.Application
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
 import           FreeC.Pipeline
-import           FreeC.Pretty ( putPrettyLn, showPretty, writePrettyFile )
+import           FreeC.Pretty
+  ( putPrettyLn, showPretty, writePrettyFile )
 
 -------------------------------------------------------------------------------
 -- Main                                                                      --
@@ -54,24 +56,18 @@ compiler = do
   -- Parse command line arguments.
   getOpts >>= liftReporterIO . getAndParseArgs >>= putOpts
   -- Show help message if the user specified the @--help@ option.
-  whenM (inOpts optShowHelp)
-    $ liftIO
-    $ do
-      putUsageInfo
-      exitSuccess
+  whenM (inOpts optShowHelp) $ liftIO $ do
+    putUsageInfo
+    exitSuccess
   -- Print version information if the user specified the @--version@ option.
-  whenM (inOpts optShowVersion)
-    $ liftIO
-    $ do
-      putVersionInfo
-      exitSuccess
+  whenM (inOpts optShowVersion) $ liftIO $ do
+    putVersionInfo
+    exitSuccess
   -- Show usage information if there are no input files.
-  whenM (inOpts (null . optInputFiles))
-    $ liftIO
-    $ do
-      putDebug "No input file.\n"
-      putUsageInfo
-      exitSuccess
+  whenM (inOpts (null . optInputFiles)) $ liftIO $ do
+    putDebug "No input file.\n"
+    putUsageInfo
+    exitSuccess
   -- Select frontend and backend
   frontend <- selectFrontend
   backend <- selectBackend
@@ -123,12 +119,11 @@ selectBackend = do
 -- | Parses the given input file with the given parser function.
 parseInputFile
   :: (SrcFile -> Application IR.Module) -> FilePath -> Application IR.Module
-parseInputFile parser inputFile = reportApp
-  $ do
-    -- Parse and simplify input file.
-    putDebug $ "Loading " ++ inputFile
-    contents <- liftIO $ readFile inputFile
-    parser $ mkSrcFile inputFile contents
+parseInputFile parser inputFile = reportApp $ do
+  -- Parse and simplify input file.
+  putDebug $ "Loading " ++ inputFile
+  contents <- liftIO $ readFile inputFile
+  parser $ mkSrcFile inputFile contents
 
 -- | Sorts the given modules based on their dependencies.
 --
@@ -136,12 +131,12 @@ parseInputFile parser inputFile = reportApp
 sortInputModules :: [IR.Module] -> Application [IR.Module]
 sortInputModules = mapM checkForCycle . groupModules
  where
-   checkForCycle :: DependencyComponent IR.Module -> Application IR.Module
-   checkForCycle (NonRecursive m) = return m
-   checkForCycle (Recursive ms)   = reportFatal
-     $ Message NoSrcSpan Error
-     $ "Module imports form a cycle: "
-     ++ intercalate ", " (map (showPretty . IR.modName) ms)
+  checkForCycle :: DependencyComponent IR.Module -> Application IR.Module
+  checkForCycle (NonRecursive m) = return m
+  checkForCycle (Recursive ms)   = reportFatal
+    $ Message NoSrcSpan Error
+    $ "Module imports form a cycle: "
+    ++ intercalate ", " (map (showPretty . IR.modName) ms)
 
 -- | Converts the given module with the given converter function.
 --
@@ -160,11 +155,10 @@ convertInputModule converter ast = do
       ++ srcSpanFilename srcSpan
       ++ ")"
     else putDebug $ "Compiling " ++ showPretty modName
-  reportApp
-    $ do
-      loadRequiredModules ast
-      prog <- moduleEnv $ (liftConverter . runPipeline >=> converter) ast
-      return (modName, prog)
+  reportApp $ do
+    loadRequiredModules ast
+    prog <- moduleEnv $ (liftConverter . runPipeline >=> converter) ast
+    return (modName, prog)
 
 -------------------------------------------------------------------------------
 -- Output                                                                    --
@@ -215,22 +209,22 @@ loadModule srcSpan modName = do
   iface <- loadModuleInterface ifaceFile
   modifyEnv $ makeModuleAvailable iface
  where
-   -- | The name of the module's interface file relative to the import
-   --   directories.
-   filename :: FilePath
-   filename = map (\c -> if c == '.' then '/' else c) modName <.> "json"
+  -- | The name of the module's interface file relative to the import
+  --   directories.
+  filename :: FilePath
+  filename = map (\c -> if c == '.' then '/' else c) modName <.> "json"
 
-   -- | Looks for the module's interface file in the import directories.
-   --
-   --   Reports a fatal message if the file could not be found.
-   findIfaceFile :: [FilePath] -> Application FilePath
-   findIfaceFile []       = reportFatal
-     $ Message srcSpan Error
-     $ "Could not find imported module " ++ showPretty modName
-   findIfaceFile (d : ds) = do
-     let ifaceFile = d </> filename
-     exists <- liftIO $ doesFileExist ifaceFile
-     if exists then return ifaceFile else findIfaceFile ds
+  -- | Looks for the module's interface file in the import directories.
+  --
+  --   Reports a fatal message if the file could not be found.
+  findIfaceFile :: [FilePath] -> Application FilePath
+  findIfaceFile []       = reportFatal
+    $ Message srcSpan Error
+    $ "Could not find imported module " ++ showPretty modName
+  findIfaceFile (d : ds) = do
+    let ifaceFile = d </> filename
+    exists <- liftIO $ doesFileExist ifaceFile
+    if exists then return ifaceFile else findIfaceFile ds
 
 -------------------------------------------------------------------------------
 -- Base Library                                                              --

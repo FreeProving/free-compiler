@@ -2,7 +2,7 @@
 module FreeC.Application.Option.Help ( usageHeader, putUsageInfo ) where
 
 import           System.Console.GetOpt
-import           System.Environment ( getProgName )
+import           System.Environment                    ( getProgName )
 
 import           FreeC.Application.Options.Descriptors
 

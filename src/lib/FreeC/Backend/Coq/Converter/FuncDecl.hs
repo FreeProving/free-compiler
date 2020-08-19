@@ -3,13 +3,13 @@
 --   our intermediate representation.
 module FreeC.Backend.Coq.Converter.FuncDecl where
 
-import           Control.Monad.Extra ( concatMapM )
+import           Control.Monad.Extra                         ( concatMapM )
 
 import           FreeC.Backend.Coq.Converter.FuncDecl.NonRec
 import           FreeC.Backend.Coq.Converter.FuncDecl.Rec
-import qualified FreeC.Backend.Coq.Syntax as Coq
+import qualified FreeC.Backend.Coq.Syntax                    as Coq
 import           FreeC.IR.DependencyGraph
-import qualified FreeC.IR.Syntax as IR
+import qualified FreeC.IR.Syntax                             as IR
 import           FreeC.Monad.Converter
 
 -- | Converts the given function declarations.

@@ -5,8 +5,8 @@
 --   This is an example for a simple effect-generic proof.
 module Proofs.ListFunctor where
 
-import           Data.Function ( id )
-import           Data.List ( map )
+import           Data.Function   ( id )
+import           Data.List       ( map )
 import           Test.QuickCheck
 
 prop_map_id :: Property

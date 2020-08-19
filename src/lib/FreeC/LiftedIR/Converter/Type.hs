@@ -10,10 +10,10 @@ module FreeC.LiftedIR.Converter.Type
   , liftType'
   ) where
 
-import           Data.Bool ( bool )
+import           Data.Bool             ( bool )
 
-import           FreeC.IR.SrcSpan ( SrcSpan(NoSrcSpan) )
-import qualified FreeC.IR.Syntax as IR
+import           FreeC.IR.SrcSpan      ( SrcSpan(NoSrcSpan) )
+import qualified FreeC.IR.Syntax       as IR
 import qualified FreeC.LiftedIR.Syntax as LIR
 import           FreeC.Monad.Converter ( Converter )
 import           FreeC.Monad.Reporter
@@ -29,11 +29,11 @@ liftFuncArgTypes = maybe liftNonRecFuncArgTypes liftRecFuncArgTypes
 -- | Converts the argument types of a non recursive function using
 --   @convertType@.
 liftNonRecFuncArgTypes :: [IR.VarPat] -> Converter [LIR.Type]
-liftNonRecFuncArgTypes = mapM
-  $ \pat -> let err = reportFatal
-                  $ Message (IR.varPatSrcSpan pat) Internal
-                  $ "Expected variable pattern to have a type annotation."
-            in liftVarPatType pat >>= maybe err return
+liftNonRecFuncArgTypes = mapM $ \pat ->
+  let err = reportFatal
+        $ Message (IR.varPatSrcSpan pat) Internal
+        $ "Expected variable pattern to have a type annotation."
+  in liftVarPatType pat >>= maybe err return
 
 -- | Converts the argument types of a recursive function using @convertType@.
 --

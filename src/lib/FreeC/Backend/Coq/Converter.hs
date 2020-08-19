@@ -21,7 +21,7 @@ module FreeC.Backend.Coq.Converter
   , convertExpr
   ) where
 
-import           FreeC.Backend.Coq.Converter.Expr ( convertExpr )
+import           FreeC.Backend.Coq.Converter.Expr            ( convertExpr )
 import           FreeC.Backend.Coq.Converter.FuncDecl
   ( convertFuncComponent, convertFuncDecls )
 import           FreeC.Backend.Coq.Converter.FuncDecl.NonRec
@@ -30,6 +30,7 @@ import           FreeC.Backend.Coq.Converter.FuncDecl.Rec
   ( convertRecFuncDecls )
 import           FreeC.Backend.Coq.Converter.Module
   ( convertDecls, convertModule, convertTypeDecls )
-import           FreeC.Backend.Coq.Converter.Type ( convertType, convertType' )
+import           FreeC.Backend.Coq.Converter.Type
+  ( convertType, convertType' )
 import           FreeC.Backend.Coq.Converter.TypeDecl
   ( convertDataDecl, convertDataDecls, convertTypeComponent )

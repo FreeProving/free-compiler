@@ -25,14 +25,14 @@
 --   instances below.
 module FreeC.IR.Similar ( Similar, similar, notSimilar ) where
 
-import           Control.Monad.Extra ( andM )
-import           Data.Composition ( (.:) )
-import           Data.Map.Strict ( Map )
-import qualified Data.Map.Strict as Map
-import           Data.Set ( Set )
-import qualified Data.Set as Set
+import           Control.Monad.Extra  ( andM )
+import           Data.Composition     ( (.:) )
+import           Data.Map.Strict      ( Map )
+import qualified Data.Map.Strict      as Map
+import           Data.Set             ( Set )
+import qualified Data.Set             as Set
 
-import qualified FreeC.IR.Syntax as IR
+import qualified FreeC.IR.Syntax      as IR
 import           FreeC.Util.Predicate ( (.&&.) )
 
 -------------------------------------------------------------------------------
@@ -80,10 +80,10 @@ similarVars scope x y renaming
   | leftFree x' renaming && rightFree y' renaming = x == y
   | otherwise = Map.lookup x' (renameMap renaming) == Just y
  where
-   x', y' :: IR.ScopedName
-   x' = (scope, x)
+  x', y' :: IR.ScopedName
+  x' = (scope, x)
 
-   y' = (scope, y)
+  y' = (scope, y)
 
 -- | Extends a renaming by the corresponding pairs of variable names from the
 --   two given lists.
@@ -93,10 +93,10 @@ extendRenaming scope xs ys renaming = Renaming
   , rightBoundSet = Set.fromList ys' `Set.union` rightBoundSet renaming
   }
  where
-   xs', ys' :: [IR.ScopedName]
-   xs' = map ((,) scope) xs
+  xs', ys' :: [IR.ScopedName]
+  xs' = map ((,) scope) xs
 
-   ys' = map ((,) scope) ys
+  ys' = map ((,) scope) ys
 
 -------------------------------------------------------------------------------
 -- Similarity Test                                                           --

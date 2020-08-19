@@ -24,17 +24,17 @@ module FreeC.Environment.Fresh
   , freshIRQName
   ) where
 
-import           Data.List ( elemIndex )
-import qualified Data.Map.Strict as Map
-import           Data.Maybe ( fromJust )
+import           Data.List                 ( elemIndex )
+import qualified Data.Map.Strict           as Map
+import           Data.Maybe                ( fromJust )
 
 import qualified FreeC.Backend.Agda.Syntax as Agda
-import qualified FreeC.Backend.Coq.Syntax as Coq
+import qualified FreeC.Backend.Coq.Syntax  as Coq
 import           FreeC.Environment
 import           FreeC.Environment.Entry
 import           FreeC.Environment.Renamer
-import           FreeC.IR.SrcSpan ( SrcSpan(NoSrcSpan) )
-import qualified FreeC.IR.Syntax as IR
+import           FreeC.IR.SrcSpan          ( SrcSpan(NoSrcSpan) )
+import qualified FreeC.IR.Syntax           as IR
 import           FreeC.Monad.Converter
 
 -------------------------------------------------------------------------------

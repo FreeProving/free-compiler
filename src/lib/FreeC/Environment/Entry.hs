@@ -3,13 +3,13 @@
 --   in the environment.
 module FreeC.Environment.Entry where
 
-import           Data.Function ( on )
-import           Data.Tuple.Extra ( (&&&) )
+import           Data.Function             ( on )
+import           Data.Tuple.Extra          ( (&&&) )
 
 import qualified FreeC.Backend.Agda.Syntax as Agda
-import qualified FreeC.Backend.Coq.Syntax as Coq
+import qualified FreeC.Backend.Coq.Syntax  as Coq
 import           FreeC.IR.SrcSpan
-import qualified FreeC.IR.Syntax as IR
+import qualified FreeC.IR.Syntax           as IR
 import           FreeC.Util.Predicate
 
 -- | Entry of the environment.
