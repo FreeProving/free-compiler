@@ -180,7 +180,8 @@ instance ApplySubst IR.Expr IR.Alt where
 --   bound by @let@ expressions.
 instance ApplySubst IR.Expr IR.Bind where
   applySubst subst (IR.Bind srcSpan varPat expr)
-    = let expr' = applySubst subst expr in IR.Bind srcSpan varPat expr'
+    = let expr' = applySubst subst expr
+      in IR.Bind srcSpan varPat expr'
 
 -------------------------------------------------------------------------------
 -- Application to Types in Expressions                                       --

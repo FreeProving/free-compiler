@@ -29,7 +29,7 @@
       "declaration": "flex",
       "con-decls": "try-oneline",
       "if": "try-oneline",
-      "let": "try-oneline",
+      "let": "vertical",
       "list-comp": "flex",
       "record": "try-oneline",
       "type": "try-oneline"

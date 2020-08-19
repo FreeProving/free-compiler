@@ -307,8 +307,8 @@ groupModules = dependencyComponents . moduleDependencyGraph
 mapComponent :: ([decl] -> [decl'])
              -> DependencyComponent decl
              -> DependencyComponent decl'
-mapComponent f (NonRecursive decl)
-  = let [decl'] = f [decl] in NonRecursive decl'
+mapComponent f (NonRecursive decl) = let [decl'] = f [decl]
+                                     in NonRecursive decl'
 mapComponent f (Recursive decls)   = Recursive (f decls)
 
 -- | Monadic version of 'mapComponent'.

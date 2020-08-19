@@ -53,8 +53,8 @@ genericApply'
   -> Coq.Term
 genericApply' func effectArgs implicitArgs args
   | null implicitArgs = Coq.app func allArgs
-  | otherwise
-    = let (Coq.Qualid qualid) = func in Coq.explicitApp qualid allArgs
+  | otherwise = let (Coq.Qualid qualid) = func
+                in Coq.explicitApp qualid allArgs
  where
   genericArgs :: [Coq.Term]
   genericArgs = map (Coq.Qualid . fst) Coq.Base.freeArgs
