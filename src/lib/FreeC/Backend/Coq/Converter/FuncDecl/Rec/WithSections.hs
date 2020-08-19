@@ -205,7 +205,8 @@ argAndReturnTypeMaps (IR.FuncDecl _ (IR.DeclIdent _ name) _ args maybeRetType _)
  where
   argTypeMap    = Map.fromList
     [((name, IR.varPatIdent arg), argType)
-    | arg <- args, argType <- maybeToList (IR.varPatType arg)
+    | arg <- args
+    , argType <- maybeToList (IR.varPatType arg)
     ]
 
   returnTypeMap

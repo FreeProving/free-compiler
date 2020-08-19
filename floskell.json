@@ -30,7 +30,7 @@
       "con-decls": "try-oneline",
       "if": "try-oneline",
       "let": "vertical",
-      "list-comp": "flex",
+      "list-comp": "try-oneline",
       "record": "try-oneline",
       "type": "try-oneline"
     },

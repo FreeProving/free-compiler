@@ -191,7 +191,8 @@ parentPos (Pos ps)
 allPos :: Subterm a => a -> [Pos]
 allPos term = rootPos
   : [consPos p childPos
-    | (p, child) <- zip [1 ..] (childTerms term), childPos <- allPos child
+    | (p, child) <- zip [1 ..] (childTerms term)
+    , childPos <- allPos child
     ]
 
 -- | Tests whether a position is above another one.

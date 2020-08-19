@@ -153,8 +153,9 @@ addTypeSigsToFuncDecls typeSigs = mapM addTypeSigToFuncDecl
   -- | Maps the names of functions to their annotated type.
   typeSigMap :: Map IR.QName [IR.TypeScheme]
   typeSigMap = Map.fromListWith (++)
-    [(name, [typeScheme]) | IR.TypeSig _ declIdents typeScheme <- typeSigs
-                          , IR.DeclIdent _ name <- declIdents
+    [(name, [typeScheme])
+    | IR.TypeSig _ declIdents typeScheme <- typeSigs
+    , IR.DeclIdent _ name <- declIdents
     ]
 
   -- | Sets the type annotation of the given variable pattern.
