@@ -79,9 +79,10 @@ instance Pretty a => Pretty (TrailingLine a) where
 renderPretty' :: Pretty a => a -> SimpleDoc
 renderPretty' = renderPretty ribbonFrac maxLineWidth . pretty
  where
-   ribbonWidth, maxLineWidth :: Int
+   ribbonWidth :: Int
    ribbonWidth = 80
 
+   maxLineWidth :: Int
    maxLineWidth = 120
 
    ribbonFrac :: Float

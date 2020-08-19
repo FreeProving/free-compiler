@@ -73,7 +73,7 @@ data SrcSpan
       , srcSpanStartColumn :: Int      -- ^ The offset within the first line.
       , srcSpanEndLine     :: Int      -- ^ The number of the last line.
       , srcSpanEndColumn   :: Int      -- ^ The offset within the last line.
-      , srcSpanCodeLines   :: [String] -- ^ The spanned line's source code.
+      , srcSpanCodeLines   :: [String] -- ^ The spanned lines' source code.
       }
   | NoSrcSpan -- ^ Indicates that no location information is available.
   | FileSpan  -- ^ Points to an unknown location in the given file.

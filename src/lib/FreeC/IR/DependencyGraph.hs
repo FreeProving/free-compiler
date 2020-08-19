@@ -107,11 +107,11 @@ data DependencyGraph node = DependencyGraph
 -------------------------------------------------------------------------------
 -- | Gets the entries of the given dependency graph.
 dgEntries :: DependencyGraph node -> [DGEntry node]
-dgEntries = liftM2 map dgGetEntry dgVertecies
+dgEntries = liftM2 map dgGetEntry dgVertices
 
 -- | Gets the vertices of the given dependency graph.
-dgVertecies :: DependencyGraph node -> [Vertex]
-dgVertecies = vertices . dgGraph
+dgVertices :: DependencyGraph node -> [Vertex]
+dgVertices = vertices . dgGraph
 
 -- | Gets the edges of the given dependency graph.
 dgEdges :: DependencyGraph node -> [(Vertex, Vertex)]

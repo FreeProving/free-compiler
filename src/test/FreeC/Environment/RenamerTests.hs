@@ -74,7 +74,7 @@ testMustRenameIdent = describe "mustRenameIdent"
                 { entrySrcSpan   = NoSrcSpan
                 , entryName      = IR.UnQual (IR.Ident ident)
                 , entryIdent     = Coq.bare ident
-                , entryAgdaIdent = undefined -- ignore Agda identifiers for the moment - TODO: add Unit Tests for Agda renamer!
+                , entryAgdaIdent = undefined -- TODO add Agda renamer tests.
                 } emptyEnv
           in mustRenameIdent ident env
 

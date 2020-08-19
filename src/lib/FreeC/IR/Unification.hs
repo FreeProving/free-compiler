@@ -54,13 +54,13 @@ reportUnificationError srcSpan err = case err of
     ++ "`."
   RigidTypeVarError xSrcSpan x u -> reportFatal
     $ Message srcSpan Error
-    $ "Could not match rigid type variable '"
+    $ "Could not match rigid type variable `"
     ++ x
-    ++ "' (bound at '"
+    ++ "` (bound at `"
     ++ showPretty xSrcSpan
-    ++ "') with type '"
+    ++ "`) with type `"
     ++ showPretty u
-    ++ "'."
+    ++ "`."
 
 -- | Runs the given converter and reports unification errors using
 --   'reportUnificationError'.

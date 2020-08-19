@@ -130,17 +130,17 @@ checkPatternFuncDecl funcDecl = checkPatternExpr (IR.funcDeclRhs funcDecl)
      (all (`elem` typeConNames) typeConNames
       && length typeConNames == length altConNames) (failedPatternCheck srcSpan)
 
-   -- | Generates the error message and reports the error
+   -- | Generates the error message and reports the error.
    failedPatternCheck :: SrcSpan -> Converter ()
    failedPatternCheck srcSpan = reportFatal
      $ Message srcSpan Error
      $ "Incomplete pattern in function: "
      ++ showPretty (IR.funcDeclName funcDecl)
 
-   -- | Selects the name of the outermost type constructor from a type
+   -- | Selects the name of the outermost type constructor from a type.
    getTypeConName :: IR.Type -> Maybe IR.TypeConName
    getTypeConName (IR.TypeCon _ typeConName) = Just typeConName
    getTypeConName (IR.TypeApp _ typeAppLhs _) = getTypeConName typeAppLhs
-   -- The type of the scrutinee shouldn't be function or a type var
+   -- The type of the scrutinee shouldn't be a function or type variable.
    getTypeConName IR.TypeVar {} = Nothing
    getTypeConName IR.FuncType {} = Nothing
