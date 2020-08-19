@@ -231,7 +231,7 @@ data TypeEquation = TypeEquation
 -- | Type substitutions can be applied to the left- and right-hand sides of
 --   type equations.
 --
---    Rigid type variables in type equations cannot be substituted.
+--   Rigid type variables in type equations cannot be substituted.
 instance ApplySubst IR.Type TypeEquation where
   applySubst subst eqn
     = let subst'        = subst

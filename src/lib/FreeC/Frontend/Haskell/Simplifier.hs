@@ -783,7 +783,7 @@ simplifyConName name@(HSE.Special _ (HSE.ExprHole _))
 -- | Simplifies a variable pattern (e.g. the parameters of a lambda abstraction
 --   or function declaration).
 --
---  Parenthesis are ignored.
+--   Parenthesis are ignored.
 simplifyVarPat :: HSE.Pat SrcSpan -> Simplifier IR.VarPat
 simplifyVarPat (HSE.PVar srcSpan (HSE.Ident _ ident)) = return
   (IR.VarPat srcSpan ident Nothing False)
