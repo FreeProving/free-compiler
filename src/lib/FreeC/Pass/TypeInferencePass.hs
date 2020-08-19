@@ -426,10 +426,10 @@ inferFuncDeclTypes funcDecls = localEnv $ do
 -- | Version of 'inferFuncDeclTypes' in the 'TypeInference' monad.
 inferFuncDeclTypes' :: [IR.FuncDecl] -> TypeInference [IR.FuncDecl]
 inferFuncDeclTypes' funcDecls = withLocalState $ do
-    -- Add type assumption for functions with type signatures.
-    --
-    -- This is required such that polymorphically recursive functions don't
-    -- cause a type error.
+  -- Add type assumption for functions with type signatures.
+  --
+  -- This is required such that polymorphically recursive functions don't
+  -- cause a type error.
   mapM_ extendTypeAssumptionWithFuncDecl funcDecls
   -- Add type annotations.
   --
