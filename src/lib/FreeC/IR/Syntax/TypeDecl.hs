@@ -41,9 +41,8 @@ instance Pretty TypeDecl where
     <+> align (vcat (zipWith prettyConDecl [0 ..] conDecls))
    where
     prettyConDecl :: Int -> ConDecl -> Doc
-    prettyConDecl i conDecl
-      | i == 0 = equals <+> pretty conDecl
-      | otherwise = char '|' <+> pretty conDecl
+    prettyConDecl i conDecl | i == 0 = equals <+> pretty conDecl
+                            | otherwise = char '|' <+> pretty conDecl
   pretty (TypeSynDecl _ declIdent typeVarDecls typeExpr) = prettyString "type"
     <+> pretty declIdent
     <+> hsep (map pretty typeVarDecls)

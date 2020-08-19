@@ -320,9 +320,8 @@ prettyCodeBlock srcSpan
   -- | Document added after the 'highlightDoc' if the source span covers
   --   more than one line.
   ellipsisDoc :: Doc
-  ellipsisDoc
-    | isMultiLine = prettyString "..."
-    | otherwise = empty
+  ellipsisDoc | isMultiLine = prettyString "..."
+              | otherwise = empty
 
   -- | Whether the source span covers more than one line.
   isMultiLine :: Bool

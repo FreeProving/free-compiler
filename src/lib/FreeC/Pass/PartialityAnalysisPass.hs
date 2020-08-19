@@ -74,10 +74,9 @@ isPartialFuncDecl decl = anyM isPartialFuncName (valueRefs decl)
 --   The special functions 'IR.undefinedFuncName' and 'IR.errorFuncName'
 --   are also partial.
 isPartialFuncName :: IR.QName -> Converter Bool
-isPartialFuncName name
-  | name == IR.Prelude.undefinedFuncName = return True
-  | name == IR.Prelude.errorFuncName = return True
-  | otherwise = inEnv $ isPartial name
+isPartialFuncName name | name == IR.Prelude.undefinedFuncName = return True
+                       | name == IR.Prelude.errorFuncName = return True
+                       | otherwise = inEnv $ isPartial name
 
 -- | Sets the 'entryIsPartial' flag of the environment entry for the given
 --   function delcaration to @True@.

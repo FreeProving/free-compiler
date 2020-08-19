@@ -243,9 +243,8 @@ etaConvertExpr expr = localEnv $ do
 -- | Creates a lambda abstraction with the given arguments that immediately
 --   applies the given expression to the arguments.
 etaAbstractWith :: [String] -> IR.Expr -> IR.Expr
-etaAbstractWith xs expr
-  | null xs = expr
-  | otherwise = IR.Lambda NoSrcSpan argPats expr' Nothing
+etaAbstractWith xs expr | null xs = expr
+                        | otherwise = IR.Lambda NoSrcSpan argPats expr' Nothing
  where
   argPats  = map IR.toVarPat xs
 

@@ -145,9 +145,8 @@ expandTypeSynonymsWhere maxDepth predicate t0
 --   synonym as well.
 expandTypeSynonymAt :: Pos -> IR.Type -> Converter IR.Type
 expandTypeSynonymAt pos typeExpr = case parentPos pos of
-  Just pos'
-    | maybe False isTypeApp (selectSubterm typeExpr pos') ->
-      expandTypeSynonymAt pos' typeExpr
+  Just pos' | maybe False isTypeApp (selectSubterm typeExpr pos') ->
+              expandTypeSynonymAt pos' typeExpr
   _         -> fmap (fromMaybe typeExpr) $ runMaybeT $ do
     subterm <- hoistMaybe $ selectSubterm typeExpr pos
     subterm' <- lift $ expandTypeSynonym subterm

@@ -451,9 +451,8 @@ removeConstTypeArgsFromFuncDecl constTypeVars funcDecl = do
 -- | Removes the elements with the given indices from the given list.
 removeIndicies :: [Int] -> [a] -> [a]
 removeIndicies _ [] = []
-removeIndicies indices (x : xs)
-  | 0 `elem` indices = xs'
-  | otherwise = x : xs'
+removeIndicies indices (x : xs) | 0 `elem` indices = xs'
+                                | otherwise = x : xs'
  where
   indices' = map (subtract 1) (filter (> 0) indices)
 

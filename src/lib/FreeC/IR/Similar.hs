@@ -138,9 +138,8 @@ instance Similar node => Similar (Maybe node) where
 --   > ———————————————————————————————
 --   >  Γ ⊢ [x₁, …, xₙ] ≈ [y₁, …, yₙ]
 instance Similar node => Similar [node] where
-  similar' ms ns
-    | length ms == length ns = andM (zipWith similar' ms ns)
-    | otherwise = const False
+  similar' ms ns | length ms == length ns = andM (zipWith similar' ms ns)
+                 | otherwise = const False
 
 -------------------------------------------------------------------------------
 -- Similarity Test for Modules                                               --

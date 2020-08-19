@@ -30,9 +30,8 @@ convertFuncHead (IR.FuncDecl _ declIdent typeArgs args maybeRetType _) = do
   Just qualid <- inEnv $ lookupIdent IR.ValueScope name
   -- Generate arguments for free monad if they are not in scope.
   freeArgsNeeded <- inEnv $ needsFreeArgs name
-  let freeArgDecls
-        | freeArgsNeeded = genericArgDecls Coq.Explicit
-        | otherwise = []
+  let freeArgDecls | freeArgsNeeded = genericArgDecls Coq.Explicit
+                   | otherwise = []
   -- Lookup partiality and position of decreasing argument.
   partial <- inEnv $ isPartial name
   -- Convert arguments and return types.

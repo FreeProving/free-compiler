@@ -72,6 +72,5 @@ generateImport libName modName = return
  where
   -- | Makes a @From … Require Import …@ or  @From … Require …@.
   mkRequireSentence :: Coq.ModuleIdent -> [Coq.ModuleIdent] -> Coq.Sentence
-  mkRequireSentence
-    | libName == Coq.Base.baseLibName = Coq.requireImportFrom
-    | otherwise = Coq.requireFrom
+  mkRequireSentence | libName == Coq.Base.baseLibName = Coq.requireImportFrom
+                    | otherwise = Coq.requireFrom

@@ -64,6 +64,5 @@ putVersionInfo = do
   -- | Gets the output of @git describe --always --dirty@ for the most recent
   --   commit at compile time.
   giDescribeDirty :: GitInfo -> String
-  giDescribeDirty gitInfo
-    | giDirty gitInfo = giDescribe gitInfo ++ "-dirty"
-    | otherwise = giDescribe gitInfo
+  giDescribeDirty gitInfo | giDirty gitInfo = giDescribe gitInfo ++ "-dirty"
+                          | otherwise = giDescribe gitInfo

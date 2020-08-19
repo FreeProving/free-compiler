@@ -44,7 +44,7 @@
       "let-in": "align",
       "let-binds": "align",
       "if": "indent-by 2",
-      "multi-if": "indent-by 2",
+      "multi-if": "align-or-indent-by 2",
       "deriving": 1,
       "where": 1,
       "where-binds": "indent-by 1",

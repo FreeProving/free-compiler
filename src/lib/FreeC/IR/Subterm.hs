@@ -54,15 +54,13 @@ import           FreeC.Pretty
 --   Returns the function's result of @Nothing@ if the list has the wrong
 --   number of elements.
 checkArity :: Int -> ([a] -> b) -> [a] -> Maybe b
-checkArity n f xs
-  | length xs == n = Just (f xs)
-  | otherwise = Nothing
+checkArity n f xs | length xs == n = Just (f xs)
+                  | otherwise = Nothing
 
 -- | Like 'checkArity' for functions that do no expect any arguments.
 nullary :: b -> [a] -> Maybe b
-nullary y xs
-  | null xs = Just y
-  | otherwise = Nothing
+nullary y xs | null xs = Just y
+             | otherwise = Nothing
 
 -- | Throws an error that the subterm of the given term of the given position
 --   does not exists.
@@ -183,9 +181,8 @@ consPos p (Pos ps) = Pos (p : ps)
 -- | Gets the parent position or @Nothing@ if the given position is the
 --   root position.
 parentPos :: Pos -> Maybe Pos
-parentPos (Pos ps)
-  | null ps = Nothing
-  | otherwise = Just (Pos (init ps))
+parentPos (Pos ps) | null ps = Nothing
+                   | otherwise = Just (Pos (init ps))
 
 -- | Gets all valid positions of subterms within the given Haskell expression.
 allPos :: Subterm a => a -> [Pos]

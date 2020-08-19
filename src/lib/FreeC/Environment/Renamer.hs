@@ -132,16 +132,14 @@ sanitizeIdent (firstChar : subsequentChars)
   -- | Replaces the given character with an underscore if it is not allowed
   --   to occur in the first place of a Coq identifier.
   sanitizeFirstChar :: Char -> Char
-  sanitizeFirstChar c
-    | isAllowedFirstChar c = c
-    | otherwise = '_'
+  sanitizeFirstChar c | isAllowedFirstChar c = c
+                      | otherwise = '_'
 
   -- | Replaces the given character with an underscore if it is not allowed
   --   to occur in a Coq identifier.
   sanitizeChar :: Char -> Char
-  sanitizeChar c
-    | isAllowedChar c = c
-    | otherwise = '_'
+  sanitizeChar c | isAllowedChar c = c
+                 | otherwise = '_'
 
 -- | Renames a Haskell identifier such that it can be safely used in Coq.
 --

@@ -198,9 +198,8 @@ prettyExprPred :: Int -> Expr -> Doc
 -- capture the type annotation otherwise.
 prettyExprPred n expr = case exprTypeScheme expr of
   Nothing -> prettyExprPred' n expr
-  Just typeScheme
-    | n == 0 -> prettyExpr
-    | otherwise -> parens prettyExpr
+  Just typeScheme | n == 0 -> prettyExpr
+                  | otherwise -> parens prettyExpr
    where
     prettyExpr :: Doc
     prettyExpr

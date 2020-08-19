@@ -47,9 +47,8 @@ convertLiftedExpr (LIR.Undefined _)
 convertLiftedExpr (LIR.ErrorExpr _) = return $ Coq.Qualid Coq.Base.partialError
 convertLiftedExpr (LIR.IntLiteral _ value) = do
   let natValue = Coq.Num $ fromInteger (abs value)
-      value'
-        | value < 0 = Coq.app (Coq.Qualid (Coq.bare "-")) [natValue]
-        | otherwise = natValue
+      value'   | value < 0 = Coq.app (Coq.Qualid (Coq.bare "-")) [natValue]
+               | otherwise = natValue
   return $ Coq.InScope value' Coq.Base.integerScope
 convertLiftedExpr (LIR.StringLiteral _ str) = return
   $ Coq.InScope (Coq.string str) Coq.Base.stringScope

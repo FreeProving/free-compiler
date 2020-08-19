@@ -175,9 +175,8 @@ checkDecArgs decls knownDecArgIndecies decArgIndecies = all
     -- structurally smaller variable in the decreasing position.
     checkExpr' (IR.Var _ name _) args = case Map.lookup name decArgMap of
       Nothing          -> True
-      Just decArgIndex
-        | decArgIndex >= length args -> False
-        | otherwise -> isSmaller (args !! decArgIndex)
+      Just decArgIndex | decArgIndex >= length args -> False
+                       | otherwise -> isSmaller (args !! decArgIndex)
     -- Function applications and @if@-expressions need to be checked
     -- recursively. In case of applications we also remember the
     -- arguments such that the case above can inspect the actual arguments.

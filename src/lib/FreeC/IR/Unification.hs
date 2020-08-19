@@ -170,8 +170,7 @@ type DisagreementSet = Maybe (Pos, IR.Type, IR.Type)
 disagreementSet :: IR.Type -> IR.Type -> Converter DisagreementSet
 
 -- Two variables disagree if they are not the same variable.
-disagreementSet (IR.TypeVar _ x) (IR.TypeVar _ y)
-  | x == y = return Nothing
+disagreementSet (IR.TypeVar _ x) (IR.TypeVar _ y) | x == y = return Nothing
 -- Two constructors disagree if they do not refer to the same environment
 -- entries (i.e. the entries have different names).
 -- If both constructors have the same name already, we do not have to
