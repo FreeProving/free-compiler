@@ -480,7 +480,7 @@ removeConstTypeArgsFromExpr constTypeVars rootExpr = do
     return (if function then lookupConstTypeArgIndicies' name else [])
 
   -- | Like 'lookupConstTypeArgIndicies' but assumes the function not to be
-  --   shadowed by local varibales.
+  --   shadowed by local variables.
   lookupConstTypeArgIndicies' :: IR.QName -> [Int]
   lookupConstTypeArgIndicies' = fromMaybe [] . flip Map.lookup constTypeVarMap
 

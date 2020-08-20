@@ -156,8 +156,8 @@ makeConstArgGraph decls = do
           checkAlt (IR.Alt _ _ varPats expr) args
             | x `shadowedBy` varPats = not (callsG expr)
             | otherwise = checkExpr expr args
-          -- | Tests whethe the given variable is shadowed by the given
-          --   variale patterns.
+          -- | Tests whether the given variable is shadowed by the given
+          --   variable patterns.
           shadowedBy :: String -> [IR.VarPat] -> Bool
           shadowedBy = flip (flip elem . map IR.varPatIdent)
         guard (checkExpr rhs [])

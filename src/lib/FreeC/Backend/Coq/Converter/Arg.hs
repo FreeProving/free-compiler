@@ -34,7 +34,10 @@ convertTypeVarDecls explicitness typeVarDecls
     idents' <- mapM convertTypeVarDecl typeVarDecls
     return [Coq.typedBinder explicitness idents' Coq.sortType]
  where
-  -- | TODO
+  -- | Converts a type variable declaration by adding an entry to the
+  --   environment.
+  --
+  --   Returns the Coq identifier of the type variable.
   convertTypeVarDecl :: IR.TypeVarDecl -> Converter Coq.Qualid
   convertTypeVarDecl (IR.TypeVarDecl srcSpan ident)
     = renameAndDefineTypeVar srcSpan ident

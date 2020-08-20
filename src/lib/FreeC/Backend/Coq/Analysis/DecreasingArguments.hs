@@ -89,7 +89,7 @@ type DecArgIndex = Int
 --   The second argument contains the known decreasing arguments as specified
 --   by the user.
 --
---   Returns a list of all possible combinations of argument indecies.
+--   Returns a list of all possible combinations of argument indices.
 guessDecArgs :: [IR.FuncDecl] -> [Maybe DecArgIndex] -> [[DecArgIndex]]
 guessDecArgs [] _ = return []
 guessDecArgs _ [] = return []
@@ -111,9 +111,9 @@ guessDecArgs (decl : decls) (Nothing : knownDecArgIndecies) = do
 --   corresponding argument).
 --
 --   The second argument contains the known decreasing arguments as specified
---   by the user. If the user has specied the decreasing argument of a function
---   it is not checked whether the function actually decreases on the argument
---   (such that the user is not limited by our termination checker).
+--   by the user. If the user has specified the decreasing argument of a
+--   function it is not checked whether the function actually decreases on the
+--   argument (such that the user is not limited by our termination checker).
 checkDecArgs :: [IR.FuncDecl] -> [Maybe DecArgIndex] -> [DecArgIndex] -> Bool
 checkDecArgs decls knownDecArgIndecies decArgIndecies = all
   (uncurry3 checkDecArg) (zip3 knownDecArgIndecies decArgIndecies decls)

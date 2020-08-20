@@ -11,7 +11,7 @@ import           FreeC.Monad.Converter
 
 -- | Converts (mutually) recursive Haskell function declarations to Coq.
 --
---   The function declarations are analysed first. If they contain constant
+--   The function declarations are analyzed first. If they contain constant
 --   arguments (i.e. arguments that are passed unchanged between recursive
 --   calls), they are converted using a @Section@ sentence (see
 --   'convertRecFuncDeclsWithHelpers'). Otherwise they are converted into
