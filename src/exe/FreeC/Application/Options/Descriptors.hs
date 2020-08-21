@@ -80,4 +80,12 @@ optionDescriptors
                  , "Allowed values are: " ++ showBackends ++ "."
                  , "Defaults to: `" ++ defaultBackend ++ "`."
                  ])
+    , Option [] ["strategy"]
+        (ReqArg (\p opts -> opts { optStrategy = p }) "STRAT")
+        (unlines
+         [ "Optional. Specifies which evaluation strategy"
+         , "the resulting program will use."
+         , "Allowed values are: `cbn`(call-by-need/name) and `cbv`(call-by-value)."
+         , "Defaults to `cbn`."
+         ])
     ]

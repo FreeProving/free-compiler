@@ -41,6 +41,8 @@ data Options = Options
     -- ^ The frontend to use.
   , optBackend                   :: String
     -- ^ The backend to use.
+  , optStrategy                  :: String
+    -- ^ The evalutation strategy to use.
   }
 
 -- | The default command line options.
@@ -68,4 +70,5 @@ makeDefaultOptions = do
     , optDumpTransformedModulesDir = Nothing
     , optFrontend                  = defaultFrontend
     , optBackend                   = defaultBackend
+    , optStrategy                  = "cbn"
     }
