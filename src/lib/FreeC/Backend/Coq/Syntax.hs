@@ -24,6 +24,12 @@ module FreeC.Backend.Coq.Syntax
   , variable
   -- * Definition sentences
   , definitionSentence
+  -- * Notation sentences
+  , notationSentence
+  , nSymbol
+  , nIdent
+  , sModLevel
+  , sModIdentLevel
     -- * Types
   , sortType
     -- * Expressions
@@ -45,6 +51,7 @@ import           Data.Composition               ( (.:) )
 import qualified Data.List.NonEmpty            as NonEmpty
 import qualified Data.Text                     as Text
 import           Language.Coq.Gallina
+import           Prelude                 hiding ( Num )
 
 -------------------------------------------------------------------------------
 -- Comments                                                                  --
@@ -167,6 +174,38 @@ definitionSentence
   -> Sentence
 definitionSentence qualid binders returnType term =
   DefinitionSentence (DefinitionDef Global qualid binders returnType term)
+
+-------------------------------------------------------------------------------
+-- Definition sentences                                                      --
+-------------------------------------------------------------------------------
+
+-- | Smart constructor for a Coq notation sentence.
+notationSentence
+  :: (NonEmpty.NonEmpty NotationToken) -- ^ The notation to define.
+  -> Term                              -- ^ The right-hand side of the notation.
+  -> [SyntaxModifier]                  -- ^ The syntax modifiers of the notation.
+  -> Sentence
+notationSentence tokens rhs smods =
+  NotationSentence (NotationDefinition tokens rhs smods)
+
+-- | Smart constructor for a notation token that is a keyword of the notation.
+nSymbol :: String -> NotationToken
+nSymbol = NSymbol . Text.pack
+
+-- | Smart constructor for a notation token that is a variable in the notation.
+nIdent :: String -> NotationToken
+nIdent = NIdent . ident
+
+-- | Smart constructor for a parsing level syntax modifier.
+sModLevel :: Num -> SyntaxModifier
+sModLevel = SModLevel . Level
+
+-- | Smart constructor for a identifier parsing level syntax modifier.
+sModIdentLevel :: NonEmpty.NonEmpty String -> Maybe Num -> SyntaxModifier
+sModIdentLevel idents (Just lvl) =
+  SModIdentLevel (NonEmpty.map ident idents) (ExplicitLevel $ Level lvl)
+sModIdentLevel idents Nothing =
+  SModIdentLevel (NonEmpty.map ident idents) NextLevel
 
 -------------------------------------------------------------------------------
 -- Types                                                                     --
