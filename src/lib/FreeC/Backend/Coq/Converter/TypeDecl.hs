@@ -7,7 +7,9 @@ import           Control.Monad                  ( mapAndUnzipM )
 import           Control.Monad.Extra            ( concatMapM )
 import           Data.List                      ( partition )
 import qualified Data.List.NonEmpty            as NonEmpty
-import           Data.Maybe                     ( catMaybes )
+import           Data.Maybe                     ( catMaybes
+                                                , fromJust
+                                                )
 import qualified Data.Set                      as Set
 
 import qualified FreeC.Backend.Coq.Syntax      as Coq
@@ -16,6 +18,7 @@ import           FreeC.Backend.Coq.Converter.Free
 import           FreeC.Backend.Coq.Converter.Type
 import qualified FreeC.Backend.Coq.Base        as Coq.Base
 import           FreeC.Environment
+import qualified FreeC.Environment.Fresh       as Fresh
 import           FreeC.IR.DependencyGraph
 import qualified FreeC.IR.Syntax               as IR
 import           FreeC.IR.TypeSynExpansion
@@ -134,7 +137,7 @@ convertDataDecl :: IR.TypeDecl -> Converter (Coq.IndBody, [Coq.Sentence])
 convertDataDecl (IR.DataDecl _ (IR.DeclIdent _ name) typeVarDecls conDecls) =
   do
     (body, argumentsSentences) <- generateBodyAndArguments
-    smartConDecls              <- mapM generateSmartConDecl conDecls
+    smartConDecls              <- concatMapM generateSmartConDecl conDecls
     return
       ( body
       , Coq.comment
@@ -198,25 +201,46 @@ convertDataDecl (IR.DataDecl _ (IR.DeclIdent _ name) typeVarDecls conDecls) =
 
   -- | Generates the smart constructor declaration for the given constructor
   --   declaration.
-  generateSmartConDecl :: IR.ConDecl -> Converter Coq.Sentence
+  generateSmartConDecl :: IR.ConDecl -> Converter [Coq.Sentence]
   generateSmartConDecl (IR.ConDecl _ declIdent argTypes) = localEnv $ do
     let conName = IR.declIdentName declIdent
-    Just qualid             <- inEnv $ lookupIdent IR.ValueScope conName
-    Just smartQualid        <- inEnv $ lookupSmartIdent conName
-    Just returnType         <- inEnv $ lookupReturnType IR.ValueScope conName
-    typeVarDecls'           <- convertTypeVarDecls Coq.Implicit typeVarDecls
-    (argIdents', argDecls') <- mapAndUnzipM convertAnonymousArg
-                                            (map Just argTypes)
-    returnType' <- convertType returnType
-    rhs         <- generatePure
-      (Coq.app (Coq.Qualid qualid) (map Coq.Qualid argIdents'))
+    Just qualid      <- inEnv $ lookupIdent IR.ValueScope conName
+    Just smartQualid <- inEnv $ lookupSmartIdent conName
+    constrArgIdents  <- mapM (const $ Fresh.freshCoqIdent Fresh.freshArgPrefix)
+                             argTypes
+    let
+      Just smartIdent = Coq.unpackQualid smartQualid
+      freeArgIdents = map (fromJust . Coq.unpackQualid . fst) Coq.Base.freeArgs
+      -- Default smart constructor with implicit @Shape@, @Pos@ and type args.
+      typeVarIdents = map IR.typeVarDeclIdent typeVarDecls
+      argIdents = constrArgIdents
+      lhs = (Coq.nSymbol smartIdent) NonEmpty.:| (map Coq.nIdent argIdents)
+      rhs = Coq.app
+        (Coq.Qualid Coq.Base.freePureCon)
+        [Coq.app (Coq.Qualid qualid) (map (Coq.Qualid . Coq.bare) argIdents)]
+      mods = if null argIdents
+        then [Coq.sModLevel 9]
+        else
+          [ Coq.sModLevel 10
+          , Coq.sModIdentLevel (NonEmpty.fromList argIdents) (Just 9)
+          ]
+      -- Explicit notation for the smart constructor.
+      expArgIdents = freeArgIdents ++ typeVarIdents ++ constrArgIdents
+      expLhs =
+        (Coq.nSymbol $ '@' : smartIdent)
+          NonEmpty.:| (map Coq.nIdent expArgIdents)
+      expRhs = Coq.app
+        (Coq.Qualid Coq.Base.freePureCon)
+        [Coq.explicitApp qualid (map (Coq.Qualid . Coq.bare) expArgIdents)]
+      expMods =
+        [ Coq.SModOnlyParsing
+        , Coq.sModLevel 10
+        , Coq.sModIdentLevel (NonEmpty.fromList expArgIdents) (Just 9)
+        ]
     return
-      (Coq.definitionSentence
-        smartQualid
-        (genericArgDecls Coq.Explicit ++ typeVarDecls' ++ argDecls')
-        (Just returnType')
-        rhs
-      )
+      [ Coq.notationSentence lhs rhs mods
+      , Coq.notationSentence expLhs expRhs expMods
+      ]
 
 -- Type synonyms are not allowed in this function.
 convertDataDecl (IR.TypeSynDecl _ _ _ _) =
