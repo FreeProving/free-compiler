@@ -210,20 +210,21 @@ convertDataDecl (IR.DataDecl _ (IR.DeclIdent _ name) typeVarDecls conDecls) =
                              argTypes
     let
       Just smartIdent = Coq.unpackQualid smartQualid
-      freeArgIdents = map (fromJust . Coq.unpackQualid . fst) Coq.Base.freeArgs
-      -- Default smart constructor with implicit @Shape@, @Pos@ and type args.
-      typeVarIdents = map IR.typeVarDeclIdent typeVarDecls
-      argIdents = constrArgIdents
-      lhs = (Coq.nSymbol smartIdent) NonEmpty.:| (map Coq.nIdent argIdents)
-      rhs = Coq.app
-        (Coq.Qualid Coq.Base.freePureCon)
-        [Coq.app (Coq.Qualid qualid) (map (Coq.Qualid . Coq.bare) argIdents)]
-      mods = if null argIdents
-        then [Coq.sModLevel 9]
-        else
-          [ Coq.sModLevel 10
-          , Coq.sModIdentLevel (NonEmpty.fromList argIdents) (Just 9)
-          ]
+      freeArgIdents   = map (fromJust . Coq.unpackQualid . fst) Coq.Base.freeArgs
+      typeVarIdents   = map IR.typeVarDeclIdent typeVarDecls
+      -- Default smart constructor with implicit type args.
+      argIdents       = freeArgIdents ++ constrArgIdents
+      args =
+        (map (Coq.Qualid . Coq.bare) freeArgIdents)
+          ++ (map (const Coq.Underscore) typeVarIdents)
+          ++ (map (Coq.Qualid . Coq.bare) constrArgIdents)
+      lhs = (Coq.nSymbol smartIdent) NonEmpty.:| (map Coq.nIdent $ argIdents)
+      rhs =
+        Coq.app (Coq.Qualid Coq.Base.freePureCon) [Coq.explicitApp qualid args]
+      mods =
+        [ Coq.sModLevel 10
+        , Coq.sModIdentLevel (NonEmpty.fromList argIdents) (Just 9)
+        ]
       -- Explicit notation for the smart constructor.
       expArgIdents = freeArgIdents ++ typeVarIdents ++ constrArgIdents
       expLhs =
