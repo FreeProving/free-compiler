@@ -125,6 +125,7 @@ library freec-internal
                       , FreeC.Environment.ModuleInterface.Decoder
                       , FreeC.Environment.ModuleInterface.Encoder
                       , FreeC.Environment.Renamer
+                      , FreeC.Environment.Strategy
                       , FreeC.Frontend.Haskell.Parser
                       , FreeC.Frontend.Haskell.PatternMatching
                       , FreeC.Frontend.Haskell.Pretty

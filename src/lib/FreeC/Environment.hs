@@ -38,6 +38,7 @@ module FreeC.Environment
   , lookupDecArg
   , lookupDecArgIndex
   , lookupDecArgIdent
+  , changeStrategy
   ) where
 
 import           Data.Composition                  ( (.:), (.:.) )
@@ -51,6 +52,7 @@ import qualified FreeC.Backend.Agda.Syntax         as Agda
 import qualified FreeC.Backend.Coq.Syntax          as Coq
 import           FreeC.Environment.Entry
 import           FreeC.Environment.ModuleInterface
+import           FreeC.Environment.Strategy
 import           FreeC.IR.SrcSpan
 import qualified FreeC.IR.Syntax                   as IR
 import           FreeC.Util.Predicate
@@ -71,6 +73,8 @@ data Environment = Environment
   , envFreshIdentCount  :: Map String Int
     -- ^ The number of fresh identifiers that were used in the environment
     --   with a certain prefix.
+  , envStrategy         :: Strategy
+    -- ^ The evaluation strategy selected by the user.
   }
  deriving Show
 
@@ -83,6 +87,7 @@ emptyEnv = Environment   -- Modules
   , envEntries          = Map.empty
   , envDecArgs          = Map.empty
   , envFreshIdentCount  = Map.empty
+  , envStrategy         = CallByNameOrNeed
   }
 
 -------------------------------------------------------------------------------
@@ -307,3 +312,10 @@ lookupDecArgIndex = fmap fst .: lookupDecArg
 -- | Like 'lookupDecArg' but returns the decreasing argument's name only.
 lookupDecArgIdent :: IR.QName -> Environment -> Maybe String
 lookupDecArgIdent = fmap snd .: lookupDecArg
+
+-------------------------------------------------------------------------------
+-- Changing the Strategy in the Environment                                  --
+-------------------------------------------------------------------------------
+-- | Changes the strategy in the environment to the given strategy.
+changeStrategy :: Strategy -> Environment -> Environment
+changeStrategy strat env = env { envStrategy = strat }

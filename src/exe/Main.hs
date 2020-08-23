@@ -21,6 +21,7 @@ import           FreeC.Backend
 import           FreeC.Environment
 import           FreeC.Environment.ModuleInterface.Decoder
 import           FreeC.Environment.ModuleInterface.Encoder
+import           FreeC.Environment.Strategy
 import           FreeC.Frontend
 import qualified FreeC.IR.Base.Prelude                     as IR.Prelude
 import qualified FreeC.IR.Base.Test.QuickCheck             as IR.Test.QuickCheck
@@ -112,6 +113,21 @@ selectBackend = do
         ++ showBackends
         ++ "."
     Just b  -> return b
+
+-------------------------------------------------------------------------------
+-- Strategy Selection                                                        --
+-------------------------------------------------------------------------------
+-- | Selects the correct evaluation strategy and adds it to the environment or
+--   throws an error if such a strategy does not exist.
+selectStrategy :: Application ()
+selectStrategy = do
+  name <- inOpts optStrategy
+  case Map.lookup name strategies of
+    Nothing    -> reportFatal
+      $ Message NoSrcSpan Error
+      $ "Unrecognized evaluation strategy."
+      ++ "Allowed values are `cbn`(call-by-name/need) and `cbv`(call-by-value)."
+    Just strat -> modifyEnv $ changeStrategy strat
 
 -------------------------------------------------------------------------------
 -- Input Files                                                               --
