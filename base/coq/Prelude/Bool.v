@@ -6,22 +6,32 @@ From Base Require Import Free.
    [Variable]s to definitions that don't use them. *)
 Definition Bool (Shape : Type) (Pos : Shape -> Type) : Type := bool.
 
+(* smart constructors *)
+
+Notation "'True_' Shape Pos" := (@pure Shape Pos bool true)
+  ( at level 10, Shape, Pos at level 9 ).
+
+Notation "'@True_' Shape Pos" := (@pure Shape Pos bool true)
+  ( only parsing, at level 10, Shape, Pos at level 9 ).
+
+Notation "'False_' Shape Pos" := (@pure Shape Pos bool false)
+  ( at level 10, Shape, Pos at level 9 ).
+
+Notation "'@False_' Shape Pos" := (@pure Shape Pos bool false)
+  ( only parsing, at level 10, Shape, Pos at level 9 ).
+
 Section SecBool.
   Variable Shape : Type.
   Variable Pos : Shape -> Type.
   Notation "'Free''" := (Free Shape Pos).
   Notation "'Bool''" := (Bool Shape Pos).
 
-  (* smart constructors *)
-  Definition True_ : Free' Bool' := pure true.
-  Definition False_ : Free' Bool' := pure false.
-
   (* conjunction *)
   Definition andBool (b1 : Free' Bool') (b2 : Free' Bool') : Free' Bool' :=
-    b1 >>= fun(b1' : Bool') => if b1' then b2 else False_.
+    b1 >>= fun(b1' : Bool') => if b1' then b2 else False_ Shape Pos.
 
   (* disjunction *)
   Definition orBool (b1 : Free' Bool') (b2 : Free' Bool') : Free' Bool' :=
-    b1 >>= fun(b1' : Bool') => if b1' then True_ else b2.
+    b1 >>= fun(b1' : Bool') => if b1' then True_ Shape Pos else b2.
 
 End SecBool.

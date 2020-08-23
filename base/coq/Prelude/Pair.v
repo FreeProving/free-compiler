@@ -8,13 +8,16 @@ Section SecPair.
   Inductive Pair (A B : Type) : Type :=
     | pair_ : Free' A -> Free' B -> Pair A B.
 
-  Arguments pair_ {A} {B}.
-
-  (* smart constructor *)
-  Definition Pair_ {A B : Type} (x : Free' A) (y : Free' B)
-    : Free' (Pair A B) :=
-    pure (pair_ x y).
-
 End SecPair.
 
+(* smart constructor *)
+
+Notation "'Pair_' Shape Pos x y" :=
+  (@pure Shape Pos (Pair Shape Pos _ _) (@pair_ Shape Pos _ _ x y))
+  ( at level 10, Shape, Pos, x, y at level 9 ).
+
+Notation "'@Pair_' Shape Pos A B x y" :=
+  (@pure Shape Pos (Pair Shape Pos A B) (@pair_ Shape Pos A B x y))
+  ( only parsing, at level 10, Shape, Pos, A, B, x, y at level 9 ).
+ 
 Arguments pair_  {Shape} {Pos} {A} {B}.
