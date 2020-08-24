@@ -10,8 +10,9 @@ redundant (on :: Just Bool) = case (on :: Just Bool) of {
     Just a  -&gt; Just False;
     Nothing -&gt; Nothing;
     Just b  -&gt; Just True
-  }</pre><p>should not pass the check because the <code>case</code> expression has two alternatives
-   for the constructor <code>Just</code>.</p><h2>Example 3</h2><p>The following declaration where the scrutinee is a function</p><pre>case_id = case \x -&gt; x  of</pre><p>should not pass the check because functions are not permitted as scrutinees.</p><h1>Specification</h1><h2>Preconditions</h2><p>The type of all checked expressions has to be annotated.
+  }</pre><p>should not pass the check because the <code>case</code> expression has two
+   alternatives for the constructor <code>Just</code>.</p><h2>Example 3</h2><p>The following declaration where the scrutinee is a function</p><pre>case_id = case \x -&gt; x  of</pre><p>should not pass the check because functions are not permitted as
+   scrutinees.</p><h1>Specification</h1><h2>Preconditions</h2><p>The type of all checked expressions has to be annotated.
    The environment has to contain the names of all constructors for
    all used data types.
    Additionally, the environment should contain entries for all used type
