@@ -57,7 +57,7 @@ Lemma nf_pure_pair `{Normalform Shape Pos A C}
     nfPair (pure x) = nf'Pair x.
 Proof. trivial. Qed.
 
-Instance NormalformPair `{Normalform Shape Pos A C}
+Global Instance NormalformPair `{Normalform Shape Pos A C}
                         `{Normalform Shape Pos B D}
   : Normalform (Pair Shape Pos A B) 
                (Pair Identity.Shape Identity.Pos C D)

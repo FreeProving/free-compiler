@@ -35,7 +35,7 @@ Section SecNFUnit.
       nfUnit (pure x) = pure x.
   Proof. trivial. Qed.
 
-Instance NormalformUnit : Normalform (Unit Shape Pos) 
+Global Instance NormalformUnit : Normalform (Unit Shape Pos) 
                                      (Unit Identity.Shape Identity.Pos)
  := {
       nf := nfUnit;

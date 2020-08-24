@@ -114,7 +114,7 @@ Variable Pos : Shape -> Type.
       nfInteger (pure x) = pure x.
   Proof. trivial. Qed.
 
-  Instance NormalformInteger : Normalform (Integer Shape Pos)
+  Global Instance NormalformInteger : Normalform (Integer Shape Pos)
                                           (Integer Identity.Shape Identity.Pos)
    := {
       nf := nfInteger;
