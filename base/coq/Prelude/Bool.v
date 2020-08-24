@@ -25,12 +25,19 @@ Section SecBool.
   Definition orBool (b1 : Free' Bool') (b2 : Free' Bool') : Free' Bool' :=
     b1 >>= fun(b1' : Bool') => if b1' then True_ else b2.
 
-  (* Normalform instance *)
+End SecBool.
 
-  Definition nfBool (n : Free' (Bool Shape Pos)) 
+(* Normalform instance for Bool *)
+
+Section SecNFBool.
+
+Variable Shape : Type.
+Variable Pos : Shape -> Type.
+
+  Definition nfBool (n : Free Shape Pos (Bool Shape Pos)) 
     := n >>= (fun n' => pure n').
 
-  Lemma nf_impure_bool : forall s (pf : _ -> Free' (Bool Shape Pos)),
+  Lemma nf_impure_bool : forall s (pf : _ -> Free Shape Pos (Bool Shape Pos)),
       nfBool (impure s pf) = impure s (fun p => nfBool (pf p)).
   Proof. trivial. Qed.
 
@@ -38,13 +45,13 @@ Section SecBool.
       nfBool (pure x) = pure x.
   Proof. trivial. Qed.
 
-End SecBool.
-
-Instance NormalformBool {Shape : Type} {Pos : Shape -> Type}
- : Normalform (Bool Shape Pos) (Bool Identity.Shape Identity.Pos)
+Global Instance NormalformBool : Normalform (Bool Shape Pos) 
+                                     (Bool Identity.Shape Identity.Pos)
  := {
-        nf := nfBool Shape Pos;
-        nf_impure := nf_impure_bool Shape Pos;
+        nf := nfBool;
+        nf_impure := nf_impure_bool;
         nf' := pure;
-        nf_pure := nf_pure_bool Shape Pos
+        nf_pure := nf_pure_bool
     }.
+
+End SecNFBool.

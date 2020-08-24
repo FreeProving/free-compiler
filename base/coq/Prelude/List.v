@@ -28,53 +28,53 @@ End SecList.
 Arguments nil  {Shape} {Pos} {A}.
 Arguments cons {Shape} {Pos} {A}.
 
-(* Normalform instance *)
+(* Normalform instance for lists *)
 
-Fixpoint nf'List (Shape : Type) (Pos : Shape -> Type)
-                   (A B : Type) 
-                   `{Normalform Shape Pos A B}
+Section SecListNF.
+
+Variable Shape : Type.
+Variable Pos : Shape -> Type.
+
+Variable A B : Type.
+
+Fixpoint nf'List  `{Normalform Shape Pos A B}
                    (l : List Shape Pos A)
   : Free Shape Pos (List Identity.Shape Identity.Pos B)
  := match l with
      | nil => pure nil
      | cons fx fxs => nf fx >>= fun nx =>
                       fxs >>= fun xs =>
-                      nf'List Shape Pos A B xs >>= fun nxs =>
+                      nf'List xs >>= fun nxs =>
                       pure (cons (pure nx) (pure nxs))
      end.
 
-Definition nfList (Shape : Type) (Pos : Shape -> Type)
-                  (A B : Type)
-                  `{Normalform Shape Pos A B}
+Definition nfList `{Normalform Shape Pos A B}
                   (p : Free Shape Pos (List Shape Pos A))
   : Free Shape Pos (List Identity.Shape Identity.Pos B)
- := p >>= (fun p' => nf'List Shape Pos A B p').
+ := p >>= (fun p' => nf'List p').
 
-Lemma nf_impure_list (Shape : Type) (Pos : Shape -> Type)
-                     (A B : Type)
-                     `{Normalform Shape Pos A B}
+Lemma nf_impure_list `{Normalform Shape Pos A B}
   : forall s (pf : _ -> Free Shape Pos (List Shape Pos A)),
-    nfList Shape Pos A B (impure s pf) 
-    = impure s (fun p => nfList Shape Pos A B (pf p)).
+    nfList (impure s pf) 
+    = impure s (fun p => nfList (pf p)).
 Proof. trivial. Qed.
 
-Lemma nf_pure_list (Shape : Type) (Pos : Shape -> Type)
-                   (A B : Type)
-                   `{Normalform Shape Pos A B}
+Lemma nf_pure_list `{Normalform Shape Pos A B}
   : forall (x : List Shape Pos A),
-    nfList Shape Pos A B (pure x) = nf'List Shape Pos A B x.
+    nfList (pure x) = nf'List x.
 Proof. trivial. Qed.
 
-Instance NormalformList {Shape : Type} {Pos : Shape -> Type} (A B : Type)
-                        `{Normalform Shape Pos A B}
+Global Instance NormalformList `{Normalform Shape Pos A B}
   : Normalform (List Shape Pos A) 
                          (List Identity.Shape Identity.Pos B)
  := {
-      nf := nfList Shape Pos A B;
-      nf_impure := nf_impure_list Shape Pos A B;
-      nf' := nf'List Shape Pos A B;
-      nf_pure := nf_pure_list Shape Pos A B
+      nf := nfList;
+      nf_impure := nf_impure_list;
+      nf' := nf'List;
+      nf_pure := nf_pure_list 
     }.
+
+End SecListNF.
 
 (* Induction principle for lists *)
 

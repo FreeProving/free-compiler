@@ -20,11 +20,16 @@ End SecPair.
 
 Arguments pair_  {Shape} {Pos} {A} {B}.
 
-(* Normalform instance *)
+(* Normalform instance for Pair *)
 
-Definition nf'Pair (Shape : Type) (Pos : Shape -> Type)
-                   (A B C D : Type) 
-                   `{Normalform Shape Pos A C}
+Section SecNFPair.
+
+Variable Shape : Type.
+Variable Pos : Shape -> Type.
+
+Variable A B C D : Type.
+
+Definition nf'Pair `{Normalform Shape Pos A C}
                    `{Normalform Shape Pos B D}
                    (p : Pair Shape Pos A B)
   : Free Shape Pos (Pair Identity.Shape Identity.Pos C D)
@@ -34,38 +39,33 @@ Definition nf'Pair (Shape : Type) (Pos : Shape -> Type)
                       pure (pair_ (pure na) (pure nb))
      end.
 
-Definition nfPair (Shape : Type) (Pos : Shape -> Type)
-                  (A B C D : Type)
-                  `{Normalform Shape Pos A C}
+Definition nfPair `{Normalform Shape Pos A C}
                   `{Normalform Shape Pos B D}
                   (p : Free Shape Pos (Pair Shape Pos A B))
   : Free Shape Pos (Pair Identity.Shape Identity.Pos C D)
- := p >>= (fun p' => nf'Pair Shape Pos A B C D p').
+ := p >>= (fun p' => nf'Pair p').
 
-Lemma nf_impure_pair (Shape : Type) (Pos : Shape -> Type)
-                     (A B C D : Type)
-                     `{Normalform Shape Pos A C}
+Lemma nf_impure_pair `{Normalform Shape Pos A C}
                      `{Normalform Shape Pos B D}
   : forall s (pf : _ -> Free Shape Pos (Pair Shape Pos A B)),
-    nfPair Shape Pos A B C D (impure s pf) = impure s (fun p => nfPair Shape Pos A B C D (pf p)).
+    nfPair (impure s pf) = impure s (fun p => nfPair (pf p)).
 Proof. trivial. Qed.
 
-Lemma nf_pure_pair (Shape : Type) (Pos : Shape -> Type)
-                   (A B C D : Type)
-                   `{Normalform Shape Pos A C}
+Lemma nf_pure_pair `{Normalform Shape Pos A C}
                    `{Normalform Shape Pos B D}
   : forall (x : Pair Shape Pos A B),
-    nfPair Shape Pos A B C D (pure x) = nf'Pair Shape Pos A B C D x.
+    nfPair (pure x) = nf'Pair x.
 Proof. trivial. Qed.
 
-Instance NormalformPair {Shape : Type} {Pos : Shape -> Type} (A B C D : Type)
-                        `{Normalform Shape Pos A C}
+Instance NormalformPair `{Normalform Shape Pos A C}
                         `{Normalform Shape Pos B D}
   : Normalform (Pair Shape Pos A B) 
                (Pair Identity.Shape Identity.Pos C D)
  := {
-      nf := nfPair Shape Pos A B C D;
-      nf_impure := nf_impure_pair Shape Pos A B C D;
-      nf' := nf'Pair Shape Pos A B C D;
-      nf_pure := nf_pure_pair Shape Pos A B C D
+      nf := nfPair;
+      nf_impure := nf_impure_pair;
+      nf' := nf'Pair;
+      nf_pure := nf_pure_pair
     }.
+
+End SecNFPair.
