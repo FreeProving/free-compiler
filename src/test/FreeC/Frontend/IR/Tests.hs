@@ -1,9 +1,5 @@
 -- | Test group for tests of modules below @FreeC.Frontend.IR@.
-
-module FreeC.Frontend.IR.Tests
-  ( testIRFrontend
-  )
-where
+module FreeC.Frontend.IR.Tests ( testIRFrontend ) where
 
 import           Test.Hspec
 

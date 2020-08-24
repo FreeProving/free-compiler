@@ -1,9 +1,5 @@
 -- | This module contains tests for the 'Pretty' instance of IR modules.
-
-module FreeC.IR.Syntax.ModuleTests
-  ( testModuleSyntax
-  )
-where
+module FreeC.IR.Syntax.ModuleTests ( testModuleSyntax ) where
 
 import           Test.Hspec
 

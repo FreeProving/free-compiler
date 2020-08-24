@@ -12,31 +12,30 @@
 --   can be expanded properly. The entry of a type synonym can contain type
 --   constructors which were in scope when the type synonym was declared but
 --   don't have to be in scope when the imported type synonym is used.
-
 module FreeC.Environment.ModuleInterface where
 
-import           Data.Set                       ( Set )
+import           Data.Set                  ( Set )
 
-import qualified FreeC.Backend.Agda.Syntax     as Agda
-import qualified FreeC.Backend.Coq.Syntax      as Coq
+import qualified FreeC.Backend.Agda.Syntax as Agda
+import qualified FreeC.Backend.Coq.Syntax  as Coq
 import           FreeC.Environment.Entry
-import qualified FreeC.IR.Syntax               as IR
+import qualified FreeC.IR.Syntax           as IR
 
 -- | Data type that contains the information of a module environment that
 --   is exported and imported.
 data ModuleInterface = ModuleInterface
-  { interfaceModName :: IR.ModName
+  { interfaceModName     :: IR.ModName
     -- ^ The name of the module.
-  , interfaceLibName :: Coq.ModuleIdent
+  , interfaceLibName     :: Coq.ModuleIdent
     -- ^ The name of the Coq library that contains this module (e.g. @"Base"@
     --   for the @Prelude@ module).
   , interfaceAgdaLibName :: Agda.Name
     -- ^ The name of the Agda library that contains this module (e.g. @"Base"@
     --   for the @Prelude@ module).
-  , interfaceExports :: Set IR.ScopedName
+  , interfaceExports     :: Set IR.ScopedName
     -- ^ The names (qualified with their original module name) that are
     --   exported by the module.
-  , interfaceEntries :: Set EnvEntry
+  , interfaceEntries     :: Set EnvEntry
     -- ^ The entries (including hidden entries) defined in or imported
     --   by the module.
   }

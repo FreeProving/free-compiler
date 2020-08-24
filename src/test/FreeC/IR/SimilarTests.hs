@@ -1,9 +1,5 @@
 -- | This module contains tests for "FreeC.IR.Similar".
-
-module FreeC.IR.SimilarTests
-  ( testSimilar
-  )
-where
+module FreeC.IR.SimilarTests ( testSimilar ) where
 
 import           Test.Hspec
 
@@ -31,9 +27,8 @@ testSimilarTypes = context "types" $ do
     foo `shouldNotBeSimilarTo` bar
   it "type constructors are not similar to type variables" $ do
     foo <- expectParseTestType "Foo"
-    a   <- expectParseTestType "a"
+    a <- expectParseTestType "a"
     foo `shouldNotBeSimilarTo` a
-
   it "free type variables are similar to themselves" $ do
     a <- expectParseTestType "a"
     a `shouldBeSimilarTo` a
@@ -41,25 +36,23 @@ testSimilarTypes = context "types" $ do
     a <- expectParseTestType "a"
     b <- expectParseTestType "b"
     a `shouldNotBeSimilarTo` b
-
   it "bound type variables are similar to similarly bound type variables" $ do
     a <- expectParseTestTypeScheme "forall a. a"
     b <- expectParseTestTypeScheme "forall b. b"
     a `shouldBeSimilarTo` b
   it "bound type variables are not similar to unrelated bound type variables"
     $ do
-        ab <- expectParseTestTypeScheme "forall a b. Foo a b"
-        ba <- expectParseTestTypeScheme "forall b a. Foo a b"
-        ab `shouldNotBeSimilarTo` ba
+      ab <- expectParseTestTypeScheme "forall a b. Foo a b"
+      ba <- expectParseTestTypeScheme "forall b a. Foo a b"
+      ab `shouldNotBeSimilarTo` ba
   it "bound type variables are not similar to right free type variables" $ do
-    a  <- expectParseTestTypeScheme "forall a. a"
+    a <- expectParseTestTypeScheme "forall a. a"
     a' <- expectParseTestTypeScheme "forall b. a"
     a `shouldNotBeSimilarTo` a'
   it "bound type variables are not similar to left free type variables" $ do
-    a  <- expectParseTestTypeScheme "forall b. a"
+    a <- expectParseTestTypeScheme "forall b. a"
     a' <- expectParseTestTypeScheme "forall a. a"
     a `shouldNotBeSimilarTo` a'
-
   it "type applications with similar children are similar" $ do
     fooA <- expectParseTestTypeScheme "forall a. Foo a"
     fooB <- expectParseTestTypeScheme "forall b. Foo b"
@@ -69,10 +62,9 @@ testSimilarTypes = context "types" $ do
     barB <- expectParseTestTypeScheme "forall b. Bar b"
     fooA `shouldNotBeSimilarTo` barB
   it "type applications with dissimilar right-hand sides are dissimilar" $ do
-    fooA  <- expectParseTestTypeScheme "forall a b. Foo a"
+    fooA <- expectParseTestTypeScheme "forall a b. Foo a"
     fooA' <- expectParseTestTypeScheme "forall b a. Foo a"
     fooA `shouldNotBeSimilarTo` fooA'
-
   it "function types with similar children are similar" $ do
     f <- expectParseTestTypeScheme "forall a b. a -> b"
     g <- expectParseTestTypeScheme "forall c d. c -> d"
@@ -98,9 +90,8 @@ testSimilarExprs = context "expressions" $ do
     foo `shouldNotBeSimilarTo` bar
   it "constructors are not similar to variables" $ do
     foo <- expectParseTestExpr "Foo"
-    a   <- expectParseTestExpr "a"
+    a <- expectParseTestExpr "a"
     foo `shouldNotBeSimilarTo` a
-
   it "integer literals are similar to themselves" $ do
     int <- expectParseTestExpr "42"
     int `shouldBeSimilarTo` int
@@ -108,7 +99,6 @@ testSimilarExprs = context "expressions" $ do
     int1 <- expectParseTestExpr "42"
     int2 <- expectParseTestExpr "1337"
     int1 `shouldNotBeSimilarTo` int2
-
   it "error term 'undefined' is similar to itself" $ do
     e <- expectParseTestExpr "undefined"
     e `shouldBeSimilarTo` e
@@ -119,7 +109,6 @@ testSimilarExprs = context "expressions" $ do
     e1 <- expectParseTestExpr "error \"Hello\""
     e2 <- expectParseTestExpr "error \"World\""
     e1 `shouldNotBeSimilarTo` e2
-
   it "free variables are similar to themselves" $ do
     f <- expectParseTestExpr "f"
     f `shouldBeSimilarTo` f
@@ -127,7 +116,6 @@ testSimilarExprs = context "expressions" $ do
     f <- expectParseTestExpr "f"
     g <- expectParseTestExpr "g"
     f `shouldNotBeSimilarTo` g
-
   it "bound variables are similar to similarly bound variables" $ do
     e1 <- expectParseTestExpr "\\x -> x"
     e2 <- expectParseTestExpr "\\y -> y"
@@ -144,7 +132,6 @@ testSimilarExprs = context "expressions" $ do
     e1 <- expectParseTestExpr "\\y -> x"
     e2 <- expectParseTestExpr "\\x -> x"
     e1 `shouldNotBeSimilarTo` e2
-
   it "expressions with dissimilar type annotation are not similar" $ do
     e1 <- expectParseTestExpr "x :: Foo"
     e2 <- expectParseTestExpr "x :: Bar"
@@ -153,22 +140,21 @@ testSimilarExprs = context "expressions" $ do
     e1 <- expectParseTestExpr "x :: a"
     e2 <- expectParseTestExpr "x"
     e1 `shouldNotBeSimilarTo` e2
-
   it "lambda abstractions with different arity are not similar" $ do
     e1 <- expectParseTestExpr "\\x y -> x"
     e2 <- expectParseTestExpr "\\x -> x"
     e1 `shouldNotBeSimilarTo` e2
   it "lambda abstractions with dissimilar argument annotations are not similar"
     $ do
-        e1 <- expectParseTestExpr "\\(x :: Foo) -> x"
-        e2 <- expectParseTestExpr "\\(x :: Bar) -> x"
-        e1 `shouldNotBeSimilarTo` e2
-  it "lambda abstractions with and without argument annotations are not similar"
+      e1 <- expectParseTestExpr "\\(x :: Foo) -> x"
+      e2 <- expectParseTestExpr "\\(x :: Bar) -> x"
+      e1 `shouldNotBeSimilarTo` e2
+  it ("lambda abstractions with and without argument annotations are not "
+      ++ "similar")
     $ do
-        e1 <- expectParseTestExpr "\\(x :: Foo) -> x"
-        e2 <- expectParseTestExpr "\\x -> x"
-        e1 `shouldNotBeSimilarTo` e2
-
+      e1 <- expectParseTestExpr "\\(x :: Foo) -> x"
+      e2 <- expectParseTestExpr "\\x -> x"
+      e1 `shouldNotBeSimilarTo` e2
   it "applications with similar children are similar" $ do
     fooX <- expectParseTestExpr "\\x -> Foo x"
     fooY <- expectParseTestExpr "\\y -> Foo y"
@@ -178,15 +164,13 @@ testSimilarExprs = context "expressions" $ do
     barY <- expectParseTestExpr "\\y -> Bar y"
     fooX `shouldNotBeSimilarTo` barY
   it "applications with dissimilar right-hand sides are dissimilar" $ do
-    fooX  <- expectParseTestExpr "\\x y -> Foo x"
+    fooX <- expectParseTestExpr "\\x y -> Foo x"
     fooX' <- expectParseTestExpr "\\y a -> Foo a"
     fooX `shouldNotBeSimilarTo` fooX'
-
   it "visible applications of dissimilar types are not similar" $ do
     fa <- expectParseTestExpr "f @a"
     fb <- expectParseTestExpr "f @b"
     fa `shouldNotBeSimilarTo` fb
-
   it "if expressions with similar children are similar" $ do
     e1 <- expectParseTestExpr "\\x y z -> if x then y else z"
     e2 <- expectParseTestExpr "\\c t f -> if c then t else f"
@@ -203,7 +187,6 @@ testSimilarExprs = context "expressions" $ do
     e1 <- expectParseTestExpr "\\x y -> if x then y else Foo"
     e2 <- expectParseTestExpr "\\c t -> if c then t else Bar"
     e1 `shouldNotBeSimilarTo` e2
-
   it "case expressions with similar children are similar" $ do
     e1 <- expectParseTestExpr "\\xs -> case xs of { ([]) -> 0; (:) x xs' -> x }"
     e2 <- expectParseTestExpr "\\ys -> case ys of { ([]) -> 0; (:) y ys' -> y }"
@@ -222,23 +205,23 @@ testSimilarExprs = context "expressions" $ do
     e1 `shouldNotBeSimilarTo` e2
   it "case expressions with different number of alternatives are not similar"
     $ do
-        e1 <- expectParseTestExpr "case xy of { (,) x y -> x }"
-        e2 <- expectParseTestExpr "case xy of {  }"
-        e1 `shouldNotBeSimilarTo` e2
+      e1 <- expectParseTestExpr "case xy of { (,) x y -> x }"
+      e2 <- expectParseTestExpr "case xy of {  }"
+      e1 `shouldNotBeSimilarTo` e2
   it "alternatives with different constructor patterns are not similar" $ do
     e1 <- expectParseTestExpr "\\xs -> case xs of { ([]) -> 0; (:) x xs' -> x }"
     e2 <- expectParseTestExpr "\\ys -> case ys of { Nil -> 0; Cons y ys' -> y }"
     e1 `shouldNotBeSimilarTo` e2
   it "alternatives with dissimilar variable type annotations are not similar"
     $ do
-        e1 <- expectParseTestExpr "case xy of { (,) (x :: Foo) y -> x }"
-        e2 <- expectParseTestExpr "case xy of { (,) (x :: Bar) y -> x }"
-        e1 `shouldNotBeSimilarTo` e2
+      e1 <- expectParseTestExpr "case xy of { (,) (x :: Foo) y -> x }"
+      e2 <- expectParseTestExpr "case xy of { (,) (x :: Bar) y -> x }"
+      e1 `shouldNotBeSimilarTo` e2
   it "alternatives with different number of variable patterns are not similar"
     $ do
-        e1 <- expectParseTestExpr "case xy of { (,) (x :: Foo) y -> x }"
-        e2 <- expectParseTestExpr "case xy of { (,) (x :: Bar) y -> x }"
-        e1 `shouldNotBeSimilarTo` e2
+      e1 <- expectParseTestExpr "case xy of { (,) (x :: Foo) y -> x }"
+      e2 <- expectParseTestExpr "case xy of { (,) (x :: Bar) y -> x }"
+      e1 `shouldNotBeSimilarTo` e2
 
 -- | Test group for 'FreeC.IR.Similar.Similar' instance of function
 --   declarations.
@@ -278,11 +261,11 @@ testSimilarFuncDecls = context "function declarations" $ do
     fx `shouldNotBeSimilarTo` fy
   it "functions with different arities are not similar" $ do
     fxz <- expectParseTestFuncDecl "f x z = x"
-    fy  <- expectParseTestFuncDecl "f y = y"
+    fy <- expectParseTestFuncDecl "f y = y"
     fxz `shouldNotBeSimilarTo` fy
   it "type arguments bind type variables in argument type annotations" $ do
     fab <- expectParseTestFuncDecl "f @a (x :: a) = x"
-    fb  <- expectParseTestFuncDecl "f @b (x :: b) = x"
+    fb <- expectParseTestFuncDecl "f @b (x :: b) = x"
     fab `shouldBeSimilarTo` fb
   it "type arguments bind type variables in return type annotations" $ do
     fa <- expectParseTestFuncDecl "f @a :: a = undefined"
@@ -320,9 +303,9 @@ testSimilarTypeDecls = do
       foo1 `shouldNotBeSimilarTo` foo2
     it "type synonyms with different number of type arguments are not similar"
       $ do
-          foo1 <- expectParseTestTypeDecl "type Foo a = Bar a"
-          foo2 <- expectParseTestTypeDecl "type Foo a b = Bar a"
-          foo1 `shouldNotBeSimilarTo` foo2
+        foo1 <- expectParseTestTypeDecl "type Foo a = Bar a"
+        foo2 <- expectParseTestTypeDecl "type Foo a b = Bar a"
+        foo1 `shouldNotBeSimilarTo` foo2
   context "data type declarations" $ do
     it "nullary data types are similar to themselves" $ do
       foo <- expectParseTestTypeDecl "data Foo"

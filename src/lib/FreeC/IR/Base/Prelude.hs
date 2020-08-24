@@ -11,15 +11,13 @@
 --   other. Even though the names listed in this module are not allowed
 --   to be changed, additional functions can be added to the @Prelude@
 --   without rebuilding the compiler.
-
 module FreeC.IR.Base.Prelude where
 
-import qualified FreeC.IR.Syntax               as IR
+import qualified FreeC.IR.Syntax as IR
 
 -------------------------------------------------------------------------------
--- Names of predefined modules                                               --
+-- Names of Predefined Modules                                               --
 -------------------------------------------------------------------------------
-
 -- | The name of the @Prelude@ module.
 --
 --   TODO once @import ... as ...@ is supported, the @Prelude@ could be
@@ -28,9 +26,8 @@ modName :: IR.ModName
 modName = "Prelude"
 
 -------------------------------------------------------------------------------
--- Names of predefined type constructors                                     --
+-- Names of Predefined Type Constructors                                     --
 -------------------------------------------------------------------------------
-
 -- | The name of the unit type constructor.
 unitTypeConName :: IR.TypeConName
 unitTypeConName = IR.Qual modName (IR.Symbol "")
@@ -44,9 +41,8 @@ listTypeConName :: IR.TypeConName
 listTypeConName = IR.Qual modName (IR.Symbol "[]")
 
 -------------------------------------------------------------------------------
--- Names of predefined data constructors                                     --
+-- Names of Predefined Data Constructors                                     --
 -------------------------------------------------------------------------------
-
 -- | Name of the unit data constructor.
 unitConName :: IR.ConName
 unitConName = IR.Qual modName (IR.Symbol "")
@@ -64,9 +60,8 @@ tupleConName :: Int -> IR.ConName
 tupleConName n = IR.Qual modName (IR.Symbol (replicate (n - 1) ','))
 
 -------------------------------------------------------------------------------
--- Names of special predefined types and operators                           --
+-- Names of Special Predefined Types and Operators                           --
 -------------------------------------------------------------------------------
-
 -- | When inferring the type of integer literals this is the type to infer.
 integerTypeConName :: IR.TypeConName
 integerTypeConName = IR.Qual modName (IR.Ident "Integer")
@@ -82,9 +77,8 @@ negateOpName :: IR.VarName
 negateOpName = IR.Qual modName (IR.Ident "negate")
 
 -------------------------------------------------------------------------------
--- Names of error terms                                                      --
+-- Names of Error Terms                                                      --
 -------------------------------------------------------------------------------
-
 -- | The name of the @error@ function.
 errorFuncName :: IR.VarName
 errorFuncName = IR.Qual modName (IR.Ident "error")

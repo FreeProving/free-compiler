@@ -1,8 +1,7 @@
 -- | This module contains tests for "FreeC.Frontend.IR.Scanner".
-
 module FreeC.Frontend.IR.ScannerTests where
 
-import           Test.Hspec              hiding ( shouldReturn )
+import           Test.Hspec                 hiding ( shouldReturn )
 
 import           FreeC.Frontend.IR.Scanner
 import           FreeC.Frontend.IR.Token

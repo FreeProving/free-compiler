@@ -1,9 +1,8 @@
 -- | This module contains the data type that is used to model individual
 --   passes of the compiler's pipeline (see also "FreeC.Pipeline").
-
 module FreeC.Pass where
 
-import           Control.Monad                  ( (>=>) )
+import           Control.Monad         ( (>=>) )
 
 import           FreeC.Monad.Converter
 
