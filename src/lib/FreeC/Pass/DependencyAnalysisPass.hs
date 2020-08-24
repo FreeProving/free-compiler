@@ -49,6 +49,7 @@ import           FreeC.Pass
 --   on individual strongly connected components of the dependency graph
 --   for declarations of type @decl@.
 type DependencyAwarePass decl = Pass (DependencyComponent decl)
+  (DependencyComponent decl)
 
 -- | Type class for declaration AST nodes whose dependencies can be analyzed.
 class DependencyAnalysisPass decl where
@@ -81,7 +82,7 @@ instance DependencyAnalysisPass IR.FuncDecl where
 --   of the dependency graph for declarations of type @decl@ of the given
 --   module.
 dependencyAnalysisPass :: DependencyAnalysisPass decl
-                       => [DependencyAwarePass decl]
+                       => DependencyAwarePass decl
                        -> IR.Module
                        -> Converter IR.Module
 dependencyAnalysisPass = subPipelinePass getComponents setComponents

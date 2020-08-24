@@ -122,7 +122,7 @@ import           FreeC.Pass.TypeSignaturePass ( splitFuncType )
 -- | Applies η-conversions to the right-hand sides of all function declarations
 --   in the given module until all function and constructor applications are
 --   fully applied.
-etaConversionPass :: Pass IR.Module
+etaConversionPass :: Pass IR.Module IR.Module
 etaConversionPass ast = do
   funcDecls' <- etaConvertFuncDecls (IR.modFuncDecls ast) []
   return ast { IR.modFuncDecls = funcDecls' }

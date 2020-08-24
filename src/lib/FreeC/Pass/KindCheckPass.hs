@@ -69,7 +69,7 @@ import           FreeC.Pretty          ( showPretty )
 -- | A compiler pass that checks whether there are type applications with type
 --   variables or function types on the left-hand side in the module and checks
 --   whether all type construcors in the module are fully applied.
-kindCheckPass :: Pass IR.Module
+kindCheckPass :: Pass IR.Module IR.Module
 kindCheckPass m@(IR.Module _ _ _ typeDecls typeSigs _ funcDecls) = do
   mapM_ checkTypeDecl typeDecls
   mapM_ checkTypeSig typeSigs

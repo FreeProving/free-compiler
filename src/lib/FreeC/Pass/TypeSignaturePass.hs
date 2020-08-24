@@ -107,7 +107,7 @@ import           FreeC.Pretty
 
 -- | Associates top-level type signatures with the corresponding function
 --   declarations in the given module.
-typeSignaturePass :: Pass IR.Module
+typeSignaturePass :: Pass IR.Module IR.Module
 typeSignaturePass ast = do
   let typeSigs  = IR.modTypeSigs ast
       funcDecls = IR.modFuncDecls ast

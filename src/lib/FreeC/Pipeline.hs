@@ -6,6 +6,8 @@
 --   performs some transformation on the converted module.
 module FreeC.Pipeline where
 
+import           Control.Monad                     ( (>=>) )
+
 import qualified FreeC.IR.Syntax                   as IR
 import           FreeC.Monad.Converter
 import           FreeC.Pass
@@ -24,21 +26,20 @@ import           FreeC.Pass.TypeInferencePass
 import           FreeC.Pass.TypeSignaturePass
 
 -- | The passes of the compiler pipeline.
-pipeline :: [Pass IR.Module]
-pipeline = [ implicitPreludePass
-           , qualifierPass
-           , resolverPass
-           , importPass
-           , dependencyAnalysisPass [defineTypeDeclsPass]
-           , kindCheckPass
-           , typeSignaturePass
-           , dependencyAnalysisPass
-               [typeInferencePass, defineFuncDeclsPass, partialityAnalysisPass]
-           , completePatternPass
-           , etaConversionPass
-           , exportPass
-           ]
+pipeline :: Pass IR.Module IR.Module
+pipeline = implicitPreludePass
+  >=> qualifierPass
+  >=> resolverPass
+  >=> importPass
+  >=> dependencyAnalysisPass defineTypeDeclsPass
+  >=> kindCheckPass
+  >=> typeSignaturePass
+  >=> dependencyAnalysisPass
+  (typeInferencePass >=> defineFuncDeclsPass >=> partialityAnalysisPass)
+  >=> completePatternPass
+  >=> etaConversionPass
+  >=> exportPass
 
 -- | Runs the compiler pipeline on the given module.
 runPipeline :: IR.Module -> Converter IR.Module
-runPipeline = runPasses pipeline
+runPipeline = runPass pipeline

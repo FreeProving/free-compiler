@@ -72,7 +72,7 @@ import           FreeC.Pass
 
 -- | Compiler pass that qualifies the names of all declarations in the module
 --   with the name of the module.
-qualifierPass :: Pass IR.Module
+qualifierPass :: Pass IR.Module IR.Module
 qualifierPass = return . qualifyDecls
 
 -- | Qualifies the names of declarations in the given module with the name

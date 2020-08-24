@@ -84,7 +84,7 @@ import           FreeC.Pretty                   ( showPretty )
 --   The pattern matching for a function is complete if for each @case@
 --   expression there exists exactly one case alternative for each constructor
 --   of the corresponding type.
-completePatternPass :: Pass IR.Module
+completePatternPass :: Pass IR.Module IR.Module
 completePatternPass ast = do
   mapM_ checkPatternFuncDecl (IR.modFuncDecls ast)
   return ast
