@@ -1,5 +1,6 @@
 From Base Require Import Free.
 From Base Require Import Free.Instance.Identity.
+From Base Require Import Free.Malias.
 
 Section SecPair.
   Variable Shape : Type.
@@ -20,11 +21,16 @@ End SecPair.
 
 Arguments pair_  {Shape} {Pos} {A} {B}.
 
-(* Normalform instance *)
+(* Normalform instance for Pair *)
 
-Definition nf'Pair (Shape : Type) (Pos : Shape -> Type)
-                   (A B C D : Type) 
-                   `{Normalform Shape Pos A C}
+Section SecNFPair.
+
+Variable Shape : Type.
+Variable Pos : Shape -> Type.
+
+Variable A B C D : Type.
+
+Definition nf'Pair `{Normalform Shape Pos A C}
                    `{Normalform Shape Pos B D}
                    (p : Pair Shape Pos A B)
   : Free Shape Pos (Pair Identity.Shape Identity.Pos C D)
@@ -34,38 +40,47 @@ Definition nf'Pair (Shape : Type) (Pos : Shape -> Type)
                       pure (pair_ (pure na) (pure nb))
      end.
 
-Definition nfPair (Shape : Type) (Pos : Shape -> Type)
-                  (A B C D : Type)
-                  `{Normalform Shape Pos A C}
+Definition nfPair `{Normalform Shape Pos A C}
                   `{Normalform Shape Pos B D}
                   (p : Free Shape Pos (Pair Shape Pos A B))
   : Free Shape Pos (Pair Identity.Shape Identity.Pos C D)
- := p >>= (fun p' => nf'Pair Shape Pos A B C D p').
+ := p >>= (fun p' => nf'Pair p').
 
-Lemma nf_impure_pair (Shape : Type) (Pos : Shape -> Type)
-                     (A B C D : Type)
-                     `{Normalform Shape Pos A C}
+Lemma nf_impure_pair `{Normalform Shape Pos A C}
                      `{Normalform Shape Pos B D}
   : forall s (pf : _ -> Free Shape Pos (Pair Shape Pos A B)),
-    nfPair Shape Pos A B C D (impure s pf) = impure s (fun p => nfPair Shape Pos A B C D (pf p)).
+    nfPair (impure s pf) = impure s (fun p => nfPair (pf p)).
 Proof. trivial. Qed.
 
-Lemma nf_pure_pair (Shape : Type) (Pos : Shape -> Type)
-                   (A B C D : Type)
-                   `{Normalform Shape Pos A C}
+Lemma nf_pure_pair `{Normalform Shape Pos A C}
                    `{Normalform Shape Pos B D}
   : forall (x : Pair Shape Pos A B),
-    nfPair Shape Pos A B C D (pure x) = nf'Pair Shape Pos A B C D x.
+    nfPair (pure x) = nf'Pair x.
 Proof. trivial. Qed.
 
-Instance NormalformPair {Shape : Type} {Pos : Shape -> Type} (A B C D : Type)
-                        `{Normalform Shape Pos A C}
+Global Instance NormalformPair `{Normalform Shape Pos A C}
                         `{Normalform Shape Pos B D}
   : Normalform (Pair Shape Pos A B) 
                (Pair Identity.Shape Identity.Pos C D)
  := {
-      nf := nfPair Shape Pos A B C D;
-      nf_impure := nf_impure_pair Shape Pos A B C D;
-      nf' := nf'Pair Shape Pos A B C D;
-      nf_pure := nf_pure_pair Shape Pos A B C D
+      nf := nfPair;
+      nf_impure := nf_impure_pair;
+      nf' := nf'Pair;
+      nf_pure := nf_pure_pair
     }.
+
+End SecNFPair.
+
+(* ShareableArgs instance for Pair *)
+
+Instance ShareableArgsPair {Shape : Type} {Pos : Shape -> Type} (A B : Type)
+                        `{Injectable Share.Shape Share.Pos Shape Pos}
+                        `{ShareableArgs Shape Pos A}
+                        `{ShareableArgs Shape Pos B}
+  : ShareableArgs Shape Pos (Pair Shape Pos A B) := {
+     shareArgs p := match p with
+                    | pair_ fx fy => cbneed Shape Pos fx >>= fun sx =>
+                                     cbneed Shape Pos fy >>= fun sy =>
+                                     (pure (pair_ sx sy)) 
+                    end
+   }.
