@@ -202,7 +202,8 @@ Proof. constructor. Qed.
 Definition doubleShared {Shape : Type}
                         {Pos : Shape -> Type}
                         {A : Type}
-                        (S : Shareable Shape Pos)
+                        `(S : Shareable Shape Pos)
+                        `{ShareableArgs Shape Pos A}
                         (f : Free Shape Pos A ->
                              Free Shape Pos A -> 
                              Free Shape Pos A)
@@ -312,7 +313,8 @@ Proof. constructor. Qed.
 Definition doubleSharedNested {Shape : Type}
                               {Pos : Shape -> Type}
                               {A : Type}
-                              (S : Shareable Shape Pos)
+                              `(S : Shareable Shape Pos)
+                              `{ShareableArgs Shape Pos A}
                               (f : Free Shape Pos A ->
                                   Free Shape Pos A -> 
                                   Free Shape Pos A)
@@ -387,7 +389,8 @@ Proof. constructor. Qed.
 Definition doubleSharedClash {Shape : Type}
                              {Pos : Shape -> Type}
                              {A : Type}
-                             (S : Shareable Shape Pos)
+                             `(S : Shareable Shape Pos)
+                             `{ShareableArgs Shape Pos A}
                              (f : Free Shape Pos A ->
                                   Free Shape Pos A -> 
                                   Free Shape Pos A)
@@ -477,7 +480,8 @@ in f sx (f (sy (f sz val)))
 Definition doubleSharedRec {Shape : Type}
                            {Pos : Shape -> Type}
                            {A : Type}
-                           (S : Shareable Shape Pos)
+                           `(S : Shareable Shape Pos)
+                           `{ShareableArgs Shape Pos A}
                            (f : Free Shape Pos A ->
                                 Free Shape Pos A -> 
                                 Free Shape Pos A)
