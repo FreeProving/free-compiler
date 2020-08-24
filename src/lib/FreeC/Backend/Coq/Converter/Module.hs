@@ -2,7 +2,12 @@
 
 module FreeC.Backend.Coq.Converter.Module where
 
+import           Data.Maybe                     ( catMaybes )
 import           Control.Monad.Extra            ( concatMapM )
+import           Data.List.NonEmpty             ( NonEmpty(..) )
+import           Data.List.Extra                ( concatUnzip )
+import qualified Data.Text                     as Text
+
 
 import qualified FreeC.Backend.Coq.Base        as Coq.Base
 import           FreeC.Backend.Coq.Converter.FuncDecl
@@ -45,7 +50,22 @@ convertDecls typeDecls funcDecls = do
 convertTypeDecls :: [IR.TypeDecl] -> Converter [Coq.Sentence]
 convertTypeDecls typeDecls = do
   let components = groupTypeDecls typeDecls
-  concatMapM convertTypeComponent components
+  (sentences, qualNotations) <-
+    concatUnzip <$> mapM convertTypeComponent components
+  let -- Put qualified notations into a single submodule
+      qualNotModule = Coq.LocalModuleSentence
+        $ Coq.LocalModule Coq.Base.qualifiedNotation qualNotations
+      qualNotModuleExport =
+        Coq.ModuleSentence
+          $  Coq.ModuleImport Coq.Export
+          $  Coq.Base.qualifiedNotation
+          :| []
+  return
+    $  sentences
+    ++ [ Coq.comment "Qualified smart constructors"
+       , qualNotModule
+       , qualNotModuleExport
+       ]
 
 -------------------------------------------------------------------------------
 -- Import declarations                                                       --
@@ -54,14 +74,16 @@ convertTypeDecls typeDecls = do
 -- | Converts the given import declarations to Coq.
 convertImportDecls :: [IR.ImportDecl] -> Converter [Coq.Sentence]
 convertImportDecls imports = do
-  imports' <- mapM convertImportDecl imports
+  imports' <- concatMapM convertImportDecl imports
   return (Coq.Base.imports : imports')
 
 -- | Convert an import declaration.
-convertImportDecl :: IR.ImportDecl -> Converter Coq.Sentence
+convertImportDecl :: IR.ImportDecl -> Converter [Coq.Sentence]
 convertImportDecl (IR.ImportDecl _ modName) = do
-  Just iface <- inEnv $ lookupAvailableModule modName
-  generateImport (interfaceLibName iface) modName
+  Just iface      <- inEnv $ lookupAvailableModule modName
+  imports         <- generateImport (interfaceLibName iface) modName
+  notationImports <- generateNotationImport (interfaceLibName iface) modName
+  return $ imports : (catMaybes [notationImports])
 
 -- | Generates a Coq import sentence for the module with the given name
 --   from the given library.
@@ -78,3 +100,18 @@ generateImport libName modName = return
   mkRequireSentence :: Coq.ModuleIdent -> [Coq.ModuleIdent] -> Coq.Sentence
   mkRequireSentence | libName == Coq.Base.baseLibName = Coq.requireImportFrom
                     | otherwise                       = Coq.requireFrom
+
+-- | Generates a Coq import sentence for the submodule of the module with the
+--   given name that contains qualified notations.
+--
+--   Modules from the base library do not contain such a module and are skipped.
+generateNotationImport
+  :: Coq.ModuleIdent -> IR.ModName -> Converter (Maybe Coq.Sentence)
+generateNotationImport libName modName
+  | libName == Coq.Base.baseLibName = return Nothing
+  | otherwise = return $ Just (Coq.importFrom [Text.append libName accessor])
+ where
+  accessor =
+    Text.cons '.' $ Text.append (Coq.ident (showPretty modName)) $ Text.cons
+      '.'
+      Coq.Base.qualifiedNotation

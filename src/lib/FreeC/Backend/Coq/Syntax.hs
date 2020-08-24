@@ -44,6 +44,7 @@ module FreeC.Backend.Coq.Syntax
   , requireImportFrom
   , requireExportFrom
   , requireFrom
+  , importFrom
   )
 where
 
@@ -268,3 +269,8 @@ requireExportFrom library modules = ModuleSentence
 requireFrom :: ModuleIdent -> [ModuleIdent] -> Sentence
 requireFrom library modules =
   ModuleSentence (Require (Just library) Nothing (NonEmpty.fromList modules))
+
+-- | Creates a @Import …@ sentence.
+importFrom :: [ModuleIdent] -> Sentence
+importFrom modules =
+  ModuleSentence (ModuleImport Import (NonEmpty.fromList modules))

@@ -21,6 +21,7 @@ module FreeC.Environment
   , isFunction
   , isVariable
   , isPureVar
+  , lookupModName
   , lookupIdent
   , lookupSmartIdent
   , usedIdents
@@ -177,6 +178,17 @@ isVariable = maybe False isVarEntry .: lookupEntry IR.ValueScope
 isPureVar :: IR.QName -> Environment -> Bool
 isPureVar =
   maybe False (isVarEntry .&&. entryIsPure) .: lookupEntry IR.ValueScope
+
+-- | Looks up the IR module name for a Haskell function, (type)
+--   constructor or (type) variable with the given name.
+--
+--   Returns @Nothing@ if there is no such function, (type/smart) constructor,
+--   constructor or (type) variable with the given name or no module name is
+--   specified for that entry.
+lookupModName :: IR.Scope -> IR.QName -> Environment -> Maybe IR.ModName
+lookupModName scope name env = case entryName <$> lookupEntry scope name env of
+  Just (IR.Qual modName _) -> Just modName
+  _                        -> Nothing
 
 -- | Looks up the Coq identifier for a Haskell function, (type)
 --   constructor or (type) variable with the given name.

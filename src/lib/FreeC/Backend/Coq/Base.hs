@@ -78,6 +78,14 @@ partialError :: Coq.Qualid
 partialError = Coq.bare "error"
 
 -------------------------------------------------------------------------------
+-- Notations                                                                 --
+-------------------------------------------------------------------------------
+
+-- | The name of the local module, where qualified notations are defined.
+qualifiedNotation :: Coq.Ident
+qualifiedNotation = Coq.ident "QualifiedNotation"
+
+-------------------------------------------------------------------------------
 -- Literal scopes                                                            --
 -------------------------------------------------------------------------------
 
@@ -106,5 +114,7 @@ reservedIdents =
     , partial
     , partialUndefined
     , partialError
+    -- Notations
+    , Coq.Bare qualifiedNotation
     ]
     ++ map fst (partialArg : freeArgs)
