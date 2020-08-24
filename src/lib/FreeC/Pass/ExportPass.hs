@@ -60,21 +60,18 @@
 --   == Postcondition
 --
 --   The environment contains a module interface for the translated module.
-module FreeC.Pass.ExportPass
-  ( exportPass
-  )
-where
+module FreeC.Pass.ExportPass ( exportPass ) where
 
-import qualified Data.Map.Strict               as Map
-import qualified Data.Set                      as Set
+import qualified Data.Map.Strict                   as Map
+import qualified Data.Set                          as Set
 
-import qualified FreeC.Backend.Agda.Base       as Agda.Base
-import qualified FreeC.Backend.Coq.Base        as Coq.Base
-import qualified FreeC.Backend.Coq.Syntax      as Coq
+import qualified FreeC.Backend.Agda.Base           as Agda.Base
+import qualified FreeC.Backend.Coq.Base            as Coq.Base
+import qualified FreeC.Backend.Coq.Syntax          as Coq
 import           FreeC.Environment
-import           FreeC.Environment.ModuleInterface
 import           FreeC.Environment.Entry
-import qualified FreeC.IR.Syntax               as IR
+import           FreeC.Environment.ModuleInterface
+import qualified FreeC.IR.Syntax                   as IR
 import           FreeC.Monad.Converter
 import           FreeC.Pass
 
@@ -92,16 +89,14 @@ exportPass ast = do
 exportInterface :: IR.ModName -> Converter ModuleInterface
 exportInterface modName = do
   entries <- inEnv $ Map.elems . envEntries
-  let exports     = map entryScopedName $ filter isExported entries
+  let exports = map entryScopedName $ filter isExported entries
   let qualEntries = map qualifyExportedIdent entries
-  return
-    (ModuleInterface { interfaceModName     = modName
-                     , interfaceLibName     = Coq.Base.generatedLibName
-                     , interfaceAgdaLibName = Agda.Base.generatedLibName
-                     , interfaceExports     = Set.fromList exports
-                     , interfaceEntries     = Set.fromList qualEntries
-                     }
-    )
+  return (ModuleInterface { interfaceModName     = modName
+                          , interfaceLibName     = Coq.Base.generatedLibName
+                          , interfaceAgdaLibName = Agda.Base.generatedLibName
+                          , interfaceExports     = Set.fromList exports
+                          , interfaceEntries     = Set.fromList qualEntries
+                          })
  where
   -- | Tests whether to export the given entry.
   --
@@ -131,5 +126,6 @@ exportInterface modName = do
   -- | Qualifies an unqualified Coq identifier with the module name.
   --   A qualified Coq identifer is not modified.
   qualifyIdent :: Coq.Qualid -> Coq.Qualid
-  qualifyIdent (Coq.Bare coqName) = Coq.Qualified (Coq.ident modName) coqName
+  qualifyIdent (Coq.Bare coqName)           = Coq.Qualified (Coq.ident modName)
+    coqName
   qualifyIdent qualName@(Coq.Qualified _ _) = qualName

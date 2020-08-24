@@ -1,5 +1,4 @@
 -- | This module contains tests for "FreeC.Backend.Coq.Converter.FuncDecl".
-
 module FreeC.Backend.Coq.Converter.FuncDeclTests where
 
 import           Test.Hspec

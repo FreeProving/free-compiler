@@ -1,5 +1,4 @@
 -- | This module contains tests for "FreeC.IR.Reference".
-
 module FreeC.IR.ReferenceTests where
 
 import           Test.Hspec

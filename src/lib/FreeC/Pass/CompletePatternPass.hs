@@ -28,8 +28,8 @@
 --   >     Just b  -> Just True
 --   >   }
 --
---   should not pass the check because the @case@ expression has two alternatives
---   for the constructor @Just@.
+--   should not pass the check because the @case@ expression has two
+--   alternatives for the constructor @Just@.
 --
 --   == Example 3
 --
@@ -37,7 +37,8 @@
 --
 --   > case_id = case \x -> x  of
 --
---   should not pass the check because functions are not permitted as scrutinees.
+--   should not pass the check because functions are not permitted as
+--   scrutinees.
 --
 --   = Specification
 --
@@ -60,20 +61,18 @@
 --   == Error cases
 --
 --   A fatal error is reported if an incomplete case expression is found.
-
 module FreeC.Pass.CompletePatternPass
   ( completePatternPass
   , checkPatternFuncDecl
-  )
-where
+  ) where
 
 import           Control.Monad                  ( unless )
 import           Data.Maybe                     ( fromJust )
 
 import           FreeC.Environment.Entry
 import           FreeC.Environment.LookupOrFail
-import qualified FreeC.IR.Syntax               as IR
 import           FreeC.IR.SrcSpan
+import qualified FreeC.IR.Syntax                as IR
 import           FreeC.IR.TypeSynExpansion
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
@@ -110,43 +109,38 @@ checkPatternFuncDecl funcDecl = checkPatternExpr (IR.funcDeclRhs funcDecl)
         entry <- lookupEntryOrFail srcSpan IR.TypeScope typeName
         let altConNames = map (IR.conPatName . IR.altConPat) exprAlts
         performCheck (entryConsNames entry) altConNames srcSpan
-  checkPatternExpr (IR.App _ lhr rhs _) =
-    checkPatternExpr lhr >> checkPatternExpr rhs
+  checkPatternExpr (IR.App _ lhr rhs _)
+    = checkPatternExpr lhr >> checkPatternExpr rhs
   checkPatternExpr (IR.TypeAppExpr _ lhr _ _) = checkPatternExpr lhr
-  checkPatternExpr (IR.If _ exprCond exprThen exprElse _) =
-    checkPatternExpr exprCond
-      >> checkPatternExpr exprThen
-      >> checkPatternExpr exprElse
+  checkPatternExpr (IR.If _ exprCond exprThen exprElse _) = checkPatternExpr
+    exprCond
+    >> checkPatternExpr exprThen
+    >> checkPatternExpr exprElse
   checkPatternExpr (IR.Lambda _ _ lambdaRhs _) = checkPatternExpr lambdaRhs
-  checkPatternExpr (IR.Let _ binds e _) =
-    mapM_ (checkPatternExpr . IR.bindExpr) binds >> checkPatternExpr e
-  checkPatternExpr IR.Con{}        = return ()
-  checkPatternExpr IR.Var{}        = return ()
-  checkPatternExpr IR.Undefined{}  = return ()
-  checkPatternExpr IR.ErrorExpr{}  = return ()
-  checkPatternExpr IR.IntLiteral{} = return ()
+  checkPatternExpr (IR.Let _ binds e _)
+    = mapM_ (checkPatternExpr . IR.bindExpr) binds >> checkPatternExpr e
+  checkPatternExpr IR.Con {} = return ()
+  checkPatternExpr IR.Var {} = return ()
+  checkPatternExpr IR.Undefined {} = return ()
+  checkPatternExpr IR.ErrorExpr {} = return ()
+  checkPatternExpr IR.IntLiteral {} = return ()
 
   performCheck :: [IR.ConName] -> [IR.ConName] -> SrcSpan -> Converter ()
   performCheck typeConNames altConNames srcSpan = unless
-    (  all (`elem` typeConNames) typeConNames
-    && length typeConNames
-    == length altConNames
-    )
-    (failedPatternCheck srcSpan)
+    (all (`elem` typeConNames) typeConNames
+     && length typeConNames == length altConNames) (failedPatternCheck srcSpan)
 
-  -- | Generates the error message and reports the error
+  -- | Generates the error message and reports the error.
   failedPatternCheck :: SrcSpan -> Converter ()
-  failedPatternCheck srcSpan =
-    reportFatal
-      $  Message srcSpan Error
-      $  "Incomplete pattern in function: "
-      ++ showPretty (IR.funcDeclName funcDecl)
+  failedPatternCheck srcSpan = reportFatal
+    $ Message srcSpan Error
+    $ "Incomplete pattern in function: "
+    ++ showPretty (IR.funcDeclName funcDecl)
 
-  -- | Selects the name of the outermost type constructor from a type
+  -- | Selects the name of the outermost type constructor from a type.
   getTypeConName :: IR.Type -> Maybe IR.TypeConName
-  getTypeConName (IR.TypeCon _ typeConName ) = Just typeConName
+  getTypeConName (IR.TypeCon _ typeConName)  = Just typeConName
   getTypeConName (IR.TypeApp _ typeAppLhs _) = getTypeConName typeAppLhs
-
-  -- The type of the scrutinee shouldn't be function or a type var
-  getTypeConName IR.TypeVar{}                = Nothing
-  getTypeConName IR.FuncType{}               = Nothing
+  -- The type of the scrutinee shouldn't be a function or type variable.
+  getTypeConName IR.TypeVar {}               = Nothing
+  getTypeConName IR.FuncType {}              = Nothing

@@ -1,6 +1,5 @@
 -- | This module exports the original Agda AST to reduce coupling with the
 --   Agda libraries.
-
 module FreeC.Backend.Agda.Syntax
   ( module Agda.Syntax.Concrete
   , module Agda.Syntax.Common
@@ -35,22 +34,20 @@ module FreeC.Backend.Agda.Syntax
   , binding
   , fun
   , pi
-  )
-where
+  ) where
+
+import           Prelude              hiding ( pi )
 
 import           Agda.Syntax.Common
 import           Agda.Syntax.Concrete
 import           Agda.Syntax.Literal
 import           Agda.Syntax.Position
 
-import           FreeC.Util.Predicate           ( (.||.) )
-
-import           Prelude                 hiding ( pi )
+import           FreeC.Util.Predicate ( (.||.) )
 
 -------------------------------------------------------------------------------
 -- Identifiers                                                               --
 -------------------------------------------------------------------------------
-
 -- | Creates a (not qualified) Agda variable name from a 'String'.
 name :: String -> Name
 name str = Name NoRange InScope $ stringNameParts str
@@ -67,22 +64,16 @@ qname' = qname []
 -------------------------------------------------------------------------------
 -- Imports                                                                   --
 -------------------------------------------------------------------------------
-
 -- | Creates an @open import@ declaration for the given qualified name.
 --
 --   @open import [modName]@
 simpleImport :: QName -> Declaration
-simpleImport modName = Import
-  NoRange
-  modName
-  Nothing
-  DoOpen
+simpleImport modName = Import NoRange modName Nothing DoOpen
   (ImportDirective NoRange UseEverything [] [] Nothing)
 
 -------------------------------------------------------------------------------
 -- Declarations                                                              --
 -------------------------------------------------------------------------------
-
 -- | Smart constructor for creating a module containing a list of declarations.
 moduleDecl :: QName -> [Declaration] -> Declaration
 moduleDecl modName = Module NoRange modName []
@@ -106,12 +97,12 @@ funcDef :: QName -> [QName] -> Expr -> Declaration
 funcDef funcName argNames rhs = FunClause lhs' (RHS rhs) NoWhere False
  where
   argPattern = foldl appP (IdentP funcName) $ map IdentP argNames
+
   lhs'       = LHS argPattern [] [] $ ExpandedEllipsis NoRange 0
 
 -------------------------------------------------------------------------------
 -- Pattern                                                                   --
 -------------------------------------------------------------------------------
-
 -- | Tests wether the given AST node is an @AppP@.
 isAppP :: Pattern -> Bool
 isAppP (AppP _ _) = True
@@ -138,10 +129,9 @@ parenIfNeeded p            = p
 -------------------------------------------------------------------------------
 -- Expressions                                                               --
 -------------------------------------------------------------------------------
-
 -- | Tests whether the given AST node is an @App@.
 isApp :: Expr -> Bool
-isApp (App _ _ _ ) = True
+isApp (App _ _ _)  = True
 isApp (RawApp _ _) = True
 isApp _            = False
 
@@ -165,7 +155,6 @@ stringLiteral = Lit . LitString NoRange
 lambda :: [Name] -> Expr -> Expr
 lambda args = Lam NoRange (DomainFree . defaultNamedArg . mkBinder_ <$> args)
 
-
 -- | Creates an application AST node.
 --
 --   Application is left associative and in type expressions binds stronger
@@ -173,8 +162,8 @@ lambda args = Lam NoRange (DomainFree . defaultNamedArg . mkBinder_ <$> args)
 --
 --   > e a
 app :: Expr -> Expr -> Expr
-app l r =
-  App NoRange l $ defaultNamedArg (if isApp .||. isFun $ r then paren r else r)
+app l r = App NoRange l
+  $ defaultNamedArg (if isApp .||. isFun $ r then paren r else r)
 
 -- | Applies the list of arguments to the given expression. If the expression is
 --   an operator the application is written in mixfix notation.
@@ -192,17 +181,18 @@ isOp _         = False
 --   This functions fails iff the left-hand side isn't an operator or the wrong
 --   number of arguments is supplied.
 opApp :: Expr -> [Expr] -> Expr
-opApp (Ident op) =
-  paren . RawApp NoRange . opApp' (nameNameParts $ unqualify $ op)
-opApp _ = error "Only an identifier can be an operator!"
+opApp (Ident op)
+  = paren . RawApp NoRange . opApp' (nameNameParts $ unqualify $ op)
+opApp _          = error "Only an identifier can be an operator!"
 
--- | Translates a list of @NamePart@s to a list of expressions by replacing holes
---   with arguments and translating name parts to identifiers.
+-- | Translates a list of @NamePart@s to a list of expressions by replacing
+--   holes with arguments and translating name parts to identifiers.
 opApp' :: [NamePart] -> [Expr] -> [Expr]
-opApp' (Hole    : ps) (a : as) = a : opApp' ps as
-opApp' (Id part : ps) as       = ident part : opApp' ps as
-opApp' []             []       = []
-opApp' _ _ = error "Wrong number of arguments supplied to operator!"
+opApp' (Hole : ps) (a : as) = a : opApp' ps as
+opApp' (Id part : ps) as    = ident part : opApp' ps as
+opApp' [] []                = []
+opApp' _ _
+  = error "Wrong number of arguments supplied to operator!"
 
 -- | Wraps the given expression in parenthesis.
 paren :: Expr -> Expr
@@ -222,15 +212,15 @@ hiddenArg_ = HiddenArg NoRange . unnamed
 --
 --   > cond true false ↦ if cond then true else false
 ifThenElse :: Expr -> Expr -> Expr -> Expr
-ifThenElse cond true false =
-  RawApp NoRange [ident "if", cond, ident "then", true, ident "else", false]
+ifThenElse cond true false
+  = RawApp NoRange [ident "if", cond, ident "then", true, ident "else", false]
 
 -- | @case_of_@ from the base library.
 --
 --   > disrc clauses ↦ case disrc of λ { clause₁ ; clause₂ ; … }
 caseOf :: Expr -> [LamClause] -> Expr
-caseOf discr alts =
-  RawApp NoRange [ident "case", discr, ident "of", ExtendedLam NoRange alts]
+caseOf discr alts
+  = RawApp NoRange [ident "case", discr, ident "of", ExtendedLam NoRange alts]
 
 -- | Smart constructor for a clause of a pattern matching lambda abstraction.
 --
@@ -247,7 +237,6 @@ lhs pat = LHS (parenIfNeeded pat) [] [] NoEllipsis
 -------------------------------------------------------------------------------
 -- Types                                                                     --
 -------------------------------------------------------------------------------
-
 -- | The first level of Agda's hierarchy of type theoretic universes.
 set :: Expr
 set = ident "Set"
@@ -284,19 +273,20 @@ fun l             = Fun NoRange (defaultArg l)
 --   > pi [α₁, …, αₙ] expr ↦ ∀ {α₁} … {αₙ} → expr
 pi :: [Name] -> Expr -> Expr
 pi decls expr | (Pi binders expr') <- expr = Pi (binder : binders) expr'
-              | otherwise                  = Pi [binder] expr
+              | otherwise = Pi [binder] expr
  where
   binder = TBind NoRange (map hiddenArg decls) $ Underscore NoRange Nothing
 
 -- | Helper function for creating hidden named arguments.
 hiddenArg :: Name -> NamedArg Binder
-hiddenArg n =
-  Arg hiddenArgInfo $ Named Nothing $ Binder Nothing $ mkBoundName_ n
+hiddenArg n
+  = Arg hiddenArgInfo $ Named Nothing $ Binder Nothing $ mkBoundName_ n
 
 -- | Argument meta data marking them as hidden.
 hiddenArgInfo :: ArgInfo
-hiddenArgInfo = ArgInfo { argInfoHiding        = Hidden
-                        , argInfoModality      = defaultModality
-                        , argInfoOrigin        = UserWritten
-                        , argInfoFreeVariables = UnknownFVs
-                        }
+hiddenArgInfo = ArgInfo
+  { argInfoHiding        = Hidden
+  , argInfoModality      = defaultModality
+  , argInfoOrigin        = UserWritten
+  , argInfoFreeVariables = UnknownFVs
+  }

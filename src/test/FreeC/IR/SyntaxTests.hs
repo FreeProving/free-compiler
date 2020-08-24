@@ -1,10 +1,6 @@
 -- | This module contains tests for 'FreeC.Pretty.Pretty' instances of IR AST
 --   nodes.
-
-module FreeC.IR.SyntaxTests
-  ( testSyntax
-  )
-where
+module FreeC.IR.SyntaxTests ( testSyntax ) where
 
 import           Test.Hspec
 

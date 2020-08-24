@@ -3,15 +3,10 @@
 -- | This module contains type class instances for converting source spans from
 --   the @haskell-src-exts@ package to the source spans of the intermediate
 --   representation of the compiler.
+module FreeC.Frontend.Haskell.SrcSpanConverter ( ConvertibleSrcSpan(..) ) where
 
-module FreeC.Frontend.Haskell.SrcSpanConverter
-  ( ConvertibleSrcSpan(..)
-  )
-where
-
-import           Control.Monad                  ( join )
-
-import qualified Language.Haskell.Exts.SrcLoc  as HSE
+import           Control.Monad                ( join )
+import qualified Language.Haskell.Exts.SrcLoc as HSE
 
 import           FreeC.IR.SrcSpan
 
@@ -27,8 +22,8 @@ instance ConvertibleSrcSpan HSE.SrcSpan where
     , srcSpanCodeLines   = []
     }
 
--- | Converts a 'HSE.SrcSpanInfo' by removing additional information and applying
---   the conversion for 'HSE.SrcSpan's.
+-- | Converts a 'HSE.SrcSpanInfo' by removing additional information and
+--   applying the conversion for 'HSE.SrcSpan's.
 instance ConvertibleSrcSpan HSE.SrcSpanInfo where
   convertSrcSpan = convertSrcSpan . HSE.srcInfoSpan
 

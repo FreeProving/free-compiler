@@ -1,2 +1,1 @@
-data Partial a = Undefined
-               | Value a
+data Partial a = Undefined | Value a
