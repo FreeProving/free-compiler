@@ -232,40 +232,7 @@ convertDataDecl dataDecl@(IR.DataDecl _
                                        [] 
                                        Nothing
                                        (Coq.string "myRHS")
-                                       )]
-  -- | Checks whether a constructor has the original type as an argument either 
-  --   directly or indirectly.                    
-  containsOriginalType :: IR.ConDecl -> Bool
-  containsOriginalType (IR.ConDecl _ _ argTypes) = foldr (\t b -> b || containsOriginalType' t) False argTypes
 
-    -- | Checks whether a type has the original type as an argument either 
-  --   directly or indirectly.       
-  containsOriginalType' :: IR.Type -> Bool
-  containsOriginalType' (IR.TypeVar _ _) = False
-  containsOriginalType' (IR.TypeCon _ conName) = conName == typeDeclQName dataDecl
-  containsOriginalType' (TypeApp _ t1 t2) = containsOriginalType' t1 || containsOriginalType' t2
-  -- not technically necessary since we exclude types with function arguments, but useful if we 
-  -- allow them in the future.
-  containsOriginalType' (FuncType t1 t2) = containsOriginalType' t1 || containsOriginalType' t2
--- I think this function is wrong. We never go back to constructors.
--- Say we have 
--- data A = ConsA
--- data B = ConsB A
--- data C = ConsC B
-
--- data C' = ConsC' C
-
--- We check B. B is a type constructor and not... well, doesn't matter. It's not recursive. 
--- I think the only problem may be mutually recursive data types. 
--- Are those allowed...?
--- Or... Pair C' C'
--- Yeah, still mutually recursive.
--- 
-
-  -- | Checks whether the type has a function as an argument either directly 
-  --   or indirectly. If so, no Normalform instance is generated.
-  containsFuncType :: IR.ConDecl -> Bool
-  containsFuncType _ = False
 
 -- Type synonyms are not allowed in this function.
 convertDataDecl (IR.TypeSynDecl _ _ _ _) =
