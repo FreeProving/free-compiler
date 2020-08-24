@@ -20,14 +20,15 @@ Section SecCbneed.
 
 Variable Shape : Type.
 Variable Pos : Shape -> Type.
+
 Notation "'Get''" := (Get Shape Pos).
 Notation "'Put''" := (Put Shape Pos).
 Notation "'BeginShare''" := (BeginShare Shape Pos).
 Notation "'EndShare''" := (EndShare Shape Pos).
 
-(* An operator to model call-by-need evaluation *)
-Definition cbneed {A : Type} 
-                  `{Injectable Share.Shape Share.Pos Shape Pos} 
+Definition cbneed {A : Type}
+                  `{Injectable Share.Shape Share.Pos Shape Pos}
+                  `{ShareableArgs Shape Pos A}
                   (p : Free Shape Pos A)
   : Free Shape Pos (Free Shape Pos A) :=
   Get' >>= fun '(i,j) =>
@@ -35,20 +36,24 @@ Definition cbneed {A : Type}
   pure (BeginShare' (i,j) >>
       Put' (i,j+1) >>
       p >>= fun x =>
+      shareArgs x >>= fun x' =>
       Put' (i+1,j) >>
       EndShare' (i,j) >>
-      pure x).
+      pure x').
 
 End SecCbneed.
 
 (* Shareable instances. *)
-
 Instance Cbneed (Shape : Type) (Pos : Shape -> Type)
                 `{I : Injectable Share.Shape Share.Pos Shape Pos}
  : Shareable Shape Pos | 1 := {
-    share A p := @cbneed Shape Pos A I p
+    share A S p := @cbneed Shape Pos A I S p
 }.
-Instance Cbn (Shape : Type) (Pos : Shape -> Type)
+
+(* The Share effect is not actually needed, but we need to
+   ensure it is there so cbn is compatible with share. *)
+Instance Cbn (Shape : Type) (Pos : Shape -> Type) 
+             `{Injectable Share.Shape Share.Pos Shape Pos}
  : Shareable Shape Pos | 2 := {
-    share A p := @cbn A Shape Pos p
+    share A S p := @cbn A Shape Pos p
 }.
