@@ -19,7 +19,6 @@ Section SecUnit.
 End SecUnit.
 
 (* Normalform instance for Unit *)
-(* Normalform instance for Bool *)
 
 Instance NormalformUnit (Shape : Type) (Pos : Shape -> Type)
   : Normalform Shape Pos (Unit Shape Pos) (Unit Identity.Shape Identity.Pos)
