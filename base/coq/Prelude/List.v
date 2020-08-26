@@ -48,31 +48,10 @@ Fixpoint nf'List  `{Normalform Shape Pos A B}
                       pure (cons (pure nx) (pure nxs))
      end.
 
-Definition nfList `{Normalform Shape Pos A B}
-                  (p : Free Shape Pos (List Shape Pos A))
-  : Free Shape Pos (List Identity.Shape Identity.Pos B)
- := p >>= (fun p' => nf'List p').
-
-Lemma nf_impure_list `{Normalform Shape Pos A B}
-  : forall s (pf : _ -> Free Shape Pos (List Shape Pos A)),
-    nfList (impure s pf) 
-    = impure s (fun p => nfList (pf p)).
-Proof. trivial. Qed.
-
-Lemma nf_pure_list `{Normalform Shape Pos A B}
-  : forall (x : List Shape Pos A),
-    nfList (pure x) = nf'List x.
-Proof. trivial. Qed.
-
 Global Instance NormalformList `{Normalform Shape Pos A B}
-  : Normalform (List Shape Pos A) 
+  : Normalform Shape Pos (List Shape Pos A) 
                          (List Identity.Shape Identity.Pos B)
- := {
-      nf := nfList;
-      nf_impure := nf_impure_list;
-      nf' := nf'List;
-      nf_pure := nf_pure_list 
-    }.
+ := { nf' := nf'List }.
 
 End SecListNF.
 
