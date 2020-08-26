@@ -38,53 +38,117 @@ Definition evalTraceM {A : Type} p
 := @collectMessages (option A) 
    (run (runTracing (runTraceSharing (0,0) (runMaybe p)))).
 
-(* Non-deterministic integer. *)
-Definition coin (Shape : Type) (Pos : Shape -> Type)
-                `{Injectable ND.Shape ND.Pos Shape Pos}
-:= Choice Shape Pos (pure 0%Z) (pure 1%Z).
-Arguments coin {_} {_} {_}.
+Section SecData.
 
+Variable Shape : Type.
+Variable Pos : Shape -> Type.
+
+(* Non-deterministic integer. *)
+Definition coin `{Injectable ND.Shape ND.Pos Shape Pos}
+:= Choice Shape Pos (pure 0%Z) (pure 1%Z).
 
 (* Non-deterministic boolean value. *)
-Definition coinB (Shape : Type) (Pos : Shape -> Type)
-                 `{Injectable ND.Shape ND.Pos Shape Pos}
+Definition coinB `{Injectable ND.Shape ND.Pos Shape Pos}
  := Choice Shape Pos (True_ _ _) (False_ _ _).
-Arguments coinB {_} {_} {_}.
 
 (* Non-deterministic partial integer. *)
-Definition coinM (Shape : Type) (Pos : Shape -> Type)
-                 `{Injectable ND.Shape ND.Pos Shape Pos}
+Definition coinM `{Injectable ND.Shape ND.Pos Shape Pos}
                  `{Injectable Maybe.Shape Maybe.Pos Shape Pos}
 := Choice Shape Pos (Nothing_inj _ _) (Just_inj _ _ 1%Z).
-Arguments coinM {_} {_} {_} {_}.
 
 (* Traced integer. *)
-Definition traceOne (Shape : Type) (Pos : Shape -> Type)
-                    `{Traceable Shape Pos}
+Definition traceOne `{Traceable Shape Pos}
 := trace "One" (pure 1%Z).
-Arguments traceOne {_} {_} {_}.
 
 (* Traced boolean values. *)
-Definition traceTrue (Shape : Type) (Pos : Shape -> Type)
-                     `{Traceable Shape Pos}
+Definition traceTrue `{Traceable Shape Pos}
 := trace "True" (True_ _ _).
-Arguments traceTrue {_} {_} {_}.
-Definition traceFalse (Shape : Type) (Pos : Shape -> Type)
-                      `{Traceable Shape Pos}
+
+Definition traceFalse `{Traceable Shape Pos}
 := trace "False" (False_ _ _).
-Arguments traceFalse {_} {_} {_}.
 
 (* Traced Maybe values *)
-Definition traceNothing (Shape : Type) (Pos : Shape -> Type)
-                        `{Traceable Shape Pos}
+Definition traceNothing `{Traceable Shape Pos}
                         `{Injectable Maybe.Shape Maybe.Pos Shape Pos}
 := trace "Nothing" (@Nothing_inj (Integer Shape Pos) _ _ _).
-Arguments traceNothing {_} {_} {_} {_}.
-Definition traceJust (Shape : Type) (Pos : Shape -> Type)
-                     `{Traceable Shape Pos}
+
+Definition traceJust `{Traceable Shape Pos}
                      `{Injectable Maybe.Shape Maybe.Pos Shape Pos}
 := trace "Just 1" (Just_inj _ _ 1%Z).
+
+End SecData.
+
+(* Arguments sentences for the data. *)
+Arguments coin {_} {_} {_}.
+Arguments coinB {_} {_} {_}.
+Arguments coinM {_} {_} {_} {_}.
+Arguments traceOne {_} {_} {_}.
+Arguments traceTrue {_} {_} {_}.
+Arguments traceFalse {_} {_} {_}.
+Arguments traceNothing {_} {_} {_} {_}.
 Arguments traceJust {_} {_} {_} {_}.
+
+(* Test functions *)
+Section SecFunctions.
+
+Set Implicit Arguments.
+Variable Shape : Type.
+Variable Pos : Shape -> Type.
+Variable A : Type.
+Notation "'FreeA'" := (Free Shape Pos A).
+
+(* This function applies the given binary function to the given argument
+   twice and does not share the argument. *)
+Definition double (f : FreeA -> FreeA -> FreeA ) (fx : FreeA) : FreeA
+:= f fx fx.
+
+(* Simple sharing: 
+   let sx = fx in f sx sx *)
+Definition doubleShared (S : Shareable Shape Pos)
+                        (f : FreeA -> FreeA -> FreeA)
+                        (fx : FreeA)
+ : FreeA
+:= share fx >>= fun sx => f sx sx.
+
+(* Nested sharing:
+   let sx = fx 
+       sy = f sx sx
+   in f sy sy *)
+Definition doubleSharedNested (S : Shareable Shape Pos)
+                              (f : FreeA -> FreeA -> FreeA)
+                              (fx : FreeA)
+ : FreeA
+:= share (share fx >>= fun sx => f sx sx) >>= fun sy =>
+   f sy sy.
+
+(* let sx = fx  
+       sy = f sx sx
+       sz = fy
+   in f sy sz *)
+Definition doubleSharedClash (S : Shareable Shape Pos)
+                             (f : FreeA -> FreeA -> FreeA)
+                             (fx : FreeA) (fy : FreeA)
+ : FreeA
+:= share (share fx >>= fun sx => f sx sx) >>= fun sy =>
+   share fy >>=  fun sz => f sy sz.
+
+(*
+let sx = val
+    sy = f sx fx
+    sz = f sy fy
+in f sx (f (sy (f sz val))) 
+*)
+Definition doubleSharedRec (S : Shareable Shape Pos)
+                           (f : FreeA -> FreeA -> FreeA)
+                           (fx : FreeA) (fy : FreeA)
+                           (val : A)
+ : FreeA
+:= share (pure val) >>= fun sx =>
+   f sx (share (f sx fx) >>= fun sy => 
+   f sy (share (f sy fy) >>= fun sz =>
+   f sz (pure val))).
+
+End SecFunctions.
 
 (* Some notations for convenience.
    Since we only provide the sharing instance and functions when the handlers
@@ -95,18 +159,6 @@ Notation "'orBool_'" := (orBool _ _).
 
 
 (* ---------------------- Test cases without sharing ----------------------- *)
-
-(* This function applies the given binary function to the given argument
-   twice and does not share the argument. *)
-Definition double {Shape : Type}
-                  {Pos : Shape -> Type}
-                  {A : Type}
-                  (f : Free Shape Pos A ->
-                       Free Shape Pos A -> 
-                       Free Shape Pos A)
-                  (fx : Free Shape Pos A)
- : Free Shape Pos A
-:= f fx fx.
 
 (* 
 0?1 + 0?1
@@ -197,18 +249,8 @@ Example exTraceJustNoSharing
    = (Some 2%Z,["Just 1"%string;"Just 1"%string]).
 Proof. constructor. Qed.
 
+
 (* --------------------- Test cases for simple sharing --------------------- *)
-(* let sx = fx in f sx sx *)
-Definition doubleShared {Shape : Type}
-                        {Pos : Shape -> Type}
-                        {A : Type}
-                        (S : Shareable Shape Pos)
-                        (f : Free Shape Pos A ->
-                             Free Shape Pos A -> 
-                             Free Shape Pos A)
-                        (fx : Free Shape Pos A)
- : Free Shape Pos A
-:= share fx >>= fun sx => f sx sx.
 
 (*
 let sx = 0 ? 1 
@@ -306,21 +348,6 @@ Proof. constructor. Qed.
 
 (* --------------------- Test cases for nested sharing --------------------- *)
 
-(* let sx = fx 
-       sy = f sx sx
-   in f sy sy *)
-Definition doubleSharedNested {Shape : Type}
-                              {Pos : Shape -> Type}
-                              {A : Type}
-                              (S : Shareable Shape Pos)
-                              (f : Free Shape Pos A ->
-                                  Free Shape Pos A -> 
-                                  Free Shape Pos A)
-                                  (fx : Free Shape Pos A)
- : Free Shape Pos A
-:= share (share fx >>= fun sx => f sx sx) >>= fun sy =>
-   f sy sy.
-
 (* 
 let sx = 0 ? 1 
     sy = sx + sx 
@@ -379,23 +406,6 @@ Example exOrNestedFalseTracing
  : evalTracing (nf (doubleSharedNested (Cbneed_) (orBool_) traceFalse))
    = (false, ["False"%string]).
 Proof. constructor. Qed.
-
-(* let sx = fx  
-       sy = f sx sx
-       sz = fy
-   in f sy sz *)
-Definition doubleSharedClash {Shape : Type}
-                             {Pos : Shape -> Type}
-                             {A : Type}
-                             (S : Shareable Shape Pos)
-                             (f : Free Shape Pos A ->
-                                  Free Shape Pos A -> 
-                                  Free Shape Pos A)
-                             (fx : Free Shape Pos A)
-                             (fy : Free Shape Pos A)
- : Free Shape Pos A
-:= share (share fx >>= fun sx => f sx sx) >>= fun sy =>
-   share fy >>=  fun sz => f sy sz.
 
 (* 
 let sx = 0 ? 1
@@ -467,30 +477,6 @@ Example exOrClashFalseTracing
                                   traceFalse traceFalse))
    = (false,["False"%string;"False"%string]).
 Proof. constructor. Qed.
-
-(*
-let sx = val
-    sy = f sx fx
-    sz = f sy fy
-in f sx (f (sy (f sz val))) 
-*)
-Definition doubleSharedRec {Shape : Type}
-                           {Pos : Shape -> Type}
-                           {A : Type}
-                           (S : Shareable Shape Pos)
-                           (f : Free Shape Pos A ->
-                                Free Shape Pos A -> 
-                                Free Shape Pos A)
-                           (fx : Free Shape Pos A)
-                           (fy : Free Shape Pos A)
-                           (val : A)
- : Free Shape Pos A
-:= share (pure val) >>= fun sx =>
-   f sx (share (f sx fx) >>= fun sy => 
-      f sy (share (f sy fy) >>= fun sz =>
-        f sz (pure val)
-      )
-   ).
 
 (*
 let sx = 1
@@ -589,4 +575,3 @@ Example exOrRecFalseTracing
                                 traceFalse traceFalse false))
    = (false,["False"%string;"False"%string]).
 Proof. constructor. Qed.
-
