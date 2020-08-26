@@ -5,10 +5,3 @@ Class ShareableArgs (Shape : Type) (Pos : Shape -> Type)
   {
     shareArgs : A -> Free Shape Pos A
   }.
-(*
-Instance ShareableArgsDummy (Shape : Type) (Pos : Shape -> Type)
-                            (A : Type)
- : ShareableArgs Shape Pos A | 5 := {
-    shareArgs := pure
- }.
-*)
