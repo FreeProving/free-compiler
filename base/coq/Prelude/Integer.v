@@ -96,7 +96,7 @@ Section SecInteger.
 
 End SecInteger.
 
-(* Normalform instance *)
+(* Normalform instance for Integer *)
 
 Instance NormalformInteger (Shape : Type) (Pos : Shape -> Type) 
   : Normalform Shape Pos (Integer Shape Pos) (Integer Identity.Shape Identity.Pos)

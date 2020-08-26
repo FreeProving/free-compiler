@@ -132,7 +132,7 @@ Section SecFunctions.
   let sx = val
       sy = f sx fx
       sz = f sy fy
-  in f sx (f (sy (f sz val))) 
+  in f sx (f sy (f sz val)) 
   *)
   Definition doubleSharedRec (S : Shareable Shape Pos)
                              (f : FreeA -> FreeA -> FreeA)
