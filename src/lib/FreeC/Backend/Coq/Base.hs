@@ -1,14 +1,33 @@
 -- | This module contains the Coq identifiers of types, constructors and
 --   functions defined in the Base library that accompanies the compiler.
+module FreeC.Backend.Coq.Base
+  ( -- * Base Library Import
+    imports
+  , baseLibName
+  , generatedLibName
+    -- * Free Monad
+  , free
+  , freePureCon
+  , freeImpureCon
+  , freeBind
+  , freeArgs
+    -- * Partiality
+  , partial
+  , partialArg
+  , partialUndefined
+  , partialError
+    -- * Literal Scopes
+  , integerScope
+  , stringScope
+    -- * Reserved Identifiers
+  , reservedIdents
+  ) where
 
-module FreeC.Backend.Coq.Base where
-
-import qualified FreeC.Backend.Coq.Syntax      as Coq
+import qualified FreeC.Backend.Coq.Syntax as Coq
 
 -------------------------------------------------------------------------------
--- Base library import                                                       --
+-- Base Library Import                                                       --
 -------------------------------------------------------------------------------
-
 -- | Import sentence for the @Free@ module from the Base Coq library.
 imports :: Coq.Sentence
 imports = Coq.requireImportFrom baseLibName [Coq.ident "Free"]
@@ -22,9 +41,8 @@ generatedLibName :: Coq.ModuleIdent
 generatedLibName = Coq.ident "Generated"
 
 -------------------------------------------------------------------------------
--- Free monad                                                                --
+-- Free Monad                                                                --
 -------------------------------------------------------------------------------
-
 -- | The Coq identifier for the @Free@ monad.
 free :: Coq.Qualid
 free = Coq.bare "Free"
@@ -45,17 +63,15 @@ freeBind = Coq.bare "op_>>=__"
 --   monad. These parameters are added automatically to every defined type and
 --   function.
 freeArgs :: [(Coq.Qualid, Coq.Term)]
-freeArgs =
-  [ (Coq.bare "Shape", Coq.Sort Coq.Type)
-  , ( Coq.bare "Pos"
-    , Coq.Arrow (Coq.Qualid (Coq.bare "Shape")) (Coq.Sort Coq.Type)
-    )
-  ]
+freeArgs = [ (Coq.bare "Shape", Coq.Sort Coq.Type)
+           , ( Coq.bare "Pos"
+               , Coq.Arrow (Coq.Qualid (Coq.bare "Shape")) (Coq.Sort Coq.Type)
+               )
+           ]
 
 -------------------------------------------------------------------------------
 -- Partiality                                                                --
 -------------------------------------------------------------------------------
-
 -- | The Coq Identifier for the @Partial@ type class.
 partial :: Coq.Qualid
 partial = Coq.bare "Partial"
@@ -63,11 +79,10 @@ partial = Coq.bare "Partial"
 -- | The name and type of the @Partial@ instance that must be passed to
 --   partial functions.
 partialArg :: (Coq.Qualid, Coq.Term)
-partialArg =
-  ( Coq.bare "P"
-  , Coq.app (Coq.Qualid (Coq.bare "Partial"))
-            [Coq.Qualid (Coq.bare "Shape"), Coq.Qualid (Coq.bare "Pos")]
-  )
+partialArg = ( Coq.bare "P"
+             , Coq.app (Coq.Qualid (Coq.bare "Partial"))
+                 [Coq.Qualid (Coq.bare "Shape"), Coq.Qualid (Coq.bare "Pos")]
+             )
 
 -- | The identifier for the error term @undefined@.
 partialUndefined :: Coq.Qualid
@@ -80,15 +95,13 @@ partialError = Coq.bare "error"
 -------------------------------------------------------------------------------
 -- Notations                                                                 --
 -------------------------------------------------------------------------------
-
 -- | The name of the local module, where qualified notations are defined.
 qualifiedNotation :: Coq.Ident
 qualifiedNotation = Coq.ident "QualifiedNotation"
 
 -------------------------------------------------------------------------------
--- Literal scopes                                                            --
+-- Literal Scopes                                                            --
 -------------------------------------------------------------------------------
-
 -- | The scope of integer literals.
 integerScope :: Coq.Ident
 integerScope = Coq.ident "Z"
@@ -98,23 +111,22 @@ stringScope :: Coq.Ident
 stringScope = Coq.ident "string"
 
 -------------------------------------------------------------------------------
--- Reserved identifiers                                                      --
+-- Reserved Identifiers                                                      --
 -------------------------------------------------------------------------------
-
 -- | All Coq identifiers that are reserved for the Base library.
 --
 --   This does only include identifiers without corresponding Haskell name.
 reservedIdents :: [Coq.Qualid]
-reservedIdents =
-  [ -- Free monad
-    free
+reservedIdents
+  = [ -- Free monad
+      free
     , freePureCon
     , freeImpureCon
-    -- Partiality
+      -- Partiality
     , partial
     , partialUndefined
     , partialError
-    -- Notations
+      -- Notations
     , Coq.Bare qualifiedNotation
     ]
-    ++ map fst (partialArg : freeArgs)
+  ++ map fst (partialArg : freeArgs)

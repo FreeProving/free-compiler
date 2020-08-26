@@ -1,6 +1,5 @@
 -- | This module contains auxilary functions that help to generate Coq code
 --   that uses the @Free@ monad.
-
 module FreeC.Backend.Agda.Converter.Free
   ( generatePure
   , bind
@@ -11,15 +10,16 @@ module FreeC.Backend.Agda.Converter.Free
   , undefinedExpr
   , errorExpr
   , addPartial
-  )
-where
+  ) where
 
-import qualified FreeC.Backend.Agda.Syntax     as Agda
-import qualified FreeC.Backend.Agda.Base       as Agda.Base
+import qualified FreeC.Backend.Agda.Base   as Agda.Base
+import qualified FreeC.Backend.Agda.Syntax as Agda
 
 -- | Applies the @pure@ constructor of the free monad to the given expression.
+--
+--   @pure@ is always imported and therefore doesn't need to be qualified.
 generatePure :: Agda.Expr -> Agda.Expr
-generatePure = Agda.app $ Agda.Ident $ Agda.qname [] Agda.Base.pure -- @pure@ is always imported and therefore doesn't need to be qualified.
+generatePure = Agda.app $ Agda.Ident $ Agda.qname [] Agda.Base.pure
 
 -- | The infix @>>=@ operator.
 bind :: Agda.Expr -> Agda.Expr -> Agda.Expr
@@ -31,10 +31,9 @@ free = Agda.app $ applyFreeArgs $ Agda.qname' Agda.Base.free
 
 -- | Apply the @Shape@ and @Pos@ argument to the given type constructor.
 --
--- > c ↦ c Shape Pos
+--   > c ↦ c Shape Pos
 applyFreeArgs :: Agda.QName -> Agda.Expr
-applyFreeArgs qname = foldl1
-  Agda.app
+applyFreeArgs qname = foldl1 Agda.app
   [ Agda.Ident qname
   , Agda.Ident (Agda.qname' Agda.Base.shape)
   , Agda.Ident (Agda.qname' Agda.Base.position)
@@ -65,10 +64,9 @@ partial = Agda.Ident (Agda.qname' Agda.Base.partial)
 --
 --   > (Shape : Set) (Pos : Shape → Set)
 freeArgBinder :: [Agda.LamBinding]
-freeArgBinder =
-  [ Agda.binding [Agda.Base.shape] Agda.set
-  , Agda.binding [Agda.Base.position] (shape `Agda.fun` Agda.set)
-  ]
+freeArgBinder = [ Agda.binding [Agda.Base.shape] Agda.set
+                , Agda.binding [Agda.Base.position] (shape `Agda.fun` Agda.set)
+                ]
 
 -- | The identifier for the error term @undefined@.
 undefinedExpr :: Agda.Expr
@@ -84,4 +82,5 @@ errorExpr = Agda.ident "error"
 --   > τ ↦ ⦃ Partial Shape Pos ⦄ → τ
 addPartial :: Agda.Expr -> Agda.Expr
 addPartial = Agda.fun $ Agda.InstanceArg Agda.NoRange $ Agda.unnamed partial'
-  where partial' = partial `Agda.app` shape `Agda.app` position
+ where
+  partial' = partial `Agda.app` shape `Agda.app` position

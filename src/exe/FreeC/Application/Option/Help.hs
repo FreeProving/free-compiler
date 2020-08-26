@@ -1,13 +1,8 @@
 -- | This module contains the implementation of the @--help@ command.
-
-module FreeC.Application.Option.Help
-  ( usageHeader
-  , putUsageInfo
-  )
-where
+module FreeC.Application.Option.Help ( usageHeader, putUsageInfo ) where
 
 import           System.Console.GetOpt
-import           System.Environment             ( getProgName )
+import           System.Environment                    ( getProgName )
 
 import           FreeC.Application.Options.Descriptors
 
@@ -15,11 +10,10 @@ import           FreeC.Application.Options.Descriptors
 --
 --   This text is added before the description of the command line arguments.
 usageHeader :: FilePath -> String
-usageHeader progName =
-  "Usage: "
-    ++ progName
-    ++ " [options...] <input-files...>\n\n"
-    ++ "Command line options:"
+usageHeader progName = "Usage: "
+  ++ progName
+  ++ " [options...] <input-files...>\n\n"
+  ++ "Command line options:"
 
 -- | Prints the help message for the compiler.
 --
