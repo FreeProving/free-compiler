@@ -161,7 +161,7 @@ Notation "'orBool_'" := (orBool _ _).
 = 0+0 ? 0+1 ? 1+0 ? 1+1
 = 0 ? 1 ? 1 ? 2
 *)
-Example exAddNoSharingND : evalND (nf (double (addInteger_) coin))
+Example exAddNoSharingND : evalND (nf (double addInteger_ coin))
                            = [0%Z;1%Z;1%Z;2%Z].
 Proof. constructor. Qed.
 
@@ -170,7 +170,7 @@ trace "One" 1 + trace "One" 1
 => The message should be logged twice and the result should be 2.
 *)
 Example exAddNoSharingTrace 
-: evalTracing (nf (double (addInteger_) traceOne))
+: evalTracing (nf (double addInteger_ traceOne))
   = (2%Z,["One"%string;"One"%string]).
 Proof. constructor. Qed.
 
@@ -181,7 +181,7 @@ Proof. constructor. Qed.
 = true ? true ? false
 *)
 Example exOrNDNoSharing 
- : evalND (nf (double (orBool_) coinB)) = [true;true;false].
+ : evalND (nf (double orBool_ coinB)) = [true;true;false].
 Proof. constructor. Qed.
 
 (*
@@ -190,7 +190,7 @@ Proof. constructor. Qed.
    message should be logged only once.
 *)
 Example exOrTrueTracingNoSharing 
- : evalTracing (nf (double (orBool_) traceTrue))
+ : evalTracing (nf (double orBool_ traceTrue))
    = (true,["True"%string]).
 Proof. constructor. Qed.
 
@@ -200,7 +200,7 @@ Proof. constructor. Qed.
    should be logged twice.
 *)
 Example exOrFalseTracingNoSharing 
- : evalTracing (nf (double (orBool_) traceFalse))
+ : evalTracing (nf (double orBool_ traceFalse))
    = (false,["False"%string;"False"%string]).
 Proof. constructor. Qed.
 
@@ -222,7 +222,7 @@ Proof. constructor. Qed.
 = Nothing ? Nothing ? Just 2
 *)
 Example exNDMNoSharing
- : evalNDM (nf (double (addInteger_) coinM)) = [None;None;Some 2%Z].
+ : evalNDM (nf (double addInteger_ coinM)) = [None;None;Some 2%Z].
 Proof. constructor. Qed.
 
 (* 
@@ -231,7 +231,7 @@ trace "Nothing" Nothing + trace "Nothing" Nothing
    only be logged once and the result should be Nothing (i.e. None in Coq).
 *)
 Example exTraceNothingNoSharing
- : evalTraceM (nf (double (addInteger_) traceNothing))
+ : evalTraceM (nf (double addInteger_ traceNothing))
    = (None,["Nothing"%string]).
 Proof. constructor. Qed.
 
@@ -241,7 +241,7 @@ trace "Just 1" (Just 1) + trace "Just 1" (Just 1)
    result should be Just 2 (Some 2 in Coq).
 *)
 Example exTraceJustNoSharing
- : evalTraceM (nf (double (addInteger_) traceJust))
+ : evalTraceM (nf (double addInteger_ traceJust))
    = (Some 2%Z,["Just 1"%string;"Just 1"%string]).
 Proof. constructor. Qed.
 
@@ -255,7 +255,7 @@ in sx + sx
 = 0 ? 2
 *)
 Example exAddSharingND : evalND (nf (doubleShared Cbneed_
-  (addInteger_) coin))
+  addInteger_ coin))
   = [0%Z;2%Z].
 Proof. constructor. Qed.
 
@@ -265,7 +265,7 @@ in sx + sx
 => The message should be logged once and the result should be 2.
 *)
 Example exAddSharingTrace 
- : evalTracing (nf (doubleShared Cbneed_ (addInteger_) traceOne))
+ : evalTracing (nf (doubleShared Cbneed_ addInteger_ traceOne))
  = (2%Z,["One"%string]).
 Proof. constructor. Qed.
 
@@ -276,7 +276,7 @@ in sx or sx
 = true ? false
 *)
 Example exOrNDSharing
- : evalND (nf (doubleShared Cbneed_ (orBool_) coinB)) = [true;false].
+ : evalND (nf (doubleShared Cbneed_ orBool_ coinB)) = [true;false].
 Proof. constructor. Qed.
 
 (*
@@ -286,7 +286,7 @@ in sx or sx
    The message should be logged once and the result should be true.
 *)
 Example exOrTrueTraceSharing
- : evalTracing (nf (doubleShared (Cbneed_) (orBool_) traceTrue))
+ : evalTracing (nf (doubleShared Cbneed_ orBool_ traceTrue))
    = (true,["True"%string]).
 Proof. constructor. Qed.
 
@@ -297,7 +297,7 @@ in sx or sx
 only be logged once and the result should be false.
 *)
 Example exOrFalseTraceSharing
- : evalTracing (nf (doubleShared (Cbneed_) (orBool_) traceFalse))
+ : evalTracing (nf (doubleShared Cbneed_ orBool_ traceFalse))
    = (false,["False"%string]).
 Proof. constructor. Qed.
 
@@ -316,7 +316,7 @@ in sx + sx
 = Nothing ? Just 2
 *)
 Example exNDMSharing
- : evalNDM (nf (doubleShared (Cbneed_) (addInteger_) coinM))
+ : evalNDM (nf (doubleShared Cbneed_ addInteger_ coinM))
    = [None;Some 2%Z].
 Proof. constructor. Qed.
 
@@ -327,7 +327,7 @@ in sx + sx
    due to >>=.
 *)
 Example exTraceNothingSharing
- : evalTraceM (nf (doubleShared (Cbneed_) (addInteger_) traceNothing))
+ : evalTraceM (nf (doubleShared Cbneed_ addInteger_ traceNothing))
    = (None,["Nothing"%string]).
 Proof. constructor. Qed.
 
@@ -338,7 +338,7 @@ in sx + sx
    should be Some 2.
 *)
 Example exTraceJustSharing
- : evalTraceM (nf (doubleShared (Cbneed_) (addInteger_) traceJust))
+ : evalTraceM (nf (doubleShared Cbneed_ addInteger_ traceJust))
    = (Some 2%Z,["Just 1"%string]).
 Proof. constructor. Qed.
 
@@ -351,8 +351,8 @@ in sy + sy
 = (0+0)+(0+0) ? (1+1)+(1+1) 
 = 0 ? 4 
 *)
-Example exAddNestedSharingND : evalND (nf (doubleSharedNested (Cbneed_)
-                                                          (addInteger_) 
+Example exAddNestedSharingND : evalND (nf (doubleSharedNested Cbneed_
+                                                          addInteger_ 
                                                           coin))
                                = [0%Z;4%Z].
 Proof. constructor. Qed.
@@ -364,7 +364,7 @@ in sy + sy
 => The message should only be logged once and the result should be 4. 
 *)
 Example exAddNestedSharingTrace 
- : evalTracing (nf (doubleSharedNested (Cbneed_) (addInteger_) traceOne))
+ : evalTracing (nf (doubleSharedNested Cbneed_ addInteger_ traceOne))
    = (4%Z,["One"%string]).
 Proof. constructor. Qed.
 
@@ -375,7 +375,7 @@ in sy or sy
 = true ? false
 *)
 Example exOrNestedSharingND
- : evalND (nf (doubleSharedNested (Cbneed_) (orBool_) coinB))
+ : evalND (nf (doubleSharedNested Cbneed_ orBool_ coinB))
    = [true;false].
 Proof. constructor. Qed.
 
@@ -387,7 +387,7 @@ in sy or sy
    and the result should be true.
 *)
 Example exOrNestedTrueTracing 
- : evalTracing (nf (doubleSharedNested (Cbneed_) (orBool_) traceTrue))
+ : evalTracing (nf (doubleSharedNested Cbneed_ orBool_ traceTrue))
    = (true,["True"%string]).
 Proof. constructor. Qed.
 
@@ -399,7 +399,7 @@ in sy or sy
    and the result should be false.
 *)
 Example exOrNestedFalseTracing
- : evalTracing (nf (doubleSharedNested (Cbneed_) (orBool_) traceFalse))
+ : evalTracing (nf (doubleSharedNested Cbneed_ orBool_ traceFalse))
    = (false, ["False"%string]).
 Proof. constructor. Qed.
 
@@ -414,7 +414,7 @@ in sy + sz
 = 0 ? 1 ? 2 ? 3
 *)
 Example exAddClashSharingND
- : evalND (nf (doubleSharedClash (Cbneed_) (addInteger_) coin coin))
+ : evalND (nf (doubleSharedClash Cbneed_ addInteger_ coin coin))
    = [0%Z;1%Z;2%Z;3%Z].
 Proof. constructor. Qed.
 
@@ -426,7 +426,7 @@ in sy + sz
 => The message should be logged twice and the result should be 3.
 *)
 Example exAddClashSharingTracing
- : evalTracing (nf (doubleSharedClash (Cbneed_) (addInteger_)
+ : evalTracing (nf (doubleSharedClash Cbneed_ addInteger_
                                   traceOne traceOne))
    = (3%Z,["One"%string;"One"%string]).
 Proof. constructor. Qed.
@@ -441,7 +441,7 @@ in sy or sz
 = true ? true ? false
 *)
 Example exOrClashSharingND
- : evalND (nf (doubleSharedClash (Cbneed_) (orBool_) coinB coinB))
+ : evalND (nf (doubleSharedClash Cbneed_ orBool_ coinB coinB))
    = [true;true;false].
 Proof. constructor. Qed.
 
@@ -454,7 +454,7 @@ in sy or sz
    result should be true.
 *)
 Example exOrClashTrueTracing
- : evalTracing (nf (doubleSharedClash (Cbneed_) (orBool_)
+ : evalTracing (nf (doubleSharedClash Cbneed_ orBool_
                                   traceTrue traceTrue))
    = (true,["True"%string]).
 Proof. constructor. Qed.
@@ -469,7 +469,7 @@ in sy or sz
    be logged twice in total and the result should be false.
 *)
 Example exOrClashFalseTracing
- : evalTracing (nf (doubleSharedClash (Cbneed_) (orBool_)
+ : evalTracing (nf (doubleSharedClash Cbneed_ orBool_
                                   traceFalse traceFalse))
    = (false,["False"%string;"False"%string]).
 Proof. constructor. Qed.
@@ -486,8 +486,8 @@ in sx + (sy + (sz + 1))
   ? (1 + (1+1 + ((1+1 + 1) + 1)))
 = 4 ? 5 ? 6 ? 7
 *)
-Example exAddRecSharingND : evalND (nf (doubleSharedRec (Cbneed_)
-                                                    (addInteger_)
+Example exAddRecSharingND : evalND (nf (doubleSharedRec Cbneed_
+                                                    addInteger_
                                                     coin coin 1%Z))
                             = [4%Z;5%Z;6%Z;7%Z].
 Proof. constructor. Qed.
@@ -503,7 +503,7 @@ in sx + (sy + (sz + 1))
    final value should be 1 + 2 + 3 + 1 = 7.
 *)
 Example exAddRecSharingTracing
- : evalTracing (nf (doubleSharedRec (Cbneed_) (addInteger_)
+ : evalTracing (nf (doubleSharedRec Cbneed_ addInteger_
                                 traceOne traceOne 1%Z))
    = (7%Z,["One"%string;"One"%string]).
 Proof. constructor. Qed.
@@ -516,7 +516,7 @@ in sx or (sy or (sz or true))
 = true (due to non-strictness)
 *)
 Example exOrRecSharingNDTrue
- : evalND (nf (doubleSharedRec (Cbneed_) (orBool_) coinB coinB true))
+ : evalND (nf (doubleSharedRec Cbneed_ orBool_ coinB coinB true))
    = [true].
 Proof. constructor. Qed.
 
@@ -539,7 +539,7 @@ in sx or (sy or (sz or false))
 = true ? true ? false
 *)
 Example exOrRecSharingNDFalse
- : evalND (nf ((doubleSharedRec (Cbneed_) (orBool_) coinB coinB false)))
+ : evalND (nf ((doubleSharedRec Cbneed_ orBool_ coinB coinB false)))
    = [true;true;false].
 Proof. constructor. Qed.
 
@@ -552,7 +552,7 @@ in sx or (sy or (sz or false))
    be logged once and the result should be true.
 *)
 Example exOrRecTrueTracing
- : evalTracing (nf (doubleSharedRec (Cbneed_) (orBool_)
+ : evalTracing (nf (doubleSharedRec Cbneed_ orBool_
                                 traceTrue traceTrue false))
    = (true,["True"%string]).
 Proof. constructor. Qed.
@@ -567,7 +567,7 @@ in sx or (sy or (sz or false))
    be false.
 *)
 Example exOrRecFalseTracing
- : evalTracing (nf (doubleSharedRec (Cbneed_) (orBool_)
+ : evalTracing (nf (doubleSharedRec Cbneed_ orBool_
                                 traceFalse traceFalse false))
    = (false,["False"%string;"False"%string]).
 Proof. constructor. Qed.
