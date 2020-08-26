@@ -33,62 +33,40 @@ Arguments cons {Shape} {Pos} {A}.
 
 Section SecListNF.
 
-Variable Shape : Type.
-Variable Pos : Shape -> Type.
+  Variable Shape : Type.
+  Variable Pos : Shape -> Type.
 
-Variable A B : Type.
+  Variable A B : Type. 
 
-Fixpoint nf'List  `{Normalform Shape Pos A B}
-                   (l : List Shape Pos A)
-  : Free Shape Pos (List Identity.Shape Identity.Pos B)
- := match l with
-     | nil => pure nil
-     | cons fx fxs => nf fx >>= fun nx =>
-                      fxs >>= fun xs =>
-                      nf'List xs >>= fun nxs =>
-                      pure (cons (pure nx) (pure nxs))
-     end.
+  Fixpoint nf'List  `{Normalform Shape Pos A B}
+                     (l : List Shape Pos A)
+    : Free Shape Pos (List Identity.Shape Identity.Pos B)
+   := match l with
+       | nil => pure nil
+       | cons fx fxs => nf fx >>= fun nx =>
+                        fxs >>= fun xs =>
+                        nf'List xs >>= fun nxs =>
+                        pure (cons (pure nx) (pure nxs))
+       end.
 
-Definition nfList `{Normalform Shape Pos A B}
-                  (p : Free Shape Pos (List Shape Pos A))
-  : Free Shape Pos (List Identity.Shape Identity.Pos B)
- := p >>= (fun p' => nf'List p').
-
-Lemma nf_impure_list `{Normalform Shape Pos A B}
-  : forall s (pf : _ -> Free Shape Pos (List Shape Pos A)),
-    nfList (impure s pf) 
-    = impure s (fun p => nfList (pf p)).
-Proof. trivial. Qed.
-
-Lemma nf_pure_list `{Normalform Shape Pos A B}
-  : forall (x : List Shape Pos A),
-    nfList (pure x) = nf'List x.
-Proof. trivial. Qed.
-
-Global Instance NormalformList `{Normalform Shape Pos A B}
-  : Normalform (List Shape Pos A) 
-                         (List Identity.Shape Identity.Pos B)
- := {
-      nf := nfList;
-      nf_impure := nf_impure_list;
-      nf' := nf'List;
-      nf_pure := nf_pure_list 
-    }.
+  Global Instance NormalformList `{Normalform Shape Pos A B}
+    : Normalform Shape Pos (List Shape Pos A) 
+                           (List Identity.Shape Identity.Pos B)
+   := { nf' := nf'List }.
 
 End SecListNF.
 
-
 Section SecListShrArgs.
 
-Variable Shape : Type.
-Variable Pos : Shape -> Type.
-Variable A : Type.
+  Variable Shape : Type.
+  Variable Pos : Shape -> Type.
+  Variable A : Type.
 
-Fixpoint shareArgsList `{ShareableArgs Shape Pos A}
-                       `{Injectable Share.Shape Share.Pos Shape Pos}
-                        (xs : List Shape Pos A)
-  : Free Shape Pos (List Shape Pos A)
- := 
+  Fixpoint shareArgsList `{ShareableArgs Shape Pos A}
+                         `{Injectable Share.Shape Share.Pos Shape Pos}
+                          (xs : List Shape Pos A)
+    : Free Shape Pos (List Shape Pos A)
+   := 
                          let shr fp := Get Shape Pos >>= fun '(i,j) =>
                                        Put Shape Pos (i + 1, j) >>
                                        pure (BeginShare Shape Pos (i,j) >>

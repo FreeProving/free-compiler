@@ -29,32 +29,9 @@ End SecBool.
 
 (* Normalform instance for Bool *)
 
-Section SecNFBool.
-
-Variable Shape : Type.
-Variable Pos : Shape -> Type.
-
-  Definition nfBool (n : Free Shape Pos (Bool Shape Pos)) 
-    := n >>= (fun n' => pure n').
-
-  Lemma nf_impure_bool : forall s (pf : _ -> Free Shape Pos (Bool Shape Pos)),
-      nfBool (impure s pf) = impure s (fun p => nfBool (pf p)).
-  Proof. trivial. Qed.
-
-  Lemma nf_pure_bool : forall (x : Bool Shape Pos),
-      nfBool (pure x) = pure x.
-  Proof. trivial. Qed.
-
-Global Instance NormalformBool : Normalform (Bool Shape Pos) 
-                                     (Bool Identity.Shape Identity.Pos)
- := {
-        nf := nfBool;
-        nf_impure := nf_impure_bool;
-        nf' := pure;
-        nf_pure := nf_pure_bool
-    }.
-
-End SecNFBool.
+Instance NormalformBool (Shape : Type) (Pos : Shape -> Type)
+  : Normalform Shape Pos (Bool Shape Pos) (Bool Identity.Shape Identity.Pos)
+  := { nf' := pure }.
 
 (* ShareableArgs instance for Bool *)
 
