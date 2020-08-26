@@ -16,6 +16,8 @@ module FreeC.Backend.Coq.Base
   , partialArg
   , partialUndefined
   , partialError
+    -- * Sharable
+  , share
     -- * Literal Scopes
   , integerScope
   , stringScope
@@ -68,6 +70,13 @@ freeArgs = [ (Coq.bare "Shape", Coq.Sort Coq.Type)
                , Coq.Arrow (Coq.Qualid (Coq.bare "Shape")) (Coq.Sort Coq.Type)
                )
            ]
+
+-------------------------------------------------------------------------------
+-- Shareable                                                                 --
+-------------------------------------------------------------------------------
+-- | The Coq Identifier for the @share@ operator.
+share :: Coq.Qualid
+share = Coq.bare "share"
 
 -------------------------------------------------------------------------------
 -- Partiality                                                                --

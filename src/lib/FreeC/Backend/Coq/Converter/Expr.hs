@@ -65,6 +65,9 @@ convertLiftedExpr (LIR.Bind _ lhs rhs) = do
   lhs' <- convertLiftedExpr lhs
   rhs' <- convertLiftedExpr rhs
   return $ Coq.app (Coq.Qualid Coq.Base.freeBind) [lhs', rhs']
+convertLiftedExpr (LIR.Share _ arg) = do
+  arg' <- convertLiftedExpr arg
+  return $ Coq.app (Coq.Qualid Coq.Base.share) [arg']
 
 -- | Converts a Haskell expression to Coq.
 convertExpr :: IR.Expr -> Converter Coq.Term
