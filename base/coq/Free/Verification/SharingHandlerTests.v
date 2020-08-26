@@ -43,38 +43,34 @@ Section SecData.
 Variable Shape : Type.
 Variable Pos : Shape -> Type.
 
+Notation "'ND'" := (Injectable ND.Shape ND.Pos Shape Pos).
+Notation "'Trace'" := (Traceable Shape Pos).
+Notation "'Maybe'" := (Injectable Maybe.Shape Maybe.Pos Shape Pos).
+
 (* Non-deterministic integer. *)
-Definition coin `{Injectable ND.Shape ND.Pos Shape Pos}
+Definition coin `{ND}
 := Choice Shape Pos (pure 0%Z) (pure 1%Z).
 
 (* Non-deterministic boolean value. *)
-Definition coinB `{Injectable ND.Shape ND.Pos Shape Pos}
- := Choice Shape Pos (True_ _ _) (False_ _ _).
+Definition coinB `{ND} := Choice Shape Pos (True_ _ _) (False_ _ _).
 
 (* Non-deterministic partial integer. *)
-Definition coinM `{Injectable ND.Shape ND.Pos Shape Pos}
-                 `{Injectable Maybe.Shape Maybe.Pos Shape Pos}
+Definition coinM `{ND} `{Maybe} 
 := Choice Shape Pos (Nothing_inj _ _) (Just_inj _ _ 1%Z).
 
 (* Traced integer. *)
-Definition traceOne `{Traceable Shape Pos}
-:= trace "One" (pure 1%Z).
+Definition traceOne `{Trace} := trace "One" (pure 1%Z).
 
 (* Traced boolean values. *)
-Definition traceTrue `{Traceable Shape Pos}
-:= trace "True" (True_ _ _).
+Definition traceTrue `{Trace} := trace "True" (True_ _ _).
 
-Definition traceFalse `{Traceable Shape Pos}
-:= trace "False" (False_ _ _).
+Definition traceFalse `{Trace} := trace "False" (False_ _ _).
 
 (* Traced Maybe values *)
-Definition traceNothing `{Traceable Shape Pos}
-                        `{Injectable Maybe.Shape Maybe.Pos Shape Pos}
+Definition traceNothing `{Trace} `{Maybe}
 := trace "Nothing" (@Nothing_inj (Integer Shape Pos) _ _ _).
 
-Definition traceJust `{Traceable Shape Pos}
-                     `{Injectable Maybe.Shape Maybe.Pos Shape Pos}
-:= trace "Just 1" (Just_inj _ _ 1%Z).
+Definition traceJust `{Trace} `{Maybe} := trace "Just 1" (Just_inj _ _ 1%Z).
 
 End SecData.
 
