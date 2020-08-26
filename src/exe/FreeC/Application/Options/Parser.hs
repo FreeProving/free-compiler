@@ -1,13 +1,8 @@
 -- | This module contains the command line option parser.
-
-module FreeC.Application.Options.Parser
-  ( parseArgs
-  , getAndParseArgs
-  )
-where
+module FreeC.Application.Options.Parser ( parseArgs, getAndParseArgs ) where
 
 import           System.Console.GetOpt
-import           System.Environment             ( getArgs )
+import           System.Environment                    ( getArgs )
 
 import           FreeC.Application.Options
 import           FreeC.Application.Options.Descriptors
@@ -19,26 +14,22 @@ import           FreeC.Monad.Reporter
 --   If there are errors when parsing the command line arguments, a fatal
 --   error message is reported.
 --
---   All non-option arguments are considered as input files.
+--   All non-option arguments are considered input files.
 --
 --   Returns the default options (first argument) if no arguments are
 --   specified.
-parseArgs
-  :: Options  -- ^ The default options.
-  -> [String] -- ^ The command line arguments.
-  -> Reporter Options
+parseArgs :: Options  -- ^ The default options.
+          -> [String] -- ^ The command line arguments.
+          -> Reporter Options
 parseArgs defaultOptions args
   | null errors = do
     let opts = foldr ($) defaultOptions optSetters
     return opts { optInputFiles = nonOpts }
   | otherwise = do
     mapM_ (report . Message NoSrcSpan Error) errors
-    reportFatal $ Message
-      NoSrcSpan
-      Error
-      (  "Failed to parse command line arguments.\n"
-      ++ "Use '--help' for usage information."
-      )
+    reportFatal
+      $ Message NoSrcSpan Error ("Failed to parse command line arguments.\n"
+                                 ++ "Use '--help' for usage information.")
  where
   optSetters :: [Options -> Options]
   nonOpts :: [String]

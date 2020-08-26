@@ -1,37 +1,24 @@
 -- | This module contains the 'Backend' data type and all available backends.
+module FreeC.Backend ( Backend(..), backends, showBackends, defaultBackend ) where
 
-module FreeC.Backend
-  ( Backend(..)
-  , backends
-  , showBackends
-  , defaultBackend
-  )
-where
-
-import           Control.Monad.Extra            ( unlessM
-                                                , whenM
-                                                )
+import           Control.Monad.Extra                 ( unlessM, whenM )
 import           Control.Monad.IO.Class
-import qualified Data.Map.Strict               as Map
-import           Data.Maybe                     ( isJust )
-import           Data.List                      ( intercalate )
-import           System.Directory               ( createDirectoryIfMissing
-                                                , doesFileExist
-                                                , makeAbsolute
-                                                )
+import           Data.List                           ( intercalate )
+import qualified Data.Map.Strict                     as Map
+import           Data.Maybe                          ( isJust )
+import           System.Directory
+  ( createDirectoryIfMissing, doesFileExist, makeAbsolute )
 import           System.FilePath
 
 import           FreeC.Application.Options
-import qualified FreeC.Backend.Agda.Converter.Module
-                                               as Agda.Converter
-import           FreeC.Backend.Agda.Pretty      ( )
-import qualified FreeC.Backend.Coq.Base        as Coq.Base
-import qualified FreeC.Backend.Coq.Converter.Module
-                                               as Coq.Converter
-import           FreeC.Backend.Coq.Pretty       ( )
-import qualified FreeC.IR.Syntax               as IR
+import qualified FreeC.Backend.Agda.Converter.Module as Agda.Converter
+import           FreeC.Backend.Agda.Pretty           ()
+import qualified FreeC.Backend.Coq.Base              as Coq.Base
+import qualified FreeC.Backend.Coq.Converter.Module  as Coq.Converter
+import           FreeC.Backend.Coq.Pretty            ()
+import qualified FreeC.IR.Syntax                     as IR
 import           FreeC.Monad.Application
-import           FreeC.Pretty                   ( showPretty )
+import           FreeC.Pretty                        ( showPretty )
 
 -- | Data type that represents a backend.
 data Backend = Backend
@@ -49,7 +36,7 @@ data Backend = Backend
 -- | A map of all available backends with the name of those backends as keys.
 backends :: Map.Map String Backend
 backends = Map.fromList
-  [ (backendName b, b) | b <- [coqBackend, irBackend, agdaBackend] ]
+  [(backendName b, b) | b <- [coqBackend, irBackend, agdaBackend]]
 
 -- | Shows a list of all backends.
 showBackends :: String
@@ -60,9 +47,8 @@ defaultBackend :: String
 defaultBackend = backendName coqBackend
 
 -------------------------------------------------------------------------------
--- IR backend                                                                --
+-- IR Backend                                                                --
 -------------------------------------------------------------------------------
-
 -- | A dummy backend that just pretty prints the IR.
 irBackend :: Backend
 irBackend = Backend { backendName          = "ir"
@@ -72,21 +58,20 @@ irBackend = Backend { backendName          = "ir"
                     }
 
 -------------------------------------------------------------------------------
--- Coq backend                                                               --
+-- Coq Backend                                                               --
 -------------------------------------------------------------------------------
-
 -- | Converts a module to a Coq program.
 convertModuleToCoq :: IR.Module -> Application String
-convertModuleToCoq =
-  fmap showPretty . liftConverter . Coq.Converter.convertModule
+convertModuleToCoq
+  = fmap showPretty . liftConverter . Coq.Converter.convertModule
 
 -- | Creates a @_CoqProject@ file (if enabled) that maps the physical directory
 --   of the Base library.
 --
 --   The path to the Base library will be relative to the output directory.
 createCoqProject :: Application ()
-createCoqProject = whenM coqProjectEnabled
-  $ unlessM coqProjectExists writeCoqProject
+createCoqProject
+  = whenM coqProjectEnabled $ unlessM coqProjectExists writeCoqProject
  where
   -- | Tests whether the generation of a @_CoqProject@ file is enabled.
   --
@@ -96,7 +81,7 @@ createCoqProject = whenM coqProjectEnabled
   --   well.
   coqProjectEnabled :: Application Bool
   coqProjectEnabled = do
-    isEnabled      <- inOpts optCreateCoqProject
+    isEnabled <- inOpts optCreateCoqProject
     maybeOutputDir <- inOpts optOutputDir
     return (isEnabled && isJust maybeOutputDir)
 
@@ -114,7 +99,7 @@ createCoqProject = whenM coqProjectEnabled
   writeCoqProject :: Application ()
   writeCoqProject = do
     coqProject <- getCoqProjectFile
-    contents   <- makeContents
+    contents <- makeContents
     liftIO $ do
       createDirectoryIfMissing True (takeDirectory coqProject)
       writeFile coqProject contents
@@ -125,13 +110,13 @@ createCoqProject = whenM coqProjectEnabled
     baseDir <- inOpts optBaseLibDir
     let coqBaseDir = baseDir </> "coq"
     Just outputDir <- inOpts optOutputDir
-    absBaseDir     <- liftIO $ makeAbsolute coqBaseDir
-    absOutputDir   <- liftIO $ makeAbsolute outputDir
+    absBaseDir <- liftIO $ makeAbsolute coqBaseDir
+    absOutputDir <- liftIO $ makeAbsolute outputDir
     let relBaseDir = makeRelative absOutputDir absBaseDir
-    return $ unlines
-      [ "-R " ++ relBaseDir ++ " " ++ showPretty Coq.Base.baseLibName
-      , "-R . " ++ showPretty Coq.Base.generatedLibName
-      ]
+    return
+      $ unlines [ "-R " ++ relBaseDir ++ " " ++ showPretty Coq.Base.baseLibName
+                , "-R . " ++ showPretty Coq.Base.generatedLibName
+                ]
 
 -- | The Coq backend.
 coqBackend :: Backend
@@ -142,13 +127,12 @@ coqBackend = Backend { backendName          = "coq"
                      }
 
 -------------------------------------------------------------------------------
--- Agda backend                                                              --
+-- Agda Backend                                                              --
 -------------------------------------------------------------------------------
-
 -- | Converts an IR module to an Agda program.
 convertModuleToAgda :: IR.Module -> Application String
-convertModuleToAgda =
-  fmap showPretty . liftConverter . Agda.Converter.convertModule
+convertModuleToAgda
+  = fmap showPretty . liftConverter . Agda.Converter.convertModule
 
 -- | Creates an @.agda-lib@ file for the output directory.
 --
@@ -163,7 +147,7 @@ createAgdaLib = whenM agdaLibEnabled $ unlessM agdaLibExists $ do
  where
   agdaLibEnabled :: Application Bool
   agdaLibEnabled = do
-    isEnabled      <- inOpts optCreateAgdaLib
+    isEnabled <- inOpts optCreateAgdaLib
     maybeOutputDir <- inOpts optOutputDir
     return $ isEnabled && isJust maybeOutputDir
 
@@ -172,8 +156,8 @@ createAgdaLib = whenM agdaLibEnabled $ unlessM agdaLibExists $ do
 
   -- | Creates the string to write to the @.agda-lib@ file.
   contents :: String -> String
-  contents name =
-    unlines ["name: " ++ name, "include: .", "depend: standard-library base"]
+  contents name
+    = unlines ["name: " ++ name, "include: .", "depend: standard-library base"]
 
   -- | Path to the @.agda-lib@ file to create and the name of the library.
   getAgdaLib :: Application (FilePath, String)

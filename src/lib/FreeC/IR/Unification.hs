@@ -1,8 +1,7 @@
 -- | This module contains functions for calculating the most general
 --   unificator (mgu) of two type expressions.
-
 module FreeC.IR.Unification
-  ( -- * Error reporting
+  ( -- * Error Reporting
     UnificationError(..)
   , reportUnificationError
   , unifyOrFail
@@ -10,13 +9,9 @@ module FreeC.IR.Unification
     -- * Unification
   , unify
   , unifyAll
-  )
-where
+  ) where
 
-import           Control.Monad.Trans.Except     ( ExceptT
-                                                , runExceptT
-                                                , throwE
-                                                )
+import           Control.Monad.Trans.Except     ( ExceptT, runExceptT, throwE )
 import           Data.Composition               ( (.:) )
 
 import           FreeC.Environment
@@ -25,16 +20,15 @@ import           FreeC.Environment.LookupOrFail
 import           FreeC.IR.SrcSpan
 import           FreeC.IR.Subst
 import           FreeC.IR.Subterm
-import qualified FreeC.IR.Syntax               as IR
+import qualified FreeC.IR.Syntax                as IR
 import           FreeC.IR.TypeSynExpansion
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
 import           FreeC.Pretty                   ( showPretty )
 
 -------------------------------------------------------------------------------
--- Error reporting                                                           --
+-- Error Reporting                                                           --
 -------------------------------------------------------------------------------
-
 -- | An error that can occur during the unification of two types.
 data UnificationError
   = UnificationError IR.Type IR.Type
@@ -44,38 +38,35 @@ data UnificationError
 -- | Reports the given 'UnificationError'.
 reportUnificationError :: MonadReporter m => SrcSpan -> UnificationError -> m a
 reportUnificationError srcSpan err = case err of
-  UnificationError actualType expectedType ->
-    reportFatal
-      $  Message srcSpan Error
-      $  "Could not match expected type `"
-      ++ showPretty expectedType
-      ++ "` with actual type `"
-      ++ showPretty actualType
-      ++ "`."
-  OccursCheckFailure x u ->
-    reportFatal
-      $  Message srcSpan Error
-      $  "Occurs check: Could not construct infinite type `"
-      ++ showPretty x
-      ++ "` ~ `"
-      ++ showPretty u
-      ++ "`."
-  RigidTypeVarError xSrcSpan x u ->
-    reportFatal
-      $  Message srcSpan Error
-      $  "Could not match rigid type variable '"
-      ++ x
-      ++ "' (bound at '"
-      ++ showPretty xSrcSpan
-      ++ "') with type '"
-      ++ showPretty u
-      ++ "'."
+  UnificationError actualType expectedType -> reportFatal
+    $ Message srcSpan Error
+    $ "Could not match expected type `"
+    ++ showPretty expectedType
+    ++ "` with actual type `"
+    ++ showPretty actualType
+    ++ "`."
+  OccursCheckFailure x u                   -> reportFatal
+    $ Message srcSpan Error
+    $ "Occurs check: Could not construct infinite type `"
+    ++ showPretty x
+    ++ "` ~ `"
+    ++ showPretty u
+    ++ "`."
+  RigidTypeVarError xSrcSpan x u           -> reportFatal
+    $ Message srcSpan Error
+    $ "Could not match rigid type variable `"
+    ++ x
+    ++ "` (bound at `"
+    ++ showPretty xSrcSpan
+    ++ "`) with type `"
+    ++ showPretty u
+    ++ "`."
 
 -- | Runs the given converter and reports unification errors using
 --   'reportUnificationError'.
 runOrFail :: SrcSpan -> ExceptT UnificationError Converter a -> Converter a
-runOrFail srcSpan mx =
-  runExceptT mx >>= either (reportUnificationError srcSpan) return
+runOrFail srcSpan mx = runExceptT mx
+  >>= either (reportUnificationError srcSpan) return
 
 -- | Like 'unify' but reports a fatal error message if the types cannot be
 --   unified.
@@ -94,7 +85,6 @@ unifyAllOrFail srcSpan = runOrFail srcSpan . unifyAll
 -------------------------------------------------------------------------------
 -- Unification                                                               --
 -------------------------------------------------------------------------------
-
 -- | Calculates the mgu of the given type expressions.
 --
 --   The algorithm will preferably map the internal variable names to
@@ -112,19 +102,18 @@ unify t s = do
     Just (_, u@(IR.TypeVar _ x), v@(IR.TypeVar _ y))
       | IR.isInternalIdent x -> x `mapsTo` v
       | IR.isInternalIdent y -> y `mapsTo` u
-    Just (_  , IR.TypeVar _ x, v             ) -> x `mapsTo` v
-    Just (_  , u             , IR.TypeVar _ y) -> y `mapsTo` u
-    Just (pos, u             , v             ) -> do
+    Just (_, IR.TypeVar _ x, v) -> x `mapsTo` v
+    Just (_, u, IR.TypeVar _ y) -> y `mapsTo` u
+    Just (pos, u, v) -> do
       t' <- lift $ expandTypeSynonymAt pos t
       s' <- lift $ expandTypeSynonymAt pos s
       if t /= t' || s /= s' then unify t' s' else throwE $ UnificationError u v
  where
   -- | Maps the given variable to the given type expression and continues
   --   with the next iteration of the unification algorithm.
-  mapsTo
-    :: IR.TypeVarIdent
-    -> IR.Type
-    -> ExceptT UnificationError Converter (Subst IR.Type)
+  mapsTo :: IR.TypeVarIdent
+         -> IR.Type
+         -> ExceptT UnificationError Converter (Subst IR.Type)
   x `mapsTo` u = do
     rigidCheck
     occursCheck u
@@ -140,8 +129,8 @@ unify t s = do
     --   with another type. Reports a fatal error if the variable is bound.
     rigidCheck :: ExceptT UnificationError Converter ()
     rigidCheck = do
-      maybeEntry <- lift $ inEnv $ lookupEntry IR.TypeScope
-                                               (IR.UnQual (IR.Ident x))
+      maybeEntry
+        <- lift $ inEnv $ lookupEntry IR.TypeScope (IR.UnQual (IR.Ident x))
       case maybeEntry of
         Nothing    -> return ()
         Just entry -> throwE $ RigidTypeVarError (entrySrcSpan entry) x u
@@ -150,16 +139,17 @@ unify t s = do
     --
     --   Reports a fatal error if the variable is found.
     occursCheck :: IR.Type -> ExceptT UnificationError Converter ()
-    occursCheck (IR.TypeVar _ y) | x == y    = throwE $ OccursCheckFailure x u
-                                 | otherwise = return ()
-    occursCheck (IR.TypeCon _ _     ) = return ()
-    occursCheck (IR.TypeApp  _ t1 t2) = occursCheck t1 >> occursCheck t2
+    occursCheck (IR.TypeVar _ y)
+      | x == y = throwE $ OccursCheckFailure x u
+      | otherwise = return ()
+    occursCheck (IR.TypeCon _ _)      = return ()
+    occursCheck (IR.TypeApp _ t1 t2)  = occursCheck t1 >> occursCheck t2
     occursCheck (IR.FuncType _ t1 t2) = occursCheck t1 >> occursCheck t2
 
 -- | Computes the most general unificator for all given type expressions.
 unifyAll :: [IR.Type] -> ExceptT UnificationError Converter (Subst IR.Type)
 unifyAll []             = return identitySubst
-unifyAll [_           ] = return identitySubst
+unifyAll [_]            = return identitySubst
 unifyAll (t0 : t1 : ts) = do
   mgu <- unify t0 t1
   let t1' = applySubst mgu t1
@@ -167,9 +157,8 @@ unifyAll (t0 : t1 : ts) = do
   return (composeSubst mgu mgu')
 
 -------------------------------------------------------------------------------
--- Disagreement set                                                          --
+-- Disagreement Set                                                          --
 -------------------------------------------------------------------------------
-
 -- | Type synonym for a disagreement set.
 type DisagreementSet = Maybe (Pos, IR.Type, IR.Type)
 
@@ -182,7 +171,6 @@ disagreementSet :: IR.Type -> IR.Type -> Converter DisagreementSet
 
 -- Two variables disagree if they are not the same variable.
 disagreementSet (IR.TypeVar _ x) (IR.TypeVar _ y) | x == y = return Nothing
-
 -- Two constructors disagree if they do not refer to the same environment
 -- entries (i.e. the entries have different names).
 -- If both constructors have the same name already, we do not have to
@@ -195,13 +183,11 @@ disagreementSet t@(IR.TypeCon _ c) s@(IR.TypeCon _ d)
     let n = entryName e
         m = entryName f
     if n == m then return Nothing else return (Just (rootPos, t, s))
-
 -- Compute disagreement set recursively.
-disagreementSet (IR.TypeApp _ t1 t2) (IR.TypeApp _ s1 s2) =
-  disagreementSet' 1 [t1, t2] [s1, s2]
-disagreementSet (IR.FuncType _ t1 t2) (IR.FuncType _ s1 s2) =
-  disagreementSet' 1 [t1, t2] [s1, s2]
-
+disagreementSet (IR.TypeApp _ t1 t2) (IR.TypeApp _ s1 s2)
+  = disagreementSet' 1 [t1, t2] [s1, s2]
+disagreementSet (IR.FuncType _ t1 t2) (IR.FuncType _ s1 s2)
+  = disagreementSet' 1 [t1, t2] [s1, s2]
 -- If the two types have a different constructor, they disagree.
 disagreementSet t s = return (Just (rootPos, t, s))
 
@@ -217,4 +203,4 @@ disagreementSet' i (t : ts) (s : ss) = do
   case ds of
     Nothing            -> disagreementSet' (i + 1) ts ss
     Just (pos, t', s') -> return (Just (consPos i pos, t', s'))
-disagreementSet' _ _ _ = return Nothing
+disagreementSet' _ _ _               = return Nothing

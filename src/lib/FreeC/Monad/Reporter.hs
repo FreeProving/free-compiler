@@ -12,62 +12,47 @@
 --
 --   This module also provides functions for pretty printing the collected
 --   error messages in a similar way to how the GHC prints error messages.
-
 module FreeC.Monad.Reporter
   ( -- * Messages
     Message(..)
   , Severity(..)
-    -- * Reporter monad
+    -- * Reporter Monad
   , Reporter
   , runReporter
   , evalReporter
-    -- * Reporter monad transformer
+    -- * Reporter Monad Transformer
   , ReporterT
   , runReporterT
   , lift
   , hoist
   , unhoist
-    -- * Reporting messages
+    -- * Reporting Messages
   , MonadReporter(..)
   , report
   , reportFatal
-    -- * Reporting IO errors
+    -- * Reporting IO Errors
   , ReporterIO
   , liftIO
   , reportIOError
-    -- * Handling messages and reporter results
+    -- * Handling Messages and Reporter Results
   , isFatal
   , messages
-    -- * Handling reported messages
+    -- * Handling Reported Messages
   , reportTo
   , reportToOrExit
-  )
-where
+  ) where
 
-import           Control.Monad                  ( (<=<)
-                                                , ap
-                                                , liftM
-                                                , mzero
-                                                )
-import           Control.Monad.Fail             ( MonadFail(..) )
-import           Control.Monad.Identity         ( Identity(..) )
-import           Control.Monad.Trans.Maybe      ( MaybeT(..) )
-import           Control.Monad.Writer           ( Writer
-                                                , MonadIO(..)
-                                                , MonadTrans(..)
-                                                , runWriter
-                                                , tell
-                                                , writer
-                                                )
-import           Data.Maybe                     ( isNothing
-                                                , maybe
-                                                )
-import           System.Exit                    ( exitFailure )
-import           System.IO                      ( Handle )
-import           System.IO.Error                ( catchIOError
-                                                , ioeGetErrorString
-                                                , ioeGetFileName
-                                                )
+import           Control.Monad               ( (<=<), ap, liftM, mzero )
+import           Control.Monad.Fail          ( MonadFail(..) )
+import           Control.Monad.Identity      ( Identity(..) )
+import           Control.Monad.Trans.Maybe   ( MaybeT(..) )
+import           Control.Monad.Writer
+  ( MonadIO(..), MonadTrans(..), Writer, runWriter, tell, writer )
+import           Data.Maybe                  ( isNothing, maybe )
+import           System.Exit                 ( exitFailure )
+import           System.IO                   ( Handle )
+import           System.IO.Error
+  ( catchIOError, ioeGetErrorString, ioeGetFileName )
 
 import           FreeC.IR.SrcSpan
 import           FreeC.Monad.Class.Hoistable
@@ -76,19 +61,17 @@ import           FreeC.Pretty
 -------------------------------------------------------------------------------
 -- Messages                                                                  --
 -------------------------------------------------------------------------------
-
 -- | The severity of a message reported by the compiler.
 data Severity = Internal | Error | Warning | Info
-  deriving (Eq, Show)
+ deriving ( Eq, Show )
 
 -- | A message reported by the compiler.
 data Message = Message SrcSpan Severity String
-  deriving (Eq, Show)
+ deriving ( Eq, Show )
 
 -------------------------------------------------------------------------------
--- Reporter monad                                                            --
+-- Reporter Monad                                                            --
 -------------------------------------------------------------------------------
-
 -- | The underlying representation of a reporter.
 type UnwrappedReporter = MaybeT (Writer [Message])
 
@@ -114,11 +97,11 @@ evalReporter :: Reporter a -> Maybe a
 evalReporter = fst . runReporter
 
 -------------------------------------------------------------------------------
--- Reporter monad transformer                                                --
+-- Reporter Monad Transformer                                                --
 -------------------------------------------------------------------------------
-
 -- | A reporter monad parameterized by the inner monad @m@.
-newtype ReporterT m a = ReporterT { unwrapReporterT :: m (UnwrappedReporter a) }
+newtype ReporterT m a
+  = ReporterT { unwrapReporterT :: m (UnwrappedReporter a) }
 
 -- | Runs the given reporter and returns the produced value as well as all
 --   reported messages. If a fatal message has been reported the produced
@@ -135,13 +118,15 @@ instance Monad m => Functor (ReporterT m) where
 --   instance.
 instance Monad m => Applicative (ReporterT m) where
   pure  = return
+
   (<*>) = ap
 
 -- | The @Monad@ instance for @ReporterT@.
 instance Monad m => Monad (ReporterT m) where
-  return = ReporterT . return . return
+  return     = ReporterT . return . return
+
   (>>=) rt f = ReporterT $ do
-    (mx , ms ) <- runReporterT rt
+    (mx, ms) <- runReporterT rt
     (mx', ms') <- maybe (return (Nothing, [])) (runReporterT . f) mx
     return (MaybeT (writer (mx', ms ++ ms')))
 
@@ -158,9 +143,8 @@ instance UnHoistable ReporterT where
   unhoist = fmap (ReporterT . Identity) . unwrapReporterT
 
 -------------------------------------------------------------------------------
--- Reporting messages                                                        --
+-- Reporting Messages                                                        --
 -------------------------------------------------------------------------------
-
 -- | Type class for all monads within which 'Message's can be reported.
 class Monad r => MonadReporter r where
   -- | Promotes a reporter to @r@.
@@ -176,8 +160,8 @@ report = liftReporter . ReporterT . Identity . lift . tell . (: [])
 
 -- | Creates a reporter that fails with the given message.
 reportFatal :: MonadReporter r => Message -> r a
-reportFatal =
-  liftReporter . ReporterT . Identity . (>> mzero) . lift . tell . (: [])
+reportFatal
+  = liftReporter . ReporterT . Identity . (>> mzero) . lift . tell . (: [])
 
 -- | Internal errors (e.g. pattern matching failures in @do@-blocks) are
 --   cause fatal error messages to be reported.
@@ -185,9 +169,8 @@ instance Monad m => MonadFail (ReporterT m) where
   fail = reportFatal . Message NoSrcSpan Internal
 
 -------------------------------------------------------------------------------
--- Reporting IO errors                                                       --
+-- Reporting IO Errors                                                       --
 -------------------------------------------------------------------------------
-
 -- | A reporter with an IO action as its inner monad.
 type ReporterIO = ReporterT IO
 
@@ -206,21 +189,20 @@ instance MonadIO m => MonadIO (ReporterT m) where
     -- Handles IO errors thrown by the original IO action (which have been
     -- wrapped by 'wrapIOErrors') by reporting a fatal error.
     handleIOErrors :: MonadReporter r => Either IOError a -> r a
-    handleIOErrors (Left  err) = reportIOError err
-    handleIOErrors (Right x  ) = return x
+    handleIOErrors (Left err) = reportIOError err
+    handleIOErrors (Right x)  = return x
 
 -- | Reports the given IO error as a fatal error with no location information.
 reportIOError :: MonadReporter r => IOError -> r a
 reportIOError = reportFatal . Message NoSrcSpan Error . ioErrorMessageText
  where
   ioErrorMessageText :: IOError -> String
-  ioErrorMessageText err =
-    ioeGetErrorString err ++ maybe "" (": " ++) (ioeGetFileName err)
+  ioErrorMessageText err = ioeGetErrorString err
+    ++ maybe "" (": " ++) (ioeGetFileName err)
 
 -------------------------------------------------------------------------------
--- Handling messages and reporter results                                    --
+-- Handling Messages and Reporter Results                                    --
 -------------------------------------------------------------------------------
-
 -- | Tests whether a fatal error was reported to the given reporter.
 isFatal :: Reporter a -> Bool
 isFatal = isNothing . fst . runReporter
@@ -230,9 +212,8 @@ messages :: Reporter a -> [Message]
 messages = snd . runReporter
 
 -------------------------------------------------------------------------------
--- Handling reported messages                                                --
+-- Handling Reported Messages                                                --
 -------------------------------------------------------------------------------
-
 -- | Runs the given reporter and prints all reported messages to the
 --   provided file handle.
 --
@@ -263,9 +244,8 @@ reportToOrExit h reporter = do
     Just x  -> return x
 
 -------------------------------------------------------------------------------
--- Pretty printing messages                                                  --
+-- Pretty Printing Messages                                                  --
 -------------------------------------------------------------------------------
-
 -- | Pretty instance for message severity levels.
 instance Pretty Severity where
   pretty Internal = prettyString "internal error"
@@ -289,12 +269,11 @@ instance Pretty Severity where
 --
 --   Lists of messages are separated by a newline.
 instance Pretty Message where
-  pretty (Message srcSpan severity msg) =
-    (pretty srcSpan <> colon)
-      <+>  (pretty severity <> colon)
-      <$$> indent 4 (prettyLines msg)
-      <>   line
-      <>   prettyCodeBlock srcSpan
+  pretty (Message srcSpan severity msg) = (pretty srcSpan <> colon)
+    <+> (pretty severity <> colon) <$$> indent 4 (prettyLines msg)
+    <> line
+    <> prettyCodeBlock srcSpan
+
   prettyList = prettySeparated line
 
 -- | Creates a document that shows the line of code that caused a message to
@@ -304,16 +283,12 @@ instance Pretty Message where
 --   empty document is returned.
 prettyCodeBlock :: SrcSpan -> Doc
 prettyCodeBlock srcSpan
-  | hasSourceCode srcSpan
-  = gutterDoc
-    <$$> firstLineNumberDoc
-    <+>  prettyString firstLine
-    <$$> gutterDoc
-    <>   highlightDoc
-    <>   ellipsisDoc
-    <>   line
-  | otherwise
-  = empty
+  | hasSourceCode srcSpan = gutterDoc <$$> firstLineNumberDoc
+    <+> prettyString firstLine <$$> gutterDoc
+    <> highlightDoc
+    <> ellipsisDoc
+    <> line
+  | otherwise = empty
  where
   -- | The first line of source code spanned by the given source span.
   firstLine :: String
@@ -327,29 +302,26 @@ prettyCodeBlock srcSpan
   -- | Document with the same length as 'firstLineNumberDoc' but does
   --   contain only spaces before the pipe character.
   gutterDoc :: Doc
-  gutterDoc =
-    let gutterWidth = length (show (srcSpanStartLine srcSpan)) + 2
-    in  indent gutterWidth pipe
+  gutterDoc = let gutterWidth = length (show (srcSpanStartLine srcSpan)) + 2
+              in indent gutterWidth pipe
 
   -- | Document that contains 'caret' signs to highlight the code in the
   --   first line that is covered by the source span.
   highlightDoc :: Doc
   highlightDoc = indent (srcSpanStartColumn srcSpan)
-                        (hcat (replicate highlightWidth caret))
+    (hcat (replicate highlightWidth caret))
 
   -- The number of characters in the the first line of the source span.
   highlightWidth :: Int
   highlightWidth
-    | isMultiLine
-    = length firstLine - srcSpanStartColumn srcSpan + 1
-    | otherwise
-    = max 1 $ srcSpanEndColumn srcSpan - srcSpanStartColumn srcSpan
+    | isMultiLine = length firstLine - srcSpanStartColumn srcSpan + 1
+    | otherwise = max 1 $ srcSpanEndColumn srcSpan - srcSpanStartColumn srcSpan
 
   -- | Document added after the 'highlightDoc' if the source span covers
   --   more than one line.
   ellipsisDoc :: Doc
   ellipsisDoc | isMultiLine = prettyString "..."
-              | otherwise   = empty
+              | otherwise = empty
 
   -- | Whether the source span covers more than one line.
   isMultiLine :: Bool

@@ -1,39 +1,36 @@
 -- | This module contains functions for converting Haskell modules to Coq.
-
 module FreeC.Backend.Coq.Converter.Module where
 
-import           Control.Monad.Extra            ( concatMapM )
+import           Control.Monad.Extra                  ( concatMapM )
 
-import qualified FreeC.Backend.Coq.Base        as Coq.Base
+import qualified FreeC.Backend.Coq.Base               as Coq.Base
 import           FreeC.Backend.Coq.Converter.FuncDecl
 import           FreeC.Backend.Coq.Converter.TypeDecl
-import qualified FreeC.Backend.Coq.Syntax      as Coq
+import qualified FreeC.Backend.Coq.Syntax             as Coq
 import           FreeC.Environment
 import           FreeC.Environment.ModuleInterface
 import           FreeC.IR.DependencyGraph
 import           FreeC.IR.Pragma
-import qualified FreeC.IR.Syntax               as IR
+import qualified FreeC.IR.Syntax                      as IR
 import           FreeC.Monad.Converter
 import           FreeC.Pretty
 
 -------------------------------------------------------------------------------
 -- Modules                                                                   --
 -------------------------------------------------------------------------------
-
 -- | Converts an IR module to Gallina sentences.
 convertModule :: IR.Module -> Converter [Coq.Sentence]
 convertModule haskellAst = do
   imports' <- convertImportDecls (IR.modImports haskellAst)
   mapM_ (addDecArgPragma (IR.modFuncDecls haskellAst))
-        (IR.modPragmas haskellAst)
+    (IR.modPragmas haskellAst)
   decls' <- convertDecls (IR.modTypeDecls haskellAst)
-                         (IR.modFuncDecls haskellAst)
+    (IR.modFuncDecls haskellAst)
   return (Coq.comment ("module " ++ IR.modName haskellAst) : imports' ++ decls')
 
 -------------------------------------------------------------------------------
 -- Declarations                                                              --
 -------------------------------------------------------------------------------
-
 -- | Converts the given declarations of an IR module.
 convertDecls :: [IR.TypeDecl] -> [IR.FuncDecl] -> Converter [Coq.Sentence]
 convertDecls typeDecls funcDecls = do
@@ -48,9 +45,8 @@ convertTypeDecls typeDecls = do
   concatMapM convertTypeComponent components
 
 -------------------------------------------------------------------------------
--- Import declarations                                                       --
+-- Import Declarations                                                       --
 -------------------------------------------------------------------------------
-
 -- | Converts the given import declarations to Coq.
 convertImportDecls :: [IR.ImportDecl] -> Converter [Coq.Sentence]
 convertImportDecls imports = do
@@ -77,4 +73,4 @@ generateImport libName modName = return
   -- | Makes a @From … Require Import …@ or  @From … Require …@.
   mkRequireSentence :: Coq.ModuleIdent -> [Coq.ModuleIdent] -> Coq.Sentence
   mkRequireSentence | libName == Coq.Base.baseLibName = Coq.requireImportFrom
-                    | otherwise                       = Coq.requireFrom
+                    | otherwise = Coq.requireFrom

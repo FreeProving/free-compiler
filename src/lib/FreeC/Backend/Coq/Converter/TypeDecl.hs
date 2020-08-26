@@ -31,7 +31,7 @@ import           FreeC.Monad.Reporter
 import           FreeC.Pretty
 
 -------------------------------------------------------------------------------
--- Strongly connected components                                             --
+-- Strongly Connected Components                                             --
 -------------------------------------------------------------------------------
 -- | Converts a strongly connected component of the type dependency graph.
 convertTypeComponent
@@ -74,7 +74,7 @@ fromNonRecursive (Recursive decls)   = reportFatal
   ++ showPretty (map IR.typeDeclIdent decls)
 
 -------------------------------------------------------------------------------
--- Type synonym declarations                                                 --
+-- Type Synonym Declarations                                                 --
 -------------------------------------------------------------------------------
 -- | Tests whether the given declaration is a type synonym declaration.
 isTypeSynDecl :: IR.TypeDecl -> Bool
@@ -172,7 +172,8 @@ convertDataDecl (IR.DataDecl _ (IR.DeclIdent _ name) typeVarDecls conDecls) = do
     returnType' <- convertType' returnType
     return (conQualid, [], Just (args' `Coq.arrows` returnType'))
 
-  -- | Generates the @Arguments@ sentence for the given constructor declaration.
+  -- | Generates the @Arguments@ sentence for the given constructor
+  --   declaration.
   generateArgumentsSentence :: IR.ConDecl -> Converter Coq.Sentence
   generateArgumentsSentence (IR.ConDecl _ (IR.DeclIdent _ conName) _) = do
     Just qualid <- inEnv $ lookupIdent IR.ValueScope conName

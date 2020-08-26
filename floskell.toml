@@ -1,0 +1,40 @@
+# This file contains repository-specific configuration options for the Floskell
+# formatter. This file is used to generate the `floskell.json` file. It should
+# be merged with the template configuration file
+# <https://github.com/FreeProving/guidelines/blob/main/floskell.toml>
+# as described in the comments of the template.
+
+extensions = [
+    # The `MultiParamTypeClasses` extension is not actually enabled by default
+    # in the Cabal configuration file. However, while GHC allows multi-paradigm
+    # type class contexts in modules that don't use the `MultiParamTypeClasses`
+    # extension, the parser that is used by Floskell (i.e., `haskell-src-exts`)
+    # does follow the Haskell Report more closely and does not allow this.
+    # We cannot enable the extension in the affected modules since HLint
+    # would complain about the unused language extension. As a workaround we
+    # pretend that the language extension is enabled during formatting.
+    "MultiParamTypeClasses"
+  ]
+
+fixities = [
+    # Infix operators from `System.FilePath`.
+    "infixr 5 </>",
+    "infixr 7 <.>",
+
+    # Infix operators from `Data.Composition`.
+    "infixr 8 .:",
+    "infixr 8 .:.",
+
+    # Infix operators from `Data.Tuple.Extra`.
+    "infixr 3 &&&",
+
+    # Custom infix operators from `FreeC.Util.Predicate`.
+    "infixr 3 .&&.",
+    "infixr 2 .||."
+  ]
+
+# All non-`Main` modules in this repository use the `FreeC` prefix. They should
+# be sorted into their own group.
+[[formatting.options.sort-imports]]
+  prefixes = ["FreeC"]
+  order    = "sorted"
