@@ -32,26 +32,26 @@ Arguments cons {Shape} {Pos} {A}.
 
 Section SecListNF.
 
-Variable Shape : Type.
-Variable Pos : Shape -> Type.
+  Variable Shape : Type.
+  Variable Pos : Shape -> Type.
 
-Variable A B : Type.
+  Variable A B : Type. 
 
-Fixpoint nf'List  `{Normalform Shape Pos A B}
-                   (l : List Shape Pos A)
-  : Free Shape Pos (List Identity.Shape Identity.Pos B)
- := match l with
-     | nil => pure nil
-     | cons fx fxs => nf fx >>= fun nx =>
-                      fxs >>= fun xs =>
-                      nf'List xs >>= fun nxs =>
-                      pure (cons (pure nx) (pure nxs))
-     end.
+  Fixpoint nf'List  `{Normalform Shape Pos A B}
+                     (l : List Shape Pos A)
+    : Free Shape Pos (List Identity.Shape Identity.Pos B)
+   := match l with
+       | nil => pure nil
+       | cons fx fxs => nf fx >>= fun nx =>
+                        fxs >>= fun xs =>
+                        nf'List xs >>= fun nxs =>
+                        pure (cons (pure nx) (pure nxs))
+       end.
 
-Global Instance NormalformList `{Normalform Shape Pos A B}
-  : Normalform Shape Pos (List Shape Pos A) 
-                         (List Identity.Shape Identity.Pos B)
- := { nf' := nf'List }.
+  Global Instance NormalformList `{Normalform Shape Pos A B}
+    : Normalform Shape Pos (List Shape Pos A) 
+                           (List Identity.Shape Identity.Pos B)
+   := { nf' := nf'List }.
 
 End SecListNF.
 

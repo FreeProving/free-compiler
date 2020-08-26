@@ -40,37 +40,37 @@ Definition evalTraceM {A : Type} p
 
 Section SecData.
 
-Variable Shape : Type.
-Variable Pos : Shape -> Type.
+  Variable Shape : Type.
+  Variable Pos : Shape -> Type.
 
-Notation "'ND'" := (Injectable ND.Shape ND.Pos Shape Pos).
-Notation "'Trace'" := (Traceable Shape Pos).
-Notation "'Maybe'" := (Injectable Maybe.Shape Maybe.Pos Shape Pos).
+  Notation "'ND'" := (Injectable ND.Shape ND.Pos Shape Pos).
+  Notation "'Trace'" := (Traceable Shape Pos).
+  Notation "'Maybe'" := (Injectable Maybe.Shape Maybe.Pos Shape Pos).
 
-(* Non-deterministic integer. *)
-Definition coin `{ND}
-:= Choice Shape Pos (pure 0%Z) (pure 1%Z).
+  (* Non-deterministic integer. *)
+  Definition coin `{ND}
+  := Choice Shape Pos (pure 0%Z) (pure 1%Z).
 
-(* Non-deterministic boolean value. *)
-Definition coinB `{ND} := Choice Shape Pos (True_ _ _) (False_ _ _).
+  (* Non-deterministic boolean value. *)
+  Definition coinB `{ND} := Choice Shape Pos (True_ _ _) (False_ _ _).
 
-(* Non-deterministic partial integer. *)
-Definition coinM `{ND} `{Maybe} 
-:= Choice Shape Pos (Nothing_inj _ _) (Just_inj _ _ 1%Z).
+  (* Non-deterministic partial integer. *)
+  Definition coinM `{ND} `{Maybe} 
+  := Choice Shape Pos (Nothing_inj _ _) (Just_inj _ _ 1%Z).
 
-(* Traced integer. *)
-Definition traceOne `{Trace} := trace "One" (pure 1%Z).
+  (* Traced integer. *)
+  Definition traceOne `{Trace} := trace "One" (pure 1%Z).
 
-(* Traced boolean values. *)
-Definition traceTrue `{Trace} := trace "True" (True_ _ _).
+  (* Traced boolean values. *)
+  Definition traceTrue `{Trace} := trace "True" (True_ _ _).
 
-Definition traceFalse `{Trace} := trace "False" (False_ _ _).
+  Definition traceFalse `{Trace} := trace "False" (False_ _ _).
 
-(* Traced Maybe values *)
-Definition traceNothing `{Trace} `{Maybe}
-:= trace "Nothing" (@Nothing_inj (Integer Shape Pos) _ _ _).
+  (* Traced Maybe values *)
+  Definition traceNothing `{Trace} `{Maybe}
+  := trace "Nothing" (@Nothing_inj (Integer Shape Pos) _ _ _).
 
-Definition traceJust `{Trace} `{Maybe} := trace "Just 1" (Just_inj _ _ 1%Z).
+  Definition traceJust `{Trace} `{Maybe} := trace "Just 1" (Just_inj _ _ 1%Z).
 
 End SecData.
 
@@ -87,62 +87,62 @@ Arguments traceJust {_} {_} {_} {_}.
 (* Test functions *)
 Section SecFunctions.
 
-Set Implicit Arguments.
-Variable Shape : Type.
-Variable Pos : Shape -> Type.
-Variable A : Type.
-Notation "'FreeA'" := (Free Shape Pos A).
+  Set Implicit Arguments.
+  Variable Shape : Type.
+  Variable Pos : Shape -> Type.
+  Variable A : Type.
+  Notation "'FreeA'" := (Free Shape Pos A).
 
-(* This function applies the given binary function to the given argument
-   twice and does not share the argument. *)
-Definition double (f : FreeA -> FreeA -> FreeA ) (fx : FreeA) : FreeA
-:= f fx fx.
+  (* This function applies the given binary function to the given argument
+     twice and does not share the argument. *)
+  Definition double (f : FreeA -> FreeA -> FreeA ) (fx : FreeA) : FreeA
+  := f fx fx.
 
-(* Simple sharing: 
-   let sx = fx in f sx sx *)
-Definition doubleShared (S : Shareable Shape Pos)
-                        (f : FreeA -> FreeA -> FreeA)
-                        (fx : FreeA)
- : FreeA
-:= share fx >>= fun sx => f sx sx.
+  (* Simple sharing: 
+     let sx = fx in f sx sx *)
+  Definition doubleShared (S : Shareable Shape Pos)
+                          (f : FreeA -> FreeA -> FreeA)
+                          (fx : FreeA)
+   : FreeA
+  := share fx >>= fun sx => f sx sx.
 
-(* Nested sharing:
-   let sx = fx 
-       sy = f sx sx
-   in f sy sy *)
-Definition doubleSharedNested (S : Shareable Shape Pos)
-                              (f : FreeA -> FreeA -> FreeA)
-                              (fx : FreeA)
- : FreeA
-:= share (share fx >>= fun sx => f sx sx) >>= fun sy =>
-   f sy sy.
+  (* Nested sharing:
+     let sx = fx 
+         sy = f sx sx
+     in f sy sy *)
+  Definition doubleSharedNested (S : Shareable Shape Pos)
+                                (f : FreeA -> FreeA -> FreeA)
+                                (fx : FreeA)
+   : FreeA
+  := share (share fx >>= fun sx => f sx sx) >>= fun sy =>
+     f sy sy.
 
-(* let sx = fx  
-       sy = f sx sx
-       sz = fy
-   in f sy sz *)
-Definition doubleSharedClash (S : Shareable Shape Pos)
+  (* let sx = fx  
+         sy = f sx sx
+         sz = fy
+     in f sy sz *)
+  Definition doubleSharedClash (S : Shareable Shape Pos)
+                               (f : FreeA -> FreeA -> FreeA)
+                               (fx : FreeA) (fy : FreeA)
+   : FreeA
+  := share (share fx >>= fun sx => f sx sx) >>= fun sy =>
+     share fy >>=  fun sz => f sy sz.
+
+  (*
+  let sx = val
+      sy = f sx fx
+      sz = f sy fy
+  in f sx (f (sy (f sz val))) 
+  *)
+  Definition doubleSharedRec (S : Shareable Shape Pos)
                              (f : FreeA -> FreeA -> FreeA)
                              (fx : FreeA) (fy : FreeA)
- : FreeA
-:= share (share fx >>= fun sx => f sx sx) >>= fun sy =>
-   share fy >>=  fun sz => f sy sz.
-
-(*
-let sx = val
-    sy = f sx fx
-    sz = f sy fy
-in f sx (f (sy (f sz val))) 
-*)
-Definition doubleSharedRec (S : Shareable Shape Pos)
-                           (f : FreeA -> FreeA -> FreeA)
-                           (fx : FreeA) (fy : FreeA)
-                           (val : A)
- : FreeA
-:= share (pure val) >>= fun sx =>
-   f sx (share (f sx fx) >>= fun sy => 
-   f sy (share (f sy fy) >>= fun sz =>
-   f sz (pure val))).
+                             (val : A)
+   : FreeA
+  := share (pure val) >>= fun sx =>
+     f sx (share (f sx fx) >>= fun sy => 
+     f sy (share (f sy fy) >>= fun sz =>
+     f sz (pure val))).
 
 End SecFunctions.
 
