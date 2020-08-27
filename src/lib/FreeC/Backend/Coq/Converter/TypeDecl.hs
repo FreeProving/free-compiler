@@ -208,6 +208,8 @@ convertDataDecl (IR.TypeSynDecl _ _ _ _)
   = error "convertDataDecl: Type synonym not allowed."
 
 ------ Instance generation -------
+-- TODO: Make a central function that takes certain parameters (identifiers, type class arguments, buildValue)
+-- and automatically creates an entire instance (for functions of type A -> Free Shape Pos A or possibly even A -> B)
 generateInstances :: [IR.TypeDecl] -> Converter [Coq.Sentence]
 generateInstances dataDecls = do
   nfInstances <- generateNormalformInstances
@@ -217,11 +219,11 @@ generateInstances dataDecls = do
 
   conNames = map IR.typeDeclQName dataDecls
 
+
   generateNormalformInstances :: Converter [Coq.Sentence]
   generateNormalformInstances = do
     topLevelMap <- nameFunctionsAndInsert "nf'" emptyTypeMap declTypes
-    topLevelVars <- map Coq.bare
-      <$> mapM freshCoqIdent (replicate (length declTypes) "x")
+    topLevelVars <- freshQualids (length declTypes) "x"
     nf' <- generateNf' topLevelMap dataDecls declTypes topLevelVars
     instances <- mapM (buildInstance topLevelMap) declTypes
     return (nf' : instances)
@@ -265,17 +267,16 @@ generateInstances dataDecls = do
       -> Coq.Qualid
       -> IR.TypeDecl
       -> IR.Type
-      -> Converter Coq.Term -- TODO: don't do that. Sort these functions properly.
+      -> Converter Coq.Term
 
     generateBody topLevelMap ident tDecl t = do
       let ts = nub
-            (reverse (concatMap (collectSubTypes conNames)
+            (reverse (concatMap collectSubTypes
                       (concatMap IR.conDeclFields (IR.dataDeclCons tDecl))))
       let recTypes = filter (\t -> not (t `elem` declTypes || isTypeVar t)) ts
       let typeVars = map (Coq.bare . IR.typeVarDeclIdent)
             (IR.typeDeclArgs tDecl)
-      targetVars <- (map Coq.bare)
-        <$> replicateM (length typeVars) (freshCoqIdent "b")
+      targetVars <- freshQualids (length typeVars) "b"
       let freeQualids = map fst Coq.Base.freeArgs
       normalformFuncMap <- nameFunctionsAndInsert "nf'" topLevelMap recTypes
       nf'Body <- generateNf'Body normalformFuncMap ident t recTypes
@@ -316,10 +317,9 @@ generateInstances dataDecls = do
       conEntry <- lookupEntryOrFail NoSrcSpan IR.ValueScope conName
       let retType = entryReturnType conEntry
       let conIdent = entryIdent conEntry -- :: Qualid
-      conArgIdents <- (map Coq.bare)
-        <$> replicateM (entryArity conEntry) (freshCoqIdent "fx")
+      conArgIdents <- freshQualids (entryArity conEntry) "fx"
       subst <- unifyOrFail NoSrcSpan t retType
-      let modArgTypes = map ((stripType conNames) . (applySubst subst))
+      let modArgTypes = map (stripType . (applySubst subst))
             (entryArgTypes conEntry)
       let lhs = Coq.ArgsPat conIdent (map Coq.QualidPat conArgIdents)
       rhs <- buildNormalformValue m conIdent [] (zip modArgTypes conArgIdents)
@@ -351,88 +351,99 @@ generateInstances dataDecls = do
             $ applyBind (Coq.app (Coq.Qualid (Coq.bare "nf"))
                          [(Coq.Qualid varName)]) cont
 
+  ------- Type analysis -------
+  
+  -- This function collects all fully-applied type constructors 
+  -- of arity at least 1 (including their arguments) that occur in the given type.
+  -- All arguments that do not contain occurrences of the types for which
+  -- we are defining an instance are replaced by the type variable "_".
+  -- The resulting list contains (in reverse topological order) exactly all 
+  -- types for which we must define a separate function in the instance 
+  -- definition, where all occurrences of "_" represent the polymorphic 
+  -- components of the function.
+  collectSubTypes :: IR.Type -> [IR.Type]
+  collectSubTypes = collectFullyAppliedTypes True
+
+  collectFullyAppliedTypes :: Bool -> IR.Type -> [IR.Type]
+  collectFullyAppliedTypes fullApplication t@(IR.TypeApp _ l r)
+    | fullApplication = stripType t
+      : collectFullyAppliedTypes False l
+      ++ collectFullyAppliedTypes True r
+    | otherwise = collectFullyAppliedTypes False l
+      ++ collectFullyAppliedTypes True r
+  -- Type variables, function types and type constructors with arity 0 are not
+  -- collected.
+  collectFullyAppliedTypes _ _ = []
+
+  -- returns the same type with all 'don't care' types replaced by the variable "_"
+  stripType :: IR.Type -> IR.Type
+  stripType t = stripType' t False
+
+  stripType' :: IR.Type -> Bool -> IR.Type
+  stripType' (IR.TypeCon _ conName) flag
+    | flag || conName `elem` conNames = IR.TypeCon NoSrcSpan conName
+    | otherwise = IR.TypeVar NoSrcSpan "_"
+  stripType' (IR.TypeApp _ l r) flag     = case stripType' r False of
+    r'@(IR.TypeVar _ _) -> IR.TypeApp NoSrcSpan (stripType' l flag) r'
+    r'                  -> IR.TypeApp NoSrcSpan (stripType' l True) r'
+  -- Type variables and function types are not relevant and are replaced by "_".
+  stripType' _ _ = IR.TypeVar NoSrcSpan "_"
+
+-- Like showPretty, but uses the Coq identifiers of the type and its components.
 showPrettyType :: IR.Type -> Converter String
+-- For a type variable, show its name.
 showPrettyType (IR.TypeVar _ varName)       = return (showPretty varName)
-showPrettyType (IR.TypeCon srcSpan conName) = do
-  entry <- lookupEntryOrFail srcSpan IR.TypeScope conName
-  let Just coqIdent = Coq.unpackQualid (entryIdent entry)
-  return coqIdent
+-- For a type constructor, return its Coq identifier as a string.
+showPrettyType (IR.TypeCon _ conName) = 
+    fromJust . (>>= Coq.unpackQualid) <$> (inEnv $ lookupIdent IR.TypeScope conName)
+-- For a type application, convert both sides and concatenate them.
 showPrettyType (IR.TypeApp _ l r)           = do
   lPretty <- showPrettyType l
   rPretty <- showPrettyType r
   return (lPretty ++ rPretty)
+-- Function types should have been converted into variables.
+showPrettyType (IR.FuncType _ _ _) = error "Function types should have been eliminated!"
 
-collectSubTypes :: [IR.ConName] -> IR.Type -> [IR.Type]
-collectSubTypes = collectFullyAppliedTypes True
-
-collectFullyAppliedTypes :: Bool -> [IR.ConName] -> IR.Type -> [IR.Type]
-collectFullyAppliedTypes fullApplication conNames t@(IR.TypeApp _ l r)
-  | fullApplication = stripType conNames t
-    : collectFullyAppliedTypes False conNames l
-    ++ collectFullyAppliedTypes True conNames r
-  | otherwise = collectFullyAppliedTypes False conNames l
-    ++ collectFullyAppliedTypes True conNames r
-collectFullyAppliedTypes _ conNames t = []
-
--- returns the same type with all 'don't care' types replaced by the variable "_"
-stripType cs t = stripType' t cs False
-
-stripType' :: IR.Type -> [IR.ConName] -> Bool -> IR.Type
-stripType' (IR.TypeVar _ _) names flag       = IR.TypeVar NoSrcSpan "_"
-stripType' (IR.TypeCon _ conName) names flag
-  | flag || conName `elem` names = IR.TypeCon NoSrcSpan conName
-  | otherwise = IR.TypeVar NoSrcSpan "_"
-stripType' (IR.TypeApp _ l r) names flag     = case stripType' r names False of
-  r'@(IR.TypeVar _ _) -> IR.TypeApp NoSrcSpan (stripType' l names flag) r'
-  r'                  -> IR.TypeApp NoSrcSpan (stripType' l names True) r'
-
-nameFunctionsAndInsert :: String -> TypeMap -> [IR.Type] -> Converter TypeMap
-nameFunctionsAndInsert prefix m ts = localEnv
-  $ foldM (nameFunctionAndInsert prefix) m ts
-
-nameFunctionAndInsert :: String -> TypeMap -> IR.Type -> Converter TypeMap
-nameFunctionAndInsert prefix m t = do
-  name <- nameFunction prefix t
-  return (insertType t (Coq.bare name) m)
-
--- Names a function based on a type while avoiding name clashes with other
--- identifiers.
-nameFunction :: String -> IR.Type -> Converter String
-nameFunction prefix t = do
-  prettyType <- showPrettyType t
-  freshCoqIdent (prefix ++ prettyType)
-
+-- Converts a data declaration to a type by applying its constructor to the 
+-- correct number of variables, denoted by underscores.
 dataDeclToType :: IR.TypeDecl -> IR.Type
 dataDeclToType dataDecl = IR.typeConApp NoSrcSpan (IR.typeDeclQName dataDecl)
   (replicate (length (IR.typeDeclArgs dataDecl)) (IR.TypeVar NoSrcSpan "_"))
 
+-- Returns whether a type is a type variable.
 isTypeVar :: IR.Type -> Bool
 isTypeVar (IR.TypeVar _ _) = True
 isTypeVar _                = False
 
--- duplicate of CompletePatternPass
+-- TODO duplicate of function in CompletePatternPass; move somewhere else. (Most likely to IR.Type.)
+-- Returns the leftmost type constructor of a type expression, or nothing 
+-- if the type is not an (applied) type constructor.
 getTypeConName :: IR.Type -> Maybe IR.ConName
 getTypeConName (IR.TypeCon _ conName) = Just conName
-getTypeConName (IR.TypeApp _ l r) = getTypeConName l
+getTypeConName (IR.TypeApp _ l _) = getTypeConName l
 getTypeConName _ = Nothing
 
-buildConstraint :: String -> [Coq.Qualid] -> Coq.Binder
-buildConstraint ident args = Coq.Generalized Coq.Implicit
-  (Coq.app (Coq.Qualid (Coq.bare ident))
-   ((map (Coq.Qualid . fst) Coq.Base.freeArgs) ++ (map Coq.Qualid args)))
 
 -- Coq AST helper functions 
+-- TODO: Check if these exist somewhere, and if not, possibly move them
+-- somewhere else.
+
+-- Binders for (implicit) Shape and Pos arguments.
+-- freeArgsBinders = [ {Shape : Type}, {Pos : Shape -> Type} ]
 freeArgsBinders :: [Coq.Binder]
 freeArgsBinders = map (uncurry (Coq.typedBinder' Coq.Implicit))
   Coq.Base.freeArgs
 
+-- Shortcut for the construction of an implicit binder for type variables.
+-- typeBinder [a1, ..., an] = {a1 ... an : Type}
 typeBinder :: [Coq.Qualid] -> Coq.Binder
 typeBinder typeVars = Coq.typedBinder Coq.Implicit typeVars Coq.sortType
 
--- TODO: Does this exist somewhere?
+-- Shortcut for the application of pure.
 applyPure :: Coq.Term -> Coq.Term
 applyPure t = Coq.app (Coq.Qualid Coq.Base.freePureCon) [t]
 
+-- Shortcut for the application of >>=.
 applyBind :: Coq.Term -> Coq.Term -> Coq.Term
 applyBind mx f = Coq.app (Coq.Qualid Coq.Base.freeBind) [mx, f]
 
@@ -441,25 +452,36 @@ applyFree :: Coq.Term -> Coq.Term
 applyFree a = Coq.app (Coq.Qualid Coq.Base.free)
   ((map (Coq.Qualid . fst) Coq.Base.freeArgs) ++ [a])
 
+-- [Shape, Pos]
 shapeAndPos :: [Coq.Term]
 shapeAndPos = map (Coq.Qualid . fst) Coq.Base.freeArgs
 
+-- [Identity.Shape, Identity.Pos]
 idShapeAndPos :: [Coq.Term]
 idShapeAndPos = (map (Coq.Qualid . Coq.bare) ["Identity.Shape", "Identity.Pos"])
 
--- converts our type into a Coq type (a term) with new variables for all don't care values
+-- Constructs a maximally implicit binder (~ type class constraint)
+-- buildConstraint name [a1 ... an] = `{name Shape Pos a1 ... an}.
+buildConstraint :: String -> [Coq.Qualid] -> Coq.Binder
+buildConstraint ident args = Coq.Generalized Coq.Implicit
+  (Coq.app (Coq.Qualid (Coq.bare ident))
+   ((map (Coq.Qualid . fst) Coq.Base.freeArgs) ++ (map Coq.Qualid args)))
+
+-- converts our type into a Coq type (a term) with new variables for all don't care values.
+-- We can also choose the prefix for those variables.
 toCoqType
   :: String -> [Coq.Term] -> IR.Type -> Converter (Coq.Term, [Coq.Qualid])
 toCoqType varPrefix _ (IR.TypeVar _ _)                 = do
   x <- Coq.bare <$> freshCoqIdent varPrefix
   return (Coq.Qualid x, [x])
-toCoqType varPrefix shapeAndPos (IR.TypeCon _ conName) = do
+toCoqType _ _ (IR.TypeCon _ conName) = do
   entry <- lookupEntryOrFail NoSrcSpan IR.TypeScope conName
   return (Coq.app (Coq.Qualid (entryIdent entry)) shapeAndPos, [])
-toCoqType varPrefix shapeAndPos (IR.TypeApp _ l r)     = do
-  (l', varsl) <- toCoqType varPrefix shapeAndPos l
-  (r', varsr) <- toCoqType varPrefix shapeAndPos r
+toCoqType varPrefix extraArgs (IR.TypeApp _ l r)     = do
+  (l', varsl) <- toCoqType varPrefix extraArgs l
+  (r', varsr) <- toCoqType varPrefix extraArgs r
   return (Coq.app l' [r'], varsl ++ varsr)
+toCoqType _ _ (IR.FuncType _ _ _) = error "Function types should have been eliminated."
 
 makeNFBindersAndReturnType'
   :: IR.Type -> Coq.Qualid -> Converter ([Coq.Binder], Coq.Term)
@@ -490,7 +512,14 @@ makeNFBindersAndReturnType t = do
         ++ [typeBinder (sourceVars ++ targetVars)]
         ++ constraints
   return (binders, sourceType, targetType)
-
+  
+-- Function name map 
+-- For each type that contains one of the types we are defining
+-- an instance for - directly or indirectly -, we insert an 
+-- entry into a map that returns the name of the function we
+-- should call on a value of that type.
+-- For all types that do not have a corresponding entry, we 
+-- can assume that an instance already exists.
 type TypeMap = IR.Type -> Maybe Coq.Qualid
 
 emptyTypeMap :: TypeMap
@@ -501,3 +530,26 @@ lookupType = flip ($)
 
 insertType :: IR.Type -> Coq.Qualid -> TypeMap -> TypeMap
 insertType k v m = \t -> if k == t then Just v else m t
+
+-- Creates an entry with a unique name for each of the given types and 
+-- inserts them into the given map. 
+nameFunctionsAndInsert :: String -> TypeMap -> [IR.Type] -> Converter TypeMap
+nameFunctionsAndInsert prefix m ts = localEnv
+  $ foldM (nameFunctionAndInsert prefix) m ts
+
+-- Like `nameFunctionsAndInsert`, but for a single type.
+nameFunctionAndInsert :: String -> TypeMap -> IR.Type -> Converter TypeMap
+nameFunctionAndInsert prefix m t = do
+  name <- nameFunction prefix t
+  return (insertType t (Coq.bare name) m)
+
+-- Names a function based on a type while avoiding name clashes with other
+-- identifiers.
+nameFunction :: String -> IR.Type -> Converter String
+nameFunction prefix t = do
+  prettyType <- showPrettyType t
+  freshCoqIdent (prefix ++ prettyType)
+  
+-- Produces n new Coq identifiers (Qualids)
+freshQualids :: Int -> String -> Converter [Coq.Qualid]
+freshQualids n prefix = replicateM n (Coq.bare <$> freshCoqIdent prefix)
