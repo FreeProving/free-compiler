@@ -21,6 +21,7 @@ import           FreeC.Pass.KindCheckPass
 import           FreeC.Pass.PartialityAnalysisPass
 import           FreeC.Pass.QualifierPass
 import           FreeC.Pass.ResolverPass
+import           FreeC.Pass.SharingAnalysisPass
 import           FreeC.Pass.TypeInferencePass
 import           FreeC.Pass.TypeSignaturePass
 
@@ -38,6 +39,7 @@ pipeline =
     [typeInferencePass, defineFuncDeclsPass, partialityAnalysisPass]
   , completePatternPass
   , etaConversionPass
+  , sharingAnaylsisPass
   , exportPass
   ]
 
