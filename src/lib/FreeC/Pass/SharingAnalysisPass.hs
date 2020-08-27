@@ -1,35 +1,33 @@
--- | This module contains a compiler pass that analyses the right hand sides of
+-- | This module contains a compiler pass that analyses the right-hand sides of
 --   function declaration and introduces @let@ expression with new variables
---   for each variable that occurs more than once on the right hand sides.
+--   for each variable that occurs more than once on the right-hand sides.
 --
 --   = Examples
 --
 --   == Example 1
 --
 --   > twice :: Integer -> Integer
---   > twice ( x :: Integer ) = x + x
+--   > twice (x :: Integer) = x + x
 --
 --   Should be transformed into
 --
 --   > twice :: Integer -> Maybe Integer
---   > twice ( x :: Integer ) = let ( y :: Integer ) = x in y + y
+--   > twice (x :: Integer) = let (y :: Integer) = x in y + y
 --
 --   == Example 2
 --
---   data Maybe a = Just a | Nothing
---
 --   > twiceMaybe :: Maybe Integer -> Maybe Integer
---   > twiceMaybe ( mx :: Maybe Integer ) = case ( mx :: Maybe Integer ) of
---   >   { Nothing -> Nothing
---   >   ; Just x -> Just (x + x)
+--   > twiceMaybe (mx :: Maybe Integer) = case (mx :: Maybe Integer) of {
+--   >     Nothing -> Nothing;
+--   >     Just x  -> Just (x + x)
 --   >   }
 --
 --   Should be transformed into
 --
 --   > twiceMaybe :: Maybe Integer -> Maybe Integer
---   > twiceMaybe ( mx :: Maybe Integer ) = case ( mx :: Maybe Integer ) of
---   >   { Nothing -> Nothing
---   >   ; Just x -> let y = x in Just ( y + y )
+--   > twiceMaybe (mx :: Maybe Integer) = case (mx :: Maybe Integer) of {
+--   >     Nothing -> Nothing;
+--   >     Just x  -> let y = x in Just (y + y)
 --   >   }
 --
 --
@@ -41,7 +39,7 @@
 --
 --   == Translation
 --
---   All shared variables on right hand sides of function declarations are made
+--   All shared variables on right-hand sides of function declarations are made
 --   explicit by introducing @let@-expressions.
 
 module FreeC.Pass.SharingAnalysisPass ( sharingAnaylsisPass ) where
@@ -59,8 +57,8 @@ import           FreeC.Monad.Converter
 import           FreeC.Pass
 
 -- | Checks all function declarations if they contain variables that occur
---   multiple times on the same right hand side.
---   If that is the case a @let@-expression is introduced that binds the
+--   multiple times on the same right-hand side.
+--   If that is the case, a @let@-expression is introduced that binds the
 --   variables to a fresh ones and replaces the occurrences with the newly
 --   introduced variable.
 sharingAnaylsisPass :: Pass IR.Module
@@ -71,8 +69,8 @@ sharingAnaylsisPass
                 funcDecls')
 
 -- | Checks a function declaration if it contains a variable that occurs
---   multiple times on the right hand side.
---   If that is the case a @let@-expression is introduced.
+--   multiple times on the right-hand side.
+--   If that is the case, a @let@-expression is introduced.
 analyseSharingDecl :: IR.FuncDecl -> Converter IR.FuncDecl
 analyseSharingDecl (IR.FuncDecl srcSpan ident typeArgs args returnType rhs) = do
     let varList = (map (\p -> ( fst p, snd $ snd p )) . filter
@@ -81,7 +79,8 @@ analyseSharingDecl (IR.FuncDecl srcSpan ident typeArgs args returnType rhs) = do
     return (IR.FuncDecl srcSpan ident typeArgs args returnType rhs')
 
 -- | Builds a @let@-expression from the given expression and variable names.
---   Computes let-bindings from the given variables, composes the resulting
+--
+--   Computes @let@-bindings from the given variables, composes the resulting
 --   substitutions and applies the substitution on the expression.
 buildLet
     :: IR.Expr -> [ ( IR.VarName, Maybe IR.TypeScheme ) ] -> Converter IR.Expr
@@ -92,9 +91,10 @@ buildLet expr vars = do
     return (IR.Let srcSpan binds (applySubst (composeSubsts substs) expr)
             (IR.exprTypeScheme expr))
 
--- | Converts the list containing variables into let-bindings where
---   the variable pattern is a fresh variable and the right hand side is
---   a variable that occured multiple times on right hand sides.
+-- | Converts the list containing variables into @let@-bindings where
+--   the variable pattern is a fresh variable and the right-hand side is
+--   a variable that occurred multiple times on right hand sides.
+--
 --   Also computes substitutions mapping given variables to fresh variables.
 --   Returns the generated let-bindings and the substitutions.
 buildBinds :: SrcSpan -> [ ( IR.VarName, Maybe IR.TypeScheme ) ]
@@ -116,7 +116,8 @@ buildBinds srcSpan = foldM buildBind ( [], [] )
         _ <- renameAndDefineVar srcSpan False varPatIdent varPatType
         return ( bind : binds, subst : substs )
 
--- | Counts all variable names on right hand sides of expression.
+-- | Counts all variable names on right-hand sides of expression.
+--
 --   If a variable is annotated with a type scheme the annotation is introduced
 --   into the map as well.
 countVarNames :: IR.Expr -> Map IR.VarName ( Integer, Maybe IR.TypeScheme )
