@@ -30,6 +30,8 @@ import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
 import           FreeC.Pretty
 
+import Debug.Trace
+
 -------------------------------------------------------------------------------
 -- Strongly Connected Components                                             --
 -------------------------------------------------------------------------------
@@ -270,9 +272,11 @@ generateInstances dataDecls = do
       -> Converter Coq.Term
 
     generateBody topLevelMap ident tDecl t = do
+      let argTypes = concatMap IR.conDeclFields (IR.dataDeclCons tDecl)
+      argTypesExpanded <- mapM expandAllTypeSynonyms argTypes 
       let ts = nub
             (reverse (concatMap collectSubTypes
-                      (concatMap IR.conDeclFields (IR.dataDeclCons tDecl))))
+                      argTypesExpanded))
       let recTypes = filter (\t -> not (t `elem` declTypes || isTypeVar t)) ts
       let typeVars = map (Coq.bare . IR.typeVarDeclIdent)
             (IR.typeDeclArgs tDecl)
@@ -384,7 +388,9 @@ generateInstances dataDecls = do
     | flag || conName `elem` conNames = IR.TypeCon NoSrcSpan conName
     | otherwise = IR.TypeVar NoSrcSpan "_"
   stripType' (IR.TypeApp _ l r) flag     = case stripType' r False of
-    r'@(IR.TypeVar _ _) -> IR.TypeApp NoSrcSpan (stripType' l flag) r'
+    r'@(IR.TypeVar _ _) -> case stripType' l flag of
+                                (IR.TypeVar _ _) -> IR.TypeVar NoSrcSpan "_" -- makes sure that Don't cares are squashed.
+                                l'                ->IR.TypeApp NoSrcSpan l' r' 
     r'                  -> IR.TypeApp NoSrcSpan (stripType' l True) r'
   -- Type variables and function types are not relevant and are replaced by "_".
   stripType' _ _ = IR.TypeVar NoSrcSpan "_"
@@ -421,7 +427,7 @@ isTypeVar _                = False
 getTypeConName :: IR.Type -> Maybe IR.ConName
 getTypeConName (IR.TypeCon _ conName) = Just conName
 getTypeConName (IR.TypeApp _ l _) = getTypeConName l
-getTypeConName _ = Nothing
+getTypeConName t = error $ "No type constructor application: " ++ showPretty t -- TODO: Change
 
 
 -- Coq AST helper functions 
@@ -474,9 +480,9 @@ toCoqType
 toCoqType varPrefix _ (IR.TypeVar _ _)                 = do
   x <- Coq.bare <$> freshCoqIdent varPrefix
   return (Coq.Qualid x, [x])
-toCoqType _ _ (IR.TypeCon _ conName) = do
+toCoqType _ extraArgs (IR.TypeCon _ conName) = do
   entry <- lookupEntryOrFail NoSrcSpan IR.TypeScope conName
-  return (Coq.app (Coq.Qualid (entryIdent entry)) shapeAndPos, [])
+  return (Coq.app (Coq.Qualid (entryIdent entry)) extraArgs, [])
 toCoqType varPrefix extraArgs (IR.TypeApp _ l r)     = do
   (l', varsl) <- toCoqType varPrefix extraArgs l
   (r', varsr) <- toCoqType varPrefix extraArgs r
@@ -508,8 +514,9 @@ makeNFBindersAndReturnType t = do
   (targetType, targetVars) <- toCoqType "b" idShapeAndPos t
   let constraints = map (buildConstraint "Normalform")
         (zipWith (\v1 v2 -> [v1] ++ [v2]) sourceVars targetVars)
+  let varBinders = if null sourceVars then [] else [typeBinder (sourceVars ++ targetVars)]
   let binders = freeArgsBinders
-        ++ [typeBinder (sourceVars ++ targetVars)]
+        ++ varBinders
         ++ constraints
   return (binders, sourceType, targetType)
   
