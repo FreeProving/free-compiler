@@ -1,5 +1,5 @@
 -- | This module contains a compiler pass that analyses the right-hand sides of
---   function declaration and introduces @let@ expression with new variables
+--   function declaration and introduces @let@-expression with new variables
 --   for each variable that occurs more than once on the right-hand sides.
 --
 --   = Examples
@@ -59,7 +59,7 @@ import           FreeC.Pass
 -- | Checks all function declarations if they contain variables that occur
 --   multiple times on the same right-hand side.
 --   If that is the case, a @let@-expression is introduced that binds the
---   variables to a fresh ones and replaces the occurrences with the newly
+--   variables to fresh ones and replaces the occurrences with the newly
 --   introduced variable.
 sharingAnaylsisPass :: Pass IR.Module
 sharingAnaylsisPass
@@ -107,7 +107,7 @@ buildBinds srcSpan = foldM buildBind ( [], [] )
     buildBind ( binds, substs ) ( varName, varTypeScheme ) = do
         varName' <- freshHaskellQName varName
         let subst = singleSubst' varName (\s -> IR.Var s varName' varTypeScheme)
-            -- This type scheme has wrong srcSpanInformation
+            -- This type scheme has wrong source span information.
             rhs = IR.Var srcSpan varName varTypeScheme
             Just varPatIdent = IR.identFromQName varName'
             varPatType = fmap IR.typeSchemeType varTypeScheme
