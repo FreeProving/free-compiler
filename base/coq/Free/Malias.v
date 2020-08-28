@@ -28,7 +28,7 @@ Notation "'EndShare''" := (EndShare Shape Pos).
 
 Definition cbneed {A : Type}
                   `{Injectable Share.Shape Share.Pos Shape Pos}
-                  `{ShareableArgs Shape Pos A}
+                  (shrArgs : A -> Free Shape Pos A)
                   (p : Free Shape Pos A)
   : Free Shape Pos (Free Shape Pos A) :=
   Get' >>= fun '(i,j) =>
@@ -36,18 +36,17 @@ Definition cbneed {A : Type}
   pure (BeginShare' (i,j) >>
       Put' (i,j+1) >>
       p >>= fun x =>
-      shareArgs x >>= fun x' =>
+      shrArgs x >>= fun x' =>
       Put' (i+1,j) >>
       EndShare' (i,j) >>
       pure x').
 
 End SecCbneed.
-
 (* Shareable instances. *)
 Instance Cbneed (Shape : Type) (Pos : Shape -> Type)
                 `{I : Injectable Share.Shape Share.Pos Shape Pos}
  : Shareable Shape Pos | 1 := {
-    share A S p := @cbneed Shape Pos A I S p
+    share A S p := @cbneed Shape Pos A I (@shareArgs Shape Pos A S) p
 }.
 
 (* The Share effect is not actually needed, but we need to
