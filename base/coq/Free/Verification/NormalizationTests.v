@@ -64,109 +64,110 @@ Arguments MaybePartial {_} {_} {_}.
 (* Effectful lists *)
 Section SecData.
 
-Variable Shape : Type.
-Variable Pos : Shape -> Type.
-Notation "'FreeBoolList'" := (Free Shape Pos (List Shape Pos (Bool Shape Pos))).
-Notation "'ND'" := (Injectable ND.Shape ND.Pos Shape Pos).
-Notation "'Trace'" := (Traceable Shape Pos).
-Notation "'Partial'" := (Partial Shape Pos).
-Notation "'FreeBoolListList'" := (Free Shape Pos (List Shape Pos (List Shape Pos (Bool Shape Pos)))).
+  Variable Shape : Type.
+  Variable Pos : Shape -> Type.
 
-(* Lists with effects at the root. *)
+  Notation "'FreeBoolList'" := (Free Shape Pos (List Shape Pos (Bool Shape Pos))).
+  Notation "'ND'" := (Injectable ND.Shape ND.Pos Shape Pos).
+  Notation "'Trace'" := (Traceable Shape Pos).
+  Notation "'Partial'" := (Partial Shape Pos).
+  Notation "'FreeBoolListList'" := (Free Shape Pos (List Shape Pos (List Shape Pos (Bool Shape Pos)))).
 
-(* [] ? [true,false] *)
-Definition rootNDList `{ND} : FreeBoolList
-:= Choice Shape Pos
-      (Nil Shape Pos)
-      (Cons Shape Pos
-         (pure true)
-         (Cons Shape Pos 
-           (pure false)
-           (Nil Shape Pos)
-         )
-      ).
+  (* Lists with effects at the root. *)
 
-(* trace "root effect" [true, false] *)
-Definition rootTracedList `{Trace} : FreeBoolList
-:= trace "root effect"
-      (Cons Shape Pos (pure true)
-                      (Cons Shape Pos 
-                          (pure false) 
-                          (Nil Shape Pos))).
+  (* [] ? [true,false] *)
+  Definition rootNDList `{ND} : FreeBoolList
+  := Choice Shape Pos
+        (Nil Shape Pos)
+        (Cons Shape Pos
+           (pure true)
+           (Cons Shape Pos 
+             (pure false)
+             (Nil Shape Pos)
+           )
+        ).
 
-(* Lists with an effectful element. *)
+  (* trace "root effect" [true, false] *)
+  Definition rootTracedList `{Trace} : FreeBoolList
+  := trace "root effect"
+        (Cons Shape Pos (pure true)
+                        (Cons Shape Pos 
+                            (pure false) 
+                            (Nil Shape Pos))).
 
-(* [true,true ? false] *)
-Definition coinList `{ND} : FreeBoolList
- := Cons Shape Pos 
-      (pure true) 
-      (Cons Shape Pos (Choice Shape Pos (pure true) (pure false))
-                      (Nil Shape Pos)).
+  (* Lists with an effectful element. *)
 
-(* [true, trace "component effect" false] *)
-Definition traceList `{Trace} : FreeBoolList
- := Cons Shape Pos (pure true) 
-                   (Cons Shape Pos (trace "component effect" (pure false)) 
-                                   (Nil Shape Pos)).
-
-(* [true, undefined] *)
-Definition partialList `(Partial) : FreeBoolList
- := Cons Shape Pos (True_ Shape Pos)
-      (Cons Shape Pos undefined (Nil Shape Pos)).
-
-(* [true, false ? undefined] *)
-Definition partialCoinList `{ND} `(Partial) : FreeBoolList
- := Cons Shape Pos (True_ Shape Pos)
-      (Cons Shape Pos (Choice Shape Pos (False_ Shape Pos) 
-                                         undefined) 
-                      (Nil Shape Pos)).
-
-(* List with an effect at the root and an effectful element. *)
-
-(* trace "root effect" [true, trace "component effect" false] *)
-Definition tracedTraceList `{Trace} : FreeBoolList
- := trace "root effect" 
-      (Cons Shape Pos (pure true) 
-                      (Cons Shape Pos (trace "component effect" (pure false))
-                                      (Nil Shape Pos))).
-
-(* [] ? [true,true ? false] *)
-Definition NDCoinList `{ND} : FreeBoolList
- := Choice Shape Pos (Nil Shape Pos)
-                     (Cons Shape Pos 
-                         (pure true) 
-                         (Cons Shape Pos 
-                             (Choice Shape Pos (pure true) (pure false))
-                             (Nil Shape Pos))).
-
-(* Deep effectful components *)
-
-(* [[true, true ? false]] *)
-Definition deepCoinList `{ND} : FreeBoolListList
- := Cons Shape Pos
-      (Cons Shape Pos 
+  (* [true,true ? false] *)
+  Definition coinList `{ND} : FreeBoolList
+   := Cons Shape Pos 
         (pure true) 
         (Cons Shape Pos (Choice Shape Pos (pure true) (pure false))
-                        (Nil Shape Pos)))
-      (Nil Shape Pos).
+                        (Nil Shape Pos)).
 
-(* [[true, trace "component effect" false]] *)
-Definition deepTraceList `{Trace} : FreeBoolListList
- := Cons Shape Pos
-      (Cons Shape Pos 
+  (* [true, trace "component effect" false] *)
+  Definition traceList `{Trace} : FreeBoolList
+   := Cons Shape Pos (pure true) 
+                     (Cons Shape Pos (trace "component effect" (pure false)) 
+                                     (Nil Shape Pos)).
+
+  (* [true, undefined] *)
+  Definition partialList `(Partial) : FreeBoolList
+   := Cons Shape Pos (True_ Shape Pos)
+        (Cons Shape Pos undefined (Nil Shape Pos)).
+
+  (* [true, false ? undefined] *)
+  Definition partialCoinList `{ND} `(Partial) : FreeBoolList
+   := Cons Shape Pos (True_ Shape Pos)
+        (Cons Shape Pos (Choice Shape Pos (False_ Shape Pos) 
+                                           undefined) 
+                        (Nil Shape Pos)).
+
+  (* List with an effect at the root and an effectful element. *)
+
+  (* trace "root effect" [true, trace "component effect" false] *)
+  Definition tracedTraceList `{Trace} : FreeBoolList
+   := trace "root effect" 
+        (Cons Shape Pos (pure true) 
+                        (Cons Shape Pos (trace "component effect" (pure false))
+                                        (Nil Shape Pos))).
+
+  (* [] ? [true,true ? false] *)
+  Definition NDCoinList `{ND} : FreeBoolList
+   := Choice Shape Pos (Nil Shape Pos)
+                       (Cons Shape Pos 
+                           (pure true) 
+                           (Cons Shape Pos 
+                               (Choice Shape Pos (pure true) (pure false))
+                               (Nil Shape Pos))).
+
+  (* Deep effectful components *)
+
+  (* [[true, true ? false]] *)
+  Definition deepCoinList `{ND} : FreeBoolListList
+   := Cons Shape Pos
+        (Cons Shape Pos 
           (pure true) 
-          (Cons Shape Pos (trace "component effect" (pure false)) 
+          (Cons Shape Pos (Choice Shape Pos (pure true) (pure false))
                           (Nil Shape Pos)))
-      (Nil Shape Pos).
+        (Nil Shape Pos).
 
-(* A function that is the same as head for non-empty lists.
-   Empty lists yield false. *)
-Definition headOrFalse (fl : FreeBoolList)
-  : Free Shape Pos bool
- := fl >>= fun l => match l with
-    | List.nil => pure false
-    | List.cons fb _ => fb
-    end.
+  (* [[true, trace "component effect" false]] *)
+  Definition deepTraceList `{Trace} : FreeBoolListList
+   := Cons Shape Pos
+        (Cons Shape Pos 
+            (pure true) 
+            (Cons Shape Pos (trace "component effect" (pure false)) 
+                            (Nil Shape Pos)))
+        (Nil Shape Pos).
+
+  (* A function that is the same as head for non-empty lists.
+     Empty lists yield false. *)
+  Definition headOrFalse (fl : FreeBoolList)
+    : Free Shape Pos bool
+   := fl >>= fun l => match l with
+      | List.nil => pure false
+      | List.cons fb _ => fb
+      end.
 
 End SecData.
 
@@ -186,45 +187,45 @@ Arguments headOrFalse {_} {_} fl.
 (* Section for auxiliary properties *)
 Section SecProps.
 
-Variable Shape1 : Type.
-Variable Shape2 : Type.
-Variable Pos1 : Shape1 -> Type.
-Variable Pos2 : Shape2 -> Type.
+  Variable Shape1 : Type.
+  Variable Shape2 : Type.
+  Variable Pos1 : Shape1 -> Type.
+  Variable Pos2 : Shape2 -> Type.
 
-Notation "'BoolList1'" := (List Shape1 Pos1 (Bool Shape1 Pos1)).
-Notation "'BoolList2'" := (List Shape2 Pos2 (Bool Shape2 Pos2)).
+  Notation "'BoolList1'" := (List Shape1 Pos1 (Bool Shape1 Pos1)).
+  Notation "'BoolList2'" := (List Shape2 Pos2 (Bool Shape2 Pos2)).
 
-(* A property that is fulfilled if two lists of Bools are 
-   effect-free and contain the same values. *)
-Fixpoint pure_equalB (l1 : BoolList1) (l2 : BoolList2) : Prop
- := match l1, l2 with
-    | List.nil, List.nil => True 
-    | (List.cons fx fxs), (List.cons fy fys) => match fx, fxs, fy, fys with
-         | (pure x), (pure xs), (pure y), (pure ys) => 
-                   x = y /\ pure_equalB xs ys
-         | _, _, _, _ => False
-         end
-    | _, _ => False
-    end.
+  (* A property that is fulfilled if two lists of Bools are 
+     effect-free and contain the same values. *)
+  Fixpoint pure_equalB (l1 : BoolList1) (l2 : BoolList2) : Prop
+   := match l1, l2 with
+      | List.nil, List.nil => True 
+      | (List.cons fx fxs), (List.cons fy fys) => match fx, fxs, fy, fys with
+           | (pure x), (pure xs), (pure y), (pure ys) => 
+                     x = y /\ pure_equalB xs ys
+           | _, _, _, _ => False
+           end
+      | _, _ => False
+      end.
 
-(* A property that is fulfilled if two traced (handled) lists are effect-free and
-   contain the same values. *)
-Definition eqTracedList (e1 : BoolList1 * list string)
-                        (e2 : BoolList2 * list string)
- := match e1 with
-    | (l1,log1) => match e2 with
-                   | (l2, log2) => log1 = log2 /\ pure_equalB l1 l2
-                   end
-    end.
+  (* A property that is fulfilled if two traced (handled) lists are effect-free and
+     contain the same values. *)
+  Definition eqTracedList (e1 : BoolList1 * list string)
+                          (e2 : BoolList2 * list string)
+   := match e1 with
+      | (l1,log1) => match e2 with
+                     | (l2, log2) => log1 = log2 /\ pure_equalB l1 l2
+                     end
+      end.
 
-(* A property that is fulfilled if two non-deterministic (handled) lists are 
-   effect-free and contain the same values. *)
-Fixpoint eqNDList (e1 : list BoolList1) (e2 : list BoolList2)
- := match e1, e2 with
-    | nil, nil => True
-    | (cons l1 l1s), (cons l2 l2s) => pure_equalB l1 l2 /\ eqNDList l1s l2s
-    | _, _ => False
-    end.
+  (* A property that is fulfilled if two non-deterministic (handled) lists are 
+     effect-free and contain the same values. *)
+  Fixpoint eqNDList (e1 : list BoolList1) (e2 : list BoolList2)
+   := match e1, e2 with
+      | nil, nil => True
+      | (cons l1 l1s), (cons l2 l2s) => pure_equalB l1 l2 /\ eqNDList l1s l2s
+      | _, _ => False
+      end.
 
 End SecProps.
 
