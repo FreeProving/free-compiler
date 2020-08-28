@@ -65,7 +65,7 @@ data Expr
          , exprBindCont :: Expr -- ^ The right-hand side argument of @>>=@.
          }
     -- | The @share@ operator.
-  | Share { exprScrSpan :: SrcSpan, exprShareArg :: Expr }
+  | Share { exprScrSpan :: SrcSpan }
  deriving ( Eq, Show )
 
 -------------------------------------------------------------------------------

@@ -36,7 +36,7 @@ convertLiftedExpr (LIR.Bind _ arg k)
   = bind <$> convertLiftedExpr arg <*> convertLiftedExpr k
 convertLiftedExpr (LIR.Undefined _)           = return undefinedExpr
 convertLiftedExpr (LIR.ErrorExpr _)           = return errorExpr
-convertLiftedExpr (LIR.Share srcSpan _)       = reportFatal
+convertLiftedExpr (LIR.Share srcSpan)         = reportFatal
   $ Message srcSpan Error
   "The share operator is currently not supported in Agda."
 
