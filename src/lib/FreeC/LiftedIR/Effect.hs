@@ -5,5 +5,5 @@ module FreeC.LiftedIR.Effect where
 --
 --   These effects corresponds to type classes constraining the container used
 --   by the @Free@ monad. Currently just partiality is supported.
-data Effect = Partiality
+data Effect = Partiality | Sharing
  deriving ( Show, Eq )

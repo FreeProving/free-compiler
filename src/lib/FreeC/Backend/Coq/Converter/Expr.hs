@@ -79,6 +79,7 @@ convertExpr = liftExpr >=> convertLiftedExpr
 -- | Converts an effect to a Coq function argument.
 convertEffect :: Effect -> Coq.Term
 convertEffect Partiality = Coq.Qualid $ fst Coq.Base.partialArg
+convertEffect Sharing    = Coq.Qualid $ fst Coq.Base.shareableArg
 
 -------------------------------------------------------------------------------
 -- @case@ Expressions                                                        --

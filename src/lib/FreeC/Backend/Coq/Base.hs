@@ -16,7 +16,9 @@ module FreeC.Backend.Coq.Base
   , partialArg
   , partialUndefined
   , partialError
-    -- * Sharable
+    -- * Sharing
+  , shareable
+  , shareableArg
   , share
     -- * Literal Scopes
   , integerScope
@@ -72,8 +74,20 @@ freeArgs = [ (Coq.bare "Shape", Coq.Sort Coq.Type)
            ]
 
 -------------------------------------------------------------------------------
--- Shareable                                                                 --
+-- Sharing                                                                   --
 -------------------------------------------------------------------------------
+-- | The Coq Identifier for the @Shareable@ type class.
+shareable :: Coq.Qualid
+shareable = Coq.bare "Shareable"
+
+-- | The name and type of the @Shareable@ instance that must be passed to
+--   shareable functions.
+shareableArg :: (Coq.Qualid, Coq.Term)
+shareableArg = ( Coq.bare "S"
+               , Coq.app (Coq.Qualid shareable)
+                   [Coq.Qualid (Coq.bare "Shape"), Coq.Qualid (Coq.bare "Pos")]
+               )
+
 -- | The Coq Identifier for the @share@ operator.
 share :: Coq.Qualid
 share = Coq.bare "share"
