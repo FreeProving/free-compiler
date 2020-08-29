@@ -188,10 +188,9 @@ definitionSentence qualid binders returnType term = DefinitionSentence
 -------------------------------------------------------------------------------
 -- | Smart constructor for a Coq notation sentence.
 notationSentence
-  :: (NonEmpty.NonEmpty NotationToken) -- ^ The notation to define.
-  -> Term                              -- ^ The right-hand side of the notation.
-  -> [SyntaxModifier
-     ]                  -- ^ The syntax modifiers of the notation.
+  :: NonEmpty.NonEmpty NotationToken -- ^ The notation to define.
+  -> Term                            -- ^ The right-hand side of the notation.
+  -> [SyntaxModifier]                -- ^ The syntax modifiers of the notation.
   -> Sentence
 notationSentence tokens rhs smods = NotationSentence
   (NotationDefinition tokens rhs smods)
