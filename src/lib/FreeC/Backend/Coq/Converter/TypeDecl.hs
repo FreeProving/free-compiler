@@ -29,6 +29,7 @@ import           FreeC.Backend.Coq.Converter.Type
 import qualified FreeC.Backend.Coq.Syntax         as Coq
 import           FreeC.Environment
 import qualified FreeC.Environment.Fresh          as Fresh
+import qualified FreeC.Environment.Renamer        as Renamer
 import           FreeC.IR.DependencyGraph
 import qualified FreeC.IR.Syntax                  as IR
 import           FreeC.IR.TypeSynExpansion
@@ -139,17 +140,17 @@ convertDataDecl (IR.DataDecl _ (IR.DeclIdent _ name) typeVarDecls conDecls) = do
   (body, argumentsSentences) <- generateBodyAndArguments
   (smartConDecls, qualSmartConsDecls)
     <- concatUnzip <$> mapM generateSmartConDecl conDecls
-  return
-    ( body
-    , (Coq.comment ("Arguments sentences for " ++ showPretty (IR.toUnQual name))
-       : argumentsSentences
-       ++ Coq.comment
-       ("Smart constructors for " ++ showPretty (IR.toUnQual name))
-       : smartConDecls
-       ++ Coq.comment (qualifiedSmartConstructorCommentPrefix
-                       ++ showPretty (IR.toUnQual name))
-       : qualSmartConsDecls)
-    )
+  return ( body
+         , Coq.commentedSentences
+             ("Arguments sentences for " ++ showPretty (IR.toUnQual name))
+             argumentsSentences
+             ++ Coq.commentedSentences
+             ("Smart constructors for " ++ showPretty (IR.toUnQual name))
+             smartConDecls
+             ++ Coq.commentedSentences (qualifiedSmartConstructorCommentPrefix
+                                        ++ showPretty (IR.toUnQual name))
+             qualSmartConsDecls
+         )
  where
   -- | Generates the body of the @Inductive@ sentence and the @Arguments@
   --   sentences for the constructors but not the smart constructors
@@ -211,7 +212,10 @@ convertDataDecl (IR.DataDecl _ (IR.DeclIdent _ name) typeVarDecls conDecls) = do
     constrArgIdents <- mapM (const $ Fresh.freshCoqIdent Fresh.freshArgPrefix)
       argTypes
     let Just unqualIdent = Coq.unpackQualid smartQualid
-        typeVarIdents    = map IR.typeVarDeclIdent typeVarDecls
+    typeVarQualids
+      <- mapM (\(IR.TypeVarDecl srcSpan ident) ->
+               Renamer.renameAndDefineTypeVar srcSpan ident) typeVarDecls
+    let typeVarIdents = map (fromJust . Coq.unpackQualid) typeVarQualids
     -- Generate unqualified and qualified notation sentences for the smart
     -- constructor if possible.
     return
@@ -236,11 +240,11 @@ convertDataDecl (IR.DataDecl _ (IR.DeclIdent _ name) typeVarDecls conDecls) = do
     -- Default smart constructor with implicit type args.
     argIdents     = freeArgIdents ++ constrArgIdents
 
-    args          = (map (Coq.Qualid . Coq.bare) freeArgIdents)
-      ++ (map (const Coq.Underscore) typeVarIdents)
-      ++ (map (Coq.Qualid . Coq.bare) constrArgIdents)
+    args          = map (Coq.Qualid . Coq.bare) freeArgIdents
+      ++ map (const Coq.Underscore) typeVarIdents
+      ++ map (Coq.Qualid . Coq.bare) constrArgIdents
 
-    lhs           = (Coq.nSymbol smartIdent)
+    lhs           = Coq.nSymbol smartIdent
       NonEmpty.:| (map Coq.nIdent $ argIdents)
 
     rhs           = Coq.app (Coq.Qualid Coq.Base.freePureCon)
@@ -253,8 +257,8 @@ convertDataDecl (IR.DataDecl _ (IR.DeclIdent _ name) typeVarDecls conDecls) = do
     -- Explicit notation for the smart constructor.
     expArgIdents  = freeArgIdents ++ typeVarIdents ++ constrArgIdents
 
-    expLhs        = (Coq.nSymbol $ '@' : smartIdent)
-      NonEmpty.:| (map Coq.nIdent expArgIdents)
+    expLhs        = Coq.nSymbol ('@' : smartIdent)
+      NonEmpty.:| map Coq.nIdent expArgIdents
 
     expRhs        = Coq.app (Coq.Qualid Coq.Base.freePureCon)
       [Coq.explicitApp constr (map (Coq.Qualid . Coq.bare) expArgIdents)]
@@ -281,19 +285,20 @@ partitionIsQualifiedSmartConstructor
     :: Bool -> [Coq.Sentence] -> ([Coq.Sentence], [Coq.Sentence])
   partitionIsQualifiedSmartConstructor' _ [] = ([], [])
   partitionIsQualifiedSmartConstructor' True (s@(Coq.NotationSentence _) : sl)
-    = -- A notation under a comment for qualified smart constructors is a
-      -- notation of a qualified smart constructor.
+    =
+    -- A notation under a comment for qualified smart constructors is a
+    -- notation of a qualified smart constructor.
+    let (ql, rl) = partitionIsQualifiedSmartConstructor' True sl
+    in (s : ql, rl)
+  partitionIsQualifiedSmartConstructor' True sl =
+    -- If its not a notation, it does not belong to the current block of
+    -- qualified smart constructors.
+    partitionIsQualifiedSmartConstructor' False sl
+  partitionIsQualifiedSmartConstructor' False (s@(Coq.CommentSentence c) : sl)
+    | qualifiedSmartConstructorCommentPrefix `isPrefixOf` Coq.unpackComment c =
+      -- This comment marks qualified smart constructors.
       let (ql, rl) = partitionIsQualifiedSmartConstructor' True sl
       in (s : ql, rl)
-  partitionIsQualifiedSmartConstructor' True sl
-    = -- If its not a notation, it does not belong to the current block of
-      -- qualified smart constructors.
-       partitionIsQualifiedSmartConstructor' False sl
-  partitionIsQualifiedSmartConstructor' False (s@(Coq.CommentSentence c) : sl)
-    | isPrefixOf qualifiedSmartConstructorCommentPrefix (Coq.unpackComment c)
-      = -- This comment marks qualified smart constructors.
-        let (ql, rl) = partitionIsQualifiedSmartConstructor' True sl
-        in (s : ql, rl)
   partitionIsQualifiedSmartConstructor' False (s : sl)
     = let (ql, rl) = partitionIsQualifiedSmartConstructor' False sl
       in (ql, s : rl)

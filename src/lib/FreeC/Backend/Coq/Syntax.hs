@@ -4,6 +4,7 @@ module FreeC.Backend.Coq.Syntax
   ( module Language.Coq.Gallina
     -- * Comments
   , comment
+  , commentedSentences
   , unpackComment
     -- * Proofs
   , blankProof
@@ -61,6 +62,11 @@ import           Language.Coq.Gallina
 -- | Smart constructor for Coq comments.
 comment :: String -> Sentence
 comment = CommentSentence . Comment . Text.pack
+
+-- | Puts a comment in front of the sentences if there is any sentence.
+commentedSentences :: String -> [Sentence] -> [Sentence]
+commentedSentences _ []          = []
+commentedSentences str sentences = comment str : sentences
 
 -- | Gets the string from theCoq  comment.
 unpackComment :: Comment -> String
