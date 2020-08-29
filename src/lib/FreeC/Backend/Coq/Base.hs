@@ -16,6 +16,8 @@ module FreeC.Backend.Coq.Base
   , partialArg
   , partialUndefined
   , partialError
+    -- * Modules
+  , qualifiedSmartConstructorModule
     -- * Literal Scopes
   , integerScope
   , stringScope
@@ -93,11 +95,12 @@ partialError :: Coq.Qualid
 partialError = Coq.bare "error"
 
 -------------------------------------------------------------------------------
--- Notations                                                                 --
+-- Modules                                                                   --
 -------------------------------------------------------------------------------
--- | The name of the local module, where qualified notations are defined.
-qualifiedNotation :: Coq.Ident
-qualifiedNotation = Coq.ident "QualifiedNotation"
+-- | The name of the local module, where qualified smart constructor notations
+--   are defined.
+qualifiedSmartConstructorModule :: Coq.Ident
+qualifiedSmartConstructorModule = Coq.ident "QualifiedSmartConstructorModule"
 
 -------------------------------------------------------------------------------
 -- Literal Scopes                                                            --
@@ -127,6 +130,6 @@ reservedIdents
     , partialUndefined
     , partialError
       -- Notations
-    , Coq.Bare qualifiedNotation
+    , Coq.Bare qualifiedSmartConstructorModule
     ]
   ++ map fst (partialArg : freeArgs)

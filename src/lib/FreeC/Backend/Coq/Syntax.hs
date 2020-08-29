@@ -4,12 +4,14 @@ module FreeC.Backend.Coq.Syntax
   ( module Language.Coq.Gallina
     -- * Comments
   , comment
+  , unpackComment
     -- * Proofs
   , blankProof
     -- * Identifiers
   , ident
   , bare
   , unpackQualid
+  , access
     -- * Functions
   , app
   , explicitApp
@@ -43,7 +45,7 @@ module FreeC.Backend.Coq.Syntax
   , requireImportFrom
   , requireExportFrom
   , requireFrom
-  , importFrom
+  , moduleImport
   ) where
 
 import           Prelude              hiding ( Num )
@@ -59,6 +61,10 @@ import           Language.Coq.Gallina
 -- | Smart constructor for Coq comments.
 comment :: String -> Sentence
 comment = CommentSentence . Comment . Text.pack
+
+-- | Gets the string from theCoq  comment.
+unpackComment :: Comment -> String
+unpackComment (Comment c) = Text.unpack c
 
 -------------------------------------------------------------------------------
 -- Proofs                                                                    --
@@ -83,6 +89,10 @@ bare = Bare . ident
 unpackQualid :: Qualid -> Maybe String
 unpackQualid (Bare text)     = Just (Text.unpack text)
 unpackQualid (Qualified _ _) = Nothing
+
+-- | Smart constructor for combining a module name and an identifier.
+access :: ModuleIdent -> Ident -> Ident
+access modName name = Text.append modName (Text.cons '.' name)
 
 -------------------------------------------------------------------------------
 -- Functions                                                                 --
@@ -259,6 +269,6 @@ requireFrom library modules = ModuleSentence
   (Require (Just library) Nothing (NonEmpty.fromList modules))
 
 -- | Creates a @Import …@ sentence.
-importFrom :: [ModuleIdent] -> Sentence
-importFrom modules = ModuleSentence
+moduleImport :: [ModuleIdent] -> Sentence
+moduleImport modules = ModuleSentence
   (ModuleImport Import (NonEmpty.fromList modules))
