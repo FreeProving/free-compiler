@@ -336,14 +336,13 @@ liftBinds :: [IR.Bind] -> IR.Expr -> Converter LIR.Expr
 liftBinds [] expr = liftExpr expr
 liftBinds
   ((IR.Bind srcSpan (IR.VarPat patSrcSpan ident varPatType isStrict) bindExpr)
-   : bs) expr = do
+   : bs) expr = localEnv $ do
     _ <- renameAndDefineLIRVar srcSpan isStrict ident varPatType
     expr' <- liftBinds bs expr
     patType' <- mapM LIR.liftType varPatType
     bindVarPat' <- varPat patSrcSpan (IR.UnQual $ IR.Ident ident) patType'
     shareType' <- mapM LIR.liftType' varPatType
     bindExpr' <- liftExpr bindExpr
-    return
-      $ LIR.Bind srcSpan (LIR.App srcSpan (LIR.Share srcSpan)
-                          (maybeToList shareType') [Sharing] [bindExpr'] True)
-      (LIR.Lambda srcSpan [bindVarPat'] expr')
+  let shareExpr = LIR.App srcSpan (LIR.Share srcSpan) (maybeToList shareType')
+        [Sharing] [bindExpr'] True
+  return $ LIR.Bind srcSpan shareExpr (LIR.Lambda srcSpan [bindVarPat'] expr')
