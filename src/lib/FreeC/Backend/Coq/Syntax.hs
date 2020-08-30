@@ -9,6 +9,7 @@ module FreeC.Backend.Coq.Syntax
     -- * Identifiers
   , ident
   , bare
+  , qualified
   , unpackQualid
     -- * Functions
   , app
@@ -65,9 +66,13 @@ blankProof = ProofAdmitted (Text.pack "  (* FILL IN HERE *)")
 ident :: String -> Ident
 ident = Text.pack
 
--- | Smart constructor for Coq identifiers.
+-- | Smart constructor for unqualified Coq identifiers.
 bare :: String -> Qualid
 bare = Bare . ident
+
+-- | Smart constructor for qualified Coq identifiers.
+qualified :: String -> String -> Qualid
+qualified modName name = Qualified (ident modName) (ident name)
 
 -- | Gets the identifier for the given unqualified Coq identifier. Returns
 --   @Nothing@ if the given identifier is qualified.
