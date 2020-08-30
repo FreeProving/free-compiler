@@ -58,6 +58,22 @@ Section SecData.
   Definition coinM `{ND} `{Maybe} 
   := Choice Shape Pos (Nothing_inj _ _) (Just_inj _ _ 1%Z).
 
+  (* (0 ? 1, 2 ? 3) *)
+  Definition coinPair `{ND}
+  : Free Shape Pos (Pair Shape Pos (Integer Shape Pos) (Integer Shape Pos))
+  := Pair_ Shape Pos (Choice Shape Pos (pure 0%Z) (pure 1%Z))
+                     (Choice Shape Pos (pure 2%Z) (pure 3%Z)).
+
+  (* [0 ? 1, 2 ? 3] *)
+  Definition coinList `{ND}
+  : Free Shape Pos (List Shape Pos (Integer Shape Pos))
+  := List.Cons Shape Pos 
+       (Choice Shape Pos (pure 0%Z) (pure 1%Z))
+       (List.Cons Shape Pos 
+         (Choice Shape Pos (pure 2%Z) (pure 3%Z))
+         (List.Nil Shape Pos)).
+
+
   (* Traced integer. *)
   Definition traceOne `{Trace} := trace "One" (pure 1%Z).
 
@@ -72,17 +88,36 @@ Section SecData.
 
   Definition traceJust `{Trace} `{Maybe} := trace "Just 1" (Just_inj _ _ 1%Z).
 
+  (* (trace "0" 0, trace "1" 1) *)
+  Definition tracePair `{Trace}
+  : Free Shape Pos (Pair Shape Pos (Integer Shape Pos) (Integer Shape Pos))
+  := Pair_ Shape Pos (trace "0" (pure 0%Z))
+                     (trace "1" (pure 1%Z) ).
+
+  (* [trace "0" 0, trace "1" 1] *)
+  Definition traceList `{Trace}
+  : Free Shape Pos (List Shape Pos (Integer Shape Pos))
+  := List.Cons Shape Pos 
+       (trace "0" (pure 0%Z))
+       (List.Cons Shape Pos 
+         (trace "1" (pure 2%Z))
+         (List.Nil Shape Pos)).
+
 End SecData.
 
 (* Arguments sentences for the data. *)
 Arguments coin {_} {_} {_}.
 Arguments coinB {_} {_} {_}.
 Arguments coinM {_} {_} {_} {_}.
+Arguments coinPair {_} {_} {_}.
+Arguments coinList {_} {_} {_}.
 Arguments traceOne {_} {_} {_}.
 Arguments traceTrue {_} {_} {_}.
 Arguments traceFalse {_} {_} {_}.
 Arguments traceNothing {_} {_} {_} {_}.
 Arguments traceJust {_} {_} {_} {_}.
+Arguments tracePair {_} {_} {_}.
+Arguments traceList {_} {_} {_}.
 
 (* Test functions *)
 Section SecFunctions.
@@ -94,6 +129,7 @@ Section SecFunctions.
   Notation "'FreeA'" := (Free Shape Pos A).
   Notation "'ShareArgs'" := (ShareableArgs Shape Pos A).
   Notation "'Share'" := (Injectable Share.Shape Share.Pos Shape Pos).
+  Notation "'Maybe'" := (Injectable Maybe.Shape Maybe.Pos Shape Pos).
 
   (* This function applies the given binary function to the given argument
      twice and does not share the argument. *)
@@ -145,6 +181,26 @@ Section SecFunctions.
     f sx (@share Shape Pos I S A SA (f sx fx) >>= fun sy => 
     f sy (@share Shape Pos I S A SA (f sy fy) >>= fun sz =>
     f sz (pure val))).
+
+  (* Deep sharing. *)
+  Definition doubleDeepSharedPair `{I : Share} `{SA : ShareArgs} (S : Shareable Shape Pos)
+                        (f : FreeA -> FreeA -> FreeA)
+                        (fx : Free Shape Pos (Pair Shape Pos A A))
+   : FreeA
+  := @share Shape Pos I S (Pair Shape Pos A A) _ fx >>= fun sx => f (fstPair Shape Pos sx) (fstPair Shape Pos sx).
+
+  Definition headList (P : Partial Shape Pos) (fl : Free Shape Pos (List Shape Pos A)) : FreeA
+  := fl >>= fun l => match l with
+                     | List.cons fx _ => fx
+                     | List.nil       => @undefined Shape Pos P A
+                     end.
+
+  Definition doubleDeepSharedList `{I : Share} `{SA : ShareArgs} (P : Partial Shape Pos) (S : Shareable Shape Pos)
+                        (f : FreeA -> FreeA -> FreeA)
+                        (fl : Free Shape Pos (List Shape Pos A))
+   : FreeA
+  := @share Shape Pos I S (List Shape Pos A) _ fl >>= fun sx => 
+              f (headList P sx) (headList P sx).
 
 End SecFunctions.
 
@@ -572,4 +628,57 @@ Example exOrRecFalseTracing
  : evalTracing (nf (doubleSharedRec Cbneed_ orBool_
                                 traceFalse traceFalse false))
    = (false,["False"%string;"False"%string]).
+Proof. constructor. Qed.
+
+
+(* ----------------------- Test cases for deep sharing --------------------- *)
+
+(*
+let sx = (0 ? 1, 2 ? 3)
+in fst sx + fst sx
+
+= (0 + 0) ? (1 + 1)
+= 0 ? 2
+*)
+Example exAddDeepPairND 
+ : evalND (nf (doubleDeepSharedPair Cbneed_ addInteger_ coinPair))
+  = [0%Z;2%Z].
+Proof. constructor. Qed.
+
+(* let sx = [0 ? 1, 2 ? 3]
+in head sx + head sx
+= (0 + 0) ? (1 + 1)
+= 0 ? 2
+*)
+Example exAddDeepListND
+ : evalND (nf 
+  (doubleDeepSharedList (PartialLifted ND.Shape ND.Pos _ _ ND.Partial) Cbneed_ addInteger_ coinList))
+ = [0%Z;2%Z].
+Proof. constructor. Qed.
+
+(* 
+let sx = (trace "0" 0, trace "1" 1)
+in fst sx + fst sx 
+=> The pair is shared, so the effects inside the pair should be shared as 
+   well. Since we take the first element twice, the second tracing message ("1") 
+   should not be logged and the first should be shared and thus logged once. 
+*)
+Example exAddDeepPairTrace
+ : evalTracing (nf (doubleDeepSharedPair Cbneed_ addInteger_ tracePair))
+  = (0%Z, ["0"%string]).
+Proof. constructor. Qed.
+
+(* 
+let sx = (trace "0" 0, trace "1" 1)
+in head sx + head sx 
+=> The list is shared, so the effects inside the pair should be shared as 
+   well. Since we take the first element twice, the second tracing message ("1") 
+   should not be logged and the first should be shared and thus logged once.
+   Because head is partial and we use the Maybe instance of Partial, the result
+   should be Some 0 instead of simply 0.
+*)
+Example exAddDeepListTrace
+ : evalTraceM (nf 
+   (doubleDeepSharedList (PartialLifted Maybe.Shape Maybe.Pos _ _ Maybe.Partial) Cbneed_ addInteger_ traceList))
+  = (Some 0%Z, ["0"%string]).
 Proof. constructor. Qed.
