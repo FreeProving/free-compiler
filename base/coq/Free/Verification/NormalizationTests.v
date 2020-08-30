@@ -1,6 +1,7 @@
 (** * Test module for normalization of effectful programs. *)
 
 From Base Require Import Free.
+From Base Require Import Free.HandlerInstances.
 From Base Require Import Free.Instance.Identity.
 From Base Require Import Free.Instance.Maybe.
 From Base Require Import Free.Instance.ND.
@@ -30,27 +31,6 @@ Definition evalMaybe {A : Type} p
 (* Shortcut to evaluate a program with partiality and non-determinism. *)
 Definition evalNDMaybe {A : Type} p
 := @evalND (option A) (runMaybe p).
-
-(* Handle a non-deterministic program after normalization. *)
-Definition evalNDNF {A B : Type} 
-                    `{Normalform _ _ A B}
-  p := evalND (nf p).
-
-(* Handle a traced program after normalization. *)
-Definition evalTracingNF {A B : Type} 
-                         `{Normalform _ _ A B} p
-  := evalTracing (nf p).
-
-(* Handle a possibly partial program after normalization. *)
-Definition evalMaybeNF {A B : Type} 
-                       `{Normalform _ _ A B} p
-  := evalMaybe (nf p).
-
-(* Handle a possibly partial or non-deterministic program after 
-   normalization. *)
-Definition evalNDMaybeNF {A B : Type}
-                         `{Normalform _ _ A B} p 
-:= evalNDMaybe (nf p).
 
 (* Shortcuts for the Identity effect (i.e. the lack of an effect). *)
 Definition IdS := Identity.Shape.
@@ -254,10 +234,10 @@ Fixpoint list_is_impure (Shape : Type) (Pos : Shape -> Type)
    Only the effect stack is changed, but since the result only contains pure
    values, the effect stack is irrelevant. *)
 Example rootEffectTracing : eqTracedList (evalTracing rootTracedList)
-                                         (evalTracingNF rootTracedList).
+                                         (handle rootTracedList).
 Proof. repeat (split || reflexivity). Qed.
 
-Example rootEffectND : eqNDList (evalND rootNDList) (evalNDNF rootNDList).
+Example rootEffectND : eqNDList (evalND rootNDList) (handle rootNDList).
 Proof. repeat (split || reflexivity). Qed.
 
 (* Handling tracing in a list without normalization causes 
@@ -278,24 +258,24 @@ Proof. easy. Qed.
 
 (* [true, trace "compoment effect" false]
    --> ([true,false],["component effect"]*)
-Example componentEffectTracing : evalTracingNF traceList =
+Example componentEffectTracing : handle traceList =
   ((List.cons (True_ IdS IdP) (Cons IdS IdP (False_ IdS IdP) (Nil IdS IdP))),
    ["component effect"%string]).
 Proof. constructor. Qed.
 
 (* [true, coin] --> [[true,true], [true,false]] *)
-Example componentEffectND : evalNDNF coinList
+Example componentEffectND : handle coinList
  = [(List.cons (True_ IdS IdP) (Cons IdS IdP (True_ IdS IdP) (Nil IdS IdP)));
     (List.cons (True_ IdS IdP) (Cons IdS IdP (False_ IdS IdP) (Nil IdS IdP)))].
 Proof. constructor. Qed.
 
 (* [true, undefined] --> undefined *)
-Example componentEffectPartial : evalMaybeNF (partialList MaybePartial)
+Example componentEffectPartial : handle (partialList MaybePartial)
  = None.
 Proof. constructor. Qed.
 
 (* [true, false ? undefined] --> [[true,false], undefined] *)
-Example componentEffectPartialND : evalNDMaybeNF (partialCoinList MaybePartial)
+Example componentEffectPartialND : handle (partialCoinList MaybePartial)
  = [Some (List.cons (True_ IdS IdP) (Cons IdS IdP (False_ IdS IdP) (Nil IdS IdP)));
     None].
 Proof. constructor. Qed.
@@ -304,20 +284,20 @@ Proof. constructor. Qed.
 
 (* Non-strictness should be preserved, so no tracing should occur.
    headOrFalse [true, trace "component effect" false] --> (true,[]) *)
-Example nonStrictnessNoTracing : evalTracingNF (headOrFalse traceList)
+Example nonStrictnessNoTracing : handle (headOrFalse traceList)
  = (true, []).
 Proof. constructor. Qed.
 
 (* Non-strictness should be preserved, so no non-determinism should occur.
    headOrFalse [true,coin] --> [true] *)
-Example nonStrictnessNoND : evalNDNF (headOrFalse coinList)
+Example nonStrictnessNoND : handle (headOrFalse coinList)
  = [true].
 Proof. constructor. Qed.
 
 (* Evaluating the defined part of a partial list is still possible.
    headOrFalse [true,undefined] --> true *)
 (* Since Maybe is still handled, the actual result should be Some true. *)
-Example nonStrictnessPartiality : evalMaybeNF 
+Example nonStrictnessPartiality : handle 
                                     (headOrFalse 
                                       (partialList MaybePartial))
  = Some true.
@@ -326,7 +306,7 @@ Proof. constructor. Qed.
 (* headOrFalse [true, false ? undefined] --> true *)
 (* Since non-determinism and Maybe are still handled, the actual 
    result should be [Some true]. *)
-Example nonStrictnessNDPartiality : evalNDMaybeNF 
+Example nonStrictnessNDPartiality : handle 
                                     (headOrFalse 
                                       (partialCoinList MaybePartial))
  = [Some true].
@@ -336,14 +316,14 @@ Proof. constructor. Qed.
 
 (* trace "root effect" [true, trace "component effect" false] 
    --> ([true,false], ["root effect", "component effect"])*)
-Example rootAndComponentEffectTracing : evalTracingNF tracedTraceList
+Example rootAndComponentEffectTracing : handle tracedTraceList
  = (List.cons (True_ IdS IdP) 
               (List.Cons IdS IdP (False_ IdS IdP) (Nil IdS IdP)),
     ["root effect"%string; "component effect"%string]).
 Proof. constructor. Qed.
 
 (* [] ? [true, coin] --> [[], [true,true], [true,false]] *)
-Example rootAndComponentEffectND : evalNDNF NDCoinList
+Example rootAndComponentEffectND : handle NDCoinList
  = [List.nil;
    (List.cons (True_ IdS IdP) (Cons IdS IdP (True_ IdS IdP) (Nil IdS IdP)));
    (List.cons (True_ IdS IdP) (Cons IdS IdP (False_ IdS IdP) (Nil IdS IdP)))].
@@ -364,7 +344,7 @@ Proof. constructor. Qed.
    first element, the results should be false and true.
    headOrFalse ([] ? [true, coin]) --> [false,true] *)
 Example nonStrictnessRootAndComponentND 
- : evalNDNF (headOrFalse NDCoinList) 
+ : handle (headOrFalse NDCoinList) 
  = [false;true].
 Proof. constructor. Qed.
 
@@ -372,7 +352,7 @@ Proof. constructor. Qed.
 
 (* [[true,trace "component effect" false]]
    --> ([[true,false]],["component effect"]) *)
-Example deepEffectTracing : evalTracingNF deepTraceList
+Example deepEffectTracing : handle deepTraceList
  = (List.cons ((List.Cons IdS IdP (True_ IdS IdP) 
                                  (Cons IdS IdP (False_ IdS IdP) 
                                                (Nil IdS IdP)))) 
@@ -381,7 +361,7 @@ Example deepEffectTracing : evalTracingNF deepTraceList
 Proof. constructor. Qed.
 
 (* [[true, true ? false]] --> [[[true,true]],[[true,false]]] *)
-Example deepEffectND : evalNDNF deepCoinList
+Example deepEffectND : handle deepCoinList
  = [List.cons ((List.Cons IdS IdP (True_ IdS IdP) 
                                   (Cons IdS IdP (True_ IdS IdP) 
                                                 (Nil IdS IdP)))) 
