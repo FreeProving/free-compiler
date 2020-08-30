@@ -15,6 +15,7 @@ module FreeC.Environment
   , removeDecArg
     -- * Modifying Entries in the Environment
   , modifyEntryIdent
+  , changeStrategy
     -- * Looking up Entries from the Environment
   , lookupEntry
   , isFunction
@@ -38,7 +39,6 @@ module FreeC.Environment
   , lookupDecArg
   , lookupDecArgIndex
   , lookupDecArgIdent
-  , changeStrategy
   ) where
 
 import           Data.Composition                  ( (.:), (.:.) )
@@ -145,6 +145,10 @@ modifyEntryIdent
 modifyEntryIdent scope name newIdent env = case lookupEntry scope name env of
   Nothing    -> env
   Just entry -> addEntry (entry { entryIdent = newIdent }) env
+
+-- | Changes the strategy in the environment to the given strategy.
+changeStrategy :: Strategy -> Environment -> Environment
+changeStrategy strat env = env { envStrategy = strat }
 
 -------------------------------------------------------------------------------
 -- Looking up Entries from the Environment                                   --
@@ -312,10 +316,3 @@ lookupDecArgIndex = fmap fst .: lookupDecArg
 -- | Like 'lookupDecArg' but returns the decreasing argument's name only.
 lookupDecArgIdent :: IR.QName -> Environment -> Maybe String
 lookupDecArgIdent = fmap snd .: lookupDecArg
-
--------------------------------------------------------------------------------
--- Changing the Strategy in the Environment                                  --
--------------------------------------------------------------------------------
--- | Changes the strategy in the environment to the given strategy.
-changeStrategy :: Strategy -> Environment -> Environment
-changeStrategy strat env = env { envStrategy = strat }
