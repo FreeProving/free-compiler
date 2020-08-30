@@ -241,16 +241,22 @@ generateAllInstances dataDecls = do
     -> Converter [Coq.Sentence]
   buildInstances recTypeList functionPrefix className getBindersAndReturnTypes
     buildValue = do
+      -- The names of the top-level functions must be defined outside of a local
+      -- environment to prevent any clashes with other names.
       topLevelMap
         <- nameFunctionsAndInsert functionPrefix emptyTypeMap declTypes
-      typeLevelMaps <- mapM (nameFunctionsAndInsert functionPrefix topLevelMap)
-        recTypeList
       -- top-level variables, one for each dataDecl
-      topLevelVars <- freshQualids (length declTypes) "x"
-      topLevelBindersAndReturnTypes <- mapM (uncurry getBindersAndReturnTypes)
-        (zip declTypes topLevelVars)
-      functionDefinitions <- buildFunctions topLevelVars typeLevelMaps
-        topLevelBindersAndReturnTypes
+      (typeLevelMaps, topLevelBindersAndReturnTypes, functionDefinitions) <- (localEnv $ do 
+            typeLevelMaps <- mapM (nameFunctionsAndInsert functionPrefix topLevelMap)
+                recTypeList
+            topLevelVars <- freshQualids (length declTypes) "x"
+            topLevelBindersAndReturnTypes <- mapM (uncurry getBindersAndReturnTypes)
+                (zip declTypes topLevelVars)
+            funcDefs <- buildFunctions topLevelVars typeLevelMaps
+                topLevelBindersAndReturnTypes
+            return (typeLevelMaps, topLevelBindersAndReturnTypes, funcDefs))
+      -- The instance must also be defined outside of a local environment so
+      -- that the instance name does not clash with any other names.
       instanceDefinitions <- mapM (uncurry (uncurry buildInstance'))
         (zip (zip typeLevelMaps declTypes) topLevelBindersAndReturnTypes)
       return (functionDefinitions : instanceDefinitions)
@@ -259,7 +265,7 @@ generateAllInstances dataDecls = do
                    -> IR.Type
                    -> ([Coq.Binder], Coq.Binder, Coq.Term, Coq.Term)
                    -> Converter Coq.Sentence
-    buildInstance' m t (binders, _, _, retType) = localEnv $ do
+    buildInstance' m t (binders, _, _, retType) = do
       -- @nf' := nf'T@
       let instanceBody
             = (Coq.bare functionPrefix, Coq.Qualid (fromJust (lookupType t m)))
@@ -328,7 +334,9 @@ generateAllInstances dataDecls = do
       let retType = entryReturnType conEntry
       let conIdent = entryIdent conEntry -- :: Qualid
       conArgIdents <- freshQualids (entryArity conEntry) "fx"
-      subst <- unifyOrFail NoSrcSpan t retType
+      -- Replace all underscores with fresh variables before unification.
+      tFreshVars <- insertFreshVariables t
+      subst <- unifyOrFail NoSrcSpan tFreshVars retType
       let modArgTypes = map (stripType . (applySubst subst))
             (entryArgTypes conEntry)
       let lhs = Coq.ArgsPat conIdent (map Coq.QualidPat conArgIdents)
@@ -468,6 +476,22 @@ toCoqType varPrefix extraArgs (IR.TypeApp _ l r) = do
   return (Coq.app l' [r'], varsl ++ varsr)
 toCoqType _ _ (IR.FuncType _ _ _)
   = error "Function types should have been eliminated."
+  
+  
+-- Replaces all variables ("don't care" values) with
+-- fresh variables.
+insertFreshVariables :: IR.Type -> Converter IR.Type
+insertFreshVariables (IR.TypeVar srcSpan _) = do 
+    freshVar <- freshHaskellIdent freshArgPrefix
+    return (IR.TypeVar srcSpan freshVar)
+insertFreshVariables (IR.TypeApp srcSpan l r) = do
+    lFresh <- insertFreshVariables l
+    rFresh <- insertFreshVariables r
+    return (IR.TypeApp srcSpan lFresh rFresh)
+-- Type constructors are returned as-is.
+-- Function types should not occur, but are also simply returned.
+insertFreshVariables t = return t
+
 
 ----------- Functions specific to a typeclass ------------
 ------- Functions for building Normalform instances -------
@@ -543,8 +567,7 @@ insertType k v m = \t -> if k == t then Just v else m t
 -- Creates an entry with a unique name for each of the given types and 
 -- inserts them into the given map. 
 nameFunctionsAndInsert :: String -> TypeMap -> [IR.Type] -> Converter TypeMap
-nameFunctionsAndInsert prefix m ts = localEnv
-  $ foldM (nameFunctionAndInsert prefix) m ts
+nameFunctionsAndInsert prefix m ts = foldM (nameFunctionAndInsert prefix) m ts
 
 -- Like `nameFunctionsAndInsert`, but for a single type.
 nameFunctionAndInsert :: String -> TypeMap -> IR.Type -> Converter TypeMap
