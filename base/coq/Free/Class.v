@@ -1,3 +1,4 @@
+From Base Require Export Free.Class.Handler.
 From Base Require Export Free.Class.Injectable.
 From Base Require Export Free.Class.Normalform.
 From Base Require Export Free.Class.Partial.
