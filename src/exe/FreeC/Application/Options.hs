@@ -2,9 +2,10 @@
 --   that stores the values of the command line options.
 module FreeC.Application.Options ( Options(..), makeDefaultOptions ) where
 
-import           Paths_free_compiler ( getDataFileName )
+import           Paths_free_compiler        ( getDataFileName )
 
 import {-# SOURCE #-} FreeC.Backend
+import           FreeC.Environment.Strategy
 import {-# SOURCE #-} FreeC.Frontend
 
 -- | Data type that stores the command line options passed to the compiler.
@@ -70,5 +71,5 @@ makeDefaultOptions = do
     , optDumpTransformedModulesDir = Nothing
     , optFrontend                  = defaultFrontend
     , optBackend                   = defaultBackend
-    , optStrategy                  = "cbn"
+    , optStrategy                  = defaultStrategy
     }

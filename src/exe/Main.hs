@@ -69,9 +69,11 @@ compiler = do
     putDebug "No input file.\n"
     putUsageInfo
     exitSuccess
-  -- Select frontend and backend
+  -- Select frontend and backend.
   frontend <- selectFrontend
   backend <- selectBackend
+  -- Select evaluation strategy.
+  selectStrategy
   -- Initialize environment.
   loadPrelude
   loadQuickCheck
@@ -122,11 +124,13 @@ selectBackend = do
 selectStrategy :: Application ()
 selectStrategy = do
   name <- inOpts optStrategy
-  case Map.lookup name strategies of
+  case Map.lookup name strategyMap of
     Nothing    -> reportFatal
       $ Message NoSrcSpan Error
       $ "Unrecognized evaluation strategy."
-      ++ "Allowed values are `cbn`(call-by-name/need) and `cbv`(call-by-value)."
+      ++ "Allowed values are: "
+      ++ showStrategies
+      ++ "."
     Just strat -> modifyEnv $ changeStrategy strat
 
 -------------------------------------------------------------------------------

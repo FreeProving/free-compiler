@@ -87,7 +87,7 @@ emptyEnv = Environment   -- Modules
   , envEntries          = Map.empty
   , envDecArgs          = Map.empty
   , envFreshIdentCount  = Map.empty
-  , envStrategy         = CallByNameOrNeed
+  , envStrategy         = undefined -- always set before evaluation
   }
 
 -------------------------------------------------------------------------------

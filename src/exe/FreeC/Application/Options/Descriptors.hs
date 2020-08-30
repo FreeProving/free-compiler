@@ -7,6 +7,7 @@ import           System.Console.GetOpt
 
 import           FreeC.Application.Options
 import           FreeC.Backend
+import           FreeC.Environment.Strategy
 import           FreeC.Frontend
 
 -- | The command line option descriptors from the @GetOpt@ library for the
@@ -82,10 +83,9 @@ optionDescriptors
                  ])
     , Option [] ["strategy"]
         (ReqArg (\p opts -> opts { optStrategy = p }) "STRAT")
-        (unlines
-         [ "Optional. Specifies which evaluation strategy"
-         , "the resulting program will use."
-         , "Allowed values are: `cbn`(call-by-need/name) and `cbv`(call-by-value)."
-         , "Defaults to `cbn`."
-         ])
+        (unlines [ "Optional. Specifies which evaluation strategy the resulting"
+                 , "program will use. Allowed values are: "
+                 , showStrategies ++ "."
+                 , "Defaults to `" ++ defaultStrategy ++ "`."
+                 ])
     ]
