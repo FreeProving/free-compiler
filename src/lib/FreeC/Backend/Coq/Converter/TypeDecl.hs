@@ -417,7 +417,7 @@ buildNormalformValue nameMap consName = buildNormalformValue' []
         nx <- Coq.bare <$> freshCoqIdent "nx"
         rhs <- buildNormalformValue' (nx : vals) consVars
         let c = Coq.fun [nx] [Nothing] rhs
-        let c'' = applyBind (Coq.app (Coq.Qualid funcName) [(Coq.Qualid x)]) c
+        let c'' = applyBind (Coq.app (Coq.Qualid funcName) [Coq.Qualid x]) c
         return $ applyBind (Coq.Qualid varName) (Coq.fun [x] [Nothing] c'')
       Nothing       -> do
         nx <- Coq.bare <$> freshCoqIdent "nx"
@@ -497,7 +497,7 @@ idShapeAndPos = map Coq.Qualid Coq.Base.idShapeAndPos
 -- buildConstraint name [a1 ... an] = `{name Shape Pos a1 ... an}.
 buildConstraint :: String -> [Coq.Qualid] -> Coq.Binder
 buildConstraint ident args = Coq.Generalized Coq.Implicit
-  (Coq.app (Coq.Qualid (Coq.bare ident)) (shapeAndPos ++ (map Coq.Qualid args)))
+  (Coq.app (Coq.Qualid (Coq.bare ident)) (shapeAndPos ++ map Coq.Qualid args))
 
 -- converts our type into a Coq type (a term) with new variables for all don't care values.
 -- We can also choose the prefix for those variables.
