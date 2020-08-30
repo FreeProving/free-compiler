@@ -70,12 +70,15 @@ freeArgs = [ (Coq.bare "Shape", Coq.Sort Coq.Type)
                , Coq.Arrow (Coq.Qualid (Coq.bare "Shape")) (Coq.Sort Coq.Type)
                )
            ]
+
 -- | The names of the parameters that mus be passed to the @Free@ monad.
 shapeAndPos :: [Coq.Qualid]
 shapeAndPos = map fst freeArgs
 
 -- | The shape and position function representing the Identity monad.
-idShapeAndPos = [Coq.qualified "Identity" "Shape", Coq.qualified "Identity" "Pos"]
+idShapeAndPos :: [Coq.Qualid]
+idShapeAndPos
+  = [Coq.qualified "Identity" "Shape", Coq.qualified "Identity" "Pos"]
 
 -------------------------------------------------------------------------------
 -- Partiality                                                                --

@@ -3,7 +3,7 @@
 module FreeC.Backend.Coq.Converter.TypeDecl where
 
 import           Control.Monad
-  ( foldM, mapAndUnzipM, replicateM )
+  ( foldM, mapAndUnzipM, replicateM, zipWithM )
 import           Control.Monad.Extra              ( concatMapM )
 import           Data.List                        ( nub, partition )
 import qualified Data.List.NonEmpty               as NonEmpty
@@ -211,11 +211,10 @@ convertDataDecl (IR.TypeSynDecl _ _ _ _)
 -- builds instances for all available typeclasses (currently Normalform)
 generateAllInstances :: [IR.TypeDecl] -> Converter [Coq.Sentence]
 generateAllInstances dataDecls = do
-  let argTypes = map (\tDecl -> concatMap IR.conDeclFields
-                      (IR.dataDeclCons tDecl)) dataDecls -- TODO remove lambda  :: [[IR.Type]]
+  let argTypes = map (concatMap IR.conDeclFields . IR.dataDeclCons) dataDecls -- :: [[IR.Type]]
   argTypesExpanded
     <- mapM (mapM expandAllTypeSynonyms) argTypes -- :: [[IR.Type]]
-  let types = map (nub . reverse . (concatMap collectSubTypes)) argTypesExpanded
+  let types = map (nub . reverse . concatMap collectSubTypes) argTypesExpanded
   let recTypeList = map
         (filter (\t -> not (t `elem` declTypes || IR.isTypeVar t))) types
   buildInstances recTypeList "nf'" "Normalform" nfBindersAndReturnType
@@ -246,26 +245,26 @@ generateAllInstances dataDecls = do
         <- nameFunctionsAndInsert functionPrefix emptyTypeMap declTypes
       -- top-level variables, one for each dataDecl
       (typeLevelMaps, topLevelBindersAndReturnTypes, functionDefinitions)
-        <- (localEnv $ do
-              typeLevelMaps <- mapM
-                (nameFunctionsAndInsert functionPrefix topLevelMap) recTypeList
-              topLevelVars <- freshQualids (length declTypes) "x"
-              topLevelBindersAndReturnTypes <- mapM
-                (uncurry getBindersAndReturnTypes) (zip declTypes topLevelVars)
-              funcDefs <- buildFunctions topLevelVars typeLevelMaps
-                topLevelBindersAndReturnTypes
-              return (typeLevelMaps, topLevelBindersAndReturnTypes, funcDefs))
+        <- localEnv $ do
+          typeLevelMaps <- mapM
+            (nameFunctionsAndInsert functionPrefix topLevelMap) recTypeList
+          topLevelVars <- freshQualids (length declTypes) "x"
+          topLevelBindersAndReturnTypes
+            <- zipWithM getBindersAndReturnTypes declTypes topLevelVars
+          funcDefs <- buildFunctions topLevelVars typeLevelMaps
+            topLevelBindersAndReturnTypes
+          return (typeLevelMaps, topLevelBindersAndReturnTypes, funcDefs)
       -- The instance must also be defined outside of a local environment so
       -- that the instance name does not clash with any other names.
-      instanceDefinitions <- mapM (uncurry (uncurry buildInstance'))
-        (zip (zip typeLevelMaps declTypes) topLevelBindersAndReturnTypes)
+      instanceDefinitions <- zipWithM (uncurry buildInstance)
+        (zip typeLevelMaps declTypes) topLevelBindersAndReturnTypes
       return (functionDefinitions : instanceDefinitions)
    where
-    buildInstance' :: TypeMap
-                   -> IR.Type
-                   -> ([Coq.Binder], Coq.Binder, Coq.Term, Coq.Term)
-                   -> Converter Coq.Sentence
-    buildInstance' m t (binders, _, _, retType) = do
+    buildInstance :: TypeMap
+                  -> IR.Type
+                  -> ([Coq.Binder], Coq.Binder, Coq.Term, Coq.Term)
+                  -> Converter Coq.Sentence
+    buildInstance m t (binders, _, _, retType) = do
       -- @nf' := nf'T@
       let instanceBody
             = (Coq.bare functionPrefix, Coq.Qualid (fromJust (lookupType t m)))
@@ -279,10 +278,10 @@ generateAllInstances dataDecls = do
                    -> [([Coq.Binder], Coq.Binder, Coq.Term, Coq.Term)]
                    -> Converter Coq.Sentence
     buildFunctions topLevelVars typeLevelMaps topLevelBindersAndReturnTypes = do
-      fixBodies <- mapM
-        (uncurry (uncurry (uncurry (uncurry makeFixBody)))) -- TODO Refactor this!
-        (zip (zip (zip (zip typeLevelMaps topLevelVars) declTypes)
-              topLevelBindersAndReturnTypes) recTypeList)
+      fixBodies <- zipWithM
+        (uncurry (uncurry (uncurry makeFixBody))) -- TODO Refactor more?
+        (zip (zip (zip typeLevelMaps topLevelVars) declTypes)
+         topLevelBindersAndReturnTypes) recTypeList
       return
         $ Coq.FixpointSentence (Coq.Fixpoint (NonEmpty.fromList fixBodies) [])
 
@@ -337,7 +336,7 @@ generateAllInstances dataDecls = do
       -- Replace all underscores with fresh variables before unification.
       tFreshVars <- insertFreshVariables t
       subst <- unifyOrFail NoSrcSpan tFreshVars retType
-      let modArgTypes = map (stripType . (applySubst subst))
+      let modArgTypes = map (stripType . applySubst subst)
             (entryArgTypes conEntry)
       let lhs = Coq.ArgsPat conIdent (map Coq.QualidPat conArgIdents)
       rhs <- buildValue m conIdent (zip modArgTypes conArgIdents)
@@ -380,8 +379,7 @@ generateAllInstances dataDecls = do
     r'                  -> IR.TypeApp NoSrcSpan (stripType' l True) r'
   -- Type variables and function types are not relevant and are replaced by "_".
   stripType' _ _ = IR.TypeVar NoSrcSpan "_"
-  
-  
+
 ----------- Functions specific to a typeclass ------------
 ------- Functions for building Normalform instances -------
 -- regular binders, top-level variable binder, return type of function belonging to type, class name
@@ -393,10 +391,9 @@ nfBindersAndReturnType t varName = do
   (sourceType, sourceVars) <- toCoqType "a" shapeAndPos t
   (targetType, targetVars) <- toCoqType "b" idShapeAndPos t
   let constraints = map (buildConstraint "Normalform")
-        (zipWith (\v1 v2 -> [v1] ++ [v2]) sourceVars targetVars)
-  let varBinders = if null sourceVars
-        then []
-        else [typeBinder (sourceVars ++ targetVars)]
+        (zipWith (\v1 v2 -> [v1, v2]) sourceVars targetVars)
+  let varBinders
+        = [typeBinder (sourceVars ++ targetVars) | not (null sourceVars)]
   let binders = freeArgsBinders ++ varBinders ++ constraints
   let topLevelVarBinder = Coq.typedBinder' Coq.Explicit varName sourceType
   let instanceRetType = Coq.app (Coq.Qualid (Coq.bare "Normalform"))
@@ -427,9 +424,8 @@ buildNormalformValue nameMap consName = buildNormalformValue' []
         rhs <- buildNormalformValue' (nx : vals) consVars
         let cont = Coq.fun [nx] [Nothing] rhs
         return
-          $ applyBind (Coq.app (Coq.Qualid (Coq.bare "nf"))
-                       [(Coq.Qualid varName)]) cont
-                       
+          $ applyBind
+          (Coq.app (Coq.Qualid (Coq.bare "nf")) [Coq.Qualid varName]) cont
 
 ---------------- Helper functions for types -----------------
 -- Like showPretty, but uses the Coq identifiers of the type and its components.
@@ -439,7 +435,7 @@ showPrettyType :: IR.Type -> Converter String
 showPrettyType (IR.TypeVar _ varName) = return (showPretty varName)
 -- For a type constructor, return its Coq identifier as a string.
 showPrettyType (IR.TypeCon _ conName) = fromJust . (>>= Coq.unpackQualid)
-  <$> (inEnv $ lookupIdent IR.TypeScope conName)
+  <$> inEnv (lookupIdent IR.TypeScope conName)
 -- For a type application, convert both sides and concatenate them.
 showPrettyType (IR.TypeApp _ l r)     = do
   lPretty <- showPrettyType l
@@ -487,8 +483,7 @@ applyBind mx f = Coq.app (Coq.Qualid Coq.Base.freeBind) [mx, f]
 
 -- Given an A, returns Free Shape Pos A
 applyFree :: Coq.Term -> Coq.Term
-applyFree a = Coq.app (Coq.Qualid Coq.Base.free)
-  ((map (Coq.Qualid . fst) Coq.Base.freeArgs) ++ [a])
+applyFree a = Coq.app (Coq.Qualid Coq.Base.free) (shapeAndPos ++ [a])
 
 -- [Shape, Pos]
 shapeAndPos :: [Coq.Term]
@@ -502,8 +497,7 @@ idShapeAndPos = map Coq.Qualid Coq.Base.idShapeAndPos
 -- buildConstraint name [a1 ... an] = `{name Shape Pos a1 ... an}.
 buildConstraint :: String -> [Coq.Qualid] -> Coq.Binder
 buildConstraint ident args = Coq.Generalized Coq.Implicit
-  (Coq.app (Coq.Qualid (Coq.bare ident))
-   ((map (Coq.Qualid . fst) Coq.Base.freeArgs) ++ (map Coq.Qualid args)))
+  (Coq.app (Coq.Qualid (Coq.bare ident)) (shapeAndPos ++ (map Coq.Qualid args)))
 
 -- converts our type into a Coq type (a term) with new variables for all don't care values.
 -- We can also choose the prefix for those variables.
@@ -539,12 +533,12 @@ lookupType :: IR.Type -> TypeMap -> Maybe Coq.Qualid
 lookupType = flip ($)
 
 insertType :: IR.Type -> Coq.Qualid -> TypeMap -> TypeMap
-insertType k v m = \t -> if k == t then Just v else m t
+insertType k v m t = if k == t then Just v else m t
 
 -- Creates an entry with a unique name for each of the given types and 
 -- inserts them into the given map. 
 nameFunctionsAndInsert :: String -> TypeMap -> [IR.Type] -> Converter TypeMap
-nameFunctionsAndInsert prefix m ts = foldM (nameFunctionAndInsert prefix) m ts
+nameFunctionsAndInsert prefix = foldM (nameFunctionAndInsert prefix)
 
 -- Like `nameFunctionsAndInsert`, but for a single type.
 nameFunctionAndInsert :: String -> TypeMap -> IR.Type -> Converter TypeMap
