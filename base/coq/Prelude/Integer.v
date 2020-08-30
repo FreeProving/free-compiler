@@ -94,26 +94,18 @@ Section SecInteger.
       n2 >>= fun(n2' : Integer') =>
         pure (Z.gtb n1' n2').
 
-(* Normalform instance *)
-
-  Definition nfInteger (n : Free' (Integer Shape Pos)) 
-    := n >>= (fun n' => pure n').
-
-  Lemma nf_impure_integer : forall s (pf : _ -> Free' (Integer Shape Pos)),
-      nfInteger (impure s pf) = impure s (fun p => nfInteger (pf p)).
-  Proof. trivial. Qed.
-
-  Lemma nf_pure_integer : forall (x : Integer Shape Pos),
-      nfInteger (pure x) = pure x.
-  Proof. trivial. Qed.
-
-  Global Instance NormalformInteger 
-    : Normalform Shape Pos (Integer Shape Pos) (Integer Identity.Shape Identity.Pos)
-   := {
-        nf := nfInteger;
-        nf_impure := nf_impure_integer;
-        nf' := pure;
-        nf_pure := nf_pure_integer
-      }.
-
 End SecInteger.
+
+(* Normalform instance for Integer *)
+
+Instance NormalformInteger (Shape : Type) (Pos : Shape -> Type) 
+  : Normalform Shape Pos (Integer Shape Pos) (Integer Identity.Shape Identity.Pos)
+  := { nf' := pure }.
+
+(* ShareableArgs instance for Integer *)
+
+Instance ShareableArgsInteger (Shape : Type) (Pos : Shape -> Type)
+  : ShareableArgs Shape Pos (Integer Shape Pos)
+ := {
+        shareArgs := pure
+    }.

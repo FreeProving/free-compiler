@@ -81,6 +81,13 @@ data Expr
            , lambdaEprRhs   :: Expr
            , exprTypeScheme :: Maybe TypeScheme
            }
+
+  | -- | A let expression.
+    Let { exprSrcSpan :: SrcSpan
+        , letExprBinds :: [Bind]
+        , letExprIn :: Expr
+        , exprTypeScheme :: Maybe TypeScheme
+        }
  deriving (Eq, Show)
 
 -- | Gets the type annotation of the given expression, but discards the
@@ -230,7 +237,7 @@ prettyExprPred' n expr@(Case _ scrutinee alts _)
   | otherwise
   = parens (prettyExprPred' 1 expr)
 
--- Parentheses can be omitted around @if@ and lambda abstractions at
+-- Parentheses can be omitted around @if@, @let@ and lambda abstractions at
 -- top-level only.
 prettyExprPred' 0 (If _ e1 e2 e3 _) =
   prettyString "if"
@@ -244,10 +251,17 @@ prettyExprPred' 0 (Lambda _ args expr _) =
     <>  hsep (map pretty args)
     <+> prettyString "->"
     <+> prettyExprPred 0 expr
+prettyExprPred' 0 (Let _ bs e _) =
+  prettyString "let"
+    <+> braces
+          (space <> prettySeparated (semi <> space) (map pretty bs) <> space)
+    <+> prettyString "in"
+    <+> prettyExprPred 0 e
 
 -- At all other levels, the parentheses cannot be omitted.
 prettyExprPred' _ expr@(If _ _ _ _ _  ) = parens (prettyExprPred' 0 expr)
 prettyExprPred' _ expr@(Lambda _ _ _ _) = parens (prettyExprPred' 0 expr)
+prettyExprPred' _ expr@(Let    _ _ _ _) = parens (prettyExprPred' 0 expr)
 
 -- Fix placement of visible type arguments in error terms.
 prettyExprPred' n (TypeAppExpr _ (ErrorExpr _ msg _) t _) | n <= 1 =
@@ -283,7 +297,7 @@ data Alt = Alt
   , altVarPats :: [VarPat]
   , altRhs     :: Expr
   }
- deriving (Eq, Show)
+  deriving (Eq, Show)
 
 -- | Pretty instance for @case@ expression alternatives.
 instance Pretty Alt where
@@ -305,7 +319,7 @@ data ConPat = ConPat
   { conPatSrcSpan :: SrcSpan
   , conPatName    :: ConName
   }
- deriving (Eq, Show)
+  deriving (Eq, Show)
 
 -- | Converts a constructor pattern to a constructor expression.
 conPatToExpr :: ConPat -> Expr
@@ -325,12 +339,12 @@ instance Pretty ConPat where
 --   The variable pattern can optionally have a type signature
 --   or be annotated by a @!@.
 data VarPat = VarPat
-  { varPatSrcSpan   :: SrcSpan
-  , varPatIdent     :: String
-  , varPatType      :: Maybe Type
-  , varPatIsStrict  :: Bool
+  { varPatSrcSpan  :: SrcSpan
+  , varPatIdent    :: String
+  , varPatType     :: Maybe Type
+  , varPatIsStrict :: Bool
   }
- deriving (Eq, Show)
+  deriving (Eq, Show)
 
 -- | Gets the name of the given variable pattern.
 varPatName :: VarPat -> Name
@@ -358,3 +372,20 @@ instance Pretty VarPat where
     parens (pretty varName <+> colon <> colon <+> pretty varType)
   pretty (VarPat _ varName (Just varType) True) =
     char '!' <> parens (pretty varName <+> colon <> colon <+> pretty varType)
+
+-------------------------------------------------------------------------------
+-- Binding inside a let clause                                               --
+-------------------------------------------------------------------------------
+
+-- | A binding of a variable to an expression inside of a let clause
+data Bind = Bind
+  { bindSrcSpan :: SrcSpan
+  , bindVarPat  :: VarPat
+  , bindExpr    :: Expr
+  }
+  deriving (Eq, Show)
+
+-- | Pretty instance for @let@ expression binds.
+instance Pretty Bind where
+  pretty (Bind _ varPat expr) =
+    pretty varPat <+> prettyString "=" <+> pretty expr

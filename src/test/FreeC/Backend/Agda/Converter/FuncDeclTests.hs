@@ -203,7 +203,7 @@ testConvertFuncDecls =
             ++ "    → List Shape Pos a"
             ++ "    → Free Shape Pos (List Shape Pos a)"
             , "foo pair bool list = case pair of λ { "
-            ++ "  (pair0 p4 p3) → p4 >>= λ p1 → p3 >>= λ p2 → case list of λ {"
+            ++ "  (pair0 p2 p3) → p2 >>= λ p1 → p3 >>= λ p2 → case list of λ {"
             ++ "    nil → bool >>= λ bool₁ → case bool₁ of λ { "
             ++ "      true  → Cons (pure p1) Nil ; "
             ++ "      false → Cons (pure p2) Nil"
@@ -239,4 +239,3 @@ testConvertFuncDecls =
             ++ "   nil → error \"head was called on a empty list\""
             ++ " }"
             ]
-

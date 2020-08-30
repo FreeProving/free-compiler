@@ -16,26 +16,18 @@ Section SecUnit.
   (* smart constructor *)
   Definition Tt : Free' Unit' := pure tt.
 
-  (* Normalform instance *)
-
-  Definition nfUnit (n : Free Shape Pos (Unit Shape Pos)) 
-    := n >>= (fun n' => pure n').
-
-  Lemma nf_impure_unit : forall s (pf : _ -> Free Shape Pos (Unit Shape Pos)),
-      nfUnit (impure s pf) = impure s (fun p => nfUnit (pf p)).
-  Proof. trivial. Qed.
-
-  Lemma nf_pure_unit : forall (x : Unit Shape Pos),
-      nfUnit (pure x) = pure x.
-  Proof. trivial. Qed.
-
-  Global Instance NormalformUnit 
-    : Normalform Shape Pos (Unit Shape Pos) (Unit Identity.Shape Identity.Pos)
-   := {
-        nf := nfUnit;
-        nf_impure := nf_impure_unit;
-        nf' := pure;
-        nf_pure := nf_pure_unit
-      }.
-
 End SecUnit.
+
+(* Normalform instance for Unit *)
+
+Instance NormalformUnit (Shape : Type) (Pos : Shape -> Type)
+  : Normalform Shape Pos (Unit Shape Pos) (Unit Identity.Shape Identity.Pos)
+  := { nf' := pure }.
+
+(* ShareableArgs instance for Unit *)
+
+Instance ShareableArgsUnit (Shape : Type) (Pos : Shape -> Type)
+  : ShareableArgs Shape Pos (Unit Shape Pos)
+ := {
+        shareArgs := pure
+    }.

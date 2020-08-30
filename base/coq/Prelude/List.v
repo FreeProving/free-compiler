@@ -1,5 +1,6 @@
 From Base Require Import Free.
 From Base Require Import Free.Instance.Identity.
+From Base Require Import Free.Malias.
 
 Require Import Coq.Program.Equality.
 
@@ -28,53 +29,57 @@ End SecList.
 Arguments nil  {Shape} {Pos} {A}.
 Arguments cons {Shape} {Pos} {A}.
 
-(* Normalform instance *)
+(* Normalform instance for lists *)
 
-Fixpoint nf'List (Shape : Type) (Pos : Shape -> Type)
-                   (A B : Type) 
-                   `{Normalform Shape Pos A B}
-                   (l : List Shape Pos A)
-  : Free Shape Pos (List Identity.Shape Identity.Pos B)
- := match l with
-     | nil => pure nil
-     | cons fx fxs => nf fx >>= fun nx =>
-                      fxs >>= fun xs =>
-                      nf'List Shape Pos A B xs >>= fun nxs =>
-                      pure (cons (pure nx) (pure nxs))
-     end.
+Section SecListNF.
 
-Definition nfList (Shape : Type) (Pos : Shape -> Type)
-                  (A B : Type)
-                  `{Normalform Shape Pos A B}
-                  (p : Free Shape Pos (List Shape Pos A))
-  : Free Shape Pos (List Identity.Shape Identity.Pos B)
- := p >>= (fun p' => nf'List Shape Pos A B p').
+  Variable Shape : Type.
+  Variable Pos : Shape -> Type.
 
-Lemma nf_impure_list (Shape : Type) (Pos : Shape -> Type)
-                     (A B : Type)
-                     `{Normalform Shape Pos A B}
-  : forall s (pf : _ -> Free Shape Pos (List Shape Pos A)),
-    nfList Shape Pos A B (impure s pf) 
-    = impure s (fun p => nfList Shape Pos A B (pf p)).
-Proof. trivial. Qed.
+  Variable A B : Type. 
 
-Lemma nf_pure_list (Shape : Type) (Pos : Shape -> Type)
-                   (A B : Type)
-                   `{Normalform Shape Pos A B}
-  : forall (x : List Shape Pos A),
-    nfList Shape Pos A B (pure x) = nf'List Shape Pos A B x.
-Proof. trivial. Qed.
+  Fixpoint nf'List  `{Normalform Shape Pos A B}
+                     (l : List Shape Pos A)
+    : Free Shape Pos (List Identity.Shape Identity.Pos B)
+   := match l with
+       | nil => pure nil
+       | cons fx fxs => nf fx >>= fun nx =>
+                        fxs >>= fun xs =>
+                        nf'List xs >>= fun nxs =>
+                        pure (cons (pure nx) (pure nxs))
+       end.
 
-Instance NormalformList (Shape : Type) (Pos : Shape -> Type) (A B : Type)
-                        `{Normalform Shape Pos A B}
-  : Normalform Shape Pos (List Shape Pos A) 
-                         (List Identity.Shape Identity.Pos B)
- := {
-      nf := nfList Shape Pos A B;
-      nf_impure := nf_impure_list Shape Pos A B;
-      nf' := nf'List Shape Pos A B;
-      nf_pure := nf_pure_list Shape Pos A B
-    }.
+  Global Instance NormalformList `{Normalform Shape Pos A B}
+    : Normalform Shape Pos (List Shape Pos A) 
+                           (List Identity.Shape Identity.Pos B)
+   := { nf' := nf'List }.
+
+End SecListNF.
+
+
+Section SecListShrArgs.
+
+Variable Shape : Type.
+Variable Pos : Shape -> Type.
+Variable A : Type.
+
+Fixpoint shareArgsList `{SA : ShareableArgs Shape Pos A}
+                       `{Injectable Share.Shape Share.Pos Shape Pos}
+                        (xs : List Shape Pos A)
+  : Free Shape Pos (List Shape Pos A)
+ := match xs with
+    | nil         => pure nil
+    | cons fy fys => cbneed Shape Pos (@shareArgs Shape Pos A SA) fy >>= fun sy =>
+                     cbneed Shape Pos shareArgsList fys >>= fun sys => 
+                     pure (cons sy sys)
+                         end.
+
+Global Instance ShareableArgsList `{Injectable Share.Shape Share.Pos Shape Pos}
+                           `{ShareableArgs Shape Pos A}
+  : ShareableArgs Shape Pos (List Shape Pos A)
+ := { shareArgs := shareArgsList }.
+
+End SecListShrArgs.
 
 (* Induction principle for lists *)
 

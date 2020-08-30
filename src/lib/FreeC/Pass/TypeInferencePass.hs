@@ -177,7 +177,9 @@ module FreeC.Pass.TypeInferencePass
 where
 
 import           Control.Monad.Fail             ( MonadFail )
-import           Control.Monad.Extra            ( zipWithM_ )
+import           Control.Monad.Extra            ( zipWithM_
+                                                , zipWithM
+                                                )
 import           Control.Monad.State            ( MonadState(..)
                                                 , StateT(..)
                                                 , evalStateT
@@ -228,12 +230,12 @@ typeInferencePass = mapComponentM inferFuncDeclTypes
 -- | A type equation and the location in the source that caused the creation
 --   of this type equation.
 data TypeEquation = TypeEquation
-  { eqnSrcSpan :: SrcSpan
+  { eqnSrcSpan       :: SrcSpan
     -- ^ The location in the source code of the expression that caused the
     --   creation of this type equation.
-  , eqnExpectedType :: IR.Type
+  , eqnExpectedType  :: IR.Type
     -- ^ The left-hand side of the type equation.
-  , eqnActualType :: IR.Type
+  , eqnActualType    :: IR.Type
     -- ^ The right-hand side of the type equation.
   , eqnRigidTypeVars :: [IR.TypeVarDecl]
     -- ^ Declarations of type variables that are bound by the type signature
@@ -262,16 +264,16 @@ type TypeAssumption = Map IR.QName IR.TypeScheme
 
 -- | The state that is passed implicitly between the modules of this module.
 data TypeInferenceState = TypeInferenceState
-  { typeEquations :: [TypeEquation]
+  { typeEquations  :: [TypeEquation]
     -- ^ The type equations that have to be unified.
-  , rigidTypeVars :: [IR.TypeVarDecl]
+  , rigidTypeVars  :: [IR.TypeVarDecl]
     -- ^ Declarations of type variables that are bound in the current context.
     --   This is used by 'annotateFuncDecls' to remember which type variables
     --   have to be inserted into 'eqnRigidTypeVars' by
     --   'addTypeEquation'.
   , typeAssumption :: TypeAssumption
     -- ^ The known type schemes of predefined functions and constructors.
-  , fixedTypeArgs :: Map IR.QName [IR.Type]
+  , fixedTypeArgs  :: Map IR.QName [IR.Type]
     -- ^ Maps function names to the types to instantiate their last type
     --   arguments with. This is used to instantiate additional type arguments
     --   in recursive functions correctly.
@@ -666,6 +668,21 @@ annotateExprWith' (IR.Lambda srcSpan args expr _) resType =
     addTypeEquation srcSpan funcType resType
     return (IR.Lambda srcSpan args' expr' (makeExprType resType))
 
+
+annotateExprWith' (IR.Let srcSpan binds expr _) resType =
+  withLocalTypeAssumption $ do
+    bindVarPats' <- mapM (annotateVarPat . IR.bindVarPat) binds
+    exprType     <- liftConverter freshTypeVar
+    binds''      <- zipWithM annotateBindExpr binds bindVarPats'
+    expr'        <- annotateExprWith expr exprType
+    return (IR.Let srcSpan binds'' expr' (makeExprType resType))
+ where
+  annotateBindExpr :: IR.Bind -> IR.VarPat -> TypeInference IR.Bind
+  annotateBindExpr (IR.Bind bindSrcSpan _ bindExpr) bindVarPat' = do
+    let Just bindType = IR.varPatType bindVarPat'
+    bindExpr' <- annotateExprWith bindExpr bindType
+    return (IR.Bind bindSrcSpan bindVarPat' bindExpr')
+
 -- | Utility function used by 'annotateExprWith' to construct the
 --   'IR.exprTypeScheme' field.
 --
@@ -771,6 +788,10 @@ applyExprVisibly (IR.Case srcSpan expr alts exprType) = do
   expr' <- applyExprVisibly expr
   alts' <- mapM applyAltVisibly alts
   return (IR.Case srcSpan expr' alts' exprType)
+applyExprVisibly (IR.Let srcSpan binds expr exprType) = do
+  binds' <- mapM applyBindVisibly binds
+  expr'  <- applyExprVisibly expr
+  return (IR.Let srcSpan binds' expr' exprType)
 applyExprVisibly (IR.Lambda srcSpan args expr exprType) =
   withLocalTypeAssumption $ do
     mapM_ removeVarPatFromTypeAssumption args
@@ -779,6 +800,12 @@ applyExprVisibly (IR.Lambda srcSpan args expr exprType) =
 
 -- Leave all literals unchanged.
 applyExprVisibly expr@(IR.IntLiteral _ _ _) = return expr
+
+-- | Applies 'applyExprVisibly' to the right-hand side of the given let binding.
+applyBindVisibly :: IR.Bind -> TypeInference IR.Bind
+applyBindVisibly (IR.Bind srcSpan varPat expr) = do
+  expr' <- applyExprVisibly expr
+  return (IR.Bind srcSpan varPat expr')
 
 -- | Applies 'applyExprVisibly' to the right-hand side of the given @case@-
 --   expression alternative.
@@ -900,6 +927,10 @@ abstractVanishingTypeArgs funcDecls =
     let funcNames' = withoutArgs args funcNames
         expr'      = addInternalTypeArgsToExpr funcNames' expr
     in  (IR.Lambda srcSpan args expr' exprType, [])
+  addInternalTypeArgsToExpr' funcNames (IR.Let srcSpan binds expr exprType) =
+    let funcNames' = withoutArgs (map IR.bindVarPat binds) funcNames
+        expr'      = addInternalTypeArgsToExpr funcNames' expr
+    in  (IR.Let srcSpan binds expr' exprType, [])
 
   -- Leave all other expressions unchanged.
   addInternalTypeArgsToExpr' _ expr@(IR.Con        _ _ _) = (expr, [])

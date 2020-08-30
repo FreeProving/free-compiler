@@ -1,5 +1,6 @@
 From Base Require Import Free.
 From Base Require Import Free.Instance.Identity.
+From Base Require Import Free.Malias.
 
 Section SecPair.
   Variable Shape : Type.
@@ -16,56 +17,59 @@ Section SecPair.
     : Free' (Pair A B) :=
     pure (pair_ x y).
 
+  (* First element *)
+  Definition fstPair {A B : Type} (fp : Free' (Pair A B)) 
+   : Free Shape Pos A
+  := fp >>= fun p => match p with
+                    | pair_ x _ => x
+                    end.
+
+  (* Second element *)
+  Definition sndPair {A B : Type} (fp : Free' (Pair A B)) 
+   : Free Shape Pos B
+  := fp >>= fun p => match p with
+                    | pair_ _ y => y
+                    end.
+
 End SecPair.
 
 Arguments pair_  {Shape} {Pos} {A} {B}.
 
-(* Normalform instance *)
+(* Normalform instance for Pair *)
+Section SecNFPair.
 
-Definition nf'Pair (Shape : Type) (Pos : Shape -> Type)
-                   (A B C D : Type) 
-                   `{Normalform Shape Pos A C}
-                   `{Normalform Shape Pos B D}
-                   (p : Pair Shape Pos A B)
-  : Free Shape Pos (Pair Identity.Shape Identity.Pos C D)
- := match p with
-     | pair_ fa fb => nf fa >>= fun na =>
-                      nf fb >>= fun nb =>
-                      pure (pair_ (pure na) (pure nb))
-     end.
+  Variable Shape : Type.
+  Variable Pos : Shape -> Type.
 
-Definition nfPair (Shape : Type) (Pos : Shape -> Type)
-                  (A B C D : Type)
-                  `{Normalform Shape Pos A C}
-                  `{Normalform Shape Pos B D}
-                  (p : Free Shape Pos (Pair Shape Pos A B))
-  : Free Shape Pos (Pair Identity.Shape Identity.Pos C D)
- := p >>= (fun p' => nf'Pair Shape Pos A B C D p').
+  Variable A B C D : Type.
 
-Lemma nf_impure_pair (Shape : Type) (Pos : Shape -> Type)
-                     (A B C D : Type)
-                     `{Normalform Shape Pos A C}
+  Definition nf'Pair `{Normalform Shape Pos A C}
                      `{Normalform Shape Pos B D}
-  : forall s (pf : _ -> Free Shape Pos (Pair Shape Pos A B)),
-    nfPair Shape Pos A B C D (impure s pf) = impure s (fun p => nfPair Shape Pos A B C D (pf p)).
-Proof. trivial. Qed.
+                     (p : Pair Shape Pos A B)
+    : Free Shape Pos (Pair Identity.Shape Identity.Pos C D)
+   := match p with
+       | pair_ fa fb => nf fa >>= fun na =>
+                        nf fb >>= fun nb =>
+                        pure (pair_ (pure na) (pure nb))
+       end.
 
-Lemma nf_pure_pair (Shape : Type) (Pos : Shape -> Type)
-                   (A B C D : Type)
-                   `{Normalform Shape Pos A C}
-                   `{Normalform Shape Pos B D}
-  : forall (x : Pair Shape Pos A B),
-    nfPair Shape Pos A B C D (pure x) = nf'Pair Shape Pos A B C D x.
-Proof. trivial. Qed.
+  Global Instance NormalformPair `{Normalform Shape Pos A C}
+                                 `{Normalform Shape Pos B D}
+    : Normalform Shape Pos (Pair Shape Pos A B) 
+                           (Pair Identity.Shape Identity.Pos C D)
+   := { nf' := nf'Pair }.
 
-Instance NormalformPair (Shape : Type) (Pos : Shape -> Type) (A B C D : Type)
-                        `{Normalform Shape Pos A C}
-                        `{Normalform Shape Pos B D}
-  : Normalform Shape Pos (Pair Shape Pos A B) 
-                         (Pair Identity.Shape Identity.Pos C D)
- := {
-      nf := nfPair Shape Pos A B C D;
-      nf_impure := nf_impure_pair Shape Pos A B C D;
-      nf' := nf'Pair Shape Pos A B C D;
-      nf_pure := nf_pure_pair Shape Pos A B C D
-    }.
+End SecNFPair.
+
+(* ShareableArgs instance for Pair *)
+Instance ShareableArgsPair {Shape : Type} {Pos : Shape -> Type} (A B : Type)
+                        `{Injectable Share.Shape Share.Pos Shape Pos}
+                        `{SAA : ShareableArgs Shape Pos A}
+                        `{SAB : ShareableArgs Shape Pos B}
+  : ShareableArgs Shape Pos (Pair Shape Pos A B) := {
+     shareArgs p := match p with
+                    | pair_ fx fy => cbneed Shape Pos (@shareArgs Shape Pos A SAA) fx >>= fun sx =>
+                                     cbneed Shape Pos (@shareArgs Shape Pos B SAB) fy >>= fun sy =>
+                                     (pure (pair_ sx sy)) 
+                    end
+   }.

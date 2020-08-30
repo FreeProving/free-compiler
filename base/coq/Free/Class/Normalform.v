@@ -5,17 +5,28 @@
 
 From Base Require Import Free.Monad.
 
-Class Normalform {Shape : Type} {Pos : Shape -> Type}
+Class Normalform (Shape : Type) (Pos : Shape -> Type)
                  (A B : Type) :=
   {
     (** The function is split into two parts due to termination check errors
-        for recrusive data types. *)
-    nf  : Free Shape Pos A -> Free Shape Pos B;
-    nf' : A -> Free Shape Pos B;
-    (** Property for moving nf into position functions *)
-    nf_impure: forall s (pf : _ -> Free Shape Pos A),
-        nf (impure s pf) = impure s (fun p => nf (pf p));
-    (** Property for unfolding nf on pure values *)
-    nf_pure : forall (x : A),
-        nf (pure x) = nf' x
+        for recursive data types. *)
+    nf' : A -> Free Shape Pos B
   }.
+
+Definition nf {Shape : Type} {Pos : Shape -> Type} {A B : Type}
+                  `{Normalform Shape Pos A B} (n : Free Shape Pos A)
+ : Free Shape Pos B
+:= n >>= nf'.
+
+Lemma nfImpure {Shape : Type} {Pos : Shape -> Type} {A B : Type}
+                     `{Normalform Shape Pos A B}
+  : forall s (pf : _ -> Free Shape Pos A), 
+  nf (impure s pf) = impure s (fun p => nf (pf p)).
+Proof. trivial. Qed.
+
+Lemma nfPure {Shape : Type} {Pos : Shape -> Type} {A B : Type}
+                     `{Normalform Shape Pos A B} : forall (x : A),
+  nf (pure x) = nf' x.
+Proof. trivial. Qed.
+
+
