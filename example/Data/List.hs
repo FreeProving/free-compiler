@@ -1,12 +1,10 @@
 -- This example contains definitions for commonly used list functions from
 -- the @Data.List@ module.
-
 module Data.List where
 
 -------------------------------------------------------------------------------
 -- Basic functions                                                           --
 -------------------------------------------------------------------------------
-
 -- | Append two lists, i.e.,
 --
 --   > [x1, ..., xm] ++ [y1, ..., yn] == [x1, ..., xm, y1, ..., yn]
@@ -45,7 +43,6 @@ length xs = case xs of
 -------------------------------------------------------------------------------
 -- List transformations                                                      --
 -------------------------------------------------------------------------------
-
 -- | @'map' f xs@ is the list obtained by applying @f@ to each
 --   element of @xs@, i.e.,
 --
@@ -81,7 +78,6 @@ intersperse sep xs = case xs of
 -------------------------------------------------------------------------------
 -- Reducing lists (folds)                                                    --
 -------------------------------------------------------------------------------
-
 -- | Left-associative fold of a structure.
 --
 --   In the case of lists, 'foldl', when applied to a binary operator, a
@@ -116,7 +112,6 @@ foldr1 f xs = case xs of
 -------------------------------------------------------------------------------
 -- Special folds                                                             --
 -------------------------------------------------------------------------------
-
 -- | The concatenation of all the elements of a list of lists.
 concat :: [[a]] -> [a]
 concat = foldr append []
@@ -148,7 +143,6 @@ minimum = foldr1 (\a b -> if a <= b then a else b)
 -------------------------------------------------------------------------------
 -- Zipping and unzipping lists                                               --
 -------------------------------------------------------------------------------
-
 -- | 'zip' takes two lists and returns a list of corresponding pairs.
 --
 --   > zip [1, 2] ['a', 'b'] = [(1, 'a'), (2, 'b')]

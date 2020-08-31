@@ -29,4 +29,8 @@ Lemma nfPure {Shape : Type} {Pos : Shape -> Type} {A B : Type}
   nf (pure x) = nf' x.
 Proof. trivial. Qed.
 
-
+(* Normalform instance for functions.
+   Effects inside of functions are not pulled to the root. *)
+Instance NormalformFunc (Shape : Type) (Pos : Shape -> Type) (A B : Type) 
+ : Normalform Shape Pos (A -> B) (A -> B) :=
+  { nf' := pure }.

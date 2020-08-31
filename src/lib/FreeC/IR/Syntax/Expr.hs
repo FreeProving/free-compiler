@@ -1,9 +1,8 @@
 -- | This module contains the definition of expressions for our intermediate
 --   language.
-
 module FreeC.IR.Syntax.Expr where
 
-import           Control.Monad                  ( (>=>) )
+import           Control.Monad              ( (>=>) )
 
 import           FreeC.IR.SrcSpan
 import           FreeC.IR.Syntax.Name
@@ -14,7 +13,6 @@ import           FreeC.Pretty
 -------------------------------------------------------------------------------
 -- Expressions                                                               --
 -------------------------------------------------------------------------------
-
 -- | An expression.
 data Expr
   = -- | A constructor.
@@ -22,73 +20,61 @@ data Expr
         , exprConName    :: ConName
         , exprTypeScheme :: Maybe TypeScheme
         }
-
-  | -- | A function or local variable.
-    Var { exprSrcSpan    :: SrcSpan
+    -- | A function or local variable.
+  | Var { exprSrcSpan    :: SrcSpan
         , exprVarName    :: VarName
         , exprTypeScheme :: Maybe TypeScheme
         }
-
-  | -- | Function or constructor application.
-    App { exprSrcSpan    :: SrcSpan
+    -- | Function or constructor application.
+  | App { exprSrcSpan    :: SrcSpan
         , exprAppLhs     :: Expr
         , exprAppRhs     :: Expr
         , exprTypeScheme :: Maybe TypeScheme
         }
-
-  | -- | Visible type application.
-    TypeAppExpr { exprSrcSpan    :: SrcSpan
+    -- | Visible type application.
+  | TypeAppExpr { exprSrcSpan    :: SrcSpan
                 , exprTypeAppLhs :: Expr
                 , exprTypeAppRhs :: Type
                 , exprTypeScheme :: Maybe TypeScheme
                 }
-
-  | -- | @if@ expression.
-    If { exprSrcSpan    :: SrcSpan
+    -- | @if@ expression.
+  | If { exprSrcSpan    :: SrcSpan
        , ifExprCond     :: Expr
        , ifExprThen     :: Expr
        , ifExprElse     :: Expr
        , exprTypeScheme :: Maybe TypeScheme
        }
-
-  | -- | @case@ expression.
-    Case { exprSrcSpan       :: SrcSpan
+    -- | @case@ expression.
+  | Case { exprSrcSpan       :: SrcSpan
          , caseExprScrutinee :: Expr
          , caseExprAlts      :: [Alt]
          , exprTypeScheme    :: Maybe TypeScheme
          }
-
-  | -- | Error term @undefined@.
-    Undefined { exprSrcSpan    :: SrcSpan
-              , exprTypeScheme :: Maybe TypeScheme
-              }
-
-  | -- | Error term @error "<message>"@.
-    ErrorExpr { exprSrcSpan    :: SrcSpan
+    -- | Error term @undefined@.
+  | Undefined { exprSrcSpan :: SrcSpan, exprTypeScheme :: Maybe TypeScheme }
+    -- | Error term @error "<message>"@.
+  | ErrorExpr { exprSrcSpan    :: SrcSpan
               , errorExprMsg   :: String
               , exprTypeScheme :: Maybe TypeScheme
               }
-
-  | -- | An integer literal.
-    IntLiteral { exprSrcSpan     :: SrcSpan
+    -- | An integer literal.
+  | IntLiteral { exprSrcSpan     :: SrcSpan
                , intLiteralValue :: Integer
                , exprTypeScheme  :: Maybe TypeScheme
                }
-
-  | -- | A lambda abstraction.
-    Lambda { exprSrcSpan    :: SrcSpan
+    -- | A lambda abstraction.
+  | Lambda { exprSrcSpan    :: SrcSpan
            , lambdaExprArgs :: [VarPat]
            , lambdaEprRhs   :: Expr
            , exprTypeScheme :: Maybe TypeScheme
            }
-
-  | -- | A let expression.
-    Let { exprSrcSpan :: SrcSpan
-        , letExprBinds :: [Bind]
-        , letExprIn :: Expr
+    -- | A let expression.
+  | Let { exprSrcSpan    :: SrcSpan
+        , letExprBinds   :: [Bind]
+        , letExprIn      :: Expr
         , exprTypeScheme :: Maybe TypeScheme
         }
- deriving (Eq, Show)
+ deriving ( Eq, Show )
 
 -- | Gets the type annotation of the given expression, but discards the
 --   @forall@.
@@ -123,22 +109,22 @@ untypedApp srcSpan e1 e2 = App srcSpan e1 e2 appType
   -- | If the given type scheme has the form @forall α₁ … αₙ. τ -> τ'@, the
   --   result has the form @forall α₁ … αₙ. τ'@. Returns @Nothing@ otherwise.
   maybeFuncResTypeScheme :: TypeScheme -> Maybe TypeScheme
-  maybeFuncResTypeScheme (TypeScheme srcSpan' typeArgs typeExpr) =
-    TypeScheme srcSpan' typeArgs <$> maybeFuncResType typeExpr
+  maybeFuncResTypeScheme (TypeScheme srcSpan' typeArgs typeExpr)
+    = TypeScheme srcSpan' typeArgs <$> maybeFuncResType typeExpr
 
   -- | If the given type scheme has the form @τ -> τ'@, the result has the
   --   form @τ'@. Returns @Nothing@ otherwise.
   maybeFuncResType :: Type -> Maybe Type
   maybeFuncResType (FuncType _ _ resType) = Just resType
-  maybeFuncResType _                      = Nothing
+  maybeFuncResType _ = Nothing
 
 -- | Smart constructor for 'TypeAppExpr' without the last argument.
 --
 --   The type annotation of the expression which is visibly applied is
 --   used to annotate the type of this expression.
 untypedTypeAppExpr :: SrcSpan -> Expr -> Type -> Expr
-untypedTypeAppExpr srcSpan expr typeExpr =
-  TypeAppExpr srcSpan expr typeExpr (exprTypeScheme expr)
+untypedTypeAppExpr srcSpan expr typeExpr = TypeAppExpr srcSpan expr typeExpr
+  (exprTypeScheme expr)
 
 -- | Creates an expression for applying the given expression to the provided
 --   arguments.
@@ -160,11 +146,10 @@ app = foldl . untypedApp
 --
 --   Since the type of the variable with the given name is not known,
 --   no type annotations will be generated.
-varApp
-  :: SrcSpan -- ^ The source span to insert into generated nodes.
-  -> VarName -- ^ The name of the function to apply.
-  -> [Expr]  -- ^ The arguments to pass to the function.
-  -> Expr
+varApp :: SrcSpan -- ^ The source span to insert into generated nodes.
+       -> VarName -- ^ The name of the function to apply.
+       -> [Expr]  -- ^ The arguments to pass to the function.
+       -> Expr
 varApp srcSpan = app srcSpan . untypedVar srcSpan
 
 -- | Creates a data constructor application expression.
@@ -174,11 +159,10 @@ varApp srcSpan = app srcSpan . untypedVar srcSpan
 --
 --   Since the type of the constructor with the given name is not known,
 --   no type annotations will be generated.
-conApp
-  :: SrcSpan -- ^ The source span to insert into generated nodes.
-  -> ConName -- ^ The name of the constructor to apply.
-  -> [Expr]  -- ^ The arguments to pass to the constructor.
-  -> Expr
+conApp :: SrcSpan -- ^ The source span to insert into generated nodes.
+       -> ConName -- ^ The name of the constructor to apply.
+       -> [Expr]  -- ^ The arguments to pass to the constructor.
+       -> Expr
 conApp srcSpan = app srcSpan . untypedCon srcSpan
 
 -- | Creates an expression for passing the type arguments of a function or
@@ -214,12 +198,12 @@ prettyExprPred :: Int -> Expr -> Doc
 -- capture the type annotation otherwise.
 prettyExprPred n expr = case exprTypeScheme expr of
   Nothing -> prettyExprPred' n expr
-  Just typeScheme | n == 0    -> prettyExpr
+  Just typeScheme | n == 0 -> prettyExpr
                   | otherwise -> parens prettyExpr
    where
     prettyExpr :: Doc
-    prettyExpr =
-      prettyExprPred' 1 expr <+> colon <> colon <+> pretty typeScheme
+    prettyExpr
+      = prettyExprPred' 1 expr <+> colon <> colon <+> pretty typeScheme
 
 -- | Like 'prettyExprPred' but ignores outermost type annotations.
 prettyExprPred' :: Int -> Expr -> Doc
@@ -228,98 +212,80 @@ prettyExprPred' :: Int -> Expr -> Doc
 -- expressions even if they are not at top-level. However, if they are
 -- used in function applications, parentheses are needed.
 prettyExprPred' n expr@(Case _ scrutinee alts _)
-  | n <= 1
-  = prettyString "case"
+  | n <= 1 = prettyString "case"
     <+> prettyExprPred 1 scrutinee
     <+> prettyString "of"
     <+> braces
-          (space <> prettySeparated (semi <> space) (map pretty alts) <> space)
-  | otherwise
-  = parens (prettyExprPred' 1 expr)
-
+    (space <> prettySeparated (semi <> space) (map pretty alts) <> space)
+  | otherwise = parens (prettyExprPred' 1 expr)
 -- Parentheses can be omitted around @if@, @let@ and lambda abstractions at
 -- top-level only.
-prettyExprPred' 0 (If _ e1 e2 e3 _) =
-  prettyString "if"
-    <+> prettyExprPred 1 e1
-    <+> prettyString "then"
-    <+> prettyExprPred 0 e2
-    <+> prettyString "else"
-    <+> prettyExprPred 0 e3
-prettyExprPred' 0 (Lambda _ args expr _) =
-  backslash
-    <>  hsep (map pretty args)
-    <+> prettyString "->"
-    <+> prettyExprPred 0 expr
-prettyExprPred' 0 (Let _ bs e _) =
-  prettyString "let"
-    <+> braces
-          (space <> prettySeparated (semi <> space) (map pretty bs) <> space)
-    <+> prettyString "in"
-    <+> prettyExprPred 0 e
-
+prettyExprPred' 0 (If _ e1 e2 e3 _) = prettyString "if"
+  <+> prettyExprPred 1 e1
+  <+> prettyString "then"
+  <+> prettyExprPred 0 e2
+  <+> prettyString "else"
+  <+> prettyExprPred 0 e3
+prettyExprPred' 0 (Lambda _ args expr _) = backslash <> hsep (map pretty args)
+  <+> prettyString "->"
+  <+> prettyExprPred 0 expr
+prettyExprPred' 0 (Let _ bs e _) = prettyString "let"
+  <+> braces (space <> prettySeparated (semi <> space) (map pretty bs) <> space)
+  <+> prettyString "in"
+  <+> prettyExprPred 0 e
 -- At all other levels, the parentheses cannot be omitted.
-prettyExprPred' _ expr@(If _ _ _ _ _  ) = parens (prettyExprPred' 0 expr)
+prettyExprPred' _ expr@(If _ _ _ _ _) = parens (prettyExprPred' 0 expr)
 prettyExprPred' _ expr@(Lambda _ _ _ _) = parens (prettyExprPred' 0 expr)
-prettyExprPred' _ expr@(Let    _ _ _ _) = parens (prettyExprPred' 0 expr)
-
+prettyExprPred' _ expr@(Let _ _ _ _) = parens (prettyExprPred' 0 expr)
 -- Fix placement of visible type arguments in error terms.
-prettyExprPred' n (TypeAppExpr _ (ErrorExpr _ msg _) t _) | n <= 1 =
-  prettyString "error" <+> char '@' <> prettyTypePred 2 t <+> prettyString
-    (show msg)
-
+prettyExprPred' n (TypeAppExpr _ (ErrorExpr _ msg _) t _)
+  | n <= 1 = prettyString "error"
+    <+> char '@' <> prettyTypePred 2 t
+    <+> prettyString (show msg)
 -- Function application is left-associative.
 prettyExprPred' n expr@(App _ e1 e2 _)
-  | n <= 1    = prettyExprPred 1 e1 <+> prettyExprPred 2 e2
+  | n <= 1 = prettyExprPred 1 e1 <+> prettyExprPred 2 e2
   | otherwise = parens (prettyExprPred' 1 expr)
 prettyExprPred' n expr@(TypeAppExpr _ e t _)
-  | n <= 1    = prettyExprPred 1 e <+> char '@' <> prettyTypePred 2 t
+  | n <= 1 = prettyExprPred 1 e <+> char '@' <> prettyTypePred 2 t
   | otherwise = parens (prettyExprPred' 1 expr)
 prettyExprPred' n expr@(ErrorExpr _ msg _)
-  | n <= 1    = prettyString "error" <+> prettyString (show msg)
+  | n <= 1 = prettyString "error" <+> prettyString (show msg)
   | otherwise = parens (prettyExprPred' 1 expr)
-
 -- No parentheses are needed around variable and constructor names and
 -- integer literals.
-prettyExprPred' _ (Con        _ name _) = pretty name
-prettyExprPred' _ (Var        _ name _) = pretty name
-prettyExprPred' _ (IntLiteral _ i    _) = integer i
-prettyExprPred' _ (Undefined _ _      ) = prettyString "undefined"
+prettyExprPred' _ (Con _ name _) = pretty name
+prettyExprPred' _ (Var _ name _) = pretty name
+prettyExprPred' _ (IntLiteral _ i _) = integer i
+prettyExprPred' _ (Undefined _ _) = prettyString "undefined"
 
 -------------------------------------------------------------------------------
--- @case@ expression alternatives                                            --
+-- @case@ Expression Alternatives                                            --
 -------------------------------------------------------------------------------
-
 -- | One alternative of a @case@ expression.
-data Alt = Alt
-  { altSrcSpan :: SrcSpan
-  , altConPat  :: ConPat
-  , altVarPats :: [VarPat]
-  , altRhs     :: Expr
-  }
-  deriving (Eq, Show)
+data Alt = Alt { altSrcSpan :: SrcSpan
+               , altConPat  :: ConPat
+               , altVarPats :: [VarPat]
+               , altRhs     :: Expr
+               }
+ deriving ( Eq, Show )
 
 -- | Pretty instance for @case@ expression alternatives.
 instance Pretty Alt where
-  pretty (Alt _ conPat varPats expr) =
-    pretty conPat
-      <+> hsep (map pretty varPats)
-      <+> prettyString "->"
-      <+> pretty expr
+  pretty (Alt _ conPat varPats expr) = pretty conPat
+    <+> hsep (map pretty varPats)
+    <+> prettyString "->"
+    <+> pretty expr
 
 -------------------------------------------------------------------------------
--- Constructor patterns                                                      --
+-- Constructor Patterns                                                      --
 -------------------------------------------------------------------------------
-
 -- | A constructor pattern used in an alternative of a @case@ expression.
 --
 --   The main purpose of this data type is to add location information
 --   to a 'ConName'.
-data ConPat = ConPat
-  { conPatSrcSpan :: SrcSpan
-  , conPatName    :: ConName
-  }
-  deriving (Eq, Show)
+data ConPat = ConPat { conPatSrcSpan :: SrcSpan, conPatName :: ConName }
+ deriving ( Eq, Show )
 
 -- | Converts a constructor pattern to a constructor expression.
 conPatToExpr :: ConPat -> Expr
@@ -330,21 +296,19 @@ instance Pretty ConPat where
   pretty (ConPat _ conName) = pretty conName
 
 -------------------------------------------------------------------------------
--- Variable patterns                                                         --
+-- Variable Patterns                                                         --
 -------------------------------------------------------------------------------
-
 -- | A variable pattern used as an argument to a function, lambda abstraction
 --   or constructor pattern.
 --
 --   The variable pattern can optionally have a type signature
 --   or be annotated by a @!@.
-data VarPat = VarPat
-  { varPatSrcSpan  :: SrcSpan
-  , varPatIdent    :: String
-  , varPatType     :: Maybe Type
-  , varPatIsStrict :: Bool
-  }
-  deriving (Eq, Show)
+data VarPat = VarPat { varPatSrcSpan  :: SrcSpan
+                     , varPatIdent    :: String
+                     , varPatType     :: Maybe Type
+                     , varPatIsStrict :: Bool
+                     }
+ deriving ( Eq, Show )
 
 -- | Gets the name of the given variable pattern.
 varPatName :: VarPat -> Name
@@ -356,8 +320,8 @@ varPatQName = UnQual . varPatName
 
 -- | Converts a variable pattern to a variable expression.
 varPatToExpr :: VarPat -> Expr
-varPatToExpr (VarPat srcSpan varName _ _) =
-  Var srcSpan (UnQual (Ident varName)) Nothing
+varPatToExpr (VarPat srcSpan varName _ _) = Var srcSpan (UnQual (Ident varName))
+  Nothing
 
 -- | Converts the given identifier to a variable pattern without type
 --   annotation.
@@ -366,26 +330,22 @@ toVarPat ident = VarPat NoSrcSpan ident Nothing False
 
 -- | Pretty instance for variable patterns.
 instance Pretty VarPat where
-  pretty (VarPat _ varName Nothing False) = pretty varName
-  pretty (VarPat _ varName Nothing True ) = char '!' <> pretty varName
-  pretty (VarPat _ varName (Just varType) False) =
-    parens (pretty varName <+> colon <> colon <+> pretty varType)
-  pretty (VarPat _ varName (Just varType) True) =
-    char '!' <> parens (pretty varName <+> colon <> colon <+> pretty varType)
+  pretty (VarPat _ varName Nothing False)        = pretty varName
+  pretty (VarPat _ varName Nothing True)         = char '!' <> pretty varName
+  pretty (VarPat _ varName (Just varType) False) = parens
+    (pretty varName <+> colon <> colon <+> pretty varType)
+  pretty (VarPat _ varName (Just varType) True)  = char '!'
+    <> parens (pretty varName <+> colon <> colon <+> pretty varType)
 
 -------------------------------------------------------------------------------
--- Binding inside a let clause                                               --
+-- @let@ Bindings                                                            --
 -------------------------------------------------------------------------------
-
 -- | A binding of a variable to an expression inside of a let clause
-data Bind = Bind
-  { bindSrcSpan :: SrcSpan
-  , bindVarPat  :: VarPat
-  , bindExpr    :: Expr
-  }
-  deriving (Eq, Show)
+data Bind
+  = Bind { bindSrcSpan :: SrcSpan, bindVarPat :: VarPat, bindExpr :: Expr }
+ deriving ( Eq, Show )
 
 -- | Pretty instance for @let@ expression binds.
 instance Pretty Bind where
-  pretty (Bind _ varPat expr) =
-    pretty varPat <+> prettyString "=" <+> pretty expr
+  pretty (Bind _ varPat expr)
+    = pretty varPat <+> prettyString "=" <+> pretty expr

@@ -1,21 +1,17 @@
 -- | This module contains a function for converting mutually recursive
 --   Haskell functions to Coq.
-
-module FreeC.Backend.Coq.Converter.FuncDecl.Rec
-  ( convertRecFuncDecls
-  )
-where
+module FreeC.Backend.Coq.Converter.FuncDecl.Rec ( convertRecFuncDecls ) where
 
 import           FreeC.Backend.Coq.Analysis.ConstantArguments
-import qualified FreeC.Backend.Coq.Syntax      as Coq
 import           FreeC.Backend.Coq.Converter.FuncDecl.Rec.WithHelpers
 import           FreeC.Backend.Coq.Converter.FuncDecl.Rec.WithSections
-import qualified FreeC.IR.Syntax               as IR
+import qualified FreeC.Backend.Coq.Syntax                              as Coq
+import qualified FreeC.IR.Syntax                                       as IR
 import           FreeC.Monad.Converter
 
 -- | Converts (mutually) recursive Haskell function declarations to Coq.
 --
---   The function declarations are analysed first. If they contain constant
+--   The function declarations are analyzed first. If they contain constant
 --   arguments (i.e. arguments that are passed unchanged between recursive
 --   calls), they are converted using a @Section@ sentence (see
 --   'convertRecFuncDeclsWithHelpers'). Otherwise they are converted into

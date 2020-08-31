@@ -58,33 +58,28 @@
 --   'guessDecArgs' will not consider any other argument for the annotated
 --   function declaration and 'checkDecArgs' always accepts the guessed
 --   argument as a decreasing argument.
-
 module FreeC.Backend.Coq.Analysis.DecreasingArguments
   ( DecArgIndex
   , identifyDecArgs
-  )
-where
+  ) where
 
-import           Data.List                      ( find )
-import           Data.Map.Strict                ( Map )
-import qualified Data.Map.Strict               as Map
-import           Data.Set                       ( Set
-                                                , (\\)
-                                                )
-import qualified Data.Set                      as Set
-import           Data.Tuple.Extra               ( uncurry3 )
+import           Data.List             ( find )
+import           Data.Map.Strict       ( Map )
+import qualified Data.Map.Strict       as Map
+import           Data.Set              ( (\\), Set )
+import qualified Data.Set              as Set
+import           Data.Tuple.Extra      ( uncurry3 )
 
 import           FreeC.Environment
-import qualified FreeC.IR.Syntax               as IR
+import qualified FreeC.IR.Syntax       as IR
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
 import           FreeC.Pretty
-import           FreeC.Util.Predicate           ( (.||.) )
+import           FreeC.Util.Predicate  ( (.||.) )
 
 -------------------------------------------------------------------------------
 -- Guessing Decreasing Arguments                                             --
 -------------------------------------------------------------------------------
-
 -- | Type for the index of a decreasing argument.
 type DecArgIndex = Int
 
@@ -94,50 +89,47 @@ type DecArgIndex = Int
 --   The second argument contains the known decreasing arguments as specified
 --   by the user.
 --
---   Returns a list of all possible combinations of argument indecies.
+--   Returns a list of all possible combinations of argument indices.
 guessDecArgs :: [IR.FuncDecl] -> [Maybe DecArgIndex] -> [[DecArgIndex]]
-guessDecArgs []          _  = return []
-guessDecArgs _           [] = return []
+guessDecArgs [] _ = return []
+guessDecArgs _ [] = return []
 guessDecArgs (_ : decls) (Just decArgIndex : knownDecArgIndecies) = do
   decArgIndecies <- guessDecArgs decls knownDecArgIndecies
   return (decArgIndex : decArgIndecies)
 guessDecArgs (decl : decls) (Nothing : knownDecArgIndecies) = do
   let arity = length (IR.funcDeclArgs decl)
   decArgIndecies <- guessDecArgs decls knownDecArgIndecies
-  decArgIndex    <- [0 .. arity - 1]
+  decArgIndex <- [0 .. arity - 1]
   return (decArgIndex : decArgIndecies)
 
 -------------------------------------------------------------------------------
 -- Checking Decreasing Arguments                                             --
 -------------------------------------------------------------------------------
-
 -- | Tests whether the given combination of choices for the decreasing
 --   arguments of function declarations in a strongly connected component
 --   is valid (i.e. all function declarations actually decrease the
 --   corresponding argument).
 --
 --   The second argument contains the known decreasing arguments as specified
---   by the user. If the user has specied the decreasing argument of a function
---   it is not checked whether the function actually decreases on the argument
---   (such that the user is not limited by our termination checker).
+--   by the user. If the user has specified the decreasing argument of a
+--   function it is not checked whether the function actually decreases on the
+--   argument (such that the user is not limited by our termination checker).
 checkDecArgs :: [IR.FuncDecl] -> [Maybe DecArgIndex] -> [DecArgIndex] -> Bool
 checkDecArgs decls knownDecArgIndecies decArgIndecies = all
-  (uncurry3 checkDecArg)
-  (zip3 knownDecArgIndecies decArgIndecies decls)
+  (uncurry3 checkDecArg) (zip3 knownDecArgIndecies decArgIndecies decls)
  where
   -- | Maps the names of functions in the strongly connected component
   --   to the index of their decreasing argument.
   decArgMap :: Map IR.QName DecArgIndex
-  decArgMap =
-    foldr (uncurry insertFuncDecl) Map.empty (zip decls decArgIndecies)
+  decArgMap = foldr (uncurry insertFuncDecl) Map.empty
+    (zip decls decArgIndecies)
 
   -- | Inserts a function declaration with the given decreasing argument index
   --   into 'decArgMap'.
-  insertFuncDecl
-    :: IR.FuncDecl
-    -> DecArgIndex
-    -> Map IR.QName DecArgIndex
-    -> Map IR.QName DecArgIndex
+  insertFuncDecl :: IR.FuncDecl
+                 -> DecArgIndex
+                 -> Map IR.QName DecArgIndex
+                 -> Map IR.QName DecArgIndex
   insertFuncDecl = Map.insert . IR.funcDeclQName
 
   -- | Tests whether the given function declaration actually decreases on the
@@ -147,9 +139,9 @@ checkDecArgs decls knownDecArgIndecies decArgIndecies = all
   --   by the user or @Nothing@ if there is no such annotation.
   checkDecArg :: Maybe DecArgIndex -> DecArgIndex -> IR.FuncDecl -> Bool
   checkDecArg (Just _) _ _ = True
-  checkDecArg _ decArgIndex (IR.FuncDecl _ _ _ args _ rhs) =
-    let decArg = IR.varPatQName (args !! decArgIndex)
-    in  checkExpr decArg Set.empty rhs []
+  checkDecArg _ decArgIndex (IR.FuncDecl _ _ _ args _ rhs)
+    = let decArg = IR.varPatQName (args !! decArgIndex)
+      in checkExpr decArg Set.empty rhs []
 
   -- | Tests whether there is a variable that is structurally smaller than the
   --   argument with the given name in the position of decreasing arguments of
@@ -181,56 +173,51 @@ checkDecArgs decls knownDecArgIndecies decArgIndecies = all
 
     -- If one of the recursive functions is applied, there must be a
     -- structurally smaller variable in the decreasing position.
-    checkExpr' (IR.Var _ name _) args = case Map.lookup name decArgMap of
-      Nothing -> True
-      Just decArgIndex | decArgIndex >= length args -> False
-                       | otherwise -> isSmaller (args !! decArgIndex)
-
+    checkExpr' (IR.Var _ name _) args
+      = case Map.lookup name decArgMap of
+        Nothing          -> True
+        Just decArgIndex | decArgIndex >= length args -> False
+                         | otherwise -> isSmaller (args !! decArgIndex)
     -- Function applications and @if@-expressions need to be checked
     -- recursively. In case of applications we also remember the
     -- arguments such that the case above can inspect the actual arguments.
-    checkExpr' (IR.App _ e1 e2 _) args =
-      checkExpr' e1 (e2 : args) && checkExpr' e2 []
-    checkExpr' (IR.If _ e1 e2 e3 _) _ =
-      checkExpr' e1 [] && checkExpr' e2 [] && checkExpr' e3 []
-
+    checkExpr' (IR.App _ e1 e2 _) args          = checkExpr' e1 (e2 : args)
+      && checkExpr' e2 []
+    checkExpr' (IR.If _ e1 e2 e3 _) _
+      = checkExpr' e1 [] && checkExpr' e2 [] && checkExpr' e3 []
     -- @case@-expressions that match the decreasing argument or a variable
     -- that is structurally smaller than the decreasing argument, introduce
     -- new structurally smaller variables.
     checkExpr' (IR.Case _ expr alts _) _
       | isDecArgOrSmaller expr = all checkSmallerAlt alts
-      | otherwise              = all checkAlt alts
-
+      | otherwise = all checkAlt alts
     -- The arguments of lambda expressions shadow existing (structurally
     -- smaller) variables.
-    checkExpr' (IR.Lambda _ args expr _) _ =
-      let smaller' = withoutArgs args smaller
-      in  checkExpr decArg smaller' expr []
-
+    checkExpr' (IR.Lambda _ args expr _) _
+      = let smaller' = withoutArgs args smaller
+        in checkExpr decArg smaller' expr []
     -- The right hand side of a @let@-binding shadow existing (structurally
     -- smaller) variables.
-    checkExpr' (IR.Let _ binds expr _) _ =
-      let smaller' = withoutArgs (map IR.bindVarPat binds) smaller
-      in  checkExpr decArg smaller' expr [] && all (checkBind smaller') binds
-
+    checkExpr' (IR.Let _ binds expr _) _
+      = let smaller' = withoutArgs (map IR.bindVarPat binds) smaller
+        in checkExpr decArg smaller' expr [] && all (checkBind smaller') binds
     -- Recursively check visibly applied expressions.
     checkExpr' (IR.TypeAppExpr _ expr _ _) args = checkExpr' expr args
-
     -- Base expressions don't contain recursive calls.
-    checkExpr' (IR.Con _ _ _             ) _    = True
-    checkExpr' (IR.Undefined _ _         ) _    = True
-    checkExpr' (IR.ErrorExpr  _ _ _      ) _    = True
-    checkExpr' (IR.IntLiteral _ _ _      ) _    = True
+    checkExpr' (IR.Con _ _ _) _                 = True
+    checkExpr' (IR.Undefined _ _) _             = True
+    checkExpr' (IR.ErrorExpr _ _ _) _           = True
+    checkExpr' (IR.IntLiteral _ _ _) _          = True
 
     -- | Applies 'checkExpr' on the right-hand side of an alternative of a
     --   @case@ expression.
     --
-    --   The variable patterns shadow existing (structurally smaller) variables
-    --   with the same name.
+    --   The variable patterns shadow existing (structurally smaller)
+    --   variables with the same name.
     checkAlt :: IR.Alt -> Bool
-    checkAlt (IR.Alt _ _ varPats expr) =
-      let smaller' = withoutArgs varPats smaller
-      in  checkExpr decArg smaller' expr []
+    checkAlt (IR.Alt _ _ varPats expr)
+      = let smaller' = withoutArgs varPats smaller
+        in checkExpr decArg smaller' expr []
 
     checkBind :: Set IR.QName -> IR.Bind -> Bool
     checkBind smaller' (IR.Bind _ _ expr) = checkExpr decArg smaller' expr []
@@ -241,11 +228,12 @@ checkDecArgs decls knownDecArgIndecies decArgIndecies = all
     --   All variable patterns are added to the set of structurally smaller
     --   variables.
     checkSmallerAlt :: IR.Alt -> Bool
-    checkSmallerAlt (IR.Alt _ _ varPats expr) =
-      let smaller' = withArgs varPats smaller
-      in  checkExpr decArg smaller' expr []
+    checkSmallerAlt (IR.Alt _ _ varPats expr)
+      = let smaller' = withArgs varPats smaller
+        in checkExpr decArg smaller' expr []
 
-    -- | Adds the given variables to the set of structurally smaller variables.
+    -- | Adds the given variables to the set of structurally smaller
+    --   variables.
     withArgs :: [IR.VarPat] -> Set IR.QName -> Set IR.QName
     withArgs args set = set `Set.union` Set.fromList (map IR.varPatQName args)
 
@@ -258,7 +246,6 @@ checkDecArgs decls knownDecArgIndecies decArgIndecies = all
 -------------------------------------------------------------------------------
 -- Identifying Decreasing Arguments                                          --
 -------------------------------------------------------------------------------
-
 -- | Identifies the decreasing arguments of the given mutually recursive
 --   function declarations.
 --
@@ -289,12 +276,12 @@ identifyDecArgs decls = do
   -- | Prints an error message if the decreasing arguments could not
   --   be identified.
   decArgError :: Converter a
-  decArgError =
-    reportFatal
-      $  Message (IR.funcDeclSrcSpan (head decls)) Error
-      $  "Could not identify decreasing arguments of "
-      ++ showPretty (map IR.funcDeclIdent decls)
-      ++ ".\n"
-      ++ "Consider adding a "
-      ++ "{-# FreeC <function> DECREASES ON <argument> #-} "
-      ++ "annotation."
+  decArgError = reportFatal
+    $ Message (IR.funcDeclSrcSpan (head decls)) Error
+    $ unlines
+    [ "Could not identify decreasing arguments of "
+        ++ showPretty (map IR.funcDeclIdent decls)
+        ++ "."
+    , "Consider adding a {-# FreeC <function> DECREASES ON <argument> #-} "
+        ++ "annotation."
+    ]

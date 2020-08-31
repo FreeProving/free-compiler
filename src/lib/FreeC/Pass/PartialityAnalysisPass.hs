@@ -40,21 +40,17 @@
 --
 --   The 'entryIsPartial' flag of every environment entry is set to @True@ if
 --   an only if the corresponding function is partial.
+module FreeC.Pass.PartialityAnalysisPass ( partialityAnalysisPass ) where
 
-module FreeC.Pass.PartialityAnalysisPass
-  ( partialityAnalysisPass
-  )
-where
-
-import           Control.Monad                  ( when )
-import           Control.Monad.Extra            ( anyM )
+import           Control.Monad                     ( when )
+import           Control.Monad.Extra               ( anyM )
 
 import           FreeC.Environment
 import           FreeC.Environment.Entry
-import qualified FreeC.IR.Base.Prelude         as IR.Prelude
-import           FreeC.IR.DependencyGraph       ( unwrapComponent )
-import           FreeC.IR.Reference             ( valueRefs )
-import qualified FreeC.IR.Syntax               as IR
+import qualified FreeC.IR.Base.Prelude             as IR.Prelude
+import           FreeC.IR.DependencyGraph          ( unwrapComponent )
+import           FreeC.IR.Reference                ( valueRefs )
+import qualified FreeC.IR.Syntax                   as IR
 import           FreeC.Monad.Converter
 import           FreeC.Pass.DependencyAnalysisPass
 
