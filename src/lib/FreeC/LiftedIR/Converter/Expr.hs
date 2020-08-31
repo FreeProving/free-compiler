@@ -115,7 +115,7 @@ liftExpr' (IR.Var srcSpan name _) typeArgs args = do
   function <- inEnv $ isFunction name
   if function -- If this is a top level functions it's lifted argument wise.
     then do
-      partial <- inEnv $ isPartial name
+      effects <- inEnv $ lookupEffects name
       Just strictArgs <- inEnv $ lookupStrictArgs name
       freeArgs <- inEnv $ needsFreeArgs name
       Just typeArgIdents <- inEnv $ lookupTypeArgs IR.ValueScope name
@@ -129,8 +129,7 @@ liftExpr' (IR.Var srcSpan name _) typeArgs args = do
       generateBinds (zip3 args' (map Just argTypes' ++ repeat Nothing)
                      $ strictArgs ++ repeat False)
         $ \args'' -> generateApply
-        (LIR.App srcSpan varName typeArgs' [Partiality | partial]
-         (take arity args'') freeArgs)
+        (LIR.App srcSpan varName typeArgs' effects (take arity args'') freeArgs)
         $ drop arity args''
     else do
       pureArg <- inEnv $ isPureVar name

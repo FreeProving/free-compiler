@@ -4,8 +4,8 @@
 --   = Example
 --
 --   The "FreeC.Pass.DefineDeclPass" would add a environment entry whose
---   'entryIsPartial' flag is set to @False@ for the following function
---   declaration.
+--   'FreeC.Environment.Entry.entryEffects' list is empty for the following
+--   function declaration.
 --
 --   > head :: [a] -> a
 --   > head xs = case xs of
@@ -15,22 +15,24 @@
 --   This pass recognizes that the right-hand side of the function declaration
 --   for @head@ refers to the built-in function @undefined@. Since @undefined@
 --   is partial, @head@ is also partial. Thus, the environment entry of @head@
---   is updated such that 'entryIsPartial' is set to @True@.
+--   is updated such that 'FreeC.Environment.Entry.entryEffects' contains
+--   'Partiality'.
 --
 --   = Specification
 --
 --   == Preconditions
 --
---   The environment contains entries for all function declarations whose
---   'entryIsPartial' flag is set to @False@.
+--   The environment contains entries for all function declarations without
+--   'Partiality' in 'FreeC.Environment.Entry.entryEffects'.
 --
 --   == Translation
 --
 --   No modifications are made to the AST.
 --
 --   If a function declaration's right-hand side contains a reference to a
---   function whose entry has been marked as partial (i.e., 'entryIsPartial'
---   is set to @True@), it is marked as partial as well.
+--   function whose entry has been marked as partial (i.e.,
+--   'FreeC.Environment.Entry.entryEffects' contains 'Partiality'), it is
+--   marked as partial as well.
 --
 --   If there are mutually recursive function declaration's and one of them
 --   needs to be marked as partial by the rule above, then all need to be
@@ -38,19 +40,19 @@
 --
 --   == Postconditions
 --
---   The 'entryIsPartial' flag of every environment entry is set to @True@ if
---   an only if the corresponding function is partial.
+--   'Partiality' is added to 'FreeC.Environment.Entry.entryEffects' of every
+--   environment entry if an only if the corresponding function is partial.
 module FreeC.Pass.PartialityAnalysisPass ( partialityAnalysisPass ) where
 
 import           Control.Monad                     ( when )
 import           Control.Monad.Extra               ( anyM )
 
 import           FreeC.Environment
-import           FreeC.Environment.Entry
 import qualified FreeC.IR.Base.Prelude             as IR.Prelude
 import           FreeC.IR.DependencyGraph          ( unwrapComponent )
 import           FreeC.IR.Reference                ( valueRefs )
 import qualified FreeC.IR.Syntax                   as IR
+import           FreeC.LiftedIR.Effect
 import           FreeC.Monad.Converter
 import           FreeC.Pass.DependencyAnalysisPass
 
@@ -78,9 +80,8 @@ isPartialFuncName name | name == IR.Prelude.undefinedFuncName = return True
                        | name == IR.Prelude.errorFuncName = return True
                        | otherwise = inEnv $ isPartial name
 
--- | Sets the 'entryIsPartial' flag of the environment entry for the given
---   function delcaration to @True@.
+-- | Adds the @Partiality@ effect to the environment entry for the given
+--   function declaration.
 markPartial :: IR.FuncDecl -> Converter ()
-markPartial decl = do
-  Just entry <- inEnv $ lookupEntry IR.ValueScope (IR.funcDeclQName decl)
-  modifyEnv $ addEntry entry { entryIsPartial = True }
+markPartial decl = modifyEnv
+  $ addEffectToEntry (IR.funcDeclQName decl) Partiality

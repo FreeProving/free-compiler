@@ -15,6 +15,7 @@ module FreeC.Environment
   , removeDecArg
     -- * Modifying Entries in the Environment
   , modifyEntryIdent
+  , addEffectToEntry
     -- * Looking up Entries from the Environment
   , lookupEntry
   , isFunction
@@ -35,6 +36,7 @@ module FreeC.Environment
   , lookupTypeSynonym
   , needsFreeArgs
   , isPartial
+  , lookupEffects
   , lookupDecArg
   , lookupDecArgIndex
   , lookupDecArgIdent
@@ -53,6 +55,7 @@ import           FreeC.Environment.Entry
 import           FreeC.Environment.ModuleInterface
 import           FreeC.IR.SrcSpan
 import qualified FreeC.IR.Syntax                   as IR
+import           FreeC.LiftedIR.Effect
 import           FreeC.Util.Predicate
 
 -------------------------------------------------------------------------------
@@ -140,6 +143,16 @@ modifyEntryIdent
 modifyEntryIdent scope name newIdent env = case lookupEntry scope name env of
   Nothing    -> env
   Just entry -> addEntry (entry { entryIdent = newIdent }) env
+
+-- | Adds the given effect to the effects of the function with the given name.
+--
+--   If such a function does not exist, the environment is not changed.
+addEffectToEntry :: IR.QName -> Effect -> Environment -> Environment
+addEffectToEntry name effect env = case lookupEntry IR.ValueScope name env of
+  Nothing    -> env
+  Just entry -> if isFuncEntry entry
+    then addEntry (entry { entryEffects = effect : entryEffects entry }) env
+    else env
 
 -------------------------------------------------------------------------------
 -- Looking up Entries from the Environment                                   --
@@ -290,8 +303,14 @@ needsFreeArgs = maybe False (isFuncEntry .&&. entryNeedsFreeArgs)
 --
 --   Returns @False@ if there is no such function.
 isPartial :: IR.QName -> Environment -> Bool
-isPartial = maybe False (isFuncEntry .&&. entryIsPartial)
+isPartial = maybe False (isFuncEntry .&&. elem Partiality . entryEffects)
   .: lookupEntry IR.ValueScope
+
+-- | Looks up the effects of the function with the given name.
+--
+--   Returns @[]@ if such a function does not exist.
+lookupEffects :: IR.QName -> Environment -> [Effect]
+lookupEffects = maybe [] entryEffects .: lookupEntry IR.ValueScope
 
 -- | Looks up the index and name of the decreasing argument of the recursive
 --   function with the given name.

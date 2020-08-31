@@ -165,7 +165,7 @@ transformRecFuncDecl
     -- If the original function was partial, the helper function is partial as
     -- well.
     freeArgsNeeded <- inEnv $ needsFreeArgs name
-    partial <- inEnv $ isPartial name
+    effects <- inEnv $ lookupEffects name
     _entry <- renameAndAddEntry
       $ FuncEntry
       { entrySrcSpan       = NoSrcSpan
@@ -175,7 +175,7 @@ transformRecFuncDecl
       , entryStrictArgs    = map IR.varPatIsStrict helperArgs
       , entryReturnType    = fromJust helperReturnType
       , entryNeedsFreeArgs = freeArgsNeeded
-      , entryIsPartial     = partial
+      , entryEffects       = effects
       , entryName          = helperName
       , entryIdent         = undefined -- filled by renamer
       , entryAgdaIdent     = undefined -- filled by renamer

@@ -121,6 +121,7 @@ import           FreeC.Frontend.IR.Parser
 import           FreeC.IR.Reference                ( freeTypeVars )
 import           FreeC.IR.SrcSpan
 import qualified FreeC.IR.Syntax                   as IR
+import           FreeC.LiftedIR.Effect
 import           FreeC.Monad.Reporter
 import           FreeC.Pretty
 import           FreeC.Util.Config
@@ -161,6 +162,13 @@ instance Aeson.FromJSON Agda.QName where
 -- | Restores a Haskell type from the interface file.
 instance Aeson.FromJSON IR.Type where
   parseJSON = Aeson.withText "IR.Type" parseAesonIR
+
+-- | Restores an effect from the interface file.
+instance Aeson.FromJSON Effect where
+  parseJSON = Aeson.withText "Effect" $ \effect -> case effect of
+    "Partiality" -> return Partiality
+    "Sharing"    -> return Sharing
+    _            -> fail "unknown effect"
 
 -- | Restores a 'ModuleInterface' from the configuration file.
 instance Aeson.FromJSON ModuleInterface where
@@ -261,7 +269,7 @@ instance Aeson.FromJSON ModuleInterface where
       arity <- obj .: "arity"
       haskellName <- obj .: "haskell-name"
       haskellType <- obj .: "haskell-type"
-      partial <- obj .: "partial"
+      effects <- obj .: "effects"
       freeArgsNeeded <- obj .: "needs-free-args"
       coqName <- obj .: "coq-name"
       agdaName <- obj .: "agda-name"
@@ -276,7 +284,7 @@ instance Aeson.FromJSON ModuleInterface where
         , entryStrictArgs    = replicate arity False
         , entryReturnType    = returnType
         , entryNeedsFreeArgs = freeArgsNeeded
-        , entryIsPartial     = partial
+        , entryEffects       = effects
         , entryIdent         = coqName
         , entryAgdaIdent     = agdaName
         , entryName          = haskellName
