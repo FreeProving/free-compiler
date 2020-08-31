@@ -66,6 +66,7 @@ Variable A : Type.
 Fixpoint shareArgsList `{SA : ShareableArgs Shape Pos A}
                        `{Injectable Share.Shape Share.Pos Shape Pos}
                         (xs : List Shape Pos A)
+                        {struct xs}
   : Free Shape Pos (List Shape Pos A)
  := match xs with
     | nil         => pure nil
