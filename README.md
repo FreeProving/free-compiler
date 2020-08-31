@@ -29,6 +29,7 @@ A compiler for the monadic translation of Haskell programs to Coq that uses the 
         6. [`--version`, `-v`](#--version--v)
         7. [`--help`, `-h`](#--help--h)
         8. [`--from=LANG`, `--to=LANG`](#--fromlang---tolang)
+        9. [`--strategy=STRAT`](#--strategystrat)
     2. [Proving properties](#proving-properties)
     3. [Experimental Features](#experimental-features)
         1. [Pattern-Matching Compilation](#pattern-matching-compilation)
@@ -398,6 +399,13 @@ For example, to print the intermediate representation of a Haskell file, run the
 ```bash
 freec --from haskell --to ir ./example/Data/List.hs
 ```
+
+#### `--strategy=STRAT`
+
+The option selects the evaluation strategy the translated program should use.
+This changes how and if, for example, sharing is handled.
+Currently `cbv`(call-by-value), `cbn`(call-by-name) and `cbneed`(call-by-need) are supported.
+The default strategy is call-by-need.
 
 ### Proving properties
 

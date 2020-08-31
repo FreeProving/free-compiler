@@ -2,6 +2,10 @@
 
 ## Unrealeased
 
+ - **Added command line option for evaluation strategy selection**
+   + A evaluation strategy can be specified with `--strategy STRAT`.
+   + Changes the behavior of sharing in the translated program.
+
  - **Added command line options for front- and backend selection**
     + A frontend / backend can be specified with `--to LANG` / `--from LANG`.
     + Added IR frontend and backend for debugging purposes.
