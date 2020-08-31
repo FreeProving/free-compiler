@@ -13,8 +13,8 @@ Import List.ListNotations.
 
 (* Shortcuts to handle a program. *)
 
-(* Shortcut to evaluate a non-deterministic program to a result list.
-   list without normalization. *)
+(* Shortcut to evaluate a non-deterministic program to a result list
+   without normalization. *)
 Definition evalND {A : Type} (p : Free _ _ A)
 := @collectVals A (run (runChoice p)).
 
