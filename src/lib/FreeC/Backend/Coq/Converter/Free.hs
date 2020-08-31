@@ -28,10 +28,9 @@ genericArgDecls explicitness = map (uncurry (Coq.typedBinder' explicitness))
 genericArgVariables :: [Coq.Sentence]
 genericArgVariables = map (uncurry (Coq.variable . return)) Coq.Base.freeArgs
 
--- | An explicit binder for the @Partial@ instance that is passed to partial
---   function declarations.
-partialArgDecl :: Coq.Binder
-partialArgDecl = uncurry (Coq.typedBinder' Coq.Explicit) Coq.Base.partialArg
+-- | Converts the name and type of a type class instance to an explicit binder.
+effectArgDecl :: (Coq.Qualid, Coq.Term) -> Coq.Binder
+effectArgDecl = uncurry $ Coq.typedBinder' Coq.Explicit
 
 -- | Smart constructor for the application of a Coq function or (type)
 --   constructor that requires the parameters for the @Free@ monad.
