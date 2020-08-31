@@ -71,5 +71,6 @@ makeDefaultOptions = do
     , optDumpTransformedModulesDir = Nothing
     , optFrontend                  = defaultFrontend
     , optBackend                   = defaultBackend
-    , optStrategy                  = defaultStrategy
+    , optStrategy                  = let (opt, _, _) = defaultStrategy
+                                     in opt
     }

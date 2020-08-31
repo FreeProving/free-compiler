@@ -86,6 +86,8 @@ optionDescriptors
         (unlines [ "Optional. Specifies which evaluation strategy the resulting"
                  , "program will use. Allowed values are: "
                  , showStrategies ++ "."
-                 , "Defaults to `" ++ defaultStrategy ++ "`."
+                 , "Defaults to `"
+                     ++ let (opt, _, _) = defaultStrategy
+                        in opt ++ "`."
                  ])
     ]

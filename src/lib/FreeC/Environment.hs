@@ -87,7 +87,8 @@ emptyEnv = Environment   -- Modules
   , envEntries          = Map.empty
   , envDecArgs          = Map.empty
   , envFreshIdentCount  = Map.empty
-  , envStrategy         = undefined -- always set before evaluation
+  , envStrategy         = let (_, _, strat) = defaultStrategy
+                          in strat
   }
 
 -------------------------------------------------------------------------------

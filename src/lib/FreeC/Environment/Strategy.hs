@@ -27,16 +27,15 @@ callByNeed = ("cbneed", "call-by-need", CallByNeed)
 strategies :: [(String, String, Strategy)]
 strategies = [callByValue, callByName, callByNeed]
 
--- | The option value of the default strategy.
-defaultStrategy :: String
-defaultStrategy = let (opt, _, _) = callByNeed
-                  in opt
+-- | The option value, name and strategy of the default strategy.
+defaultStrategy :: (String, String, Strategy)
+defaultStrategy = callByNeed
 
 -- | Show all strategies with their option value and name.
 showStrategies :: String
 showStrategies = intercalate ", "
   $ map (\(opt, name, _) -> "`" ++ opt ++ "`(" ++ name ++ ")") strategies
 
--- | A map of all strategies with their option as keys.
+-- | A map of all strategies with their option values as keys.
 strategyMap :: Map String Strategy
 strategyMap = fromList $ [(opt, strat) | (opt, _, strat) <- strategies]
