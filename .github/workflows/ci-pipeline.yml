@@ -350,7 +350,7 @@ jobs:
     container: coqorg/coq:${{ matrix.coq }}
     strategy:
       matrix:
-        coq: ["8.8", "8.9", "8.10", "8.11"]
+        coq: ["8.10", "8.11", "8.12"]
     if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     steps:
     - name: Fix file permissions
@@ -459,7 +459,7 @@ jobs:
     container: coqorg/coq:${{ matrix.coq }}
     strategy:
       matrix:
-        coq: ["8.8", "8.9", "8.10", "8.11"]
+        coq: ["8.10", "8.11", "8.12"]
     steps:
     - name: Fix file permissions
       run: sudo chown -R coq:coq .
