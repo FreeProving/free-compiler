@@ -42,7 +42,10 @@ Definition cbneed {A : Type}
       pure x').
 
 End SecCbneed.
-(* Shareable instances. *)
+
+(* Strategy instances for different evaluation strategies *)
+
+(* Strategy instance for call-by-need evaluation. *)
 Instance Cbneed (Shape : Type) (Pos : Shape -> Type)
                 `{I : Injectable Share.Shape Share.Pos Shape Pos}
  : Strategy Shape Pos | 1 := {
@@ -50,11 +53,22 @@ Instance Cbneed (Shape : Type) (Pos : Shape -> Type)
     call A := @pure Shape Pos (Free Shape Pos A)
 }.
 
-(* The Share effect is not actually needed, but we need to
+(* Strategy instance for call-by-name evaluation.
+   The Share effect is not actually needed, but we need to
    ensure it is there so cbn is compatible with share. *)
 Instance Cbn (Shape : Type) (Pos : Shape -> Type) 
              `{Injectable Share.Shape Share.Pos Shape Pos}
  : Strategy Shape Pos | 2 := {
     share A S := @cbn A Shape Pos;   (* share = pure *)
     call A := @cbn A Shape Pos       (* call  = pure *)
+}.
+
+(* Strategy instance for call-by-value evaluation.
+   The Share effect is not actually needed, but we need to
+   ensure it is there so cbv is compatible with share. *)
+Instance Cbv (Shape : Type) (Pos : Shape -> Type) 
+             `{Injectable Share.Shape Share.Pos Shape Pos}
+ : Strategy Shape Pos | 2 := {
+    share A S := @cbv A Shape Pos;   (* share = pure *)
+    call A := @cbv A Shape Pos       (* call  = pure *)
 }.
