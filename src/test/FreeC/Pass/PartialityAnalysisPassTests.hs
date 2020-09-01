@@ -11,7 +11,7 @@ import           FreeC.IR.DependencyGraph
 import qualified FreeC.IR.Syntax                   as IR
 import           FreeC.Monad.Class.Testable
 import           FreeC.Monad.Converter
-import           FreeC.Pass.PartialityAnalysisPass
+import           FreeC.Pass.EffectAnalysisPass
 import           FreeC.Pretty
 import           FreeC.Test.Environment
 import           FreeC.Test.Parser
@@ -46,7 +46,7 @@ shouldBePartialWith :: (IR.QName -> Bool -> Expectation)
                     -> Converter Expectation
 shouldBePartialWith setExpectation inputs = do
   component <- parseTestComponent inputs
-  _ <- partialityAnalysisPass component
+  _ <- effectAnalysisPass component
   let funcNames = map IR.funcDeclQName (unwrapComponent component)
   partials <- mapM (inEnv . isPartial) funcNames
   return (zipWithM_ setExpectation funcNames partials)

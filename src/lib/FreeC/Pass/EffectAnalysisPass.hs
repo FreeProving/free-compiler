@@ -42,7 +42,7 @@
 --
 --   'Partiality' is added to 'FreeC.Environment.Entry.entryEffects' of every
 --   environment entry if an only if the corresponding function is partial.
-module FreeC.Pass.PartialityAnalysisPass ( partialityAnalysisPass ) where
+module FreeC.Pass.EffectAnalysisPass ( effectAnalysisPass ) where
 
 import           Control.Monad                     ( when )
 import           Control.Monad.Extra               ( anyM )
@@ -58,8 +58,8 @@ import           FreeC.Pass.DependencyAnalysisPass
 
 -- | A compiler pass that updates the partiality information of function
 --   declaration environment entries.
-partialityAnalysisPass :: DependencyAwarePass IR.FuncDecl
-partialityAnalysisPass component = do
+effectAnalysisPass :: DependencyAwarePass IR.FuncDecl
+effectAnalysisPass component = do
   let funcDecls = unwrapComponent component
   anyPartial <- anyM isPartialFuncDecl funcDecls
   when anyPartial $ mapM_ markPartial funcDecls
