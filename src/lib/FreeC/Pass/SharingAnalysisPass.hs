@@ -14,6 +14,8 @@
 --   > twice :: Integer -> Maybe Integer
 --   > twice (x :: Integer) = let (y :: Integer) = x in y + y
 --
+--   where @y@ is a fresh variable.
+--
 --   == Example 2
 --
 --   > twiceMaybe :: Maybe Integer -> Maybe Integer
@@ -29,7 +31,14 @@
 --   >     Nothing -> Nothing;
 --   >     Just x  -> let y = x in Just (y + y)
 --   >   }
+--   where @y@ is a fresh variable.
 --
+--   == Example 3
+--
+--   > two :: Integer
+--   > two = let x = 1 in x + x
+--
+--   Should not be changed by the transformation.
 --
 --   = Specification
 --
@@ -37,19 +46,31 @@
 --
 --   There are no special requirements.
 --
---   == Translation
+--   == Postconditions
 --
 --   All shared variables on right-hand sides of function declarations are made
 --   explicit by introducing @let@-expressions.
+--
+--   == Translation
+--
+--   First all subexpressions of each function declaration are checked for variables
+--   occurring multiple times on the right hand sides of lambda abstractions or
+--   @case@-expression alternatives. If found the variables are replaced by a
+--   fresh variable and a @let@-binding is introduced binding the fresh variable
+--   to the old one.
+--
+--   After all subexpressions are checked the right hand side of the function
+--   declaration is checked as well.
+--   Variables already bound by @let@-bindings are not counted.
+
 
 module FreeC.Pass.SharingAnalysisPass ( sharingAnaylsisPass ) where
 
-import           Control.Monad             ( foldM, mplus )
+import           Control.Monad             ( mapAndUnzipM )
 import           Data.Map.Strict           ( Map )
 import qualified Data.Map.Strict        as Map
 
 import           FreeC.Environment.Fresh   ( freshHaskellQName )
-import           FreeC.Environment.Renamer ( renameAndDefineVar )
 import qualified FreeC.IR.Syntax        as IR
 import           FreeC.IR.Subst
 import           FreeC.IR.SrcSpan
@@ -62,28 +83,83 @@ import           FreeC.Pass
 --   variables to fresh ones and replaces the occurrences with the newly
 --   introduced variable.
 sharingAnaylsisPass :: Pass IR.Module
-sharingAnaylsisPass
-    (IR.Module srcSpan name imports typeDecls typeSigs pragmas funcDecls) = do
-        funcDecls' <- mapM analyseSharingDecl (funcDecls)
-        return (IR.Module srcSpan name imports typeDecls typeSigs pragmas
-                funcDecls')
+sharingAnaylsisPass ast = do
+  funcDecls' <- mapM analyseSharingDecl (IR.modFuncDecls ast)
+  return ast { IR.modFuncDecls = funcDecls' }
 
--- | Checks a function declaration if it contains a variable that occurs
---   multiple times on the right-hand side.
---   If that is the case, a @let@-expression is introduced.
+-- | Checks a function declaration for @case@-expressions to introduce local
+--   @let@-expressions and applies the transformation on the right hand side.
 analyseSharingDecl :: IR.FuncDecl -> Converter IR.FuncDecl
 analyseSharingDecl (IR.FuncDecl srcSpan ident typeArgs args returnType rhs) = do
-    let varList = (map (\p -> ( fst p, snd $ snd p )) . filter
-                   ((> 1) . fst . snd) . Map.toList . countVarNames) rhs
-    rhs' <- buildLet rhs varList
-    return (IR.FuncDecl srcSpan ident typeArgs args returnType rhs')
+    rhs'  <- analyseLocalSharing rhs
+    rhs'' <- analyseSharingExpr rhs'
+    return (IR.FuncDecl srcSpan ident typeArgs args returnType rhs'')
+
+-- | Checks the expression and all right hand sides of subexpressions
+--   for shared variables that are introduced through @case@-alternatives
+--   or lambda abstractions.
+--
+--   If a variable is shared a @let@-expression that makes the sharing
+--   explicit is introduced.
+analyseLocalSharing :: IR.Expr -> Converter IR.Expr
+analyseLocalSharing (IR.Case srcSpan expr alts typeScheme) = do
+  expr' <- analyseLocalSharing expr
+  alts' <- mapM analyseSharingAlt alts
+  return (IR.Case srcSpan expr' alts' typeScheme)
+   where
+    analyseSharingAlt :: IR.Alt -> Converter IR.Alt
+    analyseSharingAlt (IR.Alt altSrcSpan altConPat altVarPats altRhs) = do
+      let varNames = map IR.varPatQName altVarPats
+          varList = (map fst . filter ((>1) . snd) . Map.toList . countVarNamesOnly varNames) altRhs
+      altRhs' <- buildLet altRhs varList
+      return (IR.Alt altSrcSpan altConPat altVarPats altRhs')
+analyseLocalSharing (IR.Lambda srcSpan exprArgs rhs typeScheme) = do
+  let varNames = map IR.varPatQName exprArgs
+      varList = (map fst . filter ((>1) . snd) . Map.toList . countVarNamesOnly varNames) rhs
+  rhs' <- buildLet rhs varList
+  return (IR.Lambda srcSpan exprArgs rhs' typeScheme)
+analyseLocalSharing expr@IR.Con {} = return expr
+analyseLocalSharing expr@IR.Undefined {} = return expr
+analyseLocalSharing expr@IR.ErrorExpr {} = return expr
+analyseLocalSharing expr@IR.Var {} = return expr
+analyseLocalSharing expr@IR.IntLiteral {} = return expr
+analyseLocalSharing (IR.Let srcSpan binds rhs typeScheme) = do
+  binds' <- mapM analyseSharingBind binds
+  rhs'   <- analyseLocalSharing rhs
+  return (IR.Let srcSpan binds' rhs' typeScheme)
+   where
+    analyseSharingBind :: IR.Bind -> Converter IR.Bind
+    analyseSharingBind (IR.Bind bindSrcSpan bindVarPat bindRhs) = do
+      bindRhs' <- analyseLocalSharing bindRhs
+      return (IR.Bind bindSrcSpan bindVarPat bindRhs')
+analyseLocalSharing (IR.If srcSpan e1 e2 e3 typeScheme) = do
+  e1' <- analyseLocalSharing e1
+  e2' <- analyseLocalSharing e2
+  e3' <- analyseLocalSharing e3
+  return (IR.If srcSpan e1' e2' e3' typeScheme)
+analyseLocalSharing (IR.TypeAppExpr srcSpan lhs rhs typeScheme) = do
+  lhs' <- analyseLocalSharing lhs
+  return (IR.TypeAppExpr srcSpan lhs' rhs typeScheme)
+analyseLocalSharing (IR.App srcSpan lhs rhs typeScheme) = do
+  lhs' <- analyseLocalSharing lhs
+  rhs' <- analyseLocalSharing rhs
+  return (IR.App srcSpan lhs' rhs' typeScheme)
+
+-- | Checks an expression if it contains variables that occur
+--   multiple times on the same right-hand side.
+--   If that is the case, a @let@-expression is introduced that binds the
+--   variables to fresh ones and replaces the occurrences with the newly
+--   introduced variable.
+analyseSharingExpr :: IR.Expr -> Converter IR.Expr
+analyseSharingExpr expr = do
+    let varList = (map fst . filter ((>1) . snd) . Map.toList . countVarNamesExcept []) expr
+    buildLet expr varList
 
 -- | Builds a @let@-expression from the given expression and variable names.
 --
 --   Computes @let@-bindings from the given variables, composes the resulting
 --   substitutions and applies the substitution on the expression.
-buildLet
-    :: IR.Expr -> [ ( IR.VarName, Maybe IR.TypeScheme ) ] -> Converter IR.Expr
+buildLet :: IR.Expr -> [IR.VarName] -> Converter IR.Expr
 buildLet expr []   = return expr
 buildLet expr vars = do
     let srcSpan = IR.exprSrcSpan expr
@@ -97,48 +173,68 @@ buildLet expr vars = do
 --
 --   Also computes substitutions mapping given variables to fresh variables.
 --   Returns the generated let-bindings and the substitutions.
-buildBinds :: SrcSpan -> [ ( IR.VarName, Maybe IR.TypeScheme ) ]
-    -> Converter ( [ IR.Bind ], [ Subst IR.Expr ] )
-buildBinds srcSpan = foldM buildBind ( [], [] )
+buildBinds :: SrcSpan -> [IR.VarName] -> Converter ( [ IR.Bind ], [ Subst IR.Expr ] )
+buildBinds srcSpan = mapAndUnzipM buildBind
   where
-    buildBind :: ( [ IR.Bind ], [ Subst IR.Expr ] )
-        -> ( IR.VarName, Maybe IR.TypeScheme )
-        -> Converter ( [ IR.Bind ], [ Subst IR.Expr ] )
-    buildBind ( binds, substs ) ( varName, varTypeScheme ) = do
+    buildBind ::  IR.VarName -> Converter ( IR.Bind , Subst IR.Expr )
+    buildBind varName = do
         varName' <- freshHaskellQName varName
-        let subst = singleSubst' varName (\s -> IR.Var s varName' varTypeScheme)
+        let subst = singleSubst' varName (\s -> IR.Var s varName' Nothing)
             -- This type scheme has wrong source span information.
-            rhs = IR.Var srcSpan varName varTypeScheme
+            rhs = IR.Var srcSpan varName Nothing
             Just varPatIdent = IR.identFromQName varName'
-            varPatType = fmap IR.typeSchemeType varTypeScheme
-            varPat = IR.VarPat srcSpan varPatIdent varPatType False
+            varPat = IR.VarPat srcSpan varPatIdent Nothing False
             bind = IR.Bind srcSpan varPat rhs
-        _ <- renameAndDefineVar srcSpan False varPatIdent varPatType
-        return ( bind : binds, subst : substs )
+        return ( bind, subst )
 
 -- | Counts all variable names on right-hand sides of expression.
---
---   If a variable is annotated with a type scheme the annotation is introduced
---   into the map as well.
-countVarNames :: IR.Expr -> Map IR.VarName ( Integer, Maybe IR.TypeScheme )
-countVarNames IR.Con {} = Map.empty
-countVarNames (IR.Var _ varName maybeTypeScheme)
-    = Map.singleton varName ( 1, maybeTypeScheme )
-countVarNames (IR.App _ lhs rhs _)
-    = countVarNames lhs `mergeMap` countVarNames rhs
-countVarNames (IR.TypeAppExpr _ lhs _ _) = countVarNames lhs
-countVarNames (IR.If _ e1 e2 e3 _) = (countVarNames e1)
-    `mergeMap` (countVarNames e2) `mergeMap` countVarNames e3
-countVarNames (IR.Case _ e alts _) = countVarNames e `mergeMap` foldr mergeMap
-    Map.empty (map (countVarNames . IR.altRhs) alts)
-countVarNames IR.Undefined {} = Map.empty
-countVarNames IR.ErrorExpr {} = Map.empty
-countVarNames IR.IntLiteral {} = Map.empty
-countVarNames (IR.Lambda _ _ rhs _) = countVarNames rhs
-countVarNames (IR.Let _ binds e _) = countVarNames e `mergeMap` foldr mergeMap
-    Map.empty (map (countVarNames . IR.bindExpr) binds)
+--   Shadowed variables and variables from the list are not counted.
+--   Variables introduced on the left side of a @case@-alternative and @let@
+--   expressions are not counted.
+countVarNamesExcept :: [IR.VarName] -> IR.Expr -> Map IR.VarName Integer
+countVarNamesExcept = countVarNamesWith (++) elem
 
-mergeMap :: Map IR.VarName ( Integer, Maybe IR.TypeScheme )
-    -> Map IR.VarName ( Integer, Maybe IR.TypeScheme )
-    -> Map IR.VarName ( Integer, Maybe IR.TypeScheme )
-mergeMap = Map.unionWith (\p1 p2 -> ( fst p1 + fst p2, snd p1 `mplus` snd p2 ))
+-- | Counts all variable names on right-hand sides of expression that are also
+--   contained by the given list.
+
+--   Shadowed variables and variables from the list are not counted.
+--   Variables introduced on the left side of a @case@-alternative and @let@
+--   expressions are not counted.
+countVarNamesOnly :: [IR.VarName] -> IR.Expr -> Map IR.VarName Integer
+countVarNamesOnly = countVarNamesWith const notElem
+
+-- | A generalized recursive counting for variables in expressions.
+--   The first arguments is the function that is used to combine
+--   the given list of variable names with variable names from left hand sides
+--   of @case@-alternatives or lambda abstractions.
+--   The second argument is the a predicate that determines if a variable
+--   is added to the map.
+countVarNamesWith :: ([IR.VarName] -> [IR.VarName] -> [IR.VarName])
+                  -> (IR.VarName -> [IR.VarName] -> Bool)
+                  -> [IR.VarName]
+                  -> IR.Expr
+                  -> Map IR.VarName Integer
+countVarNamesWith _ f vns (IR.Var _ varName _)
+    | varName `f` vns = Map.empty
+    | otherwise       = Map.singleton varName 1
+countVarNamesWith g f vns (IR.App _ lhs rhs _)
+    = countVarNamesWith g f vns lhs `mergeMap` countVarNamesWith g f vns rhs
+countVarNamesWith g f vns (IR.TypeAppExpr _ lhs _ _) = countVarNamesWith g f vns lhs
+countVarNamesWith g f vns (IR.If _ e1 e2 e3 _) = countVarNamesWith g f vns e1
+    `mergeMap` countVarNamesWith g f vns e2 `mergeMap` countVarNamesWith g f vns e3
+countVarNamesWith _ _ _ IR.Con {} = Map.empty
+countVarNamesWith _ _ _ IR.Undefined {} = Map.empty
+countVarNamesWith _ _ _ IR.ErrorExpr {} = Map.empty
+countVarNamesWith _ _ _ IR.IntLiteral {} = Map.empty
+countVarNamesWith g f vns (IR.Case _ e alts _) =
+  let altVars = concatMap (\alt -> map IR.varPatQName ( IR.altVarPats alt )) alts
+  in countVarNamesWith g f vns e `mergeMap` foldr mergeMap Map.empty (map (countVarNamesWith g f (g vns altVars) . IR.altRhs) alts)
+countVarNamesWith g f vns (IR.Lambda _ exprArgs rhs _) =
+  countVarNamesWith g f (g vns (map IR.varPatQName exprArgs)) rhs
+countVarNamesWith g f vns (IR.Let _ binds e _) =
+  let bindVars = map (IR.varPatQName . IR.bindVarPat) binds
+  in countVarNamesWith g f (g vns bindVars) e
+       `mergeMap` foldr mergeMap Map.empty (map (countVarNamesWith g f (g vns bindVars) . IR.bindExpr) binds)
+
+mergeMap :: Map IR.VarName Integer -> Map IR.VarName Integer -> Map IR.VarName Integer
+mergeMap = Map.unionWith (+)

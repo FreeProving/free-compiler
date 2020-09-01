@@ -35,11 +35,11 @@ pipeline =
   , dependencyAnalysisPass [defineTypeDeclsPass]
   , kindCheckPass
   , typeSignaturePass
+  , sharingAnaylsisPass
   , dependencyAnalysisPass
     [typeInferencePass, defineFuncDeclsPass, partialityAnalysisPass]
   , completePatternPass
   , etaConversionPass
-  , sharingAnaylsisPass
   , exportPass
   ]
 
