@@ -45,14 +45,16 @@ End SecCbneed.
 (* Shareable instances. *)
 Instance Cbneed (Shape : Type) (Pos : Shape -> Type)
                 `{I : Injectable Share.Shape Share.Pos Shape Pos}
- : Shareable Shape Pos | 1 := {
-    share A S p := @cbneed Shape Pos A I (@shareArgs Shape Pos A S) p
+ : Strategy Shape Pos | 1 := {
+    share A S := @cbneed Shape Pos A I (@shareArgs Shape Pos A S);
+    call A := @pure Shape Pos (Free Shape Pos A)
 }.
 
 (* The Share effect is not actually needed, but we need to
    ensure it is there so cbn is compatible with share. *)
 Instance Cbn (Shape : Type) (Pos : Shape -> Type) 
              `{Injectable Share.Shape Share.Pos Shape Pos}
- : Shareable Shape Pos | 2 := {
-    share A S p := @cbn A Shape Pos p
+ : Strategy Shape Pos | 2 := {
+    share A S := @cbn A Shape Pos;   (* share = pure *)
+    call A := @cbn A Shape Pos       (* call  = pure *)
 }.

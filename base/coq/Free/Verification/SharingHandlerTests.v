@@ -138,7 +138,7 @@ Section SecFunctions.
 
   (* Simple sharing: 
      let sx = fx in f sx sx *)
-  Definition doubleShared `{I : Share} `{SA : ShareArgs} (S : Shareable Shape Pos)
+  Definition doubleShared `{I : Share} `{SA : ShareArgs} (S : Strategy Shape Pos)
                         (f : FreeA -> FreeA -> FreeA)
                         (fx : FreeA)
    : FreeA
@@ -148,7 +148,7 @@ Section SecFunctions.
      let sx = fx 
          sy = f sx sx
      in f sy sy *)
-  Definition doubleSharedNested `{I : Share} `{SA : ShareArgs} (S : Shareable Shape Pos)
+  Definition doubleSharedNested `{I : Share} `{SA : ShareArgs} (S : Strategy Shape Pos)
                                 (f : FreeA -> FreeA -> FreeA)
                                 (fx : FreeA)
    : FreeA
@@ -159,7 +159,7 @@ Section SecFunctions.
          sy = f sx sx
          sz = fy
     in f sy sz *)
-  Definition doubleSharedClash `{I : Share} `{SA : ShareArgs} (S : Shareable Shape Pos)
+  Definition doubleSharedClash `{I : Share} `{SA : ShareArgs} (S : Strategy Shape Pos)
                               (f : FreeA -> FreeA -> FreeA)
                               (fx : FreeA) (fy : FreeA)
   : FreeA
@@ -172,7 +172,7 @@ Section SecFunctions.
      sz = f sy fy
   in f sx (f sy (f sz val)) 
   *)
-  Definition doubleSharedRec `{I : Share} `{SA : ShareArgs} (S : Shareable Shape Pos)
+  Definition doubleSharedRec `{I : Share} `{SA : ShareArgs} (S : Strategy Shape Pos)
                              (f : FreeA -> FreeA -> FreeA)
                             (fx : FreeA) (fy : FreeA)
                             (val : A)
@@ -183,7 +183,7 @@ Section SecFunctions.
     f sz (pure val))).
 
   (* Deep sharing. *)
-  Definition doubleDeepSharedPair `{I : Share} `{SA : ShareArgs} (S : Shareable Shape Pos)
+  Definition doubleDeepSharedPair `{I : Share} `{SA : ShareArgs} (S : Strategy Shape Pos)
                         (f : FreeA -> FreeA -> FreeA)
                         (fx : Free Shape Pos (Pair Shape Pos A A))
    : FreeA
@@ -195,7 +195,7 @@ Section SecFunctions.
                      | List.nil       => @undefined Shape Pos P A
                      end.
 
-  Definition doubleDeepSharedList `{I : Share} `{SA : ShareArgs} (P : Partial Shape Pos) (S : Shareable Shape Pos)
+  Definition doubleDeepSharedList `{I : Share} `{SA : ShareArgs} (P : Partial Shape Pos) (S : Strategy Shape Pos)
                         (f : FreeA -> FreeA -> FreeA)
                         (fl : Free Shape Pos (List Shape Pos A))
    : FreeA
