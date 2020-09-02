@@ -1,4 +1,5 @@
 From Base Require Import Free.
+From Base Require Import Free.Instance.Identity.
 From Base Require Import Prelude.Bool.
 
 (* We need to export this library (instead of just importing it) such that we
@@ -94,3 +95,9 @@ Section SecInteger.
         pure (Z.gtb n1' n2').
 
 End SecInteger.
+
+(* Normalform instance for Integer *)
+
+Instance NormalformInteger (Shape : Type) (Pos : Shape -> Type) 
+  : Normalform Shape Pos (Integer Shape Pos) (Integer Identity.Shape Identity.Pos)
+  := { nf' := pure }.

@@ -1,9 +1,5 @@
 -- | Test group for tests of modules below @FreeC.Backend.Coq@.
-
-module FreeC.Backend.Coq.Tests
-  ( testCoqBackend
-  )
-where
+module FreeC.Backend.Coq.Tests ( testCoqBackend ) where
 
 import           Test.Hspec
 

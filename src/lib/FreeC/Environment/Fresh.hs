@@ -3,7 +3,6 @@
 --   Fresh identifiers are identifiers that have been introduced artificially
 --   into the Haskell or Coq AST. They are guaranteed not to conflict with any
 --   other valid identifier.
-
 module FreeC.Environment.Fresh
   ( -- * Prefixes
     freshArgPrefix
@@ -11,38 +10,36 @@ module FreeC.Environment.Fresh
   , freshBoolPrefix
   , freshTypeVarPrefix
   , freshTypeArgPrefix
-    -- * Generating fresh Haskell identifiers
+    -- * Generating Fresh Haskell Identifiers
   , freshHaskellIdent
   , freshHaskellName
   , freshHaskellQName
   , freshTypeVar
-    -- * Generating fresh Coq identifiers
+    -- * Generating Fresh Coq Identifiers
   , freshCoqIdent
   , freshCoqQualid
-    -- * Generating fresh Agda identifiers
+    -- * Generating Fresh Agda Identifiers
   , freshAgdaVar
-    -- * Generating fresh IR/LIR identifiers
+    -- * Generating Fresh IR/LIR Identifiers
   , freshIRQName
-  )
-where
+  ) where
 
-import           Data.List                      ( elemIndex )
-import           Data.Maybe                     ( fromJust )
-import qualified Data.Map.Strict               as Map
+import           Data.List                 ( elemIndex )
+import qualified Data.Map.Strict           as Map
+import           Data.Maybe                ( fromJust )
 
-import qualified FreeC.Backend.Agda.Syntax     as Agda
-import qualified FreeC.Backend.Coq.Syntax      as Coq
+import qualified FreeC.Backend.Agda.Syntax as Agda
+import qualified FreeC.Backend.Coq.Syntax  as Coq
 import           FreeC.Environment
 import           FreeC.Environment.Entry
 import           FreeC.Environment.Renamer
-import           FreeC.IR.SrcSpan               ( SrcSpan(NoSrcSpan) )
-import qualified FreeC.IR.Syntax               as IR
+import           FreeC.IR.SrcSpan          ( SrcSpan(NoSrcSpan) )
+import qualified FreeC.IR.Syntax           as IR
 import           FreeC.Monad.Converter
 
 -------------------------------------------------------------------------------
 -- Prefixes                                                                  --
 -------------------------------------------------------------------------------
-
 -- | The prefix to use for artificially introduced variables of type @a@.
 freshArgPrefix :: String
 freshArgPrefix = "x"
@@ -65,9 +62,8 @@ freshTypeArgPrefix :: String
 freshTypeArgPrefix = "t"
 
 -------------------------------------------------------------------------------
--- Generating fresh Haskell identifiers                                      --
+-- Generating Fresh Haskell Identifiers                                      --
 -------------------------------------------------------------------------------
-
 -- | Gets the next fresh Haskell identifier from the current environment.
 --
 --   All fresh identifiers contain an at-sign (See 'IR.internalIdentChar').
@@ -88,13 +84,9 @@ freshHaskellIdent prefix = case elemIndex IR.internalIdentChar prefix of
   Nothing      -> do
     env <- getEnv
     let count = Map.findWithDefault 0 prefix (envFreshIdentCount env)
-    putEnv
-      (env
-        { envFreshIdentCount = Map.insert prefix
-                                          (count + 1)
-                                          (envFreshIdentCount env)
-        }
-      )
+    putEnv (env { envFreshIdentCount = Map.insert prefix (count + 1)
+                    (envFreshIdentCount env)
+                })
     return (prefix ++ IR.internalIdentChar : show count)
 
 -- | Applies 'freshHaskellIdent' to the given name.
@@ -102,14 +94,14 @@ freshHaskellIdent prefix = case elemIndex IR.internalIdentChar prefix of
 --   Fails if the given name is a symbol.
 freshHaskellName :: IR.Name -> Converter IR.Name
 freshHaskellName (IR.Ident ident) = IR.Ident <$> freshHaskellIdent ident
-freshHaskellName (IR.Symbol _) =
-  fail "freshHaskellName: expected identifier, got symbol"
+freshHaskellName (IR.Symbol _)
+  = fail "freshHaskellName: expected identifier, got symbol"
 
 -- | Like 'freshHaskellName' but preserves the module name of qualified names.
 freshHaskellQName :: IR.QName -> Converter IR.QName
-freshHaskellQName (IR.UnQual name) = IR.UnQual <$> freshHaskellName name
-freshHaskellQName (IR.Qual modName name) =
-  IR.Qual modName <$> freshHaskellName name
+freshHaskellQName (IR.UnQual name)       = IR.UnQual <$> freshHaskellName name
+freshHaskellQName (IR.Qual modName name)
+  = IR.Qual modName <$> freshHaskellName name
 
 -- | Generates a fresh Haskell type variable.
 freshTypeVar :: Converter IR.Type
@@ -118,9 +110,8 @@ freshTypeVar = do
   return (IR.TypeVar NoSrcSpan ident)
 
 -------------------------------------------------------------------------------
--- Generating fresh Coq identifiers                                          --
+-- Generating Fresh Coq Identifiers                                          --
 -------------------------------------------------------------------------------
-
 -- | Gets the next fresh Haskell identifier from the current environment
 --   and renames it such that it can be used in Coq.
 --
@@ -138,31 +129,29 @@ freshCoqQualid :: String -> Converter Coq.Qualid
 freshCoqQualid = fmap entryIdent . freshEntry
 
 -------------------------------------------------------------------------------
--- Generating fresh Agda identifiers                                         --
+-- Generating fresh Agda Identifiers                                         --
 -------------------------------------------------------------------------------
-
 -- | Generates a new Agda identifier based on the given name.
 freshAgdaVar :: String -> Converter Agda.QName
 freshAgdaVar = fmap entryAgdaIdent . freshEntry
 
 -------------------------------------------------------------------------------
--- Generating fresh IR/LIR identifiers                                       --
+-- Generating Fresh IR/LIR Identifiers                                       --
 -------------------------------------------------------------------------------
-
 -- | Generates a new IR name based on the given name.
 freshIRQName :: String -> Converter IR.QName
 freshIRQName = fmap entryName . freshEntry
 
 -------------------------------------------------------------------------------
--- Generating entries for fresh identifiers                                  --
+-- Generating Entries for Fresh Identifiers                                  --
 -------------------------------------------------------------------------------
-
 -- | Creates a new 'FreshEntry' from a fresh Haskell identifier with the
 --   given prefix.
 freshEntry :: String -> Converter EnvEntry
 freshEntry prefix = do
   ident <- freshHaskellIdent prefix
-  renameAndAddEntry FreshEntry { entryName      = IR.UnQual (IR.Ident ident)
-                               , entryIdent     = undefined -- filled by renamer
-                               , entryAgdaIdent = undefined -- filled by renamer
-                               }
+  renameAndAddEntry FreshEntry
+    { entryName      = IR.UnQual (IR.Ident ident)
+    , entryIdent     = undefined -- filled by renamer
+    , entryAgdaIdent = undefined -- filled by renamer
+    }

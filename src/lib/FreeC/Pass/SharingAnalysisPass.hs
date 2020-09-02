@@ -82,7 +82,7 @@ import           FreeC.Pass
 --   If that is the case, a @let@-expression is introduced that binds the
 --   variables to fresh ones and replaces the occurrences with the newly
 --   introduced variable.
-sharingAnaylsisPass :: Pass IR.Module
+sharingAnaylsisPass :: Pass IR.Module IR.Module
 sharingAnaylsisPass ast = do
   funcDecls' <- mapM analyseSharingDecl (IR.modFuncDecls ast)
   return ast { IR.modFuncDecls = funcDecls' }

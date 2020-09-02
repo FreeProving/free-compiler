@@ -2,7 +2,6 @@
 -- to annotate the decreasing argument of a function that cannot be identified
 -- by our termination checker automatically.
 -- See @doc\/CustomPragmas\/DecreasingArgumentPragma.md@ for details.
-
 module DecreasingArgumentsPragma where
 
 map :: (a -> b) -> [a] -> [b]

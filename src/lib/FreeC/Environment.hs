@@ -1,22 +1,21 @@
 -- | This module contains a data type that encapsulates the state of
 --   the compiler. There are also utility functions to modify the state and
 --   retrieve information stored in the state.
-
 module FreeC.Environment
   ( -- * Environment
     Environment(..)
   , emptyEnv
-  -- * Module information
+    -- * Module Information
   , makeModuleAvailable
   , isModuleAvailable
   , lookupAvailableModule
-  -- * Inserting entries into the environment
+    -- * Inserting Entries into the Environment
   , addEntry
   , defineDecArg
   , removeDecArg
-  -- * Modifying entries in the environment
+    -- * Modifying Entries in the Environment
   , modifyEntryIdent
-  -- * Looking up entries from the environment
+    -- * Looking up Entries from the Environment
   , lookupEntry
   , isFunction
   , isVariable
@@ -39,42 +38,37 @@ module FreeC.Environment
   , lookupDecArg
   , lookupDecArgIndex
   , lookupDecArgIdent
-  )
-where
+  ) where
 
-import           Data.Composition               ( (.:)
-                                                , (.:.)
-                                                )
-import           Data.List                      ( find )
-import           Data.Map.Strict                ( Map )
-import qualified Data.Map.Strict               as Map
-import           Data.Maybe                     ( isJust )
-import           Data.Tuple.Extra               ( (&&&) )
+import           Data.Composition                  ( (.:), (.:.) )
+import           Data.List                         ( find )
+import           Data.Map.Strict                   ( Map )
+import qualified Data.Map.Strict                   as Map
+import           Data.Maybe                        ( isJust )
+import           Data.Tuple.Extra                  ( (&&&) )
 
-import qualified FreeC.Backend.Agda.Syntax     as Agda
-import qualified FreeC.Backend.Coq.Syntax      as Coq
+import qualified FreeC.Backend.Agda.Syntax         as Agda
+import qualified FreeC.Backend.Coq.Syntax          as Coq
 import           FreeC.Environment.Entry
 import           FreeC.Environment.ModuleInterface
-import qualified FreeC.IR.Syntax               as IR
 import           FreeC.IR.SrcSpan
+import qualified FreeC.IR.Syntax                   as IR
 import           FreeC.Util.Predicate
 
 -------------------------------------------------------------------------------
 -- Environment                                                               --
 -------------------------------------------------------------------------------
-
 -- | Data type that encapsulates the state of the converter.
 data Environment = Environment
-  { envAvailableModules  :: Map IR.ModName ModuleInterface
+  { envAvailableModules :: Map IR.ModName ModuleInterface
     -- ^ Maps names of modules that can be imported to their interface.
-
-  , envEntries           :: Map IR.ScopedName EnvEntry
+  , envEntries          :: Map IR.ScopedName EnvEntry
     -- ^ Maps original names of entries for declarations to the entries.
-  , envDecArgs           :: Map IR.QName (Int, String)
+  , envDecArgs          :: Map IR.QName (Int, String)
     -- ^ Maps Haskell function names to the index and name of their decreasing
     --   argument. Contains no entry for non-recursive functions, but there are
     --   also entries for functions that are shadowed by local variables.
-  , envFreshIdentCount   :: Map String Int
+  , envFreshIdentCount  :: Map String Int
     -- ^ The number of fresh identifiers that were used in the environment
     --   with a certain prefix.
   }
@@ -83,25 +77,23 @@ data Environment = Environment
 -- | An environment that does not even contain any predefined types and
 --   functions.
 emptyEnv :: Environment
-emptyEnv = Environment { -- Modules
-                         envAvailableModules = Map.empty
-                         -- Entries
-                       , envEntries          = Map.empty
-                       , envDecArgs          = Map.empty
-                       , envFreshIdentCount  = Map.empty
-                       }
+emptyEnv = Environment   -- Modules
+  { envAvailableModules = Map.empty
+    -- Entries
+  , envEntries          = Map.empty
+  , envDecArgs          = Map.empty
+  , envFreshIdentCount  = Map.empty
+  }
 
 -------------------------------------------------------------------------------
 -- Modules                                                                   --
 -------------------------------------------------------------------------------
-
 -- | Inserts the interface of a module name into the environment such that it
 --   can be imported.
 makeModuleAvailable :: ModuleInterface -> Environment -> Environment
 makeModuleAvailable iface env = env
-  { envAvailableModules = Map.insert (interfaceModName iface)
-                                     iface
-                                     (envAvailableModules env)
+  { envAvailableModules = Map.insert (interfaceModName iface) iface
+      (envAvailableModules env)
   }
 
 -- | Tests whether the module with the given name can be imported.
@@ -113,14 +105,14 @@ lookupAvailableModule :: IR.ModName -> Environment -> Maybe ModuleInterface
 lookupAvailableModule modName = Map.lookup modName . envAvailableModules
 
 -------------------------------------------------------------------------------
--- Inserting entries into the environment                                    --
+-- Inserting Entries into the Environment                                    --
 -------------------------------------------------------------------------------
-
 -- | Inserts an entry into the given environment and associates it with
 --   its original name.
 addEntry :: EnvEntry -> Environment -> Environment
-addEntry entry env =
-  env { envEntries = Map.insert (entryScopedName entry) entry (envEntries env) }
+addEntry entry env = env
+  { envEntries = Map.insert (entryScopedName entry) entry (envEntries env)
+  }
 
 -- | Stores the index and name of the decreasing argument of a recursive
 --   function in the environment.
@@ -133,13 +125,12 @@ defineDecArg funcName decArgIndex decArgIdent env = env
 --   from the environment (e.g., because the function has been transformed
 --   into a non-recursive function).
 removeDecArg :: IR.QName -> Environment -> Environment
-removeDecArg funcName env =
-  env { envDecArgs = Map.delete funcName (envDecArgs env) }
+removeDecArg funcName env
+  = env { envDecArgs = Map.delete funcName (envDecArgs env) }
 
 -------------------------------------------------------------------------------
--- Modifying entries in the environment                                      --
+-- Modifying Entries in the Environment                                      --
 -------------------------------------------------------------------------------
-
 -- | Changes the Coq identifier of the entry with the given name in the given
 --   scope to the given identifier.
 --
@@ -151,9 +142,8 @@ modifyEntryIdent scope name newIdent env = case lookupEntry scope name env of
   Just entry -> addEntry (entry { entryIdent = newIdent }) env
 
 -------------------------------------------------------------------------------
--- Looking up entries from the environment                                   --
+-- Looking up Entries from the Environment                                   --
 -------------------------------------------------------------------------------
-
 -- | Looks up the entry with the given original name in the given scope of
 --   the given environment.
 lookupEntry :: IR.Scope -> IR.QName -> Environment -> Maybe EnvEntry
@@ -175,8 +165,8 @@ isVariable = maybe False isVarEntry .: lookupEntry IR.ValueScope
 
 -- | Test whether the variable with the given name is not monadic.
 isPureVar :: IR.QName -> Environment -> Bool
-isPureVar =
-  maybe False (isVarEntry .&&. entryIsPure) .: lookupEntry IR.ValueScope
+isPureVar = maybe False (isVarEntry .&&. entryIsPure)
+  .: lookupEntry IR.ValueScope
 
 -- | Looks up the Coq identifier for a Haskell function, (type)
 --   constructor or (type) variable with the given name.
@@ -191,8 +181,8 @@ lookupIdent = fmap entryIdent .:. lookupEntry
 --
 --   Returns @Nothing@ if there is no such constructor.
 lookupSmartIdent :: IR.QName -> Environment -> Maybe Coq.Qualid
-lookupSmartIdent =
-  fmap entrySmartIdent . find isConEntry .: lookupEntry IR.ValueScope
+lookupSmartIdent
+  = fmap entrySmartIdent . find isConEntry .: lookupEntry IR.ValueScope
 
 -- | Gets a list of Coq identifiers for functions, (type/smart) constructors,
 --   (type/fresh) variables that were used in the given environment already.
@@ -200,8 +190,8 @@ usedIdents :: Environment -> [Coq.Qualid]
 usedIdents = concatMap entryIdents . Map.elems . envEntries
  where
   entryIdents :: EnvEntry -> [Coq.Qualid]
-  entryIdents entry =
-    entryIdent entry : [ entrySmartIdent entry | isConEntry entry ]
+  entryIdents entry
+    = entryIdent entry : [entrySmartIdent entry | isConEntry entry]
 
 -- | Gets a list of Agda identifiers for functions, (type/smart) constructors,
 --   (type/fresh) variables that were used in the given environment already.
@@ -209,8 +199,8 @@ usedAgdaIdents :: Environment -> [Agda.QName]
 usedAgdaIdents = concatMap entryIdents . Map.elems . envEntries
  where
   entryIdents :: EnvEntry -> [Agda.QName]
-  entryIdents entry =
-    entryAgdaIdent entry : [ entryAgdaSmartIdent entry | isConEntry entry ]
+  entryIdents entry
+    = entryAgdaIdent entry : [entryAgdaSmartIdent entry | isConEntry entry]
 
 -- | Looks up the location of the declaration with the given name.
 lookupSrcSpan :: IR.Scope -> IR.QName -> Environment -> Maybe SrcSpan
@@ -221,11 +211,11 @@ lookupSrcSpan = fmap entrySrcSpan .:. lookupEntry
 --
 --   Returns @Nothing@ if there is no such type synonym, function or (smart)
 --   constructor with the given name.
-lookupTypeArgs :: IR.Scope -> IR.QName -> Environment -> Maybe [IR.TypeVarIdent]
-lookupTypeArgs =
-  fmap entryTypeArgs
-    .   find (isTypeSynEntry .||. isConEntry .||. isFuncEntry)
-    .:. lookupEntry
+lookupTypeArgs
+  :: IR.Scope -> IR.QName -> Environment -> Maybe [IR.TypeVarIdent]
+lookupTypeArgs = fmap entryTypeArgs
+  . find (isTypeSynEntry .||. isConEntry .||. isFuncEntry)
+  .:. lookupEntry
 
 -- | Returns the length of the list returned by @lookupTypeArgs@.
 lookupTypeArgArity :: IR.Scope -> IR.QName -> Environment -> Maybe Int
@@ -237,15 +227,15 @@ lookupTypeArgArity = fmap length .:. lookupTypeArgs
 --   Returns @Nothing@ if there is no such function or (smart) constructor
 --   with the given name.
 lookupArgTypes :: IR.Scope -> IR.QName -> Environment -> Maybe [IR.Type]
-lookupArgTypes =
-  fmap entryArgTypes . find (isConEntry .||. isFuncEntry) .:. lookupEntry
+lookupArgTypes = fmap entryArgTypes . find (isConEntry .||. isFuncEntry)
+  .:. lookupEntry
 
 -- | Looks up the strict arguments of the function with the given name.
 --
 --   Returns @Nothing@ if there is no such function.
 lookupStrictArgs :: IR.QName -> Environment -> Maybe [Bool]
-lookupStrictArgs =
-  fmap entryStrictArgs . find isFuncEntry .: lookupEntry IR.ValueScope
+lookupStrictArgs
+  = fmap entryStrictArgs . find isFuncEntry .: lookupEntry IR.ValueScope
 
 -- | Looks up the return type of the function or (smart) constructor with the
 --   given name.
@@ -253,8 +243,8 @@ lookupStrictArgs =
 --   Returns @Nothing@ if there is no such function or (smart) constructor
 --   with the given name or the return type is not known.
 lookupReturnType :: IR.Scope -> IR.QName -> Environment -> Maybe IR.Type
-lookupReturnType =
-  fmap entryReturnType . find (isConEntry .||. isFuncEntry) .:. lookupEntry
+lookupReturnType = fmap entryReturnType . find (isConEntry .||. isFuncEntry)
+  .:. lookupEntry
 
 -- | Gets the type scheme of the variable, function or constructor with the
 --   given name.
@@ -264,8 +254,8 @@ lookupTypeScheme scope name env
     typeExpr <- lookupEntry scope name env >>= entryType
     return (IR.TypeScheme NoSrcSpan [] typeExpr)
   | otherwise = do
-    typeArgs   <- lookupTypeArgs scope name env
-    argTypes   <- lookupArgTypes scope name env
+    typeArgs <- lookupTypeArgs scope name env
+    argTypes <- lookupArgTypes scope name env
     returnType <- lookupReturnType scope name env
     let typeArgDecls = map (IR.TypeVarDecl NoSrcSpan) typeArgs
         funcType     = IR.funcType NoSrcSpan argTypes returnType
@@ -277,35 +267,31 @@ lookupTypeScheme scope name env
 --   Returns @Nothing@ if there is no such function or (smart) constructor
 --   with the given name.
 lookupArity :: IR.Scope -> IR.QName -> Environment -> Maybe Int
-lookupArity =
-  fmap entryArity
-    .   find (not . (isVarEntry .||. isTypeVarEntry))
-    .:. lookupEntry
+lookupArity = fmap entryArity . find (not . (isVarEntry .||. isTypeVarEntry))
+  .:. lookupEntry
 
 -- | Looks up the type the type synonym with the given name is associated with.
 --
 --   Returns @Nothing@ if there is no such type synonym.
 lookupTypeSynonym
   :: IR.QName -> Environment -> Maybe ([IR.TypeVarIdent], IR.Type)
-lookupTypeSynonym =
-  fmap (entryTypeArgs &&& entryTypeSyn)
-    .  find isTypeSynEntry
-    .: lookupEntry IR.TypeScope
+lookupTypeSynonym = fmap (entryTypeArgs &&& entryTypeSyn) . find isTypeSynEntry
+  .: lookupEntry IR.TypeScope
 
 -- | Tests whether the function with the given name needs the arguments
 --   of the @Free@ monad.
 --
 --   Returns @False@ if there is no such function.
 needsFreeArgs :: IR.QName -> Environment -> Bool
-needsFreeArgs =
-  maybe False (isFuncEntry .&&. entryNeedsFreeArgs) .: lookupEntry IR.ValueScope
+needsFreeArgs = maybe False (isFuncEntry .&&. entryNeedsFreeArgs)
+  .: lookupEntry IR.ValueScope
 
 -- | Tests whether the function with the given name is partial.
 --
 --   Returns @False@ if there is no such function.
 isPartial :: IR.QName -> Environment -> Bool
-isPartial =
-  maybe False (isFuncEntry .&&. entryIsPartial) .: lookupEntry IR.ValueScope
+isPartial = maybe False (isFuncEntry .&&. entryIsPartial)
+  .: lookupEntry IR.ValueScope
 
 -- | Looks up the index and name of the decreasing argument of the recursive
 --   function with the given name.

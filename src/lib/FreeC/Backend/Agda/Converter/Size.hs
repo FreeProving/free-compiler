@@ -1,11 +1,7 @@
-module FreeC.Backend.Agda.Converter.Size
-  ( size
-  , up
-  )
-where
+module FreeC.Backend.Agda.Converter.Size ( size, up ) where
 
-import qualified FreeC.Backend.Agda.Syntax     as Agda
-import qualified FreeC.Backend.Agda.Base       as Agda.Base
+import qualified FreeC.Backend.Agda.Base   as Agda.Base
+import qualified FreeC.Backend.Agda.Syntax as Agda
 
 -- | Hidden Size argument.
 --

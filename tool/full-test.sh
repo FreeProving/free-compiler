@@ -247,9 +247,9 @@ function check_required_software() {
   local program_not_found_counter=0
   check_version "GHC" ghc '8.6.5' >> "$temp_log"
   check_version "Cabal" cabal '3.*' >> "$temp_log"
-  check_version "Coq" coqc '8.8.*|8.9.*|8.10.*|8.11.*' >> "$temp_log"
+  check_version "Coq" coqc '8.10.*|8.11.*|8.12.*' >> "$temp_log"
   check_version "HLint" hlint '3.1.*' >> "$temp_log"
-  check_version "Brittany" brittany '0.12.*'>> "$temp_log"
+  check_version "Floskell" floskell '0.10.4' >> "$temp_log"
   check_version "Agda" agda '2.6.1' >> "$temp_log"
 
   # Print reported messages.
@@ -263,7 +263,8 @@ function check_required_software() {
     echo
     exit 1
   else
-    update_status "$yellow" "$gray" "$question_mark" "Unsupported software versions"
+    update_status "$yellow" "$gray" "$question_mark" \
+      "Unsupported software versions"
     print_message "$yellow" "Something may go wrong!" "$log_text"
     echo
   fi
@@ -469,10 +470,10 @@ step "Checking code with HLint"          \
      "Canceled checking code with HLint" \
      "hlint src"
 
-step "Checking code style with Brittany"            \
+step "Checking code style with Floskell"            \
      "All Haskell files have been formatted"        \
      "There are Haskell files that need formatting" \
-     "Canceled checking code style with Brittany"   \
+     "Canceled checking code style with Floskell"   \
      "./tool/check-formatting.sh"
 
 # Test whether the user canceled any of the steps above using CTRL + C.
