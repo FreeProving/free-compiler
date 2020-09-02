@@ -1,4 +1,5 @@
 From Base Require Import Free.
+From Base Require Import Free.Instance.Identity.
 
 (* We define an alias for [unit] that accepts the parameters [Shape] and
    [Pos] to unify the translation of build-in and user defined data types.
@@ -21,3 +22,9 @@ Notation "'Tt' Shape Pos" := (@pure Shape Pos unit tt)
 
 Notation "'@Tt' Shape Pos" := (@pure Shape Pos unit tt)
   ( only parsing, at level 10, Shape, Pos at level 9 ).
+
+(* Normalform instance for Unit *)
+
+Instance NormalformUnit (Shape : Type) (Pos : Shape -> Type)
+  : Normalform Shape Pos (Unit Shape Pos) (Unit Identity.Shape Identity.Pos)
+  := { nf' := pure }.
