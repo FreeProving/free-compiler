@@ -32,7 +32,7 @@ Definition evalTracing {A : Type} p
 Definition evalNDM {A : Type} p
 := @collectVals (option A) (run (runChoice (runNDSharing (0,0) (runMaybe p)))).
 
-(* Shortcut to evaluate a traced partial pro gram to a result and a list 
+(* Shortcut to evaluate a traced partial program to a result and a list 
    of logged messages. *)
 Definition evalTraceM {A : Type} p
 := @collectMessages (option A) 
