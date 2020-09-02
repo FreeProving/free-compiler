@@ -209,6 +209,7 @@ convertDataDecl (IR.DataDecl _ (IR.DeclIdent _ name) typeVarDecls conDecls) = do
     mbModName <- inEnv $ lookupModName IR.ValueScope conName
     Just qualid <- inEnv $ lookupIdent IR.ValueScope conName
     Just smartQualid <- inEnv $ lookupSmartIdent conName
+    Just returnType <- inEnv $ lookupReturnType IR.ValueScope conName
     constrArgIdents <- mapM (const $ Fresh.freshCoqIdent Fresh.freshArgPrefix)
       argTypes
     let Just unqualIdent = Coq.unpackQualid smartQualid
@@ -216,39 +217,55 @@ convertDataDecl (IR.DataDecl _ (IR.DeclIdent _ name) typeVarDecls conDecls) = do
       <- mapM (\(IR.TypeVarDecl srcSpan ident) ->
                Renamer.renameAndDefineTypeVar srcSpan ident) typeVarDecls
     let typeVarIdents = map (fromJust . Coq.unpackQualid) typeVarQualids
+    returnType' <- convertType' returnType
     -- Generate unqualified and qualified notation sentences for the smart
     -- constructor if possible.
     return
       ( generateSmartConDecl' unqualIdent qualid typeVarIdents constrArgIdents
+          returnType'
       , case mbModName of
           Just modName -> generateSmartConDecl' (modName ++ '.' : unqualIdent)
-            qualid typeVarIdents constrArgIdents
+            qualid typeVarIdents constrArgIdents returnType'
           Nothing      -> []
       )
 
   -- | Generates a notation sentence for the smart constructor and the
   --   explicit application of the smart constructor.
   generateSmartConDecl'
-    :: String -> Coq.Qualid -> [String] -> [String] -> [Coq.Sentence]
+    :: String
+    -> Coq.Qualid
+    -> [String]
+    -> [String]
+    -> Coq.Term
+    -> [Coq.Sentence]
   generateSmartConDecl' smartIdent constr typeVarIdents constrArgIdents
-    = [ Coq.notationSentence lhs rhs mods
-      , Coq.notationSentence expLhs expRhs expMods
-      ]
+    expReturnType = [ Coq.notationSentence lhs rhs mods
+                    , Coq.notationSentence expLhs expRhs expMods
+                    ]
    where
     freeArgIdents = map (fromJust . Coq.unpackQualid . fst) Coq.Base.freeArgs
 
+    freeArgs      = map (Coq.Qualid . fst) Coq.Base.freeArgs
+
     -- Default smart constructor with implicit type args.
+    returnType    = case expReturnType of
+      (Coq.App tcon (shape NonEmpty.:| pos : tvars))
+        | length tvars == length typeVarIdents -> Coq.App tcon
+          (shape NonEmpty.:| pos
+           : map (Coq.PosArg . const Coq.Underscore) tvars)
+      _ -> Coq.Underscore
+
     argIdents     = freeArgIdents ++ constrArgIdents
 
-    args          = map (Coq.Qualid . Coq.bare) freeArgIdents
+    args          = freeArgs
       ++ map (const Coq.Underscore) typeVarIdents
       ++ map (Coq.Qualid . Coq.bare) constrArgIdents
 
     lhs           = Coq.nSymbol smartIdent
       NonEmpty.:| (map Coq.nIdent $ argIdents)
 
-    rhs           = Coq.app (Coq.Qualid Coq.Base.freePureCon)
-      [Coq.explicitApp constr args]
+    rhs           = Coq.explicitApp Coq.Base.freePureCon
+      $ freeArgs ++ [returnType, Coq.explicitApp constr args]
 
     mods          = [ Coq.sModLevel 10
                     , Coq.sModIdentLevel (NonEmpty.fromList argIdents) (Just 9)
@@ -257,11 +274,13 @@ convertDataDecl (IR.DataDecl _ (IR.DeclIdent _ name) typeVarDecls conDecls) = do
     -- Explicit notation for the smart constructor.
     expArgIdents  = freeArgIdents ++ typeVarIdents ++ constrArgIdents
 
+    expArgs       = map (Coq.Qualid . Coq.bare) expArgIdents
+
     expLhs        = Coq.nSymbol ('@' : smartIdent)
       NonEmpty.:| map Coq.nIdent expArgIdents
 
-    expRhs        = Coq.app (Coq.Qualid Coq.Base.freePureCon)
-      [Coq.explicitApp constr (map (Coq.Qualid . Coq.bare) expArgIdents)]
+    expRhs        = Coq.explicitApp Coq.Base.freePureCon
+      $ freeArgs ++ [expReturnType, Coq.explicitApp constr expArgs]
 
     expMods
       = [ Coq.SModOnlyParsing
