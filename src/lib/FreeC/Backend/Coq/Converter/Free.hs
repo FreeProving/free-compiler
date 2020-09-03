@@ -19,7 +19,8 @@ import           FreeC.Monad.Converter
 --   The first argument controls whether the generated binders are explicit
 --   (e.g. @(Shape : Type)@) or implicit (e.g. @{Shape : Type}@).
 genericArgDecls :: Coq.Explicitness -> [Coq.Binder]
-genericArgDecls explicitness = map (uncurry (Coq.typedBinder' explicitness))
+genericArgDecls explicitness = map
+  (uncurry (Coq.typedBinder' Coq.Ungeneralizable explicitness))
   Coq.Base.freeArgs
 
 -- | @Variable@ sentences for the parameters of the @Free@ monad.
@@ -30,7 +31,7 @@ genericArgVariables = map (uncurry (Coq.variable . return)) Coq.Base.freeArgs
 
 -- | Converts the name and type of a type class instance to an explicit binder.
 effectArgDecl :: (Coq.Qualid, Coq.Term) -> Coq.Binder
-effectArgDecl = uncurry $ Coq.typedBinder' Coq.Explicit
+effectArgDecl = uncurry $ Coq.typedBinder' Coq.Ungeneralizable Coq.Explicit
 
 -- | Smart constructor for the application of a Coq function or (type)
 --   constructor that requires the parameters for the @Free@ monad.
