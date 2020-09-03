@@ -129,7 +129,7 @@ testConvertFuncApp = context "function applications" $ do
     $ do
       "e1" <- defineTestVar "e1"
       "e2" <- defineTestVar "e2"
-      "e1 e2" `shouldConvertExprTo` "e1 >>= (fun e1_0 => e1_0 e2)"
+      "e1 e2" `shouldConvertExprTo` "e1 >>= (fun e3 => e3 e2)"
   it "converts applications of functions that return functions correctly"
     $ shouldSucceedWith
     $ do
@@ -137,7 +137,7 @@ testConvertFuncApp = context "function applications" $ do
       "a" <- defineTestTypeVar "a"
       "x" <- defineTestVar "x"
       "y" <- defineTestVar "y"
-      shouldConvertExprTo "f @a x y" "@f Shape Pos a x >>= (fun f_0 => f_0 y)"
+      shouldConvertExprTo "f @a x y" "@f Shape Pos a x >>= (fun f0 => f0 y)"
   it "requires visible type applications of functions" $ do
     input <- expectParseTestExpr "f"
     shouldFail $ do
@@ -150,7 +150,7 @@ testConvertFuncApp = context "function applications" $ do
       "a" <- defineTestTypeVar "a"
       "x" <- defineTestVar "x"
       "f @a x"
-        `shouldConvertExprTo` "x >>= (fun (x_0 : a) => @f Shape Pos a x_0)"
+        `shouldConvertExprTo` "x >>= (fun (x0 : a) => @f Shape Pos a x0)"
   it "converts function applications with two strict arguments correctly"
     $ shouldSucceedWith
     $ do
@@ -159,8 +159,8 @@ testConvertFuncApp = context "function applications" $ do
       "x" <- defineTestVar "x"
       "y" <- defineTestVar "y"
       shouldConvertExprTo "f @a x y"
-        $ "x >>= (fun (x_0 : a) =>"
-        ++ "  y >>= (fun (y_0 : a) => @f Shape Pos a x_0 y_0))"
+        $ "x >>= (fun (x0 : a) =>"
+        ++ "  y >>= (fun (y0 : a) => @f Shape Pos a x0 y0))"
   it ("converts function applications with one non-strict and one"
       ++ "strict argument correctly")
     $ shouldSucceedWith
@@ -170,7 +170,7 @@ testConvertFuncApp = context "function applications" $ do
       "x" <- defineTestVar "x"
       "y" <- defineTestVar "y"
       "f @a x y"
-        `shouldConvertExprTo` "y >>= (fun (y_0 : a) => @f Shape Pos a x y_0)"
+        `shouldConvertExprTo` "y >>= (fun (y0 : a) => @f Shape Pos a x y0)"
 
 -------------------------------------------------------------------------------
 -- @if@-Expressions                                                          --
@@ -184,7 +184,7 @@ testConvertIf = context "if expressions" $ do
     "e2" <- defineTestVar "e2"
     "e3" <- defineTestVar "e3"
     shouldConvertExprTo "if e1 then e2 else e3"
-      $ "e1 >>= (fun (e1_0 : Bool Shape Pos) => if e1_0 then e2 else e3)"
+      $ "e1 >>= (fun (e4 : Bool Shape Pos) => if e4 then e2 else e3)"
   it "there is no name conflict with custom `Bool`" $ shouldSucceedWith $ do
     "Bool" <- defineTestTypeCon "M1.Bool" 0 []
     "Bool0" <- defineTestTypeCon "Prelude.Bool" 0 []
@@ -193,7 +193,7 @@ testConvertIf = context "if expressions" $ do
     "e2" <- defineTestVar "e2"
     "e3" <- defineTestVar "e3"
     shouldConvertExprTo "if e1 then e2 else e3"
-      $ "e1 >>= (fun (e1_0 : Bool0 Shape Pos) => if e1_0 then e2 else e3)"
+      $ "e1 >>= (fun (e4 : Bool0 Shape Pos) => if e4 then e2 else e3)"
 
 -------------------------------------------------------------------------------
 -- @case@-Expressions                                                        --
@@ -217,8 +217,8 @@ testConvertCase = context "case expressions" $ do
     ("c1", _) <- defineTestCon "C1" 0 "D"
     ("c2", _) <- defineTestCon "C2" 0 "D"
     shouldConvertExprTo "case e of { C1 -> e1;  C2 -> e2 }"
-      $ "e >>= (fun e_0 =>"
-      ++ "  match e_0 with"
+      $ "e >>= (fun e0 =>"
+      ++ "  match e0 with"
       ++ "  | c1 => e1"
       ++ "  | c2 => e2"
       ++ "  end)"
@@ -229,8 +229,8 @@ testConvertCase = context "case expressions" $ do
     "e" <- defineTestVar "e"
     "x" <- defineTestVar "x"
     shouldConvertExprTo "case e of { Nil -> x; Cons x xs -> x }"
-      $ "e >>= (fun e_0 =>"
-      ++ "  match e_0 with"
+      $ "e >>= (fun e0 =>"
+      ++ "  match e0 with"
       ++ "  | nil => x"
       ++ "  | cons x0 xs => x0"
       ++ "  end)"
@@ -239,13 +239,13 @@ testConvertCase = context "case expressions" $ do
     ("a", _) <- defineTestCon "A" 0 "Unit"
     ("b", _) <- defineTestCon "B" 0 "Unit"
     "x" <- defineTestVar "x"
-    "x_0" <- defineTestVar "x_0"
+    "x0" <- defineTestVar "x0"
     shouldConvertExprTo
       "case x of { A -> case x of { A -> x; B -> x }; B -> x }"
-      $ "x >>= (fun x_1 =>"
-      ++ "  match x_1 with"
-      ++ "  | a => x >>= (fun x_2 =>"
-      ++ "    match x_2 with"
+      $ "x >>= (fun x1 =>"
+      ++ "  match x1 with"
+      ++ "  | a => x >>= (fun x2 =>"
+      ++ "    match x2 with"
       ++ "    | a => x"
       ++ "    | b => x"
       ++ "    end)"
@@ -340,8 +340,8 @@ testConvertUndefined = context "undefined expressions" $ do
       shouldConvertExprTo "undefined @(a->b->c) x y"
         $ "(@undefined Shape Pos P (Free Shape Pos a ->"
         ++ " Free Shape Pos (Free Shape Pos b -> Free Shape Pos c))"
-        ++ " >>= (fun f_0 => f_0 x))"
-        ++ " >>= (fun f_0 => f_0 y)"
+        ++ " >>= (fun f => f x))"
+        ++ " >>= (fun f => f y)"
 
 -- | Test group for translation of undefined expressions.
 testConvertError :: Spec
@@ -362,5 +362,5 @@ testConvertError = context "error expressions" $ do
         $ "(@error Shape Pos P (Free Shape Pos a ->"
         ++ " Free Shape Pos (Free Shape Pos b -> Free Shape Pos c))"
         ++ " \"message\"%string"
-        ++ " >>= (fun f_0 => f_0 x))"
-        ++ " >>= (fun f_0 => f_0 y)"
+        ++ " >>= (fun f => f x))"
+        ++ " >>= (fun f => f y)"

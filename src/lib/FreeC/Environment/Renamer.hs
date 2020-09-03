@@ -28,6 +28,7 @@ module FreeC.Environment.Renamer
 import           Control.Monad               ( when )
 import           Data.Char
 import           Data.Composition            ( (.:) )
+import           Data.List                   ( elemIndex )
 import           Data.List.Extra             ( splitOn )
 import           Data.Maybe                  ( fromMaybe, mapMaybe )
 import           Text.Casing
@@ -143,6 +144,8 @@ sanitizeIdent (firstChar : subsequentChars)
 
 -- | Renames a Haskell identifier such that it can be safely used in Coq.
 --
+--   If the given identifier is a fresh identifier (i.e. contains an at-sign),
+--   the prefix of that identifier is used instead.
 --   If the identifier has no name conflict, it is return unchanged.
 --   If the identifier would cause a name conflict the smallest natural number
 --   is appended such that the resulting identifier does not cause a name
@@ -150,6 +153,8 @@ sanitizeIdent (firstChar : subsequentChars)
 --   enumeration will start from that number.
 renameIdent :: String -> Environment -> String
 renameIdent ident env
+  | Just atIndex <- elemIndex IR.internalIdentChar ident = renameIdent
+    (take atIndex ident) env
   | mustRenameIdent ident' env = case matchRegexPR "\\d+$" ident' of
     Just ((number, (prefix, _)), _) -> renameIdent' prefix (read number) env
     Nothing -> renameIdent' ident' 0 env

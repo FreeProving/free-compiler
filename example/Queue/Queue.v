@@ -85,21 +85,21 @@ Qed.
 Lemma append_nil : quickCheck prop_append_nil.
 Proof.
   intros Shape Pos a fxs.
-  induction fxs using FreeList_ind with (P := fun xs => append_1 Shape Pos a (pure nil) xs = pure xs); simpl.
+  induction fxs using FreeList_ind with (P := fun xs => append1 Shape Pos a (pure nil) xs = pure xs); simpl.
   - reflexivity.
   - unfold Cons; simpl; repeat apply f_equal. apply IHfxs1.
   - apply IHfxs.
   - repeat apply f_equal. extensionality p. apply H.
 Qed.
 
-Lemma append_1_assoc :
+Lemma append1_assoc :
   forall (Shape : Type)
          (Pos : Shape -> Type)
          {a : Type}
          (xs : List Shape Pos a)
          (fys fzs : Free Shape Pos (List Shape Pos a)),
-      append_1 Shape Pos a (append Shape Pos fys fzs) xs
-      = append Shape Pos (append_1 Shape Pos a fys xs) fzs.
+      append1 Shape Pos a (append Shape Pos fys fzs) xs
+      = append Shape Pos (append1 Shape Pos a fys xs) fzs.
 Proof.
   intros Shape Pos a xs fys fzs.
   induction xs using List_Ind.
@@ -115,7 +115,7 @@ Lemma append_assoc : quickCheck prop_append_assoc.
 Proof.
   intros Shape Pos a fxs fys fzs.
   induction fxs as [ | s pf IH ] using Free_Ind.
-  - simpl. apply append_1_assoc.
+  - simpl. apply append1_assoc.
   - (*Inductive case: [fxs = impure s pf] with induction hypothesis [IH] *)
     simpl. apply f_equal. extensionality p.
     apply IH.

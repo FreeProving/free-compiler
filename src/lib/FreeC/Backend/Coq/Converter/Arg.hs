@@ -29,10 +29,19 @@ convertTypeVarDecls
   -> [IR.TypeVarDecl] -- ^ The type variable declarations.
   -> Converter [Coq.Binder]
 convertTypeVarDecls explicitness typeVarDecls
-  | null typeVarDecls = return []
+  = snd <$> convertTypeVarDecls' explicitness typeVarDecls
+
+-- | Like 'convertTypeVarDecls' but also returns the Coq identifiers of the
+--   bound variables.
+convertTypeVarDecls'
+  :: Coq.Explicitness -- ^ Whether to generate an explicit or implicit binder.
+  -> [IR.TypeVarDecl] -- ^ The type variable declarations.
+  -> Converter ([Coq.Qualid], [Coq.Binder])
+convertTypeVarDecls' explicitness typeVarDecls
+  | null typeVarDecls = return ([], [])
   | otherwise = do
     idents' <- mapM convertTypeVarDecl typeVarDecls
-    return [Coq.typedBinder explicitness idents' Coq.sortType]
+    return $ (idents', [Coq.typedBinder explicitness idents' Coq.sortType])
  where
   -- | Converts a type variable declaration by adding an entry to the
   --   environment.
