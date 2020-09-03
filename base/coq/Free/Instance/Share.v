@@ -1,6 +1,7 @@
 (** * Definition of the sharing effect in terms of the free monad. *)
 
-From Base Require Import Free.
+From Base Require Import Free.Class.Injectable.
+From Base Require Import Free.Monad.
 
 Module Share.
 

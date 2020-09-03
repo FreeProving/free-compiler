@@ -101,3 +101,11 @@ End SecInteger.
 Instance NormalformInteger (Shape : Type) (Pos : Shape -> Type) 
   : Normalform Shape Pos (Integer Shape Pos) (Integer Identity.Shape Identity.Pos)
   := { nf' := pure }.
+
+(* ShareableArgs instance for Integer *)
+
+Instance ShareableArgsInteger (Shape : Type) (Pos : Shape -> Type)
+  : ShareableArgs Shape Pos (Integer Shape Pos)
+ := {
+        shareArgs := pure
+    }.

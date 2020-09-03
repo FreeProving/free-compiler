@@ -1,5 +1,6 @@
 From Base Require Import Free.
 From Base Require Import Free.Instance.Identity.
+From Base Require Import Free.Malias.
 
 Require Import Coq.Program.Equality.
 
@@ -54,6 +55,32 @@ Section SecListNF.
    := { nf' := nf'List }.
 
 End SecListNF.
+
+
+Section SecListShrArgs.
+
+Variable Shape : Type.
+Variable Pos : Shape -> Type.
+Variable A : Type.
+
+Fixpoint shareArgsList `{SA : ShareableArgs Shape Pos A}
+                       `{Injectable Share.Shape Share.Pos Shape Pos}
+                        (xs : List Shape Pos A)
+                        {struct xs}
+  : Free Shape Pos (List Shape Pos A)
+ := match xs with
+    | nil         => pure nil
+    | cons fy fys => cbneed Shape Pos (@shareArgs Shape Pos A SA) fy >>= fun sy =>
+                     cbneed Shape Pos shareArgsList fys >>= fun sys => 
+                     pure (cons sy sys)
+                         end.
+
+Global Instance ShareableArgsList `{Injectable Share.Shape Share.Pos Shape Pos}
+                           `{ShareableArgs Shape Pos A}
+  : ShareableArgs Shape Pos (List Shape Pos A)
+ := { shareArgs := shareArgsList }.
+
+End SecListShrArgs.
 
 (* Induction principle for lists *)
 

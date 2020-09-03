@@ -32,3 +32,11 @@ End SecBool.
 Instance NormalformBool (Shape : Type) (Pos : Shape -> Type)
   : Normalform Shape Pos (Bool Shape Pos) (Bool Identity.Shape Identity.Pos)
   := { nf' := pure }.
+
+(* ShareableArgs instance for Bool *)
+
+Instance ShareableArgsBool (Shape : Type) (Pos : Shape -> Type)
+  : ShareableArgs Shape Pos (Bool Shape Pos)
+ := {
+        shareArgs := pure
+    }.
