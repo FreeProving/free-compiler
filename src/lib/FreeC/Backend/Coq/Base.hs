@@ -51,6 +51,14 @@ generatedLibName = Coq.ident "Generated"
 free :: Coq.Qualid
 free = Coq.bare "Free"
 
+-- | The Coq identifier for the @Shape@ argument of the @Free@ monad.
+shape :: Coq.Qualid
+shape = Coq.bare "Shape"
+
+-- | The Coq identifier for the @Pos@ argument of the @Free@ monad.
+pos :: Coq.Qualid
+pos = Coq.bare "Pos"
+
 -- | The Coq identifier for the @pure@ constructor of the @Free@ monad.
 freePureCon :: Coq.Qualid
 freePureCon = Coq.bare "pure"
@@ -67,10 +75,8 @@ freeBind = Coq.bare "op_>>=__"
 --   monad. These parameters are added automatically to every defined type and
 --   function.
 freeArgs :: [(Coq.Qualid, Coq.Term)]
-freeArgs = [ (Coq.bare "Shape", Coq.Sort Coq.Type)
-           , ( Coq.bare "Pos"
-               , Coq.Arrow (Coq.Qualid (Coq.bare "Shape")) (Coq.Sort Coq.Type)
-               )
+freeArgs = [ (shape, Coq.Sort Coq.Type)
+           , (pos, Coq.Arrow (Coq.Qualid shape) (Coq.Sort Coq.Type))
            ]
 
 -------------------------------------------------------------------------------
@@ -83,10 +89,10 @@ shareable = Coq.bare "Shareable"
 -- | The name and type of the @Shareable@ instance that must be passed to
 --   shareable functions.
 shareableArg :: (Coq.Qualid, Coq.Term)
-shareableArg = ( Coq.bare "S"
-               , Coq.app (Coq.Qualid shareable)
-                   [Coq.Qualid (Coq.bare "Shape"), Coq.Qualid (Coq.bare "Pos")]
-               )
+shareableArg
+  = ( Coq.bare "S"
+    , Coq.app (Coq.Qualid shareable) [Coq.Qualid shape, Coq.Qualid pos]
+    )
 
 -- | The Coq Identifier for the @share@ operator.
 share :: Coq.Qualid
@@ -103,8 +109,7 @@ partial = Coq.bare "Partial"
 --   partial functions.
 partialArg :: (Coq.Qualid, Coq.Term)
 partialArg = ( Coq.bare "P"
-             , Coq.app (Coq.Qualid (Coq.bare "Partial"))
-                 [Coq.Qualid (Coq.bare "Shape"), Coq.Qualid (Coq.bare "Pos")]
+             , Coq.app (Coq.Qualid partial) [Coq.Qualid shape, Coq.Qualid pos]
              )
 
 -- | The identifier for the error term @undefined@.
