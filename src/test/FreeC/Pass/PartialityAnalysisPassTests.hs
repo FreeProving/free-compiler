@@ -15,12 +15,13 @@ import           FreeC.Pass.EffectAnalysisPass
 import           FreeC.Pretty
 import           FreeC.Test.Environment
 import           FreeC.Test.Parser
+import FreeC.LiftedIR.Effect
 
 -------------------------------------------------------------------------------
 -- Expectation Setters                                                       --
 -------------------------------------------------------------------------------
 -- | Parses the function declarations in the given dependency component,
---   runs the 'partialityAnalysisPass' and sets the expectation that there
+--   runs the 'effectAnalysisPass' and sets the expectation that there
 --   is an environment entry for each function that marks it as partial.
 shouldBePartial :: DependencyComponent String -> Converter Expectation
 shouldBePartial = shouldBePartialWith $ \funcName partial -> if partial
@@ -48,13 +49,13 @@ shouldBePartialWith setExpectation inputs = do
   component <- parseTestComponent inputs
   _ <- effectAnalysisPass component
   let funcNames = map IR.funcDeclQName (unwrapComponent component)
-  partials <- mapM (inEnv . isPartial) funcNames
+  partials <- mapM (inEnv . hasEffect Partiality) funcNames
   return (zipWithM_ setExpectation funcNames partials)
 
 -------------------------------------------------------------------------------
 -- Tests                                                                     --
 -------------------------------------------------------------------------------
--- | Test group for 'partialityAnalysisPass' tests.
+-- | Test group for 'Partiality' effect of 'effectAnalysisPass' tests.
 testPartialityAnalysisPass :: Spec
 testPartialityAnalysisPass = describe "FreeC.Pass.PartialityAnalysisPass" $ do
   it "does not classify non-partial functions as partial"

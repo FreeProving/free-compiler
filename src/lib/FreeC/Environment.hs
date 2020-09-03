@@ -15,7 +15,7 @@ module FreeC.Environment
   , removeDecArg
     -- * Modifying Entries in the Environment
   , modifyEntryIdent
-  , addEffectToEntry
+  , addEffectsToEntry
     -- * Looking up Entries from the Environment
   , lookupEntry
   , isFunction
@@ -35,7 +35,7 @@ module FreeC.Environment
   , lookupArity
   , lookupTypeSynonym
   , needsFreeArgs
-  , isPartial
+  , hasEffect
   , lookupEffects
   , lookupDecArg
   , lookupDecArgIndex
@@ -144,14 +144,14 @@ modifyEntryIdent scope name newIdent env = case lookupEntry scope name env of
   Nothing    -> env
   Just entry -> addEntry (entry { entryIdent = newIdent }) env
 
--- | Adds the given effect to the effects of the function with the given name.
+-- | Adds the given effects to the effects of the function with the given name.
 --
 --   If such a function does not exist, the environment is not changed.
-addEffectToEntry :: IR.QName -> Effect -> Environment -> Environment
-addEffectToEntry name effect env = case lookupEntry IR.ValueScope name env of
+addEffectsToEntry :: IR.QName -> [Effect] -> Environment -> Environment
+addEffectsToEntry name effects env = case lookupEntry IR.ValueScope name env of
   Nothing    -> env
   Just entry -> if isFuncEntry entry
-    then addEntry (entry { entryEffects = effect : entryEffects entry }) env
+    then addEntry (entry { entryEffects = entryEffects entry ++ effects }) env
     else env
 
 -------------------------------------------------------------------------------
@@ -299,11 +299,11 @@ needsFreeArgs :: IR.QName -> Environment -> Bool
 needsFreeArgs = maybe False (isFuncEntry .&&. entryNeedsFreeArgs)
   .: lookupEntry IR.ValueScope
 
--- | Tests whether the function with the given name is partial.
+-- | Tests whether the function with the given name has the given effect.
 --
 --   Returns @False@ if there is no such function.
-isPartial :: IR.QName -> Environment -> Bool
-isPartial = maybe False (isFuncEntry .&&. elem Partiality . entryEffects)
+hasEffect :: Effect -> IR.QName -> Environment -> Bool
+hasEffect effect = maybe False (isFuncEntry .&&. elem effect . entryEffects)
   .: lookupEntry IR.ValueScope
 
 -- | Looks up the effects of the function with the given name.
