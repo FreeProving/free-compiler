@@ -47,6 +47,7 @@ module FreeC.Backend.Coq.Syntax
   , requireExportFrom
   , requireFrom
   , moduleImport
+  , moduleExport
   ) where
 
 import           Prelude              hiding ( Num )
@@ -273,7 +274,12 @@ requireFrom :: ModuleIdent -> [ModuleIdent] -> Sentence
 requireFrom library modules = ModuleSentence
   (Require (Just library) Nothing (NonEmpty.fromList modules))
 
--- | Creates a @Import …@ sentence.
+-- | Creates an @Import …@ sentence.
 moduleImport :: [ModuleIdent] -> Sentence
 moduleImport modules = ModuleSentence
   (ModuleImport Import (NonEmpty.fromList modules))
+
+-- | Creates an @Export …@ sentence.
+moduleExport :: [ModuleIdent] -> Sentence
+moduleExport modules = ModuleSentence
+  (ModuleImport Export (NonEmpty.fromList modules))

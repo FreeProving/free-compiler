@@ -73,20 +73,20 @@ convertImportDecl (IR.ImportDecl _ modName) = do
 --   sentences. Other external modules are imported via @From … Require@
 --   sentences, which means that references to these modules' contents must
 --   be qualified in the code. For such an external module there is also an
---   @Import … .QualifiedSmartConstructor@ sentence added, to give access to
+--   @Export … .QualifiedSmartConstructor@ sentence added, to give access to
 --   the notations for qualified smart constructors.
 generateImport :: Coq.ModuleIdent -> IR.ModName -> Converter [Coq.Sentence]
 generateImport libName modName = return
   (mkImportSentences [Coq.ident (showPretty modName)])
  where
   -- | Makes a [@From … Require Import …@] or [@From … Require …@,
-  --   @Import … .QualifiedSmartConstructor@].
+  --   @Export … .QualifiedSmartConstructor@].
   mkImportSentences :: [Coq.ModuleIdent] -> [Coq.Sentence]
   mkImportSentences modNames
     | libName
       == Coq.Base.baseLibName = [Coq.requireImportFrom libName modNames]
     | otherwise = [ Coq.requireFrom libName modNames
-                  , Coq.moduleImport
+                  , Coq.moduleExport
                       $ map (\modName' -> Coq.access libName
                              $ Coq.access modName'
                              Coq.Base.qualifiedSmartConstructorModule) modNames
