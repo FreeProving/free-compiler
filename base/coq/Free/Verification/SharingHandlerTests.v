@@ -32,7 +32,7 @@ Definition evalTracing {A : Type} p
 Definition evalNDM {A : Type} p
 := @collectVals (option A) (run (runChoice (runNDSharing (0,0) (runMaybe p)))).
 
-(* Shortcut to evaluate a traced partial pro gram to a result and a list 
+(* Shortcut to evaluate a traced partial program to a result and a list 
    of logged messages. *)
 Definition evalTraceM {A : Type} p
 := @collectMessages (option A) 
@@ -669,9 +669,9 @@ Example exAddDeepPairTrace
 Proof. constructor. Qed.
 
 (* 
-let sx = (trace "0" 0, trace "1" 1)
+let sx = [trace "0" 0, trace "1" 1]
 in head sx + head sx 
-=> The list is shared, so the effects inside the pair should be shared as 
+=> The list is shared, so the effects inside the list should be shared as 
    well. Since we take the first element twice, the second tracing message ("1") 
    should not be logged and the first should be shared and thus logged once.
    Because head is partial and we use the Maybe instance of Partial, the result
