@@ -80,25 +80,6 @@ freeArgs = [ (shape, Coq.Sort Coq.Type)
            ]
 
 -------------------------------------------------------------------------------
--- Sharing                                                                   --
--------------------------------------------------------------------------------
--- | The Coq Identifier for the @Shareable@ type class.
-shareable :: Coq.Qualid
-shareable = Coq.bare "Shareable"
-
--- | The name and type of the @Shareable@ instance that must be passed to
---   shareable functions.
-shareableArg :: (Coq.Qualid, Coq.Term)
-shareableArg
-  = ( Coq.bare "S"
-    , Coq.app (Coq.Qualid shareable) [Coq.Qualid shape, Coq.Qualid pos]
-    )
-
--- | The Coq Identifier for the @share@ operator.
-share :: Coq.Qualid
-share = Coq.bare "share"
-
--------------------------------------------------------------------------------
 -- Partiality                                                                --
 -------------------------------------------------------------------------------
 -- | The Coq Identifier for the @Partial@ type class.
@@ -119,6 +100,25 @@ partialUndefined = Coq.bare "undefined"
 -- | The identifier for the error term @error@.
 partialError :: Coq.Qualid
 partialError = Coq.bare "error"
+
+-------------------------------------------------------------------------------
+-- Sharing                                                                   --
+-------------------------------------------------------------------------------
+-- | The Coq Identifier for the @Shareable@ type class.
+shareable :: Coq.Qualid
+shareable = Coq.bare "Shareable"
+
+-- | The name and type of the @Shareable@ instance that must be passed to
+--   shareable functions.
+shareableArg :: (Coq.Qualid, Coq.Term)
+shareableArg
+  = ( Coq.bare "S"
+    , Coq.app (Coq.Qualid shareable) [Coq.Qualid shape, Coq.Qualid pos]
+    )
+
+-- | The Coq Identifier for the @share@ operator.
+share :: Coq.Qualid
+share = Coq.bare "share"
 
 -------------------------------------------------------------------------------
 -- Literal Scopes                                                            --
