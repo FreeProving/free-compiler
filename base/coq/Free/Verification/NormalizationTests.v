@@ -373,7 +373,7 @@ Proof. constructor. Qed.
 (* [[true,trace "component effect" false]]
    --> ([[true,false]],["component effect"]) *)
 Example deepEffectTracing : evalTracingNF deepTraceList
- = (List.cons ((List.Cons IdS IdP (True_ IdS IdP) 
+ = (List.cons ((Cons IdS IdP (True_ IdS IdP) 
                                  (Cons IdS IdP (False_ IdS IdP) 
                                                (Nil IdS IdP)))) 
               (Nil IdS IdP),
@@ -382,11 +382,11 @@ Proof. constructor. Qed.
 
 (* [[true, true ? false]] --> [[[true,true]],[[true,false]]] *)
 Example deepEffectND : evalNDNF deepCoinList
- = [List.cons ((List.Cons IdS IdP (True_ IdS IdP) 
+ = [List.cons ((Cons IdS IdP (True_ IdS IdP) 
                                   (Cons IdS IdP (True_ IdS IdP) 
                                                 (Nil IdS IdP)))) 
                (Nil IdS IdP);
-    List.cons ((List.Cons IdS IdP (True_ IdS IdP) 
+    List.cons ((Cons IdS IdP (True_ IdS IdP) 
                                   (Cons IdS IdP (False_ IdS IdP) 
                                                 (Nil IdS IdP)))) 
                (Nil IdS IdP)
