@@ -2,12 +2,15 @@
 module FreeC.Backend.Coq.Converter.Module where
 
 import           Control.Monad.Extra                  ( concatMapM )
+import qualified Data.Set                             as Set
 
 import qualified FreeC.Backend.Coq.Base               as Coq.Base
 import           FreeC.Backend.Coq.Converter.FuncDecl
 import           FreeC.Backend.Coq.Converter.TypeDecl
 import qualified FreeC.Backend.Coq.Syntax             as Coq
 import           FreeC.Environment
+import           FreeC.Environment.Entry
+  ( EnvEntry(ConEntry), entryName )
 import           FreeC.Environment.ModuleInterface
 import           FreeC.IR.DependencyGraph
 import           FreeC.IR.Pragma
@@ -44,12 +47,16 @@ convertTypeDecls typeDecls = do
   let components = groupTypeDecls typeDecls
   sentences <- concatMapM convertTypeComponent components
   let 
-    -- Put qualified notations into a single submodule
+    -- Put qualified notations into a single local module
     (qualSmartCons, sentences') = partitionIsQualifiedSmartConstructor sentences
-    qualNotModule               = Coq.LocalModuleSentence
-      $ Coq.LocalModule Coq.Base.qualifiedSmartConstructorModule qualSmartCons
-  return
-    $ sentences' ++ [Coq.comment "Qualified smart constructors", qualNotModule]
+    qualNotModule               = if null qualSmartCons
+      then []
+      else [ Coq.comment "Qualified smart constructors"
+           , Coq.LocalModuleSentence
+               $ Coq.LocalModule Coq.Base.qualifiedSmartConstructorModule
+               qualSmartCons
+           ]
+  return $ sentences' ++ qualNotModule
 
 -------------------------------------------------------------------------------
 -- Import Declarations                                                       --
@@ -73,21 +80,40 @@ convertImportDecl (IR.ImportDecl _ modName) = do
 --   sentences. Other external modules are imported via @From … Require@
 --   sentences, which means that references to these modules' contents must
 --   be qualified in the code. For such an external module there is also an
---   @Export … .QualifiedSmartConstructor@ sentence added, to give access to
---   the notations for qualified smart constructors.
+--   @Export … .QualifiedSmartConstructorModule@ sentence added if necessary,
+--   to give access to the notations for qualified smart constructors.
 generateImport :: Coq.ModuleIdent -> IR.ModName -> Converter [Coq.Sentence]
-generateImport libName modName = return
-  (mkImportSentences [Coq.ident (showPretty modName)])
+generateImport libName modName = do
+  Just interface <- inEnv $ lookupAvailableModule modName
+  return (mkImportSentences [(Coq.ident (showPretty modName), interface)])
  where
-  -- | Makes a [@From … Require Import …@] or [@From … Require …@,
-  --   @Export … .QualifiedSmartConstructor@].
-  mkImportSentences :: [Coq.ModuleIdent] -> [Coq.Sentence]
-  mkImportSentences modNames
-    | libName
-      == Coq.Base.baseLibName = [Coq.requireImportFrom libName modNames]
-    | otherwise = [ Coq.requireFrom libName modNames
-                  , Coq.moduleExport
-                      $ map (\modName' -> Coq.access libName
-                             $ Coq.access modName'
-                             Coq.Base.qualifiedSmartConstructorModule) modNames
-                  ]
+  -- | Makes a @From … Require Import …@ or @From … Require …@ and an
+  --   @Export … .QualifiedSmartConstructorModule@ if this local module exists.
+  mkImportSentences :: [(Coq.ModuleIdent, ModuleInterface)] -> [Coq.Sentence]
+  mkImportSentences mods
+    | libName == Coq.Base.baseLibName
+      = [Coq.requireImportFrom libName (map fst mods)]
+    | otherwise = let conMods = filter (hasConstructor . snd) mods
+                  in Coq.requireFrom libName (map fst mods)
+                     : ([Coq.moduleExport
+                          $ map (\(modName', _) -> Coq.access libName
+                                 $ Coq.access modName'
+                                 Coq.Base.qualifiedSmartConstructorModule)
+                          conMods
+                        | not (null conMods)
+                        ])
+
+  -- | Checks whether the module includes a constructor entry and therefore
+  --   has a local module @QualifiedSmartConstructorModule@.
+  hasConstructor :: ModuleInterface -> Bool
+  hasConstructor interface
+    = let modName' = interfaceModName interface
+          entries  = interfaceEntries interface
+      in not (Set.null (Set.filter (isLocalConstructor modName') entries))
+
+  -- | Checks whether the given environment entry is a constructor entry of the
+  --   given module.
+  isLocalConstructor :: IR.ModName -> EnvEntry -> Bool
+  isLocalConstructor modName' ConEntry { entryName = IR.Qual modName'' _ }
+    | modName'' == modName' = True
+  isLocalConstructor _ _ = False
