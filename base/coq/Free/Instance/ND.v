@@ -76,45 +76,48 @@ Module ND.
                           (n : nat * nat)
                           (fs : Free (SNDShare Shape') (PNDShare Pos') A) 
      : Free (SChoice Shape') (PChoice Pos') A 
-    := let fix nameChoices (next : nat) 
+    := let fix nameChoices (next : nat)
+                           (state : nat * nat)
                            (scope : nat * nat) 
                            (scopes : list (nat * nat)) 
                            (fs : Free (SNDShare Shape') (PNDShare Pos') A)
      : Free (SChoice Shape') (PChoice Pos') A  
        := match fs with (* inside scope handler *)
           | pure x => pure x
-          | impure (inl (Share.sbsharing n')) pf =>
-             nameChoices 1 n' (cons n' scopes) (pf tt)
-          | impure (inl (Share.sesharing n')) pf =>
+          | impure (inl (Share.sbsharing n')) pf =>  (* open nested scope *)
+             nameChoices 1 state n' (cons n' scopes) (pf tt)
+          | impure (inl (Share.sesharing n')) pf => 
              match scopes with
-            | cons _ (cons j js) as ks => nameChoices next j ks (pf tt)
-            | _                        => runNDSharing scope (pf tt)
+              (* leave nested scope *)
+            | cons _ (cons j js) as ks => nameChoices next state j ks (pf tt)
+              (* leave outermost scope *)
+            | _                        => runNDSharing state (pf tt)
             end
-          | impure (inl Share.sget) pf =>
-             nameChoices next scope scopes (pf n)
-          | impure (inl (Share.sput n')) pf =>
-             nameChoices next n' scopes (pf tt)
-          | impure (inr (inl (ND.schoice id))) pf =>
-             let l := nameChoices (next + 1) scope scopes (pf true) in
-             let r := nameChoices (next + 1) scope scopes (pf false) in
-             Choice_ (SChoice Shape') (PChoice Pos') (Some (tripl scope next)) l r
+          | impure (inl Share.sget) pf => 
+             nameChoices next state scope scopes (pf state) (* get state *)
+          | impure (inl (Share.sput n')) pf => (* set new state *)
+             nameChoices next n' scope scopes (pf tt)
+          | impure (inr (inl (ND.schoice id))) pf => (* mark the scope of a choice *)
+            ( let l := nameChoices (next + 1) state scope scopes (pf true) in
+             let r := nameChoices (next + 1) state scope scopes (pf false) in
+             Choice_ (SChoice Shape') (PChoice Pos') (Some (tripl scope next)) l r)
           | impure (inr (inl ND.sfail)) _ => Fail (SChoice Shape') (PChoice Pos')
-          | impure (inr (inr s)) pf =>
-             impure (inr s) (fun p => nameChoices next scope scopes (pf p))
+          | impure (inr (inr s)) pf => (* other effect *)
+             impure (inr s) (fun p => nameChoices next state scope scopes (pf p))
           end
        in match fs with (* outside scope handler *)
           | pure x => pure x
-          | impure (inl (Share.sbsharing n'))  pf =>
-            nameChoices 1 n' (cons n' nil) (pf tt)
-          | impure (inl (Share.sesharing n'))  pf =>
-            runNDSharing n' (pf tt) (* error *)
-          | impure (inl Share.sget) pf =>
+          | impure (inl (Share.sbsharing n'))  pf => (* enter sharing scope *)
+            nameChoices 1 n n' (cons n' nil) (pf tt)
+          | impure (inl (Share.sesharing n'))  pf => (* error *)
+            (runNDSharing n (pf tt))
+          | impure (inl Share.sget) pf => (* get state *)
             runNDSharing n (pf n)
-          | impure (inl (Share.sput n')) pf =>
-            runNDSharing n' (pf tt)
-          | impure (inr s) pf => impure s (fun p =>
-            runNDSharing n (pf p))
+          | impure (inl (Share.sput n')) pf => (* set new state *)
+            (runNDSharing n' (pf tt))
+          | impure (inr s) pf => impure s (fun p => runNDSharing n (pf p)) (* other effect *)
           end.
+
   End Handler.
 
   (* Partial instance for the non-determinism effect. *)
