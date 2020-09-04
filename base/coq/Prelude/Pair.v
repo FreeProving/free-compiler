@@ -17,20 +17,6 @@ Section SecPair.
     : Free' (Pair A B) :=
     pure (pair_ x y).
 
-  (* First element *)
-  Definition fstPair {A B : Type} (fp : Free' (Pair A B))
-   : Free Shape Pos A
-  := fp >>= fun p => match p with
-                    | pair_ x _ => x
-                    end.
-
-  (* Second element *)
-  Definition sndPair {A B : Type} (fp : Free' (Pair A B))
-   : Free Shape Pos B
-  := fp >>= fun p => match p with
-                    | pair_ _ y => y
-                    end.
-
 End SecPair.
 
 Arguments pair_  {Shape} {Pos} {A} {B}.
