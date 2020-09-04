@@ -133,7 +133,8 @@ Section SecData.
      @call Shape Pos I S _ (trace "1" c2) >>= fun c3 =>
      @call Shape Pos I S _ (Cons Shape Pos c3 c1) >>= fun c4 =>
      @call Shape Pos I S _ (pure 0%Z) >>= fun c5 =>
-     (Cons Shape Pos c5 c4).
+     @call Shape Pos I S _ (trace "0" c5) >>= fun c6 =>
+     (Cons Shape Pos c6 c4).
 
 End SecData.
 
