@@ -17,18 +17,18 @@ Module Maybe.
        impure tt (fun (p : Pos tt) => match p with end).
 
   (* Versions of the smart constructors that automatically embed values in an effect stack *)
-    Definition Just_inj {A : Type}
-                        (Shape' : Type)
+    Definition Just_inj (Shape' : Type)
                         (Pos' : Shape' -> Type)
                         `{Injectable Shape Pos Shape' Pos'}
+                        {A : Type}
                         (x : A)
       : Free Shape' Pos' A
      := pure x.
 
-    Definition Nothing_inj {A : Type}
-                           (Shape' : Type)
+    Definition Nothing_inj (Shape' : Type)
                            (Pos' : Shape' -> Type)
                            `{Injectable Shape Pos Shape' Pos'}
+                           {A : Type}
        : Free Shape' Pos' A
       := impure (injS tt) (fun p : Pos' (injS tt) =>
       (fun (x : Void) => match x with end) (injP p)).
