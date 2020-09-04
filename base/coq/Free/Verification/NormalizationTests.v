@@ -7,6 +7,7 @@ From Base Require Import Free.Instance.ND.
 From Base Require Import Free.Instance.Trace.
 From Base Require Import Prelude.
 From Base Require Import Free.Util.Search.
+From Base Require Import Free.Verification.Util.
 
 Require Import Lists.List.
 Import List.ListNotations.
@@ -40,6 +41,11 @@ Definition evalNDNF {A B : Type}
 Definition evalTracingNF {A B : Type} 
                          `{Normalform _ _ A B} p
   := evalTracing (nf p).
+
+(* Handle a traced program after normalization. *)
+Definition evalTracingMaybeNF {A B : Type} 
+                         `{Normalform _ _ A B} p
+  := evalTracing (runMaybe (nf p)).
 
 (* Handle a possibly partial program after normalization. *)
 Definition evalMaybeNF {A B : Type} 
@@ -160,15 +166,6 @@ Section SecData.
                             (Nil Shape Pos)))
         (Nil Shape Pos).
 
-  (* A function that is the same as head for non-empty lists.
-     Empty lists yield false. *)
-  Definition headOrFalse (fl : FreeBoolList)
-    : Free Shape Pos bool
-   := fl >>= fun l => match l with
-      | List.nil => pure false
-      | List.cons fb _ => fb
-      end.
-
 End SecData.
 
 (* Arguments sentences for the effectful lists. *)
@@ -182,7 +179,6 @@ Arguments tracedTraceList {_} {_} {_}.
 Arguments NDCoinList {_} {_} {_}.
 Arguments deepCoinList {_} {_} {_}.
 Arguments deepTraceList {_} {_} {_}.
-Arguments headOrFalse {_} {_} fl. 
 
 (* Section for auxiliary properties *)
 Section SecProps.
@@ -247,6 +243,7 @@ Fixpoint list_is_impure (Shape : Type) (Pos : Shape -> Type)
                                  end
            end.
 
+
 (* Test cases *)
 
 (* When there are only effects at the root of the list, normalization
@@ -303,31 +300,31 @@ Proof. constructor. Qed.
 (* Normalization combined with non-strictness. *)
 
 (* Non-strictness should be preserved, so no tracing should occur.
-   headOrFalse [true, trace "component effect" false] --> (true,[]) *)
-Example nonStrictnessNoTracing : evalTracingNF (headOrFalse traceList)
- = (true, []).
+   headList _ _ MaybePartial [true, trace "component effect" false] --> (true,[]) *)
+Example nonStrictnessNoTracing : evalTracingMaybeNF (headList _ _ MaybePartial traceList)
+ = (Some true, []).
 Proof. constructor. Qed.
 
 (* Non-strictness should be preserved, so no non-determinism should occur.
-   headOrFalse [true,coin] --> [true] *)
-Example nonStrictnessNoND : evalNDNF (headOrFalse coinList)
- = [true].
+   head [true,coin] --> [true] *)
+Example nonStrictnessNoND : evalNDMaybeNF (headList _ _ MaybePartial coinList)
+ = [Some true].
 Proof. constructor. Qed.
 
 (* Evaluating the defined part of a partial list is still possible.
-   headOrFalse [true,undefined] --> true *)
+   head [true,undefined] --> true *)
 (* Since Maybe is still handled, the actual result should be Some true. *)
 Example nonStrictnessPartiality : evalMaybeNF 
-                                    (headOrFalse 
+                                    (headList _ _ MaybePartial 
                                       (partialList MaybePartial))
  = Some true.
 Proof. constructor. Qed.
 
-(* headOrFalse [true, false ? undefined] --> true *)
+(* headList _ _ MaybePartial [true, false ? undefined] --> true *)
 (* Since non-determinism and Maybe are still handled, the actual 
    result should be [Some true]. *)
 Example nonStrictnessNDPartiality : evalNDMaybeNF 
-                                    (headOrFalse 
+                                    (headList _ _ MaybePartial 
                                       (partialCoinList MaybePartial))
  = [Some true].
 Proof. constructor. Qed.
@@ -338,7 +335,7 @@ Proof. constructor. Qed.
    --> ([true,false], ["root effect", "component effect"])*)
 Example rootAndComponentEffectTracing : evalTracingNF tracedTraceList
  = (List.cons (True_ IdS IdP) 
-              (List.Cons IdS IdP (False_ IdS IdP) (Nil IdS IdP)),
+              (Cons IdS IdP (False_ IdS IdP) (Nil IdS IdP)),
     ["root effect"%string; "component effect"%string]).
 Proof. constructor. Qed.
 
@@ -352,20 +349,20 @@ Proof. constructor. Qed.
 (* Combining non-strictness with effects at different levels. *)
 
 (* Only the message at the root should be logged. 
-   headOrFalse (trace "root effect" [true, trace "component effect" false])
+   headList _ _ MaybePartial (trace "root effect" [true, trace "component effect" false])
    --> (true, ["root effect") *)
 Example nonStrictnessRootAndComponentTracing 
- : evalTracing (headOrFalse tracedTraceList)
- = (true, ["root effect"%string]).
+ : evalTracingMaybeNF (headList _ _ MaybePartial tracedTraceList)
+ = (Some true, ["root effect"%string]).
 Proof. constructor. Qed.
 
 (* Only the choice at the root should be triggered. 
    Because the first list is empty and the second has true as its 
    first element, the results should be false and true.
-   headOrFalse ([] ? [true, coin]) --> [false,true] *)
+   head ([] ? [true, coin]) --> [undefined,true] *)
 Example nonStrictnessRootAndComponentND 
- : evalNDNF (headOrFalse NDCoinList) 
- = [false;true].
+ : evalNDMaybeNF (headList _ _ MaybePartial NDCoinList) 
+ = [None; Some true].
 Proof. constructor. Qed.
 
 (* Normalization of lists with effects nested deeper inside. *)
@@ -373,7 +370,7 @@ Proof. constructor. Qed.
 (* [[true,trace "component effect" false]]
    --> ([[true,false]],["component effect"]) *)
 Example deepEffectTracing : evalTracingNF deepTraceList
- = (List.cons ((List.Cons IdS IdP (True_ IdS IdP) 
+ = (List.cons ((Cons IdS IdP (True_ IdS IdP) 
                                  (Cons IdS IdP (False_ IdS IdP) 
                                                (Nil IdS IdP)))) 
               (Nil IdS IdP),
@@ -382,11 +379,11 @@ Proof. constructor. Qed.
 
 (* [[true, true ? false]] --> [[[true,true]],[[true,false]]] *)
 Example deepEffectND : evalNDNF deepCoinList
- = [List.cons ((List.Cons IdS IdP (True_ IdS IdP) 
+ = [List.cons ((Cons IdS IdP (True_ IdS IdP) 
                                   (Cons IdS IdP (True_ IdS IdP) 
                                                 (Nil IdS IdP)))) 
                (Nil IdS IdP);
-    List.cons ((List.Cons IdS IdP (True_ IdS IdP) 
+    List.cons ((Cons IdS IdP (True_ IdS IdP) 
                                   (Cons IdS IdP (False_ IdS IdP) 
                                                 (Nil IdS IdP)))) 
                (Nil IdS IdP)

@@ -6,14 +6,14 @@ From Base Require Import Free.Monad.
 Module Share.
 
   (* Shape and position function *)
-  Inductive Shape : Type := 
+  Inductive Shape : Type :=
   | sget : Shape
   | sput : (nat * nat) -> Shape
-  | sbsharing : (nat * nat) -> Shape 
+  | sbsharing : (nat * nat) -> Shape
   | sesharing : (nat * nat) -> Shape.
 
-  Definition Pos (s : Shape) : Type := 
-    match s with 
+  Definition Pos (s : Shape) : Type :=
+    match s with
     | sget   => (nat * nat)
     | _ => unit
     end.
@@ -22,23 +22,23 @@ Module Share.
   Module Import Monad.
     Definition Share (A : Type) : Type := Free Shape Pos A.
 
-    Definition Get (Shape' : Type) (Pos' : Shape' -> Type) 
-    `{Injectable Shape Pos Shape' Pos'} 
+    Definition Get (Shape' : Type) (Pos' : Shape' -> Type)
+    `{Injectable Shape Pos Shape' Pos'}
     : Free Shape' Pos' (nat * nat) :=
     impure (injS sget) (fun p => pure (injP p)).
 
-    Definition Put (Shape' : Type) (Pos' : Shape' -> Type) (n : nat * nat) 
-    `{Injectable Shape Pos Shape' Pos'} 
+    Definition Put (Shape' : Type) (Pos' : Shape' -> Type) (n : nat * nat)
+    `{Injectable Shape Pos Shape' Pos'}
     : Free Shape' Pos' unit :=
     impure (injS (sput n)) (fun _ => pure tt).
 
     Definition BeginShare (Shape' : Type) (Pos' : Shape' -> Type) (n : nat * nat)
-    `{Injectable Shape Pos Shape' Pos'} 
+    `{Injectable Shape Pos Shape' Pos'}
     : Free Shape' Pos' unit :=
     impure (injS (sbsharing n)) (fun _ => pure tt).
 
     Definition EndShare (Shape' : Type) (Pos' : Shape' -> Type) (n : nat * nat)
-    `{Injectable Shape Pos Shape' Pos'} 
+    `{Injectable Shape Pos Shape' Pos'}
     : Free Shape' Pos' unit :=
     impure (injS (sesharing n)) (fun _ => pure tt).
   End Monad.
