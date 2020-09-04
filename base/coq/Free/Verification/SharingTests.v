@@ -427,12 +427,6 @@ Example exNDMSharing
    = [None;Some 2%Z].
 Proof. constructor. Qed.
 
-
-
-(* Since *)
-Compute
- evalNDM (nf (coinM Cbv_)).
-
 (*
 let sx = trace "Nothing" Nothing
 in sx + sx
