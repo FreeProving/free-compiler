@@ -19,8 +19,8 @@ Import List.ListNotations.
 (* No effect *)
 
 (* Identity handler *)
-Instance HandlerNoEffect (A B : Type) 
-                         `{Normalform _ _ A B}: 
+Instance HandlerNoEffect (A B : Type)
+                         `{Normalform _ _ A B}:
  Handler Identity.Shape Identity.Pos A B := {
   handle p := run (nf p)
 }.
@@ -78,7 +78,7 @@ Definition SShrND := Comb.Shape Share.Shape (Comb.Shape ND.Shape Identity.Shape)
 Definition PShrND := Comb.Pos Share.Pos (Comb.Pos ND.Pos Identity.Pos).
 
 Instance HandlerSharingND (A B : Type)
-                          `{Normalform SShrND PShrND A B} 
+                          `{Normalform SShrND PShrND A B}
  : Handler SShrND PShrND
          A (list B) := {
   handle p := collectVals (run (runChoice (runNDSharing (0,0) (nf p))))
@@ -89,7 +89,7 @@ Instance HandlerSharingND (A B : Type)
 Definition SShrTrc := Comb.Shape Share.Shape (Comb.Shape Trace.Shape Identity.Shape).
 Definition PShrTrc := Comb.Pos Share.Pos (Comb.Pos Trace.Pos Identity.Pos).
 
-Instance HandlerSharingTracing (A B : Type) 
+Instance HandlerSharingTracing (A B : Type)
                                `{Normalform SShrTrc PShrTrc A B} :
  Handler SShrTrc PShrTrc A (B * list string) := {
   handle p := collectMessages (run (runTracing (runTraceSharing (0,0) (nf p))))
@@ -100,7 +100,7 @@ Instance HandlerSharingTracing (A B : Type)
 Definition SMaybeShr := Comb.Shape Maybe.Shape (Comb.Shape Share.Shape Identity.Shape).
 Definition PMaybeShr := Comb.Pos Maybe.Pos (Comb.Pos Share.Pos Identity.Pos).
 
-Instance HandlerMaybeShare (A B : Type) 
+Instance HandlerMaybeShare (A B : Type)
                                `{Normalform SMaybeShr PMaybeShr A B} :
  Handler SMaybeShr PMaybeShr A (option B) := {
   handle p := run (runEmptySharing (0,0) (runMaybe (nf p)))
@@ -111,7 +111,7 @@ Instance HandlerMaybeShare (A B : Type)
 Definition SMaybeND := Comb.Shape Maybe.Shape (Comb.Shape ND.Shape Identity.Shape).
 Definition PMaybeND := Comb.Pos Maybe.Pos (Comb.Pos ND.Pos Identity.Pos).
 
-Instance HandlerMaybeND (A B : Type) 
+Instance HandlerMaybeND (A B : Type)
                                `{Normalform SMaybeND PMaybeND A B} :
  Handler SMaybeND PMaybeND A (list (option B)) := {
   handle p := collectVals (run (runChoice (runMaybe (nf p))))
@@ -122,7 +122,7 @@ Instance HandlerMaybeND (A B : Type)
 Definition SMaybeTrc := Comb.Shape Maybe.Shape (Comb.Shape Trace.Shape Identity.Shape).
 Definition PMaybeTrc := Comb.Pos Maybe.Pos (Comb.Pos Trace.Pos Identity.Pos).
 
-Instance HandlerMaybeTrc (A B : Type) 
+Instance HandlerMaybeTrc (A B : Type)
                                `{Normalform SMaybeTrc PMaybeTrc A B} :
  Handler SMaybeTrc PMaybeTrc A (option B * list string) := {
   handle p := collectMessages (run (runTracing (runMaybe (nf p))))
@@ -130,7 +130,7 @@ Instance HandlerMaybeTrc (A B : Type)
 
 
 (*
-Instance HandlerTraceMaybe 
+Instance HandlerTraceMaybe
 
 Instance Handler NDMaybe.
 *)
@@ -140,11 +140,11 @@ Instance Handler NDMaybe.
 Definition STrcND := Comb.Shape Trace.Shape (Comb.Shape ND.Shape Identity.Shape).
 Definition PTrcND := Comb.Pos Trace.Pos (Comb.Pos ND.Pos Identity.Pos).
 
-Instance HandlerTraceND (A B : Type) 
+Instance HandlerTraceND (A B : Type)
                                `{Normalform STrcND PTrcND A B} :
  Handler STrcND PTrcND A (list (B * list string)) := {
-  handle p := map (@collectMessages B) 
-                  (@collectVals (B * list (option Sharing.ID * string)) 
+  handle p := map (@collectMessages B)
+                  (@collectVals (B * list (option Sharing.ID * string))
                                 (run (runChoice (runTracing (nf p)))))
 }.
 
@@ -157,17 +157,17 @@ Instance HandlerTraceND (A B : Type)
 
 (* Maybe :+: Share :+: ND :+: Identity handler *)
 
-Definition SMaybeShrND := 
-  Comb.Shape Maybe.Shape 
-    (Comb.Shape Share.Shape 
+Definition SMaybeShrND :=
+  Comb.Shape Maybe.Shape
+    (Comb.Shape Share.Shape
       (Comb.Shape ND.Shape Identity.Shape)).
 
-Definition PMaybeShrND := 
+Definition PMaybeShrND :=
   Comb.Pos Maybe.Pos
     (Comb.Pos Share.Pos
       (Comb.Pos ND.Pos Identity.Pos)).
 
-Instance HandlerSharingNDMaybe (A B : Type) 
+Instance HandlerSharingNDMaybe (A B : Type)
                                `{Normalform SMaybeShrND PMaybeShrND A B} :
  Handler SMaybeShrND PMaybeShrND A (list (option B)) := {
   handle p := collectVals (run (runChoice (runNDSharing (0,0) (runMaybe (nf p)))))
@@ -175,17 +175,17 @@ Instance HandlerSharingNDMaybe (A B : Type)
 
 (* Maybe :+: Share :+: Trace :+: Identity handler *)
 
-Definition SMaybeShrTrc := 
-  Comb.Shape Maybe.Shape 
-    (Comb.Shape Share.Shape 
+Definition SMaybeShrTrc :=
+  Comb.Shape Maybe.Shape
+    (Comb.Shape Share.Shape
       (Comb.Shape Trace.Shape Identity.Shape)).
 
-Definition PMaybeShrTrc := 
+Definition PMaybeShrTrc :=
   Comb.Pos Maybe.Pos
     (Comb.Pos Share.Pos
       (Comb.Pos Trace.Pos Identity.Pos)).
 
-Instance HandlerMaybeShareTrace (A B : Type) 
+Instance HandlerMaybeShareTrace (A B : Type)
                                `{Normalform SMaybeShrTrc PMaybeShrTrc A B} :
  Handler SMaybeShrTrc PMaybeShrTrc A (option B * list string) := {
   handle p := collectMessages (run (runTracing (runTraceSharing (0,0) (runMaybe (nf p)))))
@@ -193,20 +193,20 @@ Instance HandlerMaybeShareTrace (A B : Type)
 
 (* Maybe :+: Trace :+: ND :+: Identity handler *)
 
-Definition SMaybeTrcND := 
-  Comb.Shape Maybe.Shape 
-    (Comb.Shape Trace.Shape 
+Definition SMaybeTrcND :=
+  Comb.Shape Maybe.Shape
+    (Comb.Shape Trace.Shape
       (Comb.Shape ND.Shape Identity.Shape)).
 
-Definition PMaybeTrcND := 
+Definition PMaybeTrcND :=
   Comb.Pos Maybe.Pos
     (Comb.Pos Trace.Pos
       (Comb.Pos ND.Pos Identity.Pos)).
 
-Instance HandlerMaybeTrcND (A B : Type) 
+Instance HandlerMaybeTrcND (A B : Type)
                                `{Normalform SMaybeTrcND PMaybeTrcND A B} :
  Handler SMaybeTrcND PMaybeTrcND A (list (option B * list string)) := {
-  handle p := map (@collectMessages (option B)) 
-                  (@collectVals (option B * list (option Sharing.ID * string)) 
+  handle p := map (@collectMessages (option B))
+                  (@collectVals (option B * list (option Sharing.ID * string))
                                 (run (runChoice (runTracing (runMaybe (nf p))))))
 }.
