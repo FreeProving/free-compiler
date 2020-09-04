@@ -1,4 +1,4 @@
-(** Operators that model call-by-value, call-by-name and call-by-need 
+(** Operators that model call-by-value, call-by-name and call-by-need
    evaluation. *)
 
 From Base Require Import Free.
@@ -6,14 +6,14 @@ From Base Require Export Free.Instance.Comb.
 From Base Require Export Free.Instance.Share.
 
 (* An operator to model call-by-value evaluation *)
-Definition cbv {A : Type} (Shape : Type) (Pos : Shape -> Type) (p : Free Shape Pos A) 
+Definition cbv {A : Type} (Shape : Type) (Pos : Shape -> Type) (p : Free Shape Pos A)
   : Free Shape Pos (Free Shape Pos A) :=
   p >>= fun x => pure (pure x).
 
 (* An operator to model call-by-name evaluation *)
 Definition cbn {A : Type} (Shape : Type) (Pos : Shape -> Type)
-  (p : Free Shape Pos A) 
-  : Free Shape Pos (Free Shape Pos A) := 
+  (p : Free Shape Pos A)
+  : Free Shape Pos (Free Shape Pos A) :=
   pure p.
 
 Section SecCbneed.
@@ -56,7 +56,7 @@ Instance Cbneed (Shape : Type) (Pos : Shape -> Type)
 (* Strategy instance for call-by-name evaluation.
    The Share effect is not actually needed, but we need to
    ensure it is there so cbn is compatible with share. *)
-Instance Cbn (Shape : Type) (Pos : Shape -> Type) 
+Instance Cbn (Shape : Type) (Pos : Shape -> Type)
              `{Injectable Share.Shape Share.Pos Shape Pos}
  : Strategy Shape Pos | 2 := {
     share A S := @cbn A Shape Pos;   (* share = pure *)
@@ -66,7 +66,7 @@ Instance Cbn (Shape : Type) (Pos : Shape -> Type)
 (* Strategy instance for call-by-value evaluation.
    The Share effect is not actually needed, but we need to
    ensure it is there so cbv is compatible with share. *)
-Instance Cbv (Shape : Type) (Pos : Shape -> Type) 
+Instance Cbv (Shape : Type) (Pos : Shape -> Type)
              `{Injectable Share.Shape Share.Pos Shape Pos}
  : Strategy Shape Pos | 2 := {
     share A S := @cbv A Shape Pos;   (* share = pure *)

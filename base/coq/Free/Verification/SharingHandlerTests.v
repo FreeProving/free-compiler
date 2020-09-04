@@ -22,20 +22,20 @@ Import List.ListNotations.
 Definition evalND {A : Type} p
 := @collectVals A (run (runChoice (runNDSharing (0,0) p))).
 
-(* Shortcut to evaluate a traced program to a result and a list of logged 
+(* Shortcut to evaluate a traced program to a result and a list of logged
    messages. *)
-Definition evalTracing {A : Type} p 
+Definition evalTracing {A : Type} p
 := @collectMessages A (run (runTracing (runTraceSharing (0,0) p))).
 
-(* Shortcut to evaluate a non-deterministic partial program to a result 
+(* Shortcut to evaluate a non-deterministic partial program to a result
    list. *)
 Definition evalNDM {A : Type} p
 := @collectVals (option A) (run (runChoice (runNDSharing (0,0) (runMaybe p)))).
 
-(* Shortcut to evaluate a traced partial program to a result and a list 
+(* Shortcut to evaluate a traced partial program to a result and a list
    of logged messages. *)
 Definition evalTraceM {A : Type} p
-:= @collectMessages (option A) 
+:= @collectMessages (option A)
    (run (runTracing (runTraceSharing (0,0) (runMaybe p)))).
 
 Section SecData.
@@ -55,7 +55,7 @@ Section SecData.
   Definition coinB `{ND} := Choice Shape Pos (True_ _ _) (False_ _ _).
 
   (* Non-deterministic partial integer. *)
-  Definition coinM `{ND} `{Maybe} 
+  Definition coinM `{ND} `{Maybe}
   := Choice Shape Pos (Nothing_inj _ _) (Just_inj _ _ 1%Z).
 
   (* (0 ? 1, 2 ? 3) *)
@@ -67,9 +67,9 @@ Section SecData.
   (* [0 ? 1, 2 ? 3] *)
   Definition coinList `{ND}
   : Free Shape Pos (List Shape Pos (Integer Shape Pos))
-  := List.Cons Shape Pos 
+  := List.Cons Shape Pos
        (Choice Shape Pos (pure 0%Z) (pure 1%Z))
-       (List.Cons Shape Pos 
+       (List.Cons Shape Pos
          (Choice Shape Pos (pure 2%Z) (pure 3%Z))
          (List.Nil Shape Pos)).
 
@@ -97,9 +97,9 @@ Section SecData.
   (* [trace "0" 0, trace "1" 1] *)
   Definition traceList `{Trace}
   : Free Shape Pos (List Shape Pos (Integer Shape Pos))
-  := List.Cons Shape Pos 
+  := List.Cons Shape Pos
        (trace "0" (pure 0%Z))
-       (List.Cons Shape Pos 
+       (List.Cons Shape Pos
          (trace "1" (pure 2%Z))
          (List.Nil Shape Pos)).
 
@@ -136,7 +136,7 @@ Section SecFunctions.
   Definition double (f : FreeA -> FreeA -> FreeA ) (fx : FreeA) : FreeA
   := f fx fx.
 
-  (* Simple sharing: 
+  (* Simple sharing:
      let sx = fx in f sx sx *)
   Definition doubleShared `{I : Share} `{SA : ShareArgs} (S : Strategy Shape Pos)
                         (f : FreeA -> FreeA -> FreeA)
@@ -145,7 +145,7 @@ Section SecFunctions.
   := @share Shape Pos I S A SA fx >>= fun sx => f sx sx.
 
   (* Nested sharing:
-     let sx = fx 
+     let sx = fx
          sy = f sx sx
      in f sy sy *)
   Definition doubleSharedNested `{I : Share} `{SA : ShareArgs} (S : Strategy Shape Pos)
@@ -155,7 +155,7 @@ Section SecFunctions.
   := @share Shape Pos I S A SA (@share Shape Pos I S A SA fx >>= fun sx => f sx sx) >>= fun sy =>
     f sy sy.
 
-  (* let sx = fx  
+  (* let sx = fx
          sy = f sx sx
          sz = fy
     in f sy sz *)
@@ -170,7 +170,7 @@ Section SecFunctions.
   let sx = val
      sy = f sx fx
      sz = f sy fy
-  in f sx (f sy (f sz val)) 
+  in f sx (f sy (f sz val))
   *)
   Definition doubleSharedRec `{I : Share} `{SA : ShareArgs} (S : Strategy Shape Pos)
                              (f : FreeA -> FreeA -> FreeA)
@@ -178,7 +178,7 @@ Section SecFunctions.
                             (val : A)
    : FreeA
   := @share Shape Pos I S A SA (pure val) >>= fun sx =>
-    f sx (@share Shape Pos I S A SA (f sx fx) >>= fun sy => 
+    f sx (@share Shape Pos I S A SA (f sx fx) >>= fun sy =>
     f sy (@share Shape Pos I S A SA (f sy fy) >>= fun sz =>
     f sz (pure val))).
 
@@ -199,7 +199,7 @@ Section SecFunctions.
                         (f : FreeA -> FreeA -> FreeA)
                         (fl : Free Shape Pos (List Shape Pos A))
    : FreeA
-  := @share Shape Pos I S (List Shape Pos A) _ fl >>= fun sx => 
+  := @share Shape Pos I S (List Shape Pos A) _ fl >>= fun sx =>
               f (headList P sx) (headList P sx).
 
 End SecFunctions.
@@ -214,7 +214,7 @@ Notation "'orBool_'" := (orBool _ _).
 
 (* ---------------------- Test cases without sharing ----------------------- *)
 
-(* 
+(*
 0?1 + 0?1
 = 0+0 ? 0+1 ? 1+0 ? 1+1
 = 0 ? 1 ? 1 ? 2
@@ -227,7 +227,7 @@ Proof. constructor. Qed.
 trace "One" 1 + trace "One" 1
 => The message should be logged twice and the result should be 2.
 *)
-Example exAddNoSharingTrace 
+Example exAddNoSharingTrace
 : evalTracing (nf (double addInteger_ traceOne))
   = (2%Z,["One"%string;"One"%string]).
 Proof. constructor. Qed.
@@ -238,16 +238,16 @@ Proof. constructor. Qed.
 = true ? (true ? false)
 = true ? true ? false
 *)
-Example exOrNDNoSharing 
+Example exOrNDNoSharing
  : evalND (nf (double orBool_ coinB)) = [true;true;false].
 Proof. constructor. Qed.
 
 (*
 (trace "True" true) or (trace "True" true)
-=> The second argument is not evaluated, so the result should be true and the 
+=> The second argument is not evaluated, so the result should be true and the
    message should be logged only once.
 *)
-Example exOrTrueTracingNoSharing 
+Example exOrTrueTracingNoSharing
  : evalTracing (nf (double orBool_ traceTrue))
    = (true,["True"%string]).
 Proof. constructor. Qed.
@@ -257,7 +257,7 @@ Proof. constructor. Qed.
 => Both arguments are evaluated, so the result should be false and the message
    should be logged twice.
 *)
-Example exOrFalseTracingNoSharing 
+Example exOrFalseTracingNoSharing
  : evalTracing (nf (double orBool_ traceFalse))
    = (false,["False"%string;"False"%string]).
 Proof. constructor. Qed.
@@ -283,7 +283,7 @@ Example exNDMNoSharing
  : evalNDM (nf (double addInteger_ coinM)) = [None;None;Some 2%Z].
 Proof. constructor. Qed.
 
-(* 
+(*
 trace "Nothing" Nothing + trace "Nothing" Nothing
 => The second argument is not evaluated due to >>=, so the message should
    only be logged once and the result should be Nothing (i.e. None in Coq).
@@ -295,7 +295,7 @@ Proof. constructor. Qed.
 
 (*
 trace "Just 1" (Just 1) + trace "Just 1" (Just 1)
-=> Since there is no sharing, the message should be logged twice and the 
+=> Since there is no sharing, the message should be logged twice and the
    result should be Just 2 (Some 2 in Coq).
 *)
 Example exTraceJustNoSharing
@@ -307,8 +307,8 @@ Proof. constructor. Qed.
 (* --------------------- Test cases for simple sharing --------------------- *)
 
 (*
-let sx = 0 ? 1 
-in sx + sx 
+let sx = 0 ? 1
+in sx + sx
 = 0+0 ? 1+1
 = 0 ? 2
 *)
@@ -322,7 +322,7 @@ let sx = trace "One" 1
 in sx + sx
 => The message should be logged once and the result should be 2.
 *)
-Example exAddSharingTrace 
+Example exAddSharingTrace
  : evalTracing (nf (doubleShared Cbneed_ addInteger_ traceOne))
  = (2%Z,["One"%string]).
 Proof. constructor. Qed.
@@ -339,7 +339,7 @@ Proof. constructor. Qed.
 
 (*
 let sx = trace "True" true
-in sx or sx 
+in sx or sx
 => The second argument is not evaluated, so sharing makes no difference here.
    The message should be logged once and the result should be true.
 *)
@@ -359,10 +359,10 @@ Example exOrFalseTraceSharing
    = (false,["False"%string]).
 Proof. constructor. Qed.
 
-(* traceFalse is shared, but does not occur more than once. 
+(* traceFalse is shared, but does not occur more than once.
    Therefore, sharing should make no difference here. *)
 Example exOrMixedTraceSharing
- : evalTracing (nf (share traceFalse >>= fun sx => 
+ : evalTracing (nf (share traceFalse >>= fun sx =>
                 (orBool_ sx traceTrue)))
    = (true,["False"%string;"True"%string]).
 Proof. constructor. Qed.
@@ -391,8 +391,8 @@ Proof. constructor. Qed.
 
 (*
 let sx = trace "Just 1" (Just 1)
-in sx + sx 
-=> The message should only be logged once due to sharing and the result 
+in sx + sx
+=> The message should only be logged once due to sharing and the result
    should be Some 2.
 *)
 Example exTraceJustSharing
@@ -402,26 +402,26 @@ Proof. constructor. Qed.
 
 (* --------------------- Test cases for nested sharing --------------------- *)
 
-(* 
-let sx = 0 ? 1 
-    sy = sx + sx 
-in sy + sy 
-= (0+0)+(0+0) ? (1+1)+(1+1) 
-= 0 ? 4 
+(*
+let sx = 0 ? 1
+    sy = sx + sx
+in sy + sy
+= (0+0)+(0+0) ? (1+1)+(1+1)
+= 0 ? 4
 *)
 Example exAddNestedSharingND : evalND (nf (doubleSharedNested Cbneed_
-                                                          addInteger_ 
+                                                          addInteger_
                                                           coin))
                                = [0%Z;4%Z].
 Proof. constructor. Qed.
 
-(* 
+(*
 let sx = trace "One" 1
-    sy = sx + sx 
-in sy + sy 
-=> The message should only be logged once and the result should be 4. 
+    sy = sx + sx
+in sy + sy
+=> The message should only be logged once and the result should be 4.
 *)
-Example exAddNestedSharingTrace 
+Example exAddNestedSharingTrace
  : evalTracing (nf (doubleSharedNested Cbneed_ addInteger_ traceOne))
    = (4%Z,["One"%string]).
 Proof. constructor. Qed.
@@ -444,7 +444,7 @@ in sy or sy
 => The message should only be logged once due to non-strictness
    and the result should be true.
 *)
-Example exOrNestedTrueTracing 
+Example exOrNestedTrueTracing
  : evalTracing (nf (doubleSharedNested Cbneed_ orBool_ traceTrue))
    = (true,["True"%string]).
 Proof. constructor. Qed.
@@ -461,7 +461,7 @@ Example exOrNestedFalseTracing
    = (false, ["False"%string]).
 Proof. constructor. Qed.
 
-(* 
+(*
 let sx = 0 ? 1
     sy = sx + sx
     sz = 0 ? 1
@@ -508,7 +508,7 @@ let sx = trace "True" true
     sy = sx or sx
     sz = trace "True" true
 in sy or sz
-=> The message should only be logged once due to non-strictness and the 
+=> The message should only be logged once due to non-strictness and the
    result should be true.
 *)
 Example exOrClashTrueTracing
@@ -555,9 +555,9 @@ let sx = 1
     sy = sx + trace "One" 1
     sz = sy + trace "One" 1
 in sx + (sy + (sz + 1))
-=> The message should be logged once for sy and once for sz, so it should be 
-   logged twice in total. 
-   sx has the value 1, sy has the value 2 and sz has the value 3, so the 
+=> The message should be logged once for sy and once for sz, so it should be
+   logged twice in total.
+   sx has the value 1, sy has the value 2 and sz has the value 3, so the
    final value should be 1 + 2 + 3 + 1 = 7.
 *)
 Example exAddRecSharingTracing
@@ -587,9 +587,9 @@ in sx or (sy or (sz or false))
   false or ((false or false) or ((false or (true ? false)) or false))
 = (false or true) or ((true or (true ? false)) or false) ?
   (false or false) or ((false or (true ? false)) or false)
-= true ? 
+= true ?
   (false or (true ? false)) or false
-= true ? 
+= true ?
   (true ? false) or false
 = true ?
   true or false ?
@@ -601,12 +601,12 @@ Example exOrRecSharingNDFalse
    = [true;true;false].
 Proof. constructor. Qed.
 
-(* 
+(*
 let sx = false
     sy = sx or (trace "True" true)
     sz = sy or (trace "True" true)
 in sx or (sy or (sz or false))
-=> sy has the value true, so sz is not evaluated. The message should only 
+=> sy has the value true, so sz is not evaluated. The message should only
    be logged once and the result should be true.
 *)
 Example exOrRecTrueTracing
@@ -640,7 +640,7 @@ in fst sx + fst sx
 = (0 + 0) ? (1 + 1)
 = 0 ? 2
 *)
-Example exAddDeepPairND 
+Example exAddDeepPairND
  : evalND (nf (doubleDeepSharedPair Cbneed_ addInteger_ coinPair))
   = [0%Z;2%Z].
 Proof. constructor. Qed.
@@ -651,34 +651,34 @@ in head sx + head sx
 = 0 ? 2
 *)
 Example exAddDeepListND
- : evalND (nf 
+ : evalND (nf
   (doubleDeepSharedList (PartialLifted ND.Shape ND.Pos _ _ ND.Partial) Cbneed_ addInteger_ coinList))
  = [0%Z;2%Z].
 Proof. constructor. Qed.
 
-(* 
+(*
 let sx = (trace "0" 0, trace "1" 1)
-in fst sx + fst sx 
-=> The pair is shared, so the effects inside the pair should be shared as 
-   well. Since we take the first element twice, the second tracing message ("1") 
-   should not be logged and the first should be shared and thus logged once. 
+in fst sx + fst sx
+=> The pair is shared, so the effects inside the pair should be shared as
+   well. Since we take the first element twice, the second tracing message ("1")
+   should not be logged and the first should be shared and thus logged once.
 *)
 Example exAddDeepPairTrace
  : evalTracing (nf (doubleDeepSharedPair Cbneed_ addInteger_ tracePair))
   = (0%Z, ["0"%string]).
 Proof. constructor. Qed.
 
-(* 
+(*
 let sx = [trace "0" 0, trace "1" 1]
-in head sx + head sx 
-=> The list is shared, so the effects inside the list should be shared as 
-   well. Since we take the first element twice, the second tracing message ("1") 
+in head sx + head sx
+=> The list is shared, so the effects inside the list should be shared as
+   well. Since we take the first element twice, the second tracing message ("1")
    should not be logged and the first should be shared and thus logged once.
    Because head is partial and we use the Maybe instance of Partial, the result
    should be Some 0 instead of simply 0.
 *)
 Example exAddDeepListTrace
- : evalTraceM (nf 
+ : evalTraceM (nf
    (doubleDeepSharedList (PartialLifted Maybe.Shape Maybe.Pos _ _ Maybe.Partial) Cbneed_ addInteger_ traceList))
   = (Some 0%Z, ["0"%string]).
 Proof. constructor. Qed.
