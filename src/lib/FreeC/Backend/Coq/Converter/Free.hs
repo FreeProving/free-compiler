@@ -29,10 +29,6 @@ genericArgDecls explicitness = map
 genericArgVariables :: [Coq.Sentence]
 genericArgVariables = map (uncurry (Coq.variable . return)) Coq.Base.freeArgs
 
--- | Converts the name and type of a type class instance to an explicit binder.
-effectArgDecl :: (Coq.Qualid, Coq.Term) -> Coq.Binder
-effectArgDecl = uncurry $ Coq.typedBinder' Coq.Ungeneralizable Coq.Explicit
-
 -- | Smart constructor for the application of a Coq function or (type)
 --   constructor that requires the parameters for the @Free@ monad.
 genericApply

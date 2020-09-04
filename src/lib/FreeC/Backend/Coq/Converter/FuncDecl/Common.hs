@@ -3,7 +3,6 @@
 module FreeC.Backend.Coq.Converter.FuncDecl.Common
   ( -- * Code Generation
     convertFuncHead
-  , convertEffect
   ) where
 
 import           FreeC.Backend.Coq.Base
@@ -13,7 +12,6 @@ import           FreeC.Backend.Coq.Converter.Type
 import qualified FreeC.Backend.Coq.Syntax         as Coq
 import           FreeC.Environment
 import qualified FreeC.IR.Syntax                  as IR
-import           FreeC.LiftedIR.Effect
 import           FreeC.Monad.Converter
 
 -------------------------------------------------------------------------------
@@ -41,16 +39,8 @@ convertFuncHead (IR.FuncDecl _ declIdent typeArgs args maybeRetType _) = do
   typeArgs' <- convertTypeVarDecls Coq.Implicit typeArgs
   args' <- mapM convertArg args
   maybeRetType' <- mapM convertType maybeRetType
-  return ( qualid
-         , freeArgDecls
-             ++ map (effectArgDecl . convertEffect) effects
-             ++ typeArgs'
-             ++ args'
-         , maybeRetType'
-         )
-
--- | Converts an effect to the name and type of the corresponding type class
---   instance.
-convertEffect :: Effect -> (Coq.Qualid, Coq.Term)
-convertEffect Partiality = partialArg
-convertEffect Sharing    = shareableArg
+  return
+    ( qualid
+    , freeArgDecls ++ concatMap selectBinders effects ++ typeArgs' ++ args'
+    , maybeRetType'
+    )

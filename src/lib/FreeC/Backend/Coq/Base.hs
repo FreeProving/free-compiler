@@ -17,9 +17,15 @@ module FreeC.Backend.Coq.Base
   , partialUndefined
   , partialError
     -- * Sharing
+  , injectable
+  , injectableArg
+  , injectableBinder
   , shareable
   , shareableArg
   , share
+    -- * Effect Selection
+  , selectArgs
+  , selectBinders
     -- * Literal Scopes
   , integerScope
   , stringScope
@@ -28,6 +34,7 @@ module FreeC.Backend.Coq.Base
   ) where
 
 import qualified FreeC.Backend.Coq.Syntax as Coq
+import           FreeC.LiftedIR.Effect
 
 -------------------------------------------------------------------------------
 -- Base Library Import                                                       --
@@ -82,16 +89,18 @@ freeArgs = [ (shape, Coq.Sort Coq.Type)
 -------------------------------------------------------------------------------
 -- Partiality                                                                --
 -------------------------------------------------------------------------------
--- | The Coq Identifier for the @Partial@ type class.
+-- | The Coq identifier for the @Partial@ type class.
 partial :: Coq.Qualid
 partial = Coq.bare "Partial"
 
--- | The name and type of the @Partial@ instance that must be passed to
---   partial functions.
-partialArg :: (Coq.Qualid, Coq.Term)
-partialArg = ( Coq.bare "P"
-             , Coq.app (Coq.Qualid partial) [Coq.Qualid shape, Coq.Qualid pos]
-             )
+-- | The Coq identifier for the argument of the @Partial@ type class.
+partialArg :: Coq.Qualid
+partialArg = Coq.bare "P"
+
+-- | The Coq binder for the @Partial@ type class.
+partialBinder :: Coq.Binder
+partialBinder = Coq.typedBinder' Coq.Ungeneralizable Coq.Explicit partialArg
+  $ Coq.app (Coq.Qualid partial) [Coq.Qualid shape, Coq.Qualid pos]
 
 -- | The identifier for the error term @undefined@.
 partialUndefined :: Coq.Qualid
@@ -104,21 +113,49 @@ partialError = Coq.bare "error"
 -------------------------------------------------------------------------------
 -- Sharing                                                                   --
 -------------------------------------------------------------------------------
--- | The Coq Identifier for the @Shareable@ type class.
+-- | The Coq identifier for the @Injectable@ type class.
+injectable :: Coq.Qualid
+injectable = Coq.bare "Injectable"
+
+-- | The Coq identifier for the argument of the @Injectable@ type class.
+injectableArg :: Coq.Qualid
+injectableArg = Coq.bare "I"
+
+-- | The Coq binder for the @Injectable@ type class.
+injectableBinder :: Coq.Binder
+injectableBinder = Coq.typedBinder' Coq.Generalizable Coq.Implicit injectableArg
+  $ Coq.app (Coq.Qualid injectable)
+  $ map Coq.Qualid [Coq.bare "Share.Shape", Coq.bare "Share.Pos", shape, pos]
+
+-- | The Coq identifier for the @Shareable@ type class.
 shareable :: Coq.Qualid
 shareable = Coq.bare "Shareable"
 
--- | The name and type of the @Shareable@ instance that must be passed to
---   shareable functions.
-shareableArg :: (Coq.Qualid, Coq.Term)
-shareableArg
-  = ( Coq.bare "S"
-    , Coq.app (Coq.Qualid shareable) [Coq.Qualid shape, Coq.Qualid pos]
-    )
+-- | The Coq identifier for the argument of the @Shareable@ type class.
+shareableArg :: Coq.Qualid
+shareableArg = Coq.bare "S"
+
+-- | The Coq binder for the @Shareable@ type class.
+shareableBinder :: Coq.Binder
+shareableBinder = Coq.typedBinder' Coq.Ungeneralizable Coq.Explicit shareableArg
+  $ Coq.app (Coq.Qualid shareable) [Coq.Qualid shape, Coq.Qualid pos]
 
 -- | The Coq Identifier for the @share@ operator.
 share :: Coq.Qualid
 share = Coq.bare "share"
+
+-------------------------------------------------------------------------------
+-- Effect selection                                                          --
+-------------------------------------------------------------------------------
+-- | Selects the correct function arguments for the given effect.
+selectArgs :: Effect -> [Coq.Qualid]
+selectArgs Partiality = [partialArg]
+selectArgs Sharing    = [injectableArg, shareableArg]
+
+-- | Selects the correct binder for the given effect.
+selectBinders :: Effect -> [Coq.Binder]
+selectBinders Partiality = [partialBinder]
+selectBinders Sharing    = [injectableBinder, shareableBinder]
 
 -------------------------------------------------------------------------------
 -- Literal Scopes                                                            --
@@ -147,5 +184,9 @@ reservedIdents
     , partial
     , partialUndefined
     , partialError
+      -- Sharing
+    , injectable
+    , shareable
+    , share
     ]
-  ++ map fst (partialArg : freeArgs)
+  ++ (partialArg : map fst freeArgs)
