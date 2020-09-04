@@ -60,49 +60,53 @@ Module Trace.
     Definition PTrcShare {Shape' : Type} (Pos' : Shape' -> Type)
     := Comb.Pos Share.Pos (PTrace Pos').
 
-    Fixpoint runTraceSharing {A : Type}
-                             {Shape' : Type}
-                             {Pos' : Shape' -> Type} 
-                             (n : nat * nat)
-                             (fs : Free (STrcShare Shape') (PTrcShare Pos') A)
+    Fixpoint runTraceSharing {A : Type} 
+                          {Shape' : Type} 
+                          {Pos' : Shape' -> Type} 
+                          (n : nat * nat)
+                          (fs : Free (STrcShare Shape') (PTrcShare Pos') A) 
      : Free (STrace Shape') (PTrace Pos') A 
-    := let fix nameMessages (next : nat) 
-                            (scope : nat * nat)
-                            (scopes : list (nat * nat))
-                            (fs : Free (STrcShare Shape') (PTrcShare Pos') A)
-        : Free (STrace Shape') (PTrace Pos') A 
+    := let fix nameMessages (next : nat)
+                           (state : nat * nat)
+                           (scope : nat * nat) 
+                           (scopes : list (nat * nat)) 
+                           (fs : Free (STrcShare Shape') (PTrcShare Pos') A)
+     : Free (STrace Shape') (PTrace Pos') A
        := match fs with (* inside scope handler *)
           | pure x => pure x
-          | impure (inl (Share.sbsharing n')) pf =>
-            nameMessages 1 n' (cons n' scopes) (pf tt)
-          | impure (inl (Share.sesharing n')) pf =>
-            match scopes with
-            | cons _ (cons j js) as ks => nameMessages next j ks (pf tt)
-            | _                        => runTraceSharing scope (pf tt)
+          | impure (inl (Share.sbsharing n')) pf =>  (* open nested scope *)
+             nameMessages 1 state n' (cons n' scopes) (pf tt)
+          | impure (inl (Share.sesharing n')) pf => 
+             match scopes with
+              (* leave nested scope *)
+            | cons _ (cons j js) as ks => nameMessages next state j ks (pf tt)
+              (* leave outermost scope *)
+            | _                        => runTraceSharing state (pf tt)
             end
-          | impure (inl Share.sget) pf           =>
-            nameMessages next scope scopes (pf n)
-          | impure (inl (Share.sput n')) pf      =>
-            nameMessages next n' scopes (pf tt)
-          | impure (inr (inl (_,msg))) pf        =>
-            let x := nameMessages (next + 1) scope scopes (pf tt) in
-            Msg (STrace Shape') (PTrace Pos') (Some (tripl scope next)) msg x
-          | impure (inr (inr s)) pf              =>
-            impure (inr s) (fun p => nameMessages next scope scopes (pf p)) 
+          | impure (inl Share.sget) pf => 
+             nameMessages next state scope scopes (pf state) (* get state *)
+          | impure (inl (Share.sput n')) pf => (* set new state *)
+             nameMessages next n' scope scopes (pf tt)
+          | impure (inr (inl (_,msg))) pf => 
+            (* mark the scope of a message *)
+             let x := nameMessages (next + 1) state scope scopes (pf tt) in
+             Msg (STrace Shape') (PTrace Pos') (Some (tripl scope next)) msg x
+          | impure (inr (inr s)) pf => (* other effect *)
+             impure (inr s) (fun p => nameMessages next state scope scopes (pf p))
           end
        in match fs with (* outside scope handler *)
           | pure x => pure x
-          | impure (inl (Share.sbsharing n'))  pf =>
-            nameMessages 1 n' (cons n' nil) (pf tt)
-          | impure (inl (Share.sesharing n'))  pf =>
-            runTraceSharing n' (pf tt) (* error *)
-          | impure (inl Share.sget) pf            =>
+          | impure (inl (Share.sbsharing n'))  pf => (* enter sharing scope *)
+            nameMessages 1 n n' (cons n' nil) (pf tt)
+          | impure (inl (Share.sesharing n'))  pf => (* error *)
+            (runTraceSharing n (pf tt))
+          | impure (inl Share.sget) pf => (* get state *)
             runTraceSharing n (pf n)
-          | impure (inl (Share.sput n')) pf       =>
-            runTraceSharing n' (pf tt)
-          | impure (inr s) pf                     =>
-            impure s (fun p => runTraceSharing n (pf p))
+          | impure (inl (Share.sput n')) pf => (* set new state *)
+            (runTraceSharing n' (pf tt))
+          | impure (inr s) pf => impure s (fun p => runTraceSharing n (pf p)) (* other effect *)
           end.
+
        End Handler.
 
   (* Traceable instance for the Trace effect. *)
