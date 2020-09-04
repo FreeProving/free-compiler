@@ -338,7 +338,7 @@ Proof. constructor. Qed.
    --> ([true,false], ["root effect", "component effect"])*)
 Example rootAndComponentEffectTracing : evalTracingNF tracedTraceList
  = (List.cons (True_ IdS IdP) 
-              (List.Cons IdS IdP (False_ IdS IdP) (Nil IdS IdP)),
+              (Cons IdS IdP (False_ IdS IdP) (Nil IdS IdP)),
     ["root effect"%string; "component effect"%string]).
 Proof. constructor. Qed.
 
