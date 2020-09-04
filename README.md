@@ -163,7 +163,7 @@ The compiler has been tested with the following software versions on a Debian ba
 
  - [GHC][software/ghc], version 8.6.5
  - [Cabal][software/cabal], version 3.2.0.0
- - [Coq][software/coq], versions 8.8 through 8.11
+ - [Coq][software/coq], versions 8.10 through 8.12
  - [Agda][software/agda], versions 2.6.1
  - [Agda Standard Library][software/agda-stdlib], version 1.3
 

@@ -1,6 +1,5 @@
 -- | This module contains smart constructors for nodes of the Coq AST.
 --   For convenience the original Coq AST is exported as well.
-
 module FreeC.Backend.Coq.Syntax
   ( module Language.Coq.Gallina
     -- * Comments
@@ -22,7 +21,7 @@ module FreeC.Backend.Coq.Syntax
   , typedBinder'
     -- * Assumptions
   , variable
-  -- * Definition sentences
+    -- * Definition Sentences
   , definitionSentence
     -- * Types
   , sortType
@@ -38,18 +37,16 @@ module FreeC.Backend.Coq.Syntax
   , requireImportFrom
   , requireExportFrom
   , requireFrom
-  )
-where
+  ) where
 
-import           Data.Composition               ( (.:) )
-import qualified Data.List.NonEmpty            as NonEmpty
-import qualified Data.Text                     as Text
+import           Data.Composition     ( (.:) )
+import qualified Data.List.NonEmpty   as NonEmpty
+import qualified Data.Text            as Text
 import           Language.Coq.Gallina
 
 -------------------------------------------------------------------------------
 -- Comments                                                                  --
 -------------------------------------------------------------------------------
-
 -- | Smart constructor for Coq comments.
 comment :: String -> Sentence
 comment = CommentSentence . Comment . Text.pack
@@ -57,7 +54,6 @@ comment = CommentSentence . Comment . Text.pack
 -------------------------------------------------------------------------------
 -- Proofs                                                                    --
 -------------------------------------------------------------------------------
-
 -- | An admitted proof that contains only a placeholder text.
 blankProof :: Proof
 blankProof = ProofAdmitted (Text.pack "  (* FILL IN HERE *)")
@@ -65,7 +61,6 @@ blankProof = ProofAdmitted (Text.pack "  (* FILL IN HERE *)")
 -------------------------------------------------------------------------------
 -- Identifiers                                                               --
 -------------------------------------------------------------------------------
-
 -- | Smart constructor for unqualified Coq identifiers.
 ident :: String -> Ident
 ident = Text.pack
@@ -77,23 +72,22 @@ bare = Bare . ident
 -- | Gets the identifier for the given unqualified Coq identifier. Returns
 --   @Nothing@ if the given identifier is qualified.
 unpackQualid :: Qualid -> Maybe String
-unpackQualid (Bare text    ) = Just (Text.unpack text)
+unpackQualid (Bare text)     = Just (Text.unpack text)
 unpackQualid (Qualified _ _) = Nothing
 
 -------------------------------------------------------------------------------
 -- Functions                                                                 --
 -------------------------------------------------------------------------------
-
 -- | Smart constructor for the application of a Coq function or (type)
 --   constructor.
 --
 --   If the first argument is an application term, the arguments are added
 --   to that term. Otherwise a new application term is created.
 app :: Term -> [Term] -> Term
-app func [] = func
-app (App func args) args' =
-  App func (args <> NonEmpty.fromList (map PosArg args'))
-app func args = App func (NonEmpty.fromList (map PosArg args))
+app func []               = func
+app (App func args) args' = App func
+  (args <> NonEmpty.fromList (map PosArg args'))
+app func args             = App func (NonEmpty.fromList (map PosArg args))
 
 -- | Smart constructor for the explicit application of a Coq function or
 --   constructor to otherwise inferred type arguments.
@@ -104,10 +98,9 @@ explicitApp qualid []       = Qualid qualid
 explicitApp qualid typeArgs = ExplicitApp qualid typeArgs
 
 -- | Smart constructor for a Coq function type.
-arrows
-  :: [Term] -- ^ The types of the function arguments.
-  -> Term   -- ^ The return type of the function.
-  -> Term
+arrows :: [Term] -- ^ The types of the function arguments.
+       -> Term   -- ^ The return type of the function.
+       -> Term
 arrows args returnType = foldr Arrow returnType args
 
 -- | Smart constructor for the construction of a Coq lambda expression with
@@ -135,11 +128,10 @@ inferredFun = flip fun (repeat Nothing)
 -------------------------------------------------------------------------------
 -- Binders                                                                   --
 -------------------------------------------------------------------------------
-
 -- | Smart constructor for an explicit or implicit typed Coq binder.
 typedBinder :: Explicitness -> [Qualid] -> Term -> Binder
-typedBinder explicitness =
-  Typed Ungeneralizable explicitness . NonEmpty.fromList . map Ident
+typedBinder explicitness
+  = Typed Ungeneralizable explicitness . NonEmpty.fromList . map Ident
 
 -- | Like 'typedBinder' but for a single identifier.
 typedBinder' :: Explicitness -> Qualid -> Term -> Binder
@@ -148,16 +140,14 @@ typedBinder' = flip (flip typedBinder . (: []))
 -------------------------------------------------------------------------------
 -- Assumptions                                                               --
 -------------------------------------------------------------------------------
-
 -- | Generates a @Variable@ assumption sentence.
 variable :: [Qualid] -> Term -> Sentence
-variable =
-  AssumptionSentence . Assumption Variable .: Assums . NonEmpty.fromList
+variable
+  = AssumptionSentence . Assumption Variable .: Assums . NonEmpty.fromList
 
 -------------------------------------------------------------------------------
--- Definition sentences                                                      --
+-- Definition Sentences                                                      --
 -------------------------------------------------------------------------------
-
 -- | Smart constructor for a Coq definition sentence.
 definitionSentence
   :: Qualid     -- ^ The name of the definition.
@@ -165,21 +155,19 @@ definitionSentence
   -> Maybe Term -- ^ The return type of the definition.
   -> Term       -- ^ The right-hand side of the definition.
   -> Sentence
-definitionSentence qualid binders returnType term =
-  DefinitionSentence (DefinitionDef Global qualid binders returnType term)
+definitionSentence qualid binders returnType term = DefinitionSentence
+  (DefinitionDef Global qualid binders returnType term)
 
 -------------------------------------------------------------------------------
 -- Types                                                                     --
 -------------------------------------------------------------------------------
-
 -- | The type of a type variable.
 sortType :: Term
 sortType = Sort Type
 
 -------------------------------------------------------------------------------
--- Expressions                                                              --
+-- Expressions                                                               --
 -------------------------------------------------------------------------------
-
 -- | Smart constructor for Coq string literals.
 string :: String -> Term
 string = String . Text.pack
@@ -214,7 +202,6 @@ disj t1 t2 = app (Qualid (bare "op_\\/__")) [t1, t2]
 -------------------------------------------------------------------------------
 -- Imports                                                                   --
 -------------------------------------------------------------------------------
-
 -- | Creates a @From … Require Import …@ sentence.
 requireImportFrom :: ModuleIdent -> [ModuleIdent] -> Sentence
 requireImportFrom library modules = ModuleSentence
@@ -227,5 +214,5 @@ requireExportFrom library modules = ModuleSentence
 
 -- | Creates a @From … Require …@ sentence.
 requireFrom :: ModuleIdent -> [ModuleIdent] -> Sentence
-requireFrom library modules =
-  ModuleSentence (Require (Just library) Nothing (NonEmpty.fromList modules))
+requireFrom library modules = ModuleSentence
+  (Require (Just library) Nothing (NonEmpty.fromList modules))

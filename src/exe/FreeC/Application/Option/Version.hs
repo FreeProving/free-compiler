@@ -4,15 +4,15 @@
 --
 --   The template Haskell language extension is used to include the hash
 --   of the Git commit at compile time.
-
 module FreeC.Application.Option.Version where
 
-import           Data.List                      ( intercalate )
+import           Data.Either.Extra   ( eitherToMaybe )
+import           Data.List           ( intercalate )
+import           Data.Maybe          ( maybeToList )
 import           Data.Version
 import           GitHash
-import           System.Info
-
 import           Paths_free_compiler
+import           System.Info
 
 -- | Prints version information for the compiler, the compiler it has been
 --   compiled with and operating system it is running on.
@@ -37,18 +37,26 @@ import           Paths_free_compiler
 --    * @<arch>@ is the name of the machine architecture (e.g., "x86_64").
 putVersionInfo :: IO ()
 putVersionInfo = do
-  putStrLn
-    (  "The Free Compiler, version "
-    ++ showVersion version
-    ++ " ("
-    ++ intercalate
-         ", "
-         (  either (const []) (return . giDescribeDirty) gitInfoOrError
-         ++ [compilerName ++ " " ++ showVersion compilerVersion, os, arch]
-         )
-    ++ ")"
-    )
+  putStrLn ("The Free Compiler, version "
+            ++ showVersion version
+            ++ " ("
+            ++ intercalate ", " versionDetails
+            ++ ")")
  where
+  -- | Additional information about the version.
+  --
+  --   Includes information about the Git Repository, compiler and operating
+  --   system that were used to compile the Free Compiler.
+  versionDetails :: [String]
+  versionDetails = maybeToList gitDescription
+    ++ [compilerName ++ " " ++ showVersion compilerVersion, os, arch]
+
+  -- | The output of @git describe --always --dirty@ for the most recent
+  --   commit at compile time or @Nothing@ if the compilation directory was
+  --   not a Git Repository.
+  gitDescription :: Maybe String
+  gitDescription = giDescribeDirty <$> eitherToMaybe gitInfoOrError
+
   -- | Compile time information about the current Git commit.
   gitInfoOrError :: Either String GitInfo
   gitInfoOrError = $$tGitInfoCwdTry
@@ -57,4 +65,4 @@ putVersionInfo = do
   --   commit at compile time.
   giDescribeDirty :: GitInfo -> String
   giDescribeDirty gitInfo | giDirty gitInfo = giDescribe gitInfo ++ "-dirty"
-                          | otherwise       = giDescribe gitInfo
+                          | otherwise = giDescribe gitInfo

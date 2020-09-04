@@ -9,7 +9,7 @@ not True  = False
 not False = True
 
 append :: [a] -> [a] -> [a]
-append []        ys = ys
+append [] ys        = ys
 append (x : xs') ys = x : (append xs' ys)
 
 reverse :: [a] -> [a]

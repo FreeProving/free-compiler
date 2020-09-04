@@ -27,8 +27,7 @@ module FreeC.IR.Syntax
   , module FreeC.IR.Syntax.TypeDecl
   , module FreeC.IR.Syntax.TypeScheme
   , module FreeC.IR.Syntax.TypeVarDecl
-  )
-where
+  ) where
 
 import           FreeC.IR.Syntax.Expr
 import           FreeC.IR.Syntax.FuncDecl

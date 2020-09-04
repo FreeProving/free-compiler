@@ -10,10 +10,10 @@ From Base Require Import Free.Instance.Share.
 From Base Require Import Free.Instance.Trace.
 
 From Base Require Import Free.Malias.
+From Base Require Import Free.Util.Search.
+From Base Require Import Free.Verification.Util.
 
 From Base Require Import Prelude.
-
-From Base Require Import Free.Util.Search.
 
 Require Import Lists.List.
 Import List.ListNotations.
@@ -26,78 +26,94 @@ Section SecData.
   Notation "'ND'" := (Injectable ND.Shape ND.Pos Shape Pos).
   Notation "'Trace'" := (Traceable Shape Pos).
   Notation "'Maybe'" := (Injectable Maybe.Shape Maybe.Pos Shape Pos).
+  Notation "'Share'" := (Injectable Share.Shape Share.Pos Shape Pos).
 
   (* Non-deterministic integer. *)
-  Definition coin `{ND}
+  Definition coin `{ND} `{I : Share} (S : Strategy Shape Pos)
   := Choice Shape Pos (pure 0%Z) (pure 1%Z).
 
   (* Non-deterministic boolean value. *)
-  Definition coinB `{ND} := Choice Shape Pos (True_ _ _) (False_ _ _).
+  Definition coinB `{ND} `{I : Share} (S : Strategy Shape Pos)
+  := Choice Shape Pos (True_ Shape Pos) (False_ Shape Pos).
 
   (* Non-deterministic partial integer. *)
-  Definition coinM `{ND} `{Maybe} 
-  := Choice Shape Pos (Nothing_inj _ _) (Just_inj _ _ 1%Z).
+  Definition coinM `{ND} `{Maybe} `{I : Share} (S : Strategy Shape Pos)
+  := Choice Shape Pos 
+      (@call Shape Pos I S _ (@Nothing_inj Shape Pos _ (Integer Shape Pos)) >>= fun c0 => c0)
+      (@call Shape Pos I S _ (Just_inj Shape Pos 1%Z) >>= fun c0 => c0).
 
   (* (0 ? 1, 2 ? 3) *)
-  Definition coinPair `{ND}
+  Definition coinPair `{ND} `{I : Share} (S : Strategy Shape Pos)
   : Free Shape Pos (Pair Shape Pos (Integer Shape Pos) (Integer Shape Pos))
-  := Pair_ Shape Pos (Choice Shape Pos (pure 0%Z) (pure 1%Z))
-                     (Choice Shape Pos (pure 2%Z) (pure 3%Z)).
+  := @call Shape Pos I S (Integer Shape Pos) 
+          (Choice Shape Pos (pure 0%Z) (pure 1%Z)) >>= fun c1 =>
+     @call Shape Pos I S (Integer Shape Pos) 
+          (Choice Shape Pos (pure 2%Z) (pure 3%Z)) >>= fun c2 =>
+     Pair_ Shape Pos c1 c2.
 
   (* [0 ? 1, 2 ? 3] *)
-  Definition coinList `{ND}
+  Definition coinList `{ND} `{I : Share} (S : Strategy Shape Pos)
   : Free Shape Pos (List Shape Pos (Integer Shape Pos))
-  := List.Cons Shape Pos 
-       (Choice Shape Pos (pure 0%Z) (pure 1%Z))
-       (List.Cons Shape Pos 
-         (Choice Shape Pos (pure 2%Z) (pure 3%Z))
-         (List.Nil Shape Pos)).
+  := @call Shape Pos I S _ (List.Nil Shape Pos) >>= fun c1 =>
+     @call Shape Pos I S _ (Choice Shape Pos (pure 2%Z) (pure 3%Z)) >>= fun c2 =>
+     @call Shape Pos I S _ (List.Cons Shape Pos c2 c1) >>= fun c3 => 
+     @call Shape Pos I S _ (Choice Shape Pos (pure 0%Z) (pure 1%Z)) >>= fun c4 =>
+     List.Cons Shape Pos c4 c3.
 
 
   (* Traced integer. *)
-  Definition traceOne `{Trace} := trace "One" (pure 1%Z).
+  Definition traceOne `{Trace}
+  := trace "One" (pure 1%Z).
 
   (* Traced boolean values. *)
-  Definition traceTrue `{Trace} := trace "True" (True_ _ _).
+  Definition traceTrue `{Trace}
+  := trace "True" (True_ Shape Pos).
 
-  Definition traceFalse `{Trace} := trace "False" (False_ _ _).
+  Definition traceFalse `{Trace}
+  := trace "False" (False_ Shape Pos).
 
   (* Traced Maybe values *)
-  Definition traceNothing `{Trace} `{Maybe}
-  := trace "Nothing" (@Nothing_inj (Integer Shape Pos) _ _ _).
+  Definition traceNothing `{Trace} `{M : Maybe}
+  := trace "Nothing" (@Nothing_inj Shape Pos M (Integer Shape Pos)).
 
-  Definition traceJust `{Trace} `{Maybe} := trace "Just 1" (Just_inj _ _ 1%Z).
+  Definition traceJust `{Trace} `{M : Maybe}
+  := trace "Just 1" (@Just_inj Shape Pos M _ 1%Z).
 
   (* (trace "0" 0, trace "1" 1) *)
-  Definition tracePair `{Trace}
+  Definition tracePair `{Trace} `{I : Share} (S : Strategy Shape Pos)
   : Free Shape Pos (Pair Shape Pos (Integer Shape Pos) (Integer Shape Pos))
-  := Pair_ Shape Pos (trace "0" (pure 0%Z))
-                     (trace "1" (pure 1%Z) ).
+  := @call Shape Pos I S _ (pure 0%Z) >>= fun c1 =>
+     @call Shape Pos I S _ (pure 1%Z) >>= fun c2 =>
+     @call Shape Pos I S _ (trace "0" c1) >>= fun c3 =>
+     @call Shape Pos I S _ (trace "1" c2) >>= fun c4 =>
+     Pair_ Shape Pos c3 c4.
 
   (* [trace "0" 0, trace "1" 1] *)
-  Definition traceList `{Trace}
+  Definition traceList `{Trace} `{I : Share} (S : Strategy Shape Pos)
   : Free Shape Pos (List Shape Pos (Integer Shape Pos))
-  := List.Cons Shape Pos 
-       (trace "0" (pure 0%Z))
-       (List.Cons Shape Pos 
-         (trace "1" (pure 2%Z))
-         (List.Nil Shape Pos)).
+  := @call Shape Pos I S _ (Nil Shape Pos) >>= fun c1 =>
+     @call Shape Pos I S _ (pure 1%Z) >>= fun c2 =>
+     @call Shape Pos I S _ (trace "1" c2) >>= fun c3 =>
+     @call Shape Pos I S _ (Cons Shape Pos c3 c1) >>= fun c4 =>
+     @call Shape Pos I S _ (pure 0%Z) >>= fun c5 =>
+     @call Shape Pos I S _ (trace "0" c5) >>= fun c6 =>
+     (Cons Shape Pos c6 c4).
 
 End SecData.
 
 (* Arguments sentences for the data. *)
-Arguments coin {_} {_} {_}.
-Arguments coinB {_} {_} {_}.
-Arguments coinM {_} {_} {_} {_}.
-Arguments coinPair {_} {_} {_}.
-Arguments coinList {_} {_} {_}.
+Arguments coin {_} {_} {_} {_} _.
+Arguments coinB {_} {_} {_} {_} _.
+Arguments coinM {_} {_} {_} {_} {_} _.
+Arguments coinPair {_} {_} {_} {_} _.
+Arguments coinList {_} {_} {_} {_} _.
 Arguments traceOne {_} {_} {_}.
 Arguments traceTrue {_} {_} {_}.
 Arguments traceFalse {_} {_} {_}.
 Arguments traceNothing {_} {_} {_} {_}.
 Arguments traceJust {_} {_} {_} {_}.
-Arguments tracePair {_} {_} {_}.
-Arguments traceList {_} {_} {_}.
+Arguments tracePair {_} {_} {_} {_} _.
+Arguments traceList {_} {_} {_} {_} _.
 
 (* Test functions *)
 Section SecFunctions.
@@ -111,14 +127,9 @@ Section SecFunctions.
   Notation "'Share'" := (Injectable Share.Shape Share.Pos Shape Pos).
   Notation "'Maybe'" := (Injectable Maybe.Shape Maybe.Pos Shape Pos).
 
-  (* This function applies the given binary function to the given argument
-     twice and does not share the argument. *)
-  Definition double (f : FreeA -> FreeA -> FreeA ) (fx : FreeA) : FreeA
-  := f fx fx.
-
   (* Simple sharing: 
      let sx = fx in f sx sx *)
-  Definition doubleShared `{I : Share} `{SA : ShareArgs} (S : Shareable Shape Pos)
+  Definition doubleShared `{I : Share} `{SA : ShareArgs} (S : Strategy Shape Pos)
                         (f : FreeA -> FreeA -> FreeA)
                         (fx : FreeA)
    : FreeA
@@ -128,59 +139,80 @@ Section SecFunctions.
      let sx = fx 
          sy = f sx sx
      in f sy sy *)
-  Definition doubleSharedNested `{I : Share} `{SA : ShareArgs} (S : Shareable Shape Pos)
+  Definition doubleSharedNested `{I : Share} `{SA : ShareArgs} (S : Strategy Shape Pos)
                                 (f : FreeA -> FreeA -> FreeA)
                                 (fx : FreeA)
    : FreeA
-  := @share Shape Pos I S A SA (@share Shape Pos I S A SA fx >>= fun sx => f sx sx) >>= fun sy =>
+  := @share Shape Pos I S A SA fx >>= fun sx => 
+     @share Shape Pos I S A SA (f sx sx) >>= fun sy =>
     f sy sy.
 
   (* let sx = fx  
          sy = f sx sx
          sz = fy
     in f sy sz *)
-  Definition doubleSharedClash `{I : Share} `{SA : ShareArgs} (S : Shareable Shape Pos)
+  Definition doubleSharedClash `{I : Share} `{SA : ShareArgs} (S : Strategy Shape Pos)
                               (f : FreeA -> FreeA -> FreeA)
                               (fx : FreeA) (fy : FreeA)
   : FreeA
-  := @share Shape Pos I S A SA (@share Shape Pos I S A SA fx >>= fun sx => f sx sx) >>= fun sy =>
-    @share Shape Pos I S A SA fy >>=  fun sz => f sy sz.
+  := @share Shape Pos I S A SA fx >>= fun sx =>
+     @call Shape Pos I S A (f sx sx) >>= fun sy =>
+     @call Shape Pos I S A fy >>= fun sz => 
+     f sy sz.
 
   (*
   let sx = val
      sy = f sx fx
      sz = f sy fy
-  in f sx (f sy (f sz val)) 
+     c1 = f sz val
+     c2 = f sy c1
+  in f sx c2
   *)
-  Definition doubleSharedRec `{I : Share} `{SA : ShareArgs} (S : Shareable Shape Pos)
+  Definition doubleSharedRec `{I : Share} `{SA : ShareArgs} (S : Strategy Shape Pos)
                              (f : FreeA -> FreeA -> FreeA)
                             (fx : FreeA) (fy : FreeA)
                             (val : A)
    : FreeA
-  := @share Shape Pos I S A SA (pure val) >>= fun sx =>
-    f sx (@share Shape Pos I S A SA (f sx fx) >>= fun sy => 
-    f sy (@share Shape Pos I S A SA (f sy fy) >>= fun sz =>
-    f sz (pure val))).
+  := @call Shape Pos I S A (pure val) >>= fun sx =>
+     @share Shape Pos I S A SA (f sx fx) >>= fun sy =>
+     @share Shape Pos I S A SA (f sy fy) >>= fun sz =>
+     @call Shape Pos I S A (f sz sx) >>= fun c1 =>
+     @call Shape Pos I S A (f sy c1) >>= fun c2 =>
+     f sx c2.
 
   (* Deep sharing. *)
-  Definition doubleDeepSharedPair `{I : Share} `{SA : ShareArgs} (S : Shareable Shape Pos)
+
+  (* 
+  let sx = fx
+      c1 = fst sx
+      c2 = fst sx
+      in c1 + c2
+  *)
+  Definition doubleDeepSharedPair `{I : Share} `{SA : ShareArgs} (S : Strategy Shape Pos)
                         (f : FreeA -> FreeA -> FreeA)
                         (fx : Free Shape Pos (Pair Shape Pos A A))
    : FreeA
-  := @share Shape Pos I S (Pair Shape Pos A A) _ fx >>= fun sx => f (fstPair Shape Pos sx) (fstPair Shape Pos sx).
+  := @share Shape Pos I S (Pair Shape Pos A A) _ fx >>= fun sx => 
+     @call Shape Pos I S A (fstPair Shape Pos sx) >>= fun c1 =>
+     @call Shape Pos I S A (fstPair Shape Pos sx) >>= fun c2 =>
+      f c1 c2.
 
-  Definition headList (P : Partial Shape Pos) (fl : Free Shape Pos (List Shape Pos A)) : FreeA
-  := fl >>= fun l => match l with
-                     | List.cons fx _ => fx
-                     | List.nil       => @undefined Shape Pos P A
-                     end.
-
-  Definition doubleDeepSharedList `{I : Share} `{SA : ShareArgs} (P : Partial Shape Pos) (S : Shareable Shape Pos)
+  (* 
+  let sx = fl in head sx + head sx
+  Flattened version:
+  let sx = fl
+      c1 = head sx
+      c2 = head sx
+  in c1 + c2
+  *)
+  Definition doubleDeepSharedList `{I : Share} `{SA : ShareArgs} (P : Partial Shape Pos) (S : Strategy Shape Pos)
                         (f : FreeA -> FreeA -> FreeA)
                         (fl : Free Shape Pos (List Shape Pos A))
    : FreeA
-  := @share Shape Pos I S (List Shape Pos A) _ fl >>= fun sx => 
-              f (headList P sx) (headList P sx).
+  := @share Shape Pos I S (List Shape Pos A) _ fl >>= fun sx =>
+     @call Shape Pos I S A (headList Shape Pos P sx) >>= fun c1 =>
+     @call Shape Pos I S A (headList Shape Pos P sx) >>= fun c2 =>
+              f c1 c2.
 
 End SecFunctions.
 
@@ -188,6 +220,8 @@ End SecFunctions.
    Since we only provide the sharing instance and functions when the handlers
    are called, the arguments Shape and Pos can be inferred. *)
 Notation "'Cbneed_'" := (Cbneed _ _).
+Notation "'Cbn_'" := (Cbn _ _).
+Notation "'Cbv_'" := (Cbv _ _).
 Notation "'addInteger_'" := (addInteger _ _).
 Notation "'orBool_'" := (orBool _ _).
 
@@ -199,7 +233,8 @@ Notation "'orBool_'" := (orBool _ _).
 = 0+0 ? 0+1 ? 1+0 ? 1+1
 = 0 ? 1 ? 1 ? 2
 *)
-Example exAddNoSharingND : handle (double addInteger_ coin)
+
+Example exAddNoSharingND : handle (doubleShared  Cbn_ addInteger_ (coin Cbn_))
                            = [0%Z;1%Z;1%Z;2%Z].
 Proof. constructor. Qed.
 
@@ -208,7 +243,7 @@ trace "One" 1 + trace "One" 1
 => The message should be logged twice and the result should be 2.
 *)
 Example exAddNoSharingTrace 
-: handle (double addInteger_ traceOne)
+: handle (doubleShared Cbn_ addInteger_ traceOne)
   = (2%Z,["One"%string;"One"%string]).
 Proof. constructor. Qed.
 
@@ -219,7 +254,7 @@ Proof. constructor. Qed.
 = true ? true ? false
 *)
 Example exOrNDNoSharing 
- : handle (double orBool_ coinB) = [true;true;false].
+ : handle (doubleShared Cbn_ orBool_ (coinB Cbn_)) = [true;true;false].
 Proof. constructor. Qed.
 
 (*
@@ -228,7 +263,7 @@ Proof. constructor. Qed.
    message should be logged only once.
 *)
 Example exOrTrueTracingNoSharing 
- : handle (double orBool_ traceTrue)
+ : handle (doubleShared Cbn_ orBool_ traceTrue)
    = (true,["True"%string]).
 Proof. constructor. Qed.
 
@@ -238,7 +273,7 @@ Proof. constructor. Qed.
    should be logged twice.
 *)
 Example exOrFalseTracingNoSharing 
- : handle (double orBool_ traceFalse)
+ : handle (doubleShared Cbn_ orBool_ traceFalse)
    = (false,["False"%string;"False"%string]).
 Proof. constructor. Qed.
 
@@ -260,7 +295,7 @@ Proof. constructor. Qed.
 = Nothing ? Nothing ? Just 2
 *)
 Example exNDMNoSharing
- : handle (double addInteger_ coinM) = [None;None;Some 2%Z].
+ : handle (doubleShared Cbn_ addInteger_ (coinM Cbn_)) = [None;None;Some 2%Z].
 Proof. constructor. Qed.
 
 (* 
@@ -269,7 +304,7 @@ trace "Nothing" Nothing + trace "Nothing" Nothing
    only be logged once and the result should be Nothing (i.e. None in Coq).
 *)
 Example exTraceNothingNoSharing
- : handle (double addInteger_ traceNothing)
+ : handle (doubleShared Cbn_ addInteger_ traceNothing)
    = (None,["Nothing"%string]).
 Proof. constructor. Qed.
 
@@ -279,7 +314,7 @@ trace "Just 1" (Just 1) + trace "Just 1" (Just 1)
    result should be Just 2 (Some 2 in Coq).
 *)
 Example exTraceJustNoSharing
- : handle (double addInteger_ traceJust)
+ : handle (doubleShared Cbn_ addInteger_ traceJust)
    = (Some 2%Z,["Just 1"%string;"Just 1"%string]).
 Proof. constructor. Qed.
 
@@ -293,7 +328,13 @@ in sx + sx
 = 0 ? 2
 *)
 Example exAddSharingND : handle (doubleShared Cbneed_
-  addInteger_ coin)
+  addInteger_ (coin Cbneed_))
+  = [0%Z;2%Z].
+Proof. constructor. Qed.
+
+(* Strict evaluation also leads to consistent choices. *)
+Example exAddSharingNDStrict : handle (doubleShared Cbv_
+  addInteger_ (coin Cbv_))
   = [0%Z;2%Z].
 Proof. constructor. Qed.
 
@@ -307,6 +348,12 @@ Example exAddSharingTrace
  = (2%Z,["One"%string]).
 Proof. constructor. Qed.
 
+(* Strict evaluation also leads to the message being logged only once. *)
+Example exAddSharingTraceStrict
+ : handle (doubleShared Cbv_ addInteger_ traceOne)
+ = (2%Z,["One"%string]).
+Proof. constructor. Qed.
+
 (*
 let sx = true ? false
 in sx or sx
@@ -314,7 +361,12 @@ in sx or sx
 = true ? false
 *)
 Example exOrNDSharing
- : handle (doubleShared Cbneed_ orBool_ coinB) = [true;false].
+ : handle (doubleShared Cbneed_ orBool_ (coinB Cbneed_)) = [true;false].
+Proof. constructor. Qed.
+
+(* Strict evaluation also leads to consistent choices. *)
+Example exOrNDSharingStrict
+ : handle (doubleShared Cbv_ orBool_ (coinB Cbv_)) = [true;false].
 Proof. constructor. Qed.
 
 (*
@@ -325,6 +377,12 @@ in sx or sx
 *)
 Example exOrTrueTraceSharing
  : handle (doubleShared Cbneed_ orBool_ traceTrue)
+   = (true,["True"%string]).
+Proof. constructor. Qed.
+
+(* Strict evaluation also leads to the message being logged only once. *)
+Example exOrTrueTraceSharingStrict
+ : handle (doubleShared Cbv_ orBool_ traceTrue)
    = (true,["True"%string]).
 Proof. constructor. Qed.
 
@@ -339,14 +397,6 @@ Example exOrFalseTraceSharing
    = (false,["False"%string]).
 Proof. constructor. Qed.
 
-(* traceFalse is shared, but does not occur more than once. 
-   Therefore, sharing should make no difference here. *)
-Example exOrMixedTraceSharing
- : handle (share traceFalse >>= fun sx => 
-                (orBool_ sx traceTrue))
-   = (true,["False"%string;"True"%string]).
-Proof. constructor. Qed.
-
 (*
 let sx = Nothing ? Just 1
 in sx + sx
@@ -354,7 +404,7 @@ in sx + sx
 = Nothing ? Just 2
 *)
 Example exNDMSharing
- : handle (doubleShared Cbneed_ addInteger_ coinM)
+ : handle (doubleShared Cbneed_ addInteger_ (coinM Cbneed_))
    = [None;Some 2%Z].
 Proof. constructor. Qed.
 
@@ -391,7 +441,7 @@ in sy + sy
 *)
 Example exAddNestedSharingND : handle (doubleSharedNested Cbneed_
                                                           addInteger_ 
-                                                          coin)
+                                                          (coin Cbneed_))
                                = [0%Z;4%Z].
 Proof. constructor. Qed.
 
@@ -413,7 +463,7 @@ in sy or sy
 = true ? false
 *)
 Example exOrNestedSharingND
- : handle (doubleSharedNested Cbneed_ orBool_ coinB)
+ : handle (doubleSharedNested Cbneed_ orBool_ (coinB Cbneed_))
    = [true;false].
 Proof. constructor. Qed.
 
@@ -452,7 +502,7 @@ in sy + sz
 = 0 ? 1 ? 2 ? 3
 *)
 Example exAddClashSharingND
- : handle (doubleSharedClash Cbneed_ addInteger_ coin coin)
+ : handle (doubleSharedClash Cbneed_ addInteger_ (coin Cbneed_) (coin Cbneed_))
    = [0%Z;1%Z;2%Z;3%Z].
 Proof. constructor. Qed.
 
@@ -479,7 +529,7 @@ in sy or sz
 = true ? true ? false
 *)
 Example exOrClashSharingND
- : handle (doubleSharedClash Cbneed_ orBool_ coinB coinB)
+ : handle (doubleSharedClash Cbneed_ orBool_ (coinB Cbneed_) (coinB Cbneed_))
    = [true;true;false].
 Proof. constructor. Qed.
 
@@ -526,7 +576,7 @@ in sx + (sy + (sz + 1))
 *)
 Example exAddRecSharingND : handle (doubleSharedRec Cbneed_
                                                     addInteger_
-                                                    coin coin 1%Z)
+                                                    (coin Cbneed_) (coin Cbneed_) 1%Z)
                             = [4%Z;5%Z;6%Z;7%Z].
 Proof. constructor. Qed.
 
@@ -554,7 +604,7 @@ in sx or (sy or (sz or true))
 = true (due to non-strictness)
 *)
 Example exOrRecSharingNDTrue
- : handle (doubleSharedRec Cbneed_ orBool_ coinB coinB true)
+ : handle (doubleSharedRec Cbneed_ orBool_ (coinB Cbneed_) (coinB Cbneed_) true)
    = [true].
 Proof. constructor. Qed.
 
@@ -577,7 +627,7 @@ in sx or (sy or (sz or false))
 = true ? true ? false
 *)
 Example exOrRecSharingNDFalse
- : handle ((doubleSharedRec Cbneed_ orBool_ coinB coinB false))
+ : handle ((doubleSharedRec Cbneed_ orBool_ (coinB Cbneed_) (coinB Cbneed_) false))
    = [true;true;false].
 Proof. constructor. Qed.
 
@@ -620,8 +670,8 @@ in fst sx + fst sx
 = (0 + 0) ? (1 + 1)
 = 0 ? 2
 *)
-Example exAddDeepPairND 
- : handle (doubleDeepSharedPair Cbneed_ addInteger_ coinPair)
+Example exAddDeepPairND
+ : handle (doubleDeepSharedPair Cbneed_ addInteger_ (coinPair Cbneed_))
   = [0%Z;2%Z].
 Proof. constructor. Qed.
 
@@ -632,7 +682,8 @@ in head sx + head sx
 *)
 Example exAddDeepListND
  : handle
-  (doubleDeepSharedList (PartialLifted ND.Shape ND.Pos _ _ ND.Partial) Cbneed_ addInteger_ coinList)
+  (doubleDeepSharedList (PartialLifted ND.Shape ND.Pos _ _ ND.Partial) 
+   Cbneed_ addInteger_ (coinList Cbneed_))
  = [0%Z;2%Z].
 Proof. constructor. Qed.
 
@@ -644,7 +695,7 @@ in fst sx + fst sx
    should not be logged and the first should be shared and thus logged once. 
 *)
 Example exAddDeepPairTrace
- : handle (doubleDeepSharedPair Cbneed_ addInteger_ tracePair)
+ : handle (doubleDeepSharedPair Cbneed_ addInteger_ (tracePair Cbneed_))
   = (0%Z, ["0"%string]).
 Proof. constructor. Qed.
 
@@ -658,7 +709,8 @@ in head sx + head sx
    should be Some 0 instead of simply 0.
 *)
 Example exAddDeepListTrace
- : handle 
-   (doubleDeepSharedList (PartialLifted Maybe.Shape Maybe.Pos _ _ Maybe.Partial) Cbneed_ addInteger_ traceList)
+ : handle
+   (doubleDeepSharedList (PartialLifted Maybe.Shape Maybe.Pos _ _ Maybe.Partial)
+    Cbneed_ addInteger_ (traceList Cbneed_))
   = (Some 0%Z, ["0"%string]).
 Proof. constructor. Qed.

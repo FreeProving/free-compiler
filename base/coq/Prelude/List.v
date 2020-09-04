@@ -36,7 +36,7 @@ Section SecListNF.
   Variable Shape : Type.
   Variable Pos : Shape -> Type.
 
-  Variable A B : Type. 
+  Variable A B : Type.
 
   Fixpoint nf'List  `{Normalform Shape Pos A B}
                      (l : List Shape Pos A)
@@ -50,7 +50,7 @@ Section SecListNF.
        end.
 
   Global Instance NormalformList `{Normalform Shape Pos A B}
-    : Normalform Shape Pos (List Shape Pos A) 
+    : Normalform Shape Pos (List Shape Pos A)
                            (List Identity.Shape Identity.Pos B)
    := { nf' := nf'List }.
 
@@ -66,11 +66,12 @@ Variable A : Type.
 Fixpoint shareArgsList `{SA : ShareableArgs Shape Pos A}
                        `{Injectable Share.Shape Share.Pos Shape Pos}
                         (xs : List Shape Pos A)
+                        {struct xs}
   : Free Shape Pos (List Shape Pos A)
  := match xs with
     | nil         => pure nil
     | cons fy fys => cbneed Shape Pos (@shareArgs Shape Pos A SA) fy >>= fun sy =>
-                     cbneed Shape Pos shareArgsList fys >>= fun sys => 
+                     cbneed Shape Pos shareArgsList fys >>= fun sys =>
                      pure (cons sy sys)
                          end.
 
