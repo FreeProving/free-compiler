@@ -14,18 +14,18 @@ Module Maybe.
     Definition Maybe (A : Type) : Type := Free Shape Pos A.
 
     (* The smart constructors embed the maybe effect in an effect stack *)
-    Definition Just {A : Type}
-                   (Shape' : Type)
-                   (Pos' : Shape' -> Type)
-                   `{Injectable Shape Pos Shape' Pos'}
-                   (x : A)
+    Definition Just (Shape' : Type)
+                    (Pos' : Shape' -> Type)
+                    `{Injectable Shape Pos Shape' Pos'}
+                    {A : Type}
+                    (x : A)
       : Free Shape' Pos' A
      := pure x.
 
-    Definition Nothing {A : Type}
-                       (Shape' : Type)
+    Definition Nothing (Shape' : Type)
                        (Pos' : Shape' -> Type)
                        `{Injectable Shape Pos Shape' Pos'}
+                       {A : Type}
        : Free Shape' Pos' A
       := impure (injS tt) (fun p : Pos' (injS tt) =>
       (fun (x : Void) => match x with end) (injP p)).
@@ -37,9 +37,9 @@ Module Maybe.
     Definition PMaybe {Shape' : Type} (Pos' : Shape' -> Type)
     := Comb.Pos Pos Pos'.
 
-    Fixpoint runMaybe {A : Type}
-                      {Shape' : Type}
+    Fixpoint runMaybe {Shape' : Type}
                       {Pos' : Shape' -> Type}
+                      {A : Type}
                       (fm : Free (SMaybe Shape') (PMaybe Pos') A)
      : Free Shape' Pos' (option A)
     := match fm with
