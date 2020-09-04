@@ -14,20 +14,20 @@ Module Maybe.
     Definition Maybe (A : Type) : Type := Free Shape Pos A.
 
     (* The smart constructors embed the maybe effect in an effect stack *)
-    Definition Just {A : Type} 
-                   (Shape' : Type) 
-                   (Pos' : Shape' -> Type) 
-                   `{Injectable Shape Pos Shape' Pos'} 
-                   (x : A) 
-      : Free Shape' Pos' A 
+    Definition Just {A : Type}
+                   (Shape' : Type)
+                   (Pos' : Shape' -> Type)
+                   `{Injectable Shape Pos Shape' Pos'}
+                   (x : A)
+      : Free Shape' Pos' A
      := pure x.
 
-    Definition Nothing {A : Type} 
+    Definition Nothing {A : Type}
                        (Shape' : Type)
-                       (Pos' : Shape' -> Type) 
-                       `{Injectable Shape Pos Shape' Pos'} 
-       : Free Shape' Pos' A 
-      := impure (injS tt) (fun p : Pos' (injS tt) => 
+                       (Pos' : Shape' -> Type)
+                       `{Injectable Shape Pos Shape' Pos'}
+       : Free Shape' Pos' A
+      := impure (injS tt) (fun p : Pos' (injS tt) =>
       (fun (x : Void) => match x with end) (injP p)).
   End Monad.
 
@@ -37,12 +37,12 @@ Module Maybe.
     Definition PMaybe {Shape' : Type} (Pos' : Shape' -> Type)
     := Comb.Pos Pos Pos'.
 
-    Fixpoint runMaybe {A : Type} 
+    Fixpoint runMaybe {A : Type}
                       {Shape' : Type}
-                      {Pos' : Shape' -> Type} 
-                      (fm : Free (SMaybe Shape') (PMaybe Pos') A) 
-     : Free Shape' Pos' (option A) 
-    := match fm with 
+                      {Pos' : Shape' -> Type}
+                      (fm : Free (SMaybe Shape') (PMaybe Pos') A)
+     : Free Shape' Pos' (option A)
+    := match fm with
        | pure x            => pure (Some x)
        | impure (inl s) _  => pure None
        | impure (inr s) pf => impure s (fun p : Pos' s => runMaybe (pf p))
@@ -50,9 +50,11 @@ Module Maybe.
   End Handler.
 
   (* Partial instance for the maybe monad. *)
-  Instance Partial : Partial Shape Pos := {
-      undefined := fun {A : Type}                => Nothing Shape Pos;
-      error     := fun {A : Type} (msg : string) => Nothing Shape Pos
+  Instance Partial (Shape' : Type) (Pos' : Shape' -> Type)
+                   `{Injectable Shape Pos Shape' Pos'}
+    : Partial Shape' Pos' := {
+      undefined := fun {A : Type}                => Nothing Shape' Pos';
+      error     := fun {A : Type} (msg : string) => Nothing Shape' Pos'
     }.
 End Maybe.
 
