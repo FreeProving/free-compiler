@@ -33,9 +33,6 @@ testConvertModule = describe "FreeC.Backend.Coq.Converter.Module"
       $ do
         shouldConvertModuleTo ["module A where"]
       $ "(* module A *) From Base Require Import Free. "
-      ++ "(* Qualified smart constructors *) "
-      ++ "Module QualifiedSmartConstructorModule. "
-      ++ "End QualifiedSmartConstructorModule. "
     it "produces notations for a single type correctly" $ shouldSucceedWith $ do
       _ <- defineTestTypeCon "A.Foo" 0 ["A.Bar"]
       _ <- defineTestCon "A.Bar" 0 "A.Foo"
