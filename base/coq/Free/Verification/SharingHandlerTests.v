@@ -131,11 +131,6 @@ Section SecFunctions.
   Notation "'Share'" := (Injectable Share.Shape Share.Pos Shape Pos).
   Notation "'Maybe'" := (Injectable Maybe.Shape Maybe.Pos Shape Pos).
 
-  (* This function applies the given binary function to the given argument
-     twice and does not share the argument. *)
-  Definition double (f : FreeA -> FreeA -> FreeA ) (fx : FreeA) : FreeA
-  := f fx fx.
-
   (* Simple sharing: 
      let sx = fx in f sx sx *)
   Definition doubleShared `{I : Share} `{SA : ShareArgs} (S : Strategy Shape Pos)
@@ -202,6 +197,7 @@ End SecFunctions.
    Since we only provide the sharing instance and functions when the handlers
    are called, the arguments Shape and Pos can be inferred. *)
 Notation "'Cbneed_'" := (Cbneed _ _).
+Notation "'Cbn_'" := (Cbn _ _).
 Notation "'addInteger_'" := (addInteger _ _).
 Notation "'orBool_'" := (orBool _ _).
 
@@ -213,7 +209,7 @@ Notation "'orBool_'" := (orBool _ _).
 = 0+0 ? 0+1 ? 1+0 ? 1+1
 = 0 ? 1 ? 1 ? 2
 *)
-Example exAddNoSharingND : evalND (nf (double addInteger_ coin))
+Example exAddNoSharingND : evalND (nf (doubleShared  Cbn_ addInteger_ coin))
                            = [0%Z;1%Z;1%Z;2%Z].
 Proof. constructor. Qed.
 
@@ -222,7 +218,7 @@ trace "One" 1 + trace "One" 1
 => The message should be logged twice and the result should be 2.
 *)
 Example exAddNoSharingTrace 
-: evalTracing (nf (double addInteger_ traceOne))
+: evalTracing (nf (doubleShared Cbn_ addInteger_ traceOne))
   = (2%Z,["One"%string;"One"%string]).
 Proof. constructor. Qed.
 
@@ -233,7 +229,7 @@ Proof. constructor. Qed.
 = true ? true ? false
 *)
 Example exOrNDNoSharing 
- : evalND (nf (double orBool_ coinB)) = [true;true;false].
+ : evalND (nf (doubleShared Cbn_ orBool_ coinB)) = [true;true;false].
 Proof. constructor. Qed.
 
 (*
@@ -242,7 +238,7 @@ Proof. constructor. Qed.
    message should be logged only once.
 *)
 Example exOrTrueTracingNoSharing 
- : evalTracing (nf (double orBool_ traceTrue))
+ : evalTracing (nf (doubleShared Cbn_ orBool_ traceTrue))
    = (true,["True"%string]).
 Proof. constructor. Qed.
 
@@ -252,7 +248,7 @@ Proof. constructor. Qed.
    should be logged twice.
 *)
 Example exOrFalseTracingNoSharing 
- : evalTracing (nf (double orBool_ traceFalse))
+ : evalTracing (nf (doubleShared Cbn_ orBool_ traceFalse))
    = (false,["False"%string;"False"%string]).
 Proof. constructor. Qed.
 
@@ -274,7 +270,7 @@ Proof. constructor. Qed.
 = Nothing ? Nothing ? Just 2
 *)
 Example exNDMNoSharing
- : evalNDM (nf (double addInteger_ coinM)) = [None;None;Some 2%Z].
+ : evalNDM (nf (doubleShared Cbn_ addInteger_ coinM)) = [None;None;Some 2%Z].
 Proof. constructor. Qed.
 
 (* 
@@ -283,7 +279,7 @@ trace "Nothing" Nothing + trace "Nothing" Nothing
    only be logged once and the result should be Nothing (i.e. None in Coq).
 *)
 Example exTraceNothingNoSharing
- : evalTraceM (nf (double addInteger_ traceNothing))
+ : evalTraceM (nf (doubleShared Cbn_ addInteger_ traceNothing))
    = (None,["Nothing"%string]).
 Proof. constructor. Qed.
 
@@ -293,7 +289,7 @@ trace "Just 1" (Just 1) + trace "Just 1" (Just 1)
    result should be Just 2 (Some 2 in Coq).
 *)
 Example exTraceJustNoSharing
- : evalTraceM (nf (double addInteger_ traceJust))
+ : evalTraceM (nf (doubleShared Cbn_ addInteger_ traceJust))
    = (Some 2%Z,["Just 1"%string;"Just 1"%string]).
 Proof. constructor. Qed.
 
