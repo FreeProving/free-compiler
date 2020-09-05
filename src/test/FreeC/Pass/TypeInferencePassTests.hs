@@ -96,6 +96,15 @@ testTypeInferencePass = describe "FreeC.Analysis.TypeInference" $ do
         _ <- defineTestFunc "g" 1 "forall a. a -> a"
         shouldInferType (NonRecursive "f x = \\g -> g x")
           ["f @a @b (x :: a) :: (a -> b) -> b" ++ "  = \\(g :: a -> b) -> g x"]
+  context "let expressions" $ do
+    it "does not apply functions shadowed by local variables visibly"
+      $ shouldSucceedWith
+      $ do
+        _ <- defineTestTypeCon "Foo" 0 []
+        _ <- defineTestFunc "foo" 1 "Foo -> Foo"
+        _ <- defineTestFunc "g" 1 "forall a. a -> a"
+        shouldInferType (NonRecursive "f x = let { g = foo } in g x")
+          ["f (x :: Foo) :: Foo = let { (g :: Foo -> Foo) = foo } in g x"]
   context "case expressions" $ do
     it "infers the same type for all alternatives of case expressions"
       $ shouldSucceedWith
