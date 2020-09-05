@@ -11,9 +11,19 @@ Module Error.
   (* Type synonym and smart constructors for the error monad. *)
   Module Import Monad.
     Definition Error (E A : Type) := Free (Shape E) Pos A.
-    Definition NoError {E A : Type} (x : A) : Error E A := pure x.
-    Definition ThrowError {E A : Type} (msg : E) : Error E A :=
-      impure msg (fun (p : Pos msg) => match p with end).
+
+    (* The smart constructors embed the error effect in an effect stack *)
+    Definition NoError (Shape' : Type) (Pos' : Shape' -> Type)
+                       {E A : Type}
+                       `{Injectable (Shape E) Pos Shape' Pos'}
+                       (x : A) : Free Shape' Pos' A := pure x.
+
+    Definition ThrowError (Shape' : Type) (Pos' : Shape' -> Type)
+                          {E A : Type}
+                          `{Injectable (Shape E) Pos Shape' Pos'}
+                          (msg : E) : Free Shape' Pos' A :=
+      impure (injS msg) (fun p : Pos' (injS msg) => 
+                          (fun x : Void => match x with end) (injP p)).
   End Monad.
 
   (* Partial instance for the error monad. *)
