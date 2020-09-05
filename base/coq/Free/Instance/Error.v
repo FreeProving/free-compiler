@@ -29,17 +29,17 @@ Module Error.
 
   (* Handler for the error monad. *)
   Module Import Handler.
-    (* Helper definitions and handler for the error effect. *)
-    Definition SError (Shape' : Type) (E : Type) := Comb.Shape (Shape E) Shape'.
-    Definition PError {Shape' : Type} (Pos' : Shape' -> Type) (E : Type)
-      := Comb.Pos (@Pos E) Pos'.
+    (* Helper definitions and handler for the error effect with a string message. *)
+    Definition SError (Shape' : Type) := Comb.Shape (Shape string) Shape'.
+    Definition PError {Shape' : Type} (Pos' : Shape' -> Type)
+      := Comb.Pos (@Pos string) Pos'.
 
     (* The result is either a value of type A or an error message of type E. *)
     Fixpoint runError {Shape' : Type}
                       {Pos' : Shape' -> Type}
-                      {A E : Type}
-                      (fm : Free (SError Shape' E) (PError Pos' E) A)
-     : Free Shape' Pos' (A + E)
+                      {A : Type}
+                      (fm : Free (SError Shape') (PError Pos') A)
+     : Free Shape' Pos' (A + string)
     := match fm with
        | pure x => pure (inl x)
        | impure (inl s) _  => pure (inr s)
