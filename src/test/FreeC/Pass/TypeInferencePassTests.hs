@@ -96,6 +96,21 @@ testTypeInferencePass = describe "FreeC.Analysis.TypeInference" $ do
         _ <- defineTestFunc "g" 1 "forall a. a -> a"
         shouldInferType (NonRecursive "f x = \\g -> g x")
           ["f @a @b (x :: a) :: (a -> b) -> b" ++ "  = \\(g :: a -> b) -> g x"]
+  context "let expressions" $ do
+    it "infers the type of the `in`-expression correctly"
+      $ shouldSucceedWith
+      $ do
+        _ <- defineTestTypeCon "Prelude.Integer" 0 []
+        shouldInferType (NonRecursive "foo = let { } in 42")
+          ["foo :: Prelude.Integer = let { } in 42"]
+    it "annotates the type of bindings" $ shouldSucceedWith $ do
+      _ <- defineTestTypeCon "Prelude.Integer" 0 []
+      _ <- defineTestFunc "add" 1
+        "Prelude.Integer -> Prelude.Integer -> Prelude.Integer"
+      shouldInferType (NonRecursive "foo n = let { m = 42 } in add n m")
+        [ "foo (n :: Prelude.Integer) :: Prelude.Integer"
+            ++ " = let { (m :: Prelude.Integer) = 42 } in add n m"
+        ]
   context "case expressions" $ do
     it "infers the same type for all alternatives of case expressions"
       $ shouldSucceedWith
