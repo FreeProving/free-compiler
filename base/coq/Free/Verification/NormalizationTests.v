@@ -27,7 +27,7 @@ Definition evalTracing {A : Type} p
 
 (* Shortcut to evaluate a program with partial values to an option. *)
 Definition evalMaybe {A : Type} p
-:= run (@runMaybe A _ _ p).
+:= run (@runMaybe _ _ A p).
 
 (* Shortcut to evaluate a program with partiality and non-determinism. *)
 Definition evalNDMaybe {A : Type} p
@@ -37,10 +37,7 @@ Definition evalNDMaybe {A : Type} p
 Definition IdS := Identity.Shape.
 Definition IdP := Identity.Pos.
 
-Definition MaybePartial (Shape : Type) (Pos : Shape -> Type)
-                        `{Injectable Maybe.Shape Maybe.Pos Shape Pos}
- := PartialLifted Maybe.Shape Maybe.Pos Shape Pos Maybe.Partial.
-Arguments MaybePartial {_} {_} {_}.
+Arguments Maybe.Partial {_} {_} {_}.
 
 (* Effectful lists *)
 Section SecData.
@@ -262,12 +259,12 @@ Example componentEffectND : handle coinList
 Proof. constructor. Qed.
 
 (* [true, undefined] --> undefined *)
-Example componentEffectPartial : handle (partialList MaybePartial)
+Example componentEffectPartial : handle (partialList Maybe.Partial)
  = None.
 Proof. constructor. Qed.
 
 (* [true, false ? undefined] --> [[true,false], undefined] *)
-Example componentEffectPartialND : handle (partialCoinList MaybePartial)
+Example componentEffectPartialND : handle (partialCoinList Maybe.Partial)
  = [Some (List.cons (True_ IdS IdP) (Cons IdS IdP (False_ IdS IdP) (Nil IdS IdP)));
     None].
 Proof. constructor. Qed.
@@ -276,23 +273,22 @@ Proof. constructor. Qed.
 
 (* Non-strictness should be preserved, so no tracing should occur.
    headList _ _ MaybePartial [true, trace "component effect" false] --> (true,[]) *)
-Example nonStrictnessNoTracing : handle (headList _ _ MaybePartial traceList)
+Example nonStrictnessNoTracing : handle (headList _ _ Maybe.Partial traceList)
  = (Some true, []).
 Proof. constructor. Qed.
 
 (* Non-strictness should be preserved, so no non-determinism should occur.
    head [true,coin] --> [true] *)
-Example nonStrictnessNoND : handle (headList _ _ MaybePartial coinList)
+Example nonStrictnessNoND : handle (headList _ _ Maybe.Partial coinList)
  = [Some true].
 Proof. constructor. Qed.
 
 (* Evaluating the defined part of a partial list is still possible.
    head [true,undefined] --> true *)
 (* Since Maybe is still handled, the actual result should be Some true. *)
-
 Example nonStrictnessPartiality : handle
-                                    (headList _ _ MaybePartial
-                                      (partialList MaybePartial))
+                                    (headList _ _ Maybe.Partial
+                                      (partialList Maybe.Partial))
  = Some true.
 Proof. constructor. Qed.
 
@@ -300,8 +296,8 @@ Proof. constructor. Qed.
 (* Since non-determinism and Maybe are still handled, the actual
    result should be [Some true]. *)
 Example nonStrictnessNDPartiality : handle
-                                    (headList _ _ MaybePartial
-                                      (partialCoinList MaybePartial))
+                                    (headList _ _ Maybe.Partial
+                                      (partialCoinList Maybe.Partial))
  = [Some true].
 Proof. constructor. Qed.
 
@@ -328,7 +324,7 @@ Proof. constructor. Qed.
    headList _ _ MaybePartial (trace "root effect" [true, trace "component effect" false])
    --> (true, ["root effect") *)
 Example nonStrictnessRootAndComponentTracing
- : handle (headList _ _ MaybePartial tracedTraceList)
+ : handle (headList _ _ Maybe.Partial tracedTraceList)
  = (Some true, ["root effect"%string]).
 Proof. constructor. Qed.
 
@@ -337,7 +333,7 @@ Proof. constructor. Qed.
    first element, the results should be false and true.
    head ([] ? [true, coin]) --> [undefined,true] *)
 Example nonStrictnessRootAndComponentND
- : handle (headList _ _ MaybePartial NDCoinList)
+ : handle (headList _ _ Maybe.Partial NDCoinList)
  = [None; Some true].
 Proof. constructor. Qed.
 

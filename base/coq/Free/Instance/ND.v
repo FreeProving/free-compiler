@@ -121,9 +121,11 @@ Module ND.
   End Handler.
 
   (* Partial instance for the non-determinism effect. *)
-  Instance Partial : Partial Shape Pos := {
-      undefined := fun {A : Type}                => Fail Shape Pos;
-      error     := fun {A : Type} (msg : string) => Fail Shape Pos
+  Instance Partial (Shape' : Type) (Pos' : Shape' -> Type)
+                   `{Injectable Shape Pos Shape' Pos'}
+    : Partial Shape' Pos' := {
+      undefined := fun {A : Type}                => Fail Shape' Pos';
+      error     := fun {A : Type} (msg : string) => Fail Shape' Pos'
     }.
 End ND.
 
