@@ -1,6 +1,7 @@
 (** * Definition of the error monad in terms of the free monad. *)
 
 From Base Require Import Free.
+From Base Require Import Free.Instance.Comb.
 From Base Require Import Free.Util.Void.
 
 Module Error.
@@ -26,6 +27,26 @@ Module Error.
                           (fun x : Void => match x with end) (injP p)).
   End Monad.
 
+  (* Handler for the error monad. *)
+  Module Import Handler.
+    (* Helper definitions and handler for the error effect. *)
+    Definition SError (Shape' : Type) (E : Type) := Comb.Shape (Shape E) Shape'.
+    Definition PError {Shape' : Type} (Pos' : Shape' -> Type) (E : Type)
+      := Comb.Pos (@Pos E) Pos'.
+
+    (* The result is either a value of type A or an error message of type E. *)
+    Fixpoint runError {Shape' : Type}
+                      {Pos' : Shape' -> Type}
+                      {A E : Type}
+                      (fm : Free (SError Shape' E) (PError Pos' E) A)
+     : Free Shape' Pos' (A + E)
+    := match fm with
+       | pure x => pure (inl x)
+       | impure (inl s) _  => pure (inr s)
+       | impure (inr s) pf => impure s (fun p => runError (pf p))
+       end.
+  End Handler.
+
   (* Partial instance for the error monad. *)
   Instance Partial (Shape' : Type) (Pos' : Shape' -> Type)
                    `{Injectable (Shape string) Pos Shape' Pos'}
@@ -35,7 +56,9 @@ Module Error.
   }.
 End Error.
 
+
 (* The type and smart constructor should be visible to other modules
    but to use the shape or position function the identifier must be
    fully qualified, i.e. [Error.Partial]. *)
+Export Error.Handler.
 Export Error.Monad.
