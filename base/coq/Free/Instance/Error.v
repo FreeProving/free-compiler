@@ -27,9 +27,11 @@ Module Error.
   End Monad.
 
   (* Partial instance for the error monad. *)
-  Instance Partial : Partial (Shape string) Pos := {
-    undefined := fun {A : Type}                => ThrowError "undefined"%string;
-    error     := fun {A : Type} (msg : string) => ThrowError msg
+  Instance Partial (Shape' : Type) (Pos' : Shape' -> Type)
+                   `{Injectable (Shape string) Pos Shape' Pos'}
+                   : Partial Shape' Pos' := {
+    undefined := fun {A : Type}                => ThrowError Shape' Pos' "undefined"%string;
+    error     := fun {A : Type} (msg : string) => ThrowError Shape' Pos' msg
   }.
 End Error.
 
