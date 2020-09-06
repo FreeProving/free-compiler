@@ -10,7 +10,9 @@ From Base Require Import Free.Instance.Trace.
 
 From Base Require Import Free.Malias.
 From Base Require Import Free.Util.Search.
-From Base Require Import Free.Verification.Util.
+
+From Generated Require Import Data.List.
+From Generated Require Import Data.Tuple.
 
 From Base Require Import Prelude.
 
@@ -30,7 +32,10 @@ Definition evalTracing {A : Type} p
 (* Shortcut to evaluate a non-deterministic partial program to a result 
    list. *)
 Definition evalNDM {A : Type} p
-:= @collectVals (option A) (run (runMaybe (runChoice (runNDSharing (0,0) p)))).
+:= match (run (runMaybe (@runChoice A _ _ (runNDSharing (0,0) p)))) with
+   | Some t => Some (@collectVals A t)
+   | None => None
+   end.
 
 (* Shortcut to evaluate a traced partial program to a result and a list 
    of logged messages. *)
