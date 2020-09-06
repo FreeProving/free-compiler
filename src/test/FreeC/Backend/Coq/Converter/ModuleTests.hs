@@ -61,7 +61,7 @@ testConvertModule = describe "FreeC.Backend.Coq.Converter.Module"
         ++ "(@pure Shape Pos (Foo Shape Pos) (@bar Shape Pos)) "
         ++ "( only parsing, at level 10, Shape, Pos at level 9 ). "
         ++ "End QualifiedSmartConstructorModule. "
-    it "produces notations for polymorphic types correctly"
+    it "produces notations for a type with two constructors correctly"
       $ shouldSucceedWith
       $ do
         _ <- defineTestTypeCon "A.Foo" 0 ["A.Bar", "A.Baz"]
@@ -105,7 +105,7 @@ testConvertModule = describe "FreeC.Backend.Coq.Converter.Module"
           ++ "(@pure Shape Pos (Foo Shape Pos) (@baz Shape Pos)) "
           ++ "( only parsing, at level 10, Shape, Pos at level 9 ). "
           ++ "End QualifiedSmartConstructorModule. "
-    it "produces notations for a type with two constructors correctly"
+    it "produces notations for polymorphic types correctly"
       $ shouldSucceedWith
       $ do
         _ <- defineTestTypeCon "A.Foo" 1 ["A.Bar"]
