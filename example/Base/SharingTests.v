@@ -54,55 +54,71 @@ Section SecData.
 
   (* Non-deterministic integer. *)
   Definition coin `{ND} `{I : Share} (S : Strategy Shape Pos)
-  := Choice Shape Pos (pure 0%Z) (pure 1%Z).
+  := @call Shape Pos I S _ (pure 0%Z) >>= fun c1 =>
+     @call Shape Pos I S _ (pure 1%Z) >>= fun c2 =>
+     Choice Shape Pos c1 c2.
 
   (* Non-deterministic boolean value. *)
   Definition coinB `{ND} `{I : Share} (S : Strategy Shape Pos)
-  := Choice Shape Pos (True_ Shape Pos) (False_ Shape Pos).
+  := @call Shape Pos I S _ (True_ Shape Pos) >>= fun c1 =>
+     @call Shape Pos I S _ (False_ Shape Pos) >>= fun c2 =>
+     Choice Shape Pos c1 c2.
 
   (* Non-deterministic partial integer. *)
   Definition coinM `{ND} `{Maybe} `{I : Share} (S : Strategy Shape Pos)
-  := Choice Shape Pos
-      (@call Shape Pos I S _ (@Nothing_inj Shape Pos _ (Integer Shape Pos)) >>= fun c0 => c0)
-      (@call Shape Pos I S _ (Just_inj Shape Pos 1%Z) >>= fun c0 => c0).
+  := @call Shape Pos I S _ (Nothing_inj Shape Pos) >>= fun c1 =>
+     @call Shape Pos I S _ (Just_inj Shape Pos 1%Z) >>= fun c2 =>
+     Choice Shape Pos c1 c2.
 
   (* (0 ? 1, 2 ? 3) *)
   Definition coinPair `{ND} `{I : Share} (S : Strategy Shape Pos)
   : Free Shape Pos (Pair Shape Pos (Integer Shape Pos) (Integer Shape Pos))
-  := @call Shape Pos I S (Integer Shape Pos)
-          (Choice Shape Pos (pure 0%Z) (pure 1%Z)) >>= fun c1 =>
-     @call Shape Pos I S (Integer Shape Pos)
-          (Choice Shape Pos (pure 2%Z) (pure 3%Z)) >>= fun c2 =>
-     Pair_ Shape Pos c1 c2.
+  := @call Shape Pos I S _ (pure 0%Z) >>= fun c1 =>
+     @call Shape Pos I S _ (pure 1%Z) >>= fun c2 =>
+     @call Shape Pos I S (Integer Shape Pos) 
+          (Choice Shape Pos c1 c2) >>= fun c3 =>
+     @call Shape Pos I S _ (pure 2%Z) >>= fun c4 =>
+     @call Shape Pos I S _ (pure 3%Z) >>= fun c5 =>
+     @call Shape Pos I S (Integer Shape Pos) 
+          (Choice Shape Pos c4 c5) >>= fun c6 =>
+     Pair_ Shape Pos c3 c6.
 
   (* [0 ? 1, 2 ? 3] *)
   Definition coinList `{ND} `{I : Share} (S : Strategy Shape Pos)
   : Free Shape Pos (List Shape Pos (Integer Shape Pos))
   := @call Shape Pos I S _ (List.Nil Shape Pos) >>= fun c1 =>
-     @call Shape Pos I S _ (Choice Shape Pos (pure 2%Z) (pure 3%Z)) >>= fun c2 =>
-     @call Shape Pos I S _ (List.Cons Shape Pos c2 c1) >>= fun c3 =>
-     @call Shape Pos I S _ (Choice Shape Pos (pure 0%Z) (pure 1%Z)) >>= fun c4 =>
-     List.Cons Shape Pos c4 c3.
+     @call Shape Pos I S _ (pure 2%Z) >>= fun c2 =>
+     @call Shape Pos I S _ (pure 3%Z) >>= fun c3 =>
+     @call Shape Pos I S _ (Choice Shape Pos c2 c3) >>= fun c4 =>
+     @call Shape Pos I S _ (List.Cons Shape Pos c2 c1) >>= fun c5 => 
+     @call Shape Pos I S _ (pure 0%Z) >>= fun c6 =>
+     @call Shape Pos I S _ (pure 1%Z) >>= fun c7 =>
+     @call Shape Pos I S _ (Choice Shape Pos c6 c7) >>= fun c8 =>
+     List.Cons Shape Pos c8 c5.
 
 
   (* Traced integer. *)
-  Definition traceOne `{Trace}
-  := trace "One" (pure 1%Z).
+  Definition traceOne `{Trace} `{I : Share} (S : Strategy Shape Pos)
+  := @call Shape Pos I S _ (pure 1%Z) >>= fun c1 =>
+     trace "One" c1.
 
   (* Traced boolean values. *)
-  Definition traceTrue `{Trace}
-  := trace "True" (True_ Shape Pos).
+  Definition traceTrue `{Trace} `{I : Share} (S : Strategy Shape Pos)
+  := @call Shape Pos I S _ (True_ Shape Pos) >>= fun c1 =>
+     trace "True" c1.
 
-  Definition traceFalse `{Trace}
-  := trace "False" (False_ Shape Pos).
+  Definition traceFalse `{Trace} `{I : Share} (S : Strategy Shape Pos)
+  := @call Shape Pos I S _ (False_ Shape Pos) >>= fun c1 =>
+     trace "False" c1.
 
   (* Traced Maybe values *)
   Definition traceNothing `{Trace} `{M : Maybe} `{I : Share} (S : Strategy Shape Pos)
-  := @call Shape Pos I S _ (@Nothing_inj Shape Pos M (Integer Shape Pos)) >>= fun c1 =>
+  := @call Shape Pos I S _ (@Nothing_inj Shape Pos M (Integer Shape Pos)) >>= fun c1 => 
      trace "Nothing" c1.
 
-  Definition traceJust `{Trace} `{M : Maybe}
-  := trace "Just 1" (@Just_inj Shape Pos M _ 1%Z).
+  Definition traceJust `{Trace} `{M : Maybe} `{I : Share} (S : Strategy Shape Pos)
+  := @call Shape Pos I S _ (@Just_inj Shape Pos M _ 1%Z) >>= fun c1 => 
+     trace "Just 1" c1.
 
   (* (trace "0" 0, trace "1" 1) *)
   Definition tracePair `{Trace} `{I : Share} (S : Strategy Shape Pos)
@@ -135,11 +151,17 @@ Arguments coinList {_} {_} {_} {_} _.
 Arguments traceOne {_} {_} {_}.
 Arguments traceTrue {_} {_} {_}.
 Arguments traceFalse {_} {_} {_}.
-Arguments traceNothing {_} {_} {_} {_} {_} _.
+Arguments traceNothing {_} {_} {_} {_}.
 Arguments traceJust {_} {_} {_} {_}.
+Arguments tracePair {_} {_} {_}.
+Arguments traceList {_} {_} {_}.
+Arguments traceOne {_} {_} {_} {_} _.
+Arguments traceTrue {_} {_} {_} {_} _.
+Arguments traceFalse {_} {_} {_} {_} _.
+Arguments traceNothing {_} {_} {_} {_} {_} _.
+Arguments traceJust {_} {_} {_} {_} {_} _.
 Arguments tracePair {_} {_} {_} {_} _.
 Arguments traceList {_} {_} {_} {_} _.
-
 (* Test functions *)
 Section SecFunctions.
 
@@ -250,7 +272,6 @@ Notation "'Cbv_'" := (Cbv _ _).
 Notation "'addInteger_'" := (addInteger _ _).
 Notation "'orBool_'" := (orBool _ _).
 
-
 (* ---------------------- Test cases without sharing ----------------------- *)
 
 (*
@@ -267,7 +288,7 @@ trace "One" 1 + trace "One" 1
 => The message should be logged twice and the result should be 2.
 *)
 Example exAddNoSharingTrace
-: evalTracing (nf (doubleShared Cbn_ addInteger_ traceOne))
+: evalTracing (nf (doubleShared Cbn_ addInteger_ (traceOne Cbn_)))
   = (2%Z,["One"%string;"One"%string]).
 Proof. constructor. Qed.
 
@@ -287,7 +308,7 @@ Proof. constructor. Qed.
    message should be logged only once.
 *)
 Example exOrTrueTracingNoSharing
- : evalTracing (nf (doubleShared Cbn_ orBool_ traceTrue))
+ : evalTracing (nf (doubleShared Cbn_ orBool_ (traceTrue Cbn_)))
    = (true,["True"%string]).
 Proof. constructor. Qed.
 
@@ -297,7 +318,7 @@ Proof. constructor. Qed.
    should be logged twice.
 *)
 Example exOrFalseTracingNoSharing
- : evalTracing (nf (doubleShared Cbn_ orBool_ traceFalse))
+ : evalTracing (nf (doubleShared Cbn_ orBool_ (traceFalse Cbn_)))
    = (false,["False"%string;"False"%string]).
 Proof. constructor. Qed.
 
@@ -307,7 +328,7 @@ Proof. constructor. Qed.
    should be logged.
 *)
 Example exOrMixedTracingNoSharing
- : evalTracing (nf (orBool_ traceFalse traceTrue))
+ : evalTracing (nf (orBool_ (traceFalse Cbn_) (traceTrue Cbn_)))
    = (true,["False"%string;"True"%string]).
 Proof. constructor. Qed.
 
@@ -335,7 +356,7 @@ trace "Just 1" (Just 1) + trace "Just 1" (Just 1)
    result should be Just 2 (Some 2 in Coq).
 *)
 Example exTraceJustNoSharing
- : evalTraceM (nf (doubleShared Cbn_ addInteger_ traceJust))
+ : evalTraceM (nf (doubleShared Cbn_ addInteger_ (traceJust Cbn_)))
    = (Some 2%Z,["Just 1"%string;"Just 1"%string]).
 Proof. constructor. Qed.
 
@@ -365,13 +386,13 @@ in sx + sx
 => The message should be logged once and the result should be 2.
 *)
 Example exAddSharingTrace
- : evalTracing (nf (doubleShared Cbneed_ addInteger_ traceOne))
+ : evalTracing (nf (doubleShared Cbneed_ addInteger_ (traceOne Cbneed_)))
  = (2%Z,["One"%string]).
 Proof. constructor. Qed.
 
 (* Strict evaluation also leads to the message being logged only once. *)
 Example exAddSharingTraceStrict
- : evalTracing (nf (doubleShared Cbv_ addInteger_ traceOne))
+ : evalTracing (nf (doubleShared Cbv_ addInteger_ (traceOne Cbv_)))
  = (2%Z,["One"%string]).
 Proof. constructor. Qed.
 
@@ -397,13 +418,13 @@ in sx or sx
    The message should be logged once and the result should be true.
 *)
 Example exOrTrueTraceSharing
- : evalTracing (nf (doubleShared Cbneed_ orBool_ traceTrue))
+ : evalTracing (nf (doubleShared Cbneed_ orBool_ (traceTrue Cbneed_)))
    = (true,["True"%string]).
 Proof. constructor. Qed.
 
 (* Strict evaluation also leads to the message being logged only once. *)
 Example exOrTrueTraceSharingStrict
- : evalTracing (nf (doubleShared Cbv_ orBool_ traceTrue))
+ : evalTracing (nf (doubleShared Cbv_ orBool_ (traceTrue Cbv_)))
    = (true,["True"%string]).
 Proof. constructor. Qed.
 
@@ -414,7 +435,7 @@ in sx or sx
 only be logged once and the result should be false.
 *)
 Example exOrFalseTraceSharing
- : evalTracing (nf (doubleShared Cbneed_ orBool_ traceFalse))
+ : evalTracing (nf (doubleShared Cbneed_ orBool_ (traceFalse Cbneed_)))
    = (false,["False"%string]).
 Proof. constructor. Qed.
 
@@ -446,7 +467,7 @@ in sx + sx
    should be Some 2.
 *)
 Example exTraceJustSharing
- : evalTraceM (nf (doubleShared Cbneed_ addInteger_ traceJust))
+ : evalTraceM (nf (doubleShared Cbneed_ addInteger_ (traceJust Cbneed_)))
    = (Some 2%Z,["Just 1"%string]).
 Proof. constructor. Qed.
 
@@ -472,7 +493,7 @@ in sy + sy
 => The message should only be logged once and the result should be 4.
 *)
 Example exAddNestedSharingTrace
- : evalTracing (nf (doubleSharedNested Cbneed_ addInteger_ traceOne))
+ : evalTracing (nf (doubleSharedNested Cbneed_ addInteger_ (traceOne Cbneed_)))
    = (4%Z,["One"%string]).
 Proof. constructor. Qed.
 
@@ -495,7 +516,7 @@ in sy or sy
    and the result should be true.
 *)
 Example exOrNestedTrueTracing
- : evalTracing (nf (doubleSharedNested Cbneed_ orBool_ traceTrue))
+ : evalTracing (nf (doubleSharedNested Cbneed_ orBool_ (traceTrue Cbneed_)))
    = (true,["True"%string]).
 Proof. constructor. Qed.
 
@@ -507,7 +528,7 @@ in sy or sy
    and the result should be false.
 *)
 Example exOrNestedFalseTracing
- : evalTracing (nf (doubleSharedNested Cbneed_ orBool_ traceFalse))
+ : evalTracing (nf (doubleSharedNested Cbneed_ orBool_ (traceFalse Cbneed_)))
    = (false, ["False"%string]).
 Proof. constructor. Qed.
 
@@ -535,7 +556,7 @@ in sy + sz
 *)
 Example exAddClashSharingTracing
  : evalTracing (nf (doubleSharedClash Cbneed_ addInteger_
-                                  traceOne traceOne))
+                                  (traceOne Cbneed_) (traceOne Cbneed_)))
    = (3%Z,["One"%string;"One"%string]).
 Proof. constructor. Qed.
 
@@ -563,7 +584,7 @@ in sy or sz
 *)
 Example exOrClashTrueTracing
  : evalTracing (nf (doubleSharedClash Cbneed_ orBool_
-                                  traceTrue traceTrue))
+                                  (traceTrue Cbneed_) (traceTrue Cbneed_)))
    = (true,["True"%string]).
 Proof. constructor. Qed.
 
@@ -578,7 +599,7 @@ in sy or sz
 *)
 Example exOrClashFalseTracing
  : evalTracing (nf (doubleSharedClash Cbneed_ orBool_
-                                  traceFalse traceFalse))
+                                  (traceFalse Cbneed_) (traceFalse Cbneed_)))
    = (false,["False"%string;"False"%string]).
 Proof. constructor. Qed.
 
@@ -612,7 +633,7 @@ in sx + (sy + (sz + 1))
 *)
 Example exAddRecSharingTracing
  : evalTracing (nf (doubleSharedRec Cbneed_ addInteger_
-                                traceOne traceOne 1%Z))
+                                (traceOne Cbneed_) (traceOne Cbneed_) 1%Z))
    = (7%Z,["One"%string;"One"%string]).
 Proof. constructor. Qed.
 
@@ -661,7 +682,7 @@ in sx or (sy or (sz or false))
 *)
 Example exOrRecTrueTracing
  : evalTracing (nf (doubleSharedRec Cbneed_ orBool_
-                                traceTrue traceTrue false))
+                                (traceTrue Cbneed_) (traceTrue Cbneed_) false))
    = (true,["True"%string]).
 Proof. constructor. Qed.
 
@@ -676,7 +697,7 @@ in sx or (sy or (sz or false))
 *)
 Example exOrRecFalseTracing
  : evalTracing (nf (doubleSharedRec Cbneed_ orBool_
-                                traceFalse traceFalse false))
+                                (traceFalse Cbneed_) (traceFalse Cbneed_) false))
    = (false,["False"%string;"False"%string]).
 Proof. constructor. Qed.
 
