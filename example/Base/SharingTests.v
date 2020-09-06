@@ -11,8 +11,8 @@ From Base Require Import Free.Instance.Trace.
 From Base Require Import Free.Malias.
 From Base Require Import Free.Util.Search.
 
-From Generated Require Import Data.List.
-From Generated Require Import Data.Tuple.
+From Generated Require Data.List.
+From Generated Require Data.Tuple.
 
 From Base Require Import Prelude.
 
@@ -219,8 +219,8 @@ Section SecFunctions.
                         (fx : Free Shape Pos (Pair Shape Pos A A))
    : FreeA
   := @share Shape Pos I S (Pair Shape Pos A A) _ fx >>= fun sx => 
-     @call Shape Pos I S A (fstPair Shape Pos sx) >>= fun c1 =>
-     @call Shape Pos I S A (fstPair Shape Pos sx) >>= fun c2 =>
+     @call Shape Pos I S A (Tuple.fst Shape Pos sx) >>= fun c1 =>
+     @call Shape Pos I S A (Tuple.fst Shape Pos sx) >>= fun c2 =>
       f c1 c2.
 
   (* 
@@ -236,8 +236,8 @@ Section SecFunctions.
                         (fl : Free Shape Pos (List Shape Pos A))
    : FreeA
   := @share Shape Pos I S (List Shape Pos A) _ fl >>= fun sx =>
-     @call Shape Pos I S A (headList Shape Pos P sx) >>= fun c1 =>
-     @call Shape Pos I S A (headList Shape Pos P sx) >>= fun c2 =>
+     @call Shape Pos I S A (List.head Shape Pos P sx) >>= fun c1 =>
+     @call Shape Pos I S A (List.head Shape Pos P sx) >>= fun c2 =>
               f c1 c2.
 
 End SecFunctions.
@@ -314,24 +314,19 @@ Proof. constructor. Qed.
 
 (*
 (Nothing ? Just 1) + (Nothing ? Just 1)
-= (Nothing + (Nothing ? Just 1)) ? (Just 1 + (Nothing ? Just 1))
-= Nothing ? (Just 1 + (Nothing ? Just 1))
-= Nothing ? (Just 1 + Nothing ? Just 1 + Just 1)
-= Nothing ? Nothing ? Just 2
+= Nothing
 *)
 Example exNDMNoSharing
- : evalNDM (nf (doubleShared Cbn_ addInteger_ (coinM Cbn_))) = [None;None;Some 2%Z].
+ : evalNDM (nf (doubleShared Cbn_ addInteger_ (coinM Cbn_))) = None.
 Proof. constructor. Qed.
 
-
-Compute evalTraceM (nf (doubleShared Cbn_ addInteger_ (traceNothing Cbv_))).
 (* 
 trace "Nothing" Nothing + trace "Nothing" Nothing
 => The second argument is not evaluated due to >>=, so the message should
    only be logged once and the result should be Nothing (i.e. None in Coq).
 *)
 Example exTraceNothingNoSharing
- : evalTraceM (nf (doubleShared Cbn_ addInteger_ traceNothing))
+ : evalTraceM (nf (doubleShared Cbn_ addInteger_ (traceNothing Cbn_)))
    = (None,["Nothing"%string]).
 Proof. constructor. Qed.
 
@@ -427,12 +422,11 @@ Proof. constructor. Qed.
 (*
 let sx = Nothing ? Just 1
 in sx + sx
-= Nothing + Nothing ? Just 1 + Just 1
-= Nothing ? Just 2
+= Nothing
 *)
 Example exNDMSharing
  : evalNDM (nf (doubleShared Cbneed_ addInteger_ (coinM Cbneed_)))
-   = [None;Some 2%Z].
+   = None.
 Proof. constructor. Qed.
 
 (*
@@ -442,7 +436,7 @@ in sx + sx
    due to >>=.
 *)
 Example exTraceNothingSharing
- : evalTraceM (nf (doubleShared Cbneed_ addInteger_ traceNothing))
+ : evalTraceM (nf (doubleShared Cbneed_ addInteger_ (traceNothing Cbneed_)))
    = (None,["Nothing"%string]).
 Proof. constructor. Qed.
 
@@ -775,20 +769,3 @@ Definition tails
   : Free Shape Pos (List Shape Pos (List Shape Pos a))
  := share fxs >>= fun fxs0 =>
       Cons Shape Pos fxs0 (fxs0 >>= fun xs0 => tails_0 xs0).
-
-(*
-  example' :: Integer
-  example' = sum (map sum (tails traceList3))
-
-*)
-Definition example'
-  (Shape : Type) (Pos : Shape -> Type) {a : Type}
-  `{I : Injectable Share.Shape Share.Pos Shape Pos}
-  `{ShareableArgs Shape Pos a}
-  (S : Strategy Shape Pos)
-  (T : Traceable Shape Pos)
-  : Free Shape Pos (Integer Shape Pos)
- := sum Shape Pos
-      (map Shape Pos (pure (fun fxs => sum Shape Pos fxs))
-                     (tails Shape Pos S (example Shape Pos T))).
-Compute (evalTracing (example' _ _ _ _)).
