@@ -30,7 +30,7 @@ Definition evalTracing {A : Type} p
 (* Shortcut to evaluate a non-deterministic partial program to a result 
    list. *)
 Definition evalNDM {A : Type} p
-:= @collectVals (option A) (run (runChoice (runNDSharing (0,0) (runMaybe p)))).
+:= @collectVals (option A) (run (runMaybe (runChoice (runNDSharing (0,0) p)))).
 
 (* Shortcut to evaluate a traced partial program to a result and a list 
    of logged messages. *)
@@ -93,8 +93,9 @@ Section SecData.
   := trace "False" (False_ Shape Pos).
 
   (* Traced Maybe values *)
-  Definition traceNothing `{Trace} `{M : Maybe}
-  := trace "Nothing" (@Nothing_inj Shape Pos M (Integer Shape Pos)).
+  Definition traceNothing `{Trace} `{M : Maybe} `{I : Share} (S : Strategy Shape Pos)
+  := @call Shape Pos I S _ (@Nothing_inj Shape Pos M (Integer Shape Pos)) >>= fun c1 =>
+     trace "Nothing" c1.
 
   Definition traceJust `{Trace} `{M : Maybe}
   := trace "Just 1" (@Just_inj Shape Pos M _ 1%Z).
@@ -130,7 +131,7 @@ Arguments coinList {_} {_} {_} {_} _.
 Arguments traceOne {_} {_} {_}.
 Arguments traceTrue {_} {_} {_}.
 Arguments traceFalse {_} {_} {_}.
-Arguments traceNothing {_} {_} {_} {_}.
+Arguments traceNothing {_} {_} {_} {_} {_} _.
 Arguments traceJust {_} {_} {_} {_}.
 Arguments tracePair {_} {_} {_} {_} _.
 Arguments traceList {_} {_} {_} {_} _.
@@ -317,6 +318,8 @@ Example exNDMNoSharing
  : evalNDM (nf (doubleShared Cbn_ addInteger_ (coinM Cbn_))) = [None;None;Some 2%Z].
 Proof. constructor. Qed.
 
+
+Compute evalTraceM (nf (doubleShared Cbn_ addInteger_ (traceNothing Cbv_))).
 (* 
 trace "Nothing" Nothing + trace "Nothing" Nothing
 => The second argument is not evaluated due to >>=, so the message should
@@ -733,3 +736,54 @@ Example exAddDeepListTrace
     Cbneed_ addInteger_ (traceList Cbneed_)))
   = (Some 0%Z, ["0"%string]).
 Proof. constructor. Qed.
+
+(* Recursive functions. *)
+
+(*
+  example :: [Integer]
+  example = [trace "one" 1, trace "two" 2, trace "three" 3]
+*)
+Definition example (Shape : Type) (Pos : Shape -> Type)
+  (T : Traceable Shape Pos)
+  : Free Shape Pos (List Shape Pos (Integer Shape Pos))
+ := Cons Shape Pos (trace "one" (pure 1%Z))
+     (Cons Shape Pos (trace "two" (pure 2%Z))
+       (Cons Shape Pos (trace "three" (pure 3%Z))
+         (Nil Shape Pos))).
+
+Fixpoint tails_0
+  (Shape : Type) (Pos : Shape -> Type) {a : Type}
+  `{I : Injectable Share.Shape Share.Pos Shape Pos}
+  (xs0 : List Shape Pos a) {struct xs0}
+  : Free Shape Pos (List Shape Pos (List Shape Pos a))
+ := match xs0 with
+    | List.nil          => Nil Shape Pos
+    | List.cons fx fxs' =>  Cons Shape Pos fxs'
+        (fxs' >>= fun xs'0 => tails_0  xs'0)
+    end.
+Definition tails
+  (Shape : Type) (Pos : Shape -> Type) {a : Type}
+  `{I : Injectable Share.Shape Share.Pos Shape Pos}
+  `{ShareableArgs Shape Pos a}
+  (S : Strategy Shape Pos)
+  (fxs : Free Shape Pos (List Shape Pos a)) 
+  : Free Shape Pos (List Shape Pos (List Shape Pos a))
+ := share fxs >>= fun fxs0 =>
+      Cons Shape Pos fxs0 (fxs0 >>= fun xs0 => tails_0 xs0).
+
+(*
+  example' :: Integer
+  example' = sum (map sum (tails traceList3))
+
+*)
+Definition example'
+  (Shape : Type) (Pos : Shape -> Type) {a : Type}
+  `{I : Injectable Share.Shape Share.Pos Shape Pos}
+  `{ShareableArgs Shape Pos a}
+  (S : Strategy Shape Pos)
+  (T : Traceable Shape Pos)
+  : Free Shape Pos (Integer Shape Pos)
+ := sum Shape Pos
+      (map Shape Pos (pure (fun fxs => sum Shape Pos fxs))
+                     (tails Shape Pos S (example Shape Pos T))).
+Compute (evalTracing (example' _ _ _ _)).
