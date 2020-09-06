@@ -28,7 +28,7 @@ Definition evalTracing {A : Type} p
 
 (* Shortcut to evaluate a program with partial values to an option. *)
 Definition evalMaybe {A : Type} p
-:= run (@runMaybe A _ _ p).
+:= run (@runMaybe _ _ A p).
 
 (* Shortcut to evaluate a program with partiality and non-determinism. *)
 Definition evalNDMaybe {A : Type} p

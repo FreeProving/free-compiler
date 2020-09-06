@@ -40,9 +40,9 @@ Module Maybe.
     Definition PMaybe {Shape' : Type} (Pos' : Shape' -> Type)
     := Comb.Pos Pos Pos'.
 
-    Fixpoint runMaybe {A : Type}
-                      {Shape' : Type}
+    Fixpoint runMaybe {Shape' : Type}
                       {Pos' : Shape' -> Type}
+                      {A : Type}
                       (fm : Free (SMaybe Shape') (PMaybe Pos') A)
      : Free Shape' Pos' (option A)
     := match fm with

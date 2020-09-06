@@ -31,7 +31,7 @@ Definition evalTracing {A : Type} p
 (* Shortcut to evaluate a non-deterministic partial program to a result
    list. *)
 Definition evalNDM {A : Type} p
-:= match (run (runMaybe (@runChoice A _ _ (runNDSharing (0,0) p)))) with
+:= match (run (runMaybe (@runChoice _ _ A (runNDSharing (0,0) p)))) with
    | Some t => Some (@collectVals A t)
    | None => None
    end.
@@ -75,11 +75,11 @@ Section SecData.
   : Free Shape Pos (Pair Shape Pos (Integer Shape Pos) (Integer Shape Pos))
   := @call Shape Pos I S _ (pure 0%Z) >>= fun c1 =>
      @call Shape Pos I S _ (pure 1%Z) >>= fun c2 =>
-     @call Shape Pos I S (Integer Shape Pos) 
+     @call Shape Pos I S (Integer Shape Pos)
           (Choice Shape Pos c1 c2) >>= fun c3 =>
      @call Shape Pos I S _ (pure 2%Z) >>= fun c4 =>
      @call Shape Pos I S _ (pure 3%Z) >>= fun c5 =>
-     @call Shape Pos I S (Integer Shape Pos) 
+     @call Shape Pos I S (Integer Shape Pos)
           (Choice Shape Pos c4 c5) >>= fun c6 =>
      Pair_ Shape Pos c3 c6.
 
@@ -90,7 +90,7 @@ Section SecData.
      @call Shape Pos I S _ (pure 2%Z) >>= fun c2 =>
      @call Shape Pos I S _ (pure 3%Z) >>= fun c3 =>
      @call Shape Pos I S _ (Choice Shape Pos c2 c3) >>= fun c4 =>
-     @call Shape Pos I S _ (List.Cons Shape Pos c2 c1) >>= fun c5 => 
+     @call Shape Pos I S _ (List.Cons Shape Pos c2 c1) >>= fun c5 =>
      @call Shape Pos I S _ (pure 0%Z) >>= fun c6 =>
      @call Shape Pos I S _ (pure 1%Z) >>= fun c7 =>
      @call Shape Pos I S _ (Choice Shape Pos c6 c7) >>= fun c8 =>
@@ -113,11 +113,11 @@ Section SecData.
 
   (* Traced Maybe values *)
   Definition traceNothing `{Trace} `{M : Maybe} `{I : Share} (S : Strategy Shape Pos)
-  := @call Shape Pos I S _ (@Nothing_inj Shape Pos M (Integer Shape Pos)) >>= fun c1 => 
+  := @call Shape Pos I S _ (@Nothing_inj Shape Pos M (Integer Shape Pos)) >>= fun c1 =>
      trace "Nothing" c1.
 
   Definition traceJust `{Trace} `{M : Maybe} `{I : Share} (S : Strategy Shape Pos)
-  := @call Shape Pos I S _ (@Just_inj Shape Pos M _ 1%Z) >>= fun c1 => 
+  := @call Shape Pos I S _ (@Just_inj Shape Pos M _ 1%Z) >>= fun c1 =>
      trace "Just 1" c1.
 
   (* (trace "0" 0, trace "1" 1) *)
