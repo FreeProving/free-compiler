@@ -6,6 +6,7 @@ From Base Require Import Free.Instance.Share.
 From Base Require Import Free.Util.Sharing.
 From Base Require Import Free.Util.Void.
 Require Export Coq.Strings.String.
+Export Strings.String.StringSyntax.
 
 Module Trace.
 
@@ -31,6 +32,14 @@ Module Trace.
                    (x : Free Shape' Pos' A)
       : Free Shape' Pos' A :=
       impure (injS (mid, msg)) (fun tt => x).
+
+    (* Tracing function *)
+    Definition trace (Shape' : Type) (Pos' : Shape' -> Type)
+                    `{I: Injectable Shape Pos Shape' Pos'}
+                    {A : Type}
+                    (msg : string) (p : Free Shape' Pos' A)
+   : Free Shape' Pos' A
+   := @Msg Shape' Pos' I A None msg p.
 
   End Monad.
   (* Handlers for tracing and sharing combined with tracing. *)
@@ -109,12 +118,6 @@ Module Trace.
 
        End Handler.
 
-  (* Traceable instance for the Trace effect. *)
-  Instance Trace (Shape' : Type) (Pos' : Shape' -> Type)
-                 `{I: Injectable Shape Pos Shape' Pos'}
-   : Traceable Shape' Pos' := {
-     trace A msg p := @Msg Shape' Pos' I A None msg p
-  }.
   (* There is no Partial instance. *)
 End Trace.
 

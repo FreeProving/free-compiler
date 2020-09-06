@@ -14,6 +14,8 @@ From Generated Require Data.Tuple.
 Require Import Lists.List.
 Import List.ListNotations.
 
+Open Scope string_scope.
+
 (* Shortcuts to handle a program. *)
 
 (* Shortcut to evaluate a non-deterministic program to a result list
@@ -75,9 +77,12 @@ Section SecData.
   Variable Shape : Type.
   Variable Pos : Shape -> Type.
 
+  (* Infer Shape and Pos for convenience when tracing. *)
+  Arguments trace {_} {_} {_} {_}.
+
   Notation "'FreeBoolList'" := (Free Shape Pos (List Shape Pos (Bool Shape Pos))).
   Notation "'ND'" := (Injectable ND.Shape ND.Pos Shape Pos).
-  Notation "'Trace'" := (Traceable Shape Pos).
+  Notation "'Trace'" := (Injectable Trace.Shape Trace.Pos Shape Pos).
   Notation "'Partial'" := (Partial Shape Pos).
   Notation "'FreeBoolListList'" := (Free Shape Pos (List Shape Pos (List Shape Pos (Bool Shape Pos)))).
 
