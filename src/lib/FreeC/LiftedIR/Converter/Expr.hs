@@ -224,7 +224,7 @@ liftAlt (IR.Alt srcSpan conPat pats expr) = do
 --   are unwrapped using @>>=@.
 liftAlt' :: [IR.VarPat] -> IR.Expr -> Converter ([LIR.VarPat], LIR.Expr)
 liftAlt' [] expr = ([], ) <$> liftExpr expr
-liftAlt' (pat@(IR.VarPat srcSpan name varType strict) : pats) expr
+liftAlt' (pat @ (IR.VarPat srcSpan name varType strict) : pats) expr
   = localEnv $ do
     varType' <- LIR.liftVarPatType pat
     var <- renameAndDefineLIRVar srcSpan strict name varType
@@ -232,14 +232,14 @@ liftAlt' (pat@(IR.VarPat srcSpan name varType strict) : pats) expr
     if strict then do
       var' <- freshIRQName name
       expr'' <- rawBind srcSpan var' var varType expr'
-      pat' <- varPat srcSpan var' varType'
+      pat' <- makeVarPat srcSpan var' varType'
       return (pat' : pats', expr'') else do
-      pat' <- varPat srcSpan var varType'
+      pat' <- makeVarPat srcSpan var varType'
       return (pat' : pats', expr')
 
 -- | Smart constructor for variable patterns.
-varPat :: SrcSpan -> IR.QName -> Maybe LIR.Type -> Converter LIR.VarPat
-varPat srcSpan var varType = do
+makeVarPat :: SrcSpan -> IR.QName -> Maybe LIR.Type -> Converter LIR.VarPat
+makeVarPat srcSpan var varType = do
   let Just unqualVar = identFromQName var
   valueEntry <- inEnv $ lookupEntry IR.ValueScope var
   freshEntry <- inEnv $ lookupEntry IR.FreshScope var
@@ -339,10 +339,9 @@ liftBinds
     _ <- renameAndDefineLIRVar srcSpan isStrict ident varPatType
     expr' <- liftBinds bs expr
     patType' <- mapM LIR.liftType varPatType
-    bindVarPat' <- varPat patSrcSpan (IR.UnQual $ IR.Ident ident) patType'
+    varPat' <- makeVarPat patSrcSpan (IR.UnQual $ IR.Ident ident) patType'
     shareType' <- mapM LIR.liftType' varPatType
     bindExpr' <- liftExpr bindExpr
     let shareExpr = LIR.App srcSpan (LIR.Share srcSpan) (maybeToList shareType')
           [Sharing] [bindExpr'] True
-    return
-      $ LIR.Bind srcSpan shareExpr (LIR.Lambda srcSpan [bindVarPat'] expr')
+    return $ LIR.Bind srcSpan shareExpr (LIR.Lambda srcSpan [varPat'] expr')
