@@ -266,7 +266,7 @@ testConvertLet = context "let expressions" $ do
       "Integer" <- defineTestTypeCon "Integer" 0 []
       "x" <- defineTestVar "x"
       shouldConvertExprTo "let {(x' :: Integer) = x} in (add x' x')"
-        $ "@share Shape Pos S (Integer Shape Pos)"
+        $ "@share Shape Pos I S (Integer Shape Pos) _"
         ++ "  x >>= (fun (x' : Free Shape Pos (Integer Shape Pos)) =>"
         ++ "    add Shape Pos x' x')"
   it "translates a let expression with two binds correctly"
@@ -278,9 +278,9 @@ testConvertLet = context "let expressions" $ do
       "y" <- defineTestVar "y"
       shouldConvertExprTo
         "let {(x' :: Integer) = x; (y' :: Integer) = y} in (add x' y')"
-        $ "@share Shape Pos S (Integer Shape Pos) x"
+        $ "@share Shape Pos I S (Integer Shape Pos) _ x"
         ++ "  >>= (fun (x' : Free Shape Pos (Integer Shape Pos)) =>"
-        ++ "    @share Shape Pos S (Integer Shape Pos) y"
+        ++ "    @share Shape Pos I S (Integer Shape Pos) _ y"
         ++ "      >>= (fun (y' : Free Shape Pos (Integer Shape Pos)) =>"
         ++ "        add Shape Pos x' y'))"
 
