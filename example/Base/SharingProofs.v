@@ -1,7 +1,6 @@
 (** * Proofs related to sharing. *)
 
 From Base Require Import Free.
-From Base Require Import Free.Malias.
 
 (* In a call-by-name setting, share does nothing. *)
 Theorem cbn_no_sharing : forall (A : Type)
