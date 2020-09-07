@@ -37,8 +37,8 @@ genericApply
   -> [Coq.Term] -- ^ Implicit arguments to pass explicitly to the callee.
   -> [Coq.Term] -- ^ The actual arguments of the callee.
   -> Coq.Term
-genericApply func explicitEffectArgs = genericApply' (Coq.Qualid func)
-  explicitEffectArgs []
+genericApply func explicitEffectArgs implicitEffectArgs = genericApply'
+  (Coq.Qualid func) explicitEffectArgs [] implicitEffectArgs []
 
 -- | Like 'genericApply' but takes a function or (type) constructor term instead
 --   of a qualified identifier as its first argument.
@@ -47,12 +47,14 @@ genericApply'
   -> [Coq.Term] -- ^ The explicit type class instances to pass to the callee.
   -> [Coq.Term] -- ^ The implicit type class instances to pass to the callee.
   -> [Coq.Term] -- ^ Implicit arguments to pass explicitly to the callee.
+  -> [Coq.Term] -- ^ The implicit type class arguments that are dependent on
+                --   the implicit argumnets.
   -> [Coq.Term] -- ^ The actual arguments of the callee.
   -> Coq.Term
-genericApply' func explicitEffectArgs implicitEffectArgs implicitArgs args
-  | null implicitArgs = Coq.app func allExplicitArgs
-  | otherwise = let (Coq.Qualid qualid) = func
-                in Coq.explicitApp qualid allImplicitArgs
+genericApply' func explicitEffectArgs implicitEffectArgs implicitArgs
+  typedEffectArgs args | null implicitArgs = Coq.app func allExplicitArgs
+                       | otherwise = let (Coq.Qualid qualid) = func
+                                     in Coq.explicitApp qualid allImplicitArgs
  where
   genericArgs :: [Coq.Term]
   genericArgs = map (Coq.Qualid . fst) Coq.Base.freeArgs
@@ -62,6 +64,7 @@ genericApply' func explicitEffectArgs implicitEffectArgs implicitArgs args
     ++ implicitEffectArgs
     ++ explicitEffectArgs
     ++ implicitArgs
+    ++ typedEffectArgs
     ++ args
 
   allExplicitArgs :: [Coq.Term]

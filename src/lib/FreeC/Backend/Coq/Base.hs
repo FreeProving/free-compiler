@@ -22,11 +22,16 @@ module FreeC.Backend.Coq.Base
   , injectableBinder
   , shareable
   , shareableArg
+  , shareableArgs
+  , shareableArgsBinder
+  , implicitArg
   , share
     -- * Effect Selection
   , selectExplicitArgs
   , selectImplicitArgs
+  , selectTypedImplicitArgs
   , selectBinders
+  , selectTypedBinders
     -- * Literal Scopes
   , integerScope
   , stringScope
@@ -141,6 +146,21 @@ shareableBinder :: Coq.Binder
 shareableBinder = Coq.typedBinder' Coq.Ungeneralizable Coq.Explicit shareableArg
   $ Coq.app (Coq.Qualid shareable) [Coq.Qualid shape, Coq.Qualid pos]
 
+-- | The Coq binder for the @ShareableArgs@ type class.
+shareableArgs :: Coq.Qualid
+shareableArgs = Coq.bare "ShareableArgs"
+
+-- | The Coq binder for the @ShareableArgs@ type class with the type variable
+--   with the given name.
+shareableArgsBinder :: Coq.Qualid -> Coq.Binder
+shareableArgsBinder typeArg = Coq.Generalized Coq.Implicit
+  $ Coq.app (Coq.Qualid shareableArgs)
+  $ map Coq.Qualid [shape, pos, typeArg]
+
+-- | The Coq identifier for an implicit argument.
+implicitArg :: Coq.Qualid
+implicitArg = Coq.bare "_"
+
 -- | The Coq Identifier for the @share@ operator.
 share :: Coq.Qualid
 share = Coq.bare "share"
@@ -158,10 +178,22 @@ selectImplicitArgs :: Effect -> [Coq.Qualid]
 selectImplicitArgs Partiality = []
 selectImplicitArgs Sharing    = [injectableArg]
 
+-- | Like 'selectImplicitArgs' but the arguments have to be inserted after
+--   the type arguments.
+selectTypedImplicitArgs :: Effect -> [Coq.Qualid]
+selectTypedImplicitArgs Partiality = []
+selectTypedImplicitArgs Sharing    = [implicitArg]
+
 -- | Selects the correct binder for the given effect.
 selectBinders :: Effect -> [Coq.Binder]
 selectBinders Partiality = [partialBinder]
 selectBinders Sharing    = [injectableBinder, shareableBinder]
+
+-- | Like 'selectBinders' but the binders are dependent on the type variables
+--   with the given names.
+selectTypedBinders :: Effect -> [Coq.Qualid] -> [Coq.Binder]
+selectTypedBinders Partiality = const []
+selectTypedBinders Sharing    = map shareableArgsBinder
 
 -------------------------------------------------------------------------------
 -- Literal Scopes                                                            --
@@ -193,6 +225,7 @@ reservedIdents
       -- Sharing
     , injectable
     , shareable
+    , shareableArgs
     , share
     ]
   ++ (partialArg : map fst freeArgs)

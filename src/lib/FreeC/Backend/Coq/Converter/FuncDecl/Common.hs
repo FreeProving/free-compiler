@@ -36,11 +36,14 @@ convertFuncHead (IR.FuncDecl _ declIdent typeArgs args maybeRetType _) = do
   -- Lookup partiality and position of decreasing argument.
   effects <- inEnv $ lookupEffects name
   -- Convert arguments and return types.
-  typeArgs' <- convertTypeVarDecls Coq.Implicit typeArgs
+  (typeArgsBinder', typeArgsName') <- convertTypeVarDecls Coq.Implicit typeArgs
   args' <- mapM convertArg args
   maybeRetType' <- mapM convertType maybeRetType
-  return
-    ( qualid
-    , freeArgDecls ++ concatMap selectBinders effects ++ typeArgs' ++ args'
-    , maybeRetType'
-    )
+  return ( qualid
+         , freeArgDecls
+             ++ concatMap selectBinders effects
+             ++ typeArgsBinder'
+             ++ concatMap (flip selectTypedBinders typeArgsName') effects
+             ++ args'
+         , maybeRetType'
+         )

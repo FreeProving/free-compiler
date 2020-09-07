@@ -32,10 +32,12 @@ convertLiftedExpr (LIR.App _ func typeArgs effects args freeArgs) = do
         = map Coq.Qualid $ concatMap Coq.Base.selectExplicitArgs effects
       implicitEffectArgs'
         = map Coq.Qualid $ concatMap Coq.Base.selectImplicitArgs effects
+      implicitTypeArgs'
+        = map Coq.Qualid $ concatMap Coq.Base.selectTypedImplicitArgs effects
   if freeArgs
     then return
       $ genericApply' func' explicitEffectArgs' implicitEffectArgs' typeArgs'
-      args'
+      implicitTypeArgs' args'
     else return $ Coq.app func' args'
 convertLiftedExpr (LIR.If _ cond true false) = do
   cond' <- convertLiftedExpr cond
