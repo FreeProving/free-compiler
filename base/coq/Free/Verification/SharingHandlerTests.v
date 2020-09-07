@@ -67,11 +67,11 @@ Section SecData.
   (* [0 ? 1, 2 ? 3] *)
   Definition coinList `{ND}
   : Free Shape Pos (List Shape Pos (Integer Shape Pos))
-  := List.Cons Shape Pos 
+  := Cons Shape Pos 
        (Choice Shape Pos (pure 0%Z) (pure 1%Z))
-       (List.Cons Shape Pos 
+       (Cons Shape Pos 
          (Choice Shape Pos (pure 2%Z) (pure 3%Z))
-         (List.Nil Shape Pos)).
+         (Nil Shape Pos)).
 
 
   (* Traced integer. *)
@@ -97,11 +97,11 @@ Section SecData.
   (* [trace "0" 0, trace "1" 1] *)
   Definition traceList `{Trace}
   : Free Shape Pos (List Shape Pos (Integer Shape Pos))
-  := List.Cons Shape Pos 
+  := Cons Shape Pos 
        (trace "0" (pure 0%Z))
-       (List.Cons Shape Pos 
+       (Cons Shape Pos 
          (trace "1" (pure 2%Z))
-         (List.Nil Shape Pos)).
+         (Nil Shape Pos)).
 
 End SecData.
 
