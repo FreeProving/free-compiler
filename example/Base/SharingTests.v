@@ -286,7 +286,7 @@ Section SecFunctions.
 (* Recursive functions *)
 
 
-  (* 
+  (*
    tails :: [a] -> [[a]]
    tails xs = xs : case xs of
    []      -> []
@@ -305,7 +305,7 @@ Section SecFunctions.
                               Cons Shape Pos fxs' c1
        end.
 
-  Definition tails 
+  Definition tails
     `{Share}
     `{ShareArgs}
     (S : Strategy Shape Pos)
@@ -332,7 +332,7 @@ Notation "'Cbneed_'" := (Cbneed _ _).
 Notation "'Cbn_'" := (Cbn _ _).
 Notation "'Cbv_'" := (Cbv _ _).
 Notation "'addInteger_'" := (addInteger _ _).
-Notation "'orBool_'" := (orBool _ _). 
+Notation "'orBool_'" := (orBool _ _).
 
 (* ---------------------- Test cases without sharing ----------------------- *)
 
@@ -873,7 +873,7 @@ Example exSumTailsNDCbneed : evalND (nf (sumTails _ _ Cbneed_ (coinList Cbneed_)
 Proof. constructor. Qed.
 
 (* Call-by-name *)
-(* 
+(*
   sumTails [0 ? 1, 2 ? 3]
   = sum (map sum (tails [0 ? 1, 2 ? 3]))
   = sum (map sum ( [0 ? 1, 2 ? 3] : tails [ 2 ? 3 ]  ))
