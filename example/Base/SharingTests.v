@@ -14,10 +14,10 @@ From Generated Require Data.List.
 From Generated Require Data.Tuple.
 
 From Base Require Import Prelude.
+Open Scope string_scope.
 
 Require Import Lists.List.
 Import List.ListNotations.
-Open Scope string_scope.
 
 (* Shortcut to evaluate a non-deterministic program to a result list.
    list. *)
@@ -55,6 +55,7 @@ Section SecData.
   Notation "'Maybe'" := (Injectable Maybe.Shape Maybe.Pos Shape Pos).
   Notation "'Share'" := (Injectable Share.Shape Share.Pos Shape Pos).
 
+
   (* Non-deterministic integer. *)
   Definition coin `{ND} `{I : Share} (S : Strategy Shape Pos)
   := @call Shape Pos I S _ (pure 0%Z) >>= fun c1 =>
@@ -89,17 +90,16 @@ Section SecData.
   (* [0 ? 1, 2 ? 3] *)
   Definition coinList `{ND} `{I : Share} (S : Strategy Shape Pos)
   : Free Shape Pos (List Shape Pos (Integer Shape Pos))
-  := @call Shape Pos I S _ (List.Nil Shape Pos) >>= fun c1 =>
-     @call Shape Pos I S _ (pure 2%Z) >>= fun c2 =>
-     @call Shape Pos I S _ (pure 3%Z) >>= fun c3 =>
-     @call Shape Pos I S _ (Choice Shape Pos c2 c3) >>= fun c4 =>
-     @call Shape Pos I S _ (List.Cons Shape Pos c2 c1) >>= fun c5 =>
-     @call Shape Pos I S _ (pure 0%Z) >>= fun c6 =>
-     @call Shape Pos I S _ (pure 1%Z) >>= fun c7 =>
-     @call Shape Pos I S _ (Choice Shape Pos c6 c7) >>= fun c8 =>
-     List.Cons Shape Pos c8 c5.
+  := @call Shape Pos I S _ (pure 0%Z) >>= fun c1 =>
+     @call Shape Pos I S _ (pure 1%Z) >>= fun c2 =>
+     @call Shape Pos I S _ (Choice Shape Pos c1 c2) >>= fun c3 =>
+     @call Shape Pos I S _ (pure 2%Z) >>= fun c4 =>
+     @call Shape Pos I S _ (pure 3%Z) >>= fun c5 =>
+     @call Shape Pos I S _ (Choice Shape Pos c4 c5) >>= fun c6 =>
+     @call Shape Pos I S _ (List.Nil Shape Pos) >>= fun c7 =>
+     @call Shape Pos I S _ (List.Cons Shape Pos c6 c7) >>= fun c8 =>
+     List.Cons Shape Pos c3 c8.
 
-Check trace.
   (* Traced integer. *)
   Definition traceOne `{Trace} `{I : Share} (S : Strategy Shape Pos)
   := @call Shape Pos I S _ (pure 1%Z) >>= fun c1 =>
@@ -135,33 +135,38 @@ Check trace.
   (* [trace "0" 0, trace "1" 1] *)
   Definition traceList `{Trace} `{I : Share} (S : Strategy Shape Pos)
   : Free Shape Pos (List Shape Pos (Integer Shape Pos))
-  := @call Shape Pos I S _ (Nil Shape Pos) >>= fun c1 =>
-     @call Shape Pos I S _ (pure 1%Z) >>= fun c2 =>
-     @call Shape Pos I S _ (trace "1" c2) >>= fun c3 =>
-     @call Shape Pos I S _ (Cons Shape Pos c3 c1) >>= fun c4 =>
-     @call Shape Pos I S _ (pure 0%Z) >>= fun c5 =>
-     @call Shape Pos I S _ (trace "0" c5) >>= fun c6 =>
-     (Cons Shape Pos c6 c4).
+  := @call Shape Pos I S _ (pure 0%Z) >>= fun c1 =>
+     @call Shape Pos I S _ (trace "0" c1) >>= fun c2 =>
+     @call Shape Pos I S _ (pure 1%Z) >>= fun c3 =>
+     @call Shape Pos I S _ (trace "1" c3) >>= fun c4 =>
+     @call Shape Pos I S _ (Nil Shape Pos) >>= fun c5 =>
+     @call Shape Pos I S _ (Cons Shape Pos c4 c5) >>= fun c6 =>
+     (Cons Shape Pos c2 c6).
 
-  (*
-     example :: [Integer]
-     example = [trace "one" 1, trace "two" 2, trace "three" 3]
-   *)
-  Definition example `{Trace}
-   : Free Shape Pos (List Shape Pos (Integer Shape Pos))
-   := Cons Shape Pos (trace "one" (pure 1%Z))
-      (Cons Shape Pos (trace "two" (pure 2%Z))
-        (Cons Shape Pos (trace "three" (pure 3%Z))
-           (Nil Shape Pos))).
+  (* [trace "1" 1, trace "2" 2, trace "3" 3] *)
+  Definition traceList3 `{Trace} `{I : Share} (S : Strategy Shape Pos)
+  : Free Shape Pos (List Shape Pos (Integer Shape Pos))
+  := @call Shape Pos I S _ (pure 1%Z) >>= fun c1 =>
+     @call Shape Pos I S _ (trace "1" c1) >>= fun c2 =>
+     @call Shape Pos I S _ (pure 2%Z) >>= fun c3 =>
+     @call Shape Pos I S _ (trace "2" c3) >>= fun c4 =>
+     @call Shape Pos I S _ (pure 3%Z) >>= fun c5 =>
+     @call Shape Pos I S _ (trace "3" c5) >>= fun c6 =>
+     @call Shape Pos I S _ (Nil Shape Pos) >>= fun c7 =>
+     @call Shape Pos I S _ (Cons Shape Pos c6 c7) >>= fun c8 =>
+     @call Shape Pos I S _ (Cons Shape Pos c4 c8) >>= fun c9 =>
+     (Cons Shape Pos c2 c9).
+
+
 
 End SecData.
 
 (* Arguments sentences for the data. *)
-Arguments coin {_} {_} {_} {_} _.
-Arguments coinB {_} {_} {_} {_} _.
-Arguments coinM {_} {_} {_} {_} {_} _.
-Arguments coinPair {_} {_} {_} {_} _.
-Arguments coinList {_} {_} {_} {_} _.
+Arguments coin {_} {_} {_} {_}.
+Arguments coinB {_} {_} {_} {_}.
+Arguments coinM {_} {_} {_} {_} {_}.
+Arguments coinPair {_} {_} {_} {_}.
+Arguments coinList {_} {_} {_} {_}.
 Arguments traceOne {_} {_} {_}.
 Arguments traceTrue {_} {_} {_}.
 Arguments traceFalse {_} {_} {_}.
@@ -169,20 +174,23 @@ Arguments traceNothing {_} {_} {_} {_}.
 Arguments traceJust {_} {_} {_} {_}.
 Arguments tracePair {_} {_} {_}.
 Arguments traceList {_} {_} {_}.
-Arguments traceOne {_} {_} {_} {_} _.
-Arguments traceTrue {_} {_} {_} {_} _.
-Arguments traceFalse {_} {_} {_} {_} _.
-Arguments traceNothing {_} {_} {_} {_} {_} _.
-Arguments traceJust {_} {_} {_} {_} {_} _.
-Arguments tracePair {_} {_} {_} {_} _.
-Arguments traceList {_} {_} {_} {_} _.
+Arguments traceOne {_} {_} {_} {_}.
+Arguments traceTrue {_} {_} {_} {_}.
+Arguments traceFalse {_} {_} {_} {_}.
+Arguments traceNothing {_} {_} {_} {_} {_}.
+Arguments traceJust {_} {_} {_} {_} {_}.
+Arguments tracePair {_} {_} {_} {_}.
+Arguments traceList {_} {_} {_} {_}.
+Arguments traceList3 {_} {_} {_} {_}.
 (* Test functions *)
+
 Section SecFunctions.
 
-  Set Implicit Arguments.
+  (*Set Implicit Arguments.*)
   Variable Shape : Type.
   Variable Pos : Shape -> Type.
   Variable A : Type.
+
   Notation "'FreeA'" := (Free Shape Pos A).
   Notation "'ShareArgs'" := (ShareableArgs Shape Pos A).
   Notation "'Share'" := (Injectable Share.Shape Share.Pos Shape Pos).
@@ -275,7 +283,47 @@ Section SecFunctions.
      @call Shape Pos I S A (List.head Shape Pos P sx) >>= fun c2 =>
               f c1 c2.
 
+(* Recursive functions *)
+
+
+  (* 
+   tails :: [a] -> [[a]]
+   tails xs = xs : case xs of
+   []      -> []
+   x : xs' -> tails xs'
+  *)
+  (* fxs' can not be shared because the termination checker does not accept that definition
+     as well-formed. But since xs0 is shared (in tails), its component fxs' is also automatically shared. *)
+  Fixpoint tails_0
+     `{Share}
+     (S : Strategy Shape Pos)
+     (xs0 : List Shape Pos A) {struct xs0}
+   : Free Shape Pos (List Shape Pos (List Shape Pos A))
+    := match xs0 with
+       | List.nil          =>  Nil Shape Pos
+       | List.cons _ fxs' =>  @call Shape Pos _ S _ (fxs' >>= fun xs'0 => tails_0 S xs'0) >>= fun c1 =>
+                              Cons Shape Pos fxs' c1
+       end.
+
+  Definition tails 
+    `{Share}
+    `{ShareArgs}
+    (S : Strategy Shape Pos)
+    (fxs : Free Shape Pos (List Shape Pos A))
+    : Free Shape Pos (List Shape Pos (List Shape Pos A))
+   := @share Shape Pos _ S _ _ fxs >>= fun fxs0 =>
+      @call Shape Pos _ S _ (fxs0 >>= fun xs0 => tails_0 S xs0) >>= fun c1 =>
+        Cons Shape Pos fxs0 c1.
+
 End SecFunctions.
+
+Arguments doubleShared {_} {_} {_} {_} {_}.
+Arguments doubleSharedClash {_} {_} {_} {_} {_}.
+Arguments doubleSharedNested {_} {_} {_} {_} {_}.
+Arguments doubleSharedRec {_} {_} {_} {_} {_}.
+Arguments doubleDeepSharedPair {_} {_} {_} {_} {_}.
+Arguments doubleDeepSharedList {_} {_} {_} {_} {_}.
+Arguments tails {_} {_} {_} {_} {_}.
 
 (* Some notations for convenience.
    Since we only provide the sharing instance and functions when the handlers
@@ -284,9 +332,10 @@ Notation "'Cbneed_'" := (Cbneed _ _).
 Notation "'Cbn_'" := (Cbn _ _).
 Notation "'Cbv_'" := (Cbv _ _).
 Notation "'addInteger_'" := (addInteger _ _).
-Notation "'orBool_'" := (orBool _ _).
+Notation "'orBool_'" := (orBool _ _). 
 
 (* ---------------------- Test cases without sharing ----------------------- *)
+
 
 (*
 0?1 + 0?1
@@ -770,24 +819,76 @@ Example exAddDeepListTrace
   = (Some 0%Z, ["0"]).
 Proof. constructor. Qed.
 
-
-
-Fixpoint tails_0
-  (Shape : Type) (Pos : Shape -> Type) {a : Type}
+(*
+  sumTails :: [Integer] -> Integer
+  sumTails l = sum (map sum (tails l))
+*)
+Definition sumTails
+  (Shape : Type) (Pos : Shape -> Type)
   `{I : Injectable Share.Shape Share.Pos Shape Pos}
-  (xs0 : List Shape Pos a) {struct xs0}
-  : Free Shape Pos (List Shape Pos (List Shape Pos a))
- := match xs0 with
-    | List.nil          => Nil Shape Pos
-    | List.cons fx fxs' =>  Cons Shape Pos fxs'
-        (fxs' >>= fun xs'0 => tails_0  xs'0)
-    end.
-Definition tails
-  (Shape : Type) (Pos : Shape -> Type) {a : Type}
-  `{I : Injectable Share.Shape Share.Pos Shape Pos}
-  `{ShareableArgs Shape Pos a}
   (S : Strategy Shape Pos)
-  (fxs : Free Shape Pos (List Shape Pos a))
-  : Free Shape Pos (List Shape Pos (List Shape Pos a))
- := share fxs >>= fun fxs0 =>
-      Cons Shape Pos fxs0 (fxs0 >>= fun xs0 => tails_0 xs0).
+  (l : Free Shape Pos (List Shape Pos (Integer Shape Pos)))
+  : Free Shape Pos (Integer Shape Pos)
+ := List.sum Shape Pos
+      (List.map Shape Pos (pure (fun fxs => List.sum Shape Pos fxs))
+                     (tails S l)).
+
+(* Evaluation of sumTails [trace "1" 1, trace "2" 2, trace "3" 3] *)
+(* = sum (map (sum [trace "1" 1, trace "2" 2, trace "3" 3] : [trace "2" 2, trace "3" 3] : [trace "3" 3] : [])) *)
+
+(* Call-by-need *)
+(* Due to sharing, each number should be logged only once. *)
+Example exSumTailsTracingCbneed : evalTracing (nf (sumTails _ _ Cbneed_ (traceList3 Cbneed_)))
+ = (14%Z,["1";"2";"3"]).
+Proof. constructor. Qed.
+
+(* Call-by-name *)
+(* Each time an element is evaluated, its message is logged again.
+   Only one of the lists in the result of tails contains 1, two contain 2,
+   and three contain 3. Therefore, "1" should be logged once, "2" twice and
+   "3" three times. *)
+Example exSumTailsTracingCbn : evalTracing (nf (sumTails _ _ Cbn_ (traceList3 Cbn_)))
+ = (14%Z,["1";"2";"3";"2";"3";"3"]).
+Proof. constructor. Qed.
+
+(* Call-by-value *)
+(* The tracing effect is evaluated immediately, so we should only log each number once. *)
+Example exSumTailsTracingCbv : evalTracing (nf (sumTails _ _ Cbv_ (traceList3 Cbv_)))
+ = (14%Z,["1";"2";"3"]).
+Proof. constructor. Qed.
+
+(* Evaluation of sumTails [0 ? 1, 2 ? 3] *)
+
+(* Call-by-need *)
+(* sumTails [0 ? 1, 2 ? 3]
+  = sum (map sum (tails [0 ? 1, 2 ? 3]))
+  = sum (map sum ( [0 ? 1, 2 ? 3] : tails [ 2 ? 3 ]  ))
+  = sum (map sum ( [0 ? 1, 2 ? 3] : ([2 ? 3] : [])  ))
+  = sum (map sum ([[0,2],[2]] ? [[0,3], [3]] ? [[1,2],[2]] ? [[1,3],[3]] ))
+  = sum ([2,2] ? [3,3] ? [3,2] ? [4,3])
+  = 4 ? 6 ? 5 ? 7
+*)
+Example exSumTailsNDCbneed : evalND (nf (sumTails _ _ Cbneed_ (coinList Cbneed_)))
+ = [4%Z;6%Z;5%Z;7%Z].
+Proof. constructor. Qed.
+
+(* Call-by-name *)
+(* 
+  sumTails [0 ? 1, 2 ? 3]
+  = sum (map sum (tails [0 ? 1, 2 ? 3]))
+  = sum (map sum ( [0 ? 1, 2 ? 3] : tails [ 2 ? 3 ]  ))
+  = sum (map sum ( [0 ? 1, 2 ? 3] : ([2 ? 3] : [])  ))
+  = sum ([2,2] ? [3,2] ? [2,3] ? [3,3] ? [3,2] ? [3,3] ? [4,2] ? [4,3])
+  = 4 ? 5 ? 5 ? 6 ? 5 ? 6 ? 6 ? 7
+*)
+Example exSumTailsNDCbn : evalND (nf (sumTails _ _ Cbn_ (coinList Cbn_)))
+ = [4%Z;5%Z;5%Z;6%Z;5%Z;6%Z;6%Z;7%Z].
+Proof. constructor. Qed.
+
+(* Call-by-value *)
+(* Because the non-determinism is evaluated immediately, the result should be
+   the same as with call-by-need evaluation. *)
+Example exSumTailsNDCbv : evalND (nf (sumTails _ _ Cbv_ (coinList Cbv_)))
+ = [4%Z;6%Z;5%Z;7%Z].
+Proof. constructor. Qed.
+
