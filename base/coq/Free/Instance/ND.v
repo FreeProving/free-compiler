@@ -23,21 +23,21 @@ Module ND.
   Module Import Monad.
     Definition ND (A : Type) : Type := Free Shape Pos A.
 
-    Definition Fail {A : Type} (Shape' : Type) (Pos' : Shape' -> Type)
-      `{Injectable Shape Pos Shape' Pos'}
+    Definition Fail (Shape' : Type) (Pos' : Shape' -> Type)
+      `{Injectable Shape Pos Shape' Pos'} {A : Type}
       : Free Shape' Pos' A :=
       impure (injS sfail) (fun p => (fun (x : Void) => match x with end) (injP p)).
 
-    Definition Choice_ {A : Type} (Shape' : Type) (Pos' : Shape' -> Type)
-    `{Injectable Shape Pos Shape' Pos'} mid l r
+    Definition Choice_(Shape' : Type) (Pos' : Shape' -> Type)
+    `{Injectable Shape Pos Shape' Pos'} {A : Type} mid l r
     : Free Shape' Pos' A :=
        let s := injS (schoice mid)
        in impure s (fun p : Pos' s => if injP p : Pos (schoice mid) then l else r).
 
     (* Curry notation for the choice operator.
        The ID is set by the sharing handler. *)
-    Definition Choice {A} Shape Pos `{I : Injectable ND.Shape ND.Pos Shape Pos} x y
-      := @Choice_ A Shape Pos I None x y.
+    Definition Choice Shape Pos {A} `{I : Injectable ND.Shape ND.Pos Shape Pos} x y
+      := @Choice_ Shape Pos I A None x y.
  End Monad.
 
   (* Handlers for non-determinism and call-time choice. *)
@@ -47,9 +47,9 @@ Module ND.
     Definition PChoice {Shape' : Type} (Pos' : Shape' -> Type)
     := Comb.Pos Pos Pos'.
 
-    Fixpoint runChoice {A : Type}
-                       {Shape' : Type}
+    Fixpoint runChoice {Shape' : Type}
                        {Pos' : Shape' -> Type}
+                       {A : Type}
                        (fc : Free (SChoice Shape') (PChoice Pos') A)
      : Free Shape' Pos' (Tree A)
     := match fc with
@@ -70,9 +70,9 @@ Module ND.
     Definition PNDShare {Shape' : Type} (Pos' : Shape' -> Type)
     := Comb.Pos Share.Pos (PChoice Pos').
 
-    Fixpoint runNDSharing {A : Type}
-                          {Shape' : Type}
+    Fixpoint runNDSharing {Shape' : Type}
                           {Pos' : Shape' -> Type}
+                          {A : Type}
                           (n : nat * nat)
                           (fs : Free (SNDShare Shape') (PNDShare Pos') A)
      : Free (SChoice Shape') (PChoice Pos') A

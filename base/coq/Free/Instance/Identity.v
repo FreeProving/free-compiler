@@ -13,10 +13,10 @@ Module Identity.
   Module Import Monad.
     Definition Identity (A : Type) : Type := Free Shape Pos A.
     (* Smart constructor that embeds the Identity effect in an effect stack. *)
-    Definition Id {A : Type}
-                  (Shape' : Type)
+    Definition Id (Shape' : Type)
                   (Pos' : Shape' -> Type)
                   `{Injectable Shape Pos Shape' Pos'}
+                  {A : Type}
                   (x : A)
     : Free Shape' Pos' A := pure x.
   End Monad.

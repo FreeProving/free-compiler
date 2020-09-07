@@ -1,8 +1,7 @@
 From Base Require Export Free.Instance.Share.
-
-From Base Require Import Free.Monad.
 From Base Require Import Free.Class.Injectable.
 From Base Require Import Free.Class.ShareableArgs.
+From Base Require Import Free.Monad.
 
 Class Strategy (Shape : Type) (Pos : Shape -> Type)
                 `{Injectable Share.Shape Share.Pos Shape Pos} :=
