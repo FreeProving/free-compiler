@@ -34,7 +34,10 @@ Definition evalMaybe {A : Type} p
 
 (* Shortcut to evaluate a program with partiality and non-determinism. *)
 Definition evalNDMaybe {A : Type} p
-:= @evalND (option A) (runMaybe p).
+:= match (run (runMaybe (@runChoice _ _ A (runNDSharing (0,0) p)))) with
+   | Some t => Some (@collectVals A t)
+   | None => None
+   end.
 
 (* Handle a non-deterministic program after normalization. *)
 Definition evalNDNF {A B : Type}
@@ -298,10 +301,9 @@ Example componentEffectPartial : evalMaybeNF (partialList MaybePartial)
  = None.
 Proof. constructor. Qed.
 
-(* [true, false ? undefined] --> [[true,false], undefined] *)
+(* [true, false ? undefined] --> undefined *)
 Example componentEffectPartialND : evalNDMaybeNF (partialCoinList MaybePartial)
- = [Some (List.cons (True_ IdS IdP) (Cons IdS IdP (False_ IdS IdP) (Nil IdS IdP)));
-    None].
+ = None.
 Proof. constructor. Qed.
 
 (* Normalization combined with non-strictness. *)
@@ -315,7 +317,7 @@ Proof. constructor. Qed.
 (* Non-strictness should be preserved, so no non-determinism should occur.
    head [true,coin] --> [true] *)
 Example nonStrictnessNoND : evalNDMaybeNF (List.head _ _ MaybePartial coinList)
- = [Some true].
+ = Some [true].
 Proof. constructor. Qed.
 
 (* Evaluating the defined part of a partial list is still possible.
@@ -333,7 +335,7 @@ Proof. constructor. Qed.
 Example nonStrictnessNDPartiality : evalNDMaybeNF
                                     (List.head _ _ MaybePartial
                                       (partialCoinList MaybePartial))
- = [Some true].
+ = Some [true].
 Proof. constructor. Qed.
 
 (* Effects at different levels are accumulated. *)
@@ -363,13 +365,10 @@ Example nonStrictnessRootAndComponentTracing
  = (Some true, ["root effect"%string]).
 Proof. constructor. Qed.
 
-(* Only the choice at the root should be triggered.
-   Because the first list is empty and the second has true as its
-   first element, the results should be false and true.
-   head ([] ? [true, coin]) --> [undefined,true] *)
+(* ([] ? [true, coin]) --> undefined *)
 Example nonStrictnessRootAndComponentND
  : evalNDMaybeNF (List.head _ _ MaybePartial NDCoinList)
- = [None; Some true].
+ = None.
 Proof. constructor. Qed.
 
 (* Normalization of lists with effects nested deeper inside. *)
