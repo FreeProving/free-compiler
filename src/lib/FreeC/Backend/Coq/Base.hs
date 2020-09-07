@@ -24,7 +24,8 @@ module FreeC.Backend.Coq.Base
   , shareableArg
   , share
     -- * Effect Selection
-  , selectArgs
+  , selectExplicitArgs
+  , selectImplicitArgs
   , selectBinders
     -- * Literal Scopes
   , integerScope
@@ -147,10 +148,15 @@ share = Coq.bare "share"
 -------------------------------------------------------------------------------
 -- Effect selection                                                          --
 -------------------------------------------------------------------------------
--- | Selects the correct function arguments for the given effect.
-selectArgs :: Effect -> [Coq.Qualid]
-selectArgs Partiality = [partialArg]
-selectArgs Sharing    = [injectableArg, shareableArg]
+-- | Selects the correct explicit function arguments for the given effect.
+selectExplicitArgs :: Effect -> [Coq.Qualid]
+selectExplicitArgs Partiality = [partialArg]
+selectExplicitArgs Sharing    = [shareableArg]
+
+-- | Selects the correct implicit function arguments for the given effect.
+selectImplicitArgs :: Effect -> [Coq.Qualid]
+selectImplicitArgs Partiality = []
+selectImplicitArgs Sharing    = [injectableArg]
 
 -- | Selects the correct binder for the given effect.
 selectBinders :: Effect -> [Coq.Binder]

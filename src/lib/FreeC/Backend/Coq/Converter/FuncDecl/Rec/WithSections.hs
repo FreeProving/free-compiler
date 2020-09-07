@@ -592,7 +592,7 @@ generateInterfaceDecl constArgs isConstArgUsed nameMap mgu sectionTypeArgs
     -- Lookup the effects of the function and the instances that need to be
     -- passed to the main function.
     effects <- inEnv $ lookupEffects name
-    let effectArgs       = concatMap selectArgs effects
+    let effectArgs       = concatMap selectExplicitArgs effects
         -- Lookup the names of all other arguments to pass to the main function.
         nonConstArgNames = map IR.varPatQName args \\ constArgNames
     nonConstArgNames' <- catMaybes
