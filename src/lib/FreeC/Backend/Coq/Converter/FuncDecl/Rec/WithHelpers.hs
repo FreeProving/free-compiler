@@ -162,8 +162,8 @@ transformRecFuncDecl
     -- Even though we know the type of the original and additional arguments
     -- the return type is unknown, since the right-hand side of @case@
     -- expressions is not annotated.
-    -- If the original function was partial, the helper function is partial as
-    -- well.
+    -- The helper function uses all effects that are used by the original 
+    -- function.
     freeArgsNeeded <- inEnv $ needsFreeArgs name
     effects <- inEnv $ lookupEffects name
     _entry <- renameAndAddEntry
