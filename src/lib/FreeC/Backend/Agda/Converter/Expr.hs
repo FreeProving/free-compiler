@@ -1,6 +1,7 @@
 -- | Implements the lifted IR to Agda translation for expressions.
 module FreeC.Backend.Agda.Converter.Expr ( convertLiftedExpr ) where
 
+import qualified FreeC.Backend.Agda.Base           as Agda.Base
 import           FreeC.Backend.Agda.Converter.Free
   ( bind, errorExpr, generatePure, undefinedExpr )
 import qualified FreeC.Backend.Agda.Syntax         as Agda
@@ -8,7 +9,6 @@ import           FreeC.Environment.LookupOrFail
   ( lookupAgdaSmartIdentOrFail, lookupAgdaValIdentOrFail )
 import qualified FreeC.LiftedIR.Syntax             as LIR
 import           FreeC.Monad.Converter
-import           FreeC.Monad.Reporter
 
 -- | Converts an expression from lifted IR to an Agda expression.
 convertLiftedExpr :: LIR.Expr -> Converter Agda.Expr
@@ -36,9 +36,8 @@ convertLiftedExpr (LIR.Bind _ arg k)
   = bind <$> convertLiftedExpr arg <*> convertLiftedExpr k
 convertLiftedExpr (LIR.Undefined _)           = return undefinedExpr
 convertLiftedExpr (LIR.ErrorExpr _)           = return errorExpr
-convertLiftedExpr (LIR.Share srcSpan)         = reportFatal
-  $ Message srcSpan Error
-  "The share operator is currently not supported in Agda."
+convertLiftedExpr (LIR.Share _)
+  = return $ Agda.Ident $ Agda.qname [] Agda.Base.pure
 
 -- | Converts a single pattern from a LIR case expression to an Agda
 --   expression.
