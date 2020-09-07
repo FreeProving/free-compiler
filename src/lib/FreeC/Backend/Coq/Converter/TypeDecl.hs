@@ -118,7 +118,7 @@ convertTypeSynDecl (IR.DataDecl _ _ _ _)
 --   variable with the same (lowercase) name.
 --
 --   After the @Inductive@ sentences for the data type declarations there
---   is one @Arguments@ sentence and several smart constructor @Notation@s
+--   is one @Arguments@ sentence and several smart constructor @Notation@
 --   declarations for each constructor declaration of the given data types.
 convertDataDecls :: [IR.TypeDecl] -> Converter [Coq.Sentence]
 convertDataDecls dataDecls = do
@@ -144,12 +144,12 @@ convertDataDecl (IR.DataDecl _ (IR.DeclIdent _ name) typeVarDecls conDecls) = do
          , Coq.commentedSentences
              ("Arguments sentences for " ++ showPretty (IR.toUnQual name))
              argumentsSentences
-             ++ Coq.commentedSentences
-             ("Smart constructors for " ++ showPretty (IR.toUnQual name))
-             smartConDecls
              ++ Coq.commentedSentences (qualifiedSmartConstructorCommentPrefix
                                         ++ showPretty (IR.toUnQual name))
              qualSmartConsDecls
+             ++ Coq.commentedSentences
+             ("Smart constructors for " ++ showPretty (IR.toUnQual name))
+             smartConDecls
          )
  where
   -- | Generates the body of the @Inductive@ sentence and the @Arguments@
@@ -261,8 +261,7 @@ convertDataDecl (IR.DataDecl _ (IR.DeclIdent _ name) typeVarDecls conDecls) = do
       ++ map (const Coq.Underscore) typeVarIdents
       ++ map (Coq.Qualid . Coq.bare) constrArgIdents
 
-    lhs           = Coq.nSymbol smartIdent
-      NonEmpty.:| (map Coq.nIdent $ argIdents)
+    lhs           = Coq.nSymbol smartIdent NonEmpty.:| map Coq.nIdent argIdents
 
     rhs           = Coq.explicitApp Coq.Base.freePureCon
       $ freeArgs ++ [returnType, Coq.explicitApp constr args]

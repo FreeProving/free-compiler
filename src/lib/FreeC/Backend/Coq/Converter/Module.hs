@@ -115,5 +115,5 @@ generateImport libName modName = do
   --   given module.
   isLocalConstructor :: IR.ModName -> EnvEntry -> Bool
   isLocalConstructor modName' ConEntry { entryName = IR.Qual modName'' _ }
-    | modName'' == modName' = True
+    = modName'' == modName'
   isLocalConstructor _ _ = False
