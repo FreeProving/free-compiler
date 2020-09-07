@@ -224,7 +224,7 @@ liftAlt (IR.Alt srcSpan conPat pats expr) = do
 --   are unwrapped using @>>=@.
 liftAlt' :: [IR.VarPat] -> IR.Expr -> Converter ([LIR.VarPat], LIR.Expr)
 liftAlt' [] expr = ([], ) <$> liftExpr expr
-liftAlt' (pat @ (IR.VarPat srcSpan name varType strict) : pats) expr
+liftAlt' (pat@(IR.VarPat srcSpan name varType strict) : pats) expr
   = localEnv $ do
     varType' <- LIR.liftVarPatType pat
     var <- renameAndDefineLIRVar srcSpan strict name varType
