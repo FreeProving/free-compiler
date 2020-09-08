@@ -28,7 +28,7 @@ Module ND.
       : Free Shape' Pos' A :=
       impure (injS sfail) (fun p => (fun (x : Void) => match x with end) (injP p)).
 
-    Definition Choice_(Shape' : Type) (Pos' : Shape' -> Type)
+    Definition Choice_ (Shape' : Type) (Pos' : Shape' -> Type)
     `{Injectable Shape Pos Shape' Pos'} {A : Type} mid l r
     : Free Shape' Pos' A :=
        let s := injS (schoice mid)
