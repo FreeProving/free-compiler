@@ -11,5 +11,5 @@ Theorem cbn_no_sharing : forall (A : Type)
                                 `{SA : ShareableArgs Shape Pos A}
                                 (fx : Free Shape Pos A)
                                 (f : Free Shape Pos A -> Free Shape Pos B),
-  @share Shape Pos I (Cbn Shape Pos) A SA fx >>= f = f fx.
+  @share Shape Pos (Cbn Shape Pos) A SA fx >>= f = f fx.
 Proof. constructor. Qed.
