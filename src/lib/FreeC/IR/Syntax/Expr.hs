@@ -65,7 +65,7 @@ data Expr
     -- | A lambda abstraction.
   | Lambda { exprSrcSpan    :: SrcSpan
            , lambdaExprArgs :: [VarPat]
-           , lambdaExprRhs   :: Expr
+           , lambdaExprRhs  :: Expr
            , exprTypeScheme :: Maybe TypeScheme
            }
     -- | A let expression.
