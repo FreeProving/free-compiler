@@ -46,11 +46,6 @@
 --
 --   There are no special requirements.
 --
---   == Postconditions
---
---   All shared variables on right-hand sides of function declarations are made
---   explicit by introducing @let@-expressions.
---
 --   == Translation
 --
 --   First all subexpressions of each function declaration are checked for variables
@@ -62,6 +57,11 @@
 --   After all subexpressions are checked the right hand side of the function
 --   declaration is checked as well.
 --   Variables already bound by @let@-bindings are not counted.
+--
+--   == Postconditions
+--
+--   All shared variables on right-hand sides of function declarations are made
+--   explicit by introducing @let@-expressions.
 module FreeC.Pass.SharingAnalysisPass ( sharingAnaylsisPass ) where
 
 import           Control.Monad           ( mapAndUnzipM )
@@ -187,7 +187,6 @@ buildBinds srcSpan = mapAndUnzipM buildBind
     varName' <- freshHaskellQName varName
     let subst            = singleSubst' varName
           (\s -> IR.Var s varName' Nothing)
-        -- This type scheme has wrong source span information.
         rhs              = IR.Var srcSpan varName Nothing
         Just varPatIdent = IR.identFromQName varName'
         varPat           = IR.VarPat srcSpan varPatIdent Nothing False
