@@ -50,11 +50,13 @@
 module FreeC.Pass.EffectAnalysisPass ( effectAnalysisPass ) where
 
 import           Control.Monad.Extra               ( anyM )
+import           Data.Maybe                        ( isJust )
 
 import           FreeC.Environment
 import qualified FreeC.IR.Base.Prelude             as IR.Prelude
 import           FreeC.IR.DependencyGraph          ( unwrapComponent )
 import           FreeC.IR.Reference                ( valueRefs )
+import           FreeC.IR.Subterm
 import qualified FreeC.IR.Syntax                   as IR
 import           FreeC.LiftedIR.Effect
 import           FreeC.Monad.Converter
@@ -105,18 +107,12 @@ isPartialFuncName name | name == IR.Prelude.undefinedFuncName = return True
 -------------------------------------------------------------------------------
 -- | Tests whether the given functions contain any let expressions.
 areSharedFuncDecls :: [IR.FuncDecl] -> Converter Bool
-areSharedFuncDecls = return . any (isLet . IR.funcDeclRhs)
+areSharedFuncDecls = return
+  . any (isJust . findFirstSubterm isLet . IR.funcDeclRhs)
+ where
+  isLet IR.Let {} = True
+  isLet _         = False
 
--- | Test whether any of the given functions has the 'Sharing' effect already.
+-- | Tests whether any of the given functions has the 'Sharing' effect already.
 containSharedFuncs :: [IR.FuncDecl] -> Converter Bool
 containSharedFuncs = anyM $ anyM (inEnv . hasEffect Sharing) . valueRefs
-
--- | Tests whether the given expression is or contains a let expression.
-isLet :: IR.Expr -> Bool
-isLet (IR.App _ lhs rhs _) = isLet lhs || isLet rhs
-isLet (IR.TypeAppExpr _ lhs _ _) = isLet lhs
-isLet (IR.If _ cond true false _) = isLet cond || isLet true || isLet false
-isLet (IR.Case _ expr alts _) = isLet expr || any (isLet . IR.altRhs) alts
-isLet (IR.Lambda _ _ rhs _) = isLet rhs
-isLet IR.Let {} = True
-isLet _ = False
