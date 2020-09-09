@@ -21,7 +21,7 @@ import           Data.Maybe
 import qualified Data.Set                                             as Set
 
 import           FreeC.Backend.Coq.Analysis.ConstantArguments
-import           FreeC.Backend.Coq.Base
+import qualified FreeC.Backend.Coq.Base                               as Coq.Base
 import           FreeC.Backend.Coq.Converter.Free
 import           FreeC.Backend.Coq.Converter.FuncDecl.Common
 import           FreeC.Backend.Coq.Converter.FuncDecl.Rec.WithHelpers
@@ -592,7 +592,7 @@ generateInterfaceDecl constArgs isConstArgUsed nameMap mgu sectionTypeArgs
     -- Lookup the effects of the function and the instances that need to be
     -- passed to the main function.
     effects <- inEnv $ lookupEffects name
-    let effectArgs       = concatMap selectExplicitArgs effects
+    let effectArgs       = concatMap Coq.Base.selectExplicitArgs effects
         -- Lookup the names of all other arguments to pass to the main function.
         nonConstArgNames = map IR.varPatQName args \\ constArgNames
     nonConstArgNames' <- catMaybes

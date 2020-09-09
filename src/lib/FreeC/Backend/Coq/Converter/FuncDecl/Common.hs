@@ -5,7 +5,7 @@ module FreeC.Backend.Coq.Converter.FuncDecl.Common
     convertFuncHead
   ) where
 
-import           FreeC.Backend.Coq.Base
+import qualified FreeC.Backend.Coq.Base           as Coq.Base
 import           FreeC.Backend.Coq.Converter.Arg
 import           FreeC.Backend.Coq.Converter.Free
 import           FreeC.Backend.Coq.Converter.Type
@@ -39,11 +39,12 @@ convertFuncHead (IR.FuncDecl _ declIdent typeArgs args maybeRetType _) = do
   (typeArgsBinder', typeArgsName') <- convertTypeVarDecls Coq.Implicit typeArgs
   args' <- mapM convertArg args
   maybeRetType' <- mapM convertType maybeRetType
-  return ( qualid
-         , freeArgDecls
-             ++ concatMap selectBinders effects
-             ++ typeArgsBinder'
-             ++ concatMap (flip selectTypedBinders typeArgsName') effects
-             ++ args'
-         , maybeRetType'
-         )
+  return
+    ( qualid
+    , freeArgDecls
+        ++ concatMap Coq.Base.selectBinders effects
+        ++ typeArgsBinder'
+        ++ concatMap (flip Coq.Base.selectTypedBinders typeArgsName') effects
+        ++ args'
+    , maybeRetType'
+    )
