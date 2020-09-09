@@ -27,15 +27,13 @@ import           FreeC.Monad.Converter
 convertTypeVarDecls
   :: Coq.Explicitness -- ^ Whether to generate an explicit or implicit binder.
   -> [IR.TypeVarDecl] -- ^ The type variable declarations.
-  -> Converter ([Coq.Binder], [Coq.Qualid])
+  -> Converter [Coq.Binder]
 convertTypeVarDecls explicitness typeVarDecls
-  | null typeVarDecls = return ([], [])
+  | null typeVarDecls = return []
   | otherwise = do
     idents' <- mapM convertTypeVarDecl typeVarDecls
     return
-      ( [Coq.typedBinder Coq.Ungeneralizable explicitness idents' Coq.sortType]
-      , idents'
-      )
+      [Coq.typedBinder Coq.Ungeneralizable explicitness idents' Coq.sortType]
  where
   -- | Converts a type variable declaration by adding an entry to the
   --   environment.

@@ -5,6 +5,8 @@ module FreeC.Backend.Coq.Converter.FuncDecl.Common
     convertFuncHead
   ) where
 
+import           Control.Monad.Extra              ( mapMaybeM )
+
 import qualified FreeC.Backend.Coq.Base           as Coq.Base
 import           FreeC.Backend.Coq.Converter.Arg
 import           FreeC.Backend.Coq.Converter.Free
@@ -33,10 +35,13 @@ convertFuncHead (IR.FuncDecl _ declIdent typeArgs args maybeRetType _) = do
   freeArgsNeeded <- inEnv $ needsFreeArgs name
   let freeArgDecls | freeArgsNeeded = genericArgDecls Coq.Explicit
                    | otherwise = []
-  -- Lookup partiality and position of decreasing argument.
+  -- Lookup effects
   effects <- inEnv $ lookupEffects name
+  -- Convert type arguments and lookup their Coq names
+  typeArgsBinder' <- convertTypeVarDecls Coq.Implicit typeArgs
+  typeArgsName' <- mapMaybeM
+    (inEnv . lookupIdent IR.TypeScope . IR.typeVarDeclQName) typeArgs
   -- Convert arguments and return types.
-  (typeArgsBinder', typeArgsName') <- convertTypeVarDecls Coq.Implicit typeArgs
   args' <- mapM convertArg args
   maybeRetType' <- mapM convertType maybeRetType
   return

@@ -79,7 +79,7 @@ convertTypeSynDecl decl@(IR.TypeSynDecl _ _ typeVarDecls typeExpr)
   = localEnv $ do
     let name = IR.typeDeclQName decl
     Just qualid <- inEnv $ lookupIdent IR.TypeScope name
-    (typeVarDecls', _) <- convertTypeVarDecls Coq.Explicit typeVarDecls
+    typeVarDecls' <- convertTypeVarDecls Coq.Explicit typeVarDecls
     typeExpr' <- convertType' typeExpr
     return [ Coq.definitionSentence qualid
                (genericArgDecls Coq.Explicit ++ typeVarDecls')
@@ -145,7 +145,7 @@ convertDataDecl (IR.DataDecl _ (IR.DeclIdent _ name) typeVarDecls conDecls) = do
   generateBodyAndArguments :: Converter (Coq.IndBody, [Coq.Sentence])
   generateBodyAndArguments = localEnv $ do
     Just qualid <- inEnv $ lookupIdent IR.TypeScope name
-    (typeVarDecls', _) <- convertTypeVarDecls Coq.Explicit typeVarDecls
+    typeVarDecls' <- convertTypeVarDecls Coq.Explicit typeVarDecls
     conDecls' <- mapM convertConDecl conDecls
     argumentsSentences <- mapM generateArgumentsSentence conDecls
     return ( Coq.IndBody qualid (genericArgDecls Coq.Explicit ++ typeVarDecls')
@@ -185,7 +185,7 @@ convertDataDecl (IR.DataDecl _ (IR.DeclIdent _ name) typeVarDecls conDecls) = do
     Just qualid <- inEnv $ lookupIdent IR.ValueScope conName
     Just smartQualid <- inEnv $ lookupSmartIdent conName
     Just returnType <- inEnv $ lookupReturnType IR.ValueScope conName
-    (typeVarDecls', _) <- convertTypeVarDecls Coq.Implicit typeVarDecls
+    typeVarDecls' <- convertTypeVarDecls Coq.Implicit typeVarDecls
     (argIdents', argDecls') <- mapAndUnzipM convertAnonymousArg
       (map Just argTypes)
     returnType' <- convertType returnType
