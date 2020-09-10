@@ -5,7 +5,7 @@ module FreeC.Backend.Coq.Converter.TypeDecl where
 import           Control.Monad
   ( foldM, mapAndUnzipM, replicateM, zipWithM )
 import           Control.Monad.Extra              ( concatMapM )
-import           Data.List                        ( nub, partition, intercalate ) -- TODO: Remove intercalate
+import           Data.List                        ( nub, partition )
 import qualified Data.List.NonEmpty               as NonEmpty
 import qualified Data.Map                         as Map
 import           Data.Maybe                       ( catMaybes, fromJust )
@@ -117,7 +117,7 @@ convertDataDecls :: [IR.TypeDecl] -> Converter [Coq.Sentence]
 convertDataDecls dataDecls = do
   (indBodies, extraSentences) <- mapAndUnzipM convertDataDecl dataDecls
   --instances <- generateInstances dataDecls
-  instances <- generateAllInstances dataDecls
+  instances <- generateTypeclassInstances dataDecls
   return
     (Coq.comment ("Data type declarations for "
                   ++ showPretty (map IR.typeDeclName dataDecls))
@@ -310,8 +310,8 @@ convertDataDecl (IR.TypeSynDecl _ _ _ _)
 --   In this case, a type @T'@ is considered indirectly recursive if it
 --   contains any of the types @T1, ..., Tn@.
 --   Arguments of type @Ti@ can be treated like directly recursive arguments.
-generateAllInstances :: [IR.TypeDecl] -> Converter [Coq.Sentence]
-generateAllInstances dataDecls = do
+generateTypeclassInstances :: [IR.TypeDecl] -> Converter [Coq.Sentence]
+generateTypeclassInstances dataDecls = do
   let argTypes = map (concatMap IR.conDeclFields . IR.dataDeclCons) dataDecls
   argTypesExpanded
     <- mapM (mapM expandAllTypeSynonyms) argTypes -- :: [[IR.Type]]
@@ -372,7 +372,7 @@ generateAllInstances dataDecls = do
             = (Coq.bare functionPrefix, Coq.Qualid (fromJust (lookupType t m)))
       instanceName <- Coq.bare <$> nameFunction className t
       return
-        $ Coq.InstanceSentence (Coq.InstanceDefinition instanceName binders
+        $ Coq.InstanceSentence (Coq.InstanceDefinition instanceName (freeArgsBinders ++ binders)
                                 retType [instanceBody] Nothing)
 
     buildFunctions :: [Coq.Qualid]
@@ -397,7 +397,7 @@ generateAllInstances dataDecls = do
       rhs <- generateBody m varName t recTypes
       return
         $ Coq.FixBody (fromJust (lookupType t m))
-        (NonEmpty.fromList (binders ++ [varBinder])) Nothing (Just retType) rhs
+        (NonEmpty.fromList (freeArgsBinders ++ binders ++ [varBinder])) Nothing (Just retType) rhs
 
     generateBody
       :: TypeMap -> Coq.Qualid -> IR.Type -> [IR.Type] -> Converter Coq.Term
@@ -405,7 +405,7 @@ generateAllInstances dataDecls = do
       = matchConstructors m varName t
     generateBody m varName t (recType : recTypes) = do
       inBody <- generateBody m varName t recTypes
-      var <- Coq.bare <$> freshCoqIdent "x"
+      var <- Coq.bare <$> freshCoqIdent freshArgPrefix
       letBody <- matchConstructors m var recType
       (binders, varBinder, retType, _) <- getBindersAndReturnTypes recType var
       let Just localFuncName = lookupType recType m
@@ -433,7 +433,7 @@ generateAllInstances dataDecls = do
       conEntry <- lookupEntryOrFail NoSrcSpan IR.ValueScope conName
       let retType = entryReturnType conEntry
       let conIdent = entryIdent conEntry -- :: Qualid
-      conArgIdents <- freshQualids (entryArity conEntry) "fx"
+      conArgIdents <- freshQualids (entryArity conEntry) ("f" ++ freshArgPrefix)
       -- Replace all underscores with fresh variables before unification.
       tFreshVars <- insertFreshVariables t
       subst <- unifyOrFail NoSrcSpan tFreshVars retType
@@ -503,7 +503,7 @@ nfBindersAndReturnType t varName = do
         (zipWith (\v1 v2 -> [v1, v2]) sourceVars targetVars)
   let varBinders
         = [typeBinder (sourceVars ++ targetVars) | not (null sourceVars)]
-  let binders = freeArgsBinders ++ varBinders ++ constraints
+  let binders = varBinders ++ constraints
   let topLevelVarBinder = Coq.typedBinder' Coq.Explicit varName sourceType
   let instanceRetType = Coq.app (Coq.Qualid (Coq.bare "Normalform"))
         (shapeAndPos ++ [sourceType, targetType])
@@ -524,14 +524,14 @@ buildNormalformValue nameMap consName = buildNormalformValue' []
   buildNormalformValue' vals ((t, varName) : consVars)
     = case lookupType t nameMap of
       Just funcName -> do
-        x <- Coq.bare <$> freshCoqIdent "x"
-        nx <- Coq.bare <$> freshCoqIdent "nx"
+        x <- Coq.bare <$> freshCoqIdent freshArgPrefix
+        nx <- Coq.bare <$> freshCoqIdent ("n" ++ freshArgPrefix)
         rhs <- buildNormalformValue' (nx : vals) consVars
         let c = Coq.fun [nx] [Nothing] rhs
         let c'' = applyBind (Coq.app (Coq.Qualid funcName) [Coq.Qualid x]) c
         return $ applyBind (Coq.Qualid varName) (Coq.fun [x] [Nothing] c'')
       Nothing       -> do
-        nx <- Coq.bare <$> freshCoqIdent "nx"
+        nx <- Coq.bare <$> freshCoqIdent ("n" ++ freshArgPrefix)
         rhs <- buildNormalformValue' (nx : vals) consVars
         let cont = Coq.fun [nx] [Nothing] rhs
         return
@@ -599,26 +599,29 @@ applyBind mx f = Coq.app (Coq.Qualid Coq.Base.freeBind) [mx, f]
 applyFree :: Coq.Term -> Coq.Term
 applyFree a = Coq.app (Coq.Qualid Coq.Base.free) (shapeAndPos ++ [a])
 
--- [Shape, Pos]
+-- | Shape and Pos arguments as Coq terms.
 shapeAndPos :: [Coq.Term]
 shapeAndPos = map Coq.Qualid Coq.Base.shapeAndPos
 
--- [Identity.Shape, Identity.Pos]
+-- | The shape and position function arguments for the Identity monad
+--   as a Coq term.
 idShapeAndPos :: [Coq.Term]
 idShapeAndPos = map Coq.Qualid Coq.Base.idShapeAndPos
 
--- Constructs an implicit generalized binder (~ type class constraint).
--- buildConstraint name [a1 ... an] = `{name Shape Pos a1 ... an}.
+-- | Constructs a type class constraint.
+--   > buildConstraint name [a1 ... an] = `{name Shape Pos a1 ... an}.
 buildConstraint :: String -> [Coq.Qualid] -> Coq.Binder
 buildConstraint ident args = Coq.Generalized Coq.Implicit
   (Coq.app (Coq.Qualid (Coq.bare ident)) (shapeAndPos ++ map Coq.Qualid args))
 
--- converts our type into a Coq type (a term) with the specified
--- additional arguments (e.g. Shape and Pos) and new variables for all
--- underscores.
--- We can also choose the prefix for those variables.
+-- | Converts a type into a Coq type (a term) with the specified
+--   additional arguments (for example Shape and Pos) and new variables for all
+--   underscores.
+-- TODO use convertType
 toCoqType
-  :: String -> [Coq.Term] -> IR.Type -> Converter (Coq.Term, [Coq.Qualid])
+  :: String -- the prefix of the fresh variables
+      -> [Coq.Term] -- A list of additional
+      -> IR.Type -> Converter (Coq.Term, [Coq.Qualid])
 toCoqType varPrefix _ (IR.TypeVar _ _)           = do
   x <- Coq.bare <$> freshCoqIdent varPrefix
   return (Coq.Qualid x, [x])
@@ -651,24 +654,24 @@ lookupType = flip ($)
 insertType :: IR.Type -> Coq.Qualid -> TypeMap -> TypeMap
 insertType k v m t = if k == t then Just v else m t
 
--- Creates an entry with a unique name for each of the given types and
--- inserts them into the given map.
+-- | Creates an entry with a unique name for each of the given types and
+--   inserts them into the given map.
 nameFunctionsAndInsert :: String -> TypeMap -> [IR.Type] -> Converter TypeMap
 nameFunctionsAndInsert prefix = foldM (nameFunctionAndInsert prefix)
 
--- Like `nameFunctionsAndInsert`, but for a single type.
+-- | Like `nameFunctionsAndInsert`, but for a single type.
 nameFunctionAndInsert :: String -> TypeMap -> IR.Type -> Converter TypeMap
 nameFunctionAndInsert prefix m t = do
   name <- nameFunction prefix t
   return (insertType t (Coq.bare name) m)
 
--- Names a function based on a type while avoiding name clashes with other
--- identifiers.
+-- | Names a function based on a type while avoiding name clashes with other
+--   identifiers.
 nameFunction :: String -> IR.Type -> Converter String
 nameFunction prefix t = do
   prettyType <- showPrettyType t
   freshCoqIdent (prefix ++ prettyType)
 
--- Produces @n@ new Coq identifiers (Qualids)
+-- | Produces @n@ new Coq identifiers (Qualids).
 freshQualids :: Int -> String -> Converter [Coq.Qualid]
 freshQualids n prefix = replicateM n (Coq.bare <$> freshCoqIdent prefix)
