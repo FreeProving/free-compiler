@@ -636,7 +636,7 @@ buildNormalformValue nameMap consName = buildNormalformValue' []
         rhs <- buildNormalformValue' (nx : boundVars) consVars
         let c = Coq.fun [nx] [Nothing] rhs
         return
-          $ applyBind (Coq.app (Coq.Qualid (Coq.bare normalformFuncName))
+          $ applyBind (Coq.app (Coq.Qualid (Coq.bare "nf"))
                        [Coq.Qualid varName]) c
 
 -------------------------------------------------------------------------------
