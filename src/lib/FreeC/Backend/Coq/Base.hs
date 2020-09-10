@@ -68,9 +68,19 @@ free = Coq.bare "Free"
 shape :: Coq.Qualid
 shape = Coq.bare "Shape"
 
+-- | Like 'shape' but not wrapped in a 'Coq.Bare' constructor.
+shapeIdent :: Coq.Ident
+shapeIdent = let (Coq.Bare ident) = shape
+             in ident
+
 -- | The Coq identifier for the @Pos@ argument of the @Free@ monad.
 pos :: Coq.Qualid
 pos = Coq.bare "Pos"
+
+-- | Like 'pos' but not wrapped in a 'Coq.Bare' constructor.
+posIdent :: Coq.Ident
+posIdent = let (Coq.Bare ident) = pos
+           in ident
 
 -- | The Coq identifier for the @pure@ constructor of the @Free@ monad.
 freePureCon :: Coq.Qualid
@@ -119,6 +129,10 @@ partialError = Coq.bare "error"
 -------------------------------------------------------------------------------
 -- Sharing                                                                   --
 -------------------------------------------------------------------------------
+-- | The Coq identifier for the @Share@ module.
+shareModuleIdent :: Coq.Ident
+shareModuleIdent = Coq.ident "Share"
+
 -- | The Coq identifier for the @Injectable@ type class.
 injectable :: Coq.Qualid
 injectable = Coq.bare "Injectable"
@@ -131,7 +145,11 @@ injectableArg = Coq.bare "I"
 injectableBinder :: Coq.Binder
 injectableBinder = Coq.typedBinder' Coq.Generalizable Coq.Implicit injectableArg
   $ Coq.app (Coq.Qualid injectable)
-  $ map Coq.Qualid [Coq.bare "Share.Shape", Coq.bare "Share.Pos", shape, pos]
+  $ map Coq.Qualid [ Coq.Qualified shareModuleIdent shapeIdent
+                   , Coq.Qualified shareModuleIdent posIdent
+                   , shape
+                   , pos
+                   ]
 
 -- | The Coq identifier for the @Shareable@ type class.
 shareable :: Coq.Qualid
