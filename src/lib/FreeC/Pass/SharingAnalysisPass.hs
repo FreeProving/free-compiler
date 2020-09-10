@@ -86,18 +86,18 @@ sharingAnaylsisPass ast = do
   return ast { IR.modFuncDecls = funcDecls' }
 
 -- | Checks a function declaration for @case@-expressions to introduce local
---   @let@-expressions and applies the transformation on the right hand side.
+--   @let@-expressions and applies the transformation on the right-hand side.
 analyseSharingDecl :: IR.FuncDecl -> Converter IR.FuncDecl
 analyseSharingDecl (IR.FuncDecl srcSpan ident typeArgs args returnType rhs) = do
   rhs' <- analyseLocalSharing rhs
   rhs'' <- analyseSharingExpr rhs'
   return (IR.FuncDecl srcSpan ident typeArgs args returnType rhs'')
 
--- | Checks the expression and all right hand sides of subexpressions
+-- | Checks the expression and all right-hand sides of subexpressions
 --   for shared variables that are introduced through @case@-alternatives
 --   or lambda abstractions.
 --
---   If a variable is shared a @let@-expression that makes the sharing
+--   If a variable is shared, a @let@-expression that makes the sharing
 --   explicit is introduced.
 analyseLocalSharing :: IR.Expr -> Converter IR.Expr
 analyseLocalSharing (IR.Case srcSpan expr alts typeScheme) = do
@@ -149,7 +149,7 @@ analyseLocalSharing (IR.App srcSpan lhs rhs typeScheme) = do
   rhs' <- analyseLocalSharing rhs
   return (IR.App srcSpan lhs' rhs' typeScheme)
 
--- | Checks an expression if it contains variables that occur
+-- | Checks if an expression contains variables that occur
 --   multiple times on the same right-hand side.
 --   If that is the case, a @let@-expression is introduced that binds the
 --   variables to fresh ones and replaces the occurrences with the newly
@@ -178,7 +178,7 @@ buildLet expr vars = do
 --   a variable that occurred multiple times on right hand sides.
 --
 --   Also computes substitutions mapping given variables to fresh variables.
---   Returns the generated let-bindings and the substitutions.
+--   Returns the generated @let@-bindings and the substitutions.
 buildBinds :: SrcSpan -> [IR.VarName] -> Converter ([IR.Bind], [Subst IR.Expr])
 buildBinds srcSpan = mapAndUnzipM buildBind
  where
@@ -210,9 +210,9 @@ countVarNamesOnly = countVarNamesWith const notElem
 
 -- | A generalized recursive counting for variables in expressions.
 --   The first arguments is the function that is used to combine
---   the given list of variable names with variable names from left hand sides
+--   the given list of variable names with variable names from left-hand sides
 --   of @case@-alternatives or lambda abstractions.
---   The second argument is the a predicate that determines if a variable
+--   The second argument is a predicate that determines if a variable
 --   is added to the map.
 countVarNamesWith :: ([IR.VarName] -> [IR.VarName] -> [IR.VarName])
                   -> (IR.VarName -> [IR.VarName] -> Bool)

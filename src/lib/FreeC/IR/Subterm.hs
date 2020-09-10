@@ -337,7 +337,7 @@ boundVarsWithTypeOf expr i = case expr of
   IR.ErrorExpr _ _ _     -> Map.empty
   IR.IntLiteral _ _ _    -> Map.empty
  where
-  -- | Converts a list of variable patterns to a from of variable names bound
+  -- | Converts a list of variable patterns to a map from variable names bound
   --   by these patterns to the types they have been annotated with.
   fromVarPats :: [IR.VarPat] -> Map IR.QName (Maybe IR.Type)
   fromVarPats = Map.fromList . map (IR.varPatQName &&& IR.varPatType)
