@@ -51,7 +51,7 @@ Section SecData.
   Arguments trace {_} {_} {_} {_}.
 
   Notation "'ND'" := (Injectable ND.Shape ND.Pos Shape Pos).
-  Notation "'Trace'" := (Injectable Trace.Shape Trace.Pos Shape Pos).
+  Notation "'Trace'" := (Traceable Shape Pos).
   Notation "'Maybe'" := (Injectable Maybe.Shape Maybe.Pos Shape Pos).
   Notation "'Share'" := (Injectable Share.Shape Share.Pos Shape Pos).
 

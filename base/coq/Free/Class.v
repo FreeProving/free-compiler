@@ -3,3 +3,4 @@ From Base Require Export Free.Class.Normalform.
 From Base Require Export Free.Class.Partial.
 From Base Require Export Free.Class.ShareableArgs.
 From Base Require Export Free.Class.Strategy.
+From Base Require Export Free.Class.Traceable.
