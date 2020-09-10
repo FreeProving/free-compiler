@@ -13,24 +13,24 @@ Module Maybe.
   Module Import Monad.
     Definition Maybe (A : Type) : Type := Free Shape Pos A.
     Definition Just {A : Type} (x : A) : Maybe A := pure x.
-    Definition Nothing {A : Type}      : Maybe A := 
+    Definition Nothing {A : Type}      : Maybe A :=
        impure tt (fun (p : Pos tt) => match p with end).
 
   (* Versions of the smart constructors that automatically embed values in an effect stack *)
-    Definition Just_inj {A : Type} 
-                        (Shape' : Type) 
-                        (Pos' : Shape' -> Type) 
-                        `{Injectable Shape Pos Shape' Pos'} 
-                        (x : A) 
-      : Free Shape' Pos' A 
+    Definition Just_inj (Shape' : Type)
+                        (Pos' : Shape' -> Type)
+                        `{Injectable Shape Pos Shape' Pos'}
+                        {A : Type}
+                        (x : A)
+      : Free Shape' Pos' A
      := pure x.
 
-    Definition Nothing_inj {A : Type} 
-                           (Shape' : Type)
-                           (Pos' : Shape' -> Type) 
-                           `{Injectable Shape Pos Shape' Pos'} 
-       : Free Shape' Pos' A 
-      := impure (injS tt) (fun p : Pos' (injS tt) => 
+    Definition Nothing_inj (Shape' : Type)
+                           (Pos' : Shape' -> Type)
+                           `{Injectable Shape Pos Shape' Pos'}
+                           {A : Type}
+       : Free Shape' Pos' A
+      := impure (injS tt) (fun p : Pos' (injS tt) =>
       (fun (x : Void) => match x with end) (injP p)).
   End Monad.
 
@@ -40,12 +40,12 @@ Module Maybe.
     Definition PMaybe {Shape' : Type} (Pos' : Shape' -> Type)
     := Comb.Pos Pos Pos'.
 
-    Fixpoint runMaybe {A : Type} 
-                      {Shape' : Type}
-                      {Pos' : Shape' -> Type} 
-                      (fm : Free (SMaybe Shape') (PMaybe Pos') A) 
-     : Free Shape' Pos' (option A) 
-    := match fm with 
+    Fixpoint runMaybe {Shape' : Type}
+                      {Pos' : Shape' -> Type}
+                      {A : Type}
+                      (fm : Free (SMaybe Shape') (PMaybe Pos') A)
+     : Free Shape' Pos' (option A)
+    := match fm with
        | pure x            => pure (Some x)
        | impure (inl s) _  => pure None
        | impure (inr s) pf => impure s (fun p : Pos' s => runMaybe (pf p))
