@@ -11,12 +11,11 @@ module FreeC.Backend.Coq.Converter.TypeDecl
     -- * Data Type Declarations
   , convertDataDecls
   , convertDataDecl
-  , partitionIsQualifiedSmartConstructor
   ) where
 
 import           Control.Monad                    ( mapAndUnzipM )
 import           Control.Monad.Extra              ( concatMapM )
-import           Data.List                        ( isPrefixOf, partition )
+import           Data.List                        ( partition )
 import           Data.List.Extra                  ( concatUnzip )
 import qualified Data.List.NonEmpty               as NonEmpty
 import           Data.Maybe                       ( catMaybes, fromJust )
@@ -28,7 +27,8 @@ import           FreeC.Backend.Coq.Converter.Free
 import           FreeC.Backend.Coq.Converter.Type
 import qualified FreeC.Backend.Coq.Syntax         as Coq
 import           FreeC.Environment
-import           FreeC.Environment.Fresh          ( freshCoqIdent, freshArgPrefix )
+import           FreeC.Environment.Fresh
+  ( freshArgPrefix, freshCoqIdent )
 import           FreeC.Environment.Renamer        ( renameAndDefineTypeVar )
 import           FreeC.IR.DependencyGraph
 import qualified FreeC.IR.Syntax                  as IR
@@ -40,11 +40,12 @@ import           FreeC.Pretty
 -------------------------------------------------------------------------------
 -- Strongly Connected Components                                             --
 -------------------------------------------------------------------------------
--- | Converts a strongly connected component of the type dependency graph.
-convertTypeComponent
-  :: DependencyComponent IR.TypeDecl -> Converter [Coq.Sentence]
+-- | Converts a strongly connected component of the type dependency graph and
+--   creates a separate lit of qualified smart constructor notations.
+convertTypeComponent :: DependencyComponent IR.TypeDecl
+                     -> Converter ([Coq.Sentence], [Coq.Sentence])
 convertTypeComponent (NonRecursive decl)
-  | isTypeSynDecl decl = convertTypeSynDecl decl
+  | isTypeSynDecl decl = flip (,) [] <$> convertTypeSynDecl decl
   | otherwise = convertDataDecls [decl]
 convertTypeComponent (Recursive decls)   = do
   let (typeSynDecls, dataDecls) = partition isTypeSynDecl decls
@@ -54,9 +55,9 @@ convertTypeComponent (Recursive decls)   = do
   expandedDataDecls <- mapM
     (expandAllTypeSynonymsInDeclWhere (`Set.member` typeSynDeclQNames))
     dataDecls
-  dataDecls' <- convertDataDecls expandedDataDecls
+  (dataDecls', qualSmartConDecls) <- convertDataDecls expandedDataDecls
   typeSynDecls' <- concatMapM convertTypeSynDecl sortedTypeSynDecls
-  return (dataDecls' ++ typeSynDecls')
+  return (dataDecls' ++ typeSynDecls', qualSmartConDecls)
 
 -- | Sorts type synonym declarations topologically.
 --
@@ -120,36 +121,43 @@ convertTypeSynDecl (IR.DataDecl _ _ _ _)
 --   After the @Inductive@ sentences for the data type declarations there
 --   is one @Arguments@ sentence and several smart constructor @Notation@
 --   declarations for each constructor declaration of the given data types.
-convertDataDecls :: [IR.TypeDecl] -> Converter [Coq.Sentence]
+--   Qualified smart constructor notations are packed into a separate list.
+convertDataDecls :: [IR.TypeDecl] -> Converter ([Coq.Sentence], [Coq.Sentence])
 convertDataDecls dataDecls = do
-  (indBodies, extraSentences) <- mapAndUnzipM convertDataDecl dataDecls
+  (indBodies, extraSentences') <- mapAndUnzipM convertDataDecl dataDecls
+  let (extraSentences, qualSmartConDecls) = concatUnzip extraSentences'
   return
-    (Coq.comment ("Data type declarations for "
-                  ++ showPretty (map IR.typeDeclName dataDecls))
-     : Coq.InductiveSentence (Coq.Inductive (NonEmpty.fromList indBodies) [])
-     : concat extraSentences)
+    ( Coq.comment ("Data type declarations for "
+                   ++ showPretty (map IR.typeDeclName dataDecls))
+        : Coq.InductiveSentence (Coq.Inductive (NonEmpty.fromList indBodies) [])
+        : extraSentences
+    , qualSmartConDecls
+    )
 
 -- | Converts a Haskell data type declaration to the body of a Coq @Inductive@
 --   sentence, the @Arguments@ sentences for it's constructors and the smart
 --   constructor notations.
+--   Qualified smart constructor notations are packed into a separate list.
 --
 --   Type variables declared by the data type or the smart constructors are
 --   not visible outside of this function.
-convertDataDecl :: IR.TypeDecl -> Converter (Coq.IndBody, [Coq.Sentence])
+convertDataDecl
+  :: IR.TypeDecl -> Converter (Coq.IndBody, ([Coq.Sentence], [Coq.Sentence]))
 convertDataDecl (IR.DataDecl _ (IR.DeclIdent _ name) typeVarDecls conDecls) = do
   (body, argumentsSentences) <- generateBodyAndArguments
-  (smartConDecls, qualSmartConsDecls)
+  (smartConDecls, qualSmartConDecls)
     <- concatUnzip <$> mapM generateSmartConDecl conDecls
   return ( body
-         , Coq.commentedSentences
-             ("Arguments sentences for " ++ showPretty (IR.toUnQual name))
-             argumentsSentences
-             ++ Coq.commentedSentences (qualifiedSmartConstructorCommentPrefix
-                                        ++ showPretty (IR.toUnQual name))
-             qualSmartConsDecls
-             ++ Coq.commentedSentences
-             ("Smart constructors for " ++ showPretty (IR.toUnQual name))
-             smartConDecls
+         , ( Coq.commentedSentences
+               ("Arguments sentences for " ++ showPretty (IR.toUnQual name))
+               argumentsSentences
+               ++ Coq.commentedSentences
+               ("Smart constructors for " ++ showPretty (IR.toUnQual name))
+               smartConDecls
+             , Coq.commentedSentences ("Qualified smart constructors for "
+                                       ++ showPretty (IR.toUnQual name))
+               qualSmartConDecls
+             )
          )
  where
   -- | Generates the body of the @Inductive@ sentence and the @Arguments@
@@ -210,12 +218,11 @@ convertDataDecl (IR.DataDecl _ (IR.DeclIdent _ name) typeVarDecls conDecls) = do
     Just qualid <- inEnv $ lookupIdent IR.ValueScope conName
     Just smartQualid <- inEnv $ lookupSmartIdent conName
     Just returnType <- inEnv $ lookupReturnType IR.ValueScope conName
-    constrArgIdents <- mapM (const $ freshCoqIdent freshArgPrefix)
-      argTypes
+    constrArgIdents <- mapM (const $ freshCoqIdent freshArgPrefix) argTypes
     let Just unqualIdent = Coq.unpackQualid smartQualid
-    typeVarQualids
-      <- mapM (\(IR.TypeVarDecl srcSpan ident) ->
-               renameAndDefineTypeVar srcSpan ident) typeVarDecls
+    typeVarQualids <- mapM
+      (\(IR.TypeVarDecl srcSpan ident) -> renameAndDefineTypeVar srcSpan ident)
+      typeVarDecls
     let typeVarIdents = map (fromJust . Coq.unpackQualid) typeVarQualids
     returnType' <- convertType' returnType
     -- Generate unqualified and qualified notation sentences for the smart
@@ -289,38 +296,3 @@ convertDataDecl (IR.DataDecl _ (IR.DeclIdent _ name) typeVarDecls conDecls) = do
 -- Type synonyms are not allowed in this function.
 convertDataDecl (IR.TypeSynDecl _ _ _ _)
   = error "convertDataDecl: Type synonym not allowed."
-
--- | Partitions a list of sentences into a list of sentences that belong to
---   qualified smart constructors and a list of the remaining sentences.
-partitionIsQualifiedSmartConstructor
-  :: [Coq.Sentence] -> ([Coq.Sentence], [Coq.Sentence])
-partitionIsQualifiedSmartConstructor
-  = partitionIsQualifiedSmartConstructor' False
- where
-  -- The additional Bool value indicates whether we just read a comment which
-  -- marks qualified smart constructors.
-  partitionIsQualifiedSmartConstructor'
-    :: Bool -> [Coq.Sentence] -> ([Coq.Sentence], [Coq.Sentence])
-  partitionIsQualifiedSmartConstructor' _ [] = ([], [])
-  partitionIsQualifiedSmartConstructor' True (s@(Coq.NotationSentence _) : sl)
-    =
-    -- A notation under a comment for qualified smart constructors is a
-    -- notation of a qualified smart constructor.
-    let (ql, rl) = partitionIsQualifiedSmartConstructor' True sl
-    in (s : ql, rl)
-  partitionIsQualifiedSmartConstructor' True sl =
-    -- If its not a notation, it does not belong to the current block of
-    -- qualified smart constructors.
-    partitionIsQualifiedSmartConstructor' False sl
-  partitionIsQualifiedSmartConstructor' False (s@(Coq.CommentSentence c) : sl)
-    | qualifiedSmartConstructorCommentPrefix `isPrefixOf` Coq.unpackComment c =
-      -- This comment marks qualified smart constructors.
-      let (ql, rl) = partitionIsQualifiedSmartConstructor' True sl
-      in (s : ql, rl)
-  partitionIsQualifiedSmartConstructor' False (s : sl)
-    = let (ql, rl) = partitionIsQualifiedSmartConstructor' False sl
-      in (ql, s : rl)
-
--- | The prefix of a comment above a qualified smart constructor notation.
-qualifiedSmartConstructorCommentPrefix :: String
-qualifiedSmartConstructorCommentPrefix = "Qualified smart constructors for "

@@ -2,6 +2,7 @@
 module FreeC.Backend.Coq.Converter.Module where
 
 import           Control.Monad.Extra                  ( concatMapM )
+import           Data.List.Extra                      ( concatUnzip )
 import qualified Data.Set                             as Set
 
 import qualified FreeC.Backend.Coq.Base               as Coq.Base
@@ -45,18 +46,18 @@ convertDecls typeDecls funcDecls = do
 convertTypeDecls :: [IR.TypeDecl] -> Converter [Coq.Sentence]
 convertTypeDecls typeDecls = do
   let components = groupTypeDecls typeDecls
-  sentences <- concatMapM convertTypeComponent components
+  (sentences, qualSmartCons)
+    <- concatUnzip <$> mapM convertTypeComponent components
   let 
     -- Put qualified notations into a single local module
-    (qualSmartCons, sentences') = partitionIsQualifiedSmartConstructor sentences
-    qualNotModule               = if null qualSmartCons
+    qualNotModule = if null qualSmartCons
       then []
       else [ Coq.comment "Qualified smart constructors"
            , Coq.LocalModuleSentence
                $ Coq.LocalModule Coq.Base.qualifiedSmartConstructorModule
                qualSmartCons
            ]
-  return $ sentences' ++ qualNotModule
+  return $ sentences ++ qualNotModule
 
 -------------------------------------------------------------------------------
 -- Import Declarations                                                       --
