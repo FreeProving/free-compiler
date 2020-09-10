@@ -28,8 +28,8 @@ import           FreeC.Backend.Coq.Converter.Free
 import           FreeC.Backend.Coq.Converter.Type
 import qualified FreeC.Backend.Coq.Syntax         as Coq
 import           FreeC.Environment
-import qualified FreeC.Environment.Fresh          as Fresh
-import qualified FreeC.Environment.Renamer        as Renamer
+import           FreeC.Environment.Fresh          ( freshCoqIdent, freshArgPrefix )
+import           FreeC.Environment.Renamer        ( renameAndDefineTypeVar )
 import           FreeC.IR.DependencyGraph
 import qualified FreeC.IR.Syntax                  as IR
 import           FreeC.IR.TypeSynExpansion
@@ -210,12 +210,12 @@ convertDataDecl (IR.DataDecl _ (IR.DeclIdent _ name) typeVarDecls conDecls) = do
     Just qualid <- inEnv $ lookupIdent IR.ValueScope conName
     Just smartQualid <- inEnv $ lookupSmartIdent conName
     Just returnType <- inEnv $ lookupReturnType IR.ValueScope conName
-    constrArgIdents <- mapM (const $ Fresh.freshCoqIdent Fresh.freshArgPrefix)
+    constrArgIdents <- mapM (const $ freshCoqIdent freshArgPrefix)
       argTypes
     let Just unqualIdent = Coq.unpackQualid smartQualid
     typeVarQualids
       <- mapM (\(IR.TypeVarDecl srcSpan ident) ->
-               Renamer.renameAndDefineTypeVar srcSpan ident) typeVarDecls
+               renameAndDefineTypeVar srcSpan ident) typeVarDecls
     let typeVarIdents = map (fromJust . Coq.unpackQualid) typeVarQualids
     returnType' <- convertType' returnType
     -- Generate unqualified and qualified notation sentences for the smart
