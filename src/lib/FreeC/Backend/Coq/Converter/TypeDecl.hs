@@ -3,11 +3,11 @@
 module FreeC.Backend.Coq.Converter.TypeDecl where
 
 import           Control.Monad
-  ( foldM, mapAndUnzipM, replicateM, zipWithM )
+  ( foldM, mapAndUnzipM, replicateM )
 import           Control.Monad.Extra              ( concatMapM )
 import           Data.List                        ( nub, partition )
 import qualified Data.List.NonEmpty               as NonEmpty
-import qualified Data.Map                         as Map
+--import qualified Data.Map.Strict                  as Map
 import           Data.Maybe                       ( catMaybes, fromJust )
 import qualified Data.Set                         as Set
 
@@ -29,6 +29,8 @@ import           FreeC.IR.Unification
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
 import           FreeC.Pretty
+
+import Debug.Trace
 
 -------------------------------------------------------------------------------
 -- Strongly Connected Components                                             --
@@ -211,7 +213,6 @@ convertDataDecl (IR.TypeSynDecl _ _ _ _)
 -------------------------------------------------------------------------------
 -- Instance Generation                                                       --
 -------------------------------------------------------------------------------
-
 -- | Builds instances for all supported typeclasses.
 --   Currently, only a @Normalform@ instance is generated.
 --
@@ -312,100 +313,168 @@ convertDataDecl (IR.TypeSynDecl _ _ _ _)
 --   Arguments of type @Ti@ can be treated like directly recursive arguments.
 generateTypeclassInstances :: [IR.TypeDecl] -> Converter [Coq.Sentence]
 generateTypeclassInstances dataDecls = do
+  -- The types of the data declaration's constructors' arguments.
   let argTypes = map (concatMap IR.conDeclFields . IR.dataDeclCons) dataDecls
+  -- The same types where all type synonyms are expanded.
   argTypesExpanded
     <- mapM (mapM expandAllTypeSynonyms) argTypes -- :: [[IR.Type]]
-  let types = map (nub . reverse . concatMap collectSubTypes) argTypesExpanded
+  -- A list where all fully-applied type constructors that do not contain one of the types
+  -- for which we are defining instances and all type variables are replaced with
+  -- the same type variable (an underscore). The list is reversed so its entries are
+  -- in topological order.
+  let reducedTypes = map (nub . reverse . concatMap collectSubTypes)
+        argTypesExpanded
+  -- Like reducedTypes, but with all occurrences of the types for which we are defining
+  -- instances and all type variables removed from the list.
+  -- This leaves exactly the types with indirect recursion, with all non-recursive
+  -- components replaced by underscores.
   let recTypeList = map
-        (filter (\t -> not (t `elem` declTypes || IR.isTypeVar t))) types
+        (filter (\t -> not (t `elem` declTypes || IR.isTypeVar t))) reducedTypes
+  -- Construct Normalform instances.
   buildInstances recTypeList "nf'" "Normalform" nfBindersAndReturnType
     buildNormalformValue
  where
+  -- The (mutually recursive) data types for which we are defining
+  -- instances, converted to types.
+  -- declTypes :: [IR.Type]
   declTypes = map dataDeclToType dataDecls
 
+  -- The names of the constructors of the data types for which
+  -- we are defining instances.
+  -- conNames :: [[IR.ConName]]
   conNames = map IR.typeDeclQName dataDecls
 
-  -- | Builds instances for a strongly connected component of types
-  --   for a specific typeclass.
+  -- | Constructs instances of a typeclass for a set of mutually recursive
+  --   types. The typeclass is specified by the arguments.
   buildInstances
-    :: [[IR.Type]] -- for each dataDecl, the types contained in it with nested occurrences of one of the dataDecls
-    -> String -- function prefix, i.e. what functions will be called (e.g. nf' or shareArgs)
-    -> String -- name of the typeclass
-    -> (IR.Type
-        -> Coq.Qualid
-        -> Converter ([Coq.Binder], Coq.Binder, Coq.Term, Coq.Term)) -- function to get class-specific binders and return types
-    -> (TypeMap
-        -> Coq.Qualid
+    ::
+    -- For each data declaration, this list contains the occurrences of
+    -- indirect recursion in the constructors of that data declaration.
+    [[IR.Type]]
+    -> String -- The name of the class function.
+    -> String -- The name of the typeclass.
+    -> (IR.Type -- The type for which the instance is being defined.
+        -> Coq.Qualid -- The name of a variable of that type.
+        -> Converter ([Coq.Binder], Coq.Binder, Coq.Term, Coq.Term))
+    -> (TypeMap -- A mapping from types to function names.
+        -> Coq.Qualid -- The name of a constructor.
         -> [(IR.Type, Coq.Qualid)]
-        -> Converter Coq.Term) -- how to actually build a value
+        -> Converter Coq.Term)
     -> Converter [Coq.Sentence]
   buildInstances recTypeList functionPrefix className getBindersAndReturnTypes
     buildValue = do
-      -- The names of the top-level functions must be defined outside of a local
-      -- environment to prevent any clashes with other names.
+      -- This map defines the name of the top-level class function for each
+      -- of the mutually recursive types.
+      -- It must be defined outside of a local environment to prevent any
+      -- clashes of the function names with other names.
       topLevelMap
         <- nameFunctionsAndInsert functionPrefix emptyTypeMap declTypes
-      -- top-level variables, one for each dataDecl
-      (typeLevelMaps, topLevelBindersAndReturnTypes, functionDefinitions)
-        <- localEnv $ do
-          typeLevelMaps <- mapM
-            (nameFunctionsAndInsert functionPrefix topLevelMap) recTypeList
-          topLevelVars <- freshQualids (length declTypes) "x"
-          topLevelBindersAndReturnTypes
-            <- zipWithM getBindersAndReturnTypes declTypes topLevelVars
-          funcDefs <- buildFunctions topLevelVars typeLevelMaps
-            topLevelBindersAndReturnTypes
-          return (typeLevelMaps, topLevelBindersAndReturnTypes, funcDefs)
-      -- The instance must also be defined outside of a local environment so
-      -- that the instance name does not clash with any other names.
-      instanceDefinitions <- zipWithM (uncurry buildInstance)
-        (zip typeLevelMaps declTypes) topLevelBindersAndReturnTypes
-      return (functionDefinitions : instanceDefinitions)
+      (fixBodies, instances) <- mapAndUnzipM
+        (uncurry (buildFixBodyAndInstance topLevelMap))
+        (zip declTypes recTypeList)
+      return
+        $ Coq.FixpointSentence (Coq.Fixpoint (NonEmpty.fromList fixBodies) [])
+        : instances
    where
-    buildInstance :: TypeMap
-                  -> IR.Type
-                  -> ([Coq.Binder], Coq.Binder, Coq.Term, Coq.Term)
-                  -> Converter Coq.Sentence
-    buildInstance m t (binders, _, _, retType) = do
-      -- @nf' := nf'T@
+
+
+        -- Constructs the class function and class instance for a single type.
+    buildFixBodyAndInstance
+        ::
+        -- A map to map occurrences of the top-level types to recursive
+        -- function calls.
+        TypeMap
+        -> IR.Type
+        -> [IR.Type]
+        -> Converter (Coq.FixBody, Coq.Sentence)
+    buildFixBodyAndInstance topLevelMap t recTypes = do
+        -- Locally visible definitions are defined in a local environment.
+        (fixBody, typeLevelMap, binders, instanceRetType)
+            <- (localEnv $ do
+                -- This map names necessary local functions and maps indirectly
+                -- recursive types to the appropriate function names.
+                typeLevelMap
+                    <- nameFunctionsAndInsert functionPrefix topLevelMap recTypes
+                -- Name the argument of type @t@ given to the class
+                -- function.
+                topLevelVar <- Coq.bare <$> freshCoqIdent freshArgPrefix
+                -- Compute class-specific binders and return types.
+                (binders, varBinder, retType, instanceRetType)
+                    <- getBindersAndReturnTypes t topLevelVar
+                -- Build the implementation of the class function.
+                fixBody <- makeFixBody typeLevelMap topLevelVar t
+                    (binders ++ [varBinder]) retType recTypes
+                return (fixBody, typeLevelMap, binders, instanceRetType))
+        -- Build the class instance for the given type.
+        -- The instance must be defined outside of a local environment so
+        -- that the instance name does not clash with any other names.
+        instanceDefinition <- buildInstance typeLevelMap t binders instanceRetType
+        return (fixBody, instanceDefinition)
+
+    -- | Builds an instance for a specific type and typeclass.
+    buildInstance
+      ::
+      -- A mapping from (indirectly) recursive types to function names.
+      TypeMap
+      -- The type for which we are defining an instance.
+      -> IR.Type
+      -- The binders the instance declaration needs.
+      -> [Coq.Binder]
+      -- The return type of the instance declaration.
+      -> Coq.Term
+      -> Converter Coq.Sentence
+    buildInstance m t binders retType = do
+      -- Define the class function as the function to which the current type
+      -- is mapped.
       let instanceBody
             = (Coq.bare functionPrefix, Coq.Qualid (fromJust (lookupType t m)))
       instanceName <- Coq.bare <$> nameFunction className t
       return
-        $ Coq.InstanceSentence (Coq.InstanceDefinition instanceName (freeArgsBinders ++ binders)
-                                retType [instanceBody] Nothing)
+        $ Coq.InstanceSentence
+        (Coq.InstanceDefinition instanceName (freeArgsBinders ++ binders)
+         retType [instanceBody] Nothing)
 
-    buildFunctions :: [Coq.Qualid]
-                   -> [TypeMap]
-                   -> [([Coq.Binder], Coq.Binder, Coq.Term, Coq.Term)]
-                   -> Converter Coq.Sentence
-    buildFunctions topLevelVars typeLevelMaps topLevelBindersAndReturnTypes = do
-      fixBodies <- zipWithM
-            (uncurry (uncurry (uncurry makeFixBody))) -- I don't like this...
-            (zip (zip (zip typeLevelMaps topLevelVars) declTypes)
-            topLevelBindersAndReturnTypes) recTypeList
-      return
-        $  Coq.FixpointSentence (Coq.Fixpoint (NonEmpty.fromList fixBodies) [])
-
-    makeFixBody :: TypeMap
-                -> Coq.Qualid
-                -> IR.Type
-                -> ([Coq.Binder], Coq.Binder, Coq.Term, Coq.Term)
-                -> [IR.Type]
-                -> Converter Coq.FixBody
-    makeFixBody m varName t (binders, varBinder, retType, _) recTypes = do
+    -- | Generates the implementation of a class function for the given type.
+    makeFixBody
+      -- A mapping from (indirectly) recursive types to function names.
+      :: TypeMap
+      -- The identifier of the argument the class function is applied to.
+      -> Coq.Qualid
+       -- The type for which we are defining an instance.
+       -> IR.Type
+       -- The binders needed for the class function implementation.
+       -> [Coq.Binder]
+       -- The return type of the class function.
+       -> Coq.Term
+       -- The list of indirectly recursive types that occur as arguments
+       -- in the given type in topological order.
+       -> [IR.Type]
+       -> Converter Coq.FixBody
+    makeFixBody m varName t binders retType recTypes = do
       rhs <- generateBody m varName t recTypes
       return
         $ Coq.FixBody (fromJust (lookupType t m))
-        (NonEmpty.fromList (freeArgsBinders ++ binders ++ [varBinder])) Nothing (Just retType) rhs
+        (NonEmpty.fromList (freeArgsBinders ++ binders)) Nothing (Just retType)
+        rhs
 
+    -- | Creates the function body for a class function by creating local
+    --   functions for all indirectly recursive types.
     generateBody
       :: TypeMap -> Coq.Qualid -> IR.Type -> [IR.Type] -> Converter Coq.Term
+    -- If there are no indirectly recursive types, match on the constructors of
+    -- the original type.
     generateBody m varName t []
       = matchConstructors m varName t
+    -- For each indirectly recursive type, create a local function as a
+    -- @let fix@ declaration and generate the definition of the class function
+    -- for that type.
+    -- This local declaration is wrapped around all remaining declarations and
+    -- is therefore visible when defining them.
     generateBody m varName t (recType : recTypes) = do
       inBody <- generateBody m varName t recTypes
       var <- Coq.bare <$> freshCoqIdent freshArgPrefix
+      -- Create the body of the local function by matching on the type's
+      -- constructors.
       letBody <- matchConstructors m var recType
       (binders, varBinder, retType, _) <- getBindersAndReturnTypes recType var
       let Just localFuncName = lookupType recType m
@@ -415,6 +484,7 @@ generateTypeclassInstances dataDecls = do
                               (NonEmpty.fromList (binders ++ [varBinder]))
                               Nothing (Just retType) letBody))) inBody
 
+    -- | Matches on the constructors of a type.
     matchConstructors :: TypeMap -> Coq.Qualid -> IR.Type -> Converter Coq.Term
     matchConstructors m varName t = do
       let Just conName = IR.getTypeConName t
@@ -422,31 +492,35 @@ generateTypeclassInstances dataDecls = do
       equations <- mapM (buildEquation m t) (entryConsNames entry)
       return $ Coq.match (Coq.Qualid varName) equations
 
-     -- type: type expression for unification
-     -- conName : data constructor name of type
-    buildEquation
-      :: TypeMap
-      -> IR.Type
-      -> IR.ConName
-      -> Converter Coq.Equation
+    -- | Creates a match equation on a given data constructor with a
+    --   class-specific right-hand side.
+    buildEquation :: TypeMap -> IR.Type -> IR.ConName -> Converter Coq.Equation
     buildEquation m t conName = do
       conEntry <- lookupEntryOrFail NoSrcSpan IR.ValueScope conName
-      let retType = entryReturnType conEntry
-      let conIdent = entryIdent conEntry -- :: Qualid
+      retType <- expandAllTypeSynonyms (entryReturnType conEntry)
+      -- Get the Coq name of the constructor.
+      let conIdent = trace ("Con name: " ++ show conName ++ ", RetType : " ++ showPretty retType ++", t : "  ++ showPretty t) $ entryIdent conEntry
+      -- Generate fresh variables for the constructor's parameters.
       conArgIdents <- freshQualids (entryArity conEntry) ("f" ++ freshArgPrefix)
       -- Replace all underscores with fresh variables before unification.
       tFreshVars <- insertFreshVariables t
       subst <- unifyOrFail NoSrcSpan tFreshVars retType
-      let modArgTypes = map (stripType . applySubst subst)
-            (entryArgTypes conEntry)
-      let lhs = Coq.ArgsPat conIdent (map Coq.QualidPat conArgIdents)
+      -- Find out the type of each constructor argument by unifying its return
+      -- type with the given type expression and applying the resulting
+      -- substitution to each constructor argument's type.
+      -- Then convert all irrelevant components into underscores again so the
+      -- type can be looked up in the type map.
+      expandedArgTypes <- mapM expandAllTypeSynonyms (entryArgTypes conEntry)
+      let modArgTypes = map (stripType . applySubst subst) expandedArgTypes
+      let lhs =  Coq.ArgsPat conIdent (map Coq.QualidPat conArgIdents)
+      -- Build the right-hand side of the equation by applying the
+      -- class-specific function buildValue.
       rhs <- buildValue m conIdent (zip modArgTypes conArgIdents)
       return $ Coq.equation lhs rhs
 
   -----------------------------------------------------------------------------
   -- Type Analysis                                                           --
   -----------------------------------------------------------------------------
-
   -- This function collects all fully-applied type constructors
   -- of arity at least 1 (including their arguments) that occur in the given type.
   -- All arguments that do not contain occurrences of the types for which
@@ -487,9 +561,7 @@ generateTypeclassInstances dataDecls = do
 -------------------------------------------------------------------------------
 -- Typeclasses                                                               --
 -------------------------------------------------------------------------------
-
 ------- Functions for building Normalform instances -------
-
 -- regular binders, top-level variable binder, return type of function belonging to type,
 -- type of instance.
 nfBindersAndReturnType
@@ -513,36 +585,55 @@ nfBindersAndReturnType t varName = do
 -- | Builds a normalized @Free@ value for the given constructor
 --   and constructor parameters.
 buildNormalformValue
-  :: TypeMap -> Coq.Qualid -> [(IR.Type, Coq.Qualid)] -> Converter Coq.Term
+  :: TypeMap -- a map to associate types with the appropriate functions to call.
+  -> Coq.Qualid -- the name of the constructor used to build the value.
+  -> [(IR.Type, Coq.Qualid)
+     ] --the types and names of the constructor's parameters
+  -> Converter Coq.Term
 buildNormalformValue nameMap consName = buildNormalformValue' []
  where
+  -- | Like 'buildNormalformValue', but with an additional parameter to accumulate
+  --   bound variables.
   buildNormalformValue'
     :: [Coq.Qualid] -> [(IR.Type, Coq.Qualid)] -> Converter Coq.Term
-  buildNormalformValue' vals [] = do
-    args <- mapM (generatePure . Coq.Qualid) (reverse vals)
+
+  -- If all components have been normalized, apply the constructor to
+  -- the normalized components.
+  buildNormalformValue' boundVars [] = do
+    args <- mapM (generatePure . Coq.Qualid) (reverse boundVars)
     generatePure (Coq.app (Coq.Qualid consName) args)
-  buildNormalformValue' vals ((t, varName) : consVars)
-    = case lookupType t nameMap of
+  -- For each component, apply the appropriate function, bind the
+  -- result and do the remaining computation.
+  buildNormalformValue' boundVars ((t, varName) : consVars)
+    = trace (show varName ++ " :: " ++ showPretty t ++ "\n") $ case lookupType t nameMap of
+      -- For recursive or indirectly recursive calls, the type map
+      -- returns the name of the appropriate function to call.
       Just funcName -> do
+        -- Because the functions work on bare values, the component
+        -- must be bound (to a fresh variable).
         x <- Coq.bare <$> freshCoqIdent freshArgPrefix
+        -- The result of the normalization will also be bound to a fresh variable.
         nx <- Coq.bare <$> freshCoqIdent ("n" ++ freshArgPrefix)
-        rhs <- buildNormalformValue' (nx : vals) consVars
+        -- Do the rest of the computation with the added bound result.
+        rhs <- buildNormalformValue' (nx : boundVars) consVars
+        -- Construct the actual bindings and return the result.
         let c = Coq.fun [nx] [Nothing] rhs
-        let c'' = applyBind (Coq.app (Coq.Qualid funcName) [Coq.Qualid x]) c
-        return $ applyBind (Coq.Qualid varName) (Coq.fun [x] [Nothing] c'')
+        let c' = applyBind (Coq.app (Coq.Qualid funcName) [Coq.Qualid x]) c
+        return $ applyBind (Coq.Qualid varName) (Coq.fun [x] [Nothing] c')
+      -- If there is no entry in the type map, we can assume that an instance
+      -- already exists. Therefore, we apply @nf@ to the component to receive
+      -- a normalized value.
       Nothing       -> do
         nx <- Coq.bare <$> freshCoqIdent ("n" ++ freshArgPrefix)
-        rhs <- buildNormalformValue' (nx : vals) consVars
-        let cont = Coq.fun [nx] [Nothing] rhs
+        rhs <- buildNormalformValue' (nx : boundVars) consVars
+        let c = Coq.fun [nx] [Nothing] rhs
         return
           $ applyBind
-          (Coq.app (Coq.Qualid (Coq.bare "nf")) [Coq.Qualid varName]) cont
-
+          (Coq.app (Coq.Qualid (Coq.bare "nf")) [Coq.Qualid varName]) c
 
 -------------------------------------------------------------------------------
 -- Helper functions                                                          --
 -------------------------------------------------------------------------------
-
 -- Like showPretty, but uses the Coq identifiers of the type and its components.
 showPrettyType :: IR.Type -> Converter String
 
@@ -566,8 +657,7 @@ dataDeclToType :: IR.TypeDecl -> IR.Type
 dataDeclToType dataDecl = IR.typeConApp NoSrcSpan (IR.typeDeclQName dataDecl)
   (replicate (length (IR.typeDeclArgs dataDecl)) (IR.TypeVar NoSrcSpan "_"))
 
--- Replaces all variables ("don't care" values) with
--- fresh variables.
+-- Replaces all variables in a type with fresh variables.
 insertFreshVariables :: IR.Type -> Converter IR.Type
 insertFreshVariables (IR.TypeVar srcSpan _) = do
   freshVar <- freshHaskellIdent freshArgPrefix
@@ -576,15 +666,13 @@ insertFreshVariables (IR.TypeApp srcSpan l r) = do
   lFresh <- insertFreshVariables l
   rFresh <- insertFreshVariables r
   return (IR.TypeApp srcSpan lFresh rFresh)
--- Type constructors are returned as-is.
--- Function types should not occur, but are also simply returned.
+-- Type constructors and function types are returned as-is.
 insertFreshVariables t = return t
 
 -- Binders for (implicit) Shape and Pos arguments.
 -- freeArgsBinders = [ {Shape : Type}, {Pos : Shape -> Type} ]
 freeArgsBinders :: [Coq.Binder]
-freeArgsBinders = map (uncurry (Coq.typedBinder' Coq.Implicit))
-  Coq.Base.freeArgs
+freeArgsBinders = genericArgDecls Coq.Implicit
 
 -- Shortcut for the construction of an implicit binder for type variables.
 -- typeBinder [a1, ..., an] = {a1 ... an : Type}
@@ -617,11 +705,12 @@ buildConstraint ident args = Coq.Generalized Coq.Implicit
 -- | Converts a type into a Coq type (a term) with the specified
 --   additional arguments (for example Shape and Pos) and new variables for all
 --   underscores.
--- TODO use convertType
-toCoqType
-  :: String -- the prefix of the fresh variables
-      -> [Coq.Term] -- A list of additional
-      -> IR.Type -> Converter (Coq.Term, [Coq.Qualid])
+--   Similar to convertType, but does not necessarily apply the type constructor
+--   to Shape and Pos.
+toCoqType :: String -- the prefix of the fresh variables
+          -> [Coq.Term] -- A list of additional
+          -> IR.Type
+          -> Converter (Coq.Term, [Coq.Qualid])
 toCoqType varPrefix _ (IR.TypeVar _ _)           = do
   x <- Coq.bare <$> freshCoqIdent varPrefix
   return (Coq.Qualid x, [x])
