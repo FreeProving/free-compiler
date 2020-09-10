@@ -97,8 +97,8 @@
 --     * @coq-name@ (@String@) the identifier of the corresponding Coq
 --       function.
 --     * @arity@ (@Integer@) the number of arguments expected by the function.
---     * @partial@ (@Boolean@) whether the function is partial (i.e., requires
---       an instance of the @Partial@ type class).
+--     * @effects@ (@Array@ of @String@) the effects contained in the function,
+--       i.e. which type classes need to be passed.
 --     * @needs-free-args@ (@Boolean@) whether the arguments of the @Free@
 --       monad need to be passed to the function.
 module FreeC.Environment.ModuleInterface.Decoder ( loadModuleInterface ) where
@@ -136,7 +136,7 @@ import           FreeC.Util.Config
 --   that the implementation of the corresponding change in the other module
 --   is forgotten.
 moduleInterfaceFileFormatVersion :: Integer
-moduleInterfaceFileFormatVersion = 3
+moduleInterfaceFileFormatVersion = 4
 
 -- | Parses an IR AST node from an Aeson string.
 parseAesonIR :: Parseable a => Text -> Aeson.Parser a
