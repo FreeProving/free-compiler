@@ -21,12 +21,12 @@ import           FreeC.Test.Parser
 -- | Parses the given type-level IR declarations, converts them to Coq using
 --   'convertTypeComponent' and sets the expectation that the resulting AST
 --   is equal to the given output when pretty printed modulo whitespace.
-shouldConvertTypeDeclsTo
+shouldConvertLocalTypeDeclsTo
   :: DependencyComponent String -> String -> Converter Expectation
-shouldConvertTypeDeclsTo inputStrs expectedOutputStr = do
+shouldConvertLocalTypeDeclsTo inputStrs expectedOutputStr = do
   input <- parseTestComponent inputStrs
   output <- convertTypeComponent input
-  return (output `prettyShouldBe` expectedOutputStr)
+  return (output `prettyShouldBe` (expectedOutputStr, ""))
 
 -------------------------------------------------------------------------------
 -- Tests for Type Synonym Declarations                                       --
@@ -41,7 +41,8 @@ testConvertTypeDecl
         "Integer" <- defineTestTypeCon "Integer" 0 []
         "List" <- defineTestTypeCon "List" 1 []
         "TermPos" <- defineTestTypeSyn "TermPos" [] "List Integer"
-        shouldConvertTypeDeclsTo (NonRecursive "type TermPos = List Integer")
+        shouldConvertLocalTypeDeclsTo
+          (NonRecursive "type TermPos = List Integer")
           $ "Definition TermPos (Shape : Type) (Pos : Shape -> Type)"
           ++ "  : Type"
           ++ " := List Shape Pos (Integer Shape Pos)."
@@ -49,7 +50,7 @@ testConvertTypeDecl
       "List" <- defineTestTypeCon "List" 1 []
       "Pair" <- defineTestTypeCon "Pair" 2 []
       "Queue" <- defineTestTypeSyn "Queue" ["a"] "Pair (List a) (List a)"
-      shouldConvertTypeDeclsTo
+      shouldConvertLocalTypeDeclsTo
         (NonRecursive "type Queue a = Pair (List a) (List a)")
         $ "Definition Queue (Shape : Type) (Pos : Shape -> Type)"
         ++ "  (a : Type) : Type"
@@ -63,7 +64,7 @@ testConvertTypeDecl
         ("leaf", "Leaf") <- defineTestCon "Leaf" 1 "forall a. a -> Tree a"
         ("branch", "Branch")
           <- defineTestCon "Branch" 1 "forall a. Forest a -> Tree a"
-        shouldConvertTypeDeclsTo
+        shouldConvertLocalTypeDeclsTo
           (Recursive [ "type Forest a = List (Tree a)"
                      , "data Tree a = Leaf a | Branch (Forest a)"
                      ])
@@ -98,7 +99,7 @@ testConvertTypeDecl
       "Baz" <- defineTestTypeSyn "Baz" [] "Foo"
       "Foo" <- defineTestTypeCon "Foo" 1 ["Foo"]
       ("foo", "Foo0") <- defineTestCon "Foo" 2 "Bar -> Baz -> Foo"
-      shouldConvertTypeDeclsTo
+      shouldConvertLocalTypeDeclsTo
         (Recursive
          ["type Bar = Baz", "type Baz = Foo", "data Foo = Foo Bar Baz"])
         $ "(* Data type declarations for Foo *) "
@@ -141,7 +142,7 @@ testConvertDataDecls
       "Foo" <- defineTestTypeCon "Foo" 0 ["Bar", "Baz"]
       ("bar", "Bar") <- defineTestCon "Bar" 0 "Foo"
       ("baz", "Baz") <- defineTestCon "Baz" 0 "Foo"
-      shouldConvertTypeDeclsTo (NonRecursive "data Foo = Bar | Baz")
+      shouldConvertLocalTypeDeclsTo (NonRecursive "data Foo = Bar | Baz")
         $ "(* Data type declarations for Foo *) "
         ++ "Inductive Foo (Shape : Type) (Pos : Shape -> Type) : Type "
         ++ " := bar : Foo Shape Pos "
@@ -166,7 +167,8 @@ testConvertDataDecls
       "Foo" <- defineTestTypeCon "Foo" 2 ["Bar", "Baz"]
       ("bar", "Bar") <- defineTestCon "Bar" 1 "forall a b. a -> Foo a b"
       ("baz", "Baz") <- defineTestCon "Baz" 1 "forall a b. b -> Foo a b"
-      shouldConvertTypeDeclsTo (NonRecursive "data Foo a b = Bar a | Baz b")
+      shouldConvertLocalTypeDeclsTo
+        (NonRecursive "data Foo a b = Bar a | Baz b")
         $ "(* Data type declarations for Foo *) "
         ++ "Inductive Foo (Shape : Type) (Pos : Shape -> Type) "
         ++ " (a b : Type) : Type "
@@ -193,7 +195,7 @@ testConvertDataDecls
       $ do
         "Foo" <- defineTestTypeCon "Foo" 0 ["Foo"]
         ("foo", "Foo0") <- defineTestCon "Foo" 0 "Foo"
-        shouldConvertTypeDeclsTo (NonRecursive "data Foo = Foo")
+        shouldConvertLocalTypeDeclsTo (NonRecursive "data Foo = Foo")
           $ "(* Data type declarations for Foo *) "
           ++ "Inductive Foo (Shape : Type) (Pos : Shape -> Type) : Type "
           ++ " := foo : Foo Shape Pos. "
@@ -211,7 +213,7 @@ testConvertDataDecls
       $ do
         "Foo" <- defineTestTypeCon "Foo" 0 ["A"]
         ("a", "A") <- defineTestCon "A" 1 "forall a. a -> Foo a"
-        shouldConvertTypeDeclsTo (NonRecursive "data Foo a = A a")
+        shouldConvertLocalTypeDeclsTo (NonRecursive "data Foo a = A a")
           $ "(* Data type declarations for Foo *) "
           ++ "Inductive Foo (Shape : Type) (Pos : Shape -> Type) "
           ++ " (a0 : Type) : Type "
@@ -232,7 +234,7 @@ testConvertDataDecls
         ("foo", "Foo0") <- defineTestCon "Foo" 1 "Bar -> Foo"
         "Bar" <- defineTestTypeCon "Bar" 0 ["Bar"]
         ("bar", "Bar0") <- defineTestCon "Bar" 1 "Foo -> Bar"
-        shouldConvertTypeDeclsTo
+        shouldConvertLocalTypeDeclsTo
           (Recursive ["data Foo = Foo Bar", "data Bar = Bar Foo"])
           $ "(* Data type declarations for Foo, Bar *) "
           ++ "Inductive Foo (Shape : Type) (Pos : Shape -> Type) : Type"
