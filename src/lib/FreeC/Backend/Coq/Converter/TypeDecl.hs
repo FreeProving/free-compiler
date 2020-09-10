@@ -5,8 +5,9 @@ module FreeC.Backend.Coq.Converter.TypeDecl where
 import           Control.Monad
   ( foldM, mapAndUnzipM, replicateM, zipWithM )
 import           Control.Monad.Extra              ( concatMapM )
-import           Data.List                        ( nub, partition )
+import           Data.List                        ( nub, partition, intercalate ) -- TODO: Remove intercalate
 import qualified Data.List.NonEmpty               as NonEmpty
+import qualified Data.Map                         as Map
 import           Data.Maybe                       ( catMaybes, fromJust )
 import qualified Data.Set                         as Set
 
@@ -207,11 +208,111 @@ convertDataDecl (IR.DataDecl _ (IR.DeclIdent _ name) typeVarDecls conDecls) = do
 convertDataDecl (IR.TypeSynDecl _ _ _ _)
   = error "convertDataDecl: Type synonym not allowed."
 
------- Instance generation -------
--- builds instances for all available typeclasses (currently Normalform)
+-------------------------------------------------------------------------------
+-- Instance Generation                                                       --
+-------------------------------------------------------------------------------
+
+-- | Builds instances for all supported typeclasses.
+--   Currently, only a @Normalform@ instance is generated.
+--
+--   [...]
+--
+--   Suppose we have a type
+--   @data T a1 ... an = C1 a11 ... a1m1 | ... | Ck ak1 ... akmk@.
+--   We wish to generate an instance of class @C@ providing the function
+--   @f : T a1 ... an -> B@, where @B@ is a type.
+--   For example, for the @Normalform@ class @f@ would be
+--   @nf' : T a1 ... an -> Free Shape Pos (T a1 ... an)@.
+--
+--   The generated function has the following basic structure:
+--
+--   @f'T < class-specific binders > (x : T a1 ... an) : B
+--        := match x with
+--           | C1 fx11 ... fx1m1 => < buildValue x [fx11, ..., fx1m1] >
+--           | ...
+--           | Ck fxk1 ... fxkmk => < buildValue x [fxk1, ..., fxkmk] >
+--           end.
+--
+--   @buildValue x [fxi1, ..., fximi]@ represents class-specific code that
+--   actually constructs a value of type @B@ when given @x@ and the
+--   constructor's parameters as arguments.
+--
+--   For example, for a @Normalform@ instance of a type
+--   @data List a = Nil | Cons a (List a)@,
+--   the function would look as follows.
+--
+--   @nf'List_ {Shape : Type} {Pos : Shape -> Type}
+--            {a b : Type} `{Normalform Shape Pos a b}
+--            (x : List Shape Pos a)
+--     : Free Shape Pos (List Identity.Shape Identity.Pos b)
+--        := match x with
+--           | nil => pure nil
+--           | cons fx_0 fx_1 => nf fx_0 >>= fun nx_0 =>
+--                               fx_1 >>= fun x_1 =>
+--                               nf'List x_1 >>= fun nx_1 =>
+--                               pure (cons (pure nx_0) (pure nx_1))
+--           end.
+--
+--   Typically, @buildValue@ will use the class function @f@ on all components,
+--   then reconstruct the value using the results of those function calls.
+--   In the example above, we use @nf@ on @fx_0@ of type @a@. @nf fx_0@ means
+--   the same as @fx_0 >>= fun x_0 => nf' x_0@.
+--
+--   Since we translate types in topological order and @C@ instances exist for
+--   all previously translated types (and types from the Prelude), we can use
+--   @f@ on most arguments.
+--   For all type variables, we introduce class constraints into the type
+--   signature of the function.
+--   However, this is not possible for (indirectly) recursive arguments.
+--
+--   A directly recursive argument has the type @T t1 ... tn@, where @ti@ are
+--   type expressions (not necessarily type variables). We assume that @ti'@
+--   does not contain @T@ for any @i@, as this would constitute a non-positive
+--   occurrence of @T@ and make @T@ invalid in Coq.
+--   For these arguments, instead of the function @f@ we call @fT@ recursively.
+--
+--   An indirectly recursive argument is an argument of a type that is not @T@,
+--   but contains @T@.
+--   These arguments are problematic because we can neither use @f@ on them
+--   (as that would generally require a @C@ instance of @T@) nor can we use
+--   @fT@.
+--
+--   The problem is solved by introducing a local function fT' for every type
+--   @T'@ that contains @T@ that inlines the definition of a @T'@ instance of
+--   @C@, and call this functions for arguments of type @T'@.
+--   These local functions are as polymorphic as possible to reduce the number
+--   of local functions we need.
+--
+--   For example, if we want to generate an instance for the Haskell type
+--   @data Forest a = AForest [Forest a]
+--                  | IntForest [Forest Int]
+--                  | BoolForest [ForestBool]@,
+--   only one local function is needed.
+--   @fListForest_ : List Shape Pos (Forest Shape Pos a)
+--                -> Free Shape Pos (List Identity.Shape Identity.Pos
+--                                    (Forest Identity.Shape Identity.Pos b))@
+--
+--   To generate these local function, for every type expression @aij@ in the
+--   constructors of @T@, we collect all types that contain the original type
+--   @T@.
+--   More specifically, a type expression @T' t1 ... tm@ is collected if
+--   @ti = T t1' ... tn'@ for some type expressions @t1', ..., tn'@, or if @ti@
+--   is collected for some @i@.
+--   During this process, any type expression that does not contain @T@ is
+--   replaced by a placeholder variable "_".
+--
+--   We keep track of which types correspond to which function with a map.
+--
+--   The generated functions @fT1, ..., fTn@ for @n@ mutually recursive types
+--   @T1, ... Tn@ are a set of @n@ @Fixpoint@ definitions linked with @with@.
+--   Indirectly recursive types and local functions based on them are computed
+--   for each type.
+--   In this case, a type @T'@ is considered indirectly recursive if it
+--   contains any of the types @T1, ..., Tn@.
+--   Arguments of type @Ti@ can be treated like directly recursive arguments.
 generateAllInstances :: [IR.TypeDecl] -> Converter [Coq.Sentence]
 generateAllInstances dataDecls = do
-  let argTypes = map (concatMap IR.conDeclFields . IR.dataDeclCons) dataDecls -- :: [[IR.Type]]
+  let argTypes = map (concatMap IR.conDeclFields . IR.dataDeclCons) dataDecls
   argTypesExpanded
     <- mapM (mapM expandAllTypeSynonyms) argTypes -- :: [[IR.Type]]
   let types = map (nub . reverse . concatMap collectSubTypes) argTypesExpanded
@@ -224,7 +325,8 @@ generateAllInstances dataDecls = do
 
   conNames = map IR.typeDeclQName dataDecls
 
-  -- makes instances for a specific typeclass
+  -- | Builds instances for a strongly connected component of types
+  --   for a specific typeclass.
   buildInstances
     :: [[IR.Type]] -- for each dataDecl, the types contained in it with nested occurrences of one of the dataDecls
     -> String -- function prefix, i.e. what functions will be called (e.g. nf' or shareArgs)
@@ -279,11 +381,11 @@ generateAllInstances dataDecls = do
                    -> Converter Coq.Sentence
     buildFunctions topLevelVars typeLevelMaps topLevelBindersAndReturnTypes = do
       fixBodies <- zipWithM
-        (uncurry (uncurry (uncurry makeFixBody))) -- TODO Refactor more?
-        (zip (zip (zip typeLevelMaps topLevelVars) declTypes)
-         topLevelBindersAndReturnTypes) recTypeList
+            (uncurry (uncurry (uncurry makeFixBody))) -- I don't like this...
+            (zip (zip (zip typeLevelMaps topLevelVars) declTypes)
+            topLevelBindersAndReturnTypes) recTypeList
       return
-        $ Coq.FixpointSentence (Coq.Fixpoint (NonEmpty.fromList fixBodies) [])
+        $  Coq.FixpointSentence (Coq.Fixpoint (NonEmpty.fromList fixBodies) [])
 
     makeFixBody :: TypeMap
                 -> Coq.Qualid
@@ -326,8 +428,7 @@ generateAllInstances dataDecls = do
       :: TypeMap
       -> IR.Type
       -> IR.ConName
-      -> Converter Coq.Equation -- TODO: rename type args before unification
-
+      -> Converter Coq.Equation
     buildEquation m t conName = do
       conEntry <- lookupEntryOrFail NoSrcSpan IR.ValueScope conName
       let retType = entryReturnType conEntry
@@ -342,14 +443,17 @@ generateAllInstances dataDecls = do
       rhs <- buildValue m conIdent (zip modArgTypes conArgIdents)
       return $ Coq.equation lhs rhs
 
-  ------- Type analysis -------
-  -- This function collects all fully-applied type constructors 
+  -----------------------------------------------------------------------------
+  -- Type Analysis                                                           --
+  -----------------------------------------------------------------------------
+
+  -- This function collects all fully-applied type constructors
   -- of arity at least 1 (including their arguments) that occur in the given type.
   -- All arguments that do not contain occurrences of the types for which
   -- we are defining an instance are replaced by the type variable "_".
-  -- The resulting list contains (in reverse topological order) exactly all 
-  -- types for which we must define a separate function in the instance 
-  -- definition, where all occurrences of "_" represent the polymorphic 
+  -- The resulting list contains (in reverse topological order) exactly all
+  -- types for which we must define a separate function in the instance
+  -- definition, where all occurrences of "_" represent the polymorphic
   -- components of the function.
   collectSubTypes :: IR.Type -> [IR.Type]
   collectSubTypes = collectFullyAppliedTypes True
@@ -380,9 +484,14 @@ generateAllInstances dataDecls = do
   -- Type variables and function types are not relevant and are replaced by "_".
   stripType' _ _ = IR.TypeVar NoSrcSpan "_"
 
------------ Functions specific to a typeclass ------------
+-------------------------------------------------------------------------------
+-- Typeclasses                                                               --
+-------------------------------------------------------------------------------
+
 ------- Functions for building Normalform instances -------
--- regular binders, top-level variable binder, return type of function belonging to type, class name
+
+-- regular binders, top-level variable binder, return type of function belonging to type,
+-- type of instance.
 nfBindersAndReturnType
   :: IR.Type
   -> Coq.Qualid
@@ -401,6 +510,8 @@ nfBindersAndReturnType t varName = do
   let funcRetType = applyFree targetType
   return (binders, topLevelVarBinder, funcRetType, instanceRetType)
 
+-- | Builds a normalized @Free@ value for the given constructor
+--   and constructor parameters.
 buildNormalformValue
   :: TypeMap -> Coq.Qualid -> [(IR.Type, Coq.Qualid)] -> Converter Coq.Term
 buildNormalformValue nameMap consName = buildNormalformValue' []
@@ -427,7 +538,11 @@ buildNormalformValue nameMap consName = buildNormalformValue' []
           $ applyBind
           (Coq.app (Coq.Qualid (Coq.bare "nf")) [Coq.Qualid varName]) cont
 
----------------- Helper functions for types -----------------
+
+-------------------------------------------------------------------------------
+-- Helper functions                                                          --
+-------------------------------------------------------------------------------
+
 -- Like showPretty, but uses the Coq identifiers of the type and its components.
 showPrettyType :: IR.Type -> Converter String
 
@@ -445,7 +560,7 @@ showPrettyType (IR.TypeApp _ l r)     = do
 showPrettyType (IR.FuncType _ _ _)
   = error "Function types should have been eliminated."
 
--- Converts a data declaration to a type by applying its constructor to the 
+-- Converts a data declaration to a type by applying its constructor to the
 -- correct number of variables, denoted by underscores.
 dataDeclToType :: IR.TypeDecl -> IR.Type
 dataDeclToType dataDecl = IR.typeConApp NoSrcSpan (IR.typeDeclQName dataDecl)
@@ -465,7 +580,6 @@ insertFreshVariables (IR.TypeApp srcSpan l r) = do
 -- Function types should not occur, but are also simply returned.
 insertFreshVariables t = return t
 
-------------------- Coq AST helper functions/shortcuts -------------------
 -- Binders for (implicit) Shape and Pos arguments.
 -- freeArgsBinders = [ {Shape : Type}, {Pos : Shape -> Type} ]
 freeArgsBinders :: [Coq.Binder]
@@ -499,7 +613,9 @@ buildConstraint :: String -> [Coq.Qualid] -> Coq.Binder
 buildConstraint ident args = Coq.Generalized Coq.Implicit
   (Coq.app (Coq.Qualid (Coq.bare ident)) (shapeAndPos ++ map Coq.Qualid args))
 
--- converts our type into a Coq type (a term) with new variables for all don't care values.
+-- converts our type into a Coq type (a term) with the specified
+-- additional arguments (e.g. Shape and Pos) and new variables for all
+-- underscores.
 -- We can also choose the prefix for those variables.
 toCoqType
   :: String -> [Coq.Term] -> IR.Type -> Converter (Coq.Term, [Coq.Qualid])
@@ -517,12 +633,12 @@ toCoqType _ _ (IR.FuncType _ _ _)
   = error "Function types should have been eliminated."
 
 -------------------------------
--- Function name map 
+-- Function name map
 -- For each type that contains one of the types we are defining
--- an instance for - directly or indirectly -, we insert an 
+-- an instance for - directly or indirectly -, we insert an
 -- entry into a map that returns the name of the function we
 -- should call on a value of that type.
--- For all types that do not have a corresponding entry, we 
+-- For all types that do not have a corresponding entry, we
 -- can assume that an instance already exists.
 type TypeMap = IR.Type -> Maybe Coq.Qualid
 
@@ -535,8 +651,8 @@ lookupType = flip ($)
 insertType :: IR.Type -> Coq.Qualid -> TypeMap -> TypeMap
 insertType k v m t = if k == t then Just v else m t
 
--- Creates an entry with a unique name for each of the given types and 
--- inserts them into the given map. 
+-- Creates an entry with a unique name for each of the given types and
+-- inserts them into the given map.
 nameFunctionsAndInsert :: String -> TypeMap -> [IR.Type] -> Converter TypeMap
 nameFunctionsAndInsert prefix = foldM (nameFunctionAndInsert prefix)
 
@@ -553,6 +669,6 @@ nameFunction prefix t = do
   prettyType <- showPrettyType t
   freshCoqIdent (prefix ++ prettyType)
 
--- Produces n new Coq identifiers (Qualids)
+-- Produces @n@ new Coq identifiers (Qualids)
 freshQualids :: Int -> String -> Converter [Coq.Qualid]
 freshQualids n prefix = replicateM n (Coq.bare <$> freshCoqIdent prefix)

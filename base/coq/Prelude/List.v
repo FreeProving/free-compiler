@@ -56,41 +56,29 @@ Section SecListNF.
 
 End SecListNF.
 
+
 Section SecListShrArgs.
 
-  Variable Shape : Type.
-  Variable Pos : Shape -> Type.
-  Variable A : Type.
+Variable Shape : Type.
+Variable Pos : Shape -> Type.
+Variable A : Type.
 
-  Fixpoint shareArgsList `{ShareableArgs Shape Pos A}
-                         `{Injectable Share.Shape Share.Pos Shape Pos}
-                          (xs : List Shape Pos A)
-    : Free Shape Pos (List Shape Pos A)
-   := 
-                         let shr fp := Get Shape Pos >>= fun '(i,j) =>
-                                       Put Shape Pos (i + 1, j) >>
-                                       pure (BeginShare Shape Pos (i,j) >>
-                                             Put Shape Pos (i, j + 1) >>
-                                             fp >>= fun x =>
-                                             shareArgsList x >>= fun x' =>
-                                             Put Shape Pos (i + 1, j) >>
-                                             EndShare Shape Pos (i,j) >>
-                                             pure x')
-                         in
-                         match xs with
-                         | nil         => pure nil
-                         | cons fy fys => 
-                                          shr fys >>= fun sys => 
-                                          cbneed Shape Pos fy >>= fun sy => 
-                                          pure (cons sy sys)
+Fixpoint shareArgsList `{SA : ShareableArgs Shape Pos A}
+                       `{Injectable Share.Shape Share.Pos Shape Pos}
+                        (xs : List Shape Pos A)
+                        {struct xs}
+  : Free Shape Pos (List Shape Pos A)
+ := match xs with
+    | nil         => pure nil
+    | cons fy fys => cbneed Shape Pos (@shareArgs Shape Pos A SA) fy >>= fun sy =>
+                     cbneed Shape Pos shareArgsList fys >>= fun sys => 
+                     pure (cons sy sys)
                          end.
 
 Global Instance ShareableArgsList `{Injectable Share.Shape Share.Pos Shape Pos}
                            `{ShareableArgs Shape Pos A}
   : ShareableArgs Shape Pos (List Shape Pos A)
- := {
-        shareArgs := shareArgsList
-    }.
+ := { shareArgs := shareArgsList }.
 
 End SecListShrArgs.
 
