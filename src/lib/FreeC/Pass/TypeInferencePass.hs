@@ -628,12 +628,14 @@ annotateExprWith' (IR.Lambda srcSpan args expr _) resType
         funcType = IR.funcType NoSrcSpan argTypes retType
     addTypeEquation srcSpan funcType resType
     return (IR.Lambda srcSpan args' expr' (makeExprType resType))
+-- If @let { x₀ = e₀ ; … xₙ = eₙ } in e :: τ@ then @x₀ :: α₀, …, xₙ :: αₙ@ for
+-- fresh type variables @α₀, …, αₙ@ and @e :: τ@. In contrast to Haskell, we
+-- do not allow the bindings tyo be polymorphic at the moment.
 annotateExprWith' (IR.Let srcSpan binds expr _) resType
   = withLocalTypeAssumption $ do
     bindVarPats' <- mapM (annotateVarPat . IR.bindVarPat) binds
-    exprType <- liftConverter freshTypeVar
     binds'' <- zipWithM annotateBindExpr binds bindVarPats'
-    expr' <- annotateExprWith expr exprType
+    expr' <- annotateExprWith expr resType
     return (IR.Let srcSpan binds'' expr' (makeExprType resType))
  where
   annotateBindExpr :: IR.Bind -> IR.VarPat -> TypeInference IR.Bind
