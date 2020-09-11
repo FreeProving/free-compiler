@@ -22,6 +22,7 @@ import           FreeC.Pass.KindCheckPass
 import           FreeC.Pass.PartialityAnalysisPass
 import           FreeC.Pass.QualifierPass
 import           FreeC.Pass.ResolverPass
+import           FreeC.Pass.PragmaPass
 import           FreeC.Pass.TypeInferencePass
 import           FreeC.Pass.TypeSignaturePass
 
@@ -34,6 +35,7 @@ pipeline = implicitPreludePass
   >=> dependencyAnalysisPass defineTypeDeclsPass
   >=> kindCheckPass
   >=> typeSignaturePass
+  >=> pragmaPass
   >=> dependencyAnalysisPass
   (typeInferencePass >=> defineFuncDeclsPass >=> partialityAnalysisPass)
   >=> completePatternPass

@@ -134,14 +134,10 @@ library freec-internal
                       , FreeC.Frontend.IR.PragmaParser
                       , FreeC.Frontend.IR.Scanner
                       , FreeC.Frontend.IR.Token
-                      , FreeC.Monad.Converter
-                      , FreeC.Monad.Class.Hoistable
-                      , FreeC.Monad.Reporter
                       , FreeC.IR.Base.Prelude
                       , FreeC.IR.Base.Test.QuickCheck
                       , FreeC.IR.DependencyGraph
                       , FreeC.IR.Inlining
-                      , FreeC.IR.Pragma
                       , FreeC.IR.Reference
                       , FreeC.IR.Similar
                       , FreeC.IR.SrcSpan
@@ -168,6 +164,9 @@ library freec-internal
                       , FreeC.LiftedIR.Syntax.Expr
                       , FreeC.LiftedIR.Syntax.Name
                       , FreeC.LiftedIR.Syntax.Type
+                      , FreeC.Monad.Class.Hoistable
+                      , FreeC.Monad.Converter
+                      , FreeC.Monad.Reporter
                       , FreeC.Pass
                       , FreeC.Pass.CompletePatternPass
                       , FreeC.Pass.DefineDeclPass
@@ -178,10 +177,11 @@ library freec-internal
                       , FreeC.Pass.ImportPass
                       , FreeC.Pass.KindCheckPass
                       , FreeC.Pass.PartialityAnalysisPass
-                      , FreeC.Pass.TypeInferencePass
-                      , FreeC.Pass.TypeSignaturePass
+                      , FreeC.Pass.PragmaPass
                       , FreeC.Pass.QualifierPass
                       , FreeC.Pass.ResolverPass
+                      , FreeC.Pass.TypeInferencePass
+                      , FreeC.Pass.TypeSignaturePass
                       , FreeC.Pipeline
                       , FreeC.Pretty
                       , FreeC.Util.Config
