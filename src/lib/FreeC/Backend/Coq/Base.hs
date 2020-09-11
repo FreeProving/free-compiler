@@ -38,6 +38,8 @@ module FreeC.Backend.Coq.Base
   , reservedIdents
   ) where
 
+import           Language.Coq.Pretty      ( showP )
+
 import qualified FreeC.Backend.Coq.Syntax as Coq
 import           FreeC.LiftedIR.Effect
 
@@ -172,7 +174,7 @@ shareableArgsBinder typeArg = Coq.Generalized Coq.Implicit
 
 -- | The Coq identifier for an implicit argument.
 implicitArg :: Coq.Qualid
-implicitArg = Coq.bare "_"
+implicitArg = Coq.bare $ showP Coq.Underscore
 
 -- | The Coq Identifier for the @share@ operator.
 share :: Coq.Qualid
