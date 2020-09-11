@@ -85,7 +85,7 @@ testTypeInferencePass = describe "FreeC.Analysis.TypeInference" $ do
               ++ "= foos (foo @a x) (foo @b y)"
           ]
   context "lambda abstractions" $ do
-    it "infer the type of arguments that shadow variables correctly"
+    it "infers the type of arguments that shadow variables correctly"
       $ shouldSucceedWith
       $ do
         shouldInferType (NonRecursive "f x = \\x -> x")
@@ -95,7 +95,7 @@ testTypeInferencePass = describe "FreeC.Analysis.TypeInference" $ do
       $ do
         _ <- defineTestFunc "g" 1 "forall a. a -> a"
         shouldInferType (NonRecursive "f x = \\g -> g x")
-          ["f @a @b (x :: a) :: (a -> b) -> b" ++ "  = \\(g :: a -> b) -> g x"]
+          ["f @a @b (x :: a) :: (a -> b) -> b = \\(g :: a -> b) -> g x"]
   context "case expressions" $ do
     it "infers the same type for all alternatives of case expressions"
       $ shouldSucceedWith
