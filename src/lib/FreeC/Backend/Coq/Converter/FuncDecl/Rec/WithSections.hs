@@ -12,7 +12,6 @@ module FreeC.Backend.Coq.Converter.FuncDecl.Rec.WithSections
 
 import           Control.Monad
   ( forM, mapAndUnzipM, zipWithM )
-import           Control.Monad.Extra                                  ( ifM )
 import           Data.List
   ( (\\), elemIndex, intercalate )
 import           Data.Map.Strict                                      ( Map )
@@ -590,19 +589,19 @@ generateInterfaceDecl constArgs isConstArgUsed nameMap mgu sectionTypeArgs
     -- Lookup the names of the constant arguments to pass to the main function.
     constArgNames' <- catMaybes
       <$> mapM (inEnv . lookupIdent IR.ValueScope) usedConstArgNames
-    -- If the function is partial, the @Partial@ instance needs to be passed
-    -- to the main function.
-    partialArg <- ifM (inEnv $ isPartial name)
-      (return [fst Coq.Base.partialArg]) (return [])
-    -- Lookup the names of all other arguments to pass to the main function.
-    let nonConstArgNames = map IR.varPatQName args \\ constArgNames
+    -- Lookup the effects of the function and the instances that need to be
+    -- passed to the main function.
+    effects <- inEnv $ lookupEffects name
+    let effectArgs       = concatMap Coq.Base.selectExplicitArgs effects
+        -- Lookup the names of all other arguments to pass to the main function.
+        nonConstArgNames = map IR.varPatQName args \\ constArgNames
     nonConstArgNames' <- catMaybes
       <$> mapM (inEnv . lookupIdent IR.ValueScope) nonConstArgNames
     -- Generate invocation of the main function.
     -- TODO do we have to pass the remaining type arguments to the main
     --      function as well (using explicit type arguments)?
     let argNames'
-          = typeArgNames' ++ constArgNames' ++ partialArg ++ nonConstArgNames'
+          = typeArgNames' ++ constArgNames' ++ effectArgs ++ nonConstArgNames'
         rhs'      = genericApply qualid' [] [] (map Coq.Qualid argNames')
     return (Coq.definitionSentence qualid binders returnType' rhs')
  where

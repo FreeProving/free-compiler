@@ -7,7 +7,8 @@ import           Control.Applicative            ( (<|>) )
 import           Control.Monad                  ( join, when )
 import           Data.Bool                      ( bool )
 import           Data.Foldable
-import           Data.Maybe                     ( fromJust, fromMaybe )
+import           Data.Maybe
+  ( fromJust, fromMaybe, maybeToList )
 
 import           FreeC.Environment
 import           FreeC.Environment.Entry        ( entryAgdaIdent, entryIdent )
@@ -21,11 +22,11 @@ import           FreeC.IR.Subst
 import qualified FreeC.IR.Syntax                as IR
 import           FreeC.IR.Syntax.Name           ( identFromQName )
 import qualified FreeC.LiftedIR.Converter.Type  as LIR
-import           FreeC.LiftedIR.Effect          ( Effect(Partiality) )
+import           FreeC.LiftedIR.Effect
 import qualified FreeC.LiftedIR.Syntax          as LIR
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
-  ( Message(Message), Severity(Internal, Error), reportFatal )
+  ( Message(Message), Severity(Internal), reportFatal )
 import           FreeC.Pretty                   ( showPretty )
 
 -- | Converts an expression from IR to lifted IR and lifts it during the
@@ -114,7 +115,7 @@ liftExpr' (IR.Var srcSpan name _) typeArgs args = do
   function <- inEnv $ isFunction name
   if function -- If this is a top level functions it's lifted argument wise.
     then do
-      partial <- inEnv $ isPartial name
+      effects <- inEnv $ lookupEffects name
       Just strictArgs <- inEnv $ lookupStrictArgs name
       freeArgs <- inEnv $ needsFreeArgs name
       Just typeArgIdents <- inEnv $ lookupTypeArgs IR.ValueScope name
@@ -128,8 +129,7 @@ liftExpr' (IR.Var srcSpan name _) typeArgs args = do
       generateBinds (zip3 args' (map Just argTypes' ++ repeat Nothing)
                      $ strictArgs ++ repeat False)
         $ \args'' -> generateApply
-        (LIR.App srcSpan varName typeArgs' [Partiality | partial]
-         (take arity args'') freeArgs)
+        (LIR.App srcSpan varName typeArgs' effects (take arity args'') freeArgs)
         $ drop arity args''
     else do
       pureArg <- inEnv $ isPureVar name
@@ -193,9 +193,7 @@ liftExpr' (IR.ErrorExpr srcSpan msg _) typeArgs args = do
   args' <- mapM liftExpr args
   generateApply (LIR.App srcSpan (LIR.ErrorExpr srcSpan) typeArgs' [Partiality]
                  [LIR.StringLiteral srcSpan msg] True) args'
-liftExpr' (IR.Let srcSpan _ _ _) _ _ = reportFatal
-  $ Message srcSpan Error
-  $ "Let expressions are currently not supported."
+liftExpr' (IR.Let _ binds expr _) [] [] = liftBinds binds expr
 -- Visible type application of an expression other than a function or
 -- constructor.
 liftExpr' expr (_ : _) _ = reportFatal
@@ -234,14 +232,14 @@ liftAlt' (pat@(IR.VarPat srcSpan name varType strict) : pats) expr
     if strict then do
       var' <- freshIRQName name
       expr'' <- rawBind srcSpan var' var varType expr'
-      pat' <- varPat srcSpan var' varType'
+      pat' <- makeVarPat srcSpan var' varType'
       return (pat' : pats', expr'') else do
-      pat' <- varPat srcSpan var varType'
+      pat' <- makeVarPat srcSpan var varType'
       return (pat' : pats', expr')
 
 -- | Smart constructor for variable patterns.
-varPat :: SrcSpan -> IR.QName -> Maybe LIR.Type -> Converter LIR.VarPat
-varPat srcSpan var varType = do
+makeVarPat :: SrcSpan -> IR.QName -> Maybe LIR.Type -> Converter LIR.VarPat
+makeVarPat srcSpan var varType = do
   let Just unqualVar = identFromQName var
   valueEntry <- inEnv $ lookupEntry IR.ValueScope var
   freshEntry <- inEnv $ lookupEntry IR.FreshScope var
@@ -326,3 +324,24 @@ rawBind srcSpan mx x varType expr = do
       Just unqualX = identFromQName x
       x'           = LIR.VarPat srcSpan unqualX varType' xAgda xCoq
   return $ LIR.Bind srcSpan mx' $ LIR.Lambda srcSpan [x'] expr
+
+-------------------------------------------------------------------------------
+-- Let Expression Helper                                                     --
+-------------------------------------------------------------------------------
+-- | Lifts a list of let bindings.
+--
+--   The given expression is the right-hand side of the let.
+liftBinds :: [IR.Bind] -> IR.Expr -> Converter LIR.Expr
+liftBinds [] expr = liftExpr expr
+liftBinds
+  ((IR.Bind srcSpan (IR.VarPat patSrcSpan ident varPatType isStrict) bindExpr)
+   : bs) expr = localEnv $ do
+    _ <- renameAndDefineLIRVar srcSpan isStrict ident varPatType
+    expr' <- liftBinds bs expr
+    patType' <- mapM LIR.liftType varPatType
+    varPat' <- makeVarPat patSrcSpan (IR.UnQual $ IR.Ident ident) patType'
+    shareType' <- mapM LIR.liftType' varPatType
+    bindExpr' <- liftExpr bindExpr
+    let shareExpr = LIR.App srcSpan (LIR.Share srcSpan) (maybeToList shareType')
+          [Sharing] [bindExpr'] True
+    return $ LIR.Bind srcSpan shareExpr (LIR.Lambda srcSpan [varPat'] expr')

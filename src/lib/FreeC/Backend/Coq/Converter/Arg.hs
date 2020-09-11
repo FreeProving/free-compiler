@@ -32,7 +32,8 @@ convertTypeVarDecls explicitness typeVarDecls
   | null typeVarDecls = return []
   | otherwise = do
     idents' <- mapM convertTypeVarDecl typeVarDecls
-    return [Coq.typedBinder explicitness idents' Coq.sortType]
+    return
+      [Coq.typedBinder Coq.Ungeneralizable explicitness idents' Coq.sortType]
  where
   -- | Converts a type variable declaration by adding an entry to the
   --   environment.
@@ -67,7 +68,7 @@ generateArgBinder :: Coq.Qualid -> Maybe Coq.Term -> Converter Coq.Binder
 generateArgBinder ident' Nothing         = return
   (Coq.Inferred Coq.Explicit (Coq.Ident ident'))
 generateArgBinder ident' (Just argType') = return
-  (Coq.typedBinder' Coq.Explicit ident' argType')
+  (Coq.typedBinder' Coq.Ungeneralizable Coq.Explicit ident' argType')
 
 -- | Converts the argument of an artificially generated function to an explicit
 --   Coq binder. A fresh Coq identifier is selected for the argument
