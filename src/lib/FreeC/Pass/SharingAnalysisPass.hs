@@ -88,10 +88,9 @@ sharingAnaylsisPass ast = do
 -- | Checks a function declaration for @case@-expressions to introduce local
 --   @let@-expressions and applies the transformation on the right-hand side.
 analyseSharingDecl :: IR.FuncDecl -> Converter IR.FuncDecl
-analyseSharingDecl (IR.FuncDecl srcSpan ident typeArgs args returnType rhs) = do
-  rhs' <- analyseLocalSharing rhs
-  rhs'' <- analyseSharingExpr rhs'
-  return (IR.FuncDecl srcSpan ident typeArgs args returnType rhs'')
+analyseSharingDecl funcDecl = do
+  rhs' <- (analyseLocalSharing >=> analyseSharingExpr) (IR.funcDeclRhs funcDecl)
+  return funcDecl { IR.funcDeclRhs = rhs' }
 
 -- | Checks the expression and all right-hand sides of subexpressions
 --   for shared variables that are introduced through @case@-alternatives
