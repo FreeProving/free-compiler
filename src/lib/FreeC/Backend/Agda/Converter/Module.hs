@@ -12,7 +12,7 @@ import qualified FreeC.Backend.Agda.Syntax             as Agda
 import           FreeC.Environment                     ( lookupAvailableModule )
 import           FreeC.Environment.ModuleInterface     ( interfaceAgdaLibName )
 import           FreeC.IR.DependencyGraph
-  ( groupFuncDecls, groupTypeDecls )
+  ( typeDependencyComponents, valueDependencyComponents )
 import           FreeC.IR.Pragma
 import qualified FreeC.IR.Syntax                       as IR
 import           FreeC.Monad.Converter
@@ -27,9 +27,11 @@ convertModule (IR.Module _ name importDecls typeDecls _ modPragmas funcDecls)
  where
   importDecls' = Ap $ convertImportDecls importDecls
 
-  typeDecls'   = Ap $ concatMapM convertTypeDecls $ groupTypeDecls typeDecls
+  typeDecls'
+    = Ap $ concatMapM convertTypeDecls $ typeDependencyComponents typeDecls
 
-  funcDecls'   = Ap $ concatMapM convertFuncDecls $ groupFuncDecls funcDecls
+  funcDecls'
+    = Ap $ concatMapM convertFuncDecls $ valueDependencyComponents funcDecls
 
 -- | Converts an IR module name to an Agda module name.
 convertModName :: IR.ModName -> Agda.QName

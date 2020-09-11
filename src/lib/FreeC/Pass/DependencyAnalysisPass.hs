@@ -64,7 +64,7 @@ class DependencyAnalysisPass decl where
 
 -- | The dependencies of type declarations can be analyzed.
 instance DependencyAnalysisPass IR.TypeDecl where
-  groupDecls         = groupTypeDecls
+  groupDecls         = typeDependencyComponents
 
   getDecls           = IR.modTypeDecls
 
@@ -72,7 +72,7 @@ instance DependencyAnalysisPass IR.TypeDecl where
 
 -- | The dependencies of function declarations can be analyzed.
 instance DependencyAnalysisPass IR.FuncDecl where
-  groupDecls         = groupFuncDecls
+  groupDecls         = valueDependencyComponents
 
   getDecls           = IR.modFuncDecls
 
