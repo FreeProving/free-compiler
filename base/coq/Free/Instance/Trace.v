@@ -6,7 +6,6 @@ From Base Require Import Free.Instance.Share.
 From Base Require Import Free.Util.Sharing.
 From Base Require Import Free.Util.Void.
 Require Export Coq.Strings.String.
-Export Strings.String.StringSyntax.
 
 Module Trace.
 

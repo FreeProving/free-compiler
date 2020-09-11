@@ -83,7 +83,7 @@ Section SecData.
 
   Notation "'FreeBoolList'" := (Free Shape Pos (List Shape Pos (Bool Shape Pos))).
   Notation "'ND'" := (Injectable ND.Shape ND.Pos Shape Pos).
-  Notation "'Trace'" := (Injectable Trace.Shape Trace.Pos Shape Pos).
+  Notation "'Trace'" := (Traceable Shape Pos).
   Notation "'Partial'" := (Partial Shape Pos).
   Notation "'FreeBoolListList'" := (Free Shape Pos (List Shape Pos (List Shape Pos (Bool Shape Pos)))).
 
