@@ -69,21 +69,19 @@ free = Coq.bare "Free"
 
 -- | The Coq identifier for the @Shape@ argument of the @Free@ monad.
 shape :: Coq.Qualid
-shape = Coq.bare "Shape"
+shape = Coq.Bare shapeIdent
 
 -- | Like 'shape' but not wrapped in a 'Coq.Bare' constructor.
 shapeIdent :: Coq.Ident
-shapeIdent = let (Coq.Bare ident) = shape
-             in ident
+shapeIdent = Coq.ident "Shape"
 
 -- | The Coq identifier for the @Pos@ argument of the @Free@ monad.
 pos :: Coq.Qualid
-pos = Coq.bare "Pos"
+pos = Coq.Bare posIdent
 
 -- | Like 'pos' but not wrapped in a 'Coq.Bare' constructor.
 posIdent :: Coq.Ident
-posIdent = let (Coq.Bare ident) = pos
-           in ident
+posIdent = Coq.ident "Pos"
 
 -- | The Coq identifier for the @pure@ constructor of the @Free@ monad.
 freePureCon :: Coq.Qualid
