@@ -146,15 +146,15 @@ injectableBinder = Coq.Generalized Coq.Implicit
                    , pos
                    ]
 
--- | The Coq identifier for the @Shareable@ type class.
+-- | The Coq identifier for the @Strategy@ type class.
 strategy :: Coq.Qualid
 strategy = Coq.bare "Strategy"
 
--- | The Coq identifier for the argument of the @Shareable@ type class.
+-- | The Coq identifier for the argument of the @Strategy@ type class.
 strategyArg :: Coq.Qualid
 strategyArg = Coq.bare "S"
 
--- | The Coq binder for the @Shareable@ type class.
+-- | The Coq binder for the @Strategy@ type class.
 strategyBinder :: Coq.Binder
 strategyBinder = Coq.typedBinder' Coq.Ungeneralizable Coq.Explicit strategyArg
   $ Coq.app (Coq.Qualid strategy) [Coq.Qualid shape, Coq.Qualid pos]
