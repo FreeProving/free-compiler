@@ -78,8 +78,8 @@ convertLiftedExpr (LIR.Share _ arg argType) = do
   argType' <- mapM convertLiftedType argType
   return
     $ genericApply' (Coq.Qualid Coq.Base.share)
-    [Coq.Qualid Coq.Base.strategyArg] [] (maybeToList argType') [arg']
-    [Coq.Qualid Coq.Base.implicitArg]
+    [Coq.Qualid Coq.Base.strategyArg] [] (maybeToList argType')
+    [Coq.Qualid Coq.Base.implicitArg] [arg']
 
 -- | Converts a Haskell expression to Coq.
 convertExpr :: IR.Expr -> Converter Coq.Term
