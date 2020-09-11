@@ -15,7 +15,7 @@ From Base Require Import Free.Util.Search.
 Require Import Coq.Lists.List.
 Import List.ListNotations.
 
-(* No effect *)
+Section NoEffect.
 
 (* Identity handler *)
 Definition handleNoEffect {A B : Type}
@@ -23,7 +23,9 @@ Definition handleNoEffect {A B : Type}
                           (p : Free Identity.Shape Identity.Pos A) : B
 :=  run (nf p).
 
-(* One effect *)
+End NoEffect.
+
+Section OneEffect.
 
 (* Maybe :+: Identity handler *)
 
@@ -64,8 +66,9 @@ Definition handleShare {A B : Type}
                        (p : Free SShrId PShrId A) : B :=
  run (runEmptySharing (0,0) (nf p)).
 
+End OneEffect.
 
-(* Two effects *)
+Section TwoEffects.
 
 (* Share :+: ND :+: Identity handler *)
 
@@ -88,16 +91,15 @@ Definition handleShareTrace {A B : Type}
   : (B * list string) :=
   collectMessages (run (runTracing (runTraceSharing (0,0) (nf p)))).
 
-(* Maybe :+: Share :+: Identity handler *)
+(* Share :+: Maybe :+: Identity handler *)
 
-Definition SMaybeShr := Comb.Shape Maybe.Shape (Comb.Shape Share.Shape Identity.Shape).
-Definition PMaybeShr := Comb.Pos Maybe.Pos (Comb.Pos Share.Pos Identity.Pos).
+Definition SShrMaybe := Comb.Shape Share.Shape (Comb.Shape Maybe.Shape Identity.Shape).
+Definition PShrMaybe := Comb.Pos Share.Pos (Comb.Pos Maybe.Pos Identity.Pos).
 
-Definition handleMaybeShare {A B : Type}
-                            `{Normalform SMaybeShr PMaybeShr A B}
-                            (p : Free SMaybeShr PMaybeShr A) : option B :=
-  run (runEmptySharing (0,0) (runMaybe (nf p))).
-
+Definition handleShareMaybe {A B : Type}
+                            `{Normalform SShrMaybe PShrMaybe A B}
+                            (p : Free SShrMaybe PShrMaybe A) : option B :=
+  run (runMaybe (runEmptySharing (0,0) (nf p))).
 
 (* ND :+: Maybe :+: Identity handler *)
 
@@ -137,8 +139,9 @@ Definition handleTraceND {A B : Type}
                   (@collectVals (B * list (option Sharing.ID * string))
                                 (run (runChoice (runTracing (nf p))))).
 
+End TwoEffects.
 
-(* Three effects *)
+Section ThreeEffects.
 
 (* NOTE: There is no handler for an effect stack that contains sharing,
    non-determinism and tracing. This is because only one effect can be
@@ -205,3 +208,5 @@ Definition handleNDMaybeTrc {A B : Type}
      | None => (None, log)
      | Some t => (Some (collectVals t), log)
      end.
+
+End ThreeEffects.
