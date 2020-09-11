@@ -7,6 +7,8 @@ module FreeC.Backend.Coq.Base
   , generatedLibName
     -- * Free Monad
   , free
+  , shape
+  , pos
   , freePureCon
   , freeImpureCon
   , freeBind
