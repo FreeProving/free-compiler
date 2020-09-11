@@ -1,4 +1,4 @@
-(** Definitions for the (p : Free class. *)
+(** Handler definitions for the Free class. *)
 
 From Base Require Import Free.
 From Base Require Import Free.Instance.Comb.
@@ -205,4 +205,3 @@ Definition handleNDMaybeTrc {A B : Type}
      | None => (None, log)
      | Some t => (Some (collectVals t), log)
      end.
-
