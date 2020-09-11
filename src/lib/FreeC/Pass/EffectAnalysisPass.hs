@@ -77,7 +77,7 @@ buildEffectList :: [IR.FuncDecl] -> Converter [Effect]
 buildEffectList funcDecls = do
   anyPartial <- anyM isPartialFuncDecl funcDecls
   anySharing <- (areSharedFuncDecls .||^. containSharedFuncs) funcDecls
-  return $ [Partiality | anyPartial] ++ [Sharing | anySharing]
+  return $ [Sharing | anySharing] ++ [Partiality | anyPartial]
 
 -- | Adds the given effects to the environment entry of the given function.
 addEffects :: [Effect] -> IR.FuncDecl -> Converter ()
