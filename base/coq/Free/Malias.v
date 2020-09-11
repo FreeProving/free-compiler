@@ -1,9 +1,11 @@
 (** Operators that model call-by-value, call-by-name and call-by-need
    evaluation. *)
 
-From Base Require Import Free.
-From Base Require Export Free.Instance.Comb.
-From Base Require Export Free.Instance.Share.
+From Base Require Import Free.Class.Injectable.
+From Base Require Import Free.Class.ShareableArgs.
+From Base Require Import Free.Class.Strategy.
+From Base Require Import Free.Instance.Comb.
+From Base Require Import Free.Monad.
 
 (* An operator to model call-by-value evaluation *)
 Definition cbv {A : Type} (Shape : Type) (Pos : Shape -> Type) (p : Free Shape Pos A)

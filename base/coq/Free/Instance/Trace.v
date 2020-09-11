@@ -16,23 +16,24 @@ Module Trace.
   (* Type synonym and smart constructors for the tracing effect. *)
   Module Import Monad.
     Definition Trace (A : Type) : Type := Free Shape Pos A.
-    Definition NoMsg {A : Type}
-                   (Shape' : Type)
+    Definition NoMsg (Shape' : Type)
+                     (Pos' : Shape' -> Type)
+                     {A : Type}
+                     `{Injectable Shape Pos Shape' Pos'}
+                     (x : A)
+      : Free Shape' Pos' A := pure x.
+    Definition Msg (Shape' : Type)
                    (Pos' : Shape' -> Type)
                    `{Injectable Shape Pos Shape' Pos'}
-                   (x : A)
-      : Free Shape' Pos' A := pure x.
-    Definition Msg {A : Type}
-                     (Shape' : Type)
-                     (Pos' : Shape' -> Type)
-                     `{Injectable Shape Pos Shape' Pos'}
-                     (mid : option ID)
-                     (msg : string)
-                     (x : Free Shape' Pos' A)
+                   {A : Type}
+                   (mid : option ID)
+                   (msg : string)
+                   (x : Free Shape' Pos' A)
       : Free Shape' Pos' A :=
       impure (injS (mid, msg)) (fun tt => x).
 
   End Monad.
+
   (* Handlers for tracing and sharing combined with tracing. *)
   Module Import Handler.
     (* Helper definitions and handler for the tracing effect. *)
@@ -40,9 +41,9 @@ Module Trace.
     Definition PTrace {Shape' : Type} (Pos' : Shape' -> Type)
       := Comb.Pos Trace.Pos Pos'.
 
-    Fixpoint runTracing {A : Type}
-                        {Shape' : Type}
+    Fixpoint runTracing {Shape' : Type}
                         {Pos' : Shape' -> Type}
+                        {A : Type}
                         (fm : Free (STrace Shape') (PTrace Pos') A)
      : Free Shape' Pos' (A * list (option ID * string))
     := match fm with
@@ -60,11 +61,11 @@ Module Trace.
     Definition PTrcShare {Shape' : Type} (Pos' : Shape' -> Type)
     := Comb.Pos Share.Pos (PTrace Pos').
 
-    Fixpoint runTraceSharing {A : Type}
-                          {Shape' : Type}
-                          {Pos' : Shape' -> Type}
-                          (n : nat * nat)
-                          (fs : Free (STrcShare Shape') (PTrcShare Pos') A)
+    Fixpoint runTraceSharing {Shape' : Type}
+                             {Pos' : Shape' -> Type}
+                             {A : Type}
+                             (n : nat * nat)
+                             (fs : Free (STrcShare Shape') (PTrcShare Pos') A)
      : Free (STrace Shape') (PTrace Pos') A
     := let fix nameMessages (next : nat)
                            (state : nat * nat)
@@ -113,8 +114,9 @@ Module Trace.
   Instance Trace (Shape' : Type) (Pos' : Shape' -> Type)
                  `{I: Injectable Shape Pos Shape' Pos'}
    : Traceable Shape' Pos' := {
-     trace A msg p := @Msg A Shape' Pos' I None msg p
+     trace A msg p := @Msg Shape' Pos' I A None msg p
   }.
+
   (* There is no Partial instance. *)
 End Trace.
 
