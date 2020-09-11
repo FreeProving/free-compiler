@@ -20,10 +20,9 @@ module FreeC.Backend.Coq.Base
   , partialError
     -- * Sharing
   , injectable
-  , injectableArg
   , injectableBinder
-  , shareable
-  , shareableArg
+  , strategy
+  , strategyArg
   , shareableArgs
   , shareableArgsBinder
   , implicitArg
@@ -70,9 +69,19 @@ free = Coq.bare "Free"
 shape :: Coq.Qualid
 shape = Coq.bare "Shape"
 
+-- | Like 'shape' but not wrapped in a 'Coq.Bare' constructor.
+shapeIdent :: Coq.Ident
+shapeIdent = let (Coq.Bare ident) = shape
+             in ident
+
 -- | The Coq identifier for the @Pos@ argument of the @Free@ monad.
 pos :: Coq.Qualid
 pos = Coq.bare "Pos"
+
+-- | Like 'pos' but not wrapped in a 'Coq.Bare' constructor.
+posIdent :: Coq.Ident
+posIdent = let (Coq.Bare ident) = pos
+           in ident
 
 -- | The Coq identifier for the @pure@ constructor of the @Free@ monad.
 freePureCon :: Coq.Qualid
@@ -130,32 +139,36 @@ partialError = Coq.bare "error"
 -------------------------------------------------------------------------------
 -- Sharing                                                                   --
 -------------------------------------------------------------------------------
+-- | The Coq identifier for the @Share@ module.
+shareModuleIdent :: Coq.Ident
+shareModuleIdent = Coq.ident "Share"
+
 -- | The Coq identifier for the @Injectable@ type class.
 injectable :: Coq.Qualid
 injectable = Coq.bare "Injectable"
 
--- | The Coq identifier for the argument of the @Injectable@ type class.
-injectableArg :: Coq.Qualid
-injectableArg = Coq.bare "I"
-
 -- | The Coq binder for the @Injectable@ type class.
 injectableBinder :: Coq.Binder
-injectableBinder = Coq.typedBinder' Coq.Generalizable Coq.Implicit injectableArg
+injectableBinder = Coq.Generalized Coq.Implicit
   $ Coq.app (Coq.Qualid injectable)
-  $ map Coq.Qualid [Coq.bare "Share.Shape", Coq.bare "Share.Pos", shape, pos]
+  $ map Coq.Qualid [ Coq.Qualified shareModuleIdent shapeIdent
+                   , Coq.Qualified shareModuleIdent posIdent
+                   , shape
+                   , pos
+                   ]
 
 -- | The Coq identifier for the @Shareable@ type class.
-shareable :: Coq.Qualid
-shareable = Coq.bare "Shareable"
+strategy :: Coq.Qualid
+strategy = Coq.bare "Strategy"
 
 -- | The Coq identifier for the argument of the @Shareable@ type class.
-shareableArg :: Coq.Qualid
-shareableArg = Coq.bare "S"
+strategyArg :: Coq.Qualid
+strategyArg = Coq.bare "S"
 
 -- | The Coq binder for the @Shareable@ type class.
-shareableBinder :: Coq.Binder
-shareableBinder = Coq.typedBinder' Coq.Ungeneralizable Coq.Explicit shareableArg
-  $ Coq.app (Coq.Qualid shareable) [Coq.Qualid shape, Coq.Qualid pos]
+strategyBinder :: Coq.Binder
+strategyBinder = Coq.typedBinder' Coq.Ungeneralizable Coq.Explicit strategyArg
+  $ Coq.app (Coq.Qualid strategy) [Coq.Qualid shape, Coq.Qualid pos]
 
 -- | The Coq binder for the @ShareableArgs@ type class.
 shareableArgs :: Coq.Qualid
@@ -182,12 +195,12 @@ share = Coq.bare "share"
 -- | Selects the correct explicit function arguments for the given effect.
 selectExplicitArgs :: Effect -> [Coq.Qualid]
 selectExplicitArgs Partiality = [partialArg]
-selectExplicitArgs Sharing    = [shareableArg]
+selectExplicitArgs Sharing    = [strategyArg]
 
 -- | Selects the correct implicit function arguments for the given effect.
 selectImplicitArgs :: Effect -> [Coq.Qualid]
 selectImplicitArgs Partiality = []
-selectImplicitArgs Sharing    = [injectableArg]
+selectImplicitArgs Sharing    = []
 
 -- | Like 'selectImplicitArgs' but the arguments have to be inserted after
 --   the type arguments.
@@ -198,7 +211,7 @@ selectTypedImplicitArgs Sharing    = [implicitArg]
 -- | Selects the correct binder for the given effect.
 selectBinders :: Effect -> [Coq.Binder]
 selectBinders Partiality = [partialBinder]
-selectBinders Sharing    = [injectableBinder, shareableBinder]
+selectBinders Sharing    = [injectableBinder, strategyBinder]
 
 -- | Like 'selectBinders' but the binders are dependent on the type variables
 --   with the given names.
@@ -235,7 +248,7 @@ reservedIdents
     , partialError
       -- Sharing
     , injectable
-    , shareable
+    , strategy
     , shareableArgs
     , share
     ]
