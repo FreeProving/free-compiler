@@ -105,12 +105,34 @@ testTypeInferencePass = describe "FreeC.Analysis.TypeInference" $ do
           ["foo :: Prelude.Integer = let { } in 42"]
     it "annotates the type of bindings" $ shouldSucceedWith $ do
       _ <- defineTestTypeCon "Prelude.Integer" 0 []
-      _ <- defineTestFunc "add" 1
+      _ <- defineTestFunc "add" 2
         "Prelude.Integer -> Prelude.Integer -> Prelude.Integer"
       shouldInferType (NonRecursive "foo n = let { m = 42 } in add n m")
         [ "foo (n :: Prelude.Integer) :: Prelude.Integer"
             ++ " = let { (m :: Prelude.Integer) = 42 } in add n m"
         ]
+    it "supports non-polymorphic binders" $ shouldSucceedWith $ do
+      _ <- defineTestTypeCon "Prelude.Bool" 0 ["True", "False"]
+      _ <- defineTestCon "True" 0 "Prelude.Bool"
+      _ <- defineTestCon "False" 0 "Prelude.Bool"
+      _ <- defineTestFunc "bar" 1 "forall a. a -> a"
+      shouldInferType
+        (NonRecursive
+         "foo = let { f = bar } in if f True then f True else f False")
+        [ "foo :: Prelude.Bool"
+            ++ " = let { (f :: Prelude.Bool -> Prelude.Bool) = bar @Prelude.Bool }"
+            ++ "   in if f True then f True else f False"
+        ]
+    it "does not yet support polymorphic binders" $ do
+      funcDecl <- expectParseTestFuncDecl
+        "foo = let { f = bar } in if f True then f 1 else f 2"
+      shouldFailPretty $ do
+        _ <- defineTestTypeCon "Prelude.Integer" 0 []
+        _ <- defineTestTypeCon "Prelude.Bool" 0 ["True", "False"]
+        _ <- defineTestCon "True" 0 "Prelude.Bool"
+        _ <- defineTestCon "False" 0 "Prelude.Bool"
+        _ <- defineTestFunc "bar" 1 "forall a. a -> a"
+        typeInferencePass (NonRecursive funcDecl)
   context "case expressions" $ do
     it "infers the same type for all alternatives of case expressions"
       $ shouldSucceedWith
