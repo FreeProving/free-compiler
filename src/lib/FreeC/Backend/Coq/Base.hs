@@ -191,13 +191,13 @@ selectExplicitArgs Sharing    = [strategyArg]
 -- | Selects the correct implicit function arguments for the given effect.
 selectImplicitArgs :: Effect -> [Coq.Qualid]
 selectImplicitArgs Partiality = []
-selectImplicitArgs Sharing    = []
+selectImplicitArgs Sharing    = [implicitArg]
 
 -- | Like 'selectImplicitArgs' but the arguments have to be inserted after
---   the type arguments.
-selectTypedImplicitArgs :: Effect -> [Coq.Qualid]
-selectTypedImplicitArgs Partiality = []
-selectTypedImplicitArgs Sharing    = [implicitArg]
+--   the type arguments the specified number of times.
+selectTypedImplicitArgs :: Effect -> Int -> [Coq.Qualid]
+selectTypedImplicitArgs Partiality = const []
+selectTypedImplicitArgs Sharing    = flip replicate implicitArg
 
 -- | Selects the correct binder for the given effect.
 selectBinders :: Effect -> [Coq.Binder]
