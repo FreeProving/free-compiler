@@ -1,4 +1,4 @@
-(** Handler definitions for the Free class. *)
+(** This module contains default handlers for individual effect stacks. *)
 
 From Base Require Import Free.
 From Base Require Import Free.Instance.Comb.
@@ -19,7 +19,7 @@ Import List.ListNotations.
 
 (* Identity handler *)
 Definition handleNoEffect {A B : Type}
-                          `{Normalform _ _ A B} 
+                          `{Normalform _ _ A B}
                           (p : Free Identity.Shape Identity.Pos A) : B
 :=  run (nf p).
 
@@ -31,7 +31,7 @@ Definition SMId := Comb.Shape Maybe.Shape Identity.Shape.
 Definition PMId := Comb.Pos Maybe.Pos Identity.Pos.
 
 Definition handleMaybe {A B : Type}
-  `{Normalform SMId PMId A B} 
+  `{Normalform SMId PMId A B}
   (p : Free SMId PMId A) : option B := run (runMaybe (nf p)).
 
 (* ND :+: Identity handler *)
@@ -50,8 +50,8 @@ Definition PTrcId := Comb.Pos Trace.Pos Identity.Pos.
 
 Definition handleTrace {A B : Type}
                       `{Normalform STrcId PTrcId A B}
-                       (p : Free STrcId PTrcId A) 
-  : (B * list string) := 
+                       (p : Free STrcId PTrcId A)
+  : (B * list string) :=
   collectMessages (run (runTracing (nf p))).
 
 (* Share :+: Identity handler *)
@@ -60,8 +60,8 @@ Definition SShrId := Comb.Shape Share.Shape Identity.Shape.
 Definition PShrId := Comb.Pos Share.Pos Identity.Pos.
 
 Definition handleShare {A B : Type}
-                       `{Normalform SShrId PShrId A B} 
-                       (p : Free SShrId PShrId A) : B := 
+                       `{Normalform SShrId PShrId A B}
+                       (p : Free SShrId PShrId A) : B :=
  run (runEmptySharing (0,0) (nf p)).
 
 
@@ -74,7 +74,7 @@ Definition PShrND := Comb.Pos Share.Pos (Comb.Pos ND.Pos Identity.Pos).
 
 Definition handleShareND {A B : Type}
                          `{Normalform SShrND PShrND A B}
-                         (p : Free SShrND PShrND A) : (list B) := 
+                         (p : Free SShrND PShrND A) : (list B) :=
   collectVals (run (runChoice (runNDSharing (0,0) (nf p)))).
 
 (* Share :+: Trace :+: Identity handler *)
@@ -85,7 +85,7 @@ Definition PShrTrc := Comb.Pos Share.Pos (Comb.Pos Trace.Pos Identity.Pos).
 Definition handleShareTrace {A B : Type}
                             `{Normalform SShrTrc PShrTrc A B}
                             (p : Free SShrTrc PShrTrc A)
-  : (B * list string) := 
+  : (B * list string) :=
   collectMessages (run (runTracing (runTraceSharing (0,0) (nf p)))).
 
 (* Maybe :+: Share :+: Identity handler *)
@@ -158,7 +158,7 @@ Definition PShrNDMaybe :=
 
 Definition handleShareNDMaybe {A B : Type}
                               `{Normalform SShrNDMaybe PShrNDMaybe A B}
-                              (p : Free SShrNDMaybe PShrNDMaybe A) 
+                              (p : Free SShrNDMaybe PShrNDMaybe A)
   : option (list B) :=
   match (run (runMaybe (runChoice (runNDSharing (0,0) (nf p))))) with
   | None   => None
