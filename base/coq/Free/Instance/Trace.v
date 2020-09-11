@@ -33,15 +33,8 @@ Module Trace.
       : Free Shape' Pos' A :=
       impure (injS (mid, msg)) (fun tt => x).
 
-    (* Tracing function *)
-    Definition trace (Shape' : Type) (Pos' : Shape' -> Type)
-                    `{I: Injectable Shape Pos Shape' Pos'}
-                    {A : Type}
-                    (msg : string) (p : Free Shape' Pos' A)
-   : Free Shape' Pos' A
-   := @Msg Shape' Pos' I A None msg p.
-
   End Monad.
+
   (* Handlers for tracing and sharing combined with tracing. *)
   Module Import Handler.
     (* Helper definitions and handler for the tracing effect. *)
@@ -118,11 +111,18 @@ Module Trace.
 
        End Handler.
 
+  (* Traceable instance for the Trace effect. *)
+  Instance Trace (Shape' : Type) (Pos' : Shape' -> Type)
+                 `{I: Injectable Shape Pos Shape' Pos'}
+   : Traceable Shape' Pos' := {
+     trace A msg p := @Msg Shape' Pos' I A None msg p
+  }.
+
   (* There is no Partial instance. *)
 End Trace.
 
 (* The type, smart constructors, tracing function and handlers should be
-   visible to other modules but to use the shape or position function the
+   visible to other modules, but to use the shape or position function the
    identifier must be fully qualified, i.e. [Trace.Shape]. *)
 Export Trace.Handler.
 Export Trace.Monad.

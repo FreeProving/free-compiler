@@ -20,7 +20,7 @@ Module Identity.
                   (x : A)
     : Free Shape' Pos' A := pure x.
   End Monad.
- 
+
   (* Handler for an effect-free program. *)
   Module Import Handler.
     Definition run {A : Type} (fz : Free Identity.Shape Identity.Pos A) : A
