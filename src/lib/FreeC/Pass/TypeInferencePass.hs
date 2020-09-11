@@ -748,10 +748,12 @@ applyExprVisibly (IR.Case srcSpan expr alts exprType)   = do
   expr' <- applyExprVisibly expr
   alts' <- mapM applyAltVisibly alts
   return (IR.Case srcSpan expr' alts' exprType)
-applyExprVisibly (IR.Let srcSpan binds expr exprType)   = do
-  binds' <- mapM applyBindVisibly binds
-  expr' <- applyExprVisibly expr
-  return (IR.Let srcSpan binds' expr' exprType)
+applyExprVisibly (IR.Let srcSpan binds expr exprType)
+  = withLocalTypeAssumption $ do
+    mapM_ (removeVarPatFromTypeAssumption . IR.bindVarPat) binds
+    binds' <- mapM applyBindVisibly binds
+    expr' <- applyExprVisibly expr
+    return (IR.Let srcSpan binds' expr' exprType)
 applyExprVisibly (IR.Lambda srcSpan args expr exprType)
   = withLocalTypeAssumption $ do
     mapM_ removeVarPatFromTypeAssumption args
