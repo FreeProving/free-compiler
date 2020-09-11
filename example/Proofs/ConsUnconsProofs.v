@@ -13,7 +13,7 @@ Proof.
 Qed.
 
 (* The second QuickCheck property holds provably for the [Maybe] instance of [Partial]. *)
-Lemma unconsE_fst_Maybe : quickCheck 
+Lemma unconsE_fst_Maybe : quickCheck
   (@prop_unconsE_fst Maybe.Shape Maybe.Pos (Maybe.Partial Maybe.Shape Maybe.Pos)).
 Proof.
   intros A fxs.
@@ -28,7 +28,7 @@ Qed.
 (* But the second QuickCheck property doesn't hold for the [Error] instance of
    [Partial] as [unconsE] and [head] have different error messages on an empty
    list. *)
-Lemma unconsE_fst_Error : not (quickCheck (@prop_unconsE_fst (Error.Shape string) Error.Pos Error.Partial)).
+Lemma unconsE_fst_Error : not (quickCheck (@prop_unconsE_fst (Error.Shape string) Error.Pos (Error.Partial (Error.Shape string) Error.Pos))).
 Proof.
   intro H.
   specialize (H bool (Nil _ _)).
@@ -39,16 +39,16 @@ Section ErrorMessages.
 
   (* To prove facts about the error messages we can write an abbreviation for
      an [error] with a specific message. *)
-  Definition EmptyListError {A : Type} := @error _ _ Error.Partial A "unconsE: empty list"%string.
+  Definition EmptyListError {A : Type} := @error _ _ (Error.Partial _ _) A "unconsE: empty list"%string.
 
   (* If we weren't looking for an actual [error] but for an [undefined] in haskell
      we could use the following definition. *)
-  Definition Undefined {A : Type} := @undefined _ _ Error.Partial A.
+  Definition Undefined {A : Type} := @undefined _ _ (Error.Partial _ _) A.
 
   (* Now we can define and prove the lemma that using [unconsE] with an empty
      list results in an [EmptyListError] *)
   Lemma nil_unconsE_empty_list_error : forall (A : Type),
-    @unconsE _ _ Error.Partial A (Nil _ _) = EmptyListError.
+    @unconsE _ _ (Error.Partial _ _) A (Nil _ _) = EmptyListError.
   Proof.
     intro A.
     simpl.
@@ -58,7 +58,7 @@ Section ErrorMessages.
   (* We can also prove that using [unconsE] on an non-empty list does not cause
      an [EmptyListError]. *)
   Lemma cons_unconsE_no_empty_list_error : forall (A : Type) (fx : Free _ _ A) (fxs : Free _ _ (List _ _ A)),
-    unconsE _ _ Error.Partial (Cons _ _ fx fxs) <> EmptyListError.
+    unconsE _ _ (Error.Partial _ _) (Cons _ _ fx fxs) <> EmptyListError.
   Proof.
     intros A fx fxs.
     simpl.
@@ -68,8 +68,8 @@ Section ErrorMessages.
   (* And finally we can prove that an [EmptyListError] is the only error that
      can occur if the argument is error-free. *)
   Lemma unconsE_only_empty_list_error : forall (A : Type) (l : List _ _ A),
-    (exists (result : Pair _ _ A (List _ _ A)), unconsE _ _ Error.Partial (NoError l) = NoError result) \/
-    (                                           unconsE _ _ Error.Partial (NoError l) = EmptyListError).
+    (exists (result : Pair _ _ A (List _ _ A)), unconsE _ _ (Error.Partial _ _) (NoError _ _ l) = NoError _ _ result) \/
+    (                                           unconsE _ _ (Error.Partial _ _) (NoError _ _ l) = EmptyListError).
   Proof.
     intros A l.
     destruct l as [ | fx fxs ].
