@@ -1,7 +1,6 @@
 -- | Implements the lifted IR to Agda translation for expressions.
 module FreeC.Backend.Agda.Converter.Expr ( convertLiftedExpr ) where
 
-import qualified FreeC.Backend.Agda.Base           as Agda.Base
 import           FreeC.Backend.Agda.Converter.Free
   ( bind, errorExpr, generatePure, undefinedExpr )
 import qualified FreeC.Backend.Agda.Syntax         as Agda
@@ -36,8 +35,8 @@ convertLiftedExpr (LIR.Bind _ arg k)
   = bind <$> convertLiftedExpr arg <*> convertLiftedExpr k
 convertLiftedExpr (LIR.Undefined _)           = return undefinedExpr
 convertLiftedExpr (LIR.ErrorExpr _)           = return errorExpr
-convertLiftedExpr (LIR.Share _)
-  = return $ Agda.Ident $ Agda.qname [] Agda.Base.pure
+convertLiftedExpr (LIR.Share _ expr _)
+  = generatePure <$> convertLiftedExpr expr
 
 -- | Converts a single pattern from a LIR case expression to an Agda
 --   expression.

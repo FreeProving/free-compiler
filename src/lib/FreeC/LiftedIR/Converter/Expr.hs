@@ -7,8 +7,7 @@ import           Control.Applicative            ( (<|>) )
 import           Control.Monad                  ( join, when )
 import           Data.Bool                      ( bool )
 import           Data.Foldable
-import           Data.Maybe
-  ( fromJust, fromMaybe, maybeToList )
+import           Data.Maybe                     ( fromJust, fromMaybe )
 
 import           FreeC.Environment
 import           FreeC.Environment.Entry        ( entryAgdaIdent, entryIdent )
@@ -342,6 +341,5 @@ liftBinds
     varPat' <- makeVarPat patSrcSpan (IR.UnQual $ IR.Ident ident) patType'
     shareType' <- mapM LIR.liftType' varPatType
     bindExpr' <- liftExpr bindExpr
-    let shareExpr = LIR.App srcSpan (LIR.Share srcSpan) (maybeToList shareType')
-          [Sharing] [bindExpr'] True
+    let shareExpr = LIR.Share srcSpan bindExpr' shareType'
     return $ LIR.Bind srcSpan shareExpr (LIR.Lambda srcSpan [varPat'] expr')
