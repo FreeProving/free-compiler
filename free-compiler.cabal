@@ -256,6 +256,7 @@ test-suite freec-unit-tests
                     , FreeC.Pass.EtaConversionPassTests
                     , FreeC.Pass.ExportPassTests
                     , FreeC.Pass.KindCheckPassTests
+                    , FreeC.Pass.LetSortPassTests
                     , FreeC.Pass.PartialityAnalysisPassTests
                     , FreeC.Pass.ResolverPassTests
                     , FreeC.Pass.TypeInferencePassTests

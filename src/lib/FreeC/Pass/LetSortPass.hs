@@ -51,7 +51,11 @@
 --
 --   The bindings of all @let@-expressions are in reverse topological order and
 --   there are no recursive or mutually recursive bindings.
-module FreeC.Pass.LetSortPass ( letSortPass ) where
+module FreeC.Pass.LetSortPass
+  ( letSortPass
+    -- * Testing Interface
+  , sortLetExprs
+  ) where
 
 import           FreeC.IR.DependencyGraph
 import           FreeC.IR.SrcSpan
@@ -71,12 +75,12 @@ letSortPass ast = do
 --   declaration topologically.
 sortFuncDecl :: MonadReporter r => IR.FuncDecl -> r IR.FuncDecl
 sortFuncDecl funcDecl = do
-  rhs' <- sortExpr (IR.funcDeclRhs funcDecl)
+  rhs' <- sortLetExprs (IR.funcDeclRhs funcDecl)
   return funcDecl { IR.funcDeclRhs = rhs' }
 
 -- | Sorts all @let@-expressions in the given expression topologically.
-sortExpr :: MonadReporter r => IR.Expr -> r IR.Expr
-sortExpr = mapSubtermsM sortLet
+sortLetExprs :: MonadReporter r => IR.Expr -> r IR.Expr
+sortLetExprs = mapSubtermsM sortLet
  where
   sortLet :: MonadReporter r => IR.Expr -> r IR.Expr
   sortLet (IR.Let srcSpan binds expr exprType) = do
