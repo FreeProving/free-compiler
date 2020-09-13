@@ -68,7 +68,7 @@ import           Control.Monad           ( (>=>), mapAndUnzipM )
 import           Data.Map.Strict         ( Map )
 import qualified Data.Map.Strict         as Map
 
-import           FreeC.Environment.Fresh ( freshHaskellQName )
+import           FreeC.Environment.Fresh ( freshHaskellName )
 import           FreeC.IR.SrcSpan
 import           FreeC.IR.Subst
 import qualified FreeC.IR.Syntax         as IR
@@ -183,11 +183,11 @@ buildBinds srcSpan = mapAndUnzipM buildBind
  where
   buildBind :: IR.VarName -> Converter (IR.Bind, Subst IR.Expr)
   buildBind varName = do
-    varName' <- freshHaskellQName varName
+    varName' <- freshHaskellName (IR.nameFromQName varName)
     let subst            = singleSubst' varName
-          (\s -> IR.Var s varName' Nothing)
+          (\s -> IR.Var s (IR.UnQual varName') Nothing)
         rhs              = IR.Var srcSpan varName Nothing
-        Just varPatIdent = IR.identFromQName varName'
+        Just varPatIdent = IR.identFromName varName'
         varPat           = IR.VarPat srcSpan varPatIdent Nothing False
         bind             = IR.Bind srcSpan varPat rhs
     return (bind, subst)
