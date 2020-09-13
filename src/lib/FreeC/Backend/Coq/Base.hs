@@ -233,12 +233,14 @@ reservedIdents
     , freeImpureCon
       -- Partiality
     , partial
+    , partialArg
     , partialUndefined
     , partialError
       -- Sharing
     , injectable
     , strategy
+    , strategyArg
     , shareableArgs
     , share
     ]
-  ++ (partialArg : map fst freeArgs)
+  ++ map fst freeArgs
