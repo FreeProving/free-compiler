@@ -630,7 +630,7 @@ annotateExprWith' (IR.Lambda srcSpan args expr _) resType
     return (IR.Lambda srcSpan args' expr' (makeExprType resType))
 -- If @let { x₀ = e₀ ; … xₙ = eₙ } in e :: τ@ then @x₀ :: α₀, …, xₙ :: αₙ@ for
 -- fresh type variables @α₀, …, αₙ@ and @e :: τ@. In contrast to Haskell, we
--- do not allow the bindings tyo be polymorphic at the moment.
+-- do not allow the bindings to be polymorphic at the moment.
 annotateExprWith' (IR.Let srcSpan binds expr _) resType
   = withLocalTypeAssumption $ do
     bindVarPats' <- mapM (annotateVarPat . IR.bindVarPat) binds
