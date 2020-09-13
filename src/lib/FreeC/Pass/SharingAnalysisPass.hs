@@ -64,7 +64,7 @@
 --   explicit by introducing @let@-expressions.
 module FreeC.Pass.SharingAnalysisPass ( sharingAnaylsisPass ) where
 
-import           Control.Monad           ( mapAndUnzipM )
+import           Control.Monad           ( (>=>), mapAndUnzipM )
 import           Data.Map.Strict         ( Map )
 import qualified Data.Map.Strict         as Map
 
