@@ -15,13 +15,14 @@ import           FreeC.Backend.Agda.Converter.Type
 import qualified FreeC.Backend.Agda.Syntax                      as Agda
 import           FreeC.Backend.Coq.Analysis.DecreasingArguments
   ( identifyDecArgs )
-import           FreeC.Environment                              ( isPartial )
+import           FreeC.Environment                              ( hasEffect )
 import           FreeC.Environment.LookupOrFail
 import           FreeC.IR.DependencyGraph
 import qualified FreeC.IR.Syntax                                as IR
 import           FreeC.LiftedIR.Converter.Expr                  ( liftExpr )
 import           FreeC.LiftedIR.Converter.Type
   ( liftFuncArgTypes, liftType )
+import           FreeC.LiftedIR.Effect
 import           FreeC.Monad.Converter
   ( Converter, inEnv, localEnv )
 import           FreeC.Monad.Reporter
@@ -66,7 +67,7 @@ convertSignature :: IR.FuncDecl -> Maybe Int -> Converter Agda.Declaration
 convertSignature (IR.FuncDecl _ declIdent typeVars args returnType _) decArg
   = do
     let IR.DeclIdent srcSpan name = declIdent
-    partial <- inEnv $ isPartial name
+    partial <- inEnv $ hasEffect Partiality name
     ident <- lookupUnQualAgdaIdentOrFail srcSpan IR.ValueScope name
     Agda.funcSig ident <$> convertFunc decArg partial typeVars args returnType
 

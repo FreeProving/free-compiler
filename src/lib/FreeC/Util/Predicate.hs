@@ -3,6 +3,7 @@
 module FreeC.Util.Predicate where
 
 import           Control.Monad
+import           Control.Monad.Extra  ( (||^) )
 import           Control.Monad.Reader ()
 
 -- | Combines two predicates to a new predicate whose result is the conjunction
@@ -15,6 +16,12 @@ import           Control.Monad.Reader ()
 (.||.) :: (a -> Bool) -> (a -> Bool) -> a -> Bool
 (.||.) = liftM2 (||)
 
+-- | '.||.' lifted to a monad.
+(.||^.) :: Monad m => (a -> m Bool) -> (a -> m Bool) -> a -> m Bool
+(.||^.) = liftM2 (||^)
+
 infixr 3 .&&.
 
 infixr 2 .||.
+
+infixr 2 .||^.

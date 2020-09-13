@@ -64,6 +64,11 @@ data Expr
          , exprBindArg  :: Expr -- ^ The left-hand side argument of @>>=@.
          , exprBindCont :: Expr -- ^ The right-hand side argument of @>>=@.
          }
+    -- | The @share@ operator.
+  | Share { exprScrSpan   :: SrcSpan
+          , exprShareArg  :: Expr
+          , exprShareType :: Maybe Type
+          }
  deriving ( Eq, Show )
 
 -------------------------------------------------------------------------------
