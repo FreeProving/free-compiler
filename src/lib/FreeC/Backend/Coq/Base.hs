@@ -40,8 +40,6 @@ module FreeC.Backend.Coq.Base
   , reservedIdents
   ) where
 
-import           Language.Coq.Pretty      ( showP )
-
 import qualified FreeC.Backend.Coq.Syntax as Coq
 import           FreeC.LiftedIR.Effect
 
@@ -173,8 +171,8 @@ shareableArgsBinder typeArg = Coq.Generalized Coq.Implicit
   $ map Coq.Qualid [shape, pos, typeArg]
 
 -- | The Coq identifier for an implicit argument.
-implicitArg :: Coq.Qualid
-implicitArg = Coq.bare $ showP Coq.Underscore
+implicitArg :: Coq.Term
+implicitArg = Coq.Underscore
 
 -- | The Coq Identifier for the @share@ operator.
 share :: Coq.Qualid
@@ -184,18 +182,18 @@ share = Coq.bare "share"
 -- Effect selection                                                          --
 -------------------------------------------------------------------------------
 -- | Selects the correct explicit function arguments for the given effect.
-selectExplicitArgs :: Effect -> [Coq.Qualid]
-selectExplicitArgs Partiality = [partialArg]
-selectExplicitArgs Sharing    = [strategyArg]
+selectExplicitArgs :: Effect -> [Coq.Term]
+selectExplicitArgs Partiality = [Coq.Qualid partialArg]
+selectExplicitArgs Sharing    = [Coq.Qualid strategyArg]
 
 -- | Selects the correct implicit function arguments for the given effect.
-selectImplicitArgs :: Effect -> [Coq.Qualid]
+selectImplicitArgs :: Effect -> [Coq.Term]
 selectImplicitArgs Partiality = []
 selectImplicitArgs Sharing    = [implicitArg]
 
 -- | Like 'selectImplicitArgs' but the arguments have to be inserted after
 --   the type arguments the specified number of times.
-selectTypedImplicitArgs :: Effect -> Int -> [Coq.Qualid]
+selectTypedImplicitArgs :: Effect -> Int -> [Coq.Term]
 selectTypedImplicitArgs Partiality = const []
 selectTypedImplicitArgs Sharing    = flip replicate implicitArg
 

@@ -600,9 +600,10 @@ generateInterfaceDecl constArgs isConstArgUsed nameMap mgu sectionTypeArgs
     -- Generate invocation of the main function.
     -- TODO do we have to pass the remaining type arguments to the main
     --      function as well (using explicit type arguments)?
-    let argNames'
-          = typeArgNames' ++ constArgNames' ++ effectArgs ++ nonConstArgNames'
-        rhs'      = genericApply qualid' [] [] (map Coq.Qualid argNames')
+    let argNames' = map Coq.Qualid (typeArgNames' ++ constArgNames')
+          ++ effectArgs
+          ++ map Coq.Qualid nonConstArgNames'
+        rhs'      = genericApply qualid' [] [] argNames'
     return (Coq.definitionSentence qualid binders returnType' rhs')
  where
   -- | Looks up the name of the function's type argument that corresponds to
