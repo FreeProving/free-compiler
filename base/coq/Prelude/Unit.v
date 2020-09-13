@@ -23,3 +23,11 @@ End SecUnit.
 Instance NormalformUnit (Shape : Type) (Pos : Shape -> Type)
   : Normalform Shape Pos (Unit Shape Pos) (Unit Identity.Shape Identity.Pos)
   := { nf' := pure }.
+
+(* ShareableArgs instance for Unit *)
+
+Instance ShareableArgsUnit (Shape : Type) (Pos : Shape -> Type)
+  : ShareableArgs Shape Pos (Unit Shape Pos)
+ := {
+        shareArgs := pure
+    }.

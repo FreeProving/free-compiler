@@ -21,6 +21,7 @@ import           FreeC.Environment.Renamer
 import           FreeC.IR.Reference
 import           FreeC.IR.SrcSpan
 import qualified FreeC.IR.Syntax           as IR
+import           FreeC.LiftedIR.Effect
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
 import           FreeC.Test.Parser
@@ -175,7 +176,7 @@ defineTestFunc' partial areStrict nameStr arity typeStr = do
     , entryStrictArgs    = areStrict
     , entryReturnType    = returnType
     , entryNeedsFreeArgs = True
-    , entryIsPartial     = partial
+    , entryEffects       = [Partiality | partial]
     , entryName          = name
     , entryIdent         = undefined -- filled by renamer
     , entryAgdaIdent     = undefined -- filled by renamer
