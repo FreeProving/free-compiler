@@ -1,4 +1,4 @@
-(** Definition of choice trees and the depth-first search algorithm, 
+(** Definition of choice trees and the depth-first search algorithm,
     as well as lists where entries have IDs and a function that filters
     out entries with duplicate IDs. *)
 

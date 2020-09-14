@@ -28,6 +28,7 @@ import           FreeC.Environment.Entry
 import           FreeC.Environment.ModuleInterface
 import           FreeC.IR.SrcSpan
 import qualified FreeC.IR.Syntax                   as IR
+import           FreeC.LiftedIR.Effect
 import           FreeC.Monad.Reporter
 import           FreeC.Pretty
 import           FreeC.Util.Config
@@ -42,7 +43,7 @@ import           FreeC.Util.Config
 --   that the implementation of the corresponding change in the other module
 --   is forgotten.
 moduleInterfaceFileFormatVersion :: Integer
-moduleInterfaceFileFormatVersion = 3
+moduleInterfaceFileFormatVersion = 4
 
 instance Aeson.ToJSON IR.QName where
   toJSON = Aeson.toJSON . showPretty
@@ -55,6 +56,9 @@ instance Aeson.ToJSON Coq.Qualid where
 
 instance Aeson.ToJSON Agda.QName where
   toJSON = Aeson.toJSON . show . prettyAgda
+
+instance Aeson.ToJSON Effect where
+  toJSON = Aeson.toJSON . show
 
 -- | Serializes a 'ModuleInterface'.
 instance Aeson.ToJSON ModuleInterface where
@@ -118,7 +122,7 @@ encodeEntry entry
     , "coq-name" .= coqName
     , "agda-name" .= agdaName
     , "arity" .= arity
-    , "partial" .= partial
+    , "effects" .= effects
     , "needs-free-args" .= freeArgsNeeded
     ]
   | otherwise = error "encodeEntry: Cannot serialize (type) variable entry."
@@ -146,8 +150,8 @@ encodeEntry entry
   consNames :: Aeson.Value
   consNames = Aeson.toJSON (entryConsNames entry)
 
-  partial :: Aeson.Value
-  partial = Aeson.toJSON (entryIsPartial entry)
+  effects :: Aeson.Value
+  effects = Aeson.toJSON (entryEffects entry)
 
   freeArgsNeeded :: Aeson.Value
   freeArgsNeeded = Aeson.toJSON (entryNeedsFreeArgs entry)
