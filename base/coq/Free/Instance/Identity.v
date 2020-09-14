@@ -12,21 +12,19 @@ Module Identity.
   (* Type synonym and smart constructors for the identity monad. *)
   Module Import Monad.
     Definition Identity (A : Type) : Type := Free Shape Pos A.
-    Definition Id {A : Type} (x : A) : Identity A := pure x.
-
-    (* Version of the smart constructor that automatically embeds values in an effect stack *)
-    Definition Id_inj {A : Type}
-                      (Shape' : Type) 
-                      (Pos' : Shape' -> Type)
-                      `{Injectable Shape Pos Shape' Pos'}
-                      (x : A) 
+    (* Smart constructor that embeds the Identity effect in an effect stack. *)
+    Definition Id (Shape' : Type)
+                  (Pos' : Shape' -> Type)
+                  `{Injectable Shape Pos Shape' Pos'}
+                  {A : Type}
+                  (x : A)
     : Free Shape' Pos' A := pure x.
   End Monad.
 
   (* Handler for an effect-free program. *)
   Module Import Handler.
-    Definition run {A : Type} (fz : Free Identity.Shape Identity.Pos A) : A 
-      := match fz with 
+    Definition run {A : Type} (fz : Free Identity.Shape Identity.Pos A) : A
+      := match fz with
          | pure x => x
          | impure s _ => match s with end
          end.

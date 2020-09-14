@@ -19,7 +19,8 @@ import           FreeC.Monad.Converter
 --   The first argument controls whether the generated binders are explicit
 --   (e.g. @(Shape : Type)@) or implicit (e.g. @{Shape : Type}@).
 genericArgDecls :: Coq.Explicitness -> [Coq.Binder]
-genericArgDecls explicitness = map (uncurry (Coq.typedBinder' explicitness))
+genericArgDecls explicitness = map
+  (uncurry (Coq.typedBinder' Coq.Ungeneralizable explicitness))
   Coq.Base.freeArgs
 
 -- | @Variable@ sentences for the parameters of the @Free@ monad.
@@ -27,11 +28,6 @@ genericArgDecls explicitness = map (uncurry (Coq.typedBinder' explicitness))
 --   @Variable Shape : Type.@ and @Variable Pos : Shape -> Type.@
 genericArgVariables :: [Coq.Sentence]
 genericArgVariables = map (uncurry (Coq.variable . return)) Coq.Base.freeArgs
-
--- | An explicit binder for the @Partial@ instance that is passed to partial
---   function declarations.
-partialArgDecl :: Coq.Binder
-partialArgDecl = uncurry (Coq.typedBinder' Coq.Explicit) Coq.Base.partialArg
 
 -- | Smart constructor for the application of a Coq function or (type)
 --   constructor that requires the parameters for the @Free@ monad.
@@ -41,26 +37,38 @@ genericApply
   -> [Coq.Term] -- ^ Implicit arguments to pass explicitly to the callee.
   -> [Coq.Term] -- ^ The actual arguments of the callee.
   -> Coq.Term
-genericApply func = genericApply' $ Coq.Qualid func
+genericApply func explicitEffectArgs implicitEffectArgs = genericApply'
+  (Coq.Qualid func) explicitEffectArgs [] implicitEffectArgs []
 
 -- | Like 'genericApply' but takes a function or (type) constructor term instead
 --   of a qualified identifier as its first argument.
 genericApply'
   :: Coq.Term   -- ^ The function or (type) constructor term
-  -> [Coq.Term] -- ^ The type class instances to pass to the callee.
+  -> [Coq.Term] -- ^ The explicit type class instances to pass to the callee.
+  -> [Coq.Term] -- ^ The implicit type class instances to pass to the callee.
   -> [Coq.Term] -- ^ Implicit arguments to pass explicitly to the callee.
+  -> [Coq.Term] -- ^ The implicit type class arguments that are dependent on
+                --   the implicit argumnets.
   -> [Coq.Term] -- ^ The actual arguments of the callee.
   -> Coq.Term
-genericApply' func effectArgs implicitArgs args
-  | null implicitArgs = Coq.app func allArgs
-  | otherwise = let (Coq.Qualid qualid) = func
-                in Coq.explicitApp qualid allArgs
+genericApply' func explicitEffectArgs implicitEffectArgs implicitArgs
+  typedEffectArgs args | null implicitArgs = Coq.app func allExplicitArgs
+                       | otherwise = let (Coq.Qualid qualid) = func
+                                     in Coq.explicitApp qualid allImplicitArgs
  where
   genericArgs :: [Coq.Term]
   genericArgs = map (Coq.Qualid . fst) Coq.Base.freeArgs
 
-  allArgs :: [Coq.Term]
-  allArgs = genericArgs ++ effectArgs ++ implicitArgs ++ args
+  allImplicitArgs :: [Coq.Term]
+  allImplicitArgs = genericArgs
+    ++ implicitEffectArgs
+    ++ explicitEffectArgs
+    ++ implicitArgs
+    ++ typedEffectArgs
+    ++ args
+
+  allExplicitArgs :: [Coq.Term]
+  allExplicitArgs = genericArgs ++ explicitEffectArgs ++ implicitArgs ++ args
 
 -- | Smart constructor for a @ForFree@ statement with a given type, property
 --   and @Free@ value.

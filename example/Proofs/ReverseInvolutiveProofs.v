@@ -12,7 +12,9 @@ Example partial_reverse_non_involutive:
   ~quickCheck (@prop_reverse_involutive Maybe.Shape Maybe.Pos).
 Proof.
   simpl. intros H.
-  discriminate (H unit (reverse_involutive_counterexample Maybe.Shape Maybe.Pos Maybe.Partial)).
+  discriminate 
+    (H unit 
+     (reverse_involutive_counterexample Maybe.Shape Maybe.Pos (Maybe.Partial Maybe.Shape Maybe.Pos))).
 Qed.
 
 (* If we consider the [Identity] monad on the other hand, [reverse] becomes involutive.

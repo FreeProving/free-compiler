@@ -1,5 +1,6 @@
 From Base Require Import Free.
 From Base Require Import Free.Instance.Identity.
+From Base Require Import Free.Malias.
 
 Section SecPair.
   Variable Shape : Type.
@@ -21,7 +22,6 @@ End SecPair.
 Arguments pair_  {Shape} {Pos} {A} {B}.
 
 (* Normalform instance for Pair *)
-
 Section SecNFPair.
 
   Variable Shape : Type.
@@ -41,8 +41,21 @@ Section SecNFPair.
 
   Global Instance NormalformPair `{Normalform Shape Pos A C}
                                  `{Normalform Shape Pos B D}
-    : Normalform Shape Pos (Pair Shape Pos A B) 
+    : Normalform Shape Pos (Pair Shape Pos A B)
                            (Pair Identity.Shape Identity.Pos C D)
    := { nf' := nf'Pair }.
 
 End SecNFPair.
+
+(* ShareableArgs instance for Pair *)
+Instance ShareableArgsPair {Shape : Type} {Pos : Shape -> Type} (A B : Type)
+                        `{Injectable Share.Shape Share.Pos Shape Pos}
+                        `{SAA : ShareableArgs Shape Pos A}
+                        `{SAB : ShareableArgs Shape Pos B}
+  : ShareableArgs Shape Pos (Pair Shape Pos A B) := {
+     shareArgs p := match p with
+                    | pair_ fx fy => cbneed Shape Pos (@shareArgs Shape Pos A SAA) fx >>= fun sx =>
+                                     cbneed Shape Pos (@shareArgs Shape Pos B SAB) fy >>= fun sy =>
+                                     (pure (pair_ sx sy))
+                    end
+   }.
