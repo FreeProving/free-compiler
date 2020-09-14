@@ -628,6 +628,11 @@ generateTypeclassInstances dataDecls = do
     prettyType <- showPrettyType t
     freshCoqIdent (prefix ++ prettyType)
 
+  -- | A type variable that represents irrelevant parts of a type expression.
+  -- Represented by an underscore.
+  placeholderVar :: IR.Type
+  placeholderVar = IR.TypeVar NoSrcSpan "_"
+
   -- | Collects all fully-applied type constructors
   --   of arity at least 1 (including their arguments) that occur in the given
   --   type. All arguments that do not contain occurrences of the types for
@@ -674,19 +679,19 @@ generateTypeclassInstances dataDecls = do
     --
     stripType' (IR.TypeCon _ conName) flag
       | flag || conName `elem` conNames = IR.TypeCon NoSrcSpan conName
-      | otherwise = IR.TypeVar NoSrcSpan "_"
+      | otherwise = placeholderVar
     -- For a type application, check if a relevant type occurs in @r@.
     stripType' (IR.TypeApp _ l r) flag = case stripType' r False of
       -- If not, check if a relevant type occurs in @l@, and otherwise
       -- replace the whole expression with an underscore.
       r'@(IR.TypeVar _ _) -> case stripType' l flag of
-        IR.TypeVar _ _ -> IR.TypeVar NoSrcSpan "_"
+        IR.TypeVar _ _ -> placeholderVar
         l'             -> IR.TypeApp NoSrcSpan l' r'
       -- If a relevant type does occur in @r@, the type application must
       -- be preserved, so only its arguments are stripped.´
       r'                  -> IR.TypeApp NoSrcSpan (stripType' l True) r'
     -- Type variables and function types are not relevant and are replaced by "_".
-    stripType' _ _ = IR.TypeVar NoSrcSpan "_"
+    stripType' _ _ = placeholderVar
 
   -- | Like @showPretty@, but uses the Coq identifiers of the type and its components.
   showPrettyType :: IR.Type -> Converter String
@@ -709,7 +714,7 @@ generateTypeclassInstances dataDecls = do
   --   correct number of variables, denoted by underscores.
   dataDeclToType :: IR.TypeDecl -> IR.Type
   dataDeclToType dataDecl = IR.typeConApp NoSrcSpan (IR.typeDeclQName dataDecl)
-    (replicate (length (IR.typeDeclArgs dataDecl)) (IR.TypeVar NoSrcSpan "_"))
+    (replicate (length (IR.typeDeclArgs dataDecl)) placeholderVar)
 
   -- | Replaces all variables in a type with fresh variables.
   insertFreshVariables :: IR.Type -> Converter IR.Type
