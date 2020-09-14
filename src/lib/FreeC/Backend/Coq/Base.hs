@@ -7,6 +7,8 @@ module FreeC.Backend.Coq.Base
   , generatedLibName
     -- * Free Monad
   , free
+  , shape
+  , pos
   , freePureCon
   , freeImpureCon
   , freeBind
@@ -69,21 +71,19 @@ free = Coq.bare "Free"
 
 -- | The Coq identifier for the @Shape@ argument of the @Free@ monad.
 shape :: Coq.Qualid
-shape = Coq.bare "Shape"
+shape = Coq.Bare shapeIdent
 
 -- | Like 'shape' but not wrapped in a 'Coq.Bare' constructor.
 shapeIdent :: Coq.Ident
-shapeIdent = let (Coq.Bare ident) = shape
-             in ident
+shapeIdent = Coq.ident "Shape"
 
 -- | The Coq identifier for the @Pos@ argument of the @Free@ monad.
 pos :: Coq.Qualid
-pos = Coq.bare "Pos"
+pos = Coq.Bare posIdent
 
 -- | Like 'pos' but not wrapped in a 'Coq.Bare' constructor.
 posIdent :: Coq.Ident
-posIdent = let (Coq.Bare ident) = pos
-           in ident
+posIdent = Coq.ident "Pos"
 
 -- | The Coq identifier for the @pure@ constructor of the @Free@ monad.
 freePureCon :: Coq.Qualid
@@ -151,15 +151,15 @@ injectableBinder = Coq.Generalized Coq.Implicit
                    , pos
                    ]
 
--- | The Coq identifier for the @Shareable@ type class.
+-- | The Coq identifier for the @Strategy@ type class.
 strategy :: Coq.Qualid
 strategy = Coq.bare "Strategy"
 
--- | The Coq identifier for the argument of the @Shareable@ type class.
+-- | The Coq identifier for the argument of the @Strategy@ type class.
 strategyArg :: Coq.Qualid
 strategyArg = Coq.bare "S"
 
--- | The Coq binder for the @Shareable@ type class.
+-- | The Coq binder for the @Strategy@ type class.
 strategyBinder :: Coq.Binder
 strategyBinder = Coq.typedBinder' Coq.Ungeneralizable Coq.Explicit strategyArg
   $ Coq.app (Coq.Qualid strategy) [Coq.Qualid shape, Coq.Qualid pos]
@@ -176,8 +176,8 @@ shareableArgsBinder typeArg = Coq.Generalized Coq.Implicit
   $ map Coq.Qualid [shape, pos, typeArg]
 
 -- | The Coq identifier for an implicit argument.
-implicitArg :: Coq.Qualid
-implicitArg = Coq.bare "_"
+implicitArg :: Coq.Term
+implicitArg = Coq.Underscore
 
 -- | The Coq Identifier for the @share@ operator.
 share :: Coq.Qualid
@@ -187,20 +187,20 @@ share = Coq.bare "share"
 -- Effect selection                                                          --
 -------------------------------------------------------------------------------
 -- | Selects the correct explicit function arguments for the given effect.
-selectExplicitArgs :: Effect -> [Coq.Qualid]
-selectExplicitArgs Partiality = [partialArg]
-selectExplicitArgs Sharing    = [strategyArg]
+selectExplicitArgs :: Effect -> [Coq.Term]
+selectExplicitArgs Partiality = [Coq.Qualid partialArg]
+selectExplicitArgs Sharing    = [Coq.Qualid strategyArg]
 
 -- | Selects the correct implicit function arguments for the given effect.
-selectImplicitArgs :: Effect -> [Coq.Qualid]
+selectImplicitArgs :: Effect -> [Coq.Term]
 selectImplicitArgs Partiality = []
-selectImplicitArgs Sharing    = []
+selectImplicitArgs Sharing    = [implicitArg]
 
 -- | Like 'selectImplicitArgs' but the arguments have to be inserted after
---   the type arguments.
-selectTypedImplicitArgs :: Effect -> [Coq.Qualid]
-selectTypedImplicitArgs Partiality = []
-selectTypedImplicitArgs Sharing    = [implicitArg]
+--   the type arguments the specified number of times.
+selectTypedImplicitArgs :: Effect -> Int -> [Coq.Term]
+selectTypedImplicitArgs Partiality = const []
+selectTypedImplicitArgs Sharing    = flip replicate implicitArg
 
 -- | Selects the correct binder for the given effect.
 selectBinders :: Effect -> [Coq.Binder]
@@ -238,12 +238,14 @@ reservedIdents
     , freeImpureCon
       -- Partiality
     , partial
+    , partialArg
     , partialUndefined
     , partialError
       -- Sharing
     , injectable
     , strategy
+    , strategyArg
     , shareableArgs
     , share
     ]
-  ++ (partialArg : map fst freeArgs)
+  ++ map fst freeArgs

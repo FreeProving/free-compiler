@@ -2,6 +2,7 @@
 module FreeC.Backend.Coq.Converter.Expr where
 
 import           Control.Monad                    ( (>=>) )
+import           Data.Maybe                       ( maybeToList )
 
 import qualified FreeC.Backend.Coq.Base           as Coq.Base
 import           FreeC.Backend.Coq.Converter.Free
@@ -28,12 +29,10 @@ convertLiftedExpr (LIR.Var _ _ _ qualid) = return $ Coq.Qualid qualid
 convertLiftedExpr (LIR.App _ func typeArgs effects args freeArgs) = do
   func' : args' <- mapM convertLiftedExpr $ func : args
   typeArgs' <- mapM convertLiftedType typeArgs
-  let explicitEffectArgs'
-        = map Coq.Qualid $ concatMap Coq.Base.selectExplicitArgs effects
-      implicitEffectArgs'
-        = map Coq.Qualid $ concatMap Coq.Base.selectImplicitArgs effects
-      implicitTypeArgs'
-        = map Coq.Qualid $ concatMap Coq.Base.selectTypedImplicitArgs effects
+  let explicitEffectArgs' = concatMap Coq.Base.selectExplicitArgs effects
+      implicitEffectArgs' = concatMap Coq.Base.selectImplicitArgs effects
+      implicitTypeArgs'   = concatMap
+        (flip Coq.Base.selectTypedImplicitArgs $ length typeArgs) effects
   if freeArgs
     then return
       $ genericApply' func' explicitEffectArgs' implicitEffectArgs' typeArgs'
@@ -71,7 +70,13 @@ convertLiftedExpr (LIR.Bind _ lhs rhs) = do
   lhs' <- convertLiftedExpr lhs
   rhs' <- convertLiftedExpr rhs
   return $ Coq.app (Coq.Qualid Coq.Base.freeBind) [lhs', rhs']
-convertLiftedExpr (LIR.Share _) = return $ Coq.Qualid Coq.Base.share
+convertLiftedExpr (LIR.Share _ arg argType) = do
+  arg' <- convertLiftedExpr arg
+  argType' <- mapM convertLiftedType argType
+  return
+    $ genericApply' (Coq.Qualid Coq.Base.share)
+    [Coq.Qualid Coq.Base.strategyArg] [] (maybeToList argType')
+    [Coq.Base.implicitArg] [arg']
 
 -- | Converts a Haskell expression to Coq.
 convertExpr :: IR.Expr -> Converter Coq.Term
