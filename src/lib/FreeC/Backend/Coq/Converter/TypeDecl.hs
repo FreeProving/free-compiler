@@ -1,11 +1,23 @@
 -- | This module contains functions for converting type synonym and data type
 --   declarations and their constructors.
-module FreeC.Backend.Coq.Converter.TypeDecl where
+module FreeC.Backend.Coq.Converter.TypeDecl
+  ( -- * Strongly Connected Components
+    convertTypeComponent
+  , sortTypeSynDecls
+  , fromNonRecursive
+    -- * Type Synonym Declarations
+  , isTypeSynDecl
+  , convertTypeSynDecl
+    -- * Data Type Declarations
+  , convertDataDecls
+  , convertDataDecl
+  ) where
 
 import           Control.Monad
   ( foldM, mapAndUnzipM, replicateM )
 import           Control.Monad.Extra              ( concatMapM )
 import           Data.List                        ( nub, partition )
+import           Data.List.Extra                  ( concatUnzip )
 import qualified Data.List.NonEmpty               as NonEmpty
 import qualified Data.Map.Strict                  as Map
 import           Data.Maybe                       ( catMaybes, fromJust )
@@ -20,6 +32,9 @@ import           FreeC.Environment
 import           FreeC.Environment.Entry
 import           FreeC.Environment.Fresh
 import           FreeC.Environment.LookupOrFail
+import           FreeC.Environment.Fresh
+  ( freshArgPrefix, freshCoqIdent )
+import           FreeC.Environment.Renamer        ( renameAndDefineTypeVar )
 import           FreeC.IR.DependencyGraph
 import           FreeC.IR.SrcSpan                 ( SrcSpan(NoSrcSpan) )
 import           FreeC.IR.Subst
@@ -33,11 +48,12 @@ import           FreeC.Pretty
 -------------------------------------------------------------------------------
 -- Strongly Connected Components                                             --
 -------------------------------------------------------------------------------
--- | Converts a strongly connected component of the type dependency graph.
-convertTypeComponent
-  :: DependencyComponent IR.TypeDecl -> Converter [Coq.Sentence]
+-- | Converts a strongly connected component of the type dependency graph and
+--   creates a separate lit of qualified smart constructor notations.
+convertTypeComponent :: DependencyComponent IR.TypeDecl
+                     -> Converter ([Coq.Sentence], [Coq.Sentence])
 convertTypeComponent (NonRecursive decl)
-  | isTypeSynDecl decl = convertTypeSynDecl decl
+  | isTypeSynDecl decl = flip (,) [] <$> convertTypeSynDecl decl
   | otherwise = convertDataDecls [decl]
 convertTypeComponent (Recursive decls)   = do
   let (typeSynDecls, dataDecls) = partition isTypeSynDecl decls
@@ -47,9 +63,9 @@ convertTypeComponent (Recursive decls)   = do
   expandedDataDecls <- mapM
     (expandAllTypeSynonymsInDeclWhere (`Set.member` typeSynDeclQNames))
     dataDecls
-  dataDecls' <- convertDataDecls expandedDataDecls
+  (dataDecls', qualSmartConDecls) <- convertDataDecls expandedDataDecls
   typeSynDecls' <- concatMapM convertTypeSynDecl sortedTypeSynDecls
-  return (dataDecls' ++ typeSynDecls')
+  return (dataDecls' ++ typeSynDecls', qualSmartConDecls)
 
 -- | Sorts type synonym declarations topologically.
 --
@@ -114,37 +130,47 @@ type TypeMap = Map.Map IR.Type Coq.Qualid
 --   variable with the same (lowercase) name.
 --
 --   After the @Inductive@ sentences for the data type declarations there
---   is one @Arguments@ sentence and one smart constructor declaration for
---   each constructor declaration of the given data types.
-convertDataDecls :: [IR.TypeDecl] -> Converter [Coq.Sentence]
+--   is one @Arguments@ sentence and several smart constructor @Notation@
+--   declarations for each constructor declaration of the given data types.
+--   Qualified smart constructor notations are packed into a separate list.
+convertDataDecls :: [IR.TypeDecl] -> Converter ([Coq.Sentence], [Coq.Sentence])
 convertDataDecls dataDecls = do
-  (indBodies, extraSentences) <- mapAndUnzipM convertDataDecl dataDecls
-  --instances <- generateInstances dataDecls
+  (indBodies, extraSentences') <- mapAndUnzipM convertDataDecl dataDecls
+  let (extraSentences, qualSmartConDecls) = concatUnzip extraSentences'
   instances <- generateTypeclassInstances dataDecls
   return
-    (Coq.comment ("Data type declarations for "
-                  ++ showPretty (map IR.typeDeclName dataDecls))
-     : Coq.InductiveSentence (Coq.Inductive (NonEmpty.fromList indBodies) [])
-     : concat extraSentences ++ instances)
+    ( Coq.comment ("Data type declarations for "
+                   ++ showPretty (map IR.typeDeclName dataDecls))
+        : Coq.InductiveSentence (Coq.Inductive (NonEmpty.fromList indBodies) [])
+        : extraSentences ++ instances
+    , qualSmartConDecls
+    )
 
 -- | Converts a Haskell data type declaration to the body of a Coq @Inductive@
 --   sentence, the @Arguments@ sentences for it's constructors and the smart
---   constructor declarations.
+--   constructor notations.
+--   Qualified smart constructor notations are packed into a separate list.
 --
 --   Type variables declared by the data type or the smart constructors are
 --   not visible outside of this function.
-convertDataDecl :: IR.TypeDecl -> Converter (Coq.IndBody, [Coq.Sentence])
+convertDataDecl
+  :: IR.TypeDecl -> Converter (Coq.IndBody, ([Coq.Sentence], [Coq.Sentence]))
 convertDataDecl (IR.DataDecl _ (IR.DeclIdent _ name) typeVarDecls conDecls) = do
   (body, argumentsSentences) <- generateBodyAndArguments
-  smartConDecls <- mapM generateSmartConDecl conDecls
-  return
-    ( body
-    , Coq.comment ("Arguments sentences for " ++ showPretty (IR.toUnQual name))
-        : argumentsSentences
-        ++ Coq.comment
-        ("Smart constructors for " ++ showPretty (IR.toUnQual name))
-        : smartConDecls
-    )
+  (smartConDecls, qualSmartConDecls)
+    <- concatUnzip <$> mapM generateSmartConDecl conDecls
+  return ( body
+         , ( Coq.commentedSentences
+               ("Arguments sentences for " ++ showPretty (IR.toUnQual name))
+               argumentsSentences
+               ++ Coq.commentedSentences
+               ("Smart constructors for " ++ showPretty (IR.toUnQual name))
+               smartConDecls
+             , Coq.commentedSentences ("Qualified smart constructors for "
+                                       ++ showPretty (IR.toUnQual name))
+               qualSmartConDecls
+             )
+         )
  where
   -- | Generates the body of the @Inductive@ sentence and the @Arguments@
   --   sentences for the constructors but not the smart constructors
@@ -190,23 +216,95 @@ convertDataDecl (IR.DataDecl _ (IR.DeclIdent _ name) typeVarDecls conDecls) = do
              <- map fst Coq.Base.freeArgs ++ catMaybes typeVarQualids
              ]))
 
-  -- | Generates the smart constructor declaration for the given constructor
+  -- | Generates the smart constructor notations for the given constructor
   --   declaration.
-  generateSmartConDecl :: IR.ConDecl -> Converter Coq.Sentence
+  --   There is a notation for normal application and explicit application of
+  --   the smart constructor and for qualified and unqualified access. The
+  --   unqualified notations form the first list and the qualified notations
+  --   form the second list.
+  generateSmartConDecl
+    :: IR.ConDecl -> Converter ([Coq.Sentence], [Coq.Sentence])
   generateSmartConDecl (IR.ConDecl _ declIdent argTypes) = localEnv $ do
     let conName = IR.declIdentName declIdent
+    mbModName <- inEnv $ lookupModName IR.ValueScope conName
     Just qualid <- inEnv $ lookupIdent IR.ValueScope conName
     Just smartQualid <- inEnv $ lookupSmartIdent conName
     Just returnType <- inEnv $ lookupReturnType IR.ValueScope conName
-    typeVarDecls' <- convertTypeVarDecls Coq.Implicit typeVarDecls
-    (argIdents', argDecls') <- mapAndUnzipM convertAnonymousArg
-      (map Just argTypes)
-    returnType' <- convertType returnType
-    rhs <- generatePure
-      (Coq.app (Coq.Qualid qualid) (map Coq.Qualid argIdents'))
-    return (Coq.definitionSentence smartQualid
-            (genericArgDecls Coq.Explicit ++ typeVarDecls' ++ argDecls')
-            (Just returnType') rhs)
+    constrArgIdents <- mapM (const $ freshCoqIdent freshArgPrefix) argTypes
+    let Just unqualIdent = Coq.unpackQualid smartQualid
+    typeVarQualids <- mapM
+      (\(IR.TypeVarDecl srcSpan ident) -> renameAndDefineTypeVar srcSpan ident)
+      typeVarDecls
+    let typeVarIdents = map (fromJust . Coq.unpackQualid) typeVarQualids
+    returnType' <- convertType' returnType
+    -- Generate unqualified and qualified notation sentences for the smart
+    -- constructor if possible.
+    return
+      ( generateSmartConDecl' unqualIdent qualid typeVarIdents constrArgIdents
+          returnType'
+      , case mbModName of
+          Just modName -> generateSmartConDecl' (modName ++ '.' : unqualIdent)
+            qualid typeVarIdents constrArgIdents returnType'
+          Nothing      -> []
+      )
+
+  -- | Generates a notation sentence for the smart constructor and the
+  --   explicit application of the smart constructor.
+  generateSmartConDecl'
+    :: String
+    -> Coq.Qualid
+    -> [String]
+    -> [String]
+    -> Coq.Term
+    -> [Coq.Sentence]
+  generateSmartConDecl' smartIdent constr typeVarIdents constrArgIdents
+    expReturnType = [ Coq.notationSentence lhs rhs mods
+                    , Coq.notationSentence expLhs expRhs expMods
+                    ]
+   where
+    freeArgIdents = map (fromJust . Coq.unpackQualid . fst) Coq.Base.freeArgs
+
+    freeArgs      = map (Coq.Qualid . fst) Coq.Base.freeArgs
+
+    -- Default smart constructor with implicit type args.
+    returnType    = case expReturnType of
+      (Coq.App tcon (shape NonEmpty.:| pos : tvars))
+        | length tvars == length typeVarIdents -> Coq.App tcon
+          (shape NonEmpty.:| pos
+           : map (Coq.PosArg . const Coq.Underscore) tvars)
+      _ -> Coq.Underscore
+
+    argIdents     = freeArgIdents ++ constrArgIdents
+
+    args          = freeArgs
+      ++ map (const Coq.Underscore) typeVarIdents
+      ++ map (Coq.Qualid . Coq.bare) constrArgIdents
+
+    lhs           = Coq.nSymbol smartIdent NonEmpty.:| map Coq.nIdent argIdents
+
+    rhs           = Coq.explicitApp Coq.Base.freePureCon
+      $ freeArgs ++ [returnType, Coq.explicitApp constr args]
+
+    mods          = [ Coq.sModLevel 10
+                    , Coq.sModIdentLevel (NonEmpty.fromList argIdents) (Just 9)
+                    ]
+
+    -- Explicit notation for the smart constructor.
+    expArgIdents  = freeArgIdents ++ typeVarIdents ++ constrArgIdents
+
+    expArgs       = map (Coq.Qualid . Coq.bare) expArgIdents
+
+    expLhs        = Coq.nSymbol ('@' : smartIdent)
+      NonEmpty.:| map Coq.nIdent expArgIdents
+
+    expRhs        = Coq.explicitApp Coq.Base.freePureCon
+      $ freeArgs ++ [expReturnType, Coq.explicitApp constr expArgs]
+
+    expMods
+      = [ Coq.SModOnlyParsing
+        , Coq.sModLevel 10
+        , Coq.sModIdentLevel (NonEmpty.fromList expArgIdents) (Just 9)
+        ]
 -- Type synonyms are not allowed in this function.
 convertDataDecl (IR.TypeSynDecl _ _ _ _)
   = error "convertDataDecl: Type synonym not allowed."

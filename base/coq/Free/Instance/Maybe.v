@@ -12,23 +12,20 @@ Module Maybe.
   (* Type synonym and smart constructors for the maybe monad. *)
   Module Import Monad.
     Definition Maybe (A : Type) : Type := Free Shape Pos A.
-    Definition Just {A : Type} (x : A) : Maybe A := pure x.
-    Definition Nothing {A : Type}      : Maybe A :=
-       impure tt (fun (p : Pos tt) => match p with end).
 
-  (* Versions of the smart constructors that automatically embed values in an effect stack *)
-    Definition Just_inj (Shape' : Type)
-                        (Pos' : Shape' -> Type)
-                        `{Injectable Shape Pos Shape' Pos'}
-                        {A : Type}
-                        (x : A)
+    (* The smart constructors embed the maybe effect in an effect stack *)
+    Definition Just (Shape' : Type)
+                    (Pos' : Shape' -> Type)
+                    `{Injectable Shape Pos Shape' Pos'}
+                    {A : Type}
+                    (x : A)
       : Free Shape' Pos' A
      := pure x.
 
-    Definition Nothing_inj (Shape' : Type)
-                           (Pos' : Shape' -> Type)
-                           `{Injectable Shape Pos Shape' Pos'}
-                           {A : Type}
+    Definition Nothing (Shape' : Type)
+                       (Pos' : Shape' -> Type)
+                       `{Injectable Shape Pos Shape' Pos'}
+                       {A : Type}
        : Free Shape' Pos' A
       := impure (injS tt) (fun p : Pos' (injS tt) =>
       (fun (x : Void) => match x with end) (injP p)).
@@ -53,9 +50,11 @@ Module Maybe.
   End Handler.
 
   (* Partial instance for the maybe monad. *)
-  Instance Partial : Partial Shape Pos := {
-      undefined := fun {A : Type}                => Nothing;
-      error     := fun {A : Type} (msg : string) => Nothing
+  Instance Partial (Shape' : Type) (Pos' : Shape' -> Type)
+                   `{Injectable Shape Pos Shape' Pos'}
+    : Partial Shape' Pos' := {
+      undefined := fun {A : Type}                => Nothing Shape' Pos';
+      error     := fun {A : Type} (msg : string) => Nothing Shape' Pos'
     }.
 End Maybe.
 
