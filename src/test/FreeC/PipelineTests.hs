@@ -5,10 +5,10 @@ module FreeC.PipelineTests ( testPipeline ) where
 import           Test.Hspec
 
 import           FreeC.Pass.CompletePatternPassTests
+import           FreeC.Pass.EffectAnalysisPassTests
 import           FreeC.Pass.EtaConversionPassTests
 import           FreeC.Pass.ExportPassTests
 import           FreeC.Pass.KindCheckPassTests
-import           FreeC.Pass.PartialityAnalysisPassTests
 import           FreeC.Pass.ResolverPassTests
 import           FreeC.Pass.TypeInferencePassTests
 
@@ -16,9 +16,10 @@ import           FreeC.Pass.TypeInferencePassTests
 testPipeline :: Spec
 testPipeline = do
   testCompletePatternPass
+  testEffectAnalysisPass
   testEtaConversionPass
   testExportPass
   testKindCheckPass
-  testPartialityAnalysisPass
+  testEffectAnalysisPass
   testResolverPass
   testTypeInferencePass

@@ -25,8 +25,6 @@
 --      function declaration or the function does not have an argument with
 --      the specified name or at the specified position, a fatal error is
 --      reported.
-
-
 module FreeC.Pass.PragmaPass ( pragmaPass ) where
 
 import           Data.List             ( find, findIndex )

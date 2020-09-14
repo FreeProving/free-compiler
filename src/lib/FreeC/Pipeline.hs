@@ -20,9 +20,9 @@ import           FreeC.Pass.ExportPass
 import           FreeC.Pass.ImplicitPreludePass
 import           FreeC.Pass.ImportPass
 import           FreeC.Pass.KindCheckPass
+import           FreeC.Pass.PragmaPass
 import           FreeC.Pass.QualifierPass
 import           FreeC.Pass.ResolverPass
-import           FreeC.Pass.PragmaPass
 import           FreeC.Pass.TypeInferencePass
 import           FreeC.Pass.TypeSignaturePass
 
