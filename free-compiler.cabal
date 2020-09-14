@@ -171,6 +171,7 @@ library freec-internal
                       , FreeC.Pass.CompletePatternPass
                       , FreeC.Pass.DefineDeclPass
                       , FreeC.Pass.DependencyAnalysisPass
+                      , FreeC.Pass.EffectAnalysisPass
                       , FreeC.Pass.EtaConversionPass
                       , FreeC.Pass.ExportPass
                       , FreeC.Pass.ImplicitPreludePass
