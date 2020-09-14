@@ -582,9 +582,9 @@ nfBindersAndReturnType t varName = do
   let constraints = map (buildConstraint normalformClassName)
         (zipWith (\v1 v2 -> [v1, v2]) sourceVars targetVars)
   let varBinders
-        = [typeBinder (sourceVars ++ targetVars) | not (null sourceVars)]
+        = [typeVarBinder (sourceVars ++ targetVars) | not (null sourceVars)]
   let binders = varBinders ++ constraints
-  let topLevelVarBinder = Coq.typedBinder' Coq.Explicit varName sourceType
+  let topLevelVarBinder = Coq.typedBinder' Coq.Ungeneralizable Coq.Explicit varName sourceType
   let instanceRetType = Coq.app (Coq.Qualid (Coq.bare normalformClassName))
         (shapeAndPos ++ [sourceType, targetType])
   let funcRetType = applyFree targetType
@@ -642,7 +642,7 @@ buildNormalformValue nameMap consName = buildNormalformValue' []
 -------------------------------------------------------------------------------
 -- Helper functions                                                          --
 -------------------------------------------------------------------------------
--- Like showPretty, but uses the Coq identifiers of the type and its components.
+-- Like @showPretty@, but uses the Coq identifiers of the type and its components.
 showPrettyType :: IR.Type -> Converter String
 
 -- For a type variable, show its name.
@@ -683,9 +683,15 @@ freeArgsBinders :: [Coq.Binder]
 freeArgsBinders = genericArgDecls Coq.Implicit
 
 -- Shortcut for the construction of an implicit binder for type variables.
--- typeBinder [a1, ..., an] = {a1 ... an : Type}
-typeBinder :: [Coq.Qualid] -> Coq.Binder
-typeBinder typeVars = Coq.typedBinder Coq.Implicit typeVars Coq.sortType
+-- typeVarBinder [a1, ..., an] = {a1 ... an : Type}
+typeVarBinder :: [Coq.Qualid] -> Coq.Binder
+typeVarBinder typeVars = Coq.typedBinder Coq.Ungeneralizable Coq.Implicit typeVars Coq.sortType
+
+-- | Constructs a type class constraint.
+--   > buildConstraint name [a1 ... an] = `{name Shape Pos a1 ... an}.
+buildConstraint :: String -> [Coq.Qualid] -> Coq.Binder
+buildConstraint className args = Coq.Generalized Coq.Implicit
+  (Coq.app (Coq.Qualid (Coq.bare className)) (shapeAndPos ++ map Coq.Qualid args))
 
 -- Shortcut for the application of >>=.
 applyBind :: Coq.Term -> Coq.Term -> Coq.Term
@@ -697,18 +703,13 @@ applyFree a = Coq.app (Coq.Qualid Coq.Base.free) (shapeAndPos ++ [a])
 
 -- | Shape and Pos arguments as Coq terms.
 shapeAndPos :: [Coq.Term]
-shapeAndPos = map Coq.Qualid Coq.Base.shapeAndPos
+shapeAndPos = [Coq.Qualid Coq.Base.shape, Coq.Qualid Coq.Base.pos]
 
 -- | The shape and position function arguments for the Identity monad
 --   as a Coq term.
 idShapeAndPos :: [Coq.Term]
-idShapeAndPos = map Coq.Qualid Coq.Base.idShapeAndPos
-
--- | Constructs a type class constraint.
---   > buildConstraint name [a1 ... an] = `{name Shape Pos a1 ... an}.
-buildConstraint :: String -> [Coq.Qualid] -> Coq.Binder
-buildConstraint ident args = Coq.Generalized Coq.Implicit
-  (Coq.app (Coq.Qualid (Coq.bare ident)) (shapeAndPos ++ map Coq.Qualid args))
+idShapeAndPos = map Coq.Qualid [Coq.Qualified (Coq.ident "Identity") Coq.Base.shapeIdent
+ , Coq.Qualified (Coq.ident "Identity") Coq.Base.posIdent]
 
 -- | Converts a type into a Coq type (a term) with the specified
 --   additional arguments (for example Shape and Pos) and new variables for all
