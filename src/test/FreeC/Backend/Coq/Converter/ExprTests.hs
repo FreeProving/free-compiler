@@ -33,6 +33,7 @@ testConvertExpr = describe "FreeC.Backend.Coq.Converter.Expr.convertExpr" $ do
   testConvertFuncApp
   testConvertIf
   testConvertCase
+  testConvertLet
   testConvertLambda
   testConvertExprTypeAnnotations
   testConvertTypeAppExprs
@@ -251,6 +252,37 @@ testConvertCase = context "case expressions" $ do
       ++ "    end)"
       ++ "  | b => x"
       ++ "  end)"
+
+-------------------------------------------------------------------------------
+-- Let Expressions                                                           --
+-------------------------------------------------------------------------------
+-- | Test group for translation of Let expressions.
+testConvertLet :: Spec
+testConvertLet = context "let expressions" $ do
+  it "translates a let expression with a single bind correctly"
+    $ shouldSucceedWith
+    $ do
+      "add" <- defineTestFunc "add" 2 "Integer -> Integer -> Integer"
+      "Integer" <- defineTestTypeCon "Integer" 0 []
+      "x" <- defineTestVar "x"
+      shouldConvertExprTo "let {(x' :: Integer) = x} in (add x' x')"
+        $ "@share Shape Pos S (Integer Shape Pos) _"
+        ++ "  x >>= (fun (x' : Free Shape Pos (Integer Shape Pos)) =>"
+        ++ "    add Shape Pos x' x')"
+  it "translates a let expression with two binds correctly"
+    $ shouldSucceedWith
+    $ do
+      "add" <- defineTestFunc "add" 2 "Integer -> Integer -> Integer"
+      "Integer" <- defineTestTypeCon "Integer" 0 []
+      "x" <- defineTestVar "x"
+      "y" <- defineTestVar "y"
+      shouldConvertExprTo
+        "let {(x' :: Integer) = x; (y' :: Integer) = y} in (add x' y')"
+        $ "@share Shape Pos S (Integer Shape Pos) _ x"
+        ++ "  >>= (fun (x' : Free Shape Pos (Integer Shape Pos)) =>"
+        ++ "    @share Shape Pos S (Integer Shape Pos) _ y"
+        ++ "      >>= (fun (y' : Free Shape Pos (Integer Shape Pos)) =>"
+        ++ "        add Shape Pos x' y'))"
 
 -------------------------------------------------------------------------------
 -- Lambda Abstractions                                                       --

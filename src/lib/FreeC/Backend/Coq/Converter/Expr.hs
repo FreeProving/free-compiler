@@ -2,6 +2,7 @@
 module FreeC.Backend.Coq.Converter.Expr where
 
 import           Control.Monad                    ( (>=>) )
+import           Data.Maybe                       ( maybeToList )
 
 import qualified FreeC.Backend.Coq.Base           as Coq.Base
 import           FreeC.Backend.Coq.Converter.Free
@@ -10,7 +11,6 @@ import qualified FreeC.Backend.Coq.Syntax         as Coq
 import           FreeC.Environment.LookupOrFail
 import qualified FreeC.IR.Syntax                  as IR
 import           FreeC.LiftedIR.Converter.Expr
-import           FreeC.LiftedIR.Effect
 import qualified FreeC.LiftedIR.Syntax            as LIR
 import           FreeC.Monad.Converter
 
@@ -29,9 +29,14 @@ convertLiftedExpr (LIR.Var _ _ _ qualid) = return $ Coq.Qualid qualid
 convertLiftedExpr (LIR.App _ func typeArgs effects args freeArgs) = do
   func' : args' <- mapM convertLiftedExpr $ func : args
   typeArgs' <- mapM convertLiftedType typeArgs
-  let effectArgs' = map convertEffect effects
+  let explicitEffectArgs' = concatMap Coq.Base.selectExplicitArgs effects
+      implicitEffectArgs' = concatMap Coq.Base.selectImplicitArgs effects
+      implicitTypeArgs'   = concatMap
+        (flip Coq.Base.selectTypedImplicitArgs $ length typeArgs) effects
   if freeArgs
-    then return $ genericApply' func' effectArgs' typeArgs' args'
+    then return
+      $ genericApply' func' explicitEffectArgs' implicitEffectArgs' typeArgs'
+      implicitTypeArgs' args'
     else return $ Coq.app func' args'
 convertLiftedExpr (LIR.If _ cond true false) = do
   cond' <- convertLiftedExpr cond
@@ -65,17 +70,17 @@ convertLiftedExpr (LIR.Bind _ lhs rhs) = do
   lhs' <- convertLiftedExpr lhs
   rhs' <- convertLiftedExpr rhs
   return $ Coq.app (Coq.Qualid Coq.Base.freeBind) [lhs', rhs']
+convertLiftedExpr (LIR.Share _ arg argType) = do
+  arg' <- convertLiftedExpr arg
+  argType' <- mapM convertLiftedType argType
+  return
+    $ genericApply' (Coq.Qualid Coq.Base.share)
+    [Coq.Qualid Coq.Base.strategyArg] [] (maybeToList argType')
+    [Coq.Base.implicitArg] [arg']
 
 -- | Converts a Haskell expression to Coq.
 convertExpr :: IR.Expr -> Converter Coq.Term
 convertExpr = liftExpr >=> convertLiftedExpr
-
--------------------------------------------------------------------------------
--- Effects                                                                   --
--------------------------------------------------------------------------------
--- | Converts an effect to a Coq function argument.
-convertEffect :: Effect -> Coq.Term
-convertEffect Partiality = Coq.Qualid $ fst Coq.Base.partialArg
 
 -------------------------------------------------------------------------------
 -- @case@ Expressions                                                        --
