@@ -370,9 +370,11 @@ generateTypeclassInstances dataDecls = do
       (fixBodies, instances) <- mapAndUnzipM
         (uncurry (buildFixBodyAndInstance topLevelMap))
         (zip declTypes recTypeList)
-      return
-        $ Coq.FixpointSentence (Coq.Fixpoint (NonEmpty.fromList fixBodies) [])
-        : instances
+      return $
+         Coq.comment (className ++ " instance" ++ ['s' | length dataDecls > 1] ++ " for "
+                  ++ showPretty (map IR.typeDeclName dataDecls))
+                  : Coq.FixpointSentence (Coq.Fixpoint (NonEmpty.fromList fixBodies) [])
+                  : instances
    where
         -- Constructs the class function and class instance for a single type.
     buildFixBodyAndInstance
