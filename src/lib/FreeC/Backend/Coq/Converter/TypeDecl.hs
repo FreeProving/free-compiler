@@ -29,7 +29,7 @@ import           FreeC.Backend.Coq.Converter.Type
 import qualified FreeC.Backend.Coq.Syntax         as Coq
 import           FreeC.Environment
 import           FreeC.Environment.Fresh
-  ( freshArgPrefix, freshCoqIdent )
+  ( freshArgPrefix, freshCoqIdent, freshCoqQualid )
 import           FreeC.Environment.Renamer        ( renameAndDefineTypeVar )
 import           FreeC.IR.DependencyGraph
 import qualified FreeC.IR.Syntax                  as IR
@@ -300,13 +300,17 @@ convertDataDecl (IR.DataDecl _ (IR.DeclIdent _ name) typeVarDecls conDecls) = do
         ]
 
   -- | Generates an induction scheme for the data type.
-  generateInductionScheme :: Converter Coq.Sentence
+  generateInductionScheme :: Converter [Coq.Sentence]
   generateInductionScheme = localEnv $ do
     Just tIdent <- inEnv $ lookupIdent IR.TypeScope name
     -- Create variables and binders.
-    let generateArg argType = do
+    let generateArg :: Coq.Term -> Converter (Coq.Qualid, Coq.Binder)
+        generateArg argType = do
           ident <- freshCoqQualid freshArgPrefix
-          return $ (ident, Coq.typedBinder Coq.Explicit [ident] argType)
+          return
+            $ ( ident
+              , Coq.typedBinder Coq.Ungeneralizable Coq.Explicit [ident] argType
+              )
     (tvarIdents, tvarBinders) <- convertTypeVarDecls' Coq.Explicit typeVarDecls
     (propIdent, propBinder) <- generateArg
       (Coq.Arrow (genericApply tIdent [] [] (map Coq.Qualid tvarIdents))
@@ -332,7 +336,7 @@ convertDataDecl (IR.DataDecl _ (IR.DeclIdent _ name) typeVarDecls conDecls) = do
            ++ " 1; intro; "
            ++ fromJust (Coq.unpackQualid Coq.Base.proveInd)
            ++ ".")
-    return (Coq.AssertionSentence scheme proof)
+    return [Coq.AssertionSentence scheme proof]
 
   -- | Generates an induction case for a given property and constructor.
   generateInductionCase
