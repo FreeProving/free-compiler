@@ -4,12 +4,15 @@ module FreeC.Backend.Coq.Syntax
   ( module Language.Coq.Gallina
     -- * Comments
   , comment
+  , commentedSentences
+  , unpackComment
     -- * Proofs
   , blankProof
     -- * Identifiers
   , ident
   , bare
   , unpackQualid
+  , access
     -- * Functions
   , app
   , explicitApp
@@ -23,6 +26,12 @@ module FreeC.Backend.Coq.Syntax
   , variable
     -- * Definition Sentences
   , definitionSentence
+    -- * Notation sentences
+  , notationSentence
+  , nSymbol
+  , nIdent
+  , sModLevel
+  , sModIdentLevel
     -- * Types
   , sortType
     -- * Expressions
@@ -37,7 +46,11 @@ module FreeC.Backend.Coq.Syntax
   , requireImportFrom
   , requireExportFrom
   , requireFrom
+  , moduleImport
+  , moduleExport
   ) where
+
+import           Prelude              hiding ( Num )
 
 import           Data.Composition     ( (.:) )
 import qualified Data.List.NonEmpty   as NonEmpty
@@ -50,6 +63,15 @@ import           Language.Coq.Gallina
 -- | Smart constructor for Coq comments.
 comment :: String -> Sentence
 comment = CommentSentence . Comment . Text.pack
+
+-- | Puts a comment in front of the sentences if there is any sentence.
+commentedSentences :: String -> [Sentence] -> [Sentence]
+commentedSentences _ []          = []
+commentedSentences str sentences = comment str : sentences
+
+-- | Gets the string from theCoq  comment.
+unpackComment :: Comment -> String
+unpackComment (Comment c) = Text.unpack c
 
 -------------------------------------------------------------------------------
 -- Proofs                                                                    --
@@ -74,6 +96,10 @@ bare = Bare . ident
 unpackQualid :: Qualid -> Maybe String
 unpackQualid (Bare text)     = Just (Text.unpack text)
 unpackQualid (Qualified _ _) = Nothing
+
+-- | Smart constructor for combining a module name and an identifier.
+access :: ModuleIdent -> Ident -> Ident
+access modName name = Text.append modName (Text.cons '.' name)
 
 -------------------------------------------------------------------------------
 -- Functions                                                                 --
@@ -129,13 +155,14 @@ inferredFun = flip fun (repeat Nothing)
 -- Binders                                                                   --
 -------------------------------------------------------------------------------
 -- | Smart constructor for an explicit or implicit typed Coq binder.
-typedBinder :: Explicitness -> [Qualid] -> Term -> Binder
-typedBinder explicitness
-  = Typed Ungeneralizable explicitness . NonEmpty.fromList . map Ident
+typedBinder :: Generalizability -> Explicitness -> [Qualid] -> Term -> Binder
+typedBinder generalizability explicitness
+  = Typed generalizability explicitness . NonEmpty.fromList . map Ident
 
 -- | Like 'typedBinder' but for a single identifier.
-typedBinder' :: Explicitness -> Qualid -> Term -> Binder
-typedBinder' = flip (flip typedBinder . (: []))
+typedBinder' :: Generalizability -> Explicitness -> Qualid -> Term -> Binder
+typedBinder' generalizability explicitness term
+  = typedBinder generalizability explicitness [term]
 
 -------------------------------------------------------------------------------
 -- Assumptions                                                               --
@@ -157,6 +184,37 @@ definitionSentence
   -> Sentence
 definitionSentence qualid binders returnType term = DefinitionSentence
   (DefinitionDef Global qualid binders returnType term)
+
+-------------------------------------------------------------------------------
+-- Definition sentences                                                      --
+-------------------------------------------------------------------------------
+-- | Smart constructor for a Coq notation sentence.
+notationSentence
+  :: NonEmpty.NonEmpty NotationToken -- ^ The notation to define.
+  -> Term                            -- ^ The right-hand side of the notation.
+  -> [SyntaxModifier]                -- ^ The syntax modifiers of the notation.
+  -> Sentence
+notationSentence tokens rhs smods = NotationSentence
+  (NotationDefinition tokens rhs smods)
+
+-- | Smart constructor for a notation token that is a keyword of the notation.
+nSymbol :: String -> NotationToken
+nSymbol = NSymbol . Text.pack
+
+-- | Smart constructor for a notation token that is a variable in the notation.
+nIdent :: String -> NotationToken
+nIdent = NIdent . ident
+
+-- | Smart constructor for a parsing level syntax modifier.
+sModLevel :: Num -> SyntaxModifier
+sModLevel = SModLevel . Level
+
+-- | Smart constructor for a identifier parsing level syntax modifier.
+sModIdentLevel :: NonEmpty.NonEmpty String -> Maybe Num -> SyntaxModifier
+sModIdentLevel idents (Just lvl) = SModIdentLevel (NonEmpty.map ident idents)
+  (ExplicitLevel $ Level lvl)
+sModIdentLevel idents Nothing    = SModIdentLevel (NonEmpty.map ident idents)
+  NextLevel
 
 -------------------------------------------------------------------------------
 -- Types                                                                     --
@@ -216,3 +274,13 @@ requireExportFrom library modules = ModuleSentence
 requireFrom :: ModuleIdent -> [ModuleIdent] -> Sentence
 requireFrom library modules = ModuleSentence
   (Require (Just library) Nothing (NonEmpty.fromList modules))
+
+-- | Creates an @Import …@ sentence.
+moduleImport :: [ModuleIdent] -> Sentence
+moduleImport modules = ModuleSentence
+  (ModuleImport Import (NonEmpty.fromList modules))
+
+-- | Creates an @Export …@ sentence.
+moduleExport :: [ModuleIdent] -> Sentence
+moduleExport modules = ModuleSentence
+  (ModuleImport Export (NonEmpty.fromList modules))

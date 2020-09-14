@@ -10,6 +10,7 @@ import qualified FreeC.Backend.Agda.Syntax as Agda
 import qualified FreeC.Backend.Coq.Syntax  as Coq
 import           FreeC.IR.SrcSpan
 import qualified FreeC.IR.Syntax           as IR
+import           FreeC.LiftedIR.Effect
 import           FreeC.Util.Predicate
 
 -- | Entry of the environment.
@@ -101,9 +102,9 @@ data EnvEntry
       , entryNeedsFreeArgs :: Bool
         -- ^ Whether the arguments of the @Free@ monad need to be
         --   passed to the function.
-      , entryIsPartial     :: Bool
-        -- ^ Whether the function is partial, i.e., requires an instance of
-        --   the @Partial@ type class when translated to Coq.
+      , entryEffects       :: [Effect]
+        -- ^ The effects of the function, i.e. which type classes are needed
+        --   during the translation.
       , entryIdent         :: Coq.Qualid
         -- ^ The name of the function in Coq.
       , entryAgdaIdent     :: Agda.QName

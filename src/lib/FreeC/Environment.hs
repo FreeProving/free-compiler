@@ -15,11 +15,13 @@ module FreeC.Environment
   , removeDecArg
     -- * Modifying Entries in the Environment
   , modifyEntryIdent
+  , addEffectsToEntry
     -- * Looking up Entries from the Environment
   , lookupEntry
   , isFunction
   , isVariable
   , isPureVar
+  , lookupModName
   , lookupIdent
   , lookupSmartIdent
   , usedIdents
@@ -34,7 +36,8 @@ module FreeC.Environment
   , lookupArity
   , lookupTypeSynonym
   , needsFreeArgs
-  , isPartial
+  , hasEffect
+  , lookupEffects
   , lookupDecArg
   , lookupDecArgIndex
   , lookupDecArgIdent
@@ -53,6 +56,7 @@ import           FreeC.Environment.Entry
 import           FreeC.Environment.ModuleInterface
 import           FreeC.IR.SrcSpan
 import qualified FreeC.IR.Syntax                   as IR
+import           FreeC.LiftedIR.Effect
 import           FreeC.Util.Predicate
 
 -------------------------------------------------------------------------------
@@ -141,6 +145,16 @@ modifyEntryIdent scope name newIdent env = case lookupEntry scope name env of
   Nothing    -> env
   Just entry -> addEntry (entry { entryIdent = newIdent }) env
 
+-- | Adds the given effects to the effects of the function with the given name.
+--
+--   If such a function does not exist, the environment is not changed.
+addEffectsToEntry :: IR.QName -> [Effect] -> Environment -> Environment
+addEffectsToEntry name effects env = case lookupEntry IR.ValueScope name env of
+  Nothing    -> env
+  Just entry -> if isFuncEntry entry
+    then addEntry (entry { entryEffects = entryEffects entry ++ effects }) env
+    else env
+
 -------------------------------------------------------------------------------
 -- Looking up Entries from the Environment                                   --
 -------------------------------------------------------------------------------
@@ -167,6 +181,17 @@ isVariable = maybe False isVarEntry .: lookupEntry IR.ValueScope
 isPureVar :: IR.QName -> Environment -> Bool
 isPureVar = maybe False (isVarEntry .&&. entryIsPure)
   .: lookupEntry IR.ValueScope
+
+-- | Looks up the IR module name for a Haskell function, (type)
+--   constructor or (type) variable with the given name.
+--
+--   Returns @Nothing@ if there is no such function, (type/smart) constructor,
+--   constructor or (type) variable with the given name or no module name is
+--   specified for that entry.
+lookupModName :: IR.Scope -> IR.QName -> Environment -> Maybe IR.ModName
+lookupModName scope name env = case entryName <$> lookupEntry scope name env of
+  Just (IR.Qual modName _) -> Just modName
+  _ -> Nothing
 
 -- | Looks up the Coq identifier for a Haskell function, (type)
 --   constructor or (type) variable with the given name.
@@ -286,12 +311,18 @@ needsFreeArgs :: IR.QName -> Environment -> Bool
 needsFreeArgs = maybe False (isFuncEntry .&&. entryNeedsFreeArgs)
   .: lookupEntry IR.ValueScope
 
--- | Tests whether the function with the given name is partial.
+-- | Tests whether the function with the given name has the given effect.
 --
 --   Returns @False@ if there is no such function.
-isPartial :: IR.QName -> Environment -> Bool
-isPartial = maybe False (isFuncEntry .&&. entryIsPartial)
+hasEffect :: Effect -> IR.QName -> Environment -> Bool
+hasEffect effect = maybe False (isFuncEntry .&&. elem effect . entryEffects)
   .: lookupEntry IR.ValueScope
+
+-- | Looks up the effects of the function with the given name.
+--
+--   Returns @[]@ if such a function does not exist.
+lookupEffects :: IR.QName -> Environment -> [Effect]
+lookupEffects = maybe [] entryEffects .: lookupEntry IR.ValueScope
 
 -- | Looks up the index and name of the decreasing argument of the recursive
 --   function with the given name.

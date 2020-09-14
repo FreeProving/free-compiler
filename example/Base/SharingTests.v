@@ -73,9 +73,9 @@ Section SecData.
      @call Shape Pos S _ (pure 2%Z) >>= fun c4 =>
      @call Shape Pos S _ (pure 3%Z) >>= fun c5 =>
      @call Shape Pos S _ (Choice Shape Pos c4 c5) >>= fun c6 =>
-     @call Shape Pos S _ (List.Nil Shape Pos) >>= fun c7 =>
-     @call Shape Pos S _ (List.Cons Shape Pos c6 c7) >>= fun c8 =>
-     List.Cons Shape Pos c3 c8.
+     @call Shape Pos S _ (Nil Shape Pos) >>= fun c7 =>
+     @call Shape Pos S _ (Cons Shape Pos c6 c7) >>= fun c8 =>
+     Cons Shape Pos c3 c8.
 
   (* Traced integer. *)
   Definition traceOne `{Trace} `{I : Share} (S : Strategy Shape Pos)
@@ -763,8 +763,7 @@ in head sx + head sx
 *)
 Example exAddDeepListND
  : handleShareND
-  (doubleDeepSharedList (ND.Partial _ _)
-   Cbneed_ addInteger_ (coinList Cbneed_))
+  (doubleDeepSharedList (ND.Partial _ _) Cbneed_ addInteger_ (coinList Cbneed_))
  = [0%Z;2%Z].
 Proof. constructor. Qed.
 
@@ -792,7 +791,7 @@ in head sx + head sx
 Example exAddDeepListTrace
  : handleMaybeShareTrace
    (doubleDeepSharedList (Maybe.Partial _ _)
-    Cbneed_ addInteger_ (traceList Cbneed_))
+     Cbneed_ addInteger_ (traceList Cbneed_))
   = (Some 0%Z, ["0"]).
 Proof. constructor. Qed.
 

@@ -1,4 +1,4 @@
-(** Definitions for the (p : Free class. *)
+(** This module contains default handlers for individual effect stacks. *)
 
 From Base Require Import Free.
 From Base Require Import Free.Instance.Comb.
@@ -15,303 +15,314 @@ From Base Require Import Free.Util.Search.
 
 Require Import Coq.Lists.List.
 
-(* No effect *)
+Section NoEffect.
 
-(* Identity handler *)
-Definition handleNoEffect {A B : Type}
-                          `{Normalform _ _ A B}
-                          (p : Free Identity.Shape Identity.Pos A) : B
-:=  run (nf p).
+  (* Identity handler *)
+  Definition handleNoEffect {A B : Type}
+                            `{Normalform _ _ A B}
+                            (p : Free Identity.Shape Identity.Pos A) : B
+  :=  run (nf p).
 
-(* One effect *)
+End NoEffect.
 
-(* Maybe :+: Identity handler *)
+Section OneEffect.
 
-Definition SMId := Comb.Shape Maybe.Shape Identity.Shape.
-Definition PMId := Comb.Pos Maybe.Pos Identity.Pos.
+  (* Maybe :+: Identity handler *)
 
-Definition handleMaybe {A B : Type}
-  `{Normalform SMId PMId A B}
-  (p : Free SMId PMId A) : option B := run (runMaybe (nf p)).
+  Definition SMId := Comb.Shape Maybe.Shape Identity.Shape.
+  Definition PMId := Comb.Pos Maybe.Pos Identity.Pos.
 
-(* Error :+: Identity handler *)
+  Definition handleMaybe {A B : Type}
+                         `{Normalform SMId PMId A B}
+                         (p : Free SMId PMId A)
+   : option B := run (runMaybe (nf p)).
 
-Definition SErrId := Comb.Shape (Error.Shape string) Identity.Shape.
-Definition PErrId := Comb.Pos (@Error.Pos string) Identity.Pos.
+  (* Error :+: Identity handler *)
 
-Definition handleError (A B : Type)
+  Definition SErrId := Comb.Shape (Error.Shape string) Identity.Shape.
+  Definition PErrId := Comb.Pos (@Error.Pos string) Identity.Pos.
+
+  Definition handleError (A B : Type)
   `{Normalform SErrId PErrId A B}
- (p : Free SErrId PErrId A) : (B + string)
-:= run (runError (nf p)).
-
-(* ND :+: Identity handler *)
-Definition SNDId := Comb.Shape ND.Shape Identity.Shape.
-Definition PNDId := Comb.Pos ND.Pos Identity.Pos.
-
-Definition handleND {A B : Type}
-  `{Normalform SNDId PNDId A B}
-  (p : Free SNDId PNDId A) : list B
-:= collectVals (run (runChoice (nf p))).
-
-(* Trace :+: Identity handler *)
-
-Definition STrcId := Comb.Shape Trace.Shape Identity.Shape.
-Definition PTrcId := Comb.Pos Trace.Pos Identity.Pos.
-
-Definition handleTrace {A B : Type}
-                      `{Normalform STrcId PTrcId A B}
-                       (p : Free STrcId PTrcId A)
-  : (B * list string)
-:= collectMessages (run (runTracing (nf p))).
-
-(* Share :+: Identity handler *)
-
-Definition SShrId := Comb.Shape Share.Shape Identity.Shape.
-Definition PShrId := Comb.Pos Share.Pos Identity.Pos.
-
-Definition handleShare {A B : Type}
-                       `{Normalform SShrId PShrId A B}
-                       (p : Free SShrId PShrId A) : B
-:= run (runEmptySharing (0,0) (nf p)).
+  (p : Free SErrId PErrId A) : (B + string)
+  := run (runError (nf p)).
 
 
-(* Two effects *)
+  (* ND :+: Identity handler *)
+  Definition SNDId := Comb.Shape ND.Shape Identity.Shape.
+  Definition PNDId := Comb.Pos ND.Pos Identity.Pos.
+
+  Definition handleND {A B : Type}
+    `{Normalform SNDId PNDId A B}
+    (p : Free SNDId PNDId A) : list B
+  := collectVals (run (runChoice (nf p))).
+
+  (* Trace :+: Identity handler *)
+  
+  Definition STrcId := Comb.Shape Trace.Shape Identity.Shape.
+  Definition PTrcId := Comb.Pos Trace.Pos Identity.Pos.
+
+  Definition handleTrace {A B : Type}
+                        `{Normalform STrcId PTrcId A B}
+                         (p : Free STrcId PTrcId A)
+    : (B * list string) :=
+    collectMessages (run (runTracing (nf p))).
+
+  (* Share :+: Identity handler *)
+  
+  Definition SShrId := Comb.Shape Share.Shape Identity.Shape.
+  Definition PShrId := Comb.Pos Share.Pos Identity.Pos.
+
+  Definition handleShare {A B : Type}
+                         `{Normalform SShrId PShrId A B}
+                         (p : Free SShrId PShrId A) : B :=
+   run (runEmptySharing (0,0) (nf p)).
+
+End OneEffect.
 
 (* NOTE: There is no handler for an effect stack that contains both the Error and
    Maybe effects. Both effects model partiality, but only one interpretation of
    partiality is used at a time. *)
 
-(* Share :+: ND :+: Identity handler *)
+Section TwoEffects.
 
-Definition SShrND := Comb.Shape Share.Shape (Comb.Shape ND.Shape Identity.Shape).
-Definition PShrND := Comb.Pos Share.Pos (Comb.Pos ND.Pos Identity.Pos).
+  (* Share :+: ND :+: Identity handler *)
 
-Definition handleShareND {A B : Type}
-                         `{Normalform SShrND PShrND A B}
-                         (p : Free SShrND PShrND A) : (list B)
-:= collectVals (run (runChoice (runNDSharing (0,0) (nf p)))).
-
-(* Share :+: Trace :+: Identity handler *)
-
-Definition SShrTrc := Comb.Shape Share.Shape (Comb.Shape Trace.Shape Identity.Shape).
-Definition PShrTrc := Comb.Pos Share.Pos (Comb.Pos Trace.Pos Identity.Pos).
-
-Definition handleShareTrace {A B : Type}
-                            `{Normalform SShrTrc PShrTrc A B}
-                            (p : Free SShrTrc PShrTrc A)
-  : (B * list string)
-:= collectMessages (run (runTracing (runTraceSharing (0,0) (nf p)))).
-
-(* Maybe :+: Share :+: Identity handler *)
-
-Definition SMaybeShr := Comb.Shape Maybe.Shape (Comb.Shape Share.Shape Identity.Shape).
-Definition PMaybeShr := Comb.Pos Maybe.Pos (Comb.Pos Share.Pos Identity.Pos).
-
-Definition handleMaybeShare {A B : Type}
-                            `{Normalform SMaybeShr PMaybeShr A B}
-                            (p : Free SMaybeShr PMaybeShr A) : option B
-:= run (runEmptySharing (0,0) (runMaybe (nf p))).
+  Definition SShrND := Comb.Shape Share.Shape (Comb.Shape ND.Shape Identity.Shape).
+  Definition PShrND := Comb.Pos Share.Pos (Comb.Pos ND.Pos Identity.Pos).
 
 
-(* ND :+: Maybe :+: Identity handler *)
+  Definition handleShareND {A B : Type}
+                           `{Normalform SShrND PShrND A B}
+                           (p : Free SShrND PShrND A) : (list B)
+  := collectVals (run (runChoice (runNDSharing (0,0) (nf p)))).
 
-Definition SNDMaybe := Comb.Shape ND.Shape (Comb.Shape Maybe.Shape Identity.Shape).
-Definition PNDMaybe := Comb.Pos ND.Pos (Comb.Pos Maybe.Pos Identity.Pos).
+  (* Share :+: Trace :+: Identity handler *)
 
-Definition handleNDMaybe {A B : Type}
-                         `{Normalform SNDMaybe PNDMaybe A B}
-                         (p : Free SNDMaybe PNDMaybe A)
-  : option (list B) := match run (runMaybe (runChoice (nf p))) with
-                       | None => None
-                       | Some t => Some (collectVals t)
-                       end.
-
-(* Maybe :+: Trace :+: Identity handler *)
-
-Definition SMaybeTrc := Comb.Shape Maybe.Shape (Comb.Shape Trace.Shape Identity.Shape).
-Definition PMaybeTrc := Comb.Pos Maybe.Pos (Comb.Pos Trace.Pos Identity.Pos).
-
-Definition handleMaybeTrace {A B : Type}
-                          `{Normalform SMaybeTrc PMaybeTrc A B}
-                          (p : Free SMaybeTrc PMaybeTrc A)
-  : option B * list string
-:=  collectMessages (run (runTracing (runMaybe (nf p)))).
-
-(* Error :+: Share :+: Identity handler *)
-
-Definition SErrShr := Comb.Shape (Error.Shape string) (Comb.Shape Share.Shape Identity.Shape).
-Definition PErrShr := Comb.Pos (@Error.Pos string) (Comb.Pos Share.Pos Identity.Pos).
-
-Definition handleErrorShare (A B : Type)
-                            `{Normalform SErrShr PErrShr A B}
-                            (p : Free SErrShr PErrShr A) : (B + string)
-:= run (runEmptySharing (0,0) (runError (nf p))).
-
-(* ND :+: Error :+: Identity handler *)
-
-Definition SNDErr := Comb.Shape ND.Shape (Comb.Shape (Error.Shape string) Identity.Shape).
-Definition PNDErr := Comb.Pos ND.Pos (Comb.Pos (@Error.Pos string)  Identity.Pos).
-
-Definition handleNDError (A B : Type)
-                         `{Normalform SNDErr PNDErr A B}
-                         (p : Free SNDErr PNDErr A) : list B + string
-:= match run (runError (runChoice (nf p))) with
-   | inl t => inl (collectVals t)
-   | inr e => inr e
-   end.
-
-(* Error :+: Trace :+: Identity handler *)
-(* In Haskell, when an error is thrown in a traced program, the message log until that point
-   is displayed alongside the error message.
-   Therefore, the error effect is handled before the tracing effect. *)
-
-Definition SErrorTrc := Comb.Shape (Error.Shape string) (Comb.Shape Trace.Shape Identity.Shape).
-Definition PErrorTrc := Comb.Pos (@Error.Pos string) (Comb.Pos Trace.Pos Identity.Pos).
-
-Definition handleErrorTrc (A B : Type)
-                          `{Normalform SErrorTrc PErrorTrc A B}
-                           (p : Free SErrorTrc PErrorTrc A)
- : (B + string) * list string
-:= collectMessages (run (runTracing (runError (nf p)))).
-
-(* Trace :+: ND :+: Identity handler *)
-
-Definition STrcND := Comb.Shape Trace.Shape (Comb.Shape ND.Shape Identity.Shape).
-Definition PTrcND := Comb.Pos Trace.Pos (Comb.Pos ND.Pos Identity.Pos).
-
-Definition handleTraceND {A B : Type}
-                         `{Normalform STrcND PTrcND A B}
-                         (p : Free STrcND PTrcND A)
-  : list (B * list string)
-:=  map (@collectMessages B)
-                  (@collectVals (B * list (option Sharing.ID * string))
-                                (run (runChoice (runTracing (nf p))))).
+  Definition SShrTrc := Comb.Shape Share.Shape (Comb.Shape Trace.Shape Identity.Shape).
+  Definition PShrTrc := Comb.Pos Share.Pos (Comb.Pos Trace.Pos Identity.Pos).
 
 
-(* Three effects *)
+  Definition handleShareTrace {A B : Type}
+                              `{Normalform SShrTrc PShrTrc A B}
+                              (p : Free SShrTrc PShrTrc A)
+    : (B * list string) :=
+    collectMessages (run (runTracing (runTraceSharing (0,0) (nf p)))).
 
-(* NOTE: There is no handler for an effect stack that contains sharing,
-   non-determinism and tracing. This is because only one effect can be
-   shared in a program. *)
+  (* Share :+: Maybe :+: Identity handler *)
 
-(* Share :+: ND :+: Maybe :+: Identity handler *)
+  Definition SShrMaybe := Comb.Shape Share.Shape (Comb.Shape Maybe.Shape Identity.Shape).
+  Definition PShrMaybe := Comb.Pos Share.Pos (Comb.Pos Maybe.Pos Identity.Pos).
 
-Definition SShrNDMaybe :=
-  Comb.Shape Share.Shape
-    (Comb.Shape ND.Shape
-      (Comb.Shape Maybe.Shape Identity.Shape)).
+  Definition handleShareMaybe {A B : Type}
+                              `{Normalform SShrMaybe PShrMaybe A B}
+                              (p : Free SShrMaybe PShrMaybe A) : option B :=
+    run (runMaybe (runEmptySharing (0,0) (nf p))).
 
-Definition PShrNDMaybe :=
-  Comb.Pos Share.Pos
-    (Comb.Pos ND.Pos
-      (Comb.Pos Maybe.Pos Identity.Pos)).
+  (* ND :+: Maybe :+: Identity handler *)
 
-Definition handleShareNDMaybe {A B : Type}
-                              `{Normalform SShrNDMaybe PShrNDMaybe A B}
-                              (p : Free SShrNDMaybe PShrNDMaybe A)
-  : option (list B)
-:=  match (run (runMaybe (runChoice (runNDSharing (0,0) (nf p))))) with
-  | None   => None
-  | Some t => Some (@collectVals B t)
-  end.
+  Definition SNDMaybe := Comb.Shape ND.Shape (Comb.Shape Maybe.Shape Identity.Shape).
+  Definition PNDMaybe := Comb.Pos ND.Pos (Comb.Pos Maybe.Pos Identity.Pos).
 
-(* Maybe :+: Share :+: Trace :+: Identity handler *)
+  Definition handleNDMaybe {A B : Type}
+                           `{Normalform SNDMaybe PNDMaybe A B}
+                           (p : Free SNDMaybe PNDMaybe A)
+    : option (list B) := match run (runMaybe (runChoice (nf p))) with
+                         | None => None
+                         | Some t => Some (collectVals t)
+                         end.
 
-Definition SMaybeShrTrc :=
-  Comb.Shape Maybe.Shape
-    (Comb.Shape Share.Shape
-      (Comb.Shape Trace.Shape Identity.Shape)).
+  (* Maybe :+: Trace :+: Identity handler *)
 
-Definition PMaybeShrTrc :=
-  Comb.Pos Maybe.Pos
-    (Comb.Pos Share.Pos
-      (Comb.Pos Trace.Pos Identity.Pos)).
+  Definition SMaybeTrc := Comb.Shape Maybe.Shape (Comb.Shape Trace.Shape Identity.Shape).
+  Definition PMaybeTrc := Comb.Pos Maybe.Pos (Comb.Pos Trace.Pos Identity.Pos).
 
-Definition handleMaybeShareTrace {A B : Type}
-                                 `{Normalform SMaybeShrTrc PMaybeShrTrc A B}
-                                 (p : Free SMaybeShrTrc PMaybeShrTrc A)
-  : option B * list string
-:=  collectMessages (run (runTracing (runTraceSharing (0,0) (runMaybe (nf p))))).
+  Definition handleMaybeTrace {A B : Type}
+                            `{Normalform SMaybeTrc PMaybeTrc A B}
+                            (p : Free SMaybeTrc PMaybeTrc A)
+    : option B * list string :=
+    collectMessages (run (runTracing (runMaybe (nf p)))).
+
+  (* Share :+: Error :+: Identity handler *)
+
+  Definition SShrErr := Comb.Shape Share.Shape (Comb.Shape (Error.Shape string) Identity.Shape).
+  Definition PShrErr := Comb.Pos Share.Pos (Comb.Pos (@Error.Pos string) Identity.Pos).
+
+  Definition handleShareError (A B : Type)
+                              `{Normalform SShrErr PShrErr A B}
+                              (p : Free SShrErr PShrErr A) : (B + string)
+  := run (runError (runEmptySharing (0,0) (nf p))).
 
 
-(* ND :+: Maybe :+: Trace :+: Identity handler *)
+  (* ND :+: Error :+: Identity handler *)
 
-Definition SNDMaybeTrc :=
-  Comb.Shape ND.Shape
-    (Comb.Shape Maybe.Shape
-      (Comb.Shape Trace.Shape Identity.Shape)).
+  Definition SNDErr := Comb.Shape ND.Shape (Comb.Shape (Error.Shape string) Identity.Shape).
+  Definition PNDErr := Comb.Pos ND.Pos (Comb.Pos (@Error.Pos string)  Identity.Pos).
 
-Definition PNDMaybeTrc :=
-  Comb.Pos ND.Pos
-    (Comb.Pos Maybe.Pos
-      (Comb.Pos Trace.Pos Identity.Pos)).
+  Definition handleNDError (A B : Type)
+                           `{Normalform SNDErr PNDErr A B}
+                           (p : Free SNDErr PNDErr A) : list B + string
+  := match run (runError (runChoice (nf p))) with
+     | inl t => inl (collectVals t)
+     | inr e => inr e
+     end.
 
-Definition handleNDMaybeTrc {A B : Type}
-                             `{Normalform SNDMaybeTrc PNDMaybeTrc A B}
-                             (p : Free SNDMaybeTrc PNDMaybeTrc A)
-  : (option (list B) * list string)
-:=  let (val,log) := (collectMessages (run (runTracing (runMaybe (runChoice (nf p))))))
+  (* Error :+: Trace :+: Identity handler *)
+  (* In Haskell, when an error is thrown in a traced program, the message log until that point
+     is displayed alongside the error message.
+     Therefore, the error effect is handled before the tracing effect. *)
+
+  Definition SErrorTrc := Comb.Shape (Error.Shape string) (Comb.Shape Trace.Shape Identity.Shape).
+  Definition PErrorTrc := Comb.Pos (@Error.Pos string) (Comb.Pos Trace.Pos Identity.Pos).
+
+  Definition handleErrorTrc (A B : Type)
+                            `{Normalform SErrorTrc PErrorTrc A B}
+                             (p : Free SErrorTrc PErrorTrc A)
+   : (B + string) * list string
+  := collectMessages (run (runTracing (runError (nf p)))).
+
+  (* Trace :+: ND :+: Identity handler *)
+
+  Definition STrcND := Comb.Shape Trace.Shape (Comb.Shape ND.Shape Identity.Shape).
+  Definition PTrcND := Comb.Pos Trace.Pos (Comb.Pos ND.Pos Identity.Pos).
+
+  Definition handleTraceND {A B : Type}
+                           `{Normalform STrcND PTrcND A B}
+                           (p : Free STrcND PTrcND A)
+    : list (B * list string) :=
+    map (@collectMessages B)
+                    (@collectVals (B * list (option Sharing.ID * string))
+                                  (run (runChoice (runTracing (nf p))))).
+
+End TwoEffects.
+
+Section ThreeEffects.
+
+  (* NOTE: There is no handler for an effect stack that contains sharing,
+     non-determinism and tracing. This is because only one effect can be
+     shared in a program. *)
+
+  (* Share :+: ND :+: Maybe :+: Identity handler *)
+
+  Definition SShrNDMaybe :=
+    Comb.Shape Share.Shape
+      (Comb.Shape ND.Shape
+        (Comb.Shape Maybe.Shape Identity.Shape)).
+
+  Definition PShrNDMaybe :=
+    Comb.Pos Share.Pos
+      (Comb.Pos ND.Pos
+        (Comb.Pos Maybe.Pos Identity.Pos)).
+
+  Definition handleShareNDMaybe {A B : Type}
+                                `{Normalform SShrNDMaybe PShrNDMaybe A B}
+                                (p : Free SShrNDMaybe PShrNDMaybe A)
+    : option (list B) :=
+    match (run (runMaybe (runChoice (runNDSharing (0,0) (nf p))))) with
+    | None   => None
+    | Some t => Some (@collectVals B t)
+    end.
+
+  (* Maybe :+: Share :+: Trace :+: Identity handler *)
+
+  Definition SMaybeShrTrc :=
+    Comb.Shape Maybe.Shape
+      (Comb.Shape Share.Shape
+        (Comb.Shape Trace.Shape Identity.Shape)).
+
+  Definition PMaybeShrTrc :=
+    Comb.Pos Maybe.Pos
+      (Comb.Pos Share.Pos
+        (Comb.Pos Trace.Pos Identity.Pos)).
+
+  Definition handleMaybeShareTrace {A B : Type}
+                                   `{Normalform SMaybeShrTrc PMaybeShrTrc A B}
+                                   (p : Free SMaybeShrTrc PMaybeShrTrc A)
+    : option B * list string :=
+    collectMessages (run (runTracing (runTraceSharing (0,0) (runMaybe (nf p))))).
+
+
+  (* ND :+: Maybe :+: Trace :+: Identity handler *)
+
+  Definition SNDMaybeTrc :=
+    Comb.Shape ND.Shape
+      (Comb.Shape Maybe.Shape
+        (Comb.Shape Trace.Shape Identity.Shape)).
+
+  Definition PNDMaybeTrc :=
+    Comb.Pos ND.Pos
+      (Comb.Pos Maybe.Pos
+        (Comb.Pos Trace.Pos Identity.Pos)).
+
+  Definition handleNDMaybeTrc {A B : Type}
+                               `{Normalform SNDMaybeTrc PNDMaybeTrc A B}
+                               (p : Free SNDMaybeTrc PNDMaybeTrc A)
+    : (option (list B) * list string) :=
+    let (val,log) := (collectMessages (run (runTracing (runMaybe (runChoice (nf p))))))
     in match val with
        | None => (None, log)
        | Some t => (Some (collectVals t), log)
        end.
 
-(* Share :+: ND :+: Error :+: Identity handler *)
 
-Definition SShrNDErr :=
-  Comb.Shape Share.Shape
-    (Comb.Shape ND.Shape
-      (Comb.Shape (Error.Shape string) Identity.Shape)).
+  (* Share :+: ND :+: Error :+: Identity handler *)
 
-Definition PShrNDErr :=
-  Comb.Pos Share.Pos
-    (Comb.Pos ND.Pos
-      (Comb.Pos (@Error.Pos string) Identity.Pos)).
+  Definition SShrNDErr :=
+    Comb.Shape Share.Shape
+      (Comb.Shape ND.Shape
+        (Comb.Shape (Error.Shape string) Identity.Shape)).
 
-Definition handleShareNDError (A B : Type)
-                                `{Normalform SShrNDErr PShrNDErr A B}
-                                (p : Free SShrNDErr PShrNDErr A)
- : list B + string
-:= match run (runError (runChoice (runNDSharing (0,0) (nf p)))) with
-   | inl t => inl (collectVals t)
-   | inr e => inr e
-   end.
+  Definition PShrNDErr :=
+    Comb.Pos Share.Pos
+      (Comb.Pos ND.Pos
+        (Comb.Pos (@Error.Pos string) Identity.Pos)).
 
-(* Error :+: Share :+: Trace :+: Identity handler *)
+  Definition handleShareNDError (A B : Type)
+                                  `{Normalform SShrNDErr PShrNDErr A B}
+                                  (p : Free SShrNDErr PShrNDErr A)
+   : list B + string
+  := match run (runError (runChoice (runNDSharing (0,0) (nf p)))) with
+     | inl t => inl (collectVals t)
+     | inr e => inr e
+     end.
 
-Definition SErrShrTrc :=
-  Comb.Shape (Error.Shape string)
-    (Comb.Shape Share.Shape
-      (Comb.Shape Trace.Shape Identity.Shape)).
+  (* Error :+: Share :+: Trace :+: Identity handler *)
 
-Definition PErrShrTrc :=
-  Comb.Pos (@Error.Pos string)
-    (Comb.Pos Share.Pos
-      (Comb.Pos Trace.Pos Identity.Pos)).
+  Definition SErrShrTrc :=
+    Comb.Shape (Error.Shape string)
+      (Comb.Shape Share.Shape
+        (Comb.Shape Trace.Shape Identity.Shape)).
 
-Definition handleErrorShareTrace (A B : Type)
-                                 `{Normalform SErrShrTrc PErrShrTrc A B}
-                                 (p : Free SErrShrTrc PErrShrTrc A)
- : (B + string) * list string
-:= collectMessages (run (runTracing (runTraceSharing (0,0) (runError (nf p))))).
+  Definition PErrShrTrc :=
+    Comb.Pos (@Error.Pos string)
+      (Comb.Pos Share.Pos
+        (Comb.Pos Trace.Pos Identity.Pos)).
 
-(* ND :+: Error :+: Trace :+: Identity handler *)
+  Definition handleErrorShareTrace (A B : Type)
+                                   `{Normalform SErrShrTrc PErrShrTrc A B}
+                                   (p : Free SErrShrTrc PErrShrTrc A)
+   : (B + string) * list string
+  := collectMessages (run (runTracing (runTraceSharing (0,0) (runError (nf p))))).
 
-Definition SNDErrTrc :=
-  Comb.Shape ND.Shape
-    (Comb.Shape (Error.Shape string)
-      (Comb.Shape Trace.Shape Identity.Shape)).
+  (* ND :+: Error :+: Trace :+: Identity handler *)
 
-Definition PNDErrTrc :=
-  Comb.Pos ND.Pos
-    (Comb.Pos (@Error.Pos string)
-      (Comb.Pos Trace.Pos Identity.Pos)).
+  Definition SNDErrTrc :=
+    Comb.Shape ND.Shape
+      (Comb.Shape (Error.Shape string)
+        (Comb.Shape Trace.Shape Identity.Shape)).
 
-Definition handleNDErrorTrace (A B : Type)
-                              `{Normalform SNDErrTrc PNDErrTrc A B}
-                              (p : Free SNDErrTrc PNDErrTrc A)
- : (list B + string) * list string
-:= match collectMessages (run (runTracing (runError (runChoice (nf p))))) with
-   | (inl t, log) => (inl (collectVals t), log)
-   | (inr e, log) => (inr e, log)
-   end.
+  Definition PNDErrTrc :=
+    Comb.Pos ND.Pos
+      (Comb.Pos (@Error.Pos string)
+        (Comb.Pos Trace.Pos Identity.Pos)).
+
+  Definition handleNDErrorTrace (A B : Type)
+                                `{Normalform SNDErrTrc PNDErrTrc A B}
+                                (p : Free SNDErrTrc PNDErrTrc A)
+   : (list B + string) * list string
+  := match collectMessages (run (runTracing (runError (runChoice (nf p))))) with
+     | (inl t, log) => (inl (collectVals t), log)
+     | (inr e, log) => (inr e, log)
+     end.
+
+End ThreeEffects.

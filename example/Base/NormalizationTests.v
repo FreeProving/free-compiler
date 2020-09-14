@@ -44,6 +44,7 @@ Definition evalNDMaybe {A : Type} p
 Definition IdS := Identity.Shape.
 Definition IdP := Identity.Pos.
 
+(* Infer Shape and Pos for the Maybe Partial instance for convenience- *)
 Arguments Maybe.Partial {_} {_} {_}.
 
 (* Effectful lists *)
@@ -301,7 +302,7 @@ Example nonStrictnessPartiality : handleMaybe
  = Some true.
 Proof. constructor. Qed.
 
-(* head _ _ MaybePartial [true, false ? undefined] --> true *)
+(* head _ _ Maybe.Partial [true, false ? undefined] --> true *)
 (* Since non-determinism and Maybe are still handled, the actual
    result should be [Some true]. *)
 Example nonStrictnessNDPartiality : handleNDMaybe
@@ -330,7 +331,7 @@ Proof. constructor. Qed.
 (* Combining non-strictness with effects at different levels. *)
 
 (* Only the message at the root should be logged.
-   head _ _ MaybePartial (trace "root effect" [true, trace "component effect" false])
+   head _ _ Maybe.Partial (trace "root effect" [true, trace "component effect" false])
    --> (true, ["root effect") *)
 Example nonStrictnessRootAndComponentTracing
  : handleMaybeTrace (List.head _ _ Maybe.Partial tracedTraceList)
