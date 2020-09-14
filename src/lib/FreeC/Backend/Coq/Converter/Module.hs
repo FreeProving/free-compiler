@@ -86,23 +86,21 @@ convertImportDecl (IR.ImportDecl _ modName) = do
 generateImport :: Coq.ModuleIdent -> IR.ModName -> Converter [Coq.Sentence]
 generateImport libName modName = do
   Just interface <- inEnv $ lookupAvailableModule modName
-  return (mkImportSentences [(Coq.ident (showPretty modName), interface)])
+  return (mkImportSentences (Coq.ident (showPretty modName)) interface)
  where
   -- | Makes a @From … Require Import …@ or @From … Require …@ and an
   --   @Export … .QualifiedSmartConstructorModule@ if this local module exists.
-  mkImportSentences :: [(Coq.ModuleIdent, ModuleInterface)] -> [Coq.Sentence]
-  mkImportSentences mods
-    | libName == Coq.Base.baseLibName
-      = [Coq.requireImportFrom libName (map fst mods)]
-    | otherwise = let conMods = filter (hasConstructor . snd) mods
-                  in Coq.requireFrom libName (map fst mods)
-                     : ([Coq.moduleExport
-                          $ map (\(modName', _) -> Coq.access libName
-                                 $ Coq.access modName'
-                                 Coq.Base.qualifiedSmartConstructorModule)
-                          conMods
-                        | not (null conMods)
-                        ])
+  mkImportSentences :: Coq.ModuleIdent -> ModuleInterface -> [Coq.Sentence]
+  mkImportSentences modIdent modInterface
+    | libName
+      == Coq.Base.baseLibName = [Coq.requireImportFrom libName [modIdent]]
+    | otherwise = Coq.requireFrom libName [modIdent]
+      : ([Coq.moduleExport
+           [ Coq.access libName
+               $ Coq.access modIdent Coq.Base.qualifiedSmartConstructorModule
+           ]
+         | hasConstructor modInterface
+         ])
 
   -- | Checks whether the module includes a constructor entry and therefore
   --   has a local module @QualifiedSmartConstructorModule@.
