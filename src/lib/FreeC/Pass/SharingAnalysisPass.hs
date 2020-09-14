@@ -67,6 +67,7 @@ module FreeC.Pass.SharingAnalysisPass ( sharingAnaylsisPass ) where
 import           Control.Monad           ( (>=>), mapAndUnzipM )
 import           Data.Map.Strict         ( Map )
 import qualified Data.Map.Strict         as Map
+import           Data.Set                as Set ( fromList )
 
 import           FreeC.Environment.Fresh ( freshHaskellName )
 import           FreeC.IR.SrcSpan
@@ -155,8 +156,7 @@ analyseLocalSharing (IR.App srcSpan lhs rhs typeScheme) = do
 --   introduced variable.
 analyseSharingExpr :: IR.Expr -> Converter IR.Expr
 analyseSharingExpr expr = do
-  let varList
-        = (map fst . filter ((> 1) . snd) . Map.toList . countVarNamesExcept [])
+  let varList = (map fst . filter ((> 1) . snd) . Map.toList . countVarNames)
         expr
   buildLet expr varList
 
@@ -192,60 +192,43 @@ buildBinds srcSpan = mapAndUnzipM buildBind
         bind             = IR.Bind srcSpan varPat rhs
     return (bind, subst)
 
--- | Counts all variable names on right-hand sides of expression.
---   Shadowed variables and variables from the list are not counted.
---   Variables introduced on the left side of a @case@-alternative and @let@
---   expressions are not counted.
-countVarNamesExcept :: [IR.VarName] -> IR.Expr -> Map IR.VarName Integer
-countVarNamesExcept = countVarNamesWith (++) elem
-
 -- | Counts all variable names on right-hand sides of expression that are also
 --   contained by the given list.
 --   Shadowed variables and variables from the list are not counted.
 --   Variables introduced on the left side of a @case@-alternative and @let@
---   expressions are not counted.
+--   expressions are not counted as well.
 countVarNamesOnly :: [IR.VarName] -> IR.Expr -> Map IR.VarName Integer
-countVarNamesOnly = countVarNamesWith const notElem
+countVarNamesOnly varNames expr
+  = countVarNames expr `Map.restrictKeys` Set.fromList varNames
 
--- | A generalized recursive counting for variables in expressions.
---   The first arguments is the function that is used to combine
---   the given list of variable names with variable names from left-hand sides
---   of @case@-alternatives or lambda abstractions.
---   The second argument is a predicate that determines if a variable
---   is added to the map.
-countVarNamesWith :: ([IR.VarName] -> [IR.VarName] -> [IR.VarName])
-                  -> (IR.VarName -> [IR.VarName] -> Bool)
-                  -> [IR.VarName]
-                  -> IR.Expr
-                  -> Map IR.VarName Integer
-countVarNamesWith _ f vns (IR.Var _ varName _)
-  | varName `f` vns = Map.empty
-  | otherwise = Map.singleton varName 1
-countVarNamesWith g f vns (IR.App _ lhs rhs _)
-  = countVarNamesWith g f vns lhs `mergeMap` countVarNamesWith g f vns rhs
-countVarNamesWith g f vns (IR.TypeAppExpr _ lhs _ _)
-  = countVarNamesWith g f vns lhs
-countVarNamesWith g f vns (IR.If _ e1 e2 e3 _) = countVarNamesWith g f vns e1
-  `mergeMap` countVarNamesWith g f vns e2
-  `mergeMap` countVarNamesWith g f vns e3
-countVarNamesWith _ _ _ IR.Con {} = Map.empty
-countVarNamesWith _ _ _ IR.Undefined {} = Map.empty
-countVarNamesWith _ _ _ IR.ErrorExpr {} = Map.empty
-countVarNamesWith _ _ _ IR.IntLiteral {} = Map.empty
-countVarNamesWith g f vns (IR.Case _ e alts _)
-  = let altVars = concatMap (map IR.varPatQName . IR.altVarPats) alts
-    in countVarNamesWith g f vns e
-       `mergeMap` foldr
-       (mergeMap . countVarNamesWith g f (g vns altVars) . IR.altRhs) Map.empty
-       alts
-countVarNamesWith g f vns (IR.Lambda _ exprArgs rhs _) = countVarNamesWith g f
-  (g vns (map IR.varPatQName exprArgs)) rhs
-countVarNamesWith g f vns (IR.Let _ binds e _)
-  = let bindVars = map (IR.varPatQName . IR.bindVarPat) binds
-    in countVarNamesWith g f (g vns bindVars) e
-       `mergeMap` foldr
-       (mergeMap . countVarNamesWith g f (g vns bindVars) . IR.bindExpr)
-       Map.empty binds
+-- | Counts all variable names on right-hand sides of expression.
+--   Shadowed variables and variables from the list are not counted.
+--   Variables introduced on the left side of a @case@-alternative and @let@
+--   expressions are not counted as well.
+countVarNames :: IR.Expr -> Map IR.VarName Integer
+countVarNames (IR.Var _ varName _)       = Map.singleton varName 1
+countVarNames (IR.App _ lhs rhs _)
+  = countVarNames lhs `mergeMap` countVarNames rhs
+countVarNames (IR.TypeAppExpr _ lhs _ _) = countVarNames lhs
+countVarNames (IR.If _ e1 e2 e3 _)
+  = countVarNames e1 `mergeMap` countVarNames e2 `mergeMap` countVarNames e3
+countVarNames IR.Con {}                  = Map.empty
+countVarNames IR.Undefined {}            = Map.empty
+countVarNames IR.ErrorExpr {}            = Map.empty
+countVarNames IR.IntLiteral {}           = Map.empty
+countVarNames (IR.Case _ e alts _)
+  = let altVars     = concatMap (map IR.varPatQName . IR.altVarPats) alts
+        completeMap = countVarNames e
+          `mergeMap` foldr (mergeMap . countVarNames . IR.altRhs) Map.empty alts
+    in completeMap `Map.withoutKeys` Set.fromList altVars
+countVarNames (IR.Lambda _ args rhs _)   = countVarNames rhs
+  `Map.withoutKeys` Set.fromList (map IR.varPatQName args)
+countVarNames (IR.Let _ binds e _)
+  = let bindVars    = map (IR.varPatQName . IR.bindVarPat) binds
+        completeMap = countVarNames e
+          `mergeMap` foldr (mergeMap . countVarNames . IR.bindExpr) Map.empty
+          binds
+    in completeMap `Map.withoutKeys` Set.fromList bindVars
 
 mergeMap
   :: Map IR.VarName Integer -> Map IR.VarName Integer -> Map IR.VarName Integer
