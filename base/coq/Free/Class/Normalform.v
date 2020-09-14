@@ -1,5 +1,5 @@
 (** Type class for the normalization of data types with effectful components.
-    Moves effects from components to the root of the expression. 
+    Moves effects from components to the root of the expression.
     This implementation is based on the following implementation:
     https://github.com/nbun/mathesis/blob/master/Coq/src/Classes.v *)
 
@@ -20,7 +20,7 @@ Definition nf {Shape : Type} {Pos : Shape -> Type} {A B : Type}
 
 Lemma nfImpure {Shape : Type} {Pos : Shape -> Type} {A B : Type}
                      `{Normalform Shape Pos A B}
-  : forall s (pf : _ -> Free Shape Pos A), 
+  : forall s (pf : _ -> Free Shape Pos A),
   nf (impure s pf) = impure s (fun p => nf (pf p)).
 Proof. trivial. Qed.
 
@@ -31,6 +31,6 @@ Proof. trivial. Qed.
 
 (* Normalform instance for functions.
    Effects inside of functions are not pulled to the root. *)
-Instance NormalformFunc (Shape : Type) (Pos : Shape -> Type) (A B : Type) 
+Instance NormalformFunc (Shape : Type) (Pos : Shape -> Type) (A B : Type)
  : Normalform Shape Pos (A -> B) (A -> B) :=
   { nf' := pure }.

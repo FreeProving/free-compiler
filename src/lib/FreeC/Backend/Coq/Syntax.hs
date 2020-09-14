@@ -129,13 +129,14 @@ inferredFun = flip fun (repeat Nothing)
 -- Binders                                                                   --
 -------------------------------------------------------------------------------
 -- | Smart constructor for an explicit or implicit typed Coq binder.
-typedBinder :: Explicitness -> [Qualid] -> Term -> Binder
-typedBinder explicitness
-  = Typed Ungeneralizable explicitness . NonEmpty.fromList . map Ident
+typedBinder :: Generalizability -> Explicitness -> [Qualid] -> Term -> Binder
+typedBinder generalizability explicitness
+  = Typed generalizability explicitness . NonEmpty.fromList . map Ident
 
 -- | Like 'typedBinder' but for a single identifier.
-typedBinder' :: Explicitness -> Qualid -> Term -> Binder
-typedBinder' = flip (flip typedBinder . (: []))
+typedBinder' :: Generalizability -> Explicitness -> Qualid -> Term -> Binder
+typedBinder' generalizability explicitness term
+  = typedBinder generalizability explicitness [term]
 
 -------------------------------------------------------------------------------
 -- Assumptions                                                               --

@@ -7,7 +7,7 @@
 # Metadata                                                                   #
 ##############################################################################
 
-version = 3
+version = 4
 module-name = 'Test.QuickCheck'
 library-name = 'Base'
 exported-types = [
@@ -43,7 +43,7 @@ exported-values = [
   coq-name        = 'boolProp'
   agda-name       = 'boolProp'
   arity           = 1
-  partial         = false
+  effects         = []
   needs-free-args = true
 
 ##############################################################################
@@ -56,7 +56,7 @@ exported-values = [
   coq-name        = 'preProp'
   agda-name       = 'preProp'
   arity           = 2
-  partial         = false
+  effects         = []
   needs-free-args = true
 
 [[functions]]
@@ -65,7 +65,7 @@ exported-values = [
   coq-name        = 'eqProp'
   agda-name       = 'eqProp'
   arity           = 2
-  partial         = false
+  effects         = []
   needs-free-args = true
 
 [[functions]]
@@ -74,7 +74,7 @@ exported-values = [
   coq-name        = 'neqProp'
   agda-name        = 'neqProp'
   arity           = 2
-  partial         = false
+  effects         = []
   needs-free-args = true
 
 [[functions]]
@@ -83,7 +83,7 @@ exported-values = [
   coq-name        = 'conjProp'
   agda-name       = 'conjProp'
   arity           = 2
-  partial         = false
+  effects         = []
   needs-free-args = true
 
 [[functions]]
@@ -92,7 +92,7 @@ exported-values = [
   coq-name        = 'disjProp'
   agda-name       = 'disjProp'
   arity           = 2
-  partial         = false
+  effects         = []
   needs-free-args = true
 
 ##############################################################################

@@ -17,20 +17,6 @@ Section SecPair.
     : Free' (Pair A B) :=
     pure (pair_ x y).
 
-  (* First element *)
-  Definition fstPair {A B : Type} (fp : Free' (Pair A B)) 
-   : Free Shape Pos A
-  := fp >>= fun p => match p with
-                    | pair_ x _ => x
-                    end.
-
-  (* Second element *)
-  Definition sndPair {A B : Type} (fp : Free' (Pair A B)) 
-   : Free Shape Pos B
-  := fp >>= fun p => match p with
-                    | pair_ _ y => y
-                    end.
-
 End SecPair.
 
 Arguments pair_  {Shape} {Pos} {A} {B}.
@@ -55,7 +41,7 @@ Section SecNFPair.
 
   Global Instance NormalformPair `{Normalform Shape Pos A C}
                                  `{Normalform Shape Pos B D}
-    : Normalform Shape Pos (Pair Shape Pos A B) 
+    : Normalform Shape Pos (Pair Shape Pos A B)
                            (Pair Identity.Shape Identity.Pos C D)
    := { nf' := nf'Pair }.
 
@@ -70,6 +56,6 @@ Instance ShareableArgsPair {Shape : Type} {Pos : Shape -> Type} (A B : Type)
      shareArgs p := match p with
                     | pair_ fx fy => cbneed Shape Pos (@shareArgs Shape Pos A SAA) fx >>= fun sx =>
                                      cbneed Shape Pos (@shareArgs Shape Pos B SAB) fy >>= fun sy =>
-                                     (pure (pair_ sx sy)) 
+                                     (pure (pair_ sx sy))
                     end
    }.
