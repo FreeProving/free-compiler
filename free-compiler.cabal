@@ -178,7 +178,7 @@ library freec-internal
                       , FreeC.Pass.ImportPass
                       , FreeC.Pass.KindCheckPass
                       , FreeC.Pass.LetSortPass
-                      , FreeC.Pass.PartialityAnalysisPass
+                      , FreeC.Pass.EffectAnalysisPass
                       , FreeC.Pass.TypeInferencePass
                       , FreeC.Pass.TypeSignaturePass
                       , FreeC.Pass.QualifierPass

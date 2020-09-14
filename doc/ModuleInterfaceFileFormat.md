@@ -123,7 +123,7 @@ The tables in the `functions` array must contain the following key/value pairs:
  - `haskell-name` (`String`) the qualified Haskell name of the function in the module it has been defined in.
  - `coq-name` (`String`) the identifier of the corresponding Coq function.
  - `arity` (`Integer`) the number of arguments expected by the function.
- - `partial` (`Boolean`) whether the function is partial (i.e., requires an instance of the `Partial` type class).
+ - `effects` (`Array` of `String`) the effects contained in the function, i.e. which type classes need to be passed.
  - `needs-free-args` (`Boolean`) whether the arguments of the `Free` monad need to be passed to the function.
 
 For example, the following entry defines the total function `(++)` ("append") and the partial function `head`.
