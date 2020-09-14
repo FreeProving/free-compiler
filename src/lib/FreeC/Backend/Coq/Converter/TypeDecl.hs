@@ -370,21 +370,21 @@ generateTypeclassInstances dataDecls = do
       (fixBodies, instances) <- mapAndUnzipM
         (uncurry (buildFixBodyAndInstance topLevelMap))
         (zip declTypes recTypeList)
-      return $
-         Coq.comment (className ++ " instance" ++ ['s' | length dataDecls > 1] ++ " for "
-                  ++ showPretty (map IR.typeDeclName dataDecls))
-                  : Coq.FixpointSentence (Coq.Fixpoint (NonEmpty.fromList fixBodies) [])
-                  : instances
+      return
+        $ Coq.comment (className
+                       ++ " instance"
+                       ++ ['s' | length dataDecls > 1]
+                       ++ " for "
+                       ++ showPretty (map IR.typeDeclName dataDecls))
+        : Coq.FixpointSentence (Coq.Fixpoint (NonEmpty.fromList fixBodies) [])
+        : instances
    where
         -- Constructs the class function and class instance for a single type.
     buildFixBodyAndInstance
       ::
       -- A map to map occurrences of the top-level types to recursive
       -- function calls.
-      TypeMap
-      -> IR.Type
-      -> [IR.Type]
-      -> Converter (Coq.FixBody, Coq.Sentence)
+      TypeMap -> IR.Type -> [IR.Type] -> Converter (Coq.FixBody, Coq.Sentence)
     buildFixBodyAndInstance topLevelMap t recTypes = do
       -- Locally visible definitions are defined in a local environment.
       (fixBody, typeLevelMap, binders, instanceRetType) <- localEnv $ do
@@ -562,10 +562,7 @@ generateTypeclassInstances dataDecls = do
   buildNormalformValue
     ::
     -- A map to associate types with the appropriate functions to call.
-    TypeMap
-    -> Coq.Qualid
-    -> [(IR.Type, Coq.Qualid)]
-    -> Converter Coq.Term
+    TypeMap -> Coq.Qualid -> [(IR.Type, Coq.Qualid)] -> Converter Coq.Term
   buildNormalformValue nameMap consName = buildNormalformValue' []
    where
     -- | Like 'buildNormalformValue', but with an additional parameter to accumulate
