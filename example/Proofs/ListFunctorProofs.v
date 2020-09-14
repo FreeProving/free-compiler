@@ -15,7 +15,7 @@ Proof.
   induction fxs using FreeList_ind
     with (P := fun xs => Data.List.map Shape Pos (pure (fun x => x)) (pure xs) = pure xs).
   - (* fxs = pure nil *)              simpl. reflexivity.
-  - (* fxs = pure (cons fxs1 fxs2) *) simpl. unfold Cons. do 2 apply f_equal. apply IHfxs1.
+  - (* fxs = pure (cons fxs1 fxs2) *) simpl. do 2 apply f_equal. apply IHfxs1.
   - (* fxs = pure xs *)               simpl. apply IHfxs.
   - (* fxs = impure s pf *)           simpl. apply f_equal. extensionality p. apply H.
 Qed.

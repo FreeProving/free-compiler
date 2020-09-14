@@ -41,7 +41,12 @@ convertTypeVarDecls' explicitness typeVarDecls
   | null typeVarDecls = return ([], [])
   | otherwise = do
     idents' <- mapM convertTypeVarDecl typeVarDecls
-    return $ (idents', [Coq.typedBinder Coq.Ungeneralizable explicitness idents' Coq.sortType])
+    return
+      $ ( idents'
+        , [ Coq.typedBinder Coq.Ungeneralizable explicitness idents'
+              Coq.sortType
+            ]
+        )
  where
   -- | Converts a type variable declaration by adding an entry to the
   --   environment.
