@@ -18,6 +18,8 @@ module FreeC.Backend.Coq.Base
   , partialArg
   , partialUndefined
   , partialError
+    -- * Modules
+  , qualifiedSmartConstructorModule
     -- * Sharing
   , injectable
   , injectableBinder
@@ -126,6 +128,13 @@ partialError :: Coq.Qualid
 partialError = Coq.bare "error"
 
 -------------------------------------------------------------------------------
+-- Modules                                                                   --
+-------------------------------------------------------------------------------
+-- | The name of the local module, where qualified smart constructor notations
+--   are defined.
+qualifiedSmartConstructorModule :: Coq.Ident
+qualifiedSmartConstructorModule = Coq.ident "QualifiedSmartConstructorModule"
+
 -- Sharing                                                                   --
 -------------------------------------------------------------------------------
 -- | The Coq identifier for the @Share@ module.
@@ -236,6 +245,8 @@ reservedIdents
     , partialArg
     , partialUndefined
     , partialError
+      -- Notations
+    , Coq.Bare qualifiedSmartConstructorModule
       -- Sharing
     , injectable
     , strategy
