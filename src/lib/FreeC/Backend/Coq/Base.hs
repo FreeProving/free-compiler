@@ -27,6 +27,7 @@ module FreeC.Backend.Coq.Base
   , shareableArgsBinder
   , implicitArg
   , share
+  , call
     -- * Effect Selection
   , selectExplicitArgs
   , selectImplicitArgs
@@ -174,9 +175,13 @@ shareableArgsBinder typeArg = Coq.Generalized Coq.Implicit
 implicitArg :: Coq.Term
 implicitArg = Coq.Underscore
 
--- | The Coq Identifier for the @share@ operator.
+-- | The Coq identifier for the @share@ operator.
 share :: Coq.Qualid
 share = Coq.bare "share"
+
+-- | The Coq identifier for the @call@ operator.
+call :: Coq.Qualid
+call = Coq.bare "call"
 
 -------------------------------------------------------------------------------
 -- Effect selection                                                          --
@@ -242,5 +247,6 @@ reservedIdents
     , strategyArg
     , shareableArgs
     , share
+    , call
     ]
   ++ map fst freeArgs
