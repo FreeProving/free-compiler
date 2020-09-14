@@ -58,7 +58,7 @@ Section OneEffect.
   := collectVals (run (runChoice (nf p))).
 
   (* Trace :+: Identity handler *)
-  
+
   Definition STrcId := Comb.Shape Trace.Shape Identity.Shape.
   Definition PTrcId := Comb.Pos Trace.Pos Identity.Pos.
 
@@ -69,7 +69,7 @@ Section OneEffect.
     collectMessages (run (runTracing (nf p))).
 
   (* Share :+: Identity handler *)
-  
+
   Definition SShrId := Comb.Shape Share.Shape Identity.Shape.
   Definition PShrId := Comb.Pos Share.Pos Identity.Pos.
 
