@@ -70,8 +70,8 @@ Section SecData.
 
   (* Non-deterministic partial integer. *)
   Definition coinM `{ND} `{Maybe} `{I : Share} (S : Strategy Shape Pos)
-  := @call Shape Pos S _ (Nothing_inj Shape Pos) >>= fun c1 =>
-     @call Shape Pos S _ (Just_inj Shape Pos 1%Z) >>= fun c2 =>
+  := @call Shape Pos S _ (Nothing Shape Pos) >>= fun c1 =>
+     @call Shape Pos S _ (Just Shape Pos 1%Z) >>= fun c2 =>
      Choice Shape Pos c1 c2.
 
   (* (0 ? 1, 2 ? 3) *)
@@ -116,11 +116,11 @@ Section SecData.
 
   (* Traced Maybe values *)
   Definition traceNothing `{Trace} `{M : Maybe} `{I : Share} (S : Strategy Shape Pos)
-  := @call Shape Pos S _ (@Nothing_inj Shape Pos M (Integer Shape Pos)) >>= fun c1 =>
+  := @call Shape Pos S _ (@Nothing Shape Pos M (Integer Shape Pos)) >>= fun c1 =>
      trace "Nothing" c1.
 
   Definition traceJust `{Trace} `{M : Maybe} `{I : Share} (S : Strategy Shape Pos)
-  := @call Shape Pos S _ (@Just_inj Shape Pos M _ 1%Z) >>= fun c1 =>
+  := @call Shape Pos S _ (@Just Shape Pos M _ 1%Z) >>= fun c1 =>
      trace "Just 1" c1.
 
   (* (trace "0" 0, trace "1" 1) *)
@@ -786,7 +786,7 @@ in head sx + head sx
 *)
 Example exAddDeepListND
  : evalND (nf
-  (doubleDeepSharedList (PartialLifted ND.Shape ND.Pos _ _ ND.Partial)
+  (doubleDeepSharedList (ND.Partial _ _)
    Cbneed_ addInteger_ (coinList Cbneed_)))
  = [0%Z;2%Z].
 Proof. constructor. Qed.
@@ -814,7 +814,7 @@ in head sx + head sx
 *)
 Example exAddDeepListTrace
  : evalTraceM (nf
-   (doubleDeepSharedList (PartialLifted Maybe.Shape Maybe.Pos _ _ Maybe.Partial)
+   (doubleDeepSharedList (Maybe.Partial _ _)
     Cbneed_ addInteger_ (traceList Cbneed_)))
   = (Some 0%Z, ["0"]).
 Proof. constructor. Qed.
