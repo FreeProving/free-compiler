@@ -63,7 +63,7 @@ data ConDecl = ConDecl { conDeclSrcSpan :: SrcSpan
                        }
  deriving ( Eq, Show )
 
- -- | Instance to get the name of a constructor declaration.
+-- | Instance to get the name of a constructor declaration.
 instance HasDeclIdent ConDecl where
   declIdent = conDeclIdent
 
