@@ -28,6 +28,16 @@ shouldConvertLocalTypeDeclsTo inputStrs expectedOutputStr = do
   output <- convertTypeComponent input
   return (output `prettyShouldBe` (expectedOutputStr, ""))
 
+-- | Parses the given type-level IR declarations, converts them to Coq using
+--   'convertTypeComponent' and sets the expectation that the resulting AST
+--   is equal to the given output when pretty printed modulo whitespace.
+shouldProduceNotationsModule
+  :: DependencyComponent String -> String -> Converter Expectation
+shouldProduceNotationsModule inputStrs expectedOutputStr = do
+  input <- parseTestComponent inputStrs
+  (_, outputModule) <- convertTypeComponent input
+  return (outputModule `prettyShouldBe` expectedOutputStr)
+
 -------------------------------------------------------------------------------
 -- Tests for Type Synonym Declarations                                       --
 -------------------------------------------------------------------------------
@@ -138,124 +148,202 @@ testConvertTypeDecl
 testConvertDataDecls :: Spec
 testConvertDataDecls
   = describe "FreeC.Backend.Coq.Converter.TypeDecl.convertDataDecls" $ do
-    it "translates non-polymorphic data types correctly" $ shouldSucceedWith $ do
-      "Foo" <- defineTestTypeCon "Foo" 0 ["Bar", "Baz"]
-      ("bar", "Bar") <- defineTestCon "Bar" 0 "Foo"
-      ("baz", "Baz") <- defineTestCon "Baz" 0 "Foo"
-      shouldConvertLocalTypeDeclsTo (NonRecursive "data Foo = Bar | Baz")
-        $ "(* Data type declarations for Foo *) "
-        ++ "Inductive Foo (Shape : Type) (Pos : Shape -> Type) : Type "
-        ++ " := bar : Foo Shape Pos "
-        ++ " |  baz : Foo Shape Pos. "
-        ++ "(* Arguments sentences for Foo *) "
-        ++ "Arguments bar {Shape} {Pos}. "
-        ++ "Arguments baz {Shape} {Pos}. "
-        ++ "(* Smart constructors for Foo *) "
-        ++ "Notation \"'Bar' Shape Pos\" :="
-        ++ " (@pure Shape Pos (Foo Shape Pos) (@bar Shape Pos))"
-        ++ " ( at level 10, Shape, Pos at level 9 ). "
-        ++ "Notation \"'@Bar' Shape Pos\" :="
-        ++ " (@pure Shape Pos (Foo Shape Pos) (@bar Shape Pos))"
-        ++ " ( only parsing, at level 10, Shape, Pos at level 9 ). "
-        ++ "Notation \"'Baz' Shape Pos\" :="
-        ++ " (@pure Shape Pos (Foo Shape Pos) (@baz Shape Pos))"
-        ++ " ( at level 10, Shape, Pos at level 9 ). "
-        ++ "Notation \"'@Baz' Shape Pos\" :="
-        ++ " (@pure Shape Pos (Foo Shape Pos) (@baz Shape Pos))"
-        ++ " ( only parsing, at level 10, Shape, Pos at level 9 ). "
-    it "translates polymorphic data types correctly" $ shouldSucceedWith $ do
-      "Foo" <- defineTestTypeCon "Foo" 2 ["Bar", "Baz"]
-      ("bar", "Bar") <- defineTestCon "Bar" 1 "forall a b. a -> Foo a b"
-      ("baz", "Baz") <- defineTestCon "Baz" 1 "forall a b. b -> Foo a b"
-      shouldConvertLocalTypeDeclsTo
-        (NonRecursive "data Foo a b = Bar a | Baz b")
-        $ "(* Data type declarations for Foo *) "
-        ++ "Inductive Foo (Shape : Type) (Pos : Shape -> Type) "
-        ++ " (a b : Type) : Type "
-        ++ " := bar : Free Shape Pos a -> Foo Shape Pos a b "
-        ++ " |  baz : Free Shape Pos b -> Foo Shape Pos a b. "
-        ++ "(* Arguments sentences for Foo *) "
-        ++ "Arguments bar {Shape} {Pos} {a} {b}. "
-        ++ "Arguments baz {Shape} {Pos} {a} {b}. "
-        ++ "(* Smart constructors for Foo *) "
-        ++ "Notation \"'Bar' Shape Pos x_0\" :="
-        ++ " (@pure Shape Pos (Foo Shape Pos _ _) (@bar Shape Pos _ _ x_0))"
-        ++ " ( at level 10, Shape, Pos, x_0 at level 9 ). "
-        ++ "Notation \"'@Bar' Shape Pos a b x_0\" :="
-        ++ " (@pure Shape Pos (Foo Shape Pos a b) (@bar Shape Pos a b x_0))"
-        ++ " ( only parsing, at level 10, Shape, Pos, a, b, x_0 at level 9 ). "
-        ++ "Notation \"'Baz' Shape Pos x_0\" :="
-        ++ " (@pure Shape Pos (Foo Shape Pos _ _) (@baz Shape Pos _ _ x_0))"
-        ++ " ( at level 10, Shape, Pos, x_0 at level 9 ). "
-        ++ "Notation \"'@Baz' Shape Pos a b x_0\" :="
-        ++ " (@pure Shape Pos (Foo Shape Pos a b) (@baz Shape Pos a b x_0))"
-        ++ " ( only parsing, at level 10, Shape, Pos, a, b, x_0 at level 9 ). "
-    it "renames constructors with same name as their data type"
-      $ shouldSucceedWith
-      $ do
-        "Foo" <- defineTestTypeCon "Foo" 0 ["Foo"]
-        ("foo", "Foo0") <- defineTestCon "Foo" 0 "Foo"
-        shouldConvertLocalTypeDeclsTo (NonRecursive "data Foo = Foo")
-          $ "(* Data type declarations for Foo *) "
-          ++ "Inductive Foo (Shape : Type) (Pos : Shape -> Type) : Type "
-          ++ " := foo : Foo Shape Pos. "
-          ++ "(* Arguments sentences for Foo *) "
-          ++ "Arguments foo {Shape} {Pos}. "
-          ++ "(* Smart constructors for Foo *) "
-          ++ "Notation \"'Foo0' Shape Pos\" :="
-          ++ " (@pure Shape Pos (Foo Shape Pos) (@foo Shape Pos))"
-          ++ " ( at level 10, Shape, Pos at level 9 ). "
-          ++ "Notation \"'@Foo0' Shape Pos\" :="
-          ++ " (@pure Shape Pos (Foo Shape Pos) (@foo Shape Pos))"
-          ++ " ( only parsing, at level 10, Shape, Pos at level 9 ). "
-    it "renames type variables with same name as generated constructors"
-      $ shouldSucceedWith
-      $ do
-        "Foo" <- defineTestTypeCon "Foo" 0 ["A"]
-        ("a", "A") <- defineTestCon "A" 1 "forall a. a -> Foo a"
-        shouldConvertLocalTypeDeclsTo (NonRecursive "data Foo a = A a")
+    context "Translation of types and type synonyms" $ do
+      it "translates non-polymorphic data types correctly"
+        $ shouldSucceedWith
+        $ do
+          "Foo" <- defineTestTypeCon "Foo" 0 ["Bar", "Baz"]
+          ("bar", "Bar") <- defineTestCon "Bar" 0 "Foo"
+          ("baz", "Baz") <- defineTestCon "Baz" 0 "Foo"
+          shouldConvertLocalTypeDeclsTo (NonRecursive "data Foo = Bar | Baz")
+            $ "(* Data type declarations for Foo *) "
+            ++ "Inductive Foo (Shape : Type) (Pos : Shape -> Type) : Type "
+            ++ " := bar : Foo Shape Pos "
+            ++ " |  baz : Foo Shape Pos. "
+            ++ "(* Arguments sentences for Foo *) "
+            ++ "Arguments bar {Shape} {Pos}. "
+            ++ "Arguments baz {Shape} {Pos}. "
+            ++ "(* Smart constructors for Foo *) "
+            ++ "Notation \"'Bar' Shape Pos\" :="
+            ++ " (@pure Shape Pos (Foo Shape Pos) (@bar Shape Pos))"
+            ++ " ( at level 10, Shape, Pos at level 9 ). "
+            ++ "Notation \"'@Bar' Shape Pos\" :="
+            ++ " (@pure Shape Pos (Foo Shape Pos) (@bar Shape Pos))"
+            ++ " ( only parsing, at level 10, Shape, Pos at level 9 ). "
+            ++ "Notation \"'Baz' Shape Pos\" :="
+            ++ " (@pure Shape Pos (Foo Shape Pos) (@baz Shape Pos))"
+            ++ " ( at level 10, Shape, Pos at level 9 ). "
+            ++ "Notation \"'@Baz' Shape Pos\" :="
+            ++ " (@pure Shape Pos (Foo Shape Pos) (@baz Shape Pos))"
+            ++ " ( only parsing, at level 10, Shape, Pos at level 9 ). "
+      it "translates polymorphic data types correctly" $ shouldSucceedWith $ do
+        "Foo" <- defineTestTypeCon "Foo" 2 ["Bar", "Baz"]
+        ("bar", "Bar") <- defineTestCon "Bar" 1 "forall a b. a -> Foo a b"
+        ("baz", "Baz") <- defineTestCon "Baz" 1 "forall a b. b -> Foo a b"
+        shouldConvertLocalTypeDeclsTo
+          (NonRecursive "data Foo a b = Bar a | Baz b")
           $ "(* Data type declarations for Foo *) "
           ++ "Inductive Foo (Shape : Type) (Pos : Shape -> Type) "
-          ++ " (a0 : Type) : Type "
-          ++ " := a : Free Shape Pos a0 -> Foo Shape Pos a0. "
+          ++ " (a b : Type) : Type "
+          ++ " := bar : Free Shape Pos a -> Foo Shape Pos a b "
+          ++ " |  baz : Free Shape Pos b -> Foo Shape Pos a b. "
           ++ "(* Arguments sentences for Foo *) "
-          ++ "Arguments a {Shape} {Pos} {a0}. "
+          ++ "Arguments bar {Shape} {Pos} {a} {b}. "
+          ++ "Arguments baz {Shape} {Pos} {a} {b}. "
           ++ "(* Smart constructors for Foo *) "
-          ++ "Notation \"'A' Shape Pos x_0\" :="
-          ++ " (@pure Shape Pos (Foo Shape Pos _) (@a Shape Pos _ x_0))"
+          ++ "Notation \"'Bar' Shape Pos x_0\" :="
+          ++ " (@pure Shape Pos (Foo Shape Pos _ _) (@bar Shape Pos _ _ x_0))"
           ++ " ( at level 10, Shape, Pos, x_0 at level 9 ). "
-          ++ "Notation \"'@A' Shape Pos a0 x_0\" :="
-          ++ " (@pure Shape Pos (Foo Shape Pos a0) (@a Shape Pos a0 x_0))"
-          ++ " ( only parsing, at level 10, Shape, Pos, a0, x_0 at level 9 ). "
-    it "translates mutually recursive data types correctly"
-      $ shouldSucceedWith
-      $ do
-        "Foo" <- defineTestTypeCon "Foo" 0 ["Foo"]
-        ("foo", "Foo0") <- defineTestCon "Foo" 1 "Bar -> Foo"
-        "Bar" <- defineTestTypeCon "Bar" 0 ["Bar"]
-        ("bar", "Bar0") <- defineTestCon "Bar" 1 "Foo -> Bar"
-        shouldConvertLocalTypeDeclsTo
-          (Recursive ["data Foo = Foo Bar", "data Bar = Bar Foo"])
-          $ "(* Data type declarations for Foo, Bar *) "
-          ++ "Inductive Foo (Shape : Type) (Pos : Shape -> Type) : Type"
-          ++ "  := foo : Free Shape Pos (Bar Shape Pos) -> Foo Shape Pos "
-          ++ "with Bar (Shape : Type) (Pos : Shape -> Type) : Type"
-          ++ "  := bar : Free Shape Pos (Foo Shape Pos) -> Bar Shape Pos. "
-          ++ "(* Arguments sentences for Foo *) "
-          ++ "Arguments foo {Shape} {Pos}. "
-          ++ "(* Smart constructors for Foo *) "
-          ++ "Notation \"'Foo0' Shape Pos x_0\" :="
-          ++ " (@pure Shape Pos (Foo Shape Pos) (@foo Shape Pos x_0))"
+          ++ "Notation \"'@Bar' Shape Pos a b x_0\" :="
+          ++ " (@pure Shape Pos (Foo Shape Pos a b) (@bar Shape Pos a b x_0))"
+          ++ " ( only parsing, at level 10, Shape, Pos, a, b, x_0 at level 9 ). "
+          ++ "Notation \"'Baz' Shape Pos x_0\" :="
+          ++ " (@pure Shape Pos (Foo Shape Pos _ _) (@baz Shape Pos _ _ x_0))"
           ++ " ( at level 10, Shape, Pos, x_0 at level 9 ). "
-          ++ "Notation \"'@Foo0' Shape Pos x_0\" :="
-          ++ " (@pure Shape Pos (Foo Shape Pos) (@foo Shape Pos x_0))"
-          ++ " ( only parsing, at level 10, Shape, Pos, x_0 at level 9 ). "
-          ++ "(* Arguments sentences for Bar *) "
-          ++ "Arguments bar {Shape} {Pos}. "
-          ++ "(* Smart constructors for Bar *) "
-          ++ "Notation \"'Bar0' Shape Pos x_0\" :="
-          ++ " (@pure Shape Pos (Bar Shape Pos) (@bar Shape Pos x_0))"
-          ++ " ( at level 10, Shape, Pos, x_0 at level 9 ). "
-          ++ "Notation \"'@Bar0' Shape Pos x_0\" :="
-          ++ " (@pure Shape Pos (Bar Shape Pos) (@bar Shape Pos x_0))"
-          ++ " ( only parsing, at level 10, Shape, Pos, x_0 at level 9 ). "
+          ++ "Notation \"'@Baz' Shape Pos a b x_0\" :="
+          ++ " (@pure Shape Pos (Foo Shape Pos a b) (@baz Shape Pos a b x_0))"
+          ++ " ( only parsing, at level 10, Shape, Pos, a, b, x_0 at level 9 ). "
+      it "renames constructors with same name as their data type"
+        $ shouldSucceedWith
+        $ do
+          "Foo" <- defineTestTypeCon "Foo" 0 ["Foo"]
+          ("foo", "Foo0") <- defineTestCon "Foo" 0 "Foo"
+          shouldConvertLocalTypeDeclsTo (NonRecursive "data Foo = Foo")
+            $ "(* Data type declarations for Foo *) "
+            ++ "Inductive Foo (Shape : Type) (Pos : Shape -> Type) : Type "
+            ++ " := foo : Foo Shape Pos. "
+            ++ "(* Arguments sentences for Foo *) "
+            ++ "Arguments foo {Shape} {Pos}. "
+            ++ "(* Smart constructors for Foo *) "
+            ++ "Notation \"'Foo0' Shape Pos\" :="
+            ++ " (@pure Shape Pos (Foo Shape Pos) (@foo Shape Pos))"
+            ++ " ( at level 10, Shape, Pos at level 9 ). "
+            ++ "Notation \"'@Foo0' Shape Pos\" :="
+            ++ " (@pure Shape Pos (Foo Shape Pos) (@foo Shape Pos))"
+            ++ " ( only parsing, at level 10, Shape, Pos at level 9 ). "
+      it "renames type variables with same name as generated constructors"
+        $ shouldSucceedWith
+        $ do
+          "Foo" <- defineTestTypeCon "Foo" 0 ["A"]
+          ("a", "A") <- defineTestCon "A" 1 "forall a. a -> Foo a"
+          shouldConvertLocalTypeDeclsTo (NonRecursive "data Foo a = A a")
+            $ "(* Data type declarations for Foo *) "
+            ++ "Inductive Foo (Shape : Type) (Pos : Shape -> Type) "
+            ++ " (a0 : Type) : Type "
+            ++ " := a : Free Shape Pos a0 -> Foo Shape Pos a0. "
+            ++ "(* Arguments sentences for Foo *) "
+            ++ "Arguments a {Shape} {Pos} {a0}. "
+            ++ "(* Smart constructors for Foo *) "
+            ++ "Notation \"'A' Shape Pos x_0\" :="
+            ++ " (@pure Shape Pos (Foo Shape Pos _) (@a Shape Pos _ x_0))"
+            ++ " ( at level 10, Shape, Pos, x_0 at level 9 ). "
+            ++ "Notation \"'@A' Shape Pos a0 x_0\" :="
+            ++ " (@pure Shape Pos (Foo Shape Pos a0) (@a Shape Pos a0 x_0))"
+            ++ " ( only parsing, at level 10, Shape, Pos, a0, x_0 at level 9 ). "
+      it "translates mutually recursive data types correctly"
+        $ shouldSucceedWith
+        $ do
+          "Foo" <- defineTestTypeCon "Foo" 0 ["Foo"]
+          ("foo", "Foo0") <- defineTestCon "Foo" 1 "Bar -> Foo"
+          "Bar" <- defineTestTypeCon "Bar" 0 ["Bar"]
+          ("bar", "Bar0") <- defineTestCon "Bar" 1 "Foo -> Bar"
+          shouldConvertLocalTypeDeclsTo
+            (Recursive ["data Foo = Foo Bar", "data Bar = Bar Foo"])
+            $ "(* Data type declarations for Foo, Bar *) "
+            ++ "Inductive Foo (Shape : Type) (Pos : Shape -> Type) : Type"
+            ++ "  := foo : Free Shape Pos (Bar Shape Pos) -> Foo Shape Pos "
+            ++ "with Bar (Shape : Type) (Pos : Shape -> Type) : Type"
+            ++ "  := bar : Free Shape Pos (Foo Shape Pos) -> Bar Shape Pos. "
+            ++ "(* Arguments sentences for Foo *) "
+            ++ "Arguments foo {Shape} {Pos}. "
+            ++ "(* Smart constructors for Foo *) "
+            ++ "Notation \"'Foo0' Shape Pos x_0\" :="
+            ++ " (@pure Shape Pos (Foo Shape Pos) (@foo Shape Pos x_0))"
+            ++ " ( at level 10, Shape, Pos, x_0 at level 9 ). "
+            ++ "Notation \"'@Foo0' Shape Pos x_0\" :="
+            ++ " (@pure Shape Pos (Foo Shape Pos) (@foo Shape Pos x_0))"
+            ++ " ( only parsing, at level 10, Shape, Pos, x_0 at level 9 ). "
+            ++ "(* Arguments sentences for Bar *) "
+            ++ "Arguments bar {Shape} {Pos}. "
+            ++ "(* Smart constructors for Bar *) "
+            ++ "Notation \"'Bar0' Shape Pos x_0\" :="
+            ++ " (@pure Shape Pos (Bar Shape Pos) (@bar Shape Pos x_0))"
+            ++ " ( at level 10, Shape, Pos, x_0 at level 9 ). "
+            ++ "Notation \"'@Bar0' Shape Pos x_0\" :="
+            ++ " (@pure Shape Pos (Bar Shape Pos) (@bar Shape Pos x_0))"
+            ++ " ( only parsing, at level 10, Shape, Pos, x_0 at level 9 ). "
+    context "Generation of qualified smart constructor notations" $ do
+      it "produces qualified notations for a single type correctly"
+        $ shouldSucceedWith
+        $ do
+          _ <- defineTestTypeCon "A.Foo" 0 ["A.Bar"]
+          _ <- defineTestCon "A.Bar" 0 "A.Foo"
+          shouldProduceNotationsModule (NonRecursive "data A.Foo = A.Bar")
+            $ "(* Qualified smart constructors for Foo *) "
+            ++ "Notation \"'A.Bar' Shape Pos\" := "
+            ++ "(@pure Shape Pos (Foo Shape Pos) (@bar Shape Pos)) "
+            ++ "( at level 10, Shape, Pos at level 9 ). "
+            ++ "Notation \"'@A.Bar' Shape Pos\" := "
+            ++ "(@pure Shape Pos (Foo Shape Pos) (@bar Shape Pos)) "
+            ++ "( only parsing, at level 10, Shape, Pos at level 9 ). "
+      it "produces notations for a type with two constructors correctly"
+        $ shouldSucceedWith
+        $ do
+          _ <- defineTestTypeCon "A.Foo" 0 ["A.Bar", "A.Baz"]
+          _ <- defineTestCon "A.Bar" 0 "A.Foo"
+          _ <- defineTestCon "A.Baz" 0 "A.Foo"
+          shouldProduceNotationsModule
+            (NonRecursive "data A.Foo = A.Bar | A.Baz")
+            $ "(* Qualified smart constructors for Foo *) "
+            ++ "Notation \"'A.Bar' Shape Pos\" := "
+            ++ "(@pure Shape Pos (Foo Shape Pos) (@bar Shape Pos)) "
+            ++ "( at level 10, Shape, Pos at level 9 ). "
+            ++ "Notation \"'@A.Bar' Shape Pos\" := "
+            ++ "(@pure Shape Pos (Foo Shape Pos) (@bar Shape Pos)) "
+            ++ "( only parsing, at level 10, Shape, Pos at level 9 ). "
+            ++ "Notation \"'A.Baz' Shape Pos\" := "
+            ++ "(@pure Shape Pos (Foo Shape Pos) (@baz Shape Pos)) "
+            ++ "( at level 10, Shape, Pos at level 9 ). "
+            ++ "Notation \"'@A.Baz' Shape Pos\" := "
+            ++ "(@pure Shape Pos (Foo Shape Pos) (@baz Shape Pos)) "
+            ++ "( only parsing, at level 10, Shape, Pos at level 9 ). "
+      it "produces notations for polymorphic types correctly"
+        $ shouldSucceedWith
+        $ do
+          _ <- defineTestTypeCon "A.Foo" 1 ["A.Bar"]
+          _ <- defineTestCon "A.Bar" 1 "forall a. a -> A.Foo a"
+          shouldProduceNotationsModule (NonRecursive "data A.Foo a = A.Bar a")
+            $ "(* Qualified smart constructors for Foo *) "
+            ++ "Notation \"'A.Bar' Shape Pos x_0\" := "
+            ++ "(@pure Shape Pos (Foo Shape Pos _) (@bar Shape Pos _ x_0)) "
+            ++ "( at level 10, Shape, Pos, x_0 at level 9 ). "
+            ++ "Notation \"'@A.Bar' Shape Pos a x_0\" := "
+            ++ "(@pure Shape Pos (Foo Shape Pos a) (@bar Shape Pos a x_0)) "
+            ++ "( only parsing, at level 10, Shape, Pos, a, x_0 "
+            ++ "at level 9 ). "
+      it "produces notations for two mutually recursive types correctly"
+        $ shouldSucceedWith
+        $ do
+          _ <- defineTestTypeCon "A.Foo1" 1 ["A.Bar1"]
+          _ <- defineTestTypeCon "A.Foo2" 1 ["A.Bar2"]
+          _ <- defineTestCon "A.Bar1" 1 "A.Foo2 -> A.Foo1"
+          _ <- defineTestCon "A.Bar2" 1 "A.Foo1 -> A.Foo2"
+          shouldProduceNotationsModule
+            (Recursive
+             ["data A.Foo1 a = A.Bar1 A.Foo2", "data A.Foo2 a = A.Bar2 A.Foo1"])
+            $ "(* Qualified smart constructors for Foo1 *) "
+            ++ "Notation \"'A.Bar1' Shape Pos x_0\" := "
+            ++ "(@pure Shape Pos _ (@bar1 Shape Pos _ x_0)) "
+            ++ "( at level 10, Shape, Pos, x_0 at level 9 ). "
+            ++ "Notation \"'@A.Bar1' Shape Pos a x_0\" := "
+            ++ "(@pure Shape Pos (Foo1 Shape Pos) (@bar1 Shape Pos a x_0)) "
+            ++ "( only parsing, at level 10, Shape, Pos, a, x_0 at level 9 ). "
+            ++ "(* Qualified smart constructors for Foo2 *) "
+            ++ "Notation \"'A.Bar2' Shape Pos x_0\" := "
+            ++ "(@pure Shape Pos _ (@bar2 Shape Pos _ x_0)) "
+            ++ "( at level 10, Shape, Pos, x_0 at level 9 ). "
+            ++ "Notation \"'@A.Bar2' Shape Pos a x_0\" := "
+            ++ "(@pure Shape Pos (Foo2 Shape Pos) (@bar2 Shape Pos a x_0)) "
+            ++ "( only parsing, at level 10, Shape, Pos, a, x_0 at level 9 )."
+
+
