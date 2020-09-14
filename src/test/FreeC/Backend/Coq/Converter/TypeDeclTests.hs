@@ -29,11 +29,12 @@ shouldConvertLocalTypeDeclsTo inputStrs expectedOutputStr = do
   return (output `prettyShouldBe` (expectedOutputStr, ""))
 
 -- | Parses the given type-level IR declarations, converts them to Coq using
---   'convertTypeComponent' and sets the expectation that the resulting AST
---   is equal to the given output when pretty printed modulo whitespace.
-shouldProduceNotationsModule
+--   'convertTypeComponent' and sets the expectation that the second
+--   component of the result, which is a list of qualified notations, is equal
+--   to the given list when pretty printed modulo whitespace.
+shouldProduceQualifiedNotations
   :: DependencyComponent String -> String -> Converter Expectation
-shouldProduceNotationsModule inputStrs expectedOutputStr = do
+shouldProduceQualifiedNotations inputStrs expectedOutputStr = do
   input <- parseTestComponent inputStrs
   (_, outputModule) <- convertTypeComponent input
   return (outputModule `prettyShouldBe` expectedOutputStr)
@@ -278,7 +279,7 @@ testConvertDataDecls
         $ do
           _ <- defineTestTypeCon "A.Foo" 0 ["A.Bar"]
           _ <- defineTestCon "A.Bar" 0 "A.Foo"
-          shouldProduceNotationsModule (NonRecursive "data A.Foo = A.Bar")
+          shouldProduceQualifiedNotations (NonRecursive "data A.Foo = A.Bar")
             $ "(* Qualified smart constructors for Foo *) "
             ++ "Notation \"'A.Bar' Shape Pos\" := "
             ++ "(@pure Shape Pos (Foo Shape Pos) (@bar Shape Pos)) "
@@ -292,7 +293,7 @@ testConvertDataDecls
           _ <- defineTestTypeCon "A.Foo" 0 ["A.Bar", "A.Baz"]
           _ <- defineTestCon "A.Bar" 0 "A.Foo"
           _ <- defineTestCon "A.Baz" 0 "A.Foo"
-          shouldProduceNotationsModule
+          shouldProduceQualifiedNotations
             (NonRecursive "data A.Foo = A.Bar | A.Baz")
             $ "(* Qualified smart constructors for Foo *) "
             ++ "Notation \"'A.Bar' Shape Pos\" := "
@@ -312,7 +313,8 @@ testConvertDataDecls
         $ do
           _ <- defineTestTypeCon "A.Foo" 1 ["A.Bar"]
           _ <- defineTestCon "A.Bar" 1 "forall a. a -> A.Foo a"
-          shouldProduceNotationsModule (NonRecursive "data A.Foo a = A.Bar a")
+          shouldProduceQualifiedNotations
+            (NonRecursive "data A.Foo a = A.Bar a")
             $ "(* Qualified smart constructors for Foo *) "
             ++ "Notation \"'A.Bar' Shape Pos x_0\" := "
             ++ "(@pure Shape Pos (Foo Shape Pos _) (@bar Shape Pos _ x_0)) "
@@ -328,7 +330,7 @@ testConvertDataDecls
           _ <- defineTestTypeCon "A.Foo2" 1 ["A.Bar2"]
           _ <- defineTestCon "A.Bar1" 1 "A.Foo2 -> A.Foo1"
           _ <- defineTestCon "A.Bar2" 1 "A.Foo1 -> A.Foo2"
-          shouldProduceNotationsModule
+          shouldProduceQualifiedNotations
             (Recursive
              ["data A.Foo1 a = A.Bar1 A.Foo2", "data A.Foo2 a = A.Bar2 A.Foo1"])
             $ "(* Qualified smart constructors for Foo1 *) "
