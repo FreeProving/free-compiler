@@ -42,7 +42,7 @@ Section OneEffect.
   Definition SErrId := Comb.Shape (Error.Shape string) Identity.Shape.
   Definition PErrId := Comb.Pos (@Error.Pos string) Identity.Pos.
 
-  Definition handleError (A B : Type)
+  Definition handleError {A B : Type}
   `{Normalform SErrId PErrId A B}
   (p : Free SErrId PErrId A) : (B + string)
   := run (runError (nf p)).
@@ -148,7 +148,7 @@ Section TwoEffects.
   Definition SShrErr := Comb.Shape Share.Shape (Comb.Shape (Error.Shape string) Identity.Shape).
   Definition PShrErr := Comb.Pos Share.Pos (Comb.Pos (@Error.Pos string) Identity.Pos).
 
-  Definition handleShareError (A B : Type)
+  Definition handleShareError {A B : Type}
                               `{Normalform SShrErr PShrErr A B}
                               (p : Free SShrErr PShrErr A) : (B + string)
   := run (runError (runEmptySharing (0,0) (nf p))).
@@ -159,7 +159,7 @@ Section TwoEffects.
   Definition SNDErr := Comb.Shape ND.Shape (Comb.Shape (Error.Shape string) Identity.Shape).
   Definition PNDErr := Comb.Pos ND.Pos (Comb.Pos (@Error.Pos string)  Identity.Pos).
 
-  Definition handleNDError (A B : Type)
+  Definition handleNDError {A B : Type}
                            `{Normalform SNDErr PNDErr A B}
                            (p : Free SNDErr PNDErr A) : list B + string
   := match run (runError (runChoice (nf p))) with
@@ -175,7 +175,7 @@ Section TwoEffects.
   Definition SErrorTrc := Comb.Shape (Error.Shape string) (Comb.Shape Trace.Shape Identity.Shape).
   Definition PErrorTrc := Comb.Pos (@Error.Pos string) (Comb.Pos Trace.Pos Identity.Pos).
 
-  Definition handleErrorTrc (A B : Type)
+  Definition handleErrorTrc {A B : Type}
                             `{Normalform SErrorTrc PErrorTrc A B}
                              (p : Free SErrorTrc PErrorTrc A)
    : (B + string) * list string
@@ -277,7 +277,7 @@ Section ThreeEffects.
       (Comb.Pos ND.Pos
         (Comb.Pos (@Error.Pos string) Identity.Pos)).
 
-  Definition handleShareNDError (A B : Type)
+  Definition handleShareNDError {A B : Type}
                                   `{Normalform SShrNDErr PShrNDErr A B}
                                   (p : Free SShrNDErr PShrNDErr A)
    : list B + string
@@ -298,7 +298,7 @@ Section ThreeEffects.
       (Comb.Pos Share.Pos
         (Comb.Pos Trace.Pos Identity.Pos)).
 
-  Definition handleErrorShareTrace (A B : Type)
+  Definition handleErrorShareTrace {A B : Type}
                                    `{Normalform SErrShrTrc PErrShrTrc A B}
                                    (p : Free SErrShrTrc PErrShrTrc A)
    : (B + string) * list string
@@ -316,7 +316,7 @@ Section ThreeEffects.
       (Comb.Pos (@Error.Pos string)
         (Comb.Pos Trace.Pos Identity.Pos)).
 
-  Definition handleNDErrorTrace (A B : Type)
+  Definition handleNDErrorTrace {A B : Type}
                                 `{Normalform SNDErrTrc PNDErrTrc A B}
                                 (p : Free SNDErrTrc PNDErrTrc A)
    : (list B + string) * list string
